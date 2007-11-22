@@ -1,0 +1,132 @@
+{
+    global:
+        virInitialize;
+        virConnectOpen;
+        virConnectOpenReadOnly;
+	virConnectClose;
+	virConnectGetType;
+	virConnectGetVersion;
+	virConnectGetHostname;
+	virConnectGetURI;
+	virDomainGetConnect;
+	virConnectListDomains;
+	virConnectNumOfDomains;
+        virDomainCreate;
+	virDomainCreateLinux;
+        virDomainDefineXML;
+	virDomainDestroy;
+	virDomainFree;
+	virDomainGetID;
+	virDomainGetUUID;
+	virDomainGetUUIDString;
+	virDomainGetInfo;
+	virNodeGetCellsFreeMemory;
+	virDomainGetMaxMemory;
+	virDomainGetName;
+	virDomainGetOSType;
+	virDomainGetXMLDesc;
+	virDomainLookupByID;
+	virDomainLookupByName;
+	virDomainLookupByUUID;
+	virDomainLookupByUUIDString;
+	virDomainRestore;
+	virDomainResume;
+	virDomainSave;
+	virDomainCoreDump;
+        virDomainSetMemory;
+	virDomainSetMaxMemory;
+	virDomainShutdown;
+	virDomainReboot;
+	virDomainSuspend;
+	virConnectListDefinedDomains;
+	virConnectNumOfDefinedDomains;
+	virConnectGetMaxVcpus;
+	virDomainUndefine;
+	virDomainGetAutostart;
+	virDomainSetAutostart;
+	virGetVersion;
+	virCopyLastError;
+	virConnSetErrorFunc;
+	virResetLastError;
+	virErrorFunc;
+	virResetError;
+	virConnGetLastError;
+	virGetLastError;
+	virSetErrorFunc;
+	virConnCopyLastError;
+	virConnResetLastError;
+	virDefaultErrorFunc;
+	virNodeGetInfo;
+	virConnectGetCapabilities;
+	virNodeGetCellsFreeMemory;
+	virNodeGetFreeMemory;
+
+	virDomainSetVcpus;
+	virDomainPinVcpu;
+	virDomainGetVcpus;
+	virDomainGetMaxVcpus;
+	virDomainGetSchedulerType;
+	virDomainGetSchedulerParameters;
+	virDomainSetSchedulerParameters;
+	virDomainBlockStats;
+	virDomainInterfaceStats;
+	virDomainAttachDevice;
+	virDomainDetachDevice;
+
+	virDomainMigrate;
+
+	virNetworkGetConnect;
+	virConnectNumOfNetworks;
+	virConnectListNetworks;
+	virConnectNumOfDefinedNetworks;
+	virConnectListDefinedNetworks;
+	virNetworkLookupByName;
+	virNetworkLookupByUUID;
+	virNetworkLookupByUUIDString;
+	virNetworkCreateXML;
+	virNetworkDefineXML;
+	virNetworkUndefine;
+	virNetworkCreate;
+	virNetworkDestroy;
+	virNetworkFree;
+	virNetworkGetName;
+	virNetworkGetUUID;
+	virNetworkGetUUIDString;
+	virNetworkGetXMLDesc;
+	virNetworkGetBridgeName;
+	virNetworkGetAutostart;
+	virNetworkSetAutostart;
+
+        /* Symbols with __ are private only
+           for use by the libvirtd daemon.
+           They are not part of stable ABI
+           guarentee provided for the public
+           symbols above */
+
+	__virConfNew;
+	__virConfReadFile;
+	__virConfReadMem;
+	__virConfFree;
+	__virConfGetValue;
+	__virConfSetValue;
+	__virConfWriteFile;
+	__virConfWriteMem;
+
+	__virGetDomain;
+	__virGetNetwork;
+
+	__virEventRegisterImpl;
+
+ 	__virStateInitialize;
+ 	__virStateCleanup;
+ 	__virStateReload;
+ 	__virStateActive;
+
+	__virDrvSupportsFeature;
+
+	__virDomainMigratePrepare;
+	__virDomainMigratePerform;
+	__virDomainMigrateFinish;
+
+    local: *;
+};

@@ -1,0 +1,105 @@
+#!/bin/sh
+
+# the following is the LSB init header see
+# http://www.linux-foundation.org/spec//booksets/LSB-Core-generic/LSB-Core-generic.html#INITSCRCOMCONV
+#
+### BEGIN INIT INFO
+# Provides: libvirtd
+# Should-Start: xend
+# Default-Start: 3 4 5
+# Short-Description: daemon for libvirt virtualization API
+# Description: This is a daemon for managing QEMU guest instances
+#              and libvirt virtual networks
+#              See http://libvirt.org
+### END INIT INFO
+
+# the following is chkconfig init header
+#
+# libvirtd:   QEMU and virtual network management daemon
+#
+# chkconfig: 345 97 03
+# description:  This is a daemon for managing QEMU guest instances
+#               and libvirt virtual networks
+#               See http://libvirt.org
+#
+# processname: libvirtd
+# pidfile: @localstatedir@/run/libvirtd.pid
+#
+
+# Sanity checks.
+[ -x @sbindir@/libvirtd ] || exit 0
+
+# Source function library.
+. @sysconfdir@/rc.d/init.d/functions
+
+SERVICE=libvirtd
+PROCESS=libvirtd
+
+LIBVIRTD_CONFIG=
+LIBVIRTD_ARGS=
+
+test -f @sysconfdir@/sysconfig/libvirtd && . @sysconfdir@/sysconfig/libvirtd
+
+LIBVIRTD_CONFIG_ARGS=
+if [ -n "$LIBVIRTD_CONFIG" ]
+then
+    LIBVIRTD_CONFIG_ARGS="--config $LIBVIRTD_CONFIG"
+fi
+
+RETVAL=0
+
+start() {
+    echo -n $"Starting $SERVICE daemon: "
+    daemon --check $SERVICE $PROCESS --daemon $LIBVIRTD_CONFIG_ARGS $LIBVIRTD_ARGS
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && touch @localstatedir@/lock/subsys/$SERVICE
+}
+
+stop() {
+    echo -n $"Stopping $SERVICE daemon: "
+
+    killproc $PROCESS
+    RETVAL=$?
+    echo
+    if [ $RETVAL -eq 0 ]; then
+        rm -f @localstatedir@/lock/subsys/$SERVICE
+        rm -f @localstatedir@/run/$SERVICE.pid
+    fi
+}
+
+restart() {
+    stop
+    start
+}
+
+reload() {
+    echo -n $"Reloading $SERVICE configuration: "
+
+    killproc $PROCESS -HUP
+    RETVAL=$?
+    echo
+    return $RETVAL
+}
+
+# See how we were called.
+case "$1" in
+    start|stop|restart|reload)
+        $1
+        ;;
+    status)
+        status $PROCESS
+        RETVAL=$?
+        ;;
+    force-reload)
+        reload
+	;;
+    condrestart|try-restart)
+        [ -f @localstatedir@/lock/subsys/$SERVICE ] && restart || :
+        ;;
+    *)
+        echo $"Usage: $0 {start|stop|status|restart|condrestart|reload}"
+	exit 1
+        ;;
+esac
+exit $RETVAL

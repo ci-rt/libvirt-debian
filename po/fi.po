@@ -1,0 +1,2346 @@
+# Finnish translation of libvirt
+# This file is distributed under the same license as the libvirt package.
+#
+# Ville-Pekka Vainio <vpivaini@cs.helsinki.fi>, 2007.
+msgid ""
+msgstr ""
+"Project-Id-Version: libvirt\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2007-09-30 23:00+0200\n"
+"PO-Revision-Date: 2007-06-11 00:43+0200\n"
+"Last-Translator: Ville-Pekka Vainio <vpivaini@cs.helsinki.fi>\n"
+"Language-Team: Finnish <laatu@lokalisointi.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 1.11.4\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: src/libvirt.c:412 src/hash.c:664
+msgid "allocating connection"
+msgstr "varataan yhteyttä"
+
+#: src/virterror.c:243
+msgid "warning"
+msgstr "varoitus"
+
+#: src/virterror.c:246
+msgid "error"
+msgstr "virhe"
+
+#: src/virterror.c:350
+msgid "No error message provided"
+msgstr "Ei virheviestiä"
+
+#: src/virterror.c:405
+#, c-format
+msgid "internal error %s"
+msgstr "sisäinen virhe %s"
+
+#: src/virterror.c:407
+msgid "internal error"
+msgstr "sisäinen virhe"
+
+#: src/virterror.c:410
+msgid "out of memory"
+msgstr "muisti lopussa"
+
+#: src/virterror.c:414
+#, fuzzy
+msgid "this function is not supported by the hypervisor"
+msgstr "hypervisor ei ole tuettu"
+
+#: src/virterror.c:416
+#, fuzzy, c-format
+msgid "this function is not supported by the hypervisor: %s"
+msgstr "hypervisor %s ei ole tuettu"
+
+#: src/virterror.c:420
+msgid "could not connect to hypervisor"
+msgstr "ei voitu yhdistää hypervisoriin"
+
+#: src/virterror.c:422
+#, c-format
+msgid "could not connect to %s"
+msgstr "ei voitu yhdistää kohteeseen %s"
+
+#: src/virterror.c:426
+msgid "invalid connection pointer in"
+msgstr "virheellinen yhteysosoitin kohteessa"
+
+#: src/virterror.c:428
+#, c-format
+msgid "invalid connection pointer in %s"
+msgstr "virheellinen yhteysosoitin kohteessa %s"
+
+#: src/virterror.c:432
+msgid "invalid domain pointer in"
+msgstr "virheellinen toimialueosoitin kohteessa"
+
+#: src/virterror.c:434
+#, c-format
+msgid "invalid domain pointer in %s"
+msgstr "virheellinen toimialueosoitin kohteessa %s"
+
+#: src/virterror.c:438
+msgid "invalid argument in"
+msgstr "virheellinen argumentti kohteessa"
+
+#: src/virterror.c:440
+#, c-format
+msgid "invalid argument in %s"
+msgstr "virheellinen argumentti kohteessa %s"
+
+#: src/virterror.c:444
+#, c-format
+msgid "operation failed: %s"
+msgstr "toimenpide epäonnistui: %s"
+
+#: src/virterror.c:446
+msgid "operation failed"
+msgstr "toimenpide epäonnistui"
+
+#: src/virterror.c:450
+#, c-format
+msgid "GET operation failed: %s"
+msgstr "GET-toimenpide epäonnistui: %s"
+
+#: src/virterror.c:452
+msgid "GET operation failed"
+msgstr "GET-toimenpide epäonnistui"
+
+#: src/virterror.c:456
+#, c-format
+msgid "POST operation failed: %s"
+msgstr "POST-toimenpide epäonnistui: %s"
+
+#: src/virterror.c:458
+msgid "POST operation failed"
+msgstr "POST-toimenpide epäonnistui"
+
+#: src/virterror.c:461
+#, c-format
+msgid "got unknown HTTP error code %d"
+msgstr "saatiin tuntematon HTTP-virhekoodi %d"
+
+#: src/virterror.c:465
+#, c-format
+msgid "unknown host %s"
+msgstr "tuntematon kone %s"
+
+#: src/virterror.c:467
+msgid "unknown host"
+msgstr "tuntematon kone"
+
+#: src/virterror.c:471
+#, fuzzy, c-format
+msgid "failed to serialize S-Expr: %s"
+msgstr "Komennon ”%s” ajaminen epäonnistui: %s\n"
+
+#: src/virterror.c:473
+#, fuzzy
+msgid "failed to serialize S-Expr"
+msgstr "Komennon ”%s” ajaminen epäonnistui: %s\n"
+
+#: src/virterror.c:477
+msgid "could not use Xen hypervisor entry"
+msgstr ""
+
+#: src/virterror.c:479
+#, c-format
+msgid "could not use Xen hypervisor entry %s"
+msgstr ""
+
+#: src/virterror.c:483
+msgid "could not connect to Xen Store"
+msgstr "Xen Storeen yhdistäminen epäonnistui"
+
+#: src/virterror.c:485
+#, c-format
+msgid "could not connect to Xen Store %s"
+msgstr "Xen Storeen %s yhdistäminen epäonnistui"
+
+#: src/virterror.c:488
+#, c-format
+msgid "failed Xen syscall %s %d"
+msgstr "epäonnistunut Xen-järjestelmäkutsu %s %d"
+
+#: src/virterror.c:492
+msgid "unknown OS type"
+msgstr "tuntematon käyttöjärjestelmän tyyppi"
+
+#: src/virterror.c:494
+#, c-format
+msgid "unknown OS type %s"
+msgstr "tuntematon käyttöjärjestelmän tyyppi %s"
+
+#: src/virterror.c:497
+msgid "missing kernel information"
+msgstr "ytimen tietoja puuttuu"
+
+#: src/virterror.c:501
+msgid "missing root device information"
+msgstr "juurilaitteen tietoja puuttuu"
+
+# Tarkista
+#: src/virterror.c:503
+#, c-format
+msgid "missing root device information in %s"
+msgstr "juurilaitteen tietoja puuttuu %s"
+
+#: src/virterror.c:507
+msgid "missing source information for device"
+msgstr "lähdetietoja puuttuu laitteelle"
+
+#: src/virterror.c:509
+#, c-format
+msgid "missing source information for device %s"
+msgstr "lähdetietoja puuttuu laitteelle %s"
+
+#: src/virterror.c:513
+msgid "missing target information for device"
+msgstr "kohdetietoja puuttuu laitteelle"
+
+#: src/virterror.c:515
+#, c-format
+msgid "missing target information for device %s"
+msgstr "kohdetietoja puuttuu laitteelle %s"
+
+#: src/virterror.c:519
+msgid "missing domain name information"
+msgstr "verkkoalueen nimi puuttuu"
+
+# Tarkasta
+#: src/virterror.c:521
+#, c-format
+msgid "missing domain name information in %s"
+msgstr "verkkoalueen nimi puuttuu %s"
+
+#: src/virterror.c:525
+msgid "missing operating system information"
+msgstr "käyttöjärjestelmätieto puuttuu"
+
+#: src/virterror.c:527
+#, c-format
+msgid "missing operating system information for %s"
+msgstr "käyttöjärjestelmätieto puuttuu kohteelle %s"
+
+#: src/virterror.c:531
+msgid "missing devices information"
+msgstr "laitetietoja puuttuu"
+
+#: src/virterror.c:533
+#, c-format
+msgid "missing devices information for %s"
+msgstr "laitetietoja puuttuu kohteelle %s"
+
+#: src/virterror.c:537
+msgid "too many drivers registered"
+msgstr "liian monta rekisteröityä ajuria"
+
+#: src/virterror.c:539
+#, c-format
+msgid "too many drivers registered in %s"
+msgstr "liian monta rekisteröityä ajuria kohteessa %s"
+
+#: src/virterror.c:543
+msgid "library call failed, possibly not supported"
+msgstr "kirjastokutsu epäonnistui, sitä ei ehkä tueta"
+
+#: src/virterror.c:545
+#, c-format
+msgid "library call %s failed, possibly not supported"
+msgstr "kirjastokutsu %s epäonnistui, sitä ei ehkä tueta"
+
+#: src/virterror.c:549
+msgid "XML description not well formed or invalid"
+msgstr "XML-kuvaus ei ole hyvin muodostettu tai se ei kelpaa"
+
+#: src/virterror.c:551
+#, c-format
+msgid "XML description for %s is not well formed or invalid"
+msgstr "Kohteen %s XML-kuvaus ei ole hyvin muodostettu tai se ei kelpaa"
+
+#: src/virterror.c:555
+msgid "this domain exists already"
+msgstr "Tämä toimialue on jo olemassa"
+
+#: src/virterror.c:557
+#, c-format
+msgid "domain %s exists already"
+msgstr "toimialue %s on jo olemassa"
+
+#: src/virterror.c:561
+msgid "operation forbidden for read only access"
+msgstr "toiminto on kielletty vain luku -käytössä"
+
+#: src/virterror.c:563
+#, c-format
+msgid "operation %s forbidden for read only access"
+msgstr "toiminto %s on kielletty vain luku -käytössä"
+
+#: src/virterror.c:567
+msgid "failed to open configuration file for reading"
+msgstr "asetustiedoston avaaminen luettavaksi epäonnistui"
+
+#: src/virterror.c:569
+#, c-format
+msgid "failed to open %s for reading"
+msgstr "tiedoston %s avaaminen luettavaksi epäonnistui"
+
+#: src/virterror.c:573
+msgid "failed to read configuration file"
+msgstr "asetustiedoston lukeminen epäonnistui"
+
+#: src/virterror.c:575
+#, c-format
+msgid "failed to read configuration file %s"
+msgstr "asetustiedoston %s lukeminen epäonnistui"
+
+#: src/virterror.c:579
+msgid "failed to parse configuration file"
+msgstr "asetustiedoston jäsentäminen epäonnistui"
+
+#: src/virterror.c:581
+#, c-format
+msgid "failed to parse configuration file %s"
+msgstr "asetustiedoston %s jäsentäminen epäonnistui"
+
+#: src/virterror.c:585
+msgid "configuration file syntax error"
+msgstr "asetustiedoston syntaksivirhe"
+
+#: src/virterror.c:587
+#, c-format
+msgid "configuration file syntax error: %s"
+msgstr "asetustiedoston syntaksivirhe: %s"
+
+#: src/virterror.c:591
+msgid "failed to write configuration file"
+msgstr "asetustiedoston kirjoitus epäonnistui"
+
+#: src/virterror.c:593
+#, c-format
+msgid "failed to write configuration file: %s"
+msgstr "asetustiedoston kirjoitus epäonnistui: %s"
+
+#: src/virterror.c:597
+msgid "parser error"
+msgstr "jäsenninvirhe"
+
+#: src/virterror.c:603
+msgid "invalid network pointer in"
+msgstr "virheellinen verkko-osoitin kohteessa"
+
+#: src/virterror.c:605
+#, c-format
+msgid "invalid network pointer in %s"
+msgstr "virheellinen verkko-osoitin kohteessa %s"
+
+#: src/virterror.c:609
+msgid "this network exists already"
+msgstr "Tämä verkko on jo olemassa"
+
+#: src/virterror.c:611
+#, c-format
+msgid "network %s exists already"
+msgstr "verkko %s on jo olemassa"
+
+#: src/virterror.c:615
+msgid "system call error"
+msgstr "järjestelmäkutsuvirhe"
+
+#: src/virterror.c:621
+msgid "RPC error"
+msgstr "RPC-virhe"
+
+#: src/virterror.c:627
+msgid "GNUTLS call error"
+msgstr "GNUTLS-kutsuvirhe"
+
+#: src/virterror.c:633
+msgid "Failed to find the network"
+msgstr "Verkkoa ei löytynyt"
+
+#: src/virterror.c:635
+#, c-format
+msgid "Failed to find the network: %s"
+msgstr "Verkkoa ei löytynyt: %s"
+
+#: src/virterror.c:639
+#, fuzzy
+msgid "Domain not found"
+msgstr "toimialueen tiedot"
+
+#: src/virterror.c:641
+#, fuzzy, c-format
+msgid "Domain not found: %s"
+msgstr "Toimialue palautettu tiedostosta %s\n"
+
+#: src/virterror.c:645
+#, fuzzy
+msgid "Network not found"
+msgstr "verkon nimi tai uuid"
+
+#: src/virterror.c:647
+#, fuzzy, c-format
+msgid "Network not found: %s"
+msgstr "Verkko %s luotu tiedostosta %s\n"
+
+#: src/virterror.c:651
+#, fuzzy
+msgid "invalid MAC adress"
+msgstr "virheellinen argumentti kohteessa %s"
+
+#: src/virterror.c:653
+#, fuzzy, c-format
+msgid "invalid MAC adress: %s"
+msgstr "virheellinen argumentti kohteessa %s"
+
+#: src/xmlrpc.c:63
+msgid "copying node content"
+msgstr "kopioidaan solmun sisältöä"
+
+#: src/xmlrpc.c:163
+msgid "allocate value array"
+msgstr "varaa arvotaulukko"
+
+#: src/xmlrpc.c:196
+#, fuzzy
+msgid "unexpected dict node"
+msgstr "Sama kuin solmu"
+
+#: src/xmlrpc.c:268
+msgid "unexpected value node"
+msgstr "odottamaton arvosolmu"
+
+#: src/xmlrpc.c:431
+msgid "send request"
+msgstr "Lähetä kutsu"
+
+#: src/xmlrpc.c:437
+msgid "unexpected mime type"
+msgstr "odottamaton MIME-tyyppi"
+
+#: src/xmlrpc.c:444
+msgid "allocate response"
+msgstr "varaa vastaus"
+
+#: src/xmlrpc.c:452 src/xmlrpc.c:514
+msgid "read response"
+msgstr "lue vastaus"
+
+#: src/xmlrpc.c:484 src/xml.c:265
+msgid "allocate string array"
+msgstr "varaa merkkijonotaulukko"
+
+#: src/xmlrpc.c:606
+msgid "parse server response failed"
+msgstr "palvelimen vastauksen jäsentäminen epäonnistui"
+
+#: src/xmlrpc.c:670
+msgid "allocate new context"
+msgstr "varaa uusi konteksti"
+
+#: src/hash.c:770 src/hash.c:775
+msgid "allocating domain"
+msgstr "varataan toimialue"
+
+#: src/hash.c:786
+msgid "failed to add domain to connection hash table"
+msgstr "toimialueen lisääminen yhteyksien hajautustauluun epäonnistui"
+
+#: src/hash.c:838
+msgid "domain missing from connection hash table"
+msgstr "toimialue puuttuu yhteyksien hajautustaulusta"
+
+#: src/hash.c:903 src/hash.c:908
+msgid "allocating network"
+msgstr "varataan verkkoa"
+
+#: src/hash.c:918
+msgid "failed to add network to connection hash table"
+msgstr "verkon lisääminen yhteyksien hajautustauluun epäonnistui"
+
+#: src/hash.c:970
+msgid "network missing from connection hash table"
+msgstr "verkko puuttuu yhteyksien hajautustaulusta"
+
+#: src/test.c:223 src/test.c:588 src/test.c:1262
+msgid "getting time of day"
+msgstr "haetaan kellonaika"
+
+#: src/test.c:229 src/test.c:361 src/test.c:387 src/test.c:1537
+msgid "domain"
+msgstr "toimialue"
+
+#: src/test.c:235 src/test.c:421 src/test.c:694
+msgid "creating xpath context"
+msgstr "luodaan xpath-konteksti"
+
+#: src/test.c:241
+msgid "domain name"
+msgstr "toimialueen nimi"
+
+#: src/test.c:247 src/test.c:251
+msgid "domain uuid"
+msgstr "toimialueen UUID"
+
+#: src/test.c:259
+msgid "domain memory"
+msgstr "toimialueen muisti"
+
+#: src/test.c:268
+msgid "domain current memory"
+msgstr "toimialueen nykyinen muisti"
+
+#: src/test.c:278
+msgid "domain vcpus"
+msgstr "toimialueen virtuaaliprosessorit"
+
+#: src/test.c:287
+msgid "domain reboot behaviour"
+msgstr "toimialueen uudelleenkäynnistyskäytös"
+
+#: src/test.c:297
+msgid "domain poweroff behaviour"
+msgstr "toimialueen virrankatkaisukäytös"
+
+#: src/test.c:307
+msgid "domain crash behaviour"
+msgstr "toimialueen kaatumiskäytös"
+
+#: src/test.c:380
+msgid "load domain definition file"
+msgstr "lataa toimialueen määritystiedosto"
+
+#: src/test.c:415 src/test.c:539 src/test.c:564
+#, fuzzy
+msgid "network"
+msgstr "Verkon nimi"
+
+#: src/test.c:427 src/virsh.c:2733
+msgid "network name"
+msgstr "Verkon nimi"
+
+#: src/test.c:435 src/test.c:439 src/virsh.c:2624
+msgid "network uuid"
+msgstr "verkko-UUID"
+
+#: src/test.c:447
+#, fuzzy
+msgid "network forward"
+msgstr "Verkon nimi"
+
+#: src/test.c:456 src/test.c:466 src/test.c:471
+msgid "ip address"
+msgstr ""
+
+#: src/test.c:461
+msgid "ip netmask"
+msgstr ""
+
+#: src/test.c:557
+#, fuzzy
+msgid "load network definition file"
+msgstr "lataa toimialueen määritystiedosto"
+
+#: src/test.c:673
+msgid "loading host definition file"
+msgstr "lataa koneen määritystiedostoa"
+
+#: src/test.c:680
+msgid "host"
+msgstr "kone"
+
+#: src/test.c:688
+msgid "node"
+msgstr "solmu"
+
+#: src/test.c:712
+msgid "node cpu numa nodes"
+msgstr ""
+
+#: src/test.c:720
+msgid "node cpu sockets"
+msgstr "solmun prosessoripaikat"
+
+#: src/test.c:728
+msgid "node cpu cores"
+msgstr "solmun prosessoriytimet"
+
+#: src/test.c:736
+msgid "node cpu threads"
+msgstr "solmun prosessorisäikeet"
+
+#: src/test.c:747
+msgid "node active cpu"
+msgstr "solmun aktiivinen prosessori"
+
+#: src/test.c:754
+msgid "node cpu mhz"
+msgstr "solmun prosessorin kellotaajuus"
+
+#: src/test.c:769
+msgid "node memory"
+msgstr "solmun muisti"
+
+#: src/test.c:775
+msgid "node domain list"
+msgstr "solmun toimialueluettelo"
+
+#: src/test.c:785
+msgid "resolving domain filename"
+msgstr "selvitetään toimialueen tiedostonimeä"
+
+#: src/test.c:810
+#, fuzzy
+msgid "resolving network filename"
+msgstr "selvitetään toimialueen tiedostonimeä"
+
+#: src/test.c:908
+msgid "testOpen: supply a path or use test:///default"
+msgstr "testOpen: anna polku tai käytä test:///default"
+
+#: src/test.c:1046
+msgid "too many domains"
+msgstr "liian monta toimialuetta"
+
+#: src/test.c:1557
+msgid "Domain is already running"
+msgstr "toimialue on jo käynnissä"
+
+#: src/test.c:1572
+msgid "Domain is still running"
+msgstr "toimialue on edelleen käynnissä"
+
+#: src/test.c:1772 src/test.c:1797
+#, fuzzy
+msgid "too many networks"
+msgstr "liian monta yhteyttä"
+
+#: src/test.c:1816
+#, fuzzy
+msgid "Network is still running"
+msgstr "toimialue on edelleen käynnissä"
+
+#: src/test.c:1830
+#, fuzzy
+msgid "Network is already running"
+msgstr "toimialue on jo käynnissä"
+
+#: src/sexpr.c:59
+msgid "failed to allocate a node"
+msgstr "solmun varaus epäonnistui"
+
+#: src/sexpr.c:352 src/sexpr.c:367
+msgid "failed to copy a string"
+msgstr "merkkijonon kopiointi epäonnistui"
+
+#: src/xend_internal.c:283 src/xend_internal.c:286
+msgid "failed to read from Xen Daemon"
+msgstr "Luku Xen Daemonista epäonnistui"
+
+#: src/xend_internal.c:597 src/xend_internal.c:814 src/xend_internal.c:1534
+#: src/xend_internal.c:1553 src/xend_internal.c:2079
+msgid "allocate new buffer"
+msgstr "varaa uusi puskuri"
+
+#: src/xend_internal.c:1021
+#, fuzzy
+msgid "failed to urlencode the create S-Expr"
+msgstr "<qt>Kansiota <b>%1</b> ei voida luoda.</qt>"
+
+#: src/xend_internal.c:1062
+msgid "domain information incomplete, missing domid"
+msgstr "toimialuetieto on epätäydellistä, domid puuttuu"
+
+#: src/xend_internal.c:1068
+msgid "domain information incorrect domid not numeric"
+msgstr "toimialuetieto on virheellistä, domid ei ole numeerinen"
+
+#: src/xend_internal.c:1073 src/xend_internal.c:1120
+msgid "domain information incomplete, missing uuid"
+msgstr "toimialuetieto on epätäydellistä, uuid puuttuu"
+
+#: src/xend_internal.c:1112 src/xend_internal.c:1390 src/xend_internal.c:1397
+msgid "domain information incomplete, missing name"
+msgstr "toimialuetiedot ovat epätäydellisiä, nimi puuttuu"
+
+#: src/xend_internal.c:1286 src/xend_internal.c:1317
+msgid "domain information incomplete, missing kernel & bootloader"
+msgstr "toimialuetieto on epätäydellistä, ydin ja käynnistyslatain puuttuu"
+
+#: src/xend_internal.c:1378
+msgid "domain information incomplete, missing id"
+msgstr "toimialuetieto on epätäydellistä, id puuttuu"
+
+#: src/xend_internal.c:1503
+msgid "domain information incomplete, vbd has no dev"
+msgstr ""
+
+#: src/xend_internal.c:1518
+msgid "domain information incomplete, vbd has no src"
+msgstr ""
+
+#: src/xend_internal.c:1527
+msgid "cannot parse vbd filename, missing driver name"
+msgstr ""
+
+#: src/xend_internal.c:1546
+msgid "cannot parse vbd filename, missing driver type"
+msgstr ""
+
+#: src/xend_internal.c:1948
+#, fuzzy
+msgid "failed to parse topology information"
+msgstr "Xend-toimialueen tietojen jäsentäminen epäonnistui"
+
+#: src/xend_internal.c:2136
+msgid "failed to parse Xend domain information"
+msgstr "Xend-toimialueen tietojen jäsentäminen epäonnistui"
+
+#: src/xend_internal.c:3604
+#, c-format
+msgid "Failed to create inactive domain %s\n"
+msgstr "Epäaktiivisen toimialueen %s luominen epäonnistui\n"
+
+#: src/virsh.c:309
+msgid "print help"
+msgstr "näytä ohje"
+
+#: src/virsh.c:310
+msgid "Prints global help or command specific help."
+msgstr "Tulostaa yleisen tai komentoon liittyvän ohjeen."
+
+#: src/virsh.c:316
+#, fuzzy
+msgid "name of command"
+msgstr "Epäaktiivisen toimialueen nimi"
+
+#: src/virsh.c:328
+msgid ""
+"Commands:\n"
+"\n"
+msgstr ""
+"Komennot:\n"
+"\n"
+
+#: src/virsh.c:342
+msgid "autostart a domain"
+msgstr "käynnistä toimialue automaattisesti"
+
+#: src/virsh.c:344
+msgid "Configure a domain to be automatically started at boot."
+msgstr ""
+"Aseta toimialue käynnistymään automaattisesti koneen käynnistymisen "
+"yhteydessä."
+
+#: src/virsh.c:349 src/virsh.c:450 src/virsh.c:636 src/virsh.c:673
+#: src/virsh.c:730 src/virsh.c:797 src/virsh.c:1077 src/virsh.c:1121
+#: src/virsh.c:1297 src/virsh.c:1342 src/virsh.c:1381 src/virsh.c:1420
+#: src/virsh.c:1459 src/virsh.c:1498 src/virsh.c:1617 src/virsh.c:1704
+#: src/virsh.c:1832 src/virsh.c:1889 src/virsh.c:1946 src/virsh.c:2067
+#: src/virsh.c:2207 src/virsh.c:2908 src/virsh.c:2988 src/virsh.c:3051
+#: src/virsh.c:3105 src/virsh.c:3159 src/virsh.c:3275 src/virsh.c:3396
+#: src/virsh.c:3561
+msgid "domain name, id or uuid"
+msgstr "toimialueen nimi, id tai uuid"
+
+#: src/virsh.c:350 src/virsh.c:2271
+msgid "disable autostarting"
+msgstr "poista automaattikäynnistys käytöstä"
+
+#: src/virsh.c:371
+#, c-format
+msgid "Failed to mark domain %s as autostarted"
+msgstr ""
+"Toimialueen %s merkitseminen automaattisesti käynnistyväksi epäonnistui"
+
+#: src/virsh.c:374
+#, c-format
+msgid "Failed to unmark domain %s as autostarted"
+msgstr ""
+"Toimialueen %s automaattisen käynnistymisen merkinnän poistaminen epäonnistui"
+
+#: src/virsh.c:381
+#, c-format
+msgid "Domain %s marked as autostarted\n"
+msgstr "Toimialue %s merkitty automaattisesti käynnistyväksi\n"
+
+#: src/virsh.c:383
+#, c-format
+msgid "Domain %s unmarked as autostarted\n"
+msgstr "Toimialueen %s automaattisen käynnistyksen merkintä poistettu\n"
+
+#: src/virsh.c:394
+msgid "(re)connect to hypervisor"
+msgstr "Yhdistä (uudelleen) hypervisoriin"
+
+#: src/virsh.c:396
+msgid ""
+"Connect to local hypervisor. This is built-in command after shell start up."
+msgstr ""
+"Yhdistä paikalliseen hypervisoriin. Tämä on sisäänrakennettu komento "
+"komentotulkin käynnistymisen jälkeen."
+
+#: src/virsh.c:401
+msgid "hypervisor connection URI"
+msgstr "hypervisorin yhteysosoite"
+
+#: src/virsh.c:402
+msgid "read-only connection"
+msgstr "vain luku -yhteys"
+
+#: src/virsh.c:414
+msgid "Failed to disconnect from the hypervisor"
+msgstr "Hypervisor-yhteyden katkaisu epäonnistui"
+
+#: src/virsh.c:433
+msgid "Failed to connect to the hypervisor"
+msgstr "Hypervisoriin yhdistäminen epäonnistui"
+
+#: src/virsh.c:443
+msgid "connect to the guest console"
+msgstr "Yhdistä vieraskonsoliin"
+
+#: src/virsh.c:445
+msgid "Connect the virtual serial console for the guest"
+msgstr "Yhdistä vieraan virtuaalisarjakonsoli"
+
+#: src/virsh.c:490
+msgid "No console available for domain\n"
+msgstr "Toimialueella ei ole konsolia\n"
+
+#: src/virsh.c:508
+msgid "list domains"
+msgstr "luetteloi toimialueet"
+
+#: src/virsh.c:509
+msgid "Returns list of domains."
+msgstr "Palauttaa listan toimialueista."
+
+#: src/virsh.c:514
+msgid "list inactive domains"
+msgstr "luetteloi epäaktiiviset toimialueet"
+
+#: src/virsh.c:515
+msgid "list inactive & active domains"
+msgstr "luetteloi epäaktiiviset ja aktiiviset toimialueet"
+
+#: src/virsh.c:537 src/virsh.c:544
+msgid "Failed to list active domains"
+msgstr "Aktiivisten toimialueiden luettelointi epäonnistui"
+
+#: src/virsh.c:555 src/virsh.c:564
+msgid "Failed to list inactive domains"
+msgstr "Epäaktiivisten toimialueiden luettelointi epäonnistui"
+
+#: src/virsh.c:574
+msgid "Id"
+msgstr "Id"
+
+#: src/virsh.c:574 src/virsh.c:2556
+msgid "Name"
+msgstr "Nimi"
+
+#: src/virsh.c:574 src/virsh.c:2556
+msgid "State"
+msgstr "Tila"
+
+#: src/virsh.c:587 src/virsh.c:609 src/virsh.c:4343 src/virsh.c:4359
+msgid "no state"
+msgstr "ei tilaa"
+
+#: src/virsh.c:630
+msgid "domain state"
+msgstr "toimialueen tila"
+
+#: src/virsh.c:631
+msgid "Returns state about a running domain."
+msgstr "Palauttaa käynnissä olevan toimialueen tilan."
+
+#: src/virsh.c:667
+msgid "get device block stats for a domain"
+msgstr ""
+
+#: src/virsh.c:668
+#, fuzzy
+msgid "Get device block stats for a running domain."
+msgstr "Palauttaa käynnissä olevan toimialueen tilan."
+
+#: src/virsh.c:674
+#, fuzzy
+msgid "block device"
+msgstr "odottaa"
+
+#: src/virsh.c:695
+#, fuzzy, c-format
+msgid "Failed to get block stats %s %s"
+msgstr "Toimialueen %s tallentaminen tiedostoon %s epäonnistui"
+
+#: src/virsh.c:724
+#, fuzzy
+msgid "get network interface stats for a domain"
+msgstr "Verkon nimi"
+
+#: src/virsh.c:725
+#, fuzzy
+msgid "Get network interface stats for a running domain."
+msgstr "Palauttaa käynnissä olevan toimialueen tilan."
+
+#: src/virsh.c:731
+msgid "interface device"
+msgstr ""
+
+#: src/virsh.c:752
+#, fuzzy, c-format
+msgid "Failed to get interface stats %s %s"
+msgstr "solmun tietojen saanti epäonnistui"
+
+#: src/virsh.c:791
+msgid "suspend a domain"
+msgstr "aseta toimialue keskeytystilaan"
+
+#: src/virsh.c:792
+msgid "Suspend a running domain."
+msgstr "Aseta suorituksessa oleva toimialue keskeytystilaan."
+
+#: src/virsh.c:815
+#, c-format
+msgid "Domain %s suspended\n"
+msgstr "Toimialue %s keskeytystilassa\n"
+
+#: src/virsh.c:817
+#, c-format
+msgid "Failed to suspend domain %s"
+msgstr "Toimialueen %s asettaminen keskeytystilaan epäonnistui"
+
+#: src/virsh.c:830
+msgid "create a domain from an XML file"
+msgstr "luo toimialue XML-tiedostosta"
+
+#: src/virsh.c:831
+msgid "Create a domain."
+msgstr "Luo toimialue."
+
+#: src/virsh.c:836 src/virsh.c:944
+msgid "file containing an XML domain description"
+msgstr "tiedosto, joka sisältää XML-muotoisen toimialueen kuvauksen"
+
+#: src/virsh.c:851
+#, c-format
+msgid "Failed to open '%s': %s"
+msgstr "Kohteen ”%s” avaaminen epäonnistui: %s"
+
+#: src/virsh.c:871
+#, c-format
+msgid "Failed to open '%s': read: %s"
+msgstr ""
+
+#: src/virsh.c:889
+#, c-format
+msgid "Error allocating memory: %s"
+msgstr "Virhe varattaessa muistia: %s"
+
+#: src/virsh.c:923
+#, c-format
+msgid "Domain %s created from %s\n"
+msgstr "Toimialue %s luotu tiedostosta %s\n"
+
+#: src/virsh.c:927
+#, c-format
+msgid "Failed to create domain from %s"
+msgstr "Toimialueen luonti tiedostosta %s epäonnistui"
+
+#: src/virsh.c:938
+msgid "define (but don't start) a domain from an XML file"
+msgstr "määritä (mutta älä käynnistä) toimialue XML-tiedostosta"
+
+#: src/virsh.c:939
+msgid "Define a domain."
+msgstr "Määritä toimialue."
+
+#: src/virsh.c:971
+#, c-format
+msgid "Domain %s defined from %s\n"
+msgstr "Toimialue %s määritetty tiedostosta %s\n"
+
+#: src/virsh.c:975
+#, c-format
+msgid "Failed to define domain from %s"
+msgstr "Toimialueen määrittäminen tiedostosta %s epäonnistui"
+
+#: src/virsh.c:986
+msgid "undefine an inactive domain"
+msgstr "poista epäaktiivisen toimialueen määritys"
+
+#: src/virsh.c:987
+msgid "Undefine the configuration for an inactive domain."
+msgstr "Poista epäaktiivisen toimialueen asetusten määritykset."
+
+#: src/virsh.c:992 src/virsh.c:2136
+msgid "domain name or uuid"
+msgstr "toimialueen nimi tai uuid"
+
+#: src/virsh.c:1010
+#, c-format
+msgid "Domain %s has been undefined\n"
+msgstr "Toimialueen %s määritys on poistettu\n"
+
+#: src/virsh.c:1012
+#, c-format
+msgid "Failed to undefine domain %s"
+msgstr "Toimialueen %s määrityksen poistaminen epäonnistui"
+
+#: src/virsh.c:1026
+msgid "start a (previously defined) inactive domain"
+msgstr "käynnistä (aikaisemmin määritetty) epäaktiivinen toimialue"
+
+#: src/virsh.c:1027
+msgid "Start a domain."
+msgstr "Käynnistä toimialue."
+
+#: src/virsh.c:1032
+msgid "name of the inactive domain"
+msgstr "Epäaktiivisen toimialueen nimi"
+
+#: src/virsh.c:1049
+msgid "Domain is already active"
+msgstr "Toimialue on jo aktiivinen"
+
+#: src/virsh.c:1055
+#, c-format
+msgid "Domain %s started\n"
+msgstr "Toimialue %s käynnistetty\n"
+
+#: src/virsh.c:1058
+#, c-format
+msgid "Failed to start domain %s"
+msgstr "Toimialueen %s käynnistys epäonnistui"
+
+#: src/virsh.c:1071
+msgid "save a domain state to a file"
+msgstr "tallenna toimialueen tila tiedostoon"
+
+#: src/virsh.c:1072
+msgid "Save a running domain."
+msgstr "tallenna käynnissä oleva toimialue"
+
+#: src/virsh.c:1078
+msgid "where to save the data"
+msgstr "mihin tiedot tallennetaan"
+
+#: src/virsh.c:1100
+#, c-format
+msgid "Domain %s saved to %s\n"
+msgstr "Toimialue %s tallennettu tiedostoon %s\n"
+
+#: src/virsh.c:1102
+#, c-format
+msgid "Failed to save domain %s to %s"
+msgstr "Toimialueen %s tallentaminen tiedostoon %s epäonnistui"
+
+#: src/virsh.c:1115
+msgid "show/set scheduler parameters"
+msgstr ""
+
+#: src/virsh.c:1116
+msgid "Show/Set scheduler parameters."
+msgstr ""
+
+#: src/virsh.c:1122
+msgid "weight for XEN_CREDIT"
+msgstr ""
+
+#: src/virsh.c:1123
+msgid "cap for XEN_CREDIT"
+msgstr ""
+
+#: src/virsh.c:1193 src/virsh.c:1197
+msgid "Scheduler"
+msgstr ""
+
+#: src/virsh.c:1197
+msgid "Unknown"
+msgstr "Tuntematon"
+
+#: src/virsh.c:1253
+msgid "restore a domain from a saved state in a file"
+msgstr "palauta toimialue tiedostoon tallennetusta tilasta"
+
+#: src/virsh.c:1254
+msgid "Restore a domain."
+msgstr "Palauta toimialue."
+
+#: src/virsh.c:1259
+msgid "the state to restore"
+msgstr "palautettava tila"
+
+#: src/virsh.c:1278
+#, c-format
+msgid "Domain restored from %s\n"
+msgstr "Toimialue palautettu tiedostosta %s\n"
+
+#: src/virsh.c:1280
+#, c-format
+msgid "Failed to restore domain from %s"
+msgstr "Toimialueen palautetus tiedostosta %s epäonnistui"
+
+#: src/virsh.c:1291
+msgid "dump the core of a domain to a file for analysis"
+msgstr "tallenna toimialueen muistivedos tiedostoon analysointia varten"
+
+#: src/virsh.c:1292
+msgid "Core dump a domain."
+msgstr "Tee toimialueen muistivedos"
+
+#: src/virsh.c:1298
+msgid "where to dump the core"
+msgstr "mihin muistivedos tallennetaan"
+
+#: src/virsh.c:1320
+#, c-format
+msgid "Domain %s dumpd to %s\n"
+msgstr "Toimialueen %s muistivedos tallennettu tiedostoon %s\n"
+
+#: src/virsh.c:1322
+#, c-format
+msgid "Failed to core dump domain %s to %s"
+msgstr "Toimialueen %s muistivedoksen tallentaminen tiedostoon %s epäonnistui"
+
+#: src/virsh.c:1336
+msgid "resume a domain"
+msgstr "palauta toimialue"
+
+#: src/virsh.c:1337
+msgid "Resume a previously suspended domain."
+msgstr "Palauta aiemmin keskeytystilaan asetettu toimialue."
+
+#: src/virsh.c:1360
+#, c-format
+msgid "Domain %s resumed\n"
+msgstr "Toimialue %s palautettu\n"
+
+#: src/virsh.c:1362
+#, c-format
+msgid "Failed to resume domain %s"
+msgstr "Toimialueen %s palautus epäonnistui"
+
+#: src/virsh.c:1375
+msgid "gracefully shutdown a domain"
+msgstr "sammuta toimialue siististi"
+
+#: src/virsh.c:1376
+msgid "Run shutdown in the target domain."
+msgstr "Aja sammutus kohdetoimialueella."
+
+#: src/virsh.c:1399
+#, c-format
+msgid "Domain %s is being shutdown\n"
+msgstr "Toimialuetta %s sammutetaan\n"
+
+#: src/virsh.c:1401
+#, c-format
+msgid "Failed to shutdown domain %s"
+msgstr "Toimialueen %s sammutus epäonnistui"
+
+#: src/virsh.c:1414
+msgid "reboot a domain"
+msgstr "käynnistä toimialue uudelleen"
+
+#: src/virsh.c:1415
+msgid "Run a reboot command in the target domain."
+msgstr "Aja uudelleenkäynnistyskomento kohdetoimialueella."
+
+#: src/virsh.c:1438
+#, c-format
+msgid "Domain %s is being rebooted\n"
+msgstr "Toimialuetta %s uudelleenkäynnistetään\n"
+
+#: src/virsh.c:1440
+#, c-format
+msgid "Failed to reboot domain %s"
+msgstr "Toimialueen %s uudelleenkäynnistys epäonnistui"
+
+#: src/virsh.c:1453
+msgid "destroy a domain"
+msgstr "tuhoa toimialue"
+
+#: src/virsh.c:1454
+msgid "Destroy a given domain."
+msgstr "Tuhoa annettu toimialue"
+
+#: src/virsh.c:1477
+#, c-format
+msgid "Domain %s destroyed\n"
+msgstr "Toimialue %s tuhottu\n"
+
+#: src/virsh.c:1479
+#, c-format
+msgid "Failed to destroy domain %s"
+msgstr "Toimialueen %s tuhoaminen epäonnistui"
+
+#: src/virsh.c:1492
+msgid "domain information"
+msgstr "toimialueen tiedot"
+
+#: src/virsh.c:1493
+msgid "Returns basic information about the domain."
+msgstr "Palauttaa perustietoja toimialueesta."
+
+#: src/virsh.c:1519 src/virsh.c:1521
+msgid "Id:"
+msgstr "Id:"
+
+#: src/virsh.c:1522
+msgid "Name:"
+msgstr "Nimi:"
+
+#: src/virsh.c:1525
+msgid "UUID:"
+msgstr "UUID:"
+
+#: src/virsh.c:1528
+msgid "OS Type:"
+msgstr "Käyttöjärjestelmän tyyppi:"
+
+#: src/virsh.c:1533 src/virsh.c:1661
+msgid "State:"
+msgstr "Tila:"
+
+#: src/virsh.c:1536 src/virsh.c:2018
+msgid "CPU(s):"
+msgstr "Prosessori(t):"
+
+#: src/virsh.c:1543 src/virsh.c:1668
+msgid "CPU time:"
+msgstr "Prosessoriaika:"
+
+#: src/virsh.c:1547 src/virsh.c:1550
+msgid "Max memory:"
+msgstr "Enimmäismuisti:"
+
+#: src/virsh.c:1551
+msgid "no limit"
+msgstr "ei rajoitusta"
+
+#: src/virsh.c:1553
+msgid "Used memory:"
+msgstr "Käytetty muisti:"
+
+#: src/virsh.c:1569
+#, fuzzy
+msgid "NUMA free memory"
+msgstr "Käytetty muisti:"
+
+#: src/virsh.c:1570
+msgid "display available free memory for the NUMA cell."
+msgstr ""
+
+#: src/virsh.c:1575
+#, fuzzy
+msgid "NUMA cell number"
+msgstr "(piilotettu solu)"
+
+#: src/virsh.c:1599
+msgid "Total"
+msgstr ""
+
+#: src/virsh.c:1611
+msgid "domain vcpu information"
+msgstr "toimialueen virtuaaliprosessoritiedot"
+
+#: src/virsh.c:1612
+msgid "Returns basic information about the domain virtual CPUs."
+msgstr "Palauttaa perustietoja toimialueen virtuaalisista prosessoreista."
+
+#: src/virsh.c:1659
+msgid "VCPU:"
+msgstr "Virtuaaliprosessori:"
+
+#: src/virsh.c:1660
+msgid "CPU:"
+msgstr "Prosessori:"
+
+#: src/virsh.c:1670
+msgid "CPU Affinity:"
+msgstr "Prosessorin affiniteetti:"
+
+#: src/virsh.c:1682
+msgid "Domain shut off, virtual CPUs not present."
+msgstr ""
+
+#: src/virsh.c:1698
+msgid "control domain vcpu affinity"
+msgstr "säädä toimialueen virtuaaliprosessorin affiniteettia"
+
+#: src/virsh.c:1699
+msgid "Pin domain VCPUs to host physical CPUs."
+msgstr ""
+"Kiinnitä toimialueen virtuaaliprosessorit isännän fyysisiin prosessoreihin."
+
+#: src/virsh.c:1705
+msgid "vcpu number"
+msgstr "virtuaaliprosessorin numero"
+
+#: src/virsh.c:1706
+msgid "host cpu number(s) (comma separated)"
+msgstr "isännän prosessorinumero(t) (pilkulla erotettuina)"
+
+#: src/virsh.c:1761
+msgid "cpulist: Invalid format. Empty string."
+msgstr ""
+
+#: src/virsh.c:1771
+#, c-format
+msgid ""
+"cpulist: %s: Invalid format. Expecting digit at position %d (near '%c')."
+msgstr ""
+
+#: src/virsh.c:1781
+#, c-format
+msgid ""
+"cpulist: %s: Invalid format. Expecting digit or comma at position %d (near '%"
+"c')."
+msgstr ""
+
+#: src/virsh.c:1788
+#, c-format
+msgid "cpulist: %s: Invalid format. Trailing comma at position %d."
+msgstr ""
+
+#: src/virsh.c:1802
+#, c-format
+msgid "Physical CPU %d doesn't exist."
+msgstr "Fyysistä suoritinta %d ei ole olemassa."
+
+#: src/virsh.c:1826
+msgid "change number of virtual CPUs"
+msgstr "muuta virtuaaliprosessorien määrää"
+
+#: src/virsh.c:1827
+msgid "Change the number of virtual CPUs active in the guest domain."
+msgstr ""
+"Muuta vierastoimialueessa aktiivisena olevien virtuaaliprosessorien määrää."
+
+#: src/virsh.c:1833
+msgid "number of virtual CPUs"
+msgstr "virtuaaliprosessorien määrä"
+
+#: src/virsh.c:1853
+#, fuzzy
+msgid "Invalid number of virtual CPUs."
+msgstr "virtuaaliprosessorien määrä"
+
+#: src/virsh.c:1865
+#, fuzzy
+msgid "Too many virtual CPUs."
+msgstr "Liian monta virtuaalista suoritinta."
+
+#: src/virsh.c:1883
+msgid "change memory allocation"
+msgstr "muuta muistinvarausta"
+
+#: src/virsh.c:1884
+msgid "Change the current memory allocation in the guest domain."
+msgstr "Muuta nykyistä muistinvarausta vierastoimialueella."
+
+#: src/virsh.c:1890
+msgid "number of kilobytes of memory"
+msgstr "muistin määrä kilotavuissa"
+
+#: src/virsh.c:1911 src/virsh.c:1923 src/virsh.c:1968
+#, c-format
+msgid "Invalid value of %d for memory size"
+msgstr "%d on virheellinen arvo muistin kooksi"
+
+#: src/virsh.c:1917
+msgid "Unable to verify MaxMemorySize"
+msgstr ""
+
+#: src/virsh.c:1940
+msgid "change maximum memory limit"
+msgstr "muuta muistin enimmäisrajaa"
+
+#: src/virsh.c:1941
+msgid "Change the maximum memory allocation limit in the guest domain."
+msgstr "Muuta nykyistä muistinvarauksen enimmäisrajaa vierastoimialueella."
+
+#: src/virsh.c:1947
+msgid "maximum memory limit in kilobytes"
+msgstr "muistin enimmäisraja kilotavuissa"
+
+#: src/virsh.c:1974
+msgid "Unable to verify current MemorySize"
+msgstr ""
+
+#: src/virsh.c:1981
+#, fuzzy
+msgid "Unable to shrink current MemorySize"
+msgstr "toimialueen nykyinen muisti"
+
+#: src/virsh.c:1987
+msgid "Unable to change MaxMemorySize"
+msgstr ""
+
+#: src/virsh.c:2000
+msgid "node information"
+msgstr "solmun tiedot"
+
+#: src/virsh.c:2001
+msgid "Returns basic information about the node."
+msgstr "Palauttaa perustietoja solmusta."
+
+#: src/virsh.c:2014
+msgid "failed to get node information"
+msgstr "solmun tietojen saanti epäonnistui"
+
+#: src/virsh.c:2017
+msgid "CPU model:"
+msgstr "Prosessorin malli:"
+
+#: src/virsh.c:2019
+msgid "CPU frequency:"
+msgstr "Prosessorin taajuus: "
+
+#: src/virsh.c:2020
+msgid "CPU socket(s):"
+msgstr "Prosessorikantoja:"
+
+#: src/virsh.c:2021
+msgid "Core(s) per socket:"
+msgstr "Ytimiä per kanta:"
+
+#: src/virsh.c:2022
+msgid "Thread(s) per core:"
+msgstr "Säikeitä per ydin:"
+
+#: src/virsh.c:2023
+#, fuzzy
+msgid "NUMA cell(s):"
+msgstr "(piilotettu solu)"
+
+#: src/virsh.c:2024
+msgid "Memory size:"
+msgstr "Muistin koko:"
+
+#: src/virsh.c:2034
+msgid "capabilities"
+msgstr "ominaisuudet"
+
+#: src/virsh.c:2035
+msgid "Returns capabilities of hypervisor/driver."
+msgstr "Palauttaa hypervisorin tai ajurin ominaisuudet"
+
+#: src/virsh.c:2048
+msgid "failed to get capabilities"
+msgstr "ominaisuuksien hakeminen epäonnistui"
+
+#: src/virsh.c:2061
+msgid "domain information in XML"
+msgstr "toimialuetiedot XML-muodossa"
+
+#: src/virsh.c:2062
+msgid "Output the domain information as an XML dump to stdout."
+msgstr "Tulosta toimialuetiedot XML-muodossa oletustulosteeseen."
+
+#: src/virsh.c:2101
+msgid "convert a domain id or UUID to domain name"
+msgstr "muunna toimialueen tunnus tai UUID toimialueen nimeksi"
+
+#: src/virsh.c:2106
+msgid "domain id or uuid"
+msgstr "toimialueen id tai uuid"
+
+#: src/virsh.c:2131
+msgid "convert a domain name or UUID to domain id"
+msgstr "muunna toimialueen nimi tai UUID toimialueen tunnukseksi"
+
+#: src/virsh.c:2166
+msgid "convert a domain name or id to domain UUID"
+msgstr "muunna toimialueen nimi tai tunnus UUID:ksi"
+
+#: src/virsh.c:2171
+msgid "domain id or name"
+msgstr "toimialueen id tai nimi"
+
+#: src/virsh.c:2190
+msgid "failed to get domain UUID"
+msgstr "toimialueen UUID:n saanti epäonnistui"
+
+#: src/virsh.c:2200
+msgid "migrate domain to another host"
+msgstr ""
+
+#: src/virsh.c:2201
+msgid "Migrate domain to another host.  Add --live for live migration."
+msgstr ""
+
+#: src/virsh.c:2206
+#, fuzzy
+msgid "live migration"
+msgstr "solmun tiedot"
+
+#: src/virsh.c:2208
+#, fuzzy
+msgid "connection URI of the destination host"
+msgstr "Yhdistä vieraskonsoliin"
+
+#: src/virsh.c:2209
+msgid "migration URI, usually can be omitted"
+msgstr ""
+
+#: src/virsh.c:2231
+msgid "migrate: Missing desturi"
+msgstr ""
+
+#: src/virsh.c:2263
+msgid "autostart a network"
+msgstr "käynnistä verkko automaattisesti"
+
+#: src/virsh.c:2265
+msgid "Configure a network to be automatically started at boot."
+msgstr ""
+"Aseta verkkotuki käynnistymään automaattisesti käynnistyksen yhteydessä."
+
+#: src/virsh.c:2270 src/virsh.c:2695
+msgid "network name or uuid"
+msgstr "verkon nimi tai uuid"
+
+#: src/virsh.c:2292
+#, c-format
+msgid "failed to mark network %s as autostarted"
+msgstr "verkon %s merkitseminen automaattisesti käynnistyväksi epäonnistui"
+
+#: src/virsh.c:2295
+#, c-format
+msgid "failed to unmark network %s as autostarted"
+msgstr ""
+"verkon %s automaattisen käynnistymisen merkinnän poistaminen epäonnistui"
+
+#: src/virsh.c:2302
+#, c-format
+msgid "Network %s marked as autostarted\n"
+msgstr "Verkko %s merkitty automaattisesti käynnistyväksi\n"
+
+#: src/virsh.c:2304
+#, c-format
+msgid "Network %s unmarked as autostarted\n"
+msgstr "Verkon %s automaattisen käynnistyksen merkintä poistettu\n"
+
+#: src/virsh.c:2314
+msgid "create a network from an XML file"
+msgstr "luo verkko XML-tiedostosta"
+
+#: src/virsh.c:2315
+msgid "Create a network."
+msgstr "Luo verkko."
+
+#: src/virsh.c:2320 src/virsh.c:2368
+msgid "file containing an XML network description"
+msgstr "tiedosto, joka sisältää XML-muotoisen verkkokuvauksen"
+
+#: src/virsh.c:2347
+#, c-format
+msgid "Network %s created from %s\n"
+msgstr "Verkko %s luotu tiedostosta %s\n"
+
+#: src/virsh.c:2350
+#, c-format
+msgid "Failed to create network from %s"
+msgstr "Verkon luominen tiedostosta %s epäonnistui"
+
+#: src/virsh.c:2362
+msgid "define (but don't start) a network from an XML file"
+msgstr "määritä (mutta älä käynnistä) verkkoa XML-tiedostosta"
+
+#: src/virsh.c:2363
+msgid "Define a network."
+msgstr "Määritä verkko"
+
+#: src/virsh.c:2395
+#, c-format
+msgid "Network %s defined from %s\n"
+msgstr "Verkko %s määritetty tiedostosta %s\n"
+
+#: src/virsh.c:2398
+#, c-format
+msgid "Failed to define network from %s"
+msgstr "Verkon määrittäminen tiedostosta %s epäonnistui"
+
+#: src/virsh.c:2410
+msgid "destroy a network"
+msgstr "tuhoa verkko"
+
+#: src/virsh.c:2411
+msgid "Destroy a given network."
+msgstr "Tuhoa annettu verkko."
+
+#: src/virsh.c:2416 src/virsh.c:2456
+msgid "network name, id or uuid"
+msgstr "verkon nimi, id tai uuid"
+
+#: src/virsh.c:2434
+#, c-format
+msgid "Network %s destroyed\n"
+msgstr "Verkko %s tuhottu\n"
+
+#: src/virsh.c:2436
+#, c-format
+msgid "Failed to destroy network %s"
+msgstr "Verkon %s tuhoaminen epäonnistui"
+
+#: src/virsh.c:2450
+msgid "network information in XML"
+msgstr "verkkotiedot XML-muodossa"
+
+#: src/virsh.c:2451
+msgid "Output the network information as an XML dump to stdout."
+msgstr "Tulosta verkkotiedot XML-muodossa oletustulosteeseen."
+
+#: src/virsh.c:2491
+msgid "list networks"
+msgstr "luettele verkot"
+
+#: src/virsh.c:2492
+msgid "Returns list of networks."
+msgstr "Palauttaa verkkoluettelon."
+
+#: src/virsh.c:2497
+msgid "list inactive networks"
+msgstr "luettele epäaktiiviset verkot"
+
+#: src/virsh.c:2498
+msgid "list inactive & active networks"
+msgstr "luettele epäaktiiviset ja aktiiviset verkot"
+
+#: src/virsh.c:2518 src/virsh.c:2526
+msgid "Failed to list active networks"
+msgstr "Aktiivisten verkkojen luettelointi epäonnistui"
+
+#: src/virsh.c:2537 src/virsh.c:2546
+msgid "Failed to list inactive networks"
+msgstr "Epäktiivisten verkkojen luettelointi epäonnistui"
+
+#: src/virsh.c:2556
+msgid "Autostart"
+msgstr "Automaattikäynnistys"
+
+#: src/virsh.c:2571 src/virsh.c:2594
+msgid "no autostart"
+msgstr "Ei automaattikäynnistystä"
+
+#: src/virsh.c:2577
+msgid "active"
+msgstr "aktiivinen"
+
+#: src/virsh.c:2600
+msgid "inactive"
+msgstr "epäaktiivinen"
+
+#: src/virsh.c:2619
+msgid "convert a network UUID to network name"
+msgstr "Muunna verkko-UUID verkkonimeksi"
+
+#: src/virsh.c:2650
+msgid "start a (previously defined) inactive network"
+msgstr "käynnistä (aikaisemmin määritetty) epäaktiivinen verkko"
+
+#: src/virsh.c:2651
+msgid "Start a network."
+msgstr "Käynnistä verkko"
+
+#: src/virsh.c:2656
+msgid "name of the inactive network"
+msgstr "epäaktiivisen verkon nimi"
+
+#: src/virsh.c:2673
+#, c-format
+msgid "Network %s started\n"
+msgstr "Verkko %s käynnistetty\n"
+
+#: src/virsh.c:2676
+#, c-format
+msgid "Failed to start network %s"
+msgstr "Verkon %s käynnistäminen epäonnistui"
+
+#: src/virsh.c:2689
+msgid "undefine an inactive network"
+msgstr "poista epäaktiivisen verkon määritykset"
+
+#: src/virsh.c:2690
+msgid "Undefine the configuration for an inactive network."
+msgstr "Poista epäaktiivisen verkon asetusten määritykset."
+
+#: src/virsh.c:2713
+#, c-format
+msgid "Network %s has been undefined\n"
+msgstr "Verkon %s määritykset on poistettu\n"
+
+#: src/virsh.c:2715
+#, c-format
+msgid "Failed to undefine network %s"
+msgstr "Verkon %s määritysten poistaminen epäonnistui."
+
+#: src/virsh.c:2728
+msgid "convert a network name to network UUID"
+msgstr "muunna verkon nimi verkon UUID:ksi"
+
+#: src/virsh.c:2753
+msgid "failed to get network UUID"
+msgstr "verkon UUID:n hakeminen epäonnistui"
+
+#: src/virsh.c:2764
+msgid "show version"
+msgstr "näytä versio"
+
+#: src/virsh.c:2765
+msgid "Display the system version information."
+msgstr "Näytä järjestelmän versiotiedot."
+
+#: src/virsh.c:2788
+msgid "failed to get hypervisor type"
+msgstr "hypervisorin tyypin saanti epäonnistui"
+
+#: src/virsh.c:2797
+#, c-format
+msgid "Compiled against library: libvir %d.%d.%d\n"
+msgstr "Käännetty kirjastoa libvir %d.%d.%d vasten\n"
+
+#: src/virsh.c:2802
+msgid "failed to get the library version"
+msgstr "kirjastoversion saanti epäonnistui"
+
+#: src/virsh.c:2809
+#, c-format
+msgid "Using library: libvir %d.%d.%d\n"
+msgstr "Käytetään kirjastoa: libvir %d.%d.%d\n"
+
+#: src/virsh.c:2816
+#, c-format
+msgid "Using API: %s %d.%d.%d\n"
+msgstr "Käytetään API:a: %s %d.%d.%d\n"
+
+#: src/virsh.c:2821
+msgid "failed to get the hypervisor version"
+msgstr "hypervisorin version saanti epäonnistui"
+
+#: src/virsh.c:2826
+#, c-format
+msgid "Cannot extract running %s hypervisor version\n"
+msgstr "Ei saada selville ajossa olevaa %s-hypervisor-versiota\n"
+
+#: src/virsh.c:2833
+#, c-format
+msgid "Running hypervisor: %s %d.%d.%d\n"
+msgstr "Käytetään hypervisoria: %s %d.%d.%d\n"
+
+#: src/virsh.c:2844
+#, fuzzy
+msgid "print the hypervisor hostname"
+msgstr "hypervisorin tyypin saanti epäonnistui"
+
+#: src/virsh.c:2858
+#, fuzzy
+msgid "failed to get hostname"
+msgstr "hypervisorin tyypin saanti epäonnistui"
+
+#: src/virsh.c:2873
+#, fuzzy
+msgid "print the hypervisor canonical URI"
+msgstr "hypervisorin yhteysosoite"
+
+#: src/virsh.c:2887
+#, fuzzy
+msgid "failed to get URI"
+msgstr "toimialueen UUID:n saanti epäonnistui"
+
+#: src/virsh.c:2902
+msgid "vnc display"
+msgstr "vnc-näyttö"
+
+#: src/virsh.c:2903
+msgid "Output the IP address and port number for the VNC display."
+msgstr "Tulosta VNC-näytön IP-osoite ja porttinumero"
+
+#: src/virsh.c:2982
+msgid "tty console"
+msgstr ""
+
+#: src/virsh.c:2983
+msgid "Output the device for the TTY console."
+msgstr ""
+
+#: src/virsh.c:3045
+msgid "attach device from an XML file"
+msgstr "liitä laite XML-tiedostosta"
+
+#: src/virsh.c:3046
+msgid "Attach device from an XML <file>."
+msgstr "Liitä laite XML-tiedostosta <tiedosto>."
+
+#: src/virsh.c:3052 src/virsh.c:3106
+msgid "XML file"
+msgstr "XML-tiedosto"
+
+#: src/virsh.c:3084
+#, c-format
+msgid "Failed to attach device from %s"
+msgstr "Laitteen liittäminen tiedostosta %s epäonnistui"
+
+#: src/virsh.c:3099
+msgid "detach device from an XML file"
+msgstr "irrota laite XML-tiedostosta"
+
+#: src/virsh.c:3100
+msgid "Detach device from an XML <file>"
+msgstr "Irrota laite XML-tiedostosta <tiedosto>"
+
+#: src/virsh.c:3138
+#, c-format
+msgid "Failed to detach device from %s"
+msgstr "Laitteen irrottaminen tiedostosta %s epäonnistui"
+
+#: src/virsh.c:3153
+#, fuzzy
+msgid "attach network interface"
+msgstr "Verkon nimi"
+
+#: src/virsh.c:3154
+msgid "Attach new network interface."
+msgstr ""
+
+#: src/virsh.c:3160 src/virsh.c:3276
+#, fuzzy
+msgid "network interface type"
+msgstr "Verkon nimi"
+
+#: src/virsh.c:3161
+#, fuzzy
+msgid "source of network interface"
+msgstr "määrittämätön verkon nimi"
+
+#: src/virsh.c:3162
+#, fuzzy
+msgid "target network name"
+msgstr "Verkon nimi"
+
+#: src/virsh.c:3163 src/virsh.c:3277
+msgid "MAC adress"
+msgstr ""
+
+#: src/virsh.c:3164
+msgid "script used to bridge network interface"
+msgstr ""
+
+#: src/virsh.c:3196
+#, c-format
+msgid "No support %s in command 'attach-interface'"
+msgstr ""
+
+#: src/virsh.c:3269
+#, fuzzy
+msgid "detach network interface"
+msgstr "Verkon nimi"
+
+#: src/virsh.c:3270
+msgid "Detach network interface."
+msgstr ""
+
+#: src/virsh.c:3315 src/virsh.c:3320
+#, fuzzy
+msgid "Failed to get interface information"
+msgstr "solmun tietojen saanti epäonnistui"
+
+#: src/virsh.c:3328
+#, c-format
+msgid "No found interface whose type is %s"
+msgstr ""
+
+#: src/virsh.c:3350
+#, c-format
+msgid "No found interface whose MAC address is %s"
+msgstr ""
+
+#: src/virsh.c:3356 src/virsh.c:3634
+#, fuzzy
+msgid "Failed to allocate memory"
+msgstr "solmun varaus epäonnistui"
+
+#: src/virsh.c:3361 src/virsh.c:3639
+#, fuzzy
+msgid "Failed to create XML"
+msgstr "Ei pystytty lukemaan pistoketta %d\n"
+
+#: src/virsh.c:3390
+msgid "attach disk device"
+msgstr ""
+
+#: src/virsh.c:3391
+msgid "Attach new disk device."
+msgstr ""
+
+#: src/virsh.c:3397
+msgid "source of disk device"
+msgstr ""
+
+#: src/virsh.c:3398 src/virsh.c:3562
+msgid "target of disk device"
+msgstr ""
+
+#: src/virsh.c:3399
+msgid "driver of disk device"
+msgstr ""
+
+#: src/virsh.c:3400
+msgid "subdriver of disk device"
+msgstr ""
+
+#: src/virsh.c:3401
+msgid "target device type"
+msgstr ""
+
+#: src/virsh.c:3402
+msgid "mode of device reading and writing"
+msgstr ""
+
+#: src/virsh.c:3433 src/virsh.c:3442 src/virsh.c:3449
+#, c-format
+msgid "No support %s in command 'attach-disk'"
+msgstr ""
+
+#: src/virsh.c:3555
+msgid "detach disk device"
+msgstr ""
+
+#: src/virsh.c:3556
+msgid "Detach disk device."
+msgstr ""
+
+#: src/virsh.c:3597 src/virsh.c:3602 src/virsh.c:3609
+#, fuzzy
+msgid "Failed to get disk information"
+msgstr "solmun tietojen saanti epäonnistui"
+
+#: src/virsh.c:3628
+#, c-format
+msgid "No found disk whose target is %s"
+msgstr ""
+
+#: src/virsh.c:3668
+msgid "quit this interactive terminal"
+msgstr "poistu tästä vuorovaikutteisesta terminaalista"
+
+#: src/virsh.c:3809
+#, c-format
+msgid "command '%s' requires <%s> option"
+msgstr "komento ”%s” vaatii valitsimen <%s>"
+
+#: src/virsh.c:3810
+#, c-format
+msgid "command '%s' requires --%s option"
+msgstr "komento ”%s” vaatii valitsimen --%s"
+
+#: src/virsh.c:3837
+#, c-format
+msgid "command '%s' doesn't exist"
+msgstr "komentoa ”%s” ei ole olemassa"
+
+#: src/virsh.c:3845
+msgid "  NAME\n"
+msgstr "  NIMI\n"
+
+#: src/virsh.c:3849
+#, fuzzy
+msgid ""
+"\n"
+"  SYNOPSIS\n"
+msgstr ""
+"\n"
+"  VALITSIMET\n"
+
+#: src/virsh.c:3856
+msgid ""
+"\n"
+"  DESCRIPTION\n"
+msgstr ""
+"\n"
+"  KUVAUS\n"
+
+#: src/virsh.c:3860
+msgid ""
+"\n"
+"  OPTIONS\n"
+msgstr ""
+"\n"
+"  VALITSIMET\n"
+
+#: src/virsh.c:3867
+#, c-format
+msgid "--%s <number>"
+msgstr "--%s <numero>"
+
+#: src/virsh.c:3869
+#, c-format
+msgid "--%s <string>"
+msgstr "--%s <merkkijono>"
+
+#: src/virsh.c:3988
+msgid "undefined domain name or id"
+msgstr "määrittämätön toimialueen nimi tai id"
+
+#: src/virsh.c:4021
+#, c-format
+msgid "failed to get domain '%s'"
+msgstr "toimialueen ”%s” hakeminen epäonnistui"
+
+#: src/virsh.c:4034
+msgid "undefined network name"
+msgstr "määrittämätön verkon nimi"
+
+#: src/virsh.c:4058
+#, c-format
+msgid "failed to get network '%s'"
+msgstr "verkon ”%s” hakeminen epäonnistui"
+
+#: src/virsh.c:4086
+#, c-format
+msgid ""
+"\n"
+"(Time: %.3f ms)\n"
+"\n"
+msgstr ""
+"\n"
+"(Aika: %.3f ms)\n"
+"\n"
+
+#: src/virsh.c:4160
+msgid "missing \""
+msgstr "\" puuttuu"
+
+#: src/virsh.c:4221
+#, c-format
+msgid "unexpected token (command name): '%s'"
+msgstr "odottamaton merkintä (komennon nimi): ”%s”"
+
+#: src/virsh.c:4226
+#, c-format
+msgid "unknown command: '%s'"
+msgstr "tuntematon komento: ”%s”"
+
+#: src/virsh.c:4233
+#, c-format
+msgid "command '%s' doesn't support option --%s"
+msgstr "komento ”%s” ei tue valitsinta --%s"
+
+#: src/virsh.c:4248
+#, c-format
+msgid "expected syntax: --%s <%s>"
+msgstr "odotettu syntaksi: --%s <%s>"
+
+#: src/virsh.c:4251
+msgid "number"
+msgstr "luku"
+
+#: src/virsh.c:4251
+msgid "string"
+msgstr "merkkijono"
+
+#: src/virsh.c:4257
+#, c-format
+msgid "unexpected data '%s'"
+msgstr "odottamatonta dataa ”%s”"
+
+#: src/virsh.c:4279
+msgid "OPTION"
+msgstr "VALITSIN"
+
+#: src/virsh.c:4279
+msgid "DATA"
+msgstr "DATA"
+
+#: src/virsh.c:4329 src/virsh.c:4355
+msgid "running"
+msgstr "suoritetaan"
+
+#: src/virsh.c:4331 src/virsh.c:4353
+msgid "blocked"
+msgstr "odottaa"
+
+#: src/virsh.c:4333
+msgid "paused"
+msgstr "pysäytetty"
+
+#: src/virsh.c:4335
+msgid "in shutdown"
+msgstr "sammutuksessa"
+
+#: src/virsh.c:4337
+msgid "shut off"
+msgstr "sammutettu"
+
+#: src/virsh.c:4339
+msgid "crashed"
+msgstr "kaatui"
+
+#: src/virsh.c:4351
+msgid "offline"
+msgstr "yhteydetön"
+
+#: src/virsh.c:4370
+msgid "no valid connection"
+msgstr "ei sopivaa yhteyttä"
+
+#: src/virsh.c:4417
+#, c-format
+msgid "%s: error: "
+msgstr "%s: virhe:"
+
+#: src/virsh.c:4419
+msgid "error: "
+msgstr "virhe: "
+
+#: src/virsh.c:4441 src/virsh.c:4453 src/virsh.c:4466
+#, c-format
+msgid "%s: %d: failed to allocate %d bytes"
+msgstr "%s: %d: %d tavun varaus epäonnistui"
+
+#: src/virsh.c:4480
+#, c-format
+msgid "%s: %d: failed to allocate %lu bytes"
+msgstr "%s: %d: %lu tavun varaaminen epäonnistui"
+
+#: src/virsh.c:4516
+msgid "failed to connect to the hypervisor"
+msgstr "hypervisoriin ei saatu yhteyttä"
+
+#: src/virsh.c:4540
+msgid "failed to get the log file information"
+msgstr "lokitiedoston tietojen saanti epäonnistui"
+
+#: src/virsh.c:4545
+msgid "the log path is not a file"
+msgstr "lokin polku ei ole tiedosto"
+
+#: src/virsh.c:4551
+msgid "failed to open the log file. check the log file path"
+msgstr "lokitiedoston avaaminen epäonnistui, tarkista polku"
+
+#: src/virsh.c:4619
+msgid "failed to write the log file"
+msgstr "lokitiedoston kirjoitus epäonnistui"
+
+#: src/virsh.c:4788
+#, c-format
+msgid ""
+"\n"
+"%s [options] [commands]\n"
+"\n"
+"  options:\n"
+"    -c | --connect <uri>    hypervisor connection URI\n"
+"    -r | --readonly         connect readonly\n"
+"    -d | --debug <num>      debug level [0-5]\n"
+"    -h | --help             this help\n"
+"    -q | --quiet            quiet mode\n"
+"    -t | --timing           print timing information\n"
+"    -l | --log <file>       output logging to file\n"
+"    -v | --version          program version\n"
+"\n"
+"  commands (non interactive mode):\n"
+msgstr ""
+"\n"
+"%s [valitsimet] [komennot]\n"
+"\n"
+"  valitsimet:\n"
+"    -c | --connect <uri>    hypervisor-yhteysosoite\n"
+"    -r | --readonly       yhdistä vain luku -tilassa\n"
+"    -d | --debug <num>      virheenjäljitystaso [0-5]\n"
+"    -h | --help             tämä ohje\n"
+"    -q | --quiet            hiljainen tila\n"
+"    -t | --timing           tulosta ajoitustietoja\n"
+"    -l | --log <tiedosto>       tulosta loki tiedostoon\n"
+"    -v | --version          ohjelmaversio\n"
+"\n"
+"  komennot (vuorovaikutukseton tila):\n"
+
+#: src/virsh.c:4806
+#, fuzzy, c-format
+msgid ""
+"\n"
+"  (specify help <command> for details about the command)\n"
+"\n"
+msgstr ""
+"\n"
+"  (anna --help <komento> saadaksesi tietoja komennosta)\n"
+"\n"
+
+#: src/virsh.c:4902
+#, c-format
+msgid "unsupported option '-%c'. See --help."
+msgstr "valitsinta ”-%c” ei tueta. Katso --help."
+
+#: src/virsh.c:4984
+#, c-format
+msgid ""
+"Welcome to %s, the virtualization interactive terminal.\n"
+"\n"
+msgstr ""
+"Tervetuloa ohjelmaan %s, virtualisoinnin vuorovaikutteiseen päätteeseen.\n"
+"\n"
+
+#: src/virsh.c:4987
+msgid ""
+"Type:  'help' for help with commands\n"
+"       'quit' to quit\n"
+"\n"
+msgstr ""
+"Kirjoita:  'help' saadaksesi ohjeen ja komennot\n"
+"       'quit' poistuaksesi\n"
+"\n"
+
+#: src/conf.c:156 src/conf.c:205 src/conf.c:488 src/conf.c:525 src/conf.c:553
+#: src/conf.c:631
+msgid "allocating configuration"
+msgstr "varataan asetusohjelmaa"
+
+#: src/conf.c:340
+msgid "unterminated number"
+msgstr "päättymätön numero"
+
+#: src/conf.c:372 src/conf.c:389 src/conf.c:401
+msgid "unterminated string"
+msgstr "päättämätön merkkijono"
+
+#: src/conf.c:429 src/conf.c:482
+msgid "expecting a value"
+msgstr "odotetaan arvoa"
+
+#: src/conf.c:449
+msgid "expecting a separator in list"
+msgstr "odotetaan erotinta luettelossa"
+
+#: src/conf.c:472
+msgid "list is not closed with ] "
+msgstr "luettelo ei pääty ]"
+
+#: src/conf.c:518
+msgid "expecting a name"
+msgstr "odotetaan nimeä"
+
+#: src/conf.c:581
+msgid "expecting a separator"
+msgstr "odotetaan erotinta"
+
+#: src/conf.c:613
+msgid "expecting an assignment"
+msgstr "odotetaan sijoitusta"
+
+#: src/conf.c:887 src/conf.c:941
+#, fuzzy
+msgid "failed to allocate buffer"
+msgstr "solmun varaus epäonnistui"
+
+#: src/conf.c:899
+msgid "failed to open file"
+msgstr "ei voitu avata tiedostoa"
+
+#: src/conf.c:907
+msgid "failed to save content"
+msgstr "sisältöä ei voitu tallentaa"
+
+#: src/xs_internal.c:346
+msgid "failed to connect to Xen Store"
+msgstr "yhteydenotto Xen Storeen ei onnistunut"
+
+#: src/proxy_internal.c:195
+#, c-format
+msgid "failed to exec %s\n"
+msgstr "exec epäonnistui %s\n"
+
+#: src/proxy_internal.c:289
+#, c-format
+msgid "Failed to close socket %d\n"
+msgstr "Pistokkeen %d sulkeminen epäonnistui\n"
+
+#: src/proxy_internal.c:322
+#, c-format
+msgid "Failed to read socket %d\n"
+msgstr "Ei pystytty lukemaan pistoketta %d\n"
+
+#: src/proxy_internal.c:356
+#, c-format
+msgid "Failed to write to socket %d\n"
+msgstr "Ei pystytty kirjoittamaan pistokkeeseen %d\n"
+
+#: src/proxy_internal.c:448 src/proxy_internal.c:469 src/proxy_internal.c:489
+#, c-format
+msgid "Communication error with proxy: got %d bytes of %d\n"
+msgstr "Yhteysvirhe välityspalvelimen kanssa: saatiin %d/%d tavua\n"
+
+#: src/proxy_internal.c:456
+#, c-format
+msgid "Communication error with proxy: expected %d bytes got %d\n"
+msgstr ""
+"Yhteysvirhe välityspalvelimen kanssa: odotettiin %d tavua, saatiin %d\n"
+
+#: src/proxy_internal.c:478
+#, c-format
+msgid "Communication error with proxy: got %d bytes packet\n"
+msgstr "Yhteysvirhe välityspalvelimen kanssa: saatiin %d tavun paketti\n"
+
+#: src/proxy_internal.c:502
+#, c-format
+msgid "Communication error with proxy: malformed packet\n"
+msgstr "Yhteysvirhe välityspalvelimen kanssa: epämuodostunut paketti\n"
+
+#: src/proxy_internal.c:508
+#, c-format
+msgid "got asynchronous packet number %d\n"
+msgstr "saatiin asynkroninen paketti numero %d\n"
+
+#: src/xen_internal.c:1321
+#, c-format
+msgid "Credit scheduler weight parameter (%d) is out of range (1-65535)"
+msgstr ""
+
+#: src/xen_internal.c:1331
+#, c-format
+msgid "Credit scheduler cap parameter (%d) is out of range (0-65535)"
+msgstr ""
+
+#: src/xen_internal.c:2598
+#, c-format
+msgid "allocating %d domain info"
+msgstr "varataan %d toimialuetietoja"
+
+#~ msgid "allocating node"
+#~ msgstr "varataan solmua"
+
+#~ msgid "allocating private data"
+#~ msgstr "varataan yksityistä dataa"
+
+#, fuzzy
+#~ msgid "allocating path"
+#~ msgstr "varataan toimialue"
+
+#~ msgid "growing buffer"
+#~ msgstr "kasvatetaan puskuria"
+
+#~ msgid "allocate buffer content"
+#~ msgstr "varata puskurin sisältö"
+
+#~ msgid "file conatining an XML domain description"
+#~ msgstr "tiedosto, joka sisältää XML-muotoisen toimialueen kuvauksen"
+
+#~ msgid "Failed to read description file %s"
+#~ msgstr "Kuvaustiedoston %s lukeminen epäonnistui"
+
+#~ msgid "Xen Daemon or Xen Store"
+#~ msgstr "Xen Daemon tai Xen Store"
+
+#~ msgid "file conatining an XML network description"
+#~ msgstr "tiedosto, joka sisältää XML-muotoisen verkkokuvauksen"
+
+#~ msgid "Failed to resume new domain %s\n"
+#~ msgstr "Uuden toimialueen %s palautus epäonnistui\n"

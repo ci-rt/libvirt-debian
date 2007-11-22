@@ -1,0 +1,2340 @@
+# Norwegian/Bokmaal translation of PACKAGE.
+# Copyright (C) 2007 Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# Espen Stefansen <espenas@gmail.com>, 2007.
+# , fuzzy
+#
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: libvirt\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2007-09-30 23:00+0200\n"
+"PO-Revision-Date: 2007-04-26 23:43+0100\n"
+"Last-Translator: Espen A. Stefansen <espenas@gmail.com>\n"
+"Language-Team: Norwegian/Bokmaal <i18n-nb@lister.ping.uio.no>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/libvirt.c:412 src/hash.c:664
+msgid "allocating connection"
+msgstr "allokerer tilkobling"
+
+#: src/virterror.c:243
+msgid "warning"
+msgstr "advarsel"
+
+#: src/virterror.c:246
+msgid "error"
+msgstr "feil"
+
+#: src/virterror.c:350
+msgid "No error message provided"
+msgstr "Ingen feilmelding gitt"
+
+#: src/virterror.c:405
+#, c-format
+msgid "internal error %s"
+msgstr "intern feil %s"
+
+#: src/virterror.c:407
+msgid "internal error"
+msgstr "intern feil"
+
+#: src/virterror.c:410
+msgid "out of memory"
+msgstr "slutt på minne"
+
+#: src/virterror.c:414
+#, fuzzy
+msgid "this function is not supported by the hypervisor"
+msgstr "ingen støtte for hypervisor"
+
+#: src/virterror.c:416
+#, fuzzy, c-format
+msgid "this function is not supported by the hypervisor: %s"
+msgstr "ingen støtte for hypervisor %s"
+
+#: src/virterror.c:420
+msgid "could not connect to hypervisor"
+msgstr "kunne ikke koble til hypervisor"
+
+#: src/virterror.c:422
+#, c-format
+msgid "could not connect to %s"
+msgstr "kunne ikke koble til %s"
+
+#: src/virterror.c:426
+msgid "invalid connection pointer in"
+msgstr ""
+
+#: src/virterror.c:428
+#, c-format
+msgid "invalid connection pointer in %s"
+msgstr ""
+
+#: src/virterror.c:432
+msgid "invalid domain pointer in"
+msgstr ""
+
+#: src/virterror.c:434
+#, c-format
+msgid "invalid domain pointer in %s"
+msgstr ""
+
+#: src/virterror.c:438
+msgid "invalid argument in"
+msgstr "ugyldig argument i"
+
+#: src/virterror.c:440
+#, c-format
+msgid "invalid argument in %s"
+msgstr "ugyldig argument i %s"
+
+#: src/virterror.c:444
+#, c-format
+msgid "operation failed: %s"
+msgstr "operasjon feilet: %s"
+
+#: src/virterror.c:446
+msgid "operation failed"
+msgstr "operasjon feilet"
+
+#: src/virterror.c:450
+#, c-format
+msgid "GET operation failed: %s"
+msgstr "GET-operasjon feilet: %s"
+
+#: src/virterror.c:452
+msgid "GET operation failed"
+msgstr "GET-operasjon feilet"
+
+#: src/virterror.c:456
+#, c-format
+msgid "POST operation failed: %s"
+msgstr "POST-operasjon feilet: %s"
+
+#: src/virterror.c:458
+msgid "POST operation failed"
+msgstr "POST-operasjon feilet"
+
+#: src/virterror.c:461
+#, c-format
+msgid "got unknown HTTP error code %d"
+msgstr "fikk ukjent HTTP-feilkode %d"
+
+#: src/virterror.c:465
+#, c-format
+msgid "unknown host %s"
+msgstr "ukjent vert %s"
+
+#: src/virterror.c:467
+msgid "unknown host"
+msgstr "ukjent vert"
+
+#: src/virterror.c:471
+#, c-format
+msgid "failed to serialize S-Expr: %s"
+msgstr ""
+
+#: src/virterror.c:473
+msgid "failed to serialize S-Expr"
+msgstr ""
+
+#: src/virterror.c:477
+msgid "could not use Xen hypervisor entry"
+msgstr ""
+
+#: src/virterror.c:479
+#, c-format
+msgid "could not use Xen hypervisor entry %s"
+msgstr ""
+
+#: src/virterror.c:483
+msgid "could not connect to Xen Store"
+msgstr ""
+
+#: src/virterror.c:485
+#, c-format
+msgid "could not connect to Xen Store %s"
+msgstr ""
+
+#: src/virterror.c:488
+#, c-format
+msgid "failed Xen syscall %s %d"
+msgstr ""
+
+#: src/virterror.c:492
+msgid "unknown OS type"
+msgstr "ukjent OS-type"
+
+#: src/virterror.c:494
+#, c-format
+msgid "unknown OS type %s"
+msgstr "ukjent OS-type %s"
+
+#: src/virterror.c:497
+msgid "missing kernel information"
+msgstr "mangler kjerneinformasjon"
+
+#: src/virterror.c:501
+msgid "missing root device information"
+msgstr ""
+
+#: src/virterror.c:503
+#, c-format
+msgid "missing root device information in %s"
+msgstr ""
+
+#: src/virterror.c:507
+msgid "missing source information for device"
+msgstr "mangler kildeinformasjon for enhet"
+
+#: src/virterror.c:509
+#, c-format
+msgid "missing source information for device %s"
+msgstr "mangler kildeinformasjon for enhet %s"
+
+#: src/virterror.c:513
+msgid "missing target information for device"
+msgstr ""
+
+#: src/virterror.c:515
+#, c-format
+msgid "missing target information for device %s"
+msgstr ""
+
+#: src/virterror.c:519
+msgid "missing domain name information"
+msgstr "mangler informasjon om domenenavn"
+
+#: src/virterror.c:521
+#, c-format
+msgid "missing domain name information in %s"
+msgstr "mangler informasjon om domenenavn i %s"
+
+#: src/virterror.c:525
+msgid "missing operating system information"
+msgstr "mangler informasjon om operativsystem"
+
+#: src/virterror.c:527
+#, c-format
+msgid "missing operating system information for %s"
+msgstr "mangler informasjon om operativsystem for %s"
+
+#: src/virterror.c:531
+msgid "missing devices information"
+msgstr "mangler informasjon om enheter"
+
+#: src/virterror.c:533
+#, c-format
+msgid "missing devices information for %s"
+msgstr "mangler informasjon om enheter for %s"
+
+#: src/virterror.c:537
+msgid "too many drivers registered"
+msgstr "for manger drivere er registrert"
+
+#: src/virterror.c:539
+#, c-format
+msgid "too many drivers registered in %s"
+msgstr "for mange drivere er registrert i %s"
+
+#: src/virterror.c:543
+msgid "library call failed, possibly not supported"
+msgstr "bibliotekskall feilet, muligens ikke støttet"
+
+#: src/virterror.c:545
+#, c-format
+msgid "library call %s failed, possibly not supported"
+msgstr "bibliotekskall %s feilet, muligens ikke støttet"
+
+#: src/virterror.c:549
+msgid "XML description not well formed or invalid"
+msgstr ""
+
+#: src/virterror.c:551
+#, c-format
+msgid "XML description for %s is not well formed or invalid"
+msgstr ""
+
+#: src/virterror.c:555
+msgid "this domain exists already"
+msgstr "dette domenet eksisterer allerede"
+
+#: src/virterror.c:557
+#, c-format
+msgid "domain %s exists already"
+msgstr "domenet %s eksisterer allerede"
+
+#: src/virterror.c:561
+msgid "operation forbidden for read only access"
+msgstr ""
+
+#: src/virterror.c:563
+#, c-format
+msgid "operation %s forbidden for read only access"
+msgstr ""
+
+#: src/virterror.c:567
+msgid "failed to open configuration file for reading"
+msgstr "feil ved åpning av konfigurasjonfil for lesing"
+
+#: src/virterror.c:569
+#, c-format
+msgid "failed to open %s for reading"
+msgstr "feil ved åpning av %s for lesing"
+
+#: src/virterror.c:573
+msgid "failed to read configuration file"
+msgstr "feil ved lesing av konfigurasjonsfil"
+
+#: src/virterror.c:575
+#, c-format
+msgid "failed to read configuration file %s"
+msgstr "feil ved lesing av konfigurasjonsfil %s"
+
+#: src/virterror.c:579
+msgid "failed to parse configuration file"
+msgstr ""
+
+#: src/virterror.c:581
+#, c-format
+msgid "failed to parse configuration file %s"
+msgstr ""
+
+#: src/virterror.c:585
+msgid "configuration file syntax error"
+msgstr ""
+
+#: src/virterror.c:587
+#, c-format
+msgid "configuration file syntax error: %s"
+msgstr ""
+
+#: src/virterror.c:591
+msgid "failed to write configuration file"
+msgstr "kunne ikke skrive til konfigurasjonsfil"
+
+#: src/virterror.c:593
+#, c-format
+msgid "failed to write configuration file: %s"
+msgstr "kunne ikke skrive til konfigurasjonsfilen: %s"
+
+#: src/virterror.c:597
+#, fuzzy
+msgid "parser error"
+msgstr "intern feil"
+
+#: src/virterror.c:603
+#, fuzzy
+msgid "invalid network pointer in"
+msgstr "ugyldig argument i"
+
+#: src/virterror.c:605
+#, fuzzy, c-format
+msgid "invalid network pointer in %s"
+msgstr "ugyldig argument i %s"
+
+#: src/virterror.c:609
+#, fuzzy
+msgid "this network exists already"
+msgstr "dette domenet eksisterer allerede"
+
+#: src/virterror.c:611
+#, fuzzy, c-format
+msgid "network %s exists already"
+msgstr "domenet %s eksisterer allerede"
+
+#: src/virterror.c:615
+#, fuzzy
+msgid "system call error"
+msgstr "intern feil"
+
+#: src/virterror.c:621
+#, fuzzy
+msgid "RPC error"
+msgstr "feil"
+
+#: src/virterror.c:627
+#, fuzzy
+msgid "GNUTLS call error"
+msgstr "intern feil"
+
+#: src/virterror.c:633
+#, fuzzy
+msgid "Failed to find the network"
+msgstr "Kunne ikke definere domenet fra %s"
+
+#: src/virterror.c:635
+#, fuzzy, c-format
+msgid "Failed to find the network: %s"
+msgstr "Kunne ikke definere domenet fra %s"
+
+#: src/virterror.c:639
+#, fuzzy
+msgid "Domain not found"
+msgstr "domeneinformasjon"
+
+#: src/virterror.c:641
+#, fuzzy, c-format
+msgid "Domain not found: %s"
+msgstr "Domene %s opprettet fra %s\n"
+
+#: src/virterror.c:645
+#, fuzzy
+msgid "Network not found"
+msgstr "nettverksnavn eller uuid"
+
+#: src/virterror.c:647
+#, fuzzy, c-format
+msgid "Network not found: %s"
+msgstr "Domene %s opprettet fra %s\n"
+
+#: src/virterror.c:651
+#, fuzzy
+msgid "invalid MAC adress"
+msgstr "ugyldig argument i %s"
+
+#: src/virterror.c:653
+#, fuzzy, c-format
+msgid "invalid MAC adress: %s"
+msgstr "ugyldig argument i %s"
+
+#: src/xmlrpc.c:63
+msgid "copying node content"
+msgstr ""
+
+#: src/xmlrpc.c:163
+msgid "allocate value array"
+msgstr ""
+
+#: src/xmlrpc.c:196
+msgid "unexpected dict node"
+msgstr ""
+
+#: src/xmlrpc.c:268
+msgid "unexpected value node"
+msgstr ""
+
+#: src/xmlrpc.c:431
+msgid "send request"
+msgstr "send forespørsel"
+
+#: src/xmlrpc.c:437
+msgid "unexpected mime type"
+msgstr ""
+
+#: src/xmlrpc.c:444
+msgid "allocate response"
+msgstr ""
+
+#: src/xmlrpc.c:452 src/xmlrpc.c:514
+msgid "read response"
+msgstr "les svar"
+
+#: src/xmlrpc.c:484 src/xml.c:265
+msgid "allocate string array"
+msgstr ""
+
+#: src/xmlrpc.c:606
+msgid "parse server response failed"
+msgstr ""
+
+#: src/xmlrpc.c:670
+msgid "allocate new context"
+msgstr ""
+
+#: src/hash.c:770 src/hash.c:775
+msgid "allocating domain"
+msgstr ""
+
+#: src/hash.c:786
+msgid "failed to add domain to connection hash table"
+msgstr ""
+
+#: src/hash.c:838
+msgid "domain missing from connection hash table"
+msgstr ""
+
+#: src/hash.c:903 src/hash.c:908
+msgid "allocating network"
+msgstr "allokerer nettverk"
+
+#: src/hash.c:918
+#, fuzzy
+msgid "failed to add network to connection hash table"
+msgstr "kunne ikke skrive til konfigurasjonsfil"
+
+#: src/hash.c:970
+msgid "network missing from connection hash table"
+msgstr ""
+
+#: src/test.c:223 src/test.c:588 src/test.c:1262
+msgid "getting time of day"
+msgstr "henter tid på døgnet"
+
+#: src/test.c:229 src/test.c:361 src/test.c:387 src/test.c:1537
+msgid "domain"
+msgstr "domene"
+
+#: src/test.c:235 src/test.c:421 src/test.c:694
+msgid "creating xpath context"
+msgstr ""
+
+#: src/test.c:241
+msgid "domain name"
+msgstr "domenenavn"
+
+#: src/test.c:247 src/test.c:251
+msgid "domain uuid"
+msgstr "domene-uuid"
+
+#: src/test.c:259
+msgid "domain memory"
+msgstr ""
+
+#: src/test.c:268
+#, fuzzy
+msgid "domain current memory"
+msgstr "oppførsel ved omstart av domene"
+
+#: src/test.c:278
+msgid "domain vcpus"
+msgstr ""
+
+#: src/test.c:287
+msgid "domain reboot behaviour"
+msgstr "oppførsel ved omstart av domene"
+
+#: src/test.c:297
+msgid "domain poweroff behaviour"
+msgstr ""
+
+#: src/test.c:307
+msgid "domain crash behaviour"
+msgstr ""
+
+#: src/test.c:380
+msgid "load domain definition file"
+msgstr ""
+
+#: src/test.c:415 src/test.c:539 src/test.c:564
+#, fuzzy
+msgid "network"
+msgstr "nettverksnavn"
+
+#: src/test.c:427 src/virsh.c:2733
+msgid "network name"
+msgstr "nettverksnavn"
+
+#: src/test.c:435 src/test.c:439 src/virsh.c:2624
+msgid "network uuid"
+msgstr "nettverks-uuid"
+
+#: src/test.c:447
+#, fuzzy
+msgid "network forward"
+msgstr "nettverksnavn"
+
+#: src/test.c:456 src/test.c:466 src/test.c:471
+msgid "ip address"
+msgstr ""
+
+#: src/test.c:461
+msgid "ip netmask"
+msgstr ""
+
+#: src/test.c:557
+#, fuzzy
+msgid "load network definition file"
+msgstr "Kunne ikke lesebeskrivelsesfilen %s"
+
+#: src/test.c:673
+msgid "loading host definition file"
+msgstr ""
+
+#: src/test.c:680
+msgid "host"
+msgstr "vert"
+
+#: src/test.c:688
+msgid "node"
+msgstr ""
+
+#: src/test.c:712
+msgid "node cpu numa nodes"
+msgstr ""
+
+#: src/test.c:720
+msgid "node cpu sockets"
+msgstr ""
+
+#: src/test.c:728
+msgid "node cpu cores"
+msgstr ""
+
+#: src/test.c:736
+msgid "node cpu threads"
+msgstr ""
+
+#: src/test.c:747
+msgid "node active cpu"
+msgstr ""
+
+#: src/test.c:754
+msgid "node cpu mhz"
+msgstr ""
+
+#: src/test.c:769
+msgid "node memory"
+msgstr ""
+
+#: src/test.c:775
+msgid "node domain list"
+msgstr ""
+
+#: src/test.c:785
+msgid "resolving domain filename"
+msgstr ""
+
+#: src/test.c:810
+#, fuzzy
+msgid "resolving network filename"
+msgstr "udefinert nettverksnavn"
+
+#: src/test.c:908
+msgid "testOpen: supply a path or use test:///default"
+msgstr ""
+
+#: src/test.c:1046
+msgid "too many domains"
+msgstr "for mange domener"
+
+#: src/test.c:1557
+#, fuzzy
+msgid "Domain is already running"
+msgstr "Domenet er allerede aktivt"
+
+#: src/test.c:1572
+msgid "Domain is still running"
+msgstr ""
+
+#: src/test.c:1772 src/test.c:1797
+#, fuzzy
+msgid "too many networks"
+msgstr "for mange tilkoblinger"
+
+#: src/test.c:1816
+#, fuzzy
+msgid "Network is still running"
+msgstr "Nettverket %s er startet\n"
+
+#: src/test.c:1830
+#, fuzzy
+msgid "Network is already running"
+msgstr "Domenet er allerede aktivt"
+
+#: src/sexpr.c:59
+msgid "failed to allocate a node"
+msgstr ""
+
+#: src/sexpr.c:352 src/sexpr.c:367
+msgid "failed to copy a string"
+msgstr ""
+
+#: src/xend_internal.c:283 src/xend_internal.c:286
+msgid "failed to read from Xen Daemon"
+msgstr ""
+
+#: src/xend_internal.c:597 src/xend_internal.c:814 src/xend_internal.c:1534
+#: src/xend_internal.c:1553 src/xend_internal.c:2079
+msgid "allocate new buffer"
+msgstr ""
+
+#: src/xend_internal.c:1021
+msgid "failed to urlencode the create S-Expr"
+msgstr ""
+
+#: src/xend_internal.c:1062
+msgid "domain information incomplete, missing domid"
+msgstr ""
+
+#: src/xend_internal.c:1068
+msgid "domain information incorrect domid not numeric"
+msgstr ""
+
+#: src/xend_internal.c:1073 src/xend_internal.c:1120
+msgid "domain information incomplete, missing uuid"
+msgstr ""
+
+#: src/xend_internal.c:1112 src/xend_internal.c:1390 src/xend_internal.c:1397
+msgid "domain information incomplete, missing name"
+msgstr ""
+
+#: src/xend_internal.c:1286 src/xend_internal.c:1317
+#, fuzzy
+msgid "domain information incomplete, missing kernel & bootloader"
+msgstr "domeneinformasjon i XML"
+
+#: src/xend_internal.c:1378
+#, fuzzy
+msgid "domain information incomplete, missing id"
+msgstr "domeneinformasjon i XML"
+
+#: src/xend_internal.c:1503
+msgid "domain information incomplete, vbd has no dev"
+msgstr ""
+
+#: src/xend_internal.c:1518
+msgid "domain information incomplete, vbd has no src"
+msgstr ""
+
+#: src/xend_internal.c:1527
+msgid "cannot parse vbd filename, missing driver name"
+msgstr ""
+
+#: src/xend_internal.c:1546
+msgid "cannot parse vbd filename, missing driver type"
+msgstr ""
+
+#: src/xend_internal.c:1948
+#, fuzzy
+msgid "failed to parse topology information"
+msgstr "feil ved åpning av konfigurasjonfil for lesing"
+
+#: src/xend_internal.c:2136
+msgid "failed to parse Xend domain information"
+msgstr ""
+
+#: src/xend_internal.c:3604
+#, fuzzy, c-format
+msgid "Failed to create inactive domain %s\n"
+msgstr "Kunne ikke vise inaktive domener"
+
+#: src/virsh.c:309
+msgid "print help"
+msgstr ""
+
+#: src/virsh.c:310
+msgid "Prints global help or command specific help."
+msgstr ""
+
+#: src/virsh.c:316
+msgid "name of command"
+msgstr ""
+
+#: src/virsh.c:328
+msgid ""
+"Commands:\n"
+"\n"
+msgstr ""
+"Kommandoer:\n"
+"\n"
+
+#: src/virsh.c:342
+#, fuzzy
+msgid "autostart a domain"
+msgstr "Start et domene."
+
+#: src/virsh.c:344
+msgid "Configure a domain to be automatically started at boot."
+msgstr ""
+
+#: src/virsh.c:349 src/virsh.c:450 src/virsh.c:636 src/virsh.c:673
+#: src/virsh.c:730 src/virsh.c:797 src/virsh.c:1077 src/virsh.c:1121
+#: src/virsh.c:1297 src/virsh.c:1342 src/virsh.c:1381 src/virsh.c:1420
+#: src/virsh.c:1459 src/virsh.c:1498 src/virsh.c:1617 src/virsh.c:1704
+#: src/virsh.c:1832 src/virsh.c:1889 src/virsh.c:1946 src/virsh.c:2067
+#: src/virsh.c:2207 src/virsh.c:2908 src/virsh.c:2988 src/virsh.c:3051
+#: src/virsh.c:3105 src/virsh.c:3159 src/virsh.c:3275 src/virsh.c:3396
+#: src/virsh.c:3561
+msgid "domain name, id or uuid"
+msgstr "domenenavn, id eller uuid"
+
+#: src/virsh.c:350 src/virsh.c:2271
+msgid "disable autostarting"
+msgstr ""
+
+#: src/virsh.c:371
+#, fuzzy, c-format
+msgid "Failed to mark domain %s as autostarted"
+msgstr "Kunne ikke lagre domenet %s til %s"
+
+#: src/virsh.c:374
+#, fuzzy, c-format
+msgid "Failed to unmark domain %s as autostarted"
+msgstr "Kunne ikke lagre domenet %s til %s"
+
+#: src/virsh.c:381
+#, fuzzy, c-format
+msgid "Domain %s marked as autostarted\n"
+msgstr "Domenet %s er startet\n"
+
+#: src/virsh.c:383
+#, fuzzy, c-format
+msgid "Domain %s unmarked as autostarted\n"
+msgstr "Domenet %s er startet\n"
+
+#: src/virsh.c:394
+msgid "(re)connect to hypervisor"
+msgstr ""
+
+#: src/virsh.c:396
+msgid ""
+"Connect to local hypervisor. This is built-in command after shell start up."
+msgstr ""
+
+#: src/virsh.c:401
+msgid "hypervisor connection URI"
+msgstr ""
+
+#: src/virsh.c:402
+msgid "read-only connection"
+msgstr ""
+
+#: src/virsh.c:414
+msgid "Failed to disconnect from the hypervisor"
+msgstr ""
+
+#: src/virsh.c:433
+msgid "Failed to connect to the hypervisor"
+msgstr ""
+
+#: src/virsh.c:443
+msgid "connect to the guest console"
+msgstr ""
+
+#: src/virsh.c:445
+msgid "Connect the virtual serial console for the guest"
+msgstr ""
+
+#: src/virsh.c:490
+msgid "No console available for domain\n"
+msgstr ""
+
+#: src/virsh.c:508
+msgid "list domains"
+msgstr "vis domener"
+
+#: src/virsh.c:509
+msgid "Returns list of domains."
+msgstr "Returner liste av domener."
+
+#: src/virsh.c:514
+msgid "list inactive domains"
+msgstr "vis inaktive domener"
+
+#: src/virsh.c:515
+msgid "list inactive & active domains"
+msgstr "vis aktive og inaktive domener"
+
+#: src/virsh.c:537 src/virsh.c:544
+msgid "Failed to list active domains"
+msgstr "Kunne ikke vise aktive domener"
+
+#: src/virsh.c:555 src/virsh.c:564
+msgid "Failed to list inactive domains"
+msgstr "Kunne ikke vise inaktive domener"
+
+#: src/virsh.c:574
+msgid "Id"
+msgstr "Id"
+
+#: src/virsh.c:574 src/virsh.c:2556
+msgid "Name"
+msgstr "Navn"
+
+#: src/virsh.c:574 src/virsh.c:2556
+msgid "State"
+msgstr "Tilstand"
+
+#: src/virsh.c:587 src/virsh.c:609 src/virsh.c:4343 src/virsh.c:4359
+msgid "no state"
+msgstr "ingen tilstand"
+
+#: src/virsh.c:630
+msgid "domain state"
+msgstr "domenetilstand"
+
+#: src/virsh.c:631
+msgid "Returns state about a running domain."
+msgstr "Returnerer tilstand om et kjørende domene"
+
+#: src/virsh.c:667
+msgid "get device block stats for a domain"
+msgstr ""
+
+#: src/virsh.c:668
+#, fuzzy
+msgid "Get device block stats for a running domain."
+msgstr "Returnerer tilstand om et kjørende domene"
+
+#: src/virsh.c:674
+#, fuzzy
+msgid "block device"
+msgstr "blokkert"
+
+#: src/virsh.c:695
+#, fuzzy, c-format
+msgid "Failed to get block stats %s %s"
+msgstr "Kunne ikke lagre domenet %s til %s"
+
+#: src/virsh.c:724
+#, fuzzy
+msgid "get network interface stats for a domain"
+msgstr "nettverksnavn"
+
+#: src/virsh.c:725
+#, fuzzy
+msgid "Get network interface stats for a running domain."
+msgstr "Returnerer tilstand om et kjørende domene"
+
+#: src/virsh.c:731
+msgid "interface device"
+msgstr ""
+
+#: src/virsh.c:752
+#, fuzzy, c-format
+msgid "Failed to get interface stats %s %s"
+msgstr "feil ved åpning av konfigurasjonfil for lesing"
+
+#: src/virsh.c:791
+msgid "suspend a domain"
+msgstr ""
+
+#: src/virsh.c:792
+msgid "Suspend a running domain."
+msgstr ""
+
+#: src/virsh.c:815
+#, c-format
+msgid "Domain %s suspended\n"
+msgstr ""
+
+#: src/virsh.c:817
+#, c-format
+msgid "Failed to suspend domain %s"
+msgstr ""
+
+#: src/virsh.c:830
+msgid "create a domain from an XML file"
+msgstr "opprett et domene fra en XML-fil"
+
+#: src/virsh.c:831
+msgid "Create a domain."
+msgstr "Opprett et domene."
+
+#: src/virsh.c:836 src/virsh.c:944
+#, fuzzy
+msgid "file containing an XML domain description"
+msgstr "filen inneholder en beskrivelse om et XML-domene"
+
+#: src/virsh.c:851
+#, fuzzy, c-format
+msgid "Failed to open '%s': %s"
+msgstr "Kunne ikke lagre domenet %s til %s"
+
+#: src/virsh.c:871
+#, fuzzy, c-format
+msgid "Failed to open '%s': read: %s"
+msgstr "feil ved åpning av %s for lesing"
+
+#: src/virsh.c:889
+#, fuzzy, c-format
+msgid "Error allocating memory: %s"
+msgstr "allokerer nettverk"
+
+#: src/virsh.c:923
+#, c-format
+msgid "Domain %s created from %s\n"
+msgstr "Domene %s opprettet fra %s\n"
+
+#: src/virsh.c:927
+#, c-format
+msgid "Failed to create domain from %s"
+msgstr "Kunne ikke opprette domenet fra %s"
+
+#: src/virsh.c:938
+msgid "define (but don't start) a domain from an XML file"
+msgstr "definer (men ikke start) et domene fra en XML-fil"
+
+#: src/virsh.c:939
+msgid "Define a domain."
+msgstr "Definer et domene."
+
+#: src/virsh.c:971
+#, c-format
+msgid "Domain %s defined from %s\n"
+msgstr "Domenet %s definert fra %s\n"
+
+#: src/virsh.c:975
+#, c-format
+msgid "Failed to define domain from %s"
+msgstr "Kunne ikke definere domenet fra %s"
+
+#: src/virsh.c:986
+msgid "undefine an inactive domain"
+msgstr ""
+
+#: src/virsh.c:987
+msgid "Undefine the configuration for an inactive domain."
+msgstr ""
+
+#: src/virsh.c:992 src/virsh.c:2136
+msgid "domain name or uuid"
+msgstr "domenenavn eller uuid"
+
+#: src/virsh.c:1010
+#, c-format
+msgid "Domain %s has been undefined\n"
+msgstr ""
+
+#: src/virsh.c:1012
+#, c-format
+msgid "Failed to undefine domain %s"
+msgstr ""
+
+#: src/virsh.c:1026
+msgid "start a (previously defined) inactive domain"
+msgstr ""
+
+#: src/virsh.c:1027
+msgid "Start a domain."
+msgstr "Start et domene."
+
+#: src/virsh.c:1032
+msgid "name of the inactive domain"
+msgstr ""
+
+#: src/virsh.c:1049
+msgid "Domain is already active"
+msgstr "Domenet er allerede aktivt"
+
+#: src/virsh.c:1055
+#, c-format
+msgid "Domain %s started\n"
+msgstr "Domenet %s er startet\n"
+
+#: src/virsh.c:1058
+#, c-format
+msgid "Failed to start domain %s"
+msgstr "Kunne ikke starte domenet %s"
+
+#: src/virsh.c:1071
+msgid "save a domain state to a file"
+msgstr "lagre domenetilstanden til en fil"
+
+#: src/virsh.c:1072
+msgid "Save a running domain."
+msgstr "Lagre et kjørende domene."
+
+#: src/virsh.c:1078
+msgid "where to save the data"
+msgstr "hvor data skal lagres"
+
+#: src/virsh.c:1100
+#, c-format
+msgid "Domain %s saved to %s\n"
+msgstr "Domenet %s lagret til %s\n"
+
+#: src/virsh.c:1102
+#, c-format
+msgid "Failed to save domain %s to %s"
+msgstr "Kunne ikke lagre domenet %s til %s"
+
+#: src/virsh.c:1115
+msgid "show/set scheduler parameters"
+msgstr ""
+
+#: src/virsh.c:1116
+msgid "Show/Set scheduler parameters."
+msgstr ""
+
+#: src/virsh.c:1122
+msgid "weight for XEN_CREDIT"
+msgstr ""
+
+#: src/virsh.c:1123
+msgid "cap for XEN_CREDIT"
+msgstr ""
+
+#: src/virsh.c:1193 src/virsh.c:1197
+msgid "Scheduler"
+msgstr ""
+
+#: src/virsh.c:1197
+#, fuzzy
+msgid "Unknown"
+msgstr "ukjent vert"
+
+#: src/virsh.c:1253
+msgid "restore a domain from a saved state in a file"
+msgstr ""
+
+#: src/virsh.c:1254
+msgid "Restore a domain."
+msgstr ""
+
+#: src/virsh.c:1259
+msgid "the state to restore"
+msgstr ""
+
+#: src/virsh.c:1278
+#, c-format
+msgid "Domain restored from %s\n"
+msgstr ""
+
+#: src/virsh.c:1280
+#, c-format
+msgid "Failed to restore domain from %s"
+msgstr ""
+
+#: src/virsh.c:1291
+msgid "dump the core of a domain to a file for analysis"
+msgstr ""
+
+#: src/virsh.c:1292
+msgid "Core dump a domain."
+msgstr ""
+
+#: src/virsh.c:1298
+msgid "where to dump the core"
+msgstr ""
+
+#: src/virsh.c:1320
+#, c-format
+msgid "Domain %s dumpd to %s\n"
+msgstr ""
+
+#: src/virsh.c:1322
+#, c-format
+msgid "Failed to core dump domain %s to %s"
+msgstr ""
+
+#: src/virsh.c:1336
+msgid "resume a domain"
+msgstr "fortsett et domene"
+
+#: src/virsh.c:1337
+msgid "Resume a previously suspended domain."
+msgstr ""
+
+#: src/virsh.c:1360
+#, c-format
+msgid "Domain %s resumed\n"
+msgstr ""
+
+#: src/virsh.c:1362
+#, c-format
+msgid "Failed to resume domain %s"
+msgstr ""
+
+#: src/virsh.c:1375
+msgid "gracefully shutdown a domain"
+msgstr ""
+
+#: src/virsh.c:1376
+msgid "Run shutdown in the target domain."
+msgstr ""
+
+#: src/virsh.c:1399
+#, c-format
+msgid "Domain %s is being shutdown\n"
+msgstr ""
+
+#: src/virsh.c:1401
+#, c-format
+msgid "Failed to shutdown domain %s"
+msgstr ""
+
+#: src/virsh.c:1414
+msgid "reboot a domain"
+msgstr "start et domene på nytt"
+
+#: src/virsh.c:1415
+msgid "Run a reboot command in the target domain."
+msgstr ""
+
+#: src/virsh.c:1438
+#, c-format
+msgid "Domain %s is being rebooted\n"
+msgstr ""
+
+#: src/virsh.c:1440
+#, c-format
+msgid "Failed to reboot domain %s"
+msgstr ""
+
+#: src/virsh.c:1453
+msgid "destroy a domain"
+msgstr ""
+
+#: src/virsh.c:1454
+msgid "Destroy a given domain."
+msgstr ""
+
+#: src/virsh.c:1477
+#, c-format
+msgid "Domain %s destroyed\n"
+msgstr ""
+
+#: src/virsh.c:1479
+#, c-format
+msgid "Failed to destroy domain %s"
+msgstr ""
+
+#: src/virsh.c:1492
+msgid "domain information"
+msgstr "domeneinformasjon"
+
+#: src/virsh.c:1493
+msgid "Returns basic information about the domain."
+msgstr ""
+
+#: src/virsh.c:1519 src/virsh.c:1521
+msgid "Id:"
+msgstr "Id:"
+
+#: src/virsh.c:1522
+msgid "Name:"
+msgstr "Navn:"
+
+#: src/virsh.c:1525
+msgid "UUID:"
+msgstr "UUID:"
+
+#: src/virsh.c:1528
+msgid "OS Type:"
+msgstr "OS-type:"
+
+#: src/virsh.c:1533 src/virsh.c:1661
+msgid "State:"
+msgstr "Tilstand:"
+
+#: src/virsh.c:1536 src/virsh.c:2018
+msgid "CPU(s):"
+msgstr "CPU(er):"
+
+#: src/virsh.c:1543 src/virsh.c:1668
+msgid "CPU time:"
+msgstr "CPU-tid:"
+
+#: src/virsh.c:1547 src/virsh.c:1550
+msgid "Max memory:"
+msgstr "Maksimum minne:"
+
+#: src/virsh.c:1551
+msgid "no limit"
+msgstr ""
+
+#: src/virsh.c:1553
+msgid "Used memory:"
+msgstr "Brukt minne:"
+
+#: src/virsh.c:1569
+#, fuzzy
+msgid "NUMA free memory"
+msgstr "Brukt minne:"
+
+#: src/virsh.c:1570
+msgid "display available free memory for the NUMA cell."
+msgstr ""
+
+#: src/virsh.c:1575
+msgid "NUMA cell number"
+msgstr ""
+
+#: src/virsh.c:1599
+msgid "Total"
+msgstr ""
+
+#: src/virsh.c:1611
+msgid "domain vcpu information"
+msgstr ""
+
+#: src/virsh.c:1612
+msgid "Returns basic information about the domain virtual CPUs."
+msgstr ""
+
+#: src/virsh.c:1659
+msgid "VCPU:"
+msgstr "VCPU:"
+
+#: src/virsh.c:1660
+msgid "CPU:"
+msgstr "CPU:"
+
+#: src/virsh.c:1670
+msgid "CPU Affinity:"
+msgstr ""
+
+#: src/virsh.c:1682
+msgid "Domain shut off, virtual CPUs not present."
+msgstr ""
+
+#: src/virsh.c:1698
+msgid "control domain vcpu affinity"
+msgstr ""
+
+#: src/virsh.c:1699
+msgid "Pin domain VCPUs to host physical CPUs."
+msgstr ""
+
+#: src/virsh.c:1705
+msgid "vcpu number"
+msgstr "vcpu-nummer:"
+
+#: src/virsh.c:1706
+msgid "host cpu number(s) (comma separated)"
+msgstr ""
+
+#: src/virsh.c:1761
+msgid "cpulist: Invalid format. Empty string."
+msgstr ""
+
+#: src/virsh.c:1771
+#, c-format
+msgid ""
+"cpulist: %s: Invalid format. Expecting digit at position %d (near '%c')."
+msgstr ""
+
+#: src/virsh.c:1781
+#, c-format
+msgid ""
+"cpulist: %s: Invalid format. Expecting digit or comma at position %d (near '%"
+"c')."
+msgstr ""
+
+#: src/virsh.c:1788
+#, c-format
+msgid "cpulist: %s: Invalid format. Trailing comma at position %d."
+msgstr ""
+
+#: src/virsh.c:1802
+#, fuzzy, c-format
+msgid "Physical CPU %d doesn't exist."
+msgstr "kommando '%s' eksisterer ikke"
+
+#: src/virsh.c:1826
+msgid "change number of virtual CPUs"
+msgstr "endre antall virtuelle CPUer"
+
+#: src/virsh.c:1827
+msgid "Change the number of virtual CPUs active in the guest domain."
+msgstr ""
+
+#: src/virsh.c:1833
+msgid "number of virtual CPUs"
+msgstr "antall virtuelle CPUer"
+
+#: src/virsh.c:1853
+#, fuzzy
+msgid "Invalid number of virtual CPUs."
+msgstr "antall virtuelle CPUer"
+
+#: src/virsh.c:1865
+#, fuzzy
+msgid "Too many virtual CPUs."
+msgstr "For mange virtuelle CPUer"
+
+#: src/virsh.c:1883
+msgid "change memory allocation"
+msgstr ""
+
+#: src/virsh.c:1884
+msgid "Change the current memory allocation in the guest domain."
+msgstr ""
+
+#: src/virsh.c:1890
+msgid "number of kilobytes of memory"
+msgstr ""
+
+#: src/virsh.c:1911 src/virsh.c:1923 src/virsh.c:1968
+#, c-format
+msgid "Invalid value of %d for memory size"
+msgstr ""
+
+#: src/virsh.c:1917
+msgid "Unable to verify MaxMemorySize"
+msgstr ""
+
+#: src/virsh.c:1940
+msgid "change maximum memory limit"
+msgstr ""
+
+#: src/virsh.c:1941
+msgid "Change the maximum memory allocation limit in the guest domain."
+msgstr ""
+
+#: src/virsh.c:1947
+msgid "maximum memory limit in kilobytes"
+msgstr ""
+
+#: src/virsh.c:1974
+msgid "Unable to verify current MemorySize"
+msgstr ""
+
+#: src/virsh.c:1981
+#, fuzzy
+msgid "Unable to shrink current MemorySize"
+msgstr "oppførsel ved omstart av domene"
+
+#: src/virsh.c:1987
+msgid "Unable to change MaxMemorySize"
+msgstr ""
+
+#: src/virsh.c:2000
+msgid "node information"
+msgstr ""
+
+#: src/virsh.c:2001
+msgid "Returns basic information about the node."
+msgstr ""
+
+#: src/virsh.c:2014
+msgid "failed to get node information"
+msgstr ""
+
+#: src/virsh.c:2017
+msgid "CPU model:"
+msgstr "CPU-modell:"
+
+#: src/virsh.c:2019
+msgid "CPU frequency:"
+msgstr "CPU-frekvens:"
+
+#: src/virsh.c:2020
+msgid "CPU socket(s):"
+msgstr ""
+
+#: src/virsh.c:2021
+msgid "Core(s) per socket:"
+msgstr ""
+
+#: src/virsh.c:2022
+msgid "Thread(s) per core:"
+msgstr ""
+
+#: src/virsh.c:2023
+msgid "NUMA cell(s):"
+msgstr ""
+
+#: src/virsh.c:2024
+msgid "Memory size:"
+msgstr ""
+
+#: src/virsh.c:2034
+msgid "capabilities"
+msgstr ""
+
+#: src/virsh.c:2035
+msgid "Returns capabilities of hypervisor/driver."
+msgstr ""
+
+#: src/virsh.c:2048
+#, fuzzy
+msgid "failed to get capabilities"
+msgstr "kunne ikke åpne fil"
+
+#: src/virsh.c:2061
+msgid "domain information in XML"
+msgstr "domeneinformasjon i XML"
+
+#: src/virsh.c:2062
+#, fuzzy
+msgid "Output the domain information as an XML dump to stdout."
+msgstr "domeneinformasjon i XML"
+
+#: src/virsh.c:2101
+msgid "convert a domain id or UUID to domain name"
+msgstr "konverter et domene-id eller -uuid til domenenavn"
+
+#: src/virsh.c:2106
+msgid "domain id or uuid"
+msgstr "domene-id eller -uuid"
+
+#: src/virsh.c:2131
+msgid "convert a domain name or UUID to domain id"
+msgstr "konverter et domenenavn eller -UUID til domene-id"
+
+#: src/virsh.c:2166
+msgid "convert a domain name or id to domain UUID"
+msgstr "konverter et domenenavn eller -id til domene-UUID"
+
+#: src/virsh.c:2171
+msgid "domain id or name"
+msgstr "domene-id eller -navn"
+
+#: src/virsh.c:2190
+msgid "failed to get domain UUID"
+msgstr ""
+
+#: src/virsh.c:2200
+msgid "migrate domain to another host"
+msgstr ""
+
+#: src/virsh.c:2201
+msgid "Migrate domain to another host.  Add --live for live migration."
+msgstr ""
+
+#: src/virsh.c:2206
+msgid "live migration"
+msgstr ""
+
+#: src/virsh.c:2208
+msgid "connection URI of the destination host"
+msgstr ""
+
+#: src/virsh.c:2209
+msgid "migration URI, usually can be omitted"
+msgstr ""
+
+#: src/virsh.c:2231
+msgid "migrate: Missing desturi"
+msgstr ""
+
+#: src/virsh.c:2263
+msgid "autostart a network"
+msgstr ""
+
+#: src/virsh.c:2265
+msgid "Configure a network to be automatically started at boot."
+msgstr ""
+
+#: src/virsh.c:2270 src/virsh.c:2695
+msgid "network name or uuid"
+msgstr "nettverksnavn eller uuid"
+
+#: src/virsh.c:2292
+#, fuzzy, c-format
+msgid "failed to mark network %s as autostarted"
+msgstr "Kunne ikke lagre domenet %s til %s"
+
+#: src/virsh.c:2295
+#, fuzzy, c-format
+msgid "failed to unmark network %s as autostarted"
+msgstr "Kunne ikke lagre domenet %s til %s"
+
+#: src/virsh.c:2302
+#, fuzzy, c-format
+msgid "Network %s marked as autostarted\n"
+msgstr "Domenet %s er startet\n"
+
+#: src/virsh.c:2304
+#, fuzzy, c-format
+msgid "Network %s unmarked as autostarted\n"
+msgstr "Domenet %s er startet\n"
+
+#: src/virsh.c:2314
+msgid "create a network from an XML file"
+msgstr "opprett et nettverk fra en XML-fil"
+
+#: src/virsh.c:2315
+msgid "Create a network."
+msgstr "Opprett et nettverk."
+
+#: src/virsh.c:2320 src/virsh.c:2368
+#, fuzzy
+msgid "file containing an XML network description"
+msgstr "filen inneholder en beskrivelse om et XML-domene"
+
+#: src/virsh.c:2347
+#, fuzzy, c-format
+msgid "Network %s created from %s\n"
+msgstr "Domene %s opprettet fra %s\n"
+
+#: src/virsh.c:2350
+#, fuzzy, c-format
+msgid "Failed to create network from %s"
+msgstr "Kunne ikke opprette domenet fra %s"
+
+#: src/virsh.c:2362
+#, fuzzy
+msgid "define (but don't start) a network from an XML file"
+msgstr "definer (men ikke start) et domene fra en XML-fil"
+
+#: src/virsh.c:2363
+#, fuzzy
+msgid "Define a network."
+msgstr "Definer et domene."
+
+#: src/virsh.c:2395
+#, fuzzy, c-format
+msgid "Network %s defined from %s\n"
+msgstr "Domenet %s definert fra %s\n"
+
+#: src/virsh.c:2398
+#, fuzzy, c-format
+msgid "Failed to define network from %s"
+msgstr "Kunne ikke definere domenet fra %s"
+
+#: src/virsh.c:2410
+msgid "destroy a network"
+msgstr ""
+
+#: src/virsh.c:2411
+msgid "Destroy a given network."
+msgstr ""
+
+#: src/virsh.c:2416 src/virsh.c:2456
+#, fuzzy
+msgid "network name, id or uuid"
+msgstr "domenenavn, id eller uuid"
+
+#: src/virsh.c:2434
+#, c-format
+msgid "Network %s destroyed\n"
+msgstr ""
+
+#: src/virsh.c:2436
+#, fuzzy, c-format
+msgid "Failed to destroy network %s"
+msgstr "Kunne ikke starte domenet %s"
+
+#: src/virsh.c:2450
+#, fuzzy
+msgid "network information in XML"
+msgstr "domeneinformasjon i XML"
+
+#: src/virsh.c:2451
+#, fuzzy
+msgid "Output the network information as an XML dump to stdout."
+msgstr "domeneinformasjon i XML"
+
+#: src/virsh.c:2491
+msgid "list networks"
+msgstr "vis nettverk"
+
+#: src/virsh.c:2492
+msgid "Returns list of networks."
+msgstr "Returner liste av nettverk."
+
+#: src/virsh.c:2497
+msgid "list inactive networks"
+msgstr "vis inaktive nettverk"
+
+#: src/virsh.c:2498
+msgid "list inactive & active networks"
+msgstr "vis aktive og inaktive nettverk"
+
+#: src/virsh.c:2518 src/virsh.c:2526
+msgid "Failed to list active networks"
+msgstr "Kunne ikke vise aktive nettverk"
+
+#: src/virsh.c:2537 src/virsh.c:2546
+msgid "Failed to list inactive networks"
+msgstr "Kunne ikke vise inaktive nettverk"
+
+#: src/virsh.c:2556
+msgid "Autostart"
+msgstr ""
+
+#: src/virsh.c:2571 src/virsh.c:2594
+#, fuzzy
+msgid "no autostart"
+msgstr "ingen tilstand"
+
+#: src/virsh.c:2577
+msgid "active"
+msgstr "aktiv"
+
+#: src/virsh.c:2600
+msgid "inactive"
+msgstr ""
+
+#: src/virsh.c:2619
+msgid "convert a network UUID to network name"
+msgstr "konverter et nettverks-UUID til nettverksnavn"
+
+#: src/virsh.c:2650
+msgid "start a (previously defined) inactive network"
+msgstr ""
+
+#: src/virsh.c:2651
+msgid "Start a network."
+msgstr "Start et nettverk."
+
+#: src/virsh.c:2656
+msgid "name of the inactive network"
+msgstr ""
+
+#: src/virsh.c:2673
+#, c-format
+msgid "Network %s started\n"
+msgstr "Nettverket %s er startet\n"
+
+#: src/virsh.c:2676
+#, c-format
+msgid "Failed to start network %s"
+msgstr "Kunne ikke starte nettverket %s"
+
+#: src/virsh.c:2689
+#, fuzzy
+msgid "undefine an inactive network"
+msgstr "udefinert domenenavn eller -id"
+
+#: src/virsh.c:2690
+msgid "Undefine the configuration for an inactive network."
+msgstr ""
+
+#: src/virsh.c:2713
+#, c-format
+msgid "Network %s has been undefined\n"
+msgstr ""
+
+#: src/virsh.c:2715
+#, fuzzy, c-format
+msgid "Failed to undefine network %s"
+msgstr "Kunne ikke definere domenet fra %s"
+
+#: src/virsh.c:2728
+msgid "convert a network name to network UUID"
+msgstr "konverter et nettverksnavn til nettverks-UUID"
+
+#: src/virsh.c:2753
+#, fuzzy
+msgid "failed to get network UUID"
+msgstr "kunne ikke lagre innhold"
+
+#: src/virsh.c:2764
+msgid "show version"
+msgstr "vis versjon"
+
+#: src/virsh.c:2765
+msgid "Display the system version information."
+msgstr ""
+
+#: src/virsh.c:2788
+msgid "failed to get hypervisor type"
+msgstr ""
+
+#: src/virsh.c:2797
+#, c-format
+msgid "Compiled against library: libvir %d.%d.%d\n"
+msgstr "Kompilert med bibliotek: libvir %d.%d.%d\n"
+
+#: src/virsh.c:2802
+msgid "failed to get the library version"
+msgstr ""
+
+#: src/virsh.c:2809
+#, c-format
+msgid "Using library: libvir %d.%d.%d\n"
+msgstr "Bruker bibliotek: libvir %d.%d.%d\n"
+
+#: src/virsh.c:2816
+#, c-format
+msgid "Using API: %s %d.%d.%d\n"
+msgstr ""
+
+#: src/virsh.c:2821
+msgid "failed to get the hypervisor version"
+msgstr ""
+
+#: src/virsh.c:2826
+#, c-format
+msgid "Cannot extract running %s hypervisor version\n"
+msgstr ""
+
+#: src/virsh.c:2833
+#, c-format
+msgid "Running hypervisor: %s %d.%d.%d\n"
+msgstr ""
+
+#: src/virsh.c:2844
+msgid "print the hypervisor hostname"
+msgstr ""
+
+#: src/virsh.c:2858
+#, fuzzy
+msgid "failed to get hostname"
+msgstr "kunne ikke lagre innhold"
+
+#: src/virsh.c:2873
+msgid "print the hypervisor canonical URI"
+msgstr ""
+
+#: src/virsh.c:2887
+#, fuzzy
+msgid "failed to get URI"
+msgstr "kunne ikke lagre innhold"
+
+#: src/virsh.c:2902
+msgid "vnc display"
+msgstr ""
+
+#: src/virsh.c:2903
+msgid "Output the IP address and port number for the VNC display."
+msgstr ""
+
+#: src/virsh.c:2982
+msgid "tty console"
+msgstr ""
+
+#: src/virsh.c:2983
+msgid "Output the device for the TTY console."
+msgstr ""
+
+#: src/virsh.c:3045
+#, fuzzy
+msgid "attach device from an XML file"
+msgstr "opprett et domene fra en XML-fil"
+
+#: src/virsh.c:3046
+#, fuzzy
+msgid "Attach device from an XML <file>."
+msgstr "opprett et domene fra en XML-fil"
+
+#: src/virsh.c:3052 src/virsh.c:3106
+msgid "XML file"
+msgstr ""
+
+#: src/virsh.c:3084
+#, fuzzy, c-format
+msgid "Failed to attach device from %s"
+msgstr "Kunne ikke opprette domenet fra %s"
+
+#: src/virsh.c:3099
+#, fuzzy
+msgid "detach device from an XML file"
+msgstr "opprett et domene fra en XML-fil"
+
+#: src/virsh.c:3100
+#, fuzzy
+msgid "Detach device from an XML <file>"
+msgstr "opprett et domene fra en XML-fil"
+
+#: src/virsh.c:3138
+#, fuzzy, c-format
+msgid "Failed to detach device from %s"
+msgstr "Kunne ikke opprette domenet fra %s"
+
+#: src/virsh.c:3153
+#, fuzzy
+msgid "attach network interface"
+msgstr "nettverksnavn"
+
+#: src/virsh.c:3154
+msgid "Attach new network interface."
+msgstr ""
+
+#: src/virsh.c:3160 src/virsh.c:3276
+#, fuzzy
+msgid "network interface type"
+msgstr "nettverksnavn"
+
+#: src/virsh.c:3161
+#, fuzzy
+msgid "source of network interface"
+msgstr "udefinert nettverksnavn"
+
+#: src/virsh.c:3162
+#, fuzzy
+msgid "target network name"
+msgstr "nettverksnavn"
+
+#: src/virsh.c:3163 src/virsh.c:3277
+msgid "MAC adress"
+msgstr ""
+
+#: src/virsh.c:3164
+msgid "script used to bridge network interface"
+msgstr ""
+
+#: src/virsh.c:3196
+#, c-format
+msgid "No support %s in command 'attach-interface'"
+msgstr ""
+
+#: src/virsh.c:3269
+#, fuzzy
+msgid "detach network interface"
+msgstr "nettverksnavn"
+
+#: src/virsh.c:3270
+msgid "Detach network interface."
+msgstr ""
+
+#: src/virsh.c:3315 src/virsh.c:3320
+#, fuzzy
+msgid "Failed to get interface information"
+msgstr "feil ved åpning av konfigurasjonfil for lesing"
+
+#: src/virsh.c:3328
+#, c-format
+msgid "No found interface whose type is %s"
+msgstr ""
+
+#: src/virsh.c:3350
+#, c-format
+msgid "No found interface whose MAC address is %s"
+msgstr ""
+
+#: src/virsh.c:3356 src/virsh.c:3634
+#, fuzzy
+msgid "Failed to allocate memory"
+msgstr "Kunne ikke vise aktive nettverk"
+
+#: src/virsh.c:3361 src/virsh.c:3639
+#, fuzzy
+msgid "Failed to create XML"
+msgstr "Kunne ikke opprette domenet fra %s"
+
+#: src/virsh.c:3390
+msgid "attach disk device"
+msgstr ""
+
+#: src/virsh.c:3391
+msgid "Attach new disk device."
+msgstr ""
+
+#: src/virsh.c:3397
+msgid "source of disk device"
+msgstr ""
+
+#: src/virsh.c:3398 src/virsh.c:3562
+msgid "target of disk device"
+msgstr ""
+
+#: src/virsh.c:3399
+msgid "driver of disk device"
+msgstr ""
+
+#: src/virsh.c:3400
+msgid "subdriver of disk device"
+msgstr ""
+
+#: src/virsh.c:3401
+msgid "target device type"
+msgstr ""
+
+#: src/virsh.c:3402
+msgid "mode of device reading and writing"
+msgstr ""
+
+#: src/virsh.c:3433 src/virsh.c:3442 src/virsh.c:3449
+#, c-format
+msgid "No support %s in command 'attach-disk'"
+msgstr ""
+
+#: src/virsh.c:3555
+msgid "detach disk device"
+msgstr ""
+
+#: src/virsh.c:3556
+msgid "Detach disk device."
+msgstr ""
+
+#: src/virsh.c:3597 src/virsh.c:3602 src/virsh.c:3609
+#, fuzzy
+msgid "Failed to get disk information"
+msgstr "feil ved åpning av konfigurasjonfil for lesing"
+
+#: src/virsh.c:3628
+#, c-format
+msgid "No found disk whose target is %s"
+msgstr ""
+
+#: src/virsh.c:3668
+msgid "quit this interactive terminal"
+msgstr ""
+
+#: src/virsh.c:3809
+#, c-format
+msgid "command '%s' requires <%s> option"
+msgstr "kommando '%s' krever <%s>-opsjonen"
+
+#: src/virsh.c:3810
+#, c-format
+msgid "command '%s' requires --%s option"
+msgstr ""
+
+#: src/virsh.c:3837
+#, c-format
+msgid "command '%s' doesn't exist"
+msgstr "kommando '%s' eksisterer ikke"
+
+#: src/virsh.c:3845
+msgid "  NAME\n"
+msgstr "  NAVN\n"
+
+#: src/virsh.c:3849
+#, fuzzy
+msgid ""
+"\n"
+"  SYNOPSIS\n"
+msgstr ""
+"\n"
+"  VALG\n"
+
+#: src/virsh.c:3856
+msgid ""
+"\n"
+"  DESCRIPTION\n"
+msgstr ""
+"\n"
+"  BESKRIVELSE\n"
+
+#: src/virsh.c:3860
+msgid ""
+"\n"
+"  OPTIONS\n"
+msgstr ""
+"\n"
+"  VALG\n"
+
+#: src/virsh.c:3867
+#, c-format
+msgid "--%s <number>"
+msgstr "  %s <nummer>"
+
+#: src/virsh.c:3869
+#, c-format
+msgid "--%s <string>"
+msgstr "--%s <streng>"
+
+#: src/virsh.c:3988
+msgid "undefined domain name or id"
+msgstr "udefinert domenenavn eller -id"
+
+#: src/virsh.c:4021
+#, c-format
+msgid "failed to get domain '%s'"
+msgstr ""
+
+#: src/virsh.c:4034
+msgid "undefined network name"
+msgstr "udefinert nettverksnavn"
+
+#: src/virsh.c:4058
+#, fuzzy, c-format
+msgid "failed to get network '%s'"
+msgstr "kunne ikke lagre innhold"
+
+#: src/virsh.c:4086
+#, c-format
+msgid ""
+"\n"
+"(Time: %.3f ms)\n"
+"\n"
+msgstr ""
+"\n"
+"(Tid: %.3f ms)\n"
+"\n"
+
+#: src/virsh.c:4160
+msgid "missing \""
+msgstr "mangler \""
+
+#: src/virsh.c:4221
+#, c-format
+msgid "unexpected token (command name): '%s'"
+msgstr ""
+
+#: src/virsh.c:4226
+#, c-format
+msgid "unknown command: '%s'"
+msgstr "ukjent kommando: '%s'"
+
+#: src/virsh.c:4233
+#, c-format
+msgid "command '%s' doesn't support option --%s"
+msgstr "kommando '%s' støtter ikke opsjonen --%s"
+
+#: src/virsh.c:4248
+#, c-format
+msgid "expected syntax: --%s <%s>"
+msgstr ""
+
+#: src/virsh.c:4251
+msgid "number"
+msgstr "nummer"
+
+#: src/virsh.c:4251
+msgid "string"
+msgstr "streng"
+
+#: src/virsh.c:4257
+#, c-format
+msgid "unexpected data '%s'"
+msgstr ""
+
+#: src/virsh.c:4279
+msgid "OPTION"
+msgstr "VALG"
+
+#: src/virsh.c:4279
+msgid "DATA"
+msgstr ""
+
+#: src/virsh.c:4329 src/virsh.c:4355
+msgid "running"
+msgstr "kjører"
+
+#: src/virsh.c:4331 src/virsh.c:4353
+msgid "blocked"
+msgstr "blokkert"
+
+#: src/virsh.c:4333
+msgid "paused"
+msgstr "pauset"
+
+#: src/virsh.c:4335
+msgid "in shutdown"
+msgstr ""
+
+#: src/virsh.c:4337
+msgid "shut off"
+msgstr "slå av"
+
+#: src/virsh.c:4339
+msgid "crashed"
+msgstr ""
+
+#: src/virsh.c:4351
+msgid "offline"
+msgstr ""
+
+#: src/virsh.c:4370
+msgid "no valid connection"
+msgstr ""
+
+#: src/virsh.c:4417
+#, c-format
+msgid "%s: error: "
+msgstr "%s: feil: "
+
+#: src/virsh.c:4419
+msgid "error: "
+msgstr "feil: "
+
+#: src/virsh.c:4441 src/virsh.c:4453 src/virsh.c:4466
+#, c-format
+msgid "%s: %d: failed to allocate %d bytes"
+msgstr ""
+
+#: src/virsh.c:4480
+#, c-format
+msgid "%s: %d: failed to allocate %lu bytes"
+msgstr ""
+
+#: src/virsh.c:4516
+msgid "failed to connect to the hypervisor"
+msgstr ""
+
+#: src/virsh.c:4540
+#, fuzzy
+msgid "failed to get the log file information"
+msgstr "feil ved åpning av konfigurasjonfil for lesing"
+
+#: src/virsh.c:4545
+msgid "the log path is not a file"
+msgstr ""
+
+#: src/virsh.c:4551
+msgid "failed to open the log file. check the log file path"
+msgstr ""
+
+#: src/virsh.c:4619
+#, fuzzy
+msgid "failed to write the log file"
+msgstr "kunne ikke skrive til konfigurasjonsfil"
+
+#: src/virsh.c:4788
+#, fuzzy, c-format
+msgid ""
+"\n"
+"%s [options] [commands]\n"
+"\n"
+"  options:\n"
+"    -c | --connect <uri>    hypervisor connection URI\n"
+"    -r | --readonly         connect readonly\n"
+"    -d | --debug <num>      debug level [0-5]\n"
+"    -h | --help             this help\n"
+"    -q | --quiet            quiet mode\n"
+"    -t | --timing           print timing information\n"
+"    -l | --log <file>       output logging to file\n"
+"    -v | --version          program version\n"
+"\n"
+"  commands (non interactive mode):\n"
+msgstr ""
+"\n"
+"%s [opsjon] [kommandoer]\n"
+"\n"
+"  opsjoner:\n"
+"    -c | --connect <uri>    URI for hypervisor-forbindelse\n"
+"    -d | --debug <num>      feilsøknings-nivå [0-5]\n"
+"    -h | --help             denne hjelpen\n"
+"    -q | --quiet            stille tilstand\n"
+"\"    -t | --timing           skriv ut tidsinformation\n"
+"    -v | --version          programversion\n"
+"\n"
+"  kommandoer (ikke-interaktiv tilstand):\n"
+
+#: src/virsh.c:4806
+#, fuzzy, c-format
+msgid ""
+"\n"
+"  (specify help <command> for details about the command)\n"
+"\n"
+msgstr ""
+"\n"
+"  (angi --help <kommando> for detaljer om kommandoen)\n"
+"\n"
+
+#: src/virsh.c:4902
+#, c-format
+msgid "unsupported option '-%c'. See --help."
+msgstr "usupportert opsjon '%c'. Se --help."
+
+#: src/virsh.c:4984
+#, c-format
+msgid ""
+"Welcome to %s, the virtualization interactive terminal.\n"
+"\n"
+msgstr ""
+
+#: src/virsh.c:4987
+msgid ""
+"Type:  'help' for help with commands\n"
+"       'quit' to quit\n"
+"\n"
+msgstr ""
+"Skriv: 'help' for hjelp med kommandoer\n"
+"       'quit' for å avslutte\n"
+"\n"
+
+#: src/conf.c:156 src/conf.c:205 src/conf.c:488 src/conf.c:525 src/conf.c:553
+#: src/conf.c:631
+msgid "allocating configuration"
+msgstr ""
+
+#: src/conf.c:340
+msgid "unterminated number"
+msgstr ""
+
+#: src/conf.c:372 src/conf.c:389 src/conf.c:401
+msgid "unterminated string"
+msgstr ""
+
+#: src/conf.c:429 src/conf.c:482
+msgid "expecting a value"
+msgstr "forventer en verdi"
+
+#: src/conf.c:449
+msgid "expecting a separator in list"
+msgstr ""
+
+#: src/conf.c:472
+msgid "list is not closed with ] "
+msgstr "listen er ikke avsluttet med ] "
+
+#: src/conf.c:518
+msgid "expecting a name"
+msgstr "forventer et navn"
+
+#: src/conf.c:581
+msgid "expecting a separator"
+msgstr ""
+
+#: src/conf.c:613
+msgid "expecting an assignment"
+msgstr ""
+
+#: src/conf.c:887 src/conf.c:941
+#, fuzzy
+msgid "failed to allocate buffer"
+msgstr "Kunne ikke vise aktive nettverk"
+
+#: src/conf.c:899
+msgid "failed to open file"
+msgstr "kunne ikke åpne fil"
+
+#: src/conf.c:907
+msgid "failed to save content"
+msgstr "kunne ikke lagre innhold"
+
+#: src/xs_internal.c:346
+msgid "failed to connect to Xen Store"
+msgstr ""
+
+#: src/proxy_internal.c:195
+#, c-format
+msgid "failed to exec %s\n"
+msgstr ""
+
+#: src/proxy_internal.c:289
+#, c-format
+msgid "Failed to close socket %d\n"
+msgstr ""
+
+#: src/proxy_internal.c:322
+#, c-format
+msgid "Failed to read socket %d\n"
+msgstr ""
+
+#: src/proxy_internal.c:356
+#, c-format
+msgid "Failed to write to socket %d\n"
+msgstr ""
+
+#: src/proxy_internal.c:448 src/proxy_internal.c:469 src/proxy_internal.c:489
+#, c-format
+msgid "Communication error with proxy: got %d bytes of %d\n"
+msgstr ""
+
+#: src/proxy_internal.c:456
+#, c-format
+msgid "Communication error with proxy: expected %d bytes got %d\n"
+msgstr ""
+
+#: src/proxy_internal.c:478
+#, c-format
+msgid "Communication error with proxy: got %d bytes packet\n"
+msgstr ""
+
+#: src/proxy_internal.c:502
+#, c-format
+msgid "Communication error with proxy: malformed packet\n"
+msgstr ""
+
+#: src/proxy_internal.c:508
+#, c-format
+msgid "got asynchronous packet number %d\n"
+msgstr ""
+
+#: src/xen_internal.c:1321
+#, c-format
+msgid "Credit scheduler weight parameter (%d) is out of range (1-65535)"
+msgstr ""
+
+#: src/xen_internal.c:1331
+#, c-format
+msgid "Credit scheduler cap parameter (%d) is out of range (0-65535)"
+msgstr ""
+
+#: src/xen_internal.c:2598
+#, c-format
+msgid "allocating %d domain info"
+msgstr ""
+
+#, fuzzy
+#~ msgid "allocating node"
+#~ msgstr "allokerer nettverk"
+
+#, fuzzy
+#~ msgid "allocating private data"
+#~ msgstr "allokerer nettverk"
+
+#, fuzzy
+#~ msgid "allocating path"
+#~ msgstr "allokerer nettverk"
+
+#~ msgid "file conatining an XML domain description"
+#~ msgstr "filen inneholder en beskrivelse om et XML-domene"
+
+#, fuzzy
+#~ msgid "file conatining an XML network description"
+#~ msgstr "filen inneholder en beskrivelse om et XML-domene"

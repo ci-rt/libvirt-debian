@@ -1,0 +1,2301 @@
+# translation of hi.po to Hindi
+# Copyright (C) 2006, 2007 Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+#
+# Rajesh Ranjan <rranjan@redhat.com>, 2006, 2007.
+# hi <rranjan@redhat.com>, 2007.
+# Ravi Sagar<ravisagar@gmail.com>,2007-09-21 13:55+0530.
+# Rajesh Ranjan <rranjan@redhat.com>, 2006.
+# sandeep shedmake <sandeep.shedmake@gmail.com>, 2007.
+msgid ""
+msgstr ""
+"Project-Id-Version: hi\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2007-09-30 23:00+0200\n"
+"PO-Revision-Date: 2007-09-26 15:52+0530\n"
+"Last-Translator: Rajesh Ranjan <rranjan@redhat.com>\n"
+"Language-Team: Hindi <hindi.sf.net>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n!=1);\n"
+"\n"
+"\n"
+"\n"
+"\n"
+"\n"
+"\n"
+"X-Generator: KBabel 1.11.4\n"
+"Plural-Forms: nplurals=2; plural=(n!=1);\n"
+"\n"
+"\n"
+"\n"
+"\n"
+"\n"
+"\n"
+"\n"
+"\n"
+"X-Generator: KBabel 1.11.4\n"
+
+#: src/libvirt.c:412 src/hash.c:664
+msgid "allocating connection"
+msgstr "संबंधन दे रहा है"
+
+#: src/virterror.c:243
+msgid "warning"
+msgstr "चेतावनी"
+
+#: src/virterror.c:246
+msgid "error"
+msgstr "त्रुटि"
+
+#: src/virterror.c:350
+msgid "No error message provided"
+msgstr "कोई त्रुटि संदेश नहीं दिया गया"
+
+#: src/virterror.c:405
+#, c-format
+msgid "internal error %s"
+msgstr "आंतरिक त्रुटि %s"
+
+#: src/virterror.c:407
+msgid "internal error"
+msgstr "आंतरिक त्रुटि"
+
+#: src/virterror.c:410
+msgid "out of memory"
+msgstr "स्मृति के बाहर"
+
+# done by Ravi
+#: src/virterror.c:414
+msgid "this function is not supported by the hypervisor"
+msgstr "यह प्रकार्य हाइपरविजर से समर्थित नही है"
+
+# done by Ravi
+#: src/virterror.c:416
+#, c-format
+msgid "this function is not supported by the hypervisor: %s"
+msgstr "यह प्रकार्य हाइपरविजर: %s से समर्थित नही है"
+
+#: src/virterror.c:420
+msgid "could not connect to hypervisor"
+msgstr "हाइपरविजर से जुड़ नहीं सका"
+
+#: src/virterror.c:422
+#, c-format
+msgid "could not connect to %s"
+msgstr "%s से जुड़ नहीं सका"
+
+#: src/virterror.c:426
+msgid "invalid connection pointer in"
+msgstr "इसमें अवैध संबंधन संकेतक"
+
+#: src/virterror.c:428
+#, c-format
+msgid "invalid connection pointer in %s"
+msgstr "%s में अवैध संबंधन संकेतक"
+
+#: src/virterror.c:432
+msgid "invalid domain pointer in"
+msgstr "इसमें अवैध डोमेन संकेतक"
+
+#: src/virterror.c:434
+#, c-format
+msgid "invalid domain pointer in %s"
+msgstr "%s में अवैध डोमेन संकेतक"
+
+#: src/virterror.c:438
+msgid "invalid argument in"
+msgstr "इसमें अवैध तर्क"
+
+#: src/virterror.c:440
+#, c-format
+msgid "invalid argument in %s"
+msgstr "%s में अवैध तर्क"
+
+#: src/virterror.c:444
+#, c-format
+msgid "operation failed: %s"
+msgstr "ऑपरेशन विफल: %s"
+
+#: src/virterror.c:446
+msgid "operation failed"
+msgstr "ऑपरेशन विफल"
+
+#: src/virterror.c:450
+#, c-format
+msgid "GET operation failed: %s"
+msgstr "GET ऑपरेशन विफल: %s"
+
+#: src/virterror.c:452
+msgid "GET operation failed"
+msgstr "GET ऑपरेशन विफल"
+
+#: src/virterror.c:456
+#, c-format
+msgid "POST operation failed: %s"
+msgstr "POST ऑपरेशन विफल: %s"
+
+#: src/virterror.c:458
+msgid "POST operation failed"
+msgstr "उत्तर ऑपरेशन विफल"
+
+#: src/virterror.c:461
+#, c-format
+msgid "got unknown HTTP error code %d"
+msgstr "अज्ञात HTTP त्रुटि कोड %d पाया"
+
+#: src/virterror.c:465
+#, c-format
+msgid "unknown host %s"
+msgstr "अज्ञात मेजबान %s"
+
+#: src/virterror.c:467
+msgid "unknown host"
+msgstr "अज्ञात मेजबान"
+
+#: src/virterror.c:471
+#, c-format
+msgid "failed to serialize S-Expr: %s"
+msgstr "S-Expr को सीरियलाइज करने में विफल: %s"
+
+#: src/virterror.c:473
+msgid "failed to serialize S-Expr"
+msgstr "S-Expr को सीरियलाइज करने में विफल"
+
+#: src/virterror.c:477
+msgid "could not use Xen hypervisor entry"
+msgstr "Xen हाइपरविजर प्रविष्टि का प्रयोग नहीं कर सका"
+
+#: src/virterror.c:479
+#, c-format
+msgid "could not use Xen hypervisor entry %s"
+msgstr "Xen हाइपरविजर प्रविष्टि %s का प्रयोग नहीं कर सका"
+
+#: src/virterror.c:483
+msgid "could not connect to Xen Store"
+msgstr "Xen भंडार में जोड़ नहीं जा सका"
+
+#: src/virterror.c:485
+#, c-format
+msgid "could not connect to Xen Store %s"
+msgstr "Xen भंडार %s में जोड़ नहीं जा सका"
+
+#: src/virterror.c:488
+#, c-format
+msgid "failed Xen syscall %s %d"
+msgstr "Xen syscall %s %d विफल"
+
+#: src/virterror.c:492
+msgid "unknown OS type"
+msgstr "अज्ञात OS प्रकार"
+
+#: src/virterror.c:494
+#, c-format
+msgid "unknown OS type %s"
+msgstr "अज्ञात OS प्रकार %s"
+
+#: src/virterror.c:497
+msgid "missing kernel information"
+msgstr "गुम कर्नेल सूचना"
+
+#: src/virterror.c:501
+msgid "missing root device information"
+msgstr "गुम रूट युक्ति सूचना"
+
+#: src/virterror.c:503
+#, c-format
+msgid "missing root device information in %s"
+msgstr "%s में गुम रूट युक्ति सूचना"
+
+#: src/virterror.c:507
+msgid "missing source information for device"
+msgstr "युक्ति के लिये गुम श्रोत सूचना"
+
+#: src/virterror.c:509
+#, c-format
+msgid "missing source information for device %s"
+msgstr "%s युक्ति के लिये गुम श्रोत सूचना"
+
+#: src/virterror.c:513
+msgid "missing target information for device"
+msgstr "युक्ति के लिये गुम लक्ष्य सूचना"
+
+#: src/virterror.c:515
+#, c-format
+msgid "missing target information for device %s"
+msgstr "%s युक्ति के लिये गुम लक्ष्य सूचना"
+
+#: src/virterror.c:519
+msgid "missing domain name information"
+msgstr "गुम डोमेन नाम सूचना"
+
+#: src/virterror.c:521
+#, c-format
+msgid "missing domain name information in %s"
+msgstr "%s मे गुम डोमेन नाम सूचना"
+
+#: src/virterror.c:525
+msgid "missing operating system information"
+msgstr "गुम ऑपरेटिंग सिस्टम सूचना"
+
+#: src/virterror.c:527
+#, c-format
+msgid "missing operating system information for %s"
+msgstr "%s के लिये गुम ऑपरेटिंग सिस्टम सूचना"
+
+#: src/virterror.c:531
+msgid "missing devices information"
+msgstr "गुम युक्ति सूचना"
+
+#: src/virterror.c:533
+#, c-format
+msgid "missing devices information for %s"
+msgstr "%s के लिये गुम युक्ति सूचना"
+
+#: src/virterror.c:537
+msgid "too many drivers registered"
+msgstr "कई ड्राइवर पंजीकृत हैं"
+
+#: src/virterror.c:539
+#, c-format
+msgid "too many drivers registered in %s"
+msgstr "%s में कई ड्राइवर पंजीकृत हैं"
+
+#: src/virterror.c:543
+msgid "library call failed, possibly not supported"
+msgstr "लाइब्रेरी कॉल विफल रहा, संभवतः समर्थित नहीं"
+
+#: src/virterror.c:545
+#, c-format
+msgid "library call %s failed, possibly not supported"
+msgstr "लाइब्रेरी कॉल %s विफल रहा, संभवतः समर्थित नहीं"
+
+#: src/virterror.c:549
+msgid "XML description not well formed or invalid"
+msgstr "XML विवरण सही स्वरूप में नहीं है या अवैध है"
+
+#: src/virterror.c:551
+#, c-format
+msgid "XML description for %s is not well formed or invalid"
+msgstr "XML विवरण %s के लिये अच्छे रूप में नहीं है या अवैध है"
+
+#: src/virterror.c:555
+msgid "this domain exists already"
+msgstr "यह डोमेन पहले से मौजूद है"
+
+#: src/virterror.c:557
+#, c-format
+msgid "domain %s exists already"
+msgstr "%s डोमेन पहले से मौजूद है"
+
+#: src/virterror.c:561
+msgid "operation forbidden for read only access"
+msgstr "सिर्फ पठन के लिये अभिगम हेतु ऑपरेशन मना"
+
+#: src/virterror.c:563
+#, c-format
+msgid "operation %s forbidden for read only access"
+msgstr "सिर्फ पठन के लिये अभिगम हेतु ऑपरेशन %s मना"
+
+#: src/virterror.c:567
+msgid "failed to open configuration file for reading"
+msgstr "पढ़ने के लिये विन्यास खोलने में विफल"
+
+#: src/virterror.c:569
+#, c-format
+msgid "failed to open %s for reading"
+msgstr "%s को पढ़ने के लिये खोलने में विफल"
+
+#: src/virterror.c:573
+msgid "failed to read configuration file"
+msgstr "विन्यास फाइल पढ़ने में विफल"
+
+#: src/virterror.c:575
+#, c-format
+msgid "failed to read configuration file %s"
+msgstr "%s विन्यास फाइल पढ़ने में विफल"
+
+#: src/virterror.c:579
+msgid "failed to parse configuration file"
+msgstr "विन्यास फाइल के विश्लेषण में विफल"
+
+#: src/virterror.c:581
+#, c-format
+msgid "failed to parse configuration file %s"
+msgstr "%s विन्यास फाइल के विश्लेषण में विफल"
+
+#: src/virterror.c:585
+msgid "configuration file syntax error"
+msgstr "विन्यास फाइल वाक्य रचना त्रुटि"
+
+#: src/virterror.c:587
+#, c-format
+msgid "configuration file syntax error: %s"
+msgstr "फाइल वाक्य रचना त्रुटि विन्यस्त कर रहा है: %s"
+
+#: src/virterror.c:591
+msgid "failed to write configuration file"
+msgstr "विन्यास फाइल लिखने में विफल"
+
+#: src/virterror.c:593
+#, c-format
+msgid "failed to write configuration file: %s"
+msgstr "विन्यास फाइल लिखने में विफल: %s"
+
+#: src/virterror.c:597
+msgid "parser error"
+msgstr "विश्लेषक त्रुटि"
+
+#: src/virterror.c:603
+msgid "invalid network pointer in"
+msgstr "इसमें अवैध संजाल संकेतक"
+
+#: src/virterror.c:605
+#, c-format
+msgid "invalid network pointer in %s"
+msgstr "%s में अवैध संजाल संकेतक"
+
+#: src/virterror.c:609
+msgid "this network exists already"
+msgstr "यह संजाल पहले से मौजूद है"
+
+#: src/virterror.c:611
+#, c-format
+msgid "network %s exists already"
+msgstr "%s संजाल पहले से मौजूद है"
+
+#: src/virterror.c:615
+msgid "system call error"
+msgstr "सिस्टम आह्वान त्रुटि"
+
+#: src/virterror.c:621
+msgid "RPC error"
+msgstr "RPC त्रुटि"
+
+# done by Ravi
+#: src/virterror.c:627
+msgid "GNUTLS call error"
+msgstr "GNUTLS कॉल त्रुटि"
+
+# done by Ravi
+#: src/virterror.c:633
+msgid "Failed to find the network"
+msgstr "संजाल धुंडने में विफल"
+
+# done by Ravi
+#: src/virterror.c:635
+#, c-format
+msgid "Failed to find the network: %s"
+msgstr "संजाल धुंडने में विफल: %s"
+
+# done by Ravi
+#: src/virterror.c:639
+msgid "Domain not found"
+msgstr "डोमेन नही मिला"
+
+# done by Ravi
+#: src/virterror.c:641
+#, c-format
+msgid "Domain not found: %s"
+msgstr "डोमेन नही मिला: %s"
+
+# done by Ravi
+#: src/virterror.c:645
+msgid "Network not found"
+msgstr "संजाल नही मिला"
+
+#: src/virterror.c:647
+#, c-format
+msgid "Network not found: %s"
+msgstr "संजाल नही मिला: %s"
+
+#: src/virterror.c:651
+msgid "invalid MAC adress"
+msgstr "अमान्य MAC पता"
+
+#: src/virterror.c:653
+#, c-format
+msgid "invalid MAC adress: %s"
+msgstr "अमान्य MAC पता: %s"
+
+#: src/xmlrpc.c:63
+msgid "copying node content"
+msgstr "नोड सामग्री कॉपी कर रहा है"
+
+#: src/xmlrpc.c:163
+msgid "allocate value array"
+msgstr "मान सरणी संभाजित कर रहा है"
+
+#: src/xmlrpc.c:196
+msgid "unexpected dict node"
+msgstr "अप्रत्याशित डिक्ट नोड"
+
+#: src/xmlrpc.c:268
+msgid "unexpected value node"
+msgstr "अप्रत्याशित मान नोड"
+
+#: src/xmlrpc.c:431
+msgid "send request"
+msgstr "आग्रह भेजें"
+
+#: src/xmlrpc.c:437
+msgid "unexpected mime type"
+msgstr "अप्रत्याशित mime प्रकार"
+
+#: src/xmlrpc.c:444
+msgid "allocate response"
+msgstr "अनुक्रिया संभाजित करें"
+
+#: src/xmlrpc.c:452 src/xmlrpc.c:514
+msgid "read response"
+msgstr "अनुक्रिया पढ़े"
+
+#: src/xmlrpc.c:484 src/xml.c:265
+msgid "allocate string array"
+msgstr "स्ट्रिंग सरणी संभाजित करें"
+
+#: src/xmlrpc.c:606
+msgid "parse server response failed"
+msgstr "विश्लेषण सर्वर अनुक्रिया विफल"
+
+#: src/xmlrpc.c:670
+msgid "allocate new context"
+msgstr "नया संदर्भ दें"
+
+#: src/hash.c:770 src/hash.c:775
+msgid "allocating domain"
+msgstr "डोमेन संभाजित कर रहा है"
+
+#: src/hash.c:786
+msgid "failed to add domain to connection hash table"
+msgstr "संबंधन हैश तालिका में डोमेन जोड़ने में विफल"
+
+#: src/hash.c:838
+msgid "domain missing from connection hash table"
+msgstr "संबंधन हैश तालिका से डोमेन गुम"
+
+#: src/hash.c:903 src/hash.c:908
+msgid "allocating network"
+msgstr "संजाल संभाजित कर रहा है"
+
+#: src/hash.c:918
+msgid "failed to add network to connection hash table"
+msgstr "संबंधन हैश तालिका में संजाल जोड़ने में विफल"
+
+#: src/hash.c:970
+msgid "network missing from connection hash table"
+msgstr "संबंधन हैश तालिका से संजाल गुम"
+
+#: src/test.c:223 src/test.c:588 src/test.c:1262
+msgid "getting time of day"
+msgstr "दिन का समय ले रहा है"
+
+#: src/test.c:229 src/test.c:361 src/test.c:387 src/test.c:1537
+msgid "domain"
+msgstr "डोमेन"
+
+#: src/test.c:235 src/test.c:421 src/test.c:694
+msgid "creating xpath context"
+msgstr "xpath संदर्भ बना रहा है"
+
+#: src/test.c:241
+msgid "domain name"
+msgstr "डोमेन नाम"
+
+#: src/test.c:247 src/test.c:251
+msgid "domain uuid"
+msgstr "डोमेन uuid"
+
+#: src/test.c:259
+msgid "domain memory"
+msgstr "डोमेन स्मृति"
+
+#: src/test.c:268
+msgid "domain current memory"
+msgstr "डोमेन मौजूदा स्मृति"
+
+#: src/test.c:278
+msgid "domain vcpus"
+msgstr "डोमेन vcpus"
+
+#: src/test.c:287
+msgid "domain reboot behaviour"
+msgstr "डोमेन रिबूट व्यवहार"
+
+#: src/test.c:297
+msgid "domain poweroff behaviour"
+msgstr "डोमेन पावरऑफ व्यवहार"
+
+#: src/test.c:307
+msgid "domain crash behaviour"
+msgstr "डोमेन क्रैश व्यवहार"
+
+#: src/test.c:380
+msgid "load domain definition file"
+msgstr "डोमेन परिभाषा फाइल लोड करें"
+
+# done by Ravi
+#: src/test.c:415 src/test.c:539 src/test.c:564
+msgid "network"
+msgstr "संजाल"
+
+#: src/test.c:427 src/virsh.c:2733
+msgid "network name"
+msgstr "संजाल नाम"
+
+#: src/test.c:435 src/test.c:439 src/virsh.c:2624
+msgid "network uuid"
+msgstr "संजाल uuid"
+
+# done by Ravi
+#: src/test.c:447
+msgid "network forward"
+msgstr "संजाल अग्रस्थ"
+
+# done by Ravi
+#: src/test.c:456 src/test.c:466 src/test.c:471
+msgid "ip address"
+msgstr "ip पता"
+
+# done by Ravi
+#: src/test.c:461
+msgid "ip netmask"
+msgstr "ip netmask"
+
+#: src/test.c:557
+msgid "load network definition file"
+msgstr "डोमेन परिभाषा फाइल लोड करें"
+
+#: src/test.c:673
+msgid "loading host definition file"
+msgstr "मेजबान परिभाषा फाइल लोड करें"
+
+#: src/test.c:680
+msgid "host"
+msgstr "मेजबान"
+
+#: src/test.c:688
+msgid "node"
+msgstr "नोड"
+
+#: src/test.c:712
+msgid "node cpu numa nodes"
+msgstr "नोड cpu न्यूमा नोड"
+
+#: src/test.c:720
+msgid "node cpu sockets"
+msgstr "नोड cpu सॉकेट"
+
+#: src/test.c:728
+msgid "node cpu cores"
+msgstr "नोड cpu कोर"
+
+#: src/test.c:736
+msgid "node cpu threads"
+msgstr "नोड cpu थ्रेड"
+
+#: src/test.c:747
+msgid "node active cpu"
+msgstr "नोड सक्रिय cpu"
+
+#: src/test.c:754
+msgid "node cpu mhz"
+msgstr "नोड cpu mhz"
+
+#: src/test.c:769
+msgid "node memory"
+msgstr "नोड स्मृति"
+
+#: src/test.c:775
+msgid "node domain list"
+msgstr "नोड डोमेन सूची"
+
+#: src/test.c:785
+msgid "resolving domain filename"
+msgstr "डोमेन फाइलनाम हल कर रहा है"
+
+#: src/test.c:810
+msgid "resolving network filename"
+msgstr "संजाल फाइलनाम हल कर रहा है"
+
+# done by Ravi
+#: src/test.c:908
+msgid "testOpen: supply a path or use test:///default"
+msgstr "testOpen: पाथ दीजिये या फिर इस्तेमाल करें test:///default"
+
+#: src/test.c:1046
+msgid "too many domains"
+msgstr "कई डोमेन"
+
+#: src/test.c:1557
+msgid "Domain is already running"
+msgstr "डोमेन पहले से चल रहा है"
+
+#: src/test.c:1572
+msgid "Domain is still running"
+msgstr "डोमेन अभी भी चल रहा है"
+
+#: src/test.c:1772 src/test.c:1797
+msgid "too many networks"
+msgstr "कई सारें संजाल"
+
+#: src/test.c:1816
+msgid "Network is still running"
+msgstr "संजाल अभी भी चल रहा है"
+
+#: src/test.c:1830
+msgid "Network is already running"
+msgstr "संजाल पहले से चल रहा है"
+
+#: src/sexpr.c:59
+msgid "failed to allocate a node"
+msgstr "एक नोड संभाजित करने में विफल"
+
+#: src/sexpr.c:352 src/sexpr.c:367
+msgid "failed to copy a string"
+msgstr "एक स्ट्रिंग कॉपी करने में विफल"
+
+#: src/xend_internal.c:283 src/xend_internal.c:286
+msgid "failed to read from Xen Daemon"
+msgstr "Xen डेमॉन से पढ़ने में विफल"
+
+#: src/xend_internal.c:597 src/xend_internal.c:814 src/xend_internal.c:1534
+#: src/xend_internal.c:1553 src/xend_internal.c:2079
+msgid "allocate new buffer"
+msgstr "नया बफर संभाजित करें"
+
+#: src/xend_internal.c:1021
+msgid "failed to urlencode the create S-Expr"
+msgstr "failed to urlencode the create S-Expr"
+
+#: src/xend_internal.c:1062
+msgid "domain information incomplete, missing domid"
+msgstr "डोमेन सूचना अपूर्ण, गुम domid"
+
+#: src/xend_internal.c:1068
+msgid "domain information incorrect domid not numeric"
+msgstr "डोमेन सूचना गलत domid सांख्यिक नहीं"
+
+#: src/xend_internal.c:1073 src/xend_internal.c:1120
+msgid "domain information incomplete, missing uuid"
+msgstr "डोमेन सूचना अपूर्ण, गुम uuid"
+
+#: src/xend_internal.c:1112 src/xend_internal.c:1390 src/xend_internal.c:1397
+msgid "domain information incomplete, missing name"
+msgstr "डोमेन सूचना अपूर्ण, गुम नाम"
+
+#: src/xend_internal.c:1286 src/xend_internal.c:1317
+msgid "domain information incomplete, missing kernel & bootloader"
+msgstr "डोमेन सूचना अपूर्ण, गुम कर्नेल और बूटलोडर"
+
+#: src/xend_internal.c:1378
+msgid "domain information incomplete, missing id"
+msgstr "डोमेन सूचना अपूर्ण, गुम id"
+
+#: src/xend_internal.c:1503
+msgid "domain information incomplete, vbd has no dev"
+msgstr "डोमेन सूचना अपूर्ण, vbd के पास कोई dev नहीं"
+
+#: src/xend_internal.c:1518
+msgid "domain information incomplete, vbd has no src"
+msgstr "डोमेन सूचना अपूर्ण, vbd के पास कोई src नहीं"
+
+#: src/xend_internal.c:1527
+msgid "cannot parse vbd filename, missing driver name"
+msgstr "vbd फाइलनाम विश्लेषित नहीं कर सकता है, ड्राइवर नाम नहीं मिल रहा है"
+
+#: src/xend_internal.c:1546
+msgid "cannot parse vbd filename, missing driver type"
+msgstr "vbd फाइलनाम विश्लेषित नहीं कर सकता है, ड्राइवर प्रकार नहीं मिल रहा है"
+
+#: src/xend_internal.c:1948
+#, fuzzy
+msgid "failed to parse topology information"
+msgstr "Xend डोमेन सूचना विश्लेषण में विफल"
+
+#: src/xend_internal.c:2136
+msgid "failed to parse Xend domain information"
+msgstr "Xend डोमेन सूचना विश्लेषण में विफल"
+
+#: src/xend_internal.c:3604
+#, c-format
+msgid "Failed to create inactive domain %s\n"
+msgstr "निष्क्रिय डोमेन %s बनाने में विफल\n"
+
+#: src/virsh.c:309
+msgid "print help"
+msgstr "छपाई मदद"
+
+#: src/virsh.c:310
+msgid "Prints global help or command specific help."
+msgstr "वैश्विक मदद या कमांड विशेष मदद छापें"
+
+#: src/virsh.c:316
+msgid "name of command"
+msgstr "कमांड का नाम"
+
+#: src/virsh.c:328
+msgid ""
+"Commands:\n"
+"\n"
+msgstr ""
+"कमांड:\n"
+"\n"
+
+#: src/virsh.c:342
+msgid "autostart a domain"
+msgstr "एक डोमेन स्वतः आरंभ करें"
+
+#: src/virsh.c:344
+msgid "Configure a domain to be automatically started at boot."
+msgstr "बूट पर स्वतः आरंभ होने के लिये एक डोमेन विन्यस्त करें"
+
+#: src/virsh.c:349 src/virsh.c:450 src/virsh.c:636 src/virsh.c:673
+#: src/virsh.c:730 src/virsh.c:797 src/virsh.c:1077 src/virsh.c:1121
+#: src/virsh.c:1297 src/virsh.c:1342 src/virsh.c:1381 src/virsh.c:1420
+#: src/virsh.c:1459 src/virsh.c:1498 src/virsh.c:1617 src/virsh.c:1704
+#: src/virsh.c:1832 src/virsh.c:1889 src/virsh.c:1946 src/virsh.c:2067
+#: src/virsh.c:2207 src/virsh.c:2908 src/virsh.c:2988 src/virsh.c:3051
+#: src/virsh.c:3105 src/virsh.c:3159 src/virsh.c:3275 src/virsh.c:3396
+#: src/virsh.c:3561
+msgid "domain name, id or uuid"
+msgstr "डोमेन नाम, id या uuid"
+
+#: src/virsh.c:350 src/virsh.c:2271
+msgid "disable autostarting"
+msgstr "स्वतः आरंभन निष्क्रिय करें"
+
+# done by Ravi
+#: src/virsh.c:371
+#, c-format
+msgid "Failed to mark domain %s as autostarted"
+msgstr "%s डोमेन का स्वतः आरंभन चिह्न लगाने में विफल"
+
+#: src/virsh.c:374
+#, c-format
+msgid "Failed to unmark domain %s as autostarted"
+msgstr "%s डोमेन का स्वतः आरंभन चिह्न हटाने में विफल "
+
+#: src/virsh.c:381
+#, c-format
+msgid "Domain %s marked as autostarted\n"
+msgstr "%s डोमेन का स्वतः आरंभन चिह्न लग गया\n"
+
+#: src/virsh.c:383
+#, c-format
+msgid "Domain %s unmarked as autostarted\n"
+msgstr ""
+"%s डोमेन का स्वतः आरंभन चिह्न हट गया \n"
+"\n"
+
+#: src/virsh.c:394
+msgid "(re)connect to hypervisor"
+msgstr "हाइपरविजर से फिर जुड़ें"
+
+#: src/virsh.c:396
+msgid ""
+"Connect to local hypervisor. This is built-in command after shell start up."
+msgstr "स्थानीय हाइपरविजर से जोड़ें. यह शेल के आरंभ होने पर अंतर्निमित कमांड है."
+
+#: src/virsh.c:401
+msgid "hypervisor connection URI"
+msgstr "हाइपरविजर संबंधन URI"
+
+#: src/virsh.c:402
+msgid "read-only connection"
+msgstr "सिर्फ पठन के लिये संबंधन"
+
+#: src/virsh.c:414
+msgid "Failed to disconnect from the hypervisor"
+msgstr "हाइपरविजर से विसंबंधित होने में विफल"
+
+#: src/virsh.c:433
+msgid "Failed to connect to the hypervisor"
+msgstr "हाइपरविजर से जुड़ने में विफल"
+
+#: src/virsh.c:443
+msgid "connect to the guest console"
+msgstr "अतिथि कंसोल में जुड़ें"
+
+#: src/virsh.c:445
+msgid "Connect the virtual serial console for the guest"
+msgstr "अतिथि के लिये आभासी क्रमिक कंसोल से जुड़ें"
+
+#: src/virsh.c:490
+msgid "No console available for domain\n"
+msgstr "डोमेन के लिये कोई कंसोल उपलब्ध नहीं\n"
+
+#: src/virsh.c:508
+msgid "list domains"
+msgstr "डोमेन की सूची देता है"
+
+#: src/virsh.c:509
+msgid "Returns list of domains."
+msgstr "डोमेन की सूची देता है"
+
+#: src/virsh.c:514
+msgid "list inactive domains"
+msgstr "निष्क्रिय डोमेन अनुसूचित करें"
+
+#: src/virsh.c:515
+msgid "list inactive & active domains"
+msgstr "निष्क्रिय व सक्रिय डोमेन अनुसूचित करें"
+
+#: src/virsh.c:537 src/virsh.c:544
+msgid "Failed to list active domains"
+msgstr "एक सक्रिय डोमेन के अनुसूचन में विफल"
+
+#: src/virsh.c:555 src/virsh.c:564
+msgid "Failed to list inactive domains"
+msgstr "एक निष्क्रिय डोमेन के अनुसूचन में विफल"
+
+#: src/virsh.c:574
+msgid "Id"
+msgstr "Id"
+
+#: src/virsh.c:574 src/virsh.c:2556
+msgid "Name"
+msgstr "नाम"
+
+#: src/virsh.c:574 src/virsh.c:2556
+msgid "State"
+msgstr "स्थिति"
+
+#: src/virsh.c:587 src/virsh.c:609 src/virsh.c:4343 src/virsh.c:4359
+msgid "no state"
+msgstr "कोई स्थिति नहीं"
+
+#: src/virsh.c:630
+msgid "domain state"
+msgstr "डोमेन स्थिति"
+
+#: src/virsh.c:631
+msgid "Returns state about a running domain."
+msgstr "कार्यशील डोमेन के बारे में स्थिति लौटायें"
+
+#: src/virsh.c:667
+msgid "get device block stats for a domain"
+msgstr "डोमेन के लिए युक्ति ब्लॉक स्थिति पाया"
+
+#: src/virsh.c:668
+msgid "Get device block stats for a running domain."
+msgstr "कार्यशील डोमेन के बारे में युक्ति ब्लॉक स्थिति पाएं"
+
+#: src/virsh.c:674
+msgid "block device"
+msgstr "ब्लॉक युक्ति"
+
+#: src/virsh.c:695
+#, c-format
+msgid "Failed to get block stats %s %s"
+msgstr "%s %s ब्लॉक स्थिति पाने में विफल"
+
+#: src/virsh.c:724
+msgid "get network interface stats for a domain"
+msgstr "डोमेन के लिए संजाल अंतरफलक स्थिति पाएं"
+
+#: src/virsh.c:725
+msgid "Get network interface stats for a running domain."
+msgstr "कार्यशील डोमेन के लिए संजाल अंतरफलक स्थिति पाएं"
+
+#: src/virsh.c:731
+msgid "interface device"
+msgstr "अंतरफलक युक्ति"
+
+#: src/virsh.c:752
+#, c-format
+msgid "Failed to get interface stats %s %s"
+msgstr "अंतरफलक स्थिति %s %s पाने में विफल"
+
+#: src/virsh.c:791
+msgid "suspend a domain"
+msgstr "एक डोमेन स्थगित करें"
+
+#: src/virsh.c:792
+msgid "Suspend a running domain."
+msgstr "एक कार्यशील डोमेन स्थगित"
+
+#: src/virsh.c:815
+#, c-format
+msgid "Domain %s suspended\n"
+msgstr "%s डोमेन स्थगित हुआ\n"
+
+#: src/virsh.c:817
+#, c-format
+msgid "Failed to suspend domain %s"
+msgstr "%s डोमेन स्थगम में विफल"
+
+#: src/virsh.c:830
+msgid "create a domain from an XML file"
+msgstr "एक XML फाइल के लिये डोमेन बनायें"
+
+#: src/virsh.c:831
+msgid "Create a domain."
+msgstr "एक डोमेन बनायें"
+
+#: src/virsh.c:836 src/virsh.c:944
+msgid "file containing an XML domain description"
+msgstr "XML डोमेन विवरण समाहित करता फाइल"
+
+#: src/virsh.c:851
+#, c-format
+msgid "Failed to open '%s': %s"
+msgstr "'%s' खोलने में विफल: %s"
+
+#: src/virsh.c:871
+#, c-format
+msgid "Failed to open '%s': read: %s"
+msgstr "'%s' खोलने में विफल: पढ़ें: %s"
+
+#: src/virsh.c:889
+#, c-format
+msgid "Error allocating memory: %s"
+msgstr "स्मृति आबंटन में त्रुटि: %s"
+
+#: src/virsh.c:923
+#, c-format
+msgid "Domain %s created from %s\n"
+msgstr "%s डोमेन को %s बनाया गया\n"
+
+#: src/virsh.c:927
+#, c-format
+msgid "Failed to create domain from %s"
+msgstr "%s से डोमेन निर्माण में विफल"
+
+#: src/virsh.c:938
+msgid "define (but don't start) a domain from an XML file"
+msgstr "एक डोमेन परिभाषित करें (लेकिन आरंभ मत करें) एक XML फाइल से"
+
+#: src/virsh.c:939
+msgid "Define a domain."
+msgstr "एक डोमेन परिभाषित करें"
+
+#: src/virsh.c:971
+#, c-format
+msgid "Domain %s defined from %s\n"
+msgstr "डोमेन %s %s से परिभाषित\n"
+
+#: src/virsh.c:975
+#, c-format
+msgid "Failed to define domain from %s"
+msgstr "डोमेन को %s से परिभाषित करने में विफल"
+
+#: src/virsh.c:986
+msgid "undefine an inactive domain"
+msgstr "एक निष्क्रिय डोमेन अपरिभाषित करें"
+
+#: src/virsh.c:987
+msgid "Undefine the configuration for an inactive domain."
+msgstr "एक निष्क्रिय डोमेन के लिये विन्यास अपरिभाषित करें"
+
+#: src/virsh.c:992 src/virsh.c:2136
+msgid "domain name or uuid"
+msgstr "डोमेन नाम या uuid"
+
+#: src/virsh.c:1010
+#, c-format
+msgid "Domain %s has been undefined\n"
+msgstr "डोमेन %s अपरिभाषित है\n"
+
+#: src/virsh.c:1012
+#, c-format
+msgid "Failed to undefine domain %s"
+msgstr "अपरिभाषित डोमेन %s में विफल"
+
+#: src/virsh.c:1026
+msgid "start a (previously defined) inactive domain"
+msgstr "एक निष्क्रिय डोमेन (पहले से परिभाषित) आरंभ करें"
+
+#: src/virsh.c:1027
+msgid "Start a domain."
+msgstr "एक डोमेन आरंभ करें"
+
+#: src/virsh.c:1032
+msgid "name of the inactive domain"
+msgstr "एक निष्क्रिय डोमेन का नाम"
+
+#: src/virsh.c:1049
+msgid "Domain is already active"
+msgstr "डोमेन पहले से सक्रिय"
+
+#: src/virsh.c:1055
+#, c-format
+msgid "Domain %s started\n"
+msgstr "डोमेन %s फिर आरंभ किया\n"
+
+#: src/virsh.c:1058
+#, c-format
+msgid "Failed to start domain %s"
+msgstr "%s डोमेन आरंभ करने में विफल"
+
+#: src/virsh.c:1071
+msgid "save a domain state to a file"
+msgstr "एक फाइल में डोमेन स्थिति सहेजें"
+
+#: src/virsh.c:1072
+msgid "Save a running domain."
+msgstr "एक कार्यशील डोमेन सहेजें"
+
+#: src/virsh.c:1078
+msgid "where to save the data"
+msgstr "कहां आंकड़ा सहेजा जाना है"
+
+#: src/virsh.c:1100
+#, c-format
+msgid "Domain %s saved to %s\n"
+msgstr "डोमेन %s %s में सहेजा गया\n"
+
+#: src/virsh.c:1102
+#, c-format
+msgid "Failed to save domain %s to %s"
+msgstr "डोमेन %s को %s में सहेजने में विफल"
+
+#: src/virsh.c:1115
+msgid "show/set scheduler parameters"
+msgstr "अनुसूचक पैरामीटर दिखाएं/सेट करें"
+
+#: src/virsh.c:1116
+msgid "Show/Set scheduler parameters."
+msgstr "अनुसूचक पैरामीटरों को दिखाएं/सेट करें"
+
+#: src/virsh.c:1122
+msgid "weight for XEN_CREDIT"
+msgstr "XEN_CREDIT के लिए भार"
+
+#: src/virsh.c:1123
+msgid "cap for XEN_CREDIT"
+msgstr "XEN_CREDIT के लिए कैप"
+
+#: src/virsh.c:1193 src/virsh.c:1197
+msgid "Scheduler"
+msgstr "नियोजक"
+
+# done by Ravi
+#: src/virsh.c:1197
+msgid "Unknown"
+msgstr "अज्ञात"
+
+#: src/virsh.c:1253
+msgid "restore a domain from a saved state in a file"
+msgstr "एक फाइल में सहेजे स्थिति में एक डोमेन फिर भंडारित करें"
+
+#: src/virsh.c:1254
+msgid "Restore a domain."
+msgstr "एक डोमेन फिर भंडारित करें"
+
+#: src/virsh.c:1259
+msgid "the state to restore"
+msgstr "पुनर्भंडारित करने की स्थिति"
+
+#: src/virsh.c:1278
+#, c-format
+msgid "Domain restored from %s\n"
+msgstr "%s से डोमेन फिर पुनर्भंडारित\n"
+
+#: src/virsh.c:1280
+#, c-format
+msgid "Failed to restore domain from %s"
+msgstr "%s से डोमेन फिर जाम करने में विफल"
+
+#: src/virsh.c:1291
+msgid "dump the core of a domain to a file for analysis"
+msgstr "विश्लेषण के लिये फाइल में एक डोमेन का कोर डंप करें"
+
+#: src/virsh.c:1292
+msgid "Core dump a domain."
+msgstr "एक डोमेन का कोर डंप"
+
+#: src/virsh.c:1298
+msgid "where to dump the core"
+msgstr "कोर को कहां डंप किया जाना है"
+
+#: src/virsh.c:1320
+#, c-format
+msgid "Domain %s dumpd to %s\n"
+msgstr "डोमेन %s को %s में डंप किया गया\n"
+
+#: src/virsh.c:1322
+#, c-format
+msgid "Failed to core dump domain %s to %s"
+msgstr "डोमेन %s को %s में कोर डंप करने में विफल"
+
+#: src/virsh.c:1336
+msgid "resume a domain"
+msgstr "एक डोमेन बहाल करें"
+
+#: src/virsh.c:1337
+msgid "Resume a previously suspended domain."
+msgstr "पहले से स्थगित डोमेन बहाल करे"
+
+#: src/virsh.c:1360
+#, c-format
+msgid "Domain %s resumed\n"
+msgstr "डोमेन %s बहाल करें\n"
+
+#: src/virsh.c:1362
+#, c-format
+msgid "Failed to resume domain %s"
+msgstr "%s डोमेन फिर बहाल करने में विफल"
+
+#: src/virsh.c:1375
+msgid "gracefully shutdown a domain"
+msgstr "एक डोमेन उदाहरता पूर्वक बंद करें"
+
+#: src/virsh.c:1376
+msgid "Run shutdown in the target domain."
+msgstr "लक्ष्य डोमेन में बंद करें चलायें"
+
+#: src/virsh.c:1399
+#, c-format
+msgid "Domain %s is being shutdown\n"
+msgstr "डोमेन %s बंद हो रहा है\n"
+
+#: src/virsh.c:1401
+#, c-format
+msgid "Failed to shutdown domain %s"
+msgstr "%s डोमेन बंद करने में विफल"
+
+#: src/virsh.c:1414
+msgid "reboot a domain"
+msgstr "एक डोमेन रिबूट करें"
+
+#: src/virsh.c:1415
+msgid "Run a reboot command in the target domain."
+msgstr "एक लक्ष्य डोमेन में एक फिर बूट करें कमांड चलायें"
+
+#: src/virsh.c:1438
+#, c-format
+msgid "Domain %s is being rebooted\n"
+msgstr "%s डोमेन को फिर रिबूट किया जा रहा है\n"
+
+#: src/virsh.c:1440
+#, c-format
+msgid "Failed to reboot domain %s"
+msgstr "%s डोमेन रिबूट करने में विफल"
+
+#: src/virsh.c:1453
+msgid "destroy a domain"
+msgstr "एक डोमेन खत्म करें"
+
+#: src/virsh.c:1454
+msgid "Destroy a given domain."
+msgstr "दिये डोमेन को खत्म करें"
+
+#: src/virsh.c:1477
+#, c-format
+msgid "Domain %s destroyed\n"
+msgstr "डोमेन %s तोड़ा गया\n"
+
+#: src/virsh.c:1479
+#, c-format
+msgid "Failed to destroy domain %s"
+msgstr "%s डोमेन तोड़ने में विफल"
+
+#: src/virsh.c:1492
+msgid "domain information"
+msgstr "डोमेन सूचना"
+
+#: src/virsh.c:1493
+msgid "Returns basic information about the domain."
+msgstr "डोमेन के बारे में मौलिक सूचना देता है"
+
+#: src/virsh.c:1519 src/virsh.c:1521
+msgid "Id:"
+msgstr "Id:"
+
+#: src/virsh.c:1522
+msgid "Name:"
+msgstr "नाम:"
+
+#: src/virsh.c:1525
+msgid "UUID:"
+msgstr "UUID:"
+
+#: src/virsh.c:1528
+msgid "OS Type:"
+msgstr "OS प्रकार:"
+
+#: src/virsh.c:1533 src/virsh.c:1661
+msgid "State:"
+msgstr "स्थिति:"
+
+#: src/virsh.c:1536 src/virsh.c:2018
+msgid "CPU(s):"
+msgstr "CPU:"
+
+#: src/virsh.c:1543 src/virsh.c:1668
+msgid "CPU time:"
+msgstr "CPU समय:"
+
+#: src/virsh.c:1547 src/virsh.c:1550
+msgid "Max memory:"
+msgstr "अधिकतम स्मृति:"
+
+#: src/virsh.c:1551
+msgid "no limit"
+msgstr "कोई सीमा नहीं"
+
+#: src/virsh.c:1553
+msgid "Used memory:"
+msgstr "प्रयुक्त स्मृति:"
+
+#: src/virsh.c:1569
+#, fuzzy
+msgid "NUMA free memory"
+msgstr "प्रयुक्त स्मृति:"
+
+#: src/virsh.c:1570
+msgid "display available free memory for the NUMA cell."
+msgstr ""
+
+#: src/virsh.c:1575
+#, fuzzy
+msgid "NUMA cell number"
+msgstr "NUMA सेल:"
+
+#: src/virsh.c:1599
+msgid "Total"
+msgstr ""
+
+#: src/virsh.c:1611
+msgid "domain vcpu information"
+msgstr "डोमेन vcpu सूचना"
+
+#: src/virsh.c:1612
+msgid "Returns basic information about the domain virtual CPUs."
+msgstr "डोमेन वर्चुअल सीपीयू के बारे में मौलिक सूचना देता है "
+
+#: src/virsh.c:1659
+msgid "VCPU:"
+msgstr "VCPU:"
+
+#: src/virsh.c:1660
+msgid "CPU:"
+msgstr "CPU:"
+
+#: src/virsh.c:1670
+msgid "CPU Affinity:"
+msgstr "CPU जुड़ाव:"
+
+#: src/virsh.c:1682
+msgid "Domain shut off, virtual CPUs not present."
+msgstr "डोमेन बंद, आभासी CPU मौजूद नहीं."
+
+#: src/virsh.c:1698
+msgid "control domain vcpu affinity"
+msgstr "कंट्रोल डोमेन vcpu जुड़ाव"
+
+#: src/virsh.c:1699
+msgid "Pin domain VCPUs to host physical CPUs."
+msgstr "पिन डोमेन VCPU को भौतिक CPU मेजबानित करने में."
+
+#: src/virsh.c:1705
+msgid "vcpu number"
+msgstr "vcpu संख्या"
+
+#: src/virsh.c:1706
+msgid "host cpu number(s) (comma separated)"
+msgstr "मेजबान cpu संख्या (कोमा से अलग)"
+
+#: src/virsh.c:1761
+msgid "cpulist: Invalid format. Empty string."
+msgstr "cpulist: अवैध प्रारूप. खाली स्ट्रिंग."
+
+#: src/virsh.c:1771
+#, c-format
+msgid ""
+"cpulist: %s: Invalid format. Expecting digit at position %d (near '%c')."
+msgstr "cpulist: %s: अवैध प्रारूप. %d ('%c' के नजदीक) स्थिति पर अंक प्रत्याशित."
+
+#: src/virsh.c:1781
+#, c-format
+msgid ""
+"cpulist: %s: Invalid format. Expecting digit or comma at position %d (near '%"
+"c')."
+msgstr ""
+"cpulist: %s: अवैध प्रारूप. %d स्थिति (near '%c') पर अंक या कौमा की आशा कर रहा है."
+
+#: src/virsh.c:1788
+#, c-format
+msgid "cpulist: %s: Invalid format. Trailing comma at position %d."
+msgstr "cpulist: %s: अवैध प्रारूप. स्थिति %d पर कौमा पीछे है."
+
+#: src/virsh.c:1802
+#, c-format
+msgid "Physical CPU %d doesn't exist."
+msgstr "भौतिक CPU %d मौजूद नहीं है."
+
+#: src/virsh.c:1826
+msgid "change number of virtual CPUs"
+msgstr "वर्चुअल सीपीयू की संख्या बदलें"
+
+#: src/virsh.c:1827
+msgid "Change the number of virtual CPUs active in the guest domain."
+msgstr "अतिथि डोमेन में सक्रिय वर्चुअल सीपीयू की संख्या बदलें"
+
+#: src/virsh.c:1833
+msgid "number of virtual CPUs"
+msgstr "वर्चुअल CPU की संख्या"
+
+#: src/virsh.c:1853
+msgid "Invalid number of virtual CPUs."
+msgstr "वर्चुअल CPU की अवैध संख्या"
+
+#: src/virsh.c:1865
+msgid "Too many virtual CPUs."
+msgstr "बहुतेके वर्चुअल CPU"
+
+#: src/virsh.c:1883
+msgid "change memory allocation"
+msgstr "स्मृति संभाजन बदलें"
+
+#: src/virsh.c:1884
+msgid "Change the current memory allocation in the guest domain."
+msgstr "अतिथि डोमेन में मौजूदा स्मृति संभाजन बदलें"
+
+#: src/virsh.c:1890
+msgid "number of kilobytes of memory"
+msgstr "स्मृति के किलोबाइट की संख्या"
+
+#: src/virsh.c:1911 src/virsh.c:1923 src/virsh.c:1968
+#, c-format
+msgid "Invalid value of %d for memory size"
+msgstr "स्मृति आकार के लिये %d का अवैध मान"
+
+#: src/virsh.c:1917
+msgid "Unable to verify MaxMemorySize"
+msgstr "MaxMemorySize जांचने में असमर्थ"
+
+#: src/virsh.c:1940
+msgid "change maximum memory limit"
+msgstr "अधिकतम स्मृति सीमा बदलें"
+
+#: src/virsh.c:1941
+msgid "Change the maximum memory allocation limit in the guest domain."
+msgstr "एक अतिथि डोमेन में अधिकमत स्मृति संभाजन बदलें"
+
+#: src/virsh.c:1947
+msgid "maximum memory limit in kilobytes"
+msgstr "किलोबाइट में अधिकतम स्मृति सीमा"
+
+#: src/virsh.c:1974
+msgid "Unable to verify current MemorySize"
+msgstr "मौजूदा MemorySize जांचने में असमर्थ"
+
+#: src/virsh.c:1981
+msgid "Unable to shrink current MemorySize"
+msgstr "मौजूदा MemorySize सिकोड़ने में असमर्थ"
+
+#: src/virsh.c:1987
+msgid "Unable to change MaxMemorySize"
+msgstr "MaxMemorySize बदलने में असमर्थ"
+
+#: src/virsh.c:2000
+msgid "node information"
+msgstr "नोड सूचना"
+
+#: src/virsh.c:2001
+msgid "Returns basic information about the node."
+msgstr "नोड के बारे में मौलिक सूचना देता है"
+
+#: src/virsh.c:2014
+msgid "failed to get node information"
+msgstr "नोड सूचना पाने में विफल"
+
+#: src/virsh.c:2017
+msgid "CPU model:"
+msgstr "CPU मॉडल:"
+
+#: src/virsh.c:2019
+msgid "CPU frequency:"
+msgstr "CPU आवृति:"
+
+#: src/virsh.c:2020
+msgid "CPU socket(s):"
+msgstr "CPU सॉकेट:"
+
+#: src/virsh.c:2021
+msgid "Core(s) per socket:"
+msgstr "प्रति सॉकेट कोर:"
+
+#: src/virsh.c:2022
+msgid "Thread(s) per core:"
+msgstr "प्रति कोर थ्रेड:"
+
+#: src/virsh.c:2023
+msgid "NUMA cell(s):"
+msgstr "NUMA सेल:"
+
+#: src/virsh.c:2024
+msgid "Memory size:"
+msgstr "स्मृति आकार:"
+
+#: src/virsh.c:2034
+msgid "capabilities"
+msgstr "क्षमता"
+
+#: src/virsh.c:2035
+msgid "Returns capabilities of hypervisor/driver."
+msgstr "हाइपरविजरप/ड्राइवर की क्षमता को लौटा रहा है."
+
+#: src/virsh.c:2048
+msgid "failed to get capabilities"
+msgstr "क्षमता पाने में विफल"
+
+#: src/virsh.c:2061
+msgid "domain information in XML"
+msgstr "XML में डोमेन सूचना"
+
+#: src/virsh.c:2062
+msgid "Output the domain information as an XML dump to stdout."
+msgstr "एक XML डंप को stdout में डोमेन सूचना आउटपुट दें."
+
+#: src/virsh.c:2101
+msgid "convert a domain id or UUID to domain name"
+msgstr "एक डोमेन id या UUID को डोमेन नाम में बदलें"
+
+#: src/virsh.c:2106
+msgid "domain id or uuid"
+msgstr "डोमेन id या uuid"
+
+#: src/virsh.c:2131
+msgid "convert a domain name or UUID to domain id"
+msgstr "डोमेन नाम या UUID को डोमेन id में बदले"
+
+#: src/virsh.c:2166
+msgid "convert a domain name or id to domain UUID"
+msgstr "डोमेन नाम या id को डोमेन UUID में बदले"
+
+#: src/virsh.c:2171
+msgid "domain id or name"
+msgstr "डोमेन id या नाम"
+
+#: src/virsh.c:2190
+msgid "failed to get domain UUID"
+msgstr "डोमेन UUID पाने में विफल"
+
+#: src/virsh.c:2200
+msgid "migrate domain to another host"
+msgstr "डोमेन दूसरे होस्ट में उत्प्रवासित कर रहा है"
+
+#: src/virsh.c:2201
+msgid "Migrate domain to another host.  Add --live for live migration."
+msgstr "डोमेन दूसरे होस्ट में उत्प्रवासित कर रहा है. लाइव उत्प्रवास के लिए --live जोड़ें."
+
+#: src/virsh.c:2206
+msgid "live migration"
+msgstr "जीवंत उत्प्रवासन"
+
+#: src/virsh.c:2208
+msgid "connection URI of the destination host"
+msgstr "गंतव्य मेजबान का कनेक्शन URI"
+
+#: src/virsh.c:2209
+msgid "migration URI, usually can be omitted"
+msgstr "उत्प्रवासन URI, प्रायः मिटाया जा सकता है"
+
+#: src/virsh.c:2231
+msgid "migrate: Missing desturi"
+msgstr "उत्प्रवासित करें: अनुपस्थित desturi"
+
+#: src/virsh.c:2263
+msgid "autostart a network"
+msgstr "संजाल स्वतः आरंभ करें"
+
+#: src/virsh.c:2265
+msgid "Configure a network to be automatically started at boot."
+msgstr "बूट पर संजाल स्वतः आरंभ करने के लिये विन्यस्त करें."
+
+#: src/virsh.c:2270 src/virsh.c:2695
+msgid "network name or uuid"
+msgstr "संजाल नाम या uuid"
+
+#: src/virsh.c:2292
+#, c-format
+msgid "failed to mark network %s as autostarted"
+msgstr "%s संजाल को स्वतः आरंभन चिह्नित करने में विफल"
+
+#: src/virsh.c:2295
+#, c-format
+msgid "failed to unmark network %s as autostarted"
+msgstr "%s संजाल को स्वतः आरंभन अचिह्नित करने में विफल"
+
+#: src/virsh.c:2302
+#, c-format
+msgid "Network %s marked as autostarted\n"
+msgstr "संजाल %s स्वतः आरंभन के रूप में चिह्नित\n"
+
+#: src/virsh.c:2304
+#, c-format
+msgid "Network %s unmarked as autostarted\n"
+msgstr "संजाल %s स्वतः आरंभन के रूप में अचिह्नित\n"
+
+#: src/virsh.c:2314
+msgid "create a network from an XML file"
+msgstr "एक XML फाइल के लिये संजाल बनायें"
+
+#: src/virsh.c:2315
+msgid "Create a network."
+msgstr "एक संजाल बनायें"
+
+#: src/virsh.c:2320 src/virsh.c:2368
+msgid "file containing an XML network description"
+msgstr "एक XML संजाल विवरण समाहित करता फाइल"
+
+#: src/virsh.c:2347
+#, c-format
+msgid "Network %s created from %s\n"
+msgstr "%s संजाल को %s बनाया गया\n"
+
+#: src/virsh.c:2350
+#, c-format
+msgid "Failed to create network from %s"
+msgstr "%s से संजाल निर्माण में विफल"
+
+#: src/virsh.c:2362
+msgid "define (but don't start) a network from an XML file"
+msgstr "एक संजाल परिभाषित करें (लेकिन आरंभ मत करें) एक XML फाइल से"
+
+#: src/virsh.c:2363
+msgid "Define a network."
+msgstr "एक संजाल परिभाषित करें"
+
+#: src/virsh.c:2395
+#, c-format
+msgid "Network %s defined from %s\n"
+msgstr "संजाल %s %s से परिभाषित\n"
+
+#: src/virsh.c:2398
+#, c-format
+msgid "Failed to define network from %s"
+msgstr "संजाल को %s से परिभाषित करने में विफल"
+
+#: src/virsh.c:2410
+msgid "destroy a network"
+msgstr "एक संजाल खत्म करें"
+
+#: src/virsh.c:2411
+msgid "Destroy a given network."
+msgstr "दिये संजाल को खत्म करें"
+
+#: src/virsh.c:2416 src/virsh.c:2456
+msgid "network name, id or uuid"
+msgstr "संजाल नाम, id या uuid"
+
+#: src/virsh.c:2434
+#, c-format
+msgid "Network %s destroyed\n"
+msgstr "संजाल %s तोड़ा गया\n"
+
+#: src/virsh.c:2436
+#, c-format
+msgid "Failed to destroy network %s"
+msgstr "%s संजाल तोड़ने में विफल"
+
+#: src/virsh.c:2450
+msgid "network information in XML"
+msgstr "XML में संजाल सूचना"
+
+#: src/virsh.c:2451
+msgid "Output the network information as an XML dump to stdout."
+msgstr "stdout में एक XML डंप के रूप में संजाल सूचना का आउटपुट दें."
+
+#: src/virsh.c:2491
+msgid "list networks"
+msgstr "संजाल सूची दें"
+
+#: src/virsh.c:2492
+msgid "Returns list of networks."
+msgstr "संजाल की सूची देता है"
+
+#: src/virsh.c:2497
+msgid "list inactive networks"
+msgstr "निष्क्रिय संजाल सूचीबद्ध करें"
+
+#: src/virsh.c:2498
+msgid "list inactive & active networks"
+msgstr "निष्क्रिय व सक्रिय संजाल अनुसूचित करें"
+
+#: src/virsh.c:2518 src/virsh.c:2526
+msgid "Failed to list active networks"
+msgstr "एक सक्रिय संजाल के सूचीकरण में विफल"
+
+#: src/virsh.c:2537 src/virsh.c:2546
+msgid "Failed to list inactive networks"
+msgstr "एक निष्क्रिय संजाल के सूचीकरण में विफल"
+
+#: src/virsh.c:2556
+msgid "Autostart"
+msgstr "स्वतः आरंभ करें"
+
+#: src/virsh.c:2571 src/virsh.c:2594
+msgid "no autostart"
+msgstr "कोई स्वतः आरंभ नहीं"
+
+#: src/virsh.c:2577
+msgid "active"
+msgstr "सक्रिय"
+
+#: src/virsh.c:2600
+msgid "inactive"
+msgstr "निष्क्रिय"
+
+#: src/virsh.c:2619
+msgid "convert a network UUID to network name"
+msgstr "एक संजाल UUID को संजाल नाम में बदलें"
+
+#: src/virsh.c:2650
+msgid "start a (previously defined) inactive network"
+msgstr "एक निष्क्रिय संजाल (पहले से परिभाषित) आरंभ करें"
+
+#: src/virsh.c:2651
+msgid "Start a network."
+msgstr "एक संजाल आरंभ करें"
+
+#: src/virsh.c:2656
+msgid "name of the inactive network"
+msgstr "एक निष्क्रिय संजाल का नाम"
+
+#: src/virsh.c:2673
+#, c-format
+msgid "Network %s started\n"
+msgstr "संजाल %s फिर आरंभ किया\n"
+
+#: src/virsh.c:2676
+#, c-format
+msgid "Failed to start network %s"
+msgstr "%s संजाल आरंभ करने में विफल"
+
+#: src/virsh.c:2689
+msgid "undefine an inactive network"
+msgstr "एक निष्क्रिय संजाल अपरिभाषित करें"
+
+#: src/virsh.c:2690
+msgid "Undefine the configuration for an inactive network."
+msgstr "एक निष्क्रिय संजाल के लिये विन्यास अपरिभाषित करें"
+
+#: src/virsh.c:2713
+#, c-format
+msgid "Network %s has been undefined\n"
+msgstr "संजाल %s अपरिभाषित है\n"
+
+#: src/virsh.c:2715
+#, c-format
+msgid "Failed to undefine network %s"
+msgstr "अपरिभाषित संजाल %s में विफल"
+
+#: src/virsh.c:2728
+msgid "convert a network name to network UUID"
+msgstr "संजाल नाम को संजाल UUID में बदले"
+
+#: src/virsh.c:2753
+msgid "failed to get network UUID"
+msgstr "संजाल UUID पाने में विफल"
+
+#: src/virsh.c:2764
+msgid "show version"
+msgstr "संस्करण दिखायें"
+
+#: src/virsh.c:2765
+msgid "Display the system version information."
+msgstr "सिस्टम संस्कऱण सूचना दिखायें"
+
+#: src/virsh.c:2788
+msgid "failed to get hypervisor type"
+msgstr "हाइपरविजर प्रकार पाने में विफल"
+
+#: src/virsh.c:2797
+#, c-format
+msgid "Compiled against library: libvir %d.%d.%d\n"
+msgstr "लाइब्रेरी के बरक्स कंपाइल: libvir %d.%d.%d\n"
+
+#: src/virsh.c:2802
+msgid "failed to get the library version"
+msgstr "लाइब्रेरी संस्करण पाने में विफल"
+
+#: src/virsh.c:2809
+#, c-format
+msgid "Using library: libvir %d.%d.%d\n"
+msgstr "लाइब्रेरी का प्रयोग कर रहा है: libvir %d.%d.%d\n"
+
+#: src/virsh.c:2816
+#, c-format
+msgid "Using API: %s %d.%d.%d\n"
+msgstr "API का प्रयोग कर रहा है: %s %d.%d.%d\n"
+
+#: src/virsh.c:2821
+msgid "failed to get the hypervisor version"
+msgstr "हाइपरविजर संस्कऱण पाने में विफल"
+
+#: src/virsh.c:2826
+#, c-format
+msgid "Cannot extract running %s hypervisor version\n"
+msgstr "एकदम ठीक %s हाइपरविजर संस्करण खींच नहीं सकता\n"
+
+#: src/virsh.c:2833
+#, c-format
+msgid "Running hypervisor: %s %d.%d.%d\n"
+msgstr "हाइपरविजर चला रहा है: %s %d.%d.%d\n"
+
+#: src/virsh.c:2844
+msgid "print the hypervisor hostname"
+msgstr "हाइपरविजर होस्टनेम छापें"
+
+#: src/virsh.c:2858
+msgid "failed to get hostname"
+msgstr "होस्टनेम पाने में विफल"
+
+#: src/virsh.c:2873
+msgid "print the hypervisor canonical URI"
+msgstr "हाइपरविजर कैनोनिकल URI छापें"
+
+#: src/virsh.c:2887
+msgid "failed to get URI"
+msgstr "URI पाने में विफल"
+
+#: src/virsh.c:2902
+msgid "vnc display"
+msgstr "vnc प्रदर्शन"
+
+#: src/virsh.c:2903
+msgid "Output the IP address and port number for the VNC display."
+msgstr "VNC प्रदर्शन के लिये IP पता और पोर्ट संख्या का आउटपुट दें."
+
+#: src/virsh.c:2982
+msgid "tty console"
+msgstr "tty कंसोल"
+
+#: src/virsh.c:2983
+msgid "Output the device for the TTY console."
+msgstr "TTY कंसोल के लिए युक्ति का आउटपुट दें."
+
+#: src/virsh.c:3045
+msgid "attach device from an XML file"
+msgstr "XML फाइल से युक्ति जोड़ें"
+
+#: src/virsh.c:3046
+msgid "Attach device from an XML <file>."
+msgstr "XML से युक्ति जोड़ें <file>."
+
+#: src/virsh.c:3052 src/virsh.c:3106
+msgid "XML file"
+msgstr "XML फाइल"
+
+#: src/virsh.c:3084
+#, c-format
+msgid "Failed to attach device from %s"
+msgstr "%s से युक्ति जोड़ने में विफल"
+
+#: src/virsh.c:3099
+msgid "detach device from an XML file"
+msgstr "एक XML फाइल से युक्ति अलग करें"
+
+#: src/virsh.c:3100
+msgid "Detach device from an XML <file>"
+msgstr "एक XML से युक्ति अलग करें <file>"
+
+#: src/virsh.c:3138
+#, c-format
+msgid "Failed to detach device from %s"
+msgstr "%s से युक्ति अलग करने में विफल"
+
+#: src/virsh.c:3153
+msgid "attach network interface"
+msgstr "संजाल अंतरफलक जोड़ें"
+
+#: src/virsh.c:3154
+msgid "Attach new network interface."
+msgstr "नया संजाल अंतरफलक जोड़ें."
+
+#: src/virsh.c:3160 src/virsh.c:3276
+msgid "network interface type"
+msgstr "संजाल अंतरफलक प्रकार"
+
+#: src/virsh.c:3161
+msgid "source of network interface"
+msgstr "संजाल अंतरफलक का श्रोत"
+
+#: src/virsh.c:3162
+msgid "target network name"
+msgstr "लक्ष्य संजाल नाम"
+
+#: src/virsh.c:3163 src/virsh.c:3277
+msgid "MAC adress"
+msgstr "MAC पता"
+
+#: src/virsh.c:3164
+msgid "script used to bridge network interface"
+msgstr "संजाल अंतरफलक ब्रिज करने में प्रयुक्ति स्क्रिप्ट"
+
+#: src/virsh.c:3196
+#, c-format
+msgid "No support %s in command 'attach-interface'"
+msgstr "%s कोई समर्थन 'attach-interface' कमांड में नहीं"
+
+#: src/virsh.c:3269
+msgid "detach network interface"
+msgstr "संजाल अंतरफलक अलग करें"
+
+#: src/virsh.c:3270
+msgid "Detach network interface."
+msgstr "संजाल अंतरफलक अलग करें."
+
+#: src/virsh.c:3315 src/virsh.c:3320
+msgid "Failed to get interface information"
+msgstr "अंतरफलक सूचना पाने में विफल"
+
+#: src/virsh.c:3328
+#, c-format
+msgid "No found interface whose type is %s"
+msgstr "कोई अंतरफलक नहीं मिला जिसका प्रकार %s है"
+
+#: src/virsh.c:3350
+#, c-format
+msgid "No found interface whose MAC address is %s"
+msgstr "कोई अंतरफलक नहीं मिला जिसका MAC पता %s है"
+
+#: src/virsh.c:3356 src/virsh.c:3634
+msgid "Failed to allocate memory"
+msgstr "स्मृति संभाजित करने में विफल"
+
+#: src/virsh.c:3361 src/virsh.c:3639
+msgid "Failed to create XML"
+msgstr "XML बनाने में विफल"
+
+#: src/virsh.c:3390
+msgid "attach disk device"
+msgstr "डिस्क युक्ति जोड़ें"
+
+#: src/virsh.c:3391
+msgid "Attach new disk device."
+msgstr "नयी डिस्क युक्ति जोड़ें."
+
+#: src/virsh.c:3397
+msgid "source of disk device"
+msgstr "डिस्क युक्ति का श्रोत"
+
+#: src/virsh.c:3398 src/virsh.c:3562
+msgid "target of disk device"
+msgstr "डिस्क युक्ति का लक्ष्य"
+
+#: src/virsh.c:3399
+msgid "driver of disk device"
+msgstr "डिस्क युक्ति का ड्राइवर"
+
+#: src/virsh.c:3400
+msgid "subdriver of disk device"
+msgstr "डिस्क युक्ति का सबड्राइवर"
+
+#: src/virsh.c:3401
+msgid "target device type"
+msgstr "लक्ष्य युक्ति प्रकार"
+
+#: src/virsh.c:3402
+msgid "mode of device reading and writing"
+msgstr "युक्ति पठन या लेखन का प्रकार"
+
+#: src/virsh.c:3433 src/virsh.c:3442 src/virsh.c:3449
+#, c-format
+msgid "No support %s in command 'attach-disk'"
+msgstr "कोई समर्थन %s 'attach-disk' कमांड में"
+
+#: src/virsh.c:3555
+msgid "detach disk device"
+msgstr "डिस्क युक्ति अलग करें"
+
+#: src/virsh.c:3556
+msgid "Detach disk device."
+msgstr "डिस्क युक्ति अलग करें."
+
+#: src/virsh.c:3597 src/virsh.c:3602 src/virsh.c:3609
+msgid "Failed to get disk information"
+msgstr "डिस्क सूचना पाने में विफल"
+
+#: src/virsh.c:3628
+#, c-format
+msgid "No found disk whose target is %s"
+msgstr "कोई ज्ञात डिस्क नहीं जिसका लक्ष्य %s है"
+
+#: src/virsh.c:3668
+msgid "quit this interactive terminal"
+msgstr "इस अंतःक्रियात्मक टर्मिनल छोड़ें"
+
+#: src/virsh.c:3809
+#, c-format
+msgid "command '%s' requires <%s> option"
+msgstr "कमांड '%s' के लिये <%s> विकल्प जरूरी"
+
+#: src/virsh.c:3810
+#, c-format
+msgid "command '%s' requires --%s option"
+msgstr "कमांड '%s' के लिये  --%s विकल्प जरूरी"
+
+#: src/virsh.c:3837
+#, c-format
+msgid "command '%s' doesn't exist"
+msgstr "कमांड '%s' मौजूद नहीं है"
+
+#: src/virsh.c:3845
+msgid "  NAME\n"
+msgstr "  नाम\n"
+
+#: src/virsh.c:3849
+msgid ""
+"\n"
+"  SYNOPSIS\n"
+msgstr ""
+"\n"
+"  सारांश\n"
+
+#: src/virsh.c:3856
+msgid ""
+"\n"
+"  DESCRIPTION\n"
+msgstr ""
+"\n"
+"  विवरण\n"
+
+#: src/virsh.c:3860
+msgid ""
+"\n"
+"  OPTIONS\n"
+msgstr ""
+"\n"
+"  विकल्प\n"
+
+#: src/virsh.c:3867
+#, c-format
+msgid "--%s <number>"
+msgstr "--%s <number>"
+
+#: src/virsh.c:3869
+#, c-format
+msgid "--%s <string>"
+msgstr "--%s <string>"
+
+#: src/virsh.c:3988
+msgid "undefined domain name or id"
+msgstr "अपरिभाषित डोमेन नाम या id"
+
+#: src/virsh.c:4021
+#, c-format
+msgid "failed to get domain '%s'"
+msgstr "'%s' डोमेन पाने में विफल"
+
+#: src/virsh.c:4034
+msgid "undefined network name"
+msgstr "अपरिभाषित संजाल नाम"
+
+#: src/virsh.c:4058
+#, c-format
+msgid "failed to get network '%s'"
+msgstr "'%s' संजाल पाने में विफल"
+
+#: src/virsh.c:4086
+#, c-format
+msgid ""
+"\n"
+"(Time: %.3f ms)\n"
+"\n"
+msgstr ""
+"\n"
+"(समय: %.3f ms)\n"
+"\n"
+
+#: src/virsh.c:4160
+msgid "missing \""
+msgstr "गुम \""
+
+#: src/virsh.c:4221
+#, c-format
+msgid "unexpected token (command name): '%s'"
+msgstr "अप्रत्याशित टोकेन (कमांड नाम): '%s'"
+
+#: src/virsh.c:4226
+#, c-format
+msgid "unknown command: '%s'"
+msgstr "अज्ञात कमांड: '%s'"
+
+#: src/virsh.c:4233
+#, c-format
+msgid "command '%s' doesn't support option --%s"
+msgstr "कमांड '%s' विकल्प का समर्थन नहीं करता है --%s"
+
+#: src/virsh.c:4248
+#, c-format
+msgid "expected syntax: --%s <%s>"
+msgstr "प्रत्याशित वाक्य रचना: --%s <%s>"
+
+#: src/virsh.c:4251
+msgid "number"
+msgstr "संख्या"
+
+#: src/virsh.c:4251
+msgid "string"
+msgstr "स्ट्रिंग"
+
+#: src/virsh.c:4257
+#, c-format
+msgid "unexpected data '%s'"
+msgstr "अप्रत्याशित आंकड़ा '%s'"
+
+#: src/virsh.c:4279
+msgid "OPTION"
+msgstr "विकल्प"
+
+#: src/virsh.c:4279
+msgid "DATA"
+msgstr "आंकड़ा"
+
+#: src/virsh.c:4329 src/virsh.c:4355
+msgid "running"
+msgstr "कार्यशील"
+
+#: src/virsh.c:4331 src/virsh.c:4353
+msgid "blocked"
+msgstr "ब्लॉक किया"
+
+#: src/virsh.c:4333
+msgid "paused"
+msgstr "ठहराया गया"
+
+#: src/virsh.c:4335
+msgid "in shutdown"
+msgstr "बंद स्थिति में"
+
+#: src/virsh.c:4337
+msgid "shut off"
+msgstr "बंद करें"
+
+#: src/virsh.c:4339
+msgid "crashed"
+msgstr "क्रेश"
+
+#: src/virsh.c:4351
+msgid "offline"
+msgstr "ऑफलाइन"
+
+#: src/virsh.c:4370
+msgid "no valid connection"
+msgstr "कोई विधिक संबंधन नहीं"
+
+#: src/virsh.c:4417
+#, c-format
+msgid "%s: error: "
+msgstr "%s: त्रुटि: "
+
+#: src/virsh.c:4419
+msgid "error: "
+msgstr "त्रुटि: "
+
+#: src/virsh.c:4441 src/virsh.c:4453 src/virsh.c:4466
+#, c-format
+msgid "%s: %d: failed to allocate %d bytes"
+msgstr "%s: %d: %d बाइट देने में विफल"
+
+#: src/virsh.c:4480
+#, c-format
+msgid "%s: %d: failed to allocate %lu bytes"
+msgstr "%s: %d: %lu बाइट आबंटन में विफल"
+
+#: src/virsh.c:4516
+msgid "failed to connect to the hypervisor"
+msgstr "हाइपरविजर में जुडने में विफल"
+
+#: src/virsh.c:4540
+msgid "failed to get the log file information"
+msgstr "लॉग फाइल सूचना पाने में विफल"
+
+#: src/virsh.c:4545
+msgid "the log path is not a file"
+msgstr "लॉग पथ फाइल नहीं है"
+
+#: src/virsh.c:4551
+msgid "failed to open the log file. check the log file path"
+msgstr "लॉग फाइल पाने में विफल. लॉग फाइल पथ जांचें"
+
+#: src/virsh.c:4619
+msgid "failed to write the log file"
+msgstr "लॉग फाइल लिखने में विफल"
+
+#: src/virsh.c:4788
+#, c-format
+msgid ""
+"\n"
+"%s [options] [commands]\n"
+"\n"
+"  options:\n"
+"    -c | --connect <uri>    hypervisor connection URI\n"
+"    -r | --readonly         connect readonly\n"
+"    -d | --debug <num>      debug level [0-5]\n"
+"    -h | --help             this help\n"
+"    -q | --quiet            quiet mode\n"
+"    -t | --timing           print timing information\n"
+"    -l | --log <file>       output logging to file\n"
+"    -v | --version          program version\n"
+"\n"
+"  commands (non interactive mode):\n"
+msgstr ""
+"\n"
+"%s [options] [commands]\n"
+"\n"
+"  options:\n"
+"    -c | --connect <uri>    hypervisor connection URI\n"
+"    -r | --readonly         connect readonly\n"
+"    -d | --debug <num>      debug level [0-5]\n"
+"    -h | --help             this help\n"
+"    -q | --quiet            quiet mode\n"
+"    -t | --timing           print timing information\n"
+"    -l | --log <file>       output logging to file\n"
+"    -v | --version          program version\n"
+"\n"
+"  commands (non interactive mode):\n"
+
+#: src/virsh.c:4806
+#, c-format
+msgid ""
+"\n"
+"  (specify help <command> for details about the command)\n"
+"\n"
+msgstr ""
+"\n"
+"  (कमांड के बारे में विस्तार के लिए <command> मदद निर्दिष्ट करें)\n"
+"\n"
+
+#: src/virsh.c:4902
+#, c-format
+msgid "unsupported option '-%c'. See --help."
+msgstr "असमर्थित विकल्प '-%c'. See --help."
+
+#: src/virsh.c:4984
+#, c-format
+msgid ""
+"Welcome to %s, the virtualization interactive terminal.\n"
+"\n"
+msgstr ""
+"%s में आपका स्वागत है, वर्चुअलाइजेशन का अंतःक्रियात्मक टर्मिनल.\n"
+"\n"
+
+#: src/virsh.c:4987
+msgid ""
+"Type:  'help' for help with commands\n"
+"       'quit' to quit\n"
+"\n"
+msgstr ""
+"प्रकार:  'help' कमांड के साथ मदद के लिये\n"
+"       'quit' छोड़ने के लिये\n"
+"\n"
+
+#: src/conf.c:156 src/conf.c:205 src/conf.c:488 src/conf.c:525 src/conf.c:553
+#: src/conf.c:631
+msgid "allocating configuration"
+msgstr "विन्यास संभाजित कर रहा है"
+
+#: src/conf.c:340
+msgid "unterminated number"
+msgstr "गैर अवरूद्ध संख्या"
+
+#: src/conf.c:372 src/conf.c:389 src/conf.c:401
+msgid "unterminated string"
+msgstr "गैर अवरूद्ध स्ट्रिंग"
+
+#: src/conf.c:429 src/conf.c:482
+msgid "expecting a value"
+msgstr "एक मान प्रत्याशित"
+
+#: src/conf.c:449
+msgid "expecting a separator in list"
+msgstr "एक पृथक्कारक सूची में प्रत्याशित"
+
+#: src/conf.c:472
+msgid "list is not closed with ] "
+msgstr "सूची इसके साथ बंद नहीं ] "
+
+#: src/conf.c:518
+msgid "expecting a name"
+msgstr "एक नाम प्रत्याशित"
+
+#: src/conf.c:581
+msgid "expecting a separator"
+msgstr "एक पृथक्कारक प्रत्याशित"
+
+#: src/conf.c:613
+msgid "expecting an assignment"
+msgstr "एक कार्य प्रत्याशित"
+
+#: src/conf.c:887 src/conf.c:941
+msgid "failed to allocate buffer"
+msgstr "बफर संभाजित करने में विफल"
+
+#: src/conf.c:899
+msgid "failed to open file"
+msgstr "फाइल खोलने में विफल"
+
+#: src/conf.c:907
+msgid "failed to save content"
+msgstr "सामग्री सहेजने में विफल"
+
+#: src/xs_internal.c:346
+msgid "failed to connect to Xen Store"
+msgstr "Xen भंडार में जुड़ने में विफल"
+
+#: src/proxy_internal.c:195
+#, c-format
+msgid "failed to exec %s\n"
+msgstr "%s निष्पादन में विफल\n"
+
+#: src/proxy_internal.c:289
+#, c-format
+msgid "Failed to close socket %d\n"
+msgstr "%d सॉकेट बंद करने में विफल\n"
+
+#: src/proxy_internal.c:322
+#, c-format
+msgid "Failed to read socket %d\n"
+msgstr "सॉकेट %d पढ़ने में विफल\n"
+
+#: src/proxy_internal.c:356
+#, c-format
+msgid "Failed to write to socket %d\n"
+msgstr "सॉकेट %d में लिखने में विफल\n"
+
+#: src/proxy_internal.c:448 src/proxy_internal.c:469 src/proxy_internal.c:489
+#, c-format
+msgid "Communication error with proxy: got %d bytes of %d\n"
+msgstr "प्रॉक्सी के साथ संचार त्रुटि: %d बाइट %d का पाया\n"
+
+#: src/proxy_internal.c:456
+#, c-format
+msgid "Communication error with proxy: expected %d bytes got %d\n"
+msgstr "प्रॉक्सी के साथ संचार त्रुटि: %d बाइट प्रत्याशित %d पाया\n"
+
+#: src/proxy_internal.c:478
+#, c-format
+msgid "Communication error with proxy: got %d bytes packet\n"
+msgstr "प्रॉक्सी के साथ संचार त्रुटि: %d बाइट पैकेट पाया\n"
+
+#: src/proxy_internal.c:502
+#, c-format
+msgid "Communication error with proxy: malformed packet\n"
+msgstr "प्रॉक्सी के साथ संचार त्रुटि: विरूपित पैकेट\n"
+
+#: src/proxy_internal.c:508
+#, c-format
+msgid "got asynchronous packet number %d\n"
+msgstr "अतुल्यकालित पैकेट संख्या %d\n"
+
+#: src/xen_internal.c:1321
+#, c-format
+msgid "Credit scheduler weight parameter (%d) is out of range (1-65535)"
+msgstr "क्रेडिट नियोजक भार पैरामीटर (%d) परिसर से बाहर है (1-65535)"
+
+#: src/xen_internal.c:1331
+#, c-format
+msgid "Credit scheduler cap parameter (%d) is out of range (0-65535)"
+msgstr "क्रेडिट नियोजक कैप पैरामीटर (%d) परिसर से बाहर है (0-65535)"
+
+#: src/xen_internal.c:2598
+#, c-format
+msgid "allocating %d domain info"
+msgstr "%d डोमेन सूचना दे रहा है"

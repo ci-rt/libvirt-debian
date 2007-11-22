@@ -1,0 +1,2311 @@
+# translation of mk.po to Macedonian
+# Macedonian translations for PACKAGE package.
+# Copyright (C) 2007 Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+#
+# Automatically generated, 2007.
+# Bozidar Proevski <bobibobi@freemail.com.mk>, 2007.
+# Arangel Angov <arangel@linux.net.mk>, 2007.
+msgid ""
+msgstr ""
+"Project-Id-Version: mk\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2007-09-30 23:00+0200\n"
+"PO-Revision-Date: 2007-07-28 23:55+0200\n"
+"Last-Translator: Arangel Angov <arangel@linux.net.mk>\n"
+"Language-Team: Macedonian <ossm-members@hedona.on.net.mk>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 1.11.4\n"
+
+#: src/libvirt.c:412 src/hash.c:664
+msgid "allocating connection"
+msgstr "алоцирам поврзување"
+
+#: src/virterror.c:243
+msgid "warning"
+msgstr "предупредување"
+
+#: src/virterror.c:246
+msgid "error"
+msgstr "грешка"
+
+#: src/virterror.c:350
+msgid "No error message provided"
+msgstr "Нема зададена порака за грешка"
+
+#: src/virterror.c:405
+#, c-format
+msgid "internal error %s"
+msgstr "Интерна грешка %s"
+
+#: src/virterror.c:407
+msgid "internal error"
+msgstr "Интерна грешка"
+
+#: src/virterror.c:410
+msgid "out of memory"
+msgstr "нема меморија"
+
+#: src/virterror.c:414
+msgid "this function is not supported by the hypervisor"
+msgstr "оваа функција не е поддржана од хипервизорот"
+
+#: src/virterror.c:416
+#, c-format
+msgid "this function is not supported by the hypervisor: %s"
+msgstr "оваа функција не е поддржана од хипервизорот: %s"
+
+#: src/virterror.c:420
+msgid "could not connect to hypervisor"
+msgstr "не можев да се поврзам со хипервизорот"
+
+#: src/virterror.c:422
+#, c-format
+msgid "could not connect to %s"
+msgstr "не можев да се поврзам со %s"
+
+#: src/virterror.c:426
+msgid "invalid connection pointer in"
+msgstr "невалиден покажувач кон поврзување во"
+
+#: src/virterror.c:428
+#, c-format
+msgid "invalid connection pointer in %s"
+msgstr "невалиден покажувач кон поврзување во %s"
+
+#: src/virterror.c:432
+msgid "invalid domain pointer in"
+msgstr "невалиден покажувач кон домен во"
+
+#: src/virterror.c:434
+#, c-format
+msgid "invalid domain pointer in %s"
+msgstr "невалиден покажувач кон домен во %s"
+
+#: src/virterror.c:438
+msgid "invalid argument in"
+msgstr "невалиден аргумент во"
+
+#: src/virterror.c:440
+#, c-format
+msgid "invalid argument in %s"
+msgstr "невалиден аргумент во %s"
+
+#: src/virterror.c:444
+#, c-format
+msgid "operation failed: %s"
+msgstr "операцијата не успеа: %s"
+
+#: src/virterror.c:446
+msgid "operation failed"
+msgstr "операцијата не успеа"
+
+#: src/virterror.c:450
+#, c-format
+msgid "GET operation failed: %s"
+msgstr "операцијата GET не успеа: %s"
+
+#: src/virterror.c:452
+msgid "GET operation failed"
+msgstr "операцијата GET не успеа"
+
+#: src/virterror.c:456
+#, c-format
+msgid "POST operation failed: %s"
+msgstr "операцијата POST не успеа: %s"
+
+#: src/virterror.c:458
+msgid "POST operation failed"
+msgstr "операцијата POST не успеа"
+
+#: src/virterror.c:461
+#, c-format
+msgid "got unknown HTTP error code %d"
+msgstr "добив непознат код за HTTP-грешка %d"
+
+#: src/virterror.c:465
+#, c-format
+msgid "unknown host %s"
+msgstr "непознат сервер %s"
+
+#: src/virterror.c:467
+msgid "unknown host"
+msgstr "непознат сервер"
+
+#: src/virterror.c:471
+#, c-format
+msgid "failed to serialize S-Expr: %s"
+msgstr "не успеав да го серијализирам S-Expr: %s"
+
+#: src/virterror.c:473
+msgid "failed to serialize S-Expr"
+msgstr "не успеав да го серијализирам S-Expr"
+
+#: src/virterror.c:477
+msgid "could not use Xen hypervisor entry"
+msgstr "не можам да го користам записот за Xen-хипервизорот"
+
+#: src/virterror.c:479
+#, c-format
+msgid "could not use Xen hypervisor entry %s"
+msgstr "не можам да го користам записот за Xen-хипервизорот %s"
+
+#: src/virterror.c:483
+msgid "could not connect to Xen Store"
+msgstr "не можев да се поврзам со Xen Store"
+
+#: src/virterror.c:485
+#, c-format
+msgid "could not connect to Xen Store %s"
+msgstr "не можев да се поврзам со Xen Store %s"
+
+#: src/virterror.c:488
+#, c-format
+msgid "failed Xen syscall %s %d"
+msgstr "не успеа сис. повик за Xen %s %d"
+
+#: src/virterror.c:492
+msgid "unknown OS type"
+msgstr "Непознат тип на ОС"
+
+#: src/virterror.c:494
+#, c-format
+msgid "unknown OS type %s"
+msgstr "Непознат тип на ОС %s"
+
+#: src/virterror.c:497
+msgid "missing kernel information"
+msgstr "недостасува информација за кернелот"
+
+#: src/virterror.c:501
+msgid "missing root device information"
+msgstr "недостасува информација за кореновиот уред"
+
+#: src/virterror.c:503
+#, c-format
+msgid "missing root device information in %s"
+msgstr "недостасува информација за кореновиот уред во %s"
+
+#: src/virterror.c:507
+msgid "missing source information for device"
+msgstr "недостасува информација за извор за уредот"
+
+#: src/virterror.c:509
+#, c-format
+msgid "missing source information for device %s"
+msgstr "недостасува информација за извор за уредот %s"
+
+#: src/virterror.c:513
+msgid "missing target information for device"
+msgstr "недостасува информација за одредиште за уредот"
+
+#: src/virterror.c:515
+#, c-format
+msgid "missing target information for device %s"
+msgstr "недостасува информација за одредиште за уредот %s"
+
+#: src/virterror.c:519
+msgid "missing domain name information"
+msgstr "недостасува информација за име на доменот"
+
+#: src/virterror.c:521
+#, c-format
+msgid "missing domain name information in %s"
+msgstr "недостасува информација за име на доменот во %s"
+
+#: src/virterror.c:525
+msgid "missing operating system information"
+msgstr "недостасува информација за оперативниот систем"
+
+#: src/virterror.c:527
+#, c-format
+msgid "missing operating system information for %s"
+msgstr "недостасува информација за оперативниот систем во %s"
+
+#: src/virterror.c:531
+msgid "missing devices information"
+msgstr "недостасува информација за уредите"
+
+#: src/virterror.c:533
+#, c-format
+msgid "missing devices information for %s"
+msgstr "недостасува информација за уредите за %s"
+
+#: src/virterror.c:537
+msgid "too many drivers registered"
+msgstr "премногу регистрирани управувачи"
+
+#: src/virterror.c:539
+#, c-format
+msgid "too many drivers registered in %s"
+msgstr "премногу регистрирани управувачи во %s"
+
+#: src/virterror.c:543
+msgid "library call failed, possibly not supported"
+msgstr "повикот кон библиотеката не успеа, можеби не е поддржан"
+
+#: src/virterror.c:545
+#, c-format
+msgid "library call %s failed, possibly not supported"
+msgstr "повикот %s кон библиотеката не успеа, можеби не е поддржан"
+
+#: src/virterror.c:549
+msgid "XML description not well formed or invalid"
+msgstr "XML-описот не е добро формиран или не е валиден"
+
+#: src/virterror.c:551
+#, c-format
+msgid "XML description for %s is not well formed or invalid"
+msgstr "XML-описот за %s не е добро формиран или не е валиден"
+
+#: src/virterror.c:555
+msgid "this domain exists already"
+msgstr "овој домен веќе постои"
+
+#: src/virterror.c:557
+#, c-format
+msgid "domain %s exists already"
+msgstr "доменот %s веќе постои "
+
+#: src/virterror.c:561
+msgid "operation forbidden for read only access"
+msgstr "операцијата е забранета за пристап само за читање"
+
+#: src/virterror.c:563
+#, c-format
+msgid "operation %s forbidden for read only access"
+msgstr "операцијата %s е забранета за пристап само за читање"
+
+#: src/virterror.c:567
+msgid "failed to open configuration file for reading"
+msgstr "не успеав да ја отворам конфиг. датотека за читање"
+
+#: src/virterror.c:569
+#, c-format
+msgid "failed to open %s for reading"
+msgstr "не успеав да ја отворам %s за читање"
+
+#: src/virterror.c:573
+msgid "failed to read configuration file"
+msgstr "не успеав да ја прочитам конфиг. датотека"
+
+#: src/virterror.c:575
+#, c-format
+msgid "failed to read configuration file %s"
+msgstr "не успеав да ја прочитам конфиг. датотека %s"
+
+#: src/virterror.c:579
+msgid "failed to parse configuration file"
+msgstr "не успеав да ја анализирам конфиг. датотека"
+
+#: src/virterror.c:581
+#, c-format
+msgid "failed to parse configuration file %s"
+msgstr "не успеав да ја анализирам конфиг. датотека %s"
+
+#: src/virterror.c:585
+msgid "configuration file syntax error"
+msgstr "синтаксичка грешка во конфиг. датотека"
+
+#: src/virterror.c:587
+#, c-format
+msgid "configuration file syntax error: %s"
+msgstr "синтаксичка грешка во конфиг. датотека: %s"
+
+#: src/virterror.c:591
+msgid "failed to write configuration file"
+msgstr "не успеав да запишам во конфиг. датотека"
+
+#: src/virterror.c:593
+#, c-format
+msgid "failed to write configuration file: %s"
+msgstr "не успеав да запишам во конфиг. датотека: %s"
+
+#: src/virterror.c:597
+msgid "parser error"
+msgstr "грешка во анализаторот"
+
+#: src/virterror.c:603
+msgid "invalid network pointer in"
+msgstr "невалиден покажувач кон мрежа во"
+
+#: src/virterror.c:605
+#, c-format
+msgid "invalid network pointer in %s"
+msgstr "невалиден покажувач кон мрежа во %s"
+
+#: src/virterror.c:609
+msgid "this network exists already"
+msgstr "мрежата веќе постои"
+
+#: src/virterror.c:611
+#, c-format
+msgid "network %s exists already"
+msgstr "мрежата %s веќе постои"
+
+#: src/virterror.c:615
+msgid "system call error"
+msgstr "грешка во сис. повик"
+
+#: src/virterror.c:621
+msgid "RPC error"
+msgstr "RPC-грешка"
+
+#: src/virterror.c:627
+msgid "GNUTLS call error"
+msgstr "грешка во GNUTLS-повикот"
+
+#: src/virterror.c:633
+msgid "Failed to find the network"
+msgstr "Не успеав да ја пронајдам мрежата"
+
+#: src/virterror.c:635
+#, c-format
+msgid "Failed to find the network: %s"
+msgstr "Не успеав да ја пронајдам мрежата: %s"
+
+#: src/virterror.c:639
+#, fuzzy
+msgid "Domain not found"
+msgstr "информација за домен"
+
+#: src/virterror.c:641
+#, fuzzy, c-format
+msgid "Domain not found: %s"
+msgstr "Доменот е вратен од %s\n"
+
+#: src/virterror.c:645
+#, fuzzy
+msgid "Network not found"
+msgstr "име на мрежа или uuid"
+
+#: src/virterror.c:647
+#, fuzzy, c-format
+msgid "Network not found: %s"
+msgstr "Мрежата %s е креирана од %s\n"
+
+#: src/virterror.c:651
+#, fuzzy
+msgid "invalid MAC adress"
+msgstr "MAC-адреса"
+
+#: src/virterror.c:653
+#, fuzzy, c-format
+msgid "invalid MAC adress: %s"
+msgstr "невалиден аргумент во %s"
+
+#: src/xmlrpc.c:63
+msgid "copying node content"
+msgstr "копирам содржина на јазол"
+
+#: src/xmlrpc.c:163
+msgid "allocate value array"
+msgstr "алоцирам низа со вредности"
+
+#: src/xmlrpc.c:196
+msgid "unexpected dict node"
+msgstr "неочекуван dict-јазол"
+
+#: src/xmlrpc.c:268
+msgid "unexpected value node"
+msgstr "неочекуван јазол со вредност"
+
+#: src/xmlrpc.c:431
+msgid "send request"
+msgstr "барање за испраќање"
+
+#: src/xmlrpc.c:437
+msgid "unexpected mime type"
+msgstr "неочекуван mime-тип"
+
+#: src/xmlrpc.c:444
+msgid "allocate response"
+msgstr "одговор од алокацијата"
+
+#: src/xmlrpc.c:452 src/xmlrpc.c:514
+msgid "read response"
+msgstr "одговор од читањето"
+
+#: src/xmlrpc.c:484 src/xml.c:265
+msgid "allocate string array"
+msgstr "алоцирам низа со знаци"
+
+#: src/xmlrpc.c:606
+msgid "parse server response failed"
+msgstr "одговорот од серверот за анализа не успеа"
+
+#: src/xmlrpc.c:670
+msgid "allocate new context"
+msgstr "алоцирам нов контекст"
+
+#: src/hash.c:770 src/hash.c:775
+msgid "allocating domain"
+msgstr "алоцирам нов домен"
+
+#: src/hash.c:786
+msgid "failed to add domain to connection hash table"
+msgstr "не успеав да го додадам доменот во hash-табелата на поврзувања"
+
+#: src/hash.c:838
+msgid "domain missing from connection hash table"
+msgstr "доменот недостасува во hash-табелата на поврзувања"
+
+#: src/hash.c:903 src/hash.c:908
+msgid "allocating network"
+msgstr "алоцирам мрежа"
+
+#: src/hash.c:918
+msgid "failed to add network to connection hash table"
+msgstr "не успеав да ја додадам мрежата во hash-табелата на поврзувања"
+
+#: src/hash.c:970
+msgid "network missing from connection hash table"
+msgstr "мрежата недостасува во hash-табелата на поврзувања"
+
+#: src/test.c:223 src/test.c:588 src/test.c:1262
+msgid "getting time of day"
+msgstr "преземам време во денот"
+
+#: src/test.c:229 src/test.c:361 src/test.c:387 src/test.c:1537
+msgid "domain"
+msgstr "домен"
+
+#: src/test.c:235 src/test.c:421 src/test.c:694
+msgid "creating xpath context"
+msgstr "креирам xpath-контекст"
+
+#: src/test.c:241
+msgid "domain name"
+msgstr "име на домен"
+
+#: src/test.c:247 src/test.c:251
+msgid "domain uuid"
+msgstr "uuid на домен"
+
+#: src/test.c:259
+msgid "domain memory"
+msgstr "меморија на доменот"
+
+#: src/test.c:268
+msgid "domain current memory"
+msgstr "тековна меморија на доменот"
+
+#: src/test.c:278
+msgid "domain vcpus"
+msgstr "вирт. процесори на доменот"
+
+#: src/test.c:287
+msgid "domain reboot behaviour"
+msgstr "однесување на доменот при рестартирање"
+
+#: src/test.c:297
+msgid "domain poweroff behaviour"
+msgstr "однесување на доменот при исклучување"
+
+#: src/test.c:307
+msgid "domain crash behaviour"
+msgstr "однесување на доменот при паѓање"
+
+#: src/test.c:380
+msgid "load domain definition file"
+msgstr "вчитувам датотека за дефиниција на домен"
+
+#: src/test.c:415 src/test.c:539 src/test.c:564
+#, fuzzy
+msgid "network"
+msgstr "име на мрежа"
+
+#: src/test.c:427 src/virsh.c:2733
+msgid "network name"
+msgstr "име на мрежа"
+
+#: src/test.c:435 src/test.c:439 src/virsh.c:2624
+msgid "network uuid"
+msgstr "uuid на мрежа"
+
+#: src/test.c:447
+#, fuzzy
+msgid "network forward"
+msgstr "име на мрежа"
+
+#: src/test.c:456 src/test.c:466 src/test.c:471
+#, fuzzy
+msgid "ip address"
+msgstr "MAC-адреса"
+
+#: src/test.c:461
+msgid "ip netmask"
+msgstr ""
+
+#: src/test.c:557
+#, fuzzy
+msgid "load network definition file"
+msgstr "вчитувам датотека за дефиниција на домен"
+
+#: src/test.c:673
+msgid "loading host definition file"
+msgstr "вчитувам датотека за дефиниција на сервер"
+
+#: src/test.c:680
+msgid "host"
+msgstr "сервер"
+
+#: src/test.c:688
+msgid "node"
+msgstr "јазол"
+
+#: src/test.c:712
+msgid "node cpu numa nodes"
+msgstr "процесорски numa-јазли на јазолот"
+
+#: src/test.c:720
+msgid "node cpu sockets"
+msgstr "лежишта за процесори на јазолот"
+
+#: src/test.c:728
+msgid "node cpu cores"
+msgstr "процесорски јадра на јазолот"
+
+#: src/test.c:736
+msgid "node cpu threads"
+msgstr "процесорски нишки на јазолот"
+
+#: src/test.c:747
+msgid "node active cpu"
+msgstr "активен процесор на јазолот"
+
+#: src/test.c:754
+msgid "node cpu mhz"
+msgstr "фреквенција на процесор на јазолот"
+
+#: src/test.c:769
+msgid "node memory"
+msgstr "меморија на јазолот"
+
+#: src/test.c:775
+msgid "node domain list"
+msgstr "листа на домени на јазолот"
+
+#: src/test.c:785
+msgid "resolving domain filename"
+msgstr "датотека за разрешување домени"
+
+#: src/test.c:810
+#, fuzzy
+msgid "resolving network filename"
+msgstr "датотека за разрешување домени"
+
+#: src/test.c:908
+msgid "testOpen: supply a path or use test:///default"
+msgstr "testOpen: наведете патека или користете test:///default"
+
+#: src/test.c:1046
+msgid "too many domains"
+msgstr "премногу домени"
+
+#: src/test.c:1557
+msgid "Domain is already running"
+msgstr "Доменот веќе работи"
+
+#: src/test.c:1572
+msgid "Domain is still running"
+msgstr "Доменот сѐ уште работи"
+
+#: src/test.c:1772 src/test.c:1797
+#, fuzzy
+msgid "too many networks"
+msgstr "премногу поврзувања"
+
+#: src/test.c:1816
+#, fuzzy
+msgid "Network is still running"
+msgstr "Доменот сѐ уште работи"
+
+#: src/test.c:1830
+#, fuzzy
+msgid "Network is already running"
+msgstr "Доменот веќе работи"
+
+#: src/sexpr.c:59
+msgid "failed to allocate a node"
+msgstr "не успеав да алоцирам јазол"
+
+#: src/sexpr.c:352 src/sexpr.c:367
+msgid "failed to copy a string"
+msgstr "не успеав да копирам низа знаци"
+
+#: src/xend_internal.c:283 src/xend_internal.c:286
+msgid "failed to read from Xen Daemon"
+msgstr "не успеав да прочитам од Xen-даемонот"
+
+#: src/xend_internal.c:597 src/xend_internal.c:814 src/xend_internal.c:1534
+#: src/xend_internal.c:1553 src/xend_internal.c:2079
+msgid "allocate new buffer"
+msgstr "алоцирам нов бафер"
+
+#: src/xend_internal.c:1021
+msgid "failed to urlencode the create S-Expr"
+msgstr ""
+
+#: src/xend_internal.c:1062
+msgid "domain information incomplete, missing domid"
+msgstr "информацијата за доменот е нецелосна, недостасува domid"
+
+#: src/xend_internal.c:1068
+msgid "domain information incorrect domid not numeric"
+msgstr "информацијата за доменот е неправилна, domid не е нумерички"
+
+#: src/xend_internal.c:1073 src/xend_internal.c:1120
+msgid "domain information incomplete, missing uuid"
+msgstr "информацијата за доменот е нецелосна, недостасува uuid"
+
+#: src/xend_internal.c:1112 src/xend_internal.c:1390 src/xend_internal.c:1397
+msgid "domain information incomplete, missing name"
+msgstr "информацијата за доменот е нецелосна, недостасува име"
+
+#: src/xend_internal.c:1286 src/xend_internal.c:1317
+msgid "domain information incomplete, missing kernel & bootloader"
+msgstr ""
+"информацијата за доменот е нецелосна, недостасува кернел и подигач на "
+"системот"
+
+#: src/xend_internal.c:1378
+msgid "domain information incomplete, missing id"
+msgstr "информацијата за доменот е нецелосна, недостасува id"
+
+#: src/xend_internal.c:1503
+msgid "domain information incomplete, vbd has no dev"
+msgstr "информацијата за домен не е комплетна, vbd нема dev"
+
+#: src/xend_internal.c:1518
+msgid "domain information incomplete, vbd has no src"
+msgstr "информацијата за домен не е комплетна, vbd нема извор"
+
+#: src/xend_internal.c:1527
+msgid "cannot parse vbd filename, missing driver name"
+msgstr ""
+"не можам да го анализирам името на датотека за vbd, недостасува име на "
+"управувач"
+
+#: src/xend_internal.c:1546
+msgid "cannot parse vbd filename, missing driver type"
+msgstr ""
+"не можам да го анализирам името на датотека за vbd, недостасува тип на "
+"управувач"
+
+#: src/xend_internal.c:1948
+#, fuzzy
+msgid "failed to parse topology information"
+msgstr "не успеав да ја анализирам информацијата за Xend-домен"
+
+#: src/xend_internal.c:2136
+msgid "failed to parse Xend domain information"
+msgstr "не успеав да ја анализирам информацијата за Xend-домен"
+
+#: src/xend_internal.c:3604
+#, c-format
+msgid "Failed to create inactive domain %s\n"
+msgstr "Не успеав да го креирам неактивниот домен %s\n"
+
+#: src/virsh.c:309
+msgid "print help"
+msgstr "помош за печатење"
+
+#: src/virsh.c:310
+msgid "Prints global help or command specific help."
+msgstr "Печати глобална или помош специфична за наредба."
+
+#: src/virsh.c:316
+msgid "name of command"
+msgstr "име на наредба"
+
+#: src/virsh.c:328
+msgid ""
+"Commands:\n"
+"\n"
+msgstr ""
+"Наредби:\n"
+"\n"
+
+#: src/virsh.c:342
+msgid "autostart a domain"
+msgstr "автом. старт на домен"
+
+#: src/virsh.c:344
+msgid "Configure a domain to be automatically started at boot."
+msgstr "Го конфигурира доменот автоматски да се стартува при подигање."
+
+#: src/virsh.c:349 src/virsh.c:450 src/virsh.c:636 src/virsh.c:673
+#: src/virsh.c:730 src/virsh.c:797 src/virsh.c:1077 src/virsh.c:1121
+#: src/virsh.c:1297 src/virsh.c:1342 src/virsh.c:1381 src/virsh.c:1420
+#: src/virsh.c:1459 src/virsh.c:1498 src/virsh.c:1617 src/virsh.c:1704
+#: src/virsh.c:1832 src/virsh.c:1889 src/virsh.c:1946 src/virsh.c:2067
+#: src/virsh.c:2207 src/virsh.c:2908 src/virsh.c:2988 src/virsh.c:3051
+#: src/virsh.c:3105 src/virsh.c:3159 src/virsh.c:3275 src/virsh.c:3396
+#: src/virsh.c:3561
+msgid "domain name, id or uuid"
+msgstr "име, id или uuid на домен"
+
+#: src/virsh.c:350 src/virsh.c:2271
+msgid "disable autostarting"
+msgstr "оневозможи автом. старт"
+
+#: src/virsh.c:371
+#, c-format
+msgid "Failed to mark domain %s as autostarted"
+msgstr "Не успеав да го обележам доменот %s како автом. стартуван"
+
+#: src/virsh.c:374
+#, c-format
+msgid "Failed to unmark domain %s as autostarted"
+msgstr "Не успеав да го одобележам доменот %s како автом. стартуван"
+
+#: src/virsh.c:381
+#, c-format
+msgid "Domain %s marked as autostarted\n"
+msgstr "Доменот %s е обележан како автом. стартуван\n"
+
+#: src/virsh.c:383
+#, c-format
+msgid "Domain %s unmarked as autostarted\n"
+msgstr "Доменот %s е одобележан како автом. стартуван\n"
+
+#: src/virsh.c:394
+msgid "(re)connect to hypervisor"
+msgstr "поврзување (повторно) со хипервизорот"
+
+#: src/virsh.c:396
+msgid ""
+"Connect to local hypervisor. This is built-in command after shell start up."
+msgstr ""
+"Поврзување на локалниот хипервизор. Ова е вградена наредба по стартувањето "
+"на школката."
+
+#: src/virsh.c:401
+msgid "hypervisor connection URI"
+msgstr "URI за поврзување со хипервизорот"
+
+#: src/virsh.c:402
+msgid "read-only connection"
+msgstr "поврзување само за читање"
+
+#: src/virsh.c:414
+msgid "Failed to disconnect from the hypervisor"
+msgstr "Не успеав да прекинам врска со хипервизорот"
+
+#: src/virsh.c:433
+msgid "Failed to connect to the hypervisor"
+msgstr "Не успеав да се поврзам со хипервизорот"
+
+#: src/virsh.c:443
+msgid "connect to the guest console"
+msgstr "поврзување со конзолата на гостинот"
+
+#: src/virsh.c:445
+msgid "Connect the virtual serial console for the guest"
+msgstr "Се поврзува со виртуелната сериска конзола на гостинот"
+
+#: src/virsh.c:490
+msgid "No console available for domain\n"
+msgstr "Нема достапна конзола за доменот\n"
+
+#: src/virsh.c:508
+msgid "list domains"
+msgstr "дава листа на домените"
+
+#: src/virsh.c:509
+msgid "Returns list of domains."
+msgstr "Враќа листа на домените."
+
+#: src/virsh.c:514
+msgid "list inactive domains"
+msgstr "дава листа на неактивните домени"
+
+#: src/virsh.c:515
+msgid "list inactive & active domains"
+msgstr "дава листа на активните и неактивните домени"
+
+#: src/virsh.c:537 src/virsh.c:544
+msgid "Failed to list active domains"
+msgstr "Не успеав да ги прикажам активните домени"
+
+#: src/virsh.c:555 src/virsh.c:564
+msgid "Failed to list inactive domains"
+msgstr "Не успеав да ги прикажам неактивните домени"
+
+#: src/virsh.c:574
+msgid "Id"
+msgstr "Ид."
+
+#: src/virsh.c:574 src/virsh.c:2556
+msgid "Name"
+msgstr "Име"
+
+#: src/virsh.c:574 src/virsh.c:2556
+msgid "State"
+msgstr "Состојба"
+
+#: src/virsh.c:587 src/virsh.c:609 src/virsh.c:4343 src/virsh.c:4359
+msgid "no state"
+msgstr "нема состојба"
+
+#: src/virsh.c:630
+msgid "domain state"
+msgstr "состојба на домен"
+
+#: src/virsh.c:631
+msgid "Returns state about a running domain."
+msgstr "Ја враќа состојбата на домен што се извршува."
+
+#: src/virsh.c:667
+msgid "get device block stats for a domain"
+msgstr ""
+
+#: src/virsh.c:668
+#, fuzzy
+msgid "Get device block stats for a running domain."
+msgstr "Ја враќа состојбата на домен што се извршува."
+
+#: src/virsh.c:674
+#, fuzzy
+msgid "block device"
+msgstr "блокирано"
+
+#: src/virsh.c:695
+#, fuzzy, c-format
+msgid "Failed to get block stats %s %s"
+msgstr "Не успеав да го зачувам доменот %s во %s"
+
+#: src/virsh.c:724
+#, fuzzy
+msgid "get network interface stats for a domain"
+msgstr "откачува мрежен интерфејс"
+
+#: src/virsh.c:725
+#, fuzzy
+msgid "Get network interface stats for a running domain."
+msgstr "Ја враќа состојбата на домен што се извршува."
+
+#: src/virsh.c:731
+msgid "interface device"
+msgstr ""
+
+#: src/virsh.c:752
+#, fuzzy, c-format
+msgid "Failed to get interface stats %s %s"
+msgstr "Не успеав да добијам информација за интерфејсот"
+
+#: src/virsh.c:791
+msgid "suspend a domain"
+msgstr "суспендира домен"
+
+#: src/virsh.c:792
+msgid "Suspend a running domain."
+msgstr "Суспендира домен што се извршува."
+
+#: src/virsh.c:815
+#, c-format
+msgid "Domain %s suspended\n"
+msgstr "Доменот %s е суспендиран\n"
+
+#: src/virsh.c:817
+#, c-format
+msgid "Failed to suspend domain %s"
+msgstr "Не успеав да го суспендирам доменот %s"
+
+#: src/virsh.c:830
+msgid "create a domain from an XML file"
+msgstr "креира домен од XML-датотека"
+
+#: src/virsh.c:831
+msgid "Create a domain."
+msgstr "Креира домен."
+
+#: src/virsh.c:836 src/virsh.c:944
+msgid "file containing an XML domain description"
+msgstr "Датотеката што го содржи описот на XML-домен"
+
+#: src/virsh.c:851
+#, c-format
+msgid "Failed to open '%s': %s"
+msgstr "Не успеав да го отворам „%s“: %s"
+
+#: src/virsh.c:871
+#, c-format
+msgid "Failed to open '%s': read: %s"
+msgstr "Не успеав да го отворам „%s“: прочитано %s"
+
+#: src/virsh.c:889
+#, c-format
+msgid "Error allocating memory: %s"
+msgstr "Грешка при алоцирање на меморија: %s"
+
+#: src/virsh.c:923
+#, c-format
+msgid "Domain %s created from %s\n"
+msgstr "Доменот %s е креиран од %s\n"
+
+#: src/virsh.c:927
+#, c-format
+msgid "Failed to create domain from %s"
+msgstr "Не успеав да го креирам доменот од %s"
+
+#: src/virsh.c:938
+msgid "define (but don't start) a domain from an XML file"
+msgstr "дефинира (но не стартува) домен од XML-датотека"
+
+#: src/virsh.c:939
+msgid "Define a domain."
+msgstr "Дефинира домен."
+
+#: src/virsh.c:971
+#, c-format
+msgid "Domain %s defined from %s\n"
+msgstr "Доменот %s е дефиниран од %s\n"
+
+#: src/virsh.c:975
+#, c-format
+msgid "Failed to define domain from %s"
+msgstr "Не успеав да дефинирам домен од %s"
+
+#: src/virsh.c:986
+msgid "undefine an inactive domain"
+msgstr "оддефинира неактивен домен"
+
+#: src/virsh.c:987
+msgid "Undefine the configuration for an inactive domain."
+msgstr "Ја оддефинира конфигурацијата за неактивен домен."
+
+#: src/virsh.c:992 src/virsh.c:2136
+msgid "domain name or uuid"
+msgstr "име или uuid на домен"
+
+#: src/virsh.c:1010
+#, c-format
+msgid "Domain %s has been undefined\n"
+msgstr "Доменот %s е оддефиниран\n"
+
+#: src/virsh.c:1012
+#, c-format
+msgid "Failed to undefine domain %s"
+msgstr "Не успеав да го оддефинирам доменот %s"
+
+#: src/virsh.c:1026
+msgid "start a (previously defined) inactive domain"
+msgstr "стартува (претходно дефиниран) неактивен домен"
+
+#: src/virsh.c:1027
+msgid "Start a domain."
+msgstr "Стартува домен."
+
+#: src/virsh.c:1032
+msgid "name of the inactive domain"
+msgstr "името на неактивниот домен"
+
+#: src/virsh.c:1049
+msgid "Domain is already active"
+msgstr "Доменот е веќе активен"
+
+#: src/virsh.c:1055
+#, c-format
+msgid "Domain %s started\n"
+msgstr "Доменот %s е стартуван\n"
+
+#: src/virsh.c:1058
+#, c-format
+msgid "Failed to start domain %s"
+msgstr "Не успеав да го стартувам доменот %s"
+
+#: src/virsh.c:1071
+msgid "save a domain state to a file"
+msgstr "ја зачувува состојбата на доменот во датотека"
+
+#: src/virsh.c:1072
+msgid "Save a running domain."
+msgstr "Зачувува домен што се извршува."
+
+#: src/virsh.c:1078
+msgid "where to save the data"
+msgstr "каде да се зачуваат податоците"
+
+#: src/virsh.c:1100
+#, c-format
+msgid "Domain %s saved to %s\n"
+msgstr "Доменот %s е зачуван во %s\n"
+
+#: src/virsh.c:1102
+#, c-format
+msgid "Failed to save domain %s to %s"
+msgstr "Не успеав да го зачувам доменот %s во %s"
+
+#: src/virsh.c:1115
+msgid "show/set scheduler parameters"
+msgstr "прикажува/поставува параметри на распоредувачот"
+
+#: src/virsh.c:1116
+msgid "Show/Set scheduler parameters."
+msgstr "Прикажува/поставува параметри на распоредувачот."
+
+#: src/virsh.c:1122
+msgid "weight for XEN_CREDIT"
+msgstr "тежина за XEN_CREDIT"
+
+#: src/virsh.c:1123
+msgid "cap for XEN_CREDIT"
+msgstr "способност за XEN_CREDIT"
+
+#: src/virsh.c:1193 src/virsh.c:1197
+msgid "Scheduler"
+msgstr "Распоредувач"
+
+#: src/virsh.c:1197
+msgid "Unknown"
+msgstr "Непознато"
+
+#: src/virsh.c:1253
+msgid "restore a domain from a saved state in a file"
+msgstr "Враќа домен од зачувана состојба во датотека"
+
+#: src/virsh.c:1254
+msgid "Restore a domain."
+msgstr "Враќа домен."
+
+#: src/virsh.c:1259
+msgid "the state to restore"
+msgstr "состојбата што треба да се врати"
+
+#: src/virsh.c:1278
+#, c-format
+msgid "Domain restored from %s\n"
+msgstr "Доменот е вратен од %s\n"
+
+#: src/virsh.c:1280
+#, c-format
+msgid "Failed to restore domain from %s"
+msgstr "Не успеав да го вратам доменот од %s"
+
+#: src/virsh.c:1291
+msgid "dump the core of a domain to a file for analysis"
+msgstr "направи дамп од јардрото на доменот во датотека за анализа"
+
+#: src/virsh.c:1292
+msgid "Core dump a domain."
+msgstr "Направи дамп за доменот."
+
+#: src/virsh.c:1298
+msgid "where to dump the core"
+msgstr "каде да се направи дамп на јадрото"
+
+#: src/virsh.c:1320
+#, c-format
+msgid "Domain %s dumpd to %s\n"
+msgstr ""
+
+#: src/virsh.c:1322
+#, c-format
+msgid "Failed to core dump domain %s to %s"
+msgstr ""
+
+#: src/virsh.c:1336
+msgid "resume a domain"
+msgstr "продолжува домен"
+
+#: src/virsh.c:1337
+msgid "Resume a previously suspended domain."
+msgstr "Продолжува претходно суспендиран домен."
+
+#: src/virsh.c:1360
+#, c-format
+msgid "Domain %s resumed\n"
+msgstr "Доменот %s е продолжен\n"
+
+#: src/virsh.c:1362
+#, c-format
+msgid "Failed to resume domain %s"
+msgstr "Не успеав да го продолжам доменот %s"
+
+#: src/virsh.c:1375
+msgid "gracefully shutdown a domain"
+msgstr "го гаси доменот по мирен пат"
+
+#: src/virsh.c:1376
+msgid "Run shutdown in the target domain."
+msgstr "Активира гасење на целниот домен."
+
+#: src/virsh.c:1399
+#, c-format
+msgid "Domain %s is being shutdown\n"
+msgstr "Доменот %s се гаси\n"
+
+#: src/virsh.c:1401
+#, c-format
+msgid "Failed to shutdown domain %s"
+msgstr "Не успеав да го изгасам доменот %s"
+
+#: src/virsh.c:1414
+msgid "reboot a domain"
+msgstr "рестартира домен"
+
+#: src/virsh.c:1415
+msgid "Run a reboot command in the target domain."
+msgstr "Активира рестартирање на целниот домен."
+
+#: src/virsh.c:1438
+#, c-format
+msgid "Domain %s is being rebooted\n"
+msgstr "Доменот %s се рестартира\n"
+
+#: src/virsh.c:1440
+#, c-format
+msgid "Failed to reboot domain %s"
+msgstr "Не успеав да го рестартирам доменот %s"
+
+#: src/virsh.c:1453
+msgid "destroy a domain"
+msgstr "уништува домен"
+
+#: src/virsh.c:1454
+msgid "Destroy a given domain."
+msgstr "Уништува даден домен."
+
+#: src/virsh.c:1477
+#, c-format
+msgid "Domain %s destroyed\n"
+msgstr "Доменот %s е уништен\n"
+
+#: src/virsh.c:1479
+#, c-format
+msgid "Failed to destroy domain %s"
+msgstr "Не успеав да уништам домен %s"
+
+#: src/virsh.c:1492
+msgid "domain information"
+msgstr "информација за домен"
+
+#: src/virsh.c:1493
+msgid "Returns basic information about the domain."
+msgstr "Враќа основни информации за доменот."
+
+#: src/virsh.c:1519 src/virsh.c:1521
+msgid "Id:"
+msgstr "Ид.:"
+
+#: src/virsh.c:1522
+msgid "Name:"
+msgstr "Име:"
+
+#: src/virsh.c:1525
+msgid "UUID:"
+msgstr "UUID:"
+
+#: src/virsh.c:1528
+msgid "OS Type:"
+msgstr "Тип на ОС:"
+
+#: src/virsh.c:1533 src/virsh.c:1661
+msgid "State:"
+msgstr "Состојба:"
+
+#: src/virsh.c:1536 src/virsh.c:2018
+msgid "CPU(s):"
+msgstr "Процесори:"
+
+#: src/virsh.c:1543 src/virsh.c:1668
+msgid "CPU time:"
+msgstr "Проц. време:"
+
+#: src/virsh.c:1547 src/virsh.c:1550
+msgid "Max memory:"
+msgstr "Макс. меморија:"
+
+#: src/virsh.c:1551
+msgid "no limit"
+msgstr "нема ограничување"
+
+#: src/virsh.c:1553
+msgid "Used memory:"
+msgstr "Користена меморија:"
+
+#: src/virsh.c:1569
+#, fuzzy
+msgid "NUMA free memory"
+msgstr "Користена меморија:"
+
+#: src/virsh.c:1570
+msgid "display available free memory for the NUMA cell."
+msgstr ""
+
+#: src/virsh.c:1575
+#, fuzzy
+msgid "NUMA cell number"
+msgstr "NUMA-ќелии:"
+
+#: src/virsh.c:1599
+msgid "Total"
+msgstr ""
+
+#: src/virsh.c:1611
+msgid "domain vcpu information"
+msgstr "информација за вирт. процесори на домен"
+
+#: src/virsh.c:1612
+msgid "Returns basic information about the domain virtual CPUs."
+msgstr "Враќа основни информации за вирт. процесори на доменот."
+
+#: src/virsh.c:1659
+msgid "VCPU:"
+msgstr "Вирт. процесори:"
+
+#: src/virsh.c:1660
+msgid "CPU:"
+msgstr "Процесор:"
+
+#: src/virsh.c:1670
+msgid "CPU Affinity:"
+msgstr "Афинитет на процесор:"
+
+#: src/virsh.c:1682
+msgid "Domain shut off, virtual CPUs not present."
+msgstr "Доменот е изгасен, нема присутни вирт. процесори."
+
+#: src/virsh.c:1698
+msgid "control domain vcpu affinity"
+msgstr "контрола за афинитетот на вирт. процесори за доменот"
+
+#: src/virsh.c:1699
+msgid "Pin domain VCPUs to host physical CPUs."
+msgstr ""
+"Ги врзува виртуелните процесори на доменот за физичките процесори на "
+"домаќинот"
+
+#: src/virsh.c:1705
+msgid "vcpu number"
+msgstr "број на вирт. процесори"
+
+#: src/virsh.c:1706
+msgid "host cpu number(s) (comma separated)"
+msgstr "број на процесори на домаќинот (разделени со запирка)"
+
+#: src/virsh.c:1761
+msgid "cpulist: Invalid format. Empty string."
+msgstr "cpulist: невалиден формат. Празна низа."
+
+#: src/virsh.c:1771
+#, c-format
+msgid ""
+"cpulist: %s: Invalid format. Expecting digit at position %d (near '%c')."
+msgstr ""
+"cpulist: %s: невалиден формат. Се очекуваше цифра на позиција %d (блиску до "
+"„%c“)."
+
+#: src/virsh.c:1781
+#, c-format
+msgid ""
+"cpulist: %s: Invalid format. Expecting digit or comma at position %d (near '%"
+"c')."
+msgstr ""
+"cpulist: %s: невалиден формат. Се очекуваше цифра или запирка на позиција %d "
+"(блиску до „%c“)."
+
+#: src/virsh.c:1788
+#, c-format
+msgid "cpulist: %s: Invalid format. Trailing comma at position %d."
+msgstr "cpulist: %s: невалиден формат. Крајна запирка на позиција %d"
+
+#: src/virsh.c:1802
+#, c-format
+msgid "Physical CPU %d doesn't exist."
+msgstr "Физичкиот процесор %d не постои."
+
+#: src/virsh.c:1826
+msgid "change number of virtual CPUs"
+msgstr "го менува бројот на виртуелни процесори"
+
+#: src/virsh.c:1827
+msgid "Change the number of virtual CPUs active in the guest domain."
+msgstr ""
+"Го менува бројот на виртуелни процесори што се активни во доменот на "
+"гостинот."
+
+#: src/virsh.c:1833
+msgid "number of virtual CPUs"
+msgstr "број на вирт. процесори"
+
+#: src/virsh.c:1853
+msgid "Invalid number of virtual CPUs."
+msgstr "Невалиден број на вирт. процесори."
+
+#: src/virsh.c:1865
+msgid "Too many virtual CPUs."
+msgstr "Премногу вирт. процесори."
+
+#: src/virsh.c:1883
+msgid "change memory allocation"
+msgstr "менува алокација на меморија"
+
+#: src/virsh.c:1884
+msgid "Change the current memory allocation in the guest domain."
+msgstr "Ја менува тековната алокација на меморија во доменот на гостинот."
+
+#: src/virsh.c:1890
+msgid "number of kilobytes of memory"
+msgstr "број на килобајти меморија"
+
+#: src/virsh.c:1911 src/virsh.c:1923 src/virsh.c:1968
+#, c-format
+msgid "Invalid value of %d for memory size"
+msgstr "Невалидна вредност %d за големината на меморијата"
+
+#: src/virsh.c:1917
+msgid "Unable to verify MaxMemorySize"
+msgstr "Не можам да ја верификувам MaxMemorySize"
+
+#: src/virsh.c:1940
+msgid "change maximum memory limit"
+msgstr "го менува ограничувањето на макс. меморија"
+
+#: src/virsh.c:1941
+msgid "Change the maximum memory allocation limit in the guest domain."
+msgstr ""
+"Го менува ограничувањето на алокација на макс. меморија во доменот на "
+"гостинот."
+
+#: src/virsh.c:1947
+msgid "maximum memory limit in kilobytes"
+msgstr "ограничување на макс. меморија во килобајти"
+
+#: src/virsh.c:1974
+msgid "Unable to verify current MemorySize"
+msgstr "Не можам да ја верификувам тековната MemorySize"
+
+#: src/virsh.c:1981
+msgid "Unable to shrink current MemorySize"
+msgstr "Не можам да ја смалам тековната MemorySize"
+
+#: src/virsh.c:1987
+msgid "Unable to change MaxMemorySize"
+msgstr "Не можам да ја сменам MaxMemorySize"
+
+#: src/virsh.c:2000
+msgid "node information"
+msgstr "информација за јазол"
+
+#: src/virsh.c:2001
+msgid "Returns basic information about the node."
+msgstr "Враќа основни информации за јазолот."
+
+#: src/virsh.c:2014
+msgid "failed to get node information"
+msgstr "не успеав да добијам информации за јазолот"
+
+#: src/virsh.c:2017
+msgid "CPU model:"
+msgstr "Модел на процесор:"
+
+#: src/virsh.c:2019
+msgid "CPU frequency:"
+msgstr "Фреквенција на процесор:"
+
+#: src/virsh.c:2020
+msgid "CPU socket(s):"
+msgstr "Процесорски лежишта:"
+
+#: src/virsh.c:2021
+msgid "Core(s) per socket:"
+msgstr "Јадра по лежишта:"
+
+#: src/virsh.c:2022
+msgid "Thread(s) per core:"
+msgstr "Нишки по јадро:"
+
+#: src/virsh.c:2023
+msgid "NUMA cell(s):"
+msgstr "NUMA-ќелии:"
+
+#: src/virsh.c:2024
+msgid "Memory size:"
+msgstr "Големина на меморија:"
+
+#: src/virsh.c:2034
+msgid "capabilities"
+msgstr "способности"
+
+#: src/virsh.c:2035
+msgid "Returns capabilities of hypervisor/driver."
+msgstr "Ги враќа способностите на хипервизорот/управувачот."
+
+#: src/virsh.c:2048
+msgid "failed to get capabilities"
+msgstr "не успеав да ги добијам способностите"
+
+#: src/virsh.c:2061
+msgid "domain information in XML"
+msgstr "информација за домен во XML"
+
+#: src/virsh.c:2062
+msgid "Output the domain information as an XML dump to stdout."
+msgstr "Ја дава информацијата за доменот на стандардниот излез како XML."
+
+#: src/virsh.c:2101
+msgid "convert a domain id or UUID to domain name"
+msgstr "конвертира ид. на домен или UUID во име на домен"
+
+#: src/virsh.c:2106
+msgid "domain id or uuid"
+msgstr "ид. на домен или uuid"
+
+#: src/virsh.c:2131
+msgid "convert a domain name or UUID to domain id"
+msgstr "конвертира име на домен или UUID во ид. на домен"
+
+#: src/virsh.c:2166
+msgid "convert a domain name or id to domain UUID"
+msgstr "конвертира име или ид. на домен во UUID на домен"
+
+#: src/virsh.c:2171
+msgid "domain id or name"
+msgstr "име или ид. на домен"
+
+#: src/virsh.c:2190
+msgid "failed to get domain UUID"
+msgstr "не успеав да го добијам UUID на доменот"
+
+#: src/virsh.c:2200
+msgid "migrate domain to another host"
+msgstr ""
+
+#: src/virsh.c:2201
+msgid "Migrate domain to another host.  Add --live for live migration."
+msgstr ""
+
+#: src/virsh.c:2206
+#, fuzzy
+msgid "live migration"
+msgstr "информација за јазол"
+
+#: src/virsh.c:2208
+#, fuzzy
+msgid "connection URI of the destination host"
+msgstr "поврзување со конзолата на гостинот"
+
+#: src/virsh.c:2209
+msgid "migration URI, usually can be omitted"
+msgstr ""
+
+#: src/virsh.c:2231
+msgid "migrate: Missing desturi"
+msgstr ""
+
+#: src/virsh.c:2263
+msgid "autostart a network"
+msgstr "автом. стартува мрежа"
+
+#: src/virsh.c:2265
+msgid "Configure a network to be automatically started at boot."
+msgstr "Ја конфигурира мрежата автоматски да се стартува на подигање."
+
+#: src/virsh.c:2270 src/virsh.c:2695
+msgid "network name or uuid"
+msgstr "име на мрежа или uuid"
+
+#: src/virsh.c:2292
+#, c-format
+msgid "failed to mark network %s as autostarted"
+msgstr "не успеав да ја означам мрежата %s како автом. стартувана"
+
+#: src/virsh.c:2295
+#, c-format
+msgid "failed to unmark network %s as autostarted"
+msgstr "не успеав да ја одобележам мрежата %s како автом. стартувана"
+
+#: src/virsh.c:2302
+#, c-format
+msgid "Network %s marked as autostarted\n"
+msgstr "Мрежата %s е означена како автом. стартувана\n"
+
+#: src/virsh.c:2304
+#, c-format
+msgid "Network %s unmarked as autostarted\n"
+msgstr "Мрежата %s е одобележана како автом. стартувана\n"
+
+#: src/virsh.c:2314
+msgid "create a network from an XML file"
+msgstr "креира мрежа од XML-датотека"
+
+#: src/virsh.c:2315
+msgid "Create a network."
+msgstr "Креира мрежа."
+
+#: src/virsh.c:2320 src/virsh.c:2368
+msgid "file containing an XML network description"
+msgstr "XML-датотеката со описот на мрежата"
+
+#: src/virsh.c:2347
+#, c-format
+msgid "Network %s created from %s\n"
+msgstr "Мрежата %s е креирана од %s\n"
+
+#: src/virsh.c:2350
+#, c-format
+msgid "Failed to create network from %s"
+msgstr "Не успеав да ја креирам мрежата од %s"
+
+#: src/virsh.c:2362
+msgid "define (but don't start) a network from an XML file"
+msgstr "дефинира (но не стартува) мрежа од XML-датотека"
+
+#: src/virsh.c:2363
+msgid "Define a network."
+msgstr "Дефинира мрежа."
+
+#: src/virsh.c:2395
+#, c-format
+msgid "Network %s defined from %s\n"
+msgstr "Мрежата %s е дефинирана од %s\n"
+
+#: src/virsh.c:2398
+#, c-format
+msgid "Failed to define network from %s"
+msgstr "Не успеав да дефинирам мрежа од %s"
+
+#: src/virsh.c:2410
+msgid "destroy a network"
+msgstr "уништува мрежа"
+
+#: src/virsh.c:2411
+msgid "Destroy a given network."
+msgstr "Уништува дадена мрежа."
+
+#: src/virsh.c:2416 src/virsh.c:2456
+msgid "network name, id or uuid"
+msgstr "име, ид. или uuid на мрежа"
+
+#: src/virsh.c:2434
+#, c-format
+msgid "Network %s destroyed\n"
+msgstr "Мрежата %s е уништена\n"
+
+#: src/virsh.c:2436
+#, c-format
+msgid "Failed to destroy network %s"
+msgstr "Не успеав да ја уништам мрежата %s"
+
+#: src/virsh.c:2450
+msgid "network information in XML"
+msgstr "информација за мрежа во XML"
+
+#: src/virsh.c:2451
+msgid "Output the network information as an XML dump to stdout."
+msgstr "Ја дава информацијата за мрежата на стандардниот излез како XML."
+
+#: src/virsh.c:2491
+msgid "list networks"
+msgstr "дава листа на мрежи"
+
+#: src/virsh.c:2492
+msgid "Returns list of networks."
+msgstr "Ја враќа листата на сите мрежи."
+
+#: src/virsh.c:2497
+msgid "list inactive networks"
+msgstr "дава листа на неактивните мрежи"
+
+#: src/virsh.c:2498
+msgid "list inactive & active networks"
+msgstr "Ја враќа листата на активните и неактивните мрежи."
+
+#: src/virsh.c:2518 src/virsh.c:2526
+msgid "Failed to list active networks"
+msgstr "Не успеав да ги прикажам активните мрежи"
+
+#: src/virsh.c:2537 src/virsh.c:2546
+msgid "Failed to list inactive networks"
+msgstr "Не успеав да ги прикажам неактивните мрежи"
+
+#: src/virsh.c:2556
+msgid "Autostart"
+msgstr "Автом. старт"
+
+#: src/virsh.c:2571 src/virsh.c:2594
+msgid "no autostart"
+msgstr "без автом. старт"
+
+#: src/virsh.c:2577
+msgid "active"
+msgstr "активна"
+
+#: src/virsh.c:2600
+msgid "inactive"
+msgstr "неактивна"
+
+#: src/virsh.c:2619
+msgid "convert a network UUID to network name"
+msgstr "конвертира UUID на мрежа во име на мрежа"
+
+#: src/virsh.c:2650
+msgid "start a (previously defined) inactive network"
+msgstr "стартува (претходно дефинирана) неактивна мрежа"
+
+#: src/virsh.c:2651
+msgid "Start a network."
+msgstr "Стартува мрежа."
+
+#: src/virsh.c:2656
+msgid "name of the inactive network"
+msgstr "име на неактивната мрежа"
+
+#: src/virsh.c:2673
+#, c-format
+msgid "Network %s started\n"
+msgstr "Мрежата %s е стартувана\n"
+
+#: src/virsh.c:2676
+#, c-format
+msgid "Failed to start network %s"
+msgstr "Не успеав да ја стартувам мрежата %s"
+
+#: src/virsh.c:2689
+msgid "undefine an inactive network"
+msgstr "оддефинира неактивна мрежа"
+
+#: src/virsh.c:2690
+msgid "Undefine the configuration for an inactive network."
+msgstr "Ја оддефинира конфигурацијата за неактивна мрежа."
+
+#: src/virsh.c:2713
+#, c-format
+msgid "Network %s has been undefined\n"
+msgstr "Мрежата %s е оддефинирана\n"
+
+#: src/virsh.c:2715
+#, c-format
+msgid "Failed to undefine network %s"
+msgstr "Не успеав да ја оддефинирам мрежата %s"
+
+#: src/virsh.c:2728
+msgid "convert a network name to network UUID"
+msgstr "конвертира име на мрежа во UUID на мрежа"
+
+#: src/virsh.c:2753
+msgid "failed to get network UUID"
+msgstr "не успеав да го добијам UUID-от на мрежа"
+
+#: src/virsh.c:2764
+msgid "show version"
+msgstr "прикажува верзија"
+
+#: src/virsh.c:2765
+msgid "Display the system version information."
+msgstr "Прикажува информација за верзијата на системот."
+
+#: src/virsh.c:2788
+msgid "failed to get hypervisor type"
+msgstr "не успеав да го добијам типот на хипервизор"
+
+#: src/virsh.c:2797
+#, c-format
+msgid "Compiled against library: libvir %d.%d.%d\n"
+msgstr "Компилирано со библиотеката: libvir %d.%d.%d\n"
+
+#: src/virsh.c:2802
+msgid "failed to get the library version"
+msgstr "не успеав да ја добијам верзијата на библиотеката"
+
+#: src/virsh.c:2809
+#, c-format
+msgid "Using library: libvir %d.%d.%d\n"
+msgstr "Користам библиотека: libvir %d.%d.%d\n"
+
+#: src/virsh.c:2816
+#, c-format
+msgid "Using API: %s %d.%d.%d\n"
+msgstr "Користам API: %s %d.%d.%d\n"
+
+#: src/virsh.c:2821
+msgid "failed to get the hypervisor version"
+msgstr "не успеав да ја добијам верзијата на хипервизорот"
+
+#: src/virsh.c:2826
+#, c-format
+msgid "Cannot extract running %s hypervisor version\n"
+msgstr "Не можам да ја добијам верзијата на активниот хипервизор %s\n"
+
+#: src/virsh.c:2833
+#, c-format
+msgid "Running hypervisor: %s %d.%d.%d\n"
+msgstr "Активен хипервизор: %s %d.%d.%d\n"
+
+#: src/virsh.c:2844
+msgid "print the hypervisor hostname"
+msgstr "го печати името на серверот на хипервизорот"
+
+#: src/virsh.c:2858
+msgid "failed to get hostname"
+msgstr "не успеав до го добијам името на серверот"
+
+#: src/virsh.c:2873
+msgid "print the hypervisor canonical URI"
+msgstr "го печати канонското URI на хипервизорот"
+
+#: src/virsh.c:2887
+msgid "failed to get URI"
+msgstr "не успеав да го добијам URI"
+
+#: src/virsh.c:2902
+msgid "vnc display"
+msgstr "vnc-екран"
+
+#: src/virsh.c:2903
+msgid "Output the IP address and port number for the VNC display."
+msgstr "Ги печати IP-адресата и бројот на порта за VNC-екранот."
+
+#: src/virsh.c:2982
+msgid "tty console"
+msgstr ""
+
+#: src/virsh.c:2983
+msgid "Output the device for the TTY console."
+msgstr ""
+
+#: src/virsh.c:3045
+msgid "attach device from an XML file"
+msgstr "прикачува уред од XML-датотека"
+
+#: src/virsh.c:3046
+msgid "Attach device from an XML <file>."
+msgstr "Прикачува уред од XML <датотека>."
+
+#: src/virsh.c:3052 src/virsh.c:3106
+msgid "XML file"
+msgstr "XML-датотека"
+
+#: src/virsh.c:3084
+#, c-format
+msgid "Failed to attach device from %s"
+msgstr "Не успеав да го прикачам уредот од %s"
+
+#: src/virsh.c:3099
+msgid "detach device from an XML file"
+msgstr "откачува уред од XML-датотека"
+
+#: src/virsh.c:3100
+msgid "Detach device from an XML <file>"
+msgstr "Откачува уред од XML <датотека>"
+
+#: src/virsh.c:3138
+#, c-format
+msgid "Failed to detach device from %s"
+msgstr "Не успеав да го откачам уредот од %s"
+
+#: src/virsh.c:3153
+msgid "attach network interface"
+msgstr "прикаува мрежен уред"
+
+#: src/virsh.c:3154
+msgid "Attach new network interface."
+msgstr "Прикачува нов мрежен уред."
+
+#: src/virsh.c:3160 src/virsh.c:3276
+msgid "network interface type"
+msgstr "тип на мрежен интерфејс"
+
+#: src/virsh.c:3161
+msgid "source of network interface"
+msgstr "извор на мрежен интерфејс"
+
+#: src/virsh.c:3162
+msgid "target network name"
+msgstr "име на одредишна мрежа"
+
+#: src/virsh.c:3163 src/virsh.c:3277
+msgid "MAC adress"
+msgstr "MAC-адреса"
+
+#: src/virsh.c:3164
+msgid "script used to bridge network interface"
+msgstr "скрипта што се користи за поврзување на мрежни интерфејси во мост"
+
+#: src/virsh.c:3196
+#, c-format
+msgid "No support %s in command 'attach-interface'"
+msgstr "Нема поддршка за %s во наредбата „attach-interface“"
+
+#: src/virsh.c:3269
+msgid "detach network interface"
+msgstr "откачува мрежен интерфејс"
+
+#: src/virsh.c:3270
+msgid "Detach network interface."
+msgstr "Откачува мрежен интерфејс."
+
+#: src/virsh.c:3315 src/virsh.c:3320
+msgid "Failed to get interface information"
+msgstr "Не успеав да добијам информација за интерфејсот"
+
+#: src/virsh.c:3328
+#, c-format
+msgid "No found interface whose type is %s"
+msgstr "Нема пронајден интерфејс со тип %s"
+
+#: src/virsh.c:3350
+#, c-format
+msgid "No found interface whose MAC address is %s"
+msgstr "Нема пронајден интерфејс чија MAC-адреса е %s"
+
+#: src/virsh.c:3356 src/virsh.c:3634
+msgid "Failed to allocate memory"
+msgstr "Не успеав да алоцирам меморија"
+
+#: src/virsh.c:3361 src/virsh.c:3639
+msgid "Failed to create XML"
+msgstr "Не успеав да креирам XML"
+
+#: src/virsh.c:3390
+msgid "attach disk device"
+msgstr "прикачува уред за диск"
+
+#: src/virsh.c:3391
+msgid "Attach new disk device."
+msgstr "Прикачува уред за нов диск."
+
+#: src/virsh.c:3397
+msgid "source of disk device"
+msgstr "извор за уредот за диск"
+
+#: src/virsh.c:3398 src/virsh.c:3562
+msgid "target of disk device"
+msgstr "одредиште за уредот за диск"
+
+#: src/virsh.c:3399
+msgid "driver of disk device"
+msgstr "управувач за уредот за диск"
+
+#: src/virsh.c:3400
+msgid "subdriver of disk device"
+msgstr "подуправувач за уредот за диск"
+
+#: src/virsh.c:3401
+msgid "target device type"
+msgstr "тип на одредишниот уред"
+
+#: src/virsh.c:3402
+msgid "mode of device reading and writing"
+msgstr "режим на уредот за читање и запишување"
+
+#: src/virsh.c:3433 src/virsh.c:3442 src/virsh.c:3449
+#, c-format
+msgid "No support %s in command 'attach-disk'"
+msgstr "Нема поддршка за %s во наредбата „attach-disk“"
+
+#: src/virsh.c:3555
+msgid "detach disk device"
+msgstr "откачува уред за диск"
+
+#: src/virsh.c:3556
+msgid "Detach disk device."
+msgstr "Откачува уред за диск."
+
+#: src/virsh.c:3597 src/virsh.c:3602 src/virsh.c:3609
+msgid "Failed to get disk information"
+msgstr "Не успеав да добијам информација за дискот"
+
+#: src/virsh.c:3628
+#, c-format
+msgid "No found disk whose target is %s"
+msgstr "Не е пронајден диск чие одредиште е %s"
+
+#: src/virsh.c:3668
+msgid "quit this interactive terminal"
+msgstr "го напушта овој интерактивен терминал"
+
+#: src/virsh.c:3809
+#, c-format
+msgid "command '%s' requires <%s> option"
+msgstr "наредбата „%s“ има потреба од опцијата <%s>"
+
+#: src/virsh.c:3810
+#, c-format
+msgid "command '%s' requires --%s option"
+msgstr "наредбата „%s“ има потреба од опцијата --%s"
+
+#: src/virsh.c:3837
+#, c-format
+msgid "command '%s' doesn't exist"
+msgstr "наредбата „%s“ не постои"
+
+#: src/virsh.c:3845
+msgid "  NAME\n"
+msgstr "  ИМЕ\n"
+
+#: src/virsh.c:3849
+msgid ""
+"\n"
+"  SYNOPSIS\n"
+msgstr ""
+"\n"
+"  КРАТОК ПРЕГЛЕД\n"
+
+#: src/virsh.c:3856
+msgid ""
+"\n"
+"  DESCRIPTION\n"
+msgstr ""
+"\n"
+"  ОПИС\n"
+
+#: src/virsh.c:3860
+msgid ""
+"\n"
+"  OPTIONS\n"
+msgstr ""
+"\n"
+"  ОПЦИИ\n"
+
+#: src/virsh.c:3867
+#, c-format
+msgid "--%s <number>"
+msgstr "--%s <број>"
+
+#: src/virsh.c:3869
+#, c-format
+msgid "--%s <string>"
+msgstr "--%s <низа_од_знаци>"
+
+#: src/virsh.c:3988
+msgid "undefined domain name or id"
+msgstr "недефинирано име или ид. на домен"
+
+#: src/virsh.c:4021
+#, c-format
+msgid "failed to get domain '%s'"
+msgstr "не успеав да го добијам доменот „%s“"
+
+#: src/virsh.c:4034
+msgid "undefined network name"
+msgstr "недефинирано име на мрежа"
+
+#: src/virsh.c:4058
+#, c-format
+msgid "failed to get network '%s'"
+msgstr "не успеав да ја добијам мрежата „%s“"
+
+#: src/virsh.c:4086
+#, c-format
+msgid ""
+"\n"
+"(Time: %.3f ms)\n"
+"\n"
+msgstr ""
+"\n"
+"(Време: %.3f ms)\n"
+"\n"
+
+#: src/virsh.c:4160
+msgid "missing \""
+msgstr "недостасува \""
+
+#: src/virsh.c:4221
+#, c-format
+msgid "unexpected token (command name): '%s'"
+msgstr "неочекуван токен (име на команда): '%s'"
+
+#: src/virsh.c:4226
+#, c-format
+msgid "unknown command: '%s'"
+msgstr "непозната наредба: „%s“"
+
+#: src/virsh.c:4233
+#, c-format
+msgid "command '%s' doesn't support option --%s"
+msgstr "наредбата „%s“ не ја поддржува опцијата --%s"
+
+#: src/virsh.c:4248
+#, c-format
+msgid "expected syntax: --%s <%s>"
+msgstr "се очекуваше синтакса: --%s <%s>"
+
+#: src/virsh.c:4251
+msgid "number"
+msgstr "број"
+
+#: src/virsh.c:4251
+msgid "string"
+msgstr "низа од знаци"
+
+#: src/virsh.c:4257
+#, c-format
+msgid "unexpected data '%s'"
+msgstr "неочекувани податоци „%s“"
+
+#: src/virsh.c:4279
+msgid "OPTION"
+msgstr "ОПЦИЈА"
+
+#: src/virsh.c:4279
+msgid "DATA"
+msgstr "ПОДАТОЦИ"
+
+#: src/virsh.c:4329 src/virsh.c:4355
+msgid "running"
+msgstr "работи"
+
+#: src/virsh.c:4331 src/virsh.c:4353
+msgid "blocked"
+msgstr "блокирано"
+
+#: src/virsh.c:4333
+msgid "paused"
+msgstr "паузирано"
+
+#: src/virsh.c:4335
+msgid "in shutdown"
+msgstr "се гаси"
+
+#: src/virsh.c:4337
+msgid "shut off"
+msgstr "изгасено"
+
+#: src/virsh.c:4339
+msgid "crashed"
+msgstr "паднато"
+
+#: src/virsh.c:4351
+msgid "offline"
+msgstr "без мрежа"
+
+#: src/virsh.c:4370
+msgid "no valid connection"
+msgstr "нема валидно поврзување"
+
+#: src/virsh.c:4417
+#, c-format
+msgid "%s: error: "
+msgstr "%s: грешка: "
+
+#: src/virsh.c:4419
+msgid "error: "
+msgstr "грешка: "
+
+#: src/virsh.c:4441 src/virsh.c:4453 src/virsh.c:4466
+#, c-format
+msgid "%s: %d: failed to allocate %d bytes"
+msgstr "%s: %d: не успеав да алоцирам %d бајти"
+
+#: src/virsh.c:4480
+#, c-format
+msgid "%s: %d: failed to allocate %lu bytes"
+msgstr "%s: %d: не успеав да алоцирам %lu бајти"
+
+#: src/virsh.c:4516
+msgid "failed to connect to the hypervisor"
+msgstr "не успеав да се поврзам на хипервизорот"
+
+#: src/virsh.c:4540
+msgid "failed to get the log file information"
+msgstr "не успеав да ги добијам информациите од дневникот"
+
+#: src/virsh.c:4545
+msgid "the log path is not a file"
+msgstr "патеката за дневникот не е датотека"
+
+#: src/virsh.c:4551
+msgid "failed to open the log file. check the log file path"
+msgstr "Не успеав да го отворам дневникот. Проверете ја патеката до датотеката"
+
+#: src/virsh.c:4619
+msgid "failed to write the log file"
+msgstr "не успеав да запишам во дневникот"
+
+#: src/virsh.c:4788
+#, c-format
+msgid ""
+"\n"
+"%s [options] [commands]\n"
+"\n"
+"  options:\n"
+"    -c | --connect <uri>    hypervisor connection URI\n"
+"    -r | --readonly         connect readonly\n"
+"    -d | --debug <num>      debug level [0-5]\n"
+"    -h | --help             this help\n"
+"    -q | --quiet            quiet mode\n"
+"    -t | --timing           print timing information\n"
+"    -l | --log <file>       output logging to file\n"
+"    -v | --version          program version\n"
+"\n"
+"  commands (non interactive mode):\n"
+msgstr ""
+"\n"
+"%s [опции] [наредби]\n"
+"\n"
+"  опции:\n"
+"    -c | --connect <uri>    URI за поврзување со хипервизорот\n"
+"    -r | --readonly         поврзување само за читање\n"
+"    -d | --debug <num>      ниво на debug [0-5]\n"
+"    -h | --help             оваа помош\n"
+"    -q | --quiet            тивок режим\n"
+"    -t | --timing           печати информација за мерење време\n"
+"    -l | --log <file>       пренасочува евиденција во датотека\n"
+"    -v | --version          верзија на програмата\n"
+"\n"
+"  наредби (неинтерактивен режим):\n"
+
+#: src/virsh.c:4806
+#, fuzzy, c-format
+msgid ""
+"\n"
+"  (specify help <command> for details about the command)\n"
+"\n"
+msgstr ""
+"\n"
+"  (задајте --help <naredba> за детали за наредбата)\n"
+"\n"
+
+#: src/virsh.c:4902
+#, c-format
+msgid "unsupported option '-%c'. See --help."
+msgstr "неподдржана опција „-%c“. Видете --help."
+
+#: src/virsh.c:4984
+#, c-format
+msgid ""
+"Welcome to %s, the virtualization interactive terminal.\n"
+"\n"
+msgstr ""
+"Добредојдовте во %s, интерактивниот терминал за виртуелизација.\n"
+"\n"
+
+#: src/virsh.c:4987
+msgid ""
+"Type:  'help' for help with commands\n"
+"       'quit' to quit\n"
+"\n"
+msgstr ""
+"Напишете:  „help“ за помош со наредбите\n"
+"       „quit“ за да излезете\n"
+"\n"
+
+#: src/conf.c:156 src/conf.c:205 src/conf.c:488 src/conf.c:525 src/conf.c:553
+#: src/conf.c:631
+msgid "allocating configuration"
+msgstr "алоцирам конфигурација"
+
+#: src/conf.c:340
+msgid "unterminated number"
+msgstr "недовршен број"
+
+#: src/conf.c:372 src/conf.c:389 src/conf.c:401
+msgid "unterminated string"
+msgstr "недовршена низа"
+
+#: src/conf.c:429 src/conf.c:482
+msgid "expecting a value"
+msgstr "се очекуваше вредност"
+
+#: src/conf.c:449
+msgid "expecting a separator in list"
+msgstr "се очекуваше раздвојувач во листата"
+
+#: src/conf.c:472
+msgid "list is not closed with ] "
+msgstr "листата не е затворена со ] "
+
+#: src/conf.c:518
+msgid "expecting a name"
+msgstr "се очекуваше име"
+
+#: src/conf.c:581
+msgid "expecting a separator"
+msgstr "се очекуваше разделувач"
+
+#: src/conf.c:613
+msgid "expecting an assignment"
+msgstr "се очекуваше доделување"
+
+#: src/conf.c:887 src/conf.c:941
+#, fuzzy
+msgid "failed to allocate buffer"
+msgstr "не успеав да алоцирам јазол"
+
+#: src/conf.c:899
+msgid "failed to open file"
+msgstr "не успеав да ја отворам датотеката"
+
+#: src/conf.c:907
+msgid "failed to save content"
+msgstr "не успеав да ја зачувам содржината"
+
+#: src/xs_internal.c:346
+msgid "failed to connect to Xen Store"
+msgstr "не успеав да се поврзам со Xen Store"
+
+#: src/proxy_internal.c:195
+#, c-format
+msgid "failed to exec %s\n"
+msgstr "не успеав да извршам %s\n"
+
+#: src/proxy_internal.c:289
+#, c-format
+msgid "Failed to close socket %d\n"
+msgstr "Не успеав да го затворам приклучникот %d\n"
+
+#: src/proxy_internal.c:322
+#, c-format
+msgid "Failed to read socket %d\n"
+msgstr "Не успеав да прочитам од приклучникот %d\n"
+
+#: src/proxy_internal.c:356
+#, c-format
+msgid "Failed to write to socket %d\n"
+msgstr "Не успеав да запишам во приклучникот %d\n"
+
+#: src/proxy_internal.c:448 src/proxy_internal.c:469 src/proxy_internal.c:489
+#, c-format
+msgid "Communication error with proxy: got %d bytes of %d\n"
+msgstr "Грешка во комуникацијата со проксито: добив %d бајти од %d\n"
+
+#: src/proxy_internal.c:456
+#, c-format
+msgid "Communication error with proxy: expected %d bytes got %d\n"
+msgstr ""
+"Грешка во комуникацијата со проксито: се очекуваа %d бајти, а добив %d\n"
+
+#: src/proxy_internal.c:478
+#, c-format
+msgid "Communication error with proxy: got %d bytes packet\n"
+msgstr "Грешка во комуникацијата со проксито: добив пакет од %d бајти\n"
+
+#: src/proxy_internal.c:502
+#, c-format
+msgid "Communication error with proxy: malformed packet\n"
+msgstr "Грешка во комуникацијата со проксито: лошо формиран пакет\n"
+
+#: src/proxy_internal.c:508
+#, c-format
+msgid "got asynchronous packet number %d\n"
+msgstr "добив асинхрон пакет со број %d\n"
+
+#: src/xen_internal.c:1321
+#, c-format
+msgid "Credit scheduler weight parameter (%d) is out of range (1-65535)"
+msgstr ""
+
+#: src/xen_internal.c:1331
+#, c-format
+msgid "Credit scheduler cap parameter (%d) is out of range (0-65535)"
+msgstr ""
+
+#: src/xen_internal.c:2598
+#, c-format
+msgid "allocating %d domain info"
+msgstr "алоцирам информација за %d домени"
+
+#~ msgid "allocating node"
+#~ msgstr "алоцирам јазол"
+
+#~ msgid "allocating private data"
+#~ msgstr "алоцирам приватни податоци"
+
+#~ msgid "allocating path"
+#~ msgstr "алоцирам патека"

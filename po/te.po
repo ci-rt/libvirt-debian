@@ -1,0 +1,2381 @@
+# translation of te.po to Telugu
+# Copyright (C) 2006 Free Software Foundation, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# Sree Ganesh <sthottem@redhat.com>, 2006.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: te\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2007-09-30 23:00+0200\n"
+"PO-Revision-Date: 2006-12-15 17:13+0530\n"
+"Last-Translator: Sree Ganesh <sthottem@redhat.com>\n"
+"Language-Team: Telugu <en@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 1.9.1\n"
+
+#: src/libvirt.c:412 src/hash.c:664
+msgid "allocating connection"
+msgstr "అనుసంధానాన్ని కేటాయిస్తోంది"
+
+#: src/virterror.c:243
+msgid "warning"
+msgstr "హెచ్చరిక"
+
+#: src/virterror.c:246
+msgid "error"
+msgstr "దోషం"
+
+#: src/virterror.c:350
+msgid "No error message provided"
+msgstr "ఏ దోష సమాచారమూ సమకూర్చబడలేదు"
+
+#: src/virterror.c:405
+#, c-format
+msgid "internal error %s"
+msgstr "అంతర్గత దోషం %s"
+
+#: src/virterror.c:407
+msgid "internal error"
+msgstr "అంతర్గత దోషం"
+
+#: src/virterror.c:410
+msgid "out of memory"
+msgstr "జ్ఞప్తిలో లేదు"
+
+#: src/virterror.c:414
+#, fuzzy
+msgid "this function is not supported by the hypervisor"
+msgstr "అధిప్రతి కొరకు ఏ మద్దతూ లేదు"
+
+#: src/virterror.c:416
+#, fuzzy, c-format
+msgid "this function is not supported by the hypervisor: %s"
+msgstr "%s అధిప్రతి కోసం ఏ మద్దతూ లేదు"
+
+#: src/virterror.c:420
+msgid "could not connect to hypervisor"
+msgstr "అధిప్రతికి అనుసంధించబడలేదు"
+
+#: src/virterror.c:422
+#, c-format
+msgid "could not connect to %s"
+msgstr "%sకి అనుసంధించబడలేదు"
+
+#: src/virterror.c:426
+msgid "invalid connection pointer in"
+msgstr "సరికాని అనుసంధాన కేంద్రం"
+
+#: src/virterror.c:428
+#, c-format
+msgid "invalid connection pointer in %s"
+msgstr "%sలో సరికాని అనుసంధాన కేంద్రం"
+
+#: src/virterror.c:432
+msgid "invalid domain pointer in"
+msgstr "సరికాని క్షేత్ర కేంద్రం"
+
+#: src/virterror.c:434
+#, c-format
+msgid "invalid domain pointer in %s"
+msgstr "%s యందు సరికాని క్షేత్ర కేంద్రం"
+
+#: src/virterror.c:438
+msgid "invalid argument in"
+msgstr "సరికాని వాదం"
+
+#: src/virterror.c:440
+#, c-format
+msgid "invalid argument in %s"
+msgstr "%s యందు సరికాని వాదం"
+
+#: src/virterror.c:444
+#, c-format
+msgid "operation failed: %s"
+msgstr "విధాన వైఫల్యం: %s"
+
+#: src/virterror.c:446
+msgid "operation failed"
+msgstr "విధానం విఫలమైంది"
+
+#: src/virterror.c:450
+#, c-format
+msgid "GET operation failed: %s"
+msgstr "GET విధాన వైఫల్యం: %s"
+
+#: src/virterror.c:452
+msgid "GET operation failed"
+msgstr "GET విధానం విఫలమైంది"
+
+#: src/virterror.c:456
+#, c-format
+msgid "POST operation failed: %s"
+msgstr "POST విధాన వైఫల్యం: %s"
+
+#: src/virterror.c:458
+msgid "POST operation failed"
+msgstr "POST విధానం విఫలమైంది"
+
+#: src/virterror.c:461
+#, c-format
+msgid "got unknown HTTP error code %d"
+msgstr "తెలియని HTTP దోష కోడు %dను పొందాను"
+
+#: src/virterror.c:465
+#, c-format
+msgid "unknown host %s"
+msgstr "తెలియని ఆతిధేయి %s"
+
+#: src/virterror.c:467
+msgid "unknown host"
+msgstr "తెలియని ఆతిధేయి"
+
+#: src/virterror.c:471
+#, c-format
+msgid "failed to serialize S-Expr: %s"
+msgstr "S-Exprను క్రమంలో ఉంచటంలో వైఫల్యం: %s"
+
+#: src/virterror.c:473
+msgid "failed to serialize S-Expr"
+msgstr "S-Exprను క్రమంలో ఉంచటంలో విఫలమైంది"
+
+#: src/virterror.c:477
+msgid "could not use Xen hypervisor entry"
+msgstr "Xen అధిప్రతి ప్రవేశాన్ని ఉపయోగించలేదు"
+
+#: src/virterror.c:479
+#, c-format
+msgid "could not use Xen hypervisor entry %s"
+msgstr "Xen అధిప్రతి ప్రవేశం %sని ఉపయోగించలేదు"
+
+#: src/virterror.c:483
+msgid "could not connect to Xen Store"
+msgstr "Xen స్టోరుకు అనుసంధించబడలేదు"
+
+#: src/virterror.c:485
+#, c-format
+msgid "could not connect to Xen Store %s"
+msgstr "Xen స్టోరు %sకు అనుసంధించబడలేదు"
+
+#: src/virterror.c:488
+#, c-format
+msgid "failed Xen syscall %s %d"
+msgstr "Xen sysకాల్ %s %d విఫలమైంది"
+
+#: src/virterror.c:492
+msgid "unknown OS type"
+msgstr "తెలియని OS రకం"
+
+#: src/virterror.c:494
+#, c-format
+msgid "unknown OS type %s"
+msgstr "తెలియని OS %s రకం"
+
+#: src/virterror.c:497
+msgid "missing kernel information"
+msgstr "కెర్నల్ సమాచారమ్ తప్పిపోయింది"
+
+#: src/virterror.c:501
+msgid "missing root device information"
+msgstr "రూటు సాధన సమాచారం తప్పిపోయింది"
+
+#: src/virterror.c:503
+#, c-format
+msgid "missing root device information in %s"
+msgstr "%sలో రూటు సాధన సమాచారం తప్పిపోయింది"
+
+#: src/virterror.c:507
+msgid "missing source information for device"
+msgstr "సధనం కోసం ఆకర సమాచారం తప్పిపోయింది"
+
+#: src/virterror.c:509
+#, c-format
+msgid "missing source information for device %s"
+msgstr "%s సాధనం కోసం ఆకర సమాచారం తప్పిపోయింది"
+
+#: src/virterror.c:513
+msgid "missing target information for device"
+msgstr "సాధనం కోసం లక్ష్య సమాచారం తప్పిపోయింది"
+
+#: src/virterror.c:515
+#, c-format
+msgid "missing target information for device %s"
+msgstr "%s సాధనంకోసం లక్ష్య సమాచారం తప్పిపోయింది"
+
+#: src/virterror.c:519
+msgid "missing domain name information"
+msgstr "క్షేత్ర నామ సమాచారం తప్పిపోయింది"
+
+#: src/virterror.c:521
+#, c-format
+msgid "missing domain name information in %s"
+msgstr "%sలో క్షేత్ర నామ సమాచారం తప్పిపోయింది"
+
+#: src/virterror.c:525
+msgid "missing operating system information"
+msgstr "ఆపరేటింగు సిస్టం సమాచారం తప్పిపోయింది"
+
+#: src/virterror.c:527
+#, c-format
+msgid "missing operating system information for %s"
+msgstr "%s కోసం ఆపరేటింగు సిస్టం సమాచారం తప్పిపోయింది"
+
+#: src/virterror.c:531
+msgid "missing devices information"
+msgstr "సాధన సమాచారం తప్పిపోయింది"
+
+#: src/virterror.c:533
+#, c-format
+msgid "missing devices information for %s"
+msgstr "%s కోసం సాధన సమాచారం తప్పిపోయింది"
+
+#: src/virterror.c:537
+msgid "too many drivers registered"
+msgstr "చాలా డ్రైవర్లు నమోదయ్యాయి"
+
+#: src/virterror.c:539
+#, c-format
+msgid "too many drivers registered in %s"
+msgstr "%sలో చాలా డ్రైవర్లు నమోదయ్యాయి"
+
+#: src/virterror.c:543
+msgid "library call failed, possibly not supported"
+msgstr "library కాల్ విఫలమైంది, సాధ్యమైంనంతవరకూ మద్దతివ్వక పోవచ్చు"
+
+#: src/virterror.c:545
+#, c-format
+msgid "library call %s failed, possibly not supported"
+msgstr "%s library కాల్ విఫలమైంది, సాధ్యమైంనంతవరకూ మద్దతివ్వక పోవచ్చు"
+
+#: src/virterror.c:549
+msgid "XML description not well formed or invalid"
+msgstr "XML వివరణ సరిగా చేయబడలేదు లేదా చెల్లనిదిగా ఉంది"
+
+#: src/virterror.c:551
+#, c-format
+msgid "XML description for %s is not well formed or invalid"
+msgstr "%s కోసం XML వివరణ సరిగా చేయబడలేదు లేదా చెల్లనిదిగా ఉంది"
+
+#: src/virterror.c:555
+msgid "this domain exists already"
+msgstr "ఈ క్షేత్రం ఇప్పటికే ఉంది"
+
+#: src/virterror.c:557
+#, c-format
+msgid "domain %s exists already"
+msgstr "%s క్షేత్రం ఇప్పటికే ఉంది"
+
+#: src/virterror.c:561
+msgid "operation forbidden for read only access"
+msgstr "విధానం నిషేధించబడింది చదవటానికి మాత్రమే వీలౌతుంది"
+
+#: src/virterror.c:563
+#, c-format
+msgid "operation %s forbidden for read only access"
+msgstr "విధానం %s నిషేధించబడింది చదవటానికి మాత్రమే వీలౌతుంది"
+
+#: src/virterror.c:567
+msgid "failed to open configuration file for reading"
+msgstr "చదవటానికి ఆకృతీకరణ ఫైలును తెరవటంలో విఫలమైంది"
+
+#: src/virterror.c:569
+#, c-format
+msgid "failed to open %s for reading"
+msgstr "చదవటానికి %sను తెరవటంలో విఫలమైంది"
+
+#: src/virterror.c:573
+msgid "failed to read configuration file"
+msgstr "ఆకృతీకరణ ఫైలును చదవటంలో విఫలమైంది"
+
+#: src/virterror.c:575
+#, c-format
+msgid "failed to read configuration file %s"
+msgstr "%s ఆకృతీకరణ ఫైలును చదవటంలో విఫలమైంది"
+
+#: src/virterror.c:579
+msgid "failed to parse configuration file"
+msgstr "ఆకృతీకరణ ఫైలును విశ్లేషించటంలో విఫలమైంది"
+
+#: src/virterror.c:581
+#, c-format
+msgid "failed to parse configuration file %s"
+msgstr "%s ఆకృతీకరణ ఫైలును విశ్లేషించటంలో విఫలమైంది"
+
+#: src/virterror.c:585
+msgid "configuration file syntax error"
+msgstr "ఆకృతీకరణ ఫైలు వాక్య దోషం"
+
+#: src/virterror.c:587
+#, c-format
+msgid "configuration file syntax error: %s"
+msgstr "ఆకృతీకరణ ఫైలు వాక్య దోషం: %s"
+
+#: src/virterror.c:591
+msgid "failed to write configuration file"
+msgstr "ఆకృతీకరణ ఫైలును రాయటంలో విఫలమైంది"
+
+#: src/virterror.c:593
+#, c-format
+msgid "failed to write configuration file: %s"
+msgstr "ఆకృతీకరణ ఫైలును రాయటంలో వైఫల్యం: %s"
+
+#: src/virterror.c:597
+#, fuzzy
+msgid "parser error"
+msgstr "అంతర్గత దోషం"
+
+#: src/virterror.c:603
+#, fuzzy
+msgid "invalid network pointer in"
+msgstr "సరికాని అనుసంధాన కేంద్రం"
+
+#: src/virterror.c:605
+#, fuzzy, c-format
+msgid "invalid network pointer in %s"
+msgstr "%sలో సరికాని అనుసంధాన కేంద్రం"
+
+#: src/virterror.c:609
+#, fuzzy
+msgid "this network exists already"
+msgstr "ఈ క్షేత్రం ఇప్పటికే ఉంది"
+
+#: src/virterror.c:611
+#, fuzzy, c-format
+msgid "network %s exists already"
+msgstr "%s క్షేత్రం ఇప్పటికే ఉంది"
+
+#: src/virterror.c:615
+#, fuzzy
+msgid "system call error"
+msgstr "అంతర్గత దోషం"
+
+#: src/virterror.c:621
+#, fuzzy
+msgid "RPC error"
+msgstr "దోషం"
+
+#: src/virterror.c:627
+#, fuzzy
+msgid "GNUTLS call error"
+msgstr "అంతర్గత దోషం"
+
+#: src/virterror.c:633
+#, fuzzy
+msgid "Failed to find the network"
+msgstr "%s నిర్వచించబడని క్షేత్రానికి విఫలమైంది"
+
+#: src/virterror.c:635
+#, fuzzy, c-format
+msgid "Failed to find the network: %s"
+msgstr "%s నిర్వచించబడని క్షేత్రానికి విఫలమైంది"
+
+#: src/virterror.c:639
+#, fuzzy
+msgid "Domain not found"
+msgstr "క్షేత్ర సమాచారం"
+
+#: src/virterror.c:641
+#, fuzzy, c-format
+msgid "Domain not found: %s"
+msgstr "%s నుండీ క్షేత్రం తిరిగి స్టోరు చేయబడింది\n"
+
+#: src/virterror.c:645
+#, fuzzy
+msgid "Network not found"
+msgstr "క్షేత్ర నామం లేదా uuid"
+
+#: src/virterror.c:647
+#, fuzzy, c-format
+msgid "Network not found: %s"
+msgstr "క్షేత్రం %s %s నుండీ సృష్టించబడింది\n"
+
+#: src/virterror.c:651
+#, fuzzy
+msgid "invalid MAC adress"
+msgstr "%s యందు సరికాని వాదం"
+
+#: src/virterror.c:653
+#, fuzzy, c-format
+msgid "invalid MAC adress: %s"
+msgstr "%s యందు సరికాని వాదం"
+
+#: src/xmlrpc.c:63
+msgid "copying node content"
+msgstr "నోడ్ విషయాన్ని కాపీ చేస్తోంది"
+
+#: src/xmlrpc.c:163
+msgid "allocate value array"
+msgstr "వాల్యూ ఎరేని కేటాయించు"
+
+#: src/xmlrpc.c:196
+msgid "unexpected dict node"
+msgstr "ఊహించని డిక్టు నోడు"
+
+#: src/xmlrpc.c:268
+msgid "unexpected value node"
+msgstr "ఊహీమ్చని వాల్యూ నోడు"
+
+#: src/xmlrpc.c:431
+msgid "send request"
+msgstr "విన్నపాన్ని పంపండి"
+
+#: src/xmlrpc.c:437
+msgid "unexpected mime type"
+msgstr "ఊహించని మైం రకం"
+
+#: src/xmlrpc.c:444
+msgid "allocate response"
+msgstr "ప్రతిస్పందనను కేటాయించు"
+
+#: src/xmlrpc.c:452 src/xmlrpc.c:514
+msgid "read response"
+msgstr "ప్రతిస్పందనను చదువు"
+
+#: src/xmlrpc.c:484 src/xml.c:265
+msgid "allocate string array"
+msgstr "స్ట్రింగ్ ఎరేని కేటాయించు"
+
+#: src/xmlrpc.c:606
+msgid "parse server response failed"
+msgstr "విశ్లేషణ సర్వరు బాధ్యత విఫలమైంది"
+
+#: src/xmlrpc.c:670
+msgid "allocate new context"
+msgstr "కొత్త సందర్భాన్ని కేటాయించు"
+
+#: src/hash.c:770 src/hash.c:775
+msgid "allocating domain"
+msgstr "క్షేత్రాన్ని కేటాయిస్తోంది"
+
+#: src/hash.c:786
+msgid "failed to add domain to connection hash table"
+msgstr "అనుసంధాన హాష్ పట్టికకు క్షేత్రాన్ని కలపటంలో విఫలమైంది"
+
+#: src/hash.c:838
+msgid "domain missing from connection hash table"
+msgstr "అనుసంధాన హాష్ పట్టికనుండీ క్షేత్రం తప్పిపోయింది"
+
+#: src/hash.c:903 src/hash.c:908
+#, fuzzy
+msgid "allocating network"
+msgstr "నోడును కేటాయిస్తోంది"
+
+#: src/hash.c:918
+#, fuzzy
+msgid "failed to add network to connection hash table"
+msgstr "అనుసంధాన హాష్ పట్టికకు క్షేత్రాన్ని కలపటంలో విఫలమైంది"
+
+#: src/hash.c:970
+#, fuzzy
+msgid "network missing from connection hash table"
+msgstr "అనుసంధాన హాష్ పట్టికనుండీ క్షేత్రం తప్పిపోయింది"
+
+#: src/test.c:223 src/test.c:588 src/test.c:1262
+msgid "getting time of day"
+msgstr "రోజు యొక్క సమయాన్ని పొందుతోంది"
+
+#: src/test.c:229 src/test.c:361 src/test.c:387 src/test.c:1537
+msgid "domain"
+msgstr "క్షేత్రం"
+
+#: src/test.c:235 src/test.c:421 src/test.c:694
+msgid "creating xpath context"
+msgstr "xమార్గ సందర్భాన్ని సృష్టిస్తోంది"
+
+#: src/test.c:241
+msgid "domain name"
+msgstr "క్షేత్ర నామం"
+
+#: src/test.c:247 src/test.c:251
+msgid "domain uuid"
+msgstr "క్షేత్ర uuid"
+
+#: src/test.c:259
+msgid "domain memory"
+msgstr "క్షేత్ర మెమోరీ"
+
+#: src/test.c:268
+#, fuzzy
+msgid "domain current memory"
+msgstr "క్షేత్ర మెమోరీ"
+
+#: src/test.c:278
+msgid "domain vcpus"
+msgstr "క్షేత్ర vcpus"
+
+#: src/test.c:287
+msgid "domain reboot behaviour"
+msgstr "క్షేత్ర పునఃప్రారంభ వర్తనం"
+
+#: src/test.c:297
+msgid "domain poweroff behaviour"
+msgstr "క్షేత్ర poweroff వర్తనం"
+
+#: src/test.c:307
+msgid "domain crash behaviour"
+msgstr "క్షేత్ర క్రాష్ వర్తనం"
+
+#: src/test.c:380
+msgid "load domain definition file"
+msgstr "క్షేత్ర నిర్వచన ఫైలును లోడ్ చేస్తోంది"
+
+#: src/test.c:415 src/test.c:539 src/test.c:564
+#, fuzzy
+msgid "network"
+msgstr "క్షేత్రాన్ని ప్రారంభించు."
+
+#: src/test.c:427 src/virsh.c:2733
+msgid "network name"
+msgstr ""
+
+#: src/test.c:435 src/test.c:439 src/virsh.c:2624
+msgid "network uuid"
+msgstr ""
+
+#: src/test.c:447
+#, fuzzy
+msgid "network forward"
+msgstr "క్షేత్ర నామం లేదా uuid"
+
+#: src/test.c:456 src/test.c:466 src/test.c:471
+msgid "ip address"
+msgstr ""
+
+#: src/test.c:461
+msgid "ip netmask"
+msgstr ""
+
+#: src/test.c:557
+#, fuzzy
+msgid "load network definition file"
+msgstr "క్షేత్ర నిర్వచన ఫైలును లోడ్ చేస్తోంది"
+
+#: src/test.c:673
+msgid "loading host definition file"
+msgstr "ఆతిధేయ నిర్వచన ఫైలును లోడుచేస్తోంది"
+
+#: src/test.c:680
+msgid "host"
+msgstr "ఆతిధేయి"
+
+#: src/test.c:688
+msgid "node"
+msgstr "node"
+
+#: src/test.c:712
+msgid "node cpu numa nodes"
+msgstr "node cpu numa nodes"
+
+#: src/test.c:720
+msgid "node cpu sockets"
+msgstr "నోడ్ cpu సాకెట్లు"
+
+#: src/test.c:728
+msgid "node cpu cores"
+msgstr "node cpu cores"
+
+#: src/test.c:736
+msgid "node cpu threads"
+msgstr "node cpu threads"
+
+#: src/test.c:747
+msgid "node active cpu"
+msgstr "node క్రియాశీల cpu"
+
+#: src/test.c:754
+msgid "node cpu mhz"
+msgstr "node cpu mhz"
+
+#: src/test.c:769
+msgid "node memory"
+msgstr "node మెమోరీ"
+
+#: src/test.c:775
+msgid "node domain list"
+msgstr "node క్షేత్ర జాబితా"
+
+#: src/test.c:785
+msgid "resolving domain filename"
+msgstr "క్షేత్ర ఫైలు పేరును తీర్మానిస్తోంది"
+
+#: src/test.c:810
+#, fuzzy
+msgid "resolving network filename"
+msgstr "క్షేత్ర ఫైలు పేరును తీర్మానిస్తోంది"
+
+#: src/test.c:908
+msgid "testOpen: supply a path or use test:///default"
+msgstr ""
+
+#: src/test.c:1046
+msgid "too many domains"
+msgstr "ఎక్కువ క్షేత్రాలు"
+
+#: src/test.c:1557
+#, fuzzy
+msgid "Domain is already running"
+msgstr "క్షేత్రం ఇప్పటికే ‌క్రియాసహితంగా ఉంది"
+
+#: src/test.c:1572
+msgid "Domain is still running"
+msgstr ""
+
+#: src/test.c:1772 src/test.c:1797
+#, fuzzy
+msgid "too many networks"
+msgstr "ఎక్కువ అనుసంధానాలు"
+
+#: src/test.c:1816
+#, fuzzy
+msgid "Network is still running"
+msgstr "%s క్షేత్రం ప్రారంభించబడింది\n"
+
+#: src/test.c:1830
+#, fuzzy
+msgid "Network is already running"
+msgstr "క్షేత్రం ఇప్పటికే ‌క్రియాసహితంగా ఉంది"
+
+#: src/sexpr.c:59
+msgid "failed to allocate a node"
+msgstr "నోడును కేటాయించటంలో విఫలమైంది"
+
+#: src/sexpr.c:352 src/sexpr.c:367
+msgid "failed to copy a string"
+msgstr "స్ట్రింగుకి కాపీ చేయటంలో విఫలమైంది"
+
+#: src/xend_internal.c:283 src/xend_internal.c:286
+msgid "failed to read from Xen Daemon"
+msgstr "Xen డెమోనునుండీ చదవటంలో విఫలమైంది"
+
+#: src/xend_internal.c:597 src/xend_internal.c:814 src/xend_internal.c:1534
+#: src/xend_internal.c:1553 src/xend_internal.c:2079
+msgid "allocate new buffer"
+msgstr "కొత్త బఫ్ఫరు కేటాయించు"
+
+#: src/xend_internal.c:1021
+msgid "failed to urlencode the create S-Expr"
+msgstr "urlencodeను S-Exprకి చేయటంలో విఫలమైంది"
+
+#: src/xend_internal.c:1062
+msgid "domain information incomplete, missing domid"
+msgstr "క్షేత్ర సమాచారం అసంపూర్తిగా ఉంది, క్షేత్రం తప్పిపోయింది"
+
+#: src/xend_internal.c:1068
+msgid "domain information incorrect domid not numeric"
+msgstr "క్షేత్ర సమాచారం సరైనదికాదు క్షేత్రం సంఖ్యాపరమైంది కాదు"
+
+#: src/xend_internal.c:1073 src/xend_internal.c:1120
+msgid "domain information incomplete, missing uuid"
+msgstr "క్షేత్ర సమాచారం అసంపూర్తిగా ఉంది, uuid తప్పిపోయింది"
+
+#: src/xend_internal.c:1112 src/xend_internal.c:1390 src/xend_internal.c:1397
+msgid "domain information incomplete, missing name"
+msgstr "క్షేత్ర సమాచారం అసంపూర్తిగా ఉంది, పేరు తప్పిపోయింది"
+
+#: src/xend_internal.c:1286 src/xend_internal.c:1317
+#, fuzzy
+msgid "domain information incomplete, missing kernel & bootloader"
+msgstr "క్షేత్ర సమాచారం అసంపూర్తిగా ఉంది, కెర్నలు తప్పిపోయింది"
+
+#: src/xend_internal.c:1378
+#, fuzzy
+msgid "domain information incomplete, missing id"
+msgstr "క్షేత్ర సమాచారం అసంపూర్తిగా ఉంది, uuid తప్పిపోయింది"
+
+#: src/xend_internal.c:1503
+msgid "domain information incomplete, vbd has no dev"
+msgstr "క్షేత్ర సమాచారం అసంపూర్తిగా ఉంది, vbd devని కలిగిలేదు"
+
+#: src/xend_internal.c:1518
+msgid "domain information incomplete, vbd has no src"
+msgstr "క్షేత్ర సమాచారం అసంపూర్తిగా ఉంది, vbd srcని కలిగిలేదు"
+
+#: src/xend_internal.c:1527
+msgid "cannot parse vbd filename, missing driver name"
+msgstr "vbd ఫైలు పేరు విశ్లేషించటానికి కుదరదు, డ్రైవరు పేరు తప్పిపోయింది"
+
+#: src/xend_internal.c:1546
+msgid "cannot parse vbd filename, missing driver type"
+msgstr "vbd ఫైలు పేరు విశ్లేషించటానికి కుదరదు, డ్రైవరు రకం తప్పిపోయింది"
+
+#: src/xend_internal.c:1948
+#, fuzzy
+msgid "failed to parse topology information"
+msgstr "Xend క్షేత్ర సమాచరాన్ని విశ్లేషించటంలో విఫలమైంది"
+
+#: src/xend_internal.c:2136
+msgid "failed to parse Xend domain information"
+msgstr "Xend క్షేత్ర సమాచరాన్ని విశ్లేషించటంలో విఫలమైంది"
+
+#: src/xend_internal.c:3604
+#, fuzzy, c-format
+msgid "Failed to create inactive domain %s\n"
+msgstr "%s క్షేత్రాన్ని సృష్టించటంలో విఫలమైంది\n"
+
+#: src/virsh.c:309
+msgid "print help"
+msgstr "ముద్రణ సహాయం"
+
+#: src/virsh.c:310
+msgid "Prints global help or command specific help."
+msgstr "సార్వజనిక సహాయం లేదా కమాండ్ ఆధారిత సహాయాన్ని ముద్రించు"
+
+#: src/virsh.c:316
+#, fuzzy
+msgid "name of command"
+msgstr "క్రియారహిత క్షేత్ర నామం"
+
+#: src/virsh.c:328
+msgid ""
+"Commands:\n"
+"\n"
+msgstr ""
+"ఆదేశాలు:\n"
+"\n"
+
+#: src/virsh.c:342
+#, fuzzy
+msgid "autostart a domain"
+msgstr "క్షేత్రాన్ని ప్రారంభించు."
+
+#: src/virsh.c:344
+msgid "Configure a domain to be automatically started at boot."
+msgstr ""
+
+#: src/virsh.c:349 src/virsh.c:450 src/virsh.c:636 src/virsh.c:673
+#: src/virsh.c:730 src/virsh.c:797 src/virsh.c:1077 src/virsh.c:1121
+#: src/virsh.c:1297 src/virsh.c:1342 src/virsh.c:1381 src/virsh.c:1420
+#: src/virsh.c:1459 src/virsh.c:1498 src/virsh.c:1617 src/virsh.c:1704
+#: src/virsh.c:1832 src/virsh.c:1889 src/virsh.c:1946 src/virsh.c:2067
+#: src/virsh.c:2207 src/virsh.c:2908 src/virsh.c:2988 src/virsh.c:3051
+#: src/virsh.c:3105 src/virsh.c:3159 src/virsh.c:3275 src/virsh.c:3396
+#: src/virsh.c:3561
+msgid "domain name, id or uuid"
+msgstr "క్షేత్ర నామం, ఐడి లేదా uuid"
+
+#: src/virsh.c:350 src/virsh.c:2271
+msgid "disable autostarting"
+msgstr ""
+
+#: src/virsh.c:371
+#, fuzzy, c-format
+msgid "Failed to mark domain %s as autostarted"
+msgstr "%s క్షేత్రాన్ని %sకి భద్రపరవటంలో విఫలమైంది"
+
+#: src/virsh.c:374
+#, fuzzy, c-format
+msgid "Failed to unmark domain %s as autostarted"
+msgstr "%s క్షేత్రాన్ని %sకి భద్రపరవటంలో విఫలమైంది"
+
+#: src/virsh.c:381
+#, fuzzy, c-format
+msgid "Domain %s marked as autostarted\n"
+msgstr "%s క్షేత్రం ప్రారంభించబడింది\n"
+
+#: src/virsh.c:383
+#, fuzzy, c-format
+msgid "Domain %s unmarked as autostarted\n"
+msgstr "%s క్షేత్రం ప్రారంభించబడింది\n"
+
+#: src/virsh.c:394
+msgid "(re)connect to hypervisor"
+msgstr "అధిప్రతికి (తిరిగి) అనుసంధించు"
+
+#: src/virsh.c:396
+msgid ""
+"Connect to local hypervisor. This is built-in command after shell start up."
+msgstr "స్థానిక అధిప్రతికి అనుసంధానం. ఇది షల్ స్టార్టప్ తరువాత కమాండులో నిర్మించబడుతుంది."
+
+#: src/virsh.c:401
+msgid "hypervisor connection URI"
+msgstr "అధిప్రతి అనుసంధానం URI"
+
+#: src/virsh.c:402
+msgid "read-only connection"
+msgstr "చదవటానికి-మాత్రమే అనుసంధానం"
+
+#: src/virsh.c:414
+msgid "Failed to disconnect from the hypervisor"
+msgstr "అధిప్రతినుండీ అనుసంధానం తొలగించటంలో విఫలమైంది"
+
+#: src/virsh.c:433
+msgid "Failed to connect to the hypervisor"
+msgstr "అధిప్రతికి అనుసంధించటంలో విఫలమైంది"
+
+#: src/virsh.c:443
+msgid "connect to the guest console"
+msgstr ""
+
+#: src/virsh.c:445
+msgid "Connect the virtual serial console for the guest"
+msgstr ""
+
+#: src/virsh.c:490
+msgid "No console available for domain\n"
+msgstr ""
+
+#: src/virsh.c:508
+msgid "list domains"
+msgstr "జాబితా క్షేత్రాలు"
+
+#: src/virsh.c:509
+msgid "Returns list of domains."
+msgstr "క్షేత్రాల తిరుగు జాబితా."
+
+#: src/virsh.c:514
+msgid "list inactive domains"
+msgstr "క్రియారహిత క్షేత్రాల జాబితా చెయ్యి"
+
+#: src/virsh.c:515
+msgid "list inactive & active domains"
+msgstr "క్రియారహిత & క్రియాశీల క్షేత్రాల జాబితా చేయి"
+
+#: src/virsh.c:537 src/virsh.c:544
+msgid "Failed to list active domains"
+msgstr "క్రియాశీల క్షేత్రాల జాబితా ఇవ్వటంలో విఫలమైంది"
+
+#: src/virsh.c:555 src/virsh.c:564
+msgid "Failed to list inactive domains"
+msgstr "క్రియారహిత క్షేత్రాలను జాబితా చేయటంలో విఫలమైంది"
+
+#: src/virsh.c:574
+msgid "Id"
+msgstr "ఐడి"
+
+#: src/virsh.c:574 src/virsh.c:2556
+msgid "Name"
+msgstr "పేరు"
+
+#: src/virsh.c:574 src/virsh.c:2556
+msgid "State"
+msgstr "స్థితి"
+
+#: src/virsh.c:587 src/virsh.c:609 src/virsh.c:4343 src/virsh.c:4359
+msgid "no state"
+msgstr "స్థితి రాహిత్యం"
+
+#: src/virsh.c:630
+msgid "domain state"
+msgstr "క్షేత్ర స్థితి"
+
+#: src/virsh.c:631
+msgid "Returns state about a running domain."
+msgstr "నడుస్తున్న పరిధి గురించిన తిరుగు స్థితి."
+
+#: src/virsh.c:667
+msgid "get device block stats for a domain"
+msgstr ""
+
+#: src/virsh.c:668
+#, fuzzy
+msgid "Get device block stats for a running domain."
+msgstr "నడుస్తున్న పరిధి గురించిన తిరుగు స్థితి."
+
+#: src/virsh.c:674
+#, fuzzy
+msgid "block device"
+msgstr "అడ్డుకొనబడింది"
+
+#: src/virsh.c:695
+#, fuzzy, c-format
+msgid "Failed to get block stats %s %s"
+msgstr "%s క్షేత్రాన్ని %sకి భద్రపరవటంలో విఫలమైంది"
+
+#: src/virsh.c:724
+#, fuzzy
+msgid "get network interface stats for a domain"
+msgstr "నిర్వచించబడని క్షేత్ర నామం లేదా ఐడి"
+
+#: src/virsh.c:725
+#, fuzzy
+msgid "Get network interface stats for a running domain."
+msgstr "నడుస్తున్న పరిధి గురించిన తిరుగు స్థితి."
+
+#: src/virsh.c:731
+msgid "interface device"
+msgstr ""
+
+#: src/virsh.c:752
+#, fuzzy, c-format
+msgid "Failed to get interface stats %s %s"
+msgstr "నోడు సమాచారాన్ని పొందటంలో విఫలమైంది"
+
+#: src/virsh.c:791
+msgid "suspend a domain"
+msgstr "క్షేత్రాన్ని తొలగించు"
+
+#: src/virsh.c:792
+msgid "Suspend a running domain."
+msgstr "నడుస్తున్న క్షేత్రాన్ని తొలగించు"
+
+#: src/virsh.c:815
+#, c-format
+msgid "Domain %s suspended\n"
+msgstr "%s క్షేత్రం తొలగించబడింది\n"
+
+#: src/virsh.c:817
+#, c-format
+msgid "Failed to suspend domain %s"
+msgstr "క్షేత్రాన్ని తొలగించటంలో విఫలమైంది %s"
+
+#: src/virsh.c:830
+msgid "create a domain from an XML file"
+msgstr "XML ఫైలుకోసం క్షేత్రాన్ని సృష్టించు"
+
+#: src/virsh.c:831
+msgid "Create a domain."
+msgstr "క్షేత్రాన్ని సృష్టించు"
+
+#: src/virsh.c:836 src/virsh.c:944
+#, fuzzy
+msgid "file containing an XML domain description"
+msgstr "ఫైలు ఒక XML క్షేత్ర వివరణను కలిగిఉంది"
+
+#: src/virsh.c:851
+#, fuzzy, c-format
+msgid "Failed to open '%s': %s"
+msgstr "క్షేత్రాన్ని తొలగించటంలో విఫలమైంది %s"
+
+#: src/virsh.c:871
+#, fuzzy, c-format
+msgid "Failed to open '%s': read: %s"
+msgstr "చదవటానికి %sను తెరవటంలో విఫలమైంది"
+
+#: src/virsh.c:889
+#, fuzzy, c-format
+msgid "Error allocating memory: %s"
+msgstr "నోడును కేటాయిస్తోంది"
+
+#: src/virsh.c:923
+#, c-format
+msgid "Domain %s created from %s\n"
+msgstr "క్షేత్రం %s %s నుండీ సృష్టించబడింది\n"
+
+#: src/virsh.c:927
+#, c-format
+msgid "Failed to create domain from %s"
+msgstr "%s నుండీ క్షేత్రాన్ని సృష్టించటంలో విఫలమైంది"
+
+#: src/virsh.c:938
+msgid "define (but don't start) a domain from an XML file"
+msgstr "XML ఫైలు నుండీ ఒక క్షేత్రాన్ని నిర్వచించండి (కానీ ప్రారంభించవద్దు)"
+
+#: src/virsh.c:939
+msgid "Define a domain."
+msgstr "క్షేత్రాన్ని నిర్వచించు."
+
+#: src/virsh.c:971
+#, c-format
+msgid "Domain %s defined from %s\n"
+msgstr "%s క్షేత్రం %s నుండీ నిర్వచించబడింది\n"
+
+#: src/virsh.c:975
+#, c-format
+msgid "Failed to define domain from %s"
+msgstr "%s నుండీ క్షేత్రాన్ని నిర్వచించటంలో విఫలమైంది"
+
+#: src/virsh.c:986
+msgid "undefine an inactive domain"
+msgstr "క్రియారహిత క్షేత్రాన్ని నిర్వచించకు"
+
+#: src/virsh.c:987
+msgid "Undefine the configuration for an inactive domain."
+msgstr "క్రియారహిత క్షేత్ర ఆకృతీకరణను నిర్వచించకు."
+
+#: src/virsh.c:992 src/virsh.c:2136
+msgid "domain name or uuid"
+msgstr "క్షేత్ర నామం లేదా uuid"
+
+#: src/virsh.c:1010
+#, c-format
+msgid "Domain %s has been undefined\n"
+msgstr "%s క్షేత్రం నిర్వచించబడనిది\n"
+
+#: src/virsh.c:1012
+#, c-format
+msgid "Failed to undefine domain %s"
+msgstr "%s నిర్వచించబడని క్షేత్రానికి విఫలమైంది"
+
+#: src/virsh.c:1026
+msgid "start a (previously defined) inactive domain"
+msgstr "ఒక క్రియారహిత (ముందే నిర్వచించబడిన) క్షేత్రాన్ని ప్రాంభించు"
+
+#: src/virsh.c:1027
+msgid "Start a domain."
+msgstr "క్షేత్రాన్ని ప్రారంభించు."
+
+#: src/virsh.c:1032
+msgid "name of the inactive domain"
+msgstr "క్రియారహిత క్షేత్ర నామం"
+
+#: src/virsh.c:1049
+msgid "Domain is already active"
+msgstr "క్షేత్రం ఇప్పటికే ‌క్రియాసహితంగా ఉంది"
+
+#: src/virsh.c:1055
+#, c-format
+msgid "Domain %s started\n"
+msgstr "%s క్షేత్రం ప్రారంభించబడింది\n"
+
+#: src/virsh.c:1058
+#, c-format
+msgid "Failed to start domain %s"
+msgstr "%s క్షేత్రాన్ని ప్రారంభించటంలో విఫలమైంది"
+
+#: src/virsh.c:1071
+msgid "save a domain state to a file"
+msgstr "క్షేత్ర స్థితిని ఫైలుకి భద్రపరువు"
+
+#: src/virsh.c:1072
+msgid "Save a running domain."
+msgstr "ఒక నడుస్తున్న క్షేత్రాన్ని భద్రపరువు."
+
+#: src/virsh.c:1078
+msgid "where to save the data"
+msgstr "సమాచారాన్ని ఎక్కడ భద్రపరవాలి"
+
+#: src/virsh.c:1100
+#, c-format
+msgid "Domain %s saved to %s\n"
+msgstr "%s క్షేత్రం %sలో భద్రపరవబడింది\n"
+
+#: src/virsh.c:1102
+#, c-format
+msgid "Failed to save domain %s to %s"
+msgstr "%s క్షేత్రాన్ని %sకి భద్రపరవటంలో విఫలమైంది"
+
+#: src/virsh.c:1115
+msgid "show/set scheduler parameters"
+msgstr ""
+
+#: src/virsh.c:1116
+msgid "Show/Set scheduler parameters."
+msgstr ""
+
+#: src/virsh.c:1122
+msgid "weight for XEN_CREDIT"
+msgstr ""
+
+#: src/virsh.c:1123
+msgid "cap for XEN_CREDIT"
+msgstr ""
+
+#: src/virsh.c:1193 src/virsh.c:1197
+msgid "Scheduler"
+msgstr ""
+
+#: src/virsh.c:1197
+#, fuzzy
+msgid "Unknown"
+msgstr "తెలియని ఆతిధేయి"
+
+#: src/virsh.c:1253
+msgid "restore a domain from a saved state in a file"
+msgstr "ఫైలులోని భద్రపరిచే స్థితినుండీ క్షేత్రాన్ని తిరిగి స్టోరుచేయి"
+
+#: src/virsh.c:1254
+msgid "Restore a domain."
+msgstr "ఒక క్షేత్రాన్ని తిరిగి స్టోరుచేయి."
+
+#: src/virsh.c:1259
+msgid "the state to restore"
+msgstr "తిరిగి స్టోరు చేసే స్థితి"
+
+#: src/virsh.c:1278
+#, c-format
+msgid "Domain restored from %s\n"
+msgstr "%s నుండీ క్షేత్రం తిరిగి స్టోరు చేయబడింది\n"
+
+#: src/virsh.c:1280
+#, c-format
+msgid "Failed to restore domain from %s"
+msgstr "%s నుండీ క్షేత్రాన్ని తిరిగి స్టోరుచేయటంలో విఫలమైంది"
+
+#: src/virsh.c:1291
+msgid "dump the core of a domain to a file for analysis"
+msgstr "క్షేత్రం కోరును విశ్లేషణకోసం ఫైలుకి నింపు"
+
+#: src/virsh.c:1292
+msgid "Core dump a domain."
+msgstr "క్షేత్రాన్ని సంక్షిప్తీకరించు"
+
+#: src/virsh.c:1298
+msgid "where to dump the core"
+msgstr "కోర్ను ఎక్కడ నింపా"
+
+#: src/virsh.c:1320
+#, c-format
+msgid "Domain %s dumpd to %s\n"
+msgstr "%s క్షేత్రంను %sలో నిం\n"
+
+#: src/virsh.c:1322
+#, c-format
+msgid "Failed to core dump domain %s to %s"
+msgstr "%s క్షేత్రాన్ని %sకి భద్రపరవటంలో విఫలమైంది"
+
+#: src/virsh.c:1336
+msgid "resume a domain"
+msgstr "క్షేత్రాన్ని సంక్షిప్తీకరించు"
+
+#: src/virsh.c:1337
+msgid "Resume a previously suspended domain."
+msgstr "ఇంతకుముందు తొలగించబడిన క్షేత్రాన్ని సంక్షిప్తీకరించు."
+
+#: src/virsh.c:1360
+#, c-format
+msgid "Domain %s resumed\n"
+msgstr "%s క్షేత్రం సంక్షిప్తీకరించబడింది\n"
+
+#: src/virsh.c:1362
+#, c-format
+msgid "Failed to resume domain %s"
+msgstr "%s క్షేత్రాన్ని సంక్షిప్తీకరించటంలో విఫలమైంది"
+
+#: src/virsh.c:1375
+msgid "gracefully shutdown a domain"
+msgstr "విజయవంతంగా ఒక క్షేతాన్ని ముయ్యి"
+
+#: src/virsh.c:1376
+msgid "Run shutdown in the target domain."
+msgstr "లక్ష్య క్షేత్రంను ఉపయోగిస్తూ ముయ్యి."
+
+#: src/virsh.c:1399
+#, c-format
+msgid "Domain %s is being shutdown\n"
+msgstr "%s క్షేత్రం ముగించబడుతోంది\n"
+
+#: src/virsh.c:1401
+#, c-format
+msgid "Failed to shutdown domain %s"
+msgstr "%s క్షేత్రాన్ని ముగించటంలో విఫలమైంది"
+
+#: src/virsh.c:1414
+msgid "reboot a domain"
+msgstr "ఒక క్షేత్రాన్ని పునఃప్రారంభించు"
+
+#: src/virsh.c:1415
+msgid "Run a reboot command in the target domain."
+msgstr "లక్ష్య క్షేత్రంలో ఒక రీబూట్ ఆదేశాన్ని ఉపయోగించు."
+
+#: src/virsh.c:1438
+#, c-format
+msgid "Domain %s is being rebooted\n"
+msgstr "%s క్షేత్రం పునఃప్రారంభించబడుతూ ఉంది\n"
+
+#: src/virsh.c:1440
+#, c-format
+msgid "Failed to reboot domain %s"
+msgstr "క్షేత్రాన్ని పునఃప్రారంభించటంలో వైఫల్యం %s"
+
+#: src/virsh.c:1453
+msgid "destroy a domain"
+msgstr "క్షేత్రాన్ని నాశనం చేయి"
+
+#: src/virsh.c:1454
+msgid "Destroy a given domain."
+msgstr "ఇచ్చిన క్షేత్రాన్ని నాశనంచేయి."
+
+#: src/virsh.c:1477
+#, c-format
+msgid "Domain %s destroyed\n"
+msgstr "%s క్షేత్రం నాశనం చేయబడింది\n"
+
+#: src/virsh.c:1479
+#, c-format
+msgid "Failed to destroy domain %s"
+msgstr "క్షేత్రాన్ని నాశనం చేయటంలో విఫలమైంది %s"
+
+#: src/virsh.c:1492
+msgid "domain information"
+msgstr "క్షేత్ర సమాచారం"
+
+#: src/virsh.c:1493
+msgid "Returns basic information about the domain."
+msgstr "క్షేత్రానికి సంబంధించిన ప్రాధమిక సమాచారానికి తిరిగి వెళ్లు."
+
+#: src/virsh.c:1519 src/virsh.c:1521
+msgid "Id:"
+msgstr "ఐడి:"
+
+#: src/virsh.c:1522
+msgid "Name:"
+msgstr "పేరు:"
+
+#: src/virsh.c:1525
+msgid "UUID:"
+msgstr "UUID:"
+
+#: src/virsh.c:1528
+msgid "OS Type:"
+msgstr "OS వర్గం:"
+
+#: src/virsh.c:1533 src/virsh.c:1661
+msgid "State:"
+msgstr "స్థితి:"
+
+#: src/virsh.c:1536 src/virsh.c:2018
+msgid "CPU(s):"
+msgstr "CPU(s):"
+
+#: src/virsh.c:1543 src/virsh.c:1668
+msgid "CPU time:"
+msgstr "CPU సమయం:"
+
+#: src/virsh.c:1547 src/virsh.c:1550
+msgid "Max memory:"
+msgstr "గరిష్ట మెమోరీ:"
+
+#: src/virsh.c:1551
+msgid "no limit"
+msgstr ""
+
+#: src/virsh.c:1553
+msgid "Used memory:"
+msgstr "ఉపయోగించిన మెమోరీ:"
+
+#: src/virsh.c:1569
+#, fuzzy
+msgid "NUMA free memory"
+msgstr "ఉపయోగించిన మెమోరీ:"
+
+#: src/virsh.c:1570
+msgid "display available free memory for the NUMA cell."
+msgstr ""
+
+#: src/virsh.c:1575
+#, fuzzy
+msgid "NUMA cell number"
+msgstr "NUMA సెల్(లు):"
+
+#: src/virsh.c:1599
+msgid "Total"
+msgstr ""
+
+#: src/virsh.c:1611
+msgid "domain vcpu information"
+msgstr "క్షేత్ర vcpu సమాచారం"
+
+#: src/virsh.c:1612
+msgid "Returns basic information about the domain virtual CPUs."
+msgstr "క్షేత్ర వాస్తవిక CPUల గురించిన ప్రాధమిక సమాచారానికి తిరిగి వెళ్లు."
+
+#: src/virsh.c:1659
+msgid "VCPU:"
+msgstr "VCPU:"
+
+#: src/virsh.c:1660
+msgid "CPU:"
+msgstr "CPU:"
+
+#: src/virsh.c:1670
+msgid "CPU Affinity:"
+msgstr "CPU Affinity:"
+
+#: src/virsh.c:1682
+msgid "Domain shut off, virtual CPUs not present."
+msgstr ""
+
+#: src/virsh.c:1698
+msgid "control domain vcpu affinity"
+msgstr "నియంత్రణ క్షేత్ర vcpu affinity"
+
+#: src/virsh.c:1699
+msgid "Pin domain VCPUs to host physical CPUs."
+msgstr "భౌతిక CPUలకు ఆతిధేయ పిన్ డొమైన్ VCPUలు."
+
+#: src/virsh.c:1705
+msgid "vcpu number"
+msgstr "vcpu సంఖ్య"
+
+#: src/virsh.c:1706
+msgid "host cpu number(s) (comma separated)"
+msgstr "ఆతిధేయ cpu సంఖ్య(లు) (కామాచే వేరుచేయబడినవి)"
+
+#: src/virsh.c:1761
+msgid "cpulist: Invalid format. Empty string."
+msgstr ""
+
+#: src/virsh.c:1771
+#, c-format
+msgid ""
+"cpulist: %s: Invalid format. Expecting digit at position %d (near '%c')."
+msgstr ""
+
+#: src/virsh.c:1781
+#, c-format
+msgid ""
+"cpulist: %s: Invalid format. Expecting digit or comma at position %d (near '%"
+"c')."
+msgstr ""
+
+#: src/virsh.c:1788
+#, c-format
+msgid "cpulist: %s: Invalid format. Trailing comma at position %d."
+msgstr ""
+
+#: src/virsh.c:1802
+#, fuzzy, c-format
+msgid "Physical CPU %d doesn't exist."
+msgstr "'%s' ఆదేశం లేదు"
+
+#: src/virsh.c:1826
+msgid "change number of virtual CPUs"
+msgstr "వాస్తవిక సంఖ్యల CPUల మార్పు"
+
+#: src/virsh.c:1827
+msgid "Change the number of virtual CPUs active in the guest domain."
+msgstr "ఆతిధేయ క్షేత్రంలోని వాస్తవిక CPUల క్రియాశీల సంఖ్యను మార్చండి."
+
+#: src/virsh.c:1833
+msgid "number of virtual CPUs"
+msgstr "వాస్తవిక CPUల సంఖ్య"
+
+#: src/virsh.c:1853
+#, fuzzy
+msgid "Invalid number of virtual CPUs."
+msgstr "వాస్తవిక CPUల సంఖ్య"
+
+#: src/virsh.c:1865
+#, fuzzy
+msgid "Too many virtual CPUs."
+msgstr "వాస్తవిక CPUల సంఖ్య"
+
+#: src/virsh.c:1883
+msgid "change memory allocation"
+msgstr "మెమోరీ కేటాయింపులను మార్చు"
+
+#: src/virsh.c:1884
+msgid "Change the current memory allocation in the guest domain."
+msgstr "ఆతిధేయ క్షేత్రంలోని ప్రస్తుత మెమోరీ కేటాయింపులను మార్చు."
+
+#: src/virsh.c:1890
+#, fuzzy
+msgid "number of kilobytes of memory"
+msgstr "మెమోరీ బైట్ల సంఖ్య"
+
+#: src/virsh.c:1911 src/virsh.c:1923 src/virsh.c:1968
+#, c-format
+msgid "Invalid value of %d for memory size"
+msgstr ""
+
+#: src/virsh.c:1917
+msgid "Unable to verify MaxMemorySize"
+msgstr ""
+
+#: src/virsh.c:1940
+msgid "change maximum memory limit"
+msgstr "గరిష్ట మెమోరీ హద్దును మార్చు"
+
+#: src/virsh.c:1941
+msgid "Change the maximum memory allocation limit in the guest domain."
+msgstr "ఆతిధేయ క్షేత్రంలోని గరిష్ట మెమోరీ కేటాయింపుల హద్దును మార్చు."
+
+#: src/virsh.c:1947
+#, fuzzy
+msgid "maximum memory limit in kilobytes"
+msgstr "బైట్లలో గరిష్ట మెమోరీ హద్దు"
+
+#: src/virsh.c:1974
+msgid "Unable to verify current MemorySize"
+msgstr ""
+
+#: src/virsh.c:1981
+#, fuzzy
+msgid "Unable to shrink current MemorySize"
+msgstr "క్షేత్ర మెమోరీ"
+
+#: src/virsh.c:1987
+msgid "Unable to change MaxMemorySize"
+msgstr ""
+
+#: src/virsh.c:2000
+msgid "node information"
+msgstr "నోడ్ సమాచారం"
+
+#: src/virsh.c:2001
+msgid "Returns basic information about the node."
+msgstr "నోడును గిరించిన ప్రాధమిక సమాచారానికి తిరిగి వెళ్లు"
+
+#: src/virsh.c:2014
+msgid "failed to get node information"
+msgstr "నోడు సమాచారాన్ని పొందటంలో విఫలమైంది"
+
+#: src/virsh.c:2017
+msgid "CPU model:"
+msgstr "CPU మాదిరి:"
+
+#: src/virsh.c:2019
+msgid "CPU frequency:"
+msgstr "CPU తరచుదనం:"
+
+#: src/virsh.c:2020
+msgid "CPU socket(s):"
+msgstr "CPU సాకెట్(లు):"
+
+#: src/virsh.c:2021
+msgid "Core(s) per socket:"
+msgstr "సాకెటుకి కోర్(లు):"
+
+#: src/virsh.c:2022
+msgid "Thread(s) per core:"
+msgstr "కోరుకు త్రెడ్(లు):"
+
+#: src/virsh.c:2023
+msgid "NUMA cell(s):"
+msgstr "NUMA సెల్(లు):"
+
+#: src/virsh.c:2024
+msgid "Memory size:"
+msgstr "మెమోరీ పరిమాణం:"
+
+#: src/virsh.c:2034
+msgid "capabilities"
+msgstr ""
+
+#: src/virsh.c:2035
+msgid "Returns capabilities of hypervisor/driver."
+msgstr ""
+
+#: src/virsh.c:2048
+#, fuzzy
+msgid "failed to get capabilities"
+msgstr "ఫైలును తెరవటంలో విఫలమైంది"
+
+#: src/virsh.c:2061
+msgid "domain information in XML"
+msgstr "XMLలో క్షేత్ర సమాచారం"
+
+#: src/virsh.c:2062
+#, fuzzy
+msgid "Output the domain information as an XML dump to stdout."
+msgstr "Ouput the domain information as an XML dump to stdout."
+
+#: src/virsh.c:2101
+msgid "convert a domain id or UUID to domain name"
+msgstr "క్షేత్ర ఐడి లేదా UUIDని క్షేత్ర నామంగా మార్చు"
+
+#: src/virsh.c:2106
+msgid "domain id or uuid"
+msgstr "క్షేత్ర ఐడి లేదా uuid"
+
+#: src/virsh.c:2131
+msgid "convert a domain name or UUID to domain id"
+msgstr "క్షేత్ర నామం లేదా UUIDని క్షేత్ర ఐడిగా మార్చు"
+
+#: src/virsh.c:2166
+msgid "convert a domain name or id to domain UUID"
+msgstr "క్షేత్ర నామం లేదా ఐడిని క్షేత్ర UUIDగా‌మార్చు"
+
+#: src/virsh.c:2171
+msgid "domain id or name"
+msgstr "క్షేత్ర ఐడి లేదా నామం"
+
+#: src/virsh.c:2190
+msgid "failed to get domain UUID"
+msgstr "క్షేత్ర UUIDని పొందటంలో విఫలమైంది"
+
+#: src/virsh.c:2200
+msgid "migrate domain to another host"
+msgstr ""
+
+#: src/virsh.c:2201
+msgid "Migrate domain to another host.  Add --live for live migration."
+msgstr ""
+
+#: src/virsh.c:2206
+#, fuzzy
+msgid "live migration"
+msgstr "నోడ్ సమాచారం"
+
+#: src/virsh.c:2208
+msgid "connection URI of the destination host"
+msgstr ""
+
+#: src/virsh.c:2209
+msgid "migration URI, usually can be omitted"
+msgstr ""
+
+#: src/virsh.c:2231
+msgid "migrate: Missing desturi"
+msgstr ""
+
+#: src/virsh.c:2263
+msgid "autostart a network"
+msgstr ""
+
+#: src/virsh.c:2265
+msgid "Configure a network to be automatically started at boot."
+msgstr ""
+
+#: src/virsh.c:2270 src/virsh.c:2695
+#, fuzzy
+msgid "network name or uuid"
+msgstr "క్షేత్ర నామం లేదా uuid"
+
+#: src/virsh.c:2292
+#, fuzzy, c-format
+msgid "failed to mark network %s as autostarted"
+msgstr "%s క్షేత్రాన్ని %sకి భద్రపరవటంలో విఫలమైంది"
+
+#: src/virsh.c:2295
+#, fuzzy, c-format
+msgid "failed to unmark network %s as autostarted"
+msgstr "%s క్షేత్రాన్ని %sకి భద్రపరవటంలో విఫలమైంది"
+
+#: src/virsh.c:2302
+#, fuzzy, c-format
+msgid "Network %s marked as autostarted\n"
+msgstr "%s క్షేత్రం ప్రారంభించబడింది\n"
+
+#: src/virsh.c:2304
+#, fuzzy, c-format
+msgid "Network %s unmarked as autostarted\n"
+msgstr "%s క్షేత్రం ప్రారంభించబడింది\n"
+
+#: src/virsh.c:2314
+#, fuzzy
+msgid "create a network from an XML file"
+msgstr "XML ఫైలుకోసం క్షేత్రాన్ని సృష్టించు"
+
+#: src/virsh.c:2315
+#, fuzzy
+msgid "Create a network."
+msgstr "క్షేత్రాన్ని సృష్టించు"
+
+#: src/virsh.c:2320 src/virsh.c:2368
+#, fuzzy
+msgid "file containing an XML network description"
+msgstr "ఫైలు ఒక XML క్షేత్ర వివరణను కలిగిఉంది"
+
+#: src/virsh.c:2347
+#, fuzzy, c-format
+msgid "Network %s created from %s\n"
+msgstr "క్షేత్రం %s %s నుండీ సృష్టించబడింది\n"
+
+#: src/virsh.c:2350
+#, fuzzy, c-format
+msgid "Failed to create network from %s"
+msgstr "%s నుండీ క్షేత్రాన్ని సృష్టించటంలో విఫలమైంది"
+
+#: src/virsh.c:2362
+#, fuzzy
+msgid "define (but don't start) a network from an XML file"
+msgstr "XML ఫైలు నుండీ ఒక క్షేత్రాన్ని నిర్వచించండి (కానీ ప్రారంభించవద్దు)"
+
+#: src/virsh.c:2363
+#, fuzzy
+msgid "Define a network."
+msgstr "క్షేత్రాన్ని నిర్వచించు."
+
+#: src/virsh.c:2395
+#, fuzzy, c-format
+msgid "Network %s defined from %s\n"
+msgstr "%s క్షేత్రం %s నుండీ నిర్వచించబడింది\n"
+
+#: src/virsh.c:2398
+#, fuzzy, c-format
+msgid "Failed to define network from %s"
+msgstr "%s నుండీ క్షేత్రాన్ని నిర్వచించటంలో విఫలమైంది"
+
+#: src/virsh.c:2410
+#, fuzzy
+msgid "destroy a network"
+msgstr "క్షేత్రాన్ని నాశనం చేయి"
+
+#: src/virsh.c:2411
+#, fuzzy
+msgid "Destroy a given network."
+msgstr "ఇచ్చిన క్షేత్రాన్ని నాశనంచేయి."
+
+#: src/virsh.c:2416 src/virsh.c:2456
+#, fuzzy
+msgid "network name, id or uuid"
+msgstr "క్షేత్ర నామం, ఐడి లేదా uuid"
+
+#: src/virsh.c:2434
+#, fuzzy, c-format
+msgid "Network %s destroyed\n"
+msgstr "%s క్షేత్రం నాశనం చేయబడింది\n"
+
+#: src/virsh.c:2436
+#, fuzzy, c-format
+msgid "Failed to destroy network %s"
+msgstr "క్షేత్రాన్ని నాశనం చేయటంలో విఫలమైంది %s"
+
+#: src/virsh.c:2450
+#, fuzzy
+msgid "network information in XML"
+msgstr "XMLలో క్షేత్ర సమాచారం"
+
+#: src/virsh.c:2451
+#, fuzzy
+msgid "Output the network information as an XML dump to stdout."
+msgstr "Ouput the domain information as an XML dump to stdout."
+
+#: src/virsh.c:2491
+msgid "list networks"
+msgstr ""
+
+#: src/virsh.c:2492
+#, fuzzy
+msgid "Returns list of networks."
+msgstr "క్షేత్రాల తిరుగు జాబితా."
+
+#: src/virsh.c:2497
+#, fuzzy
+msgid "list inactive networks"
+msgstr "క్రియారహిత క్షేత్రాల జాబితా చెయ్యి"
+
+#: src/virsh.c:2498
+#, fuzzy
+msgid "list inactive & active networks"
+msgstr "క్రియారహిత & క్రియాశీల క్షేత్రాల జాబితా చేయి"
+
+#: src/virsh.c:2518 src/virsh.c:2526
+#, fuzzy
+msgid "Failed to list active networks"
+msgstr "క్రియాశీల క్షేత్రాల జాబితా ఇవ్వటంలో విఫలమైంది"
+
+#: src/virsh.c:2537 src/virsh.c:2546
+#, fuzzy
+msgid "Failed to list inactive networks"
+msgstr "క్రియారహిత క్షేత్రాలను జాబితా చేయటంలో విఫలమైంది"
+
+#: src/virsh.c:2556
+msgid "Autostart"
+msgstr ""
+
+#: src/virsh.c:2571 src/virsh.c:2594
+#, fuzzy
+msgid "no autostart"
+msgstr "స్థితి రాహిత్యం"
+
+#: src/virsh.c:2577
+msgid "active"
+msgstr ""
+
+#: src/virsh.c:2600
+#, fuzzy
+msgid "inactive"
+msgstr "node క్రియాశీల cpu"
+
+#: src/virsh.c:2619
+#, fuzzy
+msgid "convert a network UUID to network name"
+msgstr "క్షేత్ర ఐడి లేదా UUIDని క్షేత్ర నామంగా మార్చు"
+
+#: src/virsh.c:2650
+#, fuzzy
+msgid "start a (previously defined) inactive network"
+msgstr "ఒక క్రియారహిత (ముందే నిర్వచించబడిన) క్షేత్రాన్ని ప్రాంభించు"
+
+#: src/virsh.c:2651
+#, fuzzy
+msgid "Start a network."
+msgstr "క్షేత్రాన్ని ప్రారంభించు."
+
+#: src/virsh.c:2656
+#, fuzzy
+msgid "name of the inactive network"
+msgstr "క్రియారహిత క్షేత్ర నామం"
+
+#: src/virsh.c:2673
+#, fuzzy, c-format
+msgid "Network %s started\n"
+msgstr "%s క్షేత్రం ప్రారంభించబడింది\n"
+
+#: src/virsh.c:2676
+#, fuzzy, c-format
+msgid "Failed to start network %s"
+msgstr "%s క్షేత్రాన్ని ప్రారంభించటంలో విఫలమైంది"
+
+#: src/virsh.c:2689
+#, fuzzy
+msgid "undefine an inactive network"
+msgstr "క్రియారహిత క్షేత్రాన్ని నిర్వచించకు"
+
+#: src/virsh.c:2690
+#, fuzzy
+msgid "Undefine the configuration for an inactive network."
+msgstr "క్రియారహిత క్షేత్ర ఆకృతీకరణను నిర్వచించకు."
+
+#: src/virsh.c:2713
+#, fuzzy, c-format
+msgid "Network %s has been undefined\n"
+msgstr "%s క్షేత్రం నిర్వచించబడనిది\n"
+
+#: src/virsh.c:2715
+#, fuzzy, c-format
+msgid "Failed to undefine network %s"
+msgstr "%s నిర్వచించబడని క్షేత్రానికి విఫలమైంది"
+
+#: src/virsh.c:2728
+#, fuzzy
+msgid "convert a network name to network UUID"
+msgstr "క్షేత్ర నామం లేదా ఐడిని క్షేత్ర UUIDగా‌మార్చు"
+
+#: src/virsh.c:2753
+#, fuzzy
+msgid "failed to get network UUID"
+msgstr "క్షేత్ర UUIDని పొందటంలో విఫలమైంది"
+
+#: src/virsh.c:2764
+msgid "show version"
+msgstr "ప్రతిని చూపించు"
+
+#: src/virsh.c:2765
+msgid "Display the system version information."
+msgstr "కంప్యూటరు వర్షన్ సమాచారాన్ని ప్రదర్శించు."
+
+#: src/virsh.c:2788
+msgid "failed to get hypervisor type"
+msgstr "అధిప్రతి రకాన్ని పొందటంలో వైఫల్యం"
+
+#: src/virsh.c:2797
+#, c-format
+msgid "Compiled against library: libvir %d.%d.%d\n"
+msgstr "లైబ్రరీకి విరుద్ధంగా సంగ్రహించు: libvir %d.%d.%d\n"
+
+#: src/virsh.c:2802
+msgid "failed to get the library version"
+msgstr "లైబ్రరీ ప్రతిని పొందటంలో విఫలమైంది"
+
+#: src/virsh.c:2809
+#, c-format
+msgid "Using library: libvir %d.%d.%d\n"
+msgstr "ఉపయోగిస్తున్న లైబ్రరీ: libvir %d.%d.%d\n"
+
+#: src/virsh.c:2816
+#, c-format
+msgid "Using API: %s %d.%d.%d\n"
+msgstr "ఉపయోగిస్తున్న API: %s %d.%d.%d\n"
+
+#: src/virsh.c:2821
+msgid "failed to get the hypervisor version"
+msgstr "అధివిశోర్ ప్రతిని పొందటంలో విఫలమైంది"
+
+#: src/virsh.c:2826
+#, c-format
+msgid "Cannot extract running %s hypervisor version\n"
+msgstr "ప్రస్తుతం నడుస్తున్న %s అధివిశోర్ ప్రతిని సంగ్రహించలేదు\n"
+
+#: src/virsh.c:2833
+#, c-format
+msgid "Running hypervisor: %s %d.%d.%d\n"
+msgstr "నడుస్తున్న అధివిశోర్: %s %d.%d.%d\n"
+
+#: src/virsh.c:2844
+#, fuzzy
+msgid "print the hypervisor hostname"
+msgstr "అధిప్రతి రకాన్ని పొందటంలో వైఫల్యం"
+
+#: src/virsh.c:2858
+#, fuzzy
+msgid "failed to get hostname"
+msgstr "అధిప్రతి రకాన్ని పొందటంలో వైఫల్యం"
+
+#: src/virsh.c:2873
+#, fuzzy
+msgid "print the hypervisor canonical URI"
+msgstr "అధిప్రతి అనుసంధానం URI"
+
+#: src/virsh.c:2887
+#, fuzzy
+msgid "failed to get URI"
+msgstr "క్షేత్ర UUIDని పొందటంలో విఫలమైంది"
+
+#: src/virsh.c:2902
+msgid "vnc display"
+msgstr ""
+
+#: src/virsh.c:2903
+msgid "Output the IP address and port number for the VNC display."
+msgstr ""
+
+#: src/virsh.c:2982
+msgid "tty console"
+msgstr ""
+
+#: src/virsh.c:2983
+msgid "Output the device for the TTY console."
+msgstr ""
+
+#: src/virsh.c:3045
+#, fuzzy
+msgid "attach device from an XML file"
+msgstr "XML ఫైలుకోసం క్షేత్రాన్ని సృష్టించు"
+
+#: src/virsh.c:3046
+#, fuzzy
+msgid "Attach device from an XML <file>."
+msgstr "XML ఫైలుకోసం క్షేత్రాన్ని సృష్టించు"
+
+#: src/virsh.c:3052 src/virsh.c:3106
+msgid "XML file"
+msgstr ""
+
+#: src/virsh.c:3084
+#, fuzzy, c-format
+msgid "Failed to attach device from %s"
+msgstr "క్షేత్రం కోసం సాధనాలను పొందటంలో విఫలమైంది %s\n"
+
+#: src/virsh.c:3099
+#, fuzzy
+msgid "detach device from an XML file"
+msgstr "XML ఫైలుకోసం క్షేత్రాన్ని సృష్టించు"
+
+#: src/virsh.c:3100
+#, fuzzy
+msgid "Detach device from an XML <file>"
+msgstr "XML ఫైలుకోసం క్షేత్రాన్ని సృష్టించు"
+
+#: src/virsh.c:3138
+#, fuzzy, c-format
+msgid "Failed to detach device from %s"
+msgstr "క్షేత్రం కోసం సాధనాలను పొందటంలో విఫలమైంది %s\n"
+
+#: src/virsh.c:3153
+#, fuzzy
+msgid "attach network interface"
+msgstr "సరికాని అనుసంధాన కేంద్రం"
+
+#: src/virsh.c:3154
+msgid "Attach new network interface."
+msgstr ""
+
+#: src/virsh.c:3160 src/virsh.c:3276
+msgid "network interface type"
+msgstr ""
+
+#: src/virsh.c:3161
+#, fuzzy
+msgid "source of network interface"
+msgstr "నిర్వచించబడని క్షేత్ర నామం లేదా ఐడి"
+
+#: src/virsh.c:3162
+#, fuzzy
+msgid "target network name"
+msgstr "క్షేత్రాన్ని ప్రారంభించు."
+
+#: src/virsh.c:3163 src/virsh.c:3277
+msgid "MAC adress"
+msgstr ""
+
+#: src/virsh.c:3164
+msgid "script used to bridge network interface"
+msgstr ""
+
+#: src/virsh.c:3196
+#, c-format
+msgid "No support %s in command 'attach-interface'"
+msgstr ""
+
+#: src/virsh.c:3269
+#, fuzzy
+msgid "detach network interface"
+msgstr "నిర్వచించబడని క్షేత్ర నామం లేదా ఐడి"
+
+#: src/virsh.c:3270
+msgid "Detach network interface."
+msgstr ""
+
+#: src/virsh.c:3315 src/virsh.c:3320
+#, fuzzy
+msgid "Failed to get interface information"
+msgstr "నోడు సమాచారాన్ని పొందటంలో విఫలమైంది"
+
+#: src/virsh.c:3328
+#, c-format
+msgid "No found interface whose type is %s"
+msgstr ""
+
+#: src/virsh.c:3350
+#, c-format
+msgid "No found interface whose MAC address is %s"
+msgstr ""
+
+#: src/virsh.c:3356 src/virsh.c:3634
+#, fuzzy
+msgid "Failed to allocate memory"
+msgstr "నోడును కేటాయించటంలో విఫలమైంది"
+
+#: src/virsh.c:3361 src/virsh.c:3639
+#, fuzzy
+msgid "Failed to create XML"
+msgstr "%d సాకెట్టును చదవటంలో విఫలమైంది\n"
+
+#: src/virsh.c:3390
+msgid "attach disk device"
+msgstr ""
+
+#: src/virsh.c:3391
+msgid "Attach new disk device."
+msgstr ""
+
+#: src/virsh.c:3397
+msgid "source of disk device"
+msgstr ""
+
+#: src/virsh.c:3398 src/virsh.c:3562
+msgid "target of disk device"
+msgstr ""
+
+#: src/virsh.c:3399
+msgid "driver of disk device"
+msgstr ""
+
+#: src/virsh.c:3400
+msgid "subdriver of disk device"
+msgstr ""
+
+#: src/virsh.c:3401
+msgid "target device type"
+msgstr ""
+
+#: src/virsh.c:3402
+msgid "mode of device reading and writing"
+msgstr ""
+
+#: src/virsh.c:3433 src/virsh.c:3442 src/virsh.c:3449
+#, c-format
+msgid "No support %s in command 'attach-disk'"
+msgstr ""
+
+#: src/virsh.c:3555
+msgid "detach disk device"
+msgstr ""
+
+#: src/virsh.c:3556
+msgid "Detach disk device."
+msgstr ""
+
+#: src/virsh.c:3597 src/virsh.c:3602 src/virsh.c:3609
+#, fuzzy
+msgid "Failed to get disk information"
+msgstr "నోడు సమాచారాన్ని పొందటంలో విఫలమైంది"
+
+#: src/virsh.c:3628
+#, c-format
+msgid "No found disk whose target is %s"
+msgstr ""
+
+#: src/virsh.c:3668
+msgid "quit this interactive terminal"
+msgstr "ఈ ప్రభావశీల టెర్మినలు నుండీ బయటకురా"
+
+#: src/virsh.c:3809
+#, c-format
+msgid "command '%s' requires <%s> option"
+msgstr "'%s' ఆదేశానికి <%s> ఐచ్చికం కావలసి ఉంది"
+
+#: src/virsh.c:3810
+#, c-format
+msgid "command '%s' requires --%s option"
+msgstr "'%s' ఆదేశానికి --%s ఐచ్ఛికం కావలసి ఉంది"
+
+#: src/virsh.c:3837
+#, c-format
+msgid "command '%s' doesn't exist"
+msgstr "'%s' ఆదేశం లేదు"
+
+#: src/virsh.c:3845
+msgid "  NAME\n"
+msgstr "  నామం\n"
+
+#: src/virsh.c:3849
+#, fuzzy
+msgid ""
+"\n"
+"  SYNOPSIS\n"
+msgstr ""
+"\n"
+"  ఐచ్ఛికాలు\n"
+
+#: src/virsh.c:3856
+msgid ""
+"\n"
+"  DESCRIPTION\n"
+msgstr ""
+"\n"
+"  వివరణ\n"
+
+#: src/virsh.c:3860
+msgid ""
+"\n"
+"  OPTIONS\n"
+msgstr ""
+"\n"
+"  ఐచ్ఛికాలు\n"
+
+#: src/virsh.c:3867
+#, c-format
+msgid "--%s <number>"
+msgstr "--%s <number>"
+
+#: src/virsh.c:3869
+#, c-format
+msgid "--%s <string>"
+msgstr "--%s <string>"
+
+#: src/virsh.c:3988
+msgid "undefined domain name or id"
+msgstr "నిర్వచించబడని క్షేత్ర నామం లేదా ఐడి"
+
+#: src/virsh.c:4021
+#, c-format
+msgid "failed to get domain '%s'"
+msgstr "'%s' క్షేత్రాన్ని పొందటంలో విఫలమైంది"
+
+#: src/virsh.c:4034
+#, fuzzy
+msgid "undefined network name"
+msgstr "నిర్వచించబడని క్షేత్ర నామం లేదా ఐడి"
+
+#: src/virsh.c:4058
+#, fuzzy, c-format
+msgid "failed to get network '%s'"
+msgstr "'%s' క్షేత్రాన్ని పొందటంలో విఫలమైంది"
+
+#: src/virsh.c:4086
+#, c-format
+msgid ""
+"\n"
+"(Time: %.3f ms)\n"
+"\n"
+msgstr ""
+"\n"
+"(సమయం: %.3f ms)\n"
+"\n"
+
+#: src/virsh.c:4160
+msgid "missing \""
+msgstr "తప్పిపోయింది \""
+
+#: src/virsh.c:4221
+#, c-format
+msgid "unexpected token (command name): '%s'"
+msgstr "ఊహించని టోకెన్ (ఆదేశ నామం): '%s'"
+
+#: src/virsh.c:4226
+#, c-format
+msgid "unknown command: '%s'"
+msgstr "తెలియని ఆదేశం: '%s'"
+
+#: src/virsh.c:4233
+#, c-format
+msgid "command '%s' doesn't support option --%s"
+msgstr "'%s' ఆదేశం --%s ఐచ్ఛికానికి మద్దతివ్వదు"
+
+#: src/virsh.c:4248
+#, c-format
+msgid "expected syntax: --%s <%s>"
+msgstr "ఊహించిన సిన్టాక్సు: --%s <%s>"
+
+#: src/virsh.c:4251
+msgid "number"
+msgstr "సంఖ్య"
+
+#: src/virsh.c:4251
+msgid "string"
+msgstr "స్ట్రింగు"
+
+#: src/virsh.c:4257
+#, c-format
+msgid "unexpected data '%s'"
+msgstr "'%s' ఊహించని సమాచారం"
+
+#: src/virsh.c:4279
+msgid "OPTION"
+msgstr "ఐచ్ఛికం"
+
+#: src/virsh.c:4279
+msgid "DATA"
+msgstr "సమాచారం"
+
+#: src/virsh.c:4329 src/virsh.c:4355
+msgid "running"
+msgstr "ఉపయోగించబడుతోంది"
+
+#: src/virsh.c:4331 src/virsh.c:4353
+msgid "blocked"
+msgstr "అడ్డుకొనబడింది"
+
+#: src/virsh.c:4333
+msgid "paused"
+msgstr "నిలిచింది"
+
+#: src/virsh.c:4335
+msgid "in shutdown"
+msgstr "మూసివేయటంలో"
+
+#: src/virsh.c:4337
+msgid "shut off"
+msgstr "మూసివేయి"
+
+#: src/virsh.c:4339
+msgid "crashed"
+msgstr "క్రాషయ్యింది"
+
+#: src/virsh.c:4351
+msgid "offline"
+msgstr "ఆఫ్ లైన్"
+
+#: src/virsh.c:4370
+msgid "no valid connection"
+msgstr "సరైన అనుసంధానం కాదు"
+
+#: src/virsh.c:4417
+#, c-format
+msgid "%s: error: "
+msgstr "%s: దోషం: "
+
+#: src/virsh.c:4419
+msgid "error: "
+msgstr "దోషం: "
+
+#: src/virsh.c:4441 src/virsh.c:4453 src/virsh.c:4466
+#, c-format
+msgid "%s: %d: failed to allocate %d bytes"
+msgstr "%s: %d: %d బైట్లను కేటాయించటంలో విఫలమైంది"
+
+#: src/virsh.c:4480
+#, fuzzy, c-format
+msgid "%s: %d: failed to allocate %lu bytes"
+msgstr "%s: %d: %d బైట్లను కేటాయించటంలో విఫలమైంది"
+
+#: src/virsh.c:4516
+msgid "failed to connect to the hypervisor"
+msgstr "అధిప్రతికి అనుసంధించటంలో విఫలమైంది"
+
+#: src/virsh.c:4540
+#, fuzzy
+msgid "failed to get the log file information"
+msgstr "నోడు సమాచారాన్ని పొందటంలో విఫలమైంది"
+
+#: src/virsh.c:4545
+msgid "the log path is not a file"
+msgstr ""
+
+#: src/virsh.c:4551
+msgid "failed to open the log file. check the log file path"
+msgstr ""
+
+#: src/virsh.c:4619
+#, fuzzy
+msgid "failed to write the log file"
+msgstr "ఆకృతీకరణ ఫైలును రాయటంలో విఫలమైంది"
+
+#: src/virsh.c:4788
+#, fuzzy, c-format
+msgid ""
+"\n"
+"%s [options] [commands]\n"
+"\n"
+"  options:\n"
+"    -c | --connect <uri>    hypervisor connection URI\n"
+"    -r | --readonly         connect readonly\n"
+"    -d | --debug <num>      debug level [0-5]\n"
+"    -h | --help             this help\n"
+"    -q | --quiet            quiet mode\n"
+"    -t | --timing           print timing information\n"
+"    -l | --log <file>       output logging to file\n"
+"    -v | --version          program version\n"
+"\n"
+"  commands (non interactive mode):\n"
+msgstr ""
+"\n"
+"%s [ఐచ్ఛికాలు] [ఆదేశాలు]\n"
+"\n"
+"  options:\n"
+"    -c | --connect <uri>    hypervisor connection URI\n"
+"    -d | --debug <num>      debug level [0-5]\n"
+"    -h | --help             this help\n"
+"    -q | --quiet            quiet mode\n"
+"    -t | --timing           print timing information\n"
+"    -v | --version          program version\n"
+"\n"
+"  ఆదేశాలు (non interactive mode):\n"
+
+#: src/virsh.c:4806
+#, fuzzy, c-format
+msgid ""
+"\n"
+"  (specify help <command> for details about the command)\n"
+"\n"
+msgstr ""
+"\n"
+"  (తెలపండి --help <command> ఈ ఆదేశానికి సంబంధించిన వివరాలకోసం)\n"
+"\n"
+
+#: src/virsh.c:4902
+#, c-format
+msgid "unsupported option '-%c'. See --help."
+msgstr "మద్దతివ్వని ఐచ్ఛికం '-%c'. చాడండి --సహాయం."
+
+#: src/virsh.c:4984
+#, c-format
+msgid ""
+"Welcome to %s, the virtualization interactive terminal.\n"
+"\n"
+msgstr ""
+"%sకి సుస్వాగతం, వాస్తవిక పరిచయాత్మక టెర్మినల్.\n"
+"\n"
+
+#: src/virsh.c:4987
+msgid ""
+"Type:  'help' for help with commands\n"
+"       'quit' to quit\n"
+"\n"
+msgstr ""
+"రకం:  'సహాయం' ఆదేశంతో సహాయం కోసం\n"
+"       'బయటకు' బయటకు రావటానికి\n"
+"\n"
+
+#: src/conf.c:156 src/conf.c:205 src/conf.c:488 src/conf.c:525 src/conf.c:553
+#: src/conf.c:631
+msgid "allocating configuration"
+msgstr "ఆకృతీకరణను కేటాయిస్తోంది"
+
+#: src/conf.c:340
+msgid "unterminated number"
+msgstr "పూర్తికాని సంఖ్య"
+
+#: src/conf.c:372 src/conf.c:389 src/conf.c:401
+msgid "unterminated string"
+msgstr "పూర్తికాని స్ట్రింగు"
+
+#: src/conf.c:429 src/conf.c:482
+msgid "expecting a value"
+msgstr "ఒక విలువను ఊహిస్తున్నాను"
+
+#: src/conf.c:449
+msgid "expecting a separator in list"
+msgstr "జాబితాలో ఒక వేర్పాటును ఆశిస్తున్నాను"
+
+#: src/conf.c:472
+msgid "list is not closed with ] "
+msgstr "జాబితా ]తో మూయబడలేదు"
+
+#: src/conf.c:518
+msgid "expecting a name"
+msgstr "ఒక పేరును ఆశిస్తున్నాను"
+
+#: src/conf.c:581
+msgid "expecting a separator"
+msgstr "ఒక వేర్పాటును ఆశిస్తున్నాను"
+
+#: src/conf.c:613
+msgid "expecting an assignment"
+msgstr "ఒక సమర్పణను ఆశిస్తున్నాను"
+
+#: src/conf.c:887 src/conf.c:941
+#, fuzzy
+msgid "failed to allocate buffer"
+msgstr "నోడును కేటాయించటంలో విఫలమైంది"
+
+#: src/conf.c:899
+msgid "failed to open file"
+msgstr "ఫైలును తెరవటంలో విఫలమైంది"
+
+#: src/conf.c:907
+msgid "failed to save content"
+msgstr "విషయాన్ని భధ్రపరవటంలో విఫలమైంది"
+
+#: src/xs_internal.c:346
+msgid "failed to connect to Xen Store"
+msgstr "Xen స్టోరుకి అనుసంధించటంలో విఫలమైంది"
+
+#: src/proxy_internal.c:195
+#, c-format
+msgid "failed to exec %s\n"
+msgstr "exec %sకి విఫలమైంది\n"
+
+#: src/proxy_internal.c:289
+#, c-format
+msgid "Failed to close socket %d\n"
+msgstr "%d సాకెట్టును మూయటంలో విఫలమైంది\n"
+
+#: src/proxy_internal.c:322
+#, c-format
+msgid "Failed to read socket %d\n"
+msgstr "%d సాకెట్టును చదవటంలో విఫలమైంది\n"
+
+#: src/proxy_internal.c:356
+#, c-format
+msgid "Failed to write to socket %d\n"
+msgstr "%d సాకెట్టుకు రాయటంలో విఫలమైంది\n"
+
+#: src/proxy_internal.c:448 src/proxy_internal.c:469 src/proxy_internal.c:489
+#, c-format
+msgid "Communication error with proxy: got %d bytes of %d\n"
+msgstr "proxyతో సమాచార సంబంధాల దోషం: %d బైట్లలో %d పొందింది\n"
+
+#: src/proxy_internal.c:456
+#, c-format
+msgid "Communication error with proxy: expected %d bytes got %d\n"
+msgstr "proxyతో సమాచార సంబంధాల దోషం: %d బైట్లను ఆశించాము %d పొందాము\n"
+
+#: src/proxy_internal.c:478
+#, c-format
+msgid "Communication error with proxy: got %d bytes packet\n"
+msgstr "proxyతో సమాచార సంబంధాల దోషం: %d బైట్ల పాకెట్టును పొందాము\n"
+
+#: src/proxy_internal.c:502
+#, c-format
+msgid "Communication error with proxy: malformed packet\n"
+msgstr "proxyతో సమాచార సంబంధాల దోషం: malformed పాకెట్\n"
+
+#: src/proxy_internal.c:508
+#, c-format
+msgid "got asynchronous packet number %d\n"
+msgstr "asynchronous పాకెత్ సంఖ్య %dను పొందాము\n"
+
+#: src/xen_internal.c:1321
+#, c-format
+msgid "Credit scheduler weight parameter (%d) is out of range (1-65535)"
+msgstr ""
+
+#: src/xen_internal.c:1331
+#, c-format
+msgid "Credit scheduler cap parameter (%d) is out of range (0-65535)"
+msgstr ""
+
+#: src/xen_internal.c:2598
+#, c-format
+msgid "allocating %d domain info"
+msgstr "%d క్షేత్ర సమాచారాన్ని కేటాయిస్తోంది"
+
+#~ msgid "allocating node"
+#~ msgstr "నోడును కేటాయిస్తోంది"
+
+#, fuzzy
+#~ msgid "allocating private data"
+#~ msgstr "వాల్యూ ఎరేని కేటాయించు"
+
+#, fuzzy
+#~ msgid "allocating path"
+#~ msgstr "క్షేత్రాన్ని కేటాయిస్తోంది"
+
+#~ msgid "growing buffer"
+#~ msgstr "పెరుగుతున్న బప్ఫరు"
+
+#~ msgid "allocate buffer content"
+#~ msgstr "బప్ఫర్ విషయాన్ని కేటాయించు"
+
+#~ msgid "file conatining an XML domain description"
+#~ msgstr "ఫైలు ఒక XML క్షేత్ర వివరణను కలిగిఉంది"
+
+#~ msgid "Failed to read description file %s"
+#~ msgstr "%s వివరణ ఫైలును చదవటంలో విఫలమైంది"
+
+#~ msgid "Xen Daemon or Xen Store"
+#~ msgstr "Xen డెమోను లేదా Xen స్టోరు"
+
+#, fuzzy
+#~ msgid "file conatining an XML network description"
+#~ msgstr "ఫైలు ఒక XML క్షేత్ర వివరణను కలిగిఉంది"
+
+#~ msgid "Failed to resume new domain %s\n"
+#~ msgstr "కొత్త క్షేత్రాన్ని సంగ్రహించటంలో విఫలమైంది %s\n"
