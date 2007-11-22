@@ -1,0 +1,4 @@
+usr/lib/libvirt.so
+usr/lib/libvirt.a
+usr/include/*
+usr/lib/pkgconfig/*

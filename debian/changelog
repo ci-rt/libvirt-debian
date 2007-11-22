@@ -1,0 +1,44 @@
+libvirt (0.3.3-0ubuntu1) hardy; urgency=low
+
+  * New upstream release.
+  * Update maintainer.
+
+ -- Soren Hansen <soren@ubuntu.com>  Wed, 14 Nov 2007 23:09:33 +0100
+
+libvirt (0.3.0-0ubuntu2) gutsy; urgency=low
+
+  * Add lingnutls-dev Build-Dep.
+
+ -- Fabio M. Di Nitto <fabbione@ubuntu.com>  Mon, 16 Jul 2007 12:10:41 +0200
+
+libvirt (0.3.0-0ubuntu1) gutsy; urgency=low
+
+  * Import new upstram release that can actually build on xen-3.1.
+
+ -- Fabio M. Di Nitto <fabbione@ubuntu.com>  Mon, 16 Jul 2007 10:23:04 +0200
+
+libvirt (0.2.2-0ubuntu1) gutsy; urgency=low
+
+  * Depends on libxen3.1-dev.
+
+ -- Chuck Short <zulcss@ubuntu.com>  Fri, 13 Jul 2007 11:04:00 -0400
+
+libvirt (0.2.2-0ubuntu0) gutsy; urgency=low
+
+  * New upstream version.
+  * Updated libvirt-bin.install, thanks to Marcelo Boveto Shima.
+
+ -- Chuck Short <zulcss@ubuntu.com>  Sun, 24 Jun 2007 09:54:54 -0400
+
+libvirt (0.1.8-0ubuntu2) feisty; urgency=low
+
+  * Rebuild for python2.5 as the default python version.
+
+ -- Matthias Klose <doko@ubuntu.com>  Fri, 12 Jan 2007 13:21:55 +0000
+
+libvirt (0.1.8-0ubuntu1) feisty; urgency=low
+
+  * Initial release
+
+ -- Andrew Mitchell <ajmitch@ubuntu.com>  Mon, 23 Oct 2006 20:00:28 +1300
+

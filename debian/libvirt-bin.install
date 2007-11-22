@@ -1,0 +1,4 @@
+usr/bin/*
+usr/lib/libvirt/*
+usr/sbin/*
+etc/libvirt/*
