@@ -1,3 +1,16 @@
+libvirt (0.3.3-1) unstable; urgency=low
+
+  * repackage for Debian (Closes: #384300)
+  * enable avahi
+  * build with qemu/kvm support
+  * disable xen support until #402249 is fixed
+  * disable qemu autonetwork for now, causes libvirtd to seqfault
+  * fix path to kvm
+  * switch off DH_VERBOSE
+  * thanks to the Ubuntu maintainers for their work!
+
+ -- Guido Guenther <agx@sigxcpu.org>  Fri, 23 Nov 2007 01:58:56 +0100
+
 libvirt (0.3.3-0ubuntu1) hardy; urgency=low
 
   * New upstream release.
