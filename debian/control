@@ -8,7 +8,7 @@ Standards-Version: 3.7.2
  Libvirt is a C toolkit to interract with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
  a long term stable C API for different virtualization mechanisms. It currently
- also supports QEMU, KVM and OpenVZ.
+ supports QEMU and KVM.
 
 Package: libvirt-bin
 Architecture: any
@@ -18,7 +18,7 @@ Description: the programs for the libvirt library
  Libvirt is a C toolkit to interract with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
  a long term stable C API for different virtualization mechanisms. It currently
- also supports QEMU, KVM and OpenVZ.
+ supports QEMU and KVM.
  .
  This package contains the supporting binaries to use with libvirt
 
@@ -29,7 +29,7 @@ Description: library for interfacing with Xen & other virtualization systems
  Libvirt is a C toolkit to interract with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
  a long term stable C API for different virtualization mechanisms. It currently
- also supports QEMU, KVM and OpenVZ.
+ supports QEMU and KVM..
 
 Package: libvirt-doc
 Architecture: all
@@ -37,7 +37,7 @@ Description: documentation for the libvirt library
  Libvirt is a C toolkit to interract with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
  a long term stable C API for different virtualization mechanisms. It currently
- also supports QEMU, KVM and OpenVZ.
+ supports QEMU and KVM.
  .
  This package contains the documentation.
 
@@ -48,7 +48,7 @@ Description: development files for the libvirt library
  Libvirt is a C toolkit to interract with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
  a long term stable C API for different virtualization mechanisms. It currently
- also supports QEMU, KVM and OpenVZ.
+ supports QEMU and KVM.
  .
  This package contains the header files and static libraries which are
  needed for developing the applications with libvirt.
@@ -62,7 +62,7 @@ Description: libvirt python bindings
  Libvirt is a C toolkit to interract with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
  a long term stable C API for different virtualization mechanisms. It currently
- also supports QEMU, KVM and OpenVZ.
+ supports QEMU and KVM.
  .
  This package contains python bindings for the libvirt library
 
