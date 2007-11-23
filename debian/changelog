@@ -1,3 +1,13 @@
+libvirt (0.3.3-2) unstable; urgency=low
+
+  * debian/copyright:
+      * update FSF address
+      * update upstream author and copyright information
+  * install the virsh manpage
+  * use binary:Version instead of Source-Version
+
+ -- Guido Guenther <agx@sigxcpu.org>  Fri, 23 Nov 2007 22:31:26 +0100
+
 libvirt (0.3.3-1) unstable; urgency=low
 
   * repackage for Debian (Closes: #384300)
