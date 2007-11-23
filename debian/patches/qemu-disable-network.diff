@@ -1,0 +1,26 @@
+Index: libvirt/qemud/Makefile.am
+===================================================================
+--- libvirt.orig/qemud/Makefile.am	2007-11-23 01:45:38.000000000 +0100
++++ libvirt/qemud/Makefile.am	2007-11-23 01:46:42.000000000 +0100
+@@ -47,8 +47,6 @@
+ 	mkdir -p $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart
+ 	$(INSTALL_DATA) $(srcdir)/default-network.xml $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml
+ 	sed -i -e "s,</name>,</name>\n  <uuid>$(UUID)</uuid>," $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml
+-	test -e $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml || \
+-           ln -s ../default.xml $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml
+ 	mkdir -p $(DESTDIR)$(localstatedir)/log/libvirt/qemu
+ 	mkdir -p $(DESTDIR)$(localstatedir)/run/libvirt
+ 	mkdir -p $(DESTDIR)$(localstatedir)/lib/libvirt
+Index: libvirt/qemud/Makefile.in
+===================================================================
+--- libvirt.orig/qemud/Makefile.in	2007-11-23 01:46:47.000000000 +0100
++++ libvirt/qemud/Makefile.in	2007-11-23 01:47:00.000000000 +0100
+@@ -646,8 +646,6 @@
+ 	mkdir -p $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart
+ 	$(INSTALL_DATA) $(srcdir)/default-network.xml $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml
+ 	sed -i -e "s,</name>,</name>\n  <uuid>$(UUID)</uuid>," $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml
+-	test -e $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml || \
+-           ln -s ../default.xml $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml
+ 	mkdir -p $(DESTDIR)$(localstatedir)/log/libvirt/qemu
+ 	mkdir -p $(DESTDIR)$(localstatedir)/run/libvirt
+ 	mkdir -p $(DESTDIR)$(localstatedir)/lib/libvirt
