@@ -1,0 +1,26 @@
+Index: libvirt/src/qemu_conf.c
+===================================================================
+--- libvirt.orig/src/qemu_conf.c	2007-11-23 01:13:23.000000000 +0100
++++ libvirt/src/qemu_conf.c	2007-11-23 01:13:33.000000000 +0100
+@@ -292,7 +292,7 @@
+     char *path;
+ 
+     if (virtType == QEMUD_VIRT_KVM)
+-        name = "qemu-kvm";
++        name = "kvm";
+     else
+         name = qemudDefaultBinaryForArch(arch);
+ 
+Index: libvirt/src/qemu_driver.c
+===================================================================
+--- libvirt.orig/src/qemu_driver.c	2007-11-23 01:13:17.000000000 +0100
++++ libvirt/src/qemu_driver.c	2007-11-23 01:13:47.000000000 +0100
+@@ -1540,7 +1540,7 @@
+             r = virBufferAdd (xml,
+                            "\
+       <domain type=\"kvm\">\n\
+-        <emulator>/usr/bin/qemu-kvm</emulator>\n\
++        <emulator>/usr/bin/kvm</emulator>\n\
+       </domain>\n", -1);
+             if (r == -1) goto vir_buffer_failed;
+         }
