@@ -1,3 +1,9 @@
+libvirt (0.3.3-3) unstable; urgency=low
+
+  * add initscript to start libvirtd
+
+ -- Guido Guenther <agx@sigxcpu.org>  Wed, 28 Nov 2007 10:30:29 +0100
+
 libvirt (0.3.3-2) unstable; urgency=low
 
   * debian/copyright:
