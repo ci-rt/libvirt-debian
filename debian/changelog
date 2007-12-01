@@ -1,3 +1,9 @@
+libvirt (0.3.3-3.xen0) unstable; urgency=low
+
+  * build with xen support - depend on our hacked up xen-utils for that
+
+ --  Guido Guenther <agx@sigxcpu.org>  Sat, 01 Dec 2007 16:27:32 +0000
+
 libvirt (0.3.3-3) unstable; urgency=low
 
   * add initscript to start libvirtd
