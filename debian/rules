@@ -3,10 +3,16 @@
 DEB_PYTHON_SYSTEM=pycentral
 DEB_DH_INSTALL_SOURCEDIR = debian/tmp
 
+ifneq (,$(findstring $(DEB_HOST_ARCH), i386 amd64))
+BUILD_XEN=--with-xen
+else
+BUILD_XEN=--without-xen
+endif
+
 include /usr/share/cdbs/1/rules/debhelper.mk
 include /usr/share/cdbs/1/class/autotools.mk
 include /usr/share/cdbs/1/class/python-distutils.mk
 include /usr/share/cdbs/1/rules/patchsys-quilt.mk
 
-DEB_CONFIGURE_EXTRA_FLAGS := --disable-rpath --with-qemu --without-openvz --without-xen --with-avahi
+DEB_CONFIGURE_EXTRA_FLAGS := --disable-rpath --with-qemu --without-openvz $(BUILD_XEN) --with-avahi
 DEB_PYTHON_SETUP_CMD := /dev/null
