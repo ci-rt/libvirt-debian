@@ -5,10 +5,6 @@ Maintainer: Guido Guenther <agx@sigxcpu.org>
 Build-Depends: cdbs (>= 0.4.43), debhelper (>= 5.0.38), libxml2-dev, libncurses5-dev, libreadline5-dev, zlib1g-dev, libgnutls-dev, python-all-dev (>= 2.3.5-11), python-central (>= 0.5.6), quilt, libavahi-client-dev
 XS-Python-Version: current
 Standards-Version: 3.7.2
- Libvirt is a C toolkit to interract with the virtualization capabilities
- of recent versions of Linux (and other OSes). The library aims at providing
- a long term stable C API for different virtualization mechanisms. It currently
- supports QEMU and KVM.
 
 Package: libvirt-bin
 Architecture: any
