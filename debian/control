@@ -13,13 +13,13 @@ Standards-Version: 3.7.2
 Package: libvirt-bin
 Architecture: any
 Depends: ${shlibs:Depends}
-Enhances: qemu, kvm
+Enhances: qemu, kvm, xen
 Section: admin
 Description: the programs for the libvirt library
  Libvirt is a C toolkit to interract with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
  a long term stable C API for different virtualization mechanisms. It currently
- supports QEMU and KVM.
+ supports QEMU, KVM, and XEN.
  .
  This package contains the supporting binaries to use with libvirt
 
@@ -32,7 +32,7 @@ Description: library for interfacing with Xen & other virtualization systems
  Libvirt is a C toolkit to interract with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
  a long term stable C API for different virtualization mechanisms. It currently
- supports QEMU and KVM..
+ supports QEMU, KVM, and XEN.
 
 Package: libvirt-doc
 Architecture: all
@@ -41,7 +41,7 @@ Description: documentation for the libvirt library
  Libvirt is a C toolkit to interract with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
  a long term stable C API for different virtualization mechanisms. It currently
- supports QEMU and KVM.
+ supports QEMU, KVM, and XEN.
  .
  This package contains the documentation.
 
@@ -52,7 +52,7 @@ Description: development files for the libvirt library
  Libvirt is a C toolkit to interract with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
  a long term stable C API for different virtualization mechanisms. It currently
- supports QEMU and KVM.
+ supports QEMU, KVM, and XEN.
  .
  This package contains the header files and static libraries which are
  needed for developing the applications with libvirt.
@@ -67,7 +67,7 @@ Description: libvirt python bindings
  Libvirt is a C toolkit to interract with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
  a long term stable C API for different virtualization mechanisms. It currently
- supports QEMU and KVM.
+ supports QEMU, KVM, and XEN.
  .
  This package contains python bindings for the libvirt library
 
