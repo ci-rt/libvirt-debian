@@ -21,8 +21,7 @@ Description: the programs for the libvirt library
 
 Package: libvirt0
 Architecture: any
-Depends: ${shlibs:Depends}
-Recommends: xen-utils-3.1-1 [i386 amd64]
+Depends: ${shlibs:Depends}, xen-utils-3.1-1
 Description: library for interfacing with Xen & other virtualization systems
  Libvirt is a C toolkit to interract with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
