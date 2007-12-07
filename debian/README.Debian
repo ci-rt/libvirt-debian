@@ -1,0 +1,10 @@
+For working xen support you have to set:
+
+(xend-http-server yes)
+(xend-unix-server yes)
+(xend-address localhost)
+
+in /etc/xen/xend-config.sxp. The last line makes sure xend is only accepting
+connections on localhost.
+
+ -- Guido Guenther <agx@sigxcpu.org>  Thu, 07 Dec 2007 18:43:03 +0100
