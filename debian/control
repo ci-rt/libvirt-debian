@@ -12,6 +12,7 @@ Architecture: any
 Depends: ${shlibs:Depends}
 Enhances: qemu, kvm
 Section: admin
+Suggests: dnsmasq, bridge-utils
 Description: the programs for the libvirt library
  Libvirt is a C toolkit to interract with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
