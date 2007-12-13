@@ -1,3 +1,12 @@
+libvirt (0.3.3-5) unstable; urgency=low
+
+  * make libs match overrides
+  * move to team maintenance
+  * suggest dnsmasq and bridge-utils for qemu networking
+  * remove stale PID files
+
+ -- Guido Guenther <agx@sigxcpu.org>  Thu, 13 Dec 2007 21:34:16 +0100
+
 libvirt (0.3.3-4) unstable; urgency=low
 
   * put packages into the proper sections
