@@ -1,0 +1,13 @@
+diff -ud /tmp/tmp.iFmeHz8508/libvirt-0.3.3/virsh.1 /tmp/buffer-content-8566993
+--- a/virsh.1	2007-11-23 03:15:30.000000000 +1100
++++ b/virsh.1	2007-12-12 17:28:13.855811484 +1100
+@@ -164,7 +164,7 @@
+ .IX Header "NOTES"
+ All \fBvirsh\fR operations rely upon the libvirt library.
+ For any virsh commands to run xend/qemu, or what ever virtual library that libvirt supports.  For this reason you should start xend/qemu as a service when your system first boots using xen/qemu. This can usually be done using the command
+-\&\fBservice start libvirtd\fR .
++\&\fB/etc/init.d/libvirt-bin start\fR .
+ .PP
+ Most \fBvirsh\fR commands require root privileges to run due to the
+ communications channels used to talk to the hypervisor.  Running as
+
