@@ -1,2 +1,3 @@
+remove-RHism.diff
 qemu-path.diff
 qemu-disable-network.diff
