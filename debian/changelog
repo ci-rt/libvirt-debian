@@ -1,3 +1,9 @@
+libvirt (0.3.3-5.xen0) unstable; urgency=low
+
+  * rebuild with xen support
+
+ -- Guido Guenther <agx@sigxcpu.org>  Sat, 15 Dec 2007 18:59:11 +0100
+
 libvirt (0.3.3-5) unstable; urgency=low
 
   * make libs match overrides
