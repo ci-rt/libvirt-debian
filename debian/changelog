@@ -1,3 +1,11 @@
+libvirt (0.3.3-6) unstable; urgency=low
+
+  * don't include precompiled examples in the doc package (Closes: #456825)
+  * remove RHism from manpage (Closes: #455859)
+  * bump standards version
+
+ -- Guido Guenther <agx@sigxcpu.org>  Wed, 19 Dec 2007 13:45:58 +0100
+
 libvirt (0.3.3-5) unstable; urgency=low
 
   * make libs match overrides
