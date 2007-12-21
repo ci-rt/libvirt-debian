@@ -1,8 +1,9 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = src qemud proxy include docs @PYTHON_SUBDIR@ tests po m4 scripts
+SUBDIRS = gnulib/lib include src qemud proxy docs gnulib/tests \
+  python tests po scripts
 
-ACLOCAL_AMFLAGS = -I m4
+ACLOCAL_AMFLAGS = -I m4 -I gnulib/m4
 
 EXTRA_DIST = libvirt.spec.in libvirt.spec COPYING.LIB \
              libvirt.pc.in libvirt.pc TODO AUTHORS ChangeLog \
@@ -20,7 +21,7 @@ check-local: all tests
 
 tests:
 	@(cd docs/examples ; $(MAKE) MAKEFLAGS+=--silent tests)
-	@(if [ "@PYTHON_SUBDIR@" != "" ] ; then cd python ; \
+	@(if [ "$(pythondir)" != "" ] ; then cd python ; \
 	  $(MAKE) MAKEFLAGS+=--silent tests ; fi)
 
 cov: cov-recursive cov-am
@@ -41,3 +42,6 @@ cov-am:
 	  > $(top_builddir)/coverage/index.html
 	for i in $(top_builddir)/src/*.gcov ; do o=`echo $$i | sed -e 's,$(top_builddir)/src,coverage,'` ; \
 	  perl $(srcdir)/scripts/coverage-report-entry.pl $$i > $$o.html ; done
+
+# disable this check
+distuninstallcheck:

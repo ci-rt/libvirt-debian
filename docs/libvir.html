@@ -20,21 +20,93 @@ under the <a href="http://www.opensource.org/licenses/lgpl-license.html">GNU
 Lesser General Public License</a>. Virtualization of the Linux Operating
 System means the ability to run multiple instances of Operating Systems
 concurently on a single hardware system where the basic resources are driven
-by a Linux (or Solaris) instance. The library aim at providing long term stable C API
-initially for the <a
+by a Linux (or Solaris) instance. The library aims at providing a long term
+stable C API initially for <a
 href="http://www.cl.cam.ac.uk/Research/SRG/netos/xen/index.html">Xen
-paravirtualization</a> but should be able to integrate other
-virtualization mechanisms, it currently also support <a
-href="http://fabrice.bellard.free.fr/qemu/">QEmu</a> and <a
-href="http://kvm.qumranet.com/">KVM</a>.</p>
+paravirtualization</a> but it can also integrate with other
+virtualization mechanisms. It currently also supports <a
+href="http://fabrice.bellard.free.fr/qemu/">QEMU</a>, <a
+href="http://kvm.qumranet.com/">KVM</a> and
+<a href="http://openvz.org/">OpenVZ</a>.</p>
 
 <h2><a name="News">Releases</a></h2>
 
 <p>Here is the list of official releases, however since it is early on in the
 development of libvirt, it is preferable when possible to just use the <a
 href="downloads.html">CVS version or snapshot</a>, contact the mailing list
-and check the <a href="ChangeLog.html">ChangeLog</a> to gauge progresses.</p>
+and check the <a href="ChangeLog.html">ChangeLog</a> to gauge progress.</p>
 
+
+<h3>0.4.0: Sep 30 2007</h3>
+<ul>
+  <li>New features: Compilation on Windows cygwin/mingw (Richard Jones),
+      Ruby bindings (David Lutterkort), SASL based authentication for
+      libvirt remote support (Daniel Berrange), PolicyKit authentication
+      (Daniel Berrange)</li>
+  <li>Documentation: example files for QEMU and libvirtd configuations
+      (Daniel Berrange), english cleanups (Jim Paris), CIM and OpenVZ
+      references, document &lt;shareable/&gt;, daemon startup when using
+      QEMU/KVM, document HV support for new NUMA calls (Richard Jones),
+      various english fixes (Bruce Montague), OCaml docs links (Richard Jones),
+      describe the various bindings add Ruby link, Windows support page
+      (Richard Jones), authentication documentation updates (Daniel Berrange)
+      </li>
+  <li>Bug fixes: NUMA topology error handling (Beth Kon), NUMA topology
+      cells without CPU (Beth Kon), XML to/from XM bridge config (Daniel
+      Berrange), XM processing of vnc parameters (Daniel Berrange), Reset
+      migration source after failure (Jim Paris), negative integer in config  
+      (Tatsuro Enokura), zero terminating string buffer, detect integer
+      overflow (Jim Meyering), QEmu command line ending fixes (Daniel Berrange),
+      recursion problem in the daemon (Daniel Berrange), HVM domain with CDRom
+      (Masayuki Sunou), off by one error in NUMA cpu count (Beth Kon), 
+      avoid xend errors when adding disks (Masayuki Sunou), compile error
+      (Chris Lalancette), transposed fwrite args (Jim Meyering), compile
+      without xen and on solaris (Jim Paris), parsing of interface names
+      (Richard Jones), overflow for starts on 32bits (Daniel Berrange),
+      fix problems in error reporting (Saori Fukuta), wrong call to
+      brSetForwardDelay changed to brSetEnableSTP (Richard Jones),
+      allow shareable disk in old Xen, fix wrong certificate file (Jim
+      Meyering), avoid some startup error when non-root, off-by-1 buffer
+      NULL termination (Daniel Berrange), various string allocation fixes
+      (Daniel Berrange), avoid problems with vnetXXX interfaces in domain dumps
+      (Daniel Berrange), build fixes for RHEL (Daniel Berrange), virsh prompt
+      should not depend on uid (Richard Jones), fix scaping of '&lt;' (Richard
+      Jones), fix detach-disk on Xen tap devices (Saori Fukuta), CPU
+      parameter setting in XM config (Saori Fukuta), credential handling
+      fixes (Daniel Berrange), fix compatibility with Xen 3.2.0 (Daniel
+      Berrange)
+      </li>
+  <li>Improvements: /etc/libvirt/qemu.conf configuration for QEMU driver
+      (Daniel Berrange), NUMA cpu pinning in config files (DV and Saori Fukuta),
+      CDRom media change in KVM/QEMU (Daniel Berrange), tests for
+      &lt;shareable/&gt; in configs, pinning inactive domains for Xen 3.0.3
+      (Saori Fukuta), use gnulib for portability enhancement (Jim Meyering),
+      --without-libvirtd config option (Richard Jones), Python bindings for
+      NUMA, add extra utility functions to buffer (Richard Jones), 
+      separate qparams module for handling query parameters (Richard Jones)
+      </li>
+  <li>Code cleanups: remove virDomainRestart from API as it was never used 
+      (Richard Jones), constify params for attach/detach APIs (Daniel Berrange),
+      gcc printf attribute checkings (Jim Meyering), refactoring of device
+      parsing code and shell escaping (Daniel Berrange), virsh schedinfo
+      parameters validation (Masayuki Sunou), Avoid risk of format string abuse
+      (Jim Meyering), integer parsing cleanups (Jim Meyering), build out
+      of the source tree (Jim Meyering), URI parsing refactoring (Richard
+      Jones), failed strdup/malloc handling (Jim Meyering), Make "make
+      distcheck" work (Jim Meyering), improve xen internall error reports
+      (Richard Jones), cleanup of the daemon remote code (Daniel Berrange),
+      rename error VIR_FROM_LINUX to VIR_FROM_STATS_LINUX (Richard Jones),
+      don't compile the proxy if without Xen (Richard Jones), fix paths when
+      configuring for /usr prefix, improve error reporting code (Jim Meyering),
+      detect heap allocation failure (Jim Meyering), disable xen sexpr parsing
+      code if Xen is disabled (Daniel Berrange), cleanup of the GetType
+      entry point for Xen drivers, move some QEmu path handling to generic
+      module (Daniel Berrange), many code cleanups related to the Windows
+      port (Richard Jones), disable the proxy if using PolicyKit, readline
+      availability detection, test libvirtd's config-processing code (Jim
+      Meyering), use a variable name as sizeof argument (Jim Meyering)
+      </li>
+</ul>
 
 <h3>0.3.3: Sep 30 2007</h3>
 <ul>
@@ -752,6 +824,8 @@ optional one in no specific order:</p>
     the guest</li>
   <li>readonly an optional empty element indicating the device is
   read-only</li>
+  <li>shareable an optional empty element indicating the device
+  can be used read/write with other domains</li>
 </ul>
 
 <p>An <code>interface</code> element describes a network device mapped on the
@@ -964,7 +1038,7 @@ support a variety of options:</p>
     <pre>&lt;interface type='user'/&gt;</pre>
     <pre>
 &lt;interface type='user'&gt;                                                  
-  &lt;mac address="11:22:33:44:55:66:/&gt;                                     
+  &lt;mac address="11:22:33:44:55:66"/&gt;                                     
 &lt;/interface&gt;
     </pre>
   </li>
@@ -987,7 +1061,7 @@ support a variety of options:</p>
 &lt;interface type='network'&gt;
   &lt;source network='default'/&gt;
   &lt;target dev='vnet7'/&gt;
-  &lt;mac address="11:22:33:44:55:66:/&gt;
+  &lt;mac address="11:22:33:44:55:66"/&gt;
 &lt;/interface&gt;
     </pre>
   </li>
@@ -1007,12 +1081,8 @@ support a variety of options:</p>
 &lt;interface type='bridge'&gt;
   &lt;source dev='br0'/&gt;
   &lt;target dev='vnet7'/&gt;
-  &lt;mac address="11:22:33:44:55:66:/&gt;
-&lt;/interface&gt;       &lt;interface type='bridge'&gt;
-         &lt;source dev='br0'/&gt;
-         &lt;target dev='vnet7'/&gt;
-         &lt;mac address="11:22:33:44:55:66:/&gt;
-       &lt;/interface&gt;</pre>
+  &lt;mac address="11:22:33:44:55:66"/&gt;
+&lt;/interface&gt;</pre> 
   </li>
   <li>Generic connection to LAN
     <p>Provides a means for the administrator to execute an arbitrary script
@@ -1185,15 +1255,33 @@ href="https://www.redhat.com/archives/libvir-list/2007-March/msg00215.html">the
 discussion</a> which led to the capabilities format in the mailing-list
 archives.</p>
 
-<h2><a name="Python" id="Python">Binding for Python</a></h2>
+<h2><a name="Python" id="Python">Bindings for other languages</a></h2>
 
-<p>Libvirt comes with direct support for the Python language (just
-make sure you installed the libvirt-python package if not compiling
-from sources). Also note that Daniel Berrange provides <a
-href="http://search.cpan.org/~danberr/Sys-Virt-0.1.0/">bindings for
-Perl</a> and Richard Jones supplies <a
-href="http://et.redhat.com/~rjones/ocaml-libvirt/">bindings for
-OCaml</a> too.</p>
+<p>Libvirt comes with bindings to support other languages than
+pure C. First the headers embeds the necessary declarations to
+allow direct acces from C++ code, but also we have bindings for
+higher level kind of languages:</p>
+<ul>
+  <li>Python: Libvirt comes with direct support for the Python language
+     (just make sure you installed the libvirt-python package if not
+     compiling from sources). See below for more informations about
+     using libvirt with python</li>
+  <li>Perl: Daniel Berrange provides <a
+     href="http://search.cpan.org/~danberr/Sys-Virt-0.1.0/">bindings for
+     Perl</a>.</li>
+  <li>OCaml: Richard Jones supplies <a
+     href="http://libvirt.org/ocaml/">bindings for OCaml</a>.</li>
+  <li>Ruby: David Lutterkork provides <a
+     href= "http://libvirt.org/ruby/">bindings for Ruby</a>.</li>
+</ul>
+
+<p>Support, requests or help for libvirt bindings are welcome on
+the <a href="https://www.redhat.com/mailman/listinfo/libvir-list/">mailing
+list</a>, as usual try to provide enough background informations
+and make sure you use recent version, see the <a href="bugs.html">help
+page</a>.</p>
+
+<p>The remaining of this page focuses on the Python bindings.</p>
 
 <p>The Python binding should be complete and are mostly automatically
 generated from the formal description of the API in xml. The bindings are
@@ -1518,6 +1606,278 @@ network. Use the settings:</p>
 </ul>
 <p> But there is no guarantee that someone will be watching or able to reply,
 use the mailing-list if you don't get an answer there.</p>
+
+<h2><a name="Windows" id="Windows">Windows support</a></h2>
+
+<p>
+Instructions for compiling and installing libvirt on Windows.
+</p>
+
+<ul>
+  <li><a href="#Windows_binaries">Binaries</a></li>
+  <li><a href="#Windows_compiling">Compiling from source</a></li>
+</ul>
+
+<h3><a name="Windows_binaries">Binaries</a></h3>
+
+<p>
+Binaries will be available from
+<a href="ftp://libvirt.org/libvirt/win32">the download area</a>
+(but we don't have binaries at the moment).
+</p>
+
+<h3><a name="Windows_compiling">Compiling from source</a></h3>
+
+<p>
+These are the steps to compile libvirt and the other
+tools from source on Windows.
+</p>
+
+<p>
+You will need:
+</p>
+
+<ol>
+<li> MS Windows.  Microsoft makes free (as beer) versions
+of some of its operating systems available to
+<a href="http://msdn.microsoft.com/">MSDN subscribers</a>.
+We used Windows 2008 Server for testing, virtualized under
+Linux using KVM-53 (earlier versions of KVM and QEMU won't
+run recent versions of Windows because of lack of full ACPI
+support, so make sure you have the latest KVM).
+</li>
+
+<li> <a href="http://www.cygwin.com/">Cygwin</a>'s
+<a href="http://www.cygwin.com/setup.exe">setup.exe</a>.
+</li>
+
+<li> A large amount of free disk space to install Cygwin.
+Make sure you have 10 GB free to install most Cygwin packages,
+although if you pare down the list of dependencies you may
+get away with much less. </li>
+
+<li> A network connection for Windows, since Cygwin downloads packages
+from the net as it installs. </li>
+
+<li> <a href="http://www.libvirt.org/downloads.html">Libvirt
+latest version from CVS</a> </li>
+
+<li> The latest source patch from
+<a href="ftp://libvirt.org/libvirt/win32">the download area</a>. </li>
+
+<li> A version of Cygwin sunrpc, patched to support building
+  <code>librpc.dll</code>.
+  A patch and a binary package are available from
+  <a href="ftp://libvirt.org/libvirt/win32">the download area</a>. </li>
+</ol>
+
+<p>
+These are the steps to take to compile libvirt from
+source on Windows:
+</p>
+
+<ol>
+<li>
+  <p>Run Cygwin 
+    <a href="http://www.cygwin.com/setup.exe">setup.exe</a>.
+    When it starts up it will show a dialog like this:
+  </p>
+
+  <img src="windows-cygwin-1.png" width="504" height="388"
+       alt="Cygwin Net Release Setup Program" />
+</li>
+
+<li>
+  <p>Step through the setup program accepting defaults
+    or making choices as appropriate, until you get to the
+    screen for selecting packages:</p>
+
+  <img src="windows-cygwin-2.png" width="505" height="388"
+       alt="Cygwin Select Packages screen" />
+
+  <p>
+    The user interface here is very confusing.  You have to
+    click the "recycling icon" as shown by the arrow:
+  </p>
+
+  <img src="windows-cygwin-3.png" width="298" height="200"
+       alt="Cygwin Recycling Icon" />
+
+  <p>
+    which takes the package (and all packages in the subtree)
+    through several states such as "Install", "Reinstall", "Keep",
+    "Skip", "Uninstall", etc.
+  </p>
+
+</li>
+
+<li>
+  <p>You can install "All" (everything) or better select
+    just the groups and packages needed.  Select the following
+    groups and packages for installation:
+  </p>
+
+  <table>
+    <tr>
+      <th valign="top" align="right"> Groups </th>
+      <td>
+	Archive <br/>
+	Base <br/>
+	Devel <br/>
+	Editors <br/>
+	Mingw <br/>
+	Perl <br/>
+	Python <br/>
+	Shells <br/>
+      </td>
+    </tr>
+    <tr>
+      <th valign="top" align="right"> Packages </th>
+      <td>
+	openssh <br/>
+	sunrpc &ge; 4.0-4 (see below) <br/>
+      </td>
+    </tr>
+  </table>
+</li>
+
+<li>
+  <p> Once Cygwin has finished installing, start a Cygwin bash shell
+    (either click on the desktop icon or look for Cygwin bash shell
+    in the Start menu). </p>
+
+  <p> The very first time you start the Cygwin bash shell, you may
+    find you need to run the <code>mkpasswd</code> and <code>mkgroup</code>
+    commands in order to create <code>/etc/passwd</code> and
+    <code>/etc/group</code> files from Windows users.  If this
+    is needed then a message is printed in the shell.
+    Note that you need to do this as Windows Administrator. </p>
+</li>
+
+<li>
+  <p> Install Cygwin sunrpc &ge; 4.0-4 package, patched to include
+    <code>librpc.dll</code>.
+    To do this, first check to see whether <code>/usr/lib/librpc.dll</code>
+    exists.  If it does, you're good to go and can skip to the next
+    step. </p>
+
+  <p>
+    If you don't have this file, either install the binary package
+    <a href="ftp://libvirt.org/libvirt/win32/sunrpc-4.0-4.tar.bz2">sunrpc-4.0-4.tar.bz2</a> (just unpack it, as Administrator, in the Cygwin root directory).
+    Or you can download the
+    <a href="ftp://libvirt.org/libvirt/win32/sunrpc-4.0-dll.patch">source patch</a>
+    and apply it by hand to the Cygwin sunrpc package (eg. using
+    cygport).
+  </p>
+</li>
+
+<li>
+  <p>
+    Check out
+    <a href="http://www.libvirt.org/downloads.html">Libvirt from CVS</a> and
+    <a href="ftp://libvirt.org/libvirt/win32">apply the latest Windows patch</a>
+    to the source.
+  </p>
+</li>
+
+<li>
+  <p> Configure libvirt by doing: </p>
+<pre>
+autoreconf
+./configure --without-xen --without-qemu
+</pre>
+  <p> (The autoreconf step is probably optional). </p>
+  <p> The configure step will tell you if you have all the
+    required parts installed.  If something is missing you
+    will need to go back through Cygwin setup and install it.
+  </p>
+</li>
+
+<li>
+  <p> Rebuild the XDR structures: </p>
+<pre>
+rm qemud/remote_protocol.[ch] qemud/remote_dispatch_*.h
+make -C qemud remote_protocol.c
+</pre>
+</li>
+
+<li>
+  <p> Build: </p>
+<pre>
+make
+</pre>
+  <p> If this step is not successful, you should post a full
+    report <i>including complete messages</i> to
+    <a href="http://www.redhat.com/mailman/listinfo/libvir-list">the
+      libvirt mailing list</a>.
+  </p>
+</li>
+
+<li>
+  <p> Test it.  If you have access to a remote machine
+    running Xen or QEMU/KVM, and the libvirt daemon (<code>libvirtd</code>)
+    then you should be able to connect to it and display
+    domains using, eg:
+  </p>
+<pre>
+src/virsh.exe <a href="http://libvirt.org/uri.html">-c qemu://remote/system</a> list --all
+</pre>
+  <p>
+    Please read more about <a href="http://libvirt.org/remote.html">remote
+      support</a> before sending bug reports, to make sure that
+    any problems are really Windows and not just with remote
+    configuration / security.
+  </p>
+</li>
+
+<li>
+  <p>
+    You may want to install the library and programs by doing:
+  </p>
+<pre>
+make install
+</pre>
+</li>
+
+<li>
+  <p>
+    The above steps should also build and install Python modules.
+    However for reasons which I don't fully understand, Python won't
+    look in the
+    non-standard <code>/usr/local/lib/python*/site-packages/</code>
+    directory by default so you may need to set the environment
+    variable PYTHONPATH:
+  </p>
+
+<pre>
+export PYTHONPATH=/usr/local/lib/python2.5/site-packages
+</pre>
+
+  <p>
+    (Change the version number to your version of Python).  You
+    can test Python support from the command line:
+  </p>
+
+<pre>
+python
+&gt;&gt;&gt; import libvirt
+&gt;&gt;&gt; conn = libvirt.open ("test:///default")
+&gt;&gt;&gt; conn.listDomainsID ()
+[1]
+&gt;&gt;&gt; dom = conn.lookupByID (1)
+&gt;&gt;&gt; dom.XMLDesc (0)
+"&lt;domain type='test' id='1'&gt; ..."
+</pre>
+
+  <p>
+    The most common failure will be with <code>import libvirt</code>
+    which usually indicates that either <code>PYTHONPATH</code> is
+    wrong or a DLL cannot be loaded.
+  </p>
+</li>
+
+</ol>
+
 <h2><a name="Remote">Remote support</a></h2>
 
 <p>
@@ -2477,6 +2837,204 @@ The protocol contains support for multiple program types and protocol
 versioning, modelled after SunRPC.
 </p>
 
+<h2><a name="ACL">Access control</a></h2>
+
+<p>
+When connecting to libvirt, some connections may require client
+authentication before allowing use of the APIs. The set of possible
+authentication mechanisms is administrator controlled, independant
+of applications using libvirt.
+</p>
+
+<ul>
+ <li><a href="#ACL_server_config">Server configuration</a></li>
+ <li><a href="#ACL_server_unix_perms">UNIX socket permissions/group</a></li>
+ <li><a href="#ACL_server_polkit">UNIX socket PolicyKit auth</a></li>
+ <li><a href="#ACL_server_username">Username/password auth</a></li>
+ <li><a href="#ACL_server_kerberos">Kerberos auth</a></li>
+</ul>
+
+<h3 name="ACL_server_config">Server configuration</h3>
+
+<p>
+The libvirt daemon allows the adminstrator to choose the authentication
+mechanisms used for client connections on each network socket independantly.
+This is primarily controlled via the libvirt daemon master config file in
+<code>/etc/libvirt/libvirtd.conf</code>. Each of the libvirt sockets can
+have its authentication mechanism configured independantly. There is
+currently a choice of <code>none</code>, <code>polkit</code>, and <code>sasl</code>.
+The SASL scheme can be further configured to choose between a large
+number of different mechanisms.
+</p>
+
+<h3 name="ACL_server_unix_perms">UNIX socket permissions/group</h3>
+
+<p>
+If libvirt does not contain support for PolicyKit, then access control for
+the UNIX domain socket is done using traditional file user/group ownership
+and permissions. There are 2 sockets, one for full read-write access, the
+other for read-only access. The RW socket will be restricted (mode 0700) to
+only allow the <code>root</code> user to connect. The read-only socket will
+be open access (mode 0777) to allow any user to connect.
+</p>
+
+<p>
+To allow non-root users greater access, the <code>libvirtd.conf</code> file
+can be edited to change the permissions via the <code>unix_sock_rw_perms</code>,
+config parameter and to set a user group via the <code>unix_sock_group</code>
+parameter. For example, setting the former to mode <code>0770</code> and the
+latter <code>wheel</code> would let any user in the wheel group connect to
+the libvirt daemon.
+</p>
+
+<h3 name="ACL_server_polkit">UNIX socket PolicyKit auth</h3>
+
+<p>
+If libvirt contains support for PolicyKit, then access control options are
+more advanced. The <code>unix_sock_auth</code> parameter will default to
+<code>polkit</code>, and the file permissions will default to <code>0777</code>
+even on the RW socket. Upon connecting to the socket, the client application
+will be required to identify itself with PolicyKit. The default policy for the
+RW daemon socket will require any application running in the current desktop
+session to authenticate using the user's password. This is akin to <code>sudo</code>
+auth, but does not require that the client application ultimately run as root.
+Default policy will still allow any application to connect to the RO socket.
+</p>
+
+<p>
+The default policy can be overriden by the adminstrator using the PolicyKit
+master configuration file in <code>/etc/PolicyKit/PolicyKit.conf</code>. The
+<code>PolicyKit.conf(5)</code> manual page provides details on the syntax
+available. The two libvirt daemon actions available are named <code>org.libvirt.unix.monitor</code>
+for the RO socket, and <code>org.libvirt.unix.manage</code> for the RW socket.
+</p>
+
+<p>
+As an example, to allow a user <code>fred</code>full access to the RW socket,
+while requiring <code>joe</code> to authenticate with the admin password,
+would require adding the following snippet to <code>PolicyKit.conf</code>.
+</p>
+
+<pre>
+  &lt;match action="org.libvirt.unix.manage" user="fred"&gt;
+    &lt;return result="yes"/&gt;
+  &lt;/match&gt;
+  &lt;match action="org.libvirt.unix.manage" user="joe"&gt;
+    &lt;return result="auth_admin"/&gt;
+  &lt;/match&gt;
+</pre>
+
+<h3 name="ACL_server_username">Username/password auth</h3>
+
+<p>
+The plain TCP socket of the libvirt daemon defaults to using SASL for authentication.
+The SASL mechanism configured by default is DIGEST-MD5, which provides a basic
+username+password style authentication. It also provides for encryption of the data
+stream, so the security of the plain TCP socket is on a par with that of the TLS
+socket. If desired the UNIX socket and TLS socket can also have SASL enabled by
+setting the <code>auth_unix_ro</code>, <code>auth_unix_rw</code>, <code>auth_tls</code>
+config params in <code>libvirt.conf</code>.
+</p>
+
+<p>
+Out of the box, no user accounts are defined, so no clients will be able to authenticate
+on the TCP socket. Adding users and setting their passwords is done with the <code>saslpasswd2</code>
+command. When running this command it is important to tell it that the appname is <code>libvirt</code>.
+As an example, to add a user <code>fred</code>, run
+</p>
+
+<pre>
+# saslpasswd2 -a libvirt fred
+Password: xxxxxx
+Again (for verification): xxxxxx
+</pre>
+
+<p>
+To see a list of all accounts the <code>sasldblistusers2</code> command can be used.
+This command expects to be given the path to the libvirt user database, which is kept
+in <code>/etc/libvirt/passwd.db</code>
+</p>
+
+<pre>
+# sasldblistusers2 -f /etc/libvirt/passwd.db
+fred@t60wlan.home.berrange.com: userPassword
+</pre>
+
+<p>
+Finally, to disable a user's access, the <code>saslpasswd2</code> command can be used
+again:
+</p>
+
+<pre>
+# saslpasswd2 -a libvirt -d fred
+</pre>
+
+
+<h3 name="ACL_server_kerberos">Kerberos auth</h3>
+
+<p>
+The plain TCP socket of the libvirt daemon defaults to using SASL for authentication.
+The SASL mechanism configured by default is DIGEST-MD5, which provides a basic
+username+password style authentication. To enable Kerberos single-sign-on instead,
+the libvirt SASL configuration file must be changed. This is <code>/etc/sasl2/libvirt.conf</code>.
+The <code>mech_list</code> parameter must first be changed to <code>gssapi</code>
+instead of the default <code>digest-md5</code>. If SASL is enabled on the UNIX
+and/or TLS sockets, Kerberos will also be used for them. Like DIGEST-MD5, the Kerberos
+mechanism provides data encryption of the session.
+</p>
+
+<p>
+Some operating systems do not install the SASL kerberos plugin by default. It
+may be neccessary to install a sub-package such as <code>cyrus-sasl-gssapi</code>.
+To check whether the Kerberos plugin is installed run the <code>pluginviewer</code>
+program and verify that <code>gssapi</code> is listed,eg:
+</p>
+
+<pre>
+# pluginviewer
+...snip...
+Plugin "gssapiv2" [loaded],     API version: 4
+        SASL mechanism: GSSAPI, best SSF: 56
+        security flags: NO_ANONYMOUS|NO_PLAINTEXT|NO_ACTIVE|PASS_CREDENTIALS|MUTUAL_AUTH
+        features: WANT_CLIENT_FIRST|PROXY_AUTHENTICATION|NEED_SERVER_FQDN
+</pre>
+
+<p>
+Next is is neccessary for the adminsitrator of the Kerberos realm to issue a principle
+for the libvirt server. There needs to be one principle per host running the libvirt
+daemon. The principle should be named <code>libvirt/full.hostname@KERBEROS.REALM</code>.
+This is typically done by running the <code>kadmin.local</code> command on the Kerberos
+server, though some Kerberos servers have alternate ways of setting up service principles.
+Once created, the principle should be exported to a keytab, copied to the host running
+the libvirt daemon and placed in <code>/etc/libvirt/krb5.tab</code>
+</p>
+
+<pre>
+# kadmin.local
+kadmin.local: add_principal libvirt/foo.example.com
+Enter password for principal "libvirt/foo.example.com@EXAMPLE.COM":
+Re-enter password for principal "libvirt/foo.example.com@EXAMPLE.COM":
+Principal "libvirt/foo.example.com@EXAMPLE.COM" created.
+
+kadmin.local:  ktadd -k /root/libvirt-foo-example.tab libvirt/foo.example.com@EXAMPLE.COM
+Entry for principal libvirt/foo.example.com@EXAMPLE.COM with kvno 4, encryption type Triple DES cbc mode with HMAC/sha1 added to keytab WRFILE:/root/libvirt-foo-example.tab.
+Entry for principal libvirt/foo.example.com@EXAMPLE.COM with kvno 4, encryption type ArcFour with HMAC/md5 added to keytab WRFILE:/root/libvirt-foo-example.tab.
+Entry for principal libvirt/foo.example.com@EXAMPLE.COM with kvno 4, encryption type DES with HMAC/sha1 added to keytab WRFILE:/root/libvirt-foo-example.tab.
+Entry for principal libvirt/foo.example.com@EXAMPLE.COM with kvno 4, encryption type DES cbc mode with RSA-MD5 added to keytab WRFILE:/root/libvirt-foo-example.tab.
+
+kadmin.local: quit
+
+# scp /root/libvirt-foo-example.tab root@foo.example.com:/etc/libvirt/krb5.tab
+# rm /root/libvirt-foo-example.tab
+</pre>
+
+<p>
+Any client application wishing to connect to a Kerberos enabled libvirt server
+merely needs to run <code>kinit</code> to gain a user principle. This may well
+be done automatically when a user logs into a desktop session, if PAM is setup
+to authenticate against Kerberos.
+</p>
+
 <h2><a name="uri">Connection URIs</a></h2>
 
 <p>
@@ -2572,15 +3130,11 @@ daemon is to manage qemu instances.
 </p>
 
 <p>
-The <code>libvirtd</code> daemon can be run in two ways.  It may
-be started by init scripts when the machine boots and run in "system
-mode" (<code>libvirtd --system</code>), in which case it manages
-qemu instances on behalf of all users of the machine.  It may be also
-be started by the local user in what is known as "session mode"
-(<code>libvirtd --session</code>), to manage qemu instances for
-just the current user.  If no <code>libvirtd</code> is running at
-all, then the qemu driver starts one running in session mode.
-</p>
+The <code>libvirtd</code> daemon should be started by the 
+init scripts when the machine boots. It should appear as
+a process <code>libvirtd --daemon</code> running as root
+in the background and will handle qemu instances on behalf
+of all users of the machine (among other things). </p>
 
 <p>
 So to connect to the daemon, one of two different URIs is used:
@@ -3263,12 +3817,20 @@ updated on <i>2007-08-20</i>.
   <td> &ge; 0.3.0 </td>
 </tr>
 <tr>
+  <td> virNodeGetFreeMemory </td>
+  <td> 0.3.3 </td>
+  <td> &ge; 0.3.3 </td>
+  <td> x </td>
+  <td> x </td>
+  <td> x </td>
+</tr>
+<tr>
   <td> virNodeGetCellsFreeMemory </td>
   <td> 0.3.3 </td>
   <td> &ge; 0.3.3 </td>
-  <td></td>
-  <td></td>
-  <td></td>
+  <td> x </td>
+  <td> x </td>
+  <td> x </td>
 </tr>
 </table>
 

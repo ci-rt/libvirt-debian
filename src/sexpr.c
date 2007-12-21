@@ -10,16 +10,16 @@
  *  archive for more details.
  */
 
-#define _GNU_SOURCE /* for strndup */
+#include "config.h"
 
-#include "sexpr.h"
-#include "internal.h"
-
+#include <stdio.h>
 #include <malloc.h>
 #include <string.h>
-#include <stdio.h>
 #include <ctype.h>
 #include <errno.h>
+
+#include "internal.h"
+#include "sexpr.h"
 
 /**
  * virSexprError:

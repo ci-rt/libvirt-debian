@@ -9,6 +9,8 @@
 #include "libvirt/libvirt.h"
 #include "libvirt/virterror.h"
 
+#include <libxml/uri.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -24,11 +26,6 @@ typedef enum {
     VIR_DRV_OPENVZ = 5,
 } virDrvNo;
 
-
-typedef enum {
-    /* VIR_DRV_OPEN_QUIET = 1 - removed by RWMJ */
-    VIR_DRV_OPEN_RO = 2
-} virDrvOpenFlag;
 
 /* Status codes returned from driver open call. */
 typedef enum {
@@ -74,8 +71,9 @@ typedef enum {
 
 typedef virDrvOpenStatus
 	(*virDrvOpen)			(virConnectPtr conn,
-					 const char *name,
-					 int flags);
+                             xmlURIPtr uri,
+                             virConnectAuthPtr auth,
+                             int flags);
 typedef int
 	(*virDrvClose)			(virConnectPtr conn);
 typedef int
@@ -184,10 +182,10 @@ typedef int
 	(*virDrvDomainGetMaxVcpus)	(virDomainPtr domain);
 typedef int
 	(*virDrvDomainAttachDevice)	(virDomainPtr domain,
-					 char *xml);
+					 const char *xml);
 typedef int
 	(*virDrvDomainDetachDevice)	(virDomainPtr domain,
-					 char *xml);
+					 const char *xml);
 typedef int
 	(*virDrvDomainGetAutostart)	(virDomainPtr domain,
 					 int *autostart);

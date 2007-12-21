@@ -36,7 +36,7 @@ extern "C" {
 extern struct xenUnifiedDriver xenXMDriver;
 int xenXMInit (void);
 
-int xenXMOpen(virConnectPtr conn, const char *name, int flags);
+int xenXMOpen(virConnectPtr conn, xmlURIPtr uri, virConnectAuthPtr auth, int flags);
 int xenXMClose(virConnectPtr conn);
 const char *xenXMGetType(virConnectPtr conn);
 int xenXMDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info);
@@ -45,6 +45,8 @@ int xenXMDomainSetMemory(virDomainPtr domain, unsigned long memory);
 int xenXMDomainSetMaxMemory(virDomainPtr domain, unsigned long memory);
 unsigned long xenXMDomainGetMaxMemory(virDomainPtr domain);
 int xenXMDomainSetVcpus(virDomainPtr domain, unsigned int vcpus);
+int xenXMDomainPinVcpu(virDomainPtr domain, unsigned int vcpu,
+                       unsigned char *cpumap, int maplen);
 virDomainPtr xenXMDomainLookupByName(virConnectPtr conn, const char *domname);
 virDomainPtr xenXMDomainLookupByUUID(virConnectPtr conn,
 				     const unsigned char *uuid);

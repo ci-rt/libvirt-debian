@@ -8,12 +8,16 @@
  * Daniel Veillard <veillard@redhat.com>
  */
 
+#include "config.h"
+
 #include "libvirt/libvirt.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <ctype.h>
+
 #include "buf.h"
 
 /**
@@ -38,7 +42,7 @@ virBufferGrow(virBufferPtr buf, unsigned int len)
 
     size = buf->use + len + 1000;
 
-    newbuf = (char *) realloc(buf->content, size);
+    newbuf = realloc(buf->content, size);
     if (newbuf == NULL) return -1;
     buf->content = newbuf;
     buf->size = size;
@@ -47,7 +51,7 @@ virBufferGrow(virBufferPtr buf, unsigned int len)
 
 /**
  * virBufferAdd:
- * @buf:  the buffer to dump
+ * @buf:  the buffer to add to
  * @str:  the string
  * @len:  the number of bytes to add
  *
@@ -76,11 +80,39 @@ virBufferAdd(virBufferPtr buf, const char *str, int len)
             return (-1);
         }
     }
-    /* XXX: memmove() is 2x slower than memcpy(), do we really need it? */
-    memmove(&buf->content[buf->use], str, len);
+
+    memcpy (&buf->content[buf->use], str, len);
     buf->use += len;
     buf->content[buf->use] = 0;
     return (0);
+}
+
+/**
+ * virBufferAddChar:
+ * @buf: the buffer to add to
+ * @c: the character to add
+ *
+ * Add a single character 'c' to a buffer.
+ *
+ * Returns 0 if successful, -1 in the case of error.
+ */
+int
+virBufferAddChar (virBufferPtr buf, char c)
+{
+    unsigned int needSize;
+
+    if (buf == NULL)
+        return -1;
+
+    needSize = buf->use + 2;
+    if (needSize > buf->size)
+        if (!virBufferGrow (buf, needSize - buf->use))
+            return -1;
+
+    buf->content[buf->use++] = c;
+    buf->content[buf->use] = 0;
+
+    return 0;
 }
 
 /**
@@ -141,9 +173,11 @@ virBufferContentAndFree (virBufferPtr buf)
         return(NULL);
 
     content = buf->content;
+    if (content != NULL)
+        content[buf->use] = 0;
 
     free (buf);
-    return content;
+    return(content);
 }
 
 /**
@@ -218,7 +252,7 @@ virBufferEscapeString(virBufferPtr buf, const char *format, const char *str)
         if (*cur == '<') {
 	    *out++ = '&';
 	    *out++ = 'l';
-	    *out++ = 'l';
+	    *out++ = 't';
 	    *out++ = ';';
 	} else if (*cur == '>') {
 	    *out++ = '&';
@@ -260,6 +294,56 @@ virBufferEscapeString(virBufferPtr buf, const char *format, const char *str)
     buf->content[buf->use] = 0;
     free(escaped);
     return (0);
+}
+
+/**
+ * virBufferURIEncodeString:
+ * @buf:  the buffer to append to
+ * @str:  the string argument which will be URI-encoded
+ *
+ * Append the string to the buffer.  The string will be URI-encoded
+ * during the append (ie any non alpha-numeric characters are replaced
+ * with '%xx' hex sequences).
+ *
+ * Returns 0 successful, -1 in case of internal or API error.
+ */
+int
+virBufferURIEncodeString (virBufferPtr buf, const char *str)
+{
+    int grow_size = 0;
+    const char *p;
+    unsigned char uc;
+    const char *hex = "0123456789abcdef";
+
+    for (p = str; *p; ++p) {
+        /* This may not work on EBCDIC. */
+        if ((*p >= 'a' && *p <= 'z') ||
+            (*p >= 'A' && *p <= 'Z') ||
+            (*p >= '0' && *p <= '9'))
+            grow_size++;
+        else
+            grow_size += 3; /* %ab */
+    }
+
+    if (virBufferGrow (buf, grow_size) == -1)
+        return -1;
+
+    for (p = str; *p; ++p) {
+        /* This may not work on EBCDIC. */
+        if ((*p >= 'a' && *p <= 'z') ||
+            (*p >= 'A' && *p <= 'Z') ||
+            (*p >= '0' && *p <= '9'))
+            buf->content[buf->use++] = *p;
+        else {
+            uc = (unsigned char) *p;
+            buf->content[buf->use++] = '%';
+            buf->content[buf->use++] = hex[uc >> 4];
+            buf->content[buf->use++] = hex[uc & 0xf];
+        }
+    }
+
+    buf->content[buf->use] = '\0';
+    return 0;
 }
 
 /**

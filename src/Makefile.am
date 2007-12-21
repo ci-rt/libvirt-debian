@@ -1,10 +1,13 @@
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_builddir)/include \
+INCLUDES = \
+	   -I$(top_srcdir)/gnulib/lib -I../gnulib/lib \
+	   -I../include \
 	   -I@top_srcdir@/include \
 	   -I@top_srcdir@/qemud \
 	   $(LIBXML_CFLAGS) \
 	   $(GNUTLS_CFLAGS) \
+	   $(SASL_CFLAGS) \
 	   -DBINDIR=\""$(libexecdir)"\" \
 	   -DSBINDIR=\""$(sbindir)"\" \
 	   -DSYSCONF_DIR="\"$(sysconfdir)\"" \
@@ -14,17 +17,16 @@ INCLUDES = -I$(top_builddir)/include \
 	   $(WARN_CFLAGS) \
 	   $(LIBVIRT_FEATURES)
 DEPS = libvirt.la
-LDADDS = @STATIC_BINARIES@ $(WARN_CFLAGS) libvirt.la
+LDADDS = @STATIC_BINARIES@ $(WARN_CFLAGS) libvirt.la ../gnulib/lib/libgnu.la
 VIRSH_LIBS = @VIRSH_LIBS@
 
-EXTRA_DIST = libvirt_sym.version
+confdir = $(sysconfdir)/libvirt/
+conf_DATA = qemu.conf
+
+
+EXTRA_DIST = libvirt_sym.version $(conf_DATA)
 
 lib_LTLIBRARIES = libvirt.la
-libvirt_la_LIBADD = $(LIBXML_LIBS) $(GNUTLS_LIBS)
-libvirt_la_LDFLAGS = -Wl,--version-script=$(srcdir)/libvirt_sym.version \
-                    -version-info @LIBVIRT_VERSION_INFO@ \
-                    $(COVERAGE_CFLAGS:-f%=-Wc,-f%)
-libvirt_la_CFLAGS = $(COVERAGE_CFLAGS)
 
 CLIENT_SOURCES =						\
 		libvirt.c internal.h				\
@@ -32,12 +34,14 @@ CLIENT_SOURCES =						\
 		hash.c hash.h					\
 		test.c test.h                                   \
                 buf.c buf.h					\
+		qparams.c qparams.h				\
 		xml.c xml.h					\
 		event.c event.h					\
 		xen_unified.c xen_unified.h			\
 		xen_internal.c xen_internal.h			\
 		xs_internal.c xs_internal.h			\
 		xend_internal.c xend_internal.h			\
+		stats_linux.c stats_linux.h			\
 		sexpr.c sexpr.h					\
 		virterror.c					\
 		driver.h					\
@@ -49,17 +53,23 @@ CLIENT_SOURCES =						\
 		iptables.c iptables.h 				\
 		uuid.c uuid.h 					\
 		qemu_driver.c qemu_driver.h 			\
-		qemu_conf.c qemu_conf.h					\
-		openvz_conf.c openvz_conf.h				\
+		qemu_conf.c qemu_conf.h				\
+		openvz_conf.c openvz_conf.h			\
 		openvz_driver.c openvz_driver.h 		\
                 nodeinfo.h nodeinfo.c                           \
 		util.c util.h
 
 SERVER_SOURCES = 						\
-		../qemud/protocol.h ../qemud/protocol.c		\
 		../qemud/remote_protocol.c ../qemud/remote_protocol.h
 
 libvirt_la_SOURCES = $(CLIENT_SOURCES) $(SERVER_SOURCES)
+libvirt_la_LIBADD = $(LIBXML_LIBS) $(GNUTLS_LIBS) $(SASL_LIBS) \
+		    @CYGWIN_EXTRA_LIBADD@ ../gnulib/lib/libgnu.la
+libvirt_la_LDFLAGS = -Wl,--version-script=$(srcdir)/libvirt_sym.version \
+                     -version-info @LIBVIRT_VERSION_INFO@ \
+                    $(COVERAGE_CFLAGS:-f%=-Wc,-f%) \
+		    @CYGWIN_EXTRA_LDFLAGS@
+libvirt_la_CFLAGS = $(COVERAGE_CFLAGS)
 
 bin_PROGRAMS = virsh
 
@@ -67,13 +77,13 @@ virsh_SOURCES = virsh.c console.c console.h
 virsh_LDFLAGS = $(WARN_CFLAGS) $(COVERAGE_LDFLAGS)
 virsh_DEPENDENCIES = $(DEPS)
 virsh_LDADD = $(LDADDS) $(VIRSH_LIBS)
-virsh_CFLAGS = $(COVERAGE_CFLAGS)
+virsh_CFLAGS = $(COVERAGE_CFLAGS) $(READLINE_CFLAGS)
 
 #
 # target to ease building test programs
 #
 tst: tst.c
-	$(CC) $(CFLAGS) -I../include -o tst tst.c .libs/libvirt.a -lxml2 -lxenstore -lpthread
+	$(CC) $(CFLAGS) $(INCLUDES) -I../include -o tst tst.c .libs/libvirt.a $(LIBXML_LIBS) $(VIRSH_LIBS) $(GNUTLS_LIBS) $(LIBS)
 
 COVERAGE_FILES = $(CLIENT_SOURCES:%.c=libvirt_la-%.cov)
 

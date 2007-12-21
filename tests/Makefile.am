@@ -1,6 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = virshdata confdata sexpr2xmldata xml2sexprdata xmconfigdata xencapsdata
+SUBDIRS = virshdata confdata sexpr2xmldata \
+  xml2sexprdata xmconfigdata xencapsdata
 
 # Wierd libtool related juju...
 #
@@ -11,12 +12,14 @@ SUBDIRS = virshdata confdata sexpr2xmldata xml2sexprdata xmconfigdata xencapsdat
 LIBVIRT = $(wildcard $(top_builddir)/src/.libs/libvirt_la-*.o)
 
 INCLUDES = \
+	-I$(top_srcdir)/gnulib/lib -I../gnulib/lib \
 	-I$(top_builddir)/include \
 	-I$(top_builddir)/src \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/src \
 	$(LIBXML_CFLAGS) \
 	$(GNUTLS_CFLAGS) \
+	$(SASL_CFLAGS) \
         -D_XOPEN_SOURCE=600 -D_POSIX_C_SOURCE=199506L \
         -DGETTEXT_PACKAGE=\"$(PACKAGE)\" \
          $(COVERAGE_CFLAGS) \
@@ -27,24 +30,46 @@ LDADDS = \
 	@STATIC_BINARIES@ \
 	$(LIBXML_LIBS) \
         $(GNUTLS_LIBS) \
+        $(SASL_LIBS) \
         $(WARN_CFLAGS) \
 	$(LIBVIRT) \
+	../gnulib/lib/libgnu.la \
         $(COVERAGE_LDFLAGS)
 
-EXTRA_DIST = xmlrpcserver.py test_conf.sh
+EXTRA_DIST =		\
+	xmlrpcserver.py	\
+	test_conf.sh	\
+	qemuxml2argvdata \
+	nodeinfodata
 
 noinst_PROGRAMS = xmlrpctest xml2sexprtest sexpr2xmltest virshtest conftest \
 	reconnect xmconfigtest xencapstest qemuxml2argvtest qemuxml2xmltest \
         nodeinfotest
 
+test_scripts = \
+	daemon-conf \
+	int-overflow
+
+EXTRA_DIST += $(test_scripts)
+
 TESTS = xml2sexprtest sexpr2xmltest virshtest test_conf.sh xmconfigtest \
-        xencapstest qemuxml2argvtest qemuxml2xmltest nodeinfotest
+        xencapstest qemuxml2argvtest qemuxml2xmltest nodeinfotest \
+	$(test_scripts)
 if ENABLE_XEN_TESTS
   TESTS += reconnect
 endif
 
+# NB, automake < 1.10 does not provide the real
+# abs_top_{src/build}dir variables, so don't rely
+# on them here. Fake them with 'pwd'
+TESTS_ENVIRONMENT =				\
+  abs_top_builddir=`pwd`/'$(top_builddir)'	\
+  abs_top_srcdir=`pwd`/'$(top_srcdir)'		\
+  PATH="$$abs_top_builddir/qemud$(PATH_SEPARATOR)$$PATH" \
+  $(VG)
+
 valgrind:
-	$(MAKE) check TESTS_ENVIRONMENT="valgrind --quiet --leak-check=full"
+	$(MAKE) check VG="valgrind --quiet --leak-check=full"
 
 # Note: xmlrpc.[c|h] is not in libvirt yet
 xmlrpctest_SOURCES = \
@@ -53,63 +78,52 @@ xmlrpctest_SOURCES = \
 	@top_srcdir@/src/xmlrpc.c \
 	@top_srcdir@/src/xmlrpc.h
 
-xmlrpctest_LDFLAGS =
 xmlrpctest_LDADD = $(LDADDS)
 
 xml2sexprtest_SOURCES = \
 	xml2sexprtest.c \
 	testutils.c testutils.h
-xml2sexprtest_LDFLAGS =
 xml2sexprtest_LDADD = $(LDADDS)
 
 sexpr2xmltest_SOURCES = \
 	sexpr2xmltest.c \
 	testutils.c testutils.h
-sexpr2xmltest_LDFLAGS =
 sexpr2xmltest_LDADD = $(LDADDS)
 
 xmconfigtest_SOURCES = \
 	xmconfigtest.c \
 	testutils.c testutils.h
-xmconfigtest_LDFLAGS =
 xmconfigtest_LDADD = $(LDADDS)
 
 qemuxml2argvtest_SOURCES = \
 	qemuxml2argvtest.c \
 	testutils.c testutils.h
-qemuxml2argvtest_LDFLAGS =
 qemuxml2argvtest_LDADD = $(LDADDS)
 
 qemuxml2xmltest_SOURCES = \
 	qemuxml2xmltest.c \
 	testutils.c testutils.h
-qemuxml2xmltest_LDFLAGS =
 qemuxml2xmltest_LDADD = $(LDADDS)
 
 virshtest_SOURCES = \
 	virshtest.c \
 	testutils.c testutils.h
-virshtest_LDFLAGS =
 virshtest_LDADD = $(LDADDS)
 
 conftest_SOURCES = \
 	conftest.c
-conftest_LDFLAGS =
 conftest_LDADD = $(LDADDS)
 
 xencapstest_SOURCES = \
 	xencapstest.c testutils.h testutils.c
-xencapstest_LDFLAGS =
 xencapstest_LDADD = $(LDADDS)
 
 nodeinfotest_SOURCES = \
 	nodeinfotest.c testutils.h testutils.c
-nodeinfotest_LDFLAGS =
 nodeinfotest_LDADD = $(LDADDS)
 
 reconnect_SOURCES = \
 	reconnect.c
-reconnect_LDFLAGS =
 reconnect_LDADD = $(LDADDS)
 
 $(LIBVIRT):

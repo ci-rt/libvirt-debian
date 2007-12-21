@@ -13,6 +13,13 @@
 
 #include "internal.h"
 
+#ifndef HAVE_WINSOCK2_H
+#include <sys/un.h>
+#include <netinet/in.h>
+#else
+#include <winsock2.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -39,7 +46,6 @@ extern int xenUnifiedRegister (void);
 struct xenUnifiedDriver {
 	virDrvOpen			open;
 	virDrvClose			close;
-	virDrvGetType			type;
 	virDrvGetVersion		version;
     virDrvGetHostname       getHostname;
     virDrvGetURI            getURI;
@@ -65,7 +71,6 @@ struct xenUnifiedDriver {
 	virDrvDomainPinVcpu		domainPinVcpu;
 	virDrvDomainGetVcpus		domainGetVcpus;
 	virDrvDomainGetMaxVcpus		domainGetMaxVcpus;
-	virDrvDomainDumpXML		domainDumpXML;
 	virDrvListDefinedDomains	listDefinedDomains;
 	virDrvNumOfDefinedDomains	numOfDefinedDomains;
 	virDrvDomainCreate		domainCreate;
@@ -109,13 +114,14 @@ struct _xenUnifiedPrivate {
      * xen_unified.c.
      */
     int opened[XEN_UNIFIED_NR_DRIVERS];
-
-    /* Canonical URI. */
-    char *name;
 };
 
 typedef struct _xenUnifiedPrivate *xenUnifiedPrivatePtr;
 
+
+int xenNbCells(virConnectPtr conn);
+int xenNbCpus(virConnectPtr conn);
+char *xenDomainUsedCpus(virDomainPtr dom);
 #ifdef __cplusplus
 }
 #endif

@@ -1,7 +1,7 @@
 /*
  * virsh.c: a Xen shell used to exercise the libvirt API
  *
- * Copyright (C) 2005 Red Hat, Inc.
+ * Copyright (C) 2005, 2007 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -10,8 +10,10 @@
  * Daniel P. Berrange <berrange@redhat.com>
  *
  *
- * $Id: virsh.c,v 1.104 2007/09/30 13:22:16 veillard Exp $
+ * $Id: virsh.c,v 1.119 2007/12/07 14:56:37 rjones Exp $
  */
+
+#include "config.h"
 
 #include "libvirt/libvirt.h"
 #include "libvirt/virterror.h"
@@ -27,6 +29,7 @@
 #include <ctype.h>
 #include <fcntl.h>
 #include <locale.h>
+#include <time.h>
 #include <limits.h>
 #include <assert.h>
 #include <errno.h>
@@ -38,10 +41,11 @@
 #include <libxml/tree.h>
 #include <libxml/xpath.h>
 
+#ifdef HAVE_READLINE_READLINE_H
 #include <readline/readline.h>
 #include <readline/history.h>
+#endif
 
-#include "config.h"
 #include "internal.h"
 #include "console.h"
 
@@ -198,7 +202,9 @@ typedef struct __vshControl {
     virConnectPtr conn;         /* connection to hypervisor (MAY BE NULL) */
     vshCmd *cmd;                /* the current command */
     char *cmdstr;               /* string with command */
+#ifndef __MINGW32__
     uid_t uid;                  /* process owner */
+#endif /* __MINGW32__ */
     int imode;                  /* interactive mode? */
     int quiet;                  /* quiet mode */
     int debug;                  /* print debug messages? */
@@ -254,8 +260,10 @@ static virNetworkPtr vshCommandOptNetworkBy(vshControl * ctl, vshCmd * cmd,
     vshCommandOptNetworkBy(_ctl, _cmd, _optname, _name,             \
                            VSH_BYUUID|VSH_BYNAME)
 
-static void vshPrintExtra(vshControl * ctl, const char *format, ...);
-static void vshDebug(vshControl * ctl, int level, const char *format, ...);
+static void vshPrintExtra(vshControl * ctl, const char *format, ...)
+    ATTRIBUTE_FORMAT(printf, 2, 3);
+static void vshDebug(vshControl * ctl, int level, const char *format, ...)
+    ATTRIBUTE_FORMAT(printf, 3, 4);
 
 /* XXX: add batch support */
 #define vshPrint(_ctl, ...)   fprintf(stdout, __VA_ARGS__)
@@ -451,6 +459,8 @@ static vshCmdOptDef opts_console[] = {
     {NULL, 0, 0, NULL}
 };
 
+#ifndef __MINGW32__
+
 static int
 cmdConsole(vshControl * ctl, vshCmd * cmd)
 {
@@ -499,6 +509,17 @@ cmdConsole(vshControl * ctl, vshCmd * cmd)
     virDomainFree(dom);
     return ret;
 }
+
+#else /* __MINGW32__ */
+
+static int
+cmdConsole(vshControl * ctl, vshCmd * cmd ATTRIBUTE_UNUSED)
+{
+    vshError (ctl, FALSE, _("console not implemented on this platform"));
+    return FALSE;
+}
+
+#endif /* __MINGW32__ */
 
 /*
  * "list" command
@@ -1135,9 +1156,9 @@ cmdSchedinfo(vshControl * ctl, vshCmd * cmd)
     int nr_inputparams = 0;
     int inputparams = 0;
     int weightfound = 0;
-    int weight;
+    int weight = 0;
     int capfound = 0;
-    int cap;
+    int cap = 0;
     char str_weight[] = "weight";
     char str_cap[]    = "cap";
     int ret_val = FALSE;
@@ -1149,11 +1170,25 @@ cmdSchedinfo(vshControl * ctl, vshCmd * cmd)
         return FALSE;
 
     /* Currently supports Xen Credit only */
-    weight = vshCommandOptInt(cmd, "weight", &weightfound);
-    if (weightfound) nr_inputparams++;
-            
-    cap    = vshCommandOptInt(cmd, "cap", &capfound);
-    if (capfound) nr_inputparams++;
+    if(vshCommandOptBool(cmd, "weight")) {
+        weight = vshCommandOptInt(cmd, "weight", &weightfound);
+        if (!weightfound) {
+            vshError(ctl, FALSE, _("Invalid value of weight"));
+            goto cleanup;
+        } else {
+            nr_inputparams++;
+        }
+    }
+
+    if(vshCommandOptBool(cmd, "cap")) {
+        cap = vshCommandOptInt(cmd, "cap", &capfound);
+        if (!capfound) {
+            vshError(ctl, FALSE, _("Invalid value of cap"));
+            goto cleanup;
+        } else {
+            nr_inputparams++;
+        }
+    }
 
     params = vshMalloc(ctl, sizeof (virSchedParameter) * nr_inputparams);
     if (params == NULL) {
@@ -2945,10 +2980,8 @@ cmdVNCDisplay(vshControl * ctl, vshCmd * cmd)
         (obj->stringval == NULL) || (obj->stringval[0] == 0)) {
         goto cleanup;
     }
-    port = strtol((const char *)obj->stringval, NULL, 10);
-    if (port == -1) {
+    if (xstrtol_i((const char *)obj->stringval, NULL, 10, &port) || port < 0)
         goto cleanup;
-    }
     xmlXPathFreeObject(obj);
 
     obj = xmlXPathEval(BAD_CAST "string(/domain/devices/graphics[@type='vnc']/@listen)", ctxt);
@@ -3942,10 +3975,10 @@ vshCommandOptInt(vshCmd * cmd, const char *name, int *found)
 
     if ((arg != NULL) && (arg->data != NULL)) {
         res = strtol(arg->data, &end_p, 10);
-	if ((arg->data == end_p) || (*end_p!= 0))
-	    num_found = FALSE;
-	else
-	    num_found = TRUE;
+        if ((arg->data == end_p) || (*end_p!= 0))
+            num_found = FALSE;
+        else
+            num_found = TRUE;
     }
     if (found)
         *found = num_found;
@@ -3981,7 +4014,7 @@ vshCommandOptDomainBy(vshControl * ctl, vshCmd * cmd, const char *optname,
                       char **name, int flag)
 {
     virDomainPtr dom = NULL;
-    char *n, *end = NULL;
+    char *n;
     int id;
 
     if (!(n = vshCommandOptString(cmd, optname, NULL))) {
@@ -3997,8 +4030,7 @@ vshCommandOptDomainBy(vshControl * ctl, vshCmd * cmd, const char *optname,
 
     /* try it by ID */
     if (flag & VSH_BYID) {
-        id = (int) strtol(n, &end, 10);
-        if (id >= 0 && end && *end == '\0') {
+        if (xstrtol_i(n, NULL, 10, &id) == 0 && id >= 0) {
             vshDebug(ctl, 5, "%s: <%s> seems like domain ID\n",
                      cmd->def->name, optname);
             dom = virDomainLookupByID(ctl->conn, id);
@@ -4491,32 +4523,43 @@ vshInit(vshControl * ctl)
     if (ctl->conn)
         return FALSE;
 
+#ifndef __MINGW32__
     ctl->uid = getuid();
+#endif
 
     vshOpenLogFile(ctl);
 
     /* set up the library error handler */
     virSetErrorFunc(NULL, virshErrorHandler);
 
+#ifndef __MINGW32__
     /* Force a non-root, Xen connection to readonly */
     if ((ctl->name == NULL ||
          !strcasecmp(ctl->name, "xen")) && ctl->uid != 0)
          ctl->readonly = 1;
+#endif
 
-    if (!ctl->readonly)
-        ctl->conn = virConnectOpen(ctl->name);
-    else
-        ctl->conn = virConnectOpenReadOnly(ctl->name);
+    ctl->conn = virConnectOpenAuth(ctl->name,
+                                   virConnectAuthPtrDefault,
+                                   ctl->readonly ? VIR_CONNECT_RO : 0);
+
 
     /* This is not necessarily fatal.  All the individual commands check
      * vshConnectionUsability, except ones which don't need a connection
      * such as "help".
      */
-    if (!ctl->conn)
+    if (!ctl->conn) {
         vshError(ctl, FALSE, _("failed to connect to the hypervisor"));
+        return FALSE;
+    }
 
     return TRUE;
 }
+
+#ifndef O_SYNC
+#define O_SYNC 0
+#endif
+#define LOGFILE_FLAGS (O_WRONLY | O_APPEND | O_CREAT | O_SYNC)
 
 /**
  * vshOpenLogFile:
@@ -4547,7 +4590,7 @@ vshOpenLogFile(vshControl *ctl)
     }
 
     /* log file open */
-    if ((ctl->log_fd = open(ctl->logfile, O_WRONLY | O_APPEND | O_CREAT | O_SYNC, FILE_MODE)) < 0) {
+    if ((ctl->log_fd = open(ctl->logfile, LOGFILE_FLAGS, FILE_MODE)) < 0) {
         vshError(ctl, TRUE, _("failed to open the log file. check the log file path"));
     }
 }
@@ -4630,7 +4673,9 @@ vshCloseLogFile(vshControl *ctl)
 {
     /* log file close */
     if (ctl->log_fd >= 0) {
-        close(ctl->log_fd);
+        if (close(ctl->log_fd) < 0)
+            vshError(ctl, FALSE, _("%s: failed to write log file: %s"),
+                     ctl->logfile ? ctl->logfile : "?", strerror (errno));
         ctl->log_fd = -1;
     }
 
@@ -4639,6 +4684,8 @@ vshCloseLogFile(vshControl *ctl)
         ctl->logfile = NULL;
     }
 }
+
+#ifdef USE_READLINE
 
 /* -----------------
  * Readline stuff
@@ -4757,6 +4804,41 @@ vshReadlineInit(void)
     rl_attempted_completion_function = vshReadlineCompletion;
 }
 
+static char *
+vshReadline (vshControl *ctl ATTRIBUTE_UNUSED, const char *prompt)
+{
+    return readline (prompt);
+}
+
+#else /* !USE_READLINE */
+
+static void
+vshReadlineInit (void)
+{
+    /* empty */
+}
+
+static char *
+vshReadline (vshControl *ctl, const char *prompt)
+{
+    char line[1024];
+    char *r;
+    int len;
+
+    fputs (prompt, stdout);
+    r = fgets (line, sizeof line, stdin);
+    if (r == NULL) return NULL; /* EOF */
+
+    /* Chomp trailing \n */
+    len = strlen (r);
+    if (len > 0 && r[len-1] == '\n')
+        r[len-1] = '\0';
+
+    return vshStrdup (ctl, r);
+}
+
+#endif /* !USE_READLINE */
+
 /*
  * Deinitliaze virsh
  */
@@ -4764,7 +4846,8 @@ static int
 vshDeinit(vshControl * ctl)
 {
     vshCloseLogFile(ctl);
-
+    if (ctl->name)
+        free(ctl->name);
     if (ctl->conn) {
         if (virConnectClose(ctl->conn) != 0) {
             ctl->conn = NULL;   /* prevent recursive call from vshError() */
@@ -4772,6 +4855,8 @@ vshDeinit(vshControl * ctl)
                      "failed to disconnect from the hypervisor");
         }
     }
+    virResetLastError();
+
     return TRUE;
 }
 
@@ -4969,11 +5054,15 @@ main(int argc, char **argv)
         ctl->name = strdup(defaultConn);
     }
 
-    if (!vshParseArgv(ctl, argc, argv))
+    if (!vshParseArgv(ctl, argc, argv)) {
+        vshDeinit(ctl);
         exit(EXIT_FAILURE);
+    }
 
-    if (!vshInit(ctl))
+    if (!vshInit(ctl)) {
+        vshDeinit(ctl);
         exit(EXIT_FAILURE);
+    }
 
     if (!ctl->imode) {
         ret = vshCommandRun(ctl, ctl->cmd);
@@ -4989,12 +5078,15 @@ main(int argc, char **argv)
         }
         vshReadlineInit();
         do {
+            const char *prompt = ctl->readonly ? VSH_PROMPT_RO : VSH_PROMPT_RW;
             ctl->cmdstr =
-                readline(ctl->uid == 0 ? VSH_PROMPT_RW : VSH_PROMPT_RO);
+                vshReadline(ctl, prompt);
             if (ctl->cmdstr == NULL)
                 break;          /* EOF */
             if (*ctl->cmdstr) {
+#if USE_READLINE
                 add_history(ctl->cmdstr);
+#endif
                 if (vshCommandParse(ctl, ctl->cmdstr))
                     vshCommandRun(ctl, ctl->cmd);
             }
