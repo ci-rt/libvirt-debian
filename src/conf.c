@@ -1,14 +1,15 @@
 /**
  * conf.c: parser for a subset of the Python encoded Xen configuration files
  *
- * Copyright (C) 2006 Red Hat, Inc.
+ * Copyright (C) 2006, 2007 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
  * Daniel Veillard <veillard@redhat.com>
  */
 
-#define _GNU_SOURCE /* want strndup ! */
+#include "config.h"
+
 #include <string.h>
 
 #include <stdio.h>
@@ -151,7 +152,7 @@ __virConfNew(void)
 {
     virConfPtr ret;
 
-    ret = (virConfPtr) calloc(1, sizeof(virConf));
+    ret = calloc(1, sizeof(*ret));
     if (ret == NULL) {
         virConfError(NULL, VIR_ERR_NO_MEMORY, _("allocating configuration"), 0);
         return(NULL);
@@ -200,7 +201,7 @@ virConfAddEntry(virConfPtr conf, char *name, virConfValuePtr value, char *comm)
     if ((comm == NULL) && (name == NULL))
         return(NULL);
     
-    ret = (virConfEntryPtr) calloc(1, sizeof(virConfEntry));
+    ret = calloc(1, sizeof(*ret));
     if (ret == NULL) {
         virConfError(NULL, VIR_ERR_NO_MEMORY, _("allocating configuration"), 0);
         return(NULL);
@@ -345,6 +346,8 @@ virConfParseLong(virConfParserCtxtPtr ctxt, long *val)
         l = l * 10 + (CUR - '0');
 	NEXT;
     }
+    if (neg)
+        l = -l;
     *val = l;
     return(0);
 }
@@ -483,7 +486,7 @@ virConfParseValue(virConfParserCtxtPtr ctxt)
 	             ctxt->line);
 	return(NULL);
     }
-    ret = (virConfValuePtr) calloc(1, sizeof(virConfValue));
+    ret = calloc(1, sizeof(*ret));
     if (ret == NULL) {
         virConfError(NULL, VIR_ERR_NO_MEMORY, _("allocating configuration"), 0);
 	if (str != NULL)
@@ -834,7 +837,7 @@ __virConfSetValue (virConfPtr conf,
     }
 
     if (!cur) {
-        if (!(cur = malloc(sizeof(virConfEntry)))) {
+        if (!(cur = malloc(sizeof(*cur)))) {
             virConfFreeValue(value);
             return (-1);
         }
@@ -916,7 +919,7 @@ error:
 /**
  * __virConfWriteMem:
  * @memory: pointer to the memory to store the config file
- * @len: pointer to the lenght in byte of the store, on output the size
+ * @len: pointer to the length in bytes of the store, on output the size
  * @conf: the conf
  *
  * Writes a configuration file back to a memory area. @len is an IN/OUT

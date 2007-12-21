@@ -23,6 +23,8 @@
  */
 
 #ifdef WITH_XEN
+#include "config.h"
+
 #include <dirent.h>
 #include <time.h>
 #include <sys/stat.h>
@@ -52,6 +54,9 @@
 #include "buf.h"
 #include "uuid.h"
 
+static int xenXMConfigSetString(virConfPtr conf, const char *setting,
+                                const char *str);
+
 typedef struct xenXMConfCache *xenXMConfCachePtr;
 typedef struct xenXMConfCache {
     time_t refreshedAt;
@@ -78,7 +83,6 @@ static time_t lastRefresh = 0;
 struct xenUnifiedDriver xenXMDriver = {
     xenXMOpen, /* open */
     xenXMClose, /* close */
-    xenXMGetType, /* type */
     NULL, /* version */
     NULL, /* hostname */
     NULL, /* URI */
@@ -101,10 +105,9 @@ struct xenUnifiedDriver xenXMDriver = {
     NULL, /* domainRestore */
     NULL, /* domainCoreDump */
     xenXMDomainSetVcpus, /* domainSetVcpus */
-    NULL, /* domainPinVcpu */
+    xenXMDomainPinVcpu, /* domainPinVcpu */
     NULL, /* domainGetVcpus */
     NULL, /* domainGetMaxVcpus */
-    xenXMDomainDumpXML, /* domainDumpXML */
     xenXMListDefinedDomains, /* listDefinedDomains */
     xenXMNumOfDefinedDomains, /* numOfDefinedDomains */
     xenXMDomainCreate, /* domainCreate */
@@ -128,7 +131,7 @@ xenXMError(virConnectPtr conn, virErrorNumber error, const char *info)
         return;
 
     errmsg = __virErrorMsg(error, info);
-    __virRaiseError(conn, NULL, NULL, VIR_FROM_XEND, error, VIR_ERR_ERROR,
+    __virRaiseError(conn, NULL, NULL, VIR_FROM_XENXM, error, VIR_ERR_ERROR,
                     errmsg, info, NULL, 0, 0, errmsg, info);
 }
 
@@ -228,7 +231,7 @@ static int xenXMConfigEnsureIdentity(virConfPtr conf, const char *filename) {
     /* Had better have a name...*/
     if (xenXMConfigGetString(conf, "name", &name) < 0) {
         virConfValuePtr value;
-        value = malloc(sizeof(virConfValue));
+        value = malloc(sizeof(*value));
         if (!value) {
             return (-1);
         }
@@ -249,7 +252,7 @@ static int xenXMConfigEnsureIdentity(virConfPtr conf, const char *filename) {
         virConfValuePtr value;
         char uuidstr[VIR_UUID_STRING_BUFLEN];
 
-        value = malloc(sizeof(virConfValue));
+        value = malloc(sizeof(*value));
         if (!value) {
             return (-1);
         }
@@ -398,7 +401,7 @@ static int xenXMConfigCacheRefresh (virConnectPtr conn) {
             entry->conf = NULL;
         } else { /* Completely new entry */
             newborn = 1;
-            if (!(entry = malloc(sizeof(xenXMConfCache)))) {
+            if (!(entry = malloc(sizeof(*entry)))) {
                 xenXMError (conn, VIR_ERR_NO_MEMORY, strerror (errno));
                 goto cleanup;
             }
@@ -471,7 +474,9 @@ static int xenXMConfigCacheRefresh (virConnectPtr conn) {
  */
 int
 xenXMOpen (virConnectPtr conn ATTRIBUTE_UNUSED,
-           const char *name ATTRIBUTE_UNUSED, int flags ATTRIBUTE_UNUSED)
+           xmlURIPtr uri ATTRIBUTE_UNUSED,
+           virConnectAuthPtr auth ATTRIBUTE_UNUSED,
+           int flags ATTRIBUTE_UNUSED)
 {
     if (configCache == NULL) {
         configCache = virHashCreate(50);
@@ -506,13 +511,6 @@ int xenXMClose(virConnectPtr conn ATTRIBUTE_UNUSED) {
         configCache = NULL;
     }
     return (0);
-}
-
-/*
- * Our backend type
- */
-const char *xenXMGetType(virConnectPtr conn ATTRIBUTE_UNUSED) {
-    return ("XenXM");
 }
 
 /*
@@ -660,11 +658,20 @@ char *xenXMDomainFormatXML(virConnectPtr conn, virConfPtr conf) {
             val = MIN_XEN_GUEST_SIZE * 2;
     virBufferVSprintf(buf, "  <memory>%ld</memory>\n", val * 1024);
 
+    virBufferVSprintf(buf, "  <vcpu");
+    if (xenXMConfigGetString(conf, "cpus", &str) == 0) {
+        char *ranges;
 
+	ranges = virConvertCpuSet(conn, str, 0);
+	if (ranges != NULL) {
+	    virBufferVSprintf(buf, " cpuset='%s'", ranges);
+	    free(ranges);
+	} else
+	    virBufferVSprintf(buf, " cpuset='%s'", str);
+    }
     if (xenXMConfigGetInt(conf, "vcpus", &val) < 0)
         val = 1;
-    virBufferVSprintf(buf, "  <vcpu>%ld</vcpu>\n", val);
-
+    virBufferVSprintf(buf, ">%ld</vcpu>\n", val);
 
     if (xenXMConfigGetString(conf, "on_poweroff", &str) < 0)
         str = "destroy";
@@ -750,10 +757,15 @@ char *xenXMDomainFormatXML(virConnectPtr conn, virConfPtr conf) {
 
 
             /* Extract source driver type */
-            if (!(tmp = strchr(src, ':')) || !tmp[0])
-                goto skipdisk;
-            strncpy(drvName, src, (tmp-src));
-            drvName[tmp-src] = '\0';
+            if (!src[0]) {
+                strcpy(drvName, "phy");
+		tmp = &src[0];
+            } else if (!(tmp = strchr(src, ':')) || !tmp[0]) {
+                    goto skipdisk;
+            } else {
+                strncpy(drvName, src, (tmp-src));
+                drvName[tmp-src] = '\0';
+            }
 
             /* And the source driver sub-type */
             if (!strncmp(drvName, "tap", 3)) {
@@ -763,7 +775,8 @@ char *xenXMDomainFormatXML(virConnectPtr conn, virConfPtr conf) {
                 memmove(src, src+(tmp1-src)+1, strlen(src)-(tmp1-src));
             } else {
                 drvType[0] = '\0';
-                memmove(src, src+(tmp-src)+1, strlen(src)-(tmp-src));
+                if (src[0])
+                        memmove(src, src+(tmp-src)+1, strlen(src)-(tmp-src));
             }
 
             /* phy: type indicates a block device */
@@ -790,11 +803,15 @@ char *xenXMDomainFormatXML(virConnectPtr conn, virConfPtr conf) {
                 virBufferVSprintf(buf, "      <driver name='%s' type='%s'/>\n", drvName, drvType);
             else
                 virBufferVSprintf(buf, "      <driver name='%s'/>\n", drvName);
-            virBufferVSprintf(buf, "      <source %s='%s'/>\n", block ? "dev" : "file", src);
+            if (src[0])
+                virBufferVSprintf(buf, "      <source %s='%s'/>\n", block ? "dev" : "file", src);
             virBufferVSprintf(buf, "      <target dev='%s'/>\n", dev);
             if (!strcmp(head, "r") ||
                 !strcmp(head, "ro"))
                 virBufferAdd(buf, "      <readonly/>\n", -1);
+	    else if ((!strcmp(head, "w!")) ||
+	             (!strcmp(head, "!")))
+	        virBufferAdd(buf, "      <shareable/>\n", -1);
             virBufferAdd(buf, "    </disk>\n", -1);
 
         skipdisk:
@@ -924,7 +941,8 @@ char *xenXMDomainFormatXML(virConnectPtr conn, virConfPtr conf) {
         }
         if (xenXMConfigGetInt(conf, "sdl", &val) == 0 && val)
             sdl = 1;
-    } else { /* New PV guests use this format */
+    }
+    if (!hvm && !sdl && !vnc) { /* New PV guests use this format */
         list = virConfGetValue(conf, "vfb");
         if (list && list->type == VIR_CONF_LIST &&
             list->list && list->list->type == VIR_CONF_STRING &&
@@ -951,6 +969,8 @@ char *xenXMDomainFormatXML(virConnectPtr conn, virConfPtr conf) {
                     sdl = 1;
                 } else if (!strncmp(key, "type=vnc", 8)) {
                     vnc = 1;
+                } else if (!strncmp(key, "vncunused=", 10)) {
+                    vncunused = strtol(key+10, NULL, 10);
                 } else if (!strncmp(key, "vnclisten=", 10)) {
                     vnclisten = key + 10;
                 } else if (!strncmp(key, "vncpasswd=", 10)) {
@@ -958,11 +978,7 @@ char *xenXMDomainFormatXML(virConnectPtr conn, virConfPtr conf) {
                 } else if (!strncmp(key, "keymap=", 7)) {
                     keymap = key + 7;
                 } else if (!strncmp(key, "vncdisplay=", 11)) {
-                    int port = strtol(key+11, NULL, 10);
-                    if (port == -1)
-                        vncunused = 1;
-                    else
-                        port = port - 5900;
+                    vncdisplay = strtol(key+11, NULL, 10);
                 }
 
                 while (nextkey && (nextkey[0] == ',' ||
@@ -1065,7 +1081,7 @@ int xenXMDomainSetMemory(virDomainPtr domain, unsigned long memory) {
     if (!(entry = virHashLookup(configCache, filename)))
         return (-1);
 
-    if (!(value = malloc(sizeof(virConfValue))))
+    if (!(value = malloc(sizeof(*value))))
         return (-1);
 
     value->type = VIR_CONF_LONG;
@@ -1107,7 +1123,7 @@ int xenXMDomainSetMaxMemory(virDomainPtr domain, unsigned long memory) {
     if (!(entry = virHashLookup(configCache, filename)))
         return (-1);
 
-    if (!(value = malloc(sizeof(virConfValue))))
+    if (!(value = malloc(sizeof(*value))))
         return (-1);
 
     value->type = VIR_CONF_LONG;
@@ -1180,7 +1196,7 @@ int xenXMDomainSetVcpus(virDomainPtr domain, unsigned int vcpus) {
     if (!(entry = virHashLookup(configCache, filename)))
         return (-1);
 
-    if (!(value = malloc(sizeof(virConfValue))))
+    if (!(value = malloc(sizeof(*value))))
         return (-1);
 
     value->type = VIR_CONF_LONG;
@@ -1196,6 +1212,106 @@ int xenXMDomainSetVcpus(virDomainPtr domain, unsigned int vcpus) {
         return (-1);
 
     return (0);
+}
+
+/**
+ * xenXMDomainPinVcpu:
+ * @domain: pointer to domain object
+ * @vcpu: virtual CPU number (reserved)
+ * @cpumap: pointer to a bit map of real CPUs (in 8-bit bytes)
+ * @maplen: length of cpumap in bytes
+ *
+ * Set the vcpu affinity in config
+ *
+ * Returns 0 for success; -1 (with errno) on error
+ */
+int xenXMDomainPinVcpu(virDomainPtr domain,
+                       unsigned int vcpu ATTRIBUTE_UNUSED,
+                       unsigned char *cpumap, int maplen)
+{
+    const char *filename;
+    xenXMConfCachePtr entry;
+    virBufferPtr mapbuf;
+    char *mapstr = NULL;
+    char *ranges = NULL;
+    int i, j, n, comma = 0;
+    int ret = -1;
+
+    if (domain == NULL || domain->conn == NULL || domain->name == NULL
+        || cpumap == NULL || maplen < 1 || maplen > (int)sizeof(cpumap_t)) {
+        xenXMError(domain ? domain->conn : NULL, VIR_ERR_INVALID_ARG,
+                   __FUNCTION__);
+        return -1;
+    }
+    if (domain->conn->flags & VIR_CONNECT_RO) {
+        xenXMError (domain->conn, VIR_ERR_INVALID_ARG, "read only connection");
+        return -1;
+    }
+    if (domain->id != -1) {
+        xenXMError (domain->conn, VIR_ERR_INVALID_ARG, "not inactive domain");
+        return -1;
+    }
+
+    if (!(filename = virHashLookup(nameConfigMap, domain->name))) {
+        xenXMError (domain->conn, VIR_ERR_INTERNAL_ERROR, "virHashLookup");
+        return -1;
+    }
+    if (!(entry = virHashLookup(configCache, filename))) {
+        xenXMError (domain->conn, VIR_ERR_INTERNAL_ERROR,
+                    "can't retrieve config file for domain");
+        return -1;
+    }
+
+    /* from bit map, build character string of mapped CPU numbers */
+    mapbuf = virBufferNew (16);
+    if (mapbuf == NULL) {
+        xenXMError (domain->conn, VIR_ERR_NO_MEMORY, __FUNCTION__);
+        return -1;
+    }
+    for (i = 0; i < maplen; i++)
+        for (j = 0; j < 8; j++)
+            if ((cpumap[i] & (1 << j))) {
+                n = i*8 + j;
+
+                if (comma) {
+                    if (virBufferAdd (mapbuf, ",", 1) == -1) {
+                        xenXMError (domain->conn, VIR_ERR_NO_MEMORY, __FUNCTION__);
+                        virBufferFree (mapbuf);
+                    return -1;
+                    }
+                }
+                comma = 1;
+
+                if (virBufferVSprintf (mapbuf, "%d", n) == -1) {
+                    xenXMError (domain->conn, VIR_ERR_NO_MEMORY, __FUNCTION__);
+                    virBufferFree (mapbuf);
+                    return -1;
+                }
+            }
+
+    mapstr = virBufferContentAndFree (mapbuf);
+
+    /* convert the mapstr to a range based string */
+    ranges = virConvertCpuSet(domain->conn, mapstr, 0);
+
+    if (ranges != NULL) {
+        if (xenXMConfigSetString(entry->conf, "cpus", ranges) < 0)
+            goto cleanup;
+    } else
+        if (xenXMConfigSetString(entry->conf, "cpus", mapstr) < 0)
+            goto cleanup;
+
+    if (virConfWriteFile(entry->filename, entry->conf) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    if(mapstr)
+        free(mapstr);
+    if(ranges)
+        free(ranges);
+    return (ret);
 }
 
 /*
@@ -1365,7 +1481,7 @@ static
 int xenXMConfigSetInt(virConfPtr conf, const char *setting, long l) {
     virConfValuePtr value = NULL;
 
-    if (!(value = malloc(sizeof(virConfValue))))
+    if (!(value = malloc(sizeof(*value))))
         return -1;
 
     value->type = VIR_CONF_LONG;
@@ -1380,7 +1496,7 @@ static
 int xenXMConfigSetString(virConfPtr conf, const char *setting, const char *str) {
     virConfValuePtr value = NULL;
 
-    if (!(value = malloc(sizeof(virConfValue))))
+    if (!(value = malloc(sizeof(*value))))
         return -1;
 
     value->type = VIR_CONF_STRING;
@@ -1529,13 +1645,6 @@ static int xenXMParseXMLDisk(xmlNodePtr node, int hvm, int xendConfigVersion, ch
         cur = cur->next;
     }
 
-    if (source == NULL) {
-        if (target != NULL)
-            xmlFree(target);
-        if (device != NULL)
-            xmlFree(device);
-        return (-1);
-    }
     if (target == NULL) {
         if (source != NULL)
             xmlFree(source);
@@ -1566,6 +1675,14 @@ static int xenXMParseXMLDisk(xmlNodePtr node, int hvm, int xendConfigVersion, ch
         }
     }
 
+    if (source == NULL && !cdrom) {
+        if (target != NULL)
+            xmlFree(target);
+        if (device != NULL)
+            xmlFree(device);
+        return (-1);
+    }
+
     if (drvName) {
         buflen += strlen((const char*)drvName) + 1;
         if (!strcmp((const char*)drvName, "tap")) {
@@ -1581,7 +1698,10 @@ static int xenXMParseXMLDisk(xmlNodePtr node, int hvm, int xendConfigVersion, ch
             buflen += 4;
     }
 
-    buflen += strlen((const char*)source) + 1;
+    if(source)
+        buflen += strlen((const char*)source) + 1;
+    else
+        buflen += 1;
     buflen += strlen((const char*)target) + 1;
     if (hvm && xendConfigVersion == 1) /* ioemu: */
         buflen += 6;
@@ -1594,23 +1714,27 @@ static int xenXMParseXMLDisk(xmlNodePtr node, int hvm, int xendConfigVersion, ch
     if (!(buf = malloc(buflen)))
         goto cleanup;
 
-    if (drvName) {
-        strcpy(buf, (const char*)drvName);
-        if (!strcmp((const char*)drvName, "tap")) {
-            strcat(buf, ":");
-            if (drvType)
-                strcat(buf, (const char*)drvType);
+    if(source) {
+        if (drvName) {
+            strcpy(buf, (const char*)drvName);
+            if (!strcmp((const char*)drvName, "tap")) {
+                strcat(buf, ":");
+                if (drvType)
+                    strcat(buf, (const char*)drvType);
+                else
+                    strcat(buf, "aio");
+            }
+        } else {
+            if (typ == 0)
+                strcpy(buf, "file");
             else
-                strcat(buf, "aio");
+                strcpy(buf, "phy");
         }
+        strcat(buf, ":");
+        strcat(buf, (const char*)source);
     } else {
-        if (typ == 0)
-            strcpy(buf, "file");
-        else
-            strcpy(buf, "phy");
+        strcpy(buf, "");
     }
-    strcat(buf, ":");
-    strcat(buf, (const char*)source);
     strcat(buf, ",");
     if (hvm && xendConfigVersion == 1)
         strcat(buf, "ioemu:");
@@ -1630,12 +1754,13 @@ static int xenXMParseXMLDisk(xmlNodePtr node, int hvm, int xendConfigVersion, ch
     xmlFree(drvName);
     xmlFree(device);
     xmlFree(target);
-    xmlFree(source);
+    if(source)
+        xmlFree(source);
     *disk = buf;
 
     return (ret);
 }
-static char *xenXMParseXMLVif(xmlNodePtr node, int hvm) {
+static char *xenXMParseXMLVif(virConnectPtr conn, xmlNodePtr node, int hvm) {
     xmlNodePtr cur;
     xmlChar *type = NULL;
     xmlChar *source = NULL;
@@ -1645,6 +1770,7 @@ static char *xenXMParseXMLVif(xmlNodePtr node, int hvm) {
     int typ = 0;
     char *buf = NULL;
     int buflen = 0;
+    char *bridge = NULL;
 
     type = xmlGetProp(node, BAD_CAST "type");
     if (type != NULL) {
@@ -1652,6 +1778,8 @@ static char *xenXMParseXMLVif(xmlNodePtr node, int hvm) {
             typ = 0;
         else if (xmlStrEqual(type, BAD_CAST "ethernet"))
             typ = 1;
+        else if (xmlStrEqual(type, BAD_CAST "network"))
+            typ = 2;
         xmlFree(type);
     }
     cur = node->children;
@@ -1662,8 +1790,10 @@ static char *xenXMParseXMLVif(xmlNodePtr node, int hvm) {
 
                 if (typ == 0)
                     source = xmlGetProp(cur, BAD_CAST "bridge");
-                else
+                else if (typ == 1)
                     source = xmlGetProp(cur, BAD_CAST "dev");
+                else
+                    source = xmlGetProp(cur, BAD_CAST "network");
             } else if ((mac == NULL) &&
                        (xmlStrEqual(cur->name, BAD_CAST "mac"))) {
                 mac = xmlGetProp(cur, BAD_CAST "address");
@@ -1685,8 +1815,17 @@ static char *xenXMParseXMLVif(xmlNodePtr node, int hvm) {
     if (source) {
         if (typ == 0) {
             buflen += 8 + strlen((const char *)source);
-        } else {
+        } else if (typ == 1) {
             buflen += 5 + strlen((const char *)source);
+        } else {
+            virNetworkPtr network = virNetworkLookupByName(conn, (const char *) source);
+            if (!network || !(bridge = virNetworkGetBridgeName(network))) {
+                if (network)
+                    virNetworkFree(network);
+                goto cleanup;
+            }
+            virNetworkFree(network);
+            buflen += 8 + strlen(bridge);
         }
     }
     if (hvm)
@@ -1705,9 +1844,12 @@ static char *xenXMParseXMLVif(xmlNodePtr node, int hvm) {
         if (typ == 0) {
             strcat(buf, ",bridge=");
             strcat(buf, (const char*)source);
-        } else {
-            strcat(buf, ",mac=");
+        } else if (typ == 1) {
+            strcat(buf, ",dev=");
             strcat(buf, (const char*)source);
+        } else {
+            strcat(buf, ",bridge=");
+            strcat(buf, bridge);
         }
     }
     if (hvm) {
@@ -1723,6 +1865,8 @@ static char *xenXMParseXMLVif(xmlNodePtr node, int hvm) {
     }
 
  cleanup:
+    if (bridge != NULL)
+        free(bridge);
     if (mac != NULL)
         xmlFree(mac);
     if (source != NULL)
@@ -1745,6 +1889,7 @@ virConfPtr xenXMParseXMLToConfig(virConnectPtr conn, const char *xml) {
     virConfPtr conf = NULL;
     int hvm = 0, i;
     xenUnifiedPrivatePtr priv;
+    char *cpus;
 
     doc = xmlReadDoc((const xmlChar *) xml, "domain.xml", NULL,
                      XML_PARSE_NOENT | XML_PARSE_NONET |
@@ -1802,6 +1947,27 @@ virConfPtr xenXMParseXMLToConfig(virConnectPtr conn, const char *xml) {
     if (xenXMConfigSetIntFromXPath(conn, conf, ctxt, "vcpus", "string(/domain/vcpu)", 0, 1,
                                    "cannot set vcpus config parameter") < 0)
         goto error;
+
+    cpus = virXPathString("string(/domain/vcpu/@cpuset)", ctxt);
+    if (cpus != NULL) {
+        char *ranges;
+
+	ranges = virConvertCpuSet(conn, cpus, 0);
+	if (ranges != NULL) {
+	    free(cpus);
+	    if (xenXMConfigSetString(conf, "cpus", ranges) < 0) {
+	        free(ranges);
+		goto error;
+	    }
+	    free(ranges);
+	} else {
+	    if (xenXMConfigSetString(conf, "cpus", cpus) < 0) {
+	        free(cpus);
+		goto error;
+	    }
+	    free(cpus);
+	}
+    }
 
     obj = xmlXPathEval(BAD_CAST "string(/domain/os/type)", ctxt);
     if ((obj != NULL) && (obj->type == XPATH_STRING) &&
@@ -1924,17 +2090,24 @@ virConfPtr xenXMParseXMLToConfig(virConnectPtr conn, const char *xml) {
                                           "cannot set the keymap parameter") < 0)
             goto error;
 
-        /* XXX vncdisplay */
-        /*
-          if (xenXMConfigSetIntFromXPath(conn, conf, ctxt, "vncdisplay", "string(int(/domain/devices/graphics[@type='vnc']/@vncport) - 5900))", 0, 0) < 0)
-          goto error;
-        */
+        obj = xmlXPathEval(BAD_CAST "string(/domain/devices/graphics[@type='vnc']/@port)", ctxt);
+        if ((obj != NULL) && (obj->type == XPATH_STRING) &&
+            (obj->stringval != NULL)) {
+            int port = strtol((const char *)obj->stringval, NULL, 10);
+            if (port != -1) {
+                char portstr[50];
+                snprintf(portstr, sizeof(portstr), "%d", port-5900);
+                if (xenXMConfigSetString(conf, "vncdisplay", portstr) < 0)
+                    goto error;
+            }
+        }
+        xmlXPathFreeObject(obj);
     } else {
         virConfValuePtr vfb;
         obj = xmlXPathEval(BAD_CAST "/domain/devices/graphics", ctxt);
         if ((obj != NULL) && (obj->type == XPATH_NODESET) &&
             (obj->nodesetval != NULL) && (obj->nodesetval->nodeNr >= 0)) {
-            if (!(vfb = malloc(sizeof(virConfValue)))) {
+            if (!(vfb = malloc(sizeof(*vfb)))) {
                 xenXMError(conn, VIR_ERR_NO_MEMORY, "config");
                 goto error;
             }
@@ -1971,8 +2144,11 @@ virConfPtr xenXMParseXMLToConfig(virConnectPtr conn, const char *xml) {
                         if (vncunused) {
                             strcat(val, ",vncunused=1");
                         } else {
+                            char portstr[50];
+                            int port = atoi((const char*)vncport);
+                            snprintf(portstr, sizeof(portstr), "%d", port-5900);
                             strcat(val, ",vncdisplay=");
-                            strcat(val, (const char*)vncport);
+                            strcat(val, portstr);
                         }
                         if (vncport)
                             xmlFree(vncport);
@@ -1996,7 +2172,7 @@ virConfPtr xenXMParseXMLToConfig(virConnectPtr conn, const char *xml) {
                 xmlFree(type);
                 if (val) {
                     virConfValuePtr disp;
-                    if (!(disp = malloc(sizeof(virConfValue)))) {
+                    if (!(disp = malloc(sizeof(*disp)))) {
                         free(val);
                         xenXMError(conn, VIR_ERR_NO_MEMORY, "config");
                         goto error;
@@ -2018,7 +2194,7 @@ virConfPtr xenXMParseXMLToConfig(virConnectPtr conn, const char *xml) {
     if ((obj != NULL) && (obj->type == XPATH_NODESET) &&
         (obj->nodesetval != NULL) && (obj->nodesetval->nodeNr >= 0)) {
         virConfValuePtr disks;
-        if (!(disks = malloc(sizeof(virConfValue)))) {
+        if (!(disks = malloc(sizeof(*disks)))) {
             xenXMError(conn, VIR_ERR_NO_MEMORY, "config");
             goto error;
         }
@@ -2030,7 +2206,7 @@ virConfPtr xenXMParseXMLToConfig(virConnectPtr conn, const char *xml) {
             if (xenXMParseXMLDisk(obj->nodesetval->nodeTab[i], hvm, priv->xendConfigVersion, &disk) < 0)
                 goto error;
             if (disk) {
-                if (!(thisDisk = malloc(sizeof(virConfValue)))) {
+                if (!(thisDisk = malloc(sizeof(*thisDisk)))) {
                     free(disk);
                     xenXMError(conn, VIR_ERR_NO_MEMORY, "config");
                     goto error;
@@ -2050,7 +2226,7 @@ virConfPtr xenXMParseXMLToConfig(virConnectPtr conn, const char *xml) {
     if ((obj != NULL) && (obj->type == XPATH_NODESET) &&
         (obj->nodesetval != NULL) && (obj->nodesetval->nodeNr >= 0)) {
         virConfValuePtr vifs;
-        if (!(vifs = malloc(sizeof(virConfValue)))) {
+        if (!(vifs = malloc(sizeof(*vifs)))) {
             xenXMError(conn, VIR_ERR_NO_MEMORY, "config");
             goto error;
         }
@@ -2058,10 +2234,10 @@ virConfPtr xenXMParseXMLToConfig(virConnectPtr conn, const char *xml) {
         vifs->list = NULL;
         for (i = 0; i < obj->nodesetval->nodeNr; i++) {
             virConfValuePtr thisVif;
-            char *vif = xenXMParseXMLVif(obj->nodesetval->nodeTab[i], hvm);
+            char *vif = xenXMParseXMLVif(conn, obj->nodesetval->nodeTab[i], hvm);
             if (!vif)
                 goto error;
-            if (!(thisVif = malloc(sizeof(virConfValue)))) {
+            if (!(thisVif = malloc(sizeof(*thisVif)))) {
                 if (vif)
                     free(vif);
                 xenXMError(conn, VIR_ERR_NO_MEMORY, "config");
@@ -2196,7 +2372,7 @@ virDomainPtr xenXMDomainDefineXML(virConnectPtr conn, const char *xml) {
         goto error;
     }
 
-    if (!(entry = calloc(1, sizeof(xenXMConfCache)))) {
+    if (!(entry = calloc(1, sizeof(*entry)))) {
         xenXMError(conn, VIR_ERR_NO_MEMORY, "config");
         goto error;
     }

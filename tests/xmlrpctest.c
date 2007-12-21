@@ -7,8 +7,10 @@
  *
  * Karel Zak <kzak@redhat.com>
  *
- * $Id: xmlrpctest.c,v 1.5 2007/07/18 21:13:26 berrange Exp $
+ * $Id: xmlrpctest.c,v 1.6 2007/12/05 21:40:15 meyering Exp $
  */
+
+#include "config.h"
 
 #include <stdio.h>
 #include <stdlib.h>

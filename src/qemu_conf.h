@@ -24,6 +24,10 @@
 #ifndef __QEMUD_CONF_H
 #define __QEMUD_CONF_H
 
+#include "config.h"
+
+#ifdef WITH_QEMU
+
 #include "internal.h"
 #include "bridge.h"
 #include "iptables.h"
@@ -123,6 +127,22 @@ struct qemud_vm_input_def {
     int type;
     int bus;
     struct qemud_vm_input_def *next;
+};
+
+/* Flags for the 'type' field in next struct */
+enum qemud_vm_device_type {
+    QEMUD_DEVICE_DISK,
+    QEMUD_DEVICE_NET,
+    QEMUD_DEVICE_INPUT,
+};
+
+struct qemud_vm_device_def {
+    int type;
+    union {
+        struct qemud_vm_disk_def disk;
+        struct qemud_vm_net_def net;
+        struct qemud_vm_input_def input;
+    } data;
 };
 
 #define QEMUD_MAX_BOOT_DEVS 4
@@ -289,6 +309,10 @@ struct qemud_driver {
     char *networkConfigDir;
     char *networkAutostartDir;
     char logDir[PATH_MAX];
+    unsigned int vncTLS : 1;
+    unsigned int vncTLSx509verify : 1;
+    char *vncTLSx509certdir;
+    char vncListen[BR_INET_ADDR_MAXLEN];
 };
 
 
@@ -311,6 +335,8 @@ void qemudReportError(virConnectPtr conn,
     ATTRIBUTE_FORMAT(printf,5,6);
 
 
+int qemudLoadDriverConfig(struct qemud_driver *driver,
+                          const char *filename);
 
 struct qemud_vm *qemudFindVMByID(const struct qemud_driver *driver,
                                  int id);
@@ -336,7 +362,6 @@ int         qemudDeleteConfig           (virConnectPtr conn,
                                          struct qemud_driver *driver,
                                          const char *configFile,
                                          const char *name);
-int         qemudEnsureDir              (const char *path);
 
 void        qemudFreeVMDef              (struct qemud_vm_def *vm);
 void        qemudFreeVM                 (struct qemud_vm *vm);
@@ -347,6 +372,11 @@ struct qemud_vm *
                                          struct qemud_vm_def *def);
 void        qemudRemoveInactiveVM       (struct qemud_driver *driver,
                                          struct qemud_vm *vm);
+
+struct qemud_vm_device_def *
+            qemudParseVMDeviceDef       (virConnectPtr conn,
+                                         struct qemud_driver *driver,
+                                         const char *xmlStr);
 
 struct qemud_vm_def *
             qemudParseVMDef             (virConnectPtr conn,
@@ -402,7 +432,9 @@ struct qemu_arch_info {
 };
 extern struct qemu_arch_info qemudArchs[];
 
-#endif
+#endif /* WITH_QEMU */
+
+#endif /* __QEMUD_CONF_H */
 
 /*
  * Local variables:

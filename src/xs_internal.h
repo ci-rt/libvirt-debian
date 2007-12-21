@@ -21,7 +21,8 @@ extern struct xenUnifiedDriver xenStoreDriver;
 int xenStoreInit (void);
 
 int		xenStoreOpen		(virConnectPtr conn,
-					 const char *name,
+					 xmlURIPtr uri,
+					 virConnectAuthPtr auth,
 					 int flags);
 int		xenStoreClose		(virConnectPtr conn);
 int		xenStoreGetDomainInfo	(virDomainPtr domain,
@@ -50,6 +51,9 @@ char *		xenStoreDomainGetOSTypeID(virConnectPtr conn,
 char *		xenStoreDomainGetNetworkID(virConnectPtr conn,
 					 int id,
 					 const char *mac);
+char *		xenStoreDomainGetDiskID(virConnectPtr conn,
+					 int id,
+					 const char *dev);
 char *          xenStoreDomainGetName(virConnectPtr conn,
 				      int id);
 

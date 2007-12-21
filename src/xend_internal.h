@@ -110,11 +110,13 @@ int xenDaemonDomainLookupByID(virConnectPtr xend,
 
 char *xenDaemonDomainDumpXMLByID(virConnectPtr xend,
 				 int domid,
-				 int flags);
+				 int flags,
+				 const char *cpus);
 
 char *xenDaemonDomainDumpXMLByName(virConnectPtr xend,
 				   const char *name,
-				   int flags);
+				   int flags,
+				   const char *cpus);
 
 /**
  * \brief Lookup information about the host machine
@@ -181,7 +183,7 @@ char *xenDaemonDomainDumpXMLByName(virConnectPtr xend,
   char *xend_parse_domain_sexp(virConnectPtr conn,  char *root, int xendConfigVersion);
 
 /* refactored ones */
-int xenDaemonOpen(virConnectPtr conn, const char *name, int flags);
+int xenDaemonOpen(virConnectPtr conn, xmlURIPtr uri, virConnectAuthPtr auth, int flags);
 int xenDaemonClose(virConnectPtr conn);
 int xenDaemonGetVersion(virConnectPtr conn, unsigned long *hvVer);
 int xenDaemonNodeGetInfo(virConnectPtr conn, virNodeInfoPtr info);
@@ -196,7 +198,7 @@ int xenDaemonDomainRestore(virConnectPtr conn, const char *filename);
 int xenDaemonDomainSetMemory(virDomainPtr domain, unsigned long memory);
 int xenDaemonDomainSetMaxMemory(virDomainPtr domain, unsigned long memory);
 int xenDaemonDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info);
-char *xenDaemonDomainDumpXML(virDomainPtr domain, int flags);
+char *xenDaemonDomainDumpXML(virDomainPtr domain, int flags, const char *cpus);
 unsigned long xenDaemonDomainGetMaxMemory(virDomainPtr domain);
 char **xenDaemonListDomainsOld(virConnectPtr xend);
 

@@ -2,12 +2,16 @@
  * proxy_svr.c: root suid proxy server for Xen access to APIs with no
  *              side effects from unauthenticated clients.
  *
- * Copyright (C) 2006 Red Hat, Inc.
+ * Copyright (C) 2006, 2007 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
  * Daniel Veillard <veillard@redhat.com>
  */
+
+#include "config.h"
+
+#ifdef WITH_XEN
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,9 +22,9 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <locale.h>
+
 #include "internal.h"
 
-#ifdef WITH_XEN
 #include "proxy_internal.h"
 #include "xen_internal.h"
 #include "xend_internal.h"
@@ -77,7 +81,7 @@ proxyInitXen(void) {
     priv->xshandle = NULL;
     priv->proxy = -1;
 
-    ret = xenHypervisorOpen(conn, NULL, 0);
+    ret = xenHypervisorOpen(conn, NULL, NULL, 0);
     if (ret < 0) {
         fprintf(stderr, "Failed to open Xen hypervisor\n");
         return(-1);
@@ -93,7 +97,7 @@ proxyInitXen(void) {
         fprintf(stderr, "Failed to connect to Xen daemon\n");
         return(-1);
     }
-    ret = xenStoreOpen(conn, NULL, VIR_DRV_OPEN_RO);
+    ret = xenStoreOpen(conn, NULL, NULL, VIR_CONNECT_RO);
     if (ret < 0) {
         fprintf(stderr, "Failed to open XenStore connection");
         return (-1);
@@ -614,7 +618,13 @@ retry2:
 	    if (req->len != sizeof(virProxyPacket))
 	        goto comm_error;
 
-	    xml = xenDaemonDomainDumpXMLByID(conn, request.data.arg, 0);
+            /*
+	     * Ideally we should get the CPUs used by the domain
+	     * but that information is really node specific and it
+	     * rather hard to get from that code path. So proxy
+	     * users won't see CPU pinning (last NULL arg)
+	     */
+	    xml = xenDaemonDomainDumpXMLByID(conn, request.data.arg, 0, NULL);
             if (!xml) {
                 req->data.arg = -1;
                 req->len = sizeof(virProxyPacket);
@@ -831,10 +841,12 @@ int main(int argc, char **argv) {
 }
 
 #else /* WITHOUT_XEN */
+
 int main(void) {
     fprintf(stderr, "libvirt was compiled without Xen support\n");
     exit(1);
 }
+
 #endif /* WITH_XEN */
 
 /*

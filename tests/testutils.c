@@ -7,8 +7,10 @@
  *
  * Karel Zak <kzak@redhat.com>
  *
- * $Id: testutils.c,v 1.7 2007/07/18 21:08:22 berrange Exp $
+ * $Id: testutils.c,v 1.8 2007/12/07 10:08:06 meyering Exp $
  */
+
+#include "config.h"
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,7 +1,8 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(libvirt, 0.3.3)
+AC_INIT(libvirt, 0.4.0)
 AC_CONFIG_SRCDIR(src/libvirt.c)
+AC_CONFIG_AUX_DIR(build-aux)
 AM_CONFIG_HEADER(config.h)
 dnl Make automake keep quiet about wildcards & other GNUmake-isms
 AM_INIT_AUTOMAKE([-Wno-portability])
@@ -23,13 +24,59 @@ AC_SUBST(LIBVIRT_VERSION_NUMBER)
 
 dnl Required minimum versions of all libs we depend on
 LIBXML_REQUIRED="2.5.0"
-GNUTLS_REQUIRED="1.2.0"
+GNUTLS_REQUIRED="1.0.25"
 AVAHI_REQUIRED="0.6.0"
+POLKIT_REQUIRED="0.6"
 
-dnl Checks for programs.
+dnl Checks for C compiler.
 AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_CPP
+
+dnl gl_INIT uses m4_foreach_w, yet that is not defined in autoconf-2.59.
+dnl In order to accommodate developers with such old tools, here's a
+dnl replacement definition.
+m4_ifndef([m4_foreach_w],
+  [m4_define([m4_foreach_w],
+    [m4_foreach([$1], m4_split(m4_normalize([$2]), [ ]), [$3])])])
+
+gl_EARLY
+gl_INIT
+
+AM_PROG_CC_STDC
+AC_C_CONST
+
+dnl Make sure we have an ANSI compiler
+AM_C_PROTOTYPES
+test "x$U" != "x" && AC_MSG_ERROR(Compiler not ANSI compliant)
+
+dnl Support building Win32 DLLs (must appear *before* AM_PROG_LIBTOOL)
+AC_LIBTOOL_WIN32_DLL
+
+AM_PROG_LIBTOOL
+
+AM_PROG_CC_C_O
+
+LIBVIRT_COMPILE_WARNINGS(maximum)
+
+dnl Availability of various common functions (non-fatal if missing).
+AC_CHECK_FUNCS([cfmakeraw regexec uname])
+
+dnl Availability of various common headers (non-fatal if missing).
+AC_CHECK_HEADERS([pwd.h paths.h sys/syslimits.h sys/utsname.h sys/wait.h winsock2.h])
+
+dnl Need -lrpc? (Cygwin needs this)
+AC_SEARCH_LIBS(xdrmem_create,rpc)
+
+dnl Do we have rpcgen?
+AC_PATH_PROG(RPCGEN, rpcgen, no)
+AM_CONDITIONAL(RPCGEN, [test "x$ac_cv_path_RPCGEN" != "xno"])
+dnl Is this GLIBC's buggy rpcgen?
+AM_CONDITIONAL(GLIBC_RPCGEN,
+	       [test "x$ac_cv_path_RPCGEN" != "xno" &&
+	        $ac_cv_path_RPCGEN -t </dev/null >/dev/null 2>&1])
+
+dnl Miscellaneous external programs.
 AC_PATH_PROG(RM, rm, /bin/rm)
 AC_PATH_PROG(MV, mv, /bin/mv)
 AC_PATH_PROG(TAR, tar, /bin/tar)
@@ -50,22 +97,6 @@ AC_DEFINE_UNQUOTED([DNSMASQ],["$DNSMASQ"],
 AC_DEFINE_UNQUOTED([BRCTL],["$BRCTL"],
         [Location or name of the brctl program (see bridge-utils)])
 
-dnl Make sure we have an ANSI compiler
-AM_C_PROTOTYPES
-test "x$U" != "x" && AC_MSG_ERROR(Compiler not ANSI compliant)
-
-AM_PROG_LIBTOOL
-
-AM_PROG_CC_C_O
-
-LIBVIRT_COMPILE_WARNINGS(maximum)
-
-dnl Availability of various common functions (non-fatal if missing).
-AC_CHECK_FUNCS([regexec])
-
-dnl Availability of various common headers (non-fatal if missing).
-AC_CHECK_HEADERS(paths.h)
-
 dnl Specific dir for HTML output ?
 AC_ARG_WITH(html-dir, AC_HELP_STRING([--with-html-dir=path],
             [path to base html directory, default $datadir/doc/html]),
@@ -76,6 +107,18 @@ AC_ARG_WITH(html-subdir, AC_HELP_STRING([--with-html-subdir=path],
             [test "x$withval" != "x" && HTML_DIR="$HTML_DIR/$withval"],
             [HTML_DIR="$HTML_DIR/\$(PACKAGE)-\$(VERSION)/html"])
 AC_SUBST(HTML_DIR)
+
+dnl if --prefix is /usr, don't use /usr/var for localstatedir
+dnl or /usr/etc for sysconfdir
+dnl as this makes a lot of things break in testing situations
+
+if test "$prefix" = "/usr" -a "$localstatedir" = '${prefix}/var' ; then
+    localstatedir='/var'
+fi
+if test "$prefix" = "/usr" -a "$sysconfdir" = '${prefix}/etc' ; then
+    sysconfdir='/etc'
+fi
+
 
 dnl Allow to build without Xen, QEMU/KVM, test or remote driver
 AC_ARG_WITH(xen,
@@ -88,6 +131,8 @@ AC_ARG_WITH(test,
 [  --with-test             add test driver support (on)],[],[with_test=yes])
 AC_ARG_WITH(remote,
 [  --with-remote           add remote driver support (on)],[],[with_remote=yes])
+AC_ARG_WITH(libvirtd,
+[  --with-libvirtd         add libvirtd support (on)],[],[with_libvirtd=yes])
 
 dnl
 dnl specific tests to setup DV devel environments with debug etc ...
@@ -253,8 +298,8 @@ LIBXML_LIBS=""
 LIBXML_FOUND="no"
 
 AC_ARG_WITH(libxml, [  --with-libxml=[PFX]       libxml2 location])
-if test "z$with_libxml" = "zno" ; then 
-    AC_MSG_CHECKING(for libxml2 libraries >= $LIBXML_REQUIRED) 
+if test "z$with_libxml" = "zno" ; then
+    AC_MSG_CHECKING(for libxml2 libraries >= $LIBXML_REQUIRED)
     AC_MSG_ERROR(libxml2 >= $LIBXML_REQUIRED is required for libvirt)
 elif test "z$with_libxml" = "z" -a "x$PKG_CONFIG" != "x" ; then
     PKG_CHECK_EXISTS(libxml-2.0,[LIBXML_FOUND=yes])
@@ -263,7 +308,7 @@ elif test "z$with_libxml" = "z" -a "x$PKG_CONFIG" != "x" ; then
     fi
 fi
 if test "z$LIBXML_FOUND" = "zno" ; then
-    if test "z$with_libxml" != "z" ; then 
+    if test "z$with_libxml" != "z" ; then
 	LIBXML_CONFIG=$with_libxml/bin/$LIBXML_CONFIG
     fi
     AC_MSG_CHECKING(libxml2 $LIBXML_CONFIG >= $LIBXML_REQUIRED )
@@ -331,6 +376,59 @@ CFLAGS="$old_cflags"
 LDFLAGS="$old_ldflags"
 
 
+dnl Cyrus SASL
+AC_ARG_WITH(sasl,
+  [  --with-sasl         use cyrus SASL for authentication],
+  [],
+  [with_sasl=yes])
+
+SASL_CFLAGS=
+SASL_LIBS=
+if test "$with_sasl" != "no"; then
+  if test "$with_sasl" != "yes"; then
+    SASL_CFLAGS="-I$with_sasl"
+    SASL_LIBS="-L$with_sasl"
+  fi
+  old_cflags="$CFLAGS"
+  old_libs="$LIBS"
+  CFLAGS="$CFLAGS $SASL_CFLAGS"
+  LIBS="$LIBS $SASL_LIBS"
+  AC_CHECK_HEADER([sasl/sasl.h],
+       [],
+       AC_MSG_ERROR([You must install the Cyrus SASL development package in order to compile libvirt]))
+  AC_CHECK_LIB(sasl2, sasl_client_init,
+       [],
+       [AC_MSG_ERROR([You must install the Cyrus SASL library in order to compile and run libvirt])])
+  CFLAGS="$old_cflags"
+  LIBS="$old_libs"
+  SASL_LIBS="$SASL_LIBS -lsasl2"
+  AC_DEFINE_UNQUOTED(HAVE_SASL, 1, [whether Cyrus SASL is available for authentication])
+fi
+AM_CONDITIONAL(HAVE_SASL, [test "$with_sasl" != "no"])
+AC_SUBST(SASL_CFLAGS)
+AC_SUBST(SASL_LIBS)
+
+
+dnl PolicyKit library
+POLKIT_CFLAGS=
+POLKIT_LIBS=
+AC_ARG_WITH(polkit,
+  [  --with-polkit         use PolicyKit for UNIX socket access checks],
+  [],
+  [with_polkit=check])
+
+if test "$with_polkit" = "check"; then
+  PKG_CHECK_EXISTS(polkit-dbus >= $POLKIT_REQUIRED, [with_polkit=yes], [with_polkit=no])
+fi
+
+if test "$with_polkit" = "yes"; then
+  PKG_CHECK_MODULES(POLKIT, polkit-dbus >= $POLKIT_REQUIRED)
+  AC_DEFINE_UNQUOTED(HAVE_POLKIT, 1, [use PolicyKit for UNIX socket access checks])
+fi
+AM_CONDITIONAL(HAVE_POLKIT, [test "$with_polkit" = "yes"])
+AC_SUBST(POLKIT_CFLAGS)
+AC_SUBST(POLKIT_LIBS)
+
 dnl Avahi library
 AC_ARG_WITH(avahi,
   [  --with-avahi         use avahi to advertise remote daemon],
@@ -352,17 +450,45 @@ AC_SUBST(AVAHI_CFLAGS)
 AC_SUBST(AVAHI_LIBS)
 
 dnl virsh libraries
-AC_CHECK_LIB(curses, initscr, 
-	[VIRSH_LIBS="$VIRSH_LIBS -lcurses"],
-	[AC_CHECK_LIB(ncurses, initscr,
-	        [VIRSH_LIBS="$VIRSH_LIBS -lncurses"],
-		[AC_MSG_ERROR([curses/ncurses library not found])],
-		[$VIRSH_LIBS])],
-	[$VIRSH_LIBS])
-AC_CHECK_LIB(readline, main, 
-	[VIRSH_LIBS="$VIRSH_LIBS -lreadline"], 
-	[AC_MSG_ERROR([readline library not found])],
-	[$VIRSH_LIBS])
+AC_CHECK_HEADERS([readline/readline.h])
+
+# Check for readline.
+AC_CHECK_LIB(readline, readline,
+	[lv_use_readline=yes; VIRSH_LIBS="$VIRSH_LIBS -lreadline"],
+	[lv_use_readline=no])
+
+# If the above test failed, it may simply be that -lreadline requires
+# some termcap-related code, e.g., from one of the following libraries.
+# See if adding one of them to LIBS helps.
+if test $lv_use_readline = no; then
+    lv_saved_libs=$LIBS
+    LIBS=
+    AC_SEARCH_LIBS(tgetent, ncurses curses termcap termlib)
+    case $LIBS in
+      no*) ;;  # handle "no" and "none required"
+      *) # anything else is a -lLIBRARY
+	# Now, check for -lreadline again, also using $LIBS.
+	# Note: this time we use a different function, so that
+	# we don't get a cached "no" result.
+	AC_CHECK_LIB(readline, rl_initialize,
+		[lv_use_readline=yes
+		 VIRSH_LIBS="$VIRSH_LIBS -lreadline $LIBS"],,
+		[$LIBS])
+	;;
+    esac
+    test $lv_use_readline = no &&
+	AC_MSG_WARN([readline library not found])
+    LIBS=$lv_saved_libs
+fi
+
+if test $lv_use_readline = yes; then
+    AC_DEFINE_UNQUOTED([USE_READLINE], 1,
+		       [whether virsh can use readline])
+    READLINE_CFLAGS=-DUSE_READLINE
+else
+    READLINE_CFLAGS=
+fi
+AC_SUBST(READLINE_CFLAGS)
 AC_SUBST(VIRSH_LIBS)
 
 # end of if with_depends
@@ -442,14 +568,7 @@ else
     PYTHON=
 fi
 AM_CONDITIONAL(WITH_PYTHON, test "$PYTHON_INCLUDES" != "")
-if test "$PYTHON_INCLUDES" != ""
-then
-    PYTHON_SUBDIR=python
-else
-    PYTHON_SUBDIR=
-fi
 AC_SUBST(pythondir)
-AC_SUBST(PYTHON_SUBDIR)
 AC_SUBST(PYTHON_VERSION)
 AC_SUBST(PYTHON_INCLUDES)
 AC_SUBST(PYTHON_SITE_PACKAGES)
@@ -492,7 +611,30 @@ if test "${enableval}" = yes; then
   COMPILER_FLAGS=
 fi
 
+dnl Enable building the proxy?
 
+AC_ARG_WITH(xen-proxy,
+[  --with-xen-proxy              add XEN setuid proxy support (on)],[],[with_xen_proxy=auto])
+
+AC_MSG_CHECKING([if Xen setuid proxy is needed])
+if test "$with_xen_proxy" = "auto"; then
+  if test "$with_polkit" = "yes"; then
+    with_xen_proxy="no"
+  else
+    with_xen_proxy="yes"
+  fi
+fi
+if test "$with_xen" != "yes"; then
+  with_xen_proxy="no"
+fi
+AC_MSG_RESULT([$with_xen_proxy])
+
+AM_CONDITIONAL(WITH_PROXY,[test "$with_xen_proxy" = "yes"])
+
+dnl Enable building libvirtd?
+AM_CONDITIONAL(WITH_LIBVIRTD,[test "x$with_libvirtd" = "xyes"])
+
+dnl Check for gettext
 AM_GNU_GETTEXT_VERSION([0.14.1])
 AM_GNU_GETTEXT([external])
 if test -d po
@@ -502,6 +644,25 @@ else
     ALL_LINGUAS="af am ar as be bg bn_IN bn ca cs cy da de el en_GB es et eu_ES fa fi fr gl gu he hi hr hu hy id is it ja ka kn ko ku lo lt lv mk ml mr ms my nb nl nn no nso or pa pl pt_BR pt ro ru si sk sl sq sr@Latn sr sv ta te th tr uk ur vi zh_CN zh_TW zu"
 fi
 
+dnl Extra link-time flags for Cygwin.
+dnl Copied from libxml2 configure.in, but I removed mingw changes
+dnl for now since I'm not supporting mingw at present.  - RWMJ
+CYGWIN_EXTRA_LDFLAGS=
+CYGWIN_EXTRA_LIBADD=
+CYGWIN_EXTRA_PYTHON_LIBADD=
+case "$host" in
+  *-*-cygwin*)
+    CYGWIN_EXTRA_LDFLAGS="-no-undefined"
+    CYGWIN_EXTRA_LIBADD="${INTLLIBS}"
+    if test "x$PYTHON_VERSION" != "x"; then
+      CYGWIN_EXTRA_PYTHON_LIBADD="-L/usr/lib/python${PYTHON_VERSION}/config -lpython${PYTHON_VERSION}"
+    fi
+    ;;
+esac
+AC_SUBST(CYGWIN_EXTRA_LDFLAGS)
+AC_SUBST(CYGWIN_EXTRA_LIBADD)
+AC_SUBST(CYGWIN_EXTRA_PYTHON_LIBADD)
+
 # very annoying
 rm -f COPYING
 cp COPYING.LIB COPYING
@@ -509,11 +670,13 @@ cp COPYING.LIB COPYING
 AC_OUTPUT(Makefile src/Makefile include/Makefile docs/Makefile \
           docs/examples/Makefile docs/devhelp/Makefile \
 	  docs/examples/python/Makefile \
+	  gnulib/lib/Makefile \
+	  gnulib/tests/Makefile \
           libvirt.pc libvirt.spec \
           po/Makefile.in scripts/Makefile \
 	  include/libvirt/Makefile include/libvirt/libvirt.h \
 	  python/Makefile python/tests/Makefile \
-          qemud/Makefile m4/Makefile \
+          qemud/Makefile \
           tests/Makefile proxy/Makefile \
           tests/xml2sexprdata/Makefile \
           tests/sexpr2xmldata/Makefile \
@@ -528,22 +691,35 @@ AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Drivers])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([     Xen: $with_xen])
+AC_MSG_NOTICE([   Proxy: $with_xen_proxy])
 AC_MSG_NOTICE([    QEMU: $with_qemu])
 AC_MSG_NOTICE([  OpenVZ: $with_openvz])
 AC_MSG_NOTICE([    Test: $with_test])
 AC_MSG_NOTICE([  Remote: $with_remote])
+AC_MSG_NOTICE([Libvirtd: $with_libvirtd])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Libraries])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([  libxml: $LIBXML_CFLAGS $LIBXML_LIBS])
 AC_MSG_NOTICE([  gnutls: $GNUTLS_CFLAGS $GNUTLS_LIBS])
+if test "$with_sasl" != "no" ; then
+AC_MSG_NOTICE([    sasl: $SASL_CFLAGS $SASL_LIBS])
+else
+AC_MSG_NOTICE([    sasl: no])
+fi
 if test "$with_avahi" = "yes" ; then
 AC_MSG_NOTICE([   avahi: $AVAHI_CFLAGS $AVAHI_LIBS])
 else
 AC_MSG_NOTICE([   avahi: no])
 fi
+if test "$with_polkit" = "yes" ; then
+AC_MSG_NOTICE([  polkit: $POLKIT_CFLAGS $POLKIT_LIBS])
+else
+AC_MSG_NOTICE([  polkit: no])
+fi
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Miscellaneous])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([  Debug: $enable_debug])
+AC_MSG_NOTICE([  Readline: $lv_use_readline])
 AC_MSG_NOTICE([])

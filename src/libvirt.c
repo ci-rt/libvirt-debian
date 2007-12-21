@@ -22,6 +22,12 @@
 
 #include <libxml/parser.h>
 #include <libxml/xpath.h>
+#include <libxml/uri.h>
+#include "getpass.h"
+
+#if HAVE_WINSOCK2_H
+#include <winsock2.h>
+#endif
 
 #include "internal.h"
 #include "driver.h"
@@ -62,6 +68,105 @@ static int initialized = 0;
 #define DEBUG(fs,...)
 #endif /* !ENABLE_DEBUG */
 
+static int virConnectAuthCallbackDefault(virConnectCredentialPtr cred,
+                                         unsigned int ncred,
+                                         void *cbdata ATTRIBUTE_UNUSED) {
+    int i;
+
+    for (i = 0 ; i < ncred ; i++) {
+        char buf[1024];
+        char *bufptr = buf;
+
+        if (printf("%s:", cred[i].prompt) < 0)
+            return -1;
+        if (fflush(stdout) != 0)
+            return -1;
+
+        switch (cred[i].type) {
+        case VIR_CRED_USERNAME:
+        case VIR_CRED_AUTHNAME:
+        case VIR_CRED_ECHOPROMPT:
+        case VIR_CRED_REALM:
+            if (!fgets(buf, sizeof(buf), stdin)) {
+                if (feof(stdin)) { /* Treat EOF as "" */
+                    buf[0] = '\0';
+                    break;
+                }
+                return -1;
+            }
+            if (buf[strlen(buf)-1] == '\n')
+                buf[strlen(buf)-1] = '\0';
+            break;
+
+        case VIR_CRED_PASSPHRASE:
+        case VIR_CRED_NOECHOPROMPT:
+            bufptr = getpass("");
+            if (!bufptr)
+                return -1;
+            break;
+
+        default:
+            return -1;
+        }
+
+        if (STREQ(bufptr, "") && cred[i].defresult)
+            cred[i].result = strdup(cred[i].defresult);
+        else
+            cred[i].result = strdup(bufptr);
+        if (!cred[i].result)
+            return -1;
+        cred[i].resultlen = strlen(cred[i].result);
+    }
+
+    return 0;
+}
+
+/* Don't typically want VIR_CRED_USERNAME. It enables you to authenticate
+ * as one user, and act as another. It just results in annoying
+ * prompts for the username twice & is very rarely what you want
+ */
+static int virConnectCredTypeDefault[] = {
+    VIR_CRED_AUTHNAME,
+    VIR_CRED_ECHOPROMPT,
+    VIR_CRED_REALM,
+    VIR_CRED_PASSPHRASE,
+    VIR_CRED_NOECHOPROMPT,
+};
+
+static virConnectAuth virConnectAuthDefault = {
+    virConnectCredTypeDefault,
+    sizeof(virConnectCredTypeDefault)/sizeof(int),
+    virConnectAuthCallbackDefault,
+    NULL,
+};
+
+/*
+ * virConnectAuthPtrDefault
+ *
+ * A default implementation of the authentication callbacks. This
+ * implementation is suitable for command line based tools. It will
+ * prompt for username, passwords, realm and one time keys as needed.
+ * It will print on STDOUT, and read from STDIN. If this is not
+ * suitable for the application's needs an alternative implementation
+ * should be provided.
+ */
+virConnectAuthPtr virConnectAuthPtrDefault = &virConnectAuthDefault;
+
+#if HAVE_WINSOCK2_H
+static int
+winsock_init (void)
+{
+    WORD winsock_version, err;
+    WSADATA winsock_data;
+
+    /* http://msdn2.microsoft.com/en-us/library/ms742213.aspx */
+    winsock_version = MAKEWORD (2, 2);
+    err = WSAStartup (winsock_version, &winsock_data);
+    if (err != 0)
+        return -1;
+}
+#endif
+
 /**
  * virInitialize:
  *
@@ -78,6 +183,10 @@ virInitialize(void)
     if (initialized)
         return(0);
     initialized = 1;
+
+#if HAVE_WINSOCK2_H
+    if (winsock_init () == -1) return -1;
+#endif
 
     if (!bindtextdomain(GETTEXT_PACKAGE, LOCALEBASEDIR))
         return (-1);
@@ -302,7 +411,8 @@ int __virStateInitialize(void) {
         return -1;
 
     for (i = 0 ; i < virStateDriverTabCount ; i++) {
-        if (virStateDriverTab[i]->initialize() < 0)
+        if (virStateDriverTab[i]->initialize &&
+            virStateDriverTab[i]->initialize() < 0)
             ret = -1;
     }
     return ret;
@@ -312,7 +422,8 @@ int __virStateCleanup(void) {
     int i, ret = 0;
 
     for (i = 0 ; i < virStateDriverTabCount ; i++) {
-        if (virStateDriverTab[i]->cleanup() < 0)
+        if (virStateDriverTab[i]->cleanup &&
+            virStateDriverTab[i]->cleanup() < 0)
             ret = -1;
     }
     return ret;
@@ -322,7 +433,8 @@ int __virStateReload(void) {
     int i, ret = 0;
 
     for (i = 0 ; i < virStateDriverTabCount ; i++) {
-        if (virStateDriverTab[i]->reload() < 0)
+        if (virStateDriverTab[i]->reload &&
+            virStateDriverTab[i]->reload() < 0)
             ret = -1;
     }
     return ret;
@@ -332,7 +444,8 @@ int __virStateActive(void) {
     int i, ret = 0;
 
     for (i = 0 ; i < virStateDriverTabCount ; i++) {
-        if (virStateDriverTab[i]->active())
+        if (virStateDriverTab[i]->active &&
+            virStateDriverTab[i]->active())
             ret = 1;
     }
     return ret;
@@ -390,10 +503,13 @@ virGetVersion(unsigned long *libVer, const char *type,
 }
 
 static virConnectPtr
-do_open (const char *name, int flags)
+do_open (const char *name,
+         virConnectAuthPtr auth,
+         int flags)
 {
     int i, res;
     virConnectPtr ret = NULL;
+    xmlURIPtr uri;
 
     /* Convert NULL or "" to xen:/// for back compat */
     if (!name || name[0] == '\0')
@@ -403,6 +519,12 @@ do_open (const char *name, int flags)
     if (!strcasecmp(name, "xen"))
         name = "xen:///";
 
+    /* Convert xen:// -> xen:/// because xmlParseURI cannot parse the
+     * former.  This allows URIs such as xen://localhost to work.
+     */
+    if (STREQ (name, "xen://"))
+        name = "xen:///";
+
     if (!initialized)
         if (virInitialize() < 0)
 	    return NULL;
@@ -410,19 +532,43 @@ do_open (const char *name, int flags)
     ret = virGetConnect();
     if (ret == NULL) {
         virLibConnError(NULL, VIR_ERR_NO_MEMORY, _("allocating connection"));
+        return NULL;
+    }
+
+    uri = xmlParseURI (name);
+    if (!uri) {
+        virLibConnError (ret, VIR_ERR_INVALID_ARG,
+                         _("could not parse connection URI"));
         goto failed;
     }
 
 #ifdef ENABLE_DEBUG
-    fprintf (stderr, "libvirt: do_open: proceeding with name=%s\n", name);
+    fprintf (stderr,
+             "libvirt: do_open: name \"%s\" to URI components:\n"
+             "  scheme %s\n"
+             "  opaque %s\n"
+             "  authority %s\n"
+             "  server %s\n"
+             "  user %s\n"
+             "  port %d\n"
+             "  path %s\n",
+             name,
+             uri->scheme, uri->opaque, uri->authority, uri->server,
+             uri->user, uri->port, uri->path);
 #endif
+
+    ret->name = strdup (name);
+    if (!ret->name) {
+        virLibConnError (ret, VIR_ERR_NO_MEMORY, "allocating conn->name");
+        goto failed;
+    }
 
     for (i = 0; i < virDriverTabCount; i++) {
 #ifdef ENABLE_DEBUG
         fprintf (stderr, "libvirt: do_open: trying driver %d (%s) ...\n",
                  i, virDriverTab[i]->name);
 #endif
-        res = virDriverTab[i]->open (ret, name, flags);
+        res = virDriverTab[i]->open (ret, uri, auth, flags);
 #ifdef ENABLE_DEBUG
         fprintf (stderr, "libvirt: do_open: driver %d %s returned %s\n",
                  i, virDriverTab[i]->name,
@@ -444,7 +590,7 @@ do_open (const char *name, int flags)
     }
 
     for (i = 0; i < virNetworkDriverTabCount; i++) {
-        res = virNetworkDriverTab[i]->open (ret, name, flags);
+        res = virNetworkDriverTab[i]->open (ret, uri, auth, flags);
 #ifdef ENABLE_DEBUG
         fprintf (stderr, "libvirt: do_open: network driver %d %s returned %s\n",
                  i, virNetworkDriverTab[i]->name,
@@ -464,16 +610,19 @@ do_open (const char *name, int flags)
         }
     }
 
-    if (flags & VIR_DRV_OPEN_RO) {
-        ret->flags = VIR_CONNECT_RO;
-    }
+    /* Cleansing flags */
+    ret->flags = flags & VIR_CONNECT_RO;
+
+    xmlFreeURI (uri);
 
     return ret;
 
 failed:
+    if (ret->name) free (ret->name);
     if (ret->driver) ret->driver->close (ret);
+    if (uri) xmlFreeURI(uri);
 	virFreeConnect(ret);
-    return (NULL);
+    return NULL;
 }
 
 /**
@@ -491,7 +640,7 @@ virConnectPtr
 virConnectOpen (const char *name)
 {
     DEBUG("name=%s", name);
-    return do_open (name, 0);
+    return do_open (name, NULL, 0);
 }
 
 /**
@@ -510,7 +659,30 @@ virConnectPtr
 virConnectOpenReadOnly(const char *name)
 {
     DEBUG("name=%s", name);
-    return do_open (name, VIR_DRV_OPEN_RO);
+    return do_open (name, NULL, VIR_CONNECT_RO);
+}
+
+/**
+ * virConnectOpenAuth:
+ * @name: URI of the hypervisor
+ * @auth: Authenticate callback parameters
+ * @flags: Open flags
+ *
+ * This function should be called first to get a connection to the 
+ * Hypervisor. If neccessary, authentication will be performed fetching
+ * credentials via the callback
+ *
+ * Returns a pointer to the hypervisor connection or NULL in case of error
+ *
+ * URIs are documented at http://libvirt.org/uri.html
+ */
+virConnectPtr
+virConnectOpenAuth(const char *name,
+                   virConnectAuthPtr auth,
+                   int flags)
+{
+    DEBUG("name=%s", name);
+    return do_open (name, auth, flags);
 }
 
 /**
@@ -535,6 +707,8 @@ virConnectClose(virConnectPtr conn)
     if (conn->networkDriver)
         conn->networkDriver->close (conn);
     conn->driver->close (conn);
+
+    if (conn->name) free (conn->name);
 
     if (virFreeConnect(conn) < 0)
         return (-1);
@@ -666,6 +840,8 @@ virConnectGetHostname (virConnectPtr conn)
 char *
 virConnectGetURI (virConnectPtr conn)
 {
+    char *name;
+
     DEBUG("conn=%p", conn);
 
     if (!VIR_IS_CONNECT(conn)) {
@@ -673,11 +849,18 @@ virConnectGetURI (virConnectPtr conn)
         return NULL;
     }
 
+    /* Drivers may override getURI, but if they don't then
+     * we provide a default implementation.
+     */
     if (conn->driver->getURI)
         return conn->driver->getURI (conn);
 
-    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
-    return NULL;
+    name = strdup (conn->name);
+    if (!name) {
+        virLibConnError (conn, VIR_ERR_NO_MEMORY, __FUNCTION__);
+        return NULL;
+    }
+    return name;
 }
 
 /**
@@ -1960,6 +2143,8 @@ virConnectGetCapabilities (virConnectPtr conn)
 unsigned long long
 virNodeGetFreeMemory(virConnectPtr conn)
 {
+    DEBUG("conn=%p", conn);
+
     if (!VIR_IS_CONNECT (conn)) {
         virLibConnError (NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
         return 0;
@@ -2602,7 +2787,7 @@ virDomainGetMaxVcpus(virDomainPtr domain)
  * Returns 0 in case of success, -1 in case of failure.
  */
 int
-virDomainAttachDevice(virDomainPtr domain, char *xml)
+virDomainAttachDevice(virDomainPtr domain, const char *xml)
 {
     virConnectPtr conn;
     DEBUG("domain=%p, xml=%s", domain, xml);
@@ -2634,7 +2819,7 @@ virDomainAttachDevice(virDomainPtr domain, char *xml)
  * Returns 0 in case of success, -1 in case of failure.
  */
 int
-virDomainDetachDevice(virDomainPtr domain, char *xml)
+virDomainDetachDevice(virDomainPtr domain, const char *xml)
 {
     virConnectPtr conn;
     DEBUG("domain=%p, xml=%s", domain, xml);
@@ -2678,6 +2863,9 @@ int
 virNodeGetCellsFreeMemory(virConnectPtr conn, unsigned long long *freeMems,
                           int startCell, int maxCells)
 {
+    DEBUG("conn=%p, freeMems=%p, startCell=%d, maxCells=%d",
+          conn, freeMems, startCell, maxCells);
+
     if (!VIR_IS_CONNECT(conn)) {
         virLibConnError(conn, VIR_ERR_INVALID_CONN, __FUNCTION__);
         return (-1);

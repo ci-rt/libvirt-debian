@@ -8,6 +8,8 @@
  * Author: Daniel Veillard <veillard@redhat.com>
  */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -280,6 +282,25 @@ virDefaultErrorFunc(virErrorPtr err)
         case VIR_FROM_REMOTE:
             dom = "Remote ";
             break;
+        case VIR_FROM_SEXPR:
+            dom = "S-Expr ";
+            break;
+        case VIR_FROM_PROXY:
+            dom = "PROXY ";
+            break;
+        case VIR_FROM_CONF:
+            dom = "Config ";
+            break;
+        case VIR_FROM_OPENVZ:
+            dom = "OpenVZ ";
+            break;
+        case VIR_FROM_XENXM:
+            dom = "Xen XM ";
+            break;
+        case VIR_FROM_STATS_LINUX:
+            dom = "Linux Stats ";
+            break;
+
     }
     if ((err->dom != NULL) && (err->code != VIR_ERR_INVALID_DOMAIN)) {
         domain = err->dom->name;
@@ -651,6 +672,12 @@ __virErrorMsg(virErrorNumber error, const char *info)
 		errmsg = _("invalid MAC adress");
 	    else
 		errmsg = _("invalid MAC adress: %s");
+	    break;
+    case VIR_ERR_AUTH_FAILED:
+	    if (info == NULL)
+		errmsg = _("authentication failed");
+	    else
+		errmsg = _("authentication failed: %s");
 	    break;
     }
     return (errmsg);

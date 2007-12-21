@@ -1,6 +1,10 @@
+#include "config.h"
+
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
+#include <errno.h>
 #include "conf.h"
 
 int main(int argc, char **argv) {
@@ -24,7 +28,10 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Failed to serialize %s back\n", argv[1]);
 	exit(3);
     }
-    printf("%s", buffer);
     virConfFree(conf);
+    if (fwrite(buffer, 1, len, stdout) != len) {
+	fprintf(stderr, "Write failed: %s\n", strerror (errno));
+	exit(1);
+    }
     exit(0);
 }
