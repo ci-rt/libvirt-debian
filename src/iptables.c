@@ -19,9 +19,9 @@
  *     Mark McLoughlin <markmc@redhat.com>
  */
 
-#include <config.h>
+#include "config.h"
 
-#include "iptables.h"
+#if WITH_QEMU
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,12 +31,19 @@
 #include <limits.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <paths.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#ifdef HAVE_SYS_WAIT_H
 #include <sys/wait.h>
+#endif
+
+#ifdef HAVE_PATHS_H
+#include <paths.h>
+#endif
 
 #include "internal.h"
+#include "iptables.h"
 
 #define qemudLog(level, msg...) fprintf(stderr, msg)
 
@@ -208,7 +215,7 @@ iptRulesAppend(iptRules *rules,
 {
     iptRule *r;
 
-    if (!(r = (iptRule *)realloc(rules->rules, sizeof(iptRule) * (rules->nrules+1)))) {
+    if (!(r = realloc(rules->rules, sizeof(*r) * (rules->nrules+1)))) {
         int i = 0;
         while (argv[i])
             free(argv[i++]);
@@ -246,7 +253,7 @@ iptRulesRemove(iptRules *rules,
     int i;
 
     for (i = 0; i < rules->nrules; i++)
-        if (!strcmp(rules->rules[i].rule, strdup(rule)))
+        if (!strcmp(rules->rules[i].rule, rule))
             break;
 
     if (i >= rules->nrules)
@@ -312,7 +319,7 @@ iptRulesNew(const char *table,
 {
     iptRules *rules;
 
-    if (!(rules = (iptRules *)calloc(1, sizeof (iptRules))))
+    if (!(rules = calloc(1, sizeof (*rules))))
         return NULL;
 
     if (!(rules->table = strdup(table)))
@@ -393,7 +400,7 @@ iptablesAddRemoveChain(iptRules *rules, int action)
         2 + /*   --table foo     */
         2;  /*   --new-chain bar */
 
-    if (!(argv = (char **)calloc(n + 1, sizeof(char *))))
+    if (!(argv = calloc(n + 1, sizeof(*argv))))
         goto error;
 
     n = 0;
@@ -451,7 +458,7 @@ iptablesAddRemoveRule(iptRules *rules, int action, const char *arg, ...)
 
     va_end(args);
 
-    if (!(argv = (char **)calloc(n + 1, sizeof(char *))))
+    if (!(argv = calloc(n + 1, sizeof(*argv))))
         goto error;
 
     if (!(rule = (char *)malloc(rulelen)))
@@ -542,7 +549,7 @@ iptablesContextNew(void)
 {
     iptablesContext *ctx;
 
-    if (!(ctx = (iptablesContext *) calloc(1, sizeof (iptablesContext))))
+    if (!(ctx = calloc(1, sizeof (*ctx))))
         return NULL;
 
     if (!(ctx->input_filter = iptRulesNew("filter", IPTABLES_PREFIX "INPUT")))
@@ -1091,6 +1098,8 @@ iptablesRemoveForwardMasquerade(iptablesContext *ctx,
 {
     return iptablesForwardMasquerade(ctx, network, physdev, REMOVE);
 }
+
+#endif /* WITH_QEMU */
 
 /*
  * Local variables:

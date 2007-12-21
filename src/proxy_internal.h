@@ -12,7 +12,7 @@
 #ifndef __LIBVIR_PROXY_H__
 #define __LIBVIR_PROXY_H__
 
-#include <libvirt/libvirt.h>
+#include "libvirt/libvirt.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -96,6 +96,8 @@ extern virDomainPtr xenProxyLookupByUUID(virConnectPtr conn,
 extern virDomainPtr xenProxyLookupByName(virConnectPtr conn,
                                          const char *domname);
 
+extern char *       xenProxyDomainDumpXML(virDomainPtr domain,
+					  int flags);
 #ifdef __cplusplus
 }
 #endif                          /* __cplusplus */

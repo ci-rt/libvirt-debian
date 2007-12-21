@@ -4,7 +4,13 @@
 # Check python/generator.py in the source distribution of libvir
 # to find out more about the generation process
 #
-import libvirtmod
+
+# On cygwin, the DLL is called cygvirtmod.dll
+try:
+    import libvirtmod
+except:
+    import cygvirtmod as libvirtmod
+
 import types
 
 # The root of all libvirt errors.
@@ -82,6 +88,12 @@ def registerErrorHandler(f, ctx):
        being a list of informations about the error being raised.
        Returns 1 in case of success."""
     return libvirtmod.virRegisterErrorHandler(f,ctx)
+
+def openAuth(uri, auth, flags):
+    ret = libvirtmod.virConnectOpenAuth(uri, auth, flags)
+    if ret is None:raise libvirtError('virConnectOpenAuth() failed')
+    return virConnect(_obj=ret)
+
 
 #
 # Return library version.

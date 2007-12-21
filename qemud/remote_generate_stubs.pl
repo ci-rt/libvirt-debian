@@ -5,7 +5,7 @@
 #
 # By Richard Jones <rjones@redhat.com>
 #
-# $Id: remote_generate_stubs.pl,v 1.1 2007/06/11 11:47:01 rjones Exp $
+# $Id: remote_generate_stubs.pl,v 1.2 2007/12/05 15:34:05 berrange Exp $
 
 use strict;
 
@@ -93,7 +93,7 @@ if ($opt_d) {
 elsif ($opt_i) {
     my @keys = sort (keys %calls);
     foreach (@keys) {
-	print "static int remoteDispatch$calls{$_}->{ProcName} (struct qemud_client *client, remote_message_header *req, $calls{$_}->{args} *args, $calls{$_}->{ret} *ret);\n";
+	print "static int remoteDispatch$calls{$_}->{ProcName} (struct qemud_server *server, struct qemud_client *client, remote_message_header *req, $calls{$_}->{args} *args, $calls{$_}->{ret} *ret);\n";
     }
 }
 
@@ -196,7 +196,8 @@ elsif ($opt_s) {
 	my $retvoid = $ret eq "void";
 
 	print "static int\n";
-	print "remoteDispatch$calls{$_}->{ProcName} (struct qemud_client *client,\n";
+	print "remoteDispatch$calls{$_}->{ProcName} (struct qemud_server *server,\n";
+	print "            struct qemud_client *client,\n";
 	print "            remote_message_header *req,\n";
 	print "            remote_get_max_vcpus_args *args,\n";
 	print "            remote_get_max_vcpus_ret *ret)\n";

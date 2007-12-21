@@ -1,18 +1,25 @@
-#include <stdio.h>
-#include <string.h>
 
+#include "config.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 #include <fcntl.h>
 
+#if WITH_XEN
+
+#include "internal.h"
 #include "xml.h"
 #include "testutils.h"
-#include "internal.h"
 
 static char *progname;
+static char *abs_top_srcdir;
 
 #define MAX_FILE 4096
 
-static int testCompareFiles(const char *xml, const char *sexpr, const char *name, int xendConfigVersion) {
+static int testCompareFiles(const char *xml_rel, const char *sexpr_rel,
+                            const char *name, int xendConfigVersion) {
   char xmlData[MAX_FILE];
   char sexprData[MAX_FILE];
   char *gotname = NULL;
@@ -20,6 +27,11 @@ static int testCompareFiles(const char *xml, const char *sexpr, const char *name
   char *xmlPtr = &(xmlData[0]);
   char *sexprPtr = &(sexprData[0]);
   int ret = -1;
+  char xml[PATH_MAX];
+  char sexpr[PATH_MAX];
+
+  snprintf(xml, sizeof xml - 1, "%s/tests/%s", abs_top_srcdir, xml_rel);
+  snprintf(sexpr, sizeof sexpr - 1, "%s/tests/%s", abs_top_srcdir, sexpr_rel);
 
   if (virtTestLoadFile(xml, &xmlPtr, MAX_FILE) < 0)
     goto fail;
@@ -120,6 +132,13 @@ static int testCompareDiskFile(const void *data ATTRIBUTE_UNUSED) {
 static int testCompareDiskBlock(const void *data ATTRIBUTE_UNUSED) {
   return testCompareFiles("xml2sexprdata/xml2sexpr-disk-block.xml",
 			  "xml2sexprdata/xml2sexpr-disk-block.sexpr",
+			  "pvtest",
+			  2);
+}
+
+static int testCompareDiskShareable(const void *data ATTRIBUTE_UNUSED) {
+  return testCompareFiles("xml2sexprdata/xml2sexpr-disk-block-shareable.xml",
+			  "xml2sexprdata/xml2sexpr-disk-block-shareable.sexpr",
 			  "pvtest",
 			  2);
 }
@@ -225,6 +244,13 @@ main(int argc, char **argv)
 
     progname = argv[0];
 
+    abs_top_srcdir = getenv("abs_top_srcdir");
+    if (!abs_top_srcdir) {
+        fprintf(stderr, "missing enviroment variable abs_top_srcdir\n");
+	exit(EXIT_FAILURE);
+    }
+        
+
     if (argc > 1) {
 	fprintf(stderr, "Usage: %s\n", progname);
 	exit(EXIT_FAILURE);
@@ -268,6 +294,10 @@ main(int argc, char **argv)
 
     if (virtTestRun("XML-2-SEXPR Disk Block",
 		    1, testCompareDiskBlock, NULL) != 0)
+	ret = -1;
+
+    if (virtTestRun("XML-2-SEXPR Disk Shareable",
+		    1, testCompareDiskShareable, NULL) != 0)
 	ret = -1;
 
     if (virtTestRun("XML-2-SEXPR Disk Drv Loop",
@@ -323,3 +353,9 @@ main(int argc, char **argv)
 
     exit(ret==0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }
+
+#else /* WITH_XEN */
+
+int main (void) { exit (77); /* means 'test skipped' for automake */ }
+
+#endif /* ! WITH_XEN */
