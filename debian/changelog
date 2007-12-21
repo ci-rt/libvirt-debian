@@ -1,3 +1,15 @@
+libvirt (0.4.0-1) unstable; urgency=low
+
+  * new upstream version
+  * enable sasl support
+  * leave policykit support disabled since it's not in unstable yet
+  * bump shlibs version
+  * remove CVS metadata
+  * rediff patches
+  * libvirtd-bin.init: libvirtd supports reload
+
+ -- Guido Guenther <agx@sigxcpu.org>  Fri, 21 Dec 2007 16:49:13 +0100
+
 libvirt (0.3.3-6) unstable; urgency=low
 
   * don't include precompiled examples in the doc package (Closes: #456825)
