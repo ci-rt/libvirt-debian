@@ -1,26 +1,35 @@
-Index: libvirt/qemud/Makefile.am
-===================================================================
---- libvirt.orig/qemud/Makefile.am	2007-11-23 01:45:38.000000000 +0100
-+++ libvirt/qemud/Makefile.am	2007-11-23 01:46:42.000000000 +0100
-@@ -47,8 +47,6 @@
- 	mkdir -p $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart
- 	$(INSTALL_DATA) $(srcdir)/default-network.xml $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml
- 	sed -i -e "s,</name>,</name>\n  <uuid>$(UUID)</uuid>," $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml
+diff --git a/qemud/Makefile.am b/qemud/Makefile.am
+index db6adb1..44f6be6 100644
+--- a/qemud/Makefile.am
++++ b/qemud/Makefile.am
+@@ -80,9 +80,6 @@ install-data-local: install-init install-data-sasl
+ 	  $(DESTDIR)$(sysconfdir)/$(default_xml_dest)
+ 	sed -i -e "s,</name>,</name>\n  <uuid>$(UUID)</uuid>," \
+ 	  $(DESTDIR)$(sysconfdir)/$(default_xml_dest)
 -	test -e $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml || \
--           ln -s ../default.xml $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml
+-           ln -s ../default.xml \
+-	    $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml
  	mkdir -p $(DESTDIR)$(localstatedir)/log/libvirt/qemu
  	mkdir -p $(DESTDIR)$(localstatedir)/run/libvirt
  	mkdir -p $(DESTDIR)$(localstatedir)/lib/libvirt
-Index: libvirt/qemud/Makefile.in
-===================================================================
---- libvirt.orig/qemud/Makefile.in	2007-11-23 01:46:47.000000000 +0100
-+++ libvirt/qemud/Makefile.in	2007-11-23 01:47:00.000000000 +0100
-@@ -646,8 +646,6 @@
- 	mkdir -p $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart
- 	$(INSTALL_DATA) $(srcdir)/default-network.xml $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml
- 	sed -i -e "s,</name>,</name>\n  <uuid>$(UUID)</uuid>," $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml
--	test -e $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml || \
--           ln -s ../default.xml $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml
- 	mkdir -p $(DESTDIR)$(localstatedir)/log/libvirt/qemu
- 	mkdir -p $(DESTDIR)$(localstatedir)/run/libvirt
- 	mkdir -p $(DESTDIR)$(localstatedir)/lib/libvirt
+@@ -151,4 +148,4 @@ uninstall-init:
+ 
+ endif # DBUS_INIT_SCRIPTS_RED_HAT
+ 
+-endif # WITH_LIBVIRTD
+\ No newline at end of file
++endif # WITH_LIBVIRTD
+diff --git a/qemud/Makefile.in b/qemud/Makefile.in
+index bd87891..2c2e7e0 100644
+--- a/qemud/Makefile.in
++++ b/qemud/Makefile.in
+@@ -956,9 +956,6 @@ remote_protocol.c: remote_protocol.h
+ @WITH_LIBVIRTD_TRUE@	  $(DESTDIR)$(sysconfdir)/$(default_xml_dest)
+ @WITH_LIBVIRTD_TRUE@	sed -i -e "s,</name>,</name>\n  <uuid>$(UUID)</uuid>," \
+ @WITH_LIBVIRTD_TRUE@	  $(DESTDIR)$(sysconfdir)/$(default_xml_dest)
+-@WITH_LIBVIRTD_TRUE@	test -e $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml || \
+-@WITH_LIBVIRTD_TRUE@           ln -s ../default.xml \
+-@WITH_LIBVIRTD_TRUE@	    $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml
+ @WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(localstatedir)/log/libvirt/qemu
+ @WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(localstatedir)/run/libvirt
+ @WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(localstatedir)/lib/libvirt
