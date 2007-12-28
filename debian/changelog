@@ -1,8 +1,8 @@
-libvirt (0.3.3-4~bpo.1) etch-backports; urgency=low
+libvirt (0.3.3-4~bpo40+1) etch-backports; urgency=low
 
   * Rebuild for Etch backports.
 
- -- Guido Guenther <agx@sigxcpu.org>  Thu, 13 Dec 2007 22:50:49 +0100
+ -- Guido Guenther <agx@sigxcpu.org>  Fri, 28 Dec 2007 17:38:28 +0100
 
 libvirt (0.3.3-4) unstable; urgency=low
 
