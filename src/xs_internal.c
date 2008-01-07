@@ -9,6 +9,8 @@
  */
 
 #ifdef WITH_XEN
+#include "config.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -19,7 +21,7 @@
 
 #include <stdint.h>
 
-#include <xen/dom0_ops.h>
+#include <xen/dom0_ops.h> 
 #include <xen/version.h>
 #include <xen/xen.h>
 
@@ -45,7 +47,6 @@ static char *xenStoreDomainGetOSType(virDomainPtr domain);
 struct xenUnifiedDriver xenStoreDriver = {
     xenStoreOpen, /* open */
     xenStoreClose, /* close */
-    NULL, /* type */
     NULL, /* version */
     NULL, /* hostname */
     NULL, /* URI */
@@ -71,7 +72,6 @@ struct xenUnifiedDriver xenStoreDriver = {
     NULL, /* domainPinVcpu */
     NULL, /* domainGetVcpus */
     NULL, /* domainGetMaxVcpus */
-    NULL, /* domainDumpXML */
     NULL, /* listDefinedDomains */
     NULL, /* numOfDefinedDomains */
     NULL, /* domainCreate */
@@ -327,7 +327,8 @@ virConnectCheckStoreID(virConnectPtr conn, int id)
  */
 int
 xenStoreOpen(virConnectPtr conn,
-             const char *name ATTRIBUTE_UNUSED,
+             xmlURIPtr uri ATTRIBUTE_UNUSED,
+             virConnectAuthPtr auth ATTRIBUTE_UNUSED,
              int flags ATTRIBUTE_UNUSED)
 {
     xenUnifiedPrivatePtr priv = (xenUnifiedPrivatePtr) conn->privateData;
@@ -335,15 +336,22 @@ xenStoreOpen(virConnectPtr conn,
 #ifdef PROXY
     priv->xshandle = xs_daemon_open_readonly();
 #else
-    if (flags & VIR_DRV_OPEN_RO)
+    if (flags & VIR_CONNECT_RO)
 	priv->xshandle = xs_daemon_open_readonly();
     else
 	priv->xshandle = xs_daemon_open();
 #endif /* ! PROXY */
 
     if (priv->xshandle == NULL) {
-        virXenStoreError(NULL, VIR_ERR_NO_XEN, 
-	                     _("failed to connect to Xen Store"));
+	/*
+         * not being able to connect via the socket as a normal user
+         * is rather normal, this should fallback to the proxy (or
+         * remote) mechanism.
+	 */
+        if (getuid() == 0) {
+	    virXenStoreError(NULL, VIR_ERR_NO_XEN, 
+				 _("failed to connect to Xen Store"));
+	}
         return (-1);
     }
     return (0);
@@ -877,6 +885,78 @@ xenStoreDomainGetNetworkID(virConnectPtr conn, int id, const char *mac) {
     }
     free(list);
     return(ret);
+}
+
+/*
+ * xenStoreDomainGetDiskID:
+ * @conn: pointer to the connection.
+ * @id: the domain id
+ * @dev: the virtual block device name
+ *
+ * Get the reference (i.e. the string number) for the device on that domain
+ * which uses the given virtual block device name
+ *
+ * Returns the new string or NULL in case of error, the string must be
+ *         freed by the caller.
+ */
+char *
+xenStoreDomainGetDiskID(virConnectPtr conn, int id, const char *dev) {
+    char dir[80], path[128], **list = NULL, *val = NULL;
+    unsigned int devlen, len, i, num;
+    char *ret = NULL;
+    xenUnifiedPrivatePtr priv;
+
+    if (id < 0)
+        return(NULL);
+
+    priv = (xenUnifiedPrivatePtr) conn->privateData;
+    if (priv->xshandle == NULL)
+        return (NULL);
+    if (dev == NULL)
+        return (NULL);
+    devlen = strlen(dev);
+    if (devlen <= 0)
+        return (NULL);
+
+    snprintf(dir, sizeof(dir), "/local/domain/0/backend/vbd/%d", id);
+    list = xs_directory(priv->xshandle, 0, dir, &num);
+    if (list != NULL) {
+        for (i = 0; i < num; i++) {
+            snprintf(path, sizeof(path), "%s/%s/%s", dir, list[i], "dev");
+            val = xs_read(priv->xshandle, 0, path, &len);
+            if (val == NULL)
+                break;
+            if ((devlen != len) || memcmp(val, dev, len)) {
+                free (val);
+            } else {
+                ret = strdup(list[i]);
+                free (val);
+                free (list);
+                return (ret);
+            }
+        }
+        free (list);
+    }
+    snprintf(dir, sizeof(dir), "/local/domain/0/backend/tap/%d", id);
+    list = xs_directory(priv->xshandle, 0, dir, &num);
+    if (list != NULL) {
+        for (i = 0; i < num; i++) {
+            snprintf(path, sizeof(path), "%s/%s/%s", dir, list[i], "dev");
+            val = xs_read(priv->xshandle, 0, path, &len);
+            if (val == NULL)
+                break;
+            if ((devlen != len) || memcmp(val, dev, len)) {
+                free (val);
+            } else {
+                ret = strdup(list[i]);
+                free (val);
+                free (list);
+                return (ret);
+            }
+        }
+        free (list);
+    }
+    return (NULL);
 }
 
 char *xenStoreDomainGetName(virConnectPtr conn,

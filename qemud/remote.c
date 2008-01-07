@@ -44,17 +44,26 @@
 #include <getopt.h>
 #include <ctype.h>
 #include <assert.h>
+#include <fnmatch.h>
 
-#include <libvirt/virterror.h>
+#ifdef HAVE_POLKIT
+#include <polkit/polkit.h>
+#include <polkit-dbus/polkit-dbus.h>
+#endif
+
+#include "libvirt/virterror.h"
 
 #include "internal.h"
 #include "../src/internal.h"
 
 #define DEBUG 0
 
+#define REMOTE_DEBUG(fmt,...) qemudDebug("REMOTE: " fmt, __VA_ARGS__)
+
 static void remoteDispatchError (struct qemud_client *client,
                                  remote_message_header *req,
-                                 const char *fmt, ...);
+                                 const char *fmt, ...)
+    ATTRIBUTE_FORMAT(printf, 3, 4);
 static virDomainPtr get_nonnull_domain (virConnectPtr conn, remote_nonnull_domain domain);
 static virNetworkPtr get_nonnull_network (virConnectPtr conn, remote_nonnull_network network);
 static void make_nonnull_domain (remote_nonnull_domain *dom_dst, virDomainPtr dom_src);
@@ -62,14 +71,18 @@ static void make_nonnull_network (remote_nonnull_network *net_dst, virNetworkPtr
 
 #include "remote_dispatch_prototypes.h"
 
-typedef int (*dispatch_fn) (struct qemud_client *client, remote_message_header *req, char *args, char *ret);
+typedef int (*dispatch_fn) (struct qemud_server *server,
+                            struct qemud_client *client,
+                            remote_message_header *req,
+                            char *args,
+                            char *ret);
 
 /* This function gets called from qemud when it detects an incoming
  * remote protocol message.  At this point, client->buffer contains
  * the full call message (including length word which we skip).
  */
 void
-remoteDispatchClientRequest (struct qemud_server *server ATTRIBUTE_UNUSED,
+remoteDispatchClientRequest (struct qemud_server *server,
                              struct qemud_client *client)
 {
     XDR xdr;
@@ -83,7 +96,7 @@ remoteDispatchClientRequest (struct qemud_server *server ATTRIBUTE_UNUSED,
 #include "remote_dispatch_localvars.h"
 
     /* Parse the header. */
-    xdrmem_create (&xdr, client->buffer+4, client->bufferLength-4, XDR_DECODE);
+    xdrmem_create (&xdr, client->buffer, client->bufferLength, XDR_DECODE);
 
     if (!xdr_remote_message_header (&xdr, &req)) {
         remoteDispatchError (client, NULL, "xdr_remote_message_header");
@@ -117,6 +130,22 @@ remoteDispatchClientRequest (struct qemud_server *server ATTRIBUTE_UNUSED,
         return;
     }
 
+    /* If client is marked as needing auth, don't allow any RPC ops,
+     * except for authentication ones
+     */
+    if (client->auth) {
+        if (req.proc != REMOTE_PROC_AUTH_LIST &&
+            req.proc != REMOTE_PROC_AUTH_SASL_INIT &&
+            req.proc != REMOTE_PROC_AUTH_SASL_START &&
+            req.proc != REMOTE_PROC_AUTH_SASL_STEP &&
+            req.proc != REMOTE_PROC_AUTH_POLKIT
+            ) {
+            remoteDispatchError (client, &req, "authentication required");
+            xdr_destroy (&xdr);
+            return;
+        }
+    }
+
     /* Based on the procedure number, dispatch.  In future we may base
      * this on the version number as well.
      */
@@ -140,7 +169,7 @@ remoteDispatchClientRequest (struct qemud_server *server ATTRIBUTE_UNUSED,
     xdr_destroy (&xdr);
 
     /* Call function. */
-    rv = fn (client, &req, args, ret);
+    rv = fn (server, client, &req, args, ret);
     xdr_free (args_filter, args);
 
     /* Dispatch function must return -2, -1 or 0.  Anything else is
@@ -266,7 +295,6 @@ remoteDispatchClientRequest (struct qemud_server *server ATTRIBUTE_UNUSED,
     client->mode = QEMUD_MODE_TX_PACKET;
     client->bufferLength = len;
     client->bufferOffset = 0;
-    if (client->tls) client->direction = QEMUD_TLS_DIRECTION_WRITE;
 }
 
 /* An error occurred during the dispatching process itself (ie. not
@@ -274,23 +302,14 @@ remoteDispatchClientRequest (struct qemud_server *server ATTRIBUTE_UNUSED,
  * reply.
  */
 static void
-remoteDispatchError (struct qemud_client *client,
-                     remote_message_header *req,
-                     const char *fmt, ...)
+remoteDispatchSendError (struct qemud_client *client,
+                         remote_message_header *req,
+                         int code, const char *msg)
 {
     remote_message_header rep;
     remote_error error;
-    va_list args;
-    char msgbuf[1024];
-    char *msg = msgbuf;
     XDR xdr;
     int len;
-
-    va_start (args, fmt);
-    vsnprintf (msgbuf, sizeof msgbuf, fmt, args);
-    va_end (args);
-
-    qemudDebug ("%s", msgbuf);
 
     /* Future versions of the protocol may use different vers or prog.  Try
      * our hardest to send back a message that such clients could see.
@@ -312,12 +331,12 @@ remoteDispatchError (struct qemud_client *client,
     }
 
     /* Construct the error. */
-    error.code = VIR_ERR_RPC;
+    error.code = code;
     error.domain = VIR_FROM_REMOTE;
-    error.message = &msg;
+    error.message = (char**)&msg;
     error.level = VIR_ERR_ERROR;
     error.dom = NULL;
-    error.str1 = &msg;
+    error.str1 = (char**)&msg;
     error.str2 = NULL;
     error.str3 = NULL;
     error.int1 = 0;
@@ -360,13 +379,38 @@ remoteDispatchError (struct qemud_client *client,
     client->mode = QEMUD_MODE_TX_PACKET;
     client->bufferLength = len;
     client->bufferOffset = 0;
-    if (client->tls) client->direction = QEMUD_TLS_DIRECTION_WRITE;
 }
+
+static void
+remoteDispatchFailAuth (struct qemud_client *client,
+                        remote_message_header *req)
+{
+    remoteDispatchSendError (client, req, VIR_ERR_AUTH_FAILED, "authentication failed");
+}
+
+static void
+remoteDispatchError (struct qemud_client *client,
+                     remote_message_header *req,
+                     const char *fmt, ...)
+{
+    va_list args;
+    char msgbuf[1024];
+    char *msg = msgbuf;
+
+    va_start (args, fmt);
+    vsnprintf (msgbuf, sizeof msgbuf, fmt, args);
+    va_end (args);
+
+    remoteDispatchSendError (client, req, VIR_ERR_RPC, msg);
+}
+
+
 
 /*----- Functions. -----*/
 
 static int
-remoteDispatchOpen (struct qemud_client *client, remote_message_header *req,
+remoteDispatchOpen (struct qemud_server *server ATTRIBUTE_UNUSED,
+                    struct qemud_client *client, remote_message_header *req,
                     struct remote_open_args *args, void *ret ATTRIBUTE_UNUSED)
 {
     const char *name;
@@ -405,7 +449,8 @@ remoteDispatchOpen (struct qemud_client *client, remote_message_header *req,
     }
 
 static int
-remoteDispatchClose (struct qemud_client *client, remote_message_header *req,
+remoteDispatchClose (struct qemud_server *server ATTRIBUTE_UNUSED,
+                     struct qemud_client *client, remote_message_header *req,
                      void *args ATTRIBUTE_UNUSED, void *ret ATTRIBUTE_UNUSED)
 {
     int rv;
@@ -418,7 +463,8 @@ remoteDispatchClose (struct qemud_client *client, remote_message_header *req,
 }
 
 static int
-remoteDispatchSupportsFeature (struct qemud_client *client, remote_message_header *req,
+remoteDispatchSupportsFeature (struct qemud_server *server ATTRIBUTE_UNUSED,
+                               struct qemud_client *client, remote_message_header *req,
                                remote_supports_feature_args *args, remote_supports_feature_ret *ret)
 {
     CHECK_CONN(client);
@@ -430,7 +476,8 @@ remoteDispatchSupportsFeature (struct qemud_client *client, remote_message_heade
 }
 
 static int
-remoteDispatchGetType (struct qemud_client *client, remote_message_header *req,
+remoteDispatchGetType (struct qemud_server *server ATTRIBUTE_UNUSED,
+                       struct qemud_client *client, remote_message_header *req,
                        void *args ATTRIBUTE_UNUSED, remote_get_type_ret *ret)
 {
     const char *type;
@@ -452,7 +499,8 @@ remoteDispatchGetType (struct qemud_client *client, remote_message_header *req,
 }
 
 static int
-remoteDispatchGetVersion (struct qemud_client *client,
+remoteDispatchGetVersion (struct qemud_server *server ATTRIBUTE_UNUSED,
+                          struct qemud_client *client,
                           remote_message_header *req,
                           void *args ATTRIBUTE_UNUSED,
                           remote_get_version_ret *ret)
@@ -468,7 +516,8 @@ remoteDispatchGetVersion (struct qemud_client *client,
 }
 
 static int
-remoteDispatchGetHostname (struct qemud_client *client,
+remoteDispatchGetHostname (struct qemud_server *server ATTRIBUTE_UNUSED,
+                           struct qemud_client *client,
                            remote_message_header *req,
                            void *args ATTRIBUTE_UNUSED,
                            remote_get_hostname_ret *ret)
@@ -484,7 +533,8 @@ remoteDispatchGetHostname (struct qemud_client *client,
 }
 
 static int
-remoteDispatchGetMaxVcpus (struct qemud_client *client,
+remoteDispatchGetMaxVcpus (struct qemud_server *server ATTRIBUTE_UNUSED,
+                           struct qemud_client *client,
                            remote_message_header *req,
                            remote_get_max_vcpus_args *args,
                            remote_get_max_vcpus_ret *ret)
@@ -500,7 +550,8 @@ remoteDispatchGetMaxVcpus (struct qemud_client *client,
 }
 
 static int
-remoteDispatchNodeGetInfo (struct qemud_client *client,
+remoteDispatchNodeGetInfo (struct qemud_server *server ATTRIBUTE_UNUSED,
+                           struct qemud_client *client,
                            remote_message_header *req,
                            void *args ATTRIBUTE_UNUSED,
                            remote_node_get_info_ret *ret)
@@ -524,7 +575,8 @@ remoteDispatchNodeGetInfo (struct qemud_client *client,
 }
 
 static int
-remoteDispatchGetCapabilities (struct qemud_client *client,
+remoteDispatchGetCapabilities (struct qemud_server *server ATTRIBUTE_UNUSED,
+                               struct qemud_client *client,
                                remote_message_header *req,
                                void *args ATTRIBUTE_UNUSED,
                                remote_get_capabilities_ret *ret)
@@ -540,7 +592,8 @@ remoteDispatchGetCapabilities (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainGetSchedulerType (struct qemud_client *client,
+remoteDispatchDomainGetSchedulerType (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                      struct qemud_client *client,
                                       remote_message_header *req,
                                       remote_domain_get_scheduler_type_args *args,
                                       remote_domain_get_scheduler_type_ret *ret)
@@ -569,7 +622,8 @@ remoteDispatchDomainGetSchedulerType (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainGetSchedulerParameters (struct qemud_client *client,
+remoteDispatchDomainGetSchedulerParameters (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                            struct qemud_client *client,
                                             remote_message_header *req,
                                             remote_domain_get_scheduler_parameters_args *args,
                                             remote_domain_get_scheduler_parameters_ret *ret)
@@ -585,7 +639,7 @@ remoteDispatchDomainGetSchedulerParameters (struct qemud_client *client,
         remoteDispatchError (client, req, "nparams too large");
         return -2;
     }
-    params = malloc (sizeof (virSchedParameter) * nparams);
+    params = malloc (sizeof (*params) * nparams);
     if (params == NULL) {
         remoteDispatchError (client, req, "out of memory allocating array");
         return -2;
@@ -607,7 +661,7 @@ remoteDispatchDomainGetSchedulerParameters (struct qemud_client *client,
 
     /* Serialise the scheduler parameters. */
     ret->params.params_len = nparams;
-    ret->params.params_val = malloc (sizeof (struct remote_sched_param)
+    ret->params.params_val = malloc (sizeof (*(ret->params.params_val))
                                      * nparams);
     if (ret->params.params_val == NULL) {
         virDomainFree(dom);
@@ -655,7 +709,8 @@ remoteDispatchDomainGetSchedulerParameters (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainSetSchedulerParameters (struct qemud_client *client,
+remoteDispatchDomainSetSchedulerParameters (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                            struct qemud_client *client,
                                             remote_message_header *req,
                                             remote_domain_set_scheduler_parameters_args *args,
                                             void *ret ATTRIBUTE_UNUSED)
@@ -671,7 +726,7 @@ remoteDispatchDomainSetSchedulerParameters (struct qemud_client *client,
         remoteDispatchError (client, req, "nparams too large");
         return -2;
     }
-    params = malloc (sizeof (virSchedParameter) * nparams);
+    params = malloc (sizeof (*params) * nparams);
     if (params == NULL) {
         remoteDispatchError (client, req, "out of memory allocating array");
         return -2;
@@ -715,7 +770,8 @@ remoteDispatchDomainSetSchedulerParameters (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainBlockStats (struct qemud_client *client,
+remoteDispatchDomainBlockStats (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                struct qemud_client *client,
                                 remote_message_header *req,
                                 remote_domain_block_stats_args *args,
                                 remote_domain_block_stats_ret *ret)
@@ -745,7 +801,8 @@ remoteDispatchDomainBlockStats (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainInterfaceStats (struct qemud_client *client,
+remoteDispatchDomainInterfaceStats (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                    struct qemud_client *client,
                                     remote_message_header *req,
                                     remote_domain_interface_stats_args *args,
                                     remote_domain_interface_stats_ret *ret)
@@ -778,7 +835,8 @@ remoteDispatchDomainInterfaceStats (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainAttachDevice (struct qemud_client *client,
+remoteDispatchDomainAttachDevice (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                  struct qemud_client *client,
                                   remote_message_header *req,
                                   remote_domain_attach_device_args *args,
                                   void *ret ATTRIBUTE_UNUSED)
@@ -801,7 +859,8 @@ remoteDispatchDomainAttachDevice (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainCreate (struct qemud_client *client,
+remoteDispatchDomainCreate (struct qemud_server *server ATTRIBUTE_UNUSED,
+                            struct qemud_client *client,
                             remote_message_header *req,
                             remote_domain_create_args *args,
                             void *ret ATTRIBUTE_UNUSED)
@@ -824,7 +883,8 @@ remoteDispatchDomainCreate (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainCreateLinux (struct qemud_client *client,
+remoteDispatchDomainCreateLinux (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                 struct qemud_client *client,
                                  remote_message_header *req,
                                  remote_domain_create_linux_args *args,
                                  remote_domain_create_linux_ret *ret)
@@ -842,7 +902,8 @@ remoteDispatchDomainCreateLinux (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainDefineXml (struct qemud_client *client,
+remoteDispatchDomainDefineXml (struct qemud_server *server ATTRIBUTE_UNUSED,
+                               struct qemud_client *client,
                                remote_message_header *req,
                                remote_domain_define_xml_args *args,
                                remote_domain_define_xml_ret *ret)
@@ -860,7 +921,8 @@ remoteDispatchDomainDefineXml (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainDestroy (struct qemud_client *client,
+remoteDispatchDomainDestroy (struct qemud_server *server ATTRIBUTE_UNUSED,
+                             struct qemud_client *client,
                              remote_message_header *req,
                              remote_domain_destroy_args *args,
                              void *ret ATTRIBUTE_UNUSED)
@@ -881,7 +943,8 @@ remoteDispatchDomainDestroy (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainDetachDevice (struct qemud_client *client,
+remoteDispatchDomainDetachDevice (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                  struct qemud_client *client,
                                   remote_message_header *req,
                                   remote_domain_detach_device_args *args,
                                   void *ret ATTRIBUTE_UNUSED)
@@ -905,7 +968,8 @@ remoteDispatchDomainDetachDevice (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainDumpXml (struct qemud_client *client,
+remoteDispatchDomainDumpXml (struct qemud_server *server ATTRIBUTE_UNUSED,
+                             struct qemud_client *client,
                              remote_message_header *req,
                              remote_domain_dump_xml_args *args,
                              remote_domain_dump_xml_ret *ret)
@@ -930,7 +994,8 @@ remoteDispatchDomainDumpXml (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainGetAutostart (struct qemud_client *client,
+remoteDispatchDomainGetAutostart (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                  struct qemud_client *client,
                                   remote_message_header *req,
                                   remote_domain_get_autostart_args *args,
                                   remote_domain_get_autostart_ret *ret)
@@ -953,7 +1018,8 @@ remoteDispatchDomainGetAutostart (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainGetInfo (struct qemud_client *client,
+remoteDispatchDomainGetInfo (struct qemud_server *server ATTRIBUTE_UNUSED,
+                             struct qemud_client *client,
                              remote_message_header *req,
                              remote_domain_get_info_args *args,
                              remote_domain_get_info_ret *ret)
@@ -985,7 +1051,8 @@ remoteDispatchDomainGetInfo (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainGetMaxMemory (struct qemud_client *client,
+remoteDispatchDomainGetMaxMemory (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                  struct qemud_client *client,
                                   remote_message_header *req,
                                   remote_domain_get_max_memory_args *args,
                                   remote_domain_get_max_memory_ret *ret)
@@ -1009,7 +1076,8 @@ remoteDispatchDomainGetMaxMemory (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainGetMaxVcpus (struct qemud_client *client,
+remoteDispatchDomainGetMaxVcpus (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                 struct qemud_client *client,
                                  remote_message_header *req,
                                  remote_domain_get_max_vcpus_args *args,
                                  remote_domain_get_max_vcpus_ret *ret)
@@ -1033,7 +1101,8 @@ remoteDispatchDomainGetMaxVcpus (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainGetOsType (struct qemud_client *client,
+remoteDispatchDomainGetOsType (struct qemud_server *server ATTRIBUTE_UNUSED,
+                               struct qemud_client *client,
                                remote_message_header *req,
                                remote_domain_get_os_type_args *args,
                                remote_domain_get_os_type_ret *ret)
@@ -1058,7 +1127,8 @@ remoteDispatchDomainGetOsType (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainGetVcpus (struct qemud_client *client,
+remoteDispatchDomainGetVcpus (struct qemud_server *server ATTRIBUTE_UNUSED,
+                              struct qemud_client *client,
                               remote_message_header *req,
                               remote_domain_get_vcpus_args *args,
                               remote_domain_get_vcpus_ret *ret)
@@ -1088,8 +1158,8 @@ remoteDispatchDomainGetVcpus (struct qemud_client *client,
     }
 
     /* Allocate buffers to take the results. */
-    info = calloc (args->maxinfo, sizeof (virVcpuInfo));
-    cpumaps = calloc (args->maxinfo * args->maplen, sizeof (unsigned char));
+    info = calloc (args->maxinfo, sizeof (*info));
+    cpumaps = calloc (args->maxinfo * args->maplen, sizeof (*cpumaps));
 
     info_len = virDomainGetVcpus (dom,
                                   info, args->maxinfo,
@@ -1101,7 +1171,7 @@ remoteDispatchDomainGetVcpus (struct qemud_client *client,
 
     /* Allocate the return buffer for info. */
     ret->info.info_len = info_len;
-    ret->info.info_val = calloc (info_len, sizeof (remote_vcpu_info));
+    ret->info.info_val = calloc (info_len, sizeof (*(ret->info.info_val)));
 
     for (i = 0; i < info_len; ++i) {
         ret->info.info_val[i].number = info[i].number;
@@ -1122,7 +1192,8 @@ remoteDispatchDomainGetVcpus (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainMigratePrepare (struct qemud_client *client,
+remoteDispatchDomainMigratePrepare (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                    struct qemud_client *client,
                                     remote_message_header *req,
                                     remote_domain_migrate_prepare_args *args,
                                     remote_domain_migrate_prepare_ret *ret)
@@ -1139,7 +1210,7 @@ remoteDispatchDomainMigratePrepare (struct qemud_client *client,
     dname = args->dname == NULL ? NULL : *args->dname;
 
     /* Wacky world of XDR ... */
-    uri_out = calloc (1, sizeof (char *));
+    uri_out = calloc (1, sizeof (*uri_out));
 
     r = __virDomainMigratePrepare (client->conn, &cookie, &cookielen,
                                    uri_in, uri_out,
@@ -1157,7 +1228,8 @@ remoteDispatchDomainMigratePrepare (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainMigratePerform (struct qemud_client *client,
+remoteDispatchDomainMigratePerform (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                    struct qemud_client *client,
                                     remote_message_header *req,
                                     remote_domain_migrate_perform_args *args,
                                     void *ret ATTRIBUTE_UNUSED)
@@ -1186,7 +1258,8 @@ remoteDispatchDomainMigratePerform (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainMigrateFinish (struct qemud_client *client,
+remoteDispatchDomainMigrateFinish (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                   struct qemud_client *client,
                                    remote_message_header *req,
                                    remote_domain_migrate_finish_args *args,
                                    remote_domain_migrate_finish_ret *ret)
@@ -1207,7 +1280,8 @@ remoteDispatchDomainMigrateFinish (struct qemud_client *client,
 }
 
 static int
-remoteDispatchListDefinedDomains (struct qemud_client *client,
+remoteDispatchListDefinedDomains (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                  struct qemud_client *client,
                                   remote_message_header *req,
                                   remote_list_defined_domains_args *args,
                                   remote_list_defined_domains_ret *ret)
@@ -1221,7 +1295,7 @@ remoteDispatchListDefinedDomains (struct qemud_client *client,
     }
 
     /* Allocate return buffer. */
-    ret->names.names_val = calloc (args->maxnames, sizeof (char *));
+    ret->names.names_val = calloc (args->maxnames, sizeof (*(ret->names.names_val)));
 
     ret->names.names_len =
         virConnectListDefinedDomains (client->conn,
@@ -1232,7 +1306,8 @@ remoteDispatchListDefinedDomains (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainLookupById (struct qemud_client *client,
+remoteDispatchDomainLookupById (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                struct qemud_client *client,
                                 remote_message_header *req,
                                 remote_domain_lookup_by_id_args *args,
                                 remote_domain_lookup_by_id_ret *ret)
@@ -1249,7 +1324,8 @@ remoteDispatchDomainLookupById (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainLookupByName (struct qemud_client *client,
+remoteDispatchDomainLookupByName (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                  struct qemud_client *client,
                                   remote_message_header *req,
                                   remote_domain_lookup_by_name_args *args,
                                   remote_domain_lookup_by_name_ret *ret)
@@ -1266,7 +1342,8 @@ remoteDispatchDomainLookupByName (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainLookupByUuid (struct qemud_client *client,
+remoteDispatchDomainLookupByUuid (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                  struct qemud_client *client,
                                   remote_message_header *req,
                                   remote_domain_lookup_by_uuid_args *args,
                                   remote_domain_lookup_by_uuid_ret *ret)
@@ -1283,7 +1360,8 @@ remoteDispatchDomainLookupByUuid (struct qemud_client *client,
 }
 
 static int
-remoteDispatchNumOfDefinedDomains (struct qemud_client *client,
+remoteDispatchNumOfDefinedDomains (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                   struct qemud_client *client,
                                    remote_message_header *req,
                                    void *args ATTRIBUTE_UNUSED,
                                    remote_num_of_defined_domains_ret *ret)
@@ -1297,7 +1375,8 @@ remoteDispatchNumOfDefinedDomains (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainPinVcpu (struct qemud_client *client,
+remoteDispatchDomainPinVcpu (struct qemud_server *server ATTRIBUTE_UNUSED,
+                             struct qemud_client *client,
                              remote_message_header *req,
                              remote_domain_pin_vcpu_args *args,
                              void *ret ATTRIBUTE_UNUSED)
@@ -1330,7 +1409,8 @@ remoteDispatchDomainPinVcpu (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainReboot (struct qemud_client *client,
+remoteDispatchDomainReboot (struct qemud_server *server ATTRIBUTE_UNUSED,
+                            struct qemud_client *client,
                             remote_message_header *req,
                             remote_domain_reboot_args *args,
                             void *ret ATTRIBUTE_UNUSED)
@@ -1353,7 +1433,8 @@ remoteDispatchDomainReboot (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainRestore (struct qemud_client *client,
+remoteDispatchDomainRestore (struct qemud_server *server ATTRIBUTE_UNUSED,
+                             struct qemud_client *client,
                              remote_message_header *req,
                              remote_domain_restore_args *args,
                              void *ret ATTRIBUTE_UNUSED)
@@ -1367,7 +1448,8 @@ remoteDispatchDomainRestore (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainResume (struct qemud_client *client,
+remoteDispatchDomainResume (struct qemud_server *server ATTRIBUTE_UNUSED,
+                            struct qemud_client *client,
                             remote_message_header *req,
                             remote_domain_resume_args *args,
                             void *ret ATTRIBUTE_UNUSED)
@@ -1390,7 +1472,8 @@ remoteDispatchDomainResume (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainSave (struct qemud_client *client,
+remoteDispatchDomainSave (struct qemud_server *server ATTRIBUTE_UNUSED,
+                          struct qemud_client *client,
                           remote_message_header *req,
                           remote_domain_save_args *args,
                           void *ret ATTRIBUTE_UNUSED)
@@ -1413,7 +1496,8 @@ remoteDispatchDomainSave (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainCoreDump (struct qemud_client *client,
+remoteDispatchDomainCoreDump (struct qemud_server *server ATTRIBUTE_UNUSED,
+                              struct qemud_client *client,
                               remote_message_header *req,
                               remote_domain_core_dump_args *args,
                               void *ret ATTRIBUTE_UNUSED)
@@ -1436,7 +1520,8 @@ remoteDispatchDomainCoreDump (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainSetAutostart (struct qemud_client *client,
+remoteDispatchDomainSetAutostart (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                  struct qemud_client *client,
                                   remote_message_header *req,
                                   remote_domain_set_autostart_args *args,
                                   void *ret ATTRIBUTE_UNUSED)
@@ -1459,7 +1544,8 @@ remoteDispatchDomainSetAutostart (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainSetMaxMemory (struct qemud_client *client,
+remoteDispatchDomainSetMaxMemory (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                  struct qemud_client *client,
                                   remote_message_header *req,
                                   remote_domain_set_max_memory_args *args,
                                   void *ret ATTRIBUTE_UNUSED)
@@ -1482,7 +1568,8 @@ remoteDispatchDomainSetMaxMemory (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainSetMemory (struct qemud_client *client,
+remoteDispatchDomainSetMemory (struct qemud_server *server ATTRIBUTE_UNUSED,
+                               struct qemud_client *client,
                                remote_message_header *req,
                                remote_domain_set_memory_args *args,
                                void *ret ATTRIBUTE_UNUSED)
@@ -1505,7 +1592,8 @@ remoteDispatchDomainSetMemory (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainSetVcpus (struct qemud_client *client,
+remoteDispatchDomainSetVcpus (struct qemud_server *server ATTRIBUTE_UNUSED,
+                              struct qemud_client *client,
                               remote_message_header *req,
                               remote_domain_set_vcpus_args *args,
                               void *ret ATTRIBUTE_UNUSED)
@@ -1528,7 +1616,8 @@ remoteDispatchDomainSetVcpus (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainShutdown (struct qemud_client *client,
+remoteDispatchDomainShutdown (struct qemud_server *server ATTRIBUTE_UNUSED,
+                              struct qemud_client *client,
                               remote_message_header *req,
                               remote_domain_shutdown_args *args,
                               void *ret ATTRIBUTE_UNUSED)
@@ -1551,7 +1640,8 @@ remoteDispatchDomainShutdown (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainSuspend (struct qemud_client *client,
+remoteDispatchDomainSuspend (struct qemud_server *server ATTRIBUTE_UNUSED,
+                             struct qemud_client *client,
                              remote_message_header *req,
                              remote_domain_suspend_args *args,
                              void *ret ATTRIBUTE_UNUSED)
@@ -1574,7 +1664,8 @@ remoteDispatchDomainSuspend (struct qemud_client *client,
 }
 
 static int
-remoteDispatchDomainUndefine (struct qemud_client *client,
+remoteDispatchDomainUndefine (struct qemud_server *server ATTRIBUTE_UNUSED,
+                              struct qemud_client *client,
                               remote_message_header *req,
                               remote_domain_undefine_args *args,
                               void *ret ATTRIBUTE_UNUSED)
@@ -1597,7 +1688,8 @@ remoteDispatchDomainUndefine (struct qemud_client *client,
 }
 
 static int
-remoteDispatchListDefinedNetworks (struct qemud_client *client,
+remoteDispatchListDefinedNetworks (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                   struct qemud_client *client,
                                    remote_message_header *req,
                                    remote_list_defined_networks_args *args,
                                    remote_list_defined_networks_ret *ret)
@@ -1611,7 +1703,7 @@ remoteDispatchListDefinedNetworks (struct qemud_client *client,
     }
 
     /* Allocate return buffer. */
-    ret->names.names_val = calloc (args->maxnames, sizeof (char *));
+    ret->names.names_val = calloc (args->maxnames, sizeof (*(ret->names.names_val)));
 
     ret->names.names_len =
         virConnectListDefinedNetworks (client->conn,
@@ -1622,7 +1714,8 @@ remoteDispatchListDefinedNetworks (struct qemud_client *client,
 }
 
 static int
-remoteDispatchListDomains (struct qemud_client *client,
+remoteDispatchListDomains (struct qemud_server *server ATTRIBUTE_UNUSED,
+                           struct qemud_client *client,
                            remote_message_header *req,
                            remote_list_domains_args *args,
                            remote_list_domains_ret *ret)
@@ -1636,7 +1729,7 @@ remoteDispatchListDomains (struct qemud_client *client,
     }
 
     /* Allocate return buffer. */
-    ret->ids.ids_val = calloc (args->maxids, sizeof (int));
+    ret->ids.ids_val = calloc (args->maxids, sizeof (*(ret->ids.ids_val)));
 
     ret->ids.ids_len = virConnectListDomains (client->conn,
                                               ret->ids.ids_val, args->maxids);
@@ -1646,7 +1739,8 @@ remoteDispatchListDomains (struct qemud_client *client,
 }
 
 static int
-remoteDispatchListNetworks (struct qemud_client *client,
+remoteDispatchListNetworks (struct qemud_server *server ATTRIBUTE_UNUSED,
+                            struct qemud_client *client,
                             remote_message_header *req,
                             remote_list_networks_args *args,
                             remote_list_networks_ret *ret)
@@ -1660,7 +1754,7 @@ remoteDispatchListNetworks (struct qemud_client *client,
     }
 
     /* Allocate return buffer. */
-    ret->names.names_val = calloc (args->maxnames, sizeof (char *));
+    ret->names.names_val = calloc (args->maxnames, sizeof (*(ret->names.names_val)));
 
     ret->names.names_len =
         virConnectListNetworks (client->conn,
@@ -1671,7 +1765,8 @@ remoteDispatchListNetworks (struct qemud_client *client,
 }
 
 static int
-remoteDispatchNetworkCreate (struct qemud_client *client,
+remoteDispatchNetworkCreate (struct qemud_server *server ATTRIBUTE_UNUSED,
+                             struct qemud_client *client,
                              remote_message_header *req,
                              remote_network_create_args *args,
                              void *ret ATTRIBUTE_UNUSED)
@@ -1694,7 +1789,8 @@ remoteDispatchNetworkCreate (struct qemud_client *client,
 }
 
 static int
-remoteDispatchNetworkCreateXml (struct qemud_client *client,
+remoteDispatchNetworkCreateXml (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                struct qemud_client *client,
                                 remote_message_header *req,
                                 remote_network_create_xml_args *args,
                                 remote_network_create_xml_ret *ret)
@@ -1711,7 +1807,8 @@ remoteDispatchNetworkCreateXml (struct qemud_client *client,
 }
 
 static int
-remoteDispatchNetworkDefineXml (struct qemud_client *client,
+remoteDispatchNetworkDefineXml (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                struct qemud_client *client,
                                 remote_message_header *req,
                                 remote_network_define_xml_args *args,
                                 remote_network_define_xml_ret *ret)
@@ -1728,7 +1825,8 @@ remoteDispatchNetworkDefineXml (struct qemud_client *client,
 }
 
 static int
-remoteDispatchNetworkDestroy (struct qemud_client *client,
+remoteDispatchNetworkDestroy (struct qemud_server *server ATTRIBUTE_UNUSED,
+                              struct qemud_client *client,
                               remote_message_header *req,
                               remote_network_destroy_args *args,
                               void *ret ATTRIBUTE_UNUSED)
@@ -1751,7 +1849,8 @@ remoteDispatchNetworkDestroy (struct qemud_client *client,
 }
 
 static int
-remoteDispatchNetworkDumpXml (struct qemud_client *client,
+remoteDispatchNetworkDumpXml (struct qemud_server *server ATTRIBUTE_UNUSED,
+                              struct qemud_client *client,
                               remote_message_header *req,
                               remote_network_dump_xml_args *args,
                               remote_network_dump_xml_ret *ret)
@@ -1776,7 +1875,8 @@ remoteDispatchNetworkDumpXml (struct qemud_client *client,
 }
 
 static int
-remoteDispatchNetworkGetAutostart (struct qemud_client *client,
+remoteDispatchNetworkGetAutostart (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                   struct qemud_client *client,
                                    remote_message_header *req,
                                    remote_network_get_autostart_args *args,
                                    remote_network_get_autostart_ret *ret)
@@ -1799,7 +1899,8 @@ remoteDispatchNetworkGetAutostart (struct qemud_client *client,
 }
 
 static int
-remoteDispatchNetworkGetBridgeName (struct qemud_client *client,
+remoteDispatchNetworkGetBridgeName (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                    struct qemud_client *client,
                                     remote_message_header *req,
                                     remote_network_get_bridge_name_args *args,
                                     remote_network_get_bridge_name_ret *ret)
@@ -1824,7 +1925,8 @@ remoteDispatchNetworkGetBridgeName (struct qemud_client *client,
 }
 
 static int
-remoteDispatchNetworkLookupByName (struct qemud_client *client,
+remoteDispatchNetworkLookupByName (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                   struct qemud_client *client,
                                    remote_message_header *req,
                                    remote_network_lookup_by_name_args *args,
                                    remote_network_lookup_by_name_ret *ret)
@@ -1841,7 +1943,8 @@ remoteDispatchNetworkLookupByName (struct qemud_client *client,
 }
 
 static int
-remoteDispatchNetworkLookupByUuid (struct qemud_client *client,
+remoteDispatchNetworkLookupByUuid (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                   struct qemud_client *client,
                                    remote_message_header *req,
                                    remote_network_lookup_by_uuid_args *args,
                                    remote_network_lookup_by_uuid_ret *ret)
@@ -1858,7 +1961,8 @@ remoteDispatchNetworkLookupByUuid (struct qemud_client *client,
 }
 
 static int
-remoteDispatchNetworkSetAutostart (struct qemud_client *client,
+remoteDispatchNetworkSetAutostart (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                   struct qemud_client *client,
                                    remote_message_header *req,
                                    remote_network_set_autostart_args *args,
                                    void *ret ATTRIBUTE_UNUSED)
@@ -1881,7 +1985,8 @@ remoteDispatchNetworkSetAutostart (struct qemud_client *client,
 }
 
 static int
-remoteDispatchNetworkUndefine (struct qemud_client *client,
+remoteDispatchNetworkUndefine (struct qemud_server *server ATTRIBUTE_UNUSED,
+                               struct qemud_client *client,
                                remote_message_header *req,
                                remote_network_undefine_args *args,
                                void *ret ATTRIBUTE_UNUSED)
@@ -1904,7 +2009,8 @@ remoteDispatchNetworkUndefine (struct qemud_client *client,
 }
 
 static int
-remoteDispatchNumOfDefinedNetworks (struct qemud_client *client,
+remoteDispatchNumOfDefinedNetworks (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                    struct qemud_client *client,
                                     remote_message_header *req,
                                     void *args ATTRIBUTE_UNUSED,
                                     remote_num_of_defined_networks_ret *ret)
@@ -1918,7 +2024,8 @@ remoteDispatchNumOfDefinedNetworks (struct qemud_client *client,
 }
 
 static int
-remoteDispatchNumOfDomains (struct qemud_client *client,
+remoteDispatchNumOfDomains (struct qemud_server *server ATTRIBUTE_UNUSED,
+                            struct qemud_client *client,
                             remote_message_header *req,
                             void *args ATTRIBUTE_UNUSED,
                             remote_num_of_domains_ret *ret)
@@ -1932,7 +2039,8 @@ remoteDispatchNumOfDomains (struct qemud_client *client,
 }
 
 static int
-remoteDispatchNumOfNetworks (struct qemud_client *client,
+remoteDispatchNumOfNetworks (struct qemud_server *server ATTRIBUTE_UNUSED,
+                             struct qemud_client *client,
                              remote_message_header *req,
                              void *args ATTRIBUTE_UNUSED,
                              remote_num_of_networks_ret *ret)
@@ -1944,6 +2052,636 @@ remoteDispatchNumOfNetworks (struct qemud_client *client,
 
     return 0;
 }
+
+
+static int
+remoteDispatchAuthList (struct qemud_server *server ATTRIBUTE_UNUSED,
+                        struct qemud_client *client,
+                        remote_message_header *req ATTRIBUTE_UNUSED,
+                        void *args ATTRIBUTE_UNUSED,
+                        remote_auth_list_ret *ret)
+{
+    ret->types.types_len = 1;
+    if ((ret->types.types_val = calloc (ret->types.types_len, sizeof (*(ret->types.types_val)))) == NULL) {
+        remoteDispatchSendError(client, req, VIR_ERR_NO_MEMORY, "auth types");
+        return -2;
+    }
+    ret->types.types_val[0] = client->auth;
+    return 0;
+}
+
+
+#if HAVE_SASL
+/*
+ * NB, keep in sync with similar method in src/remote_internal.c
+ */
+static char *addrToString(struct qemud_client *client,
+                          remote_message_header *req,
+                          struct sockaddr_storage *sa, socklen_t salen) {
+    char host[1024], port[20];
+    char *addr;
+    int err;
+
+    if ((err = getnameinfo((struct sockaddr *)sa, salen,
+                           host, sizeof(host),
+                           port, sizeof(port),
+                           NI_NUMERICHOST | NI_NUMERICSERV)) != 0) {
+        remoteDispatchError(client, req,
+                            "Cannot resolve address %d: %s", err, gai_strerror(err));
+        return NULL;
+    }
+
+    addr = malloc(strlen(host) + 1 + strlen(port) + 1);
+    if (!addr) {
+        remoteDispatchError(client, req, "cannot allocate address");
+        return NULL;
+    }
+
+    strcpy(addr, host);
+    strcat(addr, ";");
+    strcat(addr, port);
+    return addr;
+}
+
+
+/*
+ * Initializes the SASL session in prepare for authentication
+ * and gives the client a list of allowed mechansims to choose
+ *
+ * XXX callbacks for stuff like password verification ?
+ */
+static int
+remoteDispatchAuthSaslInit (struct qemud_server *server ATTRIBUTE_UNUSED,
+                            struct qemud_client *client,
+                            remote_message_header *req,
+                            void *args ATTRIBUTE_UNUSED,
+                            remote_auth_sasl_init_ret *ret)
+{
+    const char *mechlist = NULL;
+    sasl_security_properties_t secprops;
+    int err;
+    struct sockaddr_storage sa;
+    socklen_t salen;
+    char *localAddr, *remoteAddr;
+
+    REMOTE_DEBUG("Initialize SASL auth %d", client->fd);
+    if (client->auth != REMOTE_AUTH_SASL ||
+        client->saslconn != NULL) {
+        qemudLog(QEMUD_ERR, "client tried invalid SASL init request");
+        remoteDispatchFailAuth(client, req);
+        return -2;
+    }
+
+    /* Get local address in form  IPADDR:PORT */
+    salen = sizeof(sa);
+    if (getsockname(client->fd, (struct sockaddr*)&sa, &salen) < 0) {
+        remoteDispatchError(client, req, "failed to get sock address %d (%s)",
+                            errno, strerror(errno));
+        return -2;
+    }
+    if ((localAddr = addrToString(client, req, &sa, salen)) == NULL) {
+        return -2;
+    }
+
+    /* Get remote address in form  IPADDR:PORT */
+    salen = sizeof(sa);
+    if (getpeername(client->fd, (struct sockaddr*)&sa, &salen) < 0) {
+        remoteDispatchError(client, req, "failed to get peer address %d (%s)",
+                            errno, strerror(errno));
+        free(localAddr);
+        return -2;
+    }
+    if ((remoteAddr = addrToString(client, req, &sa, salen)) == NULL) {
+        free(localAddr);
+        return -2;
+    }
+
+    err = sasl_server_new("libvirt",
+                          NULL, /* FQDN - just delegates to gethostname */
+                          NULL, /* User realm */
+                          localAddr,
+                          remoteAddr,
+                          NULL, /* XXX Callbacks */
+                          SASL_SUCCESS_DATA,
+                          &client->saslconn);
+    free(localAddr);
+    free(remoteAddr);
+    if (err != SASL_OK) {
+        qemudLog(QEMUD_ERR, "sasl context setup failed %d (%s)",
+                 err, sasl_errstring(err, NULL, NULL));
+        remoteDispatchFailAuth(client, req);
+        client->saslconn = NULL;
+        return -2;
+    }
+
+    /* Inform SASL that we've got an external SSF layer from TLS */
+    if (client->type == QEMUD_SOCK_TYPE_TLS) {
+        gnutls_cipher_algorithm_t cipher;
+        sasl_ssf_t ssf;
+
+        cipher = gnutls_cipher_get(client->tlssession);
+        if (!(ssf = (sasl_ssf_t)gnutls_cipher_get_key_size(cipher))) {
+            qemudLog(QEMUD_ERR, "cannot TLS get cipher size");
+            remoteDispatchFailAuth(client, req);
+            sasl_dispose(&client->saslconn);
+            client->saslconn = NULL;
+            return -2;
+        }
+        ssf *= 8; /* tls key size is bytes, sasl wants bits */
+
+        err = sasl_setprop(client->saslconn, SASL_SSF_EXTERNAL, &ssf);
+        if (err != SASL_OK) {
+            qemudLog(QEMUD_ERR, "cannot set SASL external SSF %d (%s)",
+                     err, sasl_errstring(err, NULL, NULL));
+            remoteDispatchFailAuth(client, req);
+            sasl_dispose(&client->saslconn);
+            client->saslconn = NULL;
+            return -2;
+        }
+    }
+
+    memset (&secprops, 0, sizeof secprops);
+    if (client->type == QEMUD_SOCK_TYPE_TLS ||
+        client->type == QEMUD_SOCK_TYPE_UNIX) {
+        /* If we've got TLS or UNIX domain sock, we don't care about SSF */
+        secprops.min_ssf = 0;
+        secprops.max_ssf = 0;
+        secprops.maxbufsize = 8192;
+        secprops.security_flags = 0;
+    } else {
+        /* Plain TCP, better get an SSF layer */
+        secprops.min_ssf = 56; /* Good enough to require kerberos */
+        secprops.max_ssf = 100000; /* Arbitrary big number */
+        secprops.maxbufsize = 8192;
+        /* Forbid any anonymous or trivially crackable auth */
+        secprops.security_flags =
+            SASL_SEC_NOANONYMOUS | SASL_SEC_NOPLAINTEXT;
+    }
+
+    err = sasl_setprop(client->saslconn, SASL_SEC_PROPS, &secprops);
+    if (err != SASL_OK) {
+        qemudLog(QEMUD_ERR, "cannot set SASL security props %d (%s)",
+                 err, sasl_errstring(err, NULL, NULL));
+        remoteDispatchFailAuth(client, req);
+        sasl_dispose(&client->saslconn);
+        client->saslconn = NULL;
+        return -2;
+    }
+
+    err = sasl_listmech(client->saslconn,
+                        NULL, /* Don't need to set user */
+                        "", /* Prefix */
+                        ",", /* Separator */
+                        "", /* Suffix */
+                        &mechlist,
+                        NULL,
+                        NULL);
+    if (err != SASL_OK) {
+        qemudLog(QEMUD_ERR, "cannot list SASL mechanisms %d (%s)",
+                 err, sasl_errdetail(client->saslconn));
+        remoteDispatchFailAuth(client, req);
+        sasl_dispose(&client->saslconn);
+        client->saslconn = NULL;
+        return -2;
+    }
+    REMOTE_DEBUG("Available mechanisms for client: '%s'", mechlist);
+    ret->mechlist = strdup(mechlist);
+    if (!ret->mechlist) {
+        qemudLog(QEMUD_ERR, "cannot allocate mechlist");
+        remoteDispatchFailAuth(client, req);
+        sasl_dispose(&client->saslconn);
+        client->saslconn = NULL;
+        return -2;
+    }
+
+    return 0;
+}
+
+
+/* We asked for an SSF layer, so sanity check that we actaully
+ * got what we asked for */
+static int
+remoteSASLCheckSSF (struct qemud_client *client,
+                    remote_message_header *req) {
+    const void *val;
+    int err, ssf;
+
+    if (client->type == QEMUD_SOCK_TYPE_TLS ||
+        client->type == QEMUD_SOCK_TYPE_UNIX)
+        return 0; /* TLS or UNIX domain sockets trivially OK */
+
+    err = sasl_getprop(client->saslconn, SASL_SSF, &val);
+    if (err != SASL_OK) {
+        qemudLog(QEMUD_ERR, "cannot query SASL ssf on connection %d (%s)",
+                 err, sasl_errstring(err, NULL, NULL));
+        remoteDispatchFailAuth(client, req);
+        sasl_dispose(&client->saslconn);
+        client->saslconn = NULL;
+        return -1;
+    }
+    ssf = *(const int *)val;
+    REMOTE_DEBUG("negotiated an SSF of %d", ssf);
+    if (ssf < 56) { /* 56 is good for Kerberos */
+        qemudLog(QEMUD_ERR, "negotiated SSF %d was not strong enough", ssf);
+        remoteDispatchFailAuth(client, req);
+        sasl_dispose(&client->saslconn);
+        client->saslconn = NULL;
+        return -1;
+    }
+
+    /* Only setup for read initially, because we're about to send an RPC
+     * reply which must be in plain text. When the next incoming RPC
+     * arrives, we'll switch on writes too
+     *
+     * cf qemudClientReadSASL  in qemud.c
+     */
+    client->saslSSF = QEMUD_SASL_SSF_READ;
+
+    /* We have a SSF !*/
+    return 0;
+}
+
+static int
+remoteSASLCheckAccess (struct qemud_server *server,
+                       struct qemud_client *client,
+                       remote_message_header *req) {
+    const void *val;
+    int err;
+    char **wildcards;
+
+    err = sasl_getprop(client->saslconn, SASL_USERNAME, &val);
+    if (err != SASL_OK) {
+        qemudLog(QEMUD_ERR, "cannot query SASL username on connection %d (%s)",
+                 err, sasl_errstring(err, NULL, NULL));
+        remoteDispatchFailAuth(client, req);
+        sasl_dispose(&client->saslconn);
+        client->saslconn = NULL;
+        return -1;
+    }
+    if (val == NULL) {
+        qemudLog(QEMUD_ERR, "no client username was found");
+        remoteDispatchFailAuth(client, req);
+        sasl_dispose(&client->saslconn);
+        client->saslconn = NULL;
+        return -1;
+    }
+    REMOTE_DEBUG("SASL client username %s", (const char *)val);
+
+    client->saslUsername = strdup((const char*)val);
+    if (client->saslUsername == NULL) {
+        qemudLog(QEMUD_ERR, "out of memory copying username");
+        remoteDispatchFailAuth(client, req);
+        sasl_dispose(&client->saslconn);
+        client->saslconn = NULL;
+        return -1;
+    }
+
+    /* If the list is not set, allow any DN. */
+    wildcards = server->saslUsernameWhitelist;
+    if (!wildcards)
+        return 0; /* No ACL, allow all */
+
+    while (*wildcards) {
+        if (fnmatch (*wildcards, client->saslUsername, 0) == 0)
+            return 0; /* Allowed */
+        wildcards++;
+    }
+
+    /* Denied */
+    qemudLog(QEMUD_ERR, "SASL client %s not allowed in whitelist", client->saslUsername);
+    remoteDispatchFailAuth(client, req);
+    sasl_dispose(&client->saslconn);
+    client->saslconn = NULL;
+    return -1;
+}
+
+
+/*
+ * This starts the SASL authentication negotiation.
+ */
+static int
+remoteDispatchAuthSaslStart (struct qemud_server *server,
+                             struct qemud_client *client,
+                             remote_message_header *req,
+                             remote_auth_sasl_start_args *args,
+                             remote_auth_sasl_start_ret *ret)
+{
+    const char *serverout;
+    unsigned int serveroutlen;
+    int err;
+
+    REMOTE_DEBUG("Start SASL auth %d", client->fd);
+    if (client->auth != REMOTE_AUTH_SASL ||
+        client->saslconn == NULL) {
+        qemudLog(QEMUD_ERR, "client tried invalid SASL start request");
+        remoteDispatchFailAuth(client, req);
+        return -2;
+    }
+
+    REMOTE_DEBUG("Using SASL mechanism %s. Data %d bytes, nil: %d",
+                 args->mech, args->data.data_len, args->nil);
+    err = sasl_server_start(client->saslconn,
+                            args->mech,
+                            /* NB, distinction of NULL vs "" is *critical* in SASL */
+                            args->nil ? NULL : args->data.data_val,
+                            args->data.data_len,
+                            &serverout,
+                            &serveroutlen);
+    if (err != SASL_OK &&
+        err != SASL_CONTINUE) {
+        qemudLog(QEMUD_ERR, "sasl start failed %d (%s)",
+                 err, sasl_errdetail(client->saslconn));
+        sasl_dispose(&client->saslconn);
+        client->saslconn = NULL;
+        remoteDispatchFailAuth(client, req);
+        return -2;
+    }
+    if (serveroutlen > REMOTE_AUTH_SASL_DATA_MAX) {
+        qemudLog(QEMUD_ERR, "sasl start reply data too long %d", serveroutlen);
+        sasl_dispose(&client->saslconn);
+        client->saslconn = NULL;
+        remoteDispatchFailAuth(client, req);
+        return -2;
+    }
+
+    /* NB, distinction of NULL vs "" is *critical* in SASL */
+    if (serverout) {
+        ret->data.data_val = malloc(serveroutlen);
+        if (!ret->data.data_val) {
+            remoteDispatchError (client, req, "out of memory allocating array");
+            return -2;
+        }
+        memcpy(ret->data.data_val, serverout, serveroutlen);
+    } else {
+        ret->data.data_val = NULL;
+    }
+    ret->nil = serverout ? 0 : 1;
+    ret->data.data_len = serveroutlen;
+
+    REMOTE_DEBUG("SASL return data %d bytes, nil; %d", ret->data.data_len, ret->nil);
+    if (err == SASL_CONTINUE) {
+        ret->complete = 0;
+    } else {
+        if (remoteSASLCheckSSF(client, req) < 0)
+            return -2;
+
+        /* Check username whitelist ACL */
+        if (remoteSASLCheckAccess(server, client, req) < 0)
+            return -2;
+
+        REMOTE_DEBUG("Authentication successful %d", client->fd);
+        ret->complete = 1;
+        client->auth = REMOTE_AUTH_NONE;
+    }
+
+    return 0;
+}
+
+
+static int
+remoteDispatchAuthSaslStep (struct qemud_server *server,
+                            struct qemud_client *client,
+                            remote_message_header *req,
+                            remote_auth_sasl_step_args *args,
+                            remote_auth_sasl_step_ret *ret)
+{
+    const char *serverout;
+    unsigned int serveroutlen;
+    int err;
+
+    REMOTE_DEBUG("Step SASL auth %d", client->fd);
+    if (client->auth != REMOTE_AUTH_SASL ||
+        client->saslconn == NULL) {
+        qemudLog(QEMUD_ERR, "client tried invalid SASL start request");
+        remoteDispatchFailAuth(client, req);
+        return -2;
+    }
+
+    REMOTE_DEBUG("Using SASL Data %d bytes, nil: %d",
+                 args->data.data_len, args->nil);
+    err = sasl_server_step(client->saslconn,
+                           /* NB, distinction of NULL vs "" is *critical* in SASL */
+                           args->nil ? NULL : args->data.data_val,
+                           args->data.data_len,
+                           &serverout,
+                           &serveroutlen);
+    if (err != SASL_OK &&
+        err != SASL_CONTINUE) {
+        qemudLog(QEMUD_ERR, "sasl step failed %d (%s)",
+                 err, sasl_errdetail(client->saslconn));
+        sasl_dispose(&client->saslconn);
+        client->saslconn = NULL;
+        remoteDispatchFailAuth(client, req);
+        return -2;
+    }
+
+    if (serveroutlen > REMOTE_AUTH_SASL_DATA_MAX) {
+        qemudLog(QEMUD_ERR, "sasl step reply data too long %d", serveroutlen);
+        sasl_dispose(&client->saslconn);
+        client->saslconn = NULL;
+        remoteDispatchFailAuth(client, req);
+        return -2;
+    }
+
+    /* NB, distinction of NULL vs "" is *critical* in SASL */
+    if (serverout) {
+        ret->data.data_val = malloc(serveroutlen);
+        if (!ret->data.data_val) {
+            remoteDispatchError (client, req, "out of memory allocating array");
+            return -2;
+        }
+        memcpy(ret->data.data_val, serverout, serveroutlen);
+    } else {
+        ret->data.data_val = NULL;
+    }
+    ret->nil = serverout ? 0 : 1;
+    ret->data.data_len = serveroutlen;
+
+    REMOTE_DEBUG("SASL return data %d bytes, nil; %d", ret->data.data_len, ret->nil);
+    if (err == SASL_CONTINUE) {
+        ret->complete = 0;
+    } else {
+        if (remoteSASLCheckSSF(client, req) < 0)
+            return -2;
+
+        /* Check username whitelist ACL */
+        if (remoteSASLCheckAccess(server, client, req) < 0)
+            return -2;
+
+        REMOTE_DEBUG("Authentication successful %d", client->fd);
+        ret->complete = 1;
+        client->auth = REMOTE_AUTH_NONE;
+    }
+
+    return 0;
+}
+
+
+#else /* HAVE_SASL */
+static int
+remoteDispatchAuthSaslInit (struct qemud_server *server ATTRIBUTE_UNUSED,
+                            struct qemud_client *client,
+                            remote_message_header *req,
+                            void *args ATTRIBUTE_UNUSED,
+                            remote_auth_sasl_init_ret *ret ATTRIBUTE_UNUSED)
+{
+    qemudLog(QEMUD_ERR, "client tried unsupported SASL init request");
+    remoteDispatchFailAuth(client, req);
+    return -1;
+}
+
+static int
+remoteDispatchAuthSaslStart (struct qemud_server *server ATTRIBUTE_UNUSED,
+                             struct qemud_client *client,
+                             remote_message_header *req,
+                             remote_auth_sasl_start_args *args ATTRIBUTE_UNUSED,
+                             remote_auth_sasl_start_ret *ret ATTRIBUTE_UNUSED)
+{
+    qemudLog(QEMUD_ERR, "client tried unsupported SASL start request");
+    remoteDispatchFailAuth(client, req);
+    return -1;
+}
+
+static int
+remoteDispatchAuthSaslStep (struct qemud_server *server ATTRIBUTE_UNUSED,
+                            struct qemud_client *client,
+                            remote_message_header *req,
+                            remote_auth_sasl_step_args *args ATTRIBUTE_UNUSED,
+                            remote_auth_sasl_step_ret *ret ATTRIBUTE_UNUSED)
+{
+    qemudLog(QEMUD_ERR, "client tried unsupported SASL step request");
+    remoteDispatchFailAuth(client, req);
+    return -1;
+}
+#endif /* HAVE_SASL */
+
+
+#if HAVE_POLKIT
+static int qemudGetSocketIdentity(int fd, uid_t *uid, pid_t *pid) {
+#ifdef SO_PEERCRED
+    struct ucred cr;
+    unsigned int cr_len = sizeof (cr);
+
+    if (getsockopt (fd, SOL_SOCKET, SO_PEERCRED, &cr, &cr_len) < 0) {
+        qemudLog(QEMUD_ERR, "Failed to verify client credentials: %s", strerror(errno));
+        return -1;
+    }
+
+    *pid = cr.pid;
+    *uid = cr.uid;
+#else
+    /* XXX Many more OS support UNIX socket credentials we could port to. See dbus ....*/
+#error "UNIX socket credentials not supported/implemented on this platform yet..."
+#endif
+    return 0;
+}
+
+
+static int
+remoteDispatchAuthPolkit (struct qemud_server *server ATTRIBUTE_UNUSED,
+                          struct qemud_client *client,
+                          remote_message_header *req,
+                          void *args ATTRIBUTE_UNUSED,
+                          remote_auth_polkit_ret *ret)
+{
+    pid_t callerPid;
+    uid_t callerUid;
+
+    REMOTE_DEBUG("Start PolicyKit auth %d", client->fd);
+    if (client->auth != REMOTE_AUTH_POLKIT) {
+        qemudLog(QEMUD_ERR, "client tried invalid PolicyKit init request");
+        remoteDispatchFailAuth(client, req);
+        return -2;
+    }
+
+    if (qemudGetSocketIdentity(client->fd, &callerUid, &callerPid) < 0) {
+        qemudLog(QEMUD_ERR, "cannot get peer socket identity");
+        remoteDispatchFailAuth(client, req);
+        return -2;
+    }
+
+    /* Only do policy checks for non-root - allow root user
+       through with no checks, as a fail-safe - root can easily
+       change policykit policy anyway, so its pointless trying
+       to restrict root */
+    if (callerUid == 0) {
+        qemudLog(QEMUD_INFO, "Allowing PID %d running as root", callerPid);
+        ret->complete = 1;
+        client->auth = REMOTE_AUTH_NONE;
+    } else {
+        PolKitCaller *pkcaller = NULL;
+        PolKitAction *pkaction = NULL;
+        PolKitContext *pkcontext = NULL;
+        PolKitError *pkerr;
+        PolKitResult pkresult;
+        DBusError err;
+        const char *action = client->readonly ?
+            "org.libvirt.unix.monitor" :
+            "org.libvirt.unix.manage";
+
+        qemudLog(QEMUD_INFO, "Checking PID %d running as %d", callerPid, callerUid);
+        dbus_error_init(&err);
+        if (!(pkcaller = polkit_caller_new_from_pid(server->sysbus, callerPid, &err))) {
+            qemudLog(QEMUD_ERR, "Failed to lookup policy kit caller: %s", err.message);
+            dbus_error_free(&err);
+            remoteDispatchFailAuth(client, req);
+            return -2;
+        }
+
+        if (!(pkaction = polkit_action_new())) {
+            qemudLog(QEMUD_ERR, "Failed to create polkit action %s\n", strerror(errno));
+            polkit_caller_unref(pkcaller);
+            remoteDispatchFailAuth(client, req);
+            return -2;
+        }
+        polkit_action_set_action_id(pkaction, action);
+
+        if (!(pkcontext = polkit_context_new()) ||
+            !polkit_context_init(pkcontext, &pkerr)) {
+            qemudLog(QEMUD_ERR, "Failed to create polkit context %s\n",
+                     pkerr ? polkit_error_get_error_message(pkerr) : strerror(errno));
+            if (pkerr)
+                polkit_error_free(pkerr);
+            polkit_caller_unref(pkcaller);
+            polkit_action_unref(pkaction);
+            dbus_error_free(&err);
+            remoteDispatchFailAuth(client, req);
+            return -2;
+        }
+
+        pkresult = polkit_context_can_caller_do_action(pkcontext, pkaction, pkcaller);
+        polkit_context_unref(pkcontext);
+        polkit_caller_unref(pkcaller);
+        polkit_action_unref(pkaction);
+        if (pkresult != POLKIT_RESULT_YES) {
+            qemudLog(QEMUD_ERR, "Policy kit denied action %s from pid %d, uid %d, result: %s\n",
+                     action, callerPid, callerUid, polkit_result_to_string_representation(pkresult));
+            remoteDispatchFailAuth(client, req);
+            return -2;
+        }
+        qemudLog(QEMUD_INFO, "Policy allowed action %s from pid %d, uid %d, result %s",
+                 action, callerPid, callerUid, polkit_result_to_string_representation(pkresult));
+        ret->complete = 1;
+        client->auth = REMOTE_AUTH_NONE;
+    }
+
+    return 0;
+}
+
+#else /* HAVE_POLKIT */
+
+static int
+remoteDispatchAuthPolkit (struct qemud_server *server ATTRIBUTE_UNUSED,
+                              struct qemud_client *client,
+                              remote_message_header *req,
+                              void *args ATTRIBUTE_UNUSED,
+                              remote_auth_polkit_ret *ret ATTRIBUTE_UNUSED)
+{
+    qemudLog(QEMUD_ERR, "client tried unsupported PolicyKit init request");
+    remoteDispatchFailAuth(client, req);
+    return -1;
+}
+#endif /* HAVE_POLKIT */
 
 /*----- Helpers. -----*/
 

@@ -1,9 +1,17 @@
 # -*- rpm-spec -*-
 
+%if "%{fedora}" >= "8"
+%define with_polkit 1
+%define with_proxy no
+%else
+%define with_polkit 0
+%define with_proxy yes
+%endif
+
 Summary: Library providing a simple API virtualization
 Name: libvirt
-Version: 0.3.3
-Release: 1%{?dist}%{?extra_release}
+Version: 0.4.0
+Release: 1
 License: LGPL
 Group: Development/Libraries
 Source: libvirt-%{version}.tar.gz
@@ -16,6 +24,16 @@ Requires: ncurses
 Requires: dnsmasq
 Requires: bridge-utils
 Requires: iptables
+# So remote clients can access libvirt over SSH tunnel
+# (client invokes 'nc' against the UNIX socket on the server)
+Requires: nc
+Requires: cyrus-sasl
+# Not technically required, but makes 'out-of-box' config
+# work correctly & doesn't have onerous dependancies
+Requires: cyrus-sasl-md5
+%if %{with_polkit}
+Requires: PolicyKit >= 0.6
+%endif
 BuildRequires: xen-devel
 BuildRequires: libxml2-devel
 BuildRequires: readline-devel
@@ -25,6 +43,11 @@ BuildRequires: gnutls-devel
 BuildRequires: avahi-devel
 BuildRequires: dnsmasq
 BuildRequires: bridge-utils
+BuildRequires: qemu
+BuildRequires: cyrus-sasl-devel
+%if %{with_polkit}
+BuildRequires: PolicyKit-devel >= 0.6
+%endif
 Obsoletes: libvir
 ExclusiveArch: i386 x86_64 ia64
 
@@ -59,7 +82,10 @@ of recent versions of Linux (and other OSes).
 %setup -q
 
 %build
-%configure --with-init-script=redhat --with-qemud-pid-file=%{_localstatedir}/run/libvirt_qemud.pid --with-remote-file=%{_localstatedir}/run/libvirtd.pid
+%configure --with-init-script=redhat \
+           --with-qemud-pid-file=%{_localstatedir}/run/libvirt_qemud.pid \
+           --with-remote-file=%{_localstatedir}/run/libvirtd.pid \
+           --with-xen-proxy=%{with_proxy}
 make
 
 %install
@@ -129,13 +155,21 @@ fi
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/qemu/networks/autostart
 %{_sysconfdir}/rc.d/init.d/libvirtd
 %config(noreplace) %{_sysconfdir}/sysconfig/libvirtd
+%config(noreplace) %{_sysconfdir}/libvirt/libvirtd.conf
+%config(noreplace) %{_sysconfdir}/libvirt/qemu.conf
+%config(noreplace) %{_sysconfdir}/sasl2/libvirt.conf
 %dir %{_datadir}/libvirt/
 %dir %{_datadir}/libvirt/networks/
 %{_datadir}/libvirt/networks/default.xml
 %dir %{_localstatedir}/run/libvirt/
 %dir %{_localstatedir}/lib/libvirt/
+%if %{with_polkit}
+%{_datadir}/PolicyKit/policy/libvirtd.policy
+%endif
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/qemu/
+%if %{with_proxy} == "yes"
 %attr(4755, root, root) %{_libexecdir}/libvirt_proxy
+%endif
 %attr(0755, root, root) %{_sbindir}/libvirtd
 %doc docs/*.rng
 %doc docs/*.xml
@@ -168,6 +202,14 @@ fi
 %doc docs/examples/python
 
 %changelog
+* Tue Dec 18 2007 Daniel Veillard <veillard@redhat.com> - 0.4.0-1
+- Release of 0.4.0
+- SASL based authentication
+- PolicyKit authentication
+- improved NUMA and statistics support
+- lots of assorted improvements, bugfixes and cleanups
+- documentation and localization improvements
+
 * Sun Sep 30 2007 Daniel Veillard <veillard@redhat.com> - 0.3.3-1
 - Release of 0.3.3
 - Avahi support

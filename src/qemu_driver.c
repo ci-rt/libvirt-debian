@@ -21,9 +21,9 @@
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
-#include <config.h>
+#include "config.h"
 
-#define _GNU_SOURCE /* for asprintf */
+#ifdef WITH_QEMU
 
 #include <sys/types.h>
 #include <sys/poll.h>
@@ -47,7 +47,7 @@
 #include <sys/wait.h>
 #include <libxml/uri.h>
 
-#include <libvirt/virterror.h>
+#include "libvirt/virterror.h"
 
 #include "event.h"
 #include "buf.h"
@@ -55,6 +55,7 @@
 #include "qemu_driver.h"
 #include "qemu_conf.h"
 #include "nodeinfo.h"
+#include "stats_linux.h"
 
 static int qemudShutdown(void);
 
@@ -155,8 +156,9 @@ qemudStartup(void) {
     uid_t uid = geteuid();
     struct passwd *pw;
     char *base = NULL;
+    char driverConf[PATH_MAX];
 
-    if (!(qemu_driver = calloc(1, sizeof(struct qemud_driver)))) {
+    if (!(qemu_driver = calloc(1, sizeof(*qemu_driver)))) {
         return -1;
     }
 
@@ -167,7 +169,7 @@ qemudStartup(void) {
         if (snprintf(qemu_driver->logDir, PATH_MAX, "%s/log/libvirt/qemu", LOCAL_STATE_DIR) >= PATH_MAX)
             goto snprintf_error;
 
-        if ((base = strdup (SYSCONF_DIR "/libvirt/qemu")) == NULL)
+        if ((base = strdup (SYSCONF_DIR "/libvirt")) == NULL)
             goto out_of_memory;
     } else {
         if (!(pw = getpwuid(uid))) {
@@ -179,7 +181,7 @@ qemudStartup(void) {
         if (snprintf(qemu_driver->logDir, PATH_MAX, "%s/.libvirt/qemu/log", pw->pw_dir) >= PATH_MAX)
             goto snprintf_error;
 
-        if (asprintf (&base, "%s/.libvirt/qemu", pw->pw_dir) == -1) {
+        if (asprintf (&base, "%s/.libvirt", pw->pw_dir) == -1) {
             qemudLog (QEMUD_ERR, "out of memory in asprintf");
             goto out_of_memory;
         }
@@ -188,24 +190,36 @@ qemudStartup(void) {
     /* Configuration paths are either ~/.libvirt/qemu/... (session) or
      * /etc/libvirt/qemu/... (system).
      */
-    if (asprintf (&qemu_driver->configDir, "%s", base) == -1)
+    if (snprintf (driverConf, sizeof(driverConf), "%s/qemu.conf", base) == -1)
+        goto out_of_memory;
+    driverConf[sizeof(driverConf)-1] = '\0';
+
+    if (asprintf (&qemu_driver->configDir, "%s/qemu", base) == -1)
         goto out_of_memory;
 
-    if (asprintf (&qemu_driver->autostartDir, "%s/autostart", base) == -1)
+    if (asprintf (&qemu_driver->autostartDir, "%s/qemu/autostart", base) == -1)
         goto out_of_memory;
 
-    if (asprintf (&qemu_driver->networkConfigDir, "%s/networks", base) == -1)
+    if (asprintf (&qemu_driver->networkConfigDir, "%s/qemu/networks", base) == -1)
         goto out_of_memory;
 
-    if (asprintf (&qemu_driver->networkAutostartDir, "%s/networks/autostart",
+    if (asprintf (&qemu_driver->networkAutostartDir, "%s/qemu/networks/autostart",
                   base) == -1)
         goto out_of_memory;
 
-    if (qemudScanConfigs(qemu_driver) < 0)
+    free(base);
+
+    if (qemudLoadDriverConfig(qemu_driver, driverConf) < 0) {
         qemudShutdown();
+        return -1;
+    }
+
+    if (qemudScanConfigs(qemu_driver) < 0) {
+        qemudShutdown();
+        return -1;
+    }
     qemudAutostartConfigs(qemu_driver);
 
-    free(base);
     return 0;
 
  snprintf_error:
@@ -324,6 +338,9 @@ qemudShutdown(void) {
         free(qemu_driver->networkConfigDir);
     if (qemu_driver->networkAutostartDir)
         free(qemu_driver->networkAutostartDir);
+
+    if (qemu_driver->vncTLSx509certdir)
+        free(qemu_driver->vncTLSx509certdir);
 
     if (qemu_driver->brctl)
         brShutdown(qemu_driver->brctl);
@@ -613,7 +630,7 @@ static int qemudStartVMDaemon(virConnectPtr conn,
     strcat(logfile, vm->def->name);
     strcat(logfile, ".log");
 
-    if (qemudEnsureDir(driver->logDir) < 0) {
+    if (virFileMakePath(driver->logDir) < 0) {
         qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
                          "cannot create log directory %s: %s",
                          driver->logDir, strerror(errno));
@@ -821,7 +838,7 @@ qemudBuildDnsmasqArgv(virConnectPtr conn,
         (2 * network->def->nranges) + /* --dhcp-range 10.0.0.2,10.0.0.254 */
         1;  /* NULL */
 
-    if (!(*argv = calloc(len, sizeof(char *))))
+    if (!(*argv = calloc(len, sizeof(**argv))))
         goto no_memory;
 
 #define APPEND_ARG(v, n, s) do {     \
@@ -1145,7 +1162,7 @@ static int qemudStartNetworkDaemon(virConnectPtr conn,
         goto err_delbr;
     }
 
-    if ((err = brSetForwardDelay(driver->brctl, network->bridge, network->def->disableSTP ? 0 : 1))) {
+    if ((err = brSetEnableSTP(driver->brctl, network->bridge, network->def->disableSTP ? 0 : 1))) {
         qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
                          "failed to set bridge STP to %s\n",
                          network->def->disableSTP ? "off" : "on");
@@ -1298,10 +1315,12 @@ static int qemudMonitorCommand(struct qemud_driver *driver ATTRIBUTE_UNUSED,
                                char **reply) {
     int size = 0;
     char *buf = NULL;
+    size_t cmdlen = strlen(cmd);
 
-    if (write(vm->monitor, cmd, strlen(cmd)) < 0) {
+    if (safewrite(vm->monitor, cmd, cmdlen) != cmdlen)
         return -1;
-    }
+    if (safewrite(vm->monitor, "\r", 1) != 1)
+        return -1;
 
     *reply = NULL;
 
@@ -1315,32 +1334,24 @@ static int qemudMonitorCommand(struct qemud_driver *driver ATTRIBUTE_UNUSED,
             int got = read(vm->monitor, data, sizeof(data));
             char *b;
 
-            if (got == 0) {
-                if (buf)
-                    free(buf);
-                return -1;
-            }
+            if (got == 0)
+                goto error;
             if (got < 0) {
                 if (errno == EINTR)
                     continue;
                 if (errno == EAGAIN)
                     break;
+                goto error;
+            }
+            if (!(b = realloc(buf, size+got+1)))
+                goto error;
 
-                if (buf)
-                    free(buf);
-                return -1;
-            }
-            if (!(b = realloc(buf, size+got+1))) {
-                free(buf);
-                return -1;
-            }
             buf = b;
             memmove(buf+size, data, got);
             buf[size+got] = '\0';
             size += got;
         }
-        if (buf)
-            qemudDebug("Mon [%s]", buf);
+
         /* Look for QEMU prompt to indicate completion */
         if (buf && ((tmp = strstr(buf, "\n(qemu) ")) != NULL)) {
             tmp[0] = '\0';
@@ -1351,27 +1362,39 @@ static int qemudMonitorCommand(struct qemud_driver *driver ATTRIBUTE_UNUSED,
         if (poll(&fd, 1, -1) < 0) {
             if (errno == EINTR)
                 goto pollagain;
-
-            free(buf);
-            return -1;
+            goto error;
         }
     }
 
+    /* Log, but ignore failures to write logfile for VM */
+    if (safewrite(vm->logfile, buf, strlen(buf)) < 0)
+        qemudLog(QEMUD_WARN, "Unable to log VM console data: %s",
+                 strerror(errno));
+
     *reply = buf;
     return 0;
+
+ error:
+    if (buf) {
+        /* Log, but ignore failures to write logfile for VM */
+        if (safewrite(vm->logfile, buf, strlen(buf)) < 0)
+            qemudLog(QEMUD_WARN, "Unable to log VM console data: %s",
+                     strerror(errno));
+        free(buf);
+    }
+    return -1;
 }
 
 
 static virDrvOpenStatus qemudOpen(virConnectPtr conn,
-                                  const char *name,
+                                  xmlURIPtr uri,
+                                  virConnectAuthPtr auth ATTRIBUTE_UNUSED,
                                   int flags ATTRIBUTE_UNUSED) {
-    xmlURIPtr uri = NULL;
     uid_t uid = getuid();
 
     if (qemu_driver == NULL)
-        return VIR_DRV_OPEN_DECLINED;
+        goto decline;
 
-    uri = xmlParseURI(name);
     if (uri == NULL || uri->scheme == NULL || uri->path == NULL)
         goto decline;
 
@@ -1389,12 +1412,9 @@ static virDrvOpenStatus qemudOpen(virConnectPtr conn,
 
     conn->privateData = qemu_driver;
 
-    xmlFreeURI(uri);
     return VIR_DRV_OPEN_SUCCESS;
 
  decline:
-    if (uri != NULL)
-        xmlFreeURI(uri);
     return VIR_DRV_OPEN_DECLINED;    
 }
 
@@ -1793,7 +1813,7 @@ static int qemudDomainSuspend(virDomainPtr dom) {
     if (vm->state == VIR_DOMAIN_PAUSED)
         return 0;
 
-    if (qemudMonitorCommand(driver, vm, "stop\r", &info) < 0) {
+    if (qemudMonitorCommand(driver, vm, "stop", &info) < 0) {
         qemudReportError(dom->conn, dom, NULL, VIR_ERR_OPERATION_FAILED, "suspend operation failed");
         return -1;
     }
@@ -1818,7 +1838,7 @@ static int qemudDomainResume(virDomainPtr dom) {
     }
     if (vm->state == VIR_DOMAIN_RUNNING)
         return 0;
-    if (qemudMonitorCommand(driver, vm, "cont\r", &info) < 0) {
+    if (qemudMonitorCommand(driver, vm, "cont", &info) < 0) {
         qemudReportError(dom->conn, dom, NULL, VIR_ERR_OPERATION_FAILED, "resume operation failed");
         return -1;
     }
@@ -1892,7 +1912,7 @@ static int qemudDomainGetInfo(virDomainPtr dom,
 }
 
 
-static char *qemudEscapeShellArg(const char *in)
+static char *qemudEscape(const char *in, int shell)
 {
     int len = 0;
     int i, j;
@@ -1914,7 +1934,10 @@ static char *qemudEscapeShellArg(const char *in)
             len += 2;
             break;
         case '\'':
-            len += 5;
+            if (shell)
+                len += 5;
+            else
+                len += 1;
             break;
         default:
             len += 1;
@@ -1941,11 +1964,15 @@ static char *qemudEscapeShellArg(const char *in)
             out[j++] = in[i];
             break;
         case '\'':
-            out[j++] = '\'';
-            out[j++] = '\\';
-            out[j++] = '\\';
-            out[j++] = '\'';
-            out[j++] = '\'';
+            if (shell) {
+                out[j++] = '\'';
+                out[j++] = '\\';
+                out[j++] = '\\';
+                out[j++] = '\'';
+                out[j++] = '\'';
+            } else {
+                out[j++] = in[i];
+            }
             break;
         default:
             out[j++] = in[i];
@@ -1957,6 +1984,15 @@ static char *qemudEscapeShellArg(const char *in)
     return out;
 }
 
+static char *qemudEscapeMonitorArg(const char *in)
+{
+    return qemudEscape(in, 0);
+}
+
+static char *qemudEscapeShellArg(const char *in)
+{
+    return qemudEscape(in, 1);
+}
 
 #define QEMUD_SAVE_MAGIC "LibvirtQemudSave"
 #define QEMUD_SAVE_VERSION 1
@@ -2050,7 +2086,7 @@ static int qemudDomainSave(virDomainPtr dom,
     }
     if (asprintf (&command, "migrate \"exec:"
                   "dd of='%s' oflag=append conv=notrunc 2>/dev/null"
-                  "\"\r", safe_path) == -1) {
+                  "\"", safe_path) == -1) {
         qemudReportError(dom->conn, dom, NULL, VIR_ERR_OPERATION_FAILED,
                          "out of memory");
         free(safe_path);
@@ -2083,6 +2119,7 @@ static int qemudDomainRestore(virConnectPtr conn,
     struct qemud_vm_def *def;
     struct qemud_vm *vm;
     int fd;
+    int ret;
     char *xml;
     struct qemud_save_header header;
 
@@ -2161,23 +2198,22 @@ static int qemudDomainRestore(virConnectPtr conn,
     /* Set the migration source and start it up. */
     snprintf(vm->migrateFrom, sizeof(vm->migrateFrom), "stdio");
     vm->stdin = fd;
-
-    if (qemudStartVMDaemon(conn, driver, vm) < 0) {
+    ret = qemudStartVMDaemon(conn, driver, vm);
+    close(fd);
+    vm->migrateFrom[0] = '\0';
+    vm->stdin = -1;
+    if (ret < 0) {
         qemudReportError(conn, NULL, NULL, VIR_ERR_OPERATION_FAILED,
                          "failed to start VM");
         if (!vm->configFile[0])
             qemudRemoveInactiveVM(driver, vm);
-        close(fd);
         return -1;
     }
-    close(fd);
-    vm->migrateFrom[0] = '\0';
-    vm->stdin = -1;
 
     /* If it was running before, resume it now. */
     if (header.was_running) {
         char *info;
-        if (qemudMonitorCommand(driver, vm, "cont\r", &info) < 0) {
+        if (qemudMonitorCommand(driver, vm, "cont", &info) < 0) {
             qemudReportError(conn, NULL, NULL, VIR_ERR_OPERATION_FAILED,
                              "failed to resume domain");
             return -1;
@@ -2300,6 +2336,94 @@ static int qemudDomainUndefine(virDomainPtr dom) {
     return 0;
 }
 
+static int qemudDomainChangeCDROM(virDomainPtr dom,
+                                  struct qemud_vm *vm,
+                                  struct qemud_vm_disk_def *olddisk,
+                                  struct qemud_vm_disk_def *newdisk) {
+    struct qemud_driver *driver = (struct qemud_driver *)dom->conn->privateData;
+    char *cmd, *reply, *safe_path;
+
+    /* Migrate to file */
+    safe_path = qemudEscapeMonitorArg(newdisk->src);
+    if (!safe_path) {
+        qemudReportError(dom->conn, dom, NULL, VIR_ERR_OPERATION_FAILED,
+                         "out of memory");
+        return -1;
+    }
+    if (asprintf (&cmd, "change %s \"%s\"",
+                  /* XXX qemu may support multiple CDROM in future */
+                  /* olddisk->dst */ "cdrom",
+                  safe_path) == -1) {
+        qemudReportError(dom->conn, dom, NULL, VIR_ERR_OPERATION_FAILED,
+                         "out of memory");
+        free(safe_path);
+        return -1;
+    }
+    free(safe_path);
+
+    if (qemudMonitorCommand(driver, vm, cmd, &reply) < 0) {
+        qemudReportError(dom->conn, dom, NULL, VIR_ERR_OPERATION_FAILED, "cannot change cdrom media");
+        free(cmd);
+        return -1;
+    }
+    free(reply);
+    free(cmd);
+    strcpy(olddisk->dst, newdisk->dst);
+    olddisk->type = newdisk->type;
+    return 0;
+}
+
+static int qemudDomainAttachDevice(virDomainPtr dom,
+                                   const char *xml) {
+    struct qemud_driver *driver = (struct qemud_driver *)dom->conn->privateData;
+    struct qemud_vm *vm = qemudFindVMByUUID(driver, dom->uuid);
+    struct qemud_vm_device_def *dev;
+    struct qemud_vm_disk_def *disk;
+
+    if (!vm) {
+        qemudReportError(dom->conn, dom, NULL, VIR_ERR_INVALID_DOMAIN, "no domain with matching uuid");
+        return -1;
+    }
+
+    if (!qemudIsActiveVM(vm)) {
+        qemudReportError(dom->conn, dom, NULL, VIR_ERR_INTERNAL_ERROR, "cannot attach device on inactive domain");
+        return -1;
+    }
+
+    dev = qemudParseVMDeviceDef(dom->conn, driver, xml);
+    if (dev == NULL) {
+        return -1;
+    }
+
+    if (dev->type != QEMUD_DEVICE_DISK || dev->data.disk.device != QEMUD_DISK_CDROM) {
+        qemudReportError(dom->conn, dom, NULL, VIR_ERR_NO_SUPPORT, "only CDROM disk devices can be attached");
+        free(dev);
+        return -1;
+    }
+
+    disk = vm->def->disks;
+    while (disk) {
+        if (disk->device == QEMUD_DISK_CDROM &&
+            STREQ(disk->dst, dev->data.disk.dst))
+            break;
+        disk = disk->next;
+    }
+
+    if (!disk) {
+        qemudReportError(dom->conn, dom, NULL, VIR_ERR_NO_SUPPORT, "CDROM not attached, cannot change media");
+        free(dev);
+        return -1;
+    }
+
+    if (qemudDomainChangeCDROM(dom, vm, disk, &dev->data.disk) < 0) {
+        free(dev);
+        return -1;
+    }
+
+    free(dev);
+    return 0;
+}
+
 static int qemudDomainGetAutostart(virDomainPtr dom,
                             int *autostart) {
     struct qemud_driver *driver = (struct qemud_driver *)dom->conn->privateData;
@@ -2333,7 +2457,7 @@ static int qemudDomainSetAutostart(virDomainPtr dom,
     if (autostart) {
         int err;
 
-        if ((err = qemudEnsureDir(driver->autostartDir))) {
+        if ((err = virFileMakePath(driver->autostartDir))) {
             qemudReportError(dom->conn, dom, NULL, VIR_ERR_INTERNAL_ERROR,
                              "cannot create autostart directory %s: %s",
                              driver->autostartDir, strerror(err));
@@ -2358,6 +2482,65 @@ static int qemudDomainSetAutostart(virDomainPtr dom,
     vm->autostart = autostart;
 
     return 0;
+}
+
+static int
+qemudDomainInterfaceStats (virDomainPtr dom,
+                           const char *path,
+                           struct _virDomainInterfaceStats *stats)
+{
+#ifdef __linux__
+    struct qemud_driver *driver = (struct qemud_driver *)dom->conn->privateData;
+    struct qemud_vm *vm = qemudFindVMByID (driver, dom->id);
+    struct qemud_vm_net_def *net;
+
+    if (!vm) {
+        qemudReportError (dom->conn, dom, NULL, VIR_ERR_INVALID_DOMAIN,
+                          "no domain with matching id %d", dom->id);
+        return -1;
+    }
+
+    if (!qemudIsActiveVM(vm)) {
+        qemudReportError(dom->conn, dom, NULL, VIR_ERR_OPERATION_FAILED,
+                         "domain is not running");
+        return -1;
+    }
+
+    if (!path || path[0] == '\0') {
+        qemudReportError(dom->conn, dom, NULL, VIR_ERR_INVALID_ARG,
+                         "NULL or empty path");
+        return -1;
+    }
+
+    /* Check the path is one of the domain's network interfaces. */
+    for (net = vm->def->nets; net; net = net->next) {
+        switch (net->type) {
+        case QEMUD_NET_NETWORK:
+            if (STREQ (net->dst.network.ifname, path))
+                goto ok;
+            break;
+        case QEMUD_NET_ETHERNET:
+            if (STREQ (net->dst.ethernet.ifname, path))
+                goto ok;
+            break;
+        case QEMUD_NET_BRIDGE:
+            if (STREQ (net->dst.bridge.ifname, path))
+                goto ok;
+            break;
+        }
+    }
+
+    qemudReportError (dom->conn, dom, NULL, VIR_ERR_INVALID_ARG,
+                      "invalid path, '%s' is not a known interface", path);
+    return -1;
+ ok:
+
+    return linuxDomainInterfaceStats (dom->conn, path, stats);
+#else
+    qemudReportError (dom->conn, dom, NULL, VIR_ERR_NO_SUPPORT,
+                      "%s", __FUNCTION__);
+    return -1;
+#endif
 }
 
 static virNetworkPtr qemudNetworkLookupByUUID(virConnectPtr conn ATTRIBUTE_UNUSED,
@@ -2390,7 +2573,8 @@ static virNetworkPtr qemudNetworkLookupByName(virConnectPtr conn ATTRIBUTE_UNUSE
 }
 
 static virDrvOpenStatus qemudOpenNetwork(virConnectPtr conn,
-                                         const char *name ATTRIBUTE_UNUSED,
+                                         xmlURIPtr uri ATTRIBUTE_UNUSED,
+                                         virConnectAuthPtr auth ATTRIBUTE_UNUSED,
                                          int flags ATTRIBUTE_UNUSED) {
     if (!qemu_driver)
         return VIR_DRV_OPEN_DECLINED;
@@ -2622,7 +2806,7 @@ static int qemudNetworkSetAutostart(virNetworkPtr net,
     if (autostart) {
         int err;
 
-        if ((err = qemudEnsureDir(driver->networkAutostartDir))) {
+        if ((err = virFileMakePath(driver->networkAutostartDir))) {
             qemudReportError(net->conn, NULL, net, VIR_ERR_INTERNAL_ERROR,
                              "cannot create autostart directory %s: %s",
                              driver->networkAutostartDir, strerror(err));
@@ -2659,7 +2843,7 @@ static virDriver qemuDriver = {
     qemudGetType, /* type */
     qemudGetVersion, /* version */
     qemudGetHostname, /* hostname */
-    NULL, /* URI - never called because remote_internal.c answers this */
+    NULL, /* URI  */
     qemudGetMaxVCPUs, /* getMaxVcpus */
     qemudGetNodeInfo, /* nodeGetInfo */
     qemudGetCapabilities, /* getCapabilities */
@@ -2692,7 +2876,7 @@ static virDriver qemuDriver = {
     qemudDomainStart, /* domainCreate */
     qemudDomainDefine, /* domainDefineXML */
     qemudDomainUndefine, /* domainUndefine */
-    NULL, /* domainAttachDevice */
+    qemudDomainAttachDevice, /* domainAttachDevice */
     NULL, /* domainDetachDevice */
     qemudDomainGetAutostart, /* domainGetAutostart */
     qemudDomainSetAutostart, /* domainSetAutostart */
@@ -2703,7 +2887,7 @@ static virDriver qemuDriver = {
     NULL, /* domainMigratePerform */
     NULL, /* domainMigrateFinish */
     NULL, /* domainBlockStats */
-    NULL, /* domainInterfaceStats */
+    qemudDomainInterfaceStats, /* domainInterfaceStats */
     NULL, /* nodeGetCellsFreeMemory */
     NULL, /* getFreeMemory */
 };
@@ -2742,6 +2926,8 @@ int qemudRegister(void) {
     virRegisterStateDriver(&qemuStateDriver);
     return 0;
 }
+
+#endif /* WITH_QEMU */
 
 /*
  * Local variables:

@@ -29,8 +29,6 @@
 
 #include <config.h>
 
-#define _GNU_SOURCE /* for asprintf */
-
 #include <sys/types.h>
 #include <sys/poll.h>
 #include <dirent.h>
@@ -52,7 +50,7 @@
 #include <stdio.h>
 #include <sys/wait.h>
 
-#include <libvirt/virterror.h>
+#include "libvirt/virterror.h"
 
 #include "openvz_driver.h"
 #include "event.h"
@@ -89,7 +87,12 @@ static int openvzReload(void);
 static int openvzActive(void);
 static int openvzCloseNetwork(virConnectPtr conn);
 static virDrvOpenStatus openvzOpenNetwork(virConnectPtr conn, 
-        const char *name ATTRIBUTE_UNUSED, int flags ATTRIBUTE_UNUSED);
+                                          const char *name ATTRIBUTE_UNUSED,
+                                          int *credtype ATTRIBUTE_UNUSED,
+                                          int ncredtype ATTRIBUTE_UNUSED,
+                                          virConnectAuthCallbackPtr cb ATTRIBUTE_UNUSED,
+                                          void *cbdata ATTRIBUTE_UNUSED,
+                                          int flags ATTRIBUTE_UNUSED);
 
 static virDomainPtr openvzDomainDefineXML(virConnectPtr conn, const char *xml);
 static virDomainPtr openvzDomainCreateLinux(virConnectPtr conn, const char *xml, 
@@ -138,7 +141,7 @@ error (virConnectPtr conn, virErrorNumber code, const char *info)
     const char *errmsg;
 
     errmsg = __virErrorMsg (code, info);
-    __virRaiseError (conn, NULL, NULL, VIR_FROM_REMOTE,
+    __virRaiseError (conn, NULL, NULL, VIR_FROM_OPENVZ,
                      code, VIR_ERR_ERROR, errmsg, info, NULL, 0, 0,
                      errmsg, info);
 }
@@ -551,8 +554,12 @@ bail_out5:
 }
 
 static virDrvOpenStatus openvzOpen(virConnectPtr conn,
-                           const char *name,
-                           int flags ATTRIBUTE_UNUSED) {
+                                   const char *name,
+                                   int *credtype ATTRIBUTE_UNUSED,
+                                   int ncredtype ATTRIBUTE_UNUSED,
+                                   virConnectAuthCallbackPtr cb ATTRIBUTE_UNUSED,
+                                   void *cbdata ATTRIBUTE_UNUSED,
+                                   int flags ATTRIBUTE_UNUSED) {
     struct openvz_vm *vms;
 
     /* Just check if the guy is root. Nothing really to open for OpenVZ */
@@ -693,8 +700,12 @@ static int openvzCloseNetwork(virConnectPtr conn ATTRIBUTE_UNUSED) {
 }
 
 static virDrvOpenStatus openvzOpenNetwork(virConnectPtr conn ATTRIBUTE_UNUSED,
-                                         const char *name ATTRIBUTE_UNUSED,
-                                         int flags ATTRIBUTE_UNUSED) {
+                                          const char *name ATTRIBUTE_UNUSED,
+                                          int *credtype ATTRIBUTE_UNUSED,
+                                          int ncredtype ATTRIBUTE_UNUSED,
+                                          virConnectAuthCallbackPtr cb ATTRIBUTE_UNUSED,
+                                          void *cbdata ATTRIBUTE_UNUSED,
+                                          int flags ATTRIBUTE_UNUSED) {
     return VIR_DRV_OPEN_SUCCESS;
 }
 

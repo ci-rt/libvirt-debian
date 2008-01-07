@@ -16,36 +16,41 @@
      <exports symbol='VIR_UUID_STRING_BUFLEN' type='macro'/>
      <exports symbol='VIR_GET_CPUMAP' type='macro'/>
      <exports symbol='VIR_UNUSE_CPU' type='macro'/>
+     <exports symbol='VIR_CRED_EXTERNAL' type='enum'/>
      <exports symbol='VIR_DOMAIN_SHUTDOWN' type='enum'/>
      <exports symbol='VIR_DOMAIN_SCHED_FIELD_UINT' type='enum'/>
-     <exports symbol='VIR_VCPU_RUNNING' type='enum'/>
-     <exports symbol='VIR_DOMAIN_CRASHED' type='enum'/>
+     <exports symbol='VIR_CRED_CNONCE' type='enum'/>
+     <exports symbol='VIR_CRED_ECHOPROMPT' type='enum'/>
      <exports symbol='VIR_DOMAIN_SCHED_FIELD_DOUBLE' type='enum'/>
      <exports symbol='VIR_DOMAIN_SCHED_FIELD_LLONG' type='enum'/>
-     <exports symbol='VIR_DOMAIN_SCHED_FIELD_ULLONG' type='enum'/>
-     <exports symbol='VIR_DOMAIN_DESTROY' type='enum'/>
-     <exports symbol='VIR_DOMAIN_RESTART' type='enum'/>
-     <exports symbol='VIR_DOMAIN_PRESERVE' type='enum'/>
+     <exports symbol='VIR_CONNECT_RO' type='enum'/>
+     <exports symbol='VIR_CRED_AUTHNAME' type='enum'/>
+     <exports symbol='VIR_CRED_LANGUAGE' type='enum'/>
+     <exports symbol='VIR_CRED_NOECHOPROMPT' type='enum'/>
      <exports symbol='VIR_DOMAIN_SCHED_FIELD_BOOLEAN' type='enum'/>
      <exports symbol='VIR_MIGRATE_LIVE' type='enum'/>
+     <exports symbol='VIR_CRED_USERNAME' type='enum'/>
      <exports symbol='VIR_VCPU_OFFLINE' type='enum'/>
      <exports symbol='VIR_DOMAIN_RUNNING' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCKED' type='enum'/>
      <exports symbol='VIR_DOMAIN_SHUTOFF' type='enum'/>
      <exports symbol='VIR_VCPU_BLOCKED' type='enum'/>
      <exports symbol='VIR_DOMAIN_SCHED_FIELD_INT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_SCHED_FIELD_ULLONG' type='enum'/>
+     <exports symbol='VIR_CRED_REALM' type='enum'/>
+     <exports symbol='VIR_VCPU_RUNNING' type='enum'/>
      <exports symbol='VIR_DOMAIN_PAUSED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CRASHED' type='enum'/>
      <exports symbol='VIR_DOMAIN_XML_INACTIVE' type='enum'/>
      <exports symbol='VIR_DOMAIN_NONE' type='enum'/>
      <exports symbol='VIR_DOMAIN_NOSTATE' type='enum'/>
-     <exports symbol='VIR_DOMAIN_RENAME_RESTART' type='enum'/>
+     <exports symbol='VIR_CRED_PASSPHRASE' type='enum'/>
      <exports symbol='VIR_DOMAIN_XML_SECURE' type='enum'/>
      <exports symbol='virDomainBlockStatsStruct' type='typedef'/>
      <exports symbol='virDomainMigrateFlags' type='typedef'/>
      <exports symbol='virNodeInfo' type='typedef'/>
      <exports symbol='virNetwork' type='typedef'/>
      <exports symbol='virDomainBlockStatsPtr' type='typedef'/>
-     <exports symbol='virSchedParameterType' type='typedef'/>
      <exports symbol='virConnect' type='typedef'/>
      <exports symbol='virVcpuInfo' type='typedef'/>
      <exports symbol='virDomainInfo' type='typedef'/>
@@ -53,25 +58,35 @@
      <exports symbol='virDomainState' type='typedef'/>
      <exports symbol='virDomain' type='typedef'/>
      <exports symbol='virDomainInterfaceStatsPtr' type='typedef'/>
-     <exports symbol='virDomainRestart' type='typedef'/>
-     <exports symbol='virSchedParameterPtr' type='typedef'/>
+     <exports symbol='virConnectAuthPtr' type='typedef'/>
+     <exports symbol='virSchedParameterType' type='typedef'/>
+     <exports symbol='virConnectCredentialPtr' type='typedef'/>
      <exports symbol='virNodeInfoPtr' type='typedef'/>
      <exports symbol='virNetworkPtr' type='typedef'/>
      <exports symbol='virDomainInfoPtr' type='typedef'/>
      <exports symbol='virConnectPtr' type='typedef'/>
      <exports symbol='virSchedParameter' type='typedef'/>
+     <exports symbol='virConnectFlags' type='typedef'/>
+     <exports symbol='virSchedParameterPtr' type='typedef'/>
      <exports symbol='virVcpuState' type='typedef'/>
+     <exports symbol='virConnectAuth' type='typedef'/>
+     <exports symbol='virConnectCredential' type='typedef'/>
      <exports symbol='virVcpuInfoPtr' type='typedef'/>
      <exports symbol='virDomainXMLFlags' type='typedef'/>
      <exports symbol='virDomainPtr' type='typedef'/>
+     <exports symbol='virConnectCredentialType' type='typedef'/>
      <exports symbol='virDomainCreateFlags' type='typedef'/>
      <exports symbol='_virDomainInfo' type='struct'/>
-     <exports symbol='_virDomainInterfaceStats' type='struct'/>
+     <exports symbol='_virConnectAuth' type='struct'/>
      <exports symbol='_virVcpuInfo' type='struct'/>
-     <exports symbol='_virSchedParameter' type='struct'/>
+     <exports symbol='_virDomainInterfaceStats' type='struct'/>
+     <exports symbol='_virConnectCredential' type='struct'/>
      <exports symbol='_virDomainBlockStats' type='struct'/>
      <exports symbol='_virNodeInfo' type='struct'/>
+     <exports symbol='_virSchedParameter' type='struct'/>
+     <exports symbol='virConnectAuthPtrDefault' type='variable'/>
      <exports symbol='virDomainGetInfo' type='function'/>
+     <exports symbol='virNetworkCreate' type='function'/>
      <exports symbol='virNetworkFree' type='function'/>
      <exports symbol='virNetworkGetName' type='function'/>
      <exports symbol='virDomainGetName' type='function'/>
@@ -121,14 +136,14 @@
      <exports symbol='virConnectNumOfDefinedDomains' type='function'/>
      <exports symbol='virNetworkCreateXML' type='function'/>
      <exports symbol='virNetworkDefineXML' type='function'/>
-     <exports symbol='virNetworkCreate' type='function'/>
+     <exports symbol='virDomainLookupByID' type='function'/>
      <exports symbol='virDomainSetSchedulerParameters' type='function'/>
      <exports symbol='virNodeGetCellsFreeMemory' type='function'/>
      <exports symbol='virConnectClose' type='function'/>
      <exports symbol='virDomainReboot' type='function'/>
      <exports symbol='virDomainBlockStats' type='function'/>
      <exports symbol='virDomainSetVcpus' type='function'/>
-     <exports symbol='virDomainLookupByID' type='function'/>
+     <exports symbol='virConnectOpenAuth' type='function'/>
      <exports symbol='virNetworkGetUUIDString' type='function'/>
      <exports symbol='virDomainMigrate' type='function'/>
      <exports symbol='virNetworkGetXMLDesc' type='function'/>
@@ -147,6 +162,7 @@
      <exports symbol='virDomainGetXMLDesc' type='function'/>
      <exports symbol='virDomainSetMaxMemory' type='function'/>
      <exports symbol='virDomainInterfaceStats' type='function'/>
+     <exports symbol='virConnectAuthCallbackPtr' type='function'/>
      <exports symbol='virConnectGetVersion' type='function'/>
      <exports symbol='virConnectListNetworks' type='function'/>
      <exports symbol='virConnectGetURI' type='function'/>
@@ -164,6 +180,7 @@
      <exports symbol='VIR_ERR_WARNING' type='enum'/>
      <exports symbol='VIR_FROM_OPENVZ' type='enum'/>
      <exports symbol='VIR_ERR_NO_XEN' type='enum'/>
+     <exports symbol='VIR_FROM_STATS_LINUX' type='enum'/>
      <exports symbol='VIR_ERR_INVALID_ARG' type='enum'/>
      <exports symbol='VIR_ERR_ERROR' type='enum'/>
      <exports symbol='VIR_ERR_NO_OS' type='enum'/>
@@ -181,6 +198,7 @@
      <exports symbol='VIR_FROM_QEMU' type='enum'/>
      <exports symbol='VIR_FROM_CONF' type='enum'/>
      <exports symbol='VIR_ERR_INVALID_NETWORK' type='enum'/>
+     <exports symbol='VIR_ERR_AUTH_FAILED' type='enum'/>
      <exports symbol='VIR_ERR_OPERATION_DENIED' type='enum'/>
      <exports symbol='VIR_ERR_NO_KERNEL' type='enum'/>
      <exports symbol='VIR_ERR_GNUTLS_ERROR' type='enum'/>
@@ -192,6 +210,7 @@
      <exports symbol='VIR_ERR_OK' type='enum'/>
      <exports symbol='VIR_ERR_XML_DETAIL' type='enum'/>
      <exports symbol='VIR_FROM_NET' type='enum'/>
+     <exports symbol='VIR_FROM_XENXM' type='enum'/>
      <exports symbol='VIR_ERR_NO_NAME' type='enum'/>
      <exports symbol='VIR_ERR_NO_ROOT' type='enum'/>
      <exports symbol='VIR_ERR_OPERATION_FAILED' type='enum'/>
@@ -290,15 +309,21 @@
     <macro name='VIR_UUID_STRING_BUFLEN' file='libvirt'>
       <info>This macro provides the length of the buffer required for virDomainGetUUIDString()</info>
     </macro>
+    <enum name='VIR_CONNECT_RO' file='libvirt' value='1' type='virConnectFlags' info=' A readonly connection'/>
+    <enum name='VIR_CRED_AUTHNAME' file='libvirt' value='2' type='virConnectCredentialType' info='Identify to authorize as'/>
+    <enum name='VIR_CRED_CNONCE' file='libvirt' value='4' type='virConnectCredentialType' info='client supplies a nonce'/>
+    <enum name='VIR_CRED_ECHOPROMPT' file='libvirt' value='6' type='virConnectCredentialType' info='Challenge response'/>
+    <enum name='VIR_CRED_EXTERNAL' file='libvirt' value='9' type='virConnectCredentialType' info=' Externally managed credential More may be added - expect the unexpected'/>
+    <enum name='VIR_CRED_LANGUAGE' file='libvirt' value='3' type='virConnectCredentialType' info='RFC 1766 languages, comma separated'/>
+    <enum name='VIR_CRED_NOECHOPROMPT' file='libvirt' value='7' type='virConnectCredentialType' info='Challenge response'/>
+    <enum name='VIR_CRED_PASSPHRASE' file='libvirt' value='5' type='virConnectCredentialType' info='Passphrase secret'/>
+    <enum name='VIR_CRED_REALM' file='libvirt' value='8' type='virConnectCredentialType' info='Authentication realm'/>
+    <enum name='VIR_CRED_USERNAME' file='libvirt' value='1' type='virConnectCredentialType' info='Identity to act as'/>
     <enum name='VIR_DOMAIN_BLOCKED' file='libvirt' value='2' type='virDomainState' info='the domain is blocked on resource'/>
     <enum name='VIR_DOMAIN_CRASHED' file='libvirt' value='6' type='virDomainState' info=' the domain is crashed'/>
-    <enum name='VIR_DOMAIN_DESTROY' file='libvirt' value='1' type='virDomainRestart' info='destroy the domain'/>
     <enum name='VIR_DOMAIN_NONE' file='libvirt' value='0' type='virDomainCreateFlags'/>
     <enum name='VIR_DOMAIN_NOSTATE' file='libvirt' value='0' type='virDomainState' info='no state'/>
     <enum name='VIR_DOMAIN_PAUSED' file='libvirt' value='3' type='virDomainState' info='the domain is paused by user'/>
-    <enum name='VIR_DOMAIN_PRESERVE' file='libvirt' value='3' type='virDomainRestart' info='keep as is, need manual destroy, for debug'/>
-    <enum name='VIR_DOMAIN_RENAME_RESTART' file='libvirt' value='4' type='virDomainRestart' info=' restart under an new unique name'/>
-    <enum name='VIR_DOMAIN_RESTART' file='libvirt' value='2' type='virDomainRestart' info='restart the domain'/>
     <enum name='VIR_DOMAIN_RUNNING' file='libvirt' value='1' type='virDomainState' info='the domain is running'/>
     <enum name='VIR_DOMAIN_SCHED_FIELD_BOOLEAN' file='libvirt' value='6' type='virSchedParameterType' info=' boolean(character) case'/>
     <enum name='VIR_DOMAIN_SCHED_FIELD_DOUBLE' file='libvirt' value='5' type='virSchedParameterType' info='double case'/>
@@ -310,6 +335,7 @@
     <enum name='VIR_DOMAIN_SHUTOFF' file='libvirt' value='5' type='virDomainState' info='the domain is shut off'/>
     <enum name='VIR_DOMAIN_XML_INACTIVE' file='libvirt' value='2' type='virDomainXMLFlags' info=' dump inactive domain informations'/>
     <enum name='VIR_DOMAIN_XML_SECURE' file='libvirt' value='1' type='virDomainXMLFlags' info='dump security sensitive informations too'/>
+    <enum name='VIR_ERR_AUTH_FAILED' file='virterror' value='45' type='virErrorNumber' info=' authentication failed'/>
     <enum name='VIR_ERR_CALL_FAILED' file='virterror' value='26' type='virErrorNumber' info='not supported by the drivers (DEPRECATED)'/>
     <enum name='VIR_ERR_CONF_SYNTAX' file='virterror' value='33' type='virErrorNumber' info='failed to parse the syntax of a conf file'/>
     <enum name='VIR_ERR_DOM_EXIST' file='virterror' value='28' type='virErrorNumber' info='the domain already exist'/>
@@ -322,7 +348,7 @@
     <enum name='VIR_ERR_INVALID_ARG' file='virterror' value='8' type='virErrorNumber' info='invalid function argument'/>
     <enum name='VIR_ERR_INVALID_CONN' file='virterror' value='6' type='virErrorNumber' info='invalid connection object'/>
     <enum name='VIR_ERR_INVALID_DOMAIN' file='virterror' value='7' type='virErrorNumber' info='invalid domain object'/>
-    <enum name='VIR_ERR_INVALID_MAC' file='virterror' value='44' type='virErrorNumber' info=' invalid MAC adress'/>
+    <enum name='VIR_ERR_INVALID_MAC' file='virterror' value='44' type='virErrorNumber' info='invalid MAC adress'/>
     <enum name='VIR_ERR_INVALID_NETWORK' file='virterror' value='36' type='virErrorNumber' info='invalid network object'/>
     <enum name='VIR_ERR_NETWORK_EXIST' file='virterror' value='37' type='virErrorNumber' info='the network already exist'/>
     <enum name='VIR_ERR_NONE' file='virterror' value='0' type='virErrorLevel'/>
@@ -361,16 +387,18 @@
     <enum name='VIR_FROM_DOM' file='virterror' value='6' type='virErrorDomain' info='Error when operating on a domain'/>
     <enum name='VIR_FROM_NET' file='virterror' value='11' type='virErrorDomain' info='Error when operating on a network'/>
     <enum name='VIR_FROM_NONE' file='virterror' value='0' type='virErrorDomain'/>
-    <enum name='VIR_FROM_OPENVZ' file='virterror' value='14' type='virErrorDomain' info=' Error from OpenVZ driver'/>
+    <enum name='VIR_FROM_OPENVZ' file='virterror' value='14' type='virErrorDomain' info='Error from OpenVZ driver'/>
     <enum name='VIR_FROM_PROXY' file='virterror' value='8' type='virErrorDomain' info='Error in the proxy code'/>
     <enum name='VIR_FROM_QEMU' file='virterror' value='10' type='virErrorDomain' info='Error at the QEMU daemon'/>
     <enum name='VIR_FROM_REMOTE' file='virterror' value='13' type='virErrorDomain' info='Error from remote driver'/>
     <enum name='VIR_FROM_RPC' file='virterror' value='7' type='virErrorDomain' info='Error in the XML-RPC code'/>
     <enum name='VIR_FROM_SEXPR' file='virterror' value='4' type='virErrorDomain' info='Error in the S-Epression code'/>
+    <enum name='VIR_FROM_STATS_LINUX' file='virterror' value='16' type='virErrorDomain' info=' Error in the Linux Stats code'/>
     <enum name='VIR_FROM_TEST' file='virterror' value='12' type='virErrorDomain' info='Error from test driver'/>
     <enum name='VIR_FROM_XEN' file='virterror' value='1' type='virErrorDomain' info='Error at Xen hypervisor layer'/>
     <enum name='VIR_FROM_XEND' file='virterror' value='2' type='virErrorDomain' info='Error at connection with xend daemon'/>
     <enum name='VIR_FROM_XENSTORE' file='virterror' value='3' type='virErrorDomain' info='Error at connection with xen store'/>
+    <enum name='VIR_FROM_XENXM' file='virterror' value='15' type='virErrorDomain' info='Error at Xen XM layer'/>
     <enum name='VIR_FROM_XML' file='virterror' value='5' type='virErrorDomain' info='Error in the XML code'/>
     <enum name='VIR_MIGRATE_LIVE' file='libvirt' value='1' type='virDomainMigrateFlags' info=' live migration'/>
     <enum name='VIR_VCPU_BLOCKED' file='libvirt' value='2' type='virVcpuState' info=' the virtual CPU is blocked on resource'/>
@@ -378,6 +406,24 @@
     <enum name='VIR_VCPU_RUNNING' file='libvirt' value='1' type='virVcpuState' info='the virtual CPU is running'/>
     <enum name='VIR_WAR_NO_NETWORK' file='virterror' value='41' type='virErrorNumber' info='failed to start network'/>
     <struct name='virConnect' file='libvirt' type='struct _virConnect'/>
+    <struct name='virConnectAuth' file='libvirt' type='struct _virConnectAuth'>
+      <field name='credtype' type='int *' info=' List of supported virConnectCredentialType values'/>
+      <field name='ncredtype' type='unsigned int' info=''/>
+      <field name='cb' type='virConnectAuthCallbackPtr' info=' Callback used to collect credentials'/>
+      <field name='cbdata' type='void *' info=''/>
+    </struct>
+    <typedef name='virConnectAuthPtr' file='libvirt' type='virConnectAuth *'/>
+    <struct name='virConnectCredential' file='libvirt' type='struct _virConnectCredential'>
+      <field name='type' type='int' info=' One of virConnectCredentialType constants'/>
+      <field name='prompt' type='const char *' info=' Prompt to show to user'/>
+      <field name='challenge' type='const char *' info=' Additional challenge to show'/>
+      <field name='defresult' type='const char *' info=' Optional default result'/>
+      <field name='result' type='char *' info=' Result to be filled with user response (or defresult)'/>
+      <field name='resultlen' type='unsigned int' info=' Length of the result'/>
+    </struct>
+    <typedef name='virConnectCredentialPtr' file='libvirt' type='virConnectCredential *'/>
+    <typedef name='virConnectCredentialType' file='libvirt' type='enum'/>
+    <typedef name='virConnectFlags' file='libvirt' type='enum'/>
     <typedef name='virConnectPtr' file='libvirt' type='virConnect *'>
       <info>a virConnectPtr is pointer to a virConnect private structure, this is the type used to reference a connection to the Xen Hypervisor in the API.</info>
     </typedef>
@@ -420,7 +466,6 @@
     <typedef name='virDomainPtr' file='libvirt' type='virDomain *'>
       <info>a virDomainPtr is pointer to a virDomain private structure, this is the type used to reference a Xen domain in the API.</info>
     </typedef>
-    <typedef name='virDomainRestart' file='libvirt' type='enum'/>
     <typedef name='virDomainState' file='libvirt' type='enum'/>
     <typedef name='virDomainXMLFlags' file='libvirt' type='enum'/>
     <struct name='virError' file='virterror' type='struct _virError'>
@@ -474,6 +519,7 @@
     </struct>
     <typedef name='virVcpuInfoPtr' file='libvirt' type='virVcpuInfo *'/>
     <typedef name='virVcpuState' file='libvirt' type='enum'/>
+    <variable name='virConnectAuthPtrDefault' file='libvirt' type='virConnectAuthPtr'/>
     <function name='virConnCopyLastError' file='virterror' module='virterror'>
       <info>Copy the content of the last error caught on that connection One will need to free the result with virResetError()</info>
       <return type='int' info='0 if no error was found and the error code otherwise and -1 in case of parameter error.'/>
@@ -497,6 +543,13 @@
       <arg name='userData' type='void *' info='pointer to the user data provided in the handler callback'/>
       <arg name='handler' type='virErrorFunc' info='the function to get called in case of error or NULL'/>
     </function>
+    <functype name='virConnectAuthCallbackPtr' file='libvirt' module='libvirt'>
+      <info></info>
+      <return type='int' info=''/>
+      <arg name='cred' type='virConnectCredentialPtr' info=''/>
+      <arg name='ncred' type='unsigned int' info=''/>
+      <arg name='cbdata' type='void *' info=''/>
+    </functype>
     <function name='virConnectClose' file='libvirt' module='libvirt'>
       <info>This function closes the connection to the Hypervisor. This should not be called if further interaction with the Hypervisor are needed especially if there is running domain which need further monitoring by the application.</info>
       <return type='int' info='0 in case of success or -1 in case of error.'/>
@@ -587,6 +640,13 @@
       <return type='virConnectPtr' info='a pointer to the hypervisor connection or NULL in case of error  URIs are documented at http://libvirt.org/uri.html'/>
       <arg name='name' type='const char *' info='URI of the hypervisor'/>
     </function>
+    <function name='virConnectOpenAuth' file='libvirt' module='libvirt'>
+      <info>This function should be called first to get a connection to the Hypervisor. If neccessary, authentication will be performed fetching credentials via the callback</info>
+      <return type='virConnectPtr' info='a pointer to the hypervisor connection or NULL in case of error  URIs are documented at http://libvirt.org/uri.html'/>
+      <arg name='name' type='const char *' info='URI of the hypervisor'/>
+      <arg name='auth' type='virConnectAuthPtr' info='Authenticate callback parameters'/>
+      <arg name='flags' type='int' info='Open flags'/>
+    </function>
     <function name='virConnectOpenReadOnly' file='libvirt' module='libvirt'>
       <info>This function should be called first to get a restricted connection to the libbrary functionalities. The set of APIs usable are then restricted on the available methods to control the domains.</info>
       <return type='virConnectPtr' info='a pointer to the hypervisor connection or NULL in case of error  URIs are documented at http://libvirt.org/uri.html'/>
@@ -606,7 +666,7 @@
       <info>Create a virtual device attachment to backend.</info>
       <return type='int' info='0 in case of success, -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
-      <arg name='xml' type='char *' info='pointer to XML description of one device'/>
+      <arg name='xml' type='const char *' info='pointer to XML description of one device'/>
     </function>
     <function name='virDomainBlockStats' file='libvirt' module='libvirt'>
       <info>This function returns block device (disk) stats for block devices attached to the domain.  The path parameter is the name of the block device.  Get this by calling virDomainGetXMLDesc and finding the &lt;target dev=&apos;...&apos;&gt; attribute within //domain/devices/disk.  (For example, &quot;xvda&quot;).  Domains may have more than one block device.  To get stats for each you should make multiple calls to this function.  Individual fields within the stats structure may be returned as -1, which indicates that the hypervisor does not support that particular statistic.</info>
@@ -650,7 +710,7 @@
       <info>Destroy a virtual device attachment to backend.</info>
       <return type='int' info='0 in case of success, -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
-      <arg name='xml' type='char *' info='pointer to XML description of one device'/>
+      <arg name='xml' type='const char *' info='pointer to XML description of one device'/>
     </function>
     <function name='virDomainFree' file='libvirt' module='libvirt'>
       <info>Free the domain object. The running instance is kept alive. The data structure is freed and should not be used thereafter.</info>

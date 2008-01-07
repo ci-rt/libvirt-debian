@@ -4,7 +4,13 @@
 # Check python/generator.py in the source distribution of libvir
 # to find out more about the generation process
 #
-import libvirtmod
+
+# On cygwin, the DLL is called cygvirtmod.dll
+try:
+    import libvirtmod
+except:
+    import cygvirtmod as libvirtmod
+
 import types
 
 # The root of all libvirt errors.
@@ -82,6 +88,12 @@ def registerErrorHandler(f, ctx):
        being a list of informations about the error being raised.
        Returns 1 in case of success."""
     return libvirtmod.virRegisterErrorHandler(f,ctx)
+
+def openAuth(uri, auth, flags):
+    ret = libvirtmod.virConnectOpenAuth(uri, auth, flags)
+    if ret is None:raise libvirtError('virConnectOpenAuth() failed')
+    return virConnect(_obj=ret)
+
 
 #
 # Return library version.
@@ -751,6 +763,12 @@ class virConnect:
     # virConnect functions from module python
     #
 
+    def getCellsFreeMemory(self, startCell, maxCells):
+        """Returns the availbale memory for a list of cells """
+        ret = libvirtmod.virNodeGetCellsFreeMemory(self._o, startCell, maxCells)
+        if ret is None: raise libvirtError ('virNodeGetCellsFreeMemory() failed', conn=self)
+        return ret
+
     def getInfo(self):
         """Extract hardware informations about the Node. """
         ret = libvirtmod.virNodeGetInfo(self._o)
@@ -840,12 +858,30 @@ VIR_FROM_NET = 11
 VIR_FROM_TEST = 12
 VIR_FROM_REMOTE = 13
 VIR_FROM_OPENVZ = 14
+VIR_FROM_XENXM = 15
+VIR_FROM_STATS_LINUX = 16
 
-# virDomainRestart
-VIR_DOMAIN_DESTROY = 1
-VIR_DOMAIN_RESTART = 2
-VIR_DOMAIN_PRESERVE = 3
-VIR_DOMAIN_RENAME_RESTART = 4
+# virConnectCredentialType
+VIR_CRED_USERNAME = 1
+VIR_CRED_AUTHNAME = 2
+VIR_CRED_LANGUAGE = 3
+VIR_CRED_CNONCE = 4
+VIR_CRED_PASSPHRASE = 5
+VIR_CRED_ECHOPROMPT = 6
+VIR_CRED_NOECHOPROMPT = 7
+VIR_CRED_REALM = 8
+VIR_CRED_EXTERNAL = 9
+
+# virConnectFlags
+VIR_CONNECT_RO = 1
+
+# virSchedParameterType
+VIR_DOMAIN_SCHED_FIELD_INT = 1
+VIR_DOMAIN_SCHED_FIELD_UINT = 2
+VIR_DOMAIN_SCHED_FIELD_LLONG = 3
+VIR_DOMAIN_SCHED_FIELD_ULLONG = 4
+VIR_DOMAIN_SCHED_FIELD_DOUBLE = 5
+VIR_DOMAIN_SCHED_FIELD_BOOLEAN = 6
 
 # virErrorNumber
 VIR_ERR_OK = 0
@@ -893,17 +929,10 @@ VIR_WAR_NO_NETWORK = 41
 VIR_ERR_NO_DOMAIN = 42
 VIR_ERR_NO_NETWORK = 43
 VIR_ERR_INVALID_MAC = 44
+VIR_ERR_AUTH_FAILED = 45
 
 # virDomainCreateFlags
 VIR_DOMAIN_NONE = 0
-
-# virSchedParameterType
-VIR_DOMAIN_SCHED_FIELD_INT = 1
-VIR_DOMAIN_SCHED_FIELD_UINT = 2
-VIR_DOMAIN_SCHED_FIELD_LLONG = 3
-VIR_DOMAIN_SCHED_FIELD_ULLONG = 4
-VIR_DOMAIN_SCHED_FIELD_DOUBLE = 5
-VIR_DOMAIN_SCHED_FIELD_BOOLEAN = 6
 
 # virVcpuState
 VIR_VCPU_OFFLINE = 0
