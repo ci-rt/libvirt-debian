@@ -1,3 +1,10 @@
+libvirt (0.4.0-2) unstable; urgency=low
+
+  * libvirt-bin.init: fix the reload target
+  * add configuration examples
+
+ -- Guido Guenther <agx@sigxcpu.org>  Tue, 08 Jan 2008 11:00:24 +0100
+
 libvirt (0.4.0-1) unstable; urgency=low
 
   * new upstream version
