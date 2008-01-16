@@ -130,8 +130,10 @@ case "$1" in
 	;;
   reload|force-reload)
   	if running; then
+            log_daemon_msg "Reloading configuration of $DESC" "$NAME"
 	    start-stop-daemon --stop --signal 1 --quiet --pidfile \
 	             /var/run/$NAME.pid --exec $DAEMON
+	    log_end_msg 0
 	else
             log_warning_msg "libvirtd not running, doing nothing."
 	fi
