@@ -49,7 +49,6 @@
 #include <xen/dom0_ops.h>
 
 #ifndef PROXY
-static const char * xenDaemonGetType(virConnectPtr conn);
 static int xenDaemonListDomains(virConnectPtr conn, int *ids, int maxids);
 static int xenDaemonNumOfDomains(virConnectPtr conn);
 static int xenDaemonListDefinedDomains(virConnectPtr conn, char **const names, int maxnames);
@@ -58,8 +57,8 @@ static virDomainPtr xenDaemonCreateLinux(virConnectPtr conn,
                                          const char *xmlDesc,
 					 unsigned int flags);
 static char *xenDaemonDomainGetOSType(virDomainPtr domain);
-static int xenDaemonAttachDevice(virDomainPtr domain, char *xml);
-static int xenDaemonDetachDevice(virDomainPtr domain, char *xml);
+static int xenDaemonAttachDevice(virDomainPtr domain, const char *xml);
+static int xenDaemonDetachDevice(virDomainPtr domain, const char *xml);
 static int xenDaemonDomainCoreDump(virDomainPtr domain, const char *filename,
                                    int flags);
 #endif /* PROXY */
@@ -68,7 +67,6 @@ static int xenDaemonDomainCoreDump(virDomainPtr domain, const char *filename,
 struct xenUnifiedDriver xenDaemonDriver = {
     xenDaemonOpen, /* open */
     xenDaemonClose, /* close */
-    xenDaemonGetType, /* type */
     xenDaemonGetVersion, /* version */
     NULL, /* hostname */
     NULL, /* URI */
@@ -94,7 +92,6 @@ struct xenUnifiedDriver xenDaemonDriver = {
     xenDaemonDomainPinVcpu, /* domainPinVcpu */
     xenDaemonDomainGetVcpus, /* domainGetVcpus */
     NULL, /* domainGetMaxVcpus */
-    xenDaemonDomainDumpXML, /* domainDumpXML */
     xenDaemonListDefinedDomains, /* listDefinedDomains */
     xenDaemonNumOfDefinedDomains, /* numOfDefinedDomains */
     xenDaemonDomainCreate, /* domainCreate */
@@ -233,8 +230,15 @@ do_connect(virConnectPtr xend)
         close(s);
         errno = serrno;
         s = -1;
-        virXendError(xend, VIR_ERR_INTERNAL_ERROR,
-                     "failed to connect to xend");
+	/*
+	 * not being able to connect via the socket as a normal user
+	 * is rather normal, this should fallback to the proxy (or
+	 * remote) mechanism.
+	 */
+	if ((getuid() == 0) || (xend->flags & VIR_CONNECT_RO)) {
+	    virXendError(xend, VIR_ERR_INTERNAL_ERROR,
+			 "failed to connect to xend");
+        }
     }
 
     return s;
@@ -690,6 +694,9 @@ xend_op(virConnectPtr xend, const char *name, const char *key, ...)
  *
  * Returns a parsed S-Expression in case of success, NULL in case of failure
  */
+static struct sexpr *sexpr_get(virConnectPtr xend, const char *fmt, ...)
+  ATTRIBUTE_FORMAT(printf,2,3);
+
 static struct sexpr *
 sexpr_get(virConnectPtr xend, const char *fmt, ...)
 {
@@ -1281,6 +1288,8 @@ xend_parse_sexp_desc_os(virConnectPtr xend, struct sexpr *node, virBufferPtr buf
     if (hvm) {
         virBufferVSprintf(buf, "    <type>hvm</type>\n");
         tmp = sexpr_node(node, "domain/image/hvm/kernel");
+        if (tmp == NULL)
+            tmp = sexpr_node(node, "domain/image/hvm/loader");
         if (tmp == NULL && !bootloader) {
             virXendError(xend, VIR_ERR_INTERNAL_ERROR,
                          _("domain information incomplete, missing kernel & bootloader"));
@@ -1340,6 +1349,7 @@ xend_parse_sexp_desc_os(virConnectPtr xend, struct sexpr *node, virBufferPtr buf
  * @root: the root of the parsed S-Expression
  * @xendConfigVersion: version of xend
  * @flags: a combination of virDomainXMLFlags
+ * @cpus: set of cpus the domain may be pinned to
  *
  * Parse the xend sexp description and turn it into the XML format similar
  * to the one unsed for creation.
@@ -1349,7 +1359,7 @@ xend_parse_sexp_desc_os(virConnectPtr xend, struct sexpr *node, virBufferPtr buf
  */
 static char *
 xend_parse_sexp_desc(virConnectPtr conn, struct sexpr *root,
-                     int xendConfigVersion, int flags)
+                     int xendConfigVersion, int flags, const char *cpus)
 {
     struct sexpr *cur, *node;
     const char *tmp;
@@ -1435,8 +1445,18 @@ xend_parse_sexp_desc(virConnectPtr conn, struct sexpr *root,
     if ((cur_mem >= MIN_XEN_GUEST_SIZE) && (cur_mem != max_mem))
 	virBufferVSprintf(&buf, "  <currentMemory>%d</currentMemory>\n",
 	                  cur_mem);
-    virBufferVSprintf(&buf, "  <vcpu>%d</vcpu>\n",
+    
+    virBufferVSprintf(&buf, "  <vcpu");
+    if (cpus != NULL) {
+	virBufferVSprintf(&buf, " cpuset='%s'", cpus);
+    }
+    virBufferVSprintf(&buf, ">%d</vcpu>\n",
                       sexpr_int(root, "domain/vcpus"));
+    /* TODO if need to output the cpus values,
+     * - parse the cpus values if xend exports
+     * or
+     * - analyze the cpus values extracted by xenDaemonDomainGetVcpus
+     */
     tmp = sexpr_node(root, "domain/on_poweroff");
     if (tmp != NULL)
         virBufferVSprintf(&buf, "  <on_poweroff>%s</on_poweroff>\n", tmp);
@@ -1799,7 +1819,7 @@ xend_parse_domain_sexp(virConnectPtr conn, char *sexpr, int xendConfigVersion) {
   if (!root)
       return NULL;
 
-  data = xend_parse_sexp_desc(conn, root, xendConfigVersion, 0);
+  data = xend_parse_sexp_desc(conn, root, xendConfigVersion, 0, NULL);
 
   sexpr_free(root);
 
@@ -1875,11 +1895,11 @@ sexpr_to_xend_node_info(struct sexpr *root, virNodeInfoPtr info)
         return (-1);
 
     machine = sexpr_node(root, "node/machine");
-    if (machine == NULL)
+    if (machine == NULL) {
         info->model[0] = 0;
-    else {
+    } else {
         snprintf(&info->model[0], sizeof(info->model) - 1, "%s", machine);
-	info->model[sizeof(info->model) - 1] = 0;
+        info->model[sizeof(info->model) - 1] = 0;
     }
     info->memory = (unsigned long) sexpr_u64(root, "node/total_memory") << 10;
 
@@ -1887,30 +1907,23 @@ sexpr_to_xend_node_info(struct sexpr *root, virNodeInfoPtr info)
     info->mhz = sexpr_int(root, "node/cpu_mhz");
     info->nodes = sexpr_int(root, "node/nr_nodes");
     info->sockets = sexpr_int(root, "node/sockets_per_node");
+    /* Xen 3.2.0 replaces sockets_per_node with 'nr_cpus'.
+     * Old Xen calculated sockets_per_node using its internal
+     * nr_cpus / (nodes*cores*threads), so fake it ourselves
+     * in the same way
+     */
+    if (info->sockets == 0) {
+        int nr_cpus = sexpr_int(root, "node/nr_cpus");
+        info->sockets = nr_cpus / (info->nodes * info->cores * info->threads);
+        /* Should already be fine, but for sanity make
+         * sure we have at least one socket
+         */
+        if (info->sockets == 0)
+            info->sockets = 1;
+    }
     info->cores = sexpr_int(root, "node/cores_per_socket");
     info->threads = sexpr_int(root, "node/threads_per_core");
     return (0);
-}
-
-/**
- * getNumber:
- * @pointer: pointer to string beginning with  numerical characters
- * @result: pointer to integer for storing the numerical result
- *
- * Internal routine extracting a number from the beginning of a string
- *
- * Returns the number of characters that were extracted as digits
- * or -1 if no digits were found.
- */
-static int
-getNumber (const char * pointer, int * result) {
-    int len = 0;
-    while (isdigit(*(pointer + len)))
-        len++;
-    if (len == 0)
-        return -1;
-    *(result) = atoi(pointer);
-    return (len);
 }
 
 /**
@@ -1926,21 +1939,9 @@ static int
 sexpr_to_xend_topology_xml(virConnectPtr conn, struct sexpr *root, virBufferPtr xml)
 {
     const char *nodeToCpu;
-    const char *offset;
-    int cellNum;
     int numCells = 0;
     int numCpus;
-    int cellCpuCount = 0; 
-    int nodeCpuCount = 0; 
-    int start; 
-    int finish;
     int r;
-    int i;
-    int len; 
-    int cpuNum; 
-    int *cpuIdsPtr = NULL; 
-    int *iCpuIdsPtr = NULL;
-    char next;
 
     nodeToCpu = sexpr_node(root, "node/node_to_cpu");
     if (nodeToCpu == NULL) {
@@ -1952,126 +1953,21 @@ sexpr_to_xend_topology_xml(virConnectPtr conn, struct sexpr *root, virBufferPtr 
     numCells = sexpr_int(root, "node/nr_nodes");
     numCpus = sexpr_int(root, "node/nr_cpus");
 
-    /* array for holding all cpu numbers associated with a single cell. 
-     * Should never need more than numCpus (which is total number of 
-     * cpus for the node) 
-     */
-    cpuIdsPtr = iCpuIdsPtr = malloc(numCpus * sizeof(int));
-    if (cpuIdsPtr == NULL) {
-        goto vir_buffer_failed;
-    }
-
     /* start filling in xml */
     r = virBufferVSprintf (xml,
                                "\
   <topology>\n\
     <cells num='%d'>\n",
                            numCells);
-    if (r == -1) goto vir_buffer_failed;
+    if (r < 0) goto vir_buffer_failed;
 
-    offset = nodeToCpu;
-    /* now iterate through all cells and find associated cpu ids */
-    /* example of string being parsed: "node0:0-3,7,9-10\n   node1:11-14\n" */
-    while ((offset = strstr(offset, "node")) != NULL) {
-        cpuIdsPtr = iCpuIdsPtr;
-        cellCpuCount = 0;
-        offset +=4;
-        if ((len = getNumber(offset, &cellNum)) < 0) {
-            virXendError(conn, VIR_ERR_XEN_CALL, " topology string syntax error");
-            goto error;
-        }
-        offset += len;
-        if (*(offset) != ':') {
-            virXendError(conn, VIR_ERR_XEN_CALL, " topology string syntax error");
-            goto error;
-        }
-        offset++;
-        /* get list of cpus associated w/ single cell */
-        while (1) {
-            if ((len = getNumber(offset, &cpuNum)) < 0) {
-                virXendError(conn, VIR_ERR_XEN_CALL, " topology string syntax error");
-                goto error;
-            }
-            offset += len;
-            next = *(offset);
-            if (next == '-') {
-                offset++;
-                start = cpuNum;
-                if ((len = getNumber(offset, &finish)) < 0) {
-                    virXendError(conn, VIR_ERR_XEN_CALL, " topology string syntax error");
-                    goto error;
-                }
-                if (start > finish) {
-                    virXendError(conn, VIR_ERR_XEN_CALL, " topology string syntax error");
-                    goto error;
+    r = virParseXenCpuTopology(conn, xml, nodeToCpu, numCpus);
+    if (r < 0) goto error;
 
-                }
-                for (i=start; i<=finish && nodeCpuCount<numCpus; i++) {
-                    *(cpuIdsPtr++) = i;
-                    cellCpuCount++;
-                    nodeCpuCount++;
-                }
-                if (nodeCpuCount > numCpus) {
-                    virXendError(conn, VIR_ERR_XEN_CALL, 
-                                 "conflicting cpu counts");
-                    goto error;
-                }
-                offset += len;
-                next = *(offset);
-                offset++;
-                if (next == ',') {
-                    continue;
-                } else if ((next == '\\') || (next =='\0')) {
-                    break;
-                } else {
-                    virXendError(conn, VIR_ERR_XEN_CALL, 
-                                 " topology string syntax error");
-                    goto error;
-                }
-            } else {
-                /* add the single number */
-                if (nodeCpuCount >= numCpus) {
-                    virXendError(conn, VIR_ERR_XEN_CALL, 
-                                 "conflicting cpu counts");
-                    goto error;
-                }
-                *(cpuIdsPtr++) = cpuNum;
-                cellCpuCount++;
-                nodeCpuCount++;
-                if (next == ',') {
-                    offset++;
-                    continue;
-                } else if ((next == '\\') || (next =='\0')) {
-                    break;
-                } else {
-                    virXendError(conn, VIR_ERR_XEN_CALL, 
-                                 " topology string syntax error");
-                    goto error;
-                }
-            }
-        }    
-
-        /* add xml for all cpus associated with one cell */
-        r = virBufferVSprintf (xml, "\
-      <cell id='%d'>\n\
-        <cpus num='%d'>\n", cellNum, cellCpuCount);
-        if (r == -1) goto vir_buffer_failed;
-
-        for (i = 0; i < cellCpuCount; i++) {
-            r = virBufferVSprintf (xml, "\
-           <cpu id='%d'/>\n", *(iCpuIdsPtr + i));
-        if (r == -1) goto vir_buffer_failed;
-        }
-        r = virBufferAdd (xml, "\
-        </cpus>\n\
-      </cell>\n", -1);
-        if (r == -1) goto vir_buffer_failed;
-    }            
     r = virBufferAdd (xml, "\
     </cells>\n\
   </topology>\n", -1);
-    if (r == -1) goto vir_buffer_failed;
-    free(iCpuIdsPtr);
+    if (r < 0) goto vir_buffer_failed;
     return (0);
     
 
@@ -2079,8 +1975,6 @@ vir_buffer_failed:
     virXendError(conn, VIR_ERR_NO_MEMORY, _("allocate new buffer"));
         
 error:
-    if (iCpuIdsPtr)
-        free(iCpuIdsPtr);
     return (-1);
 }
 
@@ -2164,18 +2058,31 @@ error:
  * Returns 0 in case of success, -1 in case of error.
  */
 int
-xenDaemonOpen(virConnectPtr conn, const char *name,
+xenDaemonOpen(virConnectPtr conn,
+              xmlURIPtr uri,
+              virConnectAuthPtr auth ATTRIBUTE_UNUSED,
               int flags ATTRIBUTE_UNUSED)
 {
-    xmlURIPtr uri = NULL;
     int ret;
-     
-    /* If the name is just "xen" (it might originally have been NULL,
-     * see xenUnifiedOpen) or any URI beginning with "xen:///" then
-     * try default paths and methods to get to the xend socket.
+
+    /* Switch on the scheme, which we expect to be NULL (file),
+     * "http" or "xen".
      */
-    if (strcasecmp (name, "xen") == 0 ||
-        strncasecmp (name, "xen:///", 7) == 0) {
+    if (uri->scheme == NULL) {
+        /* It should be a file access */
+        if (uri->path == NULL) {
+            virXendError(NULL, VIR_ERR_NO_CONNECT, __FUNCTION__);
+            goto failed;
+        }
+        ret = xenDaemonOpen_unix(conn, uri->path);
+        if (ret < 0)
+            goto failed;
+
+        ret = xend_detect_config_version(conn);
+        if (ret == -1)
+            goto failed;
+    }
+    else if (STRCASEEQ (uri->scheme, "xen")) {
         /*
          * try first to open the unix socket
          */
@@ -2196,50 +2103,22 @@ xenDaemonOpen(virConnectPtr conn, const char *name,
         ret = xend_detect_config_version(conn);
         if (ret == -1)
             goto failed;
+    } else if (STRCASEEQ (uri->scheme, "http")) {
+        ret = xenDaemonOpen_tcp(conn, uri->server, uri->port);
+        if (ret < 0)
+            goto failed;
+        ret = xend_detect_config_version(conn);
+        if (ret == -1)
+            goto failed;
     } else {
-        /*
-         * We were given a connection name, expected to be an URL
-         */
-        uri = xmlParseURI(name);
-        if (uri == NULL) {
-            virXendError(NULL, VIR_ERR_NO_CONNECT, name);
-            goto failed;
-        }
-
-        if (uri->scheme == NULL) {
-            /* It should be a file access */
-            if (uri->path == NULL) {
-                virXendError(NULL, VIR_ERR_NO_CONNECT, name);
-                goto failed;
-            }
-            ret = xenDaemonOpen_unix(conn, uri->path);
-            if (ret < 0)
-                goto failed;
-
-            ret = xend_detect_config_version(conn);
-            if (ret == -1)
-                goto failed;
-        } else if (!strcasecmp(uri->scheme, "http")) {
-            ret = xenDaemonOpen_tcp(conn, uri->server, uri->port);
-            if (ret < 0)
-                goto failed;
-            ret = xend_detect_config_version(conn);
-            if (ret == -1)
-                goto failed;
-        } else {
-            virXendError(NULL, VIR_ERR_NO_CONNECT, name);
-            goto failed;
-        }
+        virXendError(NULL, VIR_ERR_NO_CONNECT, __FUNCTION__);
+        goto failed;
     }
 
  done:
-    if (uri != NULL)
-        xmlFreeURI(uri);
     return(ret);
 
 failed:
-    if (uri != NULL)
-        xmlFreeURI(uri);
     return(-1);
 }
 
@@ -2618,7 +2497,8 @@ xenDaemonDomainSetMemory(virDomainPtr domain, unsigned long memory)
    dumpxml will work over proxy for inactive domains
    and this can be removed */
 char *
-xenDaemonDomainDumpXMLByID(virConnectPtr conn, int domid, int flags)
+xenDaemonDomainDumpXMLByID(virConnectPtr conn, int domid, int flags,
+                           const char *cpus)
 {
     char *ret = NULL;
     struct sexpr *root;
@@ -2633,14 +2513,16 @@ xenDaemonDomainDumpXMLByID(virConnectPtr conn, int domid, int flags)
 
     priv = (xenUnifiedPrivatePtr) conn->privateData;
 
-    ret = xend_parse_sexp_desc(conn, root, priv->xendConfigVersion, flags);
+    ret = xend_parse_sexp_desc(conn, root, priv->xendConfigVersion,
+                               flags, cpus);
     sexpr_free(root);
 
     return (ret);
 }
 
 char *
-xenDaemonDomainDumpXMLByName(virConnectPtr conn, const char *name, int flags)
+xenDaemonDomainDumpXMLByName(virConnectPtr conn, const char *name, int flags,
+                             const char *cpus)
 {
     char *ret = NULL;
     struct sexpr *root;
@@ -2655,7 +2537,8 @@ xenDaemonDomainDumpXMLByName(virConnectPtr conn, const char *name, int flags)
 
     priv = (xenUnifiedPrivatePtr) conn->privateData;
 
-    ret = xend_parse_sexp_desc(conn, root, priv->xendConfigVersion, flags);
+    ret = xend_parse_sexp_desc(conn, root, priv->xendConfigVersion,
+                               flags, cpus);
     sexpr_free(root);
 
     return (ret);
@@ -2666,6 +2549,8 @@ xenDaemonDomainDumpXMLByName(virConnectPtr conn, const char *name, int flags)
 /**
  * xenDaemonDomainDumpXML:
  * @domain: a domain object
+ * @flags: potential dump flags
+ * @cpus: list of cpu the domain is pinned to.
  *
  * Provide an XML description of the domain.
  *
@@ -2673,7 +2558,7 @@ xenDaemonDomainDumpXMLByName(virConnectPtr conn, const char *name, int flags)
  *         the caller must free() the returned value.
  */
 char *
-xenDaemonDomainDumpXML(virDomainPtr domain, int flags)
+xenDaemonDomainDumpXML(virDomainPtr domain, int flags, const char *cpus)
 {
     xenUnifiedPrivatePtr priv;
 
@@ -2690,9 +2575,11 @@ xenDaemonDomainDumpXML(virDomainPtr domain, int flags)
     }
 
     if (domain->id < 0)
-        return xenDaemonDomainDumpXMLByName(domain->conn, domain->name, flags);
+        return xenDaemonDomainDumpXMLByName(domain->conn, domain->name, flags,
+	                                    cpus);
     else
-        return xenDaemonDomainDumpXMLByID(domain->conn, domain->id, flags);
+        return xenDaemonDomainDumpXMLByID(domain->conn, domain->id, flags,
+	                                  cpus);
 }
 #endif /* !PROXY */
 
@@ -2833,28 +2720,6 @@ xenDaemonNodeGetTopology(virConnectPtr conn, virBufferPtr xml) {
     sexpr_free(root);
     return (ret);
 }
-
-#ifndef PROXY
-/**
- * xenDaemonGetType:
- * @conn: pointer to the Xen Daemon block
- *
- * Get the version level of the Hypervisor running.
- *
- * Returns -1 in case of error, 0 otherwise. if the version can't be
- *    extracted by lack of capacities returns 0 and @hvVer is 0, otherwise
- *    @hvVer value is major * 1,000,000 + minor * 1,000 + release
- */
-static const char *
-xenDaemonGetType(virConnectPtr conn)
-{
-    if (!VIR_IS_CONNECT(conn)) {
-        virXendError(conn, VIR_ERR_INVALID_CONN, __FUNCTION__);
-        return (NULL);
-    }
-    return("XenDaemon");
-}
-#endif /* ! PROXY */
 
 /**
  * xenDaemonGetVersion:
@@ -3157,11 +3022,11 @@ xenDaemonDomainGetVcpus(virDomainPtr domain, virVcpuInfoPtr info, int maxinfo,
                         !strcmp(t->u.s.car->u.s.car->u.value, "cpumap") &&
                         (t->u.s.car->u.s.cdr->kind == SEXPR_CONS)) {
                         for (t = t->u.s.car->u.s.cdr->u.s.car; t->kind == SEXPR_CONS; t = t->u.s.cdr)
-                            if (t->u.s.car->kind == SEXPR_VALUE) {
-                                cpu = strtol(t->u.s.car->u.value, NULL, 0);
-                                if (cpu >= 0 && (VIR_CPU_MAPLEN(cpu+1) <= maplen)) {
-                                    VIR_USE_CPU(cpumap, cpu);
-                                }
+                            if (t->u.s.car->kind == SEXPR_VALUE
+                                && xstrtol_i(t->u.s.car->u.value, NULL, 10, &cpu) == 0
+                                && cpu >= 0
+                                && (VIR_CPU_MAPLEN(cpu+1) <= maplen)) {
+                                VIR_USE_CPU(cpumap, cpu);
                             }
                         break;
                     }
@@ -3329,7 +3194,7 @@ xenDaemonCreateLinux(virConnectPtr conn, const char *xmlDesc,
  * Returns 0 in case of success, -1 in case of failure.
  */
 static int
-xenDaemonAttachDevice(virDomainPtr domain, char *xml)
+xenDaemonAttachDevice(virDomainPtr domain, const char *xml)
 {
     char *sexpr, *conf, *str;
     int hvm = 0, ret;
@@ -3388,7 +3253,7 @@ xenDaemonAttachDevice(virDomainPtr domain, char *xml)
  * Returns 0 in case of success, -1 in case of failure.
  */
 static int
-xenDaemonDetachDevice(virDomainPtr domain, char *xml)
+xenDaemonDetachDevice(virDomainPtr domain, const char *xml)
 {
     char class[8], ref[80];
 

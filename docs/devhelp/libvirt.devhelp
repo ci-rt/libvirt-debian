@@ -18,15 +18,21 @@
     <function name="VIR_USE_CPU" link="libvirt-libvirt.html#VIR_USE_CPU"/>
     <function name="VIR_UUID_BUFLEN" link="libvirt-libvirt.html#VIR_UUID_BUFLEN"/>
     <function name="VIR_UUID_STRING_BUFLEN" link="libvirt-libvirt.html#VIR_UUID_STRING_BUFLEN"/>
+    <function name="VIR_CONNECT_RO" link="libvirt-libvirt.html#VIR_CONNECT_RO"/>
+    <function name="VIR_CRED_AUTHNAME" link="libvirt-libvirt.html#VIR_CRED_AUTHNAME"/>
+    <function name="VIR_CRED_CNONCE" link="libvirt-libvirt.html#VIR_CRED_CNONCE"/>
+    <function name="VIR_CRED_ECHOPROMPT" link="libvirt-libvirt.html#VIR_CRED_ECHOPROMPT"/>
+    <function name="VIR_CRED_EXTERNAL" link="libvirt-libvirt.html#VIR_CRED_EXTERNAL"/>
+    <function name="VIR_CRED_LANGUAGE" link="libvirt-libvirt.html#VIR_CRED_LANGUAGE"/>
+    <function name="VIR_CRED_NOECHOPROMPT" link="libvirt-libvirt.html#VIR_CRED_NOECHOPROMPT"/>
+    <function name="VIR_CRED_PASSPHRASE" link="libvirt-libvirt.html#VIR_CRED_PASSPHRASE"/>
+    <function name="VIR_CRED_REALM" link="libvirt-libvirt.html#VIR_CRED_REALM"/>
+    <function name="VIR_CRED_USERNAME" link="libvirt-libvirt.html#VIR_CRED_USERNAME"/>
     <function name="VIR_DOMAIN_BLOCKED" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCKED"/>
     <function name="VIR_DOMAIN_CRASHED" link="libvirt-libvirt.html#VIR_DOMAIN_CRASHED"/>
-    <function name="VIR_DOMAIN_DESTROY" link="libvirt-libvirt.html#VIR_DOMAIN_DESTROY"/>
     <function name="VIR_DOMAIN_NONE" link="libvirt-libvirt.html#VIR_DOMAIN_NONE"/>
     <function name="VIR_DOMAIN_NOSTATE" link="libvirt-libvirt.html#VIR_DOMAIN_NOSTATE"/>
     <function name="VIR_DOMAIN_PAUSED" link="libvirt-libvirt.html#VIR_DOMAIN_PAUSED"/>
-    <function name="VIR_DOMAIN_PRESERVE" link="libvirt-libvirt.html#VIR_DOMAIN_PRESERVE"/>
-    <function name="VIR_DOMAIN_RENAME_RESTART" link="libvirt-libvirt.html#VIR_DOMAIN_RENAME_RESTART"/>
-    <function name="VIR_DOMAIN_RESTART" link="libvirt-libvirt.html#VIR_DOMAIN_RESTART"/>
     <function name="VIR_DOMAIN_RUNNING" link="libvirt-libvirt.html#VIR_DOMAIN_RUNNING"/>
     <function name="VIR_DOMAIN_SCHED_FIELD_BOOLEAN" link="libvirt-libvirt.html#VIR_DOMAIN_SCHED_FIELD_BOOLEAN"/>
     <function name="VIR_DOMAIN_SCHED_FIELD_DOUBLE" link="libvirt-libvirt.html#VIR_DOMAIN_SCHED_FIELD_DOUBLE"/>
@@ -38,6 +44,7 @@
     <function name="VIR_DOMAIN_SHUTOFF" link="libvirt-libvirt.html#VIR_DOMAIN_SHUTOFF"/>
     <function name="VIR_DOMAIN_XML_INACTIVE" link="libvirt-libvirt.html#VIR_DOMAIN_XML_INACTIVE"/>
     <function name="VIR_DOMAIN_XML_SECURE" link="libvirt-libvirt.html#VIR_DOMAIN_XML_SECURE"/>
+    <function name="VIR_ERR_AUTH_FAILED" link="libvirt-virterror.html#VIR_ERR_AUTH_FAILED"/>
     <function name="VIR_ERR_CALL_FAILED" link="libvirt-virterror.html#VIR_ERR_CALL_FAILED"/>
     <function name="VIR_ERR_CONF_SYNTAX" link="libvirt-virterror.html#VIR_ERR_CONF_SYNTAX"/>
     <function name="VIR_ERR_DOM_EXIST" link="libvirt-virterror.html#VIR_ERR_DOM_EXIST"/>
@@ -95,16 +102,22 @@
     <function name="VIR_FROM_REMOTE" link="libvirt-virterror.html#VIR_FROM_REMOTE"/>
     <function name="VIR_FROM_RPC" link="libvirt-virterror.html#VIR_FROM_RPC"/>
     <function name="VIR_FROM_SEXPR" link="libvirt-virterror.html#VIR_FROM_SEXPR"/>
+    <function name="VIR_FROM_STATS_LINUX" link="libvirt-virterror.html#VIR_FROM_STATS_LINUX"/>
     <function name="VIR_FROM_TEST" link="libvirt-virterror.html#VIR_FROM_TEST"/>
     <function name="VIR_FROM_XEN" link="libvirt-virterror.html#VIR_FROM_XEN"/>
     <function name="VIR_FROM_XEND" link="libvirt-virterror.html#VIR_FROM_XEND"/>
     <function name="VIR_FROM_XENSTORE" link="libvirt-virterror.html#VIR_FROM_XENSTORE"/>
+    <function name="VIR_FROM_XENXM" link="libvirt-virterror.html#VIR_FROM_XENXM"/>
     <function name="VIR_FROM_XML" link="libvirt-virterror.html#VIR_FROM_XML"/>
     <function name="VIR_MIGRATE_LIVE" link="libvirt-libvirt.html#VIR_MIGRATE_LIVE"/>
     <function name="VIR_VCPU_BLOCKED" link="libvirt-libvirt.html#VIR_VCPU_BLOCKED"/>
     <function name="VIR_VCPU_OFFLINE" link="libvirt-libvirt.html#VIR_VCPU_OFFLINE"/>
     <function name="VIR_VCPU_RUNNING" link="libvirt-libvirt.html#VIR_VCPU_RUNNING"/>
     <function name="VIR_WAR_NO_NETWORK" link="libvirt-virterror.html#VIR_WAR_NO_NETWORK"/>
+    <function name="virConnectAuthPtr" link="libvirt-libvirt.html#virConnectAuthPtr"/>
+    <function name="virConnectCredentialPtr" link="libvirt-libvirt.html#virConnectCredentialPtr"/>
+    <function name="virConnectCredentialType" link="libvirt-libvirt.html#virConnectCredentialType"/>
+    <function name="virConnectFlags" link="libvirt-libvirt.html#virConnectFlags"/>
     <function name="virConnectPtr" link="libvirt-libvirt.html#virConnectPtr"/>
     <function name="virDomainBlockStatsPtr" link="libvirt-libvirt.html#virDomainBlockStatsPtr"/>
     <function name="virDomainCreateFlags" link="libvirt-libvirt.html#virDomainCreateFlags"/>
@@ -112,7 +125,6 @@
     <function name="virDomainInterfaceStatsPtr" link="libvirt-libvirt.html#virDomainInterfaceStatsPtr"/>
     <function name="virDomainMigrateFlags" link="libvirt-libvirt.html#virDomainMigrateFlags"/>
     <function name="virDomainPtr" link="libvirt-libvirt.html#virDomainPtr"/>
-    <function name="virDomainRestart" link="libvirt-libvirt.html#virDomainRestart"/>
     <function name="virDomainState" link="libvirt-libvirt.html#virDomainState"/>
     <function name="virDomainXMLFlags" link="libvirt-libvirt.html#virDomainXMLFlags"/>
     <function name="virErrorDomain" link="libvirt-virterror.html#virErrorDomain"/>
@@ -126,6 +138,8 @@
     <function name="virVcpuInfoPtr" link="libvirt-libvirt.html#virVcpuInfoPtr"/>
     <function name="virVcpuState" link="libvirt-libvirt.html#virVcpuState"/>
     <function name="virConnect" link="libvirt-libvirt.html#virConnect"/>
+    <function name="virConnectAuth" link="libvirt-libvirt.html#virConnectAuth"/>
+    <function name="virConnectCredential" link="libvirt-libvirt.html#virConnectCredential"/>
     <function name="virDomain" link="libvirt-libvirt.html#virDomain"/>
     <function name="virDomainBlockStatsStruct" link="libvirt-libvirt.html#virDomainBlockStatsStruct"/>
     <function name="virDomainInfo" link="libvirt-libvirt.html#virDomainInfo"/>
@@ -135,7 +149,9 @@
     <function name="virNodeInfo" link="libvirt-libvirt.html#virNodeInfo"/>
     <function name="virSchedParameter" link="libvirt-libvirt.html#virSchedParameter"/>
     <function name="virVcpuInfo" link="libvirt-libvirt.html#virVcpuInfo"/>
+    <function name="virConnectAuthCallbackPtr" link="libvirt-libvirt.html#virConnectAuthCallbackPtr"/>
     <function name="virErrorFunc" link="libvirt-virterror.html#virErrorFunc"/>
+    <function name="virConnectAuthPtrDefault" link="libvirt-libvirt.html#virConnectAuthPtrDefault"/>
     <function name="virConnCopyLastError ()" link="libvirt-virterror.html#virConnCopyLastError"/>
     <function name="virConnGetLastError ()" link="libvirt-virterror.html#virConnGetLastError"/>
     <function name="virConnResetLastError ()" link="libvirt-virterror.html#virConnResetLastError"/>
@@ -156,6 +172,7 @@
     <function name="virConnectNumOfDomains ()" link="libvirt-libvirt.html#virConnectNumOfDomains"/>
     <function name="virConnectNumOfNetworks ()" link="libvirt-libvirt.html#virConnectNumOfNetworks"/>
     <function name="virConnectOpen ()" link="libvirt-libvirt.html#virConnectOpen"/>
+    <function name="virConnectOpenAuth ()" link="libvirt-libvirt.html#virConnectOpenAuth"/>
     <function name="virConnectOpenReadOnly ()" link="libvirt-libvirt.html#virConnectOpenReadOnly"/>
     <function name="virCopyLastError ()" link="libvirt-virterror.html#virCopyLastError"/>
     <function name="virDefaultErrorFunc ()" link="libvirt-virterror.html#virDefaultErrorFunc"/>

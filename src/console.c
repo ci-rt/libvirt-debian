@@ -20,6 +20,10 @@
  * Daniel Berrange <berrange@redhat.com>
  */
 
+#include "config.h"
+
+#ifndef __MINGW32__
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -41,6 +45,19 @@ static int got_signal = 0;
 static void do_signal(int sig ATTRIBUTE_UNUSED) {
     got_signal = 1;
 }
+
+#ifndef HAVE_CFMAKERAW
+static void
+cfmakeraw (struct termios *attr)
+{
+    attr->c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP
+                         | INLCR | IGNCR | ICRNL | IXON);
+    attr->c_oflag &= ~OPOST;
+    attr->c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+    attr->c_cflag &= ~(CSIZE | PARENB);
+    attr->c_cflag |= CS8;
+}
+#endif /* !HAVE_CFMAKERAW */
 
 int vshRunConsole(const char *tty) {
     int ttyfd, ret = -1;
@@ -177,6 +194,8 @@ int vshRunConsole(const char *tty) {
 
     return ret;
 }
+
+#endif /* !__MINGW32__ */
 
 /*
  * Local variables:

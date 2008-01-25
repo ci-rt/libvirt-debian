@@ -21,9 +21,9 @@
  * Daniel Berrange <berrange@redhat.com>
  */
 
-#ifdef WITH_TEST
+#include "config.h"
 
-#define _GNU_SOURCE /* for asprintf */
+#ifdef WITH_TEST
 
 #include <stdio.h>
 #include <string.h>
@@ -35,14 +35,29 @@
 #include <libxml/uri.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/stat.h>
+
+#ifndef HAVE_WINSOCK2_H
 #include <net/if.h>
 #include <netinet/in.h>
+#else
+#include <winsock2.h>
+#endif
 
 #include "internal.h"
 #include "test.h"
 #include "xml.h"
 #include "buf.h"
 #include "uuid.h"
+
+/* Flags that determine the action to take on a shutdown or crash of a domain
+ */
+typedef enum {
+     VIR_DOMAIN_DESTROY	= 1, /* destroy the domain */
+     VIR_DOMAIN_RESTART	= 2, /* restart the domain */
+     VIR_DOMAIN_PRESERVE= 3, /* keep as is, need manual destroy, for debug */
+     VIR_DOMAIN_RENAME_RESTART= 4/* restart under an new unique name */
+} virDomainRestart;
 
 struct _testDev {
     char name[20];
@@ -577,7 +592,7 @@ static int testLoadNetworkFromFile(virConnectPtr conn,
 static int testOpenDefault(virConnectPtr conn) {
     int u;
     struct timeval tv;
-    testConnPtr privconn = malloc(sizeof(testConn));
+    testConnPtr privconn = malloc(sizeof(*privconn));
     if (!privconn) {
         testError(conn, NULL, NULL, VIR_ERR_NO_MEMORY, "testConn");
         return VIR_DRV_OPEN_ERROR;
@@ -663,7 +678,7 @@ static int testOpenFromFile(virConnectPtr conn,
     xmlNodePtr *domains, *networks = NULL;
     xmlXPathContextPtr ctxt = NULL;
     virNodeInfoPtr nodeInfo;
-    testConnPtr privconn = malloc(sizeof(testConn));
+    testConnPtr privconn = malloc(sizeof(*privconn));
     if (!privconn) {
         testError(NULL, NULL, NULL, VIR_ERR_NO_MEMORY, "testConn");
         return VIR_DRV_OPEN_ERROR;
@@ -870,35 +885,24 @@ static int getNetworkIndex(virNetworkPtr network) {
 }
 
 static int testOpen(virConnectPtr conn,
-                    const char *name,
+                    xmlURIPtr uri,
+                    virConnectAuthPtr auth ATTRIBUTE_UNUSED,
                     int flags ATTRIBUTE_UNUSED)
 {
-    xmlURIPtr uri;
     int ret;
 
-    if (!name)
+    if (!uri)
         return VIR_DRV_OPEN_DECLINED;
 
-    uri = xmlParseURI(name);
-    if (uri == NULL) {
+    if (!uri->scheme || strcmp(uri->scheme, "test") != 0)
         return VIR_DRV_OPEN_DECLINED;
-    }
-
-    if (!uri->scheme || strcmp(uri->scheme, "test") != 0) {
-        xmlFreeURI(uri);
-        return VIR_DRV_OPEN_DECLINED;
-    }
 
     /* Remote driver should handle these. */
-    if (uri->server) {
-        xmlFreeURI(uri);
+    if (uri->server)
         return VIR_DRV_OPEN_DECLINED;
-    }
 
-    if (uri->server) {
-        xmlFreeURI(uri);
+    if (uri->server)
         return VIR_DRV_OPEN_DECLINED;
-    }
 
     /* From this point on, the connection is for us. */
     if (!uri->path
@@ -914,8 +918,6 @@ static int testOpen(virConnectPtr conn,
     else
         ret = testOpenFromFile(conn,
                                uri->path);
-
-    xmlFreeURI(uri);
 
     return (ret);
 }
@@ -1646,7 +1648,8 @@ static int testDomainSetSchedulerParams(virDomainPtr domain,
 }
 
 static virDrvOpenStatus testOpenNetwork(virConnectPtr conn,
-                                        const char *name ATTRIBUTE_UNUSED,
+                                        xmlURIPtr uri ATTRIBUTE_UNUSED,
+                                        virConnectAuthPtr auth ATTRIBUTE_UNUSED,
                                         int flags ATTRIBUTE_UNUSED) {
     if (STRNEQ(conn->driver->name, "Test"))
         return VIR_DRV_OPEN_DECLINED;

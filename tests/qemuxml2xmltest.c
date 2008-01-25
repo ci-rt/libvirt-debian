@@ -1,14 +1,21 @@
+#include "config.h"
+
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 
 #include <sys/types.h>
 #include <fcntl.h>
 
+#ifdef WITH_QEMU
+
+#include "internal.h"
 #include "testutils.h"
 #include "qemu_conf.h"
-#include "internal.h"
 
 static char *progname;
+static char *abs_top_srcdir;
 struct qemud_driver driver;
 
 #define MAX_FILE 4096
@@ -59,7 +66,8 @@ static int testCompareXMLToXMLFiles(const char *xml) {
 
 static int testCompareXMLToXMLHelper(const void *data) {
     char xml[PATH_MAX];
-    snprintf(xml, PATH_MAX, "qemuxml2argvdata/qemuxml2argv-%s.xml", (const char*)data);
+    snprintf(xml, PATH_MAX, "%s/tests/qemuxml2argvdata/qemuxml2argv-%s.xml",
+             abs_top_srcdir, (const char*)data);
     return testCompareXMLToXMLFiles(xml);
 }
 
@@ -75,6 +83,10 @@ main(int argc, char **argv)
         fprintf(stderr, "Usage: %s\n", progname);
         exit(EXIT_FAILURE);
     }
+
+    abs_top_srcdir = getenv("abs_top_srcdir");
+    if (!abs_top_srcdir)
+      return 1;
 
     if (virtTestRun("QEMU XML-2-ARGV minimal",
                     1, testCompareXMLToXMLHelper, "minimal") < 0)
@@ -143,6 +155,12 @@ main(int argc, char **argv)
 
     exit(ret==0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }
+
+#else
+
+int main (void) { exit (77); /* means 'test skipped' to automake */ }
+
+#endif /* WITH_QEMU */
 
 /*
  * Local variables:

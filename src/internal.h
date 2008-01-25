@@ -5,26 +5,44 @@
 #ifndef __VIR_INTERNAL_H__
 #define __VIR_INTERNAL_H__
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <libxml/threads.h>
+#include <errno.h>
+#include <limits.h>
+
+#ifdef HAVE_SYS_SYSLIMITS_H
+#include <sys/syslimits.h>
+#endif
+
+#include "gettext.h"
 
 #include "hash.h"
 #include "libvirt/libvirt.h"
 #include "libvirt/virterror.h"
 #include "driver.h"
-#include <libintl.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/* On architectures which lack these limits, define them (ie. Cygwin).
+ * Note that the libvirt code should be robust enough to handle the
+ * case where actual value is longer than these limits (eg. by setting
+ * length correctly in second argument to gethostname and by always
+ * using strncpy instead of strcpy).
+ */
+#ifndef HOST_NAME_MAX
+#define HOST_NAME_MAX 256
+#endif
+
+#ifndef IF_NAMESIZE
+#define IF_NAMESIZE 16
+#endif
+
+#ifndef INET_ADDRSTRLEN
+#define INET_ADDRSTRLEN 16
+#endif
+
 #define _(str) dgettext(GETTEXT_PACKAGE, (str))
 #define N_(str) dgettext(GETTEXT_PACKAGE, (str))
-#define gettext_noop(str) (str)
 
 /* String equality tests, suggested by Jim Meyering. */
 #define STREQ(a,b) (strcmp((a),(b)) == 0)
@@ -32,17 +50,16 @@ extern "C" {
 #define STRNEQ(a,b) (strcmp((a),(b)) != 0)
 #define STRCASENEQ(a,b) (strcasecmp((a),(b)) != 0)
 #define STREQLEN(a,b,n) (strncmp((a),(b),(n)) == 0)
+#define STRCASEEQLEN(a,b,n) (strncasecmp((a),(b),(n)) == 0)
 #define STRNEQLEN(a,b,n) (strncmp((a),(b),(n)) != 0)
+#define STRCASENEQLEN(a,b,n) (strncasecmp((a),(b),(n)) != 0)
 
+/* C99 uses __func__.  __FUNCTION__ is legacy. */
 #ifndef __GNUC__
-#define	__FUNCTION__	__func__
+#define __FUNCTION__ __func__
 #endif
 
 #ifdef __GNUC__
-#ifdef HAVE_ANSIDECL_H
-#include <ansidecl.h>
-#endif
-
 /**
  * ATTRIBUTE_UNUSED:
  *
@@ -112,11 +129,6 @@ extern "C" {
 #define MAX_DRIVERS 10
 #define MIN_XEN_GUEST_SIZE 64  /* 64 megabytes */
 
-/*
- * Flags for Xen connections
- */
-#define VIR_CONNECT_RO 1
-
 /**
  * _virConnect:
  *
@@ -148,6 +160,7 @@ struct _virConnect {
     virHashTablePtr domains;/* hash table for known domains */
     virHashTablePtr networks;/* hash table for known domains */
     int flags;              /* a set of connection flags */
+    char *name;                 /* connection URI */
 };
 
 /**
@@ -238,6 +251,49 @@ int __virDrvSupportsFeature (virConnectPtr conn, int feature);
 int __virDomainMigratePrepare (virConnectPtr dconn, char **cookie, int *cookielen, const char *uri_in, char **uri_out, unsigned long flags, const char *dname, unsigned long bandwidth);
 int __virDomainMigratePerform (virDomainPtr domain, const char *cookie, int cookielen, const char *uri, unsigned long flags, const char *dname, unsigned long bandwidth);
 virDomainPtr __virDomainMigrateFinish (virConnectPtr dconn, const char *dname, const char *cookie, int cookielen, const char *uri, unsigned long flags);
+
+/* Like strtol, but produce an "int" result, and check more carefully.
+   Return 0 upon success;  return -1 to indicate failure.
+   When END_PTR is NULL, the byte after the final valid digit must be NUL.
+   Otherwise, it's like strtol and lets the caller check any suffix for
+   validity.  This function is careful to return -1 when the string S
+   represents a number that is not representable as an "int". */
+static inline int
+xstrtol_i(char const *s, char **end_ptr, int base, int *result)
+{
+    long int val;
+    char *p;
+    int err;
+
+    errno = 0;
+    val = strtol(s, &p, base);
+    err = (errno || (!end_ptr && *p) || p == s || (int) val != val);
+    if (end_ptr)
+        *end_ptr = p;
+    if (err)
+        return -1;
+    *result = val;
+    return 0;
+}
+
+/* Just like xstrtol_i, above, but produce an "unsigned int" value.  */
+static inline int
+xstrtol_ui(char const *s, char **end_ptr, int base, unsigned int *result)
+{
+    unsigned long int val;
+    char *p;
+    int err;
+
+    errno = 0;
+    val = strtoul(s, &p, base);
+    err = (errno || (!end_ptr && *p) || p == s || (unsigned int) val != val);
+    if (end_ptr)
+        *end_ptr = p;
+    if (err)
+        return -1;
+    *result = val;
+    return 0;
+}
 
 #ifdef __cplusplus
 }

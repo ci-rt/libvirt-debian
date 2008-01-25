@@ -8,6 +8,10 @@
  * Daniel Veillard <veillard@redhat.com>
  */
 
+#ifdef WITH_XEN
+
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -29,7 +33,7 @@
 static int debug = 0;
 
 static int xenProxyClose(virConnectPtr conn);
-static int xenProxyOpen(virConnectPtr conn, const char *name, int flags);
+static int xenProxyOpen(virConnectPtr conn, xmlURIPtr uri, virConnectAuthPtr auth, int flags);
 static int xenProxyGetVersion(virConnectPtr conn, unsigned long *hvVer);
 static int xenProxyNodeGetInfo(virConnectPtr conn, virNodeInfoPtr info);
 static char *xenProxyGetCapabilities(virConnectPtr conn);
@@ -37,13 +41,11 @@ static int xenProxyListDomains(virConnectPtr conn, int *ids, int maxids);
 static int xenProxyNumOfDomains(virConnectPtr conn);
 static unsigned long xenProxyDomainGetMaxMemory(virDomainPtr domain);
 static int xenProxyDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info);
-static char *xenProxyDomainDumpXML(virDomainPtr domain, int flags);
 static char *xenProxyDomainGetOSType(virDomainPtr domain);
 
 struct xenUnifiedDriver xenProxyDriver = {
     xenProxyOpen, /* open */
     xenProxyClose, /* close */
-    NULL, /* type */
     xenProxyGetVersion, /* version */
     NULL, /* hostname */
     NULL, /* URI */
@@ -69,7 +71,6 @@ struct xenUnifiedDriver xenProxyDriver = {
     NULL, /* domainPinVcpu */
     NULL, /* domainGetVcpus */
     NULL, /* domainGetMaxVcpus */
-    xenProxyDomainDumpXML, /* domainDumpXML */
     NULL, /* listDefinedDomains */
     NULL, /* numOfDefinedDomains */
     NULL, /* domainCreate */
@@ -523,14 +524,17 @@ retry:
  * Returns 0 in case of success, and -1 in case of failure
  */
 int
-xenProxyOpen(virConnectPtr conn, const char *name ATTRIBUTE_UNUSED, int flags)
+xenProxyOpen(virConnectPtr conn,
+             xmlURIPtr uri ATTRIBUTE_UNUSED,
+             virConnectAuthPtr auth ATTRIBUTE_UNUSED,
+             int flags)
 {
     virProxyPacket req;
     int ret;
     int fd;
     xenUnifiedPrivatePtr priv;
     
-    if (!(flags & VIR_DRV_OPEN_RO))
+    if (!(flags & VIR_CONNECT_RO))
         return(-1);
 
     priv = (xenUnifiedPrivatePtr) conn->privateData;
@@ -1014,7 +1018,7 @@ xenProxyGetCapabilities (virConnectPtr conn)
  *
  * Returns the XML document on success, NULL otherwise. 
  */
-static char *
+char *
 xenProxyDomainDumpXML(virDomainPtr domain, int flags ATTRIBUTE_UNUSED)
 {
     virProxyPacket req;
@@ -1108,6 +1112,8 @@ xenProxyDomainGetOSType(virDomainPtr domain)
 
     return(ostype);
 }
+
+#endif /* WITH_XEN */
 
 /*
  * vim: set tabstop=4:

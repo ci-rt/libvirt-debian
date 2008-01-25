@@ -4,18 +4,24 @@
  *           entry points where an automatically generated stub is
  *           unpractical
  *
- * Copyright (C) 2005 Red Hat, Inc.
+ * Copyright (C) 2005, 2007 Red Hat, Inc.
  *
  * Daniel Veillard <veillard@redhat.com>
  */
 
+#include "config.h"
+
 #include <Python.h>
-#include <libvirt/libvirt.h>
-#include <libvirt/virterror.h>
+#include "libvirt/libvirt.h"
+#include "libvirt/virterror.h"
 #include "libvirt_wrap.h"
 #include "libvirt-py.h"
 
+#ifndef __CYGWIN__
 extern void initlibvirtmod(void);
+#else
+extern void initcygvirtmod(void);
+#endif
 
 PyObject *libvirt_virDomainGetUUID(PyObject *self ATTRIBUTE_UNUSED, PyObject *args);
 PyObject *libvirt_virNetworkGetUUID(PyObject *self ATTRIBUTE_UNUSED, PyObject *args);
@@ -23,6 +29,7 @@ PyObject *libvirt_virGetLastError(PyObject *self ATTRIBUTE_UNUSED, PyObject *arg
 PyObject *libvirt_virConnGetLastError(PyObject *self ATTRIBUTE_UNUSED, PyObject *args);
 PyObject * libvirt_virDomainBlockStats(PyObject *self ATTRIBUTE_UNUSED, PyObject *args);
 PyObject * libvirt_virDomainInterfaceStats(PyObject *self ATTRIBUTE_UNUSED, PyObject *args);
+PyObject * libvirt_virNodeGetCellsFreeMemory(PyObject *self ATTRIBUTE_UNUSED, PyObject *args);
 
 /************************************************************************
  *									*
@@ -241,6 +248,128 @@ libvirt_virRegisterErrorHandler(ATTRIBUTE_UNUSED PyObject * self,
     return (py_retval);
 }
 
+static int virConnectCredCallbackWrapper(virConnectCredentialPtr cred,
+                                         unsigned int ncred,
+                                         void *cbdata) {
+    PyObject *list;
+    PyObject *pycred;
+    PyObject *pyauth = (PyObject *)cbdata;
+    PyObject *pycbdata;
+    PyObject *pycb;
+    PyObject *pyret;
+    int ret = -1, i;
+
+    LIBVIRT_ENSURE_THREAD_STATE;
+
+    pycb = PyList_GetItem(pyauth, 1);
+    pycbdata = PyList_GetItem(pyauth, 2);
+
+    list = PyTuple_New(2);
+    pycred = PyTuple_New(ncred);
+    for (i = 0 ; i < ncred ; i++) {
+        PyObject *pycreditem;
+        pycreditem = PyList_New(5);
+        Py_INCREF(Py_None);
+        PyTuple_SetItem(pycred, i, pycreditem);
+        PyList_SetItem(pycreditem, 0, PyInt_FromLong((long) cred[i].type));
+        PyList_SetItem(pycreditem, 1, PyString_FromString(cred[i].prompt));
+        if (cred[i].challenge) {
+            PyList_SetItem(pycreditem, 2, PyString_FromString(cred[i].challenge));
+        } else {
+            Py_INCREF(Py_None);
+            PyList_SetItem(pycreditem, 2, Py_None);
+        }
+        if (cred[i].defresult) {
+            PyList_SetItem(pycreditem, 3, PyString_FromString(cred[i].defresult));
+        } else {
+            Py_INCREF(Py_None);
+            PyList_SetItem(pycreditem, 3, Py_None);
+        }
+        PyList_SetItem(pycreditem, 4, Py_None);
+    }
+
+    PyTuple_SetItem(list, 0, pycred);
+    Py_XINCREF(pycbdata);
+    PyTuple_SetItem(list, 1, pycbdata);
+
+    PyErr_Clear();
+    pyret = PyEval_CallObject(pycb, list);
+    if (PyErr_Occurred())
+        goto cleanup;
+
+    ret = PyLong_AsLong(pyret);
+    if (ret == 0) {
+        for (i = 0 ; i < ncred ; i++) {
+            PyObject *pycreditem;
+            PyObject *pyresult;
+            char *result = NULL;
+            pycreditem = PyTuple_GetItem(pycred, i);
+            pyresult = PyList_GetItem(pycreditem, 4);
+            if (pyresult != Py_None)
+                result = PyString_AsString(pyresult);
+            if (result != NULL) {
+                cred[i].result = strdup(result);
+                cred[i].resultlen = strlen(result);
+            } else {
+                cred[i].result = NULL;
+                cred[i].resultlen = 0;
+            }
+        }
+    }
+
+ cleanup:
+    Py_XDECREF(list);
+    Py_XDECREF(pyret);
+
+    LIBVIRT_RELEASE_THREAD_STATE;
+
+    return ret;
+}
+
+
+static PyObject *
+libvirt_virConnectOpenAuth(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    virConnectPtr c_retval;
+    char * name;
+    int flags;
+    PyObject *pyauth;
+    PyObject *pycredcb;
+    PyObject *pycredtype;
+    virConnectAuth auth;
+
+    if (!PyArg_ParseTuple(args, (char *)"zOi:virConnectOpenAuth", &name, &pyauth, &flags))
+        return(NULL);
+
+    pycredtype = PyList_GetItem(pyauth, 0);
+    pycredcb = PyList_GetItem(pyauth, 1);
+
+    auth.ncredtype = PyList_Size(pycredtype);
+    if (auth.ncredtype) {
+        int i;
+        auth.credtype = malloc(sizeof(*auth.credtype) * auth.ncredtype);
+        if (auth.credtype == NULL) {
+            Py_INCREF(Py_None);
+            return (Py_None);
+        }
+        for (i = 0 ; i < auth.ncredtype ; i++) {
+            PyObject *val;
+            val = PyList_GetItem(pycredtype, i);
+            auth.credtype[i] = (int)PyLong_AsLong(val);
+        }
+    }
+    auth.cb = pycredcb ? virConnectCredCallbackWrapper : NULL;
+    auth.cbdata = pyauth;
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virConnectOpenAuth(name, &auth, flags);
+    LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_virConnectPtrWrap((virConnectPtr) c_retval);
+    return(py_retval);
+}
+
+
 /************************************************************************
  *									*
  *		Wrappers for functions where generator fails		*
@@ -361,7 +490,7 @@ libvirt_virConnectListDefinedDomains(PyObject *self ATTRIBUTE_UNUSED,
     }
     
     if (c_retval) {
-        names = malloc(sizeof(char *) * c_retval);
+        names = malloc(sizeof(*names) * c_retval);
         if (!names) {
             Py_INCREF(Py_None);
             return (Py_None);
@@ -541,7 +670,7 @@ libvirt_virConnectListNetworks(PyObject *self ATTRIBUTE_UNUSED,
     }
     
     if (c_retval) {
-        names = malloc(sizeof(char *) * c_retval);
+        names = malloc(sizeof(*names) * c_retval);
         if (!names) {
             Py_INCREF(Py_None);
             return (Py_None);
@@ -588,7 +717,7 @@ libvirt_virConnectListDefinedNetworks(PyObject *self ATTRIBUTE_UNUSED,
     }
     
     if (c_retval) {
-        names = malloc(sizeof(char *) * c_retval);
+        names = malloc(sizeof(*names) * c_retval);
         if (!names) {
             Py_INCREF(Py_None);
             return (Py_None);
@@ -718,7 +847,45 @@ libvirt_virNetworkGetAutostart(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) 
     return(py_retval);
 }
 
+PyObject * libvirt_virNodeGetCellsFreeMemory(PyObject *self ATTRIBUTE_UNUSED,
+         PyObject *args)
+{
+    PyObject *py_retval;
+    PyObject *pyobj_conn;
+    int startCell, maxCells, c_retval, i;
+    virConnectPtr conn;
+    unsigned long long *freeMems;
 
+    if (!PyArg_ParseTuple(args, (char *)"Oii:virNodeGetCellsFreeMemory", &pyobj_conn, &startCell, &maxCells))
+        return(NULL);
+
+    if ((startCell < 0) || (maxCells <= 0) || (startCell + maxCells > 10000))
+        goto error;
+
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+    freeMems =
+        malloc(maxCells * sizeof(*freeMems));
+    if (freeMems == NULL)
+        goto error;
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    c_retval = virNodeGetCellsFreeMemory(conn, freeMems, startCell, maxCells);
+    LIBVIRT_END_ALLOW_THREADS;
+
+    if (c_retval < 0) {
+	free(freeMems);
+error:
+        Py_INCREF(Py_None);
+	return Py_None;
+    }
+    py_retval = PyList_New(c_retval);
+    for (i = 0;i < c_retval;i++) {
+	PyList_SetItem(py_retval, i, 
+	        libvirt_longlongWrap((long long) freeMems[i]));
+    }
+    free(freeMems);
+    return(py_retval);
+}
 
 /************************************************************************
  *									*
@@ -729,6 +896,7 @@ static PyMethodDef libvirtMethods[] = {
 #include "libvirt-export.c"
     {(char *) "virGetVersion", libvirt_virGetVersion, METH_VARARGS, NULL},
     {(char *) "virDomainFree", libvirt_virDomainFree, METH_VARARGS, NULL},
+    {(char *) "virConnectOpenAuth", libvirt_virConnectOpenAuth, METH_VARARGS, NULL},
     {(char *) "virConnectClose", libvirt_virConnectClose, METH_VARARGS, NULL},
     {(char *) "virConnectListDomainsID", libvirt_virConnectListDomainsID, METH_VARARGS, NULL},
     {(char *) "virConnectListDefinedDomains", libvirt_virConnectListDefinedDomains, METH_VARARGS, NULL},
@@ -748,11 +916,17 @@ static PyMethodDef libvirtMethods[] = {
     {(char *) "virNetworkGetAutostart", libvirt_virNetworkGetAutostart, METH_VARARGS, NULL},
     {(char *) "virDomainBlockStats", libvirt_virDomainBlockStats, METH_VARARGS, NULL},
     {(char *) "virDomainInterfaceStats", libvirt_virDomainInterfaceStats, METH_VARARGS, NULL},
+    {(char *) "virNodeGetCellsFreeMemory", libvirt_virNodeGetCellsFreeMemory, METH_VARARGS, NULL},
     {NULL, NULL, 0, NULL}
 };
 
 void
-initlibvirtmod(void)
+#ifndef __CYGWIN__
+initlibvirtmod
+#else
+initcygvirtmod
+#endif
+  (void)
 {
     static int initialized = 0;
 
@@ -762,7 +936,13 @@ initlibvirtmod(void)
     virInitialize();
 
     /* intialize the python extension module */
-    Py_InitModule((char *) "libvirtmod", libvirtMethods);
+    Py_InitModule((char *)
+#ifndef __CYGWIN__
+                  "libvirtmod"
+#else
+                  "cygvirtmod"
+#endif
+                  , libvirtMethods);
 
     initialized = 1;
 }

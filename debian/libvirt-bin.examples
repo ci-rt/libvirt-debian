@@ -1,0 +1,3 @@
+qemud/libvirtd.policy
+qemud/libvirtd.sasl
+qemud/libvirtd.conf

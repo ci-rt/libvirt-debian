@@ -1,14 +1,21 @@
+#include "config.h"
+
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 
 #include <sys/types.h>
 #include <fcntl.h>
 
+#ifdef WITH_QEMU
+
+#include "internal.h"
 #include "testutils.h"
 #include "qemu_conf.h"
-#include "internal.h"
 
 static char *progname;
+static char *abs_top_srcdir;
 struct qemud_driver driver;
 
 #define MAX_FILE 4096
@@ -40,6 +47,7 @@ static int testCompareXMLToArgvFiles(const char *xml, const char *cmd) {
     vm.qemuVersion = 0 * 1000 * 100 + (8 * 1000) + 1;
     vm.qemuCmdFlags = QEMUD_CMD_FLAG_VNC_COLON |
         QEMUD_CMD_FLAG_NO_REBOOT;
+    vm.migrateFrom[0] = '\0';
 
     vmdef->vncActivePort = vmdef->vncPort;
 
@@ -52,7 +60,7 @@ static int testCompareXMLToArgvFiles(const char *xml, const char *cmd) {
         len += strlen(*tmp) + 1;
         tmp++;
     }
-    actualargv = malloc(sizeof(char)*len);
+    actualargv = malloc(sizeof(*actualargv)*len);
     actualargv[0] = '\0';
     tmp = argv;
     len = 0;
@@ -92,8 +100,10 @@ static int testCompareXMLToArgvFiles(const char *xml, const char *cmd) {
 static int testCompareXMLToArgvHelper(const void *data) {
     char xml[PATH_MAX];
     char args[PATH_MAX];
-    snprintf(xml, PATH_MAX, "qemuxml2argvdata/qemuxml2argv-%s.xml", (const char*)data);
-    snprintf(args, PATH_MAX, "qemuxml2argvdata/qemuxml2argv-%s.args", (const char*)data);
+    snprintf(xml, PATH_MAX, "%s/tests/qemuxml2argvdata/qemuxml2argv-%s.xml",
+             abs_top_srcdir, (const char*)data);
+    snprintf(args, PATH_MAX, "%s/tests/qemuxml2argvdata/qemuxml2argv-%s.args",
+             abs_top_srcdir, (const char*)data);
     return testCompareXMLToArgvFiles(xml, args);
 }
 
@@ -110,6 +120,10 @@ main(int argc, char **argv)
         fprintf(stderr, "Usage: %s\n", progname);
         exit(EXIT_FAILURE);
     }
+
+    abs_top_srcdir = getenv("abs_top_srcdir");
+    if (!abs_top_srcdir)
+      return 1;
 
     if (virtTestRun("QEMU XML-2-ARGV minimal",
                     1, testCompareXMLToArgvHelper, "minimal") < 0)
@@ -178,6 +192,12 @@ main(int argc, char **argv)
 
     exit(ret==0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }
+
+#else
+
+int main (void) { exit (77); /* means 'test skipped' for automake */ }
+
+#endif /* WITH_QEMU */
 
 /*
  * Local variables:

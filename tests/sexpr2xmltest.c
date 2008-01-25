@@ -1,23 +1,33 @@
+#include "config.h"
+
 #include <stdio.h>
 #include <string.h>
 
 #ifdef WITH_XEN
+
+#include "internal.h"
 #include "xml.h"
 #include "xend_internal.h"
 #include "testutils.h"
-#include "internal.h"
 
 static char *progname;
+static char *abs_top_srcdir;
 
 #define MAX_FILE 4096
 
-static int testCompareFiles(const char *xml, const char *sexpr, int xendConfigVersion) {
+static int testCompareFiles(const char *xml_rel, const char *sexpr_rel,
+                            int xendConfigVersion) {
   char xmlData[MAX_FILE];
   char sexprData[MAX_FILE];
   char *gotxml = NULL;
   char *xmlPtr = &(xmlData[0]);
   char *sexprPtr = &(sexprData[0]);
   int ret = -1;
+  char xml[PATH_MAX];
+  char sexpr[PATH_MAX];
+
+  snprintf(xml, sizeof xml - 1, "%s/tests/%s", abs_top_srcdir, xml_rel);
+  snprintf(sexpr, sizeof sexpr - 1, "%s/tests/%s", abs_top_srcdir, sexpr_rel);
 
   if (virtTestLoadFile(xml, &xmlPtr, MAX_FILE) < 0)
     goto fail;
@@ -101,6 +111,12 @@ static int testCompareDiskBlock(const void *data ATTRIBUTE_UNUSED) {
 			  1);
 }
 
+static int testCompareDiskShareable(const void *data ATTRIBUTE_UNUSED) {
+  return testCompareFiles("sexpr2xmldata/sexpr2xml-disk-block-shareable.xml",
+			  "sexpr2xmldata/sexpr2xml-disk-block-shareable.sexpr",
+			  1);
+}
+
 static int testCompareDiskDrvBlktapQcow(const void *data ATTRIBUTE_UNUSED) {
   return testCompareFiles("sexpr2xmldata/sexpr2xml-disk-drv-blktap-qcow.xml",
 			  "sexpr2xmldata/sexpr2xml-disk-drv-blktap-qcow.sexpr",
@@ -175,6 +191,12 @@ main(int argc, char **argv)
 	exit(EXIT_FAILURE);
     }
 
+    abs_top_srcdir = getenv("abs_top_srcdir");
+    if (!abs_top_srcdir) {
+        fprintf(stderr, "missing enviroment variable abs_top_srcdir\n");
+	exit(EXIT_FAILURE);
+    }
+
     if (virtTestRun("SEXPR-2-XML PV config (version 1)",
 		    1, testComparePVversion1, NULL) != 0)
 	ret = -1;
@@ -209,6 +231,10 @@ main(int argc, char **argv)
 
     if (virtTestRun("SEXPR-2-XML Disk Block config",
 		    1, testCompareDiskBlock, NULL) != 0)
+	ret = -1;
+
+    if (virtTestRun("SEXPR-2-XML Disk Block shareable",
+		    1, testCompareDiskShareable, NULL) != 0)
 	ret = -1;
 
     if (virtTestRun("SEXPR-2-XML Disk Driver blktap qcow config",
