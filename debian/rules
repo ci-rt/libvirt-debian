@@ -4,9 +4,8 @@ DEB_PYTHON_SYSTEM=pycentral
 DEB_DH_INSTALL_SOURCEDIR = debian/tmp
 
 ifneq (,$(findstring $(DEB_HOST_ARCH), i386 amd64))
-  XEN_LIBDIR=/usr/lib/xen-3.1-1/lib/
-  LDFLAGS+=-L$(XEN_LIBDIR) -Wl,-rpath -Wl,$(XEN_LIBDIR)
   BUILD_XEN=--with-xen
+  LDFLAGS += -lpthread
 else
   BUILD_XEN=--without-xen
 endif
