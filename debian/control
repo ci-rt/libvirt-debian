@@ -9,7 +9,7 @@ Standards-Version: 3.7.3
 
 Package: libvirt-bin
 Architecture: any
-Depends: ${shlibs:Depends}
+Depends: ${shlibs:Depends}, adduser
 Enhances: qemu, kvm
 Section: admin
 Suggests: dnsmasq, bridge-utils
