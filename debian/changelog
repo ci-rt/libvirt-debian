@@ -1,3 +1,13 @@
+libvirt (0.4.0-3) unstable; urgency=low
+
+  * add and remove the libvirt group for the socket
+  * be a bit more verbose on libvirtd reload
+  * depend on adduser since we add the libvirt user
+  * don't restart libvirtd on upgrades since it kills running qemus
+  * enable debugging via DEB_BUILD_OPTS
+
+ -- Guido Guenther <agx@sigxcpu.org>  Sun, 03 Feb 2008 14:21:46 +0100
+
 libvirt (0.4.0-2) unstable; urgency=low
 
   * libvirt-bin.init: fix the reload target
