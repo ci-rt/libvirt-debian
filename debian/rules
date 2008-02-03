@@ -1,5 +1,9 @@
 #!/usr/bin/make -f
 
+ifneq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
+ DEBUG_OPTS=--enable-debug
+endif
+
 DEB_PYTHON_SYSTEM=pycentral
 DEB_DH_INSTALL_SOURCEDIR = debian/tmp
 
@@ -8,7 +12,7 @@ include /usr/share/cdbs/1/class/autotools.mk
 include /usr/share/cdbs/1/class/python-distutils.mk
 include /usr/share/cdbs/1/rules/patchsys-quilt.mk
 
-DEB_CONFIGURE_EXTRA_FLAGS := --disable-rpath --with-qemu --without-openvz --without-xen --with-avahi --with-sasl
+DEB_CONFIGURE_EXTRA_FLAGS := --disable-rpath --with-qemu --without-openvz --without-xen --with-avahi --with-sasl $(DEBUG_OPTS)
 DEB_PYTHON_SETUP_CMD := /dev/null
 DEB_DH_MAKESHLIBS_ARGS_libvirt0 += -V 'libvirt0 (>= 0.4.0)'
 DEB_DH_INSTALLINIT_ARGS:=--no-restart-on-upgrade
