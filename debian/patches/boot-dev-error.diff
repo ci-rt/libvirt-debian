@@ -1,0 +1,18 @@
+commit fb5e897bff348f0f9a666c39b6360fc9e0eb4967
+Author: Guido Guenther <agx@sigxcpu.org>
+Date:   Tue Feb 5 12:58:31 2008 +0100
+
+    add missing call to qemudReportError
+
+diff --git a/src/qemu_conf.c b/src/qemu_conf.c
+index 6dc08e0..48ccc60 100644
+--- a/src/qemu_conf.c
++++ b/src/qemu_conf.c
+@@ -1193,6 +1193,7 @@ static struct qemud_vm_def *qemudParseXML(virConnectPtr conn,
+             } else if (!strcmp((char *)prop, "network")) {
+                 def->os.bootDevs[def->os.nBootDevs++] = QEMUD_BOOT_NET;
+             } else {
++                qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR, "unknown boot dev \'%s\'", (char*)prop);
+                 goto error;
+             }
+             xmlFree(prop);
