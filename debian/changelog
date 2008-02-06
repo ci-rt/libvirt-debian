@@ -1,3 +1,20 @@
+libvirt (0.4.0-4) unstable; urgency=low
+
+  * don't segfault on broken boot device configuration (Closes: #463686)
+  * don't segfault due to missing errorhandling in the XML parsing code
+
+ -- Guido Guenther <agx@sigxcpu.org>  Tue, 05 Feb 2008 13:12:54 +0100
+
+libvirt (0.4.0-3) unstable; urgency=low
+
+  * add and remove the libvirt group for the socket
+  * be a bit more verbose on libvirtd reload
+  * depend on adduser since we add the libvirt user
+  * don't restart libvirtd on upgrades since it kills running qemus
+  * enable debugging via DEB_BUILD_OPTS
+
+ -- Guido Guenther <agx@sigxcpu.org>  Sun, 03 Feb 2008 14:21:46 +0100
+
 libvirt (0.4.0-2) unstable; urgency=low
 
   * libvirt-bin.init: fix the reload target
