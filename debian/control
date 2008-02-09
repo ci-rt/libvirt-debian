@@ -12,6 +12,7 @@ Architecture: any
 Depends: ${shlibs:Depends}, adduser
 Enhances: qemu, kvm
 Section: admin
+Recommends: netcat-openbsd
 Suggests: dnsmasq, bridge-utils
 Description: the programs for the libvirt library
  Libvirt is a C toolkit to interract with the virtualization capabilities
