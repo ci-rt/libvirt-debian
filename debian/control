@@ -61,11 +61,11 @@ Depends: ${shlibs:Depends}, ${python:Depends}
 Provides: ${python:Provides}
 Section: python
 XB-Python-Version: ${python:Versions}
-Description: libvirt python bindings
+Description: libvirt Python bindings
  Libvirt is a C toolkit to interract with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
  a long term stable C API for different virtualization mechanisms. It currently
  supports QEMU, KVM, and XEN.
  .
- This package contains python bindings for the libvirt library
+ This package contains Python bindings for the libvirt library
 
