@@ -1,3 +1,13 @@
+libvirt (0.4.0-5) unstable; urgency=low
+
+  * thanks to the xen maintainers Debian now has a working libxen-dev, so
+    enable xen support in the default build (Closes: #453826)
+  * recommend netcat-openbsd for unix domain socket support (Closes: #453627)
+  * README.Debian: document necessary xend options
+  * fix spelling of Python 
+
+ -- Guido Guenther <agx@sigxcpu.org>  Wed, 20 Feb 2008 11:14:22 +0100
+
 libvirt (0.4.0-4) unstable; urgency=low
 
   * don't segfault on broken boot device configuration (Closes: #463686)
