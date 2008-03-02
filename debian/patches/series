@@ -3,3 +3,4 @@ qemu-path.diff
 qemu-disable-network.diff
 boot-dev-error.diff
 parse-error.diff
+libvirt-group.diff

@@ -1,0 +1,22 @@
+diff --git a/qemud/libvirtd.conf b/qemud/libvirtd.conf
+index 1919d49..3402298 100644
+--- a/qemud/libvirtd.conf
++++ b/qemud/libvirtd.conf
+@@ -70,7 +70,7 @@
+ # without becoming root.
+ #
+ # This is restricted to 'root' by default.
+-#unix_sock_group = "libvirt"
++unix_sock_group = "libvirt"
+ 
+ # Set the UNIX socket permissions for the R/O socket. This is used
+ # for monitoring VM status only
+@@ -87,7 +87,7 @@
+ #
+ # If not using PolicyKit and setting group ownership for access
+ # control then you may want to relax this to:
+-#unix_sock_rw_perms = "0770"
++unix_sock_rw_perms = "0770"
+ 
+ 
+ 
