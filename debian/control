@@ -45,7 +45,7 @@ Description: documentation for the libvirt library
 Package: libvirt-dev
 Architecture: any
 Section: libdevel
-Depends: libvirt0 (= ${binary:Version})
+Depends: libvirt0 (= ${binary:Version}), libxen-dev [i386 amd64]
 Description: development files for the libvirt library
  Libvirt is a C toolkit to interract with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
