@@ -1,3 +1,10 @@
+libvirt (0.4.0-6) unstable; urgency=low
+
+  * depend on libxen-dev (Closes:#467598)
+  * allow members of the libvirt group to manage virtual machines
+
+ -- Guido Guenther <agx@sigxcpu.org>  Sun, 02 Mar 2008 16:11:49 +0100
+
 libvirt (0.4.0-5) unstable; urgency=low
 
   * thanks to the xen maintainers Debian now has a working libxen-dev, so
