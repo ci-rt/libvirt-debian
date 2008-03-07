@@ -1,3 +1,21 @@
+libvirt (0.4.1-1) unstable; urgency=low
+
+  * new upstream version
+       * Xen 3.2 fixes
+       * storage pool support
+  * partition based storage pools are disabled, since this needs parted 1.8
+    which is only in experimental
+  * update patches for new upstream release
+       * boot-dev-error.diff - applied upstream
+       * qemu-parse-error.diff - applied upstream
+       * qemu-path.diff - adjust to new hypervisor detection code
+       * rediff the rest
+  * new patches:
+       * no-mac.diff: don't set mac address on tun device since it breaks kvm
+  * bump shlibs version 
+
+ -- Guido Guenther <agx@sigxcpu.org>  Fri, 07 Mar 2008 10:17:21 +0100
+
 libvirt (0.4.0-6) unstable; urgency=low
 
   * depend on libxen-dev (Closes:#467598)
