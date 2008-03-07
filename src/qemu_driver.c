@@ -1,7 +1,7 @@
 /*
  * driver.c: core driver methods for managing qemu guests
  *
- * Copyright (C) 2006, 2007 Red Hat, Inc.
+ * Copyright (C) 2006, 2007, 2008 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -21,7 +21,7 @@
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
-#include "config.h"
+#include <config.h>
 
 #ifdef WITH_QEMU
 
@@ -56,9 +56,13 @@
 #include "qemu_conf.h"
 #include "nodeinfo.h"
 #include "stats_linux.h"
+#include "capabilities.h"
 
 static int qemudShutdown(void);
 
+/* qemudDebug statements should be changed to use this macro instead. */
+#define DEBUG(fmt,...) VIR_DEBUG(__FILE__, fmt, __VA_ARGS__)
+#define DEBUG0(msg) VIR_DEBUG(__FILE__, "%s", msg)
 
 #define qemudLog(level, msg...) fprintf(stderr, msg)
 
@@ -71,7 +75,8 @@ static int qemudSetCloseExec(int fd) {
         goto error;
     return 0;
  error:
-    qemudLog(QEMUD_ERR, "Failed to set close-on-exec file descriptor flag");
+    qemudLog(QEMUD_ERR,
+             "%s", _("Failed to set close-on-exec file descriptor flag"));
     return -1;
 }
 
@@ -85,7 +90,8 @@ static int qemudSetNonBlock(int fd) {
         goto error;
     return 0;
  error:
-    qemudLog(QEMUD_ERR, "Failed to set non-blocking file descriptor flag");
+    qemudLog(QEMUD_ERR,
+             "%s", _("Failed to set non-blocking file descriptor flag"));
     return -1;
 }
 
@@ -107,7 +113,7 @@ static int qemudShutdownNetworkDaemon(virConnectPtr conn,
                                       struct qemud_driver *driver,
                                       struct qemud_network *network);
 
-struct qemud_driver *qemu_driver = NULL;
+static struct qemud_driver *qemu_driver = NULL;
 
 
 static
@@ -123,7 +129,7 @@ void qemudAutostartConfigs(struct qemud_driver *driver) {
             !qemudIsActiveNetwork(network) &&
             qemudStartNetworkDaemon(NULL, driver, network) < 0) {
             virErrorPtr err = virGetLastError();
-            qemudLog(QEMUD_ERR, "Failed to autostart network '%s': %s",
+            qemudLog(QEMUD_ERR, _("Failed to autostart network '%s': %s"),
                      network->def->name, err->message);
         }
 
@@ -138,7 +144,7 @@ void qemudAutostartConfigs(struct qemud_driver *driver) {
             !qemudIsActiveVM(vm) &&
             qemudStartVMDaemon(NULL, driver, vm) < 0) {
             virErrorPtr err = virGetLastError();
-            qemudLog(QEMUD_ERR, "Failed to autostart VM '%s': %s",
+            qemudLog(QEMUD_ERR, _("Failed to autostart VM '%s': %s"),
                      vm->def->name, err->message);
         }
 
@@ -173,7 +179,7 @@ qemudStartup(void) {
             goto out_of_memory;
     } else {
         if (!(pw = getpwuid(uid))) {
-            qemudLog(QEMUD_ERR, "Failed to find user record for uid '%d': %s",
+            qemudLog(QEMUD_ERR, _("Failed to find user record for uid '%d': %s"),
                      uid, strerror(errno));
             goto out_of_memory;
         }
@@ -182,7 +188,8 @@ qemudStartup(void) {
             goto snprintf_error;
 
         if (asprintf (&base, "%s/.libvirt", pw->pw_dir) == -1) {
-            qemudLog (QEMUD_ERR, "out of memory in asprintf");
+            qemudLog (QEMUD_ERR,
+                      "%s", _("out of memory in asprintf"));
             goto out_of_memory;
         }
     }
@@ -208,6 +215,10 @@ qemudStartup(void) {
         goto out_of_memory;
 
     free(base);
+    base = NULL;
+
+    if ((qemu_driver->caps = qemudCapsInit()) == NULL)
+        goto out_of_memory;
 
     if (qemudLoadDriverConfig(qemu_driver, driverConf) < 0) {
         qemudShutdown();
@@ -223,12 +234,14 @@ qemudStartup(void) {
     return 0;
 
  snprintf_error:
-    qemudLog(QEMUD_ERR, "Resulting path to long for buffer in qemudInitPaths()");
+    qemudLog(QEMUD_ERR,
+             "%s", _("Resulting path to long for buffer in qemudInitPaths()"));
     return -1;
 
  out_of_memory:
-    qemudLog (QEMUD_ERR, "qemudStartup: out of memory");
-    if (base) free (base);
+    qemudLog (QEMUD_ERR,
+              "%s", _("qemudStartup: out of memory"));
+    free (base);
     free(qemu_driver);
     qemu_driver = NULL;
     return -1;
@@ -245,7 +258,8 @@ qemudReload(void) {
     qemudScanConfigs(qemu_driver);
 
      if (qemu_driver->iptables) {
-        qemudLog(QEMUD_INFO, "Reloading iptables rules");
+        qemudLog(QEMUD_INFO,
+                 "%s", _("Reloading iptables rules"));
         iptablesReloadRules(qemu_driver->iptables);
     }
 
@@ -288,6 +302,8 @@ qemudShutdown(void) {
     if (!qemu_driver)
         return -1;
 
+    virCapabilitiesFree(qemu_driver->caps);
+
     /* shutdown active VMs */
     vm = qemu_driver->vms;
     while (vm) {
@@ -298,7 +314,7 @@ qemudShutdown(void) {
             qemudRemoveInactiveVM(qemu_driver, vm);
         vm = next;
     }
-    
+
     /* free inactive VMs */
     vm = qemu_driver->vms;
     while (vm) {
@@ -318,7 +334,7 @@ qemudShutdown(void) {
             qemudShutdownNetworkDaemon(NULL, qemu_driver, network);
         network = next;
     }
-    
+
     /* free inactive networks */
     network = qemu_driver->networks;
     while (network) {
@@ -330,17 +346,11 @@ qemudShutdown(void) {
     qemu_driver->nactivenetworks = 0;
     qemu_driver->ninactivenetworks = 0;
 
-    if (qemu_driver->configDir)
-        free(qemu_driver->configDir);
-    if (qemu_driver->autostartDir)
-        free(qemu_driver->autostartDir);
-    if (qemu_driver->networkConfigDir)
-        free(qemu_driver->networkConfigDir);
-    if (qemu_driver->networkAutostartDir)
-        free(qemu_driver->networkAutostartDir);
-
-    if (qemu_driver->vncTLSx509certdir)
-        free(qemu_driver->vncTLSx509certdir);
+    free(qemu_driver->configDir);
+    free(qemu_driver->autostartDir);
+    free(qemu_driver->networkConfigDir);
+    free(qemu_driver->networkAutostartDir);
+    free(qemu_driver->vncTLSx509certdir);
 
     if (qemu_driver->brctl)
         brShutdown(qemu_driver->brctl);
@@ -544,12 +554,10 @@ static int qemudWaitForMonitor(virConnectPtr conn,
                                      "console");
 
     buf[sizeof(buf)-1] = '\0';
- retry:
-    if (write(vm->logfile, buf, strlen(buf)) < 0) {
+
+    if (safewrite(vm->logfile, buf, strlen(buf)) < 0) {
         /* Log, but ignore failures to write logfile for VM */
-        if (errno == EINTR)
-            goto retry;
-        qemudLog(QEMUD_WARN, "Unable to log VM console data: %s",
+        qemudLog(QEMUD_WARN, _("Unable to log VM console data: %s"),
                  strerror(errno));
     }
     return ret;
@@ -661,16 +669,16 @@ static int qemudStartVMDaemon(virConnectPtr conn,
 
     tmp = argv;
     while (*tmp) {
-        if (write(vm->logfile, *tmp, strlen(*tmp)) < 0)
-            qemudLog(QEMUD_WARN, "Unable to write argv to logfile %d: %s",
+        if (safewrite(vm->logfile, *tmp, strlen(*tmp)) < 0)
+            qemudLog(QEMUD_WARN, _("Unable to write argv to logfile %d: %s"),
                      errno, strerror(errno));
-        if (write(vm->logfile, " ", 1) < 0)
-            qemudLog(QEMUD_WARN, "Unable to write argv to logfile %d: %s",
+        if (safewrite(vm->logfile, " ", 1) < 0)
+            qemudLog(QEMUD_WARN, _("Unable to write argv to logfile %d: %s"),
                      errno, strerror(errno));
         tmp++;
     }
-    if (write(vm->logfile, "\n", 1) < 0)
-        qemudLog(QEMUD_WARN, "Unable to write argv to logfile %d: %s",
+    if (safewrite(vm->logfile, "\n", 1) < 0)
+        qemudLog(QEMUD_WARN, _("Unable to write argv to logfile %d: %s"),
                  errno, strerror(errno));
 
     if (virExecNonBlock(conn, argv, &vm->pid,
@@ -738,12 +746,9 @@ static int qemudVMData(struct qemud_driver *driver ATTRIBUTE_UNUSED,
         }
         buf[ret] = '\0';
 
-    retry:
-        if (write(vm->logfile, buf, ret) < 0) {
+        if (safewrite(vm->logfile, buf, ret) < 0) {
             /* Log, but ignore failures to write logfile for VM */
-            if (errno == EINTR)
-                goto retry;
-            qemudLog(QEMUD_WARN, "Unable to log VM console data: %s",
+            qemudLog(QEMUD_WARN, _("Unable to log VM console data: %s"),
                      strerror(errno));
         }
     }
@@ -757,7 +762,7 @@ static void qemudShutdownVMDaemon(virConnectPtr conn ATTRIBUTE_UNUSED,
     if (!qemudIsActiveVM(vm))
         return;
 
-    qemudLog(QEMUD_INFO, "Shutting down VM '%s'", vm->def->name);
+    qemudLog(QEMUD_INFO, _("Shutting down VM '%s'"), vm->def->name);
 
     kill(vm->pid, SIGTERM);
 
@@ -768,7 +773,8 @@ static void qemudShutdownVMDaemon(virConnectPtr conn ATTRIBUTE_UNUSED,
     virEventRemoveHandle(vm->stderr);
 
     if (close(vm->logfile) < 0)
-        qemudLog(QEMUD_WARN, "Unable to close logfile %d: %s", errno, strerror(errno));
+        qemudLog(QEMUD_WARN, _("Unable to close logfile %d: %s"),
+                 errno, strerror(errno));
     close(vm->stdout);
     close(vm->stderr);
     if (vm->monitor != -1)
@@ -781,7 +787,8 @@ static void qemudShutdownVMDaemon(virConnectPtr conn ATTRIBUTE_UNUSED,
     if (waitpid(vm->pid, NULL, WNOHANG) != vm->pid) {
         kill(vm->pid, SIGKILL);
         if (waitpid(vm->pid, NULL, 0) != vm->pid) {
-            qemudLog(QEMUD_WARN, "Got unexpected pid, damn");
+            qemudLog(QEMUD_WARN,
+                     "%s", _("Got unexpected pid, damn"));
         }
     }
 
@@ -1009,8 +1016,10 @@ qemudAddIptablesRules(virConnectPtr conn,
 
 
     /* The remaining rules are only needed for IP forwarding */
-    if (!network->def->forward)
+    if (!network->def->forward) {
+        iptablesSaveRules(driver->iptables);
         return 1;
+    }
 
     /* allow forwarding packets from the bridge interface */
     if ((err = iptablesAddForwardAllowOut(driver->iptables,
@@ -1043,6 +1052,8 @@ qemudAddIptablesRules(virConnectPtr conn,
                          strerror(err));
         goto err10;
     }
+
+    iptablesSaveRules(driver->iptables);
 
     return 1;
 
@@ -1100,6 +1111,7 @@ qemudRemoveIptablesRules(struct qemud_driver *driver,
     iptablesRemoveTcpInput(driver->iptables, network->bridge, 53);
     iptablesRemoveUdpInput(driver->iptables, network->bridge, 67);
     iptablesRemoveTcpInput(driver->iptables, network->bridge, 67);
+    iptablesSaveRules(driver->iptables);
 }
 
 static int
@@ -1112,7 +1124,7 @@ qemudEnableIpForwarding(void)
     if ((fd = open(PROC_IP_FORWARD, O_WRONLY|O_TRUNC)) == -1)
         return 0;
 
-    if (write(fd, "1\n", 2) < 0)
+    if (safewrite(fd, "1\n", 2) < 0)
         ret = 0;
 
     close (fd);
@@ -1220,13 +1232,13 @@ static int qemudStartNetworkDaemon(virConnectPtr conn,
  err_delbr1:
     if (network->def->ipAddress[0] &&
         (err = brSetInterfaceUp(driver->brctl, network->bridge, 0))) {
-        qemudLog(QEMUD_WARN, "Failed to bring down bridge '%s' : %s",
+        qemudLog(QEMUD_WARN, _("Failed to bring down bridge '%s' : %s"),
                  network->bridge, strerror(err));
     }
 
  err_delbr:
     if ((err = brDeleteBridge(driver->brctl, network->bridge))) {
-        qemudLog(QEMUD_WARN, "Failed to delete bridge '%s' : %s\n",
+        qemudLog(QEMUD_WARN, _("Failed to delete bridge '%s' : %s\n"),
                  network->bridge, strerror(err));
     }
 
@@ -1239,7 +1251,7 @@ static int qemudShutdownNetworkDaemon(virConnectPtr conn ATTRIBUTE_UNUSED,
                                       struct qemud_network *network) {
     int err;
 
-    qemudLog(QEMUD_INFO, "Shutting down network '%s'", network->def->name);
+    qemudLog(QEMUD_INFO, _("Shutting down network '%s'"), network->def->name);
 
     if (!qemudIsActiveNetwork(network))
         return 0;
@@ -1251,12 +1263,12 @@ static int qemudShutdownNetworkDaemon(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     if (network->def->ipAddress[0] &&
         (err = brSetInterfaceUp(driver->brctl, network->bridge, 0))) {
-        qemudLog(QEMUD_WARN, "Failed to bring down bridge '%s' : %s\n",
+        qemudLog(QEMUD_WARN, _("Failed to bring down bridge '%s' : %s\n"),
                  network->bridge, strerror(err));
     }
 
     if ((err = brDeleteBridge(driver->brctl, network->bridge))) {
-        qemudLog(QEMUD_WARN, "Failed to delete bridge '%s' : %s\n",
+        qemudLog(QEMUD_WARN, _("Failed to delete bridge '%s' : %s\n"),
                  network->bridge, strerror(err));
     }
 
@@ -1264,7 +1276,8 @@ static int qemudShutdownNetworkDaemon(virConnectPtr conn ATTRIBUTE_UNUSED,
         waitpid(network->dnsmasqPid, NULL, WNOHANG) != network->dnsmasqPid) {
         kill(network->dnsmasqPid, SIGKILL);
         if (waitpid(network->dnsmasqPid, NULL, 0) != network->dnsmasqPid)
-            qemudLog(QEMUD_WARN, "Got unexpected pid for dnsmasq\n");
+            qemudLog(QEMUD_WARN,
+                     "%s", _("Got unexpected pid for dnsmasq\n"));
     }
 
     network->bridge[0] = '\0';
@@ -1309,10 +1322,11 @@ static void qemudDispatchVMEvent(int fd, int events, void *opaque) {
         qemudDispatchVMFailure(driver, vm, fd);
 }
 
-static int qemudMonitorCommand(struct qemud_driver *driver ATTRIBUTE_UNUSED,
-                               struct qemud_vm *vm,
-                               const char *cmd,
-                               char **reply) {
+static int
+qemudMonitorCommand (const struct qemud_driver *driver ATTRIBUTE_UNUSED,
+                     const struct qemud_vm *vm,
+                     const char *cmd,
+                     char **reply) {
     int size = 0;
     char *buf = NULL;
     size_t cmdlen = strlen(cmd);
@@ -1368,7 +1382,7 @@ static int qemudMonitorCommand(struct qemud_driver *driver ATTRIBUTE_UNUSED,
 
     /* Log, but ignore failures to write logfile for VM */
     if (safewrite(vm->logfile, buf, strlen(buf)) < 0)
-        qemudLog(QEMUD_WARN, "Unable to log VM console data: %s",
+        qemudLog(QEMUD_WARN, _("Unable to log VM console data: %s"),
                  strerror(errno));
 
     *reply = buf;
@@ -1378,13 +1392,32 @@ static int qemudMonitorCommand(struct qemud_driver *driver ATTRIBUTE_UNUSED,
     if (buf) {
         /* Log, but ignore failures to write logfile for VM */
         if (safewrite(vm->logfile, buf, strlen(buf)) < 0)
-            qemudLog(QEMUD_WARN, "Unable to log VM console data: %s",
+            qemudLog(QEMUD_WARN, _("Unable to log VM console data: %s"),
                      strerror(errno));
         free(buf);
     }
     return -1;
 }
 
+/**
+ * qemudProbe:
+ *
+ * Probe for the availability of the qemu driver, assume the
+ * presence of QEmu emulation if the binaries are installed
+ */
+static const char *qemudProbe(void)
+{
+    if ((virFileExists("/usr/bin/qemu")) ||
+        (virFileExists("/usr/bin/qemu-kvm")) ||
+	(virFileExists("/usr/bin/xenner"))) {
+        if (getuid() == 0) {
+	    return("qemu:///system");
+	} else {
+	    return("qemu:///session");
+	}
+    }
+    return(NULL);
+}
 
 static virDrvOpenStatus qemudOpen(virConnectPtr conn,
                                   xmlURIPtr uri,
@@ -1407,7 +1440,7 @@ static virDrvOpenStatus qemudOpen(virConnectPtr conn,
     } else { /* root */
         if (STRNEQ (uri->path, "/system") &&
             STRNEQ (uri->path, "/session"))
-            goto decline; 
+            goto decline;
     }
 
     conn->privateData = qemu_driver;
@@ -1415,7 +1448,7 @@ static virDrvOpenStatus qemudOpen(virConnectPtr conn,
     return VIR_DRV_OPEN_SUCCESS;
 
  decline:
-    return VIR_DRV_OPEN_DECLINED;    
+    return VIR_DRV_OPEN_DECLINED;
 }
 
 static int qemudClose(virConnectPtr conn) {
@@ -1453,191 +1486,17 @@ static int qemudGetNodeInfo(virConnectPtr conn,
     return virNodeInfoPopulate(conn, nodeinfo);
 }
 
-static int qemudGetFeatures(virBufferPtr xml,
-                            const struct qemu_feature_flags *flags) {
-    int i, r;
 
-    if (flags == NULL)
-        return 0;
+static char *qemudGetCapabilities(virConnectPtr conn) {
+    struct qemud_driver *driver = (struct qemud_driver *)conn->privateData;
+    char *xml;
 
-    r = virBufferAdd(xml, "\
-    <features>\n", -1);
-    if (r == -1) return r;
-    for (i = 0; flags[i].name; ++i) {
-        if (STREQ(flags[i].name, "pae")) {
-            int pae = flags[i].default_on || flags[i].toggle;
-            int nonpae = flags[i].toggle;
-            if (pae) {
-                r = virBufferAdd(xml, "      <pae/>\n", -1);
-                if (r == -1) return r;
-            }
-            if (nonpae) {
-                r = virBufferAdd(xml, "      <nonpae/>\n", -1);
-                if (r == -1) return r;
-            }
-        } else {
-            r = virBufferVSprintf(xml, "      <%s default='%s' toggle='%s'/>\n",
-                                  flags[i].name,
-                                  flags[i].default_on ? "on" : "off",
-                                  flags[i].toggle ? "yes" : "no");
-            if (r == -1) return r;
-        }
-    }
-    r = virBufferAdd(xml, "    </features>\n", -1);
-    return r;
-}
-
-static char *qemudGetCapabilities(virConnectPtr conn ATTRIBUTE_UNUSED) {
-    struct utsname utsname;
-    int i, j, r;
-    int have_kqemu = 0;
-    int have_kvm = 0;
-    virBufferPtr xml;
-
-    /* Really, this never fails - look at the man-page. */
-    uname (&utsname);
-
-    have_kqemu = access ("/dev/kqemu", F_OK) == 0;
-    have_kvm = access ("/dev/kvm", F_OK) == 0;
-
-    /* Construct the XML. */
-    xml = virBufferNew (1024);
-    if (!xml) {
-        qemudReportError(conn, NULL, NULL, VIR_ERR_NO_MEMORY, NULL);
+    if ((xml = virCapabilitiesFormatXML(driver->caps)) == NULL) {
+        qemudReportError(conn, NULL, NULL, VIR_ERR_NO_MEMORY, "capabilities");
         return NULL;
     }
 
-    r = virBufferVSprintf (xml,
-                        "\
-<capabilities>\n\
-  <host>\n\
-    <cpu>\n\
-      <arch>%s</arch>\n\
-    </cpu>\n\
-  </host>\n",
-                        utsname.machine);
-    if (r == -1) {
-    vir_buffer_failed:
-        virBufferFree (xml);
-        qemudReportError(conn, NULL, NULL, VIR_ERR_NO_MEMORY, NULL);
-        return NULL;
-    }
-
-    i = -1;
-    if (strcmp (utsname.machine, "i686") == 0) i = 0;
-    else if (strcmp (utsname.machine, "x86_64") == 0) i = 1;
-    if (i >= 0) {
-        /* For the default (PC-like) guest, qemudArchs[0] or [1]. */
-        r = virBufferVSprintf (xml,
-                            "\
-\n\
-  <guest>\n\
-    <os_type>hvm</os_type>\n\
-    <arch name=\"%s\">\n\
-      <wordsize>%d</wordsize>\n\
-      <emulator>/usr/bin/%s</emulator>\n\
-      <domain type=\"qemu\"/>\n",
-                            qemudArchs[i].arch,
-                            qemudArchs[i].wordsize,
-                            qemudArchs[i].binary);
-        if (r == -1) goto vir_buffer_failed;
-
-        for (j = 0; qemudArchs[i].machines[j]; ++j) {
-            r = virBufferVSprintf (xml,
-                                "\
-      <machine>%s</machine>\n",
-                                qemudArchs[i].machines[j]);
-            if (r == -1) goto vir_buffer_failed;
-        }
-
-        if (have_kqemu) {
-            r = virBufferAdd (xml,
-                           "\
-      <domain type=\"kqemu\"/>\n", -1);
-            if (r == -1) goto vir_buffer_failed;
-        }
-        if (have_kvm) {
-            r = virBufferAdd (xml,
-                           "\
-      <domain type=\"kvm\">\n\
-        <emulator>/usr/bin/qemu-kvm</emulator>\n\
-      </domain>\n", -1);
-            if (r == -1) goto vir_buffer_failed;
-        }
-        r = virBufferAdd (xml, "    </arch>\n", -1);
-        if (r == -1) goto vir_buffer_failed;
-
-        r = qemudGetFeatures(xml, qemudArchs[i].fflags);
-        if (r == -1) goto vir_buffer_failed;
-
-        r = virBufferAdd (xml, "  </guest>\n", -1);
-        if (r == -1) goto vir_buffer_failed;
-
-        /* The "other" PC architecture needs emulation. */
-        i = i ^ 1;
-        r = virBufferVSprintf (xml,
-                            "\
-\n\
-  <guest>\n\
-    <os_type>hvm</os_type>\n\
-    <arch name=\"%s\">\n\
-      <wordsize>%d</wordsize>\n\
-      <emulator>/usr/bin/%s</emulator>\n\
-      <domain type=\"qemu\"/>\n",
-                            qemudArchs[i].arch,
-                            qemudArchs[i].wordsize,
-                            qemudArchs[i].binary);
-        if (r == -1) goto vir_buffer_failed;
-        for (j = 0; qemudArchs[i].machines[j]; ++j) {
-            r = virBufferVSprintf (xml,
-                                "\
-      <machine>%s</machine>\n",
-                                qemudArchs[i].machines[j]);
-            if (r == -1) goto vir_buffer_failed;
-        }
-        r = virBufferAdd (xml, "    </arch>\n  </guest>\n", -1);
-        if (r == -1) goto vir_buffer_failed;
-    }
-
-    /* The non-PC architectures, qemudArchs[>=2]. */
-    for (i = 2; qemudArchs[i].arch; ++i) {
-        r = virBufferVSprintf (xml,
-                            "\
-\n\
-  <guest>\n\
-    <os_type>hvm</os_type>\n\
-    <arch name=\"%s\">\n\
-      <wordsize>%d</wordsize>\n\
-      <emulator>/usr/bin/%s</emulator>\n\
-      <domain type=\"qemu\"/>\n",
-                            qemudArchs[i].arch,
-                            qemudArchs[i].wordsize,
-                            qemudArchs[i].binary);
-        if (r == -1) goto vir_buffer_failed;
-        for (j = 0; qemudArchs[i].machines[j]; ++j) {
-            r = virBufferVSprintf (xml,
-                                "\
-      <machine>%s</machine>\n",
-                                qemudArchs[i].machines[j]);
-            if (r == -1) goto vir_buffer_failed;
-        }
-        r = virBufferAdd (xml, "    </arch>\n", -1);
-        if (r == -1) goto vir_buffer_failed;
-
-        r = qemudGetFeatures(xml, qemudArchs[i].fflags);
-        if (r == -1) goto vir_buffer_failed;
-
-        r = virBufferAdd (xml, "  </guest>\n", -1);
-        if (r == -1) goto vir_buffer_failed;
-    }
-
-    /* Finish off. */
-    r = virBufferAdd (xml,
-                      "\
-</capabilities>\n", -1);
-    if (r == -1) goto vir_buffer_failed;
-
-    return virBufferContentAndFree(xml);
+    return xml;
 }
 
 
@@ -1849,6 +1708,27 @@ static int qemudDomainResume(virDomainPtr dom) {
 }
 
 
+static int qemudDomainShutdown(virDomainPtr dom) {
+    struct qemud_driver *driver = (struct qemud_driver *)dom->conn->privateData;
+    struct qemud_vm *vm = qemudFindVMByID(driver, dom->id);
+    char* info;
+
+    if (!vm) {
+        qemudReportError(dom->conn, dom, NULL, VIR_ERR_INVALID_DOMAIN,
+                         "no domain with matching id %d", dom->id);
+        return -1;
+    }
+
+    if (qemudMonitorCommand(driver, vm, "system_powerdown", &info) < 0) {
+        qemudReportError(dom->conn, dom, NULL, VIR_ERR_OPERATION_FAILED,
+                         "shutdown operation failed");
+        return -1;
+    }
+    return 0;
+
+}
+
+
 static int qemudDomainDestroy(virDomainPtr dom) {
     struct qemud_driver *driver = (struct qemud_driver *)dom->conn->privateData;
     struct qemud_vm *vm = qemudFindVMByID(driver, dom->id);
@@ -1862,7 +1742,7 @@ static int qemudDomainDestroy(virDomainPtr dom) {
     qemudShutdownVMDaemon(dom->conn, driver, vm);
     if (!vm->configFile[0])
         qemudRemoveInactiveVM(driver, vm);
-    virFreeDomain(dom->conn, dom);
+
     return 0;
 }
 
@@ -2146,7 +2026,7 @@ static int qemudDomainRestore(virConnectPtr conn,
 
     if (header.version > QEMUD_SAVE_VERSION) {
         qemudReportError(conn, NULL, NULL, VIR_ERR_OPERATION_FAILED,
-                         "image version is not supported (%d > %d)", 
+                         "image version is not supported (%d > %d)",
                          header.version, QEMUD_SAVE_VERSION);
         close(fd);
         return -1;
@@ -2325,7 +2205,7 @@ static int qemudDomainUndefine(virDomainPtr dom) {
         return -1;
 
     if (unlink(vm->autostartLink) < 0 && errno != ENOENT && errno != ENOTDIR)
-        qemudLog(QEMUD_WARN, "Failed to delete autostart link '%s': %s",
+        qemudLog(QEMUD_WARN, _("Failed to delete autostart link '%s': %s"),
                  vm->autostartLink, strerror(errno));
 
     vm->configFile[0] = '\0';
@@ -2481,6 +2361,148 @@ static int qemudDomainSetAutostart(virDomainPtr dom,
 
     vm->autostart = autostart;
 
+    return 0;
+}
+
+/* This uses the 'info blockstats' monitor command which was
+ * integrated into both qemu & kvm in late 2007.  If the command is
+ * not supported we detect this and return the appropriate error.
+ */
+static int
+qemudDomainBlockStats (virDomainPtr dom,
+                       const char *path,
+                       struct _virDomainBlockStats *stats)
+{
+    const struct qemud_driver *driver =
+        (struct qemud_driver *)dom->conn->privateData;
+    char *dummy, *info;
+    const char *p, *eol;
+    char qemu_dev_name[32];
+    size_t len;
+    const struct qemud_vm *vm = qemudFindVMByID(driver, dom->id);
+
+    if (!vm) {
+        qemudReportError (dom->conn, dom, NULL, VIR_ERR_INVALID_DOMAIN,
+                          _("no domain with matching id %d"), dom->id);
+        return -1;
+    }
+    if (!qemudIsActiveVM (vm)) {
+        qemudReportError (dom->conn, dom, NULL, VIR_ERR_OPERATION_FAILED,
+                          "%s", _("domain is not running"));
+        return -1;
+    }
+
+    /*
+     * QEMU internal block device names are different from the device
+     * names we use in libvirt, so we need to map between them:
+     *
+     *   hd[a-]   to  ide0-hd[0-]
+     *   cdrom    to  ide1-cd0
+     *   fd[a-]   to  floppy[0-]
+     */
+    if (STREQLEN (path, "hd", 2) && path[2] >= 'a' && path[2] <= 'z')
+        snprintf (qemu_dev_name, sizeof (qemu_dev_name),
+                  "ide0-hd%d", path[2] - 'a');
+    else if (STREQ (path, "cdrom"))
+        strcpy (qemu_dev_name, "ide1-cd0");
+    else if (STREQLEN (path, "fd", 2) && path[2] >= 'a' && path[2] <= 'z')
+        snprintf (qemu_dev_name, sizeof (qemu_dev_name),
+                  "floppy%d", path[2] - 'a');
+    else {
+        qemudReportError (dom->conn, dom, NULL, VIR_ERR_INVALID_ARG,
+                          _("invalid path: %s"), path);
+        return -1;
+    }
+
+    len = strlen (qemu_dev_name);
+
+    if (qemudMonitorCommand (driver, vm, "info blockstats", &info) < 0) {
+        qemudReportError (dom->conn, dom, NULL, VIR_ERR_OPERATION_FAILED,
+                          "%s", _("'info blockstats' command failed"));
+        return -1;
+    }
+
+    DEBUG ("info blockstats reply: %s", info);
+
+    /* If the command isn't supported then qemu prints the supported
+     * info commands, so the output starts "info ".  Since this is
+     * unlikely to be the name of a block device, we can use this
+     * to detect if qemu supports the command.
+     */
+    if (STREQLEN (info, "info ", 5)) {
+        free (info);
+        qemudReportError (dom->conn, dom, NULL, VIR_ERR_NO_SUPPORT,
+                          "%s",
+                          _("'info blockstats' not supported by this qemu"));
+        return -1;
+    }
+
+    stats->rd_req = -1;
+    stats->rd_bytes = -1;
+    stats->wr_req = -1;
+    stats->wr_bytes = -1;
+    stats->errs = -1;
+
+    /* The output format for both qemu & KVM is:
+     *   blockdevice: rd_bytes=% wr_bytes=% rd_operations=% wr_operations=%
+     *   (repeated for each block device)
+     * where '%' is a 64 bit number.
+     */
+    p = info;
+
+    while (*p) {
+        if (STREQLEN (p, qemu_dev_name, len)
+            && p[len] == ':' && p[len+1] == ' ') {
+
+            eol = strchr (p, '\n');
+            if (!eol)
+                eol = p + strlen (p);
+
+            p += len+2;         /* Skip to first label. */
+
+            while (*p) {
+                if (STREQLEN (p, "rd_bytes=", 9)) {
+                    p += 9;
+                    if (virStrToLong_ll (p, &dummy, 10, &stats->rd_bytes) == -1)
+                        DEBUG ("error reading rd_bytes: %s", p);
+                } else if (STREQLEN (p, "wr_bytes=", 9)) {
+                    p += 9;
+                    if (virStrToLong_ll (p, &dummy, 10, &stats->wr_bytes) == -1)
+                        DEBUG ("error reading wr_bytes: %s", p);
+                } else if (STREQLEN (p, "rd_operations=", 14)) {
+                    p += 14;
+                    if (virStrToLong_ll (p, &dummy, 10, &stats->rd_req) == -1)
+                        DEBUG ("error reading rd_req: %s", p);
+                } else if (STREQLEN (p, "wr_operations=", 14)) {
+                    p += 14;
+                    if (virStrToLong_ll (p, &dummy, 10, &stats->wr_req) == -1)
+                        DEBUG ("error reading wr_req: %s", p);
+                } else
+                    DEBUG ("unknown block stat near %s", p);
+
+                /* Skip to next label. */
+                p = strchr (p, ' ');
+                if (!p || p >= eol) break;
+                p++;
+            }
+
+            goto done;
+        }
+
+        /* Skip to next line. */
+        p = strchr (p, '\n');
+        if (!p) break;
+        p++;
+    }
+
+    /* If we reach here then the device was not found. */
+    free (info);
+    qemudReportError (dom->conn, dom, NULL, VIR_ERR_INVALID_ARG,
+                      _("device not found: %s (%s)"), path, qemu_dev_name);
+    return -1;
+
+ done:
+    free (info);
     return 0;
 }
 
@@ -2701,7 +2723,7 @@ static int qemudNetworkUndefine(virNetworkPtr net) {
         return -1;
 
     if (unlink(network->autostartLink) < 0 && errno != ENOENT && errno != ENOTDIR)
-        qemudLog(QEMUD_WARN, "Failed to delete autostart link '%s': %s",
+        qemudLog(QEMUD_WARN, _("Failed to delete autostart link '%s': %s"),
                  network->autostartLink, strerror(errno));
 
     network->configFile[0] = '\0';
@@ -2737,8 +2759,6 @@ static int qemudNetworkDestroy(virNetworkPtr net) {
     }
 
     ret = qemudShutdownNetworkDaemon(net->conn, driver, network);
-
-    virFreeNetwork(net->conn, net);
 
     return ret;
 }
@@ -2837,6 +2857,7 @@ static virDriver qemuDriver = {
     VIR_DRV_QEMU,
     "QEMU",
     LIBVIR_VERSION_NUMBER,
+    qemudProbe, /* probe */
     qemudOpen, /* open */
     qemudClose, /* close */
     NULL, /* supports_feature */
@@ -2855,7 +2876,7 @@ static virDriver qemuDriver = {
     qemudDomainLookupByName, /* domainLookupByName */
     qemudDomainSuspend, /* domainSuspend */
     qemudDomainResume, /* domainResume */
-    qemudDomainDestroy, /* domainShutdown */
+    qemudDomainShutdown, /* domainShutdown */
     NULL, /* domainReboot */
     qemudDomainDestroy, /* domainDestroy */
     qemudDomainGetOSType, /* domainGetOSType */
@@ -2886,7 +2907,7 @@ static virDriver qemuDriver = {
     NULL, /* domainMigratePrepare */
     NULL, /* domainMigratePerform */
     NULL, /* domainMigrateFinish */
-    NULL, /* domainBlockStats */
+    qemudDomainBlockStats, /* domainBlockStats */
     qemudDomainInterfaceStats, /* domainInterfaceStats */
     NULL, /* nodeGetCellsFreeMemory */
     NULL, /* getFreeMemory */

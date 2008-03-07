@@ -3,14 +3,6 @@
 SUBDIRS = virshdata confdata sexpr2xmldata \
   xml2sexprdata xmconfigdata xencapsdata
 
-# Wierd libtool related juju...
-#
-# We explicitly want wildcard here instead of just linking
-# to the libvirt.a file. This ensures that when coverage
-# tests are run, all the output data ends up in the correct
-# location. ie, src/ instead of src/.libs.
-LIBVIRT = $(wildcard $(top_builddir)/src/.libs/libvirt_la-*.o)
-
 INCLUDES = \
 	-I$(top_srcdir)/gnulib/lib -I../gnulib/lib \
 	-I$(top_builddir)/include \
@@ -20,6 +12,7 @@ INCLUDES = \
 	$(LIBXML_CFLAGS) \
 	$(GNUTLS_CFLAGS) \
 	$(SASL_CFLAGS) \
+	$(SELINUX_CFLAGS) \
         -D_XOPEN_SOURCE=600 -D_POSIX_C_SOURCE=199506L \
         -DGETTEXT_PACKAGE=\"$(PACKAGE)\" \
          $(COVERAGE_CFLAGS) \
@@ -31,8 +24,9 @@ LDADDS = \
 	$(LIBXML_LIBS) \
         $(GNUTLS_LIBS) \
         $(SASL_LIBS) \
+        $(SELINUX_LIBS) \
         $(WARN_CFLAGS) \
-	$(LIBVIRT) \
+	../src/libvirt_test.la \
 	../gnulib/lib/libgnu.la \
         $(COVERAGE_LDFLAGS)
 
@@ -44,7 +38,7 @@ EXTRA_DIST =		\
 
 noinst_PROGRAMS = xmlrpctest xml2sexprtest sexpr2xmltest virshtest conftest \
 	reconnect xmconfigtest xencapstest qemuxml2argvtest qemuxml2xmltest \
-        nodeinfotest
+        nodeinfotest statstest
 
 test_scripts = \
 	daemon-conf \
@@ -54,7 +48,7 @@ EXTRA_DIST += $(test_scripts)
 
 TESTS = xml2sexprtest sexpr2xmltest virshtest test_conf.sh xmconfigtest \
         xencapstest qemuxml2argvtest qemuxml2xmltest nodeinfotest \
-	$(test_scripts)
+	statstest $(test_scripts)
 if ENABLE_XEN_TESTS
   TESTS += reconnect
 endif
@@ -122,9 +116,12 @@ nodeinfotest_SOURCES = \
 	nodeinfotest.c testutils.h testutils.c
 nodeinfotest_LDADD = $(LDADDS)
 
+statstest_SOURCES = \
+	statstest.c testutils.h testutils.c
+statstest_LDADD = $(LDADDS)
+
 reconnect_SOURCES = \
 	reconnect.c
 reconnect_LDADD = $(LDADDS)
 
-$(LIBVIRT):
-	-@(cd $(top_builddir)/src && $(MAKE) MAKEFLAGS+=--silent)
+CLEANFILES = *.cov *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda

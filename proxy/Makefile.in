@@ -104,12 +104,14 @@ am__libvirt_proxy_SOURCES_DIST = libvirt_proxy.c \
 	@top_srcdir@/src/xen_internal.c @top_srcdir@/src/virterror.c \
 	@top_srcdir@/src/sexpr.c @top_srcdir@/src/xml.c \
 	@top_srcdir@/src/xs_internal.c @top_srcdir@/src/buf.c \
+	@top_srcdir@/src/capabilities.c @top_srcdir@/src/util.c \
 	@top_srcdir@/src/uuid.c
 @WITH_PROXY_TRUE@am_libvirt_proxy_OBJECTS = libvirt_proxy.$(OBJEXT) \
 @WITH_PROXY_TRUE@	xend_internal.$(OBJEXT) \
 @WITH_PROXY_TRUE@	xen_internal.$(OBJEXT) virterror.$(OBJEXT) \
 @WITH_PROXY_TRUE@	sexpr.$(OBJEXT) xml.$(OBJEXT) \
 @WITH_PROXY_TRUE@	xs_internal.$(OBJEXT) buf.$(OBJEXT) \
+@WITH_PROXY_TRUE@	capabilities.$(OBJEXT) util.$(OBJEXT) \
 @WITH_PROXY_TRUE@	uuid.$(OBJEXT)
 libvirt_proxy_OBJECTS = $(am_libvirt_proxy_OBJECTS)
 libvirt_proxy_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -227,6 +229,7 @@ GNULIB_PRINTF_POSIX = @GNULIB_PRINTF_POSIX@
 GNULIB_PUTENV = @GNULIB_PUTENV@
 GNULIB_READLINK = @GNULIB_READLINK@
 GNULIB_REALLOC_POSIX = @GNULIB_REALLOC_POSIX@
+GNULIB_SETENV = @GNULIB_SETENV@
 GNULIB_SLEEP = @GNULIB_SLEEP@
 GNULIB_SNPRINTF = @GNULIB_SNPRINTF@
 GNULIB_SPRINTF_POSIX = @GNULIB_SPRINTF_POSIX@
@@ -240,7 +243,10 @@ GNULIB_STRNDUP = @GNULIB_STRNDUP@
 GNULIB_STRNLEN = @GNULIB_STRNLEN@
 GNULIB_STRPBRK = @GNULIB_STRPBRK@
 GNULIB_STRSEP = @GNULIB_STRSEP@
+GNULIB_STRSIGNAL = @GNULIB_STRSIGNAL@
+GNULIB_STRSTR = @GNULIB_STRSTR@
 GNULIB_STRTOK_R = @GNULIB_STRTOK_R@
+GNULIB_UNSETENV = @GNULIB_UNSETENV@
 GNULIB_VASPRINTF = @GNULIB_VASPRINTF@
 GNULIB_VFPRINTF_POSIX = @GNULIB_VFPRINTF_POSIX@
 GNULIB_VPRINTF_POSIX = @GNULIB_VPRINTF_POSIX@
@@ -262,6 +268,7 @@ HAVE_DECL_STRDUP = @HAVE_DECL_STRDUP@
 HAVE_DECL_STRERROR = @HAVE_DECL_STRERROR@
 HAVE_DECL_STRNDUP = @HAVE_DECL_STRNDUP@
 HAVE_DECL_STRNLEN = @HAVE_DECL_STRNLEN@
+HAVE_DECL_STRSIGNAL = @HAVE_DECL_STRSIGNAL@
 HAVE_DECL_STRTOK_R = @HAVE_DECL_STRTOK_R@
 HAVE_DECL_VSNPRINTF = @HAVE_DECL_VSNPRINTF@
 HAVE_DECL_WCWIDTH = @HAVE_DECL_WCWIDTH@
@@ -282,6 +289,7 @@ HAVE_NETINET_IN_H = @HAVE_NETINET_IN_H@
 HAVE_OS_H = @HAVE_OS_H@
 HAVE_READLINK = @HAVE_READLINK@
 HAVE_REALLOC_POSIX = @HAVE_REALLOC_POSIX@
+HAVE_SETENV = @HAVE_SETENV@
 HAVE_SIGNED_SIG_ATOMIC_T = @HAVE_SIGNED_SIG_ATOMIC_T@
 HAVE_SIGNED_WCHAR_T = @HAVE_SIGNED_WCHAR_T@
 HAVE_SIGNED_WINT_T = @HAVE_SIGNED_WINT_T@
@@ -303,6 +311,7 @@ HAVE_SYS_SOCKET_H = @HAVE_SYS_SOCKET_H@
 HAVE_SYS_TIME_H = @HAVE_SYS_TIME_H@
 HAVE_SYS_TYPES_H = @HAVE_SYS_TYPES_H@
 HAVE_UNISTD_H = @HAVE_UNISTD_H@
+HAVE_UNSETENV = @HAVE_UNSETENV@
 HAVE_UNSIGNED_LONG_LONG_INT = @HAVE_UNSIGNED_LONG_LONG_INT@
 HAVE_VASPRINTF = @HAVE_VASPRINTF@
 HAVE_WCHAR_H = @HAVE_WCHAR_H@
@@ -318,10 +327,13 @@ INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 INTLLIBS = @INTLLIBS@
 IPTABLES_PATH = @IPTABLES_PATH@
+ISCSIADM = @ISCSIADM@
 LDFLAGS = @LDFLAGS@
 LIBICONV = @LIBICONV@
 LIBINTL = @LIBINTL@
 LIBOBJS = @LIBOBJS@
+LIBPARTED_CFLAGS = @LIBPARTED_CFLAGS@
+LIBPARTED_LIBS = @LIBPARTED_LIBS@
 LIBS = @LIBS@
 LIBTESTS_LIBDEPS = @LIBTESTS_LIBDEPS@
 LIBTOOL = @LIBTOOL@
@@ -335,12 +347,19 @@ LIBVIRT_VERSION_NUMBER = @LIBVIRT_VERSION_NUMBER@
 LIBXML_CFLAGS = @LIBXML_CFLAGS@
 LIBXML_LIBS = @LIBXML_LIBS@
 LN_S = @LN_S@
+LOKKIT_PATH = @LOKKIT_PATH@
 LTLIBICONV = @LTLIBICONV@
 LTLIBINTL = @LTLIBINTL@
 LTLIBOBJS = @LTLIBOBJS@
+LVCREATE = @LVCREATE@
+LVREMOVE = @LVREMOVE@
+LVS = @LVS@
+LV_LIBTOOL_OBJDIR = @LV_LIBTOOL_OBJDIR@
 MAKEINFO = @MAKEINFO@
+MINGW_EXTRA_LDFLAGS = @MINGW_EXTRA_LDFLAGS@
 MKDIR_P = @MKDIR_P@
 MKINSTALLDIRS = @MKINSTALLDIRS@
+MOUNT = @MOUNT@
 MSGFMT = @MSGFMT@
 MSGMERGE = @MSGMERGE@
 MV = @MV@
@@ -365,17 +384,25 @@ PACKAGE_NAME = @PACKAGE_NAME@
 PACKAGE_STRING = @PACKAGE_STRING@
 PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_VERSION = @PACKAGE_VERSION@
+PARTED = @PARTED@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
+POLKIT_AUTH = @POLKIT_AUTH@
 POLKIT_CFLAGS = @POLKIT_CFLAGS@
+POLKIT_GRANT = @POLKIT_GRANT@
 POLKIT_LIBS = @POLKIT_LIBS@
 POLL_H = @POLL_H@
 POSUB = @POSUB@
 PTRDIFF_T_SUFFIX = @PTRDIFF_T_SUFFIX@
+PVCREATE = @PVCREATE@
+PVREMOVE = @PVREMOVE@
+PVS = @PVS@
 PYTHON = @PYTHON@
 PYTHON_INCLUDES = @PYTHON_INCLUDES@
 PYTHON_SITE_PACKAGES = @PYTHON_SITE_PACKAGES@
 PYTHON_VERSION = @PYTHON_VERSION@
+QCOW_CREATE = @QCOW_CREATE@
+QEMU_IMG = @QEMU_IMG@
 RANLIB = @RANLIB@
 READLINE_CFLAGS = @READLINE_CFLAGS@
 REMOTE_PID_FILE = @REMOTE_PID_FILE@
@@ -391,15 +418,20 @@ REPLACE_FTELL = @REPLACE_FTELL@
 REPLACE_FTELLO = @REPLACE_FTELLO@
 REPLACE_GETCWD = @REPLACE_GETCWD@
 REPLACE_GETLINE = @REPLACE_GETLINE@
+REPLACE_GETPAGESIZE = @REPLACE_GETPAGESIZE@
 REPLACE_GETTIMEOFDAY = @REPLACE_GETTIMEOFDAY@
 REPLACE_LCHOWN = @REPLACE_LCHOWN@
 REPLACE_LSEEK = @REPLACE_LSEEK@
+REPLACE_MEMMEM = @REPLACE_MEMMEM@
 REPLACE_MKSTEMP = @REPLACE_MKSTEMP@
 REPLACE_PRINTF = @REPLACE_PRINTF@
 REPLACE_PUTENV = @REPLACE_PUTENV@
 REPLACE_SNPRINTF = @REPLACE_SNPRINTF@
 REPLACE_SPRINTF = @REPLACE_SPRINTF@
+REPLACE_STRCASESTR = @REPLACE_STRCASESTR@
 REPLACE_STRERROR = @REPLACE_STRERROR@
+REPLACE_STRSIGNAL = @REPLACE_STRSIGNAL@
+REPLACE_STRSTR = @REPLACE_STRSTR@
 REPLACE_VASPRINTF = @REPLACE_VASPRINTF@
 REPLACE_VFPRINTF = @REPLACE_VFPRINTF@
 REPLACE_VPRINTF = @REPLACE_VPRINTF@
@@ -411,6 +443,8 @@ RPCGEN = @RPCGEN@
 SASL_CFLAGS = @SASL_CFLAGS@
 SASL_LIBS = @SASL_LIBS@
 SED = @SED@
+SELINUX_CFLAGS = @SELINUX_CFLAGS@
+SELINUX_LIBS = @SELINUX_LIBS@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 SIG_ATOMIC_T_SUFFIX = @SIG_ATOMIC_T_SUFFIX@
@@ -425,9 +459,15 @@ SYS_STAT_H = @SYS_STAT_H@
 SYS_TIME_H = @SYS_TIME_H@
 TAR = @TAR@
 U = @U@
+UMOUNT = @UMOUNT@
 USE_NLS = @USE_NLS@
 VERSION = @VERSION@
+VGCHANGE = @VGCHANGE@
+VGCREATE = @VGCREATE@
+VGREMOVE = @VGREMOVE@
+VGS = @VGS@
 VIRSH_LIBS = @VIRSH_LIBS@
+VOID_UNSETENV = @VOID_UNSETENV@
 WARN_CFLAGS = @WARN_CFLAGS@
 WCHAR_H = @WCHAR_H@
 WCHAR_T_SUFFIX = @WCHAR_T_SUFFIX@
@@ -501,7 +541,10 @@ top_srcdir = @top_srcdir@
 @WITH_PROXY_TRUE@libvirt_proxy_SOURCES = libvirt_proxy.c @top_srcdir@/src/xend_internal.c \
 @WITH_PROXY_TRUE@	    @top_srcdir@/src/xen_internal.c @top_srcdir@/src/virterror.c \
 @WITH_PROXY_TRUE@	    @top_srcdir@/src/sexpr.c @top_srcdir@/src/xml.c \
-@WITH_PROXY_TRUE@            @top_srcdir@/src/xs_internal.c @top_srcdir@/src/buf.c @top_srcdir@/src/uuid.c
+@WITH_PROXY_TRUE@            @top_srcdir@/src/xs_internal.c @top_srcdir@/src/buf.c \
+@WITH_PROXY_TRUE@            @top_srcdir@/src/capabilities.c \
+@WITH_PROXY_TRUE@            @top_srcdir@/src/util.c \
+@WITH_PROXY_TRUE@	    @top_srcdir@/src/uuid.c
 
 @WITH_PROXY_TRUE@libvirt_proxy_LDFLAGS = $(WARN_CFLAGS)
 @WITH_PROXY_TRUE@libvirt_proxy_DEPENDENCIES = 
@@ -578,8 +621,10 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/buf.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/capabilities.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_proxy.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sexpr.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/util.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/uuid.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virterror.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xen_internal.Po@am__quote@
@@ -705,6 +750,34 @@ buf.obj: @top_srcdir@/src/buf.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='@top_srcdir@/src/buf.c' object='buf.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o buf.obj `if test -f '@top_srcdir@/src/buf.c'; then $(CYGPATH_W) '@top_srcdir@/src/buf.c'; else $(CYGPATH_W) '$(srcdir)/@top_srcdir@/src/buf.c'; fi`
+
+capabilities.o: @top_srcdir@/src/capabilities.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT capabilities.o -MD -MP -MF $(DEPDIR)/capabilities.Tpo -c -o capabilities.o `test -f '@top_srcdir@/src/capabilities.c' || echo '$(srcdir)/'`@top_srcdir@/src/capabilities.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/capabilities.Tpo $(DEPDIR)/capabilities.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='@top_srcdir@/src/capabilities.c' object='capabilities.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o capabilities.o `test -f '@top_srcdir@/src/capabilities.c' || echo '$(srcdir)/'`@top_srcdir@/src/capabilities.c
+
+capabilities.obj: @top_srcdir@/src/capabilities.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT capabilities.obj -MD -MP -MF $(DEPDIR)/capabilities.Tpo -c -o capabilities.obj `if test -f '@top_srcdir@/src/capabilities.c'; then $(CYGPATH_W) '@top_srcdir@/src/capabilities.c'; else $(CYGPATH_W) '$(srcdir)/@top_srcdir@/src/capabilities.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/capabilities.Tpo $(DEPDIR)/capabilities.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='@top_srcdir@/src/capabilities.c' object='capabilities.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o capabilities.obj `if test -f '@top_srcdir@/src/capabilities.c'; then $(CYGPATH_W) '@top_srcdir@/src/capabilities.c'; else $(CYGPATH_W) '$(srcdir)/@top_srcdir@/src/capabilities.c'; fi`
+
+util.o: @top_srcdir@/src/util.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT util.o -MD -MP -MF $(DEPDIR)/util.Tpo -c -o util.o `test -f '@top_srcdir@/src/util.c' || echo '$(srcdir)/'`@top_srcdir@/src/util.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/util.Tpo $(DEPDIR)/util.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='@top_srcdir@/src/util.c' object='util.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o util.o `test -f '@top_srcdir@/src/util.c' || echo '$(srcdir)/'`@top_srcdir@/src/util.c
+
+util.obj: @top_srcdir@/src/util.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT util.obj -MD -MP -MF $(DEPDIR)/util.Tpo -c -o util.obj `if test -f '@top_srcdir@/src/util.c'; then $(CYGPATH_W) '@top_srcdir@/src/util.c'; else $(CYGPATH_W) '$(srcdir)/@top_srcdir@/src/util.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/util.Tpo $(DEPDIR)/util.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='@top_srcdir@/src/util.c' object='util.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o util.obj `if test -f '@top_srcdir@/src/util.c'; then $(CYGPATH_W) '@top_srcdir@/src/util.c'; else $(CYGPATH_W) '$(srcdir)/@top_srcdir@/src/util.c'; fi`
 
 uuid.o: @top_srcdir@/src/uuid.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT uuid.o -MD -MP -MF $(DEPDIR)/uuid.Tpo -c -o uuid.o `test -f '@top_srcdir@/src/uuid.c' || echo '$(srcdir)/'`@top_srcdir@/src/uuid.c

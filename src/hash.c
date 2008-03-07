@@ -18,15 +18,19 @@
  *         Daniel Veillard <veillard@redhat.com>
  */
 
-#include "config.h"
+#include <config.h>
 
 #include <string.h>
 #include <stdlib.h>
 #include <libxml/threads.h>
 #include "internal.h"
 #include "hash.h"
+#include <pthread.h>
 
 #define MAX_HASH_LEN 8
+
+#define DEBUG(fmt,...) VIR_DEBUG(__FILE__, fmt, __VA_ARGS__)
+#define DEBUG0(msg) VIR_DEBUG(__FILE__, "%s", msg)
 
 /* #define DEBUG_GROW */
 
@@ -141,7 +145,7 @@ virHashGrow(virHashTablePtr table, int size)
     table->size = size;
 
     /*  If the two loops are merged, there would be situations where
-     * a new entry needs to allocated and data copied into it from 
+     * a new entry needs to allocated and data copied into it from
      * the main table. So instead, we run through the array twice, first
      * copying all the elements in the main array (where we can't get
      * conflicts) and then the rest, so we only free (and don't allocate)
@@ -222,8 +226,7 @@ virHashFree(virHashTablePtr table, virHashDeallocator f)
                 next = iter->next;
                 if ((f != NULL) && (iter->payload != NULL))
                     f(iter->payload, iter->name);
-                if (iter->name)
-                    free(iter->name);
+                free(iter->name);
                 iter->payload = NULL;
                 if (!inside_table)
                     free(iter);
@@ -449,8 +452,7 @@ virHashRemoveEntry(virHashTablePtr table, const char *name,
                 if ((f != NULL) && (entry->payload != NULL))
                     f(entry->payload, entry->name);
                 entry->payload = NULL;
-                if (entry->name)
-                    free(entry->name);
+                free(entry->name);
                 if (prev) {
                     prev->next = entry->next;
                     free(entry);
@@ -534,11 +536,12 @@ int virHashRemoveSet(virHashTablePtr table, virHashSearcher iter, virHashDealloc
             if (iter(entry->payload, entry->name, data)) {
                 count++;
                 f(entry->payload, entry->name);
-                if (entry->name)
-                    free(entry->name);
+                free(entry->name);
+                table->nbElems--;
                 if (prev) {
                     prev->next = entry->next;
                     free(entry);
+                    entry = prev;
                 } else {
                     if (entry->next == NULL) {
                         entry->valid = 0;
@@ -548,16 +551,14 @@ int virHashRemoveSet(virHashTablePtr table, virHashSearcher iter, virHashDealloc
                         memcpy(&(table->table[i]), entry,
                                sizeof(virHashEntry));
                         free(entry);
-                        entry = NULL;
+                        entry = &(table->table[i]);
+                        continue;
                     }
                 }
-                table->nbElems--;
             }
             prev = entry;
             if (entry) {
                 entry = entry->next;
-            } else {
-                entry = NULL;
             }
         }
     }
@@ -651,6 +652,34 @@ virNetworkFreeName(virNetworkPtr network, const char *name ATTRIBUTE_UNUSED)
 }
 
 /**
+ * virStoragePoolFreeName:
+ * @pool: a pool object
+ *
+ * Destroy the pool object, this is just used by the pool hash callback.
+ *
+ * Returns 0 in case of success and -1 in case of failure.
+ */
+static int
+virStoragePoolFreeName(virStoragePoolPtr pool, const char *name ATTRIBUTE_UNUSED)
+{
+    return (virStoragePoolFree(pool));
+}
+
+/**
+ * virStorageVolFreeName:
+ * @vol: a vol object
+ *
+ * Destroy the vol object, this is just used by the vol hash callback.
+ *
+ * Returns 0 in case of success and -1 in case of failure.
+ */
+static int
+virStorageVolFreeName(virStorageVolPtr vol, const char *name ATTRIBUTE_UNUSED)
+{
+    return (virStorageVolFree(vol));
+}
+
+/**
  * virGetConnect:
  *
  * Allocates a new hypervisor connection structure
@@ -677,60 +706,92 @@ virGetConnect(void) {
     ret->networks = virHashCreate(20);
     if (ret->networks == NULL)
         goto failed;
-    ret->hashes_mux = xmlNewMutex();
-    if (ret->hashes_mux == NULL)
+    ret->storagePools = virHashCreate(20);
+    if (ret->storagePools == NULL)
+        goto failed;
+    ret->storageVols = virHashCreate(20);
+    if (ret->storageVols == NULL)
         goto failed;
 
-    ret->uses = 1;
+    pthread_mutex_init(&ret->lock, NULL);
+
+    ret->refs = 1;
     return(ret);
 
 failed:
     if (ret != NULL) {
-	if (ret->domains != NULL)
-	    virHashFree(ret->domains, (virHashDeallocator) virDomainFreeName);
-	if (ret->networks != NULL)
-	    virHashFree(ret->networks, (virHashDeallocator) virNetworkFreeName);
-	if (ret->hashes_mux != NULL)
-	    xmlFreeMutex(ret->hashes_mux);
+        if (ret->domains != NULL)
+            virHashFree(ret->domains, (virHashDeallocator) virDomainFreeName);
+        if (ret->networks != NULL)
+            virHashFree(ret->networks, (virHashDeallocator) virNetworkFreeName);
+        if (ret->storagePools != NULL)
+            virHashFree(ret->storagePools, (virHashDeallocator) virStoragePoolFreeName);
+        if (ret->storageVols != NULL)
+            virHashFree(ret->storageVols, (virHashDeallocator) virStorageVolFreeName);
+
+        pthread_mutex_destroy(&ret->lock);
         free(ret);
     }
     return(NULL);
 }
 
 /**
- * virFreeConnect:
- * @conn: the hypervisor connection
+ * virReleaseConnect:
+ * @conn: the hypervisor connection to release
  *
- * Release the connection. if the use count drops to zero, the structure is
- * actually freed.
- *
- * Returns the reference count or -1 in case of failure.
+ * Unconditionally release all memory associated with a connection.
+ * The conn.lock mutex must be held prior to calling this, and will
+ * be released prior to this returning. The connection obj must not
+ * be used once this method returns.
  */
-int	
-virFreeConnect(virConnectPtr conn) {
-    int ret;
-
-    if ((!VIR_IS_CONNECT(conn)) || (conn->hashes_mux == NULL)) {
-        virHashError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
-        return(-1);
-    }
-    xmlMutexLock(conn->hashes_mux);
-    conn->uses--;
-    ret = conn->uses;
-    if (ret > 0) {
-	xmlMutexUnlock(conn->hashes_mux);
-	return(ret);
-    }
-
+static void
+virReleaseConnect(virConnectPtr conn) {
+    DEBUG("release connection %p %s", conn, conn->name);
     if (conn->domains != NULL)
         virHashFree(conn->domains, (virHashDeallocator) virDomainFreeName);
     if (conn->networks != NULL)
         virHashFree(conn->networks, (virHashDeallocator) virNetworkFreeName);
-    if (conn->hashes_mux != NULL)
-        xmlFreeMutex(conn->hashes_mux);
+    if (conn->storagePools != NULL)
+        virHashFree(conn->storagePools, (virHashDeallocator) virStoragePoolFreeName);
+    if (conn->storageVols != NULL)
+        virHashFree(conn->storageVols, (virHashDeallocator) virStorageVolFreeName);
+
     virResetError(&conn->err);
+    free(conn->name);
+
+    pthread_mutex_unlock(&conn->lock);
+    pthread_mutex_destroy(&conn->lock);
     free(conn);
-    return(0);
+}
+
+/**
+ * virUnrefConnect:
+ * @conn: the hypervisor connection to unreference
+ *
+ * Unreference the connection. If the use count drops to zero, the structure is
+ * actually freed.
+ *
+ * Returns the reference count or -1 in case of failure.
+ */
+int
+virUnrefConnect(virConnectPtr conn) {
+    int refs;
+
+    if ((!VIR_IS_CONNECT(conn))) {
+        virHashError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return(-1);
+    }
+    pthread_mutex_lock(&conn->lock);
+    DEBUG("unref connection %p %s %d", conn, conn->name, conn->refs);
+    conn->refs--;
+    refs = conn->refs;
+    if (refs == 0) {
+        virReleaseConnect(conn);
+        /* Already unlocked mutex */
+        return (0);
+    }
+    pthread_mutex_unlock(&conn->lock);
+    return (refs);
 }
 
 /**
@@ -742,7 +803,7 @@ virFreeConnect(virConnectPtr conn) {
  * Lookup if the domain is already registered for that connection,
  * if yes return a new pointer to it, if no allocate a new structure,
  * and register it in the table. In any case a corresponding call to
- * virFreeDomain() is needed to not leak data.
+ * virUnrefDomain() is needed to not leak data.
  *
  * Returns a pointer to the domain, or NULL in case of failure
  */
@@ -750,120 +811,121 @@ virDomainPtr
 __virGetDomain(virConnectPtr conn, const char *name, const unsigned char *uuid) {
     virDomainPtr ret = NULL;
 
-    if ((!VIR_IS_CONNECT(conn)) || (name == NULL) || (uuid == NULL) ||
-        (conn->hashes_mux == NULL)) {
+    if ((!VIR_IS_CONNECT(conn)) || (name == NULL) || (uuid == NULL)) {
         virHashError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
         return(NULL);
     }
-    xmlMutexLock(conn->hashes_mux);
+    pthread_mutex_lock(&conn->lock);
 
     /* TODO search by UUID first as they are better differenciators */
 
     ret = (virDomainPtr) virHashLookup(conn->domains, name);
-    if (ret != NULL) {
-        /* TODO check the UUID */
-	goto done;
-    }
-
-    /*
-     * not found, allocate a new one
-     */
-    ret = calloc(1, sizeof(*ret));
+    /* TODO check the UUID */
     if (ret == NULL) {
-        virHashError(conn, VIR_ERR_NO_MEMORY, _("allocating domain"));
-	goto error;
-    }
-    ret->name = strdup(name);
-    if (ret->name == NULL) {
-        virHashError(conn, VIR_ERR_NO_MEMORY, _("allocating domain"));
-	goto error;
-    }
-    ret->magic = VIR_DOMAIN_MAGIC;
-    ret->conn = conn;
-    ret->id = -1;
-    if (uuid != NULL)
-        memcpy(&(ret->uuid[0]), uuid, VIR_UUID_BUFLEN);
+        ret = (virDomainPtr) calloc(1, sizeof(*ret));
+        if (ret == NULL) {
+            virHashError(conn, VIR_ERR_NO_MEMORY, _("allocating domain"));
+            goto error;
+        }
+        ret->name = strdup(name);
+        if (ret->name == NULL) {
+            virHashError(conn, VIR_ERR_NO_MEMORY, _("allocating domain"));
+            goto error;
+        }
+        ret->magic = VIR_DOMAIN_MAGIC;
+        ret->conn = conn;
+        ret->id = -1;
+        if (uuid != NULL)
+            memcpy(&(ret->uuid[0]), uuid, VIR_UUID_BUFLEN);
 
-    if (virHashAddEntry(conn->domains, name, ret) < 0) {
-        virHashError(conn, VIR_ERR_INTERNAL_ERROR,
-	             _("failed to add domain to connection hash table"));
-	goto error;
+        if (virHashAddEntry(conn->domains, name, ret) < 0) {
+            virHashError(conn, VIR_ERR_INTERNAL_ERROR,
+                         _("failed to add domain to connection hash table"));
+            goto error;
+        }
+        conn->refs++;
     }
-    conn->uses++;
-done:
-    ret->uses++;
-    xmlMutexUnlock(conn->hashes_mux);
+    ret->refs++;
+    pthread_mutex_unlock(&conn->lock);
     return(ret);
 
-error:
-    xmlMutexUnlock(conn->hashes_mux);
+ error:
+    pthread_mutex_unlock(&conn->lock);
     if (ret != NULL) {
-	if (ret->name != NULL)
-	    free(ret->name );
-	free(ret);
+        free(ret->name );
+        free(ret);
     }
     return(NULL);
 }
 
 /**
- * virFreeDomain:
- * @conn: the hypervisor connection
+ * virReleaseDomain:
  * @domain: the domain to release
  *
- * Release the given domain, if the reference count drops to zero, then
- * the domain is really freed.
+ * Unconditionally release all memory associated with a domain.
+ * The conn.lock mutex must be held prior to calling this, and will
+ * be released prior to this returning. The domain obj must not
+ * be used once this method returns.
+ *
+ * It will also unreference the associated connection object,
+ * which may also be released if its ref count hits zero.
+ */
+static void
+virReleaseDomain(virDomainPtr domain) {
+    virConnectPtr conn = domain->conn;
+    DEBUG("release domain %p %s", domain, domain->name);
+
+    /* TODO search by UUID first as they are better differenciators */
+    if (virHashRemoveEntry(conn->domains, domain->name, NULL) < 0)
+        virHashError(conn, VIR_ERR_INTERNAL_ERROR,
+                     _("domain missing from connection hash table"));
+
+    domain->magic = -1;
+    domain->id = -1;
+    free(domain->name);
+    free(domain);
+
+    DEBUG("unref connection %p %s %d", conn, conn->name, conn->refs);
+    conn->refs--;
+    if (conn->refs == 0) {
+        virReleaseConnect(conn);
+        /* Already unlocked mutex */
+        return;
+    }
+
+    pthread_mutex_unlock(&conn->lock);
+}
+
+
+/**
+ * virUnrefDomain:
+ * @domain: the domain to unreference
+ *
+ * Unreference the domain. If the use count drops to zero, the structure is
+ * actually freed.
  *
  * Returns the reference count or -1 in case of failure.
  */
 int
-virFreeDomain(virConnectPtr conn, virDomainPtr domain) {
-    int ret = 0;
+virUnrefDomain(virDomainPtr domain) {
+    int refs;
 
-    if ((!VIR_IS_CONNECT(conn)) || (!VIR_IS_CONNECTED_DOMAIN(domain)) ||
-        (domain->conn != conn) || (conn->hashes_mux == NULL)) {
-        virHashError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virHashError(domain->conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
         return(-1);
     }
-    xmlMutexLock(conn->hashes_mux);
-
-    /*
-     * decrement the count for the domain
-     */
-    domain->uses--;
-    ret = domain->uses;
-    if (ret > 0)
-        goto done;
-
-    /* TODO search by UUID first as they are better differenciators */
-
-    if (virHashRemoveEntry(conn->domains, domain->name, NULL) < 0) {
-        virHashError(conn, VIR_ERR_INTERNAL_ERROR,
-	             _("domain missing from connection hash table"));
-        goto done;
+    pthread_mutex_lock(&domain->conn->lock);
+    DEBUG("unref domain %p %s %d", domain, domain->name, domain->refs);
+    domain->refs--;
+    refs = domain->refs;
+    if (refs == 0) {
+        virReleaseDomain(domain);
+        /* Already unlocked mutex */
+        return (0);
     }
-    domain->magic = -1;
-    domain->id = -1;
-    if (domain->name)
-        free(domain->name);
-    free(domain);
 
-    /*
-     * decrement the count for the connection
-     */
-    conn->uses--;
-    if (conn->uses > 0)
-        goto done;
-    
-    if (conn->domains != NULL)
-        virHashFree(conn->domains, (virHashDeallocator) virDomainFreeName);
-    if (conn->hashes_mux != NULL)
-        xmlFreeMutex(conn->hashes_mux);
-    free(conn);
-    return(0);
-
-done:
-    xmlMutexUnlock(conn->hashes_mux);
-    return(ret);
+    pthread_mutex_unlock(&domain->conn->lock);
+    return (refs);
 }
 
 /**
@@ -875,7 +937,7 @@ done:
  * Lookup if the network is already registered for that connection,
  * if yes return a new pointer to it, if no allocate a new structure,
  * and register it in the table. In any case a corresponding call to
- * virFreeNetwork() is needed to not leak data.
+ * virUnrefNetwork() is needed to not leak data.
  *
  * Returns a pointer to the network, or NULL in case of failure
  */
@@ -883,120 +945,400 @@ virNetworkPtr
 __virGetNetwork(virConnectPtr conn, const char *name, const unsigned char *uuid) {
     virNetworkPtr ret = NULL;
 
-    if ((!VIR_IS_CONNECT(conn)) || (name == NULL) || (uuid == NULL) ||
-        (conn->hashes_mux == NULL)) {
+    if ((!VIR_IS_CONNECT(conn)) || (name == NULL) || (uuid == NULL)) {
         virHashError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
         return(NULL);
     }
-    xmlMutexLock(conn->hashes_mux);
+    pthread_mutex_lock(&conn->lock);
 
     /* TODO search by UUID first as they are better differenciators */
 
     ret = (virNetworkPtr) virHashLookup(conn->networks, name);
-    if (ret != NULL) {
-        /* TODO check the UUID */
-	goto done;
-    }
-
-    /*
-     * not found, allocate a new one
-     */
-    ret = calloc(1, sizeof(*ret));
+    /* TODO check the UUID */
     if (ret == NULL) {
-        virHashError(conn, VIR_ERR_NO_MEMORY, _("allocating network"));
-	goto error;
-    }
-    ret->name = strdup(name);
-    if (ret->name == NULL) {
-        virHashError(conn, VIR_ERR_NO_MEMORY, _("allocating network"));
-	goto error;
-    }
-    ret->magic = VIR_NETWORK_MAGIC;
-    ret->conn = conn;
-    if (uuid != NULL)
-        memcpy(&(ret->uuid[0]), uuid, VIR_UUID_BUFLEN);
+        ret = (virNetworkPtr) calloc(1, sizeof(*ret));
+        if (ret == NULL) {
+            virHashError(conn, VIR_ERR_NO_MEMORY, _("allocating network"));
+            goto error;
+        }
+        ret->name = strdup(name);
+        if (ret->name == NULL) {
+            virHashError(conn, VIR_ERR_NO_MEMORY, _("allocating network"));
+            goto error;
+        }
+        ret->magic = VIR_NETWORK_MAGIC;
+        ret->conn = conn;
+        if (uuid != NULL)
+            memcpy(&(ret->uuid[0]), uuid, VIR_UUID_BUFLEN);
 
-    if (virHashAddEntry(conn->networks, name, ret) < 0) {
-        virHashError(conn, VIR_ERR_INTERNAL_ERROR,
-	             _("failed to add network to connection hash table"));
-	goto error;
+        if (virHashAddEntry(conn->networks, name, ret) < 0) {
+            virHashError(conn, VIR_ERR_INTERNAL_ERROR,
+                         _("failed to add network to connection hash table"));
+            goto error;
+        }
+        conn->refs++;
     }
-    conn->uses++;
-done:
-    ret->uses++;
-    xmlMutexUnlock(conn->hashes_mux);
+    ret->refs++;
+    pthread_mutex_unlock(&conn->lock);
     return(ret);
 
-error:
-    xmlMutexUnlock(conn->hashes_mux);
+ error:
+    pthread_mutex_unlock(&conn->lock);
     if (ret != NULL) {
-	if (ret->name != NULL)
-	    free(ret->name );
-	free(ret);
+        free(ret->name );
+        free(ret);
     }
     return(NULL);
 }
 
 /**
- * virFreeNetwork:
- * @conn: the hypervisor connection
+ * virReleaseNetwork:
  * @network: the network to release
  *
- * Release the given network, if the reference count drops to zero, then
- * the network is really freed.
+ * Unconditionally release all memory associated with a network.
+ * The conn.lock mutex must be held prior to calling this, and will
+ * be released prior to this returning. The network obj must not
+ * be used once this method returns.
+ *
+ * It will also unreference the associated connection object,
+ * which may also be released if its ref count hits zero.
+ */
+static void
+virReleaseNetwork(virNetworkPtr network) {
+    virConnectPtr conn = network->conn;
+    DEBUG("release network %p %s", network, network->name);
+
+    /* TODO search by UUID first as they are better differenciators */
+    if (virHashRemoveEntry(conn->networks, network->name, NULL) < 0)
+        virHashError(conn, VIR_ERR_INTERNAL_ERROR,
+                     _("network missing from connection hash table"));
+
+    network->magic = -1;
+    free(network->name);
+    free(network);
+
+    DEBUG("unref connection %p %s %d", conn, conn->name, conn->refs);
+    conn->refs--;
+    if (conn->refs == 0) {
+        virReleaseConnect(conn);
+        /* Already unlocked mutex */
+        return;
+    }
+
+    pthread_mutex_unlock(&conn->lock);
+}
+
+
+/**
+ * virUnrefNetwork:
+ * @network: the network to unreference
+ *
+ * Unreference the network. If the use count drops to zero, the structure is
+ * actually freed.
  *
  * Returns the reference count or -1 in case of failure.
  */
 int
-virFreeNetwork(virConnectPtr conn, virNetworkPtr network) {
-    int ret = 0;
+virUnrefNetwork(virNetworkPtr network) {
+    int refs;
 
-    if ((!VIR_IS_CONNECT(conn)) || (!VIR_IS_CONNECTED_NETWORK(network)) ||
-        (network->conn != conn) || (conn->hashes_mux == NULL)) {
-        virHashError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+    if (!VIR_IS_CONNECTED_NETWORK(network)) {
+        virHashError(network->conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
         return(-1);
     }
-    xmlMutexLock(conn->hashes_mux);
+    pthread_mutex_lock(&network->conn->lock);
+    DEBUG("unref network %p %s %d", network, network->name, network->refs);
+    network->refs--;
+    refs = network->refs;
+    if (refs == 0) {
+        virReleaseNetwork(network);
+        /* Already unlocked mutex */
+        return (0);
+    }
 
-    /*
-     * decrement the count for the network
-     */
-    network->uses--;
-    ret = network->uses;
-    if (ret > 0)
-        goto done;
+    pthread_mutex_unlock(&network->conn->lock);
+    return (refs);
+}
+
+
+/**
+ * virGetStoragePool:
+ * @conn: the hypervisor connection
+ * @name: pointer to the storage pool name
+ * @uuid: pointer to the uuid
+ *
+ * Lookup if the storage pool is already registered for that connection,
+ * if yes return a new pointer to it, if no allocate a new structure,
+ * and register it in the table. In any case a corresponding call to
+ * virFreeStoragePool() is needed to not leak data.
+ *
+ * Returns a pointer to the network, or NULL in case of failure
+ */
+virStoragePoolPtr
+__virGetStoragePool(virConnectPtr conn, const char *name, const unsigned char *uuid) {
+    virStoragePoolPtr ret = NULL;
+
+    if ((!VIR_IS_CONNECT(conn)) || (name == NULL) || (uuid == NULL)) {
+        virHashError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return(NULL);
+    }
+    pthread_mutex_lock(&conn->lock);
 
     /* TODO search by UUID first as they are better differenciators */
 
-    if (virHashRemoveEntry(conn->networks, network->name, NULL) < 0) {
-        virHashError(conn, VIR_ERR_INTERNAL_ERROR,
-	             _("network missing from connection hash table"));
-        goto done;
+    ret = (virStoragePoolPtr) virHashLookup(conn->storagePools, name);
+    /* TODO check the UUID */
+    if (ret == NULL) {
+        ret = (virStoragePoolPtr) calloc(1, sizeof(*ret));
+        if (ret == NULL) {
+            virHashError(conn, VIR_ERR_NO_MEMORY, _("allocating storage pool"));
+            goto error;
+        }
+        ret->name = strdup(name);
+        if (ret->name == NULL) {
+            virHashError(conn, VIR_ERR_NO_MEMORY, _("allocating storage pool"));
+            goto error;
+        }
+        ret->magic = VIR_STORAGE_POOL_MAGIC;
+        ret->conn = conn;
+        if (uuid != NULL)
+            memcpy(&(ret->uuid[0]), uuid, VIR_UUID_BUFLEN);
+
+        if (virHashAddEntry(conn->storagePools, name, ret) < 0) {
+            virHashError(conn, VIR_ERR_INTERNAL_ERROR,
+                         _("failed to add storage pool to connection hash table"));
+            goto error;
+        }
+        conn->refs++;
     }
-    network->magic = -1;
-    if (network->name)
-        free(network->name);
-    free(network);
-
-    /*
-     * decrement the count for the connection
-     */
-    conn->uses--;
-    if (conn->uses > 0)
-        goto done;
-
-    if (conn->networks != NULL)
-        virHashFree(conn->networks, (virHashDeallocator) virNetworkFreeName);
-    if (conn->hashes_mux != NULL)
-        xmlFreeMutex(conn->hashes_mux);
-    free(conn);
-    return(0);
-
-done:
-    xmlMutexUnlock(conn->hashes_mux);
+    ret->refs++;
+    pthread_mutex_unlock(&conn->lock);
     return(ret);
+
+error:
+    pthread_mutex_unlock(&conn->lock);
+    if (ret != NULL) {
+        free(ret->name);
+        free(ret);
+    }
+    return(NULL);
 }
 
+
+/**
+ * virReleaseStoragePool:
+ * @pool: the pool to release
+ *
+ * Unconditionally release all memory associated with a pool.
+ * The conn.lock mutex must be held prior to calling this, and will
+ * be released prior to this returning. The pool obj must not
+ * be used once this method returns.
+ *
+ * It will also unreference the associated connection object,
+ * which may also be released if its ref count hits zero.
+ */
+static void
+virReleaseStoragePool(virStoragePoolPtr pool) {
+    virConnectPtr conn = pool->conn;
+    DEBUG("release pool %p %s", pool, pool->name);
+
+    /* TODO search by UUID first as they are better differenciators */
+    if (virHashRemoveEntry(conn->storagePools, pool->name, NULL) < 0)
+        virHashError(conn, VIR_ERR_INTERNAL_ERROR,
+                     _("pool missing from connection hash table"));
+
+    pool->magic = -1;
+    free(pool->name);
+    free(pool);
+
+    DEBUG("unref connection %p %s %d", conn, conn->name, conn->refs);
+    conn->refs--;
+    if (conn->refs == 0) {
+        virReleaseConnect(conn);
+        /* Already unlocked mutex */
+        return;
+    }
+
+    pthread_mutex_unlock(&conn->lock);
+}
+
+
+/**
+ * virUnrefStoragePool:
+ * @pool: the pool to unreference
+ *
+ * Unreference the pool. If the use count drops to zero, the structure is
+ * actually freed.
+ *
+ * Returns the reference count or -1 in case of failure.
+ */
+int
+virUnrefStoragePool(virStoragePoolPtr pool) {
+    int refs;
+
+    if (!VIR_IS_CONNECTED_STORAGE_POOL(pool)) {
+        virHashError(pool->conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return(-1);
+    }
+    pthread_mutex_lock(&pool->conn->lock);
+    DEBUG("unref pool %p %s %d", pool, pool->name, pool->refs);
+    pool->refs--;
+    refs = pool->refs;
+    if (refs == 0) {
+        virReleaseStoragePool(pool);
+        /* Already unlocked mutex */
+        return (0);
+    }
+
+    pthread_mutex_unlock(&pool->conn->lock);
+    return (refs);
+}
+
+
+/**
+ * virGetStorageVol:
+ * @conn: the hypervisor connection
+ * @pool: pool owning the volume
+ * @name: pointer to the storage vol name
+ * @uuid: pointer to the uuid
+ *
+ * Lookup if the storage vol is already registered for that connection,
+ * if yes return a new pointer to it, if no allocate a new structure,
+ * and register it in the table. In any case a corresponding call to
+ * virFreeStorageVol() is needed to not leak data.
+ *
+ * Returns a pointer to the storage vol, or NULL in case of failure
+ */
+virStorageVolPtr
+__virGetStorageVol(virConnectPtr conn, const char *pool, const char *name, const char *key) {
+    virStorageVolPtr ret = NULL;
+
+    if ((!VIR_IS_CONNECT(conn)) || (name == NULL) || (key == NULL)) {
+        virHashError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return(NULL);
+    }
+    pthread_mutex_lock(&conn->lock);
+
+    ret = (virStorageVolPtr) virHashLookup(conn->storageVols, key);
+    if (ret == NULL) {
+        ret = (virStorageVolPtr) calloc(1, sizeof(*ret));
+        if (ret == NULL) {
+            virHashError(conn, VIR_ERR_NO_MEMORY, _("allocating storage vol"));
+            goto error;
+        }
+        ret->pool = strdup(pool);
+        if (ret->pool == NULL) {
+            virHashError(conn, VIR_ERR_NO_MEMORY, _("allocating storage vol"));
+            goto error;
+        }
+        ret->name = strdup(name);
+        if (ret->name == NULL) {
+            virHashError(conn, VIR_ERR_NO_MEMORY, _("allocating storage vol"));
+            goto error;
+        }
+        strncpy(ret->key, key, sizeof(ret->key)-1);
+        ret->key[sizeof(ret->key)-1] = '\0';
+        ret->magic = VIR_STORAGE_VOL_MAGIC;
+        ret->conn = conn;
+
+        if (virHashAddEntry(conn->storageVols, key, ret) < 0) {
+            virHashError(conn, VIR_ERR_INTERNAL_ERROR,
+                         _("failed to add storage vol to connection hash table"));
+            goto error;
+        }
+        conn->refs++;
+    }
+    ret->refs++;
+    pthread_mutex_unlock(&conn->lock);
+    return(ret);
+
+error:
+    pthread_mutex_unlock(&conn->lock);
+    if (ret != NULL) {
+        free(ret->name);
+        free(ret->pool);
+        free(ret);
+    }
+    return(NULL);
+}
+
+
+/**
+ * virReleaseStorageVol:
+ * @vol: the vol to release
+ *
+ * Unconditionally release all memory associated with a vol.
+ * The conn.lock mutex must be held prior to calling this, and will
+ * be released prior to this returning. The vol obj must not
+ * be used once this method returns.
+ *
+ * It will also unreference the associated connection object,
+ * which may also be released if its ref count hits zero.
+ */
+static void
+virReleaseStorageVol(virStorageVolPtr vol) {
+    virConnectPtr conn = vol->conn;
+    DEBUG("release vol %p %s", vol, vol->name);
+
+    /* TODO search by UUID first as they are better differenciators */
+    if (virHashRemoveEntry(conn->storageVols, vol->key, NULL) < 0)
+        virHashError(conn, VIR_ERR_INTERNAL_ERROR,
+                     _("vol missing from connection hash table"));
+
+    vol->magic = -1;
+    free(vol->name);
+    free(vol->pool);
+    free(vol);
+
+    DEBUG("unref connection %p %s %d", conn, conn->name, conn->refs);
+    conn->refs--;
+    if (conn->refs == 0) {
+        virReleaseConnect(conn);
+        /* Already unlocked mutex */
+        return;
+    }
+
+    pthread_mutex_unlock(&conn->lock);
+}
+
+
+/**
+ * virUnrefStorageVol:
+ * @vol: the vol to unreference
+ *
+ * Unreference the vol. If the use count drops to zero, the structure is
+ * actually freed.
+ *
+ * Returns the reference count or -1 in case of failure.
+ */
+int
+virUnrefStorageVol(virStorageVolPtr vol) {
+    int refs;
+
+    if (!VIR_IS_CONNECTED_STORAGE_VOL(vol)) {
+        virHashError(vol->conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return(-1);
+    }
+    pthread_mutex_lock(&vol->conn->lock);
+    DEBUG("unref vol %p %s %d", vol, vol->name, vol->refs);
+    vol->refs--;
+    refs = vol->refs;
+    if (refs == 0) {
+        virReleaseStorageVol(vol);
+        /* Already unlocked mutex */
+        return (0);
+    }
+
+    pthread_mutex_unlock(&vol->conn->lock);
+    return (refs);
+}
+
+
+/*
+ * vim: set tabstop=4:
+ * vim: set shiftwidth=4:
+ * vim: set expandtab:
+ */
 /*
  * Local variables:
  *  indent-tabs-mode: nil

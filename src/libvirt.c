@@ -2,14 +2,14 @@
  * libvirt.c: Main interfaces for the libvirt library to handle virtualization
  *           domains from a process running in domain 0
  *
- * Copyright (C) 2005,2006 Red Hat, Inc.
+ * Copyright (C) 2005,2006,2008 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
  * Daniel Veillard <veillard@redhat.com>
  */
 
-#include "config.h"
+#include <config.h>
 #include "libvirt/libvirt.h"
 
 #include <stdio.h>
@@ -25,7 +25,7 @@
 #include <libxml/uri.h>
 #include "getpass.h"
 
-#if HAVE_WINSOCK2_H
+#ifdef HAVE_WINSOCK2_H
 #include <winsock2.h>
 #endif
 
@@ -33,10 +33,12 @@
 #include "driver.h"
 
 #include "uuid.h"
+#include "util.h"
 #include "test.h"
 #include "xen_unified.h"
 #include "remote_internal.h"
 #include "qemu_driver.h"
+#include "storage_driver.h"
 #ifdef WITH_OPENVZ
 #include "openvz_driver.h"
 #endif
@@ -51,22 +53,18 @@ static virDriverPtr virDriverTab[MAX_DRIVERS];
 static int virDriverTabCount = 0;
 static virNetworkDriverPtr virNetworkDriverTab[MAX_DRIVERS];
 static int virNetworkDriverTabCount = 0;
+static virStorageDriverPtr virStorageDriverTab[MAX_DRIVERS];
+static int virStorageDriverTabCount = 0;
 static virStateDriverPtr virStateDriverTab[MAX_DRIVERS];
 static int virStateDriverTabCount = 0;
 static int initialized = 0;
 
-/* If configured with --enable-debug=yes then library calls
- * are printed to stderr for debugging.
- */
+#define DEBUG(fmt,...) VIR_DEBUG(__FILE__, fmt, __VA_ARGS__)
+#define DEBUG0(msg) VIR_DEBUG(__FILE__, "%s", msg)
+
 #ifdef ENABLE_DEBUG
-#define DEBUG(fs,...)                                                   \
-    fprintf (stderr, "libvirt: %s (" fs ")\n", __func__, __VA_ARGS__)
-#define DEBUG0                                                          \
-    fprintf (stderr, "libvirt: %s ()\n", __func__)
-#else
-#define DEBUG0
-#define DEBUG(fs,...)
-#endif /* !ENABLE_DEBUG */
+int debugFlag = 0;
+#endif
 
 static int virConnectAuthCallbackDefault(virConnectCredentialPtr cred,
                                          unsigned int ncred,
@@ -76,17 +74,40 @@ static int virConnectAuthCallbackDefault(virConnectCredentialPtr cred,
     for (i = 0 ; i < ncred ; i++) {
         char buf[1024];
         char *bufptr = buf;
-
-        if (printf("%s:", cred[i].prompt) < 0)
-            return -1;
-        if (fflush(stdout) != 0)
-            return -1;
+        size_t len;
 
         switch (cred[i].type) {
+#if defined(POLKIT_GRANT) || defined(POLKIT_AUTH)
+        case VIR_CRED_EXTERNAL: {
+            int ret;
+            const char *const args[] = {
+#if defined(POLKIT_GRANT)
+                POLKIT_GRANT, "--gain", cred[i].prompt, NULL
+#else
+                POLKIT_AUTH, "--obtain", cred[i].prompt, NULL
+#endif
+            };
+
+            if (STRNEQ(cred[i].challenge, "PolicyKit"))
+                return -1;
+            if (virRun(NULL, (char **) args, &ret) < 0)
+                return -1;
+
+            if (!WIFEXITED(ret) ||
+                (WEXITSTATUS(ret) != 0 && WEXITSTATUS(ret) != 1))
+                return -1;
+            break;
+        }
+#endif
         case VIR_CRED_USERNAME:
         case VIR_CRED_AUTHNAME:
         case VIR_CRED_ECHOPROMPT:
         case VIR_CRED_REALM:
+            if (printf("%s:", cred[i].prompt) < 0)
+                return -1;
+            if (fflush(stdout) != 0)
+                return -1;
+
             if (!fgets(buf, sizeof(buf), stdin)) {
                 if (feof(stdin)) { /* Treat EOF as "" */
                     buf[0] = '\0';
@@ -94,12 +115,18 @@ static int virConnectAuthCallbackDefault(virConnectCredentialPtr cred,
                 }
                 return -1;
             }
-            if (buf[strlen(buf)-1] == '\n')
-                buf[strlen(buf)-1] = '\0';
+            len = strlen(buf);
+            if (len != 0 && buf[len-1] == '\n')
+                buf[len-1] = '\0';
             break;
 
         case VIR_CRED_PASSPHRASE:
         case VIR_CRED_NOECHOPROMPT:
+            if (printf("%s:", cred[i].prompt) < 0)
+                return -1;
+            if (fflush(stdout) != 0)
+                return -1;
+
             bufptr = getpass("");
             if (!bufptr)
                 return -1;
@@ -131,6 +158,9 @@ static int virConnectCredTypeDefault[] = {
     VIR_CRED_REALM,
     VIR_CRED_PASSPHRASE,
     VIR_CRED_NOECHOPROMPT,
+#if defined(POLKIT_AUTH) || defined(POLKIT_GRANT)
+    VIR_CRED_EXTERNAL,
+#endif
 };
 
 static virConnectAuth virConnectAuthDefault = {
@@ -179,10 +209,20 @@ winsock_init (void)
 int
 virInitialize(void)
 {
-    DEBUG0;
+#ifdef ENABLE_DEBUG
+    char *debugEnv;
+#endif
     if (initialized)
         return(0);
     initialized = 1;
+
+#ifdef ENABLE_DEBUG
+    debugEnv = getenv("LIBVIRT_DEBUG");
+    if (debugEnv && *debugEnv && *debugEnv != '0')
+        debugFlag = 1;
+#endif
+
+    DEBUG0("register drivers");
 
 #if HAVE_WINSOCK2_H
     if (winsock_init () == -1) return -1;
@@ -198,7 +238,7 @@ virInitialize(void)
 #ifdef WITH_TEST
     if (testRegister() == -1) return -1;
 #endif
-#ifdef WITH_QEMU 
+#ifdef WITH_QEMU
     if (qemudRegister() == -1) return -1;
 #endif
 #ifdef WITH_XEN
@@ -207,6 +247,7 @@ virInitialize(void)
 #ifdef WITH_OPENVZ
     if (openvzRegister() == -1) return -1;
 #endif
+    if (storageRegister() == -1) return -1;
 #ifdef WITH_REMOTE
     if (remoteRegister () == -1) return -1;
 #endif
@@ -311,6 +352,58 @@ virLibNetworkError(virNetworkPtr network, virErrorNumber error,
 }
 
 /**
+ * virLibStoragePoolError:
+ * @conn: the connection if available
+ * @error: the error noumber
+ * @info: extra information string
+ *
+ * Handle an error at the connection level
+ */
+static void
+virLibStoragePoolError(virStoragePoolPtr pool, virErrorNumber error,
+                       const char *info)
+{
+    virConnectPtr conn = NULL;
+    const char *errmsg;
+
+    if (error == VIR_ERR_OK)
+        return;
+
+    errmsg = __virErrorMsg(error, info);
+    if (error != VIR_ERR_INVALID_STORAGE_POOL)
+        conn = pool->conn;
+
+    __virRaiseError(conn, NULL, NULL, VIR_FROM_STORAGE, error, VIR_ERR_ERROR,
+                    errmsg, info, NULL, 0, 0, errmsg, info);
+}
+
+/**
+ * virLibStorageVolError:
+ * @conn: the connection if available
+ * @error: the error noumber
+ * @info: extra information string
+ *
+ * Handle an error at the connection level
+ */
+static void
+virLibStorageVolError(virStorageVolPtr vol, virErrorNumber error,
+                      const char *info)
+{
+    virConnectPtr conn = NULL;
+    const char *errmsg;
+
+    if (error == VIR_ERR_OK)
+        return;
+
+    errmsg = __virErrorMsg(error, info);
+    if (error != VIR_ERR_INVALID_STORAGE_VOL)
+        conn = vol->conn;
+
+    __virRaiseError(conn, NULL, NULL, VIR_FROM_STORAGE, error, VIR_ERR_ERROR,
+                    errmsg, info, NULL, 0, 0, errmsg, info);
+}
+
+/**
  * virRegisterNetworkDriver:
  * @driver: pointer to a network driver block
  *
@@ -336,6 +429,34 @@ virRegisterNetworkDriver(virNetworkDriverPtr driver)
 
     virNetworkDriverTab[virNetworkDriverTabCount] = driver;
     return virNetworkDriverTabCount++;
+}
+
+/**
+ * virRegisterStorageDriver:
+ * @driver: pointer to a storage driver block
+ *
+ * Register a storage virtualization driver
+ *
+ * Returns the driver priority or -1 in case of error.
+ */
+int
+virRegisterStorageDriver(virStorageDriverPtr driver)
+{
+    if (virInitialize() < 0)
+      return -1;
+
+    if (driver == NULL) {
+        virLibConnError(NULL, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return(-1);
+    }
+
+    if (virStorageDriverTabCount >= MAX_DRIVERS) {
+    	virLibConnError(NULL, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return(-1);
+    }
+
+    virStorageDriverTab[virStorageDriverTabCount] = driver;
+    return virStorageDriverTabCount++;
 }
 
 /**
@@ -462,7 +583,7 @@ int __virStateActive(void) {
  * Provides two information back, @libVer is the version of the library
  * while @typeVer will be the version of the hypervisor type @type against
  * which the library was compiled. If @type is NULL, "Xen" is assumed, if
- * @type is unknown or not availble, an error code will be returned and 
+ * @type is unknown or not availble, an error code will be returned and
  * @typeVer will be 0.
  *
  * Returns -1 in case of failure, 0 otherwise, and values for @libVer and
@@ -511,9 +632,47 @@ do_open (const char *name,
     virConnectPtr ret = NULL;
     xmlURIPtr uri;
 
-    /* Convert NULL or "" to xen:/// for back compat */
-    if (!name || name[0] == '\0')
-        name = "xen:///";
+    /*
+     *  If no URI is passed, then check for an environment string if not
+     *  available probe the compiled in drivers to find a default hypervisor
+     *  if detectable.
+     */
+    if (!name || name[0] == '\0') {
+        char *defname = getenv("LIBVIRT_DEFAULT_URI");
+        if (defname && *defname) {
+	    DEBUG("Using LIBVIRT_DEFAULT_URI %s", defname);
+            name = defname;
+        } else {
+	    const char *use = NULL;
+	    const char *latest;
+	    int probes = 0;
+	    for (i = 0; i < virNetworkDriverTabCount; i++) {
+	        if ((virDriverTab[i]->probe != NULL) &&
+		    ((latest = virDriverTab[i]->probe()) != NULL)) {
+		    probes++;
+
+		    DEBUG("Probed %s", latest);
+		    /*
+		     * if running a xen kernel, give it priority over
+		     * QEmu emultation
+		     */
+		    if (STREQ(latest, "xen:///"))
+		        use = latest;
+		    else if (use == NULL)
+		        use = latest;
+		}
+	    }
+	    if (use == NULL) {
+		name = "xen:///";
+	        DEBUG("Could not probe any hypervisor defaulting to %s",
+		      name);
+	    } else {
+		name = use;
+	        DEBUG("Using %s as default URI, %d hypervisor found",
+		      use, probes);
+	    }
+	}
+    }
 
     /* Convert xen -> xen:/// for back compat */
     if (!strcasecmp(name, "xen"))
@@ -524,10 +683,6 @@ do_open (const char *name,
      */
     if (STREQ (name, "xen://"))
         name = "xen:///";
-
-    if (!initialized)
-        if (virInitialize() < 0)
-	    return NULL;
 
     ret = virGetConnect();
     if (ret == NULL) {
@@ -542,40 +697,36 @@ do_open (const char *name,
         goto failed;
     }
 
-#ifdef ENABLE_DEBUG
-    fprintf (stderr,
-             "libvirt: do_open: name \"%s\" to URI components:\n"
-             "  scheme %s\n"
-             "  opaque %s\n"
-             "  authority %s\n"
-             "  server %s\n"
-             "  user %s\n"
-             "  port %d\n"
-             "  path %s\n",
-             name,
-             uri->scheme, uri->opaque, uri->authority, uri->server,
-             uri->user, uri->port, uri->path);
-#endif
+    DEBUG("name \"%s\" to URI components:\n"
+          "  scheme %s\n"
+          "  opaque %s\n"
+          "  authority %s\n"
+          "  server %s\n"
+          "  user %s\n"
+          "  port %d\n"
+          "  path %s\n",
+          name,
+          uri->scheme, uri->opaque, uri->authority, uri->server,
+          uri->user, uri->port, uri->path);
 
     ret->name = strdup (name);
     if (!ret->name) {
-        virLibConnError (ret, VIR_ERR_NO_MEMORY, "allocating conn->name");
+        virLibConnError (ret, VIR_ERR_NO_MEMORY, _("allocating conn->name"));
         goto failed;
     }
 
+    /* Cleansing flags */
+    ret->flags = flags & VIR_CONNECT_RO;
+
     for (i = 0; i < virDriverTabCount; i++) {
-#ifdef ENABLE_DEBUG
-        fprintf (stderr, "libvirt: do_open: trying driver %d (%s) ...\n",
-                 i, virDriverTab[i]->name);
-#endif
+        DEBUG("trying driver %d (%s) ...",
+              i, virDriverTab[i]->name);
         res = virDriverTab[i]->open (ret, uri, auth, flags);
-#ifdef ENABLE_DEBUG
-        fprintf (stderr, "libvirt: do_open: driver %d %s returned %s\n",
-                 i, virDriverTab[i]->name,
-                 res == VIR_DRV_OPEN_SUCCESS ? "SUCCESS" :
-                 (res == VIR_DRV_OPEN_DECLINED ? "DECLINED" :
-                  (res == VIR_DRV_OPEN_ERROR ? "ERROR" : "unknown status")));
-#endif
+        DEBUG("driver %d %s returned %s",
+              i, virDriverTab[i]->name,
+              res == VIR_DRV_OPEN_SUCCESS ? "SUCCESS" :
+              (res == VIR_DRV_OPEN_DECLINED ? "DECLINED" :
+               (res == VIR_DRV_OPEN_ERROR ? "ERROR" : "unknown status")));
         if (res == VIR_DRV_OPEN_ERROR) goto failed;
         else if (res == VIR_DRV_OPEN_SUCCESS) {
             ret->driver = virDriverTab[i];
@@ -591,16 +742,14 @@ do_open (const char *name,
 
     for (i = 0; i < virNetworkDriverTabCount; i++) {
         res = virNetworkDriverTab[i]->open (ret, uri, auth, flags);
-#ifdef ENABLE_DEBUG
-        fprintf (stderr, "libvirt: do_open: network driver %d %s returned %s\n",
-                 i, virNetworkDriverTab[i]->name,
-                 res == VIR_DRV_OPEN_SUCCESS ? "SUCCESS" :
-                 (res == VIR_DRV_OPEN_DECLINED ? "DECLINED" :
-                  (res == VIR_DRV_OPEN_ERROR ? "ERROR" : "unknown status")));
-#endif
+        DEBUG("network driver %d %s returned %s",
+              i, virNetworkDriverTab[i]->name,
+              res == VIR_DRV_OPEN_SUCCESS ? "SUCCESS" :
+              (res == VIR_DRV_OPEN_DECLINED ? "DECLINED" :
+               (res == VIR_DRV_OPEN_ERROR ? "ERROR" : "unknown status")));
         if (res == VIR_DRV_OPEN_ERROR) {
             if (STREQ(virNetworkDriverTab[i]->name, "remote")) {
-                virLibConnWarning (NULL, VIR_WAR_NO_NETWORK, 
+                virLibConnWarning (NULL, VIR_WAR_NO_NETWORK,
                                    "Is the daemon running ?");
             }
             break;
@@ -610,18 +759,37 @@ do_open (const char *name,
         }
     }
 
-    /* Cleansing flags */
-    ret->flags = flags & VIR_CONNECT_RO;
+
+    /* Secondary driver for storage. Optional */
+    for (i = 0; i < virStorageDriverTabCount; i++) {
+        res = virStorageDriverTab[i]->open (ret, uri, auth, flags);
+#ifdef ENABLE_DEBUG
+        DEBUG("storage driver %d %s returned %s",
+              i, virStorageDriverTab[i]->name,
+              res == VIR_DRV_OPEN_SUCCESS ? "SUCCESS" :
+              (res == VIR_DRV_OPEN_DECLINED ? "DECLINED" :
+               (res == VIR_DRV_OPEN_ERROR ? "ERROR" : "unknown status")));
+#endif
+        if (res == VIR_DRV_OPEN_ERROR) {
+            if (0 && STREQ(virStorageDriverTab[i]->name, "remote")) {
+                virLibConnWarning (NULL, VIR_WAR_NO_STORAGE,
+                                   "Is the daemon running ?");
+            }
+            break;
+         } else if (res == VIR_DRV_OPEN_SUCCESS) {
+            ret->storageDriver = virStorageDriverTab[i];
+            break;
+        }
+    }
 
     xmlFreeURI (uri);
 
     return ret;
 
 failed:
-    if (ret->name) free (ret->name);
     if (ret->driver) ret->driver->close (ret);
     if (uri) xmlFreeURI(uri);
-	virFreeConnect(ret);
+	virUnrefConnect(ret);
     return NULL;
 }
 
@@ -629,7 +797,7 @@ failed:
  * virConnectOpen:
  * @name: URI of the hypervisor
  *
- * This function should be called first to get a connection to the 
+ * This function should be called first to get a connection to the
  * Hypervisor and xen store
  *
  * Returns a pointer to the hypervisor connection or NULL in case of error
@@ -639,6 +807,10 @@ failed:
 virConnectPtr
 virConnectOpen (const char *name)
 {
+    if (!initialized)
+        if (virInitialize() < 0)
+            return NULL;
+
     DEBUG("name=%s", name);
     return do_open (name, NULL, 0);
 }
@@ -647,7 +819,7 @@ virConnectOpen (const char *name)
  * virConnectOpenReadOnly:
  * @name: URI of the hypervisor
  *
- * This function should be called first to get a restricted connection to the 
+ * This function should be called first to get a restricted connection to the
  * libbrary functionalities. The set of APIs usable are then restricted
  * on the available methods to control the domains.
  *
@@ -658,6 +830,10 @@ virConnectOpen (const char *name)
 virConnectPtr
 virConnectOpenReadOnly(const char *name)
 {
+    if (!initialized)
+        if (virInitialize() < 0)
+            return NULL;
+
     DEBUG("name=%s", name);
     return do_open (name, NULL, VIR_CONNECT_RO);
 }
@@ -668,7 +844,7 @@ virConnectOpenReadOnly(const char *name)
  * @auth: Authenticate callback parameters
  * @flags: Open flags
  *
- * This function should be called first to get a connection to the 
+ * This function should be called first to get a connection to the
  * Hypervisor. If neccessary, authentication will be performed fetching
  * credentials via the callback
  *
@@ -681,7 +857,11 @@ virConnectOpenAuth(const char *name,
                    virConnectAuthPtr auth,
                    int flags)
 {
-    DEBUG("name=%s", name);
+    if (!initialized)
+        if (virInitialize() < 0)
+            return NULL;
+
+    DEBUG("name=%s, auth=%p, flags=%d", name, auth, flags);
     return do_open (name, auth, flags);
 }
 
@@ -706,11 +886,11 @@ virConnectClose(virConnectPtr conn)
 
     if (conn->networkDriver)
         conn->networkDriver->close (conn);
+    if (conn->storageDriver)
+        conn->storageDriver->close (conn);
     conn->driver->close (conn);
 
-    if (conn->name) free (conn->name);
-
-    if (virFreeConnect(conn) < 0)
+    if (virUnrefConnect(conn) < 0)
         return (-1);
     return (0);
 }
@@ -763,7 +943,7 @@ virConnectGetType(virConnectPtr conn)
  * @conn: pointer to the hypervisor connection
  * @hvVer: return value for the version of the running hypervisor (OUT)
  *
- * Get the version level of the Hypervisor running. This may work only with 
+ * Get the version level of the Hypervisor running. This may work only with
  * hypervisor call, i.e. with priviledged access to the hypervisor, not
  * with a Read-Only connection.
  *
@@ -984,7 +1164,7 @@ virDomainGetConnect (virDomainPtr dom)
  * Launch a new Linux guest domain, based on an XML description similar
  * to the one returned by virDomainGetXMLDesc()
  * This function may requires priviledged access to the hypervisor.
- * 
+ *
  * Returns a new domain object or NULL in case of failure
  */
 virDomainPtr
@@ -1102,10 +1282,10 @@ virDomainLookupByUUIDString(virConnectPtr conn, const char *uuidstr)
     if (uuidstr == NULL) {
         virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
         return (NULL);
-	
+
     }
-    /* XXX: sexpr_uuid() also supports 'xxxx-xxxx-xxxx-xxxx' format. 
-     *      We needn't it here. Right? 
+    /* XXX: sexpr_uuid() also supports 'xxxx-xxxx-xxxx-xxxx' format.
+     *      We needn't it here. Right?
      */
     ret = sscanf(uuidstr,
                  "%02x%02x%02x%02x-"
@@ -1117,14 +1297,14 @@ virDomainLookupByUUIDString(virConnectPtr conn, const char *uuidstr)
                  raw + 4, raw + 5, raw + 6, raw + 7,
                  raw + 8, raw + 9, raw + 10, raw + 11,
                  raw + 12, raw + 13, raw + 14, raw + 15);
-    
+
     if (ret!=VIR_UUID_BUFLEN) {
 	virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
 	return (NULL);
     }
     for (i = 0; i < VIR_UUID_BUFLEN; i++)
         uuid[i] = raw[i] & 0xFF;
-    
+
     return virDomainLookupByUUID(conn, &uuid[0]);
 }
 
@@ -1214,7 +1394,7 @@ virDomainFree(virDomainPtr domain)
         virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
         return (-1);
     }
-    if (virFreeDomain(domain->conn, domain) < 0)
+    if (virUnrefDomain(domain) < 0)
         return (-1);
     return(0);
 }
@@ -1224,7 +1404,7 @@ virDomainFree(virDomainPtr domain)
  * @domain: a domain object
  *
  * Suspends an active domain, the process is frozen without further access
- * to CPU resources and I/O but the memory used by the domain at the 
+ * to CPU resources and I/O but the memory used by the domain at the
  * hypervisor level will stay allocated. Use virDomainResume() to reactivate
  * the domain.
  * This function may requires priviledged access.
@@ -1352,7 +1532,7 @@ virDomainSave(virDomainPtr domain, const char *to)
 /**
  * virDomainRestore:
  * @conn: pointer to the hypervisor connection
- * @from: path to the 
+ * @from: path to the
  *
  * This method will restore a domain saved to disk by virDomainSave().
  *
@@ -1592,7 +1772,7 @@ virDomainGetUUID(virDomainPtr domain, unsigned char *uuid)
  * @domain: a domain object
  * @buf: pointer to a VIR_UUID_STRING_BUFLEN bytes array
  *
- * Get the UUID for a domain as string. For more information about 
+ * Get the UUID for a domain as string. For more information about
  * UUID see RFC4122.
  *
  * Returns -1 in case of error, 0 in case of success
@@ -1611,7 +1791,7 @@ virDomainGetUUIDString(virDomainPtr domain, char *buf)
         virLibDomainError(domain, VIR_ERR_INVALID_ARG, __FUNCTION__);
         return (-1);
     }
-    
+
     if (virDomainGetUUID(domain, &uuid[0]))
         return (-1);
 
@@ -1671,7 +1851,7 @@ virDomainGetOSType(virDomainPtr domain)
 /**
  * virDomainGetMaxMemory:
  * @domain: a domain object or NULL
- * 
+ *
  * Retrieve the maximum amount of physical memory allocated to a
  * domain. If domain is NULL, then this get the amount of memory reserved
  * to Domain0 i.e. the domain where the application runs.
@@ -1702,7 +1882,7 @@ virDomainGetMaxMemory(virDomainPtr domain)
  * virDomainSetMaxMemory:
  * @domain: a domain object or NULL
  * @memory: the memory size in kilobytes
- * 
+ *
  * Dynamically change the maximum amount of physical memory allocated to a
  * domain. If domain is NULL, then this change the amount of memory reserved
  * to Domain0 i.e. the domain where the application runs.
@@ -1745,7 +1925,7 @@ virDomainSetMaxMemory(virDomainPtr domain, unsigned long memory)
  * virDomainSetMemory:
  * @domain: a domain object or NULL
  * @memory: the memory size in kilobytes
- * 
+ *
  * Dynamically change the target amount of physical memory allocated to a
  * domain. If domain is NULL, then this change the amount of memory reserved
  * to Domain0 i.e. the domain where the application runs.
@@ -1789,7 +1969,7 @@ virDomainSetMemory(virDomainPtr domain, unsigned long memory)
  * virDomainGetInfo:
  * @domain: a domain object
  * @info: pointer to a virDomainInfo structure allocated by the user
- * 
+ *
  * Extract information about a domain. Note that if the connection
  * used to get the domain is limited only a partial set of the information
  * can be extracted.
@@ -1841,10 +2021,6 @@ virDomainGetXMLDesc(virDomainPtr domain, int flags)
 
     if (!VIR_IS_DOMAIN(domain)) {
         virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
-        return (NULL);
-    }
-    if (flags != 0) {
-        virLibDomainError(domain, VIR_ERR_INVALID_ARG, __FUNCTION__);
         return (NULL);
     }
 
@@ -1956,7 +2132,7 @@ virDomainMigrate (virDomainPtr domain,
     if (ret == -1) goto done;
     if (uri == NULL && uri_out == NULL) {
         virLibConnError (conn, VIR_ERR_INTERNAL_ERROR,
-                         "domainMigratePrepare did not set uri");
+                         _("domainMigratePrepare did not set uri"));
         goto done;
     }
     if (uri_out) uri = uri_out; /* Did domainMigratePrepare change URI? */
@@ -1983,8 +2159,8 @@ virDomainMigrate (virDomainPtr domain,
         ddomain = virDomainLookupByName (dconn, dname);
 
  done:
-    if (uri_out) free (uri_out);
-    if (cookie) free (cookie);
+    free (uri_out);
+    free (cookie);
     return ddomain;
 }
 
@@ -2079,7 +2255,7 @@ __virDomainMigrateFinish (virConnectPtr dconn,
  * virNodeGetInfo:
  * @conn: pointer to the hypervisor connection
  * @info: pointer to a virNodeInfo structure allocated by the user
- * 
+ *
  * Extract hardware information about the node.
  *
  * Returns 0 in case of success and -1 in case of failure.
@@ -2135,7 +2311,7 @@ virConnectGetCapabilities (virConnectPtr conn)
 /**
  * virNodeGetFreeMemory:
  * @conn: pointer to the hypervisor connection
- * 
+ *
  * provides the free memory availble on the Node
  *
  * Returns the available free memory in kilobytes or 0 in case of error
@@ -2236,7 +2412,7 @@ virDomainGetSchedulerParameters(virDomainPtr domain,
  * Returns -1 in case of error, 0 in case of success.
  */
 int
-virDomainSetSchedulerParameters(virDomainPtr domain, 
+virDomainSetSchedulerParameters(virDomainPtr domain,
 				virSchedParameterPtr params, int nparams)
 {
     virConnectPtr conn;
@@ -2465,7 +2641,7 @@ virConnectNumOfDefinedDomains(virConnectPtr conn)
  * @maxnames: size of the array
  *
  * list the defined domains, stores the pointers to the names in @names
- * 
+ *
  * Returns the number of names provided in the array or -1 in case of error
  */
 int
@@ -2649,7 +2825,7 @@ virDomainSetVcpus(virDomainPtr domain, unsigned int nvcpus)
  *	underlying virtualization system (Xen...).
  *	If maplen < size, missing bytes are set to zero.
  *	If maplen > size, failure code is returned.
- * 
+ *
  * Dynamically change the real CPUs which can be allocated to a virtual CPU.
  * This function requires priviledged access to the hypervisor.
  *
@@ -2704,7 +2880,7 @@ virDomainPinVcpu(virDomainPtr domain, unsigned int vcpu,
  *      virDomainPinVcpu() API.
  * @maplen: number of bytes in one cpumap, from 1 up to size of CPU map in
  *	underlying virtualization system (Xen...).
- * 
+ *
  * Extract information about virtual CPUs of domain, store it in info array
  * and also in cpumaps if this pointer is'nt NULL.
  *
@@ -2747,7 +2923,7 @@ virDomainGetVcpus(virDomainPtr domain, virVcpuInfoPtr info, int maxinfo,
 /**
  * virDomainGetMaxVcpus:
  * @domain: pointer to domain object
- * 
+ *
  * Provides the maximum number of virtual CPUs supported for
  * the guest VM. If the guest is inactive, this is basically
  * the same as virConnectGetMaxVcpus. If the guest is running
@@ -2781,7 +2957,7 @@ virDomainGetMaxVcpus(virDomainPtr domain)
  * virDomainAttachDevice:
  * @domain: pointer to domain object
  * @xml: pointer to XML description of one device
- * 
+ *
  * Create a virtual device attachment to backend.
  *
  * Returns 0 in case of success, -1 in case of failure.
@@ -2813,7 +2989,7 @@ virDomainAttachDevice(virDomainPtr domain, const char *xml)
  * virDomainDetachDevice:
  * @domain: pointer to domain object
  * @xml: pointer to XML description of one device
- * 
+ *
  * Destroy a virtual device attachment to backend.
  *
  * Returns 0 in case of success, -1 in case of failure.
@@ -3327,7 +3503,7 @@ virNetworkFree(virNetworkPtr network)
         virLibNetworkError(NULL, VIR_ERR_INVALID_NETWORK, __FUNCTION__);
         return (-1);
     }
-    if (virFreeNetwork(network->conn, network) < 0)
+    if (virUnrefNetwork(network) < 0)
         return (-1);
     return(0);
 }
@@ -3544,6 +3720,1266 @@ virNetworkSetAutostart(virNetworkPtr network,
     virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return -1;
 }
+
+
+/**
+ * virStoragePoolGetConnect:
+ * @pool: pointer to a poool
+ *
+ * Provides the connection pointer associated with a storage pool.  The
+ * reference counter on the connection is not increased by this
+ * call.
+ *
+ * WARNING: When writing libvirt bindings in other languages, do
+ * not use this function.  Instead, store the connection and
+ * the pool object together.
+ *
+ * Returns the virConnectPtr or NULL in case of failure.
+ */
+virConnectPtr
+virStoragePoolGetConnect (virStoragePoolPtr pool)
+{
+    DEBUG("pool=%p", pool);
+
+    if (!VIR_IS_STORAGE_POOL (pool)) {
+        virLibStoragePoolError (NULL, VIR_ERR_INVALID_STORAGE_POOL, __FUNCTION__);
+        return NULL;
+    }
+    return pool->conn;
+}
+
+/**
+ * virConnectNumOfStoragePools:
+ * @conn: pointer to hypervisor connection
+ *
+ * Provides the number of active storage pools
+ *
+ * Returns the number of pools found, or -1 on error
+ */
+int
+virConnectNumOfStoragePools	(virConnectPtr conn)
+{
+    DEBUG("conn=%p", conn);
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+
+    if (conn->storageDriver && conn->storageDriver->numOfPools)
+        return conn->storageDriver->numOfPools (conn);
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return -1;
+}
+
+/**
+ * virConnectListStoragePools:
+ * @conn: pointer to hypervisor connection
+ * @names: array of char * to fill with pool names (allocated by caller)
+ * @maxnames: size of the names array
+ *
+ * Provides the list of names of active storage pools
+ * upto maxnames. If there are more than maxnames, the
+ * remaining names will be silently ignored.
+ *
+ * Returns 0 on success, -1 on error
+ */
+int
+virConnectListStoragePools	(virConnectPtr conn,
+                             char **const names,
+                             int maxnames)
+{
+    DEBUG("conn=%p, names=%p, maxnames=%d", conn, names, maxnames);
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+
+    if ((names == NULL) || (maxnames < 0)) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return (-1);
+    }
+
+    if (conn->storageDriver && conn->storageDriver->listPools)
+        return conn->storageDriver->listPools (conn, names, maxnames);
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return -1;
+
+}
+
+
+/**
+ * virConnectNumOfDefinedStoragePools:
+ * @conn: pointer to hypervisor connection
+ *
+ * Provides the number of inactive storage pools
+ *
+ * Returns the number of pools found, or -1 on error
+ */
+int
+virConnectNumOfDefinedStoragePools(virConnectPtr conn)
+{
+    DEBUG("conn=%p", conn);
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+
+    if (conn->storageDriver && conn->storageDriver->numOfDefinedPools)
+        return conn->storageDriver->numOfDefinedPools (conn);
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return -1;
+}
+
+
+/**
+ * virConnectListDefinedStoragePools:
+ * @conn: pointer to hypervisor connection
+ * @names: array of char * to fill with pool names (allocated by caller)
+ * @maxnames: size of the names array
+ *
+ * Provides the list of names of inactive storage pools
+ * upto maxnames. If there are more than maxnames, the
+ * remaining names will be silently ignored.
+ *
+ * Returns 0 on success, -1 on error
+ */
+int
+virConnectListDefinedStoragePools(virConnectPtr conn,
+                                  char **const names,
+                                  int maxnames)
+{
+    DEBUG("conn=%p, names=%p, maxnames=%d", conn, names, maxnames);
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+
+    if ((names == NULL) || (maxnames < 0)) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return (-1);
+    }
+
+    if (conn->storageDriver && conn->storageDriver->listDefinedPools)
+        return conn->storageDriver->listDefinedPools (conn, names, maxnames);
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return -1;
+}
+
+
+/**
+ * virStoragePoolLookupByName:
+ * @conn: pointer to hypervisor connection
+ * @name: name of pool to fetch
+ *
+ * Fetch a storage pool based on its unique name
+ *
+ * Returns a virStoragePoolPtr object, or NULL if no matching pool is found
+ */
+virStoragePoolPtr
+virStoragePoolLookupByName(virConnectPtr conn,
+                           const char *name)
+{
+    DEBUG("conn=%p, name=%s", conn, name);
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (NULL);
+    }
+    if (name == NULL) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return (NULL);
+    }
+
+    if (conn->storageDriver && conn->storageDriver->poolLookupByName)
+        return conn->storageDriver->poolLookupByName (conn, name);
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return NULL;
+}
+
+
+/**
+ * virStoragePoolLookupByUUID:
+ * @conn: pointer to hypervisor connection
+ * @uuid: globally unique id of pool to fetch
+ *
+ * Fetch a storage pool based on its globally unique id
+ *
+ * Returns a virStoragePoolPtr object, or NULL if no matching pool is found
+ */
+virStoragePoolPtr
+virStoragePoolLookupByUUID(virConnectPtr conn,
+                           const unsigned char *uuid)
+{
+    DEBUG("conn=%p, uuid=%s", conn, uuid);
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (NULL);
+    }
+    if (uuid == NULL) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return (NULL);
+    }
+
+    if (conn->storageDriver && conn->storageDriver->poolLookupByUUID)
+        return conn->storageDriver->poolLookupByUUID (conn, uuid);
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return NULL;
+
+}
+
+
+/**
+ * virStoragePoolLookupByUUIDString:
+ * @conn: pointer to hypervisor connection
+ * @uuidstr: globally unique id of pool to fetch
+ *
+ * Fetch a storage pool based on its globally unique id
+ *
+ * Returns a virStoragePoolPtr object, or NULL if no matching pool is found
+ */
+virStoragePoolPtr
+virStoragePoolLookupByUUIDString(virConnectPtr conn,
+								 const char *uuidstr)
+{
+    unsigned char uuid[VIR_UUID_BUFLEN];
+    DEBUG("conn=%p, uuidstr=%s", conn, uuidstr);
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (NULL);
+    }
+    if (uuidstr == NULL) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return (NULL);
+    }
+
+    if (virUUIDParse(uuidstr, uuid) < 0) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return (NULL);
+    }
+
+    return virStoragePoolLookupByUUID(conn, uuid);
+}
+
+
+/**
+ * virStoragePoolLookupByVolume:
+ * @vol: pointer to storage volume
+ *
+ * Fetch a storage pool which contains a particular volume
+ *
+ * Returns a virStoragePoolPtr object, or NULL if no matching pool is found
+ */
+virStoragePoolPtr
+virStoragePoolLookupByVolume(virStorageVolPtr vol)
+{
+    DEBUG("vol=%p", vol);
+
+    if (!VIR_IS_STORAGE_VOL(vol)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (NULL);
+    }
+
+    if (vol->conn->storageDriver && vol->conn->storageDriver->poolLookupByVolume)
+        return vol->conn->storageDriver->poolLookupByVolume (vol);
+
+    virLibConnError (vol->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return NULL;
+
+}
+
+/**
+ * virStoragePoolCreateXML:
+ * @conn: pointer to hypervisor connection
+ * @xmlDesc: XML description for new pool
+ *
+ * Create a new storage based on its XML description. The
+ * pool is not persitent, so its definition will disappear
+ * when it is destroyed, or if the host is restarted
+ *
+ * Returns a virStoragePoolPtr object, or NULL if creation failed
+ */
+virStoragePoolPtr
+virStoragePoolCreateXML(virConnectPtr conn,
+                        const char *xmlDesc,
+                        unsigned int flags)
+{
+    DEBUG("conn=%p, xmlDesc=%s", conn, xmlDesc);
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (NULL);
+    }
+    if (xmlDesc == NULL) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return (NULL);
+    }
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibConnError(conn, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        return (NULL);
+    }
+
+    if (conn->storageDriver && conn->storageDriver->poolCreateXML)
+        return conn->storageDriver->poolCreateXML (conn, xmlDesc, flags);
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return NULL;
+}
+
+/**
+ * virStoragePoolDefineXML:
+ * @conn: pointer to hypervisor connection
+ * @xml: XML description for new pool
+ *
+ * Define a new inactive storage pool based on its XML description. The
+ * pool is persitent, until explicitly undefined.
+ *
+ * Returns a virStoragePoolPtr object, or NULL if creation failed
+ */
+virStoragePoolPtr
+virStoragePoolDefineXML(virConnectPtr conn,
+                        const char *xml,
+                        unsigned int flags)
+{
+    DEBUG("conn=%p, xml=%s", conn, xml);
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (NULL);
+    }
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibConnError(conn, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        return (NULL);
+    }
+    if (xml == NULL) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return (NULL);
+    }
+
+    if (conn->storageDriver && conn->storageDriver->poolDefineXML)
+        return conn->storageDriver->poolDefineXML (conn, xml, flags);
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return NULL;
+
+}
+
+/**
+ * virStoragePoolBuild:
+ * @pool: pointer to storage pool
+ *
+ * Build the underlying storage pool
+ *
+ * Returns 0 on success, or -1 upon failure
+ */
+int
+virStoragePoolBuild(virStoragePoolPtr pool,
+                    unsigned int flags)
+{
+    virConnectPtr conn;
+    DEBUG("pool=%p, flags=%u", pool, flags);
+
+    if (!VIR_IS_CONNECTED_STORAGE_POOL(pool)) {
+        virLibStoragePoolError(NULL, VIR_ERR_INVALID_NETWORK, __FUNCTION__);
+        return (-1);
+    }
+    conn = pool->conn;
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibStoragePoolError(pool, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        return (-1);
+    }
+
+    if (conn->storageDriver && conn->storageDriver->poolBuild)
+        return conn->storageDriver->poolBuild (pool, flags);
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return -1;
+
+}
+
+
+/**
+ * virStoragePoolUndefine:
+ * @pool: pointer to storage pool
+ *
+ * Undefine an inactive storage pool
+ *
+ * Returns a virStoragePoolPtr object, or NULL if creation failed
+ */
+int
+virStoragePoolUndefine(virStoragePoolPtr pool)
+{
+    virConnectPtr conn;
+    DEBUG("pool=%p", pool);
+
+    if (!VIR_IS_CONNECTED_STORAGE_POOL(pool)) {
+        virLibStoragePoolError(NULL, VIR_ERR_INVALID_NETWORK, __FUNCTION__);
+        return (-1);
+    }
+    conn = pool->conn;
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibStoragePoolError(pool, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        return (-1);
+    }
+
+    if (conn->storageDriver && conn->storageDriver->poolUndefine)
+        return conn->storageDriver->poolUndefine (pool);
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return -1;
+
+}
+
+
+/**
+ * virStoragePoolCreate:
+ * @pool: pointer to storage pool
+ *
+ * Starts an inactive storage pool
+ *
+ * Returns 0 on success, or -1 if it could not be started
+ */
+int
+virStoragePoolCreate(virStoragePoolPtr pool,
+                     unsigned int flags)
+{
+    virConnectPtr conn;
+    DEBUG("pool=%p", pool);
+
+    if (pool == NULL) {
+        TODO;
+        return (-1);
+    }
+    if (!VIR_IS_CONNECTED_STORAGE_POOL(pool)) {
+        virLibStoragePoolError(NULL, VIR_ERR_INVALID_STORAGE_POOL, __FUNCTION__);
+        return (-1);
+    }
+    conn = pool->conn;
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibStoragePoolError(pool, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        return (-1);
+    }
+
+    if (conn->storageDriver && conn->storageDriver->poolCreate)
+        return conn->storageDriver->poolCreate (pool, flags);
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return -1;
+
+}
+
+
+/**
+ * virStoragePoolDestroy:
+ * @pool: pointer to storage pool
+ *
+ * Destroy an active storage pool. This will deactivate the
+ * pool on the host, but keep any persistent config associated
+ * with it. If it has a persistent config it can later be
+ * restarted with virStoragePoolCreate(). This does not free
+ * the associated virStoragePoolPtr object.
+ *
+ * Returns 0 on success, or -1 if it could not be destroyed
+ */
+int
+virStoragePoolDestroy(virStoragePoolPtr pool)
+{
+    virConnectPtr conn;
+    DEBUG("pool=%p", pool);
+
+    if (!VIR_IS_CONNECTED_STORAGE_POOL(pool)) {
+        virLibStoragePoolError(NULL, VIR_ERR_INVALID_STORAGE_POOL, __FUNCTION__);
+        return (-1);
+    }
+
+    conn = pool->conn;
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibStoragePoolError(pool, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        return (-1);
+    }
+
+    if (conn->storageDriver && conn->storageDriver->poolDestroy)
+        return conn->storageDriver->poolDestroy (pool);
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return -1;
+}
+
+/**
+ * virStoragePoolDelete:
+ * @pool: pointer to storage pool
+ * @flags: flags for obliteration process
+ *
+ * Delete the underlying pool resources. This is
+ * a non-recoverable operation. The virStoragePoolPtr object
+ * itself is not free'd.
+ *
+ * Returns 0 on success, or -1 if it could not be obliterate
+ */
+int
+virStoragePoolDelete(virStoragePoolPtr pool,
+                     unsigned int flags)
+{
+    virConnectPtr conn;
+    DEBUG("pool=%p, flags=%u", pool, flags);
+
+    if (!VIR_IS_CONNECTED_STORAGE_POOL(pool)) {
+        virLibStoragePoolError(NULL, VIR_ERR_INVALID_STORAGE_POOL, __FUNCTION__);
+        return (-1);
+    }
+
+    conn = pool->conn;
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibStoragePoolError(pool, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        return (-1);
+    }
+
+    if (conn->storageDriver && conn->storageDriver->poolDelete)
+        return conn->storageDriver->poolDelete (pool, flags);
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return -1;
+}
+
+
+/**
+ * virStoragePoolFree:
+ * @pool: pointer to storage pool
+ *
+ * Free a storage pool object, releasing all memory associated with
+ * it. Does not change the state of the pool on the host.
+ *
+ * Returns 0 on success, or -1 if it could not be free'd.
+ */
+int
+virStoragePoolFree(virStoragePoolPtr pool)
+{
+    DEBUG("pool=%p", pool);
+
+    if (!VIR_IS_STORAGE_POOL(pool)) {
+        virLibStoragePoolError(NULL, VIR_ERR_INVALID_STORAGE_POOL, __FUNCTION__);
+        return (-1);
+    }
+    if (virUnrefStoragePool(pool) < 0)
+        return (-1);
+    return(0);
+
+}
+
+
+/**
+ * virStoragePoolRefresh:
+ * @pool: pointer to storage pool
+ * @flags: flags to control refresh behaviour (currently unused, use 0)
+ *
+ * Request that the pool refresh its list of volumes. This may
+ * involve communicating with a remote server, and/or initializing
+ * new devices at the OS layer
+ *
+ * Return 0 if the volume list was refreshed, -1 on failure
+ */
+int
+virStoragePoolRefresh(virStoragePoolPtr pool,
+                      unsigned int flags)
+{
+    virConnectPtr conn;
+    DEBUG("pool=%p flags=%u", pool, flags);
+
+    if (!VIR_IS_CONNECTED_STORAGE_POOL(pool)) {
+        virLibStoragePoolError(NULL, VIR_ERR_INVALID_STORAGE_POOL, __FUNCTION__);
+        return (-1);
+    }
+
+    conn = pool->conn;
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibStoragePoolError(pool, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        return (-1);
+    }
+
+    if (conn->storageDriver && conn->storageDriver->poolRefresh)
+        return conn->storageDriver->poolRefresh (pool, flags);
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return -1;
+}
+
+
+/**
+ * virStoragePoolGetName:
+ * @pool: pointer to storage pool
+ *
+ * Fetch the locally unique name of the storage pool
+ *
+ * Return the name of the pool, or NULL on error
+ */
+const char*
+virStoragePoolGetName(virStoragePoolPtr pool)
+{
+    DEBUG("pool=%p", pool);
+
+    if (!VIR_IS_STORAGE_POOL(pool)) {
+        virLibStoragePoolError(NULL, VIR_ERR_INVALID_STORAGE_POOL, __FUNCTION__);
+        return (NULL);
+    }
+    return (pool->name);
+
+}
+
+
+/**
+ * virStoragePoolGetUUID:
+ * @pool: pointer to storage pool
+ * @uuid: buffer of VIR_UUID_BUFLEN bytes in size
+ *
+ * Fetch the globally unique ID of the storage pool
+ *
+ * Return 0 on success, or -1 on error;
+ */
+int
+virStoragePoolGetUUID(virStoragePoolPtr pool,
+                      unsigned char *uuid)
+{
+    DEBUG("pool=%p, uuid=%p", pool, uuid);
+
+    if (!VIR_IS_STORAGE_POOL(pool)) {
+        virLibStoragePoolError(NULL, VIR_ERR_INVALID_STORAGE_POOL, __FUNCTION__);
+        return (-1);
+    }
+    if (uuid == NULL) {
+        virLibStoragePoolError(pool, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return (-1);
+    }
+
+    memcpy(uuid, &pool->uuid[0], VIR_UUID_BUFLEN);
+
+    return (0);
+
+}
+
+/**
+ * virStoragePoolGetUUIDString:
+ * @pool: pointer to storage pool
+ * @buf: buffer of VIR_UUID_STRING_BUFLEN bytes in size
+ *
+ * Fetch the globally unique ID of the storage pool as a string
+ *
+ * Return 0 on success, or -1 on error;
+ */
+int
+virStoragePoolGetUUIDString(virStoragePoolPtr pool,
+                            char *buf)
+{
+    unsigned char uuid[VIR_UUID_BUFLEN];
+    DEBUG("pool=%p, buf=%p", pool, buf);
+
+    if (!VIR_IS_STORAGE_POOL(pool)) {
+        virLibStoragePoolError(NULL, VIR_ERR_INVALID_STORAGE_POOL, __FUNCTION__);
+        return (-1);
+    }
+    if (buf == NULL) {
+        virLibStoragePoolError(pool, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return (-1);
+    }
+
+    if (virStoragePoolGetUUID(pool, &uuid[0]))
+        return (-1);
+
+    virUUIDFormat(uuid, buf);
+    return (0);
+
+}
+
+
+/**
+ * virStoragePoolGetInfo:
+ * @pool: pointer to storage pool
+ * @info: pointer at which to store info
+ *
+ * Get volatile information about the storage pool
+ * such as free space / usage summary
+ *
+ * returns 0 on success, or -1 on failure.
+ */
+int
+virStoragePoolGetInfo(virStoragePoolPtr pool,
+                      virStoragePoolInfoPtr info)
+{
+    virConnectPtr conn;
+    DEBUG("pool=%p, info=%p", pool, info);
+
+    if (!VIR_IS_CONNECTED_STORAGE_POOL(pool)) {
+        virLibStoragePoolError(NULL, VIR_ERR_INVALID_STORAGE_POOL, __FUNCTION__);
+        return (-1);
+    }
+    if (info == NULL) {
+        virLibStoragePoolError(pool, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return (-1);
+    }
+
+    memset(info, 0, sizeof(virStoragePoolInfo));
+
+    conn = pool->conn;
+
+    if (conn->storageDriver->poolGetInfo)
+        return conn->storageDriver->poolGetInfo (pool, info);
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return -1;
+
+}
+
+
+/**
+ * virStoragePoolGetXMLDesc:
+ * @pool: pointer to storage pool
+ * @flags: flags for XML format options (unused, pass 0)
+ *
+ * Fetch an XML document describing all aspects of the
+ * storage pool. This is suitable for later feeding back
+ * into the virStoragePoolCreateXML method.
+ *
+ * returns a XML document, or NULL on error
+ */
+char *
+virStoragePoolGetXMLDesc(virStoragePoolPtr pool,
+                         unsigned int flags)
+{
+    virConnectPtr conn;
+    DEBUG("pool=%p, flags=%u", pool, flags);
+
+    if (!VIR_IS_STORAGE_POOL(pool)) {
+        virLibStoragePoolError(NULL, VIR_ERR_INVALID_STORAGE_POOL, __FUNCTION__);
+        return (NULL);
+    }
+    if (flags != 0) {
+        virLibStoragePoolError(pool, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return (NULL);
+    }
+
+    conn = pool->conn;
+
+    if (conn->storageDriver && conn->storageDriver->poolGetXMLDesc)
+        return conn->storageDriver->poolGetXMLDesc (pool, flags);
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return NULL;
+
+}
+
+
+/**
+ * virStoragePoolGetAutostart:
+ * @pool: pointer to storage pool
+ * @autostart: location in which to store autostart flag
+ *
+ * Fetches the value of the autostart flag, which determines
+ * whether the pool is automatically started at boot time
+ *
+ * return 0 on success, -1 on failure
+ */
+int
+virStoragePoolGetAutostart(virStoragePoolPtr pool,
+                           int *autostart)
+{
+    virConnectPtr conn;
+    DEBUG("pool=%p, autostart=%p", pool, autostart);
+
+    if (!VIR_IS_STORAGE_POOL(pool)) {
+        virLibStoragePoolError(NULL, VIR_ERR_INVALID_STORAGE_POOL, __FUNCTION__);
+        return (-1);
+    }
+    if (!autostart) {
+        virLibStoragePoolError(pool, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return (-1);
+    }
+
+    conn = pool->conn;
+
+    if (conn->storageDriver && conn->storageDriver->poolGetAutostart)
+        return conn->storageDriver->poolGetAutostart (pool, autostart);
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return -1;
+}
+
+
+/**
+ * virStoragePoolSetAutostart:
+ * @pool: pointer to storage pool
+ * @autostart: new flag setting
+ *
+ * Sets the autostart flag
+ *
+ * returns 0 on success, -1 on failure
+ */
+int
+virStoragePoolSetAutostart(virStoragePoolPtr pool,
+                           int autostart)
+{
+    virConnectPtr conn;
+    DEBUG("pool=%p, autostart=%d", pool, autostart);
+
+    if (!VIR_IS_STORAGE_POOL(pool)) {
+        virLibStoragePoolError(NULL, VIR_ERR_INVALID_STORAGE_POOL, __FUNCTION__);
+        return (-1);
+    }
+
+    conn = pool->conn;
+
+    if (conn->storageDriver && conn->storageDriver->poolSetAutostart)
+        return conn->storageDriver->poolSetAutostart (pool, autostart);
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return -1;
+}
+
+
+/**
+ * virStoragePoolNumOfVolumes:
+ * @pool: pointer to storage pool
+ *
+ * Fetch the number of storage volumes within a pool
+ *
+ * Returns the number of storage pools, or -1 on failure
+ */
+int
+virStoragePoolNumOfVolumes(virStoragePoolPtr pool)
+{
+    DEBUG("pool=%p", pool);
+
+    if (!VIR_IS_STORAGE_POOL(pool)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_STORAGE_POOL, __FUNCTION__);
+        return (-1);
+    }
+
+    if (pool->conn->storageDriver && pool->conn->storageDriver->poolNumOfVolumes)
+        return pool->conn->storageDriver->poolNumOfVolumes (pool);
+
+    virLibConnError (pool->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return -1;
+}
+
+
+/**
+ * virStoragePoolListVolumes:
+ * @pool: pointer to storage pool
+ * @names: array in which to storage volume names
+ * @maxnames: size of names array
+ *
+ * Fetch list of storage volume names, limiting to
+ * at most maxnames.
+ *
+ * Returns the number of names fetched, or -1 on error
+ */
+int
+virStoragePoolListVolumes(virStoragePoolPtr pool,
+                          char **const names,
+                          int maxnames)
+{
+    DEBUG("pool=%p, names=%p, maxnames=%d", pool, names, maxnames);
+
+    if (!VIR_IS_STORAGE_POOL(pool)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_STORAGE_POOL, __FUNCTION__);
+        return (-1);
+    }
+
+    if ((names == NULL) || (maxnames < 0)) {
+        virLibConnError(pool->conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return (-1);
+    }
+
+    if (pool->conn->storageDriver && pool->conn->storageDriver->poolListVolumes)
+        return pool->conn->storageDriver->poolListVolumes (pool, names, maxnames);
+
+    virLibConnError (pool->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return -1;
+}
+
+
+/**
+ * virStorageVolGetConnect:
+ * @vol: pointer to a poool
+ *
+ * Provides the connection pointer associated with a storage volume.  The
+ * reference counter on the connection is not increased by this
+ * call.
+ *
+ * WARNING: When writing libvirt bindings in other languages, do
+ * not use this function.  Instead, store the connection and
+ * the volume object together.
+ *
+ * Returns the virConnectPtr or NULL in case of failure.
+ */
+virConnectPtr
+virStorageVolGetConnect (virStorageVolPtr vol)
+{
+    DEBUG("vol=%p", vol);
+
+    if (!VIR_IS_STORAGE_VOL (vol)) {
+        virLibStoragePoolError (NULL, VIR_ERR_INVALID_STORAGE_VOL, __FUNCTION__);
+        return NULL;
+    }
+    return vol->conn;
+}
+
+
+/**
+ * virStorageVolLookupByName:
+ * @pool: pointer to storage pool
+ * @name: name of storage volume
+ *
+ * Fetch a pointer to a storage volume based on its name
+ * within a pool
+ *
+ * return a storage volume, or NULL if not found / error
+ */
+virStorageVolPtr
+virStorageVolLookupByName(virStoragePoolPtr pool,
+                          const char *name)
+{
+    DEBUG("pool=%p, name=%s", pool, name);
+
+    if (!VIR_IS_STORAGE_POOL(pool)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (NULL);
+    }
+    if (name == NULL) {
+        virLibConnError(pool->conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return (NULL);
+    }
+
+    if (pool->conn->storageDriver && pool->conn->storageDriver->volLookupByName)
+        return pool->conn->storageDriver->volLookupByName (pool, name);
+
+    virLibConnError (pool->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return NULL;
+}
+
+
+
+/**
+ * virStorageVolLookupByKey:
+ * @conn: pointer to hypervisor connection
+ * @key: globally unique key
+ *
+ * Fetch a pointer to a storage volume based on its
+ * globally unique key
+ *
+ * return a storage volume, or NULL if not found / error
+ */
+virStorageVolPtr
+virStorageVolLookupByKey(virConnectPtr conn,
+                         const char *key)
+{
+    DEBUG("conn=%p, key=%s", conn, key);
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (NULL);
+    }
+    if (key == NULL) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return (NULL);
+    }
+
+    if (conn->storageDriver && conn->storageDriver->volLookupByKey)
+        return conn->storageDriver->volLookupByKey (conn, key);
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return NULL;
+}
+
+/**
+ * virStorageVolLookupByPath:
+ * @conn: pointer to hypervisor connection
+ * @path: locally unique path
+ *
+ * Fetch a pointer to a storage volume based on its
+ * locally (host) unique path
+ *
+ * return a storage volume, or NULL if not found / error
+ */
+virStorageVolPtr
+virStorageVolLookupByPath(virConnectPtr conn,
+                          const char *path)
+{
+    DEBUG("conn=%p, path=%s", conn, path);
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (NULL);
+    }
+    if (path == NULL) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return (NULL);
+    }
+
+    if (conn->storageDriver && conn->storageDriver->volLookupByPath)
+        return conn->storageDriver->volLookupByPath (conn, path);
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return NULL;
+}
+
+
+/**
+ * virStorageVolGetName:
+ * @vol: pointer to storage volume
+ *
+ * Fetch the storage volume name. This is unique
+ * within the scope of a pool
+ *
+ * return the volume name, or NULL on error
+ */
+const char*
+virStorageVolGetName(virStorageVolPtr vol)
+{
+    DEBUG("vol=%p", vol);
+
+    if (!VIR_IS_STORAGE_VOL(vol)) {
+        virLibStorageVolError(NULL, VIR_ERR_INVALID_STORAGE_VOL, __FUNCTION__);
+        return (NULL);
+    }
+    return (vol->name);
+}
+
+
+/**
+ * virStorageVolGetKey:
+ * @vol: pointer to storage volume
+ *
+ * Fetch the storage volume key. This is globally
+ * unique, so the same volume will hve the same
+ * key no matter what host it is accessed from
+ *
+ * return the volume key, or NULL on error
+ */
+const char*
+virStorageVolGetKey(virStorageVolPtr vol)
+{
+    DEBUG("vol=%p", vol);
+
+    if (!VIR_IS_STORAGE_VOL(vol)) {
+        virLibStorageVolError(NULL, VIR_ERR_INVALID_STORAGE_VOL, __FUNCTION__);
+        return (NULL);
+    }
+    return (vol->key);
+}
+
+
+/**
+ * virStorageVolCreateXML:
+ * @pool: pointer to storage pool
+ * @xmldesc: description of volume to create
+ * @flags: flags for creation (unused, pass 0)
+ *
+ * Create a storage volume within a pool based
+ * on an XML description. Not all pools support
+ * creation of volumes
+ *
+ * return the storage volume, or NULL on error
+ */
+virStorageVolPtr
+virStorageVolCreateXML(virStoragePoolPtr pool,
+                       const char *xmldesc,
+                       unsigned int flags)
+{
+    DEBUG("pool=%p, flags=%u", pool, flags);
+
+    if (!VIR_IS_STORAGE_POOL(pool)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_STORAGE_VOL, __FUNCTION__);
+        return (NULL);
+    }
+
+    if (pool->conn->flags & VIR_CONNECT_RO) {
+        virLibConnError(pool->conn, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        return (NULL);
+    }
+
+    if (pool->conn->storageDriver && pool->conn->storageDriver->volCreateXML)
+        return pool->conn->storageDriver->volCreateXML (pool, xmldesc, flags);
+
+    virLibConnError (pool->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return NULL;
+}
+
+
+/**
+ * virStorageVolDelete:
+ * @vol: pointer to storage volume
+ *
+ * Delete the storage volume from the pool
+ *
+ * Return 0 on success, or -1 on error
+ */
+int
+virStorageVolDelete(virStorageVolPtr vol,
+                    unsigned int flags)
+{
+    virConnectPtr conn;
+    DEBUG("vol=%p, flags=%u", vol, flags);
+
+    if (!VIR_IS_CONNECTED_STORAGE_VOL(vol)) {
+        virLibStorageVolError(NULL, VIR_ERR_INVALID_STORAGE_VOL, __FUNCTION__);
+        return (-1);
+    }
+
+    conn = vol->conn;
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibStorageVolError(vol, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        return (-1);
+    }
+
+    if (conn->storageDriver && conn->storageDriver->volDelete)
+        return conn->storageDriver->volDelete (vol, flags);
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return -1;
+}
+
+
+/**
+ * virStorageVolFree:
+ * @vol: pointer to storage volume
+ *
+ * Release the storage volume handle. The underlying
+ * storage volume contains to exist
+ *
+ * Return 0 on success, or -1 on error
+ */
+int
+virStorageVolFree(virStorageVolPtr vol)
+{
+    DEBUG("vol=%p", vol);
+
+    if (!VIR_IS_STORAGE_VOL(vol)) {
+        virLibStorageVolError(NULL, VIR_ERR_INVALID_STORAGE_VOL, __FUNCTION__);
+        return (-1);
+    }
+    if (virUnrefStorageVol(vol) < 0)
+        return (-1);
+    return(0);
+}
+
+
+/**
+ * virStorageVolGetInfo:
+ * @vol: pointer to storage volume
+ * @info: pointer at which to store info
+ *
+ * Fetches volatile information about the storage
+ * volume such as its current allocation
+ *
+ * Return 0 on success, or -1 on failure
+ */
+int
+virStorageVolGetInfo(virStorageVolPtr vol,
+                     virStorageVolInfoPtr info)
+{
+    virConnectPtr conn;
+    DEBUG("vol=%p, info=%p", vol, info);
+
+    if (!VIR_IS_CONNECTED_STORAGE_VOL(vol)) {
+        virLibStorageVolError(NULL, VIR_ERR_INVALID_STORAGE_VOL, __FUNCTION__);
+        return (-1);
+    }
+    if (info == NULL) {
+        virLibStorageVolError(vol, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return (-1);
+    }
+
+    memset(info, 0, sizeof(virStorageVolInfo));
+
+    conn = vol->conn;
+
+    if (conn->storageDriver->volGetInfo)
+        return conn->storageDriver->volGetInfo (vol, info);
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return -1;
+}
+
+
+/**
+ * virStorageVolGetXMLDesc:
+ * @vol: pointer to storage volume
+ * @flags: flags for XML generation (unused, pass 0)
+ *
+ * Fetch an XML document describing all aspects of
+ * the storage volume
+ *
+ * Return the XML document, or NULL on error
+ */
+char *
+virStorageVolGetXMLDesc(virStorageVolPtr vol,
+                        unsigned int flags)
+{
+    virConnectPtr conn;
+    DEBUG("vol=%p, flags=%u", vol, flags);
+
+    if (!VIR_IS_STORAGE_VOL(vol)) {
+        virLibStorageVolError(NULL, VIR_ERR_INVALID_STORAGE_VOL, __FUNCTION__);
+        return (NULL);
+    }
+    if (flags != 0) {
+        virLibStorageVolError(vol, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return (NULL);
+    }
+
+    conn = vol->conn;
+
+    if (conn->storageDriver && conn->storageDriver->volGetXMLDesc)
+        return conn->storageDriver->volGetXMLDesc (vol, flags);
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return NULL;
+
+}
+
+
+/**
+ * virStorageVolGetPath:
+ * @vol: pointer to storage volume
+ *
+ * Fetch the storage volume path. Depending on the pool
+ * configuration this is either persistent across hosts,
+ * or dynamically assigned at pool startup. Consult
+ * pool documentation for information on getting the
+ * persistent naming
+ *
+ * Returns the storage volume path, or NULL on error
+ */
+char *
+virStorageVolGetPath(virStorageVolPtr vol)
+{
+    virConnectPtr conn;
+    DEBUG("vol=%p", vol);
+
+    if (!VIR_IS_STORAGE_VOL(vol)) {
+        virLibStorageVolError(NULL, VIR_ERR_INVALID_STORAGE_VOL, __FUNCTION__);
+        return (NULL);
+    }
+
+    conn = vol->conn;
+
+    if (conn->storageDriver && conn->storageDriver->volGetPath)
+        return conn->storageDriver->volGetPath (vol);
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return NULL;
+}
+
 
 /*
  * vim: set tabstop=4:

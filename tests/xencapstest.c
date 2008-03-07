@@ -1,4 +1,4 @@
-#include "config.h"
+#include <config.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,7 +50,8 @@ static int testCompareFiles(const char *hostmachine,
   if (!(actualxml = xenHypervisorMakeCapabilitiesXML(NULL, hostmachine, fp1, fp2)))
     goto fail;
 
-  if (getenv("DEBUG_TESTS")) {
+  if (getenv("DEBUG_TESTS") &&
+      STRNEQ(expectxml, actualxml)) {
     printf("In test file %s:\n", capabilities);
     printf("Expect %d '%s'\n", (int)strlen(expectxml), expectxml);
     printf("Actual %d '%s'\n", (int)strlen(actualxml), actualxml);
@@ -62,8 +63,7 @@ static int testCompareFiles(const char *hostmachine,
 
  fail:
 
-  if (actualxml)
-    free(actualxml);
+  free(actualxml);
   if (fp1)
     fclose(fp1);
   if (fp2)

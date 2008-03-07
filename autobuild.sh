@@ -16,13 +16,14 @@ rm -rf coverage
 
 ./autogen.sh --prefix=$AUTOBUILD_INSTALL_ROOT \
   --enable-test-coverage \
-  --enable-compile-warnings=error 
+  --enable-compile-warnings=error
 
 make
 make install
 
 set -o pipefail
 make check 2>&1 | tee $RESULTS
+make syntax-check 2>&1 | tee -a $RESULTS
 make cov
 
 rm -f *.tar.gz

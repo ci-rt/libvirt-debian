@@ -7,10 +7,10 @@
  *
  * Karel Zak <kzak@redhat.com>
  *
- * $Id: testutils.c,v 1.8 2007/12/07 10:08:06 meyering Exp $
+ * $Id: testutils.c,v 1.10 2008/01/29 18:15:54 meyering Exp $
  */
 
-#include "config.h"
+#include <config.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -83,8 +83,7 @@ virtTestRun(const char *title, int nloops, int (*body)(const void *data), const 
     else
         fprintf(stderr, "%-50s ... FAILED\n", title);
 
-    if (ts)
-        free(ts);
+    free(ts);
     return ret;
 }
 

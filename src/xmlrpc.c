@@ -8,7 +8,7 @@
  * Anthony Liguori <aliguori@us.ibm.com>
  */
 
-#include "config.h"
+#include <config.h>
 
 #include "xmlrpc.h"
 #include "internal.h"
@@ -48,11 +48,11 @@ static void xmlRpcError(virErrorNumber error, const char *info, int value)
 static xmlRpcValuePtr xmlRpcValueNew(xmlRpcValueType type)
 {
     xmlRpcValuePtr ret = malloc(sizeof(*ret));
-    
+
     if (!ret)
-        xmlRpcError(VIR_ERR_NO_MEMORY, "allocate value", sizeof(*ret));
+	xmlRpcError(VIR_ERR_NO_MEMORY, _("allocate value"), sizeof(*ret));
     else
-        ret->kind = type;
+	ret->kind = type;
     return ret;
 }
 
@@ -95,7 +95,7 @@ static xmlRpcValuePtr xmlRpcValueUnmarshalDateTime(xmlNodePtr node ATTRIBUTE_UNU
 static xmlRpcValuePtr xmlRpcValueUnmarshalString(xmlNodePtr node)
 {
     xmlRpcValuePtr ret = xmlRpcValueNew(XML_RPC_STRING);
-    
+
     if (ret)
         ret->value.string = xmlGetText(node);
     return ret;
@@ -112,11 +112,10 @@ static xmlRpcValuePtr xmlRpcValueUnmarshalInteger(xmlNodePtr node)
 {
     xmlRpcValuePtr ret = xmlRpcValueNew(XML_RPC_INTEGER);
     char *value = xmlGetText(node);
-    
+
     if (ret && value)
         ret->value.integer = atoi(value);
-    if (value)
-        free(value);
+    free(value);
     return ret;
 }
 
@@ -131,8 +130,7 @@ static xmlRpcValuePtr xmlRpcValueUnmarshalBoolean(xmlNodePtr node)
 	ret->value.boolean = true;
     else
 	ret->value.boolean = false;
-    if (value)
-        free(value);
+    free(value);
     return ret;
 }
 
@@ -143,8 +141,7 @@ static xmlRpcValuePtr xmlRpcValueUnmarshalDouble(xmlNodePtr node)
 
     if (ret && value)
         ret->value.real = atof(value);
-    if (value)
-        free(value);
+    free(value);
     return ret;
 }
 
@@ -186,7 +183,7 @@ static xmlRpcValueDictElementPtr xmlRpcValueUnmarshalDictElement(xmlNodePtr node
     xmlNodePtr cur;
 
     if (!ret) {
-        xmlRpcError(VIR_ERR_NO_MEMORY, "allocate dict", sizeof(*ret));
+	xmlRpcError(VIR_ERR_NO_MEMORY, _("allocate dict"), sizeof(*ret));
 	return NULL;
     }
     memset(ret, 0, sizeof(*ret));
@@ -198,8 +195,7 @@ static xmlRpcValueDictElementPtr xmlRpcValueUnmarshalDictElement(xmlNodePtr node
 	    ret->value = xmlRpcValueUnmarshal(cur);
 	} else {
             xmlRpcError(VIR_ERR_XML_ERROR, _("unexpected dict node"), 0);
-	    if (ret->name)
-		free(ret->name);
+	    free(ret->name);
 	    if (ret->value)
 		xmlRpcValueFree(ret->value);
 	    free(ret);
@@ -220,15 +216,15 @@ static xmlRpcValuePtr xmlRpcValueUnmarshalDict(xmlNodePtr node)
 
     if (!ret)
 	return NULL;
-    
+
     ret->value.dict.root = root;
-    
+
     for (cur = xmlFirstElement(node); cur; cur = xmlNextElement(cur)) {
 	*elem = xmlRpcValueUnmarshalDictElement(cur);
 	if (*elem==NULL) {
 	    xmlRpcValueFree(ret);
 	    return NULL;
-	} 
+	}
 	elem = &(*elem)->next;
     }
 
@@ -357,7 +353,7 @@ void xmlRpcValueMarshal(xmlRpcValuePtr value, virBufferPtr buf, int indent)
 	TODO
 	break;
     case XML_RPC_STRING:
-	virBufferStrcat(buf, 
+	virBufferStrcat(buf,
 		"<string>", value->value.string, "</string>", NULL);
 	break;
     case XML_RPC_NIL:
@@ -381,10 +377,10 @@ virBufferPtr xmlRpcMarshalRequest(const char *request,
 		    "  <methodName>", request, "</methodName>\n"
 		    "  <params>\n", NULL);
     for (i = 0; i < argc; i++) {
-	virBufferStrcat(buf,  
+	virBufferStrcat(buf,
                     "    <param>\n", NULL);
 	xmlRpcValueMarshal(argv[i], buf, 6);
-	virBufferStrcat(buf,  
+	virBufferStrcat(buf,
                     "    </param>\n", NULL);
     }
     virBufferStrcat(buf,
@@ -512,7 +508,7 @@ xmlRpcArgvNew(const char *fmt, va_list ap, int *argc)
     xmlRpcValuePtr *argv;
     const char *ptr;
     int i;
-    
+
     *argc = strlen(fmt);
     if (!(argv = malloc(sizeof(*argv) * *argc))) {
         xmlRpcError(VIR_ERR_NO_MEMORY, _("read response"), sizeof(*argv) * *argc);
@@ -577,22 +573,22 @@ int xmlRpcCall(xmlRpcContextPtr context, const char *method,
     void *retval = NULL;
 
     va_start(ap, fmt);
-    
+
     if (retfmt && *retfmt)
 	retval = va_arg(ap, void *);
- 
+
     if (!(argv = xmlRpcArgvNew(fmt, ap, &argc)))
 	return -1;
-    
+
     va_end(ap);
 
     buf = xmlRpcMarshalRequest(method, argc, argv);
 
     xmlRpcArgvFree(argc, argv);
-	
+
     if (!buf)
 	return -1;
-    
+
     ret = xmlRpcCallRaw(context->uri, buf->content);
 
     virBufferFree(buf);
@@ -648,7 +644,7 @@ int xmlRpcCall(xmlRpcContextPtr context, const char *method,
 
     xmlFreeDoc(xml);
 
-    if (fault) { 
+    if (fault) {
 	/* FIXME we need generic dict routines */
 	/* FIXME we need faultMessage propagate to libvirt error API */
 	context->faultCode = value->value.dict.root->value->value.integer;
@@ -679,12 +675,8 @@ xmlRpcContextPtr xmlRpcContextNew(const char *uri)
 void xmlRpcContextFree(xmlRpcContextPtr context)
 {
     if (context) {
-	if (context->uri)
-	    free(context->uri);
-
-	if (context->faultMessage)
-	    free(context->faultMessage);
-
+	free(context->uri);
+	free(context->faultMessage);
 	free(context);
     }
 }

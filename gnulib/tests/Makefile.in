@@ -139,113 +139,113 @@ PROGRAMS = $(noinst_PROGRAMS)
 test_alloca_opt_SOURCES = test-alloca-opt.c
 test_alloca_opt_OBJECTS = test-alloca-opt.$(OBJEXT)
 test_alloca_opt_LDADD = $(LDADD)
-test_alloca_opt_DEPENDENCIES = libtests.a $(am__DEPENDENCIES_1) \
-	../../gnulib/lib/libgnu.la
+test_alloca_opt_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_arpa_inet_SOURCES = test-arpa_inet.c
 test_arpa_inet_OBJECTS = test-arpa_inet.$(OBJEXT)
 test_arpa_inet_LDADD = $(LDADD)
-test_arpa_inet_DEPENDENCIES = libtests.a $(am__DEPENDENCIES_1) \
-	../../gnulib/lib/libgnu.la
+test_arpa_inet_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_fseeko_SOURCES = test-fseeko.c
 test_fseeko_OBJECTS = test-fseeko.$(OBJEXT)
 test_fseeko_LDADD = $(LDADD)
-test_fseeko_DEPENDENCIES = libtests.a $(am__DEPENDENCIES_1) \
-	../../gnulib/lib/libgnu.la
+test_fseeko_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_getaddrinfo_SOURCES = test-getaddrinfo.c
 test_getaddrinfo_OBJECTS = test-getaddrinfo.$(OBJEXT)
 test_getaddrinfo_LDADD = $(LDADD)
-test_getaddrinfo_DEPENDENCIES = libtests.a $(am__DEPENDENCIES_1) \
-	../../gnulib/lib/libgnu.la
+test_getaddrinfo_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_getdelim_SOURCES = test-getdelim.c
 test_getdelim_OBJECTS = test-getdelim.$(OBJEXT)
 test_getdelim_LDADD = $(LDADD)
-test_getdelim_DEPENDENCIES = libtests.a $(am__DEPENDENCIES_1) \
-	../../gnulib/lib/libgnu.la
+test_getdelim_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_getline_SOURCES = test-getline.c
 test_getline_OBJECTS = test-getline.$(OBJEXT)
 test_getline_LDADD = $(LDADD)
-test_getline_DEPENDENCIES = libtests.a $(am__DEPENDENCIES_1) \
-	../../gnulib/lib/libgnu.la
+test_getline_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_lseek_SOURCES = test-lseek.c
 test_lseek_OBJECTS = test-lseek.$(OBJEXT)
 test_lseek_LDADD = $(LDADD)
-test_lseek_DEPENDENCIES = libtests.a $(am__DEPENDENCIES_1) \
-	../../gnulib/lib/libgnu.la
+test_lseek_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_netinet_in_SOURCES = test-netinet_in.c
 test_netinet_in_OBJECTS = test-netinet_in.$(OBJEXT)
 test_netinet_in_LDADD = $(LDADD)
-test_netinet_in_DEPENDENCIES = libtests.a $(am__DEPENDENCIES_1) \
-	../../gnulib/lib/libgnu.la
+test_netinet_in_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_snprintf_SOURCES = test-snprintf.c
 test_snprintf_OBJECTS = test-snprintf.$(OBJEXT)
 test_snprintf_LDADD = $(LDADD)
-test_snprintf_DEPENDENCIES = libtests.a $(am__DEPENDENCIES_1) \
-	../../gnulib/lib/libgnu.la
+test_snprintf_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_stdbool_SOURCES = test-stdbool.c
 test_stdbool_OBJECTS = test-stdbool.$(OBJEXT)
 test_stdbool_LDADD = $(LDADD)
-test_stdbool_DEPENDENCIES = libtests.a $(am__DEPENDENCIES_1) \
-	../../gnulib/lib/libgnu.la
+test_stdbool_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_stdint_SOURCES = test-stdint.c
 test_stdint_OBJECTS = test-stdint.$(OBJEXT)
 test_stdint_LDADD = $(LDADD)
-test_stdint_DEPENDENCIES = libtests.a $(am__DEPENDENCIES_1) \
-	../../gnulib/lib/libgnu.la
+test_stdint_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_stdio_SOURCES = test-stdio.c
 test_stdio_OBJECTS = test-stdio.$(OBJEXT)
 test_stdio_LDADD = $(LDADD)
-test_stdio_DEPENDENCIES = libtests.a $(am__DEPENDENCIES_1) \
-	../../gnulib/lib/libgnu.la
+test_stdio_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_stdlib_SOURCES = test-stdlib.c
 test_stdlib_OBJECTS = test-stdlib.$(OBJEXT)
 test_stdlib_LDADD = $(LDADD)
-test_stdlib_DEPENDENCIES = libtests.a $(am__DEPENDENCIES_1) \
-	../../gnulib/lib/libgnu.la
+test_stdlib_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_string_SOURCES = test-string.c
 test_string_OBJECTS = test-string.$(OBJEXT)
 test_string_LDADD = $(LDADD)
-test_string_DEPENDENCIES = libtests.a $(am__DEPENDENCIES_1) \
-	../../gnulib/lib/libgnu.la
+test_string_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_sys_select_SOURCES = test-sys_select.c
 test_sys_select_OBJECTS = test-sys_select.$(OBJEXT)
 test_sys_select_LDADD = $(LDADD)
-test_sys_select_DEPENDENCIES = libtests.a $(am__DEPENDENCIES_1) \
-	../../gnulib/lib/libgnu.la
+test_sys_select_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_sys_socket_SOURCES = test-sys_socket.c
 test_sys_socket_OBJECTS = test-sys_socket.$(OBJEXT)
 test_sys_socket_LDADD = $(LDADD)
-test_sys_socket_DEPENDENCIES = libtests.a $(am__DEPENDENCIES_1) \
-	../../gnulib/lib/libgnu.la
+test_sys_socket_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_sys_stat_SOURCES = test-sys_stat.c
 test_sys_stat_OBJECTS = test-sys_stat.$(OBJEXT)
 test_sys_stat_LDADD = $(LDADD)
-test_sys_stat_DEPENDENCIES = libtests.a $(am__DEPENDENCIES_1) \
-	../../gnulib/lib/libgnu.la
+test_sys_stat_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_sys_time_SOURCES = test-sys_time.c
 test_sys_time_OBJECTS = test-sys_time.$(OBJEXT)
 test_sys_time_LDADD = $(LDADD)
-test_sys_time_DEPENDENCIES = libtests.a $(am__DEPENDENCIES_1) \
-	../../gnulib/lib/libgnu.la
+test_sys_time_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_unistd_SOURCES = test-unistd.c
 test_unistd_OBJECTS = test-unistd.$(OBJEXT)
 test_unistd_LDADD = $(LDADD)
-test_unistd_DEPENDENCIES = libtests.a $(am__DEPENDENCIES_1) \
-	../../gnulib/lib/libgnu.la
+test_unistd_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_vasnprintf_SOURCES = test-vasnprintf.c
 test_vasnprintf_OBJECTS = test-vasnprintf.$(OBJEXT)
 test_vasnprintf_LDADD = $(LDADD)
-test_vasnprintf_DEPENDENCIES = libtests.a $(am__DEPENDENCIES_1) \
-	../../gnulib/lib/libgnu.la
+test_vasnprintf_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_vasprintf_SOURCES = test-vasprintf.c
 test_vasprintf_OBJECTS = test-vasprintf.$(OBJEXT)
 test_vasprintf_LDADD = $(LDADD)
-test_vasprintf_DEPENDENCIES = libtests.a $(am__DEPENDENCIES_1) \
-	../../gnulib/lib/libgnu.la
+test_vasprintf_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_wchar_SOURCES = test-wchar.c
 test_wchar_OBJECTS = test-wchar.$(OBJEXT)
 test_wchar_LDADD = $(LDADD)
-test_wchar_DEPENDENCIES = libtests.a $(am__DEPENDENCIES_1) \
-	../../gnulib/lib/libgnu.la
+test_wchar_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 DEFAULT_INCLUDES = -I. -I$(top_builddir)@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
@@ -381,6 +381,7 @@ GNULIB_PRINTF_POSIX = @GNULIB_PRINTF_POSIX@
 GNULIB_PUTENV = @GNULIB_PUTENV@
 GNULIB_READLINK = @GNULIB_READLINK@
 GNULIB_REALLOC_POSIX = @GNULIB_REALLOC_POSIX@
+GNULIB_SETENV = @GNULIB_SETENV@
 GNULIB_SLEEP = @GNULIB_SLEEP@
 GNULIB_SNPRINTF = @GNULIB_SNPRINTF@
 GNULIB_SPRINTF_POSIX = @GNULIB_SPRINTF_POSIX@
@@ -394,7 +395,10 @@ GNULIB_STRNDUP = @GNULIB_STRNDUP@
 GNULIB_STRNLEN = @GNULIB_STRNLEN@
 GNULIB_STRPBRK = @GNULIB_STRPBRK@
 GNULIB_STRSEP = @GNULIB_STRSEP@
+GNULIB_STRSIGNAL = @GNULIB_STRSIGNAL@
+GNULIB_STRSTR = @GNULIB_STRSTR@
 GNULIB_STRTOK_R = @GNULIB_STRTOK_R@
+GNULIB_UNSETENV = @GNULIB_UNSETENV@
 GNULIB_VASPRINTF = @GNULIB_VASPRINTF@
 GNULIB_VFPRINTF_POSIX = @GNULIB_VFPRINTF_POSIX@
 GNULIB_VPRINTF_POSIX = @GNULIB_VPRINTF_POSIX@
@@ -416,6 +420,7 @@ HAVE_DECL_STRDUP = @HAVE_DECL_STRDUP@
 HAVE_DECL_STRERROR = @HAVE_DECL_STRERROR@
 HAVE_DECL_STRNDUP = @HAVE_DECL_STRNDUP@
 HAVE_DECL_STRNLEN = @HAVE_DECL_STRNLEN@
+HAVE_DECL_STRSIGNAL = @HAVE_DECL_STRSIGNAL@
 HAVE_DECL_STRTOK_R = @HAVE_DECL_STRTOK_R@
 HAVE_DECL_VSNPRINTF = @HAVE_DECL_VSNPRINTF@
 HAVE_DECL_WCWIDTH = @HAVE_DECL_WCWIDTH@
@@ -436,6 +441,7 @@ HAVE_NETINET_IN_H = @HAVE_NETINET_IN_H@
 HAVE_OS_H = @HAVE_OS_H@
 HAVE_READLINK = @HAVE_READLINK@
 HAVE_REALLOC_POSIX = @HAVE_REALLOC_POSIX@
+HAVE_SETENV = @HAVE_SETENV@
 HAVE_SIGNED_SIG_ATOMIC_T = @HAVE_SIGNED_SIG_ATOMIC_T@
 HAVE_SIGNED_WCHAR_T = @HAVE_SIGNED_WCHAR_T@
 HAVE_SIGNED_WINT_T = @HAVE_SIGNED_WINT_T@
@@ -457,6 +463,7 @@ HAVE_SYS_SOCKET_H = @HAVE_SYS_SOCKET_H@
 HAVE_SYS_TIME_H = @HAVE_SYS_TIME_H@
 HAVE_SYS_TYPES_H = @HAVE_SYS_TYPES_H@
 HAVE_UNISTD_H = @HAVE_UNISTD_H@
+HAVE_UNSETENV = @HAVE_UNSETENV@
 HAVE_UNSIGNED_LONG_LONG_INT = @HAVE_UNSIGNED_LONG_LONG_INT@
 HAVE_VASPRINTF = @HAVE_VASPRINTF@
 HAVE_WCHAR_H = @HAVE_WCHAR_H@
@@ -472,10 +479,13 @@ INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 INTLLIBS = @INTLLIBS@
 IPTABLES_PATH = @IPTABLES_PATH@
+ISCSIADM = @ISCSIADM@
 LDFLAGS = @LDFLAGS@
 LIBICONV = @LIBICONV@
 LIBINTL = @LIBINTL@
 LIBOBJS = @LIBOBJS@
+LIBPARTED_CFLAGS = @LIBPARTED_CFLAGS@
+LIBPARTED_LIBS = @LIBPARTED_LIBS@
 LIBS = @LIBS@
 LIBTESTS_LIBDEPS = @LIBTESTS_LIBDEPS@
 LIBTOOL = @LIBTOOL@
@@ -489,12 +499,19 @@ LIBVIRT_VERSION_NUMBER = @LIBVIRT_VERSION_NUMBER@
 LIBXML_CFLAGS = @LIBXML_CFLAGS@
 LIBXML_LIBS = @LIBXML_LIBS@
 LN_S = @LN_S@
+LOKKIT_PATH = @LOKKIT_PATH@
 LTLIBICONV = @LTLIBICONV@
 LTLIBINTL = @LTLIBINTL@
 LTLIBOBJS = @LTLIBOBJS@
+LVCREATE = @LVCREATE@
+LVREMOVE = @LVREMOVE@
+LVS = @LVS@
+LV_LIBTOOL_OBJDIR = @LV_LIBTOOL_OBJDIR@
 MAKEINFO = @MAKEINFO@
+MINGW_EXTRA_LDFLAGS = @MINGW_EXTRA_LDFLAGS@
 MKDIR_P = @MKDIR_P@
 MKINSTALLDIRS = @MKINSTALLDIRS@
+MOUNT = @MOUNT@
 MSGFMT = @MSGFMT@
 MSGMERGE = @MSGMERGE@
 MV = @MV@
@@ -519,17 +536,25 @@ PACKAGE_NAME = @PACKAGE_NAME@
 PACKAGE_STRING = @PACKAGE_STRING@
 PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_VERSION = @PACKAGE_VERSION@
+PARTED = @PARTED@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
+POLKIT_AUTH = @POLKIT_AUTH@
 POLKIT_CFLAGS = @POLKIT_CFLAGS@
+POLKIT_GRANT = @POLKIT_GRANT@
 POLKIT_LIBS = @POLKIT_LIBS@
 POLL_H = @POLL_H@
 POSUB = @POSUB@
 PTRDIFF_T_SUFFIX = @PTRDIFF_T_SUFFIX@
+PVCREATE = @PVCREATE@
+PVREMOVE = @PVREMOVE@
+PVS = @PVS@
 PYTHON = @PYTHON@
 PYTHON_INCLUDES = @PYTHON_INCLUDES@
 PYTHON_SITE_PACKAGES = @PYTHON_SITE_PACKAGES@
 PYTHON_VERSION = @PYTHON_VERSION@
+QCOW_CREATE = @QCOW_CREATE@
+QEMU_IMG = @QEMU_IMG@
 RANLIB = @RANLIB@
 READLINE_CFLAGS = @READLINE_CFLAGS@
 REMOTE_PID_FILE = @REMOTE_PID_FILE@
@@ -545,15 +570,20 @@ REPLACE_FTELL = @REPLACE_FTELL@
 REPLACE_FTELLO = @REPLACE_FTELLO@
 REPLACE_GETCWD = @REPLACE_GETCWD@
 REPLACE_GETLINE = @REPLACE_GETLINE@
+REPLACE_GETPAGESIZE = @REPLACE_GETPAGESIZE@
 REPLACE_GETTIMEOFDAY = @REPLACE_GETTIMEOFDAY@
 REPLACE_LCHOWN = @REPLACE_LCHOWN@
 REPLACE_LSEEK = @REPLACE_LSEEK@
+REPLACE_MEMMEM = @REPLACE_MEMMEM@
 REPLACE_MKSTEMP = @REPLACE_MKSTEMP@
 REPLACE_PRINTF = @REPLACE_PRINTF@
 REPLACE_PUTENV = @REPLACE_PUTENV@
 REPLACE_SNPRINTF = @REPLACE_SNPRINTF@
 REPLACE_SPRINTF = @REPLACE_SPRINTF@
+REPLACE_STRCASESTR = @REPLACE_STRCASESTR@
 REPLACE_STRERROR = @REPLACE_STRERROR@
+REPLACE_STRSIGNAL = @REPLACE_STRSIGNAL@
+REPLACE_STRSTR = @REPLACE_STRSTR@
 REPLACE_VASPRINTF = @REPLACE_VASPRINTF@
 REPLACE_VFPRINTF = @REPLACE_VFPRINTF@
 REPLACE_VPRINTF = @REPLACE_VPRINTF@
@@ -565,6 +595,8 @@ RPCGEN = @RPCGEN@
 SASL_CFLAGS = @SASL_CFLAGS@
 SASL_LIBS = @SASL_LIBS@
 SED = @SED@
+SELINUX_CFLAGS = @SELINUX_CFLAGS@
+SELINUX_LIBS = @SELINUX_LIBS@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 SIG_ATOMIC_T_SUFFIX = @SIG_ATOMIC_T_SUFFIX@
@@ -579,9 +611,15 @@ SYS_STAT_H = @SYS_STAT_H@
 SYS_TIME_H = @SYS_TIME_H@
 TAR = @TAR@
 U = @U@
+UMOUNT = @UMOUNT@
 USE_NLS = @USE_NLS@
 VERSION = @VERSION@
+VGCHANGE = @VGCHANGE@
+VGCREATE = @VGCREATE@
+VGREMOVE = @VGREMOVE@
+VGS = @VGS@
 VIRSH_LIBS = @VIRSH_LIBS@
+VOID_UNSETENV = @VOID_UNSETENV@
 WARN_CFLAGS = @WARN_CFLAGS@
 WCHAR_H = @WCHAR_H@
 WCHAR_T_SUFFIX = @WCHAR_T_SUFFIX@
@@ -672,11 +710,12 @@ AM_CPPFLAGS = \
   -I../.. -I$(srcdir)/../.. \
   -I../../gnulib/lib -I$(srcdir)/../../gnulib/lib
 
-LDADD = libtests.a $(LIBTESTS_LIBDEPS) ../../gnulib/lib/libgnu.la
+LDADD = libtests.a ../../gnulib/lib/libgnu.la libtests.a $(LIBTESTS_LIBDEPS)
 libtests_a_SOURCES = verify.h dummy.c
 libtests_a_LIBADD = $(gltests_LIBOBJS)
 libtests_a_DEPENDENCIES = $(gltests_LIBOBJS)
 EXTRA_libtests_a_SOURCES = 
+AM_LIBTOOLFLAGS = --preserve-dup-deps
 all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 

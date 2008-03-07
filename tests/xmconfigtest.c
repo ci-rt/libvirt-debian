@@ -21,7 +21,7 @@
  *
  */
 
-#include "config.h"
+#include <config.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -51,7 +51,7 @@ static int testCompareParseXML(const char *xmcfg_rel, const char *xml_rel,
     int ret = -1;
     virConnectPtr conn;
     int wrote = MAX_FILE;
-    void *old_priv;
+    void *old_priv = NULL;
     struct _xenUnifiedPrivate priv;
     char xmcfg[PATH_MAX];
     char xml[PATH_MAX];
@@ -153,8 +153,7 @@ static int testCompareFormatXML(const char *xmcfg_rel, const char *xml_rel,
  fail:
     if (conf)
         virConfFree(conf);
-    if (gotxml)
-        free(gotxml);
+    free(gotxml);
 
     if (conn) {
         conn->privateData = old_priv;

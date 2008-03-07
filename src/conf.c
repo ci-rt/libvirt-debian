@@ -1,14 +1,14 @@
 /**
  * conf.c: parser for a subset of the Python encoded Xen configuration files
  *
- * Copyright (C) 2006, 2007 Red Hat, Inc.
+ * Copyright (C) 2006, 2007, 2008 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
  * Daniel Veillard <veillard@redhat.com>
  */
 
-#include "config.h"
+#include <config.h>
 
 #include <string.h>
 
@@ -21,6 +21,7 @@
 #include "internal.h"
 #include "buf.h"
 #include "conf.h"
+#include "util.h"
 
 /************************************************************************
  *									*
@@ -200,7 +201,7 @@ virConfAddEntry(virConfPtr conf, char *name, virConfValuePtr value, char *comm)
         return(NULL);
     if ((comm == NULL) && (name == NULL))
         return(NULL);
-    
+
     ret = calloc(1, sizeof(*ret));
     if (ret == NULL) {
         virConfError(NULL, VIR_ERR_NO_MEMORY, _("allocating configuration"), 0);
@@ -263,17 +264,17 @@ virConfSaveValue(virBufferPtr buf, virConfValuePtr val)
 	    virConfValuePtr cur;
 
 	    cur = val->list;
-	    virBufferAdd(buf, "[ ", 2);
+	    virBufferAddLit(buf, "[ ");
 	    if (cur != NULL) {
 	        virConfSaveValue(buf, cur);
 		cur = cur->next;
 		while (cur != NULL) {
-		    virBufferAdd(buf, ", ", 2);
+		    virBufferAddLit(buf, ", ");
 		    virConfSaveValue(buf, cur);
 		    cur = cur->next;
 		}
 	    }
-	    virBufferAdd(buf, " ]", 2);
+	    virBufferAddLit(buf, " ]");
 	    break;
 	}
 	default:
@@ -296,17 +297,17 @@ virConfSaveEntry(virBufferPtr buf, virConfEntryPtr cur)
 {
     if (cur->name != NULL) {
         virBufferAdd(buf, cur->name, -1);
-	virBufferAdd(buf, " = ", 3);
+	virBufferAddLit(buf, " = ");
 	virConfSaveValue(buf, cur->value);
 	if (cur->comment != NULL) {
-	    virBufferAdd(buf, " #", 2);
+	    virBufferAddLit(buf, " #");
 	    virBufferAdd(buf, cur->comment, -1);
 	}
     } else if (cur->comment != NULL) {
-	virBufferAdd(buf, "#", 1);
+	virBufferAddLit(buf, "#");
 	virBufferAdd(buf, cur->comment, -1);
     }
-    virBufferAdd(buf, "\n", 1);
+    virBufferAddLit(buf, "\n");
     return(0);
 }
 
@@ -472,7 +473,7 @@ virConfParseValue(virConfParserCtxtPtr ctxt)
 	    NEXT;
 	} else {
 	    virConfError(NULL, VIR_ERR_CONF_SYNTAX,
-			 _("list is not closed with ] "), ctxt->line);
+			 _("list is not closed with ]"), ctxt->line);
 	    virConfFreeList(lst);
 	    return(NULL);
 	}
@@ -489,7 +490,6 @@ virConfParseValue(virConfParserCtxtPtr ctxt)
     ret = calloc(1, sizeof(*ret));
     if (ret == NULL) {
         virConfError(NULL, VIR_ERR_NO_MEMORY, _("allocating configuration"), 0);
-	if (str != NULL)
 	    free(str);
         return(NULL);
     }
@@ -641,8 +641,7 @@ virConfParseStatement(virConfParserCtxtPtr ctxt)
     if (virConfAddEntry(ctxt->conf, name, value, comm) == NULL) {
         free(name);
 	virConfFreeValue(value);
-	if (comm != NULL)
-	    free(comm);
+    free(comm);
 	return(-1);
     }
     return(0);
@@ -693,6 +692,9 @@ error:
  *									*
  ************************************************************************/
 
+/* 10 MB limit on config file size as a sanity check */
+#define MAX_CONFIG_FILE_SIZE (1024*1024*10)
+
 /**
  * __virConfReadFile:
  * @filename: the path to the configuration file.
@@ -705,26 +707,25 @@ error:
 virConfPtr
 __virConfReadFile(const char *filename)
 {
-    char content[4096];
-    int fd;
+    char *content;
     int len;
+    virConfPtr conf;
 
     if (filename == NULL) {
         virConfError(NULL, VIR_ERR_INVALID_ARG, __FUNCTION__, 0);
         return(NULL);
     }
-    fd = open(filename, O_RDONLY);
-    if (fd < 0) {
+
+    if ((len = virFileReadAll(filename, MAX_CONFIG_FILE_SIZE, &content)) < 0) {
         virConfError(NULL, VIR_ERR_OPEN_FAILED, filename, 0);
-	return(NULL);
+        return NULL;
     }
-    len = read(fd, content, sizeof(content));
-    close(fd);
-    if (len <= 0) {
-        virConfError(NULL, VIR_ERR_READ_FAILED, filename, 0);
-	return(NULL);
-    }
-    return(virConfParse(filename, content, len));
+
+    conf = virConfParse(filename, content, len);
+
+    free(content);
+
+    return conf;
 }
 
 /**
@@ -773,8 +774,7 @@ __virConfFree(virConfPtr conf)
         virConfEntryPtr next;
         free(tmp->name);
         virConfFreeValue(tmp->value);
-        if (tmp->comment)
-            free(tmp->comment);
+        free(tmp->comment);
         next = tmp->next;
         free(tmp);
         tmp = next;
@@ -790,7 +790,7 @@ __virConfFree(virConfPtr conf)
  *
  * Lookup the value associated to this entry in the configuration file
  *
- * Returns a pointer to the value or NULL if the lookup failed, the data 
+ * Returns a pointer to the value or NULL if the lookup failed, the data
  *         associated will be freed when virConfFree() is called
  */
 virConfValuePtr
@@ -896,7 +896,7 @@ __virConfWriteFile(const char *filename, virConfPtr conf)
         virConfSaveEntry(buf, cur);
 	cur = cur->next;
     }
-    
+
     fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR );
     if (fd < 0) {
         virConfError(NULL, VIR_ERR_WRITE_FAILED, _("failed to open file"), 0);
@@ -904,7 +904,7 @@ __virConfWriteFile(const char *filename, virConfPtr conf)
 	goto error;
     }
 
-    ret = write(fd, buf->content, buf->use);
+    ret = safewrite(fd, buf->content, buf->use);
     close(fd);
     if (ret != (int) buf->use) {
         virConfError(NULL, VIR_ERR_WRITE_FAILED, _("failed to save content"), 0);
@@ -950,7 +950,7 @@ __virConfWriteMem(char *memory, int *len, virConfPtr conf)
         virConfSaveEntry(buf, cur);
         cur = cur->next;
     }
-    
+
     if ((int) buf->use >= *len) {
         *len = buf->use;
         ret = -1;

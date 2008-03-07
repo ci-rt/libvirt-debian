@@ -8,10 +8,16 @@
 %define with_proxy yes
 %endif
 
+%if "%{fedora}"
+%define with_qemu 1
+%else
+%define with_qemu 0
+%endif
+
 Summary: Library providing a simple API virtualization
 Name: libvirt
-Version: 0.4.0
-Release: 1
+Version: 0.4.1
+Release: 1%{?extra_release}
 License: LGPL
 Group: Development/Libraries
 Source: libvirt-%{version}.tar.gz
@@ -29,11 +35,26 @@ Requires: iptables
 Requires: nc
 Requires: cyrus-sasl
 # Not technically required, but makes 'out-of-box' config
-# work correctly & doesn't have onerous dependancies
+# work correctly & doesn't have onerous dependencies
 Requires: cyrus-sasl-md5
 %if %{with_polkit}
 Requires: PolicyKit >= 0.6
 %endif
+# For mount/umount in FS driver
+BuildRequires: util-linux
+%if %{with_qemu}
+# From QEMU RPMs
+Requires: /usr/bin/qemu-img
+%else
+# From Xen RPMs
+Requires: /usr/sbin/qcow-create
+%endif
+# For LVM drivers
+Requires: lvm2
+# For ISCSI driver
+Requires: iscsi-initiator-utils
+# For disk driver
+Requires: parted
 BuildRequires: xen-devel
 BuildRequires: libxml2-devel
 BuildRequires: readline-devel
@@ -41,6 +62,7 @@ BuildRequires: ncurses-devel
 BuildRequires: gettext
 BuildRequires: gnutls-devel
 BuildRequires: avahi-devel
+BuildRequires: libselinux-devel
 BuildRequires: dnsmasq
 BuildRequires: bridge-utils
 BuildRequires: qemu
@@ -48,11 +70,26 @@ BuildRequires: cyrus-sasl-devel
 %if %{with_polkit}
 BuildRequires: PolicyKit-devel >= 0.6
 %endif
+# For mount/umount in FS driver
+BuildRequires: util-linux
+%if %{with_qemu}
+# From QEMU RPMs
+BuildRequires: /usr/bin/qemu-img
+%else
+# From Xen RPMs
+BuildRequires: /usr/sbin/qcow-create
+%endif
+# For LVM drivers
+BuildRequires: lvm2
+# For ISCSI driver
+BuildRequires: iscsi-initiator-utils
+# For disk driver
+BuildRequires: parted-devel
 Obsoletes: libvir
 ExclusiveArch: i386 x86_64 ia64
 
 %description
-Libvirt is a C toolkit to interract with the virtualization capabilities
+Libvirt is a C toolkit to interact with the virtualization capabilities
 of recent versions of Linux (and other OSes).
 
 %package devel
@@ -75,7 +112,7 @@ Obsoletes: libvir-python
 %description python
 The libvirt-python package contains a module that permits applications
 written in the Python programming language to use the interface
-supplied by the libvirt library to use the the virtualization capabilities 
+supplied by the libvirt library to use the virtualization capabilities
 of recent versions of Linux (and other OSes).
 
 %prep
@@ -170,6 +207,7 @@ fi
 %if %{with_proxy} == "yes"
 %attr(4755, root, root) %{_libexecdir}/libvirt_proxy
 %endif
+%attr(0755, root, root) %{_libexecdir}/libvirt_parthelper
 %attr(0755, root, root) %{_sbindir}/libvirtd
 %doc docs/*.rng
 %doc docs/*.xml
@@ -202,6 +240,13 @@ fi
 %doc docs/examples/python
 
 %changelog
+* Mon Mar  3 2008 Daniel Veillard <veillard@redhat.com> - 0.4.1-1
+- Release of 0.4.1
+- Storage APIs
+- xenner support
+- lots of assorted improvements, bugfixes and cleanups
+- documentation and localization improvements
+
 * Tue Dec 18 2007 Daniel Veillard <veillard@redhat.com> - 0.4.0-1
 - Release of 0.4.0
 - SASL based authentication
@@ -348,7 +393,7 @@ fi
 - add patch to address dom0_ops API breakage in Xen 3.0.3 tree
 
 * Mon Aug 28 2006 Jeremy Katz <katzj@redhat.com> - 0.1.4-4
-- add patch to support paravirt framebuffer in Xen 
+- add patch to support paravirt framebuffer in Xen
 
 * Mon Aug 21 2006 Daniel Veillard <veillard@redhat.com> 0.1.4-3
 - another patch to fix network handling in non-HVM guests
@@ -421,7 +466,7 @@ fi
 - fixes some problems in 0.0.3 due to the change of names
 
 * Wed Feb  8 2006 Daniel Veillard <veillard@redhat.com> 0.0.3-1
-- changed library name to libvirt from libvir, complete and test the python 
+- changed library name to libvirt from libvir, complete and test the python
   bindings
 
 * Sun Jan 29 2006 Daniel Veillard <veillard@redhat.com> 0.0.2-1

@@ -54,6 +54,18 @@ extern "C" {
 #define STRNEQLEN(a,b,n) (strncmp((a),(b),(n)) != 0)
 #define STRCASENEQLEN(a,b,n) (strncasecmp((a),(b),(n)) != 0)
 
+/* If configured with --enable-debug=yes then library calls
+ * are printed to stderr for debugging.
+ */
+#ifdef ENABLE_DEBUG
+extern int debugFlag;
+#define VIR_DEBUG(category, fmt,...)                                    \
+    do { if (debugFlag) fprintf (stderr, "DEBUG: %s: %s (" fmt ")\n", category, __func__, __VA_ARGS__); } while (0)
+#else
+#define VIR_DEBUG(category, fmt,...)
+    do { } while (0)
+#endif /* !ENABLE_DEBUG */
+
 /* C99 uses __func__.  __FUNCTION__ is legacy. */
 #ifndef __GNUC__
 #define __FUNCTION__ __func__
@@ -107,7 +119,7 @@ extern "C" {
  * VIR_DOMAIN_MAGIC:
  *
  * magic value used to protect the API when pointers to domain structures
- * are passed down by the uers.
+ * are passed down by the users.
  */
 #define VIR_DOMAIN_MAGIC		0xDEAD4321
 #define VIR_IS_DOMAIN(obj)		((obj) && (obj)->magic==VIR_DOMAIN_MAGIC)
@@ -117,11 +129,31 @@ extern "C" {
  * VIR_NETWORK_MAGIC:
  *
  * magic value used to protect the API when pointers to network structures
- * are passed down by the uers.
+ * are passed down by the users.
  */
 #define VIR_NETWORK_MAGIC		0xDEAD1234
 #define VIR_IS_NETWORK(obj)		((obj) && (obj)->magic==VIR_NETWORK_MAGIC)
 #define VIR_IS_CONNECTED_NETWORK(obj)	(VIR_IS_NETWORK(obj) && VIR_IS_CONNECT((obj)->conn))
+
+/**
+ * VIR_STORAGE_POOL_MAGIC:
+ *
+ * magic value used to protect the API when pointers to storage pool structures
+ * are passed down by the users.
+ */
+#define VIR_STORAGE_POOL_MAGIC		0xDEAD5678
+#define VIR_IS_STORAGE_POOL(obj)		((obj) && (obj)->magic==VIR_STORAGE_POOL_MAGIC)
+#define VIR_IS_CONNECTED_STORAGE_POOL(obj)	(VIR_IS_STORAGE_POOL(obj) && VIR_IS_CONNECT((obj)->conn))
+
+/**
+ * VIR_STORAGE_VOL_MAGIC:
+ *
+ * magic value used to protect the API when pointers to storage vol structures
+ * are passed down by the users.
+ */
+#define VIR_STORAGE_VOL_MAGIC		0xDEAD8765
+#define VIR_IS_STORAGE_VOL(obj)		((obj) && (obj)->magic==VIR_STORAGE_VOL_MAGIC)
+#define VIR_IS_CONNECTED_STORAGE_VOL(obj)	(VIR_IS_STORAGE_VOL(obj) && VIR_IS_CONNECT((obj)->conn))
 
 /*
  * arbitrary limitations
@@ -136,12 +168,13 @@ extern "C" {
  */
 struct _virConnect {
     unsigned int magic;     /* specific value to check */
-
-    int uses;               /* reference count */
+    int flags;              /* a set of connection flags */
+    char *name;                 /* connection URI */
 
     /* The underlying hypervisor driver and network driver. */
     virDriverPtr      driver;
     virNetworkDriverPtr networkDriver;
+    virStorageDriverPtr storageDriver;
 
     /* Private data pointer which can be used by driver and
      * network driver as they wish.
@@ -149,18 +182,25 @@ struct _virConnect {
      */
     void *            privateData;
     void *            networkPrivateData;
+    void *            storagePrivateData;
 
     /* Per-connection error. */
     virError err;           /* the last error */
     virErrorFunc handler;   /* associated handlet */
     void *userData;         /* the user data */
 
-    /* misc */
-    xmlMutexPtr hashes_mux;/* a mutex to protect the domain and networks hash tables */
-    virHashTablePtr domains;/* hash table for known domains */
-    virHashTablePtr networks;/* hash table for known domains */
-    int flags;              /* a set of connection flags */
-    char *name;                 /* connection URI */
+    /*
+     * The lock mutex must be acquired before accessing/changing
+     * any of members following this point, or changing the ref
+     * count of any virDomain/virNetwork object associated with
+     * this connection
+     */
+    pthread_mutex_t lock;
+    virHashTablePtr domains;  /* hash table for known domains */
+    virHashTablePtr networks; /* hash table for known domains */
+    virHashTablePtr storagePools;/* hash table for known storage pools */
+    virHashTablePtr storageVols;/* hash table for known storage vols */
+    int refs;                 /* reference count */
 };
 
 /**
@@ -170,7 +210,7 @@ struct _virConnect {
 */
 struct _virDomain {
     unsigned int magic;                  /* specific value to check */
-    int uses;                            /* reference count */
+    int refs;                            /* reference count */
     virConnectPtr conn;                  /* pointer back to the connection */
     char *name;                          /* the domain external name */
     int id;                              /* the domain ID */
@@ -184,18 +224,40 @@ struct _virDomain {
 */
 struct _virNetwork {
     unsigned int magic;                  /* specific value to check */
-    int uses;                            /* reference count */
+    int refs;                            /* reference count */
     virConnectPtr conn;                  /* pointer back to the connection */
     char *name;                          /* the network external name */
     unsigned char uuid[VIR_UUID_BUFLEN]; /* the network unique identifier */
 };
 
-/*
-* Internal routines
+/**
+* _virStoragePool:
+*
+* Internal structure associated to a storage pool
 */
-char *virDomainGetVM(virDomainPtr domain);
-char *virDomainGetVMInfo(virDomainPtr domain,
-			 const char *vm, const char *name);
+struct _virStoragePool {
+    unsigned int magic;                  /* specific value to check */
+    int refs;                            /* reference count */
+    virConnectPtr conn;                  /* pointer back to the connection */
+    char *name;                          /* the storage pool external name */
+    unsigned char uuid[VIR_UUID_BUFLEN]; /* the storage pool unique identifier */
+};
+
+/**
+* _virStorageVol:
+*
+* Internal structure associated to a storage volume
+*/
+struct _virStorageVol {
+    unsigned int magic;                  /* specific value to check */
+    int refs;                            /* reference count */
+    virConnectPtr conn;                  /* pointer back to the connection */
+    char *pool;                          /* Pool name of owner */
+    char *name;                          /* the storage vol external name */
+    /* XXX currently abusing path for this. Ought not to be so evil */
+    char key[PATH_MAX];                  /* unique key for storage vol */
+};
+
 
 /************************************************************************
  *									*
@@ -221,21 +283,31 @@ const char *__virErrorMsg(virErrorNumber error, const char *info);
  *									*
  ************************************************************************/
 
-virConnectPtr	virGetConnect	(void);
-int		virFreeConnect	(virConnectPtr conn);
-virDomainPtr	__virGetDomain	(virConnectPtr conn,
-				 const char *name,
-				 const unsigned char *uuid);
-int		virFreeDomain	(virConnectPtr conn,
-				 virDomainPtr domain);
-virNetworkPtr	__virGetNetwork	(virConnectPtr conn,
-				 const char *name,
-				 const unsigned char *uuid);
-int		virFreeNetwork	(virConnectPtr conn,
-				 virNetworkPtr domain);
+virConnectPtr  virGetConnect   (void);
+int            virUnrefConnect (virConnectPtr conn);
+virDomainPtr   __virGetDomain  (virConnectPtr conn,
+                                const char *name,
+                                const unsigned char *uuid);
+int            virUnrefDomain  (virDomainPtr domain);
+virNetworkPtr  __virGetNetwork (virConnectPtr conn,
+                                const char *name,
+                                const unsigned char *uuid);
+int           virUnrefNetwork  (virNetworkPtr network);
+
+virStoragePoolPtr __virGetStoragePool (virConnectPtr conn,
+                                       const char *name,
+                                       const unsigned char *uuid);
+int               virUnrefStoragePool (virStoragePoolPtr pool);
+virStorageVolPtr  __virGetStorageVol  (virConnectPtr conn,
+                                       const char *pool,
+                                       const char *name,
+                                       const char *key);
+int               virUnrefStorageVol  (virStorageVolPtr vol);
 
 #define virGetDomain(c,n,u) __virGetDomain((c),(n),(u))
 #define virGetNetwork(c,n,u) __virGetNetwork((c),(n),(u))
+#define virGetStoragePool(c,n,u) __virGetStoragePool((c),(n),(u))
+#define virGetStorageVol(c,p,n,u) __virGetStorageVol((c),(p),(n),(u))
 
 int __virStateInitialize(void);
 int __virStateCleanup(void);
@@ -251,49 +323,6 @@ int __virDrvSupportsFeature (virConnectPtr conn, int feature);
 int __virDomainMigratePrepare (virConnectPtr dconn, char **cookie, int *cookielen, const char *uri_in, char **uri_out, unsigned long flags, const char *dname, unsigned long bandwidth);
 int __virDomainMigratePerform (virDomainPtr domain, const char *cookie, int cookielen, const char *uri, unsigned long flags, const char *dname, unsigned long bandwidth);
 virDomainPtr __virDomainMigrateFinish (virConnectPtr dconn, const char *dname, const char *cookie, int cookielen, const char *uri, unsigned long flags);
-
-/* Like strtol, but produce an "int" result, and check more carefully.
-   Return 0 upon success;  return -1 to indicate failure.
-   When END_PTR is NULL, the byte after the final valid digit must be NUL.
-   Otherwise, it's like strtol and lets the caller check any suffix for
-   validity.  This function is careful to return -1 when the string S
-   represents a number that is not representable as an "int". */
-static inline int
-xstrtol_i(char const *s, char **end_ptr, int base, int *result)
-{
-    long int val;
-    char *p;
-    int err;
-
-    errno = 0;
-    val = strtol(s, &p, base);
-    err = (errno || (!end_ptr && *p) || p == s || (int) val != val);
-    if (end_ptr)
-        *end_ptr = p;
-    if (err)
-        return -1;
-    *result = val;
-    return 0;
-}
-
-/* Just like xstrtol_i, above, but produce an "unsigned int" value.  */
-static inline int
-xstrtol_ui(char const *s, char **end_ptr, int base, unsigned int *result)
-{
-    unsigned long int val;
-    char *p;
-    int err;
-
-    errno = 0;
-    val = strtoul(s, &p, base);
-    err = (errno || (!end_ptr && *p) || p == s || (unsigned int) val != val);
-    if (end_ptr)
-        *end_ptr = p;
-    if (err)
-        return -1;
-    *result = val;
-    return 0;
-}
 
 #ifdef __cplusplus
 }

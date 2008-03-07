@@ -24,13 +24,14 @@
 #ifndef __QEMUD_CONF_H
 #define __QEMUD_CONF_H
 
-#include "config.h"
+#include <config.h>
 
 #ifdef WITH_QEMU
 
 #include "internal.h"
 #include "bridge.h"
 #include "iptables.h"
+#include "capabilities.h"
 #include <netinet/in.h>
 
 #define qemudDebug(fmt, ...) do {} while(0)
@@ -206,6 +207,7 @@ struct qemud_vm_def {
     int vncPort;
     int vncActivePort;
     char vncListen[BR_INET_ADDR_MAXLEN];
+    char *keymap;
 
     int ndisks;
     struct qemud_vm_disk_def *disks;
@@ -313,17 +315,19 @@ struct qemud_driver {
     unsigned int vncTLSx509verify : 1;
     char *vncTLSx509certdir;
     char vncListen[BR_INET_ADDR_MAXLEN];
+
+    virCapsPtr caps;
 };
 
 
 static inline int
-qemudIsActiveVM(struct qemud_vm *vm)
+qemudIsActiveVM(const struct qemud_vm *vm)
 {
     return vm->id != -1;
 }
 
 static inline int
-qemudIsActiveNetwork(struct qemud_network *network)
+qemudIsActiveNetwork(const struct qemud_network *network)
 {
     return network->active;
 }
@@ -349,6 +353,8 @@ struct qemud_network *qemudFindNetworkByUUID(const struct qemud_driver *driver,
                                              const unsigned char *uuid);
 struct qemud_network *qemudFindNetworkByName(const struct qemud_driver *driver,
                                              const char *name);
+
+virCapsPtr  qemudCapsInit               (void);
 
 int         qemudExtractVersion         (virConnectPtr conn,
                                          struct qemud_driver *driver);
@@ -417,20 +423,6 @@ char *      qemudGenerateNetworkXML     (virConnectPtr conn,
                                          struct qemud_network *network,
                                          struct qemud_network_def *def);
 
-struct qemu_feature_flags {
-    const char *name;
-    const int default_on;
-    const int toggle;
-};
-
-struct qemu_arch_info {
-    const char *arch;
-    int wordsize;
-    const char **machines;
-    const char *binary;
-    const struct qemu_feature_flags *fflags;
-};
-extern struct qemu_arch_info qemudArchs[];
 
 #endif /* WITH_QEMU */
 

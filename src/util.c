@@ -1,7 +1,7 @@
 /*
  * utils.c: common, generic utility functions
  *
- * Copyright (C) 2006, 2007 Red Hat, Inc.
+ * Copyright (C) 2006, 2007, 2008 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  * Copyright (C) 2006, 2007 Binary Karma
  * Copyright (C) 2006 Shuveb Hussain
@@ -24,7 +24,7 @@
  * File created Jul 18, 2007 - Shuveb Hussain <shuveb@binarykarma.com>
  */
 
-#include "config.h"
+#include <config.h>
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -33,6 +33,7 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <string.h>
 
 #ifdef HAVE_PATHS_H
@@ -45,11 +46,14 @@
 #include "buf.h"
 #include "util.h"
 
+#include "util-lib.c"
+
 #define MAX_ERROR_LEN   1024
 
 #define virLog(msg...) fprintf(stderr, msg)
 
-static void 
+#ifndef PROXY
+static void
 ReportError(virConnectPtr conn,
                       virDomainPtr dom,
                       virNetworkPtr net,
@@ -123,11 +127,11 @@ _virExec(virConnectPtr conn,
             close(pipeout[1]);
             if(non_block)
                 if(virSetNonBlock(pipeout[0]) == -1)
-                    ReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR, 
+                    ReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
                             "Failed to set non-blocking file descriptor flag");
 
             if(virSetCloseExec(pipeout[0]) == -1)
-                ReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR, 
+                ReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
                         "Failed to set close-on-exec file descriptor flag");
             *outfd = pipeout[0];
         }
@@ -135,11 +139,11 @@ _virExec(virConnectPtr conn,
             close(pipeerr[1]);
             if(non_block)
                 if(virSetNonBlock(pipeerr[0]) == -1)
-                    ReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR, 
+                    ReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
                             "Failed to set non-blocking file descriptor flag");
 
             if(virSetCloseExec(pipeerr[0]) == -1)
-                ReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR, 
+                ReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
                         "Failed to set close-on-exec file descriptor flag");
             *errfd = pipeerr[0];
         }
@@ -156,10 +160,17 @@ _virExec(virConnectPtr conn,
 
     if (dup2(infd >= 0 ? infd : null, STDIN_FILENO) < 0)
         _exit(1);
+#ifndef ENABLE_DEBUG
     if (dup2(pipeout[1] > 0 ? pipeout[1] : null, STDOUT_FILENO) < 0)
         _exit(1);
     if (dup2(pipeerr[1] > 0 ? pipeerr[1] : null, STDERR_FILENO) < 0)
         _exit(1);
+#else /* ENABLE_DEBUG */
+    if (pipeout[1] > 0 && dup2(pipeout[1], STDOUT_FILENO) < 0)
+        _exit(1);
+    if (pipeerr[1] > 0 && dup2(pipeerr[1], STDERR_FILENO) < 0)
+        _exit(1);
+#endif /* ENABLE_DEBUG */
 
     close(null);
     if (pipeout[1] > 0)
@@ -203,6 +214,43 @@ virExecNonBlock(virConnectPtr conn,
     return(_virExec(conn, argv, retpid, infd, outfd, errfd, 1));
 }
 
+/**
+ * @conn connection to report errors against
+ * @argv NULL terminated argv to run
+ * @status optional variable to return exit status in
+ *
+ * Run a command without using the shell.
+ *
+ * If status is NULL, then return 0 if the command run and
+ * exited with 0 status; Otherwise return -1
+ *
+ * If status is not-NULL, then return 0 if the command ran.
+ * The status variable is filled with the command exit status
+ * and should be checked by caller for success. Return -1
+ * only if the command could not be run.
+ */
+int
+virRun(virConnectPtr conn,
+       char **argv,
+       int *status) {
+    int childpid, exitstatus, ret;
+
+    if ((ret = virExec(conn, argv, &childpid, -1, NULL, NULL)) < 0)
+        return ret;
+
+    while ((ret = waitpid(childpid, &exitstatus, 0) == -1) && errno == EINTR);
+    if (ret == -1)
+        return -1;
+
+    if (status == NULL) {
+        errno = EINVAL;
+        return (WIFEXITED(exitstatus) && WEXITSTATUS(exitstatus) == 0) ? 0 : -1;
+    } else {
+        *status = exitstatus;
+        return 0;
+    }
+}
+
 #else /* __MINGW32__ */
 
 int
@@ -231,49 +279,10 @@ virExecNonBlock(virConnectPtr conn,
 
 #endif /* __MINGW32__ */
 
-/* Like read(), but restarts after EINTR */
-int saferead(int fd, void *buf, size_t count)
-{
-	size_t nread = 0;
-	while (count > 0) { 
-		int r = read(fd, buf, count);
-		if (r < 0 && errno == EINTR)
-			continue;
-		if (r < 0)
-			return r;
-		if (r == 0)
-			return nread;
-		buf = (unsigned char *)buf + r;
-		count -= r;
-		nread += r;
-	}
-	return nread;
-}
 
-/* Like write(), but restarts after EINTR */
-ssize_t safewrite(int fd, const void *buf, size_t count)
-{
-	size_t nwritten = 0;
-	while (count > 0) {
-		int r = write(fd, buf, count);
-
-		if (r < 0 && errno == EINTR)
-			continue;
-		if (r < 0)
-			return r;
-		if (r == 0)
-			return nwritten;
-		buf = (unsigned char *)buf + r;
-		count -= r;
-		nwritten += r;
-	}
-	return nwritten;
-}
-
-
-int virFileReadAll(const char *path,
-                   char *buf,
-                   unsigned int buflen)
+int __virFileReadAll(const char *path,
+                     int maxlen,
+                     char **buf)
 {
     FILE *fh;
     struct stat st;
@@ -296,20 +305,28 @@ int virFileReadAll(const char *path,
         goto error;
     }
 
-    if (st.st_size >= (buflen-1)) {
-        virLog("File '%s' is too large", path);
+    if (st.st_size > maxlen) {
+        virLog("File '%s' is too large %d, max %d", path, (int)st.st_size, maxlen);
         goto error;
     }
 
-    if ((ret = fread(buf, st.st_size, 1, fh)) != 1) {
+    *buf = malloc(st.st_size + 1);
+    if (*buf == NULL) {
+        virLog("Failed to allocate data");
+        goto error;
+    }
+
+    if ((ret = fread(*buf, st.st_size, 1, fh)) != 1) {
+        free(*buf);
+        *buf = NULL;
         virLog("Failed to read config file '%s': %s",
                path, strerror(errno));
         goto error;
     }
 
-    buf[st.st_size] = '\0';
+    (*buf)[st.st_size] = '\0';
 
-    ret = 0;
+    ret = st.st_size;
 
  error:
     if (fh)
@@ -447,6 +464,15 @@ virFileLinkPointsTo (const char *checkLink ATTRIBUTE_UNUSED,
 
 #endif /*! __MINGW32__ */
 
+int virFileExists(const char *path)
+{
+    struct stat st;
+
+    if (stat(path, &st) >= 0)
+        return(1);
+    return(0);
+}
+
 int virFileMakePath(const char *path)
 {
     struct stat st;
@@ -494,6 +520,148 @@ int virFileBuildPath(const char *dir,
     if (ext)
         strcat(buf, ext);
     return 0;
+}
+
+/* Like strtol, but produce an "int" result, and check more carefully.
+   Return 0 upon success;  return -1 to indicate failure.
+   When END_PTR is NULL, the byte after the final valid digit must be NUL.
+   Otherwise, it's like strtol and lets the caller check any suffix for
+   validity.  This function is careful to return -1 when the string S
+   represents a number that is not representable as an "int". */
+int
+__virStrToLong_i(char const *s, char **end_ptr, int base, int *result)
+{
+    long int val;
+    char *p;
+    int err;
+
+    errno = 0;
+    val = strtol(s, &p, base);
+    err = (errno || (!end_ptr && *p) || p == s || (int) val != val);
+    if (end_ptr)
+        *end_ptr = p;
+    if (err)
+        return -1;
+    *result = val;
+    return 0;
+}
+
+/* Just like virStrToLong_i, above, but produce an "unsigned int" value.  */
+int
+virStrToLong_ui(char const *s, char **end_ptr, int base, unsigned int *result)
+{
+    unsigned long int val;
+    char *p;
+    int err;
+
+    errno = 0;
+    val = strtoul(s, &p, base);
+    err = (errno || (!end_ptr && *p) || p == s || (unsigned int) val != val);
+    if (end_ptr)
+        *end_ptr = p;
+    if (err)
+        return -1;
+    *result = val;
+    return 0;
+}
+
+/* Just like virStrToLong_i, above, but produce an "long long" value.  */
+int
+virStrToLong_ll(char const *s, char **end_ptr, int base, long long *result)
+{
+    long long val;
+    char *p;
+    int err;
+
+    errno = 0;
+    val = strtoll(s, &p, base);
+    err = (errno || (!end_ptr && *p) || p == s || (long long) val != val);
+    if (end_ptr)
+        *end_ptr = p;
+    if (err)
+        return -1;
+    *result = val;
+    return 0;
+}
+
+/* Just like virStrToLong_i, above, but produce an "unsigned long long" value.  */
+int
+__virStrToLong_ull(char const *s, char **end_ptr, int base, unsigned long long *result)
+{
+    unsigned long long val;
+    char *p;
+    int err;
+
+    errno = 0;
+    val = strtoull(s, &p, base);
+    err = (errno || (!end_ptr && *p) || p == s || (unsigned long long) val != val);
+    if (end_ptr)
+        *end_ptr = p;
+    if (err)
+        return -1;
+    *result = val;
+    return 0;
+}
+#endif /* PROXY */
+
+/**
+ * virSkipSpaces:
+ * @str: pointer to the char pointer used
+ *
+ * Skip potential blanks, this includes space tabs, line feed,
+ * carriage returns and also '\\' which can be erronously emitted
+ * by xend
+ */
+void
+virSkipSpaces(const char **str)
+{
+    const char *cur = *str;
+
+    while ((*cur == ' ') || (*cur == '\t') || (*cur == '\n') ||
+           (*cur == '\r') || (*cur == '\\'))
+        cur++;
+    *str = cur;
+}
+
+/**
+ * virParseNumber:
+ * @str: pointer to the char pointer used
+ *
+ * Parse an unsigned number
+ *
+ * Returns the unsigned number or -1 in case of error. @str will be
+ *         updated to skip the number.
+ */
+int
+virParseNumber(const char **str)
+{
+    int ret = 0;
+    const char *cur = *str;
+
+    if ((*cur < '0') || (*cur > '9'))
+        return (-1);
+
+    while ((*cur >= '0') && (*cur <= '9')) {
+        unsigned int c = *cur - '0';
+
+        if ((ret > INT_MAX / 10) ||
+            ((ret == INT_MAX / 10) && (c > INT_MAX % 10)))
+            return (-1);
+        ret = ret * 10 + c;
+        cur++;
+    }
+    *str = cur;
+    return (ret);
+}
+
+/* Use this function when comparing two MAC addresses.  It deals with
+ * string case compare and will eventually be extended to understand
+ * that 01:02:03:04:05:06 is the same as 1:2:3:4:5:6.
+ */
+int
+__virMacAddrCompare (const char *mac1, const char *mac2)
+{
+    return strcasecmp (mac1, mac2);
 }
 
 /*
