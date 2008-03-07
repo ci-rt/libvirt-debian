@@ -21,7 +21,7 @@
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
-#include "config.h"
+#include <config.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -379,7 +379,7 @@ static int virEventCleanupTimeouts(void) {
     int i;
 
     /* Remove deleted entries, shuffling down remaining
-     * entries as needed to form contigous series
+     * entries as needed to form contiguous series
      */
     for (i = 0 ; i < eventLoop.timeoutsCount ; ) {
         if (!eventLoop.timeouts[i].deleted) {
@@ -421,7 +421,7 @@ static int virEventCleanupHandles(void) {
     int i;
 
     /* Remove deleted entries, shuffling down remaining
-     * entries as needed to form contigous series
+     * entries as needed to form contiguous series
      */
     for (i = 0 ; i < eventLoop.handlesCount ; ) {
         if (!eventLoop.handles[i].deleted) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007 Red Hat, Inc.
+ * Copyright (C) 2007, 2008 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -19,7 +19,7 @@
  *     Mark McLoughlin <markmc@redhat.com>
  */
 
-#include "config.h"
+#include <config.h>
 
 #if WITH_QEMU
 
@@ -44,6 +44,7 @@
 
 #include "internal.h"
 #include "iptables.h"
+#include "util.h"
 
 #define qemudLog(level, msg...) fprintf(stderr, msg)
 
@@ -52,16 +53,11 @@ enum {
     REMOVE
 };
 
-enum {
-    WITH_ERRORS = 0,
-    NO_ERRORS
-};
-
 typedef struct
 {
     char  *rule;
     char **argv;
-    int    flipflop;
+    int    command_idx;
 } iptRule;
 
 typedef struct
@@ -72,12 +68,12 @@ typedef struct
     int      nrules;
     iptRule *rules;
 
-#ifdef IPTABLES_DIR
+#ifdef ENABLE_IPTABLES_LOKKIT
 
     char   dir[PATH_MAX];
     char   path[PATH_MAX];
 
-#endif /* IPTABLES_DIR */
+#endif /* ENABLE_IPTABLES_LOKKIT */
 
 } iptRules;
 
@@ -88,10 +84,111 @@ struct _iptablesContext
     iptRules *nat_postrouting;
 };
 
-#ifdef IPTABLES_DIR
+#ifdef ENABLE_IPTABLES_LOKKIT
+static void
+notifyRulesUpdated(const char *table,
+                   const char *path)
+{
+    char arg[PATH_MAX];
+    char *argv[4];
+
+    snprintf(arg, sizeof(arg), "--custom-rules=ipv4:%s:%s", table, path);
+
+    argv[0] = (char *) LOKKIT_PATH;
+    argv[1] = (char *) "--nostart";
+    argv[2] = arg;
+    argv[3] = NULL;
+
+    if (virRun(NULL, argv, NULL) < 0)
+        qemudLog(QEMUD_WARN, _("Failed to run '" LOKKIT_PATH
+                               " %s' : %s"), arg, strerror(errno));
+}
+
+static int
+stripLine(char *str, int len, const char *line)
+{
+    char *s, *p;
+    int changed;
+
+    changed = 0;
+    s = str;
+
+    while ((p = strchr(s, '\n'))) {
+        if (p == s || strncmp(s, line, p - s) != 0) {
+            s = ++p;
+            continue;
+        }
+
+        ++p;
+        memmove(s, p, len - (p - str) + 1);
+        len -= p - s;
+        changed = 1;
+    }
+
+    if (strcmp(s, line) == 0) {
+        *s = '\0';
+        changed = 1;
+    }
+
+    return changed;
+}
+
+static void
+notifyRulesRemoved(const char *table,
+                   const char *path)
+{
+/* 10 MB limit on config file size as a sanity check */
+#define MAX_FILE_LEN (1024*1024*10)
+
+    char arg[PATH_MAX];
+    char *content;
+    int len;
+    FILE *f = NULL;
+
+    len = virFileReadAll(SYSCONF_DIR "/sysconfig/system-config-firewall",
+                         MAX_FILE_LEN, &content);
+    if (len < 0) {
+        qemudLog(QEMUD_WARN, "%s", _("Failed to read " SYSCONF_DIR
+                                     "/sysconfig/system-config-firewall"));
+        return;
+    }
+
+    snprintf(arg, sizeof(arg), "--custom-rules=ipv4:%s:%s", table, path);
+
+    if (!stripLine(content, len, arg)) {
+        free(content);
+        return;
+    }
+
+    if (!(f = fopen(SYSCONF_DIR "/sysconfig/system-config-firewall", "w")))
+        goto write_error;
+
+    if (fputs(content, f) == EOF)
+        goto write_error;
+
+    if (fclose(f) == EOF) {
+        f = NULL;
+        goto write_error;
+    }
+
+    free(content);
+
+    return;
+
+ write_error:
+    qemudLog(QEMUD_WARN, _("Failed to write to " SYSCONF_DIR
+                           "/sysconfig/system-config-firewall : %s"),
+             strerror(errno));
+    if (f)
+        fclose(f);
+    free(content);
+
+#undef MAX_FILE_LEN
+}
+
 static int
 writeRules(const char *path,
-           const iptRules *rules,
+           const iptRule *rules,
            int nrules)
 {
     char tmp[PATH_MAX];
@@ -135,67 +232,39 @@ writeRules(const char *path,
 
     return 0;
 }
+#endif /* ENABLE_IPTABLES_LOKKIT */
 
-static int
-ensureDir(const char *path)
+static void
+iptRulesSave(iptRules *rules)
 {
-    struct stat st;
-    char parent[PATH_MAX];
-    char *p;
+#ifdef ENABLE_IPTABLES_LOKKIT
     int err;
 
-    if (stat(path, &st) >= 0)
-        return 0;
+    if ((err = virFileMakePath(rules->dir))) {
+        qemudLog(QEMUD_WARN, _("Failed to create directory %s : %s"),
+                 rules->dir, strerror(err));
+        return;
+    }
 
-    strncpy(parent, path, PATH_MAX);
-    parent[PATH_MAX - 1] = '\0';
+    if ((err = writeRules(rules->path, rules->rules, rules->nrules))) {
+        qemudLog(QEMUD_WARN, _("Failed to saves iptables rules to %s : %s"),
+                 rules->path, strerror(err));
+        return;
+    }
 
-    if (!(p = strrchr(parent, '/')))
-        return EINVAL;
-
-    if (p == parent)
-        return EPERM;
-
-    *p = '\0';
-
-    if ((err = ensureDir(parent)))
-        return err;
-
-    if (mkdir(path, 0700) < 0 && errno != EEXIST)
-        return errno;
-
-    return 0;
-}
-
-static int
-buildDir(const char *table,
-         char *path,
-         int maxlen)
-{
-    if (snprintf(path, maxlen, IPTABLES_DIR "/%s", table) >= maxlen)
-        return EINVAL;
+    if (rules->nrules > 0)
+        notifyRulesUpdated(rules->table, rules->path);
     else
-        return 0;
+        notifyRulesRemoved(rules->table, rules->path);
+#else
+    (void) rules;
+#endif /* ENABLE_IPTABLES_LOKKIT */
 }
-
-static int
-buildPath(const char *table,
-          const char *chain,
-          char *path,
-          int maxlen)
-{
-    if (snprintf(path, maxlen, IPTABLES_DIR "/%s/%s.chain", table, chain) >= maxlen)
-        return EINVAL;
-    else
-        return 0;
-}
-#endif /* IPTABLES_DIR */
 
 static void
 iptRuleFree(iptRule *rule)
 {
-    if (rule->rule)
-        free(rule->rule);
+    free(rule->rule);
     rule->rule = NULL;
 
     if (rule->argv) {
@@ -211,7 +280,7 @@ static int
 iptRulesAppend(iptRules *rules,
                char *rule,
                char **argv,
-               int flipflop)
+               int command_idx)
 {
     iptRule *r;
 
@@ -225,23 +294,11 @@ iptRulesAppend(iptRules *rules,
 
     rules->rules = r;
 
-    rules->rules[rules->nrules].rule     = rule;
-    rules->rules[rules->nrules].argv     = argv;
-    rules->rules[rules->nrules].flipflop = flipflop;
+    rules->rules[rules->nrules].rule        = rule;
+    rules->rules[rules->nrules].argv        = argv;
+    rules->rules[rules->nrules].command_idx = command_idx;
 
     rules->nrules++;
-
-#ifdef IPTABLES_DIR
-    {
-        int err;
-
-        if ((err = ensureDir(rules->dir)))
-            return err;
-
-        if ((err = writeRules(rules->path, rules->rules, rules->nrules)))
-            return err;
-    }
-#endif /* IPTABLES_DIR */
 
     return 0;
 }
@@ -266,15 +323,6 @@ iptRulesRemove(iptRules *rules,
             (rules->nrules - i - 1) * sizeof (iptRule));
 
     rules->nrules--;
-
-#ifdef IPTABLES_DIR
-    {
-        int err;
-
-        if ((err = writeRules(rules->path, rules->rules, rules->nrules)))
-            return err;
-    }
-#endif /* IPTABLES_DIR */
 
     return 0;
 }
@@ -305,10 +353,10 @@ iptRulesFree(iptRules *rules)
         rules->nrules = 0;
     }
 
-#ifdef IPTABLES_DIR
+#ifdef ENABLE_IPTABLES_LOKKIT
     rules->dir[0] = '\0';
     rules->path[0] = '\0';
-#endif /* IPTABLES_DIR */
+#endif /* ENABLE_IPTABLES_LOKKIT */
 
     free(rules);
 }
@@ -331,13 +379,14 @@ iptRulesNew(const char *table,
     rules->rules = NULL;
     rules->nrules = 0;
 
-#ifdef IPTABLES_DIR
-    if (buildDir(table, rules->dir, sizeof(rules->dir)))
+#ifdef ENABLE_IPTABLES_LOKKIT
+    if (virFileBuildPath(LOCAL_STATE_DIR "/lib/libvirt/iptables", table, NULL,
+                         rules->dir, sizeof(rules->dir)) < 0)
         goto error;
 
-    if (buildPath(table, chain, rules->path, sizeof(rules->path)))
+    if (virFileBuildPath(rules->dir, chain, ".chain", rules->path, sizeof(rules->path)) < 0)
         goto error;
-#endif /* IPTABLES_DIR */
+#endif /* ENABLE_IPTABLES_LOKKIT */
 
     return rules;
 
@@ -346,91 +395,29 @@ iptRulesNew(const char *table,
     return NULL;
 }
 
-static int
-iptablesSpawn(int errors, char * const *argv)
+static char *
+argvToString(char **argv)
 {
-    pid_t pid, ret;
-    int status;
-    int null = -1;
+    int len, i;
+    char *ret, *p;
 
-    if (errors == NO_ERRORS && (null = open(_PATH_DEVNULL, O_RDONLY)) < 0)
-        return errno;
+    for (len = 1, i = 0; argv[i]; i++)
+        len += strlen(argv[i]) + 1;
 
-    pid = fork();
-    if (pid == -1) {
-        if (errors == NO_ERRORS)
-            close(null);
-        return errno;
+    if (!(p = ret = (char *)malloc(len)))
+        return NULL;
+
+    for (i = 0; argv[i]; i++) {
+        if (i != 0)
+            *(p++) = ' ';
+
+        strcpy(p, argv[i]);
+        p += strlen(argv[i]);
     }
 
-    if (pid == 0) { /* child */
-        if (errors == NO_ERRORS) {
-            dup2(null, STDIN_FILENO);
-            dup2(null, STDOUT_FILENO);
-            dup2(null, STDERR_FILENO);
-            close(null);
-        }
+    *p = '\0';
 
-        execvp(argv[0], argv);
-
-        _exit (1);
-    }
-
-    if (errors == NO_ERRORS)
-        close(null);
-
-    while ((ret = waitpid(pid, &status, 0) == -1) && errno == EINTR);
-    if (ret == -1)
-        return errno;
-
-    if (errors == NO_ERRORS)
-        return 0;
-    else
-        return (WIFEXITED(status) && WEXITSTATUS(status) == 0) ? 0 : EINVAL;
-}
-
-static int
-iptablesAddRemoveChain(iptRules *rules, int action)
-{
-    char **argv;
-    int retval = ENOMEM;
-    int n;
-
-    n = 1 + /* /sbin/iptables    */
-        2 + /*   --table foo     */
-        2;  /*   --new-chain bar */
-
-    if (!(argv = calloc(n + 1, sizeof(*argv))))
-        goto error;
-
-    n = 0;
-
-    if (!(argv[n++] = strdup(IPTABLES_PATH)))
-        goto error;
-
-    if (!(argv[n++] = strdup("--table")))
-        goto error;
-
-    if (!(argv[n++] = strdup(rules->table)))
-        goto error;
-
-    if (!(argv[n++] = strdup(action == ADD ? "--new-chain" : "--delete-chain")))
-        goto error;
-
-    if (!(argv[n++] = strdup(rules->chain)))
-        goto error;
-
-    retval = iptablesSpawn(NO_ERRORS, argv);
-
- error:
-    if (argv) {
-        n = 0;
-        while (argv[n])
-            free(argv[n++]);
-        free(argv);
-    }
-
-    return retval;
+    return ret;
 }
 
 static int
@@ -439,29 +426,22 @@ iptablesAddRemoveRule(iptRules *rules, int action, const char *arg, ...)
     va_list args;
     int retval = ENOMEM;
     char **argv;
-    char *rule = NULL, *p;
+    char *rule = NULL;
     const char *s;
-    int n, rulelen, flipflop;
+    int n, command_idx;
 
     n = 1 + /* /sbin/iptables  */
         2 + /*   --table foo   */
         2 + /*   --insert bar  */
         1;  /*   arg           */
 
-    rulelen = strlen(arg) + 1;
-
     va_start(args, arg);
-    while ((s = va_arg(args, const char *))) {
+    while ((s = va_arg(args, const char *)))
         n++;
-        rulelen += strlen(s) + 1;
-    }
 
     va_end(args);
 
     if (!(argv = calloc(n + 1, sizeof(*argv))))
-        goto error;
-
-    if (!(rule = (char *)malloc(rulelen)))
         goto error;
 
     n = 0;
@@ -475,9 +455,9 @@ iptablesAddRemoveRule(iptRules *rules, int action, const char *arg, ...)
     if (!(argv[n++] = strdup(rules->table)))
         goto error;
 
-    flipflop = n;
+    command_idx = n;
 
-    if (!(argv[n++] = strdup(action == ADD ? "--insert" : "--delete")))
+    if (!(argv[n++] = strdup("--insert")))
         goto error;
 
     if (!(argv[n++] = strdup(rules->chain)))
@@ -486,37 +466,30 @@ iptablesAddRemoveRule(iptRules *rules, int action, const char *arg, ...)
     if (!(argv[n++] = strdup(arg)))
         goto error;
 
-    p = strcpy(rule, arg);
-    p += strlen(arg);
-
     va_start(args, arg);
 
-    while ((s = va_arg(args, const char *))) {
+    while ((s = va_arg(args, const char *)))
         if (!(argv[n++] = strdup(s)))
             goto error;
 
-        *(p++) = ' ';
-        strcpy(p, s);
-        p += strlen(s);
-    }
-
     va_end(args);
 
-    *p = '\0';
-
-    if (action == ADD &&
-        (retval = iptablesAddRemoveChain(rules, action)))
+    if (!(rule = argvToString(&argv[command_idx])))
         goto error;
 
-    if ((retval = iptablesSpawn(WITH_ERRORS, argv)))
-        goto error;
+    if (action == REMOVE) {
+        free(argv[command_idx]);
+        if (!(argv[command_idx] = strdup("--delete")))
+            goto error;
+    }
 
-    if (action == REMOVE &&
-        (retval = iptablesAddRemoveChain(rules, action)))
+    if (virRun(NULL, argv, NULL) < 0) {
+        retval = errno;
         goto error;
+    }
 
     if (action == ADD) {
-        retval = iptRulesAppend(rules, rule, argv, flipflop);
+        retval = iptRulesAppend(rules, rule, argv, command_idx);
         rule = NULL;
         argv = NULL;
     } else {
@@ -524,8 +497,7 @@ iptablesAddRemoveRule(iptRules *rules, int action, const char *arg, ...)
     }
 
  error:
-    if (rule)
-        free(rule);
+    free(rule);
 
     if (argv) {
         n = 0;
@@ -552,13 +524,13 @@ iptablesContextNew(void)
     if (!(ctx = calloc(1, sizeof (*ctx))))
         return NULL;
 
-    if (!(ctx->input_filter = iptRulesNew("filter", IPTABLES_PREFIX "INPUT")))
+    if (!(ctx->input_filter = iptRulesNew("filter", "INPUT")))
         goto error;
 
-    if (!(ctx->forward_filter = iptRulesNew("filter", IPTABLES_PREFIX "FORWARD")))
+    if (!(ctx->forward_filter = iptRulesNew("filter", "FORWARD")))
         goto error;
 
-    if (!(ctx->nat_postrouting = iptRulesNew("nat", IPTABLES_PREFIX "POSTROUTING")))
+    if (!(ctx->nat_postrouting = iptRulesNew("nat", "POSTROUTING")))
         goto error;
 
     return ctx;
@@ -572,7 +544,7 @@ iptablesContextNew(void)
  * iptablesContextFree:
  * @ctx: pointer to the IP table context
  *
- * Free the ressources associated with an IP table context
+ * Free the resources associated with an IP table context
  */
 void
 iptablesContextFree(iptablesContext *ctx)
@@ -586,35 +558,48 @@ iptablesContextFree(iptablesContext *ctx)
     free(ctx);
 }
 
+/**
+ * iptablesSaveRules:
+ * @ctx: pointer to the IP table context
+ *
+ * Saves all the IP table rules associated with a context
+ * to disk so that if iptables is restarted, the rules
+ * will automatically be reload.
+ */
+void
+iptablesSaveRules(iptablesContext *ctx)
+{
+    iptRulesSave(ctx->input_filter);
+    iptRulesSave(ctx->forward_filter);
+    iptRulesSave(ctx->nat_postrouting);
+}
+
 static void
 iptRulesReload(iptRules *rules)
 {
     int i;
-    int retval;
 
     for (i = 0; i < rules->nrules; i++) {
         iptRule *rule = &rules->rules[i];
         char *orig;
 
-        orig = rule->argv[rule->flipflop];
-        rule->argv[rule->flipflop] = (char *) "--delete";
+        orig = rule->argv[rule->command_idx];
+        rule->argv[rule->command_idx] = (char *) "--delete";
 
-        if ((retval = iptablesSpawn(WITH_ERRORS, rule->argv)))
-            qemudLog(QEMUD_WARN, "Failed to remove iptables rule '%s' from chain '%s' in table '%s': %s",
+        if (virRun(NULL, rule->argv, NULL) < 0)
+            qemudLog(QEMUD_WARN,
+                     _("Failed to remove iptables rule '%s'"
+                       " from chain '%s' in table '%s': %s"),
                      rule->rule, rules->chain, rules->table, strerror(errno));
 
-        rule->argv[rule->flipflop] = orig;
+        rule->argv[rule->command_idx] = orig;
     }
 
-    if ((retval = iptablesAddRemoveChain(rules, REMOVE)) ||
-        (retval = iptablesAddRemoveChain(rules, ADD)))
-        qemudLog(QEMUD_WARN, "Failed to re-create chain '%s' in table '%s': %s",
-                 rules->chain, rules->table, strerror(retval));
-
     for (i = 0; i < rules->nrules; i++)
-        if ((retval = iptablesSpawn(WITH_ERRORS, rules->rules[i].argv)))
-            qemudLog(QEMUD_WARN, "Failed to add iptables rule '%s' to chain '%s' in table '%s': %s",
-                     rules->rules[i].rule, rules->chain, rules->table, strerror(retval));
+        if (virRun(NULL, rules->rules[i].argv, NULL) < 0)
+            qemudLog(QEMUD_WARN, _("Failed to add iptables rule '%s'"
+                                   " to chain '%s' in table '%s': %s"),
+                     rules->rules[i].rule, rules->chain, rules->table, strerror(errno));
 }
 
 /**
@@ -678,7 +663,7 @@ iptablesAddTcpInput(iptablesContext *ctx,
  * @iface: the interface name
  * @port: the TCP port to remove
  *
- * Removes an input from the IP table, hence forbiding access to the given
+ * Removes an input from the IP table, hence forbidding access to the given
  * @port on the given @iface interface for TCP packets
  *
  * Returns 0 in case of success or an error code in case of error
@@ -717,7 +702,7 @@ iptablesAddUdpInput(iptablesContext *ctx,
  * @iface: the interface name
  * @port: the UDP port to remove
  *
- * Removes an input from the IP table, hence forbiding access to the given
+ * Removes an input from the IP table, hence forbidding access to the given
  * @port on the given @iface interface for UDP packets
  *
  * Returns 0 in case of success or an error code in case of error
@@ -765,7 +750,7 @@ iptablesForwardAllowOut(iptablesContext *ctx,
  * @network: the source network name
  * @iface: the source interface name
  * @physdev: the physical output device
- * 
+ *
  * Add a rule to the IP table context to allow the traffic for the
  * network @network via interface @iface to be forwarded to
  * @physdev device. This allow the outbound traffic on a bridge.
@@ -787,7 +772,7 @@ iptablesAddForwardAllowOut(iptablesContext *ctx,
  * @network: the source network name
  * @iface: the source interface name
  * @physdev: the physical output device
- * 
+ *
  * Remove a rule from the IP table context hence forbidding forwarding
  * of the traffic for the network @network via interface @iface
  * to the @physdev device output. This stops the outbound traffic on a bridge.
@@ -842,7 +827,7 @@ iptablesForwardAllowIn(iptablesContext *ctx,
  * @network: the source network name
  * @iface: the output interface name
  * @physdev: the physical input device or NULL
- * 
+ *
  * Add rules to the IP table context to allow the traffic for the
  * network @network on @physdev device to be forwarded to
  * interface @iface. This allow the inbound traffic on a bridge.
@@ -864,7 +849,7 @@ iptablesAddForwardAllowIn(iptablesContext *ctx,
  * @network: the source network name
  * @iface: the output interface name
  * @physdev: the physical input device or NULL
- * 
+ *
  * Remove rules from the IP table context hence forbidding the traffic for
  * network @network on @physdev device to be forwarded to
  * interface @iface. This stops the inbound traffic on a bridge.
@@ -1064,7 +1049,7 @@ iptablesForwardMasquerade(iptablesContext *ctx,
  * @ctx: pointer to the IP table context
  * @network: the source network name
  * @physdev: the physical input device or NULL
- * 
+ *
  * Add rules to the IP table context to allow masquerading
  * network @network on @physdev. This allow the bridge to
  * masquerade for that network (on @physdev).
@@ -1084,7 +1069,7 @@ iptablesAddForwardMasquerade(iptablesContext *ctx,
  * @ctx: pointer to the IP table context
  * @network: the source network name
  * @physdev: the physical input device or NULL
- * 
+ *
  * Remove rules from the IP table context to stop masquerading
  * network @network on @physdev. This stops the bridge from
  * masquerading for that network (on @physdev).

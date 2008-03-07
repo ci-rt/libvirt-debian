@@ -1,7 +1,7 @@
 /*
  * proxy_client.c: client side of the communication with the libvirt proxy.
  *
- * Copyright (C) 2006 Red Hat, Inc.
+ * Copyright (C) 2006, 2008 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -10,7 +10,7 @@
 
 #ifdef WITH_XEN
 
-#include "config.h"
+#include <config.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,6 +26,7 @@
 #include "internal.h"
 #include "driver.h"
 #include "proxy_internal.h"
+#include "util.h"
 #include "xen_unified.h"
 
 #define STANDALONE
@@ -132,7 +133,7 @@ virProxyError(virConnectPtr conn, virErrorNumber error, const char *info)
  * virProxyFindServerPath:
  *
  * Tries to find the path to the gam_server binary.
- * 
+ *
  * Returns path on success or NULL in case of error.
  */
 static const char *
@@ -241,7 +242,7 @@ retry:
     }
 
     /*
-     * Abstract socket do not hit the filesystem, way more secure and 
+     * Abstract socket do not hit the filesystem, way more secure and
      * garanteed to be atomic
      */
     memset(&addr, 0, sizeof(addr));
@@ -295,7 +296,7 @@ virProxyCloseClientSocket(int fd) {
 
 /**
  * virProxyReadClientSocket:
- * @fd: the socket 
+ * @fd: the socket
  * @buffer: the target memory area
  * @len: the lenght in bytes
  * @quiet: quiet access
@@ -332,7 +333,7 @@ retry:
 
 /**
  * virProxyWriteClientSocket:
- * @fd: the socket 
+ * @fd: the socket
  * @data: the data
  * @len: the lenght of data in bytes
  *
@@ -345,17 +346,10 @@ virProxyWriteClientSocket(int fd, const char *data, int len) {
     if ((fd < 0) || (data == NULL) || (len < 0))
         return(-1);
 
-retry:
-    ret = write(fd, data, len);
+    ret = safewrite(fd, data, len);
     if (ret < 0) {
-        if (errno == EINTR) {
-	    if (debug > 0)
-	        fprintf(stderr, "write socket %d, %d bytes interrupted\n",
-		        fd, len);
-	    goto retry;
-	}
         fprintf(stderr, _("Failed to write to socket %d\n"), fd);
-	return(-1);
+        return(-1);
     }
     if (debug)
 	fprintf(stderr, "wrote %d bytes to socket %d\n",
@@ -402,7 +396,7 @@ xenProxyClose(virConnectPtr conn)
     return 0;
 }
 
-static int 
+static int
 xenProxyCommand(virConnectPtr conn, virProxyPacketPtr request,
                 virProxyFullPacketPtr answer, int quiet) {
     static int serial = 0;
@@ -499,10 +493,10 @@ retry:
      */
     if ((res == NULL) || (res->version != PROXY_PROTO_VERSION) ||
         (res->len < sizeof(virProxyPacket))) {
-	fprintf(stderr,
-		_("Communication error with proxy: malformed packet\n"));
-	xenProxyClose(conn);
-	return(-1);
+        fprintf(stderr, "%s",
+                _("Communication error with proxy: malformed packet\n"));
+        xenProxyClose(conn);
+        return(-1);
     }
     if (res->serial != serial) {
         TODO /* Asynchronous communication */
@@ -533,7 +527,7 @@ xenProxyOpen(virConnectPtr conn,
     int ret;
     int fd;
     xenUnifiedPrivatePtr priv;
-    
+
     if (!(flags & VIR_CONNECT_RO))
         return(-1);
 
@@ -922,7 +916,7 @@ xenProxyLookupByName(virConnectPtr conn, const char *name)
  * xenProxyNodeGetInfo:
  * @conn: pointer to the Xen Daemon block
  * @info: pointer to a virNodeInfo structure allocated by the user
- * 
+ *
  * Extract hardware information about the node.
  *
  * Returns 0 in case of success and -1 in case of failure.
@@ -963,7 +957,7 @@ xenProxyNodeGetInfo(virConnectPtr conn, virNodeInfoPtr info) {
 /**
  * xenProxyGetCapabilities:
  * @conn: pointer to the Xen Daemon block
- * 
+ *
  * Extract capabilities of the hypervisor.
  *
  * Returns capabilities in case of success (freed by caller)
@@ -1016,7 +1010,7 @@ xenProxyGetCapabilities (virConnectPtr conn)
  *
  * This method generates an XML description of a domain.
  *
- * Returns the XML document on success, NULL otherwise. 
+ * Returns the XML document on success, NULL otherwise.
  */
 char *
 xenProxyDomainDumpXML(virDomainPtr domain, int flags ATTRIBUTE_UNUSED)

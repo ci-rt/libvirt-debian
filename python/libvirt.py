@@ -319,14 +319,6 @@ class virDomain:
         ret = libvirtmod.virDomainGetName(self._o)
         return ret
 
-    def pinVcpu(self, vcpu, cpumap, maplen):
-        """Dynamically change the real CPUs which can be allocated to
-           a virtual CPU. This function requires priviledged access
-           to the hypervisor. """
-        ret = libvirtmod.virDomainPinVcpu(self._o, vcpu, cpumap, maplen)
-        if ret == -1: raise libvirtError ('virDomainPinVcpu() failed', dom=self)
-        return ret
-
     def reboot(self, flags):
         """Reboot a domain, the domain object is still usable there
            after but the domain OS is being stopped for a restart.
@@ -451,6 +443,41 @@ class virDomain:
         ret = libvirtmod.virDomainInterfaceStats(self._o, path)
         return ret
 
+    def pinVcpu(self, vcpu, cpumap):
+        """Dynamically change the real CPUs which can be allocated to
+           a virtual CPU. This function requires privileged access to
+           the hypervisor. """
+        ret = libvirtmod.virDomainPinVcpu(self._o, vcpu, cpumap)
+        if ret == -1: raise libvirtError ('virDomainPinVcpu() failed', dom=self)
+        return ret
+
+    def schedulerParameters(self):
+        """Get the scheduler parameters, the @params array will be
+           filled with the values. """
+        ret = libvirtmod.virDomainGetSchedulerParameters(self._o)
+        if ret == -1: raise libvirtError ('virDomainGetSchedulerParameters() failed', dom=self)
+        return ret
+
+    def schedulerType(self):
+        """Get the scheduler type. """
+        ret = libvirtmod.virDomainGetSchedulerType(self._o)
+        if ret is None: raise libvirtError ('virDomainGetSchedulerType() failed', dom=self)
+        return ret
+
+    def setSchedulerParameters(self, params):
+        """Change the scheduler parameters """
+        ret = libvirtmod.virDomainSetSchedulerParameters(self._o, params)
+        if ret == -1: raise libvirtError ('virDomainSetSchedulerParameters() failed', dom=self)
+        return ret
+
+    def vcpus(self):
+        """Extract information about virtual CPUs of domain, store it
+           in info array and also in cpumaps if this pointer is'nt
+           None. """
+        ret = libvirtmod.virDomainGetVcpus(self._o)
+        if ret == -1: raise libvirtError ('virDomainGetVcpus() failed', dom=self)
+        return ret
+
 class virNetwork:
     def __init__(self, conn, _obj=None):
         self._conn = conn
@@ -522,7 +549,6 @@ class virNetwork:
     def name(self):
         """Get the public name for that network """
         ret = libvirtmod.virNetworkGetName(self._o)
-        if ret is None: raise libvirtError ('virNetworkGetName() failed', net=self)
         return ret
 
     def setAutostart(self, autostart):
@@ -562,6 +588,229 @@ class virNetwork:
         __tmp = virNetwork(self, _obj=ret)
         return __tmp
 
+class virStoragePool:
+    def __init__(self, conn, _obj=None):
+        self._conn = conn
+        if _obj != None:self._o = _obj;return
+        self._o = None
+
+    def __del__(self):
+        if self._o != None:
+            libvirtmod.virStoragePoolFree(self._o)
+        self._o = None
+
+    #
+    # virStoragePool functions from module libvirt
+    #
+
+    def UUID(self, uuid):
+        """Fetch the globally unique ID of the storage pool """
+        ret = libvirtmod.virStoragePoolGetUUID(self._o, uuid)
+        if ret == -1: raise libvirtError ('virStoragePoolGetUUID() failed', pool=self)
+        return ret
+
+    def UUIDString(self, buf):
+        """Fetch the globally unique ID of the storage pool as a string """
+        ret = libvirtmod.virStoragePoolGetUUIDString(self._o, buf)
+        if ret == -1: raise libvirtError ('virStoragePoolGetUUIDString() failed', pool=self)
+        return ret
+
+    def XMLDesc(self, flags):
+        """Fetch an XML document describing all aspects of the storage
+           pool. This is suitable for later feeding back into the
+           virStoragePoolCreateXML method. """
+        ret = libvirtmod.virStoragePoolGetXMLDesc(self._o, flags)
+        if ret is None: raise libvirtError ('virStoragePoolGetXMLDesc() failed', pool=self)
+        return ret
+
+    def autostart(self, autostart):
+        """Fetches the value of the autostart flag, which determines
+           whether the pool is automatically started at boot time """
+        ret = libvirtmod.virStoragePoolGetAutostart(self._o, autostart)
+        if ret == -1: raise libvirtError ('virStoragePoolGetAutostart() failed', pool=self)
+        return ret
+
+    def build(self, flags):
+        """Build the underlying storage pool """
+        ret = libvirtmod.virStoragePoolBuild(self._o, flags)
+        if ret == -1: raise libvirtError ('virStoragePoolBuild() failed', pool=self)
+        return ret
+
+    def connect(self):
+        """Provides the connection pointer associated with a storage
+           pool.  The reference counter on the connection is not
+           increased by this call.  WARNING: When writing libvirt
+           bindings in other languages, do not use this function. 
+           Instead, store the connection and the pool object together. """
+        ret = libvirtmod.virStoragePoolGetConnect(self._o)
+        if ret is None:raise libvirtError('virStoragePoolGetConnect() failed', pool=self)
+        __tmp = virConnect(_obj=ret)
+        return __tmp
+
+    def create(self, flags):
+        """Starts an inactive storage pool """
+        ret = libvirtmod.virStoragePoolCreate(self._o, flags)
+        if ret == -1: raise libvirtError ('virStoragePoolCreate() failed', pool=self)
+        return ret
+
+    def createXML(self, xmldesc, flags):
+        """Create a storage volume within a pool based on an XML
+           description. Not all pools support creation of volumes """
+        ret = libvirtmod.virStorageVolCreateXML(self._o, xmldesc, flags)
+        if ret is None:raise libvirtError('virStorageVolCreateXML() failed', pool=self)
+        __tmp = virStorageVol(self, _obj=ret)
+        return __tmp
+
+    def delete(self, flags):
+        """Delete the underlying pool resources. This is a
+           non-recoverable operation. The virStoragePoolPtr object
+           itself is not free'd. """
+        ret = libvirtmod.virStoragePoolDelete(self._o, flags)
+        if ret == -1: raise libvirtError ('virStoragePoolDelete() failed', pool=self)
+        return ret
+
+    def destroy(self):
+        """Destroy an active storage pool. This will deactivate the
+           pool on the host, but keep any persistent config
+           associated with it. If it has a persistent config it can
+           later be restarted with virStoragePoolCreate(). This does
+           not free the associated virStoragePoolPtr object. """
+        ret = libvirtmod.virStoragePoolDestroy(self._o)
+        if ret == -1: raise libvirtError ('virStoragePoolDestroy() failed', pool=self)
+        self._o = None
+        return ret
+
+    def info(self, info):
+        """Get volatile information about the storage pool such as
+           free space / usage summary """
+        ret = libvirtmod.virStoragePoolGetInfo(self._o, info)
+        if ret == -1: raise libvirtError ('virStoragePoolGetInfo() failed', pool=self)
+        return ret
+
+    def listVolumes(self, names, maxnames):
+        """Fetch list of storage volume names, limiting to at most
+           maxnames. """
+        ret = libvirtmod.virStoragePoolListVolumes(self._o, names, maxnames)
+        if ret == -1: raise libvirtError ('virStoragePoolListVolumes() failed', pool=self)
+        return ret
+
+    def name(self):
+        """Fetch the locally unique name of the storage pool """
+        ret = libvirtmod.virStoragePoolGetName(self._o)
+        return ret
+
+    def numOfVolumes(self):
+        """Fetch the number of storage volumes within a pool """
+        ret = libvirtmod.virStoragePoolNumOfVolumes(self._o)
+        if ret == -1: raise libvirtError ('virStoragePoolNumOfVolumes() failed', pool=self)
+        return ret
+
+    def refresh(self, flags):
+        """Request that the pool refresh its list of volumes. This may
+           involve communicating with a remote server, and/or
+           initializing new devices at the OS layer """
+        ret = libvirtmod.virStoragePoolRefresh(self._o, flags)
+        if ret == -1: raise libvirtError ('virStoragePoolRefresh() failed', pool=self)
+        return ret
+
+    def setAutostart(self, autostart):
+        """Sets the autostart flag """
+        ret = libvirtmod.virStoragePoolSetAutostart(self._o, autostart)
+        if ret == -1: raise libvirtError ('virStoragePoolSetAutostart() failed', pool=self)
+        return ret
+
+    def storageVolLookupByName(self, name):
+        """Fetch a pointer to a storage volume based on its name
+           within a pool """
+        ret = libvirtmod.virStorageVolLookupByName(self._o, name)
+        if ret is None:raise libvirtError('virStorageVolLookupByName() failed', pool=self)
+        __tmp = virStorageVol(self, _obj=ret)
+        return __tmp
+
+    def undefine(self):
+        """Undefine an inactive storage pool """
+        ret = libvirtmod.virStoragePoolUndefine(self._o)
+        if ret == -1: raise libvirtError ('virStoragePoolUndefine() failed', pool=self)
+        return ret
+
+class virStorageVol:
+    def __init__(self, conn, _obj=None):
+        self._conn = conn
+        if _obj != None:self._o = _obj;return
+        self._o = None
+
+    def __del__(self):
+        if self._o != None:
+            libvirtmod.virStorageVolFree(self._o)
+        self._o = None
+
+    #
+    # virStorageVol functions from module libvirt
+    #
+
+    def XMLDesc(self, flags):
+        """Fetch an XML document describing all aspects of the storage
+           volume """
+        ret = libvirtmod.virStorageVolGetXMLDesc(self._o, flags)
+        if ret is None: raise libvirtError ('virStorageVolGetXMLDesc() failed', vol=self)
+        return ret
+
+    def connect(self):
+        """Provides the connection pointer associated with a storage
+           volume.  The reference counter on the connection is not
+           increased by this call.  WARNING: When writing libvirt
+           bindings in other languages, do not use this function. 
+           Instead, store the connection and the volume object
+           together. """
+        ret = libvirtmod.virStorageVolGetConnect(self._o)
+        if ret is None:raise libvirtError('virStorageVolGetConnect() failed', vol=self)
+        __tmp = virConnect(_obj=ret)
+        return __tmp
+
+    def delete(self, flags):
+        """Delete the storage volume from the pool """
+        ret = libvirtmod.virStorageVolDelete(self._o, flags)
+        if ret == -1: raise libvirtError ('virStorageVolDelete() failed', vol=self)
+        return ret
+
+    def info(self, info):
+        """Fetches volatile information about the storage volume such
+           as its current allocation """
+        ret = libvirtmod.virStorageVolGetInfo(self._o, info)
+        if ret == -1: raise libvirtError ('virStorageVolGetInfo() failed', vol=self)
+        return ret
+
+    def key(self):
+        """Fetch the storage volume key. This is globally unique, so
+           the same volume will hve the same key no matter what host
+           it is accessed from """
+        ret = libvirtmod.virStorageVolGetKey(self._o)
+        if ret is None: raise libvirtError ('virStorageVolGetKey() failed', vol=self)
+        return ret
+
+    def name(self):
+        """Fetch the storage volume name. This is unique within the
+           scope of a pool """
+        ret = libvirtmod.virStorageVolGetName(self._o)
+        return ret
+
+    def path(self):
+        """Fetch the storage volume path. Depending on the pool
+           configuration this is either persistent across hosts, or
+           dynamically assigned at pool startup. Consult pool
+           documentation for information on getting the persistent
+           naming """
+        ret = libvirtmod.virStorageVolGetPath(self._o)
+        if ret is None: raise libvirtError ('virStorageVolGetPath() failed', vol=self)
+        return ret
+
+    def storagePoolLookupByVolume(self):
+        """Fetch a storage pool which contains a particular volume """
+        ret = libvirtmod.virStoragePoolLookupByVolume(self._o)
+        if ret is None:raise libvirtError('virStoragePoolLookupByVolume() failed', vol=self)
+        __tmp = virStoragePool(self, _obj=ret)
+        return __tmp
+
 class virConnect:
     def __init__(self, _obj=None):
         if _obj != None:self._o = _obj;return
@@ -595,6 +844,15 @@ class virConnect:
         __tmp = virNetwork(self, _obj=ret)
         return __tmp
 
+    def createXML(self, xmlDesc, flags):
+        """Create a new storage based on its XML description. The pool
+           is not persitent, so its definition will disappear when it
+           is destroyed, or if the host is restarted """
+        ret = libvirtmod.virStoragePoolCreateXML(self._o, xmlDesc, flags)
+        if ret is None:raise libvirtError('virStoragePoolCreateXML() failed', conn=self)
+        __tmp = virStoragePool(self, _obj=ret)
+        return __tmp
+
     def defineXML(self, xml):
         """define a domain, but does not start it """
         ret = libvirtmod.virDomainDefineXML(self._o, xml)
@@ -606,6 +864,11 @@ class virConnect:
         """Provides capabilities of the hypervisor / driver. """
         ret = libvirtmod.virConnectGetCapabilities(self._o)
         if ret is None: raise libvirtError ('virConnectGetCapabilities() failed', conn=self)
+        return ret
+
+    def getFreeMemory(self):
+        """provides the free memory availble on the Node """
+        ret = libvirtmod.virNodeGetFreeMemory(self._o)
         return ret
 
     def getHostname(self):
@@ -642,6 +905,22 @@ class virConnect:
            same hypervisor later. """
         ret = libvirtmod.virConnectGetURI(self._o)
         if ret is None: raise libvirtError ('virConnectGetURI() failed', conn=self)
+        return ret
+
+    def listDefinedStoragePools(self, names, maxnames):
+        """Provides the list of names of inactive storage pools upto
+           maxnames. If there are more than maxnames, the remaining
+           names will be silently ignored. """
+        ret = libvirtmod.virConnectListDefinedStoragePools(self._o, names, maxnames)
+        if ret == -1: raise libvirtError ('virConnectListDefinedStoragePools() failed', conn=self)
+        return ret
+
+    def listStoragePools(self, names, maxnames):
+        """Provides the list of names of active storage pools upto
+           maxnames. If there are more than maxnames, the remaining
+           names will be silently ignored. """
+        ret = libvirtmod.virConnectListStoragePools(self._o, names, maxnames)
+        if ret == -1: raise libvirtError ('virConnectListStoragePools() failed', conn=self)
         return ret
 
     def lookupByID(self, id):
@@ -740,6 +1019,12 @@ class virConnect:
         if ret == -1: raise libvirtError ('virConnectNumOfDefinedNetworks() failed', conn=self)
         return ret
 
+    def numOfDefinedStoragePools(self):
+        """Provides the number of inactive storage pools """
+        ret = libvirtmod.virConnectNumOfDefinedStoragePools(self._o)
+        if ret == -1: raise libvirtError ('virConnectNumOfDefinedStoragePools() failed', conn=self)
+        return ret
+
     def numOfDomains(self):
         """Provides the number of active domains. """
         ret = libvirtmod.virConnectNumOfDomains(self._o)
@@ -752,6 +1037,12 @@ class virConnect:
         if ret == -1: raise libvirtError ('virConnectNumOfNetworks() failed', conn=self)
         return ret
 
+    def numOfStoragePools(self):
+        """Provides the number of active storage pools """
+        ret = libvirtmod.virConnectNumOfStoragePools(self._o)
+        if ret == -1: raise libvirtError ('virConnectNumOfStoragePools() failed', conn=self)
+        return ret
+
     def restore(self, frm):
         """This method will restore a domain saved to disk by
            virDomainSave(). """
@@ -759,12 +1050,58 @@ class virConnect:
         if ret == -1: raise libvirtError ('virDomainRestore() failed', conn=self)
         return ret
 
+    def storagePoolDefineXML(self, xml, flags):
+        """Define a new inactive storage pool based on its XML
+           description. The pool is persitent, until explicitly
+           undefined. """
+        ret = libvirtmod.virStoragePoolDefineXML(self._o, xml, flags)
+        if ret is None:raise libvirtError('virStoragePoolDefineXML() failed', conn=self)
+        __tmp = virStoragePool(self, _obj=ret)
+        return __tmp
+
+    def storagePoolLookupByName(self, name):
+        """Fetch a storage pool based on its unique name """
+        ret = libvirtmod.virStoragePoolLookupByName(self._o, name)
+        if ret is None:raise libvirtError('virStoragePoolLookupByName() failed', conn=self)
+        __tmp = virStoragePool(self, _obj=ret)
+        return __tmp
+
+    def storagePoolLookupByUUID(self, uuid):
+        """Fetch a storage pool based on its globally unique id """
+        ret = libvirtmod.virStoragePoolLookupByUUID(self._o, uuid)
+        if ret is None:raise libvirtError('virStoragePoolLookupByUUID() failed', conn=self)
+        __tmp = virStoragePool(self, _obj=ret)
+        return __tmp
+
+    def storagePoolLookupByUUIDString(self, uuidstr):
+        """Fetch a storage pool based on its globally unique id """
+        ret = libvirtmod.virStoragePoolLookupByUUIDString(self._o, uuidstr)
+        if ret is None:raise libvirtError('virStoragePoolLookupByUUIDString() failed', conn=self)
+        __tmp = virStoragePool(self, _obj=ret)
+        return __tmp
+
+    def storageVolLookupByKey(self, key):
+        """Fetch a pointer to a storage volume based on its globally
+           unique key """
+        ret = libvirtmod.virStorageVolLookupByKey(self._o, key)
+        if ret is None:raise libvirtError('virStorageVolLookupByKey() failed', conn=self)
+        __tmp = virStorageVol(self, _obj=ret)
+        return __tmp
+
+    def storageVolLookupByPath(self, path):
+        """Fetch a pointer to a storage volume based on its locally
+           (host) unique path """
+        ret = libvirtmod.virStorageVolLookupByPath(self._o, path)
+        if ret is None:raise libvirtError('virStorageVolLookupByPath() failed', conn=self)
+        __tmp = virStorageVol(self, _obj=ret)
+        return __tmp
+
     #
     # virConnect functions from module python
     #
 
     def getCellsFreeMemory(self, startCell, maxCells):
-        """Returns the availbale memory for a list of cells """
+        """Returns the available memory for a list of cells """
         ret = libvirtmod.virNodeGetCellsFreeMemory(self._o, startCell, maxCells)
         if ret is None: raise libvirtError ('virNodeGetCellsFreeMemory() failed', conn=self)
         return ret
@@ -826,8 +1163,17 @@ class virConnect:
         """Reset the last error caught on that connection """
         libvirtmod.virConnResetLastError(self._o)
 
+# virStorageVolDeleteFlags
+VIR_STORAGE_VOL_DELETE_NORMAL = 0
+VIR_STORAGE_VOL_DELETE_ZEROED = 1
+
 # virDomainMigrateFlags
 VIR_MIGRATE_LIVE = 1
+
+# virStoragePoolBuildFlags
+VIR_STORAGE_POOL_BUILD_NEW = 0
+VIR_STORAGE_POOL_BUILD_REPAIR = 1
+VIR_STORAGE_POOL_BUILD_RESIZE = 2
 
 # virDomainXMLFlags
 VIR_DOMAIN_XML_SECURE = 1
@@ -860,6 +1206,15 @@ VIR_FROM_REMOTE = 13
 VIR_FROM_OPENVZ = 14
 VIR_FROM_XENXM = 15
 VIR_FROM_STATS_LINUX = 16
+VIR_FROM_STORAGE = 17
+
+# virStorageVolType
+VIR_STORAGE_VOL_FILE = 0
+VIR_STORAGE_VOL_BLOCK = 1
+
+# virStoragePoolDeleteFlags
+VIR_STORAGE_POOL_DELETE_NORMAL = 0
+VIR_STORAGE_POOL_DELETE_ZEROED = 1
 
 # virConnectCredentialType
 VIR_CRED_USERNAME = 1
@@ -930,9 +1285,20 @@ VIR_ERR_NO_DOMAIN = 42
 VIR_ERR_NO_NETWORK = 43
 VIR_ERR_INVALID_MAC = 44
 VIR_ERR_AUTH_FAILED = 45
+VIR_ERR_INVALID_STORAGE_POOL = 46
+VIR_ERR_INVALID_STORAGE_VOL = 47
+VIR_WAR_NO_STORAGE = 48
+VIR_ERR_NO_STORAGE_POOL = 49
+VIR_ERR_NO_STORAGE_VOL = 50
 
 # virDomainCreateFlags
 VIR_DOMAIN_NONE = 0
+
+# virStoragePoolState
+VIR_STORAGE_POOL_INACTIVE = 0
+VIR_STORAGE_POOL_BUILDING = 1
+VIR_STORAGE_POOL_RUNNING = 2
+VIR_STORAGE_POOL_DEGRADED = 3
 
 # virVcpuState
 VIR_VCPU_OFFLINE = 0

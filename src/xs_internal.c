@@ -9,7 +9,7 @@
  */
 
 #ifdef WITH_XEN
-#include "config.h"
+#include <config.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -21,7 +21,7 @@
 
 #include <stdint.h>
 
-#include <xen/dom0_ops.h> 
+#include <xen/dom0_ops.h>
 #include <xen/version.h>
 #include <xen/xen.h>
 
@@ -227,7 +227,7 @@ virDomainDoStoreWrite(virDomainPtr domain, const char *path,
  *
  * Returns the new string or NULL in case of error
  */
-char *
+static char *
 virDomainGetVM(virDomainPtr domain)
 {
     char *vm;
@@ -256,12 +256,12 @@ virDomainGetVM(virDomainPtr domain)
  * @vm: the xenstore vm path
  * @name: the value's path
  *
- * Internal API extracting one information the device used 
+ * Internal API extracting one information the device used
  * by the domain from xensttore
  *
  * Returns the new string or NULL in case of error
  */
-char *
+static char *
 virDomainGetVMInfo(virDomainPtr domain, const char *vm, const char *name)
 {
     char s[256];
@@ -284,30 +284,6 @@ virDomainGetVMInfo(virDomainPtr domain, const char *vm, const char *name)
     return (ret);
 }
 
-#if 0
-/**
- * virConnectCheckStoreID:
- * @conn: pointer to the hypervisor connection
- * @id: the id number as returned from Xenstore
- *
- * the xenstore sometimes list non-running domains, double check
- * from the hypervisor if we have direct access
- *
- * Returns -1 if the check failed, 0 if successful or not possible to check
- */
-static int
-virConnectCheckStoreID(virConnectPtr conn, int id)
-{
-    if (conn->id >= 0) {
-        int tmp;
-
-        tmp = xenHypervisorCheckID(conn, id);
-        if (tmp < 0)
-            return (-1);
-    }
-    return (0);
-}
-#endif
 #endif /* ! PROXY */
 
 /************************************************************************
@@ -349,7 +325,7 @@ xenStoreOpen(virConnectPtr conn,
          * remote) mechanism.
 	 */
         if (getuid() == 0) {
-	    virXenStoreError(NULL, VIR_ERR_NO_XEN, 
+	    virXenStoreError(NULL, VIR_ERR_NO_XEN,
 				 _("failed to connect to Xen Store"));
 	}
         return (-1);
@@ -659,9 +635,7 @@ xenStoreLookupByName(virConnectPtr conn, const char *name)
     ret->id = id;
 
 done:
-    if (xenddomain != NULL)
 	free(xenddomain);
-    if (idlist != NULL)
 	free(idlist);
 
     return(ret);
@@ -688,7 +662,7 @@ xenStoreDomainShutdown(virDomainPtr domain)
     if (domain->id == -1 || domain->id == 0)
         return(-1);
     /*
-     * this is very hackish, the domU kernel probes for a special 
+     * this is very hackish, the domU kernel probes for a special
      * node in the xenstore and launch the shutdown command if found.
      */
     return(virDomainDoStoreWrite(domain, "control/shutdown", "halt"));
@@ -716,7 +690,7 @@ xenStoreDomainReboot(virDomainPtr domain, unsigned int flags ATTRIBUTE_UNUSED)
     if (domain->id == -1 || domain->id == 0)
         return(-1);
     /*
-     * this is very hackish, the domU kernel probes for a special 
+     * this is very hackish, the domU kernel probes for a special
      * node in the xenstore and launch the shutdown command if found.
      */
     return(virDomainDoStoreWrite(domain, "control/shutdown", "reboot"));
@@ -757,7 +731,7 @@ xenStoreDomainGetOSType(virDomainPtr domain) {
  * @domid: id of the domain
  *
  * Return the port number on which the domain is listening for VNC
- * connections. 
+ * connections.
  *
  * Returns the port number, -1 in case of error
  */

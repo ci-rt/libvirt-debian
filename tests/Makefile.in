@@ -36,12 +36,12 @@ noinst_PROGRAMS = xmlrpctest$(EXEEXT) xml2sexprtest$(EXEEXT) \
 	sexpr2xmltest$(EXEEXT) virshtest$(EXEEXT) conftest$(EXEEXT) \
 	reconnect$(EXEEXT) xmconfigtest$(EXEEXT) xencapstest$(EXEEXT) \
 	qemuxml2argvtest$(EXEEXT) qemuxml2xmltest$(EXEEXT) \
-	nodeinfotest$(EXEEXT)
+	nodeinfotest$(EXEEXT) statstest$(EXEEXT)
 TESTS = xml2sexprtest$(EXEEXT) sexpr2xmltest$(EXEEXT) \
 	virshtest$(EXEEXT) test_conf.sh xmconfigtest$(EXEEXT) \
 	xencapstest$(EXEEXT) qemuxml2argvtest$(EXEEXT) \
-	qemuxml2xmltest$(EXEEXT) nodeinfotest$(EXEEXT) $(test_scripts) \
-	$(am__EXEEXT_1)
+	qemuxml2xmltest$(EXEEXT) nodeinfotest$(EXEEXT) \
+	statstest$(EXEEXT) $(test_scripts) $(am__EXEEXT_1)
 @ENABLE_XEN_TESTS_TRUE@am__append_1 = reconnect
 subdir = tests
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
@@ -110,7 +110,8 @@ am_conftest_OBJECTS = conftest.$(OBJEXT)
 conftest_OBJECTS = $(am_conftest_OBJECTS)
 am__DEPENDENCIES_1 =
 am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) $(LIBVIRT) \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) ../src/libvirt_test.la \
 	../gnulib/lib/libgnu.la $(am__DEPENDENCIES_1)
 conftest_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_nodeinfotest_OBJECTS = nodeinfotest.$(OBJEXT) testutils.$(OBJEXT)
@@ -130,6 +131,9 @@ reconnect_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_sexpr2xmltest_OBJECTS = sexpr2xmltest.$(OBJEXT) testutils.$(OBJEXT)
 sexpr2xmltest_OBJECTS = $(am_sexpr2xmltest_OBJECTS)
 sexpr2xmltest_DEPENDENCIES = $(am__DEPENDENCIES_2)
+am_statstest_OBJECTS = statstest.$(OBJEXT) testutils.$(OBJEXT)
+statstest_OBJECTS = $(am_statstest_OBJECTS)
+statstest_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_virshtest_OBJECTS = virshtest.$(OBJEXT) testutils.$(OBJEXT)
 virshtest_OBJECTS = $(am_virshtest_OBJECTS)
 virshtest_DEPENDENCIES = $(am__DEPENDENCIES_2)
@@ -161,15 +165,15 @@ LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 SOURCES = $(conftest_SOURCES) $(nodeinfotest_SOURCES) \
 	$(qemuxml2argvtest_SOURCES) $(qemuxml2xmltest_SOURCES) \
 	$(reconnect_SOURCES) $(sexpr2xmltest_SOURCES) \
-	$(virshtest_SOURCES) $(xencapstest_SOURCES) \
-	$(xmconfigtest_SOURCES) $(xml2sexprtest_SOURCES) \
-	$(xmlrpctest_SOURCES)
+	$(statstest_SOURCES) $(virshtest_SOURCES) \
+	$(xencapstest_SOURCES) $(xmconfigtest_SOURCES) \
+	$(xml2sexprtest_SOURCES) $(xmlrpctest_SOURCES)
 DIST_SOURCES = $(conftest_SOURCES) $(nodeinfotest_SOURCES) \
 	$(qemuxml2argvtest_SOURCES) $(qemuxml2xmltest_SOURCES) \
 	$(reconnect_SOURCES) $(sexpr2xmltest_SOURCES) \
-	$(virshtest_SOURCES) $(xencapstest_SOURCES) \
-	$(xmconfigtest_SOURCES) $(xml2sexprtest_SOURCES) \
-	$(xmlrpctest_SOURCES)
+	$(statstest_SOURCES) $(virshtest_SOURCES) \
+	$(xencapstest_SOURCES) $(xmconfigtest_SOURCES) \
+	$(xml2sexprtest_SOURCES) $(xmlrpctest_SOURCES)
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	html-recursive info-recursive install-data-recursive \
 	install-dvi-recursive install-exec-recursive \
@@ -279,6 +283,7 @@ GNULIB_PRINTF_POSIX = @GNULIB_PRINTF_POSIX@
 GNULIB_PUTENV = @GNULIB_PUTENV@
 GNULIB_READLINK = @GNULIB_READLINK@
 GNULIB_REALLOC_POSIX = @GNULIB_REALLOC_POSIX@
+GNULIB_SETENV = @GNULIB_SETENV@
 GNULIB_SLEEP = @GNULIB_SLEEP@
 GNULIB_SNPRINTF = @GNULIB_SNPRINTF@
 GNULIB_SPRINTF_POSIX = @GNULIB_SPRINTF_POSIX@
@@ -292,7 +297,10 @@ GNULIB_STRNDUP = @GNULIB_STRNDUP@
 GNULIB_STRNLEN = @GNULIB_STRNLEN@
 GNULIB_STRPBRK = @GNULIB_STRPBRK@
 GNULIB_STRSEP = @GNULIB_STRSEP@
+GNULIB_STRSIGNAL = @GNULIB_STRSIGNAL@
+GNULIB_STRSTR = @GNULIB_STRSTR@
 GNULIB_STRTOK_R = @GNULIB_STRTOK_R@
+GNULIB_UNSETENV = @GNULIB_UNSETENV@
 GNULIB_VASPRINTF = @GNULIB_VASPRINTF@
 GNULIB_VFPRINTF_POSIX = @GNULIB_VFPRINTF_POSIX@
 GNULIB_VPRINTF_POSIX = @GNULIB_VPRINTF_POSIX@
@@ -314,6 +322,7 @@ HAVE_DECL_STRDUP = @HAVE_DECL_STRDUP@
 HAVE_DECL_STRERROR = @HAVE_DECL_STRERROR@
 HAVE_DECL_STRNDUP = @HAVE_DECL_STRNDUP@
 HAVE_DECL_STRNLEN = @HAVE_DECL_STRNLEN@
+HAVE_DECL_STRSIGNAL = @HAVE_DECL_STRSIGNAL@
 HAVE_DECL_STRTOK_R = @HAVE_DECL_STRTOK_R@
 HAVE_DECL_VSNPRINTF = @HAVE_DECL_VSNPRINTF@
 HAVE_DECL_WCWIDTH = @HAVE_DECL_WCWIDTH@
@@ -334,6 +343,7 @@ HAVE_NETINET_IN_H = @HAVE_NETINET_IN_H@
 HAVE_OS_H = @HAVE_OS_H@
 HAVE_READLINK = @HAVE_READLINK@
 HAVE_REALLOC_POSIX = @HAVE_REALLOC_POSIX@
+HAVE_SETENV = @HAVE_SETENV@
 HAVE_SIGNED_SIG_ATOMIC_T = @HAVE_SIGNED_SIG_ATOMIC_T@
 HAVE_SIGNED_WCHAR_T = @HAVE_SIGNED_WCHAR_T@
 HAVE_SIGNED_WINT_T = @HAVE_SIGNED_WINT_T@
@@ -355,6 +365,7 @@ HAVE_SYS_SOCKET_H = @HAVE_SYS_SOCKET_H@
 HAVE_SYS_TIME_H = @HAVE_SYS_TIME_H@
 HAVE_SYS_TYPES_H = @HAVE_SYS_TYPES_H@
 HAVE_UNISTD_H = @HAVE_UNISTD_H@
+HAVE_UNSETENV = @HAVE_UNSETENV@
 HAVE_UNSIGNED_LONG_LONG_INT = @HAVE_UNSIGNED_LONG_LONG_INT@
 HAVE_VASPRINTF = @HAVE_VASPRINTF@
 HAVE_WCHAR_H = @HAVE_WCHAR_H@
@@ -370,10 +381,13 @@ INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 INTLLIBS = @INTLLIBS@
 IPTABLES_PATH = @IPTABLES_PATH@
+ISCSIADM = @ISCSIADM@
 LDFLAGS = @LDFLAGS@
 LIBICONV = @LIBICONV@
 LIBINTL = @LIBINTL@
 LIBOBJS = @LIBOBJS@
+LIBPARTED_CFLAGS = @LIBPARTED_CFLAGS@
+LIBPARTED_LIBS = @LIBPARTED_LIBS@
 LIBS = @LIBS@
 LIBTESTS_LIBDEPS = @LIBTESTS_LIBDEPS@
 LIBTOOL = @LIBTOOL@
@@ -387,12 +401,19 @@ LIBVIRT_VERSION_NUMBER = @LIBVIRT_VERSION_NUMBER@
 LIBXML_CFLAGS = @LIBXML_CFLAGS@
 LIBXML_LIBS = @LIBXML_LIBS@
 LN_S = @LN_S@
+LOKKIT_PATH = @LOKKIT_PATH@
 LTLIBICONV = @LTLIBICONV@
 LTLIBINTL = @LTLIBINTL@
 LTLIBOBJS = @LTLIBOBJS@
+LVCREATE = @LVCREATE@
+LVREMOVE = @LVREMOVE@
+LVS = @LVS@
+LV_LIBTOOL_OBJDIR = @LV_LIBTOOL_OBJDIR@
 MAKEINFO = @MAKEINFO@
+MINGW_EXTRA_LDFLAGS = @MINGW_EXTRA_LDFLAGS@
 MKDIR_P = @MKDIR_P@
 MKINSTALLDIRS = @MKINSTALLDIRS@
+MOUNT = @MOUNT@
 MSGFMT = @MSGFMT@
 MSGMERGE = @MSGMERGE@
 MV = @MV@
@@ -417,17 +438,25 @@ PACKAGE_NAME = @PACKAGE_NAME@
 PACKAGE_STRING = @PACKAGE_STRING@
 PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_VERSION = @PACKAGE_VERSION@
+PARTED = @PARTED@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
+POLKIT_AUTH = @POLKIT_AUTH@
 POLKIT_CFLAGS = @POLKIT_CFLAGS@
+POLKIT_GRANT = @POLKIT_GRANT@
 POLKIT_LIBS = @POLKIT_LIBS@
 POLL_H = @POLL_H@
 POSUB = @POSUB@
 PTRDIFF_T_SUFFIX = @PTRDIFF_T_SUFFIX@
+PVCREATE = @PVCREATE@
+PVREMOVE = @PVREMOVE@
+PVS = @PVS@
 PYTHON = @PYTHON@
 PYTHON_INCLUDES = @PYTHON_INCLUDES@
 PYTHON_SITE_PACKAGES = @PYTHON_SITE_PACKAGES@
 PYTHON_VERSION = @PYTHON_VERSION@
+QCOW_CREATE = @QCOW_CREATE@
+QEMU_IMG = @QEMU_IMG@
 RANLIB = @RANLIB@
 READLINE_CFLAGS = @READLINE_CFLAGS@
 REMOTE_PID_FILE = @REMOTE_PID_FILE@
@@ -443,15 +472,20 @@ REPLACE_FTELL = @REPLACE_FTELL@
 REPLACE_FTELLO = @REPLACE_FTELLO@
 REPLACE_GETCWD = @REPLACE_GETCWD@
 REPLACE_GETLINE = @REPLACE_GETLINE@
+REPLACE_GETPAGESIZE = @REPLACE_GETPAGESIZE@
 REPLACE_GETTIMEOFDAY = @REPLACE_GETTIMEOFDAY@
 REPLACE_LCHOWN = @REPLACE_LCHOWN@
 REPLACE_LSEEK = @REPLACE_LSEEK@
+REPLACE_MEMMEM = @REPLACE_MEMMEM@
 REPLACE_MKSTEMP = @REPLACE_MKSTEMP@
 REPLACE_PRINTF = @REPLACE_PRINTF@
 REPLACE_PUTENV = @REPLACE_PUTENV@
 REPLACE_SNPRINTF = @REPLACE_SNPRINTF@
 REPLACE_SPRINTF = @REPLACE_SPRINTF@
+REPLACE_STRCASESTR = @REPLACE_STRCASESTR@
 REPLACE_STRERROR = @REPLACE_STRERROR@
+REPLACE_STRSIGNAL = @REPLACE_STRSIGNAL@
+REPLACE_STRSTR = @REPLACE_STRSTR@
 REPLACE_VASPRINTF = @REPLACE_VASPRINTF@
 REPLACE_VFPRINTF = @REPLACE_VFPRINTF@
 REPLACE_VPRINTF = @REPLACE_VPRINTF@
@@ -463,6 +497,8 @@ RPCGEN = @RPCGEN@
 SASL_CFLAGS = @SASL_CFLAGS@
 SASL_LIBS = @SASL_LIBS@
 SED = @SED@
+SELINUX_CFLAGS = @SELINUX_CFLAGS@
+SELINUX_LIBS = @SELINUX_LIBS@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 SIG_ATOMIC_T_SUFFIX = @SIG_ATOMIC_T_SUFFIX@
@@ -477,9 +513,15 @@ SYS_STAT_H = @SYS_STAT_H@
 SYS_TIME_H = @SYS_TIME_H@
 TAR = @TAR@
 U = @U@
+UMOUNT = @UMOUNT@
 USE_NLS = @USE_NLS@
 VERSION = @VERSION@
+VGCHANGE = @VGCHANGE@
+VGCREATE = @VGCREATE@
+VGREMOVE = @VGREMOVE@
+VGS = @VGS@
 VIRSH_LIBS = @VIRSH_LIBS@
+VOID_UNSETENV = @VOID_UNSETENV@
 WARN_CFLAGS = @WARN_CFLAGS@
 WCHAR_H = @WCHAR_H@
 WCHAR_T_SUFFIX = @WCHAR_T_SUFFIX@
@@ -547,14 +589,6 @@ top_srcdir = @top_srcdir@
 SUBDIRS = virshdata confdata sexpr2xmldata \
   xml2sexprdata xmconfigdata xencapsdata
 
-
-# Wierd libtool related juju...
-#
-# We explicitly want wildcard here instead of just linking
-# to the libvirt.a file. This ensures that when coverage
-# tests are run, all the output data ends up in the correct
-# location. ie, src/ instead of src/.libs.
-LIBVIRT = $(wildcard $(top_builddir)/src/.libs/libvirt_la-*.o)
 INCLUDES = \
 	-I$(top_srcdir)/gnulib/lib -I../gnulib/lib \
 	-I$(top_builddir)/include \
@@ -564,6 +598,7 @@ INCLUDES = \
 	$(LIBXML_CFLAGS) \
 	$(GNUTLS_CFLAGS) \
 	$(SASL_CFLAGS) \
+	$(SELINUX_CFLAGS) \
         -D_XOPEN_SOURCE=600 -D_POSIX_C_SOURCE=199506L \
         -DGETTEXT_PACKAGE=\"$(PACKAGE)\" \
          $(COVERAGE_CFLAGS) \
@@ -575,8 +610,9 @@ LDADDS = \
 	$(LIBXML_LIBS) \
         $(GNUTLS_LIBS) \
         $(SASL_LIBS) \
+        $(SELINUX_LIBS) \
         $(WARN_CFLAGS) \
-	$(LIBVIRT) \
+	../src/libvirt_test.la \
 	../gnulib/lib/libgnu.la \
         $(COVERAGE_LDFLAGS)
 
@@ -647,10 +683,15 @@ nodeinfotest_SOURCES = \
 	nodeinfotest.c testutils.h testutils.c
 
 nodeinfotest_LDADD = $(LDADDS)
+statstest_SOURCES = \
+	statstest.c testutils.h testutils.c
+
+statstest_LDADD = $(LDADDS)
 reconnect_SOURCES = \
 	reconnect.c
 
 reconnect_LDADD = $(LDADDS)
+CLEANFILES = *.cov *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda
 all: all-recursive
 
 .SUFFIXES:
@@ -709,6 +750,9 @@ reconnect$(EXEEXT): $(reconnect_OBJECTS) $(reconnect_DEPENDENCIES)
 sexpr2xmltest$(EXEEXT): $(sexpr2xmltest_OBJECTS) $(sexpr2xmltest_DEPENDENCIES) 
 	@rm -f sexpr2xmltest$(EXEEXT)
 	$(LINK) $(sexpr2xmltest_OBJECTS) $(sexpr2xmltest_LDADD) $(LIBS)
+statstest$(EXEEXT): $(statstest_OBJECTS) $(statstest_DEPENDENCIES) 
+	@rm -f statstest$(EXEEXT)
+	$(LINK) $(statstest_OBJECTS) $(statstest_LDADD) $(LIBS)
 virshtest$(EXEEXT): $(virshtest_OBJECTS) $(virshtest_DEPENDENCIES) 
 	@rm -f virshtest$(EXEEXT)
 	$(LINK) $(virshtest_OBJECTS) $(virshtest_LDADD) $(LIBS)
@@ -737,6 +781,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemuxml2xmltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/reconnect.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sexpr2xmltest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/statstest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testutils.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virshtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xencapstest.Po@am__quote@
@@ -1056,6 +1101,7 @@ install-strip:
 mostlyclean-generic:
 
 clean-generic:
+	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
 
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
@@ -1143,9 +1189,6 @@ uninstall-am:
 
 valgrind:
 	$(MAKE) check VG="valgrind --quiet --leak-check=full"
-
-$(LIBVIRT):
-	-@(cd $(top_builddir)/src && $(MAKE) MAKEFLAGS+=--silent)
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

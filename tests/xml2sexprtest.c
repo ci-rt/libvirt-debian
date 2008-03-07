@@ -1,5 +1,5 @@
 
-#include "config.h"
+#include <config.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -235,6 +235,13 @@ static int testCompareFVInputUSBTablet(const void *data ATTRIBUTE_UNUSED) {
 			  1);
 }
 
+static int testCompareFVKernel(const void *data ATTRIBUTE_UNUSED) {
+  return testCompareFiles("xml2sexprdata/xml2sexpr-fv-kernel.xml",
+			  "xml2sexprdata/xml2sexpr-fv-kernel.sexpr",
+			  "fvtest",
+			  1);
+}
+
 
 
 int
@@ -249,7 +256,7 @@ main(int argc, char **argv)
         fprintf(stderr, "missing enviroment variable abs_top_srcdir\n");
 	exit(EXIT_FAILURE);
     }
-        
+
 
     if (argc > 1) {
 	fprintf(stderr, "Usage: %s\n", progname);
@@ -349,6 +356,10 @@ main(int argc, char **argv)
 
     if (virtTestRun("XML-2-SEXPR clock Localtime",
 		    1, testCompareFVclockLocaltime, NULL) != 0)
+	ret = -1;
+
+    if (virtTestRun("XML-2-SEXPR FV kernel",
+		    1, testCompareFVKernel, NULL) != 0)
 	ret = -1;
 
     exit(ret==0 ? EXIT_SUCCESS : EXIT_FAILURE);

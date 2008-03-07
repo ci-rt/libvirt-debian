@@ -7,7 +7,7 @@
  *
  * Karel Zak <kzak@redhat.com>
  *
- * $Id: testutils.h,v 1.4 2007/07/18 21:08:22 berrange Exp $
+ * $Id: testutils.h,v 1.5 2008/02/05 19:27:37 meyering Exp $
  */
 
 #ifndef __VIT_TEST_UTILS_H__
@@ -17,7 +17,7 @@
 extern "C" {
 #endif
 
-  
+
     double virtTestCountAverage(double *items,
                                 int nitems);
 

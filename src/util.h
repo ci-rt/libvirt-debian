@@ -25,16 +25,18 @@
 #define __VIR_UTIL_H__
 
 #include "internal.h"
+#include "util-lib.h"
 
-int virExec(virConnectPtr conn, char **argv, int *retpid, int infd, int *outfd, int *errfd);
-int virExecNonBlock(virConnectPtr conn, char **argv, int *retpid, int infd, int *outfd, int *errfd);
+int virExec(virConnectPtr conn, char **argv, int *retpid,
+	    int infd, int *outfd, int *errfd);
+int virExecNonBlock(virConnectPtr conn, char **argv, int *retpid,
+		    int infd, int *outfd, int *errfd);
+int virRun(virConnectPtr conn, char **argv, int *status);
 
-int saferead(int fd, void *buf, size_t count);
-ssize_t safewrite(int fd, const void *buf, size_t count);
-
-int virFileReadAll(const char *path,
-                   char *buf,
-                   unsigned int buflen);
+int __virFileReadAll(const char *path,
+		     int maxlen,
+		     char **buf);
+#define virFileReadAll(p,m,b) __virFileReadAll((p),(m),(b))
 
 int virFileMatchesNameSuffix(const char *file,
                              const char *name,
@@ -45,6 +47,9 @@ int virFileHasSuffix(const char *str,
 
 int virFileLinkPointsTo(const char *checkLink,
                         const char *checkDest);
+
+int virFileExists(const char *path);
+
 int virFileMakePath(const char *path);
 
 int virFileBuildPath(const char *dir,
@@ -53,5 +58,31 @@ int virFileBuildPath(const char *dir,
                      char *buf,
                      unsigned int buflen);
 
+
+int __virStrToLong_i(char const *s,
+                     char **end_ptr,
+                     int base,
+                     int *result);
+#define virStrToLong_i(s,e,b,r) __virStrToLong_i((s),(e),(b),(r))
+
+int virStrToLong_ui(char const *s,
+                    char **end_ptr,
+                    int base,
+                    unsigned int *result);
+int virStrToLong_ll(char const *s,
+                    char **end_ptr,
+                    int base,
+                    long long *result);
+int __virStrToLong_ull(char const *s,
+		       char **end_ptr,
+		       int base,
+		       unsigned long long *result);
+#define virStrToLong_ull(s,e,b,r) __virStrToLong_ull((s),(e),(b),(r))
+
+int __virMacAddrCompare (const char *mac1, const char *mac2);
+#define virMacAddrCompare(mac1,mac2) __virMacAddrCompare((mac1),(mac2))
+
+void virSkipSpaces(const char **str);
+int virParseNumber(const char **str);
 
 #endif /* __VIR_UTIL_H__ */

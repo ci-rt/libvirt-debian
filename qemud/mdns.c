@@ -22,14 +22,11 @@
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
-#ifdef HAVE_CONFIG_H
 #include <config.h>
-#endif
 
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 
 #include <avahi-client/client.h>
 #include <avahi-client/publish.h>
@@ -156,10 +153,10 @@ static void libvirtd_mdns_create_services(struct libvirtd_mdns_group *group) {
                                                  group->name,
                                                  entry->type,
                                                  NULL,
-                                                 NULL, 
+                                                 NULL,
                                                  entry->port,
                                                  NULL)) < 0) {
-            AVAHI_DEBUG("Failed to add %s service on port %d: %s", 
+            AVAHI_DEBUG("Failed to add %s service on port %d: %s",
                         entry->type, entry->port, avahi_strerror(ret));
             avahi_entry_group_reset(group->handle);
             return;
@@ -212,7 +209,7 @@ static void libvirtd_mdns_client_callback(AvahiClient *c, AvahiClientState state
             /* The server records are now being established. This
              * might be caused by a host name change. We need to wait
              * for our own records to register until the host name is
-             * properly esatblished. */
+             * properly established. */
             AVAHI_DEBUG("Client collision/connecting %p", mdns->client);
             group = mdns->group;
             while (group) {

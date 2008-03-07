@@ -6,6 +6,61 @@
 #include "libvirt-py.h"
 
 PyObject *
+libvirt_virStoragePoolGetXMLDesc(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    char * c_retval;
+    virStoragePoolPtr pool;
+    PyObject *pyobj_pool;
+    unsigned int flags;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oi:virStoragePoolGetXMLDesc", &pyobj_pool, &flags))
+        return(NULL);
+    pool = (virStoragePoolPtr) PyvirStoragePool_Get(pyobj_pool);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStoragePoolGetXMLDesc(pool, flags);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_charPtrWrap((char *) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virStorageVolGetKey(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    const char * c_retval;
+    virStorageVolPtr vol;
+    PyObject *pyobj_vol;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virStorageVolGetKey", &pyobj_vol))
+        return(NULL);
+    vol = (virStorageVolPtr) PyvirStorageVol_Get(pyobj_vol);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStorageVolGetKey(vol);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_charPtrConstWrap((const char *) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virConnectClose(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virConnectPtr conn;
+    PyObject *pyobj_conn;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virConnectClose", &pyobj_conn))
+        return(NULL);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virConnectClose(conn);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
 libvirt_virDomainDefineXML(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     virDomainPtr c_retval;
@@ -39,6 +94,45 @@ LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virDomainShutdown(domain);
 LIBVIRT_END_ALLOW_THREADS;
     py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virStoragePoolSetAutostart(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virStoragePoolPtr pool;
+    PyObject *pyobj_pool;
+    int autostart;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oi:virStoragePoolSetAutostart", &pyobj_pool, &autostart))
+        return(NULL);
+    pool = (virStoragePoolPtr) PyvirStoragePool_Get(pyobj_pool);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStoragePoolSetAutostart(pool, autostart);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virStorageVolCreateXML(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    virStorageVolPtr c_retval;
+    virStoragePoolPtr pool;
+    PyObject *pyobj_pool;
+    char * xmldesc;
+    unsigned int flags;
+
+    if (!PyArg_ParseTuple(args, (char *)"Ozi:virStorageVolCreateXML", &pyobj_pool, &xmldesc, &flags))
+        return(NULL);
+    pool = (virStoragePoolPtr) PyvirStoragePool_Get(pyobj_pool);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStorageVolCreateXML(pool, xmldesc, flags);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_virStorageVolPtrWrap((virStorageVolPtr) c_retval);
     return(py_retval);
 }
 
@@ -98,6 +192,60 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
+libvirt_virStoragePoolGetConnect(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    virConnectPtr c_retval;
+    virStoragePoolPtr pool;
+    PyObject *pyobj_pool;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virStoragePoolGetConnect", &pyobj_pool))
+        return(NULL);
+    pool = (virStoragePoolPtr) PyvirStoragePool_Get(pyobj_pool);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStoragePoolGetConnect(pool);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_virConnectPtrWrap((virConnectPtr) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virDomainFree(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virDomainPtr domain;
+    PyObject *pyobj_domain;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virDomainFree", &pyobj_domain))
+        return(NULL);
+    domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virDomainFree(domain);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virStoragePoolGetName(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    const char * c_retval;
+    virStoragePoolPtr pool;
+    PyObject *pyobj_pool;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virStoragePoolGetName", &pyobj_pool))
+        return(NULL);
+    pool = (virStoragePoolPtr) PyvirStoragePool_Get(pyobj_pool);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStoragePoolGetName(pool);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_charPtrConstWrap((const char *) c_retval);
+    return(py_retval);
+}
+
+PyObject *
 libvirt_virDomainSetAutostart(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     int c_retval;
@@ -113,6 +261,64 @@ LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virDomainSetAutostart(domain, autostart);
 LIBVIRT_END_ALLOW_THREADS;
     py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virStoragePoolDefineXML(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    virStoragePoolPtr c_retval;
+    virConnectPtr conn;
+    PyObject *pyobj_conn;
+    char * xml;
+    unsigned int flags;
+
+    if (!PyArg_ParseTuple(args, (char *)"Ozi:virStoragePoolDefineXML", &pyobj_conn, &xml, &flags))
+        return(NULL);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStoragePoolDefineXML(conn, xml, flags);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_virStoragePoolPtrWrap((virStoragePoolPtr) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virStorageVolLookupByPath(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    virStorageVolPtr c_retval;
+    virConnectPtr conn;
+    PyObject *pyobj_conn;
+    char * path;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oz:virStorageVolLookupByPath", &pyobj_conn, &path))
+        return(NULL);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStorageVolLookupByPath(conn, path);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_virStorageVolPtrWrap((virStorageVolPtr) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virStorageVolLookupByName(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    virStorageVolPtr c_retval;
+    virStoragePoolPtr pool;
+    PyObject *pyobj_pool;
+    char * name;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oz:virStorageVolLookupByName", &pyobj_pool, &name))
+        return(NULL);
+    pool = (virStoragePoolPtr) PyvirStoragePool_Get(pyobj_pool);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStorageVolLookupByName(pool, name);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_virStorageVolPtrWrap((virStorageVolPtr) c_retval);
     return(py_retval);
 }
 
@@ -258,6 +464,43 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
+libvirt_virStorageVolGetName(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    const char * c_retval;
+    virStorageVolPtr vol;
+    PyObject *pyobj_vol;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virStorageVolGetName", &pyobj_vol))
+        return(NULL);
+    vol = (virStorageVolPtr) PyvirStorageVol_Get(pyobj_vol);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStorageVolGetName(vol);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_charPtrConstWrap((const char *) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virStoragePoolLookupByUUIDString(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    virStoragePoolPtr c_retval;
+    virConnectPtr conn;
+    PyObject *pyobj_conn;
+    char * uuidstr;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oz:virStoragePoolLookupByUUIDString", &pyobj_conn, &uuidstr))
+        return(NULL);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStoragePoolLookupByUUIDString(conn, uuidstr);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_virStoragePoolPtrWrap((virStoragePoolPtr) c_retval);
+    return(py_retval);
+}
+
+PyObject *
 libvirt_virDomainGetXMLDesc(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     char * c_retval;
@@ -273,6 +516,24 @@ LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virDomainGetXMLDesc(domain, flags);
 LIBVIRT_END_ALLOW_THREADS;
     py_retval = libvirt_charPtrWrap((char *) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virNetworkGetName(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    const char * c_retval;
+    virNetworkPtr network;
+    PyObject *pyobj_network;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virNetworkGetName", &pyobj_network))
+        return(NULL);
+    network = (virNetworkPtr) PyvirNetwork_Get(pyobj_network);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virNetworkGetName(network);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_charPtrConstWrap((const char *) c_retval);
     return(py_retval);
 }
 
@@ -295,6 +556,25 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
+libvirt_virStoragePoolLookupByName(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    virStoragePoolPtr c_retval;
+    virConnectPtr conn;
+    PyObject *pyobj_conn;
+    char * name;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oz:virStoragePoolLookupByName", &pyobj_conn, &name))
+        return(NULL);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStoragePoolLookupByName(conn, name);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_virStoragePoolPtrWrap((virStoragePoolPtr) c_retval);
+    return(py_retval);
+}
+
+PyObject *
 libvirt_virNetworkGetBridgeName(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     char * c_retval;
@@ -307,6 +587,25 @@ libvirt_virNetworkGetBridgeName(PyObject *self ATTRIBUTE_UNUSED, PyObject *args)
 LIBVIRT_BEGIN_ALLOW_THREADS;
 
     c_retval = virNetworkGetBridgeName(network);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_charPtrWrap((char *) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virStorageVolGetXMLDesc(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    char * c_retval;
+    virStorageVolPtr vol;
+    PyObject *pyobj_vol;
+    unsigned int flags;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oi:virStorageVolGetXMLDesc", &pyobj_vol, &flags))
+        return(NULL);
+    vol = (virStorageVolPtr) PyvirStorageVol_Get(pyobj_vol);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStorageVolGetXMLDesc(vol, flags);
 LIBVIRT_END_ALLOW_THREADS;
     py_retval = libvirt_charPtrWrap((char *) c_retval);
     return(py_retval);
@@ -454,6 +753,24 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
+libvirt_virStoragePoolFree(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virStoragePoolPtr pool;
+    PyObject *pyobj_pool;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virStoragePoolFree", &pyobj_pool))
+        return(NULL);
+    pool = (virStoragePoolPtr) PyvirStoragePool_Get(pyobj_pool);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStoragePoolFree(pool);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
 libvirt_virNetworkDefineXML(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     virNetworkPtr c_retval;
@@ -562,20 +879,20 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
-libvirt_virNetworkGetName(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+libvirt_virConnectNumOfStoragePools(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
-    const char * c_retval;
-    virNetworkPtr network;
-    PyObject *pyobj_network;
+    int c_retval;
+    virConnectPtr conn;
+    PyObject *pyobj_conn;
 
-    if (!PyArg_ParseTuple(args, (char *)"O:virNetworkGetName", &pyobj_network))
+    if (!PyArg_ParseTuple(args, (char *)"O:virConnectNumOfStoragePools", &pyobj_conn))
         return(NULL);
-    network = (virNetworkPtr) PyvirNetwork_Get(pyobj_network);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
 LIBVIRT_BEGIN_ALLOW_THREADS;
 
-    c_retval = virNetworkGetName(network);
+    c_retval = virConnectNumOfStoragePools(conn);
 LIBVIRT_END_ALLOW_THREADS;
-    py_retval = libvirt_charPtrConstWrap((const char *) c_retval);
+    py_retval = libvirt_intWrap((int) c_retval);
     return(py_retval);
 }
 
@@ -617,27 +934,6 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
-libvirt_virDomainPinVcpu(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
-    PyObject *py_retval;
-    int c_retval;
-    virDomainPtr domain;
-    PyObject *pyobj_domain;
-    unsigned int vcpu;
-    unsigned char * cpumap;
-    int maplen;
-
-    if (!PyArg_ParseTuple(args, (char *)"Oizi:virDomainPinVcpu", &pyobj_domain, &vcpu, &cpumap, &maplen))
-        return(NULL);
-    domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
-LIBVIRT_BEGIN_ALLOW_THREADS;
-
-    c_retval = virDomainPinVcpu(domain, vcpu, cpumap, maplen);
-LIBVIRT_END_ALLOW_THREADS;
-    py_retval = libvirt_intWrap((int) c_retval);
-    return(py_retval);
-}
-
-PyObject *
 libvirt_virDomainRestore(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     int c_retval;
@@ -653,6 +949,24 @@ LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virDomainRestore(conn, frm);
 LIBVIRT_END_ALLOW_THREADS;
     py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virStorageVolGetPath(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    char * c_retval;
+    virStorageVolPtr vol;
+    PyObject *pyobj_vol;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virStorageVolGetPath", &pyobj_vol))
+        return(NULL);
+    vol = (virStorageVolPtr) PyvirStorageVol_Get(pyobj_vol);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStorageVolGetPath(vol);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_charPtrWrap((char *) c_retval);
     return(py_retval);
 }
 
@@ -695,6 +1009,43 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
+libvirt_virStorageVolFree(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virStorageVolPtr vol;
+    PyObject *pyobj_vol;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virStorageVolFree", &pyobj_vol))
+        return(NULL);
+    vol = (virStorageVolPtr) PyvirStorageVol_Get(pyobj_vol);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStorageVolFree(vol);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virStoragePoolDelete(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virStoragePoolPtr pool;
+    PyObject *pyobj_pool;
+    unsigned int flags;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oi:virStoragePoolDelete", &pyobj_pool, &flags))
+        return(NULL);
+    pool = (virStoragePoolPtr) PyvirStoragePool_Get(pyobj_pool);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStoragePoolDelete(pool, flags);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
 libvirt_virNetworkCreateXML(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     virNetworkPtr c_retval;
@@ -714,6 +1065,45 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
+libvirt_virStoragePoolCreateXML(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    virStoragePoolPtr c_retval;
+    virConnectPtr conn;
+    PyObject *pyobj_conn;
+    char * xmlDesc;
+    unsigned int flags;
+
+    if (!PyArg_ParseTuple(args, (char *)"Ozi:virStoragePoolCreateXML", &pyobj_conn, &xmlDesc, &flags))
+        return(NULL);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStoragePoolCreateXML(conn, xmlDesc, flags);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_virStoragePoolPtrWrap((virStoragePoolPtr) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virStoragePoolRefresh(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virStoragePoolPtr pool;
+    PyObject *pyobj_pool;
+    unsigned int flags;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oi:virStoragePoolRefresh", &pyobj_pool, &flags))
+        return(NULL);
+    pool = (virStoragePoolPtr) PyvirStoragePool_Get(pyobj_pool);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStoragePoolRefresh(pool, flags);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
 libvirt_virConnectNumOfDefinedDomains(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     int c_retval;
@@ -728,6 +1118,25 @@ LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virConnectNumOfDefinedDomains(conn);
 LIBVIRT_END_ALLOW_THREADS;
     py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virStorageVolLookupByKey(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    virStorageVolPtr c_retval;
+    virConnectPtr conn;
+    PyObject *pyobj_conn;
+    char * key;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oz:virStorageVolLookupByKey", &pyobj_conn, &key))
+        return(NULL);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStorageVolLookupByKey(conn, key);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_virStorageVolPtrWrap((virStorageVolPtr) c_retval);
     return(py_retval);
 }
 
@@ -844,6 +1253,61 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
+libvirt_virStoragePoolNumOfVolumes(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virStoragePoolPtr pool;
+    PyObject *pyobj_pool;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virStoragePoolNumOfVolumes", &pyobj_pool))
+        return(NULL);
+    pool = (virStoragePoolPtr) PyvirStoragePool_Get(pyobj_pool);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStoragePoolNumOfVolumes(pool);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virStoragePoolGetUUIDString(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virStoragePoolPtr pool;
+    PyObject *pyobj_pool;
+    char * buf;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oz:virStoragePoolGetUUIDString", &pyobj_pool, &buf))
+        return(NULL);
+    pool = (virStoragePoolPtr) PyvirStoragePool_Get(pyobj_pool);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStoragePoolGetUUIDString(pool, buf);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virStoragePoolUndefine(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virStoragePoolPtr pool;
+    PyObject *pyobj_pool;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virStoragePoolUndefine", &pyobj_pool))
+        return(NULL);
+    pool = (virStoragePoolPtr) PyvirStoragePool_Get(pyobj_pool);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStoragePoolUndefine(pool);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
 libvirt_virDomainAttachDevice(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     int c_retval;
@@ -897,6 +1361,43 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
+libvirt_virNetworkFree(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virNetworkPtr network;
+    PyObject *pyobj_network;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virNetworkFree", &pyobj_network))
+        return(NULL);
+    network = (virNetworkPtr) PyvirNetwork_Get(pyobj_network);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virNetworkFree(network);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virStorageVolDelete(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virStorageVolPtr vol;
+    PyObject *pyobj_vol;
+    unsigned int flags;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oi:virStorageVolDelete", &pyobj_vol, &flags))
+        return(NULL);
+    vol = (virStorageVolPtr) PyvirStorageVol_Get(pyobj_vol);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStorageVolDelete(vol, flags);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
 libvirt_virNetworkUndefine(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     int c_retval;
@@ -933,6 +1434,78 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
+libvirt_virNodeGetFreeMemory(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    unsigned long long c_retval;
+    virConnectPtr conn;
+    PyObject *pyobj_conn;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virNodeGetFreeMemory", &pyobj_conn))
+        return(NULL);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virNodeGetFreeMemory(conn);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_longlongWrap((long long) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virStorageVolGetConnect(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    virConnectPtr c_retval;
+    virStorageVolPtr vol;
+    PyObject *pyobj_vol;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virStorageVolGetConnect", &pyobj_vol))
+        return(NULL);
+    vol = (virStorageVolPtr) PyvirStorageVol_Get(pyobj_vol);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStorageVolGetConnect(vol);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_virConnectPtrWrap((virConnectPtr) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virStoragePoolDestroy(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virStoragePoolPtr pool;
+    PyObject *pyobj_pool;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virStoragePoolDestroy", &pyobj_pool))
+        return(NULL);
+    pool = (virStoragePoolPtr) PyvirStoragePool_Get(pyobj_pool);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStoragePoolDestroy(pool);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virStoragePoolLookupByVolume(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    virStoragePoolPtr c_retval;
+    virStorageVolPtr vol;
+    PyObject *pyobj_vol;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virStoragePoolLookupByVolume", &pyobj_vol))
+        return(NULL);
+    vol = (virStorageVolPtr) PyvirStorageVol_Get(pyobj_vol);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStoragePoolLookupByVolume(vol);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_virStoragePoolPtrWrap((virStoragePoolPtr) c_retval);
+    return(py_retval);
+}
+
+PyObject *
 libvirt_virDomainGetOSType(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     char * c_retval;
@@ -947,6 +1520,25 @@ LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virDomainGetOSType(domain);
 LIBVIRT_END_ALLOW_THREADS;
     py_retval = libvirt_charPtrWrap((char *) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virStoragePoolBuild(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virStoragePoolPtr pool;
+    PyObject *pyobj_pool;
+    unsigned int flags;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oi:virStoragePoolBuild", &pyobj_pool, &flags))
+        return(NULL);
+    pool = (virStoragePoolPtr) PyvirStoragePool_Get(pyobj_pool);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStoragePoolBuild(pool, flags);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap((int) c_retval);
     return(py_retval);
 }
 
@@ -1014,6 +1606,24 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
+libvirt_virConnectNumOfDefinedStoragePools(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virConnectPtr conn;
+    PyObject *pyobj_conn;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virConnectNumOfDefinedStoragePools", &pyobj_conn))
+        return(NULL);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virConnectNumOfDefinedStoragePools(conn);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
 libvirt_virConnectOpen(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     virConnectPtr c_retval;
@@ -1026,6 +1636,25 @@ LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virConnectOpen(name);
 LIBVIRT_END_ALLOW_THREADS;
     py_retval = libvirt_virConnectPtrWrap((virConnectPtr) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virStoragePoolCreate(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virStoragePoolPtr pool;
+    PyObject *pyobj_pool;
+    unsigned int flags;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oi:virStoragePoolCreate", &pyobj_pool, &flags))
+        return(NULL);
+    pool = (virStoragePoolPtr) PyvirStoragePool_Get(pyobj_pool);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStoragePoolCreate(pool, flags);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap((int) c_retval);
     return(py_retval);
 }
 

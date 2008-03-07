@@ -1,7 +1,7 @@
 /*
  * remote.c: code handling remote requests (from remote_internal.c)
  *
- * Copyright (C) 2007 Red Hat, Inc.
+ * Copyright (C) 2007, 2008 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -43,7 +43,6 @@
 #include <errno.h>
 #include <getopt.h>
 #include <ctype.h>
-#include <assert.h>
 #include <fnmatch.h>
 
 #ifdef HAVE_POLKIT
@@ -66,8 +65,12 @@ static void remoteDispatchError (struct qemud_client *client,
     ATTRIBUTE_FORMAT(printf, 3, 4);
 static virDomainPtr get_nonnull_domain (virConnectPtr conn, remote_nonnull_domain domain);
 static virNetworkPtr get_nonnull_network (virConnectPtr conn, remote_nonnull_network network);
+static virStoragePoolPtr get_nonnull_storage_pool (virConnectPtr conn, remote_nonnull_storage_pool pool);
+static virStorageVolPtr get_nonnull_storage_vol (virConnectPtr conn, remote_nonnull_storage_vol vol);
 static void make_nonnull_domain (remote_nonnull_domain *dom_dst, virDomainPtr dom_src);
 static void make_nonnull_network (remote_nonnull_network *net_dst, virNetworkPtr net_src);
+static void make_nonnull_storage_pool (remote_nonnull_storage_pool *pool_dst, virStoragePoolPtr pool_src);
+static void make_nonnull_storage_vol (remote_nonnull_storage_vol *vol_dst, virStorageVolPtr vol_src);
 
 #include "remote_dispatch_prototypes.h"
 
@@ -2127,7 +2130,7 @@ remoteDispatchAuthSaslInit (struct qemud_server *server ATTRIBUTE_UNUSED,
     REMOTE_DEBUG("Initialize SASL auth %d", client->fd);
     if (client->auth != REMOTE_AUTH_SASL ||
         client->saslconn != NULL) {
-        qemudLog(QEMUD_ERR, "client tried invalid SASL init request");
+        qemudLog(QEMUD_ERR, "%s", _("client tried invalid SASL init request"));
         remoteDispatchFailAuth(client, req);
         return -2;
     }
@@ -2167,7 +2170,7 @@ remoteDispatchAuthSaslInit (struct qemud_server *server ATTRIBUTE_UNUSED,
     free(localAddr);
     free(remoteAddr);
     if (err != SASL_OK) {
-        qemudLog(QEMUD_ERR, "sasl context setup failed %d (%s)",
+        qemudLog(QEMUD_ERR, _("sasl context setup failed %d (%s)"),
                  err, sasl_errstring(err, NULL, NULL));
         remoteDispatchFailAuth(client, req);
         client->saslconn = NULL;
@@ -2181,7 +2184,7 @@ remoteDispatchAuthSaslInit (struct qemud_server *server ATTRIBUTE_UNUSED,
 
         cipher = gnutls_cipher_get(client->tlssession);
         if (!(ssf = (sasl_ssf_t)gnutls_cipher_get_key_size(cipher))) {
-            qemudLog(QEMUD_ERR, "cannot TLS get cipher size");
+            qemudLog(QEMUD_ERR, "%s", _("cannot TLS get cipher size"));
             remoteDispatchFailAuth(client, req);
             sasl_dispose(&client->saslconn);
             client->saslconn = NULL;
@@ -2191,7 +2194,7 @@ remoteDispatchAuthSaslInit (struct qemud_server *server ATTRIBUTE_UNUSED,
 
         err = sasl_setprop(client->saslconn, SASL_SSF_EXTERNAL, &ssf);
         if (err != SASL_OK) {
-            qemudLog(QEMUD_ERR, "cannot set SASL external SSF %d (%s)",
+            qemudLog(QEMUD_ERR, _("cannot set SASL external SSF %d (%s)"),
                      err, sasl_errstring(err, NULL, NULL));
             remoteDispatchFailAuth(client, req);
             sasl_dispose(&client->saslconn);
@@ -2220,7 +2223,7 @@ remoteDispatchAuthSaslInit (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     err = sasl_setprop(client->saslconn, SASL_SEC_PROPS, &secprops);
     if (err != SASL_OK) {
-        qemudLog(QEMUD_ERR, "cannot set SASL security props %d (%s)",
+        qemudLog(QEMUD_ERR, _("cannot set SASL security props %d (%s)"),
                  err, sasl_errstring(err, NULL, NULL));
         remoteDispatchFailAuth(client, req);
         sasl_dispose(&client->saslconn);
@@ -2237,7 +2240,7 @@ remoteDispatchAuthSaslInit (struct qemud_server *server ATTRIBUTE_UNUSED,
                         NULL,
                         NULL);
     if (err != SASL_OK) {
-        qemudLog(QEMUD_ERR, "cannot list SASL mechanisms %d (%s)",
+        qemudLog(QEMUD_ERR, _("cannot list SASL mechanisms %d (%s)"),
                  err, sasl_errdetail(client->saslconn));
         remoteDispatchFailAuth(client, req);
         sasl_dispose(&client->saslconn);
@@ -2247,7 +2250,7 @@ remoteDispatchAuthSaslInit (struct qemud_server *server ATTRIBUTE_UNUSED,
     REMOTE_DEBUG("Available mechanisms for client: '%s'", mechlist);
     ret->mechlist = strdup(mechlist);
     if (!ret->mechlist) {
-        qemudLog(QEMUD_ERR, "cannot allocate mechlist");
+        qemudLog(QEMUD_ERR, "%s", _("cannot allocate mechlist"));
         remoteDispatchFailAuth(client, req);
         sasl_dispose(&client->saslconn);
         client->saslconn = NULL;
@@ -2258,7 +2261,7 @@ remoteDispatchAuthSaslInit (struct qemud_server *server ATTRIBUTE_UNUSED,
 }
 
 
-/* We asked for an SSF layer, so sanity check that we actaully
+/* We asked for an SSF layer, so sanity check that we actually
  * got what we asked for */
 static int
 remoteSASLCheckSSF (struct qemud_client *client,
@@ -2272,7 +2275,7 @@ remoteSASLCheckSSF (struct qemud_client *client,
 
     err = sasl_getprop(client->saslconn, SASL_SSF, &val);
     if (err != SASL_OK) {
-        qemudLog(QEMUD_ERR, "cannot query SASL ssf on connection %d (%s)",
+        qemudLog(QEMUD_ERR, _("cannot query SASL ssf on connection %d (%s)"),
                  err, sasl_errstring(err, NULL, NULL));
         remoteDispatchFailAuth(client, req);
         sasl_dispose(&client->saslconn);
@@ -2282,7 +2285,7 @@ remoteSASLCheckSSF (struct qemud_client *client,
     ssf = *(const int *)val;
     REMOTE_DEBUG("negotiated an SSF of %d", ssf);
     if (ssf < 56) { /* 56 is good for Kerberos */
-        qemudLog(QEMUD_ERR, "negotiated SSF %d was not strong enough", ssf);
+        qemudLog(QEMUD_ERR, _("negotiated SSF %d was not strong enough"), ssf);
         remoteDispatchFailAuth(client, req);
         sasl_dispose(&client->saslconn);
         client->saslconn = NULL;
@@ -2311,7 +2314,8 @@ remoteSASLCheckAccess (struct qemud_server *server,
 
     err = sasl_getprop(client->saslconn, SASL_USERNAME, &val);
     if (err != SASL_OK) {
-        qemudLog(QEMUD_ERR, "cannot query SASL username on connection %d (%s)",
+        qemudLog(QEMUD_ERR,
+                 _("cannot query SASL username on connection %d (%s)"),
                  err, sasl_errstring(err, NULL, NULL));
         remoteDispatchFailAuth(client, req);
         sasl_dispose(&client->saslconn);
@@ -2319,7 +2323,7 @@ remoteSASLCheckAccess (struct qemud_server *server,
         return -1;
     }
     if (val == NULL) {
-        qemudLog(QEMUD_ERR, "no client username was found");
+        qemudLog(QEMUD_ERR, "%s", _("no client username was found"));
         remoteDispatchFailAuth(client, req);
         sasl_dispose(&client->saslconn);
         client->saslconn = NULL;
@@ -2329,7 +2333,7 @@ remoteSASLCheckAccess (struct qemud_server *server,
 
     client->saslUsername = strdup((const char*)val);
     if (client->saslUsername == NULL) {
-        qemudLog(QEMUD_ERR, "out of memory copying username");
+        qemudLog(QEMUD_ERR, "%s", _("out of memory copying username"));
         remoteDispatchFailAuth(client, req);
         sasl_dispose(&client->saslconn);
         client->saslconn = NULL;
@@ -2348,7 +2352,8 @@ remoteSASLCheckAccess (struct qemud_server *server,
     }
 
     /* Denied */
-    qemudLog(QEMUD_ERR, "SASL client %s not allowed in whitelist", client->saslUsername);
+    qemudLog(QEMUD_ERR, _("SASL client %s not allowed in whitelist"),
+             client->saslUsername);
     remoteDispatchFailAuth(client, req);
     sasl_dispose(&client->saslconn);
     client->saslconn = NULL;
@@ -2373,7 +2378,7 @@ remoteDispatchAuthSaslStart (struct qemud_server *server,
     REMOTE_DEBUG("Start SASL auth %d", client->fd);
     if (client->auth != REMOTE_AUTH_SASL ||
         client->saslconn == NULL) {
-        qemudLog(QEMUD_ERR, "client tried invalid SASL start request");
+        qemudLog(QEMUD_ERR, "%s", _("client tried invalid SASL start request"));
         remoteDispatchFailAuth(client, req);
         return -2;
     }
@@ -2389,7 +2394,7 @@ remoteDispatchAuthSaslStart (struct qemud_server *server,
                             &serveroutlen);
     if (err != SASL_OK &&
         err != SASL_CONTINUE) {
-        qemudLog(QEMUD_ERR, "sasl start failed %d (%s)",
+        qemudLog(QEMUD_ERR, _("sasl start failed %d (%s)"),
                  err, sasl_errdetail(client->saslconn));
         sasl_dispose(&client->saslconn);
         client->saslconn = NULL;
@@ -2397,7 +2402,8 @@ remoteDispatchAuthSaslStart (struct qemud_server *server,
         return -2;
     }
     if (serveroutlen > REMOTE_AUTH_SASL_DATA_MAX) {
-        qemudLog(QEMUD_ERR, "sasl start reply data too long %d", serveroutlen);
+        qemudLog(QEMUD_ERR, _("sasl start reply data too long %d"),
+                 serveroutlen);
         sasl_dispose(&client->saslconn);
         client->saslconn = NULL;
         remoteDispatchFailAuth(client, req);
@@ -2452,7 +2458,7 @@ remoteDispatchAuthSaslStep (struct qemud_server *server,
     REMOTE_DEBUG("Step SASL auth %d", client->fd);
     if (client->auth != REMOTE_AUTH_SASL ||
         client->saslconn == NULL) {
-        qemudLog(QEMUD_ERR, "client tried invalid SASL start request");
+        qemudLog(QEMUD_ERR, "%s", _("client tried invalid SASL start request"));
         remoteDispatchFailAuth(client, req);
         return -2;
     }
@@ -2467,7 +2473,7 @@ remoteDispatchAuthSaslStep (struct qemud_server *server,
                            &serveroutlen);
     if (err != SASL_OK &&
         err != SASL_CONTINUE) {
-        qemudLog(QEMUD_ERR, "sasl step failed %d (%s)",
+        qemudLog(QEMUD_ERR, _("sasl step failed %d (%s)"),
                  err, sasl_errdetail(client->saslconn));
         sasl_dispose(&client->saslconn);
         client->saslconn = NULL;
@@ -2476,7 +2482,8 @@ remoteDispatchAuthSaslStep (struct qemud_server *server,
     }
 
     if (serveroutlen > REMOTE_AUTH_SASL_DATA_MAX) {
-        qemudLog(QEMUD_ERR, "sasl step reply data too long %d", serveroutlen);
+        qemudLog(QEMUD_ERR, _("sasl step reply data too long %d"),
+                 serveroutlen);
         sasl_dispose(&client->saslconn);
         client->saslconn = NULL;
         remoteDispatchFailAuth(client, req);
@@ -2525,7 +2532,7 @@ remoteDispatchAuthSaslInit (struct qemud_server *server ATTRIBUTE_UNUSED,
                             void *args ATTRIBUTE_UNUSED,
                             remote_auth_sasl_init_ret *ret ATTRIBUTE_UNUSED)
 {
-    qemudLog(QEMUD_ERR, "client tried unsupported SASL init request");
+    qemudLog(QEMUD_ERR, "%s", _("client tried unsupported SASL init request"));
     remoteDispatchFailAuth(client, req);
     return -1;
 }
@@ -2537,7 +2544,7 @@ remoteDispatchAuthSaslStart (struct qemud_server *server ATTRIBUTE_UNUSED,
                              remote_auth_sasl_start_args *args ATTRIBUTE_UNUSED,
                              remote_auth_sasl_start_ret *ret ATTRIBUTE_UNUSED)
 {
-    qemudLog(QEMUD_ERR, "client tried unsupported SASL start request");
+    qemudLog(QEMUD_ERR, "%s", _("client tried unsupported SASL start request"));
     remoteDispatchFailAuth(client, req);
     return -1;
 }
@@ -2549,7 +2556,7 @@ remoteDispatchAuthSaslStep (struct qemud_server *server ATTRIBUTE_UNUSED,
                             remote_auth_sasl_step_args *args ATTRIBUTE_UNUSED,
                             remote_auth_sasl_step_ret *ret ATTRIBUTE_UNUSED)
 {
-    qemudLog(QEMUD_ERR, "client tried unsupported SASL step request");
+    qemudLog(QEMUD_ERR, "%s", _("client tried unsupported SASL step request"));
     remoteDispatchFailAuth(client, req);
     return -1;
 }
@@ -2563,7 +2570,8 @@ static int qemudGetSocketIdentity(int fd, uid_t *uid, pid_t *pid) {
     unsigned int cr_len = sizeof (cr);
 
     if (getsockopt (fd, SOL_SOCKET, SO_PEERCRED, &cr, &cr_len) < 0) {
-        qemudLog(QEMUD_ERR, "Failed to verify client credentials: %s", strerror(errno));
+        qemudLog(QEMUD_ERR, _("Failed to verify client credentials: %s"),
+                 strerror(errno));
         return -1;
     }
 
@@ -2589,13 +2597,14 @@ remoteDispatchAuthPolkit (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     REMOTE_DEBUG("Start PolicyKit auth %d", client->fd);
     if (client->auth != REMOTE_AUTH_POLKIT) {
-        qemudLog(QEMUD_ERR, "client tried invalid PolicyKit init request");
+        qemudLog(QEMUD_ERR,
+                 "%s", _("client tried invalid PolicyKit init request"));
         remoteDispatchFailAuth(client, req);
         return -2;
     }
 
     if (qemudGetSocketIdentity(client->fd, &callerUid, &callerPid) < 0) {
-        qemudLog(QEMUD_ERR, "cannot get peer socket identity");
+        qemudLog(QEMUD_ERR, "%s", _("cannot get peer socket identity"));
         remoteDispatchFailAuth(client, req);
         return -2;
     }
@@ -2605,31 +2614,35 @@ remoteDispatchAuthPolkit (struct qemud_server *server ATTRIBUTE_UNUSED,
        change policykit policy anyway, so its pointless trying
        to restrict root */
     if (callerUid == 0) {
-        qemudLog(QEMUD_INFO, "Allowing PID %d running as root", callerPid);
+        qemudLog(QEMUD_INFO, _("Allowing PID %d running as root"), callerPid);
         ret->complete = 1;
         client->auth = REMOTE_AUTH_NONE;
     } else {
         PolKitCaller *pkcaller = NULL;
         PolKitAction *pkaction = NULL;
         PolKitContext *pkcontext = NULL;
-        PolKitError *pkerr;
+        PolKitError *pkerr = NULL;
         PolKitResult pkresult;
         DBusError err;
         const char *action = client->readonly ?
             "org.libvirt.unix.monitor" :
             "org.libvirt.unix.manage";
 
-        qemudLog(QEMUD_INFO, "Checking PID %d running as %d", callerPid, callerUid);
+        qemudLog(QEMUD_INFO, _("Checking PID %d running as %d"),
+                 callerPid, callerUid);
         dbus_error_init(&err);
-        if (!(pkcaller = polkit_caller_new_from_pid(server->sysbus, callerPid, &err))) {
-            qemudLog(QEMUD_ERR, "Failed to lookup policy kit caller: %s", err.message);
+        if (!(pkcaller = polkit_caller_new_from_pid(server->sysbus,
+                                                    callerPid, &err))) {
+            qemudLog(QEMUD_ERR, _("Failed to lookup policy kit caller: %s"),
+                     err.message);
             dbus_error_free(&err);
             remoteDispatchFailAuth(client, req);
             return -2;
         }
 
         if (!(pkaction = polkit_action_new())) {
-            qemudLog(QEMUD_ERR, "Failed to create polkit action %s\n", strerror(errno));
+            qemudLog(QEMUD_ERR, _("Failed to create polkit action %s\n"),
+                                  strerror(errno));
             polkit_caller_unref(pkcaller);
             remoteDispatchFailAuth(client, req);
             return -2;
@@ -2638,8 +2651,9 @@ remoteDispatchAuthPolkit (struct qemud_server *server ATTRIBUTE_UNUSED,
 
         if (!(pkcontext = polkit_context_new()) ||
             !polkit_context_init(pkcontext, &pkerr)) {
-            qemudLog(QEMUD_ERR, "Failed to create polkit context %s\n",
-                     pkerr ? polkit_error_get_error_message(pkerr) : strerror(errno));
+            qemudLog(QEMUD_ERR, _("Failed to create polkit context %s\n"),
+                     (pkerr ? polkit_error_get_error_message(pkerr)
+                      : strerror(errno)));
             if (pkerr)
                 polkit_error_free(pkerr);
             polkit_caller_unref(pkcaller);
@@ -2649,18 +2663,41 @@ remoteDispatchAuthPolkit (struct qemud_server *server ATTRIBUTE_UNUSED,
             return -2;
         }
 
-        pkresult = polkit_context_can_caller_do_action(pkcontext, pkaction, pkcaller);
+#if HAVE_POLKIT_CONTEXT_IS_CALLER_AUTHORIZED
+        pkresult = polkit_context_is_caller_authorized(pkcontext,
+                                                       pkaction,
+                                                       pkcaller,
+                                                       0,
+                                                       &pkerr);
+        if (pkerr && polkit_error_is_set(pkerr)) {
+            qemudLog(QEMUD_ERR,
+                     _("Policy kit failed to check authorization %d %s"),
+                     polkit_error_get_error_code(pkerr),
+                     polkit_error_get_error_message(pkerr));
+            remoteDispatchFailAuth(client, req);
+            return -2;
+        }
+#else
+        pkresult = polkit_context_can_caller_do_action(pkcontext,
+                                                       pkaction,
+                                                       pkcaller);
+#endif
         polkit_context_unref(pkcontext);
         polkit_caller_unref(pkcaller);
         polkit_action_unref(pkaction);
         if (pkresult != POLKIT_RESULT_YES) {
-            qemudLog(QEMUD_ERR, "Policy kit denied action %s from pid %d, uid %d, result: %s\n",
-                     action, callerPid, callerUid, polkit_result_to_string_representation(pkresult));
+            qemudLog(QEMUD_ERR,
+                     _("Policy kit denied action %s from pid %d, uid %d,"
+                       " result: %s\n"),
+                     action, callerPid, callerUid,
+                     polkit_result_to_string_representation(pkresult));
             remoteDispatchFailAuth(client, req);
             return -2;
         }
-        qemudLog(QEMUD_INFO, "Policy allowed action %s from pid %d, uid %d, result %s",
-                 action, callerPid, callerUid, polkit_result_to_string_representation(pkresult));
+        qemudLog(QEMUD_INFO,
+                 _("Policy allowed action %s from pid %d, uid %d, result %s"),
+                 action, callerPid, callerUid,
+                 polkit_result_to_string_representation(pkresult));
         ret->complete = 1;
         client->auth = REMOTE_AUTH_NONE;
     }
@@ -2677,11 +2714,711 @@ remoteDispatchAuthPolkit (struct qemud_server *server ATTRIBUTE_UNUSED,
                               void *args ATTRIBUTE_UNUSED,
                               remote_auth_polkit_ret *ret ATTRIBUTE_UNUSED)
 {
-    qemudLog(QEMUD_ERR, "client tried unsupported PolicyKit init request");
+    qemudLog(QEMUD_ERR,
+             "%s", _("client tried unsupported PolicyKit init request"));
     remoteDispatchFailAuth(client, req);
     return -1;
 }
 #endif /* HAVE_POLKIT */
+
+
+/***************************************************************
+ *     STORAGE POOL APIS
+ ***************************************************************/
+
+
+static int
+remoteDispatchListDefinedStoragePools (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                       struct qemud_client *client,
+                                       remote_message_header *req,
+                                       remote_list_defined_storage_pools_args *args,
+                                       remote_list_defined_storage_pools_ret *ret)
+{
+    CHECK_CONN(client);
+
+    if (args->maxnames > REMOTE_NETWORK_NAME_LIST_MAX) {
+        remoteDispatchError (client, req,
+                             "maxnames > REMOTE_NETWORK_NAME_LIST_MAX");
+        return -2;
+    }
+
+    /* Allocate return buffer. */
+    ret->names.names_val = calloc (args->maxnames, sizeof (char *));
+
+    ret->names.names_len =
+        virConnectListDefinedStoragePools (client->conn,
+                                       ret->names.names_val, args->maxnames);
+    if (ret->names.names_len == -1) return -1;
+
+    return 0;
+}
+
+static int
+remoteDispatchListStoragePools (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                struct qemud_client *client,
+                                remote_message_header *req,
+                                remote_list_storage_pools_args *args,
+                                remote_list_storage_pools_ret *ret)
+{
+    CHECK_CONN(client);
+
+    if (args->maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX) {
+        remoteDispatchError (client, req,
+                             "maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX");
+        return -2;
+    }
+
+    /* Allocate return buffer. */
+    ret->names.names_val = calloc (args->maxnames, sizeof (char *));
+
+    ret->names.names_len =
+        virConnectListStoragePools (client->conn,
+                                ret->names.names_val, args->maxnames);
+    if (ret->names.names_len == -1) return -1;
+
+    return 0;
+}
+
+static int
+remoteDispatchStoragePoolCreate (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                 struct qemud_client *client,
+                                 remote_message_header *req,
+                                 remote_storage_pool_create_args *args,
+                                 void *ret ATTRIBUTE_UNUSED)
+{
+    virStoragePoolPtr pool;
+    CHECK_CONN(client);
+
+    pool = get_nonnull_storage_pool (client->conn, args->pool);
+    if (pool == NULL) {
+        remoteDispatchError (client, req, "storage_pool not found");
+        return -2;
+    }
+
+    if (virStoragePoolCreate (pool, args->flags) == -1) {
+        virStoragePoolFree(pool);
+        return -1;
+    }
+    virStoragePoolFree(pool);
+    return 0;
+}
+
+static int
+remoteDispatchStoragePoolCreateXml (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                    struct qemud_client *client,
+                                    remote_message_header *req,
+                                    remote_storage_pool_create_xml_args *args,
+                                    remote_storage_pool_create_xml_ret *ret)
+{
+    virStoragePoolPtr pool;
+    CHECK_CONN(client);
+
+    pool = virStoragePoolCreateXML (client->conn, args->xml, args->flags);
+    if (pool == NULL) return -1;
+
+    make_nonnull_storage_pool (&ret->pool, pool);
+    virStoragePoolFree(pool);
+    return 0;
+}
+
+static int
+remoteDispatchStoragePoolDefineXml (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                    struct qemud_client *client,
+                                    remote_message_header *req,
+                                    remote_storage_pool_define_xml_args *args,
+                                    remote_storage_pool_define_xml_ret *ret)
+{
+    virStoragePoolPtr pool;
+    CHECK_CONN(client);
+
+    pool = virStoragePoolDefineXML (client->conn, args->xml, args->flags);
+    if (pool == NULL) return -1;
+
+    make_nonnull_storage_pool (&ret->pool, pool);
+    virStoragePoolFree(pool);
+    return 0;
+}
+
+static int
+remoteDispatchStoragePoolBuild (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                 struct qemud_client *client,
+                                 remote_message_header *req,
+                                 remote_storage_pool_build_args *args,
+                                 void *ret ATTRIBUTE_UNUSED)
+{
+    virStoragePoolPtr pool;
+    CHECK_CONN(client);
+
+    pool = get_nonnull_storage_pool (client->conn, args->pool);
+    if (pool == NULL) {
+        remoteDispatchError (client, req, "storage_pool not found");
+        return -2;
+    }
+
+    if (virStoragePoolBuild (pool, args->flags) == -1) {
+        virStoragePoolFree(pool);
+        return -1;
+    }
+    virStoragePoolFree(pool);
+    return 0;
+}
+
+
+static int
+remoteDispatchStoragePoolDestroy (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                  struct qemud_client *client,
+                                  remote_message_header *req,
+                                  remote_storage_pool_destroy_args *args,
+                                  void *ret ATTRIBUTE_UNUSED)
+{
+    virStoragePoolPtr pool;
+    CHECK_CONN(client);
+
+    pool = get_nonnull_storage_pool (client->conn, args->pool);
+    if (pool == NULL) {
+        remoteDispatchError (client, req, "storage_pool not found");
+        return -2;
+    }
+
+    if (virStoragePoolDestroy (pool) == -1) {
+        virStoragePoolFree(pool);
+        return -1;
+    }
+    virStoragePoolFree(pool);
+    return 0;
+}
+
+static int
+remoteDispatchStoragePoolDelete (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                 struct qemud_client *client,
+                                 remote_message_header *req,
+                                 remote_storage_pool_delete_args *args,
+                                 void *ret ATTRIBUTE_UNUSED)
+{
+    virStoragePoolPtr pool;
+    CHECK_CONN(client);
+
+    pool = get_nonnull_storage_pool (client->conn, args->pool);
+    if (pool == NULL) {
+        remoteDispatchError (client, req, "storage_pool not found");
+        return -2;
+    }
+
+    if (virStoragePoolDelete (pool, args->flags) == -1) {
+        virStoragePoolFree(pool);
+        return -1;
+    }
+    virStoragePoolFree(pool);
+    return 0;
+}
+
+static int
+remoteDispatchStoragePoolRefresh (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                  struct qemud_client *client,
+                                  remote_message_header *req,
+                                  remote_storage_pool_refresh_args *args,
+                                  void *ret ATTRIBUTE_UNUSED)
+{
+    virStoragePoolPtr pool;
+    CHECK_CONN(client);
+
+    pool = get_nonnull_storage_pool (client->conn, args->pool);
+    if (pool == NULL) {
+        remoteDispatchError (client, req, "storage_pool not found");
+        return -2;
+    }
+
+    if (virStoragePoolRefresh (pool, args->flags) == -1) {
+        virStoragePoolFree(pool);
+        return -1;
+    }
+    virStoragePoolFree(pool);
+    return 0;
+}
+
+static int
+remoteDispatchStoragePoolGetInfo (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                  struct qemud_client *client,
+                                  remote_message_header *req,
+                                  remote_storage_pool_get_info_args *args,
+                                  remote_storage_pool_get_info_ret *ret)
+{
+    virStoragePoolPtr pool;
+    virStoragePoolInfo info;
+    CHECK_CONN(client);
+
+    pool = get_nonnull_storage_pool (client->conn, args->pool);
+    if (pool == NULL) {
+        remoteDispatchError (client, req, "storage_pool not found");
+        return -2;
+    }
+
+    if (virStoragePoolGetInfo (pool, &info) == -1) {
+        virStoragePoolFree(pool);
+        return -1;
+    }
+
+    ret->state = info.state;
+    ret->capacity = info.capacity;
+    ret->allocation = info.allocation;
+    ret->available = info.available;
+
+    virStoragePoolFree(pool);
+
+    return 0;
+}
+
+static int
+remoteDispatchStoragePoolDumpXml (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                  struct qemud_client *client,
+                                  remote_message_header *req,
+                                  remote_storage_pool_dump_xml_args *args,
+                                  remote_storage_pool_dump_xml_ret *ret)
+{
+    virStoragePoolPtr pool;
+    CHECK_CONN(client);
+
+    pool = get_nonnull_storage_pool (client->conn, args->pool);
+    if (pool == NULL) {
+        remoteDispatchError (client, req, "storage_pool not found");
+        return -2;
+    }
+
+    /* remoteDispatchClientRequest will free this. */
+    ret->xml = virStoragePoolGetXMLDesc (pool, args->flags);
+    if (!ret->xml) {
+        virStoragePoolFree(pool);
+        return -1;
+    }
+    virStoragePoolFree(pool);
+    return 0;
+}
+
+static int
+remoteDispatchStoragePoolGetAutostart (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                       struct qemud_client *client,
+                                       remote_message_header *req,
+                                       remote_storage_pool_get_autostart_args *args,
+                                       remote_storage_pool_get_autostart_ret *ret)
+{
+    virStoragePoolPtr pool;
+    CHECK_CONN(client);
+
+    pool = get_nonnull_storage_pool (client->conn, args->pool);
+    if (pool == NULL) {
+        remoteDispatchError (client, req, "storage_pool not found");
+        return -2;
+    }
+
+    if (virStoragePoolGetAutostart (pool, &ret->autostart) == -1) {
+        virStoragePoolFree(pool);
+        return -1;
+    }
+    virStoragePoolFree(pool);
+    return 0;
+}
+
+
+static int
+remoteDispatchStoragePoolLookupByName (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                       struct qemud_client *client,
+                                       remote_message_header *req,
+                                       remote_storage_pool_lookup_by_name_args *args,
+                                       remote_storage_pool_lookup_by_name_ret *ret)
+{
+    virStoragePoolPtr pool;
+    CHECK_CONN(client);
+
+    pool = virStoragePoolLookupByName (client->conn, args->name);
+    if (pool == NULL) return -1;
+
+    make_nonnull_storage_pool (&ret->pool, pool);
+    virStoragePoolFree(pool);
+    return 0;
+}
+
+static int
+remoteDispatchStoragePoolLookupByUuid (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                       struct qemud_client *client,
+                                       remote_message_header *req,
+                                       remote_storage_pool_lookup_by_uuid_args *args,
+                                       remote_storage_pool_lookup_by_uuid_ret *ret)
+{
+    virStoragePoolPtr pool;
+    CHECK_CONN(client);
+
+    pool = virStoragePoolLookupByUUID (client->conn, (unsigned char *) args->uuid);
+    if (pool == NULL) return -1;
+
+    make_nonnull_storage_pool (&ret->pool, pool);
+    virStoragePoolFree(pool);
+    return 0;
+}
+
+static int
+remoteDispatchStoragePoolLookupByVolume (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                         struct qemud_client *client,
+                                         remote_message_header *req,
+                                         remote_storage_pool_lookup_by_volume_args *args,
+                                         remote_storage_pool_lookup_by_volume_ret *ret)
+{
+    virStoragePoolPtr pool;
+    virStorageVolPtr vol;
+    CHECK_CONN(client);
+
+    vol = get_nonnull_storage_vol (client->conn, args->vol);
+
+    pool = virStoragePoolLookupByVolume (vol);
+    virStorageVolFree(vol);
+    if (pool == NULL) return -1;
+
+    make_nonnull_storage_pool (&ret->pool, pool);
+    virStoragePoolFree(pool);
+    return 0;
+}
+
+static int
+remoteDispatchStoragePoolSetAutostart (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                       struct qemud_client *client,
+                                       remote_message_header *req,
+                                       remote_storage_pool_set_autostart_args *args,
+                                       void *ret ATTRIBUTE_UNUSED)
+{
+    virStoragePoolPtr pool;
+    CHECK_CONN(client);
+
+    pool = get_nonnull_storage_pool (client->conn, args->pool);
+    if (pool == NULL) {
+        remoteDispatchError (client, req, "storage_pool not found");
+        return -2;
+    }
+
+    if (virStoragePoolSetAutostart (pool, args->autostart) == -1) {
+        virStoragePoolFree(pool);
+        return -1;
+    }
+    virStoragePoolFree(pool);
+    return 0;
+}
+
+static int
+remoteDispatchStoragePoolUndefine (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                   struct qemud_client *client,
+                                   remote_message_header *req,
+                                   remote_storage_pool_undefine_args *args,
+                                   void *ret ATTRIBUTE_UNUSED)
+{
+    virStoragePoolPtr pool;
+    CHECK_CONN(client);
+
+    pool = get_nonnull_storage_pool (client->conn, args->pool);
+    if (pool == NULL) {
+        remoteDispatchError (client, req, "storage_pool not found");
+        return -2;
+    }
+
+    if (virStoragePoolUndefine (pool) == -1) {
+        virStoragePoolFree(pool);
+        return -1;
+    }
+    virStoragePoolFree(pool);
+    return 0;
+}
+
+static int
+remoteDispatchNumOfStoragePools (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                 struct qemud_client *client,
+                                 remote_message_header *req,
+                                 void *args ATTRIBUTE_UNUSED,
+                                 remote_num_of_storage_pools_ret *ret)
+{
+    CHECK_CONN(client);
+
+    ret->num = virConnectNumOfStoragePools (client->conn);
+    if (ret->num == -1) return -1;
+
+    return 0;
+}
+
+static int
+remoteDispatchNumOfDefinedStoragePools (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                        struct qemud_client *client,
+                                        remote_message_header *req,
+                                        void *args ATTRIBUTE_UNUSED,
+                                        remote_num_of_defined_storage_pools_ret *ret)
+{
+    CHECK_CONN(client);
+
+    ret->num = virConnectNumOfDefinedStoragePools (client->conn);
+    if (ret->num == -1) return -1;
+
+    return 0;
+}
+
+static int
+remoteDispatchStoragePoolListVolumes (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                      struct qemud_client *client,
+                                      remote_message_header *req,
+                                      remote_storage_pool_list_volumes_args *args,
+                                      remote_storage_pool_list_volumes_ret *ret)
+{
+    virStoragePoolPtr pool;
+    CHECK_CONN(client);
+
+    if (args->maxnames > REMOTE_STORAGE_VOL_NAME_LIST_MAX) {
+        remoteDispatchError (client, req,
+                             "maxnames > REMOTE_STORAGE_VOL_NAME_LIST_MAX");
+        return -2;
+    }
+
+    pool = get_nonnull_storage_pool (client->conn, args->pool);
+    if (pool == NULL) {
+        remoteDispatchError (client, req, "storage_pool not found");
+        return -2;
+    }
+
+    /* Allocate return buffer. */
+    ret->names.names_val = calloc (args->maxnames, sizeof (char *));
+
+    ret->names.names_len =
+        virStoragePoolListVolumes (pool,
+                                   ret->names.names_val, args->maxnames);
+    virStoragePoolFree(pool);
+    if (ret->names.names_len == -1) return -1;
+
+    return 0;
+}
+
+
+static int
+remoteDispatchStoragePoolNumOfVolumes (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                       struct qemud_client *client,
+                                       remote_message_header *req,
+                                       remote_storage_pool_num_of_volumes_args *args,
+                                       remote_storage_pool_num_of_volumes_ret *ret)
+{
+    virStoragePoolPtr pool;
+    CHECK_CONN(client);
+
+    pool = get_nonnull_storage_pool (client->conn, args->pool);
+    if (pool == NULL) {
+        remoteDispatchError (client, req, "storage_pool not found");
+        return -2;
+    }
+
+    ret->num = virStoragePoolNumOfVolumes (pool);
+    virStoragePoolFree(pool);
+    if (ret->num == -1) return -1;
+
+    return 0;
+}
+
+
+/***************************************************************
+ *     STORAGE VOL APIS
+ ***************************************************************/
+
+
+
+static int
+remoteDispatchStorageVolCreateXml (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                   struct qemud_client *client,
+                                   remote_message_header *req,
+                                   remote_storage_vol_create_xml_args *args,
+                                   remote_storage_vol_create_xml_ret *ret)
+{
+    virStoragePoolPtr pool;
+    virStorageVolPtr vol;
+    CHECK_CONN(client);
+
+    pool = get_nonnull_storage_pool (client->conn, args->pool);
+    if (pool == NULL) {
+        remoteDispatchError (client, req, "storage_pool not found");
+        return -2;
+    }
+
+    vol = virStorageVolCreateXML (pool, args->xml, args->flags);
+    virStoragePoolFree(pool);
+    if (vol == NULL) return -1;
+
+    make_nonnull_storage_vol (&ret->vol, vol);
+    virStorageVolFree(vol);
+    return 0;
+}
+
+
+static int
+remoteDispatchStorageVolDelete (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                struct qemud_client *client,
+                                remote_message_header *req,
+                                remote_storage_vol_delete_args *args,
+                                void *ret ATTRIBUTE_UNUSED)
+{
+    virStorageVolPtr vol;
+    CHECK_CONN(client);
+
+    vol = get_nonnull_storage_vol (client->conn, args->vol);
+    if (vol == NULL) {
+        remoteDispatchError (client, req, "storage_vol not found");
+        return -2;
+    }
+
+    if (virStorageVolDelete (vol, args->flags) == -1) {
+        virStorageVolFree(vol);
+        return -1;
+    }
+    virStorageVolFree(vol);
+    return 0;
+}
+
+static int
+remoteDispatchStorageVolGetInfo (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                 struct qemud_client *client,
+                                 remote_message_header *req,
+                                 remote_storage_vol_get_info_args *args,
+                                 remote_storage_vol_get_info_ret *ret)
+{
+    virStorageVolPtr vol;
+    virStorageVolInfo info;
+    CHECK_CONN(client);
+
+    vol = get_nonnull_storage_vol (client->conn, args->vol);
+    if (vol == NULL) {
+        remoteDispatchError (client, req, "storage_vol not found");
+        return -2;
+    }
+
+    if (virStorageVolGetInfo (vol, &info) == -1) {
+        virStorageVolFree(vol);
+        return -1;
+    }
+
+    ret->type = info.type;
+    ret->capacity = info.capacity;
+    ret->allocation = info.allocation;
+
+    virStorageVolFree(vol);
+
+    return 0;
+}
+
+static int
+remoteDispatchStorageVolDumpXml (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                 struct qemud_client *client,
+                                 remote_message_header *req,
+                                 remote_storage_vol_dump_xml_args *args,
+                                 remote_storage_vol_dump_xml_ret *ret)
+{
+    virStorageVolPtr vol;
+    CHECK_CONN(client);
+
+    vol = get_nonnull_storage_vol (client->conn, args->vol);
+    if (vol == NULL) {
+        remoteDispatchError (client, req, "storage_vol not found");
+        return -2;
+    }
+
+    /* remoteDispatchClientRequest will free this. */
+    ret->xml = virStorageVolGetXMLDesc (vol, args->flags);
+    if (!ret->xml) {
+        virStorageVolFree(vol);
+        return -1;
+    }
+    virStorageVolFree(vol);
+    return 0;
+}
+
+
+static int
+remoteDispatchStorageVolGetPath (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                 struct qemud_client *client,
+                                 remote_message_header *req,
+                                 remote_storage_vol_get_path_args *args,
+                                 remote_storage_vol_get_path_ret *ret)
+{
+    virStorageVolPtr vol;
+    CHECK_CONN(client);
+
+    vol = get_nonnull_storage_vol (client->conn, args->vol);
+    if (vol == NULL) {
+        remoteDispatchError (client, req, "storage_vol not found");
+        return -2;
+    }
+
+    /* remoteDispatchClientRequest will free this. */
+    ret->name = virStorageVolGetPath (vol);
+    if (!ret->name) {
+        virStorageVolFree(vol);
+        return -1;
+    }
+    virStorageVolFree(vol);
+    return 0;
+}
+
+
+static int
+remoteDispatchStorageVolLookupByName (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                      struct qemud_client *client,
+                                      remote_message_header *req,
+                                      remote_storage_vol_lookup_by_name_args *args,
+                                      remote_storage_vol_lookup_by_name_ret *ret)
+{
+    virStoragePoolPtr pool;
+    virStorageVolPtr vol;
+    CHECK_CONN(client);
+
+    pool = get_nonnull_storage_pool (client->conn, args->pool);
+    if (pool == NULL) {
+        remoteDispatchError (client, req, "storage_pool not found");
+        return -2;
+    }
+
+    vol = virStorageVolLookupByName (pool, args->name);
+    virStoragePoolFree(pool);
+    if (vol == NULL) return -1;
+
+    make_nonnull_storage_vol (&ret->vol, vol);
+    virStorageVolFree(vol);
+    return 0;
+}
+
+static int
+remoteDispatchStorageVolLookupByKey (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                     struct qemud_client *client,
+                                     remote_message_header *req,
+                                     remote_storage_vol_lookup_by_key_args *args,
+                                     remote_storage_vol_lookup_by_key_ret *ret)
+{
+    virStorageVolPtr vol;
+    CHECK_CONN(client);
+
+    vol = virStorageVolLookupByKey (client->conn, args->key);
+    if (vol == NULL) return -1;
+
+    make_nonnull_storage_vol (&ret->vol, vol);
+    virStorageVolFree(vol);
+    return 0;
+}
+
+
+static int
+remoteDispatchStorageVolLookupByPath (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                      struct qemud_client *client,
+                                      remote_message_header *req,
+                                      remote_storage_vol_lookup_by_path_args *args,
+                                      remote_storage_vol_lookup_by_path_ret *ret)
+{
+    virStorageVolPtr vol;
+    CHECK_CONN(client);
+
+    vol = virStorageVolLookupByPath (client->conn, args->path);
+    if (vol == NULL) return -1;
+
+    make_nonnull_storage_vol (&ret->vol, vol);
+    virStorageVolFree(vol);
+    return 0;
+}
+
 
 /*----- Helpers. -----*/
 
@@ -2709,6 +3446,20 @@ get_nonnull_network (virConnectPtr conn, remote_nonnull_network network)
     return virGetNetwork (conn, network.name, BAD_CAST network.uuid);
 }
 
+static virStoragePoolPtr
+get_nonnull_storage_pool (virConnectPtr conn, remote_nonnull_storage_pool pool)
+{
+    return virGetStoragePool (conn, pool.name, BAD_CAST pool.uuid);
+}
+
+static virStorageVolPtr
+get_nonnull_storage_vol (virConnectPtr conn, remote_nonnull_storage_vol vol)
+{
+    virStorageVolPtr ret;
+    ret = virGetStorageVol (conn, vol.pool, vol.name, vol.key);
+    return ret;
+}
+
 /* Make remote_nonnull_domain and remote_nonnull_network. */
 static void
 make_nonnull_domain (remote_nonnull_domain *dom_dst, virDomainPtr dom_src)
@@ -2723,6 +3474,21 @@ make_nonnull_network (remote_nonnull_network *net_dst, virNetworkPtr net_src)
 {
     net_dst->name = strdup (net_src->name);
     memcpy (net_dst->uuid, net_src->uuid, VIR_UUID_BUFLEN);
+}
+
+static void
+make_nonnull_storage_pool (remote_nonnull_storage_pool *pool_dst, virStoragePoolPtr pool_src)
+{
+    pool_dst->name = strdup (pool_src->name);
+    memcpy (pool_dst->uuid, pool_src->uuid, VIR_UUID_BUFLEN);
+}
+
+static void
+make_nonnull_storage_vol (remote_nonnull_storage_vol *vol_dst, virStorageVolPtr vol_src)
+{
+    vol_dst->pool = strdup (vol_src->pool);
+    vol_dst->name = strdup (vol_src->name);
+    vol_dst->key = strdup (vol_src->key);
 }
 
 /*

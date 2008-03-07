@@ -1,4 +1,4 @@
-#include "config.h"
+#include <config.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,7 +16,7 @@
 
 static char *progname;
 static char *abs_top_srcdir;
-struct qemud_driver driver;
+static struct qemud_driver driver;
 
 #define MAX_FILE 4096
 
@@ -125,6 +125,8 @@ main(int argc, char **argv)
     if (!abs_top_srcdir)
       return 1;
 
+    driver.caps = qemudCapsInit();
+
     if (virtTestRun("QEMU XML-2-ARGV minimal",
                     1, testCompareXMLToArgvHelper, "minimal") < 0)
         ret = -1;
@@ -189,6 +191,8 @@ main(int argc, char **argv)
                     1, testCompareXMLToArgvHelper, "net-user") < 0)
         ret = -1;
 
+
+    virCapabilitiesFree(driver.caps);
 
     exit(ret==0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }

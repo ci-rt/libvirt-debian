@@ -22,7 +22,7 @@
 #ifndef __QEMUD_BRIDGE_H__
 #define __QEMUD_BRIDGE_H__
 
-#include "config.h"
+#include <config.h>
 
 #ifdef WITH_QEMU
 
@@ -62,6 +62,7 @@ int     brDeleteInterface       (brControl *ctl,
 
 int     brAddTap                (brControl *ctl,
                                  const char *bridge,
+                                 unsigned char *mac,
                                  char *ifname,
                                  int maxlen,
                                  int *tapfd);

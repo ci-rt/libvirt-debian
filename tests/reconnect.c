@@ -1,4 +1,4 @@
-#include "config.h"
+#include <config.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,6 +52,6 @@ int main(void) {
     virConnectClose(conn);
     printf("OK\n");
     exit(0);
-    
+
 }
 
