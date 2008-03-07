@@ -1,7 +1,17 @@
-diff -ud /tmp/tmp.iFmeHz8508/libvirt-0.3.3/virsh.1 /tmp/buffer-content-8566993
---- a/virsh.1	2007-11-23 03:15:30.000000000 +1100
-+++ b/virsh.1	2007-12-12 17:28:13.855811484 +1100
-@@ -164,7 +164,7 @@
+From cb9a8370d299161af3c553bcb1a6f7cfb40ec86c Mon Sep 17 00:00:00 2001
+From: Guido Guenther <agx@sigxcpu.org>
+Date: Fri, 7 Mar 2008 09:08:25 +0100
+Subject: [PATCH] remove-RHism.diff
+
+---
+ virsh.1 |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/virsh.1 b/virsh.1
+index 13509de..09f93b1 100644
+--- a/virsh.1
++++ b/virsh.1
+@@ -164,7 +164,7 @@ the program.
  .IX Header "NOTES"
  All \fBvirsh\fR operations rely upon the libvirt library.
  For any virsh commands to run xend/qemu, or what ever virtual library that libvirt supports.  For this reason you should start xend/qemu as a service when your system first boots using xen/qemu. This can usually be done using the command
@@ -10,4 +20,6 @@ diff -ud /tmp/tmp.iFmeHz8508/libvirt-0.3.3/virsh.1 /tmp/buffer-content-8566993
  .PP
  Most \fBvirsh\fR commands require root privileges to run due to the
  communications channels used to talk to the hypervisor.  Running as
+-- 
+1.5.4.3
 

@@ -1,26 +1,40 @@
-Index: libvirt/src/qemu_conf.c
+From fbc646654ee67e0edd54b2967b494e95fff634f5 Mon Sep 17 00:00:00 2001
+From: Guido Guenther <agx@sigxcpu.org>
+Date: Fri, 7 Mar 2008 09:08:26 +0100
+Subject: [PATCH] qemu-path.diff
+
 ===================================================================
---- libvirt.orig/src/qemu_conf.c	2007-12-21 15:08:26.000000000 +0100
-+++ libvirt/src/qemu_conf.c	2007-12-21 15:11:03.000000000 +0100
-@@ -309,7 +309,7 @@
-     char *path;
- 
-     if (virtType == QEMUD_VIRT_KVM)
--        name = "qemu-kvm";
-+        name = "kvm";
-     else
-         name = qemudDefaultBinaryForArch(arch);
- 
-Index: libvirt/src/qemu_driver.c
-===================================================================
---- libvirt.orig/src/qemu_driver.c	2007-12-21 15:08:26.000000000 +0100
-+++ libvirt/src/qemu_driver.c	2007-12-21 15:11:03.000000000 +0100
-@@ -1560,7 +1560,7 @@
-             r = virBufferAdd (xml,
-                            "\
-       <domain type=\"kvm\">\n\
--        <emulator>/usr/bin/qemu-kvm</emulator>\n\
-+        <emulator>/usr/bin/kvm</emulator>\n\
-       </domain>\n", -1);
-             if (r == -1) goto vir_buffer_failed;
-         }
+---
+ src/qemu_conf.c   |    2 +-
+ src/qemu_driver.c |    2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/qemu_conf.c b/src/qemu_conf.c
+index eead0bc..e5f5321 100644
+--- a/src/qemu_conf.c
++++ b/src/qemu_conf.c
+@@ -347,7 +347,7 @@ qemudCapsInitGuest(virCapsPtr caps,
+             if (access("/dev/kvm", F_OK) == 0 &&
+                 virCapabilitiesAddGuestDomain(guest,
+                                               "kvm",
+-                                              "/usr/bin/qemu-kvm",
++                                              "/usr/bin/kvm",
+                                               NULL,
+                                               0,
+                                               NULL) == NULL)
+diff --git a/src/qemu_driver.c b/src/qemu_driver.c
+index 21f0fed..532f15a 100644
+--- a/src/qemu_driver.c
++++ b/src/qemu_driver.c
+@@ -1408,7 +1408,7 @@ qemudMonitorCommand (const struct qemud_driver *driver ATTRIBUTE_UNUSED,
+ static const char *qemudProbe(void)
+ {
+     if ((virFileExists("/usr/bin/qemu")) ||
+-        (virFileExists("/usr/bin/qemu-kvm")) ||
++        (virFileExists("/usr/bin/kvm")) ||
+ 	(virFileExists("/usr/bin/xenner"))) {
+         if (getuid() == 0) {
+ 	    return("qemu:///system");
+-- 
+1.5.4.3
+

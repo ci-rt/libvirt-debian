@@ -1,5 +1,14 @@
+From fefae8c13aa89d3e9fe0843a3af9fef574b67127 Mon Sep 17 00:00:00 2001
+From: Guido Guenther <agx@sigxcpu.org>
+Date: Fri, 7 Mar 2008 09:08:27 +0100
+Subject: [PATCH] libvirt-group.diff
+
+---
+ qemud/libvirtd.conf |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
+
 diff --git a/qemud/libvirtd.conf b/qemud/libvirtd.conf
-index 1919d49..3402298 100644
+index 3b7db4d..2b15365 100644
 --- a/qemud/libvirtd.conf
 +++ b/qemud/libvirtd.conf
 @@ -70,7 +70,7 @@
@@ -20,3 +29,6 @@ index 1919d49..3402298 100644
  
  
  
+-- 
+1.5.4.3
+
