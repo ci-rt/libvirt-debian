@@ -1,4 +1,4 @@
-libvirt (0.4.1-1) unstable; urgency=low
+libvirt (0.4.1-1) experimental; urgency=low
 
   * new upstream version
        * Xen 3.2 fixes
