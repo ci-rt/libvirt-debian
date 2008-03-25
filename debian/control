@@ -7,6 +7,7 @@ Build-Depends: cdbs (>= 0.4.43), debhelper (>= 5.0.38), libxml2-dev, libncurses5
 XS-Python-Version: current
 Vcs-Git: git://git.debian.org/git/pkg-libvirt/libvirt.git
 Vcs-Browser: http://git.debian.org/?p=pkg-libvirt/libvirt.git
+Homepage: http://libvirt.org
 Standards-Version: 3.7.3
 
 Package: libvirt-bin
