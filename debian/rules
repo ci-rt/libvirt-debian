@@ -1,9 +1,5 @@
 #!/usr/bin/make -f
 
-ifneq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
- DEBUG_OPTS=--enable-debug
-endif
-
 DEB_PYTHON_SYSTEM=pycentral
 DEB_DH_INSTALL_SOURCEDIR = debian/tmp
 
@@ -30,8 +26,8 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
         --with-storage-iscsi     \
         --without-storage-disk   \
 	--with-init-scripts=none \
-	$(BUILD_XEN)             \
-	$(DEBUG_OPTS)
+	--enable-debug		 \
+	$(BUILD_XEN)
 
 DEB_PYTHON_SETUP_CMD := /dev/null
 DEB_DH_MAKESHLIBS_ARGS_libvirt0 += -V 'libvirt0 (>= 0.4.1)'
