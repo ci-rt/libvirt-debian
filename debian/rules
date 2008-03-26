@@ -5,7 +5,6 @@ DEB_DH_INSTALL_SOURCEDIR = debian/tmp
 
 ifneq (,$(findstring $(DEB_HOST_ARCH), i386 amd64))
   BUILD_XEN=--with-xen
-  LDFLAGS += -lpthread
 else
   BUILD_XEN=--without-xen
 endif
