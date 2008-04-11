@@ -19,6 +19,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <assert.h>
+#ifdef HAVE_SYS_WAIT_H
+#include <sys/wait.h>
+#endif
 
 #include <libxml/parser.h>
 #include <libxml/xpath.h>
@@ -42,11 +45,14 @@
 #ifdef WITH_OPENVZ
 #include "openvz_driver.h"
 #endif
+#ifdef WITH_LXC
+#include "lxc_driver.h"
+#endif
 
 /*
  * TODO:
  * - use lock to protect against concurrent accesses ?
- * - use reference counting to garantee coherent pointer state ?
+ * - use reference counting to guarantee coherent pointer state ?
  */
 
 static virDriverPtr virDriverTab[MAX_DRIVERS];
@@ -66,6 +72,39 @@ static int initialized = 0;
 int debugFlag = 0;
 #endif
 
+#if defined(POLKIT_AUTH)
+static int virConnectAuthGainPolkit(const char *privilege) {
+    const char *const args[] = {
+        POLKIT_AUTH, "--obtain", privilege, NULL
+    };
+    int childpid, status, ret;
+
+    /* Root has all rights */
+    if (getuid() == 0)
+        return 0;
+
+    if ((childpid = fork()) < 0)
+        return -1;
+
+    if (!childpid) {
+        execvp(args[0], (char **)args);
+        _exit(-1);
+    }
+
+    while ((ret = waitpid(childpid, &status, 0) == -1) && errno == EINTR);
+    if (ret == -1) {
+        return -1;
+    }
+
+    if (!WIFEXITED(status) ||
+        (WEXITSTATUS(status) != 0 && WEXITSTATUS(status) != 1)) {
+        return -1;
+    }
+
+    return 0;
+}
+#endif
+
 static int virConnectAuthCallbackDefault(virConnectCredentialPtr cred,
                                          unsigned int ncred,
                                          void *cbdata ATTRIBUTE_UNUSED) {
@@ -77,28 +116,23 @@ static int virConnectAuthCallbackDefault(virConnectCredentialPtr cred,
         size_t len;
 
         switch (cred[i].type) {
-#if defined(POLKIT_GRANT) || defined(POLKIT_AUTH)
         case VIR_CRED_EXTERNAL: {
-            int ret;
-            const char *const args[] = {
-#if defined(POLKIT_GRANT)
-                POLKIT_GRANT, "--gain", cred[i].prompt, NULL
-#else
-                POLKIT_AUTH, "--obtain", cred[i].prompt, NULL
-#endif
-            };
-
             if (STRNEQ(cred[i].challenge, "PolicyKit"))
                 return -1;
-            if (virRun(NULL, (char **) args, &ret) < 0)
-                return -1;
 
-            if (!WIFEXITED(ret) ||
-                (WEXITSTATUS(ret) != 0 && WEXITSTATUS(ret) != 1))
+#if defined(POLKIT_AUTH)
+            if (virConnectAuthGainPolkit(cred[i].prompt) < 0)
                 return -1;
+#else
+            /*
+             * Ignore & carry on. Although we can't auth
+             * directly, the user may have authenticated
+             * themselves already outside context of libvirt
+             */
+#endif
             break;
         }
-#endif
+
         case VIR_CRED_USERNAME:
         case VIR_CRED_AUTHNAME:
         case VIR_CRED_ECHOPROMPT:
@@ -158,9 +192,7 @@ static int virConnectCredTypeDefault[] = {
     VIR_CRED_REALM,
     VIR_CRED_PASSPHRASE,
     VIR_CRED_NOECHOPROMPT,
-#if defined(POLKIT_AUTH) || defined(POLKIT_GRANT)
     VIR_CRED_EXTERNAL,
-#endif
 };
 
 static virConnectAuth virConnectAuthDefault = {
@@ -247,6 +279,9 @@ virInitialize(void)
 #ifdef WITH_OPENVZ
     if (openvzRegister() == -1) return -1;
 #endif
+#ifdef WITH_LXC
+    if (lxcRegister() == -1) return -1;
+#endif
     if (storageRegister() == -1) return -1;
 #ifdef WITH_REMOTE
     if (remoteRegister () == -1) return -1;
@@ -328,7 +363,7 @@ virLibDomainError(virDomainPtr domain, virErrorNumber error,
 /**
  * virLibNetworkError:
  * @conn: the connection if available
- * @error: the error noumber
+ * @error: the error number
  * @info: extra information string
  *
  * Handle an error at the connection level
@@ -354,7 +389,7 @@ virLibNetworkError(virNetworkPtr network, virErrorNumber error,
 /**
  * virLibStoragePoolError:
  * @conn: the connection if available
- * @error: the error noumber
+ * @error: the error number
  * @info: extra information string
  *
  * Handle an error at the connection level
@@ -380,7 +415,7 @@ virLibStoragePoolError(virStoragePoolPtr pool, virErrorNumber error,
 /**
  * virLibStorageVolError:
  * @conn: the connection if available
- * @error: the error noumber
+ * @error: the error number
  * @info: extra information string
  *
  * Handle an error at the connection level
@@ -583,7 +618,7 @@ int __virStateActive(void) {
  * Provides two information back, @libVer is the version of the library
  * while @typeVer will be the version of the hypervisor type @type against
  * which the library was compiled. If @type is NULL, "Xen" is assumed, if
- * @type is unknown or not availble, an error code will be returned and
+ * @type is unknown or not available, an error code will be returned and
  * @typeVer will be 0.
  *
  * Returns -1 in case of failure, 0 otherwise, and values for @libVer and
@@ -654,7 +689,7 @@ do_open (const char *name,
 		    DEBUG("Probed %s", latest);
 		    /*
 		     * if running a xen kernel, give it priority over
-		     * QEmu emultation
+		     * QEmu emulation
 		     */
 		    if (STREQ(latest, "xen:///"))
 		        use = latest;
@@ -820,7 +855,7 @@ virConnectOpen (const char *name)
  * @name: URI of the hypervisor
  *
  * This function should be called first to get a restricted connection to the
- * libbrary functionalities. The set of APIs usable are then restricted
+ * library functionalities. The set of APIs usable are then restricted
  * on the available methods to control the domains.
  *
  * Returns a pointer to the hypervisor connection or NULL in case of error
@@ -845,7 +880,7 @@ virConnectOpenReadOnly(const char *name)
  * @flags: Open flags
  *
  * This function should be called first to get a connection to the
- * Hypervisor. If neccessary, authentication will be performed fetching
+ * Hypervisor. If necessary, authentication will be performed fetching
  * credentials via the callback
  *
  * Returns a pointer to the hypervisor connection or NULL in case of error
@@ -944,7 +979,7 @@ virConnectGetType(virConnectPtr conn)
  * @hvVer: return value for the version of the running hypervisor (OUT)
  *
  * Get the version level of the Hypervisor running. This may work only with
- * hypervisor call, i.e. with priviledged access to the hypervisor, not
+ * hypervisor call, i.e. with privileged access to the hypervisor, not
  * with a Read-Only connection.
  *
  * Returns -1 in case of error, 0 otherwise. if the version can't be
@@ -1158,12 +1193,12 @@ virDomainGetConnect (virDomainPtr dom)
 /**
  * virDomainCreateLinux:
  * @conn: pointer to the hypervisor connection
- * @xmlDesc: an XML description of the domain
+ * @xmlDesc: string containing an XML description of the domain
  * @flags: an optional set of virDomainFlags
  *
  * Launch a new Linux guest domain, based on an XML description similar
  * to the one returned by virDomainGetXMLDesc()
- * This function may requires priviledged access to the hypervisor.
+ * This function may requires privileged access to the hypervisor.
  *
  * Returns a new domain object or NULL in case of failure
  */
@@ -1347,7 +1382,7 @@ virDomainLookupByName(virConnectPtr conn, const char *name)
  * already and all resources used by it are given back to the hypervisor.
  * The data structure is freed and should not be used thereafter if the
  * call does not return an error.
- * This function may requires priviledged access
+ * This function may requires privileged access
  *
  * Returns 0 in case of success and -1 in case of failure.
  */
@@ -1407,7 +1442,7 @@ virDomainFree(virDomainPtr domain)
  * to CPU resources and I/O but the memory used by the domain at the
  * hypervisor level will stay allocated. Use virDomainResume() to reactivate
  * the domain.
- * This function may requires priviledged access.
+ * This function may requires privileged access.
  *
  * Returns 0 in case of success and -1 in case of failure.
  */
@@ -1441,7 +1476,7 @@ virDomainSuspend(virDomainPtr domain)
  *
  * Resume an suspended domain, the process is restarted from the state where
  * it was frozen by calling virSuspendDomain().
- * This function may requires priviledged access
+ * This function may requires privileged access
  *
  * Returns 0 in case of success and -1 in case of failure.
  */
@@ -1886,7 +1921,7 @@ virDomainGetMaxMemory(virDomainPtr domain)
  * Dynamically change the maximum amount of physical memory allocated to a
  * domain. If domain is NULL, then this change the amount of memory reserved
  * to Domain0 i.e. the domain where the application runs.
- * This function requires priviledged access to the hypervisor.
+ * This function requires privileged access to the hypervisor.
  *
  * Returns 0 in case of success and -1 in case of failure.
  */
@@ -1929,7 +1964,7 @@ virDomainSetMaxMemory(virDomainPtr domain, unsigned long memory)
  * Dynamically change the target amount of physical memory allocated to a
  * domain. If domain is NULL, then this change the amount of memory reserved
  * to Domain0 i.e. the domain where the application runs.
- * This function may requires priviledged access to the hypervisor.
+ * This function may requires privileged access to the hypervisor.
  *
  * Returns 0 in case of success and -1 in case of failure.
  */
@@ -2312,7 +2347,7 @@ virConnectGetCapabilities (virConnectPtr conn)
  * virNodeGetFreeMemory:
  * @conn: pointer to the hypervisor connection
  *
- * provides the free memory availble on the Node
+ * provides the free memory available on the Node
  *
  * Returns the available free memory in kilobytes or 0 in case of error
  */
@@ -2420,6 +2455,10 @@ virDomainSetSchedulerParameters(virDomainPtr domain,
 
     if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
         virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        return -1;
+    }
+    if (domain->conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(domain, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         return -1;
     }
     conn = domain->conn;
@@ -2613,7 +2652,7 @@ virDomainUndefine(virDomainPtr domain) {
  * virConnectNumOfDefinedDomains:
  * @conn: pointer to the hypervisor connection
  *
- * Provides the number of inactive domains.
+ * Provides the number of defined but inactive domains.
  *
  * Returns the number of domain found or -1 in case of error
  */
@@ -2640,7 +2679,8 @@ virConnectNumOfDefinedDomains(virConnectPtr conn)
  * @names: pointer to an array to store the names
  * @maxnames: size of the array
  *
- * list the defined domains, stores the pointers to the names in @names
+ * list the defined but inactive domains, stores the pointers to the names
+ * in @names
  *
  * Returns the number of names provided in the array or -1 in case of error
  */
@@ -2776,7 +2816,7 @@ virDomainSetAutostart(virDomainPtr domain,
  * Dynamically change the number of virtual CPUs used by the domain.
  * Note that this call may fail if the underlying virtualization hypervisor
  * does not support it or if growing the number is arbitrary limited.
- * This function requires priviledged access to the hypervisor.
+ * This function requires privileged access to the hypervisor.
  *
  * Returns 0 in case of success, -1 in case of failure.
  */
@@ -2827,7 +2867,7 @@ virDomainSetVcpus(virDomainPtr domain, unsigned int nvcpus)
  *	If maplen > size, failure code is returned.
  *
  * Dynamically change the real CPUs which can be allocated to a virtual CPU.
- * This function requires priviledged access to the hypervisor.
+ * This function requires privileged access to the hypervisor.
  *
  * Returns 0 in case of success, -1 in case of failure.
  */
@@ -2872,7 +2912,7 @@ virDomainPinVcpu(virDomainPtr domain, unsigned int vcpu,
  * @maxinfo: number of structures in info array
  * @cpumaps: pointer to an bit map of real CPUs for all vcpus of this
  *      domain (in 8-bit bytes) (OUT)
- *	If cpumaps is NULL, then no cupmap information is returned by the API.
+ *	If cpumaps is NULL, then no cpumap information is returned by the API.
  *	It's assumed there is <maxinfo> cpumap in cpumaps array.
  *	The memory allocated to cpumaps must be (maxinfo * maplen) bytes
  *	(ie: calloc(maxinfo, maplen)).
@@ -2882,7 +2922,7 @@ virDomainPinVcpu(virDomainPtr domain, unsigned int vcpu,
  *	underlying virtualization system (Xen...).
  *
  * Extract information about virtual CPUs of domain, store it in info array
- * and also in cpumaps if this pointer is'nt NULL.
+ * and also in cpumaps if this pointer isn't NULL.
  *
  * Returns the number of info filled in case of success, -1 in case of failure.
  */
@@ -3457,7 +3497,7 @@ virNetworkCreate(virNetworkPtr network)
  * already and all resources used by it are given back to the hypervisor.
  * The data structure is freed and should not be used thereafter if the
  * call does not return an error.
- * This function may requires priviledged access
+ * This function may requires privileged access
  *
  * Returns 0 in case of success and -1 in case of failure.
  */
@@ -3724,7 +3764,7 @@ virNetworkSetAutostart(virNetworkPtr network,
 
 /**
  * virStoragePoolGetConnect:
- * @pool: pointer to a poool
+ * @pool: pointer to a pool
  *
  * Provides the connection pointer associated with a storage pool.  The
  * reference counter on the connection is not increased by this
@@ -4003,9 +4043,10 @@ virStoragePoolLookupByVolume(virStorageVolPtr vol)
  * virStoragePoolCreateXML:
  * @conn: pointer to hypervisor connection
  * @xmlDesc: XML description for new pool
+ * @flags: future flags, use 0 for now
  *
  * Create a new storage based on its XML description. The
- * pool is not persitent, so its definition will disappear
+ * pool is not persistent, so its definition will disappear
  * when it is destroyed, or if the host is restarted
  *
  * Returns a virStoragePoolPtr object, or NULL if creation failed
@@ -4041,9 +4082,10 @@ virStoragePoolCreateXML(virConnectPtr conn,
  * virStoragePoolDefineXML:
  * @conn: pointer to hypervisor connection
  * @xml: XML description for new pool
+ * @flags: future flags, use 0 for now
  *
  * Define a new inactive storage pool based on its XML description. The
- * pool is persitent, until explicitly undefined.
+ * pool is persistent, until explicitly undefined.
  *
  * Returns a virStoragePoolPtr object, or NULL if creation failed
  */
@@ -4078,6 +4120,7 @@ virStoragePoolDefineXML(virConnectPtr conn,
 /**
  * virStoragePoolBuild:
  * @pool: pointer to storage pool
+ * @flags: future flags, use 0 for now
  *
  * Build the underlying storage pool
  *
@@ -4145,6 +4188,7 @@ virStoragePoolUndefine(virStoragePoolPtr pool)
 /**
  * virStoragePoolCreate:
  * @pool: pointer to storage pool
+ * @flags: future flags, use 0 for now
  *
  * Starts an inactive storage pool
  *
@@ -4443,7 +4487,7 @@ virStoragePoolGetInfo(virStoragePoolPtr pool,
 /**
  * virStoragePoolGetXMLDesc:
  * @pool: pointer to storage pool
- * @flags: flags for XML format options (unused, pass 0)
+ * @flags: flags for XML format options (set of virDomainXMLFlags)
  *
  * Fetch an XML document describing all aspects of the
  * storage pool. This is suitable for later feeding back
@@ -4609,7 +4653,7 @@ virStoragePoolListVolumes(virStoragePoolPtr pool,
 
 /**
  * virStorageVolGetConnect:
- * @vol: pointer to a poool
+ * @vol: pointer to a pool
  *
  * Provides the connection pointer associated with a storage volume.  The
  * reference counter on the connection is not increased by this
@@ -4760,7 +4804,7 @@ virStorageVolGetName(virStorageVolPtr vol)
  * @vol: pointer to storage volume
  *
  * Fetch the storage volume key. This is globally
- * unique, so the same volume will hve the same
+ * unique, so the same volume will have the same
  * key no matter what host it is accessed from
  *
  * return the volume key, or NULL on error
@@ -4818,6 +4862,7 @@ virStorageVolCreateXML(virStoragePoolPtr pool,
 /**
  * virStorageVolDelete:
  * @vol: pointer to storage volume
+ * @flags: future flags, use 0 for now
  *
  * Delete the storage volume from the pool
  *

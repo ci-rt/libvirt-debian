@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(libvirt, 0.4.1)
+AC_INIT(libvirt, 0.4.2)
 AC_CONFIG_SRCDIR(src/libvirt.c)
 AC_CONFIG_AUX_DIR(build-aux)
 AM_CONFIG_HEADER(config.h)
@@ -8,9 +8,9 @@ dnl Make automake keep quiet about wildcards & other GNUmake-isms
 AM_INIT_AUTOMAKE([-Wno-portability])
 AC_CANONICAL_HOST
 
-LIBVIRT_MAJOR_VERSION=`echo $VERSION | awk -F . '{print $1}'`
-LIBVIRT_MINOR_VERSION=`echo $VERSION | awk -F . '{print $2}'`
-LIBVIRT_MICRO_VERSION=`echo $VERSION | awk -F . '{print $3}'`
+LIBVIRT_MAJOR_VERSION=`echo $VERSION | awk -F. '{print $1}'`
+LIBVIRT_MINOR_VERSION=`echo $VERSION | awk -F. '{print $2}'`
+LIBVIRT_MICRO_VERSION=`echo $VERSION | awk -F. '{print $3}'`
 LIBVIRT_VERSION=$LIBVIRT_MAJOR_VERSION.$LIBVIRT_MINOR_VERSION.$LIBVIRT_MICRO_VERSION$LIBVIRT_MICRO_VERSION_SUFFIX
 LIBVIRT_VERSION_INFO=`expr $LIBVIRT_MAJOR_VERSION + $LIBVIRT_MINOR_VERSION`:$LIBVIRT_MICRO_VERSION:$LIBVIRT_MINOR_VERSION
 LIBVIRT_VERSION_NUMBER=`expr $LIBVIRT_MAJOR_VERSION \* 1000000 + $LIBVIRT_MINOR_VERSION \* 1000 + $LIBVIRT_MICRO_VERSION`
@@ -132,6 +132,8 @@ AC_ARG_WITH(qemu,
 [  --with-qemu             add QEMU/KVM support (on)],[],[with_qemu=yes])
 AC_ARG_WITH(openvz,
 [  --with-openvz           add OpenVZ support (off)],[],[with_openvz=no])
+AC_ARG_WITH(lxc,
+[  --with-lxc              add Linux Container support (off)],[],[with_lxc=no])
 AC_ARG_WITH(test,
 [  --with-test             add test driver support (on)],[],[with_test=yes])
 AC_ARG_WITH(remote,
@@ -228,6 +230,9 @@ WITH_XEN=0
 
 if test "$with_openvz" = "yes" ; then
     LIBVIRT_FEATURES="$LIBVIRT_FEATURES -DWITH_OPENVZ"
+fi
+if test "$with_lxc" = "yes" ; then
+    LIBVIRT_FEATURES="$LIBVIRT_FEATURES -DWITH_LXC"
 fi
 if test "$with_qemu" = "yes" ; then
     LIBVIRT_FEATURES="$LIBVIRT_FEATURES -DWITH_QEMU"
@@ -450,10 +455,6 @@ if test "x$with_polkit" = "xyes" -o "x$with_polkit" = "xcheck"; then
     CFLAGS="$old_CFLAGS"
     LDFLAGS="$old_LDFLAGS"
 
-    AC_PATH_PROG(POLKIT_GRANT, polkit-grant)
-    if test "x$POLKIT_GRANT" != "x"; then
-      AC_DEFINE_UNQUOTED([POLKIT_GRANT],["$POLKIT_GRANT"],[Location of polkit-grant program])
-    fi
     AC_PATH_PROG(POLKIT_AUTH, polkit-auth)
     if test "x$POLKIT_AUTH" != "x"; then
       AC_DEFINE_UNQUOTED([POLKIT_AUTH],["$POLKIT_AUTH"],[Location of polkit-auth program])
@@ -873,6 +874,9 @@ fi
 AC_MSG_RESULT([$with_xen_proxy])
 
 AM_CONDITIONAL(WITH_PROXY,[test "$with_xen_proxy" = "yes"])
+if test "$with_xen_proxy" = "yes"; then
+  AC_DEFINE(WITH_PROXY, 1, [Whether Xen proxy is enabled])
+fi
 
 dnl Enable building libvirtd?
 AM_CONDITIONAL(WITH_LIBVIRTD,[test "x$with_libvirtd" = "xyes"])
@@ -884,7 +888,7 @@ if test -d po
 then
     ALL_LINGUAS=`(cd po > /dev/null && ls *.po) | sed 's+\.po$++'`
 else
-    ALL_LINGUAS="af am ar as be bg bn_IN bn ca cs cy da de el en_GB es et eu_ES fa fi fr gl gu he hi hr hu hy id is it ja ka kn ko ku lo lt lv mk ml mr ms my nb nl nn no nso or pa pl pt_BR pt ro ru si sk sl sq sr@Latn sr sv ta te th tr uk ur vi zh_CN zh_TW zu"
+    ALL_LINGUAS="af am ar as be bg bn_IN bn ca cs cy da de el en_GB es et eu_ES fa fi fr gl gu he hi hr hu hy id is it ja ka kn ko ku lo lt lv mk ml mr ms my nb nl nn no nso or pa pl pt_BR pt ro ru si sk sl sq sr@latin sr sv ta te th tr uk ur vi zh_CN zh_TW zu"
 fi
 
 dnl Extra link-time flags for Cygwin.
@@ -951,6 +955,7 @@ AC_MSG_NOTICE([     Xen: $with_xen])
 AC_MSG_NOTICE([   Proxy: $with_xen_proxy])
 AC_MSG_NOTICE([    QEMU: $with_qemu])
 AC_MSG_NOTICE([  OpenVZ: $with_openvz])
+AC_MSG_NOTICE([     LXC: $with_lxc])
 AC_MSG_NOTICE([    Test: $with_test])
 AC_MSG_NOTICE([  Remote: $with_remote])
 AC_MSG_NOTICE([Libvirtd: $with_libvirtd])

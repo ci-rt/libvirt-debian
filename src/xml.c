@@ -1233,22 +1233,8 @@ virDomainParseXMLIfDesc(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     virBufferAddLit(buf, "(vif ");
     if (mac != NULL) {
-        unsigned int addr[12];
-        int tmp = sscanf((const char *) mac,
-		     "%01x%01x:%01x%01x:%01x%01x:%01x%01x:%01x%01x:%01x%01x",
-                         (unsigned int *) &addr[0],
-                         (unsigned int *) &addr[1],
-                         (unsigned int *) &addr[2],
-                         (unsigned int *) &addr[3],
-                         (unsigned int *) &addr[4],
-                         (unsigned int *) &addr[5],
-                         (unsigned int *) &addr[6],
-                         (unsigned int *) &addr[7],
-                         (unsigned int *) &addr[8],
-                         (unsigned int *) &addr[9],
-                         (unsigned int *) &addr[10],
-                         (unsigned int *) &addr[11]);
-        if (tmp != 12 || strlen((const char *) mac) != 17) {
+        unsigned char addr[6];
+        if (virParseMacAddr((const char*) mac, addr) == -1) {
             virXMLError(conn, VIR_ERR_INVALID_MAC, (const char *) mac, 0);
             goto error;
         }
@@ -1308,7 +1294,7 @@ virDomainParseXMLIfDesc(virConnectPtr conn ATTRIBUTE_UNUSED,
  * @xendConfigVersion: xend configuration file format
  *
  * Parse the XML description and turn it into the xend sexp needed to
- * create the comain. This is a temporary interface as the S-Expr interface
+ * create the domain. This is a temporary interface as the S-Expr interface
  * will be replaced by XML-RPC in the future. However the XML format should
  * stay valid over time.
  *

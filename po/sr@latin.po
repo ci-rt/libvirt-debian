@@ -1,0 +1,5866 @@
+# translation of libvirt.HEAD.sr.po to serbian
+# Serbian(Latin) translations for libvirt
+# Copyright (C) 2006 Red Hat, Inc.
+# This file is distributed under the same license as the libvirt package.
+#
+# Miloš Komarčević <kmilos@gmail.com>, 2006.
+# Marko Mijatovic <jomi86@gmail.com>, 2008.
+msgid ""
+msgstr ""
+"Project-Id-Version: libvirt.HEAD.sr\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2008-04-08 18:09+0200\n"
+"PO-Revision-Date: 2008-04-06 16:35+0200\n"
+"Last-Translator: Marko Mijatovic <jomi86@gmail.com>\n"
+"Language-Team: serbian <en@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%"
+"10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"X-Generator: KBabel 1.11.4\n"
+
+#: gnulib/lib/gai_strerror.c:44
+msgid "Address family for hostname not supported"
+msgstr "Porodica adresa za ime domaćina nije podržana"
+
+#: gnulib/lib/gai_strerror.c:45
+msgid "Temporary failure in name resolution"
+msgstr "Privremeni neuspeh prilikom razrešavanja imena"
+
+#: gnulib/lib/gai_strerror.c:46
+msgid "Bad value for ai_flags"
+msgstr "Loša vrednost za ai_flags"
+
+#: gnulib/lib/gai_strerror.c:47
+msgid "Non-recoverable failure in name resolution"
+msgstr "Neuspeh prilikom razrešavanja imena koji se ne može popraviti"
+
+#: gnulib/lib/gai_strerror.c:48
+msgid "ai_family not supported"
+msgstr "ai_family nije podržana"
+
+#: gnulib/lib/gai_strerror.c:49
+msgid "Memory allocation failure"
+msgstr "Dodela memorije nije uspela"
+
+#: gnulib/lib/gai_strerror.c:50
+msgid "No address associated with hostname"
+msgstr "Imenu domaćina nije pridružena nijedna adresa"
+
+#: gnulib/lib/gai_strerror.c:51
+msgid "Name or service not known"
+msgstr "Nepoznato ime ili usluga"
+
+#: gnulib/lib/gai_strerror.c:52
+msgid "Servname not supported for ai_socktype"
+msgstr "Servname nije podržan za ai_socktype"
+
+#: gnulib/lib/gai_strerror.c:53
+msgid "ai_socktype not supported"
+msgstr "ai_socktype nije podržan"
+
+#: gnulib/lib/gai_strerror.c:54
+msgid "System error"
+msgstr "Greška u sistemskom pozivu"
+
+#: gnulib/lib/gai_strerror.c:55
+msgid "Argument buffer too small"
+msgstr "Bafer argumenata je suviše male veličine"
+
+#: gnulib/lib/gai_strerror.c:57
+msgid "Processing request in progress"
+msgstr "Obrada zahteva u toku"
+
+#: gnulib/lib/gai_strerror.c:58
+msgid "Request canceled"
+msgstr "Zahtev otkazan"
+
+#: gnulib/lib/gai_strerror.c:59
+msgid "Request not canceled"
+msgstr "Zahtev nije otkazan"
+
+#: gnulib/lib/gai_strerror.c:60
+msgid "All requests done"
+msgstr "Svi zahtevi su obrađeni"
+
+#: gnulib/lib/gai_strerror.c:61
+msgid "Interrupted by a signal"
+msgstr "Prekinut signalom"
+
+#: gnulib/lib/gai_strerror.c:62
+msgid "Parameter string not correctly encoded"
+msgstr "String parametra nije pravilno obrađen"
+
+#: gnulib/lib/gai_strerror.c:74
+msgid "Unknown error"
+msgstr "Nepoznata greška"
+
+#: qemud/qemud.c:140 src/remote_internal.c:888
+#, c-format
+msgid "Cannot access %s '%s': %s (%d)"
+msgstr "Ne mogu da pristupim %s '%s': %s (%d)"
+
+#: qemud/qemud.c:157
+#, c-format
+msgid "gnutls_certificate_allocate_credentials: %s"
+msgstr "gnutls_certificate_allocate_credentials: %s"
+
+#: qemud/qemud.c:170
+#, c-format
+msgid "gnutls_certificate_set_x509_trust_file: %s"
+msgstr "gnutls_certificate_set_x509_trust_file: %s"
+
+#: qemud/qemud.c:184
+#, c-format
+msgid "gnutls_certificate_set_x509_crl_file: %s"
+msgstr "gnutls_certificate_set_x509_crl_file: %s"
+
+#: qemud/qemud.c:202
+#, c-format
+msgid "gnutls_certificate_set_x509_key_file: %s"
+msgstr "gnutls_certificate_set_x509_key_file: %s"
+
+#: qemud/qemud.c:215
+#, c-format
+msgid "gnutls_dh_params_init: %s"
+msgstr "gnutls_dh_params_init: %s"
+
+#: qemud/qemud.c:221
+#, c-format
+msgid "gnutls_dh_params_generate2: %s"
+msgstr "gnutls_dh_params_generate2: %s"
+
+#: qemud/qemud.c:239
+#, c-format
+msgid "Failed to read from signal pipe: %s"
+msgstr "Neuspelo čitanje iz cevi signala: %s"
+
+#: qemud/qemud.c:248
+msgid "Reloading configuration on SIGHUP"
+msgstr "Ponovo učitavam podešavanja SIGHUP"
+
+#: qemud/qemud.c:250
+msgid "Error while reloading drivers"
+msgstr "Greška tokom učitavanja upravljačkih programa"
+
+#: qemud/qemud.c:256
+#, c-format
+msgid "Shutting down on signal %d"
+msgstr "Gašenje signala %d"
+
+#: qemud/qemud.c:278 src/qemu_driver.c:79 src/util.c:143 src/util.c:155
+msgid "Failed to set close-on-exec file descriptor flag"
+msgstr "Nisam uspeo da postavim close-on-exec zastavicu opisnika datoteka"
+
+#: qemud/qemud.c:293 src/qemu_driver.c:94 src/util.c:139 src/util.c:151
+msgid "Failed to set non-blocking file descriptor flag"
+msgstr "Nisam uspeo da postavim non-blocking zastavicu opisnika datoteka"
+
+#: qemud/qemud.c:434
+#, c-format
+msgid "Failed to open pid file '%s' : %s"
+msgstr "Nisam uspeo da otvorim pid datoteku '%s': %s"
+
+#: qemud/qemud.c:440
+#, c-format
+msgid "Failed to fdopen pid file '%s' : %s"
+msgstr "Nisam uspeo da otvorim pid datoteku '%s': %s"
+
+#: qemud/qemud.c:447
+#, c-format
+msgid "Failed to write to pid file '%s' : %s"
+msgstr "Nisam uspeo da pišem u pid datoteku '%s': %s"
+
+#: qemud/qemud.c:454
+#, c-format
+msgid "Failed to close pid file '%s' : %s"
+msgstr "Nisam uspeo da zatvorim pid datoteku '%s': %s"
+
+#: qemud/qemud.c:471
+msgid "Failed to allocate memory for struct qemud_socket"
+msgstr "Nisam uspeo da zauzmem memoriju za struct qemud_socket"
+
+#: qemud/qemud.c:481
+#, c-format
+msgid "Failed to create socket: %s"
+msgstr "Nisam uspeo da napravim soket: %s"
+
+#: qemud/qemud.c:503
+#, c-format
+msgid "Failed to bind socket to '%s': %s"
+msgstr "Nisam uspeo da povežem soket sa '%s': %s"
+
+#: qemud/qemud.c:512
+#, c-format
+msgid "Failed to listen for connections on '%s': %s"
+msgstr "Ne mogu da osluškujem zahteve za konekcijama na '%s': %s"
+
+#: qemud/qemud.c:521 qemud/qemud.c:651
+msgid "Failed to add server event callback"
+msgstr "Nisam uspeo da dodam callback događaja na serveru"
+
+#: qemud/qemud.c:550
+#, c-format
+msgid "getaddrinfo: %s\n"
+msgstr "getaddrinfo: %s\n"
+
+#: qemud/qemud.c:559
+#, c-format
+msgid "socket: %s"
+msgstr "soket: %s"
+
+#: qemud/qemud.c:568
+#, c-format
+msgid "bind: %s"
+msgstr "veza: %s"
+
+#: qemud/qemud.c:575
+#, c-format
+msgid "listen: %s"
+msgstr "osluškuje: %s"
+
+#: qemud/qemud.c:612
+#, c-format
+msgid "remoteListenTCP: calloc: %s"
+msgstr "remoteListenTCP: calloc: %s"
+
+#: qemud/qemud.c:643
+#, c-format
+msgid "remoteListenTCP: listen: %s"
+msgstr "remoteListenTCP: listen: %s"
+
+#: qemud/qemud.c:685 src/qemu_driver.c:182
+#, c-format
+msgid "Failed to find user record for uid '%d': %s"
+msgstr "Nisam uspeo da pronađem zapis korisnika za uid '%d': %s"
+
+#: qemud/qemud.c:702
+msgid "Resulting path too long for buffer in qemudInitPaths()"
+msgstr "Rezultujuća staza preduga za bafer u qemudInitPaths()"
+
+#: qemud/qemud.c:710
+msgid "Failed to allocate struct qemud_server"
+msgstr "Nisam uspeo da dodelim struct qemud_server"
+
+#: qemud/qemud.c:754
+#, c-format
+msgid "Failed to initialize SASL authentication %s"
+msgstr "Nisam uspeo da inicijalizujem SASL autentifikaciju %s"
+
+#: qemud/qemud.c:769
+#, c-format
+msgid "Failed to connect to system bus for PolicyKit auth: %s"
+msgstr "Neuspelo povezivanje sa sistemskom magistralom za PolicyKit auth: %s"
+
+#: qemud/qemud.c:880
+#, c-format
+msgid "remoteInitializeTLSSession: %s"
+msgstr "remoteInitializeTLSSession: %s"
+
+#: qemud/qemud.c:897
+#, c-format
+msgid "remoteCheckDN: gnutls_x509_cert_get_dn: %s"
+msgstr "remoteCheckDN: gnutls_x509_cert_get_dn: %s"
+
+#: qemud/qemud.c:916
+#, c-format
+msgid "remoteCheckDN: failed: client DN is %s"
+msgstr "remoteCheckDN: failed: client DN is %s"
+
+#: qemud/qemud.c:932
+#, c-format
+msgid "remoteCheckCertificate: verify failed: %s"
+msgstr "remoteCheckCertificate: nije uspela potvrda: %s"
+
+#: qemud/qemud.c:940
+msgid "remoteCheckCertificate: the client certificate is not trusted."
+msgstr "remoteCheckCertificate: sertifikat klijenta nije od poverenja."
+
+#: qemud/qemud.c:945
+msgid "remoteCheckCertificate: the client certificate has unknown issuer."
+msgstr "remoteCheckCertificate: nije poznat izdavač sertifikata klijenta."
+
+#: qemud/qemud.c:950
+msgid "remoteCheckCertificate: the client certificate has been revoked."
+msgstr "remoteCheckCertificate: sertifikat klijenta je opozvan."
+
+#: qemud/qemud.c:956
+msgid ""
+"remoteCheckCertificate: the client certificate uses an insecure algorithm."
+msgstr ""
+"remoteCheckCertificate: sertifikat klijenta koristi nebezbedan algoritam."
+
+#: qemud/qemud.c:965
+msgid "remoteCheckCertificate: certificate is not X.509"
+msgstr "remoteCheckCertificate: sertifikat nije X.509"
+
+#: qemud/qemud.c:970
+msgid "remoteCheckCertificate: no peers"
+msgstr "remoteCheckCertificate: nema ravnopravnih uređaja"
+
+#: qemud/qemud.c:981
+msgid "remoteCheckCertificate: gnutls_x509_crt_init failed"
+msgstr "remoteCheckCertificate: gnutls_x509_crt_init nije uspeo"
+
+#: qemud/qemud.c:991
+msgid "remoteCheckCertificate: the client certificate has expired"
+msgstr "remoteCheckCertificate: sertifikat klijenta je istekao"
+
+#: qemud/qemud.c:998
+msgid "remoteCheckCertificate: the client certificate is not yet activated"
+msgstr "remoteCheckCertificate: sertifikat klijenta još uvek nije aktiviran"
+
+#: qemud/qemud.c:1007
+msgid ""
+"remoteCheckCertificate: client's Distinguished Name is not on the list of "
+"allowed clients (tls_allowed_dn_list).  Use 'openssl x509 -in clientcert.pem "
+"-text' to view the Distinguished Name field in the client certificate, or "
+"run this daemon with --verbose option."
+msgstr ""
+"remoteCheckCertificate: klijentovo ime razlikovanja nije na listi "
+"dozvoljenih klijenata (tls_allowed_dn_list). Upotrebite 'openssl x509 -in "
+"clientcert.pem-text' da vidite ime razlikovanja u klijentskom sertifikatu "
+"ili izvršite ovaj demon sa opcijom --verbose"
+
+#: qemud/qemud.c:1024
+msgid "remoteCheckCertificate: failed to verify client's certificate"
+msgstr "remoteCheckCertificate: nisam uspeo da potvrdim klijentov sertifikat"
+
+#: qemud/qemud.c:1028
+msgid ""
+"remoteCheckCertificate: tls_no_verify_certificate is set so the bad "
+"certificate is ignored"
+msgstr ""
+"remoteCheckCertificate: tls_no_verify_certificate je podešen tako da se "
+"ignoriše loš sertifikat"
+
+#: qemud/qemud.c:1050
+#, c-format
+msgid "Failed to verify client credentials: %s"
+msgstr "Nisam uspeo da potvrdim identitet korisnika %s"
+
+#: qemud/qemud.c:1075
+#, c-format
+msgid "Failed to accept connection: %s"
+msgstr "Nisam uspeo da prihvatim konekciju: %s"
+
+#: qemud/qemud.c:1114
+#, c-format
+msgid "Turn off polkit auth for privileged client %d"
+msgstr ""
+
+#: qemud/qemud.c:1153 qemud/qemud.c:1390 qemud/qemud.c:1528
+#, c-format
+msgid "TLS handshake failed: %s"
+msgstr "TLS rukovanje nije uspelo: %s"
+
+#: qemud/qemud.c:1218
+#, c-format
+msgid "read: %s"
+msgstr "čitanje: %s"
+
+#: qemud/qemud.c:1231
+#, c-format
+msgid "gnutls_record_recv: %s"
+msgstr "gnutls_record_recv: %s"
+
+#: qemud/qemud.c:1414
+#, c-format
+msgid "write: %s"
+msgstr "pisanje: %s"
+
+#: qemud/qemud.c:1424
+#, c-format
+msgid "gnutls_record_send: %s"
+msgstr "gnutls_record_send: %s"
+
+#: qemud/qemud.c:1636
+#, c-format
+msgid "Signal handler reported %d errors: last error: %s"
+msgstr "Program za obradu signala je prijavio %d grešaka: poslednja greška: %s"
+
+#: qemud/qemud.c:1733 qemud/qemud.c:1755
+#, c-format
+msgid "failed to allocate memory for %s config list"
+msgstr "Nisam uspeo da zauzmem memoriju za %s listu podešavanja"
+
+#: qemud/qemud.c:1740 qemud/qemud.c:1772
+#, c-format
+msgid "failed to allocate memory for %s config list value"
+msgstr "Nisam uspeo da zauzmem memoriju za %s vrednost liste podešavanja"
+
+#: qemud/qemud.c:1760 qemud/qemud.c:1783
+#, c-format
+msgid "remoteReadConfigFile: %s: %s: must be a string or list of strings\n"
+msgstr "remoteReadConfigFile: %s: %s: mora biti string ili niz stringova\n"
+
+#: qemud/qemud.c:1800
+#, c-format
+msgid "remoteReadConfigFile: %s: %s: invalid type: got %s; expected %s\n"
+msgstr "remoteReadConfigFile: %s: %s: nevažeći tip: %s; očekivan %s\n"
+
+#: qemud/qemud.c:1821
+#, c-format
+msgid "remoteReadConfigFile: %s\n"
+msgstr "remoteReadConfigFile: %s\n"
+
+#: qemud/qemud.c:1865
+#, c-format
+msgid "remoteReadConfigFile: %s: %s: unsupported auth %s\n"
+msgstr "remoteReadConfigFile: %s: %s: autorizacija nije podržana %s\n"
+
+#: qemud/qemud.c:1941
+msgid "Cannot set group when not running as root"
+msgstr "Morate biti root da bi postavili grupu"
+
+#: qemud/qemud.c:1945
+#, c-format
+msgid "Failed to lookup group '%s'"
+msgstr "Nisam uspeo da potražim grupu '%s'"
+
+#: qemud/qemud.c:1958 qemud/qemud.c:1969
+#, c-format
+msgid "Failed to parse mode '%s'"
+msgstr "Nisam uspeo da parsiram'%s'"
+
+#: qemud/qemud.c:2144
+#, c-format
+msgid "Failed to create pipe: %s"
+msgstr "Nisam uspeo da napravim cev: %s"
+
+#: qemud/qemud.c:2162
+#, c-format
+msgid "Failed to fork as daemon: %s"
+msgstr "Nisam uspeo da izvršim račvanje kao sistemska usluga: %s"
+
+#: qemud/qemud.c:2195
+msgid "Failed to register callback for signal pipe"
+msgstr "Nisam uspeo da registrujem callback za cev signala"
+
+#: qemud/remote.c:104
+msgid "xdr_remote_message_header"
+msgstr "xdr_remote_message_header"
+
+#: qemud/remote.c:112
+#, c-format
+msgid "program mismatch (actual %x, expected %x)"
+msgstr "neusaglašenost programa (dobijeno %x, očekivano %x)"
+
+#: qemud/remote.c:119
+#, c-format
+msgid "version mismatch (actual %x, expected %x)"
+msgstr "neusaglašenost verzije (dobijeno %x, očekivano %x)"
+
+#: qemud/remote.c:125
+#, c-format
+msgid "direction (%d) != REMOTE_CALL"
+msgstr "smer (%d) != REMOTE_CALL"
+
+#: qemud/remote.c:131
+#, c-format
+msgid "status (%d) != REMOTE_OK"
+msgstr "status (%d) != REMOTE_OK"
+
+#: qemud/remote.c:147
+msgid "authentication required"
+msgstr "autentifikacija neophodna"
+
+#: qemud/remote.c:160
+#, c-format
+msgid "unknown procedure: %d"
+msgstr "nepoznata procedura: %d"
+
+#: qemud/remote.c:168
+msgid "parse args failed"
+msgstr "neuspelo raščlanjavanje argumenata"
+
+#: qemud/remote.c:184
+#, c-format
+msgid "internal error - dispatch function returned invalid code %d"
+msgstr "interna greška - funkcija dispatch je vratila neispravan kod %d"
+
+#: qemud/remote.c:206
+msgid "dummy length"
+msgstr "lažna dužina"
+
+#: qemud/remote.c:213
+msgid "serialise reply header"
+msgstr "serializuj zaglavlje odgovora"
+
+#: qemud/remote.c:222
+msgid "serialise return struct"
+msgstr "serializuj strukturu odgovora"
+
+#: qemud/remote.c:277
+msgid "serialise return error"
+msgstr "serializuj grešku odgovora"
+
+#: qemud/remote.c:286
+msgid "xdr_setpos"
+msgstr "xdr_setpos"
+
+#: qemud/remote.c:292
+msgid "serialise return length"
+msgstr "serializuj dužinu odgovora"
+
+#: qemud/remote.c:426
+msgid "connection already open"
+msgstr "veza je već otvorena"
+
+#: qemud/remote.c:452
+msgid "connection not open"
+msgstr "veza nije otvorena"
+
+#: qemud/remote.c:499
+msgid "out of memory in strdup"
+msgstr "nestalo je memorije u strdup"
+
+#: qemud/remote.c:613 qemud/remote.c:656 qemud/remote.c:765 qemud/remote.c:791
+#: qemud/remote.c:822 qemud/remote.c:854 qemud/remote.c:878 qemud/remote.c:940
+#: qemud/remote.c:962 qemud/remote.c:987 qemud/remote.c:1013
+#: qemud/remote.c:1038 qemud/remote.c:1070 qemud/remote.c:1095
+#: qemud/remote.c:1120 qemud/remote.c:1149 qemud/remote.c:1249
+#: qemud/remote.c:1395 qemud/remote.c:1428 qemud/remote.c:1467
+#: qemud/remote.c:1491 qemud/remote.c:1515 qemud/remote.c:1539
+#: qemud/remote.c:1563 qemud/remote.c:1587 qemud/remote.c:1611
+#: qemud/remote.c:1635 qemud/remote.c:1659 qemud/remote.c:1683
+msgid "domain not found"
+msgstr "domen nije pronađen"
+
+#: qemud/remote.c:644 qemud/remote.c:731
+msgid "nparams too large"
+msgstr "nparams preveliki"
+
+#: qemud/remote.c:649 qemud/remote.c:736 qemud/remote.c:2422
+#: qemud/remote.c:2503 src/remote_internal.c:2223
+msgid "out of memory allocating array"
+msgstr "niz na dodelu pri nestanku memorije"
+
+#: qemud/remote.c:675 qemud/remote.c:686
+msgid "out of memory allocating return array"
+msgstr "povratni niz na dodelu pri nestanku memorije"
+
+#: qemud/remote.c:706
+msgid "unknown type"
+msgstr "nepoznata vrsta"
+
+#: qemud/remote.c:1155
+msgid "maxinfo > REMOTE_VCPUINFO_MAX"
+msgstr "maxinfo > REMOTE_VCPUINFO_MAX"
+
+#: qemud/remote.c:1161
+msgid "maxinfo * maplen > REMOTE_CPUMAPS_MAX"
+msgstr "maxinfo * maplen > REMOTE_CPUMAPS_MAX"
+
+#: qemud/remote.c:1298
+msgid "maxnames > REMOTE_DOMAIN_NAME_LIST_MAX"
+msgstr "maxnames > REMOTE_DOMAIN_NAME_LIST_MAX"
+
+#: qemud/remote.c:1401
+msgid "cpumap_len > REMOTE_CPUMAP_MAX"
+msgstr "cpumap_len > REMOTE_CPUMAP_MAX"
+
+#: qemud/remote.c:1706 qemud/remote.c:1757 qemud/remote.c:2715
+msgid "maxnames > REMOTE_NETWORK_NAME_LIST_MAX"
+msgstr "maxnames > REMOTE_NETWORK_NAME_LIST_MAX"
+
+#: qemud/remote.c:1732
+msgid "maxids > REMOTE_DOMAIN_ID_LIST_MAX"
+msgstr "maxids > REMOTE_DOMAIN_ID_LIST_MAX"
+
+#: qemud/remote.c:1784 qemud/remote.c:1844 qemud/remote.c:1868
+#: qemud/remote.c:1894 qemud/remote.c:1918 qemud/remote.c:1980
+#: qemud/remote.c:2004
+msgid "network not found"
+msgstr "Mreža nije pronađena"
+
+#: qemud/remote.c:2095 src/remote_internal.c:3565
+#, c-format
+msgid "Cannot resolve address %d: %s"
+msgstr "Ne mogu da razrešim adrese %d: %s"
+
+#: qemud/remote.c:2102
+msgid "cannot allocate address"
+msgstr "ne mogu da dodelim adrese"
+
+#: qemud/remote.c:2136
+msgid "client tried invalid SASL init request"
+msgstr "klijent je predao neispravan SASL init zahtev"
+
+#: qemud/remote.c:2145 src/remote_internal.c:3795
+#, c-format
+msgid "failed to get sock address %d (%s)"
+msgstr "neuspelo pribavljanje adrese soketa %d (%s)"
+
+#: qemud/remote.c:2156 src/remote_internal.c:3807
+#, c-format
+msgid "failed to get peer address %d (%s)"
+msgstr "neuspelo pribavljanje adrese ravnopravnog uređaja %d (%s)"
+
+#: qemud/remote.c:2177
+#, c-format
+msgid "sasl context setup failed %d (%s)"
+msgstr "Nije uspelo podešavanje sasl konteksta %d (%s)"
+
+#: qemud/remote.c:2191
+msgid "cannot TLS get cipher size"
+msgstr "ne mogu da TLS preuzmem veličinu šifre"
+
+#: qemud/remote.c:2201
+#, c-format
+msgid "cannot set SASL external SSF %d (%s)"
+msgstr "Ne mogu da podesim SASL spoljni SSF %d (%s)"
+
+#: qemud/remote.c:2230
+#, c-format
+msgid "cannot set SASL security props %d (%s)"
+msgstr "Ne mogu da podesim SASL bezbedonosni props %d (%s)"
+
+#: qemud/remote.c:2247
+#, c-format
+msgid "cannot list SASL mechanisms %d (%s)"
+msgstr "Ne mogu da prikažem SASL mehanizme %d (%s)"
+
+#: qemud/remote.c:2257
+msgid "cannot allocate mechlist"
+msgstr "Ne mogu da dodelim mechlist"
+
+#: qemud/remote.c:2282 src/remote_internal.c:4073
+#, c-format
+msgid "cannot query SASL ssf on connection %d (%s)"
+msgstr "ne mogu da izvršim upit SASL ssf na konekciji %d (%s)"
+
+#: qemud/remote.c:2292
+#, c-format
+msgid "negotiated SSF %d was not strong enough"
+msgstr "pregovarani SSF %d nije bio dovoljno jak"
+
+#: qemud/remote.c:2322
+#, c-format
+msgid "cannot query SASL username on connection %d (%s)"
+msgstr "ne mogu da izvršim upit SASL korisničkog imena na konekciji %d (%s)"
+
+#: qemud/remote.c:2330
+msgid "no client username was found"
+msgstr "nije pronađeno korisničko ime klijenta"
+
+#: qemud/remote.c:2340
+msgid "out of memory copying username"
+msgstr "potrošena memorija tokom kopiranja korisničkog imena"
+
+#: qemud/remote.c:2359
+#, c-format
+msgid "SASL client %s not allowed in whitelist"
+msgstr "SASL %s klijent nije dozvoljen u whitelist"
+
+#: qemud/remote.c:2385 qemud/remote.c:2466
+msgid "client tried invalid SASL start request"
+msgstr "klijen je pokušao sa nevažećim SASL startnim upitom"
+
+#: qemud/remote.c:2401
+#, c-format
+msgid "sasl start failed %d (%s)"
+msgstr "nisam uspeo da pokrenem sasl %d (%s)"
+
+#: qemud/remote.c:2409
+#, c-format
+msgid "sasl start reply data too long %d"
+msgstr "podaci odgovora sasl pokretanja predugi %d "
+
+#: qemud/remote.c:2481
+#, c-format
+msgid "sasl step failed %d (%s)"
+msgstr "nije uspeo sasl korak %d (%s)"
+
+#: qemud/remote.c:2490
+#, c-format
+msgid "sasl step reply data too long %d"
+msgstr "Podaci odgovora sasl koraka predugi %d"
+
+#: qemud/remote.c:2541
+msgid "client tried unsupported SASL init request"
+msgstr "klijent je pokušao sa nevažećim SASL init zahtevom"
+
+#: qemud/remote.c:2553
+msgid "client tried unsupported SASL start request"
+msgstr "klijent je pokušao sa nevažećim SASL start zahtevom"
+
+#: qemud/remote.c:2565
+msgid "client tried unsupported SASL step request"
+msgstr "klijent je pokušao sa nevažećim SASL step zahtevom"
+
+#: qemud/remote.c:2595
+msgid "client tried invalid PolicyKit init request"
+msgstr "klijent je pokušao sa nevažećim PolicyKit init zahtevom"
+
+#: qemud/remote.c:2601
+msgid "cannot get peer socket identity"
+msgstr "ne mogu da utvrdim identitet peer soketa"
+
+#: qemud/remote.c:2606
+#, c-format
+msgid "Checking PID %d running as %d"
+msgstr "Proveravam da li se PID %d izvršava kao %d"
+
+#: qemud/remote.c:2611
+#, c-format
+msgid "Failed to lookup policy kit caller: %s"
+msgstr "Nisam uspeo da potražim policy kit caller: %s"
+
+#: qemud/remote.c:2619
+#, c-format
+msgid "Failed to create polkit action %s\n"
+msgstr "Nisam uspeo da napravim polkit action %s\n"
+
+#: qemud/remote.c:2629
+#, c-format
+msgid "Failed to create polkit context %s\n"
+msgstr "Nisam uspeo da napravim polkit context %s\n"
+
+#: qemud/remote.c:2649
+#, c-format
+msgid "Policy kit failed to check authorization %d %s"
+msgstr "Policy kit nije uspeo da proveri autorizaciju %d %s"
+
+#: qemud/remote.c:2665
+#, c-format
+msgid "Policy kit denied action %s from pid %d, uid %d, result: %s\n"
+msgstr ""
+"Policy kit je odbio izvršavanje akcije %s iz pid %d, uid %d, rezultat: %s\n"
+
+#: qemud/remote.c:2673
+#, c-format
+msgid "Policy allowed action %s from pid %d, uid %d, result %s"
+msgstr ""
+"Policy je dozvolio izvršavanje akcije %s iz pid %d, uid %d, rezultat: %s"
+
+#: qemud/remote.c:2692
+msgid "client tried unsupported PolicyKit init request"
+msgstr "klijent je pokušao sa nevažećim PolicyKit init zahtevom"
+
+#: qemud/remote.c:2741
+msgid "maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX"
+msgstr "maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX"
+
+#: qemud/remote.c:2768 qemud/remote.c:2828 qemud/remote.c:2853
+#: qemud/remote.c:2877 qemud/remote.c:2901 qemud/remote.c:2926
+#: qemud/remote.c:2957 qemud/remote.c:2983 qemud/remote.c:3066
+#: qemud/remote.c:3090 qemud/remote.c:3150 qemud/remote.c:3179
+#: qemud/remote.c:3210 qemud/remote.c:3346
+msgid "storage_pool not found"
+msgstr "storage_pool nije pronađen"
+
+#: qemud/remote.c:3144
+msgid "maxnames > REMOTE_STORAGE_VOL_NAME_LIST_MAX"
+msgstr "maxnames > REMOTE_STORAGE_VOL_NAME_LIST_MAX"
+
+#: qemud/remote.c:3236 qemud/remote.c:3261 qemud/remote.c:3291
+#: qemud/remote.c:3318
+msgid "storage_vol not found"
+msgstr "storage_vol nije pronađen"
+
+#: src/conf.c:158 src/conf.c:207 src/conf.c:492 src/conf.c:528 src/conf.c:556
+#: src/conf.c:634
+msgid "allocating configuration"
+msgstr "dodeljujem podešavanje"
+
+#: src/conf.c:342
+msgid "unterminated number"
+msgstr "nedovršen broj"
+
+#: src/conf.c:376 src/conf.c:393 src/conf.c:405
+msgid "unterminated string"
+msgstr "nedovršena niska"
+
+#: src/conf.c:433 src/conf.c:486
+msgid "expecting a value"
+msgstr "očekujem vrednost"
+
+#: src/conf.c:453
+msgid "expecting a separator in list"
+msgstr "očekujem razdelnik u spisku"
+
+#: src/conf.c:476
+msgid "list is not closed with ]"
+msgstr "spisak nije zatvoren sa ]"
+
+#: src/conf.c:521
+msgid "expecting a name"
+msgstr "očekujem ime"
+
+#: src/conf.c:584
+msgid "expecting a separator"
+msgstr "očekujem razdelnik"
+
+#: src/conf.c:616
+msgid "expecting an assignment"
+msgstr "očekujem dodelu"
+
+#: src/conf.c:890 src/conf.c:944
+msgid "failed to allocate buffer"
+msgstr "neuspelo zauzimanje bafera"
+
+#: src/conf.c:902
+msgid "failed to open file"
+msgstr "neuspelo otvaranje datoteke"
+
+#: src/conf.c:910
+msgid "failed to save content"
+msgstr "neuspelo čuvanje sadržaja"
+
+#: src/console.c:75
+#, c-format
+msgid "unable to open tty %s: %s\n"
+msgstr "nisam uspeo da otvorim tty %s: %s\n"
+
+#: src/console.c:86
+#, c-format
+msgid "unable to get tty attributes: %s\n"
+msgstr "nisam uspeo da preuzmem tty atribute: %s\n"
+
+#: src/console.c:95
+#, c-format
+msgid "unable to set tty attributes: %s\n"
+msgstr "nisam uspeo da postavim tty atribute: %s\n"
+
+#: src/console.c:130
+#, c-format
+msgid "failure waiting for I/O: %s\n"
+msgstr "greška prilikom čekanja na I/O: %s\n"
+
+#: src/console.c:145
+#, c-format
+msgid "failure reading input: %s\n"
+msgstr "nisam uspeo da pročitam unos: %s\n"
+
+#: src/console.c:167
+#, c-format
+msgid "failure writing output: %s\n"
+msgstr "nisam uspeo da ispišem izlaz: %s\n"
+
+#: src/hash.c:695 src/libvirt.c:724
+msgid "allocating connection"
+msgstr "zauzimam vezu"
+
+#: src/hash.c:830 src/hash.c:835
+msgid "allocating domain"
+msgstr "zauzimam domen"
+
+#: src/hash.c:846
+msgid "failed to add domain to connection hash table"
+msgstr "neuspelo dodavanje domena u heš tabelu veza"
+
+#: src/hash.c:884
+msgid "domain missing from connection hash table"
+msgstr "domen nedostaje u heš tabeli veza"
+
+#: src/hash.c:968 src/hash.c:973
+msgid "allocating network"
+msgstr "zauzimam mrežu"
+
+#: src/hash.c:983
+msgid "failed to add network to connection hash table"
+msgstr "neuspelo dodavanje mreže u haš tabelu veza"
+
+#: src/hash.c:1021
+msgid "network missing from connection hash table"
+msgstr "mreža nedostaje u haš tabeli veza"
+
+#: src/hash.c:1106 src/hash.c:1111
+msgid "allocating storage pool"
+msgstr "zauzimam rezervoar skladištenja"
+
+#: src/hash.c:1121
+msgid "failed to add storage pool to connection hash table"
+msgstr "nisam uspeo da dodam rezervoar skladištenja u haš tabelu veza"
+
+#: src/hash.c:1160
+msgid "pool missing from connection hash table"
+msgstr "skladište nedostaje u heš tabeli veza"
+
+#: src/hash.c:1238 src/hash.c:1243 src/hash.c:1248
+msgid "allocating storage vol"
+msgstr "dodeljujem skladište"
+
+#: src/hash.c:1258
+msgid "failed to add storage vol to connection hash table"
+msgstr "neuspelo dodavanje skladišta u haš tabelu veza"
+
+#: src/hash.c:1298
+msgid "vol missing from connection hash table"
+msgstr "disk nedostaje u heš tabeli veza"
+
+#: src/iptables.c:103
+msgid "Failed to run '"
+msgstr "Nisam uspeo da pokrenem"
+
+#: src/iptables.c:151
+msgid "Failed to read "
+msgstr "Nisam uspeo da pročitam"
+
+#: src/iptables.c:179
+msgid "Failed to write to "
+msgstr "Nisam uspeo da upišem u "
+
+#: src/iptables.c:244
+#, c-format
+msgid "Failed to create directory %s : %s"
+msgstr "Nisam uspeo da napravim direktorijum %s : %s"
+
+#: src/iptables.c:250
+#, c-format
+msgid "Failed to saves iptables rules to %s : %s"
+msgstr "Nisam uspeo da sačuvam iptables pravila u %s : %s"
+
+#: src/iptables.c:591
+#, c-format
+msgid "Failed to remove iptables rule '%s' from chain '%s' in table '%s': %s"
+msgstr ""
+"Nisam uspeo da uklonim iptables pravilo '%s' iz lanca '%s' u tabeli '%s':%s"
+
+#: src/iptables.c:600
+#, c-format
+msgid "Failed to add iptables rule '%s' to chain '%s' in table '%s': %s"
+msgstr ""
+"Nisam uspeo da dodam iptables pravilo '%s' u lanac '%s' u tabeli '%s':%s"
+
+#: src/libvirt.c:731
+msgid "could not parse connection URI"
+msgstr "ne mogu da raščlanim URI veze"
+
+#: src/libvirt.c:749
+msgid "allocating conn->name"
+msgstr "zauzimam vezu->naziv"
+
+#: src/libvirt.c:2170
+msgid "domainMigratePrepare did not set uri"
+msgstr "domainMigratePrepare nije postavio uri"
+
+#: src/lxc_conf.c:87
+msgid "missing filesystem type"
+msgstr "nedostaje tip sistema datoteka"
+
+#: src/lxc_conf.c:93
+msgid "invalid filesystem type"
+msgstr "nepravilan tip sistema datoteka"
+
+#: src/lxc_conf.c:115
+msgid "missing mount source"
+msgstr "nedostaje izvor za montiranje"
+
+#: src/lxc_conf.c:122
+msgid "empty or invalid mount source"
+msgstr "prazan ili nepravilan izvor montiranja"
+
+#: src/lxc_conf.c:131
+msgid "missing mount target"
+msgstr "nedostaje cilj montiranja"
+
+#: src/lxc_conf.c:138
+msgid "empty or invalid mount target"
+msgstr "prazan ili nepravilan cilj montiranja"
+
+#: src/lxc_conf.c:179
+msgid "failed to generate uuid"
+msgstr "neuspelo pravljenje uuid"
+
+#: src/lxc_conf.c:185
+msgid "invalid uuid element"
+msgstr "neispravan uuid element"
+
+#: src/lxc_conf.c:248
+msgid "invalid or missing init element"
+msgstr "init element je neispravan ili nedostaje"
+
+#: src/lxc_conf.c:254
+msgid "init string too long"
+msgstr "init string je predugačak"
+
+#: src/lxc_conf.c:293
+msgid "invalid memory value"
+msgstr "neispravna vrednost memorije"
+
+#: src/lxc_conf.c:320
+msgid "invalid root element"
+msgstr "neispravan root element"
+
+#: src/lxc_conf.c:333
+msgid "missing domain type"
+msgstr "nedostaje tip domena"
+
+#: src/lxc_conf.c:339
+msgid "invalid domain type"
+msgstr "neispravan tip domena"
+
+#: src/lxc_conf.c:348
+msgid "invalid domain id"
+msgstr "neispravan id domena"
+
+#: src/lxc_conf.c:432
+#, c-format
+msgid "Can't redefine active VM with name %s"
+msgstr "Ne mogu da unapred definišem VM sa nazivom %s"
+
+#: src/lxc_conf.c:505 src/qemu_conf.c:2022 src/qemu_conf.c:2248
+#: src/storage_conf.c:1190
+#, c-format
+msgid "cannot create config file %s: %s"
+msgstr "neuspelo upisivanje datoteke podešavanja %s: %s"
+
+#: src/lxc_conf.c:513 src/qemu_conf.c:2030 src/qemu_conf.c:2256
+#: src/storage_conf.c:1198
+#, c-format
+msgid "cannot write config file %s: %s"
+msgstr "neuspelo upisivanje datoteke podešavanja %s: %s"
+
+#: src/lxc_conf.c:520 src/qemu_conf.c:2037 src/qemu_conf.c:2263
+#: src/storage_conf.c:1205
+#, c-format
+msgid "cannot save config file %s: %s"
+msgstr "neuspelo čuvanje datoteke podešavanja %s: %s"
+
+#: src/lxc_conf.c:547 src/qemu_conf.c:2200 src/qemu_conf.c:2239
+#: src/qemu_conf.c:2661 src/storage_conf.c:1145
+#, c-format
+msgid "cannot create config directory %s: %s"
+msgstr "neuspelo upisivanje direktorijuma podešavanja %s: %s"
+
+#: src/lxc_conf.c:555 src/qemu_conf.c:2208 src/qemu_conf.c:2669
+#: src/storage_conf.c:1153
+msgid "cannot construct config file path"
+msgstr "neuspelo kreiranje putanje datoteke podešavanja"
+
+#: src/lxc_conf.c:658
+#, c-format
+msgid "failed to open config directory %s: %s"
+msgstr "neuspelo otvaranje direktorijuma podešavanja %s: %s"
+
+#: src/lxc_conf.c:874 src/qemu_conf.c:3246 src/storage_conf.c:1226
+#, c-format
+msgid "no config file for %s"
+msgstr "ne postoji datoteka podešavanja za %s"
+
+#: src/lxc_conf.c:880 src/qemu_conf.c:3252 src/storage_conf.c:1232
+#, c-format
+msgid "cannot remove config for %s"
+msgstr "ne mogu da uklonim podešavanje za %s"
+
+#: src/lxc_driver.c:309 src/lxc_driver.c:338 src/lxc_driver.c:371
+#: src/openvz_driver.c:177 src/openvz_driver.c:219 src/openvz_driver.c:529
+#: src/qemu_driver.c:1824 src/qemu_driver.c:1902 src/qemu_driver.c:2244
+#: src/qemu_driver.c:2289 src/qemu_driver.c:2327 src/qemu_driver.c:2405
+#: src/qemu_driver.c:2458 src/qemu_driver.c:2474
+msgid "no domain with matching uuid"
+msgstr "ne postoji domen koji se podudara sa uuid"
+
+#: src/lxc_driver.c:315 src/openvz_driver.c:534 src/qemu_driver.c:2333
+msgid "cannot delete active domain"
+msgstr "neuspelo brisanje aktivnog domena"
+
+#: src/openvz_conf.c:241
+#, c-format
+msgid "Error already an active OPENVZ VM having id '%s'"
+msgstr "Greška aktivni OPENVZ VM već ima id '%s'"
+
+#: src/openvz_conf.c:311 src/qemu_conf.c:1040 src/qemu_conf.c:2447
+msgid "incorrect root element"
+msgstr "neispravan root element"
+
+#: src/openvz_conf.c:323 src/qemu_conf.c:1055
+msgid "missing domain type attribute"
+msgstr "nedostaje osobina tipa domena"
+
+#: src/openvz_conf.c:328 src/qemu_conf.c:1067
+msgid "invalid domain type attribute"
+msgstr "neispravana osobina tipa domena"
+
+#: src/openvz_conf.c:338
+msgid "invalid domain name"
+msgstr "neispravan naziv domena"
+
+#: src/openvz_conf.c:345
+msgid "VPS ID Error (must be an integer greater than 100"
+msgstr "VPS ID Greška (mora biti ceo broj veći od 100"
+
+#: src/openvz_conf.c:358
+msgid "Failed to generate UUID"
+msgstr "Neuspešno pravljenje UUID"
+
+#: src/openvz_conf.c:362 src/qemu_conf.c:1102 src/qemu_conf.c:2487
+#: src/storage_conf.c:265
+msgid "malformed uuid element"
+msgstr "loše oblikovan uuid element"
+
+#: src/openvz_conf.c:388
+#, c-format
+msgid "No IP address in the given xml config file '%s'"
+msgstr "Nijedna IP adresa nije data u xml datoteci podešavanja '%s'"
+
+#: src/openvz_conf.c:395
+msgid "ipaddress length too long"
+msgstr "dužina ip adrese je prevelika"
+
+#: src/openvz_conf.c:401
+msgid "Failed to Create Memory for 'ovz_ip' structure"
+msgstr "Neuspešno Kreiranje Memorije za 'ovz_ip' strukturu"
+
+#: src/openvz_conf.c:413
+#, c-format
+msgid "No Netmask address in the given xml config file '%s'"
+msgstr "Nijedna Netmask adresa nije data u xml datoteci podešavanja '%s'"
+
+#: src/openvz_conf.c:420
+msgid "netmask length too long"
+msgstr "dužina netmask-a je prevelika"
+
+#: src/openvz_conf.c:432
+#, c-format
+msgid "No hostname in the given xml config file '%s'"
+msgstr "Nijedan naziv domaćina nije dat u xml datoteci podešavanja '%s'"
+
+#: src/openvz_conf.c:439
+msgid "hostname length too long"
+msgstr "dužina naziva domaćina je prevelika"
+
+#: src/openvz_conf.c:451
+#, c-format
+msgid "No Gateway address in the given xml config file '%s'"
+msgstr "Nijedna Gateway adresa nije data u xml datoteci podešavanja '%s'"
+
+#: src/openvz_conf.c:458
+msgid "gateway length too long"
+msgstr "dužina gateway-a je prevelika"
+
+#: src/openvz_conf.c:470
+#, c-format
+msgid "No Nameserver address inthe given xml config file '%s'"
+msgstr "Nijedna Nameserver adresa nije data u xml datoteci podešavanja '%s'"
+
+#: src/openvz_conf.c:477
+msgid "nameserver length too long"
+msgstr "dužina nameserver-a je prevelika"
+
+#: src/openvz_conf.c:483
+msgid "Failed to Create Memory for 'ovz_ns' structure"
+msgstr "Neuspešno Kreiranje Memorije za 'ovz_ns' strukturu"
+
+#: src/openvz_conf.c:501
+msgid "profile length too long"
+msgstr "dužina profila prevelika"
+
+#: src/openvz_conf.c:537
+msgid "popen failed"
+msgstr "popen nije uspeo"
+
+#: src/openvz_conf.c:544 src/openvz_conf.c:573
+msgid "calloc failed"
+msgstr "calloc nije uspeo"
+
+#: src/openvz_conf.c:553
+msgid "Failed to parse vzlist output"
+msgstr "Nuspešno raščlanjavanje vzlist izlaza"
+
+#: src/openvz_conf.c:583
+msgid "UUID in config file malformed"
+msgstr "UUID je loše oblikovan u datoteci podešavanja"
+
+#: src/openvz_driver.c:149 src/openvz_driver.c:243 src/openvz_driver.c:288
+#: src/openvz_driver.c:483
+msgid "no domain with matching id"
+msgstr "nema domena koji se poklapaju sa id-om"
+
+#: src/openvz_driver.c:198
+msgid "no domain with matching name"
+msgstr "nema domena koji se poklapaju sa imenom"
+
+#: src/openvz_driver.c:249 src/openvz_driver.c:294
+msgid "domain is not in running state"
+msgstr "domen nije u radnom stanju"
+
+#: src/openvz_driver.c:256 src/openvz_driver.c:301 src/openvz_driver.c:360
+#: src/openvz_driver.c:428 src/openvz_driver.c:444 src/openvz_driver.c:498
+#: src/openvz_driver.c:541
+msgid "Error in parsing Options to OPENVZ"
+msgstr "Greška u raščlanjavanju OPENVZ-a"
+
+#: src/openvz_driver.c:331
+#, c-format
+msgid "Already an OPENVZ VM active with the id '%s'"
+msgstr "Već je aktivan OPENVZ VM sa id-om'%s'"
+
+#: src/openvz_driver.c:337 src/openvz_driver.c:404
+msgid "Error creating OPENVZ VM"
+msgstr "Greška u kreiranju OPENVZ VM"
+
+#: src/openvz_driver.c:399
+#, c-format
+msgid "Already an OPENVZ VM defined with the id '%d'"
+msgstr "Već je definisan OPENVZ VM sa id-om '%d'"
+
+#: src/openvz_driver.c:489
+msgid "domain is not in shutoff state"
+msgstr "domen nije u stanju gašenja"
+
+#: src/proxy_internal.c:197
+#, c-format
+msgid "failed to exec %s\n"
+msgstr "neuspelo izvršavanje %s\n"
+
+#: src/proxy_internal.c:291
+#, c-format
+msgid "Failed to close socket %d\n"
+msgstr "Neuspelo zatvaranje priključka %d\n"
+
+#: src/proxy_internal.c:324
+#, c-format
+msgid "Failed to read socket %d\n"
+msgstr "Neuspelo čitanje priključka %d\n"
+
+#: src/proxy_internal.c:351
+#, c-format
+msgid "Failed to write to socket %d\n"
+msgstr "Neuspelo pisanje na priključak %d\n"
+
+#: src/proxy_internal.c:443 src/proxy_internal.c:464 src/proxy_internal.c:484
+#, c-format
+msgid "Communication error with proxy: got %d bytes of %d\n"
+msgstr "Greška u komunikaciji sa proksijem: primljeno %d bajtova od %d\n"
+
+#: src/proxy_internal.c:451
+#, c-format
+msgid "Communication error with proxy: expected %d bytes got %d\n"
+msgstr ""
+"Greška u komunikaciji sa proksijem: očekivano %d bajtova a primljeno %d\n"
+
+#: src/proxy_internal.c:473
+#, c-format
+msgid "Communication error with proxy: got %d bytes packet\n"
+msgstr "Greška u komunikaciji sa proksijem: primljen paket od %d bajtova\n"
+
+#: src/proxy_internal.c:497
+msgid "Communication error with proxy: malformed packet\n"
+msgstr "Greška u komunikaciji sa proksijem: pogrešno oblikovan paket\n"
+
+#: src/proxy_internal.c:503
+#, c-format
+msgid "got asynchronous packet number %d\n"
+msgstr "primljen asinhroni broj paketa %d\n"
+
+#: src/qemu_conf.c:85 src/qemu_conf.c:120
+msgid "failed to allocate vncTLSx509certdir"
+msgstr "neuspelo zauzimanje vncTLSx509certdir"
+
+#: src/qemu_conf.c:499
+#, c-format
+msgid "Unexpected exit status from qemu %d pid %lu"
+msgstr "Neočekivan status izlaska iz qemu %d pid %lu"
+
+#: src/qemu_conf.c:508
+#, c-format
+msgid "Unexpected exit status '%d', qemu probably failed"
+msgstr "Neočekivani status izlaska '%d', qemu verovatno nije uspeo"
+
+#: src/qemu_conf.c:533 src/qemu_conf.c:1645
+#, c-format
+msgid "Cannot find QEMU binary %s: %s"
+msgstr "Ne mogu da pronađem QEMU binary %s: %s"
+
+#: src/qemu_conf.c:617
+#, c-format
+msgid "Invalid floppy device name: %s"
+msgstr "Neispravan naziv disketnog uređaja: %s"
+
+#: src/qemu_conf.c:625
+#, c-format
+msgid "Invalid cdrom device name: %s"
+msgstr "Neispravan naziv cdrom uređaja: %s"
+
+#: src/qemu_conf.c:639
+#, c-format
+msgid "Invalid harddisk device name: %s"
+msgstr "Neispravan naziv čvrstog diska: %s"
+
+#: src/qemu_conf.c:660
+#, c-format
+msgid "Invalid device type: %s"
+msgstr "Neispravan tip uređaja: %s"
+
+#: src/qemu_conf.c:802
+msgid ""
+"No <source> 'network' attribute specified with <interface type='network'/>"
+msgstr ""
+"Nijedna <source> 'network' osobina nije određena preko <interface "
+"type='network'/>"
+
+#: src/qemu_conf.c:806
+#, c-format
+msgid "Network name '%s' too long"
+msgstr "Naziv mreže '%s' je prevelik"
+
+#: src/qemu_conf.c:821 src/qemu_conf.c:849 src/qemu_conf.c:880
+#, c-format
+msgid "TAP interface name '%s' is too long"
+msgstr "Naziv TAP okruženja '%s' je preveliki"
+
+#: src/qemu_conf.c:837
+#, c-format
+msgid "TAP script path '%s' is too long"
+msgstr "Putanja TAP skripte '%s' je prevelika"
+
+#: src/qemu_conf.c:863
+msgid "No <source> 'dev' attribute specified with <interface type='bridge'/>"
+msgstr ""
+"Nijedna <source> 'dev' osobina nije određena preko <interface type='bridge'/>"
+
+#: src/qemu_conf.c:867
+#, c-format
+msgid "TAP bridge path '%s' is too long"
+msgstr "Putanja TAP mosta '%s' je prevelika"
+
+#: src/qemu_conf.c:896
+msgid "No <source> 'port' attribute specified with socket interface"
+msgstr "Nijedna <source> 'port' osobina nije određena preko sučelja soketa"
+
+#: src/qemu_conf.c:902
+msgid "Cannot parse <source> 'port' attribute with socket interface"
+msgstr "Nije moguće raščlaniti <source> 'port' osobinu sa sučeljem soketa"
+
+#: src/qemu_conf.c:912
+msgid "No <source> 'address' attribute specified with socket interface"
+msgstr "Nijedna <source> 'address' osobina nije određena preko sučelja soketa"
+
+#: src/qemu_conf.c:917
+#, c-format
+msgid "IP address '%s' is too long"
+msgstr "IP adresa '%s' je prevelika"
+
+#: src/qemu_conf.c:960
+msgid "missing input device type"
+msgstr "nedostaje vrsta uređaja za unos"
+
+#: src/qemu_conf.c:970
+#, c-format
+msgid "unsupported input device type %s"
+msgstr "vrsta uređaja za unos %s nije podržana"
+
+#: src/qemu_conf.c:979
+#, c-format
+msgid "ps2 bus does not support %s input device"
+msgstr "ps2 magistrala ne podržava %s uređaj za unos"
+
+#: src/qemu_conf.c:988
+#, c-format
+msgid "unsupported input bus %s"
+msgstr "magistrala za unos %s nije podržana"
+
+#: src/qemu_conf.c:1032 src/qemu_conf.c:1047
+msgid "failed to allocate space for xmlXPathContext"
+msgstr "neuspelo zauzimanje prostora za xmlXPathContext"
+
+#: src/qemu_conf.c:1083
+msgid "domain name length too long"
+msgstr "dužina imena domena je prebelika"
+
+#: src/qemu_conf.c:1097 src/qemu_conf.c:2482
+#, c-format
+msgid "Failed to generate UUID: %s"
+msgstr "Neuspelo generisanje UUID: %s"
+
+#: src/qemu_conf.c:1113
+msgid "missing memory element"
+msgstr "nedostaje element memorije"
+
+#: src/qemu_conf.c:1120 src/qemu_conf.c:1139
+msgid "malformed memory information"
+msgstr "informacije o memoriji su loše oblikovane"
+
+#: src/qemu_conf.c:1155
+msgid "malformed vcpu information"
+msgstr "informacije o vcpu su loše oblikovane"
+
+#: src/qemu_conf.c:1202
+msgid "no OS type"
+msgstr "nema vrste OS-a"
+
+#: src/qemu_conf.c:1220 src/qemu_conf.c:1247
+msgid "unsupported architecture"
+msgstr "arhitektura nije podržana"
+
+#: src/qemu_conf.c:1225 src/qemu_conf.c:1232 src/qemu_conf.c:1259
+msgid "architecture type too long"
+msgstr "vrsta arhitekture je prevelika"
+
+#: src/qemu_conf.c:1252
+msgid "machine type too long"
+msgstr "vrsta mašine je prevelika"
+
+#: src/qemu_conf.c:1272
+msgid "kernel path too long"
+msgstr "putanja jezgra je prevelika"
+
+#: src/qemu_conf.c:1285
+msgid "initrd path too long"
+msgstr "putanja initrd-a je prevelika"
+
+#: src/qemu_conf.c:1298
+msgid "cmdline arguments too long"
+msgstr "cmdline argumenti preveliki"
+
+#: src/qemu_conf.c:1323
+#, c-format
+msgid "unknown boot device '%s'"
+msgstr "nepoznat uređaj za pokretanje '%s'"
+
+#: src/qemu_conf.c:1349
+msgid "unsupported guest type"
+msgstr "vrsta gosta nije podržana"
+
+#: src/qemu_conf.c:1356
+msgid "emulator path too long"
+msgstr "putanja emulatora je prevelika"
+
+#: src/qemu_conf.c:1391
+#, c-format
+msgid "Unsupported graphics type %s"
+msgstr "Nije podržana vrsta grafike %s"
+
+#: src/qemu_conf.c:1408
+msgid "failed to allocate space for disk string"
+msgstr "neuspelo zauzimanje prostora za deljenje diska"
+
+#: src/qemu_conf.c:1437
+msgid "failed to allocate space for net string"
+msgstr "neuspelo zauzimanje prostora za deljenje mreže"
+
+#: src/qemu_conf.c:1465 src/qemu_conf.c:1506
+msgid "failed to allocate space for input string"
+msgstr "neuspelo zauzimanje prostora za ulazni niz znakova"
+
+#: src/qemu_conf.c:1549
+#, c-format
+msgid "Network '%s' not found"
+msgstr "Mreža '%s' nije pronađena"
+
+#: src/qemu_conf.c:1554
+#, c-format
+msgid "Network '%s' not active"
+msgstr "Mreža %s nije aktivna"
+
+#: src/qemu_conf.c:1575
+#, c-format
+msgid "Network type %d is not supported"
+msgstr "Vrsta mreže %d nije podržana"
+
+#: src/qemu_conf.c:1581 src/qemu_driver.c:1212
+#, c-format
+msgid "cannot initialize bridge support: %s"
+msgstr "nije moguće pokrenuti podršku mosta: %s"
+
+#: src/qemu_conf.c:1589
+#, c-format
+msgid "Failed to add tap interface '%s' to bridge '%s' : %s"
+msgstr "Neuspešno dodavanje tap okruženja '%s' na most '%s' : %s"
+
+#: src/qemu_conf.c:1612
+msgid "failed to allocate space for tapfds string"
+msgstr "neuspelo dodeljivanje prostora za tapfds niz znakova"
+
+#: src/qemu_conf.c:1988
+msgid "failed to allocate space for argv string"
+msgstr "neuspelo zauzimanje prostora za argv niz znakova"
+
+#: src/qemu_conf.c:2072 src/storage_conf.c:395 src/storage_conf.c:783
+msgid "missing root element"
+msgstr "nedostaje root element"
+
+#: src/qemu_conf.c:2086
+msgid "unknown device type"
+msgstr "nepoznata vrsta uređaja"
+
+#: src/qemu_conf.c:2146
+msgid "failed to allocate space for vm string"
+msgstr "neuspelo zauzimanje prostora za vm niz znakova"
+
+#: src/qemu_conf.c:2215 src/qemu_conf.c:2676 src/storage_conf.c:1165
+msgid "cannot construct autostart link path"
+msgstr "nije moguće konstruisati putanju veze"
+
+#: src/qemu_conf.c:2346
+msgid "failed to allocate space for range string"
+msgstr "neuspelo zauzimanje prostora za opseg niza znakova"
+
+#: src/qemu_conf.c:2439
+msgid "failed to allocate space for network_def string"
+msgstr "neuspelo zauzimanje prostora za network_def niz znakova"
+
+#: src/qemu_conf.c:2454
+msgid "failed to allocate space for xmlXPathContext string"
+msgstr "neuspelo zauzimanje prostora za xmlXPathContext niz znakova"
+
+#: src/qemu_conf.c:2468
+msgid "network name length too long"
+msgstr "naziv mreže je prevelik"
+
+#: src/qemu_conf.c:2519
+msgid "Forwarding requested, but no IPv4 address/netmask provided"
+msgstr "Prosleđujem zahtev, ali nije obezbeđena IPv4 adresa/mrežna maska"
+
+#: src/qemu_conf.c:2541
+#, c-format
+msgid "forward device name '%s' is too long"
+msgstr "naziv datog uređaja '%s' je preveliki"
+
+#: src/qemu_conf.c:2613
+msgid "failed to allocate space for network string"
+msgstr "neuspelo zauzimanje prostora za niz znakova mreže"
+
+#: src/qemu_conf.c:2697
+#, c-format
+msgid "Error parsing QEMU guest config '%s' : %s"
+msgstr "Graška u raščlanjivanju QEMU konfiguracije gosta '%s' : %s"
+
+#: src/qemu_conf.c:2699
+msgid "BUG: unknown error - please report it\n"
+msgstr "GREŠKA: nepoznata greška - molimo vas prijavite je\n"
+
+#: src/qemu_conf.c:2705
+#, c-format
+msgid "QEMU guest config filename '%s' does not match guest name '%s'"
+msgstr ""
+"naziv datoteke QEMU konfiguracije gosta '%s' se ne poklapa sa nazivom gosta "
+"'%s'"
+
+#: src/qemu_conf.c:2714
+#, c-format
+msgid "Failed to load QEMU guest config '%s': out of memory"
+msgstr ""
+"Neuspelo učitavanje QEMU konfiguracije gosta '%s': nema dovoljno memorije"
+
+#: src/qemu_conf.c:2742
+#, c-format
+msgid "Error parsing network config '%s' : %s"
+msgstr "Greška u raščlanjivanju konfiguracije mreže '%s' : %s"
+
+#: src/qemu_conf.c:2749
+#, c-format
+msgid "Network config filename '%s' does not match network name '%s'"
+msgstr ""
+"Naziv datoteke mrežnog podešavanja '%s' se ne poklapa sa nazivom mreže '%s'"
+
+#: src/qemu_conf.c:2758
+#, c-format
+msgid "Failed to load network config '%s': out of memory"
+msgstr "Neuspelo učitavanje podešavanja mreže '%s': nema dovoljno memorije"
+
+#: src/qemu_conf.c:2785
+#, c-format
+msgid "Failed to open dir '%s': %s"
+msgstr "Neuspelo otvaranje direktorijuma '%s': %s"
+
+#: src/qemu_conf.c:2802
+#, c-format
+msgid "Config filename '%s/%s' is too long"
+msgstr "Ime datoteke podešavanja '%s/%s' je predugo"
+
+#: src/qemu_conf.c:2809
+#, c-format
+msgid "Autostart link path '%s/%s' is too long"
+msgstr "Staza za link automatskog pokretanja '%s/%s' je preduga"
+
+#: src/qemu_conf.c:2873
+#, c-format
+msgid "unexpected domain type %d"
+msgstr "neočekivana vrsta domena %d"
+
+#: src/qemu_conf.c:3142 src/qemu_conf.c:3234
+msgid "failed to generate XML: out of memory"
+msgstr "Neuspelo generisanje XML: nema dovoljno memorije"
+
+#: src/qemu_driver.c:132
+#, c-format
+msgid "Failed to autostart network '%s': %s"
+msgstr "Neuspelo automatsko pokretanje mreže '%s': %s"
+
+#: src/qemu_driver.c:147
+#, c-format
+msgid "Failed to autostart VM '%s': %s"
+msgstr "Neuspelo automatsko pokretanje VM-a '%s': %s"
+
+#: src/qemu_driver.c:192
+msgid "out of memory in asprintf"
+msgstr "nema dovoljno memorije u asprintf"
+
+#: src/qemu_driver.c:238
+msgid "Resulting path to long for buffer in qemudInitPaths()"
+msgstr "Razrešavam predugu putanju za bafer u qemudInitPaths()"
+
+#: src/qemu_driver.c:243
+msgid "qemudStartup: out of memory"
+msgstr "qemudStartup: nema dovoljno memorije"
+
+#: src/qemu_driver.c:262
+msgid "Reloading iptables rules"
+msgstr "Ponovo učitavam iptables pravila"
+
+#: src/qemu_driver.c:395
+#, c-format
+msgid ""
+"QEMU quit during %s startup\n"
+"%s"
+msgstr ""
+"QEMU je izašao tokom %s pokretanja\n"
+"%s"
+
+#: src/qemu_driver.c:405 src/qemu_driver.c:418
+#, c-format
+msgid "Failure while reading %s startup output: %s"
+msgstr "Neuspeh tokom čitanja %s izlaza pokretanja: %s"
+
+#: src/qemu_driver.c:413
+#, c-format
+msgid "Timed out while reading %s startup output"
+msgstr "Vreme je isteklo tokom čitanja %s izlaza pokretanja"
+
+#: src/qemu_driver.c:429
+#, c-format
+msgid "Failure while reading %s startup output"
+msgstr "Neuspeh tokom čitanja %s izlaza pokretanja"
+
+#: src/qemu_driver.c:441
+#, c-format
+msgid "Out of space while reading %s startup output"
+msgstr "Nestalo je prostora tokom čitanja %s izlaza pokretanja"
+
+#: src/qemu_driver.c:472
+#, c-format
+msgid "Unable to open monitor path %s"
+msgstr "Nije moguće otvoriti putanju nadgledanja %s"
+
+#: src/qemu_driver.c:477
+msgid "Unable to set monitor close-on-exec flag"
+msgstr ""
+"Nije moguće postaviti zastavicu za nadgledanje zatvaranja-pri-izvršavanju"
+
+#: src/qemu_driver.c:482
+msgid "Unable to put monitor into non-blocking mode"
+msgstr "Nije moguće postaviti nadgledanje u neblokirajući režim"
+
+#: src/qemu_driver.c:560 src/qemu_driver.c:754 src/qemu_driver.c:1446
+#: src/qemu_driver.c:1456
+#, c-format
+msgid "Unable to log VM console data: %s"
+msgstr "Nije moguće pratiti podatke VM konzole: %s"
+
+#: src/qemu_driver.c:611
+msgid "VM is already active"
+msgstr "VM je već aktivan"
+
+#: src/qemu_driver.c:619
+msgid "Unable to find an unused VNC port"
+msgstr "Nije moguće pronaći VNC priključak koji se ne koristi"
+
+#: src/qemu_driver.c:632
+#, c-format
+msgid "config file path too long: %s/%s.log"
+msgstr "putanja konfiguracione datoteke je preduga: %s/%s.log"
+
+#: src/qemu_driver.c:643
+#, c-format
+msgid "cannot create log directory %s: %s"
+msgstr "ne mogu da napravim direktorijum dnevnika %s: %s"
+
+#: src/qemu_driver.c:651
+#, c-format
+msgid "failed to create logfile %s: %s"
+msgstr "neuspelo pravljenje datoteke dnevnika %s: %s"
+
+#: src/qemu_driver.c:657
+#, c-format
+msgid "Unable to set VM logfile close-on-exec flag %s"
+msgstr ""
+"Nije moguće postaviti datoteku dnevnika VM zastavicce za zatvori-pri-"
+"izvršavanju %s"
+
+#: src/qemu_driver.c:673 src/qemu_driver.c:676 src/qemu_driver.c:681
+#, c-format
+msgid "Unable to write argv to logfile %d: %s"
+msgstr "Nije moguće pisati argv u datoteku dnevnika %d: %s"
+
+#: src/qemu_driver.c:768
+#, c-format
+msgid "Shutting down VM '%s'"
+msgstr "Gasim VM '%s'"
+
+#: src/qemu_driver.c:779
+#, c-format
+msgid "Unable to close logfile %d: %s"
+msgstr "Nije moguće zatvoriti datoteku dnevnika %d: %s"
+
+#: src/qemu_driver.c:794
+msgid "Got unexpected pid, damn"
+msgstr "Dobio sam neočekivani pid, dovraga"
+
+#: src/qemu_driver.c:923
+msgid "failed to allocate space for dnsmasq argv"
+msgstr "neuspelo zauzimanje prostora za dnsmasq argv"
+
+#: src/qemu_driver.c:937
+msgid "cannot start dhcp daemon without IP address for server"
+msgstr "ne mogu da pokrenem sistemsku uslugu bez IP adrese za server"
+
+#: src/qemu_driver.c:965
+#, c-format
+msgid "failed to add iptables rule to allow forwarding from '%s' : %s\n"
+msgstr ""
+"neuspelo dodavanje pravila ip tabela za dozvolu prolaska iz '%s' : %s\n"
+
+#: src/qemu_driver.c:976
+#, c-format
+msgid "failed to add iptables rule to allow forwarding to '%s' : %s\n"
+msgstr ""
+"neuspelo dodavanje pravila ip tabela za dozvolu prolaska do '%s' : %s\n"
+
+#: src/qemu_driver.c:986
+#, c-format
+msgid "failed to add iptables rule to enable masquerading : %s\n"
+msgstr "neuspelo dodavanje pravila ip tabela za omogućavanje maskiranja: %s\n"
+
+#: src/qemu_driver.c:1018
+#, c-format
+msgid "failed to add iptables rule to allow routing from '%s' : %s\n"
+msgstr ""
+"neuspelo dodavanje pravila ip tabela za dozvolu rutiranja od '%s' : %s\n"
+
+#: src/qemu_driver.c:1029
+#, c-format
+msgid "failed to add iptables rule to allow routing to '%s' : %s\n"
+msgstr ""
+"neuspelo dodavanje pravila ip tabela za dozvolu rutiranja do '%s' : %s\n"
+
+#: src/qemu_driver.c:1054
+msgid "failed to allocate space for IP tables support"
+msgstr "neuspelo zauzimanje prostora za podršku IP tabelama"
+
+#: src/qemu_driver.c:1062 src/qemu_driver.c:1069
+#, c-format
+msgid "failed to add iptables rule to allow DHCP requests from '%s' : %s"
+msgstr ""
+"neuspelo dodavanje pravila ip tabela za dozvolu DHCP zahteva od '%s' : %s"
+
+#: src/qemu_driver.c:1077 src/qemu_driver.c:1084
+#, c-format
+msgid "failed to add iptables rule to allow DNS requests from '%s' : %s"
+msgstr ""
+"neuspelo dodavanje pravila ip tabela za dozvolu DNS zahteva od '%s' : %s"
+
+#: src/qemu_driver.c:1094
+#, c-format
+msgid "failed to add iptables rule to block outbound traffic from '%s' : %s"
+msgstr ""
+"neuspelo dodavanje pravila ip tabela za zabranu izlaznog saobraćaja od '%"
+"s' : %s"
+
+#: src/qemu_driver.c:1101
+#, c-format
+msgid "failed to add iptables rule to block inbound traffic to '%s' : %s"
+msgstr ""
+"neuspelo dodavanje pravila ip tabela za zabranu ulaznog saobraćaja do '%s' : "
+"%s"
+
+#: src/qemu_driver.c:1109
+#, c-format
+msgid "failed to add iptables rule to allow cross bridge traffic on '%s' : %s"
+msgstr ""
+"neuspelo dodavanje pravila ip tabela za dozvolu saobraćaja preko ukrštenog "
+"mosta na '%s' : %s"
+
+#: src/qemu_driver.c:1206
+msgid "network is already active"
+msgstr "mreža je već aktivna"
+
+#: src/qemu_driver.c:1225
+#, c-format
+msgid "cannot create bridge '%s' : %s"
+msgstr "ne mogu da napravim most '%s' : %s"
+
+#: src/qemu_driver.c:1233
+#, c-format
+msgid "failed to set bridge forward delay to %d"
+msgstr "neuspelo postavljanje odlaganja prelaska mosta do %d"
+
+#: src/qemu_driver.c:1240
+#, c-format
+msgid "failed to set bridge STP to %s"
+msgstr "neuspelo postavljanje STP mosta do %s"
+
+#: src/qemu_driver.c:1248
+#, c-format
+msgid "cannot set IP address on bridge '%s' to '%s' : %s"
+msgstr "ne mogu da postavim IP adresu na mostu '%s' do '%s' : %s"
+
+#: src/qemu_driver.c:1256
+#, c-format
+msgid "cannot set netmask on bridge '%s' to '%s' : %s"
+msgstr "ne mogu da postavim mrežnu masku na mostu '%s' do '%s' : %s"
+
+#: src/qemu_driver.c:1264
+#, c-format
+msgid "failed to bring the bridge '%s' up : %s"
+msgstr "neuspelo podizanje mosta '%s' : %s"
+
+#: src/qemu_driver.c:1275
+#, c-format
+msgid "failed to enable IP forwarding : %s"
+msgstr "neuspelo omogućavanje IP prosleđivanja : %s"
+
+#: src/qemu_driver.c:1296 src/qemu_driver.c:1327
+#, c-format
+msgid "Failed to bring down bridge '%s' : %s"
+msgstr "Neuspelo spuštanje mosta '%s' : %s"
+
+#: src/qemu_driver.c:1302 src/qemu_driver.c:1332
+#, c-format
+msgid "Failed to delete bridge '%s' : %s"
+msgstr "Neuspelo brisanje mosta '%s' : %s"
+
+#: src/qemu_driver.c:1315
+#, c-format
+msgid "Shutting down network '%s'"
+msgstr "Isključujem mrežu '%s'"
+
+#: src/qemu_driver.c:1341
+msgid "Got unexpected pid for dnsmasq"
+msgstr "Primljen neočekivan pid za dnsmasq"
+
+#: src/qemu_driver.c:1557
+msgid "failed to allocate space for capabilities support"
+msgstr "neuspelo dodeljivanje prostora za podršku mogućnostima"
+
+#: src/qemu_driver.c:1727 src/qemu_driver.c:1756 src/qemu_driver.c:1785
+#: src/qemu_driver.c:1805 src/qemu_driver.c:2033 src/qemu_driver.c:2532
+#: src/qemu_driver.c:2667
+#, c-format
+msgid "no domain with matching id %d"
+msgstr "nema domena koji se poklapa sa id %d"
+
+#: src/qemu_driver.c:1732 src/qemu_driver.c:1761 src/qemu_driver.c:2039
+#: src/qemu_driver.c:2537 src/qemu_driver.c:2673
+msgid "domain is not running"
+msgstr "domen se ne izvršava"
+
+#: src/qemu_driver.c:1740
+msgid "suspend operation failed"
+msgstr "neuspela obustava domena"
+
+#: src/qemu_driver.c:1768
+msgid "resume operation failed"
+msgstr "neuspeo nastavak operacije"
+
+#: src/qemu_driver.c:1791
+msgid "shutdown operation failed"
+msgstr "neuspešno gašenje operacije"
+
+#: src/qemu_driver.c:1830
+msgid "failed to allocate space for ostype"
+msgstr "neuspelo dodeljivanje prostora za ostype"
+
+#: src/qemu_driver.c:1843 src/qemu_driver.c:1856 src/qemu_driver.c:1876
+#, c-format
+msgid "no domain with matching uuid '%s'"
+msgstr "nema domena koji se podudara sa uuid '%s'"
+
+#: src/qemu_driver.c:1862
+msgid "cannot set max memory lower than current memory"
+msgstr "ne mogu da postavim maksimalnu memoriju manju od trenutne memorije"
+
+#: src/qemu_driver.c:1882
+msgid "cannot set memory of an active domain"
+msgstr "ne mogu da postavim memoriju aktivnog domena"
+
+#: src/qemu_driver.c:1888
+msgid "cannot set memory higher than max memory"
+msgstr "ne mogu da postavim memoriju veću od maksimalne memorije"
+
+#: src/qemu_driver.c:2048
+msgid "failed to pause domain"
+msgstr "neuspelo pauziranje domena"
+
+#: src/qemu_driver.c:2057
+msgid "failed to get domain xml"
+msgstr "neuspelo dobavljanje xml-a domena"
+
+#: src/qemu_driver.c:2065
+#, c-format
+msgid "failed to create '%s'"
+msgstr "neuspelo pravljenje '%s'"
+
+#: src/qemu_driver.c:2072
+msgid "failed to write save header"
+msgstr "neuspelo upisivanje čuvanja zaglavlja"
+
+#: src/qemu_driver.c:2080
+msgid "failed to write xml"
+msgstr "neuspelo upisivanje xml-a"
+
+#: src/qemu_driver.c:2093 src/qemu_driver.c:2100 src/qemu_driver.c:2166
+#: src/qemu_driver.c:2363 src/qemu_driver.c:2371 src/qemu_driver.c:2379
+#: src/remote_internal.c:2232 src/virterror.c:435
+msgid "out of memory"
+msgstr "nestalo memorije"
+
+#: src/qemu_driver.c:2108
+msgid "migrate operation failed"
+msgstr "operacija prelaska nije uspela"
+
+#: src/qemu_driver.c:2138 src/test.c:1395
+msgid "cannot read domain image"
+msgstr "ne mogu da pročitam sliku domena"
+
+#: src/qemu_driver.c:2144
+msgid "failed to read qemu header"
+msgstr "neuspelo čitanje qemu zaglavlja"
+
+#: src/qemu_driver.c:2151
+msgid "image magic is incorrect"
+msgstr "magic slike nije ispravan"
+
+#: src/qemu_driver.c:2158
+#, c-format
+msgid "image version is not supported (%d > %d)"
+msgstr "verzija slike nije podržana (%d > %d)"
+
+#: src/qemu_driver.c:2173
+msgid "failed to read XML"
+msgstr "neuspelo čitanje XML-a"
+
+#: src/qemu_driver.c:2182
+msgid "failed to parse XML"
+msgstr "neuspelo raščlanjivanje XML-a"
+
+#: src/qemu_driver.c:2194
+#, c-format
+msgid "domain is already active as '%s'"
+msgstr "domen je već aktivan kao '%s'"
+
+#: src/qemu_driver.c:2201
+msgid "failed to assign new VM"
+msgstr "neuspelo dodeljivanje novog VM"
+
+#: src/qemu_driver.c:2216
+msgid "failed to start VM"
+msgstr "neuspelo pokretanje VM"
+
+#: src/qemu_driver.c:2227
+msgid "failed to resume domain"
+msgstr "neuspelo nastavljanje domena"
+
+#: src/qemu_driver.c:2261 src/qemu_driver.c:2774 src/qemu_driver.c:2802
+msgid "failed to allocate space for VM name string"
+msgstr "neuspelo zauzimanje prostora za niz znakova VM naziva"
+
+#: src/qemu_driver.c:2341 src/qemu_driver.c:2877
+#, c-format
+msgid "Failed to delete autostart link '%s': %s"
+msgstr "neuspelo brisanje veze automatskog pokretanja '%s': %s"
+
+#: src/qemu_driver.c:2385
+msgid "cannot change cdrom media"
+msgstr "ne mogu da promenim cdrom medijum"
+
+#: src/qemu_driver.c:2411
+msgid "cannot attach device on inactive domain"
+msgstr "ne mogu da prikačim uređaj na neaktivni domen"
+
+#: src/qemu_driver.c:2422
+msgid "only CDROM disk devices can be attached"
+msgstr "jedino uređaji CDROM diska mogu biti prikačeni"
+
+#: src/qemu_driver.c:2437
+msgid "CDROM not attached, cannot change media"
+msgstr "CDROM nije prikačen, ne mogu da promenim medijum"
+
+#: src/qemu_driver.c:2488 src/qemu_driver.c:2986 src/storage_driver.c:790
+#, c-format
+msgid "cannot create autostart directory %s: %s"
+msgstr "ne mogu da napravim direktorijum automatskog pokretanja %s: %s"
+
+#: src/qemu_driver.c:2495 src/qemu_driver.c:2993 src/storage_driver.c:797
+#, c-format
+msgid "Failed to create symlink '%s' to '%s': %s"
+msgstr "Neuspelo pravljenje simboličke veze '%s' ka '%s': %s"
+
+#: src/qemu_driver.c:2502 src/qemu_driver.c:3000 src/storage_driver.c:806
+#, c-format
+msgid "Failed to delete symlink '%s': %s"
+msgstr "Neuspelo brisanje simboličke veze '%s': %s"
+
+#: src/qemu_driver.c:2559
+#, c-format
+msgid "invalid path: %s"
+msgstr "neispravna putanja: %s"
+
+#: src/qemu_driver.c:2567
+msgid "'info blockstats' command failed"
+msgstr "'info blockstats' komanda nije uspela"
+
+#: src/qemu_driver.c:2582
+msgid "'info blockstats' not supported by this qemu"
+msgstr "'info blockstats' nije podržan od strane ovog qemu-a"
+
+#: src/qemu_driver.c:2647
+#, c-format
+msgid "device not found: %s (%s)"
+msgstr "uređaj nije pronađen: %s (%s)"
+
+#: src/qemu_driver.c:2679
+msgid "NULL or empty path"
+msgstr "NULL ili prazna putanja"
+
+#: src/qemu_driver.c:2702
+#, c-format
+msgid "invalid path, '%s' is not a known interface"
+msgstr "neispravna putanja, '%s' je nepoznato okruženje"
+
+#: src/qemu_driver.c:2722 src/qemu_driver.c:2869 src/qemu_driver.c:2894
+#: src/qemu_driver.c:2908 src/qemu_driver.c:2923 src/qemu_driver.c:2956
+#: src/qemu_driver.c:2972
+msgid "no network with matching uuid"
+msgstr "nema mreže koja se podudara sa uuid"
+
+#: src/qemu_driver.c:2737
+msgid "no network with matching name"
+msgstr "nema mreže koja se podudara sa nazivom"
+
+#: src/qemu_driver.c:2936
+msgid "no network with matching id"
+msgstr "nema mreže koja se podudara sa id-om"
+
+#: src/qemu_driver.c:2943
+msgid "failed to allocate space for network bridge string"
+msgstr "neuspelo zauzimanje prostora za niz znakova mrežnog mosta"
+
+#: src/remote_internal.c:107 src/remote_internal.c:115
+msgid "tried to use a closed or uninitialised handle"
+msgstr "pokušavao sam da koristim zatvoreno ili ne pokrenuto rukovanje"
+
+#: src/remote_internal.c:224
+msgid "failed to find libvirtd binary"
+msgstr "neuspelo pronalaženje libvirtd binarne datoteke"
+
+#: src/remote_internal.c:331
+msgid ""
+"remote_open: transport in URL not recognised (should be tls|unix|ssh|ext|tcp)"
+msgstr ""
+"remote_open: prenos u URL-u nije prepoznat (trebao bi da bude tls|unix|ssh|"
+"ext|tcp)"
+
+#: src/remote_internal.c:372
+msgid "allocating priv->hostname"
+msgstr "zauzimam priv->naziv domaćina"
+
+#: src/remote_internal.c:455
+msgid "remote_open: for 'ext' transport, command is required"
+msgstr "remote_open: za 'ext' prenos, potrebna je komanda"
+
+#: src/remote_internal.c:730
+msgid "transport methods unix, ssh and ext are not supported under Windows"
+msgstr "Windows ne podržava unix, ssh i ext načine prenosa"
+
+#: src/remote_internal.c:773
+msgid "uri params"
+msgstr "uri parametri"
+
+#: src/remote_internal.c:817 src/remote_internal.c:2355
+#: src/remote_internal.c:2761
+msgid "struct private_data"
+msgstr "struct private_data"
+
+#: src/remote_internal.c:1027
+msgid "server verification (of our certificate or IP address) failed\n"
+msgstr "provera servera (sa našim sertifikatom ili IP adresom) nije uspela\n"
+
+#: src/remote_internal.c:1082
+msgid "Certificate type is not X.509"
+msgstr "Vrsta sertifikata nije X.509"
+
+#: src/remote_internal.c:1087
+msgid "gnutls_certificate_get_peers failed"
+msgstr "gnutls_certificate_get_peers nije uspelo"
+
+#: src/remote_internal.c:1108
+msgid "The certificate has expired"
+msgstr "Sertifikat je istekao"
+
+#: src/remote_internal.c:1114
+msgid "The certificate is not yet activated"
+msgstr "Sertifikat nije još aktiviran"
+
+#: src/remote_internal.c:1126
+#, c-format
+msgid "Certificate's owner does not match the hostname (%s)"
+msgstr "Vlasnik sertifikata se ne podudara sa nazivom domaćina (%s)"
+
+#: src/remote_internal.c:1342 src/remote_internal.c:1356
+#, c-format
+msgid "too many remote domain IDs: %d > %d"
+msgstr "previše udaljenih ID-a domena: %d > %d"
+
+#: src/remote_internal.c:1730
+#, c-format
+msgid "map length greater than maximum: %d > %d"
+msgstr "dužina mape je veća od maksimalne: %d > %d"
+
+#: src/remote_internal.c:1762
+#, c-format
+msgid "vCPU count exceeds maximum: %d > %d"
+msgstr "vCPU brojač je prešao svoj maksimum: %d > %d"
+
+#: src/remote_internal.c:1768
+#, c-format
+msgid "vCPU map buffer length exceeds maximum: %d > %d"
+msgstr "vCPU bafer dužine mape je prešao svoj maksimum: %d > %d"
+
+#: src/remote_internal.c:1785
+#, c-format
+msgid "host reports too many vCPUs: %d > %d"
+msgstr "domaćin prijavljuje previše vCPU-a: %d > %d"
+
+#: src/remote_internal.c:1792
+#, c-format
+msgid "host reports map buffer length exceeds maximum: %d > %d"
+msgstr ""
+"domaćin prijavljuje da je bafer dužine mape prešao svoj maksimum: %d > %d"
+
+#: src/remote_internal.c:1954 src/remote_internal.c:1968
+#, c-format
+msgid "too many remote domain names: %d > %d"
+msgstr "previše naziva udaljenih domena: %d > %d"
+
+#: src/remote_internal.c:2170
+msgid ""
+"remoteDomainGetSchedulerParameters: returned number of parameters exceeds "
+"limit"
+msgstr ""
+"remoteDomainGetSchedulerParameters: vraćeni broj parametara premašuje granicu"
+
+#: src/remote_internal.c:2198
+msgid "remoteDomainGetSchedulerParameters: unknown parameter type"
+msgstr "emoteDomainGetSchedulerParameters: nepoznata vrsta parametra"
+
+#: src/remote_internal.c:2250
+msgid "unknown parameter type"
+msgstr "nepoznata vrsta parametra"
+
+#: src/remote_internal.c:2418 src/remote_internal.c:2432
+#: src/remote_internal.c:2477 src/remote_internal.c:2491
+#, c-format
+msgid "too many remote networks: %d > %d"
+msgstr "previše udaljenih mreža: %d > %d"
+
+#: src/remote_internal.c:2823 src/remote_internal.c:2878
+msgid "too many storage pools requested"
+msgstr "zahtevano je previše rezervoara skladišta"
+
+#: src/remote_internal.c:2835 src/remote_internal.c:2890
+msgid "too many storage pools received"
+msgstr "dobijeno je previše rezervoara skladišta"
+
+#: src/remote_internal.c:3235
+msgid "too many storage volumes requested"
+msgstr "zahtevano je previše diskova za smeštanje"
+
+#: src/remote_internal.c:3248
+msgid "too many storage volumes received"
+msgstr "dobijeno je previše diskova za smeštanje"
+
+#: src/remote_internal.c:3484
+#, c-format
+msgid "unknown authentication type %s"
+msgstr "nepoznata vrsta autentifikacije %s"
+
+#: src/remote_internal.c:3494
+#, c-format
+msgid "requested authentication type %s rejected"
+msgstr "zahtevana vrsta autentifikacije %s je odbijena"
+
+#: src/remote_internal.c:3535
+#, c-format
+msgid "unsupported authentication type %d"
+msgstr "nepodržana vrsta autentifikacije %d"
+
+#: src/remote_internal.c:3785
+#, c-format
+msgid "failed to initialize SASL library: %d (%s)"
+msgstr "neuspelo pokretanje SASL biblioteke: %d (%s)"
+
+#: src/remote_internal.c:3833
+#, c-format
+msgid "Failed to create SASL client context: %d (%s)"
+msgstr "Neuspelo pravljenje kontekst SASL klijenta: %d (%s)"
+
+#: src/remote_internal.c:3846
+msgid "invalid cipher size for TLS session"
+msgstr "neispravna veličina šifre za TLS sesiju"
+
+#: src/remote_internal.c:3856
+#, c-format
+msgid "cannot set external SSF %d (%s)"
+msgstr "ne mogu da postavim spoljašnji SSF %d (%s)"
+
+#: src/remote_internal.c:3875
+#, c-format
+msgid "cannot set security props %d (%s)"
+msgstr "ne mogu da postavim bezbednosni props %d (%s)"
+
+#: src/remote_internal.c:3894
+#, c-format
+msgid "SASL mechanism %s not supported by server"
+msgstr "SASL mehanizam %s nije podržan od strane servera"
+
+#: src/remote_internal.c:3913
+#, c-format
+msgid "Failed to start SASL negotiation: %d (%s)"
+msgstr "Neuspelo pokretanje SASL pregovaranja: %d (%s)"
+
+#: src/remote_internal.c:3931 src/remote_internal.c:4009
+msgid "Failed to make auth credentials"
+msgstr "Neuspelo kreiranje uverenja autorizacije"
+
+#: src/remote_internal.c:3955
+#, c-format
+msgid "SASL negotiation data too long: %d bytes"
+msgstr "Podaci SASL pregovaranja su preveliki: %d bajtova"
+
+#: src/remote_internal.c:3995
+#, c-format
+msgid "Failed SASL step: %d (%s)"
+msgstr "Neuspeo SASL korak: %d (%s)"
+
+#: src/remote_internal.c:4082
+#, c-format
+msgid "negotiation SSF %d was not strong enough"
+msgstr "pregovaranje SSF %d nije dovoljno jako"
+
+#: src/remote_internal.c:4136
+msgid "Failed to collect auth credentials"
+msgstr "Neuspelo sakupljanje uverenja autorizacije"
+
+#: src/remote_internal.c:4203
+msgid "xdr_remote_message_header failed"
+msgstr "xdr_remote_message_header nije uspeo"
+
+#: src/remote_internal.c:4209
+msgid "marshalling args"
+msgstr "marshalling args"
+
+#: src/remote_internal.c:4226
+msgid "xdr_int (length word)"
+msgstr "xdr_int (reč dužine)"
+
+#: src/remote_internal.c:4243
+msgid "xdr_int (length word, reply)"
+msgstr "xdr_int (reč dužine, odgovor)"
+
+#: src/remote_internal.c:4253
+msgid "packet received from server too large"
+msgstr "paket koji je primljen sa servera je preveliki"
+
+#: src/remote_internal.c:4265
+msgid "invalid header in reply"
+msgstr "neispravno zaglavlje u odgovoru"
+
+#: src/remote_internal.c:4274
+#, c-format
+msgid "unknown program (received %x, expected %x)"
+msgstr "nepoznat program (primljeno %x, očekivano %x)"
+
+#: src/remote_internal.c:4282
+#, c-format
+msgid "unknown protocol version (received %x, expected %x)"
+msgstr "nepoznata verzija protokola (primljeno %x, očekivano %x)"
+
+#: src/remote_internal.c:4295
+#, c-format
+msgid "unknown procedure (received %x, expected %x)"
+msgstr "nepoznata procedura (primljeno %x, očekivano %x)"
+
+#: src/remote_internal.c:4303
+#, c-format
+msgid "unknown direction (received %x, expected %x)"
+msgstr "nepoznat smer (primljeno %x, očekivano %x)"
+
+#: src/remote_internal.c:4310
+#, c-format
+msgid "unknown serial (received %x, expected %x)"
+msgstr "nepoznat serijski broj (primljeno %x, očekivano %x)"
+
+#: src/remote_internal.c:4323
+msgid "unmarshalling ret"
+msgstr "unmarshalling ret"
+
+#: src/remote_internal.c:4333
+msgid "unmarshalling remote_error"
+msgstr "unmarshalling remote_error"
+
+#: src/remote_internal.c:4353
+#, c-format
+msgid "unknown status (received %x)"
+msgstr "nepoznat status (primljeno %x)"
+
+#: src/remote_internal.c:4462 src/remote_internal.c:4479
+msgid "socket closed unexpectedly"
+msgstr "soket se neočekivano zatvorio"
+
+#: src/sexpr.c:59
+msgid "failed to allocate a node"
+msgstr "neuspelo zauzimanje čvora"
+
+#: src/sexpr.c:352 src/sexpr.c:367
+msgid "failed to copy a string"
+msgstr "neuspelo umnožavanje niske"
+
+#: src/storage_backend.c:81
+#, c-format
+msgid "missing backend for pool type %d"
+msgstr "nedostaje začelje za vrstu skladišta %d"
+
+#: src/storage_backend.c:126
+#, c-format
+msgid "unknown storage backend type %s"
+msgstr "nepoznata vrsta začelja skladišta %s"
+
+#: src/storage_backend.c:156
+#, c-format
+msgid "unknown storage backend type %d"
+msgstr "nepoznata vrsta začelja skladišta %d"
+
+#: src/storage_backend.c:170 src/storage_backend_fs.c:340
+#, c-format
+msgid "cannot open volume '%s': %s"
+msgstr "ne mogu da otvorim disk „%s“: %s"
+
+#: src/storage_backend.c:198
+#, c-format
+msgid "cannot stat file '%s': %s"
+msgstr "ne mogu da utvrdim datoteku '%s': %s"
+
+#: src/storage_backend.c:226
+#, c-format
+msgid "cannot seek to end of file '%s':%s"
+msgstr "ne mogu da tražim kraj datoteke  '%s': %s"
+
+#: src/storage_backend.c:245
+#, c-format
+msgid "cannot get file context of %s: %s"
+msgstr "ne mogu da preuzmem kontekst datoteke od %s: %s"
+
+#: src/storage_backend.c:254
+msgid "context"
+msgstr "kontekst"
+
+#: src/storage_backend.c:300
+#, c-format
+msgid "cannot read dir %s: %s"
+msgstr "ne mogu da pročitam direktorijum %s: %s"
+
+#: src/storage_backend.c:314 src/storage_driver.c:1195
+msgid "path"
+msgstr "putanja"
+
+#: src/storage_backend.c:367
+msgid "regex"
+msgstr "regex"
+
+#: src/storage_backend.c:377
+#, c-format
+msgid "Failed to compile regex %s"
+msgstr "Neuspelo kompajliranje regex %s"
+
+#: src/storage_backend.c:393 src/storage_backend.c:398
+#: src/storage_backend.c:434
+msgid "regex groups"
+msgstr "regex grupe"
+
+#: src/storage_backend.c:410 src/storage_backend.c:551
+msgid "cannot read fd"
+msgstr "ne mogu da pročitam fd"
+
+#: src/storage_backend.c:484 src/storage_backend.c:606
+#, c-format
+msgid "failed to wait for command: %s"
+msgstr "neuspelo čekanje na komandu: %s"
+
+#: src/storage_backend.c:491 src/storage_backend.c:613
+#, c-format
+msgid "non-zero exit status from command %d"
+msgstr "ne-nula status izlaza komande %d"
+
+#: src/storage_backend.c:497 src/storage_backend.c:619
+msgid "command did not exit cleanly"
+msgstr "komanda se nije pravilno završila"
+
+#: src/storage_backend.c:538
+msgid "n_columns too large"
+msgstr "n_columns prevelike"
+
+#: src/storage_backend.c:585
+#, c-format
+msgid "read error: %s"
+msgstr "greška tokom čitanja: %s"
+
+#: src/storage_backend_disk.c:83 src/storage_backend_logical.c:56
+#, c-format
+msgid "unsupported pool format %s"
+msgstr "format rezervoara nije podržan %s"
+
+#: src/storage_backend_disk.c:108 src/storage_backend_logical.c:69
+#, c-format
+msgid "unsupported pool format %d"
+msgstr "format rezervoara nije podržan %d"
+
+#: src/storage_backend_disk.c:136 src/storage_backend_fs.c:186
+#: src/storage_backend_fs.c:256 src/storage_backend_fs.c:308
+#, c-format
+msgid "unsupported volume format %s"
+msgstr "format diska nije podržan %s"
+
+#: src/storage_backend_disk.c:163 src/storage_backend_fs.c:219
+#: src/storage_backend_fs.c:291 src/storage_backend_fs.c:323
+#, c-format
+msgid "unsupported volume format %d"
+msgstr "format diska nije podržan %d"
+
+#: src/storage_backend_disk.c:177 src/storage_backend_disk.c:190
+#: src/storage_backend_disk.c:197 src/storage_backend_disk.c:220
+#: src/storage_backend_fs.c:683 src/storage_backend_iscsi.c:256
+#: src/storage_backend_logical.c:116 src/storage_backend_logical.c:121
+#: src/storage_backend_logical.c:133 src/storage_backend_logical.c:143
+msgid "volume"
+msgstr "disk"
+
+#: src/storage_backend_disk.c:229
+msgid "volume extents"
+msgstr "opsezi diska"
+
+#: src/storage_backend_disk.c:237
+msgid "cannot parse device start location"
+msgstr "ne mogu da raščlanim mesto početka uređaja"
+
+#: src/storage_backend_disk.c:244
+msgid "cannot parse device end location"
+msgstr "ne mogu da raščlanim mesto završetka uređaja"
+
+#: src/storage_backend_disk.c:250 src/storage_backend_logical.c:154
+#: src/storage_backend_logical.c:161
+msgid "extents"
+msgstr "opsezi"
+
+#: src/storage_backend_disk.c:463
+msgid "no large enough free extent"
+msgstr "nema dovoljno velikog slobodnog opsega"
+
+#: src/storage_backend_disk.c:498
+msgid "Disk pools are not yet supported"
+msgstr "Skladišta diskova nisu još podržana"
+
+#: src/storage_backend_fs.c:352
+#, c-format
+msgid "cannot read header '%s': %s"
+msgstr "ne mogu da pročitam zaglavlje '%s': %s"
+
+#: src/storage_backend_fs.c:460
+#, c-format
+msgid "cannot read %s: %s"
+msgstr "ne mogu da pročitam %s: %s"
+
+#: src/storage_backend_fs.c:506 src/storage_backend_fs.c:571
+#: src/storage_backend_iscsi.c:445
+msgid "missing source host"
+msgstr "nedostaje domaćin izvora"
+
+#: src/storage_backend_fs.c:511 src/storage_conf.c:318
+msgid "missing source path"
+msgstr "nedostaje putanja izvora"
+
+#: src/storage_backend_fs.c:517 src/storage_backend_fs.c:582
+#: src/storage_backend_iscsi.c:452
+msgid "missing source device"
+msgstr "nedostaje uređaj izvora"
+
+#: src/storage_backend_fs.c:540
+msgid "source"
+msgstr "izvor"
+
+#: src/storage_backend_fs.c:576
+msgid "missing source dir"
+msgstr "nedostaje izvorni direktorijum"
+
+#: src/storage_backend_fs.c:648 src/storage_backend_fs.c:842
+#: src/storage_backend_fs.c:881
+#, c-format
+msgid "cannot create path '%s': %s"
+msgstr "ne mogu da napravim putanju '%s': %s"
+
+#: src/storage_backend_fs.c:671
+#, c-format
+msgid "cannot open path '%s': %s"
+msgstr "ne mogu da otvorim putanju '%s': %s"
+
+#: src/storage_backend_fs.c:691 src/storage_backend_fs.c:702
+msgid "volume name"
+msgstr "ime diska"
+
+#: src/storage_backend_fs.c:713
+msgid "volume key"
+msgstr "ključ diska"
+
+#: src/storage_backend_fs.c:740
+#, c-format
+msgid "cannot statvfs path '%s': %s"
+msgstr "ne mogu da utvrdim vfs putanju'%s': %s"
+
+#: src/storage_backend_fs.c:801
+#, c-format
+msgid "cannot unlink path '%s': %s"
+msgstr "ne mogu da razvežem putanju '%s': %s"
+
+#: src/storage_backend_fs.c:825
+msgid "target"
+msgstr "meta"
+
+#: src/storage_backend_fs.c:834
+msgid "storage vol key"
+msgstr "ključ skladišta"
+
+#: src/storage_backend_fs.c:859
+#, c-format
+msgid "cannot fill file '%s': %s"
+msgstr "ne mogu da popunim datoteku '%s': %s"
+
+#: src/storage_backend_fs.c:872
+#, c-format
+msgid "cannot extend file '%s': %s"
+msgstr "ne mogu da proširim datoteku '%s': %s"
+
+#: src/storage_backend_fs.c:888 src/storage_backend_fs.c:924
+#: src/storage_backend_fs.c:959 src/storage_backend_logical.c:435
+#, c-format
+msgid "cannot read path '%s': %s"
+msgstr "ne mogu da pročitam putanju '%s': %s"
+
+#: src/storage_backend_fs.c:901
+#, c-format
+msgid "unknown storage vol type %d"
+msgstr "nepoznata vrsta diska za skladištenje %d"
+
+#: src/storage_backend_fs.c:939
+#, c-format
+msgid "unsupported storage vol type %d"
+msgstr "vrsta diska za skladištenje nije podržana %d"
+
+#: src/storage_backend_fs.c:966
+msgid "creation of non-raw images is not supported without qemu-img"
+msgstr "pravljenje ne-sirovih slika nije podržano bez qemu-img"
+
+#: src/storage_backend_fs.c:976 src/storage_backend_logical.c:444
+#, c-format
+msgid "cannot set file owner '%s': %s"
+msgstr "ne mogu da postavim vlasnika datoteke „%s“: %s"
+
+#: src/storage_backend_fs.c:985 src/storage_backend_logical.c:451
+#, c-format
+msgid "cannot set file mode '%s': %s"
+msgstr "ne mogu da postavim režim datoteke „%s“: %s"
+
+#: src/storage_backend_fs.c:1001 src/storage_backend_logical.c:458
+#, c-format
+msgid "cannot close file '%s': %s"
+msgstr "ne mogu da zatvorim datoteku '%s': %s"
+
+#: src/storage_backend_fs.c:1024
+#, c-format
+msgid "cannot unlink file '%s': %s"
+msgstr "ne mogu da izbrišem link ka datoteci '%s': %s"
+
+#: src/storage_backend_iscsi.c:59
+#, c-format
+msgid "host lookup failed %s"
+msgstr "potrga za domaćinom nije uspela: %s"
+
+#: src/storage_backend_iscsi.c:66
+#, c-format
+msgid "no IP address for target %s"
+msgstr "nema IP adrese za metu %s"
+
+#: src/storage_backend_iscsi.c:75
+#, c-format
+msgid "cannot format ip addr for %s"
+msgstr "ne mogu da formatiram IP adresu za %s"
+
+#: src/storage_backend_iscsi.c:95
+msgid "session"
+msgstr "sesija"
+
+#: src/storage_backend_iscsi.c:136
+msgid "cannot find session"
+msgstr "ne mogu da pronađem sesiju"
+
+#: src/storage_backend_iscsi.c:194
+msgid "Failed parsing iscsiadm commands"
+msgstr "Neuspelo raščlanjivanje iscsiadm komande"
+
+#: src/storage_backend_iscsi.c:211
+#, c-format
+msgid "Failed to find the sysfs path for %d:%d:%d:%d: %s"
+msgstr "Neuspelo pronalaženje sysfs putanje do %d:%d:%d:%d: %s"
+
+#: src/storage_backend_iscsi.c:220
+#, c-format
+msgid "Failed to opendir sysfs path %s: %s"
+msgstr "Neuspelo otvaranje direktorijuma sysfs putanje %s: %s"
+
+#: src/storage_backend_iscsi.c:248
+#, c-format
+msgid "Failed to find SCSI device for %d:%d:%d:%d: %s"
+msgstr "Neuspelo pronalaženje SCSI uređaja za %d:%d:%d:%d: %s"
+
+#: src/storage_backend_iscsi.c:261 src/storage_driver.c:867
+msgid "name"
+msgstr "ime"
+
+#: src/storage_backend_iscsi.c:266
+msgid "devpath"
+msgstr "putanja do uređaja"
+
+#: src/storage_backend_iscsi.c:288 src/util.c:114
+#, c-format
+msgid "cannot open %s: %s"
+msgstr "ne mogu da otvorim %s: %s"
+
+#: src/storage_backend_iscsi.c:314
+msgid "key"
+msgstr "ključ"
+
+#: src/storage_backend_iscsi.c:426
+msgid "portal"
+msgstr "portal"
+
+#: src/storage_backend_logical.c:167
+msgid "malformed volume extent offset value"
+msgstr "loša offset vrednost opsega diska"
+
+#: src/storage_backend_logical.c:172
+msgid "malformed volume extent length value"
+msgstr "loša vrednost dužine opsega diska"
+
+#: src/storage_backend_logical.c:177
+msgid "malformed volume extent size value"
+msgstr "loša vrednost veličine opsega diska"
+
+#: src/storage_backend_logical.c:269
+msgid "command line"
+msgstr "komandna linija"
+
+#: src/storage_backend_logical.c:286
+#, c-format
+msgid "cannot open device %s"
+msgstr "ne mogu da otvorim uređaj %s"
+
+#: src/storage_backend_logical.c:292
+#, c-format
+msgid "cannot clear device header %s"
+msgstr "ne mogu da obrišem zaglavlje uređaja %s"
+
+#: src/storage_backend_logical.c:299
+#, c-format
+msgid "cannot close device %s"
+msgstr "ne mogu da zatvorim uređaj %s"
+
+#: src/storage_backend_logical.c:467
+#, c-format
+msgid "cannot find newly created volume '%s': %s"
+msgstr "ne mogu da pronađem uređaj koji je skoro napravljen '%s':%s"
+
+#: src/storage_conf.c:156
+msgid "missing auth host attribute"
+msgstr "nedostaje atribut autorizacije domaćina"
+
+#: src/storage_conf.c:163
+msgid "missing auth passwd attribute"
+msgstr "nedostaje atribut autorizacije lozinka"
+
+#: src/storage_conf.c:186 src/storage_conf.c:565
+msgid "malformed octal mode"
+msgstr "loš oktalni režim"
+
+#: src/storage_conf.c:196
+msgid "malformed owner element"
+msgstr "loš element vlasnik"
+
+#: src/storage_conf.c:207
+msgid "malformed group element"
+msgstr "loš element grupa"
+
+#: src/storage_conf.c:235 src/storage_conf.c:690
+msgid "unknown root element"
+msgstr "nepoznat root element"
+
+#: src/storage_conf.c:251 src/storage_conf.c:697
+msgid "missing name element"
+msgstr "nedostaje element imena"
+
+#: src/storage_conf.c:259
+msgid "unable to generate uuid"
+msgstr "ne mogu da generišem uuid"
+
+#: src/storage_conf.c:284
+msgid "missing source host name"
+msgstr "nedostaje ime domaćina izvora"
+
+#: src/storage_conf.c:294
+msgid "cannot extract source devices"
+msgstr "ne mogu da izdvojim izvorne uređaje"
+
+#: src/storage_conf.c:299
+msgid "device"
+msgstr "uređaj"
+
+#: src/storage_conf.c:307
+msgid "missing source device path"
+msgstr "nedostaju putanja izvornog uređaja"
+
+#: src/storage_conf.c:332
+#, c-format
+msgid "unknown auth type '%s'"
+msgstr "nepoznata vrsta autorizacije %s"
+
+#: src/storage_conf.c:349
+msgid "missing target path"
+msgstr "nedostaje ciljna putanja"
+
+#: src/storage_conf.c:381 src/storage_conf.c:769
+msgid "malformed xml document"
+msgstr "loš xml dokument"
+
+#: src/storage_conf.c:388 src/storage_conf.c:776
+msgid "xmlXPathContext"
+msgstr "xmlXPathContext"
+
+#: src/storage_conf.c:432
+msgid "unexpected pool type"
+msgstr "neočekivana vrsta skladišta"
+
+#: src/storage_conf.c:543 src/storage_conf.c:906
+msgid "xml"
+msgstr "xml"
+
+#: src/storage_conf.c:575 src/storage_conf.c:585
+msgid "missing owner element"
+msgstr "nedostaje element vlasnik"
+
+#: src/storage_conf.c:649
+#, c-format
+msgid "unknown size units '%s'"
+msgstr "nepoznata veličina jedinica %s"
+
+#: src/storage_conf.c:656
+msgid "malformed capacity element"
+msgstr "loš element kapaciteta"
+
+#: src/storage_conf.c:661
+msgid "capacity element value too large"
+msgstr "vrednost elementa kapaciteta prevelika"
+
+#: src/storage_conf.c:708
+msgid "missing capacity element"
+msgstr "nedostaje element kapaciteta"
+
+#: src/storage_conf.c:1016
+msgid "pool"
+msgstr "skladište"
+
+#: src/storage_conf.c:1158
+msgid "configFile"
+msgstr "datoteka podešavanja"
+
+#: src/storage_conf.c:1173
+msgid "config file"
+msgstr "datoteka podešavanja"
+
+#: src/storage_conf.c:1182
+msgid "failed to generate XML"
+msgstr "nisam uspeo da napravim XML"
+
+#: src/storage_driver.c:264 src/storage_driver.c:748 src/storage_driver.c:770
+msgid "no pool with matching uuid"
+msgstr "ne postoji skladište sa datim uuid-om"
+
+#: src/storage_driver.c:282
+msgid "no pool with matching name"
+msgstr "ne postoji skladište sa datim imenom"
+
+#: src/storage_driver.c:332 src/storage_driver.c:369
+msgid "names"
+msgstr "imena"
+
+#: src/storage_driver.c:404
+msgid "storage pool already exists"
+msgstr "skladište već postoji"
+
+#: src/storage_driver.c:477 src/storage_driver.c:514 src/storage_driver.c:553
+#: src/storage_driver.c:584 src/storage_driver.c:625 src/storage_driver.c:662
+#: src/storage_driver.c:703 src/storage_driver.c:732 src/storage_driver.c:826
+#: src/storage_driver.c:851 src/storage_driver.c:896 src/storage_driver.c:980
+#: src/storage_driver.c:1034 src/storage_driver.c:1097
+#: src/storage_driver.c:1141 src/storage_driver.c:1175
+msgid "no storage pool with matching uuid"
+msgstr "ne postoji skladište sa datim uuid-om"
+
+#: src/storage_driver.c:483
+msgid "pool is still active"
+msgstr "skladište je još uvek aktivno"
+
+#: src/storage_driver.c:524
+msgid "pool already active"
+msgstr "skladište je već aktivno"
+
+#: src/storage_driver.c:563
+msgid "storage pool is already active"
+msgstr "skladište je već aktivno"
+
+#: src/storage_driver.c:594 src/storage_driver.c:672 src/storage_driver.c:832
+#: src/storage_driver.c:857 src/storage_driver.c:902 src/storage_driver.c:986
+#: src/storage_driver.c:1040 src/storage_driver.c:1103
+#: src/storage_driver.c:1147 src/storage_driver.c:1181
+msgid "storage pool is not active"
+msgstr "skladište nije aktivno"
+
+#: src/storage_driver.c:635
+msgid "storage pool is still active"
+msgstr "skladište je još aktivno"
+
+#: src/storage_driver.c:641
+msgid "pool does not support volume delete"
+msgstr "skladište ne podržava brisanje diska"
+
+#: src/storage_driver.c:776
+msgid "pool has no config file"
+msgstr "skladište nema datoteku podešavanja"
+
+#: src/storage_driver.c:910 src/storage_driver.c:1051
+#: src/storage_driver.c:1111 src/storage_driver.c:1155
+#: src/storage_driver.c:1189
+msgid "no storage vol with matching name"
+msgstr "ne postoji skladište sa datim imenom"
+
+#: src/storage_driver.c:939
+msgid "no storage vol with matching key"
+msgstr "ne postoji skladište sa datim ključem"
+
+#: src/storage_driver.c:964
+msgid "no storage vol with matching path"
+msgstr "ne postoji skladište sa datom putanjom"
+
+#: src/storage_driver.c:999
+msgid "storage vol already exists"
+msgstr "disk skladištenja već postoji"
+
+#: src/storage_driver.c:1006
+msgid "storage pool does not support volume creation"
+msgstr "skladište ne podržava pravljenje diska"
+
+#: src/storage_driver.c:1057
+msgid "storage pool does not support vol deletion"
+msgstr "skladište ne podržava brisanje diska"
+
+#: src/test.c:247 src/test.c:612 src/test.c:1311
+msgid "getting time of day"
+msgstr "dobavljam vreme dana"
+
+#: src/test.c:253 src/test.c:386 src/test.c:412 src/test.c:1593
+msgid "domain"
+msgstr "domen"
+
+#: src/test.c:259 src/test.c:446 src/test.c:728
+msgid "creating xpath context"
+msgstr "pravim xpath kontekst"
+
+#: src/test.c:265
+msgid "domain name"
+msgstr "ime domena"
+
+#: src/test.c:271 src/test.c:275
+msgid "domain uuid"
+msgstr "uuid domena"
+
+#: src/test.c:283
+msgid "domain memory"
+msgstr "memorija domena"
+
+#: src/test.c:292
+msgid "domain current memory"
+msgstr "trenutna memorija domena"
+
+#: src/test.c:302
+msgid "domain vcpus"
+msgstr "vcpu-i domena"
+
+#: src/test.c:311
+msgid "domain reboot behaviour"
+msgstr "ponašanje ponovnog pokretanja domena"
+
+#: src/test.c:321
+msgid "domain poweroff behaviour"
+msgstr "ponašanje gašenja domena"
+
+#: src/test.c:331
+msgid "domain crash behaviour"
+msgstr "ponašanje krahiranja domena"
+
+#: src/test.c:405
+msgid "load domain definition file"
+msgstr "učitaj datoteku definicije domena"
+
+#: src/test.c:440 src/test.c:563 src/test.c:588
+msgid "network"
+msgstr "mreža"
+
+#: src/test.c:452 src/virsh.c:2730
+msgid "network name"
+msgstr "ime mreže"
+
+#: src/test.c:460 src/test.c:464 src/virsh.c:2621
+msgid "network uuid"
+msgstr "uuid mreže"
+
+#: src/test.c:472
+msgid "network forward"
+msgstr "prosleđivanje mreže"
+
+#: src/test.c:481 src/test.c:491 src/test.c:496
+msgid "ip address"
+msgstr "ip adresa"
+
+#: src/test.c:486
+msgid "ip netmask"
+msgstr "ip mrežna maska"
+
+#: src/test.c:581
+msgid "load network definition file"
+msgstr "učitaj datoteku definicije mreže"
+
+#: src/test.c:707
+msgid "loading host definition file"
+msgstr "učitavam datoteku definicije domaćina"
+
+#: src/test.c:714
+msgid "host"
+msgstr "domaćin"
+
+#: src/test.c:722
+msgid "node"
+msgstr "čvor"
+
+#: src/test.c:747
+msgid "node cpu numa nodes"
+msgstr "cpu numa čvorovi za čvor"
+
+#: src/test.c:755
+msgid "node cpu sockets"
+msgstr "cpu priključci za čvor"
+
+#: src/test.c:763
+msgid "node cpu cores"
+msgstr "cpu srži za čvor"
+
+#: src/test.c:771
+msgid "node cpu threads"
+msgstr "cpu niti za čvor"
+
+#: src/test.c:782
+msgid "node active cpu"
+msgstr "aktivni cpu za čvor"
+
+#: src/test.c:789
+msgid "node cpu mhz"
+msgstr "cpu mhz za čvor"
+
+#: src/test.c:804
+msgid "node memory"
+msgstr "memorija čvora"
+
+#: src/test.c:810
+msgid "node domain list"
+msgstr "spisak domena za čvor"
+
+#: src/test.c:820
+msgid "resolving domain filename"
+msgstr "razrešavam ime datoteke domena"
+
+#: src/test.c:845
+msgid "resolving network filename"
+msgstr "razrešavam mrežno ime datoteke"
+
+#: src/test.c:932
+msgid "testOpen: supply a path or use test:///default"
+msgstr "testOpen: navedite putanju ili koristite test:///default"
+
+#: src/test.c:1095
+msgid "too many domains"
+msgstr "previše domena"
+
+#: src/test.c:1339
+msgid "cannot allocate space for metadata"
+msgstr "ne mogu da dodelim prostor za meta podatke"
+
+#: src/test.c:1345
+msgid "cannot save domain"
+msgstr "ne mogu da sačuvam domen"
+
+#: src/test.c:1351 src/test.c:1456
+msgid "cannot write header"
+msgstr "ne mogu da upišem zaglavlje"
+
+#: src/test.c:1357
+msgid "cannot write metadata length"
+msgstr "ne mogu da upišem dužinu meta podatka"
+
+#: src/test.c:1363
+msgid "cannot write metadata"
+msgstr "ne mogu da upišem meta podatak"
+
+#: src/test.c:1371 src/test.c:1462
+msgid "cannot save domain data"
+msgstr "ne mogu da sačuvam podatke domena"
+
+#: src/test.c:1400
+msgid "incomplete save header"
+msgstr "zaglavlje je sačuvano nepotpuno"
+
+#: src/test.c:1406
+msgid "mismatched header magic"
+msgstr "neslaganje zaglavlja magic-a"
+
+#: src/test.c:1412
+msgid "failed to read metadata length"
+msgstr "neuspelo čitanje dužine meta podatka"
+
+#: src/test.c:1418
+msgid "length of metadata out of range"
+msgstr "dužina meta podatka je van opsega"
+
+#: src/test.c:1430
+msgid "incomplete metdata"
+msgstr "nepotpun meta podatak"
+
+#: src/test.c:1451
+msgid "cannot save domain core"
+msgstr "ne mogu da sačuvam jezgro domena"
+
+#: src/test.c:1617
+msgid "Range exceeds available cells"
+msgstr "Opseg prevazilazi dozvoljene ćelije"
+
+#: src/test.c:1636
+msgid "Domain is already running"
+msgstr "Domen je već pokrenut"
+
+#: src/test.c:1651
+msgid "Domain is still running"
+msgstr "Domen još uvek radi"
+
+#: src/test.c:1852 src/test.c:1877
+msgid "too many networks"
+msgstr "previše mreža"
+
+#: src/test.c:1896
+msgid "Network is still running"
+msgstr "Mreža još uvek radi"
+
+#: src/test.c:1910
+msgid "Network is already running"
+msgstr "Mreža je već pokrenuta"
+
+#: src/util.c:122
+#, c-format
+msgid "cannot create pipe: %s"
+msgstr "ne mogu da napravim cev: %s"
+
+#: src/util.c:128
+#, c-format
+msgid "cannot fork child process: %s"
+msgstr "ne mogu da razdvojim sadržani proces: %s"
+
+#: src/util.c:501
+#, c-format
+msgid "%s: not implemented"
+msgstr "%s: nije realizovano"
+
+#: src/uuid.c:102
+#, c-format
+msgid "Falling back to pseudorandom UUID, failed to generate random bytes: %s"
+msgstr ""
+"Vraćam se na pseudorandom UUID, nisam uspeo da generišem random bajtove : %s"
+
+#: src/virsh.c:342
+msgid "print help"
+msgstr "štampaj pomoć"
+
+#: src/virsh.c:343
+msgid "Prints global help or command specific help."
+msgstr "Štampa opštu pomoć ili pomoć za određenu naredbu."
+
+#: src/virsh.c:349
+msgid "name of command"
+msgstr "ime naredbe"
+
+#: src/virsh.c:361
+msgid ""
+"Commands:\n"
+"\n"
+msgstr ""
+"Naredbe:\n"
+"\n"
+
+#: src/virsh.c:375
+msgid "autostart a domain"
+msgstr "samostalno pokreni domen"
+
+#: src/virsh.c:377
+msgid "Configure a domain to be automatically started at boot."
+msgstr "Podesite domen da se samostalno pokreće pri pokretanju sistema."
+
+#: src/virsh.c:382 src/virsh.c:482 src/virsh.c:676 src/virsh.c:713
+#: src/virsh.c:770 src/virsh.c:837 src/virsh.c:1057 src/virsh.c:1101
+#: src/virsh.c:1290 src/virsh.c:1335 src/virsh.c:1374 src/virsh.c:1413
+#: src/virsh.c:1452 src/virsh.c:1491 src/virsh.c:1610 src/virsh.c:1697
+#: src/virsh.c:1831 src/virsh.c:1888 src/virsh.c:1945 src/virsh.c:2067
+#: src/virsh.c:2208 src/virsh.c:4322 src/virsh.c:4398 src/virsh.c:4459
+#: src/virsh.c:4516 src/virsh.c:4573 src/virsh.c:4687 src/virsh.c:4806
+#: src/virsh.c:4969
+msgid "domain name, id or uuid"
+msgstr "ime domena, id ili uuid"
+
+#: src/virsh.c:383 src/virsh.c:2272 src/virsh.c:2780
+msgid "disable autostarting"
+msgstr "onemogući samostalno pokretanje"
+
+#: src/virsh.c:404
+#, c-format
+msgid "Failed to mark domain %s as autostarted"
+msgstr "Neuspelo označavanje domena %s kao samo pokrenuti"
+
+#: src/virsh.c:407
+#, c-format
+msgid "Failed to unmark domain %s as autostarted"
+msgstr "Neuspelo skidanje oznake samo pokrenuti domenu %s"
+
+#: src/virsh.c:414
+#, c-format
+msgid "Domain %s marked as autostarted\n"
+msgstr "Domen %s je označen kao samo pokrenuti\n"
+
+#: src/virsh.c:416
+#, c-format
+msgid "Domain %s unmarked as autostarted\n"
+msgstr "Domenu %s je skinuta oznaka samo pokrenuti\n"
+
+#: src/virsh.c:427
+msgid "(re)connect to hypervisor"
+msgstr "poveži se (ponovo) sa hipervizorom"
+
+#: src/virsh.c:429
+msgid ""
+"Connect to local hypervisor. This is built-in command after shell start up."
+msgstr ""
+"Povezivanje sa lokalnim hipervizorom. Ovo je ugrađena naredba posle "
+"podizanja ljuske."
+
+#: src/virsh.c:434
+msgid "hypervisor connection URI"
+msgstr "URI hipervizorske veze"
+
+#: src/virsh.c:435
+msgid "read-only connection"
+msgstr "veza samo za čitanje"
+
+#: src/virsh.c:447
+msgid "Failed to disconnect from the hypervisor"
+msgstr "Neuspelo prekidanje veze sa hipervizorom"
+
+#: src/virsh.c:465
+msgid "Failed to connect to the hypervisor"
+msgstr "Neuspelo povezivanje sa hipervizorom"
+
+#: src/virsh.c:475
+msgid "connect to the guest console"
+msgstr "priključi se na gostujući konzolu"
+
+#: src/virsh.c:477
+msgid "Connect the virtual serial console for the guest"
+msgstr "Priključi virtuelnu serijsku konzolu za gosta"
+
+#: src/virsh.c:524
+msgid "No console available for domain\n"
+msgstr "Nema dostupnih konzola za dome\n"
+
+#: src/virsh.c:541
+msgid "console not implemented on this platform"
+msgstr "konzola nije realizovana na ovoj platformi"
+
+#: src/virsh.c:552
+msgid "list domains"
+msgstr "ispiši domene"
+
+#: src/virsh.c:553
+msgid "Returns list of domains."
+msgstr "Vraća spisak domena."
+
+#: src/virsh.c:558
+msgid "list inactive domains"
+msgstr "ispiši neaktivne domene"
+
+#: src/virsh.c:559
+msgid "list inactive & active domains"
+msgstr "ispiši neaktivne i aktivne domene"
+
+#: src/virsh.c:581 src/virsh.c:588
+msgid "Failed to list active domains"
+msgstr "Neuspelo ispisivanje aktivnih domena"
+
+#: src/virsh.c:599 src/virsh.c:607
+msgid "Failed to list inactive domains"
+msgstr "Neuspelo ispisivanje neaktivnih domena"
+
+#: src/virsh.c:616
+msgid "Id"
+msgstr "Id"
+
+#: src/virsh.c:616 src/virsh.c:2555 src/virsh.c:3372 src/virsh.c:4038
+msgid "Name"
+msgstr "Ime"
+
+#: src/virsh.c:616 src/virsh.c:2555 src/virsh.c:3372
+msgid "State"
+msgstr "Stanje"
+
+#: src/virsh.c:629 src/virsh.c:651 src/virsh.c:5895 src/virsh.c:5911
+msgid "no state"
+msgstr "nema stanja"
+
+#: src/virsh.c:670
+msgid "domain state"
+msgstr "stanje domena"
+
+#: src/virsh.c:671
+msgid "Returns state about a domain."
+msgstr "Vraća stanje o domenu."
+
+#: src/virsh.c:707
+msgid "get device block stats for a domain"
+msgstr "dobavi statistiku blok uređaja za domen"
+
+#: src/virsh.c:708
+msgid "Get device block stats for a running domain."
+msgstr "Dobavlja statistiku blok uređaja za tekući domen."
+
+#: src/virsh.c:714
+msgid "block device"
+msgstr "blok uređaj"
+
+#: src/virsh.c:735
+#, c-format
+msgid "Failed to get block stats %s %s"
+msgstr "Neuspelo dobavljanje statistike bloka %s %s"
+
+#: src/virsh.c:764
+msgid "get network interface stats for a domain"
+msgstr "dobavi statistiku mrežne sprege za domen"
+
+#: src/virsh.c:765
+msgid "Get network interface stats for a running domain."
+msgstr "Dobavlja statistiku mrežne sprege za tekući domen."
+
+#: src/virsh.c:771
+msgid "interface device"
+msgstr "uređaj sprege"
+
+#: src/virsh.c:792
+#, c-format
+msgid "Failed to get interface stats %s %s"
+msgstr "Neuspelo dobavljanje statistike sprege %s %s"
+
+#: src/virsh.c:831
+msgid "suspend a domain"
+msgstr "obustavi domen"
+
+#: src/virsh.c:832
+msgid "Suspend a running domain."
+msgstr "Obustavlja tekući domen. "
+
+#: src/virsh.c:855
+#, c-format
+msgid "Domain %s suspended\n"
+msgstr "Domen %s je obustavljen\n"
+
+#: src/virsh.c:857
+#, c-format
+msgid "Failed to suspend domain %s"
+msgstr "Neuspelo obustavljanje domena %s"
+
+#: src/virsh.c:870
+msgid "create a domain from an XML file"
+msgstr "napravi domen iz XML datoteke"
+
+#: src/virsh.c:871
+msgid "Create a domain."
+msgstr "Pravljenje domena."
+
+#: src/virsh.c:876 src/virsh.c:924
+msgid "file containing an XML domain description"
+msgstr "datoteka koja sadrži XML opis domena"
+
+#: src/virsh.c:903
+#, c-format
+msgid "Domain %s created from %s\n"
+msgstr "Domen %s je napravljen iz %s\n"
+
+#: src/virsh.c:907
+#, c-format
+msgid "Failed to create domain from %s"
+msgstr "Neuspelo pravljenje domena iz %s"
+
+#: src/virsh.c:918
+msgid "define (but don't start) a domain from an XML file"
+msgstr "definiši (ali nemoj pokretati) domen iz XML datoteke"
+
+#: src/virsh.c:919
+msgid "Define a domain."
+msgstr "Definisanje domena."
+
+#: src/virsh.c:951
+#, c-format
+msgid "Domain %s defined from %s\n"
+msgstr "Domen %s je definisan iz %s\n"
+
+#: src/virsh.c:955
+#, c-format
+msgid "Failed to define domain from %s"
+msgstr "Neuspelo definisanje domena iz %s"
+
+#: src/virsh.c:966
+msgid "undefine an inactive domain"
+msgstr "ukini definiciju neaktivnog domena"
+
+#: src/virsh.c:967
+msgid "Undefine the configuration for an inactive domain."
+msgstr "Ukidanje definicije podešavanja za neaktivan domen."
+
+#: src/virsh.c:972 src/virsh.c:2136
+msgid "domain name or uuid"
+msgstr "ime domena ili uuid"
+
+#: src/virsh.c:990
+#, c-format
+msgid "Domain %s has been undefined\n"
+msgstr "Domenu %s je ukinuta definicija\n"
+
+#: src/virsh.c:992
+#, c-format
+msgid "Failed to undefine domain %s"
+msgstr "Neuspelo ukidanje definicije domena %s"
+
+#: src/virsh.c:1006
+msgid "start a (previously defined) inactive domain"
+msgstr "pokreni (prethodno definisan) neaktivni domen"
+
+#: src/virsh.c:1007
+msgid "Start a domain."
+msgstr "Pokreće domen."
+
+#: src/virsh.c:1012
+msgid "name of the inactive domain"
+msgstr "ime neaktivnog domena"
+
+#: src/virsh.c:1029
+msgid "Domain is already active"
+msgstr "Domen je već aktivan"
+
+#: src/virsh.c:1035
+#, c-format
+msgid "Domain %s started\n"
+msgstr "Domen %s je pokrenut\n"
+
+#: src/virsh.c:1038
+#, c-format
+msgid "Failed to start domain %s"
+msgstr "Neuspelo pokretanje domena %s"
+
+#: src/virsh.c:1051
+msgid "save a domain state to a file"
+msgstr "sačuvaj stanje domena u datoteku"
+
+#: src/virsh.c:1052
+msgid "Save a running domain."
+msgstr "Čuvanje tekućeg domena."
+
+#: src/virsh.c:1058
+msgid "where to save the data"
+msgstr "gde sačuvati podatke"
+
+#: src/virsh.c:1080
+#, c-format
+msgid "Domain %s saved to %s\n"
+msgstr "Domen %s je sačuvan u %s\n"
+
+#: src/virsh.c:1082
+#, c-format
+msgid "Failed to save domain %s to %s"
+msgstr "Neuspelo čuvanje domena %s u %s"
+
+#: src/virsh.c:1095
+msgid "show/set scheduler parameters"
+msgstr "prikaži/podesi parametre planera"
+
+#: src/virsh.c:1096
+msgid "Show/Set scheduler parameters."
+msgstr "Prikaži/podesi parametre planera."
+
+#: src/virsh.c:1102
+msgid "weight for XEN_CREDIT"
+msgstr "težina za XEN_CREDIT"
+
+#: src/virsh.c:1103
+msgid "cap for XEN_CREDIT"
+msgstr "granica za XEN_CREDIT"
+
+#: src/virsh.c:1135
+msgid "Invalid value of weight"
+msgstr "Neispravna vrednost težine"
+
+#: src/virsh.c:1145
+msgid "Invalid value of cap"
+msgstr "Neispravna vrednost granice"
+
+#: src/virsh.c:1187 src/virsh.c:1191
+msgid "Scheduler"
+msgstr "Planer"
+
+#: src/virsh.c:1191
+msgid "Unknown"
+msgstr "Nepoznato"
+
+#: src/virsh.c:1246
+msgid "restore a domain from a saved state in a file"
+msgstr "vrati domen iz sačuvanog stanja u datoteci"
+
+#: src/virsh.c:1247
+msgid "Restore a domain."
+msgstr "Vraćanje domena."
+
+#: src/virsh.c:1252
+msgid "the state to restore"
+msgstr "stanje za povraćaj"
+
+#: src/virsh.c:1271
+#, c-format
+msgid "Domain restored from %s\n"
+msgstr "Domen je povraćen iz %s\n"
+
+#: src/virsh.c:1273
+#, c-format
+msgid "Failed to restore domain from %s"
+msgstr "Neuspelo vraćanje domena iz %s"
+
+#: src/virsh.c:1284
+msgid "dump the core of a domain to a file for analysis"
+msgstr "izbaci srž domena u datoteku radi analize"
+
+#: src/virsh.c:1285
+msgid "Core dump a domain."
+msgstr "Izbaci srž domena"
+
+#: src/virsh.c:1291
+msgid "where to dump the core"
+msgstr "gde izbaciti srž"
+
+#: src/virsh.c:1313
+#, c-format
+msgid "Domain %s dumpd to %s\n"
+msgstr "Domen %s je izbačen u %s\n"
+
+#: src/virsh.c:1315
+#, c-format
+msgid "Failed to core dump domain %s to %s"
+msgstr "Neuspeo izbačaj srži domena %s u %s"
+
+#: src/virsh.c:1329
+msgid "resume a domain"
+msgstr "nastavi domen"
+
+#: src/virsh.c:1330
+msgid "Resume a previously suspended domain."
+msgstr "Nastavljanje prethodno obustavljenog domena."
+
+#: src/virsh.c:1353
+#, c-format
+msgid "Domain %s resumed\n"
+msgstr "Domen %s je nastavljen\n"
+
+#: src/virsh.c:1355
+#, c-format
+msgid "Failed to resume domain %s"
+msgstr "Neuspelo nastavljanje domena %s"
+
+#: src/virsh.c:1368
+msgid "gracefully shutdown a domain"
+msgstr "ljubazno ugasi domen"
+
+#: src/virsh.c:1369
+msgid "Run shutdown in the target domain."
+msgstr "Pokretanje gašenja u ciljnom domenu."
+
+#: src/virsh.c:1392
+#, c-format
+msgid "Domain %s is being shutdown\n"
+msgstr "Domen %s se gasi\n"
+
+#: src/virsh.c:1394
+#, c-format
+msgid "Failed to shutdown domain %s"
+msgstr "Neuspelo gašenje domena %s"
+
+#: src/virsh.c:1407
+msgid "reboot a domain"
+msgstr "ponovo pokreni domen"
+
+#: src/virsh.c:1408
+msgid "Run a reboot command in the target domain."
+msgstr "Pokretanje naredbe ponovnog pokretanja u ciljnom domenu."
+
+#: src/virsh.c:1431
+#, c-format
+msgid "Domain %s is being rebooted\n"
+msgstr "Domen %s se ponovo pokreće\n"
+
+#: src/virsh.c:1433
+#, c-format
+msgid "Failed to reboot domain %s"
+msgstr "Neuspelo ponovno pokretanje domena %s"
+
+#: src/virsh.c:1446
+msgid "destroy a domain"
+msgstr "uništi domen"
+
+#: src/virsh.c:1447
+msgid "Destroy a given domain."
+msgstr "Uništavanje zadatog domena."
+
+#: src/virsh.c:1470
+#, c-format
+msgid "Domain %s destroyed\n"
+msgstr "Domen %s je uništen\n"
+
+#: src/virsh.c:1472
+#, c-format
+msgid "Failed to destroy domain %s"
+msgstr "Neuspelo uništavanje domena %s"
+
+#: src/virsh.c:1485
+msgid "domain information"
+msgstr "podaci o domenu"
+
+#: src/virsh.c:1486
+msgid "Returns basic information about the domain."
+msgstr "Vraća osnovne podatke o domenu."
+
+#: src/virsh.c:1512 src/virsh.c:1514
+msgid "Id:"
+msgstr "Id:"
+
+#: src/virsh.c:1515 src/virsh.c:3477 src/virsh.c:3926
+msgid "Name:"
+msgstr "Ime:"
+
+#: src/virsh.c:1518 src/virsh.c:3480
+msgid "UUID:"
+msgstr "UUID:"
+
+#: src/virsh.c:1521
+msgid "OS Type:"
+msgstr "Vrsta OS-a:"
+
+#: src/virsh.c:1526 src/virsh.c:1654 src/virsh.c:3487 src/virsh.c:3491
+#: src/virsh.c:3495 src/virsh.c:3499
+msgid "State:"
+msgstr "Stanje:"
+
+#: src/virsh.c:1529 src/virsh.c:2017
+msgid "CPU(s):"
+msgstr "CPU(-i):"
+
+#: src/virsh.c:1536 src/virsh.c:1661
+msgid "CPU time:"
+msgstr "CPU vreme:"
+
+#: src/virsh.c:1540 src/virsh.c:1543
+msgid "Max memory:"
+msgstr "Najviše memorije:"
+
+#: src/virsh.c:1544
+msgid "no limit"
+msgstr "bez ograničenja"
+
+#: src/virsh.c:1546
+msgid "Used memory:"
+msgstr "Upotrebljena memorija:"
+
+#: src/virsh.c:1562
+msgid "NUMA free memory"
+msgstr "slobodna NUMA memorija"
+
+#: src/virsh.c:1563
+msgid "display available free memory for the NUMA cell."
+msgstr "prikaži dostupnu slobodnu memoriju za NUMA ćeliju."
+
+#: src/virsh.c:1568
+msgid "NUMA cell number"
+msgstr "broj NUMA ćelije"
+
+#: src/virsh.c:1592
+msgid "Total"
+msgstr "Ukupno"
+
+#: src/virsh.c:1604
+msgid "domain vcpu information"
+msgstr "vcpu podaci domena"
+
+#: src/virsh.c:1605
+msgid "Returns basic information about the domain virtual CPUs."
+msgstr "Vraća osnovne podatke o virtuelnim CPU-ima domena."
+
+#: src/virsh.c:1652
+msgid "VCPU:"
+msgstr "VCPU:"
+
+#: src/virsh.c:1653
+msgid "CPU:"
+msgstr "CPU:"
+
+#: src/virsh.c:1663
+msgid "CPU Affinity:"
+msgstr "CPU sklonost:"
+
+#: src/virsh.c:1675
+msgid "Domain shut off, virtual CPUs not present."
+msgstr "Domen je ugašen, nema prisutnih virtuelnih CPU-a."
+
+#: src/virsh.c:1691
+msgid "control domain vcpu affinity"
+msgstr "kontroliši sklonost vcpu domena"
+
+#: src/virsh.c:1692
+msgid "Pin domain VCPUs to host physical CPUs."
+msgstr "Prikuj VCPU-e domena za fizičke CPU-e domaćina."
+
+#: src/virsh.c:1698
+msgid "vcpu number"
+msgstr "vcpu broj"
+
+#: src/virsh.c:1699
+msgid "host cpu number(s) (comma separated)"
+msgstr "cpu broj(evi) domaćina (razdvojeni zarezom)"
+
+#: src/virsh.c:1727
+msgid "vcpupin: Invalid or missing vCPU number."
+msgstr "vcpupin: Neispravan ili nedostaje vCPU broj."
+
+#: src/virsh.c:1733
+msgid "vcpupin: Missing cpulist"
+msgstr "vcpupin: Nedostaje spisak procesora"
+
+#: src/virsh.c:1745
+#, fuzzy
+msgid "vcpupin: failed to get domain informations."
+msgstr "neuspelo dobavljanje podataka o čvoru"
+
+#: src/virsh.c:1751
+msgid "vcpupin: Invalid vCPU number."
+msgstr "vcpupin: Neispravan vCPU broj."
+
+#: src/virsh.c:1760
+msgid "cpulist: Invalid format. Empty string."
+msgstr "cpulist: Neispravan format. Prazna niska."
+
+#: src/virsh.c:1770
+#, c-format
+msgid ""
+"cpulist: %s: Invalid format. Expecting digit at position %d (near '%c')."
+msgstr ""
+"cpulist: %s: Neispravan format. Očekuje se brojka na mestu %d (blizu „%c“)."
+
+#: src/virsh.c:1780
+#, c-format
+msgid ""
+"cpulist: %s: Invalid format. Expecting digit or comma at position %d (near '%"
+"c')."
+msgstr ""
+"cpulist: %s: Neispravan format. Očekuje se brojka ili zarez na mestu %d "
+"(blizu „%c“)."
+
+#: src/virsh.c:1787
+#, c-format
+msgid "cpulist: %s: Invalid format. Trailing comma at position %d."
+msgstr "cpulist: %s: Neispravan format. Prateći zarez na mestu %d."
+
+#: src/virsh.c:1801
+#, c-format
+msgid "Physical CPU %d doesn't exist."
+msgstr "Fizički procesor %d ne postoji"
+
+#: src/virsh.c:1825
+msgid "change number of virtual CPUs"
+msgstr "promeni broj virtuelnih CPU-a"
+
+#: src/virsh.c:1826
+msgid "Change the number of virtual CPUs in the guest domain."
+msgstr "Menja broj virtuelnih CPU-a aktivnih u domenu gosta."
+
+#: src/virsh.c:1832
+msgid "number of virtual CPUs"
+msgstr "broj virtuelnih CPU-a"
+
+#: src/virsh.c:1852
+msgid "Invalid number of virtual CPUs."
+msgstr "Neispravan broj virtuelnih CPU-a."
+
+#: src/virsh.c:1864
+msgid "Too many virtual CPUs."
+msgstr "Previše virtuelnih CPU-a."
+
+#: src/virsh.c:1882
+msgid "change memory allocation"
+msgstr "promeni dodelu memorije"
+
+#: src/virsh.c:1883
+msgid "Change the current memory allocation in the guest domain."
+msgstr "Menja tekuću dodelu memorije za domen gosta."
+
+#: src/virsh.c:1889
+msgid "number of kilobytes of memory"
+msgstr "broj kilobajtova za memoriju"
+
+#: src/virsh.c:1910 src/virsh.c:1922 src/virsh.c:1967
+#, c-format
+msgid "Invalid value of %d for memory size"
+msgstr "Neispravna vrednost %d za veličinu memorije"
+
+#: src/virsh.c:1916
+msgid "Unable to verify MaxMemorySize"
+msgstr "Ne mogu da potvrdim najveću količinu memorije"
+
+#: src/virsh.c:1939
+msgid "change maximum memory limit"
+msgstr "promeni najvišu granicu memorije"
+
+#: src/virsh.c:1940
+msgid "Change the maximum memory allocation limit in the guest domain."
+msgstr "Menja granicu najvećeg zauzeća memorije u domenu gosta."
+
+#: src/virsh.c:1946
+msgid "maximum memory limit in kilobytes"
+msgstr "najviša granica memorije u kilobajtovima"
+
+#: src/virsh.c:1973
+msgid "Unable to verify current MemorySize"
+msgstr "Ne mogu da potvrdim tekuću količinu memorije"
+
+#: src/virsh.c:1980
+msgid "Unable to shrink current MemorySize"
+msgstr "Ne mogu da umanjim tekuću količinu memorije"
+
+#: src/virsh.c:1986
+msgid "Unable to change MaxMemorySize"
+msgstr "Ne mogu da izmenim najveću količinu memorije"
+
+#: src/virsh.c:1999
+msgid "node information"
+msgstr "podaci o čvoru"
+
+#: src/virsh.c:2000
+msgid "Returns basic information about the node."
+msgstr "Vraća osnovne podatke o čvoru."
+
+#: src/virsh.c:2013
+msgid "failed to get node information"
+msgstr "neuspelo dobavljanje podataka o čvoru"
+
+#: src/virsh.c:2016
+msgid "CPU model:"
+msgstr "CPU model:"
+
+#: src/virsh.c:2018
+msgid "CPU frequency:"
+msgstr "CPU učestanost:"
+
+#: src/virsh.c:2019
+msgid "CPU socket(s):"
+msgstr "CPU priključaka:"
+
+#: src/virsh.c:2020
+msgid "Core(s) per socket:"
+msgstr "Srži po priključku:"
+
+#: src/virsh.c:2021
+msgid "Thread(s) per core:"
+msgstr "Niti po srži:"
+
+#: src/virsh.c:2022
+msgid "NUMA cell(s):"
+msgstr "NUMA ćelija:"
+
+#: src/virsh.c:2023
+msgid "Memory size:"
+msgstr "Veličina memorije:"
+
+#: src/virsh.c:2033
+msgid "capabilities"
+msgstr "mogućnosti"
+
+#: src/virsh.c:2034
+msgid "Returns capabilities of hypervisor/driver."
+msgstr "Vraća mogućnosti hipervisora/upravljačkog programa."
+
+#: src/virsh.c:2047
+msgid "failed to get capabilities"
+msgstr "neuspelo preuzimanje mogućnosti"
+
+#: src/virsh.c:2061
+msgid "domain information in XML"
+msgstr "podaci o domenu u XML-u"
+
+#: src/virsh.c:2062
+msgid "Output the domain information as an XML dump to stdout."
+msgstr "Ispiši podatke o domenu kao XML izbačaj na stdout."
+
+#: src/virsh.c:2101
+msgid "convert a domain id or UUID to domain name"
+msgstr "prebaci id ili UUID domena u ime domena"
+
+#: src/virsh.c:2106
+msgid "domain id or uuid"
+msgstr "id ili uuid domena"
+
+#: src/virsh.c:2131
+msgid "convert a domain name or UUID to domain id"
+msgstr "prebaci ime ili UUID domena u id domena"
+
+#: src/virsh.c:2166
+msgid "convert a domain name or id to domain UUID"
+msgstr "prebaci ime ili id domena u UUID domena"
+
+#: src/virsh.c:2171
+msgid "domain id or name"
+msgstr "id ili ime domena"
+
+#: src/virsh.c:2190
+msgid "failed to get domain UUID"
+msgstr "neuspelo dobavljanje UUID domena"
+
+#: src/virsh.c:2201
+msgid "migrate domain to another host"
+msgstr "preseli domen na drugog domaćina"
+
+#: src/virsh.c:2202
+msgid "Migrate domain to another host.  Add --live for live migration."
+msgstr ""
+"Preselite domen na drugog domaćina.  Dodajte --live za preseljenje uživo."
+
+#: src/virsh.c:2207
+msgid "live migration"
+msgstr "preseljenje uživo"
+
+#: src/virsh.c:2209
+msgid "connection URI of the destination host"
+msgstr "URI veze do ciljnog domaćina"
+
+#: src/virsh.c:2210
+msgid "migration URI, usually can be omitted"
+msgstr "URI selidbe, obično se može izostaviti"
+
+#: src/virsh.c:2232
+msgid "migrate: Missing desturi"
+msgstr "selidba: Nedostaje desturi"
+
+#: src/virsh.c:2264
+msgid "autostart a network"
+msgstr "Samostalno pokretanje mreže"
+
+#: src/virsh.c:2266
+msgid "Configure a network to be automatically started at boot."
+msgstr "Podesite mrežu da se samostalno pokreće pri podizanju sistema."
+
+#: src/virsh.c:2271 src/virsh.c:2692
+msgid "network name or uuid"
+msgstr "ime mreže ili uuid"
+
+#: src/virsh.c:2293
+#, c-format
+msgid "failed to mark network %s as autostarted"
+msgstr "Neuspešno označavanje mreže %s kao samo pokrenuta"
+
+#: src/virsh.c:2296
+#, c-format
+msgid "failed to unmark network %s as autostarted"
+msgstr "Neuspešno skidanje oznake mreže %s kao samo pokrenuta"
+
+#: src/virsh.c:2303
+#, c-format
+msgid "Network %s marked as autostarted\n"
+msgstr "Mreža %s označena kao samo pokreuta\n"
+
+#: src/virsh.c:2305
+#, c-format
+msgid "Network %s unmarked as autostarted\n"
+msgstr "Mreži %s je skinuta oznaka samo pokrenuta\n"
+
+#: src/virsh.c:2315
+msgid "create a network from an XML file"
+msgstr "napravi mrežu iz XML datoteke"
+
+#: src/virsh.c:2316
+msgid "Create a network."
+msgstr "Pravljenje mreže."
+
+#: src/virsh.c:2321 src/virsh.c:2369
+msgid "file containing an XML network description"
+msgstr "datoteka koja sadrži XML opis mreže"
+
+#: src/virsh.c:2348
+#, c-format
+msgid "Network %s created from %s\n"
+msgstr "Mreža %s je napravljena iz %s\n"
+
+#: src/virsh.c:2351
+#, c-format
+msgid "Failed to create network from %s"
+msgstr "Neuspelo pravljenje mreže iz %s"
+
+#: src/virsh.c:2363
+msgid "define (but don't start) a network from an XML file"
+msgstr "definiši (ali nemoj pokretati) mrežu iz XML datoteke"
+
+#: src/virsh.c:2364
+msgid "Define a network."
+msgstr "Definisanje mreže."
+
+#: src/virsh.c:2396
+#, c-format
+msgid "Network %s defined from %s\n"
+msgstr "Mreža %s je definisana iz %s\n"
+
+#: src/virsh.c:2399
+#, c-format
+msgid "Failed to define network from %s"
+msgstr "Neuspelo definisanje mreže iz %s"
+
+#: src/virsh.c:2411
+msgid "destroy a network"
+msgstr "uništi mrežu"
+
+#: src/virsh.c:2412
+msgid "Destroy a given network."
+msgstr "Uništavanje zadate mreže."
+
+#: src/virsh.c:2417 src/virsh.c:2457
+msgid "network name, id or uuid"
+msgstr "ime mreže, id ili uuid"
+
+#: src/virsh.c:2435
+#, c-format
+msgid "Network %s destroyed\n"
+msgstr "Mreža %s je uništena\n"
+
+#: src/virsh.c:2437
+#, c-format
+msgid "Failed to destroy network %s"
+msgstr "Neuspelo uništavanje mreže %s"
+
+#: src/virsh.c:2451
+msgid "network information in XML"
+msgstr "podaci o mreži u XML-u"
+
+#: src/virsh.c:2452
+msgid "Output the network information as an XML dump to stdout."
+msgstr "Ispiši podatke o mreži kao XML izbačaj na stdout."
+
+#: src/virsh.c:2492
+msgid "list networks"
+msgstr "spisak mreža"
+
+#: src/virsh.c:2493
+msgid "Returns list of networks."
+msgstr "Vraća spisak mreža."
+
+#: src/virsh.c:2498
+msgid "list inactive networks"
+msgstr "ispiši neaktivne mreže"
+
+#: src/virsh.c:2499
+msgid "list inactive & active networks"
+msgstr "ispiši neaktivne i aktivne mreže"
+
+#: src/virsh.c:2519 src/virsh.c:2527
+msgid "Failed to list active networks"
+msgstr "Neuspelo ispisivanje aktivnih mreža"
+
+#: src/virsh.c:2538 src/virsh.c:2546
+msgid "Failed to list inactive networks"
+msgstr "Neuspelo ispisivanje neaktivnih mreža"
+
+#: src/virsh.c:2555 src/virsh.c:3372
+msgid "Autostart"
+msgstr "Samostalno pokretanje"
+
+#: src/virsh.c:2570 src/virsh.c:2593 src/virsh.c:3387 src/virsh.c:3410
+msgid "no autostart"
+msgstr "bez samopokretanja"
+
+#: src/virsh.c:2576 src/virsh.c:3393
+msgid "active"
+msgstr "radi"
+
+#: src/virsh.c:2599 src/virsh.c:3416 src/virsh.c:3488
+msgid "inactive"
+msgstr "neaktivno"
+
+#: src/virsh.c:2616
+msgid "convert a network UUID to network name"
+msgstr "prebaci mrežni UUID u ime mreže"
+
+#: src/virsh.c:2647
+msgid "start a (previously defined) inactive network"
+msgstr "pokreni (prethodno definisanu) neaktivnu mrežu"
+
+#: src/virsh.c:2648
+msgid "Start a network."
+msgstr "Pokreni mrežu."
+
+#: src/virsh.c:2653
+msgid "name of the inactive network"
+msgstr "ime neaktivne mreže"
+
+#: src/virsh.c:2670
+#, c-format
+msgid "Network %s started\n"
+msgstr "Mreža %s je pokrenuta\n"
+
+#: src/virsh.c:2673
+#, c-format
+msgid "Failed to start network %s"
+msgstr "Neuspelo pokretanje mreže %s"
+
+#: src/virsh.c:2686
+msgid "undefine an inactive network"
+msgstr "ukini definiciju neaktivne mreže"
+
+#: src/virsh.c:2687
+msgid "Undefine the configuration for an inactive network."
+msgstr "Ukidanje definicije podešavanja za neaktivne mreže."
+
+#: src/virsh.c:2710
+#, c-format
+msgid "Network %s has been undefined\n"
+msgstr "Mreži %s je ukinuta definicija\n"
+
+#: src/virsh.c:2712
+#, c-format
+msgid "Failed to undefine network %s"
+msgstr "Neuspelo ukidanje definicije mreže %s"
+
+#: src/virsh.c:2725
+msgid "convert a network name to network UUID"
+msgstr "prebaci ime mreže u UUID mreže"
+
+#: src/virsh.c:2750
+msgid "failed to get network UUID"
+msgstr "neuspelo dobavljanje UUID mreže"
+
+#: src/virsh.c:2772
+msgid "autostart a pool"
+msgstr "samostalno pokreni skladište"
+
+#: src/virsh.c:2774
+msgid "Configure a pool to be automatically started at boot."
+msgstr "Podesite skladište da se samostalno pokreće pri pokretanju sistema."
+
+#: src/virsh.c:2779 src/virsh.c:3114 src/virsh.c:3154 src/virsh.c:3194
+#: src/virsh.c:3234 src/virsh.c:3274 src/virsh.c:3459 src/virsh.c:3730
+#: src/virsh.c:3866 src/virsh.c:3908 src/virsh.c:3960 src/virsh.c:4002
+#: src/virsh.c:4146
+msgid "pool name or uuid"
+msgstr "ime skladišta ili uuid"
+
+#: src/virsh.c:2801
+#, c-format
+msgid "failed to mark pool %s as autostarted"
+msgstr "Neuspešno označavanje skladišta %s kao samopokrenutog"
+
+#: src/virsh.c:2804
+#, c-format
+msgid "failed to unmark pool %s as autostarted"
+msgstr "Neuspešno skidanje oznake skladišta %s kao samopokrenuto"
+
+#: src/virsh.c:2811
+#, c-format
+msgid "Pool %s marked as autostarted\n"
+msgstr "Skladište %s je označeno kao samo pokrenuto\n"
+
+#: src/virsh.c:2813
+#, c-format
+msgid "Pool %s unmarked as autostarted\n"
+msgstr "Skladištu %s je skinuta oznaka samopokrenuto\n"
+
+#: src/virsh.c:2823
+msgid "create a pool from an XML file"
+msgstr "napravi skladište iz XML datoteke"
+
+#: src/virsh.c:2824 src/virsh.c:2871
+msgid "Create a pool."
+msgstr "Pravljenje skladišta."
+
+#: src/virsh.c:2829 src/virsh.c:2971
+msgid "file containing an XML pool description"
+msgstr "datoteka koja sadrži XML opis skladišta"
+
+#: src/virsh.c:2856
+#, c-format
+msgid "Pool %s created from %s\n"
+msgstr "Skladište %s je napravljeno iz %s\n"
+
+#: src/virsh.c:2859
+#, c-format
+msgid "Failed to create pool from %s"
+msgstr "Neuspelo pravljenje skladišta iz %s"
+
+#: src/virsh.c:2870
+msgid "create a pool from a set of args"
+msgstr "napravi skladište iz skupa argumenata"
+
+#: src/virsh.c:2876 src/virsh.c:3019
+msgid "name of the pool"
+msgstr "ime skladišta"
+
+#: src/virsh.c:2877 src/virsh.c:3020
+msgid "type of the pool"
+msgstr "vrsta skladišta"
+
+#: src/virsh.c:2878 src/virsh.c:3021
+msgid "source-host for underlying storage"
+msgstr "domaćin izvora podvučenog skladišta"
+
+#: src/virsh.c:2879 src/virsh.c:3022
+msgid "source path for underlying storage"
+msgstr "putanja do izvora podvučenog skladišta"
+
+#: src/virsh.c:2880 src/virsh.c:3023
+msgid "source device for underlying storage"
+msgstr "izvorni uređaj podvučenog skladišta"
+
+#: src/virsh.c:2881 src/virsh.c:3024
+msgid "target for underlying storage"
+msgstr "meta podvučenog skladišta"
+
+#: src/virsh.c:2946
+#, c-format
+msgid "Pool %s created\n"
+msgstr "Skladište %s je napravljeno\n"
+
+#: src/virsh.c:2950
+#, c-format
+msgid "Failed to create pool %s"
+msgstr "Nisam uspeo da napravim skladište %s"
+
+#: src/virsh.c:2965
+msgid "define (but don't start) a pool from an XML file"
+msgstr "definiši (ali nemoj pokretati) skladište iz XML datoteke"
+
+#: src/virsh.c:2966 src/virsh.c:3014
+msgid "Define a pool."
+msgstr "Definisanje skladišta."
+
+#: src/virsh.c:2998
+#, c-format
+msgid "Pool %s defined from %s\n"
+msgstr "Skladište %s je definisano iz %s\n"
+
+#: src/virsh.c:3001
+#, c-format
+msgid "Failed to define pool from %s"
+msgstr "Neuspelo definisanje skladišta iz %s"
+
+#: src/virsh.c:3013
+msgid "define a pool from a set of args"
+msgstr "definiši skladište iz skupa argumenata"
+
+#: src/virsh.c:3089
+#, c-format
+msgid "Pool %s defined\n"
+msgstr "Skladište %s je definisano \n"
+
+#: src/virsh.c:3093
+#, c-format
+msgid "Failed to define pool %s"
+msgstr "Neuspelo ukidanje definicije skladišta %s"
+
+#: src/virsh.c:3108
+msgid "build a pool"
+msgstr "izgradi skladište"
+
+#: src/virsh.c:3109
+msgid "Build a given pool."
+msgstr "Izgradi dato skladište."
+
+#: src/virsh.c:3132
+#, c-format
+msgid "Pool %s builded\n"
+msgstr "skladište %s je izgrađeno\n"
+
+#: src/virsh.c:3134
+#, c-format
+msgid "Failed to build pool %s"
+msgstr "nisam uspeo da izgradim skladište %s"
+
+#: src/virsh.c:3148
+msgid "destroy a pool"
+msgstr "uništi skladište"
+
+#: src/virsh.c:3149
+msgid "Destroy a given pool."
+msgstr "Uništavanje zadatog skladišta."
+
+#: src/virsh.c:3172
+#, c-format
+msgid "Pool %s destroyed\n"
+msgstr "Skladište %s je uništeno\n"
+
+#: src/virsh.c:3174
+#, c-format
+msgid "Failed to destroy pool %s"
+msgstr "Neuspelo uništavanje skladišta %s"
+
+#: src/virsh.c:3188
+msgid "delete a pool"
+msgstr "obriši skladište"
+
+#: src/virsh.c:3189
+msgid "Delete a given pool."
+msgstr "Brisanje zadatog skladišta."
+
+#: src/virsh.c:3212
+#, c-format
+msgid "Pool %s deleted\n"
+msgstr "Skladište %s je obrisano\n"
+
+#: src/virsh.c:3214
+#, c-format
+msgid "Failed to delete pool %s"
+msgstr "Neuspelo brisanje skladišta %s"
+
+#: src/virsh.c:3228
+msgid "refresh a pool"
+msgstr "ažuriraj skladište"
+
+#: src/virsh.c:3229
+msgid "Refresh a given pool."
+msgstr "Ažuriraj dato skladište."
+
+#: src/virsh.c:3252
+#, c-format
+msgid "Pool %s refreshed\n"
+msgstr "Skladište %s je ažurirano\n"
+
+#: src/virsh.c:3254
+#, c-format
+msgid "Failed to refresh pool %s"
+msgstr "Neuspelo ažuriranje skladišta %s"
+
+#: src/virsh.c:3268
+msgid "pool information in XML"
+msgstr "podaci o skladištu u XML-u"
+
+#: src/virsh.c:3269
+msgid "Output the pool information as an XML dump to stdout."
+msgstr "Ispiši podatke o skladištu kao XML izbačaj na stdout."
+
+#: src/virsh.c:3309
+msgid "list pools"
+msgstr "ispiši skladišta"
+
+#: src/virsh.c:3310
+msgid "Returns list of pools."
+msgstr "Vraća spisak skladišta."
+
+#: src/virsh.c:3315
+msgid "list inactive pools"
+msgstr "ispiši neaktivna skladišta"
+
+#: src/virsh.c:3316
+msgid "list inactive & active pools"
+msgstr "ispiši neaktivna i aktivna skladišta"
+
+#: src/virsh.c:3336 src/virsh.c:3344
+msgid "Failed to list active pools"
+msgstr "Neuspelo ispisivanje aktivnih skladišta"
+
+#: src/virsh.c:3355 src/virsh.c:3363
+msgid "Failed to list inactive pools"
+msgstr "Neuspelo ispisivanje neaktivnih skladišta"
+
+#: src/virsh.c:3453
+msgid "storage pool information"
+msgstr "podaci o skladištu"
+
+#: src/virsh.c:3454
+msgid "Returns basic information about the storage pool."
+msgstr "Vraća osnovne podatke o skladištu."
+
+#: src/virsh.c:3492
+msgid "building"
+msgstr "izgradnja"
+
+#: src/virsh.c:3496 src/virsh.c:5881 src/virsh.c:5907
+msgid "running"
+msgstr "pokrenuto"
+
+#: src/virsh.c:3500
+msgid "degraded"
+msgstr "vraćeno"
+
+#: src/virsh.c:3507 src/virsh.c:3936
+msgid "Capacity:"
+msgstr "Kapacitet:"
+
+#: src/virsh.c:3510 src/virsh.c:3939
+msgid "Allocation:"
+msgstr "Dodela:"
+
+#: src/virsh.c:3513
+msgid "Available:"
+msgstr "Dostupno:"
+
+#: src/virsh.c:3529
+msgid "convert a pool UUID to pool name"
+msgstr "prebaci UUID skladišta u ime skladišta"
+
+#: src/virsh.c:3534
+msgid "pool uuid"
+msgstr "uuid skladišta"
+
+#: src/virsh.c:3560
+msgid "start a (previously defined) inactive pool"
+msgstr "pokreni (prethodno definisano) neaktivno skladište"
+
+#: src/virsh.c:3561
+msgid "Start a pool."
+msgstr "Pokreće skladište."
+
+#: src/virsh.c:3566
+msgid "name of the inactive pool"
+msgstr "ime neaktivnog skladišta"
+
+#: src/virsh.c:3583
+#, c-format
+msgid "Pool %s started\n"
+msgstr "Skladište %s je pokrenuto\n"
+
+#: src/virsh.c:3586
+#, c-format
+msgid "Failed to start pool %s"
+msgstr "Neuspelo pokretanje skladišta %s"
+
+#: src/virsh.c:3599
+msgid "create a volume from a set of args"
+msgstr "napravi disk iz skupa argumenata"
+
+#: src/virsh.c:3600 src/virsh.c:3802
+msgid "Create a vol."
+msgstr "Pravljenje diska."
+
+#: src/virsh.c:3605 src/virsh.c:3768 src/virsh.c:3807
+msgid "pool name"
+msgstr "ime skladišta"
+
+#: src/virsh.c:3606
+msgid "name of the volume"
+msgstr "ime diska"
+
+#: src/virsh.c:3607
+msgid "size of the vol with optional k,M,G,T suffix"
+msgstr "veličina diska sa opcionim k, M, G, T sufiksom"
+
+#: src/virsh.c:3608
+msgid "initial allocation size with optional k,M,G,T suffix"
+msgstr "početna dodeljena veličina sa opcionim k, M, G, T sufiksom"
+
+#: src/virsh.c:3609
+msgid "file format type raw,bochs,qcow,qcow2,vmdk"
+msgstr "vrsta formata datoteka raw,bochs,qcow,qcow2,vmdk"
+
+#: src/virsh.c:3668 src/virsh.c:3673
+#, c-format
+msgid "Malformed size %s"
+msgstr "Loša veličina %s"
+
+#: src/virsh.c:3704
+#, c-format
+msgid "Vol %s created\n"
+msgstr "Disk %s je napravljen\n"
+
+#: src/virsh.c:3708
+#, c-format
+msgid "Failed to create vol %s"
+msgstr "Neuspelo pravljenje diska %s"
+
+#: src/virsh.c:3724
+msgid "undefine an inactive pool"
+msgstr "ukini definiciju neaktivnog skladišta"
+
+#: src/virsh.c:3725
+msgid "Undefine the configuration for an inactive pool."
+msgstr "Ukidanje definicije podešavanja za neaktivano skladište."
+
+#: src/virsh.c:3748
+#, c-format
+msgid "Pool %s has been undefined\n"
+msgstr "Skladištu %s je ukinuta definicija\n"
+
+#: src/virsh.c:3750
+#, c-format
+msgid "Failed to undefine pool %s"
+msgstr "Neuspelo ukidanje definicije skaldišta %s"
+
+#: src/virsh.c:3763
+msgid "convert a pool name to pool UUID"
+msgstr "prebaci ime skladišta u UUID skladišta"
+
+#: src/virsh.c:3788
+msgid "failed to get pool UUID"
+msgstr "neuspelo dobavljanje UUID skladišta"
+
+#: src/virsh.c:3801
+msgid "create a vol from an XML file"
+msgstr "napravi disk iz XML datoteke"
+
+#: src/virsh.c:3808
+msgid "file containing an XML vol description"
+msgstr "datoteka koja sadrži XML opis diska"
+
+#: src/virsh.c:3845
+#, c-format
+msgid "Vol %s created from %s\n"
+msgstr "Disk %s je napravljen iz %s\n"
+
+#: src/virsh.c:3849
+#, c-format
+msgid "Failed to create vol from %s"
+msgstr "Neuspelo pravljenje diska iz %s"
+
+#: src/virsh.c:3860
+msgid "delete a vol"
+msgstr "obriši disk"
+
+#: src/virsh.c:3861
+msgid "Delete a given vol."
+msgstr "Uništavanje zadatog diska."
+
+#: src/virsh.c:3867 src/virsh.c:3909 src/virsh.c:3961
+msgid "vol name, key or path"
+msgstr "ime, ključ ili putanja diska"
+
+#: src/virsh.c:3886
+#, c-format
+msgid "Vol %s deleted\n"
+msgstr "Disk %s je uništen\n"
+
+#: src/virsh.c:3888
+#, c-format
+msgid "Failed to delete vol %s"
+msgstr "Neuspelo uništavanje diska %s"
+
+#: src/virsh.c:3902
+msgid "storage vol information"
+msgstr "podaci o disku skladištenja"
+
+#: src/virsh.c:3903
+msgid "Returns basic information about the storage vol."
+msgstr "Vraća osnovne podatke o disku skladištenja."
+
+#: src/virsh.c:3931
+msgid "Type:"
+msgstr "Vrsta:"
+
+#: src/virsh.c:3933
+msgid "file"
+msgstr "datoteka"
+
+#: src/virsh.c:3933
+msgid "block"
+msgstr "blokirano"
+
+#: src/virsh.c:3954
+msgid "vol information in XML"
+msgstr "podaci o disku u XML-u"
+
+#: src/virsh.c:3955
+msgid "Output the vol information as an XML dump to stdout."
+msgstr "Ispiši podatke o disku kao XML izbačaj na stdout."
+
+#: src/virsh.c:3996
+msgid "list vols"
+msgstr "ispiši diskove"
+
+#: src/virsh.c:3997
+msgid "Returns list of vols by pool."
+msgstr "Vraća spisak skladišta."
+
+#: src/virsh.c:4022 src/virsh.c:4030
+msgid "Failed to list active vols"
+msgstr "Neuspelo ispisivanje aktivnih diskova"
+
+#: src/virsh.c:4038
+msgid "Path"
+msgstr "Putanja"
+
+#: src/virsh.c:4075
+msgid "convert a vol UUID to vol name"
+msgstr "prebaci diska UUID u ime diska"
+
+#: src/virsh.c:4080
+msgid "vol key or path"
+msgstr "ključ ili putanja diska"
+
+#: src/virsh.c:4108
+msgid "convert a vol UUID to vol key"
+msgstr "prebaci UUID diska u ime diska"
+
+#: src/virsh.c:4113
+msgid "vol uuid"
+msgstr "uuid diska"
+
+#: src/virsh.c:4141
+msgid "convert a vol UUID to vol path"
+msgstr "prebaci UUID diska u ime diska"
+
+#: src/virsh.c:4147
+msgid "vol name or key"
+msgstr "ime ili ključ diska"
+
+#: src/virsh.c:4178
+msgid "show version"
+msgstr "prikaži verziju"
+
+#: src/virsh.c:4179
+msgid "Display the system version information."
+msgstr "Prikazuje podatke o verziji sistema."
+
+#: src/virsh.c:4202
+msgid "failed to get hypervisor type"
+msgstr "neuspelo dobavljanje vrste hipervizora"
+
+#: src/virsh.c:4211
+#, c-format
+msgid "Compiled against library: libvir %d.%d.%d\n"
+msgstr "Kompilirano uz biblioteku: libvir %d.%d.%d\n"
+
+#: src/virsh.c:4216
+msgid "failed to get the library version"
+msgstr "neuspelo dobavljanje verzije biblioteke"
+
+#: src/virsh.c:4223
+#, c-format
+msgid "Using library: libvir %d.%d.%d\n"
+msgstr "Koristim biblioteku: libvir %d.%d.%d\n"
+
+#: src/virsh.c:4230
+#, c-format
+msgid "Using API: %s %d.%d.%d\n"
+msgstr "Koristim API: %s %d.%d.%d\n"
+
+#: src/virsh.c:4235
+msgid "failed to get the hypervisor version"
+msgstr "neuspelo dobavljanje verzije hipervizora"
+
+#: src/virsh.c:4240
+#, c-format
+msgid "Cannot extract running %s hypervisor version\n"
+msgstr "Ne mogu da izvučem verziju tekućeg %s hipervizora\n"
+
+#: src/virsh.c:4247
+#, c-format
+msgid "Running hypervisor: %s %d.%d.%d\n"
+msgstr "Tekući hipervizor: %s %d.%d.%d\n"
+
+#: src/virsh.c:4258
+msgid "print the hypervisor hostname"
+msgstr "ispiši ime domaćina hipervizora"
+
+#: src/virsh.c:4272
+msgid "failed to get hostname"
+msgstr "neuspelo dobavljanje imena domaćina"
+
+#: src/virsh.c:4287
+msgid "print the hypervisor canonical URI"
+msgstr "ispiši kanonski URI hipervizora"
+
+#: src/virsh.c:4301
+msgid "failed to get URI"
+msgstr "neuspelo dobavljanje URI-a"
+
+#: src/virsh.c:4316
+msgid "vnc display"
+msgstr "vnc prikaz"
+
+#: src/virsh.c:4317
+msgid "Output the IP address and port number for the VNC display."
+msgstr "Ispiši IP adresu i broj porta za VNC prikaz."
+
+#: src/virsh.c:4392
+msgid "tty console"
+msgstr "tty konzola"
+
+#: src/virsh.c:4393
+msgid "Output the device for the TTY console."
+msgstr "Izlazni uređaj za TTY konzolu."
+
+#: src/virsh.c:4453
+msgid "attach device from an XML file"
+msgstr "zakači uređaj iz XML datoteke"
+
+#: src/virsh.c:4454
+msgid "Attach device from an XML <file>."
+msgstr "Zakači uređaj iz XML <datoteke>."
+
+#: src/virsh.c:4460 src/virsh.c:4517
+msgid "XML file"
+msgstr "XML datoteka"
+
+#: src/virsh.c:4481
+msgid "attach-device: Missing <file> option"
+msgstr "poveži-uređaj: Nedostaje <file> opcija"
+
+#: src/virsh.c:4495
+#, c-format
+msgid "Failed to attach device from %s"
+msgstr "Nisam uspeo da povežem uređaj iz %s"
+
+#: src/virsh.c:4510
+msgid "detach device from an XML file"
+msgstr "otkači uređaj iz XML datoteke"
+
+#: src/virsh.c:4511
+msgid "Detach device from an XML <file>"
+msgstr "Otkači uređaj iz XML <datoteke>."
+
+#: src/virsh.c:4538
+msgid "detach-device: Missing <file> option"
+msgstr "otkači-uređaj: Nedostaje <file> opcija"
+
+#: src/virsh.c:4552
+#, c-format
+msgid "Failed to detach device from %s"
+msgstr "Neuspelo otkačinjanje uređaja iz %s"
+
+#: src/virsh.c:4567
+msgid "attach network interface"
+msgstr "prikači mrežnu spregu"
+
+#: src/virsh.c:4568
+msgid "Attach new network interface."
+msgstr "Prikači novu mrežnu spregu."
+
+#: src/virsh.c:4574 src/virsh.c:4688
+msgid "network interface type"
+msgstr "vrsta mrežne sprege"
+
+#: src/virsh.c:4575
+msgid "source of network interface"
+msgstr "izvor mrežne sprege"
+
+#: src/virsh.c:4576
+msgid "target network name"
+msgstr "ime ciljne mreže"
+
+#: src/virsh.c:4577 src/virsh.c:4689
+msgid "MAC address"
+msgstr "MAC adresa"
+
+#: src/virsh.c:4578
+msgid "script used to bridge network interface"
+msgstr "skripta upotrebljena za premošćavanje mrežne sprege"
+
+#: src/virsh.c:4610
+#, c-format
+msgid "No support %s in command 'attach-interface'"
+msgstr "Nema podrške za %s u naredbi „attach-interface“"
+
+#: src/virsh.c:4681
+msgid "detach network interface"
+msgstr "otkači mrežnu spregu"
+
+#: src/virsh.c:4682
+msgid "Detach network interface."
+msgstr "Otkači mrežnu spregu."
+
+#: src/virsh.c:4727 src/virsh.c:4732
+msgid "Failed to get interface information"
+msgstr "Neuspelo dobavljanje podataka o sprezi"
+
+#: src/virsh.c:4740
+#, c-format
+msgid "No found interface whose type is %s"
+msgstr "Nije pronađena sprega vrste %s"
+
+#: src/virsh.c:4762
+#, c-format
+msgid "No found interface whose MAC address is %s"
+msgstr "Nije pronađena sprega čija je MAC adresa %s"
+
+#: src/virsh.c:4768 src/virsh.c:5042
+msgid "Failed to allocate memory"
+msgstr "Neuspelo zauzimanje memorije"
+
+#: src/virsh.c:4773 src/virsh.c:5047
+msgid "Failed to create XML"
+msgstr "Neuspelo pravljenje XML-a"
+
+#: src/virsh.c:4800
+msgid "attach disk device"
+msgstr "prikači uređaj diska"
+
+#: src/virsh.c:4801
+msgid "Attach new disk device."
+msgstr "Prikači novi uređaj diska."
+
+#: src/virsh.c:4807
+msgid "source of disk device"
+msgstr "izvor uređaja diska"
+
+#: src/virsh.c:4808 src/virsh.c:4970
+msgid "target of disk device"
+msgstr "cilj uređaja diska"
+
+#: src/virsh.c:4809
+msgid "driver of disk device"
+msgstr "upravljački program uređaja diska"
+
+#: src/virsh.c:4810
+msgid "subdriver of disk device"
+msgstr "upravljački podprogram uređaja diska"
+
+#: src/virsh.c:4811
+msgid "target device type"
+msgstr "vrsta ciljnog uređaja"
+
+#: src/virsh.c:4812
+msgid "mode of device reading and writing"
+msgstr "režim čitanja i upisivanja uređaja"
+
+#: src/virsh.c:4843 src/virsh.c:4852 src/virsh.c:4859
+#, c-format
+msgid "No support %s in command 'attach-disk'"
+msgstr "Nema podrške za %s u naredbi „attach-disk“"
+
+#: src/virsh.c:4963
+msgid "detach disk device"
+msgstr "otkači uređaj diska"
+
+#: src/virsh.c:4964
+msgid "Detach disk device."
+msgstr "Otkači uređaj diska."
+
+#: src/virsh.c:5005 src/virsh.c:5010 src/virsh.c:5017
+msgid "Failed to get disk information"
+msgstr "Neuspelo dobavljanje podataka o disku"
+
+#: src/virsh.c:5036
+#, c-format
+msgid "No found disk whose target is %s"
+msgstr "Nije pronađen disk čiji je cilj %s"
+
+#: src/virsh.c:5074
+msgid "quit this interactive terminal"
+msgstr "napusti ovaj interaktivni terminal"
+
+#: src/virsh.c:5245
+#, c-format
+msgid "command '%s' requires <%s> option"
+msgstr "naredba „%s“ zahteva <%s> opciju"
+
+#: src/virsh.c:5246
+#, c-format
+msgid "command '%s' requires --%s option"
+msgstr "naredba „%s“ zahteva --%s opciju"
+
+#: src/virsh.c:5273
+#, c-format
+msgid "command '%s' doesn't exist"
+msgstr "naredba „%s“ ne postoji"
+
+#: src/virsh.c:5281
+msgid "  NAME\n"
+msgstr "  IME\n"
+
+#: src/virsh.c:5285
+msgid ""
+"\n"
+"  SYNOPSIS\n"
+msgstr ""
+"\n"
+"  SAŽETAK\n"
+
+#: src/virsh.c:5292
+msgid ""
+"\n"
+"  DESCRIPTION\n"
+msgstr ""
+"\n"
+"  OPIS\n"
+
+#: src/virsh.c:5296
+msgid ""
+"\n"
+"  OPTIONS\n"
+msgstr ""
+"\n"
+"  OPCIJE\n"
+
+#: src/virsh.c:5303
+#, c-format
+msgid "--%s <number>"
+msgstr "--%s <broj>"
+
+#: src/virsh.c:5305
+#, c-format
+msgid "--%s <string>"
+msgstr "--%s <niska>"
+
+#: src/virsh.c:5449
+msgid "undefined domain name or id"
+msgstr "nedefinisano ime ili id domena"
+
+#: src/virsh.c:5481
+#, c-format
+msgid "failed to get domain '%s'"
+msgstr "neuspelo dobavljanje domena „%s“"
+
+#: src/virsh.c:5494
+msgid "undefined network name"
+msgstr "nedefinisano ime mreže"
+
+#: src/virsh.c:5518
+#, c-format
+msgid "failed to get network '%s'"
+msgstr "neuspelo dobavljanje mreže „%s“"
+
+#: src/virsh.c:5531 src/virsh.c:5577
+msgid "undefined pool name"
+msgstr "ime skladišta nije definisano"
+
+#: src/virsh.c:5555
+#, c-format
+msgid "failed to get pool '%s'"
+msgstr "nisam uspeo da dobavim disk „%s“"
+
+#: src/virsh.c:5572
+msgid "undefined vol name"
+msgstr "nedefinisano ime diska"
+
+#: src/virsh.c:5608
+#, c-format
+msgid "failed to get vol '%s'"
+msgstr "neuspelo dobavljanje diska „%s“"
+
+#: src/virsh.c:5639
+#, c-format
+msgid ""
+"\n"
+"(Time: %.3f ms)\n"
+"\n"
+msgstr ""
+"\n"
+"(Vreme: %.3f ms)\n"
+"\n"
+
+#: src/virsh.c:5713
+msgid "missing \""
+msgstr "nedostaje \""
+
+#: src/virsh.c:5774
+#, c-format
+msgid "unexpected token (command name): '%s'"
+msgstr "neočekivani izraz (ime naredbe): „%s“"
+
+#: src/virsh.c:5779
+#, c-format
+msgid "unknown command: '%s'"
+msgstr "neočekivana naredba: „%s“"
+
+#: src/virsh.c:5786
+#, c-format
+msgid "command '%s' doesn't support option --%s"
+msgstr "naredba „%s“ ne podržava opciju --%s"
+
+#: src/virsh.c:5801
+#, c-format
+msgid "expected syntax: --%s <%s>"
+msgstr "očekivana sintaksa: --%s <%s>"
+
+#: src/virsh.c:5804
+msgid "number"
+msgstr "broj"
+
+#: src/virsh.c:5804
+msgid "string"
+msgstr "niska"
+
+#: src/virsh.c:5810
+#, c-format
+msgid "unexpected data '%s'"
+msgstr "neočekivani podaci „%s“"
+
+#: src/virsh.c:5832
+msgid "OPTION"
+msgstr "OPCIJA"
+
+#: src/virsh.c:5832
+msgid "DATA"
+msgstr "PODACI"
+
+#: src/virsh.c:5883 src/virsh.c:5905
+msgid "blocked"
+msgstr "blokirano"
+
+#: src/virsh.c:5885
+msgid "paused"
+msgstr "pauzirano"
+
+#: src/virsh.c:5887
+msgid "in shutdown"
+msgstr "u gašenju"
+
+#: src/virsh.c:5889
+msgid "shut off"
+msgstr "zaustavljeno"
+
+#: src/virsh.c:5891
+msgid "crashed"
+msgstr "krahiralo"
+
+#: src/virsh.c:5903
+msgid "offline"
+msgstr "van upotrebe"
+
+#: src/virsh.c:5922
+msgid "no valid connection"
+msgstr "nema ispravne veze"
+
+#: src/virsh.c:5969
+#, c-format
+msgid "%s: error: "
+msgstr "%s: greška: "
+
+#: src/virsh.c:5971
+msgid "error: "
+msgstr "greška: "
+
+#: src/virsh.c:5993 src/virsh.c:6005 src/virsh.c:6018
+#, c-format
+msgid "%s: %d: failed to allocate %d bytes"
+msgstr "%s: %d: neuspelo zauzimanje %d bajtova"
+
+#: src/virsh.c:6032
+#, c-format
+msgid "%s: %d: failed to allocate %lu bytes"
+msgstr "%s: %d: neuspelo zauzimanje %lu bajtova"
+
+#: src/virsh.c:6065
+msgid "failed to connect to the hypervisor"
+msgstr "neuspelo povezivanje sa hipervizorom"
+
+#: src/virsh.c:6097
+msgid "failed to get the log file information"
+msgstr "neuspelo dobavljanje podataka o datoteci dnevnika"
+
+#: src/virsh.c:6102
+msgid "the log path is not a file"
+msgstr "putanja dnevnika nije datoteka"
+
+#: src/virsh.c:6109
+msgid "failed to open the log file. check the log file path"
+msgstr ""
+"neuspelo otvaranje datoteke dnevnika. proverite putanju do datoteke dnevnika"
+
+#: src/virsh.c:6177
+msgid "failed to write the log file"
+msgstr "neuspelo upisivanje datoteke dnevnika"
+
+#: src/virsh.c:6192
+#, c-format
+msgid "%s: failed to write log file: %s"
+msgstr "%s: neuspelo upisivanje datoteke dnevnika: %s"
+
+#: src/virsh.c:6369
+msgid "failed to disconnect from the hypervisor"
+msgstr "Neuspelo prekidanje veze sa hipervizorom"
+
+#: src/virsh.c:6387
+#, c-format
+msgid ""
+"\n"
+"%s [options] [commands]\n"
+"\n"
+"  options:\n"
+"    -c | --connect <uri>    hypervisor connection URI\n"
+"    -r | --readonly         connect readonly\n"
+"    -d | --debug <num>      debug level [0-5]\n"
+"    -h | --help             this help\n"
+"    -q | --quiet            quiet mode\n"
+"    -t | --timing           print timing information\n"
+"    -l | --log <file>       output logging to file\n"
+"    -v | --version          program version\n"
+"\n"
+"  commands (non interactive mode):\n"
+msgstr ""
+"\n"
+"%s [opcije] [naredbe]\n"
+"\n"
+"  opcije:\n"
+"    -c | --connect <uri>    URI veze hipervizora\n"
+"    -r | --readonly         poveži samo za čitanje\n"
+"    -d | --debug <br>       nivo lova na greške [0-5]\n"
+"    -h | --help             ova pomoć\n"
+"    -q | --quiet            tihi režim\n"
+"    -t | --timing           štampaj vremenske podatke\n"
+"    -l | --log <datoteka>   zapisivanje izlaza u datoteku\n"
+"    -v | --version          verzija programa\n"
+"\n"
+"  naredbe (neiteraktivni režim):\n"
+
+#: src/virsh.c:6405
+msgid ""
+"\n"
+"  (specify help <command> for details about the command)\n"
+"\n"
+msgstr ""
+"\n"
+"  (navedite help <naredba> za detalje o naredbi)\n"
+"\n"
+
+#: src/virsh.c:6501
+#, c-format
+msgid "unsupported option '-%c'. See --help."
+msgstr "nepodržana opcija „-%c“. Pogledajte --help."
+
+#: src/virsh.c:6587
+#, c-format
+msgid ""
+"Welcome to %s, the virtualization interactive terminal.\n"
+"\n"
+msgstr ""
+"Dobrodošli u %s, interaktivni terminal za virtualizaciju.\n"
+"\n"
+
+#: src/virsh.c:6590
+msgid ""
+"Type:  'help' for help with commands\n"
+"       'quit' to quit\n"
+"\n"
+msgstr ""
+"Unesite:  „help“ za pomoć oko naredbi\n"
+"          „quit“ za izlaz\n"
+"\n"
+
+#: src/virterror.c:243
+msgid "warning"
+msgstr "upozorenje"
+
+#: src/virterror.c:246
+msgid "error"
+msgstr "greška"
+
+#: src/virterror.c:375
+msgid "No error message provided"
+msgstr "Nije pružena poruka o grešci"
+
+#: src/virterror.c:430
+#, c-format
+msgid "internal error %s"
+msgstr "unutrašnja greška %s"
+
+#: src/virterror.c:432
+msgid "internal error"
+msgstr "unutrašnja greška"
+
+#: src/virterror.c:439
+msgid "this function is not supported by the hypervisor"
+msgstr "hipervizor ne podržava ovu funkciju"
+
+#: src/virterror.c:441
+#, c-format
+msgid "this function is not supported by the hypervisor: %s"
+msgstr "hipervizor ne podržava ovu funkciju: %s"
+
+#: src/virterror.c:445
+msgid "could not connect to hypervisor"
+msgstr "ne mogu da se povežem sa hipervizorom"
+
+#: src/virterror.c:447
+#, c-format
+msgid "could not connect to %s"
+msgstr "ne mogu da se povežem sa %s"
+
+#: src/virterror.c:451
+msgid "invalid connection pointer in"
+msgstr "neispravan pokazivač veze u"
+
+#: src/virterror.c:453
+#, c-format
+msgid "invalid connection pointer in %s"
+msgstr "neispravan pokazivač veze u %s"
+
+#: src/virterror.c:457
+msgid "invalid domain pointer in"
+msgstr "neispravan pokazivač domena u"
+
+#: src/virterror.c:459
+#, c-format
+msgid "invalid domain pointer in %s"
+msgstr "neispravan pokazivač domena u %s"
+
+#: src/virterror.c:463
+msgid "invalid argument in"
+msgstr "neispravan argument u"
+
+#: src/virterror.c:465
+#, c-format
+msgid "invalid argument in %s"
+msgstr "neispravan argument u %s"
+
+#: src/virterror.c:469
+#, c-format
+msgid "operation failed: %s"
+msgstr "neuspela radnja: %s"
+
+#: src/virterror.c:471
+msgid "operation failed"
+msgstr "neuspela radnja"
+
+#: src/virterror.c:475
+#, c-format
+msgid "GET operation failed: %s"
+msgstr "neuspela GET radnja: %s"
+
+#: src/virterror.c:477
+msgid "GET operation failed"
+msgstr "neuspela GET radnja"
+
+#: src/virterror.c:481
+#, c-format
+msgid "POST operation failed: %s"
+msgstr "neuspela POST radnja: %s"
+
+#: src/virterror.c:483
+msgid "POST operation failed"
+msgstr "neuspela POST radnja"
+
+#: src/virterror.c:486
+#, c-format
+msgid "got unknown HTTP error code %d"
+msgstr "dobijen nepoznat broj HTTP greške %d"
+
+#: src/virterror.c:490
+#, c-format
+msgid "unknown host %s"
+msgstr "nepoznat domaćin %s"
+
+#: src/virterror.c:492
+msgid "unknown host"
+msgstr "nepoznat domaćin"
+
+#: src/virterror.c:496
+#, c-format
+msgid "failed to serialize S-Expr: %s"
+msgstr "ne mogu da serijalizujem S-izraz: %s"
+
+#: src/virterror.c:498
+msgid "failed to serialize S-Expr"
+msgstr "ne mogu da serijalizujem S-izraz"
+
+#: src/virterror.c:502
+msgid "could not use Xen hypervisor entry"
+msgstr "ne mogu da upotrebim stavku Xen hipervizora"
+
+#: src/virterror.c:504
+#, c-format
+msgid "could not use Xen hypervisor entry %s"
+msgstr "ne mogu da upotrebim %s stavku Xen hipervizora"
+
+#: src/virterror.c:508
+msgid "could not connect to Xen Store"
+msgstr "ne mogu da se povežem sa Xen skladištem"
+
+#: src/virterror.c:510
+#, c-format
+msgid "could not connect to Xen Store %s"
+msgstr "ne mogu da se povežem sa Xen skladištem %s"
+
+#: src/virterror.c:513
+#, c-format
+msgid "failed Xen syscall %s %d"
+msgstr "neuspeo Xen syscall %s %d"
+
+#: src/virterror.c:517
+msgid "unknown OS type"
+msgstr "nepoznata vrsta OS-a"
+
+#: src/virterror.c:519
+#, c-format
+msgid "unknown OS type %s"
+msgstr "nepoznata vrsta OS-a %s"
+
+#: src/virterror.c:522
+msgid "missing kernel information"
+msgstr "nedostaju podaci o jezgru"
+
+#: src/virterror.c:526
+msgid "missing root device information"
+msgstr "nedostaju podaci o korenskom uređaju"
+
+#: src/virterror.c:528
+#, c-format
+msgid "missing root device information in %s"
+msgstr "nedostaju podaci o korenskom uređaju %s"
+
+#: src/virterror.c:532
+msgid "missing source information for device"
+msgstr "nedostaju izvorni podaci za uređaj"
+
+#: src/virterror.c:534
+#, c-format
+msgid "missing source information for device %s"
+msgstr "nedostaju izvorni podaci za uređaj %s"
+
+#: src/virterror.c:538
+msgid "missing target information for device"
+msgstr "nedostaju ciljni podaci za uređaj"
+
+#: src/virterror.c:540
+#, c-format
+msgid "missing target information for device %s"
+msgstr "nedostaju ciljni podaci za uređaj %s"
+
+#: src/virterror.c:544
+msgid "missing domain name information"
+msgstr "nedostaju podaci o imenu domena"
+
+#: src/virterror.c:546
+#, c-format
+msgid "missing domain name information in %s"
+msgstr "nedostaju podaci o imenu domena u %s"
+
+#: src/virterror.c:550
+msgid "missing operating system information"
+msgstr "nedostaju podaci o operativnom sistemu"
+
+#: src/virterror.c:552
+#, c-format
+msgid "missing operating system information for %s"
+msgstr "nedostaju podaci o operativnom sistemu za %s"
+
+#: src/virterror.c:556
+msgid "missing devices information"
+msgstr "nedostaju podaci o uređajima"
+
+#: src/virterror.c:558
+#, c-format
+msgid "missing devices information for %s"
+msgstr "nedostaju podaci o uređajima za %s"
+
+#: src/virterror.c:562
+msgid "too many drivers registered"
+msgstr "registrovano je previše upravljačkih programa"
+
+#: src/virterror.c:564
+#, c-format
+msgid "too many drivers registered in %s"
+msgstr "registrovano je previše upravljačkih programa u %s"
+
+#: src/virterror.c:568
+msgid "library call failed, possibly not supported"
+msgstr "neuspeo poziv u biblioteci, verovatno nije podržan"
+
+#: src/virterror.c:570
+#, c-format
+msgid "library call %s failed, possibly not supported"
+msgstr "neuspeo poziv %s u biblioteci, verovatno nije podržan"
+
+#: src/virterror.c:574
+msgid "XML description not well formed or invalid"
+msgstr "XML opis nije dobro oblikovan ili je neispravan"
+
+#: src/virterror.c:576
+#, c-format
+msgid "XML description for %s is not well formed or invalid"
+msgstr "XML opis za %s nije dobro oblikovan ili je neispravan"
+
+#: src/virterror.c:580
+msgid "this domain exists already"
+msgstr "ovaj domen već postoji"
+
+#: src/virterror.c:582
+#, c-format
+msgid "domain %s exists already"
+msgstr "domen %s već postoji"
+
+#: src/virterror.c:586
+msgid "operation forbidden for read only access"
+msgstr "radnja je zabranjena za pristup samo čitanja"
+
+#: src/virterror.c:588
+#, c-format
+msgid "operation %s forbidden for read only access"
+msgstr "radnja %s je zabranjena za pristup samo čitanja"
+
+#: src/virterror.c:592
+msgid "failed to open configuration file for reading"
+msgstr "neuspelo otvaranje datoteku podešavanja za čitanje"
+
+#: src/virterror.c:594
+#, c-format
+msgid "failed to open %s for reading"
+msgstr "neuspelo otvaranje %s za čitanje"
+
+#: src/virterror.c:598
+msgid "failed to read configuration file"
+msgstr "neuspelo čitanje datoteke podešavanja"
+
+#: src/virterror.c:600
+#, c-format
+msgid "failed to read configuration file %s"
+msgstr "neuspelo čitanje %s datoteke podešavanja"
+
+#: src/virterror.c:604
+msgid "failed to parse configuration file"
+msgstr "neuspelo tumačenje datoteke podešavanja"
+
+#: src/virterror.c:606
+#, c-format
+msgid "failed to parse configuration file %s"
+msgstr "neuspelo tumačenje %s datoteke podešavanja"
+
+#: src/virterror.c:610
+msgid "configuration file syntax error"
+msgstr "sintaksna greška u datoteci podešavanja"
+
+#: src/virterror.c:612
+#, c-format
+msgid "configuration file syntax error: %s"
+msgstr "sintaksna greška u datoteci podešavanja: %s"
+
+#: src/virterror.c:616
+msgid "failed to write configuration file"
+msgstr "neuspelo upisivanje datoteke podešavanja"
+
+#: src/virterror.c:618
+#, c-format
+msgid "failed to write configuration file: %s"
+msgstr "neuspelo upisivanje datoteke podešavanja: %s"
+
+#: src/virterror.c:622
+msgid "parser error"
+msgstr "greška u raščlanjavanju"
+
+#: src/virterror.c:628
+msgid "invalid network pointer in"
+msgstr "neispravan pokazivač veze u"
+
+#: src/virterror.c:630
+#, c-format
+msgid "invalid network pointer in %s"
+msgstr "neispravan pokazivač veze u %s"
+
+#: src/virterror.c:634
+msgid "this network exists already"
+msgstr "ova mreža već postoji"
+
+#: src/virterror.c:636
+#, c-format
+msgid "network %s exists already"
+msgstr "mreža %s već postoji"
+
+#: src/virterror.c:640
+msgid "system call error"
+msgstr "greška u sistemskom pozivu"
+
+#: src/virterror.c:646
+msgid "RPC error"
+msgstr "RPC greška"
+
+#: src/virterror.c:652
+msgid "GNUTLS call error"
+msgstr "greška u GNUTLS pozivu"
+
+#: src/virterror.c:658
+msgid "Failed to find the network"
+msgstr "Neuspelo pronalaženje mreže"
+
+#: src/virterror.c:660
+#, c-format
+msgid "Failed to find the network: %s"
+msgstr "Neuspelo pronalaženje mreže: %s"
+
+#: src/virterror.c:664
+msgid "Domain not found"
+msgstr "Domen nije pronađen"
+
+#: src/virterror.c:666
+#, c-format
+msgid "Domain not found: %s"
+msgstr "Domen nije pronađen: %s"
+
+#: src/virterror.c:670
+msgid "Network not found"
+msgstr "Mreža nije pronađena"
+
+#: src/virterror.c:672
+#, c-format
+msgid "Network not found: %s"
+msgstr "Mreža nije pronađena: %s"
+
+#: src/virterror.c:676
+msgid "invalid MAC address"
+msgstr "neispravna MAC adresa"
+
+#: src/virterror.c:678
+#, c-format
+msgid "invalid MAC address: %s"
+msgstr "neispravna MAC adresa: %s"
+
+#: src/virterror.c:682
+msgid "authentication failed"
+msgstr "neuspela autentifikacija"
+
+#: src/virterror.c:684
+#, c-format
+msgid "authentication failed: %s"
+msgstr "neuspela autentifikacija: %s"
+
+#: src/virterror.c:688
+msgid "Storage pool not found"
+msgstr "Skladište nije pronađeno"
+
+#: src/virterror.c:690
+#, c-format
+msgid "Storage pool not found: %s"
+msgstr "Skladište nije pronađeno: %s"
+
+#: src/virterror.c:694
+msgid "Storage volume not found"
+msgstr "Disk za skladištenje nije pronađen"
+
+#: src/virterror.c:696
+#, c-format
+msgid "Storage volume not found: %s"
+msgstr "Disk za skladištenje nije pronađen: %s"
+
+#: src/virterror.c:700
+msgid "invalid storage pool pointer in"
+msgstr "neispravan pokazivač skladišta u"
+
+#: src/virterror.c:702
+#, c-format
+msgid "invalid storage pool pointer in %s"
+msgstr "neispravan pokazivač skladišta u %s"
+
+#: src/virterror.c:706
+msgid "invalid storage volume pointer in"
+msgstr "neispravan pokazivač diska skladištenja u"
+
+#: src/virterror.c:708
+#, c-format
+msgid "invalid storage volume pointer in %s"
+msgstr "neispravan pokazivač diska skladištenja veze u %s"
+
+#: src/virterror.c:712
+msgid "Failed to find a storage driver"
+msgstr "Neuspelo pronalaženje upravljačkog programa skladišta"
+
+#: src/virterror.c:714
+#, c-format
+msgid "Failed to find a storage driver: %s"
+msgstr "Neuspelo pronalaženje upravljačkog programa skladišta: %s"
+
+#: src/xen_internal.c:1326
+#, c-format
+msgid "Credit scheduler weight parameter (%d) is out of range (1-65535)"
+msgstr "Parametar značaja planera kredita (%d) je van opsega (1-65535)"
+
+#: src/xen_internal.c:1336
+#, c-format
+msgid "Credit scheduler cap parameter (%d) is out of range (0-65535)"
+msgstr "Parametar ograničenja planera kredita (%d) je van opsega (0-65535)"
+
+#: src/xen_internal.c:2501
+#, c-format
+msgid "allocating %d domain info"
+msgstr "dodeljujem info %d domena"
+
+#: src/xend_internal.c:233
+msgid "failed to create a socket"
+msgstr "nisam uspeo da napravim soket"
+
+#: src/xend_internal.c:255
+msgid "failed to connect to xend"
+msgstr "nisam uspeo da se povežem sa xend"
+
+#: src/xend_internal.c:302 src/xend_internal.c:305
+msgid "failed to read from Xen Daemon"
+msgstr "neuspelo čitanje iz Xen demona"
+
+#: src/xend_internal.c:616 src/xend_internal.c:835 src/xend_internal.c:1589
+#: src/xend_internal.c:1608
+msgid "allocate new buffer"
+msgstr "zauzmi novi bafer"
+
+#: src/xend_internal.c:1042
+msgid "failed to urlencode the create S-Expr"
+msgstr "neuspeh pri urlencode S-izraza create"
+
+#: src/xend_internal.c:1083
+msgid "domain information incomplete, missing domid"
+msgstr "nepotpuni podaci o domenu, nedostaje domid"
+
+#: src/xend_internal.c:1089
+msgid "domain information incorrect domid not numeric"
+msgstr "podaci o domenu su netačni ili domid nije brojčan"
+
+#: src/xend_internal.c:1094 src/xend_internal.c:1141
+msgid "domain information incomplete, missing uuid"
+msgstr "nepotpuni podaci o domenu, nedostaje uuid"
+
+#: src/xend_internal.c:1133 src/xend_internal.c:1433 src/xend_internal.c:1440
+msgid "domain information incomplete, missing name"
+msgstr "nepotpuni podaci o domenu, nedostaje ime"
+
+#: src/xend_internal.c:1318
+msgid "domain information incomplete, missing HVM loader"
+msgstr "nepotpuni podaci o domenu, nedostaje HVM program za učitavanje"
+
+#: src/xend_internal.c:1370
+msgid "domain information incomplete, missing kernel & bootloader"
+msgstr "nepotpuni podaci o domenu, nedostaje jezgro i pokretački program"
+
+#: src/xend_internal.c:1421
+msgid "domain information incomplete, missing id"
+msgstr "nepotpuni podaci o domenu, nedostaje id"
+
+#: src/xend_internal.c:1558
+msgid "domain information incomplete, vbd has no dev"
+msgstr "nepotpuni podaci o domenu, vbd nema dev"
+
+#: src/xend_internal.c:1573
+msgid "domain information incomplete, vbd has no src"
+msgstr "nepotpuni podaci o domenu, vbd nema src"
+
+#: src/xend_internal.c:1582
+msgid "cannot parse vbd filename, missing driver name"
+msgstr ""
+"ne mogu protumačiti vbd ime datoteke, nedostaje ime upravljačkog programa"
+
+#: src/xend_internal.c:1601
+msgid "cannot parse vbd filename, missing driver type"
+msgstr ""
+"ne mogu protumačiti vbd ime datoteke, nedostaje vrsta upravljačkog programa"
+
+#: src/xend_internal.c:1994
+msgid "failed to parse topology information"
+msgstr "neuspelo tumačenje podataka o topologiji"
+
+#: src/xend_internal.c:2050
+msgid "topology syntax error"
+msgstr "sintaksna greška topologije"
+
+#: src/xend_internal.c:2060 src/xml.c:115 src/xml.c:279
+msgid "allocate buffer"
+msgstr "zauzmi bafer"
+
+#: src/xend_internal.c:2114
+msgid "failed to parse Xend domain information"
+msgstr "neuspelo tumačenje podataka o Xend domenu"
+
+#: src/xend_internal.c:2594
+msgid "xenDaemonDomainDumpXMLByID failed to find this domain"
+msgstr "xenDaemonDomainDumpXMLByID nije uspeo da pronađe ovaj domen"
+
+#: src/xend_internal.c:2619
+msgid "xenDaemonDomainDumpXMLByName failed to find this domain"
+msgstr "xenDaemonDomainDumpXMLByName nije uspeo da pronađe ovaj domen"
+
+#: src/xend_internal.c:3231 src/xend_internal.c:3540
+msgid "failed to parse domain description"
+msgstr "neuspeloraščlanjenje opisa domena"
+
+#: src/xend_internal.c:3410
+msgid ""
+"xenDaemonDomainMigrate: Xen does not support renaming domains during "
+"migration"
+msgstr ""
+"xenDaemonDomainMigrate: Xen ne podržava promenu imena domena prilikom "
+"premeštanja"
+
+#: src/xend_internal.c:3420
+msgid ""
+"xenDaemonDomainMigrate: Xen does not support bandwidth limits during "
+"migration"
+msgstr ""
+"xenDaemonDomainMigrate: Xen ne podržava ograničavanje propusnog opsega "
+"prilikom premeštanja"
+
+#: src/xend_internal.c:3432
+msgid "xenDaemonDomainMigrate: unsupported flag"
+msgstr "xenDaemonDomainMigrate: zastavica nije podržana"
+
+#: src/xend_internal.c:3445
+msgid "xenDaemonDomainMigrate: invalid URI"
+msgstr "xenDaemonDomainMigrate: neispravan URI"
+
+#: src/xend_internal.c:3450
+msgid "xenDaemonDomainMigrate: only xenmigr:// migrations are supported by Xen"
+msgstr "xenDaemonDomainMigrate: Xen podržava samo xenmigr:// premeštanja"
+
+#: src/xend_internal.c:3457
+msgid "xenDaemonDomainMigrate: a hostname must be specified in the URI"
+msgstr "xenDaemonDomainMigrate: ime domaćina mora biti navedeno u URI-ju"
+
+#: src/xend_internal.c:3464 src/xend_internal.c:3486 src/xend_internal.c:3494
+#: src/xend_internal.c:3719 src/xend_internal.c:3726 src/xml.c:331
+msgid "strdup failed"
+msgstr "strdup nije uspeo"
+
+#: src/xend_internal.c:3477
+msgid "xenDaemonDomainMigrate: invalid port number"
+msgstr "xenDaemonDomainMigrate: neispravan broj porta"
+
+#: src/xend_internal.c:3550
+#, c-format
+msgid "Failed to create inactive domain %s\n"
+msgstr "Neuspelo pravljenje ne aktiviranog domena %s\n"
+
+#: src/xend_internal.c:3701 src/xend_internal.c:3777 src/xend_internal.c:3867
+msgid "unsupported in xendConfigVersion < 4"
+msgstr "nije podržano u xendConfigVersion < 4"
+
+#: src/xend_internal.c:3713
+msgid "node information incomplete, missing scheduler name"
+msgstr "nepotpuni podaci o čvoru, nedostaje naziv planera"
+
+#: src/xend_internal.c:3731 src/xend_internal.c:3825 src/xend_internal.c:3937
+msgid "Unknown scheduler"
+msgstr "Nepoznat planer"
+
+#: src/xend_internal.c:3790 src/xend_internal.c:3880
+msgid "Failed to get a scheduler name"
+msgstr "Neuspelo pribavljanje naziva planera"
+
+#: src/xend_internal.c:3803 src/xend_internal.c:3916
+msgid "domain information incomplete, missing cpu_weight"
+msgstr "nepotpuni podaci o domenu, nedostaje cpu_weight"
+
+#: src/xend_internal.c:3808 src/xend_internal.c:3925
+msgid "domain information incomplete, missing cpu_cap"
+msgstr "nepotpuni podaci o domenu, nedostaje cpu_cap"
+
+#: src/xm_internal.c:438
+msgid "xenXMConfigCacheRefresh: name"
+msgstr "xenXMConfigCacheRefresh: naziv"
+
+#: src/xm_internal.c:449
+msgid "xenXMConfigCacheRefresh: virHashAddEntry"
+msgstr "xenXMConfigCacheRefresh: virHashAddEntry"
+
+#: src/xm_internal.c:1260
+msgid "read only connection"
+msgstr "veza samo za čitanje"
+
+#: src/xm_internal.c:1265
+msgid "not inactive domain"
+msgstr "nije neaktivan domen"
+
+#: src/xm_internal.c:1270
+msgid "virHashLookup"
+msgstr "virHashLookup"
+
+#: src/xm_internal.c:1275
+msgid "can't retrieve config file for domain"
+msgstr "ne mogu da dobijem datoteku podešavanja za domen"
+
+#: src/xm_internal.c:1908 src/xm_internal.c:2590 src/xm_internal.c:2612
+#: src/xm_internal.c:3012
+msgid "cannot read XML domain definition"
+msgstr "ne mogu da pročitam definiciju XML domena"
+
+#: src/xm_internal.c:1914
+msgid "missing top level domain element"
+msgstr "nedostaje element domena najvišeg nivoa"
+
+#: src/xm_internal.c:1922
+msgid "domain type is invalid"
+msgstr "vrsta domena nije ispravna"
+
+#: src/xm_internal.c:1930 src/xm_internal.c:2595 src/xm_internal.c:2617
+#: src/xm_internal.c:3017
+msgid "cannot create XPath context"
+msgstr "ne mogu da napravim XPath kontekst"
+
+#: src/xm_internal.c:2124 src/xm_internal.c:2190 src/xm_internal.c:2211
+#: src/xm_internal.c:2224 src/xm_internal.c:2243 src/xm_internal.c:2255
+#: src/xm_internal.c:2394
+msgid "config"
+msgstr "podešavanje"
+
+#: src/xm_internal.c:2332
+msgid "name config parameter is missing"
+msgstr "nedostaje parametar podešavanja naziva"
+
+#: src/xm_internal.c:2341
+msgid "can't retrieve config filename for domain to overwrite"
+msgstr "ne mogu da dobijem naziv datoteke podešavanja za presimavanje domena"
+
+#: src/xm_internal.c:2347
+msgid "can't retrieve config entry for domain to overwrite"
+msgstr "ne mogu da dobijem unos podešavanja za presnimavanje domena"
+
+#: src/xm_internal.c:2353 src/xm_internal.c:2409
+msgid "uuid config parameter is missing"
+msgstr "nedostaje uuid parametar podešavanja"
+
+#: src/xm_internal.c:2363 src/xm_internal.c:2370
+msgid "failed to remove old domain from config map"
+msgstr "neuspelo brisanje starog domena iz mape podešavanja"
+
+#: src/xm_internal.c:2379
+msgid "config file name is too long"
+msgstr "naziv datoteke podešavanja je prevelik"
+
+#: src/xm_internal.c:2389
+msgid "unable to write config file"
+msgstr "neuspelo upisivanje datoteke podešavanja"
+
+#: src/xm_internal.c:2400
+msgid "unable to get current time"
+msgstr "neuspelo dobijanje trenutnog vremena"
+
+#: src/xm_internal.c:2415 src/xm_internal.c:2422
+msgid "unable to store config file handle"
+msgstr "neuspelo rukovanje skladištenjem datoteke podešavanja"
+
+#: src/xm_internal.c:2629
+msgid "unknown device"
+msgstr "nepoznat uređaj"
+
+#: src/xml.c:248
+msgid "topology cpuset syntax error"
+msgstr "cpuset sintaksna greška topologije"
+
+#: src/xml.c:319
+msgid "Invalid parameter to virXPathString()"
+msgstr "Nevažeći parametar za virXPathString()"
+
+#: src/xml.c:354 src/xml.c:389
+msgid "Invalid parameter to virXPathNumber()"
+msgstr "Nevažeći parametar za virXPathNumber()"
+
+#: src/xml.c:435
+msgid "Invalid parameter to virXPathBoolean()"
+msgstr "Nevažeći parametar za virXPathBoolean()"
+
+#: src/xml.c:468
+msgid "Invalid parameter to virXPathNode()"
+msgstr "Nevažeći parametar za virXPathNode()"
+
+#: src/xml.c:504
+msgid "Invalid parameter to virXPathNodeSet()"
+msgstr "Nevažeći parametar za virXPathNodeSet()"
+
+#: src/xml.c:522 src/xmlrpc.c:484
+msgid "allocate string array"
+msgstr "dodeli niz znakova"
+
+#: src/xml.c:720
+msgid "too many boot devices"
+msgstr "previše uređaja za pokretanje"
+
+#: src/xml.c:752
+msgid "no HVM domain loader"
+msgstr "nema programa za učitavanje HVM domena"
+
+#: src/xml.c:846 src/xml.c:863
+msgid "invalid input device"
+msgstr "neispravan uređaj za unos"
+
+#: src/xmlrpc.c:53
+msgid "allocate value"
+msgstr "dodeli vrednost"
+
+#: src/xmlrpc.c:65
+msgid "copying node content"
+msgstr "umnožavam sadržaj čvora"
+
+#: src/xmlrpc.c:163
+msgid "allocate value array"
+msgstr "zauzimam niz vrednosti"
+
+#: src/xmlrpc.c:186
+msgid "allocate dict"
+msgstr "dodeli dict"
+
+#: src/xmlrpc.c:197
+msgid "unexpected dict node"
+msgstr "neočekivan dict čvor"
+
+#: src/xmlrpc.c:268
+msgid "unexpected value node"
+msgstr "neočekivan čvor vrednosti"
+
+#: src/xmlrpc.c:431
+msgid "send request"
+msgstr "pošalji zahtev"
+
+#: src/xmlrpc.c:437
+msgid "unexpected mime type"
+msgstr "neočekivana mime vrsta"
+
+#: src/xmlrpc.c:444
+msgid "allocate response"
+msgstr "dodeli odgovor"
+
+#: src/xmlrpc.c:452 src/xmlrpc.c:514
+msgid "read response"
+msgstr "pročitaj odgovor"
+
+#: src/xmlrpc.c:606
+msgid "parse server response failed"
+msgstr "neuspeo odgovor servera tumačenja"
+
+#: src/xmlrpc.c:670
+msgid "allocate new context"
+msgstr "zauzmi novi kontekst"
+
+#: src/xs_internal.c:329
+msgid "failed to connect to Xen Store"
+msgstr "neuspelo povezivanje sa Xen skladištem"
+
+#~ msgid "Allowing PID %d running as root"
+#~ msgstr "Dozvoljavam da se PID %d izvršava kao root"

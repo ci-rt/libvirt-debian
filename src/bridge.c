@@ -303,7 +303,7 @@ brDeleteInterface(brControl *ctl ATTRIBUTE_UNUSED,
  * @maxlen: size of @ifname array
  * @tapfd: file descriptor return value for the new tap device
  *
- * This function reates a new tap device on a bridge. @ifname can be either
+ * This function creates a new tap device on a bridge. @ifname can be either
  * a fixed name or a name template with '%d' for dynamic name allocation.
  * in either case the final name for the bridge will be stored in @ifname
  * and the associated file descriptor in @tapfd.
@@ -313,7 +313,6 @@ brDeleteInterface(brControl *ctl ATTRIBUTE_UNUSED,
 int
 brAddTap(brControl *ctl,
          const char *bridge,
-         unsigned char *macaddr,
          char *ifname,
          int maxlen,
          int *tapfd)
@@ -357,18 +356,6 @@ brAddTap(brControl *ctl,
         }
 
         if (ioctl(fd, TUNSETIFF, &try) == 0) {
-            struct ifreq addr;
-            memset(&addr, 0, sizeof(addr));
-            memcpy(addr.ifr_hwaddr.sa_data, macaddr, 6);
-            addr.ifr_hwaddr.sa_family = ARPHRD_ETHER;
-
-            /* Device actually starts in 'UP' state, but it
-             * needs to be down to set the MAC addr
-             */
-            if ((errno = brSetInterfaceUp(ctl, try.ifr_name, 0)))
-                goto error;
-            if (ioctl(fd, SIOCSIFHWADDR, &addr) != 0)
-                goto error;
             if ((errno = brAddInterface(ctl, bridge, try.ifr_name)))
                 goto error;
             if ((errno = brSetInterfaceUp(ctl, try.ifr_name, 1)))
@@ -545,7 +532,7 @@ brGetInetAddr(brControl *ctl,
  * brSetInetAddress:
  * @ctl: bridge control pointer
  * @ifname: the interface name
- * @addr: the string representation of the IP adress
+ * @addr: the string representation of the IP address
  *
  * Function to bind the interface to an IP address, it should handle
  * IPV4 and IPv6. The string for addr would be of the form
@@ -566,7 +553,7 @@ brSetInetAddress(brControl *ctl,
  * brGetInetAddress:
  * @ctl: bridge control pointer
  * @ifname: the interface name
- * @addr: the array for the string representation of the IP adress
+ * @addr: the array for the string representation of the IP address
  * @maxlen: size of @addr in bytes
  *
  * Function to get the IP address of an interface, it should handle

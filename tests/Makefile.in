@@ -69,6 +69,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/onceonly_2_57.m4 \
 	$(top_srcdir)/gnulib/m4/physmem.m4 \
 	$(top_srcdir)/gnulib/m4/po.m4 $(top_srcdir)/gnulib/m4/poll.m4 \
+	$(top_srcdir)/gnulib/m4/posix-shell.m4 \
 	$(top_srcdir)/gnulib/m4/realloc.m4 \
 	$(top_srcdir)/gnulib/m4/snprintf.m4 \
 	$(top_srcdir)/gnulib/m4/socklen.m4 \
@@ -241,6 +242,7 @@ GMSGFMT = @GMSGFMT@
 GNULIB_CALLOC_POSIX = @GNULIB_CALLOC_POSIX@
 GNULIB_CHOWN = @GNULIB_CHOWN@
 GNULIB_DUP2 = @GNULIB_DUP2@
+GNULIB_ENVIRON = @GNULIB_ENVIRON@
 GNULIB_FCHDIR = @GNULIB_FCHDIR@
 GNULIB_FFLUSH = @GNULIB_FFLUSH@
 GNULIB_FOPEN = @GNULIB_FOPEN@
@@ -311,6 +313,7 @@ GNUTLS_CFLAGS = @GNUTLS_CFLAGS@
 GNUTLS_LIBS = @GNUTLS_LIBS@
 GREP = @GREP@
 HAVE_CALLOC_POSIX = @HAVE_CALLOC_POSIX@
+HAVE_DECL_ENVIRON = @HAVE_DECL_ENVIRON@
 HAVE_DECL_GETDELIM = @HAVE_DECL_GETDELIM@
 HAVE_DECL_GETLINE = @HAVE_DECL_GETLINE@
 HAVE_DECL_GETLOGIN_R = @HAVE_DECL_GETLOGIN_R@
@@ -443,10 +446,11 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
 POLKIT_AUTH = @POLKIT_AUTH@
 POLKIT_CFLAGS = @POLKIT_CFLAGS@
-POLKIT_GRANT = @POLKIT_GRANT@
 POLKIT_LIBS = @POLKIT_LIBS@
 POLL_H = @POLL_H@
+POSIX_SHELL = @POSIX_SHELL@
 POSUB = @POSUB@
+PREFERABLY_POSIX_SHELL = @PREFERABLY_POSIX_SHELL@
 PTRDIFF_T_SUFFIX = @PTRDIFF_T_SUFFIX@
 PVCREATE = @PVCREATE@
 PVREMOVE = @PVREMOVE@
@@ -500,7 +504,7 @@ SED = @SED@
 SELINUX_CFLAGS = @SELINUX_CFLAGS@
 SELINUX_LIBS = @SELINUX_LIBS@
 SET_MAKE = @SET_MAKE@
-SHELL = @SHELL@
+SHELL = $(PREFERABLY_POSIX_SHELL)
 SIG_ATOMIC_T_SUFFIX = @SIG_ATOMIC_T_SUFFIX@
 SIZE_T_SUFFIX = @SIZE_T_SUFFIX@
 STATIC_BINARIES = @STATIC_BINARIES@
@@ -616,20 +620,24 @@ LDADDS = \
 	../gnulib/lib/libgnu.la \
         $(COVERAGE_LDFLAGS)
 
-EXTRA_DIST = xmlrpcserver.py test_conf.sh qemuxml2argvdata \
+EXTRA_DIST = test-lib.sh xmlrpcserver.py test_conf.sh qemuxml2argvdata \
 	nodeinfodata $(test_scripts)
 test_scripts = \
 	daemon-conf \
-	int-overflow
+	int-overflow \
+	read-non-seekable \
+	vcpupin
 
+path_add = $$abs_top_builddir/src$(PATH_SEPARATOR)$$abs_top_builddir/qemud
 
 # NB, automake < 1.10 does not provide the real
 # abs_top_{src/build}dir variables, so don't rely
 # on them here. Fake them with 'pwd'
 TESTS_ENVIRONMENT = \
-  abs_top_builddir=`pwd`/'$(top_builddir)'	\
-  abs_top_srcdir=`pwd`/'$(top_srcdir)'		\
-  PATH="$$abs_top_builddir/qemud$(PATH_SEPARATOR)$$PATH" \
+  abs_top_builddir=`cd '$(top_builddir)'; pwd`	\
+  abs_top_srcdir=`cd '$(top_srcdir)'; pwd`	\
+  PATH="$(path_add)$(PATH_SEPARATOR)$$PATH"	\
+  SHELL="$(SHELL)"				\
   $(VG)
 
 

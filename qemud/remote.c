@@ -41,7 +41,6 @@
 #include <syslog.h>
 #include <string.h>
 #include <errno.h>
-#include <getopt.h>
 #include <ctype.h>
 #include <fnmatch.h>
 
@@ -102,32 +101,34 @@ remoteDispatchClientRequest (struct qemud_server *server,
     xdrmem_create (&xdr, client->buffer, client->bufferLength, XDR_DECODE);
 
     if (!xdr_remote_message_header (&xdr, &req)) {
-        remoteDispatchError (client, NULL, "xdr_remote_message_header");
+        remoteDispatchError (client, NULL, "%s", _("xdr_remote_message_header"));
         xdr_destroy (&xdr);
         return;
     }
 
     /* Check version, etc. */
     if (req.prog != REMOTE_PROGRAM) {
-        remoteDispatchError (client, &req, "program mismatch (actual %x, expected %x)",
+        remoteDispatchError (client, &req,
+                             _("program mismatch (actual %x, expected %x)"),
                              req.prog, REMOTE_PROGRAM);
         xdr_destroy (&xdr);
         return;
     }
     if (req.vers != REMOTE_PROTOCOL_VERSION) {
-        remoteDispatchError (client, &req, "version mismatch (actual %x, expected %x)",
+        remoteDispatchError (client, &req,
+                             _("version mismatch (actual %x, expected %x)"),
                              req.vers, REMOTE_PROTOCOL_VERSION);
         xdr_destroy (&xdr);
         return;
     }
     if (req.direction != REMOTE_CALL) {
-        remoteDispatchError (client, &req, "direction (%d) != REMOTE_CALL",
+        remoteDispatchError (client, &req, _("direction (%d) != REMOTE_CALL"),
                              (int) req.direction);
         xdr_destroy (&xdr);
         return;
     }
     if (req.status != REMOTE_OK) {
-        remoteDispatchError (client, &req, "status (%d) != REMOTE_OK",
+        remoteDispatchError (client, &req, _("status (%d) != REMOTE_OK"),
                              (int) req.status);
         xdr_destroy (&xdr);
         return;
@@ -143,7 +144,7 @@ remoteDispatchClientRequest (struct qemud_server *server,
             req.proc != REMOTE_PROC_AUTH_SASL_STEP &&
             req.proc != REMOTE_PROC_AUTH_POLKIT
             ) {
-            remoteDispatchError (client, &req, "authentication required");
+            remoteDispatchError (client, &req, "%s", _("authentication required"));
             xdr_destroy (&xdr);
             return;
         }
@@ -156,7 +157,7 @@ remoteDispatchClientRequest (struct qemud_server *server,
 #include "remote_dispatch_proc_switch.h"
 
     default:
-        remoteDispatchError (client, &req, "unknown procedure: %d",
+        remoteDispatchError (client, &req, _("unknown procedure: %d"),
                              req.proc);
         xdr_destroy (&xdr);
         return;
@@ -164,7 +165,7 @@ remoteDispatchClientRequest (struct qemud_server *server,
 
     /* Parse args. */
     if (!(*args_filter) (&xdr, args)) {
-        remoteDispatchError (client, &req, "parse args failed");
+        remoteDispatchError (client, &req, "%s", _("parse args failed"));
         xdr_destroy (&xdr);
         return;
     }
@@ -179,7 +180,8 @@ remoteDispatchClientRequest (struct qemud_server *server,
      * an internal error.
      */
     if (rv < -2 || rv > 0) {
-        remoteDispatchError (client, &req, "internal error - dispatch function returned invalid code %d", rv);
+        remoteDispatchError (client, &req,
+                             _("internal error - dispatch function returned invalid code %d"), rv);
         return;
     }
 
@@ -201,14 +203,14 @@ remoteDispatchClientRequest (struct qemud_server *server,
 
     len = 0; /* We'll come back and write this later. */
     if (!xdr_int (&xdr, &len)) {
-        remoteDispatchError (client, &req, "dummy length");
+        remoteDispatchError (client, &req, "%s", _("dummy length"));
         xdr_destroy (&xdr);
         if (rv == 0) xdr_free (ret_filter, ret);
         return;
     }
 
     if (!xdr_remote_message_header (&xdr, &rep)) {
-        remoteDispatchError (client, &req, "serialise reply header");
+        remoteDispatchError (client, &req, "%s", _("serialise reply header"));
         xdr_destroy (&xdr);
         if (rv == 0) xdr_free (ret_filter, ret);
         return;
@@ -217,7 +219,7 @@ remoteDispatchClientRequest (struct qemud_server *server,
     /* If OK, serialise return structure, if error serialise error. */
     if (rv == 0) {
         if (!(*ret_filter) (&xdr, ret)) {
-            remoteDispatchError (client, &req, "serialise return struct");
+            remoteDispatchError (client, &req, "%s", _("serialise return struct"));
             xdr_destroy (&xdr);
             return;
         }
@@ -272,7 +274,7 @@ remoteDispatchClientRequest (struct qemud_server *server,
         }
 
         if (!xdr_remote_error (&xdr, &error)) {
-            remoteDispatchError (client, &req, "serialise return error");
+            remoteDispatchError (client, &req, "%s", _("serialise return error"));
             xdr_destroy (&xdr);
             return;
         }
@@ -281,13 +283,13 @@ remoteDispatchClientRequest (struct qemud_server *server,
     /* Write the length word. */
     len = xdr_getpos (&xdr);
     if (xdr_setpos (&xdr, 0) == 0) {
-        remoteDispatchError (client, &req, "xdr_setpos");
+        remoteDispatchError (client, &req, "%s", _("xdr_setpos"));
         xdr_destroy (&xdr);
         return;
     }
 
     if (!xdr_int (&xdr, &len)) {
-        remoteDispatchError (client, &req, "serialise return length");
+        remoteDispatchError (client, &req, "%s", _("serialise return length"));
         xdr_destroy (&xdr);
         return;
     }
@@ -421,7 +423,7 @@ remoteDispatchOpen (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     /* Already opened? */
     if (client->conn) {
-        remoteDispatchError (client, req, "connection already open");
+        remoteDispatchError (client, req, "%s", _("connection already open"));
         return -2;
     }
 
@@ -447,7 +449,7 @@ remoteDispatchOpen (struct qemud_server *server ATTRIBUTE_UNUSED,
 
 #define CHECK_CONN(client)                      \
     if (!client->conn) {                        \
-        remoteDispatchError (client, req, "connection not open");   \
+        remoteDispatchError (client, req, "%s", _("connection not open"));   \
         return -2;                                                  \
     }
 
@@ -494,7 +496,7 @@ remoteDispatchGetType (struct qemud_server *server ATTRIBUTE_UNUSED,
      */
     ret->type = strdup (type);
     if (!ret->type) {
-        remoteDispatchError (client, req, "out of memory in strdup");
+        remoteDispatchError (client, req, "%s", _("out of memory in strdup"));
         return -2;
     }
 
@@ -608,7 +610,7 @@ remoteDispatchDomainGetSchedulerType (struct qemud_server *server ATTRIBUTE_UNUS
 
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
 
@@ -639,19 +641,19 @@ remoteDispatchDomainGetSchedulerParameters (struct qemud_server *server ATTRIBUT
     nparams = args->nparams;
 
     if (nparams > REMOTE_DOMAIN_SCHEDULER_PARAMETERS_MAX) {
-        remoteDispatchError (client, req, "nparams too large");
+        remoteDispatchError (client, req, "%s", _("nparams too large"));
         return -2;
     }
     params = malloc (sizeof (*params) * nparams);
     if (params == NULL) {
-        remoteDispatchError (client, req, "out of memory allocating array");
+        remoteDispatchError (client, req, "%s", _("out of memory allocating array"));
         return -2;
     }
 
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
         free (params);
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
 
@@ -670,7 +672,7 @@ remoteDispatchDomainGetSchedulerParameters (struct qemud_server *server ATTRIBUT
         virDomainFree(dom);
         free (params);
         remoteDispatchError (client, req,
-                             "out of memory allocating return array");
+                             "%s", _("out of memory allocating return array"));
         return -2;
     }
 
@@ -681,7 +683,7 @@ remoteDispatchDomainGetSchedulerParameters (struct qemud_server *server ATTRIBUT
             virDomainFree(dom);
             free (params);
             remoteDispatchError (client, req,
-                                 "out of memory allocating return array");
+                                 "%s", _("out of memory allocating return array"));
             return -2;
         }
         ret->params.params_val[i].value.type = params[i].type;
@@ -701,7 +703,7 @@ remoteDispatchDomainGetSchedulerParameters (struct qemud_server *server ATTRIBUT
         default:
             virDomainFree(dom);
             free (params);
-            remoteDispatchError (client, req, "unknown type");
+            remoteDispatchError (client, req, "%s", _("unknown type"));
             return -2;
         }
     }
@@ -726,12 +728,12 @@ remoteDispatchDomainSetSchedulerParameters (struct qemud_server *server ATTRIBUT
     nparams = args->params.params_len;
 
     if (nparams > REMOTE_DOMAIN_SCHEDULER_PARAMETERS_MAX) {
-        remoteDispatchError (client, req, "nparams too large");
+        remoteDispatchError (client, req, "%s", _("nparams too large"));
         return -2;
     }
     params = malloc (sizeof (*params) * nparams);
     if (params == NULL) {
-        remoteDispatchError (client, req, "out of memory allocating array");
+        remoteDispatchError (client, req, "%s", _("out of memory allocating array"));
         return -2;
     }
 
@@ -760,7 +762,7 @@ remoteDispatchDomainSetSchedulerParameters (struct qemud_server *server ATTRIBUT
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
         free (params);
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
 
@@ -786,7 +788,7 @@ remoteDispatchDomainBlockStats (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
     path = args->path;
@@ -817,7 +819,7 @@ remoteDispatchDomainInterfaceStats (struct qemud_server *server ATTRIBUTE_UNUSED
 
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
     path = args->path;
@@ -849,7 +851,7 @@ remoteDispatchDomainAttachDevice (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
 
@@ -873,7 +875,7 @@ remoteDispatchDomainCreate (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
 
@@ -935,7 +937,7 @@ remoteDispatchDomainDestroy (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
 
@@ -957,7 +959,7 @@ remoteDispatchDomainDetachDevice (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
 
@@ -982,7 +984,7 @@ remoteDispatchDomainDumpXml (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
 
@@ -1008,7 +1010,7 @@ remoteDispatchDomainGetAutostart (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
 
@@ -1033,7 +1035,7 @@ remoteDispatchDomainGetInfo (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
 
@@ -1065,7 +1067,7 @@ remoteDispatchDomainGetMaxMemory (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
 
@@ -1090,7 +1092,7 @@ remoteDispatchDomainGetMaxVcpus (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
 
@@ -1115,7 +1117,7 @@ remoteDispatchDomainGetOsType (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
 
@@ -1144,19 +1146,19 @@ remoteDispatchDomainGetVcpus (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
 
     if (args->maxinfo > REMOTE_VCPUINFO_MAX) {
         virDomainFree(dom);
-        remoteDispatchError (client, req, "maxinfo > REMOTE_VCPUINFO_MAX");
+        remoteDispatchError (client, req, "%s", _("maxinfo > REMOTE_VCPUINFO_MAX"));
         return -2;
     }
 
     if (args->maxinfo * args->maplen > REMOTE_CPUMAPS_MAX) {
         virDomainFree(dom);
-        remoteDispatchError (client, req, "maxinfo * maplen > REMOTE_CPUMAPS_MAX");
+        remoteDispatchError (client, req, "%s", _("maxinfo * maplen > REMOTE_CPUMAPS_MAX"));
         return -2;
     }
 
@@ -1244,7 +1246,7 @@ remoteDispatchDomainMigratePerform (struct qemud_server *server ATTRIBUTE_UNUSED
 
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
 
@@ -1293,7 +1295,7 @@ remoteDispatchListDefinedDomains (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     if (args->maxnames > REMOTE_DOMAIN_NAME_LIST_MAX) {
         remoteDispatchError (client, req,
-                             "maxnames > REMOTE_DOMAIN_NAME_LIST_MAX");
+                             "%s", _("maxnames > REMOTE_DOMAIN_NAME_LIST_MAX"));
         return -2;
     }
 
@@ -1390,13 +1392,13 @@ remoteDispatchDomainPinVcpu (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
 
     if (args->cpumap.cpumap_len > REMOTE_CPUMAP_MAX) {
         virDomainFree(dom);
-        remoteDispatchError (client, req, "cpumap_len > REMOTE_CPUMAP_MAX");
+        remoteDispatchError (client, req, "%s", _("cpumap_len > REMOTE_CPUMAP_MAX"));
         return -2;
     }
 
@@ -1423,7 +1425,7 @@ remoteDispatchDomainReboot (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
 
@@ -1462,7 +1464,7 @@ remoteDispatchDomainResume (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
 
@@ -1486,7 +1488,7 @@ remoteDispatchDomainSave (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
 
@@ -1510,7 +1512,7 @@ remoteDispatchDomainCoreDump (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
 
@@ -1534,7 +1536,7 @@ remoteDispatchDomainSetAutostart (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
 
@@ -1558,7 +1560,7 @@ remoteDispatchDomainSetMaxMemory (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
 
@@ -1582,7 +1584,7 @@ remoteDispatchDomainSetMemory (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
 
@@ -1606,7 +1608,7 @@ remoteDispatchDomainSetVcpus (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
 
@@ -1630,7 +1632,7 @@ remoteDispatchDomainShutdown (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
 
@@ -1654,7 +1656,7 @@ remoteDispatchDomainSuspend (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
 
@@ -1678,7 +1680,7 @@ remoteDispatchDomainUndefine (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dom = get_nonnull_domain (client->conn, args->dom);
     if (dom == NULL) {
-        remoteDispatchError (client, req, "domain not found");
+        remoteDispatchError (client, req, "%s", _("domain not found"));
         return -2;
     }
 
@@ -1701,7 +1703,7 @@ remoteDispatchListDefinedNetworks (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     if (args->maxnames > REMOTE_NETWORK_NAME_LIST_MAX) {
         remoteDispatchError (client, req,
-                             "maxnames > REMOTE_NETWORK_NAME_LIST_MAX");
+                             "%s", _("maxnames > REMOTE_NETWORK_NAME_LIST_MAX"));
         return -2;
     }
 
@@ -1727,7 +1729,7 @@ remoteDispatchListDomains (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     if (args->maxids > REMOTE_DOMAIN_ID_LIST_MAX) {
         remoteDispatchError (client, req,
-                             "maxids > REMOTE_DOMAIN_ID_LIST_MAX");
+                             "%s", _("maxids > REMOTE_DOMAIN_ID_LIST_MAX"));
         return -2;
     }
 
@@ -1752,7 +1754,7 @@ remoteDispatchListNetworks (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     if (args->maxnames > REMOTE_NETWORK_NAME_LIST_MAX) {
         remoteDispatchError (client, req,
-                             "maxnames > REMOTE_NETWORK_NAME_LIST_MAX");
+                             "%s", _("maxnames > REMOTE_NETWORK_NAME_LIST_MAX"));
         return -2;
     }
 
@@ -1779,7 +1781,7 @@ remoteDispatchNetworkCreate (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     net = get_nonnull_network (client->conn, args->net);
     if (net == NULL) {
-        remoteDispatchError (client, req, "network not found");
+        remoteDispatchError (client, req, "%s", _("network not found"));
         return -2;
     }
 
@@ -1839,7 +1841,7 @@ remoteDispatchNetworkDestroy (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     net = get_nonnull_network (client->conn, args->net);
     if (net == NULL) {
-        remoteDispatchError (client, req, "network not found");
+        remoteDispatchError (client, req, "%s", _("network not found"));
         return -2;
     }
 
@@ -1863,7 +1865,7 @@ remoteDispatchNetworkDumpXml (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     net = get_nonnull_network (client->conn, args->net);
     if (net == NULL) {
-        remoteDispatchError (client, req, "network not found");
+        remoteDispatchError (client, req, "%s", _("network not found"));
         return -2;
     }
 
@@ -1889,7 +1891,7 @@ remoteDispatchNetworkGetAutostart (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     net = get_nonnull_network (client->conn, args->net);
     if (net == NULL) {
-        remoteDispatchError (client, req, "network not found");
+        remoteDispatchError (client, req, "%s", _("network not found"));
         return -2;
     }
 
@@ -1913,7 +1915,7 @@ remoteDispatchNetworkGetBridgeName (struct qemud_server *server ATTRIBUTE_UNUSED
 
     net = get_nonnull_network (client->conn, args->net);
     if (net == NULL) {
-        remoteDispatchError (client, req, "network not found");
+        remoteDispatchError (client, req, "%s", _("network not found"));
         return -2;
     }
 
@@ -1975,7 +1977,7 @@ remoteDispatchNetworkSetAutostart (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     net = get_nonnull_network (client->conn, args->net);
     if (net == NULL) {
-        remoteDispatchError (client, req, "network not found");
+        remoteDispatchError (client, req, "%s", _("network not found"));
         return -2;
     }
 
@@ -1999,7 +2001,7 @@ remoteDispatchNetworkUndefine (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     net = get_nonnull_network (client->conn, args->net);
     if (net == NULL) {
-        remoteDispatchError (client, req, "network not found");
+        remoteDispatchError (client, req, "%s", _("network not found"));
         return -2;
     }
 
@@ -2090,13 +2092,14 @@ static char *addrToString(struct qemud_client *client,
                            port, sizeof(port),
                            NI_NUMERICHOST | NI_NUMERICSERV)) != 0) {
         remoteDispatchError(client, req,
-                            "Cannot resolve address %d: %s", err, gai_strerror(err));
+                            _("Cannot resolve address %d: %s"),
+                            err, gai_strerror(err));
         return NULL;
     }
 
     addr = malloc(strlen(host) + 1 + strlen(port) + 1);
     if (!addr) {
-        remoteDispatchError(client, req, "cannot allocate address");
+        remoteDispatchError(client, req, "%s", _("cannot allocate address"));
         return NULL;
     }
 
@@ -2138,7 +2141,8 @@ remoteDispatchAuthSaslInit (struct qemud_server *server ATTRIBUTE_UNUSED,
     /* Get local address in form  IPADDR:PORT */
     salen = sizeof(sa);
     if (getsockname(client->fd, (struct sockaddr*)&sa, &salen) < 0) {
-        remoteDispatchError(client, req, "failed to get sock address %d (%s)",
+        remoteDispatchError(client, req,
+                            _("failed to get sock address %d (%s)"),
                             errno, strerror(errno));
         return -2;
     }
@@ -2149,7 +2153,7 @@ remoteDispatchAuthSaslInit (struct qemud_server *server ATTRIBUTE_UNUSED,
     /* Get remote address in form  IPADDR:PORT */
     salen = sizeof(sa);
     if (getpeername(client->fd, (struct sockaddr*)&sa, &salen) < 0) {
-        remoteDispatchError(client, req, "failed to get peer address %d (%s)",
+        remoteDispatchError(client, req, _("failed to get peer address %d (%s)"),
                             errno, strerror(errno));
         free(localAddr);
         return -2;
@@ -2414,7 +2418,8 @@ remoteDispatchAuthSaslStart (struct qemud_server *server,
     if (serverout) {
         ret->data.data_val = malloc(serveroutlen);
         if (!ret->data.data_val) {
-            remoteDispatchError (client, req, "out of memory allocating array");
+            remoteDispatchError (client, req,
+                                 "%s", _("out of memory allocating array"));
             return -2;
         }
         memcpy(ret->data.data_val, serverout, serveroutlen);
@@ -2494,7 +2499,8 @@ remoteDispatchAuthSaslStep (struct qemud_server *server,
     if (serverout) {
         ret->data.data_val = malloc(serveroutlen);
         if (!ret->data.data_val) {
-            remoteDispatchError (client, req, "out of memory allocating array");
+            remoteDispatchError (client, req,
+                                 "%s", _("out of memory allocating array"));
             return -2;
         }
         memcpy(ret->data.data_val, serverout, serveroutlen);
@@ -2564,27 +2570,6 @@ remoteDispatchAuthSaslStep (struct qemud_server *server ATTRIBUTE_UNUSED,
 
 
 #if HAVE_POLKIT
-static int qemudGetSocketIdentity(int fd, uid_t *uid, pid_t *pid) {
-#ifdef SO_PEERCRED
-    struct ucred cr;
-    unsigned int cr_len = sizeof (cr);
-
-    if (getsockopt (fd, SOL_SOCKET, SO_PEERCRED, &cr, &cr_len) < 0) {
-        qemudLog(QEMUD_ERR, _("Failed to verify client credentials: %s"),
-                 strerror(errno));
-        return -1;
-    }
-
-    *pid = cr.pid;
-    *uid = cr.uid;
-#else
-    /* XXX Many more OS support UNIX socket credentials we could port to. See dbus ....*/
-#error "UNIX socket credentials not supported/implemented on this platform yet..."
-#endif
-    return 0;
-}
-
-
 static int
 remoteDispatchAuthPolkit (struct qemud_server *server ATTRIBUTE_UNUSED,
                           struct qemud_client *client,
@@ -2594,6 +2579,15 @@ remoteDispatchAuthPolkit (struct qemud_server *server ATTRIBUTE_UNUSED,
 {
     pid_t callerPid;
     uid_t callerUid;
+    PolKitCaller *pkcaller = NULL;
+    PolKitAction *pkaction = NULL;
+    PolKitContext *pkcontext = NULL;
+    PolKitError *pkerr = NULL;
+    PolKitResult pkresult;
+    DBusError err;
+    const char *action = client->readonly ?
+        "org.libvirt.unix.monitor" :
+        "org.libvirt.unix.manage";
 
     REMOTE_DEBUG("Start PolicyKit auth %d", client->fd);
     if (client->auth != REMOTE_AUTH_POLKIT) {
@@ -2609,98 +2603,78 @@ remoteDispatchAuthPolkit (struct qemud_server *server ATTRIBUTE_UNUSED,
         return -2;
     }
 
-    /* Only do policy checks for non-root - allow root user
-       through with no checks, as a fail-safe - root can easily
-       change policykit policy anyway, so its pointless trying
-       to restrict root */
-    if (callerUid == 0) {
-        qemudLog(QEMUD_INFO, _("Allowing PID %d running as root"), callerPid);
-        ret->complete = 1;
-        client->auth = REMOTE_AUTH_NONE;
-    } else {
-        PolKitCaller *pkcaller = NULL;
-        PolKitAction *pkaction = NULL;
-        PolKitContext *pkcontext = NULL;
-        PolKitError *pkerr = NULL;
-        PolKitResult pkresult;
-        DBusError err;
-        const char *action = client->readonly ?
-            "org.libvirt.unix.monitor" :
-            "org.libvirt.unix.manage";
+    qemudLog(QEMUD_INFO, _("Checking PID %d running as %d"),
+             callerPid, callerUid);
+    dbus_error_init(&err);
+    if (!(pkcaller = polkit_caller_new_from_pid(server->sysbus,
+                                                callerPid, &err))) {
+        qemudLog(QEMUD_ERR, _("Failed to lookup policy kit caller: %s"),
+                 err.message);
+        dbus_error_free(&err);
+        remoteDispatchFailAuth(client, req);
+        return -2;
+    }
 
-        qemudLog(QEMUD_INFO, _("Checking PID %d running as %d"),
-                 callerPid, callerUid);
-        dbus_error_init(&err);
-        if (!(pkcaller = polkit_caller_new_from_pid(server->sysbus,
-                                                    callerPid, &err))) {
-            qemudLog(QEMUD_ERR, _("Failed to lookup policy kit caller: %s"),
-                     err.message);
-            dbus_error_free(&err);
-            remoteDispatchFailAuth(client, req);
-            return -2;
-        }
+    if (!(pkaction = polkit_action_new())) {
+        qemudLog(QEMUD_ERR, _("Failed to create polkit action %s\n"),
+                 strerror(errno));
+        polkit_caller_unref(pkcaller);
+        remoteDispatchFailAuth(client, req);
+        return -2;
+    }
+    polkit_action_set_action_id(pkaction, action);
 
-        if (!(pkaction = polkit_action_new())) {
-            qemudLog(QEMUD_ERR, _("Failed to create polkit action %s\n"),
-                                  strerror(errno));
-            polkit_caller_unref(pkcaller);
-            remoteDispatchFailAuth(client, req);
-            return -2;
-        }
-        polkit_action_set_action_id(pkaction, action);
-
-        if (!(pkcontext = polkit_context_new()) ||
-            !polkit_context_init(pkcontext, &pkerr)) {
-            qemudLog(QEMUD_ERR, _("Failed to create polkit context %s\n"),
-                     (pkerr ? polkit_error_get_error_message(pkerr)
-                      : strerror(errno)));
-            if (pkerr)
-                polkit_error_free(pkerr);
-            polkit_caller_unref(pkcaller);
-            polkit_action_unref(pkaction);
-            dbus_error_free(&err);
-            remoteDispatchFailAuth(client, req);
-            return -2;
-        }
-
-#if HAVE_POLKIT_CONTEXT_IS_CALLER_AUTHORIZED
-        pkresult = polkit_context_is_caller_authorized(pkcontext,
-                                                       pkaction,
-                                                       pkcaller,
-                                                       0,
-                                                       &pkerr);
-        if (pkerr && polkit_error_is_set(pkerr)) {
-            qemudLog(QEMUD_ERR,
-                     _("Policy kit failed to check authorization %d %s"),
-                     polkit_error_get_error_code(pkerr),
-                     polkit_error_get_error_message(pkerr));
-            remoteDispatchFailAuth(client, req);
-            return -2;
-        }
-#else
-        pkresult = polkit_context_can_caller_do_action(pkcontext,
-                                                       pkaction,
-                                                       pkcaller);
-#endif
-        polkit_context_unref(pkcontext);
+    if (!(pkcontext = polkit_context_new()) ||
+        !polkit_context_init(pkcontext, &pkerr)) {
+        qemudLog(QEMUD_ERR, _("Failed to create polkit context %s\n"),
+                 (pkerr ? polkit_error_get_error_message(pkerr)
+                  : strerror(errno)));
+        if (pkerr)
+            polkit_error_free(pkerr);
         polkit_caller_unref(pkcaller);
         polkit_action_unref(pkaction);
-        if (pkresult != POLKIT_RESULT_YES) {
-            qemudLog(QEMUD_ERR,
-                     _("Policy kit denied action %s from pid %d, uid %d,"
-                       " result: %s\n"),
-                     action, callerPid, callerUid,
-                     polkit_result_to_string_representation(pkresult));
-            remoteDispatchFailAuth(client, req);
-            return -2;
-        }
-        qemudLog(QEMUD_INFO,
-                 _("Policy allowed action %s from pid %d, uid %d, result %s"),
+        dbus_error_free(&err);
+        remoteDispatchFailAuth(client, req);
+        return -2;
+    }
+
+#if HAVE_POLKIT_CONTEXT_IS_CALLER_AUTHORIZED
+    pkresult = polkit_context_is_caller_authorized(pkcontext,
+                                                   pkaction,
+                                                   pkcaller,
+                                                   0,
+                                                   &pkerr);
+    if (pkerr && polkit_error_is_set(pkerr)) {
+        qemudLog(QEMUD_ERR,
+                 _("Policy kit failed to check authorization %d %s"),
+                 polkit_error_get_error_code(pkerr),
+                 polkit_error_get_error_message(pkerr));
+        remoteDispatchFailAuth(client, req);
+        return -2;
+    }
+#else
+    pkresult = polkit_context_can_caller_do_action(pkcontext,
+                                                   pkaction,
+                                                   pkcaller);
+#endif
+    polkit_context_unref(pkcontext);
+    polkit_caller_unref(pkcaller);
+    polkit_action_unref(pkaction);
+    if (pkresult != POLKIT_RESULT_YES) {
+        qemudLog(QEMUD_ERR,
+                 _("Policy kit denied action %s from pid %d, uid %d,"
+                   " result: %s\n"),
                  action, callerPid, callerUid,
                  polkit_result_to_string_representation(pkresult));
-        ret->complete = 1;
-        client->auth = REMOTE_AUTH_NONE;
+        remoteDispatchFailAuth(client, req);
+        return -2;
     }
+    qemudLog(QEMUD_INFO,
+             _("Policy allowed action %s from pid %d, uid %d, result %s"),
+             action, callerPid, callerUid,
+             polkit_result_to_string_representation(pkresult));
+    ret->complete = 1;
+    client->auth = REMOTE_AUTH_NONE;
 
     return 0;
 }
@@ -2738,7 +2712,7 @@ remoteDispatchListDefinedStoragePools (struct qemud_server *server ATTRIBUTE_UNU
 
     if (args->maxnames > REMOTE_NETWORK_NAME_LIST_MAX) {
         remoteDispatchError (client, req,
-                             "maxnames > REMOTE_NETWORK_NAME_LIST_MAX");
+                             "%s", _("maxnames > REMOTE_NETWORK_NAME_LIST_MAX"));
         return -2;
     }
 
@@ -2764,7 +2738,7 @@ remoteDispatchListStoragePools (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     if (args->maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX) {
         remoteDispatchError (client, req,
-                             "maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX");
+                             "%s", _("maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX"));
         return -2;
     }
 
@@ -2791,7 +2765,7 @@ remoteDispatchStoragePoolCreate (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     pool = get_nonnull_storage_pool (client->conn, args->pool);
     if (pool == NULL) {
-        remoteDispatchError (client, req, "storage_pool not found");
+        remoteDispatchError (client, req, "%s", _("storage_pool not found"));
         return -2;
     }
 
@@ -2851,7 +2825,7 @@ remoteDispatchStoragePoolBuild (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     pool = get_nonnull_storage_pool (client->conn, args->pool);
     if (pool == NULL) {
-        remoteDispatchError (client, req, "storage_pool not found");
+        remoteDispatchError (client, req, "%s", _("storage_pool not found"));
         return -2;
     }
 
@@ -2876,7 +2850,7 @@ remoteDispatchStoragePoolDestroy (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     pool = get_nonnull_storage_pool (client->conn, args->pool);
     if (pool == NULL) {
-        remoteDispatchError (client, req, "storage_pool not found");
+        remoteDispatchError (client, req, "%s", _("storage_pool not found"));
         return -2;
     }
 
@@ -2900,7 +2874,7 @@ remoteDispatchStoragePoolDelete (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     pool = get_nonnull_storage_pool (client->conn, args->pool);
     if (pool == NULL) {
-        remoteDispatchError (client, req, "storage_pool not found");
+        remoteDispatchError (client, req, "%s", _("storage_pool not found"));
         return -2;
     }
 
@@ -2924,7 +2898,7 @@ remoteDispatchStoragePoolRefresh (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     pool = get_nonnull_storage_pool (client->conn, args->pool);
     if (pool == NULL) {
-        remoteDispatchError (client, req, "storage_pool not found");
+        remoteDispatchError (client, req, "%s", _("storage_pool not found"));
         return -2;
     }
 
@@ -2949,7 +2923,7 @@ remoteDispatchStoragePoolGetInfo (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     pool = get_nonnull_storage_pool (client->conn, args->pool);
     if (pool == NULL) {
-        remoteDispatchError (client, req, "storage_pool not found");
+        remoteDispatchError (client, req, "%s", _("storage_pool not found"));
         return -2;
     }
 
@@ -2980,7 +2954,7 @@ remoteDispatchStoragePoolDumpXml (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     pool = get_nonnull_storage_pool (client->conn, args->pool);
     if (pool == NULL) {
-        remoteDispatchError (client, req, "storage_pool not found");
+        remoteDispatchError (client, req, "%s", _("storage_pool not found"));
         return -2;
     }
 
@@ -3006,7 +2980,7 @@ remoteDispatchStoragePoolGetAutostart (struct qemud_server *server ATTRIBUTE_UNU
 
     pool = get_nonnull_storage_pool (client->conn, args->pool);
     if (pool == NULL) {
-        remoteDispatchError (client, req, "storage_pool not found");
+        remoteDispatchError (client, req, "%s", _("storage_pool not found"));
         return -2;
     }
 
@@ -3089,7 +3063,7 @@ remoteDispatchStoragePoolSetAutostart (struct qemud_server *server ATTRIBUTE_UNU
 
     pool = get_nonnull_storage_pool (client->conn, args->pool);
     if (pool == NULL) {
-        remoteDispatchError (client, req, "storage_pool not found");
+        remoteDispatchError (client, req, "%s", _("storage_pool not found"));
         return -2;
     }
 
@@ -3113,7 +3087,7 @@ remoteDispatchStoragePoolUndefine (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     pool = get_nonnull_storage_pool (client->conn, args->pool);
     if (pool == NULL) {
-        remoteDispatchError (client, req, "storage_pool not found");
+        remoteDispatchError (client, req, "%s", _("storage_pool not found"));
         return -2;
     }
 
@@ -3167,13 +3141,13 @@ remoteDispatchStoragePoolListVolumes (struct qemud_server *server ATTRIBUTE_UNUS
 
     if (args->maxnames > REMOTE_STORAGE_VOL_NAME_LIST_MAX) {
         remoteDispatchError (client, req,
-                             "maxnames > REMOTE_STORAGE_VOL_NAME_LIST_MAX");
+                             "%s", _("maxnames > REMOTE_STORAGE_VOL_NAME_LIST_MAX"));
         return -2;
     }
 
     pool = get_nonnull_storage_pool (client->conn, args->pool);
     if (pool == NULL) {
-        remoteDispatchError (client, req, "storage_pool not found");
+        remoteDispatchError (client, req, "%s", _("storage_pool not found"));
         return -2;
     }
 
@@ -3202,7 +3176,7 @@ remoteDispatchStoragePoolNumOfVolumes (struct qemud_server *server ATTRIBUTE_UNU
 
     pool = get_nonnull_storage_pool (client->conn, args->pool);
     if (pool == NULL) {
-        remoteDispatchError (client, req, "storage_pool not found");
+        remoteDispatchError (client, req, "%s", _("storage_pool not found"));
         return -2;
     }
 
@@ -3233,7 +3207,7 @@ remoteDispatchStorageVolCreateXml (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     pool = get_nonnull_storage_pool (client->conn, args->pool);
     if (pool == NULL) {
-        remoteDispatchError (client, req, "storage_pool not found");
+        remoteDispatchError (client, req, "%s", _("storage_pool not found"));
         return -2;
     }
 
@@ -3259,7 +3233,7 @@ remoteDispatchStorageVolDelete (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     vol = get_nonnull_storage_vol (client->conn, args->vol);
     if (vol == NULL) {
-        remoteDispatchError (client, req, "storage_vol not found");
+        remoteDispatchError (client, req, "%s", _("storage_vol not found"));
         return -2;
     }
 
@@ -3284,7 +3258,7 @@ remoteDispatchStorageVolGetInfo (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     vol = get_nonnull_storage_vol (client->conn, args->vol);
     if (vol == NULL) {
-        remoteDispatchError (client, req, "storage_vol not found");
+        remoteDispatchError (client, req, "%s", _("storage_vol not found"));
         return -2;
     }
 
@@ -3314,7 +3288,7 @@ remoteDispatchStorageVolDumpXml (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     vol = get_nonnull_storage_vol (client->conn, args->vol);
     if (vol == NULL) {
-        remoteDispatchError (client, req, "storage_vol not found");
+        remoteDispatchError (client, req, "%s", _("storage_vol not found"));
         return -2;
     }
 
@@ -3341,7 +3315,7 @@ remoteDispatchStorageVolGetPath (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     vol = get_nonnull_storage_vol (client->conn, args->vol);
     if (vol == NULL) {
-        remoteDispatchError (client, req, "storage_vol not found");
+        remoteDispatchError (client, req, "%s", _("storage_vol not found"));
         return -2;
     }
 
@@ -3369,7 +3343,7 @@ remoteDispatchStorageVolLookupByName (struct qemud_server *server ATTRIBUTE_UNUS
 
     pool = get_nonnull_storage_pool (client->conn, args->pool);
     if (pool == NULL) {
-        remoteDispatchError (client, req, "storage_pool not found");
+        remoteDispatchError (client, req, "%s", _("storage_pool not found"));
         return -2;
     }
 

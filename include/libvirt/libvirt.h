@@ -71,7 +71,7 @@ typedef enum {
  * virDomainInfoPtr:
  *
  * a virDomainInfo is a structure filled by virDomainGetInfo() and extracting
- * runtime informations for a given active Domain
+ * runtime information for a given active Domain
  */
 
 typedef struct _virDomainInfo virDomainInfo;
@@ -106,7 +106,7 @@ typedef enum {
  * virNodeInfoPtr:
  *
  * a virNodeInfo is a structure filled by virNodeGetInfo() and providing
- * the informations for the Node.
+ * the information for the Node.
  */
 
 typedef struct _virNodeInfo virNodeInfo;
@@ -204,7 +204,7 @@ struct _virDomainBlockStats {
   long long rd_req; /* number of read requests */
   long long rd_bytes; /* number of read bytes */
   long long wr_req; /* number of write requests */
-  long long wr_bytes; /* numbber of written bytes */
+  long long wr_bytes; /* number of written bytes */
   long long errs;   /* In Xen this returns the mysterious 'oo_req'. */
 };
 
@@ -372,7 +372,7 @@ extern virConnectAuthPtr virConnectAuthPtrDefault;
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-#define LIBVIR_VERSION_NUMBER 4001
+#define LIBVIR_VERSION_NUMBER 4002
 
 int			virGetVersion		(unsigned long *libVer,
 						 const char *type,
@@ -469,7 +469,7 @@ int			virDomainCoreDump	(virDomainPtr domain,
 						 int flags);
 
 /*
- * Domain runtime informations
+ * Domain runtime information
  */
 int			virDomainGetInfo	(virDomainPtr domain,
 						 virDomainInfoPtr info);
@@ -507,8 +507,8 @@ int			virDomainGetMaxVcpus	(virDomainPtr domain);
  */
 
 typedef enum {
-    VIR_DOMAIN_XML_SECURE = 1, /* dump security sensitive informations too */
-    VIR_DOMAIN_XML_INACTIVE = 2/* dump inactive domain informations */
+    VIR_DOMAIN_XML_SECURE = 1, /* dump security sensitive information too */
+    VIR_DOMAIN_XML_INACTIVE = 2/* dump inactive domain information */
 } virDomainXMLFlags;
 
 char *			virDomainGetXMLDesc	(virDomainPtr domain,
@@ -744,7 +744,7 @@ int			virNetworkDestroy	(virNetworkPtr network);
 int			virNetworkFree		(virNetworkPtr network);
 
 /*
- * Network informations
+ * Network information
  */
 const char*		virNetworkGetName	(virNetworkPtr network);
 int			virNetworkGetUUID	(virNetworkPtr network,

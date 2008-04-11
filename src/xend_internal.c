@@ -65,6 +65,18 @@ static int xenDaemonAttachDevice(virDomainPtr domain, const char *xml);
 static int xenDaemonDetachDevice(virDomainPtr domain, const char *xml);
 static int xenDaemonDomainCoreDump(virDomainPtr domain, const char *filename,
                                    int flags);
+static char *xenDaemonGetSchedulerType(virDomainPtr domain, int *nparams);
+static int xenDaemonGetSchedulerParameters(virDomainPtr domain,
+                                 virSchedParameterPtr params, int *nparams);
+static int xenDaemonSetSchedulerParameters(virDomainPtr domain,
+                                 virSchedParameterPtr params, int nparams);
+
+/*
+ * The number of Xen scheduler parameters
+ */
+#define XEN_SCHED_SEDF_NPARAM   6
+#define XEN_SCHED_CRED_NPARAM   2
+
 #endif /* PROXY */
 
 #ifndef PROXY
@@ -105,9 +117,9 @@ struct xenUnifiedDriver xenDaemonDriver = {
     xenDaemonDetachDevice, /* domainDetachDevice */
     NULL, /* domainGetAutostart */
     NULL, /* domainSetAutostart */
-    NULL, /* domainGetSchedulerType */
-    NULL, /* domainGetSchedulerParameters */
-    NULL, /* domainSetSchedulerParameters */
+    xenDaemonGetSchedulerType, /* domainGetSchedulerType */
+    xenDaemonGetSchedulerParameters, /* domainGetSchedulerParameters */
+    xenDaemonSetSchedulerParameters, /* domainSetSchedulerParameters */
 };
 
 /**
@@ -150,7 +162,7 @@ struct xend {
 /**
  * virXendError:
  * @conn: the connection if available
- * @error: the error noumber
+ * @error: the error number
  * @info: extra information string
  *
  * Handle an error at the xend daemon interface
@@ -171,7 +183,7 @@ virXendError(virConnectPtr conn, virErrorNumber error, const char *info)
 /**
  * virXendErrorInt:
  * @conn: the connection if available
- * @error: the error noumber
+ * @error: the error number
  * @val: extra integer information
  *
  * Handle an error at the xend daemon interface
@@ -234,14 +246,13 @@ do_connect(virConnectPtr xend)
         close(s);
         errno = serrno;
         s = -1;
-	/*
-	 * not being able to connect via the socket as a normal user
-	 * is rather normal, this should fallback to the proxy (or
-	 * remote) mechanism.
-	 */
-	if ((getuid() == 0) || (xend->flags & VIR_CONNECT_RO)) {
-	    virXendError(xend, VIR_ERR_INTERNAL_ERROR,
-                     _("failed to connect to xend"));
+
+        /*
+         * Connecting to XenD as root is mandatory, so log this error
+         */
+        if (getuid() == 0) {
+            virXendError(xend, VIR_ERR_INTERNAL_ERROR,
+                         _("failed to connect to xend"));
         }
     }
 
@@ -1323,7 +1334,7 @@ xend_parse_sexp_desc_os(virConnectPtr xend, struct sexpr *node, virBufferPtr buf
     if (hvm)
         virBufferVSprintf(buf, "    <loader>%s</loader>\n", loader);
 
-    if (kernel) {
+    if ((kernel) && ((!loader) || (STRNEQ(kernel, loader)))) {
         virBufferVSprintf(buf, "    <kernel>%s</kernel>\n", kernel);
         if (initrd && initrd[0])
             virBufferVSprintf(buf, "    <initrd>%s</initrd>\n", initrd);
@@ -3024,7 +3035,7 @@ xenDaemonDomainPinVcpu(virDomainPtr domain, unsigned int vcpu,
  * @info: pointer to an array of virVcpuInfo structures (OUT)
  * @maxinfo: number of structures in info array
  * @cpumaps: pointer to an bit map of real CPUs for all vcpus of this domain (in 8-bit bytes) (OUT)
- *	If cpumaps is NULL, then no cupmap information is returned by the API.
+ *	If cpumaps is NULL, then no cpumap information is returned by the API.
  *	It's assumed there is <maxinfo> cpumap in cpumaps array.
  *	The memory allocated to cpumaps must be (maxinfo * maplen) bytes
  *	(ie: calloc(maxinfo, maplen)).
@@ -3033,7 +3044,7 @@ xenDaemonDomainPinVcpu(virDomainPtr domain, unsigned int vcpu,
  *	underlying virtualization system (Xen...).
  *
  * Extract information about virtual CPUs of domain, store it in info array
- * and also in cpumaps if this pointer is'nt NULL.
+ * and also in cpumaps if this pointer isn't NULL.
  *
  * Returns the number of info filled in case of success, -1 in case of failure.
  */
@@ -3189,7 +3200,7 @@ xenDaemonLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
  *
  * Launch a new Linux guest domain, based on an XML description similar
  * to the one returned by virDomainGetXMLDesc()
- * This function may requires priviledged access to the hypervisor.
+ * This function may requires privileged access to the hypervisor.
  *
  * Returns a new domain object or NULL in case of failure
  */
@@ -3656,6 +3667,281 @@ int xenDaemonListDefinedDomains(virConnectPtr conn, char **const names, int maxn
 error:
     sexpr_free(root);
     return(ret);
+}
+
+/**
+ * xenDaemonGetSchedulerType:
+ * @domain: pointer to the Domain block
+ * @nparams: give a number of scheduler parameters
+ *
+ * Get the scheduler type of Xen
+ *
+ * Returns a scheduler name (credit or sedf) which must be freed by the
+ * caller or NULL in case of failure
+ */
+static char *
+xenDaemonGetSchedulerType(virDomainPtr domain, int *nparams)
+{
+    xenUnifiedPrivatePtr priv;
+    struct sexpr *root;
+    const char *ret = NULL;
+    char *schedulertype = NULL;
+
+    if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)
+        || (nparams == NULL)) {
+        virXendError((domain ? domain->conn : NULL), VIR_ERR_INVALID_ARG,
+                     __FUNCTION__);
+        return NULL;
+    }
+
+    /* Support only xendConfigVersion >=4 */
+    priv = (xenUnifiedPrivatePtr) domain->conn->privateData;
+    if (priv->xendConfigVersion < 4) {
+        virXendError (domain->conn, VIR_ERR_NO_SUPPORT,
+                      _("unsupported in xendConfigVersion < 4"));
+        return NULL;
+    }
+
+    root = sexpr_get(domain->conn, "/xend/node/");
+    if (root == NULL)
+        return NULL;
+
+    /* get xen_scheduler from xend/node */
+    ret = sexpr_node(root, "node/xen_scheduler");
+    if (ret == NULL){
+        virXendError(domain->conn, VIR_ERR_INTERNAL_ERROR,
+                     _("node information incomplete, missing scheduler name"));
+        goto error;
+    }
+    if (STREQ (ret, "credit")) {
+        schedulertype = strdup("credit");
+        if (schedulertype == NULL){
+            virXendError(domain->conn, VIR_ERR_SYSTEM_ERROR, _("strdup failed"));
+            goto error;
+        }
+        *nparams = XEN_SCHED_CRED_NPARAM;
+    } else if (STREQ (ret, "sedf")) {
+        schedulertype = strdup("sedf");
+        if (schedulertype == NULL){
+            virXendError(domain->conn, VIR_ERR_SYSTEM_ERROR, _("strdup failed"));
+            goto error;
+        }
+        *nparams = XEN_SCHED_SEDF_NPARAM;
+    } else {
+        virXendError(domain->conn, VIR_ERR_INTERNAL_ERROR, _("Unknown scheduler"));
+        goto error;
+    }
+
+error:
+    sexpr_free(root);
+    return schedulertype;
+
+}
+
+static const char *str_weight = "weight";
+static const char *str_cap = "cap";
+
+/**
+ * xenDaemonGetSchedulerParameters:
+ * @domain: pointer to the Domain block
+ * @params: pointer to scheduler parameters
+ *          This memory area must be allocated by the caller
+ * @nparams: a number of scheduler parameters which should be same as a
+ *           given number from xenDaemonGetSchedulerType()
+ *
+ * Get the scheduler parameters
+ *
+ * Returns 0 or -1 in case of failure
+ */
+static int
+xenDaemonGetSchedulerParameters(virDomainPtr domain,
+                                 virSchedParameterPtr params, int *nparams)
+{
+    xenUnifiedPrivatePtr priv;
+    struct sexpr *root;
+    char *sched_type = NULL;
+    int sched_nparam = 0;
+    int ret = -1;
+
+    if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)
+        || (params == NULL) || (nparams == NULL)) {
+        virXendError((domain ? domain->conn : NULL), VIR_ERR_INVALID_ARG,
+                     __FUNCTION__);
+        return (-1);
+    }
+
+    /* Support only xendConfigVersion >=4 */
+    priv = (xenUnifiedPrivatePtr) domain->conn->privateData;
+    if (priv->xendConfigVersion < 4) {
+        virXendError (domain->conn, VIR_ERR_NO_SUPPORT,
+                      _("unsupported in xendConfigVersion < 4"));
+        return (-1);
+    }
+
+    /* look up the information by domain name */
+    root = sexpr_get(domain->conn, "/xend/domain/%s?detail=1", domain->name);
+    if (root == NULL)
+        return (-1);
+
+    /* get the scheduler type */
+    sched_type = xenDaemonGetSchedulerType(domain, &sched_nparam);
+    if (sched_type == NULL) {
+        virXendError(domain->conn, VIR_ERR_INTERNAL_ERROR,
+                     _("Failed to get a scheduler name"));
+        goto error;
+    }
+
+    switch (sched_nparam){
+        case XEN_SCHED_SEDF_NPARAM:
+            /* TODO: Implement for Xen/SEDF */
+            TODO
+            goto error;
+        case XEN_SCHED_CRED_NPARAM:
+            /* get cpu_weight/cpu_cap from xend/domain */
+            if (sexpr_node(root, "domain/cpu_weight") == NULL) {
+                virXendError(domain->conn, VIR_ERR_INTERNAL_ERROR,
+                        _("domain information incomplete, missing cpu_weight"));
+                goto error;
+            }
+            if (sexpr_node(root, "domain/cpu_cap") == NULL) {
+                virXendError(domain->conn, VIR_ERR_INTERNAL_ERROR,
+                        _("domain information incomplete, missing cpu_cap"));
+                goto error;
+            }
+
+            strncpy (params[0].field, str_weight, VIR_DOMAIN_SCHED_FIELD_LENGTH);
+            params[0].field[VIR_DOMAIN_SCHED_FIELD_LENGTH-1] = '\0';
+            params[0].type = VIR_DOMAIN_SCHED_FIELD_UINT;
+            params[0].value.ui = sexpr_int(root, "domain/cpu_weight");
+
+            strncpy (params[1].field, str_cap, VIR_DOMAIN_SCHED_FIELD_LENGTH);
+            params[1].field[VIR_DOMAIN_SCHED_FIELD_LENGTH-1] = '\0';
+            params[1].type = VIR_DOMAIN_SCHED_FIELD_UINT;
+            params[1].value.ui = sexpr_int(root, "domain/cpu_cap");
+            *nparams = XEN_SCHED_CRED_NPARAM;
+            ret = 0;
+            break;
+        default:
+            virXendError(domain->conn, VIR_ERR_INTERNAL_ERROR, _("Unknown scheduler"));
+            goto error;
+    }
+
+error:
+    sexpr_free(root);
+    free(sched_type);
+    return (ret);
+}
+
+/**
+ * xenDaemonSetSchedulerParameters:
+ * @domain: pointer to the Domain block
+ * @params: pointer to scheduler parameters
+ * @nparams: a number of scheduler setting parameters
+ *
+ * Set the scheduler parameters
+ *
+ * Returns 0 or -1 in case of failure
+ */
+static int
+xenDaemonSetSchedulerParameters(virDomainPtr domain,
+                                virSchedParameterPtr params, int nparams)
+{
+    xenUnifiedPrivatePtr priv;
+    struct sexpr *root;
+    char *sched_type = NULL;
+    int i;
+    int sched_nparam = 0;
+    int ret = -1;
+
+    if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)
+        || (params == NULL)) {
+        virXendError((domain ? domain->conn : NULL), VIR_ERR_INVALID_ARG,
+                     __FUNCTION__);
+        return (-1);
+    }
+
+    /* Support only xendConfigVersion >=4 and active domains */
+    priv = (xenUnifiedPrivatePtr) domain->conn->privateData;
+    if (priv->xendConfigVersion < 4) {
+        virXendError (domain->conn, VIR_ERR_NO_SUPPORT,
+                      _("unsupported in xendConfigVersion < 4"));
+        return (-1);
+    }
+
+    /* look up the information by domain name */
+    root = sexpr_get(domain->conn, "/xend/domain/%s?detail=1", domain->name);
+    if (root == NULL)
+        return (-1);
+
+    /* get the scheduler type */
+    sched_type = xenDaemonGetSchedulerType(domain, &sched_nparam);
+    if (sched_type == NULL) {
+        virXendError(domain->conn, VIR_ERR_INTERNAL_ERROR,
+                     _("Failed to get a scheduler name"));
+        goto error;
+    }
+
+    switch (sched_nparam){
+        case XEN_SCHED_SEDF_NPARAM:
+            /* TODO: Implement for Xen/SEDF */
+            TODO
+            goto error;
+        case XEN_SCHED_CRED_NPARAM: {
+            char buf_weight[VIR_UUID_BUFLEN];
+            char buf_cap[VIR_UUID_BUFLEN];
+            const char *weight = NULL;
+            const char *cap = NULL;
+
+            /* get the scheduler parameters */
+            memset(&buf_weight, 0, VIR_UUID_BUFLEN);
+            memset(&buf_cap, 0, VIR_UUID_BUFLEN);
+            for (i = 0; i < nparams; i++) {
+                if (STREQ (params[i].field, str_weight) &&
+                    params[i].type == VIR_DOMAIN_SCHED_FIELD_UINT) {
+                    snprintf(buf_weight, sizeof(buf_weight), "%u", params[i].value.ui);
+                } else if (STREQ (params[i].field, str_cap) &&
+                    params[i].type == VIR_DOMAIN_SCHED_FIELD_UINT) {
+                    snprintf(buf_cap, sizeof(buf_cap), "%u", params[i].value.ui);
+                } else {
+                    virXendError(domain->conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+                    goto error;
+                }
+            }
+
+            /* if not get the scheduler parameter, set the current setting */
+            if (strlen(buf_weight) == 0) {
+                weight = sexpr_node(root, "domain/cpu_weight");
+                if (weight == NULL) {
+                    virXendError(domain->conn, VIR_ERR_INTERNAL_ERROR,
+                                _("domain information incomplete, missing cpu_weight"));
+                    goto error;
+                }
+                snprintf(buf_weight, sizeof(buf_weight), "%s", weight);
+            }
+            if (strlen(buf_cap) == 0) {
+                cap = sexpr_node(root, "domain/cpu_cap");
+                if (cap == NULL) {
+                    virXendError(domain->conn, VIR_ERR_INTERNAL_ERROR,
+                                _("domain information incomplete, missing cpu_cap"));
+                    goto error;
+                }
+                snprintf(buf_cap, sizeof(buf_cap), "%s", cap);
+            }
+
+            ret = xend_op(domain->conn, domain->name, "op",
+                          "domain_sched_credit_set", "weight", buf_weight,
+                          "cap", buf_cap, NULL);
+            break;
+        }
+        default:
+            virXendError(domain->conn, VIR_ERR_INTERNAL_ERROR, _("Unknown scheduler"));
+            goto error;
+    }
+
+error:
+    sexpr_free(root);
+    free(sched_type);
+    return (ret);
 }
 
 #endif /* ! PROXY */

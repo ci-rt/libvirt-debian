@@ -1,3 +1,494 @@
+Mon Apr  8 17:32:07 CET 2008 Jim Meyering <meyering@redhat.com>
+
+	* configure.in (ALL_LINGUAS): Fix typo: s/Latn/latin/.
+
+	Don't fail to read a file because it's non-seekable (e.g., a pipe).
+	* src/util.c (fread_file_lim): New function.
+	(__virFileReadAll): Use fread_file_lim, rather than requiring
+	that stat.st_size provide a usable file size.
+	* tests/read-non-seekable: New test, for the above.
+	* tests/Makefile.am (test_scripts): Add read-non-seekable.
+	* tests/test-lib.sh (mkfifo_or_skip_): New helper function.
+
+Tue Apr  8 13:24:00 BST 2008 Richard W.M. Jones <rjones@redhat.com>
+
+	* src/qemu_driver.c: Handle errors from fork(2) and pipe(2)
+	  system calls when creating qemu subprocess.
+
+Tue Apr  8 11:50:42 CEST 2008 Daniel Veillard <daniel@veillard.com>
+
+	* po/sr.po po/sr@Latn.po po/sr@latin.po: fix/update serbian
+	  translations.
+
+Tue Apr  8 11:24:28 CEST 2008 Daniel Veillard <daniel@veillard.com>
+
+	* src/test.c: patch from Cole Robinson adding xen and hvm guest types
+	  to the test driver's capabilities.
+
+Tue Apr  8 10:19:01 CEST 2008 Daniel Veillard <daniel@veillard.com>
+
+	* python/generator.py: fix an infinite loop bug
+
+Mon Apr  7 14:36:56 CET 2008 Jim Meyering <meyering@redhat.com>
+
+	* tests/vcpupin: Add a test for the 2008-04-04 virsh.c bugfix.
+
+Mon Apr  7 12:53:01 CEST 2008 Daniel Veillard <veillard@redhat.com>
+
+	* docs/bugs.html docs/libvir.html: update the page bugzilla URIs
+	  depending on the set the user is running.
+
+Fri Apr  4 11:00:08 EDT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/libvirt.c: Don't run polkit-auth if running as root
+	* qemud/qemud.c, qemud/remote.c, qemud/internal.h: Don't
+	ask client for polkit auth if they are running as root
+
+Fri Apr  4 13:19:08 CEST 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/virsh.c: patch from Shigeki Sakamoto adding message on vcpupin
+
+Fri Apr  4 10:04:23 CEST 2008 Daniel Veillard <veillard@redhat.com>
+
+	* docs//* po/*: regenerated the documentation and reextracted the
+	  full set of localization strings to push to the translation team.
+
+Fri Apr  4 09:56:42 CEST 2008 Daniel Veillard <veillard@redhat.com>
+
+	* docs//* src/conf.c src/hash.c src/libvirt.c src/proxy_internal.c
+	 src/remote_internal.c src/virsh.c src/xen_internal.c
+	 src/xend_internal.c src/xml.c: applied patch from Atsushi SAKAI
+	 fixing a lot of typos
+
+Fri Apr  4 09:29:08 CEST 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/test.c: patch from Cole Robinson to add
+	  virNodeGetCellsFreeMemory to the test driver
+
+Wed Apr  2 17:19:00 BST 2008 Richard W.M. Jones <rjones@redhat.com>
+
+	C99 initializer on __lastErr
+	* src/virterror.c: Use C99 initializers to make initialization
+	  of __lastErr clearer (Guido Günther).
+
+Tue Apr  1 15:00:03 CEST 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/lxc_conf.c: patch from Dave Leskovec fixing an freed memory
+	  access I introduced yesterday
+
+Mon Mar 31 16:35:47 CEST 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/hash.c src/internal.h src/virterror.c: remove dandling
+	  domain/net/conn pointers from error data when released.
+	* src/lxc_driver.c: fix a NULL/0 return error mismatch
+
+Mon Mar 31 14:12:42 CEST 2008 Daniel Veillard <veillard@redhat.com>
+
+	* configure.in: small patch from Mike Gerdts to avoid problems with
+	  older awk implementations, fixes #439649
+
+Mon Mar 31 13:58:25 CEST 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/lxc_conf.c src/lxc_conf.h: cleanup patch for the conf driver
+	  of linux countainers, reuse XPath helpers, make string fields dynamic
+	  and remove a memory leak.
+	* src/lxc_driver.c: avoid some problems when the config directory is
+	  not accessible and for regression tests
+
+Fri Mar 28 16:34:56 EDT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/network.rng: Add new routed networking schema
+	* src/iptables.c, src/iptables.h: Add iptablesAddForwardAllowRelatedIn
+	and iptablesRemoveForwardAllowRelatedIn
+	* src/qemu_conf.h: Add attribute for routed networking
+	* src/qemu_conf.c: Parse / format new networking attributes
+	* src/qemu_driver.c: Support routed networking config
+	  (patches from Mads Chr. Olesen)
+
+Fri Mar 28 13:55:56 EDT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/storage_conf.c: Fix XML output tag for FS storage pools
+	directory path
+
+Thu Mar 27 20:59:56 EDT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/iptables.c: Ensure masquering rule only catches traffic
+	leaving the virtual network, and not traffic inside it
+	(patch from Charles Duffy)
+
+Thu Mar 27 14:36:56 CET 2008 Jim Meyering <meyering@redhat.com>
+
+	lxcError: mark a string and add to the list of nearly-checked functions
+	* Makefile.maint (msg_gen_function): Add, but commented-out.
+	* src/lxc_conf.c (lxcParseXML): Mark a diagnostic for translation.
+
+	testError: mark most string arguments for translation
+	* Makefile.maint (msg_gen_function): Add testError
+	* src/test.c (testDomainSave, testDomainRestore): Mark strings.
+	(testDomainCoreDump): Likewise.
+
+	openvzLog: mark its string arguments for translation
+	* Makefile.maint (msg_gen_function): Add openvzLog.
+	* src/openvz_conf.c (openvzAssignVMDef, openvzParseXML): Mark strings.
+	* src/openvz_driver.c (openvzDomainShutdown, openvzDomainReboot):
+	(openvzDomainDefineXML, openvzDomainCreateLinux):
+	(openvzDomainCreate, openvzDomainUndefine): Likewise.
+
+	error: mark most string arguments for translation
+	Also mark some arguments to __virRaiseError.
+	* Makefile.maint (msg_gen_function): Add error.
+	* po/POTFILES.in: Add src/openvz_conf.c and src/openvz_driver.c.
+	* src/openvz_conf.c (openvzParseXML, openvzGetVPSInfo): Mark strings.
+	* src/openvz_driver.c (openvzDomainLookupByID): Likewise.
+	(openvzDomainLookupByUUID, openvzDomainLookupByName): Likewise.
+	(openvzDomainGetInfo, openvzDomainShutdown, openvzDomainReboot)
+	(openvzDomainCreate, openvzDomainUndefine): Likewise.
+	* src/remote_internal.c (check_cert_file): Likewise.
+	(negotiate_gnutls_on_connection, verify_certificate): Likewise.
+	(remoteAuthenticate, addrToString, remoteAuthSASL): Likewise.
+	(remoteAuthPolkit, call, really_read_buf): Likewise.
+
+	Convert diagnostics like "VAR > MAX_VAR" to translatable messages.
+	* src/remote_internal.c (errorf): New function.
+	(remoteListDomains, remoteDomainPinVcpu, remoteDomainGetVcpus):
+	(remoteListDefinedDomains, remoteListNetworks):
+	(remoteListDefinedNetworks): Convert strings to be translatable,
+	and also to include offending and maximum values.  Use errorf.
+
+	qemudReportError: mark for translation string args to this function
+	* Makefile.maint (msg_gen_function): Add qemudReportError.
+	* src/qemu_conf.c (qemudLoadDriverConfig)
+	(qemudExtractVersion, qemudParseDiskXML, qemudParseInterfaceXML)
+	(qemudParseInputXML, qemudParseXML, qemudNetworkIfaceConnect)
+	(qemudBuildCommandLine, qemudSaveConfig, qemudParseVMDeviceDef)
+	(qemudAssignVMDef, qemudSaveVMDef, qemudSaveNetworkConfig)
+	(qemudParseDhcpRangesXML, qemudParseNetworkXML)
+	(qemudAssignNetworkDef, qemudSaveNetworkDef, qemudGenerateXML)
+	(qemudGenerateNetworkXML, qemudDeleteConfig): Mark strings.
+	* src/qemu_driver.c (qemudBuildDnsmasqArgv, qemudAddIptablesRules)
+	(qemudGetCapabilities, qemudDomainGetOSType)
+	(qemudListDefinedDomains, qemudListNetworks)
+	(qemudListDefinedNetworks, qemudNetworkGetBridgeName): Mark strings.
+
+	ReportError: mark for translation string args to this function
+	* Makefile.maint (msg_gen_function): Add ReportError.
+	* src/util.c (_virExec): Mark strings.
+
+	xenXMError: mark for translation string args to this function
+	* Makefile.maint (msg_gen_function): Add xenXMError.
+	* src/xm_internal.c (xenXMParseXMLToConfig, xenXMDomainDefineXML):
+	(xenXMDomainAttachDevice, xenXMDomainDetachDevice): Mark strings.
+
+	Mark many more strings for translation.
+	* Makefile.maint (err_func_re): Add to the list and make it readable.
+	* po/POTFILES.in: Add src/util.c and src/xm_internal.c, and sort.
+	* src/storage_backend.c: Fix comment.
+	* src/util.c (virFileLinkPointsTo): Mark a string.
+	* qemud/remote.c (remoteDispatchClientRequest): Mark strings.
+	(remoteDispatchOpen, CHECK_CONN, remoteDispatchGetType): Likewise.
+	(remoteDispatchDomainGetSchedulerType): Likewise.
+	(remoteDispatchDomainGetSchedulerParameters): Likewise.
+	(remoteDispatchDomainSetSchedulerParameters): Likewise.
+	(remoteDispatchDomainBlockStats): Likewise.
+	(remoteDispatchDomainInterfaceStats): Likewise.
+	(remoteDispatchDomainAttachDevice, remoteDispatchDomainCreate):
+	(remoteDispatchDomainDestroy, remoteDispatchDomainDetachDevice):
+	(remoteDispatchDomainDumpXml, remoteDispatchDomainGetAutostart):
+	(remoteDispatchDomainGetInfo, remoteDispatchDomainGetMaxMemory):
+	(remoteDispatchDomainGetMaxVcpus, remoteDispatchDomainGetOsType):
+	(remoteDispatchDomainGetVcpus): Likewise.
+	(remoteDispatchDomainMigratePerform): Likewise.
+	(remoteDispatchListDefinedDomains, remoteDispatchDomainPinVcpu):
+	(remoteDispatchDomainReboot, remoteDispatchDomainResume):
+	(remoteDispatchDomainSave, remoteDispatchDomainCoreDump):
+	(remoteDispatchDomainSetAutostart): Likewise.
+	(remoteDispatchDomainSetMaxMemory, remoteDispatchDomainSetMemory):
+	(remoteDispatchDomainSetVcpus, remoteDispatchDomainShutdown):
+	(remoteDispatchDomainSuspend, remoteDispatchDomainUndefine):
+	(remoteDispatchListDefinedNetworks, remoteDispatchListDomains):
+	(remoteDispatchListNetworks, remoteDispatchNetworkCreate):
+	(remoteDispatchNetworkDestroy, remoteDispatchNetworkDumpXml):
+	(remoteDispatchNetworkGetAutostart, remoteDispatchNetworkGetBridgeName):
+	(remoteDispatchNetworkSetAutostart, remoteDispatchNetworkUndefine):
+	(addrToString, remoteDispatchAuthSaslInit, remoteDispatchAuthSaslStart):
+	(remoteDispatchAuthSaslStep, remoteDispatchListDefinedStoragePools):
+	(remoteDispatchListStoragePools, remoteDispatchStoragePoolCreate):
+	(remoteDispatchStoragePoolBuild, remoteDispatchStoragePoolDestroy):
+	(remoteDispatchStoragePoolDelete, remoteDispatchStoragePoolRefresh):
+	(remoteDispatchStoragePoolGetInfo, remoteDispatchStoragePoolDumpXml):
+	(remoteDispatchStoragePoolGetAutostart): Likewise.
+	(remoteDispatchStoragePoolSetAutostart):
+	(remoteDispatchStoragePoolListVolumes):
+	(remoteDispatchStoragePoolNumOfVolumes):
+	(remoteDispatchStoragePoolUndefine, remoteDispatchStorageVolCreateXml):
+	(remoteDispatchStorageVolDelete, remoteDispatchStorageVolGetInfo):
+	(remoteDispatchStorageVolDumpXml, remoteDispatchStorageVolGetPath):
+	(remoteDispatchStorageVolLookupByName): Likewise.
+	* src/qemu_driver.c (qemudOpenMonitor, qemudStartVMDaemon):
+	(dhcpStartDhcpDaemon, qemudStartNetworkDaemon):
+	(qemudDomainSuspend, qemudDomainResume, qemudDomainShutdown):
+	(qemudDomainGetOSType, qemudDomainSetMaxMemory):
+	(qemudDomainSetMemory, qemudDomainGetInfo, qemudDomainSave):
+	(qemudDomainRestore, qemudDomainDumpXML, qemudDomainStart):
+	(qemudDomainUndefine, qemudDomainChangeCDROM):
+	(qemudDomainAttachDevice, qemudDomainGetAutostart):
+	(qemudDomainSetAutostart, qemudDomainInterfaceStats):
+	(qemudNetworkLookupByUUID, qemudNetworkLookupByName):
+	(qemudNetworkUndefine, qemudNetworkStart, qemudNetworkDestroy):
+	(qemudNetworkDumpXML, qemudNetworkGetAutostart):
+	(qemudNetworkSetAutostart): Likewise.
+	* src/virsh.c (cmdVcpupin, cmdAttachDevice, cmdDetachDevice): Likewise.
+	* src/xm_internal.c (xenXMConfigCacheRefresh, xenXMDomainPinVcpu):
+	Likewise.
+
+Thu Mar 27 10:30:12 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/lxc_conf.c src/lxc_conf.h src/lxc_driver.c src/remote_internal.c:
+	  applied patch from Dan Berrange to change the way the lxc driver
+	  works, migrating the support in the daemon, it also removes some
+	  compilation issues and teh way the configuration files are named.
+
+Thu Mar 27 09:09:34 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/storage_backend_iscsi.c: patch from Chris Lalancette to improve
+	  support with older versions of iscsiadm.
+
+Wed Mar 26 14:00:47 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/xen_internal.c proxy/libvirt_proxy.c: fix Xen hypercall for
+	  Xen-3.2, and merged its debugging with the general library facility
+
+Wed Mar 26 12:57:00 UTC 2008 Richard W.M. Jones <rjones@redhat.com>
+
+	* po/lt.po: Fixed typo (Beth Kon).
+
+Tue Mar 25 10:23:00 UTC 2008 Richard W.M. Jones <rjones@redhat.com>
+
+	* src/virsh.c: Additional error messages for missing
+	  parameters (Shigeki Sakamoto).
+
+Mon Mar 24 11:56:58 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/qemu_driver.c: remove trailing newlines from error messages
+	  patch from Guido Günther
+
+Mon Mar 24 11:47:47 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/qemu_driver.c: applied patch from Guido Günther to make error
+	  strings as translatable
+
+Mon Mar 24 11:16:58 CET 2008 Jim Meyering <meyering@redhat.com>
+
+	* Makefile.maint (err_func_re): Add lxcError.
+
+	* qemud/remote.c: Don't include <getopt.h>. Not used.
+
+	Sync Makefile rules from coreutils.
+	* Makefile.maint: Merge.
+	* GNUmakefile: Update from coreutils.
+
+	Add new testing framework and the first test to use it.
+	* tests/Makefile.am (test_scripts): Add vcpupin.
+	(EXTRA_DIST): Add test-lib.sh.
+	* tests/test-lib.sh: Testing framework, from coreutils.
+	* tests/vcpupin: New file.
+	* build-aux/mktempd: New file, from gnulib.
+	* bootstrap: Add posix-shell and mktempd to the list of imported modules.
+	* gnulib/m4/posix-shell.m4: New file, from gnulib.
+
+	Fix bugs in tests/Makefile.am.
+	* tests/Makefile.am (TESTS_ENVIRONMENT): Correct invalid
+	settings of abs_top_builddir and abs_top_srcdir.
+	Also prepend src/ to PATH, so we test the just-built virsh,
+	not whatever happens to be in the original $PATH.
+
+Mon Mar 24 10:20:21 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/xend_internal.c: applied patch from Saori Fukuta adding the
+	  scheduler API for the Xen daemon driver
+	* po/POTFILES.in: add the two new linux container modules
+
+Fri Mar 21 15:59:53 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* configure.in include/libvirt/virterror.h src/Makefile.am
+	  src/driver.h src/lxc_conf.[ch] src/lxc_driver.[ch] src/virterror.c:
+	  Applied 3 patches from Dave Leskovec for intial support of
+	  Linux containers, configured off by default, work in progress.
+	* src/libvirt.c: improve virDomainCreateLinux xmlDesc description
+
+Thu Mar 20 12:23:03 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/util.c src/util.h src/xml.c: applied patch from Hiroyuki Kaguchi
+	  fixing Ethernet MAC addresses parsingand separating as an util
+	  function, with added comments from Jim Meyering
+
+Wed Mar 19 15:31:34 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/qemu_conf.c src/qemu_conf.h src/qemu_driver.c: applied patch
+	  from Cole Robinson implementing memory operations for qemu driver
+
+Tue Mar 18 23:31:26 CET 2008 Jim Meyering <meyering@redhat.com>
+
+	Avoid "make syntax-check" failure.
+	* src/xen_unified.c: Remove trailing blank.
+
+Mon Mar 17 13:24:22 EDT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* configure.in: Add WITH_PROXY to config.h file
+	* src/remote_internal.c: Handle local Xen URIs if Xen drivers
+	declines them
+	* src/xen_unfied.c: Use explicit logic for opening sub-drivers
+	rather than a hacked loop.
+	* src/xend_internal.c: Don't complain about failing to open
+	xend when non-root read-only.
+
+Mon Mar 17 17:55:56 CET 2008 Jim Meyering <meyering@redhat.com>
+
+	Treat ENOTSUP like ENODATA, after failed fgetfilecon.
+	* src/storage_backend.c (virStorageBackendUpdateVolInfoFD): Treat a
+	failed fgetfilecon with errno == ENOTSUP the same as for ENODATA.
+
+Mon Mar 17 17:40:12 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* libvirt.c: fixed DefinedDomains function comments c.f. 437216
+	* docs/libvirt-*.xml docs/*/libvirt-libvirt.html: regenerated
+
+Mon Mar 17 11:10:22 EDT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/storage_driver.c: Don't crash if backend is missing the
+	startPool operation, and run refreshPool when creating an
+	unmanaged pool
+
+Mon Mar 17 11:09:22 EDT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/storage_backend.c: Cope with missing SELinux context
+	data by ignoring the error
+
+Mon Mar 17 11:46:09 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/libvirt.c docs/libvirt-*.xml docs/html/libvirt-libvirt.html:
+	  fixed a few missing argument descriptions and regenerated.
+
+Mon Mar 17 11:23:32 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* NEWS virsh.1 docs//* include/libvirt/libvirt.h[.in] qemud/mdns.h
+	  src/libvirt.c src/qemu.conf src/remote_internal.c src/xend_internal.c
+	  tests/confdata/libvirtd.conf tests/confdata/libvirtd.out: patch from
+	  Atsushi SAKAI fixing a ot more typo
+
+Fri Mar 14 16:38:34 EDT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/bridge.c, src/bridge.h: Don't set MAC address on TAP
+	device.
+	* src/qemu_conf.c: Pass ifname= param along with TAP file
+	handle for Xenner
+
+Fri Mar 14 16:55:34 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* po/*: updated translations
+
+Fri Mar 14 16:30:27 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/bridge.c: fix a typo in a comment
+
+Fri Mar 14 16:19:21 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* qemud/qemud.c src/virsh.c: fixing some user facing strings
+	  problems pointed out by Francesco Tombolini should fix #436620
+
+Fri Mar 14 11:01:00 BST 2008 Richard W.M. Jones <rjones@redhat.com>
+
+	* virsh.1 docs/apibuild.py docs/architecture.html docs/errors.html
+	  docs/format.html docs/index.py docs/libvir.html docs/libvirt-api.xml
+	  docs/libvirt.rng docs/news.html docs/python.html docs/virsh.pod
+	  docs/devhelp/libvirt-libvirt.html docs/examples/examples.xml
+	  docs/examples/index.html docs/examples/info1.c
+	  docs/examples/suspend.c docs/html/libvirt-libvirt.html
+	  include/libvirt/libvirt.h include/libvirt/libvirt.h.in
+	  proxy/libvirt_proxy.c python/libvir.py python/libvirt-python-api.xml
+	  python/tests/node.py src/xen_internal.c:
+	Fix typo "informations" -> "information" (Atsushi SAKAI and
+	Saori FUKUTA).
+
+Thu Mar 13 10:24:45 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/libvirt.c: virDomainSetSchedulerParameters need to be
+	  blocked on read-only connections, patch from Saori Fukuta
+
+Thu Mar 13 10:19:16 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/bridge.c src/virsh.c: typo fixes from Atsushi SAKAI
+
+Thu Mar 13 10:15:58 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/qemu_conf.c src/qemu_driver.c: patch from Cole Robinson
+	  fixing CD Rom change on live QEmu/KVM domains.
+
+Tue Mar 11 10:45:53 EDT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/libvirt.c, configure.in: Remove use of polkit-grant since
+	it is fundamentally broken. Only use polkit-auth instead. Keep
+	stdin/out/err open when running polkit-auth.
+
+Tue Mar 11 10:21:53 EDT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/virsh.c: Don't force connection to readonly as non-root
+	since with auth support we can have full connections.
+
+Tue Mar 11 10:17:53 EDT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* qemud/qemud.c: Don't run cleanup code when parent process is
+	exiting in daemon mode.
+
+Fri Mar  7 12:11:53 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* docs/libvir.html docs/storage.html: apply documentation fixes
+	  and typos cleanup from Atsushi Sakai
+
+Fri Mar  7 10:22:00 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/xend_internal.c: applied patch from Cole Robinson to not
+	  loose the boot tag when defining a fully virtualized xen domain
+
+Tue Mar  4 20:01:00 UTC 2008 Richard W.M. Jones <rjones@redhat.com>
+
+	Make iSCSI login actually work
+	* src/storage_backend_iscsi.c: Make iSCSI login actually work
+	  (Chris Lalancette).
+
+Tue Mar  4 19:57:00 UTC 2008 Richard W.M. Jones <rjones@redhat.com>
+
+	Report error when vcpupin is given bad vCPU number.
+	* src/virsh.c: Report error when vcpupin is given bad vCPU number
+	  (Shigeki Sakamoto).
+
+Mon Mar  3 21:39:17 CET 2008 Jim Meyering <meyering@redhat.com>
+
+	Also ignore leading zeros when comparing MAC addresses.
+	* src/util.c: Include <ctype.h>.
+	(TOLOWER): Define.
+	(__virMacAddrCompare): Rewrite to also ignore leading zeros.
+
+Mon Mar  3 21:17:29 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/capabilities.c: Cole Robinson pointed out a well formedness
+	  problem when generating the capabilities in the test driver.
+
+Mon Mar  3 19:09:51 CET 2008 Jim Meyering <meyering@redhat.com>
+
+	Don't use first byte of string as a pointer.
+	* src/qemu_conf.c (qemudReportError): Use the pointer, errorMessage,
+	not its first byte, errorMessage[0].
+
+	Avoid segfault upon early libvirtd failure.
+	* qemud/qemud.c (main): Don't call qemudCleanup on an
+	uninitialized pointer.
+
+Mon Mar  3 15:40:31 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* NEWS configure.in libvirt.spec.in docs/* include/libvirt/libvirt.h
+	  po/*: preparing release of libvirt-0.4.1
+
 Mon Mar  3 14:14:03 CET 2008 Jim Meyering <meyering@redhat.com>
 
 	Plug saslUsernameWhitelist leak.

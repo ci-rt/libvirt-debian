@@ -10,7 +10,7 @@
  * Daniel P. Berrange <berrange@redhat.com>
  *
  *
- * $Id: virsh.c,v 1.134 2008/02/27 16:14:44 rjones Exp $
+ * $Id: virsh.c,v 1.142 2008/04/04 11:20:45 veillard Exp $
  */
 
 #include <config.h>
@@ -96,7 +96,7 @@ typedef enum {
 } vshErrorLevel;
 
 /*
- * The error handler for virtsh
+ * The error handler for virsh
  */
 static void
 virshErrorHandler(void *unused, virErrorPtr error)
@@ -668,7 +668,7 @@ cmdList(vshControl * ctl, vshCmd * cmd ATTRIBUTE_UNUSED)
 static vshCmdInfo info_domstate[] = {
     {"syntax", "domstate <domain>"},
     {"help", gettext_noop("domain state")},
-    {"desc", gettext_noop("Returns state about a running domain.")},
+    {"desc", gettext_noop("Returns state about a domain.")},
     {NULL, NULL}
 };
 
@@ -1723,11 +1723,14 @@ cmdVcpupin(vshControl * ctl, vshCmd * cmd)
 
     vcpu = vshCommandOptInt(cmd, "vcpu", &vcpufound);
     if (!vcpufound) {
+        vshError(ctl, FALSE, "%s",
+                 _("vcpupin: Invalid or missing vCPU number."));
         virDomainFree(dom);
         return FALSE;
     }
 
     if (!(cpulist = vshCommandOptString(cmd, "cpulist", NULL))) {
+        vshError(ctl, FALSE, "%s", _("vcpupin: Missing cpulist"));
         virDomainFree(dom);
         return FALSE;
     }
@@ -1738,11 +1741,14 @@ cmdVcpupin(vshControl * ctl, vshCmd * cmd)
     }
 
     if (virDomainGetInfo(dom, &info) != 0) {
+        vshError(ctl, FALSE, "%s",
+	         _("vcpupin: failed to get domain informations."));
         virDomainFree(dom);
         return FALSE;
     }
 
     if (vcpu >= info.nrVirtCpu) {
+        vshError(ctl, FALSE, _("vcpupin: Invalid vCPU number."));
         virDomainFree(dom);
         return FALSE;
     }
@@ -1817,7 +1823,7 @@ cmdVcpupin(vshControl * ctl, vshCmd * cmd)
 static vshCmdInfo info_setvcpus[] = {
     {"syntax", "setvcpus <domain> <count>"},
     {"help", gettext_noop("change number of virtual CPUs")},
-    {"desc", gettext_noop("Change the number of virtual CPUs active in the guest domain.")},
+    {"desc", gettext_noop("Change the number of virtual CPUs in the guest domain.")},
     {NULL, NULL}
 };
 
@@ -3203,7 +3209,7 @@ cmdPoolDelete(vshControl * ctl, vshCmd * cmd)
         return FALSE;
 
     if (virStoragePoolDelete(pool, 0) == 0) {
-        vshPrint(ctl, _("Pool %s deleteed\n"), name);
+        vshPrint(ctl, _("Pool %s deleted\n"), name);
     } else {
         vshError(ctl, FALSE, _("Failed to delete pool %s"), name);
         ret = FALSE;
@@ -3589,15 +3595,15 @@ cmdPoolStart(vshControl * ctl, vshCmd * cmd)
  * "vol-create-as" command
  */
 static vshCmdInfo info_vol_create_as[] = {
-    {"syntax", "create-as <pool> <name> <capacity>"},
-    {"help", gettext_noop("create a vol from a set of as")},
+    {"syntax", "vol-create-as <pool> <name> <capacity>"},
+    {"help", gettext_noop("create a volume from a set of args")},
     {"desc", gettext_noop("Create a vol.")},
     {NULL, NULL}
 };
 
 static vshCmdOptDef opts_vol_create_as[] = {
     {"pool", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("pool name")},
-    {"name", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("name of the vol")},
+    {"name", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("name of the volume")},
     {"capacity", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("size of the vol with optional k,M,G,T suffix")},
     {"allocation", VSH_OT_DATA, 0, gettext_noop("initial allocation size with optional k,M,G,T suffix")},
     {"format", VSH_OT_DATA, 0, gettext_noop("file format type raw,bochs,qcow,qcow2,vmdk")},
@@ -3611,7 +3617,7 @@ static int cmdVolSize(const char *data, unsigned long long *val)
         return -1;
 
     if (end && *end) {
-        /* Delibrate fallthrough cases here :-) */
+        /* Deliberate fallthrough cases here :-) */
         switch (*end) {
         case 'T':
             *val *= 1024;
@@ -3877,7 +3883,7 @@ cmdVolDelete(vshControl * ctl, vshCmd * cmd)
     }
 
     if (virStorageVolDelete(vol, 0) == 0) {
-        vshPrint(ctl, _("Vol %s deleteed\n"), name);
+        vshPrint(ctl, _("Vol %s deleted\n"), name);
     } else {
         vshError(ctl, FALSE, _("Failed to delete vol %s"), name);
         ret = FALSE;
@@ -4472,6 +4478,7 @@ cmdAttachDevice(vshControl * ctl, vshCmd * cmd)
 
     from = vshCommandOptString(cmd, "file", &found);
     if (!found) {
+        vshError(ctl, FALSE, "%s", _("attach-device: Missing <file> option"));
         virDomainFree(dom);
         return FALSE;
     }
@@ -4528,6 +4535,7 @@ cmdDetachDevice(vshControl * ctl, vshCmd * cmd)
 
     from = vshCommandOptString(cmd, "file", &found);
     if (!found) {
+        vshError(ctl, FALSE, "%s", _("detach-device: Missing <file> option"));
         virDomainFree(dom);
         return FALSE;
     }
@@ -4566,7 +4574,7 @@ static vshCmdOptDef opts_attach_interface[] = {
     {"type",   VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("network interface type")},
     {"source", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("source of network interface")},
     {"target", VSH_OT_DATA, 0, gettext_noop("target network name")},
-    {"mac",    VSH_OT_DATA, 0, gettext_noop("MAC adress")},
+    {"mac",    VSH_OT_DATA, 0, gettext_noop("MAC address")},
     {"script", VSH_OT_DATA, 0, gettext_noop("script used to bridge network interface")},
     {NULL, 0, 0, NULL}
 };
@@ -4678,7 +4686,7 @@ static vshCmdInfo info_detach_interface[] = {
 static vshCmdOptDef opts_detach_interface[] = {
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("domain name, id or uuid")},
     {"type",   VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("network interface type")},
-    {"mac",    VSH_OT_DATA, 0, gettext_noop("MAC adress")},
+    {"mac",    VSH_OT_DATA, 0, gettext_noop("MAC address")},
     {NULL, 0, 0, NULL}
 };
 
@@ -5458,13 +5466,13 @@ vshCommandOptDomainBy(vshControl * ctl, vshCmd * cmd, const char *optname,
     }
     /* try it by UUID */
     if (dom==NULL && (flag & VSH_BYUUID) && strlen(n)==VIR_UUID_STRING_BUFLEN-1) {
-        vshDebug(ctl, 5, "%s: <%s> tring as domain UUID\n",
+        vshDebug(ctl, 5, "%s: <%s> trying as domain UUID\n",
                  cmd->def->name, optname);
         dom = virDomainLookupByUUIDString(ctl->conn, n);
     }
     /* try it by NAME */
     if (dom==NULL && (flag & VSH_BYNAME)) {
-        vshDebug(ctl, 5, "%s: <%s> tring as domain NAME\n",
+        vshDebug(ctl, 5, "%s: <%s> trying as domain NAME\n",
                  cmd->def->name, optname);
         dom = virDomainLookupByName(ctl->conn, n);
     }
@@ -5495,13 +5503,13 @@ vshCommandOptNetworkBy(vshControl * ctl, vshCmd * cmd, const char *optname,
 
     /* try it by UUID */
     if (network==NULL && (flag & VSH_BYUUID) && strlen(n)==VIR_UUID_STRING_BUFLEN-1) {
-        vshDebug(ctl, 5, "%s: <%s> tring as network UUID\n",
+        vshDebug(ctl, 5, "%s: <%s> trying as network UUID\n",
 		 cmd->def->name, optname);
         network = virNetworkLookupByUUIDString(ctl->conn, n);
     }
     /* try it by NAME */
     if (network==NULL && (flag & VSH_BYNAME)) {
-        vshDebug(ctl, 5, "%s: <%s> tring as network NAME\n",
+        vshDebug(ctl, 5, "%s: <%s> trying as network NAME\n",
                  cmd->def->name, optname);
         network = virNetworkLookupByName(ctl->conn, n);
     }
@@ -5664,7 +5672,7 @@ vshCommandGetToken(vshControl * ctl, char *str, char **end, char **res)
     if (p == NULL || *p == '\0')
         return VSH_TK_END;
     if (*p == ';') {
-        *end = ++p;             /* = \0 or begi of next command */
+        *end = ++p;             /* = \0 or begin of next command */
         return VSH_TK_END;
     }
     while (*p) {
@@ -5828,7 +5836,7 @@ vshCommandParse(vshControl * ctl, char *cmdstr)
                 break;
         }
 
-        /* commad parsed -- allocate new struct for the command */
+        /* command parsed -- allocate new struct for the command */
         if (cmd) {
             vshCmd *c = vshMalloc(ctl, sizeof(vshCmd));
 
@@ -6043,13 +6051,6 @@ vshInit(vshControl * ctl)
 
     /* set up the library error handler */
     virSetErrorFunc(NULL, virshErrorHandler);
-
-#ifndef __MINGW32__
-    /* Force a non-root, Xen connection to readonly */
-    if ((ctl->name == NULL ||
-         !strcasecmp(ctl->name, "xen")) && ctl->uid != 0)
-         ctl->readonly = 1;
-#endif
 
     ctl->conn = virConnectOpenAuth(ctl->name,
                                    virConnectAuthPtrDefault,
