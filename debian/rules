@@ -20,6 +20,7 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	--without-openvz         \
 	--with-avahi             \
 	--with-sasl              \
+	--with-polkit		 \
         --with-storage-fs        \
         --with-storage-lvm       \
         --with-storage-iscsi     \
