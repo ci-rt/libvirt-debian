@@ -2,4 +2,3 @@ remove-RHism.diff
 qemu-path.diff
 qemu-disable-network.diff
 libvirt-group.diff
-no-mac.diff
