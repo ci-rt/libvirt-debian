@@ -49,7 +49,9 @@
 #include "buf.h"
 #include "capabilities.h"
 
-/* #define DEBUG */
+#define DEBUG(fmt,...) VIR_DEBUG(__FILE__, fmt, __VA_ARGS__)
+#define DEBUG0(msg) VIR_DEBUG(__FILE__, "%s", msg)
+
 /*
  * so far there is 2 versions of the structures usable for doing
  * hypervisor calls.
@@ -397,28 +399,28 @@ struct xen_v0_domainop {
 typedef struct xen_v0_domainop xen_v0_domainop;
 
 /*
- * The informations for a destroydomain system hypercall
+ * The information for a destroydomain system hypercall
  */
 #define XEN_V0_OP_DESTROYDOMAIN	9
 #define XEN_V1_OP_DESTROYDOMAIN	9
 #define XEN_V2_OP_DESTROYDOMAIN	2
 
 /*
- * The informations for a pausedomain system hypercall
+ * The information for a pausedomain system hypercall
  */
 #define XEN_V0_OP_PAUSEDOMAIN	10
 #define XEN_V1_OP_PAUSEDOMAIN	10
 #define XEN_V2_OP_PAUSEDOMAIN	3
 
 /*
- * The informations for an unpausedomain system hypercall
+ * The information for an unpausedomain system hypercall
  */
 #define XEN_V0_OP_UNPAUSEDOMAIN	11
 #define XEN_V1_OP_UNPAUSEDOMAIN	11
 #define XEN_V2_OP_UNPAUSEDOMAIN	4
 
 /*
- * The informations for an setmaxmem system hypercall
+ * The information for an setmaxmem system hypercall
  */
 #define XEN_V0_OP_SETMAXMEM	28
 #define XEN_V1_OP_SETMAXMEM	28
@@ -442,7 +444,7 @@ struct xen_v2d5_setmaxmem {
 typedef struct xen_v2d5_setmaxmem xen_v2d5_setmaxmem;
 
 /*
- * The informations for an setmaxvcpu system hypercall
+ * The information for an setmaxvcpu system hypercall
  */
 #define XEN_V0_OP_SETMAXVCPU	41
 #define XEN_V1_OP_SETMAXVCPU	41
@@ -461,7 +463,7 @@ struct xen_v2_setmaxvcpu {
 typedef struct xen_v2_setmaxvcpu xen_v2_setmaxvcpu;
 
 /*
- * The informations for an setvcpumap system hypercall
+ * The information for an setvcpumap system hypercall
  * Note that between 1 and 2 the limitation to 64 physical CPU was lifted
  * hence the difference in structures
  */
@@ -509,7 +511,7 @@ struct xen_v2d5_setvcpumap {
 typedef struct xen_v2d5_setvcpumap xen_v2d5_setvcpumap;
 
 /*
- * The informations for an vcpuinfo system hypercall
+ * The information for an vcpuinfo system hypercall
  */
 #define XEN_V0_OP_GETVCPUINFO   43
 #define XEN_V1_OP_GETVCPUINFO	43
@@ -980,7 +982,7 @@ xenHypervisorDoV2Dom(int handle, xen_op_v2_dom* op)
  * @maxids: maximum number of domains to list
  * @dominfos: output structures
  *
- * Do a low level hypercall to list existing domains informations
+ * Do a low level hypercall to list existing domains information
  *
  * Returns the number of domains or -1 in case of failure
  */
@@ -1941,9 +1943,7 @@ xenHypervisorInit(void)
     ret = ioctl(fd, cmd, (unsigned long) &hc);
 
     if ((ret != -1) && (ret != 0)) {
-#ifdef DEBUG
-        fprintf(stderr, "Using new hypervisor call: %X\n", ret);
-#endif
+        DEBUG("Using new hypervisor call: %X\n", ret);
         hv_version = ret;
         xen_ioctl_hypercall_cmd = cmd;
         goto detect_v2;
@@ -1959,9 +1959,7 @@ xenHypervisorInit(void)
     cmd = _IOC(_IOC_NONE, 'P', 0, sizeof(v0_hypercall_t));
     ret = ioctl(fd, cmd, (unsigned long) &v0_hc);
     if ((ret != -1) && (ret != 0)) {
-#ifdef DEBUG
-        fprintf(stderr, "Using old hypervisor call: %X\n", ret);
-#endif
+        DEBUG("Using old hypervisor call: %X\n", ret);
         hv_version = ret;
         xen_ioctl_hypercall_cmd = cmd;
         hypervisor_version = 0;
@@ -1989,9 +1987,7 @@ xenHypervisorInit(void)
 
     ipt = malloc(sizeof(*ipt));
     if (ipt == NULL){
-#ifdef DEBUG
-        fprintf(stderr, "Memory allocation failed at xenHypervisorInit()\n");
-#endif
+	virXenError(NULL, VIR_ERR_NO_MEMORY, __FUNCTION__, 0);
         return(-1);
     }
     /* Currently consider RHEL5.0 Fedora7, xen-3.1, and xen-unstable */
@@ -2000,17 +1996,13 @@ xenHypervisorInit(void)
         /* RHEL 5.0 */
         dom_interface_version = 3; /* XEN_DOMCTL_INTERFACE_VERSION */
         if (virXen_getvcpusinfo(fd, 0, 0, ipt, NULL, 0) == 0){
-#ifdef DEBUG
-            fprintf(stderr, "Using hypervisor call v2, sys ver2 dom ver3\n");
-#endif
+            DEBUG0("Using hypervisor call v2, sys ver2 dom ver3\n");
             goto done;
         }
         /* Fedora 7 */
         dom_interface_version = 4; /* XEN_DOMCTL_INTERFACE_VERSION */
         if (virXen_getvcpusinfo(fd, 0, 0, ipt, NULL, 0) == 0){
-#ifdef DEBUG
-            fprintf(stderr, "Using hypervisor call v2, sys ver2 dom ver4\n");
-#endif
+            DEBUG0("Using hypervisor call v2, sys ver2 dom ver4\n");
             goto done;
         }
     }
@@ -2020,21 +2012,27 @@ xenHypervisorInit(void)
         /* xen-3.1 */
         dom_interface_version = 5; /* XEN_DOMCTL_INTERFACE_VERSION */
         if (virXen_getvcpusinfo(fd, 0, 0, ipt, NULL, 0) == 0){
-#ifdef DEBUG
-            fprintf(stderr, "Using hypervisor call v2, sys ver3 dom ver5\n");
-#endif
+            DEBUG0("Using hypervisor call v2, sys ver3 dom ver5\n");
             goto done;
         }
     }
 
     sys_interface_version = 4; /* XEN_SYSCTL_INTERFACE_VERSION */
     if (virXen_getdomaininfo(fd, 0, &info) == 1) {
-        /* xen-unstable */
+        /* Fedora 8 */
         dom_interface_version = 5; /* XEN_DOMCTL_INTERFACE_VERSION */
         if (virXen_getvcpusinfo(fd, 0, 0, ipt, NULL, 0) == 0){
-#ifdef DEBUG
-            fprintf(stderr, "Using hypervisor call v2, sys ver4 dom ver5\n");
-#endif
+            DEBUG0("Using hypervisor call v2, sys ver4 dom ver5\n");
+            goto done;
+        }
+    }
+
+    sys_interface_version = 6; /* XEN_SYSCTL_INTERFACE_VERSION */
+    if (virXen_getdomaininfo(fd, 0, &info) == 1) {
+        /* Xen 3.2, Fedora 9 */
+        dom_interface_version = 5; /* XEN_DOMCTL_INTERFACE_VERSION */
+        if (virXen_getvcpusinfo(fd, 0, 0, ipt, NULL, 0) == 0){
+            DEBUG0("Using hypervisor call v2, sys ver6 dom ver5\n");
             goto done;
         }
     }
@@ -2042,9 +2040,7 @@ xenHypervisorInit(void)
     hypervisor_version = 1;
     sys_interface_version = -1;
     if (virXen_getdomaininfo(fd, 0, &info) == 1) {
-#ifdef DEBUG
-        fprintf(stderr, "Using hypervisor call v1\n");
-#endif
+        DEBUG0("Using hypervisor call v1\n");
         goto done;
     }
 
@@ -2052,6 +2048,7 @@ xenHypervisorInit(void)
      * we failed to make the getdomaininfolist hypercall
      */
 
+    DEBUG0("Failed to find any Xen hypervisor method\n");
     hypervisor_version = -1;
     virXenError(NULL, VIR_ERR_XEN_CALL, " ioctl ", IOCTL_PRIVCMD_HYPERCALL);
     close(fd);
@@ -3174,7 +3171,7 @@ xenHypervisorPinVcpu(virDomainPtr domain, unsigned int vcpu,
  * @info: pointer to an array of virVcpuInfo structures (OUT)
  * @maxinfo: number of structures in info array
  * @cpumaps: pointer to an bit map of real CPUs for all vcpus of this domain (in 8-bit bytes) (OUT)
- *	If cpumaps is NULL, then no cupmap information is returned by the API.
+ *	If cpumaps is NULL, then no cpumap information is returned by the API.
  *	It's assumed there is <maxinfo> cpumap in cpumaps array.
  *	The memory allocated to cpumaps must be (maxinfo * maplen) bytes
  *	(ie: calloc(maxinfo, maplen)).

@@ -106,6 +106,17 @@ typedef struct _testNet *testNetPtr;
 
 #define MAX_DOMAINS 20
 #define MAX_NETWORKS 20
+#define MAX_CPUS 128
+
+struct _testCell {
+    unsigned long mem;
+    int numCpus;
+    int cpus[MAX_CPUS];
+};
+typedef struct _testCell testCell;
+typedef struct _testCell *testCellPtr;
+
+#define MAX_CELLS 128
 
 struct _testConn {
     char path[PATH_MAX];
@@ -115,6 +126,8 @@ struct _testConn {
     testDom domains[MAX_DOMAINS];
     int numNetworks;
     testNet networks[MAX_NETWORKS];
+    int numCells;
+    testCell cells[MAX_CELLS];
 };
 typedef struct _testConn testConn;
 typedef struct _testConn *testConnPtr;
@@ -638,6 +651,16 @@ static int testOpenDefault(virConnectPtr conn) {
     strcpy(privconn->networks[0].dhcpStart, "192.168.122.128");
     strcpy(privconn->networks[0].dhcpEnd, "192.168.122.253");
 
+    // Numa setup
+    privconn->numCells = 2;
+    for (u = 0; u < 2; ++u) {
+        privconn->cells[u].numCpus = 8;
+        privconn->cells[u].mem = (u + 1) * 2048 * 1024;
+    }
+    for (u = 0 ; u < 16 ; u++) {
+        privconn->cells[u % 2].cpus[(u / 2)] = u;
+    }
+
     conn->privateData = privconn;
     return (VIR_DRV_OPEN_SUCCESS);
 }
@@ -711,6 +734,7 @@ static int testOpenFromFile(virConnectPtr conn,
     privconn->nextDomID = 1;
     privconn->numDomains = 0;
     privconn->numNetworks = 0;
+    privconn->numCells = 0;
     strncpy(privconn->path, file, PATH_MAX-1);
     privconn->path[PATH_MAX-1] = '\0';
     memmove(&privconn->nodeInfo, &defaultNodeInfo, sizeof(defaultNodeInfo));
@@ -982,8 +1006,10 @@ static char *testGetCapabilities (virConnectPtr conn)
     virCapsPtr caps;
     virCapsGuestPtr guest;
     char *xml;
-    int cell1[] = { 0, 2, 4, 6, 8, 10, 12, 14 };
-    int cell2[] = { 1, 3, 5, 7, 9, 11, 13, 15 };
+    const char *guest_types[] = { "hvm", "xen" };
+    int i;
+
+    GET_CONNECTION(conn, -1);
 
     if ((caps = virCapabilitiesNew(TEST_MODEL, 0, 0)) == NULL)
         goto no_memory;
@@ -993,34 +1019,37 @@ static char *testGetCapabilities (virConnectPtr conn)
     if (virCapabilitiesAddHostFeature(caps ,"nonpae") < 0)
         goto no_memory;
 
-    if (virCapabilitiesAddHostNUMACell(caps, 0, 8, cell1) < 0)
-        goto no_memory;
-    if (virCapabilitiesAddHostNUMACell(caps, 1, 8, cell2) < 0)
-        goto no_memory;
+    for (i = 0; i < privconn->numCells; ++i) {
+        if (virCapabilitiesAddHostNUMACell(caps, i, privconn->cells[i].numCpus,
+                                           privconn->cells[i].cpus) < 0)
+            goto no_memory;
+    }
 
-    if ((guest = virCapabilitiesAddGuest(caps,
-                                         "linux",
-                                         TEST_MODEL,
-                                         TEST_MODEL_WORDSIZE,
-                                         NULL,
-                                         NULL,
-                                         0,
-                                         NULL)) == NULL)
-        goto no_memory;
+    for (i = 0; i < (sizeof(guest_types)/sizeof(guest_types[0])); ++i) {
 
-    if (virCapabilitiesAddGuestDomain(guest,
-                                      "test",
-                                      NULL,
-                                      NULL,
-                                      0,
-                                      NULL) == NULL)
-        goto no_memory;
+        if ((guest = virCapabilitiesAddGuest(caps,
+                                             guest_types[i],
+                                             TEST_MODEL,
+                                             TEST_MODEL_WORDSIZE,
+                                             NULL,
+                                             NULL,
+                                             0,
+                                             NULL)) == NULL)
+            goto no_memory;
 
+        if (virCapabilitiesAddGuestDomain(guest,
+                                          "test",
+                                          NULL,
+                                          NULL,
+                                          0,
+                                          NULL) == NULL)
+            goto no_memory;
 
-    if (virCapabilitiesAddGuestFeature(guest, "pae", 1, 1) == NULL)
-        goto no_memory;
-    if (virCapabilitiesAddGuestFeature(guest ,"nonpae", 1, 1) == NULL)
-        goto no_memory;
+        if (virCapabilitiesAddGuestFeature(guest, "pae", 1, 1) == NULL)
+            goto no_memory;
+        if (virCapabilitiesAddGuestFeature(guest ,"nonpae", 1, 1) == NULL)
+            goto no_memory;
+    }
 
     if ((xml = virCapabilitiesFormatXML(caps)) == NULL)
         goto no_memory;
@@ -1307,31 +1336,31 @@ static int testDomainSave(virDomainPtr domain,
     xml = testDomainDumpXML(domain, 0);
     if (xml == NULL) {
         testError(domain->conn, domain, NULL, VIR_ERR_INTERNAL_ERROR,
-                  "cannot allocate space for metadata");
+                  _("cannot allocate space for metadata"));
         return (-1);
     }
 
     if ((fd = open(path, O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR)) < 0) {
         testError(domain->conn, domain, NULL, VIR_ERR_INTERNAL_ERROR,
-                  "cannot save domain");
+                  _("cannot save domain"));
         return (-1);
     }
     len = strlen(xml);
     if (safewrite(fd, TEST_SAVE_MAGIC, sizeof(TEST_SAVE_MAGIC)) < 0) {
         testError(domain->conn, domain, NULL, VIR_ERR_INTERNAL_ERROR,
-                  "cannot write header");
+                  _("cannot write header"));
         close(fd);
         return (-1);
     }
     if (safewrite(fd, (char*)&len, sizeof(len)) < 0) {
         testError(domain->conn, domain, NULL, VIR_ERR_INTERNAL_ERROR,
-                  "cannot write metadata length");
+                  _("cannot write metadata length"));
         close(fd);
         return (-1);
     }
     if (safewrite(fd, xml, len) < 0) {
         testError(domain->conn, domain, NULL, VIR_ERR_INTERNAL_ERROR,
-                  "cannot write metadata");
+                  _("cannot write metadata"));
         free(xml);
         close(fd);
         return (-1);
@@ -1339,7 +1368,7 @@ static int testDomainSave(virDomainPtr domain,
     free(xml);
     if (close(fd) < 0) {
         testError(domain->conn, domain, NULL, VIR_ERR_INTERNAL_ERROR,
-                  "cannot save domain data");
+                  _("cannot save domain data"));
         close(fd);
         return (-1);
     }
@@ -1363,30 +1392,30 @@ static int testDomainRestore(virConnectPtr conn,
 
     if ((fd = open(path, O_RDONLY)) < 0) {
         testError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                  "cannot read domain image");
+                  _("cannot read domain image"));
         return (-1);
     }
     if (read(fd, magic, sizeof(magic)) != sizeof(magic)) {
         testError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                  "incomplete save header");
+                  _("incomplete save header"));
         close(fd);
         return (-1);
     }
     if (memcmp(magic, TEST_SAVE_MAGIC, sizeof(magic))) {
         testError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                  "mismatched header magic");
+                  _("mismatched header magic"));
         close(fd);
         return (-1);
     }
     if (read(fd, (char*)&len, sizeof(len)) != sizeof(len)) {
         testError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                  "failed to read metadata length");
+                  _("failed to read metadata length"));
         close(fd);
         return (-1);
     }
     if (len < 1 || len > 8192) {
         testError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                  "length of metadata out of range");
+                  _("length of metadata out of range"));
         close(fd);
         return (-1);
     }
@@ -1398,7 +1427,7 @@ static int testDomainRestore(virConnectPtr conn,
     }
     if (read(fd, xml, len) != len) {
         testError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                  "incomplete metdata");
+                  _("incomplete metdata"));
         close(fd);
         return (-1);
     }
@@ -1419,18 +1448,18 @@ static int testDomainCoreDump(virDomainPtr domain,
 
     if ((fd = open(to, O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR)) < 0) {
         testError(domain->conn, domain, NULL, VIR_ERR_INTERNAL_ERROR,
-                  "cannot save domain core");
+                  _("cannot save domain core"));
         return (-1);
     }
     if (safewrite(fd, TEST_SAVE_MAGIC, sizeof(TEST_SAVE_MAGIC)) < 0) {
         testError(domain->conn, domain, NULL, VIR_ERR_INTERNAL_ERROR,
-                  "cannot write header");
+                  _("cannot write header"));
         close(fd);
         return (-1);
     }
     if (close(fd) < 0) {
         testError(domain->conn, domain, NULL, VIR_ERR_INTERNAL_ERROR,
-                  "cannot save domain data");
+                  _("cannot save domain data"));
         close(fd);
         return (-1);
     }
@@ -1575,6 +1604,29 @@ static virDomainPtr testDomainDefineXML(virConnectPtr conn,
 
     return virGetDomain(conn, privconn->domains[handle].name, privconn->domains[handle].uuid);
 }
+
+static int testNodeGetCellsFreeMemory(virConnectPtr conn,
+                                      unsigned long long *freemems,
+                                      int startCell, int maxCells) {
+    int i, j;
+
+    GET_CONNECTION(conn, -1);
+
+    if (startCell > privconn->numCells) {
+        testError(conn, NULL, NULL, VIR_ERR_INVALID_ARG,
+                  _("Range exceeds available cells"));
+        return -1;
+    }
+
+    for (i = startCell, j = 0;
+         (i < privconn->numCells && j < maxCells) ;
+         ++i, ++j) {
+        freemems[j] = privconn->cells[i].mem;
+    }
+
+    return j;
+}
+
 
 static int testDomainCreate(virDomainPtr domain) {
     GET_DOMAIN(domain, -1);
@@ -2014,7 +2066,7 @@ static virDriver testDriver = {
     NULL, /* domainMigrateFinish */
     NULL, /* domainBlockStats */
     NULL, /* domainInterfaceStats */
-    NULL, /* nodeGetCellsFreeMemory */
+    testNodeGetCellsFreeMemory, /* nodeGetCellsFreeMemory */
     NULL, /* getFreeMemory */
 };
 

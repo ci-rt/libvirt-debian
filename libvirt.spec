@@ -16,7 +16,7 @@
 
 Summary: Library providing a simple API virtualization
 Name: libvirt
-Version: 0.4.1
+Version: 0.4.2
 Release: 1%{?extra_release}
 License: LGPL
 Group: Development/Libraries
@@ -240,6 +240,10 @@ fi
 %doc docs/examples/python
 
 %changelog
+* Tue Apr  8 2008 Daniel Veillard <veillard@redhat.com> - 0.4.2-1
+- release of 0.4.2
+- lots of bug fixes and small improvements
+
 * Mon Mar  3 2008 Daniel Veillard <veillard@redhat.com> - 0.4.1-1
 - Release of 0.4.1
 - Storage APIs

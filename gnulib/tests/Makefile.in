@@ -14,7 +14,7 @@
 
 @SET_MAKE@
 
-# Copyright (C) 2004-2007 Free Software Foundation, Inc.
+# Copyright (C) 2002-2008 Free Software Foundation, Inc.
 #
 # This file is free software, distributed under the terms of the GNU
 # General Public License.  As a special exception to the GNU General
@@ -93,6 +93,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/onceonly_2_57.m4 \
 	$(top_srcdir)/gnulib/m4/physmem.m4 \
 	$(top_srcdir)/gnulib/m4/po.m4 $(top_srcdir)/gnulib/m4/poll.m4 \
+	$(top_srcdir)/gnulib/m4/posix-shell.m4 \
 	$(top_srcdir)/gnulib/m4/realloc.m4 \
 	$(top_srcdir)/gnulib/m4/snprintf.m4 \
 	$(top_srcdir)/gnulib/m4/socklen.m4 \
@@ -339,6 +340,7 @@ GMSGFMT = @GMSGFMT@
 GNULIB_CALLOC_POSIX = @GNULIB_CALLOC_POSIX@
 GNULIB_CHOWN = @GNULIB_CHOWN@
 GNULIB_DUP2 = @GNULIB_DUP2@
+GNULIB_ENVIRON = @GNULIB_ENVIRON@
 GNULIB_FCHDIR = @GNULIB_FCHDIR@
 GNULIB_FFLUSH = @GNULIB_FFLUSH@
 GNULIB_FOPEN = @GNULIB_FOPEN@
@@ -409,6 +411,7 @@ GNUTLS_CFLAGS = @GNUTLS_CFLAGS@
 GNUTLS_LIBS = @GNUTLS_LIBS@
 GREP = @GREP@
 HAVE_CALLOC_POSIX = @HAVE_CALLOC_POSIX@
+HAVE_DECL_ENVIRON = @HAVE_DECL_ENVIRON@
 HAVE_DECL_GETDELIM = @HAVE_DECL_GETDELIM@
 HAVE_DECL_GETLINE = @HAVE_DECL_GETLINE@
 HAVE_DECL_GETLOGIN_R = @HAVE_DECL_GETLOGIN_R@
@@ -541,10 +544,11 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
 POLKIT_AUTH = @POLKIT_AUTH@
 POLKIT_CFLAGS = @POLKIT_CFLAGS@
-POLKIT_GRANT = @POLKIT_GRANT@
 POLKIT_LIBS = @POLKIT_LIBS@
 POLL_H = @POLL_H@
+POSIX_SHELL = @POSIX_SHELL@
 POSUB = @POSUB@
+PREFERABLY_POSIX_SHELL = @PREFERABLY_POSIX_SHELL@
 PTRDIFF_T_SUFFIX = @PTRDIFF_T_SUFFIX@
 PVCREATE = @PVCREATE@
 PVREMOVE = @PVREMOVE@

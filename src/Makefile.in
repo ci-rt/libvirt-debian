@@ -70,6 +70,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/onceonly_2_57.m4 \
 	$(top_srcdir)/gnulib/m4/physmem.m4 \
 	$(top_srcdir)/gnulib/m4/po.m4 $(top_srcdir)/gnulib/m4/poll.m4 \
+	$(top_srcdir)/gnulib/m4/posix-shell.m4 \
 	$(top_srcdir)/gnulib/m4/realloc.m4 \
 	$(top_srcdir)/gnulib/m4/snprintf.m4 \
 	$(top_srcdir)/gnulib/m4/socklen.m4 \
@@ -131,10 +132,11 @@ am__libvirt_la_SOURCES_DIST = libvirt.c internal.h gnutls_1_0_compat.h \
 	remote_internal.h bridge.c bridge.h iptables.c iptables.h \
 	uuid.c uuid.h qemu_driver.c qemu_driver.h qemu_conf.c \
 	qemu_conf.h openvz_conf.c openvz_conf.h openvz_driver.c \
-	openvz_driver.h nodeinfo.h nodeinfo.c storage_conf.h \
-	storage_conf.c storage_driver.h storage_driver.c \
-	storage_backend.h storage_backend.c storage_backend_fs.h \
-	storage_backend_fs.c util.c util.h storage_backend_logical.h \
+	openvz_driver.h lxc_driver.c lxc_driver.h lxc_conf.c \
+	lxc_conf.h nodeinfo.h nodeinfo.c storage_conf.h storage_conf.c \
+	storage_driver.h storage_driver.c storage_backend.h \
+	storage_backend.c storage_backend_fs.h storage_backend_fs.c \
+	util.c util.h storage_backend_logical.h \
 	storage_backend_logical.c storage_backend_iscsi.h \
 	storage_backend_iscsi.c storage_backend_disk.h \
 	storage_backend_disk.c ../qemud/remote_protocol.c \
@@ -157,6 +159,7 @@ am__objects_4 = libvirt_la-libvirt.lo libvirt_la-hash.lo \
 	libvirt_la-bridge.lo libvirt_la-iptables.lo libvirt_la-uuid.lo \
 	libvirt_la-qemu_driver.lo libvirt_la-qemu_conf.lo \
 	libvirt_la-openvz_conf.lo libvirt_la-openvz_driver.lo \
+	libvirt_la-lxc_driver.lo libvirt_la-lxc_conf.lo \
 	libvirt_la-nodeinfo.lo libvirt_la-storage_conf.lo \
 	libvirt_la-storage_driver.lo libvirt_la-storage_backend.lo \
 	libvirt_la-storage_backend_fs.lo libvirt_la-util.lo \
@@ -182,8 +185,9 @@ am__libvirt_test_la_SOURCES_DIST = libvirt.c internal.h \
 	remote_internal.c remote_internal.h bridge.c bridge.h \
 	iptables.c iptables.h uuid.c uuid.h qemu_driver.c \
 	qemu_driver.h qemu_conf.c qemu_conf.h openvz_conf.c \
-	openvz_conf.h openvz_driver.c openvz_driver.h nodeinfo.h \
-	nodeinfo.c storage_conf.h storage_conf.c storage_driver.h \
+	openvz_conf.h openvz_driver.c openvz_driver.h lxc_driver.c \
+	lxc_driver.h lxc_conf.c lxc_conf.h nodeinfo.h nodeinfo.c \
+	storage_conf.h storage_conf.c storage_driver.h \
 	storage_driver.c storage_backend.h storage_backend.c \
 	storage_backend_fs.h storage_backend_fs.c util.c util.h \
 	storage_backend_logical.h storage_backend_logical.c \
@@ -207,7 +211,8 @@ am__objects_9 = libvirt_test_la-libvirt.lo libvirt_test_la-hash.lo \
 	libvirt_test_la-iptables.lo libvirt_test_la-uuid.lo \
 	libvirt_test_la-qemu_driver.lo libvirt_test_la-qemu_conf.lo \
 	libvirt_test_la-openvz_conf.lo \
-	libvirt_test_la-openvz_driver.lo libvirt_test_la-nodeinfo.lo \
+	libvirt_test_la-openvz_driver.lo libvirt_test_la-lxc_driver.lo \
+	libvirt_test_la-lxc_conf.lo libvirt_test_la-nodeinfo.lo \
 	libvirt_test_la-storage_conf.lo \
 	libvirt_test_la-storage_driver.lo \
 	libvirt_test_la-storage_backend.lo \
@@ -315,6 +320,7 @@ GMSGFMT = @GMSGFMT@
 GNULIB_CALLOC_POSIX = @GNULIB_CALLOC_POSIX@
 GNULIB_CHOWN = @GNULIB_CHOWN@
 GNULIB_DUP2 = @GNULIB_DUP2@
+GNULIB_ENVIRON = @GNULIB_ENVIRON@
 GNULIB_FCHDIR = @GNULIB_FCHDIR@
 GNULIB_FFLUSH = @GNULIB_FFLUSH@
 GNULIB_FOPEN = @GNULIB_FOPEN@
@@ -385,6 +391,7 @@ GNUTLS_CFLAGS = @GNUTLS_CFLAGS@
 GNUTLS_LIBS = @GNUTLS_LIBS@
 GREP = @GREP@
 HAVE_CALLOC_POSIX = @HAVE_CALLOC_POSIX@
+HAVE_DECL_ENVIRON = @HAVE_DECL_ENVIRON@
 HAVE_DECL_GETDELIM = @HAVE_DECL_GETDELIM@
 HAVE_DECL_GETLINE = @HAVE_DECL_GETLINE@
 HAVE_DECL_GETLOGIN_R = @HAVE_DECL_GETLOGIN_R@
@@ -517,10 +524,11 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
 POLKIT_AUTH = @POLKIT_AUTH@
 POLKIT_CFLAGS = @POLKIT_CFLAGS@
-POLKIT_GRANT = @POLKIT_GRANT@
 POLKIT_LIBS = @POLKIT_LIBS@
 POLL_H = @POLL_H@
+POSIX_SHELL = @POSIX_SHELL@
 POSUB = @POSUB@
+PREFERABLY_POSIX_SHELL = @PREFERABLY_POSIX_SHELL@
 PTRDIFF_T_SUFFIX = @PTRDIFF_T_SUFFIX@
 PVCREATE = @PVCREATE@
 PVREMOVE = @PVREMOVE@
@@ -696,11 +704,11 @@ CLIENT_SOURCES = libvirt.c internal.h gnutls_1_0_compat.h \
 	remote_internal.h bridge.c bridge.h iptables.c iptables.h \
 	uuid.c uuid.h qemu_driver.c qemu_driver.h qemu_conf.c \
 	qemu_conf.h openvz_conf.c openvz_conf.h openvz_driver.c \
-	openvz_driver.h nodeinfo.h nodeinfo.c storage_conf.h \
-	storage_conf.c storage_driver.h storage_driver.c \
-	storage_backend.h storage_backend.c storage_backend_fs.h \
-	storage_backend_fs.c util.c util.h $(am__append_1) \
-	$(am__append_3) $(am__append_5)
+	openvz_driver.h lxc_driver.c lxc_driver.h lxc_conf.c \
+	lxc_conf.h nodeinfo.h nodeinfo.c storage_conf.h storage_conf.c \
+	storage_driver.h storage_driver.c storage_backend.h \
+	storage_backend.c storage_backend_fs.h storage_backend_fs.c \
+	util.c util.h $(am__append_1) $(am__append_3) $(am__append_5)
 SERVER_SOURCES = \
 		../qemud/remote_protocol.c ../qemud/remote_protocol.h
 
@@ -894,6 +902,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_la-hash.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_la-iptables.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_la-libvirt.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_la-lxc_conf.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_la-lxc_driver.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_la-nodeinfo.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_la-openvz_conf.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_la-openvz_driver.Plo@am__quote@
@@ -931,6 +941,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_test_la-hash.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_test_la-iptables.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_test_la-libvirt.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_test_la-lxc_conf.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_test_la-lxc_driver.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_test_la-nodeinfo.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_test_la-openvz_conf.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_test_la-openvz_driver.Plo@am__quote@
@@ -1165,6 +1177,20 @@ libvirt_la-openvz_driver.lo: openvz_driver.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='openvz_driver.c' object='libvirt_la-openvz_driver.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_la_CFLAGS) $(CFLAGS) -c -o libvirt_la-openvz_driver.lo `test -f 'openvz_driver.c' || echo '$(srcdir)/'`openvz_driver.c
+
+libvirt_la-lxc_driver.lo: lxc_driver.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_la_CFLAGS) $(CFLAGS) -MT libvirt_la-lxc_driver.lo -MD -MP -MF $(DEPDIR)/libvirt_la-lxc_driver.Tpo -c -o libvirt_la-lxc_driver.lo `test -f 'lxc_driver.c' || echo '$(srcdir)/'`lxc_driver.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libvirt_la-lxc_driver.Tpo $(DEPDIR)/libvirt_la-lxc_driver.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='lxc_driver.c' object='libvirt_la-lxc_driver.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_la_CFLAGS) $(CFLAGS) -c -o libvirt_la-lxc_driver.lo `test -f 'lxc_driver.c' || echo '$(srcdir)/'`lxc_driver.c
+
+libvirt_la-lxc_conf.lo: lxc_conf.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_la_CFLAGS) $(CFLAGS) -MT libvirt_la-lxc_conf.lo -MD -MP -MF $(DEPDIR)/libvirt_la-lxc_conf.Tpo -c -o libvirt_la-lxc_conf.lo `test -f 'lxc_conf.c' || echo '$(srcdir)/'`lxc_conf.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libvirt_la-lxc_conf.Tpo $(DEPDIR)/libvirt_la-lxc_conf.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='lxc_conf.c' object='libvirt_la-lxc_conf.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_la_CFLAGS) $(CFLAGS) -c -o libvirt_la-lxc_conf.lo `test -f 'lxc_conf.c' || echo '$(srcdir)/'`lxc_conf.c
 
 libvirt_la-nodeinfo.lo: nodeinfo.c
 @am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_la_CFLAGS) $(CFLAGS) -MT libvirt_la-nodeinfo.lo -MD -MP -MF $(DEPDIR)/libvirt_la-nodeinfo.Tpo -c -o libvirt_la-nodeinfo.lo `test -f 'nodeinfo.c' || echo '$(srcdir)/'`nodeinfo.c
@@ -1417,6 +1443,20 @@ libvirt_test_la-openvz_driver.lo: openvz_driver.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='openvz_driver.c' object='libvirt_test_la-openvz_driver.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_test_la_CFLAGS) $(CFLAGS) -c -o libvirt_test_la-openvz_driver.lo `test -f 'openvz_driver.c' || echo '$(srcdir)/'`openvz_driver.c
+
+libvirt_test_la-lxc_driver.lo: lxc_driver.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_test_la_CFLAGS) $(CFLAGS) -MT libvirt_test_la-lxc_driver.lo -MD -MP -MF $(DEPDIR)/libvirt_test_la-lxc_driver.Tpo -c -o libvirt_test_la-lxc_driver.lo `test -f 'lxc_driver.c' || echo '$(srcdir)/'`lxc_driver.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libvirt_test_la-lxc_driver.Tpo $(DEPDIR)/libvirt_test_la-lxc_driver.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='lxc_driver.c' object='libvirt_test_la-lxc_driver.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_test_la_CFLAGS) $(CFLAGS) -c -o libvirt_test_la-lxc_driver.lo `test -f 'lxc_driver.c' || echo '$(srcdir)/'`lxc_driver.c
+
+libvirt_test_la-lxc_conf.lo: lxc_conf.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_test_la_CFLAGS) $(CFLAGS) -MT libvirt_test_la-lxc_conf.lo -MD -MP -MF $(DEPDIR)/libvirt_test_la-lxc_conf.Tpo -c -o libvirt_test_la-lxc_conf.lo `test -f 'lxc_conf.c' || echo '$(srcdir)/'`lxc_conf.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libvirt_test_la-lxc_conf.Tpo $(DEPDIR)/libvirt_test_la-lxc_conf.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='lxc_conf.c' object='libvirt_test_la-lxc_conf.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_test_la_CFLAGS) $(CFLAGS) -c -o libvirt_test_la-lxc_conf.lo `test -f 'lxc_conf.c' || echo '$(srcdir)/'`lxc_conf.c
 
 libvirt_test_la-nodeinfo.lo: nodeinfo.c
 @am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_test_la_CFLAGS) $(CFLAGS) -MT libvirt_test_la-nodeinfo.lo -MD -MP -MF $(DEPDIR)/libvirt_test_la-nodeinfo.Tpo -c -o libvirt_test_la-nodeinfo.lo `test -f 'nodeinfo.c' || echo '$(srcdir)/'`nodeinfo.c

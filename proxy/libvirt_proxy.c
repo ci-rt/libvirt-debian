@@ -32,6 +32,11 @@
 #include "xs_internal.h"
 #include "xen_unified.h"
 
+/*
+ * This is provided in libvirt.c when the code is part of the library
+ */
+int debugFlag = 0;
+
 static int fdServer = -1;
 static int debug = 0;
 static int persist = 0;
@@ -168,7 +173,7 @@ proxyListenUnixSocket(const char *path) {
 
     /*
      * Abstract socket do not hit the filesystem, way more secure and
-     * garanteed to be atomic
+     * guaranteed to be atomic
      */
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
@@ -571,7 +576,7 @@ retry2:
 	        goto comm_error;
 
 	    /*
-	     * Hum, could we expect those informations to be unmutable and
+	     * Hum, could we expect those information to be unmutable and
 	     * cache them ? Since it's probably an unfrequent call better
 	     * not make assumption and do the xend RPC each call.
 	     */
@@ -763,7 +768,7 @@ proxyMainLoop(void) {
 /**
  * usage:
  *
- * dump on stdout informations about the program
+ * dump on stdout information about the program
  */
 static void
 usage(const char *progname) {
@@ -777,7 +782,7 @@ usage(const char *progname) {
 /**
  * main:
  *
- * Check that we are running with root priviledges, initialize the
+ * Check that we are running with root privileges, initialize the
  * connections to the daemon and or hypervisor, and then run the main loop
  */
 int main(int argc, char **argv) {

@@ -1,5 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
+SHELL = $(PREFERABLY_POSIX_SHELL)
+
 SUBDIRS = virshdata confdata sexpr2xmldata \
   xml2sexprdata xmconfigdata xencapsdata
 
@@ -31,6 +33,7 @@ LDADDS = \
         $(COVERAGE_LDFLAGS)
 
 EXTRA_DIST =		\
+	test-lib.sh	\
 	xmlrpcserver.py	\
 	test_conf.sh	\
 	qemuxml2argvdata \
@@ -42,7 +45,9 @@ noinst_PROGRAMS = xmlrpctest xml2sexprtest sexpr2xmltest virshtest conftest \
 
 test_scripts = \
 	daemon-conf \
-	int-overflow
+	int-overflow \
+	read-non-seekable \
+	vcpupin
 
 EXTRA_DIST += $(test_scripts)
 
@@ -53,13 +58,16 @@ if ENABLE_XEN_TESTS
   TESTS += reconnect
 endif
 
+path_add = $$abs_top_builddir/src$(PATH_SEPARATOR)$$abs_top_builddir/qemud
+
 # NB, automake < 1.10 does not provide the real
 # abs_top_{src/build}dir variables, so don't rely
 # on them here. Fake them with 'pwd'
 TESTS_ENVIRONMENT =				\
-  abs_top_builddir=`pwd`/'$(top_builddir)'	\
-  abs_top_srcdir=`pwd`/'$(top_srcdir)'		\
-  PATH="$$abs_top_builddir/qemud$(PATH_SEPARATOR)$$PATH" \
+  abs_top_builddir=`cd '$(top_builddir)'; pwd`	\
+  abs_top_srcdir=`cd '$(top_srcdir)'; pwd`	\
+  PATH="$(path_add)$(PATH_SEPARATOR)$$PATH"	\
+  SHELL="$(SHELL)"				\
   $(VG)
 
 valgrind:

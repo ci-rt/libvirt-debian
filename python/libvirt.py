@@ -85,7 +85,7 @@ class libvirtError(Exception):
 def registerErrorHandler(f, ctx):
     """Register a Python written function to for error reporting.
        The function is called back as f(ctx, error), with error
-       being a list of informations about the error being raised.
+       being a list of information about the error being raised.
        Returns 1 in case of success."""
     return libvirtmod.virRegisterErrorHandler(f,ctx)
 
@@ -137,16 +137,16 @@ def open(name):
 
 def openReadOnly(name):
     """This function should be called first to get a restricted
-       connection to the libbrary functionalities. The set of
-       APIs usable are then restricted on the available methods
-       to control the domains. """
+      connection to the library functionalities. The set of APIs
+      usable are then restricted on the available methods to
+       control the domains. """
     ret = libvirtmod.virConnectOpenReadOnly(name)
     if ret is None:raise libvirtError('virConnectOpenReadOnly() failed')
     return virConnect(_obj=ret)
 
 def virInitialize():
     """Initialize the library. It's better to call this routine at
-       startup in multithreaded applications to avoid potential
+      startup in multithreaded applications to avoid potential
        race when initializing the library. """
     ret = libvirtmod.virInitialize()
     if ret == -1: raise libvirtError ('virInitialize() failed')
@@ -158,7 +158,7 @@ def virInitialize():
 
 def virGetLastError():
     """Provide a pointer to the last error caught at the library
-       level Simpler but may not be suitable for multithreaded
+      level Simpler but may not be suitable for multithreaded
        accesses, in which case use virCopyLastError() """
     ret = libvirtmod.virGetLastError()
     return ret
@@ -202,7 +202,7 @@ class virDomain:
 
     def XMLDesc(self, flags):
         """Provide an XML description of the domain. The description
-           may be reused later to relaunch the domain with
+          may be reused later to relaunch the domain with
            virDomainCreateLinux(). """
         ret = libvirtmod.virDomainGetXMLDesc(self._o, flags)
         if ret is None: raise libvirtError ('virDomainGetXMLDesc() failed', dom=self)
@@ -216,10 +216,10 @@ class virDomain:
 
     def connect(self):
         """Provides the connection pointer associated with a domain. 
-           The reference counter on the connection is not increased
-           by this call.  WARNING: When writing libvirt bindings in
-           other languages, do not use this function.  Instead, store
-           the connection and the domain object together. """
+          The reference counter on the connection is not increased by
+          this call.  WARNING: When writing libvirt bindings in other
+          languages, do not use this function.  Instead, store the
+           connection and the domain object together. """
         ret = libvirtmod.virDomainGetConnect(self._o)
         if ret is None:raise libvirtError('virDomainGetConnect() failed', dom=self)
         __tmp = virConnect(_obj=ret)
@@ -227,8 +227,8 @@ class virDomain:
 
     def coreDump(self, to, flags):
         """This method will dump the core of a domain on a given file
-           for analysis. Note that for remote Xen Daemon the file
-           path will be interpreted in the remote host. """
+          for analysis. Note that for remote Xen Daemon the file path
+           will be interpreted in the remote host. """
         ret = libvirtmod.virDomainCoreDump(self._o, to, flags)
         if ret == -1: raise libvirtError ('virDomainCoreDump() failed', dom=self)
         return ret
@@ -242,10 +242,10 @@ class virDomain:
 
     def destroy(self):
         """Destroy the domain object. The running instance is shutdown
-           if not down already and all resources used by it are given
-           back to the hypervisor. The data structure is freed and
-           should not be used thereafter if the call does not return
-           an error. This function may requires priviledged access """
+          if not down already and all resources used by it are given
+          back to the hypervisor. The data structure is freed and
+          should not be used thereafter if the call does not return
+           an error. This function may requires privileged access """
         ret = libvirtmod.virDomainDestroy(self._o)
         if ret == -1: raise libvirtError ('virDomainDestroy() failed', dom=self)
         self._o = None
@@ -259,8 +259,8 @@ class virDomain:
 
     def maxMemory(self):
         """Retrieve the maximum amount of physical memory allocated to
-           a domain. If domain is None, then this get the amount of
-           memory reserved to Domain0 i.e. the domain where the
+          a domain. If domain is None, then this get the amount of
+          memory reserved to Domain0 i.e. the domain where the
            application runs. """
         ret = libvirtmod.virDomainGetMaxMemory(self._o)
         if ret == 0: raise libvirtError ('virDomainGetMaxMemory() failed', dom=self)
@@ -268,9 +268,9 @@ class virDomain:
 
     def maxVcpus(self):
         """Provides the maximum number of virtual CPUs supported for
-           the guest VM. If the guest is inactive, this is basically
-           the same as virConnectGetMaxVcpus. If the guest is running
-           this will reflect the maximum number of virtual CPUs the
+          the guest VM. If the guest is inactive, this is basically
+          the same as virConnectGetMaxVcpus. If the guest is running
+          this will reflect the maximum number of virtual CPUs the
            guest was booted with. """
         ret = libvirtmod.virDomainGetMaxVcpus(self._o)
         if ret == -1: raise libvirtError ('virDomainGetMaxVcpus() failed', dom=self)
@@ -278,34 +278,33 @@ class virDomain:
 
     def migrate(self, dconn, flags, dname, uri, bandwidth):
         """Migrate the domain object from its current host to the
-           destination host given by dconn (a connection to the
-           destination host).  Flags may be one of more of the
-           following: VIR_MIGRATE_LIVE   Attempt a live migration. 
-           If a hypervisor supports renaming domains during
-           migration, then you may set the dname parameter to the new
-           name (otherwise it keeps the same name).  If this is not
-           supported by the hypervisor, dname must be None or else
-           you will get an error.  Since typically the two
-           hypervisors connect directly to each other in order to
-           perform the migration, you may need to specify a path from
-           the source to the destination.  This is the purpose of the
-           uri parameter.  If uri is None, then libvirt will try to
-           find the best method.  Uri may specify the hostname or IP
-           address of the destination host as seen from the source. 
-           Or uri may be a URI giving transport, hostname, user,
-           port, etc. in the usual form.  Refer to driver
-           documentation for the particular URIs supported.  The
-           maximum bandwidth (in Mbps) that will be used to do
-           migration can be specified with the bandwidth parameter. 
-           If set to 0, libvirt will choose a suitable default.  Some
-           hypervisors do not support this feature and will return an
-           error if bandwidth is not 0.  To see which features are
-           supported by the current hypervisor, see
-           virConnectGetCapabilities,
-           /capabilities/host/migration_features.  There are many
-           limitations on migration imposed by the underlying
-           technology - for example it may not be possible to migrate
-           between different processors even with the same
+          destination host given by dconn (a connection to the
+          destination host).  Flags may be one of more of the
+          following: VIR_MIGRATE_LIVE   Attempt a live migration.  If
+          a hypervisor supports renaming domains during migration,
+          then you may set the dname parameter to the new name
+          (otherwise it keeps the same name).  If this is not
+          supported by the hypervisor, dname must be None or else you
+          will get an error.  Since typically the two hypervisors
+          connect directly to each other in order to perform the
+          migration, you may need to specify a path from the source
+          to the destination.  This is the purpose of the uri
+          parameter.  If uri is None, then libvirt will try to find
+          the best method.  Uri may specify the hostname or IP
+          address of the destination host as seen from the source. 
+          Or uri may be a URI giving transport, hostname, user, port,
+          etc. in the usual form.  Refer to driver documentation for
+          the particular URIs supported.  The maximum bandwidth (in
+          Mbps) that will be used to do migration can be specified
+          with the bandwidth parameter.  If set to 0, libvirt will
+          choose a suitable default.  Some hypervisors do not support
+          this feature and will return an error if bandwidth is not
+          0.  To see which features are supported by the current
+          hypervisor, see virConnectGetCapabilities,
+          /capabilities/host/migration_features.  There are many
+          limitations on migration imposed by the underlying
+          technology - for example it may not be possible to migrate
+          between different processors even with the same
            architecture, or between different types of hypervisor. """
         if dconn is None: dconn__o = None
         else: dconn__o = dconn._o
@@ -321,7 +320,7 @@ class virDomain:
 
     def reboot(self, flags):
         """Reboot a domain, the domain object is still usable there
-           after but the domain OS is being stopped for a restart.
+          after but the domain OS is being stopped for a restart.
            Note that the guest OS may ignore the request. """
         ret = libvirtmod.virDomainReboot(self._o, flags)
         if ret == -1: raise libvirtError ('virDomainReboot() failed', dom=self)
@@ -329,8 +328,8 @@ class virDomain:
 
     def resume(self):
         """Resume an suspended domain, the process is restarted from
-           the state where it was frozen by calling
-           virSuspendDomain(). This function may requires priviledged
+          the state where it was frozen by calling
+          virSuspendDomain(). This function may requires privileged
            access """
         ret = libvirtmod.virDomainResume(self._o)
         if ret == -1: raise libvirtError ('virDomainResume() failed', dom=self)
@@ -338,9 +337,9 @@ class virDomain:
 
     def save(self, to):
         """This method will suspend a domain and save its memory
-           contents to a file on disk. After the call, if successful,
-           the domain is not listed as running anymore (this may be a
-           problem). Use virDomainRestore() to restore a domain after
+          contents to a file on disk. After the call, if successful,
+          the domain is not listed as running anymore (this may be a
+          problem). Use virDomainRestore() to restore a domain after
            saving. """
         ret = libvirtmod.virDomainSave(self._o, to)
         if ret == -1: raise libvirtError ('virDomainSave() failed', dom=self)
@@ -355,39 +354,39 @@ class virDomain:
 
     def setMaxMemory(self, memory):
         """Dynamically change the maximum amount of physical memory
-           allocated to a domain. If domain is None, then this change
-           the amount of memory reserved to Domain0 i.e. the domain
-           where the application runs. This function requires
-           priviledged access to the hypervisor. """
+          allocated to a domain. If domain is None, then this change
+          the amount of memory reserved to Domain0 i.e. the domain
+          where the application runs. This function requires
+           privileged access to the hypervisor. """
         ret = libvirtmod.virDomainSetMaxMemory(self._o, memory)
         if ret == -1: raise libvirtError ('virDomainSetMaxMemory() failed', dom=self)
         return ret
 
     def setMemory(self, memory):
         """Dynamically change the target amount of physical memory
-           allocated to a domain. If domain is None, then this change
-           the amount of memory reserved to Domain0 i.e. the domain
-           where the application runs. This function may requires
-           priviledged access to the hypervisor. """
+          allocated to a domain. If domain is None, then this change
+          the amount of memory reserved to Domain0 i.e. the domain
+          where the application runs. This function may requires
+           privileged access to the hypervisor. """
         ret = libvirtmod.virDomainSetMemory(self._o, memory)
         if ret == -1: raise libvirtError ('virDomainSetMemory() failed', dom=self)
         return ret
 
     def setVcpus(self, nvcpus):
         """Dynamically change the number of virtual CPUs used by the
-           domain. Note that this call may fail if the underlying
-           virtualization hypervisor does not support it or if
-           growing the number is arbitrary limited. This function
-           requires priviledged access to the hypervisor. """
+          domain. Note that this call may fail if the underlying
+          virtualization hypervisor does not support it or if growing
+          the number is arbitrary limited. This function requires
+           privileged access to the hypervisor. """
         ret = libvirtmod.virDomainSetVcpus(self._o, nvcpus)
         if ret == -1: raise libvirtError ('virDomainSetVcpus() failed', dom=self)
         return ret
 
     def shutdown(self):
         """Shutdown a domain, the domain object is still usable there
-           after but the domain OS is being stopped. Note that the
-           guest OS may ignore the request.  TODO: should we add an
-           option for reboot, knowing it may not be doable in the
+          after but the domain OS is being stopped. Note that the
+          guest OS may ignore the request.  TODO: should we add an
+          option for reboot, knowing it may not be doable in the
            general case ? """
         ret = libvirtmod.virDomainShutdown(self._o)
         if ret == -1: raise libvirtError ('virDomainShutdown() failed', dom=self)
@@ -395,10 +394,10 @@ class virDomain:
 
     def suspend(self):
         """Suspends an active domain, the process is frozen without
-           further access to CPU resources and I/O but the memory
-           used by the domain at the hypervisor level will stay
-           allocated. Use virDomainResume() to reactivate the domain.
-           This function may requires priviledged access. """
+          further access to CPU resources and I/O but the memory used
+          by the domain at the hypervisor level will stay allocated.
+          Use virDomainResume() to reactivate the domain. This
+           function may requires privileged access. """
         ret = libvirtmod.virDomainSuspend(self._o)
         if ret == -1: raise libvirtError ('virDomainSuspend() failed', dom=self)
         return ret
@@ -431,9 +430,9 @@ class virDomain:
         return ret
 
     def info(self):
-        """Extract informations about a domain. Note that if the
-           connection used to get the domain is limited only a
-           partial set of the informations can be extracted. """
+        """Extract information about a domain. Note that if the
+          connection used to get the domain is limited only a partial
+           set of the information can be extracted. """
         ret = libvirtmod.virDomainGetInfo(self._o)
         if ret is None: raise libvirtError ('virDomainGetInfo() failed', dom=self)
         return ret
@@ -445,7 +444,7 @@ class virDomain:
 
     def pinVcpu(self, vcpu, cpumap):
         """Dynamically change the real CPUs which can be allocated to
-           a virtual CPU. This function requires privileged access to
+          a virtual CPU. This function requires privileged access to
            the hypervisor. """
         ret = libvirtmod.virDomainPinVcpu(self._o, vcpu, cpumap)
         if ret == -1: raise libvirtError ('virDomainPinVcpu() failed', dom=self)
@@ -472,7 +471,7 @@ class virDomain:
 
     def vcpus(self):
         """Extract information about virtual CPUs of domain, store it
-           in info array and also in cpumaps if this pointer is'nt
+          in info array and also in cpumaps if this pointer is'nt
            None. """
         ret = libvirtmod.virDomainGetVcpus(self._o)
         if ret == -1: raise libvirtError ('virDomainGetVcpus() failed', dom=self)
@@ -502,7 +501,7 @@ class virNetwork:
 
     def XMLDesc(self, flags):
         """Provide an XML description of the network. The description
-           may be reused later to relaunch the network with
+          may be reused later to relaunch the network with
            virNetworkCreateXML(). """
         ret = libvirtmod.virNetworkGetXMLDesc(self._o, flags)
         if ret is None: raise libvirtError ('virNetworkGetXMLDesc() failed', net=self)
@@ -517,10 +516,10 @@ class virNetwork:
 
     def connect(self):
         """Provides the connection pointer associated with a network. 
-           The reference counter on the connection is not increased
-           by this call.  WARNING: When writing libvirt bindings in
-           other languages, do not use this function.  Instead, store
-           the connection and the network object together. """
+          The reference counter on the connection is not increased by
+          this call.  WARNING: When writing libvirt bindings in other
+          languages, do not use this function.  Instead, store the
+           connection and the network object together. """
         ret = libvirtmod.virNetworkGetConnect(self._o)
         if ret is None:raise libvirtError('virNetworkGetConnect() failed', net=self)
         __tmp = virConnect(_obj=ret)
@@ -528,7 +527,7 @@ class virNetwork:
 
     def create(self):
         """Create and start a defined network. If the call succeed the
-           network moves from the defined to the running networks
+          network moves from the defined to the running networks
            pools. """
         ret = libvirtmod.virNetworkCreate(self._o)
         if ret == -1: raise libvirtError ('virNetworkCreate() failed', net=self)
@@ -536,11 +535,11 @@ class virNetwork:
 
     def destroy(self):
         """Destroy the network object. The running instance is
-           shutdown if not down already and all resources used by it
-           are given back to the hypervisor. The data structure is
-           freed and should not be used thereafter if the call does
-           not return an error. This function may requires
-           priviledged access """
+          shutdown if not down already and all resources used by it
+          are given back to the hypervisor. The data structure is
+          freed and should not be used thereafter if the call does
+          not return an error. This function may requires privileged
+           access """
         ret = libvirtmod.virNetworkDestroy(self._o)
         if ret == -1: raise libvirtError ('virNetworkDestroy() failed', net=self)
         self._o = None
@@ -617,7 +616,7 @@ class virStoragePool:
 
     def XMLDesc(self, flags):
         """Fetch an XML document describing all aspects of the storage
-           pool. This is suitable for later feeding back into the
+          pool. This is suitable for later feeding back into the
            virStoragePoolCreateXML method. """
         ret = libvirtmod.virStoragePoolGetXMLDesc(self._o, flags)
         if ret is None: raise libvirtError ('virStoragePoolGetXMLDesc() failed', pool=self)
@@ -638,9 +637,9 @@ class virStoragePool:
 
     def connect(self):
         """Provides the connection pointer associated with a storage
-           pool.  The reference counter on the connection is not
-           increased by this call.  WARNING: When writing libvirt
-           bindings in other languages, do not use this function. 
+          pool.  The reference counter on the connection is not
+          increased by this call.  WARNING: When writing libvirt
+          bindings in other languages, do not use this function. 
            Instead, store the connection and the pool object together. """
         ret = libvirtmod.virStoragePoolGetConnect(self._o)
         if ret is None:raise libvirtError('virStoragePoolGetConnect() failed', pool=self)
@@ -663,7 +662,7 @@ class virStoragePool:
 
     def delete(self, flags):
         """Delete the underlying pool resources. This is a
-           non-recoverable operation. The virStoragePoolPtr object
+          non-recoverable operation. The virStoragePoolPtr object
            itself is not free'd. """
         ret = libvirtmod.virStoragePoolDelete(self._o, flags)
         if ret == -1: raise libvirtError ('virStoragePoolDelete() failed', pool=self)
@@ -671,10 +670,10 @@ class virStoragePool:
 
     def destroy(self):
         """Destroy an active storage pool. This will deactivate the
-           pool on the host, but keep any persistent config
-           associated with it. If it has a persistent config it can
-           later be restarted with virStoragePoolCreate(). This does
-           not free the associated virStoragePoolPtr object. """
+          pool on the host, but keep any persistent config associated
+          with it. If it has a persistent config it can later be
+          restarted with virStoragePoolCreate(). This does not free
+           the associated virStoragePoolPtr object. """
         ret = libvirtmod.virStoragePoolDestroy(self._o)
         if ret == -1: raise libvirtError ('virStoragePoolDestroy() failed', pool=self)
         self._o = None
@@ -707,7 +706,7 @@ class virStoragePool:
 
     def refresh(self, flags):
         """Request that the pool refresh its list of volumes. This may
-           involve communicating with a remote server, and/or
+          involve communicating with a remote server, and/or
            initializing new devices at the OS layer """
         ret = libvirtmod.virStoragePoolRefresh(self._o, flags)
         if ret == -1: raise libvirtError ('virStoragePoolRefresh() failed', pool=self)
@@ -757,10 +756,10 @@ class virStorageVol:
 
     def connect(self):
         """Provides the connection pointer associated with a storage
-           volume.  The reference counter on the connection is not
-           increased by this call.  WARNING: When writing libvirt
-           bindings in other languages, do not use this function. 
-           Instead, store the connection and the volume object
+          volume.  The reference counter on the connection is not
+          increased by this call.  WARNING: When writing libvirt
+          bindings in other languages, do not use this function. 
+          Instead, store the connection and the volume object
            together. """
         ret = libvirtmod.virStorageVolGetConnect(self._o)
         if ret is None:raise libvirtError('virStorageVolGetConnect() failed', vol=self)
@@ -782,7 +781,7 @@ class virStorageVol:
 
     def key(self):
         """Fetch the storage volume key. This is globally unique, so
-           the same volume will hve the same key no matter what host
+          the same volume will have the same key no matter what host
            it is accessed from """
         ret = libvirtmod.virStorageVolGetKey(self._o)
         if ret is None: raise libvirtError ('virStorageVolGetKey() failed', vol=self)
@@ -796,9 +795,9 @@ class virStorageVol:
 
     def path(self):
         """Fetch the storage volume path. Depending on the pool
-           configuration this is either persistent across hosts, or
-           dynamically assigned at pool startup. Consult pool
-           documentation for information on getting the persistent
+          configuration this is either persistent across hosts, or
+          dynamically assigned at pool startup. Consult pool
+          documentation for information on getting the persistent
            naming """
         ret = libvirtmod.virStorageVolGetPath(self._o)
         if ret is None: raise libvirtError ('virStorageVolGetPath() failed', vol=self)
@@ -827,9 +826,9 @@ class virConnect:
 
     def createLinux(self, xmlDesc, flags):
         """Launch a new Linux guest domain, based on an XML
-           description similar to the one returned by
-           virDomainGetXMLDesc() This function may requires
-           priviledged access to the hypervisor. """
+          description similar to the one returned by
+          virDomainGetXMLDesc() This function may requires privileged
+           access to the hypervisor. """
         ret = libvirtmod.virDomainCreateLinux(self._o, xmlDesc, flags)
         if ret is None:raise libvirtError('virDomainCreateLinux() failed', conn=self)
         __tmp = virDomain(self,_obj=ret)
@@ -837,7 +836,7 @@ class virConnect:
 
     def createXML(self, xmlDesc):
         """Create and start a new virtual network, based on an XML
-           description similar to the one returned by
+          description similar to the one returned by
            virNetworkGetXMLDesc() """
         ret = libvirtmod.virNetworkCreateXML(self._o, xmlDesc)
         if ret is None:raise libvirtError('virNetworkCreateXML() failed', conn=self)
@@ -846,7 +845,7 @@ class virConnect:
 
     def createXML(self, xmlDesc, flags):
         """Create a new storage based on its XML description. The pool
-           is not persitent, so its definition will disappear when it
+          is not persistent, so its definition will disappear when it
            is destroyed, or if the host is restarted """
         ret = libvirtmod.virStoragePoolCreateXML(self._o, xmlDesc, flags)
         if ret is None:raise libvirtError('virStoragePoolCreateXML() failed', conn=self)
@@ -867,24 +866,24 @@ class virConnect:
         return ret
 
     def getFreeMemory(self):
-        """provides the free memory availble on the Node """
+        """provides the free memory available on the Node """
         ret = libvirtmod.virNodeGetFreeMemory(self._o)
         return ret
 
     def getHostname(self):
         """This returns the system hostname on which the hypervisor is
-           running (the result of the gethostname(2) system call). 
-           If we are connected to a remote system, then this returns
-           the hostname of the remote system. """
+          running (the result of the gethostname(2) system call).  If
+          we are connected to a remote system, then this returns the
+           hostname of the remote system. """
         ret = libvirtmod.virConnectGetHostname(self._o)
         if ret is None: raise libvirtError ('virConnectGetHostname() failed', conn=self)
         return ret
 
     def getMaxVcpus(self, type):
         """Provides the maximum number of virtual CPUs supported for a
-           guest VM of a specific type. The 'type' parameter here
-           corresponds to the 'type' attribute in the <domain>
-           element of the XML. """
+          guest VM of a specific type. The 'type' parameter here
+          corresponds to the 'type' attribute in the <domain> element
+           of the XML. """
         ret = libvirtmod.virConnectGetMaxVcpus(self._o, type)
         if ret == -1: raise libvirtError ('virConnectGetMaxVcpus() failed', conn=self)
         return ret
@@ -897,19 +896,19 @@ class virConnect:
 
     def getURI(self):
         """This returns the URI (name) of the hypervisor connection.
-           Normally this is the same as or similar to the string
-           passed to the virConnectOpen/virConnectOpenReadOnly call,
-           but the driver may make the URI canonical.  If name ==
-           None was passed to virConnectOpen, then the driver will
-           return a non-None URI which can be used to connect to the
-           same hypervisor later. """
+          Normally this is the same as or similar to the string
+          passed to the virConnectOpen/virConnectOpenReadOnly call,
+          but the driver may make the URI canonical.  If name == None
+          was passed to virConnectOpen, then the driver will return a
+          non-None URI which can be used to connect to the same
+           hypervisor later. """
         ret = libvirtmod.virConnectGetURI(self._o)
         if ret is None: raise libvirtError ('virConnectGetURI() failed', conn=self)
         return ret
 
     def listDefinedStoragePools(self, names, maxnames):
         """Provides the list of names of inactive storage pools upto
-           maxnames. If there are more than maxnames, the remaining
+          maxnames. If there are more than maxnames, the remaining
            names will be silently ignored. """
         ret = libvirtmod.virConnectListDefinedStoragePools(self._o, names, maxnames)
         if ret == -1: raise libvirtError ('virConnectListDefinedStoragePools() failed', conn=self)
@@ -917,7 +916,7 @@ class virConnect:
 
     def listStoragePools(self, names, maxnames):
         """Provides the list of names of active storage pools upto
-           maxnames. If there are more than maxnames, the remaining
+          maxnames. If there are more than maxnames, the remaining
            names will be silently ignored. """
         ret = libvirtmod.virConnectListStoragePools(self._o, names, maxnames)
         if ret == -1: raise libvirtError ('virConnectListStoragePools() failed', conn=self)
@@ -948,34 +947,33 @@ class virConnect:
 
     def migrate(self, domain, flags, dname, uri, bandwidth):
         """Migrate the domain object from its current host to the
-           destination host given by dconn (a connection to the
-           destination host).  Flags may be one of more of the
-           following: VIR_MIGRATE_LIVE   Attempt a live migration. 
-           If a hypervisor supports renaming domains during
-           migration, then you may set the dname parameter to the new
-           name (otherwise it keeps the same name).  If this is not
-           supported by the hypervisor, dname must be None or else
-           you will get an error.  Since typically the two
-           hypervisors connect directly to each other in order to
-           perform the migration, you may need to specify a path from
-           the source to the destination.  This is the purpose of the
-           uri parameter.  If uri is None, then libvirt will try to
-           find the best method.  Uri may specify the hostname or IP
-           address of the destination host as seen from the source. 
-           Or uri may be a URI giving transport, hostname, user,
-           port, etc. in the usual form.  Refer to driver
-           documentation for the particular URIs supported.  The
-           maximum bandwidth (in Mbps) that will be used to do
-           migration can be specified with the bandwidth parameter. 
-           If set to 0, libvirt will choose a suitable default.  Some
-           hypervisors do not support this feature and will return an
-           error if bandwidth is not 0.  To see which features are
-           supported by the current hypervisor, see
-           virConnectGetCapabilities,
-           /capabilities/host/migration_features.  There are many
-           limitations on migration imposed by the underlying
-           technology - for example it may not be possible to migrate
-           between different processors even with the same
+          destination host given by dconn (a connection to the
+          destination host).  Flags may be one of more of the
+          following: VIR_MIGRATE_LIVE   Attempt a live migration.  If
+          a hypervisor supports renaming domains during migration,
+          then you may set the dname parameter to the new name
+          (otherwise it keeps the same name).  If this is not
+          supported by the hypervisor, dname must be None or else you
+          will get an error.  Since typically the two hypervisors
+          connect directly to each other in order to perform the
+          migration, you may need to specify a path from the source
+          to the destination.  This is the purpose of the uri
+          parameter.  If uri is None, then libvirt will try to find
+          the best method.  Uri may specify the hostname or IP
+          address of the destination host as seen from the source. 
+          Or uri may be a URI giving transport, hostname, user, port,
+          etc. in the usual form.  Refer to driver documentation for
+          the particular URIs supported.  The maximum bandwidth (in
+          Mbps) that will be used to do migration can be specified
+          with the bandwidth parameter.  If set to 0, libvirt will
+          choose a suitable default.  Some hypervisors do not support
+          this feature and will return an error if bandwidth is not
+          0.  To see which features are supported by the current
+          hypervisor, see virConnectGetCapabilities,
+          /capabilities/host/migration_features.  There are many
+          limitations on migration imposed by the underlying
+          technology - for example it may not be possible to migrate
+          between different processors even with the same
            architecture, or between different types of hypervisor. """
         if domain is None: domain__o = None
         else: domain__o = domain._o
@@ -1008,7 +1006,7 @@ class virConnect:
         return __tmp
 
     def numOfDefinedDomains(self):
-        """Provides the number of inactive domains. """
+        """Provides the number of defined but inactive domains. """
         ret = libvirtmod.virConnectNumOfDefinedDomains(self._o)
         if ret == -1: raise libvirtError ('virConnectNumOfDefinedDomains() failed', conn=self)
         return ret
@@ -1052,7 +1050,7 @@ class virConnect:
 
     def storagePoolDefineXML(self, xml, flags):
         """Define a new inactive storage pool based on its XML
-           description. The pool is persitent, until explicitly
+          description. The pool is persistent, until explicitly
            undefined. """
         ret = libvirtmod.virStoragePoolDefineXML(self._o, xml, flags)
         if ret is None:raise libvirtError('virStoragePoolDefineXML() failed', conn=self)
@@ -1107,7 +1105,7 @@ class virConnect:
         return ret
 
     def getInfo(self):
-        """Extract hardware informations about the Node. """
+        """Extract hardware information about the Node. """
         ret = libvirtmod.virNodeGetInfo(self._o)
         if ret is None: raise libvirtError ('virNodeGetInfo() failed', conn=self)
         return ret
@@ -1153,8 +1151,8 @@ class virConnect:
 
     def virConnGetLastError(self):
         """Provide a pointer to the last error caught on that
-           connection Simpler but may not be suitable for
-           multithreaded accesses, in which case use
+          connection Simpler but may not be suitable for
+          multithreaded accesses, in which case use
            virConnCopyLastError() """
         ret = libvirtmod.virConnGetLastError(self._o)
         return ret
@@ -1206,7 +1204,8 @@ VIR_FROM_REMOTE = 13
 VIR_FROM_OPENVZ = 14
 VIR_FROM_XENXM = 15
 VIR_FROM_STATS_LINUX = 16
-VIR_FROM_STORAGE = 17
+VIR_FROM_LXC = 17
+VIR_FROM_STORAGE = 18
 
 # virStorageVolType
 VIR_STORAGE_VOL_FILE = 0

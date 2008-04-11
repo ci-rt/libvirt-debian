@@ -35,6 +35,7 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <string.h>
+#include <ctype.h>
 
 #ifdef HAVE_PATHS_H
 #include <paths.h>
@@ -48,7 +49,13 @@
 
 #include "util-lib.c"
 
+#ifndef MIN
+# define MIN(a, b) ((a) < (b) ? (a) : (b))
+#endif
+
 #define MAX_ERROR_LEN   1024
+
+#define TOLOWER(Ch) (isupper (Ch) ? tolower (Ch) : (Ch))
 
 #define virLog(msg...) fprintf(stderr, msg)
 
@@ -103,21 +110,22 @@ _virExec(virConnectPtr conn,
     int pipeerr[2] = {-1,-1};
 
     if ((null = open(_PATH_DEVNULL, O_RDONLY)) < 0) {
-        ReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR, "cannot open %s : %s",
-                         _PATH_DEVNULL, strerror(errno));
+        ReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                    _("cannot open %s: %s"),
+                    _PATH_DEVNULL, strerror(errno));
         goto cleanup;
     }
 
     if ((outfd != NULL && pipe(pipeout) < 0) ||
         (errfd != NULL && pipe(pipeerr) < 0)) {
-        ReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR, "cannot create pipe : %s",
-                         strerror(errno));
+        ReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                    _("cannot create pipe: %s"), strerror(errno));
         goto cleanup;
     }
 
     if ((pid = fork()) < 0) {
-        ReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR, "cannot fork child process : %s",
-                         strerror(errno));
+        ReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                    _("cannot fork child process: %s"), strerror(errno));
         goto cleanup;
     }
 
@@ -128,11 +136,11 @@ _virExec(virConnectPtr conn,
             if(non_block)
                 if(virSetNonBlock(pipeout[0]) == -1)
                     ReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                            "Failed to set non-blocking file descriptor flag");
+                        _("Failed to set non-blocking file descriptor flag"));
 
             if(virSetCloseExec(pipeout[0]) == -1)
                 ReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                        "Failed to set close-on-exec file descriptor flag");
+                        _("Failed to set close-on-exec file descriptor flag"));
             *outfd = pipeout[0];
         }
         if (errfd) {
@@ -140,11 +148,11 @@ _virExec(virConnectPtr conn,
             if(non_block)
                 if(virSetNonBlock(pipeerr[0]) == -1)
                     ReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                            "Failed to set non-blocking file descriptor flag");
+                          _("Failed to set non-blocking file descriptor flag"));
 
             if(virSetCloseExec(pipeerr[0]) == -1)
                 ReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                        "Failed to set close-on-exec file descriptor flag");
+                        _("Failed to set close-on-exec file descriptor flag"));
             *errfd = pipeerr[0];
         }
         *retpid = pid;
@@ -279,14 +287,64 @@ virExecNonBlock(virConnectPtr conn,
 
 #endif /* __MINGW32__ */
 
+/* Like gnulib's fread_file, but read no more than the specified maximum
+   number of bytes.  If the length of the input is <= max_len, and
+   upon error while reading that data, it works just like fread_file.  */
+static char *
+fread_file_lim (FILE *stream, size_t max_len, size_t *length)
+{
+    char *buf = NULL;
+    size_t alloc = 0;
+    size_t size = 0;
+    int save_errno;
 
-int __virFileReadAll(const char *path,
-                     int maxlen,
-                     char **buf)
+    for (;;) {
+        size_t count;
+        size_t requested;
+
+        if (size + BUFSIZ + 1 > alloc) {
+            char *new_buf;
+
+            alloc += alloc / 2;
+            if (alloc < size + BUFSIZ + 1)
+                alloc = size + BUFSIZ + 1;
+
+            new_buf = realloc (buf, alloc);
+            if (!new_buf) {
+                save_errno = errno;
+                break;
+            }
+
+            buf = new_buf;
+        }
+
+        /* Ensure that (size + requested <= max_len); */
+        requested = MIN (size < max_len ? max_len - size : 0,
+                         alloc - size - 1);
+        count = fread (buf + size, 1, requested, stream);
+        size += count;
+
+        if (count != requested || requested == 0) {
+            save_errno = errno;
+            if (ferror (stream))
+                break;
+            buf[size] = '\0';
+            *length = size;
+            return buf;
+        }
+    }
+
+    free (buf);
+    errno = save_errno;
+    return NULL;
+}
+
+int __virFileReadAll(const char *path, int maxlen, char **buf)
 {
     FILE *fh;
-    struct stat st;
     int ret = -1;
+    size_t len;
+    char *s;
 
     if (!(fh = fopen(path, "r"))) {
         virLog("Failed to open file '%s': %s",
@@ -294,39 +352,21 @@ int __virFileReadAll(const char *path,
         goto error;
     }
 
-    if (fstat(fileno(fh), &st) < 0) {
-        virLog("Failed to stat file '%s': %s",
-               path, strerror(errno));
+    s = fread_file_lim(fh, maxlen+1, &len);
+    if (s == NULL) {
+        virLog("Failed to read '%s': %s", path, strerror (errno));
         goto error;
     }
 
-    if (S_ISDIR(st.st_mode)) {
-        virLog("Ignoring directory '%s'", path);
+    if (len > maxlen || (int)len != len) {
+        free(s);
+        virLog("File '%s' is too large %d, max %d",
+               path, (int)len, maxlen);
         goto error;
     }
 
-    if (st.st_size > maxlen) {
-        virLog("File '%s' is too large %d, max %d", path, (int)st.st_size, maxlen);
-        goto error;
-    }
-
-    *buf = malloc(st.st_size + 1);
-    if (*buf == NULL) {
-        virLog("Failed to allocate data");
-        goto error;
-    }
-
-    if ((ret = fread(*buf, st.st_size, 1, fh)) != 1) {
-        free(*buf);
-        *buf = NULL;
-        virLog("Failed to read config file '%s': %s",
-               path, strerror(errno));
-        goto error;
-    }
-
-    (*buf)[st.st_size] = '\0';
-
-    ret = st.st_size;
+    *buf = s;
+    ret = len;
 
  error:
     if (fh)
@@ -458,7 +498,7 @@ int
 virFileLinkPointsTo (const char *checkLink ATTRIBUTE_UNUSED,
                      const char *checkDest ATTRIBUTE_UNUSED)
 {
-    virLog ("%s: not implemented", __FUNCTION__);
+    virLog (_("%s: not implemented"), __FUNCTION__);
     return 0;
 }
 
@@ -654,14 +694,80 @@ virParseNumber(const char **str)
     return (ret);
 }
 
-/* Use this function when comparing two MAC addresses.  It deals with
- * string case compare and will eventually be extended to understand
- * that 01:02:03:04:05:06 is the same as 1:2:3:4:5:6.
+/* Compare two MAC addresses, ignoring differences in case,
+ * as well as leading zeros.
  */
 int
-__virMacAddrCompare (const char *mac1, const char *mac2)
+__virMacAddrCompare (const char *p, const char *q)
 {
-    return strcasecmp (mac1, mac2);
+    unsigned char c, d;
+    do {
+        while (*p == '0' && isxdigit (p[1]))
+            ++p;
+        while (*q == '0' && isxdigit (q[1]))
+            ++q;
+        c = TOLOWER (*p);
+        d = TOLOWER (*q);
+
+        if (c == 0 || d == 0)
+            break;
+
+        ++p;
+        ++q;
+    } while (c == d);
+
+    if (UCHAR_MAX <= INT_MAX)
+        return c - d;
+
+    /* On machines where 'char' and 'int' are types of the same size, the
+       difference of two 'unsigned char' values - including the sign bit -
+       doesn't fit in an 'int'.  */
+    return (c > d ? 1 : c < d ? -1 : 0);
+}
+
+/**
+ * virParseMacAddr:
+ * @str: string representation of MAC address, e.g., "0:1E:FC:E:3a:CB"
+ * @addr: 6-byte MAC address
+ *
+ * Parse a MAC address
+ *
+ * Return 0 upon success, or -1 in case of error.
+ */
+int
+virParseMacAddr(const char* str, unsigned char *addr)
+{
+    int i;
+
+    errno = 0;
+    for (i = 0; i < 6; i++) {
+        char *end_ptr;
+        unsigned long result;
+
+        /* This is solely to avoid accepting the leading
+         * space or "+" that strtoul would otherwise accept.
+         */
+        if (!isxdigit(*str))
+            break;
+
+        result = strtoul(str, &end_ptr, 16);
+
+        if ((end_ptr - str) < 1 || 2 < (end_ptr - str) ||
+            (errno != 0) ||
+            (0xFF < result))
+            break;
+
+        addr[i] = (unsigned char) result;
+
+	if ((i == 5) && (*end_ptr == '\0'))
+	    return 0;
+	if (*end_ptr != ':')
+	    break;
+
+        str = end_ptr + 1;
+    }
+
+    return -1;
 }
 
 /*
@@ -669,6 +775,5 @@ __virMacAddrCompare (const char *mac1, const char *mac2)
  *  indent-tabs-mode: nil
  *  c-indent-level: 4
  *  c-basic-offset: 4
- *  tab-width: 4
  * End:
  */

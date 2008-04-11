@@ -393,7 +393,7 @@ static int qemudGoDaemon(void) {
             case -1:
                 return -1;
             default:
-                return nextpid;
+                _exit(0);
             }
 
         cleanup:
@@ -418,8 +418,7 @@ static int qemudGoDaemon(void) {
                 status != 0) {
                 return -1;
             }
-
-            return pid;
+            _exit(0);
         }
     }
 }
@@ -700,7 +699,7 @@ static int qemudInitPaths(struct qemud_server *server,
 
  snprintf_error:
     qemudLog(QEMUD_ERR,
-             "%s", _("Resulting path to long for buffer in qemudInitPaths()"));
+             "%s", _("Resulting path too long for buffer in qemudInitPaths()"));
     return -1;
 }
 
@@ -1041,6 +1040,28 @@ remoteCheckAccess (struct qemud_client *client)
     return 0;
 }
 
+#if HAVE_POLKIT
+int qemudGetSocketIdentity(int fd, uid_t *uid, pid_t *pid) {
+#ifdef SO_PEERCRED
+    struct ucred cr;
+    unsigned int cr_len = sizeof (cr);
+
+    if (getsockopt (fd, SOL_SOCKET, SO_PEERCRED, &cr, &cr_len) < 0) {
+        qemudLog(QEMUD_ERR, _("Failed to verify client credentials: %s"),
+                 strerror(errno));
+        return -1;
+    }
+
+    *pid = cr.pid;
+    *uid = cr.uid;
+#else
+    /* XXX Many more OS support UNIX socket credentials we could port to. See dbus ....*/
+#error "UNIX socket credentials not supported/implemented on this platform yet..."
+#endif
+    return 0;
+}
+#endif
+
 static int qemudDispatchServer(struct qemud_server *server, struct qemud_socket *sock) {
     int fd;
     struct sockaddr_storage addr;
@@ -1075,6 +1096,26 @@ static int qemudDispatchServer(struct qemud_server *server, struct qemud_socket 
     client->auth = sock->auth;
     memcpy (&client->addr, &addr, sizeof addr);
     client->addrlen = addrlen;
+
+#if HAVE_POLKIT
+    /* Only do policy checks for non-root - allow root user
+       through with no checks, as a fail-safe - root can easily
+       change policykit policy anyway, so its pointless trying
+       to restrict root */
+    if (client->auth == REMOTE_AUTH_POLKIT) {
+        uid_t uid;
+        pid_t pid;
+
+        if (qemudGetSocketIdentity(client->fd, &uid, &pid) < 0)
+            goto cleanup;
+
+        /* Cient is running as root, so disable auth */
+        if (uid == 0) {
+            qemudLog(QEMUD_INFO, _("Turn off polkit auth for privileged client %d"), pid);
+            client->auth = REMOTE_AUTH_NONE;
+        }
+    }
+#endif
 
     if (client->type != QEMUD_SOCK_TYPE_TLS) {
         client->mode = QEMUD_MODE_RX_HEADER;
@@ -2025,7 +2066,7 @@ libvirt management daemon:\n\
 
 #define MAX_LISTEN 5
 int main(int argc, char **argv) {
-    struct qemud_server *server;
+    struct qemud_server *server = NULL;
     struct sigaction sig_action;
     int sigpipe[2];
     const char *pid_file = NULL;
@@ -2116,16 +2157,12 @@ int main(int argc, char **argv) {
         goto error1;
 
     if (godaemon) {
-        int pid;
         openlog("libvirtd", 0, 0);
-        pid = qemudGoDaemon();
-        if (pid < 0) {
+        if (qemudGoDaemon() < 0) {
             qemudLog(QEMUD_ERR, _("Failed to fork as daemon: %s"),
                      strerror(errno));
             goto error1;
         }
-        if (pid > 0)
-            goto out;
 
         /* Choose the name of the PID file. */
         if (!pid_file) {
@@ -2172,7 +2209,6 @@ int main(int argc, char **argv) {
     if (godaemon)
         closelog();
 
- out:
     ret = 0;
 
  error2:
@@ -2180,7 +2216,8 @@ int main(int argc, char **argv) {
         unlink (pid_file);
 
  error1:
-    qemudCleanup(server);
+    if (server)
+        qemudCleanup(server);
     return ret;
 }
 
