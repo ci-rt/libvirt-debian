@@ -3,4 +3,3 @@ qemu-path.diff
 qemu-disable-network.diff
 libvirt-group.diff
 no-mac.diff
-xen-3.2.patch -p0
