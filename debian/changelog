@@ -1,3 +1,15 @@
+libvirt (0.4.2-1) unstable; urgency=low
+
+  * drop no-mac.diff - applied upstream
+  * no need to explicitly link against libpthread
+  * always enable debugging
+  * add Homepage URL
+  * add Vcs-{Git,Browser} fields
+  * symlink devhelp docs
+  * enable policy kit
+
+ -- Guido Guenther <agx@sigxcpu.org>  Fri, 11 Apr 2008 17:54:06 +0200
+
 libvirt (0.4.1-1) experimental; urgency=low
 
   * new upstream version
