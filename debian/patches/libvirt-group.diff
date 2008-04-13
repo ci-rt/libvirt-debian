@@ -1,14 +1,5 @@
-From fefae8c13aa89d3e9fe0843a3af9fef574b67127 Mon Sep 17 00:00:00 2001
-From: Guido Guenther <agx@sigxcpu.org>
-Date: Fri, 7 Mar 2008 09:08:27 +0100
-Subject: [PATCH] libvirt-group.diff
-
----
- qemud/libvirtd.conf |    4 ++--
- 1 files changed, 2 insertions(+), 2 deletions(-)
-
 diff --git a/qemud/libvirtd.conf b/qemud/libvirtd.conf
-index 3b7db4d..2b15365 100644
+index 3b7db4d..85da39f 100644
 --- a/qemud/libvirtd.conf
 +++ b/qemud/libvirtd.conf
 @@ -70,7 +70,7 @@
@@ -29,6 +20,21 @@ index 3b7db4d..2b15365 100644
  
  
  
--- 
-1.5.4.3
-
+@@ -117,7 +117,7 @@
+ #
+ # To restrict monitoring of domains you may wish to enable
+ # an authentication mechanism here
+-#auth_unix_ro = "none"
++auth_unix_ro = "none"
+ 
+ # Set an authentication scheme for UNIX read-write sockets
+ # By default socket permissions only allow root. If PolicyKit
+@@ -126,7 +126,7 @@
+ #
+ # If the unix_sock_rw_perms are changed you may wish to enable
+ # an authentication mechanism here
+-#auth_unix_rw = "none"
++auth_unix_rw = "none"
+ 
+ # Change the authentication scheme for TCP sockets.
+ #
