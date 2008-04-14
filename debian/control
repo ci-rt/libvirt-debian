@@ -3,7 +3,7 @@ Section: libs
 Priority: optional
 Maintainer: Debian Libvirt Maintainers <pkg-libvirt-maintainers@lists.alioth.debian.org>
 Uploaders: Guido Guenther <agx@sigxcpu.org>
-Build-Depends: cdbs (>= 0.4.43), debhelper (>= 5.0.38), libxml2-dev, libncurses5-dev, libreadline5-dev, zlib1g-dev, libgnutls-dev, python-all-dev (>= 2.3.5-11), python-central (>= 0.5.6), quilt, libavahi-client-dev, libsasl2-dev, libxen-dev [i386 amd64], open-iscsi, lvm2, qemu, libpolkit-dbus-dev
+Build-Depends: cdbs (>= 0.4.43), debhelper (>= 5.0.38), libxml2-dev, libncurses5-dev, libreadline5-dev, zlib1g-dev, libgnutls-dev, python-all-dev (>= 2.3.5-11), python-central (>= 0.5.6), quilt, libavahi-client-dev, libsasl2-dev, libxen-dev [i386 amd64],lvm2, qemu, libpolkit-dbus-dev
 XS-Python-Version: current
 Vcs-Git: git://git.debian.org/git/pkg-libvirt/libvirt.git
 Vcs-Browser: http://git.debian.org/?p=pkg-libvirt/libvirt.git
@@ -28,7 +28,8 @@ Description: the programs for the libvirt library
 Package: libvirt0
 Architecture: any
 Depends: ${shlibs:Depends}
-Recommends: open-iscsi, lvm2, qemu
+Recommends: lvm2, qemu
+Suggests: policykit
 Description: library for interfacing with different virtualization systems
  Libvirt is a C toolkit to interract with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
