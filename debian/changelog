@@ -1,3 +1,11 @@
+libvirt (0.4.2-4) unstable; urgency=low
+
+  * only build-dep on qemu on architectures that have it  
+    (Closes: #476290)
+  * the packages containing the daemon should suggest polkit
+
+ -- Guido Guenther <agx@sigxcpu.org>  Fri, 18 Apr 2008 10:41:38 +0200
+
 libvirt (0.4.2-3) unstable; urgency=low
 
   * drop the {build-,}dependency on open-iscsi too 
