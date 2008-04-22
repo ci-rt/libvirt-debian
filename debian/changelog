@@ -1,3 +1,10 @@
+libvirt (0.4.2-5) unstable; urgency=low
+
+  * no need to depend on python-all-dev we only build an extension for
+    the current python version
+
+ -- Guido Guenther <agx@sigxcpu.org>  Tue, 22 Apr 2008 11:26:13 +0200
+
 libvirt (0.4.2-4) unstable; urgency=low
 
   * only build-dep on qemu on architectures that have it  
