@@ -1,3 +1,5 @@
+Xen
+===
 For working xen support you have to set:
 
 (xend-http-server yes)
@@ -7,4 +9,12 @@ For working xen support you have to set:
 in /etc/xen/xend-config.sxp. The last line makes sure xend is only accepting
 connections on localhost.
 
- -- Guido Guenther <agx@sigxcpu.org>  Thu, 07 Dec 2007 18:43:03 +0100
+Debugging
+=========
+Use LIBVIRT_DEBUG=1 to enable libvirt's debugging output, e.g.:
+
+LIBVIRT_DEBUG=1
+export LIBVIRT_DEBUG
+virt-manager
+
+ -- Guido Guenther <agx@sigxcpu.org>  Thu, 15 May 2008 14:13:03 +0100
