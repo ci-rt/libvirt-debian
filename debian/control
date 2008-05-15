@@ -18,7 +18,7 @@ Section: admin
 Recommends: netcat-openbsd
 Suggests: dnsmasq, bridge-utils, policykit
 Description: the programs for the libvirt library
- Libvirt is a C toolkit to interract with the virtualization capabilities
+ Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
  a long term stable C API for different virtualization mechanisms. It currently
  supports QEMU, KVM, and XEN.
@@ -30,7 +30,7 @@ Architecture: any
 Depends: ${shlibs:Depends}
 Recommends: lvm2, qemu
 Description: library for interfacing with different virtualization systems
- Libvirt is a C toolkit to interract with the virtualization capabilities
+ Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
  a long term stable C API for different virtualization mechanisms. It currently
  supports QEMU, KVM, and XEN.
@@ -39,7 +39,7 @@ Package: libvirt-doc
 Architecture: all
 Section: doc
 Description: documentation for the libvirt library
- Libvirt is a C toolkit to interract with the virtualization capabilities
+ Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
  a long term stable C API for different virtualization mechanisms. It currently
  supports QEMU, KVM, and XEN.
@@ -51,7 +51,7 @@ Architecture: any
 Section: libdevel
 Depends: libvirt0 (= ${binary:Version}), libxen-dev [i386 amd64]
 Description: development files for the libvirt library
- Libvirt is a C toolkit to interract with the virtualization capabilities
+ Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
  a long term stable C API for different virtualization mechanisms. It currently
  supports QEMU, KVM, and XEN.
@@ -66,7 +66,7 @@ Provides: ${python:Provides}
 Section: python
 XB-Python-Version: ${python:Versions}
 Description: libvirt Python bindings
- Libvirt is a C toolkit to interract with the virtualization capabilities
+ Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
  a long term stable C API for different virtualization mechanisms. It currently
  supports QEMU, KVM, and XEN.
