@@ -1,7 +1,7 @@
 Document: libvirt-doc
 Title: Libvirt the virtualization API
 Abstract: Local copy of the web site of libvirt
-Section: admin
+Section: Administration
 
 Format: HTML
 Index: /usr/share/doc/libvirt-doc/intro.html
