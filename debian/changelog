@@ -1,3 +1,15 @@
+libvirt (0.4.2-6) unstable; urgency=low
+
+  * reenable open-iscsi support  - thanks to to the open-iscsi
+    maintainers for fixing this up
+  * build a libvirt0-dbg package
+  * register documentation with doc-base  (Closes: #480294) - thanks to
+    Tzafrir Cohen for the patch
+  * control: fix typo
+  * README.Debian: explain debugging
+
+ -- Guido Guenther <agx@sigxcpu.org>  Thu, 15 May 2008 18:04:20 +0200
+
 libvirt (0.4.2-5) unstable; urgency=low
 
   * no need to depend on python-all-dev we only build an extension for
