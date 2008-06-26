@@ -1,4 +1,4 @@
-From cb9a8370d299161af3c553bcb1a6f7cfb40ec86c Mon Sep 17 00:00:00 2001
+From 7977ce54be66614b0b952da9b51b3dd1472db842 Mon Sep 17 00:00:00 2001
 From: Guido Guenther <agx@sigxcpu.org>
 Date: Fri, 7 Mar 2008 09:08:25 +0100
 Subject: [PATCH] remove-RHism.diff
@@ -8,7 +8,7 @@ Subject: [PATCH] remove-RHism.diff
  1 files changed, 1 insertions(+), 1 deletions(-)
 
 diff --git a/virsh.1 b/virsh.1
-index 13509de..09f93b1 100644
+index 063dde7..751c6aa 100644
 --- a/virsh.1
 +++ b/virsh.1
 @@ -164,7 +164,7 @@ the program.
@@ -21,5 +21,5 @@ index 13509de..09f93b1 100644
  Most \fBvirsh\fR commands require root privileges to run due to the
  communications channels used to talk to the hypervisor.  Running as
 -- 
-1.5.4.3
+1.5.5.4
 

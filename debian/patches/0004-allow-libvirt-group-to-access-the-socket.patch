@@ -1,8 +1,17 @@
+From 7db856c82586a0cbd42ecb7128d445e092194e66 Mon Sep 17 00:00:00 2001
+From: Guido Guenther <agx@sigxcpu.org>
+Date: Thu, 26 Jun 2008 20:01:38 +0200
+Subject: [PATCH] allow libvirt group to access the socket
+
+---
+ qemud/libvirtd.conf |    8 ++++----
+ 1 files changed, 4 insertions(+), 4 deletions(-)
+
 diff --git a/qemud/libvirtd.conf b/qemud/libvirtd.conf
-index 3b7db4d..85da39f 100644
+index c323185..cff232d 100644
 --- a/qemud/libvirtd.conf
 +++ b/qemud/libvirtd.conf
-@@ -70,7 +70,7 @@
+@@ -75,7 +75,7 @@
  # without becoming root.
  #
  # This is restricted to 'root' by default.
@@ -11,7 +20,7 @@ index 3b7db4d..85da39f 100644
  
  # Set the UNIX socket permissions for the R/O socket. This is used
  # for monitoring VM status only
-@@ -87,7 +87,7 @@
+@@ -92,7 +92,7 @@
  #
  # If not using PolicyKit and setting group ownership for access
  # control then you may want to relax this to:
@@ -20,7 +29,7 @@ index 3b7db4d..85da39f 100644
  
  
  
-@@ -117,7 +117,7 @@
+@@ -122,7 +122,7 @@
  #
  # To restrict monitoring of domains you may wish to enable
  # an authentication mechanism here
@@ -29,7 +38,7 @@ index 3b7db4d..85da39f 100644
  
  # Set an authentication scheme for UNIX read-write sockets
  # By default socket permissions only allow root. If PolicyKit
-@@ -126,7 +126,7 @@
+@@ -131,7 +131,7 @@
  #
  # If the unix_sock_rw_perms are changed you may wish to enable
  # an authentication mechanism here
@@ -38,3 +47,6 @@ index 3b7db4d..85da39f 100644
  
  # Change the authentication scheme for TCP sockets.
  #
+-- 
+1.5.5.4
+
