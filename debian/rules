@@ -24,7 +24,7 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
         --with-storage-fs        \
         --with-storage-lvm       \
         --with-storage-iscsi     \
-        --without-storage-disk   \
+        --with-storage-disk      \
 	--with-init-scripts=none \
 	--enable-debug		 \
 	$(BUILD_XEN)
