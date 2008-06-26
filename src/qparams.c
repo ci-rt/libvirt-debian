@@ -27,8 +27,16 @@
 #include <stdarg.h>
 
 #include "buf.h"
-
+#include "memory.h"
 #include "qparams.h"
+
+static void
+qparam_report_oom(void)
+{
+    const char *virerr = __virErrorMsg(VIR_ERR_NO_MEMORY, NULL);
+    __virRaiseError(NULL, NULL, NULL, VIR_FROM_NONE, VIR_ERR_NO_MEMORY, VIR_ERR_ERROR,
+                    virerr, NULL, NULL, -1, -1, virerr, NULL);
+}
 
 struct qparam_set *
 new_qparam_set (int init_alloc, ...)
@@ -39,13 +47,15 @@ new_qparam_set (int init_alloc, ...)
 
     if (init_alloc <= 0) init_alloc = 1;
 
-    ps = malloc (sizeof (*ps));
-    if (!ps) return NULL;
+    if (VIR_ALLOC(ps) < 0) {
+        qparam_report_oom();
+        return NULL;
+    }
     ps->n = 0;
     ps->alloc = init_alloc;
-    ps->p = malloc (init_alloc * sizeof (ps->p[0]));
-    if (!ps->p) {
-        free (ps);
+    if (VIR_ALLOC_N(ps->p, ps->alloc) < 0) {
+        VIR_FREE (ps);
+        qparam_report_oom();
         return NULL;
     }
 
@@ -87,14 +97,9 @@ append_qparams (struct qparam_set *ps, ...)
 static int
 grow_qparam_set (struct qparam_set *ps)
 {
-    struct qparam *old_p;
-
     if (ps->n >= ps->alloc) {
-        old_p = ps->p;
-        ps->p = realloc (ps->p, 2 * ps->alloc * sizeof (ps->p[0]));
-        if (!ps->p) {
-            ps->p = old_p;
-            perror ("realloc");
+        if (VIR_REALLOC_N(ps->p, ps->alloc * 2) < 0) {
+            qparam_report_oom();
             return -1;
         }
         ps->alloc *= 2;
@@ -110,18 +115,21 @@ append_qparam (struct qparam_set *ps,
     char *pname, *pvalue;
 
     pname = strdup (name);
-    if (!pname)
+    if (!pname) {
+        qparam_report_oom();
         return -1;
+    }
 
     pvalue = strdup (value);
     if (!pvalue) {
-        free (pname);
+        VIR_FREE (pname);
+        qparam_report_oom();
         return -1;
     }
 
     if (grow_qparam_set (ps) == -1) {
-        free (pname);
-        free (pvalue);
+        VIR_FREE (pname);
+        VIR_FREE (pvalue);
         return -1;
     }
 
@@ -136,20 +144,24 @@ append_qparam (struct qparam_set *ps,
 char *
 qparam_get_query (const struct qparam_set *ps)
 {
-    virBufferPtr buf;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
     int i, amp = 0;
 
-    buf = virBufferNew (100);
     for (i = 0; i < ps->n; ++i) {
         if (!ps->p[i].ignore) {
-            if (amp) virBufferAddChar (buf, '&');
-            virBufferStrcat (buf, ps->p[i].name, "=", NULL);
-            virBufferURIEncodeString (buf, ps->p[i].value);
+            if (amp) virBufferAddChar (&buf, '&');
+            virBufferStrcat (&buf, ps->p[i].name, "=", NULL);
+            virBufferURIEncodeString (&buf, ps->p[i].value);
             amp = 1;
         }
     }
 
-    return virBufferContentAndFree (buf);
+    if (virBufferError(&buf)) {
+        qparam_report_oom();
+        return NULL;
+    }
+
+    return virBufferContentAndReset(&buf);
 }
 
 void
@@ -158,27 +170,36 @@ free_qparam_set (struct qparam_set *ps)
     int i;
 
     for (i = 0; i < ps->n; ++i) {
-        free (ps->p[i].name);
-        free (ps->p[i].value);
+        VIR_FREE (ps->p[i].name);
+        VIR_FREE (ps->p[i].value);
     }
-    free (ps);
+    VIR_FREE (ps->p);
+    VIR_FREE (ps);
 }
 
 struct qparam_set *
 qparam_query_parse (const char *query)
 {
     struct qparam_set *ps;
-    const char *name, *value, *end, *eq;
+    const char *end, *eq;
 
     ps = new_qparam_set (0, NULL);
-    if (!ps) return NULL;
+    if (!ps) {
+        qparam_report_oom();
+        return NULL;
+    }
 
     if (!query || query[0] == '\0') return ps;
 
     while (*query) {
+        char *name = NULL, *value = NULL;
+
         /* Find the next separator, or end of the string. */
         end = strchr (query, '&');
-        if (!end) end = query + strlen (query);
+        if (!end)
+            end = strchr (query, ';');
+        if (!end)
+            end = query + strlen (query);
 
         /* Find the first '=' character between here and end. */
         eq = strchr (query, '=');
@@ -193,7 +214,6 @@ qparam_query_parse (const char *query)
          */
         else if (!eq) {
             name = xmlURIUnescapeString (query, end - query, NULL);
-            value = "";
             if (!name) goto out_of_memory;
         }
         /* Or if we have "name=" here (works around annoying
@@ -201,7 +221,6 @@ qparam_query_parse (const char *query)
          */
         else if (eq+1 == end) {
             name = xmlURIUnescapeString (query, eq - query, NULL);
-            value = "";
             if (!name) goto out_of_memory;
         }
         /* If the '=' character is at the beginning then we have
@@ -213,12 +232,23 @@ qparam_query_parse (const char *query)
         /* Otherwise it's "name=value". */
         else {
             name = xmlURIUnescapeString (query, eq - query, NULL);
+            if (!name)
+                goto out_of_memory;
             value = xmlURIUnescapeString (eq+1, end - (eq+1), NULL);
-            if (!name || !value) goto out_of_memory;
+            if (!value) {
+                VIR_FREE(name);
+                goto out_of_memory;
+            }
         }
 
         /* Append to the parameter set. */
-        if (append_qparam (ps, name, value) == -1) goto out_of_memory;
+        if (append_qparam (ps, name, value ? value : "") == -1) {
+            VIR_FREE(name);
+            VIR_FREE(value);
+            goto out_of_memory;
+        }
+        VIR_FREE(name);
+        VIR_FREE(value);
 
     next:
         query = end;
@@ -228,20 +258,7 @@ qparam_query_parse (const char *query)
     return ps;
 
  out_of_memory:
+    qparam_report_oom();
     free_qparam_set (ps);
     return NULL;
 }
-
-/*
- * vim: set tabstop=4:
- * vim: set shiftwidth=4:
- * vim: set expandtab:
- */
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */

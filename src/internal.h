@@ -12,6 +12,24 @@
 #include <sys/syslimits.h>
 #endif
 
+#ifdef HAVE_PTHREAD_H
+#include <pthread.h>
+#define PTHREAD_MUTEX_T(v) pthread_mutex_t v
+#else
+/* Mutex functions disappear if we don't have pthread. */
+#define PTHREAD_MUTEX_T(v) /*empty*/
+#define pthread_mutex_init(lk,p) /*empty*/
+#define pthread_mutex_destroy(lk) /*empty*/
+#define pthread_mutex_lock(lk) /*empty*/
+#define pthread_mutex_unlock(lk) /*empty*/
+#endif
+
+/* The library itself is allowed to use deprecated functions /
+ * variables, so effectively undefine the deprecated attribute
+ * which would otherwise be defined in libvirt.h.
+ */
+#define VIR_DEPRECATED /*empty*/
+
 #include "gettext.h"
 
 #include "hash.h"
@@ -53,6 +71,10 @@ extern "C" {
 #define STRCASEEQLEN(a,b,n) (strncasecmp((a),(b),(n)) == 0)
 #define STRNEQLEN(a,b,n) (strncmp((a),(b),(n)) != 0)
 #define STRCASENEQLEN(a,b,n) (strncasecmp((a),(b),(n)) != 0)
+#define STRPREFIX(a,b) (strncmp((a),(b),strlen((b))) == 0)
+
+#define NUL_TERMINATE(buf) do { (buf)[sizeof(buf)-1] = '\0'; } while (0)
+#define ARRAY_CARDINALITY(Array) (sizeof (Array) / sizeof *(Array))
 
 /* If configured with --enable-debug=yes then library calls
  * are printed to stderr for debugging.
@@ -62,7 +84,7 @@ extern int debugFlag;
 #define VIR_DEBUG(category, fmt,...)                                    \
     do { if (debugFlag) fprintf (stderr, "DEBUG: %s: %s (" fmt ")\n", category, __func__, __VA_ARGS__); } while (0)
 #else
-#define VIR_DEBUG(category, fmt,...)
+#define VIR_DEBUG(category, fmt,...) \
     do { } while (0)
 #endif /* !ENABLE_DEBUG */
 
@@ -72,6 +94,11 @@ extern int debugFlag;
 #endif
 
 #ifdef __GNUC__
+
+#ifndef __GNUC_PREREQ
+#define __GNUC_PREREQ(maj,min) 0
+#endif
+
 /**
  * ATTRIBUTE_UNUSED:
  *
@@ -91,9 +118,18 @@ extern int debugFlag;
 #define ATTRIBUTE_FORMAT(args...) __attribute__((__format__ (args)))
 #endif
 
+#ifndef ATTRIBUTE_RETURN_CHECK
+#if __GNUC_PREREQ (3, 4)
+#define ATTRIBUTE_RETURN_CHECK __attribute__((__warn_unused_result__))
+#else
+#define ATTRIBUTE_RETURN_CHECK
+#endif
+#endif
+
 #else
 #define ATTRIBUTE_UNUSED
 #define ATTRIBUTE_FORMAT(...)
+#define ATTRIBUTE_RETURN_CHECK
 #endif				/* __GNUC__ */
 
 /**
@@ -195,7 +231,7 @@ struct _virConnect {
      * count of any virDomain/virNetwork object associated with
      * this connection
      */
-    pthread_mutex_t lock;
+    PTHREAD_MUTEX_T (lock);
     virHashTablePtr domains;  /* hash table for known domains */
     virHashTablePtr networks; /* hash table for known domains */
     virHashTablePtr storagePools;/* hash table for known storage pools */
@@ -266,15 +302,15 @@ struct _virStorageVol {
  ************************************************************************/
 extern virError __lastErr;
 void __virRaiseError(virConnectPtr conn,
-		     virDomainPtr dom,
-		     virNetworkPtr net,
-		     int domain,
-		     int code,
-		     virErrorLevel level,
-		     const char *str1,
-		     const char *str2,
-		     const char *str3,
-		     int int1, int int2, const char *msg, ...)
+                     virDomainPtr dom,
+                     virNetworkPtr net,
+                     int domain,
+                     int code,
+                     virErrorLevel level,
+                     const char *str1,
+                     const char *str2,
+                     const char *str3,
+                     int int1, int int2, const char *msg, ...)
   ATTRIBUTE_FORMAT(printf, 12, 13);
 const char *__virErrorMsg(virErrorNumber error, const char *info);
 
@@ -314,10 +350,12 @@ int __virStateInitialize(void);
 int __virStateCleanup(void);
 int __virStateReload(void);
 int __virStateActive(void);
+int __virStateSigDispatcher(siginfo_t *siginfo);
 #define virStateInitialize() __virStateInitialize()
 #define virStateCleanup() __virStateCleanup()
 #define virStateReload() __virStateReload()
 #define virStateActive() __virStateActive()
+#define virStateSigDispatcher(s) __virStateSigDispatcher(s)
 
 int __virDrvSupportsFeature (virConnectPtr conn, int feature);
 
@@ -329,17 +367,3 @@ virDomainPtr __virDomainMigrateFinish (virConnectPtr dconn, const char *dname, c
 }
 #endif                          /* __cplusplus */
 #endif                          /* __VIR_INTERNAL_H__ */
-
-/*
- * vim: set tabstop=4:
- * vim: set shiftwidth=4:
- * vim: set expandtab:
- */
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */

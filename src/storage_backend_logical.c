@@ -31,10 +31,11 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#include "internal.h"
 #include "storage_backend_logical.h"
 #include "storage_conf.h"
 #include "util.h"
-
+#include "memory.h"
 
 #define PV_BLANK_SECTOR_SIZE 512
 
@@ -96,7 +97,6 @@ virStorageBackendLogicalMakeVol(virConnectPtr conn,
                                 void *data)
 {
     virStorageVolDefPtr vol = NULL;
-    virStorageVolSourceExtentPtr tmp;
     unsigned long long offset, size, length;
 
     /* See if we're only looking for a specific volume */
@@ -112,7 +112,7 @@ virStorageBackendLogicalMakeVol(virConnectPtr conn,
 
     /* Or a completely new volume */
     if (vol == NULL) {
-        if ((vol = calloc(1, sizeof(*vol))) == NULL) {
+        if (VIR_ALLOC(vol) < 0) {
             virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("volume"));
             return -1;
         }
@@ -128,8 +128,8 @@ virStorageBackendLogicalMakeVol(virConnectPtr conn,
     }
 
     if (vol->target.path == NULL) {
-        if ((vol->target.path = malloc(strlen(pool->def->target.path) +
-                                       1 + strlen(vol->name) + 1)) == NULL) {
+        if (VIR_ALLOC_N(vol->target.path, strlen(pool->def->target.path) +
+                        1 + strlen(vol->name) + 1) < 0) {
             virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("volume"));
             return -1;
         }
@@ -149,12 +149,11 @@ virStorageBackendLogicalMakeVol(virConnectPtr conn,
 
 
     /* Finally fill in extents information */
-    if ((tmp = realloc(vol->source.extents, sizeof(*tmp)
-                       * (vol->source.nextent + 1))) == NULL) {
+    if (VIR_REALLOC_N(vol->source.extents,
+                      vol->source.nextent + 1) < 0) {
         virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("extents"));
         return -1;
     }
-    vol->source.extents = tmp;
 
     if ((vol->source.extents[vol->source.nextent].path =
          strdup(groups[2])) == NULL) {
@@ -215,14 +214,30 @@ virStorageBackendLogicalFindLVs(virConnectPtr conn,
         pool->def->name, NULL
     };
 
-    return virStorageBackendRunProgRegex(conn,
-                                         pool,
-                                         prog,
-                                         1,
-                                         regexes,
-                                         vars,
-                                         virStorageBackendLogicalMakeVol,
-                                         vol);
+    int exitstatus;
+
+    if (virStorageBackendRunProgRegex(conn,
+                                      pool,
+                                      prog,
+                                      1,
+                                      regexes,
+                                      vars,
+                                      virStorageBackendLogicalMakeVol,
+                                      vol,
+                                      &exitstatus) < 0) {
+        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                              _("lvs command failed"));
+                              return -1;
+    }
+
+    if (exitstatus != 0) {
+        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                              _("lvs command failed with exitstatus %d"),
+                              exitstatus);
+        return -1;
+    }
+
+    return 0;
 }
 
 static int
@@ -265,7 +280,7 @@ virStorageBackendLogicalBuildPool(virConnectPtr conn,
     memset(zeros, 0, sizeof(zeros));
 
     /* XXX multiple pvs */
-    if ((vgargv = malloc(sizeof(char*) * (1))) == NULL) {
+    if (VIR_ALLOC_N(vgargv, 1) < 0) {
         virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("command line"));
         return -1;
     }
@@ -317,12 +332,12 @@ virStorageBackendLogicalBuildPool(virConnectPtr conn,
     if (virRun(conn, (char**)vgargv, NULL) < 0)
         goto cleanup;
 
-    free(vgargv);
+    VIR_FREE(vgargv);
 
     return 0;
 
  cleanup:
-    free(vgargv);
+    VIR_FREE(vgargv);
     return -1;
 }
 
@@ -348,6 +363,7 @@ virStorageBackendLogicalRefreshPool(virConnectPtr conn,
         "--nosuffix", "--options", "vg_size,vg_free",
         pool->def->name, NULL
     };
+    int exitstatus;
 
     /* Get list of all logical volumes */
     if (virStorageBackendLogicalFindLVs(conn, pool, NULL) < 0) {
@@ -363,7 +379,13 @@ virStorageBackendLogicalRefreshPool(virConnectPtr conn,
                                       regexes,
                                       vars,
                                       virStorageBackendLogicalRefreshPoolFunc,
-                                      NULL) < 0) {
+                                      NULL,
+                                      &exitstatus) < 0) {
+        virStoragePoolObjClearVols(pool);
+        return -1;
+    }
+
+    if (exitstatus != 0) {
         virStoragePoolObjClearVols(pool);
         return -1;
     }
@@ -515,17 +537,3 @@ virStorageBackend virStorageBackendLogical = {
 
     .volType = VIR_STORAGE_VOL_BLOCK,
 };
-
-/*
- * vim: set tabstop=4:
- * vim: set shiftwidth=4:
- * vim: set expandtab:
- */
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */

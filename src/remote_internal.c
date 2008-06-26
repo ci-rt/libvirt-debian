@@ -71,6 +71,7 @@
 #include "qparams.h"
 #include "remote_internal.h"
 #include "remote_protocol.h"
+#include "memory.h"
 
 #define DEBUG(fmt,...) VIR_DEBUG(__FILE__, fmt,__VA_ARGS__)
 #define DEBUG0(msg) VIR_DEBUG(__FILE__, "%s", msg)
@@ -316,15 +317,15 @@ doRemoteOpen (virConnectPtr conn,
         trans_tcp,
     } transport;
 
-    if (!transport_str || strcasecmp (transport_str, "tls") == 0)
+    if (!transport_str || STRCASEEQ (transport_str, "tls"))
         transport = trans_tls;
-    else if (strcasecmp (transport_str, "unix") == 0)
+    else if (STRCASEEQ (transport_str, "unix"))
         transport = trans_unix;
-    else if (strcasecmp (transport_str, "ssh") == 0)
+    else if (STRCASEEQ (transport_str, "ssh"))
         transport = trans_ssh;
-    else if (strcasecmp (transport_str, "ext") == 0)
+    else if (STRCASEEQ (transport_str, "ext"))
         transport = trans_ext;
-    else if (strcasecmp (transport_str, "tcp") == 0)
+    else if (STRCASEEQ (transport_str, "tcp"))
         transport = trans_tcp;
     else {
         error (conn, VIR_ERR_INVALID_ARG,
@@ -434,18 +435,17 @@ doRemoteOpen (virConnectPtr conn,
     }
 
 #ifdef HAVE_XMLURI_QUERY_RAW
-    if (uri->query_raw) xmlFree (uri->query_raw);
+    xmlFree (uri->query_raw);
 #else
-    if (uri->query) xmlFree (uri->query);
+    xmlFree (uri->query);
 #endif
 
-    if ((
 #ifdef HAVE_XMLURI_QUERY_RAW
-         uri->query_raw =
+    uri->query_raw =
 #else
-         uri->query =
+    uri->query =
 #endif
-         qparam_get_query (vars)) == NULL) goto failed;
+         qparam_get_query (vars);
 
     free_qparam_set (vars);
 
@@ -464,10 +464,10 @@ doRemoteOpen (virConnectPtr conn,
             transport_str[-1] = '\0';
         }
         /* Remove the username, server name and port number. */
-        if (uri->user) xmlFree (uri->user);
+        xmlFree (uri->user);
         uri->user = 0;
 
-        if (uri->server) xmlFree (uri->server);
+        xmlFree (uri->server);
         uri->server = 0;
 
         uri->port = 0;
@@ -639,8 +639,7 @@ doRemoteOpen (virConnectPtr conn,
 
         // Generate the final command argv[] array.
         //   ssh -p $port [-l $username] $hostname $netcat -U $sockname [NULL]
-        cmd_argv = malloc (nr_args * sizeof (*cmd_argv));
-        if (cmd_argv == NULL) {
+        if (VIR_ALLOC_N(cmd_argv, nr_args) < 0) {
             error (conn, VIR_ERR_SYSTEM_ERROR, strerror (errno));
             goto failed;
         }
@@ -703,8 +702,7 @@ doRemoteOpen (virConnectPtr conn,
 
             // Run the external process.
             if (!cmd_argv) {
-                cmd_argv = malloc (2 * sizeof (*cmd_argv));
-                if (cmd_argv == NULL) {
+                if (VIR_ALLOC_N(cmd_argv, 2) < 0) {
                     error (conn, VIR_ERR_SYSTEM_ERROR, strerror (errno));
                     goto failed;
                 }
@@ -812,8 +810,7 @@ remoteOpen (virConnectPtr conn,
     if (inside_daemon)
         return VIR_DRV_OPEN_DECLINED;
 
-    priv = calloc (1, sizeof(*priv));
-    if (!priv) {
+    if (VIR_ALLOC(priv) < 0) {
         error (conn, VIR_ERR_NO_MEMORY, _("struct private_data"));
         return VIR_DRV_OPEN_ERROR;
     }
@@ -857,7 +854,7 @@ remoteOpen (virConnectPtr conn,
     ret = doRemoteOpen(conn, priv, uri, auth, rflags);
     if (ret != VIR_DRV_OPEN_SUCCESS) {
         conn->privateData = NULL;
-        free(priv);
+        VIR_FREE(priv);
     } else {
         priv->magic = MAGIC;
         conn->privateData = priv;
@@ -1328,6 +1325,58 @@ remoteGetCapabilities (virConnectPtr conn)
     /* Caller frees this. */
     return ret.capabilities;
 }
+
+static int
+remoteNodeGetCellsFreeMemory(virConnectPtr conn,
+                            unsigned long long *freeMems,
+                            int startCell,
+                            int maxCells)
+{
+    remote_node_get_cells_free_memory_args args;
+    remote_node_get_cells_free_memory_ret ret;
+    int i;
+    GET_PRIVATE (conn, -1);
+
+    if (maxCells > REMOTE_NODE_MAX_CELLS) {
+        errorf (conn, VIR_ERR_RPC,
+                _("too many NUMA cells: %d > %d"),
+                maxCells,
+                REMOTE_NODE_MAX_CELLS);
+        return -1;
+    }
+
+    args.startCell = startCell;
+    args.maxCells = maxCells;
+
+    memset (&ret, 0, sizeof ret);
+    if (call (conn, priv, 0, REMOTE_PROC_NODE_GET_CELLS_FREE_MEMORY,
+              (xdrproc_t) xdr_remote_node_get_cells_free_memory_args, (char *)&args,
+              (xdrproc_t) xdr_remote_node_get_cells_free_memory_ret, (char *)&ret) == -1)
+        return -1;
+
+    for (i = 0 ; i < ret.freeMems.freeMems_len ; i++)
+        freeMems[i] = ret.freeMems.freeMems_val[i];
+
+    xdr_free((xdrproc_t) xdr_remote_node_get_cells_free_memory_ret, (char *) &ret);
+
+    return ret.freeMems.freeMems_len;
+}
+
+static unsigned long long
+remoteNodeGetFreeMemory (virConnectPtr conn)
+{
+    remote_node_get_free_memory_ret ret;
+    GET_PRIVATE (conn, -1);
+
+    memset (&ret, 0, sizeof ret);
+    if (call (conn, priv, 0, REMOTE_PROC_NODE_GET_FREE_MEMORY,
+              (xdrproc_t) xdr_void, NULL,
+              (xdrproc_t) xdr_remote_node_get_free_memory_ret, (char *)&ret) == -1)
+        return 0;
+
+    return ret.freeMem;
+}
+
 
 static int
 remoteListDomains (virConnectPtr conn, int *ids, int maxids)
@@ -2217,9 +2266,7 @@ remoteDomainSetSchedulerParameters (virDomainPtr domain,
 
     /* Serialise the scheduler parameters. */
     args.params.params_len = nparams;
-    args.params.params_val = malloc (sizeof (*args.params.params_val)
-                                     * nparams);
-    if (args.params.params_val == NULL) {
+    if (VIR_ALLOC_N(args.params.params_val, nparams) < 0) {
         error (domain->conn, VIR_ERR_RPC, _("out of memory allocating array"));
         return -1;
     }
@@ -2323,6 +2370,96 @@ remoteDomainInterfaceStats (virDomainPtr domain, const char *path,
     return 0;
 }
 
+static int
+remoteDomainBlockPeek (virDomainPtr domain,
+                       const char *path,
+                       unsigned long long offset,
+                       size_t size,
+                       void *buffer,
+                       unsigned int flags)
+{
+    remote_domain_block_peek_args args;
+    remote_domain_block_peek_ret ret;
+    GET_PRIVATE (domain->conn, -1);
+
+    if (size > REMOTE_DOMAIN_BLOCK_PEEK_BUFFER_MAX) {
+        errorf (domain->conn, VIR_ERR_RPC,
+                _("block peek request too large for remote protocol, %zi > %d"),
+                size, REMOTE_DOMAIN_BLOCK_PEEK_BUFFER_MAX);
+        return -1;
+    }
+
+    make_nonnull_domain (&args.dom, domain);
+    args.path = (char *) path;
+    args.offset = offset;
+    args.size = size;
+    args.flags = flags;
+
+    memset (&ret, 0, sizeof ret);
+    if (call (domain->conn, priv, 0, REMOTE_PROC_DOMAIN_BLOCK_PEEK,
+              (xdrproc_t) xdr_remote_domain_block_peek_args,
+                (char *) &args,
+              (xdrproc_t) xdr_remote_domain_block_peek_ret,
+                (char *) &ret) == -1)
+        return -1;
+
+    if (ret.buffer.buffer_len != size) {
+            errorf (domain->conn, VIR_ERR_RPC,
+                    _("returned buffer is not same size as requested"));
+            free (ret.buffer.buffer_val);
+            return -1;
+    }
+
+    memcpy (buffer, ret.buffer.buffer_val, size);
+    free (ret.buffer.buffer_val);
+
+    return 0;
+}
+
+static int
+remoteDomainMemoryPeek (virDomainPtr domain,
+                        unsigned long long offset,
+                        size_t size,
+                        void *buffer,
+                        unsigned int flags)
+{
+    remote_domain_memory_peek_args args;
+    remote_domain_memory_peek_ret ret;
+    GET_PRIVATE (domain->conn, -1);
+
+    if (size > REMOTE_DOMAIN_MEMORY_PEEK_BUFFER_MAX) {
+        errorf (domain->conn, VIR_ERR_RPC,
+                _("memory peek request too large for remote protocol, %zi > %d"),
+                size, REMOTE_DOMAIN_MEMORY_PEEK_BUFFER_MAX);
+        return -1;
+    }
+
+    make_nonnull_domain (&args.dom, domain);
+    args.offset = offset;
+    args.size = size;
+    args.flags = flags;
+
+    memset (&ret, 0, sizeof ret);
+    if (call (domain->conn, priv, 0, REMOTE_PROC_DOMAIN_MEMORY_PEEK,
+              (xdrproc_t) xdr_remote_domain_memory_peek_args,
+                (char *) &args,
+              (xdrproc_t) xdr_remote_domain_memory_peek_ret,
+                (char *) &ret) == -1)
+        return -1;
+
+    if (ret.buffer.buffer_len != size) {
+            errorf (domain->conn, VIR_ERR_RPC,
+                    _("returned buffer is not same size as requested"));
+            free (ret.buffer.buffer_val);
+            return -1;
+    }
+
+    memcpy (buffer, ret.buffer.buffer_val, size);
+    free (ret.buffer.buffer_val);
+
+    return 0;
+}
+
 /*----------------------------------------------------------------------*/
 
 static int
@@ -2349,9 +2486,9 @@ remoteNetworkOpen (virConnectPtr conn,
          * use the UNIX transport. This handles Xen driver
          * which doesn't have its own impl of the network APIs.
          */
-        struct private_data *priv = calloc (1, sizeof(*priv));
+        struct private_data *priv;
         int ret, rflags = 0;
-        if (!priv) {
+        if (VIR_ALLOC(priv) < 0) {
             error (conn, VIR_ERR_NO_MEMORY, _("struct private_data"));
             return VIR_DRV_OPEN_ERROR;
         }
@@ -2364,7 +2501,7 @@ remoteNetworkOpen (virConnectPtr conn,
         ret = doRemoteOpen(conn, priv, uri, auth, rflags);
         if (ret != VIR_DRV_OPEN_SUCCESS) {
             conn->networkPrivateData = NULL;
-            free(priv);
+            VIR_FREE(priv);
         } else {
             priv->magic = MAGIC;
             priv->localUses = 1;
@@ -2383,7 +2520,7 @@ remoteNetworkClose (virConnectPtr conn)
         priv->localUses--;
         if (!priv->localUses) {
             ret = doRemoteClose(conn, priv);
-            free(priv);
+            VIR_FREE(priv);
             conn->networkPrivateData = NULL;
         }
     }
@@ -2755,9 +2892,9 @@ remoteStorageOpen (virConnectPtr conn,
          * use the UNIX transport. This handles Xen driver
          * which doesn't have its own impl of the network APIs.
          */
-        struct private_data *priv = calloc (1, sizeof(struct private_data));
+        struct private_data *priv;
         int ret, rflags = 0;
-        if (!priv) {
+        if (VIR_ALLOC(priv) < 0) {
             error (NULL, VIR_ERR_NO_MEMORY, _("struct private_data"));
             return VIR_DRV_OPEN_ERROR;
         }
@@ -2770,7 +2907,7 @@ remoteStorageOpen (virConnectPtr conn,
         ret = doRemoteOpen(conn, priv, uri, auth, rflags);
         if (ret != VIR_DRV_OPEN_SUCCESS) {
             conn->storagePrivateData = NULL;
-            free(priv);
+            VIR_FREE(priv);
         } else {
             priv->magic = MAGIC;
             priv->localUses = 1;
@@ -2789,7 +2926,7 @@ remoteStorageClose (virConnectPtr conn)
         priv->localUses--;
         if (!priv->localUses) {
             ret = doRemoteClose(conn, priv);
-            free(priv);
+            VIR_FREE(priv);
             conn->storagePrivateData = NULL;
         }
     }
@@ -3508,7 +3645,7 @@ remoteAuthenticate (virConnectPtr conn, struct private_data *priv, int in_open,
             mech = authtype + 5;
 
         if (remoteAuthSASL(conn, priv, in_open, auth, mech) < 0) {
-            free(ret.types.types_val);
+            VIR_FREE(ret.types.types_val);
             return -1;
         }
         break;
@@ -3518,7 +3655,7 @@ remoteAuthenticate (virConnectPtr conn, struct private_data *priv, int in_open,
 #if HAVE_POLKIT
     case REMOTE_AUTH_POLKIT:
         if (remoteAuthPolkit(conn, priv, in_open, auth) < 0) {
-            free(ret.types.types_val);
+            VIR_FREE(ret.types.types_val);
             return -1;
         }
         break;
@@ -3534,11 +3671,11 @@ remoteAuthenticate (virConnectPtr conn, struct private_data *priv, int in_open,
                          NULL, NULL, NULL, 0, 0,
                          _("unsupported authentication type %d"),
                          ret.types.types_val[0]);
-        free(ret.types.types_val);
+        VIR_FREE(ret.types.types_val);
         return -1;
     }
 
-    free(ret.types.types_val);
+    VIR_FREE(ret.types.types_val);
 
     return 0;
 }
@@ -3567,8 +3704,7 @@ static char *addrToString(struct sockaddr_storage *sa, socklen_t salen)
         return NULL;
     }
 
-    addr = malloc(strlen(host) + 1 + strlen(port) + 1);
-    if (!addr) {
+    if (VIR_ALLOC_N(addr, strlen(host) + 1 + strlen(port) + 1) < 0) {
         __virRaiseError (NULL, NULL, NULL, VIR_FROM_REMOTE,
                          VIR_ERR_NO_MEMORY, VIR_ERR_ERROR,
                          NULL, NULL, NULL, 0, 0,
@@ -3661,9 +3797,9 @@ static int remoteAuthCredSASL2Vir(int vircred)
  */
 static sasl_callback_t *remoteAuthMakeCallbacks(int *credtype, int ncredtype)
 {
-    sasl_callback_t *cbs = calloc(ncredtype+1, sizeof (*cbs));
+    sasl_callback_t *cbs;
     int i, n;
-    if (!cbs) {
+    if (VIR_ALLOC_N(cbs, ncredtype+1) < 0) {
         return NULL;
     }
 
@@ -3698,14 +3834,13 @@ static int remoteAuthMakeCredentials(sasl_interact_t *interact,
     for (ninteract = 0 ; interact[ninteract].id != 0 ; ninteract++)
         ; /* empty */
 
-    *cred = calloc(ninteract, sizeof(*cred));
-    if (!*cred)
+    if (VIR_ALLOC_N(*cred, ninteract) < 0)
         return -1;
 
     for (ninteract = 0 ; interact[ninteract].id != 0 ; ninteract++) {
         (*cred)[ninteract].type = remoteAuthCredSASL2Vir(interact[ninteract].id);
         if (!(*cred)[ninteract].type) {
-            free(*cred);
+            VIR_FREE(*cred);
             return -1;
         }
         if (interact[ninteract].challenge)
@@ -3724,8 +3859,8 @@ static void remoteAuthFreeCredentials(virConnectCredentialPtr cred,
 {
     int i;
     for (i = 0 ; i < ncred ; i++)
-        free(cred[i].result);
-    free(cred);
+        VIR_FREE(cred[i].result);
+    VIR_FREE(cred);
 }
 
 
@@ -3893,7 +4028,7 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
                              NULL, NULL, NULL, 0, 0,
                              _("SASL mechanism %s not supported by server"),
                              wantmech);
-            free(iret.mechlist);
+            VIR_FREE(iret.mechlist);
             goto cleanup;
         }
         mechlist = wantmech;
@@ -3912,7 +4047,7 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
                          VIR_ERR_AUTH_FAILED, VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
                          _("Failed to start SASL negotiation: %d (%s)"),
                          err, sasl_errdetail(saslconn));
-        free(iret.mechlist);
+        VIR_FREE(iret.mechlist);
         goto cleanup;
     }
 
@@ -3929,7 +4064,7 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
                              VIR_ERR_AUTH_FAILED, VIR_ERR_ERROR,
                              NULL, NULL, NULL, 0, 0,
                              "%s", _("Failed to make auth credentials"));
-            free(iret.mechlist);
+            VIR_FREE(iret.mechlist);
             goto cleanup;
         }
         /* Run the authentication callback */
@@ -3947,7 +4082,7 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
                          0, 0, "%s", msg);
         goto cleanup;
     }
-    free(iret.mechlist);
+    VIR_FREE(iret.mechlist);
 
     if (clientoutlen > REMOTE_AUTH_SASL_DATA_MAX) {
         __virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
@@ -4026,8 +4161,7 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
         }
 
         if (serverin) {
-            free(serverin);
-            serverin = NULL;
+            VIR_FREE(serverin);
         }
         DEBUG("Client step result %d. Data %d bytes %p", err, clientoutlen, clientout);
 
@@ -4059,7 +4193,7 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
 
         /* This server call shows complete, and earlier client step was OK */
         if (complete && err == SASL_OK) {
-            free(serverin);
+            VIR_FREE(serverin);
             break;
         }
     }
@@ -4089,11 +4223,11 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
     ret = 0;
 
  cleanup:
-    free(localAddr);
-    free(remoteAddr);
-    free(serverin);
+    VIR_FREE(localAddr);
+    VIR_FREE(remoteAddr);
+    VIR_FREE(serverin);
 
-    free(saslcb);
+    VIR_FREE(saslcb);
     remoteAuthFreeCredentials(cred, ncred);
     if (ret != 0 && saslconn)
         sasl_dispose(&saslconn);
@@ -4340,7 +4474,7 @@ call (virConnectPtr conn, struct private_data *priv,
             rerror.domain == VIR_FROM_REMOTE &&
             rerror.code == VIR_ERR_RPC &&
             rerror.level == VIR_ERR_ERROR &&
-            STREQLEN(*rerror.message, "unknown procedure", 17)) {
+            STRPREFIX(*rerror.message, "unknown procedure")) {
             return -2;
         }
         server_error (flags & REMOTE_CALL_IN_OPEN ? NULL : conn, &rerror);
@@ -4607,6 +4741,10 @@ server_error (virConnectPtr conn, remote_error *err)
                      err->str3 ? *err->str3 : NULL,
                      err->int1, err->int2,
                      "%s", err->message ? *err->message : NULL);
+    if (dom)
+        virDomainFree(dom);
+    if (net)
+        virNetworkFree(net);
 }
 
 /* get_nonnull_domain and get_nonnull_network turn an on-wire
@@ -4682,11 +4820,11 @@ static virDriver driver = {
     .open = remoteOpen,
     .close = remoteClose,
     .supports_feature = remoteSupportsFeature,
-	.type = remoteType,
-	.version = remoteVersion,
+        .type = remoteType,
+        .version = remoteVersion,
     .getHostname = remoteGetHostname,
-	.getMaxVcpus = remoteGetMaxVcpus,
-	.nodeGetInfo = remoteNodeGetInfo,
+        .getMaxVcpus = remoteGetMaxVcpus,
+        .nodeGetInfo = remoteNodeGetInfo,
     .getCapabilities = remoteGetCapabilities,
     .listDomains = remoteListDomains,
     .numOfDomains = remoteNumOfDomains,
@@ -4729,7 +4867,10 @@ static virDriver driver = {
     .domainMigrateFinish = remoteDomainMigrateFinish,
     .domainBlockStats = remoteDomainBlockStats,
     .domainInterfaceStats = remoteDomainInterfaceStats,
-    .nodeGetCellsFreeMemory = NULL,
+    .domainBlockPeek = remoteDomainBlockPeek,
+    .domainMemoryPeek = remoteDomainMemoryPeek,
+    .nodeGetCellsFreeMemory = remoteNodeGetCellsFreeMemory,
+    .getFreeMemory = remoteNodeGetFreeMemory,
 };
 
 static virNetworkDriver network_driver = {
@@ -4794,6 +4935,7 @@ static virStateDriver state_driver = {
     NULL,
     NULL,
     NULL,
+    NULL
 };
 
 
@@ -4813,17 +4955,3 @@ remoteRegister (void)
 
     return 0;
 }
-
-/*
- * vim: set tabstop=4:
- * vim: set shiftwidth=4:
- * vim: set expandtab:
- */
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */

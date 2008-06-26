@@ -49,7 +49,7 @@ int xenXMDomainPinVcpu(virDomainPtr domain, unsigned int vcpu,
                        unsigned char *cpumap, int maplen);
 virDomainPtr xenXMDomainLookupByName(virConnectPtr conn, const char *domname);
 virDomainPtr xenXMDomainLookupByUUID(virConnectPtr conn,
-				     const unsigned char *uuid);
+                                     const unsigned char *uuid);
 
 int xenXMListDefinedDomains(virConnectPtr conn, char ** const names, int maxnames);
 int xenXMNumOfDefinedDomains(virConnectPtr conn);
@@ -60,6 +60,7 @@ int xenXMDomainUndefine(virDomainPtr domain);
 
 virConfPtr xenXMParseXMLToConfig(virConnectPtr conn, const char *xml);
 char *xenXMDomainFormatXML(virConnectPtr conn, virConfPtr conf);
+int xenXMDomainBlockPeek (virDomainPtr dom, const char *path, unsigned long long offset, size_t size, void *buffer);
 
 #ifdef __cplusplus
 }

@@ -37,10 +37,12 @@
 #include <avahi-common/error.h>
 #include <avahi-common/timeval.h>
 
+#include "internal.h"
+#include "qemud.h"
 #include "mdns.h"
 #include "event.h"
-#include "../src/remote_internal.h"
-#include "../src/internal.h"
+#include "remote_internal.h"
+#include "memory.h"
 
 #define AVAHI_DEBUG(fmt, ...) qemudDebug("AVAHI: " fmt, __VA_ARGS__)
 
@@ -98,7 +100,7 @@ static void libvirtd_mdns_group_callback(AvahiEntryGroup *g ATTRIBUTE_UNUSED, Av
 
             /* A service name collision happened. Let's pick a new name */
             n = avahi_alternative_service_name(group->name);
-            free(group->name);
+            VIR_FREE(group->name);
             group->name = n;
 
             AVAHI_DEBUG("Group name collision, renaming service to '%s'", group->name);
@@ -236,8 +238,8 @@ static void libvirtd_mdns_watch_dispatch(int fd, int events, void *opaque)
 
 static AvahiWatch *libvirtd_mdns_watch_new(const AvahiPoll *api ATTRIBUTE_UNUSED,
                                             int fd, AvahiWatchEvent event, AvahiWatchCallback cb, void *userdata) {
-    AvahiWatch *w = malloc(sizeof(*w));
-    if (!w)
+    AvahiWatch *w;
+    if (VIR_ALLOC(w) < 0)
         return NULL;
 
     w->fd = fd;
@@ -247,7 +249,7 @@ static AvahiWatch *libvirtd_mdns_watch_new(const AvahiPoll *api ATTRIBUTE_UNUSED
 
     AVAHI_DEBUG("New handle %p FD %d Event %d", w, w->fd, event);
     if (virEventAddHandleImpl(fd, event, libvirtd_mdns_watch_dispatch, w) < 0) {
-        free(w);
+        VIR_FREE(w);
         return NULL;
     }
 
@@ -270,7 +272,7 @@ static void libvirtd_mdns_watch_free(AvahiWatch *w)
 {
     AVAHI_DEBUG("Free handle %p %d", w, w->fd);
     virEventRemoveHandleImpl(w->fd);
-    free(w);
+    VIR_FREE(w);
 }
 
 static void libvirtd_mdns_timeout_dispatch(int timer ATTRIBUTE_UNUSED, void *opaque)
@@ -286,15 +288,15 @@ static AvahiTimeout *libvirtd_mdns_timeout_new(const AvahiPoll *api ATTRIBUTE_UN
                                                 AvahiTimeoutCallback cb,
                                                 void *userdata)
 {
-    AvahiTimeout *t = malloc(sizeof(*t));
+    AvahiTimeout *t;
     struct timeval now;
     long long nowms, thenms, timeout;
     AVAHI_DEBUG("Add timeout %p TV %p", t, tv);
-    if (!t)
+    if (VIR_ALLOC(t) < 0)
         return NULL;
 
     if (gettimeofday(&now, NULL) < 0) {
-        free(t);
+        VIR_FREE(t);
         return NULL;
     }
 
@@ -316,7 +318,7 @@ static AvahiTimeout *libvirtd_mdns_timeout_new(const AvahiPoll *api ATTRIBUTE_UN
     t->userdata = userdata;
 
     if (t->timer < 0) {
-        free(t);
+        VIR_FREE(t);
         return NULL;
     }
 
@@ -329,7 +331,7 @@ static void libvirtd_mdns_timeout_update(AvahiTimeout *t, const struct timeval *
     long long nowms, thenms, timeout;
     AVAHI_DEBUG("Update timeout %p TV %p", t, tv);
     if (gettimeofday(&now, NULL) < 0) {
-        free(t);
+        VIR_FREE(t);
         return;
     }
 
@@ -350,14 +352,14 @@ static void libvirtd_mdns_timeout_free(AvahiTimeout *t)
 {
     AVAHI_DEBUG("Free timeout %p", t);
     virEventRemoveTimeoutImpl(t->timer);
-    free(t);
+    VIR_FREE(t);
 }
 
 
 static AvahiPoll *libvirtd_create_poll(void)
 {
-    AvahiPoll *p = malloc(sizeof(*p));
-    if (!p)
+    AvahiPoll *p;
+    if (VIR_ALLOC(p) < 0)
         return NULL;
 
     p->userdata = NULL;
@@ -376,14 +378,13 @@ static AvahiPoll *libvirtd_create_poll(void)
 
 struct libvirtd_mdns *libvirtd_mdns_new(void)
 {
-    struct libvirtd_mdns *mdns = malloc(sizeof(*mdns));
-    if (!mdns)
+    struct libvirtd_mdns *mdns;
+    if (VIR_ALLOC(mdns) < 0)
         return NULL;
-    memset(mdns, 0, sizeof(*mdns));
 
     /* Allocate main loop object */
     if (!(mdns->poller = libvirtd_create_poll())) {
-        free(mdns);
+        VIR_FREE(mdns);
         return NULL;
     }
 
@@ -405,15 +406,14 @@ int libvirtd_mdns_start(struct libvirtd_mdns *mdns)
 }
 
 struct libvirtd_mdns_group *libvirtd_mdns_add_group(struct libvirtd_mdns *mdns, const char *name) {
-    struct libvirtd_mdns_group *group = malloc(sizeof(*group));
+    struct libvirtd_mdns_group *group;
 
     AVAHI_DEBUG("Adding group '%s'", name);
-    if (!group)
+    if (VIR_ALLOC(group) < 0)
         return NULL;
 
-    memset(group, 0, sizeof(*group));
     if (!(group->name = strdup(name))) {
-        free(group);
+        VIR_FREE(group);
         return NULL;
     }
     group->mdns = mdns;
@@ -427,12 +427,12 @@ void libvirtd_mdns_remove_group(struct libvirtd_mdns *mdns, struct libvirtd_mdns
 
     while (tmp) {
         if (tmp == group) {
-            free(group->name);
+            VIR_FREE(group->name);
             if (prev)
                 prev->next = group->next;
             else
                 group->mdns->group = group->next;
-            free(group);
+            VIR_FREE(group);
             return;
         }
         prev = tmp;
@@ -441,15 +441,15 @@ void libvirtd_mdns_remove_group(struct libvirtd_mdns *mdns, struct libvirtd_mdns
 }
 
 struct libvirtd_mdns_entry *libvirtd_mdns_add_entry(struct libvirtd_mdns_group *group, const char *type, int port) {
-    struct libvirtd_mdns_entry *entry = malloc(sizeof(*entry));
+    struct libvirtd_mdns_entry *entry;
 
     AVAHI_DEBUG("Adding entry %s %d to group %s", type, port, group->name);
-    if (!entry)
+    if (VIR_ALLOC(entry) < 0)
         return NULL;
 
     entry->port = port;
     if (!(entry->type = strdup(type))) {
-        free(entry);
+        VIR_FREE(entry);
         return NULL;
     }
     entry->next = group->entry;
@@ -462,7 +462,7 @@ void libvirtd_mdns_remove_entry(struct libvirtd_mdns_group *group, struct libvir
 
     while (tmp) {
         if (tmp == entry) {
-            free(entry->type);
+            VIR_FREE(entry->type);
             if (prev)
                 prev->next = entry->next;
             else
@@ -488,14 +488,3 @@ void libvirtd_mdns_stop(struct libvirtd_mdns *mdns)
         avahi_client_free(mdns->client);
     mdns->client = NULL;
 }
-
-
-
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */

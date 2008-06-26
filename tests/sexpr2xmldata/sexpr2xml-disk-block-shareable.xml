@@ -12,7 +12,7 @@
     <disk type='file' device='disk'>
       <driver name='tap' type='aio'/>
       <source file='/var/lib/xen/images/rhel5pv.img'/>
-      <target dev='xvda'/>
+      <target dev='xvda' bus='xen'/>
       <shareable/>
     </disk>
     <interface type='bridge'>
@@ -21,5 +21,8 @@
       <mac address='00:16:3e:23:9e:eb'/>
       <script path='vif-bridge'/>
     </interface>
+    <console type='pty'>
+      <target port='0'/>
+    </console>
   </devices>
 </domain>

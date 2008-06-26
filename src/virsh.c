@@ -10,13 +10,11 @@
  * Daniel P. Berrange <berrange@redhat.com>
  *
  *
- * $Id: virsh.c,v 1.142 2008/04/04 11:20:45 veillard Exp $
+ * $Id: virsh.c,v 1.155 2008/05/29 14:56:12 berrange Exp $
  */
 
 #include <config.h>
 
-#include "libvirt/libvirt.h"
-#include "libvirt/virterror.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -26,7 +24,7 @@
 #include <getopt.h>
 #include <sys/types.h>
 #include <sys/time.h>
-#include <ctype.h>
+#include "c-ctype.h"
 #include <fcntl.h>
 #include <locale.h>
 #include <time.h>
@@ -35,7 +33,6 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <inttypes.h>
-#include <test.h>
 
 #include <libxml/parser.h>
 #include <libxml/tree.h>
@@ -46,6 +43,7 @@
 #include <readline/history.h>
 #endif
 
+#include "internal.h"
 #include "buf.h"
 #include "console.h"
 #include "util.h"
@@ -206,9 +204,6 @@ typedef struct __vshControl {
     virConnectPtr conn;         /* connection to hypervisor (MAY BE NULL) */
     vshCmd *cmd;                /* the current command */
     char *cmdstr;               /* string with command */
-#ifndef __MINGW32__
-    uid_t uid;                  /* process owner */
-#endif /* __MINGW32__ */
     int imode;                  /* interactive mode? */
     int quiet;                  /* quiet mode */
     int debug;                  /* print debug messages? */
@@ -401,19 +396,19 @@ cmdAutostart(vshControl * ctl, vshCmd * cmd)
 
     if (virDomainSetAutostart(dom, autostart) < 0) {
         if (autostart)
-	    vshError(ctl, FALSE, _("Failed to mark domain %s as autostarted"),
+            vshError(ctl, FALSE, _("Failed to mark domain %s as autostarted"),
                      name);
-	else
-	    vshError(ctl, FALSE, _("Failed to unmark domain %s as autostarted"),
+        else
+            vshError(ctl, FALSE, _("Failed to unmark domain %s as autostarted"),
                      name);
         virDomainFree(dom);
         return FALSE;
     }
 
     if (autostart)
-	vshPrint(ctl, _("Domain %s marked as autostarted\n"), name);
+        vshPrint(ctl, _("Domain %s marked as autostarted\n"), name);
     else
-	vshPrint(ctl, _("Domain %s unmarked as autostarted\n"), name);
+        vshPrint(ctl, _("Domain %s unmarked as autostarted\n"), name);
 
     virDomainFree(dom);
     return TRUE;
@@ -902,7 +897,7 @@ cmdCreate(vshControl * ctl, vshCmd * cmd)
     if (dom != NULL) {
         vshPrint(ctl, _("Domain %s created from %s\n"),
                  virDomainGetName(dom), from);
-	virDomainFree(dom);
+        virDomainFree(dom);
     } else {
         vshError(ctl, FALSE, _("Failed to create domain from %s"), from);
         ret = FALSE;
@@ -1027,7 +1022,7 @@ cmdStart(vshControl * ctl, vshCmd * cmd)
 
     if (virDomainGetID(dom) != (unsigned int)-1) {
         vshError(ctl, FALSE, "%s", _("Domain is already active"));
-	virDomainFree(dom);
+        virDomainFree(dom);
         return FALSE;
     }
 
@@ -1176,7 +1171,7 @@ cmdSchedinfo(vshControl * ctl, vshCmd * cmd)
         ret = virDomainSetSchedulerParameters(dom, params, inputparams);
         if (ret == -1) {
             goto cleanup;
-	}
+        }
     }
     free(params);
     params = NULL;
@@ -1471,9 +1466,9 @@ cmdDestroy(vshControl * ctl, vshCmd * cmd)
     } else {
         vshError(ctl, FALSE, _("Failed to destroy domain %s"), name);
         ret = FALSE;
-        virDomainFree(dom);
     }
 
+    virDomainFree(dom);
     return ret;
 }
 
@@ -1497,7 +1492,7 @@ cmdDominfo(vshControl * ctl, vshCmd * cmd)
 {
     virDomainInfo info;
     virDomainPtr dom;
-    int ret = TRUE;
+    int ret = TRUE, autostart;
     unsigned int id;
     char *str, uuid[VIR_UUID_STRING_BUFLEN];
 
@@ -1540,7 +1535,7 @@ cmdDominfo(vshControl * ctl, vshCmd * cmd)
             vshPrint(ctl, "%-15s %lu kB\n", _("Max memory:"),
                  info.maxMem);
         else
-            vshPrint(ctl, "%-15s %-15s\n", _("Max memory:"),
+            vshPrint(ctl, "%-15s %s\n", _("Max memory:"),
                  _("no limit"));
 
         vshPrint(ctl, "%-15s %lu kB\n", _("Used memory:"),
@@ -1548,6 +1543,11 @@ cmdDominfo(vshControl * ctl, vshCmd * cmd)
 
     } else {
         ret = FALSE;
+    }
+
+    if (!virDomainGetAutostart(dom, &autostart)) {
+        vshPrint(ctl, "%-15s %s\n", _("Autostart:"),
+                 autostart ? _("enable") : _("disable") );
     }
 
     virDomainFree(dom);
@@ -1583,15 +1583,15 @@ cmdFreecell(vshControl * ctl, vshCmd * cmd)
     if (!cell_given) {
         memory = virNodeGetFreeMemory(ctl->conn);
     } else {
-	ret = virNodeGetCellsFreeMemory(ctl->conn, &memory, cell, 1);
-	if (ret != 1)
-	    return FALSE;
+        ret = virNodeGetCellsFreeMemory(ctl->conn, &memory, cell, 1);
+        if (ret != 1)
+            return FALSE;
     }
 
     if (cell == -1)
-	vshPrint(ctl, "%s: %llu kB\n", _("Total"), memory);
+        vshPrint(ctl, "%s: %llu kB\n", _("Total"), memory);
     else
-	vshPrint(ctl, "%d: %llu kB\n", cell, memory);
+        vshPrint(ctl, "%d: %llu kB\n", cell, memory);
 
     return TRUE;
 }
@@ -1742,13 +1742,13 @@ cmdVcpupin(vshControl * ctl, vshCmd * cmd)
 
     if (virDomainGetInfo(dom, &info) != 0) {
         vshError(ctl, FALSE, "%s",
-	         _("vcpupin: failed to get domain informations."));
+                 _("vcpupin: failed to get domain informations."));
         virDomainFree(dom);
         return FALSE;
     }
 
     if (vcpu >= info.nrVirtCpu) {
-        vshError(ctl, FALSE, _("vcpupin: Invalid vCPU number."));
+        vshError(ctl, FALSE, "%s", _("vcpupin: Invalid vCPU number."));
         virDomainFree(dom);
         return FALSE;
     }
@@ -1766,7 +1766,7 @@ cmdVcpupin(vshControl * ctl, vshCmd * cmd)
     for (i = 0; cpulist[i]; i++) {
         switch (state) {
         case expect_num:
-            if (!isdigit (cpulist[i])) {
+          if (!c_isdigit (cpulist[i])) {
                 vshError( ctl, FALSE, _("cpulist: %s: Invalid format. Expecting digit at position %d (near '%c')."), cpulist, i, cpulist[i]);
                 virDomainFree (dom);
                 return FALSE;
@@ -1776,7 +1776,7 @@ cmdVcpupin(vshControl * ctl, vshCmd * cmd)
         case expect_num_or_comma:
             if (cpulist[i] == ',')
                 state = expect_num;
-            else if (!isdigit (cpulist[i])) {
+            else if (!c_isdigit (cpulist[i])) {
                 vshError(ctl, FALSE, _("cpulist: %s: Invalid format. Expecting digit or comma at position %d (near '%c')."), cpulist, i, cpulist[i]);
                 virDomainFree (dom);
                 return FALSE;
@@ -2290,19 +2290,19 @@ cmdNetworkAutostart(vshControl * ctl, vshCmd * cmd)
 
     if (virNetworkSetAutostart(network, autostart) < 0) {
         if (autostart)
-	    vshError(ctl, FALSE, _("failed to mark network %s as autostarted"),
+            vshError(ctl, FALSE, _("failed to mark network %s as autostarted"),
                                    name);
-	else
-	    vshError(ctl, FALSE,_("failed to unmark network %s as autostarted"),
+        else
+            vshError(ctl, FALSE,_("failed to unmark network %s as autostarted"),
                                    name);
         virNetworkFree(network);
         return FALSE;
     }
 
     if (autostart)
-	vshPrint(ctl, _("Network %s marked as autostarted\n"), name);
+        vshPrint(ctl, _("Network %s marked as autostarted\n"), name);
     else
-	vshPrint(ctl, _("Network %s unmarked as autostarted\n"), name);
+        vshPrint(ctl, _("Network %s unmarked as autostarted\n"), name);
 
     return TRUE;
 }
@@ -2436,9 +2436,9 @@ cmdNetworkDestroy(vshControl * ctl, vshCmd * cmd)
     } else {
         vshError(ctl, FALSE, _("Failed to destroy network %s"), name);
         ret = FALSE;
-        virNetworkFree(network);
     }
 
+    virNetworkFree(network);
     return ret;
 }
 
@@ -2523,7 +2523,7 @@ cmdNetworkList(vshControl * ctl, vshCmd * cmd ATTRIBUTE_UNUSED)
             activeNames = vshMalloc(ctl, sizeof(char *) * maxactive);
 
             if ((maxactive = virConnectListNetworks(ctl->conn, activeNames,
-	                                            maxactive)) < 0) {
+                                                    maxactive)) < 0) {
                 vshError(ctl, FALSE, "%s", _("Failed to list active networks"));
                 free(activeNames);
                 return FALSE;
@@ -2630,7 +2630,7 @@ cmdNetworkName(vshControl * ctl, vshCmd * cmd)
     if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
         return FALSE;
     if (!(network = vshCommandOptNetworkBy(ctl, cmd, "network", NULL,
-					   VSH_BYUUID)))
+                                           VSH_BYUUID)))
         return FALSE;
 
     vshPrint(ctl, "%s\n", virNetworkGetName(network));
@@ -2741,7 +2741,7 @@ cmdNetworkUuid(vshControl * ctl, vshCmd * cmd)
         return FALSE;
 
     if (!(network = vshCommandOptNetworkBy(ctl, cmd, "network", NULL,
-					   VSH_BYNAME)))
+                                           VSH_BYNAME)))
         return FALSE;
 
     if (virNetworkGetUUIDString(network, uuid) != -1)
@@ -2798,19 +2798,19 @@ cmdPoolAutostart(vshControl * ctl, vshCmd * cmd)
 
     if (virStoragePoolSetAutostart(pool, autostart) < 0) {
         if (autostart)
-	    vshError(ctl, FALSE, _("failed to mark pool %s as autostarted"),
+            vshError(ctl, FALSE, _("failed to mark pool %s as autostarted"),
                                    name);
-	else
-	    vshError(ctl, FALSE,_("failed to unmark pool %s as autostarted"),
+        else
+            vshError(ctl, FALSE,_("failed to unmark pool %s as autostarted"),
                                    name);
         virStoragePoolFree(pool);
         return FALSE;
     }
 
     if (autostart)
-	vshPrint(ctl, _("Pool %s marked as autostarted\n"), name);
+        vshPrint(ctl, _("Pool %s marked as autostarted\n"), name);
     else
-	vshPrint(ctl, _("Pool %s unmarked as autostarted\n"), name);
+        vshPrint(ctl, _("Pool %s unmarked as autostarted\n"), name);
 
     return TRUE;
 }
@@ -2888,10 +2888,9 @@ cmdPoolCreateAs(vshControl * ctl, vshCmd * cmd)
 {
     virStoragePoolPtr pool;
     int found;
+    char *xml;
     char *name, *type, *srcHost, *srcPath, *srcDev, *target;
-    virBuffer buf;
-
-    memset(&buf, 0, sizeof(buf));
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
 
     if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
         return FALSE;
@@ -2908,39 +2907,36 @@ cmdPoolCreateAs(vshControl * ctl, vshCmd * cmd)
     srcDev = vshCommandOptString(cmd, "source-dev", &found);
     target = vshCommandOptString(cmd, "target", &found);
 
-    if (virBufferVSprintf(&buf, "<pool type='%s'>\n", type) < 0)
-        goto cleanup;
-    if (virBufferVSprintf(&buf, "  <name>%s</name>\n", name) < 0)
-        goto cleanup;
+    virBufferVSprintf(&buf, "<pool type='%s'>\n", type);
+    virBufferVSprintf(&buf, "  <name>%s</name>\n", name);
     if (srcHost || srcPath || srcDev) {
-        if (virBufferAddLit(&buf, "  <source>\n") < 0)
-            goto cleanup;
-        if (srcHost &&
-            virBufferVSprintf(&buf, "    <host name='%s'>\n", srcHost) < 0)
-            goto cleanup;
-        if (srcPath &&
-            virBufferVSprintf(&buf, "    <dir path='%s'/>\n", srcPath) < 0)
-            goto cleanup;
-        if (srcDev &&
-            virBufferVSprintf(&buf, "    <device path='%s'/>\n", srcDev) < 0)
-            goto cleanup;
+        virBufferAddLit(&buf, "  <source>\n");
+        if (srcHost)
+            virBufferVSprintf(&buf, "    <host name='%s'>\n", srcHost);
 
-        if (virBufferAddLit(&buf, "  </source>\n") < 0)
-            goto cleanup;
+        if (srcPath)
+            virBufferVSprintf(&buf, "    <dir path='%s'/>\n", srcPath);
+
+        if (srcDev)
+            virBufferVSprintf(&buf, "    <device path='%s'/>\n", srcDev);
+
+        virBufferAddLit(&buf, "  </source>\n");
     }
     if (target) {
-        if (virBufferAddLit(&buf, "  <target>\n") < 0)
-            goto cleanup;
-        if (virBufferVSprintf(&buf, "    <path>%s</path>\n", target) < 0)
-            goto cleanup;
-        if (virBufferAddLit(&buf, "  </target>\n") < 0)
-            goto cleanup;
+        virBufferAddLit(&buf, "  <target>\n");
+        virBufferVSprintf(&buf, "    <path>%s</path>\n", target);
+        virBufferAddLit(&buf, "  </target>\n");
     }
-    if (virBufferAddLit(&buf, "</pool>\n") < 0)
-        goto cleanup;
+    virBufferAddLit(&buf, "</pool>\n");
 
-    pool = virStoragePoolCreateXML(ctl->conn, buf.content, 0);
-    free (buf.content);
+    if (virBufferError(&buf)) {
+        vshPrint(ctl, "%s", _("Failed to allocate XML buffer"));
+        return FALSE;
+    }
+    xml = virBufferContentAndReset(&buf);
+
+    pool = virStoragePoolCreateXML(ctl->conn, xml, 0);
+    free (xml);
 
     if (pool != NULL) {
         vshPrint(ctl, _("Pool %s created\n"), name);
@@ -2952,7 +2948,7 @@ cmdPoolCreateAs(vshControl * ctl, vshCmd * cmd)
     }
 
  cleanup:
-    free(buf.content);
+    free(virBufferContentAndReset(&buf));
     return FALSE;
 }
 
@@ -3031,10 +3027,9 @@ cmdPoolDefineAs(vshControl * ctl, vshCmd * cmd)
 {
     virStoragePoolPtr pool;
     int found;
+    char *xml;
     char *name, *type, *srcHost, *srcPath, *srcDev, *target;
-    virBuffer buf;
-
-    memset(&buf, 0, sizeof(buf));
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
 
     if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
         return FALSE;
@@ -3051,39 +3046,35 @@ cmdPoolDefineAs(vshControl * ctl, vshCmd * cmd)
     srcDev = vshCommandOptString(cmd, "source-dev", &found);
     target = vshCommandOptString(cmd, "target", &found);
 
-    if (virBufferVSprintf(&buf, "<pool type='%s'>\n", type) < 0)
-        goto cleanup;
-    if (virBufferVSprintf(&buf, "  <name>%s</name>\n", name) < 0)
-        goto cleanup;
+    virBufferVSprintf(&buf, "<pool type='%s'>\n", type);
+    virBufferVSprintf(&buf, "  <name>%s</name>\n", name);
     if (srcHost || srcPath || srcDev) {
-        if (virBufferAddLit(&buf, "  <source>\n") < 0)
-            goto cleanup;
-        if (srcHost &&
-            virBufferVSprintf(&buf, "    <host>%s</host>\n", srcHost) < 0)
-            goto cleanup;
-        if (srcPath &&
-            virBufferVSprintf(&buf, "    <path>%s</path>\n", srcPath) < 0)
-            goto cleanup;
-        if (srcDev &&
-            virBufferVSprintf(&buf, "    <device>%s</device>\n", srcDev) < 0)
-            goto cleanup;
+        virBufferAddLit(&buf, "  <source>\n");
+        if (srcHost)
+            virBufferVSprintf(&buf, "    <host>%s</host>\n", srcHost);
+        if (srcPath)
+            virBufferVSprintf(&buf, "    <path>%s</path>\n", srcPath);
+        if (srcDev)
+            virBufferVSprintf(&buf, "    <device>%s</device>\n", srcDev);
 
-        if (virBufferAddLit(&buf, "  </source>\n") < 0)
-            goto cleanup;
+        virBufferAddLit(&buf, "  </source>\n");
     }
     if (target) {
-        if (virBufferAddLit(&buf, "  <target>\n") < 0)
-            goto cleanup;
-        if (virBufferVSprintf(&buf, "    <path>%s</path>\n", target) < 0)
-            goto cleanup;
-        if (virBufferAddLit(&buf, "  </target>\n") < 0)
-            goto cleanup;
+        virBufferAddLit(&buf, "  <target>\n");
+        virBufferVSprintf(&buf, "    <path>%s</path>\n", target);
+        virBufferAddLit(&buf, "  </target>\n");
     }
-    if (virBufferAddLit(&buf, "</pool>\n") < 0)
-        goto cleanup;
+    virBufferAddLit(&buf, "</pool>\n");
 
-    pool = virStoragePoolDefineXML(ctl->conn, buf.content, 0);
-    free (buf.content);
+
+    if (virBufferError(&buf)) {
+        vshPrint(ctl, "%s", _("Failed to allocate XML buffer"));
+        return FALSE;
+    }
+    xml = virBufferContentAndReset(&buf);
+
+    pool = virStoragePoolDefineXML(ctl->conn, xml, 0);
+    free (xml);
 
     if (pool != NULL) {
         vshPrint(ctl, _("Pool %s defined\n"), name);
@@ -3095,7 +3086,7 @@ cmdPoolDefineAs(vshControl * ctl, vshCmd * cmd)
     }
 
  cleanup:
-    free(buf.content);
+    free(virBufferContentAndReset(&buf));
     return FALSE;
 }
 
@@ -3173,9 +3164,9 @@ cmdPoolDestroy(vshControl * ctl, vshCmd * cmd)
     } else {
         vshError(ctl, FALSE, _("Failed to destroy pool %s"), name);
         ret = FALSE;
-        virStoragePoolFree(pool);
     }
 
+    virStoragePoolFree(pool);
     return ret;
 }
 
@@ -3543,7 +3534,7 @@ cmdPoolName(vshControl * ctl, vshCmd * cmd)
     if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
         return FALSE;
     if (!(pool = vshCommandOptPoolBy(ctl, cmd, "pool", NULL,
-					   VSH_BYUUID)))
+                                           VSH_BYUUID)))
         return FALSE;
 
     vshPrint(ctl, "%s\n", virStoragePoolGetName(pool));
@@ -3644,11 +3635,10 @@ cmdVolCreateAs(vshControl * ctl, vshCmd * cmd)
     virStoragePoolPtr pool;
     virStorageVolPtr vol;
     int found;
+    char *xml;
     char *name, *capacityStr, *allocationStr, *format;
     unsigned long long capacity, allocation = 0;
-    virBuffer buf;
-
-    memset(&buf, 0, sizeof(buf));
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
 
     if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
         return FALSE;
@@ -3674,30 +3664,28 @@ cmdVolCreateAs(vshControl * ctl, vshCmd * cmd)
 
     format = vshCommandOptString(cmd, "format", &found);
 
-    if (virBufferAddLit(&buf, "<volume>\n") < 0)
-        goto cleanup;
-    if (virBufferVSprintf(&buf, "  <name>%s</name>\n", name) < 0)
-        goto cleanup;
-    if (virBufferVSprintf(&buf, "  <capacity>%llu</capacity>\n", capacity) < 0)
-        goto cleanup;
-    if (allocationStr &&
-        virBufferVSprintf(&buf, "  <allocation>%llu</allocation>\n", allocation) < 0)
-        goto cleanup;
+    virBufferAddLit(&buf, "<volume>\n");
+    virBufferVSprintf(&buf, "  <name>%s</name>\n", name);
+    virBufferVSprintf(&buf, "  <capacity>%llu</capacity>\n", capacity);
+    if (allocationStr)
+        virBufferVSprintf(&buf, "  <allocation>%llu</allocation>\n", allocation);
 
     if (format) {
-        if (virBufferAddLit(&buf, "  <target>\n") < 0)
-            goto cleanup;
+        virBufferAddLit(&buf, "  <target>\n");
         if (format)
-            if (virBufferVSprintf(&buf, "    <format type='%s'/>\n",format) < 0)
-                goto cleanup;
-        if (virBufferAddLit(&buf, "  </target>\n") < 0)
-            goto cleanup;
+            virBufferVSprintf(&buf, "    <format type='%s'/>\n",format);
+        virBufferAddLit(&buf, "  </target>\n");
     }
-    if (virBufferAddLit(&buf, "</volume>\n") < 0)
-        goto cleanup;
+    virBufferAddLit(&buf, "</volume>\n");
 
-    vol = virStorageVolCreateXML(pool, buf.content, 0);
-    free (buf.content);
+
+    if (virBufferError(&buf)) {
+        vshPrint(ctl, "%s", _("Failed to allocate XML buffer"));
+        return FALSE;
+    }
+    xml = virBufferContentAndReset(&buf);
+    vol = virStorageVolCreateXML(pool, xml, 0);
+    free (xml);
     virStoragePoolFree(pool);
 
     if (vol != NULL) {
@@ -3710,7 +3698,7 @@ cmdVolCreateAs(vshControl * ctl, vshCmd * cmd)
     }
 
  cleanup:
-    free(buf.content);
+    free(virBufferContentAndReset(&buf));
     virStoragePoolFree(pool);
     return FALSE;
 }
@@ -3779,7 +3767,7 @@ cmdPoolUuid(vshControl * ctl, vshCmd * cmd)
         return FALSE;
 
     if (!(pool = vshCommandOptPoolBy(ctl, cmd, "pool", NULL,
-					   VSH_BYNAME)))
+                                           VSH_BYNAME)))
         return FALSE;
 
     if (virStoragePoolGetUUIDString(pool, uuid) != -1)
@@ -3823,7 +3811,7 @@ cmdVolCreate(vshControl * ctl, vshCmd * cmd)
         return FALSE;
 
     if (!(pool = vshCommandOptPoolBy(ctl, cmd, "pool", NULL,
-					   VSH_BYNAME)))
+                                           VSH_BYNAME)))
         return FALSE;
 
     from = vshCommandOptString(cmd, "file", &found);
@@ -4366,7 +4354,7 @@ cmdVNCDisplay(vshControl * ctl, vshCmd * cmd)
     obj = xmlXPathEval(BAD_CAST "string(/domain/devices/graphics[@type='vnc']/@listen)", ctxt);
     if ((obj == NULL) || (obj->type != XPATH_STRING) ||
         (obj->stringval == NULL) || (obj->stringval[0] == 0) ||
-        !strcmp((const char*)obj->stringval, "0.0.0.0")) {
+        STREQ((const char*)obj->stringval, "0.0.0.0")) {
         vshPrint(ctl, ":%d\n", port-5900);
     } else {
         vshPrint(ctl, "%s:%d\n", (const char *)obj->stringval, port-5900);
@@ -4602,9 +4590,9 @@ cmdAttachInterface(vshControl * ctl, vshCmd * cmd)
     script = vshCommandOptString(cmd, "script", NULL);
 
     /* check interface type */
-    if (strcmp(type, "network") == 0) {
+    if (STREQ(type, "network")) {
         typ = 1;
-    } else if (strcmp(type, "bridge") == 0) {
+    } else if (STREQ(type, "bridge")) {
         typ = 2;
     } else {
         vshError(ctl, FALSE, _("No support %s in command 'attach-interface'"), type);
@@ -4839,23 +4827,23 @@ cmdAttachDisk(vshControl * ctl, vshCmd * cmd)
     mode = vshCommandOptString(cmd, "mode", NULL);
 
     if (type) {
-        if (strcmp(type, "cdrom") && strcmp(type, "disk")) {
+        if (STRNEQ(type, "cdrom") && STRNEQ(type, "disk")) {
             vshError(ctl, FALSE, _("No support %s in command 'attach-disk'"), type);
             goto cleanup;
         }
     }
 
     if (driver) {
-        if (!strcmp(driver, "file") || !strcmp(driver, "tap")) {
+        if (STREQ(driver, "file") || STREQ(driver, "tap")) {
             isFile = 1;
-        } else if (strcmp(driver, "phy")) {
+        } else if (STRNEQ(driver, "phy")) {
             vshError(ctl, FALSE, _("No support %s in command 'attach-disk'"), driver);
             goto cleanup;
         }
     }
 
     if (mode) {
-        if (strcmp(mode, "readonly") && strcmp(mode, "shareable")) {
+        if (STRNEQ(mode, "readonly") && STRNEQ(mode, "shareable")) {
             vshError(ctl, FALSE, _("No support %s in command 'attach-disk'"), mode);
             goto cleanup;
         }
@@ -5186,7 +5174,7 @@ vshCmddefGetInfo(vshCmdDef * cmd, const char *name)
     vshCmdInfo *info;
 
     for (info = cmd->info; info && info->name; info++) {
-        if (strcmp(info->name, name) == 0)
+        if (STREQ(info->name, name))
             return info->data;
     }
     return NULL;
@@ -5198,7 +5186,7 @@ vshCmddefGetOption(vshCmdDef * cmd, const char *name)
     vshCmdOptDef *opt;
 
     for (opt = cmd->opts; opt && opt->name; opt++)
-        if (strcmp(opt->name, name) == 0)
+        if (STREQ(opt->name, name))
             return opt;
     return NULL;
 }
@@ -5259,7 +5247,7 @@ vshCmddefSearch(const char *cmdname)
     vshCmdDef *c;
 
     for (c = commands; c->name; c++)
-        if (strcmp(c->name, cmdname) == 0)
+        if (STREQ(c->name, cmdname))
             return c;
     return NULL;
 }
@@ -5358,7 +5346,7 @@ vshCommandOpt(vshCmd * cmd, const char *name)
     vshCmdOpt *opt = cmd->opts;
 
     while (opt) {
-        if (opt->def && strcmp(opt->def->name, name) == 0)
+        if (opt->def && STREQ(opt->def->name, name))
             return opt;
         opt = opt->next;
     }
@@ -5485,7 +5473,7 @@ vshCommandOptDomainBy(vshControl * ctl, vshCmd * cmd, const char *optname,
 
 static virNetworkPtr
 vshCommandOptNetworkBy(vshControl * ctl, vshCmd * cmd, const char *optname,
-		       char **name, int flag)
+                       char **name, int flag)
 {
     virNetworkPtr network = NULL;
     char *n;
@@ -5504,7 +5492,7 @@ vshCommandOptNetworkBy(vshControl * ctl, vshCmd * cmd, const char *optname,
     /* try it by UUID */
     if (network==NULL && (flag & VSH_BYUUID) && strlen(n)==VIR_UUID_STRING_BUFLEN-1) {
         vshDebug(ctl, 5, "%s: <%s> trying as network UUID\n",
-		 cmd->def->name, optname);
+                 cmd->def->name, optname);
         network = virNetworkLookupByUUIDString(ctl->conn, n);
     }
     /* try it by NAME */
@@ -5541,7 +5529,7 @@ vshCommandOptPoolBy(vshControl * ctl, vshCmd * cmd, const char *optname,
     /* try it by UUID */
     if (pool==NULL && (flag & VSH_BYUUID) && strlen(n)==VIR_UUID_STRING_BUFLEN-1) {
         vshDebug(ctl, 5, "%s: <%s> trying as pool UUID\n",
-		 cmd->def->name, optname);
+                 cmd->def->name, optname);
         pool = virStoragePoolLookupByUUIDString(ctl->conn, n);
     }
     /* try it by NAME */
@@ -5632,7 +5620,7 @@ vshCommandRun(vshControl * ctl, vshCmd * cmd)
         if (ctl->timing)
             GETTIMEOFDAY(&after);
 
-        if (strcmp(cmd->def->name, "quit") == 0)        /* hack ... */
+        if (STREQ(cmd->def->name, "quit"))        /* hack ... */
             return ret;
 
         if (ctl->timing)
@@ -5688,7 +5676,7 @@ vshCommandGetToken(vshControl * ctl, char *str, char **end, char **res)
 
         if (tk == VSH_TK_NONE) {
             if (*p == '-' && *(p + 1) == '-' && *(p + 2)
-                && isalnum((unsigned char) *(p + 2))) {
+                && c_isalnum(*(p + 2))) {
                 tk = VSH_TK_OPTION;
                 p += 2;
             } else {
@@ -6043,10 +6031,6 @@ vshInit(vshControl * ctl)
     if (ctl->conn)
         return FALSE;
 
-#ifndef __MINGW32__
-    ctl->uid = getuid();
-#endif
-
     vshOpenLogFile(ctl);
 
     /* set up the library error handler */
@@ -6232,7 +6216,7 @@ vshReadlineCommandGenerator(const char *text, int state)
      */
     while ((name = commands[list_index].name)) {
         list_index++;
-        if (strncmp(name, text, len) == 0)
+        if (STREQLEN(name, text, len))
             return vshStrdup(NULL, name);
     }
 
@@ -6281,7 +6265,7 @@ vshReadlineOptionsGenerator(const char *text, int state)
             continue;
 
         if (len > 2) {
-            if (strncmp(name, text + 2, len - 2))
+            if (STRNEQLEN(name, text + 2, len - 2))
                 continue;
         }
         res = vshMalloc(NULL, strlen(name) + 3);
@@ -6454,7 +6438,7 @@ vshParseArgv(vshControl * ctl, int argc, char **argv)
                         if (sz == 2 && *(last + 1) == o->val)
                             /* valid virsh short option */
                             valid = TRUE;
-                        else if (sz > 2 && strcmp(o->name, last + 2) == 0)
+                        else if (sz > 2 && STREQ(o->name, last + 2))
                             /* valid virsh long option */
                             valid = TRUE;
                     }
@@ -6615,17 +6599,3 @@ main(int argc, char **argv)
     vshDeinit(ctl);
     exit(ret ? EXIT_SUCCESS : EXIT_FAILURE);
 }
-
-/*
- * vim: set tabstop=4:
- * vim: set shiftwidth=4:
- * vim: set expandtab:
- */
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */

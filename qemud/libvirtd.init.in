@@ -8,17 +8,17 @@
 # Should-Start: xend
 # Default-Start: 3 4 5
 # Short-Description: daemon for libvirt virtualization API
-# Description: This is a daemon for managing QEMU guest instances
+# Description: This is a daemon for managing guest instances
 #              and libvirt virtual networks
 #              See http://libvirt.org
 ### END INIT INFO
 
 # the following is chkconfig init header
 #
-# libvirtd:   QEMU and virtual network management daemon
+# libvirtd:   guest and virtual network management daemon
 #
 # chkconfig: 345 97 03
-# description:  This is a daemon for managing QEMU guest instances
+# description:  This is a daemon for managing guest instances
 #               and libvirt virtual networks
 #               See http://libvirt.org
 #
@@ -51,6 +51,8 @@ RETVAL=0
 
 start() {
     echo -n $"Starting $SERVICE daemon: "
+    mkdir -p @localstatedir@/cache/libvirt
+    rm -rf @localstatedir@/cache/libvirt/*
     KRB5_KTNAME=$KRB5_KTNAME daemon --check $SERVICE $PROCESS --daemon $LIBVIRTD_CONFIG_ARGS $LIBVIRTD_ARGS
     RETVAL=$?
     echo
@@ -66,6 +68,7 @@ stop() {
     if [ $RETVAL -eq 0 ]; then
         rm -f @localstatedir@/lock/subsys/$SERVICE
         rm -f @localstatedir@/run/$SERVICE.pid
+	rm -rf @localstatedir@/cache/libvirt/*
     fi
 }
 

@@ -15,13 +15,17 @@ import types
 
 # The root of all libvirt errors.
 class libvirtError(Exception):
-    def __init__(self, msg, conn=None, dom=None, net=None):
+    def __init__(self, msg, conn=None, dom=None, net=None, pool=None, vol=None):
         Exception.__init__(self, msg)
 
         if dom is not None:
             conn = dom._conn
         elif net is not None:
             conn = net._conn
+        elif pool is not None:
+            conn = pool._conn
+        elif vol is not None:
+            conn = vol._conn
 
         if conn is None:
             self.err = virGetLastError()
@@ -193,13 +197,6 @@ class virDomain:
         if ret is None: raise libvirtError ('virDomainGetOSType() failed', dom=self)
         return ret
 
-    def UUIDString(self, buf):
-        """Get the UUID for a domain as string. For more information
-           about UUID see RFC4122. """
-        ret = libvirtmod.virDomainGetUUIDString(self._o, buf)
-        if ret == -1: raise libvirtError ('virDomainGetUUIDString() failed', dom=self)
-        return ret
-
     def XMLDesc(self, flags):
         """Provide an XML description of the domain. The description
           may be reused later to relaunch the domain with
@@ -248,7 +245,6 @@ class virDomain:
            an error. This function may requires privileged access """
         ret = libvirtmod.virDomainDestroy(self._o)
         if ret == -1: raise libvirtError ('virDomainDestroy() failed', dom=self)
-        self._o = None
         return ret
 
     def detachDevice(self, xml):
@@ -418,6 +414,12 @@ class virDomain:
         if ret is None: raise libvirtError ('virDomainGetUUID() failed', dom=self)
         return ret
 
+    def UUIDString(self):
+        """Fetch globally unique ID of the domain as a string. """
+        ret = libvirtmod.virDomainGetUUIDString(self._o)
+        if ret is None: raise libvirtError ('virDomainGetUUIDString() failed', dom=self)
+        return ret
+
     def autostart(self):
         """Extract the autostart flag for a domain """
         ret = libvirtmod.virDomainGetAutostart(self._o)
@@ -492,13 +494,6 @@ class virNetwork:
     # virNetwork functions from module libvirt
     #
 
-    def UUIDString(self, buf):
-        """Get the UUID for a network as string. For more information
-           about UUID see RFC4122. """
-        ret = libvirtmod.virNetworkGetUUIDString(self._o, buf)
-        if ret == -1: raise libvirtError ('virNetworkGetUUIDString() failed', net=self)
-        return ret
-
     def XMLDesc(self, flags):
         """Provide an XML description of the network. The description
           may be reused later to relaunch the network with
@@ -542,7 +537,6 @@ class virNetwork:
            access """
         ret = libvirtmod.virNetworkDestroy(self._o)
         if ret == -1: raise libvirtError ('virNetworkDestroy() failed', net=self)
-        self._o = None
         return ret
 
     def name(self):
@@ -571,6 +565,12 @@ class virNetwork:
         """Extract the UUID unique Identifier of a network. """
         ret = libvirtmod.virNetworkGetUUID(self._o)
         if ret is None: raise libvirtError ('virNetworkGetUUID() failed', net=self)
+        return ret
+
+    def UUIDString(self):
+        """Fetch globally unique ID of the network as a string. """
+        ret = libvirtmod.virNetworkGetUUIDString(self._o)
+        if ret is None: raise libvirtError ('virNetworkGetUUIDString() failed', net=self)
         return ret
 
     def autostart(self):
@@ -602,31 +602,12 @@ class virStoragePool:
     # virStoragePool functions from module libvirt
     #
 
-    def UUID(self, uuid):
-        """Fetch the globally unique ID of the storage pool """
-        ret = libvirtmod.virStoragePoolGetUUID(self._o, uuid)
-        if ret == -1: raise libvirtError ('virStoragePoolGetUUID() failed', pool=self)
-        return ret
-
-    def UUIDString(self, buf):
-        """Fetch the globally unique ID of the storage pool as a string """
-        ret = libvirtmod.virStoragePoolGetUUIDString(self._o, buf)
-        if ret == -1: raise libvirtError ('virStoragePoolGetUUIDString() failed', pool=self)
-        return ret
-
     def XMLDesc(self, flags):
         """Fetch an XML document describing all aspects of the storage
           pool. This is suitable for later feeding back into the
            virStoragePoolCreateXML method. """
         ret = libvirtmod.virStoragePoolGetXMLDesc(self._o, flags)
         if ret is None: raise libvirtError ('virStoragePoolGetXMLDesc() failed', pool=self)
-        return ret
-
-    def autostart(self, autostart):
-        """Fetches the value of the autostart flag, which determines
-           whether the pool is automatically started at boot time """
-        ret = libvirtmod.virStoragePoolGetAutostart(self._o, autostart)
-        if ret == -1: raise libvirtError ('virStoragePoolGetAutostart() failed', pool=self)
         return ret
 
     def build(self, flags):
@@ -676,21 +657,6 @@ class virStoragePool:
            the associated virStoragePoolPtr object. """
         ret = libvirtmod.virStoragePoolDestroy(self._o)
         if ret == -1: raise libvirtError ('virStoragePoolDestroy() failed', pool=self)
-        self._o = None
-        return ret
-
-    def info(self, info):
-        """Get volatile information about the storage pool such as
-           free space / usage summary """
-        ret = libvirtmod.virStoragePoolGetInfo(self._o, info)
-        if ret == -1: raise libvirtError ('virStoragePoolGetInfo() failed', pool=self)
-        return ret
-
-    def listVolumes(self, names, maxnames):
-        """Fetch list of storage volume names, limiting to at most
-           maxnames. """
-        ret = libvirtmod.virStoragePoolListVolumes(self._o, names, maxnames)
-        if ret == -1: raise libvirtError ('virStoragePoolListVolumes() failed', pool=self)
         return ret
 
     def name(self):
@@ -730,6 +696,43 @@ class virStoragePool:
         """Undefine an inactive storage pool """
         ret = libvirtmod.virStoragePoolUndefine(self._o)
         if ret == -1: raise libvirtError ('virStoragePoolUndefine() failed', pool=self)
+        return ret
+
+    #
+    # virStoragePool functions from module python
+    #
+
+    def UUID(self):
+        """Extract the UUID unique Identifier of a storage pool. """
+        ret = libvirtmod.virStoragePoolGetUUID(self._o)
+        if ret is None: raise libvirtError ('virStoragePoolGetUUID() failed', pool=self)
+        return ret
+
+    def UUIDString(self):
+        """Fetch globally unique ID of the storage pool as a string. """
+        ret = libvirtmod.virStoragePoolGetUUIDString(self._o)
+        if ret is None: raise libvirtError ('virStoragePoolGetUUIDString() failed', pool=self)
+        return ret
+
+    def autostart(self):
+        """Extract the autostart flag for a storage pool """
+        ret = libvirtmod.virStoragePoolGetAutostart(self._o)
+        if ret == -1: raise libvirtError ('virStoragePoolGetAutostart() failed', pool=self)
+        return ret
+
+    def info(self):
+        """Extract information about a storage pool. Note that if the
+          connection used to get the domain is limited only a partial
+           set of the information can be extracted. """
+        ret = libvirtmod.virStoragePoolGetInfo(self._o)
+        if ret is None: raise libvirtError ('virStoragePoolGetInfo() failed', pool=self)
+        return ret
+
+    def listVolumes(self):
+        """list the storage volumes, stores the pointers to the names
+           in @names """
+        ret = libvirtmod.virStoragePoolListVolumes(self._o)
+        if ret is None: raise libvirtError ('virStoragePoolListVolumes() failed', pool=self)
         return ret
 
 class virStorageVol:
@@ -772,13 +775,6 @@ class virStorageVol:
         if ret == -1: raise libvirtError ('virStorageVolDelete() failed', vol=self)
         return ret
 
-    def info(self, info):
-        """Fetches volatile information about the storage volume such
-           as its current allocation """
-        ret = libvirtmod.virStorageVolGetInfo(self._o, info)
-        if ret == -1: raise libvirtError ('virStorageVolGetInfo() failed', vol=self)
-        return ret
-
     def key(self):
         """Fetch the storage volume key. This is globally unique, so
           the same volume will have the same key no matter what host
@@ -809,6 +805,18 @@ class virStorageVol:
         if ret is None:raise libvirtError('virStoragePoolLookupByVolume() failed', vol=self)
         __tmp = virStoragePool(self, _obj=ret)
         return __tmp
+
+    #
+    # virStorageVol functions from module python
+    #
+
+    def info(self):
+        """Extract information about a storage pool. Note that if the
+          connection used to get the domain is limited only a partial
+           set of the information can be extracted. """
+        ret = libvirtmod.virStorageVolGetInfo(self._o)
+        if ret is None: raise libvirtError ('virStorageVolGetInfo() failed', vol=self)
+        return ret
 
 class virConnect:
     def __init__(self, _obj=None):
@@ -904,22 +912,6 @@ class virConnect:
            hypervisor later. """
         ret = libvirtmod.virConnectGetURI(self._o)
         if ret is None: raise libvirtError ('virConnectGetURI() failed', conn=self)
-        return ret
-
-    def listDefinedStoragePools(self, names, maxnames):
-        """Provides the list of names of inactive storage pools upto
-          maxnames. If there are more than maxnames, the remaining
-           names will be silently ignored. """
-        ret = libvirtmod.virConnectListDefinedStoragePools(self._o, names, maxnames)
-        if ret == -1: raise libvirtError ('virConnectListDefinedStoragePools() failed', conn=self)
-        return ret
-
-    def listStoragePools(self, names, maxnames):
-        """Provides the list of names of active storage pools upto
-          maxnames. If there are more than maxnames, the remaining
-           names will be silently ignored. """
-        ret = libvirtmod.virConnectListStoragePools(self._o, names, maxnames)
-        if ret == -1: raise libvirtError ('virConnectListStoragePools() failed', conn=self)
         return ret
 
     def lookupByID(self, id):
@@ -1124,6 +1116,13 @@ class virConnect:
         if ret is None: raise libvirtError ('virConnectListDefinedNetworks() failed', conn=self)
         return ret
 
+    def listDefinedStoragePools(self):
+        """list the defined storage pool, stores the pointers to the
+           names in @names """
+        ret = libvirtmod.virConnectListDefinedStoragePools(self._o)
+        if ret is None: raise libvirtError ('virConnectListDefinedStoragePools() failed', conn=self)
+        return ret
+
     def listDomainsID(self):
         """Returns the list of the ID of the domains on the hypervisor """
         ret = libvirtmod.virConnectListDomainsID(self._o)
@@ -1135,6 +1134,13 @@ class virConnect:
            @names """
         ret = libvirtmod.virConnectListNetworks(self._o)
         if ret is None: raise libvirtError ('virConnectListNetworks() failed', conn=self)
+        return ret
+
+    def listStoragePools(self):
+        """list the storage pools, stores the pointers to the names in
+           @names """
+        ret = libvirtmod.virConnectListStoragePools(self._o)
+        if ret is None: raise libvirtError ('virConnectListStoragePools() failed', conn=self)
         return ret
 
     def lookupByUUID(self, uuid):

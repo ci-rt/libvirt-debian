@@ -3,12 +3,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "libvirt/libvirt.h"
-#include "libvirt/virterror.h"
 #include "internal.h"
 
 static void errorHandler(void *userData ATTRIBUTE_UNUSED,
-			 virErrorPtr error ATTRIBUTE_UNUSED) {
+                         virErrorPtr error ATTRIBUTE_UNUSED) {
 }
 
 int main(void) {
@@ -22,31 +20,31 @@ int main(void) {
     conn = virConnectOpen(NULL);
     if (conn == NULL) {
         ro = 1;
-	conn = virConnectOpenReadOnly(NULL);
+        conn = virConnectOpenReadOnly(NULL);
     }
     if (conn == NULL) {
         fprintf(stderr, "First virConnectOpen() failed\n");
-	exit(1);
+        exit(1);
     }
     dom = virDomainLookupByID(conn, id);
     if (dom == NULL) {
         fprintf(stderr, "First lookup for domain %d failed\n", id);
-	exit(1);
+        exit(1);
     }
     virDomainFree(dom);
     virConnectClose(conn);
     if (ro == 1)
-	conn = virConnectOpenReadOnly(NULL);
+        conn = virConnectOpenReadOnly(NULL);
     else
-	conn = virConnectOpen(NULL);
+        conn = virConnectOpen(NULL);
     if (conn == NULL) {
         fprintf(stderr, "Second virConnectOpen() failed\n");
-	exit(1);
+        exit(1);
     }
     dom = virDomainLookupByID(conn, id);
     if (dom == NULL) {
         fprintf(stderr, "Second lookup for domain %d failed\n", id);
-	exit(1);
+        exit(1);
     }
     virDomainFree(dom);
     virConnectClose(conn);

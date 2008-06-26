@@ -32,6 +32,7 @@ extern "C" {
 
 int remoteRegister (void);
 
+#define LIBVIRTD_LISTEN_ADDR NULL
 #define LIBVIRTD_TLS_PORT "16514"
 #define LIBVIRTD_TCP_PORT "16509"
 #define LIBVIRTD_PRIV_UNIX_SOCKET LOCAL_STATE_DIR "/run/libvirt/libvirt-sock"
@@ -51,17 +52,3 @@ int remoteRegister (void);
 }
 #endif
 #endif /* __VIR_REMOTE_INTERNAL_H__ */
-
-/*
- * vim: set tabstop=4:
- * vim: set shiftwidth=4:
- * vim: set expandtab:
- */
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */

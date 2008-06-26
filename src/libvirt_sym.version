@@ -73,6 +73,8 @@
 	virDomainSetSchedulerParameters;
 	virDomainBlockStats;
 	virDomainInterfaceStats;
+	virDomainBlockPeek;
+	virDomainMemoryPeek;
 	virDomainAttachDevice;
 	virDomainDetachDevice;
 
@@ -170,6 +172,7 @@
 	__virStateCleanup;
 	__virStateReload;
 	__virStateActive;
+	__virStateSigDispatcher;
 
 	__virDrvSupportsFeature;
 
@@ -184,8 +187,15 @@
         __virBufferVSprintf;
         __virBufferAdd;
         __virBufferAddChar;
+        __virBufferContentAndReset;
+        __virBufferError;
 
 	__virMacAddrCompare;
+
+        __virAlloc;
+        __virAllocN;
+        __virReallocN;
+        __virFree;
 
     local: *;
 };

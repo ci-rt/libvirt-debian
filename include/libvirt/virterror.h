@@ -63,6 +63,10 @@ typedef enum {
  * virError:
  *
  * A libvirt Error instance.
+ *
+ * The conn, dom and net fields should be used with extreme care.
+ * Reference counts are not incremented so the underlying objects
+ * may be deleted without notice after the error has been delivered.
  */
 
 typedef struct _virError virError;
@@ -72,14 +76,15 @@ struct _virError {
     int		domain;	/* What part of the library raised this error */
     char       *message;/* human-readable informative error message */
     virErrorLevel level;/* how consequent is the error */
-    virConnectPtr conn;	/* the connection if available */
-    virDomainPtr dom;	/* the domain if available */
+    virConnectPtr conn VIR_DEPRECATED; /* connection if available,
+                                          see note above */
+    virDomainPtr dom VIR_DEPRECATED; /* domain if available, see note above */
     char       *str1;	/* extra string information */
     char       *str2;	/* extra string information */
     char       *str3;	/* extra string information */
     int		int1;	/* extra number information */
     int		int2;	/* extra number information */
-    virNetworkPtr net;	/* the network if available */
+    virNetworkPtr net VIR_DEPRECATED; /* network if available, see note above */
 };
 
 /**
@@ -166,12 +171,12 @@ int			virCopyLastError	(virErrorPtr to);
 
 void			virDefaultErrorFunc	(virErrorPtr err);
 void			virSetErrorFunc		(void *userData,
-						 virErrorFunc handler);
+                                                 virErrorFunc handler);
 void			virConnSetErrorFunc	(virConnectPtr conn,
-						 void *userData,
-						 virErrorFunc handler);
+                                                 void *userData,
+                                                 virErrorFunc handler);
 int			virConnCopyLastError	(virConnectPtr conn,
-						 virErrorPtr to);
+                                                 virErrorPtr to);
 #ifdef __cplusplus
 }
 #endif

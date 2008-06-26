@@ -35,6 +35,12 @@
 #include <parted/parted.h>
 #include <stdio.h>
 
+/* Make the comparisons below fail if your parted headers
+   are so old that they lack the definition.  */
+#ifndef PED_PARTITION_PROTECTED
+# define PED_PARTITION_PROTECTED 0
+#endif
+
 int main(int argc, char **argv)
 {
     PedDevice *dev;
@@ -112,16 +118,3 @@ int main(int argc, char **argv)
 
     return 0;
 }
-/*
- * vim: set tabstop=4:
- * vim: set shiftwidth=4:
- * vim: set expandtab:
- */
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */

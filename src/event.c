@@ -1,5 +1,5 @@
 /*
- * event.h: event loop for monitoring file handles
+ * event.c: event loop for monitoring file handles
  *
  * Copyright (C) 2007 Daniel P. Berrange
  * Copyright (C) 2007 Red Hat, Inc.
@@ -83,13 +83,3 @@ void __virEventRegisterImpl(virEventAddHandleFunc addHandle,
     updateTimeoutImpl = updateTimeout;
     removeTimeoutImpl = removeTimeout;
 }
-
-
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */

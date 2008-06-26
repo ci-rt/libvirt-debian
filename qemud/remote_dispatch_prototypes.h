@@ -9,6 +9,7 @@ static int remoteDispatchAuthSaslStart (struct qemud_server *server, struct qemu
 static int remoteDispatchAuthSaslStep (struct qemud_server *server, struct qemud_client *client, remote_message_header *req, remote_auth_sasl_step_args *args, remote_auth_sasl_step_ret *ret);
 static int remoteDispatchClose (struct qemud_server *server, struct qemud_client *client, remote_message_header *req, void *args, void *ret);
 static int remoteDispatchDomainAttachDevice (struct qemud_server *server, struct qemud_client *client, remote_message_header *req, remote_domain_attach_device_args *args, void *ret);
+static int remoteDispatchDomainBlockPeek (struct qemud_server *server, struct qemud_client *client, remote_message_header *req, remote_domain_block_peek_args *args, remote_domain_block_peek_ret *ret);
 static int remoteDispatchDomainBlockStats (struct qemud_server *server, struct qemud_client *client, remote_message_header *req, remote_domain_block_stats_args *args, remote_domain_block_stats_ret *ret);
 static int remoteDispatchDomainCoreDump (struct qemud_server *server, struct qemud_client *client, remote_message_header *req, remote_domain_core_dump_args *args, void *ret);
 static int remoteDispatchDomainCreate (struct qemud_server *server, struct qemud_client *client, remote_message_header *req, remote_domain_create_args *args, void *ret);
@@ -29,6 +30,7 @@ static int remoteDispatchDomainInterfaceStats (struct qemud_server *server, stru
 static int remoteDispatchDomainLookupById (struct qemud_server *server, struct qemud_client *client, remote_message_header *req, remote_domain_lookup_by_id_args *args, remote_domain_lookup_by_id_ret *ret);
 static int remoteDispatchDomainLookupByName (struct qemud_server *server, struct qemud_client *client, remote_message_header *req, remote_domain_lookup_by_name_args *args, remote_domain_lookup_by_name_ret *ret);
 static int remoteDispatchDomainLookupByUuid (struct qemud_server *server, struct qemud_client *client, remote_message_header *req, remote_domain_lookup_by_uuid_args *args, remote_domain_lookup_by_uuid_ret *ret);
+static int remoteDispatchDomainMemoryPeek (struct qemud_server *server, struct qemud_client *client, remote_message_header *req, remote_domain_memory_peek_args *args, remote_domain_memory_peek_ret *ret);
 static int remoteDispatchDomainMigrateFinish (struct qemud_server *server, struct qemud_client *client, remote_message_header *req, remote_domain_migrate_finish_args *args, remote_domain_migrate_finish_ret *ret);
 static int remoteDispatchDomainMigratePerform (struct qemud_server *server, struct qemud_client *client, remote_message_header *req, remote_domain_migrate_perform_args *args, void *ret);
 static int remoteDispatchDomainMigratePrepare (struct qemud_server *server, struct qemud_client *client, remote_message_header *req, remote_domain_migrate_prepare_args *args, remote_domain_migrate_prepare_ret *ret);
@@ -67,6 +69,8 @@ static int remoteDispatchNetworkLookupByName (struct qemud_server *server, struc
 static int remoteDispatchNetworkLookupByUuid (struct qemud_server *server, struct qemud_client *client, remote_message_header *req, remote_network_lookup_by_uuid_args *args, remote_network_lookup_by_uuid_ret *ret);
 static int remoteDispatchNetworkSetAutostart (struct qemud_server *server, struct qemud_client *client, remote_message_header *req, remote_network_set_autostart_args *args, void *ret);
 static int remoteDispatchNetworkUndefine (struct qemud_server *server, struct qemud_client *client, remote_message_header *req, remote_network_undefine_args *args, void *ret);
+static int remoteDispatchNodeGetCellsFreeMemory (struct qemud_server *server, struct qemud_client *client, remote_message_header *req, remote_node_get_cells_free_memory_args *args, remote_node_get_cells_free_memory_ret *ret);
+static int remoteDispatchNodeGetFreeMemory (struct qemud_server *server, struct qemud_client *client, remote_message_header *req, void *args, remote_node_get_free_memory_ret *ret);
 static int remoteDispatchNodeGetInfo (struct qemud_server *server, struct qemud_client *client, remote_message_header *req, void *args, remote_node_get_info_ret *ret);
 static int remoteDispatchNumOfDefinedDomains (struct qemud_server *server, struct qemud_client *client, remote_message_header *req, void *args, remote_num_of_defined_domains_ret *ret);
 static int remoteDispatchNumOfDefinedNetworks (struct qemud_server *server, struct qemud_client *client, remote_message_header *req, void *args, remote_num_of_defined_networks_ret *ret);

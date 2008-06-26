@@ -40,6 +40,7 @@
 #include "xm_internal.h"
 #include "xml.h"
 #include "util.h"
+#include "memory.h"
 
 #define DEBUG(fmt,...) VIR_DEBUG(__FILE__, fmt,__VA_ARGS__)
 #define DEBUG0(msg) VIR_DEBUG(__FILE__, "%s", msg)
@@ -172,39 +173,37 @@ xenDomainUsedCpus(virDomainPtr dom)
     if (xenUnifiedNodeGetInfo(dom->conn, &nodeinfo) < 0)
         return(NULL);
 
-    cpulist = calloc(nb_cpu, sizeof(*cpulist));
-    if (cpulist == NULL)
+    if (VIR_ALLOC_N(cpulist, nb_cpu) < 0)
         goto done;
-    cpuinfo = malloc(sizeof(*cpuinfo) * nb_vcpu);
-    if (cpuinfo == NULL)
+    if (VIR_ALLOC_N(cpuinfo, nb_vcpu) < 0)
         goto done;
     cpumaplen = VIR_CPU_MAPLEN(VIR_NODEINFO_MAXCPUS(nodeinfo));
-    cpumap = (unsigned char *) calloc(nb_vcpu, cpumaplen);
-    if (cpumap == NULL)
+    if (xalloc_oversized(nb_vcpu, cpumaplen) ||
+        VIR_ALLOC_N(cpumap, nb_vcpu * cpumaplen) < 0)
         goto done;
 
     if ((ncpus = xenUnifiedDomainGetVcpus(dom, cpuinfo, nb_vcpu,
                                           cpumap, cpumaplen)) >= 0) {
-	for (n = 0 ; n < ncpus ; n++) {
-	    for (m = 0 ; m < nb_cpu; m++) {
-	        if ((cpulist[m] == 0) &&
-	 	    (VIR_CPU_USABLE(cpumap, cpumaplen, n, m))) {
-		    cpulist[m] = 1;
-		    nb++;
-		    /* if all CPU are used just return NULL */
-		    if (nb == nb_cpu)
-		        goto done;
+        for (n = 0 ; n < ncpus ; n++) {
+            for (m = 0 ; m < nb_cpu; m++) {
+                if ((cpulist[m] == 0) &&
+                    (VIR_CPU_USABLE(cpumap, cpumaplen, n, m))) {
+                    cpulist[m] = 1;
+                    nb++;
+                    /* if all CPU are used just return NULL */
+                    if (nb == nb_cpu)
+                        goto done;
 
-		}
-	    }
-	}
+                }
+            }
+        }
         res = virSaveCpuSet(dom->conn, cpulist, nb_cpu);
     }
 
 done:
-    free(cpulist);
-    free(cpumap);
-    free(cpuinfo);
+    VIR_FREE(cpulist);
+    VIR_FREE(cpumap);
+    VIR_FREE(cpuinfo);
     return(res);
 }
 
@@ -230,7 +229,7 @@ xenUnifiedProbe (void)
     FILE *fh;
 
     if (fh = fopen("/dev/xen/domcaps", "r")) {
-	fclose(fh);
+        fclose(fh);
         return("xen:///");
     }
 #endif
@@ -245,8 +244,8 @@ xenUnifiedOpen (virConnectPtr conn, xmlURIPtr uri, virConnectAuthPtr auth, int f
 
     /* Refuse any scheme which isn't "xen://" or "http://". */
     if (uri->scheme &&
-        strcasecmp(uri->scheme, "xen") != 0 &&
-        strcasecmp(uri->scheme, "http") != 0)
+        STRCASENEQ(uri->scheme, "xen") &&
+        STRCASENEQ(uri->scheme, "http"))
         return VIR_DRV_OPEN_DECLINED;
 
     /* xmlParseURI will parse a naked string like "foo" as a URI with
@@ -258,12 +257,11 @@ xenUnifiedOpen (virConnectPtr conn, xmlURIPtr uri, virConnectAuthPtr auth, int f
         return VIR_DRV_OPEN_DECLINED;
 
     /* Refuse any xen:// URI with a server specified - allow remote to do it */
-    if (uri->scheme && strcasecmp(uri->scheme, "xen") == 0 && uri->server)
+    if (uri->scheme && STRCASEEQ(uri->scheme, "xen") && uri->server)
         return VIR_DRV_OPEN_DECLINED;
 
     /* Allocate per-connection private data. */
-    priv = calloc (1, sizeof *priv);
-    if (!priv) {
+    if (VIR_ALLOC(priv) < 0) {
         xenUnifiedError (NULL, VIR_ERR_NO_MEMORY, "allocating private data");
         return VIR_DRV_OPEN_ERROR;
     }
@@ -342,7 +340,7 @@ xenUnifiedOpen (virConnectPtr conn, xmlURIPtr uri, virConnectAuthPtr auth, int f
     DEBUG0("Failed to activate a mandatory sub-driver");
     for (i = 0 ; i < XEN_UNIFIED_NR_DRIVERS ; i++)
         if (priv->opened[i]) drivers[i]->close(conn);
-    free(priv);
+    VIR_FREE(priv);
     return VIR_DRV_OPEN_ERROR;
 }
 
@@ -961,7 +959,7 @@ xenUnifiedDomainDumpXML (virDomainPtr dom, int flags)
             char *cpus, *res;
             cpus = xenDomainUsedCpus(dom);
             res = xenDaemonDomainDumpXML(dom, flags, cpus);
-	        free(cpus);
+            VIR_FREE(cpus);
             return(res);
         }
         if (priv->opened[XEN_UNIFIED_PROXY_OFFSET])
@@ -1128,6 +1126,34 @@ xenUnifiedDomainDetachDevice (virDomainPtr dom, const char *xml)
     return -1;
 }
 
+static int
+xenUnifiedDomainGetAutostart (virDomainPtr dom, int *autostart)
+{
+    GET_PRIVATE(dom->conn);
+    int i;
+
+    for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
+        if (priv->opened[i] && drivers[i]->domainGetAutostart &&
+            drivers[i]->domainGetAutostart (dom, autostart) == 0)
+            return 0;
+
+    return -1;
+}
+
+static int
+xenUnifiedDomainSetAutostart (virDomainPtr dom, int autostart)
+{
+    GET_PRIVATE(dom->conn);
+    int i;
+
+    for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
+        if (priv->opened[i] && drivers[i]->domainSetAutostart &&
+            drivers[i]->domainSetAutostart (dom, autostart) == 0)
+            return 0;
+
+    return -1;
+}
+
 static char *
 xenUnifiedDomainGetSchedulerType (virDomainPtr dom, int *nparams)
 {
@@ -1138,8 +1164,8 @@ xenUnifiedDomainGetSchedulerType (virDomainPtr dom, int *nparams)
     for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; i++) {
         if (priv->opened[i] && drivers[i]->domainGetSchedulerType) {
             schedulertype = drivers[i]->domainGetSchedulerType (dom, nparams);
-	    if (schedulertype != NULL)
-		return(schedulertype);
+            if (schedulertype != NULL)
+                return(schedulertype);
         }
     }
     return(NULL);
@@ -1155,9 +1181,9 @@ xenUnifiedDomainGetSchedulerParameters (virDomainPtr dom,
     for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i) {
         if (priv->opened[i] && drivers[i]->domainGetSchedulerParameters) {
            ret = drivers[i]->domainGetSchedulerParameters(dom, params, nparams);
-	   if (ret == 0)
-	       return(0);
-	}
+           if (ret == 0)
+               return(0);
+        }
     }
     return(-1);
 }
@@ -1172,9 +1198,9 @@ xenUnifiedDomainSetSchedulerParameters (virDomainPtr dom,
     for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i) {
         if (priv->opened[i] && drivers[i]->domainSetSchedulerParameters) {
            ret = drivers[i]->domainSetSchedulerParameters(dom, params, nparams);
-	   if (ret == 0)
-	       return 0;
-	}
+           if (ret == 0)
+               return 0;
+        }
     }
 
     return(-1);
@@ -1207,6 +1233,29 @@ xenUnifiedDomainInterfaceStats (virDomainPtr dom, const char *path,
 }
 
 static int
+xenUnifiedDomainBlockPeek (virDomainPtr dom, const char *path,
+                           unsigned long long offset, size_t size,
+                           void *buffer, unsigned int flags ATTRIBUTE_UNUSED)
+{
+    int r;
+    GET_PRIVATE (dom->conn);
+
+    if (priv->opened[XEN_UNIFIED_XEND_OFFSET]) {
+        r = xenDaemonDomainBlockPeek (dom, path, offset, size, buffer);
+        if (r != -2) return r;
+        /* r == -2 means declined, so fall through to XM driver ... */
+    }
+
+    if (priv->opened[XEN_UNIFIED_XM_OFFSET]) {
+        if (xenXMDomainBlockPeek (dom, path, offset, size, buffer) == 0)
+            return 0;
+    }
+
+    xenUnifiedError (dom->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return -1;
+}
+
+static int
 xenUnifiedNodeGetCellsFreeMemory (virConnectPtr conn, unsigned long long *freeMems,
                                   int startCell, int maxCells)
 {
@@ -1230,9 +1279,9 @@ xenUnifiedNodeGetFreeMemory (virConnectPtr conn)
     if (priv->opened[XEN_UNIFIED_HYPERVISOR_OFFSET]) {
         ret = xenHypervisorNodeGetCellsFreeMemory (conn, &freeMem,
                                                     -1, 1);
-	if (ret != 1)
-	    return (0);
-	return(freeMem);
+        if (ret != 1)
+            return (0);
+        return(freeMem);
     }
 
     xenUnifiedError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
@@ -1291,6 +1340,8 @@ static virDriver xenUnifiedDriver = {
     .domainUndefine 		= xenUnifiedDomainUndefine,
     .domainAttachDevice 		= xenUnifiedDomainAttachDevice,
     .domainDetachDevice 		= xenUnifiedDomainDetachDevice,
+    .domainGetAutostart             = xenUnifiedDomainGetAutostart,
+    .domainSetAutostart             = xenUnifiedDomainSetAutostart,
     .domainGetSchedulerType	= xenUnifiedDomainGetSchedulerType,
     .domainGetSchedulerParameters	= xenUnifiedDomainGetSchedulerParameters,
     .domainSetSchedulerParameters	= xenUnifiedDomainSetSchedulerParameters,
@@ -1299,6 +1350,7 @@ static virDriver xenUnifiedDriver = {
     .domainMigrateFinish		= xenUnifiedDomainMigrateFinish,
     .domainBlockStats	= xenUnifiedDomainBlockStats,
     .domainInterfaceStats = xenUnifiedDomainInterfaceStats,
+    .domainBlockPeek	= xenUnifiedDomainBlockPeek,
     .nodeGetCellsFreeMemory = xenUnifiedNodeGetCellsFreeMemory,
     .getFreeMemory = xenUnifiedNodeGetFreeMemory,
 };
@@ -1324,17 +1376,3 @@ xenUnifiedRegister (void)
 }
 
 #endif /* WITH_XEN */
-
-/*
- * vim: set tabstop=4:
- * vim: set shiftwidth=4:
- * vim: set expandtab:
- */
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */

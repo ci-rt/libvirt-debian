@@ -42,7 +42,7 @@
 #include "util.h"
 #include "uuid.h"
 #include "xml.h"
-
+#include "memory.h"
 #include "lxc_conf.h"
 
 /* debug macros */
@@ -183,10 +183,10 @@ static int lxcParseDomainUUID(virConnectPtr conn, unsigned char *uuid,
         if (virUUIDParse(res, uuid) < 0) {
             lxcError(conn, NULL, VIR_ERR_INTERNAL_ERROR,
                      _("invalid uuid element"));
-	    free(res);
+            VIR_FREE(res);
             return(-1);
         }
-	free(res);
+        VIR_FREE(res);
     }
     return(0);
 }
@@ -206,15 +206,14 @@ static int lxcParseDomainMounts(virConnectPtr conn,
     res = virXPathNodeSet("/domain/devices/filesystem", contextPtr, &list);
     if (res > 0) {
         for (i = 0; i < res; ++i) {
-            mountObj = calloc(1, sizeof(lxc_mount_t));
-            if (NULL == mountObj) {
+            if (VIR_ALLOC(mountObj) < 0) {
                 lxcError(conn, NULL, VIR_ERR_NO_MEMORY, "mount");
                 goto parse_complete;
             }
 
             rc = lxcParseMountXML(conn, list[i], mountObj);
             if (0 > rc) {
-                free(mountObj);
+                VIR_FREE(mountObj);
                 goto parse_complete;
             }
 
@@ -228,7 +227,7 @@ static int lxcParseDomainMounts(virConnectPtr conn,
             }
             prevObj = mountObj;
         }
-	free(list);
+        VIR_FREE(list);
     }
 
     rc = nmounts;
@@ -252,8 +251,8 @@ static int lxcParseDomainInit(virConnectPtr conn, char** init,
     if (strlen(res) >= PATH_MAX - 1) {
         lxcError(conn, NULL, VIR_ERR_INTERNAL_ERROR,
                  _("init string too long"));
-        free(res);
-	return(-1);
+        VIR_FREE(res);
+        return(-1);
     }
 
     *init = res;
@@ -270,10 +269,10 @@ static int lxcParseDomainTty(virConnectPtr conn, char **tty, xmlXPathContextPtr 
     if (res == NULL) {
         /* make sure the tty string is empty */
         *tty = strdup("");
-	if (*tty == NULL) {
-	    lxcError(conn, NULL, VIR_ERR_NO_MEMORY, NULL);
-	    return(-1);
-	}
+        if (*tty == NULL) {
+            lxcError(conn, NULL, VIR_ERR_NO_MEMORY, NULL);
+            return(-1);
+        }
     } else {
         *tty = res;
     }
@@ -288,14 +287,14 @@ static int lxcParseDomainMemory(virConnectPtr conn, int* memory, xmlXPathContext
 
     rc = virXPathLong("string(/domain/memory[1])", contextPtr, &res);
     if ((rc == -2) || ((rc == 0) && (res <= 0))) {
-	*memory = -1;
-	lxcError(conn, NULL, VIR_ERR_INTERNAL_ERROR,
-	         _("invalid memory value"));
+        *memory = -1;
+        lxcError(conn, NULL, VIR_ERR_INTERNAL_ERROR,
+                 _("invalid memory value"));
     } else if (rc < 0) {
         /* not an error, default to an invalid value so it's not used */
-	*memory = -1;
+        *memory = -1;
     } else {
-	*memory = (int) res;
+        *memory = (int) res;
     }
     return(0);
 }
@@ -307,7 +306,7 @@ static lxc_vm_def_t * lxcParseXML(virConnectPtr conn, xmlDocPtr docPtr)
     xmlChar *xmlProp = NULL;
     lxc_vm_def_t *containerDef;
 
-    if (!(containerDef = calloc(1, sizeof(*containerDef)))) {
+    if (VIR_ALLOC(containerDef) < 0) {
         lxcError(conn, NULL, VIR_ERR_NO_MEMORY, "containerDef");
         return NULL;
     }
@@ -339,8 +338,7 @@ static lxc_vm_def_t * lxcParseXML(virConnectPtr conn, xmlDocPtr docPtr)
                  _("invalid domain type"));
         goto error;
     }
-    free(xmlProp);
-    xmlProp = NULL;
+    VIR_FREE(xmlProp);
 
     if ((xmlProp = xmlGetProp(rootNodePtr, BAD_CAST "id"))) {
         if (0 > virStrToLong_i((char*)xmlProp, NULL, 10, &(containerDef->id))) {
@@ -348,11 +346,16 @@ static lxc_vm_def_t * lxcParseXML(virConnectPtr conn, xmlDocPtr docPtr)
                      _("invalid domain id"));
             goto error;
         }
+
+        /* verify the container process still exists */
+        if (1 != lxcCheckContainerProcess(containerDef)) {
+            containerDef->id = -1;
+        }
+
     } else {
         containerDef->id = -1;
     }
-    free(xmlProp);
-    xmlProp = NULL;
+    VIR_FREE(xmlProp);
 
     if (lxcParseDomainName(conn, &(containerDef->name), contextPtr) < 0) {
         goto error;
@@ -385,7 +388,7 @@ static lxc_vm_def_t * lxcParseXML(virConnectPtr conn, xmlDocPtr docPtr)
     return containerDef;
 
  error:
-    free(xmlProp);
+    VIR_FREE(xmlProp);
     xmlXPathFreeContext(contextPtr);
     lxcFreeVMDef(containerDef);
 
@@ -436,7 +439,7 @@ lxc_vm_t * lxcAssignVMDef(virConnectPtr conn,
         return vm;
     }
 
-    if (!(vm = calloc(1, sizeof(lxc_vm_t)))) {
+    if (VIR_ALLOC(vm) < 0) {
         lxcError(conn, NULL, VIR_ERR_NO_MEMORY, "vm");
         return NULL;
     }
@@ -456,6 +459,46 @@ lxc_vm_t * lxcAssignVMDef(virConnectPtr conn,
     }
 
     return vm;
+}
+
+/**
+ * lxcCheckContainerProcess:
+ * @def: Ptr to VM definition
+ *
+ * Checks if the container process (stored at def->id is running
+ *
+ * Returns on success or -1 in case of error
+ * 0  - no process with id vm->def->id
+ * 1  - container process exists
+ * -1 - error
+ */
+int lxcCheckContainerProcess(lxc_vm_def_t *def)
+{
+    int rc = -1;
+
+    if (1 < def->id) {
+        if (-1 == kill(def->id, 0)) {
+            if (ESRCH == errno) {
+                rc = 0;
+                DEBUG("pid %d no longer exists", def->id);
+                goto done;
+            }
+
+            lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                     _("error checking container process: %d %s"),
+                     def->id, strerror(errno));
+            goto done;
+        }
+
+        DEBUG("pid %d still exists", def->id);
+        rc = 1;
+        goto done;
+    }
+
+    rc = 0;
+
+done:
+    return rc;
 }
 
 void lxcRemoveInactiveVM(lxc_driver_t *driver,
@@ -529,7 +572,7 @@ int lxcSaveConfig(virConnectPtr conn,
         close(fd);
     }
 
-    free(xmlDef);
+    VIR_FREE(xmlDef);
 
     return rc;
 }
@@ -602,6 +645,10 @@ static lxc_vm_t * lxcLoadConfig(lxc_driver_t *driver,
     strncpy(vm->configFileBase, file, PATH_MAX);
     vm->configFile[PATH_MAX-1] = '\0';
 
+    if (lxcLoadTtyPid(driver, vm) < 0) {
+        DEBUG0("failed to load tty pid");
+    }
+
     return vm;
 }
 
@@ -613,6 +660,8 @@ int lxcLoadDriverConfig(lxc_driver_t *driver)
         lxcError(NULL, NULL, VIR_ERR_NO_MEMORY, "configDir");
         return -1;
     }
+
+    driver->stateDir = strdup(LOCAL_STATE_DIR "/run/libvirt/lxc");
 
     return 0;
 }
@@ -637,7 +686,7 @@ int lxcLoadContainerConfigFile(lxc_driver_t *driver,
 
     lxcLoadConfig(driver, file, tempPath, xmlData);
 
-    free(xmlData);
+    VIR_FREE(xmlData);
 
 load_complete:
     return rc;
@@ -656,7 +705,7 @@ int lxcLoadContainerInfo(lxc_driver_t *driver)
         } else {
             lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
                      _("failed to open config directory %s: %s"),
-		     driver->configDir, strerror(errno));
+                     driver->configDir, strerror(errno));
         }
 
         goto load_complete;
@@ -688,99 +737,49 @@ char *lxcGenerateXML(virConnectPtr conn,
                      lxc_vm_t *vm,
                      lxc_vm_def_t *def)
 {
-    virBufferPtr buf = 0;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
     unsigned char *uuid;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     lxc_mount_t *mount;
 
-    buf = virBufferNew(LXC_MAX_XML_LENGTH);
-    if (!buf) {
-        goto no_memory;
-    }
+    if (lxcIsActiveVM(vm))
+        virBufferVSprintf(&buf, "<domain type='%s' id='%d'>\n",
+                          LXC_DOMAIN_TYPE, vm->def->id);
+    else
+        virBufferVSprintf(&buf, "<domain type='%s'>\n",
+                          LXC_DOMAIN_TYPE);
 
-    if (lxcIsActiveVM(vm)) {
-        if (virBufferVSprintf(buf, "<domain type='%s' id='%d'>\n",
-			      LXC_DOMAIN_TYPE, vm->def->id) < 0) {
-            goto no_memory;
-        }
-    } else {
-	if (virBufferVSprintf(buf, "<domain type='%s'>\n",
-			      LXC_DOMAIN_TYPE) < 0) {
-            goto no_memory;
-        }
-    }
-
-    if (virBufferVSprintf(buf, "    <name>%s</name>\n", def->name) < 0) {
-        goto no_memory;
-    }
+    virBufferVSprintf(&buf, "    <name>%s</name>\n", def->name);
 
     uuid = def->uuid;
     virUUIDFormat(uuid, uuidstr);
-    if (virBufferVSprintf(buf, "    <uuid>%s</uuid>\n", uuidstr) < 0) {
-        goto no_memory;
-    }
-
-    if (virBufferAddLit(buf, "    <os>\n") < 0) {
-        goto no_memory;
-    }
-
-    if (virBufferVSprintf(buf, "        <init>%s</init>\n", def->init) < 0) {
-        goto no_memory;
-    }
-
-    if (virBufferAddLit(buf, "    </os>\n") < 0) {
-        goto no_memory;
-    }
-
-    if (virBufferVSprintf(buf, "    <memory>%d</memory>\n", def->maxMemory) < 0) {
-        goto no_memory;
-    }
-
-    if (virBufferAddLit(buf, "    <devices>\n") < 0) {
-        goto no_memory;
-    }
+    virBufferVSprintf(&buf, "    <uuid>%s</uuid>\n", uuidstr);
+    virBufferAddLit(&buf, "    <os>\n");
+    virBufferVSprintf(&buf, "        <init>%s</init>\n", def->init);
+    virBufferAddLit(&buf, "    </os>\n");
+    virBufferVSprintf(&buf, "    <memory>%d</memory>\n", def->maxMemory);
+    virBufferAddLit(&buf, "    <devices>\n");
 
     /* loop adding mounts */
     for (mount = def->mounts; mount; mount = mount->next) {
-        if (virBufferAddLit(buf, "        <filesystem type='mount'>\n") < 0) {
-            goto no_memory;
-        }
-
-        if (virBufferVSprintf(buf, "            <source dir='%s'/>\n",
-                              mount->source) < 0) {
-            goto no_memory;
-        }
-
-        if (virBufferVSprintf(buf, "            <target dir='%s'/>\n",
-                              mount->target) < 0) {
-            goto no_memory;
-        }
-
-        if (virBufferAddLit(buf, "        </filesystem>\n") < 0) {
-            goto no_memory;
-        }
-
+        virBufferAddLit(&buf, "        <filesystem type='mount'>\n");
+        virBufferVSprintf(&buf, "            <source dir='%s'/>\n",
+                          mount->source);
+        virBufferVSprintf(&buf, "            <target dir='%s'/>\n",
+                          mount->target);
+        virBufferAddLit(&buf, "        </filesystem>\n");
     }
 
-    if (virBufferVSprintf(buf, "        <console tty='%s'/>\n", def->tty) < 0) {
-        goto no_memory;
+    virBufferVSprintf(&buf, "        <console tty='%s'/>\n", def->tty);
+    virBufferAddLit(&buf, "    </devices>\n");
+    virBufferAddLit(&buf, "</domain>\n");
+
+    if (virBufferError(&buf)) {
+        lxcError(conn, NULL, VIR_ERR_NO_MEMORY,_("allocate buffer"));
+        return NULL;
     }
 
-    if (virBufferAddLit(buf, "    </devices>\n") < 0) {
-        goto no_memory;
-    }
-
-    if (virBufferAddLit(buf, "</domain>\n") < 0) {
-        goto no_memory;
-    }
-
-    return virBufferContentAndFree(buf);
-
-no_memory:
-    lxcError(conn, NULL, VIR_ERR_NO_MEMORY, "generateXml");
-    virBufferFree(buf);
-
-    return NULL;
+    return virBufferContentAndReset(&buf);
 }
 
 void lxcFreeVMDef(lxc_vm_def_t *vmdef)
@@ -794,14 +793,14 @@ void lxcFreeVMDef(lxc_vm_def_t *vmdef)
     curMount = vmdef->mounts;
     while (curMount) {
         nextMount = curMount->next;
-        free(curMount);
+        VIR_FREE(curMount);
         curMount = nextMount;
     }
 
-    free(vmdef->name);
-    free(vmdef->init);
-    free(vmdef->tty);
-    free(vmdef);
+    VIR_FREE(vmdef->name);
+    VIR_FREE(vmdef->init);
+    VIR_FREE(vmdef->tty);
+    VIR_FREE(vmdef);
 }
 
 void lxcFreeVMs(lxc_vm_t *vms)
@@ -819,7 +818,8 @@ void lxcFreeVMs(lxc_vm_t *vms)
 void lxcFreeVM(lxc_vm_t *vm)
 {
     lxcFreeVMDef(vm->def);
-    free(vm);
+    VIR_FREE(vm->containerTty);
+    VIR_FREE(vm);
 }
 
 lxc_vm_t *lxcFindVMByID(const lxc_driver_t *driver, int id)
@@ -884,14 +884,176 @@ int lxcDeleteConfig(virConnectPtr conn,
     return 0;
 }
 
-#endif /* WITH_LXC */
-
-
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
+/**
+ * lxcStoreTtyPid:
+ * @driver: pointer to driver
+ * @vm: Ptr to VM
+ *
+ * Stores the pid of the tty forward process contained in vm->pid
+ * LOCAL_STATE_DIR/run/libvirt/lxc/{container_name}.pid
+ *
+ * Returns 0 on success or -1 in case of error
  */
+int lxcStoreTtyPid(const lxc_driver_t *driver, lxc_vm_t *vm)
+{
+    int rc = -1;
+    int fd;
+    FILE *file = NULL;
+
+    if (vm->ttyPidFile[0] == 0x00) {
+        if ((rc = virFileMakePath(driver->stateDir))) {
+            lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                     _("cannot create lxc state directory %s: %s"),
+                     driver->stateDir, strerror(rc));
+            goto error_out;
+        }
+
+        if (virFileBuildPath(driver->stateDir, vm->def->name, ".pid",
+                             vm->ttyPidFile, PATH_MAX) < 0) {
+            lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                     _("cannot construct tty pid file path"));
+            goto error_out;
+        }
+    }
+
+    if ((fd = open(vm->ttyPidFile,
+                   O_WRONLY | O_CREAT | O_TRUNC,
+                   S_IRUSR | S_IWUSR)) < 0) {
+        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                 _("cannot create tty pid file %s: %s"),
+                 vm->ttyPidFile, strerror(errno));
+        goto error_out;
+    }
+
+    if (!(file = fdopen(fd, "w"))) {
+        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                 _("cannot fdopen tty pid file %s: %s"),
+                 vm->ttyPidFile, strerror(errno));
+
+        if (close(fd) < 0) {
+            lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                     _("failed to close tty pid file %s: %s"),
+                     vm->ttyPidFile, strerror(errno));
+        }
+
+        goto error_out;
+    }
+
+    if (fprintf(file, "%d", vm->pid) < 0) {
+        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                 _("cannot write tty pid file %s: %s"),
+                 vm->ttyPidFile, strerror(errno));
+
+        goto fclose_error_out;
+    }
+
+    rc = 0;
+
+fclose_error_out:
+    if (fclose(file) < 0) {
+        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                 _("failed to close tty pid file %s: %s"),
+                 vm->ttyPidFile, strerror(errno));
+    }
+
+error_out:
+    return rc;
+}
+
+/**
+ * lxcLoadTtyPid:
+ * @driver: pointer to driver
+ * @vm: Ptr to VM
+ *
+ * Loads the pid of the tty forward process from the pid file.
+ * LOCAL_STATE_DIR/run/libvirt/lxc/{container_name}.pid
+ *
+ * Returns
+ * > 0 - pid of tty process
+ *   0 - no tty pid file
+ *  -1 - error
+ */
+int lxcLoadTtyPid(const lxc_driver_t *driver, lxc_vm_t *vm)
+{
+    int rc = -1;
+    FILE *file;
+
+    if (vm->ttyPidFile[0] == 0x00) {
+        if ((rc = virFileMakePath(driver->stateDir))) {
+            lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                     _("cannot create lxc state directory %s: %s"),
+                     driver->stateDir, strerror(rc));
+            goto cleanup;
+        }
+
+        if (virFileBuildPath(driver->stateDir, vm->def->name, ".pid",
+                             vm->ttyPidFile, PATH_MAX) < 0) {
+            lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                     _("cannot construct tty pid file path"));
+            goto cleanup;
+        }
+    }
+
+    if (!(file = fopen(vm->ttyPidFile, "r"))) {
+        if (ENOENT == errno) {
+            rc = 0;
+            goto cleanup;
+        }
+
+        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                 _("cannot open tty pid file %s: %s"),
+                 vm->ttyPidFile, strerror(errno));
+        goto cleanup;
+    }
+
+    if (fscanf(file, "%d", &(vm->pid)) < 0) {
+        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                 _("cannot read tty pid file %s: %s"),
+                 vm->ttyPidFile, strerror(errno));
+        goto cleanup;
+    }
+
+    if (fclose(file) < 0) {
+        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                 _("failed to close tty pid file %s: %s"),
+                 vm->ttyPidFile, strerror(errno));
+        goto cleanup;
+    }
+
+    rc = vm->pid;
+
+ cleanup:
+    return rc;
+}
+
+/**
+ * lxcDeleteTtyPid:
+ * @vm: Ptr to VM
+ *
+ * Unlinks the tty pid file for the vm
+ * LOCAL_STATE_DIR/run/libvirt/lxc/{container_name}.pid
+ *
+ * Returns on 0 success or -1 in case of error
+ */
+int lxcDeleteTtyPidFile(const lxc_vm_t *vm)
+{
+    if (vm->ttyPidFile[0] == 0x00) {
+        goto no_file;
+    }
+
+    if (unlink(vm->ttyPidFile) < 0) {
+        if (errno == ENOENT) {
+            goto no_file;
+        }
+
+        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                 _("cannot remove ttyPidFile %s: %s"), vm->ttyPidFile,
+                 strerror(errno));
+        return -1;
+    }
+
+no_file:
+    return 0;
+}
+
+#endif /* WITH_LXC */
