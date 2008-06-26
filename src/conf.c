@@ -22,6 +22,8 @@
 #include "buf.h"
 #include "conf.h"
 #include "util.h"
+#include "c-ctype.h"
+#include "memory.h"
 
 /************************************************************************
  *									*
@@ -45,17 +47,14 @@ struct _virConfParserCtxt {
 #define CUR (*ctxt->cur)
 #define NEXT if (ctxt->cur < ctxt->end) ctxt->cur++;
 #define IS_EOL(c) (((c) == '\n') || ((c) == '\r'))
-#define IS_BLANK(c) (((c) == ' ') || ((c) == '\n') || ((c) == '\r') ||	\
-                     ((c) == '\t'))
-#define SKIP_BLANKS {while ((ctxt->cur < ctxt->end) && (IS_BLANK(CUR))){\
-			   if (CUR == '\n') ctxt->line++;		\
-			   ctxt->cur++;}}
-#define IS_SPACE(c) (((c) == ' ') || ((c) == '\t'))
-#define SKIP_SPACES {while ((ctxt->cur < ctxt->end) && (IS_SPACE(CUR)))	\
-			   ctxt->cur++;}
-#define IS_CHAR(c) ((((c) >= 'a') && ((c) <= 'z')) ||			\
-                    (((c) >= 'A') && ((c) <= 'Z')))
-#define IS_DIGIT(c) (((c) >= '0') && ((c) <= '9'))
+
+#define SKIP_BLANKS_AND_EOL                                             \
+  do { while ((ctxt->cur < ctxt->end) && (c_isblank(CUR) || IS_EOL(CUR))) { \
+         if (CUR == '\n') ctxt->line++;	                                \
+         ctxt->cur++;}} while (0)
+#define SKIP_BLANKS                                                     \
+  do { while ((ctxt->cur < ctxt->end) && (c_isblank(CUR)))              \
+          ctxt->cur++; } while (0)
 
 /************************************************************************
  *									*
@@ -107,7 +106,6 @@ virConfError(virConfPtr conf ATTRIBUTE_UNUSED,
  *		Structures allocations and deallocations		*
  *									*
  ************************************************************************/
-static void virConfFreeValue(virConfValuePtr val);
 
 /**
  * virConfFreeList:
@@ -134,18 +132,18 @@ virConfFreeList(virConfValuePtr list)
  *
  * Free a value
  */
-static void
-virConfFreeValue(virConfValuePtr val)
+void
+__virConfFreeValue(virConfValuePtr val)
 {
     if (val == NULL)
         return;
     if (val->type == VIR_CONF_STRING &&
         val->str != NULL)
-        free(val->str);
+        VIR_FREE(val->str);
     if (val->type == VIR_CONF_LIST &&
         val->list != NULL)
         virConfFreeList(val->list);
-    free(val);
+    VIR_FREE(val);
 }
 
 virConfPtr
@@ -153,8 +151,7 @@ __virConfNew(void)
 {
     virConfPtr ret;
 
-    ret = calloc(1, sizeof(*ret));
-    if (ret == NULL) {
+    if (VIR_ALLOC(ret) < 0) {
         virConfError(NULL, VIR_ERR_NO_MEMORY, _("allocating configuration"), 0);
         return(NULL);
     }
@@ -202,8 +199,7 @@ virConfAddEntry(virConfPtr conf, char *name, virConfValuePtr value, char *comm)
     if ((comm == NULL) && (name == NULL))
         return(NULL);
 
-    ret = calloc(1, sizeof(*ret));
-    if (ret == NULL) {
+    if (VIR_ALLOC(ret) < 0) {
         virConfError(NULL, VIR_ERR_NO_MEMORY, _("allocating configuration"), 0);
         return(NULL);
     }
@@ -216,9 +212,9 @@ virConfAddEntry(virConfPtr conf, char *name, virConfValuePtr value, char *comm)
         conf->entries = ret;
     } else {
         prev = conf->entries;
-	while (prev->next != NULL)
-	    prev = prev->next;
-	prev->next = ret;
+        while (prev->next != NULL)
+            prev = prev->next;
+        prev->next = ret;
     }
     return(ret);
 }
@@ -245,40 +241,40 @@ virConfSaveValue(virBufferPtr buf, virConfValuePtr val)
         return(-1);
     switch (val->type) {
         case VIR_CONF_NONE:
-	    return(-1);
-	case VIR_CONF_LONG:
-	    virBufferVSprintf(buf, "%ld", val->l);
-	    break;
-	case VIR_CONF_STRING:
-	    if (strchr(val->str, '\n') != NULL) {
-		virBufferVSprintf(buf, "\"\"\"%s\"\"\"", val->str);
-	    } else if (strchr(val->str, '"') == NULL) {
-		virBufferVSprintf(buf, "\"%s\"", val->str);
-	    } else if (strchr(val->str, '\'') == NULL) {
-		virBufferVSprintf(buf, "'%s'", val->str);
-	    } else {
-		virBufferVSprintf(buf, "\"\"\"%s\"\"\"", val->str);
-	    }
-	    break;
-	case VIR_CONF_LIST: {
-	    virConfValuePtr cur;
+            return(-1);
+        case VIR_CONF_LONG:
+            virBufferVSprintf(buf, "%ld", val->l);
+            break;
+        case VIR_CONF_STRING:
+            if (strchr(val->str, '\n') != NULL) {
+                virBufferVSprintf(buf, "\"\"\"%s\"\"\"", val->str);
+            } else if (strchr(val->str, '"') == NULL) {
+                virBufferVSprintf(buf, "\"%s\"", val->str);
+            } else if (strchr(val->str, '\'') == NULL) {
+                virBufferVSprintf(buf, "'%s'", val->str);
+            } else {
+                virBufferVSprintf(buf, "\"\"\"%s\"\"\"", val->str);
+            }
+            break;
+        case VIR_CONF_LIST: {
+            virConfValuePtr cur;
 
-	    cur = val->list;
-	    virBufferAddLit(buf, "[ ");
-	    if (cur != NULL) {
-	        virConfSaveValue(buf, cur);
-		cur = cur->next;
-		while (cur != NULL) {
-		    virBufferAddLit(buf, ", ");
-		    virConfSaveValue(buf, cur);
-		    cur = cur->next;
-		}
-	    }
-	    virBufferAddLit(buf, " ]");
-	    break;
-	}
-	default:
-	    return(-1);
+            cur = val->list;
+            virBufferAddLit(buf, "[ ");
+            if (cur != NULL) {
+                virConfSaveValue(buf, cur);
+                cur = cur->next;
+                while (cur != NULL) {
+                    virBufferAddLit(buf, ", ");
+                    virConfSaveValue(buf, cur);
+                    cur = cur->next;
+                }
+            }
+            virBufferAddLit(buf, " ]");
+            break;
+        }
+        default:
+            return(-1);
     }
     return(0);
 }
@@ -297,15 +293,15 @@ virConfSaveEntry(virBufferPtr buf, virConfEntryPtr cur)
 {
     if (cur->name != NULL) {
         virBufferAdd(buf, cur->name, -1);
-	virBufferAddLit(buf, " = ");
-	virConfSaveValue(buf, cur->value);
-	if (cur->comment != NULL) {
-	    virBufferAddLit(buf, " #");
-	    virBufferAdd(buf, cur->comment, -1);
-	}
+        virBufferAddLit(buf, " = ");
+        virConfSaveValue(buf, cur->value);
+        if (cur->comment != NULL) {
+            virBufferAddLit(buf, " #");
+            virBufferAdd(buf, cur->comment, -1);
+        }
     } else if (cur->comment != NULL) {
-	virBufferAddLit(buf, "#");
-	virBufferAdd(buf, cur->comment, -1);
+        virBufferAddLit(buf, "#");
+        virBufferAdd(buf, cur->comment, -1);
     }
     virBufferAddLit(buf, "\n");
     return(0);
@@ -334,18 +330,18 @@ virConfParseLong(virConfParserCtxtPtr ctxt, long *val)
 
     if (CUR == '-') {
         neg = 1;
-	NEXT;
+        NEXT;
     } else if (CUR == '+') {
         NEXT;
     }
-    if ((ctxt->cur >= ctxt->end) || (!IS_DIGIT(CUR))) {
+    if ((ctxt->cur >= ctxt->end) || (!c_isdigit(CUR))) {
         virConfError(NULL, VIR_ERR_CONF_SYNTAX, _("unterminated number"),
-		     ctxt->line);
-	return(-1);
+                     ctxt->line);
+        return(-1);
     }
-    while ((ctxt->cur < ctxt->end) && (IS_DIGIT(CUR))) {
+    while ((ctxt->cur < ctxt->end) && (c_isdigit(CUR))) {
         l = l * 10 + (CUR - '0');
-	NEXT;
+        NEXT;
     }
     if (neg)
         l = -l;
@@ -369,45 +365,45 @@ virConfParseString(virConfParserCtxtPtr ctxt)
 
     if (CUR == '\'') {
         NEXT;
-	base = ctxt->cur;
-	while ((ctxt->cur < ctxt->end) && (CUR != '\'') && (!IS_EOL(CUR)))
-	    NEXT;
-	if (CUR != '\'') {
-	    virConfError(NULL, VIR_ERR_CONF_SYNTAX, _("unterminated string"),
-			 ctxt->line);
-	    return(NULL);
-	}
-	ret = strndup(base, ctxt->cur - base);
-	NEXT;
+        base = ctxt->cur;
+        while ((ctxt->cur < ctxt->end) && (CUR != '\'') && (!IS_EOL(CUR)))
+            NEXT;
+        if (CUR != '\'') {
+            virConfError(NULL, VIR_ERR_CONF_SYNTAX, _("unterminated string"),
+                         ctxt->line);
+            return(NULL);
+        }
+        ret = strndup(base, ctxt->cur - base);
+        NEXT;
     } else if ((ctxt->cur + 6 < ctxt->end) && (ctxt->cur[0] == '"') &&
                (ctxt->cur[1] == '"') && (ctxt->cur[2] == '"')) {
-	ctxt->cur += 3;
-	base = ctxt->cur;
-	while ((ctxt->cur + 2 < ctxt->end) && (ctxt->cur[0] == '"') &&
-	       (ctxt->cur[1] == '"') && (ctxt->cur[2] == '"')) {
-	       if (CUR == '\n') ctxt->line++;
-	       NEXT;
-	}
-	if ((ctxt->cur[0] != '"') || (ctxt->cur[1] != '"') ||
-	    (ctxt->cur[2] != '"')) {
-	    virConfError(NULL, VIR_ERR_CONF_SYNTAX, _("unterminated string"),
-			 ctxt->line);
-	    return(NULL);
-	}
-	ret = strndup(base, ctxt->cur - base);
-	ctxt->cur += 3;
+        ctxt->cur += 3;
+        base = ctxt->cur;
+        while ((ctxt->cur + 2 < ctxt->end) && (ctxt->cur[0] == '"') &&
+               (ctxt->cur[1] == '"') && (ctxt->cur[2] == '"')) {
+               if (CUR == '\n') ctxt->line++;
+               NEXT;
+        }
+        if ((ctxt->cur[0] != '"') || (ctxt->cur[1] != '"') ||
+            (ctxt->cur[2] != '"')) {
+            virConfError(NULL, VIR_ERR_CONF_SYNTAX, _("unterminated string"),
+                         ctxt->line);
+            return(NULL);
+        }
+        ret = strndup(base, ctxt->cur - base);
+        ctxt->cur += 3;
     } else if (CUR == '"') {
         NEXT;
-	base = ctxt->cur;
-	while ((ctxt->cur < ctxt->end) && (CUR != '"') && (!IS_EOL(CUR)))
-	    NEXT;
-	if (CUR != '"') {
-	    virConfError(NULL, VIR_ERR_CONF_SYNTAX, _("unterminated string"),
-			 ctxt->line);
-	    return(NULL);
-	}
-	ret = strndup(base, ctxt->cur - base);
-	NEXT;
+        base = ctxt->cur;
+        while ((ctxt->cur < ctxt->end) && (CUR != '"') && (!IS_EOL(CUR)))
+            NEXT;
+        if (CUR != '"') {
+            virConfError(NULL, VIR_ERR_CONF_SYNTAX, _("unterminated string"),
+                         ctxt->line);
+            return(NULL);
+        }
+        ret = strndup(base, ctxt->cur - base);
+        NEXT;
     }
     return(ret);
 }
@@ -428,69 +424,70 @@ virConfParseValue(virConfParserCtxtPtr ctxt)
     char *str = NULL;
     long  l = 0;
 
-    SKIP_SPACES;
+    SKIP_BLANKS;
     if (ctxt->cur >= ctxt->end) {
         virConfError(NULL, VIR_ERR_CONF_SYNTAX, _("expecting a value"),
-	             ctxt->line);
-	return(NULL);
+                     ctxt->line);
+        return(NULL);
     }
     if ((CUR == '"') || (CUR == '\'')) {
         type = VIR_CONF_STRING;
         str = virConfParseString(ctxt);
-	if (str == NULL)
-	    return(NULL);
+        if (str == NULL)
+            return(NULL);
     } else if (CUR == '[') {
         type = VIR_CONF_LIST;
         NEXT;
-	SKIP_BLANKS;
-	if ((ctxt->cur < ctxt->end) && (CUR != ']')) {
-	    lst = virConfParseValue(ctxt);
-	    SKIP_BLANKS;
-	}
-	while ((ctxt->cur < ctxt->end) && (CUR != ']')) {
-	    if (CUR != ',') {
-		virConfError(NULL, VIR_ERR_CONF_SYNTAX,
-		             _("expecting a separator in list"), ctxt->line);
-	        virConfFreeList(lst);
-		return(NULL);
-	    }
-	    NEXT;
-	    SKIP_BLANKS;
-	    if (CUR == ']') {
-	        break;
-	    }
-	    tmp = virConfParseValue(ctxt);
-	    if (tmp == NULL) {
-	        virConfFreeList(lst);
-		return(NULL);
-	    }
-	    prev = lst;
-	    while (prev->next != NULL) prev = prev->next;
-	    prev->next = tmp;
-	    SKIP_BLANKS;
-	}
-	if (CUR == ']') {
-	    NEXT;
-	} else {
-	    virConfError(NULL, VIR_ERR_CONF_SYNTAX,
-			 _("list is not closed with ]"), ctxt->line);
-	    virConfFreeList(lst);
-	    return(NULL);
-	}
-    } else if (IS_DIGIT(CUR) || (CUR == '-') || (CUR == '+')) {
+        SKIP_BLANKS_AND_EOL;
+        if ((ctxt->cur < ctxt->end) && (CUR != ']')) {
+            if ((lst = virConfParseValue(ctxt)) == NULL)
+                return(NULL);
+            SKIP_BLANKS_AND_EOL;
+        }
+        while ((ctxt->cur < ctxt->end) && (CUR != ']')) {
+            if (CUR != ',') {
+                virConfError(NULL, VIR_ERR_CONF_SYNTAX,
+                             _("expecting a separator in list"), ctxt->line);
+                virConfFreeList(lst);
+                return(NULL);
+            }
+            NEXT;
+            SKIP_BLANKS_AND_EOL;
+            if (CUR == ']') {
+                break;
+            }
+            tmp = virConfParseValue(ctxt);
+            if (tmp == NULL) {
+                virConfFreeList(lst);
+                return(NULL);
+            }
+            prev = lst;
+            while (prev->next != NULL) prev = prev->next;
+            prev->next = tmp;
+            SKIP_BLANKS_AND_EOL;
+        }
+        if (CUR == ']') {
+            NEXT;
+        } else {
+            virConfError(NULL, VIR_ERR_CONF_SYNTAX,
+                         _("list is not closed with ]"), ctxt->line);
+            virConfFreeList(lst);
+            return(NULL);
+        }
+    } else if (c_isdigit(CUR) || (CUR == '-') || (CUR == '+')) {
         if (virConfParseLong(ctxt, &l) < 0) {
-	    return(NULL);
-	}
+            return(NULL);
+        }
         type = VIR_CONF_LONG;
     } else {
         virConfError(NULL, VIR_ERR_CONF_SYNTAX, _("expecting a value"),
-	             ctxt->line);
-	return(NULL);
+                     ctxt->line);
+        return(NULL);
     }
-    ret = calloc(1, sizeof(*ret));
-    if (ret == NULL) {
+    if (VIR_ALLOC(ret) < 0) {
         virConfError(NULL, VIR_ERR_NO_MEMORY, _("allocating configuration"), 0);
-	    free(str);
+        virConfFreeList(lst);
+        VIR_FREE(str);
         return(NULL);
     }
     ret->type = type;
@@ -514,19 +511,19 @@ virConfParseName(virConfParserCtxtPtr ctxt)
     const char *base;
     char *ret;
 
-    SKIP_SPACES;
+    SKIP_BLANKS;
     base = ctxt->cur;
     /* TODO: probably need encoding support and UTF-8 parsing ! */
-    if (!IS_CHAR(CUR)) {
+    if (!c_isalpha(CUR)) {
         virConfError(NULL, VIR_ERR_CONF_SYNTAX, _("expecting a name"), ctxt->line);
-	return(NULL);
+        return(NULL);
     }
-    while ((ctxt->cur < ctxt->end) && ((IS_CHAR(CUR)) || (IS_DIGIT(CUR)) || (CUR == '_')))
+    while ((ctxt->cur < ctxt->end) && (c_isalnum(CUR) || (CUR == '_')))
         NEXT;
     ret = strndup(base, ctxt->cur - base);
     if (ret == NULL) {
         virConfError(NULL, VIR_ERR_NO_MEMORY, _("allocating configuration"),
-	             ctxt->line);
+                     ctxt->line);
         return(NULL);
     }
     return(ret);
@@ -554,7 +551,7 @@ virConfParseComment(virConfParserCtxtPtr ctxt)
     comm = strndup(base, ctxt->cur - base);
     if (comm == NULL) {
         virConfError(NULL, VIR_ERR_NO_MEMORY, _("allocating configuration"),
-	             ctxt->line);
+                     ctxt->line);
         return(-1);
     }
     virConfAddEntry(ctxt->conf, NULL, NULL, comm);
@@ -572,18 +569,18 @@ virConfParseComment(virConfParserCtxtPtr ctxt)
 static int
 virConfParseSeparator(virConfParserCtxtPtr ctxt)
 {
-    SKIP_SPACES;
+    SKIP_BLANKS;
     if (ctxt->cur >= ctxt->end)
-	return(0);
+        return(0);
     if (IS_EOL(CUR)) {
-	SKIP_BLANKS
+        SKIP_BLANKS_AND_EOL;
     } else if (CUR == ';') {
-	NEXT;
-	SKIP_BLANKS;
+        NEXT;
+        SKIP_BLANKS_AND_EOL;
     } else {
         virConfError(NULL, VIR_ERR_CONF_SYNTAX, _("expecting a separator"),
-		     ctxt->line);
-	return(-1);
+                     ctxt->line);
+        return(-1);
     }
     return(0);
 }
@@ -604,45 +601,45 @@ virConfParseStatement(virConfParserCtxtPtr ctxt)
     virConfValuePtr value;
     char *comm = NULL;
 
-    SKIP_BLANKS;
+    SKIP_BLANKS_AND_EOL;
     if (CUR == '#') {
         return(virConfParseComment(ctxt));
     }
     name = virConfParseName(ctxt);
     if (name == NULL)
         return(-1);
-    SKIP_SPACES;
+    SKIP_BLANKS;
     if (CUR != '=') {
         virConfError(NULL, VIR_ERR_CONF_SYNTAX, _("expecting an assignment"),
-	             ctxt->line);
+                     ctxt->line);
         return(-1);
     }
     NEXT;
-    SKIP_SPACES;
+    SKIP_BLANKS;
     value = virConfParseValue(ctxt);
     if (value == NULL) {
-        free(name);
-	return(-1);
+        VIR_FREE(name);
+        return(-1);
     }
-    SKIP_SPACES;
+    SKIP_BLANKS;
     if (CUR == '#') {
-	NEXT;
-	base = ctxt->cur;
-	while ((ctxt->cur < ctxt->end) && (!IS_EOL(CUR))) NEXT;
-	comm = strndup(base, ctxt->cur - base);
-	if (comm == NULL) {
-	    virConfError(NULL, VIR_ERR_NO_MEMORY, _("allocating configuration"),
-	                 ctxt->line);
-	    free(name);
-	    virConfFreeValue(value);
-	    return(-1);
-	}
+        NEXT;
+        base = ctxt->cur;
+        while ((ctxt->cur < ctxt->end) && (!IS_EOL(CUR))) NEXT;
+        comm = strndup(base, ctxt->cur - base);
+        if (comm == NULL) {
+            virConfError(NULL, VIR_ERR_NO_MEMORY, _("allocating configuration"),
+                         ctxt->line);
+            VIR_FREE(name);
+            virConfFreeValue(value);
+            return(-1);
+        }
     }
     if (virConfAddEntry(ctxt->conf, name, value, comm) == NULL) {
-        free(name);
-	virConfFreeValue(value);
-    free(comm);
-	return(-1);
+        VIR_FREE(name);
+        virConfFreeValue(value);
+        VIR_FREE(comm);
+        return(-1);
     }
     return(0);
 }
@@ -674,9 +671,9 @@ virConfParse(const char *filename, const char *content, int len) {
 
     while (ctxt.cur < ctxt.end) {
         if (virConfParseStatement(&ctxt) < 0)
-	    goto error;
-	if (virConfParseSeparator(&ctxt) < 0)
-	    goto error;
+            goto error;
+        if (virConfParseSeparator(&ctxt) < 0)
+            goto error;
     }
 
     return(ctxt.conf);
@@ -723,7 +720,7 @@ __virConfReadFile(const char *filename)
 
     conf = virConfParse(filename, content, len);
 
-    free(content);
+    VIR_FREE(content);
 
     return conf;
 }
@@ -772,14 +769,14 @@ __virConfFree(virConfPtr conf)
     tmp = conf->entries;
     while (tmp) {
         virConfEntryPtr next;
-        free(tmp->name);
+        VIR_FREE(tmp->name);
         virConfFreeValue(tmp->value);
-        free(tmp->comment);
+        VIR_FREE(tmp->comment);
         next = tmp->next;
-        free(tmp);
+        VIR_FREE(tmp);
         tmp = next;
     }
-    free(conf);
+    VIR_FREE(conf);
     return(0);
 }
 
@@ -800,8 +797,8 @@ __virConfGetValue(virConfPtr conf, const char *setting)
 
     cur = conf->entries;
     while (cur != NULL) {
-        if ((cur->name != NULL) && (!strcmp(cur->name, setting)))
-	    return(cur->value);
+        if ((cur->name != NULL) && (STREQ(cur->name, setting)))
+            return(cur->value);
         cur = cur->next;
     }
     return(NULL);
@@ -829,7 +826,7 @@ __virConfSetValue (virConfPtr conf,
 
     cur = conf->entries;
     while (cur != NULL) {
-        if ((cur->name != NULL) && (!strcmp(cur->name, setting))) {
+        if ((cur->name != NULL) && (STREQ(cur->name, setting))) {
             break;
         }
         prev = cur;
@@ -837,14 +834,14 @@ __virConfSetValue (virConfPtr conf,
     }
 
     if (!cur) {
-        if (!(cur = malloc(sizeof(*cur)))) {
+        if (VIR_ALLOC(cur) < 0) {
             virConfFreeValue(value);
             return (-1);
         }
         cur->comment = NULL;
         if (!(cur->name = strdup(setting))) {
             virConfFreeValue(value);
-            free(cur);
+            VIR_FREE(cur);
             return (-1);
         }
         cur->value = value;
@@ -877,43 +874,46 @@ __virConfSetValue (virConfPtr conf,
 int
 __virConfWriteFile(const char *filename, virConfPtr conf)
 {
-    virBufferPtr buf;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
     virConfEntryPtr cur;
     int ret;
     int fd;
+    char *content;
+    unsigned int use;
 
     if (conf == NULL)
         return(-1);
 
-    buf = virBufferNew(500);
-    if (buf == NULL) {
-        virConfError(NULL, VIR_ERR_NO_MEMORY, _("failed to allocate buffer"), 0);
-        return(-1);
-    }
-
     cur = conf->entries;
     while (cur != NULL) {
-        virConfSaveEntry(buf, cur);
-	cur = cur->next;
+        virConfSaveEntry(&buf, cur);
+        cur = cur->next;
+    }
+
+    if (virBufferError(&buf)) {
+        virConfError(NULL, VIR_ERR_NO_MEMORY, _("allocate buffer"), 0);
+        return -1;
     }
 
     fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR );
     if (fd < 0) {
+        char *tmp = virBufferContentAndReset(&buf);
         virConfError(NULL, VIR_ERR_WRITE_FAILED, _("failed to open file"), 0);
-        ret = -1;
-	goto error;
+        VIR_FREE(tmp);
+        return -1;
     }
 
-    ret = safewrite(fd, buf->content, buf->use);
+    use = virBufferUse(&buf);
+    content = virBufferContentAndReset(&buf);
+    ret = safewrite(fd, content, use);
+    VIR_FREE(content);
     close(fd);
-    if (ret != (int) buf->use) {
+    if (ret != (int)use) {
         virConfError(NULL, VIR_ERR_WRITE_FAILED, _("failed to save content"), 0);
-        ret = -1;
-	goto error;
+        return -1;
     }
-error:
-    virBufferFree(buf);
-    return(ret);
+
+    return ret;
 }
 
 /**
@@ -932,44 +932,35 @@ error:
 int
 __virConfWriteMem(char *memory, int *len, virConfPtr conf)
 {
-    virBufferPtr buf;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
     virConfEntryPtr cur;
-    int ret;
+    char *content;
+    unsigned int use;
 
     if ((memory == NULL) || (len == NULL) || (*len <= 0) || (conf == NULL))
         return(-1);
 
-    buf = virBufferNew(500);
-    if (buf == NULL) {
-        virConfError(NULL, VIR_ERR_NO_MEMORY, _("failed to allocate buffer"), 0);
-        return(-1);
-    }
-
     cur = conf->entries;
     while (cur != NULL) {
-        virConfSaveEntry(buf, cur);
+        virConfSaveEntry(&buf, cur);
         cur = cur->next;
     }
 
-    if ((int) buf->use >= *len) {
-        *len = buf->use;
-        ret = -1;
-        goto error;
+    if (virBufferError(&buf)) {
+        virConfError(NULL, VIR_ERR_NO_MEMORY, _("allocate buffer"), 0);
+        return -1;
     }
-    memcpy(memory, buf->content, buf->use);
-    ret = buf->use;
-    *len = buf->use;
-error:
-    virBufferFree(buf);
-    return(ret);
+
+    use = virBufferUse(&buf);
+    content = virBufferContentAndReset(&buf);
+
+    if ((int)use >= *len) {
+        *len = (int)use;
+        VIR_FREE(content);
+        return -1;
+    }
+    memcpy(memory, content, use);
+    VIR_FREE(content);
+    *len = use;
+    return use;
 }
-
-
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */

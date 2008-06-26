@@ -1178,25 +1178,6 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
-libvirt_virNetworkGetUUIDString(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
-    PyObject *py_retval;
-    int c_retval;
-    virNetworkPtr network;
-    PyObject *pyobj_network;
-    char * buf;
-
-    if (!PyArg_ParseTuple(args, (char *)"Oz:virNetworkGetUUIDString", &pyobj_network, &buf))
-        return(NULL);
-    network = (virNetworkPtr) PyvirNetwork_Get(pyobj_network);
-LIBVIRT_BEGIN_ALLOW_THREADS;
-
-    c_retval = virNetworkGetUUIDString(network, buf);
-LIBVIRT_END_ALLOW_THREADS;
-    py_retval = libvirt_intWrap((int) c_retval);
-    return(py_retval);
-}
-
-PyObject *
 libvirt_virNetworkLookupByName(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     virNetworkPtr c_retval;
@@ -1265,25 +1246,6 @@ libvirt_virStoragePoolNumOfVolumes(PyObject *self ATTRIBUTE_UNUSED, PyObject *ar
 LIBVIRT_BEGIN_ALLOW_THREADS;
 
     c_retval = virStoragePoolNumOfVolumes(pool);
-LIBVIRT_END_ALLOW_THREADS;
-    py_retval = libvirt_intWrap((int) c_retval);
-    return(py_retval);
-}
-
-PyObject *
-libvirt_virStoragePoolGetUUIDString(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
-    PyObject *py_retval;
-    int c_retval;
-    virStoragePoolPtr pool;
-    PyObject *pyobj_pool;
-    char * buf;
-
-    if (!PyArg_ParseTuple(args, (char *)"Oz:virStoragePoolGetUUIDString", &pyobj_pool, &buf))
-        return(NULL);
-    pool = (virStoragePoolPtr) PyvirStoragePool_Get(pyobj_pool);
-LIBVIRT_BEGIN_ALLOW_THREADS;
-
-    c_retval = virStoragePoolGetUUIDString(pool, buf);
 LIBVIRT_END_ALLOW_THREADS;
     py_retval = libvirt_intWrap((int) c_retval);
     return(py_retval);
@@ -1556,25 +1518,6 @@ libvirt_virConnectGetMaxVcpus(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
 LIBVIRT_BEGIN_ALLOW_THREADS;
 
     c_retval = virConnectGetMaxVcpus(conn, type);
-LIBVIRT_END_ALLOW_THREADS;
-    py_retval = libvirt_intWrap((int) c_retval);
-    return(py_retval);
-}
-
-PyObject *
-libvirt_virDomainGetUUIDString(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
-    PyObject *py_retval;
-    int c_retval;
-    virDomainPtr domain;
-    PyObject *pyobj_domain;
-    char * buf;
-
-    if (!PyArg_ParseTuple(args, (char *)"Oz:virDomainGetUUIDString", &pyobj_domain, &buf))
-        return(NULL);
-    domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
-LIBVIRT_BEGIN_ALLOW_THREADS;
-
-    c_retval = virDomainGetUUIDString(domain, buf);
 LIBVIRT_END_ALLOW_THREADS;
     py_retval = libvirt_intWrap((int) c_retval);
     return(py_retval);

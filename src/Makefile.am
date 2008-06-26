@@ -9,6 +9,7 @@ INCLUDES = \
 	   $(GNUTLS_CFLAGS) \
 	   $(SASL_CFLAGS) \
 	   $(SELINUX_CFLAGS) \
+	   $(NUMACTL_CFLAGS) \
 	   -DBINDIR=\""$(libexecdir)"\" \
 	   -DSBINDIR=\""$(sbindir)"\" \
 	   -DSYSCONF_DIR="\"$(sysconfdir)\"" \
@@ -33,6 +34,7 @@ CLIENT_SOURCES =						\
 		libvirt.c internal.h				\
 		gnutls_1_0_compat.h				\
 		socketcompat.h					\
+                memory.c memory.h				\
 		hash.c hash.h					\
 		test.c test.h                                   \
                 buf.c buf.h					\
@@ -61,15 +63,20 @@ CLIENT_SOURCES =						\
 		openvz_driver.c openvz_driver.h			\
 		lxc_driver.c lxc_driver.h			\
 		lxc_conf.c lxc_conf.h				\
+		lxc_container.c lxc_container.h			\
                 nodeinfo.h nodeinfo.c                           \
-		storage_conf.h storage_conf.c			\
-		storage_driver.h storage_driver.c		\
-		storage_backend.h storage_backend.c		\
-		storage_backend_fs.h storage_backend_fs.c	\
 		util.c util.h
 
 SERVER_SOURCES =						\
 		../qemud/remote_protocol.c ../qemud/remote_protocol.h
+
+if WITH_LIBVIRTD
+
+CLIENT_SOURCES += 						\
+		storage_conf.h storage_conf.c			\
+		storage_driver.h storage_driver.c		\
+		storage_backend.h storage_backend.c		\
+		storage_backend_fs.h storage_backend_fs.c
 
 if WITH_STORAGE_LVM
 CLIENT_SOURCES += storage_backend_logical.h storage_backend_logical.c
@@ -89,11 +96,12 @@ else
 EXTRA_DIST += storage_backend_disk.h storage_backend_disk.c
 endif
 
-
+endif
 
 
 libvirt_la_SOURCES = $(CLIENT_SOURCES) $(SERVER_SOURCES)
 libvirt_la_LIBADD = $(LIBXML_LIBS) $(GNUTLS_LIBS) $(SASL_LIBS) $(SELINUX_LIBS) \
+                    $(NUMACTL_LIBS) \
 		    @CYGWIN_EXTRA_LIBADD@ ../gnulib/lib/libgnu.la
 libvirt_la_LDFLAGS = -Wl,--version-script=$(srcdir)/libvirt_sym.version \
                      -version-info @LIBVIRT_VERSION_INFO@ \
@@ -129,30 +137,20 @@ virsh_LDADD = $(LDADDS) $(VIRSH_LIBS)
 virsh_CFLAGS = $(COVERAGE_CFLAGS) $(READLINE_CFLAGS)
 
 if WITH_STORAGE_DISK
+if WITH_LIBVIRTD
 libexec_PROGRAMS = libvirt_parthelper
 
 libvirt_parthelper_SOURCES = parthelper.c
 libvirt_parthelper_LDFLAGS = $(WARN_CFLAGS) $(COVERAGE_LDCFLAGS)
 libvirt_parthelper_LDADD = $(LIBPARTED_LIBS)
 libvirt_parthelper_CFLAGS =  $(LIBPARTED_CFLAGS)
+endif
 else
 EXTRA_DIST += parthelper.c
 endif
 
-cov: clean-cov
-	for i in $(CLIENT_SOURCES); do			\
-	  case $$i in *.c) ;; *) continue;; esac;	\
-	  b=$$(basename $$i .c);			\
-	  o_files=;					\
-	  for i in '' _test; do				\
-	    o="$(LV_LIBTOOL_OBJDIR)/libvirt$${i}_la-$$b.o";	\
-	    test -f "$$o"				\
-	      && o_files="$$o_files $$o";		\
-	  done;						\
-	  gcov -b -f $$o_files > $$b.cov;		\
-	done
+# Create the /var/cache/libvirt directory when installing.
+install-exec-local:
+	$(MKDIR_P) $(DESTDIR)$(localstatedir)/cache/libvirt
 
-clean-cov:
-	rm -f *.cov *.gcov
-
-CLEANFILES = *.cov *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda
+CLEANFILES = *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda

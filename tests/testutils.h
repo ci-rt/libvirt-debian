@@ -7,7 +7,7 @@
  *
  * Karel Zak <kzak@redhat.com>
  *
- * $Id: testutils.h,v 1.5 2008/02/05 19:27:37 meyering Exp $
+ * $Id: testutils.h,v 1.8 2008/05/29 15:21:45 berrange Exp $
  */
 
 #ifndef __VIT_TEST_UTILS_H__
@@ -32,16 +32,21 @@ extern "C" {
                                      char **buf,
                                      int buflen);
 
+
+    int virtTestDifference(FILE *stream,
+                           const char *expect,
+                           const char *actual);
+
+    int virtTestMain(int argc,
+                     char **argv,
+                     int (*func)(int, char **));
+
+#define VIRT_TEST_MAIN(func)                    \
+    int main(int argc, char **argv)  {          \
+        return virtTestMain(argc,argv, func);   \
+    }
+
 #ifdef __cplusplus
 }
 #endif
 #endif /* __VIT_TEST_UTILS_H__ */
-
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */

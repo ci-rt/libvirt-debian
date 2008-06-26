@@ -20,11 +20,11 @@
 
 #include "libvirt/libvirt.h"
 #include "capabilities.h"
+#include "buf.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 /**
  * \brief Setup the connection to a xend instance via TCP
@@ -104,19 +104,19 @@ int xenDaemonDomainLookupByName_ids(virConnectPtr xend,
  * This method looks up the name/uuid of a domain
  */
 int xenDaemonDomainLookupByID(virConnectPtr xend,
-			      int id,
-			      char **name, unsigned char *uuid);
+                              int id,
+                              char **name, unsigned char *uuid);
 
 
 char *xenDaemonDomainDumpXMLByID(virConnectPtr xend,
-				 int domid,
-				 int flags,
-				 const char *cpus);
+                                 int domid,
+                                 int flags,
+                                 const char *cpus);
 
 char *xenDaemonDomainDumpXMLByName(virConnectPtr xend,
-				   const char *name,
-				   int flags,
-				   const char *cpus);
+                                   const char *name,
+                                   int flags,
+                                   const char *cpus);
 
 /**
  * \brief Lookup information about the host machine
@@ -180,7 +180,19 @@ char *xenDaemonDomainDumpXMLByName(virConnectPtr xend,
  */
     int xend_log(virConnectPtr xend, char *buffer, size_t n_buffer);
 
+    int xend_parse_sexp_desc_char(virConnectPtr conn,
+                                  virBufferPtr buf,
+                                  const char *devtype,
+                                  int portNum,
+                                  const char *value,
+                                  const char *tty);
+
   char *xend_parse_domain_sexp(virConnectPtr conn,  char *root, int xendConfigVersion);
+
+  int is_sound_model_valid(const char *model);
+  int is_sound_model_conflict(const char *model, const char *soundstr);
+  char *sound_string_to_xml(const char *sound);
+
 
 /* refactored ones */
 int xenDaemonOpen(virConnectPtr conn, xmlURIPtr uri, virConnectAuthPtr auth, int flags);
@@ -207,16 +219,20 @@ int xenDaemonDomainCreate(virDomainPtr domain);
 int xenDaemonDomainUndefine(virDomainPtr domain);
 
 int	xenDaemonDomainSetVcpus		(virDomainPtr domain,
-					 unsigned int vcpus);
+                                         unsigned int vcpus);
 int	xenDaemonDomainPinVcpu		(virDomainPtr domain,
-					 unsigned int vcpu,
-					 unsigned char *cpumap,
-					 int maplen);
+                                         unsigned int vcpu,
+                                         unsigned char *cpumap,
+                                         int maplen);
 int	xenDaemonDomainGetVcpus		(virDomainPtr domain,
-					 virVcpuInfoPtr info,
-					 int maxinfo,
-					 unsigned char *cpumaps,
-					 int maplen);
+                                         virVcpuInfoPtr info,
+                                         int maxinfo,
+                                         unsigned char *cpumaps,
+                                         int maplen);
+int xenDaemonDomainGetAutostart          (virDomainPtr dom,
+                                          int *autostart);
+int xenDaemonDomainSetAutostart          (virDomainPtr domain,
+                                          int autostart);
 
 /* xen_unified calls through here. */
 extern struct xenUnifiedDriver xenDaemonDriver;
@@ -227,6 +243,8 @@ virDomainPtr xenDaemonLookupByUUID(virConnectPtr conn, const unsigned char *uuid
 virDomainPtr xenDaemonLookupByName(virConnectPtr conn, const char *domname);
 int xenDaemonDomainMigratePrepare (virConnectPtr dconn, char **cookie, int *cookielen, const char *uri_in, char **uri_out, unsigned long flags, const char *dname, unsigned long resource);
 int xenDaemonDomainMigratePerform (virDomainPtr domain, const char *cookie, int cookielen, const char *uri, unsigned long flags, const char *dname, unsigned long resource);
+
+int xenDaemonDomainBlockPeek (virDomainPtr domain, const char *path, unsigned long long offset, size_t size, void *buffer);
 
 #ifdef __cplusplus
 }

@@ -10,8 +10,6 @@
 
 #include <config.h>
 
-#include "libvirt/libvirt.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,14 +19,17 @@
 #include <xs.h>
 #endif
 #include <math.h>               /* for isnan() */
+#include "c-ctype.h"
 #include "internal.h"
 #include "hash.h"
 #include "sexpr.h"
 #include "xml.h"
 #include "buf.h"
 #include "util.h"
+#include "memory.h"
 #include "xs_internal.h"        /* for xenStoreDomainGetNetworkID */
 #include "xen_unified.h"
+#include "xend_internal.h"      /* for is_sound_* functions */
 
 /**
  * virXMLError:
@@ -58,7 +59,7 @@ virXMLError(virConnectPtr conn, virErrorNumber error, const char *info,
  * Parser and converter for the CPUset strings used in libvirt		*
  *									*
  ************************************************************************/
-#if WITH_XEN
+#if WITH_XEN || WITH_QEMU
 /**
  * parseCpuNumber:
  * @str: pointer to the char pointer used
@@ -75,10 +76,10 @@ parseCpuNumber(const char **str, int maxcpu)
     int ret = 0;
     const char *cur = *str;
 
-    if ((*cur < '0') || (*cur > '9'))
+    if (!c_isdigit(*cur))
         return (-1);
 
-    while ((*cur >= '0') && (*cur <= '9')) {
+    while (c_isdigit(*cur)) {
         ret = ret * 10 + (*cur - '0');
         if (ret >= maxcpu)
             return (-1);
@@ -102,19 +103,13 @@ parseCpuNumber(const char **str, int maxcpu)
 char *
 virSaveCpuSet(virConnectPtr conn, char *cpuset, int maxcpu)
 {
-    virBufferPtr buf;
-    char *ret;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
     int start, cur;
     int first = 1;
 
     if ((cpuset == NULL) || (maxcpu <= 0) || (maxcpu > 100000))
         return (NULL);
 
-    buf = virBufferNew(1000);
-    if (buf == NULL) {
-        virXMLError(conn, VIR_ERR_NO_MEMORY, _("allocate buffer"), 1000);
-        return (NULL);
-    }
     cur = 0;
     start = -1;
     while (cur < maxcpu) {
@@ -123,27 +118,32 @@ virSaveCpuSet(virConnectPtr conn, char *cpuset, int maxcpu)
                 start = cur;
         } else if (start != -1) {
             if (!first)
-                virBufferAddLit(buf, ",");
+                virBufferAddLit(&buf, ",");
             else
                 first = 0;
             if (cur == start + 1)
-                virBufferVSprintf(buf, "%d", start);
+                virBufferVSprintf(&buf, "%d", start);
             else
-                virBufferVSprintf(buf, "%d-%d", start, cur - 1);
+                virBufferVSprintf(&buf, "%d-%d", start, cur - 1);
             start = -1;
         }
         cur++;
     }
     if (start != -1) {
         if (!first)
-            virBufferAddLit(buf, ",");
+            virBufferAddLit(&buf, ",");
         if (maxcpu == start + 1)
-            virBufferVSprintf(buf, "%d", start);
+            virBufferVSprintf(&buf, "%d", start);
         else
-            virBufferVSprintf(buf, "%d-%d", start, maxcpu - 1);
+            virBufferVSprintf(&buf, "%d-%d", start, maxcpu - 1);
     }
-    ret = virBufferContentAndFree(buf);
-    return (ret);
+
+    if (virBufferError(&buf)) {
+        virXMLError(conn, VIR_ERR_NO_MEMORY, _("allocate buffer"), 1000);
+        return NULL;
+    }
+
+    return virBufferContentAndReset(&buf);
 }
 
 /**
@@ -197,7 +197,7 @@ virParseCpuSet(virConnectPtr conn, const char **str, char sep,
             neg = 1;
         }
 
-        if ((*cur < '0') || (*cur > '9'))
+        if (!c_isdigit(*cur))
             goto parse_error;
         start = parseCpuNumber(&cur, maxcpu);
         if (start < 0)
@@ -248,8 +248,9 @@ virParseCpuSet(virConnectPtr conn, const char **str, char sep,
                 _("topology cpuset syntax error"), 0);
     return (-1);
 }
+#endif
 
-
+#if WITH_XEN
 /**
  * virConvertCpuSet:
  * @conn: connection
@@ -274,21 +275,94 @@ virConvertCpuSet(virConnectPtr conn, const char *str, int maxcpu) {
     if (maxcpu <= 0)
         maxcpu = 4096;
 
-    cpuset = calloc(maxcpu, sizeof(*cpuset));
-    if (cpuset == NULL) {
-	virXMLError(conn, VIR_ERR_NO_MEMORY, _("allocate buffer"), 0);
-	return(NULL);
+    if (VIR_ALLOC_N(cpuset, maxcpu) < 0) {
+        virXMLError(conn, VIR_ERR_NO_MEMORY, _("allocate buffer"), 0);
+        return(NULL);
     }
 
     ret = virParseCpuSet(conn, &cur, 0, cpuset, maxcpu);
     if (ret < 0) {
-        free(cpuset);
-	return(NULL);
+        VIR_FREE(cpuset);
+        return(NULL);
     }
     res = virSaveCpuSet(conn, cpuset, maxcpu);
-    free(cpuset);
+    VIR_FREE(cpuset);
     return (res);
 }
+
+#ifndef PROXY
+/**
+ * virBuildSoundStringFromXML
+ * @sound buffer to populate
+ * @len size of preallocated buffer 'sound'
+ * @ctxt xml context to pull sound info from
+ *
+ * Builds a string of the form m1,m2,m3 from the different sound models
+ * in the xml. String must be free'd by caller.
+ *
+ * Returns string on success, NULL on error
+ */
+char * virBuildSoundStringFromXML(virConnectPtr conn,
+                                  xmlXPathContextPtr ctxt) {
+
+    int nb_nodes, size = 256;
+    char *sound;
+    xmlNodePtr *nodes = NULL;
+
+    if (VIR_ALLOC_N(sound, size + 1) < 0) {
+        virXMLError(conn, VIR_ERR_NO_MEMORY,
+                    _("failed to allocate sound string"), 0);
+        return NULL;
+    }
+
+    nb_nodes = virXPathNodeSet("/domain/devices/sound", ctxt, &nodes);
+    if (nb_nodes > 0) {
+        int i;
+        for (i = 0; i < nb_nodes && size > 0; i++) {
+            char *model = NULL;
+            int collision = 0;
+
+            model = (char *) xmlGetProp(nodes[i], (xmlChar *) "model");
+            if (!model) {
+                virXMLError(conn, VIR_ERR_XML_ERROR,
+                            _("no model for sound device"), 0);
+                goto error;
+            }
+
+            if (!is_sound_model_valid(model)) {
+                virXMLError(conn, VIR_ERR_XML_ERROR,
+                            _("unknown sound model type"), 0);
+                VIR_FREE(model);
+                goto error;
+            }
+
+            // Check for duplicates in currently built string
+            if (*sound)
+                collision = is_sound_model_conflict(model, sound);
+
+            // If no collision, add to string
+            if (!collision) {
+                if (*sound && (size >= (strlen(model) + 1))) {
+                    strncat(sound, ",", size--);
+                } else if (*sound || size < strlen(model)) {
+                    VIR_FREE(model);
+                    continue;
+                }
+                strncat(sound, model, size);
+                size -= strlen(model);
+            }
+
+            VIR_FREE(model);
+        }
+    }
+    VIR_FREE(nodes);
+    return sound;
+
+  error:
+    VIR_FREE(nodes);
+    return NULL;
+}
+#endif /* !PROXY */
 #endif /* WITH_XEN */
 #ifndef PROXY
 
@@ -516,11 +590,11 @@ virXPathNodeSet(const char *xpath, xmlXPathContextPtr ctxt,
 
     ret = obj->nodesetval->nodeNr;
     if (list != NULL) {
-        *list = malloc(ret * sizeof(**list));
-        if (*list == NULL) {
+        if (VIR_ALLOC_N(*list, ret) < 0) {
             virXMLError(NULL, VIR_ERR_NO_MEMORY,
                         _("allocate string array"),
                         ret * sizeof(**list));
+            ret = -1;
         } else {
             memcpy(*list, obj->nodesetval->nodeTab,
                    ret * sizeof(xmlNodePtr));
@@ -673,6 +747,178 @@ virDomainParseXMLGraphicsDescVFB(virConnectPtr conn ATTRIBUTE_UNUSED,
 }
 
 
+int
+virDomainParseXMLOSDescHVMChar(virConnectPtr conn,
+                               char *buf,
+                               size_t buflen,
+                               xmlNodePtr node)
+{
+    xmlChar *type = NULL;
+    xmlChar *path = NULL;
+    xmlChar *bindHost = NULL;
+    xmlChar *bindService = NULL;
+    xmlChar *connectHost = NULL;
+    xmlChar *connectService = NULL;
+    xmlChar *mode = NULL;
+    xmlChar *protocol = NULL;
+    xmlNodePtr cur;
+
+    type = xmlGetProp(node, BAD_CAST "type");
+
+    if (type != NULL) {
+        cur = node->children;
+        while (cur != NULL) {
+            if (cur->type == XML_ELEMENT_NODE) {
+                if (xmlStrEqual(cur->name, BAD_CAST "source")) {
+                    if (mode == NULL)
+                        mode = xmlGetProp(cur, BAD_CAST "mode");
+
+                    if (STREQ((const char *)type, "dev") ||
+                        STREQ((const char *)type, "file") ||
+                        STREQ((const char *)type, "pipe") ||
+                        STREQ((const char *)type, "unix")) {
+                        if (path == NULL)
+                            path = xmlGetProp(cur, BAD_CAST "path");
+
+                    } else if (STREQ((const char *)type, "udp") ||
+                               STREQ((const char *)type, "tcp")) {
+                        if (mode == NULL ||
+                            STREQ((const char *)mode, "connect")) {
+
+                            if (connectHost == NULL)
+                                connectHost = xmlGetProp(cur, BAD_CAST "host");
+                            if (connectService == NULL)
+                                connectService = xmlGetProp(cur, BAD_CAST "service");
+                        } else {
+                            if (bindHost == NULL)
+                                bindHost = xmlGetProp(cur, BAD_CAST "host");
+                            if (bindService == NULL)
+                                bindService = xmlGetProp(cur, BAD_CAST "service");
+                        }
+
+                        if (STREQ((const char*)type, "udp")) {
+                            xmlFree(mode);
+                            mode = NULL;
+                        }
+                    }
+                } else if (xmlStrEqual(cur->name, BAD_CAST "protocol")) {
+                    if (protocol == NULL)
+                        protocol = xmlGetProp(cur, BAD_CAST "type");
+                }
+            }
+            cur = cur->next;
+        }
+    }
+
+    if (type == NULL ||
+        STREQ((const char *)type, "pty")) {
+        strncpy(buf, "pty", buflen);
+    } else if (STREQ((const char *)type, "null") ||
+               STREQ((const char *)type, "stdio") ||
+               STREQ((const char *)type, "vc")) {
+        snprintf(buf, buflen, "%s", type);
+    } else if (STREQ((const char *)type, "file") ||
+               STREQ((const char *)type, "dev") ||
+               STREQ((const char *)type, "pipe")) {
+        if (path == NULL) {
+            virXMLError(conn, VIR_ERR_XML_ERROR,
+                        _("Missing source path attribute for char device"), 0);
+            goto cleanup;
+        }
+
+        if (STREQ((const char *)type, "dev"))
+            strncpy(buf, (const char *)path, buflen);
+        else
+            snprintf(buf, buflen, "%s:%s", type, path);
+    } else if (STREQ((const char *)type, "tcp")) {
+        int telnet = 0;
+        if (protocol != NULL &&
+            STREQ((const char *)protocol, "telnet"))
+            telnet = 1;
+
+        if (mode == NULL ||
+            STREQ((const char *)mode, "connect")) {
+            if (connectHost == NULL) {
+                virXMLError(conn, VIR_ERR_INTERNAL_ERROR,
+                            _("Missing source host attribute for char device"), 0);
+                goto cleanup;
+            }
+            if (connectService == NULL) {
+                virXMLError(conn, VIR_ERR_INTERNAL_ERROR,
+                            _("Missing source service attribute for char device"), 0);
+                goto cleanup;
+            }
+
+            snprintf(buf, buflen, "%s:%s:%s",
+                     (telnet ? "telnet" : "tcp"),
+                     connectHost, connectService);
+        } else {
+            if (bindHost == NULL) {
+                virXMLError(conn, VIR_ERR_INTERNAL_ERROR,
+                            _("Missing source host attribute for char device"), 0);
+                goto cleanup;
+            }
+            if (bindService == NULL) {
+                virXMLError(conn, VIR_ERR_INTERNAL_ERROR,
+                            _("Missing source service attribute for char device"), 0);
+                goto cleanup;
+            }
+
+            snprintf(buf, buflen, "%s:%s:%s,listen",
+                     (telnet ? "telnet" : "tcp"),
+                     bindHost, bindService);
+        }
+    } else if (STREQ((const char *)type, "udp")) {
+        if (connectService == NULL) {
+            virXMLError(conn, VIR_ERR_XML_ERROR,
+                        _("Missing source service attribute for char device"), 0);
+            goto cleanup;
+        }
+
+        snprintf(buf, buflen, "udp:%s:%s@%s:%s",
+                 connectHost ? (const char *)connectHost : "",
+                 connectService,
+                 bindHost ? (const char *)bindHost : "",
+                 bindService ? (const char *)bindService : "");
+    } else if (STREQ((const char *)type, "unix")) {
+        if (path == NULL) {
+            virXMLError(conn, VIR_ERR_XML_ERROR,
+                        _("Missing source path attribute for char device"), 0);
+            goto cleanup;
+        }
+
+        if (mode == NULL ||
+            STREQ((const char *)mode, "connect")) {
+            snprintf(buf, buflen, "%s:%s", type, path);
+        } else {
+            snprintf(buf, buflen, "%s:%s,listen", type, path);
+        }
+    }
+    buf[buflen-1] = '\0';
+
+    xmlFree(mode);
+    xmlFree(protocol);
+    xmlFree(type);
+    xmlFree(bindHost);
+    xmlFree(bindService);
+    xmlFree(connectHost);
+    xmlFree(connectService);
+    xmlFree(path);
+
+    return 0;
+
+cleanup:
+    xmlFree(mode);
+    xmlFree(protocol);
+    xmlFree(type);
+    xmlFree(bindHost);
+    xmlFree(bindService);
+    xmlFree(connectHost);
+    xmlFree(connectService);
+    xmlFree(path);
+    return -1;
+}
+
 /**
  * virDomainParseXMLOSDescHVM:
  * @conn: pointer to the hypervisor connection
@@ -780,7 +1026,7 @@ virDomainParseXMLOSDescHVM(virConnectPtr conn, xmlNodePtr node,
         fdfile = xmlGetProp(cur, BAD_CAST "file");
         if (fdfile != NULL) {
             virBufferVSprintf(buf, "(fda '%s')", fdfile);
-            free(fdfile);
+            VIR_FREE(fdfile);
         }
     }
 
@@ -794,16 +1040,15 @@ virDomainParseXMLOSDescHVM(virConnectPtr conn, xmlNodePtr node,
         fdfile = xmlGetProp(cur, BAD_CAST "file");
         if (fdfile != NULL) {
             virBufferVSprintf(buf, "(fdb '%s')", fdfile);
-            free(fdfile);
+            VIR_FREE(fdfile);
         }
     }
-
 
     /* get the cdrom device file */
     /* Only XenD <= 3.0.2 wants cdrom config here */
     if (xendConfigVersion == 1) {
         cur = virXPathNode(
-	  "/domain/devices/disk[@device='cdrom' and target/@dev='hdc']/source",
+          "/domain/devices/disk[@device='cdrom' and target/@dev='hdc']/source",
              ctxt);
         if (cur != NULL) {
             xmlChar *cdfile;
@@ -838,9 +1083,9 @@ virDomainParseXMLOSDescHVM(virConnectPtr conn, xmlNodePtr node,
             if (!itype) {
                 goto error;
             }
-            if (!strcmp((const char *) itype, "tablet"))
+            if (STREQ((const char *) itype, "tablet"))
                 isMouse = 0;
-            else if (strcmp((const char *) itype, "mouse")) {
+            else if (STRNEQ((const char *) itype, "mouse")) {
                 xmlFree(itype);
                 virXMLError(conn, VIR_ERR_XML_ERROR,
                             _("invalid input device"), 0);
@@ -856,7 +1101,7 @@ virDomainParseXMLOSDescHVM(virConnectPtr conn, xmlNodePtr node,
                     virBufferAddLit(buf, "(usbdevice tablet)");
                 }
             } else {
-                if (!strcmp((const char *) bus, "ps2")) {
+                if (STREQ((const char *) bus, "ps2")) {
                     if (!isMouse) {
                         xmlFree(bus);
                         virXMLError(conn, VIR_ERR_XML_ERROR,
@@ -864,7 +1109,7 @@ virDomainParseXMLOSDescHVM(virConnectPtr conn, xmlNodePtr node,
                         goto error;
                     }
                     /* Nothing - implicit ps2 */
-                } else if (!strcmp((const char *) bus, "usb")) {
+                } else if (STREQ((const char *) bus, "usb")) {
                     if (isMouse)
                         virBufferAddLit(buf, "(usbdevice mouse)");
                     else
@@ -873,30 +1118,58 @@ virDomainParseXMLOSDescHVM(virConnectPtr conn, xmlNodePtr node,
             }
             xmlFree(bus);
         }
-        free(nodes);
+        VIR_FREE(nodes);
         nodes = NULL;
     }
 
-
-    res = virXPathBoolean("count(domain/devices/console) > 0", ctxt);
-    if (res < 0) {
-        virXMLError(conn, VIR_ERR_XML_ERROR, NULL, 0);
-        goto error;
+    cur = virXPathNode("/domain/devices/parallel[1]", ctxt);
+    if (cur != NULL) {
+        char scratch[PATH_MAX];
+        if (virDomainParseXMLOSDescHVMChar(conn, scratch, sizeof(scratch), cur) < 0)
+            goto error;
+        virBufferVSprintf(buf, "(parallel %s)", scratch);
+    } else {
+        virBufferAddLit(buf, "(parallel none)");
     }
-    if (res) {
-        virBufferAddLit(buf, "(serial pty)");
+
+    cur = virXPathNode("/domain/devices/serial[1]", ctxt);
+    if (cur != NULL) {
+        char scratch[PATH_MAX];
+        if (virDomainParseXMLOSDescHVMChar(conn, scratch, sizeof(scratch), cur) < 0)
+            goto error;
+        virBufferVSprintf(buf, "(serial %s)", scratch);
+    } else {
+        res = virXPathBoolean("count(domain/devices/console) > 0", ctxt);
+        if (res < 0) {
+            virXMLError(conn, VIR_ERR_XML_ERROR, NULL, 0);
+            goto error;
+        }
+        if (res) {
+            virBufferAddLit(buf, "(serial pty)");
+        } else {
+            virBufferAddLit(buf, "(serial none)");
+        }
+    }
+
+    cur = virXPathNode("/domain/devices/sound", ctxt);
+    if (cur) {
+        char *soundstr;
+        if (!(soundstr = virBuildSoundStringFromXML(conn, ctxt)))
+            goto error;
+        virBufferVSprintf(buf, "(soundhw '%s')", soundstr);
+        VIR_FREE(soundstr);
     }
 
     str = virXPathString("string(/domain/clock/@offset)", ctxt);
-    if (str != NULL && !strcmp(str, "localtime")) {
+    if (str != NULL && STREQ(str, "localtime")) {
         virBufferAddLit(buf, "(localtime 1)");
     }
-    free(str);
+    VIR_FREE(str);
 
     return (0);
 
   error:
-    free(nodes);
+    VIR_FREE(nodes);
     return (-1);
 }
 
@@ -1047,7 +1320,7 @@ virDomainParseXMLDiskDesc(virConnectPtr conn, xmlNodePtr node,
             } else if ((drvName == NULL) &&
                        (xmlStrEqual(cur->name, BAD_CAST "driver"))) {
                 drvName = xmlGetProp(cur, BAD_CAST "name");
-                if (drvName && !strcmp((const char *) drvName, "tap"))
+                if (drvName && STREQ((const char *) drvName, "tap"))
                     drvType = xmlGetProp(cur, BAD_CAST "type");
             } else if (xmlStrEqual(cur->name, BAD_CAST "readonly")) {
                 ro = 1;
@@ -1062,7 +1335,7 @@ virDomainParseXMLDiskDesc(virConnectPtr conn, xmlNodePtr node,
         /* There is a case without the source
          * to the CD-ROM device
          */
-        if (hvm && device && !strcmp((const char *) device, "cdrom")) {
+        if (hvm && device && STREQ((const char *) device, "cdrom")) {
             isNoSrcCdrom = 1;
         }
         if (!isNoSrcCdrom) {
@@ -1080,12 +1353,12 @@ virDomainParseXMLDiskDesc(virConnectPtr conn, xmlNodePtr node,
     /* Xend (all versions) put the floppy device config
      * under the hvm (image (os)) block
      */
-    if (hvm && device && !strcmp((const char *) device, "floppy")) {
+    if (hvm && device && STREQ((const char *) device, "floppy")) {
         goto cleanup;
     }
 
     /* Xend <= 3.0.2 doesn't include cdrom config here */
-    if (hvm && device && !strcmp((const char *) device, "cdrom")) {
+    if (hvm && device && STREQ((const char *) device, "cdrom")) {
         if (xendConfigVersion == 1)
             goto cleanup;
         else
@@ -1097,7 +1370,7 @@ virDomainParseXMLDiskDesc(virConnectPtr conn, xmlNodePtr node,
     /* Normally disks are in a (device (vbd ...)) block
      * but blktap disks ended up in a differently named
      * (device (tap ....)) block.... */
-    if (drvName && !strcmp((const char *) drvName, "tap")) {
+    if (drvName && STREQ((const char *) drvName, "tap")) {
         virBufferAddLit(buf, "(tap ");
     } else {
         virBufferAddLit(buf, "(vbd ");
@@ -1107,7 +1380,7 @@ virDomainParseXMLDiskDesc(virConnectPtr conn, xmlNodePtr node,
         char *tmp = (char *) target;
 
         /* Just in case user mistakenly still puts ioemu: in their XML */
-        if (!strncmp((const char *) tmp, "ioemu:", 6))
+        if (STRPREFIX((const char *) tmp, "ioemu:"))
             tmp += 6;
 
         /* Xend <= 3.0.2 wants a ioemu: prefix on devices for HVM */
@@ -1120,7 +1393,7 @@ virDomainParseXMLDiskDesc(virConnectPtr conn, xmlNodePtr node,
         virBufferVSprintf(buf, "(dev '%s')", (const char *) target);
 
     if (drvName && !isNoSrcCdrom) {
-        if (!strcmp((const char *) drvName, "tap")) {
+        if (STREQ((const char *) drvName, "tap")) {
             virBufferVSprintf(buf, "(uname '%s:%s:%s')",
                               (const char *) drvName,
                               (drvType ? (const char *) drvType : "aio"),
@@ -1151,16 +1424,11 @@ virDomainParseXMLDiskDesc(virConnectPtr conn, xmlNodePtr node,
     virBufferAddLit(buf, ")");
 
   cleanup:
-    if (drvType)
-        xmlFree(drvType);
-    if (drvName)
-        xmlFree(drvName);
-    if (device)
-        xmlFree(device);
-    if (target)
-        xmlFree(target);
-    if (source)
-        xmlFree(source);
+    xmlFree(drvType);
+    xmlFree(drvName);
+    xmlFree(device);
+    xmlFree(target);
+    xmlFree(source);
     return (ret);
 }
 
@@ -1188,6 +1456,7 @@ virDomainParseXMLIfDesc(virConnectPtr conn ATTRIBUTE_UNUSED,
     xmlChar *source = NULL;
     xmlChar *mac = NULL;
     xmlChar *script = NULL;
+    xmlChar *model = NULL;
     xmlChar *ip = NULL;
     int typ = 0;
     int ret = -1;
@@ -1219,6 +1488,9 @@ virDomainParseXMLIfDesc(virConnectPtr conn ATTRIBUTE_UNUSED,
             } else if ((script == NULL) &&
                        (xmlStrEqual(cur->name, BAD_CAST "script"))) {
                 script = xmlGetProp(cur, BAD_CAST "path");
+            } else if ((model == NULL) &&
+                       (xmlStrEqual(cur->name, BAD_CAST "model"))) {
+                model = xmlGetProp(cur, BAD_CAST "type");
             } else if ((ip == NULL) &&
                        (xmlStrEqual(cur->name, BAD_CAST "ip"))) {
                 /* XXX in future expect to need to have > 1 ip
@@ -1259,11 +1531,13 @@ virDomainParseXMLIfDesc(virConnectPtr conn ATTRIBUTE_UNUSED,
             }
             virNetworkFree(network);
             virBufferVSprintf(buf, "(bridge '%s')", bridge);
-            free(bridge);
+            VIR_FREE(bridge);
         }
     }
     if (script != NULL)
         virBufferVSprintf(buf, "(script '%s')", script);
+    if (model != NULL)
+        virBufferVSprintf(buf, "(model '%s')", model);
     if (ip != NULL)
         virBufferVSprintf(buf, "(ip '%s')", ip);
     /*
@@ -1276,14 +1550,11 @@ virDomainParseXMLIfDesc(virConnectPtr conn ATTRIBUTE_UNUSED,
     virBufferAddLit(buf, ")");
     ret = 0;
   error:
-    if (mac != NULL)
-        xmlFree(mac);
-    if (source != NULL)
-        xmlFree(source);
-    if (script != NULL)
-        xmlFree(script);
-    if (ip != NULL)
-        xmlFree(ip);
+    xmlFree(mac);
+    xmlFree(source);
+    xmlFree(script);
+    xmlFree(ip);
+    xmlFree(model);
     return (ret);
 }
 
@@ -1307,8 +1578,8 @@ virDomainParseXMLDesc(virConnectPtr conn, const char *xmldesc, char **name,
 {
     xmlDocPtr xml = NULL;
     xmlNodePtr node;
-    char *nam = NULL;
-    virBuffer buf;
+    char *nam = NULL, *tmp;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
     xmlChar *prop;
     xmlParserCtxtPtr pctxt;
     xmlXPathContextPtr ctxt = NULL;
@@ -1324,11 +1595,6 @@ virDomainParseXMLDesc(virConnectPtr conn, const char *xmldesc, char **name,
 
     if (name != NULL)
         *name = NULL;
-    buf.content = malloc(1000);
-    if (buf.content == NULL)
-        return (NULL);
-    buf.size = 1000;
-    buf.use = 0;
 
     pctxt = xmlNewParserCtxt();
     if ((pctxt == NULL) || (pctxt->sax == NULL)) {
@@ -1409,30 +1675,29 @@ virDomainParseXMLDesc(virConnectPtr conn, const char *xmldesc, char **name,
          * it in a range format guaranteed to be understood by Xen.
          */
         if (maxcpu > 0) {
-            cpuset = malloc(maxcpu * sizeof(*cpuset));
-            if (cpuset != NULL) {
-                res = virParseCpuSet(conn, &cur, 0, cpuset, maxcpu);
-                if (res > 0) {
-                    ranges = virSaveCpuSet(conn, cpuset, maxcpu);
-                    if (ranges != NULL) {
-                        virBufferVSprintf(&buf, "(cpus '%s')", ranges);
-                        free(ranges);
-                    }
-                }
-                free(cpuset);
-                if (res < 0)
-                    goto error;
-            } else {
+            if (VIR_ALLOC_N(cpuset, maxcpu) < 0) {
                 virXMLError(conn, VIR_ERR_NO_MEMORY, xmldesc, 0);
+                goto error;
             }
+            res = virParseCpuSet(conn, &cur, 0, cpuset, maxcpu);
+            if (res > 0) {
+                ranges = virSaveCpuSet(conn, cpuset, maxcpu);
+                if (ranges != NULL) {
+                    virBufferVSprintf(&buf, "(cpus '%s')", ranges);
+                    VIR_FREE(ranges);
+                }
+            }
+            VIR_FREE(cpuset);
+            if (res < 0)
+                goto error;
         }
-        free(str);
+        VIR_FREE(str);
     }
 
     str = virXPathString("string(/domain/uuid[1])", ctxt);
     if (str != NULL) {
         virBufferVSprintf(&buf, "(uuid '%s')", str);
-        free(str);
+        VIR_FREE(str);
     }
 
     str = virXPathString("string(/domain/bootloader[1])", ctxt);
@@ -1443,7 +1708,7 @@ virDomainParseXMLDesc(virConnectPtr conn, const char *xmldesc, char **name,
          * significant and should be discarded
          */
         bootloader = 1;
-        free(str);
+        VIR_FREE(str);
     } else if (virXPathNumber("count(/domain/bootloader)", ctxt, &f) == 0
                && (f > 0)) {
         virBufferAddLit(&buf, "(bootloader)");
@@ -1460,25 +1725,25 @@ virDomainParseXMLDesc(virConnectPtr conn, const char *xmldesc, char **name,
          * ignore the bootloader_args value unless a bootloader was specified
          */
         virBufferVSprintf(&buf, "(bootloader_args '%s')", str);
-        free(str);
+        VIR_FREE(str);
     }
 
     str = virXPathString("string(/domain/on_poweroff[1])", ctxt);
     if (str != NULL) {
         virBufferVSprintf(&buf, "(on_poweroff '%s')", str);
-        free(str);
+        VIR_FREE(str);
     }
 
     str = virXPathString("string(/domain/on_reboot[1])", ctxt);
     if (str != NULL) {
         virBufferVSprintf(&buf, "(on_reboot '%s')", str);
-        free(str);
+        VIR_FREE(str);
     }
 
     str = virXPathString("string(/domain/on_crash[1])", ctxt);
     if (str != NULL) {
         virBufferVSprintf(&buf, "(on_crash '%s')", str);
-        free(str);
+        VIR_FREE(str);
     }
 
     if (!bootloader) {
@@ -1544,11 +1809,11 @@ virDomainParseXMLDesc(virConnectPtr conn, const char *xmldesc, char **name,
             res = virDomainParseXMLDiskDesc(conn, nodes[i], &buf,
                                             hvm, xendConfigVersion);
             if (res != 0) {
-                free(nodes);
+                VIR_FREE(nodes);
                 goto error;
             }
         }
-        free(nodes);
+        VIR_FREE(nodes);
     }
 
     nb_nodes = virXPathNodeSet("/domain/devices/interface", ctxt, &nodes);
@@ -1559,12 +1824,12 @@ virDomainParseXMLDesc(virConnectPtr conn, const char *xmldesc, char **name,
                 virDomainParseXMLIfDesc(conn, nodes[i], &buf, hvm,
                                         xendConfigVersion);
             if (res != 0) {
-                free(nodes);
+                VIR_FREE(nodes);
                 goto error;
             }
             virBufferAddLit(&buf, ")");
         }
-        free(nodes);
+        VIR_FREE(nodes);
     }
 
     /* New style PV graphics config xen >= 3.0.4,
@@ -1576,17 +1841,16 @@ virDomainParseXMLDesc(virConnectPtr conn, const char *xmldesc, char **name,
             for (i = 0; i < nb_nodes; i++) {
                 res = virDomainParseXMLGraphicsDescVFB(conn, nodes[i], &buf);
                 if (res != 0) {
-                    free(nodes);
+                    VIR_FREE(nodes);
                     goto error;
                 }
             }
-            free(nodes);
+            VIR_FREE(nodes);
         }
     }
 
 
     virBufferAddLit(&buf, ")"); /* closes (vm */
-    buf.content[buf.use] = 0;
 
     xmlXPathFreeContext(ctxt);
     xmlFreeDoc(xml);
@@ -1595,12 +1859,17 @@ virDomainParseXMLDesc(virConnectPtr conn, const char *xmldesc, char **name,
     if (name != NULL)
         *name = nam;
     else
-        free(nam);
+        VIR_FREE(nam);
 
-    return (buf.content);
+    if (virBufferError(&buf)) {
+        virXMLError(conn, VIR_ERR_NO_MEMORY, _("allocate buffer"), 0);
+        return NULL;
+    }
+
+    return virBufferContentAndReset(&buf);
 
   error:
-    free(nam);
+    VIR_FREE(nam);
     if (name != NULL)
         *name = NULL;
     xmlXPathFreeContext(ctxt);
@@ -1608,7 +1877,8 @@ virDomainParseXMLDesc(virConnectPtr conn, const char *xmldesc, char **name,
         xmlFreeDoc(xml);
     if (pctxt != NULL)
         xmlFreeParserCtxt(pctxt);
-    free(buf.content);
+    tmp = virBufferContentAndReset(&buf);
+    VIR_FREE(tmp);
     return (NULL);
 }
 
@@ -1633,14 +1903,8 @@ virParseXMLDevice(virConnectPtr conn, const char *xmldesc, int hvm,
 {
     xmlDocPtr xml = NULL;
     xmlNodePtr node;
-    virBuffer buf;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
 
-    buf.content = malloc(1000);
-    if (buf.content == NULL)
-        return (NULL);
-    buf.size = 1000;
-    buf.use = 0;
-    buf.content[0] = 0;
     xml = xmlReadDoc((const xmlChar *) xmldesc, "device.xml", NULL,
                      XML_PARSE_NOENT | XML_PARSE_NONET |
                      XML_PARSE_NOERROR | XML_PARSE_NOWARNING);
@@ -1653,27 +1917,30 @@ virParseXMLDevice(virConnectPtr conn, const char *xmldesc, int hvm,
         goto error;
     if (xmlStrEqual(node->name, BAD_CAST "disk")) {
         if (virDomainParseXMLDiskDesc(conn, node, &buf, hvm,
-	                              xendConfigVersion) != 0)
-            goto error;
-        /* SXP is not created when device is "floppy". */
-        else if (buf.use == 0)
+                                      xendConfigVersion) != 0)
             goto error;
     } else if (xmlStrEqual(node->name, BAD_CAST "interface")) {
         if (virDomainParseXMLIfDesc(conn, node, &buf, hvm,
-	                            xendConfigVersion) != 0)
+                                    xendConfigVersion) != 0)
             goto error;
     } else {
         virXMLError(conn, VIR_ERR_XML_ERROR, (const char *) node->name, 0);
         goto error;
     }
-  cleanup:
-    if (xml != NULL)
-        xmlFreeDoc(xml);
-    return buf.content;
+
+    xmlFreeDoc(xml);
+
+    if (virBufferError(&buf)) {
+        virXMLError(conn, VIR_ERR_NO_MEMORY, _("allocate buffer"), 0);
+        return NULL;
+    }
+
+    return virBufferContentAndReset(&buf);
+
   error:
-    free(buf.content);
-    buf.content = NULL;
-    goto cleanup;
+    free(virBufferContentAndReset(&buf));
+    xmlFreeDoc(xml);
+    return NULL;
 }
 
 
@@ -1767,18 +2034,8 @@ virDomainXMLDevID(virDomainPtr domain, const char *xmldesc, char *class,
   cleanup:
     if (xml != NULL)
         xmlFreeDoc(xml);
-    if (attr != NULL)
-        xmlFree(attr);
+    xmlFree(attr);
     return ret;
 }
 #endif /* WITH_XEN */
 #endif /* !PROXY */
-
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */

@@ -26,6 +26,9 @@ endif
 .x.h:
 	rm -f $@
 	rpcgen -h -o $@ $<
+if GLIBC_RPCGEN
+	perl -i -p -e 's/\t/        /g' $@
+endif
 endif
 
 remote_protocol.c: remote_protocol.h
@@ -40,7 +43,7 @@ confdir = $(sysconfdir)/libvirt/
 conf_DATA = libvirtd.conf
 
 libvirtd_SOURCES = \
-		qemud.c internal.h \
+		qemud.c qemud.h \
 		remote_protocol.h remote_protocol.c \
 		remote.c \
 		$(srcdir)/../src/util-lib.c \
@@ -50,6 +53,7 @@ libvirtd_SOURCES = \
 libvirtd_CFLAGS = \
 	-I$(top_srcdir)/gnulib/lib -I../gnulib/lib \
 	-I$(top_srcdir)/include -I$(top_builddir)/include \
+	-I$(top_srcdir)/src \
 	$(LIBXML_CFLAGS) $(GNUTLS_CFLAGS) $(SASL_CFLAGS) \
 	$(POLKIT_CFLAGS) \
 	$(WARN_CFLAGS) -DLOCAL_STATE_DIR="\"$(localstatedir)\"" \

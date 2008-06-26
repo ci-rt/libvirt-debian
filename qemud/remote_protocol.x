@@ -36,7 +36,7 @@
  * 'REMOTE_'.  This makes names quite long.
  */
 
-%#include "libvirt/libvirt.h"
+%#include "internal.h"
 
 /*----- Data types. -----*/
 
@@ -87,11 +87,26 @@ const REMOTE_STORAGE_VOL_NAME_LIST_MAX = 1024;
 /* Upper limit on list of scheduler parameters. */
 const REMOTE_DOMAIN_SCHEDULER_PARAMETERS_MAX = 16;
 
+/* Upper limit on number of NUMA cells */
+const REMOTE_NODE_MAX_CELLS = 1024;
+
 /* Upper limit on SASL auth negotiation packet */
 const REMOTE_AUTH_SASL_DATA_MAX = 65536;
 
 /* Maximum number of auth types */
 const REMOTE_AUTH_TYPE_LIST_MAX = 20;
+
+/* Maximum length of a block peek buffer message.
+ * Note applications need to be aware of this limit and issue multiple
+ * requests for large amounts of data.
+ */
+const REMOTE_DOMAIN_BLOCK_PEEK_BUFFER_MAX = 65536;
+
+/* Maximum length of a memory peek buffer message.
+ * Note applications need to be aware of this limit and issue multiple
+ * requests for large amounts of data.
+ */
+const REMOTE_DOMAIN_MEMORY_PEEK_BUFFER_MAX = 65536;
 
 /* UUID.  VIR_UUID_BUFLEN definition comes from libvirt.h */
 typedef opaque remote_uuid[VIR_UUID_BUFLEN];
@@ -254,6 +269,19 @@ struct remote_get_capabilities_ret {
     remote_nonnull_string capabilities;
 };
 
+struct remote_node_get_cells_free_memory_args {
+    int startCell;
+    int maxCells;
+};
+
+struct remote_node_get_cells_free_memory_ret {
+    hyper freeMems<REMOTE_NODE_MAX_CELLS>;
+};
+
+struct remote_node_get_free_memory_ret {
+    hyper freeMem;
+};
+
 struct remote_domain_get_scheduler_type_args {
     remote_nonnull_domain dom;
 };
@@ -304,6 +332,29 @@ struct remote_domain_interface_stats_ret {
     hyper tx_packets;
     hyper tx_errs;
     hyper tx_drop;
+};
+
+struct remote_domain_block_peek_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string path;
+    unsigned hyper offset;
+    unsigned size;
+    unsigned flags;
+};
+
+struct remote_domain_block_peek_ret {
+    opaque buffer<REMOTE_DOMAIN_BLOCK_PEEK_BUFFER_MAX>;
+};
+
+struct remote_domain_memory_peek_args {
+    remote_nonnull_domain dom;
+    unsigned hyper offset;
+    unsigned size;
+    unsigned flags;
+};
+
+struct remote_domain_memory_peek_ret {
+    opaque buffer<REMOTE_DOMAIN_MEMORY_PEEK_BUFFER_MAX>;
 };
 
 struct remote_list_domains_args {
@@ -1017,7 +1068,13 @@ enum remote_procedure {
     REMOTE_PROC_STORAGE_VOL_LOOKUP_BY_PATH = 97,
     REMOTE_PROC_STORAGE_VOL_GET_INFO = 98,
     REMOTE_PROC_STORAGE_VOL_DUMP_XML = 99,
-    REMOTE_PROC_STORAGE_VOL_GET_PATH = 100
+    REMOTE_PROC_STORAGE_VOL_GET_PATH = 100,
+
+    REMOTE_PROC_NODE_GET_CELLS_FREE_MEMORY = 101,
+    REMOTE_PROC_NODE_GET_FREE_MEMORY = 102,
+
+    REMOTE_PROC_DOMAIN_BLOCK_PEEK = 103,
+    REMOTE_PROC_DOMAIN_MEMORY_PEEK = 104
 };
 
 /* Custom RPC structure. */
@@ -1062,18 +1119,3 @@ struct remote_message_header {
     unsigned serial;            /* Serial number of message. */
     remote_message_status status;
 };
-
-
-/*
- * vim: set tabstop=4:
- * vim: set shiftwidth=4:
- * vim: set expandtab:
- */
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */

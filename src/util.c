@@ -33,20 +33,21 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#if HAVE_SYS_WAIT_H
 #include <sys/wait.h>
+#endif
 #include <string.h>
-#include <ctype.h>
+#include "c-ctype.h"
 
 #ifdef HAVE_PATHS_H
 #include <paths.h>
 #endif
 
-#include "libvirt/virterror.h"
 #include "internal.h"
 #include "event.h"
 #include "buf.h"
 #include "util.h"
-
+#include "memory.h"
 #include "util-lib.c"
 
 #ifndef MIN
@@ -54,8 +55,6 @@
 #endif
 
 #define MAX_ERROR_LEN   1024
-
-#define TOLOWER(Ch) (isupper (Ch) ? tolower (Ch) : (Ch))
 
 #define virLog(msg...) fprintf(stderr, msg)
 
@@ -303,19 +302,14 @@ fread_file_lim (FILE *stream, size_t max_len, size_t *length)
         size_t requested;
 
         if (size + BUFSIZ + 1 > alloc) {
-            char *new_buf;
-
             alloc += alloc / 2;
             if (alloc < size + BUFSIZ + 1)
                 alloc = size + BUFSIZ + 1;
 
-            new_buf = realloc (buf, alloc);
-            if (!new_buf) {
+            if (VIR_REALLOC_N(buf, alloc) < 0) {
                 save_errno = errno;
                 break;
             }
-
-            buf = new_buf;
         }
 
         /* Ensure that (size + requested <= max_len); */
@@ -347,20 +341,20 @@ int __virFileReadAll(const char *path, int maxlen, char **buf)
     char *s;
 
     if (!(fh = fopen(path, "r"))) {
-        virLog("Failed to open file '%s': %s",
+        virLog("Failed to open file '%s': %s\n",
                path, strerror(errno));
         goto error;
     }
 
     s = fread_file_lim(fh, maxlen+1, &len);
     if (s == NULL) {
-        virLog("Failed to read '%s': %s", path, strerror (errno));
+        virLog("Failed to read '%s': %s\n", path, strerror (errno));
         goto error;
     }
 
     if (len > maxlen || (int)len != len) {
-        free(s);
-        virLog("File '%s' is too large %d, max %d",
+        VIR_FREE(s);
+        virLog("File '%s' is too large %d, max %d\n",
                path, (int)len, maxlen);
         goto error;
     }
@@ -384,8 +378,8 @@ int virFileMatchesNameSuffix(const char *file,
     int suffixlen = strlen(suffix);
 
     if (filelen == (namelen + suffixlen) &&
-        !strncmp(file, name, namelen) &&
-        !strncmp(file + namelen, suffix, suffixlen))
+        STREQLEN(file, name, namelen) &&
+        STREQLEN(file + namelen, suffix, suffixlen))
         return 1;
     else
         return 0;
@@ -400,7 +394,7 @@ int virFileHasSuffix(const char *str,
     if (len < suffixlen)
         return 0;
 
-    return strcmp(str + len - suffixlen, suffix) == 0;
+    return STREQ(str + len - suffixlen, suffix);
 }
 
 #ifndef __MINGW32__
@@ -421,16 +415,16 @@ int virFileLinkPointsTo(const char *checkLink,
             return 0;
 
         case EINVAL:
-            virLog("File '%s' is not a symlink",
+            virLog("File '%s' is not a symlink\n",
                    checkLink);
             return 0;
 
         }
-        virLog("Failed to read symlink '%s': %s",
+        virLog("Failed to read symlink '%s': %s\n",
                checkLink, strerror(errno));
         return 0;
     } else if (n >= PATH_MAX) {
-        virLog("Symlink '%s' contents too long to fit in buffer",
+        virLog("Symlink '%s' contents too long to fit in buffer\n",
                checkLink);
         return 0;
     }
@@ -447,7 +441,7 @@ int virFileLinkPointsTo(const char *checkLink,
         dir[PATH_MAX-1] = '\0';
 
         if (!(p = strrchr(dir, '/'))) {
-            virLog("Symlink path '%s' is not absolute", checkLink);
+            virLog("Symlink path '%s' is not absolute\n", checkLink);
             return 0;
         }
 
@@ -457,7 +451,7 @@ int virFileLinkPointsTo(const char *checkLink,
         *p = '\0';
 
         if (virFileBuildPath(dir, dest, NULL, tmp, PATH_MAX) < 0) {
-            virLog("Path '%s/%s' is too long", dir, dest);
+            virLog("Path '%s/%s' is too long\n", dir, dest);
             return 0;
         }
 
@@ -467,20 +461,20 @@ int virFileLinkPointsTo(const char *checkLink,
 
     /* canonicalize both paths */
     if (!realpath(dest, real)) {
-        virLog("Failed to expand path '%s' :%s", dest, strerror(errno));
+        virLog("Failed to expand path '%s' :%s\n", dest, strerror(errno));
         strncpy(real, dest, PATH_MAX);
         real[PATH_MAX-1] = '\0';
     }
 
     if (!realpath(checkDest, checkReal)) {
-        virLog("Failed to expand path '%s' :%s", checkDest, strerror(errno));
+        virLog("Failed to expand path '%s' :%s\n", checkDest, strerror(errno));
         strncpy(checkReal, checkDest, PATH_MAX);
         checkReal[PATH_MAX-1] = '\0';
     }
 
     /* compare */
-    if (strcmp(checkReal, real) != 0) {
-        virLog("Link '%s' does not point to '%s', ignoring",
+    if (STRNEQ(checkReal, real)) {
+        virLog("Link '%s' does not point to '%s', ignoring\n",
                checkLink, checkReal);
         return 0;
     }
@@ -498,7 +492,7 @@ int
 virFileLinkPointsTo (const char *checkLink ATTRIBUTE_UNUSED,
                      const char *checkDest ATTRIBUTE_UNUSED)
 {
-    virLog (_("%s: not implemented"), __FUNCTION__);
+    virLog (_("%s: not implemented\n"), __FUNCTION__);
     return 0;
 }
 
@@ -681,7 +675,7 @@ virParseNumber(const char **str)
     if ((*cur < '0') || (*cur > '9'))
         return (-1);
 
-    while ((*cur >= '0') && (*cur <= '9')) {
+    while (c_isdigit(*cur)) {
         unsigned int c = *cur - '0';
 
         if ((ret > INT_MAX / 10) ||
@@ -702,12 +696,12 @@ __virMacAddrCompare (const char *p, const char *q)
 {
     unsigned char c, d;
     do {
-        while (*p == '0' && isxdigit (p[1]))
+        while (*p == '0' && c_isxdigit (p[1]))
             ++p;
-        while (*q == '0' && isxdigit (q[1]))
+        while (*q == '0' && c_isxdigit (q[1]))
             ++q;
-        c = TOLOWER (*p);
-        d = TOLOWER (*q);
+        c = c_tolower (*p);
+        d = c_tolower (*q);
 
         if (c == 0 || d == 0)
             break;
@@ -747,7 +741,7 @@ virParseMacAddr(const char* str, unsigned char *addr)
         /* This is solely to avoid accepting the leading
          * space or "+" that strtoul would otherwise accept.
          */
-        if (!isxdigit(*str))
+        if (!c_isxdigit(*str))
             break;
 
         result = strtoul(str, &end_ptr, 16);
@@ -759,10 +753,10 @@ virParseMacAddr(const char* str, unsigned char *addr)
 
         addr[i] = (unsigned char) result;
 
-	if ((i == 5) && (*end_ptr == '\0'))
-	    return 0;
-	if (*end_ptr != ':')
-	    break;
+        if ((i == 5) && (*end_ptr == '\0'))
+            return 0;
+        if (*end_ptr != ':')
+            break;
 
         str = end_ptr + 1;
     }
@@ -770,10 +764,58 @@ virParseMacAddr(const char* str, unsigned char *addr)
     return -1;
 }
 
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- * End:
+int virEnumFromString(const char *const*types,
+                      unsigned int ntypes,
+                      const char *type)
+{
+    unsigned int i;
+    for (i = 0 ; i < ntypes ; i++)
+        if (STREQ(types[i], type))
+            return i;
+
+    return -1;
+}
+
+const char *virEnumToString(const char *const*types,
+                            unsigned int ntypes,
+                            int type)
+{
+    if (type < 0 || type >= ntypes)
+        return NULL;
+
+    return types[type];
+}
+
+/* Translates a device name of the form (regex) "[fhv]d[a-z]+" into
+ * the corresponding index (e.g. sda => 1, hdz => 26, vdaa => 27)
+ * @param name The name of the device
+ * @return name's index, or -1 on failure
  */
+int virDiskNameToIndex(const char *name) {
+    const char *ptr = NULL;
+    int idx = 0;
+    static char const* const drive_prefix[] = {"fd", "hd", "vd", "sd", "xvd"};
+    unsigned int i;
+
+    for (i = 0; i < ARRAY_CARDINALITY(drive_prefix); i++) {
+        if (STRPREFIX(name, drive_prefix[i])) {
+            ptr = name + strlen(drive_prefix[i]);
+            break;
+        }
+    }
+
+    if (!ptr)
+        return -1;
+
+    while (*ptr) {
+        idx = idx * 26;
+
+        if (!c_islower(*ptr))
+            return -1;
+
+        idx += *ptr - 'a';
+        ptr++;
+    }
+
+    return idx;
+}

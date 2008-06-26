@@ -291,8 +291,10 @@ skip_impl = (
     'virDomainGetInfo',
     'virNodeGetInfo',
     'virDomainGetUUID',
+    'virDomainGetUUIDString',
     'virDomainLookupByUUID',
     'virNetworkGetUUID',
+    'virNetworkGetUUIDString',
     'virNetworkLookupByUUID',
     'virDomainGetAutostart',
     'virNetworkGetAutostart',
@@ -305,9 +307,8 @@ skip_impl = (
     'virDomainGetVcpus',
     'virDomainPinVcpu',
     'virStoragePoolGetUUID',
+    'virStoragePoolGetUUIDString',
     'virStoragePoolLookupByUUID',
-    'virStorageVolGetUUID',
-    'virStorageVolLookupByUUID',
     'virStoragePoolGetInfo',
     'virStorageVolGetInfo',
     'virStoragePoolGetAutostart',
@@ -628,12 +629,7 @@ function_classes = {}
 
 function_classes["None"] = []
 
-function_post = {
-    'virDomainDestroy': "self._o = None",
-    'virNetworkDestroy': "self._o = None",
-    'virStoragePoolDestroy': "self._o = None",
-    'virStorageVolDestroy': "self._o = None",
-}
+function_post = {}
 
 # Functions returning an integral type which need special rules to
 # check for errors and raise exceptions.

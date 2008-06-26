@@ -4,12 +4,17 @@
  *           entry points where an automatically generated stub is
  *           unpractical
  *
- * Copyright (C) 2005, 2007 Red Hat, Inc.
+ * Copyright (C) 2005, 2007, 2008 Red Hat, Inc.
  *
  * Daniel Veillard <veillard@redhat.com>
  */
 
 #include <config.h>
+
+/* Horrible kludge to work around even more horrible name-space pollution
+   via Python.h.  That file includes /usr/include/python2.5/pyconfig*.h,
+   which has over 180 autoconf-style HAVE_* definitions.  Shame on them.  */
+#undef HAVE_PTHREAD_H
 
 #include <Python.h>
 #include "libvirt/libvirt.h"
@@ -76,7 +81,7 @@ libvirt_virDomainInterfaceStats(PyObject *self ATTRIBUTE_UNUSED, PyObject *args)
 
     if (!PyArg_ParseTuple(args, (char *)"Oz:virDomainInterfaceStats",
         &pyobj_domain,&path))
-	return(NULL);
+        return(NULL);
     domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
 
     c_retval = virDomainInterfaceStats(domain, path, &stats, sizeof(stats));
@@ -498,14 +503,14 @@ libvirt_virErrorFuncHandler(ATTRIBUTE_UNUSED void *ctx, virErrorPtr err)
         Py_XINCREF(libvirt_virPythonErrorFuncCtxt);
         PyTuple_SetItem(info, 0, PyInt_FromLong((long) err->code));
         PyTuple_SetItem(info, 1, PyInt_FromLong((long) err->domain));
-	PyTuple_SetItem(info, 2, libvirt_constcharPtrWrap(err->message));
+        PyTuple_SetItem(info, 2, libvirt_constcharPtrWrap(err->message));
         PyTuple_SetItem(info, 3, PyInt_FromLong((long) err->level));
-	PyTuple_SetItem(info, 4, libvirt_constcharPtrWrap(err->str1));
-	PyTuple_SetItem(info, 5, libvirt_constcharPtrWrap(err->str2));
-	PyTuple_SetItem(info, 6, libvirt_constcharPtrWrap(err->str3));
+        PyTuple_SetItem(info, 4, libvirt_constcharPtrWrap(err->str1));
+        PyTuple_SetItem(info, 5, libvirt_constcharPtrWrap(err->str2));
+        PyTuple_SetItem(info, 6, libvirt_constcharPtrWrap(err->str3));
         PyTuple_SetItem(info, 7, PyInt_FromLong((long) err->int1));
         PyTuple_SetItem(info, 8, PyInt_FromLong((long) err->int2));
-	/* TODO pass conn and dom if available */
+        /* TODO pass conn and dom if available */
         result = PyEval_CallObject(libvirt_virPythonErrorFuncHandler, list);
         Py_XDECREF(list);
         Py_XDECREF(result);
@@ -542,14 +547,14 @@ libvirt_virRegisterErrorHandler(ATTRIBUTE_UNUSED PyObject * self,
 
     if ((pyobj_f == Py_None) && (pyobj_ctx == Py_None)) {
         libvirt_virPythonErrorFuncHandler = NULL;
-	libvirt_virPythonErrorFuncCtxt = NULL;
+        libvirt_virPythonErrorFuncCtxt = NULL;
     } else {
-	Py_XINCREF(pyobj_ctx);
-	Py_XINCREF(pyobj_f);
+        Py_XINCREF(pyobj_ctx);
+        Py_XINCREF(pyobj_f);
 
-	/* TODO: check f is a function ! */
-	libvirt_virPythonErrorFuncHandler = pyobj_f;
-	libvirt_virPythonErrorFuncCtxt = pyobj_ctx;
+        /* TODO: check f is a function ! */
+        libvirt_virPythonErrorFuncHandler = pyobj_f;
+        libvirt_virPythonErrorFuncCtxt = pyobj_ctx;
     }
 
     py_retval = libvirt_intWrap(1);
@@ -738,7 +743,7 @@ libvirt_virConnectListDomainsID(PyObject *self ATTRIBUTE_UNUSED,
 
 static PyObject *
 libvirt_virConnectListDefinedDomains(PyObject *self ATTRIBUTE_UNUSED,
-				     PyObject *args) {
+                                     PyObject *args) {
     PyObject *py_retval;
     char **names = NULL;
     int c_retval, i;
@@ -859,6 +864,33 @@ libvirt_virDomainGetUUID(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
 }
 
 static PyObject *
+libvirt_virDomainGetUUIDString(PyObject *self ATTRIBUTE_UNUSED,
+                               PyObject *args) {
+    PyObject *py_retval;
+    char uuidstr[VIR_UUID_STRING_BUFLEN];
+    virDomainPtr dom;
+    PyObject *pyobj_dom;
+    int c_retval;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virDomainGetUUIDString",
+                          &pyobj_dom))
+        return(NULL);
+    dom = (virDomainPtr) PyvirDomain_Get(pyobj_dom);
+
+    if (dom == NULL)
+        return VIR_PY_NONE;
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    c_retval = virDomainGetUUIDString(dom, &uuidstr[0]);
+    LIBVIRT_END_ALLOW_THREADS;
+
+    if (c_retval < 0)
+        return VIR_PY_NONE;
+
+    py_retval = PyString_FromString((char *) &uuidstr[0]);
+    return(py_retval);
+}
+
+static PyObject *
 libvirt_virDomainLookupByUUID(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     virDomainPtr c_retval;
@@ -884,7 +916,7 @@ libvirt_virDomainLookupByUUID(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
 
 static PyObject *
 libvirt_virConnectListNetworks(PyObject *self ATTRIBUTE_UNUSED,
-			       PyObject *args) {
+                               PyObject *args) {
     PyObject *py_retval;
     char **names = NULL;
     int c_retval, i;
@@ -926,7 +958,7 @@ libvirt_virConnectListNetworks(PyObject *self ATTRIBUTE_UNUSED,
 
 static PyObject *
 libvirt_virConnectListDefinedNetworks(PyObject *self ATTRIBUTE_UNUSED,
-				      PyObject *args) {
+                                      PyObject *args) {
     PyObject *py_retval;
     char **names = NULL;
     int c_retval, i;
@@ -988,6 +1020,33 @@ libvirt_virNetworkGetUUID(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
         return VIR_PY_NONE;
     py_retval = PyString_FromStringAndSize((char *) &uuid[0], VIR_UUID_BUFLEN);
 
+    return(py_retval);
+}
+
+static PyObject *
+libvirt_virNetworkGetUUIDString(PyObject *self ATTRIBUTE_UNUSED,
+                                PyObject *args) {
+    PyObject *py_retval;
+    char uuidstr[VIR_UUID_STRING_BUFLEN];
+    virNetworkPtr net;
+    PyObject *pyobj_net;
+    int c_retval;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virNetworkGetUUIDString",
+                          &pyobj_net))
+        return(NULL);
+    net = (virNetworkPtr) PyvirNetwork_Get(pyobj_net);
+
+    if (net == NULL)
+        return VIR_PY_NONE;
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    c_retval = virNetworkGetUUIDString(net, &uuidstr[0]);
+    LIBVIRT_END_ALLOW_THREADS;
+
+    if (c_retval < 0)
+        return VIR_PY_NONE;
+
+    py_retval = PyString_FromString((char *) &uuidstr[0]);
     return(py_retval);
 }
 
@@ -1092,8 +1151,8 @@ error:
     }
     py_retval = PyList_New(c_retval);
     for (i = 0;i < c_retval;i++) {
-	PyList_SetItem(py_retval, i,
-	        libvirt_longlongWrap((long long) freeMems[i]));
+        PyList_SetItem(py_retval, i,
+                libvirt_longlongWrap((long long) freeMems[i]));
     }
     free(freeMems);
     return(py_retval);
@@ -1358,6 +1417,31 @@ libvirt_virStoragePoolGetUUID(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     return(py_retval);
 }
 
+static PyObject *
+libvirt_virStoragePoolGetUUIDString(PyObject *self ATTRIBUTE_UNUSED,
+                                    PyObject *args) {
+    PyObject *py_retval;
+    char uuidstr[VIR_UUID_STRING_BUFLEN];
+    virStoragePoolPtr pool;
+    PyObject *pyobj_pool;
+    int c_retval;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virStoragePoolGetUUIDString", &pyobj_pool))
+        return(NULL);
+    pool = (virStoragePoolPtr) PyvirStoragePool_Get(pyobj_pool);
+
+    if (pool == NULL)
+        return VIR_PY_NONE;
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    c_retval = virStoragePoolGetUUIDString(pool, &uuidstr[0]);
+    LIBVIRT_END_ALLOW_THREADS;
+
+    if (c_retval < 0)
+        return VIR_PY_NONE;
+
+    py_retval = PyString_FromString((char *) &uuidstr[0]);
+    return(py_retval);
+}
 
 static PyObject *
 libvirt_virStoragePoolLookupByUUID(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
@@ -1398,6 +1482,7 @@ static PyMethodDef libvirtMethods[] = {
     {(char *) "virDomainGetInfo", libvirt_virDomainGetInfo, METH_VARARGS, NULL},
     {(char *) "virNodeGetInfo", libvirt_virNodeGetInfo, METH_VARARGS, NULL},
     {(char *) "virDomainGetUUID", libvirt_virDomainGetUUID, METH_VARARGS, NULL},
+    {(char *) "virDomainGetUUIDString", libvirt_virDomainGetUUIDString, METH_VARARGS, NULL},
     {(char *) "virDomainLookupByUUID", libvirt_virDomainLookupByUUID, METH_VARARGS, NULL},
     {(char *) "virRegisterErrorHandler", libvirt_virRegisterErrorHandler, METH_VARARGS, NULL},
     {(char *) "virGetLastError", libvirt_virGetLastError, METH_VARARGS, NULL},
@@ -1405,6 +1490,7 @@ static PyMethodDef libvirtMethods[] = {
     {(char *) "virConnectListNetworks", libvirt_virConnectListNetworks, METH_VARARGS, NULL},
     {(char *) "virConnectListDefinedNetworks", libvirt_virConnectListDefinedNetworks, METH_VARARGS, NULL},
     {(char *) "virNetworkGetUUID", libvirt_virNetworkGetUUID, METH_VARARGS, NULL},
+    {(char *) "virNetworkGetUUIDString", libvirt_virNetworkGetUUIDString, METH_VARARGS, NULL},
     {(char *) "virNetworkLookupByUUID", libvirt_virNetworkLookupByUUID, METH_VARARGS, NULL},
     {(char *) "virDomainGetAutostart", libvirt_virDomainGetAutostart, METH_VARARGS, NULL},
     {(char *) "virNetworkGetAutostart", libvirt_virNetworkGetAutostart, METH_VARARGS, NULL},
@@ -1423,6 +1509,7 @@ static PyMethodDef libvirtMethods[] = {
     {(char *) "virStoragePoolGetInfo", libvirt_virStoragePoolGetInfo, METH_VARARGS, NULL},
     {(char *) "virStorageVolGetInfo", libvirt_virStorageVolGetInfo, METH_VARARGS, NULL},
     {(char *) "virStoragePoolGetUUID", libvirt_virStoragePoolGetUUID, METH_VARARGS, NULL},
+    {(char *) "virStoragePoolGetUUIDString", libvirt_virStoragePoolGetUUIDString, METH_VARARGS, NULL},
     {(char *) "virStoragePoolLookupByUUID", libvirt_virStoragePoolLookupByUUID, METH_VARARGS, NULL},
     {NULL, NULL, 0, NULL}
 };
@@ -1453,17 +1540,3 @@ initcygvirtmod
 
     initialized = 1;
 }
-
-/*
- * vim: set tabstop=4:
- * vim: set shiftwidth=4:
- * vim: set expandtab:
- */
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */

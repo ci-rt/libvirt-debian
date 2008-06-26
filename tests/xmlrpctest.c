@@ -7,7 +7,7 @@
  *
  * Karel Zak <kzak@redhat.com>
  *
- * $Id: xmlrpctest.c,v 1.10 2008/02/07 16:49:29 meyering Exp $
+ * $Id: xmlrpctest.c,v 1.14 2008/05/23 08:24:44 rjones Exp $
  */
 
 #include <config.h>
@@ -21,7 +21,7 @@
 #include <libxml/tree.h>
 #include <libxml/xpath.h>
 
-#include "libvirt/libvirt.h"
+#include "internal.h"
 #include "buf.h"
 #include "xmlrpc.h"
 
@@ -59,22 +59,20 @@ testMethodPlusDOUBLE(const void *data)
     return retval==(10.1234+10.1234) ? 0 : -1;
 }
 
-static virBufferPtr
-marshalRequest(const char *fmt, ...)
+static void
+marshalRequest(virBufferPtr buf, const char *fmt, ...)
 {
     int argc;
     xmlRpcValuePtr *argv;
-    virBufferPtr buf;
     va_list ap;
 
     va_start(ap, fmt);
     argv = xmlRpcArgvNew(fmt, ap, &argc);
     va_end(ap);
 
-    buf = xmlRpcMarshalRequest("test", argc, argv);
+    xmlRpcMarshalRequest("test", buf, argc, argv);
 
     xmlRpcArgvFree(argc, argv);
-    return buf;
 }
 
 static int
@@ -110,7 +108,7 @@ checkRequestValue(const char *xmlstr, const char *xpath, int type, void *expecte
             break;
          case XML_RPC_STRING:
             if ((obj->type != XPATH_STRING) ||
-                    (strcmp((const char *)obj->stringval, (const char *)expected)))
+                    (STRNEQ((const char *)obj->stringval, (const char *)expected)))
                 goto error;
             break;
         default:
@@ -132,14 +130,21 @@ testMarshalRequestINT(const void *data)
     int num = INT_MAX;
     int ret = 0;
     int check = data ? *((int *)data) : 0;
-    virBufferPtr buf = marshalRequest("i", num);
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    marshalRequest(&buf, "i", num);
+    char *content;
+
+    if (virBufferError(&buf))
+        return -1;
+
+    content = virBufferContentAndReset(&buf);
 
     if (check)
-        ret = checkRequestValue(buf->content,
+        ret = checkRequestValue(content,
                 "number(/methodCall/params/param[1]/value/int)",
                 XML_RPC_INTEGER, (void *) &num);
 
-    virBufferFree(buf);
+    free(content);
     return ret;
 }
 
@@ -149,13 +154,21 @@ testMarshalRequestSTRING(const void *data ATTRIBUTE_UNUSED)
     const char *str = "This library will be really sexy.";
     int ret = 0;
     int check = data ? *((int *)data) : 0;
-    virBufferPtr buf = marshalRequest("s", str);
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    char *content;
 
+    marshalRequest(&buf, "s", str);
+
+    if (virBufferError(&buf))
+        return -1;
+
+    content = virBufferContentAndReset(&buf);
     if (check)
-        ret = checkRequestValue(buf->content,
+        ret = checkRequestValue(content,
                 "string(/methodCall/params/param[1]/value/string)",
                 XML_RPC_STRING, (void *) str);
-    virBufferFree(buf);
+
+    free(content);
     return ret;
 }
 
@@ -165,69 +178,51 @@ testMarshalRequestDOUBLE(const void *data)
     double num = 123456789.123;
     int ret = 0;
     int check = data ? *((int *)data) : 0;
-    virBufferPtr buf = marshalRequest("f", num);
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    char *content;
 
+    marshalRequest(&buf, "f", num);
+
+    if (virBufferError(&buf))
+        return -1;
+
+    content = virBufferContentAndReset(&buf);
     if (check)
-        ret = checkRequestValue(buf->content,
+        ret = checkRequestValue(content,
                 "number(/methodCall/params/param[1]/value/double)",
                 XML_RPC_DOUBLE, (void *) &num);
 
-    virBufferFree(buf);
+    free(content);
     return ret;
 }
 
-static int
-testBufferStrcat(const void *data ATTRIBUTE_UNUSED)
-{
-    virBufferPtr buf = virBufferNew(1000*32);  /* don't waste time with realloc */
-    int i;
-
-    for (i=0; i < 1000; i++)
-        virBufferStrcat(buf, "My name is ", "libvirt", ".\n", NULL);
-
-    virBufferFree(buf);
-    return 0;
-}
-
-static int
-testBufferVSprintf(const void *data ATTRIBUTE_UNUSED)
-{
-    virBufferPtr buf = virBufferNew(1000*32);  /* don't waste time with realloc */
-    int i;
-
-    for (i=0; i < 1000; i++)
-        virBufferVSprintf(buf, "My name is %s.\n", "libvirt");
-
-    virBufferFree(buf);
-    return 0;
-}
 
 int
 main(int argc, char **argv)
 {
-	xmlRpcContextPtr cxt = NULL;
+        xmlRpcContextPtr cxt = NULL;
     int check = 1;
-	int ret = 0;
+        int ret = 0;
     const char *url = "http://localhost:8000";
 
-	progname = argv[0];
+        progname = argv[0];
 
-	if (argc > 2)
-	{
-		fprintf(stderr, "Usage: %s [url]\n", progname);
-		exit(EXIT_FAILURE);
-	}
+        if (argc > 2)
+        {
+                fprintf(stderr, "Usage: %s [url]\n", progname);
+                exit(EXIT_FAILURE);
+        }
     if (argc == 2)
         url = argv[1];
 
      /*
       * client-server tests
       */
-	if (!(cxt = xmlRpcContextNew(url)))
-	{
-		fprintf(stderr, "%s: failed create new RPC context\n", progname);
-		exit(EXIT_FAILURE);
-	}
+        if (!(cxt = xmlRpcContextNew(url)))
+        {
+                fprintf(stderr, "%s: failed create new RPC context\n", progname);
+                exit(EXIT_FAILURE);
+        }
 
        if (virtTestRun("XML-RPC methodCall INT+INT",
                 NLOOPS, testMethodPlusINT, (const void *) cxt) != 0)
@@ -237,7 +232,7 @@ main(int argc, char **argv)
                 NLOOPS, testMethodPlusDOUBLE, (const void *) cxt) != 0)
         ret = -1;
 
- 	xmlRpcContextFree(cxt);
+        xmlRpcContextFree(cxt);
 
     /*
      * regression / performance tests
@@ -263,13 +258,7 @@ main(int argc, char **argv)
                 NLOOPS, testMarshalRequestSTRING, NULL) != 0)
         ret = -1;
 
-    if (virtTestRun("Buffer: strcat", NLOOPS, testBufferStrcat, NULL) != 0)
-        ret = -1;
-    if (virtTestRun("Buffer: sprintf", NLOOPS, testBufferVSprintf, NULL) != 0)
-        ret = -1;
-
-
-	exit(ret==0 ? EXIT_SUCCESS : EXIT_FAILURE);
+    exit(ret==0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 
 

@@ -24,6 +24,8 @@ while (<>) {
 	next;
     }
 
+    s/\t/        /g;
+
     if (m/^}/) {
 	$in_function = 0;
 
@@ -44,7 +46,7 @@ while (<>) {
 	my %uses = ();
 	my $i = 0;
 	foreach (@function) {
-	    $uses{$1} = $i++ if m/\(char \*\*\)\&(objp->[a-z_.]+_val)/;
+	    $uses{$1} = $i++ if m/\(char \*\*\)\&(objp->[a-z_.]+_val)/i;
 	}
 	if (keys %uses >= 1) {
 	    my $i = 1;
@@ -52,12 +54,12 @@ while (<>) {
 	    foreach (keys %uses) {
 		$i = $uses{$_};
 		unshift @function,
-		("\tchar **objp_cpp$i = (char **) (void *) &$_;\n");
+		("        char **objp_cpp$i = (char **) (void *) &$_;\n");
 		$i++;
 	    }
 	    @function =
 		map { s{\(char \*\*\)\&(objp->[a-z_.]+_val)}
-		       {objp_cpp$uses{$1}}g; $_ } @function;
+		       {objp_cpp$uses{$1}}gi; $_ } @function;
 	}
 
 	# The code uses 'IXDR_PUT_{U_,}LONG' but it's wrong in two

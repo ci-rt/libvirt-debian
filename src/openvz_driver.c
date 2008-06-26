@@ -45,13 +45,11 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <paths.h>
-#include <ctype.h>
 #include <pwd.h>
 #include <stdio.h>
 #include <sys/wait.h>
 
-#include "libvirt/virterror.h"
-
+#include "internal.h"
 #include "openvz_driver.h"
 #include "event.h"
 #include "buf.h"
@@ -763,6 +761,8 @@ static virDriver openvzDriver = {
     NULL, /* domainMigrateFinish */
     NULL, /* domainBlockStats */
     NULL, /* domainInterfaceStats */
+    NULL, /* domainBlockPeek */
+    NULL, /* domainMemoryPeek */
     NULL, /* nodeGetCellsFreeMemory */
     NULL, /* nodeGetFreeMemory */
 };
@@ -772,6 +772,7 @@ static virStateDriver openvzStateDriver = {
     openvzShutdown,
     openvzReload,
     openvzActive,
+    NULL, /* sigHandler */
 };
 
 int openvzRegister(void) {
@@ -781,12 +782,3 @@ int openvzRegister(void) {
 }
 
 #endif /* WITH_OPENVZ */
-
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */

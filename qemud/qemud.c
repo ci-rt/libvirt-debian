@@ -48,14 +48,15 @@
 #include <grp.h>
 #include <signal.h>
 
-#include "libvirt/virterror.h"
-
 #include "internal.h"
+
+#include "qemud.h"
 #include "getaddrinfo.h"
-#include "../src/util.h"
-#include "../src/remote_internal.h"
-#include "../src/conf.h"
+#include "util.h"
+#include "remote_internal.h"
+#include "conf.h"
 #include "event.h"
+#include "memory.h"
 #ifdef HAVE_AVAHI
 #include "mdns.h"
 #endif
@@ -69,6 +70,7 @@ static int ipsock = 0;          /* -l  Listen for TCP/IP */
 /* Defaults for configuration file elements */
 static int listen_tls = 1;
 static int listen_tcp = 0;
+static char *listen_addr  = (char *) LIBVIRTD_LISTEN_ADDR;
 static char *tls_port = (char *) LIBVIRTD_TLS_PORT;
 static char *tcp_port = (char *) LIBVIRTD_TCP_PORT;
 
@@ -109,16 +111,16 @@ static gnutls_dh_params_t dh_params;
 static sig_atomic_t sig_errors = 0;
 static int sig_lasterrno = 0;
 
-static void sig_handler(int sig) {
-    unsigned char sigc = sig;
+static void sig_handler(int sig, siginfo_t * siginfo,
+                        void* context ATTRIBUTE_UNUSED) {
     int origerrno;
     int r;
 
-    if (sig == SIGCHLD) /* We explicitly waitpid the child later */
-        return;
+    /* set the sig num in the struct */
+    siginfo->si_signo = sig;
 
     origerrno = errno;
-    r = safewrite(sigwrite, &sigc, 1);
+    r = safewrite(sigwrite, siginfo, sizeof(*siginfo));
     if (r == -1) {
         sig_errors++;
         sig_lasterrno = errno;
@@ -232,10 +234,10 @@ static void qemudDispatchSignalEvent(int fd ATTRIBUTE_UNUSED,
                                      int events ATTRIBUTE_UNUSED,
                                      void *opaque) {
     struct qemud_server *server = (struct qemud_server *)opaque;
-    unsigned char sigc;
+    siginfo_t siginfo;
     int ret;
 
-    if (read(server->sigread, &sigc, 1) != 1) {
+    if (saferead(server->sigread, &siginfo, sizeof(siginfo)) != sizeof(siginfo)) {
         qemudLog(QEMUD_ERR, _("Failed to read from signal pipe: %s"),
                  strerror(errno));
         return;
@@ -243,7 +245,7 @@ static void qemudDispatchSignalEvent(int fd ATTRIBUTE_UNUSED,
 
     ret = 0;
 
-    switch (sigc) {
+    switch (siginfo.si_signo) {
     case SIGHUP:
         qemudLog(QEMUD_INFO, "%s", _("Reloading configuration on SIGHUP"));
         if (virStateReload() < 0)
@@ -253,11 +255,15 @@ static void qemudDispatchSignalEvent(int fd ATTRIBUTE_UNUSED,
     case SIGINT:
     case SIGQUIT:
     case SIGTERM:
-        qemudLog(QEMUD_WARN, _("Shutting down on signal %d"), sigc);
+        qemudLog(QEMUD_WARN, _("Shutting down on signal %d"),
+                 siginfo.si_signo);
         server->shutdown = 1;
         break;
 
     default:
+        qemudLog(QEMUD_INFO, _("Received signal %d, dispatching to drivers"),
+                 siginfo.si_signo);
+        virStateSigDispatcher(&siginfo);
         break;
     }
 
@@ -461,12 +467,12 @@ static int qemudWritePidFile(const char *pidFile) {
 
 static int qemudListenUnix(struct qemud_server *server,
                            const char *path, int readonly, int auth) {
-    struct qemud_socket *sock = calloc(1, sizeof(*sock));
+    struct qemud_socket *sock;
     struct sockaddr_un addr;
     mode_t oldmask;
     gid_t oldgrp;
 
-    if (!sock) {
+    if (VIR_ALLOC(sock) < 0) {
         qemudLog(QEMUD_ERR,
                  "%s", _("Failed to allocate memory for struct qemud_socket"));
         return -1;
@@ -537,7 +543,7 @@ static int qemudListenUnix(struct qemud_server *server,
 
 // See: http://people.redhat.com/drepper/userapi-ipv6.html
 static int
-remoteMakeSockets (int *fds, int max_fds, int *nfds_r, const char *service)
+remoteMakeSockets (int *fds, int max_fds, int *nfds_r, const char *node, const char *service)
 {
     struct addrinfo *ai;
     struct addrinfo hints;
@@ -545,7 +551,7 @@ remoteMakeSockets (int *fds, int max_fds, int *nfds_r, const char *service)
     hints.ai_flags = AI_PASSIVE | AI_ADDRCONFIG;
     hints.ai_socktype = SOCK_STREAM;
 
-    int e = getaddrinfo (NULL, service, &hints, &ai);
+    int e = getaddrinfo (node, service, &hints, &ai);
     if (e != 0) {
         qemudLog (QEMUD_ERR, _("getaddrinfo: %s\n"), gai_strerror (e));
         return -1;
@@ -589,6 +595,7 @@ remoteMakeSockets (int *fds, int max_fds, int *nfds_r, const char *service)
  */
 static int
 remoteListenTCP (struct qemud_server *server,
+                 const char *addr,
                  const char *port,
                  int type,
                  int auth)
@@ -598,19 +605,17 @@ remoteListenTCP (struct qemud_server *server,
     int i;
     struct qemud_socket *sock;
 
-    if (remoteMakeSockets (fds, 2, &nfds, port) == -1)
+    if (remoteMakeSockets (fds, 2, &nfds, addr, port) == -1)
         return -1;
 
     for (i = 0; i < nfds; ++i) {
         struct sockaddr_storage sa;
         socklen_t salen = sizeof(sa);
 
-        sock = calloc (1, sizeof *sock);
-
-        if (!sock) {
+        if (VIR_ALLOC(sock) < 0) {
             qemudLog (QEMUD_ERR,
                       _("remoteListenTCP: calloc: %s"), strerror (errno));
-            return -1;
+            goto cleanup;
         }
 
         sock->readonly = 0;
@@ -623,7 +628,7 @@ remoteListenTCP (struct qemud_server *server,
         sock->auth = auth;
 
         if (getsockname(sock->fd, (struct sockaddr *)(&sa), &salen) < 0)
-            return -1;
+            goto cleanup;
 
         if (sa.ss_family == AF_INET)
             sock->port = htons(((struct sockaddr_in*)&sa)->sin_port);
@@ -636,12 +641,12 @@ remoteListenTCP (struct qemud_server *server,
 
         if (qemudSetCloseExec(sock->fd) < 0 ||
             qemudSetNonBlock(sock->fd) < 0)
-            return -1;
+            goto cleanup;
 
         if (listen (sock->fd, 30) < 0) {
             qemudLog (QEMUD_ERR,
                       _("remoteListenTCP: listen: %s"), strerror (errno));
-            return -1;
+            goto cleanup;
         }
 
         if (virEventAddHandleImpl(sock->fd,
@@ -649,12 +654,17 @@ remoteListenTCP (struct qemud_server *server,
                                   qemudDispatchServerEvent,
                                   server) < 0) {
             qemudLog(QEMUD_ERR, "%s", _("Failed to add server event callback"));
-            return -1;
+            goto cleanup;
         }
 
     }
 
     return 0;
+
+cleanup:
+    for (i = 0; i < nfds; ++i)
+        close(fds[0]);
+    return -1;
 }
 
 static int qemudInitPaths(struct qemud_server *server,
@@ -706,7 +716,7 @@ static int qemudInitPaths(struct qemud_server *server,
 static struct qemud_server *qemudInitialize(int sigread) {
     struct qemud_server *server;
 
-    if (!(server = calloc(1, sizeof(*server)))) {
+    if (VIR_ALLOC(server) < 0) {
         qemudLog(QEMUD_ERR, "%s", _("Failed to allocate struct qemud_server"));
         return NULL;
     }
@@ -775,14 +785,14 @@ static struct qemud_server *qemudNetworkInit(struct qemud_server *server) {
 #endif
 
     if (ipsock) {
-        if (listen_tcp && remoteListenTCP (server, tcp_port, QEMUD_SOCK_TYPE_TCP, auth_tcp) < 0)
+        if (listen_tcp && remoteListenTCP (server, listen_addr, tcp_port, QEMUD_SOCK_TYPE_TCP, auth_tcp) < 0)
             goto cleanup;
 
         if (listen_tls) {
             if (remoteInitializeGnuTLS () < 0)
                 goto cleanup;
 
-            if (remoteListenTCP (server, tls_port, QEMUD_SOCK_TYPE_TLS, auth_tls) < 0)
+            if (remoteListenTCP (server, listen_addr, tls_port, QEMUD_SOCK_TYPE_TLS, auth_tls) < 0)
                 goto cleanup;
         }
     }
@@ -1086,8 +1096,7 @@ static int qemudDispatchServer(struct qemud_server *server, struct qemud_socket 
         return -1;
     }
 
-    client = calloc(1, sizeof(*client));
-    if (client == NULL)
+    if (VIR_ALLOC(client) < 0)
         goto cleanup;
     client->magic = QEMUD_CLIENT_MAGIC;
     client->fd = fd;
@@ -1109,7 +1118,7 @@ static int qemudDispatchServer(struct qemud_server *server, struct qemud_socket 
         if (qemudGetSocketIdentity(client->fd, &uid, &pid) < 0)
             goto cleanup;
 
-        /* Cient is running as root, so disable auth */
+        /* Client is running as root, so disable auth */
         if (uid == 0) {
             qemudLog(QEMUD_INFO, _("Turn off polkit auth for privileged client %d"), pid);
             client->auth = REMOTE_AUTH_NONE;
@@ -1727,8 +1736,7 @@ remoteConfigGetStringList(virConfPtr conf, const char *key, char ***list_arg,
 
     switch (p->type) {
     case VIR_CONF_STRING:
-        list = malloc (2 * sizeof (*list));
-        if (list == NULL) {
+        if (VIR_ALLOC_N(list, 2) < 0) {
             qemudLog (QEMUD_ERR,
                       _("failed to allocate memory for %s config list"), key);
             return -1;
@@ -1739,7 +1747,7 @@ remoteConfigGetStringList(virConfPtr conf, const char *key, char ***list_arg,
             qemudLog (QEMUD_ERR,
                       _("failed to allocate memory for %s config list value"),
                       key);
-            free (list);
+            VIR_FREE(list);
             return -1;
         }
         break;
@@ -1749,8 +1757,7 @@ remoteConfigGetStringList(virConfPtr conf, const char *key, char ***list_arg,
         virConfValuePtr pp;
         for (pp = p->list; pp; pp = pp->next)
             len++;
-        list = calloc (1+len, sizeof (*list));
-        if (list == NULL) {
+        if (VIR_ALLOC_N(list, 1+len) < 0) {
             qemudLog (QEMUD_ERR,
                       _("failed to allocate memory for %s config list"), key);
             return -1;
@@ -1760,15 +1767,15 @@ remoteConfigGetStringList(virConfPtr conf, const char *key, char ***list_arg,
                 qemudLog (QEMUD_ERR, _("remoteReadConfigFile: %s: %s:"
                           " must be a string or list of strings\n"),
                           filename, key);
-                free (list);
+                VIR_FREE(list);
                 return -1;
             }
             list[i] = strdup (pp->str);
             if (list[i] == NULL) {
                 int j;
                 for (j = 0 ; j < i ; j++)
-                    free (list[j]);
-                free (list);
+                    VIR_FREE(list[j]);
+                VIR_FREE(list);
                 qemudLog (QEMUD_ERR, _("failed to allocate memory"
                                        " for %s config list value"), key);
                 return -1;
@@ -1917,6 +1924,7 @@ remoteReadConfigFile (struct qemud_server *server, const char *filename)
     GET_CONF_INT (conf, filename, listen_tls);
     GET_CONF_STR (conf, filename, tls_port);
     GET_CONF_STR (conf, filename, tcp_port);
+    GET_CONF_STR (conf, filename, listen_addr);
 
     if (remoteConfigGetAuth(conf, "auth_unix_rw", &auth_unix_rw, filename) < 0)
         goto free_and_fail;
@@ -2002,10 +2010,10 @@ remoteReadConfigFile (struct qemud_server *server, const char *filename)
     free (unix_sock_rw_perms);
     free (unix_sock_group);
 
-    /* Don't bother trying to free tcp_port, tls_port, key_file, cert_file,
-       ca_file, or crl_file, since they are initialized to non-malloc'd
-       strings.  Besides, these are static variables, and callers are
-       unlikely to call this function more than once, so there wouldn't
+    /* Don't bother trying to free listen_addr, tcp_port, tls_port, key_file,
+       cert_file, ca_file, or crl_file, since they are initialized to
+       non-malloc'd strings.  Besides, these are static variables, and callers
+       are unlikely to call this function more than once, so there wouldn't
        even be a real leak.  */
 
     if (tls_allowed_dn_list) {
@@ -2136,26 +2144,6 @@ int main(int argc, char **argv) {
         }
     }
 
-    if (pipe(sigpipe) < 0 ||
-        qemudSetNonBlock(sigpipe[0]) < 0 ||
-        qemudSetNonBlock(sigpipe[1]) < 0 ||
-        qemudSetCloseExec(sigpipe[0]) < 0 ||
-        qemudSetCloseExec(sigpipe[1]) < 0) {
-        qemudLog(QEMUD_ERR, _("Failed to create pipe: %s"),
-                 strerror(errno));
-        goto error1;
-    }
-    sigwrite = sigpipe[1];
-
-    if (!(server = qemudInitialize(sigpipe[0]))) {
-        ret = 2;
-        goto error1;
-    }
-
-    /* Read the config file (if it exists). */
-    if (remoteReadConfigFile (server, remote_config_file) < 0)
-        goto error1;
-
     if (godaemon) {
         openlog("libvirtd", 0, 0);
         if (qemudGoDaemon() < 0) {
@@ -2163,19 +2151,32 @@ int main(int argc, char **argv) {
                      strerror(errno));
             goto error1;
         }
-
-        /* Choose the name of the PID file. */
-        if (!pid_file) {
-            if (REMOTE_PID_FILE[0] != '\0')
-                pid_file = REMOTE_PID_FILE;
-        }
-
-        if (pid_file && qemudWritePidFile (pid_file) < 0)
-            goto error1;
     }
 
-    sig_action.sa_handler = sig_handler;
-    sig_action.sa_flags = 0;
+    /* If running as root and no PID file is set, use the default */
+    if (pid_file == NULL &&
+        getuid() == 0 &&
+        REMOTE_PID_FILE[0] != '\0')
+        pid_file = REMOTE_PID_FILE;
+
+    /* If we have a pidfile set, claim it now, exiting if already taken */
+    if (pid_file != NULL &&
+        qemudWritePidFile (pid_file) < 0)
+        goto error1;
+
+    if (pipe(sigpipe) < 0 ||
+        qemudSetNonBlock(sigpipe[0]) < 0 ||
+        qemudSetNonBlock(sigpipe[1]) < 0 ||
+        qemudSetCloseExec(sigpipe[0]) < 0 ||
+        qemudSetCloseExec(sigpipe[1]) < 0) {
+        qemudLog(QEMUD_ERR, _("Failed to create pipe: %s"),
+                 strerror(errno));
+        goto error2;
+    }
+    sigwrite = sigpipe[1];
+
+    sig_action.sa_sigaction = sig_handler;
+    sig_action.sa_flags = SA_SIGINFO;
     sigemptyset(&sig_action.sa_mask);
 
     sigaction(SIGHUP, &sig_action, NULL);
@@ -2186,6 +2187,24 @@ int main(int argc, char **argv) {
 
     sig_action.sa_handler = SIG_IGN;
     sigaction(SIGPIPE, &sig_action, NULL);
+
+    if (!(server = qemudInitialize(sigpipe[0]))) {
+        ret = 2;
+        goto error2;
+    }
+
+    /* Read the config file (if it exists). */
+    if (remoteReadConfigFile (server, remote_config_file) < 0)
+        goto error2;
+
+    /* Change the group ownership of /var/run/libvirt to unix_sock_gid */
+    if (getuid() == 0) {
+        const char *sockdirname = LOCAL_STATE_DIR "/run/libvirt";
+
+        if (chown(sockdirname, -1, unix_sock_gid) < 0)
+            qemudLog(QEMUD_ERR, _("Failed to change group ownership of %s"),
+                     sockdirname);
+    }
 
     if (virEventAddHandleImpl(sigpipe[0],
                               POLLIN,
@@ -2204,28 +2223,17 @@ int main(int argc, char **argv) {
 
     qemudRunLoop(server);
 
-    close(sigwrite);
-
-    if (godaemon)
-        closelog();
-
     ret = 0;
 
- error2:
-    if (godaemon && pid_file)
-        unlink (pid_file);
-
- error1:
+error2:
     if (server)
         qemudCleanup(server);
+    if (pid_file)
+        unlink (pid_file);
+    close(sigwrite);
+
+error1:
+    if (godaemon)
+        closelog();
     return ret;
 }
-
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */

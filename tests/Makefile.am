@@ -33,6 +33,7 @@ LDADDS = \
         $(COVERAGE_LDFLAGS)
 
 EXTRA_DIST =		\
+        oomtrace.pl     \
 	test-lib.sh	\
 	xmlrpcserver.py	\
 	test_conf.sh	\
@@ -41,11 +42,12 @@ EXTRA_DIST =		\
 
 noinst_PROGRAMS = xmlrpctest xml2sexprtest sexpr2xmltest virshtest conftest \
 	reconnect xmconfigtest xencapstest qemuxml2argvtest qemuxml2xmltest \
-        nodeinfotest statstest
+        nodeinfotest statstest qparamtest
 
 test_scripts = \
 	daemon-conf \
 	int-overflow \
+	read-bufsiz \
 	read-non-seekable \
 	vcpupin
 
@@ -53,7 +55,7 @@ EXTRA_DIST += $(test_scripts)
 
 TESTS = xml2sexprtest sexpr2xmltest virshtest test_conf.sh xmconfigtest \
         xencapstest qemuxml2argvtest qemuxml2xmltest nodeinfotest \
-	statstest $(test_scripts)
+	statstest qparamtest $(test_scripts)
 if ENABLE_XEN_TESTS
   TESTS += reconnect
 endif
@@ -66,12 +68,14 @@ path_add = $$abs_top_builddir/src$(PATH_SEPARATOR)$$abs_top_builddir/qemud
 TESTS_ENVIRONMENT =				\
   abs_top_builddir=`cd '$(top_builddir)'; pwd`	\
   abs_top_srcdir=`cd '$(top_srcdir)'; pwd`	\
+  abs_builddir=`cd '$(builddir)'; pwd`		\
+  abs_srcdir=`cd '$(srcdir)'; pwd`		\
   PATH="$(path_add)$(PATH_SEPARATOR)$$PATH"	\
   SHELL="$(SHELL)"				\
   $(VG)
 
 valgrind:
-	$(MAKE) check VG="valgrind --quiet --leak-check=full"
+	$(MAKE) check VG="valgrind --quiet --leak-check=full --suppressions=$(srcdir)/.valgrind.supp"
 
 # Note: xmlrpc.[c|h] is not in libvirt yet
 xmlrpctest_SOURCES = \
@@ -98,12 +102,12 @@ xmconfigtest_SOURCES = \
 xmconfigtest_LDADD = $(LDADDS)
 
 qemuxml2argvtest_SOURCES = \
-	qemuxml2argvtest.c \
+	qemuxml2argvtest.c testutilsqemu.c testutilsqemu.h \
 	testutils.c testutils.h
 qemuxml2argvtest_LDADD = $(LDADDS)
 
 qemuxml2xmltest_SOURCES = \
-	qemuxml2xmltest.c \
+	qemuxml2xmltest.c testutilsqemu.c testutilsqemu.h \
 	testutils.c testutils.h
 qemuxml2xmltest_LDADD = $(LDADDS)
 
@@ -127,6 +131,10 @@ nodeinfotest_LDADD = $(LDADDS)
 statstest_SOURCES = \
 	statstest.c testutils.h testutils.c
 statstest_LDADD = $(LDADDS)
+
+qparamtest_SOURCES = \
+	qparamtest.c testutils.h testutils.c
+qparamtest_LDADD = $(LDADDS)
 
 reconnect_SOURCES = \
 	reconnect.c

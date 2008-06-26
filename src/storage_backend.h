@@ -128,12 +128,13 @@ typedef int (*virStorageBackendListVolNulFunc)(virConnectPtr conn,
 
 int virStorageBackendRunProgRegex(virConnectPtr conn,
                                   virStoragePoolObjPtr pool,
-                                  const char **prog,
+                                  const char *const*prog,
                                   int nregex,
                                   const char **regex,
                                   int *nvars,
                                   virStorageBackendListVolRegexFunc func,
-                                  void *data);
+                                  void *data,
+                                  int *exitstatus);
 
 int virStorageBackendRunProgNul(virConnectPtr conn,
                                 virStoragePoolObjPtr pool,
@@ -143,17 +144,3 @@ int virStorageBackendRunProgNul(virConnectPtr conn,
                                 void *data);
 
 #endif /* __VIR_STORAGE_BACKEND_H__ */
-
-/*
- * vim: set tabstop=4:
- * vim: set shiftwidth=4:
- * vim: set expandtab:
- */
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */

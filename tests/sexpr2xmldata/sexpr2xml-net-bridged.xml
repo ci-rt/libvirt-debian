@@ -16,7 +16,7 @@
     <disk type='file' device='disk'>
       <driver name='file'/>
       <source file='/root/some.img'/>
-      <target dev='xvda'/>
+      <target dev='xvda' bus='xen'/>
     </disk>
     <interface type='bridge'>
       <source bridge='xenbr2'/>
@@ -24,5 +24,8 @@
       <mac address='00:11:22:33:44:55'/>
       <script path='vif-bridge'/>
     </interface>
+    <console type='pty'>
+      <target port='0'/>
+    </console>
   </devices>
 </domain>

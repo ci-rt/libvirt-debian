@@ -1,7 +1,7 @@
 /*
  * Linux block and network stats.
  *
- * Copyright (C) 2007 Red Hat, Inc.
+ * Copyright (C) 2007, 2008 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -18,12 +18,13 @@
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
-#include <ctype.h>
+#include "c-ctype.h"
 
 #ifdef WITH_XEN
 #include <xs.h>
 #endif
 
+#include "internal.h"
 #include "util.h"
 #include "xen_unified.h"
 #include "stats_linux.h"
@@ -230,7 +231,7 @@ xenLinuxDomainDeviceID(virConnectPtr conn, int domid, const char *path)
 
     /* Strip leading path if any */
     if (strlen(path) > 5 &&
-        STREQLEN(path, "/dev/", 5))
+        STRPREFIX(path, "/dev/"))
         path += 5;
 
     /*
@@ -251,7 +252,7 @@ xenLinuxDomainDeviceID(virConnectPtr conn, int domid, const char *path)
      */
 
     if (strlen (path) >= 4 &&
-        STREQLEN (path, "xvd", 3)) {
+        STRPREFIX (path, "xvd")) {
         /* Xen paravirt device handling */
         disk = (path[3] - 'a');
         if (disk < 0 || disk > 15) {
@@ -262,7 +263,7 @@ xenLinuxDomainDeviceID(virConnectPtr conn, int domid, const char *path)
         }
 
         if (path[4] != '\0') {
-            if (!isdigit(path[4]) || path[4] == '0' ||
+            if (!c_isdigit(path[4]) || path[4] == '0' ||
                 virStrToLong_i(path+4, NULL, 10, &part) < 0 ||
                 part < 1 || part > 15) {
                 statsErrorFunc (conn, VIR_ERR_INVALID_ARG, __FUNCTION__,
@@ -274,7 +275,7 @@ xenLinuxDomainDeviceID(virConnectPtr conn, int domid, const char *path)
 
         return (XENVBD_MAJOR * 256) + (disk * 16) + part;
     } else if (strlen (path) >= 3 &&
-               STREQLEN (path, "sd", 2)) {
+               STRPREFIX (path, "sd")) {
         /* SCSI device handling */
         int majors[] = { SCSI_DISK0_MAJOR, SCSI_DISK1_MAJOR, SCSI_DISK2_MAJOR,
                          SCSI_DISK3_MAJOR, SCSI_DISK4_MAJOR, SCSI_DISK5_MAJOR,
@@ -306,7 +307,7 @@ xenLinuxDomainDeviceID(virConnectPtr conn, int domid, const char *path)
             } else {
                 p = path + 3;
             }
-            if (p && (!isdigit(*p) || *p == '0' ||
+            if (p && (!c_isdigit(*p) || *p == '0' ||
                       virStrToLong_i(p, NULL, 10, &part) < 0 ||
                       part < 1 || part > 15)) {
                 statsErrorFunc (conn, VIR_ERR_INVALID_ARG, __FUNCTION__,
@@ -318,7 +319,7 @@ xenLinuxDomainDeviceID(virConnectPtr conn, int domid, const char *path)
 
         return (majors[disk/16] * 256) + ((disk%16) * 16) + part;
     } else if (strlen (path) >= 3 &&
-               STREQLEN (path, "hd", 2)) {
+               STRPREFIX (path, "hd")) {
         /* IDE device handling */
         int majors[] = { IDE0_MAJOR, IDE1_MAJOR, IDE2_MAJOR, IDE3_MAJOR,
                          IDE4_MAJOR, IDE5_MAJOR, IDE6_MAJOR, IDE7_MAJOR,
@@ -332,7 +333,7 @@ xenLinuxDomainDeviceID(virConnectPtr conn, int domid, const char *path)
         }
 
         if (path[3] != '\0') {
-            if (!isdigit(path[3]) || path[3] == '0' ||
+            if (!c_isdigit(path[3]) || path[3] == '0' ||
                 virStrToLong_i(path+3, NULL, 10, &part) < 0 ||
                 part < 1 || part > 63) {
                 statsErrorFunc (conn, VIR_ERR_INVALID_ARG, __FUNCTION__,
@@ -445,16 +446,3 @@ linuxDomainInterfaceStats (virConnectPtr conn, const char *path,
 }
 
 #endif /* __linux__ */
-/*
- * vim: set tabstop=4:
- * vim: set shiftwidth=4:
- * vim: set expandtab:
- */
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */

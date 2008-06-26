@@ -26,15 +26,18 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>
+#if HAVE_PWD_H
 #include <pwd.h>
+#endif
 #include <errno.h>
 #include <string.h>
 
+#include "internal.h"
 #include "driver.h"
 #include "util.h"
 #include "storage_driver.h"
 #include "storage_conf.h"
-
+#include "memory.h"
 #include "storage_backend.h"
 
 #define storageLog(msg...) fprintf(stderr, msg)
@@ -101,9 +104,8 @@ storageDriverStartup(void) {
     char *base = NULL;
     char driverConf[PATH_MAX];
 
-    if (!(driverState = calloc(1, sizeof(virStorageDriverState)))) {
+    if (VIR_ALLOC(driverState) < 0)
         return -1;
-    }
 
     if (!uid) {
         if ((base = strdup (SYSCONF_DIR "/libvirt")) == NULL)
@@ -1243,6 +1245,7 @@ static virStateDriver stateDriver = {
     storageDriverShutdown,
     storageDriverReload,
     storageDriverActive,
+    NULL
 };
 
 int storageRegister(void) {
@@ -1250,17 +1253,3 @@ int storageRegister(void) {
     virRegisterStateDriver(&stateDriver);
     return 0;
 }
-
-/*
- * vim: set tabstop=4:
- * vim: set shiftwidth=4:
- * vim: set expandtab:
- */
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */
