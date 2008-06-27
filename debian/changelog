@@ -1,3 +1,12 @@
+libvirt (0.4.4-1) experimental; urgency=low
+
+  * [0ff1e68] new upstream version
+  * [2098f96] rebase patches for 0.4.4
+  * [abbd15e] enable with-storage-disk now that we have parted1.8
+  * [3942b25] start libvirtd by default
+
+ -- Guido Guenther <agx@sigxcpu.org>  Fri, 27 Jun 2008 10:06:00 +0200
+
 libvirt (0.4.2-6) unstable; urgency=low
 
   * reenable open-iscsi support  - thanks to to the open-iscsi
