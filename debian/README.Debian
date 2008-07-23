@@ -17,4 +17,16 @@ LIBVIRT_DEBUG=1
 export LIBVIRT_DEBUG
 virt-manager
 
+The default NAT network
+=======================
+To ease network configuration libvirt defines a NATed network named "default".
+VMs using this network end up in 192.168.122.1/24 and DHCP is provided to them
+via dnsmasq. This network is not automatically started. To start it use:
+
+ virsh net-start default
+
+In order for things to work this way you need to have the recommended packages
+dnsmasq, bridge-utils and iptables installed and dnsmasq must not be already
+running since libvirt starts it with the above parameters.
+
  -- Guido Guenther <agx@sigxcpu.org>  Thu, 15 May 2008 14:13:03 +0100
