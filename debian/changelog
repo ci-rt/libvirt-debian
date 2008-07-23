@@ -1,3 +1,13 @@
+libvirt (0.4.4-3) unstable; urgency=low
+
+  * upload to unstable
+  * [96c6727] add /var/cache/libvirt needed by qemuDriver for temporary
+    storage
+  * [794f95c] bump standards version to 3.8.0
+  * [05184af] add README.source
+
+ -- Guido Guenther <agx@sigxcpu.org>  Wed, 23 Jul 2008 11:30:31 -0400
+
 libvirt (0.4.4-2) experimental; urgency=low
 
   * [facb983] README.Debian explain "default" network startup
