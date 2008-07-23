@@ -1,3 +1,13 @@
+libvirt (0.4.4-2) experimental; urgency=low
+
+  * [facb983] README.Debian explain "default" network startup
+  * [395a510] add /var/lib/libvirt needed for the dnsmasq lease file
+  * [9c588ac] promote bridge-utils & dnsmasq to Recommends: since
+    they're needed for the default NAT network
+  * [9ed2cd4] recommend iptables - needed for the default NAT network
+
+ -- Guido Guenther <agx@sigxcpu.org>  Wed, 23 Jul 2008 00:23:58 -0400
+
 libvirt (0.4.4-1) experimental; urgency=low
 
   * [0ff1e68] new upstream version
