@@ -1,0 +1,37 @@
+From 905b4236aa422b3f8dc6fdf8d4f70fc637c0619f Mon Sep 17 00:00:00 2001
+From: Guido Guenther <agx@sigxcpu.org>
+Date: Wed, 23 Jul 2008 11:19:23 -0400
+Subject: [PATCH] check for the existence of the "migrate" command
+
+for kvm/qemu domain safeing. Qemu doesn't have this yet.
+---
+ src/qemu_driver.c |   13 +++++++++++++
+ 1 files changed, 13 insertions(+), 0 deletions(-)
+
+diff --git a/src/qemu_driver.c b/src/qemu_driver.c
+index c49c83e..aeff782 100644
+--- a/src/qemu_driver.c
++++ b/src/qemu_driver.c
+@@ -2379,6 +2379,19 @@ static int qemudDomainSave(virDomainPtr dom,
+         return -1;
+     }
+ 
++    DEBUG ("migrate reply: %s", info);
++
++    /* If the command isn't supported then qemu prints:
++     * unknown command: migrate" */
++    if (strstr(info, "unknown command:")) {
++        qemudReportError (dom->conn, dom, NULL, VIR_ERR_NO_SUPPORT,
++                          "%s",
++                          _("'migrate' not supported by this qemu"));
++        VIR_FREE(info);
++        VIR_FREE(command);
++        return -1;
++    }
++
+     VIR_FREE(info);
+     VIR_FREE(command);
+ 
+-- 
+1.5.6.3
+
