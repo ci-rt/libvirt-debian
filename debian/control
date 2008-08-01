@@ -12,7 +12,7 @@ Standards-Version: 3.8.0
 
 Package: libvirt-bin
 Architecture: any
-Depends: ${shlibs:Depends}, adduser
+Depends: ${shlibs:Depends}, adduser, libvirt0 (>= ${binary:Version})
 Enhances: qemu, kvm, xen
 Section: admin
 Recommends: netcat-openbsd, bridge-utils, dnsmasq, iptables
