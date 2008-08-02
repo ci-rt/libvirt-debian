@@ -14,6 +14,8 @@ include /usr/share/cdbs/1/class/autotools.mk
 include /usr/share/cdbs/1/class/python-distutils.mk
 include /usr/share/cdbs/1/rules/patchsys-quilt.mk
 
+CFLAGS+=-std=c99
+
 DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	--disable-rpath          \
 	--with-qemu              \
