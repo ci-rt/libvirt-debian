@@ -1,0 +1,41 @@
+From bd385596bf3235d3c44938eb56b300c1b8e28d29 Mon Sep 17 00:00:00 2001
+From: Guido Guenther <agx@sigxcpu.org>
+Date: Fri, 7 Mar 2008 09:08:26 +0100
+Subject: [PATCH] qemu-disable-network.diff
+
+---
+ qemud/Makefile.am |    3 ---
+ qemud/Makefile.in |    3 ---
+ 2 files changed, 0 insertions(+), 6 deletions(-)
+
+diff --git a/qemud/Makefile.am b/qemud/Makefile.am
+index c851f3a..275d9ac 100644
+--- a/qemud/Makefile.am
++++ b/qemud/Makefile.am
+@@ -90,9 +90,6 @@ install-data-local: install-init install-data-sasl
+ 	  $(DESTDIR)$(sysconfdir)/$(default_xml_dest)
+ 	sed -i -e "s,</name>,</name>\n  <uuid>$(UUID)</uuid>," \
+ 	  $(DESTDIR)$(sysconfdir)/$(default_xml_dest)
+-	test -e $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml || \
+-           ln -s ../default.xml \
+-	    $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml
+ 	mkdir -p $(DESTDIR)$(localstatedir)/log/libvirt/qemu
+ 	mkdir -p $(DESTDIR)$(localstatedir)/run/libvirt
+ 	mkdir -p $(DESTDIR)$(localstatedir)/lib/libvirt
+diff --git a/qemud/Makefile.in b/qemud/Makefile.in
+index 18e2596..c7e1d62 100644
+--- a/qemud/Makefile.in
++++ b/qemud/Makefile.in
+@@ -1037,9 +1037,6 @@ remote_protocol.c: remote_protocol.h
+ @WITH_LIBVIRTD_TRUE@	  $(DESTDIR)$(sysconfdir)/$(default_xml_dest)
+ @WITH_LIBVIRTD_TRUE@	sed -i -e "s,</name>,</name>\n  <uuid>$(UUID)</uuid>," \
+ @WITH_LIBVIRTD_TRUE@	  $(DESTDIR)$(sysconfdir)/$(default_xml_dest)
+-@WITH_LIBVIRTD_TRUE@	test -e $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml || \
+-@WITH_LIBVIRTD_TRUE@           ln -s ../default.xml \
+-@WITH_LIBVIRTD_TRUE@	    $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml
+ @WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(localstatedir)/log/libvirt/qemu
+ @WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(localstatedir)/run/libvirt
+ @WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(localstatedir)/lib/libvirt
+-- 
+1.5.5.4
+

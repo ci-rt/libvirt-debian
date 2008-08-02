@@ -20,21 +20,27 @@
   <clock offset='utc'/>
   <devices>
     <emulator>/usr/lib/xen/bin/qemu-dm</emulator>
+    <disk type='block' device='disk'>
+      <driver name='phy'/>
+      <source dev='/dev/sda8'/>
+      <target dev='hda' bus='ide'/>
+    </disk>
+    <disk device='cdrom'>
+      <target dev='hdc' bus='ide'/>
+      <readonly/>
+    </disk>
     <interface type='bridge'>
       <source bridge='xenbr0'/>
       <target dev='vif6.0'/>
       <mac address='00:16:3e:0a:7b:39'/>
     </interface>
-    <disk type='block' device='disk'>
-      <driver name='phy'/>
-      <source dev='/dev/sda8'/>
-      <target dev='hda:disk'/>
-    </disk>
-    <disk device='cdrom'>
-      <target dev='hdc'/>
-      <readonly/>
-    </disk>
     <input type='mouse' bus='ps2'/>
-    <graphics type='vnc' port='5906'/>
+    <graphics type='vnc' port='-1'/>
+    <serial type='pty'>
+      <target port='0'/>
+    </serial>
+    <console type='pty'>
+      <target port='0'/>
+    </console>
   </devices>
 </domain>

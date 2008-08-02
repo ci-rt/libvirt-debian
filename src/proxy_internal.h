@@ -25,18 +25,18 @@ extern "C" {
  * the command allowed though the proxy
  */
 typedef enum {
-	VIR_PROXY_NONE = 0,
-	VIR_PROXY_VERSION = 1,
-	VIR_PROXY_NODE_INFO = 2,
-	VIR_PROXY_LIST = 3,
-	VIR_PROXY_NUM_DOMAIN = 4,
-	VIR_PROXY_LOOKUP_ID = 5,
-	VIR_PROXY_LOOKUP_UUID = 6,
-	VIR_PROXY_LOOKUP_NAME = 7,
-	VIR_PROXY_MAX_MEMORY = 8,
-	VIR_PROXY_DOMAIN_INFO = 9,
-	VIR_PROXY_DOMAIN_XML = 10,
-	VIR_PROXY_DOMAIN_OSTYPE = 11,
+        VIR_PROXY_NONE = 0,
+        VIR_PROXY_VERSION = 1,
+        VIR_PROXY_NODE_INFO = 2,
+        VIR_PROXY_LIST = 3,
+        VIR_PROXY_NUM_DOMAIN = 4,
+        VIR_PROXY_LOOKUP_ID = 5,
+        VIR_PROXY_LOOKUP_UUID = 6,
+        VIR_PROXY_LOOKUP_NAME = 7,
+        VIR_PROXY_MAX_MEMORY = 8,
+        VIR_PROXY_DOMAIN_INFO = 9,
+        VIR_PROXY_DOMAIN_XML = 10,
+        VIR_PROXY_DOMAIN_OSTYPE = 11,
     VIR_PROXY_GET_CAPABILITIES = 12
 } virProxyCommand;
 
@@ -60,7 +60,7 @@ typedef struct _virProxyPacket virProxyPacket;
 typedef  virProxyPacket *virProxyPacketPtr;
 
 /*
- * If there is extra data sent from the proxy to the client, 
+ * If there is extra data sent from the proxy to the client,
  * they are appended after the packet.
  * the size may not be fixed, it's passed as len and includes the
  * extra data.
@@ -97,22 +97,8 @@ extern virDomainPtr xenProxyLookupByName(virConnectPtr conn,
                                          const char *domname);
 
 extern char *       xenProxyDomainDumpXML(virDomainPtr domain,
-					  int flags);
+                                          int flags);
 #ifdef __cplusplus
 }
 #endif                          /* __cplusplus */
 #endif /* __LIBVIR_PROXY_H__ */
-
-/*
- * vim: set tabstop=4:
- * vim: set shiftwidth=4:
- * vim: set expandtab:
- */
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */

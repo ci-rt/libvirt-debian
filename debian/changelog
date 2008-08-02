@@ -1,3 +1,145 @@
+libvirt (0.4.4-3) unstable; urgency=low
+
+  * upload to unstable
+  * [96c6727] add /var/cache/libvirt needed by qemuDriver for temporary
+    storage
+  * [794f95c] bump standards version to 3.8.0
+  * [05184af] add README.source
+
+ -- Guido Guenther <agx@sigxcpu.org>  Wed, 23 Jul 2008 11:30:31 -0400
+
+libvirt (0.4.4-2) experimental; urgency=low
+
+  * [facb983] README.Debian explain "default" network startup
+  * [395a510] add /var/lib/libvirt needed for the dnsmasq lease file
+  * [9c588ac] promote bridge-utils & dnsmasq to Recommends: since
+    they're needed for the default NAT network
+  * [9ed2cd4] recommend iptables - needed for the default NAT network
+
+ -- Guido Guenther <agx@sigxcpu.org>  Wed, 23 Jul 2008 00:23:58 -0400
+
+libvirt (0.4.4-1) experimental; urgency=low
+
+  * [0ff1e68] new upstream version
+  * [2098f96] rebase patches for 0.4.4
+  * [abbd15e] enable with-storage-disk now that we have parted1.8
+  * [3942b25] start libvirtd by default
+
+ -- Guido Guenther <agx@sigxcpu.org>  Fri, 27 Jun 2008 10:06:00 +0200
+
+libvirt (0.4.2-6) unstable; urgency=low
+
+  * reenable open-iscsi support  - thanks to to the open-iscsi
+    maintainers for fixing this up
+  * build a libvirt0-dbg package
+  * register documentation with doc-base  (Closes: #480294) - thanks to
+    Tzafrir Cohen for the patch
+  * control: fix typo
+  * README.Debian: explain debugging
+
+ -- Guido Guenther <agx@sigxcpu.org>  Thu, 15 May 2008 18:04:20 +0200
+
+libvirt (0.4.2-5) unstable; urgency=low
+
+  * no need to depend on python-all-dev we only build an extension for
+    the current python version
+
+ -- Guido Guenther <agx@sigxcpu.org>  Tue, 22 Apr 2008 11:26:13 +0200
+
+libvirt (0.4.2-4) unstable; urgency=low
+
+  * only build-dep on qemu on architectures that have it  
+    (Closes: #476290)
+  * the packages containing the daemon should suggest polkit
+
+ -- Guido Guenther <agx@sigxcpu.org>  Fri, 18 Apr 2008 10:41:38 +0200
+
+libvirt (0.4.2-3) unstable; urgency=low
+
+  * drop the {build-,}dependency on open-iscsi too 
+  * suggest policykit
+
+ -- Guido Guenther <agx@sigxcpu.org>  Mon, 14 Apr 2008 15:27:20 +0200
+
+libvirt (0.4.2-2) unstable; urgency=low
+
+  * disable the iscsi storage backend until #423368 is fixed in unstable
+  * disable polkit authentication by default so the libvirt stays accessible
+    for members of the libvirt group
+
+ -- Guido Guenther <agx@sigxcpu.org>  Mon, 14 Apr 2008 14:20:23 +0200
+
+libvirt (0.4.2-1) unstable; urgency=low
+
+  * drop no-mac.diff - applied upstream
+  * no need to explicitly link against libpthread
+  * always enable debugging
+  * add Homepage URL
+  * add Vcs-{Git,Browser} fields
+  * symlink devhelp docs
+  * enable policy kit
+
+ -- Guido Guenther <agx@sigxcpu.org>  Fri, 11 Apr 2008 17:54:06 +0200
+
+libvirt (0.4.1-1) experimental; urgency=low
+
+  * new upstream version
+       * Xen 3.2 fixes
+       * storage pool support
+  * partition based storage pools are disabled, since this needs parted 1.8
+    which is only in experimental
+  * update patches for new upstream release
+       * boot-dev-error.diff - applied upstream
+       * qemu-parse-error.diff - applied upstream
+       * qemu-path.diff - adjust to new hypervisor detection code
+       * rediff the rest
+  * new patches:
+       * no-mac.diff: don't set mac address on tun device since it breaks kvm
+  * bump shlibs version 
+
+ -- Guido Guenther <agx@sigxcpu.org>  Fri, 07 Mar 2008 10:17:21 +0100
+
+libvirt (0.4.0-6) unstable; urgency=low
+
+  * depend on libxen-dev (Closes:#467598)
+  * allow members of the libvirt group to manage virtual machines
+
+ -- Guido Guenther <agx@sigxcpu.org>  Sun, 02 Mar 2008 16:11:49 +0100
+
+libvirt (0.4.0-5) unstable; urgency=low
+
+  * thanks to the xen maintainers Debian now has a working libxen-dev, so
+    enable xen support in the default build (Closes: #453826)
+  * recommend netcat-openbsd for unix domain socket support (Closes: #453627)
+  * README.Debian: document necessary xend options
+  * fix spelling of Python 
+
+ -- Guido Guenther <agx@sigxcpu.org>  Wed, 20 Feb 2008 11:14:22 +0100
+
+libvirt (0.4.0-4) unstable; urgency=low
+
+  * don't segfault on broken boot device configuration (Closes: #463686)
+  * don't segfault due to missing errorhandling in the XML parsing code
+
+ -- Guido Guenther <agx@sigxcpu.org>  Tue, 05 Feb 2008 13:12:54 +0100
+
+libvirt (0.4.0-3) unstable; urgency=low
+
+  * add and remove the libvirt group for the socket
+  * be a bit more verbose on libvirtd reload
+  * depend on adduser since we add the libvirt user
+  * don't restart libvirtd on upgrades since it kills running qemus
+  * enable debugging via DEB_BUILD_OPTS
+
+ -- Guido Guenther <agx@sigxcpu.org>  Sun, 03 Feb 2008 14:21:46 +0100
+
+libvirt (0.4.0-2) unstable; urgency=low
+
+  * libvirt-bin.init: fix the reload target
+  * add configuration examples
+
+ -- Guido Guenther <agx@sigxcpu.org>  Sat, 15 Dec 2007 18:59:11 +0100
+
 libvirt (0.4.0-1~bpo40+1) etch-backports; urgency=low
 
   * Rebuild for Etch backports.
@@ -26,6 +168,12 @@ libvirt (0.3.3-6) unstable; urgency=low
 
  -- Guido Guenther <agx@sigxcpu.org>  Wed, 19 Dec 2007 13:45:58 +0100
 
+libvirt (0.3.3-5.xen0) unstable; urgency=low
+
+  * rebuild with xen support
+
+ -- Guido Guenther <agx@sigxcpu.org>  Tue, 08 Jan 2008 11:00:24 +0100
+
 libvirt (0.3.3-5) unstable; urgency=low
 
   * make libs match overrides
@@ -47,6 +195,12 @@ libvirt (0.3.3-4) unstable; urgency=low
   * fix messed up Standards-Version (Closes: #453900)
 
  -- Guido Guenther <agx@sigxcpu.org>  Sun, 02 Dec 2007 14:50:11 +0100
+
+libvirt (0.3.3-3.xen0) unstable; urgency=low
+
+  * build with xen support - depend on our hacked up xen-utils for that
+
+ --  Guido Guenther <agx@sigxcpu.org>  Sat, 01 Dec 2007 16:27:32 +0000
 
 libvirt (0.3.3-3) unstable; urgency=low
 

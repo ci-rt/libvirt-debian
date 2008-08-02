@@ -32,6 +32,9 @@
 /* whether debugging is enabled */
 #undef ENABLE_DEBUG
 
+/* whether support for Fedora's lokkit is enabled */
+#undef ENABLE_IPTABLES_LOKKIT
+
 /* Define to 1 if translation of program messages to the user's native
    language is requested. */
 #undef ENABLE_NLS
@@ -46,8 +49,8 @@
    may be supplied by this distribution. */
 #undef HAVE_ALLOCA
 
-/* Define HAVE_ALLOCA_H for backward compatibility with older code that
-   includes <alloca.h> only if HAVE_ALLOCA_H is defined. */
+/* Define to 1 if you have <alloca.h> and it should be used (not on Ultrix).
+   */
 #undef HAVE_ALLOCA_H
 
 /* Define to 1 if you have the <arpa/inet.h> header file. */
@@ -110,10 +113,6 @@
 /* Define to 1 if you have the declaration of `inet_ntop', and to 0 if you
    don't. */
 #undef HAVE_DECL_INET_NTOP
-
-/* Define to 1 if you have the declaration of `mkdir', and to 0 if you don't.
-   */
-#undef HAVE_DECL_MKDIR
 
 /* Define to 1 if you have the declaration of `putc_unlocked', and to 0 if you
    don't. */
@@ -192,9 +191,6 @@
    declares uintmax_t. */
 #undef HAVE_INTTYPES_H_WITH_UINTMAX
 
-/* Define to 1 if you have the <io.h> header file. */
-#undef HAVE_IO_H
-
 /* Define to 1 if <sys/socket.h> defines AF_INET. */
 #undef HAVE_IPV4
 
@@ -204,8 +200,23 @@
 /* Define to 1 if you have the `gnutls' library (-lgnutls). */
 #undef HAVE_LIBGNUTLS
 
-/* Define to 1 if you have the `sasl2' library (-lsasl2). */
-#undef HAVE_LIBSASL2
+/* Define to 1 if you have the `numa' library (-lnuma). */
+#undef HAVE_LIBNUMA
+
+/* Define to 1 if you have the `parted' library (-lparted). */
+#undef HAVE_LIBPARTED
+
+/* Define to 1 if you have the `portablexdr' library (-lportablexdr). */
+#undef HAVE_LIBPORTABLEXDR
+
+/* Define if pthread (-lpthread) */
+#undef HAVE_LIBPTHREAD
+
+/* Define to 1 if you have the `selinux' library (-lselinux). */
+#undef HAVE_LIBSELINUX
+
+/* Define to 1 if you have the `uuid' library (-luuid). */
+#undef HAVE_LIBUUID
 
 /* Define to 1 if you have the <linux/if_bridge.h> header file. */
 #undef HAVE_LINUX_IF_BRIDGE_H
@@ -240,11 +251,18 @@
 /* Define to 1 if you have the <netinet/in.h> header file. */
 #undef HAVE_NETINET_IN_H
 
+/* whether numactl is available for topology info */
+#undef HAVE_NUMACTL
+
 /* Define to 1 if you have the <paths.h> header file. */
 #undef HAVE_PATHS_H
 
 /* use PolicyKit for UNIX socket access checks */
 #undef HAVE_POLKIT
+
+/* Define to 1 if you have the `polkit_context_is_caller_authorized' function.
+   */
+#undef HAVE_POLKIT_CONTEXT_IS_CALLER_AUTHORIZED
 
 /* Define to 1 if you have the 'poll' function and it works. */
 #undef HAVE_POLL
@@ -258,8 +276,17 @@
 /* Define to 1 if you have the `pstat_getstatic' function. */
 #undef HAVE_PSTAT_GETSTATIC
 
+/* Define if <pthread.h> */
+#undef HAVE_PTHREAD_H
+
 /* Define to 1 if you have the <pwd.h> header file. */
 #undef HAVE_PWD_H
+
+/* whether qcow-create is available for non-raw files */
+#undef HAVE_QCOW_CREATE
+
+/* whether qemu-img is available for non-raw files */
+#undef HAVE_QEMU_IMG
 
 /* Define to 1 if you have the <readline/readline.h> header file. */
 #undef HAVE_READLINE_READLINE_H
@@ -272,6 +299,15 @@
 
 /* whether Cyrus SASL is available for authentication */
 #undef HAVE_SASL
+
+/* Define to 1 if you have the `sched_getaffinity' function. */
+#undef HAVE_SCHED_GETAFFINITY
+
+/* Define to 1 if you have the <sched.h> header file. */
+#undef HAVE_SCHED_H
+
+/* whether SELinux is available for security */
+#undef HAVE_SELINUX
 
 /* Define to 1 if you have the `shutdown' function. */
 #undef HAVE_SHUTDOWN
@@ -464,17 +500,29 @@
 /* Define to 1 if you have the `__fsetlocking' function. */
 #undef HAVE___FSETLOCKING
 
-/* directory used for saving iptables chains */
-#undef IPTABLES_DIR
-
 /* path to iptables binary */
 #undef IPTABLES_PATH
 
-/* prefix used for iptables chains */
-#undef IPTABLES_PREFIX
+/* Location of iscsiadm program */
+#undef ISCSIADM
+
+/* path to lokkit binary */
+#undef LOKKIT_PATH
 
 /* Define to 1 if lseek does not detect pipes. */
 #undef LSEEK_PIPE_BROKEN
+
+/* Location of lvcreate program */
+#undef LVCREATE
+
+/* Location of lvcreate program */
+#undef LVREMOVE
+
+/* Location of lvs program */
+#undef LVS
+
+/* Location or name of the mount program */
+#undef MOUNT
 
 /* Define to 1 if your C compiler doesn't accept -c and -o together. */
 #undef NO_MINUS_C_MINUS_O
@@ -497,12 +545,33 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
+/* Location or name of the parted program */
+#undef PARTED
+
+/* Location of polkit-auth program */
+#undef POLKIT_AUTH
+
 /* Define to 1 if the C compiler supports function prototypes. */
 #undef PROTOTYPES
 
 /* Define to l, ll, u, ul, ull, etc., as suitable for constants of type
    'ptrdiff_t'. */
 #undef PTRDIFF_T_SUFFIX
+
+/* Location of pvcreate program */
+#undef PVCREATE
+
+/* Location of pvcreate program */
+#undef PVREMOVE
+
+/* Location of pvs program */
+#undef PVS
+
+/* Location or name of the qcow-create program */
+#undef QCOW_CREATE
+
+/* Location or name of the qemu-img program */
+#undef QEMU_IMG
 
 /* Define if vasnprintf exists but is overridden by gnulib. */
 #undef REPLACE_VASNPRINTF
@@ -533,11 +602,32 @@
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
+/* Whether malloc OOM checking is enabled */
+#undef TEST_OOM
+
+/* Whether backtrace() is available */
+#undef TEST_OOM_TRACE
+
+/* Location or name of the mount program */
+#undef UMOUNT
+
 /* whether virsh can use readline */
 #undef USE_READLINE
 
 /* Version number of package */
 #undef VERSION
+
+/* Location of vgchange program */
+#undef VGCHANGE
+
+/* Location of vgcreate program */
+#undef VGCREATE
+
+/* Location of vgcreate program */
+#undef VGREMOVE
+
+/* Location of vgs program */
+#undef VGS
 
 /* Define to l, ll, u, ul, ull, etc., as suitable for constants of type
    'wchar_t'. */
@@ -547,6 +637,24 @@
    'wint_t'. */
 #undef WINT_T_SUFFIX
 
+/* Whether Xen proxy is enabled */
+#undef WITH_PROXY
+
+/* whether Disk backend for storage driver is enabled */
+#undef WITH_STORAGE_DISK
+
+/* whether FS backend for storage driver is enabled */
+#undef WITH_STORAGE_FS
+
+/* whether iSCSI backend for storage driver is enabled */
+#undef WITH_STORAGE_ISCSI
+
+/* whether LVM backend for storage driver is enabled */
+#undef WITH_STORAGE_LVM
+
+/* Number of bits in a file offset, on hosts where this is settable. */
+#undef _FILE_OFFSET_BITS
+
 /* Enable GNU extensions on systems that have them.  */
 #ifndef _GNU_SOURCE
 # undef _GNU_SOURCE
@@ -554,6 +662,9 @@
 
 /* Define to 1 to make fseeko visible on some hosts (e.g. glibc 2.2). */
 #undef _LARGEFILE_SOURCE
+
+/* Define for large files, on AIX-style hosts. */
+#undef _LARGE_FILES
 
 /* Define to 1 if on MINIX. */
 #undef _MINIX
@@ -601,6 +712,19 @@
 
 /* Define to long or long long if <stdint.h> and <inttypes.h> don't define. */
 #undef intmax_t
+
+/* Work around a bug in Apple GCC 4.0.1 build 5465: In C99 mode, it supports
+   the ISO C 99 semantics of 'extern inline' (unlike the GNU C semantics of
+   earlier versions), but does not display it by setting __GNUC_STDC_INLINE__.
+   __APPLE__ && __MACH__ test for MacOS X.
+   __APPLE_CC__ tests for the Apple compiler and its version.
+   __STDC_VERSION__ tests for the C99 mode.  */
+#if defined __APPLE__ && defined __MACH__ && __APPLE_CC__ >= 5465 && !defined __cplusplus && __STDC_VERSION__ >= 199901L && !defined __GNUC_STDC_INLINE__
+# define __GNUC_STDC_INLINE__ 1
+#endif
+
+/* Define to the type of st_nlink in struct stat, or a supertype. */
+#undef nlink_t
 
 /* Define to poll if the replacement function should be used. */
 #undef poll

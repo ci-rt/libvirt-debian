@@ -1,7 +1,7 @@
 /*
  * nodeinfo.c: Helper routines for OS specific node information
  *
- * Copyright (C) 2006, 2007 Red Hat, Inc.
+ * Copyright (C) 2006, 2007, 2008 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -21,20 +21,22 @@
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
-#include "config.h"
+#include <config.h>
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <ctype.h>
+#include "c-ctype.h"
 
 #ifdef HAVE_SYS_UTSNAME_H
 #include <sys/utsname.h>
 #endif
 
+#include "internal.h"
 #include "nodeinfo.h"
 #include "physmem.h"
+#include "util.h"
 
 #ifdef __linux__
 #define CPUINFO_PATH "/proc/cpuinfo"
@@ -56,9 +58,9 @@ int linuxNodeInfoCPUPopulate(virConnectPtr conn, FILE *cpuinfo, virNodeInfoPtr n
     /* XXX hyperthreads */
     while (fgets(line, sizeof(line), cpuinfo) != NULL) {
         char *buf = line;
-        if (STREQLEN(buf, "processor", 9)) { /* aka a single logical CPU */
+        if (STRPREFIX(buf, "processor")) { /* aka a single logical CPU */
             buf += 9;
-            while (*buf && isspace(*buf))
+            while (*buf && c_isspace(*buf))
                 buf++;
             if (*buf != ':') {
                 __virRaiseError(conn, NULL, NULL, 0, VIR_ERR_INTERNAL_ERROR,
@@ -67,11 +69,11 @@ int linuxNodeInfoCPUPopulate(virConnectPtr conn, FILE *cpuinfo, virNodeInfoPtr n
                 return -1;
             }
             nodeinfo->cpus++;
-        } else if (STREQLEN(buf, "cpu MHz", 7)) {
+        } else if (STRPREFIX(buf, "cpu MHz")) {
             char *p;
             unsigned int ui;
             buf += 9;
-            while (*buf && isspace(*buf))
+            while (*buf && c_isspace(*buf))
                 buf++;
             if (*buf != ':' || !buf[1]) {
                 __virRaiseError(conn, NULL, NULL, 0, VIR_ERR_INTERNAL_ERROR,
@@ -79,15 +81,15 @@ int linuxNodeInfoCPUPopulate(virConnectPtr conn, FILE *cpuinfo, virNodeInfoPtr n
                                 "parsing cpuinfo cpu MHz");
                 return -1;
             }
-            if (xstrtol_ui(buf+1, &p, 10, &ui) == 0
+            if (virStrToLong_ui(buf+1, &p, 10, &ui) == 0
                 /* Accept trailing fractional part.  */
-                && (*p == '\0' || *p == '.' || isspace(*p)))
+                && (*p == '\0' || *p == '.' || c_isspace(*p)))
                 nodeinfo->mhz = ui;
-        } else if (STREQLEN(buf, "cpu cores", 9)) { /* aka cores */
+        } else if (STRPREFIX(buf, "cpu cores")) { /* aka cores */
             char *p;
             unsigned int id;
             buf += 9;
-            while (*buf && isspace(*buf))
+            while (*buf && c_isspace(*buf))
                 buf++;
             if (*buf != ':' || !buf[1]) {
                 __virRaiseError(conn, NULL, NULL, 0, VIR_ERR_INTERNAL_ERROR,
@@ -95,8 +97,8 @@ int linuxNodeInfoCPUPopulate(virConnectPtr conn, FILE *cpuinfo, virNodeInfoPtr n
                                 "parsing cpuinfo cpu cores %c", *buf);
                 return -1;
             }
-            if (xstrtol_ui(buf+1, &p, 10, &id) == 0
-                && (*p == '\0' || isspace(*p))
+            if (virStrToLong_ui(buf+1, &p, 10, &id) == 0
+                && (*p == '\0' || c_isspace(*p))
                 && id > nodeinfo->cores)
                 nodeinfo->cores = id;
         }
@@ -169,13 +171,3 @@ int virNodeInfoPopulate(virConnectPtr conn,
     return -1;
 #endif
 }
-
-
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */

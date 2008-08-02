@@ -16,14 +16,15 @@ rm -rf coverage
 
 ./autogen.sh --prefix=$AUTOBUILD_INSTALL_ROOT \
   --enable-test-coverage \
-  --enable-compile-warnings=error 
+  --enable-compile-warnings=error
 
 make
 make install
 
 set -o pipefail
 make check 2>&1 | tee $RESULTS
-make cov
+make syntax-check 2>&1 | tee -a $RESULTS
+test -x /usr/bin/lcov && make cov
 
 rm -f *.tar.gz
 make dist

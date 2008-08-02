@@ -22,7 +22,7 @@
 #endif
 
 #define PyvirConnect_Get(v) (((v) == Py_None) ? NULL : \
-	(((PyvirConnect_Object *)(v))->obj))
+        (((PyvirConnect_Object *)(v))->obj))
 
 typedef struct {
     PyObject_HEAD
@@ -31,7 +31,7 @@ typedef struct {
 
 
 #define PyvirDomain_Get(v) (((v) == Py_None) ? NULL : \
-	(((PyvirDomain_Object *)(v))->obj))
+        (((PyvirDomain_Object *)(v))->obj))
 
 typedef struct {
     PyObject_HEAD
@@ -40,12 +40,30 @@ typedef struct {
 
 
 #define PyvirNetwork_Get(v) (((v) == Py_None) ? NULL : \
-	(((PyvirNetwork_Object *)(v))->obj))
+        (((PyvirNetwork_Object *)(v))->obj))
 
 typedef struct {
     PyObject_HEAD
     virNetworkPtr obj;
 } PyvirNetwork_Object;
+
+
+#define PyvirStoragePool_Get(v) (((v) == Py_None) ? NULL : \
+        (((PyvirStoragePool_Object *)(v))->obj))
+
+typedef struct {
+    PyObject_HEAD
+    virStoragePoolPtr obj;
+} PyvirStoragePool_Object;
+
+
+#define PyvirStorageVol_Get(v) (((v) == Py_None) ? NULL : \
+        (((PyvirStorageVol_Object *)(v))->obj))
+
+typedef struct {
+    PyObject_HEAD
+    virStorageVolPtr obj;
+} PyvirStorageVol_Object;
 
 
 PyObject * libvirt_intWrap(int val);
@@ -58,6 +76,8 @@ PyObject * libvirt_charPtrConstWrap(const char *str);
 PyObject * libvirt_virConnectPtrWrap(virConnectPtr node);
 PyObject * libvirt_virDomainPtrWrap(virDomainPtr node);
 PyObject * libvirt_virNetworkPtrWrap(virNetworkPtr node);
+PyObject * libvirt_virStoragePoolPtrWrap(virStoragePoolPtr node);
+PyObject * libvirt_virStorageVolPtrWrap(virStorageVolPtr node);
 
 
 /* Provide simple macro statement wrappers (adapted from GLib, in turn from Perl):
@@ -66,7 +86,7 @@ PyObject * libvirt_virNetworkPtrWrap(virNetworkPtr node);
  *  if (x) LIBVIRT_STMT_START { ... } LIBVIRT_STMT_END; else ...
  *
  *  When GCC is compiling C code in non-ANSI mode, it will use the
- *  compiler __extension__ to wrap the statements wihin `({' and '})' braces.
+ *  compiler __extension__ to wrap the statements within `({' and '})' braces.
  *  When compiling on platforms where configure has defined
  *  HAVE_DOWHILE_MACROS, statements will be wrapped with `do' and `while (0)'.
  *  For any other platforms (SunOS4 is known to have this issue), wrap the

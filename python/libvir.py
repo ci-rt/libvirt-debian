@@ -15,13 +15,17 @@ import types
 
 # The root of all libvirt errors.
 class libvirtError(Exception):
-    def __init__(self, msg, conn=None, dom=None, net=None):
+    def __init__(self, msg, conn=None, dom=None, net=None, pool=None, vol=None):
         Exception.__init__(self, msg)
 
         if dom is not None:
             conn = dom._conn
         elif net is not None:
             conn = net._conn
+        elif pool is not None:
+            conn = pool._conn
+        elif vol is not None:
+            conn = vol._conn
 
         if conn is None:
             self.err = virGetLastError()
@@ -85,7 +89,7 @@ class libvirtError(Exception):
 def registerErrorHandler(f, ctx):
     """Register a Python written function to for error reporting.
        The function is called back as f(ctx, error), with error
-       being a list of informations about the error being raised.
+       being a list of information about the error being raised.
        Returns 1 in case of success."""
     return libvirtmod.virRegisterErrorHandler(f,ctx)
 

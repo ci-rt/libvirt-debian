@@ -15,7 +15,7 @@
 #include <stdio.h>
 #include <libvirt/libvirt.h>
 
-virConnectPtr conn = NULL; /* the hypervisor connection */
+static virConnectPtr conn = NULL; /* the hypervisor connection */
 
 /**
  * checkDomainState:
@@ -25,12 +25,12 @@ virConnectPtr conn = NULL; /* the hypervisor connection */
  */
 static int
 checkDomainState(virDomainPtr dom) {
-    virDomainInfo info;        /* the informations being fetched */
+    virDomainInfo info;        /* the information being fetched */
     int ret;
-    
+
     ret = virDomainGetInfo(dom, &info);
     if (ret < 0) {
-	return(-1);
+        return(-1);
     }
     return(info.state);
 }
@@ -39,7 +39,7 @@ checkDomainState(virDomainPtr dom) {
  * SuspendAndResumeDomain:
  * @id: the id of the domain
  *
- * extract the domain 0 informations
+ * extract the domain 0 information
  */
 static void
 SuspendAndResumeDomain(int id) {
@@ -50,42 +50,42 @@ SuspendAndResumeDomain(int id) {
     dom = virDomainLookupByID(conn, id);
     if (dom == NULL) {
         fprintf(stderr, "Failed to find Domain %d\n", id);
-	goto error;
+        goto error;
     }
 
     /* Check state */
     state = checkDomainState(dom);
     if ((state == VIR_DOMAIN_RUNNING) ||
         (state == VIR_DOMAIN_NOSTATE) ||
-	(state == VIR_DOMAIN_BLOCKED)) {
-	printf("Suspending domain...\n");
-	ret = virDomainSuspend(dom);
-	if (ret < 0) {
-	    fprintf(stderr, "Failed to suspend Domain %d\n", id);
-	    goto error;
-	}
-	state = checkDomainState(dom);
-	if (state != VIR_DOMAIN_PAUSED) {
-	    fprintf(stderr, "Domain %d state is not suspended\n", id);
-	} else {
-	    printf("Domain suspended, resuming it...\n");
-	}
-	ret = virDomainResume(dom);
-	if (ret < 0) {
-	    fprintf(stderr, "Failed to resume Domain %d\n", id);
-	    goto error;
-	}
-	state = checkDomainState(dom);
-	if ((state == VIR_DOMAIN_RUNNING) ||
-	    (state == VIR_DOMAIN_NOSTATE) ||
-	    (state == VIR_DOMAIN_BLOCKED)) {
-	    printf("Domain resumed\n");
-	} else {
-	    fprintf(stderr, "Domain %d state indicate it is not resumed\n", id);
-	}
+        (state == VIR_DOMAIN_BLOCKED)) {
+        printf("Suspending domain...\n");
+        ret = virDomainSuspend(dom);
+        if (ret < 0) {
+            fprintf(stderr, "Failed to suspend Domain %d\n", id);
+            goto error;
+        }
+        state = checkDomainState(dom);
+        if (state != VIR_DOMAIN_PAUSED) {
+            fprintf(stderr, "Domain %d state is not suspended\n", id);
+        } else {
+            printf("Domain suspended, resuming it...\n");
+        }
+        ret = virDomainResume(dom);
+        if (ret < 0) {
+            fprintf(stderr, "Failed to resume Domain %d\n", id);
+            goto error;
+        }
+        state = checkDomainState(dom);
+        if ((state == VIR_DOMAIN_RUNNING) ||
+            (state == VIR_DOMAIN_NOSTATE) ||
+            (state == VIR_DOMAIN_BLOCKED)) {
+            printf("Domain resumed\n");
+        } else {
+            fprintf(stderr, "Domain %d state indicate it is not resumed\n", id);
+        }
     } else {
         fprintf(stderr, "Domain %d is not in a state where it should be suspended\n", id);
-	goto error;
+        goto error;
     }
 
 error:
@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
     conn = virConnectOpenReadOnly(NULL);
     if (conn == NULL) {
         fprintf(stderr, "Failed to connect to hypervisor\n");
-	goto error;
+        goto error;
     }
 
     if (argc > 1) {
@@ -108,27 +108,27 @@ int main(int argc, char **argv) {
     }
     if (id == 0) {
         int i, j, ids[10];
-	i = virConnectListDomains(conn, &ids[0], 10);
-	if (i < 0) {
-	    fprintf(stderr, "Failed to list the domains\n");
-	    goto error;
-	}
-	for (j = 0;j < i;j++) {
-	    if (ids[j] != 0) {
-	        id = ids[j];
-		break;
-	    }
-	}
+        i = virConnectListDomains(conn, &ids[0], 10);
+        if (i < 0) {
+            fprintf(stderr, "Failed to list the domains\n");
+            goto error;
+        }
+        for (j = 0;j < i;j++) {
+            if (ids[j] != 0) {
+                id = ids[j];
+                break;
+            }
+        }
     }
     if (id == 0) {
-	fprintf(stderr, "Failed find a running guest domain\n");
-	goto error;
+        fprintf(stderr, "Failed find a running guest domain\n");
+        goto error;
     }
-    
+
     SuspendAndResumeDomain(id);
 
 error:
     if (conn != NULL)
-	virConnectClose(conn);
+        virConnectClose(conn);
     return(0);
 }

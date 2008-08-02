@@ -29,6 +29,7 @@ typedef struct _iptablesContext iptablesContext;
 iptablesContext *iptablesContextNew              (void);
 void             iptablesContextFree             (iptablesContext *ctx);
 
+void             iptablesSaveRules               (iptablesContext *ctx);
 void             iptablesReloadRules             (iptablesContext *ctx);
 
 int              iptablesAddTcpInput             (iptablesContext *ctx,
@@ -50,6 +51,15 @@ int              iptablesAddForwardAllowOut      (iptablesContext *ctx,
                                                   const char *iface,
                                                   const char *physdev);
 int              iptablesRemoveForwardAllowOut   (iptablesContext *ctx,
+                                                  const char *network,
+                                                  const char *iface,
+                                                  const char *physdev);
+
+int              iptablesAddForwardAllowRelatedIn(iptablesContext *ctx,
+                                                  const char *network,
+                                                  const char *iface,
+                                                  const char *physdev);
+int              iptablesRemoveForwardAllowRelatedIn(iptablesContext *ctx,
                                                   const char *network,
                                                   const char *iface,
                                                   const char *physdev);
@@ -88,12 +98,3 @@ int              iptablesRemoveForwardMasquerade (iptablesContext *ctx,
 #endif /* WITH_QEMU */
 
 #endif /* __QEMUD_IPTABLES_H__ */
-
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */

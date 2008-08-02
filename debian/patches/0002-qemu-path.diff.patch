@@ -1,0 +1,40 @@
+From 795073534283bd96ce6f1b6e266fbccbdce5b250 Mon Sep 17 00:00:00 2001
+From: Guido Guenther <agx@sigxcpu.org>
+Date: Fri, 7 Mar 2008 09:08:26 +0100
+Subject: [PATCH] qemu-path.diff
+
+===================================================================
+---
+ src/qemu_conf.c   |    2 +-
+ src/qemu_driver.c |    2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/qemu_conf.c b/src/qemu_conf.c
+index 17f0162..bda4fa1 100644
+--- a/src/qemu_conf.c
++++ b/src/qemu_conf.c
+@@ -372,7 +372,7 @@ qemudCapsInitGuest(virCapsPtr caps,
+             if (access("/dev/kvm", F_OK) == 0 &&
+                 virCapabilitiesAddGuestDomain(guest,
+                                               "kvm",
+-                                              "/usr/bin/qemu-kvm",
++                                              "/usr/bin/kvm",
+                                               NULL,
+                                               0,
+                                               NULL) == NULL)
+diff --git a/src/qemu_driver.c b/src/qemu_driver.c
+index aae0df3..c49c83e 100644
+--- a/src/qemu_driver.c
++++ b/src/qemu_driver.c
+@@ -1681,7 +1681,7 @@ qemudMonitorCommand (const struct qemud_driver *driver ATTRIBUTE_UNUSED,
+ static const char *qemudProbe(void)
+ {
+     if ((virFileExists("/usr/bin/qemu")) ||
+-        (virFileExists("/usr/bin/qemu-kvm")) ||
++        (virFileExists("/usr/bin/kvm")) ||
+         (virFileExists("/usr/bin/xenner"))) {
+         if (getuid() == 0) {
+             return("qemu:///system");
+-- 
+1.5.5.4
+

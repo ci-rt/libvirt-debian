@@ -36,7 +36,7 @@
  * 'REMOTE_'.  This makes names quite long.
  */
 
-%#include "libvirt/libvirt.h"
+%#include "internal.h"
 
 /*----- Data types. -----*/
 
@@ -78,14 +78,35 @@ const REMOTE_MIGRATE_COOKIE_MAX = 256;
 /* Upper limit on lists of network names. */
 const REMOTE_NETWORK_NAME_LIST_MAX = 256;
 
+/* Upper limit on lists of storage pool names. */
+const REMOTE_STORAGE_POOL_NAME_LIST_MAX = 256;
+
+/* Upper limit on lists of storage vol names. */
+const REMOTE_STORAGE_VOL_NAME_LIST_MAX = 1024;
+
 /* Upper limit on list of scheduler parameters. */
 const REMOTE_DOMAIN_SCHEDULER_PARAMETERS_MAX = 16;
+
+/* Upper limit on number of NUMA cells */
+const REMOTE_NODE_MAX_CELLS = 1024;
 
 /* Upper limit on SASL auth negotiation packet */
 const REMOTE_AUTH_SASL_DATA_MAX = 65536;
 
 /* Maximum number of auth types */
 const REMOTE_AUTH_TYPE_LIST_MAX = 20;
+
+/* Maximum length of a block peek buffer message.
+ * Note applications need to be aware of this limit and issue multiple
+ * requests for large amounts of data.
+ */
+const REMOTE_DOMAIN_BLOCK_PEEK_BUFFER_MAX = 65536;
+
+/* Maximum length of a memory peek buffer message.
+ * Note applications need to be aware of this limit and issue multiple
+ * requests for large amounts of data.
+ */
+const REMOTE_DOMAIN_MEMORY_PEEK_BUFFER_MAX = 65536;
 
 /* UUID.  VIR_UUID_BUFLEN definition comes from libvirt.h */
 typedef opaque remote_uuid[VIR_UUID_BUFLEN];
@@ -103,9 +124,24 @@ struct remote_nonnull_network {
     remote_uuid uuid;
 };
 
+/* A storage pool which may not be NULL. */
+struct remote_nonnull_storage_pool {
+    remote_nonnull_string name;
+    remote_uuid uuid;
+};
+
+/* A storage vol which may not be NULL. */
+struct remote_nonnull_storage_vol {
+    remote_nonnull_string pool;
+    remote_nonnull_string name;
+    remote_nonnull_string key;
+};
+
 /* A domain or network which may be NULL. */
 typedef remote_nonnull_domain *remote_domain;
 typedef remote_nonnull_network *remote_network;
+typedef remote_nonnull_storage_pool *remote_storage_pool;
+typedef remote_nonnull_storage_vol *remote_storage_vol;
 
 /* Error message. See <virterror.h> for explanation of fields. */
 
@@ -233,6 +269,19 @@ struct remote_get_capabilities_ret {
     remote_nonnull_string capabilities;
 };
 
+struct remote_node_get_cells_free_memory_args {
+    int startCell;
+    int maxCells;
+};
+
+struct remote_node_get_cells_free_memory_ret {
+    hyper freeMems<REMOTE_NODE_MAX_CELLS>;
+};
+
+struct remote_node_get_free_memory_ret {
+    hyper freeMem;
+};
+
 struct remote_domain_get_scheduler_type_args {
     remote_nonnull_domain dom;
 };
@@ -283,6 +332,29 @@ struct remote_domain_interface_stats_ret {
     hyper tx_packets;
     hyper tx_errs;
     hyper tx_drop;
+};
+
+struct remote_domain_block_peek_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string path;
+    unsigned hyper offset;
+    unsigned size;
+    unsigned flags;
+};
+
+struct remote_domain_block_peek_ret {
+    opaque buffer<REMOTE_DOMAIN_BLOCK_PEEK_BUFFER_MAX>;
+};
+
+struct remote_domain_memory_peek_args {
+    remote_nonnull_domain dom;
+    unsigned hyper offset;
+    unsigned size;
+    unsigned flags;
+};
+
+struct remote_domain_memory_peek_ret {
+    opaque buffer<REMOTE_DOMAIN_MEMORY_PEEK_BUFFER_MAX>;
 };
 
 struct remote_list_domains_args {
@@ -626,6 +698,7 @@ struct remote_network_set_autostart_args {
     int autostart;
 };
 
+
 struct remote_auth_list_ret {
     remote_auth_type types<REMOTE_AUTH_TYPE_LIST_MAX>;
 };
@@ -661,6 +734,225 @@ struct remote_auth_polkit_ret {
     int complete;
 };
 
+
+
+/* Storage pool calls: */
+
+struct remote_num_of_storage_pools_ret {
+    int num;
+};
+
+struct remote_list_storage_pools_args {
+    int maxnames;
+};
+
+struct remote_list_storage_pools_ret {
+    remote_nonnull_string names<REMOTE_STORAGE_POOL_NAME_LIST_MAX>;
+};
+
+struct remote_num_of_defined_storage_pools_ret {
+    int num;
+};
+
+struct remote_list_defined_storage_pools_args {
+    int maxnames;
+};
+
+struct remote_list_defined_storage_pools_ret {
+    remote_nonnull_string names<REMOTE_STORAGE_POOL_NAME_LIST_MAX>;
+};
+
+struct remote_storage_pool_lookup_by_uuid_args {
+    remote_uuid uuid;
+};
+
+struct remote_storage_pool_lookup_by_uuid_ret {
+    remote_nonnull_storage_pool pool;
+};
+
+struct remote_storage_pool_lookup_by_name_args {
+    remote_nonnull_string name;
+};
+
+struct remote_storage_pool_lookup_by_name_ret {
+    remote_nonnull_storage_pool pool;
+};
+
+struct remote_storage_pool_lookup_by_volume_args {
+    remote_nonnull_storage_vol vol;
+};
+
+struct remote_storage_pool_lookup_by_volume_ret {
+    remote_nonnull_storage_pool pool;
+};
+
+struct remote_storage_pool_create_xml_args {
+    remote_nonnull_string xml;
+    unsigned flags;
+};
+
+struct remote_storage_pool_create_xml_ret {
+    remote_nonnull_storage_pool pool;
+};
+
+struct remote_storage_pool_define_xml_args {
+    remote_nonnull_string xml;
+    unsigned flags;
+};
+
+struct remote_storage_pool_define_xml_ret {
+    remote_nonnull_storage_pool pool;
+};
+
+struct remote_storage_pool_build_args {
+    remote_nonnull_storage_pool pool;
+    unsigned flags;
+};
+
+struct remote_storage_pool_undefine_args {
+    remote_nonnull_storage_pool pool;
+};
+
+struct remote_storage_pool_create_args {
+    remote_nonnull_storage_pool pool;
+    unsigned flags;
+};
+
+struct remote_storage_pool_destroy_args {
+    remote_nonnull_storage_pool pool;
+};
+
+struct remote_storage_pool_delete_args {
+    remote_nonnull_storage_pool pool;
+    unsigned flags;
+};
+
+struct remote_storage_pool_refresh_args {
+    remote_nonnull_storage_pool pool;
+    unsigned flags;
+};
+
+struct remote_storage_pool_dump_xml_args {
+    remote_nonnull_storage_pool pool;
+    unsigned flags;
+};
+
+struct remote_storage_pool_dump_xml_ret {
+    remote_nonnull_string xml;
+};
+
+struct remote_storage_pool_get_info_args {
+    remote_nonnull_storage_pool pool;
+};
+
+struct remote_storage_pool_get_info_ret {
+    unsigned char state;
+    unsigned hyper capacity;
+    unsigned hyper allocation;
+    unsigned hyper available;
+};
+
+struct remote_storage_pool_get_autostart_args {
+    remote_nonnull_storage_pool pool;
+};
+
+struct remote_storage_pool_get_autostart_ret {
+    int autostart;
+};
+
+struct remote_storage_pool_set_autostart_args {
+    remote_nonnull_storage_pool pool;
+    int autostart;
+};
+
+struct remote_storage_pool_num_of_volumes_args {
+    remote_nonnull_storage_pool pool;
+};
+
+struct remote_storage_pool_num_of_volumes_ret {
+    int num;
+};
+
+struct remote_storage_pool_list_volumes_args {
+    remote_nonnull_storage_pool pool;
+    int maxnames;
+};
+
+struct remote_storage_pool_list_volumes_ret {
+    remote_nonnull_string names<REMOTE_STORAGE_VOL_NAME_LIST_MAX>;
+};
+
+
+
+/* Storage vol calls: */
+
+struct remote_storage_vol_lookup_by_name_args {
+    remote_nonnull_storage_pool pool;
+    remote_nonnull_string name;
+};
+
+struct remote_storage_vol_lookup_by_name_ret {
+    remote_nonnull_storage_vol vol;
+};
+
+struct remote_storage_vol_lookup_by_key_args {
+    remote_nonnull_string key;
+};
+
+struct remote_storage_vol_lookup_by_key_ret {
+    remote_nonnull_storage_vol vol;
+};
+
+struct remote_storage_vol_lookup_by_path_args {
+    remote_nonnull_string path;
+};
+
+struct remote_storage_vol_lookup_by_path_ret {
+    remote_nonnull_storage_vol vol;
+};
+
+struct remote_storage_vol_create_xml_args {
+    remote_nonnull_storage_pool pool;
+    remote_nonnull_string xml;
+    unsigned flags;
+};
+
+struct remote_storage_vol_create_xml_ret {
+    remote_nonnull_storage_vol vol;
+};
+
+struct remote_storage_vol_delete_args {
+    remote_nonnull_storage_vol vol;
+    unsigned flags;
+};
+
+struct remote_storage_vol_dump_xml_args {
+    remote_nonnull_storage_vol vol;
+    unsigned flags;
+};
+
+struct remote_storage_vol_dump_xml_ret {
+    remote_nonnull_string xml;
+};
+
+struct remote_storage_vol_get_info_args {
+    remote_nonnull_storage_vol vol;
+};
+
+struct remote_storage_vol_get_info_ret {
+    char type;
+    unsigned hyper capacity;
+    unsigned hyper allocation;
+};
+
+struct remote_storage_vol_get_path_args {
+    remote_nonnull_storage_vol vol;
+};
+
+struct remote_storage_vol_get_path_ret {
+    remote_nonnull_string name;
+};
+
 /*----- Protocol. -----*/
 
 /* Define the program number, protocol version and procedure numbers here. */
@@ -678,6 +970,7 @@ enum remote_procedure {
     REMOTE_PROC_DOMAIN_ATTACH_DEVICE = 8,
     REMOTE_PROC_DOMAIN_CREATE = 9,
     REMOTE_PROC_DOMAIN_CREATE_LINUX = 10,
+
     REMOTE_PROC_DOMAIN_DEFINE_XML = 11,
     REMOTE_PROC_DOMAIN_DESTROY = 12,
     REMOTE_PROC_DOMAIN_DETACH_DEVICE = 13,
@@ -688,6 +981,7 @@ enum remote_procedure {
     REMOTE_PROC_DOMAIN_GET_MAX_VCPUS = 18,
     REMOTE_PROC_DOMAIN_GET_OS_TYPE = 19,
     REMOTE_PROC_DOMAIN_GET_VCPUS = 20,
+
     REMOTE_PROC_LIST_DEFINED_DOMAINS = 21,
     REMOTE_PROC_DOMAIN_LOOKUP_BY_ID = 22,
     REMOTE_PROC_DOMAIN_LOOKUP_BY_NAME = 23,
@@ -698,6 +992,7 @@ enum remote_procedure {
     REMOTE_PROC_DOMAIN_RESUME = 28,
     REMOTE_PROC_DOMAIN_SET_AUTOSTART = 29,
     REMOTE_PROC_DOMAIN_SET_MAX_MEMORY = 30,
+
     REMOTE_PROC_DOMAIN_SET_MEMORY = 31,
     REMOTE_PROC_DOMAIN_SET_VCPUS = 32,
     REMOTE_PROC_DOMAIN_SHUTDOWN = 33,
@@ -708,6 +1003,7 @@ enum remote_procedure {
     REMOTE_PROC_LIST_NETWORKS = 38,
     REMOTE_PROC_NETWORK_CREATE = 39,
     REMOTE_PROC_NETWORK_CREATE_XML = 40,
+
     REMOTE_PROC_NETWORK_DEFINE_XML = 41,
     REMOTE_PROC_NETWORK_DESTROY = 42,
     REMOTE_PROC_NETWORK_DUMP_XML = 43,
@@ -718,6 +1014,7 @@ enum remote_procedure {
     REMOTE_PROC_NETWORK_SET_AUTOSTART = 48,
     REMOTE_PROC_NETWORK_UNDEFINE = 49,
     REMOTE_PROC_NUM_OF_DEFINED_NETWORKS = 50,
+
     REMOTE_PROC_NUM_OF_DOMAINS = 51,
     REMOTE_PROC_NUM_OF_NETWORKS = 52,
     REMOTE_PROC_DOMAIN_CORE_DUMP = 53,
@@ -728,6 +1025,7 @@ enum remote_procedure {
     REMOTE_PROC_DOMAIN_SET_SCHEDULER_PARAMETERS = 58,
     REMOTE_PROC_GET_HOSTNAME = 59,
     REMOTE_PROC_SUPPORTS_FEATURE = 60,
+
     REMOTE_PROC_DOMAIN_MIGRATE_PREPARE = 61,
     REMOTE_PROC_DOMAIN_MIGRATE_PERFORM = 62,
     REMOTE_PROC_DOMAIN_MIGRATE_FINISH = 63,
@@ -737,7 +1035,46 @@ enum remote_procedure {
     REMOTE_PROC_AUTH_SASL_INIT = 67,
     REMOTE_PROC_AUTH_SASL_START = 68,
     REMOTE_PROC_AUTH_SASL_STEP = 69,
-    REMOTE_PROC_AUTH_POLKIT = 70
+    REMOTE_PROC_AUTH_POLKIT = 70,
+
+    REMOTE_PROC_NUM_OF_STORAGE_POOLS = 71,
+    REMOTE_PROC_LIST_STORAGE_POOLS = 72,
+    REMOTE_PROC_NUM_OF_DEFINED_STORAGE_POOLS = 73,
+    REMOTE_PROC_LIST_DEFINED_STORAGE_POOLS = 74,
+    REMOTE_PROC_DISCOVER_STORAGE_POOLS = 75,
+    REMOTE_PROC_STORAGE_POOL_CREATE_XML = 76,
+    REMOTE_PROC_STORAGE_POOL_DEFINE_XML = 77,
+    REMOTE_PROC_STORAGE_POOL_CREATE = 78,
+    REMOTE_PROC_STORAGE_POOL_BUILD = 79,
+    REMOTE_PROC_STORAGE_POOL_DESTROY = 80,
+
+    REMOTE_PROC_STORAGE_POOL_DELETE = 81,
+    REMOTE_PROC_STORAGE_POOL_UNDEFINE = 82,
+    REMOTE_PROC_STORAGE_POOL_REFRESH = 83,
+    REMOTE_PROC_STORAGE_POOL_LOOKUP_BY_NAME = 84,
+    REMOTE_PROC_STORAGE_POOL_LOOKUP_BY_UUID = 85,
+    REMOTE_PROC_STORAGE_POOL_LOOKUP_BY_VOLUME = 86,
+    REMOTE_PROC_STORAGE_POOL_GET_INFO = 87,
+    REMOTE_PROC_STORAGE_POOL_DUMP_XML = 88,
+    REMOTE_PROC_STORAGE_POOL_GET_AUTOSTART = 89,
+    REMOTE_PROC_STORAGE_POOL_SET_AUTOSTART = 90,
+
+    REMOTE_PROC_STORAGE_POOL_NUM_OF_VOLUMES = 91,
+    REMOTE_PROC_STORAGE_POOL_LIST_VOLUMES = 92,
+    REMOTE_PROC_STORAGE_VOL_CREATE_XML = 93,
+    REMOTE_PROC_STORAGE_VOL_DELETE = 94,
+    REMOTE_PROC_STORAGE_VOL_LOOKUP_BY_NAME = 95,
+    REMOTE_PROC_STORAGE_VOL_LOOKUP_BY_KEY = 96,
+    REMOTE_PROC_STORAGE_VOL_LOOKUP_BY_PATH = 97,
+    REMOTE_PROC_STORAGE_VOL_GET_INFO = 98,
+    REMOTE_PROC_STORAGE_VOL_DUMP_XML = 99,
+    REMOTE_PROC_STORAGE_VOL_GET_PATH = 100,
+
+    REMOTE_PROC_NODE_GET_CELLS_FREE_MEMORY = 101,
+    REMOTE_PROC_NODE_GET_FREE_MEMORY = 102,
+
+    REMOTE_PROC_DOMAIN_BLOCK_PEEK = 103,
+    REMOTE_PROC_DOMAIN_MEMORY_PEEK = 104
 };
 
 /* Custom RPC structure. */
@@ -782,18 +1119,3 @@ struct remote_message_header {
     unsigned serial;            /* Serial number of message. */
     remote_message_status status;
 };
-
-
-/*
- * vim: set tabstop=4:
- * vim: set shiftwidth=4:
- * vim: set expandtab:
- */
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */

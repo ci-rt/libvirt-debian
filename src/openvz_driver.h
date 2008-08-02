@@ -19,7 +19,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
  *
- * Authors: 
+ * Authors:
  * Shuveb Hussain <shuveb@binarykarma.com>
  * Anoop Joe Cyriac <anoop@binarykarma.com>
  *
@@ -44,21 +44,11 @@ struct openvz_driver {
 int openvzRegister(void);
 
 #define openvzLog(level, msg...) { if(level == OPENVZ_WARN) \
-					fprintf(stderr, "\nWARNING: ");\
-				else \
-					fprintf(stderr, "\nERROR: ");\
-				fprintf(stderr, "\n\t");\
-				fprintf(stderr, msg);\
-				fprintf(stderr, "\n"); }
+                                        fprintf(stderr, "\nWARNING: ");\
+                                else \
+                                        fprintf(stderr, "\nERROR: ");\
+                                fprintf(stderr, "\n\t");\
+                                fprintf(stderr, msg);\
+                                fprintf(stderr, "\n"); }
 
 #endif
-
-
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */

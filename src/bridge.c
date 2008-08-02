@@ -42,8 +42,10 @@
 #include <linux/sockios.h>   /* SIOCBRADDBR etc.   */
 #include <linux/if_bridge.h> /* SYSFS_BRIDGE_ATTR  */
 #include <linux/if_tun.h>    /* IFF_TUN, IFF_NO_PI */
+#include <net/if_arp.h>    /* ARPHRD_ETHER */
 
 #include "internal.h"
+#include "memory.h"
 
 #define MAX_BRIDGE_ID 256
 
@@ -83,8 +85,7 @@ brInit(brControl **ctlp)
         return err;
     }
 
-    *ctlp = malloc(sizeof(**ctlp));
-    if (!*ctlp) {
+    if (VIR_ALLOC(*ctlp) < 0) {
         close(fd);
         return ENOMEM;
     }
@@ -109,7 +110,7 @@ brShutdown(brControl *ctl)
     close(ctl->fd);
     ctl->fd = 0;
 
-    free(ctl);
+    VIR_FREE(ctl);
 }
 
 /**
@@ -243,7 +244,7 @@ brAddDelInterface(brControl *ctl,
  * @ctl: bridge control pointer
  * @bridge: the bridge name
  * @iface: the network interface name
- * 
+ *
  * Adds an interface to a bridge
  *
  * Returns 0 in case of success or an errno code in case of failure.
@@ -271,7 +272,7 @@ brAddInterface(brControl *ctl ATTRIBUTE_UNUSED,
  * @ctl: bridge control pointer
  * @bridge: the bridge name
  * @iface: the network interface name
- * 
+ *
  * Removes an interface from a bridge
  *
  * Returns 0 in case of success or an errno code in case of failure.
@@ -302,7 +303,7 @@ brDeleteInterface(brControl *ctl ATTRIBUTE_UNUSED,
  * @maxlen: size of @ifname array
  * @tapfd: file descriptor return value for the new tap device
  *
- * This function reates a new tap device on a bridge. @ifname can be either
+ * This function creates a new tap device on a bridge. @ifname can be either
  * a fixed name or a name template with '%d' for dynamic name allocation.
  * in either case the final name for the bridge will be stored in @ifname
  * and the associated file descriptor in @tapfd.
@@ -531,7 +532,7 @@ brGetInetAddr(brControl *ctl,
  * brSetInetAddress:
  * @ctl: bridge control pointer
  * @ifname: the interface name
- * @addr: the string representation of the IP adress
+ * @addr: the string representation of the IP address
  *
  * Function to bind the interface to an IP address, it should handle
  * IPV4 and IPv6. The string for addr would be of the form
@@ -552,7 +553,7 @@ brSetInetAddress(brControl *ctl,
  * brGetInetAddress:
  * @ctl: bridge control pointer
  * @ifname: the interface name
- * @addr: the array for the string representation of the IP adress
+ * @addr: the array for the string representation of the IP address
  * @maxlen: size of @addr in bytes
  *
  * Function to get the IP address of an interface, it should handle
@@ -662,7 +663,7 @@ brctlSpawn(char * const *argv)
  *
  * Returns 0 in case of success or an errno code in case of failure.
  */
- 
+
 int
 brSetForwardDelay(brControl *ctl ATTRIBUTE_UNUSED,
                   const char *bridge,
@@ -680,7 +681,7 @@ brSetForwardDelay(brControl *ctl ATTRIBUTE_UNUSED,
 
     snprintf(delayStr, sizeof(delayStr), "%d", delay);
 
-    if (!(argv = calloc(n + 1, sizeof(*argv))))
+    if (VIR_ALLOC_N(argv, n + 1) < 0)
         goto error;
 
     n = 0;
@@ -705,8 +706,8 @@ brSetForwardDelay(brControl *ctl ATTRIBUTE_UNUSED,
     if (argv) {
         n = 0;
         while (argv[n])
-            free(argv[n++]);
-        free(argv);
+            VIR_FREE(argv[n++]);
+        VIR_FREE(argv);
     }
 
     return retval;
@@ -737,7 +738,7 @@ brSetEnableSTP(brControl *ctl ATTRIBUTE_UNUSED,
         1 + /* brige name */
         1;  /* value */
 
-    if (!(argv = calloc(n + 1, sizeof(*argv))))
+    if (VIR_ALLOC_N(argv, n + 1) < 0)
         goto error;
 
     n = 0;
@@ -762,20 +763,11 @@ brSetEnableSTP(brControl *ctl ATTRIBUTE_UNUSED,
     if (argv) {
         n = 0;
         while (argv[n])
-            free(argv[n++]);
-        free(argv);
+            VIR_FREE(argv[n++]);
+        VIR_FREE(argv);
     }
 
     return retval;
 }
 
 #endif /* WITH_QEMU */
-
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */

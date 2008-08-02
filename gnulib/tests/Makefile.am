@@ -1,6 +1,6 @@
 ## DO NOT EDIT! GENERATED AUTOMATICALLY!
 ## Process this file with automake to produce Makefile.in.
-# Copyright (C) 2004-2007 Free Software Foundation, Inc.
+# Copyright (C) 2002-2008 Free Software Foundation, Inc.
 #
 # This file is free software, distributed under the terms of the GNU
 # General Public License.  As a special exception to the GNU General
@@ -34,12 +34,21 @@ AM_CPPFLAGS = \
   -I../.. -I$(srcdir)/../.. \
   -I../../gnulib/lib -I$(srcdir)/../../gnulib/lib
 
-LDADD = libtests.a $(LIBTESTS_LIBDEPS) ../../gnulib/lib/libgnu.la
+LDADD = libtests.a ../../gnulib/lib/libgnu.la libtests.a $(LIBTESTS_LIBDEPS)
 
 libtests_a_SOURCES =
 libtests_a_LIBADD = $(gltests_LIBOBJS)
 libtests_a_DEPENDENCIES = $(gltests_LIBOBJS)
 EXTRA_libtests_a_SOURCES =
+AM_LIBTOOLFLAGS = --preserve-dup-deps
+
+## begin gnulib module EOVERFLOW-tests
+
+TESTS += test-EOVERFLOW
+check_PROGRAMS += test-EOVERFLOW
+EXTRA_DIST += test-EOVERFLOW.c
+
+## end   gnulib module EOVERFLOW-tests
 
 ## begin gnulib module alloca-opt-tests
 
@@ -59,6 +68,15 @@ EXTRA_DIST += test-arpa_inet.c
 
 ## end   gnulib module arpa_inet-tests
 
+## begin gnulib module c-ctype-tests
+
+TESTS += test-c-ctype
+check_PROGRAMS += test-c-ctype
+
+EXTRA_DIST += test-c-ctype.c
+
+## end   gnulib module c-ctype-tests
+
 ## begin gnulib module fseeko-tests
 
 TESTS += test-fseeko.sh
@@ -72,6 +90,7 @@ EXTRA_DIST += test-fseeko.c test-fseeko.sh
 
 TESTS += test-getaddrinfo
 check_PROGRAMS += test-getaddrinfo
+test_getaddrinfo_LDADD = $(LDADD) @LIBINTL@
 
 EXTRA_DIST += test-getaddrinfo.c
 
@@ -237,11 +256,14 @@ EXTRA_DIST += test-vasprintf.c
 
 ## end   gnulib module vasprintf-tests
 
-## begin gnulib module verify
+## begin gnulib module vc-list-files-tests
 
-libtests_a_SOURCES += verify.h
+TESTS += test-vc-list-files-git.sh
+TESTS += test-vc-list-files-cvs.sh
+TESTS_ENVIRONMENT += PATH='$(abs_aux_dir)':"$$PATH"
+EXTRA_DIST += test-vc-list-files-git.sh test-vc-list-files-cvs.sh
 
-## end   gnulib module verify
+## end   gnulib module vc-list-files-tests
 
 ## begin gnulib module wchar-tests
 

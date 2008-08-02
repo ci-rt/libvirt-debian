@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007 Red Hat, Inc.
+ * Copyright (C) 2007, 2008 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -19,7 +19,7 @@
  *     Mark McLoughlin <markmc@redhat.com>
  */
 
-#include "config.h"
+#include <config.h>
 
 #include "uuid.h"
 
@@ -32,6 +32,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "c-ctype.h"
 #include "internal.h"
 
 #define qemudLog(level, msg...) fprintf(stderr, msg)
@@ -99,10 +100,26 @@ virUUIDGenerate(unsigned char *uuid)
 
     if ((err = virUUIDGenerateRandomBytes(uuid, VIR_UUID_BUFLEN)))
         qemudLog(QEMUD_WARN,
-                 "Falling back to pseudorandom UUID, "
-                 "failed to generate random bytes: %s", strerror(err));
+                 _("Falling back to pseudorandom UUID,"
+                   " failed to generate random bytes: %s"), strerror(err));
 
     return virUUIDGeneratePseudoRandomBytes(uuid, VIR_UUID_BUFLEN);
+}
+
+/* Convert C from hexadecimal character to integer.  */
+static int
+hextobin (unsigned char c)
+{
+  switch (c)
+    {
+    default: return c - '0';
+    case 'a': case 'A': return 10;
+    case 'b': case 'B': return 11;
+    case 'c': case 'C': return 12;
+    case 'd': case 'D': return 13;
+    case 'e': case 'E': return 14;
+    case 'f': case 'F': return 15;
+    }
 }
 
 /**
@@ -136,26 +153,16 @@ virUUIDParse(const char *uuidstr, unsigned char *uuid) {
             cur++;
             continue;
         }
-        if ((*cur >= '0') && (*cur <= '9'))
-            uuid[i] = *cur - '0';
-        else if ((*cur >= 'a') && (*cur <= 'f'))
-            uuid[i] = *cur - 'a' + 10;
-        else if ((*cur >= 'A') && (*cur <= 'F'))
-            uuid[i] = *cur - 'A' + 10;
-        else
+        if (!c_isxdigit(*cur))
             goto error;
+        uuid[i] = hextobin(*cur);
         uuid[i] *= 16;
         cur++;
         if (*cur == 0)
             goto error;
-        if ((*cur >= '0') && (*cur <= '9'))
-            uuid[i] += *cur - '0';
-        else if ((*cur >= 'a') && (*cur <= 'f'))
-            uuid[i] += *cur - 'a' + 10;
-        else if ((*cur >= 'A') && (*cur <= 'F'))
-            uuid[i] += *cur - 'A' + 10;
-        else
+        if (!c_isxdigit(*cur))
             goto error;
+        uuid[i] += hextobin(*cur);
         i++;
         cur++;
     }
@@ -187,14 +194,3 @@ void virUUIDFormat(const unsigned char *uuid, char *uuidstr)
              uuid[12], uuid[13], uuid[14], uuid[15]);
     uuidstr[VIR_UUID_STRING_BUFLEN-1] = '\0';
 }
-
-
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */
-

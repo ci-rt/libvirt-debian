@@ -1,5 +1,5 @@
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# Copyright (C) 2004-2007 Free Software Foundation, Inc.
+# Copyright (C) 2002-2008 Free Software Foundation, Inc.
 #
 # This file is free software, distributed under the terms of the GNU
 # General Public License.  As a special exception to the GNU General
@@ -39,7 +39,9 @@ AC_DEFUN([gl_INIT],
   m4_pushdef([AC_LIBOBJ], m4_defn([gl_LIBOBJ]))
   m4_pushdef([AC_REPLACE_FUNCS], m4_defn([gl_REPLACE_FUNCS]))
   m4_pushdef([AC_LIBSOURCES], m4_defn([gl_LIBSOURCES]))
+  gl_COMMON
   gl_source_base='gnulib/lib'
+  gl_EOVERFLOW
   gl_FUNC_ALLOCA
   gl_HEADER_ARPA_INET
   AC_PROG_MKDIR_P
@@ -57,6 +59,7 @@ AC_DEFUN([gl_INIT],
   AC_SUBST([LIBINTL])
   AC_SUBST([LTLIBINTL])
   gl_INET_NTOP
+  gl_ARPA_INET_MODULE_INDICATOR([inet_ntop])
   gl_FUNC_LSEEK
   gl_UNISTD_MODULE_INDICATOR([lseek])
   gl_FUNC_MALLOC_POSIX
@@ -65,6 +68,7 @@ AC_DEFUN([gl_INIT],
   AC_PROG_MKDIR_P
   gl_PHYSMEM
   gl_FUNC_POLL
+  gl_POSIX_SHELL
   gl_FUNC_REALLOC_POSIX
   gl_STDLIB_MODULE_INDICATOR([realloc-posix])
   gl_SIZE_MAX
@@ -125,10 +129,13 @@ AC_DEFUN([gl_INIT],
   m4_pushdef([AC_LIBOBJ], m4_defn([gltests_LIBOBJ]))
   m4_pushdef([AC_REPLACE_FUNCS], m4_defn([gltests_REPLACE_FUNCS]))
   m4_pushdef([AC_LIBSOURCES], m4_defn([gltests_LIBSOURCES]))
+  gl_COMMON
   gl_source_base='gnulib/tests'
   gt_TYPE_WCHAR_T
   gt_TYPE_WINT_T
   AC_CHECK_FUNCS([shutdown])
+  abs_aux_dir=`cd "$ac_aux_dir"; pwd`
+  AC_SUBST([abs_aux_dir])
   m4_popdef([AC_LIBSOURCES])
   m4_popdef([AC_REPLACE_FUNCS])
   m4_popdef([AC_LIBOBJ])
@@ -156,6 +163,13 @@ AC_DEFUN([gl_LIBOBJ], [
   AS_LITERAL_IF([$1], [gl_LIBSOURCES([$1.c])])dnl
   gl_LIBOBJS="$gl_LIBOBJS $1.$ac_objext"
 ])
+
+# m4_foreach_w is provided by autoconf-2.59c and later.
+# This definition is to accommodate developers using versions
+# of autoconf older than that.
+m4_ifndef([m4_foreach_w],
+  [m4_define([m4_foreach_w],
+    [m4_foreach([$1], m4_split(m4_normalize([$2]), [ ]), [$3])])])
 
 # Like AC_REPLACE_FUNCS, except that the module name goes
 # into gl_LIBOBJS instead of into LIBOBJS.
@@ -185,6 +199,13 @@ AC_DEFUN([gltests_LIBOBJ], [
   gltests_LIBOBJS="$gltests_LIBOBJS $1.$ac_objext"
 ])
 
+# m4_foreach_w is provided by autoconf-2.59c and later.
+# This definition is to accommodate developers using versions
+# of autoconf older than that.
+m4_ifndef([m4_foreach_w],
+  [m4_define([m4_foreach_w],
+    [m4_foreach([$1], m4_split(m4_normalize([$2]), [ ]), [$3])])])
+
 # Like AC_REPLACE_FUNCS, except that the module name goes
 # into gltests_LIBOBJS instead of into LIBOBJS.
 AC_DEFUN([gltests_REPLACE_FUNCS], [
@@ -211,10 +232,15 @@ AC_DEFUN([gltests_LIBSOURCES], [
 AC_DEFUN([gl_FILE_LIST], [
   build-aux/config.rpath
   build-aux/link-warning.h
+  build-aux/mktempd
+  build-aux/useless-if-before-free
+  build-aux/vc-list-files
   lib/alloca.in.h
+  lib/arpa_inet.in.h
   lib/asnprintf.c
   lib/asprintf.c
-  lib/dummy.c
+  lib/c-ctype.c
+  lib/c-ctype.h
   lib/float+.h
   lib/float.in.h
   lib/fseeko.c
@@ -227,7 +253,6 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/getpass.h
   lib/gettext.h
   lib/inet_ntop.c
-  lib/inet_ntop.h
   lib/lseek.c
   lib/malloc.c
   lib/netinet_in.in.h
@@ -244,6 +269,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/snprintf.c
   lib/stdbool.in.h
   lib/stdint.in.h
+  lib/stdio-impl.h
   lib/stdio.in.h
   lib/stdlib.in.h
   lib/strdup.c
@@ -260,9 +286,9 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/vasnprintf.c
   lib/vasnprintf.h
   lib/vasprintf.c
+  lib/verify.h
   lib/wchar.in.h
   lib/xsize.h
-  m4/absolute-header.m4
   m4/alloca.m4
   m4/arpa_inet_h.m4
   m4/codeset.m4
@@ -299,11 +325,13 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/malloc.m4
   m4/netinet_in_h.m4
   m4/nls.m4
-  m4/onceonly_2_57.m4
+  m4/onceonly.m4
   m4/physmem.m4
   m4/po.m4
   m4/poll.m4
+  m4/posix-shell.m4
   m4/printf-posix.m4
+  m4/printf.m4
   m4/progtest.m4
   m4/realloc.m4
   m4/size_max.m4
@@ -334,8 +362,10 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/wchar_t.m4
   m4/wint_t.m4
   m4/xsize.m4
+  tests/test-EOVERFLOW.c
   tests/test-alloca-opt.c
   tests/test-arpa_inet.c
+  tests/test-c-ctype.c
   tests/test-fseeko.c
   tests/test-fseeko.sh
   tests/test-getaddrinfo.c
@@ -357,8 +387,9 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-unistd.c
   tests/test-vasnprintf.c
   tests/test-vasprintf.c
+  tests/test-vc-list-files-cvs.sh
+  tests/test-vc-list-files-git.sh
   tests/test-wchar.c
   tests=lib/dummy.c
   tests=lib/intprops.h
-  tests=lib/verify.h
 ])

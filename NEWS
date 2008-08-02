@@ -4,7 +4,241 @@
   Note that this is automatically generated from the news webpage at:
        http://libvirt.org/news.html
 
-Releases
+
+0.4.4: Jun 25 2008:
+   - Bug fixes: QEmu network serialization (Kaitlin Rupert), internal
+          memory allocation fixes (Chris Lalancette Jim Meyering), virsh
+	  large file config problem (Jim Meyering), xen list APIs when
+	  max is zero, string escape problems in the xm driver 
+   - Improvements: add autogen to tarballs, improve iSCSI support
+          (Chris Lalancette), localization updates 
+   - Cleanups: const-ness fixed (Daniel P. Berrange), string helpers
+          for enumeations (Daniel P. Berrange)
+
+
+0.4.3: Jun 12 2008:
+   - New features: Linux Container start and stop (Dave Leskovec),
+          Network interface model settings (Daniel Berrange),serial and parallel
+	  device support for QEmu and Xen (Daniel Berrange),
+          Sound support for QEmu and Xen (Cole Robinson), vCPU settings for
+	  QEmu (Cole Robinson), support for NUMA and vCPU pinning in QEmu
+	  (Daniel Berrange), new virDomainBlockPeek API (Richard Jones)
+   - Documentation: coding guidelines (Jim Meyering and Richard Jones),
+          small man page missing entries and cleanup,
+	  Web site revamp (Daniel Berrange),
+	  typo fixes (Atsushi SAKAI), more docs on network XML format
+	  (Daniel Berrange), libvirt Wiki (Daniel Berrange),
+	  policykit config docs (Cole Robinson), XML domain docs revamp
+	  (Daniel Berrange), docs for remote listen-tls/tcp fixes (Kenneth
+	  Nagin),  
+   - Bug fixes: save change to config file for Xen (Ryan Scott),
+          fix /var/run/libvirt/ group ownership (Anton Protopopov),
+	  ancient libparted workaround (Soren Hansen), out of bount
+	  array access (Daniel Berrange), remote check bug (Dave Leskovec),
+	  LXC signal and daemon restart problems (Dave Leskovec), bus selection
+	  logic fix in the daemon config (Daniel Berrange), 2 memory leaks
+	  in the daemon (Jim Meyering), daemon pid file logic bug fix
+	  (Daniel Berrange), python generator fixes (Daniel Berrange),
+	  ivarious leaks and memory problem pointed by valgrind (Daniel
+	  Berrange), iptables forwarding cleanup (Daniel Berrange),
+	  Xen cpuset value checking (Hiroyuki Kaguchi), container process
+	  checks for LXC (Dave Leskovec), let xend check block device syntax
+	  (Hiroyuki Kaguchi), UUIDString for python fixes (Cole Robinson)
+   - Improvements: fixes for MinGW compilation (Richard Jones),
+          autostart for running Xen domains (Cole Robinson),
+	  control of listening IP for daemon (Stefan de Konink),
+	  various Xenner related fixes and improvements (Daniel Berrange)
+	  autostart status printed in virsh domainfo (Shigeki Sakamoto),
+	  better error messages for xend driver (Richard Jones)
+   - Code cleanups: OpenVZ compilation (Richard Jones), conn dom and
+          net fields deprecation in error structures (Richard Jones),
+	  Xen-ism on UUID (Richard Jones), add missing .pod to dist (Richard
+	  Jones), tab cleanup from sources (Jim Meyering), remove unused field
+	  in virsh control structure (Richard Jones), compilation without
+	  pthread.h (Jim Meyering), cleanup of tests (Daniel Berrange),
+	  syntax-check improvements (Jim Meyering), python cleanup,
+	  remove dependancy on libc is_* character tests (Jim Meyering),
+	  format related cleanups (Jim Meyering), cleanup of the buffer
+	  internal APIs (Daniel Berrange), conversion to the new memory
+	  allocation API (Daniel Berrange), lcov coverage testing
+	  (Daniel Berrange), gnulib updates (Jim Meyering), compatibility
+	  fix with RHEL 5 (Daniel Berrange), SuSE compatibility fix (Jim
+	  Fehlig), const'ification of a number of structures (Jim Meyering),
+	  string comparison macro cleanups (Daniel Berrange), character
+	  range testing cleanups and assorted bug fixes (Jim Meyering),
+	  QEmu test fixes (Daniel Berrange), configure macro cleanup (Daniel
+	  Berrange), refactor QEmu command line building code (Daniel Berrange),
+	  type punning warning in remote code (Richard Jones), refactoring
+	  of internal headers (Richard Jones), generic out of memory
+	  testing and associated bug fixes (Daniel Berrange), don't raise
+	  internal error for unsupported features (Kaitlin Rupert),
+	  missing driver entry points (Daniel Berrange)
+
+
+0.4.2: Apr 8 2008:
+   - New features: memory operation for QEmu/KVM driver (Cole Robinson),
+      new routed networking schemas (Mads Olesen)
+   - Documentation: storage documentation fixes (Atsushi Sakai), many
+      typo cleanups (Atsushi Sakai), string fixes (Francesco Tombolini)
+   - Bug fixes: pointer errors in qemu (Jim Meyering), iSCSI login fix
+      (Chris Lalancette), well formedness error in test driver capabilities
+      (Cole Robinson), fixes cleanup code when daemon exits (Daniel Berrange),
+      CD Rom change on live QEmu/KVM domains (Cole Robinson), setting scheduler
+      parameter is forbidden for read-only (Saori Fukuta)i, fixes for TAP
+      devices (Daniel Berrange), assorted storage driver fixes (Daniel
+      Berrange), Makefile fixes (Jim Meyering), Xen-3.2 hypercall fix,
+      fix iptables rules to avoid blocking traffic within virtual network
+      (Daniel Berrange), XML output fix for directory pools (Daniel Berrange),
+      remove dandling domain/net/conn pointers from error data, do not
+      ask polkit auth when root (Daniel Berrange), handling of fork and
+      pipe errors when starting the daemon (Richard Jones)
+   - Improvements: better validation of MAC addresses (Jim Meyering and
+      Hiroyuki Kaguchi),
+      virsh vcpupin error report (Shigeki Sakamoto), keep boot tag on
+      HVM domains (Cole Robinson), virsh non-root should not be limited to read
+      only anymore (Daniel Berrange), switch to polkit-auth from polkit-grant
+      (Daniel Berrange), better handling of missing SElinux data (Daniel
+      Berrange and Jim Meyering), cleanup of the connection opening logic
+      (Daniel Berrange), first bits of Linux Containers support (Dave Leskovec),
+      scheduler API support via xend (Saori Fukuta), improvement of the
+      testing framework and first tests (Jim Meyering), missing error
+      messages from virsh parameters validation (Shigeki Sakamoto),
+      improve support of older iscsiadm command (Chris Lalancette),
+      move linux container support in the daemon (Dan Berrange), older
+      awk implementation support (Mike Gerdts), NUMA support in test
+      driver (Cole Robinson), xen and hvm added to test driver capabilities
+      (Cole Robinson)
+   - Code cleanup: remove unused getopt header (Jim Meyering), mark more
+      strings as translatable (Guido Günther and Jim Meyering), convert
+      error strings to something meaningful and translatable (Jim Meyering),
+      Linux Containers code cleanup, last error initializer (Guido Günther)
+
+
+0.4.1: Mar 3 2008:
+   - New features: build on MacOSX (Richard Jones), storage management
+      (Daniel Berrange), Xenner - Xen on KVM - support (Daniel Berrange)
+   - Documentation: Fix of various typos (Atsushi SAKAI), memory and
+      vcpu settings details (Richard Jones), ethernet bridging typo
+      (Maxwell Bottiger), add storage APIs documentation (Daniel Berrange)
+   - Bug fixes: OpenVZ code compilation (Mikhail Pokidko), crash in
+      policykit auth handling (Daniel Berrange), large config files
+      (Daniel Berrange), cpumap hypercall size (Saori Fukuta), crash
+      in remote auth (Daniel Berrange), ssh args error (Daniel Berrange),
+      preserve vif order from config files (Hiroyuki Kaguchi), invalid
+      pointer access (Jim Meyering), virDomainGetXMLDesc flag handling,
+      device name conversion on stats (Daniel Berrange), double mutex lock
+      (Daniel Berrange), config file reading crashes (Guido Guenther),
+      xenUnifiedDomainSuspend bug (Marcus Meissner), do not crash if
+      /sys/hypervisor/capabilities is missing (Mark McLoughlin),
+      virHashRemoveSet bug (Hiroyuki Kaguchi), close-on-exec flag for
+      qemud signal pipe (Daniel Berrange), double free in OpenVZ
+      (Anton Protopopov), handle mac without addresses (Shigeki Sakamoto),
+      MAC addresses checks (Shigeki Sakamoto and Richard Jones),
+      allow to read non-seekable files (Jim Meyering)
+   - Improvements: Windows build (Richard Jones), KVM/QEmu shutdown
+      (Guido Guenther), catch virExec output on debug (Mark McLoughlin),
+      integration of iptables and lokkit (Mark McLoughlin), keymap
+      parameter for VNC servers (Daniel Hokka Zakrisson), enable debug
+      by default using VIR_DEBUG (Daniel Berrange), xen 3.2 fixes
+      (Daniel Berrange), Python bindings for VCPU and scheduling
+      (Daniel Berrange), framework for automatic code syntax checks
+      (Jim Meyering), allow kernel+initrd setup in Xen PV (Daniel Berrange),
+      allow change of Disk/NIC of an inactive domains (Shigeki Sakamoto),
+      virsh commands to manipulate and create storage(Daniel Berrange),
+      update use of PolicyKit APIs, better detection of fedault hypervisor,
+      block device statistics for QEmu/KVM (Richard Jones), various improvements
+      for Xenner (Daniel Berrange)
+   - Code cleanups: avoid warnings (Daniel Berrange), virRun helper
+      function (Dan Berrange), iptable code fixes (Mark McLoughlin),
+      static and const cleanups (Jim Meyering), malloc and python cleanups
+      (Jim Meyering), xstrtol_ull and xstrtol_ll functions (Daniel Berrange),
+      remove no-op networking from OpenVZ (Daniel Berrange), python generator
+      cleanups (Daniel Berrange), cleanup ref counting (Daniel Berrange),
+      remove uninitialized warnings (Jim Meyering), cleanup configure
+      for RHEL4 (Daniel Berrange), CR/LF cleanups (Richard Jones),
+      various automatic code check and associated cleanups (Jim Meyering),
+      various memory leaks (Jim Meyering), fix compilation when building
+      without Xen (Guido Guenther), mark translatables strings (Jim Meyering),
+      use virBufferAddLit for constant strings (Jim Meyering), fix
+      make distcheck (Jim Meyering), return values for python bindings (Cole
+      Robinson), trailing blanks fixes (Jim Meyering), gcc-4.3.0 fixes
+      (Mark McLoughlin), use safe read and write routines (Jim Meyering),
+      refactoring of code dealing with hypervisor capabilities (Daniel
+      Berrange), qemudReportError to use virErrorMsg (Cole Robinson),
+      intemediate library and Makefiles for compiling static and coverage
+      rule support (Jim Meyering), cleanup of various leaks (Jim Meyering)
+
+
+0.4.0: Dec 18 2007:
+   - New features: Compilation on Windows cygwin/mingw (Richard Jones),
+      Ruby bindings (David Lutterkort), SASL based authentication for
+      libvirt remote support (Daniel Berrange), PolicyKit authentication
+      (Daniel Berrange)
+   - Documentation: example files for QEMU and libvirtd configuations
+      (Daniel Berrange), english cleanups (Jim Paris), CIM and OpenVZ
+      references, document <shareable/>, daemon startup when using
+      QEMU/KVM, document HV support for new NUMA calls (Richard Jones),
+      various english fixes (Bruce Montague), OCaml docs links (Richard Jones),
+      describe the various bindings add Ruby link, Windows support page
+      (Richard Jones), authentication documentation updates (Daniel Berrange)
+      
+   - Bug fixes: NUMA topology error handling (Beth Kon), NUMA topology
+      cells without CPU (Beth Kon), XML to/from XM bridge config (Daniel
+      Berrange), XM processing of vnc parameters (Daniel Berrange), Reset
+      migration source after failure (Jim Paris), negative integer in config
+      (Tatsuro Enokura), zero terminating string buffer, detect integer
+      overflow (Jim Meyering), QEmu command line ending fixes (Daniel Berrange),
+      recursion problem in the daemon (Daniel Berrange), HVM domain with CDRom
+      (Masayuki Sunou), off by one error in NUMA cpu count (Beth Kon),
+      avoid xend errors when adding disks (Masayuki Sunou), compile error
+      (Chris Lalancette), transposed fwrite args (Jim Meyering), compile
+      without xen and on solaris (Jim Paris), parsing of interface names
+      (Richard Jones), overflow for starts on 32bits (Daniel Berrange),
+      fix problems in error reporting (Saori Fukuta), wrong call to
+      brSetForwardDelay changed to brSetEnableSTP (Richard Jones),
+      allow shareable disk in old Xen, fix wrong certificate file (Jim
+      Meyering), avoid some startup error when non-root, off-by-1 buffer
+      NULL termination (Daniel Berrange), various string allocation fixes
+      (Daniel Berrange), avoid problems with vnetXXX interfaces in domain dumps
+      (Daniel Berrange), build fixes for RHEL (Daniel Berrange), virsh prompt
+      should not depend on uid (Richard Jones), fix scaping of '<' (Richard
+      Jones), fix detach-disk on Xen tap devices (Saori Fukuta), CPU
+      parameter setting in XM config (Saori Fukuta), credential handling
+      fixes (Daniel Berrange), fix compatibility with Xen 3.2.0 (Daniel
+      Berrange)
+      
+   - Improvements: /etc/libvirt/qemu.conf configuration for QEMU driver
+      (Daniel Berrange), NUMA cpu pinning in config files (DV and Saori Fukuta),
+      CDRom media change in KVM/QEMU (Daniel Berrange), tests for
+      <shareable/> in configs, pinning inactive domains for Xen 3.0.3
+      (Saori Fukuta), use gnulib for portability enhancement (Jim Meyering),
+      --without-libvirtd config option (Richard Jones), Python bindings for
+      NUMA, add extra utility functions to buffer (Richard Jones),
+      separate qparams module for handling query parameters (Richard Jones)
+      
+   - Code cleanups: remove virDomainRestart from API as it was never used
+      (Richard Jones), constify params for attach/detach APIs (Daniel Berrange),
+      gcc printf attribute checkings (Jim Meyering), refactoring of device
+      parsing code and shell escaping (Daniel Berrange), virsh schedinfo
+      parameters validation (Masayuki Sunou), Avoid risk of format string abuse
+      (Jim Meyering), integer parsing cleanups (Jim Meyering), build out
+      of the source tree (Jim Meyering), URI parsing refactoring (Richard
+      Jones), failed strdup/malloc handling (Jim Meyering), Make "make
+      distcheck" work (Jim Meyering), improve xen internall error reports
+      (Richard Jones), cleanup of the daemon remote code (Daniel Berrange),
+      rename error VIR_FROM_LINUX to VIR_FROM_STATS_LINUX (Richard Jones),
+      don't compile the proxy if without Xen (Richard Jones), fix paths when
+      configuring for /usr prefix, improve error reporting code (Jim Meyering),
+      detect heap allocation failure (Jim Meyering), disable xen sexpr parsing
+      code if Xen is disabled (Daniel Berrange), cleanup of the GetType
+      entry point for Xen drivers, move some QEmu path handling to generic
+      module (Daniel Berrange), many code cleanups related to the Windows
+      port (Richard Jones), disable the proxy if using PolicyKit, readline
+      availability detection, test libvirtd's config-processing code (Jim
+      Meyering), use a variable name as sizeof argument (Jim Meyering)
+      
+
+
 0.3.3: Sep 30 2007:
    - New features: Avahi mDNS daemon export (Daniel Berrange),
       NUMA support (Beth Kan) 
@@ -15,7 +249,7 @@ Releases
       missing buffer check in virDomainXMLDevID (Hugh Brock), avoid zombies
       when using remote (Daniel Berrange), xend connection error message
       (Richard Jones), avoid ssh tty prompt (Daniel Berrange), username
-      handling for remote URIs (Fabian Deutsch), fix potential crash 
+      handling for remote URIs (Fabian Deutsch), fix potential crash
       on multiple input XML tags (Daniel Berrange), Solaris Xen hypercalls
       fixup (Mark Johnson)
    - Improvements: OpenVZ support (Shuveb Hussain and Anoop Cyriac),
@@ -33,7 +267,7 @@ Releases
 
 
 0.3.2: Aug 21 2007:
-   - New features: KVM migration and save/restore (Jim Paris), 
+   - New features: KVM migration and save/restore (Jim Paris),
       added API for migration (Richard Jones), added APIs for block device and
       interface statistic (Richard Jones).
    - Documentation: examples for XML network APIs,
@@ -95,9 +329,9 @@ Releases
    - Documentation: remote support (Richard Jones), description of
       the URI connection strings (Richard Jones), update of virsh man
       page, matrix of libvirt API/hypervisor support with version
-      informations (Richard Jones)
-   - Bug fixes: examples Makefile.am generation (Richard Jones), 
-      SetMem fix (Mark Johnson), URI handling and ordering of 
+      information (Richard Jones)
+   - Bug fixes: examples Makefile.am generation (Richard Jones),
+      SetMem fix (Mark Johnson), URI handling and ordering of
       drivers (Daniel Berrange), fix virsh help without hypervisor (Richard
       Jones), id marshalling fix (Daniel Berrange), fix virConnectGetMaxVcpus
       on remote (Richard Jones), avoid a realloc leak (Jim Meyering), scheduler
@@ -107,12 +341,12 @@ Releases
       XML serialization bugs
    - Improvements: QEmu switch to XDR-based protocol (Dan Berrange),
       device attach/detach commands (Masayuki Sunou), OCaml bindings
-      (Richard Jones), new entry points virDomainGetConnect and 
-      virNetworkGetConnect useful for bindings (Richard Jones), 
+      (Richard Jones), new entry points virDomainGetConnect and
+      virNetworkGetConnect useful for bindings (Richard Jones),
       reunitifaction of remote and qemu daemon under a single libvirtd
       with a config file (Daniel Berrange)
    - Cleanups: parsing of connection URIs (Richard Jones), messages
-      from virsh (Saori Fukuta), Coverage files (Daniel Berrange), 
+      from virsh (Saori Fukuta), Coverage files (Daniel Berrange),
       Solaris fixes (Mark Johnson), avoid [r]index calls (Richard Jones),
       release information in Xen backend, virsh cpupin command cleanups
       (Masayuki Sunou), xen:/// suppport as standard Xen URI (Richard Jones and
@@ -144,7 +378,7 @@ Releases
       QEmu memory bug (Daniel Berrange), memory leak fix (Masayuki Sunou),
       fix compiler flags (Richard Jones), remove type ioemu on recent Xen
       HVM for paravirt drivers (Saori Fukuta), uninitialized string bug
-      (Masayuki Sunou), allow init even if the daemon is not running, 
+      (Masayuki Sunou), allow init even if the daemon is not running,
       XML to config fix (Daniel Berrange)
    - Improvements: add a special error class for the test module (Richard
       Jones), virConnectGetCapabilities on proxy (Richard Jones), allow
@@ -166,10 +400,10 @@ Releases
 
 
 0.2.2: Apr 17 2007:
-   - Documentation: fix errors due to Amaya (with Simon Hernandez), 
+   - Documentation: fix errors due to Amaya (with Simon Hernandez),
       virsh uses kB not bytes (Atsushi SAKAI), add command line help to
       qemud (Richard Jones), xenUnifiedRegister docs (Atsushi SAKAI),
-      strings typos (Nikolay Sivov), ilocalization probalem raised by 
+      strings typos (Nikolay Sivov), ilocalization probalem raised by
       Thomas Canniot
    - Bug fixes: virsh memory values test (Masayuki Sunou), operations without
       libvirt_qemud (Atsushi SAKAI), fix spec file (Florian La Roche, Jeremy
@@ -181,14 +415,14 @@ Releases
       Berrange), bridged config configuration (Daniel Berrange), erroneous
       XEN_V2_OP_SETMAXMEM value (Masayuki Sunou), memory free error (Mark
       McLoughlin), set VIR_CONNECT_RO on read-only connections (S.Sakamoto),
-      avoid memory explosion bug (Daniel Berrange), integer overflow 
+      avoid memory explosion bug (Daniel Berrange), integer overflow
       for qemu CPU time (Daniel Berrange), QEMU binary path check (Daniel
       Berrange)
    - Cleanups: remove some global variables (Jim Meyering), printf-style
       functions checks (Jim Meyering), better virsh error messages, increase
       compiler checkings and security (Daniel Berrange), virBufferGrow usage
       and docs, use calloc instead of malloc/memset, replace all sprintf by
-      snprintf, avoid configure clobbering user's CTAGS (Jim Meyering), 
+      snprintf, avoid configure clobbering user's CTAGS (Jim Meyering),
       signal handler error cleanup (Richard Jones), iptables internal code
       claenup (Mark McLoughlin), unified Xen driver (Richard Jones),
       cleanup XPath libxml2 calls, IPTables rules tightening (Daniel
@@ -199,7 +433,7 @@ Releases
       handling of CD-Rom device without device name (Nobuhiro Itou),
       fix hypervisor call to work with Xen 3.0.5 (Daniel Berrange),
       DomainGetOSType for inactive domains (Daniel Berrange), multiple boot
-      devices for HVM (Daniel Berrange), 
+      devices for HVM (Daniel Berrange),
       
 
 
@@ -223,7 +457,7 @@ Releases
       Berrange), pointer/int mismatch (Richard Jones), configure time
       selection of drivers, libvirt spec hacking (Daniel Berrange)
    - Add support for network autostart and init scripts (Mark McLoughlin)
-   - New API virConnectGetCapabilities() to detect the virtualization 
+   - New API virConnectGetCapabilities() to detect the virtualization
     capabilities of a host (Richard Jones)
    - Minor improvements: qemud signal handling (Mark), don't shutdown or reboot
     domain0 (Kazuki Mizushima), QEmu version autodetection (Daniel Berrange),
@@ -242,7 +476,7 @@ Releases
       parsing (Richard Jones)
    - Add support for QEmu and KVM virtualization (Daniel Berrange)
    - Add support for network configuration (Mark McLoughlin)
-   - Minor improvements: regression testing (Daniel Berrange), 
+   - Minor improvements: regression testing (Daniel Berrange),
       localization string updates
 
 
@@ -261,7 +495,7 @@ Releases
 
 0.1.9: Nov 29 2006:
    - python bindings: release interpeter lock when calling C (Daniel Berrange)
-   - don't raise HTTP error when looking informations for a domain
+   - don't raise HTTP error when looking information for a domain
    - some refactoring to use the driver for all entry points
    - better error reporting (Daniel Berrange)
    - fix OS reporting when running as non-root
@@ -279,7 +513,7 @@ Releases
    - added support for inactive domains, new APIs, various associated cleanup (Daniel Berrange)
    - special device model for HVM guests (Daniel Berrange)
    - add API to dump core of domains (but requires a patched xend)
-   - pygrub bootloader informations take over <os> informations
+   - pygrub bootloader information take over <os> information
    - updated the localization strings
 
 
@@ -296,9 +530,9 @@ Releases
 
 
 0.1.7: Sep 29 2006:
-   -  fix a memory bug on getting vcpu informations from xend (Daniel Berrange)
+   -  fix a memory bug on getting vcpu information from xend (Daniel Berrange)
    -  fix another problem in the hypercalls change in Xen changeset
-       86d26e6ec89b when getting domain informations (Daniel Berrange)
+       86d26e6ec89b when getting domain information (Daniel Berrange)
 
 
 0.1.6: Sep 22 2006:
@@ -333,7 +567,7 @@ Releases
     initialization errors (Daniel Berrange)
    - improvements: UUID in XML description (Peter Vetere), proxy code
     cleanup, virtual CPU and affinity support + virsh support (Michel
-    Ponceau, Philippe Berthault, Daniel Berrange), port and tty informations
+    Ponceau, Philippe Berthault, Daniel Berrange), port and tty information
     for console in XML (Daniel Berrange), added XML dump to driver and proxy
     support (Daniel Berrange), extention of boot options with support for
     floppy and cdrom (Daniel Berrange), features block in XML to report/ask
@@ -355,7 +589,7 @@ Releases
 
 0.1.2: Jul 3 2006:
    - headers include paths fixup
-   - proxy mechanism for unpriviledged read-only access by httpu
+   - proxy mechanism for unprivileged read-only access by httpu
 
 
 0.1.1: Jun 21 2006:

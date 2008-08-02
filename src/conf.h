@@ -68,39 +68,32 @@ typedef virConf *virConfPtr;
 virConfPtr      __virConfNew             (void);
 virConfPtr	__virConfReadFile	(const char *filename);
 virConfPtr	__virConfReadMem		(const char *memory,
-					 int len);
+                                         int len);
 int		__virConfFree		(virConfPtr conf);
+void            __virConfFreeValue      (virConfValuePtr val);
 
 virConfValuePtr	__virConfGetValue	(virConfPtr conf,
-					 const char *setting);
+                                         const char *setting);
 int             __virConfSetValue        (virConfPtr conf,
-					 const char *setting,
-					 virConfValuePtr value);
+                                         const char *setting,
+                                         virConfValuePtr value);
 int		__virConfWriteFile	(const char *filename,
-					 virConfPtr conf);
+                                         virConfPtr conf);
 int		__virConfWriteMem	(char *memory,
-					 int *len,
-					 virConfPtr conf);
+                                         int *len,
+                                         virConfPtr conf);
 
-#define virConfNew() (__virConfNew())
-#define virConfReadFile(f) (__virConfReadFile((f)))
-#define virConfReadMem(m,l) (__virConfReadMem((m),(l)))
-#define virConfFree(c) (__virConfFree((c)))
-#define virConfGetValue(c,s) (__virConfGetValue((c),(s)))
-#define virConfSetValue(c,s,v) (__virConfSetValue((c),(s),(v)))
-#define virConfWriteFile(f,c) (__virConfWriteFile((f),(c)))
-#define virConfWriteMem(m,l,c) (__virConfWriteMem((m),(l),(c)))
+#define virConfNew() __virConfNew()
+#define virConfReadFile(f) __virConfReadFile((f))
+#define virConfReadMem(m,l) __virConfReadMem((m),(l))
+#define virConfFree(c) __virConfFree((c))
+#define virConfFreeValue(v) __virConfFreeValue((v))
+#define virConfGetValue(c,s) __virConfGetValue((c),(s))
+#define virConfSetValue(c,s,v) __virConfSetValue((c),(s),(v))
+#define virConfWriteFile(f,c) __virConfWriteFile((f),(c))
+#define virConfWriteMem(m,l,c) __virConfWriteMem((m),(l),(c))
 
 #ifdef __cplusplus
 }
 #endif
 #endif /* __VIR_CONF_H__ */
-
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */

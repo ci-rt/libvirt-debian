@@ -25,7 +25,7 @@
 #ifndef QEMUD_DRIVER_H
 #define QEMUD_DRIVER_H
 
-#include "config.h"
+#include <config.h>
 
 #ifdef WITH_QEMU
 
@@ -36,12 +36,3 @@ int qemudRegister(void);
 #endif /* WITH_QEMU */
 
 #endif /* QEMUD_DRIVER_H */
-
-/*
- * Local variables:
- *  indent-tabs-mode: nil
- *  c-indent-level: 4
- *  c-basic-offset: 4
- *  tab-width: 4
- * End:
- */
