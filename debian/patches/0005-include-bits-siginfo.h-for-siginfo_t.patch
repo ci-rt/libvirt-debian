@@ -1,0 +1,24 @@
+From 5b769cc230a02d576bfe5492a4398bec0f24869e Mon Sep 17 00:00:00 2001
+From: Guido Guenther <agx@sigxcpu.org>
+Date: Sat, 2 Aug 2008 13:13:13 +0200
+Subject: [PATCH] include bits/siginfo.h for siginfo_t
+
+---
+ src/driver.h |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
+
+diff --git a/src/driver.h b/src/driver.h
+index 1404eb9..ff7c3ac 100644
+--- a/src/driver.h
++++ b/src/driver.h
+@@ -12,6 +12,7 @@
+ #include <libxml/uri.h>
+ 
+ #include <signal.h>
++#include <bits/siginfo.h>
+ 
+ #ifdef __cplusplus
+ extern "C" {
+-- 
+1.5.6
+
