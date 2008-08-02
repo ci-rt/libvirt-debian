@@ -21,7 +21,7 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	--with-avahi             \
 	--with-sasl              \
 	--without-polkit	 \
-        --with-storage-fs        \
+        --without-storage-fs     \
         --with-storage-lvm       \
         --with-storage-iscsi     \
         --with-storage-disk      \
