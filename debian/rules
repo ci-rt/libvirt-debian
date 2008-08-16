@@ -25,7 +25,7 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	--without-polkit	 \
         --without-storage-fs     \
         --with-storage-lvm       \
-        --with-storage-iscsi     \
+        --without-storage-iscsi  \
         --with-storage-disk      \
 	--with-init-scripts=none \
 	--enable-debug		 \
