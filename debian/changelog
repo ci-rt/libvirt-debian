@@ -1,3 +1,10 @@
+libvirt (0.4.4-3~bpo40+2) etch-backports; urgency=low
+
+  * [742e4ec] disable iscsi storage backend, open-iscsi has problems on the
+    autobuilders (fixed in lenny)
+
+ -- Guido Guenther <agx@sigxcpu.org>  Sat, 16 Aug 2008 13:16:35 +0200
+
 libvirt (0.4.4-3~bpo40+1) etch-backports; urgency=low
 
   * [f4faa9d] explicitly pass -std=c99 for etch
