@@ -1,3 +1,19 @@
+libvirt (0.4.5-1) experimental; urgency=low
+
+  * [ab8b4e6] Imported Upstream version 0.4.5
+  * [4aaef27] tighten dependency on libvirt
+  * [fa253be] drop 0002-qemu-path.diff.patch - fixed upstream
+  * [87fc2db] drop 0005-check-for-the-existence-of-the-migrate-
+    command.patch applied upstream
+  * [bc311aa] drop 0006-wrong-open-failure-detection.patch applied
+    upstream
+  * [38e615d] rebase the remaining patches
+  * [9a04bb7] bump shlibs version to 0.4.5
+  * [9fadd6f] disable LXC
+  * [179c869] build-dep on libselinux1-dev for selinux support
+
+ -- Guido Guenther <agx@sigxcpu.org>  Thu, 18 Sep 2008 19:02:55 +0200
+
 libvirt (0.4.4-3) unstable; urgency=low
 
   * upload to unstable
