@@ -1,6 +1,3 @@
 0001-remove-RHism.diff.patch
-0002-qemu-path.diff.patch
-0003-qemu-disable-network.diff.patch
-0004-allow-libvirt-group-to-access-the-socket.patch
-0005-check-for-the-existence-of-the-migrate-command.patch
-0006-wrong-open-failure-detection.patch
+0002-qemu-disable-network.diff.patch
+0003-allow-libvirt-group-to-access-the-socket.patch
