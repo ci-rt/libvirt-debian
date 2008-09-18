@@ -8,8 +8,6 @@
  * Daniel Veillard <veillard@redhat.com>
  */
 
-#ifdef WITH_XEN
-
 #include <config.h>
 
 #include <stdio.h>
@@ -87,16 +85,6 @@ struct xenUnifiedDriver xenProxyDriver = {
     NULL, /* domainSetSchedulerParameters */
 };
 
-/**
- * xenProxyInit:
- *
- * Initialise the xen proxy driver.
- */
-int
-xenProxyInit (void)
-{
-    return 0;
-}
 
 /************************************************************************
  *									*
@@ -172,6 +160,7 @@ virProxyForkServer(void)
 {
     const char *proxyPath = virProxyFindServerPath();
     int ret, pid, status;
+    const char *proxyarg[2];
 
     if (!proxyPath) {
         fprintf(stderr, "failed to find libvirt_proxy\n");
@@ -181,27 +170,12 @@ virProxyForkServer(void)
     if (debug)
         fprintf(stderr, "Asking to launch %s\n", proxyPath);
 
-    /* Become a daemon */
-    pid = fork();
-    if (pid == 0) {
-        long open_max;
-        long i;
+    proxyarg[0] = proxyPath;
+    proxyarg[1] = NULL;
 
-        /* don't hold open fd opened from the client of the library */
-        open_max = sysconf (_SC_OPEN_MAX);
-        for (i = 0; i < open_max; i++)
-            fcntl (i, F_SETFD, FD_CLOEXEC);
-
-        setsid();
-        if (fork() == 0) {
-            execl(proxyPath, proxyPath, NULL);
-            fprintf(stderr, _("failed to exec %s\n"), proxyPath);
-        }
-        /*
-         * calling exit() generate troubles for termination handlers
-         */
-        _exit(0);
-    }
+    if (virExec(NULL, proxyarg, NULL, NULL,
+                &pid, -1, NULL, NULL, VIR_EXEC_DAEMON) < 0)
+        fprintf(stderr, "Failed to fork libvirt_proxy\n");
 
     /*
      * do a waitpid on the intermediate process to avoid zombies.
@@ -1107,4 +1081,4 @@ xenProxyDomainGetOSType(virDomainPtr domain)
     return(ostype);
 }
 
-#endif /* WITH_XEN */
+

@@ -80,10 +80,10 @@ virStorageBackendLogicalSetActive(virConnectPtr conn,
 
     cmdargv[0] = VGCHANGE;
     cmdargv[1] = on ? "-ay" : "-an";
-    cmdargv[2] = pool->def->name;
+    cmdargv[2] = pool->def->source.name;
     cmdargv[3] = NULL;
 
-    if (virRun(conn, (char**)cmdargv, NULL) < 0)
+    if (virRun(conn, cmdargv, NULL) < 0)
         return -1;
 
     return 0;
@@ -200,9 +200,11 @@ virStorageBackendLogicalFindLVs(virConnectPtr conn,
      * Pull out name & uuid, device, device extent start #, segment size, extent size.
      *
      * NB can be multiple rows per volume if they have many extents
+     *
+     * NB lvs from some distros (e.g. SLES10 SP2) outputs trailing ":" on each line
      */
     const char *regexes[] = {
-        "^\\s*(\\S+):(\\S+):(\\S+)\\((\\S+)\\):(\\S+):(\\S+)\\s*$"
+        "^\\s*(\\S+):(\\S+):(\\S+)\\((\\S+)\\):(\\S+):([0-9]+):?\\s*$"
     };
     int vars[] = {
         6
@@ -211,7 +213,7 @@ virStorageBackendLogicalFindLVs(virConnectPtr conn,
         LVS, "--separator", ":", "--noheadings", "--units", "b",
         "--unbuffered", "--nosuffix", "--options",
         "lv_name,uuid,devices,seg_size,vg_extent_size",
-        pool->def->name, NULL
+        pool->def->source.name, NULL
     };
 
     int exitstatus;
@@ -257,6 +259,75 @@ virStorageBackendLogicalRefreshPoolFunc(virConnectPtr conn ATTRIBUTE_UNUSED,
 
 
 static int
+virStorageBackendLogicalFindPoolSourcesFunc(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                            virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
+                                            char **const groups,
+                                            void *data)
+{
+    virStringList **rest = data;
+    virStringList *newItem;
+    const char *name = groups[0];
+
+    /* Append new XML desc to list */
+
+    if (VIR_ALLOC(newItem) != 0) {
+        virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("new xml desc"));
+        return -1;
+    }
+
+    if (asprintf(&newItem->val, "<source><name>%s</name></source>", name) <= 0) {
+        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s", _("asprintf failed"));
+        VIR_FREE(newItem);
+        return -1;
+    }
+
+    newItem->len = strlen(newItem->val);
+    newItem->next = *rest;
+    *rest = newItem;
+
+    return 0;
+}
+
+static char *
+virStorageBackendLogicalFindPoolSources(virConnectPtr conn,
+                                        const char *srcSpec ATTRIBUTE_UNUSED,
+                                        unsigned int flags ATTRIBUTE_UNUSED)
+{
+    /*
+     * # sudo vgs --noheadings -o vg_name
+     *   VolGroup00
+     *   VolGroup01
+     */
+    const char *regexes[] = {
+        "^\\s*(\\S+)\\s*$"
+    };
+    int vars[] = {
+        1
+    };
+    virStringList *descs = NULL;
+    const char *prog[] = { VGS, "--noheadings", "-o", "vg_name", NULL };
+    int exitstatus;
+    char *retval = NULL;
+
+    if (virStorageBackendRunProgRegex(conn, NULL, prog, 1, regexes, vars,
+                                      virStorageBackendLogicalFindPoolSourcesFunc,
+                                      &descs, &exitstatus) < 0)
+        return NULL;
+
+    retval = virStringListJoin(descs, SOURCES_START_TAG, SOURCES_END_TAG, "\n");
+    if (retval == NULL) {
+        virStorageReportError(conn, VIR_ERR_NO_MEMORY, _("retval"));
+        goto cleanup;
+    }
+
+ cleanup:
+    virStringListFree(descs);
+
+    return retval;
+}
+
+
+static int
 virStorageBackendLogicalStartPool(virConnectPtr conn,
                                   virStoragePoolObjPtr pool)
 {
@@ -280,13 +351,13 @@ virStorageBackendLogicalBuildPool(virConnectPtr conn,
     memset(zeros, 0, sizeof(zeros));
 
     /* XXX multiple pvs */
-    if (VIR_ALLOC_N(vgargv, 1) < 0) {
+    if (VIR_ALLOC_N(vgargv, 3 + pool->def->source.ndevice) < 0) {
         virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("command line"));
         return -1;
     }
 
     vgargv[n++] = VGCREATE;
-    vgargv[n++] = pool->def->name;
+    vgargv[n++] = pool->def->source.name;
 
     pvargv[0] = PVCREATE;
     pvargv[2] = NULL;
@@ -322,14 +393,14 @@ virStorageBackendLogicalBuildPool(virConnectPtr conn,
          */
         vgargv[n++] = pool->def->source.devices[i].path;
         pvargv[1] = pool->def->source.devices[i].path;
-        if (virRun(conn, (char**)pvargv, NULL) < 0)
+        if (virRun(conn, pvargv, NULL) < 0)
             goto cleanup;
     }
 
     vgargv[n++] = NULL;
 
     /* Now create the volume group itself */
-    if (virRun(conn, (char**)vgargv, NULL) < 0)
+    if (virRun(conn, vgargv, NULL) < 0)
         goto cleanup;
 
     VIR_FREE(vgargv);
@@ -351,9 +422,11 @@ virStorageBackendLogicalRefreshPool(virConnectPtr conn,
      *    10603200512:4328521728
      *
      * Pull out size & free
+     *
+     * NB vgs from some distros (e.g. SLES10 SP2) outputs trailing ":" on each line
      */
     const char *regexes[] = {
-        "^\\s*(\\S+):(\\S+)\\s*$"
+        "^\\s*(\\S+):([0-9]+):?\\s*$"
     };
     int vars[] = {
         2
@@ -361,7 +434,7 @@ virStorageBackendLogicalRefreshPool(virConnectPtr conn,
     const char *prog[] = {
         VGS, "--separator", ":", "--noheadings", "--units", "b", "--unbuffered",
         "--nosuffix", "--options", "vg_size,vg_free",
-        pool->def->name, NULL
+        pool->def->source.name, NULL
     };
     int exitstatus;
 
@@ -415,10 +488,10 @@ virStorageBackendLogicalDeletePool(virConnectPtr conn,
                                    unsigned int flags ATTRIBUTE_UNUSED)
 {
     const char *cmdargv[] = {
-        VGREMOVE, "-f", pool->def->name, NULL
+        VGREMOVE, "-f", pool->def->source.name, NULL
     };
 
-    if (virRun(conn, (char**)cmdargv, NULL) < 0)
+    if (virRun(conn, cmdargv, NULL) < 0)
         return -1;
 
     /* XXX clear the PVs too ? ie pvremove ? probably ought to */
@@ -449,7 +522,20 @@ virStorageBackendLogicalCreateVol(virConnectPtr conn,
     snprintf(size, sizeof(size)-1, "%lluK", vol->capacity/1024);
     size[sizeof(size)-1] = '\0';
 
-    if (virRun(conn, (char**)cmdargv, NULL) < 0)
+    if (vol->target.path != NULL) {
+        /* A target path passed to CreateVol has no meaning */
+        VIR_FREE(vol->target.path);
+    }
+    if (VIR_ALLOC_N(vol->target.path, strlen(pool->def->target.path) +
+                    1 + strlen(vol->name) + 1) < 0) {
+        virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("volume"));
+        return -1;
+    }
+    strcpy(vol->target.path, pool->def->target.path);
+    strcat(vol->target.path, "/");
+    strcat(vol->target.path, vol->name);
+
+    if (virRun(conn, cmdargv, NULL) < 0)
         return -1;
 
     if ((fd = open(vol->target.path, O_RDONLY)) < 0) {
@@ -510,7 +596,7 @@ virStorageBackendLogicalDeleteVol(virConnectPtr conn,
         LVREMOVE, "-f", vol->target.path, NULL
     };
 
-    if (virRun(conn, (char**)cmdargv, NULL) < 0)
+    if (virRun(conn, cmdargv, NULL) < 0)
         return -1;
 
     return 0;
@@ -520,6 +606,7 @@ virStorageBackendLogicalDeleteVol(virConnectPtr conn,
 virStorageBackend virStorageBackendLogical = {
     .type = VIR_STORAGE_POOL_LOGICAL,
 
+    .findPoolSources = virStorageBackendLogicalFindPoolSources,
     .startPool = virStorageBackendLogicalStartPool,
     .buildPool = virStorageBackendLogicalBuildPool,
     .refreshPool = virStorageBackendLogicalRefreshPool,
@@ -531,6 +618,8 @@ virStorageBackend virStorageBackendLogical = {
     .deleteVol = virStorageBackendLogicalDeleteVol,
 
     .poolOptions = {
+        .flags = (VIR_STORAGE_BACKEND_POOL_SOURCE_NAME |
+                  VIR_STORAGE_BACKEND_POOL_SOURCE_DEVICE),
         .formatFromString = virStorageBackendLogicalPoolFormatFromString,
         .formatToString = virStorageBackendLogicalPoolFormatToString,
     },

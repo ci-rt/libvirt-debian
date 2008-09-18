@@ -7,7 +7,7 @@
  *
  * Karel Zak <kzak@redhat.com>
  *
- * $Id: testutils.c,v 1.17 2008/06/12 13:48:29 berrange Exp $
+ * $Id: testutils.c,v 1.21 2008/07/09 10:27:17 berrange Exp $
  */
 
 #include <config.h>
@@ -17,7 +17,9 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifndef WIN32
 #include <sys/wait.h>
+#endif
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
@@ -139,6 +141,7 @@ int virtTestLoadFile(const char *name,
     return st.st_size;
 }
 
+#ifndef WIN32
 static
 void virtTestCaptureProgramExecChild(const char *const argv[],
                                      int pipefd) {
@@ -180,7 +183,6 @@ void virtTestCaptureProgramExecChild(const char *const argv[],
     if (stderrfd != -1)
         close(stderrfd);
 }
-
 
 int virtTestCaptureProgramOutput(const char *const argv[],
                                  char **buf,
@@ -227,6 +229,7 @@ int virtTestCaptureProgramOutput(const char *const argv[],
         }
     }
 }
+#endif /* !WIN32 */
 
 
 /**
@@ -245,9 +248,6 @@ int virtTestDifference(FILE *stream,
     const char *expectEnd = expect + (strlen(expect)-1);
     const char *actualStart = actual;
     const char *actualEnd = actual + (strlen(actual)-1);
-
-    if (testOOM < 2)
-        return 0;
 
     if (!testDebug)
         return 0;
@@ -321,18 +321,24 @@ int virtTestMain(int argc,
                  char **argv,
                  int (*func)(int, char **))
 {
+    char *debugStr;
 #if TEST_OOM
     int ret;
     int approxAlloc = 0;
     int n;
-    char *oomStr = NULL, *debugStr;
+    char *oomStr = NULL;
     int oomCount;
+    int mp = 0;
+    pid_t *workers;
+    int worker = 0;
+#endif
 
     if ((debugStr = getenv("VIR_TEST_DEBUG")) != NULL) {
         if (virStrToLong_ui(debugStr, NULL, 10, &testDebug) < 0)
             testDebug = 0;
     }
 
+#if TEST_OOM
     if ((oomStr = getenv("VIR_TEST_OOM")) != NULL) {
         if (virStrToLong_i(oomStr, NULL, 10, &oomCount) < 0)
             oomCount = 0;
@@ -341,6 +347,13 @@ int virtTestMain(int argc,
             oomCount = 0;
         if (oomCount)
             testOOM = 1;
+    }
+
+    if (getenv("VIR_TEST_MP") != NULL) {
+        mp = sysconf(_SC_NPROCESSORS_ONLN);
+        fprintf(stderr, "Using %d worker processes\n", mp);
+        if (VIR_ALLOC_N(workers, mp) < 0)
+            return EXIT_FAILURE;
     }
 
     if (testOOM)
@@ -368,11 +381,27 @@ int virtTestMain(int argc,
         else
             fprintf(stderr, "%d) OOM of %d allocs ", testCounter, approxAlloc);
 
+        if (mp) {
+            int i;
+            for (i = 0 ; i < mp ; i++) {
+                workers[i] = fork();
+                if (workers[i] == 0) {
+                    worker = i + 1;
+                    break;
+                }
+            }
+        }
+
         /* Run once for each alloc, failing a different one
            and validating that the test case failed */
-        for (n = 0; n < approxAlloc ; n++) {
+        for (n = 0; n < approxAlloc && (!mp || worker) ; n++) {
+            if ((n % mp) != (worker - 1))
+                continue;
             if (!testDebug) {
-                fprintf(stderr, ".");
+                if (mp)
+                    fprintf(stderr, "%d", worker);
+                else
+                    fprintf(stderr, ".");
                 fflush(stderr);
             }
             virAllocTestOOM(n+1, oomCount);
@@ -380,6 +409,20 @@ int virtTestMain(int argc,
             if (((func)(argc, argv)) != EXIT_FAILURE) {
                 ret = EXIT_FAILURE;
                 break;
+            }
+        }
+
+        if (mp) {
+            if (worker) {
+                _exit(ret);
+            } else {
+                int i, status;
+                for (i = 0 ; i < mp ; i++) {
+                    waitpid(workers[i], &status, 0);
+                    if (WEXITSTATUS(status) != EXIT_SUCCESS)
+                        ret = EXIT_FAILURE;
+                }
+                VIR_FREE(workers);
             }
         }
 

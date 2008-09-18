@@ -11,12 +11,13 @@
 #ifndef __VIR_XEN_INTERNAL_H__
 #define __VIR_XEN_INTERNAL_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "internal.h"
+#include "capabilities.h"
 
 extern struct xenUnifiedDriver xenHypervisorDriver;
 int	xenHypervisorInit		(void);
+
+virCapsPtr xenHypervisorMakeCapabilities (virConnectPtr conn);
 
 /* The following calls are made directly by the Xen proxy: */
 
@@ -36,11 +37,11 @@ int	xenHypervisorOpen		(virConnectPtr conn,
 int	xenHypervisorClose		(virConnectPtr conn);
 int	xenHypervisorGetVersion		(virConnectPtr conn,
                                          unsigned long *hvVer);
-char *
-        xenHypervisorMakeCapabilitiesXML (virConnectPtr conn,
-                                          const char *hostmachine,
-                                          FILE *cpuinfo,
-                                          FILE *capabilities);
+virCapsPtr
+        xenHypervisorMakeCapabilitiesInternal(virConnectPtr conn,
+                                              const char *hostmachine,
+                                              FILE *cpuinfo,
+                                              FILE *capabilities);
 char *
         xenHypervisorGetCapabilities    (virConnectPtr conn);
 unsigned long
@@ -98,7 +99,5 @@ int	xenHypervisorNodeGetCellsFreeMemory(virConnectPtr conn,
                                           unsigned long long *freeMems,
                                           int startCell,
                                           int maxCells);
-#ifdef __cplusplus
-}
-#endif
+
 #endif                          /* __VIR_XEN_INTERNAL_H__ */

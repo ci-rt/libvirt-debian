@@ -24,11 +24,20 @@
 #ifndef LXC_CONTAINER_H
 #define LXC_CONTAINER_H
 
-#ifdef WITH_LXC
+#include "lxc_conf.h"
 
-/* Function declarations */
-int lxcChild( void *argv );
+enum {
+    LXC_CONTAINER_FEATURE_NET = (1 << 0),
+};
 
-#endif /* LXC_DRIVER_H */
+int lxcContainerSendContinue(int control);
+
+int lxcContainerStart(virDomainDefPtr def,
+                      unsigned int nveths,
+                      char **veths,
+                      int control,
+                      char *ttyPath);
+
+int lxcContainerAvailable(int features);
 
 #endif /* LXC_CONTAINER_H */

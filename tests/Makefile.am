@@ -36,24 +36,29 @@ EXTRA_DIST =		\
         oomtrace.pl     \
 	test-lib.sh	\
 	xmlrpcserver.py	\
-	test_conf.sh	\
 	qemuxml2argvdata \
-	nodeinfodata
+	nodeinfodata     \
+	domainschematest
 
 noinst_PROGRAMS = xmlrpctest xml2sexprtest sexpr2xmltest virshtest conftest \
 	reconnect xmconfigtest xencapstest qemuxml2argvtest qemuxml2xmltest \
         nodeinfotest statstest qparamtest
 
-test_scripts = \
+test_scripts = domainschematest
+if WITH_LIBVIRTD
+test_scripts += \
+	test_conf.sh \
 	daemon-conf \
 	int-overflow \
 	read-bufsiz \
 	read-non-seekable \
+	undefine \
 	vcpupin
+endif
 
 EXTRA_DIST += $(test_scripts)
 
-TESTS = xml2sexprtest sexpr2xmltest virshtest test_conf.sh xmconfigtest \
+TESTS = xml2sexprtest sexpr2xmltest virshtest xmconfigtest \
         xencapstest qemuxml2argvtest qemuxml2xmltest nodeinfotest \
 	statstest qparamtest $(test_scripts)
 if ENABLE_XEN_TESTS
@@ -87,7 +92,7 @@ xmlrpctest_SOURCES = \
 xmlrpctest_LDADD = $(LDADDS)
 
 xml2sexprtest_SOURCES = \
-	xml2sexprtest.c \
+	xml2sexprtest.c testutilsxen.c testutilsxen.h \
 	testutils.c testutils.h
 xml2sexprtest_LDADD = $(LDADDS)
 
@@ -97,7 +102,7 @@ sexpr2xmltest_SOURCES = \
 sexpr2xmltest_LDADD = $(LDADDS)
 
 xmconfigtest_SOURCES = \
-	xmconfigtest.c \
+	xmconfigtest.c testutilsxen.c testutilsxen.h \
 	testutils.c testutils.h
 xmconfigtest_LDADD = $(LDADDS)
 

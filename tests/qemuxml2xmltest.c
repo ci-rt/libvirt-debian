@@ -27,25 +27,15 @@ static int testCompareXMLToXMLFiles(const char *xml) {
     char *xmlPtr = &(xmlData[0]);
     char *actual = NULL;
     int ret = -1;
-    struct qemud_vm_def *vmdef = NULL;
-    struct qemud_vm vm;
+    virDomainDefPtr vmdef = NULL;
 
     if (virtTestLoadFile(xml, &xmlPtr, MAX_FILE) < 0)
         goto fail;
 
-    if (!(vmdef = qemudParseVMDef(NULL, &driver, xmlData, "test")))
+    if (!(vmdef = virDomainDefParseString(NULL, driver.caps, xmlData)))
         goto fail;
 
-    vm.def = vmdef;
-    vm.pid = -1;
-    vm.id = -1;
-    vm.qemuVersion = 0 * 1000 * 100 + (8 * 1000) + 1;
-    vm.qemuCmdFlags = QEMUD_CMD_FLAG_VNC_COLON |
-        QEMUD_CMD_FLAG_NO_REBOOT;
-
-    vmdef->vncActivePort = vmdef->vncPort;
-
-    if (!(actual = qemudGenerateXML(NULL, &driver, &vm, vmdef, 0)))
+    if (!(actual = virDomainDefFormat(NULL, vmdef, 0)))
         goto fail;
 
     if (STRNEQ(xmlData, actual)) {
@@ -57,8 +47,7 @@ static int testCompareXMLToXMLFiles(const char *xml) {
 
  fail:
     free(actual);
-    if (vmdef)
-        qemudFreeVMDef(vmdef);
+    virDomainDefFree(vmdef);
     return ret;
 }
 
@@ -106,6 +95,7 @@ mymain(int argc, char **argv)
     DO_TEST("disk-floppy");
     DO_TEST("disk-many");
     DO_TEST("disk-xenvbd");
+    DO_TEST("disk-usb");
     DO_TEST("graphics-vnc");
     DO_TEST("graphics-sdl");
     DO_TEST("input-usbmouse");
@@ -115,6 +105,7 @@ mymain(int argc, char **argv)
     DO_TEST("misc-no-reboot");
     DO_TEST("net-user");
     DO_TEST("net-virtio");
+    DO_TEST("sound");
 
     DO_TEST("serial-vc");
     DO_TEST("serial-pty");
@@ -127,6 +118,9 @@ mymain(int argc, char **argv)
     DO_TEST("serial-many");
     DO_TEST("parallel-tcp");
     DO_TEST("console-compat");
+
+    DO_TEST("hostdev-usb-product");
+    DO_TEST("hostdev-usb-address");
 
     virCapabilitiesFree(driver.caps);
 
