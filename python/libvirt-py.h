@@ -51,6 +51,7 @@ PyObject * libvirt_virNetworkGetXMLDesc(PyObject *self, PyObject *args);
 PyObject * libvirt_virConnectNumOfStoragePools(PyObject *self, PyObject *args);
 PyObject * libvirt_virConnectGetCapabilities(PyObject *self, PyObject *args);
 PyObject * libvirt_virDomainLookupByName(PyObject *self, PyObject *args);
+PyObject * libvirt_virConnectFindStoragePoolSources(PyObject *self, PyObject *args);
 PyObject * libvirt_virDomainRestore(PyObject *self, PyObject *args);
 PyObject * libvirt_virStorageVolGetPath(PyObject *self, PyObject *args);
 PyObject * libvirt_virNetworkLookupByUUIDString(PyObject *self, PyObject *args);

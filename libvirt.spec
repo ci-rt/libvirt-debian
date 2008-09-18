@@ -3,6 +3,8 @@
 %define with_xen       1
 %define with_xen_proxy 1
 %define with_qemu      1
+%define with_openvz    1
+%define with_lxc       1
 %define with_polkit    0
 
 # Xen is available only on i386 x86_64 ia64
@@ -27,12 +29,12 @@
 
 Summary: Library providing a simple API virtualization
 Name: libvirt
-Version: 0.4.4
+Version: 0.4.5
 Release: 1%{?dist}%{?extra_release}
-License: LGPL
+License: LGPLv2+
 Group: Development/Libraries
 Source: libvirt-%{version}.tar.gz
-BuildRoot: %{_tmppath}/%{name}-%{version}-root
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 URL: http://libvirt.org/
 BuildRequires: python python-devel
 Requires: libxml2
@@ -53,6 +55,9 @@ Requires: PolicyKit >= 0.6
 %endif
 # For mount/umount in FS driver
 BuildRequires: util-linux
+# For showmount in FS driver (netfs discovery)
+BuildRequires: nfs-utils
+Requires: nfs-utils
 %if %{with_qemu}
 # From QEMU RPMs
 Requires: /usr/bin/qemu-img
@@ -72,6 +77,7 @@ Requires: parted
 BuildRequires: xen-devel
 %endif
 BuildRequires: libxml2-devel
+BuildRequires: xhtml1-dtds
 BuildRequires: readline-devel
 BuildRequires: ncurses-devel
 BuildRequires: gettext
@@ -151,12 +157,22 @@ of recent versions of Linux (and other OSes).
 %define _without_qemu --without-qemu
 %endif
 
+%if ! %{with_openvz}
+%define _without_openvz --without-openvz
+%endif
+
+%if ! %{with_lxc}
+%define _without_lxc --without-lxc
+%endif
+
 %configure %{?_without_xen} \
            %{?_without_qemu} \
+           %{?_without_openvz} \
+           %{?_without_lxc} \
            --with-init-script=redhat \
            --with-qemud-pid-file=%{_localstatedir}/run/libvirt_qemud.pid \
            --with-remote-file=%{_localstatedir}/run/libvirtd.pid
-make
+make %{?_smp_mflags}
 
 %install
 rm -fr %{buildroot}
@@ -239,14 +255,21 @@ fi
 %dir %{_localstatedir}/lib/libvirt/
 %dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/images/
 %dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/boot/
+%{_datadir}/augeas/lenses/libvirtd.aug
+%{_datadir}/augeas/lenses/libvirtd_qemu.aug
+%{_datadir}/augeas/lenses/tests/test_libvirtd.aug
+%{_datadir}/augeas/lenses/tests/test_libvirtd_qemu.aug
 %if %{with_polkit}
-%{_datadir}/PolicyKit/policy/libvirtd.policy
+%{_datadir}/PolicyKit/policy/org.libvirt.unix.policy
 %endif
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/qemu/
 %if %{with_xen_proxy}
 %attr(4755, root, root) %{_libexecdir}/libvirt_proxy
 %endif
 %attr(0755, root, root) %{_libexecdir}/libvirt_parthelper
+%if %{with_lxc}
+%attr(0755, root, root) %{_libexecdir}/libvirt_lxc
+%endif
 %attr(0755, root, root) %{_sbindir}/libvirtd
 %doc docs/*.rng
 %doc docs/*.xml
@@ -279,6 +302,13 @@ fi
 %doc docs/examples/python
 
 %changelog
+* Mon Sep  8 2008 Daniel Veillard <veillard@redhat.com> - 0.4.5-1
+- release of 0.4.5
+
+* Wed Jun 25 2008 Daniel Veillard <veillard@redhat.com> - 0.4.4-1
+- release of 0.4.4
+- mostly a few bug fixes from 0.4.3
+
 * Thu Jun 12 2008 Daniel Veillard <veillard@redhat.com> - 0.4.3-1
 - release of 0.4.3
 - lots of bug fixes and small improvements

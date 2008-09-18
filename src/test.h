@@ -24,15 +24,8 @@
 #ifndef __VIR_TEST_INTERNAL_H__
 #define __VIR_TEST_INTERNAL_H__
 
-#include "libvirt/virterror.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "internal.h"
 
 int testRegister(void);
 
-#ifdef __cplusplus
-}
-#endif
 #endif /* __VIR_TEST_INTERNAL_H__ */

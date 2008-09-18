@@ -1912,6 +1912,14 @@ remoteReadConfigFile (struct qemud_server *server, const char *filename)
     char *unix_sock_rw_perms = NULL;
     char *unix_sock_group = NULL;
 
+#if HAVE_POLKIT
+    /* Change the default back to no auth for non-root */
+    if (getuid() != 0 && auth_unix_rw == REMOTE_AUTH_POLKIT)
+        auth_unix_rw = REMOTE_AUTH_NONE;
+    if (getuid() != 0 && auth_unix_ro == REMOTE_AUTH_POLKIT)
+        auth_unix_ro = REMOTE_AUTH_NONE;
+#endif
+
     /* Just check the file is readable before opening it, otherwise
      * libvirt emits an error.
      */

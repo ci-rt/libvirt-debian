@@ -53,6 +53,7 @@ enum {
     VIR_STORAGE_BACKEND_POOL_SOURCE_DEVICE  = (1<<1),
     VIR_STORAGE_BACKEND_POOL_SOURCE_DIR     = (1<<2),
     VIR_STORAGE_BACKEND_POOL_SOURCE_ADAPTER = (1<<3),
+    VIR_STORAGE_BACKEND_POOL_SOURCE_NAME    = (1<<4),
 };
 
 typedef struct _virStorageBackendPoolOptions virStorageBackendPoolOptions;
@@ -63,6 +64,10 @@ struct _virStorageBackendPoolOptions {
     virStoragePoolFormatFromString formatFromString;
 };
 
+#define SOURCES_START_TAG "<sources>"
+#define SOURCES_END_TAG "</sources>"
+
+typedef char * (*virStorageBackendFindPoolSources)(virConnectPtr conn, const char *srcSpec, unsigned int flags);
 typedef int (*virStorageBackendStartPool)(virConnectPtr conn, virStoragePoolObjPtr pool);
 typedef int (*virStorageBackendBuildPool)(virConnectPtr conn, virStoragePoolObjPtr pool, unsigned int flags);
 typedef int (*virStorageBackendRefreshPool)(virConnectPtr conn, virStoragePoolObjPtr pool);
@@ -80,6 +85,7 @@ typedef virStorageBackend *virStorageBackendPtr;
 struct _virStorageBackend {
     int type;
 
+    virStorageBackendFindPoolSources findPoolSources;
     virStorageBackendStartPool startPool;
     virStorageBackendBuildPool buildPool;
     virStorageBackendRefreshPool refreshPool;

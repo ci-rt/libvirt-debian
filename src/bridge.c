@@ -21,7 +21,7 @@
 
 #include <config.h>
 
-#ifdef WITH_QEMU
+#if defined(WITH_QEMU) || defined(WITH_LXC)
 
 #include "bridge.h"
 
@@ -46,6 +46,7 @@
 
 #include "internal.h"
 #include "memory.h"
+#include "util.h"
 
 #define MAX_BRIDGE_ID 256
 
@@ -116,68 +117,47 @@ brShutdown(brControl *ctl)
 /**
  * brAddBridge:
  * @ctl: bridge control pointer
- * @nameOrFmt: the bridge name (or name template)
- * @name: pointer to @maxlen bytes to store the bridge name
- * @maxlen: size of @name array
+ * @name: the bridge name
  *
- * This function register a new bridge, @nameOrFmt can be either
- * a fixed name or a name template with '%d' for dynamic name allocation.
- * in either case the final name for the bridge will be stored in @name.
+ * This function register a new bridge
  *
  * Returns 0 in case of success or an errno code in case of failure.
  */
 #ifdef SIOCBRADDBR
 int
 brAddBridge(brControl *ctl,
-            const char *nameOrFmt,
-            char *name,
-            int maxlen)
+            char **name)
 {
-    int id, subst;
-
-    if (!ctl || !ctl->fd || !nameOrFmt || !name)
+    if (!ctl || !ctl->fd || !name)
         return EINVAL;
 
-    if (maxlen >= BR_IFNAME_MAXLEN)
-        maxlen = BR_IFNAME_MAXLEN;
-
-    subst = id = 0;
-
-    if (strstr(nameOrFmt, "%d"))
-        subst = 1;
-
-    do {
-        char try[BR_IFNAME_MAXLEN];
-        int len;
-
-        if (subst) {
-            len = snprintf(try, maxlen, nameOrFmt, id);
-            if (len >= maxlen)
-                return EADDRINUSE;
-        } else {
-            len = strlen(nameOrFmt);
-            if (len >= maxlen - 1)
-                return EINVAL;
-
-            strncpy(try, nameOrFmt, len);
-            try[len] = '\0';
-        }
-
-        if (ioctl(ctl->fd, SIOCBRADDBR, try) == 0) {
-            strncpy(name, try, maxlen);
+    if (*name) {
+        if (ioctl(ctl->fd, SIOCBRADDBR, *name) == 0)
             return 0;
-        }
+    } else {
+        int id = 0;
+        do {
+            char try[50];
 
-        id++;
-    } while (subst && id <= MAX_BRIDGE_ID);
+            snprintf(try, sizeof(try), "virbr%d", id);
+
+            if (ioctl(ctl->fd, SIOCBRADDBR, try) == 0) {
+                if (!(*name = strdup(try))) {
+                    ioctl(ctl->fd, SIOCBRDELBR, name);
+                    return ENOMEM;
+                }
+                return 0;
+            }
+
+            id++;
+        } while (id < MAX_BRIDGE_ID);
+    }
 
     return errno;
 }
 #else
 int brAddBridge (brControl *ctl ATTRIBUTE_UNUSED,
-                 const char *nameOrFmt ATTRIBUTE_UNUSED,
-                 char *name ATTRIBUTE_UNUSED,
-                 int maxlen ATTRIBUTE_UNUSED)
+                 char **name ATTRIBUTE_UNUSED)
 {
     return EINVAL;
 }
@@ -300,7 +280,6 @@ brDeleteInterface(brControl *ctl ATTRIBUTE_UNUSED,
  * @ctl: bridge control pointer
  * @bridge: the bridge name
  * @ifname: the interface name (or name template)
- * @maxlen: size of @ifname array
  * @tapfd: file descriptor return value for the new tap device
  *
  * This function creates a new tap device on a bridge. @ifname can be either
@@ -313,8 +292,7 @@ brDeleteInterface(brControl *ctl ATTRIBUTE_UNUSED,
 int
 brAddTap(brControl *ctl,
          const char *bridge,
-         char *ifname,
-         int maxlen,
+         char **ifname,
          int *tapfd)
 {
     int id, subst, fd;
@@ -324,7 +302,7 @@ brAddTap(brControl *ctl,
 
     subst = id = 0;
 
-    if (strstr(ifname, "%d"))
+    if (strstr(*ifname, "%d"))
         subst = 1;
 
     if ((fd = open("/dev/net/tun", O_RDWR)) < 0)
@@ -339,19 +317,19 @@ brAddTap(brControl *ctl,
         try.ifr_flags = IFF_TAP|IFF_NO_PI;
 
         if (subst) {
-            len = snprintf(try.ifr_name, maxlen, ifname, id);
-            if (len >= maxlen) {
+            len = snprintf(try.ifr_name, BR_IFNAME_MAXLEN, *ifname, id);
+            if (len >= BR_IFNAME_MAXLEN) {
                 errno = EADDRINUSE;
                 goto error;
             }
         } else {
-            len = strlen(ifname);
-            if (len >= maxlen - 1) {
+            len = strlen(*ifname);
+            if (len >= BR_IFNAME_MAXLEN - 1) {
                 errno = EINVAL;
                 goto error;
             }
 
-            strncpy(try.ifr_name, ifname, len);
+            strncpy(try.ifr_name, *ifname, len);
             try.ifr_name[len] = '\0';
         }
 
@@ -360,8 +338,11 @@ brAddTap(brControl *ctl,
                 goto error;
             if ((errno = brSetInterfaceUp(ctl, try.ifr_name, 1)))
                 goto error;
-            if (ifname)
-                strncpy(ifname, try.ifr_name, maxlen);
+            VIR_FREE(*ifname);
+            if (!(*ifname = strdup(try.ifr_name))) {
+                errno = ENOMEM;
+                goto error;
+            }
             *tapfd = fd;
             return 0;
         }
@@ -616,42 +597,6 @@ brGetInetNetmask(brControl *ctl,
     return brGetInetAddr(ctl, ifname, SIOCGIFNETMASK, addr, maxlen);
 }
 
-static int
-brctlSpawn(char * const *argv)
-{
-    pid_t pid, ret;
-    int status;
-    int null = -1;
-
-    if ((null = open(_PATH_DEVNULL, O_RDONLY)) < 0)
-        return errno;
-
-    pid = fork();
-    if (pid == -1) {
-        int saved_errno = errno;
-        close(null);
-        return saved_errno;
-    }
-
-    if (pid == 0) { /* child */
-        dup2(null, STDIN_FILENO);
-        dup2(null, STDOUT_FILENO);
-        dup2(null, STDERR_FILENO);
-        close(null);
-
-        execvp(argv[0], argv);
-
-        _exit (1);
-    }
-
-    close(null);
-
-    while ((ret = waitpid(pid, &status, 0) == -1) && errno == EINTR);
-    if (ret == -1)
-        return errno;
-
-    return (WIFEXITED(status) && WEXITSTATUS(status) == 0) ? 0 : EINVAL;
-}
 
 /**
  * brSetForwardDelay:
@@ -661,7 +606,7 @@ brctlSpawn(char * const *argv)
  *
  * Set the bridge forward delay
  *
- * Returns 0 in case of success or an errno code in case of failure.
+ * Returns 0 in case of success or -1 on failure
  */
 
 int
@@ -669,48 +614,17 @@ brSetForwardDelay(brControl *ctl ATTRIBUTE_UNUSED,
                   const char *bridge,
                   int delay)
 {
-    char **argv;
-    int retval = ENOMEM;
-    int n;
     char delayStr[30];
-
-    n = 1 + /* brctl */
-        1 + /* setfd */
-        1 + /* brige name */
-        1; /* value */
+    const char *const progargv[] = {
+        BRCTL, "setfd", bridge, delayStr, NULL
+    };
 
     snprintf(delayStr, sizeof(delayStr), "%d", delay);
 
-    if (VIR_ALLOC_N(argv, n + 1) < 0)
-        goto error;
+    if (virRun(NULL, progargv, NULL) < 0)
+        return -1;
 
-    n = 0;
-
-    if (!(argv[n++] = strdup(BRCTL)))
-        goto error;
-
-    if (!(argv[n++] = strdup("setfd")))
-        goto error;
-
-    if (!(argv[n++] = strdup(bridge)))
-        goto error;
-
-    if (!(argv[n++] = strdup(delayStr)))
-        goto error;
-
-    argv[n++] = NULL;
-
-    retval = brctlSpawn(argv);
-
- error:
-    if (argv) {
-        n = 0;
-        while (argv[n])
-            VIR_FREE(argv[n++]);
-        VIR_FREE(argv);
-    }
-
-    return retval;
+    return 0;
 }
 
 /**
@@ -722,52 +636,22 @@ brSetForwardDelay(brControl *ctl ATTRIBUTE_UNUSED,
  * Control whether the bridge participates in the spanning tree protocol,
  * in general don't disable it without good reasons.
  *
- * Returns 0 in case of success or an errno code in case of failure.
+ * Returns 0 in case of success or -1 on failure
  */
 int
 brSetEnableSTP(brControl *ctl ATTRIBUTE_UNUSED,
                const char *bridge,
                int enable)
 {
-    char **argv;
-    int retval = ENOMEM;
-    int n;
+    const char *setting = enable ? "on" : "off";
+    const char *const progargv[] = {
+        BRCTL, "stp", bridge, setting, NULL
+    };
 
-    n = 1 + /* brctl */
-        1 + /* stp */
-        1 + /* brige name */
-        1;  /* value */
+    if (virRun(NULL, progargv, NULL) < 0)
+        return -1;
 
-    if (VIR_ALLOC_N(argv, n + 1) < 0)
-        goto error;
-
-    n = 0;
-
-    if (!(argv[n++] = strdup(BRCTL)))
-        goto error;
-
-    if (!(argv[n++] = strdup("stp")))
-        goto error;
-
-    if (!(argv[n++] = strdup(bridge)))
-        goto error;
-
-    if (!(argv[n++] = strdup(enable ? "on" : "off")))
-        goto error;
-
-    argv[n++] = NULL;
-
-    retval = brctlSpawn(argv);
-
- error:
-    if (argv) {
-        n = 0;
-        while (argv[n])
-            VIR_FREE(argv[n++]);
-        VIR_FREE(argv);
-    }
-
-    return retval;
+    return 0;
 }
 
-#endif /* WITH_QEMU */
+#endif /* WITH_QEMU || WITH_LXC */

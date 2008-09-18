@@ -406,11 +406,14 @@ virStorageBackendDiskBuildPool(virConnectPtr conn,
         PARTED,
         pool->def->source.devices[0].path,
         "mklabel",
-        virStorageBackendDiskPoolFormatToString(conn, pool->def->source.format),
+        "--script",
+        ((pool->def->source.format == VIR_STORAGE_POOL_DISK_DOS) ? "msdos" :
+          virStorageBackendDiskPoolFormatToString(conn,
+                                                  pool->def->source.format)),
         NULL,
     };
 
-    if (virRun(conn, (char**)prog, NULL) < 0)
+    if (virRun(conn, prog, NULL) < 0)
         return -1;
 
     return 0;
@@ -469,7 +472,7 @@ virStorageBackendDiskCreateVol(virConnectPtr conn,
     snprintf(end, sizeof(end)-1, "%lluB", endOffset);
     end[sizeof(end)-1] = '\0';
 
-    if (virRun(conn, (char**)cmdargv, NULL) < 0)
+    if (virRun(conn, cmdargv, NULL) < 0)
         return -1;
 
     /* Blow away free extent info, as we're about to re-populate it */

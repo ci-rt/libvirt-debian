@@ -8,7 +8,6 @@
  * Daniel Veillard <veillard@redhat.com>
  */
 
-#ifdef WITH_XEN
 #include <config.h>
 
 #include <stdio.h>
@@ -86,16 +85,6 @@ struct xenUnifiedDriver xenStoreDriver = {
     NULL, /* domainSetSchedulerParameters */
 };
 
-/**
- * xenStoreInit:
- *
- * Initialisation.
- */
-int
-xenStoreInit ()
-{
-    return 0;
-}
 #endif /* ! PROXY */
 
 /**
@@ -399,7 +388,7 @@ xenStoreGetDomainInfo(virDomainPtr domain, virDomainInfoPtr info)
             info->state = VIR_DOMAIN_RUNNING;
         free(tmp);
     } else {
-        info->state = VIR_DOMAIN_NONE;
+        info->state = VIR_DOMAIN_NOSTATE;
     }
     tmp = virDomainDoStoreQuery(domain->conn, domain->id, "memory/target");
     if (tmp != NULL) {
@@ -665,7 +654,7 @@ xenStoreDomainShutdown(virDomainPtr domain)
      * this is very hackish, the domU kernel probes for a special
      * node in the xenstore and launch the shutdown command if found.
      */
-    return(virDomainDoStoreWrite(domain, "control/shutdown", "halt"));
+    return(virDomainDoStoreWrite(domain, "control/shutdown", "poweroff"));
 }
 
 /**
@@ -948,5 +937,3 @@ char *xenStoreDomainGetName(virConnectPtr conn,
     return xs_read(priv->xshandle, 0, prop, &len);
 }
 
-
-#endif /* WITH_XEN */

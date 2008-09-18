@@ -26,16 +26,29 @@
 
 #include "util-lib.h"
 #include "verify.h"
+#include <sys/select.h>
 
-int virExec(virConnectPtr conn, char **argv, int *retpid,
-            int infd, int *outfd, int *errfd);
-int virExecNonBlock(virConnectPtr conn, char **argv, int *retpid,
-                    int infd, int *outfd, int *errfd);
-int virRun(virConnectPtr conn, char **argv, int *status);
+enum {
+    VIR_EXEC_NONE   = 0,
+    VIR_EXEC_NONBLOCK = (1 << 0),
+    VIR_EXEC_DAEMON = (1 << 1),
+};
 
-int __virFileReadAll(const char *path,
-                     int maxlen,
-                     char **buf);
+int virExec(virConnectPtr conn,
+            const char *const*argv,
+            const char *const*envp,
+            const fd_set *keepfd,
+            int *retpid,
+            int infd,
+            int *outfd,
+            int *errfd,
+            int flags);
+int virRun(virConnectPtr conn, const char *const*argv, int *status);
+
+int __virFileReadLimFD(int fd, int maxlen, char **buf);
+#define virFileReadLimFD(fd,m,b) __virFileReadLimFD((fd),(m),(b))
+
+int __virFileReadAll(const char *path, int maxlen, char **buf);
 #define virFileReadAll(p,m,b) __virFileReadAll((p),(m),(b))
 
 int virFileMatchesNameSuffix(const char *file,
@@ -44,6 +57,9 @@ int virFileMatchesNameSuffix(const char *file,
 
 int virFileHasSuffix(const char *str,
                      const char *suffix);
+
+int virFileStripSuffix(char *str,
+                       const char *suffix);
 
 int virFileLinkPointsTo(const char *checkLink,
                         const char *checkDest);
@@ -58,6 +74,18 @@ int virFileBuildPath(const char *dir,
                      char *buf,
                      unsigned int buflen);
 
+int virFileOpenTty(int *ttymaster,
+                   char **ttyName,
+                   int rawmode);
+
+int virFileWritePid(const char *dir,
+                    const char *name,
+                    pid_t pid);
+int virFileReadPid(const char *dir,
+                   const char *name,
+                   pid_t *pid);
+int virFileDeletePid(const char *dir,
+                     const char *name);
 
 int __virStrToLong_i(char const *s,
                      char **end_ptr,
@@ -100,7 +128,7 @@ const char *virEnumToString(const char *const*types,
 
 #define VIR_ENUM_IMPL(name, lastVal, ...)                               \
     static const char const *name ## TypeList[] = { __VA_ARGS__ };      \
-    verify(ARRAY_CARDINALITY(name ## TypeList) == lastVal);             \
+    extern int (* name ## Verify (void)) [verify_true (ARRAY_CARDINALITY(name ## TypeList) == lastVal)]; \
     const char *name ## TypeToString(int type) {                        \
         return virEnumToString(name ## TypeList,                        \
                                ARRAY_CARDINALITY(name ## TypeList),     \
@@ -115,5 +143,13 @@ const char *virEnumToString(const char *const*types,
 #define VIR_ENUM_DECL(name)                             \
     const char *name ## TypeToString(int type);         \
     int name ## TypeFromString(const char*type);
+
+#ifndef HAVE_GETUID
+static inline int getuid (void) { return 0; }
+#endif
+
+#ifndef HAVE_GETGID
+static inline int getgid (void) { return 0; }
+#endif
 
 #endif /* __VIR_UTIL_H__ */

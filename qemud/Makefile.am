@@ -1,17 +1,35 @@
 ## Process this file with automake to produce Makefile.in
 
-# Distribute the generated files so that rpcgen isn't required on the
-# target machine (although almost any Unix machine will have it).
-EXTRA_DIST = libvirtd.init.in libvirtd.sysconf default-network.xml \
-	remote_protocol.x \
-	remote_protocol.c remote_protocol.h \
-	remote_generate_stubs.pl rpcgen_fix.pl \
-	remote_dispatch_prototypes.h \
-	remote_dispatch_localvars.h \
-	remote_dispatch_proc_switch.h \
-	mdns.c mdns.h \
-        libvirtd.sasl \
-        libvirtd.conf
+INCLUDES = $(LIBVIRT_FEATURES)
+
+DAEMON_SOURCES =					\
+		event.c event.h				\
+		qemud.c qemud.h				\
+		remote.c				\
+		remote_dispatch_prototypes.h		\
+		remote_dispatch_localvars.h		\
+		remote_dispatch_proc_switch.h		\
+		remote_protocol.h remote_protocol.c	\
+		$(srcdir)/../src/util-lib.c
+
+AVAHI_SOURCES =						\
+		mdns.c mdns.h
+
+EXTRA_DIST =						\
+	default-network.xml				\
+	remote_generate_stubs.pl rpcgen_fix.pl		\
+	remote_protocol.x				\
+	libvirtd.conf					\
+	libvirtd.init.in				\
+	libvirtd.policy					\
+	libvirtd.sasl					\
+	libvirtd.sysconf				\
+	libvirtd.aug                                    \
+	libvirtd_qemu.aug                               \
+	test_libvirtd.aug                               \
+	test_libvirtd_qemu.aug                          \
+	$(AVAHI_SOURCES)				\
+	$(DAEMON_SOURCES)
 
 if RPCGEN
 SUFFIXES = .x
@@ -42,12 +60,13 @@ sbin_PROGRAMS = libvirtd
 confdir = $(sysconfdir)/libvirt/
 conf_DATA = libvirtd.conf
 
-libvirtd_SOURCES = \
-		qemud.c qemud.h \
-		remote_protocol.h remote_protocol.c \
-		remote.c \
-		$(srcdir)/../src/util-lib.c \
-		event.c event.h
+augeasdir = $(datadir)/augeas/lenses
+augeas_DATA = libvirtd.aug libvirtd_qemu.aug
+
+augeastestsdir = $(datadir)/augeas/lenses/tests
+augeastests_DATA = test_libvirtd.aug test_libvirtd_qemu.aug
+
+libvirtd_SOURCES = $(DAEMON_SOURCES)
 
 #-D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED=1 -D_POSIX_C_SOURCE=199506L
 libvirtd_CFLAGS = \
@@ -73,18 +92,16 @@ libvirtd_LDADD = ../src/libvirt.la ../gnulib/lib/libgnu.la
 
 if HAVE_POLKIT
 policydir = $(datadir)/PolicyKit/policy
-policy_DATA = libvirtd.policy
 endif
-EXTRA_DIST += libvirtd.policy
 
 if HAVE_AVAHI
-libvirtd_SOURCES += mdns.c mdns.h
+libvirtd_SOURCES += $(AVAHI_SOURCES)
 libvirtd_CFLAGS += $(AVAHI_CFLAGS)
 libvirtd_LDADD += $(AVAHI_LIBS)
 endif
 
 default_xml_dest = libvirt/qemu/networks/default.xml
-install-data-local: install-init install-data-sasl
+install-data-local: install-init install-data-sasl install-data-polkit
 	mkdir -p $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart
 	$(INSTALL_DATA) $(srcdir)/default-network.xml \
 	  $(DESTDIR)$(sysconfdir)/$(default_xml_dest)
@@ -97,7 +114,7 @@ install-data-local: install-init install-data-sasl
 	mkdir -p $(DESTDIR)$(localstatedir)/run/libvirt
 	mkdir -p $(DESTDIR)$(localstatedir)/lib/libvirt
 
-uninstall-local:: uninstall-init uninstall-data-sasl
+uninstall-local:: uninstall-init uninstall-data-sasl install-data-polkit
 	rm -f $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml
 	rm -f $(DESTDIR)$(sysconfdir)/$(default_xml_dest)
 	rmdir $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart || :
@@ -117,6 +134,18 @@ else
 install-data-sasl:
 uninstall-data-sasl:
 endif
+
+if HAVE_POLKIT
+install-data-polkit:: install-init
+	mkdir -p $(DESTDIR)$(policydir)
+	$(INSTALL_DATA) libvirtd.policy $(DESTDIR)$(policydir)/org.libvirt.unix.policy
+uninstall-data-polkit:: install-init
+	rm -f $(DESTDIR)$(policydir)/org.libvirt.unix.policy
+else
+install-data-polkit::
+uninstall-data-polkit::
+endif
+
 
 remote.c: remote_dispatch_prototypes.h \
 	  remote_dispatch_localvars.h \
@@ -152,6 +181,9 @@ libvirtd.init: libvirtd.init.in
 	    < $< > $@-t
 	chmod a+x $@-t
 	mv $@-t $@
+
+check-local:
+	if [ -x $(AUGPARSE) ]; then $(AUGPARSE) -I $(srcdir) test_libvirtd.aug ; fi
 
 else
 

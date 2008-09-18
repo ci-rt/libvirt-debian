@@ -4,7 +4,9 @@
  */
 
 #include "remote_protocol.h"
+#include <config.h>
 #include "internal.h"
+#include "socketcompat.h"
 
 bool_t
 xdr_remote_nonnull_string (XDR *xdrs, remote_nonnull_string *objp)
@@ -1496,6 +1498,28 @@ xdr_remote_list_defined_storage_pools_ret (XDR *xdrs, remote_list_defined_storag
 
          if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->names.names_len, REMOTE_STORAGE_POOL_NAME_LIST_MAX,
                 sizeof (remote_nonnull_string), (xdrproc_t) xdr_remote_nonnull_string))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_find_storage_pool_sources_args (XDR *xdrs, remote_find_storage_pool_sources_args *objp)
+{
+
+         if (!xdr_remote_nonnull_string (xdrs, &objp->type))
+                 return FALSE;
+         if (!xdr_remote_string (xdrs, &objp->srcSpec))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_find_storage_pool_sources_ret (XDR *xdrs, remote_find_storage_pool_sources_ret *objp)
+{
+
+         if (!xdr_remote_nonnull_string (xdrs, &objp->xml))
                  return FALSE;
         return TRUE;
 }
