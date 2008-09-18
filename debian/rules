@@ -32,7 +32,7 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
 DEB_DBG_PACKAGES = libvirt0-dbg
 DEB_DBG_PACKAGE_libvirt0 = libvirt0-dbg
 DEB_PYTHON_SETUP_CMD := /dev/null
-DEB_DH_MAKESHLIBS_ARGS_libvirt0 += -V 'libvirt0 (>= 0.4.4)'
+DEB_DH_MAKESHLIBS_ARGS_libvirt0 += -V 'libvirt0 (>= 0.4.5)'
 DEB_DH_INSTALLINIT_ARGS := --no-restart-on-upgrade
 
 EXAMPLES=debian/libvirt-doc/usr/share/doc/libvirt-doc/examples/
