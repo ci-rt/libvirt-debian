@@ -2,3 +2,4 @@
 0002-qemu-disable-network.diff.patch
 0003-allow-libvirt-group-to-access-the-socket.patch
 0004-for-kvm-determine-maxVCPUs-at-runtime.patch
+0005-fix-crash-when-no-emulator-is-defined-for-kvm-qemu.patch
