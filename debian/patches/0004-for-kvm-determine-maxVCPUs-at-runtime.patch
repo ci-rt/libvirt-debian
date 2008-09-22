@@ -1,0 +1,108 @@
+From eb6e9583a33ff47c74acd288e163da0d1a3eea5c Mon Sep 17 00:00:00 2001
+From: Guido Guenther <agx@sigxcpu.org>
+Date: Fri, 22 Aug 2008 14:47:49 +0200
+Subject: [PATCH] for kvm determine maxVCPUs at runtime
+
+---
+ configure.in      |    5 +++++
+ src/qemu_driver.c |   24 +++++++++++++++++++++++-
+ src/qemu_driver.h |   18 ++++++++++++++++++
+ 3 files changed, 46 insertions(+), 1 deletions(-)
+
+diff --git a/configure.in b/configure.in
+index 52f70c7..6a2ada1 100644
+--- a/configure.in
++++ b/configure.in
+@@ -316,6 +316,11 @@ if test "$with_qemu" = "yes" -o "$with_lxc" = "yes" ; then
+                    AC_MSG_ERROR([You must install kernel-headers in order to compile libvirt]))
+ fi
+ 
++dnl
++dnl check for kvm headers
++dnl
++AC_CHECK_HEADERS([linux/kvm.h])
++
+ dnl Need to test if pkg-config exists
+ PKG_PROG_PKG_CONFIG
+ 
+diff --git a/src/qemu_driver.c b/src/qemu_driver.c
+index 8cc32bc..fa91fa0 100644
+--- a/src/qemu_driver.c
++++ b/src/qemu_driver.c
+@@ -42,6 +42,7 @@
+ #include <pwd.h>
+ #include <stdio.h>
+ #include <sys/wait.h>
++#include <sys/ioctl.h>
+ 
+ #if HAVE_NUMACTL
+ #include <numa.h>
+@@ -1804,6 +1805,27 @@ static const char *qemudGetType(virConnectPtr conn ATTRIBUTE_UNUSED) {
+     return "QEMU";
+ }
+ 
++
++static int kvmGetMaxVCPUs(void) {
++    int maxvcpus = 1;
++
++    int r, fd;
++
++    fd = open(KVM_DEVICE, O_RDONLY);
++    if (fd < 0) {
++        qemudLog(QEMUD_WARN, _("Unable to open " KVM_DEVICE ": %s\n"), strerror(errno));
++        return maxvcpus;
++    }
++
++    r = ioctl(fd, KVM_CHECK_EXTENSION, KVM_CAP_NR_VCPUS);
++    if (r > 0)
++        maxvcpus = r;
++
++    close(fd);
++    return maxvcpus;
++}
++
++
+ static int qemudGetMaxVCPUs(virConnectPtr conn, const char *type) {
+     if (!type)
+         return 16;
+@@ -1814,7 +1836,7 @@ static int qemudGetMaxVCPUs(virConnectPtr conn, const char *type) {
+     /* XXX future KVM will support SMP. Need to probe
+        kernel to figure out KVM module version i guess */
+     if (STRCASEEQ(type, "kvm"))
+-        return 1;
++        return kvmGetMaxVCPUs();
+ 
+     if (STRCASEEQ(type, "kqemu"))
+         return 1;
+diff --git a/src/qemu_driver.h b/src/qemu_driver.h
+index dbcca70..e0662e0 100644
+--- a/src/qemu_driver.h
++++ b/src/qemu_driver.h
+@@ -29,6 +29,24 @@
+ 
+ #include "internal.h"
+ 
++#if HAVE_LINUX_KVM_H
++#include <linux/kvm.h>
++#endif
++
++/* device for kvm ioctls */
++#define KVM_DEVICE "/dev/kvm"
++
++/* add definitions missing in older linux/kvm.h */
++#ifndef KVMIO
++#  define KVMIO 0xAE
++#endif
++#ifndef KVM_CHECK_EXTENSION
++#  define KVM_CHECK_EXTENSION       _IO(KVMIO,   0x03)
++#endif
++#ifndef KVM_CAP_NR_VCPUS
++#  define KVM_CAP_NR_VCPUS 9       /* returns max vcpus per vm */
++#endif
++
+ int qemudRegister(void);
+ 
+ #endif /* QEMUD_DRIVER_H */
+-- 
+1.5.6.5
+
