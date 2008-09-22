@@ -1,3 +1,13 @@
+libvirt (0.4.5-2) experimental; urgency=low
+
+  * [17647cd] libvirt-bin.default: add keytab default
+  * [0ef01e7] fix runtime vcpu detection (0004-for-kvm-determine-
+    maxVCPUs-at-runtime.patch) (Closes: #495950)
+  * [b91e1eb] don't crash when no emulator is defined (0005-fix-crash-
+    when-no-emulator-is-defined-for-kvm-qemu.patch)
+
+ -- Guido Guenther <agx@sigxcpu.org>  Mon, 22 Sep 2008 20:11:04 +0200
+
 libvirt (0.4.5-1) experimental; urgency=low
 
   * [ab8b4e6] Imported Upstream version 0.4.5
