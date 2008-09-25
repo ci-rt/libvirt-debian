@@ -85,7 +85,7 @@ typedef enum {
 typedef struct _virDomainInfo virDomainInfo;
 
 struct _virDomainInfo {
-    unsigned char state;        /* the running state, one of virDomainFlags */
+    unsigned char state;        /* the running state, one of virDomainState */
     unsigned long maxMem;       /* the maximum memory in KBytes allowed */
     unsigned long memory;       /* the memory in KBytes used by the domain */
     unsigned short nrVirtCpu;   /* the number of virtual CPUs for the domain */
@@ -380,7 +380,7 @@ extern virConnectAuthPtr virConnectAuthPtrDefault;
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-#define LIBVIR_VERSION_NUMBER 4005
+#define LIBVIR_VERSION_NUMBER 4006
 
 int                     virGetVersion           (unsigned long *libVer,
                                                  const char *type,

@@ -10,7 +10,7 @@
  * Daniel P. Berrange <berrange@redhat.com>
  *
  *
- * $Id: virsh.c,v 1.165 2008/09/03 12:38:28 veillard Exp $
+ * $Id: virsh.c,v 1.166 2008/09/17 14:18:15 rjones Exp $
  */
 
 #include <config.h>
@@ -6289,7 +6289,7 @@ vshDomainStateToString(int state)
     case VIR_DOMAIN_RUNNING:
         return gettext_noop("running");
     case VIR_DOMAIN_BLOCKED:
-        return gettext_noop("blocked");
+        return gettext_noop("idle");
     case VIR_DOMAIN_PAUSED:
         return gettext_noop("paused");
     case VIR_DOMAIN_SHUTDOWN:
@@ -6311,7 +6311,7 @@ vshDomainVcpuStateToString(int state)
     case VIR_VCPU_OFFLINE:
         return gettext_noop("offline");
     case VIR_VCPU_BLOCKED:
-        return gettext_noop("blocked");
+        return gettext_noop("idle");
     case VIR_VCPU_RUNNING:
         return gettext_noop("running");
     default:
