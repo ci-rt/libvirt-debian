@@ -1,3 +1,15 @@
+libvirt (0.4.6-1) experimental; urgency=low
+
+  * [e20d3d4] Imported Upstream version 0.4.6
+  * [0c840ab] disable numactl
+  * [ca2c5cb] cleanup doc installation (Closes: #492075)
+  * [714ab94] drop 0004-for-kvm-determine-maxVCPUs-at-runtime.patch - applied
+    upstream 
+  * [e7563a8] drop 0005-fix-crash-when-no-emulator-is-defined-for-kvm-
+    qemu.patch - fixed upstream
+
+ -- Guido Guenther <agx@sigxcpu.org>  Thu, 25 Sep 2008 12:31:45 +0200
+
 libvirt (0.4.5-2) experimental; urgency=low
 
   * [17647cd] libvirt-bin.default: add keytab default
