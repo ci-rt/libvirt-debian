@@ -246,6 +246,9 @@
 /* Define to 1 if you have the <linux/if_tun.h> header file. */
 #undef HAVE_LINUX_IF_TUN_H
 
+/* Define to 1 if you have the <linux/kvm.h> header file. */
+#undef HAVE_LINUX_KVM_H
+
 /* Define to 1 if you have the <linux/param.h> header file. */
 #undef HAVE_LINUX_PARAM_H
 
