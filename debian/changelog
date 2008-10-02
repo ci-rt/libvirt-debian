@@ -1,3 +1,10 @@
+libvirt (0.4.6-2) experimental; urgency=low
+
+  * [2039095] tighten libvirt dependency
+  * [06dbe8a] qemu/kvm: fix domain block stats for virtio and scsi devices 
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 02 Oct 2008 22:03:05 +0200
+
 libvirt (0.4.6-1) experimental; urgency=low
 
   * [e20d3d4] Imported Upstream version 0.4.6
