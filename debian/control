@@ -73,7 +73,7 @@ Description: development files for the libvirt library
 
 Package: python-libvirt
 Architecture: any
-Depends: ${shlibs:Depends}, ${python:Depends}
+Depends: ${shlibs:Depends}, ${python:Depends}, libvirt0 (>= ${binary:Version})
 Provides: ${python:Provides}
 Section: python
 XB-Python-Version: ${python:Versions}
