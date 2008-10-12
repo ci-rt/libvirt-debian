@@ -1,3 +1,11 @@
+libvirt (0.4.6-3) experimental; urgency=low
+
+  * [8fa5a3c] add a versioned recommends on qemu (Closes: #501692)
+  * [d1539bc] recommend pkg-config
+  * [f08bb18] explain libvirt group (Closes: #501824)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 12 Oct 2008 20:27:25 +0200
+
 libvirt (0.4.6-2) experimental; urgency=low
 
   * [2039095] tighten libvirt dependency
