@@ -29,4 +29,9 @@ In order for things to work this way you need to have the recommended packages
 dnsmasq, bridge-utils and iptables installed and dnsmasq must not be already
 running since libvirt starts it with the above parameters.
 
+Access Control
+==============
+Access to the libvirt socket is controlled by membership in the libvirt group.
+If you want to manage VMs as non root you need to add a user to that group.
+
  -- Guido Guenther <agx@sigxcpu.org>  Thu, 15 May 2008 14:13:03 +0100
