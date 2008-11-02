@@ -1,3 +1,11 @@
+libvirt (0.4.6-4) unstable; urgency=low
+
+  * upload to unstable
+  * [50b27f5] add libvirt-suspendonreboot script (Closes: #501155) -
+    thanks to Andreas Barth
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 01 Nov 2008 19:33:36 +0100
+
 libvirt (0.4.6-3) experimental; urgency=low
 
   * [8fa5a3c] add a versioned recommends on qemu (Closes: #501692)
