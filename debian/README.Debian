@@ -25,9 +25,21 @@ via dnsmasq. This network is not automatically started. To start it use:
 
  virsh net-start default
 
+To make the default network start automatically use:
+
+ virsh net-autostart default
+
 In order for things to work this way you need to have the recommended packages
-dnsmasq, bridge-utils and iptables installed and dnsmasq must not be already
-running since libvirt starts it with the above parameters.
+dnsmasq, bridge-utils and iptables installed. However Debian's default dnsmasq
+configuration conflicts with the way libvirtd wants to invoke it. You have two
+possibilities:
+
+    * don't start dnsmasq via /etc/init.d/dnsmasq during system startup and let
+      libvirtd handle dnsmasq completely
+
+    * use "interface=lo" and "bind-interfaces" in dnsmasq.conf 
+
+See http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=504605 for more information.
 
 Access Control
 ==============
