@@ -1,3 +1,15 @@
+libvirt (0.4.6-5) unstable; urgency=low
+
+  * [411ada3] add more details about dnsmasq vs. libvirtd (Closes: #504605)
+  * [2f8f07d] add default image dir virt-manager assumes they exist and
+    they're used in the SELinux policies too. (Closes: #505577)
+  * [9eb3a83] fix #define vs. #defined typos - affects non Linux architectures
+    and fixes the build with gcc 4.4 (Closes: #505607) - thanks to Martin
+    Michlmayr
+  * [0e21634] fix uploader
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 14 Nov 2008 14:54:48 +0100
+
 libvirt (0.4.6-4) unstable; urgency=low
 
   * upload to unstable
