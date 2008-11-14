@@ -1,3 +1,4 @@
 /var/run/libvirt
-/var/lib/libvirt
+/var/lib/libvirt/images
+/var/lib/libvirt/boot
 /var/cache/libvirt
