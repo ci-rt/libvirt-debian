@@ -17,7 +17,7 @@ include /usr/share/cdbs/1/rules/patchsys-quilt.mk
 DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	--disable-rpath          \
 	--with-qemu              \
-	--with-openvz            \
+	--without-openvz         \
 	--without-lxc            \
 	--with-avahi             \
 	--with-sasl              \
