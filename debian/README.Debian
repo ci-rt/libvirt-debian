@@ -1,13 +1,20 @@
 Xen
 ===
-For working xen support you have to set:
+To manage xen domains with libvirt you have to set:
+
+(xend-unix-server yes)
+
+in /etc/xen/xend-config.sxp.
+
+For xend HTTP access (not recommended) you also have to set:
 
 (xend-http-server yes)
-(xend-unix-server yes)
+# only allow access from localhost:
 (xend-address localhost)
 
-in /etc/xen/xend-config.sxp. The last line makes sure xend is only accepting
-connections on localhost.
+Note that *every* user on the system has access to xend then. Better use
+libvirtd to access xen with unprivileged users and add the users to the
+"libvirt" group (see "Acess Control" below).
 
 Debugging
 =========
@@ -43,7 +50,7 @@ See http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=504605 for more information
 
 Access Control
 ==============
-Access to the libvirt socket is controlled by membership in the libvirt group.
+Access to the libvirt socket is controlled by membership in the "libvirt" group.
 If you want to manage VMs as non root you need to add a user to that group.
 
  -- Guido Guenther <agx@sigxcpu.org>  Thu, 15 May 2008 14:13:03 +0100
