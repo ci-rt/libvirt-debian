@@ -3,3 +3,4 @@
 0003-allow-libvirt-group-to-access-the-socket.patch
 0004-support-virtio-and-scsi-disks-in-qemudDomainBlockSta.patch
 0005-fix-define-vs.-defined-typos.patch
+0006-xen-prefer-xenstoraged-driver-for-listDomains.patch
