@@ -1,3 +1,11 @@
+libvirt (0.4.6-6) unstable; urgency=low
+
+  * [ff8e9ae] README.Debian: clarify xen configuration
+  * [c07c68f] prefer xenstoraged driver for listDomains - avoids seeing "ghost
+    domains" due to bugs in several versions of the xen HV
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 27 Nov 2008 18:06:48 +0100
+
 libvirt (0.4.6-5) unstable; urgency=low
 
   * [411ada3] add more details about dnsmasq vs. libvirtd (Closes: #504605)
