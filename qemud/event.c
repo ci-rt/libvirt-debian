@@ -37,9 +37,11 @@
 
 /* State for a single file handle being monitored */
 struct virEventHandle {
+    int watch;
     int fd;
     int events;
     virEventHandleCallback cb;
+    virFreeCallback ff;
     void *opaque;
     int deleted;
 };
@@ -50,6 +52,7 @@ struct virEventTimeout {
     int frequency;
     unsigned long long expiresAt;
     virEventTimeoutCallback cb;
+    virFreeCallback ff;
     void *opaque;
     int deleted;
 };
@@ -71,16 +74,21 @@ struct virEventLoop {
 /* Only have one event loop */
 static struct virEventLoop eventLoop;
 
+/* Unique ID for the next FD watch to be registered */
+static int nextWatch = 0;
+
 /* Unique ID for the next timer to be registered */
 static int nextTimer = 0;
-
 
 /*
  * Register a callback for monitoring file handle events.
  * NB, it *must* be safe to call this from within a callback
  * For this reason we only ever append to existing list.
  */
-int virEventAddHandleImpl(int fd, int events, virEventHandleCallback cb, void *opaque) {
+int virEventAddHandleImpl(int fd, int events,
+                          virEventHandleCallback cb,
+                          void *opaque,
+                          virFreeCallback ff) {
     EVENT_DEBUG("Add handle %d %d %p %p", fd, events, cb, opaque);
     if (eventLoop.handlesCount == eventLoop.handlesAlloc) {
         EVENT_DEBUG("Used %d handle slots, adding %d more",
@@ -91,22 +99,26 @@ int virEventAddHandleImpl(int fd, int events, virEventHandleCallback cb, void *o
         eventLoop.handlesAlloc += EVENT_ALLOC_EXTENT;
     }
 
+    eventLoop.handles[eventLoop.handlesCount].watch = nextWatch++;
     eventLoop.handles[eventLoop.handlesCount].fd = fd;
-    eventLoop.handles[eventLoop.handlesCount].events = events;
+    eventLoop.handles[eventLoop.handlesCount].events =
+                                         virEventHandleTypeToPollEvent(events);
     eventLoop.handles[eventLoop.handlesCount].cb = cb;
+    eventLoop.handles[eventLoop.handlesCount].ff = ff;
     eventLoop.handles[eventLoop.handlesCount].opaque = opaque;
     eventLoop.handles[eventLoop.handlesCount].deleted = 0;
 
     eventLoop.handlesCount++;
 
-    return 0;
+    return nextWatch-1;
 }
 
-void virEventUpdateHandleImpl(int fd, int events) {
+void virEventUpdateHandleImpl(int watch, int events) {
     int i;
     for (i = 0 ; i < eventLoop.handlesCount ; i++) {
-        if (eventLoop.handles[i].fd == fd) {
-            eventLoop.handles[i].events = events;
+        if (eventLoop.handles[i].watch == watch) {
+            eventLoop.handles[i].events =
+                    virEventHandleTypeToPollEvent(events);
             break;
         }
     }
@@ -118,15 +130,15 @@ void virEventUpdateHandleImpl(int fd, int events) {
  * For this reason we only ever set a flag in the existing list.
  * Actual deletion will be done out-of-band
  */
-int virEventRemoveHandleImpl(int fd) {
+int virEventRemoveHandleImpl(int watch) {
     int i;
-    EVENT_DEBUG("Remove handle %d", fd);
+    EVENT_DEBUG("Remove handle %d", watch);
     for (i = 0 ; i < eventLoop.handlesCount ; i++) {
         if (eventLoop.handles[i].deleted)
             continue;
 
-        if (eventLoop.handles[i].fd == fd) {
-            EVENT_DEBUG("mark delete %d", i);
+        if (eventLoop.handles[i].watch == watch) {
+            EVENT_DEBUG("mark delete %d %d", i, eventLoop.handles[i].fd);
             eventLoop.handles[i].deleted = 1;
             return 0;
         }
@@ -140,7 +152,10 @@ int virEventRemoveHandleImpl(int fd) {
  * NB, it *must* be safe to call this from within a callback
  * For this reason we only ever append to existing list.
  */
-int virEventAddTimeoutImpl(int frequency, virEventTimeoutCallback cb, void *opaque) {
+int virEventAddTimeoutImpl(int frequency,
+                           virEventTimeoutCallback cb,
+                           void *opaque,
+                           virFreeCallback ff) {
     struct timeval now;
     EVENT_DEBUG("Adding timer %d with %d ms freq", nextTimer, frequency);
     if (gettimeofday(&now, NULL) < 0) {
@@ -159,6 +174,7 @@ int virEventAddTimeoutImpl(int frequency, virEventTimeoutCallback cb, void *opaq
     eventLoop.timeouts[eventLoop.timeoutsCount].timer = nextTimer++;
     eventLoop.timeouts[eventLoop.timeoutsCount].frequency = frequency;
     eventLoop.timeouts[eventLoop.timeoutsCount].cb = cb;
+    eventLoop.timeouts[eventLoop.timeoutsCount].ff = ff;
     eventLoop.timeouts[eventLoop.timeoutsCount].opaque = opaque;
     eventLoop.timeouts[eventLoop.timeoutsCount].deleted = 0;
     eventLoop.timeouts[eventLoop.timeoutsCount].expiresAt =
@@ -342,6 +358,7 @@ static int virEventDispatchTimeouts(void) {
  */
 static int virEventDispatchHandles(struct pollfd *fds) {
     int i;
+    virEventHandleType hEvents;
     /* Save this now - it may be changed during dispatch */
     int nhandles = eventLoop.handlesCount;
 
@@ -352,8 +369,14 @@ static int virEventDispatchHandles(struct pollfd *fds) {
         }
 
         if (fds[i].revents) {
-            EVENT_DEBUG("Dispatch %d %d %p", fds[i].fd, fds[i].revents, eventLoop.handles[i].opaque);
-            (eventLoop.handles[i].cb)(fds[i].fd, fds[i].revents,
+            hEvents = virPollEventToEventHandleType(fds[i].revents);
+            EVENT_DEBUG("Dispatch %d %d %d %p",
+                        eventLoop.handles[i].watch,
+                        fds[i].fd, fds[i].revents,
+                        eventLoop.handles[i].opaque);
+            (eventLoop.handles[i].cb)(eventLoop.handles[i].watch,
+                                      fds[i].fd,
+                                      hEvents,
                                       eventLoop.handles[i].opaque);
         }
     }
@@ -379,6 +402,9 @@ static int virEventCleanupTimeouts(void) {
         }
 
         EVENT_DEBUG("Purging timeout %d with id %d", i, eventLoop.timeouts[i].timer);
+        if (eventLoop.timeouts[i].ff)
+            (eventLoop.timeouts[i].ff)(eventLoop.timeouts[i].opaque);
+
         if ((i+1) < eventLoop.timeoutsCount) {
             memmove(eventLoop.timeouts+i,
                     eventLoop.timeouts+i+1,
@@ -414,6 +440,9 @@ static int virEventCleanupHandles(void) {
             i++;
             continue;
         }
+
+        if (eventLoop.handles[i].ff)
+            (eventLoop.handles[i].ff)(eventLoop.handles[i].opaque);
 
         if ((i+1) < eventLoop.handlesCount) {
             memmove(eventLoop.handles+i,
@@ -481,4 +510,34 @@ int virEventRunOnce(void) {
         return -1;
 
     return 0;
+}
+
+int
+virEventHandleTypeToPollEvent(int events)
+{
+    int ret = 0;
+    if(events & VIR_EVENT_HANDLE_READABLE)
+        ret |= POLLIN;
+    if(events & VIR_EVENT_HANDLE_WRITABLE)
+        ret |= POLLOUT;
+    if(events & VIR_EVENT_HANDLE_ERROR)
+        ret |= POLLERR;
+    if(events & VIR_EVENT_HANDLE_HANGUP)
+        ret |= POLLHUP;
+    return ret;
+}
+
+int
+virPollEventToEventHandleType(int events)
+{
+    int ret = 0;
+    if(events & POLLIN)
+        ret |= VIR_EVENT_HANDLE_READABLE;
+    if(events & POLLOUT)
+        ret |= VIR_EVENT_HANDLE_WRITABLE;
+    if(events & POLLERR)
+        ret |= VIR_EVENT_HANDLE_ERROR;
+    if(events & POLLHUP)
+        ret |= VIR_EVENT_HANDLE_HANGUP;
+    return ret;
 }

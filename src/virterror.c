@@ -1,7 +1,7 @@
 /*
  * virterror.c: implements error handling and reporting code for libvirt
  *
- * Copy:  Copyright (C) 2006 Red Hat, Inc.
+ * Copy:  Copyright (C) 2006, 2008 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -15,18 +15,18 @@
 #include <string.h>
 #include <stdarg.h>
 
-#include "internal.h"
-#include "libvirt/virterror.h"
+#include "virterror_internal.h"
+#include "datatypes.h"
 
-virError __lastErr =       /* the last error */
+virError virLastErr =       /* the last error */
   { .code = 0, .domain = 0, .message = NULL, .level = VIR_ERR_NONE,
     .conn = NULL, .dom = NULL, .str1 = NULL, .str2 = NULL, .str3 = NULL,
     .int1 = 0, .int2 = 0, .net = NULL };
-static virErrorFunc virErrorHandler = NULL;     /* global error handler */
-static void *virUserData = NULL;        /* associated data */
+virErrorFunc virErrorHandler = NULL;     /* global error handler */
+void *virUserData = NULL;        /* associated data */
 
 /*
- * Macro used to format the message as a string in __virRaiseError
+ * Macro used to format the message as a string in virRaiseError
  * and borrowed from libxml2.
  */
 #define VIR_GET_VAR_STR(msg, str) {				\
@@ -74,9 +74,9 @@ static void *virUserData = NULL;        /* associated data */
 virErrorPtr
 virGetLastError(void)
 {
-    if (__lastErr.code == VIR_ERR_OK)
+    if (virLastErr.code == VIR_ERR_OK)
         return (NULL);
-    return (&__lastErr);
+    return (&virLastErr);
 }
 
 /*
@@ -94,10 +94,10 @@ virCopyLastError(virErrorPtr to)
 {
     if (to == NULL)
         return (-1);
-    if (__lastErr.code == VIR_ERR_OK)
+    if (virLastErr.code == VIR_ERR_OK)
         return (0);
-    memcpy(to, &__lastErr, sizeof(virError));
-    return (__lastErr.code);
+    memcpy(to, &virLastErr, sizeof(virError));
+    return (virLastErr.code);
 }
 
 /**
@@ -126,7 +126,7 @@ virResetError(virErrorPtr err)
 void
 virResetLastError(void)
 {
-    virResetError(&__lastErr);
+    virResetError(&virLastErr);
 }
 
 /**
@@ -262,6 +262,9 @@ virDefaultErrorFunc(virErrorPtr err)
         case VIR_FROM_XENSTORE:
             dom = "Xen Store ";
             break;
+        case VIR_FROM_XEN_INOTIFY:
+            dom = "Xen Inotify ";
+            break;
         case VIR_FROM_DOM:
             dom = "Domain ";
             break;
@@ -310,7 +313,12 @@ virDefaultErrorFunc(virErrorPtr err)
         case VIR_FROM_DOMAIN:
             dom = "Domain Config ";
             break;
-
+        case VIR_FROM_NODEDEV:
+            dom = "Node Device ";
+            break;
+        case VIR_FROM_UML:
+            dom = "UML ";
+            break;
     }
     if ((err->dom != NULL) && (err->code != VIR_ERR_INVALID_DOMAIN)) {
         domain = err->dom->name;
@@ -331,7 +339,7 @@ virDefaultErrorFunc(virErrorPtr err)
 }
 
 /**
- * __virRaiseError:
+ * virRaiseError:
  * @conn: the connection to the hypervisor if available
  * @dom: the domain if available
  * @net: the network if available
@@ -350,12 +358,12 @@ virDefaultErrorFunc(virErrorPtr err)
  * immediately if a callback is found and store it for later handling.
  */
 void
-__virRaiseError(virConnectPtr conn, virDomainPtr dom, virNetworkPtr net,
-                int domain, int code, virErrorLevel level,
-                const char *str1, const char *str2, const char *str3,
-                int int1, int int2, const char *msg, ...)
+virRaiseError(virConnectPtr conn, virDomainPtr dom, virNetworkPtr net,
+              int domain, int code, virErrorLevel level,
+              const char *str1, const char *str2, const char *str3,
+              int int1, int int2, const char *msg, ...)
 {
-    virErrorPtr to = &__lastErr;
+    virErrorPtr to = &virLastErr;
     void *userData = virUserData;
     virErrorFunc handler = virErrorHandler;
     char *str;
@@ -414,7 +422,7 @@ __virRaiseError(virConnectPtr conn, virDomainPtr dom, virNetworkPtr net,
 }
 
 /**
- * __virErrorMsg:
+ * virErrorMsg:
  * @error: the virErrorNumber
  * @info: usually the first parameter string
  *
@@ -424,7 +432,7 @@ __virRaiseError(virConnectPtr conn, virDomainPtr dom, virNetworkPtr net,
  * Returns the constant string associated to @error
  */
 const char *
-__virErrorMsg(virErrorNumber error, const char *info)
+virErrorMsg(virErrorNumber error, const char *info)
 {
     const char *errmsg = NULL;
 
@@ -516,7 +524,7 @@ __virErrorMsg(virErrorNumber error, const char *info)
                 errmsg = _("could not connect to Xen Store %s");
             break;
         case VIR_ERR_XEN_CALL:
-            errmsg = _("failed Xen syscall %s %d");
+            errmsg = _("failed Xen syscall %s");
             break;
         case VIR_ERR_OS_TYPE:
             if (info == NULL)
@@ -719,6 +727,63 @@ __virErrorMsg(virErrorNumber error, const char *info)
                 else
                         errmsg = _("Failed to find a storage driver: %s");
                 break;
+        case VIR_WAR_NO_NODE:
+                if (info == NULL)
+                        errmsg = _("Failed to find a node driver");
+                else
+                        errmsg = _("Failed to find a node driver: %s");
+                break;
+        case VIR_ERR_INVALID_NODE_DEVICE:
+                if (info == NULL)
+                        errmsg = _("invalid node device pointer");
+                else
+                        errmsg = _("invalid node device pointer in %s");
+                break;
+        case VIR_ERR_NO_NODE_DEVICE:
+                if (info == NULL)
+                        errmsg = _("Node device not found");
+                else
+                        errmsg = _("Node device not found: %s");
+                break;
     }
     return (errmsg);
+}
+
+/**
+ * virReportErrorHelper:
+ *
+ * @conn: the connection to the hypervisor if available
+ * @domcode: the virErrorDomain indicating where it's coming from
+ * @errcode: the virErrorNumber code for the error
+ * @filename: Source file error is dispatched from
+ * @funcname: Function error is dispatched from
+ * @linenr: Line number error is dispatched from
+ * @fmt:  the format string
+ * @...:  extra parameters for the message display
+ *
+ * Helper function to do most of the grunt work for individual driver
+ * ReportError
+ */
+void virReportErrorHelper(virConnectPtr conn, int domcode, int errcode,
+                          const char *filename ATTRIBUTE_UNUSED,
+                          const char *funcname ATTRIBUTE_UNUSED,
+                          long long linenr ATTRIBUTE_UNUSED,
+                          const char *fmt, ...)
+{
+    va_list args;
+    char errorMessage[1024];
+    const char *virerr;
+
+    if (fmt) {
+        va_start(args, fmt);
+        vsnprintf(errorMessage, sizeof(errorMessage)-1, fmt, args);
+        va_end(args);
+    } else {
+        errorMessage[0] = '\0';
+    }
+
+    virerr = virErrorMsg(errcode, (errorMessage[0] ? errorMessage : NULL));
+    virRaiseError(conn, NULL, NULL, domcode, errcode, VIR_ERR_ERROR,
+                  virerr, errorMessage, NULL, -1, -1, virerr, errorMessage);
+
 }

@@ -24,6 +24,10 @@
 #ifndef __NETWORK_CONF_H__
 #define __NETWORK_CONF_H__
 
+#include <libxml/parser.h>
+#include <libxml/tree.h>
+#include <libxml/xpath.h>
+
 #include "internal.h"
 
 /* 2 possible types of forwarding */
@@ -88,8 +92,13 @@ struct _virNetworkObj {
 
     virNetworkDefPtr def; /* The current definition */
     virNetworkDefPtr newDef; /* New definition to activate at shutdown */
+};
 
-    virNetworkObjPtr next;
+typedef struct _virNetworkObjList virNetworkObjList;
+typedef virNetworkObjList *virNetworkObjListPtr;
+struct _virNetworkObjList {
+    unsigned int count;
+    virNetworkObjPtr *objs;
 };
 
 static inline int
@@ -99,19 +108,20 @@ virNetworkIsActive(const virNetworkObjPtr net)
 }
 
 
-virNetworkObjPtr virNetworkFindByUUID(const virNetworkObjPtr nets,
+virNetworkObjPtr virNetworkFindByUUID(const virNetworkObjListPtr nets,
                                       const unsigned char *uuid);
-virNetworkObjPtr virNetworkFindByName(const virNetworkObjPtr nets,
+virNetworkObjPtr virNetworkFindByName(const virNetworkObjListPtr nets,
                                       const char *name);
 
 
 void virNetworkDefFree(virNetworkDefPtr def);
 void virNetworkObjFree(virNetworkObjPtr net);
+void virNetworkObjListFree(virNetworkObjListPtr vms);
 
 virNetworkObjPtr virNetworkAssignDef(virConnectPtr conn,
-                                     virNetworkObjPtr *nets,
+                                     virNetworkObjListPtr nets,
                                      const virNetworkDefPtr def);
-void virNetworkRemoveInactive(virNetworkObjPtr *nets,
+void virNetworkRemoveInactive(virNetworkObjListPtr nets,
                               const virNetworkObjPtr net);
 
 virNetworkDefPtr virNetworkDefParseString(virConnectPtr conn,
@@ -132,13 +142,13 @@ int virNetworkSaveConfig(virConnectPtr conn,
                          virNetworkObjPtr net);
 
 virNetworkObjPtr virNetworkLoadConfig(virConnectPtr conn,
-                                      virNetworkObjPtr *nets,
+                                      virNetworkObjListPtr nets,
                                       const char *configDir,
                                       const char *autostartDir,
                                       const char *file);
 
 int virNetworkLoadAllConfigs(virConnectPtr conn,
-                             virNetworkObjPtr *nets,
+                             virNetworkObjListPtr nets,
                              const char *configDir,
                              const char *autostartDir);
 

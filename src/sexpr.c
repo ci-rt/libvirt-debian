@@ -18,31 +18,14 @@
 #include "c-ctype.h"
 #include <errno.h>
 
-#include "internal.h"
+#include "virterror_internal.h"
 #include "sexpr.h"
 #include "util.h"
 #include "memory.h"
 
-/**
- * virSexprError:
- * @conn: the connection if available
- * @error: the error number
- * @info: extra information string
- *
- * Handle an error in the S-Expression code
- */
-static void
-virSexprError(virErrorNumber error, const char *info)
-{
-    const char *errmsg;
-
-    if (error == VIR_ERR_OK)
-        return;
-
-    errmsg = __virErrorMsg(error, info);
-    __virRaiseError(NULL, NULL, NULL, VIR_FROM_SEXPR, error, VIR_ERR_ERROR,
-                    errmsg, info, NULL, 0, 0, errmsg, info);
-}
+#define virSexprError(code, fmt...)                                          \
+        virReportErrorHelper(NULL, VIR_FROM_SEXPR, code, __FILE__,         \
+                               __FUNCTION__, __LINE__, fmt)
 
 /**
  * sexpr_new:
@@ -57,7 +40,7 @@ sexpr_new(void)
     struct sexpr *ret;
 
     if (VIR_ALLOC(ret) < 0) {
-        virSexprError(VIR_ERR_NO_MEMORY, _("failed to allocate a node"));
+        virSexprError(VIR_ERR_NO_MEMORY, "%s", _("failed to allocate a node"));
         return (NULL);
     }
     ret->kind = SEXPR_NIL;
@@ -278,7 +261,7 @@ sexpr2string(const struct sexpr * sexpr, char *buffer, size_t n_buffer)
     return (ret);
   error:
     buffer[n_buffer - 1] = 0;
-    virSexprError(VIR_ERR_SEXPR_SERIAL, buffer);
+    virSexprError(VIR_ERR_SEXPR_SERIAL, "%s", buffer);
     return (0);
 }
 
@@ -361,7 +344,7 @@ _string2sexpr(const char *buffer, size_t * end)
             ret->u.value = strndup(start, ptr - start);
             if (ret->u.value == NULL) {
                 virSexprError(VIR_ERR_NO_MEMORY,
-                              _("failed to copy a string"));
+                              "%s", _("failed to copy a string"));
                 goto error;
             }
 
@@ -378,7 +361,7 @@ _string2sexpr(const char *buffer, size_t * end)
             ret->u.value = strndup(start, ptr - start);
             if (ret->u.value == NULL) {
                 virSexprError(VIR_ERR_NO_MEMORY,
-                              _("failed to copy a string"));
+                              "%s", _("failed to copy a string"));
                 goto error;
             }
         }

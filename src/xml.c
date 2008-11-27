@@ -16,34 +16,16 @@
 #include <stdarg.h>
 #include <limits.h>
 #include <math.h>               /* for isnan() */
-#include "internal.h"
+
+#include "virterror_internal.h"
 #include "xml.h"
 #include "buf.h"
 #include "util.h"
 #include "memory.h"
 
-/**
- * virXMLError:
- * @conn: a connection if any
- * @error: the error number
- * @info: information/format string
- * @value: extra integer parameter for the error string
- *
- * Report an error coming from the XML module.
- */
-static void
-virXMLError(virConnectPtr conn, virErrorNumber error, const char *info,
-            int value)
-{
-    const char *errmsg;
-
-    if (error == VIR_ERR_OK)
-        return;
-
-    errmsg = __virErrorMsg(error, info);
-    __virRaiseError(conn, NULL, NULL, VIR_FROM_XML, error, VIR_ERR_ERROR,
-                    errmsg, info, NULL, value, 0, errmsg, info, value);
-}
+#define virXMLError(conn, code, fmt...)                                      \
+        virReportErrorHelper(conn, VIR_FROM_XML, code, __FILE__,           \
+                               __FUNCTION__, __LINE__, fmt)
 
 
 /************************************************************************
@@ -73,7 +55,7 @@ virXPathString(virConnectPtr conn,
 
     if ((ctxt == NULL) || (xpath == NULL)) {
         virXMLError(conn, VIR_ERR_INTERNAL_ERROR,
-                    _("Invalid parameter to virXPathString()"), 0);
+                    "%s", _("Invalid parameter to virXPathString()"));
         return (NULL);
     }
     relnode = ctxt->node;
@@ -86,7 +68,7 @@ virXPathString(virConnectPtr conn,
     ret = strdup((char *) obj->stringval);
     xmlXPathFreeObject(obj);
     if (ret == NULL) {
-        virXMLError(conn, VIR_ERR_NO_MEMORY, _("strdup failed"), 0);
+        virXMLError(conn, VIR_ERR_NO_MEMORY, "%s", _("strdup failed"));
     }
     ctxt->node = relnode;
     return (ret);
@@ -114,7 +96,7 @@ virXPathNumber(virConnectPtr conn,
 
     if ((ctxt == NULL) || (xpath == NULL) || (value == NULL)) {
         virXMLError(conn, VIR_ERR_INTERNAL_ERROR,
-                    _("Invalid parameter to virXPathNumber()"), 0);
+                    "%s", _("Invalid parameter to virXPathNumber()"));
         return (-1);
     }
     relnode = ctxt->node;
@@ -156,7 +138,7 @@ virXPathLong(virConnectPtr conn,
 
     if ((ctxt == NULL) || (xpath == NULL) || (value == NULL)) {
         virXMLError(conn, VIR_ERR_INTERNAL_ERROR,
-                    _("Invalid parameter to virXPathNumber()"), 0);
+                    "%s", _("Invalid parameter to virXPathNumber()"));
         return (-1);
     }
     relnode = ctxt->node;
@@ -211,7 +193,7 @@ virXPathULong(virConnectPtr conn,
 
     if ((ctxt == NULL) || (xpath == NULL) || (value == NULL)) {
         virXMLError(conn, VIR_ERR_INTERNAL_ERROR,
-                    _("Invalid parameter to virXPathNumber()"), 0);
+                    "%s", _("Invalid parameter to virXPathNumber()"));
         return (-1);
     }
     relnode = ctxt->node;
@@ -269,7 +251,7 @@ virXPathBoolean(virConnectPtr conn,
 
     if ((ctxt == NULL) || (xpath == NULL)) {
         virXMLError(conn, VIR_ERR_INTERNAL_ERROR,
-                    _("Invalid parameter to virXPathBoolean()"), 0);
+                    "%s", _("Invalid parameter to virXPathBoolean()"));
         return (-1);
     }
     relnode = ctxt->node;
@@ -307,7 +289,7 @@ virXPathNode(virConnectPtr conn,
 
     if ((ctxt == NULL) || (xpath == NULL)) {
         virXMLError(conn, VIR_ERR_INTERNAL_ERROR,
-                    _("Invalid parameter to virXPathNode()"), 0);
+                    "%s", _("Invalid parameter to virXPathNode()"));
         return (NULL);
     }
     relnode = ctxt->node;
@@ -349,7 +331,7 @@ virXPathNodeSet(virConnectPtr conn,
 
     if ((ctxt == NULL) || (xpath == NULL)) {
         virXMLError(conn, VIR_ERR_INTERNAL_ERROR,
-                    _("Invalid parameter to virXPathNodeSet()"), 0);
+                    "%s", _("Invalid parameter to virXPathNodeSet()"));
         return (-1);
     }
 
@@ -369,8 +351,8 @@ virXPathNodeSet(virConnectPtr conn,
     if (list != NULL && ret) {
         if (VIR_ALLOC_N(*list, ret) < 0) {
             virXMLError(conn, VIR_ERR_NO_MEMORY,
-                        _("allocate string array"),
-                        ret * sizeof(**list));
+                        _("allocate string array size %lu"),
+                        (unsigned long)ret * sizeof(**list));
             ret = -1;
         } else {
             memcpy(*list, obj->nodesetval->nodeTab,

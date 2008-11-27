@@ -123,6 +123,26 @@ def getVersion (name = None):
     return ret
 
 
+#
+# Invoke an EventHandle callback
+#
+def eventInvokeHandleCallback (watch, fd, event, callback, opaque):
+    """
+    Invoke the Event Impl Handle Callback in C
+    """
+    libvirtmod.virEventInvokeHandleCallback(watch, fd, event, callback, opaque);
+
+#
+# Invoke an EventTimeout callback
+#
+def eventInvokeTimeoutCallback (timer, callback, opaque):
+    """
+    Invoke the Event Impl Timeout Callback in C
+    """
+    libvirtmod.virEventInvokeTimeoutCallback(timer, callback, opaque);
+
+
+
 # WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
 #
 # Everything before this line comes from libvir.py
@@ -148,6 +168,9 @@ def openReadOnly(name):
     ret = libvirtmod.virConnectOpenReadOnly(name)
     if ret is None:raise libvirtError('virConnectOpenReadOnly() failed')
     return virConnect(_obj=ret)
+
+def virEventRegisterImpl(addHandle, updateHandle, removeHandle, addTimeout, updateTimeout, removeTimeout):
+    libvirtmod.virEventRegisterImpl(addHandle, updateHandle, removeHandle, addTimeout, updateTimeout, removeTimeout)
 
 def virInitialize():
     """Initialize the library. It's better to call this routine at
@@ -201,7 +224,7 @@ class virDomain:
     def XMLDesc(self, flags):
         """Provide an XML description of the domain. The description
           may be reused later to relaunch the domain with
-           virDomainCreateLinux(). """
+           virDomainCreateXML(). """
         ret = libvirtmod.virDomainGetXMLDesc(self._o, flags)
         if ret is None: raise libvirtError ('virDomainGetXMLDesc() failed', dom=self)
         return ret
@@ -871,26 +894,35 @@ class virConnect:
         if _obj != None:self._o = _obj;return
         self._o = None
 
-    def __del__(self):
-        if self._o != None:
-            libvirtmod.virConnectClose(self._o)
-        self._o = None
-
     #
     # virConnect functions from module libvirt
     #
 
+    def close(self):
+        """This function closes the connection to the Hypervisor. This
+          should not be called if further interaction with the
+          Hypervisor are needed especially if there is running domain
+           which need further monitoring by the application. """
+        ret = libvirtmod.virConnectClose(self._o)
+        if ret == -1: raise libvirtError ('virConnectClose() failed', conn=self)
+        return ret
+
     def createLinux(self, xmlDesc, flags):
-        """Launch a new Linux guest domain, based on an XML
-          description similar to the one returned by
-          virDomainGetXMLDesc() This function may requires privileged
-          access to the hypervisor. The domain is not persistent, so
-          its definition will disappear when it is destroyed, or if
-          the host is restarted (see virDomainDefineXML() to define
-           persistent domains). """
+        """Deprecated after 0.4.6. Renamed to virDomainCreateXML()
+          providing identical functionality. This existing name will
+           left indefinitely for API compatability. """
         ret = libvirtmod.virDomainCreateLinux(self._o, xmlDesc, flags)
         if ret is None:raise libvirtError('virDomainCreateLinux() failed', conn=self)
         __tmp = virDomain(self,_obj=ret)
+        return __tmp
+
+    def createXML(self, xmlDesc, flags):
+        """Create a new storage based on its XML description. The pool
+          is not persistent, so its definition will disappear when it
+           is destroyed, or if the host is restarted """
+        ret = libvirtmod.virStoragePoolCreateXML(self._o, xmlDesc, flags)
+        if ret is None:raise libvirtError('virStoragePoolCreateXML() failed', conn=self)
+        __tmp = virStoragePool(self, _obj=ret)
         return __tmp
 
     def createXML(self, xmlDesc):
@@ -903,12 +935,15 @@ class virConnect:
         return __tmp
 
     def createXML(self, xmlDesc, flags):
-        """Create a new storage based on its XML description. The pool
-          is not persistent, so its definition will disappear when it
-           is destroyed, or if the host is restarted """
-        ret = libvirtmod.virStoragePoolCreateXML(self._o, xmlDesc, flags)
-        if ret is None:raise libvirtError('virStoragePoolCreateXML() failed', conn=self)
-        __tmp = virStoragePool(self, _obj=ret)
+        """Launch a new guest domain, based on an XML description
+          similar to the one returned by virDomainGetXMLDesc() This
+          function may requires privileged access to the hypervisor.
+          The domain is not persistent, so its definition will
+          disappear when it is destroyed, or if the host is restarted
+           (see virDomainDefineXML() to define persistent domains). """
+        ret = libvirtmod.virDomainCreateXML(self._o, xmlDesc, flags)
+        if ret is None:raise libvirtError('virDomainCreateXML() failed', conn=self)
+        __tmp = virDomain(self,_obj=ret)
         return __tmp
 
     def defineXML(self, xml):
@@ -1066,6 +1101,13 @@ class virConnect:
         __tmp = virNetwork(self, _obj=ret)
         return __tmp
 
+    def nodeDeviceLookupByName(self, name):
+        """Lookup a node device by its name. """
+        ret = libvirtmod.virNodeDeviceLookupByName(self._o, name)
+        if ret is None:raise libvirtError('virNodeDeviceLookupByName() failed', conn=self)
+        __tmp = virNodeDevice(self, _obj=ret)
+        return __tmp
+
     def numOfDefinedDomains(self):
         """Provides the number of defined but inactive domains. """
         ret = libvirtmod.virConnectNumOfDefinedDomains(self._o)
@@ -1082,6 +1124,14 @@ class virConnect:
         """Provides the number of inactive storage pools """
         ret = libvirtmod.virConnectNumOfDefinedStoragePools(self._o)
         if ret == -1: raise libvirtError ('virConnectNumOfDefinedStoragePools() failed', conn=self)
+        return ret
+
+    def numOfDevices(self, cap, flags):
+        """Provides the number of node devices.  If the optional 'cap'
+          argument is non-None, then the count will be restricted to
+           devices with the specified capability """
+        ret = libvirtmod.virNodeNumOfDevices(self._o, cap, flags)
+        if ret == -1: raise libvirtError ('virNodeNumOfDevices() failed', conn=self)
         return ret
 
     def numOfDomains(self):
@@ -1192,6 +1242,12 @@ class virConnect:
         if ret is None: raise libvirtError ('virConnectListDefinedStoragePools() failed', conn=self)
         return ret
 
+    def listDevices(self, cap, flags):
+        """list the node devices """
+        ret = libvirtmod.virNodeListDevices(self._o, cap, flags)
+        if ret is None: raise libvirtError ('virNodeListDevices() failed', conn=self)
+        return ret
+
     def listDomainsID(self):
         """Returns the list of the ID of the domains on the hypervisor """
         ret = libvirtmod.virConnectListDomainsID(self._o)
@@ -1236,30 +1292,111 @@ class virConnect:
         """Reset the last error caught on that connection """
         libvirtmod.virConnResetLastError(self._o)
 
-# virStorageVolDeleteFlags
-VIR_STORAGE_VOL_DELETE_NORMAL = 0
-VIR_STORAGE_VOL_DELETE_ZEROED = 1
+    #
+    # virConnect methods from virConnect.py (hand coded)
+    #
+    def __del__(self):
+        try:
+           for cb,opaque in self.domainEventCallbacks.items():
+               del self.domainEventCallbacks[cb]
+           self.domainEventCallbacks = None
+           libvirtmod.virConnectDomainEventDeregister(self._o, self)
+        except AttributeError:
+           pass
+
+        if self._o != None:
+            libvirtmod.virConnectClose(self._o)
+        self._o = None
+
+    def domainEventDeregister(self, cb):
+        """Removes a Domain Event Callback. De-registering for a
+           domain callback will disable delivery of this event type """
+        try:
+            del self.domainEventCallbacks[cb]
+            if len(self.domainEventCallbacks) == 0:
+                ret = libvirtmod.virConnectDomainEventDeregister(self._o, self)
+                if ret == -1: raise libvirtError ('virConnectDomainEventDeregister() failed', conn=self)
+        except AttributeError:
+            pass
+
+    def domainEventRegister(self, cb, opaque):
+        """Adds a Domain Event Callback. Registering for a domain
+           callback will enable delivery of the events """
+        try:
+            self.domainEventCallbacks[cb] = opaque
+        except AttributeError:
+            self.domainEventCallbacks = {cb:opaque}
+            ret = libvirtmod.virConnectDomainEventRegister(self._o, self)
+            if ret == -1: raise libvirtError ('virConnectDomainEventRegister() failed', conn=self)
+
+    def dispatchDomainEventCallbacks(self, dom, event, detail):
+        """Dispatches events to python user domain event callbacks
+        """
+        try:
+            for cb,opaque in self.domainEventCallbacks.items():
+                cb(self,dom,event,detail,opaque)
+            return 0
+        except AttributeError:
+            pass
+class virNodeDevice:
+    def __init__(self, conn, _obj=None):
+        self._conn = conn
+        if _obj != None:self._o = _obj;return
+        self._o = None
+
+    def __del__(self):
+        if self._o != None:
+            libvirtmod.virNodeDeviceFree(self._o)
+        self._o = None
+
+    #
+    # virNodeDevice functions from module libvirt
+    #
+
+    def XMLDesc(self, flags):
+        """Fetch an XML document describing all aspects of the device. """
+        ret = libvirtmod.virNodeDeviceGetXMLDesc(self._o, flags)
+        if ret is None: raise libvirtError ('virNodeDeviceGetXMLDesc() failed')
+        return ret
+
+    def name(self):
+        """Just return the device name """
+        ret = libvirtmod.virNodeDeviceGetName(self._o)
+        return ret
+
+    def numOfCaps(self):
+        """Accessor for the number of capabilities supported by the
+           device. """
+        ret = libvirtmod.virNodeDeviceNumOfCaps(self._o)
+        if ret == -1: raise libvirtError ('virNodeDeviceNumOfCaps() failed')
+        return ret
+
+    def parent(self):
+        """Accessor for the parent of the device """
+        ret = libvirtmod.virNodeDeviceGetParent(self._o)
+        return ret
+
+    #
+    # virNodeDevice functions from module python
+    #
+
+    def listCaps(self):
+        """list the node device's capabilities """
+        ret = libvirtmod.virNodeDeviceListCaps(self._o)
+        if ret is None: raise libvirtError ('virNodeDeviceListCaps() failed')
+        return ret
 
 # virDomainMigrateFlags
 VIR_MIGRATE_LIVE = 1
 
-# virStoragePoolBuildFlags
-VIR_STORAGE_POOL_BUILD_NEW = 0
-VIR_STORAGE_POOL_BUILD_REPAIR = 1
-VIR_STORAGE_POOL_BUILD_RESIZE = 2
+# virErrorLevel
+VIR_ERR_NONE = 0
+VIR_ERR_WARNING = 1
+VIR_ERR_ERROR = 2
 
-# virDomainXMLFlags
-VIR_DOMAIN_XML_SECURE = 1
-VIR_DOMAIN_XML_INACTIVE = 2
-
-# virDomainState
-VIR_DOMAIN_NOSTATE = 0
-VIR_DOMAIN_RUNNING = 1
-VIR_DOMAIN_BLOCKED = 2
-VIR_DOMAIN_PAUSED = 3
-VIR_DOMAIN_SHUTDOWN = 4
-VIR_DOMAIN_SHUTOFF = 5
-VIR_DOMAIN_CRASHED = 6
+# virDomainEventResumedDetailType
+VIR_DOMAIN_EVENT_RESUMED_UNPAUSED = 0
+VIR_DOMAIN_EVENT_RESUMED_MIGRATED = 1
 
 # virErrorDomain
 VIR_FROM_NONE = 0
@@ -1283,28 +1420,47 @@ VIR_FROM_LXC = 17
 VIR_FROM_STORAGE = 18
 VIR_FROM_NETWORK = 19
 VIR_FROM_DOMAIN = 20
+VIR_FROM_UML = 21
+VIR_FROM_NODEDEV = 22
+VIR_FROM_XEN_INOTIFY = 23
 
-# virStorageVolType
-VIR_STORAGE_VOL_FILE = 0
-VIR_STORAGE_VOL_BLOCK = 1
+# virDomainEventStartedDetailType
+VIR_DOMAIN_EVENT_STARTED_BOOTED = 0
+VIR_DOMAIN_EVENT_STARTED_MIGRATED = 1
+VIR_DOMAIN_EVENT_STARTED_RESTORED = 2
+
+# virEventHandleType
+VIR_EVENT_HANDLE_READABLE = 1
+VIR_EVENT_HANDLE_WRITABLE = 2
+VIR_EVENT_HANDLE_ERROR = 4
+VIR_EVENT_HANDLE_HANGUP = 8
+
+# virDomainEventType
+VIR_DOMAIN_EVENT_DEFINED = 0
+VIR_DOMAIN_EVENT_UNDEFINED = 1
+VIR_DOMAIN_EVENT_STARTED = 2
+VIR_DOMAIN_EVENT_SUSPENDED = 3
+VIR_DOMAIN_EVENT_RESUMED = 4
+VIR_DOMAIN_EVENT_STOPPED = 5
+
+# virDomainState
+VIR_DOMAIN_NOSTATE = 0
+VIR_DOMAIN_RUNNING = 1
+VIR_DOMAIN_BLOCKED = 2
+VIR_DOMAIN_PAUSED = 3
+VIR_DOMAIN_SHUTDOWN = 4
+VIR_DOMAIN_SHUTOFF = 5
+VIR_DOMAIN_CRASHED = 6
 
 # virStoragePoolDeleteFlags
 VIR_STORAGE_POOL_DELETE_NORMAL = 0
 VIR_STORAGE_POOL_DELETE_ZEROED = 1
 
-# virConnectCredentialType
-VIR_CRED_USERNAME = 1
-VIR_CRED_AUTHNAME = 2
-VIR_CRED_LANGUAGE = 3
-VIR_CRED_CNONCE = 4
-VIR_CRED_PASSPHRASE = 5
-VIR_CRED_ECHOPROMPT = 6
-VIR_CRED_NOECHOPROMPT = 7
-VIR_CRED_REALM = 8
-VIR_CRED_EXTERNAL = 9
-
-# virConnectFlags
-VIR_CONNECT_RO = 1
+# virStoragePoolState
+VIR_STORAGE_POOL_INACTIVE = 0
+VIR_STORAGE_POOL_BUILDING = 1
+VIR_STORAGE_POOL_RUNNING = 2
+VIR_STORAGE_POOL_DEGRADED = 3
 
 # virSchedParameterType
 VIR_DOMAIN_SCHED_FIELD_INT = 1
@@ -1313,6 +1469,13 @@ VIR_DOMAIN_SCHED_FIELD_LLONG = 3
 VIR_DOMAIN_SCHED_FIELD_ULLONG = 4
 VIR_DOMAIN_SCHED_FIELD_DOUBLE = 5
 VIR_DOMAIN_SCHED_FIELD_BOOLEAN = 6
+
+# virConnectFlags
+VIR_CONNECT_RO = 1
+
+# virDomainEventDefinedDetailType
+VIR_DOMAIN_EVENT_DEFINED_ADDED = 0
+VIR_DOMAIN_EVENT_DEFINED_UPDATED = 1
 
 # virErrorNumber
 VIR_ERR_OK = 0
@@ -1366,26 +1529,61 @@ VIR_ERR_INVALID_STORAGE_VOL = 47
 VIR_WAR_NO_STORAGE = 48
 VIR_ERR_NO_STORAGE_POOL = 49
 VIR_ERR_NO_STORAGE_VOL = 50
+VIR_WAR_NO_NODE = 51
+VIR_ERR_INVALID_NODE_DEVICE = 52
+VIR_ERR_NO_NODE_DEVICE = 53
 
 # virDomainMemoryFlags
 VIR_MEMORY_VIRTUAL = 1
 
-# virDomainCreateFlags
-VIR_DOMAIN_NONE = 0
-
-# virStoragePoolState
-VIR_STORAGE_POOL_INACTIVE = 0
-VIR_STORAGE_POOL_BUILDING = 1
-VIR_STORAGE_POOL_RUNNING = 2
-VIR_STORAGE_POOL_DEGRADED = 3
+# virDomainEventStoppedDetailType
+VIR_DOMAIN_EVENT_STOPPED_SHUTDOWN = 0
+VIR_DOMAIN_EVENT_STOPPED_DESTROYED = 1
+VIR_DOMAIN_EVENT_STOPPED_CRASHED = 2
+VIR_DOMAIN_EVENT_STOPPED_MIGRATED = 3
+VIR_DOMAIN_EVENT_STOPPED_SAVED = 4
+VIR_DOMAIN_EVENT_STOPPED_FAILED = 5
 
 # virVcpuState
 VIR_VCPU_OFFLINE = 0
 VIR_VCPU_RUNNING = 1
 VIR_VCPU_BLOCKED = 2
 
-# virErrorLevel
-VIR_ERR_NONE = 0
-VIR_ERR_WARNING = 1
-VIR_ERR_ERROR = 2
+# virStorageVolDeleteFlags
+VIR_STORAGE_VOL_DELETE_NORMAL = 0
+VIR_STORAGE_VOL_DELETE_ZEROED = 1
+
+# virDomainEventSuspendedDetailType
+VIR_DOMAIN_EVENT_SUSPENDED_PAUSED = 0
+VIR_DOMAIN_EVENT_SUSPENDED_MIGRATED = 1
+
+# virStoragePoolBuildFlags
+VIR_STORAGE_POOL_BUILD_NEW = 0
+VIR_STORAGE_POOL_BUILD_REPAIR = 1
+VIR_STORAGE_POOL_BUILD_RESIZE = 2
+
+# virDomainXMLFlags
+VIR_DOMAIN_XML_SECURE = 1
+VIR_DOMAIN_XML_INACTIVE = 2
+
+# virStorageVolType
+VIR_STORAGE_VOL_FILE = 0
+VIR_STORAGE_VOL_BLOCK = 1
+
+# virDomainEventUndefinedDetailType
+VIR_DOMAIN_EVENT_UNDEFINED_REMOVED = 0
+
+# virConnectCredentialType
+VIR_CRED_USERNAME = 1
+VIR_CRED_AUTHNAME = 2
+VIR_CRED_LANGUAGE = 3
+VIR_CRED_CNONCE = 4
+VIR_CRED_PASSPHRASE = 5
+VIR_CRED_ECHOPROMPT = 6
+VIR_CRED_NOECHOPROMPT = 7
+VIR_CRED_REALM = 8
+VIR_CRED_EXTERNAL = 9
+
+# virDomainCreateFlags
+VIR_DOMAIN_NONE = 0
 

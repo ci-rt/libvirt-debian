@@ -26,10 +26,6 @@
 #include <errno.h>
 #include <sys/utsname.h>
 
-#include "xs_internal.h"
-#include "stats_linux.h"
-#include "xend_internal.h"
-
 /* required for dom0_getdomaininfo_t */
 #include <xen/dom0_ops.h>
 #include <xen/version.h>
@@ -44,12 +40,19 @@
 /* required for shutdown flags */
 #include <xen/sched.h>
 
+#include "virterror_internal.h"
+#include "logging.h"
+#include "datatypes.h"
+#include "driver.h"
+#include "util.h"
+#include "xen_unified.h"
+#include "xen_internal.h"
+#include "xs_internal.h"
+#include "stats_linux.h"
+#include "xend_internal.h"
 #include "buf.h"
 #include "capabilities.h"
 #include "memory.h"
-
-#define DEBUG(fmt,...) VIR_DEBUG(__FILE__, fmt, __VA_ARGS__)
-#define DEBUG0(msg) VIR_DEBUG(__FILE__, "%s", msg)
 
 /*
  * so far there is 2 versions of the structures usable for doing
@@ -73,7 +76,7 @@ typedef struct v1_hypercall_struct
 #define XEN_V1_IOCTL_HYPERCALL_CMD                  \
     _IOC(_IOC_NONE, 'P', 0, sizeof(v1_hypercall_t))
 typedef v1_hypercall_t hypercall_t;
-#elif define(__sun__)
+#elif defined(__sun__)
 typedef privcmd_hypercall_t hypercall_t;
 #else
 #error "unsupported platform"
@@ -338,7 +341,7 @@ lock_pages(void *addr, size_t len)
 {
 #ifdef __linux__
         return (mlock(addr, len));
-#elif define(__sun)
+#elif defined(__sun)
         return (0);
 #endif
 }
@@ -348,7 +351,7 @@ unlock_pages(void *addr, size_t len)
 {
 #ifdef __linux__
         return (munlock(addr, len));
-#elif define(__sun)
+#elif defined(__sun)
         return (0);
 #endif
 }
@@ -655,16 +658,12 @@ struct xen_op_v2_dom {
 };
 typedef struct xen_op_v2_dom xen_op_v2_dom;
 
-#include "internal.h"
-#include "driver.h"
-#include "xen_unified.h"
-#include "xen_internal.h"
 
 #ifdef __linux__
 #define XEN_HYPERVISOR_SOCKET	"/proc/xen/privcmd"
 #define HYPERVISOR_CAPABILITIES	"/sys/hypervisor/properties/capabilities"
 #define CPUINFO			"/proc/cpuinfo"
-#elif define(__sun__)
+#elif defined(__sun__)
 #define XEN_HYPERVISOR_SOCKET	"/dev/xen/privcmd"
 #define HYPERVISOR_CAPABILITIES	""
 #define CPUINFO			"/dev/cpu/self/cpuid"
@@ -687,7 +686,7 @@ struct xenUnifiedDriver xenHypervisorDriver = {
     xenHypervisorGetCapabilities, /* getCapabilities */
     xenHypervisorListDomains, /* listDomains */
     xenHypervisorNumOfDomains, /* numOfDomains */
-    NULL, /* domainCreateLinux */
+    NULL, /* domainCreateXML */
     xenHypervisorPauseDomain, /* domainSuspend */
     xenHypervisorResumeDomain, /* domainResume */
     NULL, /* domainShutdown */
@@ -720,28 +719,10 @@ struct xenUnifiedDriver xenHypervisorDriver = {
 };
 #endif /* !PROXY */
 
-/**
- * virXenError:
- * @conn: connection, if known
- * @error: the error number
- * @info: extra information string
- * @value: extra information number
- *
- * Handle an error at the xend daemon interface
- */
-static void
-virXenError(virConnectPtr conn,
-            virErrorNumber error, const char *info, int value)
-{
-    const char *errmsg;
-
-    if ((error == VIR_ERR_OK) || (in_init != 0))
-        return;
-
-    errmsg = __virErrorMsg(error, info);
-    __virRaiseError(conn, NULL, NULL, VIR_FROM_XEN, error, VIR_ERR_ERROR,
-                    errmsg, info, NULL, value, 0, errmsg, info, value);
-}
+#define virXenError(conn, code, fmt...)                                      \
+        if (in_init == 0)                                                    \
+            virReportErrorHelper(conn, VIR_FROM_XEN, code, __FILE__,       \
+                                   __FUNCTION__, __LINE__, fmt)
 
 #ifndef PROXY
 
@@ -767,44 +748,21 @@ virXenErrorFunc(virConnectPtr conn,
         return;
 
 
-    errmsg = __virErrorMsg(error, info);
+    errmsg =virErrorMsg(error, info);
     if (func != NULL) {
         snprintf(fullinfo, 999, "%s: %s", func, info);
         fullinfo[999] = 0;
-        __virRaiseError(conn, NULL, NULL, VIR_FROM_XEN, error, VIR_ERR_ERROR,
+        virRaiseError(conn, NULL, NULL, VIR_FROM_XEN, error, VIR_ERR_ERROR,
                         errmsg, fullinfo, NULL, value, 0, errmsg, fullinfo,
                         value);
     } else {
-        __virRaiseError(conn, NULL, NULL, VIR_FROM_XEN, error, VIR_ERR_ERROR,
+        virRaiseError(conn, NULL, NULL, VIR_FROM_XEN, error, VIR_ERR_ERROR,
                         errmsg, info, NULL, value, 0, errmsg, info,
                         value);
     }
 }
 
 #endif /* PROXY */
-
-/**
- * virXenPerror:
- * @conn: the connection (if available)
- * @msg: name of system call or file (as in perror(3))
- *
- * Raise error from a failed system call, using errno as the source.
- */
-static void
-virXenPerror (virConnectPtr conn, const char *msg)
-{
-    char *msg_s;
-
-    if (VIR_ALLOC_N(msg_s, strlen (msg) + 10) == 0) {
-        strcpy (msg_s, msg);
-        strcat (msg_s, ": %s");
-    }
-
-    __virRaiseError (conn, NULL, NULL,
-                     VIR_FROM_XEN, VIR_ERR_SYSTEM_ERROR, VIR_ERR_ERROR,
-                     msg, NULL, NULL, errno, 0,
-                     msg_s ? msg_s : msg, strerror (errno));
-}
 
 /**
  * xenHypervisorDoV0Op:
@@ -828,17 +786,18 @@ xenHypervisorDoV0Op(int handle, xen_op_v0 * op)
     hc.arg[0] = (unsigned long) op;
 
     if (lock_pages(op, sizeof(dom0_op_t)) < 0) {
-        virXenError(NULL, VIR_ERR_XEN_CALL, " locking", sizeof(*op));
+        virXenError(NULL, VIR_ERR_XEN_CALL, " locking");
         return (-1);
     }
 
     ret = ioctl(handle, xen_ioctl_hypercall_cmd, (unsigned long) &hc);
     if (ret < 0) {
-        virXenError(NULL, VIR_ERR_XEN_CALL, " ioctl ", xen_ioctl_hypercall_cmd);
+        virXenError(NULL, VIR_ERR_XEN_CALL, " ioctl %d",
+                    xen_ioctl_hypercall_cmd);
     }
 
     if (unlock_pages(op, sizeof(dom0_op_t)) < 0) {
-        virXenError(NULL, VIR_ERR_XEN_CALL, " releasing", sizeof(*op));
+        virXenError(NULL, VIR_ERR_XEN_CALL, " releasing");
         ret = -1;
     }
 
@@ -869,17 +828,18 @@ xenHypervisorDoV1Op(int handle, xen_op_v1* op)
     hc.arg[0] = (unsigned long) op;
 
     if (lock_pages(op, sizeof(dom0_op_t)) < 0) {
-        virXenError(NULL, VIR_ERR_XEN_CALL, " locking", sizeof(*op));
+        virXenError(NULL, VIR_ERR_XEN_CALL, " locking");
         return (-1);
     }
 
     ret = ioctl(handle, xen_ioctl_hypercall_cmd, (unsigned long) &hc);
     if (ret < 0) {
-        virXenError(NULL, VIR_ERR_XEN_CALL, " ioctl ", xen_ioctl_hypercall_cmd);
+        virXenError(NULL, VIR_ERR_XEN_CALL, " ioctl %d",
+                    xen_ioctl_hypercall_cmd);
     }
 
     if (unlock_pages(op, sizeof(dom0_op_t)) < 0) {
-        virXenError(NULL, VIR_ERR_XEN_CALL, " releasing", sizeof(*op));
+        virXenError(NULL, VIR_ERR_XEN_CALL, " releasing");
         ret = -1;
     }
 
@@ -911,17 +871,18 @@ xenHypervisorDoV2Sys(int handle, xen_op_v2_sys* op)
     hc.arg[0] = (unsigned long) op;
 
     if (lock_pages(op, sizeof(dom0_op_t)) < 0) {
-        virXenError(NULL, VIR_ERR_XEN_CALL, " locking", sizeof(*op));
+        virXenError(NULL, VIR_ERR_XEN_CALL, " locking");
         return (-1);
     }
 
     ret = ioctl(handle, xen_ioctl_hypercall_cmd, (unsigned long) &hc);
     if (ret < 0) {
-        virXenError(NULL, VIR_ERR_XEN_CALL, " sys ioctl ", xen_ioctl_hypercall_cmd);
+        virXenError(NULL, VIR_ERR_XEN_CALL, " sys ioctl %d",
+                                            xen_ioctl_hypercall_cmd);
     }
 
     if (unlock_pages(op, sizeof(dom0_op_t)) < 0) {
-        virXenError(NULL, VIR_ERR_XEN_CALL, " releasing", sizeof(*op));
+        virXenError(NULL, VIR_ERR_XEN_CALL, " releasing");
         ret = -1;
     }
 
@@ -953,17 +914,18 @@ xenHypervisorDoV2Dom(int handle, xen_op_v2_dom* op)
     hc.arg[0] = (unsigned long) op;
 
     if (lock_pages(op, sizeof(dom0_op_t)) < 0) {
-        virXenError(NULL, VIR_ERR_XEN_CALL, " locking", sizeof(*op));
+        virXenError(NULL, VIR_ERR_XEN_CALL, " locking");
         return (-1);
     }
 
     ret = ioctl(handle, xen_ioctl_hypercall_cmd, (unsigned long) &hc);
     if (ret < 0) {
-        virXenError(NULL, VIR_ERR_XEN_CALL, " ioctl ", xen_ioctl_hypercall_cmd);
+        virXenError(NULL, VIR_ERR_XEN_CALL, " ioctl %d",
+                    xen_ioctl_hypercall_cmd);
     }
 
     if (unlock_pages(op, sizeof(dom0_op_t)) < 0) {
-        virXenError(NULL, VIR_ERR_XEN_CALL, " releasing", sizeof(*op));
+        virXenError(NULL, VIR_ERR_XEN_CALL, " releasing");
         ret = -1;
     }
 
@@ -992,8 +954,7 @@ virXen_getdomaininfolist(int handle, int first_domain, int maxids,
 
     if (lock_pages(XEN_GETDOMAININFOLIST_DATA(dominfos),
               XEN_GETDOMAININFO_SIZE * maxids) < 0) {
-        virXenError(NULL, VIR_ERR_XEN_CALL, " locking",
-                    XEN_GETDOMAININFO_SIZE * maxids);
+        virXenError(NULL, VIR_ERR_XEN_CALL, " locking");
         return (-1);
     }
     if (hypervisor_version > 1) {
@@ -1048,8 +1009,7 @@ virXen_getdomaininfolist(int handle, int first_domain, int maxids,
     }
     if (unlock_pages(XEN_GETDOMAININFOLIST_DATA(dominfos),
                 XEN_GETDOMAININFO_SIZE * maxids) < 0) {
-        virXenError(NULL, VIR_ERR_XEN_CALL, " release",
-                    XEN_GETDOMAININFO_SIZE * maxids);
+        virXenError(NULL, VIR_ERR_XEN_CALL, " release");
         ret = -1;
     }
     return(ret);
@@ -1647,7 +1607,7 @@ virXen_setvcpumap(int handle, int id, unsigned int vcpu,
         xen_op_v2_dom op;
 
         if (lock_pages(cpumap, maplen) < 0) {
-            virXenError(NULL, VIR_ERR_XEN_CALL, " locking", maplen);
+            virXenError(NULL, VIR_ERR_XEN_CALL, " locking");
             return (-1);
         }
         memset(&op, 0, sizeof(op));
@@ -1683,7 +1643,7 @@ virXen_setvcpumap(int handle, int id, unsigned int vcpu,
         VIR_FREE(new);
 
         if (unlock_pages(cpumap, maplen) < 0) {
-            virXenError(NULL, VIR_ERR_XEN_CALL, " release", maplen);
+            virXenError(NULL, VIR_ERR_XEN_CALL, " release");
             ret = -1;
         }
     } else {
@@ -1780,7 +1740,7 @@ virXen_getvcpusinfo(int handle, int id, unsigned int vcpu, virVcpuInfoPtr ipt,
         }
         if ((cpumap != NULL) && (maplen > 0)) {
             if (lock_pages(cpumap, maplen) < 0) {
-                virXenError(NULL, VIR_ERR_XEN_CALL, " locking", maplen);
+                virXenError(NULL, VIR_ERR_XEN_CALL, " locking");
                 return (-1);
             }
             memset(cpumap, 0, maplen);
@@ -1798,7 +1758,7 @@ virXen_getvcpusinfo(int handle, int id, unsigned int vcpu, virVcpuInfoPtr ipt,
             }
             ret = xenHypervisorDoV2Dom(handle, &op);
             if (unlock_pages(cpumap, maplen) < 0) {
-                virXenError(NULL, VIR_ERR_XEN_CALL, " release", maplen);
+                virXenError(NULL, VIR_ERR_XEN_CALL, " release");
                 ret = -1;
             }
         }
@@ -1894,7 +1854,7 @@ xenHypervisorInit(void)
         char error[100];
         regerror (errcode, &flags_hvm_rec, error, sizeof error);
         regfree (&flags_hvm_rec);
-        virXenError (NULL, VIR_ERR_INTERNAL_ERROR, error, 0);
+        virXenError (NULL, VIR_ERR_INTERNAL_ERROR, "%s", error);
         in_init = 0;
         return -1;
     }
@@ -1904,7 +1864,7 @@ xenHypervisorInit(void)
         regerror (errcode, &flags_pae_rec, error, sizeof error);
         regfree (&flags_pae_rec);
         regfree (&flags_hvm_rec);
-        virXenError (NULL, VIR_ERR_INTERNAL_ERROR, error, 0);
+        virXenError (NULL, VIR_ERR_INTERNAL_ERROR, "%s", error);
         in_init = 0;
         return -1;
     }
@@ -1915,7 +1875,7 @@ xenHypervisorInit(void)
         regfree (&xen_cap_rec);
         regfree (&flags_pae_rec);
         regfree (&flags_hvm_rec);
-        virXenError (NULL, VIR_ERR_INTERNAL_ERROR, error, 0);
+        virXenError (NULL, VIR_ERR_INTERNAL_ERROR, "%s", error);
         in_init = 0;
         return -1;
     }
@@ -1969,7 +1929,8 @@ xenHypervisorInit(void)
      */
 
     hypervisor_version = -1;
-    virXenError(NULL, VIR_ERR_XEN_CALL, " ioctl ", IOCTL_PRIVCMD_HYPERCALL);
+    virXenError(NULL, VIR_ERR_XEN_CALL, " ioctl %lu",
+                (unsigned long) IOCTL_PRIVCMD_HYPERCALL);
     close(fd);
     in_init = 0;
     return(-1);
@@ -1983,7 +1944,7 @@ xenHypervisorInit(void)
     hypervisor_version = 2;
 
     if (VIR_ALLOC(ipt) < 0) {
-        virXenError(NULL, VIR_ERR_NO_MEMORY, __FUNCTION__, 0);
+        virXenError(NULL, VIR_ERR_NO_MEMORY, NULL);
         return(-1);
     }
     /* Currently consider RHEL5.0 Fedora7, xen-3.1, and xen-unstable */
@@ -2046,7 +2007,8 @@ xenHypervisorInit(void)
 
     DEBUG0("Failed to find any Xen hypervisor method\n");
     hypervisor_version = -1;
-    virXenError(NULL, VIR_ERR_XEN_CALL, " ioctl ", IOCTL_PRIVCMD_HYPERCALL);
+    virXenError(NULL, VIR_ERR_XEN_CALL, " ioctl %lu",
+                (unsigned long)IOCTL_PRIVCMD_HYPERCALL);
     close(fd);
     in_init = 0;
     VIR_FREE(ipt);
@@ -2071,7 +2033,6 @@ xenHypervisorInit(void)
  */
 int
 xenHypervisorOpen(virConnectPtr conn,
-                  xmlURIPtr uri ATTRIBUTE_UNUSED,
                   virConnectAuthPtr auth ATTRIBUTE_UNUSED,
                   int flags ATTRIBUTE_UNUSED)
 {
@@ -2086,7 +2047,7 @@ xenHypervisorOpen(virConnectPtr conn,
 
     ret = open(XEN_HYPERVISOR_SOCKET, O_RDWR);
     if (ret < 0) {
-        virXenError(conn, VIR_ERR_NO_XEN, XEN_HYPERVISOR_SOCKET, 0);
+        virXenError(conn, VIR_ERR_NO_XEN, "%s", XEN_HYPERVISOR_SOCKET);
         return (-1);
     }
 
@@ -2172,6 +2133,9 @@ xenHypervisorBuildCapabilities(virConnectPtr conn,
 
     if ((caps = virCapabilitiesNew(hostmachine, 1, 1)) == NULL)
         goto no_memory;
+
+    virCapabilitiesSetMacPrefix(caps, (unsigned char[]){ 0x00, 0x16, 0x3e });
+
     if (hvm_type && STRNEQ(hvm_type, "") &&
         virCapabilitiesAddHostFeature(caps, hvm_type) < 0)
         goto no_memory;
@@ -2382,7 +2346,7 @@ xenHypervisorMakeCapabilitiesInternal(virConnectPtr conn,
                 }
 
                 /* Too many arch flavours - highly unlikely ! */
-                if (i >= sizeof(guest_archs)/sizeof(guest_archs[0]))
+                if (i >= ARRAY_CARDINALITY(guest_archs))
                     continue;
                 /* Didn't find a match, so create a new one */
                 if (i == nr_guest_archs)
@@ -2417,7 +2381,7 @@ xenHypervisorMakeCapabilitiesInternal(virConnectPtr conn,
     return caps;
 
  no_memory:
-    virXenError(NULL, VIR_ERR_NO_MEMORY, __FUNCTION__, 0);
+    virXenError(NULL, VIR_ERR_NO_MEMORY, NULL);
     virCapabilitiesFree(caps);
     return NULL;
 }
@@ -2440,7 +2404,8 @@ xenHypervisorMakeCapabilities(virConnectPtr conn)
     cpuinfo = fopen ("/proc/cpuinfo", "r");
     if (cpuinfo == NULL) {
         if (errno != ENOENT) {
-            virXenPerror (NULL, "/proc/cpuinfo");
+            virXenError (conn, VIR_ERR_SYSTEM_ERROR,
+                         "/proc/cpuinfo: %s", strerror(errno));
             return NULL;
         }
     }
@@ -2449,7 +2414,9 @@ xenHypervisorMakeCapabilities(virConnectPtr conn)
     if (capabilities == NULL) {
         if (errno != ENOENT) {
             fclose(cpuinfo);
-            virXenPerror (NULL, "/sys/hypervisor/properties/capabilities");
+            virXenError (conn, VIR_ERR_SYSTEM_ERROR,
+                         "/sys/hypervisor/properties/capabilities: %s",
+                         strerror(errno));
             return NULL;
         }
     }
@@ -2482,7 +2449,7 @@ xenHypervisorGetCapabilities (virConnectPtr conn)
     char *xml;
 
     if (!(xml = virCapabilitiesFormatXML(priv->caps))) {
-        virXenError(conn, VIR_ERR_NO_MEMORY, NULL, 0);
+        virXenError(conn, VIR_ERR_NO_MEMORY, NULL);
         return NULL;
     }
 

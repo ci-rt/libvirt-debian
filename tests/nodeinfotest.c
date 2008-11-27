@@ -8,13 +8,12 @@
 #include "testutils.h"
 #include "internal.h"
 #include "nodeinfo.h"
+#include "util.h"
 
 static char *progname;
 static char *abs_srcdir;
 
 #define MAX_FILE 4096
-
-#ifdef __linux__
 
 extern int linuxNodeInfoCPUPopulate(virConnectPtr conn, FILE *cpuinfo, virNodeInfoPtr nodeinfo);
 
@@ -63,14 +62,12 @@ static int linuxTestNodeInfo(const void *data) {
              abs_srcdir, (const char*)data);
     return linuxTestCompareFiles(cpuinfo, output);
 }
-#endif
 
 
 static int
 mymain(int argc, char **argv)
 {
     int ret = 0;
-#ifdef __linux__
     int i;
     const char *nodeData[] = {
         "nodeinfo-1",
@@ -81,6 +78,9 @@ mymain(int argc, char **argv)
         "nodeinfo-6",
     };
     char cwd[PATH_MAX];
+#ifndef __linux__
+    exit (77); /* means 'test skipped' for automake */
+#endif
 
     abs_srcdir = getenv("abs_srcdir");
     if (!abs_srcdir)
@@ -95,10 +95,9 @@ mymain(int argc, char **argv)
 
     virInitialize();
 
-    for (i = 0 ; i < (sizeof(nodeData)/sizeof(nodeData[0])) ; i++)
+    for (i = 0 ; i < ARRAY_CARDINALITY(nodeData); i++)
       if (virtTestRun(nodeData[i], 1, linuxTestNodeInfo, nodeData[i]) != 0)
         ret = -1;
-#endif
 
     return(ret==0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }

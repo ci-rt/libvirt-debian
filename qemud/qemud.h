@@ -1,7 +1,7 @@
 /*
  * qemud.h: daemon data structure definitions
  *
- * Copyright (C) 2006, 2007 Red Hat, Inc.
+ * Copyright (C) 2006-2008 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -26,8 +26,6 @@
 #define QEMUD_INTERNAL_H__
 
 #include <config.h>
-
-#include "socketcompat.h"
 
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
@@ -98,6 +96,7 @@ struct qemud_client {
     int magic;
 
     int fd;
+    int watch;
     int readonly;
     enum qemud_mode mode;
 
@@ -132,6 +131,9 @@ struct qemud_client {
      */
     virConnectPtr conn;
 
+    /* back-pointer to our server */
+    struct qemud_server *server;
+
     struct qemud_client *next;
 };
 
@@ -140,6 +142,7 @@ struct qemud_client {
 
 struct qemud_socket {
     int fd;
+    int watch;
     int readonly;
     int type; /* qemud_sock_type */
     int auth;
@@ -179,8 +182,17 @@ void qemudLog(int priority, const char *fmt, ...)
 void remoteDispatchClientRequest (struct qemud_server *server,
                                   struct qemud_client *client);
 
+void qemudDispatchClientWrite(struct qemud_server *server,
+                             struct qemud_client *client);
+
 #if HAVE_POLKIT
 int qemudGetSocketIdentity(int fd, uid_t *uid, pid_t *pid);
 #endif
+
+int remoteRelayDomainEvent (virConnectPtr conn ATTRIBUTE_UNUSED,
+                            virDomainPtr dom,
+                            int event,
+                            int detail,
+                            void *opaque);
 
 #endif

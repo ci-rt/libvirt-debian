@@ -41,39 +41,20 @@
 #include <errno.h>
 #include <string.h>
 #include <sys/utsname.h>
+#include <sys/wait.h>
 
+#include "virterror_internal.h"
 #include "openvz_conf.h"
 #include "uuid.h"
 #include "buf.h"
 #include "memory.h"
 #include "util.h"
+#include "nodeinfo.h"
 
 static char *openvzLocateConfDir(void);
 static int openvzGetVPSUUID(int vpsid, char *uuidstr);
-static int openvzLocateConfFile(int vpsid, char *conffile, int maxlen);
+static int openvzLocateConfFile(int vpsid, char *conffile, int maxlen, const char *ext);
 static int openvzAssignUUIDs(void);
-
-void
-openvzError (virConnectPtr conn, virErrorNumber code, const char *fmt, ...)
-{
-    va_list args;
-    char errorMessage[1024];
-    const char *errmsg;
-
-    if (fmt) {
-        va_start(args, fmt);
-        vsnprintf(errorMessage, sizeof(errorMessage)-1, fmt, args);
-        va_end(args);
-    } else {
-        errorMessage[0] = '\0';
-    }
-
-    errmsg = __virErrorMsg(code, (errorMessage[0] ? errorMessage : NULL));
-    __virRaiseError (conn, NULL, NULL, VIR_FROM_OPENVZ,
-                     code, VIR_ERR_ERROR, errmsg, errorMessage, NULL, 0, 0,
-                     errmsg, errorMessage);
-}
-
 
 int
 strtoI(const char *str)
@@ -86,6 +67,73 @@ strtoI(const char *str)
     return val;
 }
 
+
+static int
+openvzExtractVersionInfo(const char *cmd, int *retversion)
+{
+    const char *const vzarg[] = { cmd, "--help", NULL };
+    const char *const vzenv[] = { "LC_ALL=C", NULL };
+    pid_t child;
+    int newstdout = -1;
+    int ret = -1, status;
+    unsigned int major, minor, micro;
+    unsigned int version;
+
+    if (retversion)
+        *retversion = 0;
+
+    if (virExec(NULL, vzarg, vzenv, NULL,
+                &child, -1, &newstdout, NULL, VIR_EXEC_NONE) < 0)
+        return -1;
+
+    char *help = NULL;
+    int len = virFileReadLimFD(newstdout, 4096, &help);
+    if (len < 0)
+        goto cleanup2;
+
+    if (sscanf(help, "vzctl version %u.%u.%u",
+               &major, &minor, &micro) != 3) {
+        goto cleanup2;
+    }
+
+    version = (major * 1000 * 1000) + (minor * 1000) + micro;
+
+    if (retversion)
+        *retversion = version;
+
+    ret = 0;
+
+cleanup2:
+    VIR_FREE(help);
+    if (close(newstdout) < 0)
+        ret = -1;
+
+rewait:
+    if (waitpid(child, &status, 0) != child) {
+        if (errno == EINTR)
+            goto rewait;
+        ret = -1;
+    }
+
+    return ret;
+}
+
+int openvzExtractVersion(virConnectPtr conn,
+                         struct openvz_driver *driver)
+{
+    if (driver->version > 0)
+        return 0;
+
+    if (openvzExtractVersionInfo(VZCTL, &driver->version) < 0) {
+        openvzError(conn, VIR_ERR_INTERNAL_ERROR,
+                    "%s", _("Cound not extract vzctl version"));
+        return -1;
+    }
+
+    return 0;
+}
+
+
 virCapsPtr openvzCapsInit(void)
 {
     struct utsname utsname;
@@ -97,6 +145,8 @@ virCapsPtr openvzCapsInit(void)
     if ((caps = virCapabilitiesNew(utsname.machine,
                                    0, 0)) == NULL)
         goto no_memory;
+
+    virCapabilitiesSetMacPrefix(caps, (unsigned char[]){ 0x52, 0x54, 0x00 });
 
     if ((guest = virCapabilitiesAddGuest(caps,
                                          "exe",
@@ -123,59 +173,12 @@ no_memory:
 }
 
 
-/* function checks MAC address is empty
-   return 0 - empty
-          1 - not
-*/
-int openvzCheckEmptyMac(const unsigned char *mac)
-{
-    int i;
-    for (i = 0; i < VIR_DOMAIN_NET_MAC_SIZE; i++)
-        if (mac[i] != 0x00)
-            return 1;
-
-    return 0;
-}
-
-/* convert mac address to string
-   return pointer to string or NULL
-*/
-char *openvzMacToString(const unsigned char *mac)
-{
-    char str[20];
-    if (snprintf(str, 18, "%02X:%02X:%02X:%02X:%02X:%02X",
-                      mac[0], mac[1], mac[2],
-                      mac[3], mac[4], mac[5]) >= 18)
-        return NULL;
-
-    return strdup(str);
-}
-
-/*parse MAC from view: 00:18:51:8F:D9:F3
-  return -1 - error
-          0 - OK
-*/
-static int openvzParseMac(const char *macaddr, unsigned char *mac)
-{
+static int
+openvzReadNetworkConf(virConnectPtr conn,
+                      virDomainDefPtr def,
+                      int veid) {
     int ret;
-    ret = sscanf((const char *)macaddr, "%02X:%02X:%02X:%02X:%02X:%02X",
-               (unsigned int*)&mac[0],
-               (unsigned int*)&mac[1],
-               (unsigned int*)&mac[2],
-               (unsigned int*)&mac[3],
-               (unsigned int*)&mac[4],
-               (unsigned int*)&mac[5]) ;
-    if (ret == 6)
-        return 0;
-
-    return -1;
-}
-
-static virDomainNetDefPtr
-openvzReadNetworkConf(virConnectPtr conn, int veid) {
-    int ret;
-    virDomainNetDefPtr net = NULL;
-    virDomainNetDefPtr new_net;
+    virDomainNetDefPtr net;
     char temp[4096];
     char *token, *saveptr = NULL;
 
@@ -193,17 +196,19 @@ openvzReadNetworkConf(virConnectPtr conn, int veid) {
     } else if (ret > 0) {
         token = strtok_r(temp, " ", &saveptr);
         while (token != NULL) {
-            new_net = NULL;
-            if (VIR_ALLOC(new_net) < 0)
+            if (VIR_ALLOC(net) < 0)
                 goto no_memory;
-            new_net->next = net;
-            net = new_net;
 
             net->type = VIR_DOMAIN_NET_TYPE_ETHERNET;
             net->data.ethernet.ipaddr = strdup(token);
 
             if (net->data.ethernet.ipaddr == NULL)
                 goto no_memory;
+
+            if (VIR_REALLOC_N(def->nets, def->nnets + 1) < 0)
+                goto no_memory;
+            def->nets[def->nnets++] = net;
+            net = NULL;
 
             token = strtok_r(NULL, " ", &saveptr);
         }
@@ -224,11 +229,8 @@ openvzReadNetworkConf(virConnectPtr conn, int veid) {
         token = strtok_r(temp, ";", &saveptr);
         while (token != NULL) {
             /*add new device to list*/
-            new_net = NULL;
-            if (VIR_ALLOC(new_net) < 0)
+            if (VIR_ALLOC(net) < 0)
                 goto no_memory;
-            new_net->next = net;
-            net = new_net;
 
             net->type = VIR_DOMAIN_NET_TYPE_BRIDGE;
 
@@ -241,10 +243,27 @@ openvzReadNetworkConf(virConnectPtr conn, int veid) {
                 while (*next != '\0' && *next != ',') next++;
                 if (STRPREFIX(p, "ifname=")) {
                     p += 7;
+                    /* skip in libvirt */
+                } else if (STRPREFIX(p, "host_ifname=")) {
+                    p += 12;
                     len = next - p;
                     if (len > 16) {
                         openvzError(conn, VIR_ERR_INTERNAL_ERROR,
-                                _("Too long network device name"));
+                                "%s", _("Too long network device name"));
+                        goto error;
+                    }
+
+                    if (VIR_ALLOC_N(net->ifname, len+1) < 0)
+                        goto no_memory;
+
+                    strncpy(net->ifname, p, len);
+                    net->ifname[len] = '\0';
+                } else if (STRPREFIX(p, "bridge=")) {
+                    p += 7;
+                    len = next - p;
+                    if (len > 16) {
+                        openvzError(conn, VIR_ERR_INTERNAL_ERROR,
+                                "%s", _("Too long bridge device name"));
                         goto error;
                     }
 
@@ -253,41 +272,81 @@ openvzReadNetworkConf(virConnectPtr conn, int veid) {
 
                     strncpy(net->data.bridge.brname, p, len);
                     net->data.bridge.brname[len] = '\0';
-                } else if (STRPREFIX(p, "host_ifname=")) {
-                    p += 12;
-                    //skip in libvirt
                 } else if (STRPREFIX(p, "mac=")) {
                     p += 4;
                     len = next - p;
                     if (len != 17) { //should be 17
                         openvzError(conn, VIR_ERR_INTERNAL_ERROR,
-                              _("Wrong length MAC address"));
+                              "%s", _("Wrong length MAC address"));
                         goto error;
                     }
                     strncpy(cpy_temp, p, len);
                     cpy_temp[len] = '\0';
-                    if (openvzParseMac(cpy_temp, net->mac)<0) {
+                    if (virParseMacAddr(cpy_temp, net->mac) < 0) {
                         openvzError(conn, VIR_ERR_INTERNAL_ERROR,
-                              _("Wrong MAC address"));
+                              "%s", _("Wrong MAC address"));
                         goto error;
                     }
-                } else if (STRPREFIX(p, "host_mac=")) {
-                    p += 9;
-                    //skip in libvirt
                 }
                 p = ++next;
             } while (p < token + strlen(token));
+
+            if (VIR_REALLOC_N(def->nets, def->nnets + 1) < 0)
+                goto no_memory;
+            def->nets[def->nnets++] = net;
+            net = NULL;
 
             token = strtok_r(NULL, ";", &saveptr);
         }
     }
 
-    return net;
+    return 0;
 no_memory:
     openvzError(conn, VIR_ERR_NO_MEMORY, NULL);
 error:
     virDomainNetDefFree(net);
-    return NULL;
+    return -1;
+}
+
+
+static int
+openvzReadFSConf(virConnectPtr conn,
+                 virDomainDefPtr def,
+                 int veid) {
+    int ret;
+    virDomainFSDefPtr fs = NULL;
+    char temp[4096];
+
+    ret = openvzReadConfigParam(veid, "OSTEMPLATE", temp, sizeof(temp));
+    if (ret < 0) {
+        openvzError(conn, VIR_ERR_INTERNAL_ERROR,
+                    _("Cound not read 'OSTEMPLATE' from config for container %d"),
+                    veid);
+        goto error;
+    } else if (ret > 0) {
+        if (VIR_ALLOC(fs) < 0)
+            goto no_memory;
+
+        fs->type = VIR_DOMAIN_FS_TYPE_TEMPLATE;
+        fs->src = strdup(temp);
+        fs->dst = strdup("/");
+
+        if (fs->src == NULL || fs->dst == NULL)
+            goto no_memory;
+
+        if (VIR_REALLOC_N(def->fss, def->nfss + 1) < 0)
+            goto no_memory;
+        def->fss[def->nfss++] = fs;
+        fs = NULL;
+
+    }
+
+    return 0;
+no_memory:
+    openvzError(conn, VIR_ERR_NO_MEMORY, NULL);
+error:
+    virDomainFSDefFree(fs);
+    return -1;
 }
 
 
@@ -295,18 +354,10 @@ error:
 void
 openvzFreeDriver(struct openvz_driver *driver)
 {
-    virDomainObjPtr dom;
-
     if (!driver)
         return;
 
-    dom = driver->domains;
-    while (dom) {
-        virDomainObjPtr tmp = dom->next;
-        virDomainObjFree(dom);
-        dom = tmp;
-    }
-
+    virDomainObjListFree(&driver->domains);
     virCapabilitiesFree(driver->caps);
 }
 
@@ -317,14 +368,14 @@ int openvzLoadDomains(struct openvz_driver *driver) {
     int veid, ret;
     char status[16];
     char uuidstr[VIR_UUID_STRING_BUFLEN];
-    virDomainObjPtr dom = NULL, prev = NULL;
+    virDomainObjPtr dom = NULL;
     char temp[50];
 
     if (openvzAssignUUIDs() < 0)
         return -1;
 
     if ((fp = popen(VZLIST " -a -ovpsid,status -H 2>/dev/null", "r")) == NULL) {
-        openvzError(NULL, VIR_ERR_INTERNAL_ERROR, _("popen failed"));
+        openvzError(NULL, VIR_ERR_INTERNAL_ERROR, "%s", _("popen failed"));
         return -1;
     }
 
@@ -334,7 +385,7 @@ int openvzLoadDomains(struct openvz_driver *driver) {
                 break;
 
             openvzError(NULL, VIR_ERR_INTERNAL_ERROR,
-                        _("Failed to parse vzlist output"));
+                        "%s", _("Failed to parse vzlist output"));
             goto cleanup;
         }
 
@@ -360,7 +411,7 @@ int openvzLoadDomains(struct openvz_driver *driver) {
 
         if (ret == -1) {
             openvzError(NULL, VIR_ERR_INTERNAL_ERROR,
-                        _("UUID in config file malformed"));
+                        "%s", _("UUID in config file malformed"));
             goto cleanup;
         }
 
@@ -377,20 +428,22 @@ int openvzLoadDomains(struct openvz_driver *driver) {
             goto cleanup;
         } else if (ret > 0) {
             dom->def->vcpus = strtoI(temp);
-        } else {
-            dom->def->vcpus = 1;
         }
+
+        if (ret == 0 || dom->def->vcpus == 0)
+            dom->def->vcpus = openvzGetNodeCPUs();
 
         /* XXX load rest of VM config data .... */
 
-        dom->def->nets = openvzReadNetworkConf(NULL, veid);
+        openvzReadNetworkConf(NULL, dom->def, veid);
+        openvzReadFSConf(NULL, dom->def, veid);
 
-        if (prev) {
-            prev->next = dom;
-        } else {
-            driver->domains = dom;
-        }
-        prev = dom;
+        if (VIR_REALLOC_N(driver->domains.objs,
+                          driver->domains.count + 1) < 0)
+            goto no_memory;
+
+        driver->domains.objs[driver->domains.count++] = dom;
+        dom = NULL;
     }
 
     fclose(fp);
@@ -403,6 +456,80 @@ int openvzLoadDomains(struct openvz_driver *driver) {
  cleanup:
     fclose(fp);
     virDomainObjFree(dom);
+    return -1;
+}
+
+unsigned int
+openvzGetNodeCPUs(void)
+{
+    virNodeInfo nodeinfo;
+
+    if (virNodeInfoPopulate(NULL, &nodeinfo) < 0) {
+        openvzError(NULL, VIR_ERR_INTERNAL_ERROR,
+                      _("Cound not read nodeinfo"));
+        return 0;
+    }
+
+    return nodeinfo.cpus;
+}
+
+int
+openvzWriteConfigParam(int vpsid, const char *param, const char *value)
+{
+    char conf_file[PATH_MAX];
+    char temp_file[PATH_MAX];
+    char line[PATH_MAX] ;
+    int fd, temp_fd;
+
+    if (openvzLocateConfFile(vpsid, conf_file, PATH_MAX, "conf")<0)
+        return -1;
+    if (openvzLocateConfFile(vpsid, temp_file, PATH_MAX, "tmp")<0)
+        return -1;
+
+    fd = open(conf_file, O_RDONLY);
+    if (fd == -1)
+        return -1;
+    temp_fd = open(temp_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (temp_fd == -1) {
+        close(fd);
+        return -1;
+    }
+
+    while(1) {
+        if (openvz_readline(fd, line, sizeof(line)) <= 0)
+            break;
+
+        if (!(STRPREFIX(line, param) && line[strlen(param)] == '=')) {
+            if (safewrite(temp_fd, line, strlen(line)) !=
+                strlen(line))
+                goto error;
+        }
+    }
+
+    if (safewrite(temp_fd, param, strlen(param)) < 0 ||
+        safewrite(temp_fd, "=\"", 2) < 0 ||
+        safewrite(temp_fd, value, strlen(value)) < 0 ||
+        safewrite(temp_fd, "\"\n", 2) < 0)
+        goto error;
+
+    if (close(fd) < 0)
+        goto error;
+    fd = -1;
+    if (close(temp_fd) < 0)
+        goto error;
+    temp_fd = -1;
+
+    if (rename(temp_file, conf_file) < 0)
+        goto error;
+
+    return 0;
+
+error:
+    if (fd != -1)
+        close(fd);
+    if (temp_fd != -1)
+        close(temp_fd);
+    unlink(temp_file);
     return -1;
 }
 
@@ -423,7 +550,7 @@ openvzReadConfigParam(int vpsid ,const char * param, char *value, int maxlen)
     char * sf, * token;
     char *saveptr = NULL;
 
-    if (openvzLocateConfFile(vpsid, conf_file, PATH_MAX)<0)
+    if (openvzLocateConfFile(vpsid, conf_file, PATH_MAX, "conf")<0)
         return -1;
 
     value[0] = 0;
@@ -463,7 +590,7 @@ openvzReadConfigParam(int vpsid ,const char * param, char *value, int maxlen)
 *         0 - OK
 */
 static int
-openvzLocateConfFile(int vpsid, char *conffile, int maxlen)
+openvzLocateConfFile(int vpsid, char *conffile, int maxlen, const char *ext)
 {
     char * confdir;
     int ret = 0;
@@ -472,7 +599,8 @@ openvzLocateConfFile(int vpsid, char *conffile, int maxlen)
     if (confdir == NULL)
         return -1;
 
-    if (snprintf(conffile, maxlen, "%s/%d.conf", confdir, vpsid) >= maxlen)
+    if (snprintf(conffile, maxlen, "%s/%d.%s",
+                 confdir, vpsid, ext ? ext : "conf") >= maxlen)
         ret = -1;
 
     VIR_FREE(confdir);
@@ -529,7 +657,7 @@ openvzGetVPSUUID(int vpsid, char *uuidstr)
     char iden[1024];
     int fd, ret;
 
-   if (openvzLocateConfFile(vpsid, conf_file, PATH_MAX)<0)
+    if (openvzLocateConfFile(vpsid, conf_file, PATH_MAX, "conf")<0)
        return -1;
 
     fd = open(conf_file, O_RDONLY);
@@ -569,7 +697,7 @@ openvzSetDefinedUUID(int vpsid, unsigned char *uuid)
     if (uuid == NULL)
         return -1;
 
-   if (openvzLocateConfFile(vpsid, conf_file, PATH_MAX)<0)
+    if (openvzLocateConfFile(vpsid, conf_file, PATH_MAX, "conf")<0)
        return -1;
 
     if (openvzGetVPSUUID(vpsid, uuidstr))
@@ -637,4 +765,3 @@ static int openvzAssignUUIDs(void)
     VIR_FREE(conf_dir);
     return 0;
 }
-
