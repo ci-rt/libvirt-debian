@@ -66,6 +66,48 @@ typedef struct {
 } PyvirStorageVol_Object;
 
 
+#define PyvirNodeDevice_Get(v) (((v) == Py_None) ? NULL : \
+        (((PyvirNodeDevice_Object *)(v))->obj))
+
+typedef struct {
+    PyObject_HEAD
+    virNodeDevicePtr obj;
+} PyvirNodeDevice_Object;
+
+
+#define PyvirEventHandleCallback_Get(v) (((v) == Py_None) ? NULL : \
+        (((PyvirEventHandleCallback_Object *)(v))->obj))
+
+typedef struct {
+    PyObject_HEAD
+    virEventHandleCallback obj;
+} PyvirEventHandleCallback_Object;
+
+#define PyvirEventTimeoutCallback_Get(v) (((v) == Py_None) ? NULL : \
+        (((PyvirEventTimeoutCallback_Object *)(v))->obj))
+
+typedef struct {
+    PyObject_HEAD
+    virEventTimeoutCallback obj;
+} PyvirEventTimeoutCallback_Object;
+
+#define PyvirFreeCallback_Get(v) (((v) == Py_None) ? NULL : \
+        (((PyvirFreeCallback_Object *)(v))->obj))
+
+typedef struct {
+    PyObject_HEAD
+    virFreeCallback obj;
+} PyvirFreeCallback_Object;
+
+#define PyvirVoidPtr_Get(v) (((v) == Py_None) ? NULL : \
+        (((PyvirVoidPtr_Object *)(v))->obj))
+
+typedef struct {
+    PyObject_HEAD
+    void* obj;
+} PyvirVoidPtr_Object;
+
+
 PyObject * libvirt_intWrap(int val);
 PyObject * libvirt_longWrap(long val);
 PyObject * libvirt_ulongWrap(unsigned long val);
@@ -78,6 +120,11 @@ PyObject * libvirt_virDomainPtrWrap(virDomainPtr node);
 PyObject * libvirt_virNetworkPtrWrap(virNetworkPtr node);
 PyObject * libvirt_virStoragePoolPtrWrap(virStoragePoolPtr node);
 PyObject * libvirt_virStorageVolPtrWrap(virStorageVolPtr node);
+PyObject * libvirt_virEventHandleCallbackWrap(virEventHandleCallback node);
+PyObject * libvirt_virEventTimeoutCallbackWrap(virEventTimeoutCallback node);
+PyObject * libvirt_virFreeCallbackWrap(virFreeCallback node);
+PyObject * libvirt_virVoidPtrWrap(void* node);
+PyObject * libvirt_virNodeDevicePtrWrap(virNodeDevicePtr node);
 
 
 /* Provide simple macro statement wrappers (adapted from GLib, in turn from Perl):

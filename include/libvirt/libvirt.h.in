@@ -437,7 +437,7 @@ virConnectPtr           virDomainGetConnect     (virDomainPtr domain);
 /*
  * Domain creation and destruction
  */
-virDomainPtr            virDomainCreateLinux    (virConnectPtr conn,
+virDomainPtr            virDomainCreateXML      (virConnectPtr conn,
                                                  const char *xmlDesc,
                                                  unsigned int flags);
 virDomainPtr            virDomainLookupByName   (virConnectPtr conn,
@@ -987,6 +987,314 @@ char *                  virStorageVolGetXMLDesc         (virStorageVolPtr pool,
 
 char *                  virStorageVolGetPath            (virStorageVolPtr vol);
 
+/*
+ * Deprecated calls
+ */
+virDomainPtr            virDomainCreateLinux    (virConnectPtr conn,
+                                                 const char *xmlDesc,
+                                                 unsigned int flags);
+
+/*
+ * Host device enumeration
+ */
+
+/**
+ * virNodeDevice:
+ *
+ * A virNodeDevice contains a node (host) device details.
+ */
+
+typedef struct _virNodeDevice virNodeDevice;
+
+/**
+ * virNodeDevicePtr:
+ *
+ * A virNodeDevicePtr is a pointer to a virNodeDevice structure.  Get
+ * one via virNodeDeviceLookupByKey, virNodeDeviceLookupByName, or
+ * virNodeDeviceCreate.  Be sure to Call virNodeDeviceFree when done
+ * using a virNodeDevicePtr obtained from any of the above functions to
+ * avoid leaking memory.
+ */
+
+typedef virNodeDevice *virNodeDevicePtr;
+
+
+int                     virNodeNumOfDevices     (virConnectPtr conn,
+                                                 const char *cap,
+                                                 unsigned int flags);
+
+int                     virNodeListDevices      (virConnectPtr conn,
+                                                 const char *cap,
+                                                 char **const names,
+                                                 int maxnames,
+                                                 unsigned int flags);
+
+virNodeDevicePtr        virNodeDeviceLookupByName (virConnectPtr conn,
+                                                   const char *name);
+
+const char *            virNodeDeviceGetName     (virNodeDevicePtr dev);
+
+const char *            virNodeDeviceGetParent   (virNodeDevicePtr dev);
+
+int                     virNodeDeviceNumOfCaps   (virNodeDevicePtr dev);
+
+int                     virNodeDeviceListCaps    (virNodeDevicePtr dev,
+                                                  char **const names,
+                                                  int maxnames);
+
+char *                  virNodeDeviceGetXMLDesc (virNodeDevicePtr dev,
+                                                 unsigned int flags);
+
+int                     virNodeDeviceFree       (virNodeDevicePtr dev);
+
+/*
+ * Domain Event Notification
+ */
+
+/**
+ * virDomainEventType:
+ *
+ * a virDomainEventType is emitted during domain lifecycle events
+ */
+typedef enum {
+      VIR_DOMAIN_EVENT_DEFINED = 0,
+      VIR_DOMAIN_EVENT_UNDEFINED = 1,
+      VIR_DOMAIN_EVENT_STARTED = 2,
+      VIR_DOMAIN_EVENT_SUSPENDED = 3,
+      VIR_DOMAIN_EVENT_RESUMED = 4,
+      VIR_DOMAIN_EVENT_STOPPED = 5,
+} virDomainEventType;
+
+/**
+ * virDomainEventDefinedDetailType:
+ *
+ * Details on the caused of the 'defined' lifecycle event
+ */
+typedef enum {
+    VIR_DOMAIN_EVENT_DEFINED_ADDED = 0,     /* Newly created config file */
+    VIR_DOMAIN_EVENT_DEFINED_UPDATED = 1,   /* Changed config file */
+} virDomainEventDefinedDetailType;
+
+/**
+ * virDomainEventUndefinedDetailType:
+ *
+ * Details on the caused of the 'undefined' lifecycle event
+ */
+typedef enum {
+    VIR_DOMAIN_EVENT_UNDEFINED_REMOVED = 0, /* Deleted the config file */
+} virDomainEventUndefinedDetailType;
+
+/**
+ * virDomainEventStartedDetailType:
+ *
+ * Details on the caused of the 'started' lifecycle event
+ */
+typedef enum {
+    VIR_DOMAIN_EVENT_STARTED_BOOTED = 0,   /* Normal startup from boot */
+    VIR_DOMAIN_EVENT_STARTED_MIGRATED = 1, /* Incoming migration from another host */
+    VIR_DOMAIN_EVENT_STARTED_RESTORED = 2, /* Restored from a state file */
+} virDomainEventStartedDetailType;
+
+/**
+ * virDomainEventSuspendedDetailType:
+ *
+ * Details on the caused of the 'suspended' lifecycle event
+ */
+typedef enum {
+    VIR_DOMAIN_EVENT_SUSPENDED_PAUSED = 0,   /* Normal suspend due to admin pause */
+    VIR_DOMAIN_EVENT_SUSPENDED_MIGRATED = 1, /* Suspended for offline migration */
+} virDomainEventSuspendedDetailType;
+
+/**
+ * virDomainEventResumedDetailType:
+ *
+ * Details on the caused of the 'resumed' lifecycle event
+ */
+typedef enum {
+    VIR_DOMAIN_EVENT_RESUMED_UNPAUSED = 0,   /* Normal resume due to admin unpause */
+    VIR_DOMAIN_EVENT_RESUMED_MIGRATED = 1,   /* Resumed for completion of migration */
+} virDomainEventResumedDetailType;
+
+/**
+ * virDomainEventStoppedDetailType:
+ *
+ * Details on the caused of the 'stopped' lifecycle event
+ */
+typedef enum {
+    VIR_DOMAIN_EVENT_STOPPED_SHUTDOWN = 0,  /* Normal shutdown */
+    VIR_DOMAIN_EVENT_STOPPED_DESTROYED = 1, /* Forced poweroff from host */
+    VIR_DOMAIN_EVENT_STOPPED_CRASHED = 2,   /* Guest crashed */
+    VIR_DOMAIN_EVENT_STOPPED_MIGRATED = 3,  /* Migrated off to another host */
+    VIR_DOMAIN_EVENT_STOPPED_SAVED = 4,     /* Saved to a state file */
+    VIR_DOMAIN_EVENT_STOPPED_FAILED = 5,    /* Host emulator/mgmt failed */
+} virDomainEventStoppedDetailType;
+
+
+/**
+ * virConnectDomainEventCallback:
+ * @conn: virConnect connection
+ * @dom: The domain on which the event occured
+ * @event: The specfic virDomainEventType which occured
+ * @detail: event specific detail information
+ * @opaque: opaque user data
+ *
+ * A callback function to be registered, and called when a domain event occurs
+ */
+typedef int (*virConnectDomainEventCallback)(virConnectPtr conn,
+                                             virDomainPtr dom,
+                                             int event,
+                                             int detail,
+                                             void *opaque);
+
+typedef void (*virFreeCallback)(void *opaque);
+
+int virConnectDomainEventRegister(virConnectPtr conn,
+                                  virConnectDomainEventCallback cb,
+                                  void *opaque,
+                                  virFreeCallback freecb);
+
+int virConnectDomainEventDeregister(virConnectPtr conn,
+                                    virConnectDomainEventCallback cb);
+
+/*
+ * Events Implementation
+ */
+
+/**
+ * virEventHandleType:
+ *
+ * a virEventHandleType is used similar to POLLxxx FD events, but is specific
+ * to libvirt. A client app must translate to, and from POLL events when using
+ * this construct.
+ */
+typedef enum {
+    VIR_EVENT_HANDLE_READABLE  = (1 << 0),
+    VIR_EVENT_HANDLE_WRITABLE  = (1 << 1),
+    VIR_EVENT_HANDLE_ERROR     = (1 << 2),
+    VIR_EVENT_HANDLE_HANGUP    = (1 << 3),
+} virEventHandleType;
+
+/**
+ * virEventHandleCallback:
+ *
+ * @watch: watch on which the event occurred
+ * @fd: file handle on which the event occurred
+ * @events: bitset of events from virEventHandleType constants
+ * @opaque: user data registered with handle
+ *
+ * Callback for receiving file handle events. The callback will
+ * be invoked once for each event which is pending.
+ */
+typedef void (*virEventHandleCallback)(int watch, int fd, int events, void *opaque);
+
+/**
+ * virEventAddHandleFunc:
+ * @fd: file descriptor to listen on
+ * @event: bitset of events on which to fire the callback
+ * @cb: the callback to be called when an event occurrs
+ * @opaque: user data to pass to the callback
+ * @ff: the callback invoked to free opaque data blob
+ *
+ * Part of the EventImpl, this callback Adds a file handle callback to
+ * listen for specific events. The same file handle can be registered
+ * multiple times provided the requested event sets are non-overlapping
+ *
+ * If the opaque user data requires free'ing when the handle
+ * is unregistered, then a 2nd callback can be supplied for
+ * this purpose.
+ *
+ * Returns a handle watch number to be used for updating
+ * and unregistering for events
+ */
+typedef int (*virEventAddHandleFunc)(int fd, int event,
+                                     virEventHandleCallback cb,
+                                     void *opaque,
+                                     virFreeCallback ff);
+
+/**
+ * virEventUpdateHandleFunc:
+ * @watch: file descriptor watch to modify
+ * @event: new events to listen on
+ *
+ * Part of the EventImpl, this user-provided callback is notified when
+ * events to listen on change
+ */
+typedef void (*virEventUpdateHandleFunc)(int watch, int event);
+
+/**
+ * virEventRemoveHandleFunc:
+ * @watch: file descriptor watch to stop listening on
+ *
+ * Part of the EventImpl, this user-provided callback is notified when
+ * an fd is no longer being listened on.
+ *
+ * If a virEventHandleFreeFunc was supplied when the handle was
+ * registered, it will be invoked some time during, or after this
+ * function call, when it is safe to release the user data.
+ */
+typedef int (*virEventRemoveHandleFunc)(int watch);
+
+/**
+ * virEventTimeoutCallback:
+ *
+ * @timer: timer id emitting the event
+ * @opaque: user data registered with handle
+ *
+ * callback for receiving timer events
+ */
+typedef void (*virEventTimeoutCallback)(int timer, void *opaque);
+
+/**
+ * virEventAddTimeoutFunc:
+ * @timeout: The timeout to monitor
+ * @cb: the callback to call when timeout has expired
+ * @opaque: user data to pass to the callback
+ * @ff: the callback invoked to free opaque data blob
+ *
+ * Part of the EventImpl, this user-defined callback handles adding an
+ * event timeout.
+ *
+ * If the opaque user data requires free'ing when the handle
+ * is unregistered, then a 2nd callback can be supplied for
+ * this purpose.
+ *
+ * Returns a timer value
+ */
+typedef int (*virEventAddTimeoutFunc)(int timeout,
+                                      virEventTimeoutCallback cb,
+                                      void *opaque,
+                                      virFreeCallback ff);
+
+/**
+ * virEventUpdateTimeoutFunc:
+ * @timer: the timer to modify
+ * @timeout: the new timeout value
+ *
+ * Part of the EventImpl, this user-defined callback updates an
+ * event timeout.
+ */
+typedef void (*virEventUpdateTimeoutFunc)(int timer, int timeout);
+
+/**
+ * virEventRemoveTimeoutFunc:
+ * @timer: the timer to remove
+ *
+ * Part of the EventImpl, this user-defined callback removes a timer
+ *
+ * If a virEventTimeoutFreeFunc was supplied when the handle was
+ * registered, it will be invoked some time during, or after this
+ * function call, when it is safe to release the user data.
+ *
+ * Returns 0 on success, -1 on failure
+ */
+typedef int (*virEventRemoveTimeoutFunc)(int timer);
+
+void virEventRegisterImpl(virEventAddHandleFunc addHandle,
+                          virEventUpdateHandleFunc updateHandle,
+                          virEventRemoveHandleFunc removeHandle,
+                          virEventAddTimeoutFunc addTimeout,
+                          virEventUpdateTimeoutFunc updateTimeout,
+                          virEventRemoveTimeoutFunc removeTimeout);
 #ifdef __cplusplus
 }
 #endif

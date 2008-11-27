@@ -162,3 +162,80 @@ libvirt_virConnectPtrWrap(virConnectPtr node)
                                      NULL);
     return (ret);
 }
+
+PyObject *
+libvirt_virNodeDevicePtrWrap(virNodeDevicePtr node)
+{
+    PyObject *ret;
+
+    if (node == NULL) {
+        Py_INCREF(Py_None);
+        return (Py_None);
+    }
+    ret =
+        PyCObject_FromVoidPtrAndDesc((void *) node, (char *) "virNodeDevicePtr",
+                                     NULL);
+    return (ret);
+}
+
+PyObject *
+libvirt_virEventHandleCallbackWrap(virEventHandleCallback node)
+{
+    PyObject *ret;
+
+    if (node == NULL) {
+        Py_INCREF(Py_None);
+        printf("%s: WARNING - Wrapping None\n", __FUNCTION__);
+        return (Py_None);
+    }
+    ret =
+        PyCObject_FromVoidPtrAndDesc((void *) node, (char *) "virEventHandleCallback",
+                                     NULL);
+    return (ret);
+}
+
+PyObject *
+libvirt_virEventTimeoutCallbackWrap(virEventTimeoutCallback node)
+{
+    PyObject *ret;
+
+    if (node == NULL) {
+        printf("%s: WARNING - Wrapping None\n", __FUNCTION__);
+        Py_INCREF(Py_None);
+        return (Py_None);
+    }
+    ret =
+        PyCObject_FromVoidPtrAndDesc((void *) node, (char *) "virEventTimeoutCallback",
+                                     NULL);
+    return (ret);
+}
+
+PyObject *
+libvirt_virFreeCallbackWrap(virFreeCallback node)
+{
+    PyObject *ret;
+
+    if (node == NULL) {
+        Py_INCREF(Py_None);
+        return (Py_None);
+    }
+    ret =
+        PyCObject_FromVoidPtrAndDesc((void *) node, (char *) "virFreeCallback",
+                                     NULL);
+    return (ret);
+}
+
+PyObject *
+libvirt_virVoidPtrWrap(void* node)
+{
+    PyObject *ret;
+
+    if (node == NULL) {
+        Py_INCREF(Py_None);
+        return (Py_None);
+    }
+    ret =
+        PyCObject_FromVoidPtrAndDesc((void *) node, (char *) "void*",
+                                     NULL);
+    return (ret);
+}

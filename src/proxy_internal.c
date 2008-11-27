@@ -21,7 +21,10 @@
 #include <sys/un.h>
 #include <sys/wait.h>
 #include <string.h>
-#include "internal.h"
+
+#include "virterror_internal.h"
+#include "logging.h"
+#include "datatypes.h"
 #include "driver.h"
 #include "proxy_internal.h"
 #include "util.h"
@@ -33,7 +36,7 @@
 static int debug = 0;
 
 static int xenProxyClose(virConnectPtr conn);
-static int xenProxyOpen(virConnectPtr conn, xmlURIPtr uri, virConnectAuthPtr auth, int flags);
+static int xenProxyOpen(virConnectPtr conn, virConnectAuthPtr auth, int flags);
 static int xenProxyGetVersion(virConnectPtr conn, unsigned long *hvVer);
 static int xenProxyNodeGetInfo(virConnectPtr conn, virNodeInfoPtr info);
 static char *xenProxyGetCapabilities(virConnectPtr conn);
@@ -53,7 +56,7 @@ struct xenUnifiedDriver xenProxyDriver = {
     xenProxyGetCapabilities, /* getCapabilities */
     xenProxyListDomains, /* listDomains */
     xenProxyNumOfDomains, /* numOfDomains */
-    NULL, /* domainCreateLinux */
+    NULL, /* domainCreateXML */
     NULL, /* domainSuspend */
     NULL, /* domainResume */
     NULL, /* domainShutdown */
@@ -92,26 +95,9 @@ struct xenUnifiedDriver xenProxyDriver = {
  *									*
  ************************************************************************/
 
-/**
- * virProxyError:
- * @conn: the connection if available
- * @error: the error number
- * @info: extra information string
- *
- * Handle an error at the xend daemon interface
- */
-static void
-virProxyError(virConnectPtr conn, virErrorNumber error, const char *info)
-{
-    const char *errmsg;
-
-    if (error == VIR_ERR_OK)
-        return;
-
-    errmsg = __virErrorMsg(error, info);
-    __virRaiseError(conn, NULL, NULL, VIR_FROM_PROXY, error, VIR_ERR_ERROR,
-                    errmsg, info, NULL, 0, 0, errmsg, info);
-}
+#define virProxyError(conn, code, fmt...)                                    \
+        virReportErrorHelper(conn, VIR_FROM_PROXY, code, __FILE__,         \
+                               __FUNCTION__, __LINE__, fmt)
 
 /************************************************************************
  *									*
@@ -494,7 +480,6 @@ retry:
  */
 int
 xenProxyOpen(virConnectPtr conn,
-             xmlURIPtr uri ATTRIBUTE_UNUSED,
              virConnectAuthPtr auth ATTRIBUTE_UNUSED,
              int flags)
 {

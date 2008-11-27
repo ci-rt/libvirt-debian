@@ -31,6 +31,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <poll.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #if HAVE_SYS_WAIT_H
@@ -47,12 +48,12 @@
 #include <paths.h>
 #endif
 
-#include "internal.h"
+#include "virterror_internal.h"
+#include "logging.h"
 #include "event.h"
 #include "buf.h"
 #include "util.h"
 #include "memory.h"
-#include "util-lib.c"
 
 #ifndef NSIG
 # define NSIG 32
@@ -62,32 +63,53 @@
 # define MIN(a, b) ((a) < (b) ? (a) : (b))
 #endif
 
-#define MAX_ERROR_LEN   1024
-
 #define virLog(msg...) fprintf(stderr, msg)
 
-#ifndef PROXY
-static void
-ReportError(virConnectPtr conn,
-            int code, const char *fmt, ...)
-    ATTRIBUTE_FORMAT(printf, 3, 4);
 
-static void
-ReportError(virConnectPtr conn,
-            int code, const char *fmt, ...) {
-    va_list args;
-    char errorMessage[MAX_ERROR_LEN];
+#define ReportError(conn, code, fmt...)                                      \
+        virReportErrorHelper(conn, VIR_FROM_NONE, code, __FILE__,          \
+                               __FUNCTION__, __LINE__, fmt)
 
-    if (fmt) {
-        va_start(args, fmt);
-        vsnprintf(errorMessage, MAX_ERROR_LEN-1, fmt, args);
-        va_end(args);
-    } else {
-        errorMessage[0] = '\0';
-    }
-    __virRaiseError(conn, NULL, NULL, VIR_FROM_NONE, code, VIR_ERR_ERROR,
-                    NULL, NULL, NULL, -1, -1, "%s", errorMessage);
+/* Like read(), but restarts after EINTR */
+int saferead(int fd, void *buf, size_t count)
+{
+        size_t nread = 0;
+        while (count > 0) {
+                ssize_t r = read(fd, buf, count);
+                if (r < 0 && errno == EINTR)
+                        continue;
+                if (r < 0)
+                        return r;
+                if (r == 0)
+                        return nread;
+                buf = (char *)buf + r;
+                count -= r;
+                nread += r;
+        }
+        return nread;
 }
+
+/* Like write(), but restarts after EINTR */
+ssize_t safewrite(int fd, const void *buf, size_t count)
+{
+        size_t nwritten = 0;
+        while (count > 0) {
+                ssize_t r = write(fd, buf, count);
+
+                if (r < 0 && errno == EINTR)
+                        continue;
+                if (r < 0)
+                        return r;
+                if (r == 0)
+                        return nwritten;
+                buf = (const char *)buf + r;
+                count -= r;
+                nwritten += r;
+        }
+        return nwritten;
+}
+
+#ifndef PROXY
 
 int virFileStripSuffix(char *str,
                        const char *suffix)
@@ -105,6 +127,33 @@ int virFileStripSuffix(char *str,
 
     return 1;
 }
+
+char *
+virArgvToString(const char *const *argv)
+{
+    int len, i;
+    char *ret, *p;
+
+    for (len = 1, i = 0; argv[i]; i++)
+        len += strlen(argv[i]) + 1;
+
+    if (VIR_ALLOC_N(ret, len) < 0)
+        return NULL;
+    p = ret;
+
+    for (i = 0; argv[i]; i++) {
+        if (i != 0)
+            *(p++) = ' ';
+
+        strcpy(p, argv[i]);
+        p += strlen(argv[i]);
+    }
+
+    *p = '\0';
+
+    return ret;
+}
+
 
 #ifndef __MINGW32__
 
@@ -128,14 +177,14 @@ static int virSetNonBlock(int fd) {
     return 0;
 }
 
-int
-virExec(virConnectPtr conn,
-        const char *const*argv,
-        const char *const*envp,
-        const fd_set *keepfd,
-        int *retpid,
-        int infd, int *outfd, int *errfd,
-        int flags) {
+static int
+__virExec(virConnectPtr conn,
+          const char *const*argv,
+          const char *const*envp,
+          const fd_set *keepfd,
+          int *retpid,
+          int infd, int *outfd, int *errfd,
+          int flags) {
     int pid, null, i, openmax;
     int pipeout[2] = {-1,-1};
     int pipeerr[2] = {-1,-1};
@@ -174,13 +223,13 @@ virExec(virConnectPtr conn,
             if ((flags & VIR_EXEC_NONBLOCK) &&
                 virSetNonBlock(pipeout[0]) == -1) {
                 ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                            _("Failed to set non-blocking file descriptor flag"));
+                            "%s", _("Failed to set non-blocking file descriptor flag"));
                 goto cleanup;
             }
 
             if (virSetCloseExec(pipeout[0]) == -1) {
                 ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                            _("Failed to set close-on-exec file descriptor flag"));
+                            "%s", _("Failed to set close-on-exec file descriptor flag"));
                 goto cleanup;
             }
 
@@ -205,13 +254,13 @@ virExec(virConnectPtr conn,
             if ((flags & VIR_EXEC_NONBLOCK) &&
                 virSetNonBlock(pipeerr[0]) == -1) {
                 ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                            _("Failed to set non-blocking file descriptor flag"));
+                            "%s", _("Failed to set non-blocking file descriptor flag"));
                 goto cleanup;
             }
 
             if (virSetCloseExec(pipeerr[0]) == -1) {
                 ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                            _("Failed to set close-on-exec file descriptor flag"));
+                            "%s", _("Failed to set close-on-exec file descriptor flag"));
                 goto cleanup;
             }
 
@@ -385,6 +434,107 @@ virExec(virConnectPtr conn,
     return -1;
 }
 
+int
+virExec(virConnectPtr conn,
+        const char *const*argv,
+        const char *const*envp,
+        const fd_set *keepfd,
+        int *retpid,
+        int infd, int *outfd, int *errfd,
+        int flags) {
+    char *argv_str;
+
+    if ((argv_str = virArgvToString(argv)) == NULL) {
+        ReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("command debug string"));
+        return -1;
+    }
+    DEBUG0(argv_str);
+    VIR_FREE(argv_str);
+
+    return __virExec(conn, argv, envp, keepfd, retpid, infd, outfd, errfd,
+                     flags);
+}
+
+static int
+virPipeReadUntilEOF(virConnectPtr conn, int outfd, int errfd,
+                    char **outbuf, char **errbuf) {
+
+    struct pollfd fds[2];
+    int i;
+    int finished[2];
+
+    fds[0].fd = outfd;
+    fds[0].events = POLLIN;
+    finished[0] = 0;
+    fds[1].fd = errfd;
+    fds[1].events = POLLIN;
+    finished[1] = 0;
+
+    while(!(finished[0] && finished[1])) {
+
+        if (poll(fds, ARRAY_CARDINALITY(fds), -1) < 0) {
+            if (errno == EAGAIN)
+                continue;
+            goto pollerr;
+        }
+
+        for (i = 0; i < ARRAY_CARDINALITY(fds); ++i) {
+            char data[1024], **buf;
+            int got, size;
+
+            if (!(fds[i].revents))
+                continue;
+            else if (fds[i].revents & POLLHUP)
+                finished[i] = 1;
+
+            if (!(fds[i].revents & POLLIN)) {
+                if (fds[i].revents & POLLHUP)
+                    continue;
+
+                ReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                            "%s", _("Unknown poll response."));
+                goto error;
+            }
+
+            got = read(fds[i].fd, data, sizeof(data));
+
+            if (got == 0) {
+                finished[i] = 1;
+                continue;
+            }
+            if (got < 0) {
+                if (errno == EINTR)
+                    continue;
+                if (errno == EAGAIN)
+                    break;
+                goto pollerr;
+            }
+
+            buf = ((fds[i].fd == outfd) ? outbuf : errbuf);
+            size = (*buf ? strlen(*buf) : 0);
+            if (VIR_REALLOC_N(*buf, size+got+1) < 0) {
+                ReportError(conn, VIR_ERR_NO_MEMORY, NULL);
+                goto error;
+            }
+            memmove(*buf+size, data, got);
+            (*buf)[size+got] = '\0';
+        }
+        continue;
+
+    pollerr:
+        ReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                    _("poll error: %s"), strerror(errno));
+        goto error;
+    }
+
+    return 0;
+
+error:
+    VIR_FREE(*outbuf);
+    VIR_FREE(*errbuf);
+    return -1;
+}
+
 /**
  * @conn connection to report errors against
  * @argv NULL terminated argv to run
@@ -404,38 +554,85 @@ int
 virRun(virConnectPtr conn,
        const char *const*argv,
        int *status) {
-    int childpid, exitstatus, ret;
+    int childpid, exitstatus, execret, waitret;
+    int ret = -1;
+    int errfd = -1, outfd = -1;
+    char *outbuf = NULL;
+    char *errbuf = NULL;
+    char *argv_str = NULL;
 
-    if ((ret = virExec(conn, argv, NULL, NULL,
-                       &childpid, -1, NULL, NULL, VIR_EXEC_NONE)) < 0)
-        return ret;
+    if ((argv_str = virArgvToString(argv)) == NULL) {
+        ReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("command debug string"));
+        goto error;
+    }
+    DEBUG0(argv_str);
 
-    while ((ret = waitpid(childpid, &exitstatus, 0) == -1) && errno == EINTR);
-    if (ret == -1) {
+    if ((execret = __virExec(conn, argv, NULL, NULL,
+                             &childpid, -1, &outfd, &errfd,
+                             VIR_EXEC_NONE)) < 0) {
+        ret = execret;
+        goto error;
+    }
+
+    if (virPipeReadUntilEOF(conn, outfd, errfd, &outbuf, &errbuf) < 0)
+        goto error;
+
+    if (outbuf)
+        DEBUG("Command stdout: %s", outbuf);
+    if (errbuf)
+        DEBUG("Command stderr: %s", errbuf);
+
+    while ((waitret = waitpid(childpid, &exitstatus, 0) == -1) &&
+            errno == EINTR);
+    if (waitret == -1) {
         ReportError(conn, VIR_ERR_INTERNAL_ERROR,
                     _("cannot wait for '%s': %s"),
                     argv[0], strerror(errno));
-        return -1;
+        goto error;
     }
 
     if (status == NULL) {
         errno = EINVAL;
-        if (WIFEXITED(exitstatus) && WEXITSTATUS(exitstatus) == 0)
-            return 0;
+        if (WIFEXITED(exitstatus) && WEXITSTATUS(exitstatus) != 0) {
 
-        ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                    _("%s exited with non-zero status %d and signal %d"),
-                    argv[0],
-                    WIFEXITED(exitstatus) ? WEXITSTATUS(exitstatus) : 0,
-                    WIFSIGNALED(exitstatus) ? WTERMSIG(exitstatus) : 0);
-        return -1;
+            ReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                        _("'%s' exited with non-zero status %d and "
+                          "signal %d: %s"), argv_str,
+                        WIFEXITED(exitstatus) ? WEXITSTATUS(exitstatus) : 0,
+                        WIFSIGNALED(exitstatus) ? WTERMSIG(exitstatus) : 0,
+                        (errbuf ? errbuf : ""));
+            goto error;
+        }
     } else {
         *status = exitstatus;
-        return 0;
     }
+
+    ret = 0;
+
+  error:
+    VIR_FREE(outbuf);
+    VIR_FREE(errbuf);
+    VIR_FREE(argv_str);
+    if (outfd != -1)
+        close(outfd);
+    if (errfd != -1)
+        close(errfd);
+    return ret;
 }
 
 #else /* __MINGW32__ */
+
+int
+virRun(virConnectPtr conn,
+       const char *const *argv ATTRIBUTE_UNUSED,
+       int *status)
+{
+    if (status)
+        *status = ENOTSUP;
+    else
+        ReportError (conn, VIR_ERR_INTERNAL_ERROR, __FUNCTION__);
+    return -1;
+}
 
 int
 virExec(virConnectPtr conn,
@@ -521,7 +718,7 @@ static int virFileReadLimFP(FILE *fp, int maxlen, char **buf)
 }
 
 /* Like virFileReadLimFP, but use a file descriptor rather than a FILE*.  */
-int __virFileReadLimFD(int fd_arg, int maxlen, char **buf)
+int virFileReadLimFD(int fd_arg, int maxlen, char **buf)
 {
     int fd = dup (fd_arg);
     if (fd >= 0) {
@@ -541,7 +738,7 @@ int __virFileReadLimFD(int fd_arg, int maxlen, char **buf)
     return -1;
 }
 
-int __virFileReadAll(const char *path, int maxlen, char **buf)
+int virFileReadAll(const char *path, int maxlen, char **buf)
 {
     FILE *fh = fopen(path, "r");
     if (fh == NULL) {
@@ -831,7 +1028,7 @@ cleanup:
    validity.  This function is careful to return -1 when the string S
    represents a number that is not representable as an "int". */
 int
-__virStrToLong_i(char const *s, char **end_ptr, int base, int *result)
+virStrToLong_i(char const *s, char **end_ptr, int base, int *result)
 {
     long int val;
     char *p;
@@ -888,7 +1085,7 @@ virStrToLong_ll(char const *s, char **end_ptr, int base, long long *result)
 
 /* Just like virStrToLong_i, above, but produce an "unsigned long long" value.  */
 int
-__virStrToLong_ull(char const *s, char **end_ptr, int base, unsigned long long *result)
+virStrToLong_ull(char const *s, char **end_ptr, int base, unsigned long long *result)
 {
     unsigned long long val;
     char *p;
@@ -960,7 +1157,7 @@ virParseNumber(const char **str)
  * as well as leading zeros.
  */
 int
-__virMacAddrCompare (const char *p, const char *q)
+virMacAddrCompare (const char *p, const char *q)
 {
     unsigned char c, d;
     do {
@@ -1002,7 +1199,7 @@ virParseMacAddr(const char* str, unsigned char *addr)
     int i;
 
     errno = 0;
-    for (i = 0; i < 6; i++) {
+    for (i = 0; i < VIR_MAC_BUFLEN; i++) {
         char *end_ptr;
         unsigned long result;
 
@@ -1032,6 +1229,28 @@ virParseMacAddr(const char* str, unsigned char *addr)
     return -1;
 }
 
+void virFormatMacAddr(const unsigned char *addr,
+                      char *str)
+{
+    snprintf(str, VIR_MAC_STRING_BUFLEN,
+             "%02X:%02X:%02X:%02X:%02X:%02X",
+             addr[0], addr[1], addr[2],
+             addr[3], addr[4], addr[5]);
+    str[VIR_MAC_STRING_BUFLEN-1] = '\0';
+}
+
+void virGenerateMacAddr(const unsigned char *prefix,
+                        unsigned char *addr)
+{
+    addr[0] = prefix[0];
+    addr[1] = prefix[1];
+    addr[2] = prefix[2];
+    addr[3] = (int)(256*(rand()/(RAND_MAX+1.0)));
+    addr[4] = (int)(256*(rand()/(RAND_MAX+1.0)));
+    addr[5] = (int)(256*(rand()/(RAND_MAX+1.0)));
+}
+
+
 int virEnumFromString(const char *const*types,
                       unsigned int ntypes,
                       const char *type)
@@ -1055,7 +1274,7 @@ const char *virEnumToString(const char *const*types,
 }
 
 /* Translates a device name of the form (regex) "[fhv]d[a-z]+" into
- * the corresponding index (e.g. sda => 1, hdz => 26, vdaa => 27)
+ * the corresponding index (e.g. sda => 0, hdz => 25, vdaa => 26)
  * @param name The name of the device
  * @return name's index, or -1 on failure
  */
@@ -1075,8 +1294,8 @@ int virDiskNameToIndex(const char *name) {
     if (!ptr)
         return -1;
 
-    while (*ptr) {
-        idx = idx * 26;
+    for (i = 0; *ptr; i++) {
+        idx = (idx + i) * 26;
 
         if (!c_islower(*ptr))
             return -1;

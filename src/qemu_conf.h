@@ -27,11 +27,11 @@
 #include <config.h>
 
 #include "internal.h"
-#include "iptables.h"
 #include "bridge.h"
 #include "capabilities.h"
 #include "network_conf.h"
 #include "domain_conf.h"
+#include "domain_event.h"
 
 #define qemudDebug(fmt, ...) do {} while(0)
 
@@ -45,6 +45,8 @@ enum qemud_cmd_flags {
     QEMUD_CMD_FLAG_DRIVE          = (1 << 3),
     QEMUD_CMD_FLAG_DRIVE_BOOT     = (1 << 4),
     QEMUD_CMD_FLAG_NAME           = (1 << 5),
+    QEMUD_CMD_FLAG_UUID           = (1 << 6),
+    QEMUD_CMD_FLAG_DOMID          = (1 << 7), /* Xenner only */
 };
 
 /* Main driver state */
@@ -52,15 +54,11 @@ struct qemud_driver {
     unsigned int qemuVersion;
     int nextvmid;
 
-    virDomainObjPtr domains;
-    virNetworkObjPtr networks;
+    virDomainObjList domains;
 
     brControl *brctl;
-    iptablesContext *iptables;
     char *configDir;
     char *autostartDir;
-    char *networkConfigDir;
-    char *networkAutostartDir;
     char *logDir;
     unsigned int vncTLS : 1;
     unsigned int vncTLSx509verify : 1;
@@ -68,14 +66,18 @@ struct qemud_driver {
     char *vncListen;
 
     virCapsPtr caps;
+
+    /* An array of callbacks */
+    virDomainEventCallbackListPtr domainEventCallbacks;
 };
 
+/* Port numbers used for KVM migration. */
+#define QEMUD_MIGRATION_FIRST_PORT 49152
+#define QEMUD_MIGRATION_NUM_PORTS 64
 
-void qemudReportError(virConnectPtr conn,
-                      virDomainPtr dom,
-                      virNetworkPtr net,
-                      int code, const char *fmt, ...)
-    ATTRIBUTE_FORMAT(printf,5,6);
+#define qemudReportError(conn, dom, net, code, fmt...)                       \
+        virReportErrorHelper(conn, VIR_FROM_QEMU, code, __FILE__,          \
+                               __FUNCTION__, __LINE__, fmt)
 
 
 int qemudLoadDriverConfig(struct qemud_driver *driver,
@@ -93,7 +95,8 @@ int         qemudBuildCommandLine       (virConnectPtr conn,
                                          struct qemud_driver *driver,
                                          virDomainObjPtr dom,
                                          unsigned int qemuCmdFlags,
-                                         const char ***argv,
+                                         const char ***retargv,
+                                         const char ***retenv,
                                          int **tapfds,
                                          int *ntapfds,
                                          const char *migrateFrom);

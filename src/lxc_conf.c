@@ -27,34 +27,10 @@
 
 #include <sys/utsname.h>
 
+#include "virterror_internal.h"
 #include "lxc_conf.h"
 
-/* debug macros */
-#define DEBUG(fmt,...) VIR_DEBUG(__FILE__, fmt, __VA_ARGS__)
-#define DEBUG0(msg) VIR_DEBUG(__FILE__, "%s", msg)
-
 /* Functions */
-void lxcError(virConnectPtr conn, virDomainPtr dom, int code,
-              const char *fmt, ...)
-{
-    va_list args;
-    char errorMessage[1024];
-    const char *codeErrorMessage;
-
-    if (fmt) {
-        va_start(args, fmt);
-        vsnprintf(errorMessage, sizeof(errorMessage)-1, fmt, args);
-        va_end(args);
-    } else {
-        errorMessage[0] = '\0';
-    }
-
-    codeErrorMessage = __virErrorMsg(code, fmt);
-    __virRaiseError(conn, dom, NULL, VIR_FROM_LXC, code, VIR_ERR_ERROR,
-                    codeErrorMessage, errorMessage, NULL, 0, 0,
-                    codeErrorMessage, errorMessage);
-}
-
 virCapsPtr lxcCapsInit(void)
 {
     struct utsname utsname;
@@ -66,6 +42,9 @@ virCapsPtr lxcCapsInit(void)
     if ((caps = virCapabilitiesNew(utsname.machine,
                                    0, 0)) == NULL)
         goto no_memory;
+
+    /* XXX shouldn't 'borrow' KVM's prefix */
+    virCapabilitiesSetMacPrefix(caps, (unsigned char []){ 0x52, 0x54, 0x00 });
 
     if ((guest = virCapabilitiesAddGuest(caps,
                                          "exe",
@@ -104,8 +83,7 @@ int lxcLoadDriverConfig(lxc_driver_t *driver)
     return 0;
 
 no_memory:
-    lxcError(NULL, NULL, VIR_ERR_NO_MEMORY, "configDir");
+    lxcError(NULL, NULL, VIR_ERR_NO_MEMORY,
+             "%s", _("while loading LXC driver config"));
     return -1;
 }
-
-

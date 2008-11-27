@@ -41,25 +41,33 @@ enum { OPENVZ_WARN, OPENVZ_ERR };
                                 fprintf(stderr, msg);\
                                 fprintf(stderr, "\n"); }
 
+#define openvzError(conn, code, fmt...)                                      \
+        virReportErrorHelper(conn, VIR_FROM_OPENVZ, code, __FILE__,        \
+                               __FUNCTION__, __LINE__, fmt)
+
+
 /* OpenVZ commands - Replace with wrapper scripts later? */
-#define VZLIST  "vzlist"
-#define VZCTL   "vzctl"
+#define VZLIST  "/usr/sbin/vzlist"
+#define VZCTL   "/usr/sbin/vzctl"
+
+#define VZCTL_BRIDGE_MIN_VERSION ((3 * 1000 * 1000) + (0 * 1000) + 22 + 1)
 
 struct openvz_driver {
     virCapsPtr caps;
-    virDomainObjPtr domains;
+    virDomainObjList domains;
+    int version;
 };
 
-void openvzError (virConnectPtr conn, virErrorNumber code, const char *fmt, ...)
-    ATTRIBUTE_FORMAT(printf, 3, 4);
 int openvz_readline(int fd, char *ptr, int maxlen);
+int openvzExtractVersion(virConnectPtr conn,
+                         struct openvz_driver *driver);
 int openvzReadConfigParam(int vpsid ,const char * param, char *value, int maxlen);
+int openvzWriteConfigParam(int vpsid, const char *param, const char *value);
 virCapsPtr openvzCapsInit(void);
 int openvzLoadDomains(struct openvz_driver *driver);
 void openvzFreeDriver(struct openvz_driver *driver);
 int strtoI(const char *str);
-int openvzCheckEmptyMac(const unsigned char *mac);
-char *openvzMacToString(const unsigned char *mac);
 int openvzSetDefinedUUID(int vpsid, unsigned char *uuid);
+unsigned int openvzGetNodeCPUs(void);
 
 #endif /* OPENVZ_CONF_H */

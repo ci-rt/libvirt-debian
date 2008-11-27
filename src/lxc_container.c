@@ -41,13 +41,12 @@
 /* For MS_MOVE */
 #include <linux/fs.h>
 
+#include "virterror_internal.h"
+#include "logging.h"
 #include "lxc_container.h"
 #include "util.h"
 #include "memory.h"
 #include "veth.h"
-
-#define DEBUG(fmt,...) VIR_DEBUG(__FILE__, fmt, __VA_ARGS__)
-#define DEBUG0(msg) VIR_DEBUG(__FILE__, "%s", msg)
 
 /*
  * GLibc headers are behind the kernel, so we define these
@@ -320,12 +319,12 @@ static int lxcContainerPopulateDevices(void)
         mode_t mode;
         const char *path;
     } devs[] = {
-        { 1, 3, 0666, "/dev/null" },
-        { 1, 5, 0666, "/dev/zero" },
-        { 1, 7, 0666, "/dev/full" },
-        { 5, 1, 0600, "/dev/console" },
-        { 1, 8, 0666, "/dev/random" },
-        { 1, 9, 0666, "/dev/urandom" },
+        { LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_NULL, 0666, "/dev/null" },
+        { LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_ZERO, 0666, "/dev/zero" },
+        { LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_FULL, 0666, "/dev/full" },
+        { LXC_DEV_MAJ_TTY, LXC_DEV_MIN_CONSOLE, 0600, "/dev/console" },
+        { LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_RANDOM, 0666, "/dev/random" },
+        { LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_URANDOM, 0666, "/dev/urandom" },
     };
 
     if (virFileMakePath("/dev") < 0 ||
@@ -368,28 +367,28 @@ static int lxcContainerPopulateDevices(void)
 
 static int lxcContainerMountNewFS(virDomainDefPtr vmDef)
 {
-    virDomainFSDefPtr tmp;
+    int i;
 
     /* Pull in rest of container's mounts */
-    for (tmp = vmDef->fss; tmp; tmp = tmp->next) {
+    for (i = 0 ; i < vmDef->nfss ; i++) {
         char *src;
-        if (STREQ(tmp->dst, "/"))
+        if (STREQ(vmDef->fss[i]->dst, "/"))
             continue;
         // XXX fix
-        if (tmp->type != VIR_DOMAIN_FS_TYPE_MOUNT)
+        if (vmDef->fss[i]->type != VIR_DOMAIN_FS_TYPE_MOUNT)
             continue;
 
-        if (asprintf(&src, "/.oldroot/%s", tmp->src) < 0) {
+        if (asprintf(&src, "/.oldroot/%s", vmDef->fss[i]->src) < 0) {
             lxcError(NULL, NULL, VIR_ERR_NO_MEMORY, NULL);
             return -1;
         }
 
-        if (virFileMakePath(tmp->dst) < 0 ||
-            mount(src, tmp->dst, NULL, MS_BIND, NULL) < 0) {
+        if (virFileMakePath(vmDef->fss[i]->dst) < 0 ||
+            mount(src, vmDef->fss[i]->dst, NULL, MS_BIND, NULL) < 0) {
             VIR_FREE(src);
             lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
                      _("failed to mount %s at %s for container: %s"),
-                     tmp->src, tmp->dst, strerror(errno));
+                     vmDef->fss[i]->src, vmDef->fss[i]->dst, strerror(errno));
             return -1;
         }
         VIR_FREE(src);
@@ -482,21 +481,21 @@ static int lxcContainerSetupPivotRoot(virDomainDefPtr vmDef,
    but with extra stuff mapped in */
 static int lxcContainerSetupExtraMounts(virDomainDefPtr vmDef)
 {
-    virDomainFSDefPtr tmp;
+    int i;
 
-    for (tmp = vmDef->fss; tmp; tmp = tmp->next) {
+    for (i = 0 ; i < vmDef->nfss ; i++) {
         // XXX fix to support other mount types
-        if (tmp->type != VIR_DOMAIN_FS_TYPE_MOUNT)
+        if (vmDef->fss[i]->type != VIR_DOMAIN_FS_TYPE_MOUNT)
             continue;
 
-        if (mount(tmp->src,
-                  tmp->dst,
+        if (mount(vmDef->fss[i]->src,
+                  vmDef->fss[i]->dst,
                   NULL,
                   MS_BIND,
                   NULL) < 0) {
             lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
                      _("failed to mount %s at %s for container: %s"),
-                     tmp->src, tmp->dst, strerror(errno));
+                     vmDef->fss[i]->src, vmDef->fss[i]->dst, strerror(errno));
             return -1;
         }
     }
@@ -514,14 +513,14 @@ static int lxcContainerSetupExtraMounts(virDomainDefPtr vmDef)
 
 static int lxcContainerSetupMounts(virDomainDefPtr vmDef)
 {
-    virDomainFSDefPtr tmp;
+    int i;
     virDomainFSDefPtr root = NULL;
 
-    for (tmp = vmDef->fss; tmp && !root; tmp = tmp->next) {
-        if (tmp->type != VIR_DOMAIN_FS_TYPE_MOUNT)
+    for (i = 0 ; i < vmDef->nfss ; i++) {
+        if (vmDef->fss[i]->type != VIR_DOMAIN_FS_TYPE_MOUNT)
             continue;
-        if (STREQ(tmp->dst, "/"))
-            root = tmp;
+        if (STREQ(vmDef->fss[i]->dst, "/"))
+            root = vmDef->fss[i];
     }
 
     if (root)
@@ -550,7 +549,7 @@ static int lxcContainerChild( void *data )
 
     if (NULL == vmDef) {
         lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                 _("lxcChild() passed invalid vm definition"));
+                 "%s", _("lxcChild() passed invalid vm definition"));
         return -1;
     }
 
