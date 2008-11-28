@@ -1,4 +1,4 @@
-From 20cd80189d752d5dc630afa8d29a3ebf0ac51649 Mon Sep 17 00:00:00 2001
+From 47cfd0a5ebb19ea222d6ec758c44878c9e8714cd Mon Sep 17 00:00:00 2001
 From: =?utf-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
 Date: Wed, 26 Nov 2008 10:54:51 +0100
 Subject: [PATCH] xen: prefer xenstoraged driver for listDomains
@@ -14,10 +14,10 @@ using the HV driver.
  5 files changed, 28 insertions(+), 9 deletions(-)
 
 diff --git a/src/proxy_internal.c b/src/proxy_internal.c
-index 1378559..daf1193 100644
+index 2e801d9..0254ebc 100644
 --- a/src/proxy_internal.c
 +++ b/src/proxy_internal.c
-@@ -37,7 +37,6 @@ static int xenProxyOpen(virConnectPtr conn, xmlURIPtr uri, virConnectAuthPtr aut
+@@ -40,7 +40,6 @@ static int xenProxyOpen(virConnectPtr conn, virConnectAuthPtr auth, int flags);
  static int xenProxyGetVersion(virConnectPtr conn, unsigned long *hvVer);
  static int xenProxyNodeGetInfo(virConnectPtr conn, virNodeInfoPtr info);
  static char *xenProxyGetCapabilities(virConnectPtr conn);
@@ -25,7 +25,7 @@ index 1378559..daf1193 100644
  static int xenProxyNumOfDomains(virConnectPtr conn);
  static unsigned long xenProxyDomainGetMaxMemory(virDomainPtr domain);
  static int xenProxyDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info);
-@@ -581,7 +580,7 @@ xenProxyGetVersion(virConnectPtr conn, unsigned long *hvVer)
+@@ -566,7 +565,7 @@ xenProxyGetVersion(virConnectPtr conn, unsigned long *hvVer)
   *
   * Returns the number of domain found or -1 in case of error
   */
@@ -35,7 +35,7 @@ index 1378559..daf1193 100644
  {
      virProxyPacket req;
 diff --git a/src/proxy_internal.h b/src/proxy_internal.h
-index 0e66c1c..693b10b 100644
+index 56dc867..0f31752 100644
 --- a/src/proxy_internal.h
 +++ b/src/proxy_internal.h
 @@ -94,4 +94,6 @@ extern virDomainPtr xenProxyLookupByName(virConnectPtr conn,
@@ -46,10 +46,10 @@ index 0e66c1c..693b10b 100644
 +                               int maxids);
  #endif /* __LIBVIR_PROXY_H__ */
 diff --git a/src/xen_unified.c b/src/xen_unified.c
-index 5807391..0fb5d73 100644
+index cce608c..456fe46 100644
 --- a/src/xen_unified.c
 +++ b/src/xen_unified.c
-@@ -485,14 +485,31 @@ static int
+@@ -505,14 +505,31 @@ static int
  xenUnifiedListDomains (virConnectPtr conn, int *ids, int maxids)
  {
      GET_PRIVATE(conn);
@@ -88,10 +88,10 @@ index 5807391..0fb5d73 100644
  }
  
 diff --git a/src/xend_internal.c b/src/xend_internal.c
-index 2e1a8d1..9f1ad42 100644
+index 55eaf94..b839497 100644
 --- a/src/xend_internal.c
 +++ b/src/xend_internal.c
-@@ -3455,7 +3455,7 @@ xenDaemonGetVersion(virConnectPtr conn, unsigned long *hvVer)
+@@ -3411,7 +3411,7 @@ xenDaemonGetVersion(virConnectPtr conn, unsigned long *hvVer)
   *
   * Returns the number of domain found or -1 in case of error
   */
@@ -101,10 +101,10 @@ index 2e1a8d1..9f1ad42 100644
  {
      struct sexpr *root = NULL;
 diff --git a/src/xend_internal.h b/src/xend_internal.h
-index 12fa379..af90290 100644
+index 20645fb..768964f 100644
 --- a/src/xend_internal.h
 +++ b/src/xend_internal.h
-@@ -178,5 +178,6 @@ int xenDaemonDomainMigratePrepare (virConnectPtr dconn, char **cookie, int *cook
+@@ -179,5 +179,6 @@ int xenDaemonDomainMigratePrepare (virConnectPtr dconn, char **cookie, int *cook
  int xenDaemonDomainMigratePerform (virDomainPtr domain, const char *cookie, int cookielen, const char *uri, unsigned long flags, const char *dname, unsigned long resource);
  
  int xenDaemonDomainBlockPeek (virDomainPtr domain, const char *path, unsigned long long offset, size_t size, void *buffer);

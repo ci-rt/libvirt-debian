@@ -1,6 +1,4 @@
 0001-remove-RHism.diff.patch
 0002-qemu-disable-network.diff.patch
 0003-allow-libvirt-group-to-access-the-socket.patch
-0004-support-virtio-and-scsi-disks-in-qemudDomainBlockSta.patch
-0005-fix-define-vs.-defined-typos.patch
-0006-xen-prefer-xenstoraged-driver-for-listDomains.patch
+0004-xen-prefer-xenstoraged-driver-for-listDomains.patch
