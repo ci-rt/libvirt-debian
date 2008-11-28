@@ -42,7 +42,3 @@ EXAMPLES=debian/libvirt-doc/usr/share/doc/libvirt-doc/examples/
 binary-install/libvirt-doc::
 	cd $(EXAMPLES) && rm -rf .libs *.o info1 suspend ../html/CVS
 
-redo-patches::
-	rm -f debian/patches/*
-	git format-patch -N -o debian/patches master...patch-queue | \
-		sed -e 's%debian/patches/%%' > debian/patches/series
