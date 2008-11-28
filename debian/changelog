@@ -1,3 +1,15 @@
+libvirt (0.5.0-1) experimental; urgency=low
+
+  * [717ef21] Imported Upstream version 0.5.0
+  * [b7a1fbd] enable OpenVZ support (Closes: #504597) - thanks to Pierre
+    Chifflier for the patch
+  * [ee3590a] drop patches, fixed upstream:
+        * 0004-support-virtio-and-scsi-disks-in-qemudDomainBlockSta.patch
+        * 0005-fix-define-vs.-defined-typos.patch
+  * [f4f601f] bump shlibs to 0.5.0
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 28 Nov 2008 16:40:38 +0100
+
 libvirt (0.4.6-6) unstable; urgency=low
 
   * [ff8e9ae] README.Debian: clarify xen configuration
