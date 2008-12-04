@@ -1,3 +1,21 @@
+libvirt (0.4.6-7) unstable; urgency=low
+
+  * [ea12bd9] create /var/run/libvirt fixes /var/run on tmpfs
+    (Closes: #507578)
+  * [97e5706] also look for /usr/bin/kvm (Closes: #507547) 
+  * [311b4c1] increase initial qemu monitor read timeout 
+    (Closes: #499720)
+  * [fbe4e00] open qemu monitor log O_APPEND instead of O_TRUNC
+  * [f8ce017] raise error on invalid volume format
+  * [40edcf8] rotate qemu monitor logs (Closes: #507553) - thanks to
+    Harald Staub
+  * [46ea43a] fix segfault on missing volume format (Closes: #507677) -
+    thanks to Daniel Veillard
+  * [ee377f3] bump shlibs version to 0.4.6
+  * [504d55d] depend on logrotate
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 04 Dec 2008 17:50:45 +0100
+
 libvirt (0.4.6-6) unstable; urgency=low
 
   * [ff8e9ae] README.Debian: clarify xen configuration
