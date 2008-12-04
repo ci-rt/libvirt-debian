@@ -37,6 +37,7 @@ DEB_DBG_PACKAGE_libvirt0 = libvirt0-dbg
 DEB_PYTHON_SETUP_CMD := /dev/null
 DEB_DH_MAKESHLIBS_ARGS_libvirt0 += -V 'libvirt0 (>= 0.5.0)'
 DEB_DH_INSTALLINIT_ARGS := --no-restart-on-upgrade
+DEB_DH_INSTALLLOGROTATE_ARGS := --name=libvirtd
 
 EXAMPLES=debian/libvirt-doc/usr/share/doc/libvirt-doc/examples/
 
