@@ -1,0 +1,29 @@
+From 9533ab9556ddf15435944ec03f6ab1730fb2e279 Mon Sep 17 00:00:00 2001
+From: Daniel Veillard <veillard@redhat.com>
+Date: Thu, 4 Dec 2008 16:26:31 +0100
+Subject: [PATCH] Fix segfault on missing volume format
+
+Closes: #507677
+---
+ src/storage_conf.c |    5 +++++
+ 1 files changed, 5 insertions(+), 0 deletions(-)
+
+diff --git a/src/storage_conf.c b/src/storage_conf.c
+index f0d2b94..c22889f 100644
+--- a/src/storage_conf.c
++++ b/src/storage_conf.c
+@@ -752,6 +752,11 @@ virStorageVolDefParseDoc(virConnectPtr conn,
+     ret->target.path = virXPathString(conn, "string(/volume/target/path)", ctxt);
+     if (options->formatFromString) {
+         char *format = virXPathString(conn, "string(/volume/target/format/@type)", ctxt);
++        if (format == NULL) {
++            virStorageReportError(conn, VIR_ERR_XML_ERROR,
++                          _("cannot guess missing format type for target"));
++            goto cleanup;
++        }
+         if ((ret->target.format = (options->formatFromString)(conn, format)) < 0) {
+             virStorageReportError(conn, VIR_ERR_XML_ERROR,
+                                   _("unknown volume format type %s"), format);
+-- 
+1.6.0.3
+

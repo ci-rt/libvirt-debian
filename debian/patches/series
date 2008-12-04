@@ -8,3 +8,4 @@
 0008-Increase-initial-qemu-monitor-read-timeout.patch
 0009-Open-qemu-monitor-log-O_APPEND-instead-of-O_TRUNC.patch
 0010-raise-error-on-invalid-volume-format.patch
+0011-Fix-segfault-on-missing-volume-format.patch
