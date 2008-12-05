@@ -1049,7 +1049,7 @@ static int lxcStartup(void)
             continue;
 
         /* Try and load the live config */
-        tmp = virDomainDefParseFile(NULL, lxc_driver->caps, config);
+        tmp = virDomainDefParseFile(NULL, lxc_driver->caps, config, 0);
         VIR_FREE(config);
         if (tmp) {
             vm->newDef = vm->def;
@@ -1232,7 +1232,6 @@ static int lxcGetSchedulerParameters(virDomainPtr _domain,
 static virDriver lxcDriver = {
     VIR_DRV_LXC, /* the number virDrvNo */
     "LXC", /* the name of the driver */
-    LIBVIR_VERSION_NUMBER, /* the version of the backend */
     lxcOpen, /* open */
     lxcClose, /* close */
     NULL, /* supports_feature */

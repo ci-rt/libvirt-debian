@@ -270,6 +270,31 @@ virStorageBackendUpdateVolInfoFD(virConnectPtr conn,
     return 0;
 }
 
+#if defined(UDEVADM) || defined(UDEVSETTLE)
+void virStorageBackendWaitForDevices(virConnectPtr conn)
+{
+#ifdef UDEVADM
+    const char *const settleprog[] = { UDEVADM, "settle", NULL };
+#else
+    const char *const settleprog[] = { UDEVSETTLE, NULL };
+#endif
+    int exitstatus;
+
+    if (access(settleprog[0], X_OK) != 0)
+        return;
+
+    /*
+     * NOTE: we ignore errors here; this is just to make sure that any device
+     * nodes that are being created finish before we try to scan them.
+     * If this fails for any reason, we still have the backup of polling for
+     * 5 seconds for device nodes.
+     */
+    virRun(conn, settleprog, &exitstatus);
+}
+#else
+void virStorageBackendWaitForDevices(virConnectPtr conn ATTRIBUTE_UNUSED) {}
+#endif
+
 /*
  * Given a volume path directly in /dev/XXX, iterate over the
  * entries in the directory pool->def->target.path and find the
@@ -291,6 +316,7 @@ virStorageBackendStablePath(virConnectPtr conn,
     DIR *dh;
     struct dirent *dent;
     char *stablepath;
+    int opentries = 0;
 
     /* Short circuit if pool has no target, or if its /dev */
     if (pool->def->target.path == NULL ||
@@ -304,12 +330,17 @@ virStorageBackendStablePath(virConnectPtr conn,
     if (!STRPREFIX(pool->def->target.path, "/dev"))
         goto ret_strdup;
 
-    /* The pool is pointing somewhere like /dev/disk/by-path
-     * or /dev/disk/by-id, so we need to check all symlinks in
-     * the target directory and figure out which one points
-     * to this device node
+    /* We loop here because /dev/disk/by-{id,path} may not have existed
+     * before we started this operation, so we have to give it some time to
+     * get created.
      */
+ reopen:
     if ((dh = opendir(pool->def->target.path)) == NULL) {
+        opentries++;
+        if (errno == ENOENT && opentries < 50) {
+            usleep(100 * 1000);
+            goto reopen;
+        }
         virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
                               _("cannot read dir %s: %s"),
                               pool->def->target.path,
@@ -317,6 +348,11 @@ virStorageBackendStablePath(virConnectPtr conn,
         return NULL;
     }
 
+    /* The pool is pointing somewhere like /dev/disk/by-path
+     * or /dev/disk/by-id, so we need to check all symlinks in
+     * the target directory and figure out which one points
+     * to this device node
+     */
     while ((dent = readdir(dh)) != NULL) {
         if (dent->d_name[0] == '.')
             continue;

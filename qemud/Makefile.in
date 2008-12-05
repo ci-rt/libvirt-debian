@@ -610,6 +610,8 @@ SYS_STAT_H = @SYS_STAT_H@
 SYS_TIME_H = @SYS_TIME_H@
 TAR = @TAR@
 U = @U@
+UDEVADM = @UDEVADM@
+UDEVSETTLE = @UDEVSETTLE@
 UMOUNT = @UMOUNT@
 UNISTD_H_HAVE_WINSOCK2_H = @UNISTD_H_HAVE_WINSOCK2_H@
 USE_NLS = @USE_NLS@
@@ -747,13 +749,13 @@ EXTRA_DIST = \
 @WITH_LIBVIRTD_TRUE@	$(COVERAGE_LDFLAGS) \
 @WITH_LIBVIRTD_TRUE@	$(POLKIT_LIBS)
 
-@WITH_LIBVIRTD_TRUE@libvirtd_DEPENDENCIES = ../src/libvirt.la
 @WITH_LIBVIRTD_TRUE@libvirtd_LDADD = ../gnulib/lib/libgnu.la \
 @WITH_LIBVIRTD_TRUE@	$(am__append_1) $(am__append_2) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_3) $(am__append_4) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_5) $(am__append_6) \
 @WITH_LIBVIRTD_TRUE@	../src/libvirt.la $(am__append_9)
 @HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policydir = $(datadir)/PolicyKit/policy
+@WITH_LIBVIRTD_TRUE@libvirtd_DEPENDENCIES = $(libvirtd_LDADD)
 @WITH_LIBVIRTD_TRUE@default_xml_dest = libvirt/qemu/networks/default.xml
 CLEANFILES = libvirtd.init *.cov *.gcov .libs/*.gcda .libs/*.gcno \
 	*.gcno *.gcda

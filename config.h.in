@@ -690,6 +690,12 @@
 /* Whether backtrace() is available */
 #undef TEST_OOM_TRACE
 
+/* Location or name of the udevadm program */
+#undef UDEVADM
+
+/* Location or name of the udevsettle program */
+#undef UDEVSETTLE
+
 /* Location or name of the mount program */
 #undef UMOUNT
 

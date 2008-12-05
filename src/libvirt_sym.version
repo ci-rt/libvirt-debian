@@ -249,6 +249,7 @@ LIBVIRT_0.5.0 {
 
 } LIBVIRT_0.4.5;
 
+/* no new entry point in 0.5.1 */
 /* .... define new API here using predicted next version number .... */
 
 
@@ -269,7 +270,7 @@ LIBVIRT_0.5.0 {
  * Symbols here are only for use by virsh, libvirtd and dlopen
  * driver modules
  */
-LIBVIRT_PRIVATE_0.5.0 {
+LIBVIRT_PRIVATE_0.5.1 {
 
   global:
 	/* bridge.h */
