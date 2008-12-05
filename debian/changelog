@@ -1,3 +1,16 @@
+libvirt (0.5.1-1) experimental; urgency=low
+
+  * [d76b3a1] Imported Upstream version 0.5.1 (Closes: #507677, #507547)
+  * [2e550ae] enable hal for device enumeration
+  * [0d9116a] rotate qemu monitor logs (Closes: #507553) - thanks to
+    Harald Staub
+  * [5f85e66] depend on logrotate
+  * [6e955a3] open qemu monitor O_APPEND instead of O_TRUNC for logrotate
+  * [7dbea84] drop 0004-xen-prefer-xenstoraged-driver-for-
+    listDomains.patch - applied upstream
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 05 Dec 2008 09:36:54 +0100
+
 libvirt (0.5.0-1) experimental; urgency=low
 
   * [717ef21] Imported Upstream version 0.5.0
