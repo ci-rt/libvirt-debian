@@ -38,15 +38,16 @@ To make the default network start automatically use:
 
 In order for things to work this way you need to have the recommended packages
 dnsmasq, bridge-utils and iptables installed. However Debian's default dnsmasq
-configuration conflicts with the way libvirtd wants to invoke it. You have two
-possibilities:
+needs to be adjusted slightly to interoperate with libvirtd:
 
-    * don't start dnsmasq via /etc/init.d/dnsmasq during system startup and let
-      libvirtd handle dnsmasq completely
+cat <<EOF >/etc/dnsmasq.d/00_libvirtd.conf
+# only bind to loopback by default
+interface=lo
+bind-interfaces
+EOF
 
-    * use "interface=lo" and "bind-interfaces" in dnsmasq.conf 
-
-See http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=504605 for more information.
+This makes dnsmasq only bind to the loopback interface by default so libvirtd
+can handle the virtual bridges.
 
 Access Control
 ==============
