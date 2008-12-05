@@ -392,6 +392,17 @@ xenUnifiedClose (virConnectPtr conn)
     return 0;
 }
 
+
+#define HV_VERSION ((DOM0_INTERFACE_VERSION >> 24) * 1000000 +         \
+                    ((DOM0_INTERFACE_VERSION >> 16) & 0xFF) * 1000 +   \
+                    (DOM0_INTERFACE_VERSION & 0xFFFF))
+
+unsigned long xenUnifiedVersion(void)
+{
+    return HV_VERSION;
+}
+
+
 static const char *
 xenUnifiedType (virConnectPtr conn)
 {
@@ -416,7 +427,7 @@ xenUnifiedSupportsFeature (virConnectPtr conn ATTRIBUTE_UNUSED, int feature)
 }
 
 static int
-xenUnifiedVersion (virConnectPtr conn, unsigned long *hvVer)
+xenUnifiedGetVersion (virConnectPtr conn, unsigned long *hvVer)
 {
     GET_PRIVATE(conn);
     int i;
@@ -505,14 +516,31 @@ static int
 xenUnifiedListDomains (virConnectPtr conn, int *ids, int maxids)
 {
     GET_PRIVATE(conn);
-    int i, ret;
+    int ret;
 
-    for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
-        if (priv->opened[i] && drivers[i]->listDomains) {
-            ret = drivers[i]->listDomains (conn, ids, maxids);
-            if (ret >= 0) return ret;
-        }
+    /* Try xenstore. */
+    if (priv->opened[XEN_UNIFIED_XS_OFFSET]) {
+        ret = xenStoreListDomains (conn, ids, maxids);
+        if (ret >= 0) return ret;
+    }
 
+    /* Try HV. */
+    if (priv->opened[XEN_UNIFIED_HYPERVISOR_OFFSET]) {
+        ret = xenHypervisorListDomains (conn, ids, maxids);
+        if (ret >= 0) return ret;
+    }
+
+    /* Try xend. */
+    if (priv->opened[XEN_UNIFIED_XEND_OFFSET]) {
+        ret = xenDaemonListDomains (conn, ids, maxids);
+        if (ret >= 0) return ret;
+    }
+
+    /* Try proxy. */
+    if (priv->opened[XEN_UNIFIED_PROXY_OFFSET]) {
+        ret = xenProxyListDomains (conn, ids, maxids);
+        if (ret >= 0) return ret;
+    }
     return -1;
 }
 
@@ -819,8 +847,15 @@ xenUnifiedDomainSetMaxMemory (virDomainPtr dom, unsigned long memory)
     GET_PRIVATE(dom->conn);
     int i;
 
+    /* Prefer xend for setting max memory */
+    if (priv->opened[XEN_UNIFIED_XEND_OFFSET]) {
+        if (xenDaemonDomainSetMaxMemory (dom, memory) == 0)
+            return 0;
+    }
+
     for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
-        if (priv->opened[i] &&
+        if (i != XEN_UNIFIED_XEND_OFFSET &&
+            priv->opened[i] &&
             drivers[i]->domainSetMaxMemory &&
             drivers[i]->domainSetMaxMemory (dom, memory) == 0)
             return 0;
@@ -1359,20 +1394,15 @@ xenUnifiedDomainEventDeregister (virConnectPtr conn,
 
 /*----- Register with libvirt.c, and initialise Xen drivers. -----*/
 
-#define HV_VERSION ((DOM0_INTERFACE_VERSION >> 24) * 1000000 +         \
-                    ((DOM0_INTERFACE_VERSION >> 16) & 0xFF) * 1000 +   \
-                    (DOM0_INTERFACE_VERSION & 0xFFFF))
-
 /* The interface which we export upwards to libvirt.c. */
 static virDriver xenUnifiedDriver = {
     .no = VIR_DRV_XEN_UNIFIED,
     .name = "Xen",
-    .ver = HV_VERSION,
     .open 			= xenUnifiedOpen,
     .close 			= xenUnifiedClose,
     .supports_feature   = xenUnifiedSupportsFeature,
     .type 			= xenUnifiedType,
-    .version 			= xenUnifiedVersion,
+    .version 			= xenUnifiedGetVersion,
     .getHostname    = xenUnifiedGetHostname,
     .getMaxVcpus 			= xenUnifiedGetMaxVcpus,
     .nodeGetInfo 			= xenUnifiedNodeGetInfo,

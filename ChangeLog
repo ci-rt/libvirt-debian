@@ -1,3 +1,163 @@
+Thu Dec  4 16:51:41 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/libvirt_sym.version.in configure.in NEWS docs/*: release
+	  of 0.5.1
+	* po/*: updated and regenerated
+
+Thu Dec  4 16:20:20 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/storage_conf.c: fix crash and regression when defining
+	  a storage volume without a format (Cole Robinson)
+
+Thu Dec  4 09:45:00 EST 2008 Cole Robinson <crobinso@redhat.com>
+
+	* docs/formatstorage.html.in docs/storage.html.in : Fix some
+	documentation copy and paste errors.
+	* src/virsh.c : Fix a typo
+
+Thu Dec  4 09:42:00 EST 2008 Cole Robinson <crobinso@redhat.com>
+
+	* src/qemu_driver.c: Increase timeout for initial monitor poll
+
+Thu Dec  4 15:36:42 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/bridge.c: patch setting MTU on tap interface to be the same
+	  as the value for the bridge (Eduardo Habkost)
+
+Thu 4 Dec 2008 12:46:01 CET Guido Günther <agx@sigxcpu.org>
+
+	Differentiate between active and inactive configs by honoring the
+	VIR_DOMAIN_XML_INACTIVE flag.
+	* src/domain_conf.c (virDomainDefParseXML): add and pass on flags arg
+	(virDomainDefParseFile): Likewise
+	(virDomainDefParseNode): Likewise
+	(virDomainGraphicsDefParseXML): Likewise
+	* src/domain_conf.c (virDomainDefParseXML): only restore domain id if
+	!VIR_DOMAIN_XML_INACTIVE
+	* src/domain_conf. (virDomainGraphicsDefParseXML): only restore vnc
+	port if !VIR_DOMAIN_XML_INACTIVE
+	* src/lxc_driver.c (lxcStartup): pass 0 flag since we restore life
+	config
+	* src/lxc_controller.c: pass VIR_DOMAIN_XML_INACTIVE
+	* src/test.c: pass VIR_DOMAIN_XML_INACTIVE
+	* tests/qemuxml2argvtest.c: pass VIR_DOMAIN_XML_INACTIVE
+
+Thu 4 Dec 2008 11:41:12 CET Guido Günther <agx@sigxcpu.org>
+
+	* src/qemu_driver.c: also look for /usr/bin/kvm
+
+Tue 2 Dec 2008 16:58:16 +0100 Jim Meyering <meyering@redhat.com>
+
+	fix inadequate initialization in storage and test drivers
+	* src/storage_driver.c (storageListPools): Set all "names" entries to 0.
+	(storageListDefinedPools, storagePoolListVolumes): Likewise.
+	* src/test.c (testStoragePoolListVolumes): Likewise.
+
+Tue Dec 2 13:45:00 CET 2008 Chris Lalancette <clalance@redhat.com>
+	* configure.in, src/storage_backend.c: Older distributions (i.e.
+	RHEL-5) don't have udevadm at all, but they do have udevsettle.  So
+	change our tests to prefer udevadm if it exists, but to fall back to
+	udevsettle if it does not.
+
+Tue Dec 2 11:34:22 GMT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* qemud/qemud.c: Registering network, storage & nodedev drivers
+	before any domain drivers, so domain autostart can rely on
+	network/storage autostarted objects. Patch from Gerd von Egidy
+
+Tue Dec 2 11:21:22 GMT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/uml_driver.c: Fix recording of watch number to make
+	inotify actually work.
+
+Mon Dec 1 16:01:54 +0100 2008 Jim Meyering <meyering@redhat.com>
+
+	tests: daemon-conf: accommodate numeric-valued config params
+	This test would hang when failing to perturb the soon-to-be-
+	added numeric (and non-boolean) valued parameters, max_clients,
+	max_workers, min_workers.
+	* tests/daemon-conf: Require that all commented-out settings
+	in libvirtd.conf have the same form.  Before, two parameters
+	were not being tested, since a space had snuck between the
+	leading "#" and the "param = value" parts.
+	Apply each RHS-value-perturbing transformation
+	separately, not in series.
+	Let VERBOSE=yes turn on debugging.
+	Be more verbose by default, since this is a relatively
+	long-running test.
+	* qemud/libvirtd.conf: Normalize the spacing around each setting
+	that is to be perturbed by tests/daemon-conf.
+
+Mon Dec 1 10:30:10 +0100 2008 Jim Meyering <meyering@redhat.com>
+
+	uml: don't free an uninitialized variable
+	* src/uml_driver.c (umlDomainShutdown): Initialize "info".
+	Patch and bug report from Ron Yorston <rmy@tigress.co.uk>.
+
+Sun Nov 30 18:36:33 GMT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/xen_inotify.c: Close directory handle once done
+	processing files
+
+Fri Nov 28 16:16:54 CET 2008 Guido Günther <agx@sigxcpu.org>
+
+	Prefer xenstore driver for listDomains, since xen HV reports ghost ids
+	of already shutdown domains in some xen versions
+	* src/proxy_internal.c, src/proxy_internal.h: declare
+	xenProxyListDomains non static
+	* src/xend_internal.c, src/xend_internal.h: declare
+	xenDaemonListDomains non static
+	* src/xen_unified.c: prefer xenStoreListDomains over
+	xenHypervisorListDomains for xenUnifiedListDomains
+
+Fri Nov 28 11:58:40 GMT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	Allow generic remote://hostname/ URI for automatic probe
+	of hypervisor driver.
+	* docs/uri.html, docs/uri.html.in: Document remote://hostname/ style
+	URI syntax
+	* src/driver.h: Remove version field
+	* src/libvirt.c: Directly impl virGetVersion() instead of calling out
+	to individual drivers
+	* src/lxc_driver.c, src/openvz_driver.c, src/qemu_driver.c,
+	src/remote_internal.h, src/test.c, src/uml_driver.c,
+	src/xen_unified.c, src/xen_unified.h: Remove version from
+	driver tables.
+	* src/remote_internal.c: Allow 'remote' as a URI scheme for
+	automatically probing on remote server
+
+Fri Nov 28 11:21:40 GMT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	Fix XM driver disk parsing with no source CDROMs
+	* src/domain_conf.c: Translate "" into NULL for disk source
+	path to deal with broken apps
+	* src/xm_internal.c: Fix disk source parsing to work with
+	no-source disk definitions (eg CDROM without media)
+	* tests/xmconfigdata/test-no-source-cdrom.cfg,
+	tests/xmconfigdata/test-no-source-cdrom.xml,
+	tests/xmconfigtest.c: Add test case for no-src CDROM
+
+Fri Nov 28 11:17:40 GMT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* libvirt.spec.in: Add missing numa-ctl BuildRequires
+	* qemud/Makefile.am: Fix libvirtd_DEPENDANCIES to include all libs
+	* src/qemu_conf.c, src/qemu_driver.c, src/uml_conf.c,
+	src/uml_driver.c: Define NUMA_VERSION1_COMPATIBILITY and
+	fix size of array used to get node mapping
+
+Fri Nov 28 08:40:00 CET 2008 Chris Lalancette <clalance@redhat.com>
+	* src/storage_backend.c: Wait up to 5 seconds for
+	/dev/disk/by-{id,path} to exist in virStorageBackendStablePath
+
+Thu Nov 27 17:15:10 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/xen_unified.c: use preferably xend method to update
+	  the maximum memory of a xen guest (Jim Fehlig)
+
+Wed Nov 26 15:46:07 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* libvirt.spec.in: cleanups and missing dep for hal
+
 Tue Nov 25 16:29:09 CET 2008 Daniel Veillard <veillard@redhat.com>
 
 	* configure.in docs/* NEWS: release of 0.5.0

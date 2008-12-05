@@ -46,6 +46,7 @@
 #include <sys/inotify.h>
 
 #if HAVE_NUMACTL
+#define NUMA_VERSION1_COMPATIBILITY 1
 #include <numa.h>
 #endif
 
@@ -347,16 +348,16 @@ umlStartup(void) {
         return -1;
     }
 
-    if ((uml_driver->inotifyWatch =
-         inotify_add_watch(uml_driver->inotifyFD,
-                           uml_driver->monitorDir,
-                           IN_CREATE | IN_MODIFY | IN_DELETE)) < 0) {
+    if (inotify_add_watch(uml_driver->inotifyFD,
+                          uml_driver->monitorDir,
+                          IN_CREATE | IN_MODIFY | IN_DELETE) < 0) {
         umlShutdown();
         return -1;
     }
 
-    if (virEventAddHandle(uml_driver->inotifyFD, POLLIN,
-                          umlInotifyEvent, uml_driver, NULL) < 0) {
+    if ((uml_driver->inotifyWatch =
+         virEventAddHandle(uml_driver->inotifyFD, POLLIN,
+                           umlInotifyEvent, uml_driver, NULL)) < 0) {
         umlShutdown();
         return -1;
     }
@@ -1162,7 +1163,7 @@ static virDomainPtr umlDomainCreate(virConnectPtr conn, const char *xml,
 static int umlDomainShutdown(virDomainPtr dom) {
     struct uml_driver *driver = (struct uml_driver *)dom->conn->privateData;
     virDomainObjPtr vm = virDomainFindByID(&driver->domains, dom->id);
-    char* info;
+    char *info = NULL;
 
     if (!vm) {
         umlReportError(dom->conn, dom, NULL, VIR_ERR_INVALID_DOMAIN,
@@ -1592,7 +1593,6 @@ found:
 static virDriver umlDriver = {
     VIR_DRV_UML,
     "UML",
-    LIBVIR_VERSION_NUMBER,
     umlOpen, /* open */
     umlClose, /* close */
     NULL, /* supports_feature */
@@ -1672,4 +1672,3 @@ int umlRegister(void) {
     virRegisterStateDriver(&umlStateDriver);
     return 0;
 }
-

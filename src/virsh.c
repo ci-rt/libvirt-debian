@@ -10,7 +10,7 @@
  * Daniel P. Berrange <berrange@redhat.com>
  *
  *
- * $Id: virsh.c,v 1.175 2008/11/24 07:13:30 meyering Exp $
+ * $Id: virsh.c,v 1.176 2008/12/04 14:51:58 crobinso Exp $
  */
 
 #include <config.h>
@@ -3168,7 +3168,7 @@ cmdPoolBuild(vshControl *ctl, const vshCmd *cmd)
         return FALSE;
 
     if (virStoragePoolBuild(pool, 0) == 0) {
-        vshPrint(ctl, _("Pool %s builded\n"), name);
+        vshPrint(ctl, _("Pool %s built\n"), name);
     } else {
         vshError(ctl, FALSE, _("Failed to build pool %s"), name);
         ret = FALSE;

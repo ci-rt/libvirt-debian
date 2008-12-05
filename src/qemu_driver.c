@@ -45,6 +45,7 @@
 #include <sys/ioctl.h>
 
 #if HAVE_NUMACTL
+#define NUMA_VERSION1_COMPATIBILITY 1
 #include <numa.h>
 #endif
 
@@ -359,9 +360,9 @@ qemudReadMonitorOutput(virConnectPtr conn,
                        char *buf,
                        int buflen,
                        qemudHandlerMonitorOutput func,
-                       const char *what)
+                       const char *what,
+                       int timeout)
 {
-#define MONITOR_TIMEOUT 3000
     int got = 0;
     buf[0] = '\0';
 
@@ -387,7 +388,7 @@ qemudReadMonitorOutput(virConnectPtr conn,
                 return -1;
             }
 
-            ret = poll(&pfd, 1, MONITOR_TIMEOUT);
+            ret = poll(&pfd, 1, timeout);
             if (ret == 0) {
                 qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
                                  _("Timed out while reading %s startup output"), what);
@@ -421,7 +422,6 @@ qemudReadMonitorOutput(virConnectPtr conn,
                      _("Out of space while reading %s startup output"), what);
     return -1;
 
-#undef MONITOR_TIMEOUT
 }
 
 static int
@@ -467,7 +467,7 @@ static int qemudOpenMonitor(virConnectPtr conn,
                                  driver, vm, monfd,
                                  buf, sizeof(buf),
                                  qemudCheckMonitorPrompt,
-                                 "monitor");
+                                 "monitor", 10000);
 
     /* Keep monitor open upon success */
     if (ret == 0)
@@ -578,7 +578,7 @@ static int qemudWaitForMonitor(virConnectPtr conn,
                                      driver, vm, vm->stderr_fd,
                                      buf, sizeof(buf),
                                      qemudFindCharDevicePTYs,
-                                     "console");
+                                     "console", 3000);
 
     buf[sizeof(buf)-1] = '\0';
 
@@ -1187,6 +1187,7 @@ static int qemudProbe(void)
 {
     if ((virFileExists("/usr/bin/qemu")) ||
         (virFileExists("/usr/bin/qemu-kvm")) ||
+        (virFileExists("/usr/bin/kvm")) ||
         (virFileExists("/usr/bin/xenner")))
         return 1;
 
@@ -3724,7 +3725,6 @@ qemudDomainMigrateFinish2 (virConnectPtr dconn,
 static virDriver qemuDriver = {
     VIR_DRV_QEMU,
     "QEMU",
-    LIBVIR_VERSION_NUMBER,
     qemudOpen, /* open */
     qemudClose, /* close */
     qemudSupportsFeature, /* supports_feature */
