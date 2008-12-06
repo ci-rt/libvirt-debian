@@ -43,4 +43,3 @@ EXAMPLES=debian/libvirt-doc/usr/share/doc/libvirt-doc/examples/
 
 binary-install/libvirt-doc::
 	cd $(EXAMPLES) && rm -rf .libs *.o info1 suspend ../html/CVS
-
