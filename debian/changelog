@@ -1,3 +1,9 @@
+libvirt (0.4.6-9) unstable; urgency=low
+
+  * [d30438c] create libvirt log directory (Closes: #508129)
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 08 Dec 2008 10:12:28 +0100
+
 libvirt (0.4.6-8) unstable; urgency=low
 
   * [e771da9] drop superflous 0011-Fix-segfault-on-missing-volume-
