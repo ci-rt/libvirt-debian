@@ -2,3 +2,4 @@
 /var/lib/libvirt/images
 /var/lib/libvirt/boot
 /var/cache/libvirt
+/var/log/libvirt/qemu
