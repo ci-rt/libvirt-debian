@@ -3,3 +3,4 @@
 0003-allow-libvirt-group-to-access-the-socket.patch
 0004-Open-qemu-monitor-log-O_APPEND-instead-of-O_TRUNC.patch
 0005-qemu-fix-parallel-serial-mode-tcp-and-unix.patch
+0006-Fix-missing-read-only-access-checks-CVE-2008-5086.patch
