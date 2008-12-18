@@ -1,3 +1,9 @@
+libvirt (0.4.6-10) unstable; urgency=low
+
+  * [5878698] cherry-pick patch for CVE-2008-5086 from experimental
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 18 Dec 2008 16:59:45 +0100
+
 libvirt (0.4.6-9) unstable; urgency=low
 
   * [d30438c] create libvirt log directory (Closes: #508129)
