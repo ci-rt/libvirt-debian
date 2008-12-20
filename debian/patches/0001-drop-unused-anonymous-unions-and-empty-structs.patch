@@ -1,0 +1,47 @@
+From 530b739cceb28cb385e9693946441f51d3b27e60 Mon Sep 17 00:00:00 2001
+From: Guido Günther <agx@sigxcpu.org>
+Date: Sat, 20 Dec 2008 17:21:26 +0100
+Subject: [PATCH] drop unused anonymous unions and empty structs
+
+gcc 4.1 can't cope with them
+---
+ src/domain_conf.h |   17 ++---------------
+ 1 files changed, 2 insertions(+), 15 deletions(-)
+
+diff --git a/src/domain_conf.h b/src/domain_conf.h
+index 632e5ad..ee0a488 100644
+--- a/src/domain_conf.h
++++ b/src/domain_conf.h
+@@ -301,27 +301,14 @@ struct _virDomainHostdevDef {
+     union {
+         struct {
+             int type; /* enum virDomainHostdevBusType */
+-            union {
+-                struct {
++            struct {
+                     unsigned bus;
+                     unsigned device;
+
+                     unsigned vendor;
+                     unsigned product;
+-                } usb;
+-                struct {
+-                     unsigned domain;
+-                     unsigned bus;
+-                     unsigned slot;
+-                     unsigned function;
+-                } pci;
+-            };
++            } usb;
+         } subsys;
+-        struct {
+-            /* TBD: struct capabilities see:
+-             * https://www.redhat.com/archives/libvir-list/2008-July/msg00429.html
+-             */
+-        } caps;
+     } source;
+     char* target;
+     virDomainHostdevDefPtr next;
+--
+1.5.6.5
+
