@@ -2,8 +2,8 @@ Source: libvirt
 Section: libs
 Priority: optional
 Maintainer: Debian Libvirt Maintainers <pkg-libvirt-maintainers@lists.alioth.debian.org>
-Uploaders: Guido Guenther <agx@sigxcpu.org>
-Build-Depends: cdbs (>= 0.4.43), debhelper (>= 5.0.38), libxml2-dev, libncurses5-dev, libreadline5-dev, zlib1g-dev, libgnutls-dev, python-dev (>= 2.3.5-11), python-central (>= 0.5.6), quilt, libavahi-client-dev, libsasl2-dev, libxen-dev [i386 amd64], lvm2, qemu [amd64 i386 powerpc sparc]
+Uploaders: Guido Günther <agx@sigxcpu.org>
+Build-Depends: cdbs (>= 0.4.43), debhelper (>= 5.0.38), libxml2-dev, libncurses5-dev, libreadline5-dev, zlib1g-dev, libgnutls-dev, python-dev (>= 2.3.5-11), python-central (>= 0.5.6), quilt, libavahi-client-dev, libsasl2-dev, libxen-dev [i386 amd64], lvm2, qemu [amd64 i386 powerpc sparc], libselinux1-dev
 XS-Python-Version: current
 Vcs-Git: git://git.debian.org/git/pkg-libvirt/libvirt.git
 Vcs-Browser: http://git.debian.org/?p=pkg-libvirt/libvirt.git
@@ -12,10 +12,11 @@ Standards-Version: 3.8.0
 
 Package: libvirt-bin
 Architecture: any
-Depends: ${shlibs:Depends}, adduser
+Depends: ${shlibs:Depends}, adduser, libvirt0 (>= ${binary:Version}), logrotate
 Enhances: qemu, kvm, xen
 Section: admin
-Recommends: netcat-openbsd, bridge-utils, dnsmasq, iptables
+Recommends: netcat-openbsd, bridge-utils, dnsmasq, iptables, qemu (>= 0.9.1)
+Suggests: policykit
 Description: the programs for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
@@ -27,7 +28,7 @@ Description: the programs for the libvirt library
 Package: libvirt0
 Architecture: any
 Depends: ${shlibs:Depends}
-Recommends: lvm2, qemu
+Recommends: lvm2
 Description: library for interfacing with different virtualization systems
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
@@ -61,6 +62,7 @@ Package: libvirt-dev
 Architecture: any
 Section: libdevel
 Depends: libvirt0 (= ${binary:Version}), libxen-dev [i386 amd64]
+Recommends: pkg-config
 Description: development files for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
@@ -72,7 +74,7 @@ Description: development files for the libvirt library
 
 Package: python-libvirt
 Architecture: any
-Depends: ${shlibs:Depends}, ${python:Depends}
+Depends: ${shlibs:Depends}, ${python:Depends}, libvirt0 (>= ${binary:Version})
 Provides: ${python:Provides}
 Section: python
 XB-Python-Version: ${python:Versions}

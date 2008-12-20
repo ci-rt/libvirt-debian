@@ -36,17 +36,27 @@
 
 #include "uuid.h"
 #include "util.h"
+#include "memory.h"
+
+#ifdef WITH_TEST
 #include "test.h"
+#endif
+#ifdef WITH_XEN
 #include "xen_unified.h"
+#endif
+#ifdef WITH_REMOTE
 #include "remote_internal.h"
+#endif
+#ifdef WITH_QEMU
 #include "qemu_driver.h"
-#include "storage_driver.h"
+#endif
 #ifdef WITH_OPENVZ
 #include "openvz_driver.h"
 #endif
 #ifdef WITH_LXC
 #include "lxc_driver.h"
 #endif
+#include "storage_driver.h"
 
 /*
  * TODO:
@@ -60,8 +70,10 @@ static virNetworkDriverPtr virNetworkDriverTab[MAX_DRIVERS];
 static int virNetworkDriverTabCount = 0;
 static virStorageDriverPtr virStorageDriverTab[MAX_DRIVERS];
 static int virStorageDriverTabCount = 0;
+#ifdef WITH_LIBVIRTD
 static virStateDriverPtr virStateDriverTab[MAX_DRIVERS];
 static int virStateDriverTabCount = 0;
+#endif
 static int initialized = 0;
 
 #define DEBUG(fmt,...) VIR_DEBUG(__FILE__, fmt, __VA_ARGS__)
@@ -271,11 +283,12 @@ virInitialize(void)
 #ifdef WITH_TEST
     if (testRegister() == -1) return -1;
 #endif
-#ifdef WITH_QEMU
-    if (qemudRegister() == -1) return -1;
-#endif
 #ifdef WITH_XEN
     if (xenUnifiedRegister () == -1) return -1;
+#endif
+#ifdef WITH_LIBVIRTD
+#ifdef WITH_QEMU
+    if (qemudRegister() == -1) return -1;
 #endif
 #ifdef WITH_OPENVZ
     if (openvzRegister() == -1) return -1;
@@ -283,11 +296,10 @@ virInitialize(void)
 #ifdef WITH_LXC
     if (lxcRegister() == -1) return -1;
 #endif
-#ifdef WITH_LIBVIRTD
     if (storageRegister() == -1) return -1;
-#endif
 #ifdef WITH_REMOTE
     if (remoteRegister () == -1) return -1;
+#endif
 #endif
 
     return(0);
@@ -532,6 +544,7 @@ virRegisterDriver(virDriverPtr driver)
     return virDriverTabCount++;
 }
 
+#ifdef WITH_LIBVIRTD
 /**
  * virRegisterStateDriver:
  * @driver: pointer to a driver block
@@ -562,9 +575,6 @@ virRegisterStateDriver(virStateDriverPtr driver)
 
 int __virStateInitialize(void) {
     int i, ret = 0;
-
-    if (virInitialize() < 0)
-        return -1;
 
     if (virInitialize() < 0)
         return -1;
@@ -620,6 +630,7 @@ int __virStateSigDispatcher(siginfo_t *siginfo) {
     }
     return ret;
 }
+#endif
 
 
 
@@ -695,7 +706,7 @@ do_open (const char *name,
             const char *use = NULL;
             const char *latest;
             int probes = 0;
-            for (i = 0; i < virNetworkDriverTabCount; i++) {
+            for (i = 0; i < virDriverTabCount; i++) {
                 if ((virDriverTab[i]->probe != NULL) &&
                     ((latest = virDriverTab[i]->probe()) != NULL)) {
                     probes++;
@@ -734,10 +745,8 @@ do_open (const char *name,
         name = "xen:///";
 
     ret = virGetConnect();
-    if (ret == NULL) {
-        virLibConnError(NULL, VIR_ERR_NO_MEMORY, _("allocating connection"));
+    if (ret == NULL)
         return NULL;
-    }
 
     uri = xmlParseURI (name);
     if (!uri) {
@@ -838,7 +847,21 @@ do_open (const char *name,
 failed:
     if (ret->driver) ret->driver->close (ret);
     if (uri) xmlFreeURI(uri);
-        virUnrefConnect(ret);
+
+    /* If no global error was set, copy any error set
+       in the connection object we're about to dispose of */
+    if (__lastErr.code == VIR_ERR_OK) {
+        memcpy(&__lastErr, &ret->err, sizeof(ret->err));
+        memset(&ret->err, 0, sizeof(ret->err));
+    }
+
+    /* Still no error set, then raise a generic error */
+    if (__lastErr.code == VIR_ERR_OK)
+        virLibConnError (NULL, VIR_ERR_INTERNAL_ERROR,
+                         _("unable to open connection"));
+
+    virUnrefConnect(ret);
+
     return NULL;
 }
 
@@ -1208,11 +1231,14 @@ virDomainGetConnect (virDomainPtr dom)
  * virDomainCreateLinux:
  * @conn: pointer to the hypervisor connection
  * @xmlDesc: string containing an XML description of the domain
- * @flags: an optional set of virDomainFlags
+ * @flags: callers should always pass 0
  *
  * Launch a new Linux guest domain, based on an XML description similar
  * to the one returned by virDomainGetXMLDesc()
  * This function may requires privileged access to the hypervisor.
+ * The domain is not persistent, so its definition will disappear when it
+ * is destroyed, or if the host is restarted (see virDomainDefineXML() to
+ * define persistent domains).
  *
  * Returns a new domain object or NULL in case of failure
  */
@@ -1249,6 +1275,8 @@ virDomainCreateLinux(virConnectPtr conn, const char *xmlDesc,
  * @id: the domain ID number
  *
  * Try to find a domain based on the hypervisor ID number
+ * Note that this won't work for inactive domains which have an ID of -1,
+ * in that case a lookup based on the Name or UUId need to be done instead.
  *
  * Returns a new domain object or NULL in case of failure.  If the
  * domain cannot be found, then VIR_ERR_NO_DOMAIN error is raised.
@@ -2772,7 +2800,9 @@ virDomainMemoryPeek (virDomainPtr dom,
  * @conn: pointer to the hypervisor connection
  * @xml: the XML description for the domain, preferably in UTF-8
  *
- * define a domain, but does not start it
+ * Define a domain, but does not start it.
+ * This definition is persistent, until explicitly undefined with
+ * virDomainUndefine().
  *
  * Returns NULL in case of error, a pointer to the domain otherwise
  */
@@ -2804,7 +2834,7 @@ virDomainDefineXML(virConnectPtr conn, const char *xml) {
  * virDomainUndefine:
  * @domain: pointer to a defined domain
  *
- * undefine a domain but does not stop it if it is running
+ * Undefine a domain but does not stop it if it is running
  *
  * Returns 0 in case of success, -1 in case of error
  */
@@ -4096,6 +4126,50 @@ virConnectListDefinedStoragePools(virConnectPtr conn,
 
 
 /**
+ * virConnectFindStoragePoolSources:
+ * @conn: pointer to hypervisor connection
+ * @type: type of storage pool sources to discover
+ * @srcSpec: XML document specifying discovery source
+ * @flags: flags for discovery (unused, pass 0)
+ *
+ * Talks to a storage backend and attempts to auto-discover the set of
+ * available storage pool sources. e.g. For iSCSI this would be a set of
+ * iSCSI targets. For NFS this would be a list of exported paths.  The
+ * srcSpec (optional for some storage pool types, e.g. local ones) is
+ * an instance of the storage pool's source element specifying where
+ * to look for the pools.
+ *
+ * srcSpec is not required for some types (e.g., those querying
+ * local storage resources only)
+ *
+ * Returns an xml document consisting of a SourceList element
+ * containing a source document appropriate to the given pool
+ * type for each discovered source.
+ */
+char *
+virConnectFindStoragePoolSources(virConnectPtr conn,
+                                 const char *type,
+                                 const char *srcSpec,
+                                 unsigned int flags)
+{
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return NULL;
+    }
+    if (type == NULL) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return NULL;
+    }
+
+    if (conn->storageDriver && conn->storageDriver->findPoolSources)
+        return conn->storageDriver->findPoolSources(conn, type, srcSpec, flags);
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return NULL;
+}
+
+
+/**
  * virStoragePoolLookupByName:
  * @conn: pointer to hypervisor connection
  * @name: name of pool to fetch
@@ -5204,4 +5278,46 @@ virStorageVolGetPath(virStorageVolPtr vol)
 
     virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return NULL;
+}
+
+
+
+
+/* Not for public use.  Combines the elements of a virStringList
+ * into a single string.
+ */
+char *virStringListJoin(const virStringList *list, const char *pre,
+                        const char *post, const char *sep)
+{
+    size_t pre_len = strlen(pre);
+    size_t sep_len = strlen(sep);
+    size_t len = pre_len + strlen(post);
+    const virStringList *p;
+    char *retval;
+
+    for (p = list; p; p = p->next)
+        len += p->len + sep_len;
+    if (VIR_ALLOC_N(retval, len+1) < 0)
+        return NULL;
+    strcpy(retval, pre);
+    len = pre_len;
+    for (p = list; p; p = p->next) {
+        strcpy(retval + len, p->val);
+        len += p->len;
+        strcpy(retval + len, sep);
+        len += sep_len;
+    }
+    strcpy(retval + len, post);
+
+    return retval;
+}
+
+
+void virStringListFree(virStringList *list)
+{
+    while (list) {
+        virStringList *p = list->next;
+        VIR_FREE(list);
+        list = p;
+    }
 }

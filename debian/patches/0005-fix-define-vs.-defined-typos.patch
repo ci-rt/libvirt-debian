@@ -1,0 +1,69 @@
+From 049aa77897ca49732101e39ccd63b6fc8a29a94c Mon Sep 17 00:00:00 2001
+From: Martin Michlmayr <tbm@cyrius.com>
+Date: Fri, 14 Nov 2008 14:50:32 +0100
+Subject: [PATCH] fix #define vs. #defined typos
+
+affects non linux architectures and fixes the build with gcc 4.4
+
+Closes: #505607
+---
+ src/xen_internal.c |    8 ++++----
+ src/xs_internal.c  |    2 +-
+ 2 files changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/src/xen_internal.c b/src/xen_internal.c
+index 3cfc5e3..d80ecfb 100644
+--- a/src/xen_internal.c
++++ b/src/xen_internal.c
+@@ -73,7 +73,7 @@ typedef struct v1_hypercall_struct
+ #define XEN_V1_IOCTL_HYPERCALL_CMD                  \
+     _IOC(_IOC_NONE, 'P', 0, sizeof(v1_hypercall_t))
+ typedef v1_hypercall_t hypercall_t;
+-#elif define(__sun__)
++#elif defined(__sun__)
+ typedef privcmd_hypercall_t hypercall_t;
+ #else
+ #error "unsupported platform"
+@@ -338,7 +338,7 @@ lock_pages(void *addr, size_t len)
+ {
+ #ifdef __linux__
+         return (mlock(addr, len));
+-#elif define(__sun)
++#elif defined(__sun)
+         return (0);
+ #endif
+ }
+@@ -348,7 +348,7 @@ unlock_pages(void *addr, size_t len)
+ {
+ #ifdef __linux__
+         return (munlock(addr, len));
+-#elif define(__sun)
++#elif defined(__sun)
+         return (0);
+ #endif
+ }
+@@ -664,7 +664,7 @@ typedef struct xen_op_v2_dom xen_op_v2_dom;
+ #define XEN_HYPERVISOR_SOCKET	"/proc/xen/privcmd"
+ #define HYPERVISOR_CAPABILITIES	"/sys/hypervisor/properties/capabilities"
+ #define CPUINFO			"/proc/cpuinfo"
+-#elif define(__sun__)
++#elif defined(__sun__)
+ #define XEN_HYPERVISOR_SOCKET	"/dev/xen/privcmd"
+ #define HYPERVISOR_CAPABILITIES	""
+ #define CPUINFO			"/dev/cpu/self/cpuid"
+diff --git a/src/xs_internal.c b/src/xs_internal.c
+index 316604a..3cb67db 100644
+--- a/src/xs_internal.c
++++ b/src/xs_internal.c
+@@ -34,7 +34,7 @@
+ 
+ #ifdef __linux__
+ #define XEN_HYPERVISOR_SOCKET "/proc/xen/privcmd"
+-#elif define(__sun__)
++#elif defined(__sun__)
+ #define XEN_HYPERVISOR_SOCKET "/dev/xen/privcmd"
+ #else
+ #error "unsupported platform"
+-- 
+1.6.0.3
+

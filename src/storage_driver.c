@@ -386,6 +386,30 @@ storageListDefinedPools(virConnectPtr conn,
     return -1;
 }
 
+static char *
+storageFindPoolSources(virConnectPtr conn,
+                       const char *type,
+                       const char *srcSpec,
+                       unsigned int flags)
+{
+    int backend_type;
+    virStorageBackendPtr backend;
+
+    backend_type = virStorageBackendFromString(type);
+    if (backend_type < 0)
+        return NULL;
+
+    backend = virStorageBackendForType(backend_type);
+    if (backend == NULL)
+        return NULL;
+
+    if (backend->findPoolSources)
+        return backend->findPoolSources(conn, srcSpec, flags);
+
+    return NULL;
+}
+
+
 static virStoragePoolPtr
 storagePoolCreate(virConnectPtr conn,
                   const char *xml,
@@ -1205,38 +1229,40 @@ storageVolumeGetPath(virStorageVolPtr obj) {
 
 
 static virStorageDriver storageDriver = {
-    "storage",
-    storageOpen,
-    storageClose,
-    storageNumPools,
-    storageListPools,
-    storageNumDefinedPools,
-    storageListDefinedPools,
-    storagePoolLookupByName,
-    storagePoolLookupByUUID,
-    storagePoolLookupByVolume,
-    storagePoolCreate,
-    storagePoolDefine,
-    storagePoolBuild,
-    storagePoolUndefine,
-    storagePoolStart,
-    storagePoolDestroy,
-    storagePoolDelete,
-    storagePoolRefresh,
-    storagePoolGetInfo,
-    storagePoolDumpXML,
-    storagePoolGetAutostart,
-    storagePoolSetAutostart,
-    storagePoolNumVolumes,
-    storagePoolListVolumes,
-    storageVolumeLookupByName,
-    storageVolumeLookupByKey,
-    storageVolumeLookupByPath,
-    storageVolumeCreateXML,
-    storageVolumeDelete,
-    storageVolumeGetInfo,
-    storageVolumeGetXMLDesc,
-    storageVolumeGetPath
+    .name = "storage",
+    .open = storageOpen,
+    .close = storageClose,
+    .numOfPools = storageNumPools,
+    .listPools = storageListPools,
+    .numOfDefinedPools = storageNumDefinedPools,
+    .listDefinedPools = storageListDefinedPools,
+    .findPoolSources = storageFindPoolSources,
+    .poolLookupByName = storagePoolLookupByName,
+    .poolLookupByUUID = storagePoolLookupByUUID,
+    .poolLookupByVolume = storagePoolLookupByVolume,
+    .poolCreateXML = storagePoolCreate,
+    .poolDefineXML = storagePoolDefine,
+    .poolBuild = storagePoolBuild,
+    .poolUndefine = storagePoolUndefine,
+    .poolCreate = storagePoolStart,
+    .poolDestroy = storagePoolDestroy,
+    .poolDelete = storagePoolDelete,
+    .poolRefresh = storagePoolRefresh,
+    .poolGetInfo = storagePoolGetInfo,
+    .poolGetXMLDesc = storagePoolDumpXML,
+    .poolGetAutostart = storagePoolGetAutostart,
+    .poolSetAutostart = storagePoolSetAutostart,
+    .poolNumOfVolumes = storagePoolNumVolumes,
+    .poolListVolumes = storagePoolListVolumes,
+
+    .volLookupByName = storageVolumeLookupByName,
+    .volLookupByKey = storageVolumeLookupByKey,
+    .volLookupByPath = storageVolumeLookupByPath,
+    .volCreateXML = storageVolumeCreateXML,
+    .volDelete = storageVolumeDelete,
+    .volGetInfo = storageVolumeGetInfo,
+    .volGetXMLDesc = storageVolumeGetXMLDesc,
+    .volGetPath = storageVolumeGetPath,
 };
 
 

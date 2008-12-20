@@ -13,10 +13,6 @@
 
 #include <signal.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /*
  * List of registered drivers numbers
  */
@@ -448,6 +444,11 @@ typedef int
     (*virDrvConnectListDefinedStoragePools)  (virConnectPtr conn,
                                               char **const names,
                                               int maxnames);
+typedef char *
+    (*virDrvConnectFindStoragePoolSources)   (virConnectPtr conn,
+                                              const char *type,
+                                              const char *srcSpec,
+                                              unsigned int flags);
 typedef virStoragePoolPtr
     (*virDrvStoragePoolLookupByName)         (virConnectPtr conn,
                                               const char *name);
@@ -552,6 +553,7 @@ struct _virStorageDriver {
     virDrvConnectListStoragePools listPools;
     virDrvConnectNumOfDefinedStoragePools numOfDefinedPools;
     virDrvConnectListDefinedStoragePools listDefinedPools;
+    virDrvConnectFindStoragePoolSources findPoolSources;
     virDrvStoragePoolLookupByName poolLookupByName;
     virDrvStoragePoolLookupByUUID poolLookupByUUID;
     virDrvStoragePoolLookupByVolume poolLookupByVolume;
@@ -584,6 +586,7 @@ typedef int (*virDrvStateInitialize) (void);
 typedef int (*virDrvStateCleanup) (void);
 typedef int (*virDrvStateReload) (void);
 typedef int (*virDrvStateActive) (void);
+#ifdef WITH_LIBVIRTD
 typedef int (*virDrvSigHandler) (siginfo_t *siginfo);
 
 typedef struct _virStateDriver virStateDriver;
@@ -596,6 +599,7 @@ struct _virStateDriver {
     virDrvStateActive      active;
     virDrvSigHandler       sigHandler;
 };
+#endif
 
 /*
  * Registration
@@ -605,9 +609,8 @@ struct _virStateDriver {
 int virRegisterDriver(virDriverPtr);
 int virRegisterNetworkDriver(virNetworkDriverPtr);
 int virRegisterStorageDriver(virStorageDriverPtr);
+#ifdef WITH_LIBVIRTD
 int virRegisterStateDriver(virStateDriverPtr);
+#endif
 
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
 #endif /* __VIR_DRIVER_H__ */

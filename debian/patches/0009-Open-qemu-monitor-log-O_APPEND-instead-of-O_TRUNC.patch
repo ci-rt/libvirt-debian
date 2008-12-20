@@ -1,0 +1,27 @@
+From 1aa12b4920dba52405fcdde02953e3ca15cec398 Mon Sep 17 00:00:00 2001
+From: Harald Staub <harald.staub@switch.ch>
+Date: Tue, 2 Dec 2008 13:14:33 +0100
+Subject: [PATCH] Open qemu monitor log O_APPEND instead of O_TRUNC
+
+makes logrotate work (O_APPEND) and keeps old log information (!O_TRUNC)
+(#507553)
+---
+ src/qemu_driver.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/src/qemu_driver.c b/src/qemu_driver.c
+index ffe2dd2..c9bf8d7 100644
+--- a/src/qemu_driver.c
++++ b/src/qemu_driver.c
+@@ -894,7 +894,7 @@ static int qemudStartVMDaemon(virConnectPtr conn,
+         return -1;
+     }
+ 
+-    if ((vm->logfile = open(logfile, O_CREAT | O_TRUNC | O_WRONLY,
++    if ((vm->logfile = open(logfile, O_CREAT | O_APPEND | O_WRONLY,
+                             S_IRUSR | S_IWUSR)) < 0) {
+         qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                          _("failed to create logfile %s: %s"),
+-- 
+1.6.0.3
+

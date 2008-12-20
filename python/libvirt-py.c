@@ -934,6 +934,27 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
+libvirt_virConnectFindStoragePoolSources(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    char * c_retval;
+    virConnectPtr conn;
+    PyObject *pyobj_conn;
+    char * type;
+    char * srcSpec;
+    unsigned int flags;
+
+    if (!PyArg_ParseTuple(args, (char *)"Ozzi:virConnectFindStoragePoolSources", &pyobj_conn, &type, &srcSpec, &flags))
+        return(NULL);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virConnectFindStoragePoolSources(conn, type, srcSpec, flags);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_charPtrWrap((char *) c_retval);
+    return(py_retval);
+}
+
+PyObject *
 libvirt_virDomainRestore(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     int c_retval;

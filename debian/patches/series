@@ -1,5 +1,12 @@
 0001-remove-RHism.diff.patch
-0002-qemu-path.diff.patch
-0003-qemu-disable-network.diff.patch
-0004-allow-libvirt-group-to-access-the-socket.patch
+0002-qemu-disable-network.diff.patch
+0003-allow-libvirt-group-to-access-the-socket.patch
+0004-support-virtio-and-scsi-disks-in-qemudDomainBlockSta.patch
+0005-fix-define-vs.-defined-typos.patch
+0006-xen-prefer-xenstoraged-driver-for-listDomains.patch
+0007-also-look-for-usr-bin-kvm.patch
+0008-Increase-initial-qemu-monitor-read-timeout.patch
+0009-Open-qemu-monitor-log-O_APPEND-instead-of-O_TRUNC.patch
+0010-raise-error-on-invalid-volume-format.patch
+0011-Fix-missing-read-only-access-checks-CVE-2008-5086.patch
 0005-include-bits-siginfo.h-for-siginfo_t.patch

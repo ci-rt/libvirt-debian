@@ -1,0 +1,38 @@
+From b52ad525b45385d20a827becc055621c70a12b3b Mon Sep 17 00:00:00 2001
+From: Guido Guenther <agx@sigxcpu.org>
+Date: Thu, 2 Oct 2008 21:12:20 +0200
+Subject: [PATCH] support virtio and scsi disks in qemudDomainBlockStats
+
+---
+ src/qemu_driver.c |    8 ++++++++
+ 1 files changed, 8 insertions(+), 0 deletions(-)
+
+diff --git a/src/qemu_driver.c b/src/qemu_driver.c
+index 9d8f75a..58530aa 100644
+--- a/src/qemu_driver.c
++++ b/src/qemu_driver.c
+@@ -3416,6 +3416,8 @@ qemudDomainBlockStats (virDomainPtr dom,
+      *   hd[a-]   to  ide0-hd[0-]
+      *   cdrom    to  ide1-cd0
+      *   fd[a-]   to  floppy[0-]
++     *   vd[a-]   to  virtio[0-]
++     *   sd[a-]   to  scsi0-hd[0-]
+      */
+     if (STRPREFIX (path, "hd") && c_islower(path[2]))
+         snprintf (qemu_dev_name, sizeof (qemu_dev_name),
+@@ -3425,6 +3427,12 @@ qemudDomainBlockStats (virDomainPtr dom,
+     else if (STRPREFIX (path, "fd") && c_islower(path[2]))
+         snprintf (qemu_dev_name, sizeof (qemu_dev_name),
+                   "floppy%d", path[2] - 'a');
++    else if (STRPREFIX (path, "vd") && c_islower(path[2]))
++        snprintf (qemu_dev_name, sizeof (qemu_dev_name),
++                  "virtio%d", path[2] - 'a');
++    else if (STRPREFIX (path, "sd") && c_islower(path[2]))
++        snprintf (qemu_dev_name, sizeof (qemu_dev_name),
++                  "scsi0-hd%d", path[2] - 'a');
+     else {
+         qemudReportError (dom->conn, dom, NULL, VIR_ERR_INVALID_ARG,
+                           _("invalid path: %s"), path);
+-- 
+1.6.0.1
+

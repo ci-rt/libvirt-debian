@@ -20,6 +20,7 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	--disable-rpath          \
 	--with-qemu              \
 	--without-openvz         \
+	--without-lxc            \
 	--with-avahi             \
 	--with-sasl              \
 	--without-polkit	 \
@@ -28,21 +29,18 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
         --without-storage-iscsi  \
         --with-storage-disk      \
 	--with-init-scripts=none \
+	--without-numactl	 \
 	--enable-debug		 \
 	$(BUILD_XEN)
 
 DEB_DBG_PACKAGES = libvirt0-dbg
 DEB_DBG_PACKAGE_libvirt0 = libvirt0-dbg
 DEB_PYTHON_SETUP_CMD := /dev/null
-DEB_DH_MAKESHLIBS_ARGS_libvirt0 += -V 'libvirt0 (>= 0.4.1)'
+DEB_DH_MAKESHLIBS_ARGS_libvirt0 += -V 'libvirt0 (>= 0.4.6)'
 DEB_DH_INSTALLINIT_ARGS := --no-restart-on-upgrade
+DEB_DH_INSTALLLOGROTATE_ARGS := --name=libvirtd
 
 EXAMPLES=debian/libvirt-doc/usr/share/doc/libvirt-doc/examples/
 
 binary-install/libvirt-doc::
 	cd $(EXAMPLES) && rm -rf .libs *.o info1 suspend ../html/CVS
-
-redo-patches::
-	rm -f debian/patches/*
-	git format-patch -N -o debian/patches master...patch-queue | \
-		sed -e 's%debian/patches/%%' > debian/patches/series

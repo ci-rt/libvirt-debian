@@ -10,8 +10,6 @@
 
 #include <config.h>
 
-#ifdef WITH_XEN
-
 /* Note:
  *
  * This driver provides a unified interface to the five
@@ -197,7 +195,7 @@ xenDomainUsedCpus(virDomainPtr dom)
                 }
             }
         }
-        res = virSaveCpuSet(dom->conn, cpulist, nb_cpu);
+        res = virDomainCpuSetFormat(dom->conn, cpulist, nb_cpu);
     }
 
 done:
@@ -239,7 +237,7 @@ xenUnifiedProbe (void)
 static int
 xenUnifiedOpen (virConnectPtr conn, xmlURIPtr uri, virConnectAuthPtr auth, int flags)
 {
-    int i;
+    int i, ret = VIR_DRV_OPEN_DECLINED;
     xenUnifiedPrivatePtr priv;
 
     /* Refuse any scheme which isn't "xen://" or "http://". */
@@ -329,19 +327,29 @@ xenUnifiedOpen (virConnectPtr conn, xmlURIPtr uri, virConnectAuthPtr auth, int f
             }
 #else
             DEBUG0("Handing off for remote driver");
-            return VIR_DRV_OPEN_DECLINED; /* Let remote_driver try instead */
+            ret = VIR_DRV_OPEN_DECLINED; /* Let remote_driver try instead */
+            goto clean;
 #endif
         }
     }
 
+    if (!(priv->caps = xenHypervisorMakeCapabilities(conn))) {
+        DEBUG0("Failed to make capabilities");
+        goto fail;
+    }
+
     return VIR_DRV_OPEN_SUCCESS;
 
- fail:
+fail:
+    ret = VIR_DRV_OPEN_ERROR;
+#ifndef WITH_PROXY
+clean:
+#endif
     DEBUG0("Failed to activate a mandatory sub-driver");
     for (i = 0 ; i < XEN_UNIFIED_NR_DRIVERS ; i++)
         if (priv->opened[i]) drivers[i]->close(conn);
     VIR_FREE(priv);
-    return VIR_DRV_OPEN_ERROR;
+    return ret;
 }
 
 #define GET_PRIVATE(conn) \
@@ -353,6 +361,7 @@ xenUnifiedClose (virConnectPtr conn)
     GET_PRIVATE(conn);
     int i;
 
+    virCapabilitiesFree(priv->caps);
     for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
         if (priv->opened[i] && drivers[i]->close)
             (void) drivers[i]->close (conn);
@@ -1367,12 +1376,8 @@ xenUnifiedRegister (void)
 {
     /* Ignore failures here. */
     (void) xenHypervisorInit ();
-    (void) xenProxyInit ();
-    (void) xenDaemonInit ();
-    (void) xenStoreInit ();
     (void) xenXMInit ();
 
     return virRegisterDriver (&xenUnifiedDriver);
 }
 
-#endif /* WITH_XEN */

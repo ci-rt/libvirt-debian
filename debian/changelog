@@ -1,3 +1,121 @@
+libvirt (0.4.6-10) unstable; urgency=low
+
+  * [5878698] cherry-pick patch for CVE-2008-5086 from experimental
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 18 Dec 2008 16:59:45 +0100
+
+libvirt (0.4.6-9) unstable; urgency=low
+
+  * [d30438c] create libvirt log directory (Closes: #508129)
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 08 Dec 2008 10:12:28 +0100
+
+libvirt (0.4.6-8) unstable; urgency=low
+
+  * [e771da9] drop superflous 0011-Fix-segfault-on-missing-volume-
+    format.patch - not needed.
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 05 Dec 2008 10:17:01 +0100
+
+libvirt (0.4.6-7) unstable; urgency=low
+
+  * [ea12bd9] create /var/run/libvirt fixes /var/run on tmpfs
+    (Closes: #507578)
+  * [97e5706] also look for /usr/bin/kvm (Closes: #507547) 
+  * [311b4c1] increase initial qemu monitor read timeout 
+    (Closes: #499720)
+  * [fbe4e00] open qemu monitor log O_APPEND instead of O_TRUNC
+  * [f8ce017] raise error on invalid volume format
+  * [40edcf8] rotate qemu monitor logs (Closes: #507553) - thanks to
+    Harald Staub
+  * [46ea43a] fix segfault on missing volume format (Closes: #507677) -
+    thanks to Daniel Veillard
+  * [ee377f3] bump shlibs version to 0.4.6
+  * [504d55d] depend on logrotate
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 04 Dec 2008 17:50:45 +0100
+
+libvirt (0.4.6-6) unstable; urgency=low
+
+  * [ff8e9ae] README.Debian: clarify xen configuration
+  * [c07c68f] prefer xenstoraged driver for listDomains - avoids seeing "ghost
+    domains" due to bugs in several versions of the xen HV
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 27 Nov 2008 18:06:48 +0100
+
+libvirt (0.4.6-5) unstable; urgency=low
+
+  * [411ada3] add more details about dnsmasq vs. libvirtd (Closes: #504605)
+  * [2f8f07d] add default image dir virt-manager assumes they exist and
+    they're used in the SELinux policies too. (Closes: #505577)
+  * [9eb3a83] fix #define vs. #defined typos - affects non Linux architectures
+    and fixes the build with gcc 4.4 (Closes: #505607) - thanks to Martin
+    Michlmayr
+  * [0e21634] fix uploader
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 14 Nov 2008 14:54:48 +0100
+
+libvirt (0.4.6-4) unstable; urgency=low
+
+  * upload to unstable
+  * [50b27f5] add libvirt-suspendonreboot script (Closes: #501155) -
+    thanks to Andreas Barth
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 01 Nov 2008 19:33:36 +0100
+
+libvirt (0.4.6-3) experimental; urgency=low
+
+  * [8fa5a3c] add a versioned recommends on qemu (Closes: #501692)
+  * [d1539bc] recommend pkg-config
+  * [f08bb18] explain libvirt group (Closes: #501824)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 12 Oct 2008 20:27:25 +0200
+
+libvirt (0.4.6-2) experimental; urgency=low
+
+  * [2039095] tighten libvirt dependency
+  * [06dbe8a] qemu/kvm: fix domain block stats for virtio and scsi devices 
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 02 Oct 2008 22:03:05 +0200
+
+libvirt (0.4.6-1) experimental; urgency=low
+
+  * [e20d3d4] Imported Upstream version 0.4.6
+  * [0c840ab] disable numactl
+  * [ca2c5cb] cleanup doc installation (Closes: #492075)
+  * [714ab94] drop 0004-for-kvm-determine-maxVCPUs-at-runtime.patch - applied
+    upstream 
+  * [e7563a8] drop 0005-fix-crash-when-no-emulator-is-defined-for-kvm-
+    qemu.patch - fixed upstream
+
+ -- Guido Guenther <agx@sigxcpu.org>  Thu, 25 Sep 2008 12:31:45 +0200
+
+libvirt (0.4.5-2) experimental; urgency=low
+
+  * [17647cd] libvirt-bin.default: add keytab default
+  * [0ef01e7] fix runtime vcpu detection (0004-for-kvm-determine-
+    maxVCPUs-at-runtime.patch) (Closes: #495950)
+  * [b91e1eb] don't crash when no emulator is defined (0005-fix-crash-
+    when-no-emulator-is-defined-for-kvm-qemu.patch)
+
+ -- Guido Guenther <agx@sigxcpu.org>  Mon, 22 Sep 2008 20:11:04 +0200
+
+libvirt (0.4.5-1) experimental; urgency=low
+
+  * [ab8b4e6] Imported Upstream version 0.4.5
+  * [4aaef27] tighten dependency on libvirt
+  * [fa253be] drop 0002-qemu-path.diff.patch - fixed upstream
+  * [87fc2db] drop 0005-check-for-the-existence-of-the-migrate-
+    command.patch applied upstream
+  * [bc311aa] drop 0006-wrong-open-failure-detection.patch applied
+    upstream
+  * [38e615d] rebase the remaining patches
+  * [9a04bb7] bump shlibs version to 0.4.5
+  * [9fadd6f] disable LXC
+  * [179c869] build-dep on libselinux1-dev for selinux support
+
+ -- Guido Guenther <agx@sigxcpu.org>  Thu, 18 Sep 2008 19:02:55 +0200
+
 libvirt (0.4.4-3~bpo40+2) etch-backports; urgency=low
 
   * [742e4ec] disable iscsi storage backend, open-iscsi has problems on the

@@ -22,6 +22,7 @@
 #define pthread_mutex_destroy(lk) /*empty*/
 #define pthread_mutex_lock(lk) /*empty*/
 #define pthread_mutex_unlock(lk) /*empty*/
+#define pthread_sigmask(h, s, o) sigprocmask((h), (s), (o))
 #endif
 
 /* The library itself is allowed to use deprecated functions /
@@ -36,10 +37,6 @@
 #include "libvirt/libvirt.h"
 #include "libvirt/virterror.h"
 #include "driver.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /* On architectures which lack these limits, define them (ie. Cygwin).
  * Note that the libvirt code should be robust enough to handle the
@@ -346,6 +343,7 @@ int               virUnrefStorageVol  (virStorageVolPtr vol);
 #define virGetStoragePool(c,n,u) __virGetStoragePool((c),(n),(u))
 #define virGetStorageVol(c,p,n,u) __virGetStorageVol((c),(p),(n),(u))
 
+#ifdef WITH_LIBVIRTD
 int __virStateInitialize(void);
 int __virStateCleanup(void);
 int __virStateReload(void);
@@ -356,6 +354,7 @@ int __virStateSigDispatcher(siginfo_t *siginfo);
 #define virStateReload() __virStateReload()
 #define virStateActive() __virStateActive()
 #define virStateSigDispatcher(s) __virStateSigDispatcher(s)
+#endif
 
 int __virDrvSupportsFeature (virConnectPtr conn, int feature);
 
@@ -363,7 +362,16 @@ int __virDomainMigratePrepare (virConnectPtr dconn, char **cookie, int *cookiele
 int __virDomainMigratePerform (virDomainPtr domain, const char *cookie, int cookielen, const char *uri, unsigned long flags, const char *dname, unsigned long bandwidth);
 virDomainPtr __virDomainMigrateFinish (virConnectPtr dconn, const char *dname, const char *cookie, int cookielen, const char *uri, unsigned long flags);
 
-#ifdef __cplusplus
-}
-#endif                          /* __cplusplus */
+typedef struct _virStringList virStringList;
+
+struct _virStringList {
+    char *val;
+    int len;
+    struct _virStringList *next;
+};
+
+char *virStringListJoin(const virStringList *list, const char *pre,
+                        const char *post, const char *sep);
+void virStringListFree(virStringList *list);
+
 #endif                          /* __VIR_INTERNAL_H__ */

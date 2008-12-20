@@ -86,6 +86,7 @@ force_stop() {
     return 0
 }
 
+mkdir -p /var/run/libvirt
 case "$1" in
   start)
 	if check_start_libvirtd_option; then

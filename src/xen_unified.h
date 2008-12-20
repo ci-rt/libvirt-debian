@@ -12,16 +12,13 @@
 #define __VIR_XEN_UNIFIED_H__
 
 #include "internal.h"
+#include "capabilities.h"
 
 #ifndef HAVE_WINSOCK2_H
 #include <sys/un.h>
 #include <netinet/in.h>
 #else
 #include <winsock2.h>
-#endif
-
-#ifdef __cplusplus
-extern "C" {
 #endif
 
 extern int xenUnifiedRegister (void);
@@ -91,7 +88,7 @@ struct xenUnifiedDriver {
  * low-level drivers access parts of this structure.
  */
 struct _xenUnifiedPrivate {
-#ifdef WITH_XEN
+    virCapsPtr caps;
     int handle;			/* Xen hypervisor handle */
 
     int xendConfigVersion;      /* XenD config version */
@@ -105,7 +102,6 @@ struct _xenUnifiedPrivate {
     struct sockaddr_in addr_in; /* the inet address */
 
     struct xs_handle *xshandle; /* handle to talk to the xenstore */
-#endif /* WITH_XEN */
 
     int proxy;                  /* fd of proxy. */
 
@@ -122,8 +118,5 @@ typedef struct _xenUnifiedPrivate *xenUnifiedPrivatePtr;
 int xenNbCells(virConnectPtr conn);
 int xenNbCpus(virConnectPtr conn);
 char *xenDomainUsedCpus(virDomainPtr dom);
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* __VIR_XEN_UNIFIED_H__ */

@@ -23,43 +23,37 @@ static struct qemud_driver driver;
 #define MAX_FILE 4096
 
 static int testCompareXMLToArgvFiles(const char *xml, const char *cmd, int extraFlags) {
-    char xmlData[MAX_FILE];
     char argvData[MAX_FILE];
-    char *xmlPtr = &(xmlData[0]);
     char *expectargv = &(argvData[0]);
     char *actualargv = NULL;
-    char **argv = NULL;
-    char **tmp = NULL;
-    int ret = -1, len;
-    struct qemud_vm_def *vmdef = NULL;
-    struct qemud_vm vm;
-
-    if (virtTestLoadFile(xml, &xmlPtr, MAX_FILE) < 0)
-        goto fail;
+    const char **argv = NULL;
+    const char **tmp = NULL;
+    int ret = -1, len, flags;
+    virDomainDefPtr vmdef = NULL;
+    virDomainObj vm;
 
     if (virtTestLoadFile(cmd, &expectargv, MAX_FILE) < 0)
         goto fail;
 
-    if (!(vmdef = qemudParseVMDef(NULL, &driver, xmlData, "test")))
+    if (!(vmdef = virDomainDefParseFile(NULL, driver.caps, xml)))
         goto fail;
 
     memset(&vm, 0, sizeof vm);
     vm.def = vmdef;
+    vm.def->id = -1;
     vm.pid = -1;
-    vm.id = -1;
-    vm.qemuVersion = 0 * 1000 * 100 + (8 * 1000) + 1;
-    vm.qemuCmdFlags = QEMUD_CMD_FLAG_VNC_COLON |
-        QEMUD_CMD_FLAG_NO_REBOOT;
-    vm.qemuCmdFlags |= extraFlags;
-    vm.migrateFrom[0] = '\0';
 
-    vmdef->vncActivePort = vmdef->vncPort;
+    flags = QEMUD_CMD_FLAG_VNC_COLON |
+        QEMUD_CMD_FLAG_NO_REBOOT |
+        extraFlags;
 
-    if (qemudBuildCommandLine(NULL, &driver, &vm, &argv) < 0)
+    if (qemudBuildCommandLine(NULL, &driver,
+                              &vm, flags, &argv,
+                              NULL, NULL, NULL) < 0)
         goto fail;
 
     tmp = argv;
-    len = 0;
+    len = 1; /* for trailing newline */
     while (*tmp) {
         len += strlen(*tmp) + 1;
         tmp++;
@@ -74,6 +68,7 @@ static int testCompareXMLToArgvFiles(const char *xml, const char *cmd, int extra
         strcat(actualargv, *tmp);
         tmp++;
     }
+    strcat(actualargv, "\n");
 
     if (STRNEQ(expectargv, actualargv)) {
         virtTestDifference(stderr, expectargv, actualargv);
@@ -87,13 +82,12 @@ static int testCompareXMLToArgvFiles(const char *xml, const char *cmd, int extra
     if (argv) {
         tmp = argv;
         while (*tmp) {
-            free(*tmp);
+            free(*(char**)tmp);
             tmp++;
         }
         free(argv);
     }
-    if (vmdef)
-        qemudFreeVMDef(vmdef);
+    virDomainDefFree(vmdef);
     return ret;
 }
 
@@ -152,12 +146,18 @@ mymain(int argc, char **argv)
     DO_TEST("clock-utc", 0);
     DO_TEST("clock-localtime", 0);
     DO_TEST("disk-cdrom", 0);
+    DO_TEST("disk-cdrom-empty", QEMUD_CMD_FLAG_DRIVE);
     DO_TEST("disk-floppy", 0);
     DO_TEST("disk-many", 0);
     DO_TEST("disk-virtio", QEMUD_CMD_FLAG_DRIVE |
             QEMUD_CMD_FLAG_DRIVE_BOOT);
     DO_TEST("disk-xenvbd", QEMUD_CMD_FLAG_DRIVE |
             QEMUD_CMD_FLAG_DRIVE_BOOT);
+    DO_TEST("disk-drive-boot-disk", QEMUD_CMD_FLAG_DRIVE |
+            QEMUD_CMD_FLAG_DRIVE_BOOT);
+    DO_TEST("disk-drive-boot-cdrom", QEMUD_CMD_FLAG_DRIVE |
+            QEMUD_CMD_FLAG_DRIVE_BOOT);
+    DO_TEST("disk-usb", 0);
     DO_TEST("graphics-vnc", 0);
     DO_TEST("graphics-sdl", 0);
     DO_TEST("input-usbmouse", 0);
@@ -180,6 +180,9 @@ mymain(int argc, char **argv)
     DO_TEST("parallel-tcp", 0);
     DO_TEST("console-compat", 0);
     DO_TEST("sound", 0);
+
+    DO_TEST("hostdev-usb-product", 0);
+    DO_TEST("hostdev-usb-address", 0);
 
     virCapabilitiesFree(driver.caps);
 

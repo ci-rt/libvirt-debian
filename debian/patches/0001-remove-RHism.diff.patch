@@ -1,4 +1,4 @@
-From 7977ce54be66614b0b952da9b51b3dd1472db842 Mon Sep 17 00:00:00 2001
+From dd53d550311316241c3999ff5573ab88d9825319 Mon Sep 17 00:00:00 2001
 From: Guido Guenther <agx@sigxcpu.org>
 Date: Fri, 7 Mar 2008 09:08:25 +0100
 Subject: [PATCH] remove-RHism.diff
@@ -21,5 +21,5 @@ index 063dde7..751c6aa 100644
  Most \fBvirsh\fR commands require root privileges to run due to the
  communications channels used to talk to the hypervisor.  Running as
 -- 
-1.5.5.4
+1.5.6.5
 

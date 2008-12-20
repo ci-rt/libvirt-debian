@@ -1,4 +1,4 @@
-From 7db856c82586a0cbd42ecb7128d445e092194e66 Mon Sep 17 00:00:00 2001
+From 1dcda30d8561d13c6f6aa18c98a0403990033d35 Mon Sep 17 00:00:00 2001
 From: Guido Guenther <agx@sigxcpu.org>
 Date: Thu, 26 Jun 2008 20:01:38 +0200
 Subject: [PATCH] allow libvirt group to access the socket
@@ -48,5 +48,5 @@ index c323185..cff232d 100644
  # Change the authentication scheme for TCP sockets.
  #
 -- 
-1.5.5.4
+1.5.6.5
 

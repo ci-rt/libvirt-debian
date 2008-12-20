@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([libvirt], [0.4.4])
+AC_INIT([libvirt], [0.4.6])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AM_CONFIG_HEADER([config.h])
@@ -65,10 +65,10 @@ dnl Use --disable-largefile if you don't want this.
 AC_SYS_LARGEFILE
 
 dnl Availability of various common functions (non-fatal if missing).
-AC_CHECK_FUNCS([cfmakeraw regexec uname sched_getaffinity])
+AC_CHECK_FUNCS([cfmakeraw regexec uname sched_getaffinity getuid getgid])
 
 dnl Availability of various common headers (non-fatal if missing).
-AC_CHECK_HEADERS([pwd.h paths.h sys/syslimits.h sys/utsname.h sys/wait.h winsock2.h sched.h])
+AC_CHECK_HEADERS([pwd.h paths.h regex.h sys/syslimits.h sys/utsname.h sys/wait.h winsock2.h sched.h termios.h])
 
 dnl Where are the XDR functions?
 dnl If portablexdr is installed, prefer that.
@@ -76,6 +76,8 @@ dnl Otherwise try -lrpc (Cygwin) -lxdr (some MinGW) or none (most Unix)
 AC_CHECK_LIB([portablexdr],[xdrmem_create],[],[
 	AC_SEARCH_LIBS([xdrmem_create],[rpc xdr])
 	])
+
+AC_CHECK_LIB([intl],[gettext],[])
 
 dnl Do we have rpcgen?
 AC_PATH_PROG([RPCGEN], [rpcgen], [no])
@@ -90,6 +92,7 @@ AC_CHECK_HEADER([pthread.h],
 	[AC_CHECK_LIB([pthread],[pthread_join],[
 		AC_DEFINE([HAVE_LIBPTHREAD],[],[Define if pthread (-lpthread)])
 		AC_DEFINE([HAVE_PTHREAD_H],[],[Define if <pthread.h>])
+		LIBS="-lpthread $LIBS"
 	])])
 
 dnl Miscellaneous external programs.
@@ -97,8 +100,9 @@ AC_PATH_PROG([RM], [rm], [/bin/rm])
 AC_PATH_PROG([MV], [mv], [/bin/mv])
 AC_PATH_PROG([TAR], [tar], [/bin/tar])
 AC_PATH_PROG([XMLLINT], [xmllint], [/usr/bin/xmllint])
+AC_PATH_PROG([XMLCATALOG], [xmlcatalog], [/usr/bin/xmlcatalog])
 AC_PATH_PROG([XSLTPROC], [xsltproc], [/usr/bin/xsltproc])
-
+AC_PATH_PROG([AUGPARSE], [augparse], [/usr/bin/augparse])
 AC_PROG_MKDIR_P
 
 dnl External programs that we can use if they are available.
@@ -144,9 +148,9 @@ AC_ARG_WITH([xen],
 AC_ARG_WITH([qemu],
 [  --with-qemu             add QEMU/KVM support (on)],[],[with_qemu=yes])
 AC_ARG_WITH([openvz],
-[  --with-openvz           add OpenVZ support (off)],[],[with_openvz=no])
+[  --with-openvz           add OpenVZ support (on)],[],[with_openvz=yes])
 AC_ARG_WITH([lxc],
-[  --with-lxc              add Linux Container support (off)],[],[with_lxc=no])
+[  --with-lxc              add Linux Container support (on)],[],[with_lxc=yes])
 AC_ARG_WITH([test],
 [  --with-test             add test driver support (on)],[],[with_test=yes])
 AC_ARG_WITH([remote],
@@ -235,33 +239,41 @@ AC_ARG_WITH([xen-distdir], [AC_HELP_STRING([--with-xen-distdir=path],
 if test "x$with_xen_distdir" != "x"
 then
 CPPFLAGS="$CPPFLAGS -I$withval/install/usr/include"
-LDFLAGS="$LDFLAGS -L$withval/install/usr/lib"
+LDFLAGS="$LDFLAGS -L$withval/install/usr/lib -L$withval/install/usr/lib64"
 fi
 
 LIBVIRT_FEATURES=
 WITH_XEN=0
 
-if test "$with_openvz" = "yes" ; then
+if test "$with_openvz" = "yes"; then
     LIBVIRT_FEATURES="$LIBVIRT_FEATURES -DWITH_OPENVZ"
 fi
+AM_CONDITIONAL([WITH_OPENVZ], [test "$with_openvz" = "yes"])
+
 if test "$with_lxc" = "yes" ; then
     LIBVIRT_FEATURES="$LIBVIRT_FEATURES -DWITH_LXC"
 fi
+AM_CONDITIONAL([WITH_LXC], [test "$with_lxc" = "yes"])
+
 if test "$with_qemu" = "yes" ; then
     LIBVIRT_FEATURES="$LIBVIRT_FEATURES -DWITH_QEMU"
 fi
+AM_CONDITIONAL([WITH_QEMU], [test "$with_qemu" = "yes"])
 
 if test "$with_test" = "yes" ; then
     LIBVIRT_FEATURES="$LIBVIRT_FEATURES -DWITH_TEST"
 fi
+AM_CONDITIONAL([WITH_TEST], [test "$with_test" = "yes"])
 
 if test "$with_remote" = "yes" ; then
     LIBVIRT_FEATURES="$LIBVIRT_FEATURES -DWITH_REMOTE"
 fi
+AM_CONDITIONAL([WITH_REMOTE], [test "$with_remote" = "yes"])
 
 if test "$with_libvirtd" = "yes" ; then
     LIBVIRT_FEATURES="$LIBVIRT_FEATURES -DWITH_LIBVIRTD"
 fi
+AM_CONDITIONAL([WITH_LIBVIRTD], [test "$with_libvirtd" = "yes"])
 
 if test "$with_xen" = "yes" ; then
     dnl search for the Xen store library
@@ -294,14 +306,20 @@ if test "$with_xen" = "yes" ; then
 #include <xen/xen.h>
 ])
 fi
+AM_CONDITIONAL([WITH_XEN], [test "$WITH_XEN" = "1"])
 
 dnl
-dnl check for kernel headers required by qemud/bridge.c
+dnl check for kernel headers required by src/bridge.c
 dnl
-if test "$with_qemu" = "yes" ; then
+if test "$with_qemu" = "yes" -o "$with_lxc" = "yes" ; then
   AC_CHECK_HEADERS([linux/param.h linux/sockios.h linux/if_bridge.h linux/if_tun.h],,
                    AC_MSG_ERROR([You must install kernel-headers in order to compile libvirt]))
 fi
+
+dnl
+dnl check for kvm headers
+dnl
+AC_CHECK_HEADERS([linux/kvm.h])
 
 dnl Need to test if pkg-config exists
 PKG_PROG_PKG_CONFIG
@@ -638,6 +656,20 @@ AC_ARG_WITH([storage-iscsi],
 AC_ARG_WITH([storage-disk],
 [  --with-storage-disk         with GPartd Disk backend for the storage driver (on)],[],[with_storage_disk=check])
 
+with_storage_dir=yes
+if test "$with_libvirtd" = "no"; then
+  with_storage_dir=no
+  with_storage_fs=no
+  with_storage_lvm=no
+  with_storage_iscsi=no
+  with_storage_disk=no
+fi
+if test "$with_storage_dir" = "yes" ; then
+  AC_DEFINE_UNQUOTED([WITH_STORAGE_DIR], 1, [whether directory backend for storage driver is enabled])
+fi
+AM_CONDITIONAL([WITH_STORAGE_DIR], [test "$with_storage_dir" = "yes"])
+
+
 if test "$with_storage_fs" = "yes" -o "$with_storage_fs" = "check"; then
   AC_PATH_PROG([MOUNT], [mount], [], [$PATH:/sbin:/usr/sbin])
   AC_PATH_PROG([UMOUNT], [umount], [], [$PATH:/sbin:/usr/sbin])
@@ -660,6 +692,11 @@ if test "$with_storage_fs" = "yes" -o "$with_storage_fs" = "check"; then
   fi
 fi
 AM_CONDITIONAL([WITH_STORAGE_FS], [test "$with_storage_fs" = "yes"])
+if test "$with_storage_fs" = "yes"; then
+  AC_PATH_PROG([SHOWMOUNT], [showmount], [], [$PATH:/sbin:/usr/sbin])
+  AC_DEFINE_UNQUOTED([SHOWMOUNT], ["$SHOWMOUNT"],
+    [Location or name of the showmount program])
+fi
 
 AC_PATH_PROG([QEMU_IMG], [qemu-img], [], [$PATH:/sbin:/usr/sbin:/bin:/usr/bin])
 if test -n "$QEMU_IMG" ; then
@@ -1008,7 +1045,7 @@ AC_OUTPUT(Makefile src/Makefile include/Makefile docs/Makefile \
 	  docs/examples/python/Makefile \
 	  gnulib/lib/Makefile \
 	  gnulib/tests/Makefile \
-          libvirt.pc libvirt.spec \
+          libvirt.pc libvirt.spec mingw-libvirt.spec \
           po/Makefile.in \
 	  include/libvirt/Makefile include/libvirt/libvirt.h \
 	  python/Makefile python/tests/Makefile \
@@ -1037,7 +1074,7 @@ AC_MSG_NOTICE([Libvirtd: $with_libvirtd])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Storage Drivers])
 AC_MSG_NOTICE([])
-AC_MSG_NOTICE([     Dir: yes])
+AC_MSG_NOTICE([     Dir: $with_storage_dir])
 AC_MSG_NOTICE([      FS: $with_storage_fs])
 AC_MSG_NOTICE([   NetFS: $with_storage_fs])
 AC_MSG_NOTICE([     LVM: $with_storage_lvm])

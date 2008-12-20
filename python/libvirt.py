@@ -15,8 +15,7 @@ import types
 
 # The root of all libvirt errors.
 class libvirtError(Exception):
-    def __init__(self, msg, conn=None, dom=None, net=None, pool=None, vol=None):
-        Exception.__init__(self, msg)
+    def __init__(self, defmsg, conn=None, dom=None, net=None, pool=None, vol=None):
 
         if dom is not None:
             conn = dom._conn
@@ -28,9 +27,17 @@ class libvirtError(Exception):
             conn = vol._conn
 
         if conn is None:
-            self.err = virGetLastError()
+            err = virGetLastError()
         else:
-            self.err = conn.virConnGetLastError()
+            err = conn.virConnGetLastError()
+        if err is None:
+            msg = defmsg
+        else:
+            msg = err[2]
+
+        Exception.__init__(self, msg)
+
+        self.err = err
 
     def get_error_code(self):
         if self.err is None:
@@ -76,12 +83,6 @@ class libvirtError(Exception):
         if self.err is None:
             return None
         return self.err[8]
-
-    def __str__(self):
-        if self.get_error_message() is None:
-            return Exception.__str__(self)
-        else:
-            return Exception.__str__(self) + " " + self.get_error_message()
 
 #
 # register the libvirt global error handler
@@ -211,6 +212,30 @@ class virDomain:
         if ret == -1: raise libvirtError ('virDomainAttachDevice() failed', dom=self)
         return ret
 
+    def blockPeek(self, path, offset, size, buffer, flags):
+        """This function allows you to read the contents of a domain's
+          disk device.  Typical uses for this are to determine if the
+          domain has written a Master Boot Record (indicating that
+          the domain has completed installation), or to try to work
+          out the state of the domain's filesystems.  (Note that in
+          the local case you might try to open the block device or
+          file directly, but that won't work in the remote case, nor
+          if you don't have sufficient permission. Hence the need for
+          this call).  'path' must be a device or file corresponding
+          to the domain. In other words it must be the precise string
+          returned in a <disk><source dev='...'/></disk> from
+          virDomainGetXMLDesc.  'offset' and 'size' represent an area
+          which must lie entirely within the device or file.  'size'
+          may be 0 to test if the call would succeed.  'buffer' is
+          the return buffer and must be at least 'size' bytes.  NB.
+          The remote driver imposes a 64K byte limit on 'size'. For
+          your program to be able to work reliably over a remote
+          connection you should split large requests to <= 65536
+           bytes. """
+        ret = libvirtmod.virDomainBlockPeek(self._o, path, offset, size, buffer, flags)
+        if ret == -1: raise libvirtError ('virDomainBlockPeek() failed', dom=self)
+        return ret
+
     def connect(self):
         """Provides the connection pointer associated with a domain. 
           The reference counter on the connection is not increased by
@@ -240,9 +265,9 @@ class virDomain:
     def destroy(self):
         """Destroy the domain object. The running instance is shutdown
           if not down already and all resources used by it are given
-          back to the hypervisor. The data structure is freed and
-          should not be used thereafter if the call does not return
-           an error. This function may requires privileged access """
+          back to the hypervisor. This does not free the associated
+          virDomainPtr object. This function may require privileged
+           access """
         ret = libvirtmod.virDomainDestroy(self._o)
         if ret == -1: raise libvirtError ('virDomainDestroy() failed', dom=self)
         return ret
@@ -270,6 +295,26 @@ class virDomain:
            guest was booted with. """
         ret = libvirtmod.virDomainGetMaxVcpus(self._o)
         if ret == -1: raise libvirtError ('virDomainGetMaxVcpus() failed', dom=self)
+        return ret
+
+    def memoryPeek(self, start, size, buffer, flags):
+        """This function allows you to read the contents of a domain's
+          memory.  The memory which is read is controlled by the
+          'start', 'size' and 'flags' parameters.  If 'flags' is
+          VIR_MEMORY_VIRTUAL then the 'start' and 'size' parameters
+          are interpreted as virtual memory addresses for whichever
+          task happens to be running on the domain at the moment. 
+          Although this sounds haphazard it is in fact what you want
+          in order to read Linux kernel state, because it ensures
+          that pointers in the kernel image can be interpreted
+          coherently.  'buffer' is the return buffer and must be at
+          least 'size' bytes. 'size' may be 0 to test if the call
+          would succeed.  NB. The remote driver imposes a 64K byte
+          limit on 'size'. For your program to be able to work
+          reliably over a remote connection you should split large
+           requests to <= 65536 bytes. """
+        ret = libvirtmod.virDomainMemoryPeek(self._o, start, size, buffer, flags)
+        if ret == -1: raise libvirtError ('virDomainMemoryPeek() failed', dom=self)
         return ret
 
     def migrate(self, dconn, flags, dname, uri, bandwidth):
@@ -399,7 +444,7 @@ class virDomain:
         return ret
 
     def undefine(self):
-        """undefine a domain but does not stop it if it is running """
+        """Undefine a domain but does not stop it if it is running """
         ret = libvirtmod.virDomainUndefine(self._o)
         if ret == -1: raise libvirtError ('virDomainUndefine() failed', dom=self)
         return ret
@@ -531,10 +576,9 @@ class virNetwork:
     def destroy(self):
         """Destroy the network object. The running instance is
           shutdown if not down already and all resources used by it
-          are given back to the hypervisor. The data structure is
-          freed and should not be used thereafter if the call does
-          not return an error. This function may requires privileged
-           access """
+          are given back to the hypervisor. This does not free the
+          associated virNetworkPtr object. This function may require
+           privileged access """
         ret = libvirtmod.virNetworkDestroy(self._o)
         if ret == -1: raise libvirtError ('virNetworkDestroy() failed', net=self)
         return ret
@@ -590,6 +634,8 @@ class virNetwork:
 class virStoragePool:
     def __init__(self, conn, _obj=None):
         self._conn = conn
+        if not isinstance(conn, virConnect):
+            self._conn = conn._conn
         if _obj != None:self._o = _obj;return
         self._o = None
 
@@ -738,6 +784,8 @@ class virStoragePool:
 class virStorageVol:
     def __init__(self, conn, _obj=None):
         self._conn = conn
+        if not isinstance(conn, virConnect):
+            self._conn = conn._conn
         if _obj != None:self._o = _obj;return
         self._o = None
 
@@ -836,7 +884,10 @@ class virConnect:
         """Launch a new Linux guest domain, based on an XML
           description similar to the one returned by
           virDomainGetXMLDesc() This function may requires privileged
-           access to the hypervisor. """
+          access to the hypervisor. The domain is not persistent, so
+          its definition will disappear when it is destroyed, or if
+          the host is restarted (see virDomainDefineXML() to define
+           persistent domains). """
         ret = libvirtmod.virDomainCreateLinux(self._o, xmlDesc, flags)
         if ret is None:raise libvirtError('virDomainCreateLinux() failed', conn=self)
         __tmp = virDomain(self,_obj=ret)
@@ -861,11 +912,26 @@ class virConnect:
         return __tmp
 
     def defineXML(self, xml):
-        """define a domain, but does not start it """
+        """Define a domain, but does not start it. This definition is
+          persistent, until explicitly undefined with
+           virDomainUndefine(). """
         ret = libvirtmod.virDomainDefineXML(self._o, xml)
         if ret is None:raise libvirtError('virDomainDefineXML() failed', conn=self)
         __tmp = virDomain(self,_obj=ret)
         return __tmp
+
+    def findStoragePoolSources(self, type, srcSpec, flags):
+        """Talks to a storage backend and attempts to auto-discover
+          the set of available storage pool sources. e.g. For iSCSI
+          this would be a set of iSCSI targets. For NFS this would be
+          a list of exported paths.  The srcSpec (optional for some
+          storage pool types, e.g. local ones) is an instance of the
+          storage pool's source element specifying where to look for
+          the pools.  srcSpec is not required for some types (e.g.,
+           those querying local storage resources only) """
+        ret = libvirtmod.virConnectFindStoragePoolSources(self._o, type, srcSpec, flags)
+        if ret is None: raise libvirtError ('virConnectFindStoragePoolSources() failed', conn=self)
+        return ret
 
     def getCapabilities(self):
         """Provides capabilities of the hypervisor / driver. """
@@ -915,7 +981,10 @@ class virConnect:
         return ret
 
     def lookupByID(self, id):
-        """Try to find a domain based on the hypervisor ID number """
+        """Try to find a domain based on the hypervisor ID number Note
+          that this won't work for inactive domains which have an ID
+          of -1, in that case a lookup based on the Name or UUId need
+           to be done instead. """
         ret = libvirtmod.virDomainLookupByID(self._o, id)
         if ret is None:raise libvirtError('virDomainLookupByID() failed', conn=self)
         __tmp = virDomain(self,_obj=ret)
@@ -1212,6 +1281,8 @@ VIR_FROM_XENXM = 15
 VIR_FROM_STATS_LINUX = 16
 VIR_FROM_LXC = 17
 VIR_FROM_STORAGE = 18
+VIR_FROM_NETWORK = 19
+VIR_FROM_DOMAIN = 20
 
 # virStorageVolType
 VIR_STORAGE_VOL_FILE = 0
@@ -1295,6 +1366,9 @@ VIR_ERR_INVALID_STORAGE_VOL = 47
 VIR_WAR_NO_STORAGE = 48
 VIR_ERR_NO_STORAGE_POOL = 49
 VIR_ERR_NO_STORAGE_VOL = 50
+
+# virDomainMemoryFlags
+VIR_MEMORY_VIRTUAL = 1
 
 # virDomainCreateFlags
 VIR_DOMAIN_NONE = 0

@@ -37,13 +37,21 @@ noinst_PROGRAMS = xmlrpctest$(EXEEXT) xml2sexprtest$(EXEEXT) \
 	reconnect$(EXEEXT) xmconfigtest$(EXEEXT) xencapstest$(EXEEXT) \
 	qemuxml2argvtest$(EXEEXT) qemuxml2xmltest$(EXEEXT) \
 	nodeinfotest$(EXEEXT) statstest$(EXEEXT) qparamtest$(EXEEXT)
+@WITH_LIBVIRTD_TRUE@am__append_1 = \
+@WITH_LIBVIRTD_TRUE@	test_conf.sh \
+@WITH_LIBVIRTD_TRUE@	daemon-conf \
+@WITH_LIBVIRTD_TRUE@	int-overflow \
+@WITH_LIBVIRTD_TRUE@	read-bufsiz \
+@WITH_LIBVIRTD_TRUE@	read-non-seekable \
+@WITH_LIBVIRTD_TRUE@	undefine \
+@WITH_LIBVIRTD_TRUE@	vcpupin
+
 TESTS = xml2sexprtest$(EXEEXT) sexpr2xmltest$(EXEEXT) \
-	virshtest$(EXEEXT) test_conf.sh xmconfigtest$(EXEEXT) \
-	xencapstest$(EXEEXT) qemuxml2argvtest$(EXEEXT) \
-	qemuxml2xmltest$(EXEEXT) nodeinfotest$(EXEEXT) \
-	statstest$(EXEEXT) qparamtest$(EXEEXT) $(test_scripts) \
-	$(am__EXEEXT_1)
-@ENABLE_XEN_TESTS_TRUE@am__append_1 = reconnect
+	virshtest$(EXEEXT) xmconfigtest$(EXEEXT) xencapstest$(EXEEXT) \
+	qemuxml2argvtest$(EXEEXT) qemuxml2xmltest$(EXEEXT) \
+	nodeinfotest$(EXEEXT) statstest$(EXEEXT) qparamtest$(EXEEXT) \
+	$(test_scripts) $(am__EXEEXT_1)
+@ENABLE_XEN_TESTS_TRUE@am__append_2 = reconnect
 subdir = tests
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -57,15 +65,18 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/getdelim.m4 \
 	$(top_srcdir)/gnulib/m4/getline.m4 \
 	$(top_srcdir)/gnulib/m4/getpass.m4 \
+	$(top_srcdir)/gnulib/m4/gettimeofday.m4 \
 	$(top_srcdir)/gnulib/m4/gnulib-common.m4 \
 	$(top_srcdir)/gnulib/m4/gnulib-comp.m4 \
 	$(top_srcdir)/gnulib/m4/include_next.m4 \
 	$(top_srcdir)/gnulib/m4/inet_ntop.m4 \
+	$(top_srcdir)/gnulib/m4/inet_pton.m4 \
 	$(top_srcdir)/gnulib/m4/intmax_t.m4 \
 	$(top_srcdir)/gnulib/m4/inttypes_h.m4 \
 	$(top_srcdir)/gnulib/m4/longlong.m4 \
 	$(top_srcdir)/gnulib/m4/lseek.m4 \
 	$(top_srcdir)/gnulib/m4/malloc.m4 \
+	$(top_srcdir)/gnulib/m4/mkstemp.m4 \
 	$(top_srcdir)/gnulib/m4/netinet_in_h.m4 \
 	$(top_srcdir)/gnulib/m4/onceonly.m4 \
 	$(top_srcdir)/gnulib/m4/physmem.m4 \
@@ -91,6 +102,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/sys_socket_h.m4 \
 	$(top_srcdir)/gnulib/m4/sys_stat_h.m4 \
 	$(top_srcdir)/gnulib/m4/sys_time_h.m4 \
+	$(top_srcdir)/gnulib/m4/tempname.m4 \
 	$(top_srcdir)/gnulib/m4/unistd_h.m4 \
 	$(top_srcdir)/gnulib/m4/vasnprintf.m4 \
 	$(top_srcdir)/gnulib/m4/vasprintf.m4 \
@@ -146,10 +158,12 @@ virshtest_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_xencapstest_OBJECTS = xencapstest.$(OBJEXT) testutils.$(OBJEXT)
 xencapstest_OBJECTS = $(am_xencapstest_OBJECTS)
 xencapstest_DEPENDENCIES = $(am__DEPENDENCIES_2)
-am_xmconfigtest_OBJECTS = xmconfigtest.$(OBJEXT) testutils.$(OBJEXT)
+am_xmconfigtest_OBJECTS = xmconfigtest.$(OBJEXT) \
+	testutilsxen.$(OBJEXT) testutils.$(OBJEXT)
 xmconfigtest_OBJECTS = $(am_xmconfigtest_OBJECTS)
 xmconfigtest_DEPENDENCIES = $(am__DEPENDENCIES_2)
-am_xml2sexprtest_OBJECTS = xml2sexprtest.$(OBJEXT) testutils.$(OBJEXT)
+am_xml2sexprtest_OBJECTS = xml2sexprtest.$(OBJEXT) \
+	testutilsxen.$(OBJEXT) testutils.$(OBJEXT)
 xml2sexprtest_OBJECTS = $(am_xml2sexprtest_OBJECTS)
 xml2sexprtest_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_xmlrpctest_OBJECTS = xmlrpctest.$(OBJEXT) testutils.$(OBJEXT) \
@@ -203,6 +217,7 @@ AMTAR = @AMTAR@
 AR = @AR@
 ARPA_INET_H = @ARPA_INET_H@
 AS = @AS@
+AUGPARSE = @AUGPARSE@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
@@ -290,6 +305,8 @@ GNULIB_MEMPCPY = @GNULIB_MEMPCPY@
 GNULIB_MEMRCHR = @GNULIB_MEMRCHR@
 GNULIB_MKDTEMP = @GNULIB_MKDTEMP@
 GNULIB_MKSTEMP = @GNULIB_MKSTEMP@
+GNULIB_OBSTACK_PRINTF = @GNULIB_OBSTACK_PRINTF@
+GNULIB_OBSTACK_PRINTF_POSIX = @GNULIB_OBSTACK_PRINTF_POSIX@
 GNULIB_PRINTF_POSIX = @GNULIB_PRINTF_POSIX@
 GNULIB_PUTENV = @GNULIB_PUTENV@
 GNULIB_RAWMEMCHR = @GNULIB_RAWMEMCHR@
@@ -334,6 +351,7 @@ HAVE_DECL_INET_NTOP = @HAVE_DECL_INET_NTOP@
 HAVE_DECL_INET_PTON = @HAVE_DECL_INET_PTON@
 HAVE_DECL_MEMMEM = @HAVE_DECL_MEMMEM@
 HAVE_DECL_MEMRCHR = @HAVE_DECL_MEMRCHR@
+HAVE_DECL_OBSTACK_PRINTF = @HAVE_DECL_OBSTACK_PRINTF@
 HAVE_DECL_SNPRINTF = @HAVE_DECL_SNPRINTF@
 HAVE_DECL_STRDUP = @HAVE_DECL_STRDUP@
 HAVE_DECL_STRERROR = @HAVE_DECL_STRERROR@
@@ -502,6 +520,7 @@ REPLACE_LSEEK = @REPLACE_LSEEK@
 REPLACE_MEMMEM = @REPLACE_MEMMEM@
 REPLACE_MKDIR = @REPLACE_MKDIR@
 REPLACE_MKSTEMP = @REPLACE_MKSTEMP@
+REPLACE_OBSTACK_PRINTF = @REPLACE_OBSTACK_PRINTF@
 REPLACE_PRINTF = @REPLACE_PRINTF@
 REPLACE_PUTENV = @REPLACE_PUTENV@
 REPLACE_SNPRINTF = @REPLACE_SNPRINTF@
@@ -526,6 +545,7 @@ SELINUX_CFLAGS = @SELINUX_CFLAGS@
 SELINUX_LIBS = @SELINUX_LIBS@
 SET_MAKE = @SET_MAKE@
 SHELL = $(PREFERABLY_POSIX_SHELL)
+SHOWMOUNT = @SHOWMOUNT@
 SIG_ATOMIC_T_SUFFIX = @SIG_ATOMIC_T_SUFFIX@
 SIZE_T_SUFFIX = @SIZE_T_SUFFIX@
 STATIC_BINARIES = @STATIC_BINARIES@
@@ -553,6 +573,7 @@ WCHAR_T_SUFFIX = @WCHAR_T_SUFFIX@
 WINT_T_SUFFIX = @WINT_T_SUFFIX@
 WITH_XEN = @WITH_XEN@
 XGETTEXT = @XGETTEXT@
+XMLCATALOG = @XMLCATALOG@
 XMLLINT = @XMLLINT@
 XSLTPROC = @XSLTPROC@
 abs_aux_dir = @abs_aux_dir@
@@ -642,15 +663,9 @@ LDADDS = \
 	../gnulib/lib/libgnu.la \
         $(COVERAGE_LDFLAGS)
 
-EXTRA_DIST = oomtrace.pl test-lib.sh xmlrpcserver.py test_conf.sh \
-	qemuxml2argvdata nodeinfodata $(test_scripts)
-test_scripts = \
-	daemon-conf \
-	int-overflow \
-	read-bufsiz \
-	read-non-seekable \
-	vcpupin
-
+EXTRA_DIST = oomtrace.pl test-lib.sh xmlrpcserver.py qemuxml2argvdata \
+	nodeinfodata domainschematest $(test_scripts)
+test_scripts = domainschematest $(am__append_1)
 path_add = $$abs_top_builddir/src$(PATH_SEPARATOR)$$abs_top_builddir/qemud
 
 # NB, automake < 1.10 does not provide the real
@@ -675,7 +690,7 @@ xmlrpctest_SOURCES = \
 
 xmlrpctest_LDADD = $(LDADDS)
 xml2sexprtest_SOURCES = \
-	xml2sexprtest.c \
+	xml2sexprtest.c testutilsxen.c testutilsxen.h \
 	testutils.c testutils.h
 
 xml2sexprtest_LDADD = $(LDADDS)
@@ -685,7 +700,7 @@ sexpr2xmltest_SOURCES = \
 
 sexpr2xmltest_LDADD = $(LDADDS)
 xmconfigtest_SOURCES = \
-	xmconfigtest.c \
+	xmconfigtest.c testutilsxen.c testutilsxen.h \
 	testutils.c testutils.h
 
 xmconfigtest_LDADD = $(LDADDS)
@@ -825,6 +840,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/statstest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testutils.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testutilsqemu.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testutilsxen.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virshtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xencapstest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xmconfigtest.Po@am__quote@

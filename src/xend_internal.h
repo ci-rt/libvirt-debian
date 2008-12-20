@@ -1,58 +1,32 @@
 /*
- * libxend/xend.h -- Xend library
+ * xend_internal.h
  *
  * Copyright (C) 2005,2006
  *
  *      Anthony Liguori <aliguori@us.ibm.com>
  *	Daniel Veillard <veillard@redhat.com>
  *
+ * Copyright 2006-2008 Red Hat
+ *
  *  This file is subject to the terms and conditions of the GNU Lesser General
  *  Public License. See the file COPYING in the main directory of this archive
  *  for more details.
  */
 
-#ifndef _LIBXEND_XEND_H_
-#define _LIBXEND_XEND_H_
+#ifndef __XEND_INTERNAL_H_
+#define __XEND_INTERNAL_H_
 
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "libvirt/libvirt.h"
+#include "internal.h"
 #include "capabilities.h"
+#include "domain_conf.h"
 #include "buf.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/**
- * \brief Setup the connection to a xend instance via TCP
- * \param host The host name to connect to
- * \param port The port number to connect to
- * \return 0 in case of success, -1 in case of error
- *
- * This method creates a new Xend instance via TCP.
- *
- * This function may not fail if Xend is not running.
- *
- * Make sure to call xenDaemonClose().
- */
-int xenDaemonOpen_tcp(virConnectPtr xend, const char *host, int port);
-
-/**
- * \brief Setup the connection to xend instance via a Unix domain socket
- * \param path The path to the domain socket
- * \return 0 in case of success, -1 in case of error
- *
- * This method creates a new xend instance via a Unix domain socket.
- *
- * This function may not fail if Xend is not running.
- *
- * Make sure to call xenDaemonClose().
- */
-int xenDaemonOpen_unix(virConnectPtr xend, const char *path);
-
+int
+xenDaemonOpen_unix(virConnectPtr conn, const char *path);
 
 /**
  * \brief Blocks until a domain's devices are initialized
@@ -108,77 +82,11 @@ int xenDaemonDomainLookupByID(virConnectPtr xend,
                               char **name, unsigned char *uuid);
 
 
-char *xenDaemonDomainDumpXMLByID(virConnectPtr xend,
-                                 int domid,
-                                 int flags,
-                                 const char *cpus);
-
-char *xenDaemonDomainDumpXMLByName(virConnectPtr xend,
-                                   const char *name,
-                                   int flags,
-                                   const char *cpus);
-
-/**
- * \brief Lookup information about the host machine
- * \param xend A xend instance
- * \return node info on success; NULL (with errno) on error
- *
- * This method returns information about the physical host
- * machine running Xen.
- */
-    struct xend_node *xend_get_node(virConnectPtr xend);
-
-/**
- * \brief Shutdown physical host machine
- * \param xend A xend instance
- * \return 0 on success; -1 (with errno) on error
- *
- * This method shuts down the physical machine running Xen.
- */
-    int xend_node_shutdown(virConnectPtr xend);
-
-/**
- * \brief Restarts physical host machine
- * \param xend A xend instance
- * \return 0 on success; -1 (with errno) on error
- *
- * This method restarts the physical machine running Xen.
- */
-    int xend_node_restart(virConnectPtr xend);
-
-/**
- * \brief Return hypervisor debugging messages
- * \param xend A xend instance
- * \param buffer A buffer to hold the messages
- * \param n_buffer Size of buffer (including null terminator)
- * \return 0 on success; -1 (with errno) on error
- *
- * This function will place the debugging messages from the
- * hypervisor into a buffer with a null terminator.
- */
-    int xend_dmesg(virConnectPtr xend, char *buffer, size_t n_buffer);
-
-/**
- * \brief Clear the hypervisor debugging messages
- * \param xend A xend instance
- * \return 0 on success; -1 (with errno) on error
- *
- * This function will clear the debugging message ring queue
- * in the hypervisor.
- */
-    int xend_dmesg_clear(virConnectPtr xend);
-
-/**
- * \brief Obtain the Xend log messages
- * \param xend A xend instance
- * \param buffer The buffer to hold the messages
- * \param n_buffer Size of buffer (including null terminator)
- * \return 0 on success; -1 (with errno) on error
- *
- * This function will place the Xend debugging messages into
- * a buffer with a null terminator.
- */
-    int xend_log(virConnectPtr xend, char *buffer, size_t n_buffer);
+virDomainDefPtr
+xenDaemonDomainFetch(virConnectPtr xend,
+                     int domid,
+                     const char *name,
+                     const char *cpus);
 
     int xend_parse_sexp_desc_char(virConnectPtr conn,
                                   virBufferPtr buf,
@@ -187,11 +95,36 @@ char *xenDaemonDomainDumpXMLByName(virConnectPtr xend,
                                   const char *value,
                                   const char *tty);
 
-  char *xend_parse_domain_sexp(virConnectPtr conn,  char *root, int xendConfigVersion);
+virDomainDefPtr
+xenDaemonParseSxprString(virConnectPtr conn,
+                         const char *sexpr,
+                         int xendConfigVersion);
+
+int
+xenDaemonParseSxprSound(virConnectPtr conn,
+                        virDomainDefPtr def,
+                        const char *str);
+virDomainChrDefPtr
+xenDaemonParseSxprChar(virConnectPtr conn,
+                       const char *value,
+                       const char *tty);
+
+int
+xenDaemonFormatSxprChr(virConnectPtr conn,
+                       virDomainChrDefPtr def,
+                       virBufferPtr buf);
+int
+xenDaemonFormatSxprSound(virConnectPtr conn,
+                         virDomainSoundDefPtr sound,
+                         virBufferPtr buf);
+
+char *
+xenDaemonFormatSxpr(virConnectPtr conn,
+                    virDomainDefPtr def,
+                    int xendConfigVersion);
 
   int is_sound_model_valid(const char *model);
   int is_sound_model_conflict(const char *model, const char *soundstr);
-  char *sound_string_to_xml(const char *sound);
 
 
 /* refactored ones */
@@ -246,7 +179,4 @@ int xenDaemonDomainMigratePerform (virDomainPtr domain, const char *cookie, int 
 
 int xenDaemonDomainBlockPeek (virDomainPtr domain, const char *path, unsigned long long offset, size_t size, void *buffer);
 
-#ifdef __cplusplus
-}
-#endif
-#endif
+#endif /* __XEND_INTERNAL_H_ */

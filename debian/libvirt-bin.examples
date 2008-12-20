@@ -1,3 +1,5 @@
 qemud/libvirtd.policy
 qemud/libvirtd.sasl
 qemud/libvirtd.conf
+debian/libvirt-suspendonreboot
+
