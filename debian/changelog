@@ -1,3 +1,11 @@
+libvirt (0.4.6-10~bpo40+1) unstable; urgency=low
+
+  * Rebuild for etch-backports.
+  * [c720dc5] fix compilation with etch's gcc 4.1
+  * [d909f9c] fix qemu detection for etch's qemu 0.8.2
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 20 Dec 2008 19:44:28 +0100
+
 libvirt (0.4.6-10) unstable; urgency=low
 
   * [5878698] cherry-pick patch for CVE-2008-5086 from experimental
