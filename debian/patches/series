@@ -11,3 +11,4 @@
 0011-Fix-missing-read-only-access-checks-CVE-2008-5086.patch
 0005-include-bits-siginfo.h-for-siginfo_t.patch
 0001-drop-unused-anonymous-unions-and-empty-structs.patch
+0013-use-h-instead-of-help.patch

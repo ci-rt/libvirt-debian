@@ -1,0 +1,25 @@
+From e90c5fcdc86060856cc9204b1e656bd25bb8141c Mon Sep 17 00:00:00 2001
+From: Guido Günther <agx@sigxcpu.org>
+Date: Sat, 20 Dec 2008 18:54:35 +0100
+Subject: [PATCH] use -h instead of -help
+
+---
+ src/qemu_conf.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/src/qemu_conf.c b/src/qemu_conf.c
+index 23ef050..5d2ced6 100644
+--- a/src/qemu_conf.c
++++ b/src/qemu_conf.c
+@@ -419,7 +419,7 @@ virCapsPtr qemudCapsInit(void) {
+ int qemudExtractVersionInfo(const char *qemu,
+                             unsigned int *retversion,
+                             unsigned int *retflags) {
+-    const char *const qemuarg[] = { qemu, "-help", NULL };
++    const char *const qemuarg[] = { qemu, "-h", NULL };
+     const char *const qemuenv[] = { "LC_ALL=C", NULL };
+     pid_t child;
+     int newstdout = -1;
+-- 
+1.5.6.5
+
