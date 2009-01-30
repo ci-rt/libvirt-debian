@@ -1,3 +1,12 @@
+libvirt (0.5.1-5) experimental; urgency=low
+
+  * [d4a69d1] don't fail on missing locales (Closes: #512721)
+  * [cecac4c] don't hardcode ssh port - based on a patch by Adrian
+    Bridgett. (Closes: #513605)
+  * [4565a65] drop superflous headers and footers from remaining patches
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 30 Jan 2009 23:06:29 +0100
+
 libvirt (0.5.1-4) experimental; urgency=low
 
   * [2fd5224] apply upstream patch for CVE-2008-5086 (Closes: #509106)
