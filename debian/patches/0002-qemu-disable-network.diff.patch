@@ -1,4 +1,3 @@
-From f7cfb3813be36f8178392e0d313935d4fd97e49a Mon Sep 17 00:00:00 2001
 From: Guido Guenther <agx@sigxcpu.org>
 Date: Fri, 7 Mar 2008 09:08:26 +0100
 Subject: [PATCH] qemu-disable-network.diff
@@ -9,10 +8,10 @@ Subject: [PATCH] qemu-disable-network.diff
  2 files changed, 0 insertions(+), 6 deletions(-)
 
 diff --git a/qemud/Makefile.am b/qemud/Makefile.am
-index 5d6ff63..29ff58c 100644
+index 15d3717..d6b4ceb 100644
 --- a/qemud/Makefile.am
 +++ b/qemud/Makefile.am
-@@ -107,9 +107,6 @@ install-data-local: install-init install-data-sasl install-data-polkit
+@@ -138,9 +138,6 @@ install-data-local: install-init install-data-sasl install-data-polkit
  	  $(DESTDIR)$(sysconfdir)/$(default_xml_dest)
  	sed -i -e "s,</name>,</name>\n  <uuid>$(UUID)</uuid>," \
  	  $(DESTDIR)$(sysconfdir)/$(default_xml_dest)
@@ -23,10 +22,10 @@ index 5d6ff63..29ff58c 100644
  	mkdir -p $(DESTDIR)$(localstatedir)/run/libvirt
  	mkdir -p $(DESTDIR)$(localstatedir)/lib/libvirt
 diff --git a/qemud/Makefile.in b/qemud/Makefile.in
-index 6b7cefe..7293b86 100644
+index 7735a0a..561163c 100644
 --- a/qemud/Makefile.in
 +++ b/qemud/Makefile.in
-@@ -1092,9 +1092,6 @@ remote_protocol.c: remote_protocol.h
+@@ -1195,9 +1195,6 @@ remote_protocol.c: remote_protocol.h
  @WITH_LIBVIRTD_TRUE@	  $(DESTDIR)$(sysconfdir)/$(default_xml_dest)
  @WITH_LIBVIRTD_TRUE@	sed -i -e "s,</name>,</name>\n  <uuid>$(UUID)</uuid>," \
  @WITH_LIBVIRTD_TRUE@	  $(DESTDIR)$(sysconfdir)/$(default_xml_dest)
@@ -37,5 +36,3 @@ index 6b7cefe..7293b86 100644
  @WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(localstatedir)/run/libvirt
  @WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(localstatedir)/lib/libvirt
 -- 
-1.5.6.5
-

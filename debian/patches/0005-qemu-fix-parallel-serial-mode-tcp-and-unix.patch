@@ -1,4 +1,3 @@
-From 42e1e104ca11ce85c8ca8094ac11a26ceb94f070 Mon Sep 17 00:00:00 2001
 From: =?utf-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
 Date: Thu, 11 Dec 2008 12:02:50 +0100
 Subject: [PATCH] qemu: fix parallel/serial mode "tcp" and "unix"
@@ -59,5 +58,3 @@ index f2d1f17..ad37de4 100644
 -LC_ALL=C PATH=/bin HOME=/home/test USER=test LOGNAME=test /usr/bin/qemu -S -M pc -m 214 -smp 1 -nographic -monitor pty -no-acpi -boot c -hda /dev/HostVG/QEMUGuest1 -net none -serial telnet:127.0.0.1:9999,server -parallel none -usb
 +LC_ALL=C PATH=/bin HOME=/home/test USER=test LOGNAME=test /usr/bin/qemu -S -M pc -m 214 -smp 1 -nographic -monitor pty -no-acpi -boot c -hda /dev/HostVG/QEMUGuest1 -net none -serial telnet:127.0.0.1:9999,server,nowait -parallel none -usb
 -- 
-1.6.0.3
-

@@ -1,4 +1,3 @@
-From 980884e56d54487dd57383d8802b1f5fe2b9b571 Mon Sep 17 00:00:00 2001
 From: Harald Staub <harald.staub@switch.ch>
 Date: Tue, 2 Dec 2008 13:14:33 +0100
 Subject: [PATCH] Open qemu monitor log O_APPEND instead of O_TRUNC
@@ -23,5 +22,3 @@ index e666efc..a5fade4 100644
          qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
                           _("failed to create logfile %s: %s"),
 -- 
-1.6.0.3
-
