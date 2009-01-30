@@ -5,3 +5,4 @@
 0005-qemu-fix-parallel-serial-mode-tcp-and-unix.patch
 0006-Fix-missing-read-only-access-checks-CVE-2008-5086.patch
 0007-don-t-fail-on-missing-locales.patch
+0008-Don-t-hardcode-ssh-port.patch
