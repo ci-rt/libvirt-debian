@@ -28,7 +28,7 @@ ICON_FILES = \
 	libvirt_win_icon_64x64.ico \
 	virsh_win_icon.rc
 
-EXTRA_DIST = libvirt_sym.version $(conf_DATA) $(ICON_FILES)
+EXTRA_DIST = $(conf_DATA) $(ICON_FILES)
 
 
 lib_LTLIBRARIES = libvirt.la
@@ -46,16 +46,21 @@ UTIL_SOURCES =							\
 		event.c event.h					\
 		hash.c hash.h					\
 		iptables.c iptables.h				\
+		logging.c logging.h				\
 		memory.c memory.h				\
 		qparams.c qparams.h				\
+		threads.c threads.h				\
+		threads-pthread.h				\
+		threads-win32.h					\
 		uuid.c uuid.h					\
 		util.c util.h					\
 		virterror.c virterror_internal.h		\
-		logging.c logging.h				\
 		xml.c xml.h
 
+EXTRA_DIST += threads-pthread.c threads-win32.c
+
 # Internal generic driver infrastructure
-DRIVER_SOURCES = 						\
+DRIVER_SOURCES =						\
 		driver.c driver.h				\
 		internal.h					\
 		datatypes.c datatypes.h				\
@@ -147,7 +152,7 @@ STORAGE_DRIVER_FS_SOURCES =					\
 		storage_backend_fs.h storage_backend_fs.c
 
 STORAGE_DRIVER_LVM_SOURCES =					\
-		storage_backend_logical.h 			\
+		storage_backend_logical.h			\
 		storage_backend_logical.c
 
 STORAGE_DRIVER_ISCSI_SOURCES =					\
@@ -189,8 +194,10 @@ libvirt_driver_la_SOURCES =					\
 		$(STORAGE_CONF_SOURCES)				\
 		$(NODE_DEVICE_CONF_SOURCES)
 
-libvirt_driver_la_CFLAGS = $(XEN_CFLAGS)
-libvirt_driver_la_LDFLAGS = $(XEN_LIBS)
+libvirt_driver_la_CFLAGS = $(XEN_CFLAGS) $(NUMACTL_CFLAGS)
+libvirt_driver_la_LDFLAGS = $(XEN_LIBS) $(NUMACTL_LIBS)
+
+USED_SYM_FILES = libvirt_private.syms
 
 if WITH_TEST
 if WITH_DRIVER_MODULES
@@ -390,31 +397,85 @@ EXTRA_DIST +=							\
 		$(NODE_DEVICE_DRIVER_HAL_SOURCES)		\
 		$(NODE_DEVICE_DRIVER_DEVKIT_SOURCES)
 
+#
+# Build our version script.  This is composed of three parts:
+#
+# 1. libvirt_public.syms - public API.  These functions are always
+# present in the library and should never change incompatibly.
+#
+# 2. libvirt_private.syms - private API.  These symbols are private and
+# semantics may change on every release, hence the version number is
+# spliced in at build time. This ensures that if libvirtd, virsh, or a
+# driver module was built against one libvirt release, it will refuse to
+# load with another where symbols may have same names but different
+# semantics. Such symbols should never be visible in an (installed)
+# public header file.
+#
+# 3. libvirt_*.syms - dynamic private API.  Like libvirt_private.syms,
+# except that build options (such as --enable-debug) can mean these
+# symbols aren't present at all.
+#
+
+if ENABLE_DEBUG
+USED_SYM_FILES += libvirt_debug.syms
+endif
+
+if WITH_DRIVER_MODULES
+USED_SYM_FILES += libvirt_driver_modules.syms
+endif
+
+if WITH_BRIDGE
+USED_SYM_FILES += libvirt_bridge.syms
+endif
+
+if WITH_LINUX
+USED_SYM_FILES += libvirt_linux.syms
+endif
+
+EXTRA_DIST += \
+  libvirt_public.syms		\
+  libvirt_private.syms		\
+  libvirt_debug.syms		\
+  libvirt_driver_modules.syms	\
+  libvirt_bridge.syms		\
+  libvirt_linux.syms
+
+libvirt.syms: libvirt_public.syms $(USED_SYM_FILES)
+	rm -f $@-tmp $@
+	printf '# WARNING: generated from the following:\n# $^\n\n' >$@-tmp
+	cat $(srcdir)/libvirt_public.syms >>$@-tmp
+	printf '\n\n# Private symbols\n\n' >>$@-tmp
+	printf 'LIBVIRT_PRIVATE_$(VERSION) {\n\n'  >>$@-tmp
+	printf 'global:\n\n' >>$@-tmp
+	for file in $(USED_SYM_FILES); do \
+	    cat $(srcdir)/$$file >>$@-tmp; \
+	done
+	printf '\n\nlocal:\n*;\n\n};' >>$@-tmp
+	chmod a-w $@-tmp
+	mv $@-tmp libvirt.syms
 
 # Empty source list - it merely links a bunch of convenience libs together
 libvirt_la_SOURCES =
 libvirt_la_LIBADD += \
 		    @CYGWIN_EXTRA_LIBADD@ ../gnulib/lib/libgnu.la
-libvirt_la_LDFLAGS = -Wl,--version-script=libvirt_sym.version \
+libvirt_la_LDFLAGS = $(VERSION_SCRIPT_FLAGS)libvirt.syms \
                      -version-info @LIBVIRT_VERSION_INFO@ \
                     $(COVERAGE_CFLAGS:-f%=-Wc,-f%) \
                     $(LIBXML_LIBS) $(SELINUX_LIBS) \
 		    $(XEN_LIBS) $(DRIVER_MODULE_LIBS) \
 		    @CYGWIN_EXTRA_LDFLAGS@ @MINGW_EXTRA_LDFLAGS@
 libvirt_la_CFLAGS = $(COVERAGE_CFLAGS) -DIN_LIBVIRT
-libvirt_la_DEPENDENCIES = $(libvirt_la_LIBADD) libvirt_sym.version
+libvirt_la_DEPENDENCIES = $(libvirt_la_LIBADD) libvirt.syms
 
 # Create an automake "convenience library" version of libvirt_la,
 # just for testing, since the test harness requires access to internal
 # bits and pieces that we don't want to make publicly accessible.
 noinst_LTLIBRARIES += libvirt_test.la
 
-# Convert libvirt_sym.version
-#      to libvirt_test_sym.version, and
-# remove -version-info X.Y.Z (not needed since this is a convenience library.
+# Remove version script from convenience library
 test_LDFLAGS =						\
   $$(echo '$(libvirt_la_LDFLAGS)'			\
-     |sed 's!-Wl,--v.*_sym\.version!!'			\
+     |sed 's!@VERSION_SCRIPT_FLAGS@libvirt.syms!!'	\
      |sed 's!-version-info @LIBVIRT_VERSION_INFO@!!')
 
 # Just like the above, but with a slightly different set of public symbols.
@@ -430,14 +491,15 @@ virsh_SOURCES =							\
 		virsh.c
 
 virsh_LDFLAGS = $(WARN_CFLAGS) $(COVERAGE_LDFLAGS)
-virsh_LDADD = 							\
-		$(STATIC_BINARIES) 				\
+virsh_LDADD =							\
+		$(STATIC_BINARIES)				\
 		$(WARN_CFLAGS)					\
+		$(NUMACTL_LIBS)					\
 		libvirt.la					\
 		../gnulib/lib/libgnu.la				\
 		$(VIRSH_LIBS)
-virsh_CFLAGS = $(COVERAGE_CFLAGS) $(READLINE_CFLAGS)
-BUILT_SOURCES = virsh-net-edit.c virsh-pool-edit.c
+virsh_CFLAGS = $(COVERAGE_CFLAGS) $(READLINE_CFLAGS) $(NUMACTL_CFLAGS)
+BUILT_SOURCES = virsh-net-edit.c virsh-pool-edit.c libvirt.syms
 
 virsh-net-edit.c: virsh.c Makefile.am
 	rm -f $@-tmp
@@ -461,6 +523,7 @@ virsh-pool-edit.c: virsh.c Makefile.am
 	  | sed -e 's/domain/pool/g' \
 	      -e 's/vshCommandOptDomain/vshCommandOptPool/g' \
 	      -e 's/Domain %s/Pool %s/g' \
+	      -e 's/(ctl, cmd, NULL);/(ctl, cmd, "pool", NULL);/' \
 	      -e 's/Domain/StoragePool/g' \
 	      -e 's/cmdEdit/cmdPoolEdit/g' \
 	      -e 's/\(virStoragePoolDefineXML.*\));/\1, 0);/' \
@@ -517,18 +580,38 @@ libexec_PROGRAMS += libvirt_lxc
 
 libvirt_lxc_SOURCES =						\
 		$(LXC_CONTROLLER_SOURCES)			\
-		$(UTIL_SOURCES) 				\
+		$(UTIL_SOURCES)					\
 		$(DOMAIN_CONF_SOURCES)
 libvirt_lxc_LDFLAGS = $(WARN_CFLAGS) $(COVERAGE_LDCFLAGS)
-libvirt_lxc_LDADD = $(LIBXML_LIBS) ../gnulib/lib/libgnu.la
-libvirt_lxc_CFLAGS =  $(LIBPARTED_CFLAGS)
+libvirt_lxc_LDADD = $(LIBXML_LIBS) $(NUMACTL_LIBS) ../gnulib/lib/libgnu.la
+libvirt_lxc_CFLAGS =  $(LIBPARTED_CFLAGS) $(NUMACTL_CFLAGS)
 endif
 endif
 EXTRA_DIST += $(LXC_CONTROLLER_SOURCES)
 
-# Create the /var/cache/libvirt directory when installing.
 install-exec-local:
-	$(MKDIR_P) $(DESTDIR)$(localstatedir)/cache/libvirt
+	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/cache/libvirt"
+	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/images"
+	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/boot"
+if WITH_QEMU
+	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/qemu"
+	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/run/libvirt/qemu"
+endif
+if WITH_LXC
+	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/lxc"
+	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/run/libvirt/lxc"
+endif
+if WITH_UML
+	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/uml"
+	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/run/libvirt/uml"
+endif
+if WITH_NETWORK
+	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/iptables/filter"
+	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/iptables/nat"
+	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/network"
+	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/run/libvirt/network"
+endif
+
 
 CLEANFILES = *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda
 DISTCLEANFILES = $(BUILT_SOURCES)

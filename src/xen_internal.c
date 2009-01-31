@@ -26,6 +26,17 @@
 #include <errno.h>
 #include <sys/utsname.h>
 
+#ifdef __sun
+#include <sys/systeminfo.h>
+
+#include <priv.h>
+
+#ifndef PRIV_XVM_CONTROL
+#define PRIV_XVM_CONTROL ((const char *)"xvm_control")
+#endif
+
+#endif /* __sun */
+
 /* required for dom0_getdomaininfo_t */
 #include <xen/dom0_ops.h>
 #include <xen/version.h>
@@ -54,6 +65,8 @@
 #include "capabilities.h"
 #include "memory.h"
 
+#define VIR_FROM_THIS VIR_FROM_XEN
+
 /*
  * so far there is 2 versions of the structures usable for doing
  * hypervisor calls.
@@ -76,7 +89,7 @@ typedef struct v1_hypercall_struct
 #define XEN_V1_IOCTL_HYPERCALL_CMD                  \
     _IOC(_IOC_NONE, 'P', 0, sizeof(v1_hypercall_t))
 typedef v1_hypercall_t hypercall_t;
-#elif defined(__sun__)
+#elif defined(__sun)
 typedef privcmd_hypercall_t hypercall_t;
 #else
 #error "unsupported platform"
@@ -87,6 +100,12 @@ typedef privcmd_hypercall_t hypercall_t;
 #endif
 #ifndef __HYPERVISOR_domctl
 #define __HYPERVISOR_domctl 36
+#endif
+
+#ifdef WITH_RHEL5_API
+#define SYS_IFACE_MIN_VERS_NUMA 3
+#else
+#define SYS_IFACE_MIN_VERS_NUMA 4
 #endif
 
 static int xen_ioctl_hypercall_cmd = 0;
@@ -662,11 +681,8 @@ typedef struct xen_op_v2_dom xen_op_v2_dom;
 #ifdef __linux__
 #define XEN_HYPERVISOR_SOCKET	"/proc/xen/privcmd"
 #define HYPERVISOR_CAPABILITIES	"/sys/hypervisor/properties/capabilities"
-#define CPUINFO			"/proc/cpuinfo"
-#elif defined(__sun__)
+#elif defined(__sun)
 #define XEN_HYPERVISOR_SOCKET	"/dev/xen/privcmd"
-#define HYPERVISOR_CAPABILITIES	""
-#define CPUINFO			"/dev/cpu/self/cpuid"
 #else
 #error "unsupported platform"
 #endif
@@ -1328,9 +1344,14 @@ xenHypervisorDomainBlockStats (virDomainPtr dom,
 {
 #ifdef __linux__
     xenUnifiedPrivatePtr priv;
+    int ret;
 
     priv = (xenUnifiedPrivatePtr) dom->conn->privateData;
-    return xenLinuxDomainBlockStats (priv, dom, path, stats);
+    xenUnifiedLock(priv);
+    /* Need to lock because it hits the xenstore handle :-( */
+    ret = xenLinuxDomainBlockStats (priv, dom, path, stats);
+    xenUnifiedUnlock(priv);
+    return ret;
 #else
     virXenErrorFunc (dom->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__,
                      "block statistics not supported on this platform",
@@ -1618,8 +1639,7 @@ virXen_setvcpumap(int handle, int id, unsigned int vcpu,
          * for Xen, and also nr_cpus must be 'sizeof(uint64_t) * 8'       */
         if (maplen < 8) {
             if (VIR_ALLOC_N(new, sizeof(uint64_t)) < 0) {
-                virXenErrorFunc(NULL, VIR_ERR_NO_MEMORY, __FUNCTION__,
-                                "allocating private data", 0);
+                virReportOOMError(NULL);
                 return (-1);
             }
             memcpy(new, cpumap, maplen);
@@ -1906,7 +1926,7 @@ xenHypervisorInit(void)
         goto detect_v2;
     }
 
-#ifndef __sun__
+#ifndef __sun
     /*
      * check if the old hypercall are actually working
      */
@@ -1944,7 +1964,7 @@ xenHypervisorInit(void)
     hypervisor_version = 2;
 
     if (VIR_ALLOC(ipt) < 0) {
-        virXenError(NULL, VIR_ERR_NO_MEMORY, NULL);
+        virReportOOMError(NULL);
         return(-1);
     }
     /* Currently consider RHEL5.0 Fedora7, xen-3.1, and xen-unstable */
@@ -2031,7 +2051,7 @@ xenHypervisorInit(void)
  *
  * Returns 0 or -1 in case of error.
  */
-int
+virDrvOpenStatus
 xenHypervisorOpen(virConnectPtr conn,
                   virConnectAuthPtr auth ATTRIBUTE_UNUSED,
                   int flags ATTRIBUTE_UNUSED)
@@ -2123,7 +2143,7 @@ static virCapsPtr
 xenHypervisorBuildCapabilities(virConnectPtr conn,
                                const char *hostmachine,
                                int host_pae,
-                               char *hvm_type,
+                               const char *hvm_type,
                                struct guest_arch *guest_archs,
                                int nr_guest_archs) {
     virCapsPtr caps;
@@ -2149,7 +2169,7 @@ xenHypervisorBuildCapabilities(virConnectPtr conn,
         goto no_memory;
 
 
-    if (sys_interface_version >= 4) {
+    if (sys_interface_version >= SYS_IFACE_MIN_VERS_NUMA) {
         if (xenDaemonNodeGetTopology(conn, caps) != 0) {
             virCapabilitiesFree(caps);
             return NULL;
@@ -2227,8 +2247,126 @@ xenHypervisorBuildCapabilities(virConnectPtr conn,
     return NULL;
 }
 
+#ifdef __sun
+
+static int
+get_cpu_flags(virConnectPtr conn, const char **hvm, int *pae, int *longmode)
+{
+    struct {
+        uint32_t r_eax, r_ebx, r_ecx, r_edx;
+    } regs;
+
+    char tmpbuf[20];
+    int ret = 0;
+    int fd;
+
+    /* returns -1, errno 22 if in 32-bit mode */
+    *longmode = (sysinfo(SI_ARCHITECTURE_64, tmpbuf, sizeof(tmpbuf)) != -1);
+
+    if ((fd = open("/dev/cpu/self/cpuid", O_RDONLY)) == -1 ||
+        pread(fd, &regs, sizeof(regs), 0) != sizeof(regs)) {
+        virXenError(conn, VIR_ERR_SYSTEM_ERROR,
+            "couldn't read CPU flags: %s", strerror(errno));
+        goto out;
+    }
+
+    *pae = 0;
+    *hvm = "";
+
+    if (STREQLEN((const char *)&regs.r_ebx, "AuthcAMDenti", 12)) {
+        if (pread(fd, &regs, sizeof (regs), 0x80000001) == sizeof (regs)) {
+            /* Read secure virtual machine bit (bit 2 of ECX feature ID) */
+            if ((regs.r_ecx >> 2) & 1) {
+                *hvm = "svm";
+            }
+            if ((regs.r_edx >> 6) & 1)
+                *pae = 1;
+        }
+    } else if (STREQLEN((const char *)&regs.r_ebx, "GenuntelineI", 12)) {
+        if (pread(fd, &regs, sizeof (regs), 0x00000001) == sizeof (regs)) {
+            /* Read VMXE feature bit (bit 5 of ECX feature ID) */
+            if ((regs.r_ecx >> 5) & 1)
+                *hvm = "vmx";
+            if ((regs.r_edx >> 6) & 1)
+                *pae = 1;
+        }
+    }
+
+    ret = 1;
+
+out:
+    if (fd != -1)
+        close(fd);
+    return ret;
+}
+
+static virCapsPtr
+xenHypervisorMakeCapabilitiesSunOS(virConnectPtr conn)
+{
+    struct guest_arch guest_arches[32];
+    int i = 0;
+    virCapsPtr caps = NULL;
+    struct utsname utsname;
+    int pae, longmode;
+    const char *hvm;
+
+    if (!get_cpu_flags(conn, &hvm, &pae, &longmode))
+        return NULL;
+
+    /* Really, this never fails - look at the man-page. */
+    uname (&utsname);
+
+    guest_arches[i].model = "i686";
+    guest_arches[i].bits = 32;
+    guest_arches[i].hvm = 0;
+    guest_arches[i].pae = pae;
+    guest_arches[i].nonpae = !pae;
+    guest_arches[i].ia64_be = 0;
+    i++;
+
+    if (longmode) {
+        guest_arches[i].model = "x86_64";
+        guest_arches[i].bits = 64;
+        guest_arches[i].hvm = 0;
+        guest_arches[i].pae = 0;
+        guest_arches[i].nonpae = 0;
+        guest_arches[i].ia64_be = 0;
+        i++;
+    }
+
+    if (hvm[0] != '\0') {
+        guest_arches[i].model = "i686";
+        guest_arches[i].bits = 32;
+        guest_arches[i].hvm = 1;
+        guest_arches[i].pae = pae;
+        guest_arches[i].nonpae = 1;
+        guest_arches[i].ia64_be = 0;
+        i++;
+
+        if (longmode) {
+            guest_arches[i].model = "x86_64";
+            guest_arches[i].bits = 64;
+            guest_arches[i].hvm = 1;
+            guest_arches[i].pae = 0;
+            guest_arches[i].nonpae = 0;
+            guest_arches[i].ia64_be = 0;
+            i++;
+        }
+    }
+
+    if ((caps = xenHypervisorBuildCapabilities(conn,
+                                               utsname.machine,
+                                               pae, hvm,
+                                               guest_arches, i)) == NULL)
+        virReportOOMError(NULL);
+
+    return caps;
+}
+
+#endif /* __sun */
+
 /**
- * xenHypervisorGetCapabilities:
+ * xenHypervisorMakeCapabilitiesInternal:
  * @conn: pointer to the connection block
  * @cpuinfo: file handle containing /proc/cpuinfo data, or NULL
  * @capabilities: file handle containing /sys/hypervisor/properties/capabilities data, or NULL
@@ -2381,7 +2519,7 @@ xenHypervisorMakeCapabilitiesInternal(virConnectPtr conn,
     return caps;
 
  no_memory:
-    virXenError(NULL, VIR_ERR_NO_MEMORY, NULL);
+    virReportOOMError(NULL);
     virCapabilitiesFree(caps);
     return NULL;
 }
@@ -2394,6 +2532,9 @@ xenHypervisorMakeCapabilitiesInternal(virConnectPtr conn,
 virCapsPtr
 xenHypervisorMakeCapabilities(virConnectPtr conn)
 {
+#ifdef __sun
+    return xenHypervisorMakeCapabilitiesSunOS(conn);
+#else
     virCapsPtr caps;
     FILE *cpuinfo, *capabilities;
     struct utsname utsname;
@@ -2404,8 +2545,9 @@ xenHypervisorMakeCapabilities(virConnectPtr conn)
     cpuinfo = fopen ("/proc/cpuinfo", "r");
     if (cpuinfo == NULL) {
         if (errno != ENOENT) {
-            virXenError (conn, VIR_ERR_SYSTEM_ERROR,
-                         "/proc/cpuinfo: %s", strerror(errno));
+            virReportSystemError(conn, errno,
+                                 _("cannot read file %s"),
+                                 "/proc/cpuinfo");
             return NULL;
         }
     }
@@ -2414,9 +2556,9 @@ xenHypervisorMakeCapabilities(virConnectPtr conn)
     if (capabilities == NULL) {
         if (errno != ENOENT) {
             fclose(cpuinfo);
-            virXenError (conn, VIR_ERR_SYSTEM_ERROR,
-                         "/sys/hypervisor/properties/capabilities: %s",
-                         strerror(errno));
+            virReportSystemError(conn, errno,
+                                 _("cannot read file %s"),
+                                 "/sys/hypervisor/properties/capabilities");
             return NULL;
         }
     }
@@ -2432,6 +2574,7 @@ xenHypervisorMakeCapabilities(virConnectPtr conn)
         fclose(capabilities);
 
     return caps;
+#endif /* __sun */
 }
 
 
@@ -2449,7 +2592,7 @@ xenHypervisorGetCapabilities (virConnectPtr conn)
     char *xml;
 
     if (!(xml = virCapabilitiesFormatXML(priv->caps))) {
-        virXenError(conn, VIR_ERR_NO_MEMORY, NULL);
+        virReportOOMError(conn);
         return NULL;
     }
 
@@ -2482,8 +2625,7 @@ xenHypervisorNumOfDomains(virConnectPtr conn)
 
  retry:
     if (!(XEN_GETDOMAININFOLIST_ALLOC(dominfos, maxids))) {
-        virXenError(conn, VIR_ERR_NO_MEMORY, _("allocating %d domain info"),
-                    maxids);
+        virReportOOMError(conn);
         return(-1);
     }
 
@@ -2544,8 +2686,7 @@ xenHypervisorListDomains(virConnectPtr conn, int *ids, int maxids)
         return(0);
 
     if (!(XEN_GETDOMAININFOLIST_ALLOC(dominfos, maxids))) {
-        virXenError(conn, VIR_ERR_NO_MEMORY, "allocating %d domain info",
-                    maxids);
+        virReportOOMError(conn);
         return(-1);
     }
 
@@ -2624,8 +2765,10 @@ xenHypervisorLookupDomainByID(virConnectPtr conn,
     if (XEN_GETDOMAININFO_DOMAIN(dominfo) != id)
         return (NULL);
 
-
-    if (!(name = xenStoreDomainGetName(conn, id)))
+    xenUnifiedLock(priv);
+    name = xenStoreDomainGetName(conn, id);
+    xenUnifiedUnlock(priv);
+    if (!name)
         return (NULL);
 
     ret = virGetDomain(conn, name, XEN_GETDOMAININFO_UUID(dominfo));
@@ -2652,8 +2795,7 @@ xenHypervisorLookupDomainByUUID(virConnectPtr conn,
 
  retry:
     if (!(XEN_GETDOMAININFOLIST_ALLOC(dominfos, maxids))) {
-        virXenError(conn, VIR_ERR_NO_MEMORY, "allocating %d domain info",
-                    maxids);
+        virReportOOMError(conn);
         return(NULL);
     }
 
@@ -2692,7 +2834,10 @@ xenHypervisorLookupDomainByUUID(virConnectPtr conn,
     if (id == -1)
         return (NULL);
 
-    if (!(name = xenStoreDomainGetName(conn, id)))
+    xenUnifiedLock(priv);
+    name = xenStoreDomainGetName(conn, id);
+    xenUnifiedUnlock(priv);
+    if (!name)
         return (NULL);
 
     ret = virGetDomain(conn, name, uuid);
@@ -2925,7 +3070,6 @@ xenHypervisorNodeGetCellsFreeMemory(virConnectPtr conn, unsigned long long *free
     xen_op_v2_sys op_sys;
     int i, j, ret;
     xenUnifiedPrivatePtr priv;
-    int nbNodeCells;
 
     if (conn == NULL) {
         virXenErrorFunc (conn, VIR_ERR_INVALID_ARG, __FUNCTION__,
@@ -2933,14 +3077,15 @@ xenHypervisorNodeGetCellsFreeMemory(virConnectPtr conn, unsigned long long *free
         return -1;
     }
 
-    nbNodeCells = xenNbCells(conn);
-    if (nbNodeCells < 0) {
+    priv = conn->privateData;
+
+    if (priv->nbNodeCells < 0) {
         virXenErrorFunc (conn, VIR_ERR_XEN_CALL, __FUNCTION__,
                          "cannot determine actual number of cells",0);
         return(-1);
     }
 
-    if ((maxCells < 1) || (startCell >= nbNodeCells)) {
+    if ((maxCells < 1) || (startCell >= priv->nbNodeCells)) {
         virXenErrorFunc (conn, VIR_ERR_INVALID_ARG, __FUNCTION__,
                         "invalid argument", 0);
         return -1;
@@ -2949,13 +3094,12 @@ xenHypervisorNodeGetCellsFreeMemory(virConnectPtr conn, unsigned long long *free
     /*
      * Support only sys_interface_version >=4
      */
-    if (sys_interface_version < 4) {
+    if (sys_interface_version < SYS_IFACE_MIN_VERS_NUMA) {
         virXenErrorFunc (conn, VIR_ERR_XEN_CALL, __FUNCTION__,
                         "unsupported in sys interface < 4", 0);
         return -1;
     }
 
-    priv = (xenUnifiedPrivatePtr) conn->privateData;
     if (priv->handle < 0) {
         virXenErrorFunc (conn, VIR_ERR_INTERNAL_ERROR, __FUNCTION__,
                         "priv->handle invalid", 0);
@@ -2965,7 +3109,7 @@ xenHypervisorNodeGetCellsFreeMemory(virConnectPtr conn, unsigned long long *free
     memset(&op_sys, 0, sizeof(op_sys));
     op_sys.cmd = XEN_V2_OP_GETAVAILHEAP;
 
-    for (i = startCell, j = 0;(i < nbNodeCells) && (j < maxCells);i++,j++) {
+    for (i = startCell, j = 0;(i < priv->nbNodeCells) && (j < maxCells);i++,j++) {
         op_sys.u.availheap.node = i;
         ret = xenHypervisorDoV2Sys(priv->handle, &op_sys);
         if (ret < 0) {
@@ -3264,3 +3408,17 @@ xenHypervisorGetVcpuMax(virDomainPtr domain)
     return maxcpu;
 }
 
+/**
+ * xenHavePrivilege()
+ *
+ * Return true if the current process should be able to connect to Xen.
+ */
+int
+xenHavePrivilege()
+{
+#ifdef __sun
+    return priv_ineffect (PRIV_XVM_CONTROL);
+#else
+    return getuid () == 0;
+#endif
+}

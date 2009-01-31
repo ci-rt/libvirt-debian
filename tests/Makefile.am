@@ -33,18 +33,27 @@ LDADDS = \
         $(WARN_CFLAGS) \
 	../src/libvirt_test.la \
 	../gnulib/lib/libgnu.la \
+	$(LIBSOCKET) \
         $(COVERAGE_LDFLAGS)
 
 EXTRA_DIST =		\
         oomtrace.pl     \
 	test-lib.sh	\
-	xmlrpcserver.py	\
 	qemuxml2argvdata \
 	nodeinfodata     \
+	capabilityschematest \
+	capabilityschemadata \
+	networkschematest \
 	domainschematest \
-	domainschemadata
+	domainschemadata \
+	storagepoolschematest \
+	storagepoolschemadata \
+	storagevolschematest \
+	storagevolschemadata \
+	nodedevschematest \
+	nodedevschemadata
 
-noinst_PROGRAMS = xmlrpctest virshtest conftest \
+noinst_PROGRAMS = virshtest conftest \
         nodeinfotest statstest qparamtest
 
 if WITH_XEN
@@ -55,18 +64,27 @@ if WITH_QEMU
 noinst_PROGRAMS += qemuxml2argvtest qemuxml2xmltest
 endif
 
-test_scripts = domainschematest
+test_scripts = \
+	capabilityschematest \
+	networkschematest \
+	storagepoolschematest \
+	storagevolschematest \
+	domainschematest \
+	nodedevschematest
+
 if WITH_LIBVIRTD
-test_scripts += \
-	test_conf.sh \
-	cpuset \
-	daemon-conf \
-	int-overflow \
-	read-bufsiz \
-	read-non-seekable \
-	undefine \
-	vcpupin
-	virsh-all
+test_scripts +=				\
+	test_conf.sh			\
+	cpuset				\
+	daemon-conf			\
+	define-dev-segfault		\
+	int-overflow			\
+	read-bufsiz			\
+	read-non-seekable		\
+	start				\
+	undefine			\
+	vcpupin				\
+	virsh-all			\
 	virsh-synopsis
 endif
 
@@ -105,19 +123,12 @@ TESTS_ENVIRONMENT =				\
   PATH="$(path_add)$(PATH_SEPARATOR)$$PATH"	\
   SHELL="$(SHELL)"				\
   LIBVIRT_DRIVER_DIR="$(abs_top_builddir)/src/.libs" \
+  LIBVIRT_DEBUG="error"				\
+  LC_ALL=C					\
   $(VG)
 
 valgrind:
 	$(MAKE) check VG="valgrind --quiet --leak-check=full --suppressions=$(srcdir)/.valgrind.supp"
-
-# Note: xmlrpc.[c|h] is not in libvirt yet
-xmlrpctest_SOURCES = \
-	xmlrpctest.c \
-	testutils.c testutils.h \
-	@top_srcdir@/src/xmlrpc.c \
-	@top_srcdir@/src/xmlrpc.h
-
-xmlrpctest_LDADD = $(LDADDS)
 
 if WITH_XEN
 xml2sexprtest_SOURCES = \
@@ -126,7 +137,7 @@ xml2sexprtest_SOURCES = \
 xml2sexprtest_LDADD = ../src/libvirt_driver_xen.la $(LDADDS)
 
 sexpr2xmltest_SOURCES = \
-	sexpr2xmltest.c \
+	sexpr2xmltest.c testutilsxen.c testutilsxen.h \
 	testutils.c testutils.h
 sexpr2xmltest_LDADD = ../src/libvirt_driver_xen.la $(LDADDS)
 

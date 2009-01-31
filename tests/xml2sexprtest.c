@@ -35,7 +35,8 @@ static int testCompareFiles(const char *xml, const char *sexpr,
   if (virtTestLoadFile(sexpr, &sexprPtr, MAX_FILE) < 0)
       goto fail;
 
-  if (!(def = virDomainDefParseString(NULL, caps, xmlData)))
+  if (!(def = virDomainDefParseString(NULL, caps, xmlData,
+                                      VIR_DOMAIN_XML_INACTIVE)))
       goto fail;
 
   if (!(gotsexpr = xenDaemonFormatSxpr(NULL, def, xendConfigVersion)))
@@ -125,6 +126,7 @@ mymain(int argc, char **argv)
     DO_TEST("net-routed", "net-routed", "pvtest", 2);
     DO_TEST("net-bridged", "net-bridged", "pvtest", 2);
     DO_TEST("net-e1000", "net-e1000", "pvtest", 2);
+    DO_TEST("bridge-ipaddr", "bridge-ipaddr", "pvtest", 2);
     DO_TEST("no-source-cdrom", "no-source-cdrom", "test", 2);
 
     DO_TEST("fv-utc", "fv-utc", "fvtest", 1);

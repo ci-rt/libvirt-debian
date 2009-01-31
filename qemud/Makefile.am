@@ -5,13 +5,15 @@ DAEMON_SOURCES =					\
 		qemud.c qemud.h				\
 		remote.c				\
 		remote_dispatch_prototypes.h		\
-		remote_dispatch_localvars.h		\
-		remote_dispatch_proc_switch.h		\
+		remote_dispatch_table.h			\
+		remote_dispatch_args.h			\
+		remote_dispatch_ret.h			\
 		remote_protocol.h remote_protocol.c
 
 AVAHI_SOURCES =						\
 		mdns.c mdns.h
 
+DISTCLEANFILES =
 EXTRA_DIST =						\
 	default-network.xml				\
 	remote_generate_stubs.pl rpcgen_fix.pl		\
@@ -23,29 +25,39 @@ EXTRA_DIST =						\
 	libvirtd.sysconf				\
 	libvirtd.aug                                    \
 	libvirtd_qemu.aug                               \
+	libvirtd.logrotate.in                           \
 	test_libvirtd.aug                               \
 	test_libvirtd_qemu.aug                          \
 	$(AVAHI_SOURCES)				\
 	$(DAEMON_SOURCES)
 
-if RPCGEN
-SUFFIXES = .x
-.x.c:
-	rm -f $@ $@-t $@-t2
-	rpcgen -c -o $@-t $<
-if GLIBC_RPCGEN
-	perl -w rpcgen_fix.pl $@-t > $@-t2
-	chmod 444 $@-t2
-	mv $@-t2 $@
-endif
-
-.x.h:
-	rm -f $@ $@-t
-	rpcgen -h -o $@-t $<
-if GLIBC_RPCGEN
-	perl -pi -e 's/\t/        /g' $@-t
-	chmod 444 $@-t
-	mv $@-t $@
+if HAVE_RPCGEN
+#
+# Maintainer-only target for re-generating the derived .c/.h source
+# files, which are actually derived from the .x file.
+#
+# For committing protocol changes to CVS, the GLIBC rpcgen *must*
+# be used.
+#
+# Support for non-GLIB rpcgen is here as a convenience for
+# non-Linux people needing to test changes during dev.
+#
+rpcgen:
+	rm -f rp.c-t rp.h-t rp.c-t1 rp.c-t2 rp.h-t1
+	$(RPCGEN) -h -o rp.h-t $(srcdir)/remote_protocol.x
+	$(RPCGEN) -c -o rp.c-t $(srcdir)/remote_protocol.x
+if HAVE_GLIBC_RPCGEN
+	perl -w $(srcdir)/rpcgen_fix.pl rp.h-t > rp.h-t1
+	perl -w $(srcdir)/rpcgen_fix.pl rp.c-t > rp.c-t1
+	(echo '#include <config.h>'; cat rp.c-t1) > rp.c-t2
+	chmod 0444 rp.c-t2 rp.h-t1
+	mv -f rp.h-t1 $(srcdir)/remote_protocol.h
+	mv -f rp.c-t2 $(srcdir)/remote_protocol.c
+	rm -f rp.c-t rp.h-t rp.c-t1
+else
+	chmod 0444 rp.c-t rp.h-t
+	mv -f rp.h-t $(srcdir)/remote_protocol.h
+	mv -f rp.c-t $(srcdir)/remote_protocol.c
 endif
 endif
 
@@ -53,7 +65,7 @@ remote_protocol.c: remote_protocol.h
 
 if WITH_LIBVIRTD
 
-UUID=$(shell uuidgen)
+UUID=$(shell uuidgen 2>/dev/null)
 
 sbin_PROGRAMS = libvirtd
 
@@ -82,13 +94,15 @@ libvirtd_CFLAGS = \
 	-DREMOTE_PID_FILE="\"$(REMOTE_PID_FILE)\"" \
 	-DGETTEXT_PACKAGE=\"$(PACKAGE)\"
 
-libvirtd_LDFLAGS = \
-	$(WARN_CFLAGS) $(LIBXML_LIBS) $(GNUTLS_LIBS) $(SASL_LIBS) \
-	$(COVERAGE_LDFLAGS) \
-	$(POLKIT_LIBS)
+libvirtd_LDFLAGS = 					\
+	$(WARN_CFLAGS) 					\
+	$(COVERAGE_LDFLAGS)
 
 libvirtd_LDADD =					\
-		../gnulib/lib/libgnu.la
+	$(LIBXML_LIBS)					\
+	$(GNUTLS_LIBS)					\
+	$(SASL_LIBS)					\
+	$(POLKIT_LIBS)
 
 if ! WITH_DRIVER_MODULES
 if WITH_QEMU
@@ -128,16 +142,16 @@ libvirtd_CFLAGS += $(AVAHI_CFLAGS)
 libvirtd_LDADD += $(AVAHI_LIBS)
 endif
 
-libvirtd_DEPENDENCIES = $(libvirtd_LDADD)
-
 
 default_xml_dest = libvirt/qemu/networks/default.xml
-install-data-local: install-init install-data-sasl install-data-polkit
+install-data-local: install-init install-data-sasl install-data-polkit \
+                    install-logrotate
 	mkdir -p $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart
 	$(INSTALL_DATA) $(srcdir)/default-network.xml \
 	  $(DESTDIR)$(sysconfdir)/$(default_xml_dest)
-	sed -i -e "s,</name>,</name>\n  <uuid>$(UUID)</uuid>," \
-	  $(DESTDIR)$(sysconfdir)/$(default_xml_dest)
+	test -z "$(UUID)" || \
+	  sed -i -e "s,</name>,</name>\n  <uuid>$(UUID)</uuid>," \
+	    $(DESTDIR)$(sysconfdir)/$(default_xml_dest)
 	test -e $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml || \
            ln -s ../default.xml \
 	    $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml
@@ -179,17 +193,33 @@ endif
 
 
 remote.c: remote_dispatch_prototypes.h \
-	  remote_dispatch_localvars.h \
-	  remote_dispatch_proc_switch.h
+	  remote_dispatch_table.h \
+	  remote_dispatch_args.h \
+	  remote_dispatch_ret.h
 
 remote_dispatch_prototypes.h: $(srcdir)/remote_generate_stubs.pl remote_protocol.x
-	perl -w $(srcdir)/remote_generate_stubs.pl -i $(srcdir)/remote_protocol.x > $@
+	perl -w $(srcdir)/remote_generate_stubs.pl -p $(srcdir)/remote_protocol.x > $@
 
-remote_dispatch_localvars.h: $(srcdir)/remote_generate_stubs.pl remote_protocol.x
-	perl -w $(srcdir)/remote_generate_stubs.pl -v $(srcdir)/remote_protocol.x > $@
+remote_dispatch_table.h: $(srcdir)/remote_generate_stubs.pl remote_protocol.x
+	perl -w $(srcdir)/remote_generate_stubs.pl -t $(srcdir)/remote_protocol.x > $@
 
-remote_dispatch_proc_switch.h: $(srcdir)/remote_generate_stubs.pl remote_protocol.x
-	perl -w $(srcdir)/remote_generate_stubs.pl -w $(srcdir)/remote_protocol.x > $@
+remote_dispatch_args.h: $(srcdir)/remote_generate_stubs.pl remote_protocol.x
+	perl -w $(srcdir)/remote_generate_stubs.pl -a $(srcdir)/remote_protocol.x > $@
+
+remote_dispatch_ret.h: $(srcdir)/remote_generate_stubs.pl remote_protocol.x
+	perl -w $(srcdir)/remote_generate_stubs.pl -r $(srcdir)/remote_protocol.x > $@
+
+DISTCLEANFILES += libvirtd.logrotate
+libvirtd.logrotate: libvirtd.logrotate.in
+	sed						\
+	    -e s!\@localstatedir\@!@localstatedir@!g	\
+	    < $< > $@-t
+	mv $@-t $@
+
+install-logrotate: libvirtd.logrotate
+	mkdir -p $(DESTDIR)$(localstatedir)/log/libvirt/qemu/
+	mkdir -p $(DESTDIR)$(sysconfdir)/logrotate.d/
+	$(INSTALL_DATA) $< $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd
 
 if LIBVIRT_INIT_SCRIPTS_RED_HAT
 install-init: libvirtd.init
@@ -214,7 +244,10 @@ libvirtd.init: libvirtd.init.in
 	mv $@-t $@
 
 check-local:
-	if [ -x $(AUGPARSE) ]; then $(AUGPARSE) -I $(srcdir) test_libvirtd.aug ; fi
+	test -x '$(AUGPARSE)' \
+	  && '$(AUGPARSE)' -I $(srcdir) $(srcdir)/test_libvirtd.aug || :
+	test -x '$(AUGPARSE)' \
+	  && '$(AUGPARSE)' -I $(srcdir) $(srcdir)/test_libvirtd_qemu.aug || :
 
 else
 
@@ -222,6 +255,10 @@ install-init:
 uninstall-init:
 
 endif # DBUS_INIT_SCRIPTS_RED_HAT
+
+# This must be added last, since functions it provides/replaces
+# are used by nearly every other library.
+libvirtd_LDADD += ../gnulib/lib/libgnu.la $(LIBSOCKET)
 
 endif # WITH_LIBVIRTD
 

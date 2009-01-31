@@ -31,6 +31,7 @@
 #include "internal.h"
 #include "capabilities.h"
 #include "util.h"
+#include "threads.h"
 
 /* Different types of hypervisor */
 /* NB: Keep in sync with virDomainVirtTypeToString impl */
@@ -80,6 +81,15 @@ enum virDomainDiskBus {
     VIR_DOMAIN_DISK_BUS_LAST
 };
 
+enum  virDomainDiskCache {
+    VIR_DOMAIN_DISK_CACHE_DEFAULT,
+    VIR_DOMAIN_DISK_CACHE_DISABLE,
+    VIR_DOMAIN_DISK_CACHE_WRITETHRU,
+    VIR_DOMAIN_DISK_CACHE_WRITEBACK,
+
+    VIR_DOMAIN_DISK_CACHE_LAST
+};
+
 /* Stores the virtual disk configuration */
 typedef struct _virDomainDiskDef virDomainDiskDef;
 typedef virDomainDiskDef *virDomainDiskDefPtr;
@@ -91,6 +101,7 @@ struct _virDomainDiskDef {
     char *dst;
     char *driverName;
     char *driverType;
+    int cachemode;
     unsigned int readonly : 1;
     unsigned int shared : 1;
     int slotnum; /* pci slot number for unattach */
@@ -153,6 +164,8 @@ struct _virDomainNetDef {
         } network;
         struct {
             char *brname;
+            char *script;
+            char *ipaddr;
         } bridge;
     } data;
     char *ifname;
@@ -235,6 +248,7 @@ enum virDomainSoundModel {
     VIR_DOMAIN_SOUND_MODEL_SB16,
     VIR_DOMAIN_SOUND_MODEL_ES1370,
     VIR_DOMAIN_SOUND_MODEL_PCSPK,
+    VIR_DOMAIN_SOUND_MODEL_ES97,
 
     VIR_DOMAIN_SOUND_MODEL_LAST
 };
@@ -268,6 +282,7 @@ struct _virDomainGraphicsDef {
         struct {
             char *display;
             char *xauth;
+            int fullscreen;
         } sdl;
     } data;
 };
@@ -307,12 +322,13 @@ struct _virDomainHostdevDef {
                      unsigned slot;
                      unsigned function;
                 } pci;
-            };
+            } u;
         } subsys;
         struct {
             /* TBD: struct capabilities see:
              * https://www.redhat.com/archives/libvir-list/2008-July/msg00429.html
              */
+            int dummy;
         } caps;
     } source;
     char* target;
@@ -454,12 +470,11 @@ struct _virDomainDef {
 typedef struct _virDomainObj virDomainObj;
 typedef virDomainObj *virDomainObjPtr;
 struct _virDomainObj {
-    int stdin_fd;
-    int stdout_fd;
-    int stdout_watch;
-    int stderr_fd;
-    int stderr_watch;
+    virMutex lock;
+
     int monitor;
+    int monitor_watch;
+    char *monitorpath;
     int monitorWatch;
     int logfile;
     int pid;
@@ -520,10 +535,12 @@ void virDomainRemoveInactive(virDomainObjListPtr doms,
 virDomainDeviceDefPtr virDomainDeviceDefParse(virConnectPtr conn,
                                               virCapsPtr caps,
                                               const virDomainDefPtr def,
-                                              const char *xmlStr);
+                                              const char *xmlStr,
+                                              int flags);
 virDomainDefPtr virDomainDefParseString(virConnectPtr conn,
                                         virCapsPtr caps,
-                                        const char *xmlStr);
+                                        const char *xmlStr,
+                                        int flags);
 virDomainDefPtr virDomainDefParseFile(virConnectPtr conn,
                                       virCapsPtr caps,
                                       const char *filename,
@@ -550,6 +567,11 @@ char *virDomainCpuSetFormat(virConnectPtr conn,
 int virDomainDiskQSort(const void *a, const void *b);
 int virDomainDiskCompare(virDomainDiskDefPtr a,
                          virDomainDiskDefPtr b);
+
+int virDomainSaveXML(virConnectPtr conn,
+                     const char *configDir,
+                     virDomainDefPtr def,
+                     const char *xml);
 
 int virDomainSaveConfig(virConnectPtr conn,
                         const char *configDir,
@@ -593,6 +615,8 @@ const char *virDomainDefDefaultEmulator(virConnectPtr conn,
                                         virDomainDefPtr def,
                                         virCapsPtr caps);
 
+void virDomainObjLock(virDomainObjPtr obj);
+void virDomainObjUnlock(virDomainObjPtr obj);
 
 VIR_ENUM_DECL(virDomainVirt)
 VIR_ENUM_DECL(virDomainBoot)
@@ -601,6 +625,7 @@ VIR_ENUM_DECL(virDomainLifecycle)
 VIR_ENUM_DECL(virDomainDisk)
 VIR_ENUM_DECL(virDomainDiskDevice)
 VIR_ENUM_DECL(virDomainDiskBus)
+VIR_ENUM_DECL(virDomainDiskCache)
 VIR_ENUM_DECL(virDomainFS)
 VIR_ENUM_DECL(virDomainNet)
 VIR_ENUM_DECL(virDomainChr)
@@ -610,5 +635,7 @@ VIR_ENUM_DECL(virDomainHostdevSubsys)
 VIR_ENUM_DECL(virDomainInput)
 VIR_ENUM_DECL(virDomainInputBus)
 VIR_ENUM_DECL(virDomainGraphics)
+/* from libvirt.h */
+VIR_ENUM_DECL(virDomainState)
 
 #endif /* __DOMAIN_CONF_H */

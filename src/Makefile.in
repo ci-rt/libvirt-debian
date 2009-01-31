@@ -77,16 +77,39 @@ host_triplet = @host@
 @HAVE_DEVKIT_TRUE@@WITH_NODE_DEVICES_TRUE@am__append_38 = $(DEVKIT_CFLAGS)
 @HAVE_DEVKIT_TRUE@@WITH_NODE_DEVICES_TRUE@am__append_39 = $(DEVKIT_LIBS)
 @WITH_DRIVER_MODULES_TRUE@@WITH_NODE_DEVICES_TRUE@am__append_40 = -module -avoid-version
+
+#
+# Build our version script.  This is composed of three parts:
+#
+# 1. libvirt_public.syms - public API.  These functions are always
+# present in the library and should never change incompatibly.
+#
+# 2. libvirt_private.syms - private API.  These symbols are private and
+# semantics may change on every release, hence the version number is
+# spliced in at build time. This ensures that if libvirtd, virsh, or a
+# driver module was built against one libvirt release, it will refuse to
+# load with another where symbols may have same names but different
+# semantics. Such symbols should never be visible in an (installed)
+# public header file.
+#
+# 3. libvirt_*.syms - dynamic private API.  Like libvirt_private.syms,
+# except that build options (such as --enable-debug) can mean these
+# symbols aren't present at all.
+#
+@ENABLE_DEBUG_TRUE@am__append_41 = libvirt_debug.syms
+@WITH_DRIVER_MODULES_TRUE@am__append_42 = libvirt_driver_modules.syms
+@WITH_BRIDGE_TRUE@am__append_43 = libvirt_bridge.syms
+@WITH_LINUX_TRUE@am__append_44 = libvirt_linux.syms
 bin_PROGRAMS = virsh$(EXEEXT)
-@WITH_WIN_ICON_TRUE@am__append_41 = virsh_win_icon.$(OBJEXT)
+@WITH_WIN_ICON_TRUE@am__append_45 = virsh_win_icon.$(OBJEXT)
 libexec_PROGRAMS = $(am__EXEEXT_1) $(am__EXEEXT_2)
-@WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@am__append_42 = libvirt_parthelper
-@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@am__append_43 = libvirt_lxc
+@WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@am__append_46 = libvirt_parthelper
+@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@am__append_47 = libvirt_lxc
 subdir = src
-DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
-	$(srcdir)/libvirt_sym.version.in
+DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/alloca.m4 \
+am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
+	$(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/arpa_inet_h.m4 \
 	$(top_srcdir)/gnulib/m4/close.m4 \
 	$(top_srcdir)/gnulib/m4/errno_h.m4 \
@@ -102,6 +125,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/gettimeofday.m4 \
 	$(top_srcdir)/gnulib/m4/gnulib-common.m4 \
 	$(top_srcdir)/gnulib/m4/gnulib-comp.m4 \
+	$(top_srcdir)/gnulib/m4/hostent.m4 \
 	$(top_srcdir)/gnulib/m4/include_next.m4 \
 	$(top_srcdir)/gnulib/m4/inet_ntop.m4 \
 	$(top_srcdir)/gnulib/m4/inet_pton.m4 \
@@ -112,6 +136,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/lstat.m4 \
 	$(top_srcdir)/gnulib/m4/malloc.m4 \
 	$(top_srcdir)/gnulib/m4/mkstemp.m4 \
+	$(top_srcdir)/gnulib/m4/multiarch.m4 \
 	$(top_srcdir)/gnulib/m4/netdb_h.m4 \
 	$(top_srcdir)/gnulib/m4/netinet_in_h.m4 \
 	$(top_srcdir)/gnulib/m4/onceonly.m4 \
@@ -120,7 +145,9 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/po.m4 $(top_srcdir)/gnulib/m4/poll.m4 \
 	$(top_srcdir)/gnulib/m4/posix-shell.m4 \
 	$(top_srcdir)/gnulib/m4/printf.m4 \
+	$(top_srcdir)/gnulib/m4/random_r.m4 \
 	$(top_srcdir)/gnulib/m4/realloc.m4 \
+	$(top_srcdir)/gnulib/m4/servent.m4 \
 	$(top_srcdir)/gnulib/m4/snprintf.m4 \
 	$(top_srcdir)/gnulib/m4/sockets.m4 \
 	$(top_srcdir)/gnulib/m4/socklen.m4 \
@@ -130,12 +157,12 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/stdint_h.m4 \
 	$(top_srcdir)/gnulib/m4/stdio_h.m4 \
 	$(top_srcdir)/gnulib/m4/stdlib_h.m4 \
+	$(top_srcdir)/gnulib/m4/stpcpy.m4 \
 	$(top_srcdir)/gnulib/m4/strdup.m4 \
 	$(top_srcdir)/gnulib/m4/strerror.m4 \
 	$(top_srcdir)/gnulib/m4/string_h.m4 \
 	$(top_srcdir)/gnulib/m4/strndup.m4 \
 	$(top_srcdir)/gnulib/m4/strnlen.m4 \
-	$(top_srcdir)/gnulib/m4/strpbrk.m4 \
 	$(top_srcdir)/gnulib/m4/strsep.m4 \
 	$(top_srcdir)/gnulib/m4/sys_ioctl_h.m4 \
 	$(top_srcdir)/gnulib/m4/sys_select_h.m4 \
@@ -143,6 +170,8 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/sys_stat_h.m4 \
 	$(top_srcdir)/gnulib/m4/sys_time_h.m4 \
 	$(top_srcdir)/gnulib/m4/tempname.m4 \
+	$(top_srcdir)/gnulib/m4/time_h.m4 \
+	$(top_srcdir)/gnulib/m4/time_r.m4 \
 	$(top_srcdir)/gnulib/m4/unistd_h.m4 \
 	$(top_srcdir)/gnulib/m4/vasnprintf.m4 \
 	$(top_srcdir)/gnulib/m4/vasprintf.m4 \
@@ -159,7 +188,7 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(SHELL) $(top_srcdir)/build-aux/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
-CONFIG_CLEAN_FILES = libvirt_sym.version
+CONFIG_CLEAN_FILES =
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
     $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
@@ -382,8 +411,8 @@ libvirt_test_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(CFLAGS) $(libvirt_test_la_LDFLAGS) $(LDFLAGS) -o $@
 libvirt_util_la_LIBADD =
 am__objects_30 = bridge.lo buf.lo conf.lo event.lo hash.lo iptables.lo \
-	memory.lo qparams.lo uuid.lo util.lo virterror.lo logging.lo \
-	xml.lo
+	logging.lo memory.lo qparams.lo threads.lo uuid.lo util.lo \
+	virterror.lo xml.lo
 am_libvirt_util_la_OBJECTS = $(am__objects_30)
 libvirt_util_la_OBJECTS = $(am_libvirt_util_la_OBJECTS)
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
@@ -395,9 +424,10 @@ PROGRAMS = $(bin_PROGRAMS) $(libexec_PROGRAMS)
 am__libvirt_lxc_SOURCES_DIST = lxc_conf.c lxc_conf.h lxc_container.c \
 	lxc_container.h lxc_controller.c veth.c veth.h cgroup.c \
 	cgroup.h bridge.c bridge.h buf.c buf.h conf.c conf.h event.c \
-	event.h hash.c hash.h iptables.c iptables.h memory.c memory.h \
-	qparams.c qparams.h uuid.c uuid.h util.c util.h virterror.c \
-	virterror_internal.h logging.c logging.h xml.c xml.h \
+	event.h hash.c hash.h iptables.c iptables.h logging.c \
+	logging.h memory.c memory.h qparams.c qparams.h threads.c \
+	threads.h threads-pthread.h threads-win32.h uuid.c uuid.h \
+	util.c util.h virterror.c virterror_internal.h xml.c xml.h \
 	capabilities.c capabilities.h domain_conf.c domain_conf.h \
 	nodeinfo.h nodeinfo.c
 am__objects_31 = libvirt_lxc-lxc_conf.$(OBJEXT) \
@@ -407,10 +437,11 @@ am__objects_31 = libvirt_lxc-lxc_conf.$(OBJEXT) \
 am__objects_32 = libvirt_lxc-bridge.$(OBJEXT) \
 	libvirt_lxc-buf.$(OBJEXT) libvirt_lxc-conf.$(OBJEXT) \
 	libvirt_lxc-event.$(OBJEXT) libvirt_lxc-hash.$(OBJEXT) \
-	libvirt_lxc-iptables.$(OBJEXT) libvirt_lxc-memory.$(OBJEXT) \
-	libvirt_lxc-qparams.$(OBJEXT) libvirt_lxc-uuid.$(OBJEXT) \
+	libvirt_lxc-iptables.$(OBJEXT) libvirt_lxc-logging.$(OBJEXT) \
+	libvirt_lxc-memory.$(OBJEXT) libvirt_lxc-qparams.$(OBJEXT) \
+	libvirt_lxc-threads.$(OBJEXT) libvirt_lxc-uuid.$(OBJEXT) \
 	libvirt_lxc-util.$(OBJEXT) libvirt_lxc-virterror.$(OBJEXT) \
-	libvirt_lxc-logging.$(OBJEXT) libvirt_lxc-xml.$(OBJEXT)
+	libvirt_lxc-xml.$(OBJEXT)
 am__objects_33 = libvirt_lxc-capabilities.$(OBJEXT) \
 	libvirt_lxc-domain_conf.$(OBJEXT) \
 	libvirt_lxc-nodeinfo.$(OBJEXT)
@@ -421,6 +452,7 @@ am__objects_33 = libvirt_lxc-capabilities.$(OBJEXT) \
 libvirt_lxc_OBJECTS = $(am_libvirt_lxc_OBJECTS)
 am__DEPENDENCIES_2 =
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@libvirt_lxc_DEPENDENCIES =  \
+@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(am__DEPENDENCIES_2) \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(am__DEPENDENCIES_2) \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	../gnulib/lib/libgnu.la
 libvirt_lxc_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -439,8 +471,8 @@ libvirt_parthelper_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 am_virsh_OBJECTS = virsh-console.$(OBJEXT) virsh-virsh.$(OBJEXT)
 virsh_OBJECTS = $(am_virsh_OBJECTS)
 virsh_DEPENDENCIES = $(am__DEPENDENCIES_2) $(am__DEPENDENCIES_2) \
-	libvirt.la ../gnulib/lib/libgnu.la $(am__DEPENDENCIES_2) \
-	$(am__append_41)
+	$(am__DEPENDENCIES_2) libvirt.la ../gnulib/lib/libgnu.la \
+	$(am__DEPENDENCIES_2) $(am__append_45)
 virsh_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(virsh_CFLAGS) $(CFLAGS) $(virsh_LDFLAGS) \
 	$(LDFLAGS) -o $@
@@ -492,6 +524,7 @@ ACLOCAL = @ACLOCAL@
 ALLOCA = @ALLOCA@
 ALLOCA_H = @ALLOCA_H@
 AMTAR = @AMTAR@
+APPLE_UNIVERSAL_BUILD = @APPLE_UNIVERSAL_BUILD@
 AR = @AR@
 ARPA_INET_H = @ARPA_INET_H@
 AS = @AS@
@@ -548,16 +581,19 @@ EXEEXT = @EXEEXT@
 F77 = @F77@
 FFLAGS = @FFLAGS@
 FLOAT_H = @FLOAT_H@
+GETADDRINFO_LIB = @GETADDRINFO_LIB@
 GLIB2_CFLAGS = @GLIB2_CFLAGS@
 GLIB2_LIBS = @GLIB2_LIBS@
 GMSGFMT = @GMSGFMT@
 GNULIB_ACCEPT = @GNULIB_ACCEPT@
 GNULIB_ATOLL = @GNULIB_ATOLL@
 GNULIB_BIND = @GNULIB_BIND@
+GNULIB_BTOWC = @GNULIB_BTOWC@
 GNULIB_CALLOC_POSIX = @GNULIB_CALLOC_POSIX@
 GNULIB_CHOWN = @GNULIB_CHOWN@
 GNULIB_CLOSE = @GNULIB_CLOSE@
 GNULIB_CONNECT = @GNULIB_CONNECT@
+GNULIB_DPRINTF = @GNULIB_DPRINTF@
 GNULIB_DUP2 = @GNULIB_DUP2@
 GNULIB_ENVIRON = @GNULIB_ENVIRON@
 GNULIB_EUIDACCESS = @GNULIB_EUIDACCESS@
@@ -597,20 +633,26 @@ GNULIB_INET_PTON = @GNULIB_INET_PTON@
 GNULIB_IOCTL = @GNULIB_IOCTL@
 GNULIB_LCHMOD = @GNULIB_LCHMOD@
 GNULIB_LCHOWN = @GNULIB_LCHOWN@
+GNULIB_LINK = @GNULIB_LINK@
 GNULIB_LISTEN = @GNULIB_LISTEN@
 GNULIB_LSEEK = @GNULIB_LSEEK@
 GNULIB_LSTAT = @GNULIB_LSTAT@
 GNULIB_MALLOC_POSIX = @GNULIB_MALLOC_POSIX@
+GNULIB_MBRLEN = @GNULIB_MBRLEN@
+GNULIB_MBRTOWC = @GNULIB_MBRTOWC@
 GNULIB_MBSCASECMP = @GNULIB_MBSCASECMP@
 GNULIB_MBSCASESTR = @GNULIB_MBSCASESTR@
 GNULIB_MBSCHR = @GNULIB_MBSCHR@
 GNULIB_MBSCSPN = @GNULIB_MBSCSPN@
+GNULIB_MBSINIT = @GNULIB_MBSINIT@
 GNULIB_MBSLEN = @GNULIB_MBSLEN@
 GNULIB_MBSNCASECMP = @GNULIB_MBSNCASECMP@
 GNULIB_MBSNLEN = @GNULIB_MBSNLEN@
+GNULIB_MBSNRTOWCS = @GNULIB_MBSNRTOWCS@
 GNULIB_MBSPBRK = @GNULIB_MBSPBRK@
 GNULIB_MBSPCASECMP = @GNULIB_MBSPCASECMP@
 GNULIB_MBSRCHR = @GNULIB_MBSRCHR@
+GNULIB_MBSRTOWCS = @GNULIB_MBSRTOWCS@
 GNULIB_MBSSEP = @GNULIB_MBSSEP@
 GNULIB_MBSSPN = @GNULIB_MBSSPN@
 GNULIB_MBSSTR = @GNULIB_MBSSTR@
@@ -667,12 +709,17 @@ GNULIB_STRVERSCMP = @GNULIB_STRVERSCMP@
 GNULIB_UNISTD_H_SIGPIPE = @GNULIB_UNISTD_H_SIGPIPE@
 GNULIB_UNSETENV = @GNULIB_UNSETENV@
 GNULIB_VASPRINTF = @GNULIB_VASPRINTF@
+GNULIB_VDPRINTF = @GNULIB_VDPRINTF@
 GNULIB_VFPRINTF = @GNULIB_VFPRINTF@
 GNULIB_VFPRINTF_POSIX = @GNULIB_VFPRINTF_POSIX@
 GNULIB_VPRINTF = @GNULIB_VPRINTF@
 GNULIB_VPRINTF_POSIX = @GNULIB_VPRINTF_POSIX@
 GNULIB_VSNPRINTF = @GNULIB_VSNPRINTF@
 GNULIB_VSPRINTF_POSIX = @GNULIB_VSPRINTF_POSIX@
+GNULIB_WCRTOMB = @GNULIB_WCRTOMB@
+GNULIB_WCSNRTOMBS = @GNULIB_WCSNRTOMBS@
+GNULIB_WCSRTOMBS = @GNULIB_WCSRTOMBS@
+GNULIB_WCTOB = @GNULIB_WCTOB@
 GNULIB_WCWIDTH = @GNULIB_WCWIDTH@
 GNULIB_WRITE = @GNULIB_WRITE@
 GNUTLS_CFLAGS = @GNUTLS_CFLAGS@
@@ -682,12 +729,17 @@ HAL_CFLAGS = @HAL_CFLAGS@
 HAL_LIBS = @HAL_LIBS@
 HAVE_ARPA_INET_H = @HAVE_ARPA_INET_H@
 HAVE_ATOLL = @HAVE_ATOLL@
+HAVE_BTOWC = @HAVE_BTOWC@
 HAVE_CALLOC_POSIX = @HAVE_CALLOC_POSIX@
 HAVE_DECL_ENVIRON = @HAVE_DECL_ENVIRON@
+HAVE_DECL_FREEADDRINFO = @HAVE_DECL_FREEADDRINFO@
+HAVE_DECL_GAI_STRERROR = @HAVE_DECL_GAI_STRERROR@
+HAVE_DECL_GETADDRINFO = @HAVE_DECL_GETADDRINFO@
 HAVE_DECL_GETDELIM = @HAVE_DECL_GETDELIM@
 HAVE_DECL_GETLINE = @HAVE_DECL_GETLINE@
 HAVE_DECL_GETLOADAVG = @HAVE_DECL_GETLOADAVG@
 HAVE_DECL_GETLOGIN_R = @HAVE_DECL_GETLOGIN_R@
+HAVE_DECL_GETNAMEINFO = @HAVE_DECL_GETNAMEINFO@
 HAVE_DECL_INET_NTOP = @HAVE_DECL_INET_NTOP@
 HAVE_DECL_INET_PTON = @HAVE_DECL_INET_PTON@
 HAVE_DECL_MEMMEM = @HAVE_DECL_MEMMEM@
@@ -701,7 +753,9 @@ HAVE_DECL_STRNLEN = @HAVE_DECL_STRNLEN@
 HAVE_DECL_STRSIGNAL = @HAVE_DECL_STRSIGNAL@
 HAVE_DECL_STRTOK_R = @HAVE_DECL_STRTOK_R@
 HAVE_DECL_VSNPRINTF = @HAVE_DECL_VSNPRINTF@
+HAVE_DECL_WCTOB = @HAVE_DECL_WCTOB@
 HAVE_DECL_WCWIDTH = @HAVE_DECL_WCWIDTH@
+HAVE_DPRINTF = @HAVE_DPRINTF@
 HAVE_DUP2 = @HAVE_DUP2@
 HAVE_EUIDACCESS = @HAVE_EUIDACCESS@
 HAVE_FSEEKO = @HAVE_FSEEKO@
@@ -716,14 +770,21 @@ HAVE_GETSUBOPT = @HAVE_GETSUBOPT@
 HAVE_GETUSERSHELL = @HAVE_GETUSERSHELL@
 HAVE_INTTYPES_H = @HAVE_INTTYPES_H@
 HAVE_LCHMOD = @HAVE_LCHMOD@
+HAVE_LINK = @HAVE_LINK@
 HAVE_LONG_LONG_INT = @HAVE_LONG_LONG_INT@
 HAVE_LSTAT = @HAVE_LSTAT@
 HAVE_MALLOC_POSIX = @HAVE_MALLOC_POSIX@
+HAVE_MBRLEN = @HAVE_MBRLEN@
+HAVE_MBRTOWC = @HAVE_MBRTOWC@
+HAVE_MBSINIT = @HAVE_MBSINIT@
+HAVE_MBSNRTOWCS = @HAVE_MBSNRTOWCS@
+HAVE_MBSRTOWCS = @HAVE_MBSRTOWCS@
 HAVE_MEMPCPY = @HAVE_MEMPCPY@
 HAVE_MKDTEMP = @HAVE_MKDTEMP@
 HAVE_NETDB_H = @HAVE_NETDB_H@
 HAVE_NETINET_IN_H = @HAVE_NETINET_IN_H@
 HAVE_OS_H = @HAVE_OS_H@
+HAVE_RANDOM_H = @HAVE_RANDOM_H@
 HAVE_RANDOM_R = @HAVE_RANDOM_R@
 HAVE_RAWMEMCHR = @HAVE_RAWMEMCHR@
 HAVE_READLINK = @HAVE_READLINK@
@@ -745,6 +806,7 @@ HAVE_STRSEP = @HAVE_STRSEP@
 HAVE_STRTOD = @HAVE_STRTOD@
 HAVE_STRTOLL = @HAVE_STRTOLL@
 HAVE_STRTOULL = @HAVE_STRTOULL@
+HAVE_STRUCT_ADDRINFO = @HAVE_STRUCT_ADDRINFO@
 HAVE_STRUCT_RANDOM_DATA = @HAVE_STRUCT_RANDOM_DATA@
 HAVE_STRUCT_TIMEVAL = @HAVE_STRUCT_TIMEVAL@
 HAVE_STRVERSCMP = @HAVE_STRVERSCMP@
@@ -761,13 +823,19 @@ HAVE_UNISTD_H = @HAVE_UNISTD_H@
 HAVE_UNSETENV = @HAVE_UNSETENV@
 HAVE_UNSIGNED_LONG_LONG_INT = @HAVE_UNSIGNED_LONG_LONG_INT@
 HAVE_VASPRINTF = @HAVE_VASPRINTF@
+HAVE_VDPRINTF = @HAVE_VDPRINTF@
 HAVE_WCHAR_H = @HAVE_WCHAR_H@
+HAVE_WCRTOMB = @HAVE_WCRTOMB@
+HAVE_WCSNRTOMBS = @HAVE_WCSNRTOMBS@
+HAVE_WCSRTOMBS = @HAVE_WCSRTOMBS@
 HAVE_WINSOCK2_H = @HAVE_WINSOCK2_H@
 HAVE_WINT_T = @HAVE_WINT_T@
 HAVE_WS2TCPIP_H = @HAVE_WS2TCPIP_H@
 HAVE__BOOL = @HAVE__BOOL@
+HOSTENT_LIB = @HOSTENT_LIB@
 HTML_DIR = @HTML_DIR@
 INCLUDE_NEXT = @INCLUDE_NEXT@
+INCLUDE_NEXT_AS_FIRST_DIRECTIVE = @INCLUDE_NEXT_AS_FIRST_DIRECTIVE@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
@@ -828,6 +896,7 @@ NEXT_SYS_SELECT_H = @NEXT_SYS_SELECT_H@
 NEXT_SYS_SOCKET_H = @NEXT_SYS_SOCKET_H@
 NEXT_SYS_STAT_H = @NEXT_SYS_STAT_H@
 NEXT_SYS_TIME_H = @NEXT_SYS_TIME_H@
+NEXT_TIME_H = @NEXT_TIME_H@
 NEXT_UNISTD_H = @NEXT_UNISTD_H@
 NEXT_WCHAR_H = @NEXT_WCHAR_H@
 NUMACTL_CFLAGS = @NUMACTL_CFLAGS@
@@ -864,8 +933,10 @@ QEMU_IMG = @QEMU_IMG@
 RANLIB = @RANLIB@
 READLINE_CFLAGS = @READLINE_CFLAGS@
 REMOTE_PID_FILE = @REMOTE_PID_FILE@
+REPLACE_BTOWC = @REPLACE_BTOWC@
 REPLACE_CHOWN = @REPLACE_CHOWN@
 REPLACE_CLOSE = @REPLACE_CLOSE@
+REPLACE_DPRINTF = @REPLACE_DPRINTF@
 REPLACE_FCHDIR = @REPLACE_FCHDIR@
 REPLACE_FCLOSE = @REPLACE_FCLOSE@
 REPLACE_FFLUSH = @REPLACE_FFLUSH@
@@ -881,11 +952,19 @@ REPLACE_GETLINE = @REPLACE_GETLINE@
 REPLACE_GETPAGESIZE = @REPLACE_GETPAGESIZE@
 REPLACE_GETTIMEOFDAY = @REPLACE_GETTIMEOFDAY@
 REPLACE_LCHOWN = @REPLACE_LCHOWN@
+REPLACE_LOCALTIME_R = @REPLACE_LOCALTIME_R@
 REPLACE_LSEEK = @REPLACE_LSEEK@
 REPLACE_LSTAT = @REPLACE_LSTAT@
+REPLACE_MBRLEN = @REPLACE_MBRLEN@
+REPLACE_MBRTOWC = @REPLACE_MBRTOWC@
+REPLACE_MBSINIT = @REPLACE_MBSINIT@
+REPLACE_MBSNRTOWCS = @REPLACE_MBSNRTOWCS@
+REPLACE_MBSRTOWCS = @REPLACE_MBSRTOWCS@
+REPLACE_MBSTATE_T = @REPLACE_MBSTATE_T@
 REPLACE_MEMMEM = @REPLACE_MEMMEM@
 REPLACE_MKDIR = @REPLACE_MKDIR@
 REPLACE_MKSTEMP = @REPLACE_MKSTEMP@
+REPLACE_NANOSLEEP = @REPLACE_NANOSLEEP@
 REPLACE_OBSTACK_PRINTF = @REPLACE_OBSTACK_PRINTF@
 REPLACE_PERROR = @REPLACE_PERROR@
 REPLACE_PRINTF = @REPLACE_PRINTF@
@@ -896,14 +975,20 @@ REPLACE_STDIO_WRITE_FUNCS = @REPLACE_STDIO_WRITE_FUNCS@
 REPLACE_STRCASESTR = @REPLACE_STRCASESTR@
 REPLACE_STRDUP = @REPLACE_STRDUP@
 REPLACE_STRERROR = @REPLACE_STRERROR@
+REPLACE_STRPTIME = @REPLACE_STRPTIME@
 REPLACE_STRSIGNAL = @REPLACE_STRSIGNAL@
 REPLACE_STRSTR = @REPLACE_STRSTR@
 REPLACE_STRTOD = @REPLACE_STRTOD@
+REPLACE_TIMEGM = @REPLACE_TIMEGM@
 REPLACE_VASPRINTF = @REPLACE_VASPRINTF@
+REPLACE_VDPRINTF = @REPLACE_VDPRINTF@
 REPLACE_VFPRINTF = @REPLACE_VFPRINTF@
 REPLACE_VPRINTF = @REPLACE_VPRINTF@
 REPLACE_VSNPRINTF = @REPLACE_VSNPRINTF@
 REPLACE_VSPRINTF = @REPLACE_VSPRINTF@
+REPLACE_WCRTOMB = @REPLACE_WCRTOMB@
+REPLACE_WCSRTOMBS = @REPLACE_WCSRTOMBS@
+REPLACE_WCTOB = @REPLACE_WCTOB@
 REPLACE_WCWIDTH = @REPLACE_WCWIDTH@
 REPLACE_WRITE = @REPLACE_WRITE@
 RM = @RM@
@@ -913,6 +998,7 @@ SASL_LIBS = @SASL_LIBS@
 SED = @SED@
 SELINUX_CFLAGS = @SELINUX_CFLAGS@
 SELINUX_LIBS = @SELINUX_LIBS@
+SERVENT_LIB = @SERVENT_LIB@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 SHOWMOUNT = @SHOWMOUNT@
@@ -928,7 +1014,9 @@ SYS_SELECT_H = @SYS_SELECT_H@
 SYS_SOCKET_H = @SYS_SOCKET_H@
 SYS_STAT_H = @SYS_STAT_H@
 SYS_TIME_H = @SYS_TIME_H@
+SYS_TIME_H_DEFINES_STRUCT_TIMESPEC = @SYS_TIME_H_DEFINES_STRUCT_TIMESPEC@
 TAR = @TAR@
+TIME_H_DEFINES_STRUCT_TIMESPEC = @TIME_H_DEFINES_STRUCT_TIMESPEC@
 U = @U@
 UDEVADM = @UDEVADM@
 UDEVSETTLE = @UDEVSETTLE@
@@ -936,6 +1024,7 @@ UMOUNT = @UMOUNT@
 UNISTD_H_HAVE_WINSOCK2_H = @UNISTD_H_HAVE_WINSOCK2_H@
 USE_NLS = @USE_NLS@
 VERSION = @VERSION@
+VERSION_SCRIPT_FLAGS = @VERSION_SCRIPT_FLAGS@
 VGCHANGE = @VGCHANGE@
 VGCREATE = @VGCREATE@
 VGREMOVE = @VGREMOVE@
@@ -944,6 +1033,7 @@ VGSCAN = @VGSCAN@
 VIRSH_LIBS = @VIRSH_LIBS@
 VOID_UNSETENV = @VOID_UNSETENV@
 WARN_CFLAGS = @WARN_CFLAGS@
+WARN_PYTHON_CFLAGS = @WARN_PYTHON_CFLAGS@
 WCHAR_H = @WCHAR_H@
 WCHAR_T_SUFFIX = @WCHAR_T_SUFFIX@
 WINDRES = @WINDRES@
@@ -1040,17 +1130,21 @@ ICON_FILES = \
 
 
 # Add all conditional sources just in case...
-EXTRA_DIST = libvirt_sym.version $(conf_DATA) $(ICON_FILES) \
-	$(TEST_DRIVER_SOURCES) $(REMOTE_DRIVER_SOURCES) \
-	$(XEN_DRIVER_SOURCES) $(QEMU_DRIVER_SOURCES) \
-	$(LXC_DRIVER_SOURCES) $(UML_DRIVER_SOURCES) \
-	$(OPENVZ_DRIVER_SOURCES) $(NETWORK_DRIVER_SOURCES) \
-	$(STORAGE_DRIVER_SOURCES) $(STORAGE_DRIVER_FS_SOURCES) \
-	$(STORAGE_DRIVER_LVM_SOURCES) $(STORAGE_DRIVER_ISCSI_SOURCES) \
-	$(STORAGE_DRIVER_DISK_SOURCES) $(NODE_DEVICE_DRIVER_SOURCES) \
+EXTRA_DIST = $(conf_DATA) $(ICON_FILES) threads-pthread.c \
+	threads-win32.c $(TEST_DRIVER_SOURCES) \
+	$(REMOTE_DRIVER_SOURCES) $(XEN_DRIVER_SOURCES) \
+	$(QEMU_DRIVER_SOURCES) $(LXC_DRIVER_SOURCES) \
+	$(UML_DRIVER_SOURCES) $(OPENVZ_DRIVER_SOURCES) \
+	$(NETWORK_DRIVER_SOURCES) $(STORAGE_DRIVER_SOURCES) \
+	$(STORAGE_DRIVER_FS_SOURCES) $(STORAGE_DRIVER_LVM_SOURCES) \
+	$(STORAGE_DRIVER_ISCSI_SOURCES) $(STORAGE_DRIVER_DISK_SOURCES) \
+	$(NODE_DEVICE_DRIVER_SOURCES) \
 	$(NODE_DEVICE_DRIVER_HAL_SOURCES) \
-	$(NODE_DEVICE_DRIVER_DEVKIT_SOURCES) \
-	$(STORAGE_HELPER_DISK_SOURCES) $(LXC_CONTROLLER_SOURCES)
+	$(NODE_DEVICE_DRIVER_DEVKIT_SOURCES) libvirt_public.syms \
+	libvirt_private.syms libvirt_debug.syms \
+	libvirt_driver_modules.syms libvirt_bridge.syms \
+	libvirt_linux.syms $(STORAGE_HELPER_DISK_SOURCES) \
+	$(LXC_CONTROLLER_SOURCES)
 lib_LTLIBRARIES = libvirt.la
 moddir = $(libdir)/libvirt/drivers
 mod_LTLIBRARIES = $(am__append_2) $(am__append_5) $(am__append_9) \
@@ -1067,12 +1161,15 @@ UTIL_SOURCES = \
 		event.c event.h					\
 		hash.c hash.h					\
 		iptables.c iptables.h				\
+		logging.c logging.h				\
 		memory.c memory.h				\
 		qparams.c qparams.h				\
+		threads.c threads.h				\
+		threads-pthread.h				\
+		threads-win32.h					\
 		uuid.c uuid.h					\
 		util.c util.h					\
 		virterror.c virterror_internal.h		\
-		logging.c logging.h				\
 		xml.c xml.h
 
 
@@ -1165,7 +1262,7 @@ STORAGE_DRIVER_FS_SOURCES = \
 		storage_backend_fs.h storage_backend_fs.c
 
 STORAGE_DRIVER_LVM_SOURCES = \
-		storage_backend_logical.h 			\
+		storage_backend_logical.h			\
 		storage_backend_logical.c
 
 STORAGE_DRIVER_ISCSI_SOURCES = \
@@ -1214,8 +1311,10 @@ libvirt_driver_la_SOURCES = \
 		$(STORAGE_CONF_SOURCES)				\
 		$(NODE_DEVICE_CONF_SOURCES)
 
-libvirt_driver_la_CFLAGS = $(XEN_CFLAGS)
-libvirt_driver_la_LDFLAGS = $(XEN_LIBS)
+libvirt_driver_la_CFLAGS = $(XEN_CFLAGS) $(NUMACTL_CFLAGS)
+libvirt_driver_la_LDFLAGS = $(XEN_LIBS) $(NUMACTL_LIBS)
+USED_SYM_FILES = libvirt_private.syms $(am__append_41) \
+	$(am__append_42) $(am__append_43) $(am__append_44)
 @WITH_DRIVER_MODULES_TRUE@@WITH_TEST_TRUE@libvirt_driver_test_la_LDFLAGS = -module -avoid-version
 @WITH_TEST_TRUE@libvirt_driver_test_la_SOURCES = $(TEST_DRIVER_SOURCES)
 @WITH_REMOTE_TRUE@libvirt_driver_remote_la_CFLAGS = \
@@ -1271,7 +1370,7 @@ libvirt_driver_storage_la_SOURCES = $(am__append_28) $(am__append_29) \
 
 # Empty source list - it merely links a bunch of convenience libs together
 libvirt_la_SOURCES = 
-libvirt_la_LDFLAGS = -Wl,--version-script=libvirt_sym.version \
+libvirt_la_LDFLAGS = $(VERSION_SCRIPT_FLAGS)libvirt.syms \
                      -version-info @LIBVIRT_VERSION_INFO@ \
                     $(COVERAGE_CFLAGS:-f%=-Wc,-f%) \
                     $(LIBXML_LIBS) $(SELINUX_LIBS) \
@@ -1279,14 +1378,12 @@ libvirt_la_LDFLAGS = -Wl,--version-script=libvirt_sym.version \
 		    @CYGWIN_EXTRA_LDFLAGS@ @MINGW_EXTRA_LDFLAGS@
 
 libvirt_la_CFLAGS = $(COVERAGE_CFLAGS) -DIN_LIBVIRT
-libvirt_la_DEPENDENCIES = $(libvirt_la_LIBADD) libvirt_sym.version
+libvirt_la_DEPENDENCIES = $(libvirt_la_LIBADD) libvirt.syms
 
-# Convert libvirt_sym.version
-#      to libvirt_test_sym.version, and
-# remove -version-info X.Y.Z (not needed since this is a convenience library.
+# Remove version script from convenience library
 test_LDFLAGS = \
   $$(echo '$(libvirt_la_LDFLAGS)'			\
-     |sed 's!-Wl,--v.*_sym\.version!!'			\
+     |sed 's!@VERSION_SCRIPT_FLAGS@libvirt.syms!!'	\
      |sed 's!-version-info @LIBVIRT_VERSION_INFO@!!')
 
 
@@ -1300,22 +1397,23 @@ virsh_SOURCES = \
 		virsh.c
 
 virsh_LDFLAGS = $(WARN_CFLAGS) $(COVERAGE_LDFLAGS)
-virsh_LDADD = $(STATIC_BINARIES) $(WARN_CFLAGS) libvirt.la \
-	../gnulib/lib/libgnu.la $(VIRSH_LIBS) $(am__append_41)
-virsh_CFLAGS = $(COVERAGE_CFLAGS) $(READLINE_CFLAGS)
-BUILT_SOURCES = virsh-net-edit.c virsh-pool-edit.c
+virsh_LDADD = $(STATIC_BINARIES) $(WARN_CFLAGS) $(NUMACTL_LIBS) \
+	libvirt.la ../gnulib/lib/libgnu.la $(VIRSH_LIBS) \
+	$(am__append_45)
+virsh_CFLAGS = $(COVERAGE_CFLAGS) $(READLINE_CFLAGS) $(NUMACTL_CFLAGS)
+BUILT_SOURCES = virsh-net-edit.c virsh-pool-edit.c libvirt.syms
 @WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@libvirt_parthelper_SOURCES = $(STORAGE_HELPER_DISK_SOURCES)
 @WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@libvirt_parthelper_LDFLAGS = $(WARN_CFLAGS) $(COVERAGE_LDCFLAGS)
 @WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@libvirt_parthelper_LDADD = $(LIBPARTED_LIBS)
 @WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@libvirt_parthelper_CFLAGS = $(LIBPARTED_CFLAGS)
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@libvirt_lxc_SOURCES = \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@		$(LXC_CONTROLLER_SOURCES)			\
-@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@		$(UTIL_SOURCES) 				\
+@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@		$(UTIL_SOURCES)					\
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@		$(DOMAIN_CONF_SOURCES)
 
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@libvirt_lxc_LDFLAGS = $(WARN_CFLAGS) $(COVERAGE_LDCFLAGS)
-@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@libvirt_lxc_LDADD = $(LIBXML_LIBS) ../gnulib/lib/libgnu.la
-@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@libvirt_lxc_CFLAGS = $(LIBPARTED_CFLAGS)
+@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@libvirt_lxc_LDADD = $(LIBXML_LIBS) $(NUMACTL_LIBS) ../gnulib/lib/libgnu.la
+@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@libvirt_lxc_CFLAGS = $(LIBPARTED_CFLAGS) $(NUMACTL_CFLAGS)
 CLEANFILES = *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda
 DISTCLEANFILES = $(BUILT_SOURCES)
 all: $(BUILT_SOURCES)
@@ -1352,8 +1450,6 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
-libvirt_sym.version: $(top_builddir)/config.status $(srcdir)/libvirt_sym.version.in
-	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 install-libLTLIBRARIES: $(lib_LTLIBRARIES)
 	@$(NORMAL_INSTALL)
 	test -z "$(libdir)" || $(MKDIR_P) "$(DESTDIR)$(libdir)"
@@ -1568,6 +1664,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_lxc-memory.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_lxc-nodeinfo.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_lxc-qparams.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_lxc-threads.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_lxc-util.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_lxc-uuid.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_lxc-veth.Po@am__quote@
@@ -1590,6 +1687,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/storage_backend_logical.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/storage_driver.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/threads.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/util.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/uuid.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/veth.Plo@am__quote@
@@ -1969,6 +2067,20 @@ libvirt_lxc-iptables.obj: iptables.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -c -o libvirt_lxc-iptables.obj `if test -f 'iptables.c'; then $(CYGPATH_W) 'iptables.c'; else $(CYGPATH_W) '$(srcdir)/iptables.c'; fi`
 
+libvirt_lxc-logging.o: logging.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -MT libvirt_lxc-logging.o -MD -MP -MF $(DEPDIR)/libvirt_lxc-logging.Tpo -c -o libvirt_lxc-logging.o `test -f 'logging.c' || echo '$(srcdir)/'`logging.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libvirt_lxc-logging.Tpo $(DEPDIR)/libvirt_lxc-logging.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='logging.c' object='libvirt_lxc-logging.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -c -o libvirt_lxc-logging.o `test -f 'logging.c' || echo '$(srcdir)/'`logging.c
+
+libvirt_lxc-logging.obj: logging.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -MT libvirt_lxc-logging.obj -MD -MP -MF $(DEPDIR)/libvirt_lxc-logging.Tpo -c -o libvirt_lxc-logging.obj `if test -f 'logging.c'; then $(CYGPATH_W) 'logging.c'; else $(CYGPATH_W) '$(srcdir)/logging.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libvirt_lxc-logging.Tpo $(DEPDIR)/libvirt_lxc-logging.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='logging.c' object='libvirt_lxc-logging.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -c -o libvirt_lxc-logging.obj `if test -f 'logging.c'; then $(CYGPATH_W) 'logging.c'; else $(CYGPATH_W) '$(srcdir)/logging.c'; fi`
+
 libvirt_lxc-memory.o: memory.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -MT libvirt_lxc-memory.o -MD -MP -MF $(DEPDIR)/libvirt_lxc-memory.Tpo -c -o libvirt_lxc-memory.o `test -f 'memory.c' || echo '$(srcdir)/'`memory.c
 @am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libvirt_lxc-memory.Tpo $(DEPDIR)/libvirt_lxc-memory.Po
@@ -1996,6 +2108,20 @@ libvirt_lxc-qparams.obj: qparams.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='qparams.c' object='libvirt_lxc-qparams.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -c -o libvirt_lxc-qparams.obj `if test -f 'qparams.c'; then $(CYGPATH_W) 'qparams.c'; else $(CYGPATH_W) '$(srcdir)/qparams.c'; fi`
+
+libvirt_lxc-threads.o: threads.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -MT libvirt_lxc-threads.o -MD -MP -MF $(DEPDIR)/libvirt_lxc-threads.Tpo -c -o libvirt_lxc-threads.o `test -f 'threads.c' || echo '$(srcdir)/'`threads.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libvirt_lxc-threads.Tpo $(DEPDIR)/libvirt_lxc-threads.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='threads.c' object='libvirt_lxc-threads.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -c -o libvirt_lxc-threads.o `test -f 'threads.c' || echo '$(srcdir)/'`threads.c
+
+libvirt_lxc-threads.obj: threads.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -MT libvirt_lxc-threads.obj -MD -MP -MF $(DEPDIR)/libvirt_lxc-threads.Tpo -c -o libvirt_lxc-threads.obj `if test -f 'threads.c'; then $(CYGPATH_W) 'threads.c'; else $(CYGPATH_W) '$(srcdir)/threads.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libvirt_lxc-threads.Tpo $(DEPDIR)/libvirt_lxc-threads.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='threads.c' object='libvirt_lxc-threads.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -c -o libvirt_lxc-threads.obj `if test -f 'threads.c'; then $(CYGPATH_W) 'threads.c'; else $(CYGPATH_W) '$(srcdir)/threads.c'; fi`
 
 libvirt_lxc-uuid.o: uuid.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -MT libvirt_lxc-uuid.o -MD -MP -MF $(DEPDIR)/libvirt_lxc-uuid.Tpo -c -o libvirt_lxc-uuid.o `test -f 'uuid.c' || echo '$(srcdir)/'`uuid.c
@@ -2038,20 +2164,6 @@ libvirt_lxc-virterror.obj: virterror.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='virterror.c' object='libvirt_lxc-virterror.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -c -o libvirt_lxc-virterror.obj `if test -f 'virterror.c'; then $(CYGPATH_W) 'virterror.c'; else $(CYGPATH_W) '$(srcdir)/virterror.c'; fi`
-
-libvirt_lxc-logging.o: logging.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -MT libvirt_lxc-logging.o -MD -MP -MF $(DEPDIR)/libvirt_lxc-logging.Tpo -c -o libvirt_lxc-logging.o `test -f 'logging.c' || echo '$(srcdir)/'`logging.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libvirt_lxc-logging.Tpo $(DEPDIR)/libvirt_lxc-logging.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='logging.c' object='libvirt_lxc-logging.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -c -o libvirt_lxc-logging.o `test -f 'logging.c' || echo '$(srcdir)/'`logging.c
-
-libvirt_lxc-logging.obj: logging.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -MT libvirt_lxc-logging.obj -MD -MP -MF $(DEPDIR)/libvirt_lxc-logging.Tpo -c -o libvirt_lxc-logging.obj `if test -f 'logging.c'; then $(CYGPATH_W) 'logging.c'; else $(CYGPATH_W) '$(srcdir)/logging.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libvirt_lxc-logging.Tpo $(DEPDIR)/libvirt_lxc-logging.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='logging.c' object='libvirt_lxc-logging.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -c -o libvirt_lxc-logging.obj `if test -f 'logging.c'; then $(CYGPATH_W) 'logging.c'; else $(CYGPATH_W) '$(srcdir)/logging.c'; fi`
 
 libvirt_lxc-xml.o: xml.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -MT libvirt_lxc-xml.o -MD -MP -MF $(DEPDIR)/libvirt_lxc-xml.Tpo -c -o libvirt_lxc-xml.o `test -f 'xml.c' || echo '$(srcdir)/'`xml.c
@@ -2370,6 +2482,20 @@ uninstall-am: uninstall-binPROGRAMS uninstall-confDATA \
 	uninstall-modLTLIBRARIES
 
 
+libvirt.syms: libvirt_public.syms $(USED_SYM_FILES)
+	rm -f $@-tmp $@
+	printf '# WARNING: generated from the following:\n# $^\n\n' >$@-tmp
+	cat $(srcdir)/libvirt_public.syms >>$@-tmp
+	printf '\n\n# Private symbols\n\n' >>$@-tmp
+	printf 'LIBVIRT_PRIVATE_$(VERSION) {\n\n'  >>$@-tmp
+	printf 'global:\n\n' >>$@-tmp
+	for file in $(USED_SYM_FILES); do \
+	    cat $(srcdir)/$$file >>$@-tmp; \
+	done
+	printf '\n\nlocal:\n*;\n\n};' >>$@-tmp
+	chmod a-w $@-tmp
+	mv $@-tmp libvirt.syms
+
 virsh-net-edit.c: virsh.c Makefile.am
 	rm -f $@-tmp
 	echo '/* Automatically generated from: $^ */' > $@-tmp
@@ -2392,6 +2518,7 @@ virsh-pool-edit.c: virsh.c Makefile.am
 	  | sed -e 's/domain/pool/g' \
 	      -e 's/vshCommandOptDomain/vshCommandOptPool/g' \
 	      -e 's/Domain %s/Pool %s/g' \
+	      -e 's/(ctl, cmd, NULL);/(ctl, cmd, "pool", NULL);/' \
 	      -e 's/Domain/StoragePool/g' \
 	      -e 's/cmdEdit/cmdPoolEdit/g' \
 	      -e 's/\(virStoragePoolDefineXML.*\));/\1, 0);/' \
@@ -2423,9 +2550,20 @@ virsh-pool-edit.c: virsh.c Makefile.am
 @WITH_WIN_ICON_TRUE@	  --input-format rc --input $< \
 @WITH_WIN_ICON_TRUE@	  --output-format coff --output $@
 
-# Create the /var/cache/libvirt directory when installing.
 install-exec-local:
-	$(MKDIR_P) $(DESTDIR)$(localstatedir)/cache/libvirt
+	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/cache/libvirt"
+	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/images"
+	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/boot"
+@WITH_QEMU_TRUE@	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/qemu"
+@WITH_QEMU_TRUE@	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/run/libvirt/qemu"
+@WITH_LXC_TRUE@	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/lxc"
+@WITH_LXC_TRUE@	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/run/libvirt/lxc"
+@WITH_UML_TRUE@	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/uml"
+@WITH_UML_TRUE@	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/run/libvirt/uml"
+@WITH_NETWORK_TRUE@	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/iptables/filter"
+@WITH_NETWORK_TRUE@	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/iptables/nat"
+@WITH_NETWORK_TRUE@	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/network"
+@WITH_NETWORK_TRUE@	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/run/libvirt/network"
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

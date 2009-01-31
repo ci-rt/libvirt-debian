@@ -26,6 +26,7 @@
 
 #include "internal.h"
 #include "util.h"
+#include "threads.h"
 
 enum virNodeDevCapType {
     /* Keep in sync with VIR_ENUM_IMPL in node_device_conf.c */
@@ -47,8 +48,8 @@ enum virNodeDevNetCapType {
     VIR_NODE_DEV_CAP_NET_LAST
 };
 
-VIR_ENUM_DECL(virNodeDevCap);
-VIR_ENUM_DECL(virNodeDevNetCap);
+VIR_ENUM_DECL(virNodeDevCap)
+VIR_ENUM_DECL(virNodeDevNetCap)
 
 enum virNodeDevStorageCapFlags {
     VIR_NODE_DEV_CAP_STORAGE_REMOVABLE			= (1 << 0),
@@ -142,6 +143,8 @@ struct _virNodeDeviceDef {
 typedef struct _virNodeDeviceObj virNodeDeviceObj;
 typedef virNodeDeviceObj *virNodeDeviceObjPtr;
 struct _virNodeDeviceObj {
+    virMutex lock;
+
     virNodeDeviceDefPtr def;		/* device definition */
     void *privateData;			/* driver-specific private data */
     void (*privateFree)(void *data);	/* destructor for private data */
@@ -158,7 +161,8 @@ struct _virNodeDeviceObjList {
 typedef struct _virDeviceMonitorState virDeviceMonitorState;
 typedef virDeviceMonitorState *virDeviceMonitorStatePtr;
 struct _virDeviceMonitorState {
-    int dbusWatch;
+    virMutex lock;
+
     virNodeDeviceObjList devs;		/* currently-known devices */
     void *privateData;			/* driver-specific private data */
 };
@@ -189,5 +193,8 @@ void virNodeDeviceObjFree(virNodeDeviceObjPtr dev);
 void virNodeDeviceObjListFree(virNodeDeviceObjListPtr devs);
 
 void virNodeDevCapsDefFree(virNodeDevCapsDefPtr caps);
+
+void virNodeDeviceObjLock(virNodeDeviceObjPtr obj);
+void virNodeDeviceObjUnlock(virNodeDeviceObjPtr obj);
 
 #endif /* __VIR_NODE_DEVICE_CONF_H__ */

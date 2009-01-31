@@ -51,6 +51,8 @@
 #include "util.h"
 #include "nodeinfo.h"
 
+#define VIR_FROM_THIS VIR_FROM_OPENVZ
+
 static char *openvzLocateConfDir(void);
 static int openvzGetVPSUUID(int vpsid, char *uuidstr);
 static int openvzLocateConfFile(int vpsid, char *conffile, int maxlen, const char *ext);
@@ -144,6 +146,9 @@ virCapsPtr openvzCapsInit(void)
 
     if ((caps = virCapabilitiesNew(utsname.machine,
                                    0, 0)) == NULL)
+        goto no_memory;
+
+    if (virCapsInitNUMA(caps) < 0)
         goto no_memory;
 
     virCapabilitiesSetMacPrefix(caps, (unsigned char[]){ 0x52, 0x54, 0x00 });
@@ -302,7 +307,7 @@ openvzReadNetworkConf(virConnectPtr conn,
 
     return 0;
 no_memory:
-    openvzError(conn, VIR_ERR_NO_MEMORY, NULL);
+    virReportOOMError(conn);
 error:
     virDomainNetDefFree(net);
     return -1;
@@ -343,7 +348,7 @@ openvzReadFSConf(virConnectPtr conn,
 
     return 0;
 no_memory:
-    openvzError(conn, VIR_ERR_NO_MEMORY, NULL);
+    virReportOOMError(conn);
 error:
     virDomainFSDefFree(fs);
     return -1;
@@ -389,8 +394,17 @@ int openvzLoadDomains(struct openvz_driver *driver) {
             goto cleanup;
         }
 
-        if (VIR_ALLOC(dom) < 0 ||
-            VIR_ALLOC(dom->def) < 0)
+        if (VIR_ALLOC(dom) < 0)
+            goto no_memory;
+
+        if (virMutexInit(&dom->lock) < 0) {
+            openvzError(NULL, VIR_ERR_INTERNAL_ERROR,
+                        "%s", _("cannot initialize mutex"));
+            VIR_FREE(dom);
+            goto cleanup;
+        }
+
+        if (VIR_ALLOC(dom->def) < 0)
             goto no_memory;
 
         if (STREQ(status, "stopped"))
@@ -401,10 +415,8 @@ int openvzLoadDomains(struct openvz_driver *driver) {
         dom->pid = veid;
         dom->def->id = dom->state == VIR_DOMAIN_SHUTOFF ? -1 : veid;
 
-        if (asprintf(&dom->def->name, "%i", veid) < 0) {
-            dom->def->name = NULL;
+        if (virAsprintf(&dom->def->name, "%i", veid) < 0)
             goto no_memory;
-        }
 
         openvzGetVPSUUID(veid, uuidstr);
         ret = virUUIDParse(uuidstr, dom->def->uuid);
@@ -451,7 +463,7 @@ int openvzLoadDomains(struct openvz_driver *driver) {
     return 0;
 
  no_memory:
-    openvzError(NULL, VIR_ERR_NO_MEMORY, NULL);
+    virReportOOMError(NULL);
 
  cleanup:
     fclose(fp);
@@ -466,7 +478,7 @@ openvzGetNodeCPUs(void)
 
     if (virNodeInfoPopulate(NULL, &nodeinfo) < 0) {
         openvzError(NULL, VIR_ERR_INTERNAL_ERROR,
-                      _("Cound not read nodeinfo"));
+                    "%s", _("Cound not read nodeinfo"));
         return 0;
     }
 

@@ -35,22 +35,26 @@ host_triplet = @host@
 @WITH_DRIVER_MODULES_TRUE@am__append_1 = \
 @WITH_DRIVER_MODULES_TRUE@	-DTEST_DRIVER_DIR=\"$(top_builddir)/src/.libs\"
 
-noinst_PROGRAMS = xmlrpctest$(EXEEXT) virshtest$(EXEEXT) \
-	conftest$(EXEEXT) nodeinfotest$(EXEEXT) statstest$(EXEEXT) \
-	qparamtest$(EXEEXT) $(am__EXEEXT_1) $(am__EXEEXT_2)
+noinst_PROGRAMS = virshtest$(EXEEXT) conftest$(EXEEXT) \
+	nodeinfotest$(EXEEXT) statstest$(EXEEXT) qparamtest$(EXEEXT) \
+	$(am__EXEEXT_1) $(am__EXEEXT_2)
 @WITH_XEN_TRUE@am__append_2 = xml2sexprtest sexpr2xmltest \
 @WITH_XEN_TRUE@	reconnect xmconfigtest xencapstest
 
 @WITH_QEMU_TRUE@am__append_3 = qemuxml2argvtest qemuxml2xmltest
 @WITH_LIBVIRTD_TRUE@am__append_4 = \
-@WITH_LIBVIRTD_TRUE@	test_conf.sh \
-@WITH_LIBVIRTD_TRUE@	cpuset \
-@WITH_LIBVIRTD_TRUE@	daemon-conf \
-@WITH_LIBVIRTD_TRUE@	int-overflow \
-@WITH_LIBVIRTD_TRUE@	read-bufsiz \
-@WITH_LIBVIRTD_TRUE@	read-non-seekable \
-@WITH_LIBVIRTD_TRUE@	undefine \
-@WITH_LIBVIRTD_TRUE@	vcpupin
+@WITH_LIBVIRTD_TRUE@	test_conf.sh			\
+@WITH_LIBVIRTD_TRUE@	cpuset				\
+@WITH_LIBVIRTD_TRUE@	daemon-conf			\
+@WITH_LIBVIRTD_TRUE@	define-dev-segfault		\
+@WITH_LIBVIRTD_TRUE@	int-overflow			\
+@WITH_LIBVIRTD_TRUE@	read-bufsiz			\
+@WITH_LIBVIRTD_TRUE@	read-non-seekable		\
+@WITH_LIBVIRTD_TRUE@	start				\
+@WITH_LIBVIRTD_TRUE@	undefine			\
+@WITH_LIBVIRTD_TRUE@	vcpupin				\
+@WITH_LIBVIRTD_TRUE@	virsh-all			\
+@WITH_LIBVIRTD_TRUE@	virsh-synopsis
 
 TESTS = virshtest$(EXEEXT) nodeinfotest$(EXEEXT) statstest$(EXEEXT) \
 	qparamtest$(EXEEXT) $(test_scripts) $(am__EXEEXT_3) \
@@ -70,7 +74,8 @@ TESTS = virshtest$(EXEEXT) nodeinfotest$(EXEEXT) statstest$(EXEEXT) \
 subdir = tests
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/alloca.m4 \
+am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
+	$(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/arpa_inet_h.m4 \
 	$(top_srcdir)/gnulib/m4/close.m4 \
 	$(top_srcdir)/gnulib/m4/errno_h.m4 \
@@ -86,6 +91,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/gettimeofday.m4 \
 	$(top_srcdir)/gnulib/m4/gnulib-common.m4 \
 	$(top_srcdir)/gnulib/m4/gnulib-comp.m4 \
+	$(top_srcdir)/gnulib/m4/hostent.m4 \
 	$(top_srcdir)/gnulib/m4/include_next.m4 \
 	$(top_srcdir)/gnulib/m4/inet_ntop.m4 \
 	$(top_srcdir)/gnulib/m4/inet_pton.m4 \
@@ -96,6 +102,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/lstat.m4 \
 	$(top_srcdir)/gnulib/m4/malloc.m4 \
 	$(top_srcdir)/gnulib/m4/mkstemp.m4 \
+	$(top_srcdir)/gnulib/m4/multiarch.m4 \
 	$(top_srcdir)/gnulib/m4/netdb_h.m4 \
 	$(top_srcdir)/gnulib/m4/netinet_in_h.m4 \
 	$(top_srcdir)/gnulib/m4/onceonly.m4 \
@@ -104,7 +111,9 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/po.m4 $(top_srcdir)/gnulib/m4/poll.m4 \
 	$(top_srcdir)/gnulib/m4/posix-shell.m4 \
 	$(top_srcdir)/gnulib/m4/printf.m4 \
+	$(top_srcdir)/gnulib/m4/random_r.m4 \
 	$(top_srcdir)/gnulib/m4/realloc.m4 \
+	$(top_srcdir)/gnulib/m4/servent.m4 \
 	$(top_srcdir)/gnulib/m4/snprintf.m4 \
 	$(top_srcdir)/gnulib/m4/sockets.m4 \
 	$(top_srcdir)/gnulib/m4/socklen.m4 \
@@ -114,12 +123,12 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/stdint_h.m4 \
 	$(top_srcdir)/gnulib/m4/stdio_h.m4 \
 	$(top_srcdir)/gnulib/m4/stdlib_h.m4 \
+	$(top_srcdir)/gnulib/m4/stpcpy.m4 \
 	$(top_srcdir)/gnulib/m4/strdup.m4 \
 	$(top_srcdir)/gnulib/m4/strerror.m4 \
 	$(top_srcdir)/gnulib/m4/string_h.m4 \
 	$(top_srcdir)/gnulib/m4/strndup.m4 \
 	$(top_srcdir)/gnulib/m4/strnlen.m4 \
-	$(top_srcdir)/gnulib/m4/strpbrk.m4 \
 	$(top_srcdir)/gnulib/m4/strsep.m4 \
 	$(top_srcdir)/gnulib/m4/sys_ioctl_h.m4 \
 	$(top_srcdir)/gnulib/m4/sys_select_h.m4 \
@@ -127,6 +136,8 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/sys_stat_h.m4 \
 	$(top_srcdir)/gnulib/m4/sys_time_h.m4 \
 	$(top_srcdir)/gnulib/m4/tempname.m4 \
+	$(top_srcdir)/gnulib/m4/time_h.m4 \
+	$(top_srcdir)/gnulib/m4/time_r.m4 \
 	$(top_srcdir)/gnulib/m4/unistd_h.m4 \
 	$(top_srcdir)/gnulib/m4/vasnprintf.m4 \
 	$(top_srcdir)/gnulib/m4/vasprintf.m4 \
@@ -156,7 +167,8 @@ am__DEPENDENCIES_1 =
 am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) ../src/libvirt_test.la \
-	../gnulib/lib/libgnu.la $(am__DEPENDENCIES_1)
+	../gnulib/lib/libgnu.la $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1)
 conftest_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_nodeinfotest_OBJECTS = nodeinfotest.$(OBJEXT) testutils.$(OBJEXT)
 nodeinfotest_OBJECTS = $(am_nodeinfotest_OBJECTS)
@@ -186,10 +198,10 @@ am__reconnect_SOURCES_DIST = reconnect.c
 @WITH_XEN_TRUE@am_reconnect_OBJECTS = reconnect.$(OBJEXT)
 reconnect_OBJECTS = $(am_reconnect_OBJECTS)
 @WITH_XEN_TRUE@reconnect_DEPENDENCIES = $(am__DEPENDENCIES_2)
-am__sexpr2xmltest_SOURCES_DIST = sexpr2xmltest.c testutils.c \
-	testutils.h
+am__sexpr2xmltest_SOURCES_DIST = sexpr2xmltest.c testutilsxen.c \
+	testutilsxen.h testutils.c testutils.h
 @WITH_XEN_TRUE@am_sexpr2xmltest_OBJECTS = sexpr2xmltest.$(OBJEXT) \
-@WITH_XEN_TRUE@	testutils.$(OBJEXT)
+@WITH_XEN_TRUE@	testutilsxen.$(OBJEXT) testutils.$(OBJEXT)
 sexpr2xmltest_OBJECTS = $(am_sexpr2xmltest_OBJECTS)
 @WITH_XEN_TRUE@sexpr2xmltest_DEPENDENCIES =  \
 @WITH_XEN_TRUE@	../src/libvirt_driver_xen.la \
@@ -223,10 +235,6 @@ xml2sexprtest_OBJECTS = $(am_xml2sexprtest_OBJECTS)
 @WITH_XEN_TRUE@xml2sexprtest_DEPENDENCIES =  \
 @WITH_XEN_TRUE@	../src/libvirt_driver_xen.la \
 @WITH_XEN_TRUE@	$(am__DEPENDENCIES_2)
-am_xmlrpctest_OBJECTS = xmlrpctest.$(OBJEXT) testutils.$(OBJEXT) \
-	xmlrpc.$(OBJEXT)
-xmlrpctest_OBJECTS = $(am_xmlrpctest_OBJECTS)
-xmlrpctest_DEPENDENCIES = $(am__DEPENDENCIES_2)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
@@ -244,8 +252,7 @@ SOURCES = $(conftest_SOURCES) $(nodeinfotest_SOURCES) \
 	$(qparamtest_SOURCES) $(reconnect_SOURCES) \
 	$(sexpr2xmltest_SOURCES) $(statstest_SOURCES) \
 	$(virshtest_SOURCES) $(xencapstest_SOURCES) \
-	$(xmconfigtest_SOURCES) $(xml2sexprtest_SOURCES) \
-	$(xmlrpctest_SOURCES)
+	$(xmconfigtest_SOURCES) $(xml2sexprtest_SOURCES)
 DIST_SOURCES = $(conftest_SOURCES) $(nodeinfotest_SOURCES) \
 	$(am__qemuxml2argvtest_SOURCES_DIST) \
 	$(am__qemuxml2xmltest_SOURCES_DIST) $(qparamtest_SOURCES) \
@@ -253,7 +260,7 @@ DIST_SOURCES = $(conftest_SOURCES) $(nodeinfotest_SOURCES) \
 	$(am__sexpr2xmltest_SOURCES_DIST) $(statstest_SOURCES) \
 	$(virshtest_SOURCES) $(am__xencapstest_SOURCES_DIST) \
 	$(am__xmconfigtest_SOURCES_DIST) \
-	$(am__xml2sexprtest_SOURCES_DIST) $(xmlrpctest_SOURCES)
+	$(am__xml2sexprtest_SOURCES_DIST)
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	html-recursive info-recursive install-data-recursive \
 	install-dvi-recursive install-exec-recursive \
@@ -276,6 +283,7 @@ ACLOCAL = @ACLOCAL@
 ALLOCA = @ALLOCA@
 ALLOCA_H = @ALLOCA_H@
 AMTAR = @AMTAR@
+APPLE_UNIVERSAL_BUILD = @APPLE_UNIVERSAL_BUILD@
 AR = @AR@
 ARPA_INET_H = @ARPA_INET_H@
 AS = @AS@
@@ -332,16 +340,19 @@ EXEEXT = @EXEEXT@
 F77 = @F77@
 FFLAGS = @FFLAGS@
 FLOAT_H = @FLOAT_H@
+GETADDRINFO_LIB = @GETADDRINFO_LIB@
 GLIB2_CFLAGS = @GLIB2_CFLAGS@
 GLIB2_LIBS = @GLIB2_LIBS@
 GMSGFMT = @GMSGFMT@
 GNULIB_ACCEPT = @GNULIB_ACCEPT@
 GNULIB_ATOLL = @GNULIB_ATOLL@
 GNULIB_BIND = @GNULIB_BIND@
+GNULIB_BTOWC = @GNULIB_BTOWC@
 GNULIB_CALLOC_POSIX = @GNULIB_CALLOC_POSIX@
 GNULIB_CHOWN = @GNULIB_CHOWN@
 GNULIB_CLOSE = @GNULIB_CLOSE@
 GNULIB_CONNECT = @GNULIB_CONNECT@
+GNULIB_DPRINTF = @GNULIB_DPRINTF@
 GNULIB_DUP2 = @GNULIB_DUP2@
 GNULIB_ENVIRON = @GNULIB_ENVIRON@
 GNULIB_EUIDACCESS = @GNULIB_EUIDACCESS@
@@ -381,20 +392,26 @@ GNULIB_INET_PTON = @GNULIB_INET_PTON@
 GNULIB_IOCTL = @GNULIB_IOCTL@
 GNULIB_LCHMOD = @GNULIB_LCHMOD@
 GNULIB_LCHOWN = @GNULIB_LCHOWN@
+GNULIB_LINK = @GNULIB_LINK@
 GNULIB_LISTEN = @GNULIB_LISTEN@
 GNULIB_LSEEK = @GNULIB_LSEEK@
 GNULIB_LSTAT = @GNULIB_LSTAT@
 GNULIB_MALLOC_POSIX = @GNULIB_MALLOC_POSIX@
+GNULIB_MBRLEN = @GNULIB_MBRLEN@
+GNULIB_MBRTOWC = @GNULIB_MBRTOWC@
 GNULIB_MBSCASECMP = @GNULIB_MBSCASECMP@
 GNULIB_MBSCASESTR = @GNULIB_MBSCASESTR@
 GNULIB_MBSCHR = @GNULIB_MBSCHR@
 GNULIB_MBSCSPN = @GNULIB_MBSCSPN@
+GNULIB_MBSINIT = @GNULIB_MBSINIT@
 GNULIB_MBSLEN = @GNULIB_MBSLEN@
 GNULIB_MBSNCASECMP = @GNULIB_MBSNCASECMP@
 GNULIB_MBSNLEN = @GNULIB_MBSNLEN@
+GNULIB_MBSNRTOWCS = @GNULIB_MBSNRTOWCS@
 GNULIB_MBSPBRK = @GNULIB_MBSPBRK@
 GNULIB_MBSPCASECMP = @GNULIB_MBSPCASECMP@
 GNULIB_MBSRCHR = @GNULIB_MBSRCHR@
+GNULIB_MBSRTOWCS = @GNULIB_MBSRTOWCS@
 GNULIB_MBSSEP = @GNULIB_MBSSEP@
 GNULIB_MBSSPN = @GNULIB_MBSSPN@
 GNULIB_MBSSTR = @GNULIB_MBSSTR@
@@ -451,12 +468,17 @@ GNULIB_STRVERSCMP = @GNULIB_STRVERSCMP@
 GNULIB_UNISTD_H_SIGPIPE = @GNULIB_UNISTD_H_SIGPIPE@
 GNULIB_UNSETENV = @GNULIB_UNSETENV@
 GNULIB_VASPRINTF = @GNULIB_VASPRINTF@
+GNULIB_VDPRINTF = @GNULIB_VDPRINTF@
 GNULIB_VFPRINTF = @GNULIB_VFPRINTF@
 GNULIB_VFPRINTF_POSIX = @GNULIB_VFPRINTF_POSIX@
 GNULIB_VPRINTF = @GNULIB_VPRINTF@
 GNULIB_VPRINTF_POSIX = @GNULIB_VPRINTF_POSIX@
 GNULIB_VSNPRINTF = @GNULIB_VSNPRINTF@
 GNULIB_VSPRINTF_POSIX = @GNULIB_VSPRINTF_POSIX@
+GNULIB_WCRTOMB = @GNULIB_WCRTOMB@
+GNULIB_WCSNRTOMBS = @GNULIB_WCSNRTOMBS@
+GNULIB_WCSRTOMBS = @GNULIB_WCSRTOMBS@
+GNULIB_WCTOB = @GNULIB_WCTOB@
 GNULIB_WCWIDTH = @GNULIB_WCWIDTH@
 GNULIB_WRITE = @GNULIB_WRITE@
 GNUTLS_CFLAGS = @GNUTLS_CFLAGS@
@@ -466,12 +488,17 @@ HAL_CFLAGS = @HAL_CFLAGS@
 HAL_LIBS = @HAL_LIBS@
 HAVE_ARPA_INET_H = @HAVE_ARPA_INET_H@
 HAVE_ATOLL = @HAVE_ATOLL@
+HAVE_BTOWC = @HAVE_BTOWC@
 HAVE_CALLOC_POSIX = @HAVE_CALLOC_POSIX@
 HAVE_DECL_ENVIRON = @HAVE_DECL_ENVIRON@
+HAVE_DECL_FREEADDRINFO = @HAVE_DECL_FREEADDRINFO@
+HAVE_DECL_GAI_STRERROR = @HAVE_DECL_GAI_STRERROR@
+HAVE_DECL_GETADDRINFO = @HAVE_DECL_GETADDRINFO@
 HAVE_DECL_GETDELIM = @HAVE_DECL_GETDELIM@
 HAVE_DECL_GETLINE = @HAVE_DECL_GETLINE@
 HAVE_DECL_GETLOADAVG = @HAVE_DECL_GETLOADAVG@
 HAVE_DECL_GETLOGIN_R = @HAVE_DECL_GETLOGIN_R@
+HAVE_DECL_GETNAMEINFO = @HAVE_DECL_GETNAMEINFO@
 HAVE_DECL_INET_NTOP = @HAVE_DECL_INET_NTOP@
 HAVE_DECL_INET_PTON = @HAVE_DECL_INET_PTON@
 HAVE_DECL_MEMMEM = @HAVE_DECL_MEMMEM@
@@ -485,7 +512,9 @@ HAVE_DECL_STRNLEN = @HAVE_DECL_STRNLEN@
 HAVE_DECL_STRSIGNAL = @HAVE_DECL_STRSIGNAL@
 HAVE_DECL_STRTOK_R = @HAVE_DECL_STRTOK_R@
 HAVE_DECL_VSNPRINTF = @HAVE_DECL_VSNPRINTF@
+HAVE_DECL_WCTOB = @HAVE_DECL_WCTOB@
 HAVE_DECL_WCWIDTH = @HAVE_DECL_WCWIDTH@
+HAVE_DPRINTF = @HAVE_DPRINTF@
 HAVE_DUP2 = @HAVE_DUP2@
 HAVE_EUIDACCESS = @HAVE_EUIDACCESS@
 HAVE_FSEEKO = @HAVE_FSEEKO@
@@ -500,14 +529,21 @@ HAVE_GETSUBOPT = @HAVE_GETSUBOPT@
 HAVE_GETUSERSHELL = @HAVE_GETUSERSHELL@
 HAVE_INTTYPES_H = @HAVE_INTTYPES_H@
 HAVE_LCHMOD = @HAVE_LCHMOD@
+HAVE_LINK = @HAVE_LINK@
 HAVE_LONG_LONG_INT = @HAVE_LONG_LONG_INT@
 HAVE_LSTAT = @HAVE_LSTAT@
 HAVE_MALLOC_POSIX = @HAVE_MALLOC_POSIX@
+HAVE_MBRLEN = @HAVE_MBRLEN@
+HAVE_MBRTOWC = @HAVE_MBRTOWC@
+HAVE_MBSINIT = @HAVE_MBSINIT@
+HAVE_MBSNRTOWCS = @HAVE_MBSNRTOWCS@
+HAVE_MBSRTOWCS = @HAVE_MBSRTOWCS@
 HAVE_MEMPCPY = @HAVE_MEMPCPY@
 HAVE_MKDTEMP = @HAVE_MKDTEMP@
 HAVE_NETDB_H = @HAVE_NETDB_H@
 HAVE_NETINET_IN_H = @HAVE_NETINET_IN_H@
 HAVE_OS_H = @HAVE_OS_H@
+HAVE_RANDOM_H = @HAVE_RANDOM_H@
 HAVE_RANDOM_R = @HAVE_RANDOM_R@
 HAVE_RAWMEMCHR = @HAVE_RAWMEMCHR@
 HAVE_READLINK = @HAVE_READLINK@
@@ -529,6 +565,7 @@ HAVE_STRSEP = @HAVE_STRSEP@
 HAVE_STRTOD = @HAVE_STRTOD@
 HAVE_STRTOLL = @HAVE_STRTOLL@
 HAVE_STRTOULL = @HAVE_STRTOULL@
+HAVE_STRUCT_ADDRINFO = @HAVE_STRUCT_ADDRINFO@
 HAVE_STRUCT_RANDOM_DATA = @HAVE_STRUCT_RANDOM_DATA@
 HAVE_STRUCT_TIMEVAL = @HAVE_STRUCT_TIMEVAL@
 HAVE_STRVERSCMP = @HAVE_STRVERSCMP@
@@ -545,13 +582,19 @@ HAVE_UNISTD_H = @HAVE_UNISTD_H@
 HAVE_UNSETENV = @HAVE_UNSETENV@
 HAVE_UNSIGNED_LONG_LONG_INT = @HAVE_UNSIGNED_LONG_LONG_INT@
 HAVE_VASPRINTF = @HAVE_VASPRINTF@
+HAVE_VDPRINTF = @HAVE_VDPRINTF@
 HAVE_WCHAR_H = @HAVE_WCHAR_H@
+HAVE_WCRTOMB = @HAVE_WCRTOMB@
+HAVE_WCSNRTOMBS = @HAVE_WCSNRTOMBS@
+HAVE_WCSRTOMBS = @HAVE_WCSRTOMBS@
 HAVE_WINSOCK2_H = @HAVE_WINSOCK2_H@
 HAVE_WINT_T = @HAVE_WINT_T@
 HAVE_WS2TCPIP_H = @HAVE_WS2TCPIP_H@
 HAVE__BOOL = @HAVE__BOOL@
+HOSTENT_LIB = @HOSTENT_LIB@
 HTML_DIR = @HTML_DIR@
 INCLUDE_NEXT = @INCLUDE_NEXT@
+INCLUDE_NEXT_AS_FIRST_DIRECTIVE = @INCLUDE_NEXT_AS_FIRST_DIRECTIVE@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
@@ -612,6 +655,7 @@ NEXT_SYS_SELECT_H = @NEXT_SYS_SELECT_H@
 NEXT_SYS_SOCKET_H = @NEXT_SYS_SOCKET_H@
 NEXT_SYS_STAT_H = @NEXT_SYS_STAT_H@
 NEXT_SYS_TIME_H = @NEXT_SYS_TIME_H@
+NEXT_TIME_H = @NEXT_TIME_H@
 NEXT_UNISTD_H = @NEXT_UNISTD_H@
 NEXT_WCHAR_H = @NEXT_WCHAR_H@
 NUMACTL_CFLAGS = @NUMACTL_CFLAGS@
@@ -648,8 +692,10 @@ QEMU_IMG = @QEMU_IMG@
 RANLIB = @RANLIB@
 READLINE_CFLAGS = @READLINE_CFLAGS@
 REMOTE_PID_FILE = @REMOTE_PID_FILE@
+REPLACE_BTOWC = @REPLACE_BTOWC@
 REPLACE_CHOWN = @REPLACE_CHOWN@
 REPLACE_CLOSE = @REPLACE_CLOSE@
+REPLACE_DPRINTF = @REPLACE_DPRINTF@
 REPLACE_FCHDIR = @REPLACE_FCHDIR@
 REPLACE_FCLOSE = @REPLACE_FCLOSE@
 REPLACE_FFLUSH = @REPLACE_FFLUSH@
@@ -665,11 +711,19 @@ REPLACE_GETLINE = @REPLACE_GETLINE@
 REPLACE_GETPAGESIZE = @REPLACE_GETPAGESIZE@
 REPLACE_GETTIMEOFDAY = @REPLACE_GETTIMEOFDAY@
 REPLACE_LCHOWN = @REPLACE_LCHOWN@
+REPLACE_LOCALTIME_R = @REPLACE_LOCALTIME_R@
 REPLACE_LSEEK = @REPLACE_LSEEK@
 REPLACE_LSTAT = @REPLACE_LSTAT@
+REPLACE_MBRLEN = @REPLACE_MBRLEN@
+REPLACE_MBRTOWC = @REPLACE_MBRTOWC@
+REPLACE_MBSINIT = @REPLACE_MBSINIT@
+REPLACE_MBSNRTOWCS = @REPLACE_MBSNRTOWCS@
+REPLACE_MBSRTOWCS = @REPLACE_MBSRTOWCS@
+REPLACE_MBSTATE_T = @REPLACE_MBSTATE_T@
 REPLACE_MEMMEM = @REPLACE_MEMMEM@
 REPLACE_MKDIR = @REPLACE_MKDIR@
 REPLACE_MKSTEMP = @REPLACE_MKSTEMP@
+REPLACE_NANOSLEEP = @REPLACE_NANOSLEEP@
 REPLACE_OBSTACK_PRINTF = @REPLACE_OBSTACK_PRINTF@
 REPLACE_PERROR = @REPLACE_PERROR@
 REPLACE_PRINTF = @REPLACE_PRINTF@
@@ -680,14 +734,20 @@ REPLACE_STDIO_WRITE_FUNCS = @REPLACE_STDIO_WRITE_FUNCS@
 REPLACE_STRCASESTR = @REPLACE_STRCASESTR@
 REPLACE_STRDUP = @REPLACE_STRDUP@
 REPLACE_STRERROR = @REPLACE_STRERROR@
+REPLACE_STRPTIME = @REPLACE_STRPTIME@
 REPLACE_STRSIGNAL = @REPLACE_STRSIGNAL@
 REPLACE_STRSTR = @REPLACE_STRSTR@
 REPLACE_STRTOD = @REPLACE_STRTOD@
+REPLACE_TIMEGM = @REPLACE_TIMEGM@
 REPLACE_VASPRINTF = @REPLACE_VASPRINTF@
+REPLACE_VDPRINTF = @REPLACE_VDPRINTF@
 REPLACE_VFPRINTF = @REPLACE_VFPRINTF@
 REPLACE_VPRINTF = @REPLACE_VPRINTF@
 REPLACE_VSNPRINTF = @REPLACE_VSNPRINTF@
 REPLACE_VSPRINTF = @REPLACE_VSPRINTF@
+REPLACE_WCRTOMB = @REPLACE_WCRTOMB@
+REPLACE_WCSRTOMBS = @REPLACE_WCSRTOMBS@
+REPLACE_WCTOB = @REPLACE_WCTOB@
 REPLACE_WCWIDTH = @REPLACE_WCWIDTH@
 REPLACE_WRITE = @REPLACE_WRITE@
 RM = @RM@
@@ -697,6 +757,7 @@ SASL_LIBS = @SASL_LIBS@
 SED = @SED@
 SELINUX_CFLAGS = @SELINUX_CFLAGS@
 SELINUX_LIBS = @SELINUX_LIBS@
+SERVENT_LIB = @SERVENT_LIB@
 SET_MAKE = @SET_MAKE@
 SHELL = $(PREFERABLY_POSIX_SHELL)
 SHOWMOUNT = @SHOWMOUNT@
@@ -712,7 +773,9 @@ SYS_SELECT_H = @SYS_SELECT_H@
 SYS_SOCKET_H = @SYS_SOCKET_H@
 SYS_STAT_H = @SYS_STAT_H@
 SYS_TIME_H = @SYS_TIME_H@
+SYS_TIME_H_DEFINES_STRUCT_TIMESPEC = @SYS_TIME_H_DEFINES_STRUCT_TIMESPEC@
 TAR = @TAR@
+TIME_H_DEFINES_STRUCT_TIMESPEC = @TIME_H_DEFINES_STRUCT_TIMESPEC@
 U = @U@
 UDEVADM = @UDEVADM@
 UDEVSETTLE = @UDEVSETTLE@
@@ -720,6 +783,7 @@ UMOUNT = @UMOUNT@
 UNISTD_H_HAVE_WINSOCK2_H = @UNISTD_H_HAVE_WINSOCK2_H@
 USE_NLS = @USE_NLS@
 VERSION = @VERSION@
+VERSION_SCRIPT_FLAGS = @VERSION_SCRIPT_FLAGS@
 VGCHANGE = @VGCHANGE@
 VGCREATE = @VGCREATE@
 VGREMOVE = @VGREMOVE@
@@ -728,6 +792,7 @@ VGSCAN = @VGSCAN@
 VIRSH_LIBS = @VIRSH_LIBS@
 VOID_UNSETENV = @VOID_UNSETENV@
 WARN_CFLAGS = @WARN_CFLAGS@
+WARN_PYTHON_CFLAGS = @WARN_PYTHON_CFLAGS@
 WCHAR_H = @WCHAR_H@
 WCHAR_T_SUFFIX = @WCHAR_T_SUFFIX@
 WINDRES = @WINDRES@
@@ -813,12 +878,18 @@ LDADDS = \
         $(WARN_CFLAGS) \
 	../src/libvirt_test.la \
 	../gnulib/lib/libgnu.la \
+	$(LIBSOCKET) \
         $(COVERAGE_LDFLAGS)
 
-EXTRA_DIST = oomtrace.pl test-lib.sh xmlrpcserver.py qemuxml2argvdata \
-	nodeinfodata domainschematest domainschemadata $(test_scripts) \
-	$(am__append_8) $(am__append_9)
-test_scripts = domainschematest $(am__append_4)
+EXTRA_DIST = oomtrace.pl test-lib.sh qemuxml2argvdata nodeinfodata \
+	capabilityschematest capabilityschemadata networkschematest \
+	domainschematest domainschemadata storagepoolschematest \
+	storagepoolschemadata storagevolschematest \
+	storagevolschemadata nodedevschematest nodedevschemadata \
+	$(test_scripts) $(am__append_8) $(am__append_9)
+test_scripts = capabilityschematest networkschematest \
+	storagepoolschematest storagevolschematest domainschematest \
+	nodedevschematest $(am__append_4)
 path_add = $$abs_top_builddir/src$(PATH_SEPARATOR)$$abs_top_builddir/qemud
 
 # NB, automake < 1.10 does not provide the real
@@ -832,24 +903,17 @@ TESTS_ENVIRONMENT = \
   PATH="$(path_add)$(PATH_SEPARATOR)$$PATH"	\
   SHELL="$(SHELL)"				\
   LIBVIRT_DRIVER_DIR="$(abs_top_builddir)/src/.libs" \
+  LIBVIRT_DEBUG="error"				\
+  LC_ALL=C					\
   $(VG)
 
-
-# Note: xmlrpc.[c|h] is not in libvirt yet
-xmlrpctest_SOURCES = \
-	xmlrpctest.c \
-	testutils.c testutils.h \
-	@top_srcdir@/src/xmlrpc.c \
-	@top_srcdir@/src/xmlrpc.h
-
-xmlrpctest_LDADD = $(LDADDS)
 @WITH_XEN_TRUE@xml2sexprtest_SOURCES = \
 @WITH_XEN_TRUE@	xml2sexprtest.c testutilsxen.c testutilsxen.h \
 @WITH_XEN_TRUE@	testutils.c testutils.h
 
 @WITH_XEN_TRUE@xml2sexprtest_LDADD = ../src/libvirt_driver_xen.la $(LDADDS)
 @WITH_XEN_TRUE@sexpr2xmltest_SOURCES = \
-@WITH_XEN_TRUE@	sexpr2xmltest.c \
+@WITH_XEN_TRUE@	sexpr2xmltest.c testutilsxen.c testutilsxen.h \
 @WITH_XEN_TRUE@	testutils.c testutils.h
 
 @WITH_XEN_TRUE@sexpr2xmltest_LDADD = ../src/libvirt_driver_xen.la $(LDADDS)
@@ -974,9 +1038,6 @@ xmconfigtest$(EXEEXT): $(xmconfigtest_OBJECTS) $(xmconfigtest_DEPENDENCIES)
 xml2sexprtest$(EXEEXT): $(xml2sexprtest_OBJECTS) $(xml2sexprtest_DEPENDENCIES) 
 	@rm -f xml2sexprtest$(EXEEXT)
 	$(LINK) $(xml2sexprtest_OBJECTS) $(xml2sexprtest_LDADD) $(LIBS)
-xmlrpctest$(EXEEXT): $(xmlrpctest_OBJECTS) $(xmlrpctest_DEPENDENCIES) 
-	@rm -f xmlrpctest$(EXEEXT)
-	$(LINK) $(xmlrpctest_OBJECTS) $(xmlrpctest_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -999,8 +1060,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xencapstest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xmconfigtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xml2sexprtest.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xmlrpc.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xmlrpctest.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -1022,20 +1081,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
-
-xmlrpc.o: @top_srcdir@/src/xmlrpc.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT xmlrpc.o -MD -MP -MF $(DEPDIR)/xmlrpc.Tpo -c -o xmlrpc.o `test -f '@top_srcdir@/src/xmlrpc.c' || echo '$(srcdir)/'`@top_srcdir@/src/xmlrpc.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/xmlrpc.Tpo $(DEPDIR)/xmlrpc.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='@top_srcdir@/src/xmlrpc.c' object='xmlrpc.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o xmlrpc.o `test -f '@top_srcdir@/src/xmlrpc.c' || echo '$(srcdir)/'`@top_srcdir@/src/xmlrpc.c
-
-xmlrpc.obj: @top_srcdir@/src/xmlrpc.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT xmlrpc.obj -MD -MP -MF $(DEPDIR)/xmlrpc.Tpo -c -o xmlrpc.obj `if test -f '@top_srcdir@/src/xmlrpc.c'; then $(CYGPATH_W) '@top_srcdir@/src/xmlrpc.c'; else $(CYGPATH_W) '$(srcdir)/@top_srcdir@/src/xmlrpc.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/xmlrpc.Tpo $(DEPDIR)/xmlrpc.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='@top_srcdir@/src/xmlrpc.c' object='xmlrpc.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o xmlrpc.obj `if test -f '@top_srcdir@/src/xmlrpc.c'; then $(CYGPATH_W) '@top_srcdir@/src/xmlrpc.c'; else $(CYGPATH_W) '$(srcdir)/@top_srcdir@/src/xmlrpc.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -1397,8 +1442,6 @@ uninstall-am:
 	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
 	tags tags-recursive uninstall uninstall-am
 
-@WITH_LIBVIRTD_TRUE@	virsh-all
-@WITH_LIBVIRTD_TRUE@	virsh-synopsis
 
 valgrind:
 	$(MAKE) check VG="valgrind --quiet --leak-check=full --suppressions=$(srcdir)/.valgrind.supp"

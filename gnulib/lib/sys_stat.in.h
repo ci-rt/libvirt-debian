@@ -1,5 +1,5 @@
 /* Provide a more complete sys/stat header file.
-   Copyright (C) 2005-2008 Free Software Foundation, Inc.
+   Copyright (C) 2005-2009 Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as published by
@@ -34,6 +34,9 @@
 /* Normal invocation convention.  */
 
 #ifndef _GL_SYS_STAT_H
+
+/* Get nlink_t.  */
+#include <sys/types.h>
 
 /* The include_next requires a split double-inclusion guard.  */
 #@INCLUDE_NEXT@ @NEXT_SYS_STAT_H@
@@ -275,6 +278,12 @@
 # define S_IRWXUGO (S_IRWXU | S_IRWXG | S_IRWXO)
 #endif
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #if @GNULIB_LSTAT@
 # if ! @HAVE_LSTAT@
 /* mingw does not support symlinks, therefore it does not have lstat.  But
@@ -340,6 +349,12 @@ extern int lchmod (const char *filename, mode_t mode);
                       "use gnulib module lchmod for portability"), \
      lchmod (f, m))
 #endif
+
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #endif /* _GL_SYS_STAT_H */
 #endif /* _GL_SYS_STAT_H */

@@ -1,7 +1,7 @@
 /*
  * xen_unified.c: Unified Xen driver.
  *
- * Copyright (C) 2007, 2008 Red Hat, Inc.
+ * Copyright (C) 2007, 2008, 2009 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -44,6 +44,8 @@
 #include "util.h"
 #include "memory.h"
 
+#define VIR_FROM_THIS VIR_FROM_XEN
+
 static int
 xenUnifiedNodeGetInfo (virConnectPtr conn, virNodeInfoPtr info);
 static int
@@ -54,7 +56,7 @@ xenUnifiedDomainGetVcpus (virDomainPtr dom,
                           unsigned char *cpumaps, int maplen);
 
 /* The five Xen drivers below us. */
-static struct xenUnifiedDriver *drivers[XEN_UNIFIED_NR_DRIVERS] = {
+static struct xenUnifiedDriver const * const drivers[XEN_UNIFIED_NR_DRIVERS] = {
     [XEN_UNIFIED_HYPERVISOR_OFFSET] = &xenHypervisorDriver,
     [XEN_UNIFIED_PROXY_OFFSET] = &xenProxyDriver,
     [XEN_UNIFIED_XEND_OFFSET] = &xenDaemonDriver,
@@ -65,17 +67,11 @@ static struct xenUnifiedDriver *drivers[XEN_UNIFIED_NR_DRIVERS] = {
 #endif
 };
 
+static int inside_daemon;
+
 #define xenUnifiedError(conn, code, fmt...)                                  \
         virReportErrorHelper(conn, VIR_FROM_XEN, code, __FILE__,           \
                                __FUNCTION__, __LINE__, fmt)
-
-/*
- * Helper functions currently used in the NUMA code
- * Those variables should not be accessed directly but through helper
- * functions xenNbCells() and xenNbCpu() available to all Xen backends
- */
-static int nbNodeCells = -1;
-static int nbNodeCpus = -1;
 
 /**
  * xenNumaInit:
@@ -88,42 +84,19 @@ static int nbNodeCpus = -1;
 static void
 xenNumaInit(virConnectPtr conn) {
     virNodeInfo nodeInfo;
+    xenUnifiedPrivatePtr priv;
     int ret;
 
     ret = xenUnifiedNodeGetInfo(conn, &nodeInfo);
     if (ret < 0)
         return;
-    nbNodeCells = nodeInfo.nodes;
-    nbNodeCpus = nodeInfo.cpus;
+
+    priv = conn->privateData;
+
+    priv->nbNodeCells = nodeInfo.nodes;
+    priv->nbNodeCpus = nodeInfo.cpus;
 }
 
-/**
- * xenNbCells:
- * @conn: pointer to the hypervisor connection
- *
- * Number of NUMA cells present in the actual Node
- *
- * Returns the number of NUMA cells available on that Node
- */
-int xenNbCells(virConnectPtr conn) {
-    if (nbNodeCells < 0)
-        xenNumaInit(conn);
-    return(nbNodeCells);
-}
-
-/**
- * xenNbCpus:
- * @conn: pointer to the hypervisor connection
- *
- * Number of CPUs present in the actual Node
- *
- * Returns the number of CPUs available on that Node
- */
-int xenNbCpus(virConnectPtr conn) {
-    if (nbNodeCpus < 0)
-        xenNumaInit(conn);
-    return(nbNodeCpus);
-}
 
 /**
  * xenDomainUsedCpus:
@@ -139,7 +112,7 @@ char *
 xenDomainUsedCpus(virDomainPtr dom)
 {
     char *res = NULL;
-    int nb_cpu, ncpus;
+    int ncpus;
     int nb_vcpu;
     char *cpulist = NULL;
     unsigned char *cpumap = NULL;
@@ -148,12 +121,14 @@ xenDomainUsedCpus(virDomainPtr dom)
     int n, m;
     virVcpuInfoPtr cpuinfo = NULL;
     virNodeInfo nodeinfo;
+    xenUnifiedPrivatePtr priv;
 
     if (!VIR_IS_CONNECTED_DOMAIN(dom))
         return (NULL);
 
-    nb_cpu = xenNbCpus(dom->conn);
-    if (nb_cpu <= 0)
+    priv = dom->conn->privateData;
+
+    if (priv->nbNodeCpus <= 0)
         return(NULL);
     nb_vcpu = xenUnifiedDomainGetMaxVcpus(dom);
     if (nb_vcpu <= 0)
@@ -161,7 +136,7 @@ xenDomainUsedCpus(virDomainPtr dom)
     if (xenUnifiedNodeGetInfo(dom->conn, &nodeinfo) < 0)
         return(NULL);
 
-    if (VIR_ALLOC_N(cpulist, nb_cpu) < 0)
+    if (VIR_ALLOC_N(cpulist, priv->nbNodeCpus) < 0)
         goto done;
     if (VIR_ALLOC_N(cpuinfo, nb_vcpu) < 0)
         goto done;
@@ -173,19 +148,19 @@ xenDomainUsedCpus(virDomainPtr dom)
     if ((ncpus = xenUnifiedDomainGetVcpus(dom, cpuinfo, nb_vcpu,
                                           cpumap, cpumaplen)) >= 0) {
         for (n = 0 ; n < ncpus ; n++) {
-            for (m = 0 ; m < nb_cpu; m++) {
+            for (m = 0 ; m < priv->nbNodeCpus; m++) {
                 if ((cpulist[m] == 0) &&
                     (VIR_CPU_USABLE(cpumap, cpumaplen, n, m))) {
                     cpulist[m] = 1;
                     nb++;
                     /* if all CPU are used just return NULL */
-                    if (nb == nb_cpu)
+                    if (nb == priv->nbNodeCpus)
                         goto done;
 
                 }
             }
         }
-        res = virDomainCpuSetFormat(dom->conn, cpulist, nb_cpu);
+        res = virDomainCpuSetFormat(dom->conn, cpulist, priv->nbNodeCpus);
     }
 
 done:
@@ -194,6 +169,21 @@ done:
     VIR_FREE(cpuinfo);
     return(res);
 }
+
+#ifdef WITH_LIBVIRTD
+
+static int
+xenInitialize (void)
+{
+    inside_daemon = 1;
+    return 0;
+}
+
+static virStateDriver state_driver = {
+    .initialize = xenInitialize,
+};
+
+#endif
 
 /*----- Dispatch functions. -----*/
 
@@ -213,7 +203,7 @@ xenUnifiedProbe (void)
     if (virFileExists("/proc/xen"))
         return 1;
 #endif
-#ifdef __sun__
+#ifdef __sun
     FILE *fh;
 
     if (fh = fopen("/dev/xen/domcaps", "r")) {
@@ -224,12 +214,21 @@ xenUnifiedProbe (void)
     return 0;
 }
 
-static int
+static virDrvOpenStatus
 xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, int flags)
 {
     int i, ret = VIR_DRV_OPEN_DECLINED;
     xenUnifiedPrivatePtr priv;
     virDomainEventCallbackListPtr cbList;
+
+#ifdef __sun
+    /*
+     * Only the libvirtd instance can open this driver.
+     * Everything else falls back to the remote driver.
+     */
+    if (!inside_daemon)
+        return VIR_DRV_OPEN_DECLINED;
+#endif
 
     if (conn->uri == NULL) {
         if (!xenUnifiedProbe())
@@ -237,7 +236,7 @@ xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, int flags)
 
         conn->uri = xmlParseURI("xen:///");
         if (!conn->uri) {
-            xenUnifiedError (NULL, VIR_ERR_NO_MEMORY, NULL);
+            virReportOOMError (NULL);
             return VIR_DRV_OPEN_ERROR;
         }
     }
@@ -262,29 +261,35 @@ xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, int flags)
 
     /* Allocate per-connection private data. */
     if (VIR_ALLOC(priv) < 0) {
-        xenUnifiedError (NULL, VIR_ERR_NO_MEMORY, "allocating private data");
+        virReportOOMError (NULL);
+        return VIR_DRV_OPEN_ERROR;
+    }
+    if (virMutexInit(&priv->lock) < 0) {
+        xenUnifiedError (NULL, VIR_ERR_INTERNAL_ERROR,
+                         "%s", _("cannot initialise mutex"));
+        VIR_FREE(priv);
+        return VIR_DRV_OPEN_ERROR;
+    }
+
+    /* Allocate callback list */
+    if (VIR_ALLOC(cbList) < 0) {
+        virReportOOMError (NULL);
+        virMutexDestroy(&priv->lock);
+        VIR_FREE(priv);
         return VIR_DRV_OPEN_ERROR;
     }
     conn->privateData = priv;
 
-    /* Allocate callback list */
-    if (VIR_ALLOC(cbList) < 0) {
-        xenUnifiedError (NULL, VIR_ERR_NO_MEMORY, "allocating callback list");
-        return VIR_DRV_OPEN_ERROR;
-    }
     priv->domainEventCallbacks = cbList;
 
     priv->handle = -1;
     priv->xendConfigVersion = -1;
-    priv->type = -1;
-    priv->len = -1;
-    priv->addr = NULL;
     priv->xshandle = NULL;
     priv->proxy = -1;
 
 
-    /* Hypervisor is only run as root & required to succeed */
-    if (getuid() == 0) {
+    /* Hypervisor is only run with privilege & required to succeed */
+    if (xenHavePrivilege()) {
         DEBUG0("Trying hypervisor sub-driver");
         if (drivers[XEN_UNIFIED_HYPERVISOR_OFFSET]->open(conn, auth, flags) ==
             VIR_DRV_OPEN_SUCCESS) {
@@ -293,7 +298,7 @@ xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, int flags)
         }
     }
 
-    /* XenD is required to suceed if root.
+    /* XenD is required to succeed if privileged.
      * If it fails as non-root, then the proxy driver may take over
      */
     DEBUG0("Trying XenD sub-driver");
@@ -318,12 +323,12 @@ xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, int flags)
             DEBUG0("Activated XS sub-driver");
             priv->opened[XEN_UNIFIED_XS_OFFSET] = 1;
         } else {
-            if (getuid() == 0)
-                goto fail; /* XS is mandatory as root */
+            if (xenHavePrivilege())
+                goto fail; /* XS is mandatory when privileged */
         }
     } else {
-        if (getuid() == 0) {
-            goto fail; /* XenD is mandatory as root */
+        if (xenHavePrivilege()) {
+            goto fail; /* XenD is mandatory when privileged */
         } else {
 #if WITH_PROXY
             DEBUG0("Trying proxy sub-driver");
@@ -342,17 +347,21 @@ xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, int flags)
         }
     }
 
+    xenNumaInit(conn);
+
     if (!(priv->caps = xenHypervisorMakeCapabilities(conn))) {
         DEBUG0("Failed to make capabilities");
         goto fail;
     }
 
 #if WITH_XEN_INOTIFY
-    DEBUG0("Trying Xen inotify sub-driver");
-    if (drivers[XEN_UNIFIED_INOTIFY_OFFSET]->open(conn, auth, flags) ==
-        VIR_DRV_OPEN_SUCCESS) {
-        DEBUG0("Activated Xen inotify sub-driver");
-        priv->opened[XEN_UNIFIED_INOTIFY_OFFSET] = 1;
+    if (xenHavePrivilege()) {
+        DEBUG0("Trying Xen inotify sub-driver");
+        if (drivers[XEN_UNIFIED_INOTIFY_OFFSET]->open(conn, auth, flags) ==
+            VIR_DRV_OPEN_SUCCESS) {
+            DEBUG0("Activated Xen inotify sub-driver");
+            priv->opened[XEN_UNIFIED_INOTIFY_OFFSET] = 1;
+        }
     }
 #endif
 
@@ -366,7 +375,9 @@ clean:
     DEBUG0("Failed to activate a mandatory sub-driver");
     for (i = 0 ; i < XEN_UNIFIED_NR_DRIVERS ; i++)
         if (priv->opened[i]) drivers[i]->close(conn);
+    virMutexDestroy(&priv->lock);
     VIR_FREE(priv);
+    conn->privateData = NULL;
     return ret;
 }
 
@@ -386,7 +397,8 @@ xenUnifiedClose (virConnectPtr conn)
         if (priv->opened[i] && drivers[i]->close)
             (void) drivers[i]->close (conn);
 
-    free (conn->privateData);
+    virMutexDestroy(&priv->lock);
+    VIR_FREE(conn->privateData);
     conn->privateData = NULL;
 
     return 0;
@@ -447,20 +459,16 @@ xenUnifiedGetVersion (virConnectPtr conn, unsigned long *hvVer)
 static char *
 xenUnifiedGetHostname (virConnectPtr conn)
 {
-    int r;
-    char hostname [HOST_NAME_MAX+1], *str;
+    char *result;
 
-    r = gethostname (hostname, HOST_NAME_MAX+1);
-    if (r == -1) {
-        xenUnifiedError (conn, VIR_ERR_SYSTEM_ERROR, "%s", strerror(errno));
+    result = virGetHostname();
+    if (result == NULL) {
+        virReportSystemError(conn, errno,
+                             "%s", _("cannot lookup hostname"));
         return NULL;
     }
-    str = strdup (hostname);
-    if (str == NULL) {
-        xenUnifiedError (conn, VIR_ERR_SYSTEM_ERROR, "%s", strerror(errno));
-        return NULL;
-    }
-    return str;
+    /* Caller frees this string. */
+    return result;
 }
 
 static int
@@ -499,17 +507,15 @@ xenUnifiedNodeGetInfo (virConnectPtr conn, virNodeInfoPtr info)
 static char *
 xenUnifiedGetCapabilities (virConnectPtr conn)
 {
-    GET_PRIVATE(conn);
-    int i;
-    char *ret;
+    xenUnifiedPrivatePtr priv = conn->privateData;
+    char *xml;
 
-    for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
-        if (priv->opened[i] && drivers[i]->getCapabilities) {
-            ret = drivers[i]->getCapabilities (conn);
-            if (ret) return ret;
-        }
+    if (!(xml = virCapabilitiesFormatXML(priv->caps))) {
+        virReportOOMError(conn);
+        return NULL;
+    }
 
-    return NULL;
+    return xml;
 }
 
 static int
@@ -1021,7 +1027,9 @@ xenUnifiedDomainDumpXML (virDomainPtr dom, int flags)
     } else {
         if (priv->opened[XEN_UNIFIED_XEND_OFFSET]) {
             char *cpus, *res;
+            xenUnifiedLock(priv);
             cpus = xenDomainUsedCpus(dom);
+            xenUnifiedUnlock(priv);
             res = xenDaemonDomainDumpXML(dom, flags, cpus);
             VIR_FREE(cpus);
             return(res);
@@ -1360,35 +1368,56 @@ xenUnifiedNodeGetFreeMemory (virConnectPtr conn)
 
 static int
 xenUnifiedDomainEventRegister (virConnectPtr conn,
-                               void *callback,
+                               virConnectDomainEventCallback callback,
                                void *opaque,
                                void (*freefunc)(void *))
 {
     GET_PRIVATE (conn);
+
+    int ret;
+    xenUnifiedLock(priv);
+
     if (priv->xsWatch == -1) {
         xenUnifiedError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+        xenUnifiedUnlock(priv);
         return -1;
     }
 
-    conn->refs++;
-    return virDomainEventCallbackListAdd(conn, priv->domainEventCallbacks,
-                                         callback, opaque, freefunc);
+    ret = virDomainEventCallbackListAdd(conn, priv->domainEventCallbacks,
+                                        callback, opaque, freefunc);
+
+    if (ret == 0)
+        conn->refs++;
+
+    xenUnifiedUnlock(priv);
+    return (ret);
 }
 
 static int
 xenUnifiedDomainEventDeregister (virConnectPtr conn,
-                                 void *callback)
+                                 virConnectDomainEventCallback callback)
 {
     int ret;
     GET_PRIVATE (conn);
+    xenUnifiedLock(priv);
+
     if (priv->xsWatch == -1) {
         xenUnifiedError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+        xenUnifiedUnlock(priv);
         return -1;
     }
 
-    ret = virDomainEventCallbackListRemove(conn, priv->domainEventCallbacks,
-                                            callback);
-    virUnrefConnect(conn);
+    if (priv->domainEventDispatching)
+        ret = virDomainEventCallbackListMarkDelete(conn, priv->domainEventCallbacks,
+                                                   callback);
+    else
+        ret = virDomainEventCallbackListRemove(conn, priv->domainEventCallbacks,
+                                               callback);
+
+    if (ret == 0)
+        virUnrefConnect(conn);
+
+    xenUnifiedUnlock(priv);
     return ret;
 }
 
@@ -1467,7 +1496,10 @@ xenRegister (void)
 {
     /* Ignore failures here. */
     (void) xenHypervisorInit ();
-    (void) xenXMInit ();
+
+#ifdef WITH_LIBVIRTD
+    if (virRegisterStateDriver (&state_driver) == -1) return -1;
+#endif
 
     return virRegisterDriver (&xenUnifiedDriver);
 }
@@ -1481,6 +1513,10 @@ void
 xenUnifiedDomainInfoListFree(xenUnifiedDomainInfoListPtr list)
 {
     int i;
+
+    if (list == NULL)
+        return;
+
     for (i=0; i<list->count; i++) {
         VIR_FREE(list->doms[i]->name);
         VIR_FREE(list->doms[i]);
@@ -1530,7 +1566,7 @@ xenUnifiedAddDomainInfo(xenUnifiedDomainInfoListPtr list,
     list->count++;
     return 0;
 memory_error:
-    xenUnifiedError (NULL, VIR_ERR_NO_MEMORY, "allocating domain info");
+    virReportOOMError (NULL);
     if (info)
         VIR_FREE(info->name);
     VIR_FREE(info);
@@ -1576,35 +1612,66 @@ xenUnifiedRemoveDomainInfo(xenUnifiedDomainInfoListPtr list,
     return -1;
 }
 
+static void
+xenUnifiedDomainEventDispatchFunc(virConnectPtr conn,
+                                  virDomainEventPtr event,
+                                  virConnectDomainEventCallback cb,
+                                  void *cbopaque,
+                                  void *opaque)
+{
+    xenUnifiedPrivatePtr priv = opaque;
+
+    /*
+     * Release the lock while the callback is running so that
+     * we're re-entrant safe for callback work - the callback
+     * may want to invoke other virt functions & we have already
+     * protected the one piece of state we have - the callback
+     * list
+     */
+    xenUnifiedUnlock(priv);
+    virDomainEventDispatchDefaultFunc(conn, event, cb, cbopaque, NULL);
+    xenUnifiedLock(priv);
+}
+
 /**
  * xenUnifiedDomainEventDispatch:
+ * @priv: the connection to dispatch events on
+ * @event: the event to dispatch
  *
  * Dispatch domain events to registered callbacks
  *
+ * The caller must hold the lock in 'priv' before invoking
+ *
  */
 void xenUnifiedDomainEventDispatch (xenUnifiedPrivatePtr priv,
-                                    virDomainPtr dom,
-                                    int event,
-                                    int detail)
+                                    virDomainEventPtr event)
 {
-    int i;
-    virDomainEventCallbackListPtr cbList;
+    if (!priv)
+        return;
 
-    if(!priv) return;
+    priv->domainEventDispatching = 1;
 
-    cbList = priv->domainEventCallbacks;
-    if(!cbList) return;
+    if (priv->domainEventCallbacks) {
+        virDomainEventDispatch(event,
+                               priv->domainEventCallbacks,
+                               xenUnifiedDomainEventDispatchFunc,
+                               priv);
 
-    for(i=0 ; i < cbList->count ; i++) {
-        if(cbList->callbacks[i] && cbList->callbacks[i]->cb) {
-            if (dom) {
-                DEBUG("Dispatching callback %p %p event %d",
-                        cbList->callbacks[i],
-                        cbList->callbacks[i]->cb, event);
-                cbList->callbacks[i]->cb(cbList->callbacks[i]->conn,
-                                         dom, event, detail,
-                                         cbList->callbacks[i]->opaque);
-            }
-        }
+        /* Purge any deleted callbacks */
+        virDomainEventCallbackListPurgeMarked(priv->domainEventCallbacks);
     }
+
+    virDomainEventFree(event);
+
+    priv->domainEventDispatching = 0;
+}
+
+void xenUnifiedLock(xenUnifiedPrivatePtr priv)
+{
+    virMutexLock(&priv->lock);
+}
+
+void xenUnifiedUnlock(xenUnifiedPrivatePtr priv)
+{
+    virMutexUnlock(&priv->lock);
 }

@@ -15,9 +15,10 @@
 
 #include "internal.h"
 #include "capabilities.h"
+#include "driver.h"
 
 extern struct xenUnifiedDriver xenHypervisorDriver;
-int	xenHypervisorInit		(void);
+int    xenHypervisorInit                 (void);
 
 virCapsPtr xenHypervisorMakeCapabilities (virConnectPtr conn);
 
@@ -27,16 +28,17 @@ virDomainPtr
         xenHypervisorLookupDomainByID   (virConnectPtr conn,
                                          int id);
 virDomainPtr
-xenHypervisorLookupDomainByUUID(virConnectPtr conn,
-                                const unsigned char *uuid);
+        xenHypervisorLookupDomainByUUID (virConnectPtr conn,
+                                         const unsigned char *uuid);
 char *
-        xenHypervisorDomainGetOSType (virDomainPtr dom);
+        xenHypervisorDomainGetOSType    (virDomainPtr dom);
 
-int	xenHypervisorOpen		(virConnectPtr conn,
+virDrvOpenStatus
+        xenHypervisorOpen               (virConnectPtr conn,
                                          virConnectAuthPtr auth,
                                          int flags);
-int	xenHypervisorClose		(virConnectPtr conn);
-int	xenHypervisorGetVersion		(virConnectPtr conn,
+int     xenHypervisorClose              (virConnectPtr conn);
+int     xenHypervisorGetVersion         (virConnectPtr conn,
                                          unsigned long *hvVer);
 virCapsPtr
         xenHypervisorMakeCapabilitiesInternal(virConnectPtr conn,
@@ -46,46 +48,47 @@ virCapsPtr
 char *
         xenHypervisorGetCapabilities    (virConnectPtr conn);
 unsigned long
-        xenHypervisorGetDomMaxMemory	(virConnectPtr conn,
+        xenHypervisorGetDomMaxMemory    (virConnectPtr conn,
                                          int id);
-int	xenHypervisorNumOfDomains	(virConnectPtr conn);
-int	xenHypervisorListDomains	(virConnectPtr conn,
+int     xenHypervisorNumOfDomains       (virConnectPtr conn);
+int     xenHypervisorListDomains        (virConnectPtr conn,
                                          int *ids,
                                          int maxids);
-  int	xenHypervisorGetMaxVcpus	(virConnectPtr conn, const char *type);
-int	xenHypervisorDestroyDomain	(virDomainPtr domain);
-int	xenHypervisorResumeDomain	(virDomainPtr domain);
-int	xenHypervisorPauseDomain	(virDomainPtr domain);
-int	xenHypervisorGetDomainInfo	(virDomainPtr domain,
+int     xenHypervisorGetMaxVcpus        (virConnectPtr conn,
+                                         const char *type);
+int     xenHypervisorDestroyDomain      (virDomainPtr domain);
+int     xenHypervisorResumeDomain       (virDomainPtr domain);
+int     xenHypervisorPauseDomain        (virDomainPtr domain);
+int     xenHypervisorGetDomainInfo        (virDomainPtr domain,
                                          virDomainInfoPtr info);
-int	xenHypervisorGetDomInfo		(virConnectPtr conn,
+int     xenHypervisorGetDomInfo         (virConnectPtr conn,
                                          int id,
                                          virDomainInfoPtr info);
-int	xenHypervisorSetMaxMemory	(virDomainPtr domain,
+int     xenHypervisorSetMaxMemory       (virDomainPtr domain,
                                          unsigned long memory);
-int	xenHypervisorCheckID		(virConnectPtr conn,
+int     xenHypervisorCheckID            (virConnectPtr conn,
                                          int id);
-int	xenHypervisorSetVcpus		(virDomainPtr domain,
+int     xenHypervisorSetVcpus           (virDomainPtr domain,
                                          unsigned int nvcpus);
-int	xenHypervisorPinVcpu		(virDomainPtr domain,
+int     xenHypervisorPinVcpu            (virDomainPtr domain,
                                          unsigned int vcpu,
                                          unsigned char *cpumap,
                                          int maplen);
-int	xenHypervisorGetVcpus		(virDomainPtr domain,
+int     xenHypervisorGetVcpus           (virDomainPtr domain,
                                          virVcpuInfoPtr info,
                                          int maxinfo,
                                          unsigned char *cpumaps,
                                          int maplen);
-int	xenHypervisorGetVcpuMax		(virDomainPtr domain);
+int     xenHypervisorGetVcpuMax         (virDomainPtr domain);
 
-char *	xenHypervisorGetSchedulerType	(virDomainPtr domain,
+char *  xenHypervisorGetSchedulerType   (virDomainPtr domain,
                                          int *nparams);
 
-int	xenHypervisorGetSchedulerParameters		(virDomainPtr domain,
+int     xenHypervisorGetSchedulerParameters(virDomainPtr domain,
                                          virSchedParameterPtr params,
                                          int *nparams);
 
-int	xenHypervisorSetSchedulerParameters		(virDomainPtr domain,
+int     xenHypervisorSetSchedulerParameters(virDomainPtr domain,
                                          virSchedParameterPtr params,
                                          int nparams);
 
@@ -96,9 +99,11 @@ int     xenHypervisorDomainInterfaceStats (virDomainPtr domain,
                                          const char *path,
                                          struct _virDomainInterfaceStats *stats);
 
-int	xenHypervisorNodeGetCellsFreeMemory(virConnectPtr conn,
+int     xenHypervisorNodeGetCellsFreeMemory(virConnectPtr conn,
                                           unsigned long long *freeMems,
                                           int startCell,
                                           int maxCells);
+
+int	xenHavePrivilege(void);
 
 #endif                          /* __VIR_XEN_INTERNAL_H__ */
