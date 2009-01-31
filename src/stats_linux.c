@@ -1,7 +1,7 @@
 /*
  * Linux block and network stats.
  *
- * Copyright (C) 2007, 2008 Red Hat, Inc.
+ * Copyright (C) 2007-2009 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -30,6 +30,8 @@
 #include "xen_unified.h"
 #include "stats_linux.h"
 #include "memory.h"
+
+#define VIR_FROM_THIS VIR_FROM_STATS_LINUX
 
 /**
  * statsErrorFunc:
@@ -292,13 +294,12 @@ xenLinuxDomainDeviceID(virConnectPtr conn, int domid, const char *path)
      */
 
     if (strlen(path) >= 5 && STRPREFIX(path, "/dev/"))
-        retval = asprintf(&mod_path, "%s", path);
+        retval = virAsprintf(&mod_path, "%s", path);
     else
-        retval = asprintf(&mod_path, "/dev/%s", path);
+        retval = virAsprintf(&mod_path, "/dev/%s", path);
 
     if (retval < 0) {
-        statsErrorFunc (conn, VIR_ERR_NO_MEMORY, __FUNCTION__,
-                        "allocating mod_path", domid);
+        virReportOOMError (conn);
         return -1;
     }
 

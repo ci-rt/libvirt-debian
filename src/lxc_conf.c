@@ -27,8 +27,11 @@
 
 #include <sys/utsname.h>
 
-#include "virterror_internal.h"
 #include "lxc_conf.h"
+#include "nodeinfo.h"
+#include "virterror_internal.h"
+
+#define VIR_FROM_THIS VIR_FROM_LXC
 
 /* Functions */
 virCapsPtr lxcCapsInit(void)
@@ -41,6 +44,9 @@ virCapsPtr lxcCapsInit(void)
 
     if ((caps = virCapabilitiesNew(utsname.machine,
                                    0, 0)) == NULL)
+        goto no_memory;
+
+    if (virCapsInitNUMA(caps) < 0)
         goto no_memory;
 
     /* XXX shouldn't 'borrow' KVM's prefix */
@@ -83,7 +89,6 @@ int lxcLoadDriverConfig(lxc_driver_t *driver)
     return 0;
 
 no_memory:
-    lxcError(NULL, NULL, VIR_ERR_NO_MEMORY,
-             "%s", _("while loading LXC driver config"));
+    virReportOOMError(NULL);
     return -1;
 }

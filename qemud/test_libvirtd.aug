@@ -227,6 +227,47 @@ sasl_allowed_username_list = [
   \"joe@EXAMPLE.COM\",
   \"fred@EXAMPLE.COM\"
 ]
+
+
+#################################################################
+#
+# Processing controls
+#
+
+# The maximum number of concurrent client connections to allow
+# over all sockets combined.
+max_clients = 20
+
+
+# The minimum limit sets the number of workers to start up
+# initially. If the number of active clients exceeds this,
+# then more threads are spawned, upto max_workers limit.
+# Typically you'd want max_workers to equal maximum number
+# of clients allowed
+min_workers = 5
+max_workers = 20
+
+# Total global limit on concurrent RPC calls. Should be
+# at least as large as max_workers. Beyond this, RPC requests
+# will be read into memory and queued. This directly impact
+# memory usage, currently each request requires 256 KB of
+# memory. So by default upto 5 MB of memory is used
+max_requests = 20
+
+# Limit on concurrent requests from a single client
+# connection. To avoid one client monopolizing the server
+# this should be a small fraction of the global max_requests
+# and max_workers parameter
+max_client_requests = 5
+
+# Logging level:
+log_level = 4
+
+# Logging outputs:
+log_outputs=\"4:stderr\"
+
+# Logging filters:
+log_filters=\"a\"
 "
 
    test Libvirtd.lns get conf =
@@ -461,3 +502,44 @@ sasl_allowed_username_list = [
              { "1" = "joe@EXAMPLE.COM" }
              { "2" = "fred@EXAMPLE.COM" }
         }
+        { "#empty" }
+        { "#empty" }
+        { "#comment" = "################################################################"}
+        { "#comment" = ""}
+        { "#comment" = "Processing controls"}
+        { "#comment" = ""}
+        { "#empty" }
+        { "#comment" = "The maximum number of concurrent client connections to allow"}
+        { "#comment" = "over all sockets combined."}
+        { "max_clients" = "20" }
+        { "#empty" }
+        { "#empty" }
+        { "#comment" = "The minimum limit sets the number of workers to start up"}
+        { "#comment" = "initially. If the number of active clients exceeds this,"}
+        { "#comment" = "then more threads are spawned, upto max_workers limit."}
+        { "#comment" = "Typically you'd want max_workers to equal maximum number"}
+        { "#comment" = "of clients allowed"}
+        { "min_workers" = "5" }
+        { "max_workers" = "20" }
+	{ "#empty" }
+        { "#comment" = "Total global limit on concurrent RPC calls. Should be" }
+        { "#comment" = "at least as large as max_workers. Beyond this, RPC requests" }
+        { "#comment" = "will be read into memory and queued. This directly impact" }
+        { "#comment" = "memory usage, currently each request requires 256 KB of" }
+        { "#comment" = "memory. So by default upto 5 MB of memory is used" }
+        { "max_requests" = "20" }
+	{ "#empty" }
+        { "#comment" = "Limit on concurrent requests from a single client" }
+        { "#comment" = "connection. To avoid one client monopolizing the server" }
+        { "#comment" = "this should be a small fraction of the global max_requests" }
+        { "#comment" = "and max_workers parameter" }
+        { "max_client_requests" = "5" }
+	{ "#empty" }
+        { "#comment" = "Logging level:" }
+        { "log_level" = "4" }
+	{ "#empty" }
+        { "#comment" = "Logging outputs:" }
+        { "log_outputs" = "4:stderr" }
+	{ "#empty" }
+        { "#comment" = "Logging filters:" }
+        { "log_filters" = "a" }

@@ -62,6 +62,8 @@
 #endif
 
 
+#define VIR_FROM_THIS VIR_FROM_STORAGE
+
 static virStorageBackendPtr backends[] = {
 #if WITH_STORAGE_DIR
     &virStorageBackendDirectory,
@@ -97,27 +99,51 @@ virStorageBackendForType(int type) {
 
 
 int
-virStorageBackendUpdateVolInfo(virConnectPtr conn,
-                               virStorageVolDefPtr vol,
-                               int withCapacity)
+virStorageBackendUpdateVolTargetInfo(virConnectPtr conn,
+                                     virStorageVolTargetPtr target,
+                                     unsigned long long *allocation,
+                                     unsigned long long *capacity)
 {
     int ret, fd;
 
-    if ((fd = open(vol->target.path, O_RDONLY)) < 0) {
-        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                              _("cannot open volume '%s': %s"),
-                              vol->target.path, strerror(errno));
+    if ((fd = open(target->path, O_RDONLY)) < 0) {
+        virReportSystemError(conn, errno,
+                             _("cannot open volume '%s'"),
+                             target->path);
         return -1;
     }
 
-    ret = virStorageBackendUpdateVolInfoFD(conn,
-                                           vol,
-                                           fd,
-                                           withCapacity);
+    ret = virStorageBackendUpdateVolTargetInfoFD(conn,
+                                                 target,
+                                                 fd,
+                                                 allocation,
+                                                 capacity);
 
     close(fd);
 
     return ret;
+}
+
+int
+virStorageBackendUpdateVolInfo(virConnectPtr conn,
+                               virStorageVolDefPtr vol,
+                               int withCapacity)
+{
+    int ret;
+
+    if ((ret = virStorageBackendUpdateVolTargetInfo(conn,
+                                                    &vol->target,
+                                                    &vol->allocation,
+                                                    withCapacity ? &vol->capacity : NULL)) < 0)
+        return ret;
+
+    if (vol->backingStore.path &&
+        (ret = virStorageBackendUpdateVolTargetInfo(conn,
+                                                    &vol->backingStore,
+                                                    NULL, NULL)) < 0)
+        return ret;
+
+    return 0;
 }
 
 struct diskType {
@@ -152,10 +178,11 @@ static struct diskType const disk_types[] = {
 };
 
 int
-virStorageBackendUpdateVolInfoFD(virConnectPtr conn,
-                                 virStorageVolDefPtr vol,
-                                 int fd,
-                                 int withCapacity)
+virStorageBackendUpdateVolTargetInfoFD(virConnectPtr conn,
+                                       virStorageVolTargetPtr target,
+                                       int fd,
+                                       unsigned long long *allocation,
+                                       unsigned long long *capacity)
 {
     struct stat sb;
 #if HAVE_SELINUX
@@ -163,9 +190,9 @@ virStorageBackendUpdateVolInfoFD(virConnectPtr conn,
 #endif
 
     if (fstat(fd, &sb) < 0) {
-        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                              _("cannot stat file '%s': %s"),
-                              vol->target.path, strerror(errno));
+        virReportSystemError(conn, errno,
+                             _("cannot stat file '%s'"),
+                             target->path);
         return -1;
     }
 
@@ -174,38 +201,41 @@ virStorageBackendUpdateVolInfoFD(virConnectPtr conn,
         !S_ISBLK(sb.st_mode))
         return -2;
 
-    if (S_ISREG(sb.st_mode)) {
+    if (allocation) {
+        if (S_ISREG(sb.st_mode)) {
 #ifndef __MINGW32__
-        vol->allocation = (unsigned long long)sb.st_blocks *
-            (unsigned long long)sb.st_blksize;
+            *allocation = (unsigned long long)sb.st_blocks *
+                (unsigned long long)sb.st_blksize;
 #else
-        vol->allocation = sb.st_size;
+            *allocation = sb.st_size;
 #endif
-        /* Regular files may be sparse, so logical size (capacity) is not same
-         * as actual allocation above
-         */
-        if (withCapacity)
-            vol->capacity = sb.st_size;
-    } else {
-        off_t end;
-        /* XXX this is POSIX compliant, but doesn't work for for CHAR files,
-         * only BLOCK. There is a Linux specific ioctl() for getting
-         * size of both CHAR / BLOCK devices we should check for in
-         * configure
-         */
-        end = lseek(fd, 0, SEEK_END);
-        if (end == (off_t)-1) {
-            virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                  _("cannot seek to end of file '%s':%s"),
-                                  vol->target.path, strerror(errno));
-            return -1;
+            /* Regular files may be sparse, so logical size (capacity) is not same
+             * as actual allocation above
+             */
+            if (capacity)
+                *capacity = sb.st_size;
+        } else {
+            off_t end;
+            /* XXX this is POSIX compliant, but doesn't work for for CHAR files,
+             * only BLOCK. There is a Linux specific ioctl() for getting
+             * size of both CHAR / BLOCK devices we should check for in
+             * configure
+             */
+            end = lseek(fd, 0, SEEK_END);
+            if (end == (off_t)-1) {
+                virReportSystemError(conn, errno,
+                                     _("cannot seek to end of file '%s'"),
+                                     target->path);
+                return -1;
+            }
+            *allocation = end;
+            if (capacity)
+                *capacity = end;
         }
-        vol->allocation = end;
-        if (withCapacity) vol->capacity = end;
     }
 
     /* make sure to set the target format "unknown" to begin with */
-    vol->target.format = VIR_STORAGE_POOL_DISK_UNKNOWN;
+    target->format = VIR_STORAGE_POOL_DISK_UNKNOWN;
 
     if (S_ISBLK(sb.st_mode)) {
         off_t start;
@@ -215,16 +245,16 @@ virStorageBackendUpdateVolInfoFD(virConnectPtr conn,
 
         start = lseek(fd, 0, SEEK_SET);
         if (start < 0) {
-            virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                  _("cannot seek to beginning of file '%s':%s"),
-                                  vol->target.path, strerror(errno));
+            virReportSystemError(conn, errno,
+                                 _("cannot seek to beginning of file '%s'"),
+                                 target->path);
             return -1;
         }
         bytes = saferead(fd, buffer, sizeof(buffer));
         if (bytes < 0) {
-            virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                  _("cannot read beginning of file '%s':%s"),
-                                  vol->target.path, strerror(errno));
+            virReportSystemError(conn, errno,
+                                 _("cannot read beginning of file '%s'"),
+                                 target->path);
             return -1;
         }
 
@@ -233,38 +263,38 @@ virStorageBackendUpdateVolInfoFD(virConnectPtr conn,
                 continue;
             if (memcmp(buffer+disk_types[i].offset, &disk_types[i].magic,
                 disk_types[i].length) == 0) {
-                vol->target.format = disk_types[i].part_table_type;
+                target->format = disk_types[i].part_table_type;
                 break;
             }
         }
     }
 
-    vol->target.perms.mode = sb.st_mode;
-    vol->target.perms.uid = sb.st_uid;
-    vol->target.perms.gid = sb.st_gid;
+    target->perms.mode = sb.st_mode & S_IRWXUGO;
+    target->perms.uid = sb.st_uid;
+    target->perms.gid = sb.st_gid;
 
-    VIR_FREE(vol->target.perms.label);
+    VIR_FREE(target->perms.label);
 
 #if HAVE_SELINUX
     if (fgetfilecon(fd, &filecon) == -1) {
         if (errno != ENODATA && errno != ENOTSUP) {
-            virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                  _("cannot get file context of %s: %s"),
-                                  vol->target.path, strerror(errno));
+            virReportSystemError(conn, errno,
+                                 _("cannot get file context of '%s'"),
+                                 target->path);
             return -1;
         } else {
-            vol->target.perms.label = NULL;
+            target->perms.label = NULL;
         }
     } else {
-        vol->target.perms.label = strdup(filecon);
-        if (vol->target.perms.label == NULL) {
-            virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("context"));
+        target->perms.label = strdup(filecon);
+        if (target->perms.label == NULL) {
+            virReportOOMError(conn);
             return -1;
         }
         freecon(filecon);
     }
 #else
-    vol->target.perms.label = NULL;
+    target->perms.label = NULL;
 #endif
 
     return 0;
@@ -341,10 +371,9 @@ virStorageBackendStablePath(virConnectPtr conn,
             usleep(100 * 1000);
             goto reopen;
         }
-        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                              _("cannot read dir %s: %s"),
-                              pool->def->target.path,
-                              strerror(errno));
+        virReportSystemError(conn, errno,
+                             _("cannot read dir '%s'"),
+                             pool->def->target.path);
         return NULL;
     }
 
@@ -359,7 +388,7 @@ virStorageBackendStablePath(virConnectPtr conn,
 
         if (VIR_ALLOC_N(stablepath, strlen(pool->def->target.path) +
                         1 + strlen(dent->d_name) + 1) < 0) {
-            virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("path"));
+            virReportOOMError(conn);
             closedir(dh);
             return NULL;
         }
@@ -386,7 +415,7 @@ virStorageBackendStablePath(virConnectPtr conn,
     stablepath = strdup(devpath);
 
     if (stablepath == NULL)
-        virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("dup path"));
+        virReportOOMError(conn);
 
     return stablepath;
 }
@@ -411,7 +440,8 @@ virStorageBackendRunProgRegex(virConnectPtr conn,
                               void *data,
                               int *outexit)
 {
-    int child = 0, fd = -1, exitstatus, err, failed = 1;
+    int fd = -1, exitstatus, err, failed = 1;
+    pid_t child = 0;
     FILE *list = NULL;
     regex_t *reg;
     regmatch_t *vars = NULL;
@@ -422,7 +452,7 @@ virStorageBackendRunProgRegex(virConnectPtr conn,
 
     /* Compile all regular expressions */
     if (VIR_ALLOC_N(reg, nregex) < 0) {
-        virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("regex"));
+        virReportOOMError(conn);
         return -1;
     }
 
@@ -447,13 +477,11 @@ virStorageBackendRunProgRegex(virConnectPtr conn,
 
     /* Storage for matched variables */
     if (VIR_ALLOC_N(groups, totgroups) < 0) {
-        virStorageReportError(conn, VIR_ERR_NO_MEMORY,
-                              "%s", _("regex groups"));
+        virReportOOMError(conn);
         goto cleanup;
     }
     if (VIR_ALLOC_N(vars, maxvars+1) < 0) {
-        virStorageReportError(conn, VIR_ERR_NO_MEMORY,
-                              "%s", _("regex groups"));
+        virReportOOMError(conn);
         goto cleanup;
     }
 
@@ -489,8 +517,7 @@ virStorageBackendRunProgRegex(virConnectPtr conn,
                     line[vars[j+1].rm_eo] = '\0';
                     if ((groups[ngroup++] =
                          strdup(line + vars[j+1].rm_so)) == NULL) {
-                        virStorageReportError(conn, VIR_ERR_NO_MEMORY,
-                                              "%s", _("regex groups"));
+                        virReportOOMError(conn);
                         goto cleanup;
                     }
                 }
@@ -537,9 +564,9 @@ virStorageBackendRunProgRegex(virConnectPtr conn,
         return -1;
 
     if (err == -1) {
-        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                              _("failed to wait for command: %s"),
-                              strerror(errno));
+        virReportSystemError(conn, errno,
+                             _("failed to wait for command '%s'"),
+                             prog[0]);
         return -1;
     } else {
         if (WIFEXITED(exitstatus)) {
@@ -575,7 +602,8 @@ virStorageBackendRunProgNul(virConnectPtr conn,
                             void *data)
 {
     size_t n_tok = 0;
-    int child = 0, fd = -1, exitstatus;
+    int fd = -1, exitstatus;
+    pid_t child = 0;
     FILE *fp = NULL;
     char **v;
     int err = -1;
@@ -586,8 +614,7 @@ virStorageBackendRunProgNul(virConnectPtr conn,
         return -1;
 
     if (VIR_ALLOC_N(v, n_columns) < 0) {
-        virStorageReportError(conn, VIR_ERR_NO_MEMORY,
-                              "%s", _("n_columns too large"));
+        virReportOOMError(conn);
         return -1;
     }
     for (i = 0; i < n_columns; i++)
@@ -634,8 +661,8 @@ virStorageBackendRunProgNul(virConnectPtr conn,
     if (feof (fp))
         err = 0;
     else
-        virStorageReportError (conn, VIR_ERR_INTERNAL_ERROR,
-                               _("read error: %s"), strerror (errno));
+        virReportSystemError(conn, errno,
+                             _("read error on pipe to '%s'"), prog[0]);
 
  cleanup:
     for (i = 0; i < n_columns; i++)
@@ -655,9 +682,9 @@ virStorageBackendRunProgNul(virConnectPtr conn,
         return -1;
 
     if (w_err == -1) {
-        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                              _("failed to wait for command: %s"),
-                              strerror(errno));
+        virReportSystemError(conn, errno,
+                             _("failed to wait for command '%s'"),
+                             prog[0]);
         return -1;
     } else {
         if (WIFEXITED(exitstatus)) {

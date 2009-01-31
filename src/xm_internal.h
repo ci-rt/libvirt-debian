@@ -26,19 +26,17 @@
 #define _LIBVIRT_XM_INTERNAL_H_
 
 #include "internal.h"
+#include "driver.h"
 #include "conf.h"
 #include "domain_conf.h"
 
 extern struct xenUnifiedDriver xenXMDriver;
-int xenXMInit (void);
 
-virHashTablePtr xenXMGetConfigCache(void);
-char *xenXMGetConfigDir(void);
 int xenXMConfigCacheRefresh (virConnectPtr conn);
 int xenXMConfigCacheAddFile(virConnectPtr conn, const char *filename);
 int xenXMConfigCacheRemoveFile(virConnectPtr conn, const char *filename);
 
-int xenXMOpen(virConnectPtr conn, virConnectAuthPtr auth, int flags);
+virDrvOpenStatus xenXMOpen(virConnectPtr conn, virConnectAuthPtr auth, int flags);
 int xenXMClose(virConnectPtr conn);
 const char *xenXMGetType(virConnectPtr conn);
 int xenXMDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info);

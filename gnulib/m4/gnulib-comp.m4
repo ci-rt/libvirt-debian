@@ -1,5 +1,5 @@
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# Copyright (C) 2002-2008 Free Software Foundation, Inc.
+# Copyright (C) 2002-2009 Free Software Foundation, Inc.
 #
 # This file is free software, distributed under the terms of the GNU
 # General Public License.  As a special exception to the GNU General
@@ -25,7 +25,6 @@ AC_DEFUN([gl_EARLY],
   m4_pattern_allow([^gl_LIBOBJS$])dnl a variable
   m4_pattern_allow([^gl_LTLIBOBJS$])dnl a variable
   AC_REQUIRE([AC_PROG_RANLIB])
-  AC_REQUIRE([AC_GNU_SOURCE])
   AC_REQUIRE([gl_USE_SYSTEM_EXTENSIONS])
   AC_REQUIRE([AC_FUNC_FSEEKO])
 ])
@@ -57,7 +56,7 @@ AC_SUBST([LTALLOCA])
     AC_LIBOBJ([connect])
   fi
   gl_SYS_SOCKET_MODULE_INDICATOR([connect])
-  gl_HEADER_ERRNO_H
+  AC_REQUIRE([gl_HEADER_ERRNO_H])
   gl_FUNC_FCLOSE
   gl_STDIO_MODULE_INDICATOR([fclose])
   gl_FLOAT_H
@@ -77,10 +76,18 @@ AC_SUBST([LTALLOCA])
   AC_SUBST([LIBINTL])
   AC_SUBST([LTLIBINTL])
   gl_FUNC_GETTIMEOFDAY
+  gl_HOSTENT
   gl_INET_NTOP
   gl_ARPA_INET_MODULE_INDICATOR([inet_ntop])
   gl_INET_PTON
   gl_ARPA_INET_MODULE_INDICATOR([inet_pton])
+  AC_REQUIRE([gl_HEADER_SYS_SOCKET])
+  if test "$ac_cv_header_winsock2_h" = yes; then
+    AC_LIBOBJ([ioctl])
+    gl_REPLACE_SYS_IOCTL_H
+  fi
+  gl_SYS_IOCTL_MODULE_INDICATOR([ioctl])
+  gl_MODULE_INDICATOR([ioctl])
   gl_FUNC_LSEEK
   gl_UNISTD_MODULE_INDICATOR([lseek])
   gl_FUNC_LSTAT
@@ -89,6 +96,7 @@ AC_SUBST([LTALLOCA])
   gl_STDLIB_MODULE_INDICATOR([malloc-posix])
   gl_FUNC_MKSTEMP
   gl_STDLIB_MODULE_INDICATOR([mkstemp])
+  AC_REQUIRE([gl_MULTIARCH])
   gl_HEADER_NETDB
   gl_HEADER_NETINET_IN
   AC_PROG_MKDIR_P
@@ -97,6 +105,8 @@ AC_SUBST([LTALLOCA])
   gl_PHYSMEM
   gl_FUNC_POLL
   gl_POSIX_SHELL
+  gl_FUNC_RANDOM_R
+  gl_STDLIB_MODULE_INDICATOR([random_r])
   gl_FUNC_REALLOC_POSIX
   gl_STDLIB_MODULE_INDICATOR([realloc-posix])
   AC_REQUIRE([gl_HEADER_SYS_SOCKET])
@@ -109,6 +119,7 @@ AC_SUBST([LTALLOCA])
     AC_LIBOBJ([send])
   fi
   gl_SYS_SOCKET_MODULE_INDICATOR([send])
+  gl_SERVENT
   AC_REQUIRE([gl_HEADER_SYS_SOCKET])
   if test "$ac_cv_header_winsock2_h" = yes; then
     AC_LIBOBJ([setsockopt])
@@ -127,6 +138,8 @@ AC_SUBST([LTALLOCA])
   gl_STDINT_H
   gl_STDIO_H
   gl_STDLIB_H
+  gl_FUNC_STPCPY
+  gl_STRING_MODULE_INDICATOR([stpcpy])
   gl_FUNC_STRDUP_POSIX
   gl_STRING_MODULE_INDICATOR([strdup])
   gl_FUNC_STRERROR
@@ -136,10 +149,10 @@ AC_SUBST([LTALLOCA])
   gl_STRING_MODULE_INDICATOR([strndup])
   gl_FUNC_STRNLEN
   gl_STRING_MODULE_INDICATOR([strnlen])
-  gl_FUNC_STRPBRK
-  gl_STRING_MODULE_INDICATOR([strpbrk])
   gl_FUNC_STRSEP
   gl_STRING_MODULE_INDICATOR([strsep])
+  gl_SYS_IOCTL_H
+  AC_PROG_MKDIR_P
   gl_HEADER_SYS_SELECT
   AC_PROG_MKDIR_P
   gl_HEADER_SYS_SOCKET
@@ -150,6 +163,8 @@ AC_SUBST([LTALLOCA])
   gl_HEADER_SYS_TIME_H
   AC_PROG_MKDIR_P
   gl_FUNC_GEN_TEMPNAME
+  gl_HEADER_TIME_H
+  gl_TIME_R
   gl_UNISTD_H
   gl_FUNC_VASNPRINTF
   gl_FUNC_VASPRINTF
@@ -210,13 +225,6 @@ AC_SUBST([LTALLOCA])
   gl_SYS_SOCKET_MODULE_INDICATOR([bind])
   AC_REQUIRE([gl_HEADER_SYS_SOCKET])
   if test "$ac_cv_header_winsock2_h" = yes; then
-    AC_LIBOBJ([ioctl])
-    gl_REPLACE_SYS_IOCTL_H
-  fi
-  gl_SYS_IOCTL_MODULE_INDICATOR([ioctl])
-  gl_MODULE_INDICATOR([ioctl])
-  AC_REQUIRE([gl_HEADER_SYS_SOCKET])
-  if test "$ac_cv_header_winsock2_h" = yes; then
     AC_LIBOBJ([listen])
   fi
   gl_SYS_SOCKET_MODULE_INDICATOR([listen])
@@ -224,8 +232,6 @@ AC_SUBST([LTALLOCA])
   gl_SOCKETS
   gt_TYPE_WCHAR_T
   gt_TYPE_WINT_T
-  gl_SYS_IOCTL_H
-  AC_PROG_MKDIR_P
   AC_CHECK_FUNCS([shutdown])
   abs_aux_dir=`cd "$ac_aux_dir"; pwd`
   AC_SUBST([abs_aux_dir])
@@ -351,6 +357,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/inet_ntop.c
   lib/inet_pton.c
   lib/intprops.h
+  lib/ioctl.c
   lib/lseek.c
   lib/lstat.c
   lib/malloc.c
@@ -366,6 +373,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/printf-args.h
   lib/printf-parse.c
   lib/printf-parse.h
+  lib/random_r.c
   lib/realloc.c
   lib/recv.c
   lib/send.c
@@ -379,19 +387,22 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/stdio-write.c
   lib/stdio.in.h
   lib/stdlib.in.h
+  lib/stpcpy.c
   lib/strdup.c
   lib/strerror.c
   lib/string.in.h
   lib/strndup.c
   lib/strnlen.c
-  lib/strpbrk.c
   lib/strsep.c
+  lib/sys_ioctl.in.h
   lib/sys_select.in.h
   lib/sys_socket.in.h
   lib/sys_stat.in.h
   lib/sys_time.in.h
   lib/tempname.c
   lib/tempname.h
+  lib/time.in.h
+  lib/time_r.c
   lib/unistd.in.h
   lib/vasnprintf.c
   lib/vasnprintf.h
@@ -400,6 +411,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/w32sock.h
   lib/wchar.in.h
   lib/xsize.h
+  m4/00gnulib.m4
   m4/alloca.m4
   m4/arpa_inet_h.m4
   m4/close.m4
@@ -419,6 +431,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/glibc2.m4
   m4/glibc21.m4
   m4/gnulib-common.m4
+  m4/hostent.m4
   m4/iconv.m4
   m4/include_next.m4
   m4/inet_ntop.m4
@@ -441,6 +454,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/lstat.m4
   m4/malloc.m4
   m4/mkstemp.m4
+  m4/multiarch.m4
   m4/netdb_h.m4
   m4/netinet_in_h.m4
   m4/nls.m4
@@ -453,7 +467,9 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/printf-posix.m4
   m4/printf.m4
   m4/progtest.m4
+  m4/random_r.m4
   m4/realloc.m4
+  m4/servent.m4
   m4/size_max.m4
   m4/snprintf.m4
   m4/sockets.m4
@@ -464,12 +480,12 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/stdint_h.m4
   m4/stdio_h.m4
   m4/stdlib_h.m4
+  m4/stpcpy.m4
   m4/strdup.m4
   m4/strerror.m4
   m4/string_h.m4
   m4/strndup.m4
   m4/strnlen.m4
-  m4/strpbrk.m4
   m4/strsep.m4
   m4/sys_ioctl_h.m4
   m4/sys_select_h.m4
@@ -478,6 +494,8 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/sys_time_h.m4
   m4/tempname.m4
   m4/threadlib.m4
+  m4/time_h.m4
+  m4/time_r.m4
   m4/uintmax_t.m4
   m4/unistd_h.m4
   m4/vasnprintf.m4
@@ -506,6 +524,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-perror.c
   tests/test-perror.sh
   tests/test-poll.c
+  tests/test-random_r.c
   tests/test-snprintf.c
   tests/test-sockets.c
   tests/test-stdbool.c
@@ -518,6 +537,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-sys_socket.c
   tests/test-sys_stat.c
   tests/test-sys_time.c
+  tests/test-time.c
   tests/test-unistd.c
   tests/test-vasnprintf.c
   tests/test-vasprintf.c
@@ -526,10 +546,8 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-wchar.c
   tests=lib/accept.c
   tests=lib/bind.c
-  tests=lib/ioctl.c
   tests=lib/listen.c
   tests=lib/sockets.c
   tests=lib/sockets.h
-  tests=lib/sys_ioctl.in.h
   tests=lib/w32sock.h
 ])

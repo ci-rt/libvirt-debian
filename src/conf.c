@@ -1,7 +1,7 @@
 /**
  * conf.c: parser for a subset of the Python encoded Xen configuration files
  *
- * Copyright (C) 2006, 2007, 2008 Red Hat, Inc.
+ * Copyright (C) 2006, 2007, 2008, 2009 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -24,6 +24,8 @@
 #include "util.h"
 #include "c-ctype.h"
 #include "memory.h"
+
+#define VIR_FROM_THIS VIR_FROM_CONF
 
 /************************************************************************
  *									*
@@ -161,7 +163,7 @@ virConfNew(void)
     virConfPtr ret;
 
     if (VIR_ALLOC(ret) < 0) {
-        virConfError(NULL, VIR_ERR_NO_MEMORY, _("allocating configuration"));
+        virReportOOMError(NULL);
         return(NULL);
     }
     ret->filename = NULL;
@@ -209,7 +211,7 @@ virConfAddEntry(virConfPtr conf, char *name, virConfValuePtr value, char *comm)
         return(NULL);
 
     if (VIR_ALLOC(ret) < 0) {
-        virConfError(NULL, VIR_ERR_NO_MEMORY, _("allocating configuration"));
+        virReportOOMError(NULL);
         return(NULL);
     }
 
@@ -488,7 +490,7 @@ virConfParseValue(virConfParserCtxtPtr ctxt)
         return(NULL);
     }
     if (VIR_ALLOC(ret) < 0) {
-        virConfError(ctxt, VIR_ERR_NO_MEMORY, _("allocating configuration"));
+        virReportOOMError(NULL);
         virConfFreeList(lst);
         VIR_FREE(str);
         return(NULL);
@@ -525,7 +527,7 @@ virConfParseName(virConfParserCtxtPtr ctxt)
         NEXT;
     ret = strndup(base, ctxt->cur - base);
     if (ret == NULL) {
-        virConfError(ctxt, VIR_ERR_NO_MEMORY, _("allocating configuration"));
+        virReportOOMError(NULL);
         return(NULL);
     }
     return(ret);
@@ -552,7 +554,7 @@ virConfParseComment(virConfParserCtxtPtr ctxt)
     while ((ctxt->cur < ctxt->end) && (!IS_EOL(CUR))) NEXT;
     comm = strndup(base, ctxt->cur - base);
     if (comm == NULL) {
-        virConfError(ctxt, VIR_ERR_NO_MEMORY, _("allocating configuration"));
+        virReportOOMError(NULL);
         return(-1);
     }
     virConfAddEntry(ctxt->conf, NULL, NULL, comm);
@@ -627,7 +629,7 @@ virConfParseStatement(virConfParserCtxtPtr ctxt)
         while ((ctxt->cur < ctxt->end) && (!IS_EOL(CUR))) NEXT;
         comm = strndup(base, ctxt->cur - base);
         if (comm == NULL) {
-            virConfError(ctxt, VIR_ERR_NO_MEMORY, _("allocating configuration"));
+            virReportOOMError(NULL);
             VIR_FREE(name);
             virConfFreeValue(value);
             return(-1);
@@ -712,7 +714,6 @@ virConfReadFile(const char *filename)
     }
 
     if ((len = virFileReadAll(filename, MAX_CONFIG_FILE_SIZE, &content)) < 0) {
-        virConfError(NULL, VIR_ERR_OPEN_FAILED, filename);
         return NULL;
     }
 
@@ -889,7 +890,7 @@ virConfWriteFile(const char *filename, virConfPtr conf)
     }
 
     if (virBufferError(&buf)) {
-        virConfError(NULL, VIR_ERR_NO_MEMORY, _("allocate buffer"));
+        virReportOOMError(NULL);
         return -1;
     }
 
@@ -945,7 +946,7 @@ virConfWriteMem(char *memory, int *len, virConfPtr conf)
     }
 
     if (virBufferError(&buf)) {
-        virConfError(NULL, VIR_ERR_NO_MEMORY, _("allocate buffer"));
+        virReportOOMError(NULL);
         return -1;
     }
 

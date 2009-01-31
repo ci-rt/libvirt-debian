@@ -1,7 +1,7 @@
 /*
  * uml_conf.c: UML driver configuration
  *
- * Copyright (C) 2006, 2007, 2008 Red Hat, Inc.
+ * Copyright (C) 2006-2009 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -36,83 +36,19 @@
 #include <arpa/inet.h>
 #include <sys/utsname.h>
 
-#if HAVE_NUMACTL
-#define NUMA_VERSION1_COMPATIBILITY 1
-#include <numa.h>
-#endif
-
 #include "uml_conf.h"
 #include "uuid.h"
 #include "buf.h"
 #include "conf.h"
 #include "util.h"
 #include "memory.h"
+#include "nodeinfo.h"
 #include "verify.h"
 
+#define VIR_FROM_THIS VIR_FROM_UML
 
-#define umlLog(level, msg...) fprintf(stderr, msg)
-
-
-
-#if HAVE_NUMACTL
-#define MAX_CPUS 4096
-#define MAX_CPUS_MASK_SIZE (sizeof(unsigned long))
-#define MAX_CPUS_MASK_BITS (MAX_CPUS_MASK_SIZE * 8)
-#define MAX_CPUS_MASK_LEN (MAX_CPUS / (MAX_CPUS_MASK_BITS))
-
-#define MASK_CPU_ISSET(mask, cpu) \
-    (((mask)[((cpu) / MAX_CPUS_MASK_BITS)] >> ((cpu) % MAX_CPUS_MASK_BITS)) & 1)
-
-static int
-umlCapsInitNUMA(virCapsPtr caps)
-{
-    int n, i;
-    unsigned long *mask = NULL;
-    int ncpus;
-    int *cpus = NULL;
-    int ret = -1;
-
-    if (numa_available() < 0)
-        return 0;
-
-    if (VIR_ALLOC_N(mask, MAX_CPUS_MASK_LEN) < 0)
-        goto cleanup;
-
-    for (n = 0 ; n <= numa_max_node() ; n++) {
-
-        if (numa_node_to_cpus(n, mask, MAX_CPUS_MASK_LEN) < 0)
-            goto cleanup;
-
-        for (ncpus = 0, i = 0 ; i < MAX_CPUS ; i++)
-            if (MASK_CPU_ISSET(mask, i))
-                ncpus++;
-
-        if (VIR_ALLOC_N(cpus, ncpus) < 0)
-            goto cleanup;
-
-        for (ncpus = 0, i = 0 ; i < MAX_CPUS ; i++)
-            if (MASK_CPU_ISSET(mask, i))
-                cpus[ncpus++] = i;
-
-        if (virCapabilitiesAddHostNUMACell(caps,
-                                           n,
-                                           ncpus,
-                                           cpus) < 0)
-            goto cleanup;
-
-        VIR_FREE(cpus);
-    }
-
-    ret = 0;
-
-cleanup:
-    VIR_FREE(cpus);
-    VIR_FREE(mask);
-    return ret;
-}
-#else
-static int umlCapsInitNUMA(virCapsPtr caps ATTRIBUTE_UNUSED) { return 0; }
-#endif
+#define umlLog(level, msg, ...)                                     \
+        virLogMessage(__FILE__, level, 0, msg, __VA_ARGS__)
 
 virCapsPtr umlCapsInit(void) {
     struct utsname utsname;
@@ -126,7 +62,7 @@ virCapsPtr umlCapsInit(void) {
                                    0, 0)) == NULL)
         goto no_memory;
 
-    if (umlCapsInitNUMA(caps) < 0)
+    if (virCapsInitNUMA(caps) < 0)
         goto no_memory;
 
     if ((guest = virCapabilitiesAddGuest(caps,
@@ -164,30 +100,30 @@ umlBuildCommandLineChr(virConnectPtr conn,
 
     switch (def->type) {
     case VIR_DOMAIN_CHR_TYPE_NULL:
-        if (asprintf(&ret, "%s%d=null", dev, def->dstPort) < 0) {
-            umlReportError(conn, NULL, NULL, VIR_ERR_NO_MEMORY, NULL);
+        if (virAsprintf(&ret, "%s%d=null", dev, def->dstPort) < 0) {
+            virReportOOMError(conn);
             return NULL;
         }
         break;
 
     case VIR_DOMAIN_CHR_TYPE_PTY:
-        if (asprintf(&ret, "%s%d=pts", dev, def->dstPort) < 0) {
-            umlReportError(conn, NULL, NULL, VIR_ERR_NO_MEMORY, NULL);
+        if (virAsprintf(&ret, "%s%d=pts", dev, def->dstPort) < 0) {
+            virReportOOMError(conn);
             return NULL;
         }
         break;
 
     case VIR_DOMAIN_CHR_TYPE_DEV:
-        if (asprintf(&ret, "%s%d=tty:%s", dev, def->dstPort,
-                     def->data.file.path) < 0) {
-            umlReportError(conn, NULL, NULL, VIR_ERR_NO_MEMORY, NULL);
+        if (virAsprintf(&ret, "%s%d=tty:%s", dev, def->dstPort,
+                        def->data.file.path) < 0) {
+            virReportOOMError(conn);
             return NULL;
         }
         break;
 
     case VIR_DOMAIN_CHR_TYPE_STDIO:
-        if (asprintf(&ret, "%s%d=fd:0,fd:1", dev, def->dstPort) < 0) {
-            umlReportError(conn, NULL, NULL, VIR_ERR_NO_MEMORY, NULL);
+        if (virAsprintf(&ret, "%s%d=fd:0,fd:1", dev, def->dstPort) < 0) {
+            virReportOOMError(conn);
             return NULL;
         }
         break;
@@ -199,9 +135,9 @@ umlBuildCommandLineChr(virConnectPtr conn,
             return NULL;
         }
 
-        if (asprintf(&ret, "%s%d=port:%s", dev, def->dstPort,
-                     def->data.tcp.service) < 0) {
-            umlReportError(conn, NULL, NULL, VIR_ERR_NO_MEMORY, NULL);
+        if (virAsprintf(&ret, "%s%d=port:%s", dev, def->dstPort,
+                        def->data.tcp.service) < 0) {
+            virReportOOMError(conn);
             return NULL;
         }
         break;
@@ -269,9 +205,9 @@ int umlBuildCommandLine(virConnectPtr conn,
     do {                                                                \
         char *arg;                                                      \
         ADD_ARG_SPACE;                                                  \
-        if (asprintf(&arg, "%s=%s", key, val) < 0)                      \
+        if (virAsprintf(&arg, "%s=%s", key, val) < 0)                   \
             goto no_memory;                                             \
-        qargv[qargc++] = arg;                                            \
+        qargv[qargc++] = arg;                                           \
     } while (0)
 
 
@@ -303,7 +239,7 @@ int umlBuildCommandLine(virConnectPtr conn,
         char *envval;                                                   \
         ADD_ENV_SPACE;                                                  \
         if (val != NULL) {                                              \
-            if (asprintf(&envval, "%s=%s", envname, val) < 0)           \
+            if (virAsprintf(&envval, "%s=%s", envname, val) < 0)        \
                 goto no_memory;                                         \
             qenv[qenvc++] = envval;                                     \
         }                                                               \
@@ -346,7 +282,7 @@ int umlBuildCommandLine(virConnectPtr conn,
         if (i == 0 && vm->def->console)
             ret = umlBuildCommandLineChr(conn, vm->def->console, "con");
         else
-            if (asprintf(&ret, "con%d=none", i) < 0)
+            if (virAsprintf(&ret, "con%d=none", i) < 0)
                 goto no_memory;
         ADD_ARG(ret);
     }
@@ -360,7 +296,7 @@ int umlBuildCommandLine(virConnectPtr conn,
         if (chr)
             ret = umlBuildCommandLineChr(conn, chr, "ssl");
         else
-            if (asprintf(&ret, "ssl%d=none", i) < 0)
+            if (virAsprintf(&ret, "ssl%d=none", i) < 0)
                 goto no_memory;
         ADD_ARG(ret);
     }
@@ -373,8 +309,7 @@ int umlBuildCommandLine(virConnectPtr conn,
     return 0;
 
  no_memory:
-    umlReportError(conn, NULL, NULL, VIR_ERR_NO_MEMORY,
-                     "%s", _("failed to allocate space for argv string"));
+    virReportOOMError(conn);
  error:
     if (tapfds &&
         *tapfds) {

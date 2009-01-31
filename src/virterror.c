@@ -1,7 +1,7 @@
 /*
  * virterror.c: implements error handling and reporting code for libvirt
  *
- * Copy:  Copyright (C) 2006, 2008 Red Hat, Inc.
+ * Copy:  Copyright (C) 2006, 2008, 2009 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -17,11 +17,13 @@
 
 #include "virterror_internal.h"
 #include "datatypes.h"
+#include "logging.h"
+#include "memory.h"
+#include "threads.h"
+#include "util.h"
 
-virError virLastErr =       /* the last error */
-  { .code = 0, .domain = 0, .message = NULL, .level = VIR_ERR_NONE,
-    .conn = NULL, .dom = NULL, .str1 = NULL, .str2 = NULL, .str3 = NULL,
-    .int1 = 0, .int2 = 0, .net = NULL };
+virThreadLocal virLastErr;
+
 virErrorFunc virErrorHandler = NULL;     /* global error handler */
 void *virUserData = NULL;        /* associated data */
 
@@ -62,191 +64,21 @@ void *virUserData = NULL;        /* associated data */
     }}								\
 }
 
-/*
- * virGetLastError:
- *
- * Provide a pointer to the last error caught at the library level
- * Simpler but may not be suitable for multithreaded accesses, in which
- * case use virCopyLastError()
- *
- * Returns a pointer to the last error or NULL if none occurred.
- */
-virErrorPtr
-virGetLastError(void)
-{
-    if (virLastErr.code == VIR_ERR_OK)
-        return (NULL);
-    return (&virLastErr);
-}
-
-/*
- * virCopyLastError:
- * @to: target to receive the copy
- *
- * Copy the content of the last error caught at the library level
- * One will need to free the result with virResetError()
- *
- * Returns 0 if no error was found and the error code otherwise and -1 in case
- *         of parameter error.
- */
-int
-virCopyLastError(virErrorPtr to)
-{
-    if (to == NULL)
-        return (-1);
-    if (virLastErr.code == VIR_ERR_OK)
-        return (0);
-    memcpy(to, &virLastErr, sizeof(virError));
-    return (virLastErr.code);
-}
-
-/**
- * virResetError:
- * @err: pointer to the virError to clean up
- *
- * Reset the error being pointed to
- */
-void
-virResetError(virErrorPtr err)
-{
-    if (err == NULL)
-        return;
-    free(err->message);
-    free(err->str1);
-    free(err->str2);
-    free(err->str3);
-    memset(err, 0, sizeof(virError));
-}
-
-/**
- * virResetLastError:
- *
- * Reset the last error caught at the library level.
- */
-void
-virResetLastError(void)
-{
-    virResetError(&virLastErr);
-}
-
-/**
- * virConnGetLastError:
- * @conn: pointer to the hypervisor connection
- *
- * Provide a pointer to the last error caught on that connection
- * Simpler but may not be suitable for multithreaded accesses, in which
- * case use virConnCopyLastError()
- *
- * Returns a pointer to the last error or NULL if none occurred.
- */
-virErrorPtr
-virConnGetLastError(virConnectPtr conn)
-{
-    if (conn == NULL)
-        return (NULL);
-    return (&conn->err);
-}
-
-/**
- * virConnCopyLastError:
- * @conn: pointer to the hypervisor connection
- * @to: target to receive the copy
- *
- * Copy the content of the last error caught on that connection
- * One will need to free the result with virResetError()
- *
- * Returns 0 if no error was found and the error code otherwise and -1 in case
- *         of parameter error.
- */
-int
-virConnCopyLastError(virConnectPtr conn, virErrorPtr to)
-{
-    if (conn == NULL)
-        return (-1);
-    if (to == NULL)
-        return (-1);
-    if (conn->err.code == VIR_ERR_OK)
-        return (0);
-    memcpy(to, &conn->err, sizeof(virError));
-    return (conn->err.code);
-}
-
-/**
- * virConnResetLastError:
- * @conn: pointer to the hypervisor connection
- *
- * Reset the last error caught on that connection
- */
-void
-virConnResetLastError(virConnectPtr conn)
-{
-    if (conn == NULL)
-        return;
-    virResetError(&conn->err);
-}
-
-/**
- * virSetErrorFunc:
- * @userData: pointer to the user data provided in the handler callback
- * @handler: the function to get called in case of error or NULL
- *
- * Set a library global error handling function, if @handler is NULL,
- * it will reset to default printing on stderr. The error raised there
- * are those for which no handler at the connection level could caught.
- */
-void
-virSetErrorFunc(void *userData, virErrorFunc handler)
-{
-    virErrorHandler = handler;
-    virUserData = userData;
-}
-
-/**
- * virConnSetErrorFunc:
- * @conn: pointer to the hypervisor connection
- * @userData: pointer to the user data provided in the handler callback
- * @handler: the function to get called in case of error or NULL
- *
- * Set a connection error handling function, if @handler is NULL
- * it will reset to default which is to pass error back to the global
- * library handler.
- */
-void
-virConnSetErrorFunc(virConnectPtr conn, void *userData,
-                    virErrorFunc handler)
-{
-    if (conn == NULL)
-        return;
-    conn->handler = handler;
-    conn->userData = userData;
-}
-
-/**
- * virDefaultErrorFunc:
- * @err: pointer to the error.
- *
- * Default routine reporting an error to stderr.
- */
-void
-virDefaultErrorFunc(virErrorPtr err)
-{
-    const char *lvl = "", *dom = "", *domain = "", *network = "";
-    int len;
-
-    if ((err == NULL) || (err->code == VIR_ERR_OK))
-        return;
-    switch (err->level) {
+static virLogPriority virErrorLevelPriority(virErrorLevel level) {
+    switch (level) {
         case VIR_ERR_NONE:
-            lvl = "";
-            break;
+            return(VIR_LOG_INFO);
         case VIR_ERR_WARNING:
-            lvl = _("warning");
-            break;
+            return(VIR_LOG_WARN);
         case VIR_ERR_ERROR:
-            lvl = _("error");
-            break;
+            return(VIR_LOG_ERROR);
     }
-    switch (err->domain) {
+    return(VIR_LOG_ERROR);
+}
+
+static const char *virErrorDomainName(virErrorDomain domain) {
+    const char *dom = "unknown";
+    switch (domain) {
         case VIR_FROM_NONE:
             dom = "";
             break;
@@ -320,6 +152,331 @@ virDefaultErrorFunc(virErrorPtr err)
             dom = "UML ";
             break;
     }
+    return(dom);
+}
+
+
+/*
+ * Internal helper that is called when a thread exits, to
+ * release the error object stored in the thread local
+ */
+static void
+virLastErrFreeData(void *data)
+{
+    virErrorPtr err = data;
+    if (!err)
+        return;
+    virResetError(err);
+    VIR_FREE(err);
+}
+
+
+int
+virErrorInitialize(void)
+{
+    return virThreadLocalInit(&virLastErr, virLastErrFreeData);
+}
+
+
+/*
+ * Internal helper to ensure a generic error code is stored
+ * in case where API returns failure, but forgot to set an
+ * error
+ */
+static void
+virErrorGenericFailure(virErrorPtr err)
+{
+    err->code = VIR_ERR_INTERNAL_ERROR;
+    err->domain = VIR_FROM_NONE;
+    err->level = VIR_ERR_ERROR;
+    err->message = strdup(_("Unknown failure"));
+}
+
+
+/*
+ * Internal helper to perform a deep copy of the an error
+ */
+static int
+virCopyError(virErrorPtr from,
+             virErrorPtr to)
+{
+    int ret = 0;
+    if (!to)
+        return 0;
+    virResetError(to);
+    if (!from)
+        return 0;
+    to->code = from->code;
+    to->domain = from->domain;
+    to->level = from->level;
+    if (from->message && !(to->message = strdup(from->message)))
+        ret = -1;
+    if (from->str1 && !(to->str1 = strdup(from->str1)))
+        ret = -1;
+    if (from->str2 && !(to->str2 = strdup(from->str2)))
+        ret = -1;
+    if (from->str3 && !(to->str3 = strdup(from->str3)))
+        ret = -1;
+    to->int1 = from->int1;
+    to->int2 = from->int2;
+    /*
+     * Delibrately not setting 'conn', 'dom', 'net' references
+     */
+    return ret;
+}
+
+static virErrorPtr
+virLastErrorObject(void)
+{
+    virErrorPtr err;
+    err = virThreadLocalGet(&virLastErr);
+    if (!err) {
+        if (VIR_ALLOC(err) < 0)
+            return NULL;
+        virThreadLocalSet(&virLastErr, err);
+    }
+    return err;
+}
+
+
+/**
+ * virGetLastError:
+ *
+ * Provide a pointer to the last error caught at the library level
+ *
+ * The error object is kept in thread local storage, so separate
+ * threads can safely access this concurrently.
+ *
+ * Returns a pointer to the last error or NULL if none occurred.
+ */
+virErrorPtr
+virGetLastError(void)
+{
+    virErrorPtr err = virLastErrorObject();
+    if (!err || err->code == VIR_ERR_OK)
+        return NULL;
+    return err;
+}
+
+/**
+ * virCopyLastError:
+ * @to: target to receive the copy
+ *
+ * Copy the content of the last error caught at the library level
+ *
+ * The error object is kept in thread local storage, so separate
+ * threads can safely access this concurrently.
+ *
+ * One will need to free the result with virResetError()
+ *
+ * Returns 0 if no error was found and the error code otherwise and -1 in case
+ *         of parameter error.
+ */
+int
+virCopyLastError(virErrorPtr to)
+{
+    virErrorPtr err = virLastErrorObject();
+    /* We can't guarentee caller has initialized it to zero */
+    memset(to, 0, sizeof(*to));
+    if (err)
+        virCopyError(err, to);
+    else
+        virResetError(to);
+    return to->code;
+}
+
+/**
+ * virResetError:
+ * @err: pointer to the virError to clean up
+ *
+ * Reset the error being pointed to
+ */
+void
+virResetError(virErrorPtr err)
+{
+    if (err == NULL)
+        return;
+    free(err->message);
+    free(err->str1);
+    free(err->str2);
+    free(err->str3);
+    memset(err, 0, sizeof(virError));
+}
+
+
+/**
+ * virResetLastError:
+ *
+ * Reset the last error caught at the library level.
+ *
+ * The error object is kept in thread local storage, so separate
+ * threads can safely access this concurrently, only resetting
+ * their own error object.
+ */
+void
+virResetLastError(void)
+{
+    virErrorPtr err = virLastErrorObject();
+    if (err)
+        virResetError(err);
+}
+
+/**
+ * virConnGetLastError:
+ * @conn: pointer to the hypervisor connection
+ *
+ * Provide a pointer to the last error caught on that connection
+ *
+ * This method is not protected against access from multiple
+ * threads. In a multi-threaded application, always use the
+ * global virGetLastError() API which is backed by thread
+ * local storage.
+ *
+ * If the connection object was discovered to be invalid by
+ * an API call, then the error will be reported against the
+ * global error object.
+ *
+ * Since 0.6.0, all errors reported in the per-connection object
+ * are also duplicated in the global error object. As such an
+ * application can always use virGetLastError(). This method
+ * remains for backwards compatability.
+ *
+ * Returns a pointer to the last error or NULL if none occurred.
+ */
+virErrorPtr
+virConnGetLastError(virConnectPtr conn)
+{
+    if (conn == NULL)
+        return NULL;
+    return &conn->err;
+}
+
+/**
+ * virConnCopyLastError:
+ * @conn: pointer to the hypervisor connection
+ * @to: target to receive the copy
+ *
+ * Copy the content of the last error caught on that connection
+ *
+ * This method is not protected against access from multiple
+ * threads. In a multi-threaded application, always use the
+ * global virGetLastError() API which is backed by thread
+ * local storage.
+ *
+ * If the connection object was discovered to be invalid by
+ * an API call, then the error will be reported against the
+ * global error object.
+ *
+ * Since 0.6.0, all errors reported in the per-connection object
+ * are also duplicated in the global error object. As such an
+ * application can always use virGetLastError(). This method
+ * remains for backwards compatability.
+ *
+ * One will need to free the result with virResetError()
+ *
+ * Returns 0 if no error was found and the error code otherwise and -1 in case
+ *         of parameter error.
+ */
+int
+virConnCopyLastError(virConnectPtr conn, virErrorPtr to)
+{
+    /* We can't guarentee caller has initialized it to zero */
+    memset(to, 0, sizeof(*to));
+
+    if (conn == NULL)
+        return -1;
+    virMutexLock(&conn->lock);
+    if (conn->err.code == VIR_ERR_OK)
+        virResetError(to);
+    else
+        virCopyError(&conn->err, to);
+    virMutexUnlock(&conn->lock);
+    return to->code;
+}
+
+/**
+ * virConnResetLastError:
+ * @conn: pointer to the hypervisor connection
+ *
+ * The error object is kept in thread local storage, so separate
+ * threads can safely access this concurrently.
+ *
+ * Reset the last error caught on that connection
+ */
+void
+virConnResetLastError(virConnectPtr conn)
+{
+    if (conn == NULL)
+        return;
+    virMutexLock(&conn->lock);
+    virResetError(&conn->err);
+    virMutexUnlock(&conn->lock);
+}
+
+/**
+ * virSetErrorFunc:
+ * @userData: pointer to the user data provided in the handler callback
+ * @handler: the function to get called in case of error or NULL
+ *
+ * Set a library global error handling function, if @handler is NULL,
+ * it will reset to default printing on stderr. The error raised there
+ * are those for which no handler at the connection level could caught.
+ */
+void
+virSetErrorFunc(void *userData, virErrorFunc handler)
+{
+    virErrorHandler = handler;
+    virUserData = userData;
+}
+
+/**
+ * virConnSetErrorFunc:
+ * @conn: pointer to the hypervisor connection
+ * @userData: pointer to the user data provided in the handler callback
+ * @handler: the function to get called in case of error or NULL
+ *
+ * Set a connection error handling function, if @handler is NULL
+ * it will reset to default which is to pass error back to the global
+ * library handler.
+ */
+void
+virConnSetErrorFunc(virConnectPtr conn, void *userData,
+                    virErrorFunc handler)
+{
+    if (conn == NULL)
+        return;
+    virMutexLock(&conn->lock);
+    conn->handler = handler;
+    conn->userData = userData;
+    virMutexUnlock(&conn->lock);
+}
+
+/**
+ * virDefaultErrorFunc:
+ * @err: pointer to the error.
+ *
+ * Default routine reporting an error to stderr.
+ */
+void
+virDefaultErrorFunc(virErrorPtr err)
+{
+    const char *lvl = "", *dom = "", *domain = "", *network = "";
+    int len;
+
+    if ((err == NULL) || (err->code == VIR_ERR_OK))
+        return;
+    switch (err->level) {
+        case VIR_ERR_NONE:
+            lvl = "";
+            break;
+        case VIR_ERR_WARNING:
+            lvl = _("warning");
+            break;
+        case VIR_ERR_ERROR:
+            lvl = _("error");
+            break;
+    }
+    dom = virErrorDomainName(err->domain);
     if ((err->dom != NULL) && (err->code != VIR_ERR_INVALID_DOMAIN)) {
         domain = err->dom->name;
     } else if ((err->net != NULL) && (err->code != VIR_ERR_INVALID_NETWORK)) {
@@ -337,6 +494,44 @@ virDefaultErrorFunc(virErrorPtr err)
         fprintf(stderr, "libvir: %s%s %s%s: %s",
                 dom, lvl, domain, network, err->message);
 }
+
+/*
+ * Internal helper to ensure the global error object
+ * is initialized with a generic message if not already
+ * set.
+ */
+void
+virSetGlobalError(void)
+{
+    virErrorPtr err = virLastErrorObject();
+
+    if (err && err->code == VIR_ERR_OK)
+        virErrorGenericFailure(err);
+}
+
+/*
+ * Internal helper to ensure the connection error object
+ * is initialized from the global object.
+ */
+void
+virSetConnError(virConnectPtr conn)
+{
+    virErrorPtr err = virLastErrorObject();
+
+    if (err && err->code == VIR_ERR_OK)
+        virErrorGenericFailure(err);
+
+    if (conn) {
+        virMutexLock(&conn->lock);
+        if (err)
+            virCopyError(err, &conn->err);
+        else
+            virErrorGenericFailure(&conn->err);
+        virMutexUnlock(&conn->lock);
+    }
+}
+
+
 
 /**
  * virRaiseError:
@@ -358,15 +553,28 @@ virDefaultErrorFunc(virErrorPtr err)
  * immediately if a callback is found and store it for later handling.
  */
 void
-virRaiseError(virConnectPtr conn, virDomainPtr dom, virNetworkPtr net,
+virRaiseError(virConnectPtr conn,
+              virDomainPtr dom ATTRIBUTE_UNUSED,
+              virNetworkPtr net ATTRIBUTE_UNUSED,
               int domain, int code, virErrorLevel level,
               const char *str1, const char *str2, const char *str3,
               int int1, int int2, const char *msg, ...)
 {
-    virErrorPtr to = &virLastErr;
+    virErrorPtr to;
     void *userData = virUserData;
     virErrorFunc handler = virErrorHandler;
     char *str;
+
+    /*
+     * All errors are recorded in thread local storage
+     * For compatability, public API calls will copy them
+     * to the per-connection error object when neccessary
+     */
+    to = virLastErrorObject();
+    if (!to)
+        return; /* Hit OOM allocating thread error object, sod all we can do now */
+
+    virResetError(to);
 
     if (code == VIR_ERR_OK)
         return;
@@ -375,11 +583,12 @@ virRaiseError(virConnectPtr conn, virDomainPtr dom, virNetworkPtr net,
      * try to find the best place to save and report the error
      */
     if (conn != NULL) {
-        to = &conn->err;
+        virMutexLock(&conn->lock);
         if (conn->handler != NULL) {
             handler = conn->handler;
             userData = conn->userData;
         }
+        virMutexUnlock(&conn->lock);
     }
 
     /*
@@ -392,12 +601,20 @@ virRaiseError(virConnectPtr conn, virDomainPtr dom, virNetworkPtr net,
     }
 
     /*
+     * Hook up the error or warning to the logging facility
+     * TODO: pass function name and lineno
+     */
+    virLogMessage(virErrorDomainName(domain), virErrorLevelPriority(level),
+                  NULL, 0, 1, "%s", str);
+
+    /*
      * Save the information about the error
      */
     virResetError(to);
-    to->conn = conn;
-    to->dom = dom;
-    to->net = net;
+    /*
+     * Delibrately not setting conn, dom & net fields since
+     * they're utterly unsafe
+     */
     to->domain = domain;
     to->code = code;
     to->message = str;
@@ -685,66 +902,66 @@ virErrorMsg(virErrorNumber error, const char *info)
             else
                 errmsg = _("Network not found: %s");
             break;
-    case VIR_ERR_INVALID_MAC:
+        case VIR_ERR_INVALID_MAC:
             if (info == NULL)
                 errmsg = _("invalid MAC address");
             else
                 errmsg = _("invalid MAC address: %s");
             break;
-    case VIR_ERR_AUTH_FAILED:
+        case VIR_ERR_AUTH_FAILED:
             if (info == NULL)
                 errmsg = _("authentication failed");
             else
                 errmsg = _("authentication failed: %s");
             break;
         case VIR_ERR_NO_STORAGE_POOL:
-                if (info == NULL)
-                        errmsg = _("Storage pool not found");
-                else
-                        errmsg = _("Storage pool not found: %s");
-                break;
+            if (info == NULL)
+                    errmsg = _("Storage pool not found");
+            else
+                    errmsg = _("Storage pool not found: %s");
+            break;
         case VIR_ERR_NO_STORAGE_VOL:
-                if (info == NULL)
-                        errmsg = _("Storage volume not found");
-                else
-                        errmsg = _("Storage volume not found: %s");
-                break;
+            if (info == NULL)
+                    errmsg = _("Storage volume not found");
+            else
+                    errmsg = _("Storage volume not found: %s");
+            break;
         case VIR_ERR_INVALID_STORAGE_POOL:
-                if (info == NULL)
-                        errmsg = _("invalid storage pool pointer in");
-                else
-                        errmsg = _("invalid storage pool pointer in %s");
-                break;
+            if (info == NULL)
+                    errmsg = _("invalid storage pool pointer in");
+            else
+                    errmsg = _("invalid storage pool pointer in %s");
+            break;
         case VIR_ERR_INVALID_STORAGE_VOL:
-                if (info == NULL)
-                        errmsg = _("invalid storage volume pointer in");
-                else
-                        errmsg = _("invalid storage volume pointer in %s");
-                break;
+            if (info == NULL)
+                    errmsg = _("invalid storage volume pointer in");
+            else
+                    errmsg = _("invalid storage volume pointer in %s");
+            break;
         case VIR_WAR_NO_STORAGE:
-                if (info == NULL)
-                        errmsg = _("Failed to find a storage driver");
-                else
-                        errmsg = _("Failed to find a storage driver: %s");
-                break;
+            if (info == NULL)
+                    errmsg = _("Failed to find a storage driver");
+            else
+                    errmsg = _("Failed to find a storage driver: %s");
+            break;
         case VIR_WAR_NO_NODE:
-                if (info == NULL)
-                        errmsg = _("Failed to find a node driver");
-                else
-                        errmsg = _("Failed to find a node driver: %s");
-                break;
+            if (info == NULL)
+                    errmsg = _("Failed to find a node driver");
+            else
+                    errmsg = _("Failed to find a node driver: %s");
+            break;
         case VIR_ERR_INVALID_NODE_DEVICE:
-                if (info == NULL)
-                        errmsg = _("invalid node device pointer");
-                else
-                        errmsg = _("invalid node device pointer in %s");
-                break;
+            if (info == NULL)
+                    errmsg = _("invalid node device pointer");
+            else
+                    errmsg = _("invalid node device pointer in %s");
+            break;
         case VIR_ERR_NO_NODE_DEVICE:
-                if (info == NULL)
-                        errmsg = _("Node device not found");
-                else
-                        errmsg = _("Node device not found: %s");
-                break;
+            if (info == NULL)
+                    errmsg = _("Node device not found");
+            else
+                    errmsg = _("Node device not found: %s");
+            break;
     }
     return (errmsg);
 }
@@ -767,7 +984,7 @@ virErrorMsg(virErrorNumber error, const char *info)
 void virReportErrorHelper(virConnectPtr conn, int domcode, int errcode,
                           const char *filename ATTRIBUTE_UNUSED,
                           const char *funcname ATTRIBUTE_UNUSED,
-                          long long linenr ATTRIBUTE_UNUSED,
+                          size_t linenr ATTRIBUTE_UNUSED,
                           const char *fmt, ...)
 {
     va_list args;
@@ -786,4 +1003,78 @@ void virReportErrorHelper(virConnectPtr conn, int domcode, int errcode,
     virRaiseError(conn, NULL, NULL, domcode, errcode, VIR_ERR_ERROR,
                   virerr, errorMessage, NULL, -1, -1, virerr, errorMessage);
 
+}
+
+static const char *virStrerror(int theerrno, char *errBuf, size_t errBufLen)
+{
+#ifdef HAVE_STRERROR_R
+# ifdef __USE_GNU
+    /* Annoying linux specific API contract */
+    return strerror_r(theerrno, errBuf, errBufLen);
+# else
+    strerror_r(theerrno, errBuf, errBufLen);
+    return errBuf;
+# endif
+#else
+    /* Mingw lacks strerror_r() and its strerror() is definitely not
+     * threadsafe, so safest option is to just print the raw errno
+     * value - we can at least reliably & safely look it up in the
+     * header files for debug purposes
+     */
+    int n = snprintf(errBuf, errBufLen, "errno=%d", theerrno);
+    return (0 < n && n < errBufLen
+            ? errBuf : _("internal error: buffer too small"));
+#endif
+}
+
+void virReportSystemErrorFull(virConnectPtr conn,
+                              int domcode,
+                              int theerrno,
+                              const char *filename ATTRIBUTE_UNUSED,
+                              const char *funcname ATTRIBUTE_UNUSED,
+                              size_t linenr ATTRIBUTE_UNUSED,
+                              const char *fmt, ...)
+{
+    char strerror_buf[1024];
+    char msgDetailBuf[1024];
+
+    const char *errnoDetail = virStrerror(theerrno, strerror_buf,
+                                          sizeof(strerror_buf));
+    const char *msg = virErrorMsg(VIR_ERR_SYSTEM_ERROR, fmt);
+    const char *msgDetail = NULL;
+
+    if (fmt) {
+        va_list args;
+        int n;
+
+        va_start(args, fmt);
+        n = vsnprintf(msgDetailBuf, sizeof(msgDetailBuf), fmt, args);
+        va_end(args);
+
+        size_t len = strlen (msgDetailBuf);
+        if (0 <= n && n + 2 + len < sizeof (msgDetailBuf)) {
+          char *p = msgDetailBuf + n;
+          stpcpy (stpcpy (p, ": "), errnoDetail);
+          msgDetail = msgDetailBuf;
+        }
+    }
+
+    if (!msgDetail)
+        msgDetail = errnoDetail;
+
+    virRaiseError(conn, NULL, NULL, domcode, VIR_ERR_SYSTEM_ERROR, VIR_ERR_ERROR,
+                  msg, msgDetail, NULL, -1, -1, msg, msgDetail);
+}
+
+void virReportOOMErrorFull(virConnectPtr conn,
+                           int domcode,
+                           const char *filename ATTRIBUTE_UNUSED,
+                           const char *funcname ATTRIBUTE_UNUSED,
+                           size_t linenr ATTRIBUTE_UNUSED)
+{
+    const char *virerr;
+
+    virerr = virErrorMsg(VIR_ERR_NO_MEMORY, NULL);
+    virRaiseError(conn, NULL, NULL, domcode, VIR_ERR_NO_MEMORY, VIR_ERR_ERROR,
+                  virerr, NULL, NULL, -1, -1, virerr, NULL);
 }

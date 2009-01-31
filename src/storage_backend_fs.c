@@ -31,9 +31,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <endian.h>
-#include <byteswap.h>
-#include <mntent.h>
 #include <string.h>
 
 #include <libxml/parser.h>
@@ -47,6 +44,23 @@
 #include "memory.h"
 #include "xml.h"
 
+enum lv_endian {
+    LV_LITTLE_ENDIAN = 1, /* 1234 */
+    LV_BIG_ENDIAN         /* 4321 */
+};
+
+enum {
+    BACKING_STORE_OK,
+    BACKING_STORE_INVALID,
+    BACKING_STORE_ERROR,
+};
+
+static int cowGetBackingStore(virConnectPtr, char **,
+                              const unsigned char *, size_t);
+static int qcowXGetBackingStore(virConnectPtr, char **,
+                                const unsigned char *, size_t);
+static int vmdk4GetBackingStore(virConnectPtr, char **,
+                                const unsigned char *, size_t);
 
 /* Either 'magic' or 'extension' *must* be provided */
 struct FileTypeInfo {
@@ -54,7 +68,7 @@ struct FileTypeInfo {
     const char *magic;  /* Optional string of file magic
                          * to check at head of file */
     const char *extension; /* Optional file extension to check */
-    int endian;           /* Endianness of file format */
+    enum lv_endian endian; /* Endianness of file format */
     int versionOffset;    /* Byte offset from start of file
                            * where we find version number,
                            * -1 to skip version test */
@@ -64,63 +78,199 @@ struct FileTypeInfo {
                            * -1 to use st_size as capacity */
     int sizeBytes;        /* Number of bytes for size field */
     int sizeMultiplier;   /* A scaling factor if size is not in bytes */
+                          /* Store a COW base image path (possibly relative),
+                           * or NULL if there is no COW base image, to RES;
+                           * return BACKING_STORE_* */
+    int (*getBackingStore)(virConnectPtr conn, char **res,
+                           const unsigned char *buf, size_t buf_size);
 };
 const struct FileTypeInfo const fileTypeInfo[] = {
     /* Bochs */
     /* XXX Untested
     { VIR_STORAGE_VOL_BOCHS, "Bochs Virtual HD Image", NULL,
-      __LITTLE_ENDIAN, 64, 0x20000,
-      32+16+16+4+4+4+4+4, 8, 1 },*/
+      LV_LITTLE_ENDIAN, 64, 0x20000,
+      32+16+16+4+4+4+4+4, 8, 1, NULL },*/
     /* CLoop */
     /* XXX Untested
     { VIR_STORAGE_VOL_CLOOP, "#!/bin/sh\n#V2.0 Format\nmodprobe cloop file=$0 && mount -r -t iso9660 /dev/cloop $1\n", NULL,
-      __LITTLE_ENDIAN, -1, 0,
-      -1, 0, 0 }, */
+      LV_LITTLE_ENDIAN, -1, 0,
+      -1, 0, 0, NULL }, */
     /* Cow */
     { VIR_STORAGE_VOL_FILE_COW, "OOOM", NULL,
-      __BIG_ENDIAN, 4, 2,
-      4+4+1024+4, 8, 1 },
+      LV_BIG_ENDIAN, 4, 2,
+      4+4+1024+4, 8, 1, cowGetBackingStore },
     /* DMG */
     /* XXX QEMU says there's no magic for dmg, but we should check... */
     { VIR_STORAGE_VOL_FILE_DMG, NULL, ".dmg",
       0, -1, 0,
-      -1, 0, 0 },
+      -1, 0, 0, NULL },
     /* XXX there's probably some magic for iso we can validate too... */
     { VIR_STORAGE_VOL_FILE_ISO, NULL, ".iso",
       0, -1, 0,
-      -1, 0, 0 },
+      -1, 0, 0, NULL },
     /* Parallels */
     /* XXX Untested
     { VIR_STORAGE_VOL_FILE_PARALLELS, "WithoutFreeSpace", NULL,
-      __LITTLE_ENDIAN, 16, 2,
-      16+4+4+4+4, 4, 512 },
+      LV_LITTLE_ENDIAN, 16, 2,
+      16+4+4+4+4, 4, 512, NULL },
     */
     /* QCow */
     { VIR_STORAGE_VOL_FILE_QCOW, "QFI", NULL,
-      __BIG_ENDIAN, 4, 1,
-      4+4+8+4+4, 8, 1 },
+      LV_BIG_ENDIAN, 4, 1,
+      4+4+8+4+4, 8, 1, qcowXGetBackingStore },
     /* QCow 2 */
     { VIR_STORAGE_VOL_FILE_QCOW2, "QFI", NULL,
-      __BIG_ENDIAN, 4, 2,
-      4+4+8+4+4, 8, 1 },
+      LV_BIG_ENDIAN, 4, 2,
+      4+4+8+4+4, 8, 1, qcowXGetBackingStore },
     /* VMDK 3 */
     /* XXX Untested
     { VIR_STORAGE_VOL_FILE_VMDK, "COWD", NULL,
-      __LITTLE_ENDIAN, 4, 1,
-      4+4+4, 4, 512 },
+      LV_LITTLE_ENDIAN, 4, 1,
+      4+4+4, 4, 512, NULL },
     */
     /* VMDK 4 */
     { VIR_STORAGE_VOL_FILE_VMDK, "KDMV", NULL,
-      __LITTLE_ENDIAN, 4, 1,
-      4+4+4, 8, 512 },
+      LV_LITTLE_ENDIAN, 4, 1,
+      4+4+4, 8, 512, vmdk4GetBackingStore },
     /* Connectix / VirtualPC */
     /* XXX Untested
     { VIR_STORAGE_VOL_FILE_VPC, "conectix", NULL,
-      __BIG_ENDIAN, -1, 0,
-      -1, 0, 0},
+      LV_BIG_ENDIAN, -1, 0,
+      -1, 0, 0, NULL},
     */
 };
 
+#define VIR_FROM_THIS VIR_FROM_STORAGE
+
+static int
+cowGetBackingStore(virConnectPtr conn,
+                   char **res,
+                   const unsigned char *buf,
+                   size_t buf_size)
+{
+#define COW_FILENAME_MAXLEN 1024
+    *res = NULL;
+    if (buf_size < 4+4+ COW_FILENAME_MAXLEN)
+        return BACKING_STORE_INVALID;
+    if (buf[4+4] == '\0') /* cow_header_v2.backing_file[0] */
+        return BACKING_STORE_OK;
+
+    *res = strndup ((const char*)buf + 4+4, COW_FILENAME_MAXLEN);
+    if (*res == NULL) {
+        virReportOOMError(conn);
+        return BACKING_STORE_ERROR;
+    }
+    return BACKING_STORE_OK;
+}
+
+static int
+qcowXGetBackingStore(virConnectPtr conn,
+                     char **res,
+                     const unsigned char *buf,
+                     size_t buf_size)
+{
+    unsigned long long offset;
+    unsigned long size;
+
+    *res = NULL;
+    if (buf_size < 4+4+8+4)
+        return BACKING_STORE_INVALID;
+    offset = (((unsigned long long)buf[4+4] << 56)
+              | ((unsigned long long)buf[4+4+1] << 48)
+              | ((unsigned long long)buf[4+4+2] << 40)
+              | ((unsigned long long)buf[4+4+3] << 32)
+              | ((unsigned long long)buf[4+4+4] << 24)
+              | ((unsigned long long)buf[4+4+5] << 16)
+              | ((unsigned long long)buf[4+4+6] << 8)
+              | buf[4+4+7]); /* QCowHeader.backing_file_offset */
+    if (offset > buf_size)
+        return BACKING_STORE_INVALID;
+    size = ((buf[4+4+8] << 24)
+            | (buf[4+4+8+1] << 16)
+            | (buf[4+4+8+2] << 8)
+            | buf[4+4+8+3]); /* QCowHeader.backing_file_size */
+    if (size == 0)
+        return BACKING_STORE_OK;
+    if (offset + size > buf_size || offset + size < offset)
+        return BACKING_STORE_INVALID;
+    if (size + 1 == 0)
+        return BACKING_STORE_INVALID;
+    if (VIR_ALLOC_N(*res, size + 1) < 0) {
+        virReportOOMError(conn);
+        return BACKING_STORE_ERROR;
+    }
+    memcpy(*res, buf + offset, size);
+    (*res)[size] = '\0';
+    return BACKING_STORE_OK;
+}
+
+
+static int
+vmdk4GetBackingStore(virConnectPtr conn,
+                     char **res,
+                     const unsigned char *buf,
+                     size_t buf_size)
+{
+    static const char prefix[] = "parentFileNameHint=\"";
+
+    char desc[20*512 + 1], *start, *end;
+    size_t len;
+
+    *res = NULL;
+
+    if (buf_size <= 0x200)
+        return BACKING_STORE_INVALID;
+    len = buf_size - 0x200;
+    if (len > sizeof(desc) - 1)
+        len = sizeof(desc) - 1;
+    memcpy(desc, buf + 0x200, len);
+    desc[len] = '\0';
+    start = strstr(desc, prefix);
+    if (start == NULL)
+        return BACKING_STORE_OK;
+    start += strlen(prefix);
+    end = strchr(start, '"');
+    if (end == NULL)
+        return BACKING_STORE_INVALID;
+    if (end == start)
+        return BACKING_STORE_OK;
+    *end = '\0';
+    *res = strdup(start);
+    if (*res == NULL) {
+        virReportOOMError(conn);
+        return BACKING_STORE_ERROR;
+    }
+    return BACKING_STORE_OK;
+}
+
+/**
+ * Return an absolute path corresponding to PATH, which is absolute or relative
+ * to the directory containing BASE_FILE, or NULL on error
+ */
+static char *absolutePathFromBaseFile(const char *base_file, const char *path)
+{
+    size_t base_size, path_size;
+    char *res, *p;
+
+    if (*path == '/')
+        return strdup(path);
+
+    base_size = strlen(base_file) + 1;
+    path_size = strlen(path) + 1;
+    if (VIR_ALLOC_N(res, base_size - 1 + path_size) < 0)
+        return NULL;
+    memcpy(res, base_file, base_size);
+    p = strrchr(res, '/');
+    if (p != NULL)
+        p++;
+    else
+        p = res;
+    memcpy(p, path, path_size);
+    if (VIR_REALLOC_N(res, (p + path_size) - res) < 0) {
+        /* Ignore failure */
+    }
+    return res;
+}
 
 
 
@@ -128,28 +278,36 @@ const struct FileTypeInfo const fileTypeInfo[] = {
  * Probe the header of a file to determine what type of disk image
  * it is, and info about its capacity if available.
  */
-static int virStorageBackendProbeFile(virConnectPtr conn,
-                                      virStorageVolDefPtr def) {
+static int virStorageBackendProbeTarget(virConnectPtr conn,
+                                        virStorageVolTargetPtr target,
+                                        char **backingStore,
+                                        unsigned long long *allocation,
+                                        unsigned long long *capacity) {
     int fd;
-    unsigned char head[4096];
+    unsigned char head[20*512]; /* vmdk4GetBackingStore needs this much. */
     int len, i, ret;
 
-    if ((fd = open(def->target.path, O_RDONLY)) < 0) {
-        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                              _("cannot open volume '%s': %s"),
-                              def->target.path, strerror(errno));
+    if (backingStore)
+        *backingStore = NULL;
+
+    if ((fd = open(target->path, O_RDONLY)) < 0) {
+        virReportSystemError(conn, errno,
+                             _("cannot open volume '%s'"),
+                             target->path);
         return -1;
     }
 
-    if ((ret = virStorageBackendUpdateVolInfoFD(conn, def, fd, 1)) < 0) {
+    if ((ret = virStorageBackendUpdateVolTargetInfoFD(conn, target, fd,
+                                                      allocation,
+                                                      capacity)) < 0) {
         close(fd);
         return ret; /* Take care to propagate ret, it is not always -1 */
     }
 
     if ((len = read(fd, head, sizeof(head))) < 0) {
-        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                              _("cannot read header '%s': %s"),
-                              def->target.path, strerror(errno));
+        virReportSystemError(conn, errno,
+                             _("cannot read header '%s'"),
+                             target->path);
         close(fd);
         return -1;
     }
@@ -173,7 +331,7 @@ static int virStorageBackendProbeFile(virConnectPtr conn,
         if (fileTypeInfo[i].versionNumber != -1) {
             int version;
 
-            if (fileTypeInfo[i].endian == __LITTLE_ENDIAN) {
+            if (fileTypeInfo[i].endian == LV_LITTLE_ENDIAN) {
                 version = (head[fileTypeInfo[i].versionOffset+3] << 24) |
                     (head[fileTypeInfo[i].versionOffset+2] << 16) |
                     (head[fileTypeInfo[i].versionOffset+1] << 8) |
@@ -189,9 +347,9 @@ static int virStorageBackendProbeFile(virConnectPtr conn,
         }
 
         /* Optionally extract capacity from file */
-        if (fileTypeInfo[i].sizeOffset != -1) {
-            if (fileTypeInfo[i].endian == __LITTLE_ENDIAN) {
-                def->capacity =
+        if (fileTypeInfo[i].sizeOffset != -1 && capacity) {
+            if (fileTypeInfo[i].endian == LV_LITTLE_ENDIAN) {
+                *capacity =
                     ((unsigned long long)head[fileTypeInfo[i].sizeOffset+7] << 56) |
                     ((unsigned long long)head[fileTypeInfo[i].sizeOffset+6] << 48) |
                     ((unsigned long long)head[fileTypeInfo[i].sizeOffset+5] << 40) |
@@ -201,7 +359,7 @@ static int virStorageBackendProbeFile(virConnectPtr conn,
                     ((unsigned long long)head[fileTypeInfo[i].sizeOffset+1] << 8) |
                     ((unsigned long long)head[fileTypeInfo[i].sizeOffset]);
             } else {
-                def->capacity =
+                *capacity =
                     ((unsigned long long)head[fileTypeInfo[i].sizeOffset] << 56) |
                     ((unsigned long long)head[fileTypeInfo[i].sizeOffset+1] << 48) |
                     ((unsigned long long)head[fileTypeInfo[i].sizeOffset+2] << 40) |
@@ -212,13 +370,36 @@ static int virStorageBackendProbeFile(virConnectPtr conn,
                     ((unsigned long long)head[fileTypeInfo[i].sizeOffset+7]);
             }
             /* Avoid unlikely, but theoretically possible overflow */
-            if (def->capacity > (ULLONG_MAX / fileTypeInfo[i].sizeMultiplier))
+            if (*capacity > (ULLONG_MAX / fileTypeInfo[i].sizeMultiplier))
                 continue;
-            def->capacity *= fileTypeInfo[i].sizeMultiplier;
+            *capacity *= fileTypeInfo[i].sizeMultiplier;
         }
 
         /* Validation passed, we know the file format now */
-        def->target.format = fileTypeInfo[i].type;
+        target->format = fileTypeInfo[i].type;
+        if (fileTypeInfo[i].getBackingStore != NULL && backingStore) {
+            char *base;
+
+            switch (fileTypeInfo[i].getBackingStore(conn, &base, head, len)) {
+            case BACKING_STORE_OK:
+                break;
+
+            case BACKING_STORE_INVALID:
+                continue;
+
+            case BACKING_STORE_ERROR:
+                return -1;
+            }
+            if (base != NULL) {
+                *backingStore
+                    = absolutePathFromBaseFile(target->path, base);
+                VIR_FREE(base);
+                if (*backingStore == NULL) {
+                    virReportOOMError(conn);
+                    return -1;
+                }
+            }
+        }
         return 0;
     }
 
@@ -227,19 +408,22 @@ static int virStorageBackendProbeFile(virConnectPtr conn,
         if (fileTypeInfo[i].extension == NULL)
             continue;
 
-        if (!virFileHasSuffix(def->target.path, fileTypeInfo[i].extension))
+        if (!virFileHasSuffix(target->path, fileTypeInfo[i].extension))
             continue;
 
-        def->target.format = fileTypeInfo[i].type;
+        target->format = fileTypeInfo[i].type;
         return 0;
     }
 
     /* All fails, so call it a raw file */
-    def->target.format = VIR_STORAGE_VOL_FILE_RAW;
+    target->format = VIR_STORAGE_VOL_FILE_RAW;
     return 0;
 }
 
 #if WITH_STORAGE_FS
+
+#include <mntent.h>
+
 struct _virNetfsDiscoverState {
     const char *host;
     virStoragePoolSourceList list;
@@ -273,7 +457,7 @@ virStorageBackendFileSystemNetFindPoolSourcesFunc(virConnectPtr conn ATTRIBUTE_U
     }
 
     if (VIR_REALLOC_N(state->list.sources, state->list.nsources+1) < 0) {
-        virStorageReportError(conn, VIR_ERR_NO_MEMORY, NULL);
+        virReportOOMError(conn);
         return -1;
     }
     memset(state->list.sources + state->list.nsources, 0, sizeof(*state->list.sources));
@@ -331,7 +515,7 @@ virStorageBackendFileSystemNetFindPoolSources(virConnectPtr conn,
 
     xpath_ctxt = xmlXPathNewContext(doc);
     if (xpath_ctxt == NULL) {
-        virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("xpath_ctxt"));
+        virReportOOMError(conn);
         goto cleanup;
     }
 
@@ -350,7 +534,7 @@ virStorageBackendFileSystemNetFindPoolSources(virConnectPtr conn,
 
     retval = virStoragePoolSourceListFormat(conn, &state.list);
     if (retval == NULL) {
-        virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("retval"));
+        virReportOOMError(conn);
         goto cleanup;
     }
 
@@ -380,17 +564,18 @@ static int
 virStorageBackendFileSystemIsMounted(virConnectPtr conn,
                                      virStoragePoolObjPtr pool) {
     FILE *mtab;
-    struct mntent *ent;
+    struct mntent ent;
+    char buf[1024];
 
     if ((mtab = fopen(_PATH_MOUNTED, "r")) == NULL) {
-        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                              _("cannot read %s: %s"),
-                              _PATH_MOUNTED, strerror(errno));
+        virReportSystemError(conn, errno,
+                             _("cannot read mount list '%s'"),
+                             _PATH_MOUNTED);
         return -1;
     }
 
-    while ((ent = getmntent(mtab)) != NULL) {
-        if (STREQ(ent->mnt_dir, pool->def->target.path)) {
+    while ((getmntent_r(mtab, &ent, buf, sizeof(buf))) != NULL) {
+        if (STREQ(ent.mnt_dir, pool->def->target.path)) {
             fclose(mtab);
             return 1;
         }
@@ -481,7 +666,7 @@ virStorageBackendFileSystemMount(virConnectPtr conn,
     if (pool->def->type == VIR_STORAGE_POOL_NETFS) {
         if (VIR_ALLOC_N(src, strlen(pool->def->source.host.name) +
                         1 + strlen(pool->def->source.dir) + 1) < 0) {
-            virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("source"));
+            virReportOOMError(conn);
             return -1;
         }
         strcpy(src, pool->def->source.host.name);
@@ -489,7 +674,7 @@ virStorageBackendFileSystemMount(virConnectPtr conn,
         strcat(src, pool->def->source.dir);
     } else {
         if ((src = strdup(pool->def->source.devices[0].path)) == NULL) {
-            virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("source"));
+            virReportOOMError(conn);
             return -1;
         }
     }
@@ -596,10 +781,11 @@ virStorageBackendFileSystemBuild(virConnectPtr conn,
                                  virStoragePoolObjPtr pool,
                                  unsigned int flags ATTRIBUTE_UNUSED)
 {
-    if (virFileMakePath(pool->def->target.path) < 0) {
-        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                              _("cannot create path '%s': %s"),
-                              pool->def->target.path, strerror(errno));
+    int err;
+    if ((err = virFileMakePath(pool->def->target.path)) < 0) {
+        virReportSystemError(conn, err,
+                             _("cannot create path '%s'"),
+                             pool->def->target.path);
         return -1;
     }
 
@@ -621,14 +807,15 @@ virStorageBackendFileSystemRefresh(virConnectPtr conn,
     virStorageVolDefPtr vol = NULL;
 
     if (!(dir = opendir(pool->def->target.path))) {
-        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                              _("cannot open path '%s': %s"),
-                              pool->def->target.path, strerror(errno));
+        virReportSystemError(conn, errno,
+                             _("cannot open path '%s'"),
+                             pool->def->target.path);
         goto cleanup;
     }
 
     while ((ent = readdir(dir)) != NULL) {
         int ret;
+        char *backingStore;
 
         if (VIR_ALLOC(vol) < 0)
             goto no_memory;
@@ -648,7 +835,11 @@ virStorageBackendFileSystemRefresh(virConnectPtr conn,
         if ((vol->key = strdup(vol->target.path)) == NULL)
             goto no_memory;
 
-        if ((ret = virStorageBackendProbeFile(conn, vol) < 0)) {
+        if ((ret = virStorageBackendProbeTarget(conn,
+                                                &vol->target,
+                                                &backingStore,
+                                                &vol->allocation,
+                                                &vol->capacity) < 0)) {
             if (ret == -1)
                 goto no_memory;
             else {
@@ -660,6 +851,48 @@ virStorageBackendFileSystemRefresh(virConnectPtr conn,
             }
         }
 
+        if (backingStore != NULL) {
+            if (vol->target.format == VIR_STORAGE_VOL_FILE_QCOW2 &&
+                STRPREFIX("fmt:", backingStore)) {
+                char *fmtstr = backingStore + 4;
+                char *path = strchr(fmtstr, ':');
+                if (!path) {
+                    VIR_FREE(backingStore);
+                } else {
+                    *path = '\0';
+                    if ((vol->backingStore.format =
+                         virStorageVolFormatFileSystemTypeFromString(fmtstr)) < 0) {
+                        VIR_FREE(backingStore);
+                    } else {
+                        memmove(backingStore, path, strlen(path) + 1);
+                        vol->backingStore.path = backingStore;
+
+                        if (virStorageBackendUpdateVolTargetInfo(conn,
+                                                                 &vol->backingStore,
+                                                                 NULL,
+                                                                 NULL) < 0)
+                            VIR_FREE(vol->backingStore);
+                    }
+                }
+            } else {
+                vol->backingStore.path = backingStore;
+
+                if ((ret = virStorageBackendProbeTarget(conn,
+                                                        &vol->backingStore,
+                                                        NULL, NULL, NULL)) < 0) {
+                    if (ret == -1)
+                        goto no_memory;
+                    else {
+                        /* Silently ignore non-regular files,
+                         * eg '.' '..', 'lost+found' */
+                        VIR_FREE(vol->backingStore);
+                    }
+                }
+            }
+        }
+
+
+
         if (VIR_REALLOC_N(pool->volumes.objs,
                           pool->volumes.count+1) < 0)
             goto no_memory;
@@ -670,9 +903,9 @@ virStorageBackendFileSystemRefresh(virConnectPtr conn,
 
 
     if (statvfs(pool->def->target.path, &sb) < 0) {
-        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                              _("cannot statvfs path '%s': %s"),
-                              pool->def->target.path, strerror(errno));
+        virReportSystemError(conn, errno,
+                             _("cannot statvfs path '%s'"),
+                             pool->def->target.path);
         return -1;
     }
     pool->def->capacity = ((unsigned long long)sb.f_frsize *
@@ -684,7 +917,7 @@ virStorageBackendFileSystemRefresh(virConnectPtr conn,
     return 0;
 
 no_memory:
-    virStorageReportError(conn, VIR_ERR_NO_MEMORY, NULL);
+    virReportOOMError(conn);
     /* fallthrough */
 
  cleanup:
@@ -736,9 +969,9 @@ virStorageBackendFileSystemDelete(virConnectPtr conn,
     /* XXX delete all vols first ? */
 
     if (unlink(pool->def->target.path) < 0) {
-        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                              _("cannot unlink path '%s': %s"),
-                              pool->def->target.path, strerror(errno));
+        virReportSystemError(conn, errno,
+                             _("cannot unlink path '%s'"),
+                             pool->def->target.path);
         return -1;
     }
 
@@ -760,7 +993,7 @@ virStorageBackendFileSystemVolCreate(virConnectPtr conn,
 
     if (VIR_ALLOC_N(vol->target.path, strlen(pool->def->target.path) +
                     1 + strlen(vol->name) + 1) < 0) {
-        virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("target"));
+        virReportOOMError(conn);
         return -1;
     }
     vol->type = VIR_STORAGE_VOL_FILE;
@@ -769,17 +1002,16 @@ virStorageBackendFileSystemVolCreate(virConnectPtr conn,
     strcat(vol->target.path, vol->name);
     vol->key = strdup(vol->target.path);
     if (vol->key == NULL) {
-        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                              "%s", _("storage vol key"));
+        virReportOOMError(conn);
         return -1;
     }
 
     if (vol->target.format == VIR_STORAGE_VOL_FILE_RAW) {
         if ((fd = open(vol->target.path, O_RDWR | O_CREAT | O_EXCL,
                        vol->target.perms.mode)) < 0) {
-            virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                  _("cannot create path '%s': %s"),
-                                  vol->target.path, strerror(errno));
+            virReportSystemError(conn, errno,
+                                 _("cannot create path '%s'"),
+                                 vol->target.path);
             return -1;
         }
 
@@ -794,9 +1026,9 @@ virStorageBackendFileSystemVolCreate(virConnectPtr conn,
                 if (bytes > remain)
                     bytes = remain;
                 if ((bytes = safewrite(fd, zeros, bytes)) < 0) {
-                    virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                          _("cannot fill file '%s': %s"),
-                                          vol->target.path, strerror(errno));
+                    virReportSystemError(conn, errno,
+                                         _("cannot fill file '%s'"),
+                                         vol->target.path);
                     unlink(vol->target.path);
                     close(fd);
                     return -1;
@@ -807,50 +1039,70 @@ virStorageBackendFileSystemVolCreate(virConnectPtr conn,
 
         /* Now seek to final size, possibly making the file sparse */
         if (ftruncate(fd, vol->capacity) < 0) {
-            virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                  _("cannot extend file '%s': %s"),
-                                  vol->target.path, strerror(errno));
+            virReportSystemError(conn, errno,
+                                 _("cannot extend file '%s'"),
+                                 vol->target.path);
             unlink(vol->target.path);
             close(fd);
             return -1;
         }
     } else if (vol->target.format == VIR_STORAGE_VOL_FILE_DIR) {
         if (mkdir(vol->target.path, vol->target.perms.mode) < 0) {
-            virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                  _("cannot create path '%s': %s"),
-                                  vol->target.path, strerror(errno));
+            virReportSystemError(conn, errno,
+                                 _("cannot create path '%s'"),
+                                 vol->target.path);
             return -1;
         }
 
         if ((fd = open(vol->target.path, O_RDWR)) < 0) {
-            virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                  _("cannot read path '%s': %s"),
-                                  vol->target.path, strerror(errno));
+            virReportSystemError(conn, errno,
+                                 _("cannot read path '%s'"),
+                                 vol->target.path);
             return -1;
         }
     } else {
 #if HAVE_QEMU_IMG
-        const char *type;
+        const char *type = virStorageVolFormatFileSystemTypeToString(vol->target.format);
+        const char *backingType = vol->backingStore.path ?
+            virStorageVolFormatFileSystemTypeToString(vol->backingStore.format) : NULL;
         char size[100];
-        const char *imgargv[7];
+        const char **imgargv;
+        const char *imgargvnormal[] = {
+            QEMU_IMG, "create", "-f", type, vol->target.path, size, NULL,
+        };
+        /* XXX including "backingType" here too, once QEMU accepts
+         * the patches to specify it. It'll probably be -F backingType */
+        const char *imgargvbacking[] = {
+            QEMU_IMG, "create", "-f", type, "-b", vol->backingStore.path, vol->target.path, size, NULL,
+        };
 
-        if ((type = virStorageVolFormatFileSystemTypeToString(vol->target.format)) == NULL) {
+        if (type == NULL) {
             virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
                                   _("unknown storage vol type %d"),
                                   vol->target.format);
             return -1;
         }
+        if (vol->backingStore.path == NULL) {
+            imgargv = imgargvnormal;
+        } else {
+            if (backingType == NULL) {
+                virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                                      _("unknown storage vol backing store type %d"),
+                                      vol->backingStore.format);
+                return -1;
+            }
+            if (access(vol->backingStore.path, R_OK) != 0) {
+                virReportSystemError(conn, errno,
+                                     _("inaccessible backing store volume %s"),
+                                     vol->backingStore.path);
+                return -1;
+            }
+
+            imgargv = imgargvbacking;
+        }
 
         /* Size in KB */
         snprintf(size, sizeof(size), "%llu", vol->capacity/1024);
-
-        imgargv[0] = QEMU_IMG;
-        imgargv[1] = "create";
-        imgargv[2] = "-f";
-        imgargv[3] = type;
-        imgargv[4] = vol->target.path;
-        imgargv[5] = size;
-        imgargv[6] = NULL;
 
         if (virRun(conn, imgargv, NULL) < 0) {
             unlink(vol->target.path);
@@ -858,9 +1110,9 @@ virStorageBackendFileSystemVolCreate(virConnectPtr conn,
         }
 
         if ((fd = open(vol->target.path, O_RDONLY)) < 0) {
-            virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                  _("cannot read path '%s': %s"),
-                                  vol->target.path, strerror(errno));
+            virReportSystemError(conn, errno,
+                                 _("cannot read path '%s'"),
+                                 vol->target.path);
             unlink(vol->target.path);
             return -1;
         }
@@ -878,6 +1130,12 @@ virStorageBackendFileSystemVolCreate(virConnectPtr conn,
                                   vol->target.format);
             return -1;
         }
+        if (vol->target.backingStore != NULL) {
+            virStorageReportError(conn, VIR_ERR_NO_SUPPORT,
+                                  _("copy-on-write image not supported with "
+                                    "qcow-create"));
+            return -1;
+        }
 
         /* Size in MB - yes different units to qemu-img :-( */
         snprintf(size, sizeof(size), "%llu", vol->capacity/1024/1024);
@@ -893,9 +1151,9 @@ virStorageBackendFileSystemVolCreate(virConnectPtr conn,
         }
 
         if ((fd = open(vol->target.path, O_RDONLY)) < 0) {
-            virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                  _("cannot read path '%s': %s"),
-                                  vol->target.path, strerror(errno));
+            virReportSystemError(conn, errno,
+                                 _("cannot read path '%s'"),
+                                 vol->target.path);
             unlink(vol->target.path);
             return -1;
         }
@@ -910,34 +1168,36 @@ virStorageBackendFileSystemVolCreate(virConnectPtr conn,
     /* We can only chown/grp if root */
     if (getuid() == 0) {
         if (fchown(fd, vol->target.perms.uid, vol->target.perms.gid) < 0) {
-            virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                  _("cannot set file owner '%s': %s"),
-                                  vol->target.path, strerror(errno));
+            virReportSystemError(conn, errno,
+                                 _("cannot set file owner '%s'"),
+                                 vol->target.path);
             unlink(vol->target.path);
             close(fd);
             return -1;
         }
     }
     if (fchmod(fd, vol->target.perms.mode) < 0) {
-        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                              _("cannot set file mode '%s': %s"),
-                              vol->target.path, strerror(errno));
+        virReportSystemError(conn, errno,
+                             _("cannot set file mode '%s'"),
+                             vol->target.path);
         unlink(vol->target.path);
         close(fd);
         return -1;
     }
 
     /* Refresh allocation / permissions info, but not capacity */
-    if (virStorageBackendUpdateVolInfoFD(conn, vol, fd, 0) < 0) {
+    if (virStorageBackendUpdateVolTargetInfoFD(conn, &vol->target, fd,
+                                               &vol->allocation,
+                                               NULL) < 0) {
         unlink(vol->target.path);
         close(fd);
         return -1;
     }
 
     if (close(fd) < 0) {
-        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                              _("cannot close file '%s': %s"),
-                              vol->target.path, strerror(errno));
+        virReportSystemError(conn, errno,
+                             _("cannot close file '%s'"),
+                             vol->target.path);
         unlink(vol->target.path);
         return -1;
     }
@@ -958,9 +1218,9 @@ virStorageBackendFileSystemVolDelete(virConnectPtr conn,
     if (unlink(vol->target.path) < 0) {
         /* Silently ignore failures where the vol has already gone away */
         if (errno != ENOENT) {
-            virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                  _("cannot unlink file '%s': %s"),
-                                  vol->target.path, strerror(errno));
+            virReportSystemError(conn, errno,
+                                 _("cannot unlink file '%s'"),
+                                 vol->target.path);
             return -1;
         }
     }

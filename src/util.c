@@ -32,8 +32,10 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <poll.h>
+#include <time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
 #if HAVE_SYS_WAIT_H
 #include <sys/wait.h>
 #endif
@@ -47,6 +49,10 @@
 #ifdef HAVE_PATHS_H
 #include <paths.h>
 #endif
+#include <netdb.h>
+#ifdef HAVE_GETPWUID_R
+#include <pwd.h>
+#endif
 
 #include "virterror_internal.h"
 #include "logging.h"
@@ -54,6 +60,7 @@
 #include "buf.h"
 #include "util.h"
 #include "memory.h"
+#include "threads.h"
 
 #ifndef NSIG
 # define NSIG 32
@@ -65,6 +72,7 @@
 
 #define virLog(msg...) fprintf(stderr, msg)
 
+#define VIR_FROM_THIS VIR_FROM_NONE
 
 #define ReportError(conn, code, fmt...)                                      \
         virReportErrorHelper(conn, VIR_FROM_NONE, code, __FILE__,          \
@@ -154,8 +162,28 @@ virArgvToString(const char *const *argv)
     return ret;
 }
 
+int virSetNonBlock(int fd) {
+#ifndef WIN32
+    int flags;
+    if ((flags = fcntl(fd, F_GETFL)) < 0)
+        return -1;
+    flags |= O_NONBLOCK;
+    if ((fcntl(fd, F_SETFL, flags)) < 0)
+        return -1;
+#else
+    unsigned long flag = 1;
 
-#ifndef __MINGW32__
+    /* This is actually Gnulib's replacement rpl_ioctl function.
+     * We can't call ioctlsocket directly in any case.
+     */
+    if (ioctl (fd, FIONBIO, (void *) &flag) == -1)
+        return -1;
+#endif
+    return 0;
+}
+
+
+#ifndef WIN32
 
 static int virSetCloseExec(int fd) {
     int flags;
@@ -167,25 +195,16 @@ static int virSetCloseExec(int fd) {
     return 0;
 }
 
-static int virSetNonBlock(int fd) {
-    int flags;
-    if ((flags = fcntl(fd, F_GETFL)) < 0)
-        return -1;
-    flags |= O_NONBLOCK;
-    if ((fcntl(fd, F_SETFL, flags)) < 0)
-        return -1;
-    return 0;
-}
-
 static int
 __virExec(virConnectPtr conn,
           const char *const*argv,
           const char *const*envp,
           const fd_set *keepfd,
-          int *retpid,
+          pid_t *retpid,
           int infd, int *outfd, int *errfd,
           int flags) {
-    int pid, null, i, openmax;
+    pid_t pid;
+    int null, i, openmax;
     int pipeout[2] = {-1,-1};
     int pipeerr[2] = {-1,-1};
     int childout = -1;
@@ -199,37 +218,36 @@ __virExec(virConnectPtr conn,
      */
     sigfillset(&newmask);
     if (pthread_sigmask(SIG_SETMASK, &newmask, &oldmask) != 0) {
-        ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                    _("cannot block signals: %s"),
-                    strerror(errno));
+        virReportSystemError(conn, errno,
+                             "%s", _("cannot block signals"));
         return -1;
     }
 
-    if ((null = open(_PATH_DEVNULL, O_RDONLY)) < 0) {
-        ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                    _("cannot open %s: %s"),
-                    _PATH_DEVNULL, strerror(errno));
+    if ((null = open("/dev/null", O_RDONLY)) < 0) {
+        virReportSystemError(conn, errno,
+                             _("cannot open %s"),
+                             "/dev/null");
         goto cleanup;
     }
 
     if (outfd != NULL) {
         if (*outfd == -1) {
             if (pipe(pipeout) < 0) {
-                ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                            _("cannot create pipe: %s"), strerror(errno));
+                virReportSystemError(conn, errno,
+                                     "%s", _("cannot create pipe"));
                 goto cleanup;
             }
 
             if ((flags & VIR_EXEC_NONBLOCK) &&
                 virSetNonBlock(pipeout[0]) == -1) {
-                ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                            "%s", _("Failed to set non-blocking file descriptor flag"));
+                virReportSystemError(conn, errno,
+                                     "%s", _("Failed to set non-blocking file descriptor flag"));
                 goto cleanup;
             }
 
             if (virSetCloseExec(pipeout[0]) == -1) {
-                ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                            "%s", _("Failed to set close-on-exec file descriptor flag"));
+                virReportSystemError(conn, errno,
+                                     "%s", _("Failed to set close-on-exec file descriptor flag"));
                 goto cleanup;
             }
 
@@ -246,21 +264,21 @@ __virExec(virConnectPtr conn,
     if (errfd != NULL) {
         if (*errfd == -1) {
             if (pipe(pipeerr) < 0) {
-                ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                            _("Failed to create pipe: %s"), strerror(errno));
+                virReportSystemError(conn, errno,
+                                     "%s", _("Failed to create pipe"));
                 goto cleanup;
             }
 
             if ((flags & VIR_EXEC_NONBLOCK) &&
                 virSetNonBlock(pipeerr[0]) == -1) {
-                ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                            "%s", _("Failed to set non-blocking file descriptor flag"));
+                virReportSystemError(conn, errno,
+                                     "%s", _("Failed to set non-blocking file descriptor flag"));
                 goto cleanup;
             }
 
             if (virSetCloseExec(pipeerr[0]) == -1) {
-                ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                            "%s", _("Failed to set close-on-exec file descriptor flag"));
+                virReportSystemError(conn, errno,
+                                     "%s", _("Failed to set close-on-exec file descriptor flag"));
                 goto cleanup;
             }
 
@@ -275,8 +293,8 @@ __virExec(virConnectPtr conn,
     }
 
     if ((pid = fork()) < 0) {
-        ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                    _("cannot fork child process: %s"), strerror(errno));
+        virReportSystemError(conn, errno,
+                             "%s", _("cannot fork child process"));
         goto cleanup;
     }
 
@@ -294,9 +312,8 @@ __virExec(virConnectPtr conn,
         /* Restore our original signal mask now child is safely
            running */
         if (pthread_sigmask(SIG_SETMASK, &oldmask, NULL) != 0) {
-            ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                        _("cannot unblock signals: %s"),
-                        strerror(errno));
+            virReportSystemError(conn, errno,
+                                 "%s", _("cannot unblock signals"));
             return -1;
         }
 
@@ -332,9 +349,8 @@ __virExec(virConnectPtr conn,
        and don't want to propagate that to children */
     sigemptyset(&newmask);
     if (pthread_sigmask(SIG_SETMASK, &newmask, NULL) != 0) {
-        ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                    _("cannot unblock signals: %s"),
-                    strerror(errno));
+        virReportSystemError(conn, errno,
+                             "%s", _("cannot unblock signals"));
         return -1;
     }
 
@@ -350,24 +366,21 @@ __virExec(virConnectPtr conn,
 
     if (flags & VIR_EXEC_DAEMON) {
         if (setsid() < 0) {
-            ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                        _("cannot become session leader: %s"),
-                        strerror(errno));
+            virReportSystemError(conn, errno,
+                                 "%s", _("cannot become session leader"));
             _exit(1);
         }
 
         if (chdir("/") < 0) {
-            ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                        _("cannot change to root directory: %s"),
-                        strerror(errno));
+            virReportSystemError(conn, errno,
+                                 "%s", _("cannot change to root directory: %s"));
             _exit(1);
         }
 
         pid = fork();
         if (pid < 0) {
-            ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                        _("cannot fork child process: %s"),
-                        strerror(errno));
+            virReportSystemError(conn, errno,
+                                 "%s", _("cannot fork child process"));
             _exit(1);
         }
 
@@ -377,23 +390,25 @@ __virExec(virConnectPtr conn,
 
 
     if (dup2(infd >= 0 ? infd : null, STDIN_FILENO) < 0) {
-        ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                    _("failed to setup stdin file handle: %s"), strerror(errno));
+        virReportSystemError(conn, errno,
+                             "%s", _("failed to setup stdin file handle"));
         _exit(1);
     }
     if (childout > 0 &&
         dup2(childout, STDOUT_FILENO) < 0) {
-        ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                    _("failed to setup stdout file handle: %s"), strerror(errno));
+        virReportSystemError(conn, errno,
+                             "%s", _("failed to setup stdout file handle"));
         _exit(1);
     }
     if (childerr > 0 &&
         dup2(childerr, STDERR_FILENO) < 0) {
-        ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                    _("failed to setup stderr file handle: %s"), strerror(errno));
+        virReportSystemError(conn, errno,
+                             "%s", _("failed to setup stderr file handle"));
         _exit(1);
     }
 
+    if (infd > 0)
+        close(infd);
     close(null);
     if (childout > 0)
         close(childout);
@@ -406,9 +421,9 @@ __virExec(virConnectPtr conn,
     else
         execvp(argv[0], (char **) argv);
 
-    ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                _("cannot execute binary '%s': %s"),
-                argv[0], strerror(errno));
+    virReportSystemError(conn, errno,
+                         _("cannot execute binary %s"),
+                         argv[0]);
 
     _exit(1);
 
@@ -439,13 +454,13 @@ virExec(virConnectPtr conn,
         const char *const*argv,
         const char *const*envp,
         const fd_set *keepfd,
-        int *retpid,
+        pid_t *retpid,
         int infd, int *outfd, int *errfd,
         int flags) {
     char *argv_str;
 
     if ((argv_str = virArgvToString(argv)) == NULL) {
-        ReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("command debug string"));
+        virReportOOMError(conn);
         return -1;
     }
     DEBUG0(argv_str);
@@ -473,7 +488,7 @@ virPipeReadUntilEOF(virConnectPtr conn, int outfd, int errfd,
     while(!(finished[0] && finished[1])) {
 
         if (poll(fds, ARRAY_CARDINALITY(fds), -1) < 0) {
-            if (errno == EAGAIN)
+            if ((errno == EAGAIN) || (errno == EINTR))
                 continue;
             goto pollerr;
         }
@@ -513,7 +528,7 @@ virPipeReadUntilEOF(virConnectPtr conn, int outfd, int errfd,
             buf = ((fds[i].fd == outfd) ? outbuf : errbuf);
             size = (*buf ? strlen(*buf) : 0);
             if (VIR_REALLOC_N(*buf, size+got+1) < 0) {
-                ReportError(conn, VIR_ERR_NO_MEMORY, NULL);
+                virReportOOMError(conn);
                 goto error;
             }
             memmove(*buf+size, data, got);
@@ -522,8 +537,8 @@ virPipeReadUntilEOF(virConnectPtr conn, int outfd, int errfd,
         continue;
 
     pollerr:
-        ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                    _("poll error: %s"), strerror(errno));
+        virReportSystemError(conn, errno,
+                             "%s", _("poll error"));
         goto error;
     }
 
@@ -554,7 +569,8 @@ int
 virRun(virConnectPtr conn,
        const char *const*argv,
        int *status) {
-    int childpid, exitstatus, execret, waitret;
+    pid_t childpid;
+    int exitstatus, execret, waitret;
     int ret = -1;
     int errfd = -1, outfd = -1;
     char *outbuf = NULL;
@@ -562,7 +578,7 @@ virRun(virConnectPtr conn,
     char *argv_str = NULL;
 
     if ((argv_str = virArgvToString(argv)) == NULL) {
-        ReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("command debug string"));
+        virReportOOMError(conn);
         goto error;
     }
     DEBUG0(argv_str);
@@ -585,16 +601,15 @@ virRun(virConnectPtr conn,
     while ((waitret = waitpid(childpid, &exitstatus, 0) == -1) &&
             errno == EINTR);
     if (waitret == -1) {
-        ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                    _("cannot wait for '%s': %s"),
-                    argv[0], strerror(errno));
+        virReportSystemError(conn, errno,
+                             _("cannot wait for '%s'"),
+                             argv[0]);
         goto error;
     }
 
     if (status == NULL) {
         errno = EINVAL;
         if (WIFEXITED(exitstatus) && WEXITSTATUS(exitstatus) != 0) {
-
             ReportError(conn, VIR_ERR_INTERNAL_ERROR,
                         _("'%s' exited with non-zero status %d and "
                           "signal %d: %s"), argv_str,
@@ -918,6 +933,14 @@ int virFileOpenTty(int *ttymaster ATTRIBUTE_UNUSED,
 #endif
 
 
+char* virFilePid(const char *dir, const char* name)
+{
+    char *pidfile;
+    virAsprintf(&pidfile, "%s/%s.pid", dir, name);
+    return pidfile;
+}
+
+
 int virFileWritePid(const char *dir,
                     const char *name,
                     pid_t pid)
@@ -930,7 +953,7 @@ int virFileWritePid(const char *dir,
     if ((rc = virFileMakePath(dir)))
         goto cleanup;
 
-    if (asprintf(&pidfile, "%s/%s.pid", dir, name) < 0) {
+    if (!(pidfile = virFilePid(dir, name))) {
         rc = ENOMEM;
         goto cleanup;
     }
@@ -973,7 +996,8 @@ int virFileReadPid(const char *dir,
     FILE *file;
     char *pidfile = NULL;
     *pid = 0;
-    if (asprintf(&pidfile, "%s/%s.pid", dir, name) < 0) {
+
+    if (!(pidfile = virFilePid(dir, name))) {
         rc = ENOMEM;
         goto cleanup;
     }
@@ -1006,8 +1030,8 @@ int virFileDeletePid(const char *dir,
     int rc = 0;
     char *pidfile = NULL;
 
-    if (asprintf(&pidfile, "%s/%s.pid", dir, name) < 0) {
-        rc = errno;
+    if (!(pidfile = virFilePid(dir, name))) {
+        rc = ENOMEM;
         goto cleanup;
     }
 
@@ -1019,6 +1043,7 @@ cleanup:
     return rc;
 }
 
+#endif /* PROXY */
 
 
 /* Like strtol, but produce an "int" result, and check more carefully.
@@ -1101,7 +1126,6 @@ virStrToLong_ull(char const *s, char **end_ptr, int base, unsigned long long *re
     *result = val;
     return 0;
 }
-#endif /* PROXY */
 
 /**
  * virSkipSpaces:
@@ -1151,6 +1175,26 @@ virParseNumber(const char **str)
     }
     *str = cur;
     return (ret);
+}
+
+/**
+ * virAsprintf
+ *
+ * like glibc's_asprintf but makes sure *strp == NULL on failure
+ */
+int
+virAsprintf(char **strp, const char *fmt, ...)
+{
+    va_list ap;
+    int ret;
+
+    va_start(ap, fmt);
+
+    if ((ret = vasprintf(strp, fmt, ap)) == -1)
+        *strp = NULL;
+
+    va_end(ap);
+    return ret;
 }
 
 /* Compare two MAC addresses, ignoring differences in case,
@@ -1245,9 +1289,9 @@ void virGenerateMacAddr(const unsigned char *prefix,
     addr[0] = prefix[0];
     addr[1] = prefix[1];
     addr[2] = prefix[2];
-    addr[3] = (int)(256*(rand()/(RAND_MAX+1.0)));
-    addr[4] = (int)(256*(rand()/(RAND_MAX+1.0)));
-    addr[5] = (int)(256*(rand()/(RAND_MAX+1.0)));
+    addr[3] = virRandom(256);
+    addr[4] = virRandom(256);
+    addr[5] = virRandom(256);
 }
 
 
@@ -1306,3 +1350,162 @@ int virDiskNameToIndex(const char *name) {
 
     return idx;
 }
+
+#ifndef AI_CANONIDN
+#define AI_CANONIDN 0
+#endif
+
+char *virGetHostname(void)
+{
+    int r;
+    char hostname[HOST_NAME_MAX+1], *result;
+    struct addrinfo hints, *info;
+
+    r = gethostname (hostname, sizeof(hostname));
+    if (r == -1)
+        return NULL;
+    NUL_TERMINATE(hostname);
+
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_flags = AI_CANONNAME|AI_CANONIDN;
+    hints.ai_family = AF_UNSPEC;
+    r = getaddrinfo(hostname, NULL, &hints, &info);
+    if (r != 0)
+        return NULL;
+    if (info->ai_canonname == NULL) {
+        freeaddrinfo(info);
+        return NULL;
+    }
+
+    /* Caller frees this string. */
+    result = strdup (info->ai_canonname);
+    freeaddrinfo(info);
+    return result;
+}
+
+/* send signal to a single process */
+int virKillProcess(pid_t pid, int sig)
+{
+    if (pid < 1) {
+        errno = ESRCH;
+        return -1;
+    }
+
+#ifdef WIN32
+    /* Mingw / Windows don't have many signals (AFAIK) */
+    switch (sig) {
+    case SIGINT:
+        /* This does a Ctrl+C equiv */
+        if (!GenerateConsoleCtrlEvent(CTRL_C_EVENT, pid)) {
+            errno = ESRCH;
+            return -1;
+        }
+        break;
+
+    case SIGTERM:
+        /* Since TerminateProcess is closer to SIG_KILL, we do
+         * a Ctrl+Break equiv which is more pleasant like the
+         * good old unix SIGTERM/HUP
+         */
+        if (!GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, pid)) {
+            errno = ESRCH;
+            return -1;
+        }
+        break;
+
+    default:
+    {
+        HANDLE proc;
+        proc = OpenProcess(PROCESS_TERMINATE, FALSE, pid);
+        if (!proc) {
+            errno = ESRCH; /* Not entirely accurate, but close enough */
+            return -1;
+        }
+
+        /*
+         * TerminateProcess is more or less equiv to SIG_KILL, in that
+         * a process can't trap / block it
+         */
+        if (!TerminateProcess(proc, sig)) {
+            errno = ESRCH;
+            return -1;
+        }
+        CloseHandle(proc);
+    }
+    }
+    return 0;
+#else
+    return kill(pid, sig);
+#endif
+}
+
+
+static char randomState[128];
+static struct random_data randomData;
+static virMutex randomLock;
+
+int virRandomInitialize(unsigned int seed)
+{
+    if (virMutexInit(&randomLock) < 0)
+        return -1;
+
+    if (initstate_r(seed,
+                    randomState,
+                    sizeof(randomState),
+                    &randomData) < 0)
+        return -1;
+
+    return 0;
+}
+
+int virRandom(int max)
+{
+    int32_t ret;
+
+    virMutexLock(&randomLock);
+    random_r(&randomData, &ret);
+    virMutexUnlock(&randomLock);
+
+    return (int) ((double)max * ((double)ret / (double)RAND_MAX));
+}
+
+
+#ifdef HAVE_GETPWUID_R
+char *virGetUserDirectory(virConnectPtr conn,
+                          uid_t uid)
+{
+    char *strbuf;
+    char *ret;
+    struct passwd pwbuf;
+    struct passwd *pw = NULL;
+    size_t strbuflen = sysconf(_SC_GETPW_R_SIZE_MAX);
+
+    if (VIR_ALLOC_N(strbuf, strbuflen) < 0) {
+        virReportOOMError(conn);
+        return NULL;
+    }
+
+    /*
+     * From the manpage (terrifying but true):
+     *
+     * ERRORS
+     *  0 or ENOENT or ESRCH or EBADF or EPERM or ...
+     *        The given name or uid was not found.
+     */
+    if (getpwuid_r(uid, &pwbuf, strbuf, strbuflen, &pw) != 0 || pw == NULL) {
+        virReportSystemError(conn, errno,
+                             _("Failed to find user record for uid '%d'"),
+                             uid);
+        VIR_FREE(strbuf);
+        return NULL;
+    }
+
+    ret = strdup(pw->pw_dir);
+
+    VIR_FREE(strbuf);
+    if (!ret)
+        virReportOOMError(conn);
+
+    return ret;
+}
+#endif

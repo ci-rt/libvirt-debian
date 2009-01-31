@@ -1,13 +1,11 @@
 /*
  * utils.c: test utils
  *
- * Copyright (C) 2005 Red Hat, Inc.
+ * Copyright (C) 2005, 2008 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
  * Karel Zak <kzak@redhat.com>
- *
- * $Id: testutils.h,v 1.9 2008/08/20 20:48:36 berrange Exp $
  */
 
 #ifndef __VIT_TEST_UTILS_H__

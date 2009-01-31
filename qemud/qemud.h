@@ -45,6 +45,8 @@
 #include <rpc/types.h>
 #include <rpc/xdr.h>
 #include "remote_protocol.h"
+#include "logging.h"
+#include "threads.h"
 
 #ifdef __GNUC__
 #ifdef HAVE_ANSIDECL_H
@@ -61,22 +63,7 @@
 #define ATTRIBUTE_FORMAT(...)
 #endif
 
-typedef enum {
-    QEMUD_ERR,
-    QEMUD_WARN,
-    QEMUD_INFO,
-#ifdef ENABLE_DEBUG
-    QEMUD_DEBUG
-#endif
-} qemudLogPriority;
-
-
-enum qemud_mode {
-    QEMUD_MODE_RX_HEADER,
-    QEMUD_MODE_RX_PAYLOAD,
-    QEMUD_MODE_TX_PACKET,
-    QEMUD_MODE_TLS_HANDSHAKE,
-};
+#define qemudDebug DEBUG
 
 /* Whether we're passing reads & writes through a sasl SSF */
 enum qemud_sasl_ssf {
@@ -91,14 +78,26 @@ enum qemud_sock_type {
     QEMUD_SOCK_TYPE_TLS = 2,
 };
 
+struct qemud_client_message {
+    char buffer [REMOTE_MESSAGE_MAX + REMOTE_MESSAGE_HEADER_XDR_LEN];
+    unsigned int bufferLength;
+    unsigned int bufferOffset;
+
+    int async : 1;
+
+    struct qemud_client_message *next;
+};
+
 /* Stores the per-client connection state */
 struct qemud_client {
+    virMutex lock;
+
     int magic;
 
     int fd;
     int watch;
-    int readonly;
-    enum qemud_mode mode;
+    int readonly:1;
+    int closing:1;
 
     struct sockaddr_storage addr;
     socklen_t addrlen;
@@ -106,6 +105,7 @@ struct qemud_client {
     int type; /* qemud_sock_type */
     gnutls_session_t tlssession;
     int auth;
+    int handshake : 1; /* If we're in progress for TLS handshake */
 #if HAVE_SASL
     sasl_conn_t *saslconn;
     int saslSSF;
@@ -118,23 +118,30 @@ struct qemud_client {
     char *saslUsername;
 #endif
 
-    unsigned int incomingSerial;
-    unsigned int outgoingSerial;
-
-    char buffer [REMOTE_MESSAGE_MAX];
-    unsigned int bufferLength;
-    unsigned int bufferOffset;
+    /* Count of meages in 'dx' or 'tx' queue
+     * ie RPC calls in progress. Does not count
+     * async events which are not used for
+     * throttling calculations */
+    int nrequests;
+    /* Zero or one messages being received. Zero if
+     * nrequests >= max_clients and throttling */
+    struct qemud_client_message *rx;
+    /* Zero or many messages waiting for a worker
+     * to process them */
+    struct qemud_client_message *dx;
+    /* Zero or many messages waiting for transmit
+     * back to client, including async events */
+    struct qemud_client_message *tx;
 
     /* This is only valid if a remote open call has been made on this
      * connection, otherwise it will be NULL.  Also if remote close is
      * called, it will be set back to NULL if that succeeds.
      */
     virConnectPtr conn;
+    int refs;
 
     /* back-pointer to our server */
     struct qemud_server *server;
-
-    struct qemud_client *next;
 };
 
 #define QEMUD_CLIENT_MAGIC 0x7788aaee
@@ -150,12 +157,29 @@ struct qemud_socket {
     struct qemud_socket *next;
 };
 
+struct qemud_worker {
+    pthread_t thread;
+    int hasThread :1;
+    int processingCall :1;
+    int quitRequest : 1;
+
+    /* back-pointer to our server */
+    struct qemud_server *server;
+};
+
 /* Main server state */
 struct qemud_server {
+    virMutex lock;
+    virCond job;
+
+    int nworkers;
+    int nactiveworkers;
+    struct qemud_worker *workers;
     int nsockets;
     struct qemud_socket *sockets;
     int nclients;
-    struct qemud_client *clients;
+    struct qemud_client **clients;
+
     int sigread;
     char logDir[PATH_MAX];
     unsigned int shutdown : 1;
@@ -173,26 +197,34 @@ struct qemud_server {
 void qemudLog(int priority, const char *fmt, ...)
     ATTRIBUTE_FORMAT(printf,2,3);
 
-#ifdef ENABLE_DEBUG
-#define qemudDebug(...) qemudLog(QEMUD_DEBUG, __VA_ARGS__)
-#else
-#define qemudDebug(fmt, ...) do {} while(0)
-#endif
 
-void remoteDispatchClientRequest (struct qemud_server *server,
-                                  struct qemud_client *client);
+int qemudSetCloseExec(int fd);
+int qemudSetNonBlock(int fd);
 
-void qemudDispatchClientWrite(struct qemud_server *server,
-                             struct qemud_client *client);
+int
+remoteDispatchClientRequest (struct qemud_server *server,
+                             struct qemud_client *client,
+                             struct qemud_client_message *req);
 
-#if HAVE_POLKIT
-int qemudGetSocketIdentity(int fd, uid_t *uid, pid_t *pid);
-#endif
+int qemudRegisterClientEvent(struct qemud_server *server,
+                             struct qemud_client *client,
+                             int update);
+
+void qemudDispatchClientFailure(struct qemud_client *client);
+
+void
+qemudClientMessageQueuePush(struct qemud_client_message **queue,
+                            struct qemud_client_message *msg);
 
 int remoteRelayDomainEvent (virConnectPtr conn ATTRIBUTE_UNUSED,
                             virDomainPtr dom,
                             int event,
                             int detail,
                             void *opaque);
+
+
+#if HAVE_POLKIT
+int qemudGetSocketIdentity(int fd, uid_t *uid, pid_t *pid);
+#endif
 
 #endif

@@ -270,6 +270,7 @@
     <function name="virConnectOpen ()" link="libvirt-libvirt.html#virConnectOpen"/>
     <function name="virConnectOpenAuth ()" link="libvirt-libvirt.html#virConnectOpenAuth"/>
     <function name="virConnectOpenReadOnly ()" link="libvirt-libvirt.html#virConnectOpenReadOnly"/>
+    <function name="virConnectRef ()" link="libvirt-libvirt.html#virConnectRef"/>
     <function name="virCopyLastError ()" link="libvirt-virterror.html#virCopyLastError"/>
     <function name="virDefaultErrorFunc ()" link="libvirt-virterror.html#virDefaultErrorFunc"/>
     <function name="virDomainAttachDevice ()" link="libvirt-libvirt.html#virDomainAttachDevice"/>
@@ -306,6 +307,7 @@
     <function name="virDomainMigrate ()" link="libvirt-libvirt.html#virDomainMigrate"/>
     <function name="virDomainPinVcpu ()" link="libvirt-libvirt.html#virDomainPinVcpu"/>
     <function name="virDomainReboot ()" link="libvirt-libvirt.html#virDomainReboot"/>
+    <function name="virDomainRef ()" link="libvirt-libvirt.html#virDomainRef"/>
     <function name="virDomainRestore ()" link="libvirt-libvirt.html#virDomainRestore"/>
     <function name="virDomainResume ()" link="libvirt-libvirt.html#virDomainResume"/>
     <function name="virDomainSave ()" link="libvirt-libvirt.html#virDomainSave"/>
@@ -336,6 +338,7 @@
     <function name="virNetworkLookupByName ()" link="libvirt-libvirt.html#virNetworkLookupByName"/>
     <function name="virNetworkLookupByUUID ()" link="libvirt-libvirt.html#virNetworkLookupByUUID"/>
     <function name="virNetworkLookupByUUIDString ()" link="libvirt-libvirt.html#virNetworkLookupByUUIDString"/>
+    <function name="virNetworkRef ()" link="libvirt-libvirt.html#virNetworkRef"/>
     <function name="virNetworkSetAutostart ()" link="libvirt-libvirt.html#virNetworkSetAutostart"/>
     <function name="virNetworkUndefine ()" link="libvirt-libvirt.html#virNetworkUndefine"/>
     <function name="virNodeDeviceFree ()" link="libvirt-libvirt.html#virNodeDeviceFree"/>
@@ -345,6 +348,7 @@
     <function name="virNodeDeviceListCaps ()" link="libvirt-libvirt.html#virNodeDeviceListCaps"/>
     <function name="virNodeDeviceLookupByName ()" link="libvirt-libvirt.html#virNodeDeviceLookupByName"/>
     <function name="virNodeDeviceNumOfCaps ()" link="libvirt-libvirt.html#virNodeDeviceNumOfCaps"/>
+    <function name="virNodeDeviceRef ()" link="libvirt-libvirt.html#virNodeDeviceRef"/>
     <function name="virNodeGetCellsFreeMemory ()" link="libvirt-libvirt.html#virNodeGetCellsFreeMemory"/>
     <function name="virNodeGetFreeMemory ()" link="libvirt-libvirt.html#virNodeGetFreeMemory"/>
     <function name="virNodeGetInfo ()" link="libvirt-libvirt.html#virNodeGetInfo"/>
@@ -373,6 +377,7 @@
     <function name="virStoragePoolLookupByUUIDString ()" link="libvirt-libvirt.html#virStoragePoolLookupByUUIDString"/>
     <function name="virStoragePoolLookupByVolume ()" link="libvirt-libvirt.html#virStoragePoolLookupByVolume"/>
     <function name="virStoragePoolNumOfVolumes ()" link="libvirt-libvirt.html#virStoragePoolNumOfVolumes"/>
+    <function name="virStoragePoolRef ()" link="libvirt-libvirt.html#virStoragePoolRef"/>
     <function name="virStoragePoolRefresh ()" link="libvirt-libvirt.html#virStoragePoolRefresh"/>
     <function name="virStoragePoolSetAutostart ()" link="libvirt-libvirt.html#virStoragePoolSetAutostart"/>
     <function name="virStoragePoolUndefine ()" link="libvirt-libvirt.html#virStoragePoolUndefine"/>
@@ -388,5 +393,6 @@
     <function name="virStorageVolLookupByKey ()" link="libvirt-libvirt.html#virStorageVolLookupByKey"/>
     <function name="virStorageVolLookupByName ()" link="libvirt-libvirt.html#virStorageVolLookupByName"/>
     <function name="virStorageVolLookupByPath ()" link="libvirt-libvirt.html#virStorageVolLookupByPath"/>
+    <function name="virStorageVolRef ()" link="libvirt-libvirt.html#virStorageVolRef"/>
   </functions>
 </book>
