@@ -23,6 +23,15 @@ case "$1" in
     	if ! getent group libvirt >/dev/null; then
     		addgroup --system libvirt
 	fi
+
+	# libvirt from 0.6.0 on is safe to restart with running vms:
+	if [ -n "$2" ] &&  dpkg --compare-versions "$2" ge 0.6.0; then
+	    if [ -x "`which invoke-rc.d 2>/dev/null`" ]; then
+                invoke-rc.d libvirt-bin stop
+            else
+                /etc/init.d/libvirt-bin stop
+            fi
+	fi
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
