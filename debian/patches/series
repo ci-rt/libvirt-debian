@@ -2,3 +2,4 @@
 0002-qemu-disable-network.diff.patch
 0003-allow-libvirt-group-to-access-the-socket.patch
 0004-Don-t-hardcode-ssh-port.patch
+0005-minimal-workaround-for-qemu-startup-race.patch
