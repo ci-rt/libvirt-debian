@@ -7,7 +7,7 @@ Subject: [PATCH] allow libvirt group to access the socket
  1 files changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/qemud/libvirtd.conf b/qemud/libvirtd.conf
-index a12a897..804fe07 100644
+index 4932084..2e9b3f6 100644
 --- a/qemud/libvirtd.conf
 +++ b/qemud/libvirtd.conf
 @@ -78,7 +78,7 @@
