@@ -1,3 +1,20 @@
+libvirt (0.6.0-1) experimental; urgency=low
+
+  * [30be86d] Imported Upstream version 0.6.0
+  * [179781c] drop patches
+          * fixed upstream:
+                0006-Fix-missing-read-only-access-checks-CVE-2008-5086.patch
+          * applied upstream:
+                0004-Open-qemu-monitor-log-O_APPEND-instead-of-O_TRUNC.patch
+                0005-qemu-fix-parallel-serial-mode-tcp-and-unix.patch
+                0007-don-t-fail-on-missing-locales.patch
+  * [d80a176] adjust remaining patches to new upstream version
+  * [208c924] add minimal workaround for qemu startup race
+  * [6e8caa0] restart libvirt daemon on upgrades if possible 
+    (Closes: #492694, #499008)
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 05 Feb 2009 18:40:10 +0100
+
 libvirt (0.5.1-5) experimental; urgency=low
 
   * [d4a69d1] don't fail on missing locales (Closes: #512721)
