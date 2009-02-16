@@ -1,3 +1,9 @@
+libvirt (0.5.1-6) unstable; urgency=low
+
+  * upload to unstable
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 16 Feb 2009 21:27:21 +0100
+
 libvirt (0.5.1-5) experimental; urgency=low
 
   * [d4a69d1] don't fail on missing locales (Closes: #512721)
