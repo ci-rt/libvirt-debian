@@ -34,7 +34,7 @@
 #include <unistd.h>
 #include <dirent.h>
 
-#include "internal.h"
+#include "virterror_internal.h"
 #include "storage_backend_iscsi.h"
 #include "util.h"
 #include "memory.h"
@@ -178,6 +178,8 @@ virStorageBackendISCSINewLun(virConnectPtr conn, virStoragePoolObjPtr pool,
         goto cleanup;
     }
 
+    vol->type = VIR_STORAGE_VOL_BLOCK;
+
     if (asprintf(&(vol->name), "lun-%d", lun) < 0) {
         virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("name"));
         goto cleanup;
@@ -219,8 +221,7 @@ virStorageBackendISCSINewLun(virConnectPtr conn, virStoragePoolObjPtr pool,
                                                         devpath)) == NULL)
         goto cleanup;
 
-    if (devpath != vol->target.path)
-        VIR_FREE(devpath);
+    VIR_FREE(devpath);
 
     if (virStorageBackendUpdateVolInfoFD(conn, vol, fd, 1) < 0)
         goto cleanup;
@@ -236,9 +237,12 @@ virStorageBackendISCSINewLun(virConnectPtr conn, virStoragePoolObjPtr pool,
     pool->def->capacity += vol->capacity;
     pool->def->allocation += vol->allocation;
 
-    vol->next = pool->volumes;
-    pool->volumes = vol;
-    pool->nvolumes++;
+    if (VIR_REALLOC_N(pool->volumes.objs,
+                      pool->volumes.count+1) < 0) {
+        virStorageReportError(conn, VIR_ERR_NO_MEMORY, NULL);
+        goto cleanup;
+    }
+    pool->volumes.objs[pool->volumes.count++] = vol;
 
     close(fd);
 
@@ -599,6 +603,8 @@ virStorageBackendISCSIRefreshPool(virConnectPtr conn,
 
     pool->def->allocation = pool->def->capacity = pool->def->available = 0;
 
+    virStorageBackendWaitForDevices(conn);
+
     if ((session = virStorageBackendISCSISession(conn, pool)) == NULL)
         goto cleanup;
     if (virStorageBackendISCSIRescanLUNs(conn, pool, session) < 0)
@@ -633,18 +639,10 @@ virStorageBackendISCSIStopPool(virConnectPtr conn,
     return 0;
 }
 
-
 virStorageBackend virStorageBackendISCSI = {
-  .type = VIR_STORAGE_POOL_ISCSI,
+    .type = VIR_STORAGE_POOL_ISCSI,
 
-  .startPool = virStorageBackendISCSIStartPool,
-  .refreshPool = virStorageBackendISCSIRefreshPool,
-  .stopPool = virStorageBackendISCSIStopPool,
-
-  .poolOptions = {
-        .flags = (VIR_STORAGE_BACKEND_POOL_SOURCE_HOST |
-                  VIR_STORAGE_BACKEND_POOL_SOURCE_DEVICE)
-    },
-
-  .volType = VIR_STORAGE_VOL_BLOCK,
+    .startPool = virStorageBackendISCSIStartPool,
+    .refreshPool = virStorageBackendISCSIRefreshPool,
+    .stopPool = virStorageBackendISCSIStopPool,
 };

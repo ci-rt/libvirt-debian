@@ -1,3 +1,63 @@
+libvirt (0.5.1-5) experimental; urgency=low
+
+  * [d4a69d1] don't fail on missing locales (Closes: #512721)
+  * [cecac4c] don't hardcode ssh port - based on a patch by Adrian
+    Bridgett. (Closes: #513605)
+  * [4565a65] drop superflous headers and footers from remaining patches
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 30 Jan 2009 23:06:29 +0100
+
+libvirt (0.5.1-4) experimental; urgency=low
+
+  * [2fd5224] apply upstream patch for CVE-2008-5086 (Closes: #509106)
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 18 Dec 2008 16:12:00 +0100
+
+libvirt (0.5.1-3) experimental; urgency=low
+
+  * [d30438c] create libvirt log directory (Closes: #508129)
+  * [417a23c] qemu: fix parallel/serial mode "tcp" and "unix" 
+    (Closes: #507608)
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 11 Dec 2008 12:38:01 +0100
+
+libvirt (0.5.1-2) experimental; urgency=low
+
+  * [4cd547b] create /var/run/libvirt (Closes: #507578)
+  * [fe96870] merge back master
+  * [d46313f] drop patches for issues fixed upstream
+     - 0007-also-look-for-usr-bin-kvm.patch
+     - 0008-Increase-initial-qemu-monitor-read-timeout.patch
+     - 0009-Open-qemu-monitor-log-O_APPEND-instead-of-O_TRUNC.patch
+     - 0010-raise-error-on-invalid-volume-format.patch
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 06 Dec 2008 10:37:12 +0100
+
+libvirt (0.5.1-1) experimental; urgency=low
+
+  * [d76b3a1] Imported Upstream version 0.5.1 (Closes: #507677, #507547)
+  * [2e550ae] enable hal for device enumeration
+  * [0d9116a] rotate qemu monitor logs (Closes: #507553) - thanks to
+    Harald Staub
+  * [5f85e66] depend on logrotate
+  * [6e955a3] open qemu monitor O_APPEND instead of O_TRUNC for logrotate
+  * [7dbea84] drop 0004-xen-prefer-xenstoraged-driver-for-
+    listDomains.patch - applied upstream
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 05 Dec 2008 09:36:54 +0100
+
+libvirt (0.5.0-1) experimental; urgency=low
+
+  * [717ef21] Imported Upstream version 0.5.0
+  * [b7a1fbd] enable OpenVZ support (Closes: #504597) - thanks to Pierre
+    Chifflier for the patch
+  * [ee3590a] drop patches, fixed upstream:
+        * 0004-support-virtio-and-scsi-disks-in-qemudDomainBlockSta.patch
+        * 0005-fix-define-vs.-defined-typos.patch
+  * [f4f601f] bump shlibs to 0.5.0
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 28 Nov 2008 16:40:38 +0100
+
 libvirt (0.4.6-10) unstable; urgency=low
 
   * [5878698] cherry-pick patch for CVE-2008-5086 from experimental

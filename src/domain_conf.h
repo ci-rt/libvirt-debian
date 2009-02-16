@@ -24,7 +24,9 @@
 #ifndef __DOMAIN_CONF_H
 #define __DOMAIN_CONF_H
 
-#include <config.h>
+#include <libxml/parser.h>
+#include <libxml/tree.h>
+#include <libxml/xpath.h>
 
 #include "internal.h"
 #include "capabilities.h"
@@ -73,6 +75,7 @@ enum virDomainDiskBus {
     VIR_DOMAIN_DISK_BUS_VIRTIO,
     VIR_DOMAIN_DISK_BUS_XEN,
     VIR_DOMAIN_DISK_BUS_USB,
+    VIR_DOMAIN_DISK_BUS_UML,
 
     VIR_DOMAIN_DISK_BUS_LAST
 };
@@ -90,8 +93,7 @@ struct _virDomainDiskDef {
     char *driverType;
     unsigned int readonly : 1;
     unsigned int shared : 1;
-
-    virDomainDiskDefPtr next;
+    int slotnum; /* pci slot number for unattach */
 };
 
 
@@ -112,8 +114,6 @@ struct _virDomainFSDef {
     char *src;
     char *dst;
     unsigned int readonly : 1;
-
-    virDomainFSDefPtr next;
 };
 
 
@@ -131,14 +131,12 @@ enum virDomainNetType {
 };
 
 
-#define VIR_DOMAIN_NET_MAC_SIZE 6
-
 /* Stores the virtual network interface configuration */
 typedef struct _virDomainNetDef virDomainNetDef;
 typedef virDomainNetDef *virDomainNetDefPtr;
 struct _virDomainNetDef {
     int type;
-    unsigned char mac[VIR_DOMAIN_NET_MAC_SIZE];
+    unsigned char mac[VIR_MAC_BUFLEN];
     char *model;
     union {
         struct {
@@ -158,8 +156,6 @@ struct _virDomainNetDef {
         } bridge;
     } data;
     char *ifname;
-
-    virDomainNetDefPtr next;
 };
 
 enum virDomainChrSrcType {
@@ -211,8 +207,6 @@ struct _virDomainChrDef {
             int listen;
         } nix;
     } data;
-
-    virDomainChrDefPtr next;
 };
 
 enum virDomainInputType {
@@ -235,7 +229,6 @@ typedef virDomainInputDef *virDomainInputDefPtr;
 struct _virDomainInputDef {
     int type;
     int bus;
-    virDomainInputDefPtr next;
 };
 
 enum virDomainSoundModel {
@@ -250,7 +243,6 @@ typedef struct _virDomainSoundDef virDomainSoundDef;
 typedef virDomainSoundDef *virDomainSoundDefPtr;
 struct _virDomainSoundDef {
     int model;
-    virDomainSoundDefPtr next;
 };
 
 /* 3 possible graphics console modes */
@@ -324,7 +316,6 @@ struct _virDomainHostdevDef {
         } caps;
     } source;
     char* target;
-    virDomainHostdevDefPtr next;
 };
 
 /* Flags for the 'type' field in next struct */
@@ -428,15 +419,34 @@ struct _virDomainDef {
 
     int localtime;
 
+    /* Only 1 */
     virDomainGraphicsDefPtr graphics;
-    virDomainDiskDefPtr disks;
-    virDomainFSDefPtr fss;
-    virDomainNetDefPtr nets;
-    virDomainInputDefPtr inputs;
-    virDomainSoundDefPtr sounds;
-    virDomainHostdevDefPtr hostdevs;
-    virDomainChrDefPtr serials;
-    virDomainChrDefPtr parallels;
+
+    int ndisks;
+    virDomainDiskDefPtr *disks;
+
+    int nfss;
+    virDomainFSDefPtr *fss;
+
+    int nnets;
+    virDomainNetDefPtr *nets;
+
+    int ninputs;
+    virDomainInputDefPtr *inputs;
+
+    int nsounds;
+    virDomainSoundDefPtr *sounds;
+
+    int nhostdevs;
+    virDomainHostdevDefPtr *hostdevs;
+
+    int nserials;
+    virDomainChrDefPtr *serials;
+
+    int nparallels;
+    virDomainChrDefPtr *parallels;
+
+    /* Only 1 */
     virDomainChrDefPtr console;
 };
 
@@ -446,8 +456,11 @@ typedef virDomainObj *virDomainObjPtr;
 struct _virDomainObj {
     int stdin_fd;
     int stdout_fd;
+    int stdout_watch;
     int stderr_fd;
+    int stderr_watch;
     int monitor;
+    int monitorWatch;
     int logfile;
     int pid;
     int state;
@@ -460,10 +473,14 @@ struct _virDomainObj {
 
     virDomainDefPtr def; /* The current definition */
     virDomainDefPtr newDef; /* New definition to activate at shutdown */
-
-    virDomainObjPtr next;
 };
 
+typedef struct _virDomainObjList virDomainObjList;
+typedef virDomainObjList *virDomainObjListPtr;
+struct _virDomainObjList {
+    unsigned int count;
+    virDomainObjPtr *objs;
+};
 
 static inline int
 virDomainIsActive(virDomainObjPtr dom)
@@ -472,11 +489,11 @@ virDomainIsActive(virDomainObjPtr dom)
 }
 
 
-virDomainObjPtr virDomainFindByID(const virDomainObjPtr doms,
+virDomainObjPtr virDomainFindByID(const virDomainObjListPtr doms,
                                   int id);
-virDomainObjPtr virDomainFindByUUID(const virDomainObjPtr doms,
+virDomainObjPtr virDomainFindByUUID(const virDomainObjListPtr doms,
                                     const unsigned char *uuid);
-virDomainObjPtr virDomainFindByName(const virDomainObjPtr doms,
+virDomainObjPtr virDomainFindByName(const virDomainObjListPtr doms,
                                     const char *name);
 
 
@@ -491,15 +508,17 @@ void virDomainHostdevDefFree(virDomainHostdevDefPtr def);
 void virDomainDeviceDefFree(virDomainDeviceDefPtr def);
 void virDomainDefFree(virDomainDefPtr vm);
 void virDomainObjFree(virDomainObjPtr vm);
+void virDomainObjListFree(virDomainObjListPtr vms);
 
 virDomainObjPtr virDomainAssignDef(virConnectPtr conn,
-                                   virDomainObjPtr *doms,
+                                   virDomainObjListPtr doms,
                                    const virDomainDefPtr def);
-void virDomainRemoveInactive(virDomainObjPtr *doms,
+void virDomainRemoveInactive(virDomainObjListPtr doms,
                              virDomainObjPtr dom);
 
 #ifndef PROXY
 virDomainDeviceDefPtr virDomainDeviceDefParse(virConnectPtr conn,
+                                              virCapsPtr caps,
                                               const virDomainDefPtr def,
                                               const char *xmlStr);
 virDomainDefPtr virDomainDefParseString(virConnectPtr conn,
@@ -507,11 +526,13 @@ virDomainDefPtr virDomainDefParseString(virConnectPtr conn,
                                         const char *xmlStr);
 virDomainDefPtr virDomainDefParseFile(virConnectPtr conn,
                                       virCapsPtr caps,
-                                      const char *filename);
+                                      const char *filename,
+                                      int flags);
 virDomainDefPtr virDomainDefParseNode(virConnectPtr conn,
                                       virCapsPtr caps,
                                       xmlDocPtr doc,
-                                      xmlNodePtr root);
+                                      xmlNodePtr root,
+                                      int flags);
 #endif
 char *virDomainDefFormat(virConnectPtr conn,
                          virDomainDefPtr def,
@@ -526,6 +547,7 @@ char *virDomainCpuSetFormat(virConnectPtr conn,
                             char *cpuset,
                             int maxcpu);
 
+int virDomainDiskQSort(const void *a, const void *b);
 int virDomainDiskCompare(virDomainDiskDefPtr a,
                          virDomainDiskDefPtr b);
 
@@ -533,18 +555,26 @@ int virDomainSaveConfig(virConnectPtr conn,
                         const char *configDir,
                         virDomainDefPtr def);
 
+typedef void (*virDomainLoadConfigNotify)(virDomainObjPtr dom,
+                                          int newDomain,
+                                          void *opaque);
+
 virDomainObjPtr virDomainLoadConfig(virConnectPtr conn,
                                     virCapsPtr caps,
-                                    virDomainObjPtr *doms,
+                                    virDomainObjListPtr doms,
                                     const char *configDir,
                                     const char *autostartDir,
-                                    const char *name);
+                                    const char *name,
+                                    virDomainLoadConfigNotify notify,
+                                    void *opaque);
 
 int virDomainLoadAllConfigs(virConnectPtr conn,
                             virCapsPtr caps,
-                            virDomainObjPtr *doms,
+                            virDomainObjListPtr doms,
                             const char *configDir,
-                            const char *autostartDir);
+                            const char *autostartDir,
+                            virDomainLoadConfigNotify notify,
+                            void *opaque);
 
 int virDomainDeleteConfig(virConnectPtr conn,
                           const char *configDir,
@@ -558,9 +588,6 @@ char *virDomainConfigFile(virConnectPtr conn,
 int virDiskNameToBusDeviceIndex(virDomainDiskDefPtr disk,
                                 int *busIdx,
                                 int *devIdx);
-
-virDomainNetDefPtr virDomainNetDefParseXML(virConnectPtr conn,
-                        xmlNodePtr node);
 
 const char *virDomainDefDefaultEmulator(virConnectPtr conn,
                                         virDomainDefPtr def,

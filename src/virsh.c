@@ -10,7 +10,7 @@
  * Daniel P. Berrange <berrange@redhat.com>
  *
  *
- * $Id: virsh.c,v 1.166 2008/09/17 14:18:15 rjones Exp $
+ * $Id: virsh.c,v 1.176 2008/12/04 14:51:58 crobinso Exp $
  */
 
 #include <config.h>
@@ -47,7 +47,6 @@
 #include "buf.h"
 #include "console.h"
 #include "util.h"
-#include "util-lib.h"
 
 static char *progname;
 
@@ -894,7 +893,7 @@ cmdCreate(vshControl *ctl, const vshCmd *cmd)
     if (virFileReadAll(from, VIRSH_MAX_XML_FILE, &buffer) < 0)
         return FALSE;
 
-    dom = virDomainCreateLinux(ctl->conn, buffer, 0);
+    dom = virDomainCreateXML(ctl->conn, buffer, 0);
     free (buffer);
 
     if (dom != NULL) {
@@ -1112,6 +1111,7 @@ static const vshCmdInfo info_schedinfo[] = {
 
 static const vshCmdOptDef opts_schedinfo[] = {
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("domain name, id or uuid")},
+    {"set", VSH_OT_STRING, VSH_OFLAG_NONE, gettext_noop("parameter=value")},
     {"weight", VSH_OT_INT, VSH_OFLAG_NONE, gettext_noop("weight for XEN_CREDIT")},
     {"cap", VSH_OT_INT, VSH_OFLAG_NONE, gettext_noop("cap for XEN_CREDIT")},
     {NULL, 0, 0, NULL}
@@ -1121,6 +1121,9 @@ static int
 cmdSchedinfo(vshControl *ctl, const vshCmd *cmd)
 {
     char *schedulertype;
+    char *set;
+    char *param_name = NULL;
+    long long int param_value = 0;
     virDomainPtr dom;
     virSchedParameterPtr params = NULL;
     int i, ret;
@@ -1128,6 +1131,7 @@ cmdSchedinfo(vshControl *ctl, const vshCmd *cmd)
     int nr_inputparams = 0;
     int inputparams = 0;
     int weightfound = 0;
+    int setfound = 0;
     int weight = 0;
     int capfound = 0;
     int cap = 0;
@@ -1141,7 +1145,7 @@ cmdSchedinfo(vshControl *ctl, const vshCmd *cmd)
     if (!(dom = vshCommandOptDomain(ctl, cmd, "domain", NULL)))
         return FALSE;
 
-    /* Currently supports Xen Credit only */
+    /* Deprecated Xen-only options */
     if(vshCommandOptBool(cmd, "weight")) {
         weight = vshCommandOptInt(cmd, "weight", &weightfound);
         if (!weightfound) {
@@ -1162,6 +1166,25 @@ cmdSchedinfo(vshControl *ctl, const vshCmd *cmd)
         }
     }
 
+    if(vshCommandOptBool(cmd, "set")) {
+        set = vshCommandOptString(cmd, "set", &setfound);
+        if (!setfound) {
+            vshError(ctl, FALSE, "%s", _("Error getting param"));
+            goto cleanup;
+        }
+
+        param_name = vshMalloc(ctl, strlen(set) + 1);
+        if (param_name == NULL)
+            goto cleanup;
+
+        if (sscanf(set, "%[^=]=%lli", param_name, &param_value) != 2) {
+            vshError(ctl, FALSE, "%s", _("Invalid value of param"));
+            goto cleanup;
+        }
+
+        nr_inputparams++;
+    }
+
     params = vshMalloc(ctl, sizeof (virSchedParameter) * nr_inputparams);
     if (params == NULL) {
         goto cleanup;
@@ -1180,7 +1203,14 @@ cmdSchedinfo(vshControl *ctl, const vshCmd *cmd)
          params[inputparams].value.ui = cap;
          inputparams++;
     }
-    /* End Currently supports Xen Credit only */
+    /* End Deprecated Xen-only options */
+
+    if (setfound) {
+        strncpy(params[inputparams].field,param_name,sizeof(params[0].field));
+        params[inputparams].type = VIR_DOMAIN_SCHED_FIELD_LLONG;
+        params[inputparams].value.l = param_value;
+        inputparams++;
+    }
 
     assert (inputparams == nr_inputparams);
 
@@ -1247,6 +1277,7 @@ cmdSchedinfo(vshControl *ctl, const vshCmd *cmd)
     }
  cleanup:
     free(params);
+    free(param_name);
     virDomainFree(dom);
     return ret_val;
 }
@@ -2226,6 +2257,7 @@ static const vshCmdOptDef opts_migrate[] = {
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("domain name, id or uuid")},
     {"desturi", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("connection URI of the destination host")},
     {"migrateuri", VSH_OT_DATA, 0, gettext_noop("migration URI, usually can be omitted")},
+    {"dname", VSH_OT_DATA, 0, gettext_noop("rename to new name during migration (if supported)")},
     {NULL, 0, 0, NULL}
 };
 
@@ -2235,6 +2267,7 @@ cmdMigrate (vshControl *ctl, const vshCmd *cmd)
     virDomainPtr dom = NULL;
     const char *desturi;
     const char *migrateuri;
+    const char *dname;
     int flags = 0, found, ret = FALSE;
     virConnectPtr dconn = NULL;
     virDomainPtr ddom = NULL;
@@ -2254,6 +2287,9 @@ cmdMigrate (vshControl *ctl, const vshCmd *cmd)
     migrateuri = vshCommandOptString (cmd, "migrateuri", &found);
     if (!found) migrateuri = NULL;
 
+    dname = vshCommandOptString (cmd, "dname", &found);
+    if (!found) migrateuri = dname;
+
     if (vshCommandOptBool (cmd, "live"))
         flags |= VIR_MIGRATE_LIVE;
 
@@ -2262,7 +2298,7 @@ cmdMigrate (vshControl *ctl, const vshCmd *cmd)
     if (!dconn) goto done;
 
     /* Migrate. */
-    ddom = virDomainMigrate (dom, dconn, flags, NULL, migrateuri, 0);
+    ddom = virDomainMigrate (dom, dconn, flags, dname, migrateuri, 0);
     if (!ddom) goto done;
 
     ret = TRUE;
@@ -2329,7 +2365,7 @@ cmdNetworkAutostart(vshControl *ctl, const vshCmd *cmd)
  * "net-create" command
  */
 static const vshCmdInfo info_network_create[] = {
-    {"syntax", "create a network from an XML <file>"},
+    {"syntax", "net-create <file>"},
     {"help", gettext_noop("create a network from an XML file")},
     {"desc", gettext_noop("Create a network.")},
     {NULL, NULL}
@@ -2377,7 +2413,7 @@ cmdNetworkCreate(vshControl *ctl, const vshCmd *cmd)
  * "net-define" command
  */
 static const vshCmdInfo info_network_define[] = {
-    {"syntax", "define a network from an XML <file>"},
+    {"syntax", "net-define <file>"},
     {"help", gettext_noop("define (but don't start) a network from an XML file")},
     {"desc", gettext_noop("Define a network.")},
     {NULL, NULL}
@@ -2661,7 +2697,7 @@ cmdNetworkName(vshControl *ctl, const vshCmd *cmd)
  * "net-start" command
  */
 static const vshCmdInfo info_network_start[] = {
-    {"syntax", "start <network>"},
+    {"syntax", "net-start <network>"},
     {"help", gettext_noop("start a (previously defined) inactive network")},
     {"desc", gettext_noop("Start a network.")},
     {NULL, NULL}
@@ -2826,14 +2862,15 @@ cmdPoolAutostart(vshControl *ctl, const vshCmd *cmd)
  * "pool-create" command
  */
 static const vshCmdInfo info_pool_create[] = {
-    {"syntax", "create a pool from an XML <file>"},
+    {"syntax", "pool-create <file>"},
     {"help", gettext_noop("create a pool from an XML file")},
     {"desc", gettext_noop("Create a pool.")},
     {NULL, NULL}
 };
 
 static const vshCmdOptDef opts_pool_create[] = {
-    {"file", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("file containing an XML pool description")},
+    {"file", VSH_OT_DATA, VSH_OFLAG_REQ,
+     gettext_noop("file containing an XML pool description")},
     {NULL, 0, 0, NULL}
 };
 
@@ -2964,7 +3001,7 @@ cmdPoolCreateAs(vshControl *ctl, const vshCmd *cmd)
  * "pool-define" command
  */
 static const vshCmdInfo info_pool_define[] = {
-    {"syntax", "define a pool from an XML <file>"},
+    {"syntax", "pool-define <file>"},
     {"help", gettext_noop("define (but don't start) a pool from an XML file")},
     {"desc", gettext_noop("Define a pool.")},
     {NULL, NULL}
@@ -3131,7 +3168,7 @@ cmdPoolBuild(vshControl *ctl, const vshCmd *cmd)
         return FALSE;
 
     if (virStoragePoolBuild(pool, 0) == 0) {
-        vshPrint(ctl, _("Pool %s builded\n"), name);
+        vshPrint(ctl, _("Pool %s built\n"), name);
     } else {
         vshError(ctl, FALSE, _("Failed to build pool %s"), name);
         ret = FALSE;
@@ -3691,7 +3728,7 @@ cmdPoolName(vshControl *ctl, const vshCmd *cmd)
  * "pool-start" command
  */
 static const vshCmdInfo info_pool_start[] = {
-    {"syntax", "start <pool>"},
+    {"syntax", "pool-start <pool>"},
     {"help", gettext_noop("start a (previously defined) inactive pool")},
     {"desc", gettext_noop("Start a pool.")},
     {NULL, NULL}
@@ -3929,7 +3966,7 @@ cmdPoolUuid(vshControl *ctl, const vshCmd *cmd)
  * "vol-create" command
  */
 static const vshCmdInfo info_vol_create[] = {
-    {"syntax", "create <file>"},
+    {"syntax", "vol-create <file>"},
     {"help", gettext_noop("create a vol from an XML file")},
     {"desc", gettext_noop("Create a vol.")},
     {NULL, NULL}
@@ -4383,6 +4420,95 @@ cmdVersion(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
 }
 
 /*
+ * "nodedev-list" command
+ */
+static const vshCmdInfo info_node_list_devices[] = {
+    {"syntax", "nodedev-list [--cap <capability>]"},
+    {"help", gettext_noop("enumerate devices on this host")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_node_list_devices[] = {
+    {"cap", VSH_OT_STRING, VSH_OFLAG_NONE, gettext_noop("capability name")},
+    {NULL, 0, 0, NULL}
+};
+
+static int
+cmdNodeListDevices (vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
+{
+    char *cap;
+    char **devices;
+    int found, num_devices, i;
+
+    if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
+        return FALSE;
+
+    cap = vshCommandOptString(cmd, "cap", &found);
+    if (!found)
+        cap = NULL;
+
+    num_devices = virNodeNumOfDevices(ctl->conn, cap, 0);
+    if (num_devices < 0) {
+        vshError(ctl, FALSE, "%s", _("Failed to count node devices"));
+        return FALSE;
+    } else if (num_devices == 0) {
+        return TRUE;
+    }
+
+    devices = vshMalloc(ctl, sizeof(char *) * num_devices);
+    num_devices =
+        virNodeListDevices(ctl->conn, cap, devices, num_devices, 0);
+    if (num_devices < 0) {
+        vshError(ctl, FALSE, "%s", _("Failed to list node devices"));
+        free(devices);
+        return FALSE;
+    }
+    qsort(&devices[0], num_devices, sizeof(char*), namesorter);
+    for (i = 0; i < num_devices; i++) {
+        vshPrint(ctl, "%s\n", devices[i]);
+        free(devices[i]);
+    }
+    free(devices);
+    return TRUE;
+}
+
+/*
+ * "nodedev-dumpxml" command
+ */
+static const vshCmdInfo info_node_device_dumpxml[] = {
+    {"syntax", "nodedev-dumpxml <device>"},
+    {"help", gettext_noop("node device details in XML")},
+    {"desc", gettext_noop("Output the node device details as an XML dump to stdout.")},
+    {NULL, NULL}
+};
+
+
+static const vshCmdOptDef opts_node_device_dumpxml[] = {
+    {"device", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("device key")},
+    {NULL, 0, 0, NULL}
+};
+
+static int
+cmdNodeDeviceDumpXML (vshControl *ctl, const vshCmd *cmd)
+{
+    const char *name;
+    virNodeDevicePtr device;
+
+    if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
+        return FALSE;
+    if (!(name = vshCommandOptString(cmd, "device", NULL)))
+        return FALSE;
+    if (!(device = virNodeDeviceLookupByName(ctl->conn, name))) {
+        vshError(ctl, FALSE, "%s '%s'", _("Could not find matching device"), name);
+        return FALSE;
+    }
+
+    vshPrint(ctl, "%s\n", virNodeDeviceGetXMLDesc(device, 0));
+    virNodeDeviceFree(device);
+    return TRUE;
+}
+
+/*
  * "hostkey" command
  */
 static const vshCmdInfo info_hostname[] = {
@@ -4628,7 +4754,7 @@ cmdAttachDevice(vshControl *ctl, const vshCmd *cmd)
         virDomainFree(dom);
         return FALSE;
     } else {
-        vshPrint(ctl, _("Device attached successfully\n"));
+        vshPrint(ctl, "%s", _("Device attached successfully\n"));
     }
 
     virDomainFree(dom);
@@ -4687,7 +4813,7 @@ cmdDetachDevice(vshControl *ctl, const vshCmd *cmd)
         virDomainFree(dom);
         return FALSE;
     } else {
-        vshPrint(ctl, _("Device detached successfully\n"));
+        vshPrint(ctl, "%s", _("Device detached successfully\n"));
     }
 
     virDomainFree(dom);
@@ -4799,7 +4925,7 @@ cmdAttachInterface(vshControl *ctl, const vshCmd *cmd)
     if (virDomainAttachDevice(dom, buf)) {
         goto cleanup;
     } else {
-        vshPrint(ctl, _("Interface attached successfully\n"));
+        vshPrint(ctl, "%s", _("Interface attached successfully\n"));
     }
 
     ret = TRUE;
@@ -4917,7 +5043,7 @@ cmdDetachInterface(vshControl *ctl, const vshCmd *cmd)
     if (ret != 0)
         ret = FALSE;
     else {
-        vshPrint(ctl, _("Interface detached successfully\n"));
+        vshPrint(ctl, "%s", _("Interface detached successfully\n"));
         ret = TRUE;
     }
 
@@ -5086,7 +5212,7 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
     if (virDomainAttachDevice(dom, buf))
         goto cleanup;
     else
-        vshPrint(ctl, _("Disk attached successfully\n"));
+        vshPrint(ctl, "%s", _("Disk attached successfully\n"));
 
     ret = TRUE;
 
@@ -5195,7 +5321,7 @@ cmdDetachDisk(vshControl *ctl, const vshCmd *cmd)
     if (ret != 0)
         ret = FALSE;
     else {
-        vshPrint(ctl, _("Disk detached successfully\n"));
+        vshPrint(ctl, "%s", _("Disk detached successfully\n"));
         ret = TRUE;
     }
 
@@ -5401,7 +5527,7 @@ cmdEdit (vshControl *ctl, const vshCmd *cmd)
 
     if (STRNEQ (doc, doc_reread)) {
         vshError (ctl, FALSE,
-                  _("ERROR: the XML configuration was changed by another user"));
+                  "%s", _("ERROR: the XML configuration was changed by another user"));
         goto cleanup;
     }
 
@@ -5533,6 +5659,9 @@ static const vshCmdDef commands[] = {
     {"net-undefine", cmdNetworkUndefine, opts_network_undefine, info_network_undefine},
     {"net-uuid", cmdNetworkUuid, opts_network_uuid, info_network_uuid},
     {"nodeinfo", cmdNodeinfo, NULL, info_nodeinfo},
+
+    {"nodedev-list", cmdNodeListDevices, opts_node_list_devices, info_node_list_devices},
+    {"nodedev-dumpxml", cmdNodeDeviceDumpXML, opts_node_device_dumpxml, info_node_device_dumpxml},
 
     {"pool-autostart", cmdPoolAutostart, opts_pool_autostart, info_pool_autostart},
     {"pool-build", cmdPoolBuild, opts_pool_build, info_pool_build},

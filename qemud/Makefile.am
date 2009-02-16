@@ -1,7 +1,5 @@
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = $(LIBVIRT_FEATURES)
-
 DAEMON_SOURCES =					\
 		event.c event.h				\
 		qemud.c qemud.h				\
@@ -9,8 +7,7 @@ DAEMON_SOURCES =					\
 		remote_dispatch_prototypes.h		\
 		remote_dispatch_localvars.h		\
 		remote_dispatch_proc_switch.h		\
-		remote_protocol.h remote_protocol.c	\
-		$(srcdir)/../src/util-lib.c
+		remote_protocol.h remote_protocol.c
 
 AVAHI_SOURCES =						\
 		mdns.c mdns.h
@@ -34,18 +31,21 @@ EXTRA_DIST =						\
 if RPCGEN
 SUFFIXES = .x
 .x.c:
-	rm -f $@
-	rpcgen -c -o $@ $<
+	rm -f $@ $@-t $@-t2
+	rpcgen -c -o $@-t $<
 if GLIBC_RPCGEN
-	mv $@ $@.bak
-	perl -w rpcgen_fix.pl < $@.bak > $@
+	perl -w rpcgen_fix.pl $@-t > $@-t2
+	chmod 444 $@-t2
+	mv $@-t2 $@
 endif
 
 .x.h:
-	rm -f $@
-	rpcgen -h -o $@ $<
+	rm -f $@ $@-t
+	rpcgen -h -o $@-t $<
 if GLIBC_RPCGEN
-	perl -i -p -e 's/\t/        /g' $@
+	perl -pi -e 's/\t/        /g' $@-t
+	chmod 444 $@-t
+	mv $@-t $@
 endif
 endif
 
@@ -87,8 +87,36 @@ libvirtd_LDFLAGS = \
 	$(COVERAGE_LDFLAGS) \
 	$(POLKIT_LIBS)
 
-libvirtd_DEPENDENCIES = ../src/libvirt.la
-libvirtd_LDADD = ../src/libvirt.la ../gnulib/lib/libgnu.la
+libvirtd_LDADD =					\
+		../gnulib/lib/libgnu.la
+
+if ! WITH_DRIVER_MODULES
+if WITH_QEMU
+libvirtd_LDADD += ../src/libvirt_driver_qemu.la
+endif
+
+if WITH_LXC
+libvirtd_LDADD += ../src/libvirt_driver_lxc.la
+endif
+
+if WITH_UML
+libvirtd_LDADD += ../src/libvirt_driver_uml.la
+endif
+
+if WITH_STORAGE_DIR
+libvirtd_LDADD += ../src/libvirt_driver_storage.la
+endif
+
+if WITH_NETWORK
+libvirtd_LDADD += ../src/libvirt_driver_network.la
+endif
+
+if WITH_NODE_DEVICES
+libvirtd_LDADD += ../src/libvirt_driver_nodedev.la
+endif
+endif
+
+libvirtd_LDADD += ../src/libvirt.la
 
 if HAVE_POLKIT
 policydir = $(datadir)/PolicyKit/policy
@@ -99,6 +127,9 @@ libvirtd_SOURCES += $(AVAHI_SOURCES)
 libvirtd_CFLAGS += $(AVAHI_CFLAGS)
 libvirtd_LDADD += $(AVAHI_LIBS)
 endif
+
+libvirtd_DEPENDENCIES = $(libvirtd_LDADD)
+
 
 default_xml_dest = libvirt/qemu/networks/default.xml
 install-data-local: install-init install-data-sasl install-data-polkit
@@ -138,7 +169,7 @@ endif
 if HAVE_POLKIT
 install-data-polkit:: install-init
 	mkdir -p $(DESTDIR)$(policydir)
-	$(INSTALL_DATA) libvirtd.policy $(DESTDIR)$(policydir)/org.libvirt.unix.policy
+	$(INSTALL_DATA) $(srcdir)/libvirtd.policy $(DESTDIR)$(policydir)/org.libvirt.unix.policy
 uninstall-data-polkit:: install-init
 	rm -f $(DESTDIR)$(policydir)/org.libvirt.unix.policy
 else

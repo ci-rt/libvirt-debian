@@ -31,13 +31,17 @@
 #include <winsock2.h>
 #endif
 
-#include "internal.h"
+#include "virterror_internal.h"
+#include "logging.h"
+#include "datatypes.h"
+#include "libvirt_internal.h"
 #include "driver.h"
 
 #include "uuid.h"
 #include "util.h"
 #include "memory.h"
 
+#ifndef WITH_DRIVER_MODULES
 #ifdef WITH_TEST
 #include "test.h"
 #endif
@@ -47,16 +51,10 @@
 #ifdef WITH_REMOTE
 #include "remote_internal.h"
 #endif
-#ifdef WITH_QEMU
-#include "qemu_driver.h"
-#endif
 #ifdef WITH_OPENVZ
 #include "openvz_driver.h"
 #endif
-#ifdef WITH_LXC
-#include "lxc_driver.h"
 #endif
-#include "storage_driver.h"
 
 /*
  * TODO:
@@ -64,24 +62,21 @@
  * - use reference counting to guarantee coherent pointer state ?
  */
 
+#define MAX_DRIVERS 10
+
 static virDriverPtr virDriverTab[MAX_DRIVERS];
 static int virDriverTabCount = 0;
 static virNetworkDriverPtr virNetworkDriverTab[MAX_DRIVERS];
 static int virNetworkDriverTabCount = 0;
 static virStorageDriverPtr virStorageDriverTab[MAX_DRIVERS];
 static int virStorageDriverTabCount = 0;
+static virDeviceMonitorPtr virDeviceMonitorTab[MAX_DRIVERS];
+static int virDeviceMonitorTabCount = 0;
 #ifdef WITH_LIBVIRTD
 static virStateDriverPtr virStateDriverTab[MAX_DRIVERS];
 static int virStateDriverTabCount = 0;
 #endif
 static int initialized = 0;
-
-#define DEBUG(fmt,...) VIR_DEBUG(__FILE__, fmt, __VA_ARGS__)
-#define DEBUG0(msg) VIR_DEBUG(__FILE__, "%s", msg)
-
-#ifdef ENABLE_DEBUG
-int debugFlag = 0;
-#endif
 
 #if defined(POLKIT_AUTH)
 static int virConnectAuthGainPolkit(const char *privilege) {
@@ -237,8 +232,7 @@ winsock_init (void)
     /* http://msdn2.microsoft.com/en-us/library/ms742213.aspx */
     winsock_version = MAKEWORD (2, 2);
     err = WSAStartup (winsock_version, &winsock_data);
-    if (err != 0)
-        return -1;
+    return err == 0 ? 0 : -1;
 }
 #endif
 
@@ -280,23 +274,26 @@ virInitialize(void)
      * Note that the order is important: the first ones have a higher
      * priority when calling virConnectOpen.
      */
+#ifdef WITH_DRIVER_MODULES
+    /* We don't care if any of these fail, because the whole point
+     * is to allow users to only install modules they want to use.
+     * If they try to use a open a connection for a module that
+     * is not loaded they'll get a suitable error at that point
+     */
+    virDriverLoadModule("test");
+    virDriverLoadModule("xen");
+    virDriverLoadModule("openvz");
+    virDriverLoadModule("remote");
+#else
 #ifdef WITH_TEST
     if (testRegister() == -1) return -1;
 #endif
 #ifdef WITH_XEN
-    if (xenUnifiedRegister () == -1) return -1;
-#endif
-#ifdef WITH_LIBVIRTD
-#ifdef WITH_QEMU
-    if (qemudRegister() == -1) return -1;
+    if (xenRegister () == -1) return -1;
 #endif
 #ifdef WITH_OPENVZ
     if (openvzRegister() == -1) return -1;
 #endif
-#ifdef WITH_LXC
-    if (lxcRegister() == -1) return -1;
-#endif
-    if (storageRegister() == -1) return -1;
 #ifdef WITH_REMOTE
     if (remoteRegister () == -1) return -1;
 #endif
@@ -323,9 +320,9 @@ virLibConnError(virConnectPtr conn, virErrorNumber error, const char *info)
     if (error == VIR_ERR_OK)
         return;
 
-    errmsg = __virErrorMsg(error, info);
-    __virRaiseError(conn, NULL, NULL, VIR_FROM_NONE, error, VIR_ERR_ERROR,
-                    errmsg, info, NULL, 0, 0, errmsg, info);
+    errmsg = virErrorMsg(error, info);
+    virRaiseError(conn, NULL, NULL, VIR_FROM_NONE, error, VIR_ERR_ERROR,
+                  errmsg, info, NULL, 0, 0, errmsg, info);
 }
 
 /**
@@ -344,9 +341,9 @@ virLibConnWarning(virConnectPtr conn, virErrorNumber error, const char *info)
     if (error == VIR_ERR_OK)
         return;
 
-    errmsg = __virErrorMsg(error, info);
-    __virRaiseError(conn, NULL, NULL, VIR_FROM_NONE, error, VIR_ERR_WARNING,
-                    errmsg, info, NULL, 0, 0, errmsg, info);
+    errmsg = virErrorMsg(error, info);
+    virRaiseError(conn, NULL, NULL, VIR_FROM_NONE, error, VIR_ERR_WARNING,
+                  errmsg, info, NULL, 0, 0, errmsg, info);
 }
 
 /**
@@ -367,12 +364,12 @@ virLibDomainError(virDomainPtr domain, virErrorNumber error,
     if (error == VIR_ERR_OK)
         return;
 
-    errmsg = __virErrorMsg(error, info);
+    errmsg = virErrorMsg(error, info);
     if (error != VIR_ERR_INVALID_DOMAIN) {
         conn = domain->conn;
     }
-    __virRaiseError(conn, domain, NULL, VIR_FROM_DOM, error, VIR_ERR_ERROR,
-                    errmsg, info, NULL, 0, 0, errmsg, info);
+    virRaiseError(conn, domain, NULL, VIR_FROM_DOM, error, VIR_ERR_ERROR,
+                  errmsg, info, NULL, 0, 0, errmsg, info);
 }
 
 /**
@@ -393,12 +390,12 @@ virLibNetworkError(virNetworkPtr network, virErrorNumber error,
     if (error == VIR_ERR_OK)
         return;
 
-    errmsg = __virErrorMsg(error, info);
+    errmsg = virErrorMsg(error, info);
     if (error != VIR_ERR_INVALID_NETWORK) {
         conn = network->conn;
     }
-    __virRaiseError(conn, NULL, network, VIR_FROM_NET, error, VIR_ERR_ERROR,
-                    errmsg, info, NULL, 0, 0, errmsg, info);
+    virRaiseError(conn, NULL, network, VIR_FROM_NET, error, VIR_ERR_ERROR,
+                  errmsg, info, NULL, 0, 0, errmsg, info);
 }
 
 /**
@@ -419,12 +416,12 @@ virLibStoragePoolError(virStoragePoolPtr pool, virErrorNumber error,
     if (error == VIR_ERR_OK)
         return;
 
-    errmsg = __virErrorMsg(error, info);
+    errmsg = virErrorMsg(error, info);
     if (error != VIR_ERR_INVALID_STORAGE_POOL)
         conn = pool->conn;
 
-    __virRaiseError(conn, NULL, NULL, VIR_FROM_STORAGE, error, VIR_ERR_ERROR,
-                    errmsg, info, NULL, 0, 0, errmsg, info);
+    virRaiseError(conn, NULL, NULL, VIR_FROM_STORAGE, error, VIR_ERR_ERROR,
+                  errmsg, info, NULL, 0, 0, errmsg, info);
 }
 
 /**
@@ -445,11 +442,37 @@ virLibStorageVolError(virStorageVolPtr vol, virErrorNumber error,
     if (error == VIR_ERR_OK)
         return;
 
-    errmsg = __virErrorMsg(error, info);
+    errmsg = virErrorMsg(error, info);
     if (error != VIR_ERR_INVALID_STORAGE_VOL)
         conn = vol->conn;
 
-    __virRaiseError(conn, NULL, NULL, VIR_FROM_STORAGE, error, VIR_ERR_ERROR,
+    virRaiseError(conn, NULL, NULL, VIR_FROM_STORAGE, error, VIR_ERR_ERROR,
+                  errmsg, info, NULL, 0, 0, errmsg, info);
+}
+
+/**
+ * virLibNodeDeviceError:
+ * @dev: the device if available
+ * @error: the error number
+ * @info: extra information string
+ *
+ * Handle an error at the node device level
+ */
+static void
+virLibNodeDeviceError(virNodeDevicePtr dev, virErrorNumber error,
+                      const char *info)
+{
+    virConnectPtr conn = NULL;
+    const char *errmsg;
+
+    if (error == VIR_ERR_OK)
+        return;
+
+    errmsg = virErrorMsg(error, info);
+    if (error != VIR_ERR_INVALID_NODE_DEVICE)
+        conn = dev->conn;
+
+    virRaiseError(conn, NULL, NULL, VIR_FROM_NODEDEV, error, VIR_ERR_ERROR,
                     errmsg, info, NULL, 0, 0, errmsg, info);
 }
 
@@ -476,6 +499,9 @@ virRegisterNetworkDriver(virNetworkDriverPtr driver)
         virLibConnError(NULL, VIR_ERR_INVALID_ARG, __FUNCTION__);
         return(-1);
     }
+
+    DEBUG ("registering %s as network driver %d",
+           driver->name, virNetworkDriverTabCount);
 
     virNetworkDriverTab[virNetworkDriverTabCount] = driver;
     return virNetworkDriverTabCount++;
@@ -505,8 +531,42 @@ virRegisterStorageDriver(virStorageDriverPtr driver)
         return(-1);
     }
 
+    DEBUG ("registering %s as storage driver %d",
+           driver->name, virStorageDriverTabCount);
+
     virStorageDriverTab[virStorageDriverTabCount] = driver;
     return virStorageDriverTabCount++;
+}
+
+/**
+ * virRegisterDeviceMonitor:
+ * @driver: pointer to a device monitor block
+ *
+ * Register a device monitor
+ *
+ * Returns the driver priority or -1 in case of error.
+ */
+int
+virRegisterDeviceMonitor(virDeviceMonitorPtr driver)
+{
+    if (virInitialize() < 0)
+      return -1;
+
+    if (driver == NULL) {
+        virLibConnError(NULL, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return(-1);
+    }
+
+    if (virDeviceMonitorTabCount >= MAX_DRIVERS) {
+        virLibConnError(NULL, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return(-1);
+    }
+
+    DEBUG ("registering %s as device driver %d",
+           driver->name, virDeviceMonitorTabCount);
+
+    virDeviceMonitorTab[virDeviceMonitorTabCount] = driver;
+    return virDeviceMonitorTabCount++;
 }
 
 /**
@@ -539,6 +599,9 @@ virRegisterDriver(virDriverPtr driver)
              "virRegisterDriver: tried to register an internal Xen driver");
         return -1;
     }
+
+    DEBUG ("registering %s as driver %d",
+           driver->name, virDriverTabCount);
 
     virDriverTab[virDriverTabCount] = driver;
     return virDriverTabCount++;
@@ -573,7 +636,14 @@ virRegisterStateDriver(virStateDriverPtr driver)
     return virStateDriverTabCount++;
 }
 
-int __virStateInitialize(void) {
+/**
+ * virStateInitialize:
+ *
+ * Initialize all virtualization drivers.
+ *
+ * Return 0 if all succeed, -1 upon any failure.
+ */
+int virStateInitialize(void) {
     int i, ret = 0;
 
     if (virInitialize() < 0)
@@ -587,7 +657,14 @@ int __virStateInitialize(void) {
     return ret;
 }
 
-int __virStateCleanup(void) {
+/**
+ * virStateCleanup:
+ *
+ * Run each virtualization driver's cleanup method.
+ *
+ * Return 0 if all succeed, -1 upon any failure.
+ */
+int virStateCleanup(void) {
     int i, ret = 0;
 
     for (i = 0 ; i < virStateDriverTabCount ; i++) {
@@ -598,7 +675,14 @@ int __virStateCleanup(void) {
     return ret;
 }
 
-int __virStateReload(void) {
+/**
+ * virStateReload:
+ *
+ * Run each virtualization driver's reload method.
+ *
+ * Return 0 if all succeed, -1 upon any failure.
+ */
+int virStateReload(void) {
     int i, ret = 0;
 
     for (i = 0 ; i < virStateDriverTabCount ; i++) {
@@ -609,7 +693,14 @@ int __virStateReload(void) {
     return ret;
 }
 
-int __virStateActive(void) {
+/**
+ * virStateActive:
+ *
+ * Run each virtualization driver's "active" method.
+ *
+ * Return 0 if none are active, 1 if at least one is.
+ */
+int virStateActive(void) {
     int i, ret = 0;
 
     for (i = 0 ; i < virStateDriverTabCount ; i++) {
@@ -620,16 +711,6 @@ int __virStateActive(void) {
     return ret;
 }
 
-int __virStateSigDispatcher(siginfo_t *siginfo) {
-    int i, ret = 0;
-
-    for (i = 0 ; i < virStateDriverTabCount ; i++) {
-        if (virStateDriverTab[i]->sigHandler &&
-            virStateDriverTab[i]->sigHandler(siginfo))
-            ret = 1;
-    }
-    return ret;
-}
 #endif
 
 
@@ -653,7 +734,6 @@ int
 virGetVersion(unsigned long *libVer, const char *type,
               unsigned long *typeVer)
 {
-    int i;
     DEBUG("libVir=%p, type=%s, typeVer=%p", libVer, type, typeVer);
 
     if (!initialized)
@@ -667,15 +747,36 @@ virGetVersion(unsigned long *libVer, const char *type,
     if (typeVer != NULL) {
         if (type == NULL)
             type = "Xen";
-        for (i = 0;i < virDriverTabCount;i++) {
-            if ((virDriverTab[i] != NULL) &&
-                (STRCASEEQ(virDriverTab[i]->name, type))) {
-                *typeVer = virDriverTab[i]->ver;
-                break;
-            }
-        }
-        if (i >= virDriverTabCount) {
-            *typeVer = 0;
+        *typeVer = 0;
+#if WITH_XEN
+        if (STRCASEEQ(type, "Xen"))
+            *typeVer = xenUnifiedVersion();
+#endif
+#if WITH_TEST
+        if (STRCASEEQ(type, "Test"))
+            *typeVer = LIBVIR_VERSION_NUMBER;
+#endif
+#if WITH_QEMU
+        if (STRCASEEQ(type, "QEMU"))
+            *typeVer = LIBVIR_VERSION_NUMBER;
+#endif
+#if WITH_LXC
+        if (STRCASEEQ(type, "LXC"))
+            *typeVer = LIBVIR_VERSION_NUMBER;
+#endif
+#if WITH_OPENVZ
+        if (STRCASEEQ(type, "OpenVZ"))
+            *typeVer = LIBVIR_VERSION_NUMBER;
+#endif
+#if WITH_UML
+        if (STRCASEEQ(type, "UML"))
+            *typeVer = LIBVIR_VERSION_NUMBER;
+#endif
+#if WITH_REMOTE
+        if (STRCASEEQ(type, "Remote"))
+            *typeVer = remoteVersion();
+#endif
+        if (*typeVer == 0) {
             virLibConnError(NULL, VIR_ERR_NO_SUPPORT, type);
             return (-1);
         }
@@ -689,8 +790,11 @@ do_open (const char *name,
          int flags)
 {
     int i, res;
-    virConnectPtr ret = NULL;
-    xmlURIPtr uri;
+    virConnectPtr ret;
+
+    ret = virGetConnect();
+    if (ret == NULL)
+        return NULL;
 
     /*
      *  If no URI is passed, then check for an environment string if not
@@ -703,74 +807,43 @@ do_open (const char *name,
             DEBUG("Using LIBVIRT_DEFAULT_URI %s", defname);
             name = defname;
         } else {
-            const char *use = NULL;
-            const char *latest;
-            int probes = 0;
-            for (i = 0; i < virDriverTabCount; i++) {
-                if ((virDriverTab[i]->probe != NULL) &&
-                    ((latest = virDriverTab[i]->probe()) != NULL)) {
-                    probes++;
-
-                    DEBUG("Probed %s", latest);
-                    /*
-                     * if running a xen kernel, give it priority over
-                     * QEmu emulation
-                     */
-                    if (STREQ(latest, "xen:///"))
-                        use = latest;
-                    else if (use == NULL)
-                        use = latest;
-                }
-            }
-            if (use == NULL) {
-                name = "xen:///";
-                DEBUG("Could not probe any hypervisor defaulting to %s",
-                      name);
-            } else {
-                name = use;
-                DEBUG("Using %s as default URI, %d hypervisor found",
-                      use, probes);
-            }
+            name = NULL;
         }
     }
 
-    /* Convert xen -> xen:/// for back compat */
-    if (STRCASEEQ(name, "xen"))
-        name = "xen:///";
+    if (name) {
+        /* Convert xen -> xen:/// for back compat */
+        if (STRCASEEQ(name, "xen"))
+            name = "xen:///";
 
-    /* Convert xen:// -> xen:/// because xmlParseURI cannot parse the
-     * former.  This allows URIs such as xen://localhost to work.
-     */
-    if (STREQ (name, "xen://"))
-        name = "xen:///";
+        /* Convert xen:// -> xen:/// because xmlParseURI cannot parse the
+         * former.  This allows URIs such as xen://localhost to work.
+         */
+        if (STREQ (name, "xen://"))
+            name = "xen:///";
 
-    ret = virGetConnect();
-    if (ret == NULL)
-        return NULL;
+        ret->uri = xmlParseURI (name);
+        if (!ret->uri) {
+            virLibConnError (ret, VIR_ERR_INVALID_ARG,
+                             _("could not parse connection URI"));
+            goto failed;
+        }
 
-    uri = xmlParseURI (name);
-    if (!uri) {
-        virLibConnError (ret, VIR_ERR_INVALID_ARG,
-                         _("could not parse connection URI"));
-        goto failed;
-    }
-
-    DEBUG("name \"%s\" to URI components:\n"
-          "  scheme %s\n"
-          "  opaque %s\n"
-          "  authority %s\n"
-          "  server %s\n"
-          "  user %s\n"
-          "  port %d\n"
-          "  path %s\n",
-          name,
-          uri->scheme, uri->opaque, uri->authority, uri->server,
-          uri->user, uri->port, uri->path);
-
-    ret->name = strdup (name);
-    if (!ret->name) {
-        virLibConnError (ret, VIR_ERR_NO_MEMORY, _("allocating conn->name"));
-        goto failed;
+        DEBUG("name \"%s\" to URI components:\n"
+              "  scheme %s\n"
+              "  opaque %s\n"
+              "  authority %s\n"
+              "  server %s\n"
+              "  user %s\n"
+              "  port %d\n"
+              "  path %s\n",
+              name,
+              ret->uri->scheme, ret->uri->opaque,
+              ret->uri->authority, ret->uri->server,
+              ret->uri->user, ret->uri->port,
+              ret->uri->path);
+    } else {
+        DEBUG0("no name, allowing driver auto-select");
     }
 
     /* Cleansing flags */
@@ -779,7 +852,7 @@ do_open (const char *name,
     for (i = 0; i < virDriverTabCount; i++) {
         DEBUG("trying driver %d (%s) ...",
               i, virDriverTab[i]->name);
-        res = virDriverTab[i]->open (ret, uri, auth, flags);
+        res = virDriverTab[i]->open (ret, auth, flags);
         DEBUG("driver %d %s returned %s",
               i, virDriverTab[i]->name,
               res == VIR_DRV_OPEN_SUCCESS ? "SUCCESS" :
@@ -799,7 +872,7 @@ do_open (const char *name,
     }
 
     for (i = 0; i < virNetworkDriverTabCount; i++) {
-        res = virNetworkDriverTab[i]->open (ret, uri, auth, flags);
+        res = virNetworkDriverTab[i]->open (ret, auth, flags);
         DEBUG("network driver %d %s returned %s",
               i, virNetworkDriverTab[i]->name,
               res == VIR_DRV_OPEN_SUCCESS ? "SUCCESS" :
@@ -820,7 +893,7 @@ do_open (const char *name,
 
     /* Secondary driver for storage. Optional */
     for (i = 0; i < virStorageDriverTabCount; i++) {
-        res = virStorageDriverTab[i]->open (ret, uri, auth, flags);
+        res = virStorageDriverTab[i]->open (ret, auth, flags);
 #ifdef ENABLE_DEBUG
         DEBUG("storage driver %d %s returned %s",
               i, virStorageDriverTab[i]->name,
@@ -840,23 +913,47 @@ do_open (const char *name,
         }
     }
 
-    xmlFreeURI (uri);
+    /* Node driver (optional) */
+    for (i = 0; i < virDeviceMonitorTabCount; i++) {
+        res = virDeviceMonitorTab[i]->open (ret, auth, flags);
+        DEBUG("node driver %d %s returned %s",
+              i, virDeviceMonitorTab[i]->name,
+              res == VIR_DRV_OPEN_SUCCESS ? "SUCCESS" :
+              (res == VIR_DRV_OPEN_DECLINED ? "DECLINED" :
+               (res == VIR_DRV_OPEN_ERROR ? "ERROR" : "unknown status")));
+        if (res == VIR_DRV_OPEN_ERROR) {
+            if (STREQ(virDeviceMonitorTab[i]->name, "remote")) {
+                virLibConnWarning (NULL, VIR_WAR_NO_NODE,
+                                   "Is the libvirtd daemon running ?");
+            } else {
+                char *msg;
+                if (asprintf(&msg, "Is the %s daemon running?",
+                             virDeviceMonitorTab[i]->name) > 0) {
+                    virLibConnWarning (NULL, VIR_WAR_NO_NODE, msg);
+                    VIR_FREE(msg);
+                }
+            }
+            break;
+        } else if (res == VIR_DRV_OPEN_SUCCESS) {
+            ret->deviceMonitor = virDeviceMonitorTab[i];
+            break;
+        }
+    }
 
     return ret;
 
 failed:
     if (ret->driver) ret->driver->close (ret);
-    if (uri) xmlFreeURI(uri);
 
     /* If no global error was set, copy any error set
        in the connection object we're about to dispose of */
-    if (__lastErr.code == VIR_ERR_OK) {
-        memcpy(&__lastErr, &ret->err, sizeof(ret->err));
+    if (virLastErr.code == VIR_ERR_OK) {
+        memcpy(&virLastErr, &ret->err, sizeof(ret->err));
         memset(&ret->err, 0, sizeof(ret->err));
     }
 
     /* Still no error set, then raise a generic error */
-    if (__lastErr.code == VIR_ERR_OK)
+    if (virLastErr.code == VIR_ERR_OK)
         virLibConnError (NULL, VIR_ERR_INTERNAL_ERROR,
                          _("unable to open connection"));
 
@@ -960,6 +1057,8 @@ virConnectClose(virConnectPtr conn)
         conn->networkDriver->close (conn);
     if (conn->storageDriver)
         conn->storageDriver->close (conn);
+    if (conn->deviceMonitor)
+        conn->deviceMonitor->close (conn);
     conn->driver->close (conn);
 
     if (virUnrefConnect(conn) < 0)
@@ -967,11 +1066,12 @@ virConnectClose(virConnectPtr conn)
     return (0);
 }
 
-/* Not for public use.  This function is part of the internal
+/*
+ * Not for public use.  This function is part of the internal
  * implementation of driver features in the remote case.
  */
 int
-__virDrvSupportsFeature (virConnectPtr conn, int feature)
+virDrvSupportsFeature (virConnectPtr conn, int feature)
 {
     DEBUG("conn=%p, feature=%d", conn, feature);
 
@@ -1107,7 +1207,7 @@ virConnectGetURI (virConnectPtr conn)
     if (conn->driver->getURI)
         return conn->driver->getURI (conn);
 
-    name = strdup (conn->name);
+    name = (char *)xmlSaveUri(conn->uri);
     if (!name) {
         virLibConnError (conn, VIR_ERR_NO_MEMORY, __FUNCTION__);
         return NULL;
@@ -1228,12 +1328,12 @@ virDomainGetConnect (virDomainPtr dom)
 }
 
 /**
- * virDomainCreateLinux:
+ * virDomainCreateXML:
  * @conn: pointer to the hypervisor connection
  * @xmlDesc: string containing an XML description of the domain
  * @flags: callers should always pass 0
  *
- * Launch a new Linux guest domain, based on an XML description similar
+ * Launch a new guest domain, based on an XML description similar
  * to the one returned by virDomainGetXMLDesc()
  * This function may requires privileged access to the hypervisor.
  * The domain is not persistent, so its definition will disappear when it
@@ -1243,8 +1343,8 @@ virDomainGetConnect (virDomainPtr dom)
  * Returns a new domain object or NULL in case of failure
  */
 virDomainPtr
-virDomainCreateLinux(virConnectPtr conn, const char *xmlDesc,
-                     unsigned int flags)
+virDomainCreateXML(virConnectPtr conn, const char *xmlDesc,
+                   unsigned int flags)
 {
     DEBUG("conn=%p, xmlDesc=%s, flags=%d", conn, xmlDesc, flags);
 
@@ -1261,13 +1361,31 @@ virDomainCreateLinux(virConnectPtr conn, const char *xmlDesc,
         return (NULL);
     }
 
-    if (conn->driver->domainCreateLinux)
-        return conn->driver->domainCreateLinux (conn, xmlDesc, flags);
+    if (conn->driver->domainCreateXML)
+        return conn->driver->domainCreateXML (conn, xmlDesc, flags);
 
     virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return NULL;
 }
 
+/**
+ * virDomainCreateLinux:
+ * @conn: pointer to the hypervisor connection
+ * @xmlDesc: string containing an XML description of the domain
+ * @flags: callers should always pass 0
+ *
+ * Deprecated after 0.4.6.
+ * Renamed to virDomainCreateXML() providing identical functionality.
+ * This existing name will left indefinitely for API compatability.
+ *
+ * Returns a new domain object or NULL in case of failure
+ */
+virDomainPtr
+virDomainCreateLinux(virConnectPtr conn, const char *xmlDesc,
+                     unsigned int flags)
+{
+    return(virDomainCreateXML(conn, xmlDesc, flags));
+}
 
 /**
  * virDomainLookupByID:
@@ -2081,7 +2199,7 @@ virDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info)
  * @flags: an OR'ed set of virDomainXMLFlags
  *
  * Provide an XML description of the domain. The description may be reused
- * later to relaunch the domain with virDomainCreateLinux().
+ * later to relaunch the domain with virDomainCreateXML().
  *
  * Returns a 0 terminated UTF-8 encoded XML instance, or NULL in case of error.
  *         the caller must free() the returned value.
@@ -2166,7 +2284,8 @@ virDomainMigrate (virDomainPtr domain,
     virDomainPtr ddomain = NULL;
     char *uri_out = NULL;
     char *cookie = NULL;
-    int cookielen = 0, ret;
+    char *dom_xml = NULL;
+    int cookielen = 0, ret, version = 0;
     DEBUG("domain=%p, dconn=%p, flags=%lu, dname=%s, uri=%s, bandwidth=%lu",
           domain, dconn, flags, dname, uri, bandwidth);
 
@@ -2181,10 +2300,17 @@ virDomainMigrate (virDomainPtr domain,
     }
 
     /* Check that migration is supported by both drivers. */
-    if (!VIR_DRV_SUPPORTS_FEATURE (conn->driver, conn,
-                                   VIR_DRV_FEATURE_MIGRATION_V1) ||
-        !VIR_DRV_SUPPORTS_FEATURE (dconn->driver, dconn,
-                                   VIR_DRV_FEATURE_MIGRATION_V1)) {
+    if (VIR_DRV_SUPPORTS_FEATURE (conn->driver, conn,
+                                  VIR_DRV_FEATURE_MIGRATION_V1) &&
+        VIR_DRV_SUPPORTS_FEATURE (dconn->driver, dconn,
+                                  VIR_DRV_FEATURE_MIGRATION_V1))
+        version = 1;
+    else if (VIR_DRV_SUPPORTS_FEATURE (conn->driver, conn,
+                                       VIR_DRV_FEATURE_MIGRATION_V2) &&
+             VIR_DRV_SUPPORTS_FEATURE (dconn->driver, dconn,
+                                       VIR_DRV_FEATURE_MIGRATION_V2))
+        version = 2;
+    else {
         virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
         return NULL;
     }
@@ -2200,17 +2326,49 @@ virDomainMigrate (virDomainPtr domain,
      * the URI by setting uri_out.  If it does not wish to modify
      * the URI, it should leave uri_out as NULL.
      */
-    ret = dconn->driver->domainMigratePrepare
-        (dconn, &cookie, &cookielen, uri, &uri_out, flags, dname, bandwidth);
-    if (ret == -1) goto done;
-    if (uri == NULL && uri_out == NULL) {
-        virLibConnError (conn, VIR_ERR_INTERNAL_ERROR,
-                         _("domainMigratePrepare did not set uri"));
-        goto done;
-    }
-    if (uri_out) uri = uri_out; /* Did domainMigratePrepare change URI? */
+    if (version == 1) {
+        ret = dconn->driver->domainMigratePrepare
+            (dconn, &cookie, &cookielen, uri, &uri_out, flags, dname,
+             bandwidth);
+        if (ret == -1) goto done;
+        if (uri == NULL && uri_out == NULL) {
+            virLibConnError (conn, VIR_ERR_INTERNAL_ERROR,
+                             _("domainMigratePrepare did not set uri"));
+            goto done;
+        }
+        if (uri_out) uri = uri_out; /* Did domainMigratePrepare change URI? */
 
-    assert (uri != NULL);
+        assert (uri != NULL);
+    }
+    else /* if (version == 2) */ {
+        /* In version 2 of the protocol, the prepare step is slightly
+         * different.  We fetch the domain XML of the source domain
+         * and pass it to Prepare2.
+         */
+        if (!conn->driver->domainDumpXML) {
+            virLibConnError (conn, VIR_ERR_INTERNAL_ERROR, __FUNCTION__);
+            return NULL;
+        }
+        dom_xml = conn->driver->domainDumpXML (domain,
+                                               VIR_DOMAIN_XML_SECURE);
+
+        if (!dom_xml)
+            return NULL;
+
+        ret = dconn->driver->domainMigratePrepare2
+            (dconn, &cookie, &cookielen, uri, &uri_out, flags, dname,
+             bandwidth, dom_xml);
+        free (dom_xml);
+        if (ret == -1) goto done;
+        if (uri == NULL && uri_out == NULL) {
+            virLibConnError (conn, VIR_ERR_INTERNAL_ERROR,
+                             _("domainMigratePrepare2 did not set uri"));
+            goto done;
+        }
+        if (uri_out) uri = uri_out; /* Did domainMigratePrepare2 change URI? */
+
+        assert (uri != NULL);
+    }
 
     /* Perform the migration.  The driver isn't supposed to return
      * until the migration is complete.
@@ -2218,18 +2376,28 @@ virDomainMigrate (virDomainPtr domain,
     ret = conn->driver->domainMigratePerform
         (domain, cookie, cookielen, uri, flags, dname, bandwidth);
 
-    if (ret == -1) goto done;
-
-    /* Get the destination domain and return it or error.
-     * 'domain' no longer actually exists at this point (or so we hope), but
-     * we still use the object in memory in order to get the name.
-     */
-    dname = dname ? dname : domain->name;
-    if (dconn->driver->domainMigrateFinish)
-        ddomain = dconn->driver->domainMigrateFinish
-            (dconn, dname, cookie, cookielen, uri, flags);
-    else
-        ddomain = virDomainLookupByName (dconn, dname);
+    if (version == 1) {
+        if (ret == -1) goto done;
+        /* Get the destination domain and return it or error.
+         * 'domain' no longer actually exists at this point
+         * (or so we hope), but we still use the object in memory
+         * in order to get the name.
+         */
+        dname = dname ? dname : domain->name;
+        if (dconn->driver->domainMigrateFinish)
+            ddomain = dconn->driver->domainMigrateFinish
+                (dconn, dname, cookie, cookielen, uri, flags);
+        else
+            ddomain = virDomainLookupByName (dconn, dname);
+    } else /* if (version == 2) */ {
+        /* In version 2 of the migration protocol, we pass the
+         * status code from the sender to the destination host,
+         * so it can do any cleanup if the migration failed.
+         */
+        dname = dname ? dname : domain->name;
+        ddomain = dconn->driver->domainMigrateFinish2
+            (dconn, dname, cookie, cookielen, uri, flags, ret);
+    }
 
  done:
     free (uri_out);
@@ -2237,11 +2405,12 @@ virDomainMigrate (virDomainPtr domain,
     return ddomain;
 }
 
-/* Not for public use.  This function is part of the internal
+/*
+ * Not for public use.  This function is part of the internal
  * implementation of migration in the remote case.
  */
 int
-__virDomainMigratePrepare (virConnectPtr dconn,
+virDomainMigratePrepare (virConnectPtr dconn,
                            char **cookie,
                            int *cookielen,
                            const char *uri_in,
@@ -2266,11 +2435,12 @@ __virDomainMigratePrepare (virConnectPtr dconn,
     return -1;
 }
 
-/* Not for public use.  This function is part of the internal
+/*
+ * Not for public use.  This function is part of the internal
  * implementation of migration in the remote case.
  */
 int
-__virDomainMigratePerform (virDomainPtr domain,
+virDomainMigratePerform (virDomainPtr domain,
                            const char *cookie,
                            int cookielen,
                            const char *uri,
@@ -2296,11 +2466,12 @@ __virDomainMigratePerform (virDomainPtr domain,
     return -1;
 }
 
-/* Not for public use.  This function is part of the internal
+/*
+ * Not for public use.  This function is part of the internal
  * implementation of migration in the remote case.
  */
 virDomainPtr
-__virDomainMigrateFinish (virConnectPtr dconn,
+virDomainMigrateFinish (virConnectPtr dconn,
                           const char *dname,
                           const char *cookie,
                           int cookielen,
@@ -2318,6 +2489,69 @@ __virDomainMigrateFinish (virConnectPtr dconn,
         return dconn->driver->domainMigrateFinish (dconn, dname,
                                                    cookie, cookielen,
                                                    uri, flags);
+
+    virLibConnError (dconn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return NULL;
+}
+
+
+/*
+ * Not for public use.  This function is part of the internal
+ * implementation of migration in the remote case.
+ */
+int
+virDomainMigratePrepare2 (virConnectPtr dconn,
+                          char **cookie,
+                          int *cookielen,
+                          const char *uri_in,
+                          char **uri_out,
+                          unsigned long flags,
+                          const char *dname,
+                          unsigned long bandwidth,
+                          const char *dom_xml)
+{
+    DEBUG("dconn=%p, cookie=%p, cookielen=%p, uri_in=%s, uri_out=%p, flags=%lu, dname=%s, bandwidth=%lu, dom_xml=%s", dconn, cookie, cookielen, uri_in, uri_out, flags, dname, bandwidth, dom_xml);
+
+    if (!VIR_IS_CONNECT (dconn)) {
+        virLibConnError (NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return -1;
+    }
+
+    if (dconn->driver->domainMigratePrepare2)
+        return dconn->driver->domainMigratePrepare2 (dconn, cookie, cookielen,
+                                                     uri_in, uri_out,
+                                                     flags, dname, bandwidth,
+                                                     dom_xml);
+
+    virLibConnError (dconn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return -1;
+}
+
+/*
+ * Not for public use.  This function is part of the internal
+ * implementation of migration in the remote case.
+ */
+virDomainPtr
+virDomainMigrateFinish2 (virConnectPtr dconn,
+                         const char *dname,
+                         const char *cookie,
+                         int cookielen,
+                         const char *uri,
+                         unsigned long flags,
+                         int retcode)
+{
+    DEBUG("dconn=%p, dname=%s, cookie=%p, cookielen=%d, uri=%s, flags=%lu, retcode=%d", dconn, dname, cookie, cookielen, uri, flags, retcode);
+
+    if (!VIR_IS_CONNECT (dconn)) {
+        virLibConnError (NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return NULL;
+    }
+
+    if (dconn->driver->domainMigrateFinish2)
+        return dconn->driver->domainMigrateFinish2 (dconn, dname,
+                                                    cookie, cookielen,
+                                                    uri, flags,
+                                                    retcode);
 
     virLibConnError (dconn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return NULL;
@@ -5283,41 +5517,327 @@ virStorageVolGetPath(virStorageVolPtr vol)
 
 
 
-/* Not for public use.  Combines the elements of a virStringList
- * into a single string.
+/**
+ * virNodeNumOfDevices:
+ * @conn: pointer to the hypervisor connection
+ * @cap: capability name
+ * @flags: flags (unused, pass 0)
+ *
+ * Provides the number of node devices.
+ *
+ * If the optional 'cap'  argument is non-NULL, then the count
+ * will be restricted to devices with the specified capability
+ *
+ * Returns the number of node devices or -1 in case of error
  */
-char *virStringListJoin(const virStringList *list, const char *pre,
-                        const char *post, const char *sep)
+int
+virNodeNumOfDevices(virConnectPtr conn, const char *cap, unsigned int flags)
 {
-    size_t pre_len = strlen(pre);
-    size_t sep_len = strlen(sep);
-    size_t len = pre_len + strlen(post);
-    const virStringList *p;
-    char *retval;
+    DEBUG("conn=%p, cap=%s, flags=%d", conn, cap, flags);
 
-    for (p = list; p; p = p->next)
-        len += p->len + sep_len;
-    if (VIR_ALLOC_N(retval, len+1) < 0)
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+    if (flags != 0) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return (-1);
+    }
+
+    if (conn->deviceMonitor && conn->deviceMonitor->numOfDevices)
+        return conn->deviceMonitor->numOfDevices (conn, cap, flags);
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return -1;
+}
+
+
+/**
+ * virNodeListDevices:
+ * @conn: pointer to the hypervisor connection
+ * @cap: capability name
+ * @names: array to collect the list of node device names
+ * @maxnames: size of @names
+ * @flags: flags (unused, pass 0)
+ *
+ * Collect the list of node devices, and store their names in @names
+ *
+ * If the optional 'cap'  argument is non-NULL, then the count
+ * will be restricted to devices with the specified capability
+ *
+ * Returns the number of node devices found or -1 in case of error
+ */
+int
+virNodeListDevices(virConnectPtr conn,
+                   const char *cap,
+                   char **const names, int maxnames,
+                   unsigned int flags)
+{
+    DEBUG("conn=%p, cap=%s, names=%p, maxnames=%d, flags=%d",
+          conn, cap, names, maxnames, flags);
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+    if ((flags != 0) || (names == NULL) || (maxnames < 0)) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return (-1);
+    }
+
+    if (conn->deviceMonitor && conn->deviceMonitor->listDevices)
+        return conn->deviceMonitor->listDevices (conn, cap, names, maxnames, flags);
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return -1;
+}
+
+
+/**
+ * virNodeDeviceLookupByName:
+ * @conn: pointer to the hypervisor connection
+ * @name: unique device name
+ *
+ * Lookup a node device by its name.
+ *
+ * Returns a virNodeDevicePtr if found, NULL otherwise.
+ */
+virNodeDevicePtr virNodeDeviceLookupByName(virConnectPtr conn, const char *name)
+{
+    DEBUG("conn=%p, name=%p", conn, name);
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
         return NULL;
-    strcpy(retval, pre);
-    len = pre_len;
-    for (p = list; p; p = p->next) {
-        strcpy(retval + len, p->val);
-        len += p->len;
-        strcpy(retval + len, sep);
-        len += sep_len;
     }
-    strcpy(retval + len, post);
 
-    return retval;
+    if (name == NULL) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return NULL;
+    }
+
+    if (conn->deviceMonitor && conn->deviceMonitor->deviceLookupByName)
+        return conn->deviceMonitor->deviceLookupByName (conn, name);
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return NULL;
 }
 
 
-void virStringListFree(virStringList *list)
+/**
+ * virNodeDeviceGetXMLDesc:
+ * @dev: pointer to the node device
+ * @flags: flags for XML generation (unused, pass 0)
+ *
+ * Fetch an XML document describing all aspects of
+ * the device.
+ *
+ * Return the XML document, or NULL on error
+ */
+char *virNodeDeviceGetXMLDesc(virNodeDevicePtr dev, unsigned int flags)
 {
-    while (list) {
-        virStringList *p = list->next;
-        VIR_FREE(list);
-        list = p;
+    DEBUG("dev=%p, conn=%p", dev, dev ? dev->conn : NULL);
+
+    if (!VIR_IS_CONNECTED_NODE_DEVICE(dev)) {
+        virLibNodeDeviceError(NULL, VIR_ERR_INVALID_NODE_DEVICE, __FUNCTION__);
+        return NULL;
     }
+
+    if (dev->conn->deviceMonitor && dev->conn->deviceMonitor->deviceDumpXML)
+        return dev->conn->deviceMonitor->deviceDumpXML (dev, flags);
+
+    virLibConnError (dev->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return NULL;
 }
+
+
+/**
+ * virNodeDeviceGetName:
+ * @dev: the device
+ *
+ * Just return the device name
+ *
+ * Returns the device name or NULL in case of error
+ */
+const char *virNodeDeviceGetName(virNodeDevicePtr dev)
+{
+    DEBUG("dev=%p, conn=%p", dev, dev ? dev->conn : NULL);
+
+    if (!VIR_IS_CONNECTED_NODE_DEVICE(dev)) {
+        virLibNodeDeviceError(NULL, VIR_ERR_INVALID_NODE_DEVICE, __FUNCTION__);
+        return NULL;
+    }
+
+    return dev->name;
+}
+
+/**
+ * virNodeDeviceGetParent:
+ * @dev: the device
+ *
+ * Accessor for the parent of the device
+ *
+ * Returns the name of the device's parent, or NULL if the
+ * device has no parent.
+ */
+const char *virNodeDeviceGetParent(virNodeDevicePtr dev)
+{
+    DEBUG("dev=%p, conn=%p", dev, dev ? dev->conn : NULL);
+
+    if (!VIR_IS_CONNECTED_NODE_DEVICE(dev)) {
+        virLibNodeDeviceError(NULL, VIR_ERR_INVALID_NODE_DEVICE, __FUNCTION__);
+        return NULL;
+    }
+
+    if (dev->conn->deviceMonitor && dev->conn->deviceMonitor->deviceGetParent)
+        return dev->conn->deviceMonitor->deviceGetParent (dev);
+
+    virLibConnError (dev->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return NULL;
+}
+
+/**
+ * virNodeDeviceNumOfCaps:
+ * @dev: the device
+ *
+ * Accessor for the number of capabilities supported by the device.
+ *
+ * Returns the number of capabilities supported by the device.
+ */
+int virNodeDeviceNumOfCaps(virNodeDevicePtr dev)
+{
+    DEBUG("dev=%p, conn=%p", dev, dev ? dev->conn : NULL);
+
+    if (!VIR_IS_CONNECTED_NODE_DEVICE(dev)) {
+        virLibNodeDeviceError(NULL, VIR_ERR_INVALID_NODE_DEVICE, __FUNCTION__);
+        return -1;
+    }
+
+    if (dev->conn->deviceMonitor && dev->conn->deviceMonitor->deviceNumOfCaps)
+        return dev->conn->deviceMonitor->deviceNumOfCaps (dev);
+
+    virLibConnError (dev->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return -1;
+}
+
+/**
+ * virNodeDeviceListCaps:
+ * @dev: the device
+ * @names: array to collect the list of capability names
+ * @maxnames: size of @names
+ *
+ * Lists the names of the capabilities supported by the device.
+ *
+ * Returns the number of capability names listed in @names.
+ */
+int virNodeDeviceListCaps(virNodeDevicePtr dev,
+                          char **const names,
+                          int maxnames)
+{
+    DEBUG("dev=%p, conn=%p, names=%p, maxnames=%d",
+          dev, dev ? dev->conn : NULL, names, maxnames);
+
+    if (!VIR_IS_CONNECTED_NODE_DEVICE(dev)) {
+        virLibNodeDeviceError(NULL, VIR_ERR_INVALID_NODE_DEVICE, __FUNCTION__);
+        return -1;
+    }
+
+    if (dev->conn->deviceMonitor && dev->conn->deviceMonitor->deviceListCaps)
+        return dev->conn->deviceMonitor->deviceListCaps (dev, names, maxnames);
+
+    virLibConnError (dev->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return -1;
+}
+
+
+/**
+ * virNodeDeviceFree:
+ * @dev: pointer to the node device
+ *
+ * Drops a reference to the node device, freeing it if
+ * this was the last reference.
+ *
+ * Returns the 0 for success, -1 for error.
+ */
+int virNodeDeviceFree(virNodeDevicePtr dev)
+{
+    DEBUG("dev=%p, conn=%p", dev, dev ? dev->conn : NULL);
+
+    if (!VIR_IS_CONNECTED_NODE_DEVICE(dev)) {
+        virLibNodeDeviceError(NULL, VIR_ERR_INVALID_NODE_DEVICE, __FUNCTION__);
+        return (-1);
+    }
+    if (virUnrefNodeDevice(dev) < 0)
+        return (-1);
+    return(0);
+}
+
+
+/*
+ * Domain Event Notification
+ */
+
+/**
+ * virConnectDomainEventRegister:
+ * @conn: pointer to the connection
+ * @cb: callback to the function handling domain events
+ * @opaque: opaque data to pass on to the callback
+ * @freecb: optional function to deallocate opaque when not used anymore
+ *
+ * Adds a Domain Event Callback.
+ * Registering for a domain callback will enable delivery of the events
+ *
+ * Returns 0 on success, -1 on failure
+ */
+int
+virConnectDomainEventRegister(virConnectPtr conn,
+                              virConnectDomainEventCallback cb,
+                              void *opaque,
+                              virFreeCallback freecb)
+{
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+    if (cb == NULL) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return (-1);
+    }
+
+    if ((conn->driver) && (conn->driver->domainEventRegister))
+        return conn->driver->domainEventRegister (conn, cb, opaque, freecb);
+    return -1;
+}
+
+/**
+ * virConnectDomainEventDeregister:
+ * @conn: pointer to the connection
+ * @cb: callback to the function handling domain events
+ *
+ * Removes a Domain Event Callback.
+ * De-registering for a domain callback will disable
+ * delivery of this event type
+ *
+ * Returns 0 on success, -1 on failure
+ */
+int
+virConnectDomainEventDeregister(virConnectPtr conn,
+                                virConnectDomainEventCallback cb)
+{
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+    if (cb == NULL) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return (-1);
+    }
+    if ((conn->driver) && (conn->driver->domainEventDeregister))
+        return conn->driver->domainEventDeregister (conn, cb);
+
+    return -1;
+}
+
+

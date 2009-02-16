@@ -27,9 +27,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#ifdef WITH_XEN
-
 #include "internal.h"
+#include "datatypes.h"
 #include "xen_unified.h"
 #include "xm_internal.h"
 #include "testutils.h"
@@ -54,13 +53,11 @@ static int testCompareParseXML(const char *xmcfg, const char *xml,
     int ret = -1;
     virConnectPtr conn;
     int wrote = MAX_FILE;
-    void *old_priv = NULL;
     struct _xenUnifiedPrivate priv;
     virDomainDefPtr def = NULL;
 
-    conn = virConnectOpenReadOnly("test:///default");
+    conn = virGetConnect();
     if (!conn) goto fail;
-    old_priv = conn->privateData;
 
     if (virtTestLoadFile(xml, &xmlPtr, MAX_FILE) < 0)
         goto fail;
@@ -94,10 +91,7 @@ static int testCompareParseXML(const char *xmcfg, const char *xml,
     if (conf)
         virConfFree(conf);
     virDomainDefFree(def);
-    if (conn) {
-        conn->privateData = old_priv;
-        virConnectClose(conn);
-    }
+    virUnrefConnect(conn);
 
     return ret;
 }
@@ -112,13 +106,11 @@ static int testCompareFormatXML(const char *xmcfg, const char *xml,
     virConfPtr conf = NULL;
     int ret = -1;
     virConnectPtr conn;
-    void *old_priv;
     struct _xenUnifiedPrivate priv;
     virDomainDefPtr def = NULL;
 
-    conn = virConnectOpenReadOnly("test:///default");
+    conn = virGetConnect();
     if (!conn) goto fail;
-    old_priv = conn->privateData;
 
     if (virtTestLoadFile(xml, &xmlPtr, MAX_FILE) < 0)
         goto fail;
@@ -152,10 +144,7 @@ static int testCompareFormatXML(const char *xmcfg, const char *xml,
         virConfFree(conf);
     VIR_FREE(gotxml);
     virDomainDefFree(def);
-    if (conn) {
-        conn->privateData = old_priv;
-        virConnectClose(conn);
-    }
+    virUnrefConnect(conn);
 
     return ret;
 }
@@ -240,6 +229,7 @@ mymain(int argc, char **argv)
     DO_TEST("fullvirt-sound", 2);
 
     DO_TEST("escape-paths", 2);
+    DO_TEST("no-source-cdrom", 2);
 
     virCapabilitiesFree(caps);
 
@@ -248,11 +238,3 @@ mymain(int argc, char **argv)
 
 VIRT_TEST_MAIN(mymain)
 
-#else /* WITHOUT_XEN */
-int
-main(void)
-{
-    fprintf(stderr, "libvirt compiled without Xen support\n");
-    return(0);
-}
-#endif /* WITH_XEN */

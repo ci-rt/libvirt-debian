@@ -24,7 +24,8 @@
 #include <config.h>
 
 /* Windows socket compatibility functions. */
-#include "socketcompat.h"
+#include <errno.h>
+#include <sys/socket.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,6 +36,13 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+
+#ifndef HAVE_WINSOCK2_H		/* Unix & Cygwin. */
+# include <sys/un.h>
+# include <net/if.h>
+# include <netinet/in.h>
+# include <netinet/tcp.h>
+#endif
 
 #ifdef HAVE_SYS_WAIT_H
 #include <sys/wait.h>
@@ -58,14 +66,17 @@
 #endif
 #include <libxml/uri.h>
 
-#include "getaddrinfo.h"
+#include <netdb.h>
 
 /* AI_ADDRCONFIG is missing on some systems. */
 #ifndef AI_ADDRCONFIG
 # define AI_ADDRCONFIG 0
 #endif
 
-#include "internal.h"
+#include "virterror_internal.h"
+#include "logging.h"
+#include "datatypes.h"
+#include "domain_event.h"
 #include "driver.h"
 #include "buf.h"
 #include "qparams.h"
@@ -73,9 +84,7 @@
 #include "remote_protocol.h"
 #include "memory.h"
 #include "util.h"
-
-#define DEBUG(fmt,...) VIR_DEBUG(__FILE__, fmt,__VA_ARGS__)
-#define DEBUG0(msg) VIR_DEBUG(__FILE__, "%s", msg)
+#include "event.h"
 
 /* Per-connection private data. */
 #define MAGIC 999               /* private_data->magic if OK */
@@ -86,6 +95,7 @@ static int inside_daemon = 0;
 struct private_data {
     int magic;                  /* Should be MAGIC or DEAD. */
     int sock;                   /* Socket. */
+    int watch;                  /* File handle watch */
     pid_t pid;                  /* PID of tunnel process */
     int uses_tls;               /* TLS enabled on socket? */
     gnutls_session_t session;   /* GnuTLS session (if uses_tls != 0). */
@@ -100,6 +110,13 @@ struct private_data {
     unsigned int saslDecodedLength;
     unsigned int saslDecodedOffset;
 #endif
+    /* The list of domain event callbacks */
+    virDomainEventCallbackListPtr callbackList;
+    /* The queue of domain events generated
+       during a call / response rpc          */
+    virDomainEventQueuePtr domainEvents;
+    /* Timer for flushing domainEvents queue */
+    int eventFlushTimer;
 };
 
 #define GET_PRIVATE(conn,retcode)                                       \
@@ -123,6 +140,14 @@ struct private_data {
     if (!priv || priv->magic != MAGIC) {                                \
         error (conn, VIR_ERR_INVALID_ARG,                               \
                "tried to use a closed or uninitialised handle");        \
+        return (retcode);                                               \
+    }
+
+#define GET_DEVMON_PRIVATE(conn,retcode)                               \
+    struct private_data *priv = (struct private_data *) (conn)->devMonPrivateData; \
+    if (!priv || priv->magic != MAGIC) {                                \
+        error (conn, VIR_ERR_INVALID_ARG,                               \
+               _("tried to use a closed or uninitialised handle"));     \
         return (retcode);                                               \
     }
 
@@ -155,11 +180,15 @@ static virDomainPtr get_nonnull_domain (virConnectPtr conn, remote_nonnull_domai
 static virNetworkPtr get_nonnull_network (virConnectPtr conn, remote_nonnull_network network);
 static virStoragePoolPtr get_nonnull_storage_pool (virConnectPtr conn, remote_nonnull_storage_pool pool);
 static virStorageVolPtr get_nonnull_storage_vol (virConnectPtr conn, remote_nonnull_storage_vol vol);
+static virNodeDevicePtr get_nonnull_node_device (virConnectPtr conn, remote_nonnull_node_device dev);
 static void make_nonnull_domain (remote_nonnull_domain *dom_dst, virDomainPtr dom_src);
 static void make_nonnull_network (remote_nonnull_network *net_dst, virNetworkPtr net_src);
 static void make_nonnull_storage_pool (remote_nonnull_storage_pool *pool_dst, virStoragePoolPtr vol_src);
 static void make_nonnull_storage_vol (remote_nonnull_storage_vol *vol_dst, virStorageVolPtr vol_src);
-
+void remoteDomainEventFired(int watch, int fd, int event, void *data);
+static void remoteDomainProcessEvent(virConnectPtr conn, XDR *xdr);
+static void remoteDomainQueueEvent(virConnectPtr conn, XDR *xdr);
+void remoteDomainEventQueueFlush(int timer, void *opaque);
 /*----------------------------------------------------------------------*/
 
 /* Helper functions for remoteOpen. */
@@ -181,6 +210,7 @@ remoteStartup(void)
 }
 #endif
 
+#ifndef WIN32
 /**
  * remoteFindServerPath:
  *
@@ -210,7 +240,6 @@ remoteFindDaemonPath(void)
     return NULL;
 }
 
-#ifndef WIN32
 /**
  * qemuForkDaemon:
  *
@@ -254,46 +283,51 @@ enum virDrvOpenRemoteFlags {
     VIR_DRV_OPEN_REMOTE_AUTOSTART = (1 << 3),
 };
 
+/* What transport? */
+enum {
+    trans_tls,
+    trans_unix,
+    trans_ssh,
+    trans_ext,
+    trans_tcp,
+} transport;
+
+
 static int
 doRemoteOpen (virConnectPtr conn,
               struct private_data *priv,
-              xmlURIPtr uri,
               virConnectAuthPtr auth ATTRIBUTE_UNUSED,
               int flags)
 {
-    if (!uri || !uri->scheme)
-        return VIR_DRV_OPEN_DECLINED; /* Decline - not a URL. */
+    char *transport_str = NULL;
 
-    char *transport_str = get_transport_from_scheme (uri->scheme);
+    if (conn->uri) {
+        if (!conn->uri->scheme)
+            return VIR_DRV_OPEN_DECLINED;
 
-    /* What transport? */
-    enum {
-        trans_tls,
-        trans_unix,
-        trans_ssh,
-        trans_ext,
-        trans_tcp,
-    } transport;
+        transport_str = get_transport_from_scheme (conn->uri->scheme);
 
-    if (!transport_str || STRCASEEQ (transport_str, "tls"))
-        transport = trans_tls;
-    else if (STRCASEEQ (transport_str, "unix"))
-        transport = trans_unix;
-    else if (STRCASEEQ (transport_str, "ssh"))
-        transport = trans_ssh;
-    else if (STRCASEEQ (transport_str, "ext"))
-        transport = trans_ext;
-    else if (STRCASEEQ (transport_str, "tcp"))
-        transport = trans_tcp;
-    else {
-        error (conn, VIR_ERR_INVALID_ARG,
-               _("remote_open: transport in URL not recognised "
-                 "(should be tls|unix|ssh|ext|tcp)"));
-        return VIR_DRV_OPEN_ERROR;
+        if (!transport_str || STRCASEEQ (transport_str, "tls"))
+            transport = trans_tls;
+        else if (STRCASEEQ (transport_str, "unix"))
+            transport = trans_unix;
+        else if (STRCASEEQ (transport_str, "ssh"))
+            transport = trans_ssh;
+        else if (STRCASEEQ (transport_str, "ext"))
+            transport = trans_ext;
+        else if (STRCASEEQ (transport_str, "tcp"))
+            transport = trans_tcp;
+        else {
+            error (conn, VIR_ERR_INVALID_ARG,
+                   _("remote_open: transport in URL not recognised "
+                     "(should be tls|unix|ssh|ext|tcp)"));
+            return VIR_DRV_OPEN_ERROR;
+        }
     }
 
-    if (!uri->server && !transport_str) {
-        if (flags & VIR_DRV_OPEN_REMOTE_UNIX)
+    if (!transport_str) {
+        if ((!conn->uri || !conn->uri->server) &&
+            (flags & VIR_DRV_OPEN_REMOTE_UNIX))
             transport = trans_unix;
         else
             return VIR_DRV_OPEN_DECLINED; /* Decline - not a remote URL. */
@@ -311,8 +345,8 @@ doRemoteOpen (virConnectPtr conn,
     int retcode = VIR_DRV_OPEN_ERROR;
 
     /* Remote server defaults to "localhost" if not specified. */
-    if (uri->port != 0) {
-        if (asprintf (&port, "%d", uri->port) == -1) goto out_of_memory;
+    if (conn->uri && conn->uri->port != 0) {
+        if (asprintf (&port, "%d", conn->uri->port) == -1) goto out_of_memory;
     } else if (transport == trans_tls) {
         port = strdup (LIBVIRTD_TLS_PORT);
         if (!port) goto out_of_memory;
@@ -326,11 +360,12 @@ doRemoteOpen (virConnectPtr conn,
         port = NULL;           /* Port not used for unix, ext. */
 
 
-    priv->hostname = strdup (uri->server ? uri->server : "localhost");
+    priv->hostname = strdup (conn->uri && conn->uri->server ?
+                             conn->uri->server : "localhost");
     if (!priv->hostname)
         goto out_of_memory;
-    if (uri->user) {
-        username = strdup (uri->user);
+    if (conn->uri && conn->uri->user) {
+        username = strdup (conn->uri->user);
         if (!username)
             goto out_of_memory;
     }
@@ -344,67 +379,105 @@ doRemoteOpen (virConnectPtr conn,
     struct qparam *var;
     int i;
     char *query;
-#ifdef HAVE_XMLURI_QUERY_RAW
-    query = uri->query_raw;
-#else
-    query = uri->query;
-#endif
-    vars = qparam_query_parse (query);
-    if (vars == NULL) goto failed;
 
-    for (i = 0; i < vars->n; i++) {
-        var = &vars->p[i];
-        if (STRCASEEQ (var->name, "name")) {
-            name = strdup (var->value);
-            if (!name) goto out_of_memory;
-            var->ignore = 1;
-        } else if (STRCASEEQ (var->name, "command")) {
-            command = strdup (var->value);
-            if (!command) goto out_of_memory;
-            var->ignore = 1;
-        } else if (STRCASEEQ (var->name, "socket")) {
-            sockname = strdup (var->value);
-            if (!sockname) goto out_of_memory;
-            var->ignore = 1;
-        } else if (STRCASEEQ (var->name, "auth")) {
-            authtype = strdup (var->value);
-            if (!authtype) goto out_of_memory;
-            var->ignore = 1;
-        } else if (STRCASEEQ (var->name, "netcat")) {
-            netcat = strdup (var->value);
-            if (!netcat) goto out_of_memory;
-            var->ignore = 1;
-        } else if (STRCASEEQ (var->name, "no_verify")) {
-            no_verify = atoi (var->value);
-            var->ignore = 1;
-        } else if (STRCASEEQ (var->name, "no_tty")) {
-            no_tty = atoi (var->value);
-            var->ignore = 1;
-        } else if (STRCASEEQ (var->name, "debug")) {
-            if (var->value &&
-                STRCASEEQ (var->value, "stdout"))
-                priv->debugLog = stdout;
-            else
-                priv->debugLog = stderr;
-        } else
-            DEBUG("passing through variable '%s' ('%s') to remote end",
-                  var->name, var->value);
+    if (conn->uri) {
+#ifdef HAVE_XMLURI_QUERY_RAW
+        query = conn->uri->query_raw;
+#else
+        query = conn->uri->query;
+#endif
+        vars = qparam_query_parse (query);
+        if (vars == NULL) goto failed;
+
+        for (i = 0; i < vars->n; i++) {
+            var = &vars->p[i];
+            if (STRCASEEQ (var->name, "name")) {
+                name = strdup (var->value);
+                if (!name) goto out_of_memory;
+                var->ignore = 1;
+            } else if (STRCASEEQ (var->name, "command")) {
+                command = strdup (var->value);
+                if (!command) goto out_of_memory;
+                var->ignore = 1;
+            } else if (STRCASEEQ (var->name, "socket")) {
+                sockname = strdup (var->value);
+                if (!sockname) goto out_of_memory;
+                var->ignore = 1;
+            } else if (STRCASEEQ (var->name, "auth")) {
+                authtype = strdup (var->value);
+                if (!authtype) goto out_of_memory;
+                var->ignore = 1;
+            } else if (STRCASEEQ (var->name, "netcat")) {
+                netcat = strdup (var->value);
+                if (!netcat) goto out_of_memory;
+                var->ignore = 1;
+            } else if (STRCASEEQ (var->name, "no_verify")) {
+                no_verify = atoi (var->value);
+                var->ignore = 1;
+            } else if (STRCASEEQ (var->name, "no_tty")) {
+                no_tty = atoi (var->value);
+                var->ignore = 1;
+            } else if (STRCASEEQ (var->name, "debug")) {
+                if (var->value &&
+                    STRCASEEQ (var->value, "stdout"))
+                    priv->debugLog = stdout;
+                else
+                    priv->debugLog = stderr;
+            } else
+                DEBUG("passing through variable '%s' ('%s') to remote end",
+                      var->name, var->value);
+        }
+
+        /* Construct the original name. */
+        if (!name) {
+            if (STREQ(conn->uri->scheme, "remote") ||
+                STRPREFIX(conn->uri->scheme, "remote+")) {
+                /* Allow remote serve to probe */
+                name = strdup("");
+            } else {
+                xmlURI tmpuri = {
+                    .scheme = conn->uri->scheme,
+#ifdef HAVE_XMLURI_QUERY_RAW
+                    .query_raw = qparam_get_query (vars),
+#else
+                    .query = qparam_get_query (vars),
+#endif
+                    .path = conn->uri->path,
+                    .fragment = conn->uri->fragment,
+                };
+
+                /* Evil, blank out transport scheme temporarily */
+                if (transport_str) {
+                    assert (transport_str[-1] == '+');
+                    transport_str[-1] = '\0';
+                }
+
+                name = (char *) xmlSaveUri (&tmpuri);
+
+#ifdef HAVE_XMLURI_QUERY_RAW
+                VIR_FREE(tmpuri.query_raw);
+#else
+                VIR_FREE(tmpuri.query);
+#endif
+
+                /* Restore transport scheme */
+                if (transport_str)
+                    transport_str[-1] = '+';
+            }
+        }
+
+        free_qparam_set (vars);
+    } else {
+        /* Probe URI server side */
+        name = strdup("");
     }
 
-#ifdef HAVE_XMLURI_QUERY_RAW
-    xmlFree (uri->query_raw);
-#else
-    xmlFree (uri->query);
-#endif
+    if (!name) {
+        error(conn, VIR_ERR_NO_MEMORY, NULL);
+        goto failed;
+    }
 
-#ifdef HAVE_XMLURI_QUERY_RAW
-    uri->query_raw =
-#else
-    uri->query =
-#endif
-         qparam_get_query (vars);
-
-    free_qparam_set (vars);
+    DEBUG("proceeding with name = %s", name);
 
     /* For ext transport, command is required. */
     if (transport == trans_ext && !command) {
@@ -412,28 +485,6 @@ doRemoteOpen (virConnectPtr conn,
                _("remote_open: for 'ext' transport, command is required"));
         goto failed;
     }
-
-    /* Construct the original name. */
-    if (!name) {
-        /* Remove the transport (if any) from the scheme. */
-        if (transport_str) {
-            assert (transport_str[-1] == '+');
-            transport_str[-1] = '\0';
-        }
-        /* Remove the username, server name and port number. */
-        xmlFree (uri->user);
-        uri->user = 0;
-
-        xmlFree (uri->server);
-        uri->server = 0;
-
-        uri->port = 0;
-
-        name = (char *) xmlSaveUri (uri);
-    }
-
-    assert (name);
-    DEBUG("proceeding with name = %s", name);
 
     /* Connect to the remote service. */
     switch (transport) {
@@ -474,7 +525,7 @@ doRemoteOpen (virConnectPtr conn,
 
             priv->sock = socket (r->ai_family, SOCK_STREAM, 0);
             if (priv->sock == -1) {
-                saved_errno = socket_errno();
+                saved_errno = errno;
                 continue;
             }
 
@@ -484,7 +535,7 @@ doRemoteOpen (virConnectPtr conn,
                         sizeof no_slow_start);
 
             if (connect (priv->sock, r->ai_addr, r->ai_addrlen) == -1) {
-                saved_errno = socket_errno();
+                saved_errno = errno;
                 close (priv->sock);
                 continue;
             }
@@ -683,6 +734,69 @@ doRemoteOpen (virConnectPtr conn,
               (xdrproc_t) xdr_void, (char *) NULL) == -1)
         goto failed;
 
+    /* Now try and find out what URI the daemon used */
+    if (conn->uri == NULL) {
+        remote_get_uri_ret uriret;
+        int urierr;
+
+        memset (&uriret, 0, sizeof uriret);
+        urierr = call (conn, priv,
+                       REMOTE_CALL_IN_OPEN | REMOTE_CALL_QUIET_MISSING_RPC,
+                       REMOTE_PROC_GET_URI,
+                       (xdrproc_t) xdr_void, (char *) NULL,
+                       (xdrproc_t) xdr_remote_get_uri_ret, (char *) &uriret);
+        if (urierr == -2) {
+            /* Should not really happen, since we only probe local libvirtd's,
+               & the library should always match the daemon. Only case is post
+               RPM upgrade where an old daemon instance is still running with
+               new client. Too bad. It is not worth the hassle to fix this */
+            error (conn, VIR_ERR_INTERNAL_ERROR, _("unable to auto-detect URI"));
+            goto failed;
+        }
+        if (urierr == -1) {
+            goto failed;
+        }
+
+        DEBUG("Auto-probed URI is %s", uriret.uri);
+        conn->uri = xmlParseURI(uriret.uri);
+        VIR_FREE(uriret.uri);
+        if (!conn->uri) {
+            error (conn, VIR_ERR_NO_MEMORY, NULL);
+            goto failed;
+        }
+    }
+
+    if(VIR_ALLOC(priv->callbackList)<0) {
+        error(conn, VIR_ERR_INVALID_ARG, _("Error allocating callbacks list"));
+        goto failed;
+    }
+
+    if(VIR_ALLOC(priv->domainEvents)<0) {
+        error(conn, VIR_ERR_INVALID_ARG, _("Error allocating domainEvents"));
+        goto failed;
+    }
+
+    DEBUG0("Adding Handler for remote events");
+    /* Set up a callback to listen on the socket data */
+    if ((priv->watch = virEventAddHandle(priv->sock,
+                                         VIR_EVENT_HANDLE_READABLE |
+                                         VIR_EVENT_HANDLE_ERROR |
+                                         VIR_EVENT_HANDLE_HANGUP,
+                                         remoteDomainEventFired,
+                                         conn, NULL)) < 0) {
+        DEBUG0("virEventAddHandle failed: No addHandleImpl defined."
+               " continuing without events.");
+    } else {
+
+        DEBUG0("Adding Timeout for remote event queue flushing");
+        if ( (priv->eventFlushTimer = virEventAddTimeout(-1,
+                                                         remoteDomainEventQueueFlush,
+                                                         conn, NULL)) < 0) {
+            DEBUG0("virEventAddTimeout failed: No addTimeoutImpl defined. "
+                    "continuing without events.");
+            virEventRemoveHandle(priv->watch);
+        }
+    }
     /* Successful. */
     retcode = VIR_DRV_OPEN_SUCCESS;
 
@@ -739,7 +853,6 @@ doRemoteOpen (virConnectPtr conn,
 
 static int
 remoteOpen (virConnectPtr conn,
-            xmlURIPtr uri,
             virConnectAuthPtr auth,
             int flags)
 {
@@ -757,40 +870,56 @@ remoteOpen (virConnectPtr conn,
     if (flags & VIR_CONNECT_RO)
         rflags |= VIR_DRV_OPEN_REMOTE_RO;
 
-#if WITH_QEMU
-    if (uri &&
-        uri->scheme && STREQ (uri->scheme, "qemu") &&
-        (!uri->server || STREQ (uri->server, "")) &&
-        uri->path) {
-        if (STREQ (uri->path, "/system")) {
-            rflags |= VIR_DRV_OPEN_REMOTE_UNIX;
-        } else if (STREQ (uri->path, "/session")) {
-            rflags |= VIR_DRV_OPEN_REMOTE_UNIX;
-            if (getuid() > 0) {
-                rflags |= VIR_DRV_OPEN_REMOTE_USER;
-                rflags |= VIR_DRV_OPEN_REMOTE_AUTOSTART;
-            }
+    /*
+     * If no servername is given, and no +XXX
+     * transport is listed, then force to a
+     * local UNIX socket connection
+     */
+    if (conn->uri &&
+        !conn->uri->server &&
+        conn->uri->scheme &&
+        !strchr(conn->uri->scheme, '+')) {
+        DEBUG0("Auto-remote UNIX socket");
+        rflags |= VIR_DRV_OPEN_REMOTE_UNIX;
+    }
+
+    /*
+     * If no servername is given, and no +XXX
+     * transport is listed, or transport is unix,
+     * and path is /session, and uid is unprivileged
+     * then auto-spawn a daemon.
+     */
+    if (conn->uri &&
+        !conn->uri->server &&
+        conn->uri->path &&
+        conn->uri->scheme &&
+        ((strchr(conn->uri->scheme, '+') == 0)||
+         (strstr(conn->uri->scheme, "+unix") != NULL)) &&
+        STREQ(conn->uri->path, "/session") &&
+        getuid() > 0) {
+        DEBUG0("Auto-spawn user daemon instance");
+        rflags |= VIR_DRV_OPEN_REMOTE_USER;
+        rflags |= VIR_DRV_OPEN_REMOTE_AUTOSTART;
+    }
+
+    /*
+     * If URI is NULL, then do a UNIX connection
+     * possibly auto-spawning unprivileged server
+     * and probe remote server for URI
+     */
+    if (!conn->uri) {
+        DEBUG0("Auto-probe remote URI");
+        rflags |= VIR_DRV_OPEN_REMOTE_UNIX;
+        if (getuid() > 0) {
+            DEBUG0("Auto-spawn user daemon instance");
+            rflags |= VIR_DRV_OPEN_REMOTE_USER;
+            rflags |= VIR_DRV_OPEN_REMOTE_AUTOSTART;
         }
     }
-#endif
-#if WITH_XEN
-    if (uri &&
-        uri->scheme && STREQ (uri->scheme, "xen") &&
-        (!uri->server || STREQ (uri->server, "")) &&
-        (!uri->path || STREQ(uri->path, "/"))) {
-        rflags |= VIR_DRV_OPEN_REMOTE_UNIX;
-    }
-#endif
-#if WITH_LXC
-    if (uri &&
-        uri->scheme && STREQ (uri->scheme, "lxc")) {
-        rflags |= VIR_DRV_OPEN_REMOTE_UNIX;
-    }
-#endif
 
     priv->magic = DEAD;
     priv->sock = -1;
-    ret = doRemoteOpen(conn, priv, uri, auth, rflags);
+    ret = doRemoteOpen(conn, priv, auth, rflags);
     if (ret != VIR_DRV_OPEN_SUCCESS) {
         conn->privateData = NULL;
         VIR_FREE(priv);
@@ -1104,6 +1233,13 @@ doRemoteClose (virConnectPtr conn, struct private_data *priv)
               (xdrproc_t) xdr_void, (char *) NULL) == -1)
         return -1;
 
+    if (priv->eventFlushTimer >= 0) {
+        /* Remove timeout */
+        virEventRemoveTimeout(priv->eventFlushTimer);
+        /* Remove handle for remote events */
+        virEventRemoveHandle(priv->watch);
+    }
+
     /* Close socket. */
     if (priv->uses_tls && priv->session) {
         gnutls_bye (priv->session, GNUTLS_SHUT_RDWR);
@@ -1134,6 +1270,12 @@ doRemoteClose (virConnectPtr conn, struct private_data *priv)
 
     /* Free private data. */
     priv->magic = DEAD;
+
+    /* Free callback list */
+    virDomainEventCallbackListFree(priv->callbackList);
+
+    /* Free queued events */
+    virDomainEventQueueFree(priv->domainEvents);
 
     return 0;
 }
@@ -1200,7 +1342,7 @@ remoteType (virConnectPtr conn)
 }
 
 static int
-remoteVersion (virConnectPtr conn, unsigned long *hvVer)
+remoteGetVersion (virConnectPtr conn, unsigned long *hvVer)
 {
     remote_get_version_ret ret;
     GET_PRIVATE (conn, -1);
@@ -1394,26 +1536,26 @@ remoteNumOfDomains (virConnectPtr conn)
 }
 
 static virDomainPtr
-remoteDomainCreateLinux (virConnectPtr conn,
+remoteDomainCreateXML (virConnectPtr conn,
                          const char *xmlDesc,
                          unsigned int flags)
 {
     virDomainPtr dom;
-    remote_domain_create_linux_args args;
-    remote_domain_create_linux_ret ret;
+    remote_domain_create_xml_args args;
+    remote_domain_create_xml_ret ret;
     GET_PRIVATE (conn, NULL);
 
     args.xml_desc = (char *) xmlDesc;
     args.flags = flags;
 
     memset (&ret, 0, sizeof ret);
-    if (call (conn, priv, 0, REMOTE_PROC_DOMAIN_CREATE_LINUX,
-              (xdrproc_t) xdr_remote_domain_create_linux_args, (char *) &args,
-              (xdrproc_t) xdr_remote_domain_create_linux_ret, (char *) &ret) == -1)
+    if (call (conn, priv, 0, REMOTE_PROC_DOMAIN_CREATE_XML,
+              (xdrproc_t) xdr_remote_domain_create_xml_args, (char *) &args,
+              (xdrproc_t) xdr_remote_domain_create_xml_ret, (char *) &ret) == -1)
         return NULL;
 
     dom = get_nonnull_domain (conn, ret.dom);
-    xdr_free ((xdrproc_t) &xdr_remote_domain_create_linux_ret, (char *) &ret);
+    xdr_free ((xdrproc_t) &xdr_remote_domain_create_xml_ret, (char *) &ret);
 
     return dom;
 }
@@ -1953,6 +2095,73 @@ remoteDomainMigrateFinish (virConnectPtr dconn,
 }
 
 static int
+remoteDomainMigratePrepare2 (virConnectPtr dconn,
+                             char **cookie, int *cookielen,
+                             const char *uri_in, char **uri_out,
+                             unsigned long flags, const char *dname,
+                             unsigned long resource,
+                             const char *dom_xml)
+{
+    remote_domain_migrate_prepare2_args args;
+    remote_domain_migrate_prepare2_ret ret;
+    GET_PRIVATE (dconn, -1);
+
+    args.uri_in = uri_in == NULL ? NULL : (char **) &uri_in;
+    args.flags = flags;
+    args.dname = dname == NULL ? NULL : (char **) &dname;
+    args.resource = resource;
+    args.dom_xml = (char *) dom_xml;
+
+    memset (&ret, 0, sizeof ret);
+    if (call (dconn, priv, 0, REMOTE_PROC_DOMAIN_MIGRATE_PREPARE2,
+              (xdrproc_t) xdr_remote_domain_migrate_prepare2_args, (char *) &args,
+              (xdrproc_t) xdr_remote_domain_migrate_prepare2_ret, (char *) &ret) == -1)
+        return -1;
+
+    if (ret.cookie.cookie_len > 0) {
+        *cookie = ret.cookie.cookie_val; /* Caller frees. */
+        *cookielen = ret.cookie.cookie_len;
+    }
+    if (ret.uri_out)
+        *uri_out = *ret.uri_out; /* Caller frees. */
+
+    return 0;
+}
+
+static virDomainPtr
+remoteDomainMigrateFinish2 (virConnectPtr dconn,
+                            const char *dname,
+                            const char *cookie,
+                            int cookielen,
+                            const char *uri,
+                            unsigned long flags,
+                            int retcode)
+{
+    virDomainPtr ddom;
+    remote_domain_migrate_finish2_args args;
+    remote_domain_migrate_finish2_ret ret;
+    GET_PRIVATE (dconn, NULL);
+
+    args.dname = (char *) dname;
+    args.cookie.cookie_len = cookielen;
+    args.cookie.cookie_val = (char *) cookie;
+    args.uri = (char *) uri;
+    args.flags = flags;
+    args.retcode = retcode;
+
+    memset (&ret, 0, sizeof ret);
+    if (call (dconn, priv, 0, REMOTE_PROC_DOMAIN_MIGRATE_FINISH2,
+              (xdrproc_t) xdr_remote_domain_migrate_finish2_args, (char *) &args,
+              (xdrproc_t) xdr_remote_domain_migrate_finish2_ret, (char *) &ret) == -1)
+        return NULL;
+
+    ddom = get_nonnull_domain (dconn, ret.ddom);
+    xdr_free ((xdrproc_t) &xdr_remote_domain_migrate_finish2_ret, (char *) &ret);
+
+    return ddom;
+}
+
+static int
 remoteListDefinedDomains (virConnectPtr conn, char **const names, int maxnames)
 {
     int i;
@@ -2367,7 +2576,7 @@ remoteDomainBlockPeek (virDomainPtr domain,
 
     if (ret.buffer.buffer_len != size) {
             errorf (domain->conn, VIR_ERR_RPC,
-                    _("returned buffer is not same size as requested"));
+                    "%s", _("returned buffer is not same size as requested"));
             free (ret.buffer.buffer_val);
             return -1;
     }
@@ -2411,7 +2620,7 @@ remoteDomainMemoryPeek (virDomainPtr domain,
 
     if (ret.buffer.buffer_len != size) {
             errorf (domain->conn, VIR_ERR_RPC,
-                    _("returned buffer is not same size as requested"));
+                    "%s", _("returned buffer is not same size as requested"));
             free (ret.buffer.buffer_val);
             return -1;
     }
@@ -2426,7 +2635,6 @@ remoteDomainMemoryPeek (virDomainPtr domain,
 
 static int
 remoteNetworkOpen (virConnectPtr conn,
-                   xmlURIPtr uri,
                    virConnectAuthPtr auth,
                    int flags)
 {
@@ -2460,7 +2668,7 @@ remoteNetworkOpen (virConnectPtr conn,
 
         priv->magic = DEAD;
         priv->sock = -1;
-        ret = doRemoteOpen(conn, priv, uri, auth, rflags);
+        ret = doRemoteOpen(conn, priv, auth, rflags);
         if (ret != VIR_DRV_OPEN_SUCCESS) {
             conn->networkPrivateData = NULL;
             VIR_FREE(priv);
@@ -2827,7 +3035,6 @@ remoteNetworkSetAutostart (virNetworkPtr network, int autostart)
 
 static int
 remoteStorageOpen (virConnectPtr conn,
-                   xmlURIPtr uri,
                    virConnectAuthPtr auth,
                    int flags)
 {
@@ -2866,7 +3073,7 @@ remoteStorageOpen (virConnectPtr conn,
 
         priv->magic = DEAD;
         priv->sock = -1;
-        ret = doRemoteOpen(conn, priv, uri, auth, rflags);
+        ret = doRemoteOpen(conn, priv, auth, rflags);
         if (ret != VIR_DRV_OPEN_SUCCESS) {
             conn->storagePrivateData = NULL;
             VIR_FREE(priv);
@@ -3583,6 +3790,229 @@ remoteStorageVolGetPath (virStorageVolPtr vol)
 
 /*----------------------------------------------------------------------*/
 
+static virDrvOpenStatus
+remoteDevMonOpen(virConnectPtr conn,
+                 virConnectAuthPtr auth ATTRIBUTE_UNUSED,
+                 int flags ATTRIBUTE_UNUSED)
+{
+    if (conn &&
+        conn->driver &&
+        STREQ (conn->driver->name, "remote")) {
+        /* If we're here, the remote driver is already
+         * in use due to a) a QEMU uri, or b) a remote
+         * URI. So we can re-use existing connection
+         */
+        conn->devMonPrivateData = conn->privateData;
+        return VIR_DRV_OPEN_SUCCESS;
+    }
+
+    /* Decline open.  Will fallback to appropriate local node driver. */
+    return VIR_DRV_OPEN_DECLINED;
+}
+
+static int remoteDevMonClose(virConnectPtr conn)
+{
+    int ret = 0;
+    GET_DEVMON_PRIVATE (conn, -1);
+    if (priv->localUses) {
+        priv->localUses--;
+        if (!priv->localUses) {
+            ret = doRemoteClose(conn, priv);
+            VIR_FREE(priv);
+            conn->devMonPrivateData = NULL;
+        }
+    }
+    return ret;
+}
+
+static int remoteNodeNumOfDevices(virConnectPtr conn,
+                                  const char *cap,
+                                  unsigned int flags)
+{
+    remote_node_num_of_devices_args args;
+    remote_node_num_of_devices_ret ret;
+    GET_STORAGE_PRIVATE (conn, -1);
+
+    args.cap = cap ? (char **)&cap : NULL;
+    args.flags = flags;
+
+    memset (&ret, 0, sizeof ret);
+    if (call (conn, priv, 0, REMOTE_PROC_NODE_NUM_OF_DEVICES,
+              (xdrproc_t) xdr_remote_node_num_of_devices_args, (char *) &args,
+              (xdrproc_t) xdr_remote_node_num_of_devices_ret, (char *) &ret) == -1)
+        return -1;
+
+    return ret.num;
+}
+
+
+static int remoteNodeListDevices(virConnectPtr conn,
+                                 const char *cap,
+                                 char **const names,
+                                 int maxnames,
+                                 unsigned int flags)
+{
+    int i;
+    remote_node_list_devices_args args;
+    remote_node_list_devices_ret ret;
+    GET_STORAGE_PRIVATE (conn, -1);
+
+    if (maxnames > REMOTE_NODE_DEVICE_NAME_LIST_MAX) {
+        error (conn, VIR_ERR_RPC, _("too many device names requested"));
+        return -1;
+    }
+    args.cap = cap ? (char **)&cap : NULL;
+    args.maxnames = maxnames;
+    args.flags = flags;
+
+    memset (&ret, 0, sizeof ret);
+    if (call (conn, priv, 0, REMOTE_PROC_NODE_LIST_DEVICES,
+              (xdrproc_t) xdr_remote_node_list_devices_args, (char *) &args,
+              (xdrproc_t) xdr_remote_node_list_devices_ret, (char *) &ret) == -1)
+        return -1;
+
+    if (ret.names.names_len > maxnames) {
+        error (conn, VIR_ERR_RPC, _("too many device names received"));
+        xdr_free ((xdrproc_t) xdr_remote_node_list_devices_ret, (char *) &ret);
+        return -1;
+    }
+
+    /* This call is caller-frees (although that isn't clear from
+     * the documentation).  However xdr_free will free up both the
+     * names and the list of pointers, so we have to strdup the
+     * names here.
+     */
+    for (i = 0; i < ret.names.names_len; ++i)
+        names[i] = strdup (ret.names.names_val[i]);
+
+    xdr_free ((xdrproc_t) xdr_remote_node_list_devices_ret, (char *) &ret);
+
+    return ret.names.names_len;
+}
+
+
+static virNodeDevicePtr remoteNodeDeviceLookupByName(virConnectPtr conn,
+                                                     const char *name)
+{
+    remote_node_device_lookup_by_name_args args;
+    remote_node_device_lookup_by_name_ret ret;
+    virNodeDevicePtr dev;
+    GET_STORAGE_PRIVATE (conn, NULL);
+
+    args.name = (char *)name;
+
+    memset (&ret, 0, sizeof ret);
+    if (call (conn, priv, 0, REMOTE_PROC_NODE_DEVICE_LOOKUP_BY_NAME,
+              (xdrproc_t) xdr_remote_node_device_lookup_by_name_args, (char *) &args,
+              (xdrproc_t) xdr_remote_node_device_lookup_by_name_ret, (char *) &ret) == -1)
+        return NULL;
+
+    dev = get_nonnull_node_device(conn, ret.dev);
+
+    xdr_free ((xdrproc_t) xdr_remote_node_device_lookup_by_name_ret, (char *) &ret);
+
+    return dev;
+}
+
+static char *remoteNodeDeviceDumpXML(virNodeDevicePtr dev,
+                                     unsigned int flags)
+{
+    remote_node_device_dump_xml_args args;
+    remote_node_device_dump_xml_ret ret;
+    GET_STORAGE_PRIVATE (dev->conn, NULL);
+
+    args.name = dev->name;
+    args.flags = flags;
+
+    memset (&ret, 0, sizeof ret);
+    if (call (dev->conn, priv, 0, REMOTE_PROC_NODE_DEVICE_DUMP_XML,
+              (xdrproc_t) xdr_remote_node_device_dump_xml_args, (char *) &args,
+              (xdrproc_t) xdr_remote_node_device_dump_xml_ret, (char *) &ret) == -1)
+        return NULL;
+
+    /* Caller frees. */
+    return ret.xml;
+}
+
+static char *remoteNodeDeviceGetParent(virNodeDevicePtr dev)
+{
+    remote_node_device_get_parent_args args;
+    remote_node_device_get_parent_ret ret;
+    GET_STORAGE_PRIVATE (dev->conn, NULL);
+
+    args.name = dev->name;
+
+    memset (&ret, 0, sizeof ret);
+    if (call (dev->conn, priv, 0, REMOTE_PROC_NODE_DEVICE_GET_PARENT,
+              (xdrproc_t) xdr_remote_node_device_get_parent_args, (char *) &args,
+              (xdrproc_t) xdr_remote_node_device_get_parent_ret, (char *) &ret) == -1)
+        return NULL;
+
+    /* Caller frees. */
+    return ret.parent ? *ret.parent : NULL;
+}
+
+static int remoteNodeDeviceNumOfCaps(virNodeDevicePtr dev)
+{
+    remote_node_device_num_of_caps_args args;
+    remote_node_device_num_of_caps_ret ret;
+    GET_STORAGE_PRIVATE (dev->conn, -1);
+
+    args.name = dev->name;
+
+    memset (&ret, 0, sizeof ret);
+    if (call (dev->conn, priv, 0, REMOTE_PROC_NODE_DEVICE_NUM_OF_CAPS,
+              (xdrproc_t) xdr_remote_node_device_num_of_caps_args, (char *) &args,
+              (xdrproc_t) xdr_remote_node_device_num_of_caps_ret, (char *) &ret) == -1)
+        return -1;
+
+    return ret.num;
+}
+
+static int remoteNodeDeviceListCaps(virNodeDevicePtr dev,
+                                    char **const names,
+                                    int maxnames)
+{
+    int i;
+    remote_node_device_list_caps_args args;
+    remote_node_device_list_caps_ret ret;
+    GET_STORAGE_PRIVATE (dev->conn, -1);
+
+    if (maxnames > REMOTE_NODE_DEVICE_CAPS_LIST_MAX) {
+        error (dev->conn, VIR_ERR_RPC, _("too many capability names requested"));
+        return -1;
+    }
+    args.maxnames = maxnames;
+    args.name = dev->name;
+
+    memset (&ret, 0, sizeof ret);
+    if (call (dev->conn, priv, 0, REMOTE_PROC_NODE_DEVICE_LIST_CAPS,
+              (xdrproc_t) xdr_remote_node_device_list_caps_args, (char *) &args,
+              (xdrproc_t) xdr_remote_node_device_list_caps_ret, (char *) &ret) == -1)
+        return -1;
+
+    if (ret.names.names_len > maxnames) {
+        error (dev->conn, VIR_ERR_RPC, _("too many capability names received"));
+        xdr_free ((xdrproc_t) xdr_remote_node_device_list_caps_ret, (char *) &ret);
+        return -1;
+    }
+
+    /* This call is caller-frees (although that isn't clear from
+     * the documentation).  However xdr_free will free up both the
+     * names and the list of pointers, so we have to strdup the
+     * names here.
+     */
+    for (i = 0; i < ret.names.names_len; ++i)
+        names[i] = strdup (ret.names.names_val[i]);
+
+    xdr_free ((xdrproc_t) xdr_remote_node_device_list_caps_ret, (char *) &ret);
+
+    return ret.names.names_len;
+}
+
+
+/*----------------------------------------------------------------------*/
+
 static int
 remoteAuthenticate (virConnectPtr conn, struct private_data *priv, int in_open,
                     virConnectAuthPtr auth
@@ -3618,7 +4048,7 @@ remoteAuthenticate (virConnectPtr conn, struct private_data *priv, int in_open,
         } else if (STRCASEEQ(authtype, "polkit")) {
             want = REMOTE_AUTH_POLKIT;
         } else {
-            __virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
+            virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
                              VIR_ERR_AUTH_FAILED, VIR_ERR_ERROR,
                              NULL, NULL, NULL, 0, 0,
                              _("unknown authentication type %s"), authtype);
@@ -3629,7 +4059,7 @@ remoteAuthenticate (virConnectPtr conn, struct private_data *priv, int in_open,
                 type = want;
         }
         if (type == REMOTE_AUTH_NONE) {
-            __virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
+            virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
                              VIR_ERR_AUTH_FAILED, VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
                              _("requested authentication type %s rejected"),
                              authtype);
@@ -3669,7 +4099,7 @@ remoteAuthenticate (virConnectPtr conn, struct private_data *priv, int in_open,
         break;
 
     default:
-        __virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
+        virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
                          VIR_ERR_AUTH_FAILED, VIR_ERR_ERROR,
                          NULL, NULL, NULL, 0, 0,
                          _("unsupported authentication type %d"),
@@ -3699,7 +4129,7 @@ static char *addrToString(struct sockaddr_storage *sa, socklen_t salen)
                            host, sizeof(host),
                            port, sizeof(port),
                            NI_NUMERICHOST | NI_NUMERICSERV)) != 0) {
-        __virRaiseError (NULL, NULL, NULL, VIR_FROM_REMOTE,
+        virRaiseError (NULL, NULL, NULL, VIR_FROM_REMOTE,
                          VIR_ERR_NO_MEMORY, VIR_ERR_ERROR,
                          NULL, NULL, NULL, 0, 0,
                          _("Cannot resolve address %d: %s"),
@@ -3708,7 +4138,7 @@ static char *addrToString(struct sockaddr_storage *sa, socklen_t salen)
     }
 
     if (VIR_ALLOC_N(addr, strlen(host) + 1 + strlen(port) + 1) < 0) {
-        __virRaiseError (NULL, NULL, NULL, VIR_FROM_REMOTE,
+        virRaiseError (NULL, NULL, NULL, VIR_FROM_REMOTE,
                          VIR_ERR_NO_MEMORY, VIR_ERR_ERROR,
                          NULL, NULL, NULL, 0, 0,
                          "address");
@@ -3918,7 +4348,7 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
     /* Sets up the SASL library as a whole */
     err = sasl_client_init(NULL);
     if (err != SASL_OK) {
-        __virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
+        virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
                          VIR_ERR_AUTH_FAILED, VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
                          _("failed to initialize SASL library: %d (%s)"),
                          err, sasl_errstring(err, NULL, NULL));
@@ -3928,10 +4358,10 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
     /* Get local address in form  IPADDR:PORT */
     salen = sizeof(sa);
     if (getsockname(priv->sock, (struct sockaddr*)&sa, &salen) < 0) {
-        __virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
+        virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
                          VIR_ERR_AUTH_FAILED, VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
                          _("failed to get sock address %d (%s)"),
-                         socket_errno (), strerror(socket_errno ()));
+                         errno, strerror(errno));
         goto cleanup;
     }
     if ((localAddr = addrToString(&sa, salen)) == NULL)
@@ -3940,10 +4370,10 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
     /* Get remote address in form  IPADDR:PORT */
     salen = sizeof(sa);
     if (getpeername(priv->sock, (struct sockaddr*)&sa, &salen) < 0) {
-        __virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
+        virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
                          VIR_ERR_AUTH_FAILED, VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
                          _("failed to get peer address %d (%s)"),
-                         socket_errno (), strerror(socket_errno ()));
+                         errno, strerror(errno));
         goto cleanup;
     }
     if ((remoteAddr = addrToString(&sa, salen)) == NULL)
@@ -3966,7 +4396,7 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
                           &saslconn);
 
     if (err != SASL_OK) {
-        __virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
+        virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
                          VIR_ERR_AUTH_FAILED, VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
                          _("Failed to create SASL client context: %d (%s)"),
                          err, sasl_errstring(err, NULL, NULL));
@@ -3979,7 +4409,7 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
 
         cipher = gnutls_cipher_get(priv->session);
         if (!(ssf = (sasl_ssf_t)gnutls_cipher_get_key_size(cipher))) {
-            __virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
+            virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
                              VIR_ERR_INTERNAL_ERROR, VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
                              "%s", _("invalid cipher size for TLS session"));
             goto cleanup;
@@ -3989,7 +4419,7 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
         DEBUG("Setting external SSF %d", ssf);
         err = sasl_setprop(saslconn, SASL_SSF_EXTERNAL, &ssf);
         if (err != SASL_OK) {
-            __virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
+            virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
                              VIR_ERR_INTERNAL_ERROR, VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
                              _("cannot set external SSF %d (%s)"),
                              err, sasl_errstring(err, NULL, NULL));
@@ -4008,7 +4438,7 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
 
     err = sasl_setprop(saslconn, SASL_SEC_PROPS, &secprops);
     if (err != SASL_OK) {
-        __virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
+        virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
                          VIR_ERR_INTERNAL_ERROR, VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
                          _("cannot set security props %d (%s)"),
                          err, sasl_errstring(err, NULL, NULL));
@@ -4026,7 +4456,7 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
     mechlist = iret.mechlist;
     if (wantmech) {
         if (strstr(mechlist, wantmech) == NULL) {
-            __virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
+            virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
                              VIR_ERR_AUTH_FAILED, VIR_ERR_ERROR,
                              NULL, NULL, NULL, 0, 0,
                              _("SASL mechanism %s not supported by server"),
@@ -4046,7 +4476,7 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
                             &clientoutlen,
                             &mech);
     if (err != SASL_OK && err != SASL_CONTINUE && err != SASL_INTERACT) {
-        __virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
+        virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
                          VIR_ERR_AUTH_FAILED, VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
                          _("Failed to start SASL negotiation: %d (%s)"),
                          err, sasl_errdetail(saslconn));
@@ -4063,7 +4493,7 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
         }
         if ((ncred =
              remoteAuthMakeCredentials(interact, &cred)) < 0) {
-            __virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
+            virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
                              VIR_ERR_AUTH_FAILED, VIR_ERR_ERROR,
                              NULL, NULL, NULL, 0, 0,
                              "%s", _("Failed to make auth credentials"));
@@ -4080,7 +4510,7 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
         } else {
             msg = "No authentication callback available";
         }
-        __virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
+        virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
                          VIR_ERR_AUTH_FAILED, VIR_ERR_ERROR, NULL, NULL, NULL,
                          0, 0, "%s", msg);
         goto cleanup;
@@ -4088,7 +4518,7 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
     VIR_FREE(iret.mechlist);
 
     if (clientoutlen > REMOTE_AUTH_SASL_DATA_MAX) {
-        __virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
+        virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
                          VIR_ERR_AUTH_FAILED, VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
                          _("SASL negotiation data too long: %d bytes"),
                          clientoutlen);
@@ -4128,7 +4558,7 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
                                &clientout,
                                &clientoutlen);
         if (err != SASL_OK && err != SASL_CONTINUE && err != SASL_INTERACT) {
-            __virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
+            virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
                              VIR_ERR_AUTH_FAILED, VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
                              _("Failed SASL step: %d (%s)"),
                              err, sasl_errdetail(saslconn));
@@ -4142,7 +4572,7 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
                 cred = NULL;
             }
             if ((ncred = remoteAuthMakeCredentials(interact, &cred)) < 0) {
-                __virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
+                virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
                                  VIR_ERR_AUTH_FAILED, VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
                                  "%s", _("Failed to make auth credentials"));
                 goto cleanup;
@@ -4157,7 +4587,7 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
             } else {
                 msg = "No authentication callback available";
             }
-            __virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
+            virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
                              VIR_ERR_AUTH_FAILED, VIR_ERR_ERROR, NULL, NULL, NULL,
                              0, 0, "%s", msg);
             goto cleanup;
@@ -4205,7 +4635,7 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
     if (!priv->uses_tls) {
         err = sasl_getprop(saslconn, SASL_SSF, &val);
         if (err != SASL_OK) {
-            __virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
+            virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
                              VIR_ERR_AUTH_FAILED, VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
                              _("cannot query SASL ssf on connection %d (%s)"),
                              err, sasl_errstring(err, NULL, NULL));
@@ -4214,7 +4644,7 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
         ssf = *(const int *)val;
         DEBUG("SASL SSF value %d", ssf);
         if (ssf < 56) { /* 56 == DES level, good for Kerberos */
-            __virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
+            virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
                              VIR_ERR_AUTH_FAILED, VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
                              _("negotiation SSF %d was not strong enough"), ssf);
             goto cleanup;
@@ -4268,9 +4698,9 @@ remoteAuthPolkit (virConnectPtr conn, struct private_data *priv, int in_open,
         if (allowcb) {
             /* Run the authentication callback */
             if ((*(auth->cb))(&cred, 1, auth->cbdata) < 0) {
-                __virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
+                virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
                                  VIR_ERR_AUTH_FAILED, VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
-                                 _("Failed to collect auth credentials"));
+                                 "%s", _("Failed to collect auth credentials"));
                 return -1;
             }
         } else {
@@ -4291,6 +4721,57 @@ remoteAuthPolkit (virConnectPtr conn, struct private_data *priv, int in_open,
     return 0;
 }
 #endif /* HAVE_POLKIT */
+/*----------------------------------------------------------------------*/
+
+static int remoteDomainEventRegister (virConnectPtr conn,
+                                      void *callback ATTRIBUTE_UNUSED,
+                                      void *opaque ATTRIBUTE_UNUSED,
+                                      virFreeCallback freecb)
+{
+    struct private_data *priv = conn->privateData;
+
+    if (priv->eventFlushTimer < 0) {
+         error (conn, VIR_ERR_NO_SUPPORT, _("no event support"));
+         return -1;
+    }
+    if (virDomainEventCallbackListAdd(conn, priv->callbackList,
+                                      callback, opaque, freecb) < 0) {
+         error (conn, VIR_ERR_RPC, _("adding cb to list"));
+         return -1;
+    }
+
+    if ( priv->callbackList->count == 1 ) {
+        /* Tell the server when we are the first callback deregistering */
+        if (call (conn, priv, 0, REMOTE_PROC_DOMAIN_EVENTS_REGISTER,
+                (xdrproc_t) xdr_void, (char *) NULL,
+                (xdrproc_t) xdr_void, (char *) NULL) == -1)
+            return -1;
+    }
+
+    return 0;
+}
+
+static int remoteDomainEventDeregister (virConnectPtr conn,
+                                 void *callback ATTRIBUTE_UNUSED)
+{
+    struct private_data *priv = conn->privateData;
+
+    if (virDomainEventCallbackListRemove(conn, priv->callbackList,
+                                  callback) < 0) {
+         error (conn, VIR_ERR_RPC, _("removing cb fron list"));
+         return -1;
+    }
+
+    if ( priv->callbackList->count == 0 ) {
+        /* Tell the server when we are the last callback deregistering */
+        if (call (conn, priv, 0, REMOTE_PROC_DOMAIN_EVENTS_DEREGISTER,
+                (xdrproc_t) xdr_void, (char *) NULL,
+                (xdrproc_t) xdr_void, (char *) NULL) == -1)
+            return -1;
+    }
+
+    return 0;
+}
 
 /*----------------------------------------------------------------------*/
 
@@ -4370,6 +4851,7 @@ call (virConnectPtr conn, struct private_data *priv,
         really_write (conn, priv, flags & REMOTE_CALL_IN_OPEN, buffer, len-4) == -1)
         return -1;
 
+retry_read:
     /* Read and deserialise length word. */
     if (really_read (conn, priv, flags & REMOTE_CALL_IN_OPEN, buffer2, sizeof buffer2) == -1)
         return -1;
@@ -4405,7 +4887,7 @@ call (virConnectPtr conn, struct private_data *priv,
 
     /* Check program, version, etc. are what we expect. */
     if (hdr.prog != REMOTE_PROGRAM) {
-        __virRaiseError (flags & REMOTE_CALL_IN_OPEN ? NULL : conn,
+        virRaiseError (flags & REMOTE_CALL_IN_OPEN ? NULL : conn,
                          NULL, NULL, VIR_FROM_REMOTE,
                          VIR_ERR_RPC, VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
                          _("unknown program (received %x, expected %x)"),
@@ -4413,7 +4895,7 @@ call (virConnectPtr conn, struct private_data *priv,
         return -1;
     }
     if (hdr.vers != REMOTE_PROTOCOL_VERSION) {
-        __virRaiseError (flags & REMOTE_CALL_IN_OPEN ? NULL : conn,
+        virRaiseError (flags & REMOTE_CALL_IN_OPEN ? NULL : conn,
                          NULL, NULL, VIR_FROM_REMOTE,
                          VIR_ERR_RPC, VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
                          _("unknown protocol version (received %x, expected %x)"),
@@ -4421,12 +4903,22 @@ call (virConnectPtr conn, struct private_data *priv,
         return -1;
     }
 
-    /* If we extend the server to actually send asynchronous messages, then
-     * we'll need to change this so that it can recognise an asynch
-     * message being received at this point.
-     */
+    if (hdr.proc == REMOTE_PROC_DOMAIN_EVENT &&
+        hdr.direction == REMOTE_MESSAGE) {
+        /* An async message has come in while we were waiting for the
+         * response. Process it to pull it off the wire, and try again
+         */
+        DEBUG0("Encountered an event while waiting for a response");
+
+        remoteDomainQueueEvent(conn, &xdr);
+        virEventUpdateTimeout(priv->eventFlushTimer, 0);
+
+        DEBUG0("Retrying read");
+        xdr_destroy (&xdr);
+        goto retry_read;
+    }
     if (hdr.proc != proc_nr) {
-        __virRaiseError (flags & REMOTE_CALL_IN_OPEN ? NULL : conn,
+        virRaiseError (flags & REMOTE_CALL_IN_OPEN ? NULL : conn,
                          NULL, NULL, VIR_FROM_REMOTE,
                          VIR_ERR_RPC, VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
                          _("unknown procedure (received %x, expected %x)"),
@@ -4434,7 +4926,7 @@ call (virConnectPtr conn, struct private_data *priv,
         return -1;
     }
     if (hdr.direction != REMOTE_REPLY) {
-        __virRaiseError (flags & REMOTE_CALL_IN_OPEN ? NULL : conn,
+        virRaiseError (flags & REMOTE_CALL_IN_OPEN ? NULL : conn,
                          NULL, NULL, VIR_FROM_REMOTE,
                          VIR_ERR_RPC, VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
                          _("unknown direction (received %x, expected %x)"),
@@ -4442,7 +4934,7 @@ call (virConnectPtr conn, struct private_data *priv,
         return -1;
     }
     if (hdr.serial != serial) {
-        __virRaiseError (flags & REMOTE_CALL_IN_OPEN ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
+        virRaiseError (flags & REMOTE_CALL_IN_OPEN ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
                          VIR_ERR_RPC, VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
                          _("unknown serial (received %x, expected %x)"),
                          hdr.serial, serial);
@@ -4485,7 +4977,7 @@ call (virConnectPtr conn, struct private_data *priv,
         return -1;
 
     default:
-        __virRaiseError (flags & REMOTE_CALL_IN_OPEN ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
+        virRaiseError (flags & REMOTE_CALL_IN_OPEN ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
                          VIR_ERR_RPC, VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
                          _("unknown status (received %x)"),
                          hdr.status);
@@ -4521,11 +5013,10 @@ really_write_buf (virConnectPtr conn, struct private_data *priv,
         do {
             err = send (priv->sock, p, len, 0);
             if (err == -1) {
-                int errno_ = socket_errno ();
-                if (errno_ == EINTR || errno_ == EAGAIN)
+                if (errno == EINTR || errno == EAGAIN)
                     continue;
                 error (in_open ? NULL : conn,
-                       VIR_ERR_SYSTEM_ERROR, strerror (errno_));
+                       VIR_ERR_SYSTEM_ERROR, strerror (errno));
                 return -1;
             }
             len -= err;
@@ -4604,11 +5095,10 @@ really_read_buf (virConnectPtr conn, struct private_data *priv,
     reread:
         err = recv (priv->sock, bytes, len, 0);
         if (err == -1) {
-            int errno_ = socket_errno ();
-            if (errno_ == EINTR)
+            if (errno == EINTR)
                 goto reread;
             error (in_open ? NULL : conn,
-                   VIR_ERR_SYSTEM_ERROR, strerror (errno_));
+                   VIR_ERR_SYSTEM_ERROR, strerror (errno));
             return -1;
         }
         if (err == 0) {
@@ -4697,8 +5187,8 @@ error (virConnectPtr conn, virErrorNumber code, const char *info)
 {
     const char *errmsg;
 
-    errmsg = __virErrorMsg (code, info);
-    __virRaiseError (conn, NULL, NULL, VIR_FROM_REMOTE,
+    errmsg = virErrorMsg (code, info);
+    virRaiseError (conn, NULL, NULL, VIR_FROM_REMOTE,
                      code, VIR_ERR_ERROR, errmsg, info, NULL, 0, 0,
                      errmsg, info);
 }
@@ -4720,8 +5210,8 @@ errorf (virConnectPtr conn, virErrorNumber code, const char *fmt, ...)
         errorMessage[0] = '\0';
     }
 
-    errmsg = __virErrorMsg (code, errorMessage);
-    __virRaiseError (conn, NULL, NULL, VIR_FROM_REMOTE,
+    errmsg = virErrorMsg (code, errorMessage);
+    virRaiseError (conn, NULL, NULL, VIR_FROM_REMOTE,
                      code, VIR_ERR_ERROR,
                      errmsg, errorMessage, NULL, -1, -1,
                      errmsg, errorMessage);
@@ -4738,7 +5228,7 @@ server_error (virConnectPtr conn, remote_error *err)
     dom = err->dom ? get_nonnull_domain (conn, *err->dom) : NULL;
     net = err->net ? get_nonnull_network (conn, *err->net) : NULL;
 
-    __virRaiseError (conn, dom, net,
+    virRaiseError (conn, dom, net,
                      err->domain, err->code, err->level,
                      err->str1 ? *err->str1 : NULL,
                      err->str2 ? *err->str2 : NULL,
@@ -4754,7 +5244,7 @@ server_error (virConnectPtr conn, remote_error *err)
 /* get_nonnull_domain and get_nonnull_network turn an on-wire
  * (name, uuid) pair into virDomainPtr or virNetworkPtr object.
  * These can return NULL if underlying memory allocations fail,
- * but if they do then virterror has been set.
+ * but if they do then virterror_internal.has been set.
  */
 static virDomainPtr
 get_nonnull_domain (virConnectPtr conn, remote_nonnull_domain domain)
@@ -4781,6 +5271,12 @@ static virStorageVolPtr
 get_nonnull_storage_vol (virConnectPtr conn, remote_nonnull_storage_vol vol)
 {
     return virGetStorageVol (conn, vol.pool, vol.name, vol.key);
+}
+
+static virNodeDevicePtr
+get_nonnull_node_device (virConnectPtr conn, remote_nonnull_node_device dev)
+{
+    return virGetNodeDevice(conn, dev.name);
 }
 
 /* Make remote_nonnull_domain and remote_nonnull_network. */
@@ -4816,23 +5312,26 @@ make_nonnull_storage_vol (remote_nonnull_storage_vol *vol_dst, virStorageVolPtr 
 
 /*----------------------------------------------------------------------*/
 
+unsigned long remoteVersion(void)
+{
+    return REMOTE_PROTOCOL_VERSION;
+}
+
 static virDriver driver = {
     .no = VIR_DRV_REMOTE,
     .name = "remote",
-    .ver = REMOTE_PROTOCOL_VERSION,
-    .probe = NULL,
     .open = remoteOpen,
     .close = remoteClose,
     .supports_feature = remoteSupportsFeature,
         .type = remoteType,
-        .version = remoteVersion,
+        .version = remoteGetVersion,
     .getHostname = remoteGetHostname,
         .getMaxVcpus = remoteGetMaxVcpus,
         .nodeGetInfo = remoteNodeGetInfo,
     .getCapabilities = remoteGetCapabilities,
     .listDomains = remoteListDomains,
     .numOfDomains = remoteNumOfDomains,
-    .domainCreateLinux = remoteDomainCreateLinux,
+    .domainCreateXML = remoteDomainCreateXML,
     .domainLookupByID = remoteDomainLookupByID,
     .domainLookupByUUID = remoteDomainLookupByUUID,
     .domainLookupByName = remoteDomainLookupByName,
@@ -4875,6 +5374,10 @@ static virDriver driver = {
     .domainMemoryPeek = remoteDomainMemoryPeek,
     .nodeGetCellsFreeMemory = remoteNodeGetCellsFreeMemory,
     .getFreeMemory = remoteNodeGetFreeMemory,
+    .domainEventRegister = remoteDomainEventRegister,
+    .domainEventDeregister = remoteDomainEventDeregister,
+    .domainMigratePrepare2 = remoteDomainMigratePrepare2,
+    .domainMigrateFinish2 = remoteDomainMigrateFinish2,
 };
 
 static virNetworkDriver network_driver = {
@@ -4935,13 +5438,23 @@ static virStorageDriver storage_driver = {
     .volGetPath = remoteStorageVolGetPath,
 };
 
+static virDeviceMonitor dev_monitor = {
+    .name = "remote",
+    .open = remoteDevMonOpen,
+    .close = remoteDevMonClose,
+    .numOfDevices = remoteNodeNumOfDevices,
+    .listDevices = remoteNodeListDevices,
+    .deviceLookupByName = remoteNodeDeviceLookupByName,
+    .deviceDumpXML = remoteNodeDeviceDumpXML,
+    .deviceGetParent = remoteNodeDeviceGetParent,
+    .deviceNumOfCaps = remoteNodeDeviceNumOfCaps,
+    .deviceListCaps = remoteNodeDeviceListCaps,
+};
+
+
 #ifdef WITH_LIBVIRTD
 static virStateDriver state_driver = {
-    remoteStartup,
-    NULL,
-    NULL,
-    NULL,
-    NULL
+    .initialize = remoteStartup,
 };
 #endif
 
@@ -4958,9 +5471,173 @@ remoteRegister (void)
     if (virRegisterDriver (&driver) == -1) return -1;
     if (virRegisterNetworkDriver (&network_driver) == -1) return -1;
     if (virRegisterStorageDriver (&storage_driver) == -1) return -1;
+    if (virRegisterDeviceMonitor (&dev_monitor) == -1) return -1;
 #ifdef WITH_LIBVIRTD
     if (virRegisterStateDriver (&state_driver) == -1) return -1;
 #endif
 
     return 0;
+}
+
+/**
+ * remoteDomainReadEvent
+ *
+ * Read the event data off the wire
+ */
+static int
+remoteDomainReadEvent(virConnectPtr conn, XDR *xdr,
+                      virDomainPtr *dom, int *event, int *detail)
+{
+    remote_domain_event_ret ret;
+    memset (&ret, 0, sizeof ret);
+
+    /* unmarshall parameters, and process it*/
+    if (! xdr_remote_domain_event_ret(xdr, &ret) ) {
+        error (conn, VIR_ERR_RPC,
+               _("remoteDomainProcessEvent: unmarshalling ret"));
+        return -1;
+    }
+
+    *dom = get_nonnull_domain(conn,ret.dom);
+    *event = ret.event;
+    *detail = ret.detail;
+
+    return 0;
+}
+
+static void
+remoteDomainProcessEvent(virConnectPtr conn, XDR *xdr)
+{
+    virDomainPtr dom;
+    int event, detail, i;
+    struct private_data *priv = conn->privateData;
+
+    if(!remoteDomainReadEvent(conn, xdr, &dom, &event, &detail)) {
+        DEBUG0("Calling domain event callbacks (no queue)");
+        for(i=0 ; i < priv->callbackList->count ; i++) {
+            if (priv->callbackList->callbacks[i] )
+                priv->callbackList->callbacks[i]->cb(
+                    conn, dom, event, detail,
+                    priv->callbackList->callbacks[i]->opaque);
+        }
+    }
+}
+
+static void
+remoteDomainQueueEvent(virConnectPtr conn, XDR *xdr)
+{
+    virDomainPtr dom;
+    int event, detail;
+    struct private_data *priv = conn->privateData;
+
+    if(!remoteDomainReadEvent(conn, xdr, &dom, &event, &detail))
+    {
+        if( virDomainEventCallbackQueuePush(priv->domainEvents,
+                                            dom, event, detail) < 0 ) {
+            DEBUG("%s", "Error adding event to queue");
+        }
+    }
+}
+
+/** remoteDomainEventFired:
+ *
+ * The callback for monitoring the remote socket
+ * for event data
+ */
+void
+remoteDomainEventFired(int watch,
+                       int fd,
+                       int event,
+                       void *opaque)
+{
+    char buffer[REMOTE_MESSAGE_MAX];
+    char buffer2[4];
+    struct remote_message_header hdr;
+    XDR xdr;
+    int len;
+
+    virConnectPtr        conn = opaque;
+    struct private_data *priv = conn->privateData;
+
+    DEBUG("Event fired %d %d %d %X", watch, fd, event, event);
+
+    if (event & (VIR_EVENT_HANDLE_HANGUP | VIR_EVENT_HANDLE_ERROR)) {
+         DEBUG("%s : VIR_EVENT_HANDLE_HANGUP or "
+               "VIR_EVENT_HANDLE_ERROR encountered", __FUNCTION__);
+         virEventRemoveHandle(watch);
+         return;
+    }
+
+    if (fd != priv->sock) {
+        virEventRemoveHandle(watch);
+        return;
+    }
+
+    /* Read and deserialise length word. */
+    if (really_read (conn, priv, 0, buffer2, sizeof buffer2) == -1)
+        return;
+
+    xdrmem_create (&xdr, buffer2, sizeof buffer2, XDR_DECODE);
+    if (!xdr_int (&xdr, &len)) {
+        error (conn, VIR_ERR_RPC, _("xdr_int (length word, reply)"));
+        return;
+    }
+    xdr_destroy (&xdr);
+
+    /* Length includes length word - adjust to real length to read. */
+    len -= 4;
+
+    if (len < 0 || len > REMOTE_MESSAGE_MAX) {
+        error (conn, VIR_ERR_RPC, _("packet received from server too large"));
+        return;
+    }
+
+    /* Read reply header and what follows (either a ret or an error). */
+    if (really_read (conn, priv, 0, buffer, len) == -1) {
+        error (conn, VIR_ERR_RPC, _("error reading buffer from memory"));
+        return;
+    }
+
+    /* Deserialise reply header. */
+    xdrmem_create (&xdr, buffer, len, XDR_DECODE);
+    if (!xdr_remote_message_header (&xdr, &hdr)) {
+        error (conn, VIR_ERR_RPC, _("invalid header in event firing"));
+        return;
+    }
+
+    if (hdr.proc == REMOTE_PROC_DOMAIN_EVENT &&
+        hdr.direction == REMOTE_MESSAGE) {
+        DEBUG0("Encountered an async event");
+        remoteDomainProcessEvent(conn, &xdr);
+    } else {
+        DEBUG0("invalid proc in event firing");
+        error (conn, VIR_ERR_RPC, _("invalid proc in event firing"));
+    }
+}
+
+void
+remoteDomainEventQueueFlush(int timer ATTRIBUTE_UNUSED, void *opaque)
+{
+    int i;
+    virDomainEventPtr domEvent;
+    void *user_data = NULL;
+    virConnectPtr conn = opaque;
+    struct private_data *priv = conn->privateData;
+
+    while( (domEvent = virDomainEventCallbackQueuePop(priv->domainEvents)) ) {
+        DEBUG("   Flushing %p", domEvent);
+        for (i=0 ; i < priv->callbackList->count ; i++) {
+           if( priv->callbackList->callbacks[i] ) {
+               user_data = priv->callbackList->callbacks[i]->opaque;
+               priv->callbackList->callbacks[i]->cb(domEvent->dom->conn,
+                                                    domEvent->dom,
+                                                    domEvent->event,
+                                                    domEvent->detail,
+                                                    user_data);
+           }
+        }
+        VIR_FREE(domEvent);
+    }
+
+    virEventUpdateTimeout(priv->eventFlushTimer, -1);
 }

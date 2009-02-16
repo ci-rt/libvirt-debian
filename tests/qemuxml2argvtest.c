@@ -22,11 +22,14 @@ static struct qemud_driver driver;
 
 #define MAX_FILE 4096
 
-static int testCompareXMLToArgvFiles(const char *xml, const char *cmd, int extraFlags) {
+static int testCompareXMLToArgvFiles(const char *xml,
+                                     const char *cmd,
+                                     int extraFlags) {
     char argvData[MAX_FILE];
     char *expectargv = &(argvData[0]);
     char *actualargv = NULL;
     const char **argv = NULL;
+    const char **qenv = NULL;
     const char **tmp = NULL;
     int ret = -1, len, flags;
     virDomainDefPtr vmdef = NULL;
@@ -35,12 +38,16 @@ static int testCompareXMLToArgvFiles(const char *xml, const char *cmd, int extra
     if (virtTestLoadFile(cmd, &expectargv, MAX_FILE) < 0)
         goto fail;
 
-    if (!(vmdef = virDomainDefParseFile(NULL, driver.caps, xml)))
+    if (!(vmdef = virDomainDefParseFile(NULL, driver.caps, xml,
+                                        VIR_DOMAIN_XML_INACTIVE)))
         goto fail;
 
     memset(&vm, 0, sizeof vm);
     vm.def = vmdef;
-    vm.def->id = -1;
+    if (extraFlags & QEMUD_CMD_FLAG_DOMID)
+        vm.def->id = 6;
+    else
+        vm.def->id = -1;
     vm.pid = -1;
 
     flags = QEMUD_CMD_FLAG_VNC_COLON |
@@ -48,20 +55,32 @@ static int testCompareXMLToArgvFiles(const char *xml, const char *cmd, int extra
         extraFlags;
 
     if (qemudBuildCommandLine(NULL, &driver,
-                              &vm, flags, &argv,
+                              &vm, flags, &argv, &qenv,
                               NULL, NULL, NULL) < 0)
         goto fail;
 
-    tmp = argv;
     len = 1; /* for trailing newline */
+    tmp = qenv;
+    while (*tmp) {
+        len += strlen(*tmp) + 1;
+        tmp++;
+    }
+
+    tmp = argv;
     while (*tmp) {
         len += strlen(*tmp) + 1;
         tmp++;
     }
     actualargv = malloc(sizeof(*actualargv)*len);
     actualargv[0] = '\0';
+    tmp = qenv;
+    while (*tmp) {
+        if (actualargv[0])
+            strcat(actualargv, " ");
+        strcat(actualargv, *tmp);
+        tmp++;
+    }
     tmp = argv;
-    len = 0;
     while (*tmp) {
         if (actualargv[0])
             strcat(actualargv, " ");
@@ -86,6 +105,14 @@ static int testCompareXMLToArgvFiles(const char *xml, const char *cmd, int extra
             tmp++;
         }
         free(argv);
+    }
+    if (qenv) {
+        tmp = qenv;
+        while (*tmp) {
+            free(*(char**)tmp);
+            tmp++;
+        }
+        free(qenv);
     }
     virDomainDefFree(vmdef);
     return ret;
@@ -138,6 +165,14 @@ mymain(int argc, char **argv)
             ret = -1;                                                   \
     } while (0)
 
+    setenv("PATH", "/bin", 1);
+    setenv("USER", "test", 1);
+    setenv("LOGNAME", "test", 1);
+    setenv("HOME", "/home/test", 1);
+    unsetenv("TMPDIR");
+    unsetenv("LD_PRELOAD");
+    unsetenv("LD_LIBRARY_PATH");
+
     DO_TEST("minimal", QEMUD_CMD_FLAG_NAME);
     DO_TEST("boot-cdrom", 0);
     DO_TEST("boot-network", 0);
@@ -165,6 +200,8 @@ mymain(int argc, char **argv)
     DO_TEST("input-xen", 0);
     DO_TEST("misc-acpi", 0);
     DO_TEST("misc-no-reboot", 0);
+    DO_TEST("misc-uuid", QEMUD_CMD_FLAG_NAME |
+        QEMUD_CMD_FLAG_UUID | QEMUD_CMD_FLAG_DOMID);
     DO_TEST("net-user", 0);
     DO_TEST("net-virtio", 0);
 

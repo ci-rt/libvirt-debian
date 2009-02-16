@@ -24,152 +24,15 @@
 #include <config.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdio.h>
 
-#include "internal.h"
+#include "virterror_internal.h"
+#include "logging.h"
 #include "storage_backend_disk.h"
 #include "util.h"
 #include "memory.h"
 
-#define DEBUG(fmt,...) VIR_DEBUG(__FILE__, fmt, __VA_ARGS__)
-#define DEBUG0(msg) VIR_DEBUG(__FILE__, "%s", msg)
-
-enum {
-    VIR_STORAGE_POOL_DISK_DOS = 0,
-    VIR_STORAGE_POOL_DISK_DVH,
-    VIR_STORAGE_POOL_DISK_GPT,
-    VIR_STORAGE_POOL_DISK_MAC,
-    VIR_STORAGE_POOL_DISK_BSD,
-    VIR_STORAGE_POOL_DISK_PC98,
-    VIR_STORAGE_POOL_DISK_SUN,
-};
-
-/*
- * XXX these are basically partition types.
- *
- * fdisk has a bazillion partition ID types
- * parted has practically none, and splits the
- * info across 3 different attributes.
- *
- * So this is a semi-generic set
- */
-enum {
-    VIR_STORAGE_VOL_DISK_NONE = 0,
-    VIR_STORAGE_VOL_DISK_LINUX,
-    VIR_STORAGE_VOL_DISK_FAT16,
-    VIR_STORAGE_VOL_DISK_FAT32,
-    VIR_STORAGE_VOL_DISK_LINUX_SWAP,
-    VIR_STORAGE_VOL_DISK_LINUX_LVM,
-    VIR_STORAGE_VOL_DISK_LINUX_RAID,
-    VIR_STORAGE_VOL_DISK_EXTENDED,
-};
-
 #define PARTHELPER BINDIR "/libvirt_parthelper"
-
-static int
-virStorageBackendDiskPoolFormatFromString(virConnectPtr conn,
-                                          const char *format) {
-    if (format == NULL)
-        return VIR_STORAGE_POOL_DISK_DOS;
-
-    if (STREQ(format, "dos"))
-        return VIR_STORAGE_POOL_DISK_DOS;
-    if (STREQ(format, "dvh"))
-        return VIR_STORAGE_POOL_DISK_DVH;
-    if (STREQ(format, "gpt"))
-        return VIR_STORAGE_POOL_DISK_GPT;
-    if (STREQ(format, "mac"))
-        return VIR_STORAGE_POOL_DISK_MAC;
-    if (STREQ(format, "bsd"))
-        return VIR_STORAGE_POOL_DISK_BSD;
-    if (STREQ(format, "pc98"))
-        return VIR_STORAGE_POOL_DISK_PC98;
-    if (STREQ(format, "sun"))
-        return VIR_STORAGE_POOL_DISK_SUN;
-
-    virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                          _("unsupported pool format %s"), format);
-    return -1;
-}
-
-static const char *
-virStorageBackendDiskPoolFormatToString(virConnectPtr conn,
-                                        int format) {
-    switch (format) {
-    case VIR_STORAGE_POOL_DISK_DOS:
-        return "dos";
-    case VIR_STORAGE_POOL_DISK_DVH:
-        return "dvh";
-    case VIR_STORAGE_POOL_DISK_GPT:
-        return "gpt";
-    case VIR_STORAGE_POOL_DISK_MAC:
-        return "mac";
-    case VIR_STORAGE_POOL_DISK_BSD:
-        return "bsd";
-    case VIR_STORAGE_POOL_DISK_PC98:
-        return "pc98";
-    case VIR_STORAGE_POOL_DISK_SUN:
-        return "sun";
-    }
-
-    virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                          _("unsupported pool format %d"), format);
-    return NULL;
-}
-
-static int
-virStorageBackendDiskVolFormatFromString(virConnectPtr conn,
-                                         const char *format) {
-    if (format == NULL)
-        return VIR_STORAGE_VOL_DISK_NONE;
-
-    if (STREQ(format, "none"))
-        return VIR_STORAGE_VOL_DISK_NONE;
-    if (STREQ(format, "linux"))
-        return VIR_STORAGE_VOL_DISK_LINUX;
-    if (STREQ(format, "fat16"))
-        return VIR_STORAGE_VOL_DISK_FAT16;
-    if (STREQ(format, "fat32"))
-        return VIR_STORAGE_VOL_DISK_FAT32;
-    if (STREQ(format, "linux-swap"))
-        return VIR_STORAGE_VOL_DISK_LINUX_SWAP;
-    if (STREQ(format, "linux-lvm"))
-        return VIR_STORAGE_VOL_DISK_LINUX_LVM;
-    if (STREQ(format, "linux-raid"))
-        return VIR_STORAGE_VOL_DISK_LINUX_RAID;
-    if (STREQ(format, "extended"))
-        return VIR_STORAGE_VOL_DISK_EXTENDED;
-
-    virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                          _("unsupported volume format %s"), format);
-    return -1;
-}
-
-static const char *
-virStorageBackendDiskVolFormatToString(virConnectPtr conn,
-                                       int format) {
-    switch (format) {
-    case VIR_STORAGE_VOL_DISK_NONE:
-        return "none";
-    case VIR_STORAGE_VOL_DISK_LINUX:
-        return "linux";
-    case VIR_STORAGE_VOL_DISK_FAT16:
-        return "fat16";
-    case VIR_STORAGE_VOL_DISK_FAT32:
-        return "fat32";
-    case VIR_STORAGE_VOL_DISK_LINUX_SWAP:
-        return "linux-swap";
-    case VIR_STORAGE_VOL_DISK_LINUX_LVM:
-        return "linux-lvm";
-    case VIR_STORAGE_VOL_DISK_LINUX_RAID:
-        return "linux-raid";
-    case VIR_STORAGE_VOL_DISK_EXTENDED:
-        return "extended";
-    }
-
-    virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                          _("unsupported volume format %d"), format);
-    return NULL;
-}
 
 static int
 virStorageBackendDiskMakeDataVol(virConnectPtr conn,
@@ -181,27 +44,31 @@ virStorageBackendDiskMakeDataVol(virConnectPtr conn,
 
     if (vol == NULL) {
         if (VIR_ALLOC(vol) < 0) {
-            virStorageReportError(conn, VIR_ERR_NO_MEMORY, _("volume"));
+            virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("volume"));
             return -1;
         }
 
-        vol->next = pool->volumes;
-        pool->volumes = vol;
-        pool->nvolumes++;
+        if (VIR_REALLOC_N(pool->volumes.objs,
+                          pool->volumes.count+1) < 0) {
+            virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("volume"));
+            virStorageVolDefFree(vol);
+            return -1;
+        }
+        pool->volumes.objs[pool->volumes.count++] = vol;
 
         /* Prepended path will be same for all partitions, so we can
          * strip the path to form a reasonable pool-unique name
          */
         tmp = strrchr(groups[0], '/');
         if ((vol->name = strdup(tmp ? tmp + 1 : groups[0])) == NULL) {
-            virStorageReportError(conn, VIR_ERR_NO_MEMORY, _("volume"));
+            virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("volume"));
             return -1;
         }
     }
 
     if (vol->target.path == NULL) {
         if ((devpath = strdup(groups[0])) == NULL) {
-            virStorageReportError(conn, VIR_ERR_NO_MEMORY, _("volume"));
+            virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("volume"));
             return -1;
         }
 
@@ -216,14 +83,13 @@ virStorageBackendDiskMakeDataVol(virConnectPtr conn,
                                                             devpath)) == NULL)
             return -1;
 
-        if (devpath != vol->target.path)
-            VIR_FREE(devpath);
+        VIR_FREE(devpath);
     }
 
     if (vol->key == NULL) {
         /* XXX base off a unique key of the underlying disk */
         if ((vol->key = strdup(vol->target.path)) == NULL) {
-            virStorageReportError(conn, VIR_ERR_NO_MEMORY, _("volume"));
+            virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("volume"));
             return -1;
         }
     }
@@ -231,7 +97,7 @@ virStorageBackendDiskMakeDataVol(virConnectPtr conn,
     if (vol->source.extents == NULL) {
         if (VIR_ALLOC(vol->source.extents) < 0) {
             virStorageReportError(conn, VIR_ERR_NO_MEMORY,
-                                  _("volume extents"));
+                                  "%s", _("volume extents"));
             return -1;
         }
         vol->source.nextent = 1;
@@ -239,20 +105,20 @@ virStorageBackendDiskMakeDataVol(virConnectPtr conn,
         if (virStrToLong_ull(groups[3], NULL, 10,
                              &vol->source.extents[0].start) < 0) {
             virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                  _("cannot parse device start location"));
+                                  "%s", _("cannot parse device start location"));
             return -1;
         }
 
         if (virStrToLong_ull(groups[4], NULL, 10,
                              &vol->source.extents[0].end) < 0) {
             virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                  _("cannot parse device end location"));
+                                  "%s", _("cannot parse device end location"));
             return -1;
         }
 
         if ((vol->source.extents[0].path =
              strdup(pool->def->source.devices[0].path)) == NULL) {
-            virStorageReportError(conn, VIR_ERR_NO_MEMORY, _("extents"));
+            virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("extents"));
             return -1;
         }
     }
@@ -260,6 +126,8 @@ virStorageBackendDiskMakeDataVol(virConnectPtr conn,
     /* Refresh allocation/capacity/perms */
     if (virStorageBackendUpdateVolInfo(conn, vol, 1) < 0)
         return -1;
+
+    vol->type = VIR_STORAGE_VOL_BLOCK;
 
     /* The above gets allocation wrong for
      * extended partitions, so overwrite it */
@@ -394,6 +262,8 @@ virStorageBackendDiskRefreshPool(virConnectPtr conn,
     VIR_FREE(pool->def->source.devices[0].freeExtents);
     pool->def->source.devices[0].nfreeExtent = 0;
 
+    virStorageBackendWaitForDevices(conn);
+
     return virStorageBackendDiskReadPartitions(conn, pool, NULL);
 }
 
@@ -413,8 +283,7 @@ virStorageBackendDiskBuildPool(virConnectPtr conn,
         "mklabel",
         "--script",
         ((pool->def->source.format == VIR_STORAGE_POOL_DISK_DOS) ? "msdos" :
-          virStorageBackendDiskPoolFormatToString(conn,
-                                                  pool->def->source.format)),
+          virStoragePoolFormatDiskTypeToString(pool->def->source.format)),
         NULL,
     };
 
@@ -459,7 +328,7 @@ virStorageBackendDiskCreateVol(virConnectPtr conn,
     }
     if (smallestExtent == -1) {
         virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                              _("no large enough free extent"));
+                              "%s", _("no large enough free extent"));
         return -1;
     }
     startOffset = dev->freeExtents[smallestExtent].start;
@@ -553,16 +422,4 @@ virStorageBackend virStorageBackendDisk = {
 
     .createVol = virStorageBackendDiskCreateVol,
     .deleteVol = virStorageBackendDiskDeleteVol,
-
-    .poolOptions = {
-        .flags = (VIR_STORAGE_BACKEND_POOL_SOURCE_DEVICE),
-        .formatFromString = virStorageBackendDiskPoolFormatFromString,
-        .formatToString = virStorageBackendDiskPoolFormatToString,
-    },
-    .volOptions = {
-        .formatFromString = virStorageBackendDiskVolFormatFromString,
-        .formatToString = virStorageBackendDiskVolFormatToString,
-    },
-
-    .volType = VIR_STORAGE_VOL_BLOCK,
 };

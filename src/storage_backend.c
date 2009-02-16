@@ -24,6 +24,7 @@
 #include <config.h>
 
 #include <string.h>
+#include <stdio.h>
 #if HAVE_REGEX_H
 #include <regex.h>
 #endif
@@ -41,7 +42,7 @@
 #include <selinux/selinux.h>
 #endif
 
-#include "internal.h"
+#include "virterror_internal.h"
 #include "util.h"
 #include "memory.h"
 
@@ -60,6 +61,7 @@
 #include "storage_backend_fs.h"
 #endif
 
+
 static virStorageBackendPtr backends[] = {
 #if WITH_STORAGE_DIR
     &virStorageBackendDirectory,
@@ -77,93 +79,19 @@ static virStorageBackendPtr backends[] = {
 #if WITH_STORAGE_DISK
     &virStorageBackendDisk,
 #endif
+    NULL
 };
 
 
 virStorageBackendPtr
 virStorageBackendForType(int type) {
     unsigned int i;
-    for (i = 0 ; i < (sizeof(backends)/sizeof(backends[0])) ; i++)
+    for (i = 0; backends[i]; i++)
         if (backends[i]->type == type)
             return backends[i];
 
     virStorageReportError(NULL, VIR_ERR_INTERNAL_ERROR,
                           _("missing backend for pool type %d"), type);
-    return NULL;
-}
-
-virStorageBackendPoolOptionsPtr
-virStorageBackendPoolOptionsForType(int type) {
-    virStorageBackendPtr backend = virStorageBackendForType(type);
-    if (backend == NULL)
-        return NULL;
-    return &backend->poolOptions;
-}
-
-virStorageBackendVolOptionsPtr
-virStorageBackendVolOptionsForType(int type) {
-    virStorageBackendPtr backend = virStorageBackendForType(type);
-    if (backend == NULL)
-        return NULL;
-    return &backend->volOptions;
-}
-
-
-int
-virStorageBackendFromString(const char *type) {
-    if (STREQ(type, "dir"))
-        return VIR_STORAGE_POOL_DIR;
-#if WITH_STORAGE_FS
-    if (STREQ(type, "fs"))
-        return VIR_STORAGE_POOL_FS;
-    if (STREQ(type, "netfs"))
-        return VIR_STORAGE_POOL_NETFS;
-#endif
-#if WITH_STORAGE_LVM
-    if (STREQ(type, "logical"))
-        return VIR_STORAGE_POOL_LOGICAL;
-#endif
-#if WITH_STORAGE_ISCSI
-    if (STREQ(type, "iscsi"))
-        return VIR_STORAGE_POOL_ISCSI;
-#endif
-#if WITH_STORAGE_DISK
-    if (STREQ(type, "disk"))
-        return VIR_STORAGE_POOL_DISK;
-#endif
-
-    virStorageReportError(NULL, VIR_ERR_INTERNAL_ERROR,
-                          _("unknown storage backend type %s"), type);
-    return -1;
-}
-
-const char *
-virStorageBackendToString(int type) {
-    switch (type) {
-    case VIR_STORAGE_POOL_DIR:
-        return "dir";
-#if WITH_STORAGE_FS
-    case VIR_STORAGE_POOL_FS:
-        return "fs";
-    case VIR_STORAGE_POOL_NETFS:
-        return "netfs";
-#endif
-#if WITH_STORAGE_LVM
-    case VIR_STORAGE_POOL_LOGICAL:
-        return "logical";
-#endif
-#if WITH_STORAGE_ISCSI
-    case VIR_STORAGE_POOL_ISCSI:
-        return "iscsi";
-#endif
-#if WITH_STORAGE_DISK
-    case VIR_STORAGE_POOL_DISK:
-        return "disk";
-#endif
-    }
-
-    virStorageReportError(NULL, VIR_ERR_INTERNAL_ERROR,
-                          _("unknown storage backend type %d"), type);
     return NULL;
 }
 
@@ -191,6 +119,37 @@ virStorageBackendUpdateVolInfo(virConnectPtr conn,
 
     return ret;
 }
+
+struct diskType {
+    int part_table_type;
+    unsigned short offset;
+    unsigned short length;
+    unsigned long long magic;
+};
+
+static struct diskType const disk_types[] = {
+    { VIR_STORAGE_POOL_DISK_LVM2, 0x218, 8, 0x31303020324D564CULL },
+    { VIR_STORAGE_POOL_DISK_GPT,  0x200, 8, 0x5452415020494645ULL },
+    { VIR_STORAGE_POOL_DISK_DVH,  0x0,   4, 0x41A9E50BULL },
+    { VIR_STORAGE_POOL_DISK_MAC,  0x0,   2, 0x5245ULL },
+    { VIR_STORAGE_POOL_DISK_BSD,  0x40,  4, 0x82564557ULL },
+    { VIR_STORAGE_POOL_DISK_SUN,  0x1fc, 2, 0xBEDAULL },
+    /*
+     * NOTE: pc98 is funky; the actual signature is 0x55AA (just like dos), so
+     * we can't use that.  At the moment I'm relying on the "dummy" IPL
+     * bootloader data that comes from parted.  Luckily, the chances of running
+     * into a pc98 machine running libvirt are approximately nil.
+     */
+    /*{ 0x1fe, 2, 0xAA55UL },*/
+    { VIR_STORAGE_POOL_DISK_PC98, 0x0,   8, 0x314C5049000000CBULL },
+    /*
+     * NOTE: the order is important here; some other disk types (like GPT and
+     * and PC98) also have 0x55AA at this offset.  For that reason, the DOS
+     * one must be the last one.
+     */
+    { VIR_STORAGE_POOL_DISK_DOS,  0x1fe, 2, 0xAA55ULL },
+    { -1,                         0x0,   0, 0x0ULL },
+};
 
 int
 virStorageBackendUpdateVolInfoFD(virConnectPtr conn,
@@ -245,6 +204,41 @@ virStorageBackendUpdateVolInfoFD(virConnectPtr conn,
         if (withCapacity) vol->capacity = end;
     }
 
+    /* make sure to set the target format "unknown" to begin with */
+    vol->target.format = VIR_STORAGE_POOL_DISK_UNKNOWN;
+
+    if (S_ISBLK(sb.st_mode)) {
+        off_t start;
+        int i;
+        unsigned char buffer[1024];
+        ssize_t bytes;
+
+        start = lseek(fd, 0, SEEK_SET);
+        if (start < 0) {
+            virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                                  _("cannot seek to beginning of file '%s':%s"),
+                                  vol->target.path, strerror(errno));
+            return -1;
+        }
+        bytes = saferead(fd, buffer, sizeof(buffer));
+        if (bytes < 0) {
+            virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                                  _("cannot read beginning of file '%s':%s"),
+                                  vol->target.path, strerror(errno));
+            return -1;
+        }
+
+        for (i = 0; disk_types[i].part_table_type != -1; i++) {
+            if (disk_types[i].offset + disk_types[i].length > bytes)
+                continue;
+            if (memcmp(buffer+disk_types[i].offset, &disk_types[i].magic,
+                disk_types[i].length) == 0) {
+                vol->target.format = disk_types[i].part_table_type;
+                break;
+            }
+        }
+    }
+
     vol->target.perms.mode = sb.st_mode;
     vol->target.perms.uid = sb.st_uid;
     vol->target.perms.gid = sb.st_gid;
@@ -276,6 +270,31 @@ virStorageBackendUpdateVolInfoFD(virConnectPtr conn,
     return 0;
 }
 
+#if defined(UDEVADM) || defined(UDEVSETTLE)
+void virStorageBackendWaitForDevices(virConnectPtr conn)
+{
+#ifdef UDEVADM
+    const char *const settleprog[] = { UDEVADM, "settle", NULL };
+#else
+    const char *const settleprog[] = { UDEVSETTLE, NULL };
+#endif
+    int exitstatus;
+
+    if (access(settleprog[0], X_OK) != 0)
+        return;
+
+    /*
+     * NOTE: we ignore errors here; this is just to make sure that any device
+     * nodes that are being created finish before we try to scan them.
+     * If this fails for any reason, we still have the backup of polling for
+     * 5 seconds for device nodes.
+     */
+    virRun(conn, settleprog, &exitstatus);
+}
+#else
+void virStorageBackendWaitForDevices(virConnectPtr conn ATTRIBUTE_UNUSED) {}
+#endif
+
 /*
  * Given a volume path directly in /dev/XXX, iterate over the
  * entries in the directory pool->def->target.path and find the
@@ -292,23 +311,36 @@ virStorageBackendUpdateVolInfoFD(virConnectPtr conn,
 char *
 virStorageBackendStablePath(virConnectPtr conn,
                             virStoragePoolObjPtr pool,
-                            char *devpath)
+                            const char *devpath)
 {
     DIR *dh;
     struct dirent *dent;
+    char *stablepath;
+    int opentries = 0;
 
     /* Short circuit if pool has no target, or if its /dev */
     if (pool->def->target.path == NULL ||
         STREQ(pool->def->target.path, "/dev") ||
         STREQ(pool->def->target.path, "/dev/"))
-        return devpath;
+        goto ret_strdup;
 
-    /* The pool is pointing somewhere like /dev/disk/by-path
-     * or /dev/disk/by-id, so we need to check all symlinks in
-     * the target directory and figure out which one points
-     * to this device node
+    /* Skip whole thing for a pool which isn't in /dev
+     * so we don't mess will filesystem/dir based pools
      */
+    if (!STRPREFIX(pool->def->target.path, "/dev"))
+        goto ret_strdup;
+
+    /* We loop here because /dev/disk/by-{id,path} may not have existed
+     * before we started this operation, so we have to give it some time to
+     * get created.
+     */
+ reopen:
     if ((dh = opendir(pool->def->target.path)) == NULL) {
+        opentries++;
+        if (errno == ENOENT && opentries < 50) {
+            usleep(100 * 1000);
+            goto reopen;
+        }
         virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
                               _("cannot read dir %s: %s"),
                               pool->def->target.path,
@@ -316,8 +348,12 @@ virStorageBackendStablePath(virConnectPtr conn,
         return NULL;
     }
 
+    /* The pool is pointing somewhere like /dev/disk/by-path
+     * or /dev/disk/by-id, so we need to check all symlinks in
+     * the target directory and figure out which one points
+     * to this device node
+     */
     while ((dent = readdir(dh)) != NULL) {
-        char *stablepath;
         if (dent->d_name[0] == '.')
             continue;
 
@@ -342,10 +378,17 @@ virStorageBackendStablePath(virConnectPtr conn,
 
     closedir(dh);
 
+ ret_strdup:
     /* Couldn't find any matching stable link so give back
      * the original non-stable dev path
      */
-    return devpath;
+
+    stablepath = strdup(devpath);
+
+    if (stablepath == NULL)
+        virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("dup path"));
+
+    return stablepath;
 }
 
 

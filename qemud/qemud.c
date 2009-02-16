@@ -47,11 +47,11 @@
 #include <fnmatch.h>
 #include <grp.h>
 #include <signal.h>
+#include <netdb.h>
 
-#include "internal.h"
+#include "libvirt_internal.h"
 
 #include "qemud.h"
-#include "getaddrinfo.h"
 #include "util.h"
 #include "remote_internal.h"
 #include "conf.h"
@@ -60,6 +60,30 @@
 #ifdef HAVE_AVAHI
 #include "mdns.h"
 #endif
+
+#ifdef WITH_DRIVER_MODULES
+#include "driver.h"
+#else
+#ifdef WITH_QEMU
+#include "qemu_driver.h"
+#endif
+#ifdef WITH_LXC
+#include "lxc_driver.h"
+#endif
+#ifdef WITH_UML
+#include "uml_driver.h"
+#endif
+#ifdef WITH_NETWORK
+#include "network_driver.h"
+#endif
+#ifdef WITH_STORAGE_DIR
+#include "storage_driver.h"
+#endif
+#ifdef WITH_NODE_DEVICES
+#include "node_device.h"
+#endif
+#endif
+
 
 static int godaemon = 0;        /* -d: Be a daemon */
 static int verbose = 0;         /* -v: Verbose mode */
@@ -128,8 +152,8 @@ static void sig_handler(int sig, siginfo_t * siginfo,
     errno = origerrno;
 }
 
-static void qemudDispatchClientEvent(int fd, int events, void *opaque);
-static void qemudDispatchServerEvent(int fd, int events, void *opaque);
+static void qemudDispatchClientEvent(int watch, int fd, int events, void *opaque);
+static void qemudDispatchServerEvent(int watch, int fd, int events, void *opaque);
 static int qemudRegisterClientEvent(struct qemud_server *server,
                                     struct qemud_client *client,
                                     int removeFirst);
@@ -230,9 +254,11 @@ remoteInitializeGnuTLS (void)
     return 0;
 }
 
-static void qemudDispatchSignalEvent(int fd ATTRIBUTE_UNUSED,
-                                     int events ATTRIBUTE_UNUSED,
-                                     void *opaque) {
+static void
+qemudDispatchSignalEvent(int watch ATTRIBUTE_UNUSED,
+                         int fd ATTRIBUTE_UNUSED,
+                         int events ATTRIBUTE_UNUSED,
+                         void *opaque) {
     struct qemud_server *server = (struct qemud_server *)opaque;
     siginfo_t siginfo;
     int ret;
@@ -261,9 +287,8 @@ static void qemudDispatchSignalEvent(int fd ATTRIBUTE_UNUSED,
         break;
 
     default:
-        qemudLog(QEMUD_INFO, _("Received signal %d, dispatching to drivers"),
+        qemudLog(QEMUD_INFO, _("Received unexpected signal %d"),
                  siginfo.si_signo);
-        virStateSigDispatcher(&siginfo);
         break;
     }
 
@@ -520,11 +545,14 @@ static int qemudListenUnix(struct qemud_server *server,
         goto cleanup;
     }
 
-    if (virEventAddHandleImpl(sock->fd,
-                              POLLIN| POLLERR | POLLHUP,
-                              qemudDispatchServerEvent,
-                              server) < 0) {
-        qemudLog(QEMUD_ERR, "%s", _("Failed to add server event callback"));
+    if ((sock->watch = virEventAddHandleImpl(sock->fd,
+                                             VIR_EVENT_HANDLE_READABLE |
+                                             VIR_EVENT_HANDLE_ERROR |
+                                             VIR_EVENT_HANDLE_HANGUP,
+                                             qemudDispatchServerEvent,
+                                             server, NULL)) < 0) {
+        qemudLog(QEMUD_ERR, "%s",
+                 _("Failed to add server event callback"));
         goto cleanup;
     }
 
@@ -649,10 +677,12 @@ remoteListenTCP (struct qemud_server *server,
             goto cleanup;
         }
 
-        if (virEventAddHandleImpl(sock->fd,
-                                  POLLIN| POLLERR | POLLHUP,
-                                  qemudDispatchServerEvent,
-                                  server) < 0) {
+        if ((sock->watch = virEventAddHandleImpl(sock->fd,
+                                                 VIR_EVENT_HANDLE_READABLE |
+                                                 VIR_EVENT_HANDLE_ERROR |
+                                                 VIR_EVENT_HANDLE_HANGUP,
+                                                 qemudDispatchServerEvent,
+                                                 server, NULL)) < 0) {
             qemudLog(QEMUD_ERR, "%s", _("Failed to add server event callback"));
             goto cleanup;
         }
@@ -723,12 +753,54 @@ static struct qemud_server *qemudInitialize(int sigread) {
 
     server->sigread = sigread;
 
-    __virEventRegisterImpl(virEventAddHandleImpl,
-                           virEventUpdateHandleImpl,
-                           virEventRemoveHandleImpl,
-                           virEventAddTimeoutImpl,
-                           virEventUpdateTimeoutImpl,
-                           virEventRemoveTimeoutImpl);
+    virInitialize();
+
+    /*
+     * Note that the order is important: the first ones have a higher
+     * priority when calling virStateInitialize. We must register
+     * the network, storage and nodedev drivers before any domain
+     * drivers, since their resources must be auto-started before
+     * any domains can be auto-started.
+     */
+#ifdef WITH_DRIVER_MODULES
+    /* We don't care if any of these fail, because the whole point
+     * is to allow users to only install modules they want to use.
+     * If they try to use a open a connection for a module that
+     * is not loaded they'll get a suitable error at that point
+     */
+    virDriverLoadModule("network");
+    virDriverLoadModule("storage");
+    virDriverLoadModule("nodedev");
+    virDriverLoadModule("qemu");
+    virDriverLoadModule("lxc");
+    virDriverLoadModule("uml");
+#else
+#ifdef WITH_NETWORK
+    networkRegister();
+#endif
+#ifdef WITH_STORAGE_DIR
+    storageRegister();
+#endif
+#if defined(HAVE_HAL) || defined(HAVE_DEVKIT)
+    nodedevRegister();
+#endif
+#ifdef WITH_QEMU
+    qemuRegister();
+#endif
+#ifdef WITH_LXC
+    lxcRegister();
+#endif
+#ifdef WITH_UML
+    umlRegister();
+#endif
+#endif
+
+    virEventRegisterImpl(virEventAddHandleImpl,
+                         virEventUpdateHandleImpl,
+                         virEventRemoveHandleImpl,
+                         virEventAddTimeoutImpl,
+                         virEventUpdateTimeoutImpl,
+                         virEventRemoveTimeoutImpl);
 
     virStateInitialize();
 
@@ -1105,6 +1177,7 @@ static int qemudDispatchServer(struct qemud_server *server, struct qemud_socket 
     client->auth = sock->auth;
     memcpy (&client->addr, &addr, sizeof addr);
     client->addrlen = addrlen;
+    client->server = server;
 
 #if HAVE_POLKIT
     /* Only do policy checks for non-root - allow root user
@@ -1197,7 +1270,13 @@ static void qemudDispatchClientFailure(struct qemud_server *server, struct qemud
         tmp = tmp->next;
     }
 
-    virEventRemoveHandleImpl(client->fd);
+    virEventRemoveHandleImpl(client->watch);
+
+    /* Deregister event delivery callback */
+    if(client->conn) {
+        qemudDebug("Deregistering to relay remote events");
+        virConnectDomainEventDeregister(client->conn, remoteRelayDomainEvent);
+    }
 
     if (client->conn)
         virConnectClose(client->conn);
@@ -1503,7 +1582,9 @@ static int qemudClientWrite(struct qemud_server *server,
 }
 
 
-static void qemudDispatchClientWrite(struct qemud_server *server, struct qemud_client *client) {
+void
+qemudDispatchClientWrite(struct qemud_server *server,
+                         struct qemud_client *client) {
     switch (client->mode) {
     case QEMUD_MODE_TX_PACKET: {
         if (qemudClientWrite(server, client) < 0)
@@ -1552,12 +1633,13 @@ static void qemudDispatchClientWrite(struct qemud_server *server, struct qemud_c
 }
 
 
-static void qemudDispatchClientEvent(int fd, int events, void *opaque) {
+static void
+qemudDispatchClientEvent(int watch, int fd, int events, void *opaque) {
     struct qemud_server *server = (struct qemud_server *)opaque;
     struct qemud_client *client = server->clients;
 
     while (client) {
-        if (client->fd == fd)
+        if (client->watch == watch)
             break;
 
         client = client->next;
@@ -1566,9 +1648,12 @@ static void qemudDispatchClientEvent(int fd, int events, void *opaque) {
     if (!client)
         return;
 
-    if (events == POLLOUT)
+    if (client->fd != fd)
+        return;
+
+    if (events == VIR_EVENT_HANDLE_WRITABLE)
         qemudDispatchClientWrite(server, client);
-    else if (events == POLLIN)
+    else if (events == VIR_EVENT_HANDLE_READABLE)
         qemudDispatchClientRead(server, client);
     else
         qemudDispatchClientFailure(server, client);
@@ -1581,18 +1666,18 @@ static int qemudRegisterClientEvent(struct qemud_server *server,
     switch (client->mode) {
     case QEMUD_MODE_TLS_HANDSHAKE:
         if (gnutls_record_get_direction (client->tlssession) == 0)
-            mode = POLLIN;
+            mode = VIR_EVENT_HANDLE_READABLE;
         else
-            mode = POLLOUT;
+            mode = VIR_EVENT_HANDLE_WRITABLE;
         break;
 
     case QEMUD_MODE_RX_HEADER:
     case QEMUD_MODE_RX_PAYLOAD:
-        mode = POLLIN;
+        mode = VIR_EVENT_HANDLE_READABLE;
         break;
 
     case QEMUD_MODE_TX_PACKET:
-        mode = POLLOUT;
+        mode = VIR_EVENT_HANDLE_WRITABLE;
         break;
 
     default:
@@ -1600,30 +1685,35 @@ static int qemudRegisterClientEvent(struct qemud_server *server,
     }
 
     if (removeFirst)
-        if (virEventRemoveHandleImpl(client->fd) < 0)
+        if (virEventRemoveHandleImpl(client->watch) < 0)
             return -1;
 
-    if (virEventAddHandleImpl(client->fd,
-                              mode | POLLERR | POLLHUP,
-                              qemudDispatchClientEvent,
-                              server) < 0)
+    if ((client->watch = virEventAddHandleImpl(client->fd,
+                                               mode | VIR_EVENT_HANDLE_ERROR |
+                                               VIR_EVENT_HANDLE_HANGUP,
+                                               qemudDispatchClientEvent,
+                                               server, NULL)) < 0)
             return -1;
 
     return 0;
 }
 
-static void qemudDispatchServerEvent(int fd, int events, void *opaque) {
+static void
+qemudDispatchServerEvent(int watch, int fd, int events, void *opaque) {
     struct qemud_server *server = (struct qemud_server *)opaque;
     struct qemud_socket *sock = server->sockets;
 
     while (sock) {
-        if (sock->fd == fd)
+        if (sock->watch == watch)
             break;
 
         sock = sock->next;
     }
 
     if (!sock)
+        return;
+
+    if (sock->fd != fd)
         return;
 
     if (events)
@@ -1668,7 +1758,9 @@ static int qemudRunLoop(struct qemud_server *server) {
          * shutdown after timeout seconds
          */
         if (timeout > 0 && !virStateActive() && !server->clients) {
-            timerid = virEventAddTimeoutImpl(timeout*1000, qemudInactiveTimer, server);
+            timerid = virEventAddTimeoutImpl(timeout*1000,
+                                             qemudInactiveTimer,
+                                             server, NULL);
             qemudDebug("Scheduling shutdown timer %d", timerid);
         }
 
@@ -2215,9 +2307,9 @@ int main(int argc, char **argv) {
     }
 
     if (virEventAddHandleImpl(sigpipe[0],
-                              POLLIN,
+                              VIR_EVENT_HANDLE_READABLE,
                               qemudDispatchSignalEvent,
-                              server) < 0) {
+                              server, NULL) < 0) {
         qemudLog(QEMUD_ERR,
                  "%s", _("Failed to register callback for signal pipe"));
         ret = 3;

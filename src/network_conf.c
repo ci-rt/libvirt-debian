@@ -30,10 +30,11 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <string.h>
 #include <dirent.h>
 
-#include "internal.h"
-
+#include "virterror_internal.h"
+#include "datatypes.h"
 #include "network_conf.h"
 #include "memory.h"
 #include "xml.h"
@@ -48,49 +49,30 @@ VIR_ENUM_IMPL(virNetworkForward,
               VIR_NETWORK_FORWARD_LAST,
               "none", "nat", "route" )
 
-static void virNetworkReportError(virConnectPtr conn,
-                                  int code, const char *fmt, ...)
-{
-    va_list args;
-    char errorMessage[1024];
-    const char *virerr;
+#define virNetworkReportError(conn, code, fmt...)                            \
+        virReportErrorHelper(conn, VIR_FROM_NETWORK, code, __FILE__,       \
+                               __FUNCTION__, __LINE__, fmt)
 
-    if (fmt) {
-        va_start(args, fmt);
-        vsnprintf(errorMessage, sizeof(errorMessage)-1, fmt, args);
-        va_end(args);
-    } else {
-        errorMessage[0] = '\0';
-    }
-
-    virerr = __virErrorMsg(code, (errorMessage[0] ? errorMessage : NULL));
-    __virRaiseError(conn, NULL, NULL, VIR_FROM_NETWORK, code, VIR_ERR_ERROR,
-                    virerr, errorMessage, NULL, -1, -1, virerr, errorMessage);
-}
-
-
-virNetworkObjPtr virNetworkFindByUUID(const virNetworkObjPtr nets,
+virNetworkObjPtr virNetworkFindByUUID(const virNetworkObjListPtr nets,
                                       const unsigned char *uuid)
 {
-    virNetworkObjPtr net = nets;
-    while (net) {
-        if (!memcmp(net->def->uuid, uuid, VIR_UUID_BUFLEN))
-            return net;
-        net = net->next;
-    }
+    unsigned int i;
+
+    for (i = 0 ; i < nets->count ; i++)
+        if (!memcmp(nets->objs[i]->def->uuid, uuid, VIR_UUID_BUFLEN))
+            return nets->objs[i];
 
     return NULL;
 }
 
-virNetworkObjPtr virNetworkFindByName(const virNetworkObjPtr nets,
+virNetworkObjPtr virNetworkFindByName(const virNetworkObjListPtr nets,
                                       const char *name)
 {
-    virNetworkObjPtr net = nets;
-    while (net) {
-        if (STREQ(net->def->name, name))
-            return net;
-        net = net->next;
-    }
+    unsigned int i;
+
+    for (i = 0 ; i < nets->count ; i++)
+        if (STREQ(nets->objs[i]->def->name, name))
+            return nets->objs[i];
 
     return NULL;
 }
@@ -141,13 +123,24 @@ void virNetworkObjFree(virNetworkObjPtr net)
     VIR_FREE(net);
 }
 
+void virNetworkObjListFree(virNetworkObjListPtr nets)
+{
+    unsigned int i;
+
+    for (i = 0 ; i < nets->count ; i++)
+        virNetworkObjFree(nets->objs[i]);
+
+    VIR_FREE(nets->objs);
+    nets->count = 0;
+}
+
 virNetworkObjPtr virNetworkAssignDef(virConnectPtr conn,
-                                     virNetworkObjPtr *nets,
+                                     virNetworkObjListPtr nets,
                                      const virNetworkDefPtr def)
 {
     virNetworkObjPtr network;
 
-    if ((network = virNetworkFindByName(*nets, def->name))) {
+    if ((network = virNetworkFindByName(nets, def->name))) {
         if (!virNetworkIsActive(network)) {
             virNetworkDefFree(network->def);
             network->def = def;
@@ -166,34 +159,41 @@ virNetworkObjPtr virNetworkAssignDef(virConnectPtr conn,
     }
 
     network->def = def;
-    network->next = *nets;
 
-    *nets = network;
+    if (VIR_REALLOC_N(nets->objs, nets->count + 1) < 0) {
+        virNetworkReportError(conn, VIR_ERR_NO_MEMORY, NULL);
+        VIR_FREE(network);
+        return NULL;
+    }
+
+    nets->objs[nets->count] = network;
+    nets->count++;
 
     return network;
 
 }
 
-void virNetworkRemoveInactive(virNetworkObjPtr *nets,
+void virNetworkRemoveInactive(virNetworkObjListPtr nets,
                               const virNetworkObjPtr net)
 {
-    virNetworkObjPtr prev = NULL;
-    virNetworkObjPtr curr = *nets;
+    unsigned int i;
 
-    while (curr &&
-           curr != net) {
-        prev = curr;
-        curr = curr->next;
+    for (i = 0 ; i < nets->count ; i++) {
+        if (nets->objs[i] == net) {
+            virNetworkObjFree(nets->objs[i]);
+
+            if (i < (nets->count - 1))
+                memmove(nets->objs + i, nets->objs + i + 1,
+                        sizeof(*(nets->objs)) * (nets->count - (i + 1)));
+
+            if (VIR_REALLOC_N(nets->objs, nets->count - 1) < 0) {
+                ; /* Failure to reduce memory allocation isn't fatal */
+            }
+            nets->count--;
+
+            break;
+        }
     }
-
-    if (curr) {
-        if (prev)
-            prev->next = curr->next;
-        else
-            *nets = curr->next;
-    }
-
-    virNetworkObjFree(net);
 }
 
 
@@ -453,7 +453,7 @@ virNetworkDefPtr virNetworkDefParseString(virConnectPtr conn,
     if (!xml) {
         if (conn && conn->err.code == VIR_ERR_NONE)
               virNetworkReportError(conn, VIR_ERR_XML_ERROR,
-                                    _("failed to parse xml document"));
+                                    "%s", _("failed to parse xml document"));
         goto cleanup;
     }
 
@@ -493,7 +493,7 @@ virNetworkDefPtr virNetworkDefParseFile(virConnectPtr conn,
     if (!xml) {
         if (conn && conn->err.code == VIR_ERR_NONE)
               virNetworkReportError(conn, VIR_ERR_XML_ERROR,
-                                    _("failed to parse xml document"));
+                                    "%s", _("failed to parse xml document"));
         goto cleanup;
     }
 
@@ -699,7 +699,7 @@ int virNetworkSaveConfig(virConnectPtr conn,
 }
 
 virNetworkObjPtr virNetworkLoadConfig(virConnectPtr conn,
-                                      virNetworkObjPtr *nets,
+                                      virNetworkObjListPtr nets,
                                       const char *configDir,
                                       const char *autostartDir,
                                       const char *file)
@@ -753,7 +753,7 @@ error:
 }
 
 int virNetworkLoadAllConfigs(virConnectPtr conn,
-                             virNetworkObjPtr *nets,
+                             virNetworkObjListPtr nets,
                              const char *configDir,
                              const char *autostartDir)
 {

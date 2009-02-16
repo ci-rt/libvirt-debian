@@ -10,6 +10,7 @@
 %define with_polkit    0%{!?_without_polkit:0}
 %define with_python    0%{!?_without_python:1}
 %define with_libvirtd  0%{!?_without_libvirtd:1}
+%define with_uml       0%{!?_without_uml:1}
 
 # Xen is available only on i386 x86_64 ia64
 %ifnarch i386 i686 x86_64 ia64
@@ -26,14 +27,14 @@
 %endif
 %endif
 
-%if 0%{fedora} >= 8
+%if 0%{?fedora} >= 8
 %define with_polkit    0%{!?_without_polkit:1}
 %define with_xen_proxy 0
 %endif
 
 Summary: Library providing a simple API virtualization
 Name: libvirt
-Version: 0.4.6
+Version: 0.5.1
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
@@ -47,6 +48,8 @@ Requires: ncurses
 Requires: dnsmasq
 Requires: bridge-utils
 Requires: iptables
+# needed for device enumeration
+Requires: hal
 # So remote clients can access libvirt over SSH tunnel
 # (client invokes 'nc' against the UNIX socket on the server)
 Requires: nc
@@ -88,6 +91,7 @@ BuildRequires: readline-devel
 BuildRequires: ncurses-devel
 BuildRequires: gettext
 BuildRequires: gnutls-devel
+BuildRequires: hal-devel
 %if %{with_avahi}
 BuildRequires: avahi-devel
 %endif
@@ -120,6 +124,8 @@ BuildRequires: lvm2
 BuildRequires: iscsi-initiator-utils
 # For disk driver
 BuildRequires: parted-devel
+# For QEMU/LXC numa info
+BuildRequires: numactl-devel
 Obsoletes: libvir
 
 # Fedora build root suckage
@@ -197,6 +203,10 @@ of recent versions of Linux (and other OSes).
 %define _without_libvirtd --without-libvirtd
 %endif
 
+%if ! %{with_uml}
+%define _without_uml --without-uml
+%endif
+
 %configure %{?_without_xen} \
            %{?_without_qemu} \
            %{?_without_openvz} \
@@ -206,6 +216,7 @@ of recent versions of Linux (and other OSes).
            %{?_without_polkit} \
            %{?_without_python} \
            %{?_without_libvirtd} \
+           %{?_without_uml} \
            --with-init-script=redhat \
            --with-qemud-pid-file=%{_localstatedir}/run/libvirt_qemud.pid \
            --with-remote-file=%{_localstatedir}/run/libvirtd.pid
@@ -238,6 +249,11 @@ rm -f $RPM_BUILD_ROOT%{_sysconfdir}/libvirt/qemu/networks/default.xml
 rm -f $RPM_BUILD_ROOT%{_sysconfdir}/libvirt/qemu/networks/autostart/default.xml
 # Strip auto-generated UUID - we need it generated per-install
 sed -i -e "/<uuid>/d" $RPM_BUILD_ROOT%{_datadir}/libvirt/networks/default.xml
+%else
+rm -f $RPM_BUILD_ROOT%{_sysconfdir}/libvirt/qemu/networks/default.xml
+rm -f $RPM_BUILD_ROOT%{_sysconfdir}/libvirt/qemu/networks/autostart/default.xml
+rm -f $RPM_BUILD_ROOT%{_datadir}/augeas/lenses/libvirtd_qemu.aug
+rm -f $RPM_BUILD_ROOT%{_datadir}/augeas/lenses/tests/test_libvirtd_qemu.aug
 %endif
 %find_lang %{name}
 
@@ -256,6 +272,7 @@ rm -fr %{buildroot}
 /sbin/ldconfig
 
 %if %{with_libvirtd}
+%if %{with_qemu}
 # We want to install the default network for initial RPM installs
 # or on the first upgrade from a non-network aware libvirt only.
 # We check this by looking to see if the daemon is already installed
@@ -268,6 +285,7 @@ then
          > %{_sysconfdir}/libvirt/qemu/networks/default.xml
     ln -s ../default.xml %{_sysconfdir}/libvirt/qemu/networks/autostart/default.xml
 fi
+%endif
 
 /sbin/chkconfig --add libvirtd
 %endif
@@ -387,6 +405,9 @@ fi
 %endif
 
 %changelog
+* Tue Nov 25 2008 Daniel Veillard <veillard@redhat.com> - 0.5.0-1
+- release of 0.5.0
+
 * Tue Sep 23 2008 Daniel Veillard <veillard@redhat.com> - 0.4.6-1
 - release of 0.4.6
 

@@ -31,7 +31,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#include "internal.h"
+#include "virterror_internal.h"
 #include "storage_backend_logical.h"
 #include "storage_conf.h"
 #include "util.h"
@@ -39,37 +39,6 @@
 
 #define PV_BLANK_SECTOR_SIZE 512
 
-enum {
-    VIR_STORAGE_POOL_LOGICAL_LVM2 = 0,
-};
-
-
-static int
-virStorageBackendLogicalPoolFormatFromString(virConnectPtr conn,
-                                             const char *format) {
-    if (format == NULL)
-        return VIR_STORAGE_POOL_LOGICAL_LVM2;
-
-    if (STREQ(format, "lvm2"))
-        return VIR_STORAGE_POOL_LOGICAL_LVM2;
-
-    virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                          _("unsupported pool format %s"), format);
-    return -1;
-}
-
-static const char *
-virStorageBackendLogicalPoolFormatToString(virConnectPtr conn,
-                                           int format) {
-    switch (format) {
-    case VIR_STORAGE_POOL_LOGICAL_LVM2:
-        return "lvm2";
-    }
-
-    virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                          _("unsupported pool format %d"), format);
-    return NULL;
-}
 
 static int
 virStorageBackendLogicalSetActive(virConnectPtr conn,
@@ -117,14 +86,21 @@ virStorageBackendLogicalMakeVol(virConnectPtr conn,
             return -1;
         }
 
+        vol->type = VIR_STORAGE_VOL_BLOCK;
+
         if ((vol->name = strdup(groups[0])) == NULL) {
             virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("volume"));
+            virStorageVolDefFree(vol);
             return -1;
         }
 
-        vol->next = pool->volumes;
-        pool->volumes = vol;
-        pool->nvolumes++;
+        if (VIR_REALLOC_N(pool->volumes.objs,
+                          pool->volumes.count + 1)) {
+            virStorageReportError(conn, VIR_ERR_NO_MEMORY, NULL);
+            virStorageVolDefFree(vol);
+            return -1;
+        }
+        pool->volumes.objs[pool->volumes.count++] = vol;
     }
 
     if (vol->target.path == NULL) {
@@ -190,27 +166,30 @@ virStorageBackendLogicalFindLVs(virConnectPtr conn,
                                 virStorageVolDefPtr vol)
 {
     /*
-     *  # lvs --separator : --noheadings --units b --unbuffered --nosuffix --options "lv_name,uuid,devices,seg_size,vg_extent_size" VGNAME
-     *  RootLV:06UgP5-2rhb-w3Bo-3mdR-WeoL-pytO-SAa2ky:/dev/hda2(0):5234491392:33554432
-     *  SwapLV:oHviCK-8Ik0-paqS-V20c-nkhY-Bm1e-zgzU0M:/dev/hda2(156):1040187392:33554432
-     *  Test2:3pg3he-mQsA-5Sui-h0i6-HNmc-Cz7W-QSndcR:/dev/hda2(219):1073741824:33554432
-     *  Test3:UB5hFw-kmlm-LSoX-EI1t-ioVd-h7GL-M0W8Ht:/dev/hda2(251):2181038080:33554432
-     *  Test3:UB5hFw-kmlm-LSoX-EI1t-ioVd-h7GL-M0W8Ht:/dev/hda2(187):1040187392:33554432
+     *  # lvs --separator , --noheadings --units b --unbuffered --nosuffix --options "lv_name,uuid,devices,seg_size,vg_extent_size" VGNAME
+     *  RootLV,06UgP5-2rhb-w3Bo-3mdR-WeoL-pytO-SAa2ky,/dev/hda2(0),5234491392,33554432
+     *  SwapLV,oHviCK-8Ik0-paqS-V20c-nkhY-Bm1e-zgzU0M,/dev/hda2(156),1040187392,33554432
+     *  Test2,3pg3he-mQsA-5Sui-h0i6-HNmc-Cz7W-QSndcR,/dev/hda2(219),1073741824,33554432
+     *  Test3,UB5hFw-kmlm-LSoX-EI1t-ioVd-h7GL-M0W8Ht,/dev/hda2(251),2181038080,33554432
+     *  Test3,UB5hFw-kmlm-LSoX-EI1t-ioVd-h7GL-M0W8Ht,/dev/hda2(187),1040187392,33554432
      *
      * Pull out name & uuid, device, device extent start #, segment size, extent size.
      *
      * NB can be multiple rows per volume if they have many extents
      *
-     * NB lvs from some distros (e.g. SLES10 SP2) outputs trailing ":" on each line
+     * NB lvs from some distros (e.g. SLES10 SP2) outputs trailing "," on each line
+     *
+     * NB Encrypted logical volumes can print ':' in their name, so it is
+     *    not a suitable separator (rhbz 470693).
      */
     const char *regexes[] = {
-        "^\\s*(\\S+):(\\S+):(\\S+)\\((\\S+)\\):(\\S+):([0-9]+):?\\s*$"
+        "^\\s*(\\S+),(\\S+),(\\S+)\\((\\S+)\\),(\\S+),([0-9]+),?\\s*$"
     };
     int vars[] = {
         6
     };
     const char *prog[] = {
-        LVS, "--separator", ":", "--noheadings", "--units", "b",
+        LVS, "--separator", ",", "--noheadings", "--units", "b",
         "--unbuffered", "--nosuffix", "--options",
         "lv_name,uuid,devices,seg_size,vg_extent_size",
         pool->def->source.name, NULL
@@ -228,7 +207,7 @@ virStorageBackendLogicalFindLVs(virConnectPtr conn,
                                       vol,
                                       &exitstatus) < 0) {
         virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                              _("lvs command failed"));
+                              "%s", _("lvs command failed"));
                               return -1;
     }
 
@@ -259,33 +238,71 @@ virStorageBackendLogicalRefreshPoolFunc(virConnectPtr conn ATTRIBUTE_UNUSED,
 
 
 static int
-virStorageBackendLogicalFindPoolSourcesFunc(virConnectPtr conn ATTRIBUTE_UNUSED,
+virStorageBackendLogicalFindPoolSourcesFunc(virConnectPtr conn,
                                             virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
                                             char **const groups,
                                             void *data)
 {
-    virStringList **rest = data;
-    virStringList *newItem;
-    const char *name = groups[0];
+    virStoragePoolSourceListPtr sourceList = data;
+    char *pvname = NULL;
+    char *vgname = NULL;
+    int i;
+    virStoragePoolSourceDevicePtr dev;
+    virStoragePoolSource *thisSource;
 
-    /* Append new XML desc to list */
+    pvname = strdup(groups[0]);
+    vgname = strdup(groups[1]);
 
-    if (VIR_ALLOC(newItem) != 0) {
-        virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("new xml desc"));
-        return -1;
+    if (pvname == NULL || vgname == NULL) {
+        virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s",
+                              _("allocating pvname or vgname"));
+        goto err_no_memory;
     }
 
-    if (asprintf(&newItem->val, "<source><name>%s</name></source>", name) <= 0) {
-        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s", _("asprintf failed"));
-        VIR_FREE(newItem);
-        return -1;
+    thisSource = NULL;
+    for (i = 0 ; i < sourceList->nsources; i++) {
+        if (STREQ(sourceList->sources[i].name, vgname)) {
+            thisSource = &sourceList->sources[i];
+            break;
+        }
     }
 
-    newItem->len = strlen(newItem->val);
-    newItem->next = *rest;
-    *rest = newItem;
+    if (thisSource == NULL) {
+        if (VIR_REALLOC_N(sourceList->sources, sourceList->nsources + 1) != 0) {
+            virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s",
+                                  _("allocating new source"));
+            goto err_no_memory;
+        }
+
+        thisSource = &sourceList->sources[sourceList->nsources];
+        sourceList->nsources++;
+
+        memset(thisSource, 0, sizeof(*thisSource));
+        thisSource->name = vgname;
+    }
+    else
+        VIR_FREE(vgname);
+
+    if (VIR_REALLOC_N(thisSource->devices, thisSource->ndevice + 1) != 0) {
+        virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s",
+                              _("allocating new device"));
+        goto err_no_memory;
+    }
+
+    dev = &thisSource->devices[thisSource->ndevice];
+    thisSource->ndevice++;
+    thisSource->format = VIR_STORAGE_POOL_LOGICAL_LVM2;
+
+    memset(dev, 0, sizeof(*dev));
+    dev->path = pvname;
 
     return 0;
+
+ err_no_memory:
+    VIR_FREE(pvname);
+    VIR_FREE(vgname);
+
+    return -1;
 }
 
 static char *
@@ -294,34 +311,50 @@ virStorageBackendLogicalFindPoolSources(virConnectPtr conn,
                                         unsigned int flags ATTRIBUTE_UNUSED)
 {
     /*
-     * # vgs --noheadings -o vg_name
-     *   VolGroup00
-     *   VolGroup01
+     * # pvs --noheadings -o pv_name,vg_name
+     *   /dev/sdb
+     *   /dev/sdc VolGroup00
      */
     const char *regexes[] = {
-        "^\\s*(\\S+)\\s*$"
+        "^\\s*(\\S+)\\s+(\\S+)\\s*$"
     };
     int vars[] = {
-        1
+        2
     };
-    virStringList *descs = NULL;
-    const char *prog[] = { VGS, "--noheadings", "-o", "vg_name", NULL };
+    const char *const prog[] = { PVS, "--noheadings", "-o", "pv_name,vg_name", NULL };
+    const char *const scanprog[] = { VGSCAN, NULL };
     int exitstatus;
     char *retval = NULL;
+    virStoragePoolSourceList sourceList;
+    int i;
+
+    /*
+     * NOTE: ignoring errors here; this is just to "touch" any logical volumes
+     * that might be hanging around, so if this fails for some reason, the
+     * worst that happens is that scanning doesn't pick everything up
+     */
+    virRun(conn, scanprog, &exitstatus);
+
+    memset(&sourceList, 0, sizeof(sourceList));
+    sourceList.type = VIR_STORAGE_POOL_LOGICAL;
 
     if (virStorageBackendRunProgRegex(conn, NULL, prog, 1, regexes, vars,
                                       virStorageBackendLogicalFindPoolSourcesFunc,
-                                      &descs, &exitstatus) < 0)
+                                      &sourceList, &exitstatus) < 0)
         return NULL;
 
-    retval = virStringListJoin(descs, SOURCES_START_TAG, SOURCES_END_TAG, "\n");
+    retval = virStoragePoolSourceListFormat(conn, &sourceList);
     if (retval == NULL) {
-        virStorageReportError(conn, VIR_ERR_NO_MEMORY, _("retval"));
+        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
+                              _("failed to get source from sourceList"));
         goto cleanup;
     }
 
  cleanup:
-    virStringListFree(descs);
+    for (i = 0; i < sourceList.nsources; i++)
+        virStoragePoolSourceFree(&sourceList.sources[i]);
+
+    VIR_FREE(sourceList.sources);
 
     return retval;
 }
@@ -437,6 +470,8 @@ virStorageBackendLogicalRefreshPool(virConnectPtr conn,
     };
     int exitstatus;
 
+    virStorageBackendWaitForDevices(conn);
+
     /* Get list of all logical volumes */
     if (virStorageBackendLogicalFindLVs(conn, pool, NULL) < 0) {
         virStoragePoolObjClearVols(pool);
@@ -537,6 +572,8 @@ virStorageBackendLogicalCreateVol(virConnectPtr conn,
     snprintf(size, sizeof(size)-1, "%lluK", vol->capacity/1024);
     size[sizeof(size)-1] = '\0';
 
+    vol->type = VIR_STORAGE_VOL_BLOCK;
+
     if (vol->target.path != NULL) {
         /* A target path passed to CreateVol has no meaning */
         VIR_FREE(vol->target.path);
@@ -629,13 +666,4 @@ virStorageBackend virStorageBackendLogical = {
     .deletePool = virStorageBackendLogicalDeletePool,
     .createVol = virStorageBackendLogicalCreateVol,
     .deleteVol = virStorageBackendLogicalDeleteVol,
-
-    .poolOptions = {
-        .flags = (VIR_STORAGE_BACKEND_POOL_SOURCE_NAME |
-                  VIR_STORAGE_BACKEND_POOL_SOURCE_DEVICE),
-        .formatFromString = virStorageBackendLogicalPoolFormatFromString,
-        .formatToString = virStorageBackendLogicalPoolFormatToString,
-    },
-
-    .volType = VIR_STORAGE_VOL_BLOCK,
 };

@@ -40,48 +40,13 @@
 #include <libxml/tree.h>
 #include <libxml/xpath.h>
 
-#include "internal.h"
+#include "virterror_internal.h"
 #include "storage_backend_fs.h"
 #include "storage_conf.h"
 #include "util.h"
 #include "memory.h"
 #include "xml.h"
 
-enum {
-    VIR_STORAGE_POOL_FS_AUTO = 0,
-    VIR_STORAGE_POOL_FS_EXT2,
-    VIR_STORAGE_POOL_FS_EXT3,
-    VIR_STORAGE_POOL_FS_EXT4,
-    VIR_STORAGE_POOL_FS_UFS,
-    VIR_STORAGE_POOL_FS_ISO,
-    VIR_STORAGE_POOL_FS_UDF,
-    VIR_STORAGE_POOL_FS_GFS,
-    VIR_STORAGE_POOL_FS_GFS2,
-    VIR_STORAGE_POOL_FS_VFAT,
-    VIR_STORAGE_POOL_FS_HFSPLUS,
-    VIR_STORAGE_POOL_FS_XFS,
-};
-
-enum {
-    VIR_STORAGE_POOL_NETFS_AUTO = 0,
-    VIR_STORAGE_POOL_NETFS_NFS,
-};
-
-
-
-enum {
-    VIR_STORAGE_VOL_RAW,
-    VIR_STORAGE_VOL_DIR,
-    VIR_STORAGE_VOL_BOCHS,
-    VIR_STORAGE_VOL_CLOOP,
-    VIR_STORAGE_VOL_COW,
-    VIR_STORAGE_VOL_DMG,
-    VIR_STORAGE_VOL_ISO,
-    VIR_STORAGE_VOL_QCOW,
-    VIR_STORAGE_VOL_QCOW2,
-    VIR_STORAGE_VOL_VMDK,
-    VIR_STORAGE_VOL_VPC,
-};
 
 /* Either 'magic' or 'extension' *must* be provided */
 struct FileTypeInfo {
@@ -112,223 +77,51 @@ const struct FileTypeInfo const fileTypeInfo[] = {
       __LITTLE_ENDIAN, -1, 0,
       -1, 0, 0 }, */
     /* Cow */
-    { VIR_STORAGE_VOL_COW, "OOOM", NULL,
+    { VIR_STORAGE_VOL_FILE_COW, "OOOM", NULL,
       __BIG_ENDIAN, 4, 2,
       4+4+1024+4, 8, 1 },
     /* DMG */
     /* XXX QEMU says there's no magic for dmg, but we should check... */
-    { VIR_STORAGE_VOL_DMG, NULL, ".dmg",
+    { VIR_STORAGE_VOL_FILE_DMG, NULL, ".dmg",
       0, -1, 0,
       -1, 0, 0 },
     /* XXX there's probably some magic for iso we can validate too... */
-    { VIR_STORAGE_VOL_ISO, NULL, ".iso",
+    { VIR_STORAGE_VOL_FILE_ISO, NULL, ".iso",
       0, -1, 0,
       -1, 0, 0 },
     /* Parallels */
     /* XXX Untested
-    { VIR_STORAGE_VOL_PARALLELS, "WithoutFreeSpace", NULL,
+    { VIR_STORAGE_VOL_FILE_PARALLELS, "WithoutFreeSpace", NULL,
       __LITTLE_ENDIAN, 16, 2,
       16+4+4+4+4, 4, 512 },
     */
     /* QCow */
-    { VIR_STORAGE_VOL_QCOW, "QFI", NULL,
+    { VIR_STORAGE_VOL_FILE_QCOW, "QFI", NULL,
       __BIG_ENDIAN, 4, 1,
       4+4+8+4+4, 8, 1 },
     /* QCow 2 */
-    { VIR_STORAGE_VOL_QCOW2, "QFI", NULL,
+    { VIR_STORAGE_VOL_FILE_QCOW2, "QFI", NULL,
       __BIG_ENDIAN, 4, 2,
       4+4+8+4+4, 8, 1 },
     /* VMDK 3 */
     /* XXX Untested
-    { VIR_STORAGE_VOL_VMDK, "COWD", NULL,
+    { VIR_STORAGE_VOL_FILE_VMDK, "COWD", NULL,
       __LITTLE_ENDIAN, 4, 1,
       4+4+4, 4, 512 },
     */
     /* VMDK 4 */
-    { VIR_STORAGE_VOL_VMDK, "KDMV", NULL,
+    { VIR_STORAGE_VOL_FILE_VMDK, "KDMV", NULL,
       __LITTLE_ENDIAN, 4, 1,
       4+4+4, 8, 512 },
     /* Connectix / VirtualPC */
     /* XXX Untested
-    { VIR_STORAGE_VOL_VPC, "conectix", NULL,
+    { VIR_STORAGE_VOL_FILE_VPC, "conectix", NULL,
       __BIG_ENDIAN, -1, 0,
       -1, 0, 0},
     */
 };
 
 
-
-
-static int
-virStorageBackendFileSystemVolFormatFromString(virConnectPtr conn,
-                                               const char *format) {
-    if (format == NULL)
-        return VIR_STORAGE_VOL_RAW;
-
-    if (STREQ(format, "raw"))
-        return VIR_STORAGE_VOL_RAW;
-    if (STREQ(format, "dir"))
-        return VIR_STORAGE_VOL_DIR;
-    if (STREQ(format, "bochs"))
-        return VIR_STORAGE_VOL_BOCHS;
-    if (STREQ(format, "cow"))
-        return VIR_STORAGE_VOL_COW;
-    if (STREQ(format, "cloop"))
-        return VIR_STORAGE_VOL_CLOOP;
-    if (STREQ(format, "dmg"))
-        return VIR_STORAGE_VOL_DMG;
-    if (STREQ(format, "iso"))
-        return VIR_STORAGE_VOL_ISO;
-    if (STREQ(format, "qcow"))
-        return VIR_STORAGE_VOL_QCOW;
-    if (STREQ(format, "qcow2"))
-        return VIR_STORAGE_VOL_QCOW2;
-    if (STREQ(format, "vmdk"))
-        return VIR_STORAGE_VOL_VMDK;
-    if (STREQ(format, "vpc"))
-        return VIR_STORAGE_VOL_VPC;
-
-    virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                          _("unsupported volume format %s"), format);
-    return -1;
-}
-
-static const char *
-virStorageBackendFileSystemVolFormatToString(virConnectPtr conn,
-                                             int format) {
-    switch (format) {
-    case VIR_STORAGE_VOL_RAW:
-        return "raw";
-    case VIR_STORAGE_VOL_DIR:
-        return "dir";
-    case VIR_STORAGE_VOL_BOCHS:
-        return "bochs";
-    case VIR_STORAGE_VOL_CLOOP:
-        return "cloop";
-    case VIR_STORAGE_VOL_COW:
-        return "cow";
-    case VIR_STORAGE_VOL_DMG:
-        return "dmg";
-    case VIR_STORAGE_VOL_ISO:
-        return "iso";
-    case VIR_STORAGE_VOL_QCOW:
-        return "qcow";
-    case VIR_STORAGE_VOL_QCOW2:
-        return "qcow2";
-    case VIR_STORAGE_VOL_VMDK:
-        return "vmdk";
-    case VIR_STORAGE_VOL_VPC:
-        return "vpc";
-    }
-
-    virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                          _("unsupported volume format %d"), format);
-    return NULL;
-}
-
-
-static int
-virStorageBackendFileSystemPoolFormatFromString(virConnectPtr conn,
-                                                const char *format) {
-    if (format == NULL)
-        return VIR_STORAGE_POOL_FS_AUTO;
-
-    if (STREQ(format, "auto"))
-        return VIR_STORAGE_POOL_FS_AUTO;
-    if (STREQ(format, "ext2"))
-        return VIR_STORAGE_POOL_FS_EXT2;
-    if (STREQ(format, "ext3"))
-        return VIR_STORAGE_POOL_FS_EXT3;
-    if (STREQ(format, "ext4"))
-        return VIR_STORAGE_POOL_FS_EXT4;
-    if (STREQ(format, "ufs"))
-        return VIR_STORAGE_POOL_FS_UFS;
-    if (STREQ(format, "iso9660"))
-        return VIR_STORAGE_POOL_FS_ISO;
-    if (STREQ(format, "udf"))
-        return VIR_STORAGE_POOL_FS_UDF;
-    if (STREQ(format, "gfs"))
-        return VIR_STORAGE_POOL_FS_GFS;
-    if (STREQ(format, "gfs2"))
-        return VIR_STORAGE_POOL_FS_GFS2;
-    if (STREQ(format, "vfat"))
-        return VIR_STORAGE_POOL_FS_VFAT;
-    if (STREQ(format, "hfs+"))
-        return VIR_STORAGE_POOL_FS_HFSPLUS;
-    if (STREQ(format, "xfs"))
-        return VIR_STORAGE_POOL_FS_XFS;
-
-    virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                          _("unsupported volume format %s"), format);
-    return -1;
-}
-
-static const char *
-virStorageBackendFileSystemPoolFormatToString(virConnectPtr conn,
-                                              int format) {
-    switch (format) {
-    case VIR_STORAGE_POOL_FS_AUTO:
-        return "auto";
-    case VIR_STORAGE_POOL_FS_EXT2:
-        return "ext2";
-    case VIR_STORAGE_POOL_FS_EXT3:
-        return "ext3";
-    case VIR_STORAGE_POOL_FS_EXT4:
-        return "ext4";
-    case VIR_STORAGE_POOL_FS_UFS:
-        return "ufs";
-    case VIR_STORAGE_POOL_FS_ISO:
-        return "iso";
-    case VIR_STORAGE_POOL_FS_UDF:
-        return "udf";
-    case VIR_STORAGE_POOL_FS_GFS:
-        return "gfs";
-    case VIR_STORAGE_POOL_FS_GFS2:
-        return "gfs2";
-    case VIR_STORAGE_POOL_FS_VFAT:
-        return "vfat";
-    case VIR_STORAGE_POOL_FS_HFSPLUS:
-        return "hfs+";
-    case VIR_STORAGE_POOL_FS_XFS:
-        return "xfs";
-    }
-
-    virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                          _("unsupported volume format %d"), format);
-    return NULL;
-}
-
-
-static int
-virStorageBackendFileSystemNetPoolFormatFromString(virConnectPtr conn,
-                                                   const char *format) {
-    if (format == NULL)
-        return VIR_STORAGE_POOL_NETFS_AUTO;
-
-    if (STREQ(format, "auto"))
-        return VIR_STORAGE_POOL_NETFS_AUTO;
-    if (STREQ(format, "nfs"))
-        return VIR_STORAGE_POOL_NETFS_NFS;
-
-    virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                          _("unsupported volume format %s"), format);
-    return -1;
-}
-
-static const char *
-virStorageBackendFileSystemNetPoolFormatToString(virConnectPtr conn,
-                                                 int format) {
-    switch (format) {
-    case VIR_STORAGE_POOL_NETFS_AUTO:
-        return "auto";
-    case VIR_STORAGE_POOL_NETFS_NFS:
-        return "nfs";
-    }
-
-    virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                          _("unsupported volume format %d"), format);
-    return NULL;
-}
 
 
 /**
@@ -364,7 +157,7 @@ static int virStorageBackendProbeFile(virConnectPtr conn,
     close(fd);
 
     /* First check file magic */
-    for (i = 0 ; i < sizeof(fileTypeInfo)/sizeof(fileTypeInfo[0]) ; i++) {
+    for (i = 0 ; i < ARRAY_CARDINALITY(fileTypeInfo) ; i++) {
         int mlen;
         if (fileTypeInfo[i].magic == NULL)
             continue;
@@ -430,7 +223,7 @@ static int virStorageBackendProbeFile(virConnectPtr conn,
     }
 
     /* No magic, so check file extension */
-    for (i = 0 ; i < sizeof(fileTypeInfo)/sizeof(fileTypeInfo[0]) ; i++) {
+    for (i = 0 ; i < ARRAY_CARDINALITY(fileTypeInfo) ; i++) {
         if (fileTypeInfo[i].extension == NULL)
             continue;
 
@@ -442,14 +235,14 @@ static int virStorageBackendProbeFile(virConnectPtr conn,
     }
 
     /* All fails, so call it a raw file */
-    def->target.format = VIR_STORAGE_VOL_RAW;
+    def->target.format = VIR_STORAGE_VOL_FILE_RAW;
     return 0;
 }
 
 #if WITH_STORAGE_FS
 struct _virNetfsDiscoverState {
     const char *host;
-    virStringList *list;
+    virStoragePoolSourceList list;
 };
 
 typedef struct _virNetfsDiscoverState virNetfsDiscoverState;
@@ -461,8 +254,8 @@ virStorageBackendFileSystemNetFindPoolSourcesFunc(virConnectPtr conn ATTRIBUTE_U
                                                   void *data)
 {
     virNetfsDiscoverState *state = data;
-    virStringList *newItem;
     const char *name, *path;
+    virStoragePoolSource *src;
 
     path = groups[0];
 
@@ -479,24 +272,17 @@ virStorageBackendFileSystemNetFindPoolSourcesFunc(virConnectPtr conn ATTRIBUTE_U
         return -1;
     }
 
-    /* Append new XML desc to list */
-
-    if (VIR_ALLOC(newItem) != 0) {
-        virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("new xml desc"));
+    if (VIR_REALLOC_N(state->list.sources, state->list.nsources+1) < 0) {
+        virStorageReportError(conn, VIR_ERR_NO_MEMORY, NULL);
         return -1;
     }
+    memset(state->list.sources + state->list.nsources, 0, sizeof(*state->list.sources));
 
-    if (asprintf(&newItem->val,
-                 "<source><host name='%s'/><dir path='%s'/></source>",
-                 state->host, path) <= 0) {
-        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s", _("asprintf failed"));
-        VIR_FREE(newItem);
+    src = state->list.sources + state->list.nsources++;
+    if (!(src->host.name = strdup(state->host)) ||
+        !(src->dir = strdup(path)))
         return -1;
-    }
-
-    newItem->len = strlen(newItem->val);
-    newItem->next = state->list;
-    state->list = newItem;
+    src->format = VIR_STORAGE_POOL_NETFS_NFS;
 
     return 0;
 }
@@ -522,10 +308,18 @@ virStorageBackendFileSystemNetFindPoolSources(virConnectPtr conn,
     };
     xmlDocPtr doc = NULL;
     xmlXPathContextPtr xpath_ctxt = NULL;
-    virNetfsDiscoverState state = { .host = NULL, .list = NULL };
+    virNetfsDiscoverState state = {
+        .host = NULL,
+        .list = {
+            .type = VIR_STORAGE_POOL_NETFS,
+            .nsources = 0,
+            .sources = NULL
+        }
+    };
     const char *prog[] = { SHOWMOUNT, "--no-headers", "--exports", NULL, NULL };
     int exitstatus;
     char *retval = NULL;
+    unsigned int i;
 
     doc = xmlReadDoc((const xmlChar *)srcSpec, "srcSpec.xml", NULL,
                      XML_PARSE_NOENT | XML_PARSE_NONET |
@@ -554,17 +348,21 @@ virStorageBackendFileSystemNetFindPoolSources(virConnectPtr conn,
                                       &state, &exitstatus) < 0)
         goto cleanup;
 
-    retval = virStringListJoin(state.list, SOURCES_START_TAG, SOURCES_END_TAG, "\n");
+    retval = virStoragePoolSourceListFormat(conn, &state.list);
     if (retval == NULL) {
-        virStorageReportError(conn, VIR_ERR_NO_MEMORY, _("retval"));
+        virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("retval"));
         goto cleanup;
     }
 
  cleanup:
+    for (i = 0; i < state.list.nsources; i++)
+        virStoragePoolSourceFree(&state.list.sources[i]);
+
+    VIR_FREE(state.list.sources);
+    VIR_FREE(state.host);
+
     xmlFreeDoc(doc);
     xmlXPathFreeContext(xpath_ctxt);
-    VIR_FREE(state.host);
-    virStringListFree(state.list);
 
     return retval;
 }
@@ -635,10 +433,8 @@ virStorageBackendFileSystemMount(virConnectPtr conn,
         MOUNT,
         "-t",
         pool->def->type == VIR_STORAGE_POOL_FS ?
-        virStorageBackendFileSystemPoolFormatToString(conn,
-                                                      pool->def->source.format) :
-        virStorageBackendFileSystemNetPoolFormatToString(conn,
-                                                         pool->def->source.format),
+        virStoragePoolFormatFileSystemTypeToString(pool->def->source.format) :
+        virStoragePoolFormatFileSystemNetTypeToString(pool->def->source.format),
         NULL, /* Fill in shortly - careful not to add extra fields
                  before this */
         pool->def->target.path,
@@ -822,6 +618,7 @@ virStorageBackendFileSystemRefresh(virConnectPtr conn,
     DIR *dir;
     struct dirent *ent;
     struct statvfs sb;
+    virStorageVolDefPtr vol = NULL;
 
     if (!(dir = opendir(pool->def->target.path))) {
         virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
@@ -831,61 +628,43 @@ virStorageBackendFileSystemRefresh(virConnectPtr conn,
     }
 
     while ((ent = readdir(dir)) != NULL) {
-        virStorageVolDefPtr vol;
         int ret;
 
-        if (VIR_ALLOC(vol) < 0) {
-            virStorageReportError(conn, VIR_ERR_NO_MEMORY,
-                                  "%s", _("volume"));
-            goto cleanup;
-        }
+        if (VIR_ALLOC(vol) < 0)
+            goto no_memory;
 
-        vol->name = strdup(ent->d_name);
-        if (vol->name == NULL) {
-            VIR_FREE(vol);
-            virStorageReportError(conn, VIR_ERR_NO_MEMORY,
-                                  "%s", _("volume name"));
-            goto cleanup;
-        }
+        if ((vol->name = strdup(ent->d_name)) == NULL)
+            goto no_memory;
 
-        vol->target.format = VIR_STORAGE_VOL_RAW; /* Real value is filled in during probe */
+        vol->type = VIR_STORAGE_VOL_FILE;
+        vol->target.format = VIR_STORAGE_VOL_FILE_RAW; /* Real value is filled in during probe */
         if (VIR_ALLOC_N(vol->target.path, strlen(pool->def->target.path) +
-                        1 + strlen(vol->name) + 1) < 0) {
-            VIR_FREE(vol->target.path);
-            VIR_FREE(vol);
-            virStorageReportError(conn, VIR_ERR_NO_MEMORY,
-                                  "%s", _("volume name"));
-            goto cleanup;
-        }
+                        1 + strlen(vol->name) + 1) < 0)
+            goto no_memory;
+
         strcpy(vol->target.path, pool->def->target.path);
         strcat(vol->target.path, "/");
         strcat(vol->target.path, vol->name);
-        if ((vol->key = strdup(vol->target.path)) == NULL) {
-            VIR_FREE(vol->name);
-            VIR_FREE(vol->target.path);
-            VIR_FREE(vol);
-            virStorageReportError(conn, VIR_ERR_NO_MEMORY,
-                                  "%s", _("volume key"));
-            goto cleanup;
-        }
+        if ((vol->key = strdup(vol->target.path)) == NULL)
+            goto no_memory;
 
         if ((ret = virStorageBackendProbeFile(conn, vol) < 0)) {
-            VIR_FREE(vol->key);
-            VIR_FREE(vol->name);
-            VIR_FREE(vol->target.path);
-            VIR_FREE(vol);
             if (ret == -1)
-                goto cleanup;
-            else
+                goto no_memory;
+            else {
                 /* Silently ignore non-regular files,
                  * eg '.' '..', 'lost+found' */
+                virStorageVolDefFree(vol);
+                vol = NULL;
                 continue;
+            }
         }
 
-        vol->next = pool->volumes;
-        pool->volumes = vol;
-        pool->nvolumes++;
-        continue;
+        if (VIR_REALLOC_N(pool->volumes.objs,
+                          pool->volumes.count+1) < 0)
+            goto no_memory;
+        pool->volumes.objs[pool->volumes.count++] = vol;
+        vol = NULL;
     }
     closedir(dir);
 
@@ -904,8 +683,13 @@ virStorageBackendFileSystemRefresh(virConnectPtr conn,
 
     return 0;
 
+no_memory:
+    virStorageReportError(conn, VIR_ERR_NO_MEMORY, NULL);
+    /* fallthrough */
+
  cleanup:
     closedir(dir);
+    virStorageVolDefFree(vol);
     virStoragePoolObjClearVols(pool);
     return -1;
 }
@@ -979,6 +763,7 @@ virStorageBackendFileSystemVolCreate(virConnectPtr conn,
         virStorageReportError(conn, VIR_ERR_NO_MEMORY, "%s", _("target"));
         return -1;
     }
+    vol->type = VIR_STORAGE_VOL_FILE;
     strcpy(vol->target.path, pool->def->target.path);
     strcat(vol->target.path, "/");
     strcat(vol->target.path, vol->name);
@@ -989,7 +774,7 @@ virStorageBackendFileSystemVolCreate(virConnectPtr conn,
         return -1;
     }
 
-    if (vol->target.format == VIR_STORAGE_VOL_RAW) {
+    if (vol->target.format == VIR_STORAGE_VOL_FILE_RAW) {
         if ((fd = open(vol->target.path, O_RDWR | O_CREAT | O_EXCL,
                        vol->target.perms.mode)) < 0) {
             virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
@@ -1029,7 +814,7 @@ virStorageBackendFileSystemVolCreate(virConnectPtr conn,
             close(fd);
             return -1;
         }
-    } else if (vol->target.format == VIR_STORAGE_VOL_DIR) {
+    } else if (vol->target.format == VIR_STORAGE_VOL_FILE_DIR) {
         if (mkdir(vol->target.path, vol->target.perms.mode) < 0) {
             virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
                                   _("cannot create path '%s': %s"),
@@ -1049,8 +834,7 @@ virStorageBackendFileSystemVolCreate(virConnectPtr conn,
         char size[100];
         const char *imgargv[7];
 
-        if ((type = virStorageBackendFileSystemVolFormatToString(conn,
-                                                                 vol->target.format)) == NULL) {
+        if ((type = virStorageVolFormatFileSystemTypeToString(vol->target.format)) == NULL) {
             virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
                                   _("unknown storage vol type %d"),
                                   vol->target.format);
@@ -1088,7 +872,7 @@ virStorageBackendFileSystemVolCreate(virConnectPtr conn,
         char size[100];
         const char *imgargv[4];
 
-        if (vol->target.format != VIR_STORAGE_VOL_QCOW2) {
+        if (vol->target.format != VIR_STORAGE_VOL_FILE_QCOW2) {
             virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
                                   _("unsupported storage vol type %d"),
                                   vol->target.format);
@@ -1205,12 +989,6 @@ virStorageBackend virStorageBackendDirectory = {
     .createVol = virStorageBackendFileSystemVolCreate,
     .refreshVol = virStorageBackendFileSystemVolRefresh,
     .deleteVol = virStorageBackendFileSystemVolDelete,
-
-    .volOptions = {
-        .formatFromString = virStorageBackendFileSystemVolFormatFromString,
-        .formatToString = virStorageBackendFileSystemVolFormatToString,
-    },
-    .volType = VIR_STORAGE_VOL_FILE,
 };
 
 #if WITH_STORAGE_FS
@@ -1225,17 +1003,6 @@ virStorageBackend virStorageBackendFileSystem = {
     .createVol = virStorageBackendFileSystemVolCreate,
     .refreshVol = virStorageBackendFileSystemVolRefresh,
     .deleteVol = virStorageBackendFileSystemVolDelete,
-
-    .poolOptions = {
-        .flags = (VIR_STORAGE_BACKEND_POOL_SOURCE_DEVICE),
-        .formatFromString = virStorageBackendFileSystemPoolFormatFromString,
-        .formatToString = virStorageBackendFileSystemPoolFormatToString,
-    },
-    .volOptions = {
-        .formatFromString = virStorageBackendFileSystemVolFormatFromString,
-        .formatToString = virStorageBackendFileSystemVolFormatToString,
-    },
-    .volType = VIR_STORAGE_VOL_FILE,
 };
 virStorageBackend virStorageBackendNetFileSystem = {
     .type = VIR_STORAGE_POOL_NETFS,
@@ -1249,17 +1016,5 @@ virStorageBackend virStorageBackendNetFileSystem = {
     .createVol = virStorageBackendFileSystemVolCreate,
     .refreshVol = virStorageBackendFileSystemVolRefresh,
     .deleteVol = virStorageBackendFileSystemVolDelete,
-
-    .poolOptions = {
-        .flags = (VIR_STORAGE_BACKEND_POOL_SOURCE_HOST |
-                  VIR_STORAGE_BACKEND_POOL_SOURCE_DIR),
-        .formatFromString = virStorageBackendFileSystemNetPoolFormatFromString,
-        .formatToString = virStorageBackendFileSystemNetPoolFormatToString,
-    },
-    .volOptions = {
-        .formatFromString = virStorageBackendFileSystemVolFormatFromString,
-        .formatToString = virStorageBackendFileSystemVolFormatToString,
-    },
-    .volType = VIR_STORAGE_VOL_FILE,
 };
 #endif /* WITH_STORAGE_FS */

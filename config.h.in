@@ -39,11 +39,14 @@
    language is requested. */
 #undef ENABLE_NLS
 
-/* Define as good substitute value for EOVERFLOW. */
-#undef EOVERFLOW
-
 /* Define if gettimeofday clobbers the localtime buffer. */
 #undef GETTIMEOFDAY_CLOBBERS_LOCALTIME
+
+/* Define to 1 when using the gnulib module ioctl. */
+#undef GNULIB_IOCTL
+
+/* Define to 1 when using the gnulib module sys_socket. */
+#undef GNULIB_SYS_SOCKET
 
 /* enable GnuTLS 1.0 compatibility macros */
 #undef GNUTLS_1_0_COMPAT
@@ -97,6 +100,10 @@
    don't. */
 #undef HAVE_DECL_GETADDRINFO
 
+/* Define to 1 if you have the declaration of `getc_unlocked', and to 0 if you
+   don't. */
+#undef HAVE_DECL_GETC_UNLOCKED
+
 /* Define to 1 if you have the declaration of `getdelim', and to 0 if you
    don't. */
 #undef HAVE_DECL_GETDELIM
@@ -133,6 +140,10 @@
    */
 #undef HAVE_DECL_STRDUP
 
+/* Define to 1 if you have the declaration of `strerror', and to 0 if you
+   don't. */
+#undef HAVE_DECL_STRERROR
+
 /* Define to 1 if you have the declaration of `strndup', and to 0 if you
    don't. */
 #undef HAVE_DECL_STRNDUP
@@ -149,8 +160,17 @@
    don't. */
 #undef HAVE_DECL___FSETLOCKING
 
+/* use DeviceKit for host device enumeration */
+#undef HAVE_DEVKIT
+
+/* Define to 1 if you have the `devkit_client_connect' function. */
+#undef HAVE_DEVKIT_CLIENT_CONNECT
+
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
+
+/* Define to 1 if you have the <errno.h> header file. */
+#undef HAVE_ERRNO_H
 
 /* Define to 1 if you have the <float.h> header file. */
 #undef HAVE_FLOAT_H
@@ -173,6 +193,9 @@
 /* Define to 1 if you have the `gethostbyname' function. */
 #undef HAVE_GETHOSTBYNAME
 
+/* Define to 1 if you have the `gethostname' function. */
+#undef HAVE_GETHOSTNAME
+
 /* Define to 1 if you have the `getpass' function. */
 #undef HAVE_GETPASS
 
@@ -188,11 +211,11 @@
 /* Define to 1 if you have the `getuid' function. */
 #undef HAVE_GETUID
 
+/* use HAL for host device enumeration */
+#undef HAVE_HAL
+
 /* Define if you have the iconv() function. */
 #undef HAVE_ICONV
-
-/* Define if your compiler supports the #include_next directive. */
-#undef HAVE_INCLUDE_NEXT
 
 /* Define to 1 if you have the `inet_ntop' function. */
 #undef HAVE_INET_NTOP
@@ -216,8 +239,14 @@
 /* Define to 1 if <sys/socket.h> defines AF_INET6. */
 #undef HAVE_IPV6
 
+/* Define to 1 if you have the `dl' library (-ldl). */
+#undef HAVE_LIBDL
+
 /* Define to 1 if you have the `gnutls' library (-lgnutls). */
 #undef HAVE_LIBGNUTLS
+
+/* Define to 1 if you have the `libhal_get_all_devices' function. */
+#undef HAVE_LIBHAL_GET_ALL_DEVICES
 
 /* Define to 1 if you have the `intl' library (-lintl). */
 #undef HAVE_LIBINTL
@@ -392,6 +421,12 @@
 /* Define to 1 if the system has the type `struct addrinfo'. */
 #undef HAVE_STRUCT_ADDRINFO
 
+/* Define to 1 if the system has the type `struct random_data'. */
+#undef HAVE_STRUCT_RANDOM_DATA
+
+/* Define to 1 if `sa_len' is member of `struct sockaddr'. */
+#undef HAVE_STRUCT_SOCKADDR_SA_LEN
+
 /* Define to 1 if you have the `sysctl' function. */
 #undef HAVE_SYSCTL
 
@@ -412,6 +447,9 @@
 
 /* Define to 1 if you have the <sys/param.h> header file. */
 #undef HAVE_SYS_PARAM_H
+
+/* Define to 1 if you have the <sys/poll.h> header file. */
+#undef HAVE_SYS_POLL_H
 
 /* Define to 1 if you have the <sys/pstat.h> header file. */
 #undef HAVE_SYS_PSTAT_H
@@ -546,6 +584,10 @@
 /* Define to 1 if lseek does not detect pipes. */
 #undef LSEEK_PIPE_BROKEN
 
+/* Define to 1 if `lstat' dereferences a symlink specified with a trailing
+   slash. */
+#undef LSTAT_FOLLOWS_SLASHED_SYMLINK
+
 /* Location of lvcreate program */
 #undef LVCREATE
 
@@ -607,6 +649,9 @@
 /* Location or name of the qemu-img program */
 #undef QEMU_IMG
 
+/* Define this to 1 if strerror is broken. */
+#undef REPLACE_STRERROR
+
 /* Define if vasnprintf exists but is overridden by gnulib. */
 #undef REPLACE_VASNPRINTF
 
@@ -645,6 +690,12 @@
 /* Whether backtrace() is available */
 #undef TEST_OOM_TRACE
 
+/* Location or name of the udevadm program */
+#undef UDEVADM
+
+/* Location or name of the udevsettle program */
+#undef UDEVSETTLE
+
 /* Location or name of the mount program */
 #undef UMOUNT
 
@@ -666,16 +717,46 @@
 /* Location of vgs program */
 #undef VGS
 
+/* Location of vgscan program */
+#undef VGSCAN
+
 /* Define to l, ll, u, ul, ull, etc., as suitable for constants of type
    'wchar_t'. */
 #undef WCHAR_T_SUFFIX
+
+/* Define if WSAStartup is needed. */
+#undef WINDOWS_SOCKETS
 
 /* Define to l, ll, u, ul, ull, etc., as suitable for constants of type
    'wint_t'. */
 #undef WINT_T_SUFFIX
 
+/* whether to build drivers as modules */
+#undef WITH_DRIVER_MODULES
+
+/* whether libvirtd daemon is enabled */
+#undef WITH_LIBVIRTD
+
+/* whether LXC driver is enabled */
+#undef WITH_LXC
+
+/* whether network driver is enabled */
+#undef WITH_NETWORK
+
+/* with node device driver */
+#undef WITH_NODE_DEVICES
+
+/* whether OpenVZ driver is enabled */
+#undef WITH_OPENVZ
+
 /* Whether Xen proxy is enabled */
 #undef WITH_PROXY
+
+/* whether QEMU driver is enabled */
+#undef WITH_QEMU
+
+/* whether Remote driver is enabled */
+#undef WITH_REMOTE
 
 /* whether directory backend for storage driver is enabled */
 #undef WITH_STORAGE_DIR
@@ -691,6 +772,18 @@
 
 /* whether LVM backend for storage driver is enabled */
 #undef WITH_STORAGE_LVM
+
+/* whether Test driver is enabled */
+#undef WITH_TEST
+
+/* whether UML driver is enabled */
+#undef WITH_UML
+
+/* whether Xen driver is enabled */
+#undef WITH_XEN
+
+/* whether Xen inotify sub-driver is enabled */
+#undef WITH_XEN_INOTIFY
 
 /* Number of bits in a file offset, on hosts where this is settable. */
 #undef _FILE_OFFSET_BITS
@@ -800,3 +893,13 @@
 
 /* Define to rpl_strnlen if the replacement function should be used. */
 #undef strnlen
+
+/* Define as a marker that can be attached to function parameter declarations
+   for parameters that are not used.  This helps to reduce warnings, such as
+   from GCC -Wunused-parameter.  */
+#if __GNUC__ >= 3 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 7)
+# define _UNUSED_PARAMETER_ __attribute__ ((__unused__))
+#else
+# define _UNUSED_PARAMETER_
+#endif
+

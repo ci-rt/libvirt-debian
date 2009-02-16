@@ -19,6 +19,7 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <libxml/uri.h>
 
 #include "internal.h"
 #include "capabilities.h"
@@ -53,7 +54,7 @@ xenDaemonOpen_unix(virConnectPtr conn, const char *path);
  * domain will be paused after creation and must be unpaused with
  * xenDaemonResumeDomain() to begin execution.
  */
-    int xenDaemonDomainCreateLinux(virConnectPtr xend, const char *sexpr);
+int xenDaemonDomainCreateXML(virConnectPtr xend, const char *sexpr);
 
 /**
  * \brief Lookup the id of a domain
@@ -115,7 +116,7 @@ xenDaemonFormatSxprChr(virConnectPtr conn,
                        virBufferPtr buf);
 int
 xenDaemonFormatSxprSound(virConnectPtr conn,
-                         virDomainSoundDefPtr sound,
+                         virDomainDefPtr def,
                          virBufferPtr buf);
 
 char *
@@ -128,7 +129,7 @@ xenDaemonFormatSxpr(virConnectPtr conn,
 
 
 /* refactored ones */
-int xenDaemonOpen(virConnectPtr conn, xmlURIPtr uri, virConnectAuthPtr auth, int flags);
+int xenDaemonOpen(virConnectPtr conn, virConnectAuthPtr auth, int flags);
 int xenDaemonClose(virConnectPtr conn);
 int xenDaemonGetVersion(virConnectPtr conn, unsigned long *hvVer);
 int xenDaemonNodeGetInfo(virConnectPtr conn, virNodeInfoPtr info);
@@ -178,5 +179,6 @@ int xenDaemonDomainMigratePrepare (virConnectPtr dconn, char **cookie, int *cook
 int xenDaemonDomainMigratePerform (virDomainPtr domain, const char *cookie, int cookielen, const char *uri, unsigned long flags, const char *dname, unsigned long resource);
 
 int xenDaemonDomainBlockPeek (virDomainPtr domain, const char *path, unsigned long long offset, size_t size, void *buffer);
+int xenDaemonListDomains(virConnectPtr conn, int *ids, int maxids);
 
 #endif /* __XEND_INTERNAL_H_ */

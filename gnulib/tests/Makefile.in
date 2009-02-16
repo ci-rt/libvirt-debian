@@ -44,27 +44,33 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-TESTS = test-EOVERFLOW$(EXEEXT) test-alloca-opt$(EXEEXT) \
-	test-arpa_inet$(EXEEXT) test-c-ctype$(EXEEXT) test-fseeko.sh \
+TESTS = test-alloca-opt$(EXEEXT) test-arpa_inet$(EXEEXT) \
+	test-c-ctype$(EXEEXT) test-errno$(EXEEXT) test-fseeko.sh \
 	test-getaddrinfo$(EXEEXT) test-getdelim$(EXEEXT) \
-	test-getline$(EXEEXT) test-gettimeofday$(EXEEXT) test-lseek.sh \
-	test-netinet_in$(EXEEXT) test-snprintf$(EXEEXT) \
-	test-stdbool$(EXEEXT) test-stdint$(EXEEXT) test-stdio$(EXEEXT) \
-	test-stdlib$(EXEEXT) test-string$(EXEEXT) \
+	test-gethostname$(EXEEXT) test-getline$(EXEEXT) \
+	test-gettimeofday$(EXEEXT) test-lseek.sh test-lstat$(EXEEXT) \
+	test-netdb$(EXEEXT) test-netinet_in$(EXEEXT) test-perror.sh \
+	test-poll$(EXEEXT) test-snprintf$(EXEEXT) \
+	test-sockets$(EXEEXT) test-stdbool$(EXEEXT) \
+	test-stdint$(EXEEXT) test-stdio$(EXEEXT) test-stdlib$(EXEEXT) \
+	test-strerror$(EXEEXT) test-string$(EXEEXT) \
 	test-sys_select$(EXEEXT) test-sys_socket$(EXEEXT) \
 	test-sys_stat$(EXEEXT) test-sys_time$(EXEEXT) \
 	test-unistd$(EXEEXT) test-vasnprintf$(EXEEXT) \
 	test-vasprintf$(EXEEXT) test-vc-list-files-git.sh \
 	test-vc-list-files-cvs.sh test-wchar$(EXEEXT)
 noinst_PROGRAMS =
-check_PROGRAMS = test-EOVERFLOW$(EXEEXT) test-alloca-opt$(EXEEXT) \
-	test-arpa_inet$(EXEEXT) test-c-ctype$(EXEEXT) \
-	test-fseeko$(EXEEXT) test-getaddrinfo$(EXEEXT) \
-	test-getdelim$(EXEEXT) test-getline$(EXEEXT) \
+check_PROGRAMS = test-alloca-opt$(EXEEXT) test-arpa_inet$(EXEEXT) \
+	test-c-ctype$(EXEEXT) test-errno$(EXEEXT) test-fseeko$(EXEEXT) \
+	test-getaddrinfo$(EXEEXT) test-getdelim$(EXEEXT) \
+	test-gethostname$(EXEEXT) test-getline$(EXEEXT) \
 	test-gettimeofday$(EXEEXT) test-lseek$(EXEEXT) \
-	test-netinet_in$(EXEEXT) test-snprintf$(EXEEXT) \
-	test-stdbool$(EXEEXT) test-stdint$(EXEEXT) test-stdio$(EXEEXT) \
-	test-stdlib$(EXEEXT) test-string$(EXEEXT) \
+	test-lstat$(EXEEXT) test-netdb$(EXEEXT) \
+	test-netinet_in$(EXEEXT) test-perror$(EXEEXT) \
+	test-poll$(EXEEXT) test-snprintf$(EXEEXT) \
+	test-sockets$(EXEEXT) test-stdbool$(EXEEXT) \
+	test-stdint$(EXEEXT) test-stdio$(EXEEXT) test-stdlib$(EXEEXT) \
+	test-strerror$(EXEEXT) test-string$(EXEEXT) \
 	test-sys_select$(EXEEXT) test-sys_socket$(EXEEXT) \
 	test-sys_stat$(EXEEXT) test-sys_time$(EXEEXT) \
 	test-unistd$(EXEEXT) test-vasnprintf$(EXEEXT) \
@@ -75,12 +81,15 @@ DIST_COMMON = $(noinst_HEADERS) $(srcdir)/Makefile.am \
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/arpa_inet_h.m4 \
-	$(top_srcdir)/gnulib/m4/eoverflow.m4 \
+	$(top_srcdir)/gnulib/m4/close.m4 \
+	$(top_srcdir)/gnulib/m4/errno_h.m4 \
 	$(top_srcdir)/gnulib/m4/extensions.m4 \
+	$(top_srcdir)/gnulib/m4/fclose.m4 \
 	$(top_srcdir)/gnulib/m4/float_h.m4 \
 	$(top_srcdir)/gnulib/m4/fseeko.m4 \
 	$(top_srcdir)/gnulib/m4/getaddrinfo.m4 \
 	$(top_srcdir)/gnulib/m4/getdelim.m4 \
+	$(top_srcdir)/gnulib/m4/gethostname.m4 \
 	$(top_srcdir)/gnulib/m4/getline.m4 \
 	$(top_srcdir)/gnulib/m4/getpass.m4 \
 	$(top_srcdir)/gnulib/m4/gettimeofday.m4 \
@@ -93,16 +102,20 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/inttypes_h.m4 \
 	$(top_srcdir)/gnulib/m4/longlong.m4 \
 	$(top_srcdir)/gnulib/m4/lseek.m4 \
+	$(top_srcdir)/gnulib/m4/lstat.m4 \
 	$(top_srcdir)/gnulib/m4/malloc.m4 \
 	$(top_srcdir)/gnulib/m4/mkstemp.m4 \
+	$(top_srcdir)/gnulib/m4/netdb_h.m4 \
 	$(top_srcdir)/gnulib/m4/netinet_in_h.m4 \
 	$(top_srcdir)/gnulib/m4/onceonly.m4 \
+	$(top_srcdir)/gnulib/m4/perror.m4 \
 	$(top_srcdir)/gnulib/m4/physmem.m4 \
 	$(top_srcdir)/gnulib/m4/po.m4 $(top_srcdir)/gnulib/m4/poll.m4 \
 	$(top_srcdir)/gnulib/m4/posix-shell.m4 \
 	$(top_srcdir)/gnulib/m4/printf.m4 \
 	$(top_srcdir)/gnulib/m4/realloc.m4 \
 	$(top_srcdir)/gnulib/m4/snprintf.m4 \
+	$(top_srcdir)/gnulib/m4/sockets.m4 \
 	$(top_srcdir)/gnulib/m4/socklen.m4 \
 	$(top_srcdir)/gnulib/m4/sockpfaf.m4 \
 	$(top_srcdir)/gnulib/m4/stdbool.m4 \
@@ -111,11 +124,13 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/stdio_h.m4 \
 	$(top_srcdir)/gnulib/m4/stdlib_h.m4 \
 	$(top_srcdir)/gnulib/m4/strdup.m4 \
+	$(top_srcdir)/gnulib/m4/strerror.m4 \
 	$(top_srcdir)/gnulib/m4/string_h.m4 \
 	$(top_srcdir)/gnulib/m4/strndup.m4 \
 	$(top_srcdir)/gnulib/m4/strnlen.m4 \
 	$(top_srcdir)/gnulib/m4/strpbrk.m4 \
 	$(top_srcdir)/gnulib/m4/strsep.m4 \
+	$(top_srcdir)/gnulib/m4/sys_ioctl_h.m4 \
 	$(top_srcdir)/gnulib/m4/sys_select_h.m4 \
 	$(top_srcdir)/gnulib/m4/sys_socket_h.m4 \
 	$(top_srcdir)/gnulib/m4/sys_stat_h.m4 \
@@ -142,14 +157,9 @@ LIBRARIES = $(noinst_LIBRARIES)
 ARFLAGS = cru
 libtests_a_AR = $(AR) $(ARFLAGS)
 am__DEPENDENCIES_1 =
-am_libtests_a_OBJECTS = dummy.$(OBJEXT)
+am_libtests_a_OBJECTS = sockets.$(OBJEXT)
 libtests_a_OBJECTS = $(am_libtests_a_OBJECTS)
 PROGRAMS = $(noinst_PROGRAMS)
-test_EOVERFLOW_SOURCES = test-EOVERFLOW.c
-test_EOVERFLOW_OBJECTS = test-EOVERFLOW.$(OBJEXT)
-test_EOVERFLOW_LDADD = $(LDADD)
-test_EOVERFLOW_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
-	libtests.a $(am__DEPENDENCIES_1)
 test_alloca_opt_SOURCES = test-alloca-opt.c
 test_alloca_opt_OBJECTS = test-alloca-opt.$(OBJEXT)
 test_alloca_opt_LDADD = $(LDADD)
@@ -164,6 +174,11 @@ test_c_ctype_SOURCES = test-c-ctype.c
 test_c_ctype_OBJECTS = test-c-ctype.$(OBJEXT)
 test_c_ctype_LDADD = $(LDADD)
 test_c_ctype_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
+test_errno_SOURCES = test-errno.c
+test_errno_OBJECTS = test-errno.$(OBJEXT)
+test_errno_LDADD = $(LDADD)
+test_errno_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
 	libtests.a $(am__DEPENDENCIES_1)
 test_fseeko_SOURCES = test-fseeko.c
 test_fseeko_OBJECTS = test-fseeko.$(OBJEXT)
@@ -180,6 +195,11 @@ test_getdelim_OBJECTS = test-getdelim.$(OBJEXT)
 test_getdelim_LDADD = $(LDADD)
 test_getdelim_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
 	libtests.a $(am__DEPENDENCIES_1)
+test_gethostname_SOURCES = test-gethostname.c
+test_gethostname_OBJECTS = test-gethostname.$(OBJEXT)
+test_gethostname_LDADD = $(LDADD)
+test_gethostname_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_getline_SOURCES = test-getline.c
 test_getline_OBJECTS = test-getline.$(OBJEXT)
 test_getline_LDADD = $(LDADD)
@@ -195,16 +215,37 @@ test_lseek_OBJECTS = test-lseek.$(OBJEXT)
 test_lseek_LDADD = $(LDADD)
 test_lseek_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
 	libtests.a $(am__DEPENDENCIES_1)
+test_lstat_SOURCES = test-lstat.c
+test_lstat_OBJECTS = test-lstat.$(OBJEXT)
+test_lstat_LDADD = $(LDADD)
+test_lstat_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
+test_netdb_SOURCES = test-netdb.c
+test_netdb_OBJECTS = test-netdb.$(OBJEXT)
+test_netdb_LDADD = $(LDADD)
+test_netdb_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_netinet_in_SOURCES = test-netinet_in.c
 test_netinet_in_OBJECTS = test-netinet_in.$(OBJEXT)
 test_netinet_in_LDADD = $(LDADD)
 test_netinet_in_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
 	libtests.a $(am__DEPENDENCIES_1)
+test_perror_SOURCES = test-perror.c
+test_perror_OBJECTS = test-perror.$(OBJEXT)
+test_perror_LDADD = $(LDADD)
+test_perror_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
+test_poll_SOURCES = test-poll.c
+test_poll_OBJECTS = test-poll.$(OBJEXT)
+test_poll_DEPENDENCIES = $(am__DEPENDENCIES_2)
 test_snprintf_SOURCES = test-snprintf.c
 test_snprintf_OBJECTS = test-snprintf.$(OBJEXT)
 test_snprintf_LDADD = $(LDADD)
 test_snprintf_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
 	libtests.a $(am__DEPENDENCIES_1)
+test_sockets_SOURCES = test-sockets.c
+test_sockets_OBJECTS = test-sockets.$(OBJEXT)
+test_sockets_DEPENDENCIES = $(am__DEPENDENCIES_2)
 test_stdbool_SOURCES = test-stdbool.c
 test_stdbool_OBJECTS = test-stdbool.$(OBJEXT)
 test_stdbool_LDADD = $(LDADD)
@@ -224,6 +265,11 @@ test_stdlib_SOURCES = test-stdlib.c
 test_stdlib_OBJECTS = test-stdlib.$(OBJEXT)
 test_stdlib_LDADD = $(LDADD)
 test_stdlib_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
+test_strerror_SOURCES = test-strerror.c
+test_strerror_OBJECTS = test-strerror.$(OBJEXT)
+test_strerror_LDADD = $(LDADD)
+test_strerror_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
 	libtests.a $(am__DEPENDENCIES_1)
 test_string_SOURCES = test-string.c
 test_string_OBJECTS = test-string.$(OBJEXT)
@@ -283,23 +329,25 @@ LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
 SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
-	test-EOVERFLOW.c test-alloca-opt.c test-arpa_inet.c \
-	test-c-ctype.c test-fseeko.c test-getaddrinfo.c \
-	test-getdelim.c test-getline.c test-gettimeofday.c \
-	test-lseek.c test-netinet_in.c test-snprintf.c test-stdbool.c \
-	test-stdint.c test-stdio.c test-stdlib.c test-string.c \
-	test-sys_select.c test-sys_socket.c test-sys_stat.c \
-	test-sys_time.c test-unistd.c test-vasnprintf.c \
-	test-vasprintf.c test-wchar.c
+	test-alloca-opt.c test-arpa_inet.c test-c-ctype.c test-errno.c \
+	test-fseeko.c test-getaddrinfo.c test-getdelim.c \
+	test-gethostname.c test-getline.c test-gettimeofday.c \
+	test-lseek.c test-lstat.c test-netdb.c test-netinet_in.c \
+	test-perror.c test-poll.c test-snprintf.c test-sockets.c \
+	test-stdbool.c test-stdint.c test-stdio.c test-stdlib.c \
+	test-strerror.c test-string.c test-sys_select.c \
+	test-sys_socket.c test-sys_stat.c test-sys_time.c \
+	test-unistd.c test-vasnprintf.c test-vasprintf.c test-wchar.c
 DIST_SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
-	test-EOVERFLOW.c test-alloca-opt.c test-arpa_inet.c \
-	test-c-ctype.c test-fseeko.c test-getaddrinfo.c \
-	test-getdelim.c test-getline.c test-gettimeofday.c \
-	test-lseek.c test-netinet_in.c test-snprintf.c test-stdbool.c \
-	test-stdint.c test-stdio.c test-stdlib.c test-string.c \
-	test-sys_select.c test-sys_socket.c test-sys_stat.c \
-	test-sys_time.c test-unistd.c test-vasnprintf.c \
-	test-vasprintf.c test-wchar.c
+	test-alloca-opt.c test-arpa_inet.c test-c-ctype.c test-errno.c \
+	test-fseeko.c test-getaddrinfo.c test-getdelim.c \
+	test-gethostname.c test-getline.c test-gettimeofday.c \
+	test-lseek.c test-lstat.c test-netdb.c test-netinet_in.c \
+	test-perror.c test-poll.c test-snprintf.c test-sockets.c \
+	test-stdbool.c test-stdint.c test-stdio.c test-stdlib.c \
+	test-strerror.c test-string.c test-sys_select.c \
+	test-sys_socket.c test-sys_stat.c test-sys_time.c \
+	test-unistd.c test-vasnprintf.c test-vasprintf.c test-wchar.c
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	html-recursive info-recursive install-data-recursive \
 	install-dvi-recursive install-exec-recursive \
@@ -352,43 +400,80 @@ CYGWIN_EXTRA_LIBADD = @CYGWIN_EXTRA_LIBADD@
 CYGWIN_EXTRA_PYTHON_LIBADD = @CYGWIN_EXTRA_PYTHON_LIBADD@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
+DEVKIT_CFLAGS = @DEVKIT_CFLAGS@
+DEVKIT_LIBS = @DEVKIT_LIBS@
 DLLTOOL = @DLLTOOL@
 DNSMASQ = @DNSMASQ@
+DRIVER_MODULES_CFLAGS = @DRIVER_MODULES_CFLAGS@
+DRIVER_MODULES_LIBS = @DRIVER_MODULES_LIBS@
 ECHO = @ECHO@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
-EOVERFLOW = @EOVERFLOW@
+EMULTIHOP_HIDDEN = @EMULTIHOP_HIDDEN@
+EMULTIHOP_VALUE = @EMULTIHOP_VALUE@
+ENOLINK_HIDDEN = @ENOLINK_HIDDEN@
+ENOLINK_VALUE = @ENOLINK_VALUE@
+EOVERFLOW_HIDDEN = @EOVERFLOW_HIDDEN@
+EOVERFLOW_VALUE = @EOVERFLOW_VALUE@
+ERRNO_H = @ERRNO_H@
 EXEEXT = @EXEEXT@
 F77 = @F77@
 FFLAGS = @FFLAGS@
 FLOAT_H = @FLOAT_H@
+GLIB2_CFLAGS = @GLIB2_CFLAGS@
+GLIB2_LIBS = @GLIB2_LIBS@
 GMSGFMT = @GMSGFMT@
+GNULIB_ACCEPT = @GNULIB_ACCEPT@
+GNULIB_ATOLL = @GNULIB_ATOLL@
+GNULIB_BIND = @GNULIB_BIND@
 GNULIB_CALLOC_POSIX = @GNULIB_CALLOC_POSIX@
 GNULIB_CHOWN = @GNULIB_CHOWN@
+GNULIB_CLOSE = @GNULIB_CLOSE@
+GNULIB_CONNECT = @GNULIB_CONNECT@
 GNULIB_DUP2 = @GNULIB_DUP2@
 GNULIB_ENVIRON = @GNULIB_ENVIRON@
+GNULIB_EUIDACCESS = @GNULIB_EUIDACCESS@
 GNULIB_FCHDIR = @GNULIB_FCHDIR@
+GNULIB_FCLOSE = @GNULIB_FCLOSE@
 GNULIB_FFLUSH = @GNULIB_FFLUSH@
 GNULIB_FOPEN = @GNULIB_FOPEN@
+GNULIB_FPRINTF = @GNULIB_FPRINTF@
 GNULIB_FPRINTF_POSIX = @GNULIB_FPRINTF_POSIX@
+GNULIB_FPUTC = @GNULIB_FPUTC@
+GNULIB_FPUTS = @GNULIB_FPUTS@
 GNULIB_FREOPEN = @GNULIB_FREOPEN@
 GNULIB_FSEEK = @GNULIB_FSEEK@
 GNULIB_FSEEKO = @GNULIB_FSEEKO@
+GNULIB_FSYNC = @GNULIB_FSYNC@
 GNULIB_FTELL = @GNULIB_FTELL@
 GNULIB_FTELLO = @GNULIB_FTELLO@
 GNULIB_FTRUNCATE = @GNULIB_FTRUNCATE@
+GNULIB_FWRITE = @GNULIB_FWRITE@
+GNULIB_GETADDRINFO = @GNULIB_GETADDRINFO@
 GNULIB_GETCWD = @GNULIB_GETCWD@
 GNULIB_GETDELIM = @GNULIB_GETDELIM@
+GNULIB_GETDOMAINNAME = @GNULIB_GETDOMAINNAME@
+GNULIB_GETDTABLESIZE = @GNULIB_GETDTABLESIZE@
+GNULIB_GETHOSTNAME = @GNULIB_GETHOSTNAME@
 GNULIB_GETLINE = @GNULIB_GETLINE@
+GNULIB_GETLOADAVG = @GNULIB_GETLOADAVG@
 GNULIB_GETLOGIN_R = @GNULIB_GETLOGIN_R@
 GNULIB_GETPAGESIZE = @GNULIB_GETPAGESIZE@
+GNULIB_GETPEERNAME = @GNULIB_GETPEERNAME@
+GNULIB_GETSOCKNAME = @GNULIB_GETSOCKNAME@
+GNULIB_GETSOCKOPT = @GNULIB_GETSOCKOPT@
 GNULIB_GETSUBOPT = @GNULIB_GETSUBOPT@
+GNULIB_GETUSERSHELL = @GNULIB_GETUSERSHELL@
 GNULIB_INET_NTOP = @GNULIB_INET_NTOP@
 GNULIB_INET_PTON = @GNULIB_INET_PTON@
+GNULIB_IOCTL = @GNULIB_IOCTL@
+GNULIB_LCHMOD = @GNULIB_LCHMOD@
 GNULIB_LCHOWN = @GNULIB_LCHOWN@
+GNULIB_LISTEN = @GNULIB_LISTEN@
 GNULIB_LSEEK = @GNULIB_LSEEK@
+GNULIB_LSTAT = @GNULIB_LSTAT@
 GNULIB_MALLOC_POSIX = @GNULIB_MALLOC_POSIX@
 GNULIB_MBSCASECMP = @GNULIB_MBSCASECMP@
 GNULIB_MBSCASESTR = @GNULIB_MBSCASESTR@
@@ -411,16 +496,31 @@ GNULIB_MKDTEMP = @GNULIB_MKDTEMP@
 GNULIB_MKSTEMP = @GNULIB_MKSTEMP@
 GNULIB_OBSTACK_PRINTF = @GNULIB_OBSTACK_PRINTF@
 GNULIB_OBSTACK_PRINTF_POSIX = @GNULIB_OBSTACK_PRINTF_POSIX@
+GNULIB_PERROR = @GNULIB_PERROR@
+GNULIB_PRINTF = @GNULIB_PRINTF@
 GNULIB_PRINTF_POSIX = @GNULIB_PRINTF_POSIX@
+GNULIB_PUTC = @GNULIB_PUTC@
+GNULIB_PUTCHAR = @GNULIB_PUTCHAR@
 GNULIB_PUTENV = @GNULIB_PUTENV@
+GNULIB_PUTS = @GNULIB_PUTS@
+GNULIB_RANDOM_R = @GNULIB_RANDOM_R@
 GNULIB_RAWMEMCHR = @GNULIB_RAWMEMCHR@
 GNULIB_READLINK = @GNULIB_READLINK@
 GNULIB_REALLOC_POSIX = @GNULIB_REALLOC_POSIX@
+GNULIB_RECV = @GNULIB_RECV@
+GNULIB_RECVFROM = @GNULIB_RECVFROM@
 GNULIB_RPMATCH = @GNULIB_RPMATCH@
+GNULIB_SELECT = @GNULIB_SELECT@
+GNULIB_SEND = @GNULIB_SEND@
+GNULIB_SENDTO = @GNULIB_SENDTO@
 GNULIB_SETENV = @GNULIB_SETENV@
+GNULIB_SETSOCKOPT = @GNULIB_SETSOCKOPT@
+GNULIB_SHUTDOWN = @GNULIB_SHUTDOWN@
 GNULIB_SLEEP = @GNULIB_SLEEP@
 GNULIB_SNPRINTF = @GNULIB_SNPRINTF@
+GNULIB_SOCKET = @GNULIB_SOCKET@
 GNULIB_SPRINTF_POSIX = @GNULIB_SPRINTF_POSIX@
+GNULIB_STDIO_H_SIGPIPE = @GNULIB_STDIO_H_SIGPIPE@
 GNULIB_STPCPY = @GNULIB_STPCPY@
 GNULIB_STPNCPY = @GNULIB_STPNCPY@
 GNULIB_STRCASESTR = @GNULIB_STRCASESTR@
@@ -435,21 +535,32 @@ GNULIB_STRSIGNAL = @GNULIB_STRSIGNAL@
 GNULIB_STRSTR = @GNULIB_STRSTR@
 GNULIB_STRTOD = @GNULIB_STRTOD@
 GNULIB_STRTOK_R = @GNULIB_STRTOK_R@
+GNULIB_STRTOLL = @GNULIB_STRTOLL@
+GNULIB_STRTOULL = @GNULIB_STRTOULL@
+GNULIB_STRVERSCMP = @GNULIB_STRVERSCMP@
+GNULIB_UNISTD_H_SIGPIPE = @GNULIB_UNISTD_H_SIGPIPE@
 GNULIB_UNSETENV = @GNULIB_UNSETENV@
 GNULIB_VASPRINTF = @GNULIB_VASPRINTF@
+GNULIB_VFPRINTF = @GNULIB_VFPRINTF@
 GNULIB_VFPRINTF_POSIX = @GNULIB_VFPRINTF_POSIX@
+GNULIB_VPRINTF = @GNULIB_VPRINTF@
 GNULIB_VPRINTF_POSIX = @GNULIB_VPRINTF_POSIX@
 GNULIB_VSNPRINTF = @GNULIB_VSNPRINTF@
 GNULIB_VSPRINTF_POSIX = @GNULIB_VSPRINTF_POSIX@
 GNULIB_WCWIDTH = @GNULIB_WCWIDTH@
+GNULIB_WRITE = @GNULIB_WRITE@
 GNUTLS_CFLAGS = @GNUTLS_CFLAGS@
 GNUTLS_LIBS = @GNUTLS_LIBS@
 GREP = @GREP@
+HAL_CFLAGS = @HAL_CFLAGS@
+HAL_LIBS = @HAL_LIBS@
 HAVE_ARPA_INET_H = @HAVE_ARPA_INET_H@
+HAVE_ATOLL = @HAVE_ATOLL@
 HAVE_CALLOC_POSIX = @HAVE_CALLOC_POSIX@
 HAVE_DECL_ENVIRON = @HAVE_DECL_ENVIRON@
 HAVE_DECL_GETDELIM = @HAVE_DECL_GETDELIM@
 HAVE_DECL_GETLINE = @HAVE_DECL_GETLINE@
+HAVE_DECL_GETLOADAVG = @HAVE_DECL_GETLOADAVG@
 HAVE_DECL_GETLOGIN_R = @HAVE_DECL_GETLOGIN_R@
 HAVE_DECL_INET_NTOP = @HAVE_DECL_INET_NTOP@
 HAVE_DECL_INET_PTON = @HAVE_DECL_INET_PTON@
@@ -466,19 +577,28 @@ HAVE_DECL_STRTOK_R = @HAVE_DECL_STRTOK_R@
 HAVE_DECL_VSNPRINTF = @HAVE_DECL_VSNPRINTF@
 HAVE_DECL_WCWIDTH = @HAVE_DECL_WCWIDTH@
 HAVE_DUP2 = @HAVE_DUP2@
+HAVE_EUIDACCESS = @HAVE_EUIDACCESS@
 HAVE_FSEEKO = @HAVE_FSEEKO@
+HAVE_FSYNC = @HAVE_FSYNC@
 HAVE_FTELLO = @HAVE_FTELLO@
 HAVE_FTRUNCATE = @HAVE_FTRUNCATE@
+HAVE_GETDOMAINNAME = @HAVE_GETDOMAINNAME@
+HAVE_GETDTABLESIZE = @HAVE_GETDTABLESIZE@
+HAVE_GETHOSTNAME = @HAVE_GETHOSTNAME@
 HAVE_GETPAGESIZE = @HAVE_GETPAGESIZE@
 HAVE_GETSUBOPT = @HAVE_GETSUBOPT@
+HAVE_GETUSERSHELL = @HAVE_GETUSERSHELL@
 HAVE_INTTYPES_H = @HAVE_INTTYPES_H@
+HAVE_LCHMOD = @HAVE_LCHMOD@
 HAVE_LONG_LONG_INT = @HAVE_LONG_LONG_INT@
 HAVE_LSTAT = @HAVE_LSTAT@
 HAVE_MALLOC_POSIX = @HAVE_MALLOC_POSIX@
 HAVE_MEMPCPY = @HAVE_MEMPCPY@
 HAVE_MKDTEMP = @HAVE_MKDTEMP@
+HAVE_NETDB_H = @HAVE_NETDB_H@
 HAVE_NETINET_IN_H = @HAVE_NETINET_IN_H@
 HAVE_OS_H = @HAVE_OS_H@
+HAVE_RANDOM_R = @HAVE_RANDOM_R@
 HAVE_RAWMEMCHR = @HAVE_RAWMEMCHR@
 HAVE_READLINK = @HAVE_READLINK@
 HAVE_REALLOC_POSIX = @HAVE_REALLOC_POSIX@
@@ -497,9 +617,15 @@ HAVE_STRNDUP = @HAVE_STRNDUP@
 HAVE_STRPBRK = @HAVE_STRPBRK@
 HAVE_STRSEP = @HAVE_STRSEP@
 HAVE_STRTOD = @HAVE_STRTOD@
+HAVE_STRTOLL = @HAVE_STRTOLL@
+HAVE_STRTOULL = @HAVE_STRTOULL@
+HAVE_STRUCT_RANDOM_DATA = @HAVE_STRUCT_RANDOM_DATA@
 HAVE_STRUCT_TIMEVAL = @HAVE_STRUCT_TIMEVAL@
+HAVE_STRVERSCMP = @HAVE_STRVERSCMP@
 HAVE_SYS_BITYPES_H = @HAVE_SYS_BITYPES_H@
 HAVE_SYS_INTTYPES_H = @HAVE_SYS_INTTYPES_H@
+HAVE_SYS_IOCTL_H = @HAVE_SYS_IOCTL_H@
+HAVE_SYS_LOADAVG_H = @HAVE_SYS_LOADAVG_H@
 HAVE_SYS_PARAM_H = @HAVE_SYS_PARAM_H@
 HAVE_SYS_SELECT_H = @HAVE_SYS_SELECT_H@
 HAVE_SYS_SOCKET_H = @HAVE_SYS_SOCKET_H@
@@ -511,6 +637,7 @@ HAVE_UNSIGNED_LONG_LONG_INT = @HAVE_UNSIGNED_LONG_LONG_INT@
 HAVE_VASPRINTF = @HAVE_VASPRINTF@
 HAVE_WCHAR_H = @HAVE_WCHAR_H@
 HAVE_WINSOCK2_H = @HAVE_WINSOCK2_H@
+HAVE_WINT_T = @HAVE_WINT_T@
 HAVE_WS2TCPIP_H = @HAVE_WS2TCPIP_H@
 HAVE__BOOL = @HAVE__BOOL@
 HTML_DIR = @HTML_DIR@
@@ -530,9 +657,9 @@ LIBOBJS = @LIBOBJS@
 LIBPARTED_CFLAGS = @LIBPARTED_CFLAGS@
 LIBPARTED_LIBS = @LIBPARTED_LIBS@
 LIBS = @LIBS@
+LIBSOCKET = @LIBSOCKET@
 LIBTESTS_LIBDEPS = @LIBTESTS_LIBDEPS@
 LIBTOOL = @LIBTOOL@
-LIBVIRT_FEATURES = @LIBVIRT_FEATURES@
 LIBVIRT_MAJOR_VERSION = @LIBVIRT_MAJOR_VERSION@
 LIBVIRT_MICRO_VERSION = @LIBVIRT_MICRO_VERSION@
 LIBVIRT_MINOR_VERSION = @LIBVIRT_MINOR_VERSION@
@@ -543,6 +670,7 @@ LIBXML_CFLAGS = @LIBXML_CFLAGS@
 LIBXML_LIBS = @LIBXML_LIBS@
 LN_S = @LN_S@
 LOKKIT_PATH = @LOKKIT_PATH@
+LTALLOCA = @LTALLOCA@
 LTLIBICONV = @LTLIBICONV@
 LTLIBINTL = @LTLIBINTL@
 LTLIBOBJS = @LTLIBOBJS@
@@ -558,14 +686,18 @@ MOUNT = @MOUNT@
 MSGFMT = @MSGFMT@
 MSGMERGE = @MSGMERGE@
 MV = @MV@
+NETDB_H = @NETDB_H@
 NETINET_IN_H = @NETINET_IN_H@
 NEXT_ARPA_INET_H = @NEXT_ARPA_INET_H@
+NEXT_ERRNO_H = @NEXT_ERRNO_H@
 NEXT_FLOAT_H = @NEXT_FLOAT_H@
+NEXT_NETDB_H = @NEXT_NETDB_H@
 NEXT_NETINET_IN_H = @NEXT_NETINET_IN_H@
 NEXT_STDINT_H = @NEXT_STDINT_H@
 NEXT_STDIO_H = @NEXT_STDIO_H@
 NEXT_STDLIB_H = @NEXT_STDLIB_H@
 NEXT_STRING_H = @NEXT_STRING_H@
+NEXT_SYS_IOCTL_H = @NEXT_SYS_IOCTL_H@
 NEXT_SYS_SELECT_H = @NEXT_SYS_SELECT_H@
 NEXT_SYS_SOCKET_H = @NEXT_SYS_SOCKET_H@
 NEXT_SYS_STAT_H = @NEXT_SYS_STAT_H@
@@ -591,6 +723,7 @@ POLKIT_LIBS = @POLKIT_LIBS@
 POLL_H = @POLL_H@
 POSIX_SHELL = @POSIX_SHELL@
 POSUB = @POSUB@
+PRAGMA_SYSTEM_HEADER = @PRAGMA_SYSTEM_HEADER@
 PREFERABLY_POSIX_SHELL = @PREFERABLY_POSIX_SHELL@
 PTRDIFF_T_SUFFIX = @PTRDIFF_T_SUFFIX@
 PVCREATE = @PVCREATE@
@@ -606,7 +739,9 @@ RANLIB = @RANLIB@
 READLINE_CFLAGS = @READLINE_CFLAGS@
 REMOTE_PID_FILE = @REMOTE_PID_FILE@
 REPLACE_CHOWN = @REPLACE_CHOWN@
+REPLACE_CLOSE = @REPLACE_CLOSE@
 REPLACE_FCHDIR = @REPLACE_FCHDIR@
+REPLACE_FCLOSE = @REPLACE_FCLOSE@
 REPLACE_FFLUSH = @REPLACE_FFLUSH@
 REPLACE_FOPEN = @REPLACE_FOPEN@
 REPLACE_FPRINTF = @REPLACE_FPRINTF@
@@ -621,15 +756,19 @@ REPLACE_GETPAGESIZE = @REPLACE_GETPAGESIZE@
 REPLACE_GETTIMEOFDAY = @REPLACE_GETTIMEOFDAY@
 REPLACE_LCHOWN = @REPLACE_LCHOWN@
 REPLACE_LSEEK = @REPLACE_LSEEK@
+REPLACE_LSTAT = @REPLACE_LSTAT@
 REPLACE_MEMMEM = @REPLACE_MEMMEM@
 REPLACE_MKDIR = @REPLACE_MKDIR@
 REPLACE_MKSTEMP = @REPLACE_MKSTEMP@
 REPLACE_OBSTACK_PRINTF = @REPLACE_OBSTACK_PRINTF@
+REPLACE_PERROR = @REPLACE_PERROR@
 REPLACE_PRINTF = @REPLACE_PRINTF@
 REPLACE_PUTENV = @REPLACE_PUTENV@
 REPLACE_SNPRINTF = @REPLACE_SNPRINTF@
 REPLACE_SPRINTF = @REPLACE_SPRINTF@
+REPLACE_STDIO_WRITE_FUNCS = @REPLACE_STDIO_WRITE_FUNCS@
 REPLACE_STRCASESTR = @REPLACE_STRCASESTR@
+REPLACE_STRDUP = @REPLACE_STRDUP@
 REPLACE_STRERROR = @REPLACE_STRERROR@
 REPLACE_STRSIGNAL = @REPLACE_STRSIGNAL@
 REPLACE_STRSTR = @REPLACE_STRSTR@
@@ -640,6 +779,7 @@ REPLACE_VPRINTF = @REPLACE_VPRINTF@
 REPLACE_VSNPRINTF = @REPLACE_VSNPRINTF@
 REPLACE_VSPRINTF = @REPLACE_VSPRINTF@
 REPLACE_WCWIDTH = @REPLACE_WCWIDTH@
+REPLACE_WRITE = @REPLACE_WRITE@
 RM = @RM@
 RPCGEN = @RPCGEN@
 SASL_CFLAGS = @SASL_CFLAGS@
@@ -656,26 +796,34 @@ STATIC_BINARIES = @STATIC_BINARIES@
 STDBOOL_H = @STDBOOL_H@
 STDINT_H = @STDINT_H@
 STRIP = @STRIP@
+SYS_IOCTL_H = @SYS_IOCTL_H@
+SYS_IOCTL_H_HAVE_WINSOCK2_H = @SYS_IOCTL_H_HAVE_WINSOCK2_H@
 SYS_SELECT_H = @SYS_SELECT_H@
 SYS_SOCKET_H = @SYS_SOCKET_H@
 SYS_STAT_H = @SYS_STAT_H@
 SYS_TIME_H = @SYS_TIME_H@
 TAR = @TAR@
 U = @U@
+UDEVADM = @UDEVADM@
+UDEVSETTLE = @UDEVSETTLE@
 UMOUNT = @UMOUNT@
+UNISTD_H_HAVE_WINSOCK2_H = @UNISTD_H_HAVE_WINSOCK2_H@
 USE_NLS = @USE_NLS@
 VERSION = @VERSION@
 VGCHANGE = @VGCHANGE@
 VGCREATE = @VGCREATE@
 VGREMOVE = @VGREMOVE@
 VGS = @VGS@
+VGSCAN = @VGSCAN@
 VIRSH_LIBS = @VIRSH_LIBS@
 VOID_UNSETENV = @VOID_UNSETENV@
 WARN_CFLAGS = @WARN_CFLAGS@
 WCHAR_H = @WCHAR_H@
 WCHAR_T_SUFFIX = @WCHAR_T_SUFFIX@
+WINDRES = @WINDRES@
 WINT_T_SUFFIX = @WINT_T_SUFFIX@
-WITH_XEN = @WITH_XEN@
+XEN_CFLAGS = @XEN_CFLAGS@
+XEN_LIBS = @XEN_LIBS@
 XGETTEXT = @XGETTEXT@
 XMLCATALOG = @XMLCATALOG@
 XMLLINT = @XMLLINT@
@@ -740,24 +888,29 @@ top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = 1.5 foreign
 SUBDIRS = 
 TESTS_ENVIRONMENT = EXEEXT='@EXEEXT@' srcdir='$(srcdir)' \
-	EXEEXT='@EXEEXT@' srcdir='$(srcdir)' \
-	PATH='$(abs_aux_dir)':"$$PATH"
+	EXEEXT='@EXEEXT@' srcdir='$(srcdir)' EXEEXT='@EXEEXT@' \
+	srcdir='$(srcdir)' PATH='$(abs_aux_dir)':"$$PATH"
 noinst_HEADERS = 
 noinst_LIBRARIES = 
 check_LIBRARIES = libtests.a
-EXTRA_DIST = test-EOVERFLOW.c test-alloca-opt.c test-arpa_inet.c \
-	test-c-ctype.c test-fseeko.c test-fseeko.sh test-getaddrinfo.c \
-	test-getdelim.c test-getline.c test-gettimeofday.c intprops.h \
-	test-lseek.c test-lseek.sh test-netinet_in.c test-snprintf.c \
+EXTRA_DIST = accept.c w32sock.h test-alloca-opt.c test-arpa_inet.c \
+	bind.c w32sock.h test-c-ctype.c test-errno.c test-fseeko.c \
+	test-fseeko.sh test-getaddrinfo.c test-getdelim.c \
+	test-gethostname.c test-getline.c test-gettimeofday.c ioctl.c \
+	w32sock.h listen.c w32sock.h test-lseek.c test-lseek.sh \
+	test-lstat.c test-netdb.c test-netinet_in.c test-perror.c \
+	test-perror.sh test-poll.c test-snprintf.c test-sockets.c \
 	test-stdbool.c test-stdint.c test-stdio.c test-stdlib.c \
-	test-string.c test-sys_select.c test-sys_socket.c \
-	test-sys_stat.c test-sys_time.c test-unistd.c \
-	test-vasnprintf.c test-vasprintf.c test-vc-list-files-git.sh \
-	test-vc-list-files-cvs.sh test-wchar.c
-BUILT_SOURCES = 
+	test-strerror.c test-string.c sys_ioctl.in.h test-sys_select.c \
+	test-sys_socket.c test-sys_stat.c test-sys_time.c \
+	test-unistd.c test-vasnprintf.c test-vasprintf.c \
+	test-vc-list-files-git.sh test-vc-list-files-cvs.sh \
+	test-wchar.c
+BUILT_SOURCES = $(SYS_IOCTL_H)
 SUFFIXES = 
-MOSTLYCLEANFILES = core *.stackdump test-getdelim.txt test-getline.txt
-MOSTLYCLEANDIRS = 
+MOSTLYCLEANFILES = core *.stackdump test-getdelim.txt test-getline.txt \
+	sys/ioctl.h sys/ioctl.h-t
+MOSTLYCLEANDIRS = sys
 CLEANFILES = 
 DISTCLEANFILES = 
 MAINTAINERCLEANFILES = 
@@ -767,12 +920,14 @@ AM_CPPFLAGS = \
   -I../../gnulib/lib -I$(srcdir)/../../gnulib/lib
 
 LDADD = libtests.a ../../gnulib/lib/libgnu.la libtests.a $(LIBTESTS_LIBDEPS)
-libtests_a_SOURCES = dummy.c
+libtests_a_SOURCES = sockets.h sockets.c
 libtests_a_LIBADD = $(gltests_LIBOBJS)
 libtests_a_DEPENDENCIES = $(gltests_LIBOBJS)
-EXTRA_libtests_a_SOURCES = 
+EXTRA_libtests_a_SOURCES = accept.c bind.c ioctl.c listen.c
 AM_LIBTOOLFLAGS = --preserve-dup-deps
 test_getaddrinfo_LDADD = $(LDADD) @LIBINTL@
+test_poll_LDADD = $(LDADD) @LIBSOCKET@
+test_sockets_LDADD = $(LDADD) @LIBSOCKET@
 all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
@@ -831,9 +986,6 @@ clean-noinstPROGRAMS:
 	  echo " rm -f $$p $$f"; \
 	  rm -f $$p $$f ; \
 	done
-test-EOVERFLOW$(EXEEXT): $(test_EOVERFLOW_OBJECTS) $(test_EOVERFLOW_DEPENDENCIES) 
-	@rm -f test-EOVERFLOW$(EXEEXT)
-	$(LINK) $(test_EOVERFLOW_OBJECTS) $(test_EOVERFLOW_LDADD) $(LIBS)
 test-alloca-opt$(EXEEXT): $(test_alloca_opt_OBJECTS) $(test_alloca_opt_DEPENDENCIES) 
 	@rm -f test-alloca-opt$(EXEEXT)
 	$(LINK) $(test_alloca_opt_OBJECTS) $(test_alloca_opt_LDADD) $(LIBS)
@@ -843,6 +995,9 @@ test-arpa_inet$(EXEEXT): $(test_arpa_inet_OBJECTS) $(test_arpa_inet_DEPENDENCIES
 test-c-ctype$(EXEEXT): $(test_c_ctype_OBJECTS) $(test_c_ctype_DEPENDENCIES) 
 	@rm -f test-c-ctype$(EXEEXT)
 	$(LINK) $(test_c_ctype_OBJECTS) $(test_c_ctype_LDADD) $(LIBS)
+test-errno$(EXEEXT): $(test_errno_OBJECTS) $(test_errno_DEPENDENCIES) 
+	@rm -f test-errno$(EXEEXT)
+	$(LINK) $(test_errno_OBJECTS) $(test_errno_LDADD) $(LIBS)
 test-fseeko$(EXEEXT): $(test_fseeko_OBJECTS) $(test_fseeko_DEPENDENCIES) 
 	@rm -f test-fseeko$(EXEEXT)
 	$(LINK) $(test_fseeko_OBJECTS) $(test_fseeko_LDADD) $(LIBS)
@@ -852,6 +1007,9 @@ test-getaddrinfo$(EXEEXT): $(test_getaddrinfo_OBJECTS) $(test_getaddrinfo_DEPEND
 test-getdelim$(EXEEXT): $(test_getdelim_OBJECTS) $(test_getdelim_DEPENDENCIES) 
 	@rm -f test-getdelim$(EXEEXT)
 	$(LINK) $(test_getdelim_OBJECTS) $(test_getdelim_LDADD) $(LIBS)
+test-gethostname$(EXEEXT): $(test_gethostname_OBJECTS) $(test_gethostname_DEPENDENCIES) 
+	@rm -f test-gethostname$(EXEEXT)
+	$(LINK) $(test_gethostname_OBJECTS) $(test_gethostname_LDADD) $(LIBS)
 test-getline$(EXEEXT): $(test_getline_OBJECTS) $(test_getline_DEPENDENCIES) 
 	@rm -f test-getline$(EXEEXT)
 	$(LINK) $(test_getline_OBJECTS) $(test_getline_LDADD) $(LIBS)
@@ -861,12 +1019,27 @@ test-gettimeofday$(EXEEXT): $(test_gettimeofday_OBJECTS) $(test_gettimeofday_DEP
 test-lseek$(EXEEXT): $(test_lseek_OBJECTS) $(test_lseek_DEPENDENCIES) 
 	@rm -f test-lseek$(EXEEXT)
 	$(LINK) $(test_lseek_OBJECTS) $(test_lseek_LDADD) $(LIBS)
+test-lstat$(EXEEXT): $(test_lstat_OBJECTS) $(test_lstat_DEPENDENCIES) 
+	@rm -f test-lstat$(EXEEXT)
+	$(LINK) $(test_lstat_OBJECTS) $(test_lstat_LDADD) $(LIBS)
+test-netdb$(EXEEXT): $(test_netdb_OBJECTS) $(test_netdb_DEPENDENCIES) 
+	@rm -f test-netdb$(EXEEXT)
+	$(LINK) $(test_netdb_OBJECTS) $(test_netdb_LDADD) $(LIBS)
 test-netinet_in$(EXEEXT): $(test_netinet_in_OBJECTS) $(test_netinet_in_DEPENDENCIES) 
 	@rm -f test-netinet_in$(EXEEXT)
 	$(LINK) $(test_netinet_in_OBJECTS) $(test_netinet_in_LDADD) $(LIBS)
+test-perror$(EXEEXT): $(test_perror_OBJECTS) $(test_perror_DEPENDENCIES) 
+	@rm -f test-perror$(EXEEXT)
+	$(LINK) $(test_perror_OBJECTS) $(test_perror_LDADD) $(LIBS)
+test-poll$(EXEEXT): $(test_poll_OBJECTS) $(test_poll_DEPENDENCIES) 
+	@rm -f test-poll$(EXEEXT)
+	$(LINK) $(test_poll_OBJECTS) $(test_poll_LDADD) $(LIBS)
 test-snprintf$(EXEEXT): $(test_snprintf_OBJECTS) $(test_snprintf_DEPENDENCIES) 
 	@rm -f test-snprintf$(EXEEXT)
 	$(LINK) $(test_snprintf_OBJECTS) $(test_snprintf_LDADD) $(LIBS)
+test-sockets$(EXEEXT): $(test_sockets_OBJECTS) $(test_sockets_DEPENDENCIES) 
+	@rm -f test-sockets$(EXEEXT)
+	$(LINK) $(test_sockets_OBJECTS) $(test_sockets_LDADD) $(LIBS)
 test-stdbool$(EXEEXT): $(test_stdbool_OBJECTS) $(test_stdbool_DEPENDENCIES) 
 	@rm -f test-stdbool$(EXEEXT)
 	$(LINK) $(test_stdbool_OBJECTS) $(test_stdbool_LDADD) $(LIBS)
@@ -879,6 +1052,9 @@ test-stdio$(EXEEXT): $(test_stdio_OBJECTS) $(test_stdio_DEPENDENCIES)
 test-stdlib$(EXEEXT): $(test_stdlib_OBJECTS) $(test_stdlib_DEPENDENCIES) 
 	@rm -f test-stdlib$(EXEEXT)
 	$(LINK) $(test_stdlib_OBJECTS) $(test_stdlib_LDADD) $(LIBS)
+test-strerror$(EXEEXT): $(test_strerror_OBJECTS) $(test_strerror_DEPENDENCIES) 
+	@rm -f test-strerror$(EXEEXT)
+	$(LINK) $(test_strerror_OBJECTS) $(test_strerror_LDADD) $(LIBS)
 test-string$(EXEEXT): $(test_string_OBJECTS) $(test_string_DEPENDENCIES) 
 	@rm -f test-string$(EXEEXT)
 	$(LINK) $(test_string_OBJECTS) $(test_string_LDADD) $(LIBS)
@@ -913,23 +1089,34 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dummy.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-EOVERFLOW.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/accept.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bind.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ioctl.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/listen.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sockets.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-alloca-opt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-arpa_inet.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-c-ctype.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-errno.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-fseeko.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-getaddrinfo.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-getdelim.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-gethostname.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-getline.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-gettimeofday.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-lseek.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-lstat.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-netdb.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-netinet_in.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-perror.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-poll.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-snprintf.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-sockets.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-stdbool.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-stdint.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-stdio.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-stdlib.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-strerror.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-string.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-sys_select.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-sys_socket.Po@am__quote@
@@ -1331,6 +1518,23 @@ uninstall-am:
 	mostlyclean-libtool mostlyclean-local pdf pdf-am ps ps-am tags \
 	tags-recursive uninstall uninstall-am
 
+
+# We need the following in order to create <sys/ioctl.h> when the system
+# does not have a complete one.
+sys/ioctl.h: sys_ioctl.in.h
+	@MKDIR_P@ sys
+	rm -f $@-t $@
+	{ echo '/* DO NOT EDIT! GENERATED AUTOMATICALLY! */'; \
+	  sed -e 's|@''HAVE_SYS_IOCTL_H''@|$(HAVE_SYS_IOCTL_H)|g' \
+	      -e 's|@''INCLUDE_NEXT''@|$(INCLUDE_NEXT)|g' \
+	      -e 's|@''PRAGMA_SYSTEM_HEADER''@|@PRAGMA_SYSTEM_HEADER@|g' \
+	      -e 's|@''NEXT_SYS_IOCTL_H''@|$(NEXT_SYS_IOCTL_H)|g' \
+	      -e 's|@''GNULIB_IOCTL''@|$(GNULIB_IOCTL)|g' \
+	      -e 's|@''SYS_IOCTL_H_HAVE_WINSOCK2_H''@|$(SYS_IOCTL_H_HAVE_WINSOCK2_H)|g' \
+	      -e '/definition of GL_LINK_WARNING/r $(LINK_WARNING_H)' \
+	      < $(srcdir)/sys_ioctl.in.h; \
+	} > $@-t
+	mv $@-t $@
 
 # Clean up after Solaris cc.
 clean-local:

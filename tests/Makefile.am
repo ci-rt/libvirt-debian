@@ -2,7 +2,7 @@
 
 SHELL = $(PREFERABLY_POSIX_SHELL)
 
-SUBDIRS = virshdata confdata sexpr2xmldata \
+SUBDIRS = confdata sexpr2xmldata \
   xml2sexprdata xmconfigdata xencapsdata
 
 INCLUDES = \
@@ -15,11 +15,14 @@ INCLUDES = \
 	$(GNUTLS_CFLAGS) \
 	$(SASL_CFLAGS) \
 	$(SELINUX_CFLAGS) \
-        -D_XOPEN_SOURCE=600 -D_POSIX_C_SOURCE=199506L \
         -DGETTEXT_PACKAGE=\"$(PACKAGE)\" \
          $(COVERAGE_CFLAGS) \
-         $(WARN_CFLAGS)	\
-	 $(LIBVIRT_FEATURES)
+         $(WARN_CFLAGS)
+
+if WITH_DRIVER_MODULES
+INCLUDES += \
+	-DTEST_DRIVER_DIR=\"$(top_builddir)/src/.libs\"
+endif
 
 LDADDS = \
 	@STATIC_BINARIES@ \
@@ -38,31 +41,55 @@ EXTRA_DIST =		\
 	xmlrpcserver.py	\
 	qemuxml2argvdata \
 	nodeinfodata     \
-	domainschematest
+	domainschematest \
+	domainschemadata
 
-noinst_PROGRAMS = xmlrpctest xml2sexprtest sexpr2xmltest virshtest conftest \
-	reconnect xmconfigtest xencapstest qemuxml2argvtest qemuxml2xmltest \
+noinst_PROGRAMS = xmlrpctest virshtest conftest \
         nodeinfotest statstest qparamtest
+
+if WITH_XEN
+noinst_PROGRAMS += xml2sexprtest sexpr2xmltest \
+	reconnect xmconfigtest xencapstest
+endif
+if WITH_QEMU
+noinst_PROGRAMS += qemuxml2argvtest qemuxml2xmltest
+endif
 
 test_scripts = domainschematest
 if WITH_LIBVIRTD
 test_scripts += \
 	test_conf.sh \
+	cpuset \
 	daemon-conf \
 	int-overflow \
 	read-bufsiz \
 	read-non-seekable \
 	undefine \
 	vcpupin
+	virsh-all
+	virsh-synopsis
 endif
 
 EXTRA_DIST += $(test_scripts)
 
-TESTS = xml2sexprtest sexpr2xmltest virshtest xmconfigtest \
-        xencapstest qemuxml2argvtest qemuxml2xmltest nodeinfotest \
-	statstest qparamtest $(test_scripts)
+TESTS = virshtest \
+        nodeinfotest \
+	statstest \
+	qparamtest \
+	$(test_scripts)
+
+if WITH_XEN
+TESTS += xml2sexprtest \
+	sexpr2xmltest \
+	xmconfigtest \
+	xencapstest
 if ENABLE_XEN_TESTS
-  TESTS += reconnect
+TESTS += reconnect
+endif
+endif
+
+if WITH_QEMU
+TESTS += qemuxml2argvtest qemuxml2xmltest
 endif
 
 path_add = $$abs_top_builddir/src$(PATH_SEPARATOR)$$abs_top_builddir/qemud
@@ -77,6 +104,7 @@ TESTS_ENVIRONMENT =				\
   abs_srcdir=`cd '$(srcdir)'; pwd`		\
   PATH="$(path_add)$(PATH_SEPARATOR)$$PATH"	\
   SHELL="$(SHELL)"				\
+  LIBVIRT_DRIVER_DIR="$(abs_top_builddir)/src/.libs" \
   $(VG)
 
 valgrind:
@@ -91,30 +119,49 @@ xmlrpctest_SOURCES = \
 
 xmlrpctest_LDADD = $(LDADDS)
 
+if WITH_XEN
 xml2sexprtest_SOURCES = \
 	xml2sexprtest.c testutilsxen.c testutilsxen.h \
 	testutils.c testutils.h
-xml2sexprtest_LDADD = $(LDADDS)
+xml2sexprtest_LDADD = ../src/libvirt_driver_xen.la $(LDADDS)
 
 sexpr2xmltest_SOURCES = \
 	sexpr2xmltest.c \
 	testutils.c testutils.h
-sexpr2xmltest_LDADD = $(LDADDS)
+sexpr2xmltest_LDADD = ../src/libvirt_driver_xen.la $(LDADDS)
 
 xmconfigtest_SOURCES = \
 	xmconfigtest.c testutilsxen.c testutilsxen.h \
 	testutils.c testutils.h
-xmconfigtest_LDADD = $(LDADDS)
+xmconfigtest_LDADD = ../src/libvirt_driver_xen.la $(LDADDS)
 
+xencapstest_SOURCES = \
+	xencapstest.c testutils.h testutils.c
+xencapstest_LDADD = ../src/libvirt_driver_xen.la $(LDADDS)
+
+reconnect_SOURCES = \
+	reconnect.c
+reconnect_LDADD = $(LDADDS)
+
+else
+EXTRA_DIST += xml2sexprtest.c sexpr2xmltest.c xmconfigtest.c \
+	xencapstest.c reconnect.c \
+	testutilsxen.c testutilsxen.h
+endif
+
+if WITH_QEMU
 qemuxml2argvtest_SOURCES = \
 	qemuxml2argvtest.c testutilsqemu.c testutilsqemu.h \
 	testutils.c testutils.h
-qemuxml2argvtest_LDADD = $(LDADDS)
+qemuxml2argvtest_LDADD = ../src/libvirt_driver_qemu.la $(LDADDS)
 
 qemuxml2xmltest_SOURCES = \
 	qemuxml2xmltest.c testutilsqemu.c testutilsqemu.h \
 	testutils.c testutils.h
-qemuxml2xmltest_LDADD = $(LDADDS)
+qemuxml2xmltest_LDADD = ../src/libvirt_driver_qemu.la $(LDADDS)
+else
+EXTRA_DIST += qemuxml2argvtest.c qemuxml2xmltest.c testutilsqemu.c testutilsqemu.h
+endif
 
 virshtest_SOURCES = \
 	virshtest.c \
@@ -124,10 +171,6 @@ virshtest_LDADD = $(LDADDS)
 conftest_SOURCES = \
 	conftest.c
 conftest_LDADD = $(LDADDS)
-
-xencapstest_SOURCES = \
-	xencapstest.c testutils.h testutils.c
-xencapstest_LDADD = $(LDADDS)
 
 nodeinfotest_SOURCES = \
 	nodeinfotest.c testutils.h testutils.c
@@ -140,9 +183,5 @@ statstest_LDADD = $(LDADDS)
 qparamtest_SOURCES = \
 	qparamtest.c testutils.h testutils.c
 qparamtest_LDADD = $(LDADDS)
-
-reconnect_SOURCES = \
-	reconnect.c
-reconnect_LDADD = $(LDADDS)
 
 CLEANFILES = *.cov *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda

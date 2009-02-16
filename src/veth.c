@@ -12,14 +12,13 @@
 #include <config.h>
 
 #include <string.h>
+#include <stdio.h>
 
 #include "veth.h"
 #include "internal.h"
+#include "logging.h"
 #include "memory.h"
 #include "util.h"
-
-#define DEBUG(fmt,...) VIR_DEBUG(__FILE__, fmt, __VA_ARGS__)
-#define DEBUG0(msg) VIR_DEBUG(__FILE__, "%s", msg)
 
 /* Functions */
 /**

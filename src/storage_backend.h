@@ -24,48 +24,8 @@
 #ifndef __VIR_STORAGE_BACKEND_H__
 #define __VIR_STORAGE_BACKEND_H__
 
-#include <libvirt/libvirt.h>
+#include "internal.h"
 #include "storage_conf.h"
-
-
-typedef const char *(*virStorageVolFormatToString)(virConnectPtr conn,
-                                                   int format);
-typedef int (*virStorageVolFormatFromString)(virConnectPtr conn,
-                                             const char *format);
-
-typedef const char *(*virStoragePoolFormatToString)(virConnectPtr conn,
-                                                    int format);
-typedef int (*virStoragePoolFormatFromString)(virConnectPtr conn,
-                                              const char *format);
-
-
-typedef struct _virStorageBackendVolOptions virStorageBackendVolOptions;
-typedef virStorageBackendVolOptions *virStorageBackendVolOptionsPtr;
-struct _virStorageBackendVolOptions {
-    virStorageVolFormatToString formatToString;
-    virStorageVolFormatFromString formatFromString;
-};
-
-
-/* Flags to indicate mandatory components in the pool source */
-enum {
-    VIR_STORAGE_BACKEND_POOL_SOURCE_HOST    = (1<<0),
-    VIR_STORAGE_BACKEND_POOL_SOURCE_DEVICE  = (1<<1),
-    VIR_STORAGE_BACKEND_POOL_SOURCE_DIR     = (1<<2),
-    VIR_STORAGE_BACKEND_POOL_SOURCE_ADAPTER = (1<<3),
-    VIR_STORAGE_BACKEND_POOL_SOURCE_NAME    = (1<<4),
-};
-
-typedef struct _virStorageBackendPoolOptions virStorageBackendPoolOptions;
-typedef virStorageBackendPoolOptions *virStorageBackendPoolOptionsPtr;
-struct _virStorageBackendPoolOptions {
-    int flags;
-    virStoragePoolFormatToString formatToString;
-    virStoragePoolFormatFromString formatFromString;
-};
-
-#define SOURCES_START_TAG "<sources>"
-#define SOURCES_END_TAG "</sources>"
 
 typedef char * (*virStorageBackendFindPoolSources)(virConnectPtr conn, const char *srcSpec, unsigned int flags);
 typedef int (*virStorageBackendStartPool)(virConnectPtr conn, virStoragePoolObjPtr pool);
@@ -95,19 +55,10 @@ struct _virStorageBackend {
     virStorageBackendCreateVol createVol;
     virStorageBackendRefreshVol refreshVol;
     virStorageBackendDeleteVol deleteVol;
-
-    virStorageBackendPoolOptions poolOptions;
-    virStorageBackendVolOptions volOptions;
-
-    int volType;
 };
 
-
 virStorageBackendPtr virStorageBackendForType(int type);
-virStorageBackendPoolOptionsPtr virStorageBackendPoolOptionsForType(int type);
-virStorageBackendVolOptionsPtr virStorageBackendVolOptionsForType(int type);
-int virStorageBackendFromString(const char *type);
-const char *virStorageBackendToString(int type);
+
 
 int virStorageBackendUpdateVolInfo(virConnectPtr conn,
                                    virStorageVolDefPtr vol,
@@ -118,9 +69,11 @@ int virStorageBackendUpdateVolInfoFD(virConnectPtr conn,
                                      int fd,
                                      int withCapacity);
 
+void virStorageBackendWaitForDevices(virConnectPtr conn);
+
 char *virStorageBackendStablePath(virConnectPtr conn,
                                   virStoragePoolObjPtr pool,
-                                  char *devpath);
+                                  const char *devpath);
 
 typedef int (*virStorageBackendListVolRegexFunc)(virConnectPtr conn,
                                                  virStoragePoolObjPtr pool,

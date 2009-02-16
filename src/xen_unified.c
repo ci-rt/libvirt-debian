@@ -27,8 +27,9 @@
 #include <xen/dom0_ops.h>
 #include <libxml/uri.h>
 
-#include "internal.h"
-
+#include "virterror_internal.h"
+#include "logging.h"
+#include "datatypes.h"
 #include "xen_unified.h"
 
 #include "xen_internal.h"
@@ -36,12 +37,12 @@
 #include "xend_internal.h"
 #include "xs_internal.h"
 #include "xm_internal.h"
+#if WITH_XEN_INOTIFY
+#include "xen_inotify.h"
+#endif
 #include "xml.h"
 #include "util.h"
 #include "memory.h"
-
-#define DEBUG(fmt,...) VIR_DEBUG(__FILE__, fmt,__VA_ARGS__)
-#define DEBUG0(msg) VIR_DEBUG(__FILE__, "%s", msg)
 
 static int
 xenUnifiedNodeGetInfo (virConnectPtr conn, virNodeInfoPtr info);
@@ -59,25 +60,14 @@ static struct xenUnifiedDriver *drivers[XEN_UNIFIED_NR_DRIVERS] = {
     [XEN_UNIFIED_XEND_OFFSET] = &xenDaemonDriver,
     [XEN_UNIFIED_XS_OFFSET] = &xenStoreDriver,
     [XEN_UNIFIED_XM_OFFSET] = &xenXMDriver,
+#if WITH_XEN_INOTIFY
+    [XEN_UNIFIED_INOTIFY_OFFSET] = &xenInotifyDriver,
+#endif
 };
 
-/**
- * xenUnifiedError:
- * @conn: the connection
- * @error: the error number
- * @info: extra information string
- *
- * Handle an error at the xend daemon interface
- */
-static void
-xenUnifiedError (virConnectPtr conn, virErrorNumber error, const char *info)
-{
-    const char *errmsg;
-
-    errmsg = __virErrorMsg (error, info);
-    __virRaiseError (conn, NULL, NULL, VIR_FROM_XEN, error, VIR_ERR_ERROR,
-                     errmsg, info, NULL, 0, 0, errmsg, info);
-}
+#define xenUnifiedError(conn, code, fmt...)                                  \
+        virReportErrorHelper(conn, VIR_FROM_XEN, code, __FILE__,           \
+                               __FUNCTION__, __LINE__, fmt)
 
 /*
  * Helper functions currently used in the NUMA code
@@ -216,34 +206,46 @@ done:
  * in the low level drivers directly.
  */
 
-static const char *
+static int
 xenUnifiedProbe (void)
 {
 #ifdef __linux__
     if (virFileExists("/proc/xen"))
-        return("xen:///");
+        return 1;
 #endif
 #ifdef __sun__
     FILE *fh;
 
     if (fh = fopen("/dev/xen/domcaps", "r")) {
         fclose(fh);
-        return("xen:///");
+        return 1;
     }
 #endif
-    return(NULL);
+    return 0;
 }
 
 static int
-xenUnifiedOpen (virConnectPtr conn, xmlURIPtr uri, virConnectAuthPtr auth, int flags)
+xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, int flags)
 {
     int i, ret = VIR_DRV_OPEN_DECLINED;
     xenUnifiedPrivatePtr priv;
+    virDomainEventCallbackListPtr cbList;
+
+    if (conn->uri == NULL) {
+        if (!xenUnifiedProbe())
+            return VIR_DRV_OPEN_DECLINED;
+
+        conn->uri = xmlParseURI("xen:///");
+        if (!conn->uri) {
+            xenUnifiedError (NULL, VIR_ERR_NO_MEMORY, NULL);
+            return VIR_DRV_OPEN_ERROR;
+        }
+    }
 
     /* Refuse any scheme which isn't "xen://" or "http://". */
-    if (uri->scheme &&
-        STRCASENEQ(uri->scheme, "xen") &&
-        STRCASENEQ(uri->scheme, "http"))
+    if (conn->uri->scheme &&
+        STRCASENEQ(conn->uri->scheme, "xen") &&
+        STRCASENEQ(conn->uri->scheme, "http"))
         return VIR_DRV_OPEN_DECLINED;
 
     /* xmlParseURI will parse a naked string like "foo" as a URI with
@@ -251,11 +253,11 @@ xenUnifiedOpen (virConnectPtr conn, xmlURIPtr uri, virConnectAuthPtr auth, int f
      * allow full pathnames (eg. ///var/lib/xen/xend-socket).  Decline
      * anything else.
      */
-    if (!uri->scheme && (!uri->path || uri->path[0] != '/'))
+    if (!conn->uri->scheme && (!conn->uri->path || conn->uri->path[0] != '/'))
         return VIR_DRV_OPEN_DECLINED;
 
     /* Refuse any xen:// URI with a server specified - allow remote to do it */
-    if (uri->scheme && STRCASEEQ(uri->scheme, "xen") && uri->server)
+    if (conn->uri->scheme && STRCASEEQ(conn->uri->scheme, "xen") && conn->uri->server)
         return VIR_DRV_OPEN_DECLINED;
 
     /* Allocate per-connection private data. */
@@ -264,6 +266,13 @@ xenUnifiedOpen (virConnectPtr conn, xmlURIPtr uri, virConnectAuthPtr auth, int f
         return VIR_DRV_OPEN_ERROR;
     }
     conn->privateData = priv;
+
+    /* Allocate callback list */
+    if (VIR_ALLOC(cbList) < 0) {
+        xenUnifiedError (NULL, VIR_ERR_NO_MEMORY, "allocating callback list");
+        return VIR_DRV_OPEN_ERROR;
+    }
+    priv->domainEventCallbacks = cbList;
 
     priv->handle = -1;
     priv->xendConfigVersion = -1;
@@ -277,7 +286,7 @@ xenUnifiedOpen (virConnectPtr conn, xmlURIPtr uri, virConnectAuthPtr auth, int f
     /* Hypervisor is only run as root & required to succeed */
     if (getuid() == 0) {
         DEBUG0("Trying hypervisor sub-driver");
-        if (drivers[XEN_UNIFIED_HYPERVISOR_OFFSET]->open(conn, uri, auth, flags) ==
+        if (drivers[XEN_UNIFIED_HYPERVISOR_OFFSET]->open(conn, auth, flags) ==
             VIR_DRV_OPEN_SUCCESS) {
             DEBUG0("Activated hypervisor sub-driver");
             priv->opened[XEN_UNIFIED_HYPERVISOR_OFFSET] = 1;
@@ -288,7 +297,7 @@ xenUnifiedOpen (virConnectPtr conn, xmlURIPtr uri, virConnectAuthPtr auth, int f
      * If it fails as non-root, then the proxy driver may take over
      */
     DEBUG0("Trying XenD sub-driver");
-    if (drivers[XEN_UNIFIED_XEND_OFFSET]->open(conn, uri, auth, flags) ==
+    if (drivers[XEN_UNIFIED_XEND_OFFSET]->open(conn, auth, flags) ==
         VIR_DRV_OPEN_SUCCESS) {
         DEBUG0("Activated XenD sub-driver");
         priv->opened[XEN_UNIFIED_XEND_OFFSET] = 1;
@@ -297,14 +306,14 @@ xenUnifiedOpen (virConnectPtr conn, xmlURIPtr uri, virConnectAuthPtr auth, int f
          * succeed if root, optional otherwise */
         if (priv->xendConfigVersion <= 2) {
             DEBUG0("Trying XM sub-driver");
-            if (drivers[XEN_UNIFIED_XM_OFFSET]->open(conn, uri, auth, flags) ==
+            if (drivers[XEN_UNIFIED_XM_OFFSET]->open(conn, auth, flags) ==
                 VIR_DRV_OPEN_SUCCESS) {
                 DEBUG0("Activated XM sub-driver");
                 priv->opened[XEN_UNIFIED_XM_OFFSET] = 1;
             }
         }
         DEBUG0("Trying XS sub-driver");
-        if (drivers[XEN_UNIFIED_XS_OFFSET]->open(conn, uri, auth, flags) ==
+        if (drivers[XEN_UNIFIED_XS_OFFSET]->open(conn, auth, flags) ==
             VIR_DRV_OPEN_SUCCESS) {
             DEBUG0("Activated XS sub-driver");
             priv->opened[XEN_UNIFIED_XS_OFFSET] = 1;
@@ -318,7 +327,7 @@ xenUnifiedOpen (virConnectPtr conn, xmlURIPtr uri, virConnectAuthPtr auth, int f
         } else {
 #if WITH_PROXY
             DEBUG0("Trying proxy sub-driver");
-            if (drivers[XEN_UNIFIED_PROXY_OFFSET]->open(conn, uri, auth, flags) ==
+            if (drivers[XEN_UNIFIED_PROXY_OFFSET]->open(conn, auth, flags) ==
                 VIR_DRV_OPEN_SUCCESS) {
                 DEBUG0("Activated proxy sub-driver");
                 priv->opened[XEN_UNIFIED_PROXY_OFFSET] = 1;
@@ -337,6 +346,15 @@ xenUnifiedOpen (virConnectPtr conn, xmlURIPtr uri, virConnectAuthPtr auth, int f
         DEBUG0("Failed to make capabilities");
         goto fail;
     }
+
+#if WITH_XEN_INOTIFY
+    DEBUG0("Trying Xen inotify sub-driver");
+    if (drivers[XEN_UNIFIED_INOTIFY_OFFSET]->open(conn, auth, flags) ==
+        VIR_DRV_OPEN_SUCCESS) {
+        DEBUG0("Activated Xen inotify sub-driver");
+        priv->opened[XEN_UNIFIED_INOTIFY_OFFSET] = 1;
+    }
+#endif
 
     return VIR_DRV_OPEN_SUCCESS;
 
@@ -362,6 +380,8 @@ xenUnifiedClose (virConnectPtr conn)
     int i;
 
     virCapabilitiesFree(priv->caps);
+    virDomainEventCallbackListFree(priv->domainEventCallbacks);
+
     for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
         if (priv->opened[i] && drivers[i]->close)
             (void) drivers[i]->close (conn);
@@ -371,6 +391,17 @@ xenUnifiedClose (virConnectPtr conn)
 
     return 0;
 }
+
+
+#define HV_VERSION ((DOM0_INTERFACE_VERSION >> 24) * 1000000 +         \
+                    ((DOM0_INTERFACE_VERSION >> 16) & 0xFF) * 1000 +   \
+                    (DOM0_INTERFACE_VERSION & 0xFFFF))
+
+unsigned long xenUnifiedVersion(void)
+{
+    return HV_VERSION;
+}
+
 
 static const char *
 xenUnifiedType (virConnectPtr conn)
@@ -396,7 +427,7 @@ xenUnifiedSupportsFeature (virConnectPtr conn ATTRIBUTE_UNUSED, int feature)
 }
 
 static int
-xenUnifiedVersion (virConnectPtr conn, unsigned long *hvVer)
+xenUnifiedGetVersion (virConnectPtr conn, unsigned long *hvVer)
 {
     GET_PRIVATE(conn);
     int i;
@@ -421,12 +452,12 @@ xenUnifiedGetHostname (virConnectPtr conn)
 
     r = gethostname (hostname, HOST_NAME_MAX+1);
     if (r == -1) {
-        xenUnifiedError (conn, VIR_ERR_SYSTEM_ERROR, strerror (errno));
+        xenUnifiedError (conn, VIR_ERR_SYSTEM_ERROR, "%s", strerror(errno));
         return NULL;
     }
     str = strdup (hostname);
     if (str == NULL) {
-        xenUnifiedError (conn, VIR_ERR_SYSTEM_ERROR, strerror (errno));
+        xenUnifiedError (conn, VIR_ERR_SYSTEM_ERROR, "%s", strerror(errno));
         return NULL;
     }
     return str;
@@ -485,14 +516,31 @@ static int
 xenUnifiedListDomains (virConnectPtr conn, int *ids, int maxids)
 {
     GET_PRIVATE(conn);
-    int i, ret;
+    int ret;
 
-    for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
-        if (priv->opened[i] && drivers[i]->listDomains) {
-            ret = drivers[i]->listDomains (conn, ids, maxids);
-            if (ret >= 0) return ret;
-        }
+    /* Try xenstore. */
+    if (priv->opened[XEN_UNIFIED_XS_OFFSET]) {
+        ret = xenStoreListDomains (conn, ids, maxids);
+        if (ret >= 0) return ret;
+    }
 
+    /* Try HV. */
+    if (priv->opened[XEN_UNIFIED_HYPERVISOR_OFFSET]) {
+        ret = xenHypervisorListDomains (conn, ids, maxids);
+        if (ret >= 0) return ret;
+    }
+
+    /* Try xend. */
+    if (priv->opened[XEN_UNIFIED_XEND_OFFSET]) {
+        ret = xenDaemonListDomains (conn, ids, maxids);
+        if (ret >= 0) return ret;
+    }
+
+    /* Try proxy. */
+    if (priv->opened[XEN_UNIFIED_PROXY_OFFSET]) {
+        ret = xenProxyListDomains (conn, ids, maxids);
+        if (ret >= 0) return ret;
+    }
     return -1;
 }
 
@@ -512,16 +560,16 @@ xenUnifiedNumOfDomains (virConnectPtr conn)
 }
 
 static virDomainPtr
-xenUnifiedDomainCreateLinux (virConnectPtr conn,
-                             const char *xmlDesc, unsigned int flags)
+xenUnifiedDomainCreateXML (virConnectPtr conn,
+                           const char *xmlDesc, unsigned int flags)
 {
     GET_PRIVATE(conn);
     int i;
     virDomainPtr ret;
 
     for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
-        if (priv->opened[i] && drivers[i]->domainCreateLinux) {
-            ret = drivers[i]->domainCreateLinux (conn, xmlDesc, flags);
+        if (priv->opened[i] && drivers[i]->domainCreateXML) {
+            ret = drivers[i]->domainCreateXML (conn, xmlDesc, flags);
             if (ret) return ret;
         }
 
@@ -799,8 +847,15 @@ xenUnifiedDomainSetMaxMemory (virDomainPtr dom, unsigned long memory)
     GET_PRIVATE(dom->conn);
     int i;
 
+    /* Prefer xend for setting max memory */
+    if (priv->opened[XEN_UNIFIED_XEND_OFFSET]) {
+        if (xenDaemonDomainSetMaxMemory (dom, memory) == 0)
+            return 0;
+    }
+
     for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
-        if (priv->opened[i] &&
+        if (i != XEN_UNIFIED_XEND_OFFSET &&
+            priv->opened[i] &&
             drivers[i]->domainSetMaxMemory &&
             drivers[i]->domainSetMaxMemory (dom, memory) == 0)
             return 0;
@@ -1139,13 +1194,16 @@ static int
 xenUnifiedDomainGetAutostart (virDomainPtr dom, int *autostart)
 {
     GET_PRIVATE(dom->conn);
-    int i;
 
-    for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
-        if (priv->opened[i] && drivers[i]->domainGetAutostart &&
-            drivers[i]->domainGetAutostart (dom, autostart) == 0)
-            return 0;
+    if (priv->xendConfigVersion < 3) {
+        if (priv->opened[XEN_UNIFIED_XM_OFFSET])
+            return xenXMDomainGetAutostart(dom, autostart);
+    } else {
+        if (priv->opened[XEN_UNIFIED_XEND_OFFSET])
+            return xenDaemonDomainGetAutostart(dom, autostart);
+    }
 
+    xenUnifiedError (dom->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return -1;
 }
 
@@ -1153,13 +1211,16 @@ static int
 xenUnifiedDomainSetAutostart (virDomainPtr dom, int autostart)
 {
     GET_PRIVATE(dom->conn);
-    int i;
 
-    for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
-        if (priv->opened[i] && drivers[i]->domainSetAutostart &&
-            drivers[i]->domainSetAutostart (dom, autostart) == 0)
-            return 0;
+    if (priv->xendConfigVersion < 3) {
+        if (priv->opened[XEN_UNIFIED_XM_OFFSET])
+            return xenXMDomainSetAutostart(dom, autostart);
+    } else {
+        if (priv->opened[XEN_UNIFIED_XEND_OFFSET])
+            return xenDaemonDomainSetAutostart(dom, autostart);
+    }
 
+    xenUnifiedError (dom->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return -1;
 }
 
@@ -1297,30 +1358,58 @@ xenUnifiedNodeGetFreeMemory (virConnectPtr conn)
     return(0);
 }
 
-/*----- Register with libvirt.c, and initialise Xen drivers. -----*/
+static int
+xenUnifiedDomainEventRegister (virConnectPtr conn,
+                               void *callback,
+                               void *opaque,
+                               void (*freefunc)(void *))
+{
+    GET_PRIVATE (conn);
+    if (priv->xsWatch == -1) {
+        xenUnifiedError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+        return -1;
+    }
 
-#define HV_VERSION ((DOM0_INTERFACE_VERSION >> 24) * 1000000 +         \
-                    ((DOM0_INTERFACE_VERSION >> 16) & 0xFF) * 1000 +   \
-                    (DOM0_INTERFACE_VERSION & 0xFFFF))
+    conn->refs++;
+    return virDomainEventCallbackListAdd(conn, priv->domainEventCallbacks,
+                                         callback, opaque, freefunc);
+}
+
+static int
+xenUnifiedDomainEventDeregister (virConnectPtr conn,
+                                 void *callback)
+{
+    int ret;
+    GET_PRIVATE (conn);
+    if (priv->xsWatch == -1) {
+        xenUnifiedError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+        return -1;
+    }
+
+    ret = virDomainEventCallbackListRemove(conn, priv->domainEventCallbacks,
+                                            callback);
+    virUnrefConnect(conn);
+    return ret;
+}
+
+/*----- Register with libvirt.c, and initialise Xen drivers. -----*/
 
 /* The interface which we export upwards to libvirt.c. */
 static virDriver xenUnifiedDriver = {
     .no = VIR_DRV_XEN_UNIFIED,
     .name = "Xen",
-    .ver = HV_VERSION,
-    .probe 			= xenUnifiedProbe,
     .open 			= xenUnifiedOpen,
     .close 			= xenUnifiedClose,
     .supports_feature   = xenUnifiedSupportsFeature,
     .type 			= xenUnifiedType,
-    .version 			= xenUnifiedVersion,
+    .version 			= xenUnifiedGetVersion,
     .getHostname    = xenUnifiedGetHostname,
     .getMaxVcpus 			= xenUnifiedGetMaxVcpus,
     .nodeGetInfo 			= xenUnifiedNodeGetInfo,
     .getCapabilities 		= xenUnifiedGetCapabilities,
     .listDomains 			= xenUnifiedListDomains,
     .numOfDomains 		= xenUnifiedNumOfDomains,
-    .domainCreateLinux 		= xenUnifiedDomainCreateLinux,
+    .domainCreateXML 		= xenUnifiedDomainCreateXML,
     .domainLookupByID 		= xenUnifiedDomainLookupByID,
     .domainLookupByUUID 		= xenUnifiedDomainLookupByUUID,
     .domainLookupByName 		= xenUnifiedDomainLookupByName,
@@ -1362,17 +1451,19 @@ static virDriver xenUnifiedDriver = {
     .domainBlockPeek	= xenUnifiedDomainBlockPeek,
     .nodeGetCellsFreeMemory = xenUnifiedNodeGetCellsFreeMemory,
     .getFreeMemory = xenUnifiedNodeGetFreeMemory,
+    .domainEventRegister = xenUnifiedDomainEventRegister,
+    .domainEventDeregister = xenUnifiedDomainEventDeregister,
 };
 
 /**
- * xenUnifiedRegister:
+ * xenRegister:
  *
  * Register xen related drivers
  *
  * Returns the driver priority or -1 in case of error.
  */
 int
-xenUnifiedRegister (void)
+xenRegister (void)
 {
     /* Ignore failures here. */
     (void) xenHypervisorInit ();
@@ -1381,3 +1472,139 @@ xenUnifiedRegister (void)
     return virRegisterDriver (&xenUnifiedDriver);
 }
 
+/**
+ * xenUnifiedDomainInfoListFree:
+ *
+ * Free the Domain Info List
+ */
+void
+xenUnifiedDomainInfoListFree(xenUnifiedDomainInfoListPtr list)
+{
+    int i;
+    for (i=0; i<list->count; i++) {
+        VIR_FREE(list->doms[i]->name);
+        VIR_FREE(list->doms[i]);
+    }
+    VIR_FREE(list);
+}
+
+/**
+ * xenUnifiedAddDomainInfo:
+ *
+ * Add name and uuid to the domain info list
+ *
+ * Returns: 0 on success, -1 on failure
+ */
+int
+xenUnifiedAddDomainInfo(xenUnifiedDomainInfoListPtr list,
+                        int id, char *name,
+                        unsigned char *uuid)
+{
+    xenUnifiedDomainInfoPtr info;
+    int n;
+
+    /* check if we already have this callback on our list */
+    for (n=0; n < list->count; n++) {
+        if (STREQ(list->doms[n]->name, name) &&
+            !memcmp(list->doms[n]->uuid, uuid, VIR_UUID_BUFLEN)) {
+            DEBUG0("WARNING: dom already tracked");
+            return -1;
+        }
+    }
+
+    if (VIR_ALLOC(info) < 0)
+        goto memory_error;
+    if (!(info->name = strdup(name)))
+        goto memory_error;
+
+    memcpy(info->uuid, uuid, VIR_UUID_BUFLEN);
+    info->id = id;
+
+    /* Make space on list */
+    n = list->count;
+    if (VIR_REALLOC_N(list->doms, n + 1) < 0) {
+        goto memory_error;
+    }
+
+    list->doms[n] = info;
+    list->count++;
+    return 0;
+memory_error:
+    xenUnifiedError (NULL, VIR_ERR_NO_MEMORY, "allocating domain info");
+    if (info)
+        VIR_FREE(info->name);
+    VIR_FREE(info);
+    return -1;
+}
+
+/**
+ * xenUnifiedRemoveDomainInfo:
+ *
+ * Removes name and uuid to the domain info list
+ *
+ * Returns: 0 on success, -1 on failure
+ */
+int
+xenUnifiedRemoveDomainInfo(xenUnifiedDomainInfoListPtr list,
+                           int id, char *name,
+                           unsigned char *uuid)
+{
+    int i;
+    for (i = 0 ; i < list->count ; i++) {
+        if( list->doms[i]->id == id &&
+            STREQ(list->doms[i]->name, name) &&
+            !memcmp(list->doms[i]->uuid, uuid, VIR_UUID_BUFLEN)) {
+
+            VIR_FREE(list->doms[i]->name);
+            VIR_FREE(list->doms[i]);
+
+            if (i < (list->count - 1))
+                memmove(list->doms + i,
+                        list->doms + i + 1,
+                        sizeof(*(list->doms)) *
+                                (list->count - (i + 1)));
+
+            if (VIR_REALLOC_N(list->doms,
+                              list->count - 1) < 0) {
+                ; /* Failure to reduce memory allocation isn't fatal */
+            }
+            list->count--;
+
+            return 0;
+        }
+    }
+    return -1;
+}
+
+/**
+ * xenUnifiedDomainEventDispatch:
+ *
+ * Dispatch domain events to registered callbacks
+ *
+ */
+void xenUnifiedDomainEventDispatch (xenUnifiedPrivatePtr priv,
+                                    virDomainPtr dom,
+                                    int event,
+                                    int detail)
+{
+    int i;
+    virDomainEventCallbackListPtr cbList;
+
+    if(!priv) return;
+
+    cbList = priv->domainEventCallbacks;
+    if(!cbList) return;
+
+    for(i=0 ; i < cbList->count ; i++) {
+        if(cbList->callbacks[i] && cbList->callbacks[i]->cb) {
+            if (dom) {
+                DEBUG("Dispatching callback %p %p event %d",
+                        cbList->callbacks[i],
+                        cbList->callbacks[i]->cb, event);
+                cbList->callbacks[i]->cb(cbList->callbacks[i]->conn,
+                                         dom, event, detail,
+                                         cbList->callbacks[i]->opaque);
+            }
+        }
+    }
+}

@@ -32,7 +32,13 @@
 extern struct xenUnifiedDriver xenXMDriver;
 int xenXMInit (void);
 
-int xenXMOpen(virConnectPtr conn, xmlURIPtr uri, virConnectAuthPtr auth, int flags);
+virHashTablePtr xenXMGetConfigCache(void);
+char *xenXMGetConfigDir(void);
+int xenXMConfigCacheRefresh (virConnectPtr conn);
+int xenXMConfigCacheAddFile(virConnectPtr conn, const char *filename);
+int xenXMConfigCacheRemoveFile(virConnectPtr conn, const char *filename);
+
+int xenXMOpen(virConnectPtr conn, virConnectAuthPtr auth, int flags);
 int xenXMClose(virConnectPtr conn);
 const char *xenXMGetType(virConnectPtr conn);
 int xenXMDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info);
@@ -58,5 +64,8 @@ virConfPtr xenXMDomainConfigFormat(virConnectPtr conn, virDomainDefPtr def);
 virDomainDefPtr xenXMDomainConfigParse(virConnectPtr conn, virConfPtr conf);
 
 int xenXMDomainBlockPeek (virDomainPtr dom, const char *path, unsigned long long offset, size_t size, void *buffer);
+
+int xenXMDomainGetAutostart(virDomainPtr dom, int *autostart);
+int xenXMDomainSetAutostart(virDomainPtr dom, int autostart);
 
 #endif

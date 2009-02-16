@@ -23,55 +23,40 @@
 
 #ifndef __VIR_EVENT_H__
 #define __VIR_EVENT_H__
-
-
-/**
- * virEventHandleCallback: callback for receiving file handle events
- *
- * @fd: file handle on which the event occurred
- * @events: bitset of events from POLLnnn constants
- * @opaque: user data registered with handle
- */
-typedef void (*virEventHandleCallback)(int fd, int events, void *opaque);
-
+#include "internal.h"
 /**
  * virEventAddHandle: register a callback for monitoring file handle events
  *
  * @fd: file handle to monitor for events
- * @events: bitset of events to watch from POLLnnn constants
+ * @events: bitset of events to watch from virEventHandleType constants
  * @cb: callback to invoke when an event occurs
  * @opaque: user data to pass to callback
  *
  * returns -1 if the file handle cannot be registered, 0 upon success
  */
-int virEventAddHandle(int fd, int events, virEventHandleCallback cb, void *opaque);
+int virEventAddHandle(int fd, int events,
+                      virEventHandleCallback cb,
+                      void *opaque,
+                      virFreeCallback ff);
 
 /**
  * virEventUpdateHandle: change event set for a monitored file handle
  *
- * @fd: file handle to monitor for events
- * @events: bitset of events to watch from POLLnnn constants
+ * @watch: watch whose file handle to update
+ * @events: bitset of events to watch from virEventHandleType constants
  *
  * Will not fail if fd exists
  */
-void virEventUpdateHandle(int fd, int events);
+void virEventUpdateHandle(int watch, int events);
 
 /**
  * virEventRemoveHandle: unregister a callback from a file handle
  *
- * @fd: file handle to stop monitoring for events
+ * @watch: watch whose file handle to remove
  *
  * returns -1 if the file handle was not registered, 0 upon success
  */
-int virEventRemoveHandle(int fd);
-
-/**
- * virEventTimeoutCallback: callback for receiving timer events
- *
- * @timer: timer id emitting the event
- * @opaque: user data registered with handle
- */
-typedef void (*virEventTimeoutCallback)(int timer, void *opaque);
+int virEventRemoveHandle(int watch);
 
 /**
  * virEventAddTimeout: register a callback for a timer event
@@ -86,7 +71,10 @@ typedef void (*virEventTimeoutCallback)(int timer, void *opaque);
  * returns -1 if the file handle cannot be registered, a positive
  * integer timer id upon success
  */
-int virEventAddTimeout(int frequency, virEventTimeoutCallback cb, void *opaque);
+int virEventAddTimeout(int frequency,
+                       virEventTimeoutCallback cb,
+                       void *opaque,
+                       virFreeCallback ff);
 
 /**
  * virEventUpdateTimeoutImpl: change frequency for a timer
@@ -109,22 +97,5 @@ void virEventUpdateTimeout(int timer, int frequency);
  * returns -1 if the timer was not registered, 0 upon success
  */
 int virEventRemoveTimeout(int timer);
-
-typedef int (*virEventAddHandleFunc)(int, int, virEventHandleCallback, void *);
-typedef void (*virEventUpdateHandleFunc)(int, int);
-typedef int (*virEventRemoveHandleFunc)(int);
-
-typedef int (*virEventAddTimeoutFunc)(int, virEventTimeoutCallback, void *);
-typedef void (*virEventUpdateTimeoutFunc)(int, int);
-typedef int (*virEventRemoveTimeoutFunc)(int);
-
-void __virEventRegisterImpl(virEventAddHandleFunc addHandle,
-                            virEventUpdateHandleFunc updateHandle,
-                            virEventRemoveHandleFunc removeHandle,
-                            virEventAddTimeoutFunc addTimeout,
-                            virEventUpdateTimeoutFunc updateTimeout,
-                            virEventRemoveTimeoutFunc removeTimeout);
-
-#define virEventRegisterImpl(ah,rh,at,rt) __virEventRegisterImpl(ah,rh,at,rt)
 
 #endif /* __VIR_EVENT_H__ */

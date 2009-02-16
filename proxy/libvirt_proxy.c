@@ -24,18 +24,13 @@
 #include <locale.h>
 
 #include "internal.h"
-
+#include "datatypes.h"
 #include "proxy_internal.h"
 #include "util.h"
 #include "xen_internal.h"
 #include "xend_internal.h"
 #include "xs_internal.h"
 #include "xen_unified.h"
-
-/*
- * This is provided in libvirt.c when the code is part of the library
- */
-int debugFlag = 0;
 
 static int fdServer = -1;
 static int debug = 0;
@@ -87,7 +82,7 @@ proxyInitXen(void) {
     priv->xshandle = NULL;
     priv->proxy = -1;
 
-    ret = xenHypervisorOpen(conn, NULL, NULL, 0);
+    ret = xenHypervisorOpen(conn, NULL, 0);
     if (ret < 0) {
         fprintf(stderr, "Failed to open Xen hypervisor\n");
         return(-1);
@@ -103,7 +98,7 @@ proxyInitXen(void) {
         fprintf(stderr, "Failed to connect to Xen daemon\n");
         return(-1);
     }
-    ret = xenStoreOpen(conn, NULL, NULL, VIR_CONNECT_RO);
+    ret = xenStoreOpen(conn, NULL, VIR_CONNECT_RO);
     if (ret < 0) {
         fprintf(stderr, "Failed to open XenStore connection");
         return (-1);

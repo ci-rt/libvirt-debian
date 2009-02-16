@@ -6,13 +6,9 @@
 #ifndef __VIR_DRIVER_H__
 #define __VIR_DRIVER_H__
 
-#include "libvirt/libvirt.h"
-#include "libvirt/virterror.h"
-
 #include <libxml/uri.h>
 
-#include <signal.h>
-
+#include "internal.h"
 /*
  * List of registered drivers numbers
  */
@@ -22,7 +18,8 @@ typedef enum {
     VIR_DRV_QEMU = 3,
     VIR_DRV_REMOTE = 4,
     VIR_DRV_OPENVZ = 5,
-    VIR_DRV_LXC = 6
+    VIR_DRV_LXC = 6,
+    VIR_DRV_UML = 7,
 } virDrvNo;
 
 
@@ -55,6 +52,11 @@ typedef enum {
     /* Driver is not local. */
 #define VIR_DRV_FEATURE_REMOTE 2
 
+    /* Driver supports V2-style virDomainMigrate, ie. domainMigratePrepare2/
+     * domainMigratePerform/domainMigrateFinish2.
+     */
+#define VIR_DRV_FEATURE_MIGRATION_V2 3
+
 /* Internal feature-detection macro.  Don't call drv->supports_feature
  * directly, because it may be NULL, use this macro instead.
  *
@@ -68,17 +70,14 @@ typedef enum {
 #define VIR_DRV_SUPPORTS_FEATURE(drv,conn,feature)                      \
     ((drv)->supports_feature ? (drv)->supports_feature((conn),(feature)) : 0)
 
-typedef const char *
-        (*virDrvProbe)			(void);
 typedef virDrvOpenStatus
         (*virDrvOpen)			(virConnectPtr conn,
-                             xmlURIPtr uri,
                              virConnectAuthPtr auth,
                              int flags);
 typedef int
         (*virDrvClose)			(virConnectPtr conn);
 typedef int
-    (*virDrvSupportsFeature) (virConnectPtr conn, int feature);
+    (*virDrvDrvSupportsFeature) (virConnectPtr conn, int feature);
 typedef const char *
         (*virDrvGetType)		(virConnectPtr conn);
 typedef int
@@ -103,7 +102,7 @@ typedef int
 typedef int
         (*virDrvNumOfDomains)		(virConnectPtr conn);
 typedef virDomainPtr
-        (*virDrvDomainCreateLinux)	(virConnectPtr conn,
+        (*virDrvDomainCreateXML)	(virConnectPtr conn,
                                          const char *xmlDesc,
                                          unsigned int flags);
 typedef virDomainPtr
@@ -280,6 +279,40 @@ typedef unsigned long long
     (*virDrvNodeGetFreeMemory)
                     (virConnectPtr conn);
 
+typedef int
+    (*virDrvDomainEventRegister)
+                    (virConnectPtr conn,
+                     void *callback,
+                     void *opaque,
+                     virFreeCallback freecb);
+
+typedef int
+    (*virDrvDomainEventDeregister)
+                    (virConnectPtr conn,
+                     void *callback);
+
+typedef int
+    (*virDrvDomainMigratePrepare2)
+                    (virConnectPtr dconn,
+                     char **cookie,
+                     int *cookielen,
+                     const char *uri_in,
+                     char **uri_out,
+                     unsigned long flags,
+                     const char *dname,
+                     unsigned long resource,
+                     const char *dom_xml);
+
+typedef virDomainPtr
+    (*virDrvDomainMigrateFinish2)
+                    (virConnectPtr dconn,
+                     const char *dname,
+                     const char *cookie,
+                     int cookielen,
+                     const char *uri,
+                     unsigned long flags,
+                     int retcode);
+
 /**
  * _virDriver:
  *
@@ -295,11 +328,9 @@ typedef unsigned long long
 struct _virDriver {
     int	       no;	/* the number virDrvNo */
     const char * name;	/* the name of the driver */
-    unsigned long ver;	/* the version of the backend */
-    virDrvProbe			probe;
     virDrvOpen			open;
     virDrvClose			close;
-    virDrvSupportsFeature   supports_feature;
+    virDrvDrvSupportsFeature   supports_feature;
     virDrvGetType			type;
     virDrvGetVersion		version;
     virDrvGetHostname       getHostname;
@@ -309,7 +340,7 @@ struct _virDriver {
     virDrvGetCapabilities		getCapabilities;
     virDrvListDomains		listDomains;
     virDrvNumOfDomains		numOfDomains;
-    virDrvDomainCreateLinux		domainCreateLinux;
+    virDrvDomainCreateXML		domainCreateXML;
     virDrvDomainLookupByID		domainLookupByID;
     virDrvDomainLookupByUUID	domainLookupByUUID;
     virDrvDomainLookupByName	domainLookupByName;
@@ -352,6 +383,10 @@ struct _virDriver {
     virDrvDomainMemoryPeek      domainMemoryPeek;
     virDrvNodeGetCellsFreeMemory	nodeGetCellsFreeMemory;
     virDrvNodeGetFreeMemory		getFreeMemory;
+    virDrvDomainEventRegister         domainEventRegister;
+    virDrvDomainEventDeregister       domainEventDeregister;
+    virDrvDomainMigratePrepare2	domainMigratePrepare2;
+    virDrvDomainMigrateFinish2	domainMigrateFinish2;
 };
 
 typedef int
@@ -582,12 +617,11 @@ struct _virStorageDriver {
     virDrvStorageVolGetPath volGetPath;
 };
 
+#ifdef WITH_LIBVIRTD
 typedef int (*virDrvStateInitialize) (void);
 typedef int (*virDrvStateCleanup) (void);
 typedef int (*virDrvStateReload) (void);
 typedef int (*virDrvStateActive) (void);
-#ifdef WITH_LIBVIRTD
-typedef int (*virDrvSigHandler) (siginfo_t *siginfo);
 
 typedef struct _virStateDriver virStateDriver;
 typedef virStateDriver *virStateDriverPtr;
@@ -597,9 +631,56 @@ struct _virStateDriver {
     virDrvStateCleanup     cleanup;
     virDrvStateReload      reload;
     virDrvStateActive      active;
-    virDrvSigHandler       sigHandler;
 };
 #endif
+
+
+typedef struct _virDeviceMonitor virDeviceMonitor;
+typedef virDeviceMonitor *virDeviceMonitorPtr;
+
+typedef int (*virDevMonNumOfDevices)(virConnectPtr conn,
+                                     const char *cap,
+                                     unsigned int flags);
+
+typedef int (*virDevMonListDevices)(virConnectPtr conn,
+                                    const char *cap,
+                                    char **const names,
+                                    int maxnames,
+                                    unsigned int flags);
+
+typedef virNodeDevicePtr (*virDevMonDeviceLookupByName)(virConnectPtr conn,
+                                                        const char *name);
+
+typedef char * (*virDevMonDeviceDumpXML)(virNodeDevicePtr dev,
+                                         unsigned int flags);
+
+typedef char * (*virDevMonDeviceGetParent)(virNodeDevicePtr dev);
+
+typedef int (*virDevMonDeviceNumOfCaps)(virNodeDevicePtr dev);
+
+typedef int (*virDevMonDeviceListCaps)(virNodeDevicePtr dev,
+                                       char **const names,
+                                       int maxnames);
+
+/**
+ * _virDeviceMonitor:
+ *
+ * Structure associated with monitoring the devices
+ * on a virtualized node.
+ *
+ */
+struct _virDeviceMonitor {
+    const char * name;    /* the name of the driver */
+    virDrvOpen open;
+    virDrvClose close;
+    virDevMonNumOfDevices numOfDevices;
+    virDevMonListDevices listDevices;
+    virDevMonDeviceLookupByName deviceLookupByName;
+    virDevMonDeviceDumpXML deviceDumpXML;
+    virDevMonDeviceGetParent deviceGetParent;
+    virDevMonDeviceNumOfCaps deviceNumOfCaps;
+    virDevMonDeviceListCaps deviceListCaps;
+};
 
 /*
  * Registration
@@ -609,8 +690,10 @@ struct _virStateDriver {
 int virRegisterDriver(virDriverPtr);
 int virRegisterNetworkDriver(virNetworkDriverPtr);
 int virRegisterStorageDriver(virStorageDriverPtr);
+int virRegisterDeviceMonitor(virDeviceMonitorPtr);
 #ifdef WITH_LIBVIRTD
 int virRegisterStateDriver(virStateDriverPtr);
 #endif
+void *virDriverLoadModule(const char *name);
 
 #endif /* __VIR_DRIVER_H__ */

@@ -34,20 +34,29 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 @WITH_LIBVIRTD_TRUE@sbin_PROGRAMS = libvirtd$(EXEEXT)
-@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_1 = $(AVAHI_SOURCES)
-@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_2 = $(AVAHI_CFLAGS)
-@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_3 = $(AVAHI_LIBS)
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_QEMU_TRUE@am__append_1 = ../src/libvirt_driver_qemu.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@am__append_2 = ../src/libvirt_driver_lxc.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_UML_TRUE@am__append_3 = ../src/libvirt_driver_uml.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DIR_TRUE@am__append_4 = ../src/libvirt_driver_storage.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NETWORK_TRUE@am__append_5 = ../src/libvirt_driver_network.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NODE_DEVICES_TRUE@am__append_6 = ../src/libvirt_driver_nodedev.la
+@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_7 = $(AVAHI_SOURCES)
+@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_8 = $(AVAHI_CFLAGS)
+@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_9 = $(AVAHI_LIBS)
 subdir = qemud
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/arpa_inet_h.m4 \
-	$(top_srcdir)/gnulib/m4/eoverflow.m4 \
+	$(top_srcdir)/gnulib/m4/close.m4 \
+	$(top_srcdir)/gnulib/m4/errno_h.m4 \
 	$(top_srcdir)/gnulib/m4/extensions.m4 \
+	$(top_srcdir)/gnulib/m4/fclose.m4 \
 	$(top_srcdir)/gnulib/m4/float_h.m4 \
 	$(top_srcdir)/gnulib/m4/fseeko.m4 \
 	$(top_srcdir)/gnulib/m4/getaddrinfo.m4 \
 	$(top_srcdir)/gnulib/m4/getdelim.m4 \
+	$(top_srcdir)/gnulib/m4/gethostname.m4 \
 	$(top_srcdir)/gnulib/m4/getline.m4 \
 	$(top_srcdir)/gnulib/m4/getpass.m4 \
 	$(top_srcdir)/gnulib/m4/gettimeofday.m4 \
@@ -60,16 +69,20 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/inttypes_h.m4 \
 	$(top_srcdir)/gnulib/m4/longlong.m4 \
 	$(top_srcdir)/gnulib/m4/lseek.m4 \
+	$(top_srcdir)/gnulib/m4/lstat.m4 \
 	$(top_srcdir)/gnulib/m4/malloc.m4 \
 	$(top_srcdir)/gnulib/m4/mkstemp.m4 \
+	$(top_srcdir)/gnulib/m4/netdb_h.m4 \
 	$(top_srcdir)/gnulib/m4/netinet_in_h.m4 \
 	$(top_srcdir)/gnulib/m4/onceonly.m4 \
+	$(top_srcdir)/gnulib/m4/perror.m4 \
 	$(top_srcdir)/gnulib/m4/physmem.m4 \
 	$(top_srcdir)/gnulib/m4/po.m4 $(top_srcdir)/gnulib/m4/poll.m4 \
 	$(top_srcdir)/gnulib/m4/posix-shell.m4 \
 	$(top_srcdir)/gnulib/m4/printf.m4 \
 	$(top_srcdir)/gnulib/m4/realloc.m4 \
 	$(top_srcdir)/gnulib/m4/snprintf.m4 \
+	$(top_srcdir)/gnulib/m4/sockets.m4 \
 	$(top_srcdir)/gnulib/m4/socklen.m4 \
 	$(top_srcdir)/gnulib/m4/sockpfaf.m4 \
 	$(top_srcdir)/gnulib/m4/stdbool.m4 \
@@ -78,11 +91,13 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/stdio_h.m4 \
 	$(top_srcdir)/gnulib/m4/stdlib_h.m4 \
 	$(top_srcdir)/gnulib/m4/strdup.m4 \
+	$(top_srcdir)/gnulib/m4/strerror.m4 \
 	$(top_srcdir)/gnulib/m4/string_h.m4 \
 	$(top_srcdir)/gnulib/m4/strndup.m4 \
 	$(top_srcdir)/gnulib/m4/strnlen.m4 \
 	$(top_srcdir)/gnulib/m4/strpbrk.m4 \
 	$(top_srcdir)/gnulib/m4/strsep.m4 \
+	$(top_srcdir)/gnulib/m4/sys_ioctl_h.m4 \
 	$(top_srcdir)/gnulib/m4/sys_select_h.m4 \
 	$(top_srcdir)/gnulib/m4/sys_socket_h.m4 \
 	$(top_srcdir)/gnulib/m4/sys_stat_h.m4 \
@@ -112,10 +127,9 @@ PROGRAMS = $(sbin_PROGRAMS)
 am__libvirtd_SOURCES_DIST = event.c event.h qemud.c qemud.h remote.c \
 	remote_dispatch_prototypes.h remote_dispatch_localvars.h \
 	remote_dispatch_proc_switch.h remote_protocol.h \
-	remote_protocol.c $(srcdir)/../src/util-lib.c mdns.c mdns.h
+	remote_protocol.c mdns.c mdns.h
 am__objects_1 = libvirtd-event.$(OBJEXT) libvirtd-qemud.$(OBJEXT) \
-	libvirtd-remote.$(OBJEXT) libvirtd-remote_protocol.$(OBJEXT) \
-	libvirtd-util-lib.$(OBJEXT)
+	libvirtd-remote.$(OBJEXT) libvirtd-remote_protocol.$(OBJEXT)
 am__objects_2 = libvirtd-mdns.$(OBJEXT)
 @HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__objects_3 = $(am__objects_2)
 @WITH_LIBVIRTD_TRUE@am_libvirtd_OBJECTS = $(am__objects_1) \
@@ -192,43 +206,80 @@ CYGWIN_EXTRA_LIBADD = @CYGWIN_EXTRA_LIBADD@
 CYGWIN_EXTRA_PYTHON_LIBADD = @CYGWIN_EXTRA_PYTHON_LIBADD@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
+DEVKIT_CFLAGS = @DEVKIT_CFLAGS@
+DEVKIT_LIBS = @DEVKIT_LIBS@
 DLLTOOL = @DLLTOOL@
 DNSMASQ = @DNSMASQ@
+DRIVER_MODULES_CFLAGS = @DRIVER_MODULES_CFLAGS@
+DRIVER_MODULES_LIBS = @DRIVER_MODULES_LIBS@
 ECHO = @ECHO@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
-EOVERFLOW = @EOVERFLOW@
+EMULTIHOP_HIDDEN = @EMULTIHOP_HIDDEN@
+EMULTIHOP_VALUE = @EMULTIHOP_VALUE@
+ENOLINK_HIDDEN = @ENOLINK_HIDDEN@
+ENOLINK_VALUE = @ENOLINK_VALUE@
+EOVERFLOW_HIDDEN = @EOVERFLOW_HIDDEN@
+EOVERFLOW_VALUE = @EOVERFLOW_VALUE@
+ERRNO_H = @ERRNO_H@
 EXEEXT = @EXEEXT@
 F77 = @F77@
 FFLAGS = @FFLAGS@
 FLOAT_H = @FLOAT_H@
+GLIB2_CFLAGS = @GLIB2_CFLAGS@
+GLIB2_LIBS = @GLIB2_LIBS@
 GMSGFMT = @GMSGFMT@
+GNULIB_ACCEPT = @GNULIB_ACCEPT@
+GNULIB_ATOLL = @GNULIB_ATOLL@
+GNULIB_BIND = @GNULIB_BIND@
 GNULIB_CALLOC_POSIX = @GNULIB_CALLOC_POSIX@
 GNULIB_CHOWN = @GNULIB_CHOWN@
+GNULIB_CLOSE = @GNULIB_CLOSE@
+GNULIB_CONNECT = @GNULIB_CONNECT@
 GNULIB_DUP2 = @GNULIB_DUP2@
 GNULIB_ENVIRON = @GNULIB_ENVIRON@
+GNULIB_EUIDACCESS = @GNULIB_EUIDACCESS@
 GNULIB_FCHDIR = @GNULIB_FCHDIR@
+GNULIB_FCLOSE = @GNULIB_FCLOSE@
 GNULIB_FFLUSH = @GNULIB_FFLUSH@
 GNULIB_FOPEN = @GNULIB_FOPEN@
+GNULIB_FPRINTF = @GNULIB_FPRINTF@
 GNULIB_FPRINTF_POSIX = @GNULIB_FPRINTF_POSIX@
+GNULIB_FPUTC = @GNULIB_FPUTC@
+GNULIB_FPUTS = @GNULIB_FPUTS@
 GNULIB_FREOPEN = @GNULIB_FREOPEN@
 GNULIB_FSEEK = @GNULIB_FSEEK@
 GNULIB_FSEEKO = @GNULIB_FSEEKO@
+GNULIB_FSYNC = @GNULIB_FSYNC@
 GNULIB_FTELL = @GNULIB_FTELL@
 GNULIB_FTELLO = @GNULIB_FTELLO@
 GNULIB_FTRUNCATE = @GNULIB_FTRUNCATE@
+GNULIB_FWRITE = @GNULIB_FWRITE@
+GNULIB_GETADDRINFO = @GNULIB_GETADDRINFO@
 GNULIB_GETCWD = @GNULIB_GETCWD@
 GNULIB_GETDELIM = @GNULIB_GETDELIM@
+GNULIB_GETDOMAINNAME = @GNULIB_GETDOMAINNAME@
+GNULIB_GETDTABLESIZE = @GNULIB_GETDTABLESIZE@
+GNULIB_GETHOSTNAME = @GNULIB_GETHOSTNAME@
 GNULIB_GETLINE = @GNULIB_GETLINE@
+GNULIB_GETLOADAVG = @GNULIB_GETLOADAVG@
 GNULIB_GETLOGIN_R = @GNULIB_GETLOGIN_R@
 GNULIB_GETPAGESIZE = @GNULIB_GETPAGESIZE@
+GNULIB_GETPEERNAME = @GNULIB_GETPEERNAME@
+GNULIB_GETSOCKNAME = @GNULIB_GETSOCKNAME@
+GNULIB_GETSOCKOPT = @GNULIB_GETSOCKOPT@
 GNULIB_GETSUBOPT = @GNULIB_GETSUBOPT@
+GNULIB_GETUSERSHELL = @GNULIB_GETUSERSHELL@
 GNULIB_INET_NTOP = @GNULIB_INET_NTOP@
 GNULIB_INET_PTON = @GNULIB_INET_PTON@
+GNULIB_IOCTL = @GNULIB_IOCTL@
+GNULIB_LCHMOD = @GNULIB_LCHMOD@
 GNULIB_LCHOWN = @GNULIB_LCHOWN@
+GNULIB_LISTEN = @GNULIB_LISTEN@
 GNULIB_LSEEK = @GNULIB_LSEEK@
+GNULIB_LSTAT = @GNULIB_LSTAT@
 GNULIB_MALLOC_POSIX = @GNULIB_MALLOC_POSIX@
 GNULIB_MBSCASECMP = @GNULIB_MBSCASECMP@
 GNULIB_MBSCASESTR = @GNULIB_MBSCASESTR@
@@ -251,16 +302,31 @@ GNULIB_MKDTEMP = @GNULIB_MKDTEMP@
 GNULIB_MKSTEMP = @GNULIB_MKSTEMP@
 GNULIB_OBSTACK_PRINTF = @GNULIB_OBSTACK_PRINTF@
 GNULIB_OBSTACK_PRINTF_POSIX = @GNULIB_OBSTACK_PRINTF_POSIX@
+GNULIB_PERROR = @GNULIB_PERROR@
+GNULIB_PRINTF = @GNULIB_PRINTF@
 GNULIB_PRINTF_POSIX = @GNULIB_PRINTF_POSIX@
+GNULIB_PUTC = @GNULIB_PUTC@
+GNULIB_PUTCHAR = @GNULIB_PUTCHAR@
 GNULIB_PUTENV = @GNULIB_PUTENV@
+GNULIB_PUTS = @GNULIB_PUTS@
+GNULIB_RANDOM_R = @GNULIB_RANDOM_R@
 GNULIB_RAWMEMCHR = @GNULIB_RAWMEMCHR@
 GNULIB_READLINK = @GNULIB_READLINK@
 GNULIB_REALLOC_POSIX = @GNULIB_REALLOC_POSIX@
+GNULIB_RECV = @GNULIB_RECV@
+GNULIB_RECVFROM = @GNULIB_RECVFROM@
 GNULIB_RPMATCH = @GNULIB_RPMATCH@
+GNULIB_SELECT = @GNULIB_SELECT@
+GNULIB_SEND = @GNULIB_SEND@
+GNULIB_SENDTO = @GNULIB_SENDTO@
 GNULIB_SETENV = @GNULIB_SETENV@
+GNULIB_SETSOCKOPT = @GNULIB_SETSOCKOPT@
+GNULIB_SHUTDOWN = @GNULIB_SHUTDOWN@
 GNULIB_SLEEP = @GNULIB_SLEEP@
 GNULIB_SNPRINTF = @GNULIB_SNPRINTF@
+GNULIB_SOCKET = @GNULIB_SOCKET@
 GNULIB_SPRINTF_POSIX = @GNULIB_SPRINTF_POSIX@
+GNULIB_STDIO_H_SIGPIPE = @GNULIB_STDIO_H_SIGPIPE@
 GNULIB_STPCPY = @GNULIB_STPCPY@
 GNULIB_STPNCPY = @GNULIB_STPNCPY@
 GNULIB_STRCASESTR = @GNULIB_STRCASESTR@
@@ -275,21 +341,32 @@ GNULIB_STRSIGNAL = @GNULIB_STRSIGNAL@
 GNULIB_STRSTR = @GNULIB_STRSTR@
 GNULIB_STRTOD = @GNULIB_STRTOD@
 GNULIB_STRTOK_R = @GNULIB_STRTOK_R@
+GNULIB_STRTOLL = @GNULIB_STRTOLL@
+GNULIB_STRTOULL = @GNULIB_STRTOULL@
+GNULIB_STRVERSCMP = @GNULIB_STRVERSCMP@
+GNULIB_UNISTD_H_SIGPIPE = @GNULIB_UNISTD_H_SIGPIPE@
 GNULIB_UNSETENV = @GNULIB_UNSETENV@
 GNULIB_VASPRINTF = @GNULIB_VASPRINTF@
+GNULIB_VFPRINTF = @GNULIB_VFPRINTF@
 GNULIB_VFPRINTF_POSIX = @GNULIB_VFPRINTF_POSIX@
+GNULIB_VPRINTF = @GNULIB_VPRINTF@
 GNULIB_VPRINTF_POSIX = @GNULIB_VPRINTF_POSIX@
 GNULIB_VSNPRINTF = @GNULIB_VSNPRINTF@
 GNULIB_VSPRINTF_POSIX = @GNULIB_VSPRINTF_POSIX@
 GNULIB_WCWIDTH = @GNULIB_WCWIDTH@
+GNULIB_WRITE = @GNULIB_WRITE@
 GNUTLS_CFLAGS = @GNUTLS_CFLAGS@
 GNUTLS_LIBS = @GNUTLS_LIBS@
 GREP = @GREP@
+HAL_CFLAGS = @HAL_CFLAGS@
+HAL_LIBS = @HAL_LIBS@
 HAVE_ARPA_INET_H = @HAVE_ARPA_INET_H@
+HAVE_ATOLL = @HAVE_ATOLL@
 HAVE_CALLOC_POSIX = @HAVE_CALLOC_POSIX@
 HAVE_DECL_ENVIRON = @HAVE_DECL_ENVIRON@
 HAVE_DECL_GETDELIM = @HAVE_DECL_GETDELIM@
 HAVE_DECL_GETLINE = @HAVE_DECL_GETLINE@
+HAVE_DECL_GETLOADAVG = @HAVE_DECL_GETLOADAVG@
 HAVE_DECL_GETLOGIN_R = @HAVE_DECL_GETLOGIN_R@
 HAVE_DECL_INET_NTOP = @HAVE_DECL_INET_NTOP@
 HAVE_DECL_INET_PTON = @HAVE_DECL_INET_PTON@
@@ -306,19 +383,28 @@ HAVE_DECL_STRTOK_R = @HAVE_DECL_STRTOK_R@
 HAVE_DECL_VSNPRINTF = @HAVE_DECL_VSNPRINTF@
 HAVE_DECL_WCWIDTH = @HAVE_DECL_WCWIDTH@
 HAVE_DUP2 = @HAVE_DUP2@
+HAVE_EUIDACCESS = @HAVE_EUIDACCESS@
 HAVE_FSEEKO = @HAVE_FSEEKO@
+HAVE_FSYNC = @HAVE_FSYNC@
 HAVE_FTELLO = @HAVE_FTELLO@
 HAVE_FTRUNCATE = @HAVE_FTRUNCATE@
+HAVE_GETDOMAINNAME = @HAVE_GETDOMAINNAME@
+HAVE_GETDTABLESIZE = @HAVE_GETDTABLESIZE@
+HAVE_GETHOSTNAME = @HAVE_GETHOSTNAME@
 HAVE_GETPAGESIZE = @HAVE_GETPAGESIZE@
 HAVE_GETSUBOPT = @HAVE_GETSUBOPT@
+HAVE_GETUSERSHELL = @HAVE_GETUSERSHELL@
 HAVE_INTTYPES_H = @HAVE_INTTYPES_H@
+HAVE_LCHMOD = @HAVE_LCHMOD@
 HAVE_LONG_LONG_INT = @HAVE_LONG_LONG_INT@
 HAVE_LSTAT = @HAVE_LSTAT@
 HAVE_MALLOC_POSIX = @HAVE_MALLOC_POSIX@
 HAVE_MEMPCPY = @HAVE_MEMPCPY@
 HAVE_MKDTEMP = @HAVE_MKDTEMP@
+HAVE_NETDB_H = @HAVE_NETDB_H@
 HAVE_NETINET_IN_H = @HAVE_NETINET_IN_H@
 HAVE_OS_H = @HAVE_OS_H@
+HAVE_RANDOM_R = @HAVE_RANDOM_R@
 HAVE_RAWMEMCHR = @HAVE_RAWMEMCHR@
 HAVE_READLINK = @HAVE_READLINK@
 HAVE_REALLOC_POSIX = @HAVE_REALLOC_POSIX@
@@ -337,9 +423,15 @@ HAVE_STRNDUP = @HAVE_STRNDUP@
 HAVE_STRPBRK = @HAVE_STRPBRK@
 HAVE_STRSEP = @HAVE_STRSEP@
 HAVE_STRTOD = @HAVE_STRTOD@
+HAVE_STRTOLL = @HAVE_STRTOLL@
+HAVE_STRTOULL = @HAVE_STRTOULL@
+HAVE_STRUCT_RANDOM_DATA = @HAVE_STRUCT_RANDOM_DATA@
 HAVE_STRUCT_TIMEVAL = @HAVE_STRUCT_TIMEVAL@
+HAVE_STRVERSCMP = @HAVE_STRVERSCMP@
 HAVE_SYS_BITYPES_H = @HAVE_SYS_BITYPES_H@
 HAVE_SYS_INTTYPES_H = @HAVE_SYS_INTTYPES_H@
+HAVE_SYS_IOCTL_H = @HAVE_SYS_IOCTL_H@
+HAVE_SYS_LOADAVG_H = @HAVE_SYS_LOADAVG_H@
 HAVE_SYS_PARAM_H = @HAVE_SYS_PARAM_H@
 HAVE_SYS_SELECT_H = @HAVE_SYS_SELECT_H@
 HAVE_SYS_SOCKET_H = @HAVE_SYS_SOCKET_H@
@@ -351,6 +443,7 @@ HAVE_UNSIGNED_LONG_LONG_INT = @HAVE_UNSIGNED_LONG_LONG_INT@
 HAVE_VASPRINTF = @HAVE_VASPRINTF@
 HAVE_WCHAR_H = @HAVE_WCHAR_H@
 HAVE_WINSOCK2_H = @HAVE_WINSOCK2_H@
+HAVE_WINT_T = @HAVE_WINT_T@
 HAVE_WS2TCPIP_H = @HAVE_WS2TCPIP_H@
 HAVE__BOOL = @HAVE__BOOL@
 HTML_DIR = @HTML_DIR@
@@ -370,9 +463,9 @@ LIBOBJS = @LIBOBJS@
 LIBPARTED_CFLAGS = @LIBPARTED_CFLAGS@
 LIBPARTED_LIBS = @LIBPARTED_LIBS@
 LIBS = @LIBS@
+LIBSOCKET = @LIBSOCKET@
 LIBTESTS_LIBDEPS = @LIBTESTS_LIBDEPS@
 LIBTOOL = @LIBTOOL@
-LIBVIRT_FEATURES = @LIBVIRT_FEATURES@
 LIBVIRT_MAJOR_VERSION = @LIBVIRT_MAJOR_VERSION@
 LIBVIRT_MICRO_VERSION = @LIBVIRT_MICRO_VERSION@
 LIBVIRT_MINOR_VERSION = @LIBVIRT_MINOR_VERSION@
@@ -383,6 +476,7 @@ LIBXML_CFLAGS = @LIBXML_CFLAGS@
 LIBXML_LIBS = @LIBXML_LIBS@
 LN_S = @LN_S@
 LOKKIT_PATH = @LOKKIT_PATH@
+LTALLOCA = @LTALLOCA@
 LTLIBICONV = @LTLIBICONV@
 LTLIBINTL = @LTLIBINTL@
 LTLIBOBJS = @LTLIBOBJS@
@@ -398,14 +492,18 @@ MOUNT = @MOUNT@
 MSGFMT = @MSGFMT@
 MSGMERGE = @MSGMERGE@
 MV = @MV@
+NETDB_H = @NETDB_H@
 NETINET_IN_H = @NETINET_IN_H@
 NEXT_ARPA_INET_H = @NEXT_ARPA_INET_H@
+NEXT_ERRNO_H = @NEXT_ERRNO_H@
 NEXT_FLOAT_H = @NEXT_FLOAT_H@
+NEXT_NETDB_H = @NEXT_NETDB_H@
 NEXT_NETINET_IN_H = @NEXT_NETINET_IN_H@
 NEXT_STDINT_H = @NEXT_STDINT_H@
 NEXT_STDIO_H = @NEXT_STDIO_H@
 NEXT_STDLIB_H = @NEXT_STDLIB_H@
 NEXT_STRING_H = @NEXT_STRING_H@
+NEXT_SYS_IOCTL_H = @NEXT_SYS_IOCTL_H@
 NEXT_SYS_SELECT_H = @NEXT_SYS_SELECT_H@
 NEXT_SYS_SOCKET_H = @NEXT_SYS_SOCKET_H@
 NEXT_SYS_STAT_H = @NEXT_SYS_STAT_H@
@@ -431,6 +529,7 @@ POLKIT_LIBS = @POLKIT_LIBS@
 POLL_H = @POLL_H@
 POSIX_SHELL = @POSIX_SHELL@
 POSUB = @POSUB@
+PRAGMA_SYSTEM_HEADER = @PRAGMA_SYSTEM_HEADER@
 PREFERABLY_POSIX_SHELL = @PREFERABLY_POSIX_SHELL@
 PTRDIFF_T_SUFFIX = @PTRDIFF_T_SUFFIX@
 PVCREATE = @PVCREATE@
@@ -446,7 +545,9 @@ RANLIB = @RANLIB@
 READLINE_CFLAGS = @READLINE_CFLAGS@
 REMOTE_PID_FILE = @REMOTE_PID_FILE@
 REPLACE_CHOWN = @REPLACE_CHOWN@
+REPLACE_CLOSE = @REPLACE_CLOSE@
 REPLACE_FCHDIR = @REPLACE_FCHDIR@
+REPLACE_FCLOSE = @REPLACE_FCLOSE@
 REPLACE_FFLUSH = @REPLACE_FFLUSH@
 REPLACE_FOPEN = @REPLACE_FOPEN@
 REPLACE_FPRINTF = @REPLACE_FPRINTF@
@@ -461,15 +562,19 @@ REPLACE_GETPAGESIZE = @REPLACE_GETPAGESIZE@
 REPLACE_GETTIMEOFDAY = @REPLACE_GETTIMEOFDAY@
 REPLACE_LCHOWN = @REPLACE_LCHOWN@
 REPLACE_LSEEK = @REPLACE_LSEEK@
+REPLACE_LSTAT = @REPLACE_LSTAT@
 REPLACE_MEMMEM = @REPLACE_MEMMEM@
 REPLACE_MKDIR = @REPLACE_MKDIR@
 REPLACE_MKSTEMP = @REPLACE_MKSTEMP@
 REPLACE_OBSTACK_PRINTF = @REPLACE_OBSTACK_PRINTF@
+REPLACE_PERROR = @REPLACE_PERROR@
 REPLACE_PRINTF = @REPLACE_PRINTF@
 REPLACE_PUTENV = @REPLACE_PUTENV@
 REPLACE_SNPRINTF = @REPLACE_SNPRINTF@
 REPLACE_SPRINTF = @REPLACE_SPRINTF@
+REPLACE_STDIO_WRITE_FUNCS = @REPLACE_STDIO_WRITE_FUNCS@
 REPLACE_STRCASESTR = @REPLACE_STRCASESTR@
+REPLACE_STRDUP = @REPLACE_STRDUP@
 REPLACE_STRERROR = @REPLACE_STRERROR@
 REPLACE_STRSIGNAL = @REPLACE_STRSIGNAL@
 REPLACE_STRSTR = @REPLACE_STRSTR@
@@ -480,6 +585,7 @@ REPLACE_VPRINTF = @REPLACE_VPRINTF@
 REPLACE_VSNPRINTF = @REPLACE_VSNPRINTF@
 REPLACE_VSPRINTF = @REPLACE_VSPRINTF@
 REPLACE_WCWIDTH = @REPLACE_WCWIDTH@
+REPLACE_WRITE = @REPLACE_WRITE@
 RM = @RM@
 RPCGEN = @RPCGEN@
 SASL_CFLAGS = @SASL_CFLAGS@
@@ -496,26 +602,34 @@ STATIC_BINARIES = @STATIC_BINARIES@
 STDBOOL_H = @STDBOOL_H@
 STDINT_H = @STDINT_H@
 STRIP = @STRIP@
+SYS_IOCTL_H = @SYS_IOCTL_H@
+SYS_IOCTL_H_HAVE_WINSOCK2_H = @SYS_IOCTL_H_HAVE_WINSOCK2_H@
 SYS_SELECT_H = @SYS_SELECT_H@
 SYS_SOCKET_H = @SYS_SOCKET_H@
 SYS_STAT_H = @SYS_STAT_H@
 SYS_TIME_H = @SYS_TIME_H@
 TAR = @TAR@
 U = @U@
+UDEVADM = @UDEVADM@
+UDEVSETTLE = @UDEVSETTLE@
 UMOUNT = @UMOUNT@
+UNISTD_H_HAVE_WINSOCK2_H = @UNISTD_H_HAVE_WINSOCK2_H@
 USE_NLS = @USE_NLS@
 VERSION = @VERSION@
 VGCHANGE = @VGCHANGE@
 VGCREATE = @VGCREATE@
 VGREMOVE = @VGREMOVE@
 VGS = @VGS@
+VGSCAN = @VGSCAN@
 VIRSH_LIBS = @VIRSH_LIBS@
 VOID_UNSETENV = @VOID_UNSETENV@
 WARN_CFLAGS = @WARN_CFLAGS@
 WCHAR_H = @WCHAR_H@
 WCHAR_T_SUFFIX = @WCHAR_T_SUFFIX@
+WINDRES = @WINDRES@
 WINT_T_SUFFIX = @WINT_T_SUFFIX@
-WITH_XEN = @WITH_XEN@
+XEN_CFLAGS = @XEN_CFLAGS@
+XEN_LIBS = @XEN_LIBS@
 XGETTEXT = @XGETTEXT@
 XMLCATALOG = @XMLCATALOG@
 XMLLINT = @XMLLINT@
@@ -577,7 +691,6 @@ sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-INCLUDES = $(LIBVIRT_FEATURES)
 DAEMON_SOURCES = \
 		event.c event.h				\
 		qemud.c qemud.h				\
@@ -585,8 +698,7 @@ DAEMON_SOURCES = \
 		remote_dispatch_prototypes.h		\
 		remote_dispatch_localvars.h		\
 		remote_dispatch_proc_switch.h		\
-		remote_protocol.h remote_protocol.c	\
-		$(srcdir)/../src/util-lib.c
+		remote_protocol.h remote_protocol.c
 
 AVAHI_SOURCES = \
 		mdns.c mdns.h
@@ -616,7 +728,7 @@ EXTRA_DIST = \
 @WITH_LIBVIRTD_TRUE@augeastestsdir = $(datadir)/augeas/lenses/tests
 @WITH_LIBVIRTD_TRUE@augeastests_DATA = test_libvirtd.aug test_libvirtd_qemu.aug
 @WITH_LIBVIRTD_TRUE@libvirtd_SOURCES = $(DAEMON_SOURCES) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_1)
+@WITH_LIBVIRTD_TRUE@	$(am__append_7)
 
 #-D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED=1 -D_POSIX_C_SOURCE=199506L
 @WITH_LIBVIRTD_TRUE@libvirtd_CFLAGS = -I$(top_srcdir)/gnulib/lib \
@@ -631,16 +743,19 @@ EXTRA_DIST = \
 @WITH_LIBVIRTD_TRUE@	-DQEMUD_PID_FILE="\"$(QEMUD_PID_FILE)\"" \
 @WITH_LIBVIRTD_TRUE@	-DREMOTE_PID_FILE="\"$(REMOTE_PID_FILE)\"" \
 @WITH_LIBVIRTD_TRUE@	-DGETTEXT_PACKAGE=\"$(PACKAGE)\" \
-@WITH_LIBVIRTD_TRUE@	$(am__append_2)
+@WITH_LIBVIRTD_TRUE@	$(am__append_8)
 @WITH_LIBVIRTD_TRUE@libvirtd_LDFLAGS = \
 @WITH_LIBVIRTD_TRUE@	$(WARN_CFLAGS) $(LIBXML_LIBS) $(GNUTLS_LIBS) $(SASL_LIBS) \
 @WITH_LIBVIRTD_TRUE@	$(COVERAGE_LDFLAGS) \
 @WITH_LIBVIRTD_TRUE@	$(POLKIT_LIBS)
 
-@WITH_LIBVIRTD_TRUE@libvirtd_DEPENDENCIES = ../src/libvirt.la
-@WITH_LIBVIRTD_TRUE@libvirtd_LDADD = ../src/libvirt.la \
-@WITH_LIBVIRTD_TRUE@	../gnulib/lib/libgnu.la $(am__append_3)
+@WITH_LIBVIRTD_TRUE@libvirtd_LDADD = ../gnulib/lib/libgnu.la \
+@WITH_LIBVIRTD_TRUE@	$(am__append_1) $(am__append_2) \
+@WITH_LIBVIRTD_TRUE@	$(am__append_3) $(am__append_4) \
+@WITH_LIBVIRTD_TRUE@	$(am__append_5) $(am__append_6) \
+@WITH_LIBVIRTD_TRUE@	../src/libvirt.la $(am__append_9)
 @HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policydir = $(datadir)/PolicyKit/policy
+@WITH_LIBVIRTD_TRUE@libvirtd_DEPENDENCIES = $(libvirtd_LDADD)
 @WITH_LIBVIRTD_TRUE@default_xml_dest = libvirt/qemu/networks/default.xml
 CLEANFILES = libvirtd.init *.cov *.gcov .libs/*.gcda .libs/*.gcno \
 	*.gcno *.gcda
@@ -720,7 +835,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-qemud.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-remote.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-remote_protocol.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-util-lib.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -798,20 +912,6 @@ libvirtd-remote_protocol.obj: remote_protocol.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='remote_protocol.c' object='libvirtd-remote_protocol.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-remote_protocol.obj `if test -f 'remote_protocol.c'; then $(CYGPATH_W) 'remote_protocol.c'; else $(CYGPATH_W) '$(srcdir)/remote_protocol.c'; fi`
-
-libvirtd-util-lib.o: $(srcdir)/../src/util-lib.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-util-lib.o -MD -MP -MF $(DEPDIR)/libvirtd-util-lib.Tpo -c -o libvirtd-util-lib.o `test -f '$(srcdir)/../src/util-lib.c' || echo '$(srcdir)/'`$(srcdir)/../src/util-lib.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libvirtd-util-lib.Tpo $(DEPDIR)/libvirtd-util-lib.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$(srcdir)/../src/util-lib.c' object='libvirtd-util-lib.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-util-lib.o `test -f '$(srcdir)/../src/util-lib.c' || echo '$(srcdir)/'`$(srcdir)/../src/util-lib.c
-
-libvirtd-util-lib.obj: $(srcdir)/../src/util-lib.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-util-lib.obj -MD -MP -MF $(DEPDIR)/libvirtd-util-lib.Tpo -c -o libvirtd-util-lib.obj `if test -f '$(srcdir)/../src/util-lib.c'; then $(CYGPATH_W) '$(srcdir)/../src/util-lib.c'; else $(CYGPATH_W) '$(srcdir)/$(srcdir)/../src/util-lib.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libvirtd-util-lib.Tpo $(DEPDIR)/libvirtd-util-lib.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$(srcdir)/../src/util-lib.c' object='libvirtd-util-lib.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-util-lib.obj `if test -f '$(srcdir)/../src/util-lib.c'; then $(CYGPATH_W) '$(srcdir)/../src/util-lib.c'; else $(CYGPATH_W) '$(srcdir)/$(srcdir)/../src/util-lib.c'; fi`
 
 libvirtd-mdns.o: mdns.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-mdns.o -MD -MP -MF $(DEPDIR)/libvirtd-mdns.Tpo -c -o libvirtd-mdns.o `test -f 'mdns.c' || echo '$(srcdir)/'`mdns.c
@@ -1075,15 +1175,18 @@ uninstall-am: uninstall-augeasDATA uninstall-augeastestsDATA \
 	uninstall-sbinPROGRAMS
 
 @RPCGEN_TRUE@.x.c:
-@RPCGEN_TRUE@	rm -f $@
-@RPCGEN_TRUE@	rpcgen -c -o $@ $<
-@GLIBC_RPCGEN_TRUE@@RPCGEN_TRUE@	mv $@ $@.bak
-@GLIBC_RPCGEN_TRUE@@RPCGEN_TRUE@	perl -w rpcgen_fix.pl < $@.bak > $@
+@RPCGEN_TRUE@	rm -f $@ $@-t $@-t2
+@RPCGEN_TRUE@	rpcgen -c -o $@-t $<
+@GLIBC_RPCGEN_TRUE@@RPCGEN_TRUE@	perl -w rpcgen_fix.pl $@-t > $@-t2
+@GLIBC_RPCGEN_TRUE@@RPCGEN_TRUE@	chmod 444 $@-t2
+@GLIBC_RPCGEN_TRUE@@RPCGEN_TRUE@	mv $@-t2 $@
 
 @RPCGEN_TRUE@.x.h:
-@RPCGEN_TRUE@	rm -f $@
-@RPCGEN_TRUE@	rpcgen -h -o $@ $<
-@GLIBC_RPCGEN_TRUE@@RPCGEN_TRUE@	perl -i -p -e 's/\t/        /g' $@
+@RPCGEN_TRUE@	rm -f $@ $@-t
+@RPCGEN_TRUE@	rpcgen -h -o $@-t $<
+@GLIBC_RPCGEN_TRUE@@RPCGEN_TRUE@	perl -pi -e 's/\t/        /g' $@-t
+@GLIBC_RPCGEN_TRUE@@RPCGEN_TRUE@	chmod 444 $@-t
+@GLIBC_RPCGEN_TRUE@@RPCGEN_TRUE@	mv $@-t $@
 
 remote_protocol.c: remote_protocol.h
 @WITH_LIBVIRTD_TRUE@install-data-local: install-init install-data-sasl install-data-polkit
@@ -1119,7 +1222,7 @@ remote_protocol.c: remote_protocol.h
 
 @HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@install-data-polkit:: install-init
 @HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(policydir)
-@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) libvirtd.policy $(DESTDIR)$(policydir)/org.libvirt.unix.policy
+@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) $(srcdir)/libvirtd.policy $(DESTDIR)$(policydir)/org.libvirt.unix.policy
 @HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@uninstall-data-polkit:: install-init
 @HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@	rm -f $(DESTDIR)$(policydir)/org.libvirt.unix.policy
 @HAVE_POLKIT_FALSE@@WITH_LIBVIRTD_TRUE@install-data-polkit::

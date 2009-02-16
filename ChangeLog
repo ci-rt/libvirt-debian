@@ -1,3 +1,1532 @@
+Thu Dec  4 16:51:41 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/libvirt_sym.version.in configure.in NEWS docs/*: release
+	  of 0.5.1
+	* po/*: updated and regenerated
+
+Thu Dec  4 16:20:20 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/storage_conf.c: fix crash and regression when defining
+	  a storage volume without a format (Cole Robinson)
+
+Thu Dec  4 09:45:00 EST 2008 Cole Robinson <crobinso@redhat.com>
+
+	* docs/formatstorage.html.in docs/storage.html.in : Fix some
+	documentation copy and paste errors.
+	* src/virsh.c : Fix a typo
+
+Thu Dec  4 09:42:00 EST 2008 Cole Robinson <crobinso@redhat.com>
+
+	* src/qemu_driver.c: Increase timeout for initial monitor poll
+
+Thu Dec  4 15:36:42 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/bridge.c: patch setting MTU on tap interface to be the same
+	  as the value for the bridge (Eduardo Habkost)
+
+Thu 4 Dec 2008 12:46:01 CET Guido Günther <agx@sigxcpu.org>
+
+	Differentiate between active and inactive configs by honoring the
+	VIR_DOMAIN_XML_INACTIVE flag.
+	* src/domain_conf.c (virDomainDefParseXML): add and pass on flags arg
+	(virDomainDefParseFile): Likewise
+	(virDomainDefParseNode): Likewise
+	(virDomainGraphicsDefParseXML): Likewise
+	* src/domain_conf.c (virDomainDefParseXML): only restore domain id if
+	!VIR_DOMAIN_XML_INACTIVE
+	* src/domain_conf. (virDomainGraphicsDefParseXML): only restore vnc
+	port if !VIR_DOMAIN_XML_INACTIVE
+	* src/lxc_driver.c (lxcStartup): pass 0 flag since we restore life
+	config
+	* src/lxc_controller.c: pass VIR_DOMAIN_XML_INACTIVE
+	* src/test.c: pass VIR_DOMAIN_XML_INACTIVE
+	* tests/qemuxml2argvtest.c: pass VIR_DOMAIN_XML_INACTIVE
+
+Thu 4 Dec 2008 11:41:12 CET Guido Günther <agx@sigxcpu.org>
+
+	* src/qemu_driver.c: also look for /usr/bin/kvm
+
+Tue 2 Dec 2008 16:58:16 +0100 Jim Meyering <meyering@redhat.com>
+
+	fix inadequate initialization in storage and test drivers
+	* src/storage_driver.c (storageListPools): Set all "names" entries to 0.
+	(storageListDefinedPools, storagePoolListVolumes): Likewise.
+	* src/test.c (testStoragePoolListVolumes): Likewise.
+
+Tue Dec 2 13:45:00 CET 2008 Chris Lalancette <clalance@redhat.com>
+	* configure.in, src/storage_backend.c: Older distributions (i.e.
+	RHEL-5) don't have udevadm at all, but they do have udevsettle.  So
+	change our tests to prefer udevadm if it exists, but to fall back to
+	udevsettle if it does not.
+
+Tue Dec 2 11:34:22 GMT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* qemud/qemud.c: Registering network, storage & nodedev drivers
+	before any domain drivers, so domain autostart can rely on
+	network/storage autostarted objects. Patch from Gerd von Egidy
+
+Tue Dec 2 11:21:22 GMT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/uml_driver.c: Fix recording of watch number to make
+	inotify actually work.
+
+Mon Dec 1 16:01:54 +0100 2008 Jim Meyering <meyering@redhat.com>
+
+	tests: daemon-conf: accommodate numeric-valued config params
+	This test would hang when failing to perturb the soon-to-be-
+	added numeric (and non-boolean) valued parameters, max_clients,
+	max_workers, min_workers.
+	* tests/daemon-conf: Require that all commented-out settings
+	in libvirtd.conf have the same form.  Before, two parameters
+	were not being tested, since a space had snuck between the
+	leading "#" and the "param = value" parts.
+	Apply each RHS-value-perturbing transformation
+	separately, not in series.
+	Let VERBOSE=yes turn on debugging.
+	Be more verbose by default, since this is a relatively
+	long-running test.
+	* qemud/libvirtd.conf: Normalize the spacing around each setting
+	that is to be perturbed by tests/daemon-conf.
+
+Mon Dec 1 10:30:10 +0100 2008 Jim Meyering <meyering@redhat.com>
+
+	uml: don't free an uninitialized variable
+	* src/uml_driver.c (umlDomainShutdown): Initialize "info".
+	Patch and bug report from Ron Yorston <rmy@tigress.co.uk>.
+
+Sun Nov 30 18:36:33 GMT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/xen_inotify.c: Close directory handle once done
+	processing files
+
+Fri Nov 28 16:16:54 CET 2008 Guido Günther <agx@sigxcpu.org>
+
+	Prefer xenstore driver for listDomains, since xen HV reports ghost ids
+	of already shutdown domains in some xen versions
+	* src/proxy_internal.c, src/proxy_internal.h: declare
+	xenProxyListDomains non static
+	* src/xend_internal.c, src/xend_internal.h: declare
+	xenDaemonListDomains non static
+	* src/xen_unified.c: prefer xenStoreListDomains over
+	xenHypervisorListDomains for xenUnifiedListDomains
+
+Fri Nov 28 11:58:40 GMT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	Allow generic remote://hostname/ URI for automatic probe
+	of hypervisor driver.
+	* docs/uri.html, docs/uri.html.in: Document remote://hostname/ style
+	URI syntax
+	* src/driver.h: Remove version field
+	* src/libvirt.c: Directly impl virGetVersion() instead of calling out
+	to individual drivers
+	* src/lxc_driver.c, src/openvz_driver.c, src/qemu_driver.c,
+	src/remote_internal.h, src/test.c, src/uml_driver.c,
+	src/xen_unified.c, src/xen_unified.h: Remove version from
+	driver tables.
+	* src/remote_internal.c: Allow 'remote' as a URI scheme for
+	automatically probing on remote server
+
+Fri Nov 28 11:21:40 GMT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	Fix XM driver disk parsing with no source CDROMs
+	* src/domain_conf.c: Translate "" into NULL for disk source
+	path to deal with broken apps
+	* src/xm_internal.c: Fix disk source parsing to work with
+	no-source disk definitions (eg CDROM without media)
+	* tests/xmconfigdata/test-no-source-cdrom.cfg,
+	tests/xmconfigdata/test-no-source-cdrom.xml,
+	tests/xmconfigtest.c: Add test case for no-src CDROM
+
+Fri Nov 28 11:17:40 GMT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* libvirt.spec.in: Add missing numa-ctl BuildRequires
+	* qemud/Makefile.am: Fix libvirtd_DEPENDANCIES to include all libs
+	* src/qemu_conf.c, src/qemu_driver.c, src/uml_conf.c,
+	src/uml_driver.c: Define NUMA_VERSION1_COMPATIBILITY and
+	fix size of array used to get node mapping
+
+Fri Nov 28 08:40:00 CET 2008 Chris Lalancette <clalance@redhat.com>
+	* src/storage_backend.c: Wait up to 5 seconds for
+	/dev/disk/by-{id,path} to exist in virStorageBackendStablePath
+
+Thu Nov 27 17:15:10 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/xen_unified.c: use preferably xend method to update
+	  the maximum memory of a xen guest (Jim Fehlig)
+
+Wed Nov 26 15:46:07 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* libvirt.spec.in: cleanups and missing dep for hal
+
+Tue Nov 25 16:29:09 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* configure.in docs/* NEWS: release of 0.5.0
+	* po/*: updated from the translators and merged
+	* docs/apibuild.py src/libvirt.c: avoid some warnings at doc
+	  generation time
+
+Tue Nov 25 16:34:10 +0100 2008 Jim Meyering <meyering@redhat.com>
+
+	* configure.in: avoid the following diagnostic when running ../configure
+	cp: cannot stat `COPYING.LIB': No such file or directory
+
+	don't silently skip a test
+	* tests/Makefile.am (EXTRA_DIST): Distribute domainschemadata/.
+	* tests/domainschematest: Fail the test if find invocation fails.
+
+Tue Nov 25 11:27:40 GMT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* mingw32-libvirt.spec.in: Disable UML driver for mingw build
+
+Tue Nov 25 11:17:40 GMT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/xm_internal.c: Add missing _(...) calls to diagnostics
+
+Tue Nov 25 10:49:40 GMT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/Makefile.am: Remove unneccessary $(builddir) usage which
+	breaks on older automake. Remove duplicate CFLAGS from merge
+	error
+	* src/xen_unified.c: Wire up XM driver for autostart
+	* src/xm_internal.h, src/xm_internal.c: Implement domain
+	autostart functions for /etc/xen/auto
+
+Tue Nov 25 10:43:40 GMT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	Xen domain lifecycle events (Ben Guthro & Daniel Berrange)
+	* configure.in: Probe for inotify availability
+	* examples/domain-events/events-c/event-test.c: Default to NULL
+	connection URI to allow probing
+	* include/libvirt/virterror.h, src/virterror.c: Add error code
+	for xen inotify driver
+	* po/POTFILES.in: Add xen_inotify.c
+	* python/libvir.c: Add bogus const cast for python2.4 brokeness
+	* src/Makefile.am: Add xen_inotify.c
+	* src/util.c: Fix file descriptor leak in virRun
+	* src/xen_inotify.c, src/xen_inotify.h: Monitor /etc/xen and
+	/var/lib/xen/domains for new/old configs
+	* src/xen_unified.c, src/xen_unified.h: Wire in inotify driver
+	for events
+	* src/xm_internal.c, src/xm_internal.h: Refactor to allow inotify
+	monitoring of config files
+	* src/xs_internal.c, src/xs_internal.h: Use xenstore watch to
+	check for domain start/destroy events
+
+Tue Nov 25 10:36:40 GMT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/node_device_conf.c, src/node_device_conf.h,
+	src/node_device_devkit.c, src/node_device_hal.c: Change
+	'interface' to 'ifname' in struct to avoid clash with
+	symbols in MinGW/Win32 headers
+
+Tue Nov 25 11:29:19 +0100 2008 Jim Meyering <meyering@redhat.com>
+
+	* src/virterror.c (virReportErrorHelper): Sync doc to code.
+
+	libvirt.c: document the virState* functions
+	* src/libvirt.c (virStateActive, virStateCleanup, virStateReload):
+	(virStateActive): Add per-function comments.
+
+Mon Nov 24 19:32:40 GMT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/openvz_conf.c, src/openvz_conf.h, src/openvz_driver.c:
+	Default vCPUs to equal host pCPU count if not set in config
+	(patch from Evgeniy Sokolov)
+
+Mon Nov 24 19:27:40 GMT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* examples/domain-events/events-python/event-test.py,
+	python/libvir.c, python/libvir.py, python/libvirt_wrap.h,
+	python/types.c, python/virConnect.py: Fixes to python
+	bindings for changes in public event API (David Lively)
+
+Mon Nov 24 19:22:40 GMT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* tests/Makefile.am, tests/sexpr2xmltest.c,
+	tests/testutilsxen.c, tests/xencapstest.c,
+	tests/xmconfigtest.c, tests/xml2sexprtest.c: Disable all
+	Xen tests when Xen driver build is disabled. Remove unneccessary
+	WITH_XEN conditionals from source, since the entire build
+	is disabled in Makefile.am
+
+Mon Nov 24 16:49:40 GMT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* autobuild.sh: Disable UML driver on mingw32 biuld
+
+Mon Nov 24 16:01:40 CET 2008 Guido Günther <agx@sigxcpu.org>
+
+	* src/Makefile.am: look for libvirt_sym.version in builddir
+
+Mon Nov 24 08:10:49 +0100 2008 Jim Meyering <meyering@redhat.com>
+
+	tests: new test: virsh-synopsis
+	* tests/virsh-synopsis: new file
+	* tests/Makefile.am (test_scripts): Add virsh-synopsis.
+	* src/virsh.c: Correct help SYNOPSIS for each of seven commands.
+
+	tests: virsh-all: new script
+	* tests/virsh-all: New script.
+	* tests/Makefile.am (test_scripts): Add virsh-all.
+
+	Move the expected output data from virshdata/*.txt into virshtest.c.
+	* tests/virshtest.c: Embed literal, expected output here, rather than
+	using virshdata/*.txt file names.
+	Factor out some common constructs.
+	(testCompareOutputLit): New function.
+	(testCompareOutput): #ifdef-out, not that it's unused.
+	* tests/Makefile.am (SUBDIRS): Remove virshdata/ and all files in it.
+	* docs/testnode.xml: Fix typo in a comment.
+	* configure.in (AC_OUTPUT): Remove tests/virshdata/Makefile.
+
+Fri Nov 21 23:51:19 +0100 2008 Jim Meyering <meyering@redhat.com>
+
+	* gnulib/tests/test-EOVERFLOW: Remove.
+	* gnulib/tests/.cvsignore: Add test-EOVERFLOW, then...
+	Run "make sync-vcs-ignore-files" to Update .gitignore files.
+
+Fri Nov 21 12:54:14 BST 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* docs/*.html: Re-generate website docs for sitemap change
+	with UML driver. Fix syntax error in HTML for news.html.in
+
+Fri Nov 21 12:51:14 BST 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* libvirt-api.xml, libvirt-refs.xml, html/libvirt-libvirt.html,
+	html/libvirt-virterror.html: Regenerate for new APIs
+
+Fri Nov 21 12:46:14 BST 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	Misc tweaks to node device impl
+	* src/libvirt.c: Log registration of new node device driver impls
+	* src/node_device_conf.h, src/node_device.c: Merge block capability
+	into storage. Print vendor/product IDs in hex
+	* src/node_device_devkit.c: Change block to storage
+	* src/node_device_hal.c: Merge block cap into storage. Skip
+	devices without any capabilities listed
+	* src/virsh.c: Sort device list alphabetically
+
+Fri Nov 21 12:40:14 BST 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	Python binding for node device APIs (David Lively)
+	* python/generator.py, python/libvir.c, python/libvirt-python-api.xml,
+	python/libvirt_wrap.h, python/types.c: Bindings for node device APis
+
+Fri Nov 21 12:38:14 BST 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	Node device support in virsh (David Lively)
+	* src/virsh.c: Add nodedev-list and nodedev-dumpxml commands
+
+Fri Nov 21 12:30:14 BST 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	Remote protocol support for node devices (David Lively)
+	* src/remote_internal.c: driver impl for node device APIs
+	* qemud/remote_protocol.x: Define wire protocol for node device
+	APIs
+	* qemud/remote_dispatch*, qemud/remote_protocol.{c,h}: Update
+	for new APIs
+	* qemud/remote.c: server dispatch functions for node device
+	APIs
+
+Fri Nov 21 12:23:14 BST 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	Primary internal driver for node devices with HAL (default)
+	and DeviceKit (optional, unfinished) (David Lively)
+	* configure.in: Probe for HAL & DeviceKit libraries
+	* po/POTFILES.in: Add new source files
+	* qemud/Makefile.am: Link to node device driver
+	* qemud/qemud.c: Load node device driver implementation
+	* src/Makefile.am: Buid node device drivers
+	* src/libvirt_sym.version.in: Export internal symbols needed
+	by node device driver
+	* src/node_device.c, src/node_device.h: Common driver
+	routines
+	* src/node_device_hal.c: HAL specific device routines
+	* src/node_device_devkit.c: DeviceKit specific routines
+	* src/node_device_conf.h: Add dbusWatch handle field
+
+Fri Nov 21 12:20:14 BST 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/Makefile.am, src/node_device_conf.c, src/node_device_conf.h:
+	Internal APIs for handling node device XML configuration
+	(David Lively)
+
+Fri Nov 21 12:19:14 BST 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	Public API for node device enumeration (David Lively)
+	* include/libvirt/libvirt.h.in, include/libvirt/virterror.h:
+	New public APIs for node device enumeration
+	* src/datatypes.c, src/datatypes.h: Internal impl of public
+	data types for node devices
+	* src/driver.h, src/libvirt.c: Stubs for node device APIs
+	* src/libvirt_sym.version.in: Export new node device API
+	symbols
+	* src/virterror.c: Error codes for node device drivers
+
+Fri Nov 21 12:03:14 BST 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	Optional (disabled by default) dlopen support
+	* configure.in: Probe for dlopen
+	* qemud/Makefile.am: Don't link to drivers when dlopen is used
+	* qemud/qemud.c: Load external driver modules at startup
+	* src/Makefile.am: Don't link to drivers when dlopen is used
+	* src/driver.c, src/driver.h: Add API for dlopen'ing modules
+	* src/libvirt.c: Load external driver modules at startup
+	* src/libvirt_sym.version.in: Export more internal symbols
+	needed for external driver modules
+	* src/qemud_driver.c, src/qemu_driver.h, src/xen_unified.c,
+	src/xen_unified.h: Sanitize driver registration methodname
+	to match module name
+	* tests/Makefile.am: Set LIBVIRT_DRIVER_DIR when running
+	tests with dlopen enabled. Link to driver modules in Xen
+	test cases
+	* tests/testutils.c: Set LIBVIRT_DRIVER_DIR when running
+	external programs
+	* tests/xmconfigtest.c: Don't open test driver during xen
+	tests.
+
+Fri Nov 21 11:43:14 BST 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/libvirt_sym.version.in: Add export of domain event
+	API virDomainEventCallbackListRemoveConn missed from earlier
+	commit
+
+Fri Nov 21 11:37:14 BST 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/domain_conf.c: Fix two memory leaks in virDomainLoadConfig
+	* src/lxc_driver.c: Fix leak of capabilities object in driver
+	shutdown code
+
+Fri Nov 21 10:20:14 BST 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/remote_internal.c: Return VIR_NO_SUPPORT if requested
+	to register event callbacks when no eventloop is present.
+	Deal with failure to register handles/timers correctly.
+	(David Lively)
+
+Fri Nov 21 10:14:14 BST 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	Fix crash due to failure to unregister event callbacks on
+	connection close (David Lively)
+	* src/domain_event.c, src/domain_event.h: Helper for unregistering
+	all callbacks
+	* src/qemu_driver.c: Unregister all callbacks on connection close
+
+Fri Nov 21 10:10:14 BST 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/Makefile.am: Include Xen compile flags for libvirt_driver.la
+	build for stats_linux.c code.
+
+Fri Nov 21 10:07:14 BST 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* libvirt.spec.in: Add conditional to allow UML driver to be
+	disabled (Ben Guthro)
+
+Fri Nov 21 11:05:14 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* po/POTFILES.in src/uml_conf.h src/uml_driver.c: fixes syntax
+	  check errors, reported by Ben Guthro
+
+Thu Nov 20 14:31:00 GMT 2008 Daniel Berrange <berrange@redhat.com>
+
+	* src/remote_internal.c: Avoid crash on NULL URI scheme
+
+Wed Nov 19 16:51:00 GMT 2008 Daniel Berrange <berrange@redhat.com>
+
+	Add User Mode Linux driver
+	* src/uml_driver.c, src/uml_driver.h, src/uml_conf.c,
+	src/uml_conf.h: Core UML driver code
+	* src/domain_conf.c, src/domain_conf.h: Add UML disk
+	bus type. Fix paravirt console handling for non-HVM domains
+	* src/driver.h: Add UML driver number
+	* src/virterror.h: Add error code for UML driver
+	* src/qemu_conf.c: Add disk bus enum entry for UML
+	* src/Makefile.am: Build UML driver
+	* qemud/qemud.c: Initialize UML driver
+	* qemud/Makefile.am: Link to UML driver library
+	* docs/drvuml.html.in: Basic docs for the UML driver
+	* configure.in: Flag for enabling UML driver
+	* include/libvirt/virterror.h: Add constant for UML driver
+
+Wed Nov 19 16:22:00 GMT 2008 Daniel Berrange <berrange@redhat.com>
+
+	Add virFreeCallback to event loop APIs.
+	* include/libvirt/libvirt.h.in: Add a virFreeCallback arg
+	to the virEventAddHandle and virEventAddTimeout methods.
+	* qemud/event.c: Invoke the virFreeCallback when releasing
+	a handle/timer event
+	* qemud/event.h, qemud/qemud.c, qemud/mdns.c,
+	src/event.h, src/event.c, src/lxc_driver.c,
+	src/qemu_driver.c, src/remote_internal.c: Update to pass
+	around the virFreeCallback where needed
+
+Wed Nov 19 16:15:00 GMT 2008 Daniel Berrange <berrange@redhat.com>
+
+	* include/libvirt/libvirt.h.in: Change semantics of AddHandle
+	to allow for same FD to be registered more than once with
+	varying flags.
+	* qemud/event.c, qemud/event.h, qemud/mdns.c, qemud/qemud.c,
+	qemud/qemud.h, src/domain_conf.h, src/event.c, src/event.h,
+	src/lxc_driver.c, src/qemu_driver.c, src/remote_internal.c:
+	Update to track file handle events via the watch number
+	as per new public API contract
+
+Wed Nov 19 15:25:00 GMT 2008 Daniel Berrange <berrange@redhat.com>
+
+	Add a callback for freeing the user data for callbacks
+	(patch from David Lively)
+	* include/libvirt/libvirt.h.in: Add a virFreeCallback type
+	and add it to virDomainEventRegister
+	* qemud/remote.c, src/domain_event.h, src/domain_event.c,
+	src/driver.h, src/qemu_driver.c, src/remote_internal.c,
+	python/libvirt.c: Update to call the virFreeCallback where
+	needed
+	* examples/domain-events/events-c/event-test.c: use the
+	virFreeCallback for releasing data
+
+Mon Nov 18 12:24:00 GMT 2008 Daniel Berrange <berrange@redhat.com>
+
+	* src/Makefile.am: Fix build on MinGW where linker flags
+	must be listed in LDFLAGS variable
+	* tests/Makefile.am: Fix build when QEMU is disabled, by
+	skipping QEMU tests
+
+Mon Nov 17 16:45:00 GMT 2008 Daniel Berrange <berrange@redhat.com>
+
+	Generate domain events for QEMU driver config files
+	* src/qemu_driver.c: Generate events when config is defined
+	and undefined
+	* src/domain_conf.c, src/domain_conf.h: Add a callback for
+	notifications of each loaded config file
+	* src/lxc_driver.c: Pass NULL for config file notification
+	callback parameter
+
+Mon Nov 17 16:42:00 GMT 2008 Daniel Berrange <berrange@redhat.com>
+
+	Include an event 'detail' field providing the cause of
+	each emitted domain event.
+	* docs/ Re-generate API refernece
+	* examples/domain-events/events-c/event-test.c: Print out
+	event detail info
+	* include/libvirt/libvirt.h.in: Rename ADDED/REMOVED events
+	to DEFINED/UNDEFINED. Remove SAVED/RESTORED events replaced
+	by event detail info. Add enums providing details for each
+	domain event type.
+	* python/libvir.c: Pass through event detail to python layer
+	* qemud/remote_protocol.x: Add event detail field for domain
+	events.
+	* qemud/remote_protocol.c, qemud/remote_protocol.h: Regenerate
+	* qemud/remote.c: Pass event detail value onto the wire
+	* src/domain_event.h, src/domain_event.c: Store event detail
+	* src/remote_internal.c: De-serialize event detail off the
+	wire
+	* src/qemu_driver.c: Generate event detail information, and
+	fix migration API to honour VIR_MIGRATE_LIVE flag, pausing
+	the VM if it isn't set
+
+Mon Nov 17 11:57:00 GMT 2008 Daniel Berrange <berrange@redhat.com>
+
+	Push stateful driver code into daemon binary
+	* src/Makefile.am: Don't build QEMU, LXC, Network & Storage
+	drivers into libvirt.so
+	* src/libvirt.c: Don't call into QEMU, LXC, network & storage
+	driver register methods
+	* src/libvirt_sym.version.in: Export a bunch of internal
+	symbols to libvirtd for use by drivers
+	* tests/Makefile.am: Link to driver modules which are not
+	in libvirt.so
+	* qemud/Makefile.am: Directly link to QEMU, LXC, network
+	and storage drivers
+	* qemud/qemud.c: Initialize QEMU, LXC, network & storage
+	drivers at startup
+
+Mon Nov 17 11:40:00 GMT 2008 Daniel Berrange <berrange@redhat.com>
+
+	Push URI probing down into individual drivers' open methods
+	* qemud/remote.c: Implement virConnectGetURI dispatcher
+	* qemud/remote_protocol.x: Add API definition for virConnectGetURI
+	* qemud/remote_dispatch_localvars.h, qemud/remote_dispatch_proc_switch.h,
+	qemud/remote_dispatch_prototypes.h, qemud/remote_protocol.c,
+	qemud/remote_protocol.h: Re-generate from protocol definition
+	* src/datatypes.c, src/datatypes.h: Store connection name as a
+	xmlURIPtr object instead of char *
+	* src/driver.h: Remove explicit URI parameter to open function
+	* src/libvirt.c: Delegrate URI probing into drivers
+	* src/lxc_driver.c, src/network_driver.c, src/openvz_driver.c,
+	src/proxy_internal.c, src/qemu_driver.c, src/remote_internal.c,
+	src/storage_driver.c, src/test.c, src/xen_internal.c,
+	src/xen_internal.h, src/xen_unified.c, src/xend_internal.c,
+	src/xend_internal.h, src/xm_internal.c, src/xm_internal.h,
+	src/xs_internal.c, src/xs_internal.h: Refactor open driver
+	methods to deal with automatic URI probing as required
+	* proxy/libvirt_proxy.c: Remove extra args to xs/xen driver
+	open calls
+
+Mon Nov 17 11:19:00 GMT 2008 Daniel Berrange <berrange@redhat.com>
+
+	Refactor storage backend to remove dependancy from
+	storage config parser.
+	* src/Makefile.am: Build storage_backend as part of storage
+	driver instead of general config
+	* src/storage_backend.c, src/storage_backend.h,
+	src/storage_backend_disk.c, src/storage_backend_fs.c,
+	src/storage_backend_iscsi.c, src/storage_backend_logical.c,
+	src/storage_conf.c, src/storage_conf.h, src/storage_driver.c:
+	Move per-pool type parser options & format enums into the
+	main storage_conf.c file, so parser is independant of the
+	backend impl code.
+
+Mon Nov 17 10:50:00 GMT 2008 Daniel Berrange <berrange@redhat.com>
+
+	Switch to fully versioned linker script for exported ABI
+	* configure.in: Generate src/libvirt_sym.version
+	* qemud/Makefile.am: Remove use of util-lib.c
+	* qemud/remote.c: Remove underscore in migrate API calls
+	* src/.cvsignore: Ignore generated libvirt_sym.version
+	* src/Makefile.am: Remove util-lib.c and util-lib.h
+	* src/buf.c, src/buf.h, src/conf.c, src/conf.h, src/console.c,
+	src/datatypes.c, src/datatypes.h, src/driver.h, src/libvirt.c,
+	src/libvirt_internal.h, src/memory.c, src/memory.h, src/virsh.c:
+	Remove use of __ prefix on all exported methods
+	* src/util.c, src/util.h: Re-add saferead/write APIs
+	* src/util-lib.c, src/util-lib.h: Remove obsolete files
+	* src/libvirt_sym.version: Remove obsolete file
+	* src/libvirt_sym.version.in: Master template for symbol
+	versioning data
+
+Mon Nov 17 10:43:00 GMT 2008 Daniel Berrange <berrange@redhat.com>
+
+	* src/Makefile.am: Build drivers as libtool convenience libs
+
+Mon Nov 17 10:23:00 GMT 2008 Daniel Berrange <berrange@redhat.com>
+
+	* docs/libvirt-api.xml: Re-generate
+	* include/libvirt/libvirt.h.in: Set explicit values for
+	domain events enums to avoid API generator bug
+	* python/libvir.c: Add missing python thread safety calls
+	to domain events APIs
+
+Mon Nov 17 09:55:00 GMT 2008 Daniel Berrange <berrange@redhat.com>
+
+	* src/openvz_conf.c: Fix updating of config file params
+	(Evgeniy Sokolov)
+
+Fri Nov 14 09:40:00 EST 2008 Cole Robinson <crobinso@redhat.com>
+
+	* src/storage_backend_logical.c: Use different separator for lvs
+	command to unbreak parsing for encrypted devices.
+
+Fri Nov 14 13:22:36 +0100 2008 Jim Meyering <meyering@redhat.com>
+
+	avoid format string warnings
+	* src/openvz_driver.c (ADD_ARG_LIT): Add "%s" arg before _(...).
+	* src/qemu_driver.c (PCI_ATTACH_OK_MSG): Likewise.
+	* src/util.c (virExec, virRun): Likewise.
+
+Fri Nov 14 09:38:22 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* qemud/remote.c qemud/remote_dispatch_localvars.h
+	  qemud/remote_dispatch_proc_switch.h qemud/remote_dispatch_prototypes.h
+	  qemud/remote_protocol.c qemud/remote_protocol.h
+	  qemud/remote_protocol.x src/driver.h src/libvirt.c
+	  src/libvirt_internal.h src/libvirt_sym.version src/lxc_driver.c
+	  src/openvz_driver.c src/qemu_conf.h src/qemu_driver.c
+	  src/remote_internal.c src/test.c src/virsh.c: large patch to
+	  add migration support for KVM/QEmu, based on the work of Rich Jones
+	  and Chris Lalancette. This introduce a new version of the prepare
+	  and finish steps of the migration, so changes the driver API and
+	  a lot of code.
+
+Wed Nov 12 16:33:42 GMT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* docs/drvopenvz.html, docs/drvopenvz.html.in: Introductory
+	docs for openvz driver
+	* src/openvz_conf.c, src/openvz_conf.h, src/openvz_driver.c:
+	Support bridged network configuration for containers
+
+Wed Nov 12 16:13:42 GMT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/storage_backend.c, src/storage_backend.h, src/storage_driver.c:
+	Revert previous patch which breaks "test" driver's storage APIs.
+
+Tue Nov 11 15:51:42 GMT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/storage_backend.c, src/storage_backend.h, src/storage_driver.c:
+	Decouple backend impls from generic backend code, by making driver
+	register backends at startup
+
+Mon Nov 10 12:05:42 GMT 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/openvz_conf.c: Read filesytem template name from config
+	files. Increase buffer size when parsing vzctl version number
+
+Thu Nov  6 20:45:42 CET 2008 Jim Meyering <meyering@redhat.com>
+
+	tweak lstat.c to avoid mingw link failure
+	* gnulib/lib/lstat.c: Include <sys/stat.h> *before* the use of stat in
+	orig_stat.  Otherwise, on mingw (which lacks lstat), any program using
+	the lstat module would not get the redefinition-to-stat provided by
+	gnulib's sys/stat.h.  Reported by Daniel P. Berrange.
+
+	mark a few diagnostics for translation
+	* src/lxc_conf.c (lxcLoadDriverConfig): Mark a diagnostic.
+	* src/lxc_driver.c (lxcDomainStart): Likewise.
+	* po/POTFILES.in: Add src/lxc_conf.c.
+	* Makefile.maint (msg_gen_function): Add virReportErrorHelper
+	and lxcError.
+
+	always compile iptables.c
+	Avoid a build error when configuring --without-xen --without-qemu.
+	* src/iptables.c [WITH_QEMU]: Don't #ifdef-out.
+	* src/iptables.h [WITH_QEMU]: Don't #ifdef-out.
+	* src/util.c (virRun) [__MINGW32__]: Define a stub that always fails.
+
+Thu Nov  6 17:33:34 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/logging.c src/logging.h proxy/Makefile.am proxy/libvirt_proxy.c
+	  src/Makefile.am src/cgroup.c src/datatypes.c src/domain_event.c
+	  src/internal.h src/libvirt.c src/lxc_container.c src/lxc_controller.c
+	  src/lxc_driver.c src/proxy_internal.c src/qemu_driver.c
+	  src/remote_internal.c src/storage_backend_disk.c src/util.c
+	  src/veth.c src/xen_internal.c src/xen_unified.c src/xend_internal.c:
+	  add new logging module, and move existing definitions there
+
+Wed Nov  5 13:56:00 EST 2008 Cole Robinson <crobinso@redhat.com>
+
+	* src/util.c: Log stdout and stderr in virRun
+
+Wed Nov  5 13:39:00 EST 2008 Cole Robinson <crobinso@redhat.com>
+
+	* src/util.c: Log the argv passed to virExec and virRun
+
+Wed Nov  5 13:19:00 EST 2008 Cole Robinson <crobinso@redhat.com>
+
+	* src/iptables.c, src/util.c, src/util.h: Move local argvToString to
+	virArgvToString.
+
+Wed Nov  5 15:22:12 CET 2008 Jim Meyering <meyering@redhat.com>
+
+	plug two leaks and fix a diagnostic
+	* src/qemu_conf.c (qemudLoadDriverConfig): Don't leak ->vncListen.
+	Fix an erroneous copy-and-pasted diagnostic.
+	* src/qemu_driver.c (qemudShutdown): Don't leak another ->vncListen.
+
+Wed Nov  5 12:41:00 CET 2008 Chris Lalancette <clalance@redhat.com>
+
+	* configure.in, src/storage_backend_logical.c: Call vgscan before
+	attempting to scan logical volumes.  This makes sure we've "touched"
+	any logical volumes, so they appear in the subsequent "pvs" call.
+
+Tue Nov  4 23:33:31 UTC 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* configure.in: Set WITH_XXXX conditionals for drivers in
+	config.h instead of compiler args, and auto-disable stateful
+	drivers if daemon is disabled
+	* src/libvirt.c: Remove now redundant WITH_LIBVIRTD condition
+	* tests/Makefile.am, src/Makefile.am, qemud/Makefile.am: Remove
+	LIBVIRT_FEATURES args, now set via config.h instead. Add
+	explicit XEN_LIBS/CFLAGS instead of relying on setting via
+	global flags.
+
+Tue Nov  4 23:33:31 UTC 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	Move domain events helpers into domain_events.c
+	* qemud/event.c: Remove __ prefix on poll event
+	convertors
+	* qemud/event.h: Add virEventHandleTypeToPollEvent and
+	virPollEventToEventHandleType declarations
+	* src/Makefile.am, src/domain_event.c, src/domain_event.h:
+	Add dedicated file for internal domain events helpers
+	* src/internal.h, src/libvirt.c: Remove domain events
+	helpers
+	* src/qemu_conf.h, src/remote_internal.c: Add includs
+	of domain_event.h
+
+Tue Nov  4 23:08:31 UTC 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	Move internal API declarations from generic internal.h file
+	* src/Makefile.am, src/datatypes.c, src/datatypes.h: Add
+	internal struct definitions for public objects, and helper
+	methods.
+	* src/hash.c: Remove helper methods for public objects
+	* src/libvirt_internal.h: Add definition of semi-secret
+	public APIs for migration & stateful drivers.
+	* src/internal.h: Remove internal API declarations for
+	migration & stateful drivers.
+	* po/POTFILES.in, proxy/libvirt_proxy.c, qemud/qemud.c,
+	qemud/remote.c, src/domain_conf.c, src/domain_conf.h,
+	src/driver.h, src/libvirt.c, src/lxc_driver.c,
+	src/network_conf.c, src/network_conf.h, src/network_driver.c,
+	src/openvz_driver.c, src/proxy_internal.c,
+	src/proxy_internal.h, src/qemu_driver.c, src/qparams.c,
+	src/remote_internal.c, src/stats_linux.c, src/storage_conf.c,
+	src/storage_conf.h, src/storage_driver.c, src/test.c,
+	src/uuid.c, src/veth.c, src/virterror.c, src/xen_internal.c,
+	src/xen_internal.h, src/xen_unified.c, src/xen_unified.h,
+	src/xend_internal.c, src/xend_internal.h, src/xm_internal.c,
+	src/xs_internal.c, tests/xmconfigtest.c: Add includes for
+	libvirt_internal.h and datatypes.h where required
+
+Tue Nov  4 22:52:31 UTC 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* qemud/qemud.c, src/driver.h, src/internal.h, src/libvirt.c
+	src/network_driver.c: Remove unused virStateSigDispatcher()
+	internal API
+
+Tue Nov  4 22:20:31 UTC 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	Move internal error API declarations into their own file
+	* src/Makefile.am, src/virterror_internal.h: Add file for
+	internal error reporting APIs.
+	* src/internal.c: Remove virRaiseError/virReportError API
+	declarations
+	* src/conf.c, src/domain_conf.c, src/hash.c,
+	src/libvirt.c, src/lxc_conf.c, src/lxc_conf.h,
+	src/lxc_container.c, src/lxc_controller.c, src/lxc_driver.c,
+	src/network_conf.c, src/network_driver.c, src/nodeinfo.c,
+	src/openvz_conf.c, src/openvz_conf.h, src/openvz_driver.c,
+	src/proxy_internal.c, src/qemu_conf.c, src/qemu_conf.h,
+	src/qemu_driver.c, src/qparams.c, src/remote_internal.c,
+	src/sexpr.c, src/stats_linux.c, src/storage_backend.c,
+	src/storage_backend_disk.c, src/storage_backend_fs.c,
+	src/storage_backend_iscsi.c, src/storage_backend_logical.c,
+	src/storage_conf.c, src/storage_conf.h, src/storage_driver.c,
+	src/test.c, src/util.c, src/virterror.c, src/xen_internal.c,
+	src/xen_unified.c, src/xend_internal.c, src/xm_internal.c,
+	src/xml.c, src/xmlrpc.c, src/xs_internal.c: Add includes
+	of new virterror_internal.h file where required, and remove
+	leading __ from virRaiseError api calls
+
+Tue Nov  4 22:14:31 UTC 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	Support passing UUID and ID to qemu/xenner
+	* src/qemu_conf.c, src/qemu_conf.h, src/qemu_driver.c: Detect
+	availability of -uuid and -domid args in QEMU, and use them if
+	available
+	* tests/qemuxml2argvtest.c,
+	tests/qemuxml2argvdata/qemuxml2argv-misc-uuid.args,
+	tests/qemuxml2argvdata/qemuxml2argv-misc-uuid.xml: Add test
+	case for -uuid and -domid args
+
+Tue Nov  4 21:50:31 UTC 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	Remove use of virStringList
+	* src/internal.h, src/libvirt.c: Remove virStringList code
+	* src/storage_backend_fs.c: Replace use of virStringList
+	with virStoragePoolSourceList
+	* src/storage_backend_logical.c: Set format to LVM2 and
+	source type to LOGICAL
+	* src/storage_conf.c: Refactor pool source XML formating
+	into virStoragePoolSourceFormat and make both users call
+	the common code
+	* src/storage_conf.h:  Include pool source type in
+	virStoragePoolSourceList struct
+
+Tue Nov  4 14:58:31 CET 2008 Jim Meyering <meyering@redhat.com>
+
+	don't print an uninitialized integer in a diagnostic
+	* src/virterror.c (__virErrorMsg) [VIR_ERR_XEN_CALL]:
+	Use a format with only one % directive.
+
+Tue Nov  4 14:58:30 CET 2008 Jim Meyering <meyering@redhat.com>
+
+	add a test for today's fix
+	* tests/cpuset: New script.  Test for today's fix.
+	* tests/Makefile.am (test_scripts): Add cpuset.
+
+Mon Nov  3 17:12:21 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* AUTHORS: added Guido Günther as new commiter, Dan Smith was missing
+	  too
+
+Mon Nov  3 16:54:39 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/qemu_conf.c: switch off cache if disk is shared and not read-only
+	  patch by Charles Duffy
+
+Mon Nov  3 16:52:12 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/qemu_driver.c: oops trailing blanks
+
+Mon Nov 03 12:37:00 CET 2008 Chris Lalancette <clalance@redhat.com>
+	* src/storage_backend.c src/storage_backend.h
+	src/storage_backend_disk.c src/storage_backend_iscsi.c
+	src/storage_driver.c: Give iSCSI and disk storage backend drivers the
+	ability to resolve any kind of volume path to the pool target volume
+	path.  For instance, if the pool was defined with a
+	<target><path>/dev/disk/by-id</path></target> section, and one of the
+	volumes is /dev/disk/by-id/scsi-S_beaf11, then you would be able to
+	call virStorageVolLookupByPath("/dev/sdc"), and get the correct volume
+	back.
+
+Fri Oct 31 14:55:46 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* python/virConnect.py: needed for events from the python bindings
+	  by Ben Guthro
+
+Fri Oct 31 14:04:52 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/xm_internal.c: add minimum domain memory size check for Xen
+	  patch by Shigeki Sakamoto
+	* AUTHORS: add Shigeki Sakamoto
+
+Fri Oct 31 11:11:30 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* python/Makefile.am python/generator.py python/libvir.c
+	  python/libvir.py python/libvirt_wrap.h python/types.c:
+	  adds support for events from the python bindings, also
+	  improves the generator allowing to embbed per function
+	  definition files, patch by Ben Guthro
+	* examples/domain-events/events-python/event-test.py: also
+	  adds a programming example
+
+Thu Oct 30 13:39:00 EST 2008 Cole Robinson <crobinso@redhat.com>
+
+	* src/test.c: Add a test storage driver.
+
+Wed Oct 29 16:33:16 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* docs/relatedlinks.html docs/relatedlinks.html.in: add link
+	  for AMQP/QPid bindings
+
+Wed Oct 29 15:25:28 CET 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/domain_conf.h src/qemu_driver.c: patch adding hor removal of
+	  scsi/virtio disks for KVM, patch by Guido Günther
+
+Tue Oct 28 19:17:20 +0100 2008 Jim Meyering <meyering@redhat.com>
+
+	remove src/socketcompat.h;  no longer needed
+	* src/socketcompat.h: Remove file.
+	* src/remote_internal.c: Don't include socketcompat.h.
+	* qemud/qemud.h: Likewise.
+	* qemud/remote_protocol.x: Likewise, but do include <arpa/inet.h>
+	for htonl.
+	* src/remote_internal.c: Likewise, but do include <errno.h>.
+	* qemud/remote_protocol.c: Regenererate.
+	* qemud/remote_protocol.h: Regenererate.
+	* src/Makefile.am (REMOTE_DRIVER_SOURCES): Remove socketcompat.h.
+
+Tue Oct 28 13:46:50 +0100 2008 Jim Meyering <meyering@redhat.com>
+
+	make generated qemud/*.[ch] files read-only
+	* qemud/Makefile.am (.x.c): Rewrite not to write directly to $@,
+	and to make generated files read-only.
+	(.x.h): Likewise.
+
+Tue Oct 28 13:29:14 +0100 2008 Jim Meyering <meyering@redhat.com>
+
+	avoid compiler warning when all storage backends are disabled
+	* src/storage_backend.c (backends): Add a NULL terminator.
+	(virStorageBackendForType): Use NULL terminator rather than
+	warning-provoking (possibly 0) array size.
+
+Tue Oct 28 13:29:14 +0100 2008 Jim Meyering <meyering@redhat.com>
+
+	avoid many mingw-specific warnings
+	* tests/virshtest.c (mymain): Use only one definition of this function.
+	[WIN32]: Call exit(77) to skip the test.
+	* tests/nodeinfotest.c: Likewise.
+
+Tue Oct 28 13:29:14 +0100 2008 Jim Meyering <meyering@redhat.com>
+
+	cvsignore mingw build artifacts: *.exe
+
+Tue Oct 28 13:29:14 +0100 2008 Jim Meyering <meyering@redhat.com>
+
+	include netinet etc #ifndef HAVE_WINSOCK2_H
+
+Tue Oct 28 13:29:13 +0100 2008 Jim Meyering <meyering@redhat.com>
+
+	* src/remote_internal.c (remoteFindDaemonPath) [!WIN32]: Don't compile.
+
+Tue Oct 28 13:29:05 +0100 2008 Jim Meyering <meyering@redhat.com>
+
+	use errno, not socket_errno()
+	* remote_internal.c: s/socket_errno()/errno/, now that gnulib's
+	socket module ensures errno is useful in those cases.
+
+Tue Oct 28 12:12:41 +0100 2008 Jim Meyering <meyering@redhat.com>
+
+	socketcompat.h: simplify, to match latest gnulib
+	Now, sys/socket.h is always available, and errno works.
+
+Tue Oct 28 12:07:46 +0100 2008 Jim Meyering <meyering@redhat.com>
+
+	updates from gnulib
+
+Tue Oct 28 10:22:45 +0100 2008 Jim Meyering <meyering@redhat.com>
+
+	use more gnulib modules
+	* bootstrap: use more gnulib modules: close, connect, perror, recv,
+	send, socket setsockopt, gethostname.
+
+Tue Oct 28 10:22:44 +0100 2008 Jim Meyering <meyering@redhat.com>
+
+	adapt to API change in gnulib
+	* qemud/qemud.c: Include <netdb.h>, not "getaddrinfo.h"
+	* src/remote_internal.c: Likewise.
+
+Tue Oct 28 10:22:22 +0100 2008 Jim Meyering <meyering@redhat.com>
+
+	* src/network_conf.c: Include <string.h> for declaration of memcmp.
+
+Mon Oct 27 17:14:56 +0100 2008 Jim Meyering <meyering@redhat.com>
+
+	use ARRAY_CARDINALITY more
+	* tests/nodeinfotest.c: Include "util.h".
+	* src/xen_internal.c: Likewise.
+	* src/qemu_conf.c (qemudCapsInit): Use ARRAY_CARDINALITY.
+	* src/storage_backend.c (virStorageBackendForType): Likewise.
+	* src/storage_backend_fs.c (virStorageBackendProbeFile): Likewise.
+	* src/xen_internal.c (xenHypervisorMakeCapabilitiesInternal): Likewise.
+	* src/xend_internal.c (xenDaemonParseSxpr): Likewise.
+	* tests/nodeinfotest.c (mymain): Likewise.
+	* tests/qparamtest.c (DO_TEST): Likewise.
+
+Mon Oct 27 17:14:56 +0100 2008 Jim Meyering <meyering@redhat.com>
+
+	exempt gnulib from write-avoidance syntax check
+
+Mon Oct 27 11:17:32 +0100 2008 Jim Meyering <meyering@redhat.com>
+
+	exempt gnulib from ctype-macros prohibition
+
+Fri Oct 24 14:09:23 BST Daniel P. Berrange <berrange@redhat.com>
+
+	* configure.in: Add check for sys/poll.h
+	* examples/domain-events/events-c/event-test.c: Stub out
+	no-op main() on platforms without sys/poll.h
+	* src/libvirt.c, src/remote_internal.c: Remove redundant
+	include of sys/poll.h breaking mingw
+
+Fri Oct 24 13:04:23 BST Daniel P. Berrange <berrange@redhat.com>
+
+	* src/storage_conf.c: Remove <tab> character
+	* include/libvirt/libvirt.h.in: Remove trailing whitespace
+
+Fri Oct 24 12:32:23 BST Daniel P. Berrange <berrange@redhat.com>
+
+	* src/openvz_conf.c, src/openvz_conf.h: Extract version
+	info from vzctl tool
+	* src/openvz_driver.c: Implement the getVersion API call.
+
+Fri Oct 24 12:30:23 BST Daniel P. Berrange <berrange@redhat.com>
+
+	Fix mingw build
+	* src/Makefile.am: Add windows icon files to EXTRA_DIST
+
+Fri Oct 24 12:17:23 BST Daniel P. Berrange <berrange@redhat.com>
+
+	* src/capabilities.c, src/capabilities.h: Record MAC address
+	prefix info for hypervisor
+	* src/domain_conf.c, src/domain_conf.h: Use capabilities to
+	find MAC address prefix when generating MAC addrs
+	* src/lxc_conf.c, src/lxc_driver.c, src/openvz_conf.c,
+	src/qemu_conf.c, src/qemu_driver.c, src/xen_internal.c,
+	src/xend_internal.c, src/xm_internal.c: Provide vendor
+	MAC address prefix to capabilities
+	* src/util.c, src/util.h: Generic method for generating
+	mac addresses.
+
+Fri Oct 24 10:54:23 CEST Jim Meyering <meyering@redhat.com>
+
+	fix mingw compilation warning
+	* src/libvirt.c (winsock_init) [HAVE_WINSOCK2_H]: Always return a value.
+
+Thu Oct 23 15:20:00 CEST 2008 Chris Lalancete <clalance@redhat.com>
+	* src/storage_conf.c: brown paper bag bug.  I didn't preserve the
+	<sources> tags properly, and I didn't put the <source> tag into the
+	proper place, so I totally changed the output of the discovery XML.
+	Fix this up to do the right thing.
+
+Thu Oct 23 15:11:03 CEST 2008 Daniel Veillard <veillard@redhat.com>
+
+	* include/libvirt/libvirt.h include/libvirt/libvirt.h.in
+	  src/libvirt.c src/libvirt_sym.version: new libvirt event entry
+	  points, big patch provided by Ben Guthro
+	* Makefile.am configure.in src/driver.h src/event.c src/event.h
+	  src/internal.h src/libvirt.c src/libvirt_sym.version src/lxc_driver.c
+	  src/openvz_driver.c src/qemu_conf.h src/qemu_driver.c
+	  src/remote_internal.c src/storage_backend_fs.c src/test.c
+	  qemud/event.c qemud/event.h qemud/mdns.c qemud/qemud.c
+	  qemud/qemud.h qemud/remote.c qemud/remote_dispatch_localvars.h
+	  qemud/remote_dispatch_proc_switch.h qemud/remote_dispatch_prototypes.h
+	  qemud/remote_protocol.c qemud/remote_protocol.h
+	  qemud/remote_protocol.x proxy/Makefile.am python/generator.py:
+	  Not much is left untouched by the patch adding the events support
+	* docs/libvirt-api.xml docs/libvirt-refs.xml
+	  docs/html/libvirt-libvirt.html: regenerated the docs
+	* examples/domain-events/events-c/Makefile.am
+	  examples/domain-events/events-c/event-test.c: a test example
+	* AUTHORS: added Ben Guthro
+
+Thu Oct 23 13:41:49 CEST 2008 Daniel Veillard <veillard@redhat.com>
+
+	* docs/apps.html docs/apps.html.in: update monitoring apps section
+
+Thu Oct 23 13:38:00 CEST 2008 Chris Lalancette <clalance@redhat.com>
+	* src/storage_backend_logical.c src/storage_conf.c
+	src/storage_conf.h: Add <device> tags to the XML returned by
+	virConnectFindPoolSources for storage_backend_logical.
+
+Thu Oct 23 13:31:00 CEST 2008 Chris Lalancette <clalance@redhat.com>
+	* src/storage_backend.h src/storage_backend_disk.c
+	src/storage_backend_fs.c src/storage_backend_logical.c
+	src/storage_conf.c: Fix up a regression caused by the transition of
+	the storage backends to VIR_ENUM_IMPL.  Before, we would accept
+	no format type, which would then use whatever the default for the pool
+	was.  But the conversion caused this to instead cause a SEGFAULT,
+	which isn't good.  Introduce a .defaultFormat parameter so that we
+	restore the previous behavior, although in a more generic format.
+
+Wed Oct 22 09:53:00 EST 2008 Cole Robinson <crobinso@redhat.com>
+
+	* configure.in: Fix syntax error which was breaking RPM builds.
+
+Tue Oct 21 19:22:00 CEST 2008 Chris Lalancette <clalance@redhat.com>
+	* src/storage_conf.c: Make logical pool dumpXML more idempotent with
+	  defineXML by outputting <device name='/dev/sdb' /> when we are
+	  dumping XML.  We only use the longer <device
+	  name='/dev/sdb'>foo</device> when a pool has .nfreeExtent defined.
+
+Tue Oct 21 19:18:00 CEST 2008 Chris Lalancette <clalance@redhat.com>
+	* src/storage_conf.c: Make sure to set errors on paths where
+	  ->formatToString() or ->formatFromString() fail.
+
+Tue Oct 21 19:13:00 CEST 2008 Chris Lalancette <clalance@redhat.com>
+	* src/qemu_driver.c src/storage_conf.c src/network_driver.c
+	  src/storage_driver.c: Shore up the uses of virGetLastError() so that
+	  if a path forgets to set a virError, we don't crash while trying
+	  to dereference the NULL pointer to print out.
+
+Tue Oct 21 09:19:24 PDT 2008 Dan Smith <danms@us.ibm.com>
+	* src/cgroup.c src/cgroup.h: Add function to allow major device range
+	* src/lxc_container.h src/controller.c: Fix cgroup initialization
+	  order and fix /dev/pts cgroup permission
+
+Tue Oct 21 16:25:22 CEST 2008 Daniel Veillard <veillard@redhat.com>
+
+	* HACKING: update with some rules for commiters
+	* docs/apps.html docs/apps.html.in: add a section on monitoring
+	  support
+
+Tue Oct 21 15:08:02 CEST 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/qemu_driver.c: cleanup patch for usb masstorage hotadd
+	  by Guido Günther
+
+Mon Oct 20 09:45:42 CEST Jim Meyering <meyering@redhat.com>
+
+	ALL_LINGUAS: set unconditionally, using $srcdir/po
+	* configure.in: Remove hard-coded list altogether.
+
+Sun Oct 19 11:40:49 CEST Jim Meyering <meyering@redhat.com>
+
+	ALL_LINGUAS: remove "no", now that it's superseded by np.po
+	* configure.in: Remove "no" from hard-coded list.
+
+Fri Oct 17 14:30:48 CEST 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/qemu_driver.c: add scsi/virtio hotplug support for KVM
+	  patch by Guido Günther
+
+Fri Oct 17 11:58:31 +0200 Jim Meyering <meyering@redhat.com>
+
+	Makefile.maint (sync-vcs-ignore-files): avoid risk of abuse
+	* Makefile.maint (sync-vcs-ignore-files): Rewrite rule so that
+	it won't misbehave even with maliciously-named sub-directories.
+
+	generate .gitignore files from .cvsignore ones
+	* Makefile.maint (sync-vcs-ignore-files): New target.
+	Prompted by a patch from James Morris.
+	http://thread.gmane.org/gmane.comp.emulators.libvirt/8619/focus=8773
+	Add all (now-generated) .gitignore files.
+	* .gitignore: New file.
+	* build-aux/.gitignore: New file.
+	* docs/.gitignore: New file.
+	* docs/devhelp/.gitignore: New file.
+	* docs/examples/.gitignore: New file.
+	* docs/examples/python/.gitignore: New file.
+	* gnulib/lib/.gitignore: New file.
+	* gnulib/lib/arpa/.gitignore: New file.
+	* gnulib/lib/netinet/.gitignore: New file.
+	* gnulib/lib/sys/.gitignore: New file.
+	* gnulib/tests/.gitignore: New file.
+	* include/.gitignore: New file.
+	* include/libvirt/.gitignore: New file.
+	* po/.gitignore: New file.
+	* proxy/.gitignore: New file.
+	* python/.gitignore: New file.
+	* python/tests/.gitignore: New file.
+	* qemud/.gitignore: New file.
+	* src/.gitignore: New file.
+	* tests/.gitignore: New file.
+	* tests/confdata/.gitignore: New file.
+	* tests/sexpr2xmldata/.gitignore: New file.
+	* tests/virshdata/.gitignore: New file.
+	* tests/xencapsdata/.gitignore: New file.
+	* tests/xmconfigdata/.gitignore: New file.
+	* tests/xml2sexprdata/.gitignore: New file.
+
+Fri Oct 17 11:25:43 CEST 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/qemu_driver.c: use qemudDiskDeviceName to determine the block
+	  device name in qemudDomainBlockStats(), patch by Guido Günther
+
+Fri Oct 17 11:20:48 CEST 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/qemu_driver.c: fix qemudDiskDeviceName to handle disk devices
+	  too, patch by Guido Günther
+
+Fri Oct 17 11:16:30 CEST 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/domain_conf.c: fix virDiskNameToBusDeviceIndex() to allow 0
+	  patch by Guido Günther
+
+Thu Oct 16 19:17:25 +0200 Jim Meyering <meyering@redhat.com>
+
+	build: when po-check fails, say why and suggest a fix
+	* Makefile.maint (po-check): Before, when this check failed, it just
+	spat out a diff mentioning two temporary files.  Now, it tells you
+	what's wrong and suggests a fix with a patch using the name of the
+	affected file (rather than temporary file names) in the diff output.
+
+Thu Oct 16 17:02:00 CEST 2008 Chris Lalancette <clalance@redhat.com>
+	* Add support for detecting the partition table type when scanning
+	iSCSI volumes.  This is implemented in the
+	virStorageBackendUpdateVolInfoFD function, so all future callers will
+	automatically benefit.  This is a somewhat large patch because the
+	conversion of the virStorageBackendPartTableTypeToString necessitated
+	a change to the formatToString and formatFromString function pointers,
+	which caused fallout in other places in the storage stuff.  The good
+	news is that most of these callers are now converted over to the
+	VIR_ENUM_IMPL, which means a lot of redundant code is now gone.
+
+Thu Oct 16 15:41:00 CEST 2008 Chris Lalancette <clalance@redhat.com>
+	* Compiling with -Werror showed a possible use before initialization
+	in src/qemu_driver.c.  Make sure to initialize the origdisk ptr to
+	NULL.
+
+Thu Oct 16 15:04:36 +0200 Jim Meyering <meyering@redhat.com>
+
+	build: exempt *.ico files from the trailing blank check
+	* .x-sc_trailing_blank: Add \.ico$ to the list.
+
+Wed Oct 16 14:03:00 CEST 2008 Chris Lalancette <clalance@redhat.com>
+
+	* "make syntax-check" was complaining that network_driver.c was
+	missing from POTFILES.in.  Add it, and then fix up one warning about
+	included c-ctypes.h that wasn't being used.
+
+Wed Oct 15 19:38:00 BST 2008 Richard W.M. Jones <rjones@redhat.com>
+
+	* configure.in, src/Makefile.am, src/virsh_win_icon.rc:
+	Add a Windows icon resource.
+
+Wed Oct 15 11:28:00 BST 2008 Richard W.M. Jones <rjones@redhat.com>
+
+	* src/libvirt.c: Register the remote driver even when we are
+	configured --without-libvirtd.  Also adds debugging of
+	registration events.
+
+Mon Oct 13 18:45:43 CEST 2008 Jim Meyering <meyering@redhat.com>
+
+	avoid many format string warnings
+
+	Building with --disable-nls exposed many new warnings like these:
+	virsh.c:4952: warning: format not a string literal and no format ...
+	util.c:163: warning: format not a string literal and no format arguments
+	All but one of the following changes add a "%s" argument before
+	the offending _(...) argument.
+
+	This was the only manual change:
+	* src/lxc_driver.c (lxcVersion): Use %s and strerror(errno)
+	rather than %m, to avoid a warning from gcc -Wformat-security.
+
+	Add "%s" before each warned about format-string-with-no-%-directive:
+	* src/domain_conf.c (virDomainHostdevSubsysUsbDefParseXML)
+	(virDomainDefParseString, virDomainDefParseFile):
+	* src/hash.c (virGetConnect, __virGetDomain, virReleaseDomain)
+	(__virGetNetwork, virReleaseNetwork, __virGetStoragePool)
+	(virReleaseStoragePool, __virGetStorageVol, virReleaseStorageVol):
+	* src/lxc_container.c (lxcContainerChild):
+	* src/lxc_driver.c (lxcDomainDefine, lxcDomainUndefine)
+	(lxcDomainGetInfo, lxcGetOSType, lxcDomainDumpXML)
+	(lxcSetupInterfaces, lxcDomainStart, lxcDomainCreateAndStart)
+	(lxcVersion, lxcGetSchedulerParameters):
+	* src/network_conf.c (virNetworkDefParseString)
+	(virNetworkDefParseFile):
+	* src/openvz_conf.c (openvzReadNetworkConf, openvzLoadDomains):
+	* src/openvz_driver.c (openvzDomainDefineCmd)
+	(openvzDomainGetInfo, openvzDomainDumpXML, openvzDomainShutdown)
+	(openvzDomainReboot, ADD_ARG_LIT, openvzDomainDefineXML)
+	(openvzDomainCreateXML, openvzDomainCreate, openvzDomainUndefine)
+	(openvzDomainSetAutostart, openvzDomainGetAutostart)
+	(openvzDomainSetVcpus):
+	* src/qemu_driver.c (qemudDomainBlockPeek, qemudDomainMemoryPeek):
+	* src/remote_internal.c (remoteDomainBlockPeek)
+	(remoteDomainMemoryPeek, remoteAuthPolkit):
+	* src/sexpr.c (sexpr_new, _string2sexpr):
+	* src/storage_backend_disk.c (virStorageBackendDiskMakeDataVol)
+	(virStorageBackendDiskCreateVol):
+	* src/storage_backend_fs.c
+	(virStorageBackendFileSystemNetFindPoolSources):
+	* src/storage_backend_logical.c (virStorageBackendLogicalFindLVs)
+	(virStorageBackendLogicalFindPoolSources):
+	* src/test.c (testOpenDefault, testOpenFromFile, testOpen)
+	(testGetDomainInfo, testDomainRestore)
+	(testNodeGetCellsFreeMemory):
+	* src/util.c (virExec):
+	* src/virsh.c (cmdAttachDevice, cmdDetachDevice)
+	(cmdAttachInterface, cmdDetachInterface, cmdAttachDisk)
+	(cmdDetachDisk, cmdEdit):
+	* src/xend_internal.c (do_connect, wr_sync, xend_op_ext)
+	(urlencode, xenDaemonDomainCreateXML)
+	(xenDaemonDomainLookupByName_ids, xenDaemonDomainLookupByID)
+	(xenDaemonParseSxprOS, xend_parse_sexp_desc_char)
+	(xenDaemonParseSxprChar, xenDaemonParseSxprDisks)
+	(xenDaemonParseSxpr, sexpr_to_xend_topology, sexpr_to_domain)
+	(xenDaemonDomainFetch, xenDaemonDomainGetAutostart)
+	(xenDaemonDomainSetAutostart, xenDaemonDomainMigratePerform)
+	(xenDaemonDomainDefineXML, xenDaemonGetSchedulerType)
+	(xenDaemonGetSchedulerParameters)
+	(xenDaemonSetSchedulerParameters, xenDaemonDomainBlockPeek)
+	(xenDaemonFormatSxprChr, virDomainXMLDevID):
+	* src/xm_internal.c (xenXMConfigCacheRefresh, xenXMDomainPinVcpu)
+	(xenXMDomainCreate, xenXMDomainDefineXML)
+	(xenXMDomainAttachDevice, xenXMDomainDetachDevice):
+	* src/xml.c (virXPathString, virXPathNumber, virXPathLong)
+	(virXPathULong, virXPathBoolean, virXPathNode, virXPathNodeSet):
+	* src/xs_internal.c (xenStoreOpen):
+
+Mon Oct 13 16:24:00 BST 2008 Richard W.M. Jones <rjones@redhat.com>
+
+	Documentation for NIC model selection.
+	* docs/formatdomain.html.in, docs/formatdomain.html: Add the
+	documentation for NIC model selection.
+
+Mon Oct 13 16:22:00 BST 2008 Richard W.M. Jones <rjones@redhat.com>
+
+	Build failure fixed.
+	* src/domain_conf.c: Fix build failure of the Xen proxy.
+
+Sat Oct 11 09:23:18 CEST 2008 Jim Meyering <meyering@redhat.com>
+
+	testError format strings: explicitly include domain and network names
+	This repairs the "make check" failure of tests/undefine.
+	* src/test.c (testResumeDomain, testPauseDomain): Likewise.
+	(testShutdownDomain, testGetDomainInfo, ): Likewise.
+	(testSetMemory, testSetVcpus, testDomainCreate, testDomainUndefine)
+	(testDomainGetSchedulerType, testDomainGetSchedulerParams): Likewise.
+	(testDomainSetSchedulerParams, testNetworkUndefine): Likewise.
+	(testNetworkStart, testNetworkGetBridgeName): Likewise.
+	(testDomainCoreDump, testDomainSave): Likewise, and...
+	Name the file upon failed open or write.
+	Use strerror(errno) in diagnostics.
+	* tests/undefine: Adjust expected output.
+
+	test.c (testError): Remove now-ignored dom and net parameters.
+	This is a sytnax-only change: removing the two unused parameters
+	and updating all callers:
+	* src/test.c (GET_DOMAIN, GET_NETWORK, testError)
+	(testBuildCapabilities, testOpenDefault, testOpenFromFile)
+	(testOpen, testGetHostname, testGetURI, testGetCapabilities)
+	(testLookupDomainByID, testLookupDomainByUUID)
+	(testLookupDomainByName, testResumeDomain, testPauseDomain)
+	(testShutdownDomain, testGetDomainInfo, testDomainSave)
+	(testDomainRestore, testDomainCoreDump, testGetOSType)
+	(testSetMemory, testSetVcpus, testListDefinedDomains)
+	(testNodeGetCellsFreeMemory, testDomainCreate)
+	(testDomainUndefine, testDomainGetSchedulerType)
+	(testDomainGetSchedulerParams, testDomainSetSchedulerParams)
+	(testLookupNetworkByUUID, testLookupNetworkByName)
+	(testListNetworks, testListDefinedNetworks, testNetworkUndefine)
+	(testNetworkStart, testNetworkGetBridgeName): Update callers.
+
+Fri Oct 10 19:16:00 BST 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/memory.c: If size*count== 0, then virRelloc must not
+	return a failure, it is same as virFree.
+
+Fri Oct 10 17:51:00 BST 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* docs/libvirt.rng: Document SDL attributes in schema
+	* src/qemu_conf.c, src/qemu_conf.h, src/qemu_driver.c: Support
+	SDL display configuration
+	* tests/qemuxml2argvtest.c: Set predictable env vars for SDL
+	tests.
+	* tests/qemuxml2argvdata/*.args: Add new env vars now set
+	explicitly
+
+Fri Oct 10 17:03:00 BST 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/domain_conf.c, src/domain_conf.h, src/lxc_container.c,
+	src/lxc_controller.c, src/lxc_driver.c, src/openvz_conf.c,
+	src/openvz_driver.c, src/qemu_conf.c, src/qemu_driver.c,
+	src/xend_internal.c, src/xend_internal.h, src/xminternal.c:
+	Switch to using arrays instead of linked lists for devices
+	* tests/sexpr2xmldata/sexpr2xml-fv-v2.xml: Fix device ordering
+
+Fri Oct 10 15:39:00 BST 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/storage_conf.c, src/storage_conf.h, src/storage_driver.c,
+	src/storage_backend_disk.c, src/storage_backend_fs.c,
+	src/storage_backend_iscsi.c, src/storage_backend_logical.c:
+	Switch storage objects to array instead of linked list
+
+Fri Oct 10 15:39:00 BST 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/network_conf.c, src/network_conf.h, src/network_driver.c,
+	src/test.c: Switch to using array instead of linked list for
+	network objects
+
+Fri Oct 10 15:19:00 BST 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/domain_conf.c, src/domain_conf.h: Switch to using
+	array instead of linked list for domain objects
+	* src/lxc_conf.h, src/lxc_driver.c, src/openvz_conf.c,
+	src/openvz_conf.h, src/openvz_driver.c, src/qemu_conf.h,
+	src/qemu_driver.c test.c: Update to manage domain objects
+	in array instead of linked list
+
+Fri Oct 10 14:56:00 BST 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* configure.in: option to enable/disable network driver
+	* src/Makefile.am: Add network_driver.c/.h files
+	* src/libvirt.c: Import network_driver.h file
+	* src/qemu_conf.c, src/qemu-conf.h, src/qemu_driver.c: Remove
+	all network driver support
+	* src/network_driver.c, src/network_driver.h: Add standalone
+	network driver
+
+Fri Oct 10 13:30:00 BST 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/xml.c, src/xen_internal.c: Cast some args to unsigned
+	long to avoid printf format specifier warnings on 32-bit
+
+Fri Oct 10 12:30:00 BST 2008 Richard W.M. Jones <rjones@redhat.com>
+
+	Updated MinGW spec file.
+	* .cvsignore, Makefile.am, autobuild.sh, configure.in,
+	  mingw32-libvirt.spec.in: Import the latest MinGW libvirt spec
+	  file.  Note that the file has been renamed to conform to
+	  new Fedora packaging guidelines.
+	* autobuild.sh: Fix a bug in the generation of the $EXTRA_RELEASE
+	  field when autobuilding.
+
+Fri Oct 10 11:17:59 CEST 2008 Daniel Veillard <veillard@redhat.com>
+
+	* include/libvirt/libvirt.h[.in] include/libvirt/virterror.h
+	  qemud/remote* src/driver.h src/libvirt.c src/libvirt_sym.version
+	  src/lxc_driver.c src/openvz_driver.c src/proxy_internal.c
+	  src/qemu_driver.c src/remote_internal.c src/test.c src/virsh.c
+	  src/xen_internal.c src/xen_unified.c src/xen_unified.h
+	  src/xend_internal.c src/xend_internal.h src/xm_internal.c
+	  src/xs_internal.c docs/*: cleanup virDomainCreateLinux into
+	  virDomainDefineXML, and a few additional cleanups
+
+Fri Oct 10 10:33:29 CEST 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/domain_conf.c src/util.c: fix index creation for disks >
+	  {sd,hd,xvd,vd}z (Sanjay Rao and Chris Wright)
+
+Thu Oct  9 11:30:00 EST Cole Robinson <crobinso@redhat.com>
+
+	* src/domain_conf.c src/hash.c src/internal.h src/lxc_conf.c
+	  src/lxc_conf.h src/network_conf.c src/openvz_conf.c src/openvz_conf.h
+	  src/proxy_internal.c src/qemu_conf.c src/qemu_conf.h src/qparams.c
+	  src/sexpr.c src/storage_conf.c src/storage_conf.h src/test.c
+	  src/util.c src/virterror.c src/xen_internal.c src/xen_unified.c
+	  src/xend_internal.c src/xm_internal.c src/xml.c src/xs_internal.c:
+	  Centralize majority of error reporting logic.
+
+Thu Oct  9 15:49:25 BST Daniel P Berrange <berrange@redhat.com>
+
+	* src/lxc_driver.c: Annotate unused parameter
+	* src/virsh.c: Fix scanf format specifier
+
+Wed Oct  8 08:29:25 PDT 2008 Dan Smith <danms@us.ibm.com>
+	* src/cgroup.c src/cgroup.h: Add cpu shares manipulation
+	* src/lxc_driver.c: Add scheduler parameters interface for cpu shares
+	* src/virsh.c: Add generic scheduler parameter interface
+
+Wed Oct  8 15:42:44 CEST 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/cgroup.c: use safewrite()
+	* src/qemu_driver.c: missing VIR_FREE pojnted out by Eduardo Habkost
+
+Tue Oct  7 23:08:51 CEST 2008 Jim Meyering <meyering@redhat.com>
+
+	avoid "make syntax-check" failure
+	* src/cgroup.c (virCgroupSetValueStr): Use safe_write, not write.
+
+Tue Oct  7 18:33:39 CEST 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/qemu_driver.c: another OOM handling cleanup (Guido Günther)
+
+Tue Oct  7 17:59:59 CEST 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/qemu_driver.c: don't print and extra OOM error on top of
+	  getpwuid error (Guido Günther)
+
+Mon Oct  6 15:47:00 EST 2008 Cole Robinson <crobinso@redhat.com>
+
+	* qemud/remote.c src/hash.c src/internal.h src/lxc_conf.c
+	  src/lxc_container.c src/lxc_controller.c src/lxc_driver.c
+	  src/remote_internal.c src/storage_backend_disk.c src/veth.c
+	  src/xen_internal.c src/xen_unified.c src/xend_internal.c:
+	  Move DEBUG and DEBUG0 macros to central location.
+
+Mon Oct  6 15:32:00 EST 2008 Cole Robinson <crobinso@redhat.com>
+
+	* src/qemu_conf.c: Fix possible segfault if starting a qemu guest with
+	  with an inactive virtual network.
+
+Mon Oct  6 15:23:00 EST 2008 Cole Robinson <crobinso@redhat.com>
+
+	* tests/domainschematest: Slim down schema test result output
+
+Mon Oct  6 17:39:12 CEST 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/lxc_driver.c src/qemu_driver.c src/remote_internal.c
+	  src/storage_driver.c: use C99 initializers for virState (Guido
+	  Gunther)
+
+Mon Oct  6 11:23:40 BST 2008 Daniel P. Berrange <berrange@redhat.com>
+
+	* qemud/Makefile.am: Fix VPATH build (Guido Gunther)
+
+Mon Oct  6 12:08:40 CEST 2008 Daniel Veillard <veillard@redhat.com>
+
+	* po/no.po: removed it's obsoleted by np.po, fixes #335211
+
+Thu Oct  3 09:32:42 PDT 2008 Dan Smith <danms@us.ibm.com>
+	* src/lxc_container.h src/lxc_container.c
+	  src/lxc_controller.c src/lxc_driver.c: Use internal cgroup
+	  API to manipulate cgroups for LXC resource control
+
+Thu Oct  3 09:32:42 PDT 2008 Dan Smith <danms@us.ibm.com>
+	* src/cgroup.c src/cgroup.h: Add internal cgroup manipulation API
+
+Thu Oct  2 17:01:32 CEST 2008 Daniel Veillard <veillard@redhat.com>
+
+	* libvirt.spec.in: fix bug #465274 to build on RHEL
+
+Thu Oct  2 10:06:00 EST 2008 Cole Robinson <crobinso@redhat.com>
+
+	* src/qemu_driver.c: Fix startup timeout with multiple pty devices.
+
+Wed Oct  1 17:28:47 CEST 2008 Daniel Veillard <veillard@redhat.com>
+
+	* src/xend_internal.c: fix ordering when parsing multiple Xen
+	  interfaces, patch by Jim Fehlig
+	* python/Makefile.am: fix parallel build
+
+Thu Sep 25 13:37:42 IST 2008 Mark McLoughlin <markmc@redhat.com>
+
+	* docs/virsh.pod: fixup some minor issues - e.g. bogus
+	references to "xm"
+
 Tue Sep 23 22:45:47 CEST 2008 Daniel Veillard <veillard@redhat.com>
 
 	* configure.in libvirt.spec.in NEWS docs/*: release of libvirt-0.4.6
