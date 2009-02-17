@@ -12,7 +12,7 @@ Standards-Version: 3.8.0
 
 Package: libvirt-bin
 Architecture: any
-Depends: ${shlibs:Depends}, adduser, libvirt0 (>= ${binary:Version}), logrotate
+Depends: ${shlibs:Depends}, ${misc:Depends}, adduser, libvirt0 (>= ${binary:Version}), logrotate
 Enhances: qemu, kvm, xen
 Section: admin
 Recommends: netcat-openbsd, bridge-utils, dnsmasq (>= 2.46-1), iptables, qemu (>= 0.9.1)
@@ -27,7 +27,7 @@ Description: the programs for the libvirt library
 
 Package: libvirt0
 Architecture: any
-Depends: ${shlibs:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Recommends: lvm2
 Description: library for interfacing with different virtualization systems
  Libvirt is a C toolkit to interact with the virtualization capabilities
@@ -37,7 +37,7 @@ Description: library for interfacing with different virtualization systems
 
 Package: libvirt0-dbg
 Architecture: any
-Depends: ${shlibs:Depends}, libvirt0 (= ${binary:Version})
+Depends: ${shlibs:Depends}, ${misc:Depends}, libvirt0 (= ${binary:Version})
 Priority: extra
 Description: library for interfacing with different virtualization systems
  Libvirt is a C toolkit to interact with the virtualization capabilities
@@ -50,6 +50,7 @@ Description: library for interfacing with different virtualization systems
 Package: libvirt-doc
 Architecture: all
 Section: doc
+Depends: ${misc:Depends}
 Description: documentation for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
@@ -61,7 +62,7 @@ Description: documentation for the libvirt library
 Package: libvirt-dev
 Architecture: any
 Section: libdevel
-Depends: libvirt0 (= ${binary:Version}), libxen-dev [i386 amd64]
+Depends: ${misc:Depends}, libvirt0 (= ${binary:Version}), libxen-dev [i386 amd64]
 Recommends: pkg-config
 Description: development files for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities
@@ -74,7 +75,7 @@ Description: development files for the libvirt library
 
 Package: python-libvirt
 Architecture: any
-Depends: ${shlibs:Depends}, ${python:Depends}, libvirt0 (>= ${binary:Version})
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}, libvirt0 (>= ${binary:Version})
 Provides: ${python:Provides}
 Section: python
 XB-Python-Version: ${python:Versions}
