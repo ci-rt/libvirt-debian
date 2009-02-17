@@ -51,6 +51,7 @@ Package: libvirt-doc
 Architecture: all
 Section: doc
 Depends: ${misc:Depends}
+Suggests: devhelp
 Description: documentation for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
