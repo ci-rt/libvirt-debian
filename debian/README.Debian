@@ -14,7 +14,7 @@ For xend HTTP access (not recommended) you also have to set:
 
 Note that *every* user on the system has access to xend then. Better use
 libvirtd to access xen with unprivileged users and add the users to the
-"libvirt" group (see "Acess Control" below).
+"libvirt" group (see "Access Control" below).
 
 Debugging
 =========
