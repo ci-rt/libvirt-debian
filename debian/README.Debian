@@ -37,8 +37,10 @@ To make the default network start automatically use:
  virsh net-autostart default
 
 In order for things to work this way you need to have the recommended packages
-dnsmasq, bridge-utils and iptables installed. However Debian's default dnsmasq
-needs to be adjusted slightly to interoperate with libvirtd:
+dnsmasq-base, bridge-utils and iptables installed.
+
+You don't need the package dnsmasq. However, if you install it, Debian's
+default dnsmasq needs to be adjusted slightly to interoperate with libvirtd:
 
 cat <<EOF >/etc/dnsmasq.d/00_libvirtd.conf
 # only bind to loopback by default
