@@ -1,3 +1,18 @@
+libvirt (0.5.1-7) unstable; urgency=low
+
+  * [1238706] Recommend dnsmasq-base instead of dnsmasq this keeps us
+    out of all the dnsmasq already running troubles. (Closes: #516443) -
+    thanks to Bin Zhang for the suggestion and the doc update
+  * [5c9dfd7] don't rotate empty logfiles (Closes: #517040)
+  * [1c9a023] libvirt_proxy: Fix use of uninitalized memory We currently
+    don't build this code (CVE-2009-0036).
+  * [4ea1ea9] fix path to hvmloader (Closes: #517059)
+  * [879b632] suggest devhelp
+  * [f22f1ef] add ${misc:Depends}
+  * [c6f579e] README.Debian: fix typo
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 26 Feb 2009 14:45:32 +0100
+
 libvirt (0.5.1-6) unstable; urgency=low
 
   * upload to unstable
