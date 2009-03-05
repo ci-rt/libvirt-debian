@@ -1,7 +1,4 @@
 0001-remove-RHism.diff.patch
 0002-qemu-disable-network.diff.patch
 0003-allow-libvirt-group-to-access-the-socket.patch
-0004-Don-t-hardcode-ssh-port.patch
-0005-minimal-workaround-for-qemu-startup-race.patch
-0009-libvirt_proxy-Fix-use-of-uninitalized-memory.patch
-0010-fix-Debian-specific-path-to-hvm-loader.patch
+0004-fix-Debian-specific-path-to-hvm-loader.patch
