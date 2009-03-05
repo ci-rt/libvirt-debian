@@ -284,20 +284,20 @@ static int lxcContainerPivotRoot(virDomainFSDefPtr root)
     }
 
     if ((rc = virFileMakePath(oldroot)) < 0) {
-        VIR_FREE(oldroot);
         virReportSystemError(NULL, rc,
                              _("failed to create %s"),
                              oldroot);
+        VIR_FREE(oldroot);
         return -1;
     }
 
     /* The old root directory will live at /.oldroot after
      * this and will soon be unmounted completely */
     if (pivot_root(root->src, oldroot) < 0) {
-        VIR_FREE(oldroot);
         virReportSystemError(NULL, errno,
                              _("failed to pivot root %s to %s"),
                              oldroot, root->src);
+        VIR_FREE(oldroot);
         return -1;
     }
     VIR_FREE(oldroot);
@@ -668,8 +668,9 @@ int lxcContainerAvailable(int features)
     cpid = clone(lxcContainerDummyChild, childStack, flags, NULL);
     VIR_FREE(stack);
     if (cpid < 0) {
+        char ebuf[1024];
         DEBUG("clone call returned %s, container support is not enabled",
-              strerror(errno));
+              virStrerror(errno, ebuf, sizeof ebuf));
         return -1;
     } else {
         waitpid(cpid, &childStatus, 0);
@@ -677,4 +678,3 @@ int lxcContainerAvailable(int features)
 
     return 0;
 }
-

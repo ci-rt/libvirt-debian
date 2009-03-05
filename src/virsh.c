@@ -93,22 +93,6 @@ typedef enum {
 } vshErrorLevel;
 
 /*
- * The error handler for virsh
- */
-static void
-virshErrorHandler(void *unused, virErrorPtr error)
-{
-    if ((unused != NULL) || (error == NULL))
-        return;
-
-    /* Suppress the VIR_ERR_NO_XEN error which fails as non-root */
-    if ((error->code == VIR_ERR_NO_XEN) || (error->code == VIR_ERR_OK))
-        return;
-
-    virDefaultErrorFunc(error);
-}
-
-/*
  * virsh command line grammar:
  *
  *    command_line    =     <command>\n | <command>; <command>; ...
@@ -319,6 +303,46 @@ static int namesorter(const void *a, const void *b) {
   const char **sb = (const char**)b;
 
   return strcasecmp(*sa, *sb);
+}
+
+static virErrorPtr last_error;
+
+/*
+ * Quieten libvirt until we're done with the command.
+ */
+static void
+virshErrorHandler(void *unused ATTRIBUTE_UNUSED, virErrorPtr error)
+{
+    virFreeError(last_error);
+    last_error = virSaveLastError();
+    if (getenv("VIRSH_DEBUG") != NULL)
+        virDefaultErrorFunc(error);
+}
+
+/*
+ * Report an error when a command finishes.  This is better than before
+ * (when correct operation would report errors), but it has some
+ * problems: we lose the smarter formatting of virDefaultErrorFunc(),
+ * and it can become harder to debug problems, if errors get reported
+ * twice during one command.  This case shouldn't really happen anyway,
+ * and it's IMHO a bug that libvirt does that sometimes.
+ */
+static void
+virshReportError(vshControl *ctl)
+{
+    if (last_error == NULL)
+        return;
+
+    if (last_error->code == VIR_ERR_OK) {
+        vshError(ctl, FALSE, "%s", _("unknown error"));
+        goto out;
+    }
+
+    vshError(ctl, FALSE, "%s", last_error->message);
+
+out:
+    virFreeError(last_error);
+    last_error = NULL;
 }
 
 
@@ -1515,6 +1539,8 @@ cmdDominfo(vshControl *ctl, const vshCmd *cmd)
 {
     virDomainInfo info;
     virDomainPtr dom;
+    virSecurityModel secmodel;
+    virSecurityLabel seclabel;
     int ret = TRUE, autostart;
     unsigned int id;
     char *str, uuid[VIR_UUID_STRING_BUFLEN];
@@ -1573,6 +1599,29 @@ cmdDominfo(vshControl *ctl, const vshCmd *cmd)
                  autostart ? _("enable") : _("disable") );
     }
 
+    /* Security model and label information */
+    memset(&secmodel, 0, sizeof secmodel);
+    if (virNodeGetSecurityModel(ctl->conn, &secmodel) == -1) {
+        virDomainFree(dom);
+        return FALSE;
+    } else {
+        /* Only print something if a security model is active */
+        if (secmodel.model[0] != '\0') {
+            vshPrint(ctl, "%-15s %s\n", _("Security model:"), secmodel.model);
+            vshPrint(ctl, "%-15s %s\n", _("Security DOI:"), secmodel.doi);
+
+            /* Security labels are only valid for active domains */
+            memset(&seclabel, 0, sizeof seclabel);
+            if (virDomainGetSecurityLabel(dom, &seclabel) == -1) {
+                virDomainFree(dom);
+                return FALSE;
+            } else {
+                if (seclabel.label[0] != '\0')
+                    vshPrint(ctl, "%-15s %s (%s)\n", _("Security label:"),
+                             seclabel.label, seclabel.enforcing ? "enforcing" : "permissive");
+            }
+        }
+    }
     virDomainFree(dom);
     return ret;
 }
@@ -2572,7 +2621,7 @@ cmdNetworkList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
             qsort(&inactiveNames[0], maxinactive, sizeof(char*), namesorter);
         }
     }
-    vshPrintExtra(ctl, "%-20s %-10s %-10s\n", _("Name"), _("State"), _("Autostart"));
+    vshPrintExtra(ctl, "%-20s %-10s %s\n", _("Name"), _("State"), _("Autostart"));
     vshPrintExtra(ctl, "-----------------------------------------\n");
 
     for (i = 0; i < maxactive; i++) {
@@ -2874,6 +2923,7 @@ cmdPoolCreate(vshControl *ctl, const vshCmd *cmd)
  */
 static const vshCmdOptDef opts_pool_X_as[] = {
     {"name", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("name of the pool")},
+    {"print-xml", VSH_OT_BOOL, 0, gettext_noop("print XML document, but don't define/create")},
     {"type", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("type of the pool")},
     {"source-host", VSH_OT_DATA, 0, gettext_noop("source-host for underlying storage")},
     {"source-path", VSH_OT_DATA, 0, gettext_noop("source path for underlying storage")},
@@ -2953,6 +3003,7 @@ cmdPoolCreateAs(vshControl *ctl, const vshCmd *cmd)
 {
     virStoragePoolPtr pool;
     char *xml, *name;
+    int printXML = vshCommandOptBool(cmd, "print-xml");
 
     if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
         return FALSE;
@@ -2960,18 +3011,22 @@ cmdPoolCreateAs(vshControl *ctl, const vshCmd *cmd)
     if (!buildPoolXML(cmd, &name, &xml))
         return FALSE;
 
-    pool = virStoragePoolCreateXML(ctl->conn, xml, 0);
-    free (xml);
-
-    if (pool != NULL) {
-        vshPrint(ctl, _("Pool %s created\n"), name);
-        virStoragePoolFree(pool);
-        return TRUE;
+    if (printXML) {
+        printf("%s", xml);
+        free (xml);
     } else {
-        vshError(ctl, FALSE, _("Failed to create pool %s"), name);
-    }
+        pool = virStoragePoolCreateXML(ctl->conn, xml, 0);
+        free (xml);
 
-    return FALSE;
+        if (pool != NULL) {
+            vshPrint(ctl, _("Pool %s created\n"), name);
+            virStoragePoolFree(pool);
+        } else {
+            vshError(ctl, FALSE, _("Failed to create pool %s"), name);
+            return FALSE;
+        }
+    }
+    return TRUE;
 }
 
 
@@ -3036,6 +3091,7 @@ cmdPoolDefineAs(vshControl *ctl, const vshCmd *cmd)
 {
     virStoragePoolPtr pool;
     char *xml, *name;
+    int printXML = vshCommandOptBool(cmd, "print-xml");
 
     if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
         return FALSE;
@@ -3043,18 +3099,22 @@ cmdPoolDefineAs(vshControl *ctl, const vshCmd *cmd)
     if (!buildPoolXML(cmd, &name, &xml))
         return FALSE;
 
-    pool = virStoragePoolDefineXML(ctl->conn, xml, 0);
-    free (xml);
-
-    if (pool != NULL) {
-        vshPrint(ctl, _("Pool %s defined\n"), name);
-        virStoragePoolFree(pool);
-        return TRUE;
+    if (printXML) {
+        printf("%s", xml);
+        free (xml);
     } else {
-        vshError(ctl, FALSE, _("Failed to define pool %s"), name);
-    }
+        pool = virStoragePoolDefineXML(ctl->conn, xml, 0);
+        free (xml);
 
-    return FALSE;
+        if (pool != NULL) {
+            vshPrint(ctl, _("Pool %s defined\n"), name);
+            virStoragePoolFree(pool);
+        } else {
+            vshError(ctl, FALSE, _("Failed to define pool %s"), name);
+            return FALSE;
+        }
+    }
+    return TRUE;
 }
 
 
@@ -4409,6 +4469,129 @@ cmdNodeDeviceDumpXML (vshControl *ctl, const vshCmd *cmd)
 }
 
 /*
+ * "nodedev-dettach" command
+ */
+static const vshCmdInfo info_node_device_dettach[] = {
+    {"help", gettext_noop("dettach node device its device driver")},
+    {"desc", gettext_noop("Dettach node device its device driver before assigning to a domain.")},
+    {NULL, NULL}
+};
+
+
+static const vshCmdOptDef opts_node_device_dettach[] = {
+    {"device", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("device key")},
+    {NULL, 0, 0, NULL}
+};
+
+static int
+cmdNodeDeviceDettach (vshControl *ctl, const vshCmd *cmd)
+{
+    const char *name;
+    virNodeDevicePtr device;
+    int ret = TRUE;
+
+    if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
+        return FALSE;
+    if (!(name = vshCommandOptString(cmd, "device", NULL)))
+        return FALSE;
+    if (!(device = virNodeDeviceLookupByName(ctl->conn, name))) {
+        vshError(ctl, FALSE, "%s '%s'", _("Could not find matching device"), name);
+        return FALSE;
+    }
+
+    if (virNodeDeviceDettach(device) == 0) {
+        vshPrint(ctl, _("Device %s dettached\n"), name);
+    } else {
+        vshError(ctl, FALSE, _("Failed to dettach device %s"), name);
+        ret = FALSE;
+    }
+    virNodeDeviceFree(device);
+    return ret;
+}
+
+/*
+ * "nodedev-reattach" command
+ */
+static const vshCmdInfo info_node_device_reattach[] = {
+    {"help", gettext_noop("reattach node device its device driver")},
+    {"desc", gettext_noop("Dettach node device its device driver before assigning to a domain.")},
+    {NULL, NULL}
+};
+
+
+static const vshCmdOptDef opts_node_device_reattach[] = {
+    {"device", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("device key")},
+    {NULL, 0, 0, NULL}
+};
+
+static int
+cmdNodeDeviceReAttach (vshControl *ctl, const vshCmd *cmd)
+{
+    const char *name;
+    virNodeDevicePtr device;
+    int ret = TRUE;
+
+    if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
+        return FALSE;
+    if (!(name = vshCommandOptString(cmd, "device", NULL)))
+        return FALSE;
+    if (!(device = virNodeDeviceLookupByName(ctl->conn, name))) {
+        vshError(ctl, FALSE, "%s '%s'", _("Could not find matching device"), name);
+        return FALSE;
+    }
+
+    if (virNodeDeviceReAttach(device) == 0) {
+        vshPrint(ctl, _("Device %s re-attached\n"), name);
+    } else {
+        vshError(ctl, FALSE, _("Failed to re-attach device %s"), name);
+        ret = FALSE;
+    }
+    virNodeDeviceFree(device);
+    return ret;
+}
+
+/*
+ * "nodedev-reset" command
+ */
+static const vshCmdInfo info_node_device_reset[] = {
+    {"help", gettext_noop("reset node device")},
+    {"desc", gettext_noop("Reset node device before or after assigning to a domain.")},
+    {NULL, NULL}
+};
+
+
+static const vshCmdOptDef opts_node_device_reset[] = {
+    {"device", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("device key")},
+    {NULL, 0, 0, NULL}
+};
+
+static int
+cmdNodeDeviceReset (vshControl *ctl, const vshCmd *cmd)
+{
+    const char *name;
+    virNodeDevicePtr device;
+    int ret = TRUE;
+
+    if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
+        return FALSE;
+    if (!(name = vshCommandOptString(cmd, "device", NULL)))
+        return FALSE;
+    if (!(device = virNodeDeviceLookupByName(ctl->conn, name))) {
+        vshError(ctl, FALSE, "%s '%s'", _("Could not find matching device"), name);
+        return FALSE;
+    }
+
+    if (virNodeDeviceReset(device) == 0) {
+        vshPrint(ctl, _("Device %s reset\n"), name);
+    } else {
+        vshError(ctl, FALSE, _("Failed to reset device %s"), name);
+        ret = FALSE;
+    }
+    virNodeDeviceFree(device);
+    return ret;
+}
+
+/*
  * "hostkey" command
  */
 static const vshCmdInfo info_hostname[] = {
@@ -5373,6 +5556,7 @@ cmdEdit (vshControl *ctl, const vshCmd *cmd)
     char *doc = NULL;
     char *doc_edited = NULL;
     char *doc_reread = NULL;
+    int flags = VIR_DOMAIN_XML_SECURE | VIR_DOMAIN_XML_INACTIVE;
 
     if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
         goto cleanup;
@@ -5382,7 +5566,7 @@ cmdEdit (vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
 
     /* Get the XML configuration of the domain. */
-    doc = virDomainGetXMLDesc (dom, VIR_DOMAIN_XML_SECURE | VIR_DOMAIN_XML_INACTIVE);
+    doc = virDomainGetXMLDesc (dom, flags);
     if (!doc)
         goto cleanup;
 
@@ -5412,7 +5596,7 @@ cmdEdit (vshControl *ctl, const vshCmd *cmd)
      * it was being edited?  This also catches problems such as us
      * losing a connection or the domain going away.
      */
-    doc_reread = virDomainGetXMLDesc (dom, VIR_DOMAIN_XML_SECURE | VIR_DOMAIN_XML_INACTIVE);
+    doc_reread = virDomainGetXMLDesc (dom, flags);
     if (!doc_reread)
         goto cleanup;
 
@@ -5551,6 +5735,9 @@ static const vshCmdDef commands[] = {
 
     {"nodedev-list", cmdNodeListDevices, opts_node_list_devices, info_node_list_devices},
     {"nodedev-dumpxml", cmdNodeDeviceDumpXML, opts_node_device_dumpxml, info_node_device_dumpxml},
+    {"nodedev-dettach", cmdNodeDeviceDettach, opts_node_device_dettach, info_node_device_dettach},
+    {"nodedev-reattach", cmdNodeDeviceReAttach, opts_node_device_reattach, info_node_device_reattach},
+    {"nodedev-reset", cmdNodeDeviceReset, opts_node_device_reset, info_node_device_reset},
 
     {"pool-autostart", cmdPoolAutostart, opts_pool_autostart, info_pool_autostart},
     {"pool-build", cmdPoolBuild, opts_pool_build, info_pool_build},
@@ -6102,6 +6289,9 @@ vshCommandRun(vshControl *ctl, const vshCmd *cmd)
 
         if (ctl->timing)
             GETTIMEOFDAY(&after);
+
+        if (ret == FALSE)
+            virshReportError(ctl);
 
         if (STREQ(cmd->def->name, "quit"))        /* hack ... */
             return ret;
@@ -6784,6 +6974,9 @@ vshReadlineInit(void)
 
     /* Tell the completer that we want a crack first. */
     rl_attempted_completion_function = vshReadlineCompletion;
+
+    /* Limit the total size of the history buffer */
+    stifle_history(500);
 }
 
 static char *

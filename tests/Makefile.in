@@ -37,7 +37,7 @@ host_triplet = @host@
 
 noinst_PROGRAMS = virshtest$(EXEEXT) conftest$(EXEEXT) \
 	nodeinfotest$(EXEEXT) statstest$(EXEEXT) qparamtest$(EXEEXT) \
-	$(am__EXEEXT_1) $(am__EXEEXT_2)
+	$(am__EXEEXT_1) $(am__EXEEXT_2) nodedevxml2xmltest$(EXEEXT)
 @WITH_XEN_TRUE@am__append_2 = xml2sexprtest sexpr2xmltest \
 @WITH_XEN_TRUE@	reconnect xmconfigtest xencapstest
 
@@ -48,6 +48,8 @@ noinst_PROGRAMS = virshtest$(EXEEXT) conftest$(EXEEXT) \
 @WITH_LIBVIRTD_TRUE@	daemon-conf			\
 @WITH_LIBVIRTD_TRUE@	define-dev-segfault		\
 @WITH_LIBVIRTD_TRUE@	int-overflow			\
+@WITH_LIBVIRTD_TRUE@	libvirtd-fail			\
+@WITH_LIBVIRTD_TRUE@	libvirtd-pool			\
 @WITH_LIBVIRTD_TRUE@	read-bufsiz			\
 @WITH_LIBVIRTD_TRUE@	read-non-seekable		\
 @WITH_LIBVIRTD_TRUE@	start				\
@@ -58,7 +60,7 @@ noinst_PROGRAMS = virshtest$(EXEEXT) conftest$(EXEEXT) \
 
 TESTS = virshtest$(EXEEXT) nodeinfotest$(EXEEXT) statstest$(EXEEXT) \
 	qparamtest$(EXEEXT) $(test_scripts) $(am__EXEEXT_3) \
-	$(am__EXEEXT_4) $(am__EXEEXT_2)
+	$(am__EXEEXT_4) $(am__EXEEXT_2) nodedevxml2xmltest$(EXEEXT)
 @WITH_XEN_TRUE@am__append_5 = xml2sexprtest \
 @WITH_XEN_TRUE@	sexpr2xmltest \
 @WITH_XEN_TRUE@	xmconfigtest \
@@ -170,6 +172,10 @@ am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	../gnulib/lib/libgnu.la $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1)
 conftest_DEPENDENCIES = $(am__DEPENDENCIES_2)
+am_nodedevxml2xmltest_OBJECTS = nodedevxml2xmltest.$(OBJEXT) \
+	testutils.$(OBJEXT)
+nodedevxml2xmltest_OBJECTS = $(am_nodedevxml2xmltest_OBJECTS)
+nodedevxml2xmltest_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_nodeinfotest_OBJECTS = nodeinfotest.$(OBJEXT) testutils.$(OBJEXT)
 nodeinfotest_OBJECTS = $(am_nodeinfotest_OBJECTS)
 nodeinfotest_DEPENDENCIES = $(am__DEPENDENCIES_2)
@@ -247,14 +253,15 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(conftest_SOURCES) $(nodeinfotest_SOURCES) \
-	$(qemuxml2argvtest_SOURCES) $(qemuxml2xmltest_SOURCES) \
-	$(qparamtest_SOURCES) $(reconnect_SOURCES) \
-	$(sexpr2xmltest_SOURCES) $(statstest_SOURCES) \
-	$(virshtest_SOURCES) $(xencapstest_SOURCES) \
-	$(xmconfigtest_SOURCES) $(xml2sexprtest_SOURCES)
-DIST_SOURCES = $(conftest_SOURCES) $(nodeinfotest_SOURCES) \
-	$(am__qemuxml2argvtest_SOURCES_DIST) \
+SOURCES = $(conftest_SOURCES) $(nodedevxml2xmltest_SOURCES) \
+	$(nodeinfotest_SOURCES) $(qemuxml2argvtest_SOURCES) \
+	$(qemuxml2xmltest_SOURCES) $(qparamtest_SOURCES) \
+	$(reconnect_SOURCES) $(sexpr2xmltest_SOURCES) \
+	$(statstest_SOURCES) $(virshtest_SOURCES) \
+	$(xencapstest_SOURCES) $(xmconfigtest_SOURCES) \
+	$(xml2sexprtest_SOURCES)
+DIST_SOURCES = $(conftest_SOURCES) $(nodedevxml2xmltest_SOURCES) \
+	$(nodeinfotest_SOURCES) $(am__qemuxml2argvtest_SOURCES_DIST) \
 	$(am__qemuxml2xmltest_SOURCES_DIST) $(qparamtest_SOURCES) \
 	$(am__reconnect_SOURCES_DIST) \
 	$(am__sexpr2xmltest_SOURCES_DIST) $(statstest_SOURCES) \
@@ -635,6 +642,7 @@ MAKEINFO = @MAKEINFO@
 MINGW_EXTRA_LDFLAGS = @MINGW_EXTRA_LDFLAGS@
 MKDIR_P = @MKDIR_P@
 MKINSTALLDIRS = @MKINSTALLDIRS@
+MODPROBE = @MODPROBE@
 MOUNT = @MOUNT@
 MSGFMT = @MSGFMT@
 MSGMERGE = @MSGMERGE@
@@ -900,6 +908,7 @@ TESTS_ENVIRONMENT = \
   abs_top_srcdir=`cd '$(top_srcdir)'; pwd`	\
   abs_builddir=`cd '$(builddir)'; pwd`		\
   abs_srcdir=`cd '$(srcdir)'; pwd`		\
+  CONFIG_HEADER="`cd '$(top_builddir)'; pwd`/config.h"	\
   PATH="$(path_add)$(PATH_SEPARATOR)$$PATH"	\
   SHELL="$(SHELL)"				\
   LIBVIRT_DRIVER_DIR="$(abs_top_builddir)/src/.libs" \
@@ -940,6 +949,11 @@ TESTS_ENVIRONMENT = \
 @WITH_QEMU_TRUE@	testutils.c testutils.h
 
 @WITH_QEMU_TRUE@qemuxml2xmltest_LDADD = ../src/libvirt_driver_qemu.la $(LDADDS)
+nodedevxml2xmltest_SOURCES = \
+	nodedevxml2xmltest.c \
+	testutils.c testutils.h
+
+nodedevxml2xmltest_LDADD = $(LDADDS)
 virshtest_SOURCES = \
 	virshtest.c \
 	testutils.c testutils.h
@@ -1005,6 +1019,9 @@ clean-noinstPROGRAMS:
 conftest$(EXEEXT): $(conftest_OBJECTS) $(conftest_DEPENDENCIES) 
 	@rm -f conftest$(EXEEXT)
 	$(LINK) $(conftest_OBJECTS) $(conftest_LDADD) $(LIBS)
+nodedevxml2xmltest$(EXEEXT): $(nodedevxml2xmltest_OBJECTS) $(nodedevxml2xmltest_DEPENDENCIES) 
+	@rm -f nodedevxml2xmltest$(EXEEXT)
+	$(LINK) $(nodedevxml2xmltest_OBJECTS) $(nodedevxml2xmltest_LDADD) $(LIBS)
 nodeinfotest$(EXEEXT): $(nodeinfotest_OBJECTS) $(nodeinfotest_DEPENDENCIES) 
 	@rm -f nodeinfotest$(EXEEXT)
 	$(LINK) $(nodeinfotest_OBJECTS) $(nodeinfotest_LDADD) $(LIBS)
@@ -1046,6 +1063,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/conftest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nodedevxml2xmltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nodeinfotest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemuxml2argvtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemuxml2xmltest.Po@am__quote@

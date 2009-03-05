@@ -73,6 +73,14 @@ VIR_ENUM_IMPL(virDomainLifecycle, VIR_DOMAIN_LIFECYCLE_LAST,
               "rename-restart",
               "preserve")
 
+VIR_ENUM_IMPL(virDomainDevice, VIR_DOMAIN_DEVICE_LAST,
+              "disk",
+              "filesystem",
+              "interface",
+              "input",
+              "sound",
+              "hostdev")
+
 VIR_ENUM_IMPL(virDomainDisk, VIR_DOMAIN_DISK_TYPE_LAST,
               "block",
               "file")
@@ -159,6 +167,10 @@ VIR_ENUM_IMPL(virDomainState, VIR_DOMAIN_CRASHED+1,
               "shutdown",
               "shutoff",
               "crashed")
+
+VIR_ENUM_IMPL(virDomainSeclabel, VIR_DOMAIN_SECLABEL_LAST,
+              "dynamic",
+              "static")
 
 #define virDomainReportError(conn, code, fmt...)                           \
         virReportErrorHelper(conn, VIR_FROM_DOMAIN, code, __FILE__,        \
@@ -379,6 +391,15 @@ void virDomainDeviceDefFree(virDomainDeviceDefPtr def)
     VIR_FREE(def);
 }
 
+void virSecurityLabelDefFree(virDomainDefPtr def);
+
+void virSecurityLabelDefFree(virDomainDefPtr def)
+{
+    VIR_FREE(def->seclabel.model);
+    VIR_FREE(def->seclabel.label);
+    VIR_FREE(def->seclabel.imagelabel);
+}
+
 void virDomainDefFree(virDomainDefPtr def)
 {
     unsigned int i;
@@ -436,6 +457,8 @@ void virDomainDefFree(virDomainDefPtr def)
     VIR_FREE(def->name);
     VIR_FREE(def->cpumask);
     VIR_FREE(def->emulator);
+
+    virSecurityLabelDefFree(def);
 
     VIR_FREE(def);
 }
@@ -503,7 +526,8 @@ virDomainObjPtr virDomainAssignDef(virConnectPtr conn,
     virDomainObjLock(domain);
     domain->state = VIR_DOMAIN_SHUTOFF;
     domain->def = def;
-    domain->monitor_watch = -1;
+    domain->monitorWatch = -1;
+    domain->monitor = -1;
 
     if (VIR_REALLOC_N(doms->objs, doms->count + 1) < 0) {
         virReportOOMError(conn);
@@ -1728,7 +1752,7 @@ virDomainHostdevDefParseXML(virConnectPtr conn,
 
     xmlNodePtr cur;
     virDomainHostdevDefPtr def;
-    char *mode, *type = NULL;
+    char *mode, *type = NULL, *managed = NULL;
 
     if (VIR_ALLOC(def) < 0) {
         virReportOOMError(conn);
@@ -1758,6 +1782,13 @@ virDomainHostdevDefParseXML(virConnectPtr conn,
         virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
                              "%s", _("missing type in hostdev"));
         goto error;
+    }
+
+    managed = virXMLPropString(node, "managed");
+    if (managed != NULL) {
+        if (STREQ(managed, "yes"))
+            def->managed = 1;
+        VIR_FREE(managed);
     }
 
     cur = node->children;
@@ -1817,6 +1848,59 @@ static int virDomainLifecycleParseXML(virConnectPtr conn,
     return 0;
 }
 
+static int
+virSecurityLabelDefParseXML(virConnectPtr conn,
+                            const virDomainDefPtr def,
+                            xmlXPathContextPtr ctxt,
+                            int flags)
+{
+    char *p;
+
+    if (virXPathNode(conn, "./seclabel", ctxt) == NULL)
+        return 0;
+
+    p = virXPathStringLimit(conn, "string(./seclabel/@type)",
+                            VIR_SECURITY_LABEL_BUFLEN-1, ctxt);
+    if (p == NULL)
+        goto error;
+    if ((def->seclabel.type = virDomainSeclabelTypeFromString(p)) < 0)
+        goto error;
+    VIR_FREE(p);
+
+    /* Only parse details, if using static labels, or
+     * if the 'live' VM XML is requested
+     */
+    if (def->seclabel.type == VIR_DOMAIN_SECLABEL_STATIC ||
+        !(flags & VIR_DOMAIN_XML_INACTIVE)) {
+        p = virXPathStringLimit(conn, "string(./seclabel/@model)",
+                                VIR_SECURITY_MODEL_BUFLEN-1, ctxt);
+        if (p == NULL)
+            goto error;
+        def->seclabel.model = p;
+
+        p = virXPathStringLimit(conn, "string(./seclabel/label[1])",
+                                VIR_SECURITY_LABEL_BUFLEN-1, ctxt);
+        if (p == NULL)
+            goto error;
+        def->seclabel.label = p;
+    }
+
+    /* Only parse imagelabel, if requested live XML for dynamic label */
+    if (def->seclabel.type == VIR_DOMAIN_SECLABEL_DYNAMIC &&
+        !(flags & VIR_DOMAIN_XML_INACTIVE)) {
+        p = virXPathStringLimit(conn, "string(./seclabel/imagelabel[1])",
+                                VIR_SECURITY_LABEL_BUFLEN-1, ctxt);
+        if (p == NULL)
+            goto error;
+        def->seclabel.imagelabel = p;
+    }
+
+    return 0;
+
+error:
+    virSecurityLabelDefFree(def);
+    return -1;
+}
 
 virDomainDeviceDefPtr virDomainDeviceDefParse(virConnectPtr conn,
                                               virCapsPtr caps,
@@ -2402,6 +2486,10 @@ static virDomainDefPtr virDomainDefParseXML(virConnectPtr conn,
     }
     VIR_FREE(nodes);
 
+    /* analysis of security label */
+    if (virSecurityLabelDefParseXML(conn, def, ctxt, flags) == -1)
+        goto error;
+
     return def;
 
 no_memory:
@@ -2424,8 +2512,7 @@ catchXMLError (void *ctx, const char *msg ATTRIBUTE_UNUSED, ...)
     if (ctxt) {
         virConnectPtr conn = ctxt->_private;
 
-        if (conn &&
-            conn->err.code == VIR_ERR_NONE &&
+        if (virGetLastError() == NULL &&
             ctxt->lastError.level == XML_ERR_FATAL &&
             ctxt->lastError.message != NULL) {
             virDomainReportError (conn, VIR_ERR_XML_DETAIL,
@@ -2458,7 +2545,7 @@ virDomainDefPtr virDomainDefParseString(virConnectPtr conn,
                           XML_PARSE_NOENT | XML_PARSE_NONET |
                           XML_PARSE_NOWARNING);
     if (!xml) {
-        if (conn && conn->err.code == VIR_ERR_NONE)
+        if (virGetLastError() == NULL)
               virDomainReportError(conn, VIR_ERR_XML_ERROR,
                                    "%s", _("failed to parse xml document"));
         goto cleanup;
@@ -2499,7 +2586,7 @@ virDomainDefPtr virDomainDefParseFile(virConnectPtr conn,
                            XML_PARSE_NOENT | XML_PARSE_NONET |
                            XML_PARSE_NOWARNING);
     if (!xml) {
-        if (conn && conn->err.code == VIR_ERR_NONE)
+        if (virGetLastError() == NULL)
               virDomainReportError(conn, VIR_ERR_XML_ERROR,
                                    "%s", _("failed to parse xml document"));
         goto cleanup;
@@ -3185,7 +3272,8 @@ virDomainHostdevDefFormat(virConnectPtr conn,
         return -1;
     }
 
-    virBufferVSprintf(buf, "    <hostdev mode='%s' type='%s'>\n", mode, type);
+    virBufferVSprintf(buf, "    <hostdev mode='%s' type='%s' managed='%s'>\n",
+                      mode, type, def->managed ? "yes" : "no");
     virBufferAddLit(buf, "      <source>\n");
 
     if (def->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB) {
@@ -3419,6 +3507,29 @@ char *virDomainDefFormat(virConnectPtr conn,
             goto cleanup;
 
     virBufferAddLit(&buf, "  </devices>\n");
+
+    if (def->seclabel.model) {
+        const char *sectype = virDomainSeclabelTypeToString(def->seclabel.type);
+        if (!sectype)
+            goto cleanup;
+        if (!def->seclabel.label ||
+            (def->seclabel.type == VIR_DOMAIN_SECLABEL_DYNAMIC &&
+             (flags & VIR_DOMAIN_XML_INACTIVE))) {
+            virBufferVSprintf(&buf, "  <seclabel type='%s' model='%s'/>\n",
+                              sectype, def->seclabel.model);
+        } else {
+            virBufferVSprintf(&buf, "  <seclabel type='%s' model='%s'>\n",
+                                  sectype, def->seclabel.model);
+            virBufferEscapeString(&buf, "    <label>%s</label>\n",
+                                  def->seclabel.label);
+            if (def->seclabel.imagelabel &&
+                def->seclabel.type == VIR_DOMAIN_SECLABEL_DYNAMIC)
+                virBufferEscapeString(&buf, "    <imagelabel>%s</imagelabel>\n",
+                                      def->seclabel.imagelabel);
+            virBufferAddLit(&buf, "  </seclabel>\n");
+        }
+    }
+
     virBufferAddLit(&buf, "</domain>\n");
 
     if (virBufferError(&buf))

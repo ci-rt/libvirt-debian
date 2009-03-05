@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007, 2008 Red Hat, Inc.
+ * Copyright (C) 2007-2009 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -44,8 +44,8 @@
 #include "iptables.h"
 #include "util.h"
 #include "memory.h"
-
-#define qemudLog(level, msg...) fprintf(stderr, msg)
+#include "virterror_internal.h"
+#include "logging.h"
 
 enum {
     ADD = 0,
@@ -98,9 +98,10 @@ notifyRulesUpdated(const char *table,
     argv[2] = arg;
     argv[3] = NULL;
 
+    char ebuf[1024];
     if (virRun(NULL, argv, NULL) < 0)
-        qemudLog(QEMUD_WARN, _("Failed to run '" LOKKIT_PATH
-                               " %s' : %s"), arg, strerror(errno));
+        VIR_WARN(_("Failed to run '%s %s': %s"),
+                 LOKKIT_PATH, arg, virStrerror(errno, ebuf, sizeof ebuf));
 }
 
 static int
@@ -147,8 +148,8 @@ notifyRulesRemoved(const char *table,
     len = virFileReadAll(SYSCONF_DIR "/sysconfig/system-config-firewall",
                          MAX_FILE_LEN, &content);
     if (len < 0) {
-        qemudLog(QEMUD_WARN, "%s", _("Failed to read " SYSCONF_DIR
-                                     "/sysconfig/system-config-firewall"));
+        VIR_WARN("%s", _("Failed to read " SYSCONF_DIR
+                         "/sysconfig/system-config-firewall"));
         return;
     }
 
@@ -174,10 +175,11 @@ notifyRulesRemoved(const char *table,
 
     return;
 
- write_error:
-    qemudLog(QEMUD_WARN, _("Failed to write to " SYSCONF_DIR
-                           "/sysconfig/system-config-firewall : %s"),
-             strerror(errno));
+ write_error:;
+    char ebuf[1024];
+    VIR_WARN(_("Failed to write to " SYSCONF_DIR
+               "/sysconfig/system-config-firewall : %s"),
+             virStrerror(errno, ebuf, sizeof ebuf));
     if (f)
         fclose(f);
     VIR_FREE(content);
@@ -239,15 +241,16 @@ iptRulesSave(iptRules *rules)
 #ifdef ENABLE_IPTABLES_LOKKIT
     int err;
 
+    char ebuf[1024];
     if ((err = virFileMakePath(rules->dir))) {
-        qemudLog(QEMUD_WARN, _("Failed to create directory %s : %s"),
-                 rules->dir, strerror(err));
+        VIR_WARN(_("Failed to create directory %s : %s"),
+                 rules->dir, virStrerror(err, ebuf, sizeof ebuf));
         return;
     }
 
     if ((err = writeRules(rules->path, rules->rules, rules->nrules))) {
-        qemudLog(QEMUD_WARN, _("Failed to saves iptables rules to %s : %s"),
-                 rules->path, strerror(err));
+        VIR_WARN(_("Failed to saves iptables rules to %s : %s"),
+                 rules->path, virStrerror(err, ebuf, sizeof ebuf));
         return;
     }
 
@@ -325,11 +328,8 @@ iptRulesFree(iptRules *rules)
 {
     int i;
 
-    if (rules->table)
-        VIR_FREE(rules->table);
-
-    if (rules->chain)
-        VIR_FREE(rules->chain);
+    VIR_FREE(rules->table);
+    VIR_FREE(rules->chain);
 
     if (rules->rules) {
         for (i = 0; i < rules->nrules; i++)
@@ -540,6 +540,7 @@ static void
 iptRulesReload(iptRules *rules)
 {
     int i;
+    char ebuf[1024];
 
     for (i = 0; i < rules->nrules; i++) {
         iptRule *rule = &rules->rules[i];
@@ -549,19 +550,20 @@ iptRulesReload(iptRules *rules)
         rule->argv[rule->command_idx] = (char *) "--delete";
 
         if (virRun(NULL, rule->argv, NULL) < 0)
-            qemudLog(QEMUD_WARN,
-                     _("Failed to remove iptables rule '%s'"
+            VIR_WARN(_("Failed to remove iptables rule '%s'"
                        " from chain '%s' in table '%s': %s"),
-                     rule->rule, rules->chain, rules->table, strerror(errno));
+                     rule->rule, rules->chain, rules->table,
+                     virStrerror(errno, ebuf, sizeof ebuf));
 
         rule->argv[rule->command_idx] = orig;
     }
 
     for (i = 0; i < rules->nrules; i++)
         if (virRun(NULL, rules->rules[i].argv, NULL) < 0)
-            qemudLog(QEMUD_WARN, _("Failed to add iptables rule '%s'"
-                                   " to chain '%s' in table '%s': %s"),
-                     rules->rules[i].rule, rules->chain, rules->table, strerror(errno));
+            VIR_WARN(_("Failed to add iptables rule '%s'"
+                       " to chain '%s' in table '%s': %s"),
+                     rules->rules[i].rule, rules->chain, rules->table,
+                     virStrerror(errno, ebuf, sizeof ebuf));
 }
 
 /**

@@ -39,7 +39,23 @@ enum {
 };
 
 int virSetNonBlock(int fd);
+int virSetCloseExec(int fd);
 
+/* This will execute in the context of the first child
+ * after fork() but before execve() */
+typedef int (*virExecHook)(void *data);
+
+int virExecWithHook(virConnectPtr conn,
+                    const char *const*argv,
+                    const char *const*envp,
+                    const fd_set *keepfd,
+                    int *retpid,
+                    int infd,
+                    int *outfd,
+                    int *errfd,
+                    int flags,
+                    virExecHook hook,
+                    void *data);
 int virExec(virConnectPtr conn,
             const char *const*argv,
             const char *const*envp,
@@ -54,6 +70,8 @@ int virRun(virConnectPtr conn, const char *const*argv, int *status);
 int virFileReadLimFD(int fd, int maxlen, char **buf);
 
 int virFileReadAll(const char *path, int maxlen, char **buf);
+
+int virFileWriteStr(const char *path, const char *str);
 
 int virFileMatchesNameSuffix(const char *file,
                              const char *name,
@@ -143,7 +161,7 @@ const char *virEnumToString(const char *const*types,
                             int type);
 
 #define VIR_ENUM_IMPL(name, lastVal, ...)                               \
-    static const char const *name ## TypeList[] = { __VA_ARGS__ };      \
+    static const char *const name ## TypeList[] = { __VA_ARGS__ };      \
     extern int (* name ## Verify (void)) [verify_true (ARRAY_CARDINALITY(name ## TypeList) == lastVal)]; \
     const char *name ## TypeToString(int type) {                        \
         return virEnumToString(name ## TypeList,                        \

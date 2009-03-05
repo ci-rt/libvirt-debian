@@ -242,8 +242,8 @@ static int gather_storage_cap(LibHalContext *ctx, const char *udi,
     (void)get_str_prop(ctx, udi, "storage.vendor", &d->storage.vendor);
     if (get_bool_prop(ctx, udi, "storage.removable", &val) == 0 && val) {
         d->storage.flags |= VIR_NODE_DEV_CAP_STORAGE_REMOVABLE;
-        if (get_bool_prop(ctx, udi,
-                          "storage.removable.media_available", &val) && val) {
+        if (get_bool_prop(ctx, udi, "storage.removable.media_available",
+                          &val) == 0 && val) {
             d->storage.flags |=
                 VIR_NODE_DEV_CAP_STORAGE_REMOVABLE_MEDIA_AVAILABLE;
             (void)get_uint64_prop(ctx, udi, "storage.removable.media_size",
@@ -685,6 +685,9 @@ static int halDeviceMonitorStartup(void)
     nodeDeviceLock(driverState);
 
     /* Allocate and initialize a new HAL context */
+    dbus_connection_set_change_sigpipe(FALSE);
+    dbus_threads_init_default();
+
     dbus_error_init(&err);
     hal_ctx = libhal_ctx_new();
     if (hal_ctx == NULL) {
@@ -696,6 +699,8 @@ static int halDeviceMonitorStartup(void)
         fprintf(stderr, "%s: dbus_bus_get failed\n", __FUNCTION__);
         goto failure;
     }
+    dbus_connection_set_exit_on_disconnect(dbus_conn, FALSE);
+
     if (!libhal_ctx_set_dbus_connection(hal_ctx, dbus_conn)) {
         fprintf(stderr, "%s: libhal_ctx_set_dbus_connection failed\n",
                 __FUNCTION__);

@@ -34,16 +34,18 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 @WITH_LIBVIRTD_TRUE@sbin_PROGRAMS = libvirtd$(EXEEXT)
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_QEMU_TRUE@am__append_1 = ../src/libvirt_driver_qemu.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@am__append_2 = ../src/libvirt_driver_lxc.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_UML_TRUE@am__append_3 = ../src/libvirt_driver_uml.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DIR_TRUE@am__append_4 = ../src/libvirt_driver_storage.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NETWORK_TRUE@am__append_5 = ../src/libvirt_driver_network.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NODE_DEVICES_TRUE@am__append_6 = ../src/libvirt_driver_nodedev.la
-@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_7 = $(AVAHI_SOURCES)
-@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_8 = $(AVAHI_CFLAGS)
-@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_9 = $(AVAHI_LIBS)
-@WITH_LIBVIRTD_TRUE@am__append_10 = libvirtd.logrotate
+@WITH_DRIVER_MODULES_TRUE@@WITH_LIBVIRTD_TRUE@am__append_1 = ../src/libvirt_driver.la \
+@WITH_DRIVER_MODULES_TRUE@@WITH_LIBVIRTD_TRUE@	../src/libvirt_util.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_QEMU_TRUE@am__append_2 = ../src/libvirt_driver_qemu.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@am__append_3 = ../src/libvirt_driver_lxc.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_UML_TRUE@am__append_4 = ../src/libvirt_driver_uml.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DIR_TRUE@am__append_5 = ../src/libvirt_driver_storage.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NETWORK_TRUE@am__append_6 = ../src/libvirt_driver_network.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NODE_DEVICES_TRUE@am__append_7 = ../src/libvirt_driver_nodedev.la
+@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_8 = $(AVAHI_SOURCES)
+@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_9 = $(AVAHI_CFLAGS)
+@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_10 = $(AVAHI_LIBS)
+@WITH_LIBVIRTD_TRUE@am__append_11 = libvirtd.logrotate
 subdir = qemud
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -152,8 +154,8 @@ am__DEPENDENCIES_1 =
 @WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1) $(am__append_1) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_2) $(am__append_3) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_4) $(am__append_5) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_6) ../src/libvirt.la \
-@WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_2) \
+@WITH_LIBVIRTD_TRUE@	$(am__append_6) $(am__append_7) \
+@WITH_LIBVIRTD_TRUE@	../src/libvirt.la $(am__DEPENDENCIES_2) \
 @WITH_LIBVIRTD_TRUE@	../gnulib/lib/libgnu.la \
 @WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1)
 libvirtd_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
@@ -542,6 +544,7 @@ MAKEINFO = @MAKEINFO@
 MINGW_EXTRA_LDFLAGS = @MINGW_EXTRA_LDFLAGS@
 MKDIR_P = @MKDIR_P@
 MKINSTALLDIRS = @MKINSTALLDIRS@
+MODPROBE = @MODPROBE@
 MOUNT = @MOUNT@
 MSGFMT = @MSGFMT@
 MSGMERGE = @MSGMERGE@
@@ -780,7 +783,7 @@ DAEMON_SOURCES = \
 AVAHI_SOURCES = \
 		mdns.c mdns.h
 
-DISTCLEANFILES = $(am__append_10)
+DISTCLEANFILES = $(am__append_11)
 EXTRA_DIST = \
 	default-network.xml				\
 	remote_generate_stubs.pl rpcgen_fix.pl		\
@@ -806,7 +809,7 @@ EXTRA_DIST = \
 @WITH_LIBVIRTD_TRUE@augeastestsdir = $(datadir)/augeas/lenses/tests
 @WITH_LIBVIRTD_TRUE@augeastests_DATA = test_libvirtd.aug test_libvirtd_qemu.aug
 @WITH_LIBVIRTD_TRUE@libvirtd_SOURCES = $(DAEMON_SOURCES) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_7)
+@WITH_LIBVIRTD_TRUE@	$(am__append_8)
 
 #-D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED=1 -D_POSIX_C_SOURCE=199506L
 @WITH_LIBVIRTD_TRUE@libvirtd_CFLAGS = -I$(top_srcdir)/gnulib/lib \
@@ -821,7 +824,7 @@ EXTRA_DIST = \
 @WITH_LIBVIRTD_TRUE@	-DQEMUD_PID_FILE="\"$(QEMUD_PID_FILE)\"" \
 @WITH_LIBVIRTD_TRUE@	-DREMOTE_PID_FILE="\"$(REMOTE_PID_FILE)\"" \
 @WITH_LIBVIRTD_TRUE@	-DGETTEXT_PACKAGE=\"$(PACKAGE)\" \
-@WITH_LIBVIRTD_TRUE@	$(am__append_8)
+@WITH_LIBVIRTD_TRUE@	$(am__append_9)
 @WITH_LIBVIRTD_TRUE@libvirtd_LDFLAGS = \
 @WITH_LIBVIRTD_TRUE@	$(WARN_CFLAGS) 					\
 @WITH_LIBVIRTD_TRUE@	$(COVERAGE_LDFLAGS)
@@ -834,8 +837,9 @@ EXTRA_DIST = \
 @WITH_LIBVIRTD_TRUE@	$(am__append_1) $(am__append_2) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_3) $(am__append_4) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_5) $(am__append_6) \
-@WITH_LIBVIRTD_TRUE@	../src/libvirt.la $(am__append_9) \
-@WITH_LIBVIRTD_TRUE@	../gnulib/lib/libgnu.la $(LIBSOCKET)
+@WITH_LIBVIRTD_TRUE@	$(am__append_7) ../src/libvirt.la \
+@WITH_LIBVIRTD_TRUE@	$(am__append_10) ../gnulib/lib/libgnu.la \
+@WITH_LIBVIRTD_TRUE@	$(LIBSOCKET)
 @HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policydir = $(datadir)/PolicyKit/policy
 @WITH_LIBVIRTD_TRUE@default_xml_dest = libvirt/qemu/networks/default.xml
 CLEANFILES = libvirtd.init *.cov *.gcov .libs/*.gcda .libs/*.gcno \

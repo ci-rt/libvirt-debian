@@ -26,6 +26,7 @@ virCapabilitiesFormatXML;
 virCapabilitiesFree;
 virCapabilitiesNew;
 virCapabilitiesSetMacPrefix;
+virCapabilitiesGenerateMac;
 
 
 # conf.h
@@ -47,6 +48,7 @@ virGetStoragePool;
 virGetStorageVol;
 virGetNodeDevice;
 virUnrefDomain;
+virUnrefConnect;
 
 
 # domain_conf.h
@@ -68,6 +70,7 @@ virDomainDefParseString;
 virDomainDeleteConfig;
 virDomainDeviceDefFree;
 virDomainDeviceDefParse;
+virDomainDeviceTypeToString;
 virDomainDiskBusTypeToString;
 virDomainDiskDefFree;
 virDomainDiskDeviceTypeToString;
@@ -206,6 +209,7 @@ virNetworkObjListFree;
 virNetworkDefParseNode;
 virNetworkRemoveInactive;
 virNetworkSaveConfig;
+virNetworkSetBridgeName;
 virNetworkObjLock;
 virNetworkObjUnlock;
 
@@ -223,15 +227,32 @@ virNodeDeviceObjListFree;
 virNodeDeviceDefFree;
 virNodeDevCapsDefFree;
 virNodeDeviceDefFormat;
+virNodeDeviceDefParseString;
 virNodeDeviceObjLock;
 virNodeDeviceObjUnlock;
 virNodeDeviceAssignDef;
+
+
+# pci.h
+pciGetDevice;
+pciFreeDevice;
+pciDettachDevice;
+pciReAttachDevice;
+pciResetDevice;
 
 
 # qparams.h
 qparam_get_query;
 qparam_query_parse;
 free_qparam_set;
+
+
+# security.h
+virSecurityDriverStartup;
+virSecurityDriverInit;
+virSecurityDriverSetDOI;
+virSecurityDriverGetDOI;
+virSecurityDriverGetModel;
 
 
 # storage_conf.h
@@ -279,6 +300,7 @@ virCondBroadcast;
 
 # util.h
 virFileReadAll;
+virFileWriteStr;
 virStrToLong_i;
 virStrToLong_ll;
 virStrToLong_ull;
@@ -292,6 +314,8 @@ virEnumToString;
 virEventAddHandle;
 virEventRemoveHandle;
 virExec;
+virExecWithHook;
+virSetCloseExec;
 virSetNonBlock;
 virFormatMacAddr;
 virGetHostname;
@@ -326,6 +350,7 @@ virErrorMsg;
 virRaiseError;
 virReportSystemErrorFull;
 virReportOOMErrorFull;
+virStrerror;
 
 
 # xml.h
@@ -334,3 +359,4 @@ virXPathNode;
 virXPathNodeSet;
 virXPathString;
 virXMLPropString;
+virXPathStringLimit;

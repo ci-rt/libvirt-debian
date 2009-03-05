@@ -1166,6 +1166,43 @@ xdr_remote_domain_get_max_vcpus_ret (XDR *xdrs, remote_domain_get_max_vcpus_ret 
 }
 
 bool_t
+xdr_remote_domain_get_security_label_args (XDR *xdrs, remote_domain_get_security_label_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_get_security_label_ret (XDR *xdrs, remote_domain_get_security_label_ret *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->label.label_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->label.label_len, REMOTE_SECURITY_LABEL_MAX,
+                sizeof (char), (xdrproc_t) xdr_char))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->enforcing))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_node_get_security_model_ret (XDR *xdrs, remote_node_get_security_model_ret *objp)
+{
+        char **objp_cpp1 = (char **) (void *) &objp->doi.doi_val;
+        char **objp_cpp0 = (char **) (void *) &objp->model.model_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->model.model_len, REMOTE_SECURITY_MODEL_MAX,
+                sizeof (char), (xdrproc_t) xdr_char))
+                 return FALSE;
+         if (!xdr_array (xdrs, objp_cpp1, (u_int *) &objp->doi.doi_len, REMOTE_SECURITY_DOI_MAX,
+                sizeof (char), (xdrproc_t) xdr_char))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_domain_attach_device_args (XDR *xdrs, remote_domain_attach_device_args *objp)
 {
 
@@ -2161,6 +2198,33 @@ xdr_remote_node_device_list_caps_ret (XDR *xdrs, remote_node_device_list_caps_re
 
          if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->names.names_len, REMOTE_NODE_DEVICE_CAPS_LIST_MAX,
                 sizeof (remote_nonnull_string), (xdrproc_t) xdr_remote_nonnull_string))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_node_device_dettach_args (XDR *xdrs, remote_node_device_dettach_args *objp)
+{
+
+         if (!xdr_remote_nonnull_string (xdrs, &objp->name))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_node_device_re_attach_args (XDR *xdrs, remote_node_device_re_attach_args *objp)
+{
+
+         if (!xdr_remote_nonnull_string (xdrs, &objp->name))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_node_device_reset_args (XDR *xdrs, remote_node_device_reset_args *objp)
+{
+
+         if (!xdr_remote_nonnull_string (xdrs, &objp->name))
                  return FALSE;
         return TRUE;
 }

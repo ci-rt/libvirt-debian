@@ -1,7 +1,7 @@
 /*
  * remote.c: code handling remote requests (from remote_internal.c)
  *
- * Copyright (C) 2007, 2008 Red Hat, Inc.
+ * Copyright (C) 2007, 2008, 2009 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -41,6 +41,7 @@
 #include <string.h>
 #include <errno.h>
 #include <fnmatch.h>
+#include "virterror_internal.h"
 
 #ifdef HAVE_POLKIT
 #include <polkit/polkit.h>
@@ -990,9 +991,11 @@ remoteDispatchDomainBlockPeek (struct qemud_server *server ATTRIBUTE_UNUSED,
     }
 
     ret->buffer.buffer_len = size;
-    if (VIR_ALLOC_N(ret->buffer.buffer_val, size) < 0) {
+    if (VIR_ALLOC_N (ret->buffer.buffer_val, size) < 0) {
+        char ebuf[1024];
         virDomainFree (dom);
-        remoteDispatchFormatError (rerr, "%s", strerror (errno));
+        remoteDispatchFormatError (rerr, "%s",
+                                   virStrerror(errno, ebuf, sizeof ebuf));
         return -1;
     }
 
@@ -1031,16 +1034,18 @@ remoteDispatchDomainMemoryPeek (struct qemud_server *server ATTRIBUTE_UNUSED,
     flags = args->flags;
 
     if (size > REMOTE_DOMAIN_MEMORY_PEEK_BUFFER_MAX) {
+        virDomainFree (dom);
         remoteDispatchFormatError (rerr,
                                    "%s", _("size > maximum buffer size"));
-        virDomainFree (dom);
         return -1;
     }
 
     ret->buffer.buffer_len = size;
     if (VIR_ALLOC_N (ret->buffer.buffer_val, size) < 0) {
-        remoteDispatchFormatError (rerr, "%s", strerror (errno));
+        char ebuf[1024];
         virDomainFree (dom);
+        remoteDispatchFormatError (rerr, "%s",
+                                   virStrerror(errno, ebuf, sizeof ebuf));
         return -1;
     }
 
@@ -1336,6 +1341,76 @@ remoteDispatchDomainGetMaxVcpus (struct qemud_server *server ATTRIBUTE_UNUSED,
         return -1;
     }
     virDomainFree(dom);
+    return 0;
+}
+
+static int
+remoteDispatchDomainGetSecurityLabel(struct qemud_server *server ATTRIBUTE_UNUSED,
+                                     struct qemud_client *client ATTRIBUTE_UNUSED,
+                                     virConnectPtr conn,
+                                     remote_error *rerr,
+                                     remote_domain_get_security_label_args *args,
+                                     remote_domain_get_security_label_ret *ret)
+{
+    virDomainPtr dom;
+    virSecurityLabel seclabel;
+
+    dom = get_nonnull_domain(conn, args->dom);
+    if (dom == NULL) {
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
+
+    memset(&seclabel, 0, sizeof seclabel);
+    if (virDomainGetSecurityLabel(dom, &seclabel) == -1) {
+        virDomainFree(dom);
+        remoteDispatchFormatError(rerr, "%s", _("unable to get security label"));
+        return -1;
+    }
+
+    ret->label.label_len = strlen(seclabel.label) + 1;
+    if (VIR_ALLOC_N(ret->label.label_val, ret->label.label_len) < 0) {
+        virDomainFree(dom);
+        remoteDispatchOOMError(rerr);
+        return -1;
+    }
+    strcpy(ret->label.label_val, seclabel.label);
+    ret->enforcing = seclabel.enforcing;
+    virDomainFree(dom);
+
+    return 0;
+}
+
+static int
+remoteDispatchNodeGetSecurityModel(struct qemud_server *server ATTRIBUTE_UNUSED,
+                                   struct qemud_client *client ATTRIBUTE_UNUSED,
+                                   virConnectPtr conn,
+                                   remote_error *rerr,
+                                   void *args ATTRIBUTE_UNUSED,
+                                   remote_node_get_security_model_ret *ret)
+{
+    virSecurityModel secmodel;
+
+    memset(&secmodel, 0, sizeof secmodel);
+    if (virNodeGetSecurityModel(conn, &secmodel) == -1) {
+        remoteDispatchFormatError(rerr, "%s", _("unable to get security model"));
+        return -1;
+    }
+
+    ret->model.model_len = strlen(secmodel.model) + 1;
+    if (VIR_ALLOC_N(ret->model.model_val, ret->model.model_len) < 0) {
+        remoteDispatchOOMError(rerr);
+        return -1;
+    }
+    strcpy(ret->model.model_val, secmodel.model);
+
+    ret->doi.doi_len = strlen(secmodel.doi) + 1;
+    if (VIR_ALLOC_N(ret->doi.doi_val, ret->doi.doi_len) < 0) {
+        remoteDispatchOOMError(rerr);
+        return -1;
+    }
+    strcpy(ret->doi.doi_val, secmodel.doi);
+
     return 0;
 }
 
@@ -2571,9 +2646,10 @@ remoteDispatchAuthSaslInit (struct qemud_server *server,
     /* Get local address in form  IPADDR:PORT */
     salen = sizeof(sa);
     if (getsockname(client->fd, (struct sockaddr*)&sa, &salen) < 0) {
+        char ebuf[1024];
         remoteDispatchFormatError(rerr,
-                                  _("failed to get sock address %d (%s)"),
-                                  errno, strerror(errno));
+                                  _("failed to get sock address: %s"),
+                                  virStrerror(errno, ebuf, sizeof ebuf));
         goto error;
     }
     if ((localAddr = addrToString(rerr, &sa, salen)) == NULL) {
@@ -2583,8 +2659,9 @@ remoteDispatchAuthSaslInit (struct qemud_server *server,
     /* Get remote address in form  IPADDR:PORT */
     salen = sizeof(sa);
     if (getpeername(client->fd, (struct sockaddr*)&sa, &salen) < 0) {
-        remoteDispatchFormatError(rerr, _("failed to get peer address %d (%s)"),
-                                  errno, strerror(errno));
+        char ebuf[1024];
+        remoteDispatchFormatError(rerr, _("failed to get peer address: %s"),
+                                  virStrerror(errno, ebuf, sizeof ebuf));
         VIR_FREE(localAddr);
         goto error;
     }
@@ -3062,7 +3139,9 @@ remoteDispatchAuthPolkit (struct qemud_server *server,
     }
 
     if (!(pkaction = polkit_action_new())) {
-        VIR_ERROR(_("Failed to create polkit action %s\n"), strerror(errno));
+        char ebuf[1024];
+        VIR_ERROR(_("Failed to create polkit action %s\n"),
+                  virStrerror(errno, ebuf, sizeof ebuf));
         polkit_caller_unref(pkcaller);
         goto authfail;
     }
@@ -3070,9 +3149,10 @@ remoteDispatchAuthPolkit (struct qemud_server *server,
 
     if (!(pkcontext = polkit_context_new()) ||
         !polkit_context_init(pkcontext, &pkerr)) {
+        char ebuf[1024];
         VIR_ERROR(_("Failed to create polkit context %s\n"),
                   (pkerr ? polkit_error_get_error_message(pkerr)
-                   : strerror(errno)));
+                   : virStrerror(errno, ebuf, sizeof ebuf)));
         if (pkerr)
             polkit_error_free(pkerr);
         polkit_caller_unref(pkcaller);
@@ -4155,6 +4235,84 @@ remoteDispatchNodeDeviceListCaps (struct qemud_server *server ATTRIBUTE_UNUSED,
     if (ret->names.names_len == -1) {
         remoteDispatchConnError(rerr, conn);
         VIR_FREE(ret->names.names_val);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+static int
+remoteDispatchNodeDeviceDettach (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                 struct qemud_client *client ATTRIBUTE_UNUSED,
+                                 virConnectPtr conn,
+                                 remote_error *rerr,
+                                 remote_node_device_dettach_args *args,
+                                 void *ret ATTRIBUTE_UNUSED)
+{
+    virNodeDevicePtr dev;
+    CHECK_CONN(client);
+
+    dev = virNodeDeviceLookupByName(conn, args->name);
+    if (dev == NULL) {
+        remoteDispatchFormatError(rerr, "%s", _("node_device not found"));
+        return -1;
+    }
+
+    if (virNodeDeviceDettach(dev) == -1) {
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+static int
+remoteDispatchNodeDeviceReAttach (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                  struct qemud_client *client ATTRIBUTE_UNUSED,
+                                  virConnectPtr conn,
+                                  remote_error *rerr,
+                                  remote_node_device_re_attach_args *args,
+                                  void *ret ATTRIBUTE_UNUSED)
+{
+    virNodeDevicePtr dev;
+    CHECK_CONN(client);
+
+    dev = virNodeDeviceLookupByName(conn, args->name);
+    if (dev == NULL) {
+        remoteDispatchFormatError(rerr, "%s", _("node_device not found"));
+        return -1;
+    }
+
+    if (virNodeDeviceReAttach(dev) == -1) {
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+static int
+remoteDispatchNodeDeviceReset (struct qemud_server *server ATTRIBUTE_UNUSED,
+                               struct qemud_client *client ATTRIBUTE_UNUSED,
+                               virConnectPtr conn,
+                               remote_error *rerr,
+                               remote_node_device_reset_args *args,
+                               void *ret ATTRIBUTE_UNUSED)
+{
+    virNodeDevicePtr dev;
+    CHECK_CONN(client);
+
+    dev = virNodeDeviceLookupByName(conn, args->name);
+    if (dev == NULL) {
+        remoteDispatchFormatError(rerr, "%s", _("node_device not found"));
+        return -1;
+    }
+
+    if (virNodeDeviceReset(dev) == -1) {
+        remoteDispatchConnError(rerr, conn);
         return -1;
     }
 

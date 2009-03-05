@@ -1,7 +1,7 @@
 /*
  * utils.c: common, generic utility functions
  *
- * Copyright (C) 2006, 2007, 2008 Red Hat, Inc.
+ * Copyright (C) 2006, 2007, 2008, 2009 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  * Copyright (C) 2006, 2007 Binary Karma
  * Copyright (C) 2006 Shuveb Hussain
@@ -185,7 +185,7 @@ int virSetNonBlock(int fd) {
 
 #ifndef WIN32
 
-static int virSetCloseExec(int fd) {
+int virSetCloseExec(int fd) {
     int flags;
     if ((flags = fcntl(fd, F_GETFD)) < 0)
         return -1;
@@ -202,7 +202,10 @@ __virExec(virConnectPtr conn,
           const fd_set *keepfd,
           pid_t *retpid,
           int infd, int *outfd, int *errfd,
-          int flags) {
+          int flags,
+          virExecHook hook,
+          void *data)
+{
     pid_t pid;
     int null, i, openmax;
     int pipeout[2] = {-1,-1};
@@ -416,6 +419,9 @@ __virExec(virConnectPtr conn,
         childerr != childout)
         close(childerr);
 
+    if (hook)
+        if ((hook)(data) != 0)
+            _exit(1);
     if (envp)
         execve(argv[0], (char **) argv, (char**)envp);
     else
@@ -450,13 +456,16 @@ __virExec(virConnectPtr conn,
 }
 
 int
-virExec(virConnectPtr conn,
-        const char *const*argv,
-        const char *const*envp,
-        const fd_set *keepfd,
-        pid_t *retpid,
-        int infd, int *outfd, int *errfd,
-        int flags) {
+virExecWithHook(virConnectPtr conn,
+                const char *const*argv,
+                const char *const*envp,
+                const fd_set *keepfd,
+                pid_t *retpid,
+                int infd, int *outfd, int *errfd,
+                int flags,
+                virExecHook hook,
+                void *data)
+{
     char *argv_str;
 
     if ((argv_str = virArgvToString(argv)) == NULL) {
@@ -467,7 +476,21 @@ virExec(virConnectPtr conn,
     VIR_FREE(argv_str);
 
     return __virExec(conn, argv, envp, keepfd, retpid, infd, outfd, errfd,
-                     flags);
+                     flags, hook, data);
+}
+
+int
+virExec(virConnectPtr conn,
+        const char *const*argv,
+        const char *const*envp,
+        const fd_set *keepfd,
+        pid_t *retpid,
+        int infd, int *outfd, int *errfd,
+        int flags)
+{
+    return virExecWithHook(conn, argv, envp, keepfd, retpid,
+                           infd, outfd, errfd,
+                           flags, NULL, NULL);
 }
 
 static int
@@ -585,7 +608,7 @@ virRun(virConnectPtr conn,
 
     if ((execret = __virExec(conn, argv, NULL, NULL,
                              &childpid, -1, &outfd, &errfd,
-                             VIR_EXEC_NONE)) < 0) {
+                             VIR_EXEC_NONE, NULL, NULL)) < 0) {
         ret = execret;
         goto error;
     }
@@ -755,21 +778,47 @@ int virFileReadLimFD(int fd_arg, int maxlen, char **buf)
 
 int virFileReadAll(const char *path, int maxlen, char **buf)
 {
+    char ebuf[1024];
     FILE *fh = fopen(path, "r");
     if (fh == NULL) {
         virLog("Failed to open file '%s': %s\n",
-               path, strerror(errno));
+               path, virStrerror(errno, ebuf, sizeof ebuf));
         return -1;
     }
 
     int len = virFileReadLimFP (fh, maxlen, buf);
     fclose(fh);
     if (len < 0) {
-        virLog("Failed to read '%s': %s\n", path, strerror (errno));
+        virLog("Failed to read '%s': %s\n", path,
+               virStrerror(errno, ebuf, sizeof ebuf));
         return -1;
     }
 
     return len;
+}
+
+/* Truncate @path and write @str to it.
+   Return 0 for success, nonzero for failure.
+   Be careful to preserve any errno value upon failure. */
+int virFileWriteStr(const char *path, const char *str)
+{
+    int fd;
+
+    if ((fd = open(path, O_WRONLY|O_TRUNC)) == -1)
+        return -1;
+
+    if (safewrite(fd, str, strlen(str)) < 0) {
+        int saved_errno = errno;
+        close (fd);
+        errno = saved_errno;
+        return -1;
+    }
+
+    /* Use errno from failed close only if there was no write error.  */
+    if (close (fd) != 0)
+        return -1;
+
+    return 0;
 }
 
 int virFileMatchesNameSuffix(const char *file,

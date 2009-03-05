@@ -180,6 +180,13 @@ typedef int
                                          int maplen);
 typedef int
         (*virDrvDomainGetMaxVcpus)	(virDomainPtr domain);
+
+typedef int
+        (*virDrvDomainGetSecurityLabel)	(virDomainPtr domain,
+                                         virSecurityLabelPtr seclabel);
+typedef int
+        (*virDrvNodeGetSecurityModel)	(virConnectPtr conn,
+                                         virSecurityModelPtr secmodel);
 typedef int
         (*virDrvDomainAttachDevice)	(virDomainPtr domain,
                                          const char *xml);
@@ -313,6 +320,16 @@ typedef virDomainPtr
                      unsigned long flags,
                      int retcode);
 
+typedef int
+    (*virDrvNodeDeviceDettach)
+                    (virNodeDevicePtr dev);
+typedef int
+    (*virDrvNodeDeviceReAttach)
+                    (virNodeDevicePtr dev);
+typedef int
+    (*virDrvNodeDeviceReset)
+                    (virNodeDevicePtr dev);
+
 /**
  * _virDriver:
  *
@@ -361,6 +378,8 @@ struct _virDriver {
     virDrvDomainPinVcpu		domainPinVcpu;
     virDrvDomainGetVcpus		domainGetVcpus;
     virDrvDomainGetMaxVcpus		domainGetMaxVcpus;
+    virDrvDomainGetSecurityLabel     domainGetSecurityLabel;
+    virDrvNodeGetSecurityModel  nodeGetSecurityModel;
     virDrvDomainDumpXML		domainDumpXML;
     virDrvListDefinedDomains	listDefinedDomains;
     virDrvNumOfDefinedDomains	numOfDefinedDomains;
@@ -387,6 +406,9 @@ struct _virDriver {
     virDrvDomainEventDeregister       domainEventDeregister;
     virDrvDomainMigratePrepare2	domainMigratePrepare2;
     virDrvDomainMigrateFinish2	domainMigrateFinish2;
+    virDrvNodeDeviceDettach     nodeDeviceDettach;
+    virDrvNodeDeviceReAttach    nodeDeviceReAttach;
+    virDrvNodeDeviceReset       nodeDeviceReset;
 };
 
 typedef int

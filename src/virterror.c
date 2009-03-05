@@ -151,6 +151,9 @@ static const char *virErrorDomainName(virErrorDomain domain) {
         case VIR_FROM_UML:
             dom = "UML ";
             break;
+        case VIR_FROM_SECURITY:
+            dom = "Security Labeling ";
+            break;
     }
     return(dom);
 }
@@ -286,6 +289,27 @@ virCopyLastError(virErrorPtr to)
 }
 
 /**
+ * virSaveLastError:
+ *
+ * Save the last error into a new error object.
+ *
+ * Returns a pointer to the copied error or NULL if allocation failed.
+ * It is the caller's responsibility to free the error with
+ * virFreeError().
+ */
+virErrorPtr
+virSaveLastError(void)
+{
+    virErrorPtr to;
+
+    if (VIR_ALLOC(to) < 0)
+        return NULL;
+
+    virCopyLastError(to);
+    return to;
+}
+
+/**
  * virResetError:
  * @err: pointer to the virError to clean up
  *
@@ -303,6 +327,18 @@ virResetError(virErrorPtr err)
     memset(err, 0, sizeof(virError));
 }
 
+/**
+ * virFreeError:
+ * @err: error to free
+ *
+ * Resets and frees the given error.
+ */
+void
+virFreeError(virErrorPtr err)
+{
+    virResetError(err);
+    VIR_FREE(err);
+}
 
 /**
  * virResetLastError:
@@ -962,6 +998,12 @@ virErrorMsg(virErrorNumber error, const char *info)
             else
                     errmsg = _("Node device not found: %s");
             break;
+        case VIR_ERR_NO_SECURITY_MODEL:
+            if (info == NULL)
+                    errmsg = _("Security model not found");
+            else
+                    errmsg = _("Security model not found: %s");
+            break;
     }
     return (errmsg);
 }
@@ -1005,7 +1047,7 @@ void virReportErrorHelper(virConnectPtr conn, int domcode, int errcode,
 
 }
 
-static const char *virStrerror(int theerrno, char *errBuf, size_t errBufLen)
+const char *virStrerror(int theerrno, char *errBuf, size_t errBufLen)
 {
 #ifdef HAVE_STRERROR_R
 # ifdef __USE_GNU

@@ -305,6 +305,7 @@ typedef struct _virDomainHostdevDef virDomainHostdevDef;
 typedef virDomainHostdevDef *virDomainHostdevDefPtr;
 struct _virDomainHostdevDef {
     int mode; /* enum virDomainHostdevMode */
+    unsigned int managed : 1;
     union {
         struct {
             int type; /* enum virDomainHostdevBusType */
@@ -342,6 +343,8 @@ enum virDomainDeviceType {
     VIR_DOMAIN_DEVICE_INPUT,
     VIR_DOMAIN_DEVICE_SOUND,
     VIR_DOMAIN_DEVICE_HOSTDEV,
+
+    VIR_DOMAIN_DEVICE_LAST,
 };
 
 typedef struct _virDomainDeviceDef virDomainDeviceDef;
@@ -407,6 +410,23 @@ struct _virDomainOSDef {
     char *bootloaderArgs;
 };
 
+enum virDomainSeclabelType {
+    VIR_DOMAIN_SECLABEL_DYNAMIC,
+    VIR_DOMAIN_SECLABEL_STATIC,
+
+    VIR_DOMAIN_SECLABEL_LAST,
+};
+
+/* Security configuration for domain */
+typedef struct _virSecurityLabelDef virSecurityLabelDef;
+typedef virSecurityLabelDef *virSecurityLabelDefPtr;
+struct _virSecurityLabelDef {
+    char *model;        /* name of security model */
+    char *label;        /* security label string */
+    char *imagelabel;   /* security image label string */
+    int type;
+};
+
 #define VIR_DOMAIN_CPUMASK_LEN 1024
 
 /* Guest VM main configuration */
@@ -464,6 +484,7 @@ struct _virDomainDef {
 
     /* Only 1 */
     virDomainChrDefPtr console;
+    virSecurityLabelDef seclabel;
 };
 
 /* Guest VM runtime state */
@@ -473,7 +494,6 @@ struct _virDomainObj {
     virMutex lock;
 
     int monitor;
-    int monitor_watch;
     char *monitorpath;
     int monitorWatch;
     int logfile;
@@ -622,6 +642,7 @@ VIR_ENUM_DECL(virDomainVirt)
 VIR_ENUM_DECL(virDomainBoot)
 VIR_ENUM_DECL(virDomainFeature)
 VIR_ENUM_DECL(virDomainLifecycle)
+VIR_ENUM_DECL(virDomainDevice)
 VIR_ENUM_DECL(virDomainDisk)
 VIR_ENUM_DECL(virDomainDiskDevice)
 VIR_ENUM_DECL(virDomainDiskBus)
@@ -637,5 +658,6 @@ VIR_ENUM_DECL(virDomainInputBus)
 VIR_ENUM_DECL(virDomainGraphics)
 /* from libvirt.h */
 VIR_ENUM_DECL(virDomainState)
+VIR_ENUM_DECL(virDomainSeclabel)
 
 #endif /* __DOMAIN_CONF_H */

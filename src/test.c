@@ -1,7 +1,7 @@
 /*
  * test.c: A "mock" hypervisor for use by application unit tests
  *
- * Copyright (C) 2006-2008 Red Hat, Inc.
+ * Copyright (C) 2006-2009 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -509,8 +509,7 @@ static int testOpenFromFile(virConnectPtr conn,
         dom->persistent = 1;
         virDomainObjUnlock(dom);
     }
-    if (domains != NULL)
-        VIR_FREE(domains);
+    VIR_FREE(domains);
 
     ret = virXPathNodeSet(conn, "/node/network", ctxt, &networks);
     if (ret < 0) {
@@ -544,8 +543,7 @@ static int testOpenFromFile(virConnectPtr conn,
         net->persistent = 1;
         virNetworkObjUnlock(net);
     }
-    if (networks != NULL)
-        VIR_FREE(networks);
+    VIR_FREE(networks);
 
     /* Parse Storage Pool list */
     ret = virXPathNodeSet(conn, "/node/pool", ctxt, &pools);
@@ -599,8 +597,7 @@ static int testOpenFromFile(virConnectPtr conn,
         pool->active = 1;
         virStoragePoolObjUnlock(pool);
     }
-    if (pools != NULL)
-        VIR_FREE(pools);
+    VIR_FREE(pools);
 
     xmlXPathFreeContext(ctxt);
     xmlFreeDoc(xml);
@@ -2052,14 +2049,12 @@ static virNetworkPtr testNetworkCreate(virConnectPtr conn, const char *xml) {
     if ((def = virNetworkDefParseString(conn, xml)) == NULL)
         goto cleanup;
 
-    if ((net = virNetworkAssignDef(conn, &privconn->networks,
-                                   def)) == NULL) {
+    if ((net = virNetworkAssignDef(conn, &privconn->networks, def)) == NULL)
         goto cleanup;
-    }
-    net->active = 1;
     def = NULL;
+    net->active = 1;
 
-    ret = virGetNetwork(conn, def->name, def->uuid);
+    ret = virGetNetwork(conn, net->def->name, net->def->uuid);
 
 cleanup:
     virNetworkDefFree(def);
@@ -2079,14 +2074,12 @@ static virNetworkPtr testNetworkDefine(virConnectPtr conn, const char *xml) {
     if ((def = virNetworkDefParseString(conn, xml)) == NULL)
         goto cleanup;
 
-    if ((net = virNetworkAssignDef(conn, &privconn->networks,
-                                   def)) == NULL) {
+    if ((net = virNetworkAssignDef(conn, &privconn->networks, def)) == NULL)
         goto cleanup;
-    }
-    net->persistent = 1;
     def = NULL;
+    net->persistent = 1;
 
-    ret = virGetNetwork(conn, def->name, def->uuid);
+    ret = virGetNetwork(conn, net->def->name, net->def->uuid);
 
 cleanup:
     virNetworkDefFree(def);
@@ -2532,9 +2525,8 @@ testStoragePoolCreate(virConnectPtr conn,
         goto cleanup;
     }
 
-    if (!(pool = virStoragePoolObjAssignDef(conn, &privconn->pools, def))) {
+    if (!(pool = virStoragePoolObjAssignDef(conn, &privconn->pools, def)))
         goto cleanup;
-    }
     def = NULL;
 
     if (testStoragePoolObjSetDefaults(conn, pool) == -1) {
@@ -2571,9 +2563,8 @@ testStoragePoolDefine(virConnectPtr conn,
     def->allocation = defaultPoolAlloc;
     def->available = defaultPoolCap - defaultPoolAlloc;
 
-    if (!(pool = virStoragePoolObjAssignDef(conn, &privconn->pools, def))) {
+    if (!(pool = virStoragePoolObjAssignDef(conn, &privconn->pools, def)))
         goto cleanup;
-    }
     def = NULL;
 
     if (testStoragePoolObjSetDefaults(conn, pool) == -1) {
@@ -3510,6 +3501,8 @@ static virDriver testDriver = {
     NULL, /* domainPinVcpu */
     NULL, /* domainGetVcpus */
     NULL, /* domainGetMaxVcpus */
+    NULL, /* domainGetSecurityLabel */
+    NULL, /* nodeGetSecurityModel */
     testDomainDumpXML, /* domainDumpXML */
     testListDefinedDomains, /* listDefinedDomains */
     testNumOfDefinedDomains, /* numOfDefinedDomains */
@@ -3536,6 +3529,9 @@ static virDriver testDriver = {
     testDomainEventDeregister, /* domainEventDeregister */
     NULL, /* domainMigratePrepare2 */
     NULL, /* domainMigrateFinish2 */
+    NULL, /* nodeDeviceAttach */
+    NULL, /* nodeDeviceReAttach */
+    NULL, /* nodeDeviceReset */
 };
 
 static virNetworkDriver testNetworkDriver = {
