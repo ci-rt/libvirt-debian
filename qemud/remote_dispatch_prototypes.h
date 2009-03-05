@@ -184,6 +184,13 @@ static int remoteDispatchDomainGetSchedulerType(
     remote_error *err,
     remote_domain_get_scheduler_type_args *args,
     remote_domain_get_scheduler_type_ret *ret);
+static int remoteDispatchDomainGetSecurityLabel(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_error *err,
+    remote_domain_get_security_label_args *args,
+    remote_domain_get_security_label_ret *ret);
 static int remoteDispatchDomainGetVcpus(
     struct qemud_server *server,
     struct qemud_client *client,
@@ -520,6 +527,13 @@ static int remoteDispatchNetworkUndefine(
     remote_error *err,
     remote_network_undefine_args *args,
     void *ret);
+static int remoteDispatchNodeDeviceDettach(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_error *err,
+    remote_node_device_dettach_args *args,
+    void *ret);
 static int remoteDispatchNodeDeviceDumpXml(
     struct qemud_server *server,
     struct qemud_client *client,
@@ -555,6 +569,20 @@ static int remoteDispatchNodeDeviceNumOfCaps(
     remote_error *err,
     remote_node_device_num_of_caps_args *args,
     remote_node_device_num_of_caps_ret *ret);
+static int remoteDispatchNodeDeviceReAttach(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_error *err,
+    remote_node_device_re_attach_args *args,
+    void *ret);
+static int remoteDispatchNodeDeviceReset(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_error *err,
+    remote_node_device_reset_args *args,
+    void *ret);
 static int remoteDispatchNodeGetCellsFreeMemory(
     struct qemud_server *server,
     struct qemud_client *client,
@@ -576,6 +604,13 @@ static int remoteDispatchNodeGetInfo(
     remote_error *err,
     void *args,
     remote_node_get_info_ret *ret);
+static int remoteDispatchNodeGetSecurityModel(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_error *err,
+    void *args,
+    remote_node_get_security_model_ret *ret);
 static int remoteDispatchNodeListDevices(
     struct qemud_server *server,
     struct qemud_client *client,

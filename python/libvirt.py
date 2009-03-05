@@ -1441,6 +1441,11 @@ class virNodeDevice:
         if ret is None: raise libvirtError ('virNodeDeviceGetXMLDesc() failed')
         return ret
 
+    def dettach(self):
+        ret = libvirtmod.virNodeDeviceDettach(self._o)
+        if ret == -1: raise libvirtError ('virNodeDeviceDettach() failed')
+        return ret
+
     def name(self):
         """Just return the device name """
         ret = libvirtmod.virNodeDeviceGetName(self._o)
@@ -1458,6 +1463,17 @@ class virNodeDevice:
         ret = libvirtmod.virNodeDeviceGetParent(self._o)
         return ret
 
+    def reAttach(self):
+        """Re-attach a previously dettached node device to the node so
+          that it may be used by the node again.  Depending on the
+          hypervisor, this may involve operations such as resetting
+          the device, unbinding it from a dummy device driver and
+          binding it to its appropriate driver.  If the device is
+           currently in use by a guest, this method may fail. """
+        ret = libvirtmod.virNodeDeviceReAttach(self._o)
+        if ret == -1: raise libvirtError ('virNodeDeviceReAttach() failed')
+        return ret
+
     def ref(self):
         """Increment the reference count on the dev. For each
           additional call to this method, there shall be a
@@ -1470,6 +1486,18 @@ class virNodeDevice:
            thread using a dev would increment the reference count. """
         ret = libvirtmod.virNodeDeviceRef(self._o)
         if ret == -1: raise libvirtError ('virNodeDeviceRef() failed')
+        return ret
+
+    def reset(self):
+        """Reset a previously dettached node device to the node before
+          or after assigning it to a guest.  The exact reset
+          semantics depends on the hypervisor and device type but,
+          for example, KVM will attempt to reset PCI devices with a
+          Function Level Reset, Secondary Bus Reset or a Power
+          Management D-State reset.  If the reset will affect other
+           devices which are currently in use, this function may fail. """
+        ret = libvirtmod.virNodeDeviceReset(self._o)
+        if ret == -1: raise libvirtError ('virNodeDeviceReset() failed')
         return ret
 
     #
@@ -1519,6 +1547,7 @@ VIR_FROM_DOMAIN = 20
 VIR_FROM_UML = 21
 VIR_FROM_NODEDEV = 22
 VIR_FROM_XEN_INOTIFY = 23
+VIR_FROM_SECURITY = 24
 
 # virDomainEventStartedDetailType
 VIR_DOMAIN_EVENT_STARTED_BOOTED = 0
@@ -1628,6 +1657,7 @@ VIR_ERR_NO_STORAGE_VOL = 50
 VIR_WAR_NO_NODE = 51
 VIR_ERR_INVALID_NODE_DEVICE = 52
 VIR_ERR_NO_NODE_DEVICE = 53
+VIR_ERR_NO_SECURITY_MODEL = 54
 
 # virDomainMemoryFlags
 VIR_MEMORY_VIRTUAL = 1

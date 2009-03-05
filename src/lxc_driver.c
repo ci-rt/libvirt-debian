@@ -1238,7 +1238,6 @@ static int lxcShutdown(void)
     lxcDriverUnlock(lxc_driver);
     virMutexDestroy(&lxc_driver->lock);
     VIR_FREE(lxc_driver);
-    lxc_driver = NULL;
 
     return 0;
 }
@@ -1430,6 +1429,8 @@ static virDriver lxcDriver = {
     NULL, /* domainPinVcpu */
     NULL, /* domainGetVcpus */
     NULL, /* domainGetMaxVcpus */
+    NULL, /* domainGetSecurityLabel */
+    NULL, /* nodeGetSecurityModel */
     lxcDomainDumpXML, /* domainDumpXML */
     lxcListDefinedDomains, /* listDefinedDomains */
     lxcNumDefinedDomains, /* numOfDefinedDomains */
@@ -1456,6 +1457,9 @@ static virDriver lxcDriver = {
     NULL, /* domainEventDeregister */
     NULL, /* domainMigratePrepare2 */
     NULL, /* domainMigrateFinish2 */
+    NULL, /* nodeDeviceAttach */
+    NULL, /* nodeDeviceReAttach */
+    NULL, /* nodeDeviceReset */
 };
 
 static virStateDriver lxcStateDriver = {

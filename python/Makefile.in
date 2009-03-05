@@ -521,6 +521,7 @@ MAKEINFO = @MAKEINFO@
 MINGW_EXTRA_LDFLAGS = @MINGW_EXTRA_LDFLAGS@
 MKDIR_P = @MKDIR_P@
 MKINSTALLDIRS = @MKINSTALLDIRS@
+MODPROBE = @MODPROBE@
 MOUNT = @MOUNT@
 MSGFMT = @MSGFMT@
 MSGMERGE = @MSGMERGE@
@@ -788,7 +789,7 @@ EXTRA_DIST = \
 @WITH_PYTHON_TRUE@	   libvirt-py.h \
 @WITH_PYTHON_TRUE@	   libvirtclass.py
 
-@WITH_PYTHON_TRUE@CLEANFILES = $(GENERATED) libvirt.py
+@WITH_PYTHON_TRUE@CLEANFILES = $(GENERATED) generated.stamp libvirt.py
 all: all-recursive
 
 .SUFFIXES:
@@ -1201,8 +1202,11 @@ uninstall-am: uninstall-local uninstall-pythonLTLIBRARIES
 
 @WITH_PYTHON_TRUE@all-local: libvirt.py
 
-@WITH_PYTHON_TRUE@$(GENERATED): $(srcdir)/$(GENERATE) $(API_DESC)
+@WITH_PYTHON_TRUE@generated.stamp: $(srcdir)/$(GENERATE) $(API_DESC)
 @WITH_PYTHON_TRUE@	$(PYTHON) $(srcdir)/$(GENERATE) $(srcdir)
+@WITH_PYTHON_TRUE@	touch $@
+
+@WITH_PYTHON_TRUE@$(GENERATED): generated.stamp
 
 @WITH_PYTHON_TRUE@libvirt.py: $(srcdir)/libvir.py $(GENERATED) $(CLASSES_EXTRA)
 @WITH_PYTHON_TRUE@	cat $(srcdir)/libvir.py libvirtclass.py > $@-t

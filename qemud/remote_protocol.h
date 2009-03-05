@@ -38,6 +38,9 @@ typedef remote_nonnull_string *remote_string;
 #define REMOTE_AUTH_TYPE_LIST_MAX 20
 #define REMOTE_DOMAIN_BLOCK_PEEK_BUFFER_MAX 65536
 #define REMOTE_DOMAIN_MEMORY_PEEK_BUFFER_MAX 65536
+#define REMOTE_SECURITY_MODEL_MAX VIR_SECURITY_MODEL_BUFLEN
+#define REMOTE_SECURITY_LABEL_MAX VIR_SECURITY_LABEL_BUFLEN
+#define REMOTE_SECURITY_DOI_MAX VIR_SECURITY_DOI_BUFLEN
 
 typedef char remote_uuid[VIR_UUID_BUFLEN];
 
@@ -637,6 +640,32 @@ struct remote_domain_get_max_vcpus_ret {
 };
 typedef struct remote_domain_get_max_vcpus_ret remote_domain_get_max_vcpus_ret;
 
+struct remote_domain_get_security_label_args {
+        remote_nonnull_domain dom;
+};
+typedef struct remote_domain_get_security_label_args remote_domain_get_security_label_args;
+
+struct remote_domain_get_security_label_ret {
+        struct {
+                u_int label_len;
+                char *label_val;
+        } label;
+        int enforcing;
+};
+typedef struct remote_domain_get_security_label_ret remote_domain_get_security_label_ret;
+
+struct remote_node_get_security_model_ret {
+        struct {
+                u_int model_len;
+                char *model_val;
+        } model;
+        struct {
+                u_int doi_len;
+                char *doi_val;
+        } doi;
+};
+typedef struct remote_node_get_security_model_ret remote_node_get_security_model_ret;
+
 struct remote_domain_attach_device_args {
         remote_nonnull_domain dom;
         remote_nonnull_string xml;
@@ -1211,6 +1240,21 @@ struct remote_node_device_list_caps_ret {
 };
 typedef struct remote_node_device_list_caps_ret remote_node_device_list_caps_ret;
 
+struct remote_node_device_dettach_args {
+        remote_nonnull_string name;
+};
+typedef struct remote_node_device_dettach_args remote_node_device_dettach_args;
+
+struct remote_node_device_re_attach_args {
+        remote_nonnull_string name;
+};
+typedef struct remote_node_device_re_attach_args remote_node_device_re_attach_args;
+
+struct remote_node_device_reset_args {
+        remote_nonnull_string name;
+};
+typedef struct remote_node_device_reset_args remote_node_device_reset_args;
+
 struct remote_domain_events_register_ret {
         int cb_registered;
 };
@@ -1348,6 +1392,11 @@ enum remote_procedure {
         REMOTE_PROC_NODE_DEVICE_GET_PARENT = 115,
         REMOTE_PROC_NODE_DEVICE_NUM_OF_CAPS = 116,
         REMOTE_PROC_NODE_DEVICE_LIST_CAPS = 117,
+        REMOTE_PROC_NODE_DEVICE_DETTACH = 118,
+        REMOTE_PROC_NODE_DEVICE_RE_ATTACH = 119,
+        REMOTE_PROC_NODE_DEVICE_RESET = 120,
+        REMOTE_PROC_DOMAIN_GET_SECURITY_LABEL = 121,
+        REMOTE_PROC_NODE_GET_SECURITY_MODEL = 122,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -1474,6 +1523,9 @@ extern  bool_t xdr_remote_domain_get_vcpus_args (XDR *, remote_domain_get_vcpus_
 extern  bool_t xdr_remote_domain_get_vcpus_ret (XDR *, remote_domain_get_vcpus_ret*);
 extern  bool_t xdr_remote_domain_get_max_vcpus_args (XDR *, remote_domain_get_max_vcpus_args*);
 extern  bool_t xdr_remote_domain_get_max_vcpus_ret (XDR *, remote_domain_get_max_vcpus_ret*);
+extern  bool_t xdr_remote_domain_get_security_label_args (XDR *, remote_domain_get_security_label_args*);
+extern  bool_t xdr_remote_domain_get_security_label_ret (XDR *, remote_domain_get_security_label_ret*);
+extern  bool_t xdr_remote_node_get_security_model_ret (XDR *, remote_node_get_security_model_ret*);
 extern  bool_t xdr_remote_domain_attach_device_args (XDR *, remote_domain_attach_device_args*);
 extern  bool_t xdr_remote_domain_detach_device_args (XDR *, remote_domain_detach_device_args*);
 extern  bool_t xdr_remote_domain_get_autostart_args (XDR *, remote_domain_get_autostart_args*);
@@ -1574,6 +1626,9 @@ extern  bool_t xdr_remote_node_device_num_of_caps_args (XDR *, remote_node_devic
 extern  bool_t xdr_remote_node_device_num_of_caps_ret (XDR *, remote_node_device_num_of_caps_ret*);
 extern  bool_t xdr_remote_node_device_list_caps_args (XDR *, remote_node_device_list_caps_args*);
 extern  bool_t xdr_remote_node_device_list_caps_ret (XDR *, remote_node_device_list_caps_ret*);
+extern  bool_t xdr_remote_node_device_dettach_args (XDR *, remote_node_device_dettach_args*);
+extern  bool_t xdr_remote_node_device_re_attach_args (XDR *, remote_node_device_re_attach_args*);
+extern  bool_t xdr_remote_node_device_reset_args (XDR *, remote_node_device_reset_args*);
 extern  bool_t xdr_remote_domain_events_register_ret (XDR *, remote_domain_events_register_ret*);
 extern  bool_t xdr_remote_domain_events_deregister_ret (XDR *, remote_domain_events_deregister_ret*);
 extern  bool_t xdr_remote_domain_event_ret (XDR *, remote_domain_event_ret*);
@@ -1679,6 +1734,9 @@ extern bool_t xdr_remote_domain_get_vcpus_args ();
 extern bool_t xdr_remote_domain_get_vcpus_ret ();
 extern bool_t xdr_remote_domain_get_max_vcpus_args ();
 extern bool_t xdr_remote_domain_get_max_vcpus_ret ();
+extern bool_t xdr_remote_domain_get_security_label_args ();
+extern bool_t xdr_remote_domain_get_security_label_ret ();
+extern bool_t xdr_remote_node_get_security_model_ret ();
 extern bool_t xdr_remote_domain_attach_device_args ();
 extern bool_t xdr_remote_domain_detach_device_args ();
 extern bool_t xdr_remote_domain_get_autostart_args ();
@@ -1779,6 +1837,9 @@ extern bool_t xdr_remote_node_device_num_of_caps_args ();
 extern bool_t xdr_remote_node_device_num_of_caps_ret ();
 extern bool_t xdr_remote_node_device_list_caps_args ();
 extern bool_t xdr_remote_node_device_list_caps_ret ();
+extern bool_t xdr_remote_node_device_dettach_args ();
+extern bool_t xdr_remote_node_device_re_attach_args ();
+extern bool_t xdr_remote_node_device_reset_args ();
 extern bool_t xdr_remote_domain_events_register_ret ();
 extern bool_t xdr_remote_domain_events_deregister_ret ();
 extern bool_t xdr_remote_domain_event_ret ();

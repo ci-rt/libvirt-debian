@@ -634,6 +634,9 @@
 /* Location of lvs program */
 #undef LVS
 
+/* Location or name of the modprobe program */
+#undef MODPROBE
+
 /* Location or name of the mount program */
 #undef MOUNT
 
@@ -800,6 +803,9 @@
 
 /* whether building for the RHEL-5 API */
 #undef WITH_RHEL5_API
+
+/* whether SELinux security driver is available */
+#undef WITH_SECDRIVER_SELINUX
 
 /* whether directory backend for storage driver is enabled */
 #undef WITH_STORAGE_DIR

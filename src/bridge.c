@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007 Red Hat, Inc.
+ * Copyright (C) 2007, 2009 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -49,7 +49,7 @@
 #include "util.h"
 #include "logging.h"
 
-#define MAX_BRIDGE_ID 256
+#define MAX_TAP_ID 256
 
 #define JIFFIES_TO_MS(j) (((j)*1000)/HZ)
 #define MS_TO_JIFFIES(ms) (((ms)*HZ)/1000)
@@ -127,32 +127,13 @@ brShutdown(brControl *ctl)
 #ifdef SIOCBRADDBR
 int
 brAddBridge(brControl *ctl,
-            char **name)
+            const char *name)
 {
     if (!ctl || !ctl->fd || !name)
         return EINVAL;
 
-    if (*name) {
-        if (ioctl(ctl->fd, SIOCBRADDBR, *name) == 0)
-            return 0;
-    } else {
-        int id = 0;
-        do {
-            char try[50];
-
-            snprintf(try, sizeof(try), "virbr%d", id);
-
-            if (ioctl(ctl->fd, SIOCBRADDBR, try) == 0) {
-                if (!(*name = strdup(try))) {
-                    ioctl(ctl->fd, SIOCBRDELBR, name);
-                    return ENOMEM;
-                }
-                return 0;
-            }
-
-            id++;
-        } while (id < MAX_BRIDGE_ID);
-    }
+    if (ioctl(ctl->fd, SIOCBRADDBR, name) == 0)
+        return 0;
 
     return errno;
 }
@@ -454,6 +435,7 @@ brProbeVnetHdr(int tapfd)
 
     return 1;
 #else
+    (void) tapfd;
     VIR_INFO0(_("Not enabling IFF_VNET_HDR; disabled at build time"));
     return 0;
 #endif
@@ -539,16 +521,14 @@ brAddTap(brControl *ctl,
             if ((errno = brSetInterfaceUp(ctl, try.ifr_name, 1)))
                 goto error;
             VIR_FREE(*ifname);
-            if (!(*ifname = strdup(try.ifr_name))) {
-                errno = ENOMEM;
+            if (!(*ifname = strdup(try.ifr_name)))
                 goto error;
-            }
             *tapfd = fd;
             return 0;
         }
 
         id++;
-    } while (subst && id <= MAX_BRIDGE_ID);
+    } while (subst && id <= MAX_TAP_ID);
 
  error:
     close(fd);
@@ -644,6 +624,10 @@ brSetInetAddr(brControl *ctl,
               int cmd,
               const char *addr)
 {
+    union {
+        struct sockaddr sa;
+        struct sockaddr_in sa_in;
+    } s;
     struct ifreq ifr;
     struct in_addr inaddr;
     int len, ret;
@@ -664,8 +648,10 @@ brSetInetAddr(brControl *ctl,
     else if (ret == 0)
         return EINVAL;
 
-    ((struct sockaddr_in *)&ifr.ifr_data)->sin_family = AF_INET;
-    ((struct sockaddr_in *)&ifr.ifr_data)->sin_addr   = inaddr;
+    s.sa_in.sin_family = AF_INET;
+    s.sa_in.sin_addr   = inaddr;
+
+    ifr.ifr_addr = s.sa;
 
     if (ioctl(ctl->fd, cmd, &ifr) < 0)
         return errno;

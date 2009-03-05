@@ -370,8 +370,8 @@ doRemoteOpen (virConnectPtr conn,
     /* Local variables which we will initialise. These can
      * get freed in the failed: path.
      */
-    char *name = 0, *command = 0, *sockname = 0, *netcat = 0, *username = 0;
-    char *port = 0, *authtype = 0;
+    char *name = NULL, *command = NULL, *sockname = NULL, *netcat = NULL;
+    char *port = NULL, *authtype = NULL, *username = NULL;
     int no_verify = 0, no_tty = 0;
     char **cmd_argv = NULL;
 
@@ -387,11 +387,8 @@ doRemoteOpen (virConnectPtr conn,
     } else if (transport == trans_tcp) {
         port = strdup (LIBVIRTD_TCP_PORT);
         if (!port) goto out_of_memory;
-    } else if (transport == trans_ssh) {
-        port = strdup ("22");
-        if (!port) goto out_of_memory;
     } else
-        port = NULL;           /* Port not used for unix, ext. */
+        port = NULL; /* Port not used for unix, ext., default for ssh */
 
 
     priv->hostname = strdup (conn->uri && conn->uri->server ?
@@ -654,12 +651,13 @@ doRemoteOpen (virConnectPtr conn,
              */
             if (errno == ECONNREFUSED &&
                 flags & VIR_DRV_OPEN_REMOTE_AUTOSTART &&
-                trials < 5) {
+                trials < 20) {
                 close(priv->sock);
                 priv->sock = -1;
-                if (remoteForkDaemon(conn) == 0) {
+                if (trials > 0 ||
+                    remoteForkDaemon(conn) == 0) {
                     trials++;
-                    usleep(5000 * trials * trials);
+                    usleep(1000 * 100 * trials);
                     goto autostart_retry;
                 }
             }
@@ -673,24 +671,27 @@ doRemoteOpen (virConnectPtr conn,
     }
 
     case trans_ssh: {
-        int j, nr_args = 8;
+        int j, nr_args = 6;
 
         if (username) nr_args += 2; /* For -l username */
         if (no_tty) nr_args += 5;   /* For -T -o BatchMode=yes -e none */
+        if (port) nr_args += 2;     /* For -p port */
 
         command = command ? command : strdup ("ssh");
         if (command == NULL)
             goto out_of_memory;
 
         // Generate the final command argv[] array.
-        //   ssh -p $port [-l $username] $hostname $netcat -U $sockname [NULL]
+        //   ssh [-p $port] [-l $username] $hostname $netcat -U $sockname [NULL]
         if (VIR_ALLOC_N(cmd_argv, nr_args) < 0)
             goto out_of_memory;
 
         j = 0;
         cmd_argv[j++] = strdup (command);
-        cmd_argv[j++] = strdup ("-p");
-        cmd_argv[j++] = strdup (port);
+        if (port) {
+            cmd_argv[j++] = strdup ("-p");
+            cmd_argv[j++] = strdup (port);
+        }
         if (username) {
             cmd_argv[j++] = strdup ("-l");
             cmd_argv[j++] = strdup (username);
@@ -843,20 +844,20 @@ doRemoteOpen (virConnectPtr conn,
 
  cleanup:
     /* Free up the URL and strings. */
-    free (name);
-    free (command);
-    free (sockname);
-    free (authtype);
-    free (netcat);
-    free (username);
-    free (port);
+    VIR_FREE(name);
+    VIR_FREE(command);
+    VIR_FREE(sockname);
+    VIR_FREE(authtype);
+    VIR_FREE(netcat);
+    VIR_FREE(username);
+    VIR_FREE(port);
     if (cmd_argv) {
         char **cmd_argv_ptr = cmd_argv;
         while (*cmd_argv_ptr) {
-            free (*cmd_argv_ptr);
+            VIR_FREE(*cmd_argv_ptr);
             cmd_argv_ptr++;
         }
-        free (cmd_argv);
+        VIR_FREE(cmd_argv);
     }
 
     return retcode;
@@ -884,11 +885,7 @@ doRemoteOpen (virConnectPtr conn,
 #endif
     }
 
-    if (priv->hostname) {
-        free (priv->hostname);
-        priv->hostname = NULL;
-    }
-
+    VIR_FREE(priv->hostname);
     goto cleanup;
 }
 
@@ -2293,6 +2290,82 @@ remoteDomainGetMaxVcpus (virDomainPtr domain)
         goto done;
 
     rv = ret.num;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainGetSecurityLabel (virDomainPtr domain, virSecurityLabelPtr seclabel)
+{
+    remote_domain_get_security_label_args args;
+    remote_domain_get_security_label_ret ret;
+    struct private_data *priv = domain->conn->privateData;
+    int rv = -1;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain (&args.dom, domain);
+    memset (&ret, 0, sizeof ret);
+    if (call (domain->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_SECURITY_LABEL,
+              (xdrproc_t) xdr_remote_domain_get_security_label_args, (char *)&args,
+              (xdrproc_t) xdr_remote_domain_get_security_label_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    if (ret.label.label_val != NULL) {
+        if (strlen (ret.label.label_val) >= sizeof seclabel->label) {
+            errorf (domain->conn, VIR_ERR_RPC, _("security label exceeds maximum: %zd"),
+                    sizeof seclabel->label - 1);
+            goto done;
+        }
+        strcpy (seclabel->label, ret.label.label_val);
+        seclabel->enforcing = ret.enforcing;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteNodeGetSecurityModel (virConnectPtr conn, virSecurityModelPtr secmodel)
+{
+    remote_node_get_security_model_ret ret;
+    struct private_data *priv = conn->privateData;
+    int rv = -1;
+
+    remoteDriverLock(priv);
+
+    memset (&ret, 0, sizeof ret);
+    if (call (conn, priv, 0, REMOTE_PROC_NODE_GET_SECURITY_MODEL,
+              (xdrproc_t) xdr_void, NULL,
+              (xdrproc_t) xdr_remote_node_get_security_model_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    if (ret.model.model_val != NULL) {
+        if (strlen (ret.model.model_val) >= sizeof secmodel->model) {
+            errorf (conn, VIR_ERR_RPC, _("security model exceeds maximum: %zd"),
+                    sizeof secmodel->model - 1);
+            goto done;
+        }
+        strcpy (secmodel->model, ret.model.model_val);
+    }
+
+    if (ret.doi.doi_val != NULL) {
+        if (strlen (ret.doi.doi_val) >= sizeof secmodel->doi) {
+            errorf (conn, VIR_ERR_RPC, _("security doi exceeds maximum: %zd"),
+                    sizeof secmodel->doi - 1);
+            goto done;
+        }
+        strcpy (secmodel->doi, ret.doi.doi_val);
+    }
+
+    rv = 0;
 
 done:
     remoteDriverUnlock(priv);
@@ -4816,6 +4889,75 @@ done:
     return rv;
 }
 
+static int
+remoteNodeDeviceDettach (virNodeDevicePtr dev)
+{
+    int rv = -1;
+    remote_node_device_dettach_args args;
+    struct private_data *priv = dev->conn->privateData;
+
+    remoteDriverLock(priv);
+
+    args.name = dev->name;
+
+    if (call (dev->conn, priv, 0, REMOTE_PROC_NODE_DEVICE_DETTACH,
+              (xdrproc_t) xdr_remote_node_device_dettach_args, (char *) &args,
+              (xdrproc_t) xdr_void, (char *) NULL) == -1)
+        goto done;
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteNodeDeviceReAttach (virNodeDevicePtr dev)
+{
+    int rv = -1;
+    remote_node_device_re_attach_args args;
+    struct private_data *priv = dev->conn->privateData;
+
+    remoteDriverLock(priv);
+
+    args.name = dev->name;
+
+    if (call (dev->conn, priv, 0, REMOTE_PROC_NODE_DEVICE_RE_ATTACH,
+              (xdrproc_t) xdr_remote_node_device_re_attach_args, (char *) &args,
+              (xdrproc_t) xdr_void, (char *) NULL) == -1)
+        goto done;
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteNodeDeviceReset (virNodeDevicePtr dev)
+{
+    int rv = -1;
+    remote_node_device_reset_args args;
+    struct private_data *priv = dev->conn->privateData;
+
+    remoteDriverLock(priv);
+
+    args.name = dev->name;
+
+    if (call (dev->conn, priv, 0, REMOTE_PROC_NODE_DEVICE_RESET,
+              (xdrproc_t) xdr_remote_node_device_reset_args, (char *) &args,
+              (xdrproc_t) xdr_void, (char *) NULL) == -1)
+        goto done;
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
 
 /*----------------------------------------------------------------------*/
 
@@ -5392,9 +5534,7 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
             goto cleanup;
         }
 
-        if (serverin) {
-            VIR_FREE(serverin);
-        }
+        VIR_FREE(serverin);
         DEBUG("Client step result %d. Data %d bytes %p", err, clientoutlen, clientout);
 
         /* Previous server call showed completion & we're now locally complete too */
@@ -6198,17 +6338,17 @@ processCalls(virConnectPtr conn,
                 continue;
             virReportSystemError(in_open ? NULL : conn, errno,
                                  "%s", _("poll on socket failed"));
-            return -1;
+            goto error;
         }
 
         if (fds[0].revents & POLLOUT) {
             if (processCallSend(conn, priv, in_open) < 0)
-                return -1;
+                goto error;
         }
 
         if (fds[0].revents & POLLIN) {
             if (processCallRecv(conn, priv, in_open) < 0)
-                return -1;
+                goto error;
         }
 
         /* Iterate through waiting threads and if
@@ -6259,9 +6399,21 @@ processCalls(virConnectPtr conn,
         if (fds[0].revents & (POLLHUP | POLLERR)) {
             errorf(in_open ? NULL : conn, VIR_ERR_INTERNAL_ERROR,
                    "%s", _("received hangup / error event on socket"));
-            return -1;
+            goto error;
         }
     }
+
+
+error:
+    priv->waitDispatch = thiscall->next;
+    DEBUG("Giving up the buck due to I/O error %d %p %p", thiscall->proc_nr, thiscall, priv->waitDispatch);
+    /* See if someone else is still waiting
+     * and if so, then pass the buck ! */
+    if (priv->waitDispatch) {
+        DEBUG("Passing the buck to %d %p", priv->waitDispatch->proc_nr, priv->waitDispatch);
+        virCondSignal(&priv->waitDispatch->cond);
+    }
+    return -1;
 }
 
 /*
@@ -6709,6 +6861,8 @@ static virDriver driver = {
     .domainPinVcpu = remoteDomainPinVcpu,
     .domainGetVcpus = remoteDomainGetVcpus,
     .domainGetMaxVcpus = remoteDomainGetMaxVcpus,
+    .domainGetSecurityLabel = remoteDomainGetSecurityLabel,
+    .nodeGetSecurityModel = remoteNodeGetSecurityModel,
     .domainDumpXML = remoteDomainDumpXML,
     .listDefinedDomains = remoteListDefinedDomains,
     .numOfDefinedDomains = remoteNumOfDefinedDomains,
@@ -6735,6 +6889,9 @@ static virDriver driver = {
     .domainEventDeregister = remoteDomainEventDeregister,
     .domainMigratePrepare2 = remoteDomainMigratePrepare2,
     .domainMigrateFinish2 = remoteDomainMigrateFinish2,
+    .nodeDeviceDettach = remoteNodeDeviceDettach,
+    .nodeDeviceReAttach = remoteNodeDeviceReAttach,
+    .nodeDeviceReset = remoteNodeDeviceReset,
 };
 
 static virNetworkDriver network_driver = {

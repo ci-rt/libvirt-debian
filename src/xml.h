@@ -17,23 +17,31 @@ int		virXPathBoolean	(virConnectPtr conn,
 char *		virXPathString	(virConnectPtr conn,
                                  const char *xpath,
                                  xmlXPathContextPtr ctxt);
+char *          virXPathStringLimit(virConnectPtr conn,
+                                    const char *xpath,
+                                    size_t maxlen,
+                                    xmlXPathContextPtr ctxt);
 int		virXPathNumber	(virConnectPtr conn,
                                  const char *xpath,
                                  xmlXPathContextPtr ctxt,
                                  double *value);
-int		virXPathInt	(virConnectPtr conn,
-                                 const char *xpath,
-                                 xmlXPathContextPtr ctxt,
-                                 int *value);
-int		virXPathUInt	(virConnectPtr conn,
-                                 const char *xpath,
-                                 xmlXPathContextPtr ctxt,
-                                 unsigned int *value);
 int		virXPathLong	(virConnectPtr conn,
                                  const char *xpath,
                                  xmlXPathContextPtr ctxt,
                                  long *value);
 int		virXPathULong	(virConnectPtr conn,
+                                 const char *xpath,
+                                 xmlXPathContextPtr ctxt,
+                                 unsigned long *value);
+int	        virXPathULongLong(virConnectPtr conn,
+                                 const char *xpath,
+                                 xmlXPathContextPtr ctxt,
+                                 unsigned long long *value);
+int		virXPathLongHex	(virConnectPtr conn,
+                                 const char *xpath,
+                                 xmlXPathContextPtr ctxt,
+                                 long *value);
+int		virXPathULongHex(virConnectPtr conn,
                                  const char *xpath,
                                  xmlXPathContextPtr ctxt,
                                  unsigned long *value);

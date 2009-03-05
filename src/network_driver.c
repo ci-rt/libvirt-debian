@@ -91,11 +91,6 @@ static int networkShutdown(void);
 
 #define networkLog(level, msg...) fprintf(stderr, msg)
 
-#define networkReportError(conn, dom, net, code, fmt...)                \
-    virReportErrorHelper(conn, VIR_FROM_QEMU, code, __FILE__,         \
-                           __FUNCTION__, __LINE__, fmt)
-
-
 static int networkStartNetworkDaemon(virConnectPtr conn,
                                    struct network_driver *driver,
                                    virNetworkObjPtr network);
@@ -794,33 +789,11 @@ networkRemoveIptablesRules(struct network_driver *driver,
     iptablesSaveRules(driver->iptables);
 }
 
-/* Enable IP Forwarding.
-   Return 0 for success, nonzero for failure.
-   Be careful to preserve any errno value upon failure. */
+/* Enable IP Forwarding. Return 0 for success, -1 for failure. */
 static int
 networkEnableIpForwarding(void)
 {
-#define PROC_IP_FORWARD "/proc/sys/net/ipv4/ip_forward"
-
-    int fd;
-
-    if ((fd = open(PROC_IP_FORWARD, O_WRONLY|O_TRUNC)) == -1)
-        return 0;
-
-    if (safewrite(fd, "1\n", 2) < 0) {
-        int saved_errno = errno;
-        close (fd);
-        errno = saved_errno;
-        return 0;
-    }
-
-    /* Use errno from failed close only if there was no write error.  */
-    if (close (fd) != 0)
-        return 0;
-
-    return 1;
-
-#undef PROC_IP_FORWARD
+    return virFileWriteStr("/proc/sys/net/ipv4/ip_forward", "1\n");
 }
 
 static int networkStartNetworkDaemon(virConnectPtr conn,
@@ -834,7 +807,7 @@ static int networkStartNetworkDaemon(virConnectPtr conn,
         return -1;
     }
 
-    if ((err = brAddBridge(driver->brctl, &network->def->bridge))) {
+    if ((err = brAddBridge(driver->brctl, network->def->bridge))) {
         virReportSystemError(conn, err,
                              _("cannot create bridge '%s'"),
                              network->def->bridge);
@@ -875,7 +848,7 @@ static int networkStartNetworkDaemon(virConnectPtr conn,
         goto err_delbr1;
 
     if (network->def->forwardType != VIR_NETWORK_FORWARD_NONE &&
-        !networkEnableIpForwarding()) {
+        networkEnableIpForwarding() < 0) {
         virReportSystemError(conn, errno, "%s",
                              _("failed to enable IP forwarding"));
         goto err_delbr2;
@@ -907,14 +880,16 @@ static int networkStartNetworkDaemon(virConnectPtr conn,
  err_delbr1:
     if (network->def->ipAddress &&
         (err = brSetInterfaceUp(driver->brctl, network->def->bridge, 0))) {
+        char ebuf[1024];
         networkLog(NETWORK_WARN, _("Failed to bring down bridge '%s' : %s\n"),
-                 network->def->bridge, strerror(err));
+                 network->def->bridge, virStrerror(err, ebuf, sizeof ebuf));
     }
 
  err_delbr:
     if ((err = brDeleteBridge(driver->brctl, network->def->bridge))) {
+        char ebuf[1024];
         networkLog(NETWORK_WARN, _("Failed to delete bridge '%s' : %s\n"),
-                 network->def->bridge, strerror(err));
+                 network->def->bridge, virStrerror(err, ebuf, sizeof ebuf));
     }
 
     return -1;
@@ -944,15 +919,16 @@ static int networkShutdownNetworkDaemon(virConnectPtr conn,
 
     networkRemoveIptablesRules(driver, network);
 
+    char ebuf[1024];
     if (network->def->ipAddress &&
         (err = brSetInterfaceUp(driver->brctl, network->def->bridge, 0))) {
         networkLog(NETWORK_WARN, _("Failed to bring down bridge '%s' : %s\n"),
-                 network->def->bridge, strerror(err));
+                 network->def->bridge, virStrerror(err, ebuf, sizeof ebuf));
     }
 
     if ((err = brDeleteBridge(driver->brctl, network->def->bridge))) {
         networkLog(NETWORK_WARN, _("Failed to delete bridge '%s' : %s\n"),
-                 network->def->bridge, strerror(err));
+                 network->def->bridge, virStrerror(err, ebuf, sizeof ebuf));
     }
 
     /* See if its still alive and really really kill it */
@@ -1132,6 +1108,9 @@ static virNetworkPtr networkCreate(virConnectPtr conn, const char *xml) {
     if (!(def = virNetworkDefParseString(conn, xml)))
         goto cleanup;
 
+    if (virNetworkSetBridgeName(conn, &driver->networks, def))
+        goto cleanup;
+
     if (!(network = virNetworkAssignDef(conn,
                                         &driver->networks,
                                         def)))
@@ -1166,11 +1145,16 @@ static virNetworkPtr networkDefine(virConnectPtr conn, const char *xml) {
     if (!(def = virNetworkDefParseString(conn, xml)))
         goto cleanup;
 
+    if (virNetworkSetBridgeName(conn, &driver->networks, def))
+        goto cleanup;
+
     if (!(network = virNetworkAssignDef(conn,
                                         &driver->networks,
                                         def)))
         goto cleanup;
     def = NULL;
+
+    network->persistent = 1;
 
     if (virNetworkSaveConfig(conn,
                              driver->networkConfigDir,

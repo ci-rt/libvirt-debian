@@ -803,7 +803,13 @@ virGetVersion(unsigned long *libVer, const char *type,
     if (typeVer != NULL) {
         if (type == NULL)
             type = "Xen";
+
+/* FIXME: Add _proper_ type version handling for loadable driver modules... */
+#ifdef WITH_DRIVER_MODULES
+        *typeVer = LIBVIR_VERSION_NUMBER;
+#else
         *typeVer = 0;
+
 #if WITH_XEN
         if (STRCASEEQ(type, "Xen"))
             *typeVer = xenUnifiedVersion();
@@ -836,6 +842,7 @@ virGetVersion(unsigned long *libVer, const char *type,
             virLibConnError(NULL, VIR_ERR_NO_SUPPORT, type);
             return (-1);
         }
+#endif /* WITH_DRIVER_MODULES */
     }
     return (0);
 }
@@ -2840,7 +2847,9 @@ virDomainMigratePrepare (virConnectPtr dconn,
                            const char *dname,
                            unsigned long bandwidth)
 {
-    DEBUG("dconn=%p, cookie=%p, cookielen=%p, uri_in=%s, uri_out=%p, flags=%lu, dname=%s, bandwidth=%lu", dconn, cookie, cookielen, uri_in, uri_out, flags, dname, bandwidth);
+    VIR_DEBUG("dconn=%p, cookie=%p, cookielen=%p, uri_in=%s, uri_out=%p, "
+              "flags=%lu, dname=%s, bandwidth=%lu", dconn, cookie, cookielen,
+              NULLSTR(uri_in), uri_out, flags, NULLSTR(dname), bandwidth);
 
     virResetLastError();
 
@@ -2886,7 +2895,9 @@ virDomainMigratePerform (virDomainPtr domain,
                            unsigned long bandwidth)
 {
     virConnectPtr conn;
-    DEBUG("domain=%p, cookie=%p, cookielen=%d, uri=%s, flags=%lu, dname=%s, bandwidth=%lu", domain, cookie, cookielen, uri, flags, dname, bandwidth);
+    VIR_DEBUG("domain=%p, cookie=%p, cookielen=%d, uri=%s, flags=%lu, "
+              "dname=%s, bandwidth=%lu", domain, cookie, cookielen, uri, flags,
+              NULLSTR(dname), bandwidth);
 
     virResetLastError();
 
@@ -2931,7 +2942,9 @@ virDomainMigrateFinish (virConnectPtr dconn,
                           const char *uri,
                           unsigned long flags)
 {
-    DEBUG("dconn=%p, dname=%s, cookie=%p, cookielen=%d, uri=%s, flags=%lu", dconn, dname, cookie, cookielen, uri, flags);
+    VIR_DEBUG("dconn=%p, dname=%s, cookie=%p, cookielen=%d, uri=%s, "
+              "flags=%lu", dconn, NULLSTR(dname), cookie, cookielen,
+              uri, flags);
 
     virResetLastError();
 
@@ -2979,7 +2992,10 @@ virDomainMigratePrepare2 (virConnectPtr dconn,
                           unsigned long bandwidth,
                           const char *dom_xml)
 {
-    DEBUG("dconn=%p, cookie=%p, cookielen=%p, uri_in=%s, uri_out=%p, flags=%lu, dname=%s, bandwidth=%lu, dom_xml=%s", dconn, cookie, cookielen, uri_in, uri_out, flags, dname, bandwidth, dom_xml);
+    VIR_DEBUG("dconn=%p, cookie=%p, cookielen=%p, uri_in=%s, uri_out=%p,"
+              "flags=%lu, dname=%s, bandwidth=%lu, dom_xml=%s", dconn,
+              cookie, cookielen, uri_in, uri_out, flags, NULLSTR(dname),
+              bandwidth, dom_xml);
 
     virResetLastError();
 
@@ -3025,7 +3041,9 @@ virDomainMigrateFinish2 (virConnectPtr dconn,
                          unsigned long flags,
                          int retcode)
 {
-    DEBUG("dconn=%p, dname=%s, cookie=%p, cookielen=%d, uri=%s, flags=%lu, retcode=%d", dconn, dname, cookie, cookielen, uri, flags, retcode);
+    VIR_DEBUG("dconn=%p, dname=%s, cookie=%p, cookielen=%d, uri=%s, "
+              "flags=%lu, retcode=%d", dconn, NULLSTR(dname), cookie,
+              cookielen, uri, flags, retcode);
 
     virResetLastError();
 
@@ -4156,6 +4174,70 @@ error:
     return -1;
 }
 
+/**
+ * virDomainGetSecurityLabel:
+ * @domain: a domain object
+ * @seclabel: pointer to a virSecurityLabel structure
+ *
+ * Extract security label of an active domain.
+ *
+ * Returns 0 in case of success, -1 in case of failure, and -2
+ * if the operation is not supported (caller decides if that's
+ * an error).
+ */
+int
+virDomainGetSecurityLabel(virDomainPtr domain, virSecurityLabelPtr seclabel)
+{
+    virConnectPtr conn;
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        return -1;
+    }
+
+    if (seclabel == NULL) {
+        virLibDomainError(domain, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return -1;
+    }
+
+    conn = domain->conn;
+
+    if (conn->driver->domainGetSecurityLabel)
+        return conn->driver->domainGetSecurityLabel(domain, seclabel);
+
+    virLibConnWarning(conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return -1;
+}
+
+/**
+ * virNodeGetSecurityModel:
+ * @conn: a connection object
+ * @secmodel: pointer to a virSecurityModel structure
+ *
+ * Extract the security model of a hypervisor.
+ *
+ * Returns 0 in case of success, -1 in case of failure, and -2 if the
+ * operation is not supported (caller decides if that's an error).
+ */
+int
+virNodeGetSecurityModel(virConnectPtr conn, virSecurityModelPtr secmodel)
+{
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(conn, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return -1;
+    }
+
+    if (secmodel == NULL) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return -1;
+    }
+
+    if (conn->driver->nodeGetSecurityModel)
+        return conn->driver->nodeGetSecurityModel(conn, secmodel);
+
+    virLibConnWarning(conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return -1;
+}
 
 /**
  * virDomainAttachDevice:
@@ -7266,6 +7348,135 @@ virNodeDeviceRef(virNodeDevicePtr dev)
     dev->refs++;
     virMutexUnlock(&dev->conn->lock);
     return 0;
+}
+
+/**
+ * virNodeDeviceAttach:
+ * @dev: pointer to the node device
+ *
+ * Dettach the node device from the node itself so that it may be
+ * assigned to a guest domain.
+ *
+ * Depending on the hypervisor, this may involve operations such
+ * as unbinding any device drivers from the device, binding the
+ * device to a dummy device driver and resetting the device.
+ *
+ * If the device is currently in use by the node, this method may
+ * fail.
+ *
+ * Once the device is not assigned to any guest, it may be re-attached
+ * to the node using the virNodeDeviceReattach() method.
+ */
+int
+virNodeDeviceDettach(virNodeDevicePtr dev)
+{
+    DEBUG("dev=%p, conn=%p", dev, dev ? dev->conn : NULL);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_NODE_DEVICE(dev)) {
+        virLibNodeDeviceError(NULL, VIR_ERR_INVALID_NODE_DEVICE, __FUNCTION__);
+        return (-1);
+    }
+
+    if (dev->conn->driver->nodeDeviceDettach) {
+        int ret;
+        ret = dev->conn->driver->nodeDeviceDettach (dev);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(dev->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(dev->conn);
+    return (-1);
+}
+
+/**
+ * virNodeDeviceReAttach:
+ * @dev: pointer to the node device
+ *
+ * Re-attach a previously dettached node device to the node so that it
+ * may be used by the node again.
+ *
+ * Depending on the hypervisor, this may involve operations such
+ * as resetting the device, unbinding it from a dummy device driver
+ * and binding it to its appropriate driver.
+ *
+ * If the device is currently in use by a guest, this method may fail.
+ */
+int
+virNodeDeviceReAttach(virNodeDevicePtr dev)
+{
+    DEBUG("dev=%p, conn=%p", dev, dev ? dev->conn : NULL);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_NODE_DEVICE(dev)) {
+        virLibNodeDeviceError(NULL, VIR_ERR_INVALID_NODE_DEVICE, __FUNCTION__);
+        return (-1);
+    }
+
+    if (dev->conn->driver->nodeDeviceReAttach) {
+        int ret;
+        ret = dev->conn->driver->nodeDeviceReAttach (dev);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(dev->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(dev->conn);
+    return (-1);
+}
+
+/**
+ * virNodeDeviceReset:
+ * @dev: pointer to the node device
+ *
+ * Reset a previously dettached node device to the node before or
+ * after assigning it to a guest.
+ *
+ * The exact reset semantics depends on the hypervisor and device
+ * type but, for example, KVM will attempt to reset PCI devices with
+ * a Function Level Reset, Secondary Bus Reset or a Power Management
+ * D-State reset.
+ *
+ * If the reset will affect other devices which are currently in use,
+ * this function may fail.
+ */
+int
+virNodeDeviceReset(virNodeDevicePtr dev)
+{
+    DEBUG("dev=%p, conn=%p", dev, dev ? dev->conn : NULL);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_NODE_DEVICE(dev)) {
+        virLibNodeDeviceError(NULL, VIR_ERR_INVALID_NODE_DEVICE, __FUNCTION__);
+        return (-1);
+    }
+
+    if (dev->conn->driver->nodeDeviceReset) {
+        int ret;
+        ret = dev->conn->driver->nodeDeviceReset (dev);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(dev->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(dev->conn);
+    return (-1);
 }
 
 

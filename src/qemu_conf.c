@@ -47,6 +47,7 @@
 #include "datatypes.h"
 #include "xml.h"
 #include "nodeinfo.h"
+#include "logging.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -76,8 +77,6 @@ VIR_ENUM_IMPL(qemuDiskCacheV2, VIR_DOMAIN_DISK_CACHE_LAST,
               "writethrough",
               "writeback");
 
-
-#define qemudLog(level, msg...) fprintf(stderr, msg)
 
 int qemudLoadDriverConfig(struct qemud_driver *driver,
                           const char *filename) {
@@ -146,6 +145,16 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
     if (p && p->str) {
         VIR_FREE(driver->vncPassword);
         if (!(driver->vncPassword = strdup(p->str))) {
+            virReportOOMError(NULL);
+            virConfFree(conf);
+            return -1;
+        }
+    }
+
+    p = virConfGetValue (conf, "security_driver");
+    CHECK_TYPE ("security_driver", VIR_CONF_STRING);
+    if (p && p->str) {
+        if (!(driver->securityDriverName = strdup(p->str))) {
             virReportOOMError(NULL);
             virConfFree(conf);
             return -1;
@@ -469,17 +478,15 @@ rewait:
         if (errno == EINTR)
             goto rewait;
 
-        qemudLog(QEMUD_ERR,
-                 _("Unexpected exit status from qemu %d pid %lu"),
-                 WEXITSTATUS(status), (unsigned long)child);
+        VIR_ERROR(_("Unexpected exit status from qemu %d pid %lu"),
+                  WEXITSTATUS(status), (unsigned long)child);
         ret = -1;
     }
     /* Check & log unexpected exit status, but don't fail,
      * as there's really no need to throw an error if we did
      * actually read a valid version number above */
     if (WEXITSTATUS(status) != 0) {
-        qemudLog(QEMUD_WARN,
-                 _("Unexpected exit status '%d', qemu probably failed"),
+        VIR_WARN(_("Unexpected exit status '%d', qemu probably failed"),
                  WEXITSTATUS(status));
     }
 
@@ -517,9 +524,10 @@ int qemudExtractVersion(virConnectPtr conn,
         return -1;
 
     if (stat(binary, &sb) < 0) {
+        char ebuf[1024];
         qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
                          _("Cannot find QEMU binary %s: %s"), binary,
-                         strerror(errno));
+                         virStrerror(errno, ebuf, sizeof ebuf));
         return -1;
     }
 
@@ -580,10 +588,11 @@ qemudNetworkIfaceConnect(virConnectPtr conn,
         }
     }
 
+    char ebuf[1024];
     if (!driver->brctl && (err = brInit(&driver->brctl))) {
         qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
                          _("cannot initialize bridge support: %s"),
-                         strerror(err));
+                         virStrerror(err, ebuf, sizeof ebuf));
         goto error;
     }
 
@@ -598,7 +607,7 @@ qemudNetworkIfaceConnect(virConnectPtr conn,
             qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
                              _("Failed to add tap interface '%s' "
                                "to bridge '%s' : %s"),
-                             net->ifname, brname, strerror(err));
+                             net->ifname, brname, virStrerror(err, ebuf, sizeof ebuf));
         }
         goto error;
     }
@@ -1393,7 +1402,6 @@ int qemudBuildCommandLine(virConnectPtr conn,
             ADD_ARG_LIT(pcidev);
             VIR_FREE(pcidev);
         }
-
     }
 
     if (migrateFrom) {

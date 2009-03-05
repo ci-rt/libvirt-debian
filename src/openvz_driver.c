@@ -1299,6 +1299,8 @@ static virDriver openvzDriver = {
     NULL, /* domainPinVcpu */
     NULL, /* domainGetVcpus */
     openvzDomainGetMaxVcpus, /* domainGetMaxVcpus */
+    NULL, /* domainGetSecurityLabel */
+    NULL, /* nodeGetSecurityModel */
     openvzDomainDumpXML, /* domainDumpXML */
     openvzListDefinedDomains, /* listDomains */
     openvzNumDefinedDomains, /* numOfDomains */
@@ -1325,6 +1327,9 @@ static virDriver openvzDriver = {
     NULL, /* domainEventDeregister */
     NULL, /* domainMigratePrepare2 */
     NULL, /* domainMigrateFinish2 */
+    NULL, /* nodeDeviceAttach */
+    NULL, /* nodeDeviceReAttach */
+    NULL, /* nodeDeviceReset */
 };
 
 int openvzRegister(void) {

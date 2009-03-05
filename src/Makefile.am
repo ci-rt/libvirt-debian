@@ -48,6 +48,7 @@ UTIL_SOURCES =							\
 		iptables.c iptables.h				\
 		logging.c logging.h				\
 		memory.c memory.h				\
+		pci.c pci.h					\
 		qparams.c qparams.h				\
 		threads.c threads.h				\
 		threads-pthread.h				\
@@ -139,7 +140,7 @@ UML_DRIVER_SOURCES =						\
 NETWORK_DRIVER_SOURCES =					\
 		network_driver.h network_driver.c
 
-# And finally storage backend specific impls
+# Storage backend specific impls
 STORAGE_DRIVER_SOURCES =					\
 		storage_driver.h storage_driver.c		\
 		storage_backend.h storage_backend.c
@@ -163,6 +164,14 @@ STORAGE_DRIVER_DISK_SOURCES =					\
 
 STORAGE_HELPER_DISK_SOURCES =					\
 		parthelper.c
+
+
+# Security framework and drivers for various models
+SECURITY_DRIVER_SOURCES =                                      \
+		security.h security.c
+
+SECURITY_DRIVER_SELINUX_SOURCES =				\
+		security_selinux.h security_selinux.c
 
 
 NODE_DEVICE_DRIVER_SOURCES =					\
@@ -378,6 +387,13 @@ endif
 endif
 
 
+libvirt_driver_security_la_SOURCES = $(SECURITY_DRIVER_SOURCES)
+noinst_LTLIBRARIES += libvirt_driver_security.la
+libvirt_la_LIBADD += libvirt_driver_security.la
+if WITH_SECDRIVER_SELINUX
+libvirt_driver_security_la_SOURCES += $(SECURITY_DRIVER_SELINUX_SOURCES)
+endif
+
 # Add all conditional sources just in case...
 EXTRA_DIST +=							\
 		$(TEST_DRIVER_SOURCES)				\
@@ -510,6 +526,7 @@ virsh-net-edit.c: virsh.c Makefile.am
 	      -e 's/Domain/Network/g' \
 	      -e 's/cmdEdit/cmdNetworkEdit/g' \
 	      -e 's/dom/network/g' \
+	      -e 's/int flags.*/int flags = 0;/g' \
 	>> $@-tmp
 	chmod a-w $@-tmp
 	rm -f $@
@@ -528,6 +545,7 @@ virsh-pool-edit.c: virsh.c Makefile.am
 	      -e 's/cmdEdit/cmdPoolEdit/g' \
 	      -e 's/\(virStoragePoolDefineXML.*\));/\1, 0);/' \
 	      -e 's/dom/pool/g' \
+	      -e 's/int flags.*/int flags = 0;/g' \
 	>> $@-tmp
 	chmod a-w $@-tmp
 	rm -f $@

@@ -64,6 +64,8 @@ if WITH_QEMU
 noinst_PROGRAMS += qemuxml2argvtest qemuxml2xmltest
 endif
 
+noinst_PROGRAMS += nodedevxml2xmltest
+
 test_scripts = \
 	capabilityschematest \
 	networkschematest \
@@ -79,6 +81,8 @@ test_scripts +=				\
 	daemon-conf			\
 	define-dev-segfault		\
 	int-overflow			\
+	libvirtd-fail			\
+	libvirtd-pool			\
 	read-bufsiz			\
 	read-non-seekable		\
 	start				\
@@ -110,6 +114,8 @@ if WITH_QEMU
 TESTS += qemuxml2argvtest qemuxml2xmltest
 endif
 
+TESTS += nodedevxml2xmltest
+
 path_add = $$abs_top_builddir/src$(PATH_SEPARATOR)$$abs_top_builddir/qemud
 
 # NB, automake < 1.10 does not provide the real
@@ -120,6 +126,7 @@ TESTS_ENVIRONMENT =				\
   abs_top_srcdir=`cd '$(top_srcdir)'; pwd`	\
   abs_builddir=`cd '$(builddir)'; pwd`		\
   abs_srcdir=`cd '$(srcdir)'; pwd`		\
+  CONFIG_HEADER="`cd '$(top_builddir)'; pwd`/config.h"	\
   PATH="$(path_add)$(PATH_SEPARATOR)$$PATH"	\
   SHELL="$(SHELL)"				\
   LIBVIRT_DRIVER_DIR="$(abs_top_builddir)/src/.libs" \
@@ -173,6 +180,11 @@ qemuxml2xmltest_LDADD = ../src/libvirt_driver_qemu.la $(LDADDS)
 else
 EXTRA_DIST += qemuxml2argvtest.c qemuxml2xmltest.c testutilsqemu.c testutilsqemu.h
 endif
+
+nodedevxml2xmltest_SOURCES = \
+	nodedevxml2xmltest.c \
+	testutils.c testutils.h
+nodedevxml2xmltest_LDADD = $(LDADDS)
 
 virshtest_SOURCES = \
 	virshtest.c \
