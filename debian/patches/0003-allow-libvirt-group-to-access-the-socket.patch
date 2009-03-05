@@ -7,7 +7,7 @@ Subject: [PATCH] allow libvirt group to access the socket
  1 files changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/qemud/libvirtd.conf b/qemud/libvirtd.conf
-index 4932084..2e9b3f6 100644
+index 1fd5918..a26c081 100644
 --- a/qemud/libvirtd.conf
 +++ b/qemud/libvirtd.conf
 @@ -78,7 +78,7 @@
@@ -26,9 +26,9 @@ index 4932084..2e9b3f6 100644
 -#unix_sock_rw_perms = "0770"
 +unix_sock_rw_perms = "0770"
  
- 
- 
-@@ -125,7 +125,7 @@
+ # Set the name of the directory in which sockets will be found/created.
+ #unix_sock_dir = "/var/run/libvirt"
+@@ -126,7 +126,7 @@
  #
  # To restrict monitoring of domains you may wish to enable
  # an authentication mechanism here
@@ -37,7 +37,7 @@ index 4932084..2e9b3f6 100644
  
  # Set an authentication scheme for UNIX read-write sockets
  # By default socket permissions only allow root. If PolicyKit
-@@ -134,7 +134,7 @@
+@@ -135,7 +135,7 @@
  #
  # If the unix_sock_rw_perms are changed you may wish to enable
  # an authentication mechanism here
