@@ -1,6 +1,6 @@
 ## DO NOT EDIT! GENERATED AUTOMATICALLY!
 ## Process this file with automake to produce Makefile.in.
-# Copyright (C) 2002-2008 Free Software Foundation, Inc.
+# Copyright (C) 2002-2009 Free Software Foundation, Inc.
 #
 # This file is free software, distributed under the terms of the GNU
 # General Public License.  As a special exception to the GNU General
@@ -109,7 +109,7 @@ EXTRA_DIST += test-fseeko.c test-fseeko.sh
 
 TESTS += test-getaddrinfo
 check_PROGRAMS += test-getaddrinfo
-test_getaddrinfo_LDADD = $(LDADD) @LIBINTL@
+test_getaddrinfo_LDADD = $(LDADD) @GETADDRINFO_LIB@ @LIBINTL@
 
 EXTRA_DIST += test-getaddrinfo.c
 
@@ -149,15 +149,6 @@ check_PROGRAMS += test-gettimeofday
 EXTRA_DIST += test-gettimeofday.c
 
 ## end   gnulib module gettimeofday-tests
-
-## begin gnulib module ioctl
-
-
-EXTRA_DIST += ioctl.c w32sock.h
-
-EXTRA_libtests_a_SOURCES += ioctl.c
-
-## end   gnulib module ioctl
 
 ## begin gnulib module listen
 
@@ -220,6 +211,15 @@ test_poll_LDADD = $(LDADD) @LIBSOCKET@
 EXTRA_DIST += test-poll.c
 
 ## end   gnulib module poll-tests
+
+## begin gnulib module random_r-tests
+
+TESTS += test-random_r
+check_PROGRAMS += test-random_r
+
+EXTRA_DIST += test-random_r.c
+
+## end   gnulib module random_r-tests
 
 ## begin gnulib module snprintf-tests
 
@@ -298,33 +298,6 @@ EXTRA_DIST += test-string.c
 
 ## end   gnulib module string-tests
 
-## begin gnulib module sys_ioctl
-
-BUILT_SOURCES += $(SYS_IOCTL_H)
-
-# We need the following in order to create <sys/ioctl.h> when the system
-# does not have a complete one.
-sys/ioctl.h: sys_ioctl.in.h
-	@MKDIR_P@ sys
-	rm -f $@-t $@
-	{ echo '/* DO NOT EDIT! GENERATED AUTOMATICALLY! */'; \
-	  sed -e 's|@''HAVE_SYS_IOCTL_H''@|$(HAVE_SYS_IOCTL_H)|g' \
-	      -e 's|@''INCLUDE_NEXT''@|$(INCLUDE_NEXT)|g' \
-	      -e 's|@''PRAGMA_SYSTEM_HEADER''@|@PRAGMA_SYSTEM_HEADER@|g' \
-	      -e 's|@''NEXT_SYS_IOCTL_H''@|$(NEXT_SYS_IOCTL_H)|g' \
-	      -e 's|@''GNULIB_IOCTL''@|$(GNULIB_IOCTL)|g' \
-	      -e 's|@''SYS_IOCTL_H_HAVE_WINSOCK2_H''@|$(SYS_IOCTL_H_HAVE_WINSOCK2_H)|g' \
-	      -e '/definition of GL_LINK_WARNING/r $(LINK_WARNING_H)' \
-	      < $(srcdir)/sys_ioctl.in.h; \
-	} > $@-t
-	mv $@-t $@
-MOSTLYCLEANFILES += sys/ioctl.h sys/ioctl.h-t
-MOSTLYCLEANDIRS += sys
-
-EXTRA_DIST += sys_ioctl.in.h
-
-## end   gnulib module sys_ioctl
-
 ## begin gnulib module sys_select-tests
 
 TESTS += test-sys_select
@@ -360,6 +333,15 @@ check_PROGRAMS += test-sys_time
 EXTRA_DIST += test-sys_time.c
 
 ## end   gnulib module sys_time-tests
+
+## begin gnulib module time-tests
+
+TESTS += test-time
+check_PROGRAMS += test-time
+
+EXTRA_DIST += test-time.c
+
+## end   gnulib module time-tests
 
 ## begin gnulib module unistd-tests
 

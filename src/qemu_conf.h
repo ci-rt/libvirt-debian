@@ -1,7 +1,7 @@
 /*
  * config.h: VM configuration management
  *
- * Copyright (C) 2006, 2007 Red Hat, Inc.
+ * Copyright (C) 2006, 2007, 2009 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -32,6 +32,7 @@
 #include "network_conf.h"
 #include "domain_conf.h"
 #include "domain_event.h"
+#include "threads.h"
 
 #define qemudDebug(fmt, ...) do {} while(0)
 
@@ -39,18 +40,26 @@
 
 /* Internal flags to keep track of qemu command line capabilities */
 enum qemud_cmd_flags {
-    QEMUD_CMD_FLAG_KQEMU          = (1 << 0),
-    QEMUD_CMD_FLAG_VNC_COLON      = (1 << 1),
-    QEMUD_CMD_FLAG_NO_REBOOT      = (1 << 2),
-    QEMUD_CMD_FLAG_DRIVE          = (1 << 3),
-    QEMUD_CMD_FLAG_DRIVE_BOOT     = (1 << 4),
-    QEMUD_CMD_FLAG_NAME           = (1 << 5),
-    QEMUD_CMD_FLAG_UUID           = (1 << 6),
-    QEMUD_CMD_FLAG_DOMID          = (1 << 7), /* Xenner only */
+    QEMUD_CMD_FLAG_KQEMU          = (1 << 0), /* Whether KQEMU is compiled in */
+    QEMUD_CMD_FLAG_VNC_COLON      = (1 << 1), /* Does the VNC take just port, or address + display */
+    QEMUD_CMD_FLAG_NO_REBOOT      = (1 << 2), /* Is the -no-reboot flag available */
+    QEMUD_CMD_FLAG_DRIVE          = (1 << 3), /* Is the new -drive arg available */
+    QEMUD_CMD_FLAG_DRIVE_BOOT     = (1 << 4), /* Does -drive support boot=on */
+    QEMUD_CMD_FLAG_NAME           = (1 << 5), /* Is the -name flag available */
+    QEMUD_CMD_FLAG_UUID           = (1 << 6), /* Is the -uuid flag available */
+    QEMUD_CMD_FLAG_DOMID          = (1 << 7), /* Xenner only, special -domid flag available */
+    QEMUD_CMD_FLAG_VNET_HDR        = (1 << 8),
+    QEMUD_CMD_FLAG_MIGRATE_KVM_STDIO = (1 << 9),  /* Original migration code from KVM. Also had tcp, but we can't use that
+                                                   * since it had a design bug blocking the entire monitor console */
+    QEMUD_CMD_FLAG_MIGRATE_QEMU_TCP  = (1 << 10), /* New migration syntax after merge to QEMU with TCP transport */
+    QEMUD_CMD_FLAG_MIGRATE_QEMU_EXEC = (1 << 11), /* New migration syntax after merge to QEMU with EXEC transport */
+    QEMUD_CMD_FLAG_DRIVE_CACHE_V2    = (1 << 12), /* Is the cache= flag wanting new v2 values */
 };
 
 /* Main driver state */
 struct qemud_driver {
+    virMutex lock;
+
     unsigned int qemuVersion;
     int nextvmid;
 
@@ -60,15 +69,30 @@ struct qemud_driver {
     char *configDir;
     char *autostartDir;
     char *logDir;
+    char *stateDir;
     unsigned int vncTLS : 1;
     unsigned int vncTLSx509verify : 1;
     char *vncTLSx509certdir;
     char *vncListen;
+    char *vncPassword;
 
     virCapsPtr caps;
 
     /* An array of callbacks */
     virDomainEventCallbackListPtr domainEventCallbacks;
+    virDomainEventQueuePtr domainEventQueue;
+    int domainEventTimer;
+    int domainEventDispatching;
+};
+
+/* Status needed to reconenct to running VMs */
+typedef struct _qemudDomainStatus qemudDomainStatus;
+typedef qemudDomainStatus *qemudDomainStatusPtr;
+struct _qemudDomainStatus {
+    char *monitorpath;
+    pid_t pid;
+    int state;
+    virDomainDefPtr def;
 };
 
 /* Port numbers used for KVM migration. */
@@ -102,5 +126,12 @@ int         qemudBuildCommandLine       (virConnectPtr conn,
                                          const char *migrateFrom);
 
 const char *qemudVirtTypeToString       (int type);
+qemudDomainStatusPtr qemudDomainStatusParseFile(virConnectPtr conn,
+                                                virCapsPtr caps,
+                                                const char *filename,
+                                                int flags);
+int qemudSaveDomainStatus(virConnectPtr conn,
+                          struct qemud_driver *driver,
+                          virDomainObjPtr vm);
 
 #endif /* __QEMUD_CONF_H */

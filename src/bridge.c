@@ -21,7 +21,7 @@
 
 #include <config.h>
 
-#if defined(WITH_QEMU) || defined(WITH_LXC)
+#if defined(WITH_BRIDGE)
 
 #include "bridge.h"
 
@@ -47,6 +47,7 @@
 #include "internal.h"
 #include "memory.h"
 #include "util.h"
+#include "logging.h"
 
 #define MAX_BRIDGE_ID 256
 
@@ -158,6 +159,43 @@ brAddBridge(brControl *ctl,
 #else
 int brAddBridge (brControl *ctl ATTRIBUTE_UNUSED,
                  char **name ATTRIBUTE_UNUSED)
+{
+    return EINVAL;
+}
+#endif
+
+#ifdef SIOCBRDELBR
+int
+brHasBridge(brControl *ctl,
+            const char *name)
+{
+    struct ifreq ifr;
+    int len;
+
+    if (!ctl || !name) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    if ((len = strlen(name)) >= BR_IFNAME_MAXLEN) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    memset(&ifr, 0, sizeof(struct ifreq));
+
+    strncpy(ifr.ifr_name, name, len);
+    ifr.ifr_name[len] = '\0';
+
+    if (ioctl(ctl->fd, SIOCGIFFLAGS, &ifr))
+        return -1;
+
+    return 0;
+}
+#else
+int
+brHasBridge(brControl *ctl,
+            const char *name)
 {
     return EINVAL;
 }
@@ -366,10 +404,67 @@ static int brSetInterfaceMtu(brControl *ctl,
 }
 
 /**
+ * brProbeVnetHdr:
+ * @tapfd: a tun/tap file descriptor
+ *
+ * Check whether it is safe to enable the IFF_VNET_HDR flag on the
+ * tap interface.
+ *
+ * Setting IFF_VNET_HDR enables QEMU's virtio_net driver to allow
+ * guests to pass larger (GSO) packets, with partial checksums, to
+ * the host. This greatly increases the achievable throughput.
+ *
+ * It is only useful to enable this when we're setting up a virtio
+ * interface. And it is only *safe* to enable it when we know for
+ * sure that a) qemu has support for IFF_VNET_HDR and b) the running
+ * kernel implements the TUNGETIFF ioctl(), which qemu needs to query
+ * the supplied tapfd.
+ *
+ * Returns 0 in case of success or an errno code in case of failure.
+ */
+static int
+brProbeVnetHdr(int tapfd)
+{
+#if defined(IFF_VNET_HDR) && defined(TUNGETFEATURES) && defined(TUNGETIFF)
+    unsigned int features;
+    struct ifreq dummy;
+
+    if (ioctl(tapfd, TUNGETFEATURES, &features) != 0) {
+        VIR_INFO0(_("Not enabling IFF_VNET_HDR; "
+                    "TUNGETFEATURES ioctl() not implemented"));
+        return 0;
+    }
+
+    if (!(features & IFF_VNET_HDR)) {
+        VIR_INFO0(_("Not enabling IFF_VNET_HDR; "
+                    "TUNGETFEATURES ioctl() reports no IFF_VNET_HDR"));
+        return 0;
+    }
+
+    /* The kernel will always return -1 at this point.
+     * If TUNGETIFF is not implemented then errno == EBADFD.
+     */
+    if (ioctl(tapfd, TUNGETIFF, &dummy) != -1 || errno != EBADFD) {
+        VIR_INFO0(_("Not enabling IFF_VNET_HDR; "
+                    "TUNGETIFF ioctl() not implemented"));
+        return 0;
+    }
+
+    VIR_INFO0(_("Enabling IFF_VNET_HDR"));
+
+    return 1;
+#else
+    VIR_INFO0(_("Not enabling IFF_VNET_HDR; disabled at build time"));
+    return 0;
+#endif
+}
+
+/**
  * brAddTap:
  * @ctl: bridge control pointer
  * @bridge: the bridge name
  * @ifname: the interface name (or name template)
+ * @vnet_hdr: whether to try enabling IFF_VNET_HDR
  * @tapfd: file descriptor return value for the new tap device
  *
  * This function creates a new tap device on a bridge. @ifname can be either
@@ -383,6 +478,7 @@ int
 brAddTap(brControl *ctl,
          const char *bridge,
          char **ifname,
+         int vnet_hdr,
          int *tapfd)
 {
     int id, subst, fd;
@@ -398,6 +494,9 @@ brAddTap(brControl *ctl,
     if ((fd = open("/dev/net/tun", O_RDWR)) < 0)
       return errno;
 
+    if (vnet_hdr)
+        vnet_hdr = brProbeVnetHdr(fd);
+
     do {
         struct ifreq try;
         int len;
@@ -405,6 +504,11 @@ brAddTap(brControl *ctl,
         memset(&try, 0, sizeof(struct ifreq));
 
         try.ifr_flags = IFF_TAP|IFF_NO_PI;
+
+#ifdef IFF_VNET_HDR
+        if (vnet_hdr)
+            try.ifr_flags |= IFF_VNET_HDR;
+#endif
 
         if (subst) {
             len = snprintf(try.ifr_name, BR_IFNAME_MAXLEN, *ifname, id);
@@ -750,4 +854,4 @@ brSetEnableSTP(brControl *ctl ATTRIBUTE_UNUSED,
     return 0;
 }
 
-#endif /* WITH_QEMU || WITH_LXC */
+#endif /* WITH_BRIDGE */

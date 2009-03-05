@@ -26,7 +26,7 @@
 
 #include "hash.h"
 #include "driver.h"
-
+#include "threads.h"
 
 /**
  * VIR_CONNECT_MAGIC:
@@ -95,6 +95,10 @@
  * Internal structure associated to a connection
  */
 struct _virConnect {
+    /* All the variables from here, until the 'lock' declaration
+     * are setup at time of connection open, and never changed
+     * since. Thus no need to lock when accessing them
+     */
     unsigned int magic;     /* specific value to check */
     int flags;              /* a set of connection flags */
     xmlURIPtr uri;          /* connection URI */
@@ -114,18 +118,19 @@ struct _virConnect {
     void *            storagePrivateData;
     void *            devMonPrivateData;
 
-    /* Per-connection error. */
-    virError err;           /* the last error */
-    virErrorFunc handler;   /* associated handlet */
-    void *userData;         /* the user data */
-
     /*
      * The lock mutex must be acquired before accessing/changing
      * any of members following this point, or changing the ref
      * count of any virDomain/virNetwork object associated with
      * this connection
      */
-    PTHREAD_MUTEX_T (lock);
+    virMutex lock;
+
+    /* Per-connection error. */
+    virError err;           /* the last error */
+    virErrorFunc handler;   /* associated handlet */
+    void *userData;         /* the user data */
+
     virHashTablePtr domains;  /* hash table for known domains */
     virHashTablePtr networks; /* hash table for known domains */
     virHashTablePtr storagePools;/* hash table for known storage pools */
@@ -199,6 +204,7 @@ struct _virNodeDevice {
     int refs;                           /* reference count */
     virConnectPtr conn;                 /* pointer back to the connection */
     char *name;                         /* device name (unique on node) */
+    char *parent;                       /* parent device name */
 };
 
 

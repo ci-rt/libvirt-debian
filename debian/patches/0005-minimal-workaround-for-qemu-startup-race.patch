@@ -1,0 +1,22 @@
+From: =?utf-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Sat, 31 Jan 2009 14:54:36 +0100
+Subject: [PATCH] minimal workaround for qemu startup race
+
+---
+ src/qemu_driver.c |    2 --
+ 1 files changed, 0 insertions(+), 2 deletions(-)
+
+diff --git a/src/qemu_driver.c b/src/qemu_driver.c
+index 09f69bf..b2f2b47 100644
+--- a/src/qemu_driver.c
++++ b/src/qemu_driver.c
+@@ -674,8 +674,6 @@ qemudReadMonitorOutput(virConnectPtr conn,
+                                  _("Failure while reading %s startup output"), what);
+                 return -1;
+             }
+-        } else if (ret == 0) {
+-            return 0;
+         } else {
+             got += ret;
+             buf[got] = '\0';
+-- 

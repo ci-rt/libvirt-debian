@@ -48,6 +48,8 @@
 #include "memory.h"
 #include "veth.h"
 
+#define VIR_FROM_THIS VIR_FROM_LXC
+
 /*
  * GLibc headers are behind the kernel, so we define these
  * constants if they're not present already.
@@ -118,14 +120,14 @@ static int lxcContainerSetStdio(int control, int ttyfd)
     int open_max, i;
 
     if (setsid() < 0) {
-        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                 _("setsid failed: %s"), strerror(errno));
+        virReportSystemError(NULL, errno, "%s",
+                             _("setsid failed"));
         goto cleanup;
     }
 
     if (ioctl(ttyfd, TIOCSCTTY, NULL) < 0) {
-        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                 _("ioctl(TIOCSTTY) failed: %s"), strerror(errno));
+        virReportSystemError(NULL, errno, "%s",
+                             _("ioctl(TIOCSTTY) failed"));
         goto cleanup;
     }
 
@@ -137,20 +139,20 @@ static int lxcContainerSetStdio(int control, int ttyfd)
             close(i);
 
     if (dup2(ttyfd, 0) < 0) {
-        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                 _("dup2(stdin) failed: %s"), strerror(errno));
+        virReportSystemError(NULL, errno, "%s",
+                             _("dup2(stdin) failed"));
         goto cleanup;
     }
 
     if (dup2(ttyfd, 1) < 0) {
-        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                 _("dup2(stdout) failed: %s"), strerror(errno));
+        virReportSystemError(NULL, errno, "%s",
+                             _("dup2(stdout) failed"));
         goto cleanup;
     }
 
     if (dup2(ttyfd, 2) < 0) {
-        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                 _("dup2(stderr) failed: %s"), strerror(errno));
+        virReportSystemError(NULL, errno, "%s",
+                             _("dup2(stderr) failed"));
         goto cleanup;
     }
 
@@ -177,9 +179,8 @@ int lxcContainerSendContinue(int control)
 
     writeCount = safewrite(control, &msg, sizeof(msg));
     if (writeCount != sizeof(msg)) {
-        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                 _("unable to send container continue message: %s"),
-                 strerror(errno));
+        virReportSystemError(NULL, errno, "%s",
+                             _("unable to send container continue message"));
         goto error_out;
     }
 
@@ -207,9 +208,8 @@ static int lxcContainerWaitForContinue(int control)
     readLen = saferead(control, &msg, sizeof(msg));
     if (readLen != sizeof(msg) ||
         msg != LXC_CONTINUE_MSG) {
-        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                 _("Failed to read the container continue message: %s"),
-                 strerror(errno));
+        virReportSystemError(NULL, errno, "%s",
+                             _("Failed to read the container continue message"));
         return -1;
     }
     close(control);
@@ -266,28 +266,28 @@ static int lxcContainerChildMountSort(const void *a, const void *b)
 
 static int lxcContainerPivotRoot(virDomainFSDefPtr root)
 {
+    int rc;
     char *oldroot;
 
     /* First step is to ensure the new root itself is
        a mount point */
     if (mount(root->src, root->src, NULL, MS_BIND, NULL) < 0) {
-        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                 _("failed to bind new root %s: %s"),
-                 root->src, strerror(errno));
+        virReportSystemError(NULL, errno,
+                             _("failed to bind new root %s"),
+                             root->src);
         return -1;
     }
 
-    if (asprintf(&oldroot, "%s/.oldroot", root->src) < 0) {
-        oldroot = NULL;
-        lxcError(NULL, NULL, VIR_ERR_NO_MEMORY, NULL);
+    if (virAsprintf(&oldroot, "%s/.oldroot", root->src) < 0) {
+        virReportOOMError(NULL);
         return -1;
     }
 
-    if (virFileMakePath(oldroot) < 0) {
+    if ((rc = virFileMakePath(oldroot)) < 0) {
         VIR_FREE(oldroot);
-        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                 _("failed to create %s: %s"),
-                 oldroot, strerror(errno));
+        virReportSystemError(NULL, rc,
+                             _("failed to create %s"),
+                             oldroot);
         return -1;
     }
 
@@ -295,9 +295,9 @@ static int lxcContainerPivotRoot(virDomainFSDefPtr root)
      * this and will soon be unmounted completely */
     if (pivot_root(root->src, oldroot) < 0) {
         VIR_FREE(oldroot);
-        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                 _("failed to pivot root %s to %s: %s"),
-                 oldroot, root->src, strerror(errno));
+        virReportSystemError(NULL, errno,
+                             _("failed to pivot root %s to %s"),
+                             oldroot, root->src);
         return -1;
     }
     VIR_FREE(oldroot);
@@ -313,6 +313,7 @@ static int lxcContainerPivotRoot(virDomainFSDefPtr root)
 static int lxcContainerPopulateDevices(void)
 {
     int i;
+    int rc;
     const struct {
         int maj;
         int min;
@@ -327,11 +328,14 @@ static int lxcContainerPopulateDevices(void)
         { LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_URANDOM, 0666, "/dev/urandom" },
     };
 
-    if (virFileMakePath("/dev") < 0 ||
-        mount("none", "/dev", "tmpfs", 0, NULL) < 0) {
-        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                 _("failed to mount /dev tmpfs for container: %s"),
-                 strerror(errno));
+    if ((rc = virFileMakePath("/dev")) < 0) {
+        virReportSystemError(NULL, rc, "%s",
+                             _("cannot create /dev/"));
+        return -1;
+    }
+    if (mount("none", "/dev", "tmpfs", 0, NULL) < 0) {
+        virReportSystemError(NULL, errno, "%s",
+                             _("failed to mount /dev tmpfs"));
         return -1;
     }
     /* Move old devpts into container, since we have to
@@ -340,12 +344,15 @@ static int lxcContainerPopulateDevices(void)
        XXX This sucks, we need to figure out how to get our
        own private devpts for isolation
     */
-    if (virFileMakePath("/dev/pts") < 0 ||
-        mount("/.oldroot/dev/pts", "/dev/pts", NULL,
+    if ((rc = virFileMakePath("/dev/pts") < 0)) {
+        virReportSystemError(NULL, rc, "%s",
+                             _("cannot create /dev/pts"));
+        return -1;
+    }
+    if (mount("/.oldroot/dev/pts", "/dev/pts", NULL,
               MS_MOVE, NULL) < 0) {
-        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                 _("failed to move /dev/pts into container: %s"),
-                 strerror(errno));
+        virReportSystemError(NULL, errno, "%s",
+                             _("failed to move /dev/pts into container"));
         return -1;
     }
 
@@ -354,9 +361,9 @@ static int lxcContainerPopulateDevices(void)
         dev_t dev = makedev(devs[i].maj, devs[i].min);
         if (mknod(devs[i].path, 0, dev) < 0 ||
             chmod(devs[i].path, devs[i].mode)) {
-            lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                     _("failed to make device %s: %s"),
-                     devs[i].path, strerror(errno));
+            virReportSystemError(NULL, errno,
+                                 _("failed to make device %s"),
+                                 devs[i].path);
             return -1;
         }
     }
@@ -378,17 +385,24 @@ static int lxcContainerMountNewFS(virDomainDefPtr vmDef)
         if (vmDef->fss[i]->type != VIR_DOMAIN_FS_TYPE_MOUNT)
             continue;
 
-        if (asprintf(&src, "/.oldroot/%s", vmDef->fss[i]->src) < 0) {
-            lxcError(NULL, NULL, VIR_ERR_NO_MEMORY, NULL);
+        if (virAsprintf(&src, "/.oldroot/%s", vmDef->fss[i]->src) < 0) {
+            virReportOOMError(NULL);
             return -1;
         }
 
-        if (virFileMakePath(vmDef->fss[i]->dst) < 0 ||
-            mount(src, vmDef->fss[i]->dst, NULL, MS_BIND, NULL) < 0) {
+        if (virFileMakePath(vmDef->fss[i]->dst) < 0) {
+            virReportSystemError(NULL, errno,
+                                 _("failed to create %s"),
+                                 vmDef->fss[i]->dst);
             VIR_FREE(src);
-            lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                     _("failed to mount %s at %s for container: %s"),
-                     vmDef->fss[i]->src, vmDef->fss[i]->dst, strerror(errno));
+            return -1;
+        }
+        if (mount(src, vmDef->fss[i]->dst, NULL, MS_BIND, NULL) < 0) {
+            VIR_FREE(src);
+            virReportSystemError(NULL, errno,
+                                 _("failed to mount %s at %s"),
+                                 vmDef->fss[i]->src,
+                                 vmDef->fss[i]->dst);
             return -1;
         }
         VIR_FREE(src);
@@ -400,30 +414,30 @@ static int lxcContainerMountNewFS(virDomainDefPtr vmDef)
 
 static int lxcContainerUnmountOldFS(void)
 {
-    struct mntent *mntent;
+    struct mntent mntent;
     char **mounts = NULL;
     int nmounts = 0;
     FILE *procmnt;
     int i;
+    char mntbuf[1024];
 
     if (!(procmnt = setmntent("/proc/mounts", "r"))) {
-        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                 _("failed to read /proc/mounts: %s"),
-                 strerror(errno));
+        virReportSystemError(NULL, errno, "%s",
+                             _("failed to read /proc/mounts"));
         return -1;
     }
-    while ((mntent = getmntent(procmnt)) != NULL) {
-        if (!STRPREFIX(mntent->mnt_dir, "/.oldroot"))
+    while (getmntent_r(procmnt, &mntent, mntbuf, sizeof(mntbuf)) != NULL) {
+        if (!STRPREFIX(mntent.mnt_dir, "/.oldroot"))
             continue;
 
         if (VIR_REALLOC_N(mounts, nmounts+1) < 0) {
             endmntent(procmnt);
-            lxcError(NULL, NULL, VIR_ERR_NO_MEMORY, NULL);
+            virReportOOMError(NULL);
             return -1;
         }
-        if (!(mounts[nmounts++] = strdup(mntent->mnt_dir))) {
+        if (!(mounts[nmounts++] = strdup(mntent.mnt_dir))) {
             endmntent(procmnt);
-            lxcError(NULL, NULL, VIR_ERR_NO_MEMORY, NULL);
+            virReportOOMError(NULL);
             return -1;
         }
     }
@@ -434,9 +448,9 @@ static int lxcContainerUnmountOldFS(void)
 
     for (i = 0 ; i < nmounts ; i++) {
         if (umount(mounts[i]) < 0) {
-            lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                     _("failed to unmount %s: %s"),
-                     mounts[i], strerror(errno));
+            virReportSystemError(NULL, errno,
+                                 _("failed to unmount '%s'"),
+                                 mounts[i]);
             return -1;
         }
         VIR_FREE(mounts[i]);
@@ -459,9 +473,8 @@ static int lxcContainerSetupPivotRoot(virDomainDefPtr vmDef,
 
     if (virFileMakePath("/proc") < 0 ||
         mount("none", "/proc", "proc", 0, NULL) < 0) {
-        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                 _("failed to mount /proc for container: %s"),
-                 strerror(errno));
+        virReportSystemError(NULL, errno, "%s",
+                             _("failed to mount /proc"));
         return -1;
     }
 
@@ -493,18 +506,18 @@ static int lxcContainerSetupExtraMounts(virDomainDefPtr vmDef)
                   NULL,
                   MS_BIND,
                   NULL) < 0) {
-            lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                     _("failed to mount %s at %s for container: %s"),
-                     vmDef->fss[i]->src, vmDef->fss[i]->dst, strerror(errno));
+            virReportSystemError(NULL, errno,
+                                 _("failed to mount %s at %s"),
+                                 vmDef->fss[i]->src,
+                                 vmDef->fss[i]->dst);
             return -1;
         }
     }
 
     /* mount /proc */
     if (mount("lxcproc", "/proc", "proc", 0, NULL) < 0) {
-        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                 _("failed to mount /proc for container: %s"),
-                 strerror(errno));
+        virReportSystemError(NULL, errno, "%s",
+                             _("failed to mount /proc"));
         return -1;
     }
 
@@ -558,8 +571,9 @@ static int lxcContainerChild( void *data )
 
     ttyfd = open(argv->ttyPath, O_RDWR|O_NOCTTY);
     if (ttyfd < 0) {
-        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                 _("open(%s) failed: %s"), argv->ttyPath, strerror(errno));
+        virReportSystemError(NULL, errno,
+                             _("failed to open %s"),
+                             argv->ttyPath);
         return -1;
     }
 
@@ -604,7 +618,7 @@ int lxcContainerStart(virDomainDefPtr def,
 
     /* allocate a stack for the container */
     if (VIR_ALLOC_N(stack, stacksize) < 0) {
-        lxcError(NULL, NULL, VIR_ERR_NO_MEMORY, NULL);
+        virReportOOMError(NULL);
         return -1;
     }
     stacktop = stack + stacksize;
@@ -619,8 +633,8 @@ int lxcContainerStart(virDomainDefPtr def,
     DEBUG("clone() returned, %d", pid);
 
     if (pid < 0) {
-        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                 _("clone() failed, %s"), strerror(errno));
+        virReportSystemError(NULL, errno, "%s",
+                             _("failed to run clone container"));
         return -1;
     }
 

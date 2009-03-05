@@ -14,8 +14,11 @@ EXTRA_DIST = \
   libvirt.pc libvirt.pc.in \
   $(man_MANS) autobuild.sh \
   .x-sc_avoid_if_before_free \
+  .x-sc_require_config_h_first \
   .x-sc_prohibit_strcmp \
   .x-sc_require_config_h \
+  .x-sc_prohibit_nonreentrant \
+  Makefile.nonreentrant \
   autogen.sh
 
 man_MANS = virsh.1

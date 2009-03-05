@@ -8,13 +8,13 @@ Subject: [PATCH] qemu-disable-network.diff
  2 files changed, 0 insertions(+), 6 deletions(-)
 
 diff --git a/qemud/Makefile.am b/qemud/Makefile.am
-index 15d3717..d6b4ceb 100644
+index a0c161a..0e736d0 100644
 --- a/qemud/Makefile.am
 +++ b/qemud/Makefile.am
-@@ -138,9 +138,6 @@ install-data-local: install-init install-data-sasl install-data-polkit
- 	  $(DESTDIR)$(sysconfdir)/$(default_xml_dest)
- 	sed -i -e "s,</name>,</name>\n  <uuid>$(UUID)</uuid>," \
- 	  $(DESTDIR)$(sysconfdir)/$(default_xml_dest)
+@@ -152,9 +152,6 @@ install-data-local: install-init install-data-sasl install-data-polkit \
+ 	test -z "$(UUID)" || \
+ 	  sed -i -e "s,</name>,</name>\n  <uuid>$(UUID)</uuid>," \
+ 	    $(DESTDIR)$(sysconfdir)/$(default_xml_dest)
 -	test -e $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml || \
 -           ln -s ../default.xml \
 -	    $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml
@@ -22,13 +22,13 @@ index 15d3717..d6b4ceb 100644
  	mkdir -p $(DESTDIR)$(localstatedir)/run/libvirt
  	mkdir -p $(DESTDIR)$(localstatedir)/lib/libvirt
 diff --git a/qemud/Makefile.in b/qemud/Makefile.in
-index 7735a0a..561163c 100644
+index ac4bfdc..5a22dc9 100644
 --- a/qemud/Makefile.in
 +++ b/qemud/Makefile.in
-@@ -1195,9 +1195,6 @@ remote_protocol.c: remote_protocol.h
- @WITH_LIBVIRTD_TRUE@	  $(DESTDIR)$(sysconfdir)/$(default_xml_dest)
- @WITH_LIBVIRTD_TRUE@	sed -i -e "s,</name>,</name>\n  <uuid>$(UUID)</uuid>," \
- @WITH_LIBVIRTD_TRUE@	  $(DESTDIR)$(sysconfdir)/$(default_xml_dest)
+@@ -1291,9 +1291,6 @@ remote_protocol.c: remote_protocol.h
+ @WITH_LIBVIRTD_TRUE@	test -z "$(UUID)" || \
+ @WITH_LIBVIRTD_TRUE@	  sed -i -e "s,</name>,</name>\n  <uuid>$(UUID)</uuid>," \
+ @WITH_LIBVIRTD_TRUE@	    $(DESTDIR)$(sysconfdir)/$(default_xml_dest)
 -@WITH_LIBVIRTD_TRUE@	test -e $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml || \
 -@WITH_LIBVIRTD_TRUE@           ln -s ../default.xml \
 -@WITH_LIBVIRTD_TRUE@	    $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml

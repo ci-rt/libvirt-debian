@@ -26,10 +26,9 @@ class libvirtError(Exception):
         elif vol is not None:
             conn = vol._conn
 
-        if conn is None:
-            err = virGetLastError()
-        else:
-            err = conn.virConnGetLastError()
+        # Never call virConnGetLastError().
+        # virGetLastError() is now thread local
+        err = virGetLastError()
         if err is None:
             msg = defmsg
         else:
@@ -186,13 +185,16 @@ def virInitialize():
 
 def virGetLastError():
     """Provide a pointer to the last error caught at the library
-      level Simpler but may not be suitable for multithreaded
-       accesses, in which case use virCopyLastError() """
+      level  The error object is kept in thread local storage, so
+       separate threads can safely access this concurrently. """
     ret = libvirtmod.virGetLastError()
     return ret
 
 def virResetLastError():
-    """Reset the last error caught at the library level. """
+    """Reset the last error caught at the library level.  The
+      error object is kept in thread local storage, so separate
+      threads can safely access this concurrently, only resetting
+       their own error object. """
     libvirtmod.virResetLastError()
 
 class virDomain:
@@ -388,6 +390,20 @@ class virDomain:
            Note that the guest OS may ignore the request. """
         ret = libvirtmod.virDomainReboot(self._o, flags)
         if ret == -1: raise libvirtError ('virDomainReboot() failed', dom=self)
+        return ret
+
+    def ref(self):
+        """Increment the reference count on the domain. For each
+          additional call to this method, there shall be a
+          corresponding call to virDomainFree to release the
+          reference count, once the caller no longer needs the
+          reference to this object.  This method is typically useful
+          for applications where multiple threads are using a
+          connection, and it is required that the connection remain
+          open until all threads have finished using it. ie, each new
+           thread using a domain would increment the reference count. """
+        ret = libvirtmod.virDomainRef(self._o)
+        if ret == -1: raise libvirtError ('virDomainRef() failed', dom=self)
         return ret
 
     def resume(self):
@@ -611,6 +627,20 @@ class virNetwork:
         ret = libvirtmod.virNetworkGetName(self._o)
         return ret
 
+    def ref(self):
+        """Increment the reference count on the network. For each
+          additional call to this method, there shall be a
+          corresponding call to virNetworkFree to release the
+          reference count, once the caller no longer needs the
+          reference to this object.  This method is typically useful
+          for applications where multiple threads are using a
+          connection, and it is required that the connection remain
+          open until all threads have finished using it. ie, each new
+           thread using a network would increment the reference count. """
+        ret = libvirtmod.virNetworkRef(self._o)
+        if ret == -1: raise libvirtError ('virNetworkRef() failed', net=self)
+        return ret
+
     def setAutostart(self, autostart):
         """Configure the network to be automatically started when the
            host machine boots. """
@@ -737,6 +767,20 @@ class virStoragePool:
         """Fetch the number of storage volumes within a pool """
         ret = libvirtmod.virStoragePoolNumOfVolumes(self._o)
         if ret == -1: raise libvirtError ('virStoragePoolNumOfVolumes() failed', pool=self)
+        return ret
+
+    def ref(self):
+        """Increment the reference count on the pool. For each
+          additional call to this method, there shall be a
+          corresponding call to virStoragePoolFree to release the
+          reference count, once the caller no longer needs the
+          reference to this object.  This method is typically useful
+          for applications where multiple threads are using a
+          connection, and it is required that the connection remain
+          open until all threads have finished using it. ie, each new
+           thread using a pool would increment the reference count. """
+        ret = libvirtmod.virStoragePoolRef(self._o)
+        if ret == -1: raise libvirtError ('virStoragePoolRef() failed', pool=self)
         return ret
 
     def refresh(self, flags):
@@ -868,6 +912,20 @@ class virStorageVol:
            naming """
         ret = libvirtmod.virStorageVolGetPath(self._o)
         if ret is None: raise libvirtError ('virStorageVolGetPath() failed', vol=self)
+        return ret
+
+    def ref(self):
+        """Increment the reference count on the vol. For each
+          additional call to this method, there shall be a
+          corresponding call to virStorageVolFree to release the
+          reference count, once the caller no longer needs the
+          reference to this object.  This method is typically useful
+          for applications where multiple threads are using a
+          connection, and it is required that the connection remain
+          open until all threads have finished using it. ie, each new
+           thread using a vol would increment the reference count. """
+        ret = libvirtmod.virStorageVolRef(self._o)
+        if ret == -1: raise libvirtError ('virStorageVolRef() failed', vol=self)
         return ret
 
     def storagePoolLookupByVolume(self):
@@ -1152,6 +1210,21 @@ class virConnect:
         if ret == -1: raise libvirtError ('virConnectNumOfStoragePools() failed', conn=self)
         return ret
 
+    def ref(self):
+        """Increment the reference count on the connection. For each
+          additional call to this method, there shall be a
+          corresponding call to virConnectClose to release the
+          reference count, once the caller no longer needs the
+          reference to this object.  This method is typically useful
+          for applications where multiple threads are using a
+          connection, and it is required that the connection remain
+          open until all threads have finished using it. ie, each new
+          thread using a connection would increment the reference
+           count. """
+        ret = libvirtmod.virConnectRef(self._o)
+        if ret == -1: raise libvirtError ('virConnectRef() failed', conn=self)
+        return ret
+
     def restore(self, frm):
         """This method will restore a domain saved to disk by
            virDomainSave(). """
@@ -1282,14 +1355,23 @@ class virConnect:
 
     def virConnGetLastError(self):
         """Provide a pointer to the last error caught on that
-          connection Simpler but may not be suitable for
-          multithreaded accesses, in which case use
-           virConnCopyLastError() """
+          connection  This method is not protected against access
+          from multiple threads. In a multi-threaded application,
+          always use the global virGetLastError() API which is backed
+          by thread local storage.  If the connection object was
+          discovered to be invalid by an API call, then the error
+          will be reported against the global error object.  Since
+          0.6.0, all errors reported in the per-connection object are
+          also duplicated in the global error object. As such an
+          application can always use virGetLastError(). This method
+           remains for backwards compatability. """
         ret = libvirtmod.virConnGetLastError(self._o)
         return ret
 
     def virConnResetLastError(self):
-        """Reset the last error caught on that connection """
+        """The error object is kept in thread local storage, so
+          separate threads can safely access this concurrently. 
+           Reset the last error caught on that connection """
         libvirtmod.virConnResetLastError(self._o)
 
     #
@@ -1374,6 +1456,20 @@ class virNodeDevice:
     def parent(self):
         """Accessor for the parent of the device """
         ret = libvirtmod.virNodeDeviceGetParent(self._o)
+        return ret
+
+    def ref(self):
+        """Increment the reference count on the dev. For each
+          additional call to this method, there shall be a
+          corresponding call to virNodeDeviceFree to release the
+          reference count, once the caller no longer needs the
+          reference to this object.  This method is typically useful
+          for applications where multiple threads are using a
+          connection, and it is required that the connection remain
+          open until all threads have finished using it. ie, each new
+           thread using a dev would increment the reference count. """
+        ret = libvirtmod.virNodeDeviceRef(self._o)
+        if ret == -1: raise libvirtError ('virNodeDeviceRef() failed')
         return ret
 
     #

@@ -47,6 +47,15 @@
 #include "memory.h"
 #include "logging.h"
 
+#define VIR_FROM_THIS VIR_FROM_XENXM
+
+#ifdef WITH_RHEL5_API
+#define XEND_CONFIG_MAX_VERS_NET_TYPE_IOEMU 0
+#define XEND_CONFIG_MIN_VERS_PVFB_NEWCONF 2
+#else
+#define XEND_CONFIG_MAX_VERS_NET_TYPE_IOEMU 3
+#define XEND_CONFIG_MIN_VERS_PVFB_NEWCONF 3
+#endif
 
 /* The true Xen limit varies but so far is always way
    less than 1024, which is the Linux kernel limit according
@@ -55,15 +64,6 @@
 
 static int xenXMConfigSetString(virConfPtr conf, const char *setting,
                                 const char *str);
-
-static char configDir[PATH_MAX];
-/* Config file name to config object */
-static virHashTablePtr configCache = NULL;
-/* Name to config file name */
-static virHashTablePtr nameConfigMap = NULL;
-static int nconnections = 0;
-static time_t lastRefresh = 0;
-
 char * xenXMAutoAssignMac(void);
 static int xenXMDomainAttachDevice(virDomainPtr domain, const char *xml);
 static int xenXMDomainDetachDevice(virDomainPtr domain, const char *xml);
@@ -119,40 +119,9 @@ struct xenUnifiedDriver xenXMDriver = {
     NULL, /* domainSetSchedulerParameters */
 };
 
-virHashTablePtr xenXMGetConfigCache (void) {
-    return configCache;
-}
-
-char *xenXMGetConfigDir (void) {
-    return configDir;
-}
-
 #define xenXMError(conn, code, fmt...)                                       \
         virReportErrorHelper(conn, VIR_FROM_XENXM, code, __FILE__,         \
                                __FUNCTION__, __LINE__, fmt)
-
-int
-xenXMInit (void)
-{
-    char *envConfigDir;
-    int safeMode = 0;
-
-    /* Disable use of env variable if running setuid */
-    if ((geteuid() != getuid()) ||
-        (getegid() != getgid()))
-        safeMode = 1;
-
-    if (!safeMode &&
-        (envConfigDir = getenv("LIBVIRT_XM_CONFIG_DIR")) != NULL) {
-        strncpy(configDir, envConfigDir, PATH_MAX-1);
-        configDir[PATH_MAX-1] = '\0';
-    } else {
-        strcpy(configDir, XM_CONFIG_DIR);
-    }
-
-    return 0;
-}
-
 
 /* Convenience method to grab a int from the config file object */
 static int xenXMConfigGetBool(virConnectPtr conn,
@@ -276,7 +245,7 @@ static int xenXMConfigCopyStringInternal(virConnectPtr conn,
     }
 
     if (!(*value = strdup(val->str))) {
-        xenXMError(conn, VIR_ERR_NO_MEMORY, NULL);
+        virReportOOMError(conn);
         return -1;
     }
 
@@ -327,19 +296,23 @@ static void xenXMConfigFree(void *payload, const char *key ATTRIBUTE_UNUSED) {
     VIR_FREE(entry);
 }
 
+struct xenXMConfigReaperData {
+    xenUnifiedPrivatePtr priv;
+    time_t now;
+};
 
 /* Remove any configs which were not refreshed recently */
 static int xenXMConfigReaper(const void *payload, const char *key ATTRIBUTE_UNUSED, const void *data) {
-    time_t now = *(const time_t *)data;
+    const struct xenXMConfigReaperData *args = data;
     xenXMConfCachePtr entry = (xenXMConfCachePtr)payload;
 
     /* We're going to purge this config file, so check if it
        is currently mapped as owner of a named domain. */
-    if (entry->refreshedAt != now) {
+    if (entry->refreshedAt != args->now) {
         const char *olddomname = entry->def->name;
-        char *nameowner = (char *)virHashLookup(nameConfigMap, olddomname);
+        char *nameowner = (char *)virHashLookup(args->priv->nameConfigMap, olddomname);
         if (nameowner && STREQ(nameowner, key)) {
-            virHashRemoveEntry(nameConfigMap, olddomname, NULL);
+            virHashRemoveEntry(args->priv->nameConfigMap, olddomname, NULL);
         }
         return (1);
     }
@@ -374,28 +347,39 @@ xenXMConfigSaveFile(virConnectPtr conn, const char *filename, virDomainDefPtr de
     return ret;
 }
 
+
+/*
+ * Caller must hold the lock on 'conn->privateData' before
+ * calling this funtion
+ */
 int
-xenXMConfigCacheRemoveFile(virConnectPtr conn ATTRIBUTE_UNUSED,
+xenXMConfigCacheRemoveFile(virConnectPtr conn,
                            const char *filename)
 {
+    xenUnifiedPrivatePtr priv = conn->privateData;
     xenXMConfCachePtr entry;
 
-    entry = virHashLookup(configCache, filename);
+    entry = virHashLookup(priv->configCache, filename);
     if (!entry) {
         DEBUG("No config entry for %s", filename);
         return 0;
     }
 
-    virHashRemoveEntry(nameConfigMap, entry->def->name, NULL);
-    virHashRemoveEntry(configCache, filename, xenXMConfigFree);
+    virHashRemoveEntry(priv->nameConfigMap, entry->def->name, NULL);
+    virHashRemoveEntry(priv->configCache, filename, xenXMConfigFree);
     DEBUG("Removed %s %s", entry->def->name, filename);
     return 0;
 }
 
 
+/*
+ * Caller must hold the lock on 'conn->privateData' before
+ * calling this funtion
+ */
 int
 xenXMConfigCacheAddFile(virConnectPtr conn, const char *filename)
 {
+    xenUnifiedPrivatePtr priv = conn->privateData;
     xenXMConfCachePtr entry;
     struct stat st;
     int newborn = 0;
@@ -405,8 +389,9 @@ xenXMConfigCacheAddFile(virConnectPtr conn, const char *filename)
 
     /* Get modified time */
     if ((stat(filename, &st) < 0)) {
-        xenXMError (conn, VIR_ERR_INTERNAL_ERROR,
-                    _("cannot stat %s: %s"), filename, strerror(errno));
+        virReportSystemError(conn, errno,
+                             _("cannot stat: %s"),
+                             filename);
         return -1;
     }
 
@@ -419,7 +404,7 @@ xenXMConfigCacheAddFile(virConnectPtr conn, const char *filename)
 
     /* If we already have a matching entry and it is not
     modified, then carry on to next one*/
-    if ((entry = virHashLookup(configCache, filename))) {
+    if ((entry = virHashLookup(priv->configCache, filename))) {
         char *nameowner;
 
         if (entry->refreshedAt >= st.st_mtime) {
@@ -430,9 +415,9 @@ xenXMConfigCacheAddFile(virConnectPtr conn, const char *filename)
 
         /* If we currently own the name, then release it and
             re-acquire it later - just in case it was renamed */
-        nameowner = (char *)virHashLookup(nameConfigMap, entry->def->name);
+        nameowner = (char *)virHashLookup(priv->nameConfigMap, entry->def->name);
         if (nameowner && STREQ(nameowner, filename)) {
-            virHashRemoveEntry(nameConfigMap, entry->def->name, NULL);
+            virHashRemoveEntry(priv->nameConfigMap, entry->def->name, NULL);
         }
 
         /* Clear existing config entry which needs refresh */
@@ -441,7 +426,7 @@ xenXMConfigCacheAddFile(virConnectPtr conn, const char *filename)
     } else { /* Completely new entry */
         newborn = 1;
         if (VIR_ALLOC(entry) < 0) {
-            xenXMError (conn, VIR_ERR_NO_MEMORY, "%s", strerror(errno));
+            virReportOOMError(conn);
             return -1;
         }
         memcpy(entry->filename, filename, PATH_MAX);
@@ -451,7 +436,7 @@ xenXMConfigCacheAddFile(virConnectPtr conn, const char *filename)
     if (!(entry->def = xenXMConfigReadFile(conn, entry->filename))) {
         DEBUG("Failed to read %s", entry->filename);
         if (!newborn)
-            virHashRemoveEntry(configCache, filename, NULL);
+            virHashRemoveEntry(priv->configCache, filename, NULL);
         VIR_FREE(entry);
         return -1;
     }
@@ -459,7 +444,7 @@ xenXMConfigCacheAddFile(virConnectPtr conn, const char *filename)
     /* If its a completely new entry, it must be stuck into
         the cache (refresh'd entries are already registered) */
     if (newborn) {
-        if (virHashAddEntry(configCache, entry->filename, entry) < 0) {
+        if (virHashAddEntry(priv->configCache, entry->filename, entry) < 0) {
             virDomainDefFree(entry->def);
             VIR_FREE(entry);
             xenXMError (conn, VIR_ERR_INTERNAL_ERROR,
@@ -471,9 +456,9 @@ xenXMConfigCacheAddFile(virConnectPtr conn, const char *filename)
     /* See if we need to map this config file in as the primary owner
         * of the domain in question
         */
-    if (!virHashLookup(nameConfigMap, entry->def->name)) {
-        if (virHashAddEntry(nameConfigMap, entry->def->name, entry->filename) < 0) {
-            virHashRemoveEntry(configCache, filename, NULL);
+    if (!virHashLookup(priv->nameConfigMap, entry->def->name)) {
+        if (virHashAddEntry(priv->nameConfigMap, entry->def->name, entry->filename) < 0) {
+            virHashRemoveEntry(priv->configCache, filename, NULL);
             virDomainDefFree(entry->def);
             VIR_FREE(entry);
         }
@@ -484,30 +469,39 @@ xenXMConfigCacheAddFile(virConnectPtr conn, const char *filename)
 }
 
 /* This method is called by various methods to scan /etc/xen
-   (or whatever directory was set by  LIBVIRT_XM_CONFIG_DIR
-   environment variable) and process any domain configs. It
-   has rate-limited so never rescans more frequently than
-   once every X seconds */
+ * (or whatever directory was set by  LIBVIRT_XM_CONFIG_DIR
+ * environment variable) and process any domain configs. It
+ * has rate-limited so never rescans more frequently than
+ * once every X seconds
+ *
+ * Caller must hold the lock on 'conn->privateData' before
+ * calling this funtion
+ */
 int xenXMConfigCacheRefresh (virConnectPtr conn) {
+    xenUnifiedPrivatePtr priv = conn->privateData;
     DIR *dh;
     struct dirent *ent;
     time_t now = time(NULL);
     int ret = -1;
+    struct xenXMConfigReaperData args;
 
     if (now == ((time_t)-1)) {
-        xenXMError (conn, VIR_ERR_SYSTEM_ERROR, "%s", strerror(errno));
+        virReportSystemError(conn, errno,
+                             "%s", _("cannot get time of day"));
         return (-1);
     }
 
     /* Rate limit re-scans */
-    if ((now - lastRefresh) < XM_REFRESH_INTERVAL)
+    if ((now - priv->lastRefresh) < XM_REFRESH_INTERVAL)
         return (0);
 
-    lastRefresh = now;
+    priv->lastRefresh = now;
 
     /* Process the files in the config dir */
-    if (!(dh = opendir(configDir))) {
-        xenXMError (conn, VIR_ERR_SYSTEM_ERROR, "%s", strerror(errno));
+    if (!(dh = opendir(priv->configDir))) {
+        virReportSystemError(conn, errno,
+                             _("cannot read directory %s"),
+                             priv->configDir);
         return (-1);
     }
 
@@ -542,9 +536,9 @@ int xenXMConfigCacheRefresh (virConnectPtr conn) {
             continue;
 
         /* Build the full file path */
-        if ((strlen(configDir) + 1 + strlen(ent->d_name) + 1) > PATH_MAX)
+        if ((strlen(priv->configDir) + 1 + strlen(ent->d_name) + 1) > PATH_MAX)
             continue;
-        strcpy(path, configDir);
+        strcpy(path, priv->configDir);
         strcat(path, "/");
         strcat(path, ent->d_name);
 
@@ -565,7 +559,9 @@ int xenXMConfigCacheRefresh (virConnectPtr conn) {
        their refresh timestamp - the timestamp should match
        'now' if they were refreshed. If timestamp doesn't match
        then the config is no longer on disk */
-    virHashRemoveSet(configCache, xenXMConfigReaper, xenXMConfigFree, (const void*) &now);
+    args.now = now;
+    args.priv = priv;
+    virHashRemoveSet(priv->configCache, xenXMConfigReaper, xenXMConfigFree, &args);
     ret = 0;
 
     if (dh)
@@ -576,48 +572,47 @@ int xenXMConfigCacheRefresh (virConnectPtr conn) {
 
 
 /*
- * Open a 'connection' to the config file directory ;-)
- * We just create a hash table to store config files in.
- * We only support a single directory, so repeated calls
- * to open all end up using the same cache of files
+ * The XM driver keeps a cache of config files as virDomainDefPtr
+ * objects in the xenUnifiedPrivatePtr. Optionally inotify lets
+ * us watch for changes (see separate driver), otherwise we poll
+ * every few seconds
  */
-int
-xenXMOpen (virConnectPtr conn ATTRIBUTE_UNUSED,
+virDrvOpenStatus
+xenXMOpen (virConnectPtr conn,
            virConnectAuthPtr auth ATTRIBUTE_UNUSED,
            int flags ATTRIBUTE_UNUSED)
 {
-    if (configCache == NULL) {
-        configCache = virHashCreate(50);
-        if (!configCache)
-            return (-1);
-        nameConfigMap = virHashCreate(50);
-        if (!nameConfigMap) {
-            virHashFree(configCache, NULL);
-            configCache = NULL;
-            return (-1);
-        }
-        /* Force the cache to be reloaded next time that
-         * xenXMConfigCacheRefresh is called.
-         */
-        lastRefresh = 0;
+    xenUnifiedPrivatePtr priv = conn->privateData;
+
+    priv->configDir = XM_CONFIG_DIR;
+
+    priv->configCache = virHashCreate(50);
+    if (!priv->configCache)
+        return (-1);
+    priv->nameConfigMap = virHashCreate(50);
+    if (!priv->nameConfigMap) {
+        virHashFree(priv->configCache, NULL);
+        priv->configCache = NULL;
+        return (-1);
     }
-    nconnections++;
+    /* Force the cache to be reloaded next time that
+     * xenXMConfigCacheRefresh is called.
+     */
+    priv->lastRefresh = 0;
 
     return (0);
 }
 
 /*
- * Free the config files in the cache if this is the
- * last connection
+ * Free the cached config files associated with this
+ * connection
  */
-int xenXMClose(virConnectPtr conn ATTRIBUTE_UNUSED) {
-    nconnections--;
-    if (nconnections <= 0) {
-        virHashFree(nameConfigMap, NULL);
-        nameConfigMap = NULL;
-        virHashFree(configCache, xenXMConfigFree);
-        configCache = NULL;
-    }
+int xenXMClose(virConnectPtr conn) {
+    xenUnifiedPrivatePtr priv = conn->privateData;
+
+    virHashFree(priv->nameConfigMap, NULL);
+    virHashFree(priv->configCache, xenXMConfigFree);
+
     return (0);
 }
 
@@ -626,6 +621,7 @@ int xenXMClose(virConnectPtr conn ATTRIBUTE_UNUSED) {
  * VCPUs and memory.
  */
 int xenXMDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info) {
+    xenUnifiedPrivatePtr priv;
     const char *filename;
     xenXMConfCachePtr entry;
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
@@ -637,11 +633,14 @@ int xenXMDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info) {
     if (domain->id != -1)
         return (-1);
 
-    if (!(filename = virHashLookup(nameConfigMap, domain->name)))
-        return (-1);
+    priv = domain->conn->privateData;
+    xenUnifiedLock(priv);
 
-    if (!(entry = virHashLookup(configCache, filename)))
-        return (-1);
+    if (!(filename = virHashLookup(priv->nameConfigMap, domain->name)))
+        goto error;
+
+    if (!(entry = virHashLookup(priv->configCache, filename)))
+        goto error;
 
     memset(info, 0, sizeof(virDomainInfo));
     info->maxMem = entry->def->maxmem;
@@ -650,8 +649,12 @@ int xenXMDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info) {
     info->state = VIR_DOMAIN_SHUTOFF;
     info->cpuTime = 0;
 
+    xenUnifiedUnlock(priv);
     return (0);
 
+error:
+    xenUnifiedUnlock(priv);
+    return -1;
 }
 
 #define MAX_VFB 1024
@@ -1072,14 +1075,22 @@ xenXMDomainConfigParse(virConnectPtr conn, virConfPtr conf) {
                 net->mac[5] = rawmac[5];
             }
 
-            if (bridge[0] || STREQ(script, "vif-bridge"))
+            if (bridge[0] || STREQ(script, "vif-bridge") ||
+                STREQ(script, "vif-vnic")) {
                 net->type = VIR_DOMAIN_NET_TYPE_BRIDGE;
-            else
+            } else {
                 net->type = VIR_DOMAIN_NET_TYPE_ETHERNET;
+            }
 
             if (net->type == VIR_DOMAIN_NET_TYPE_BRIDGE) {
                 if (bridge[0] &&
                     !(net->data.bridge.brname = strdup(bridge)))
+                    goto no_memory;
+                if (script[0] &&
+                    !(net->data.bridge.script = strdup(script)))
+                    goto no_memory;
+                if (ip[0] &&
+                    !(net->data.bridge.ipaddr = strdup(ip)))
                     goto no_memory;
             } else {
                 if (script[0] &&
@@ -1289,7 +1300,7 @@ xenXMDomainConfigParse(virConnectPtr conn, virConfPtr conf) {
     return def;
 
 no_memory:
-    xenXMError(conn, VIR_ERR_NO_MEMORY, NULL);
+    virReportOOMError(conn);
     /* fallthrough */
   cleanup:
     virDomainGraphicsDefFree(graphics);
@@ -1305,8 +1316,10 @@ no_memory:
  * domain, suitable for later feeding for virDomainCreateXML
  */
 char *xenXMDomainDumpXML(virDomainPtr domain, int flags) {
+    xenUnifiedPrivatePtr priv;
     const char *filename;
     xenXMConfCachePtr entry;
+    char *ret = NULL;
 
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
         xenXMError((domain ? domain->conn : NULL), VIR_ERR_INVALID_ARG,
@@ -1316,13 +1329,20 @@ char *xenXMDomainDumpXML(virDomainPtr domain, int flags) {
     if (domain->id != -1)
         return (NULL);
 
-    if (!(filename = virHashLookup(nameConfigMap, domain->name)))
-        return (NULL);
+    priv = domain->conn->privateData;
+    xenUnifiedLock(priv);
 
-    if (!(entry = virHashLookup(configCache, filename)))
-        return (NULL);
+    if (!(filename = virHashLookup(priv->nameConfigMap, domain->name)))
+        goto cleanup;
 
-    return virDomainDefFormat(domain->conn, entry->def, flags);
+    if (!(entry = virHashLookup(priv->configCache, filename)))
+        goto cleanup;
+
+    ret = virDomainDefFormat(domain->conn, entry->def, flags);
+
+cleanup:
+    xenUnifiedUnlock(priv);
+    return ret;
 }
 
 
@@ -1330,8 +1350,10 @@ char *xenXMDomainDumpXML(virDomainPtr domain, int flags) {
  * Update amount of memory in the config file
  */
 int xenXMDomainSetMemory(virDomainPtr domain, unsigned long memory) {
+    xenUnifiedPrivatePtr priv;
     const char *filename;
     xenXMConfCachePtr entry;
+    int ret = -1;
 
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
         xenXMError((domain ? domain->conn : NULL), VIR_ERR_INVALID_ARG,
@@ -1345,11 +1367,14 @@ int xenXMDomainSetMemory(virDomainPtr domain, unsigned long memory) {
     if (memory < 1024 * MIN_XEN_GUEST_SIZE)
         return (-1);
 
-    if (!(filename = virHashLookup(nameConfigMap, domain->name)))
-        return (-1);
+    priv = domain->conn->privateData;
+    xenUnifiedLock(priv);
 
-    if (!(entry = virHashLookup(configCache, filename)))
-        return (-1);
+    if (!(filename = virHashLookup(priv->nameConfigMap, domain->name)))
+        goto cleanup;
+
+    if (!(entry = virHashLookup(priv->configCache, filename)))
+        goto cleanup;
 
     entry->def->memory = memory;
     if (entry->def->memory > entry->def->maxmem)
@@ -1359,17 +1384,22 @@ int xenXMDomainSetMemory(virDomainPtr domain, unsigned long memory) {
      * in-memory representation of the config file. I say not!
      */
     if (xenXMConfigSaveFile(domain->conn, entry->filename, entry->def) < 0)
-        return (-1);
+        goto cleanup;
+    ret = 0;
 
-    return (0);
+cleanup:
+    xenUnifiedUnlock(priv);
+    return ret;
 }
 
 /*
  * Update maximum memory limit in config
  */
 int xenXMDomainSetMaxMemory(virDomainPtr domain, unsigned long memory) {
+    xenUnifiedPrivatePtr priv;
     const char *filename;
     xenXMConfCachePtr entry;
+    int ret = -1;
 
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
         xenXMError((domain ? domain->conn : NULL), VIR_ERR_INVALID_ARG,
@@ -1381,11 +1411,14 @@ int xenXMDomainSetMaxMemory(virDomainPtr domain, unsigned long memory) {
     if (domain->id != -1)
         return (-1);
 
-    if (!(filename = virHashLookup(nameConfigMap, domain->name)))
-        return (-1);
+    priv = domain->conn->privateData;
+    xenUnifiedLock(priv);
 
-    if (!(entry = virHashLookup(configCache, filename)))
-        return (-1);
+    if (!(filename = virHashLookup(priv->nameConfigMap, domain->name)))
+        goto cleanup;
+
+    if (!(entry = virHashLookup(priv->configCache, filename)))
+        goto cleanup;
 
     entry->def->maxmem = memory;
     if (entry->def->memory > entry->def->maxmem)
@@ -1395,41 +1428,55 @@ int xenXMDomainSetMaxMemory(virDomainPtr domain, unsigned long memory) {
      * in-memory representation of the config file. I say not!
      */
     if (xenXMConfigSaveFile(domain->conn, entry->filename, entry->def) < 0)
-        return (-1);
+        goto cleanup;
+    ret = 0;
 
-    return (0);
+cleanup:
+    xenUnifiedUnlock(priv);
+    return ret;
 }
 
 /*
  * Get max memory limit from config
  */
 unsigned long xenXMDomainGetMaxMemory(virDomainPtr domain) {
+    xenUnifiedPrivatePtr priv;
     const char *filename;
     xenXMConfCachePtr entry;
+    unsigned long ret = 0;
 
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
         xenXMError((domain ? domain->conn : NULL), VIR_ERR_INVALID_ARG,
                    __FUNCTION__);
-        return (-1);
+        return (0);
     }
     if (domain->id != -1)
-        return (-1);
+        return (0);
 
-    if (!(filename = virHashLookup(nameConfigMap, domain->name)))
-        return (-1);
+    priv = domain->conn->privateData;
+    xenUnifiedLock(priv);
 
-    if (!(entry = virHashLookup(configCache, filename)))
-        return (-1);
+    if (!(filename = virHashLookup(priv->nameConfigMap, domain->name)))
+        goto cleanup;
 
-    return entry->def->maxmem;
+    if (!(entry = virHashLookup(priv->configCache, filename)))
+        goto cleanup;
+
+    ret = entry->def->maxmem;
+
+cleanup:
+    xenUnifiedUnlock(priv);
+    return ret;
 }
 
 /*
  * Set the VCPU count in config
  */
 int xenXMDomainSetVcpus(virDomainPtr domain, unsigned int vcpus) {
+    xenUnifiedPrivatePtr priv;
     const char *filename;
     xenXMConfCachePtr entry;
+    int ret = -1;
 
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
         xenXMError((domain ? domain->conn : NULL), VIR_ERR_INVALID_ARG,
@@ -1441,11 +1488,14 @@ int xenXMDomainSetVcpus(virDomainPtr domain, unsigned int vcpus) {
     if (domain->id != -1)
         return (-1);
 
-    if (!(filename = virHashLookup(nameConfigMap, domain->name)))
-        return (-1);
+    priv = domain->conn->privateData;
+    xenUnifiedLock(priv);
 
-    if (!(entry = virHashLookup(configCache, filename)))
-        return (-1);
+    if (!(filename = virHashLookup(priv->nameConfigMap, domain->name)))
+        goto cleanup;
+
+    if (!(entry = virHashLookup(priv->configCache, filename)))
+        goto cleanup;
 
     entry->def->vcpus = vcpus;
 
@@ -1453,9 +1503,12 @@ int xenXMDomainSetVcpus(virDomainPtr domain, unsigned int vcpus) {
      * in-memory representation of the config file. I say not!
      */
     if (xenXMConfigSaveFile(domain->conn, entry->filename, entry->def) < 0)
-        return (-1);
+        goto cleanup;
+    ret = 0;
 
-    return (0);
+cleanup:
+    xenUnifiedUnlock(priv);
+    return ret;
 }
 
 /**
@@ -1473,6 +1526,7 @@ int xenXMDomainPinVcpu(virDomainPtr domain,
                        unsigned int vcpu ATTRIBUTE_UNUSED,
                        unsigned char *cpumap, int maplen)
 {
+    xenUnifiedPrivatePtr priv;
     const char *filename;
     xenXMConfCachePtr entry;
     virBuffer mapbuf = VIR_BUFFER_INITIALIZER;
@@ -1499,14 +1553,17 @@ int xenXMDomainPinVcpu(virDomainPtr domain,
         return -1;
     }
 
-    if (!(filename = virHashLookup(nameConfigMap, domain->name))) {
+    priv = domain->conn->privateData;
+    xenUnifiedLock(priv);
+
+    if (!(filename = virHashLookup(priv->nameConfigMap, domain->name))) {
         xenXMError (domain->conn, VIR_ERR_INTERNAL_ERROR, "%s", _("virHashLookup"));
-        return -1;
+        goto cleanup;
     }
-    if (!(entry = virHashLookup(configCache, filename))) {
+    if (!(entry = virHashLookup(priv->configCache, filename))) {
         xenXMError (domain->conn, VIR_ERR_INTERNAL_ERROR,
                     "%s", _("can't retrieve config file for domain"));
-        return -1;
+        goto cleanup;
     }
 
     /* from bit map, build character string of mapped CPU numbers */
@@ -1523,14 +1580,14 @@ int xenXMDomainPinVcpu(virDomainPtr domain,
             }
 
     if (virBufferError(&mapbuf)) {
-        xenXMError(domain->conn, VIR_ERR_NO_MEMORY, "%s", _("allocate buffer"));
-        return -1;
+        virReportOOMError(domain->conn);
+        goto cleanup;
     }
 
     mapstr = virBufferContentAndReset(&mapbuf);
 
     if (VIR_ALLOC_N(cpuset, maxcpu) < 0) {
-        xenXMError(domain->conn, VIR_ERR_NO_MEMORY, "%s", _("allocate buffer"));
+        virReportOOMError(domain->conn);
         goto cleanup;
     }
     if (virDomainCpuSetParse(domain->conn,
@@ -1551,6 +1608,7 @@ int xenXMDomainPinVcpu(virDomainPtr domain,
  cleanup:
     VIR_FREE(mapstr);
     VIR_FREE(cpuset);
+    xenUnifiedUnlock(priv);
     return (ret);
 }
 
@@ -1558,9 +1616,10 @@ int xenXMDomainPinVcpu(virDomainPtr domain,
  * Find an inactive domain based on its name
  */
 virDomainPtr xenXMDomainLookupByName(virConnectPtr conn, const char *domname) {
+    xenUnifiedPrivatePtr priv;
     const char *filename;
     xenXMConfCachePtr entry;
-    virDomainPtr ret;
+    virDomainPtr ret = NULL;
 
     if (!VIR_IS_CONNECT(conn)) {
         xenXMError(conn, VIR_ERR_INVALID_CONN, __FUNCTION__);
@@ -1571,26 +1630,29 @@ virDomainPtr xenXMDomainLookupByName(virConnectPtr conn, const char *domname) {
         return (NULL);
     }
 
+    priv = conn->privateData;
+    xenUnifiedLock(priv);
+
 #ifndef WITH_XEN_INOTIFY
     if (xenXMConfigCacheRefresh (conn) < 0)
-        return (NULL);
+        goto cleanup;
 #endif
 
-    if (!(filename = virHashLookup(nameConfigMap, domname)))
-        return (NULL);
+    if (!(filename = virHashLookup(priv->nameConfigMap, domname)))
+        goto cleanup;
 
-    if (!(entry = virHashLookup(configCache, filename))) {
-        return (NULL);
-    }
+    if (!(entry = virHashLookup(priv->configCache, filename)))
+        goto cleanup;
 
-    if (!(ret = virGetDomain(conn, domname, entry->def->uuid))) {
-        return (NULL);
-    }
+    if (!(ret = virGetDomain(conn, domname, entry->def->uuid)))
+        goto cleanup;
 
     /* Ensure its marked inactive, because may be cached
        handle to a previously active domain */
     ret->id = -1;
 
+cleanup:
+    xenUnifiedUnlock(priv);
     return (ret);
 }
 
@@ -1613,8 +1675,9 @@ static int xenXMDomainSearchForUUID(const void *payload, const char *name ATTRIB
  */
 virDomainPtr xenXMDomainLookupByUUID(virConnectPtr conn,
                                      const unsigned char *uuid) {
+    xenUnifiedPrivatePtr priv;
     xenXMConfCachePtr entry;
-    virDomainPtr ret;
+    virDomainPtr ret = NULL;
 
     if (!VIR_IS_CONNECT(conn)) {
         xenXMError(conn, VIR_ERR_INVALID_CONN, __FUNCTION__);
@@ -1625,23 +1688,26 @@ virDomainPtr xenXMDomainLookupByUUID(virConnectPtr conn,
         return (NULL);
     }
 
+    priv = conn->privateData;
+    xenUnifiedLock(priv);
+
 #ifndef WITH_XEN_INOTIFY
     if (xenXMConfigCacheRefresh (conn) < 0)
-        return (NULL);
+        goto cleanup;
 #endif
 
-    if (!(entry = virHashSearch(configCache, xenXMDomainSearchForUUID, (const void *)uuid))) {
-        return (NULL);
-    }
+    if (!(entry = virHashSearch(priv->configCache, xenXMDomainSearchForUUID, (const void *)uuid)))
+        goto cleanup;
 
-    if (!(ret = virGetDomain(conn, entry->def->name, uuid))) {
-        return (NULL);
-    }
+    if (!(ret = virGetDomain(conn, entry->def->name, uuid)))
+        goto cleanup;
 
     /* Ensure its marked inactive, because may be cached
        handle to a previously active domain */
     ret->id = -1;
 
+cleanup:
+    xenUnifiedUnlock(priv);
     return (ret);
 }
 
@@ -1651,7 +1717,7 @@ virDomainPtr xenXMDomainLookupByUUID(virConnectPtr conn,
  */
 int xenXMDomainCreate(virDomainPtr domain) {
     char *sexpr;
-    int ret;
+    int ret = -1;
     xenUnifiedPrivatePtr priv;
     const char *filename;
     xenXMConfCachePtr entry;
@@ -1661,43 +1727,45 @@ int xenXMDomainCreate(virDomainPtr domain) {
     if (domain->id != -1)
         return (-1);
 
-    if (!(filename = virHashLookup(nameConfigMap, domain->name)))
-        return (-1);
+    xenUnifiedLock(priv);
 
-    if (!(entry = virHashLookup(configCache, filename)))
-        return (-1);
+    if (!(filename = virHashLookup(priv->nameConfigMap, domain->name)))
+        goto error;
+
+    if (!(entry = virHashLookup(priv->configCache, filename)))
+        goto error;
 
     if (!(sexpr = xenDaemonFormatSxpr(domain->conn, entry->def, priv->xendConfigVersion))) {
         xenXMError(domain->conn, VIR_ERR_XML_ERROR,
                    "%s", _("failed to build sexpr"));
-        return (-1);
+        goto error;
     }
 
     ret = xenDaemonDomainCreateXML(domain->conn, sexpr);
     VIR_FREE(sexpr);
-    if (ret != 0) {
-        return (-1);
-    }
+    if (ret != 0)
+        goto error;
 
     if ((ret = xenDaemonDomainLookupByName_ids(domain->conn, domain->name,
-                                               entry->def->uuid)) < 0) {
-        return (-1);
-    }
+                                               entry->def->uuid)) < 0)
+        goto error;
     domain->id = ret;
 
     if ((ret = xend_wait_for_devices(domain->conn, domain->name)) < 0)
-        goto cleanup;
+        goto error;
 
     if ((ret = xenDaemonDomainResume(domain)) < 0)
-        goto cleanup;
+        goto error;
 
+    xenUnifiedUnlock(priv);
     return (0);
 
- cleanup:
+ error:
     if (domain->id != -1) {
         xenDaemonDomainDestroy(domain);
         domain->id = -1;
     }
+    xenUnifiedUnlock(priv);
     return (-1);
 }
 
@@ -1773,12 +1841,12 @@ static int xenXMDomainConfigFormatDisk(virConnectPtr conn,
         virBufferAddLit(&buf, ",w");
 
     if (virBufferError(&buf)) {
-        xenXMError(conn, VIR_ERR_NO_MEMORY, NULL);
+        virReportOOMError(conn);
         return -1;
     }
 
     if (VIR_ALLOC(val) < 0) {
-        xenXMError(conn, VIR_ERR_NO_MEMORY, NULL);
+        virReportOOMError(conn);
         goto cleanup;
     }
 
@@ -1808,6 +1876,7 @@ static int xenXMDomainConfigFormatNet(virConnectPtr conn,
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     virConfValuePtr val, tmp;
     char *str;
+    xenUnifiedPrivatePtr priv = (xenUnifiedPrivatePtr) conn->privateData;
 
     virBufferVSprintf(&buf, "mac=%02x:%02x:%02x:%02x:%02x:%02x",
                       net->mac[0], net->mac[1],
@@ -1817,6 +1886,8 @@ static int xenXMDomainConfigFormatNet(virConnectPtr conn,
     switch (net->type) {
     case VIR_DOMAIN_NET_TYPE_BRIDGE:
         virBufferVSprintf(&buf, ",bridge=%s", net->data.bridge.brname);
+        if (net->data.bridge.ipaddr)
+            virBufferVSprintf(&buf, ",ip=%s", net->data.bridge.ipaddr);
         break;
 
     case VIR_DOMAIN_NET_TYPE_ETHERNET:
@@ -1836,7 +1907,7 @@ static int xenXMDomainConfigFormatNet(virConnectPtr conn,
         goto cleanup;
     }
 
-    if (hvm)
+    if (hvm && priv->xendConfigVersion <= XEND_CONFIG_MAX_VERS_NET_TYPE_IOEMU)
         virBufferAddLit(&buf, ",type=ioemu");
 
     if (net->model)
@@ -1844,7 +1915,7 @@ static int xenXMDomainConfigFormatNet(virConnectPtr conn,
                           net->model);
 
     if (VIR_ALLOC(val) < 0) {
-        xenXMError(conn, VIR_ERR_NO_MEMORY, NULL);
+        virReportOOMError(conn);
         goto cleanup;
     }
 
@@ -2048,7 +2119,7 @@ virConfPtr xenXMDomainConfigFormat(virConnectPtr conn,
     }
 
     if (def->graphics) {
-        if (hvm || priv->xendConfigVersion < 3) {
+        if (priv->xendConfigVersion < (hvm ? 4 : XEND_CONFIG_MIN_VERS_PVFB_NEWCONF)) {
             if (def->graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_SDL) {
                 if (xenXMConfigSetInt(conf, "sdl", 1) < 0)
                     goto no_memory;
@@ -2245,7 +2316,7 @@ virConfPtr xenXMDomainConfigFormat(virConnectPtr conn,
     return conf;
 
 no_memory:
-    xenXMError(conn, VIR_ERR_NO_MEMORY, NULL);
+    virReportOOMError(conn);
 
 cleanup:
     virConfFreeValue(diskVal);
@@ -2280,24 +2351,31 @@ virDomainPtr xenXMDomainDefineXML(virConnectPtr conn, const char *xml) {
     if (conn->flags & VIR_CONNECT_RO)
         return (NULL);
 
+    xenUnifiedLock(priv);
+
 #ifndef WITH_XEN_INOTIFY
-    if (xenXMConfigCacheRefresh (conn) < 0)
+    if (xenXMConfigCacheRefresh (conn) < 0) {
+        xenUnifiedUnlock(priv);
         return (NULL);
+    }
 #endif
 
-    if (!(def = virDomainDefParseString(conn, priv->caps, xml)))
+    if (!(def = virDomainDefParseString(conn, priv->caps, xml,
+                                        VIR_DOMAIN_XML_INACTIVE))) {
+        xenUnifiedUnlock(priv);
         return (NULL);
+    }
 
-    if (virHashLookup(nameConfigMap, def->name)) {
+    if (virHashLookup(priv->nameConfigMap, def->name)) {
         /* domain exists, we will overwrite it */
 
-        if (!(oldfilename = (char *)virHashLookup(nameConfigMap, def->name))) {
+        if (!(oldfilename = (char *)virHashLookup(priv->nameConfigMap, def->name))) {
             xenXMError(conn, VIR_ERR_INTERNAL_ERROR,
                        "%s", _("can't retrieve config filename for domain to overwrite"));
             goto error;
         }
 
-        if (!(entry = virHashLookup(configCache, oldfilename))) {
+        if (!(entry = virHashLookup(priv->configCache, oldfilename))) {
             xenXMError(conn, VIR_ERR_INTERNAL_ERROR,
                        "%s", _("can't retrieve config entry for domain to overwrite"));
             goto error;
@@ -2308,14 +2386,14 @@ virDomainPtr xenXMDomainDefineXML(virConnectPtr conn, const char *xml) {
             goto error;
 
         /* Remove the name -> filename mapping */
-        if (virHashRemoveEntry(nameConfigMap, def->name, NULL) < 0) {
+        if (virHashRemoveEntry(priv->nameConfigMap, def->name, NULL) < 0) {
             xenXMError(conn, VIR_ERR_INTERNAL_ERROR,
                        "%s", _("failed to remove old domain from config map"));
             goto error;
         }
 
         /* Remove the config record itself */
-        if (virHashRemoveEntry(configCache, oldfilename, xenXMConfigFree) < 0) {
+        if (virHashRemoveEntry(priv->configCache, oldfilename, xenXMConfigFree) < 0) {
             xenXMError(conn, VIR_ERR_INTERNAL_ERROR,
                        "%s", _("failed to remove old domain from config map"));
             goto error;
@@ -2324,13 +2402,13 @@ virDomainPtr xenXMDomainDefineXML(virConnectPtr conn, const char *xml) {
         entry = NULL;
     }
 
-    if ((strlen(configDir) + 1 + strlen(def->name) + 1) > PATH_MAX) {
+    if ((strlen(priv->configDir) + 1 + strlen(def->name) + 1) > PATH_MAX) {
         xenXMError(conn, VIR_ERR_INTERNAL_ERROR,
                    "%s", _("config file name is too long"));
         goto error;
     }
 
-    strcpy(filename, configDir);
+    strcpy(filename, priv->configDir);
     strcat(filename, "/");
     strcat(filename, def->name);
 
@@ -2338,7 +2416,7 @@ virDomainPtr xenXMDomainDefineXML(virConnectPtr conn, const char *xml) {
         goto error;
 
     if (VIR_ALLOC(entry) < 0) {
-        xenXMError(conn, VIR_ERR_NO_MEMORY, "%s", _("config"));
+        virReportOOMError(conn);
         goto error;
     }
 
@@ -2351,29 +2429,29 @@ virDomainPtr xenXMDomainDefineXML(virConnectPtr conn, const char *xml) {
     memmove(entry->filename, filename, PATH_MAX);
     entry->def = def;
 
-    if (virHashAddEntry(configCache, filename, entry) < 0) {
+    if (virHashAddEntry(priv->configCache, filename, entry) < 0) {
         xenXMError(conn, VIR_ERR_INTERNAL_ERROR,
                    "%s", _("unable to store config file handle"));
         goto error;
     }
 
-    if (virHashAddEntry(nameConfigMap, def->name, entry->filename) < 0) {
-        virHashRemoveEntry(configCache, filename, NULL);
+    if (virHashAddEntry(priv->nameConfigMap, def->name, entry->filename) < 0) {
+        virHashRemoveEntry(priv->configCache, filename, NULL);
         xenXMError(conn, VIR_ERR_INTERNAL_ERROR,
                    "%s", _("unable to store config file handle"));
         goto error;
     }
 
-    if (!(ret = virGetDomain(conn, def->name, def->uuid)))
-        return NULL;
+    if ((ret = virGetDomain(conn, def->name, def->uuid)))
+        ret->id = -1;
 
-    ret->id = -1;
-
+    xenUnifiedUnlock(priv);
     return (ret);
 
  error:
     VIR_FREE(entry);
     virDomainDefFree(def);
+    xenUnifiedUnlock(priv);
     return (NULL);
 }
 
@@ -2381,8 +2459,11 @@ virDomainPtr xenXMDomainDefineXML(virConnectPtr conn, const char *xml) {
  * Delete a domain from disk
  */
 int xenXMDomainUndefine(virDomainPtr domain) {
+    xenUnifiedPrivatePtr priv;
     const char *filename;
     xenXMConfCachePtr entry;
+    int ret = -1;
+
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
         xenXMError((domain ? domain->conn : NULL), VIR_ERR_INVALID_ARG,
                    __FUNCTION__);
@@ -2394,24 +2475,31 @@ int xenXMDomainUndefine(virDomainPtr domain) {
     if (domain->conn->flags & VIR_CONNECT_RO)
         return (-1);
 
-    if (!(filename = virHashLookup(nameConfigMap, domain->name)))
-        return (-1);
+    priv = domain->conn->privateData;
+    xenUnifiedLock(priv);
 
-    if (!(entry = virHashLookup(configCache, filename)))
-        return (-1);
+    if (!(filename = virHashLookup(priv->nameConfigMap, domain->name)))
+        goto cleanup;
+
+    if (!(entry = virHashLookup(priv->configCache, filename)))
+        goto cleanup;
 
     if (unlink(entry->filename) < 0)
-        return (-1);
+        goto cleanup;
 
     /* Remove the name -> filename mapping */
-    if (virHashRemoveEntry(nameConfigMap, domain->name, NULL) < 0)
-        return(-1);
+    if (virHashRemoveEntry(priv->nameConfigMap, domain->name, NULL) < 0)
+        goto cleanup;
 
     /* Remove the config record itself */
-    if (virHashRemoveEntry(configCache, entry->filename, xenXMConfigFree) < 0)
-        return (-1);
+    if (virHashRemoveEntry(priv->configCache, entry->filename, xenXMConfigFree) < 0)
+        goto cleanup;
 
-    return (0);
+    ret = 0;
+
+cleanup:
+    xenUnifiedUnlock(priv);
+    return ret;
 }
 
 struct xenXMListIteratorContext {
@@ -2443,28 +2531,39 @@ static void xenXMListIterator(const void *payload ATTRIBUTE_UNUSED, const char *
  * are currently running
  */
 int xenXMListDefinedDomains(virConnectPtr conn, char **const names, int maxnames) {
+    xenUnifiedPrivatePtr priv;
     struct xenXMListIteratorContext ctx;
+    int ret = -1;
 
     if (!VIR_IS_CONNECT(conn)) {
         xenXMError(conn, VIR_ERR_INVALID_CONN, __FUNCTION__);
         return (-1);
     }
 
+    priv = conn->privateData;
+    xenUnifiedLock(priv);
+
 #ifndef WITH_XEN_INOTIFY
     if (xenXMConfigCacheRefresh (conn) < 0)
-        return (-1);
+        goto cleanup;
 #endif
 
-    if (maxnames > virHashSize(configCache))
-        maxnames = virHashSize(configCache);
+    if (maxnames > virHashSize(priv->configCache))
+        maxnames = virHashSize(priv->configCache);
 
     ctx.conn = conn;
     ctx.count = 0;
     ctx.max = maxnames;
     ctx.names = names;
 
-    virHashForEach(nameConfigMap, xenXMListIterator, &ctx);
-    return (ctx.count);
+    virHashForEach(priv->nameConfigMap, xenXMListIterator, &ctx);
+    ret = ctx.count;
+
+#ifndef WITH_XEN_INOTIFY
+cleanup:
+#endif
+    xenUnifiedUnlock(priv);
+    return ret;
 }
 
 /*
@@ -2472,17 +2571,29 @@ int xenXMListDefinedDomains(virConnectPtr conn, char **const names, int maxnames
  * based on number running
  */
 int xenXMNumOfDefinedDomains(virConnectPtr conn) {
+    xenUnifiedPrivatePtr priv;
+    int ret = -1;
+
     if (!VIR_IS_CONNECT(conn)) {
         xenXMError(conn, VIR_ERR_INVALID_CONN, __FUNCTION__);
         return (-1);
     }
 
+    priv = conn->privateData;
+    xenUnifiedLock(priv);
+
 #ifndef WITH_XEN_INOTIFY
     if (xenXMConfigCacheRefresh (conn) < 0)
-        return (-1);
+        goto cleanup;
 #endif
 
-    return virHashSize(nameConfigMap);
+    ret = virHashSize(priv->nameConfigMap);
+
+#ifndef WITH_XEN_INOTIFY
+cleanup:
+#endif
+    xenUnifiedUnlock(priv);
+    return ret;
 }
 
 
@@ -2511,30 +2622,31 @@ xenXMDomainAttachDevice(virDomainPtr domain, const char *xml) {
         return -1;
     }
 
-    priv = (xenUnifiedPrivatePtr) domain->conn->privateData;
-
     if (domain->conn->flags & VIR_CONNECT_RO)
         return -1;
     if (domain->id != -1)
         return -1;
 
-    if (!(filename = virHashLookup(nameConfigMap, domain->name)))
-        return -1;
-    if (!(entry = virHashLookup(configCache, filename)))
-        return -1;
+    priv = (xenUnifiedPrivatePtr) domain->conn->privateData;
+    xenUnifiedLock(priv);
+
+    if (!(filename = virHashLookup(priv->nameConfigMap, domain->name)))
+        goto cleanup;
+    if (!(entry = virHashLookup(priv->configCache, filename)))
+        goto cleanup;
     def = entry->def;
 
     if (!(dev = virDomainDeviceDefParse(domain->conn,
                                         priv->caps,
                                         entry->def,
-                                        xml)))
-        return -1;
+                                        xml, VIR_DOMAIN_XML_INACTIVE)))
+        goto cleanup;
 
     switch (dev->type) {
     case VIR_DOMAIN_DEVICE_DISK:
     {
         if (VIR_REALLOC_N(def->disks, def->ndisks+1) < 0) {
-            xenXMError(domain->conn, VIR_ERR_NO_MEMORY, NULL);
+            virReportOOMError(domain->conn);
             goto cleanup;
         }
         def->disks[def->ndisks++] = dev->data.disk;
@@ -2547,7 +2659,7 @@ xenXMDomainAttachDevice(virDomainPtr domain, const char *xml) {
     case VIR_DOMAIN_DEVICE_NET:
     {
         if (VIR_REALLOC_N(def->nets, def->nnets+1) < 0) {
-            xenXMError(domain->conn, VIR_ERR_NO_MEMORY, NULL);
+            virReportOOMError(domain->conn);
             goto cleanup;
         }
         def->nets[def->nnets++] = dev->data.net;
@@ -2571,7 +2683,7 @@ xenXMDomainAttachDevice(virDomainPtr domain, const char *xml) {
 
  cleanup:
     virDomainDeviceDefFree(dev);
-
+    xenUnifiedUnlock(priv);
     return ret;
 }
 
@@ -2601,23 +2713,26 @@ xenXMDomainDetachDevice(virDomainPtr domain, const char *xml) {
         return -1;
     }
 
-    priv = (xenUnifiedPrivatePtr) domain->conn->privateData;
 
     if (domain->conn->flags & VIR_CONNECT_RO)
         return -1;
     if (domain->id != -1)
         return -1;
-    if (!(filename = virHashLookup(nameConfigMap, domain->name)))
-        return -1;
-    if (!(entry = virHashLookup(configCache, filename)))
-        return -1;
+
+    priv = (xenUnifiedPrivatePtr) domain->conn->privateData;
+    xenUnifiedLock(priv);
+
+    if (!(filename = virHashLookup(priv->nameConfigMap, domain->name)))
+        goto cleanup;
+    if (!(entry = virHashLookup(priv->configCache, filename)))
+        goto cleanup;
     def = entry->def;
 
     if (!(dev = virDomainDeviceDefParse(domain->conn,
                                         priv->caps,
                                         entry->def,
-                                        xml)))
-        return -1;
+                                        xml, VIR_DOMAIN_XML_INACTIVE)))
+        goto cleanup;
 
     switch (dev->type) {
     case VIR_DOMAIN_DEVICE_DISK:
@@ -2669,6 +2784,7 @@ xenXMDomainDetachDevice(virDomainPtr domain, const char *xml) {
 
  cleanup:
     virDomainDeviceDefFree(dev);
+    xenUnifiedUnlock(priv);
     return (ret);
 }
 
@@ -2687,16 +2803,14 @@ xenXMDomainBlockPeek (virDomainPtr dom,
 static char *xenXMAutostartLinkName(virDomainPtr dom)
 {
     char *ret;
-    if (asprintf(&ret, "/etc/xen/auto/%s", dom->name) < 0)
-        return NULL;
+    virAsprintf(&ret, "/etc/xen/auto/%s", dom->name);
     return ret;
 }
 
 static char *xenXMDomainConfigName(virDomainPtr dom)
 {
     char *ret;
-    if (asprintf(&ret, "/etc/xen/%s", dom->name) < 0)
-        return NULL;
+    virAsprintf(&ret, "/etc/xen/%s", dom->name);
     return ret;
 }
 
@@ -2707,15 +2821,15 @@ int xenXMDomainGetAutostart(virDomainPtr dom, int *autostart)
     int ret = -1;
 
     if (!linkname || !config) {
-        xenXMError(dom->conn, VIR_ERR_NO_MEMORY, NULL);
+        virReportOOMError(dom->conn);
         goto cleanup;
     }
 
     *autostart = virFileLinkPointsTo(linkname, config);
     if (*autostart < 0) {
-        xenXMError(dom->conn, VIR_ERR_INTERNAL_ERROR,
-                   _("failed to check autostart link %s: %s"),
-                   linkname, strerror(errno));
+        virReportSystemError(dom->conn, errno,
+                             _("cannot check link %s points to config %s"),
+                             linkname, config);
         goto cleanup;
     }
 
@@ -2735,24 +2849,24 @@ int xenXMDomainSetAutostart(virDomainPtr dom, int autostart)
     int ret = -1;
 
     if (!linkname || !config) {
-        xenXMError(dom->conn, VIR_ERR_NO_MEMORY, NULL);
+        virReportOOMError(dom->conn);
         goto cleanup;
     }
 
     if (autostart) {
         if (symlink(config, linkname) < 0 &&
             errno != EEXIST) {
-            xenXMError(dom->conn, VIR_ERR_INTERNAL_ERROR,
-                       _("failed to create link %s: %s"),
-                       linkname, strerror(errno));
+            virReportSystemError(dom->conn, errno,
+                                 _("failed to create link %s to %s"),
+                                 config, linkname);
             goto cleanup;
         }
     } else {
         if (unlink(linkname)  < 0 &&
             errno != ENOENT) {
-            xenXMError(dom->conn, VIR_ERR_INTERNAL_ERROR,
-                       _("failed to remove link %s: %s"),
-                       linkname, strerror(errno));
+            virReportSystemError(dom->conn, errno,
+                                 _("failed to remove link %s"),
+                                 linkname);
             goto cleanup;
         }
     }

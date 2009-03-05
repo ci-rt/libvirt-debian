@@ -20,6 +20,7 @@
 #include "xen_inotify.h"
 #endif
 #include "domain_event.h"
+#include "hash.h"
 
 #ifndef HAVE_WINSOCK2_H
 #include <sys/un.h>
@@ -130,22 +131,22 @@ typedef xenUnifiedDomainInfoList *xenUnifiedDomainInfoListPtr;
  * low-level drivers access parts of this structure.
  */
 struct _xenUnifiedPrivate {
+    virMutex lock;
+
+    /* These initial vars are initialized in Open method
+     * and readonly thereafter, so can be used without
+     * holding the lock
+     */
     virCapsPtr caps;
     int handle;			/* Xen hypervisor handle */
 
     int xendConfigVersion;      /* XenD config version */
 
-    /* XXX This code is not IPv6 aware. */
     /* connection to xend */
-    int type;                   /* PF_UNIX or PF_INET */
-    int len;                    /* length of addr */
-    struct sockaddr *addr;      /* type of address used */
-    struct sockaddr_un addr_un; /* the unix address */
-    struct sockaddr_in addr_in; /* the inet address */
-
-    struct xs_handle *xshandle; /* handle to talk to the xenstore */
-
-    int proxy;                  /* fd of proxy. */
+    struct sockaddr_storage addr;
+    socklen_t addrlen;
+    int addrfamily;
+    int addrprotocol;
 
     /* Keep track of the drivers which opened.  We keep a yes/no flag
      * here for each driver, corresponding to the array drivers in
@@ -153,25 +154,55 @@ struct _xenUnifiedPrivate {
      */
     int opened[XEN_UNIFIED_NR_DRIVERS];
 
+
+    /*
+     * Everything from this point onwards must be protected
+     * by the lock when used
+     */
+
+    struct xs_handle *xshandle; /* handle to talk to the xenstore */
+
+    int proxy;                  /* fd of proxy. */
+
+
     /* A list of xenstore watches */
     xenStoreWatchListPtr xsWatchList;
     int xsWatch;
+    /* A list of active domain name/uuids */
+    xenUnifiedDomainInfoListPtr activeDomainList;
+
+    /* NUMA topology info cache */
+    int nbNodeCells;
+    int nbNodeCpus;
 
     /* An list of callbacks */
     virDomainEventCallbackListPtr domainEventCallbacks;
+    int domainEventDispatching;
+
+    /* Location of config files, either /etc
+     * or /var/lib/xen */
+    const char *configDir;
 
 #if WITH_XEN_INOTIFY
     /* The inotify fd */
     int inotifyFD;
     int inotifyWatch;
+
+    int  useXenConfigCache ;
+    xenUnifiedDomainInfoListPtr configInfoList;
 #endif
+
+    /* For the 'xm' driver */
+    /* Primary config file name -> virDomainDef map */
+    virHashTablePtr configCache;
+    /* Domain name to config file name */
+    virHashTablePtr nameConfigMap;
+    /* So we don't refresh too often */
+    time_t lastRefresh;
 };
 
 typedef struct _xenUnifiedPrivate *xenUnifiedPrivatePtr;
 
-
-int xenNbCells(virConnectPtr conn);
-int xenNbCpus(virConnectPtr conn);
 char *xenDomainUsedCpus(virDomainPtr dom);
 
 void xenUnifiedDomainInfoListFree(xenUnifiedDomainInfoListPtr info);
@@ -182,9 +213,15 @@ int  xenUnifiedRemoveDomainInfo(xenUnifiedDomainInfoListPtr info,
                                 int id, char *name,
                                 unsigned char *uuid);
 void xenUnifiedDomainEventDispatch (xenUnifiedPrivatePtr priv,
-                                    virDomainPtr dom,
-                                    int event,
-                                    int detail);
+                                    virDomainEventPtr event);
 unsigned long xenUnifiedVersion(void);
+
+#ifndef PROXY
+void xenUnifiedLock(xenUnifiedPrivatePtr priv);
+void xenUnifiedUnlock(xenUnifiedPrivatePtr priv);
+#else
+#define xenUnifiedLock(p) do {} while(0)
+#define xenUnifiedUnlock(p) do {} while(0)
+#endif
 
 #endif /* __VIR_XEN_UNIFIED_H__ */
