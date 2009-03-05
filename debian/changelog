@@ -1,3 +1,17 @@
+libvirt (0.6.1-1) unstable; urgency=low
+
+  * [3be7341] Imported Upstream version 0.6.1
+  * [38fde15] rediff Debian specific patches
+  * [9b59a19] drop patches applied upstream:
+        * 0004-Don-t-hardcode-ssh-port.patch
+        * 0005-minimal-workaround-for-qemu-startup-race.patch
+  * [95d4b7f] drop patches backported from upstream
+        * 0009-libvirt_proxy-Fix-use-of-uninitalized-memory.patch
+  * [8171d83] build-dep on module-init-tools so configure can figure out
+    the path to modprobe
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 05 Mar 2009 13:58:41 +0100
+
 libvirt (0.6.0-1) experimental; urgency=low
 
   * [30be86d] Imported Upstream version 0.6.0
