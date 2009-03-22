@@ -1,3 +1,9 @@
+libvirt (0.6.1-1~bpo50+1) lenny-backports; urgency=low
+
+  * Rebuild for lenny-backports.
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 22 Mar 2009 20:08:55 +0100
+
 libvirt (0.6.1-1) unstable; urgency=low
 
   * [3be7341] Imported Upstream version 0.6.1
