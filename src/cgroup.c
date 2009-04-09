@@ -38,6 +38,7 @@ struct virCgroup {
 const char *supported_controllers[] = {
     "memory",
     "devices",
+    "cpuacct",
     NULL
 };
 
@@ -56,7 +57,7 @@ void virCgroupFree(virCgroupPtr *group)
 
 static virCgroupPtr virCgroupGetMount(const char *controller)
 {
-    FILE *mounts;
+    FILE *mounts = NULL;
     struct mntent entry;
     char buf[CGROUP_MAX_VAL];
     virCgroupPtr root = NULL;
@@ -89,6 +90,8 @@ static virCgroupPtr virCgroupGetMount(const char *controller)
 
     return root;
 err:
+    if (mounts != NULL)
+        fclose(mounts);
     virCgroupFree(&root);
 
     return NULL;
@@ -796,4 +799,9 @@ int virCgroupSetCpuShares(virCgroupPtr group, unsigned long shares)
 int virCgroupGetCpuShares(virCgroupPtr group, unsigned long *shares)
 {
     return virCgroupGetValueU64(group, "cpu.shares", (uint64_t *)shares);
+}
+
+int virCgroupGetCpuacctUsage(virCgroupPtr group, unsigned long long *usage)
+{
+    return virCgroupGetValueU64(group, "cpuacct.usage", (uint64_t *)usage);
 }

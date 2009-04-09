@@ -1172,8 +1172,6 @@ cleanup:
     return ret;
 }
 
-static char *testDomainDumpXML(virDomainPtr domain, int flags);
-
 #define TEST_SAVE_MAGIC "TestGuestMagic"
 
 static int testDomainSave(virDomainPtr domain,
@@ -1196,7 +1194,10 @@ static int testDomainSave(virDomainPtr domain,
         goto cleanup;
     }
 
-    xml = testDomainDumpXML(domain, 0);
+    xml = virDomainDefFormat(domain->conn,
+                             privdom->def,
+                             VIR_DOMAIN_XML_SECURE);
+
     if (xml == NULL) {
         virReportSystemError(domain->conn, errno,
                              _("saving domain '%s' failed to allocate space for metadata"),
@@ -1336,7 +1337,7 @@ static int testDomainRestore(virConnectPtr conn,
     event = virDomainEventNewFromObj(dom,
                                      VIR_DOMAIN_EVENT_STARTED,
                                      VIR_DOMAIN_EVENT_STARTED_RESTORED);
-    ret = dom->def->id;
+    ret = 0;
 
 cleanup:
     virDomainDefFree(def);
@@ -3473,8 +3474,7 @@ static virDriver testDriver = {
     NULL, /* supports_feature */
     NULL, /* type */
     testGetVersion, /* version */
-    testGetHostname, /* hostname */
-    NULL, /* URI */
+    testGetHostname, /* getHostname */
     testGetMaxVCPUs, /* getMaxVcpus */
     testNodeGetInfo, /* nodeGetInfo */
     testGetCapabilities, /* getCapabilities */
@@ -3529,7 +3529,7 @@ static virDriver testDriver = {
     testDomainEventDeregister, /* domainEventDeregister */
     NULL, /* domainMigratePrepare2 */
     NULL, /* domainMigrateFinish2 */
-    NULL, /* nodeDeviceAttach */
+    NULL, /* nodeDeviceDettach */
     NULL, /* nodeDeviceReAttach */
     NULL, /* nodeDeviceReset */
 };

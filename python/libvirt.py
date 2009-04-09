@@ -962,6 +962,7 @@ class virConnect:
           Hypervisor are needed especially if there is running domain
            which need further monitoring by the application. """
         ret = libvirtmod.virConnectClose(self._o)
+        self._o = None
         if ret == -1: raise libvirtError ('virConnectClose() failed', conn=self)
         return ret
 
@@ -972,24 +973,6 @@ class virConnect:
         ret = libvirtmod.virDomainCreateLinux(self._o, xmlDesc, flags)
         if ret is None:raise libvirtError('virDomainCreateLinux() failed', conn=self)
         __tmp = virDomain(self,_obj=ret)
-        return __tmp
-
-    def createXML(self, xmlDesc, flags):
-        """Create a new storage based on its XML description. The pool
-          is not persistent, so its definition will disappear when it
-           is destroyed, or if the host is restarted """
-        ret = libvirtmod.virStoragePoolCreateXML(self._o, xmlDesc, flags)
-        if ret is None:raise libvirtError('virStoragePoolCreateXML() failed', conn=self)
-        __tmp = virStoragePool(self, _obj=ret)
-        return __tmp
-
-    def createXML(self, xmlDesc):
-        """Create and start a new virtual network, based on an XML
-          description similar to the one returned by
-           virNetworkGetXMLDesc() """
-        ret = libvirtmod.virNetworkCreateXML(self._o, xmlDesc)
-        if ret is None:raise libvirtError('virNetworkCreateXML() failed', conn=self)
-        __tmp = virNetwork(self, _obj=ret)
         return __tmp
 
     def createXML(self, xmlDesc, flags):
@@ -1136,6 +1119,15 @@ class virConnect:
         __tmp = virDomain(self,_obj=ret)
         return __tmp
 
+    def networkCreateXML(self, xmlDesc):
+        """Create and start a new virtual network, based on an XML
+          description similar to the one returned by
+           virNetworkGetXMLDesc() """
+        ret = libvirtmod.virNetworkCreateXML(self._o, xmlDesc)
+        if ret is None:raise libvirtError('virNetworkCreateXML() failed', conn=self)
+        __tmp = virNetwork(self, _obj=ret)
+        return __tmp
+
     def networkDefineXML(self, xml):
         """Define a network, but does not create it """
         ret = libvirtmod.virNetworkDefineXML(self._o, xml)
@@ -1231,6 +1223,15 @@ class virConnect:
         ret = libvirtmod.virDomainRestore(self._o, frm)
         if ret == -1: raise libvirtError ('virDomainRestore() failed', conn=self)
         return ret
+
+    def storagePoolCreateXML(self, xmlDesc, flags):
+        """Create a new storage based on its XML description. The pool
+          is not persistent, so its definition will disappear when it
+           is destroyed, or if the host is restarted """
+        ret = libvirtmod.virStoragePoolCreateXML(self._o, xmlDesc, flags)
+        if ret is None:raise libvirtError('virStoragePoolCreateXML() failed', conn=self)
+        __tmp = virStoragePool(self, _obj=ret)
+        return __tmp
 
     def storagePoolDefineXML(self, xml, flags):
         """Define a new inactive storage pool based on its XML

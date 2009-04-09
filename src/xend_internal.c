@@ -92,6 +92,11 @@ xenDaemonFormatSxprNet(virConnectPtr conn ATTRIBUTE_UNUSED,
                        int xendConfigVersion,
                        int isAttach);
 static int
+xenDaemonFormatSxprOnePCI(virConnectPtr conn,
+                          virDomainHostdevDefPtr def,
+                          virBufferPtr buf);
+
+static int
 virDomainXMLDevID(virDomainPtr domain,
                   virDomainDeviceDefPtr dev,
                   char *class,
@@ -904,7 +909,15 @@ xenDaemonListDomainsOld(virConnectPtr xend)
         count++;
     }
 
-    if (VIR_ALLOC_N(ptr, count + 1 + extra) < 0)
+    /*
+     * We can'tuse the normal allocation routines as we are mixing
+     * an array of char * at the beginning followed by an array of char
+     * ret points to the NULL terminated array of char *
+     * ptr points to the current string after that array but in the same
+     * allocated block
+     */
+    if (virAlloc((void *)&ptr,
+                 (count + 1) * sizeof(char *) + extra * sizeof(char)) < 0)
         goto error;
 
     ret = (char **) ptr;
@@ -2137,6 +2150,131 @@ error:
     return -1;
 }
 
+/**
+ * xenDaemonParseSxprPCI
+ * @conn: connection
+ * @root: root sexpr
+ *
+ * This parses out block devices from the domain sexpr
+ *
+ * Returns 0 if successful or -1 if failed.
+ */
+static int
+xenDaemonParseSxprPCI(virConnectPtr conn,
+                      virDomainDefPtr def,
+                      const struct sexpr *root)
+{
+    const struct sexpr *cur, *tmp = NULL, *node;
+    virDomainHostdevDefPtr dev = NULL;
+
+    /*
+     * With the (domain ...) block we have the following odd setup
+     *
+     * (device
+     *    (pci
+     *       (dev (domain 0x0000) (bus 0x00) (slot 0x1b) (func 0x0))
+     *       (dev (domain 0x0000) (bus 0x00) (slot 0x13) (func 0x0))
+     *    )
+     * )
+     *
+     * Normally there is one (device ...) block per device, but in
+     * wierd world of Xen PCI, once (device ...) covers multiple
+     * devices.
+     */
+
+    for (cur = root; cur->kind == SEXPR_CONS; cur = cur->u.s.cdr) {
+        node = cur->u.s.car;
+        if ((tmp = sexpr_lookup(node, "device/pci")) != NULL)
+            break;
+    }
+
+    if (!tmp)
+        return 0;
+
+    for (cur = tmp; cur->kind == SEXPR_CONS; cur = cur->u.s.cdr) {
+        const char *domain = NULL;
+        const char *bus = NULL;
+        const char *slot = NULL;
+        const char *func = NULL;
+        int domainID;
+        int busID;
+        int slotID;
+        int funcID;
+
+        node = cur->u.s.car;
+        if (!sexpr_lookup(node, "dev"))
+            continue;
+
+        if (!(domain = sexpr_node(node, "dev/domain"))) {
+            virXendError(conn, VIR_ERR_INTERNAL_ERROR,
+                         "%s", _("missing PCI domain"));
+            goto error;
+        }
+        if (!(bus = sexpr_node(node, "dev/bus"))) {
+            virXendError(conn, VIR_ERR_INTERNAL_ERROR,
+                         "%s", _("missing PCI bus"));
+            goto error;
+        }
+        if (!(slot = sexpr_node(node, "dev/slot"))) {
+            virXendError(conn, VIR_ERR_INTERNAL_ERROR,
+                         "%s", _("missing PCI slot"));
+            goto error;
+        }
+        if (!(func = sexpr_node(node, "dev/func"))) {
+            virXendError(conn, VIR_ERR_INTERNAL_ERROR,
+                         "%s", _("missing PCI func"));
+            goto error;
+        }
+
+        if (virStrToLong_i(domain, NULL, 0, &domainID) < 0) {
+            virXendError(conn, VIR_ERR_INTERNAL_ERROR,
+                         _("cannot parse PCI domain '%s'"), domain);
+            goto error;
+        }
+        if (virStrToLong_i(bus, NULL, 0, &busID) < 0) {
+            virXendError(conn, VIR_ERR_INTERNAL_ERROR,
+                         _("cannot parse PCI bus '%s'"), bus);
+            goto error;
+        }
+        if (virStrToLong_i(slot, NULL, 0, &slotID) < 0) {
+            virXendError(conn, VIR_ERR_INTERNAL_ERROR,
+                         _("cannot parse PCI slot '%s'"), slot);
+            goto error;
+        }
+        if (virStrToLong_i(func, NULL, 0, &funcID) < 0) {
+            virXendError(conn, VIR_ERR_INTERNAL_ERROR,
+                         _("cannot parse PCI func '%s'"), func);
+            goto error;
+        }
+
+        if (VIR_ALLOC(dev) < 0)
+            goto no_memory;
+
+        dev->mode = VIR_DOMAIN_HOSTDEV_MODE_SUBSYS;
+        dev->managed = 0;
+        dev->source.subsys.type = VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI;
+        dev->source.subsys.u.pci.domain = domainID;
+        dev->source.subsys.u.pci.bus = busID;
+        dev->source.subsys.u.pci.slot = slotID;
+        dev->source.subsys.u.pci.function = funcID;
+
+        if (VIR_REALLOC_N(def->hostdevs, def->nhostdevs+1) < 0) {
+            goto no_memory;
+        }
+
+        def->hostdevs[def->nhostdevs++] = dev;
+    }
+
+    return 0;
+
+no_memory:
+    virReportOOMError(conn);
+
+error:
+    virDomainHostdevDefFree(dev);
+    return -1;
+}
+
 
 /**
  * xenDaemonParseSxpr:
@@ -2285,9 +2423,14 @@ xenDaemonParseSxpr(virConnectPtr conn,
         if (sexpr_int(root, "domain/image/hvm/pae"))
             def->features |= (1 << VIR_DOMAIN_FEATURE_PAE);
 
+        /* Old XenD only allows localtime here for HVM */
         if (sexpr_int(root, "domain/image/hvm/localtime"))
             def->localtime = 1;
     }
+
+    /* Current XenD allows localtime here, for PV and HVM */
+    if (sexpr_int(root, "domain/localtime"))
+        def->localtime = 1;
 
     if (sexpr_node_copy(root, hvm ?
                         "domain/image/hvm/device_model" :
@@ -2300,6 +2443,9 @@ xenDaemonParseSxpr(virConnectPtr conn,
         goto error;
 
     if (xenDaemonParseSxprNets(conn, def, root) < 0)
+        goto error;
+
+    if (xenDaemonParseSxprPCI(conn, def, root) < 0)
         goto error;
 
     /* New style graphics device config */
@@ -3842,8 +3988,6 @@ xenDaemonCreateXML(virConnectPtr conn, const char *xmlDesc,
         return (NULL);
 
     if (!(sexpr = xenDaemonFormatSxpr(conn, def, priv->xendConfigVersion))) {
-        virXendError(conn, VIR_ERR_XML_ERROR,
-                     "%s", _("failed to build sexpr"));
         virDomainDefFree(def);
         return (NULL);
     }
@@ -3943,6 +4087,20 @@ xenDaemonAttachDevice(virDomainPtr domain, const char *xml)
                                    STREQ(def->os.type, "hvm") ? 1 : 0,
                                    priv->xendConfigVersion, 1) < 0)
             goto cleanup;
+        break;
+
+    case VIR_DOMAIN_DEVICE_HOSTDEV:
+        if (dev->data.hostdev->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
+            dev->data.hostdev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI) {
+            if (xenDaemonFormatSxprOnePCI(domain->conn,
+                                          dev->data.hostdev,
+                                          &buf) < 0)
+                goto cleanup;
+        } else {
+            virXendError(domain->conn, VIR_ERR_NO_SUPPORT, "%s",
+                         _("unsupported device type"));
+            goto cleanup;
+        }
         break;
 
     default:
@@ -4831,7 +4989,6 @@ struct xenUnifiedDriver xenDaemonDriver = {
     xenDaemonClose,              /* close */
     xenDaemonGetVersion,         /* version */
     NULL,                        /* hostname */
-    NULL,                        /* URI */
     xenDaemonNodeGetInfo,        /* nodeGetInfo */
     NULL,                        /* getCapabilities */
     xenDaemonListDomains,        /* listDomains */
@@ -5207,7 +5364,7 @@ xenDaemonFormatSxprNet(virConnectPtr conn,
         char *bridge;
 
         if (!network) {
-            virXendError(conn, VIR_ERR_NO_SOURCE, "%s",
+            virXendError(conn, VIR_ERR_NO_NETWORK, "%s",
                          def->data.network.name);
             return -1;
         }
@@ -5215,7 +5372,8 @@ xenDaemonFormatSxprNet(virConnectPtr conn,
         bridge = virNetworkGetBridgeName(network);
         virNetworkFree(network);
         if (!bridge) {
-            virXendError(conn, VIR_ERR_NO_SOURCE, "%s",
+            virXendError(conn, VIR_ERR_INTERNAL_ERROR,
+                         _("network %s is not active"),
                          def->data.network.name);
             return -1;
         }
@@ -5251,6 +5409,85 @@ xenDaemonFormatSxprNet(virConnectPtr conn,
         virBufferAddLit(buf, ")");
 
     virBufferAddLit(buf, ")");
+
+    return 0;
+}
+
+
+static void
+xenDaemonFormatSxprPCI(virDomainHostdevDefPtr def,
+                       virBufferPtr buf)
+{
+    virBufferVSprintf(buf, "(dev (domain 0x%04x)(bus 0x%02x)(slot 0x%02x)(func 0x%x))",
+                      def->source.subsys.u.pci.domain,
+                      def->source.subsys.u.pci.bus,
+                      def->source.subsys.u.pci.slot,
+                      def->source.subsys.u.pci.function);
+}
+
+static int
+xenDaemonFormatSxprOnePCI(virConnectPtr conn,
+                          virDomainHostdevDefPtr def,
+                          virBufferPtr buf)
+{
+    if (def->managed) {
+        virXendError(conn, VIR_ERR_NO_SUPPORT, "%s",
+                     _("managed PCI devices not supported with XenD"));
+        return -1;
+    }
+
+    virBufferAddLit(buf, "(pci ");
+    xenDaemonFormatSxprPCI(def, buf);
+    virBufferAddLit(buf, ")");
+
+    return 0;
+}
+
+static int
+xenDaemonFormatSxprAllPCI(virConnectPtr conn,
+                          virDomainDefPtr def,
+                          virBufferPtr buf)
+{
+    int hasPCI = 0;
+    int i;
+
+    for (i = 0 ; i < def->nhostdevs ; i++)
+        if (def->hostdevs[i]->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
+            def->hostdevs[i]->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI)
+            hasPCI = 1;
+
+    if (!hasPCI)
+        return 0;
+
+    /*
+     * With the (domain ...) block we have the following odd setup
+     *
+     * (device
+     *    (pci
+     *       (dev (domain 0x0000) (bus 0x00) (slot 0x1b) (func 0x0))
+     *       (dev (domain 0x0000) (bus 0x00) (slot 0x13) (func 0x0))
+     *    )
+     * )
+     *
+     * Normally there is one (device ...) block per device, but in
+     * wierd world of Xen PCI, once (device ...) covers multiple
+     * devices.
+     */
+
+    virBufferAddLit(buf, "(device (pci ");
+    for (i = 0 ; i < def->nhostdevs ; i++) {
+        if (def->hostdevs[i]->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
+            def->hostdevs[i]->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI) {
+            if (def->hostdevs[i]->managed) {
+                virXendError(conn, VIR_ERR_NO_SUPPORT, "%s",
+                             _("managed PCI devices not supported with XenD"));
+                return -1;
+            }
+
+            xenDaemonFormatSxprPCI(def->hostdevs[i], buf);
+        }
+    }
+    virBufferAddLit(buf, "))");
 
     return 0;
 }
@@ -5369,6 +5606,10 @@ xenDaemonFormatSxpr(virConnectPtr conn,
     }
     virBufferVSprintf(&buf, "(on_crash '%s')", tmp);
 
+    /* Set localtime here for current XenD (both PV & HVM) */
+    if (def->localtime)
+        virBufferAddLit(&buf, "(localtime 1)");
+
     if (!def->os.bootloader) {
         if (STREQ(def->os.type, "hvm"))
             hvm = 1;
@@ -5484,6 +5725,7 @@ xenDaemonFormatSxpr(virConnectPtr conn,
                 virBufferAddLit(&buf, "(serial none)");
             }
 
+            /* Set localtime here to keep old XenD happy for HVM */
             if (def->localtime)
                 virBufferAddLit(&buf, "(localtime 1)");
 
@@ -5521,6 +5763,9 @@ xenDaemonFormatSxpr(virConnectPtr conn,
                                    &buf, hvm, xendConfigVersion, 0) < 0)
             goto error;
 
+    if (xenDaemonFormatSxprAllPCI(conn, def, &buf) < 0)
+        goto error;
+
     /* New style PV graphics config xen >= 3.0.4,
      * or HVM graphics config xen >= 3.0.5 */
     if ((xendConfigVersion >= XEND_CONFIG_MIN_VERS_PVFB_NEWCONF && !hvm) ||
@@ -5531,6 +5776,11 @@ xenDaemonFormatSxpr(virConnectPtr conn,
     }
 
     virBufferAddLit(&buf, ")"); /* closes (vm */
+
+    if (virBufferError(&buf)) {
+        virReportOOMError(conn);
+        return NULL;
+    }
 
     return virBufferContentAndReset(&buf);
 
@@ -5566,7 +5816,12 @@ virDomainXMLDevID(virDomainPtr domain,
     char *xref;
 
     if (dev->type == VIR_DOMAIN_DEVICE_DISK) {
-        strcpy(class, "vbd");
+        if (dev->data.disk->driverName &&
+            STREQ(dev->data.disk->driverName, "tap"))
+            strcpy(class, "tap");
+        else
+            strcpy(class, "vbd");
+
         if (dev->data.disk->dst == NULL)
             return -1;
         xenUnifiedLock(priv);
@@ -5598,6 +5853,9 @@ virDomainXMLDevID(virDomainPtr domain,
         strncpy(ref, xref, ref_len);
         free(xref);
         ref[ref_len - 1] = '\0';
+    } else if (dev->type == VIR_DOMAIN_DEVICE_HOSTDEV &&
+               dev->data.hostdev->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
+               dev->data.hostdev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI) {
     } else {
         virXendError(NULL, VIR_ERR_NO_SUPPORT,
                      "%s", _("hotplug of device type not supported"));

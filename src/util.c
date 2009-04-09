@@ -39,6 +39,9 @@
 #if HAVE_SYS_WAIT_H
 #include <sys/wait.h>
 #endif
+#if HAVE_MMAP
+#include <sys/mman.h>
+#endif
 #include <string.h>
 #include <signal.h>
 #if HAVE_TERMIOS_H
@@ -116,6 +119,74 @@ ssize_t safewrite(int fd, const void *buf, size_t count)
         }
         return nwritten;
 }
+
+#ifdef HAVE_POSIX_FALLOCATE
+int safezero(int fd, int flags ATTRIBUTE_UNUSED, off_t offset, off_t len)
+{
+    return posix_fallocate(fd, offset, len);
+}
+#else
+
+#ifdef HAVE_MMAP
+int safezero(int fd, int flags ATTRIBUTE_UNUSED, off_t offset, off_t len)
+{
+    int r;
+    char *buf;
+
+    /* memset wants the mmap'ed file to be present on disk so create a
+     * sparse file
+     */
+    r = ftruncate(fd, offset + len);
+    if (r < 0)
+        return -errno;
+
+    buf = mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, offset);
+    if (buf == MAP_FAILED)
+        return -errno;
+
+    memset(buf, 0, len);
+    munmap(buf, len);
+
+    return 0;
+}
+
+#else /* HAVE_MMAP */
+
+int safezero(int fd, int flags ATTRIBUTE_UNUSED, off_t offset, off_t len)
+{
+    int r;
+    char *buf;
+    unsigned long long remain, bytes;
+
+    if (lseek(fd, offset, SEEK_SET) < 0)
+        return errno;
+
+    /* Split up the write in small chunks so as not to allocate lots of RAM */
+    remain = len;
+    bytes = 1024 * 1024;
+
+    r = VIR_ALLOC_N(buf, bytes);
+    if (r < 0)
+        return -ENOMEM;
+
+    while (remain) {
+        if (bytes > remain)
+            bytes = remain;
+
+        r = safewrite(fd, buf, len);
+        if (r < 0) {
+            VIR_FREE(buf);
+            return r;
+        }
+
+        /* safewrite() guarantees all data will be written */
+        remain -= bytes;
+    }
+    VIR_FREE(buf);
+    return 0;
+}
+#endif /* HAVE_MMAP */
+#endif /* HAVE_POSIX_FALLOCATE */
 
 #ifndef PROXY
 
@@ -613,8 +684,11 @@ virRun(virConnectPtr conn,
         goto error;
     }
 
-    if (virPipeReadUntilEOF(conn, outfd, errfd, &outbuf, &errbuf) < 0)
+    if (virPipeReadUntilEOF(conn, outfd, errfd, &outbuf, &errbuf) < 0) {
+        while (waitpid(childpid, &exitstatus, 0) == -1 && errno == EINTR)
+            ;
         goto error;
+    }
 
     if (outbuf)
         DEBUG("Command stdout: %s", outbuf);
@@ -866,6 +940,59 @@ int virFileLinkPointsTo(const char *checkLink,
             && SAME_INODE (src_sb, dest_sb));
 }
 
+
+
+/*
+ * Attempt to resolve a symbolic link, returning the
+ * real path
+ *
+ * Return 0 if path was not a symbolic, or the link was
+ * resolved. Return -1 upon error
+ */
+int virFileResolveLink(const char *linkpath,
+                       char **resultpath)
+{
+#ifdef HAVE_READLINK
+    struct stat st;
+    char *buf;
+    int n;
+
+    *resultpath = NULL;
+
+    if (lstat(linkpath, &st) < 0)
+        return errno;
+
+    if (!S_ISLNK(st.st_mode)) {
+        if (!(*resultpath = strdup(linkpath)))
+            return -ENOMEM;
+        return 0;
+    }
+
+    /* Posix says that 'st_size' field from
+     * result of an lstat() call is filled with
+     * number of bytes in the destination
+     * filename.
+     */
+    if (VIR_ALLOC_N(buf, st.st_size + 1) < 0)
+        return -ENOMEM;
+
+    if ((n = readlink(linkpath, buf, st.st_size)) < 0) {
+        VIR_FREE(buf);
+        return -errno;
+    }
+
+    buf[n] = '\0';
+
+    *resultpath = buf;
+    return 0;
+#else
+    if (!(*resultpath = strdup(linkpath)))
+        return -ENOMEM;
+    return 0;
+#endif
+}
+
+
 int virFileExists(const char *path)
 {
     struct stat st;
@@ -1058,6 +1185,7 @@ int virFileReadPid(const char *dir,
 
     if (fscanf(file, "%d", pid) != 1) {
         rc = EINVAL;
+        fclose(file);
         goto cleanup;
     }
 

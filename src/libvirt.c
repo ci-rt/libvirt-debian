@@ -1321,15 +1321,6 @@ virConnectGetURI (virConnectPtr conn)
         return NULL;
     }
 
-    /* Drivers may override getURI, but if they don't then
-     * we provide a default implementation.
-     */
-    if (conn->driver->getURI) {
-        name = conn->driver->getURI (conn);
-        if (!name)
-            goto error;
-    }
-
     name = (char *)xmlSaveUri(conn->uri);
     if (!name) {
         virReportOOMError (conn);
@@ -2618,6 +2609,12 @@ virDomainGetXMLDesc(virDomainPtr domain, int flags)
     }
 
     conn = domain->conn;
+
+    if ((conn->flags & VIR_CONNECT_RO) && (flags & VIR_DOMAIN_XML_SECURE)) {
+        virLibConnError(conn, VIR_ERR_OPERATION_DENIED,
+                        _("virDomainGetXMLDesc with secure flag"));
+        goto error;
+    }
 
     if (conn->driver->domainDumpXML) {
         char *ret;
