@@ -8,7 +8,7 @@ XS-Python-Version: current
 Vcs-Git: git://git.debian.org/git/pkg-libvirt/libvirt.git
 Vcs-Browser: http://git.debian.org/?p=pkg-libvirt/libvirt.git
 Homepage: http://libvirt.org
-Standards-Version: 3.8.0
+Standards-Version: 3.8.1
 
 Package: libvirt-bin
 Architecture: any
