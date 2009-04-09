@@ -1,3 +1,12 @@
+libvirt (0.6.2-1) unstable; urgency=low
+
+  * [99fd06c] Imported Upstream version 0.6.2 (Closes: #521785)
+  * [78cd5c8] drop /var/run/libvirt created by init script
+  * [2a7cb3b] move startup of libvirtd after hal (Closes: #522310)
+  * [b8707ed] bump standards version 0.8.1 (no changes necessary)
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 09 Apr 2009 22:48:57 +0200
+
 libvirt (0.6.1-1) unstable; urgency=low
 
   * [3be7341] Imported Upstream version 0.6.1
