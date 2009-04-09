@@ -1296,7 +1296,6 @@ storageVolumeDelete(virStorageVolPtr obj,
     ret = 0;
 
 cleanup:
-    virStorageVolDefFree(vol);
     if (pool)
         virStoragePoolObjUnlock(pool);
     return ret;
@@ -1388,6 +1387,10 @@ storageVolumeGetXMLDesc(virStorageVolPtr obj,
     }
 
     if ((backend = virStorageBackendForType(pool->def->type)) == NULL)
+        goto cleanup;
+
+    if (backend->refreshVol &&
+        backend->refreshVol(obj->conn, pool, vol) < 0)
         goto cleanup;
 
     ret = virStorageVolDefFormat(obj->conn, pool->def, vol);

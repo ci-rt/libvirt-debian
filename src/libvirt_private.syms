@@ -248,6 +248,7 @@ free_qparam_set;
 
 
 # security.h
+virSecurityDriverVerify;
 virSecurityDriverStartup;
 virSecurityDriverInit;
 virSecurityDriverSetDOI;
@@ -306,8 +307,10 @@ virStrToLong_ll;
 virStrToLong_ull;
 virStrToLong_ui;
 virFileLinkPointsTo;
+virFileResolveLink;
 saferead;
 safewrite;
+safezero;
 virMacAddrCompare;
 virEnumFromString;
 virEnumToString;

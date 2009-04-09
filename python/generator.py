@@ -684,10 +684,16 @@ def nameFixup(name, classe, type, file):
     elif name[0:16] == "virNetworkDefine":
         func = name[3:]
         func = string.lower(func[0:1]) + func[1:]
+    elif name[0:19] == "virNetworkCreateXML":
+        func = name[3:]
+        func = string.lower(func[0:1]) + func[1:]
     elif name[0:16] == "virNetworkLookup":
         func = name[3:]
         func = string.lower(func[0:1]) + func[1:]
     elif name[0:20] == "virStoragePoolDefine":
+        func = name[3:]
+        func = string.lower(func[0:1]) + func[1:]
+    elif name[0:23] == "virStoragePoolCreateXML":
         func = name[3:]
         func = string.lower(func[0:1]) + func[1:]
     elif name[0:20] == "virStoragePoolLookup":
@@ -1065,6 +1071,9 @@ def buildWrappers():
 			    classes.write(classes_type[arg[1]][0])
 		    n = n + 1
 		classes.write(")\n");
+
+                if name == "virConnectClose":
+                    classes.write("        self._o = None\n")
 
                 # For functions returning object types:
                 if ret[0] != "void":

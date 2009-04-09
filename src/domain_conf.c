@@ -1861,11 +1861,18 @@ virSecurityLabelDefParseXML(virConnectPtr conn,
 
     p = virXPathStringLimit(conn, "string(./seclabel/@type)",
                             VIR_SECURITY_LABEL_BUFLEN-1, ctxt);
-    if (p == NULL)
+    if (p == NULL) {
+        virDomainReportError(conn, VIR_ERR_XML_ERROR,
+                             "%s", _("missing security type"));
         goto error;
-    if ((def->seclabel.type = virDomainSeclabelTypeFromString(p)) < 0)
-        goto error;
+    }
+    def->seclabel.type = virDomainSeclabelTypeFromString(p);
     VIR_FREE(p);
+    if (def->seclabel.type < 0) {
+        virDomainReportError(conn, VIR_ERR_XML_ERROR,
+                             _("invalid security type"));
+        goto error;
+    }
 
     /* Only parse details, if using static labels, or
      * if the 'live' VM XML is requested
@@ -1874,14 +1881,21 @@ virSecurityLabelDefParseXML(virConnectPtr conn,
         !(flags & VIR_DOMAIN_XML_INACTIVE)) {
         p = virXPathStringLimit(conn, "string(./seclabel/@model)",
                                 VIR_SECURITY_MODEL_BUFLEN-1, ctxt);
-        if (p == NULL)
+        if (p == NULL) {
+            virDomainReportError(conn, VIR_ERR_XML_ERROR,
+                                 "%s", _("missing security model"));
             goto error;
+        }
         def->seclabel.model = p;
 
         p = virXPathStringLimit(conn, "string(./seclabel/label[1])",
                                 VIR_SECURITY_LABEL_BUFLEN-1, ctxt);
-        if (p == NULL)
+        if (p == NULL) {
+            virDomainReportError(conn, VIR_ERR_XML_ERROR,
+                                 _("security label is missing"));
             goto error;
+        }
+
         def->seclabel.label = p;
     }
 
@@ -1890,8 +1904,11 @@ virSecurityLabelDefParseXML(virConnectPtr conn,
         !(flags & VIR_DOMAIN_XML_INACTIVE)) {
         p = virXPathStringLimit(conn, "string(./seclabel/imagelabel[1])",
                                 VIR_SECURITY_LABEL_BUFLEN-1, ctxt);
-        if (p == NULL)
+        if (p == NULL) {
+            virDomainReportError(conn, VIR_ERR_XML_ERROR,
+                                 _("security imagelabel is missing"));
             goto error;
+        }
         def->seclabel.imagelabel = p;
     }
 
@@ -2068,7 +2085,10 @@ static virDomainDefPtr virDomainDefParseXML(virConnectPtr conn,
         VIR_FREE(tmp);
     }
 
-    if ((n = virXPathNodeSet(conn, "./features/*", ctxt, &nodes)) > 0) {
+    n = virXPathNodeSet(conn, "./features/*", ctxt, &nodes);
+    if (n < 0)
+        goto error;
+    if (n) {
         for (i = 0 ; i < n ; i++) {
             int val = virDomainFeatureTypeFromString((const char *)nodes[i]->name);
             if (val < 0) {
@@ -2079,8 +2099,8 @@ static virDomainDefPtr virDomainDefParseXML(virConnectPtr conn,
             }
             def->features |= (1 << val);
         }
+        VIR_FREE(nodes);
     }
-    VIR_FREE(nodes);
 
     if (virDomainLifecycleParseXML(conn, ctxt, "string(./on_reboot[1])",
                                    &def->onReboot, VIR_DOMAIN_LIFECYCLE_RESTART) < 0)
@@ -2146,7 +2166,7 @@ static virDomainDefPtr virDomainDefParseXML(virConnectPtr conn,
             goto error;
         }
     } else {
-        const char *defaultArch = virCapabilitiesDefaultGuestArch(caps, def->os.type);
+        const char *defaultArch = virCapabilitiesDefaultGuestArch(caps, def->os.type, virDomainVirtTypeToString(def->virtType));
         if (defaultArch == NULL) {
             virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
                                  _("no supported architecture for os type '%s'"),

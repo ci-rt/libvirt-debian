@@ -37,12 +37,14 @@ host_triplet = @host@
 
 noinst_PROGRAMS = virshtest$(EXEEXT) conftest$(EXEEXT) \
 	nodeinfotest$(EXEEXT) statstest$(EXEEXT) qparamtest$(EXEEXT) \
-	$(am__EXEEXT_1) $(am__EXEEXT_2) nodedevxml2xmltest$(EXEEXT)
+	$(am__EXEEXT_1) $(am__EXEEXT_2) $(am__EXEEXT_3) \
+	nodedevxml2xmltest$(EXEEXT)
 @WITH_XEN_TRUE@am__append_2 = xml2sexprtest sexpr2xmltest \
 @WITH_XEN_TRUE@	reconnect xmconfigtest xencapstest
 
 @WITH_QEMU_TRUE@am__append_3 = qemuxml2argvtest qemuxml2xmltest
-@WITH_LIBVIRTD_TRUE@am__append_4 = \
+@WITH_SECDRIVER_SELINUX_TRUE@am__append_4 = seclabeltest
+@WITH_LIBVIRTD_TRUE@am__append_5 = \
 @WITH_LIBVIRTD_TRUE@	test_conf.sh			\
 @WITH_LIBVIRTD_TRUE@	cpuset				\
 @WITH_LIBVIRTD_TRUE@	daemon-conf			\
@@ -59,20 +61,23 @@ noinst_PROGRAMS = virshtest$(EXEEXT) conftest$(EXEEXT) \
 @WITH_LIBVIRTD_TRUE@	virsh-synopsis
 
 TESTS = virshtest$(EXEEXT) nodeinfotest$(EXEEXT) statstest$(EXEEXT) \
-	qparamtest$(EXEEXT) $(test_scripts) $(am__EXEEXT_3) \
-	$(am__EXEEXT_4) $(am__EXEEXT_2) nodedevxml2xmltest$(EXEEXT)
-@WITH_XEN_TRUE@am__append_5 = xml2sexprtest \
+	qparamtest$(EXEEXT) $(test_scripts) $(am__EXEEXT_4) \
+	$(am__EXEEXT_5) $(am__EXEEXT_2) $(am__EXEEXT_3) \
+	nodedevxml2xmltest$(EXEEXT)
+@WITH_XEN_TRUE@am__append_6 = xml2sexprtest \
 @WITH_XEN_TRUE@	sexpr2xmltest \
 @WITH_XEN_TRUE@	xmconfigtest \
 @WITH_XEN_TRUE@	xencapstest
 
-@ENABLE_XEN_TESTS_TRUE@@WITH_XEN_TRUE@am__append_6 = reconnect
-@WITH_QEMU_TRUE@am__append_7 = qemuxml2argvtest qemuxml2xmltest
-@WITH_XEN_FALSE@am__append_8 = xml2sexprtest.c sexpr2xmltest.c xmconfigtest.c \
+@ENABLE_XEN_TESTS_TRUE@@WITH_XEN_TRUE@am__append_7 = reconnect
+@WITH_QEMU_TRUE@am__append_8 = qemuxml2argvtest qemuxml2xmltest
+@WITH_SECDRIVER_SELINUX_TRUE@am__append_9 = seclabeltest
+@WITH_XEN_FALSE@am__append_10 = xml2sexprtest.c sexpr2xmltest.c xmconfigtest.c \
 @WITH_XEN_FALSE@	xencapstest.c reconnect.c \
 @WITH_XEN_FALSE@	testutilsxen.c testutilsxen.h
 
-@WITH_QEMU_FALSE@am__append_9 = qemuxml2argvtest.c qemuxml2xmltest.c testutilsqemu.c testutilsqemu.h
+@WITH_QEMU_FALSE@am__append_11 = qemuxml2argvtest.c qemuxml2xmltest.c testutilsqemu.c testutilsqemu.h
+@WITH_SECDRIVER_SELINUX_FALSE@am__append_12 = seclabeltest.c
 subdir = tests
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -162,6 +167,7 @@ CONFIG_CLEAN_FILES =
 @WITH_XEN_TRUE@	xmconfigtest$(EXEEXT) xencapstest$(EXEEXT)
 @WITH_QEMU_TRUE@am__EXEEXT_2 = qemuxml2argvtest$(EXEEXT) \
 @WITH_QEMU_TRUE@	qemuxml2xmltest$(EXEEXT)
+@WITH_SECDRIVER_SELINUX_TRUE@am__EXEEXT_3 = seclabeltest$(EXEEXT)
 PROGRAMS = $(noinst_PROGRAMS)
 am_conftest_OBJECTS = conftest.$(OBJEXT)
 conftest_OBJECTS = $(am_conftest_OBJECTS)
@@ -204,6 +210,12 @@ am__reconnect_SOURCES_DIST = reconnect.c
 @WITH_XEN_TRUE@am_reconnect_OBJECTS = reconnect.$(OBJEXT)
 reconnect_OBJECTS = $(am_reconnect_OBJECTS)
 @WITH_XEN_TRUE@reconnect_DEPENDENCIES = $(am__DEPENDENCIES_2)
+am__seclabeltest_SOURCES_DIST = seclabeltest.c
+@WITH_SECDRIVER_SELINUX_TRUE@am_seclabeltest_OBJECTS =  \
+@WITH_SECDRIVER_SELINUX_TRUE@	seclabeltest.$(OBJEXT)
+seclabeltest_OBJECTS = $(am_seclabeltest_OBJECTS)
+@WITH_SECDRIVER_SELINUX_TRUE@seclabeltest_DEPENDENCIES = ../src/libvirt_driver_security.la \
+@WITH_SECDRIVER_SELINUX_TRUE@	$(am__DEPENDENCIES_2)
 am__sexpr2xmltest_SOURCES_DIST = sexpr2xmltest.c testutilsxen.c \
 	testutilsxen.h testutils.c testutils.h
 @WITH_XEN_TRUE@am_sexpr2xmltest_OBJECTS = sexpr2xmltest.$(OBJEXT) \
@@ -256,14 +268,14 @@ LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 SOURCES = $(conftest_SOURCES) $(nodedevxml2xmltest_SOURCES) \
 	$(nodeinfotest_SOURCES) $(qemuxml2argvtest_SOURCES) \
 	$(qemuxml2xmltest_SOURCES) $(qparamtest_SOURCES) \
-	$(reconnect_SOURCES) $(sexpr2xmltest_SOURCES) \
-	$(statstest_SOURCES) $(virshtest_SOURCES) \
-	$(xencapstest_SOURCES) $(xmconfigtest_SOURCES) \
-	$(xml2sexprtest_SOURCES)
+	$(reconnect_SOURCES) $(seclabeltest_SOURCES) \
+	$(sexpr2xmltest_SOURCES) $(statstest_SOURCES) \
+	$(virshtest_SOURCES) $(xencapstest_SOURCES) \
+	$(xmconfigtest_SOURCES) $(xml2sexprtest_SOURCES)
 DIST_SOURCES = $(conftest_SOURCES) $(nodedevxml2xmltest_SOURCES) \
 	$(nodeinfotest_SOURCES) $(am__qemuxml2argvtest_SOURCES_DIST) \
 	$(am__qemuxml2xmltest_SOURCES_DIST) $(qparamtest_SOURCES) \
-	$(am__reconnect_SOURCES_DIST) \
+	$(am__reconnect_SOURCES_DIST) $(am__seclabeltest_SOURCES_DIST) \
 	$(am__sexpr2xmltest_SOURCES_DIST) $(statstest_SOURCES) \
 	$(virshtest_SOURCES) $(am__xencapstest_SOURCES_DIST) \
 	$(am__xmconfigtest_SOURCES_DIST) \
@@ -279,10 +291,10 @@ RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
   distclean-recursive maintainer-clean-recursive
 ETAGS = etags
 CTAGS = ctags
-@WITH_XEN_TRUE@am__EXEEXT_3 = xml2sexprtest$(EXEEXT) \
+@WITH_XEN_TRUE@am__EXEEXT_4 = xml2sexprtest$(EXEEXT) \
 @WITH_XEN_TRUE@	sexpr2xmltest$(EXEEXT) xmconfigtest$(EXEEXT) \
 @WITH_XEN_TRUE@	xencapstest$(EXEEXT)
-@ENABLE_XEN_TESTS_TRUE@@WITH_XEN_TRUE@am__EXEEXT_4 =  \
+@ENABLE_XEN_TESTS_TRUE@@WITH_XEN_TRUE@am__EXEEXT_5 =  \
 @ENABLE_XEN_TESTS_TRUE@@WITH_XEN_TRUE@	reconnect$(EXEEXT)
 DIST_SUBDIRS = $(SUBDIRS)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -894,10 +906,11 @@ EXTRA_DIST = oomtrace.pl test-lib.sh qemuxml2argvdata nodeinfodata \
 	domainschematest domainschemadata storagepoolschematest \
 	storagepoolschemadata storagevolschematest \
 	storagevolschemadata nodedevschematest nodedevschemadata \
-	$(test_scripts) $(am__append_8) $(am__append_9)
+	$(test_scripts) $(am__append_10) $(am__append_11) \
+	$(am__append_12)
 test_scripts = capabilityschematest networkschematest \
 	storagepoolschematest storagevolschematest domainschematest \
-	nodedevschematest $(am__append_4)
+	nodedevschematest $(am__append_5)
 path_add = $$abs_top_builddir/src$(PATH_SEPARATOR)$$abs_top_builddir/qemud
 
 # NB, automake < 1.10 does not provide the real
@@ -971,6 +984,10 @@ statstest_SOURCES = \
 	statstest.c testutils.h testutils.c
 
 statstest_LDADD = $(LDADDS)
+@WITH_SECDRIVER_SELINUX_TRUE@seclabeltest_SOURCES = \
+@WITH_SECDRIVER_SELINUX_TRUE@	seclabeltest.c
+
+@WITH_SECDRIVER_SELINUX_TRUE@seclabeltest_LDADD = ../src/libvirt_driver_security.la $(LDADDS)
 qparamtest_SOURCES = \
 	qparamtest.c testutils.h testutils.c
 
@@ -1037,6 +1054,9 @@ qparamtest$(EXEEXT): $(qparamtest_OBJECTS) $(qparamtest_DEPENDENCIES)
 reconnect$(EXEEXT): $(reconnect_OBJECTS) $(reconnect_DEPENDENCIES) 
 	@rm -f reconnect$(EXEEXT)
 	$(LINK) $(reconnect_OBJECTS) $(reconnect_LDADD) $(LIBS)
+seclabeltest$(EXEEXT): $(seclabeltest_OBJECTS) $(seclabeltest_DEPENDENCIES) 
+	@rm -f seclabeltest$(EXEEXT)
+	$(LINK) $(seclabeltest_OBJECTS) $(seclabeltest_LDADD) $(LIBS)
 sexpr2xmltest$(EXEEXT): $(sexpr2xmltest_OBJECTS) $(sexpr2xmltest_DEPENDENCIES) 
 	@rm -f sexpr2xmltest$(EXEEXT)
 	$(LINK) $(sexpr2xmltest_OBJECTS) $(sexpr2xmltest_LDADD) $(LIBS)
@@ -1069,6 +1089,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemuxml2xmltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qparamtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/reconnect.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/seclabeltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sexpr2xmltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/statstest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testutils.Po@am__quote@

@@ -1,3 +1,421 @@
+Fri Apr  3 16:47:22 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* configure.in libvirt.spec.in NEWS docs/*: release of 0.6.2
+	* po/*: Gujarati and Polish updates, rebuild
+
+Fri Apr  3 10:16:55 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/storage_backend.c src/storage_backend_scsi.c:
+	Don't lose file format info on volume refresh.
+
+Fri Apr  3 10:15:01 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/storage_driver.c: Refresh volume alloc/capacity when dumping XML.
+
+Fri Apr  3 10:13:38 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/test.c: Fix test driver domain restore return value.
+
+Fri Apr  3 10:02:57 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/storage_backend.c: Fix sparse volume allocation reporting.
+
+Fri Apr  3 15:07:00 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Fix crash in svirt verification, and incorrect cleanup in
+	VM failure paths.
+	* src/domain_conf.c: Don't extract 'model' from seclabel unless
+	requesting 'live' config, or if its a static label. Add missing
+	error report
+	* src/qemu_driver.c: Fix cleanup in auto-reconnect to running VMs.
+	Fix cleanup of resources if starting a new VM fails
+	* src/security.c: Fix crash if no seclabel model is defined in
+	the virSecuriyDriverVerify method
+	* src/security_selinux.c: Fix error message typo & fix whitespace
+
+Fri Apr  3 15:03:00 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/virsh.c: Add --console arg for create & start commands
+	to auto-attach to console. Print info about escape key for
+	console. Refuse to connect to remote consoles.
+
+Fri Apr  3 13:41:00 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Misc NUMA memory fixes
+	* qemud/remote.c: Fix check of error status in the helper
+	remoteDispatchNodeGetCellsFreeMemory
+	* src/qemu_driver.c: Report error if requested start cell
+	is out of range. Fix return value if NUMA is not available
+	* src/virsh.c: Convert memory to KB for freecell command.
+	Check return value of virNodeGetFreeMemory
+
+Fri Apr  3 11:55:00 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Support PCI passthrough in Xen driver
+	* src/pci.c: Refactor to support Xen's pci-back.ko too
+	* src/xen_unified.c: Implement node device reattach/detach
+	reset APIs
+	* src/xend_internal.c: Handle creation of VMs with PCI
+	devices
+	* src/xm_internal.c: serialization of PCI device config
+	* tests/sexpr2xmltest.c, tests/xmconfigtest.c,
+	tests/xml2sexprtest.c: Add tests for PCI devices
+	* tests/sexpr2xmldata/sexpr2xml-pci-devs.sexpr,
+	tests/sexpr2xmldata/sexpr2xml-pci-devs.xml,
+	tests/xmconfigdata/test-pci-devs.cfg,
+	tests/xmconfigdata/test-pci-devs.xml,
+	tests/xml2sexprdata/xml2sexpr-pci-devs.sexpr,
+	tests/xml2sexprdata/xml2sexpr-pci-devs.xml: Add data
+	files for PCI testing
+
+
+Fri Apr  3 11:55:00 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Improve error reporting/ verification of security labels
+	(Dan Walsh)
+	* src/domain_conf.c: Improve error reporting for parsing of
+	seclabel XML
+	* src/libvirt_private.syms: Export virSecurityDriverVerify
+	* src/qemu_driver.c: Verify seclabel when creating or
+	defining a new domain
+	* src/security.c, src/security.h, src/security_linux.c: Add
+	functions for verifying security labels
+	* tests/.gitignore: Ignore seclabeltest
+	* tests/Makefile.am, tests/seclabeltest.c: Add test for
+	security driver
+
+Thu Apr  2 19:41:00 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Mingw portability fixes
+	* src/util.c: Fix virFileResolveLink for Win32 platform.
+	Fix offset usage in safezero for mmap() and write() impls
+	* configure.in: Add check for readlink()
+
+Thu Apr  2 15:18:00 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* docs/schemas/domain.rng: some missing disk bus values and cleanups
+
+Thu Apr  2 14:00:14 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* docs/*: start cleanup/revamp of architecture docs
+
+Thu Apr  2 11:52:59 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* po/*: updated brazilian, spanish, polish and simplified chinese
+	  translations, and regenerated
+
+Wed Apr  1 16:50:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	SCSI HBA storage pool implementation (Dave Allan)
+	* configure.in: Add flag for SCSI storage pool support
+	* po/POTFILES.in: Add storage_backend_scsi.c
+	* src/Makefile.am: Add new SCSI storage backend
+	* src/storage_backend.c: Support for SCSI pool type
+	* src/storage_backend_iscsi.c: Refactor to re-use logic from
+	SCSI pool backend
+	* src/storage_backend_scsi.c, src/storage_backend_scsi.h:
+	Generic pool for Linux SCSI HBAs (or things which look
+	like SCSI HBAs)
+	* src/storage_conf.c, src/storage_conf.h: Add logic for
+	SCSI storage pool XML parsing options
+
+Wed Apr  1 11:40:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* configure.in: Check for libsasl.so as well as libsasl2.so
+	since former is used on some OS platforms that aren't Linux
+
+Wed Apr  1 11:38:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* python/generator.py: Clear internal reference to underlying
+	virConnectPtr object after calling virConnectClose()
+
+Wed Apr  1 11:37:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* python/generator.py: Fix generation of networkCreateXML
+	and storagePoolCreateXML to avoid clash with createXML()
+	method
+
+Wed Apr  1 11:36:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Fix localtime handling for new XenD
+	* src/xend_internal.c: Update SEXPR for new location of
+	(localtime 1) field.
+	* src/xm_internal.c: Read localtime=1 param for PV guests
+	too
+	* tests/xml2sexprtest.c, tests/sexpr2xmltest.c: Add testing
+	of new (localtime 1) handling
+	* tests/sexpr2xmldata/sexpr2xml-pv-localtime.sexpr,
+	tests/sexpr2xmldata/sexpr2xml-pv-localtime.xml,
+	tests/xml2sexprdata/xml2sexpr-fv-localtime.sexpr,
+	tests/xml2sexprdata/xml2sexpr-pv-localtime.sexpr,
+	tests/xml2sexprdata/xml2sexpr-pv-localtime.xml: Data files
+	for extended tests
+
+Wed Apr  1 11:27:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Misc fixes uncovered from OOM testing
+	* src/datatypes.c: Switch to virReportErrorHelper for error
+	reporting, so source line/file/function info is correct
+	* src/domain_conf.c: Check for failure in virXPathNodeSet()
+	* src/noeinfo.c: Translate error strings
+	* src/xend_internal.c: Check for OOM failure after generating
+	SEXPR buffer
+	* tests/sexpr2xmltest.c: Don't unref a NULL connection object.
+	Reset error object between tests. Free capabilities on exit
+	* tests/testutils.c: Fix crash in OOM testing for non-SMP
+	usage
+	* tests/xml2sexprtest.c: Reset error object between tests
+
+Wed Apr  1 11:22:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Sanitise symlink resolving
+	* src/libvirt_private.syms: Add virFileResolveLink
+	* src/util.c, src/util.h: Add convenient virFileResolveLink
+	for reading symlink destination safely
+	* src/storage_backend_disk.c, src/security_selinux.c: Switch
+	over to calling virFileResolveLink
+
+Wed Apr  1 11:18:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Misc memory handling fixes
+	* src/node_device.c: Don't strdup() a NULL parent device name
+	* src/qemu_conf.c: Don't try to access() a NULL alternative
+	binary name
+	* src/storage_conf.c: Don't free mode string while its still
+	in use
+
+Wed Apr  1 11:16:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/xm_internal.c: Add support for vifname= parameter in
+	VIF config
+	* tests/xmconfigtest.c: Add test for vifname= handling
+	* tests/xmconfigdata/test-paravirt-net-vifname.cfg,
+	tests/xmconfigdata/test-paravirt-net-vifname.xml: Data file
+	for new test
+
+Wed Apr  1 10:58:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Improve error reporting in SEXPR generation
+	* src/xm_internal.c, src/xend_internal.c: Avoid overwriting
+	previously set error message. Clarify message when network
+	lookup fails
+
+Wed Apr  1 10:55:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/node_device.c: Fix error message for missing node device
+	during lookup by name
+
+Wed Apr  1 10:54:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/qemu_driver.c: Fix URI check in migration
+
+Wed Apr  1 10:50:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Add a tree view of node devices
+	* src/remote_internal.c: Fix memory leak in virNodeDeviceGetParent() impl
+	* src/virsh.c: Add --tree flag to nodedev-list command
+
+Tue Mar 31 17:40:00 CEST 2009 Chris Lalancette <clalance@redhat.com>
+	* src/lxc_driver.c, src/openvz_driver.c, src/qemu_driver.c,
+	src/remote_internal.c, src/test.c, src/uml_driver.c, src/xen_unified.c,
+	src/driver.h, src/libvirt.c, src/proxy_internal.c, src/xen_inotify.c,
+	src/xen_internal.c, src/xen_unified.h, src/xend_internal.c,
+	src/xm_internal.c, src/xs_internal.c: Convert all drivers to use
+	old-style struct initializers; this makes a handy built-in TODO list
+	for each driver.  Also rip out the internal getURI method; it was never
+	used by any of the drivers, and was buggy to boot.
+
+Tue Mar 31 14:44:16 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* libvirt.spec.in: better modularization of the spec file,
+	  patch by Ryota Ozaki
+
+Tue Mar 31 14:25:18 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/util.c: fix virRun() to prevent zombies on pipe errors,
+	  patch by Ryota Ozaki
+
+Fri Mar 27 11:44:22 GMT 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/qemu_driver.c: Don't try to query balloon if guest
+	isn't running
+
+Fri Mar 27 11:44:22 GMT 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Support memory ballooning in QEMU
+	* src/qemu_conf.c: Fix initial QEMU startup memory allocation
+	to be based on 'max memory'
+	* src/qemu_driver.c: Balloon down allocation to 'memory'
+	setting at startup. Implement virDomainSetMemory() for running
+	guests via memory balloon. Report mem current usage by querying
+	memory balloon.
+
+Tue Mar 24 11:14:22 GMT 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/capabilities.c, file src/capabilities.h,
+	src/domain_conf.c, src/xm_internal.c: Prefer native arch
+	when auto-filling guest architecture. Match on domain type
+	when auto-filling architecture (Soren Hansen)
+
+Tue Mar 24 10:51:22 GMT 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/Makefile.maint: Include 'CHECK: ' prefix when printing
+	name of each syntax-check rule that is run
+
+Tue Mar 24 10:51:22 GMT 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/openvz_conf.c, src/openvz_conf.h, src/openvz_driver.c: Add
+	support for a non-template filesystem root. (Florian Vichot)
+
+Mon Mar 23 17:33:17 CET 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/virsh.c: fix missing authentication when command are issued
+	  from the shell, patch by Matthias Bolte
+
+Fri Mar 20 21:43:57 CET 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/util.c: flag unused parameters, by Maximilian Wilhelm
+
+Fri Mar 20 13:16:01 CET 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/libvirt_private.syms src/storage_backend_fs.c src/util.c
+	  src/util.h: use posix_fallocate() on supported systems to
+	  allocate diskspace faster, patches by Amit Shah
+
+Fri Mar 20 11:41:40 GMT 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Fix test breakage on x86_64 from previous change
+	* tests/qemuxml2argvdata/qemuxml2argv-migrate.args,
+	tests/qemuxml2argvdata/qemuxml2argv-migrate.xml,
+	tests/qemuxml2argvdata/qemuxml2argv-restore-v1.args,
+	tests/qemuxml2argvdata/qemuxml2argv-restore-v1.xml,
+	tests/qemuxml2argvdata/qemuxml2argv-restore-v2.args,
+	tests/qemuxml2argvdata/qemuxml2argv-restore-v2.xml: Switch
+	to base 'qemu' emulator to avoid arch-dependant options
+	needed by 'qemu-kvm' emulator.
+
+Fri Mar 20 11:21:40 GMT 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Make use of emulator binaries more flexible
+	* src/qemu_conf.h: Add flag for -no-kvm option
+	* src/qemu_conf.c: Allow i686 on x86_64 for KVM guests using
+	-cpu flag. Allow qemu-system-x86_64 to be used for 32-bit
+	guests. Allow KVM binary to be used for non-KVM guests using
+	-no-kvm flag
+
+Thu Mar 19 15:25:40 CET 2009 Daniel Veillard <veillard@redhat.com>
+
+	* docs/schemas/domain.rng: extend definition for security attributes
+
+Tue Mar 17 11:35:58 GMT 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Fix labelling of shared/readonly devices (Dan Walsh)
+	* src/qemu_driver.c, src/security.h: Disk label commands
+	take virDomainDiskDefPtr instead of virDomainDefPtr
+	* src/security_selinux.c: Do not relabel shared or readonly
+	disk images with MCS label.
+
+Tue Mar 17 11:58:58 CET 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/remote_internal.c: remove file descriptors leak
+
+Mon Mar 16 13:17:05 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/libvirt.c: Don't allow readonly connections to dump secure xml.
+
+Mon Mar 16 13:15:11 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/qemu_driver.c: Initialize security driver after config parsing
+
+Mon Mar 16 13:12:59 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/test.c: Fix test driver 'save' deadlock
+
+Mon Mar 16 13:52:00 GMT 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Support SASL auth for VNC server.
+	* qemud/libvirtd_qemu.aug, qemud/test_libvirtd_qemu.aug: Add
+	support for VNC sasl config options
+	* src/qemu.conf: Example VNC sasl config options
+	* src/qemu_conf.c, src/qemu_conf.h, src/qemu_driver.c: Add
+	ability to set SASL authentication on VNC servers
+	* tests/qemuxml2argvtest.c: Test for VNC SASL and TLS security
+	options
+	* tests/qemuxml2argvdata/qemuxml2argv-graphics-vnc-sasl.args,
+	tests/qemuxml2argvdata/qemuxml2argv-graphics-vnc-sasl.xml,
+	tests/qemuxml2argvdata/qemuxml2argv-graphics-vnc-tls.args,
+	tests/qemuxml2argvdata/qemuxml2argv-graphics-vnc-tls.xml: Data
+	files for tests
+
+Mon Mar 16 11:44:00 GMT 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/qemu_driver.c: Avoid deadlock in virDomainSetVcpus
+	driver impl
+
+Mon Mar 16 10:55:00 GMT 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Fix subsystem lookup for older HAL releases
+	* src/node_device_hal.c: Check for linux.subsystem property
+
+Mon Mar 16 10:45:00 GMT 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Add ac97 to test case & RNG schema (Pritesh Kothari)
+	* docs/schemas/domain.rng: Add ac97 as valid soundcard
+	* tests/qemuxml2argvdata/qemuxml2argv-sound.args,
+	tests/qemuxml2argvdata/qemuxml2argv-sound.xml: Extend test to
+	cover ac97 soundcard.
+
+Mon Mar 16 11:40:00 CET 2009 Daniel Veillard <veillard@redhat.com>
+
+	* qemud/qemud.c src/cgroup.c src/uml_driver.c src/util.c: close
+	  some potential FILE * leaks
+
+Mon Mar 16 10:35:00 GMT 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* qemud/event.c: Fix dispatch of FD events when one or more
+	handles has been marked as deleted
+
+Mon Mar 16 10:30:00 GMT 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* qemud/remote.c: Don't allocate cpumaps arg if maplength is
+	0, and fix size of cpumaps allocation
+
+Mon Mar 16 10:30:00 GMT 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/storage_driver.c: Don't free storage volume in error
+	path, since it may still be referenced elsewhere
+
+Mon Mar 16 10:29:00 GMT 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Avoid harmless warning message
+	* src/qemu_driver.c, src/uml_driver.c: Don't try to close a
+	NULL virConnectPtr object.
+
+Thu Mar 12 21:13:40 CET 2009 Daniel Veillard <veilard@redhat.com>
+
+	* src/storage_conf.c: fix storage pool mode parsing, and refactoring
+	  patch by Ryota Ozaki
+
+Wed Mar 11 14:42:24 CET 2009 Daniel Veillard <veilard@redhat.com>
+
+	* src/xs_internal.c: fix xen events handling problem (Dan Berrange)
+
+Tue Mar 10 12:03:37 CET 2009 Daniel Veillard <veilard@redhat.com>
+
+	* src/xend_internal.c: fix an allocation problem in
+	  xenDaemonDomainLookupByName_ids
+
+Tue Mar 10 10:29:46 GMT 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/xend_internal.c: Fix tap vs vbd type for block detach
+	(Cole Robinson / Takahashi Tomohiro)
+
+Fri Mar  6 15:42:46 CET 2009 Daniel Veillard <veilard@redhat.com>
+
+	* src/cgroup.c src/cgroup.h src/lxc_driver.c: allows to get
+	  CPU usage of a lxc using cpuacct subsystem of cgroups, patch
+	  by Ryota Ozaki
+
 Wed Mar  4 14:11:15 CET 2009 Daniel Veillard <veilard@redhat.com>
 
 	* NEWS configure.in libvirt.spec.in doc/* include/libvirt/libvirt.h:
