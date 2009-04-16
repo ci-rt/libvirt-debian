@@ -31,8 +31,6 @@ if [ -f /etc/default/libvirt-bin ] ; then
 	. /etc/default/libvirt-bin
 fi
 
-set -e
-
 check_start_libvirtd_option() {
   if [ ! "$start_libvirtd" = "yes" ]; then
     log_warning_msg "Not starting libvirt management daemon libvirtd, disabled via /etc/default/libvirt-bin"
@@ -100,12 +98,16 @@ case "$1" in
 		rm -f /var/run/libvirtd.pid
 		start-stop-daemon --start --quiet --pidfile $PIDFILE \
 			--exec $DAEMON -- $libvirtd_opts
-		running && log_end_msg 0 || log_end_msg 1
+		if running; then
+			log_end_msg 0
+		else
+			log_end_msg 1
+		fi
 	fi
 	;;
   stop)
 	log_daemon_msg "Stopping $DESC" "$NAME"
-       	if ! running ;  then
+	if ! running ;  then
            	log_progress_msg "not running"
             	log_end_msg 0
             	exit 0
@@ -116,8 +118,12 @@ case "$1" in
 	;;
   force-stop)
 	log_daemon_msg "Forcefully stopping $DESC" "$NAME"
-        force_stop
-        ! running && log_end_msg 0 || log_end_msg 1
+	force_stop
+	if ! running; then
+		log_end_msg 0
+	else
+		log_end_msg 1
+	fi
 	;;
   restart)
 	if check_start_libvirtd_option; then
@@ -127,7 +133,11 @@ case "$1" in
 		[ -n "$DODTIME" ] && sleep $DODTIME
 		start-stop-daemon --start --quiet --pidfile \
 			/var/run/$NAME.pid --exec $DAEMON -- $libvirtd_opts
-		running && log_end_msg 0 || log_end_msg 1
+		if running; then
+			log_end_msg 0
+		else
+			log_end_msg 1
+		fi
 	fi
 	;;
   reload|force-reload)
