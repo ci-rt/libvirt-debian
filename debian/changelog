@@ -1,3 +1,15 @@
+libvirt (0.6.2-2) unstable; urgency=low
+
+  * [031b9c1] Don't hardcode buffer size for getgrnam_r. Works around
+              #520744 and fixes possible problems with implementations having
+              _SC_GETGR_R_SIZE_MAX != 1024.
+  * [bbe7743] respect log priority for qemu domain logs (Closes: #524145)
+  * [a2e4cb0] don't rely on log_end_msg returning 0 this isn't the case
+              with splashy. (Closes: #523712)
+  * [ddfafda] move debug package into section debug
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 16 Apr 2009 15:28:31 +0200
+
 libvirt (0.6.2-1) unstable; urgency=low
 
   * [99fd06c] Imported Upstream version 0.6.2 (Closes: #521785)
