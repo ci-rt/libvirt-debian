@@ -46,12 +46,13 @@
 %define with_rhel5 0
 %else
 %define with_rhel5 1
+%define with_polkit 0
 %endif
 
 
 Summary: Library providing a simple API virtualization
 Name: libvirt
-Version: 0.6.2
+Version: 0.6.3
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
@@ -372,8 +373,10 @@ fi
 %defattr(-, root, root)
 
 %doc AUTHORS ChangeLog NEWS README COPYING.LIB TODO
-%doc %{_mandir}/man1/virsh.1*
+%{_mandir}/man1/virsh.1*
+%{_mandir}/man1/virt-xml-validate.1*
 %{_bindir}/virsh
+%{_bindir}/virt-xml-validate
 %{_libdir}/lib*.so.*
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/
 
@@ -503,6 +506,10 @@ fi
 %endif
 
 %changelog
+* Fri Apr 24 2009 Daniel Veillard <veillard@redhat.com> - 0.6.3-1
+- release of 0.6.3
+- VirtualBox driver
+
 * Fri Apr  3 2009 Daniel Veillard <veillard@redhat.com> - 0.6.2-1
 - release of 0.6.2
 

@@ -840,6 +840,9 @@
 /* whether UML driver is enabled */
 #undef WITH_UML
 
+/* whether VirtualBox driver is enabled */
+#undef WITH_VBOX
+
 /* whether Xen driver is enabled */
 #undef WITH_XEN
 

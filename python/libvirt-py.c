@@ -220,6 +220,26 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
+libvirt_virNodeDeviceCreateXML(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    virNodeDevicePtr c_retval;
+    virConnectPtr conn;
+    PyObject *pyobj_conn;
+    char * xmlDesc;
+    unsigned int flags;
+
+    if (!PyArg_ParseTuple(args, (char *)"Ozi:virNodeDeviceCreateXML", &pyobj_conn, &xmlDesc, &flags))
+        return(NULL);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virNodeDeviceCreateXML(conn, xmlDesc, flags);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_virNodeDevicePtrWrap((virNodeDevicePtr) c_retval);
+    return(py_retval);
+}
+
+PyObject *
 libvirt_virStoragePoolGetConnect(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     virConnectPtr c_retval;
@@ -799,6 +819,16 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
+libvirt_virResetLastError(PyObject *self ATTRIBUTE_UNUSED, PyObject *args ATTRIBUTE_UNUSED) {
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    virResetLastError();
+LIBVIRT_END_ALLOW_THREADS;
+    Py_INCREF(Py_None);
+    return(Py_None);
+}
+
+PyObject *
 libvirt_virStoragePoolCreate(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     int c_retval;
@@ -855,13 +885,21 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
-libvirt_virResetLastError(PyObject *self ATTRIBUTE_UNUSED, PyObject *args ATTRIBUTE_UNUSED) {
+libvirt_virNodeDeviceDestroy(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virNodeDevicePtr dev;
+    PyObject *pyobj_dev;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virNodeDeviceDestroy", &pyobj_dev))
+        return(NULL);
+    dev = (virNodeDevicePtr) PyvirNodeDevice_Get(pyobj_dev);
 LIBVIRT_BEGIN_ALLOW_THREADS;
 
-    virResetLastError();
+    c_retval = virNodeDeviceDestroy(dev);
 LIBVIRT_END_ALLOW_THREADS;
-    Py_INCREF(Py_None);
-    return(Py_None);
+    py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
 }
 
 PyObject *

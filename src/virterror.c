@@ -154,6 +154,9 @@ static const char *virErrorDomainName(virErrorDomain domain) {
         case VIR_FROM_SECURITY:
             dom = "Security Labeling ";
             break;
+        case VIR_FROM_VBOX:
+            dom = "VBOX ";
+            break;
     }
     return(dom);
 }
@@ -174,6 +177,13 @@ virLastErrFreeData(void *data)
 }
 
 
+/**
+ * virErrorInitialize:
+ *
+ * Initialize the error data (per thread)
+ *
+ * Returns 0 in case of success, -1 in case of failure.
+ */
 int
 virErrorInitialize(void)
 {
@@ -531,7 +541,8 @@ virDefaultErrorFunc(virErrorPtr err)
                 dom, lvl, domain, network, err->message);
 }
 
-/*
+/**
+ * virSetGlobalError:
  * Internal helper to ensure the global error object
  * is initialized with a generic message if not already
  * set.
@@ -545,7 +556,10 @@ virSetGlobalError(void)
         virErrorGenericFailure(err);
 }
 
-/*
+/**
+ * virSetConnError:
+ * @conn: pointer to the hypervisor connection
+ *
  * Internal helper to ensure the connection error object
  * is initialized from the global object.
  */
