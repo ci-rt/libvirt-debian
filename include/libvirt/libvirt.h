@@ -442,7 +442,7 @@ extern virConnectAuthPtr virConnectAuthPtrDefault;
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-#define LIBVIR_VERSION_NUMBER 6002
+#define LIBVIR_VERSION_NUMBER 6003
 
 int                     virGetVersion           (unsigned long *libVer,
                                                  const char *type,
@@ -1123,6 +1123,12 @@ int                     virNodeDeviceFree       (virNodeDevicePtr dev);
 int                     virNodeDeviceDettach    (virNodeDevicePtr dev);
 int                     virNodeDeviceReAttach   (virNodeDevicePtr dev);
 int                     virNodeDeviceReset      (virNodeDevicePtr dev);
+
+virNodeDevicePtr        virNodeDeviceCreateXML  (virConnectPtr conn,
+                                                 const char *xmlDesc,
+                                                 unsigned int flags);
+
+int                     virNodeDeviceDestroy    (virNodeDevicePtr dev);
 
 /*
  * Domain Event Notification

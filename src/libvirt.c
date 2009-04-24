@@ -55,6 +55,9 @@
 #ifdef WITH_OPENVZ
 #include "openvz_driver.h"
 #endif
+#ifdef WITH_VBOX
+#include "vbox/vbox_driver.h"
+#endif
 #endif
 
 #define VIR_FROM_THIS VIR_FROM_NONE
@@ -306,6 +309,7 @@ virInitialize(void)
     virDriverLoadModule("test");
     virDriverLoadModule("xen");
     virDriverLoadModule("openvz");
+    virDriverLoadModule("vbox");
     virDriverLoadModule("remote");
 #else
 #ifdef WITH_TEST
@@ -316,6 +320,9 @@ virInitialize(void)
 #endif
 #ifdef WITH_OPENVZ
     if (openvzRegister() == -1) return -1;
+#endif
+#ifdef WITH_VBOX
+    if (vboxRegister() == -1) return -1;
 #endif
 #ifdef WITH_REMOTE
     if (remoteRegister () == -1) return -1;
@@ -830,6 +837,10 @@ virGetVersion(unsigned long *libVer, const char *type,
         if (STRCASEEQ(type, "OpenVZ"))
             *typeVer = LIBVIR_VERSION_NUMBER;
 #endif
+#if WITH_VBOX
+        if (STRCASEEQ(type, "VBox"))
+            *typeVer = LIBVIR_VERSION_NUMBER;
+#endif
 #if WITH_UML
         if (STRCASEEQ(type, "UML"))
             *typeVer = LIBVIR_VERSION_NUMBER;
@@ -1140,6 +1151,8 @@ virConnectClose(virConnectPtr conn)
  * connection remain open until all threads have finished using
  * it. ie, each new thread using a connection would increment
  * the reference count.
+ *
+ * Returns 0 in case of success, -1 in case of failure
  */
 int
 virConnectRef(virConnectPtr conn)
@@ -1805,7 +1818,7 @@ virDomainFree(virDomainPtr domain)
 
 /**
  * virDomainRef:
- * @conn: the domain to hold a reference on
+ * @domain: the domain to hold a reference on
  *
  * Increment the reference count on the domain. For each
  * additional call to this method, there shall be a corresponding
@@ -1817,6 +1830,8 @@ virDomainFree(virDomainPtr domain)
  * connection remain open until all threads have finished using
  * it. ie, each new thread using a domain would increment
  * the reference count.
+ *
+ * Returns 0 in case of success and -1 in case of failure.
  */
 int
 virDomainRef(virDomainPtr domain)
@@ -3158,8 +3173,10 @@ error:
  * @conn: pointer to the hypervisor connection
  *
  * provides the free memory available on the Node
+ * Note: most libvirt APIs provide memory sizes in kilobytes, but in this
+ * function the returned value is in bytes. Divide by 1024 as necessary.
  *
- * Returns the available free memory in kilobytes or 0 in case of error
+ * Returns the available free memory in bytes or 0 in case of error
  */
 unsigned long long
 virNodeGetFreeMemory(virConnectPtr conn)
@@ -3659,7 +3676,8 @@ error:
  *
  * Define a domain, but does not start it.
  * This definition is persistent, until explicitly undefined with
- * virDomainUndefine().
+ * virDomainUndefine(). A previous definition for this domain would be
+ * overriden if it already exists.
  *
  * Returns NULL in case of error, a pointer to the domain otherwise
  */
@@ -4953,7 +4971,7 @@ virNetworkFree(virNetworkPtr network)
 
 /**
  * virNetworkRef:
- * @conn: the network to hold a reference on
+ * @network: the network to hold a reference on
  *
  * Increment the reference count on the network. For each
  * additional call to this method, there shall be a corresponding
@@ -4965,6 +4983,8 @@ virNetworkFree(virNetworkPtr network)
  * connection remain open until all threads have finished using
  * it. ie, each new thread using a network would increment
  * the reference count.
+ *
+ * Returns 0 in case of success, -1 in case of failure.
  */
 int
 virNetworkRef(virNetworkPtr network)
@@ -6037,7 +6057,7 @@ virStoragePoolFree(virStoragePoolPtr pool)
 
 /**
  * virStoragePoolRef:
- * @conn: the pool to hold a reference on
+ * @pool: the pool to hold a reference on
  *
  * Increment the reference count on the pool. For each
  * additional call to this method, there shall be a corresponding
@@ -6049,6 +6069,8 @@ virStoragePoolFree(virStoragePoolPtr pool)
  * connection remain open until all threads have finished using
  * it. ie, each new thread using a pool would increment
  * the reference count.
+ *
+ * Returns 0 in case of success, -1 in case of failure.
  */
 int
 virStoragePoolRef(virStoragePoolPtr pool)
@@ -6818,7 +6840,7 @@ virStorageVolFree(virStorageVolPtr vol)
 
 /**
  * virStorageVolRef:
- * @conn: the vol to hold a reference on
+ * @vol: the vol to hold a reference on
  *
  * Increment the reference count on the vol. For each
  * additional call to this method, there shall be a corresponding
@@ -6830,6 +6852,8 @@ virStorageVolFree(virStorageVolPtr vol)
  * connection remain open until all threads have finished using
  * it. ie, each new thread using a vol would increment
  * the reference count.
+ *
+ * Returns 0 in case of success, -1 in case of failure.
  */
 int
 virStorageVolRef(virStorageVolPtr vol)
@@ -7320,7 +7344,7 @@ int virNodeDeviceFree(virNodeDevicePtr dev)
 
 /**
  * virNodeDeviceRef:
- * @conn: the dev to hold a reference on
+ * @dev: the dev to hold a reference on
  *
  * Increment the reference count on the dev. For each
  * additional call to this method, there shall be a corresponding
@@ -7332,6 +7356,8 @@ int virNodeDeviceFree(virNodeDevicePtr dev)
  * connection remain open until all threads have finished using
  * it. ie, each new thread using a dev would increment
  * the reference count.
+ *
+ * Returns 0 in case of success, -1 in case of failure.
  */
 int
 virNodeDeviceRef(virNodeDevicePtr dev)
@@ -7348,7 +7374,7 @@ virNodeDeviceRef(virNodeDevicePtr dev)
 }
 
 /**
- * virNodeDeviceAttach:
+ * virNodeDeviceDettach:
  * @dev: pointer to the node device
  *
  * Dettach the node device from the node itself so that it may be
@@ -7363,6 +7389,8 @@ virNodeDeviceRef(virNodeDevicePtr dev)
  *
  * Once the device is not assigned to any guest, it may be re-attached
  * to the node using the virNodeDeviceReattach() method.
+ *
+ * Returns 0 in case of success, -1 in case of failure.
  */
 int
 virNodeDeviceDettach(virNodeDevicePtr dev)
@@ -7404,6 +7432,8 @@ error:
  * and binding it to its appropriate driver.
  *
  * If the device is currently in use by a guest, this method may fail.
+ *
+ * Returns 0 in case of success, -1 in case of failure.
  */
 int
 virNodeDeviceReAttach(virNodeDevicePtr dev)
@@ -7447,6 +7477,8 @@ error:
  *
  * If the reset will affect other devices which are currently in use,
  * this function may fail.
+ *
+ * Returns 0 in case of success, -1 in case of failure.
  */
 int
 virNodeDeviceReset(virNodeDevicePtr dev)
@@ -7474,6 +7506,103 @@ error:
     /* Copy to connection error object for back compatability */
     virSetConnError(dev->conn);
     return (-1);
+}
+
+
+/**
+ * virNodeDeviceCreateXML:
+ * @conn: pointer to the hypervisor connection
+ * @xmlDesc: string containing an XML description of the device to be created
+ * @flags: callers should always pass 0
+ *
+ * Create a new device on the VM host machine, for example, virtual
+ * HBAs created using vport_create.
+ *
+ * Returns a node device object if successful, NULL in case of failure
+ */
+virNodeDevicePtr
+virNodeDeviceCreateXML(virConnectPtr conn,
+                       const char *xmlDesc,
+                       unsigned int flags)
+{
+    VIR_DEBUG("conn=%p, xmlDesc=%s, flags=%d", conn, xmlDesc, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return NULL;
+    }
+
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibConnError(conn, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (xmlDesc == NULL) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->deviceMonitor &&
+        conn->deviceMonitor->deviceCreateXML) {
+        virNodeDevicePtr dev = conn->deviceMonitor->deviceCreateXML(conn, xmlDesc, flags);
+        if (dev == NULL)
+            goto error;
+        return dev;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(conn);
+    return NULL;
+}
+
+
+/**
+ * virNodeDeviceDestroy:
+ * @dev: a device object
+ *
+ * Destroy the device object. The virtual device is removed from the host operating system.
+ * This function may require privileged access
+ *
+ * Returns 0 in case of success and -1 in case of failure.
+ */
+int
+virNodeDeviceDestroy(virNodeDevicePtr dev)
+{
+    DEBUG("dev=%p", dev);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_NODE_DEVICE(dev)) {
+        virLibNodeDeviceError(NULL, VIR_ERR_INVALID_NODE_DEVICE, __FUNCTION__);
+        return (-1);
+    }
+
+    if (dev->conn->flags & VIR_CONNECT_RO) {
+        virLibConnError(dev->conn, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (dev->conn->deviceMonitor &&
+        dev->conn->deviceMonitor->deviceDestroy) {
+        int retval = dev->conn->deviceMonitor->deviceDestroy(dev);
+        if (retval < 0) {
+            goto error;
+        }
+
+        return 0;
+    }
+
+    virLibConnError (dev->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(dev->conn);
+    return -1;
 }
 
 

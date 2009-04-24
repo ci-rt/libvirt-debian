@@ -1,7 +1,292 @@
+Fri Apr 24 15:55:56 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* NEWS configure.in libvirt.spec.in docs/*: release of 0.6.3
+	* po/*: regenerated
+	* src/libvirt.c src/virterror.c: fixed some function comments
+
+Fri Apr 24 14:07:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Add virNodeDeviceCreateXML / virNodeDeviceDestroy boilerplate
+	public API and remote protocol impl
+	* include/libvirt/libvirt.h, include/libvirt/libvirt.h.in,
+	 src/libvirt_public.syms: Public API definition of new
+	virNodeDeviceCreateXML and virNodeDeviceDestroy methods
+	* qemud/remote.c: Dispatch code for new APIs
+	* qemud/remote_dispatch_args.h, qemud/remote_dispatch_prototypes.h,
+	qemud/remote_dispatch_ret.h, qemud/remote_dispatch_table.h:
+	Re-generate stubs for dispatcher
+	* qemud/remote_protocol.x: Define wire protocol for node
+	device create / destroy APIs
+	* qemud/remote_protocol.c, qemud/remote_protocol.h:
+	Re-generate based off protocol additions
+	* src/driver.h: Define internal driver API contract for
+	new public APIs
+	* src/libvirt.c: Wire up public API to driver API for
+	virNodeDeviceCreateXML/virNodeDeviceDestroy
+	* src/remote_internal.c: Client for new node device methods
+
+Fri Apr 24 13:19:47 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/libvirt_private.syms: Add virDomainHostdevDefFree needed
+	by Xen driver when built as a module.
+
+Fri Apr 24 13:17:47 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Fix network config in XM driver
+	* src/xm_internal.c: Fix setting of bridge & script parameters
+	in VIF config
+	* src/xend_internal.h, src/xend_internal.c: Export the 
+	default bridge script name to XM driver
+	* tests/xmconfigdata/*: Update to take account of script=
+	setting in VIF config
+
+Fri Apr 24 12:06:47 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* po/*: updated a could of locale, regenerated
+	* docs/libvirt-api.xml docs/libvirt-refs.xml: regenerated too
+
+Wed Apr 22 15:28:03 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/network_driver.c: Explicit check for NULL, to avoid
+	compiler complaining about "assignment treated as truth value
+	in conditional".
+
+Wed Apr 22 15:27:03 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Use private /dev/pts instance for containers (needs 'newinstance'
+	mount flag for devpts since 2.6.29 kernels), fallback to shared
+	instance if not supported
+	* src/domain_conf.h, src/domain_conf.c: Add a convenient
+	routine virDomainGetRootFilesystem()
+	* src/libvirt_private.sym: export virDomainGetRootFilesystem
+	to drivers
+	* src/util.c, src/util.h: Add virFileOpenTtyAt() to allow
+	alternate path to /dev/ptmx to be given
+	* src/lxc_controller.c: Attempt to setup a private /dev/pts
+	instance for the container's stdio I/O
+	* src/lxc_container.h, src/lxc_container.c: Pull in the
+	private /dev/pts instance setup by controller, and create
+	a symlink for /dev/ptmx.
+
+Tue Apr 21 20:14:03 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/qemu_driver.c: Remove pidfile when domain shuts down and
+	cleanup stale pidfile before domain startup.
+
+Tue Apr 21 14:39:03 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* po/POTFILES.in: Add vbox_tmpl.c file
+	* src/vbox/vbox_tmpl.c: Adjust domain IDs to start from 1
+	instead of 0, refuse domain ID 0.
+
+Tue Apr 21 20:58:50 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/network_conf.c src/network_conf.h: add dynamic bridge names
+	  support, patch by Soren Hansen
+	* AUTHORS: add Soren
+
+Tue Apr 21 17:08:57 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/xend_internal.c: let xend try vcpu pinning operation even
+	  if the domain is not running, patch by Takahashi Tomohiro
+
+Tue Apr 21 15:38:29 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* docs/drvvbox.html.in docs/drvvbox.html: tiny fixes to VirtualBox
+	  docs
+
+Tue Apr 21 14:22:03 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* docs/drvvbox.html.in docs/hvsupport.html.in docs/drivers.html.in
+	  docs/sitemap.html.in docs/*.html: VirtualBox Documentation by
+	  Pritesh Kothari
+
+Mon Apr 20 14:25:41 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/lxc_container.c src/lxc_container.h: cope with kernels
+	  where CLONE_NEWUSER is not supported, patch by Serge Hallyn
+
+Mon Apr 20 12:54:02 GMT 2009 Mark McLoughlin <markmc@redhat.com>
+
+	* docs/virsh.pod, virsh.1: fix typo reported by Robert P. J. Day
+
+Mon Apr 20 11:24:23 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* po/*: merge in a lot of localization updates and regenerate
+
+Mon Apr 20 11:06:20 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/bridge.c: fix a compilation breakage raised by Anton Protopopov
+
+Sun Apr 19 17:46:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* mingw32-libvirt.spec.in: Added new virt-xml-validate tool
+	missed from previous commit
+
+Sun Apr 19 17:36:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* autobuild.sh, mingw32-libvirt.spec.in: Disable vbox driver
+	for Win32 builds
+
+Sun Apr 19 17:36:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/Makefile.am: Add another vbox file to EXTRA_DIST
+
+Sun Apr 19 16:49:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/virterror.c: Add missing 'break' in error code string
+	formatter.
+
+Sun Apr 19 16:29:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Improve error reporting for lookup failures on inactive domains
+	* src/qemu_driver.c: Do all domain lookups based on UUID and
+	use correct error code for missing domains.
+
+Sun Apr 19 16:19:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Fix 2 domain ID handling bugs in remote driver
+	* src/remote_internal.c: Add virDomainCreate(), do a lookup
+	to find the ID of newly created domain. Reset ID to -1 after
+	doing a destroy operation on a domain
+
+Sun Apr 19 16:14:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/domain_conf.c: Switch over todo domain lookup based
+	on UUID in virDomainAssignDef
+
+Sun Apr 19 16:14:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* docs/libvirt-api.xml, docs/libvirt-refs.xml,
+	docs/devhelp/libvirt-libvirt.html, docs/devhelp/libvirt-virterror.html,
+	docs/html/libvirt-libvirt.html, docs/html/libvirt-virterror.html:
+	Regenerate API docs to pull in latest VBox error code definitions
+
+Sun Apr 19 16:12:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/Makefile.am: Add 2 missing vbox files to EXTRA_DIST
+
+Sun Apr 19 16:00:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Add command line tool for validating XML and improve POD docs
+	for virsh
+	* Makefile.am, configure.in: Add tools/ sub-directory
+	* docs/virsh.pod, docs/Makefile.am, virsh.1: Fix misc errors
+	in POD formating, and improve licensing/copyright/bugs section
+	* libvirt.spec.in: Add virt-xml-validate tool & man page
+	* tools/virt-xml-validate.in, tools/Makefile.am: Add tool for
+	validating XML files against schemas
+	* .hgignore, tools/.gitignore, tools/.cvsignore, m4/.gitignore:
+	Update to ignore more generated files
+
+Sun Apr 19 15:44:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/qemu_conf.c, src/qemu_conf.h: Pass in virDomainDefPtr to
+	qemudBuildCommandLine, instead of virDomainObjPtr
+	* src/qemu_driver.c, tests/qemuxml2argvtest.c: Update for above
+	API change.
+
+Fri Apr 17 21:10:28 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/libvirt_private.syms src/storage_backend.h
+	  src/storage_backend_fs.c src/storage_conf.h src/storage_driver.c:
+	  drop the pool lock when allocating fs volumes, patch by Cole Robinson
+
+Fri Apr 17 18:05:52 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* configure.in include/libvirt/virterror.h src/Makefile.am
+	  src/domain_conf.[ch] src/driver.h src/virterror.c src/vbox/README
+	  src/vbox/vbox_CAPI_v2_2.h src/vbox/vbox_V2_2.c
+	  src/vbox/vbox_XPCOMCGlue.[ch] src/vbox/vbox_driver.[ch]
+	  src/vbox/vbox_tmpl.c: integration of the VirtualBox support
+	  patches by Pritesh Kothari
+
+Fri Apr 17 17:32:16 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/libvirt.c: fix the doc of virNodeGetFreeMemory to say bytes
+	* docs/drvlxc.html.in docs/drvlxc.html: fix command used in examples
+
+Thu Apr 16 17:48:30 CEST 2009 Guido Günther <agx@sigxcpu.org>
+
+	* src/qemu_driver.c (qemudMonitorCommandExtra): don't log monitor
+	  output to domain log file. It's logged via the logging system
+	  already.
+	  (qemudDomainGetMemoryBalloon, qemudDomainSave,
+	   qemudDomainChangeEjectableMedia, qemudDomainAttachPciDiskDevice,
+	   qemudDomainAttachUsbMassstorageDevice, qemudDomainAttachHostDevice,
+	   qemudDomainDetachPciDiskDevice, qemudDomainBlockStats,
+	   qemudDomainMemoryPeek, qemudDomainMigratePerform): prefix monitor
+	   debug output with vm name.
+
+Thu Apr 16 16:48:51 CEST 2009 Guido Günther <agx@sigxcpu.org>
+
+	* src/qemud.c (remoteReadConfigFile): don't hardcode buffer for
+	  getgrnam_r to 1024 bytes and increase it on ERANGE.
+
+Thu Apr 16 15:20:02 GMT 2009 Mark McLoughlin <markmc@redhat.com>
+
+	* src/qemu_conf.c: pass "format=" to qemu -drive rather
+	than "fmt="
+
+	* tests/qemuxml2argvdata/*: fix test cases.
+
+Thu Apr 16 14:05:28 GMT 2009 Mark McLoughlin <markmc@redhat.com>
+
+	* src/lxc_container.c: syntax-check fixes
+
+Wed Apr 15 22:40:50 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* docs/Makefile.am docs/api.html docs/api.html.in docs/archdomain.html
+	 docs/archnetwork.html docs/archnode.html docs/archstorage.html
+	 docs/goals.html docs/intro.html
+	 docs/libvirt-daemon-arch.fig docs/libvirt-daemon-arch.png
+	 docs/libvirt-driver-arch.fig docs/libvirt-driver-arch.png
+	 docs/libvirt-object-model.fig docs/libvirt-object-model.png
+	 docs/page.xsl docs/sitemap.html docs/sitemap.html.in:
+	 adding a new api page, extending the stylesheet to allow references
+	 and including images from Dan Berrange
+
+Wed Apr 15 22:08:12 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/virsh.c: fix for virsh ttyconsole return value bug #495954
+
+Wed Apr 15 21:59:09 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* drvlxc.html.in drvlxc.html: some examples from Serge Hallyn
+
+Wed Apr 15 11:52:15 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/xm_internal.c: fix a crash on vcpupin to inactive Xen domains,
+	  as raised by Takahashi Tomohiro
+
+Wed Apr 15 11:33:33 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/lxc_driver.c: adds the getHostname method to the lxc driver
+	  patch by Dan Smith
+
+Tue Apr 14 10:46:44 PDT 2009 Dan Smith <danms@us.ibm.com>
+
+	* src/veth.c: Fix veth off-by-one error
+	  patch by Serge Hallyn
+	* src/lxc_container.c: Stop rootless containers from messing with
+	  system mounts.  Also, make pivot_root code more robust.
+	  patch by Serge Hallyn
+
+Tue Apr 14 14:46:29 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* libvirt.spec.in: fix build on RHEL and Centos 5.x, patch
+	  by Joseph Shraibman, fixes #495610
+
+Tue Apr  7 14:48:35 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/storage_backend_scsi.[ch]: add SCSI storage rescan support,
+	  patch by David Allan
+
 Fri Apr  3 16:47:22 CEST 2009 Daniel Veillard <veillard@redhat.com>
 
 	* configure.in libvirt.spec.in NEWS docs/*: release of 0.6.2
 	* po/*: Gujarati and Polish updates, rebuild
+	* AUTHORS: add one missing
 
 Fri Apr  3 10:16:55 EDT 2009 Cole Robinson <crobinso@redhat.com>
 
