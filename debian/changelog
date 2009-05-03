@@ -1,3 +1,16 @@
+libvirt (0.6.3-1) unstable; urgency=low
+
+  * [0cb2f83] Imported Upstream version 0.6.3
+        * virtual box support
+  * [06fe518] 0001-remove-RHism.diff.patch: use invoke-rc.d
+  * [ec2fd52] drop patches merged upstream:
+        * 0003-allow-libvirt-group-to-access-the-socket.patch  series
+        * 0004-fix-Debian-specific-path-to-hvm-loader.patch
+  * [6977bde] enable vbox support
+  * [93c4423] add symbols file
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 03 May 2009 23:33:28 +0200
+
 libvirt (0.6.2-2) unstable; urgency=low
 
   * [031b9c1] Don't hardcode buffer size for getgrnam_r. Works around
