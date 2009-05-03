@@ -5,8 +5,10 @@ DEB_DH_INSTALL_SOURCEDIR = debian/tmp
 
 ifneq (,$(findstring $(DEB_HOST_ARCH), i386 amd64))
   BUILD_XEN=--with-xen
+  BUILD_VBOX=--with-vbox
 else
   BUILD_XEN=--without-xen
+  BUILD_VBOX=--without-vbox
 endif
 
 include /usr/share/cdbs/1/rules/debhelper.mk
@@ -30,7 +32,8 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	--with-init-scripts=none \
 	--without-numactl	 \
 	--enable-debug		 \
-	$(BUILD_XEN)
+	$(BUILD_XEN)		 \
+	$(BUILD_VBOX)
 
 DEB_DBG_PACKAGES = libvirt0-dbg
 DEB_DBG_PACKAGE_libvirt0 = libvirt0-dbg
