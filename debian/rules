@@ -20,7 +20,7 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	--disable-rpath          \
 	--with-qemu              \
 	--with-openvz            \
-	--without-lxc            \
+	--with-lxc               \
 	--with-avahi             \
 	--with-sasl              \
 	--with-polkit		 \
