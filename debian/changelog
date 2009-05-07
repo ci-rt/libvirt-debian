@@ -1,3 +1,15 @@
+libvirt (0.6.3-2) unstable; urgency=low
+
+  * [35898d3] fix crash when libvirt_lxc is called without arguments
+  * [449ca60] enable lxc support (Closes: #526718) - thanks to Daniel
+              Pittman for testing this
+  * [335a4e6] update description with supported virtualization solutions
+  * [92eba47] delay libvirt-bin start until after avahi
+  * [8ebd17d] update startup priorities due to changed libvirt-bin
+               startup priority. Also add an LSB header. (Closes: #526944)
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 07 May 2009 13:28:40 +0200
+
 libvirt (0.6.3-1) unstable; urgency=low
 
   * [0cb2f83] Imported Upstream version 0.6.3
