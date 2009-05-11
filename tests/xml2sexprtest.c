@@ -95,6 +95,7 @@ mymain(int argc, char **argv)
 #define DO_TEST(in, out, name, version)                                \
     do {                                                               \
         struct testInfo info = { in, out, name, version };             \
+        virResetLastError();                                           \
         if (virtTestRun("Xen XML-2-SEXPR " in " -> " out,              \
                         1, testCompareHelper, &info) < 0)     \
             ret = -1;                                                  \
@@ -128,6 +129,8 @@ mymain(int argc, char **argv)
     DO_TEST("net-e1000", "net-e1000", "pvtest", 2);
     DO_TEST("bridge-ipaddr", "bridge-ipaddr", "pvtest", 2);
     DO_TEST("no-source-cdrom", "no-source-cdrom", "test", 2);
+    DO_TEST("pv-localtime", "pv-localtime", "pvtest", 1);
+    DO_TEST("pci-devs", "pci-devs", "pvtest", 2);
 
     DO_TEST("fv-utc", "fv-utc", "fvtest", 1);
     DO_TEST("fv-localtime", "fv-localtime", "fvtest", 1);

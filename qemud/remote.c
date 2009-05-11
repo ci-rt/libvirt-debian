@@ -662,6 +662,7 @@ remoteDispatchNodeGetCellsFreeMemory (struct qemud_server *server ATTRIBUTE_UNUS
                                       remote_node_get_cells_free_memory_args *args,
                                       remote_node_get_cells_free_memory_ret *ret)
 {
+    int err;
 
     if (args->maxCells > REMOTE_NODE_MAX_CELLS) {
         remoteDispatchFormatError (rerr,
@@ -675,15 +676,16 @@ remoteDispatchNodeGetCellsFreeMemory (struct qemud_server *server ATTRIBUTE_UNUS
         return -1;
     }
 
-    ret->freeMems.freeMems_len = virNodeGetCellsFreeMemory(conn,
-                                                           (unsigned long long *)ret->freeMems.freeMems_val,
-                                                           args->startCell,
-                                                           args->maxCells);
-    if (ret->freeMems.freeMems_len == 0) {
+    err = virNodeGetCellsFreeMemory(conn,
+                                    (unsigned long long *)ret->freeMems.freeMems_val,
+                                    args->startCell,
+                                    args->maxCells);
+    if (err <= 0) {
         VIR_FREE(ret->freeMems.freeMems_val);
         remoteDispatchConnError(rerr, conn);
         return -1;
     }
+    ret->freeMems.freeMems_len = err;
 
     return 0;
 }
@@ -1475,7 +1477,8 @@ remoteDispatchDomainGetVcpus (struct qemud_server *server ATTRIBUTE_UNUSED,
     /* Allocate buffers to take the results. */
     if (VIR_ALLOC_N(info, args->maxinfo) < 0)
         goto oom;
-    if (VIR_ALLOC_N(cpumaps, args->maxinfo) < 0)
+    if (args->maplen > 0 &&
+        VIR_ALLOC_N(cpumaps, args->maxinfo * args->maplen) < 0)
         goto oom;
 
     info_len = virDomainGetVcpus (dom,
@@ -4312,6 +4315,54 @@ remoteDispatchNodeDeviceReset (struct qemud_server *server ATTRIBUTE_UNUSED,
     }
 
     if (virNodeDeviceReset(dev) == -1) {
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+static int
+remoteDispatchNodeDeviceCreateXml(struct qemud_server *server ATTRIBUTE_UNUSED,
+                                  struct qemud_client *client ATTRIBUTE_UNUSED,
+                                  virConnectPtr conn,
+                                  remote_error *rerr,
+                                  remote_node_device_create_xml_args *args,
+                                  remote_node_device_create_xml_ret *ret)
+{
+    virNodeDevicePtr dev;
+
+    dev = virNodeDeviceCreateXML (conn, args->xml_desc, args->flags);
+    if (dev == NULL) {
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
+
+    make_nonnull_node_device (&ret->dev, dev);
+    virNodeDeviceFree(dev);
+
+    return 0;
+}
+
+
+static int
+remoteDispatchNodeDeviceDestroy(struct qemud_server *server ATTRIBUTE_UNUSED,
+                                struct qemud_client *client ATTRIBUTE_UNUSED,
+                                virConnectPtr conn,
+                                remote_error *rerr,
+                                remote_node_device_destroy_args *args,
+                                void *ret ATTRIBUTE_UNUSED)
+{
+    virNodeDevicePtr dev;
+
+    dev = virNodeDeviceLookupByName(conn, args->name);
+    if (dev == NULL) {
+        remoteDispatchFormatError(rerr, "%s", _("node_device not found"));
+        return -1;
+    }
+
+    if (virNodeDeviceDestroy(dev) == -1) {
         remoteDispatchConnError(rerr, conn);
         return -1;
     }

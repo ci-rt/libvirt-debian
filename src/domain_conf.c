@@ -54,7 +54,8 @@ VIR_ENUM_IMPL(virDomainVirt, VIR_DOMAIN_VIRT_LAST,
               "ldom",
               "test",
               "vmware",
-              "hyperv")
+              "hyperv",
+              "vbox")
 
 VIR_ENUM_IMPL(virDomainBoot, VIR_DOMAIN_BOOT_LAST,
               "fd",
@@ -498,7 +499,7 @@ virDomainObjPtr virDomainAssignDef(virConnectPtr conn,
 {
     virDomainObjPtr domain;
 
-    if ((domain = virDomainFindByName(doms, def->name))) {
+    if ((domain = virDomainFindByUUID(doms, def->uuid))) {
         if (!virDomainIsActive(domain)) {
             virDomainDefFree(domain->def);
             domain->def = def;
@@ -1861,11 +1862,18 @@ virSecurityLabelDefParseXML(virConnectPtr conn,
 
     p = virXPathStringLimit(conn, "string(./seclabel/@type)",
                             VIR_SECURITY_LABEL_BUFLEN-1, ctxt);
-    if (p == NULL)
+    if (p == NULL) {
+        virDomainReportError(conn, VIR_ERR_XML_ERROR,
+                             "%s", _("missing security type"));
         goto error;
-    if ((def->seclabel.type = virDomainSeclabelTypeFromString(p)) < 0)
-        goto error;
+    }
+    def->seclabel.type = virDomainSeclabelTypeFromString(p);
     VIR_FREE(p);
+    if (def->seclabel.type < 0) {
+        virDomainReportError(conn, VIR_ERR_XML_ERROR,
+                             _("invalid security type"));
+        goto error;
+    }
 
     /* Only parse details, if using static labels, or
      * if the 'live' VM XML is requested
@@ -1874,14 +1882,21 @@ virSecurityLabelDefParseXML(virConnectPtr conn,
         !(flags & VIR_DOMAIN_XML_INACTIVE)) {
         p = virXPathStringLimit(conn, "string(./seclabel/@model)",
                                 VIR_SECURITY_MODEL_BUFLEN-1, ctxt);
-        if (p == NULL)
+        if (p == NULL) {
+            virDomainReportError(conn, VIR_ERR_XML_ERROR,
+                                 "%s", _("missing security model"));
             goto error;
+        }
         def->seclabel.model = p;
 
         p = virXPathStringLimit(conn, "string(./seclabel/label[1])",
                                 VIR_SECURITY_LABEL_BUFLEN-1, ctxt);
-        if (p == NULL)
+        if (p == NULL) {
+            virDomainReportError(conn, VIR_ERR_XML_ERROR,
+                                 _("security label is missing"));
             goto error;
+        }
+
         def->seclabel.label = p;
     }
 
@@ -1890,8 +1905,11 @@ virSecurityLabelDefParseXML(virConnectPtr conn,
         !(flags & VIR_DOMAIN_XML_INACTIVE)) {
         p = virXPathStringLimit(conn, "string(./seclabel/imagelabel[1])",
                                 VIR_SECURITY_LABEL_BUFLEN-1, ctxt);
-        if (p == NULL)
+        if (p == NULL) {
+            virDomainReportError(conn, VIR_ERR_XML_ERROR,
+                                 _("security imagelabel is missing"));
             goto error;
+        }
         def->seclabel.imagelabel = p;
     }
 
@@ -2068,7 +2086,10 @@ static virDomainDefPtr virDomainDefParseXML(virConnectPtr conn,
         VIR_FREE(tmp);
     }
 
-    if ((n = virXPathNodeSet(conn, "./features/*", ctxt, &nodes)) > 0) {
+    n = virXPathNodeSet(conn, "./features/*", ctxt, &nodes);
+    if (n < 0)
+        goto error;
+    if (n) {
         for (i = 0 ; i < n ; i++) {
             int val = virDomainFeatureTypeFromString((const char *)nodes[i]->name);
             if (val < 0) {
@@ -2079,8 +2100,8 @@ static virDomainDefPtr virDomainDefParseXML(virConnectPtr conn,
             }
             def->features |= (1 << val);
         }
+        VIR_FREE(nodes);
     }
-    VIR_FREE(nodes);
 
     if (virDomainLifecycleParseXML(conn, ctxt, "string(./on_reboot[1])",
                                    &def->onReboot, VIR_DOMAIN_LIFECYCLE_RESTART) < 0)
@@ -2146,7 +2167,7 @@ static virDomainDefPtr virDomainDefParseXML(virConnectPtr conn,
             goto error;
         }
     } else {
-        const char *defaultArch = virCapabilitiesDefaultGuestArch(caps, def->os.type);
+        const char *defaultArch = virCapabilitiesDefaultGuestArch(caps, def->os.type, virDomainVirtTypeToString(def->virtType));
         if (defaultArch == NULL) {
             virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
                                  _("no supported architecture for os type '%s'"),
@@ -3045,7 +3066,8 @@ static int
 virDomainChrDefFormat(virConnectPtr conn,
                       virBufferPtr buf,
                       virDomainChrDefPtr def,
-                      const char *name)
+                      const char *name,
+                      int flags)
 {
     const char *type = virDomainChrTypeToString(def->type);
 
@@ -3060,6 +3082,7 @@ virDomainChrDefFormat(virConnectPtr conn,
                       name, type);
     if (STREQ(name, "console") &&
         def->type == VIR_DOMAIN_CHR_TYPE_PTY &&
+        !(flags & VIR_DOMAIN_XML_INACTIVE) &&
         def->data.file.path) {
         virBufferEscapeString(buf, " tty='%s'>\n",
                               def->data.file.path);
@@ -3079,7 +3102,7 @@ virDomainChrDefFormat(virConnectPtr conn,
     case VIR_DOMAIN_CHR_TYPE_FILE:
     case VIR_DOMAIN_CHR_TYPE_PIPE:
         if (def->type != VIR_DOMAIN_CHR_TYPE_PTY ||
-            def->data.file.path) {
+            (def->data.file.path && !(flags & VIR_DOMAIN_XML_INACTIVE))) {
             virBufferEscapeString(buf, "      <source path='%s'/>\n",
                                   def->data.file.path);
         }
@@ -3460,21 +3483,21 @@ char *virDomainDefFormat(virConnectPtr conn,
             goto cleanup;
 
     for (n = 0 ; n < def->nserials ; n++)
-        if (virDomainChrDefFormat(conn, &buf, def->serials[n], "serial") < 0)
+        if (virDomainChrDefFormat(conn, &buf, def->serials[n], "serial", flags) < 0)
             goto cleanup;
 
     for (n = 0 ; n < def->nparallels ; n++)
-        if (virDomainChrDefFormat(conn, &buf, def->parallels[n], "parallel") < 0)
+        if (virDomainChrDefFormat(conn, &buf, def->parallels[n], "parallel", flags) < 0)
             goto cleanup;
 
     /* If there's a PV console that's preferred.. */
     if (def->console) {
-        if (virDomainChrDefFormat(conn, &buf, def->console, "console") < 0)
+        if (virDomainChrDefFormat(conn, &buf, def->console, "console", flags) < 0)
             goto cleanup;
     } else if (def->nserials != 0) {
         /* ..else for legacy compat duplicate the first serial device as a
          * console */
-        if (virDomainChrDefFormat(conn, &buf, def->serials[0], "console") < 0)
+        if (virDomainChrDefFormat(conn, &buf, def->serials[0], "console", flags) < 0)
             goto cleanup;
     }
 
@@ -3833,6 +3856,21 @@ const char *virDomainDefDefaultEmulator(virConnectPtr conn,
     }
 
     return emulator;
+}
+
+virDomainFSDefPtr virDomainGetRootFilesystem(virDomainDefPtr def)
+{
+    int i;
+
+    for (i = 0 ; i < def->nfss ; i++) {
+        if (def->fss[i]->type != VIR_DOMAIN_FS_TYPE_MOUNT)
+            continue;
+
+        if (STREQ(def->fss[i]->dst, "/"))
+            return def->fss[i];
+    }
+
+    return NULL;
 }
 
 

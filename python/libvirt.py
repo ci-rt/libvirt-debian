@@ -962,6 +962,7 @@ class virConnect:
           Hypervisor are needed especially if there is running domain
            which need further monitoring by the application. """
         ret = libvirtmod.virConnectClose(self._o)
+        self._o = None
         if ret == -1: raise libvirtError ('virConnectClose() failed', conn=self)
         return ret
 
@@ -975,21 +976,11 @@ class virConnect:
         return __tmp
 
     def createXML(self, xmlDesc, flags):
-        """Create a new storage based on its XML description. The pool
-          is not persistent, so its definition will disappear when it
-           is destroyed, or if the host is restarted """
-        ret = libvirtmod.virStoragePoolCreateXML(self._o, xmlDesc, flags)
-        if ret is None:raise libvirtError('virStoragePoolCreateXML() failed', conn=self)
-        __tmp = virStoragePool(self, _obj=ret)
-        return __tmp
-
-    def createXML(self, xmlDesc):
-        """Create and start a new virtual network, based on an XML
-          description similar to the one returned by
-           virNetworkGetXMLDesc() """
-        ret = libvirtmod.virNetworkCreateXML(self._o, xmlDesc)
-        if ret is None:raise libvirtError('virNetworkCreateXML() failed', conn=self)
-        __tmp = virNetwork(self, _obj=ret)
+        """Create a new device on the VM host machine, for example,
+           virtual HBAs created using vport_create. """
+        ret = libvirtmod.virNodeDeviceCreateXML(self._o, xmlDesc, flags)
+        if ret is None:raise libvirtError('virNodeDeviceCreateXML() failed', conn=self)
+        __tmp = virNodeDevice(self, _obj=ret)
         return __tmp
 
     def createXML(self, xmlDesc, flags):
@@ -1007,7 +998,8 @@ class virConnect:
     def defineXML(self, xml):
         """Define a domain, but does not start it. This definition is
           persistent, until explicitly undefined with
-           virDomainUndefine(). """
+          virDomainUndefine(). A previous definition for this domain
+           would be overriden if it already exists. """
         ret = libvirtmod.virDomainDefineXML(self._o, xml)
         if ret is None:raise libvirtError('virDomainDefineXML() failed', conn=self)
         __tmp = virDomain(self,_obj=ret)
@@ -1033,7 +1025,10 @@ class virConnect:
         return ret
 
     def getFreeMemory(self):
-        """provides the free memory available on the Node """
+        """provides the free memory available on the Node Note: most
+          libvirt APIs provide memory sizes in kilobytes, but in this
+          function the returned value is in bytes. Divide by 1024 as
+           necessary. """
         ret = libvirtmod.virNodeGetFreeMemory(self._o)
         return ret
 
@@ -1136,6 +1131,15 @@ class virConnect:
         __tmp = virDomain(self,_obj=ret)
         return __tmp
 
+    def networkCreateXML(self, xmlDesc):
+        """Create and start a new virtual network, based on an XML
+          description similar to the one returned by
+           virNetworkGetXMLDesc() """
+        ret = libvirtmod.virNetworkCreateXML(self._o, xmlDesc)
+        if ret is None:raise libvirtError('virNetworkCreateXML() failed', conn=self)
+        __tmp = virNetwork(self, _obj=ret)
+        return __tmp
+
     def networkDefineXML(self, xml):
         """Define a network, but does not create it """
         ret = libvirtmod.virNetworkDefineXML(self._o, xml)
@@ -1231,6 +1235,15 @@ class virConnect:
         ret = libvirtmod.virDomainRestore(self._o, frm)
         if ret == -1: raise libvirtError ('virDomainRestore() failed', conn=self)
         return ret
+
+    def storagePoolCreateXML(self, xmlDesc, flags):
+        """Create a new storage based on its XML description. The pool
+          is not persistent, so its definition will disappear when it
+           is destroyed, or if the host is restarted """
+        ret = libvirtmod.virStoragePoolCreateXML(self._o, xmlDesc, flags)
+        if ret is None:raise libvirtError('virStoragePoolCreateXML() failed', conn=self)
+        __tmp = virStoragePool(self, _obj=ret)
+        return __tmp
 
     def storagePoolDefineXML(self, xml, flags):
         """Define a new inactive storage pool based on its XML
@@ -1441,7 +1454,24 @@ class virNodeDevice:
         if ret is None: raise libvirtError ('virNodeDeviceGetXMLDesc() failed')
         return ret
 
+    def destroy(self):
+        """Destroy the device object. The virtual device is removed
+          from the host operating system. This function may require
+           privileged access """
+        ret = libvirtmod.virNodeDeviceDestroy(self._o)
+        if ret == -1: raise libvirtError ('virNodeDeviceDestroy() failed')
+        return ret
+
     def dettach(self):
+        """Dettach the node device from the node itself so that it may
+          be assigned to a guest domain.  Depending on the
+          hypervisor, this may involve operations such as unbinding
+          any device drivers from the device, binding the device to a
+          dummy device driver and resetting the device.  If the
+          device is currently in use by the node, this method may
+          fail.  Once the device is not assigned to any guest, it may
+          be re-attached to the node using the
+           virNodeDeviceReattach() method. """
         ret = libvirtmod.virNodeDeviceDettach(self._o)
         if ret == -1: raise libvirtError ('virNodeDeviceDettach() failed')
         return ret
@@ -1548,6 +1578,7 @@ VIR_FROM_UML = 21
 VIR_FROM_NODEDEV = 22
 VIR_FROM_XEN_INOTIFY = 23
 VIR_FROM_SECURITY = 24
+VIR_FROM_VBOX = 25
 
 # virDomainEventStartedDetailType
 VIR_DOMAIN_EVENT_STARTED_BOOTED = 0

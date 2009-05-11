@@ -129,6 +129,13 @@ OPENVZ_DRIVER_SOURCES =						\
 		openvz_conf.c openvz_conf.h			\
 		openvz_driver.c openvz_driver.h
 
+VBOX_DRIVER_SOURCES =                                 \
+        vbox/vbox_XPCOMCGlue.c vbox/vbox_XPCOMCGlue.h \
+        vbox/vbox_driver.c vbox/vbox_driver.h         \
+        vbox/vbox_V2_2.c vbox/vbox_CAPI_v2_2.h
+
+VBOX_DRIVER_EXTRA_DIST = vbox/vbox_tmpl.c vbox/README
+
 QEMU_DRIVER_SOURCES =						\
 		qemu_conf.c qemu_conf.h				\
 		qemu_driver.c qemu_driver.h
@@ -158,6 +165,9 @@ STORAGE_DRIVER_LVM_SOURCES =					\
 
 STORAGE_DRIVER_ISCSI_SOURCES =					\
 		storage_backend_iscsi.h storage_backend_iscsi.c
+
+STORAGE_DRIVER_SCSI_SOURCES =					\
+		storage_backend_scsi.h storage_backend_scsi.c
 
 STORAGE_DRIVER_DISK_SOURCES =					\
 		storage_backend_disk.h storage_backend_disk.c
@@ -268,6 +278,19 @@ endif
 libvirt_driver_openvz_la_SOURCES = $(OPENVZ_DRIVER_SOURCES)
 endif
 
+if WITH_VBOX
+if WITH_DRIVER_MODULES
+mod_LTLIBRARIES += libvirt_driver_vbox.la
+else
+noinst_LTLIBRARIES += libvirt_driver_vbox.la
+libvirt_la_LIBADD += libvirt_driver_vbox.la
+endif
+if WITH_DRIVER_MODULES
+libvirt_driver_vbox_la_LDFLAGS = -module -avoid-version
+endif
+libvirt_driver_vbox_la_SOURCES = $(VBOX_DRIVER_SOURCES)
+endif
+
 if WITH_QEMU
 if WITH_DRIVER_MODULES
 mod_LTLIBRARIES += libvirt_driver_qemu.la
@@ -353,6 +376,10 @@ if WITH_STORAGE_ISCSI
 libvirt_driver_storage_la_SOURCES += $(STORAGE_DRIVER_ISCSI_SOURCES)
 endif
 
+if WITH_STORAGE_SCSI
+libvirt_driver_storage_la_SOURCES += $(STORAGE_DRIVER_SCSI_SOURCES)
+endif
+
 if WITH_STORAGE_DISK
 libvirt_driver_storage_la_SOURCES += $(STORAGE_DRIVER_DISK_SOURCES)
 endif
@@ -403,15 +430,19 @@ EXTRA_DIST +=							\
 		$(LXC_DRIVER_SOURCES)				\
 		$(UML_DRIVER_SOURCES)				\
 		$(OPENVZ_DRIVER_SOURCES)			\
+		$(VBOX_DRIVER_SOURCES)				\
 		$(NETWORK_DRIVER_SOURCES)			\
 		$(STORAGE_DRIVER_SOURCES)			\
 		$(STORAGE_DRIVER_FS_SOURCES)			\
 		$(STORAGE_DRIVER_LVM_SOURCES)			\
 		$(STORAGE_DRIVER_ISCSI_SOURCES)			\
+		$(STORAGE_DRIVER_SCSI_SOURCES)			\
 		$(STORAGE_DRIVER_DISK_SOURCES)			\
 		$(NODE_DEVICE_DRIVER_SOURCES)			\
 		$(NODE_DEVICE_DRIVER_HAL_SOURCES)		\
-		$(NODE_DEVICE_DRIVER_DEVKIT_SOURCES)
+		$(NODE_DEVICE_DRIVER_DEVKIT_SOURCES)		\
+		$(SECURITY_DRIVER_SELINUX_SOURCES)		\
+		$(VBOX_DRIVER_EXTRA_DIST)
 
 #
 # Build our version script.  This is composed of three parts:

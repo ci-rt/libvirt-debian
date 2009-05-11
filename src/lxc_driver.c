@@ -362,6 +362,7 @@ static int lxcDomainGetInfo(virDomainPtr dom,
 {
     lxc_driver_t *driver = dom->conn->privateData;
     virDomainObjPtr vm;
+    virCgroupPtr cgroup = NULL;
     int ret = -1;
 
     lxcDriverLock(driver);
@@ -376,10 +377,19 @@ static int lxcDomainGetInfo(virDomainPtr dom,
 
     info->state = vm->state;
 
-    if (!virDomainIsActive(vm)) {
+    if (!virDomainIsActive(vm) || virCgroupHaveSupport() != 0) {
         info->cpuTime = 0;
     } else {
-        info->cpuTime = 0;
+        if (virCgroupForDomain(vm->def, "lxc", &cgroup) != 0) {
+            lxcError(dom->conn, dom, VIR_ERR_INTERNAL_ERROR,
+                     _("Unable to get cgroup for %s\n"), vm->def->name);
+            goto cleanup;
+        }
+
+        if (virCgroupGetCpuacctUsage(cgroup, &(info->cpuTime)) < 0) {
+            lxcError(dom->conn, dom, VIR_ERR_OPERATION_FAILED, ("cannot read cputime for domain"));
+            goto cleanup;
+        }
     }
 
     info->maxMem = vm->def->maxmem;
@@ -388,6 +398,8 @@ static int lxcDomainGetInfo(virDomainPtr dom,
     ret = 0;
 
 cleanup:
+    if (cgroup)
+        virCgroupFree(&cgroup);
     if (vm)
         virDomainObjUnlock(vm);
     return ret;
@@ -1392,6 +1404,20 @@ cleanup:
     return ret;
 }
 
+static char *lxcGetHostname (virConnectPtr conn)
+{
+    char *result;
+
+    result = virGetHostname();
+    if (result == NULL) {
+        virReportSystemError (conn, errno,
+                              "%s", _("failed to determine host name"));
+        return NULL;
+    }
+    /* Caller frees this string. */
+    return result;
+}
+
 /* Function Tables */
 static virDriver lxcDriver = {
     VIR_DRV_LXC, /* the number virDrvNo */
@@ -1401,8 +1427,7 @@ static virDriver lxcDriver = {
     NULL, /* supports_feature */
     NULL, /* type */
     lxcVersion, /* version */
-    NULL, /* getHostname */
-    NULL, /* getURI */
+    lxcGetHostname, /* getHostname */
     NULL, /* getMaxVcpus */
     NULL, /* nodeGetInfo */
     NULL, /* getCapabilities */
@@ -1457,7 +1482,7 @@ static virDriver lxcDriver = {
     NULL, /* domainEventDeregister */
     NULL, /* domainMigratePrepare2 */
     NULL, /* domainMigrateFinish2 */
-    NULL, /* nodeDeviceAttach */
+    NULL, /* nodeDeviceDettach */
     NULL, /* nodeDeviceReAttach */
     NULL, /* nodeDeviceReset */
 };

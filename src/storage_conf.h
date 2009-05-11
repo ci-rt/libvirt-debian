@@ -84,6 +84,8 @@ struct _virStorageVolDef {
     char *key;
     int type; /* virStorageVolType enum */
 
+    unsigned int building;
+
     unsigned long long allocation;
     unsigned long long capacity;
 
@@ -116,6 +118,13 @@ enum virStoragePoolType {
 };
 
 VIR_ENUM_DECL(virStoragePool)
+
+enum virStoragePoolDeviceType {
+    VIR_STORAGE_DEVICE_TYPE_DISK = 0x00,
+    VIR_STORAGE_DEVICE_TYPE_ROM = 0x05,
+
+    VIR_STORAGE_DEVICE_TYPE_LAST,
+};
 
 
 enum virStoragePoolAuthType {
@@ -231,6 +240,7 @@ struct _virStoragePoolObj {
     char *autostartLink;
     int active;
     int autostart;
+    unsigned int asyncjobs;
 
     virStoragePoolDefPtr def;
     virStoragePoolDefPtr newDef;

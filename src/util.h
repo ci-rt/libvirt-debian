@@ -31,6 +31,7 @@
 
 int saferead(int fd, void *buf, size_t count);
 ssize_t safewrite(int fd, const void *buf, size_t count);
+int safezero(int fd, int flags, off_t offset, off_t len);
 
 enum {
     VIR_EXEC_NONE   = 0,
@@ -86,6 +87,9 @@ int virFileStripSuffix(char *str,
 int virFileLinkPointsTo(const char *checkLink,
                         const char *checkDest);
 
+int virFileResolveLink(const char *linkpath,
+                       char **resultpath);
+
 int virFileExists(const char *path);
 
 int virFileMakePath(const char *path);
@@ -99,6 +103,10 @@ int virFileBuildPath(const char *dir,
 int virFileOpenTty(int *ttymaster,
                    char **ttyName,
                    int rawmode);
+int virFileOpenTtyAt(const char *ptmx,
+                     int *ttymaster,
+                     char **ttyName,
+                     int rawmode);
 
 char* virFilePid(const char *dir,
                  const char *name);

@@ -121,8 +121,7 @@ static virNodeDevicePtr nodeDeviceLookupByName(virConnectPtr conn,
     nodeDeviceUnlock(driver);
 
     if (!obj) {
-        virNodeDeviceReportError(conn, VIR_ERR_INVALID_NODE_DEVICE,
-                                 "%s", _("no node device with matching name"));
+        virNodeDeviceReportError(conn, VIR_ERR_NO_NODE_DEVICE, NULL);
         goto cleanup;
     }
 
@@ -176,9 +175,14 @@ static char *nodeDeviceGetParent(virNodeDevicePtr dev)
         goto cleanup;
     }
 
-    ret = strdup(obj->def->parent);
-    if (!ret)
-        virReportOOMError(dev->conn);
+    if (obj->def->parent) {
+        ret = strdup(obj->def->parent);
+        if (!ret)
+            virReportOOMError(dev->conn);
+    } else {
+        virNodeDeviceReportError(dev->conn, VIR_ERR_INTERNAL_ERROR,
+                                 "%s", _("no parent for this device"));
+    }
 
 cleanup:
     if (obj)

@@ -32,11 +32,10 @@ typedef virSecurityDriverStatus (*virSecurityDriverProbe) (void);
 typedef int (*virSecurityDriverOpen) (virConnectPtr conn,
                                       virSecurityDriverPtr drv);
 typedef int (*virSecurityDomainRestoreImageLabel) (virConnectPtr conn,
-                                                   virDomainObjPtr vm,
-                                                   virDomainDeviceDefPtr dev);
+                                                   virDomainDiskDefPtr disk);
 typedef int (*virSecurityDomainSetImageLabel) (virConnectPtr conn,
                                                virDomainObjPtr vm,
-                                               virDomainDeviceDefPtr dev);
+                                               virDomainDiskDefPtr disk);
 typedef int (*virSecurityDomainGenLabel) (virConnectPtr conn,
                                           virDomainObjPtr sec);
 typedef int (*virSecurityDomainGetLabel) (virConnectPtr conn,
@@ -47,11 +46,14 @@ typedef int (*virSecurityDomainRestoreLabel) (virConnectPtr conn,
 typedef int (*virSecurityDomainSetLabel) (virConnectPtr conn,
                                           virSecurityDriverPtr drv,
                                           virDomainObjPtr vm);
+typedef int (*virSecurityDomainSecurityVerify) (virConnectPtr conn,
+                                                virDomainDefPtr def);
 
 struct _virSecurityDriver {
     const char *name;
     virSecurityDriverProbe probe;
     virSecurityDriverOpen open;
+    virSecurityDomainSecurityVerify domainSecurityVerify;
     virSecurityDomainRestoreImageLabel domainRestoreSecurityImageLabel;
     virSecurityDomainSetImageLabel domainSetSecurityImageLabel;
     virSecurityDomainGenLabel domainGenSecurityLabel;
@@ -71,6 +73,9 @@ struct _virSecurityDriver {
 /* Global methods */
 int virSecurityDriverStartup(virSecurityDriverPtr *drv,
                              const char *name);
+
+int
+virSecurityDriverVerify(virConnectPtr conn, virDomainDefPtr def);
 
 void
 virSecurityReportError(virConnectPtr conn, int code, const char *fmt, ...)

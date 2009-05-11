@@ -1,3 +1,49 @@
+libvirt (0.6.3-2) unstable; urgency=low
+
+  * [35898d3] fix crash when libvirt_lxc is called without arguments
+  * [449ca60] enable lxc support (Closes: #526718) - thanks to Daniel
+              Pittman for testing this
+  * [335a4e6] update description with supported virtualization solutions
+  * [92eba47] delay libvirt-bin start until after avahi
+  * [8ebd17d] update startup priorities due to changed libvirt-bin
+               startup priority. Also add an LSB header. (Closes: #526944)
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 07 May 2009 13:28:40 +0200
+
+libvirt (0.6.3-1) unstable; urgency=low
+
+  * [0cb2f83] Imported Upstream version 0.6.3
+        * virtual box support
+  * [06fe518] 0001-remove-RHism.diff.patch: use invoke-rc.d
+  * [ec2fd52] drop patches merged upstream:
+        * 0003-allow-libvirt-group-to-access-the-socket.patch  series
+        * 0004-fix-Debian-specific-path-to-hvm-loader.patch
+  * [6977bde] enable vbox support
+  * [93c4423] add symbols file
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 03 May 2009 23:33:28 +0200
+
+libvirt (0.6.2-2) unstable; urgency=low
+
+  * [031b9c1] Don't hardcode buffer size for getgrnam_r. Works around
+              #520744 and fixes possible problems with implementations having
+              _SC_GETGR_R_SIZE_MAX != 1024.
+  * [bbe7743] respect log priority for qemu domain logs (Closes: #524145)
+  * [a2e4cb0] don't rely on log_end_msg returning 0 this isn't the case
+              with splashy. (Closes: #523712)
+  * [ddfafda] move debug package into section debug
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 16 Apr 2009 15:28:31 +0200
+
+libvirt (0.6.2-1) unstable; urgency=low
+
+  * [99fd06c] Imported Upstream version 0.6.2 (Closes: #521785)
+  * [78cd5c8] drop /var/run/libvirt created by init script
+  * [2a7cb3b] move startup of libvirtd after hal (Closes: #522310)
+  * [b8707ed] bump standards version 0.8.1 (no changes necessary)
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 09 Apr 2009 22:48:57 +0200
+
 libvirt (0.6.1-1~bpo50+1) lenny-backports; urgency=low
 
   * Rebuild for lenny-backports.

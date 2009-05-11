@@ -332,7 +332,7 @@ doRemoteOpen (virConnectPtr conn,
               virConnectAuthPtr auth ATTRIBUTE_UNUSED,
               int flags)
 {
-    int wakeupFD[2];
+    int wakeupFD[2] = { -1, -1 };
     char *transport_str = NULL;
 
     if (conn->uri) {
@@ -885,6 +885,11 @@ doRemoteOpen (virConnectPtr conn,
 #endif
     }
 
+    if (wakeupFD[0] >= 0) {
+        close(wakeupFD[0]);
+        close(wakeupFD[1]);
+    }
+
     VIR_FREE(priv->hostname);
     goto cleanup;
 }
@@ -1350,6 +1355,11 @@ doRemoteClose (virConnectPtr conn, struct private_data *priv)
         } while (reap != -1 && reap != priv->pid);
     }
 #endif
+    if (priv->wakeupReadFD >= 0) {
+        close(priv->wakeupReadFD);
+        close(priv->wakeupSendFD);
+    }
+
 
     /* Free hostname copy */
     free (priv->hostname);
@@ -1929,6 +1939,7 @@ remoteDomainDestroy (virDomainPtr domain)
         goto done;
 
     rv = 0;
+    domain->id = -1;
 
 done:
     remoteDriverUnlock(priv);
@@ -2663,6 +2674,8 @@ remoteDomainCreate (virDomainPtr domain)
 {
     int rv = -1;
     remote_domain_create_args args;
+    remote_domain_lookup_by_uuid_args args2;
+    remote_domain_lookup_by_uuid_ret ret2;
     struct private_data *priv = domain->conn->privateData;
 
     remoteDriverLock(priv);
@@ -2673,6 +2686,20 @@ remoteDomainCreate (virDomainPtr domain)
               (xdrproc_t) xdr_remote_domain_create_args, (char *) &args,
               (xdrproc_t) xdr_void, (char *) NULL) == -1)
         goto done;
+
+    /* Need to do a lookup figure out ID of newly started guest, because
+     * bug in design of REMOTE_PROC_DOMAIN_CREATE means we aren't getting
+     * it returned.
+     */
+    memcpy (args2.uuid, domain->uuid, VIR_UUID_BUFLEN);
+    memset (&ret2, 0, sizeof ret2);
+    if (call (domain->conn, priv, 0, REMOTE_PROC_DOMAIN_LOOKUP_BY_UUID,
+              (xdrproc_t) xdr_remote_domain_lookup_by_uuid_args, (char *) &args2,
+              (xdrproc_t) xdr_remote_domain_lookup_by_uuid_ret, (char *) &ret2) == -1)
+        goto done;
+
+    domain->id = ret2.dom.id;
+    xdr_free ((xdrproc_t) &xdr_remote_domain_lookup_by_uuid_ret, (char *) &ret2);
 
     rv = 0;
 
@@ -4811,6 +4838,7 @@ static char *remoteNodeDeviceGetParent(virNodeDevicePtr dev)
 
     /* Caller frees. */
     rv = ret.parent ? *ret.parent : NULL;
+    VIR_FREE(ret.parent);
 
 done:
     remoteDriverUnlock(priv);
@@ -4949,6 +4977,59 @@ remoteNodeDeviceReset (virNodeDevicePtr dev)
     if (call (dev->conn, priv, 0, REMOTE_PROC_NODE_DEVICE_RESET,
               (xdrproc_t) xdr_remote_node_device_reset_args, (char *) &args,
               (xdrproc_t) xdr_void, (char *) NULL) == -1)
+        goto done;
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+
+static virNodeDevicePtr
+remoteNodeDeviceCreateXML(virConnectPtr conn,
+                          const char *xmlDesc,
+                          unsigned int flags)
+{
+    remote_node_device_create_xml_args args;
+    remote_node_device_create_xml_ret ret;
+    virNodeDevicePtr dev = NULL;
+    struct private_data *priv = conn->privateData;
+
+    remoteDriverLock(priv);
+
+    memset(&ret, 0, sizeof ret);
+    args.xml_desc = (char *)xmlDesc;
+    args.flags = flags;
+
+    if (call(conn, priv, 0, REMOTE_PROC_NODE_DEVICE_CREATE_XML,
+             (xdrproc_t) xdr_remote_node_device_create_xml_args, (char *) &args,
+             (xdrproc_t) xdr_remote_node_device_create_xml_ret, (char *) &ret) == -1)
+        goto done;
+
+    dev = get_nonnull_node_device(conn, ret.dev);
+    xdr_free ((xdrproc_t) xdr_remote_node_device_create_xml_ret, (char *) &ret);
+
+done:
+    remoteDriverUnlock(priv);
+    return dev;
+}
+
+static int
+remoteNodeDeviceDestroy(virNodeDevicePtr dev)
+{
+    int rv = -1;
+    remote_node_device_destroy_args args;
+    struct private_data *priv = dev->conn->privateData;
+
+    remoteDriverLock(priv);
+
+    args.name = dev->name;
+
+    if (call(dev->conn, priv, 0, REMOTE_PROC_NODE_DEVICE_RESET,
+             (xdrproc_t) xdr_remote_node_device_destroy_args, (char *) &args,
+             (xdrproc_t) xdr_void, (char *) NULL) == -1)
         goto done;
 
     rv = 0;
@@ -6827,71 +6908,71 @@ unsigned long remoteVersion(void)
 }
 
 static virDriver driver = {
-    .no = VIR_DRV_REMOTE,
-    .name = "remote",
-    .open = remoteOpen,
-    .close = remoteClose,
-    .supports_feature = remoteSupportsFeature,
-        .type = remoteType,
-        .version = remoteGetVersion,
-    .getHostname = remoteGetHostname,
-        .getMaxVcpus = remoteGetMaxVcpus,
-        .nodeGetInfo = remoteNodeGetInfo,
-    .getCapabilities = remoteGetCapabilities,
-    .listDomains = remoteListDomains,
-    .numOfDomains = remoteNumOfDomains,
-    .domainCreateXML = remoteDomainCreateXML,
-    .domainLookupByID = remoteDomainLookupByID,
-    .domainLookupByUUID = remoteDomainLookupByUUID,
-    .domainLookupByName = remoteDomainLookupByName,
-    .domainSuspend = remoteDomainSuspend,
-    .domainResume = remoteDomainResume,
-    .domainShutdown = remoteDomainShutdown,
-    .domainReboot = remoteDomainReboot,
-    .domainDestroy = remoteDomainDestroy,
-    .domainGetOSType = remoteDomainGetOSType,
-    .domainGetMaxMemory = remoteDomainGetMaxMemory,
-    .domainSetMaxMemory = remoteDomainSetMaxMemory,
-    .domainSetMemory = remoteDomainSetMemory,
-    .domainGetInfo = remoteDomainGetInfo,
-    .domainSave = remoteDomainSave,
-    .domainRestore = remoteDomainRestore,
-    .domainCoreDump = remoteDomainCoreDump,
-    .domainSetVcpus = remoteDomainSetVcpus,
-    .domainPinVcpu = remoteDomainPinVcpu,
-    .domainGetVcpus = remoteDomainGetVcpus,
-    .domainGetMaxVcpus = remoteDomainGetMaxVcpus,
-    .domainGetSecurityLabel = remoteDomainGetSecurityLabel,
-    .nodeGetSecurityModel = remoteNodeGetSecurityModel,
-    .domainDumpXML = remoteDomainDumpXML,
-    .listDefinedDomains = remoteListDefinedDomains,
-    .numOfDefinedDomains = remoteNumOfDefinedDomains,
-    .domainCreate = remoteDomainCreate,
-    .domainDefineXML = remoteDomainDefineXML,
-    .domainUndefine = remoteDomainUndefine,
-    .domainAttachDevice = remoteDomainAttachDevice,
-    .domainDetachDevice = remoteDomainDetachDevice,
-    .domainGetAutostart = remoteDomainGetAutostart,
-    .domainSetAutostart = remoteDomainSetAutostart,
-    .domainGetSchedulerType = remoteDomainGetSchedulerType,
-    .domainGetSchedulerParameters = remoteDomainGetSchedulerParameters,
-    .domainSetSchedulerParameters = remoteDomainSetSchedulerParameters,
-    .domainMigratePrepare = remoteDomainMigratePrepare,
-    .domainMigratePerform = remoteDomainMigratePerform,
-    .domainMigrateFinish = remoteDomainMigrateFinish,
-    .domainBlockStats = remoteDomainBlockStats,
-    .domainInterfaceStats = remoteDomainInterfaceStats,
-    .domainBlockPeek = remoteDomainBlockPeek,
-    .domainMemoryPeek = remoteDomainMemoryPeek,
-    .nodeGetCellsFreeMemory = remoteNodeGetCellsFreeMemory,
-    .getFreeMemory = remoteNodeGetFreeMemory,
-    .domainEventRegister = remoteDomainEventRegister,
-    .domainEventDeregister = remoteDomainEventDeregister,
-    .domainMigratePrepare2 = remoteDomainMigratePrepare2,
-    .domainMigrateFinish2 = remoteDomainMigrateFinish2,
-    .nodeDeviceDettach = remoteNodeDeviceDettach,
-    .nodeDeviceReAttach = remoteNodeDeviceReAttach,
-    .nodeDeviceReset = remoteNodeDeviceReset,
+    VIR_DRV_REMOTE,
+    "remote",
+    remoteOpen, /* open */
+    remoteClose, /* close */
+    remoteSupportsFeature, /* supports_feature */
+    remoteType, /* type */
+    remoteGetVersion, /* version */
+    remoteGetHostname, /* getHostname */
+    remoteGetMaxVcpus, /* getMaxVcpus */
+    remoteNodeGetInfo, /* nodeGetInfo */
+    remoteGetCapabilities, /* getCapabilities */
+    remoteListDomains, /* listDomains */
+    remoteNumOfDomains, /* numOfDomains */
+    remoteDomainCreateXML, /* domainCreateXML */
+    remoteDomainLookupByID, /* domainLookupByID */
+    remoteDomainLookupByUUID, /* domainLookupByUUID */
+    remoteDomainLookupByName, /* domainLookupByName */
+    remoteDomainSuspend, /* domainSuspend */
+    remoteDomainResume, /* domainResume */
+    remoteDomainShutdown, /* domainShutdown */
+    remoteDomainReboot, /* domainReboot */
+    remoteDomainDestroy, /* domainDestroy */
+    remoteDomainGetOSType, /* domainGetOSType */
+    remoteDomainGetMaxMemory, /* domainGetMaxMemory */
+    remoteDomainSetMaxMemory, /* domainSetMaxMemory */
+    remoteDomainSetMemory, /* domainSetMemory */
+    remoteDomainGetInfo, /* domainGetInfo */
+    remoteDomainSave, /* domainSave */
+    remoteDomainRestore, /* domainRestore */
+    remoteDomainCoreDump, /* domainCoreDump */
+    remoteDomainSetVcpus, /* domainSetVcpus */
+    remoteDomainPinVcpu, /* domainPinVcpu */
+    remoteDomainGetVcpus, /* domainGetVcpus */
+    remoteDomainGetMaxVcpus, /* domainGetMaxVcpus */
+    remoteDomainGetSecurityLabel, /* domainGetSecurityLabel */
+    remoteNodeGetSecurityModel, /* nodeGetSecurityModel */
+    remoteDomainDumpXML, /* domainDumpXML */
+    remoteListDefinedDomains, /* listDefinedDomains */
+    remoteNumOfDefinedDomains, /* numOfDefinedDomains */
+    remoteDomainCreate, /* domainCreate */
+    remoteDomainDefineXML, /* domainDefineXML */
+    remoteDomainUndefine, /* domainUndefine */
+    remoteDomainAttachDevice, /* domainAttachDevice */
+    remoteDomainDetachDevice, /* domainDetachDevice */
+    remoteDomainGetAutostart, /* domainGetAutostart */
+    remoteDomainSetAutostart, /* domainSetAutostart */
+    remoteDomainGetSchedulerType, /* domainGetSchedulerType */
+    remoteDomainGetSchedulerParameters, /* domainGetSchedulerParameters */
+    remoteDomainSetSchedulerParameters, /* domainSetSchedulerParameters */
+    remoteDomainMigratePrepare, /* domainMigratePrepare */
+    remoteDomainMigratePerform, /* domainMigratePerform */
+    remoteDomainMigrateFinish, /* domainMigrateFinish */
+    remoteDomainBlockStats, /* domainBlockStats */
+    remoteDomainInterfaceStats, /* domainInterfaceStats */
+    remoteDomainBlockPeek, /* domainBlockPeek */
+    remoteDomainMemoryPeek, /* domainMemoryPeek */
+    remoteNodeGetCellsFreeMemory, /* nodeGetCellsFreeMemory */
+    remoteNodeGetFreeMemory, /* getFreeMemory */
+    remoteDomainEventRegister, /* domainEventRegister */
+    remoteDomainEventDeregister, /* domainEventDeregister */
+    remoteDomainMigratePrepare2, /* domainMigratePrepare2 */
+    remoteDomainMigrateFinish2, /* domainMigrateFinish2 */
+    remoteNodeDeviceDettach, /* nodeDeviceDettach */
+    remoteNodeDeviceReAttach, /* nodeDeviceReAttach */
+    remoteNodeDeviceReset, /* nodeDeviceReset */
 };
 
 static virNetworkDriver network_driver = {
@@ -6963,6 +7044,8 @@ static virDeviceMonitor dev_monitor = {
     .deviceGetParent = remoteNodeDeviceGetParent,
     .deviceNumOfCaps = remoteNodeDeviceNumOfCaps,
     .deviceListCaps = remoteNodeDeviceListCaps,
+    .deviceCreateXML = remoteNodeDeviceCreateXML,
+    .deviceDestroy = remoteNodeDeviceDestroy
 };
 
 

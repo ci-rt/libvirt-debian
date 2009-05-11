@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 Red Hat, Inc.
+ * Copyright (C) 2008,2009 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -8,6 +8,7 @@
  *
  * Authors:
  *     James Morris <jmorris@namei.org>
+ *     Dan Walsh <dwalsh@redhat.com>
  *
  * SELinux security driver.
  */
@@ -161,11 +162,12 @@ SELinuxGenSecurityLabel(virConnectPtr conn,
     char *scontext = NULL;
     int c1 = 0;
     int c2 = 0;
-    if ( ( vm->def->seclabel.label ) ||
-         ( vm->def->seclabel.model ) ||
-         ( vm->def->seclabel.imagelabel )) {
-        virSecurityReportError(conn, VIR_ERR_ERROR,
-                               "%s", _("security labellin already defined for VM"));
+
+    if (vm->def->seclabel.label ||
+        vm->def->seclabel.model ||
+        vm->def->seclabel.imagelabel) {
+        virSecurityReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                               "%s", _("security label already defined for VM"));
         return rc;
     }
 
@@ -196,7 +198,7 @@ SELinuxGenSecurityLabel(virConnectPtr conn,
         goto err;
     }
     vm->def->seclabel.model = strdup(SECURITY_SELINUX_NAME);
-    if (! vm->def->seclabel.model) {
+    if (!vm->def->seclabel.model) {
         virReportOOMError(conn);
         goto err;
     }
@@ -269,7 +271,7 @@ SELinuxGetSecurityLabel(virConnectPtr conn,
 }
 
 static int
-SELinuxSetFilecon(virConnectPtr conn, char *path, char *tcon)
+SELinuxSetFilecon(virConnectPtr conn, const char *path, char *tcon)
 {
     char ebuf[1024];
 
@@ -288,28 +290,47 @@ SELinuxSetFilecon(virConnectPtr conn, char *path, char *tcon)
 
 static int
 SELinuxRestoreSecurityImageLabel(virConnectPtr conn,
-                                 virDomainObjPtr vm,
-                                 virDomainDeviceDefPtr dev)
+                                 virDomainDiskDefPtr disk)
 {
-    const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
+    struct stat buf;
+    security_context_t fcon = NULL;
+    int rc = -1;
+    int err;
+    char *newpath = NULL;
+    const char *path = disk->src;
 
-    if (secdef->imagelabel) {
-        return SELinuxSetFilecon(conn, dev->data.disk->src, default_image_context);
+    if (disk->readonly || disk->shared)
+        return 0;
+
+    if ((err = virFileResolveLink(path, &newpath)) < 0) {
+        virReportSystemError(conn, err,
+                             _("cannot resolve symlink %s"), path);
+        goto err;
     }
-    return 0;
+
+    if (stat(newpath, &buf) != 0)
+        goto err;
+
+    if (matchpathcon(newpath, buf.st_mode, &fcon) == 0)  {
+        rc = SELinuxSetFilecon(conn, newpath, fcon);
+    }
+err:
+    VIR_FREE(fcon);
+    VIR_FREE(newpath);
+    return rc;
 }
 
 static int
 SELinuxSetSecurityImageLabel(virConnectPtr conn,
                              virDomainObjPtr vm,
-                             virDomainDeviceDefPtr dev)
+                             virDomainDiskDefPtr disk)
 
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
 
-    if (secdef->imagelabel) {
-        return SELinuxSetFilecon(conn, dev->data.disk->src, secdef->imagelabel);
-    }
+    if (secdef->imagelabel)
+        return SELinuxSetFilecon(conn, disk->src, secdef->imagelabel);
+
     return 0;
 }
 
@@ -322,7 +343,7 @@ SELinuxRestoreSecurityLabel(virConnectPtr conn,
     int rc = 0;
     if (secdef->imagelabel) {
         for (i = 0 ; i < vm->def->ndisks ; i++) {
-            if (SELinuxSetFilecon(conn, vm->def->disks[i]->src, default_image_context) < 0)
+            if (SELinuxRestoreSecurityImageLabel(conn, vm->def->disks[i]) < 0)
                 rc = -1;
         }
         VIR_FREE(secdef->model);
@@ -335,6 +356,20 @@ SELinuxRestoreSecurityLabel(virConnectPtr conn,
         VIR_FREE(secdef->imagelabel);
     }
     return rc;
+}
+
+static int
+SELinuxSecurityVerify(virConnectPtr conn, virDomainDefPtr def)
+{
+    const virSecurityLabelDefPtr secdef = &def->seclabel;
+    if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC) {
+        if (security_check_context(secdef->label) != 0) {
+            virSecurityReportError(conn, VIR_ERR_XML_ERROR,
+                                   _("Invalid security label %s"), secdef->label);
+            return -1;
+        }
+    }
+    return 0;
 }
 
 static int
@@ -368,16 +403,11 @@ SELinuxSetSecurityLabel(virConnectPtr conn,
 
     if (secdef->imagelabel) {
         for (i = 0 ; i < vm->def->ndisks ; i++) {
-            if(setfilecon(vm->def->disks[i]->src, secdef->imagelabel) < 0) {
-                virSecurityReportError(conn, VIR_ERR_ERROR,
-                                       _("%s: unable to set security context "
-                                         "'\%s\' on %s: %s."), __func__,
-                                       secdef->imagelabel,
-                                       vm->def->disks[i]->src,
-                                       virStrerror(errno, ebuf, sizeof ebuf));
-                if (security_getenforce() == 1)
-                    return -1;
-            }
+            if (vm->def->disks[i]->readonly ||
+                vm->def->disks[i]->shared) continue;
+
+            if (SELinuxSetSecurityImageLabel(conn, vm, vm->def->disks[i]) < 0)
+                return -1;
         }
     }
 
@@ -388,6 +418,7 @@ virSecurityDriver virSELinuxSecurityDriver = {
     .name                       = SECURITY_SELINUX_NAME,
     .probe                      = SELinuxSecurityDriverProbe,
     .open                       = SELinuxSecurityDriverOpen,
+    .domainSecurityVerify       = SELinuxSecurityVerify,
     .domainSetSecurityImageLabel = SELinuxSetSecurityImageLabel,
     .domainRestoreSecurityImageLabel = SELinuxRestoreSecurityImageLabel,
     .domainGenSecurityLabel     = SELinuxGenSecurityLabel,

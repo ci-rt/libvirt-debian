@@ -28,6 +28,7 @@
 
 enum {
     LXC_CONTAINER_FEATURE_NET = (1 << 0),
+    LXC_CONTAINER_FEATURE_USER = (1 << 1),
 };
 
 #define LXC_DEV_MAJ_MEMORY  1
@@ -39,6 +40,7 @@ enum {
 
 #define LXC_DEV_MAJ_TTY     5
 #define LXC_DEV_MIN_CONSOLE 1
+#define LXC_DEV_MIN_PTMX    2
 
 #define LXC_DEV_MAJ_PTY     136
 

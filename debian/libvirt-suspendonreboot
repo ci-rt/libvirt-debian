@@ -1,10 +1,17 @@
-#! /bin/bash
-
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:          libvirt-suspendonreboot
+# Required-Start:    libvirtd
+# Required-Stop:     libvirtd $remote_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: suspend/resmum vms on reboot
+### END INIT INFO
 # (c) Andi Barth <aba@not.so.argh.org> 2008
 # Distributable under the terms of the GNU GPL version 2.
 #
 # copy to /etc/init.d/libvirt-suspendonreboot and use 
-# update-rc.d libvirt-suspendonreboot defaults 21 19
+# update-rc.d libvirt-suspendonreboot defaults 29 71
 # to enable
 
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
