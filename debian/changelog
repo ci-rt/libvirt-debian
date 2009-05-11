@@ -1,3 +1,9 @@
+libvirt (0.6.3-2~bpo50+1) lenny-backports; urgency=low
+
+  * Rebuild for lenny-backports.
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 11 May 2009 19:51:36 +0200
+
 libvirt (0.6.3-2) unstable; urgency=low
 
   * [35898d3] fix crash when libvirt_lxc is called without arguments
