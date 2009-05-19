@@ -1,3 +1,12 @@
+libvirt (0.6.3-3) unstable; urgency=low
+
+  * [4087b7d] disable lxc on ia64 to work around FTBFS until we have
+              access to a test machine
+  * [df5f5a0] pull some kvm/qemu related patches from upstream 
+              (Closes: #529324)
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 19 May 2009 19:14:57 +0200
+
 libvirt (0.6.3-2) unstable; urgency=low
 
   * [35898d3] fix crash when libvirt_lxc is called without arguments
