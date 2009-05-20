@@ -1,3 +1,12 @@
+libvirt (0.6.3-4) unstable; urgency=low
+
+  * [3607f2f] Install libvirt_lxc that got list somewhere between our
+              testbuilds. (Closes: #529578)
+  * [070ddd5] install augeas lense
+  * [c9b034d] install schema files
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 20 May 2009 14:33:18 +0200
+
 libvirt (0.6.3-3) unstable; urgency=low
 
   * [4087b7d] disable lxc on ia64 to work around FTBFS until we have
