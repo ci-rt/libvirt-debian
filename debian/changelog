@@ -1,3 +1,9 @@
+libvirt (0.6.3-4~bpo50+1) lenny-backports; urgency=low
+
+  * Rebuild for lenny-backports.
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 31 May 2009 21:21:17 +0200
+
 libvirt (0.6.3-4) unstable; urgency=low
 
   * [3607f2f] Install libvirt_lxc that got list somewhere between our
