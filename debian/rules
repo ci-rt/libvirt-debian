@@ -11,6 +11,12 @@ else
   BUILD_VBOX=--without-vbox
 endif
 
+ifneq (,$(findstring $(DEB_HOST_ARCH), ia64))
+  BUILD_LXC=--without-lxc
+else
+  BUILD_LXC=--with-lxc
+endif
+
 include /usr/share/cdbs/1/rules/debhelper.mk
 include /usr/share/cdbs/1/class/autotools.mk
 include /usr/share/cdbs/1/class/python-distutils.mk
@@ -20,7 +26,6 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	--disable-rpath          \
 	--with-qemu              \
 	--with-openvz            \
-	--with-lxc               \
 	--with-avahi             \
 	--with-sasl              \
 	--with-polkit		 \
@@ -33,7 +38,8 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	--without-numactl	 \
 	--enable-debug		 \
 	$(BUILD_XEN)		 \
-	$(BUILD_VBOX)
+	$(BUILD_VBOX)		 \
+	$(BUILD_LXC)
 
 DEB_DBG_PACKAGES = libvirt0-dbg
 DEB_DBG_PACKAGE_libvirt0 = libvirt0-dbg

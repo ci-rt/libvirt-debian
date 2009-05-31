@@ -1,0 +1,32 @@
+From: Daniel P. Berrange <berrange@redhat.com>
+Date: Mon, 18 May 2009 15:10:51 +0000
+Subject: [PATCH] Declare support for QEMU migration in capabilities
+
+---
+ src/qemu_conf.c |    5 ++++-
+ 1 files changed, 4 insertions(+), 1 deletions(-)
+
+diff --git a/src/qemu_conf.c b/src/qemu_conf.c
+index a0b406b..4bd616a 100644
+--- a/src/qemu_conf.c
++++ b/src/qemu_conf.c
+@@ -370,7 +370,7 @@ virCapsPtr qemudCapsInit(void) {
+     uname (&utsname);
+ 
+     if ((caps = virCapabilitiesNew(utsname.machine,
+-                                   0, 0)) == NULL)
++                                   1, 1)) == NULL)
+         goto no_memory;
+ 
+     /* Using KVM's mac prefix for QEMU too */
+@@ -379,6 +379,9 @@ virCapsPtr qemudCapsInit(void) {
+     if (virCapsInitNUMA(caps) < 0)
+         goto no_memory;
+ 
++    virCapabilitiesAddHostMigrateTransport(caps,
++                                           "tcp");
++
+     /* First the pure HVM guests */
+     for (i = 0 ; i < ARRAY_CARDINALITY(arch_info_hvm) ; i++)
+         if (qemudCapsInitGuest(caps,
+-- 
