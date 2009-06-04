@@ -49,7 +49,7 @@
 static int
 virDomainFreeName(virDomainPtr domain, const char *name ATTRIBUTE_UNUSED)
 {
-    return (virDomainFree(domain));
+    return (virUnrefDomain(domain));
 }
 
 /**
@@ -63,7 +63,21 @@ virDomainFreeName(virDomainPtr domain, const char *name ATTRIBUTE_UNUSED)
 static int
 virNetworkFreeName(virNetworkPtr network, const char *name ATTRIBUTE_UNUSED)
 {
-    return (virNetworkFree(network));
+    return (virUnrefNetwork(network));
+}
+
+/**
+ * virInterfaceFreeName:
+ * @interface: a interface object
+ *
+ * Destroy the interface object, this is just used by the interface hash callback.
+ *
+ * Returns 0 in case of success and -1 in case of failure.
+ */
+static int
+virInterfaceFreeName(virInterfacePtr iface, const char *name ATTRIBUTE_UNUSED)
+{
+    return (virUnrefInterface(iface));
 }
 
 /**
@@ -77,7 +91,7 @@ virNetworkFreeName(virNetworkPtr network, const char *name ATTRIBUTE_UNUSED)
 static int
 virStoragePoolFreeName(virStoragePoolPtr pool, const char *name ATTRIBUTE_UNUSED)
 {
-    return (virStoragePoolFree(pool));
+    return (virUnrefStoragePool(pool));
 }
 
 /**
@@ -91,7 +105,7 @@ virStoragePoolFreeName(virStoragePoolPtr pool, const char *name ATTRIBUTE_UNUSED
 static int
 virStorageVolFreeName(virStorageVolPtr vol, const char *name ATTRIBUTE_UNUSED)
 {
-    return (virStorageVolFree(vol));
+    return (virUnrefStorageVol(vol));
 }
 
 /**
@@ -119,11 +133,15 @@ virGetConnect(void) {
     ret->networkDriver = NULL;
     ret->privateData = NULL;
     ret->networkPrivateData = NULL;
+    ret->interfacePrivateData = NULL;
     ret->domains = virHashCreate(20);
     if (ret->domains == NULL)
         goto failed;
     ret->networks = virHashCreate(20);
     if (ret->networks == NULL)
+        goto failed;
+    ret->interfaces = virHashCreate(20);
+    if (ret->interfaces == NULL)
         goto failed;
     ret->storagePools = virHashCreate(20);
     if (ret->storagePools == NULL)
@@ -144,6 +162,8 @@ failed:
             virHashFree(ret->domains, (virHashDeallocator) virDomainFreeName);
         if (ret->networks != NULL)
             virHashFree(ret->networks, (virHashDeallocator) virNetworkFreeName);
+        if (ret->interfaces != NULL)
+           virHashFree(ret->interfaces, (virHashDeallocator) virInterfaceFreeName);
         if (ret->storagePools != NULL)
             virHashFree(ret->storagePools, (virHashDeallocator) virStoragePoolFreeName);
         if (ret->storageVols != NULL)
@@ -173,6 +193,8 @@ virReleaseConnect(virConnectPtr conn) {
         virHashFree(conn->domains, (virHashDeallocator) virDomainFreeName);
     if (conn->networks != NULL)
         virHashFree(conn->networks, (virHashDeallocator) virNetworkFreeName);
+    if (conn->interfaces != NULL)
+        virHashFree(conn->interfaces, (virHashDeallocator) virInterfaceFreeName);
     if (conn->storagePools != NULL)
         virHashFree(conn->storagePools, (virHashDeallocator) virStoragePoolFreeName);
     if (conn->storageVols != NULL)
@@ -483,6 +505,144 @@ virUnrefNetwork(virNetworkPtr network) {
     }
 
     virMutexUnlock(&network->conn->lock);
+    return (refs);
+}
+
+
+/**
+ * virGetInterface:
+ * @conn: the hypervisor connection
+ * @name: pointer to the interface name
+ * @mac: pointer to the mac
+ *
+ * Lookup if the interface is already registered for that connection,
+ * if yes return a new pointer to it, if no allocate a new structure,
+ * and register it in the table. In any case a corresponding call to
+ * virUnrefInterface() is needed to not leak data.
+ *
+ * Returns a pointer to the interface, or NULL in case of failure
+ */
+virInterfacePtr
+virGetInterface(virConnectPtr conn, const char *name, const char *mac) {
+    virInterfacePtr ret = NULL;
+
+    if ((!VIR_IS_CONNECT(conn)) || (name == NULL) || (mac == NULL)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return(NULL);
+    }
+    virMutexLock(&conn->lock);
+
+    /* TODO search by MAC first as they are better differentiators */
+
+    ret = (virInterfacePtr) virHashLookup(conn->interfaces, name);
+    /* TODO check the MAC */
+    if (ret == NULL) {
+        if (VIR_ALLOC(ret) < 0) {
+            virReportOOMError(conn);
+            goto error;
+        }
+        ret->name = strdup(name);
+        if (ret->name == NULL) {
+            virReportOOMError(conn);
+            goto error;
+        }
+        ret->mac = strdup(mac);
+        if (ret->mac == NULL) {
+            virReportOOMError(conn);
+            goto error;
+        }
+
+        ret->magic = VIR_INTERFACE_MAGIC;
+        ret->conn = conn;
+
+        if (virHashAddEntry(conn->interfaces, name, ret) < 0) {
+            virLibConnError(conn, VIR_ERR_INTERNAL_ERROR,
+                            _("failed to add interface to connection hash table"));
+            goto error;
+        }
+        conn->refs++;
+    }
+    ret->refs++;
+    virMutexUnlock(&conn->lock);
+    return(ret);
+
+ error:
+    virMutexUnlock(&conn->lock);
+    if (ret != NULL) {
+        VIR_FREE(ret->name);
+        VIR_FREE(ret->mac);
+        VIR_FREE(ret);
+    }
+    return(NULL);
+}
+
+/**
+ * virReleaseInterface:
+ * @interface: the interface to release
+ *
+ * Unconditionally release all memory associated with a interface.
+ * The conn.lock mutex must be held prior to calling this, and will
+ * be released prior to this returning. The interface obj must not
+ * be used once this method returns.
+ *
+ * It will also unreference the associated connection object,
+ * which may also be released if its ref count hits zero.
+ */
+static void
+virReleaseInterface(virInterfacePtr iface) {
+    virConnectPtr conn = iface->conn;
+    DEBUG("release interface %p %s", iface, iface->name);
+
+    /* TODO search by MAC first as they are better differenciators */
+    if (virHashRemoveEntry(conn->interfaces, iface->name, NULL) < 0)
+        virLibConnError(conn, VIR_ERR_INTERNAL_ERROR,
+                        _("interface missing from connection hash table"));
+
+    iface->magic = -1;
+    VIR_FREE(iface->name);
+    VIR_FREE(iface->mac);
+    VIR_FREE(iface);
+
+    DEBUG("unref connection %p %d", conn, conn->refs);
+    conn->refs--;
+    if (conn->refs == 0) {
+        virReleaseConnect(conn);
+        /* Already unlocked mutex */
+        return;
+    }
+
+    virMutexUnlock(&conn->lock);
+}
+
+
+/**
+ * virUnrefInterface:
+ * @interface: the interface to unreference
+ *
+ * Unreference the interface. If the use count drops to zero, the structure is
+ * actually freed.
+ *
+ * Returns the reference count or -1 in case of failure.
+ */
+int
+virUnrefInterface(virInterfacePtr iface) {
+    int refs;
+
+    if (!VIR_IS_CONNECTED_INTERFACE(iface)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return(-1);
+    }
+    virMutexLock(&iface->conn->lock);
+    DEBUG("unref interface %p %s %d", iface, iface->name, iface->refs);
+    iface->refs--;
+    refs = iface->refs;
+    if (refs == 0) {
+        virReleaseInterface(iface);
+        /* Already unlocked mutex */
+        return (0);
+    }
+
+    virMutexUnlock(&iface->conn->lock);
     return (refs);
 }
 

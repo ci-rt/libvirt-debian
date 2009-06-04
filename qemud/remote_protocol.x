@@ -79,6 +79,9 @@ const REMOTE_MIGRATE_COOKIE_MAX = 256;
 /* Upper limit on lists of network names. */
 const REMOTE_NETWORK_NAME_LIST_MAX = 256;
 
+/* Upper limit on lists of interface names. */
+const REMOTE_INTERFACE_NAME_LIST_MAX = 256;
+
 /* Upper limit on lists of storage pool names. */
 const REMOTE_STORAGE_POOL_NAME_LIST_MAX = 256;
 
@@ -144,6 +147,12 @@ struct remote_nonnull_domain {
 struct remote_nonnull_network {
     remote_nonnull_string name;
     remote_uuid uuid;
+};
+
+/* An interface which may not be NULL. */
+struct remote_nonnull_interface {
+    remote_nonnull_string name;
+    remote_nonnull_string mac;
 };
 
 /* A storage pool which may not be NULL. */
@@ -770,6 +779,71 @@ struct remote_network_set_autostart_args {
 };
 
 
+/* Interface calls: */
+
+struct remote_num_of_interfaces_ret {
+    int num;
+};
+
+struct remote_list_interfaces_args {
+    int maxnames;
+};
+
+struct remote_list_interfaces_ret {
+    remote_nonnull_string names<REMOTE_INTERFACE_NAME_LIST_MAX>;
+};
+
+struct remote_interface_lookup_by_name_args {
+    remote_nonnull_string name;
+};
+
+struct remote_interface_lookup_by_name_ret {
+    remote_nonnull_interface iface;
+};
+
+struct remote_interface_lookup_by_mac_string_args {
+    remote_nonnull_string mac;
+};
+
+struct remote_interface_lookup_by_mac_string_ret {
+    remote_nonnull_interface iface;
+};
+
+struct remote_interface_get_xml_desc_args {
+    remote_nonnull_interface iface;
+    unsigned int flags;
+};
+
+struct remote_interface_get_xml_desc_ret {
+    remote_nonnull_string xml;
+};
+
+struct remote_interface_define_xml_args {
+    remote_nonnull_string xml;
+    unsigned int flags;
+};
+
+struct remote_interface_define_xml_ret {
+    remote_nonnull_interface iface;
+};
+
+struct remote_interface_undefine_args {
+    remote_nonnull_interface iface;
+};
+
+struct remote_interface_create_args {
+    remote_nonnull_interface iface;
+    unsigned int flags;
+};
+
+struct remote_interface_destroy_args {
+    remote_nonnull_interface iface;
+    unsigned int flags;
+};
+
+
+/* Auth calls: */
+
 struct remote_auth_list_ret {
     remote_auth_type types<REMOTE_AUTH_TYPE_LIST_MAX>;
 };
@@ -1002,6 +1076,17 @@ struct remote_storage_vol_create_xml_ret {
     remote_nonnull_storage_vol vol;
 };
 
+struct remote_storage_vol_create_xml_from_args {
+    remote_nonnull_storage_pool pool;
+    remote_nonnull_string xml;
+    remote_nonnull_storage_vol clonevol;
+    unsigned flags;
+};
+
+struct remote_storage_vol_create_xml_from_ret {
+    remote_nonnull_storage_vol vol;
+};
+
 struct remote_storage_vol_delete_args {
     remote_nonnull_storage_vol vol;
     unsigned flags;
@@ -1142,6 +1227,29 @@ struct remote_domain_event_ret {
     int event;
     int detail;
 };
+
+
+struct remote_domain_xml_from_native_args {
+    remote_nonnull_string nativeFormat;
+    remote_nonnull_string nativeConfig;
+    unsigned flags;
+};
+
+struct remote_domain_xml_from_native_ret {
+    remote_nonnull_string domainXml;
+};
+
+
+struct remote_domain_xml_to_native_args {
+    remote_nonnull_string nativeFormat;
+    remote_nonnull_string domainXml;
+    unsigned flags;
+};
+
+struct remote_domain_xml_to_native_ret {
+    remote_nonnull_string nativeConfig;
+};
+
 
 /*----- Protocol. -----*/
 
@@ -1284,9 +1392,21 @@ enum remote_procedure {
 
     REMOTE_PROC_DOMAIN_GET_SECURITY_LABEL = 121,
     REMOTE_PROC_NODE_GET_SECURITY_MODEL = 122,
-
     REMOTE_PROC_NODE_DEVICE_CREATE_XML = 123,
-    REMOTE_PROC_NODE_DEVICE_DESTROY = 124
+    REMOTE_PROC_NODE_DEVICE_DESTROY = 124,
+    REMOTE_PROC_STORAGE_VOL_CREATE_XML_FROM = 125,
+    REMOTE_PROC_NUM_OF_INTERFACES = 126,
+    REMOTE_PROC_LIST_INTERFACES = 127,
+    REMOTE_PROC_INTERFACE_LOOKUP_BY_NAME = 128,
+    REMOTE_PROC_INTERFACE_LOOKUP_BY_MAC_STRING = 129,
+    REMOTE_PROC_INTERFACE_GET_XML_DESC = 130,
+
+    REMOTE_PROC_INTERFACE_DEFINE_XML = 131,
+    REMOTE_PROC_INTERFACE_UNDEFINE = 132,
+    REMOTE_PROC_INTERFACE_CREATE = 133,
+    REMOTE_PROC_INTERFACE_DESTROY = 134,
+    REMOTE_PROC_DOMAIN_XML_FROM_NATIVE = 135,
+    REMOTE_PROC_DOMAIN_XML_TO_NATIVE = 136
 };
 
 /* Custom RPC structure. */

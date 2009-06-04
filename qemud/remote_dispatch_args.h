@@ -105,3 +105,14 @@
     remote_domain_get_security_label_args val_remote_domain_get_security_label_args;
     remote_node_device_create_xml_args val_remote_node_device_create_xml_args;
     remote_node_device_destroy_args val_remote_node_device_destroy_args;
+    remote_storage_vol_create_xml_from_args val_remote_storage_vol_create_xml_from_args;
+    remote_list_interfaces_args val_remote_list_interfaces_args;
+    remote_interface_lookup_by_name_args val_remote_interface_lookup_by_name_args;
+    remote_interface_lookup_by_mac_string_args val_remote_interface_lookup_by_mac_string_args;
+    remote_interface_get_xml_desc_args val_remote_interface_get_xml_desc_args;
+    remote_interface_define_xml_args val_remote_interface_define_xml_args;
+    remote_interface_undefine_args val_remote_interface_undefine_args;
+    remote_interface_create_args val_remote_interface_create_args;
+    remote_interface_destroy_args val_remote_interface_destroy_args;
+    remote_domain_xml_from_native_args val_remote_domain_xml_from_native_args;
+    remote_domain_xml_to_native_args val_remote_domain_xml_to_native_args;

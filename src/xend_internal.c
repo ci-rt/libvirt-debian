@@ -2023,7 +2023,11 @@ xenDaemonParseSxprGraphicsOld(virConnectPtr conn,
             !(graphics->data.vnc.keymap = strdup(keymap)))
             goto no_memory;
 
-        def->graphics = graphics;
+        if (VIR_ALLOC_N(def->graphics, 1) < 0)
+            goto no_memory;
+        def->graphics[0] = graphics;
+        def->ngraphics = 1;
+        graphics = NULL;
     } else if ((tmp = sexpr_fmt_node(root, "domain/image/%s/sdl", hvm ? "hvm" : "linux")) &&
                tmp[0] == '1') {
         /* Graphics device (HVM, or old (pre-3.0.4) style PV sdl config) */
@@ -2041,7 +2045,11 @@ xenDaemonParseSxprGraphicsOld(virConnectPtr conn,
             !(graphics->data.sdl.xauth = strdup(xauth)))
             goto no_memory;
 
-        def->graphics = graphics;
+        if (VIR_ALLOC_N(def->graphics, 1) < 0)
+            goto no_memory;
+        def->graphics[0] = graphics;
+        def->ngraphics = 1;
+        graphics = NULL;
     }
 
     return 0;
@@ -2130,7 +2138,11 @@ xenDaemonParseSxprGraphicsNew(virConnectPtr conn,
                     goto no_memory;
             }
 
-            def->graphics = graphics;
+            if (VIR_ALLOC_N(def->graphics, 1) < 0)
+                goto no_memory;
+            def->graphics[0] = graphics;
+            def->ngraphics = 1;
+            graphics = NULL;
             break;
         }
     }
@@ -2447,7 +2459,7 @@ xenDaemonParseSxpr(virConnectPtr conn,
         goto error;
 
     /* Graphics device (HVM <= 3.0.4, or PV <= 3.0.3) vnc config */
-    if (!def->graphics &&
+    if ((def->ngraphics == 0) &&
         xenDaemonParseSxprGraphicsOld(conn, def, root, hvm, xendConfigVersion) < 0)
         goto error;
 
@@ -2970,7 +2982,7 @@ xenDaemonDomainSuspend(virDomainPtr domain)
     }
 
     if (domain->id < 0) {
-        virXendError(domain->conn, VIR_ERR_INVALID_ARG,
+        virXendError(domain->conn, VIR_ERR_OPERATION_INVALID,
                      _("Domain %s isn't running."), domain->name);
         return(-1);
     }
@@ -2997,7 +3009,7 @@ xenDaemonDomainResume(virDomainPtr domain)
     }
 
     if (domain->id < 0) {
-        virXendError(domain->conn, VIR_ERR_INVALID_ARG,
+        virXendError(domain->conn, VIR_ERR_OPERATION_INVALID,
                      _("Domain %s isn't running."), domain->name);
         return(-1);
     }
@@ -3025,7 +3037,7 @@ xenDaemonDomainShutdown(virDomainPtr domain)
     }
 
     if (domain->id < 0) {
-        virXendError(domain->conn, VIR_ERR_INVALID_ARG,
+        virXendError(domain->conn, VIR_ERR_OPERATION_INVALID,
                      _("Domain %s isn't running."), domain->name);
         return(-1);
     }
@@ -3054,7 +3066,7 @@ xenDaemonDomainReboot(virDomainPtr domain, unsigned int flags ATTRIBUTE_UNUSED)
     }
 
     if (domain->id < 0) {
-        virXendError(domain->conn, VIR_ERR_INVALID_ARG,
+        virXendError(domain->conn, VIR_ERR_OPERATION_INVALID,
                      _("Domain %s isn't running."), domain->name);
         return(-1);
     }
@@ -3085,7 +3097,7 @@ xenDaemonDomainDestroy(virDomainPtr domain)
     }
 
     if (domain->id < 0) {
-        virXendError(domain->conn, VIR_ERR_INVALID_ARG,
+        virXendError(domain->conn, VIR_ERR_OPERATION_INVALID,
                      _("Domain %s isn't running."), domain->name);
         return(-1);
     }
@@ -3160,7 +3172,7 @@ xenDaemonDomainSave(virDomainPtr domain, const char *filename)
     }
 
     if (domain->id < 0) {
-        virXendError(domain->conn, VIR_ERR_INVALID_ARG,
+        virXendError(domain->conn, VIR_ERR_OPERATION_INVALID,
                      _("Domain %s isn't running."), domain->name);
         return(-1);
     }
@@ -3197,7 +3209,7 @@ xenDaemonDomainCoreDump(virDomainPtr domain, const char *filename,
     }
 
     if (domain->id < 0) {
-        virXendError(domain->conn, VIR_ERR_INVALID_ARG,
+        virXendError(domain->conn, VIR_ERR_OPERATION_INVALID,
                      _("Domain %s isn't running."), domain->name);
         return(-1);
     }
@@ -3753,6 +3765,11 @@ xenDaemonDomainSetVcpus(virDomainPtr domain, unsigned int vcpus)
  * @maplen: length of cpumap in bytes
  *
  * Dynamically change the real CPUs which can be allocated to a virtual CPU.
+ * NOTE: The XenD cpu affinity map format changed from "[0,1,2]" to
+ *       "0,1,2"
+ *       the XenD cpu affinity works only after cset 19579.
+ *       there is no fine grained xend version detection possible, so we
+ *       use the old format for anything before version 3
  *
  * Returns 0 for success; -1 (with errno) on error
  */
@@ -3760,8 +3777,9 @@ int
 xenDaemonDomainPinVcpu(virDomainPtr domain, unsigned int vcpu,
                      unsigned char *cpumap, int maplen)
 {
-    char buf[VIR_UUID_BUFLEN], mapstr[sizeof(cpumap_t) * 64] = "[";
+    char buf[VIR_UUID_BUFLEN], mapstr[sizeof(cpumap_t) * 64];
     int i, j;
+    xenUnifiedPrivatePtr priv;
 
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)
      || (cpumap == NULL) || (maplen < 1) || (maplen > (int)sizeof(cpumap_t))) {
@@ -3770,13 +3788,25 @@ xenDaemonDomainPinVcpu(virDomainPtr domain, unsigned int vcpu,
         return (-1);
     }
 
+    priv = (xenUnifiedPrivatePtr) domain->conn->privateData;
+    if (priv->xendConfigVersion < 3) {
+        buf[0] = ']';
+        buf[1] = 0;
+    } else {
+        buf[0] = 0;
+    }
+
     /* from bit map, build character string of mapped CPU numbers */
     for (i = 0; i < maplen; i++) for (j = 0; j < 8; j++)
      if (cpumap[i] & (1 << j)) {
         snprintf(buf, sizeof(buf), "%d,", (8 * i) + j);
         strcat(mapstr, buf);
     }
-    mapstr[strlen(mapstr) - 1] = ']';
+    if (priv->xendConfigVersion < 3)
+        mapstr[strlen(mapstr) - 1] = ']';
+    else
+        mapstr[strlen(mapstr) - 1] = 0;
+
     snprintf(buf, sizeof(buf), "%d", vcpu);
     return(xend_op(domain->conn, domain->name, "op", "pincpu", "vcpu", buf,
                   "cpumap", mapstr, NULL));
@@ -5731,8 +5761,9 @@ xenDaemonFormatSxpr(virConnectPtr conn,
         /* PV graphics for xen <= 3.0.4, or HVM graphics for xen <= 3.1.0 */
         if ((!hvm && xendConfigVersion < XEND_CONFIG_MIN_VERS_PVFB_NEWCONF) ||
             (hvm && xendConfigVersion < 4)) {
-            if (def->graphics &&
-                xenDaemonFormatSxprGraphicsOld(conn, def->graphics, &buf, xendConfigVersion) < 0)
+            if ((def->ngraphics == 1) &&
+                xenDaemonFormatSxprGraphicsOld(conn, def->graphics[0],
+                                               &buf, xendConfigVersion) < 0)
                 goto error;
         }
 
@@ -5756,8 +5787,8 @@ xenDaemonFormatSxpr(virConnectPtr conn,
      * or HVM graphics config xen >= 3.0.5 */
     if ((xendConfigVersion >= XEND_CONFIG_MIN_VERS_PVFB_NEWCONF && !hvm) ||
         (xendConfigVersion >= 4 && hvm)) {
-        if (def->graphics &&
-            xenDaemonFormatSxprGraphicsNew(conn, def->graphics, &buf) < 0)
+        if ((def->ngraphics == 1) &&
+            xenDaemonFormatSxprGraphicsNew(conn, def->graphics[0], &buf) < 0)
             goto error;
     }
 

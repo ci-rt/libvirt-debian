@@ -38,13 +38,14 @@ host_triplet = @host@
 noinst_PROGRAMS = virshtest$(EXEEXT) conftest$(EXEEXT) \
 	nodeinfotest$(EXEEXT) statstest$(EXEEXT) qparamtest$(EXEEXT) \
 	$(am__EXEEXT_1) $(am__EXEEXT_2) $(am__EXEEXT_3) \
-	nodedevxml2xmltest$(EXEEXT)
+	$(am__EXEEXT_4) nodedevxml2xmltest$(EXEEXT) $(am__EXEEXT_5)
 @WITH_XEN_TRUE@am__append_2 = xml2sexprtest sexpr2xmltest \
 @WITH_XEN_TRUE@	reconnect xmconfigtest xencapstest
 
-@WITH_QEMU_TRUE@am__append_3 = qemuxml2argvtest qemuxml2xmltest
+@WITH_QEMU_TRUE@am__append_3 = qemuxml2argvtest qemuxml2xmltest qemuargv2xmltest
 @WITH_SECDRIVER_SELINUX_TRUE@am__append_4 = seclabeltest
-@WITH_LIBVIRTD_TRUE@am__append_5 = \
+@WITH_CIL_TRUE@am__append_5 = object-locking
+@WITH_LIBVIRTD_TRUE@am__append_6 = \
 @WITH_LIBVIRTD_TRUE@	test_conf.sh			\
 @WITH_LIBVIRTD_TRUE@	cpuset				\
 @WITH_LIBVIRTD_TRUE@	daemon-conf			\
@@ -61,23 +62,26 @@ noinst_PROGRAMS = virshtest$(EXEEXT) conftest$(EXEEXT) \
 @WITH_LIBVIRTD_TRUE@	virsh-synopsis
 
 TESTS = virshtest$(EXEEXT) nodeinfotest$(EXEEXT) statstest$(EXEEXT) \
-	qparamtest$(EXEEXT) $(test_scripts) $(am__EXEEXT_4) \
-	$(am__EXEEXT_5) $(am__EXEEXT_2) $(am__EXEEXT_3) \
-	nodedevxml2xmltest$(EXEEXT)
-@WITH_XEN_TRUE@am__append_6 = xml2sexprtest \
+	qparamtest$(EXEEXT) $(test_scripts) $(am__EXEEXT_6) \
+	$(am__EXEEXT_7) $(am__EXEEXT_2) $(am__EXEEXT_3) \
+	$(am__EXEEXT_5) nodedevxml2xmltest$(EXEEXT)
+@WITH_XEN_TRUE@am__append_7 = xml2sexprtest \
 @WITH_XEN_TRUE@	sexpr2xmltest \
 @WITH_XEN_TRUE@	xmconfigtest \
 @WITH_XEN_TRUE@	xencapstest
 
-@ENABLE_XEN_TESTS_TRUE@@WITH_XEN_TRUE@am__append_7 = reconnect
-@WITH_QEMU_TRUE@am__append_8 = qemuxml2argvtest qemuxml2xmltest
-@WITH_SECDRIVER_SELINUX_TRUE@am__append_9 = seclabeltest
-@WITH_XEN_FALSE@am__append_10 = xml2sexprtest.c sexpr2xmltest.c xmconfigtest.c \
+@ENABLE_XEN_TESTS_TRUE@@WITH_XEN_TRUE@am__append_8 = reconnect
+@WITH_QEMU_TRUE@am__append_9 = qemuxml2argvtest qemuxml2xmltest qemuargv2xmltest
+@WITH_SECDRIVER_SELINUX_TRUE@am__append_10 = seclabeltest
+@WITH_LIBVIRTD_TRUE@am__append_11 = eventtest
+@WITH_LIBVIRTD_TRUE@am__append_12 = eventtest
+@WITH_XEN_FALSE@am__append_13 = xml2sexprtest.c sexpr2xmltest.c xmconfigtest.c \
 @WITH_XEN_FALSE@	xencapstest.c reconnect.c \
 @WITH_XEN_FALSE@	testutilsxen.c testutilsxen.h
 
-@WITH_QEMU_FALSE@am__append_11 = qemuxml2argvtest.c qemuxml2xmltest.c testutilsqemu.c testutilsqemu.h
-@WITH_SECDRIVER_SELINUX_FALSE@am__append_12 = seclabeltest.c
+@WITH_QEMU_FALSE@am__append_14 = qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c testutilsqemu.c testutilsqemu.h
+@WITH_SECDRIVER_SELINUX_FALSE@am__append_15 = seclabeltest.c
+@WITH_CIL_FALSE@am__append_16 = object-locking.ml
 subdir = tests
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -166,8 +170,11 @@ CONFIG_CLEAN_FILES =
 @WITH_XEN_TRUE@	sexpr2xmltest$(EXEEXT) reconnect$(EXEEXT) \
 @WITH_XEN_TRUE@	xmconfigtest$(EXEEXT) xencapstest$(EXEEXT)
 @WITH_QEMU_TRUE@am__EXEEXT_2 = qemuxml2argvtest$(EXEEXT) \
-@WITH_QEMU_TRUE@	qemuxml2xmltest$(EXEEXT)
+@WITH_QEMU_TRUE@	qemuxml2xmltest$(EXEEXT) \
+@WITH_QEMU_TRUE@	qemuargv2xmltest$(EXEEXT)
 @WITH_SECDRIVER_SELINUX_TRUE@am__EXEEXT_3 = seclabeltest$(EXEEXT)
+@WITH_CIL_TRUE@am__EXEEXT_4 = object-locking$(EXEEXT)
+@WITH_LIBVIRTD_TRUE@am__EXEEXT_5 = eventtest$(EXEEXT)
 PROGRAMS = $(noinst_PROGRAMS)
 am_conftest_OBJECTS = conftest.$(OBJEXT)
 conftest_OBJECTS = $(am_conftest_OBJECTS)
@@ -178,6 +185,12 @@ am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	../gnulib/lib/libgnu.la $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1)
 conftest_DEPENDENCIES = $(am__DEPENDENCIES_2)
+am__eventtest_SOURCES_DIST = eventtest.c testutils.h testutils.c \
+	../qemud/event.c
+@WITH_LIBVIRTD_TRUE@am_eventtest_OBJECTS = eventtest.$(OBJEXT) \
+@WITH_LIBVIRTD_TRUE@	testutils.$(OBJEXT) event.$(OBJEXT)
+eventtest_OBJECTS = $(am_eventtest_OBJECTS)
+@WITH_LIBVIRTD_TRUE@eventtest_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_nodedevxml2xmltest_OBJECTS = nodedevxml2xmltest.$(OBJEXT) \
 	testutils.$(OBJEXT)
 nodedevxml2xmltest_OBJECTS = $(am_nodedevxml2xmltest_OBJECTS)
@@ -185,6 +198,19 @@ nodedevxml2xmltest_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_nodeinfotest_OBJECTS = nodeinfotest.$(OBJEXT) testutils.$(OBJEXT)
 nodeinfotest_OBJECTS = $(am_nodeinfotest_OBJECTS)
 nodeinfotest_DEPENDENCIES = $(am__DEPENDENCIES_2)
+am__object_locking_SOURCES_DIST = object-locking.ml
+am_object_locking_OBJECTS =
+object_locking_OBJECTS = $(am_object_locking_OBJECTS)
+object_locking_LDADD = $(LDADD)
+am__qemuargv2xmltest_SOURCES_DIST = qemuargv2xmltest.c testutilsqemu.c \
+	testutilsqemu.h testutils.c testutils.h
+@WITH_QEMU_TRUE@am_qemuargv2xmltest_OBJECTS =  \
+@WITH_QEMU_TRUE@	qemuargv2xmltest.$(OBJEXT) \
+@WITH_QEMU_TRUE@	testutilsqemu.$(OBJEXT) testutils.$(OBJEXT)
+qemuargv2xmltest_OBJECTS = $(am_qemuargv2xmltest_OBJECTS)
+@WITH_QEMU_TRUE@qemuargv2xmltest_DEPENDENCIES =  \
+@WITH_QEMU_TRUE@	../src/libvirt_driver_qemu.la \
+@WITH_QEMU_TRUE@	$(am__DEPENDENCIES_2)
 am__qemuxml2argvtest_SOURCES_DIST = qemuxml2argvtest.c testutilsqemu.c \
 	testutilsqemu.h testutils.c testutils.h
 @WITH_QEMU_TRUE@am_qemuxml2argvtest_OBJECTS =  \
@@ -265,15 +291,20 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(conftest_SOURCES) $(nodedevxml2xmltest_SOURCES) \
-	$(nodeinfotest_SOURCES) $(qemuxml2argvtest_SOURCES) \
-	$(qemuxml2xmltest_SOURCES) $(qparamtest_SOURCES) \
-	$(reconnect_SOURCES) $(seclabeltest_SOURCES) \
-	$(sexpr2xmltest_SOURCES) $(statstest_SOURCES) \
-	$(virshtest_SOURCES) $(xencapstest_SOURCES) \
-	$(xmconfigtest_SOURCES) $(xml2sexprtest_SOURCES)
-DIST_SOURCES = $(conftest_SOURCES) $(nodedevxml2xmltest_SOURCES) \
-	$(nodeinfotest_SOURCES) $(am__qemuxml2argvtest_SOURCES_DIST) \
+SOURCES = $(conftest_SOURCES) $(eventtest_SOURCES) \
+	$(nodedevxml2xmltest_SOURCES) $(nodeinfotest_SOURCES) \
+	$(object_locking_SOURCES) $(qemuargv2xmltest_SOURCES) \
+	$(qemuxml2argvtest_SOURCES) $(qemuxml2xmltest_SOURCES) \
+	$(qparamtest_SOURCES) $(reconnect_SOURCES) \
+	$(seclabeltest_SOURCES) $(sexpr2xmltest_SOURCES) \
+	$(statstest_SOURCES) $(virshtest_SOURCES) \
+	$(xencapstest_SOURCES) $(xmconfigtest_SOURCES) \
+	$(xml2sexprtest_SOURCES)
+DIST_SOURCES = $(conftest_SOURCES) $(am__eventtest_SOURCES_DIST) \
+	$(nodedevxml2xmltest_SOURCES) $(nodeinfotest_SOURCES) \
+	$(am__object_locking_SOURCES_DIST) \
+	$(am__qemuargv2xmltest_SOURCES_DIST) \
+	$(am__qemuxml2argvtest_SOURCES_DIST) \
 	$(am__qemuxml2xmltest_SOURCES_DIST) $(qparamtest_SOURCES) \
 	$(am__reconnect_SOURCES_DIST) $(am__seclabeltest_SOURCES_DIST) \
 	$(am__sexpr2xmltest_SOURCES_DIST) $(statstest_SOURCES) \
@@ -291,10 +322,10 @@ RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
   distclean-recursive maintainer-clean-recursive
 ETAGS = etags
 CTAGS = ctags
-@WITH_XEN_TRUE@am__EXEEXT_4 = xml2sexprtest$(EXEEXT) \
+@WITH_XEN_TRUE@am__EXEEXT_6 = xml2sexprtest$(EXEEXT) \
 @WITH_XEN_TRUE@	sexpr2xmltest$(EXEEXT) xmconfigtest$(EXEEXT) \
 @WITH_XEN_TRUE@	xencapstest$(EXEEXT)
-@ENABLE_XEN_TESTS_TRUE@@WITH_XEN_TRUE@am__EXEEXT_5 =  \
+@ENABLE_XEN_TESTS_TRUE@@WITH_XEN_TRUE@am__EXEEXT_7 =  \
 @ENABLE_XEN_TESTS_TRUE@@WITH_XEN_TRUE@	reconnect$(EXEEXT)
 DIST_SUBDIRS = $(SUBDIRS)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -641,6 +672,7 @@ LIBVIRT_VERSION_NUMBER = @LIBVIRT_VERSION_NUMBER@
 LIBXML_CFLAGS = @LIBXML_CFLAGS@
 LIBXML_LIBS = @LIBXML_LIBS@
 LN_S = @LN_S@
+LOCK_CHECKING_CFLAGS = @LOCK_CHECKING_CFLAGS@
 LOKKIT_PATH = @LOKKIT_PATH@
 LTALLOCA = @LTALLOCA@
 LTLIBICONV = @LTLIBICONV@
@@ -659,6 +691,8 @@ MOUNT = @MOUNT@
 MSGFMT = @MSGFMT@
 MSGMERGE = @MSGMERGE@
 MV = @MV@
+NETCF_CFLAGS = @NETCF_CFLAGS@
+NETCF_LIBS = @NETCF_LIBS@
 NETDB_H = @NETDB_H@
 NETINET_IN_H = @NETINET_IN_H@
 NEXT_ARPA_INET_H = @NEXT_ARPA_INET_H@
@@ -682,6 +716,7 @@ NUMACTL_CFLAGS = @NUMACTL_CFLAGS@
 NUMACTL_LIBS = @NUMACTL_LIBS@
 OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
+ONE_LIBS = @ONE_LIBS@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 PACKAGE_NAME = @PACKAGE_NAME@
@@ -906,11 +941,11 @@ EXTRA_DIST = oomtrace.pl test-lib.sh qemuxml2argvdata nodeinfodata \
 	domainschematest domainschemadata storagepoolschematest \
 	storagepoolschemadata storagevolschematest \
 	storagevolschemadata nodedevschematest nodedevschemadata \
-	$(test_scripts) $(am__append_10) $(am__append_11) \
-	$(am__append_12)
+	$(test_scripts) $(am__append_13) $(am__append_14) \
+	$(am__append_15) $(am__append_16)
 test_scripts = capabilityschematest networkschematest \
 	storagepoolschematest storagevolschematest domainschematest \
-	nodedevschematest $(am__append_5)
+	nodedevschematest $(am__append_6)
 path_add = $$abs_top_builddir/src$(PATH_SEPARATOR)$$abs_top_builddir/qemud
 
 # NB, automake < 1.10 does not provide the real
@@ -962,6 +997,11 @@ TESTS_ENVIRONMENT = \
 @WITH_QEMU_TRUE@	testutils.c testutils.h
 
 @WITH_QEMU_TRUE@qemuxml2xmltest_LDADD = ../src/libvirt_driver_qemu.la $(LDADDS)
+@WITH_QEMU_TRUE@qemuargv2xmltest_SOURCES = \
+@WITH_QEMU_TRUE@	qemuargv2xmltest.c testutilsqemu.c testutilsqemu.h \
+@WITH_QEMU_TRUE@	testutils.c testutils.h
+
+@WITH_QEMU_TRUE@qemuargv2xmltest_LDADD = ../src/libvirt_driver_qemu.la $(LDADDS)
 nodedevxml2xmltest_SOURCES = \
 	nodedevxml2xmltest.c \
 	testutils.c testutils.h
@@ -992,7 +1032,16 @@ qparamtest_SOURCES = \
 	qparamtest.c testutils.h testutils.c
 
 qparamtest_LDADD = $(LDADDS)
-CLEANFILES = *.cov *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda
+@WITH_LIBVIRTD_TRUE@eventtest_SOURCES = \
+@WITH_LIBVIRTD_TRUE@	eventtest.c testutils.h testutils.c ../qemud/event.c
+
+@WITH_LIBVIRTD_TRUE@eventtest_LDADD = -lrt $(LDADDS)
+@WITH_CIL_TRUE@CILOPTFLAGS = 
+@WITH_CIL_TRUE@CILOPTINCS = 
+@WITH_CIL_TRUE@CILOPTPACKAGES = -package unix,str,cil
+@WITH_CIL_TRUE@CILOPTLIBS = -linkpkg
+@WITH_CIL_TRUE@object_locking_SOURCES = object-locking.ml
+CLEANFILES = *.cov *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda *.cmi *.cmx object-locking-files.txt
 all: all-recursive
 
 .SUFFIXES:
@@ -1036,12 +1085,21 @@ clean-noinstPROGRAMS:
 conftest$(EXEEXT): $(conftest_OBJECTS) $(conftest_DEPENDENCIES) 
 	@rm -f conftest$(EXEEXT)
 	$(LINK) $(conftest_OBJECTS) $(conftest_LDADD) $(LIBS)
+eventtest$(EXEEXT): $(eventtest_OBJECTS) $(eventtest_DEPENDENCIES) 
+	@rm -f eventtest$(EXEEXT)
+	$(LINK) $(eventtest_OBJECTS) $(eventtest_LDADD) $(LIBS)
 nodedevxml2xmltest$(EXEEXT): $(nodedevxml2xmltest_OBJECTS) $(nodedevxml2xmltest_DEPENDENCIES) 
 	@rm -f nodedevxml2xmltest$(EXEEXT)
 	$(LINK) $(nodedevxml2xmltest_OBJECTS) $(nodedevxml2xmltest_LDADD) $(LIBS)
 nodeinfotest$(EXEEXT): $(nodeinfotest_OBJECTS) $(nodeinfotest_DEPENDENCIES) 
 	@rm -f nodeinfotest$(EXEEXT)
 	$(LINK) $(nodeinfotest_OBJECTS) $(nodeinfotest_LDADD) $(LIBS)
+@WITH_CIL_FALSE@object-locking$(EXEEXT): $(object_locking_OBJECTS) $(object_locking_DEPENDENCIES) 
+@WITH_CIL_FALSE@	@rm -f object-locking$(EXEEXT)
+@WITH_CIL_FALSE@	$(LINK) $(object_locking_OBJECTS) $(object_locking_LDADD) $(LIBS)
+qemuargv2xmltest$(EXEEXT): $(qemuargv2xmltest_OBJECTS) $(qemuargv2xmltest_DEPENDENCIES) 
+	@rm -f qemuargv2xmltest$(EXEEXT)
+	$(LINK) $(qemuargv2xmltest_OBJECTS) $(qemuargv2xmltest_LDADD) $(LIBS)
 qemuxml2argvtest$(EXEEXT): $(qemuxml2argvtest_OBJECTS) $(qemuxml2argvtest_DEPENDENCIES) 
 	@rm -f qemuxml2argvtest$(EXEEXT)
 	$(LINK) $(qemuxml2argvtest_OBJECTS) $(qemuxml2argvtest_LDADD) $(LIBS)
@@ -1083,8 +1141,11 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/conftest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/event.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eventtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nodedevxml2xmltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nodeinfotest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemuargv2xmltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemuxml2argvtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemuxml2xmltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qparamtest.Po@am__quote@
@@ -1120,6 +1181,20 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
+
+event.o: ../qemud/event.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT event.o -MD -MP -MF $(DEPDIR)/event.Tpo -c -o event.o `test -f '../qemud/event.c' || echo '$(srcdir)/'`../qemud/event.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/event.Tpo $(DEPDIR)/event.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../qemud/event.c' object='event.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o event.o `test -f '../qemud/event.c' || echo '$(srcdir)/'`../qemud/event.c
+
+event.obj: ../qemud/event.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT event.obj -MD -MP -MF $(DEPDIR)/event.Tpo -c -o event.obj `if test -f '../qemud/event.c'; then $(CYGPATH_W) '../qemud/event.c'; else $(CYGPATH_W) '$(srcdir)/../qemud/event.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/event.Tpo $(DEPDIR)/event.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../qemud/event.c' object='event.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o event.obj `if test -f '../qemud/event.c'; then $(CYGPATH_W) '../qemud/event.c'; else $(CYGPATH_W) '$(srcdir)/../qemud/event.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -1484,6 +1559,15 @@ uninstall-am:
 
 valgrind:
 	$(MAKE) check VG="valgrind --quiet --leak-check=full --suppressions=$(srcdir)/.valgrind.supp"
+
+@WITH_CIL_TRUE@%.cmx: %.ml
+@WITH_CIL_TRUE@	ocamlfind ocamlopt $(CILOPTFLAGS) $(CILOPTINCS) $(CILOPTPACKAGES) -c $<
+
+@WITH_CIL_TRUE@object-locking: object-locking.cmx object-locking-files.txt
+@WITH_CIL_TRUE@	ocamlfind ocamlopt $(CILOPTFLAGS) $(CILOPTINCS) $(CILOPTPACKAGES) $(CILOPTLIBS) $< -o $@
+
+@WITH_CIL_TRUE@object-locking-files.txt:
+@WITH_CIL_TRUE@	find $(top_builddir)/src/ -name '*.i' > $@
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

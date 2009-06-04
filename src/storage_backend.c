@@ -156,6 +156,17 @@ virStorageBackendUpdateVolInfo(virConnectPtr conn,
     return 0;
 }
 
+/*
+ * virStorageBackendUpdateVolTargetInfoFD:
+ * @conn: connection to report errors on
+ * @target: target definition ptr of volume to update
+ * @fd: fd of storage volume to update
+ * @allocation: If not NULL, updated allocation information will be stored
+ * @capacity: If not NULL, updated capacity info will be stored
+ *
+ * Returns 0 for success-1 on a legitimate error condition,
+ *    -2 if passed FD isn't a regular, char, or block file.
+ */
 int
 virStorageBackendUpdateVolTargetInfoFD(virConnectPtr conn,
                                        virStorageVolTargetPtr target,
@@ -331,16 +342,13 @@ virStorageBackendStablePath(virConnectPtr conn,
         if (dent->d_name[0] == '.')
             continue;
 
-        if (VIR_ALLOC_N(stablepath, strlen(pool->def->target.path) +
-                        1 + strlen(dent->d_name) + 1) < 0) {
+        if (virAsprintf(&stablepath, "%s/%s",
+                        pool->def->target.path,
+                        dent->d_name) == -1) {
             virReportOOMError(conn);
             closedir(dh);
             return NULL;
         }
-
-        strcpy(stablepath, pool->def->target.path);
-        strcat(stablepath, "/");
-        strcat(stablepath, dent->d_name);
 
         if (virFileLinkPointsTo(stablepath, devpath)) {
             closedir(dh);

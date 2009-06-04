@@ -2210,6 +2210,98 @@ cmdDumpXML(vshControl *ctl, const vshCmd *cmd)
 }
 
 /*
+ * "domxml-from-native" command
+ */
+static const vshCmdInfo info_domxmlfromnative[] = {
+    {"help", gettext_noop("Convert native config to domain XML")},
+    {"desc", gettext_noop("Convert native guest configuration format to domain XML format.")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_domxmlfromnative[] = {
+    {"format", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("source config data format")},
+    {"config", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("config data file to import from")},
+    {NULL, 0, 0, NULL}
+};
+
+static int
+cmdDomXMLFromNative(vshControl *ctl, const vshCmd *cmd)
+{
+    int ret = TRUE;
+    char *format;
+    char *configFile;
+    char *configData;
+    char *xmlData;
+    int flags = 0;
+
+    if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
+        return FALSE;
+
+    format = vshCommandOptString(cmd, "format", NULL);
+    configFile = vshCommandOptString(cmd, "config", NULL);
+
+    if (virFileReadAll(configFile, 1024*1024, &configData) < 0) {
+        return FALSE;
+    }
+
+    xmlData = virConnectDomainXMLFromNative(ctl->conn, format, configData, flags);
+    if (xmlData != NULL) {
+        printf("%s", xmlData);
+        free(xmlData);
+    } else {
+        ret = FALSE;
+    }
+
+    return ret;
+}
+
+/*
+ * "domxml-to-native" command
+ */
+static const vshCmdInfo info_domxmltonative[] = {
+    {"help", gettext_noop("Convert domain XML to native config")},
+    {"desc", gettext_noop("Convert domain XML config to a native guest configuration format.")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_domxmltonative[] = {
+    {"format", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("target config data type format")},
+    {"xml", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("xml data file to export from")},
+    {NULL, 0, 0, NULL}
+};
+
+static int
+cmdDomXMLToNative(vshControl *ctl, const vshCmd *cmd)
+{
+    int ret = TRUE;
+    char *format;
+    char *xmlFile;
+    char *configData;
+    char *xmlData;
+    int flags = 0;
+
+    if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
+        return FALSE;
+
+    format = vshCommandOptString(cmd, "format", NULL);
+    xmlFile = vshCommandOptString(cmd, "xml", NULL);
+
+    if (virFileReadAll(xmlFile, 1024*1024, &xmlData) < 0) {
+        return FALSE;
+    }
+
+    configData = virConnectDomainXMLToNative(ctl->conn, format, xmlData, flags);
+    if (configData != NULL) {
+        printf("%s", configData);
+        free(configData);
+    } else {
+        ret = FALSE;
+    }
+
+    return ret;
+}
+
+/*
  * "domname" command
  */
 static const vshCmdInfo info_domname[] = {
@@ -2706,7 +2798,7 @@ cmdNetworkList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
         else
             autostartStr = autostart ? "yes" : "no";
 
-        vshPrint(ctl, "%-20s %s %s\n",
+        vshPrint(ctl, "%-20s %-10s %-10s\n",
                  inactiveNames[i],
                  _("inactive"),
                  autostartStr);
@@ -3970,8 +4062,6 @@ cmdPoolUuid(vshControl *ctl, const vshCmd *cmd)
 }
 
 
-
-
 /*
  * "vol-create" command
  */
@@ -4027,6 +4117,179 @@ cmdVolCreate(vshControl *ctl, const vshCmd *cmd)
         vshError(ctl, FALSE, _("Failed to create vol from %s"), from);
         ret = FALSE;
     }
+    return ret;
+}
+
+/*
+ * "vol-create-from" command
+ */
+static const vshCmdInfo info_vol_create_from[] = {
+    {"help", gettext_noop("create a vol, using another volume as input")},
+    {"desc", gettext_noop("Create a vol from an existing volume.")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_vol_create_from[] = {
+    {"pool", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("pool name")},
+    {"file", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("file containing an XML vol description")},
+    {"inputpool", VSH_OT_STRING, 0, gettext_noop("pool name or uuid of the input volume's pool")},
+    {"vol", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("input vol name or key")},
+    {NULL, 0, 0, NULL}
+};
+
+static int
+cmdVolCreateFrom(vshControl *ctl, const vshCmd *cmd)
+{
+    virStoragePoolPtr pool = NULL;
+    virStorageVolPtr newvol = NULL, inputvol = NULL;
+    char *from;
+    int found;
+    int ret = FALSE;
+    char *buffer = NULL;
+
+    if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
+        goto cleanup;
+
+    if (!(pool = vshCommandOptPoolBy(ctl, cmd, "pool", NULL, VSH_BYNAME)))
+        goto cleanup;
+
+    from = vshCommandOptString(cmd, "file", &found);
+    if (!found) {
+        goto cleanup;
+    }
+
+    if (!(inputvol = vshCommandOptVol(ctl, cmd, "vol", "inputpool", NULL)))
+        goto cleanup;
+
+    if (virFileReadAll(from, VIRSH_MAX_XML_FILE, &buffer) < 0) {
+        goto cleanup;
+    }
+
+    newvol = virStorageVolCreateXMLFrom(pool, buffer, inputvol, 0);
+
+    if (newvol != NULL) {
+        vshPrint(ctl, _("Vol %s created from input vol %s\n"),
+                 virStorageVolGetName(newvol), virStorageVolGetName(inputvol));
+    } else {
+        vshError(ctl, FALSE, _("Failed to create vol from %s"), from);
+        goto cleanup;
+    }
+
+    ret = TRUE;
+cleanup:
+    free (buffer);
+    if (pool)
+        virStoragePoolFree(pool);
+    if (inputvol)
+        virStorageVolFree(inputvol);
+    return ret;
+}
+
+static xmlChar *
+makeCloneXML(char *origxml, char *newname) {
+
+    xmlDocPtr doc = NULL;
+    xmlXPathContextPtr ctxt = NULL;
+    xmlXPathObjectPtr obj = NULL;
+    xmlChar *newxml = NULL;
+    int size;
+
+    doc = xmlReadDoc((const xmlChar *) origxml, "domain.xml", NULL,
+                     XML_PARSE_NOENT | XML_PARSE_NONET | XML_PARSE_NOWARNING);
+    if (!doc)
+        goto cleanup;
+    ctxt = xmlXPathNewContext(doc);
+    if (!ctxt)
+        goto cleanup;
+
+    obj = xmlXPathEval(BAD_CAST "/volume/name", ctxt);
+    if ((obj == NULL) || (obj->nodesetval == NULL) ||
+        (obj->nodesetval->nodeTab == NULL))
+        goto cleanup;
+
+    xmlNodeSetContent(obj->nodesetval->nodeTab[0], (const xmlChar *)newname);
+    xmlDocDumpMemory(doc, &newxml, &size);
+
+cleanup:
+    xmlXPathFreeObject(obj);
+    xmlXPathFreeContext(ctxt);
+    xmlFreeDoc(doc);
+    return newxml;
+}
+
+/*
+ * "vol-clone" command
+ */
+static const vshCmdInfo info_vol_clone[] = {
+    {"help", gettext_noop("clone a volume.")},
+    {"desc", gettext_noop("Clone an existing volume.")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_vol_clone[] = {
+    {"pool", VSH_OT_STRING, 0, gettext_noop("pool name or uuid")},
+    {"vol", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("orig vol name or key")},
+    {"newname", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("clone name")},
+    {NULL, 0, 0, NULL}
+};
+
+static int
+cmdVolClone(vshControl *ctl, const vshCmd *cmd)
+{
+    virStoragePoolPtr origpool = NULL;
+    virStorageVolPtr origvol = NULL, newvol = NULL;
+    char *name, *origxml = NULL;
+    xmlChar *newxml = NULL;
+    int found;
+    int ret = FALSE;
+
+    if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
+        goto cleanup;
+
+    if (!(origvol = vshCommandOptVol(ctl, cmd, "vol", "pool", NULL)))
+        goto cleanup;
+
+    origpool = virStoragePoolLookupByVolume(origvol);
+    if (!origpool) {
+        vshError(ctl, FALSE, _("failed to get parent pool"));
+        goto cleanup;
+    }
+
+    name = vshCommandOptString(cmd, "newname", &found);
+    if (!found)
+        goto cleanup;
+
+    origxml = virStorageVolGetXMLDesc(origvol, 0);
+    if (!origxml)
+        goto cleanup;
+
+    newxml = makeCloneXML(origxml, name);
+    if (!newxml) {
+        vshPrint(ctl, "%s", _("Failed to allocate XML buffer"));
+        goto cleanup;
+    }
+
+    newvol = virStorageVolCreateXMLFrom(origpool, (char *) newxml, origvol, 0);
+
+    if (newvol != NULL) {
+        vshPrint(ctl, _("Vol %s cloned from %s\n"),
+                 virStorageVolGetName(newvol), virStorageVolGetName(origvol));
+        virStorageVolFree(newvol);
+    } else {
+        vshError(ctl, FALSE, _("Failed to clone vol from %s"),
+                 virStorageVolGetName(origvol));
+        goto cleanup;
+    }
+
+    ret = TRUE;
+
+cleanup:
+    free(origxml);
+    xmlFree(newxml);
+    if (origvol)
+        virStorageVolFree(origvol);
+    if (origpool)
+        virStoragePoolFree(origpool);
     return ret;
 }
 
@@ -4463,7 +4726,7 @@ cmdNodeListDevicesPrint(vshControl *ctl,
     }
 
     /* Print this device */
-    vshPrint(ctl, indentBuf);
+    vshPrint(ctl, "%s", indentBuf);
     vshPrint(ctl, "%s\n", devices[devid]);
 
 
@@ -4487,7 +4750,7 @@ cmdNodeListDevicesPrint(vshControl *ctl,
 
     /* If there is a child device, then print another blank line */
     if (nextlastdev != -1) {
-        vshPrint(ctl, indentBuf);
+        vshPrint(ctl, "%s", indentBuf);
         vshPrint(ctl, "  |\n");
     }
 
@@ -4511,7 +4774,7 @@ cmdNodeListDevicesPrint(vshControl *ctl,
     /* If there was no child device, and we're the last in
      * a list of devices, then print another blank line */
     if (nextlastdev == -1 && devid == lastdev) {
-        vshPrint(ctl, indentBuf);
+        vshPrint(ctl, "%s", indentBuf);
         vshPrint(ctl, "\n");
     }
 }
@@ -5338,13 +5601,6 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
     type = vshCommandOptString(cmd, "type", NULL);
     mode = vshCommandOptString(cmd, "mode", NULL);
 
-    if (type) {
-        if (STRNEQ(type, "cdrom") && STRNEQ(type, "disk")) {
-            vshError(ctl, FALSE, _("No support %s in command 'attach-disk'"), type);
-            goto cleanup;
-        }
-    }
-
     if (driver) {
         if (STREQ(driver, "file") || STREQ(driver, "tap")) {
             isFile = 1;
@@ -5866,6 +6122,8 @@ static const vshCmdDef commands[] = {
     {"domstate", cmdDomstate, opts_domstate, info_domstate},
     {"domblkstat", cmdDomblkstat, opts_domblkstat, info_domblkstat},
     {"domifstat", cmdDomIfstat, opts_domifstat, info_domifstat},
+    {"domxml-from-native", cmdDomXMLFromNative, opts_domxmlfromnative, info_domxmlfromnative},
+    {"domxml-to-native", cmdDomXMLToNative, opts_domxmltonative, info_domxmltonative},
     {"dumpxml", cmdDumpXML, opts_dumpxml, info_dumpxml},
     {"edit", cmdEdit, opts_edit, info_edit},
     {"find-storage-pool-sources", cmdPoolDiscoverSources,
@@ -5931,7 +6189,9 @@ static const vshCmdDef commands[] = {
     {"uri", cmdURI, NULL, info_uri},
 
     {"vol-create", cmdVolCreate, opts_vol_create, info_vol_create},
+    {"vol-create-from", cmdVolCreateFrom, opts_vol_create_from, info_vol_create_from},
     {"vol-create-as", cmdVolCreateAs, opts_vol_create_as, info_vol_create_as},
+    {"vol-clone", cmdVolClone, opts_vol_clone, info_vol_clone},
     {"vol-delete", cmdVolDelete, opts_vol_delete, info_vol_delete},
     {"vol-dumpxml", cmdVolDumpXML, opts_vol_dumpxml, info_vol_dumpxml},
     {"vol-info", cmdVolInfo, opts_vol_info, info_vol_info},
@@ -6876,6 +7136,7 @@ vshInit(vshControl *ctl)
      * such as "help".
      */
     if (!ctl->conn) {
+        virshReportError(ctl);
         vshError(ctl, FALSE, "%s", _("failed to connect to the hypervisor"));
         return FALSE;
     }

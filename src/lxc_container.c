@@ -41,6 +41,9 @@
 /* For MS_MOVE */
 #include <linux/fs.h>
 
+#include <sys/prctl.h>
+#include <linux/capability.h>
+
 #include "virterror_internal.h"
 #include "logging.h"
 #include "lxc_container.h"
@@ -440,7 +443,7 @@ static int lxcContainerPopulateDevices(void)
     /* Populate /dev/ with a few important bits */
     for (i = 0 ; i < ARRAY_CARDINALITY(devs) ; i++) {
         dev_t dev = makedev(devs[i].maj, devs[i].min);
-        if (mknod(devs[i].path, 0, dev) < 0 ||
+        if (mknod(devs[i].path, S_IFCHR, dev) < 0 ||
             chmod(devs[i].path, devs[i].mode)) {
             virReportSystemError(NULL, errno,
                                  _("failed to make device %s"),
@@ -457,7 +460,7 @@ static int lxcContainerPopulateDevices(void)
         }
     } else {
         dev_t dev = makedev(LXC_DEV_MAJ_TTY, LXC_DEV_MIN_PTMX);
-        if (mknod("/dev/ptmx", 0, dev) < 0 ||
+        if (mknod("/dev/ptmx", S_IFCHR, dev) < 0 ||
             chmod("/dev/ptmx", 0666)) {
             virReportSystemError(NULL, errno, "%s",
                                  _("failed to make device /dev/ptmx"));
@@ -639,6 +642,32 @@ static int lxcContainerSetupMounts(virDomainDefPtr vmDef,
         return lxcContainerSetupExtraMounts(vmDef);
 }
 
+static int lxcContainerDropCapabilities(virDomainDefPtr vmDef ATTRIBUTE_UNUSED)
+{
+#ifdef PR_CAPBSET_DROP
+    int i;
+    const struct {
+        int id;
+        const char *name;
+    } caps[] = {
+#define ID_STRING(name) name, #name
+        { ID_STRING(CAP_SYS_BOOT) },
+    };
+
+    for (i = 0 ; i < ARRAY_CARDINALITY(caps) ; i++) {
+        if (prctl(PR_CAPBSET_DROP, caps[i].id, 0, 0, 0)) {
+            lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                     _("failed to drop %s"), caps[i].name);
+            return -1;
+        }
+    }
+#else /* ! PR_CAPBSET_DROP */
+    VIR_WARN0(_("failed to drop capabilities PR_CAPBSET_DROP undefined"));
+#endif
+    return 0;
+}
+
+
 /**
  * lxcChild:
  * @argv: Pointer to container arguments
@@ -703,6 +732,10 @@ static int lxcContainerChild( void *data )
 
     /* enable interfaces */
     if (lxcContainerEnableInterfaces(argv->nveths, argv->veths) < 0)
+        return -1;
+
+    /* drop a set of root capabilities */
+    if (lxcContainerDropCapabilities(vmDef) < 0)
         return -1;
 
     /* this function will only return if an error occured */

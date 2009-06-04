@@ -43,6 +43,7 @@ virConfWriteMem;
 
 # datatypes.h
 virGetDomain;
+virGetInterface;
 virGetNetwork;
 virGetStoragePool;
 virGetStorageVol;
@@ -320,7 +321,7 @@ virEnumToString;
 virEventAddHandle;
 virEventRemoveHandle;
 virExec;
-virExecWithHook;
+virExecDaemonize;
 virSetCloseExec;
 virSetNonBlock;
 virFormatMacAddr;

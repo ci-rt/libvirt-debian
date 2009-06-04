@@ -18,6 +18,9 @@
 #ifndef WIN32
 #include <sys/wait.h>
 #endif
+#ifdef HAVE_REGEX_H
+#include <regex.h>
+#endif
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
@@ -457,3 +460,56 @@ cleanup:
     virResetLastError();
     return ret;
 }
+
+
+#ifdef HAVE_REGEX_H
+int virtTestClearLineRegex(const char *pattern,
+                           char *str)
+{
+    regex_t reg;
+    char *lineStart = str;
+    char *lineEnd = strchr(str, '\n');
+
+    if (regcomp(&reg, pattern, REG_EXTENDED | REG_NOSUB) != 0)
+        return -1;
+
+    while (lineStart) {
+        int ret;
+        if (lineEnd)
+            *lineEnd = '\0';
+
+
+        ret = regexec(&reg, lineStart, 0, NULL, 0);
+        //fprintf(stderr, "Match %d '%s' '%s'\n", ret, lineStart, pattern);
+        if (ret == 0) {
+            if (lineEnd) {
+                memmove(lineStart, lineEnd + 1, strlen(lineEnd+1) + 1);
+                /* Don't update lineStart - just iterate again on this
+                   location */
+                lineEnd = strchr(lineStart, '\n');
+            } else {
+                *lineStart = '\0';
+                lineStart = NULL;
+            }
+        } else {
+            if (lineEnd) {
+                *lineEnd = '\n';
+                lineStart = lineEnd + 1;
+                lineEnd = strchr(lineStart, '\n');
+            } else {
+                lineStart = NULL;
+            }
+        }
+    }
+
+    regfree(&reg);
+
+    return 0;
+}
+#else
+int virtTestClearLineRegex(const char *pattern ATTRIBUTE_UNUSED,
+                           char *str ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+#endif

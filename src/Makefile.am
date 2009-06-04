@@ -16,7 +16,8 @@ INCLUDES = \
 	   -DLOCALEBASEDIR=\""$(datadir)/locale"\" \
            -DLOCAL_STATE_DIR=\""$(localstatedir)"\" \
            -DGETTEXT_PACKAGE=\"$(PACKAGE)\" \
-	   $(WARN_CFLAGS)
+	   $(WARN_CFLAGS) \
+	   $(LOCK_CHECKING_CFLAGS)
 
 confdir = $(sysconfdir)/libvirt/
 conf_DATA = qemu.conf
@@ -143,6 +144,12 @@ QEMU_DRIVER_SOURCES =						\
 UML_DRIVER_SOURCES =						\
 		uml_conf.c uml_conf.h				\
 		uml_driver.c uml_driver.h
+
+ONE_DRIVER_SOURCES =					\
+		./opennebula/one_conf.c			\
+		./opennebula/one_conf.h			\
+		./opennebula/one_driver.c		\
+		./opennebula/one_driver.h
 
 NETWORK_DRIVER_SOURCES =					\
 		network_driver.h network_driver.c
@@ -337,6 +344,25 @@ endif
 libvirt_driver_uml_la_SOURCES = $(UML_DRIVER_SOURCES)
 endif
 
+if WITH_ONE
+if WITH_DRIVER_MODULES
+mod_LTLIBRARIES += libvirt_driver_one.la
+else
+noinst_LTLIBRARIES += libvirt_driver_one.la
+# Stateful, so linked to daemon instead
+#libvirt_la_LIBADD  += libvirt_driver_one.la
+endif
+libvirt_driver_one_la_LDFLAGS = $(ONE_LIBS)
+#libvirt_driver_one_la_CFLAGS  = "-DWITH_ONE"
+if WITH_DRIVER_MODULES
+libvirt_driver_one_la_LDFLAGS += -module -avoid-version
+endif
+libvirt_driver_one_la_SOURCES = $(ONE_DRIVER_SOURCES)
+endif
+
+
+
+
 if WITH_NETWORK
 if WITH_DRIVER_MODULES
 mod_LTLIBRARIES += libvirt_driver_network.la
@@ -349,6 +375,11 @@ if WITH_DRIVER_MODULES
 libvirt_driver_network_la_LDFLAGS = -module -avoid-version
 endif
 libvirt_driver_network_la_SOURCES = $(NETWORK_DRIVER_SOURCES)
+endif
+
+if WITH_NETCF
+libvirt_driver_interface_la_CFLAGS = $(NETCF_CFLAGS)
+libvirt_driver_interface_la_LDFLAGS = $(NETCF_LIBS)
 endif
 
 # Needed to keep automake quiet about conditionals
@@ -429,6 +460,7 @@ EXTRA_DIST +=							\
 		$(QEMU_DRIVER_SOURCES)				\
 		$(LXC_DRIVER_SOURCES)				\
 		$(UML_DRIVER_SOURCES)				\
+		$(ONE_DRIVER_SOURCES)				\
 		$(OPENVZ_DRIVER_SOURCES)			\
 		$(VBOX_DRIVER_SOURCES)				\
 		$(NETWORK_DRIVER_SOURCES)			\
@@ -662,5 +694,5 @@ if WITH_NETWORK
 endif
 
 
-CLEANFILES = *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda
+CLEANFILES = *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda *.i *.s
 DISTCLEANFILES = $(BUILT_SOURCES)

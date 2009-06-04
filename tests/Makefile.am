@@ -61,11 +61,15 @@ noinst_PROGRAMS += xml2sexprtest sexpr2xmltest \
 	reconnect xmconfigtest xencapstest
 endif
 if WITH_QEMU
-noinst_PROGRAMS += qemuxml2argvtest qemuxml2xmltest
+noinst_PROGRAMS += qemuxml2argvtest qemuxml2xmltest qemuargv2xmltest
 endif
 
 if WITH_SECDRIVER_SELINUX
 noinst_PROGRAMS += seclabeltest
+endif
+
+if WITH_CIL
+noinst_PROGRAMS += object-locking
 endif
 
 noinst_PROGRAMS += nodedevxml2xmltest
@@ -115,11 +119,16 @@ endif
 endif
 
 if WITH_QEMU
-TESTS += qemuxml2argvtest qemuxml2xmltest
+TESTS += qemuxml2argvtest qemuxml2xmltest qemuargv2xmltest
 endif
 
 if WITH_SECDRIVER_SELINUX
 TESTS += seclabeltest
+endif
+
+if WITH_LIBVIRTD
+noinst_PROGRAMS += eventtest
+TESTS += eventtest
 endif
 
 TESTS += nodedevxml2xmltest
@@ -185,8 +194,13 @@ qemuxml2xmltest_SOURCES = \
 	qemuxml2xmltest.c testutilsqemu.c testutilsqemu.h \
 	testutils.c testutils.h
 qemuxml2xmltest_LDADD = ../src/libvirt_driver_qemu.la $(LDADDS)
+
+qemuargv2xmltest_SOURCES = \
+	qemuargv2xmltest.c testutilsqemu.c testutilsqemu.h \
+	testutils.c testutils.h
+qemuargv2xmltest_LDADD = ../src/libvirt_driver_qemu.la $(LDADDS)
 else
-EXTRA_DIST += qemuxml2argvtest.c qemuxml2xmltest.c testutilsqemu.c testutilsqemu.h
+EXTRA_DIST += qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c testutilsqemu.c testutilsqemu.h
 endif
 
 nodedevxml2xmltest_SOURCES = \
@@ -223,4 +237,31 @@ qparamtest_SOURCES = \
 	qparamtest.c testutils.h testutils.c
 qparamtest_LDADD = $(LDADDS)
 
-CLEANFILES = *.cov *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda
+if WITH_LIBVIRTD
+eventtest_SOURCES = \
+	eventtest.c testutils.h testutils.c ../qemud/event.c
+eventtest_LDADD = -lrt $(LDADDS)
+endif
+
+if WITH_CIL
+CILOPTFLAGS =
+CILOPTINCS =
+CILOPTPACKAGES = -package unix,str,cil
+CILOPTLIBS = -linkpkg
+
+object_locking_SOURCES = object-locking.ml
+
+%.cmx: %.ml
+	ocamlfind ocamlopt $(CILOPTFLAGS) $(CILOPTINCS) $(CILOPTPACKAGES) -c $<
+
+object-locking: object-locking.cmx object-locking-files.txt
+	ocamlfind ocamlopt $(CILOPTFLAGS) $(CILOPTINCS) $(CILOPTPACKAGES) $(CILOPTLIBS) $< -o $@
+
+object-locking-files.txt:
+	find $(top_builddir)/src/ -name '*.i' > $@
+
+else
+EXTRA_DIST += object-locking.ml
+endif
+
+CLEANFILES = *.cov *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda *.cmi *.cmx object-locking-files.txt

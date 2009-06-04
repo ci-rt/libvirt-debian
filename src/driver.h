@@ -21,6 +21,7 @@ typedef enum {
     VIR_DRV_LXC = 6,
     VIR_DRV_UML = 7,
     VIR_DRV_VBOX = 8,
+    VIR_DRV_ONE = 9,
 } virDrvNo;
 
 
@@ -152,6 +153,16 @@ typedef int
 typedef char *
         (*virDrvDomainDumpXML)		(virDomainPtr dom,
                                          int flags);
+typedef char *
+        (*virDrvConnectDomainXMLFromNative) (virConnectPtr conn,
+                                             const char *nativeFormat,
+                                             const char *nativeConfig,
+                                             unsigned int flags);
+typedef char *
+        (*virDrvConnectDomainXMLToNative) (virConnectPtr conn,
+                                           const char *nativeFormat,
+                                           const char *domainXml,
+                                           unsigned int flags);
 typedef int
         (*virDrvListDefinedDomains)	(virConnectPtr conn,
                                          char **const names,
@@ -381,6 +392,8 @@ struct _virDriver {
     virDrvDomainGetSecurityLabel     domainGetSecurityLabel;
     virDrvNodeGetSecurityModel  nodeGetSecurityModel;
     virDrvDomainDumpXML		domainDumpXML;
+    virDrvConnectDomainXMLFromNative domainXMLFromNative;
+    virDrvConnectDomainXMLToNative domainXMLToNative;
     virDrvListDefinedDomains	listDefinedDomains;
     virDrvNumOfDefinedDomains	numOfDefinedDomains;
     virDrvDomainCreate		domainCreate;
@@ -488,6 +501,65 @@ struct _virNetworkDriver {
         virDrvNetworkSetAutostart	networkSetAutostart;
 };
 
+/*-------*/
+typedef int
+        (*virDrvNumOfInterfaces)        (virConnectPtr conn);
+typedef int
+        (*virDrvListInterfaces)         (virConnectPtr conn,
+                                         char **const names,
+                                         int maxnames);
+typedef virInterfacePtr
+        (*virDrvInterfaceLookupByName)  (virConnectPtr conn,
+                                         const char *name);
+typedef virInterfacePtr
+        (*virDrvInterfaceLookupByMACString)   (virConnectPtr conn,
+                                               const char *mac);
+
+typedef char *
+        (*virDrvInterfaceGetXMLDesc)    (virInterfacePtr iface,
+                                         unsigned int flags);
+
+typedef virInterfacePtr
+        (*virDrvInterfaceDefineXML)     (virConnectPtr conn,
+                                         const char *xmlDesc,
+                                         unsigned int flags);
+typedef int
+        (*virDrvInterfaceUndefine)      (virInterfacePtr iface);
+typedef int
+        (*virDrvInterfaceCreate)        (virInterfacePtr iface,
+                                         unsigned int flags);
+typedef int
+        (*virDrvInterfaceDestroy)       (virInterfacePtr iface,
+                                         unsigned int flags);
+
+typedef struct _virInterfaceDriver virInterfaceDriver;
+typedef virInterfaceDriver *virInterfaceDriverPtr;
+
+/**
+ * _virInterfaceDriver:
+ *
+ * Structure associated to a network virtualization driver, defining the various
+ * entry points for it.
+ *
+ * All drivers must support the following fields/methods:
+ *  - open
+ *  - close
+ */
+struct _virInterfaceDriver {
+    const char                      *name; /* the name of the driver */
+    virDrvOpen                       open;
+    virDrvClose                      close;
+    virDrvNumOfInterfaces            numOfInterfaces;
+    virDrvListInterfaces             listInterfaces;
+    virDrvInterfaceLookupByName      interfaceLookupByName;
+    virDrvInterfaceLookupByMACString interfaceLookupByMACString;
+    virDrvInterfaceGetXMLDesc        interfaceGetXMLDesc;
+    virDrvInterfaceDefineXML         interfaceDefineXML;
+    virDrvInterfaceUndefine          interfaceUndefine;
+    virDrvInterfaceCreate            interfaceCreate;
+    virDrvInterfaceDestroy           interfaceDestroy;
+};
+
 
 typedef int
     (*virDrvConnectNumOfStoragePools)        (virConnectPtr conn);
@@ -586,6 +658,11 @@ typedef char *
 typedef char *
     (*virDrvStorageVolGetPath)               (virStorageVolPtr vol);
 
+typedef virStorageVolPtr
+    (*virDrvStorageVolCreateXMLFrom)         (virStoragePoolPtr pool,
+                                              const char *xmldesc,
+                                              virStorageVolPtr clone,
+                                              unsigned int flags);
 
 
 typedef struct _virStorageDriver virStorageDriver;
@@ -633,6 +710,7 @@ struct _virStorageDriver {
     virDrvStorageVolLookupByKey volLookupByKey;
     virDrvStorageVolLookupByPath volLookupByPath;
     virDrvStorageVolCreateXML volCreateXML;
+    virDrvStorageVolCreateXMLFrom volCreateXMLFrom;
     virDrvStorageVolDelete volDelete;
     virDrvStorageVolGetInfo volGetInfo;
     virDrvStorageVolGetXMLDesc volGetXMLDesc;
@@ -718,6 +796,7 @@ struct _virDeviceMonitor {
  */
 int virRegisterDriver(virDriverPtr);
 int virRegisterNetworkDriver(virNetworkDriverPtr);
+int virRegisterInterfaceDriver(virInterfaceDriverPtr);
 int virRegisterStorageDriver(virStorageDriverPtr);
 int virRegisterDeviceMonitor(virDeviceMonitorPtr);
 #ifdef WITH_LIBVIRTD

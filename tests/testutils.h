@@ -11,6 +11,8 @@
 #ifndef __VIT_TEST_UTILS_H__
 #define __VIT_TEST_UTILS_H__
 
+#include <stdio.h>
+
 double virtTestCountAverage(double *items,
                             int nitems);
 
@@ -25,6 +27,8 @@ int virtTestCaptureProgramOutput(const char *const argv[],
                                  char **buf,
                                  int buflen);
 
+int virtTestClearLineRegex(const char *pattern,
+                           char *string);
 
 int virtTestDifference(FILE *stream,
                        const char *expect,

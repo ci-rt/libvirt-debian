@@ -75,6 +75,9 @@
 #ifdef WITH_UML
 #include "uml_driver.h"
 #endif
+#ifdef WITH_ONE
+#include "opennebula/one_driver.h"
+#endif
 #ifdef WITH_NETWORK
 #include "network_driver.h"
 #endif
@@ -371,32 +374,6 @@ qemudDispatchSignalEvent(int watch ATTRIBUTE_UNUSED,
     virMutexUnlock(&server->lock);
 }
 
-int qemudSetCloseExec(int fd) {
-    int flags;
-    if ((flags = fcntl(fd, F_GETFD)) < 0)
-        goto error;
-    flags |= FD_CLOEXEC;
-    if ((fcntl(fd, F_SETFD, flags)) < 0)
-        goto error;
-    return 0;
- error:
-    VIR_ERROR0(_("Failed to set close-on-exec file descriptor flag"));
-    return -1;
-}
-
-
-int qemudSetNonBlock(int fd) {
-    int flags;
-    if ((flags = fcntl(fd, F_GETFL)) < 0)
-        goto error;
-    flags |= O_NONBLOCK;
-    if ((fcntl(fd, F_SETFL, flags)) < 0)
-        goto error;
-    return 0;
- error:
-    VIR_ERROR0(_("Failed to set non-blocking file descriptor flag"));
-    return -1;
-}
 
 static int qemudGoDaemon(void) {
     int pid = fork();
@@ -525,8 +502,8 @@ static int qemudListenUnix(struct qemud_server *server,
         goto cleanup;
     }
 
-    if (qemudSetCloseExec(sock->fd) < 0 ||
-        qemudSetNonBlock(sock->fd) < 0)
+    if (virSetCloseExec(sock->fd) < 0 ||
+        virSetNonBlock(sock->fd) < 0)
         goto cleanup;
 
     memset(&addr, 0, sizeof(addr));
@@ -687,8 +664,8 @@ remoteListenTCP (struct qemud_server *server,
         else
             sock->port = -1;
 
-        if (qemudSetCloseExec(sock->fd) < 0 ||
-            qemudSetNonBlock(sock->fd) < 0)
+        if (virSetCloseExec(sock->fd) < 0 ||
+            virSetNonBlock(sock->fd) < 0)
             goto cleanup;
 
         if (listen (sock->fd, 30) < 0) {
@@ -841,6 +818,7 @@ static struct qemud_server *qemudInitialize(int sigread) {
     virDriverLoadModule("qemu");
     virDriverLoadModule("lxc");
     virDriverLoadModule("uml");
+    virDriverLoadModule("one");
 #else
 #ifdef WITH_NETWORK
     networkRegister();
@@ -860,6 +838,9 @@ static struct qemud_server *qemudInitialize(int sigread) {
 #endif
 #ifdef WITH_UML
     umlRegister();
+#endif
+#ifdef WITH_ONE
+    oneRegister();
 #endif
 #endif
 
@@ -1273,8 +1254,8 @@ static int qemudDispatchServer(struct qemud_server *server, struct qemud_socket 
     setsockopt (fd, IPPROTO_TCP, TCP_NODELAY, (void *)&no_slow_start,
                 sizeof no_slow_start);
 
-    if (qemudSetCloseExec(fd) < 0 ||
-        qemudSetNonBlock(fd) < 0) {
+    if (virSetCloseExec(fd) < 0 ||
+        virSetNonBlock(fd) < 0) {
         close(fd);
         return -1;
     }
@@ -1397,7 +1378,10 @@ static int qemudDispatchServer(struct qemud_server *server, struct qemud_socket 
  * jobs have finished, then clean it up elsehwere
  */
 void qemudDispatchClientFailure(struct qemud_client *client) {
-    virEventRemoveHandleImpl(client->watch);
+    if (client->watch != -1) {
+        virEventRemoveHandleImpl(client->watch);
+        client->watch = -1;
+    }
 
     /* Deregister event delivery callback */
     if(client->conn) {
@@ -1406,12 +1390,21 @@ void qemudDispatchClientFailure(struct qemud_client *client) {
     }
 
 #if HAVE_SASL
-    if (client->saslconn) sasl_dispose(&client->saslconn);
+    if (client->saslconn) {
+        sasl_dispose(&client->saslconn);
+        client->saslconn = NULL;
+    }
     free(client->saslUsername);
+    client->saslUsername = NULL;
 #endif
-    if (client->tlssession) gnutls_deinit (client->tlssession);
-    close(client->fd);
-    client->fd = -1;
+    if (client->tlssession) {
+        gnutls_deinit (client->tlssession);
+        client->tlssession = NULL;
+    }
+    if (client->fd != -1) {
+        close(client->fd);
+        client->fd = -1;
+    }
 }
 
 
@@ -2699,13 +2692,13 @@ qemudSetupPrivs (void)
 
     if (__init_daemon_priv (PU_RESETGROUPS | PU_CLEARLIMITSET,
         SYSTEM_UID, SYSTEM_UID, PRIV_XVM_CONTROL, NULL)) {
-        fprintf (stderr, "additional privileges are required\n");
+        VIR_ERROR0(_("additional privileges are required\n"));
         return -1;
     }
 
     if (priv_set (PRIV_OFF, PRIV_ALLSETS, PRIV_FILE_LINK_ANY, PRIV_PROC_INFO,
         PRIV_PROC_SESSION, PRIV_PROC_EXEC, PRIV_PROC_FORK, NULL)) {
-        fprintf (stderr, "failed to set reduced privileges\n");
+        VIR_ERROR0(_("failed to set reduced privileges\n"));
         return -1;
     }
 
@@ -2872,10 +2865,10 @@ int main(int argc, char **argv) {
         goto error1;
 
     if (pipe(sigpipe) < 0 ||
-        qemudSetNonBlock(sigpipe[0]) < 0 ||
-        qemudSetNonBlock(sigpipe[1]) < 0 ||
-        qemudSetCloseExec(sigpipe[0]) < 0 ||
-        qemudSetCloseExec(sigpipe[1]) < 0) {
+        virSetNonBlock(sigpipe[0]) < 0 ||
+        virSetNonBlock(sigpipe[1]) < 0 ||
+        virSetCloseExec(sigpipe[0]) < 0 ||
+        virSetCloseExec(sigpipe[1]) < 0) {
         char ebuf[1024];
         VIR_ERROR(_("Failed to create pipe: %s"),
                   virStrerror(errno, ebuf, sizeof ebuf));

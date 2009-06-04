@@ -75,6 +75,7 @@ static int lxcSetContainerResources(virDomainDefPtr def)
         {'c', LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_RANDOM},
         {'c', LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_URANDOM},
         {'c', LXC_DEV_MAJ_TTY, LXC_DEV_MIN_CONSOLE},
+        {'c', LXC_DEV_MAJ_TTY, LXC_DEV_MIN_PTMX},
         {0,   0, 0}};
 
     if (virCgroupHaveSupport() != 0)
@@ -745,7 +746,8 @@ int main(int argc, char *argv[])
 
 
 cleanup:
-    virFileDeletePid(LXC_STATE_DIR, def->name);
+    if (def)
+        virFileDeletePid(LXC_STATE_DIR, def->name);
     lxcControllerCleanupInterfaces(nveths, veths);
     unlink(sockpath);
     VIR_FREE(sockpath);
