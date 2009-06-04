@@ -329,13 +329,13 @@ static int lxcDomainUndefine(virDomainPtr dom)
     }
 
     if (virDomainIsActive(vm)) {
-        lxcError(dom->conn, dom, VIR_ERR_INTERNAL_ERROR,
+        lxcError(dom->conn, dom, VIR_ERR_OPERATION_INVALID,
                  "%s", _("cannot delete active domain"));
         goto cleanup;
     }
 
     if (!vm->persistent) {
-        lxcError(dom->conn, dom, VIR_ERR_INTERNAL_ERROR,
+        lxcError(dom->conn, dom, VIR_ERR_OPERATION_INVALID,
                  "%s", _("cannot undefine transient domain"));
         goto cleanup;
     }
@@ -1457,6 +1457,8 @@ static virDriver lxcDriver = {
     NULL, /* domainGetSecurityLabel */
     NULL, /* nodeGetSecurityModel */
     lxcDomainDumpXML, /* domainDumpXML */
+    NULL, /* domainXmlFromNative */
+    NULL, /* domainXmlToNative */
     lxcListDefinedDomains, /* listDefinedDomains */
     lxcNumDefinedDomains, /* numOfDefinedDomains */
     lxcDomainStart, /* domainCreate */

@@ -8,8 +8,12 @@
 # On cygwin, the DLL is called cygvirtmod.dll
 try:
     import libvirtmod
-except:
-    import cygvirtmod as libvirtmod
+except ImportError, lib_e:
+    try:
+        import cygvirtmod as libvirtmod
+    except ImportError, cyg_e:
+        if str(cyg_e).count("No module named"):
+            raise lib_e
 
 import types
 
@@ -684,6 +688,89 @@ class virNetwork:
         __tmp = virNetwork(self, _obj=ret)
         return __tmp
 
+class virInterface:
+    def __init__(self, conn, _obj=None):
+        self._conn = conn
+        if _obj != None:self._o = _obj;return
+        self._o = None
+
+    def __del__(self):
+        if self._o != None:
+            libvirtmod.virInterfaceFree(self._o)
+        self._o = None
+
+    #
+    # virInterface functions from module libvirt
+    #
+
+    def ceCreate(self, flags):
+        """Activate an interface (ie call "ifup") """
+        ret = libvirtmod.virInterfaceCreate(self._o, flags)
+        if ret == -1: raise libvirtError ('virInterfaceCreate() failed', net=self)
+        return ret
+
+    def ceDestroy(self, flags):
+        """deactivate an interface (ie call "ifdown") This does not
+          remove the interface from the config, and does not free the
+           associated virInterfacePtr object. """
+        ret = libvirtmod.virInterfaceDestroy(self._o, flags)
+        if ret == -1: raise libvirtError ('virInterfaceDestroy() failed', net=self)
+        return ret
+
+    def ceRef(self):
+        """Increment the reference count on the interface. For each
+          additional call to this method, there shall be a
+          corresponding call to virInterfaceFree to release the
+          reference count, once the caller no longer needs the
+          reference to this object.  This method is typically useful
+          for applications where multiple threads are using a
+          connection, and it is required that the connection remain
+          open until all threads have finished using it. ie, each new
+          thread using a interface would increment the reference
+           count. """
+        ret = libvirtmod.virInterfaceRef(self._o)
+        if ret == -1: raise libvirtError ('virInterfaceRef() failed', net=self)
+        return ret
+
+    def ceUndefine(self):
+        """Undefine an interface, ie remove it from the config. This
+           does not free the associated virInterfacePtr object. """
+        ret = libvirtmod.virInterfaceUndefine(self._o)
+        if ret == -1: raise libvirtError ('virInterfaceUndefine() failed', net=self)
+        return ret
+
+    def etConnect(self):
+        """Provides the connection pointer associated with an
+          interface.  The reference counter on the connection is not
+          increased by this call.  WARNING: When writing libvirt
+          bindings in other languages, do not use this function. 
+          Instead, store the connection and the interface object
+           together. """
+        ret = libvirtmod.virInterfaceGetConnect(self._o)
+        if ret is None:raise libvirtError('virInterfaceGetConnect() failed', net=self)
+        __tmp = virConnect(_obj=ret)
+        return __tmp
+
+    def etMACString(self):
+        """Get the MAC for a interface as string. For more information
+           about MAC see RFC4122. """
+        ret = libvirtmod.virInterfaceGetMACString(self._o)
+        if ret is None: raise libvirtError ('virInterfaceGetMACString() failed', net=self)
+        return ret
+
+    def etName(self):
+        """Get the public name for that interface """
+        ret = libvirtmod.virInterfaceGetName(self._o)
+        return ret
+
+    def etXMLDesc(self, flags):
+        """Provide an XML description of the interface. The
+          description may be reused later to recreate the interface
+           with virInterfaceCreateXML(). """
+        ret = libvirtmod.virInterfaceGetXMLDesc(self._o, flags)
+        if ret is None: raise libvirtError ('virInterfaceGetXMLDesc() failed', net=self)
+        return ret
+
 class virStoragePool:
     def __init__(self, conn, _obj=None):
         self._conn = conn
@@ -737,6 +824,18 @@ class virStoragePool:
            description. Not all pools support creation of volumes """
         ret = libvirtmod.virStorageVolCreateXML(self._o, xmldesc, flags)
         if ret is None:raise libvirtError('virStorageVolCreateXML() failed', pool=self)
+        __tmp = virStorageVol(self, _obj=ret)
+        return __tmp
+
+    def createXMLFrom(self, xmldesc, clonevol, flags):
+        """Create a storage volume in the parent pool, using the
+          'clonevol' volume as input. Information for the new volume
+          (name, perms)  are passed via a typical volume XML
+           description. """
+        if clonevol is None: clonevol__o = None
+        else: clonevol__o = clonevol._o
+        ret = libvirtmod.virStorageVolCreateXMLFrom(self._o, xmldesc, clonevol__o, flags)
+        if ret is None:raise libvirtError('virStorageVolCreateXMLFrom() failed', pool=self)
         __tmp = virStorageVol(self, _obj=ret)
         return __tmp
 
@@ -1005,6 +1104,23 @@ class virConnect:
         __tmp = virDomain(self,_obj=ret)
         return __tmp
 
+    def domainXMLFromNative(self, nativeFormat, nativeConfig, flags):
+        """Reads native configuration data  describing a domain, and
+          generates libvirt domain XML. The format of the native data
+           is hypervisor dependant. """
+        ret = libvirtmod.virConnectDomainXMLFromNative(self._o, nativeFormat, nativeConfig, flags)
+        if ret is None: raise libvirtError ('virConnectDomainXMLFromNative() failed', conn=self)
+        return ret
+
+    def domainXMLToNative(self, nativeFormat, domainXml, flags):
+        """Reads a domain XML configuration document, and generates
+          generates a native configuration file describing the
+          domain. The format of the native data is hypervisor
+           dependant. """
+        ret = libvirtmod.virConnectDomainXMLToNative(self._o, nativeFormat, domainXml, flags)
+        if ret is None: raise libvirtError ('virConnectDomainXMLToNative() failed', conn=self)
+        return ret
+
     def findStoragePoolSources(self, type, srcSpec, flags):
         """Talks to a storage backend and attempts to auto-discover
           the set of available storage pool sources. e.g. For iSCSI
@@ -1066,6 +1182,37 @@ class virConnect:
            hypervisor later. """
         ret = libvirtmod.virConnectGetURI(self._o)
         if ret is None: raise libvirtError ('virConnectGetURI() failed', conn=self)
+        return ret
+
+    def interfaceDefineXML(self, xml, flags):
+        """Define an interface (or modify existing interface
+           configuration) """
+        ret = libvirtmod.virInterfaceDefineXML(self._o, xml, flags)
+        if ret is None:raise libvirtError('virInterfaceDefineXML() failed', conn=self)
+        __tmp = virInterface(self, _obj=ret)
+        return __tmp
+
+    def interfaceLookupByMACString(self, macstr):
+        """Try to lookup an interface on the given hypervisor based on
+           its MAC. """
+        ret = libvirtmod.virInterfaceLookupByMACString(self._o, macstr)
+        if ret is None:raise libvirtError('virInterfaceLookupByMACString() failed', conn=self)
+        __tmp = virInterface(self, _obj=ret)
+        return __tmp
+
+    def interfaceLookupByName(self, name):
+        """Try to lookup an interface on the given hypervisor based on
+           its name. """
+        ret = libvirtmod.virInterfaceLookupByName(self._o, name)
+        if ret is None:raise libvirtError('virInterfaceLookupByName() failed', conn=self)
+        __tmp = virInterface(self, _obj=ret)
+        return __tmp
+
+    def listInterfaces(self, names, maxnames):
+        """Collect the list of physical host interfaces, and store
+           their names in @names """
+        ret = libvirtmod.virConnectListInterfaces(self._o, names, maxnames)
+        if ret == -1: raise libvirtError ('virConnectListInterfaces() failed', conn=self)
         return ret
 
     def lookupByID(self, id):
@@ -1200,6 +1347,12 @@ class virConnect:
         """Provides the number of active domains. """
         ret = libvirtmod.virConnectNumOfDomains(self._o)
         if ret == -1: raise libvirtError ('virConnectNumOfDomains() failed', conn=self)
+        return ret
+
+    def numOfInterfaces(self):
+        """Provides the number of interfaces on the physical host. """
+        ret = libvirtmod.virConnectNumOfInterfaces(self._o)
+        if ret == -1: raise libvirtError ('virConnectNumOfInterfaces() failed', conn=self)
         return ret
 
     def numOfNetworks(self):
@@ -1579,6 +1732,8 @@ VIR_FROM_NODEDEV = 22
 VIR_FROM_XEN_INOTIFY = 23
 VIR_FROM_SECURITY = 24
 VIR_FROM_VBOX = 25
+VIR_FROM_INTERFACE = 26
+VIR_FROM_ONE = 27
 
 # virDomainEventStartedDetailType
 VIR_DOMAIN_EVENT_STARTED_BOOTED = 0
@@ -1689,6 +1844,10 @@ VIR_WAR_NO_NODE = 51
 VIR_ERR_INVALID_NODE_DEVICE = 52
 VIR_ERR_NO_NODE_DEVICE = 53
 VIR_ERR_NO_SECURITY_MODEL = 54
+VIR_ERR_OPERATION_INVALID = 55
+VIR_WAR_NO_INTERFACE = 56
+VIR_ERR_NO_INTERFACE = 57
+VIR_ERR_INVALID_INTERFACE = 58
 
 # virDomainMemoryFlags
 VIR_MEMORY_VIRTUAL = 1

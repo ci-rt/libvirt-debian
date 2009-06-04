@@ -821,15 +821,10 @@ static int umlStartVMDaemon(virConnectPtr conn,
     for (i = 0 ; i < ntapfds ; i++)
         FD_SET(tapfds[i], &keepfd);
 
-    ret = virExec(conn, argv, progenv, &keepfd, &pid,
-                  -1, &logfd, &logfd,
-                  VIR_EXEC_DAEMON);
+    ret = virExecDaemonize(conn, argv, progenv, &keepfd, &pid,
+                           -1, &logfd, &logfd,
+                           0, NULL, NULL, NULL);
     close(logfd);
-
-    /* Cleanup intermediate proces */
-    if (waitpid(pid, NULL, 0) != pid)
-        umlLog(VIR_LOG_WARN, _("failed to wait on process: %d: %s\n"),
-               pid, virStrerror(errno, ebuf, sizeof ebuf));
 
     for (i = 0 ; argv[i] ; i++)
         VIR_FREE(argv[i]);
@@ -1558,7 +1553,6 @@ static int umlDomainStart(virDomainPtr dom) {
 
     umlDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
-    umlDriverUnlock(driver);
 
     if (!vm) {
         umlReportError(dom->conn, dom, NULL, VIR_ERR_INVALID_DOMAIN,
@@ -1677,6 +1671,7 @@ static int umlDomainGetAutostart(virDomainPtr dom,
 cleanup:
     if (vm)
         virDomainObjUnlock(vm);
+    umlDriverUnlock(driver);
     return ret;
 }
 
@@ -1689,7 +1684,6 @@ static int umlDomainSetAutostart(virDomainPtr dom,
 
     umlDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
-    umlDriverUnlock(driver);
 
     if (!vm) {
         umlReportError(dom->conn, dom, NULL, VIR_ERR_INVALID_DOMAIN,
@@ -1745,6 +1739,7 @@ cleanup:
     VIR_FREE(autostartLink);
     if (vm)
         virDomainObjUnlock(vm);
+    umlDriverUnlock(driver);
     return ret;
 }
 
@@ -1859,6 +1854,8 @@ static virDriver umlDriver = {
     NULL, /* domainGetSecurityLabel */
     NULL, /* nodeGetSecurityModel */
     umlDomainDumpXML, /* domainDumpXML */
+    NULL, /* domainXmlFromNative */
+    NULL, /* domainXmlToNative */
     umlListDefinedDomains, /* listDefinedDomains */
     umlNumDefinedDomains, /* numOfDefinedDomains */
     umlDomainStart, /* domainCreate */

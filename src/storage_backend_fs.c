@@ -62,6 +62,10 @@ static int qcowXGetBackingStore(virConnectPtr, char **,
 static int vmdk4GetBackingStore(virConnectPtr, char **,
                                 const unsigned char *, size_t);
 
+typedef int (*createFile)(virConnectPtr conn,
+                          virStorageVolDefPtr vol,
+                          virStorageVolDefPtr inputvol);
+
 static int track_allocation_progress = 0;
 
 /* Either 'magic' or 'extension' *must* be provided */
@@ -89,7 +93,7 @@ struct FileTypeInfo {
 struct FileTypeInfo const fileTypeInfo[] = {
     /* Bochs */
     /* XXX Untested
-    { VIR_STORAGE_VOL_BOCHS, "Bochs Virtual HD Image", NULL,
+    { VIR_STORAGE_VOL_FILE_BOCHS, "Bochs Virtual HD Image", NULL,
       LV_LITTLE_ENDIAN, 64, 0x20000,
       32+16+16+4+4+4+4+4, 8, 1, NULL },*/
     /* CLoop */
@@ -666,14 +670,13 @@ virStorageBackendFileSystemMount(virConnectPtr conn,
     }
 
     if (pool->def->type == VIR_STORAGE_POOL_NETFS) {
-        if (VIR_ALLOC_N(src, strlen(pool->def->source.host.name) +
-                        1 + strlen(pool->def->source.dir) + 1) < 0) {
+        if (virAsprintf(&src, "%s:%s",
+                        pool->def->source.host.name,
+                        pool->def->source.dir) == -1) {
             virReportOOMError(conn);
             return -1;
         }
-        strcpy(src, pool->def->source.host.name);
-        strcat(src, ":");
-        strcat(src, pool->def->source.dir);
+
     } else {
         if ((src = strdup(pool->def->source.devices[0].path)) == NULL) {
             virReportOOMError(conn);
@@ -827,13 +830,11 @@ virStorageBackendFileSystemRefresh(virConnectPtr conn,
 
         vol->type = VIR_STORAGE_VOL_FILE;
         vol->target.format = VIR_STORAGE_VOL_FILE_RAW; /* Real value is filled in during probe */
-        if (VIR_ALLOC_N(vol->target.path, strlen(pool->def->target.path) +
-                        1 + strlen(vol->name) + 1) < 0)
+        if (virAsprintf(&vol->target.path, "%s/%s",
+                        pool->def->target.path,
+                        vol->name) == -1)
             goto no_memory;
 
-        strcpy(vol->target.path, pool->def->target.path);
-        strcat(vol->target.path, "/");
-        strcat(vol->target.path, vol->name);
         if ((vol->key = strdup(vol->target.path)) == NULL)
             goto no_memory;
 
@@ -843,7 +844,7 @@ virStorageBackendFileSystemRefresh(virConnectPtr conn,
                                                 &vol->allocation,
                                                 &vol->capacity) < 0)) {
             if (ret == -1)
-                goto no_memory;
+                goto cleanup;
             else {
                 /* Silently ignore non-regular files,
                  * eg '.' '..', 'lost+found' */
@@ -883,7 +884,7 @@ virStorageBackendFileSystemRefresh(virConnectPtr conn,
                                                         &vol->backingStore,
                                                         NULL, NULL, NULL)) < 0) {
                     if (ret == -1)
-                        goto no_memory;
+                        goto cleanup;
                     else {
                         /* Silently ignore non-regular files,
                          * eg '.' '..', 'lost+found' */
@@ -993,15 +994,15 @@ virStorageBackendFileSystemVolCreate(virConnectPtr conn,
                                      virStorageVolDefPtr vol)
 {
 
-    if (VIR_ALLOC_N(vol->target.path, strlen(pool->def->target.path) +
-                    1 + strlen(vol->name) + 1) < 0) {
+    vol->type = VIR_STORAGE_VOL_FILE;
+
+    if (virAsprintf(&vol->target.path, "%s/%s",
+                    pool->def->target.path,
+                    vol->name) == -1) {
         virReportOOMError(conn);
         return -1;
     }
-    vol->type = VIR_STORAGE_VOL_FILE;
-    strcpy(vol->target.path, pool->def->target.path);
-    strcat(vol->target.path, "/");
-    strcat(vol->target.path, vol->name);
+
     vol->key = strdup(vol->target.path);
     if (vol->key == NULL) {
         virReportOOMError(conn);
@@ -1011,189 +1012,368 @@ virStorageBackendFileSystemVolCreate(virConnectPtr conn,
     return 0;
 }
 
-/**
- * Allocate a new file as a volume. This is either done directly
- * for raw/sparse files, or by calling qemu-img/qcow-create for
- * special kinds of files
- */
-static int
-virStorageBackendFileSystemVolBuild(virConnectPtr conn,
-                                    virStorageVolDefPtr vol)
-{
-    int fd;
+static int createRaw(virConnectPtr conn,
+                     virStorageVolDefPtr vol,
+                     virStorageVolDefPtr inputvol) {
+    int fd = -1;
+    int inputfd = -1;
+    int ret = -1;
+    unsigned long long remain;
+    char *buf = NULL;
 
-    if (vol->target.format == VIR_STORAGE_VOL_FILE_RAW) {
-        if ((fd = open(vol->target.path, O_RDWR | O_CREAT | O_EXCL,
-                       vol->target.perms.mode)) < 0) {
+    if ((fd = open(vol->target.path, O_RDWR | O_CREAT | O_EXCL,
+                   vol->target.perms.mode)) < 0) {
+        virReportSystemError(conn, errno,
+                             _("cannot create path '%s'"),
+                             vol->target.path);
+        goto cleanup;
+    }
+
+    if (inputvol) {
+        if ((inputfd = open(inputvol->target.path, O_RDONLY)) < 0) {
             virReportSystemError(conn, errno,
-                                 _("cannot create path '%s'"),
-                                 vol->target.path);
-            return -1;
+                                 _("could not open input path '%s'"),
+                                 inputvol->target.path);
+            goto cleanup;
+        }
+    }
+
+    /* Seek to the final size, so the capacity is available upfront
+     * for progress reporting */
+    if (ftruncate(fd, vol->capacity) < 0) {
+        virReportSystemError(conn, errno,
+                             _("cannot extend file '%s'"),
+                             vol->target.path);
+        goto cleanup;
+    }
+
+    remain = vol->capacity;
+
+    if (inputfd != -1) {
+        int amtread = -1;
+        size_t bytes = 1024 * 1024;
+        char zerobuf[512];
+
+        bzero(&zerobuf, sizeof(zerobuf));
+
+        if (VIR_ALLOC_N(buf, bytes) < 0) {
+            virReportOOMError(conn);
+            goto cleanup;
         }
 
-        /* Seek to the final size, so the capacity is available upfront
-         * for progress reporting */
-        if (ftruncate(fd, vol->capacity) < 0) {
-            virReportSystemError(conn, errno,
-                                 _("cannot extend file '%s'"),
-                                 vol->target.path);
-            close(fd);
-            return -1;
-        }
+        while (amtread != 0) {
+            int amtleft;
 
-        /* Pre-allocate any data if requested */
-        /* XXX slooooooooooooooooow on non-extents-based file systems */
-        /* FIXME: Add in progress bars & bg thread if progress bar requested */
-        if (vol->allocation) {
-            if (track_allocation_progress) {
-                unsigned long long remain = vol->allocation;
+            if (remain < bytes)
+                bytes = remain;
 
-                while (remain) {
-                    /* Allocate in chunks of 512MiB: big-enough chunk
-                     * size and takes approx. 9s on ext3. A progress
-                     * update every 9s is a fair-enough trade-off
-                     */
-                    unsigned long long bytes = 512 * 1024 * 1024;
-                    int r;
+            if ((amtread = saferead(inputfd, buf, bytes)) < 0) {
+                virReportSystemError(conn, errno,
+                                     _("failed reading from file '%s'"),
+                                     inputvol->target.path);
+                goto cleanup;
+            }
+            remain -= amtread;
 
-                    if (bytes > remain)
-                        bytes = remain;
-                    if ((r = safezero(fd, 0, vol->allocation - remain,
-                                      bytes)) != 0) {
-                        virReportSystemError(conn, r,
-                                             _("cannot fill file '%s'"),
+            /* Loop over amt read in 512 byte increments, looking for sparse
+             * blocks */
+            amtleft = amtread;
+            do {
+                int interval = ((512 > amtleft) ? amtleft : 512);
+                int offset = amtread - amtleft;
+
+                if (memcmp(buf+offset, zerobuf, interval) == 0) {
+                    if (lseek(fd, interval, SEEK_CUR) < 0) {
+                        virReportSystemError(conn, errno,
+                                             _("cannot extend file '%s'"),
                                              vol->target.path);
-                        close(fd);
-                        return -1;
+                        goto cleanup;
                     }
-                    remain -= bytes;
+                } else if (safewrite(fd, buf+offset, interval) < 0) {
+                    virReportSystemError(conn, errno,
+                                         _("failed writing to file '%s'"),
+                                         vol->target.path);
+                    goto cleanup;
+
                 }
-            } else { /* No progress bars to be shown */
+            } while ((amtleft -= 512) > 0);
+        }
+    }
+
+    /* Pre-allocate any data if requested */
+    /* XXX slooooooooooooooooow on non-extents-based file systems */
+    if (remain) {
+        if (track_allocation_progress) {
+
+            while (remain) {
+                /* Allocate in chunks of 512MiB: big-enough chunk
+                 * size and takes approx. 9s on ext3. A progress
+                 * update every 9s is a fair-enough trade-off
+                 */
+                unsigned long long bytes = 512 * 1024 * 1024;
                 int r;
 
-                if ((r = safezero(fd, 0, 0, vol->allocation)) != 0) {
+                if (bytes > remain)
+                    bytes = remain;
+                if ((r = safezero(fd, 0, vol->allocation - remain,
+                                  bytes)) != 0) {
                     virReportSystemError(conn, r,
                                          _("cannot fill file '%s'"),
                                          vol->target.path);
-                    close(fd);
-                    return -1;
+                    goto cleanup;
                 }
+                remain -= bytes;
+            }
+        } else { /* No progress bars to be shown */
+            int r;
+
+            if ((r = safezero(fd, 0, 0, remain)) != 0) {
+                virReportSystemError(conn, r,
+                                     _("cannot fill file '%s'"),
+                                     vol->target.path);
+                goto cleanup;
             }
         }
+    }
 
+    if (close(fd) < 0) {
+        virReportSystemError(conn, errno,
+                             _("cannot close file '%s'"),
+                             vol->target.path);
+        goto cleanup;
+    }
+    fd = -1;
+
+    if (inputfd != -1 && close(inputfd) < 0) {
+        virReportSystemError(conn, errno,
+                             _("cannot close file '%s'"),
+                             inputvol->target.path);
+        goto cleanup;
+    }
+    inputfd = -1;
+
+    ret = 0;
+cleanup:
+    if (fd != -1)
+        close(fd);
+    if (inputfd != -1)
+        close(inputfd);
+    VIR_FREE(buf);
+
+    return ret;
+}
+
+static int createFileDir(virConnectPtr conn,
+                         virStorageVolDefPtr vol,
+                         virStorageVolDefPtr inputvol) {
+    if (inputvol) {
+        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                              "%s",
+                              _("cannot copy from volume to a directory volume"));
+        return -1;
+    }
+
+    if (mkdir(vol->target.path, vol->target.perms.mode) < 0) {
+        virReportSystemError(conn, errno,
+                             _("cannot create path '%s'"),
+                             vol->target.path);
+        return -1;
+    }
+
+    return 0;
+}
+
+#if HAVE_QEMU_IMG
+static int createQemuImg(virConnectPtr conn,
+                         virStorageVolDefPtr vol,
+                         virStorageVolDefPtr inputvol) {
+    char size[100];
+
+    const char *type = virStorageVolFormatFileSystemTypeToString(vol->target.format);
+    const char *backingType = vol->backingStore.path ?
+        virStorageVolFormatFileSystemTypeToString(vol->backingStore.format) : NULL;
+
+    const char *inputBackingPath = (inputvol ? inputvol->backingStore.path
+                                             : NULL);
+    const char *inputPath = inputvol ? inputvol->target.path : NULL;
+    /* Treat input block devices as 'raw' format */
+    const char *inputType = inputPath ?
+                            virStorageVolFormatFileSystemTypeToString(inputvol->type == VIR_STORAGE_VOL_BLOCK ? VIR_STORAGE_VOL_FILE_RAW : inputvol->target.format) :
+                            NULL;
+
+    const char **imgargv;
+    const char *imgargvnormal[] = {
+        QEMU_IMG, "create",
+        "-f", type,
+        vol->target.path,
+        size,
+        NULL,
+    };
+    /* XXX including "backingType" here too, once QEMU accepts
+     * the patches to specify it. It'll probably be -F backingType */
+    const char *imgargvbacking[] = {
+        QEMU_IMG, "create",
+        "-f", type,
+        "-b", vol->backingStore.path,
+        vol->target.path,
+        size,
+        NULL,
+    };
+    const char *convargv[] = {
+        QEMU_IMG, "convert",
+        "-f", inputType,
+        "-O", type,
+        inputPath,
+        vol->target.path,
+        NULL,
+    };
+
+    if (inputvol) {
+        imgargv = convargv;
+    } else if (vol->backingStore.path) {
+        imgargv = imgargvbacking;
+    } else {
+        imgargv = imgargvnormal;
+    }
+
+    if (type == NULL) {
+        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                              _("unknown storage vol type %d"),
+                              vol->target.format);
+        return -1;
+    }
+    if (inputvol && inputType == NULL) {
+        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                              _("unknown storage vol type %d"),
+                              inputvol->target.format);
+        return -1;
+    }
+
+    if (vol->backingStore.path) {
+
+        /* XXX: Not strictly required: qemu-img has an option a different
+         * backing store, not really sure what use it serves though, and it
+         * may cause issues with lvm. Untested essentially.
+         */
+        if (!inputBackingPath ||
+            !STREQ(inputBackingPath, vol->backingStore.path)) {
+            virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                                  "%s", _("a different backing store can not "
+                                          "be specified."));
+            return -1;
+        }
+
+        if (backingType == NULL) {
+            virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                                  _("unknown storage vol backing store type %d"),
+                                  vol->backingStore.format);
+            return -1;
+        }
+        if (access(vol->backingStore.path, R_OK) != 0) {
+            virReportSystemError(conn, errno,
+                                 _("inaccessible backing store volume %s"),
+                                 vol->backingStore.path);
+            return -1;
+        }
+    }
+
+    /* Size in KB */
+    snprintf(size, sizeof(size), "%llu", vol->capacity/1024);
+
+    if (virRun(conn, imgargv, NULL) < 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
+#elif HAVE_QCOW_CREATE
+/*
+ * Xen removed the fully-functional qemu-img, and replaced it
+ * with a partially functional qcow-create. Go figure ??!?
+ */
+static int createQemuCreate(virConnectPtr conn,
+                            virStorageVolDefPtr vol,
+                            virStorageVolDefPtr inputvol) {
+    char size[100];
+    const char *imgargv[4];
+
+    if (inputvol) {
+        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                              "%s",
+                              _("cannot copy from volume with qcow-create"));
+        return -1;
+    }
+
+    if (vol->target.format != VIR_STORAGE_VOL_FILE_QCOW2) {
+        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                              _("unsupported storage vol type %d"),
+                              vol->target.format);
+        return -1;
+    }
+    if (vol->backingStore.path != NULL) {
+        virStorageReportError(conn, VIR_ERR_NO_SUPPORT,
+                              _("copy-on-write image not supported with "
+                              "qcow-create"));
+        return -1;
+    }
+
+    /* Size in MB - yes different units to qemu-img :-( */
+    snprintf(size, sizeof(size), "%llu", vol->capacity/1024/1024);
+
+    imgargv[0] = QCOW_CREATE;
+    imgargv[1] = size;
+    imgargv[2] = vol->target.path;
+    imgargv[3] = NULL;
+
+    if (virRun(conn, imgargv, NULL) < 0) {
+        return -1;
+    }
+
+    return 0;
+}
+#endif /* HAVE_QEMU_IMG, elif HAVE_QCOW_CREATE */
+
+static int
+_virStorageBackendFileSystemVolBuild(virConnectPtr conn,
+                                     virStorageVolDefPtr vol,
+                                     virStorageVolDefPtr inputvol)
+{
+    int fd;
+    createFile create_func;
+
+    if (vol->target.format == VIR_STORAGE_VOL_FILE_RAW &&
+        (!inputvol ||
+         (inputvol->type == VIR_STORAGE_VOL_BLOCK ||
+          inputvol->target.format == VIR_STORAGE_VOL_FILE_RAW))) {
+          /* Raw file creation
+           * Raw -> Raw copying
+           * Block dev -> Raw copying
+           */
+        create_func = createRaw;
     } else if (vol->target.format == VIR_STORAGE_VOL_FILE_DIR) {
-        if (mkdir(vol->target.path, vol->target.perms.mode) < 0) {
-            virReportSystemError(conn, errno,
-                                 _("cannot create path '%s'"),
-                                 vol->target.path);
-            return -1;
-        }
-
-        if ((fd = open(vol->target.path, O_RDWR)) < 0) {
-            virReportSystemError(conn, errno,
-                                 _("cannot read path '%s'"),
-                                 vol->target.path);
-            return -1;
-        }
+        create_func = createFileDir;
     } else {
 #if HAVE_QEMU_IMG
-        const char *type = virStorageVolFormatFileSystemTypeToString(vol->target.format);
-        const char *backingType = vol->backingStore.path ?
-            virStorageVolFormatFileSystemTypeToString(vol->backingStore.format) : NULL;
-        char size[100];
-        const char **imgargv;
-        const char *imgargvnormal[] = {
-            QEMU_IMG, "create", "-f", type, vol->target.path, size, NULL,
-        };
-        /* XXX including "backingType" here too, once QEMU accepts
-         * the patches to specify it. It'll probably be -F backingType */
-        const char *imgargvbacking[] = {
-            QEMU_IMG, "create", "-f", type, "-b", vol->backingStore.path, vol->target.path, size, NULL,
-        };
-
-        if (type == NULL) {
-            virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                  _("unknown storage vol type %d"),
-                                  vol->target.format);
-            return -1;
-        }
-        if (vol->backingStore.path == NULL) {
-            imgargv = imgargvnormal;
-        } else {
-            if (backingType == NULL) {
-                virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                      _("unknown storage vol backing store type %d"),
-                                      vol->backingStore.format);
-                return -1;
-            }
-            if (access(vol->backingStore.path, R_OK) != 0) {
-                virReportSystemError(conn, errno,
-                                     _("inaccessible backing store volume %s"),
-                                     vol->backingStore.path);
-                return -1;
-            }
-
-            imgargv = imgargvbacking;
-        }
-
-        /* Size in KB */
-        snprintf(size, sizeof(size), "%llu", vol->capacity/1024);
-
-        if (virRun(conn, imgargv, NULL) < 0) {
-            return -1;
-        }
-
-        if ((fd = open(vol->target.path, O_RDONLY)) < 0) {
-            virReportSystemError(conn, errno,
-                                 _("cannot read path '%s'"),
-                                 vol->target.path);
-            return -1;
-        }
+        create_func = createQemuImg;
 #elif HAVE_QCOW_CREATE
-        /*
-         * Xen removed the fully-functional qemu-img, and replaced it
-         * with a partially functional qcow-create. Go figure ??!?
-         */
-        char size[100];
-        const char *imgargv[4];
-
-        if (vol->target.format != VIR_STORAGE_VOL_FILE_QCOW2) {
-            virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                  _("unsupported storage vol type %d"),
-                                  vol->target.format);
-            return -1;
-        }
-        if (vol->backingStore.path != NULL) {
-            virStorageReportError(conn, VIR_ERR_NO_SUPPORT,
-                                  _("copy-on-write image not supported with "
-                                    "qcow-create"));
-            return -1;
-        }
-
-        /* Size in MB - yes different units to qemu-img :-( */
-        snprintf(size, sizeof(size), "%llu", vol->capacity/1024/1024);
-
-        imgargv[0] = QCOW_CREATE;
-        imgargv[1] = size;
-        imgargv[2] = vol->target.path;
-        imgargv[3] = NULL;
-
-        if (virRun(conn, imgargv, NULL) < 0) {
-            return -1;
-        }
-
-        if ((fd = open(vol->target.path, O_RDONLY)) < 0) {
-            virReportSystemError(conn, errno,
-                                 _("cannot read path '%s'"),
-                                 vol->target.path);
-            return -1;
-        }
+        create_func = createQemuCreate;
 #else
         virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
                               "%s", _("creation of non-raw images "
                                       "is not supported without qemu-img"));
         return -1;
 #endif
+    }
+
+    if (create_func(conn, vol, inputvol) < 0)
+        return -1;
+
+    if ((fd = open(vol->target.path, O_RDONLY)) < 0) {
+        virReportSystemError(conn, errno,
+                             _("cannot read path '%s'"),
+                             vol->target.path);
+        return -1;
     }
 
     /* We can only chown/grp if root */
@@ -1232,6 +1412,27 @@ virStorageBackendFileSystemVolBuild(virConnectPtr conn,
     return 0;
 }
 
+/**
+ * Allocate a new file as a volume. This is either done directly
+ * for raw/sparse files, or by calling qemu-img/qcow-create for
+ * special kinds of files
+ */
+static int
+virStorageBackendFileSystemVolBuild(virConnectPtr conn,
+                                    virStorageVolDefPtr vol) {
+    return _virStorageBackendFileSystemVolBuild(conn, vol, NULL);
+}
+
+/*
+ * Create a storage vol using 'inputvol' as input
+ */
+static int
+virStorageBackendFileSystemVolBuildFrom(virConnectPtr conn,
+                                        virStorageVolDefPtr vol,
+                                        virStorageVolDefPtr inputvol,
+                                        unsigned int flags ATTRIBUTE_UNUSED) {
+    return _virStorageBackendFileSystemVolBuild(conn, vol, inputvol);
+}
 
 /**
  * Remove a volume - just unlinks for now
@@ -1274,6 +1475,7 @@ virStorageBackend virStorageBackendDirectory = {
     .refreshPool = virStorageBackendFileSystemRefresh,
     .deletePool = virStorageBackendFileSystemDelete,
     .buildVol = virStorageBackendFileSystemVolBuild,
+    .buildVolFrom = virStorageBackendFileSystemVolBuildFrom,
     .createVol = virStorageBackendFileSystemVolCreate,
     .refreshVol = virStorageBackendFileSystemVolRefresh,
     .deleteVol = virStorageBackendFileSystemVolDelete,
@@ -1289,6 +1491,7 @@ virStorageBackend virStorageBackendFileSystem = {
     .stopPool = virStorageBackendFileSystemStop,
     .deletePool = virStorageBackendFileSystemDelete,
     .buildVol = virStorageBackendFileSystemVolBuild,
+    .buildVolFrom = virStorageBackendFileSystemVolBuildFrom,
     .createVol = virStorageBackendFileSystemVolCreate,
     .refreshVol = virStorageBackendFileSystemVolRefresh,
     .deleteVol = virStorageBackendFileSystemVolDelete,
@@ -1303,6 +1506,7 @@ virStorageBackend virStorageBackendNetFileSystem = {
     .stopPool = virStorageBackendFileSystemStop,
     .deletePool = virStorageBackendFileSystemDelete,
     .buildVol = virStorageBackendFileSystemVolBuild,
+    .buildVolFrom = virStorageBackendFileSystemVolBuildFrom,
     .createVol = virStorageBackendFileSystemVolCreate,
     .refreshVol = virStorageBackendFileSystemVolRefresh,
     .deleteVol = virStorageBackendFileSystemVolDelete,

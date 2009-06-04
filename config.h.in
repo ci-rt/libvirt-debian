@@ -792,11 +792,18 @@
 /* whether LXC driver is enabled */
 #undef WITH_LXC
 
+/* whether libnetcf is available to configure physical host network interfaces
+   */
+#undef WITH_NETCF
+
 /* whether network driver is enabled */
 #undef WITH_NETWORK
 
 /* with node device driver */
 #undef WITH_NODE_DEVICES
+
+/* whether ONE driver is enabled */
+#undef WITH_ONE
 
 /* whether OpenVZ driver is enabled */
 #undef WITH_OPENVZ

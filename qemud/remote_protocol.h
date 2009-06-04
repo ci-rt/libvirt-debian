@@ -28,6 +28,7 @@ typedef remote_nonnull_string *remote_string;
 #define REMOTE_CPUMAPS_MAX 16384
 #define REMOTE_MIGRATE_COOKIE_MAX 256
 #define REMOTE_NETWORK_NAME_LIST_MAX 256
+#define REMOTE_INTERFACE_NAME_LIST_MAX 256
 #define REMOTE_STORAGE_POOL_NAME_LIST_MAX 256
 #define REMOTE_STORAGE_VOL_NAME_LIST_MAX 1024
 #define REMOTE_NODE_DEVICE_NAME_LIST_MAX 16384
@@ -56,6 +57,12 @@ struct remote_nonnull_network {
         remote_uuid uuid;
 };
 typedef struct remote_nonnull_network remote_nonnull_network;
+
+struct remote_nonnull_interface {
+        remote_nonnull_string name;
+        remote_nonnull_string mac;
+};
+typedef struct remote_nonnull_interface remote_nonnull_interface;
 
 struct remote_nonnull_storage_pool {
         remote_nonnull_string name;
@@ -822,6 +829,83 @@ struct remote_network_set_autostart_args {
 };
 typedef struct remote_network_set_autostart_args remote_network_set_autostart_args;
 
+struct remote_num_of_interfaces_ret {
+        int num;
+};
+typedef struct remote_num_of_interfaces_ret remote_num_of_interfaces_ret;
+
+struct remote_list_interfaces_args {
+        int maxnames;
+};
+typedef struct remote_list_interfaces_args remote_list_interfaces_args;
+
+struct remote_list_interfaces_ret {
+        struct {
+                u_int names_len;
+                remote_nonnull_string *names_val;
+        } names;
+};
+typedef struct remote_list_interfaces_ret remote_list_interfaces_ret;
+
+struct remote_interface_lookup_by_name_args {
+        remote_nonnull_string name;
+};
+typedef struct remote_interface_lookup_by_name_args remote_interface_lookup_by_name_args;
+
+struct remote_interface_lookup_by_name_ret {
+        remote_nonnull_interface iface;
+};
+typedef struct remote_interface_lookup_by_name_ret remote_interface_lookup_by_name_ret;
+
+struct remote_interface_lookup_by_mac_string_args {
+        remote_nonnull_string mac;
+};
+typedef struct remote_interface_lookup_by_mac_string_args remote_interface_lookup_by_mac_string_args;
+
+struct remote_interface_lookup_by_mac_string_ret {
+        remote_nonnull_interface iface;
+};
+typedef struct remote_interface_lookup_by_mac_string_ret remote_interface_lookup_by_mac_string_ret;
+
+struct remote_interface_get_xml_desc_args {
+        remote_nonnull_interface iface;
+        u_int flags;
+};
+typedef struct remote_interface_get_xml_desc_args remote_interface_get_xml_desc_args;
+
+struct remote_interface_get_xml_desc_ret {
+        remote_nonnull_string xml;
+};
+typedef struct remote_interface_get_xml_desc_ret remote_interface_get_xml_desc_ret;
+
+struct remote_interface_define_xml_args {
+        remote_nonnull_string xml;
+        u_int flags;
+};
+typedef struct remote_interface_define_xml_args remote_interface_define_xml_args;
+
+struct remote_interface_define_xml_ret {
+        remote_nonnull_interface iface;
+};
+typedef struct remote_interface_define_xml_ret remote_interface_define_xml_ret;
+
+struct remote_interface_undefine_args {
+        remote_nonnull_interface iface;
+};
+typedef struct remote_interface_undefine_args remote_interface_undefine_args;
+
+struct remote_interface_create_args {
+        remote_nonnull_interface iface;
+        u_int flags;
+};
+typedef struct remote_interface_create_args remote_interface_create_args;
+
+struct remote_interface_destroy_args {
+        remote_nonnull_interface iface;
+        u_int flags;
+};
+typedef struct remote_interface_destroy_args remote_interface_destroy_args;
+
 struct remote_auth_list_ret {
         struct {
                 u_int types_len;
@@ -1120,6 +1204,19 @@ struct remote_storage_vol_create_xml_ret {
 };
 typedef struct remote_storage_vol_create_xml_ret remote_storage_vol_create_xml_ret;
 
+struct remote_storage_vol_create_xml_from_args {
+        remote_nonnull_storage_pool pool;
+        remote_nonnull_string xml;
+        remote_nonnull_storage_vol clonevol;
+        u_int flags;
+};
+typedef struct remote_storage_vol_create_xml_from_args remote_storage_vol_create_xml_from_args;
+
+struct remote_storage_vol_create_xml_from_ret {
+        remote_nonnull_storage_vol vol;
+};
+typedef struct remote_storage_vol_create_xml_from_ret remote_storage_vol_create_xml_from_ret;
+
 struct remote_storage_vol_delete_args {
         remote_nonnull_storage_vol vol;
         u_int flags;
@@ -1287,6 +1384,30 @@ struct remote_domain_event_ret {
         int detail;
 };
 typedef struct remote_domain_event_ret remote_domain_event_ret;
+
+struct remote_domain_xml_from_native_args {
+        remote_nonnull_string nativeFormat;
+        remote_nonnull_string nativeConfig;
+        u_int flags;
+};
+typedef struct remote_domain_xml_from_native_args remote_domain_xml_from_native_args;
+
+struct remote_domain_xml_from_native_ret {
+        remote_nonnull_string domainXml;
+};
+typedef struct remote_domain_xml_from_native_ret remote_domain_xml_from_native_ret;
+
+struct remote_domain_xml_to_native_args {
+        remote_nonnull_string nativeFormat;
+        remote_nonnull_string domainXml;
+        u_int flags;
+};
+typedef struct remote_domain_xml_to_native_args remote_domain_xml_to_native_args;
+
+struct remote_domain_xml_to_native_ret {
+        remote_nonnull_string nativeConfig;
+};
+typedef struct remote_domain_xml_to_native_ret remote_domain_xml_to_native_ret;
 #define REMOTE_PROGRAM 0x20008086
 #define REMOTE_PROTOCOL_VERSION 1
 
@@ -1415,6 +1536,18 @@ enum remote_procedure {
         REMOTE_PROC_NODE_GET_SECURITY_MODEL = 122,
         REMOTE_PROC_NODE_DEVICE_CREATE_XML = 123,
         REMOTE_PROC_NODE_DEVICE_DESTROY = 124,
+        REMOTE_PROC_STORAGE_VOL_CREATE_XML_FROM = 125,
+        REMOTE_PROC_NUM_OF_INTERFACES = 126,
+        REMOTE_PROC_LIST_INTERFACES = 127,
+        REMOTE_PROC_INTERFACE_LOOKUP_BY_NAME = 128,
+        REMOTE_PROC_INTERFACE_LOOKUP_BY_MAC_STRING = 129,
+        REMOTE_PROC_INTERFACE_GET_XML_DESC = 130,
+        REMOTE_PROC_INTERFACE_DEFINE_XML = 131,
+        REMOTE_PROC_INTERFACE_UNDEFINE = 132,
+        REMOTE_PROC_INTERFACE_CREATE = 133,
+        REMOTE_PROC_INTERFACE_DESTROY = 134,
+        REMOTE_PROC_DOMAIN_XML_FROM_NATIVE = 135,
+        REMOTE_PROC_DOMAIN_XML_TO_NATIVE = 136,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -1450,6 +1583,7 @@ extern  bool_t xdr_remote_string (XDR *, remote_string*);
 extern  bool_t xdr_remote_uuid (XDR *, remote_uuid);
 extern  bool_t xdr_remote_nonnull_domain (XDR *, remote_nonnull_domain*);
 extern  bool_t xdr_remote_nonnull_network (XDR *, remote_nonnull_network*);
+extern  bool_t xdr_remote_nonnull_interface (XDR *, remote_nonnull_interface*);
 extern  bool_t xdr_remote_nonnull_storage_pool (XDR *, remote_nonnull_storage_pool*);
 extern  bool_t xdr_remote_nonnull_storage_vol (XDR *, remote_nonnull_storage_vol*);
 extern  bool_t xdr_remote_nonnull_node_device (XDR *, remote_nonnull_node_device*);
@@ -1573,6 +1707,20 @@ extern  bool_t xdr_remote_network_get_bridge_name_ret (XDR *, remote_network_get
 extern  bool_t xdr_remote_network_get_autostart_args (XDR *, remote_network_get_autostart_args*);
 extern  bool_t xdr_remote_network_get_autostart_ret (XDR *, remote_network_get_autostart_ret*);
 extern  bool_t xdr_remote_network_set_autostart_args (XDR *, remote_network_set_autostart_args*);
+extern  bool_t xdr_remote_num_of_interfaces_ret (XDR *, remote_num_of_interfaces_ret*);
+extern  bool_t xdr_remote_list_interfaces_args (XDR *, remote_list_interfaces_args*);
+extern  bool_t xdr_remote_list_interfaces_ret (XDR *, remote_list_interfaces_ret*);
+extern  bool_t xdr_remote_interface_lookup_by_name_args (XDR *, remote_interface_lookup_by_name_args*);
+extern  bool_t xdr_remote_interface_lookup_by_name_ret (XDR *, remote_interface_lookup_by_name_ret*);
+extern  bool_t xdr_remote_interface_lookup_by_mac_string_args (XDR *, remote_interface_lookup_by_mac_string_args*);
+extern  bool_t xdr_remote_interface_lookup_by_mac_string_ret (XDR *, remote_interface_lookup_by_mac_string_ret*);
+extern  bool_t xdr_remote_interface_get_xml_desc_args (XDR *, remote_interface_get_xml_desc_args*);
+extern  bool_t xdr_remote_interface_get_xml_desc_ret (XDR *, remote_interface_get_xml_desc_ret*);
+extern  bool_t xdr_remote_interface_define_xml_args (XDR *, remote_interface_define_xml_args*);
+extern  bool_t xdr_remote_interface_define_xml_ret (XDR *, remote_interface_define_xml_ret*);
+extern  bool_t xdr_remote_interface_undefine_args (XDR *, remote_interface_undefine_args*);
+extern  bool_t xdr_remote_interface_create_args (XDR *, remote_interface_create_args*);
+extern  bool_t xdr_remote_interface_destroy_args (XDR *, remote_interface_destroy_args*);
 extern  bool_t xdr_remote_auth_list_ret (XDR *, remote_auth_list_ret*);
 extern  bool_t xdr_remote_auth_sasl_init_ret (XDR *, remote_auth_sasl_init_ret*);
 extern  bool_t xdr_remote_auth_sasl_start_args (XDR *, remote_auth_sasl_start_args*);
@@ -1623,6 +1771,8 @@ extern  bool_t xdr_remote_storage_vol_lookup_by_path_args (XDR *, remote_storage
 extern  bool_t xdr_remote_storage_vol_lookup_by_path_ret (XDR *, remote_storage_vol_lookup_by_path_ret*);
 extern  bool_t xdr_remote_storage_vol_create_xml_args (XDR *, remote_storage_vol_create_xml_args*);
 extern  bool_t xdr_remote_storage_vol_create_xml_ret (XDR *, remote_storage_vol_create_xml_ret*);
+extern  bool_t xdr_remote_storage_vol_create_xml_from_args (XDR *, remote_storage_vol_create_xml_from_args*);
+extern  bool_t xdr_remote_storage_vol_create_xml_from_ret (XDR *, remote_storage_vol_create_xml_from_ret*);
 extern  bool_t xdr_remote_storage_vol_delete_args (XDR *, remote_storage_vol_delete_args*);
 extern  bool_t xdr_remote_storage_vol_dump_xml_args (XDR *, remote_storage_vol_dump_xml_args*);
 extern  bool_t xdr_remote_storage_vol_dump_xml_ret (XDR *, remote_storage_vol_dump_xml_ret*);
@@ -1653,6 +1803,10 @@ extern  bool_t xdr_remote_node_device_destroy_args (XDR *, remote_node_device_de
 extern  bool_t xdr_remote_domain_events_register_ret (XDR *, remote_domain_events_register_ret*);
 extern  bool_t xdr_remote_domain_events_deregister_ret (XDR *, remote_domain_events_deregister_ret*);
 extern  bool_t xdr_remote_domain_event_ret (XDR *, remote_domain_event_ret*);
+extern  bool_t xdr_remote_domain_xml_from_native_args (XDR *, remote_domain_xml_from_native_args*);
+extern  bool_t xdr_remote_domain_xml_from_native_ret (XDR *, remote_domain_xml_from_native_ret*);
+extern  bool_t xdr_remote_domain_xml_to_native_args (XDR *, remote_domain_xml_to_native_args*);
+extern  bool_t xdr_remote_domain_xml_to_native_ret (XDR *, remote_domain_xml_to_native_ret*);
 extern  bool_t xdr_remote_procedure (XDR *, remote_procedure*);
 extern  bool_t xdr_remote_message_direction (XDR *, remote_message_direction*);
 extern  bool_t xdr_remote_message_status (XDR *, remote_message_status*);
@@ -1664,6 +1818,7 @@ extern bool_t xdr_remote_string ();
 extern bool_t xdr_remote_uuid ();
 extern bool_t xdr_remote_nonnull_domain ();
 extern bool_t xdr_remote_nonnull_network ();
+extern bool_t xdr_remote_nonnull_interface ();
 extern bool_t xdr_remote_nonnull_storage_pool ();
 extern bool_t xdr_remote_nonnull_storage_vol ();
 extern bool_t xdr_remote_nonnull_node_device ();
@@ -1787,6 +1942,20 @@ extern bool_t xdr_remote_network_get_bridge_name_ret ();
 extern bool_t xdr_remote_network_get_autostart_args ();
 extern bool_t xdr_remote_network_get_autostart_ret ();
 extern bool_t xdr_remote_network_set_autostart_args ();
+extern bool_t xdr_remote_num_of_interfaces_ret ();
+extern bool_t xdr_remote_list_interfaces_args ();
+extern bool_t xdr_remote_list_interfaces_ret ();
+extern bool_t xdr_remote_interface_lookup_by_name_args ();
+extern bool_t xdr_remote_interface_lookup_by_name_ret ();
+extern bool_t xdr_remote_interface_lookup_by_mac_string_args ();
+extern bool_t xdr_remote_interface_lookup_by_mac_string_ret ();
+extern bool_t xdr_remote_interface_get_xml_desc_args ();
+extern bool_t xdr_remote_interface_get_xml_desc_ret ();
+extern bool_t xdr_remote_interface_define_xml_args ();
+extern bool_t xdr_remote_interface_define_xml_ret ();
+extern bool_t xdr_remote_interface_undefine_args ();
+extern bool_t xdr_remote_interface_create_args ();
+extern bool_t xdr_remote_interface_destroy_args ();
 extern bool_t xdr_remote_auth_list_ret ();
 extern bool_t xdr_remote_auth_sasl_init_ret ();
 extern bool_t xdr_remote_auth_sasl_start_args ();
@@ -1837,6 +2006,8 @@ extern bool_t xdr_remote_storage_vol_lookup_by_path_args ();
 extern bool_t xdr_remote_storage_vol_lookup_by_path_ret ();
 extern bool_t xdr_remote_storage_vol_create_xml_args ();
 extern bool_t xdr_remote_storage_vol_create_xml_ret ();
+extern bool_t xdr_remote_storage_vol_create_xml_from_args ();
+extern bool_t xdr_remote_storage_vol_create_xml_from_ret ();
 extern bool_t xdr_remote_storage_vol_delete_args ();
 extern bool_t xdr_remote_storage_vol_dump_xml_args ();
 extern bool_t xdr_remote_storage_vol_dump_xml_ret ();
@@ -1867,6 +2038,10 @@ extern bool_t xdr_remote_node_device_destroy_args ();
 extern bool_t xdr_remote_domain_events_register_ret ();
 extern bool_t xdr_remote_domain_events_deregister_ret ();
 extern bool_t xdr_remote_domain_event_ret ();
+extern bool_t xdr_remote_domain_xml_from_native_args ();
+extern bool_t xdr_remote_domain_xml_from_native_ret ();
+extern bool_t xdr_remote_domain_xml_to_native_args ();
+extern bool_t xdr_remote_domain_xml_to_native_ret ();
 extern bool_t xdr_remote_procedure ();
 extern bool_t xdr_remote_message_direction ();
 extern bool_t xdr_remote_message_status ();

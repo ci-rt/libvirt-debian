@@ -1,5 +1,5 @@
 /*
- * config.c: VM configuration management
+ * qemu_conf.c: QEMU configuration management
  *
  * Copyright (C) 2006, 2007, 2008, 2009 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
@@ -36,6 +36,7 @@
 #include <arpa/inet.h>
 #include <sys/utsname.h>
 
+#include "c-ctype.h"
 #include "virterror_internal.h"
 #include "qemu_conf.h"
 #include "uuid.h"
@@ -192,7 +193,7 @@ static const char *const arch_info_hvm_sparc_machines[] = {
     "sun4m"
 };
 static const char *const arch_info_hvm_ppc_machines[] = {
-    "g3bw", "mac99", "prep"
+    "g3beige", "mac99", "prep"
 };
 
 static const char *const arch_info_xen_x86_machines[] = {
@@ -370,7 +371,7 @@ virCapsPtr qemudCapsInit(void) {
     uname (&utsname);
 
     if ((caps = virCapabilitiesNew(utsname.machine,
-                                   0, 0)) == NULL)
+                                   1, 1)) == NULL)
         goto no_memory;
 
     /* Using KVM's mac prefix for QEMU too */
@@ -378,6 +379,9 @@ virCapsPtr qemudCapsInit(void) {
 
     if (virCapsInitNUMA(caps) < 0)
         goto no_memory;
+
+    virCapabilitiesAddHostMigrateTransport(caps,
+                                           "tcp");
 
     /* First the pure HVM guests */
     for (i = 0 ; i < ARRAY_CARDINALITY(arch_info_hvm) ; i++)
@@ -431,18 +435,28 @@ int qemudExtractVersionInfo(const char *qemu,
         return -1;
 
     char *help = NULL;
-    enum { MAX_HELP_OUTPUT_SIZE = 8192 };
+    enum { MAX_HELP_OUTPUT_SIZE = 1024*64 };
     int len = virFileReadLimFD(newstdout, MAX_HELP_OUTPUT_SIZE, &help);
-    if (len < 0)
+    if (len < 0) {
+        virReportSystemError(NULL, errno, "%s",
+                             _("Unable to read QEMU help output"));
         goto cleanup2;
+    }
 
     if (sscanf(help, "QEMU PC emulator version %u.%u.%u (kvm-%u)",
                &major, &minor, &micro, &kvm_version) != 4)
         kvm_version = 0;
 
-    if (!kvm_version && sscanf(help, "QEMU PC emulator version %u.%u.%u",
-               &major, &minor, &micro) != 3)
+    if (!kvm_version &&
+        sscanf(help, "QEMU PC emulator version %u.%u.%u",
+               &major, &minor, &micro) != 3) {
+        char *eol = strchr(help, '\n');
+        if (eol) *eol = '\0';
+        qemudReportError(NULL, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                         _("cannot parse QEMU version number in '%s'"),
+                         help);
         goto cleanup2;
+    }
 
     version = (major * 1000 * 1000) + (minor * 1000) + micro;
 
@@ -472,16 +486,13 @@ int qemudExtractVersionInfo(const char *qemu,
 
     /*
      * Handling of -incoming arg with varying features
-     *  -incoming tcp    (kvm >= 79)
-     *  -incoming exec   (kvm >= 80)
+     *  -incoming tcp    (kvm >= 79, qemu >= 0.10.0)
+     *  -incoming exec   (kvm >= 80, qemu >= 0.10.0)
      *  -incoming stdio  (all earlier kvm)
      *
      * NB, there was a pre-kvm-79 'tcp' support, but it
      * was broken, because it blocked the monitor console
      * while waiting for data, so pretend it doesn't exist
-     *
-     * XXX when next QEMU release after 0.9.1 arrives,
-     * we'll need to add MIGRATE_QEMU_TCP/EXEC here too
      */
     if (kvm_version >= 79) {
         flags |= QEMUD_CMD_FLAG_MIGRATE_QEMU_TCP;
@@ -489,6 +500,9 @@ int qemudExtractVersionInfo(const char *qemu,
             flags |= QEMUD_CMD_FLAG_MIGRATE_QEMU_EXEC;
     } else if (kvm_version > 0) {
         flags |= QEMUD_CMD_FLAG_MIGRATE_KVM_STDIO;
+    } else if (version >= 10000) {
+        flags |= QEMUD_CMD_FLAG_MIGRATE_QEMU_TCP;
+        flags |= QEMUD_CMD_FLAG_MIGRATE_QEMU_EXEC;
     }
 
     if (retversion)
@@ -648,8 +662,8 @@ qemudNetworkIfaceConnect(virConnectPtr conn,
     }
 
     snprintf(tapfdstr, sizeof(tapfdstr),
-             "tap,fd=%d,script=,vlan=%d,ifname=%s",
-             tapfd, vlan, net->ifname);
+             "tap,fd=%d,vlan=%d",
+             tapfd, vlan);
 
     if (!(retval = strdup(tapfdstr)))
         goto no_memory;
@@ -777,7 +791,6 @@ int qemudBuildCommandLine(virConnectPtr conn,
     const char *emulator;
     char uuid[VIR_UUID_STRING_BUFLEN];
     char domid[50];
-    char *pidfile;
     const char *cpu = NULL;
 
     uname_normalize(&ut);
@@ -934,9 +947,6 @@ int qemudBuildCommandLine(virConnectPtr conn,
     snprintf(memory, sizeof(memory), "%lu", def->maxmem/1024);
     snprintf(vcpus, sizeof(vcpus), "%lu", def->vcpus);
     snprintf(domid, sizeof(domid), "%d", def->id);
-    pidfile = virFilePid(driver->stateDir, def->name);
-    if (!pidfile)
-        goto error;
 
     ADD_ENV_LIT("LC_ALL=C");
 
@@ -998,9 +1008,6 @@ int qemudBuildCommandLine(virConnectPtr conn,
 
     ADD_ARG_LIT("-monitor");
     ADD_ARG_LIT("pty");
-
-    ADD_ARG_LIT("-pidfile");
-    ADD_ARG(pidfile);
 
     if (def->localtime)
         ADD_ARG_LIT("-localtime");
@@ -1245,21 +1252,18 @@ int qemudBuildCommandLine(virConnectPtr conn,
 
             case VIR_DOMAIN_NET_TYPE_ETHERNET:
                 {
-                    char arg[PATH_MAX];
-                    if (net->ifname) {
-                        if (snprintf(arg, PATH_MAX-1, "tap,ifname=%s,script=%s,vlan=%d",
-                                     net->ifname,
-                                     net->data.ethernet.script,
-                                     vlan) >= (PATH_MAX-1))
-                            goto error;
-                    } else {
-                        if (snprintf(arg, PATH_MAX-1, "tap,script=%s,vlan=%d",
-                                     net->data.ethernet.script,
-                                     vlan) >= (PATH_MAX-1))
-                            goto error;
-                    }
+                    virBuffer buf = VIR_BUFFER_INITIALIZER;
 
-                    ADD_ARG_LIT(arg);
+                    virBufferAddLit(&buf, "tap");
+                    if (net->ifname)
+                        virBufferVSprintf(&buf, ",ifname=%s", net->ifname);
+                    if (net->data.ethernet.script)
+                        virBufferVSprintf(&buf, ",script=%s", net->data.ethernet.script);
+                    virBufferVSprintf(&buf, ",vlan=%d", vlan);
+                    if (virBufferError(&buf))
+                        goto error;
+
+                    ADD_ARG(virBufferContentAndReset(&buf));
                 }
                 break;
 
@@ -1348,21 +1352,21 @@ int qemudBuildCommandLine(virConnectPtr conn,
         }
     }
 
-    if (def->graphics &&
-        def->graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC) {
+    if ((def->ngraphics == 1) &&
+        def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC) {
         virBuffer opt = VIR_BUFFER_INITIALIZER;
         char *optstr;
 
         if (qemuCmdFlags & QEMUD_CMD_FLAG_VNC_COLON) {
-            if (def->graphics->data.vnc.listenAddr)
-                virBufferAdd(&opt, def->graphics->data.vnc.listenAddr, -1);
+            if (def->graphics[0]->data.vnc.listenAddr)
+                virBufferAdd(&opt, def->graphics[0]->data.vnc.listenAddr, -1);
             else if (driver->vncListen)
                 virBufferAdd(&opt, driver->vncListen, -1);
 
             virBufferVSprintf(&opt, ":%d",
-                              def->graphics->data.vnc.port - 5900);
+                              def->graphics[0]->data.vnc.port - 5900);
 
-            if (def->graphics->data.vnc.passwd ||
+            if (def->graphics[0]->data.vnc.passwd ||
                 driver->vncPassword)
                 virBufferAddLit(&opt, ",password");
 
@@ -1387,7 +1391,7 @@ int qemudBuildCommandLine(virConnectPtr conn,
             }
         } else {
             virBufferVSprintf(&opt, "%d",
-                              def->graphics->data.vnc.port - 5900);
+                              def->graphics[0]->data.vnc.port - 5900);
         }
         if (virBufferError(&opt))
             goto no_memory;
@@ -1396,22 +1400,22 @@ int qemudBuildCommandLine(virConnectPtr conn,
 
         ADD_ARG_LIT("-vnc");
         ADD_ARG(optstr);
-        if (def->graphics->data.vnc.keymap) {
+        if (def->graphics[0]->data.vnc.keymap) {
             ADD_ARG_LIT("-k");
-            ADD_ARG_LIT(def->graphics->data.vnc.keymap);
+            ADD_ARG_LIT(def->graphics[0]->data.vnc.keymap);
         }
-    } else if (def->graphics &&
-               def->graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_SDL) {
+    } else if ((def->ngraphics == 1) &&
+               def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_SDL) {
         char *xauth = NULL;
         char *display = NULL;
 
-        if (def->graphics->data.sdl.xauth &&
+        if (def->graphics[0]->data.sdl.xauth &&
             virAsprintf(&xauth, "XAUTHORITY=%s",
-                        def->graphics->data.sdl.xauth) < 0)
+                        def->graphics[0]->data.sdl.xauth) < 0)
             goto no_memory;
-        if (def->graphics->data.sdl.display &&
+        if (def->graphics[0]->data.sdl.display &&
             virAsprintf(&display, "DISPLAY=%s",
-                        def->graphics->data.sdl.display) < 0) {
+                        def->graphics[0]->data.sdl.display) < 0) {
             VIR_FREE(xauth);
             goto no_memory;
         }
@@ -1420,7 +1424,7 @@ int qemudBuildCommandLine(virConnectPtr conn,
             ADD_ENV(xauth);
         if (display)
             ADD_ENV(display);
-        if (def->graphics->data.sdl.fullscreen)
+        if (def->graphics[0]->data.sdl.fullscreen)
             ADD_ARG_LIT("-full-screen");
     }
 
@@ -1536,6 +1540,1262 @@ int qemudBuildCommandLine(virConnectPtr conn,
 #undef ADD_ENV_COPY
 #undef ADD_ENV_LIT
 #undef ADD_ENV_SPACE
+}
+
+
+/*
+ * This method takes a string representing a QEMU command line ARGV set
+ * optionall prefixed by a list of environment variables. It then tries
+ * to split it up into a NULL terminated list of env & argv, splitting
+ * on space
+ */
+static int qemuStringToArgvEnv(const char *args,
+                               const char ***retenv,
+                               const char ***retargv)
+{
+    char **arglist = NULL;
+    int argcount = 0;
+    int argalloc = 0;
+    int envend;
+    int i;
+    const char *curr = args;
+    const char **progenv = NULL;
+    const char **progargv = NULL;
+
+    /* Iterate over string, splitting on sequences of ' ' */
+    while (curr && *curr != '\0') {
+        char *arg;
+        const char *next;
+        if (*curr == '\'') {
+            curr++;
+            next = strchr(curr, '\'');
+        } else if (*curr == '"') {
+            curr++;
+            next = strchr(curr, '"');
+        } else {
+            next = strchr(curr, ' ');
+        }
+        if (!next)
+            next = strchr(curr, '\n');
+
+        if (next) {
+            arg = strndup(curr, next-curr);
+            if (*next == '\'' ||
+                *next == '"')
+                next++;
+        } else {
+            arg = strdup(curr);
+        }
+
+        if (!arg)
+            goto no_memory;
+
+        if (argalloc == argcount) {
+            if (VIR_REALLOC_N(arglist, argalloc+10) < 0) {
+                VIR_FREE(arg);
+                goto no_memory;
+            }
+            argalloc+=10;
+        }
+
+        arglist[argcount++] = arg;
+
+        while (next && c_isspace(*next))
+            next++;
+
+        curr = next;
+    }
+
+    /* Iterate over list of args, finding first arg not containining
+     * the '=' character (eg, skip over env vars FOO=bar) */
+    for (envend = 0 ; ((envend < argcount) &&
+                       (strchr(arglist[envend], '=') != NULL));
+         envend++)
+        ; /* nada */
+
+    /* Copy the list of env vars */
+    if (envend > 0) {
+        if (VIR_REALLOC_N(progenv, envend+1) < 0)
+            goto no_memory;
+        for (i = 0 ; i < envend ; i++) {
+            progenv[i] = arglist[i];
+        }
+        progenv[i] = NULL;
+    }
+
+    /* Copy the list of argv */
+    if (VIR_REALLOC_N(progargv, argcount-envend + 1) < 0)
+        goto no_memory;
+    for (i = envend ; i < argcount ; i++)
+        progargv[i-envend] = arglist[i];
+    progargv[i-envend] = NULL;
+
+    VIR_FREE(arglist);
+
+    *retenv = progenv;
+    *retargv = progargv;
+
+    return 0;
+
+no_memory:
+    for (i = 0 ; progenv && progenv[i] ; i++)
+        VIR_FREE(progenv[i]);
+    VIR_FREE(progenv);
+    for (i = 0 ; i < argcount ; i++)
+        VIR_FREE(arglist[i]);
+    VIR_FREE(arglist);
+    return -1;
+}
+
+
+/*
+ * Search for a named env variable, and return the value part
+ */
+static const char *qemuFindEnv(const char **progenv,
+                               const char *name)
+{
+    int i;
+    int len = strlen(name);
+
+    for (i = 0 ; progenv && progenv[i] ; i++) {
+        if (STREQLEN(progenv[i], name, len) &&
+            progenv[i][len] == '=')
+            return progenv[i] + len + 1;
+    }
+    return NULL;
+}
+
+/*
+ * Takes a string containing a set of key=value,key=value,key...
+ * parameters and splits them up, returning two arrays with
+ * the individual keys and values
+ */
+static int
+qemuParseCommandLineKeywords(virConnectPtr conn,
+                             const char *str,
+                             char ***retkeywords,
+                             char ***retvalues)
+{
+    int keywordCount = 0;
+    int keywordAlloc = 0;
+    char **keywords = NULL;
+    char **values = NULL;
+    const char *start = str;
+    int i;
+
+    *retkeywords = NULL;
+    *retvalues = NULL;
+
+    while (start) {
+        const char *separator;
+        const char *endmark;
+        char *keyword;
+        char *value;
+
+        if (!(separator = strchr(start, '='))) {
+            qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                             _("malformed keyword arguments in '%s'"), str);
+            goto error;
+        }
+        if (!(keyword = strndup(start, separator - start)))
+            goto no_memory;
+
+        separator++;
+        endmark = strchr(separator, ',');
+
+        value = endmark ?
+            strndup(separator, endmark - separator) :
+            strdup(separator);
+        if (!value) {
+            VIR_FREE(keyword);
+            goto no_memory;
+        }
+
+        if (keywordAlloc == keywordCount) {
+            if (VIR_REALLOC_N(keywords, keywordAlloc + 10) < 0 ||
+                VIR_REALLOC_N(values, keywordAlloc + 10) < 0) {
+                VIR_FREE(keyword);
+                VIR_FREE(value);
+                goto no_memory;
+            }
+            keywordAlloc += 10;
+        }
+
+        keywords[keywordCount] = keyword;
+        values[keywordCount] = value;
+        keywordCount++;
+
+        start = endmark ? endmark + 1 : NULL;
+    }
+
+    *retkeywords = keywords;
+    *retvalues = values;
+
+    return keywordCount;
+
+no_memory:
+    virReportOOMError(conn);
+error:
+    for (i = 0 ; i < keywordCount ; i++) {
+        VIR_FREE(keywords[i]);
+        VIR_FREE(values[i]);
+    }
+    VIR_FREE(keywords);
+    VIR_FREE(values);
+    return -1;
+}
+
+/*
+ * Tries to parse new style QEMU -drive  args.
+ *
+ * eg -drive file=/dev/HostVG/VirtData1,if=ide,index=1
+ *
+ * Will fail if not using the 'index' keyword
+ */
+static virDomainDiskDefPtr
+qemuParseCommandLineDisk(virConnectPtr conn,
+                         const char *val)
+{
+    virDomainDiskDefPtr def = NULL;
+    char **keywords;
+    char **values;
+    int nkeywords;
+    int i;
+    int idx = -1;
+
+    if ((nkeywords = qemuParseCommandLineKeywords(conn, val,
+                                                  &keywords,
+                                                  &values)) < 0)
+        return NULL;
+
+    if (VIR_ALLOC(def) < 0) {
+        virReportOOMError(conn);
+        goto cleanup;
+    }
+
+    def->bus = VIR_DOMAIN_DISK_BUS_IDE;
+    def->device = VIR_DOMAIN_DISK_DEVICE_DISK;
+
+    for (i = 0 ; i < nkeywords ; i++) {
+        if (STREQ(keywords[i], "file")) {
+            if (values[i] && STRNEQ(values[i], "")) {
+                def->src = values[i];
+                values[i] = NULL;
+                if (STRPREFIX(def->src, "/dev/"))
+                    def->type = VIR_DOMAIN_DISK_TYPE_BLOCK;
+                else
+                    def->type = VIR_DOMAIN_DISK_TYPE_FILE;
+            } else {
+                def->type = VIR_DOMAIN_DISK_TYPE_FILE;
+            }
+        } else if (STREQ(keywords[i], "if")) {
+            if (STREQ(values[i], "ide"))
+                def->bus = VIR_DOMAIN_DISK_BUS_IDE;
+            else if (STREQ(values[i], "scsi"))
+                def->bus = VIR_DOMAIN_DISK_BUS_SCSI;
+            else if (STREQ(values[i], "virtio"))
+                def->bus = VIR_DOMAIN_DISK_BUS_VIRTIO;
+            else if (STREQ(values[i], "xen"))
+                def->bus = VIR_DOMAIN_DISK_BUS_XEN;
+        } else if (STREQ(keywords[i], "media")) {
+            if (STREQ(values[i], "cdrom")) {
+                def->device = VIR_DOMAIN_DISK_DEVICE_CDROM;
+                def->readonly = 1;
+            } else if (STREQ(values[i], "floppy"))
+                def->device = VIR_DOMAIN_DISK_DEVICE_FLOPPY;
+        } else if (STREQ(keywords[i], "format")) {
+            def->driverName = strdup("qemu");
+            if (!def->driverName) {
+                virDomainDiskDefFree(def);
+                def = NULL;
+                virReportOOMError(conn);
+                goto cleanup;
+            }
+            def->driverType = values[i];
+            values[i] = NULL;
+        } else if (STREQ(keywords[i], "cache")) {
+            if (STREQ(values[i], "off") ||
+                STREQ(values[i], "none"))
+                def->cachemode = VIR_DOMAIN_DISK_CACHE_DISABLE;
+            else if (STREQ(values[i], "writeback") ||
+                     STREQ(values[i], "on"))
+                def->cachemode = VIR_DOMAIN_DISK_CACHE_WRITEBACK;
+            else if (STREQ(values[i], "writethrough"))
+                def->cachemode = VIR_DOMAIN_DISK_CACHE_WRITETHRU;
+        } else if (STREQ(keywords[i], "index")) {
+            if (virStrToLong_i(values[i], NULL, 10, &idx) < 0) {
+                virDomainDiskDefFree(def);
+                def = NULL;
+                qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                                 _("cannot parse drive index '%s'"), val);
+                goto cleanup;
+            }
+        }
+    }
+
+    if (!def->src &&
+        def->device == VIR_DOMAIN_DISK_DEVICE_DISK) {
+        qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                         _("missing file parameter in drive '%s'"), val);
+        virDomainDiskDefFree(def);
+        def = NULL;
+        goto cleanup;
+    }
+    if (idx == -1) {
+        qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                         _("missing index parameter in drive '%s'"), val);
+        virDomainDiskDefFree(def);
+        def = NULL;
+        goto cleanup;
+    }
+
+    if (def->bus == VIR_DOMAIN_DISK_BUS_IDE) {
+        def->dst = strdup("hda");
+    } else if (def->bus == VIR_DOMAIN_DISK_BUS_SCSI) {
+        def->dst = strdup("sda");
+    } else if (def->bus == VIR_DOMAIN_DISK_BUS_VIRTIO) {
+        def->dst = strdup("vda");
+    } else if (def->bus == VIR_DOMAIN_DISK_BUS_XEN) {
+        def->dst = strdup("xvda");
+    } else {
+        def->dst = strdup("hda");
+    }
+
+    if (!def->dst) {
+        virDomainDiskDefFree(def);
+        def = NULL;
+        virReportOOMError(conn);
+        goto cleanup;
+    }
+    if (STREQ(def->dst, "xvda"))
+        def->dst[3] = 'a' + idx;
+    else
+        def->dst[2] = 'a' + idx;
+
+cleanup:
+    for (i = 0 ; i < nkeywords ; i++) {
+        VIR_FREE(keywords[i]);
+        VIR_FREE(values[i]);
+    }
+    VIR_FREE(keywords);
+    VIR_FREE(values);
+    return def;
+}
+
+/*
+ * Tries to find a NIC definition matching a vlan we want
+ */
+static const char *
+qemuFindNICForVLAN(virConnectPtr conn,
+                   int nnics,
+                   const char **nics,
+                   int wantvlan)
+{
+    int i;
+    for (i = 0 ; i < nnics ; i++) {
+        int gotvlan;
+        const char *tmp = strstr(nics[i], "vlan=");
+        char *end;
+        if (!tmp)
+            continue;
+
+        tmp += strlen("vlan=");
+
+        if (virStrToLong_i(tmp, &end, 10, &gotvlan) < 0) {
+            qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                             _("cannot parse NIC vlan in '%s'"), nics[i]);
+            return NULL;
+        }
+
+        if (gotvlan == wantvlan)
+            return nics[i];
+    }
+
+    if (wantvlan == 0 && nnics > 0)
+        return nics[0];
+
+    qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                     _("cannot find NIC definition for vlan %d"), wantvlan);
+    return NULL;
+}
+
+
+/*
+ * Tries to parse a QEMU -net backend argument. Gets given
+ * a list of all known -net frontend arguments to try and
+ * match up against. Horribly complicated stuff
+ */
+static virDomainNetDefPtr
+qemuParseCommandLineNet(virConnectPtr conn,
+                        virCapsPtr caps,
+                        const char *val,
+                        int nnics,
+                        const char **nics)
+{
+    virDomainNetDefPtr def = NULL;
+    char **keywords = NULL;
+    char **values = NULL;
+    int nkeywords;
+    const char *nic;
+    int wantvlan = 0;
+    const char *tmp;
+    int genmac = 1;
+    int i;
+
+    tmp = strchr(val, ',');
+
+    if (tmp) {
+        if ((nkeywords = qemuParseCommandLineKeywords(conn,
+                                                      tmp+1,
+                                                      &keywords,
+                                                      &values)) < 0)
+            return NULL;
+    } else {
+        nkeywords = 0;
+    }
+
+    if (VIR_ALLOC(def) < 0) {
+        virReportOOMError(conn);
+        goto cleanup;
+    }
+
+    /* 'tap' could turn into libvirt type=ethernet, type=bridge or
+     * type=network, but we can't tell, so use the generic config */
+    if (STRPREFIX(val, "tap,"))
+        def->type = VIR_DOMAIN_NET_TYPE_ETHERNET;
+    else if (STRPREFIX(val, "socket"))
+        def->type = VIR_DOMAIN_NET_TYPE_CLIENT;
+    else if (STRPREFIX(val, "user"))
+        def->type = VIR_DOMAIN_NET_TYPE_USER;
+    else
+        def->type = VIR_DOMAIN_NET_TYPE_ETHERNET;
+
+    for (i = 0 ; i < nkeywords ; i++) {
+        if (STREQ(keywords[i], "vlan")) {
+            if (virStrToLong_i(values[i], NULL, 10, &wantvlan) < 0) {
+                qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                                 _("cannot parse vlan in '%s'"), val);
+                virDomainNetDefFree(def);
+                def = NULL;
+                goto cleanup;
+            }
+        } else if (def->type == VIR_DOMAIN_NET_TYPE_ETHERNET &&
+                   STREQ(keywords[i], "script") && STRNEQ(values[i], "")) {
+            def->data.ethernet.script = values[i];
+            values[i] = NULL;
+        } else if (def->type == VIR_DOMAIN_NET_TYPE_ETHERNET &&
+                   STREQ(keywords[i], "ifname")) {
+            def->ifname = values[i];
+            values[i] = NULL;
+        }
+    }
+
+
+    /* Done parsing the nic backend. Now to try and find corresponding
+     * frontend, based off vlan number. NB this assumes a 1-1 mapping
+     */
+
+    nic = qemuFindNICForVLAN(conn, nnics, nics, wantvlan);
+    if (!nic) {
+        virDomainNetDefFree(def);
+        def = NULL;
+        goto cleanup;
+    }
+
+    if (!STRPREFIX(nic, "nic")) {
+        qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                         _("cannot parse NIC definition '%s'"), nic);
+        virDomainNetDefFree(def);
+        def = NULL;
+        goto cleanup;
+    }
+
+    for (i = 0 ; i < nkeywords ; i++) {
+        VIR_FREE(keywords[i]);
+        VIR_FREE(values[i]);
+    }
+    VIR_FREE(keywords);
+    VIR_FREE(values);
+
+    if (STRPREFIX(nic, "nic,")) {
+        if ((nkeywords = qemuParseCommandLineKeywords(conn,
+                                                      nic + strlen("nic,"),
+                                                      &keywords,
+                                                      &values)) < 0) {
+            virDomainNetDefFree(def);
+            def = NULL;
+            goto cleanup;
+        }
+    } else {
+        nkeywords = 0;
+    }
+
+    for (i = 0 ; i < nkeywords ; i++) {
+        if (STREQ(keywords[i], "macaddr")) {
+            genmac = 0;
+            virParseMacAddr(values[i], def->mac);
+        } else if (STREQ(keywords[i], "model")) {
+            def->model = values[i];
+            values[i] = NULL;
+        }
+    }
+
+    if (genmac)
+        virCapabilitiesGenerateMac(caps, def->mac);
+
+cleanup:
+    for (i = 0 ; i < nkeywords ; i++) {
+        VIR_FREE(keywords[i]);
+        VIR_FREE(values[i]);
+    }
+    VIR_FREE(keywords);
+    VIR_FREE(values);
+    return def;
+}
+
+
+/*
+ * Tries to parse a QEMU PCI device
+ */
+static virDomainHostdevDefPtr
+qemuParseCommandLinePCI(virConnectPtr conn,
+                        const char *val)
+{
+    virDomainHostdevDefPtr def = NULL;
+    int bus = 0, slot = 0, func = 0;
+    const char *start;
+    char *end;
+
+    if (!STRPREFIX(val, "host=")) {
+        qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                         _("unknown PCI device syntax '%s'"), val);
+        VIR_FREE(def);
+        goto cleanup;
+    }
+
+    start = val + strlen("host=");
+    if (virStrToLong_i(start, &end, 16, &bus) < 0 || !end || *end != ':') {
+        qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                         _("cannot extract PCI device bus '%s'"), val);
+        VIR_FREE(def);
+        goto cleanup;
+    }
+    start = end + 1;
+    if (virStrToLong_i(start, &end, 16, &slot) < 0 || !end || *end != '.') {
+        qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                         _("cannot extract PCI device slot '%s'"), val);
+        VIR_FREE(def);
+        goto cleanup;
+    }
+    start = end + 1;
+    if (virStrToLong_i(start, NULL, 16, &func) < 0) {
+        qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                         _("cannot extract PCI device function '%s'"), val);
+        VIR_FREE(def);
+        goto cleanup;
+    }
+
+    if (VIR_ALLOC(def) < 0) {
+        virReportOOMError(conn);
+        goto cleanup;
+    }
+
+    def->mode = VIR_DOMAIN_HOSTDEV_MODE_SUBSYS;
+    def->managed = 1;
+    def->source.subsys.type = VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI;
+    def->source.subsys.u.pci.bus = bus;
+    def->source.subsys.u.pci.slot = slot;
+    def->source.subsys.u.pci.function = func;
+
+cleanup:
+    return def;
+}
+
+
+/*
+ * Tries to parse a QEMU USB device
+ */
+static virDomainHostdevDefPtr
+qemuParseCommandLineUSB(virConnectPtr conn,
+                        const char *val)
+{
+    virDomainHostdevDefPtr def = NULL;
+    int first = 0, second = 0;
+    const char *start;
+    char *end;
+
+    if (!STRPREFIX(val, "host:")) {
+        qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                         _("unknown PCI device syntax '%s'"), val);
+        VIR_FREE(def);
+        goto cleanup;
+    }
+
+    start = val + strlen("host:");
+    if (strchr(start, ':')) {
+        if (virStrToLong_i(start, &end, 16, &first) < 0 || !end || *end != ':') {
+            qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                             _("cannot extract USB device vendor '%s'"), val);
+            VIR_FREE(def);
+            goto cleanup;
+        }
+        start = end + 1;
+        if (virStrToLong_i(start, NULL, 16, &second) < 0) {
+            qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                             _("cannot extract PCI device product '%s'"), val);
+            VIR_FREE(def);
+            goto cleanup;
+        }
+    } else {
+        if (virStrToLong_i(start, &end, 10, &first) < 0 || !end || *end != '.') {
+            qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                             _("cannot extract PCI device bus '%s'"), val);
+            VIR_FREE(def);
+            goto cleanup;
+        }
+        start = end + 1;
+        if (virStrToLong_i(start, NULL, 10, &second) < 0) {
+            qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                             _("cannot extract PCI device address '%s'"), val);
+            VIR_FREE(def);
+            goto cleanup;
+        }
+    }
+
+    if (VIR_ALLOC(def) < 0) {
+        virReportOOMError(conn);
+        goto cleanup;
+    }
+
+    def->mode = VIR_DOMAIN_HOSTDEV_MODE_SUBSYS;
+    def->managed = 0;
+    def->source.subsys.type = VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB;
+    if (*end == '.') {
+        def->source.subsys.u.usb.bus = first;
+        def->source.subsys.u.usb.device = second;
+    } else {
+        def->source.subsys.u.usb.vendor = first;
+        def->source.subsys.u.usb.product = second;
+    }
+
+cleanup:
+    return def;
+}
+
+
+/*
+ * Tries to parse a QEMU serial/parallel device
+ */
+static virDomainChrDefPtr
+qemuParseCommandLineChr(virConnectPtr conn,
+                        const char *val)
+{
+    virDomainChrDefPtr def;
+
+    if (VIR_ALLOC(def) < 0)
+        goto no_memory;
+
+    if (STREQ(val, "null")) {
+        def->type = VIR_DOMAIN_CHR_TYPE_NULL;
+    } else if (STREQ(val, "vc")) {
+        def->type = VIR_DOMAIN_CHR_TYPE_VC;
+    } else if (STREQ(val, "pty")) {
+        def->type = VIR_DOMAIN_CHR_TYPE_PTY;
+    } else if (STRPREFIX(val, "file:")) {
+        def->type = VIR_DOMAIN_CHR_TYPE_FILE;
+        def->data.file.path = strdup(val+strlen("file:"));
+        if (!def->data.file.path)
+            goto no_memory;
+    } else if (STRPREFIX(val, "pipe:")) {
+        def->type = VIR_DOMAIN_CHR_TYPE_PIPE;
+        def->data.file.path = strdup(val+strlen("pipe:"));
+        if (!def->data.file.path)
+            goto no_memory;
+    } else if (STREQ(val, "stdio")) {
+        def->type = VIR_DOMAIN_CHR_TYPE_STDIO;
+    } else if (STRPREFIX(val, "udp:")) {
+        const char *svc1, *host2, *svc2;
+        def->type = VIR_DOMAIN_CHR_TYPE_UDP;
+        val += strlen("udp:");
+        svc1 = strchr(val, ':');
+        host2 = svc1 ? strchr(svc1, '@') : NULL;
+        svc2 = host2 ? strchr(host2, ':') : NULL;
+
+        if (svc1)
+            def->data.udp.connectHost = strndup(val, svc1-val);
+        else
+            def->data.udp.connectHost = strdup(val);
+        if (svc1) {
+            svc1++;
+            if (host2)
+                def->data.udp.connectService = strndup(svc1, host2-svc1);
+            else
+                def->data.udp.connectService = strdup(svc1);
+        }
+
+        if (host2) {
+            host2++;
+            if (svc2)
+                def->data.udp.bindHost = strndup(host2, svc2-host2);
+            else
+                def->data.udp.bindHost = strdup(host2);
+        }
+        if (svc2) {
+            svc2++;
+            def->data.udp.bindService = strdup(svc2);
+        }
+    } else if (STRPREFIX(val, "tcp:") ||
+               STRPREFIX(val, "telnet:")) {
+        const char *opt, *svc;
+        def->type = VIR_DOMAIN_CHR_TYPE_TCP;
+        if (STRPREFIX(val, "tcp:")) {
+            val += strlen("tcp:");
+        } else {
+            val += strlen("telnet:");
+            def->data.tcp.protocol = VIR_DOMAIN_CHR_TCP_PROTOCOL_TELNET;
+        }
+        svc = strchr(val, ':');
+        if (!svc) {
+            qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                             _("cannot find port number in character device %s"), val);
+            goto error;
+        }
+        opt = strchr(svc, ',');
+        if (opt && strstr(opt, "server"))
+            def->data.tcp.listen = 1;
+
+        def->data.tcp.host = strndup(val, svc-val);
+        svc++;
+        if (opt) {
+            def->data.tcp.service = strndup(svc, opt-svc);
+        } else {
+            def->data.tcp.service = strdup(svc);
+        }
+    } else if (STRPREFIX(val, "unix:")) {
+        const char *opt;
+        val += strlen("unix:");
+        opt = strchr(val, ',');
+        def->type = VIR_DOMAIN_CHR_TYPE_UNIX;
+        if (opt) {
+            if (strstr(opt, "listen"))
+                def->data.nix.listen = 1;
+            def->data.nix.path = strndup(val, opt-val);
+        } else {
+            def->data.nix.path = strdup(val);
+        }
+        if (!def->data.nix.path)
+            goto no_memory;
+
+    } else if (STRPREFIX(val, "/dev")) {
+        def->type = VIR_DOMAIN_CHR_TYPE_DEV;
+        def->data.file.path = strdup(val);
+        if (!def->data.file.path)
+            goto no_memory;
+    } else {
+        qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                         _("unknown character device syntax %s"), val);
+        goto error;
+    }
+
+    return def;
+
+no_memory:
+    virReportOOMError(conn);
+error:
+    virDomainChrDefFree(def);
+    return NULL;
+}
+
+/*
+ * Analyse the env and argv settings and reconstruct a
+ * virDomainDefPtr representing these settings as closely
+ * as is practical. This is not an exact science....
+ */
+virDomainDefPtr qemuParseCommandLine(virConnectPtr conn,
+                                     virCapsPtr caps,
+                                     const char **progenv,
+                                     const char **progargv)
+{
+    virDomainDefPtr def;
+    int i;
+    int nographics = 0;
+    int fullscreen = 0;
+    char *path;
+    int nnics = 0;
+    const char **nics = NULL;
+
+    if (!progargv[0]) {
+        qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                         "%s", _("no emulator path found"));
+        return NULL;
+    }
+
+    if (VIR_ALLOC(def) < 0)
+        goto no_memory;
+
+    virUUIDGenerate(def->uuid);
+
+    def->id = -1;
+    def->memory = def->maxmem = 64 * 1024;
+    def->vcpus = 1;
+    def->features = (1 << VIR_DOMAIN_FEATURE_ACPI)
+        /*| (1 << VIR_DOMAIN_FEATURE_APIC)*/;
+    def->onReboot = VIR_DOMAIN_LIFECYCLE_RESTART;
+    def->onCrash = VIR_DOMAIN_LIFECYCLE_DESTROY;
+    def->onPoweroff = VIR_DOMAIN_LIFECYCLE_DESTROY;
+    def->virtType = VIR_DOMAIN_VIRT_QEMU;
+    if (!(def->emulator = strdup(progargv[0])))
+        goto no_memory;
+
+    if (strstr(def->emulator, "kvm")) {
+        def->virtType = VIR_DOMAIN_VIRT_KVM;
+        def->features |= (1 << VIR_DOMAIN_FEATURE_PAE);
+    }
+
+
+    if (strstr(def->emulator, "xenner")) {
+        def->virtType = VIR_DOMAIN_VIRT_KVM;
+        def->os.type = strdup("xen");
+    } else {
+        def->os.type = strdup("hvm");
+    }
+    if (!def->os.type)
+        goto no_memory;
+
+    if (STRPREFIX(def->emulator, "qemu"))
+        path = def->emulator;
+    else
+        path = strstr(def->emulator, "qemu");
+    if (path &&
+        STRPREFIX(path, "qemu-system-"))
+        def->os.arch = strdup(path + strlen("qemu-system-"));
+    else
+        def->os.arch = strdup("i686");
+    if (!def->os.arch)
+        goto no_memory;
+
+#define WANT_VALUE()                                                   \
+    const char *val = progargv[++i];                                   \
+    if (!val) {                                                        \
+        qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,     \
+                         _("missing value for %s argument"), arg);     \
+        goto error;                                                    \
+    }
+
+    /* One initial loop to get list of NICs, so we
+     * can correlate them later */
+    for (i = 1 ; progargv[i] ; i++) {
+        const char *arg = progargv[i];
+        /* Make sure we have a single - for all options to
+           simplify next logic */
+        if (STRPREFIX(arg, "--"))
+            arg++;
+
+        if (STREQ(arg, "-net")) {
+            WANT_VALUE();
+            if (STRPREFIX(val, "nic")) {
+                if (VIR_REALLOC_N(nics, nnics+1) < 0)
+                    goto no_memory;
+                nics[nnics++] = val;
+            }
+        }
+    }
+
+    /* Now the real processing loop */
+    for (i = 1 ; progargv[i] ; i++) {
+        const char *arg = progargv[i];
+        /* Make sure we have a single - for all options to
+           simplify next logic */
+        if (STRPREFIX(arg, "--"))
+            arg++;
+
+        if (STREQ(arg, "-vnc")) {
+            virDomainGraphicsDefPtr vnc;
+            char *tmp;
+            WANT_VALUE();
+            if (VIR_ALLOC(vnc) < 0)
+                goto no_memory;
+            vnc->type = VIR_DOMAIN_GRAPHICS_TYPE_VNC;
+
+            tmp = strchr(val, ':');
+            if (tmp) {
+                char *opts;
+                if (virStrToLong_i(tmp+1, &opts, 10, &vnc->data.vnc.port) < 0) {
+                    VIR_FREE(vnc);
+                    qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR, \
+                                     _("cannot parse VNC port '%s'"), tmp+1);
+                    goto error;
+                }
+                vnc->data.vnc.listenAddr = strndup(val, tmp-val);
+                if (!vnc->data.vnc.listenAddr) {
+                    VIR_FREE(vnc);
+                    goto no_memory;
+                }
+                vnc->data.vnc.port += 5900;
+                vnc->data.vnc.autoport = 0;
+            } else {
+                vnc->data.vnc.autoport = 1;
+            }
+
+            if (VIR_REALLOC_N(def->graphics, def->ngraphics+1) < 0) {
+                virDomainGraphicsDefFree(vnc);
+                goto no_memory;
+            }
+            def->graphics[def->ngraphics++] = vnc;
+        } else if (STREQ(arg, "-m")) {
+            int mem;
+            WANT_VALUE();
+            if (virStrToLong_i(val, NULL, 10, &mem) < 0) {
+                qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR, \
+                                 _("cannot parse memory level '%s'"), val);
+                goto error;
+            }
+            def->memory = def->maxmem = mem * 1024;
+        } else if (STREQ(arg, "-smp")) {
+            int vcpus;
+            WANT_VALUE();
+            if (virStrToLong_i(val, NULL, 10, &vcpus) < 0) {
+                qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR, \
+                                 _("cannot parse CPU count '%s'"), val);
+                goto error;
+            }
+            def->vcpus = vcpus;
+        } else if (STREQ(arg, "-uuid")) {
+            WANT_VALUE();
+            if (virUUIDParse(val, def->uuid) < 0) {
+                qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR, \
+                                 _("cannot parse UUID '%s'"), val);
+                goto error;
+            }
+        } else if (STRPREFIX(arg, "-hd") ||
+                   STRPREFIX(arg, "-sd") ||
+                   STRPREFIX(arg, "-fd") ||
+                   STREQ(arg, "-cdrom")) {
+            WANT_VALUE();
+            virDomainDiskDefPtr disk;
+            if (VIR_ALLOC(disk) < 0)
+                goto no_memory;
+
+            if (STRPREFIX(val, "/dev/"))
+                disk->type = VIR_DOMAIN_DISK_TYPE_BLOCK;
+            else
+                disk->type = VIR_DOMAIN_DISK_TYPE_FILE;
+            if (STREQ(arg, "-cdrom")) {
+                disk->device = VIR_DOMAIN_DISK_DEVICE_CDROM;
+                disk->dst = strdup("hdc");
+                disk->readonly = 1;
+            } else {
+                if (STRPREFIX(arg, "-fd")) {
+                    disk->device = VIR_DOMAIN_DISK_DEVICE_FLOPPY;
+                    disk->bus = VIR_DOMAIN_DISK_BUS_FDC;
+                } else {
+                    disk->device = VIR_DOMAIN_DISK_DEVICE_DISK;
+                    if (STRPREFIX(arg, "-hd"))
+                        disk->bus = VIR_DOMAIN_DISK_BUS_IDE;
+                    else
+                        disk->bus = VIR_DOMAIN_DISK_BUS_SCSI;
+                }
+                disk->dst = strdup(arg + 1);
+            }
+            disk->src = strdup(val);
+            if (!disk->src ||
+                !disk->dst) {
+                virDomainDiskDefFree(disk);
+                goto no_memory;
+            }
+
+            if (VIR_REALLOC_N(def->disks, def->ndisks+1) < 0) {
+                virDomainDiskDefFree(disk);
+                goto no_memory;
+            }
+            def->disks[def->ndisks++] = disk;
+        } else if (STREQ(arg, "-no-acpi")) {
+            def->features &= ~(1 << VIR_DOMAIN_FEATURE_ACPI);
+        } else if (STREQ(arg, "-no-reboot")) {
+            def->onReboot = VIR_DOMAIN_LIFECYCLE_DESTROY;
+        } else if (STREQ(arg, "-no-kvm")) {
+            def->virtType = VIR_DOMAIN_VIRT_QEMU;
+        } else if (STREQ(arg, "-nographic")) {
+            nographics = 1;
+        } else if (STREQ(arg, "-full-screen")) {
+            fullscreen = 1;
+        } else if (STREQ(arg, "-localtime")) {
+            def->localtime = 1;
+        } else if (STREQ(arg, "-kernel")) {
+            WANT_VALUE();
+            if (!(def->os.kernel = strdup(val)))
+                goto no_memory;
+        } else if (STREQ(arg, "-initrd")) {
+            WANT_VALUE();
+            if (!(def->os.initrd = strdup(val)))
+                goto no_memory;
+        } else if (STREQ(arg, "-append")) {
+            WANT_VALUE();
+            if (!(def->os.cmdline = strdup(val)))
+                goto no_memory;
+        } else if (STREQ(arg, "-boot")) {
+            int n, b = 0;
+            WANT_VALUE();
+            for (n = 0 ; val[n] && b < VIR_DOMAIN_BOOT_LAST ; n++) {
+                if (val[n] == 'a')
+                    def->os.bootDevs[b++] = VIR_DOMAIN_BOOT_FLOPPY;
+                else if (val[n] == 'c')
+                    def->os.bootDevs[b++] = VIR_DOMAIN_BOOT_DISK;
+                else if (val[n] == 'd')
+                    def->os.bootDevs[b++] = VIR_DOMAIN_BOOT_CDROM;
+                else if (val[n] == 'n')
+                    def->os.bootDevs[b++] = VIR_DOMAIN_BOOT_NET;
+            }
+            def->os.nBootDevs = b;
+        } else if (STREQ(arg, "-name")) {
+            WANT_VALUE();
+            if (!(def->name = strdup(val)))
+                goto no_memory;
+        } else if (STREQ(arg, "-M")) {
+            WANT_VALUE();
+            if (!(def->os.machine = strdup(val)))
+                goto no_memory;
+        } else if (STREQ(arg, "-serial")) {
+            WANT_VALUE();
+            if (STRNEQ(val, "none")) {
+                virDomainChrDefPtr chr;
+                if (!(chr = qemuParseCommandLineChr(conn, val)))
+                    goto error;
+                if (VIR_REALLOC_N(def->serials, def->nserials+1) < 0) {
+                    virDomainChrDefFree(chr);
+                    goto no_memory;
+                }
+                chr->dstPort = def->nserials;
+                def->serials[def->nserials++] = chr;
+            }
+        } else if (STREQ(arg, "-parallel")) {
+            WANT_VALUE();
+            if (STRNEQ(val, "none")) {
+                virDomainChrDefPtr chr;
+                if (!(chr = qemuParseCommandLineChr(conn, val)))
+                    goto error;
+                if (VIR_REALLOC_N(def->parallels, def->nparallels+1) < 0) {
+                    virDomainChrDefFree(chr);
+                    goto no_memory;
+                }
+                chr->dstPort = def->nparallels;
+                def->parallels[def->nparallels++] = chr;
+            }
+        } else if (STREQ(arg, "-usbdevice")) {
+            WANT_VALUE();
+            if (STREQ(val, "tablet") ||
+                STREQ(val, "mouse")) {
+                virDomainInputDefPtr input;
+                if (VIR_ALLOC(input) < 0)
+                    goto no_memory;
+                input->bus = VIR_DOMAIN_INPUT_BUS_USB;
+                if (STREQ(val, "tablet"))
+                    input->type = VIR_DOMAIN_INPUT_TYPE_TABLET;
+                else
+                    input->type = VIR_DOMAIN_INPUT_TYPE_MOUSE;
+                if (VIR_REALLOC_N(def->inputs, def->ninputs+1) < 0) {
+                    virDomainInputDefFree(input);
+                    goto no_memory;
+                }
+                def->inputs[def->ninputs++] = input;
+            } else if (STRPREFIX(val, "disk:")) {
+                virDomainDiskDefPtr disk;
+                if (VIR_ALLOC(disk) < 0)
+                    goto no_memory;
+                disk->src = strdup(val + strlen("disk:"));
+                if (!disk->src) {
+                    virDomainDiskDefFree(disk);
+                    goto no_memory;
+                }
+                if (STRPREFIX(disk->src, "/dev/"))
+                    disk->type = VIR_DOMAIN_DISK_TYPE_BLOCK;
+                else
+                    disk->type = VIR_DOMAIN_DISK_TYPE_FILE;
+                disk->device = VIR_DOMAIN_DISK_DEVICE_DISK;
+                disk->bus = VIR_DOMAIN_DISK_BUS_USB;
+                if (!(disk->dst = strdup("sda"))) {
+                    virDomainDiskDefFree(disk);
+                    goto no_memory;
+                }
+                if (VIR_REALLOC_N(def->disks, def->ndisks+1) < 0) {
+                    virDomainDiskDefFree(disk);
+                    goto no_memory;
+                }
+                def->disks[def->ndisks++] = disk;
+            } else {
+                virDomainHostdevDefPtr hostdev;
+                if (!(hostdev = qemuParseCommandLineUSB(conn, val)))
+                    goto error;
+                if (VIR_REALLOC_N(def->hostdevs, def->nhostdevs+1) < 0) {
+                    virDomainHostdevDefFree(hostdev);
+                    goto no_memory;
+                }
+                def->hostdevs[def->nhostdevs++] = hostdev;
+            }
+        } else if (STREQ(arg, "-net")) {
+            WANT_VALUE();
+            if (!STRPREFIX(val, "nic") && STRNEQ(val, "none")) {
+                virDomainNetDefPtr net;
+                if (!(net = qemuParseCommandLineNet(conn, caps, val, nnics, nics)))
+                    goto error;
+                if (VIR_REALLOC_N(def->nets, def->nnets+1) < 0) {
+                    virDomainNetDefFree(net);
+                    goto no_memory;
+                }
+                def->nets[def->nnets++] = net;
+            }
+        } else if (STREQ(arg, "-drive")) {
+            virDomainDiskDefPtr disk;
+            WANT_VALUE();
+            if (!(disk = qemuParseCommandLineDisk(conn, val)))
+                goto error;
+            if (VIR_REALLOC_N(def->disks, def->ndisks+1) < 0) {
+                virDomainDiskDefFree(disk);
+                goto no_memory;
+            }
+            def->disks[def->ndisks++] = disk;
+        } else if (STREQ(arg, "-pcidevice")) {
+            virDomainHostdevDefPtr hostdev;
+            WANT_VALUE();
+            if (!(hostdev = qemuParseCommandLinePCI(conn, val)))
+                goto error;
+            if (VIR_REALLOC_N(def->hostdevs, def->nhostdevs+1) < 0) {
+                virDomainHostdevDefFree(hostdev);
+                goto no_memory;
+            }
+            def->hostdevs[def->nhostdevs++] = hostdev;
+        } else if (STREQ(arg, "-soundhw")) {
+            const char *start;
+            WANT_VALUE();
+            start = val;
+            while (start) {
+                const char *tmp = strchr(start, ',');
+                int type = -1;
+                if (STRPREFIX(start, "pcspk")) {
+                    type = VIR_DOMAIN_SOUND_MODEL_PCSPK;
+                } else if (STRPREFIX(start, "sb16")) {
+                    type = VIR_DOMAIN_SOUND_MODEL_SB16;
+                } else if (STRPREFIX(start, "es1370")) {
+                    type = VIR_DOMAIN_SOUND_MODEL_ES1370;
+                } else if (STRPREFIX(start, "ac97")) {
+                    type = VIR_DOMAIN_SOUND_MODEL_AC97;
+                }
+
+                if (type != -1) {
+                    virDomainSoundDefPtr snd;
+                    if (VIR_ALLOC(snd) < 0)
+                        goto no_memory;
+                    snd->model = type;
+                    if (VIR_REALLOC_N(def->sounds, def->nsounds+1) < 0) {
+                        VIR_FREE(snd);
+                        goto no_memory;
+                    }
+                    def->sounds[def->nsounds++] = snd;
+                }
+
+                start = tmp ? tmp + 1 : NULL;
+            }
+        } else if (STREQ(arg, "-bootloader")) {
+            WANT_VALUE();
+            def->os.bootloader = strdup(val);
+            if (!def->os.bootloader)
+                goto no_memory;
+        } else if (STREQ(arg, "-domid")) {
+            WANT_VALUE();
+            /* ignore, generted on the fly */
+        } else if (STREQ(arg, "-usb")) {
+            /* ignore, always added by libvirt */
+        } else if (STREQ(arg, "-pidfile")) {
+            WANT_VALUE();
+            /* ignore, used by libvirt as needed */
+        } else if (STREQ(arg, "-incoming")) {
+            WANT_VALUE();
+            /* ignore, used via restore/migrate APIs */
+        } else if (STREQ(arg, "-monitor")) {
+            WANT_VALUE();
+            /* ignore, used internally by libvirt */
+        } else if (STREQ(arg, "-S")) {
+            /* ignore, always added by libvirt */
+        } else {
+            VIR_WARN(_("unknown QEMU argument '%s' during conversion"), arg);
+#if 0
+            qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                             _("unknown argument '%s'"), arg);
+            goto error;
+#endif
+        }
+    }
+
+#undef WANT_VALUE
+
+    if (!nographics && def->ngraphics == 0) {
+        virDomainGraphicsDefPtr sdl;
+        const char *display = qemuFindEnv(progenv, "DISPLAY");
+        const char *xauth = qemuFindEnv(progenv, "XAUTHORITY");
+        if (VIR_ALLOC(sdl) < 0)
+            goto no_memory;
+        sdl->type = VIR_DOMAIN_GRAPHICS_TYPE_SDL;
+        sdl->data.sdl.fullscreen = fullscreen;
+        if (display &&
+            !(sdl->data.sdl.display = strdup(display))) {
+            VIR_FREE(sdl);
+            goto no_memory;
+        }
+        if (xauth &&
+            !(sdl->data.sdl.xauth = strdup(xauth))) {
+            VIR_FREE(sdl);
+            goto no_memory;
+        }
+
+        if (VIR_REALLOC_N(def->graphics, def->ngraphics+1) < 0) {
+            virDomainGraphicsDefFree(sdl);
+            goto no_memory;
+        }
+        def->graphics[def->ngraphics++] = sdl;
+    }
+
+    VIR_FREE(nics);
+
+    if (!def->name) {
+        if (!(def->name = strdup("unnamed")))
+            goto no_memory;
+    }
+
+    return def;
+
+no_memory:
+    virReportOOMError(conn);
+error:
+    virDomainDefFree(def);
+    VIR_FREE(nics);
+    return NULL;
+}
+
+
+virDomainDefPtr qemuParseCommandLineString(virConnectPtr conn,
+                                           virCapsPtr caps,
+                                           const char *args)
+{
+    const char **progenv = NULL;
+    const char **progargv = NULL;
+    virDomainDefPtr def = NULL;
+    int i;
+
+    if (qemuStringToArgvEnv(args, &progenv, &progargv) < 0)
+        goto cleanup;
+
+    def = qemuParseCommandLine(conn, caps, progenv, progargv);
+
+cleanup:
+    for (i = 0 ; progargv && progargv[i] ; i++)
+        VIR_FREE(progargv[i]);
+    VIR_FREE(progargv);
+
+    for (i = 0 ; progenv && progenv[i] ; i++)
+        VIR_FREE(progenv[i]);
+    VIR_FREE(progenv);
+
+    return def;
 }
 
 

@@ -46,6 +46,16 @@ int virSetCloseExec(int fd);
  * after fork() but before execve() */
 typedef int (*virExecHook)(void *data);
 
+int virExecDaemonize(virConnectPtr conn,
+                     const char *const*argv,
+                     const char *const*envp,
+                     const fd_set *keepfd,
+                     pid_t *retpid,
+                     int infd, int *outfd, int *errfd,
+                     int flags,
+                     virExecHook hook,
+                     void *data,
+                     char *pidfile);
 int virExecWithHook(virConnectPtr conn,
                     const char *const*argv,
                     const char *const*envp,
@@ -56,7 +66,8 @@ int virExecWithHook(virConnectPtr conn,
                     int *errfd,
                     int flags,
                     virExecHook hook,
-                    void *data);
+                    void *data,
+                    char *pidfile);
 int virExec(virConnectPtr conn,
             const char *const*argv,
             const char *const*envp,
@@ -110,6 +121,8 @@ int virFileOpenTtyAt(const char *ptmx,
 
 char* virFilePid(const char *dir,
                  const char *name);
+int virFileWritePidPath(const char *path,
+                        pid_t pid);
 int virFileWritePid(const char *dir,
                     const char *name,
                     pid_t pid);

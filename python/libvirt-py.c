@@ -147,6 +147,27 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
+libvirt_virConnectDomainXMLFromNative(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    char * c_retval;
+    virConnectPtr conn;
+    PyObject *pyobj_conn;
+    char * nativeFormat;
+    char * nativeConfig;
+    unsigned int flags;
+
+    if (!PyArg_ParseTuple(args, (char *)"Ozzi:virConnectDomainXMLFromNative", &pyobj_conn, &nativeFormat, &nativeConfig, &flags))
+        return(NULL);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virConnectDomainXMLFromNative(conn, nativeFormat, nativeConfig, flags);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_charPtrWrap((char *) c_retval);
+    return(py_retval);
+}
+
+PyObject *
 libvirt_virNodeDeviceDettach(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     int c_retval;
@@ -220,22 +241,21 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
-libvirt_virNodeDeviceCreateXML(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+libvirt_virInterfaceGetXMLDesc(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
-    virNodeDevicePtr c_retval;
-    virConnectPtr conn;
-    PyObject *pyobj_conn;
-    char * xmlDesc;
+    char * c_retval;
+    virInterfacePtr iface;
+    PyObject *pyobj_iface;
     unsigned int flags;
 
-    if (!PyArg_ParseTuple(args, (char *)"Ozi:virNodeDeviceCreateXML", &pyobj_conn, &xmlDesc, &flags))
+    if (!PyArg_ParseTuple(args, (char *)"Oi:virInterfaceGetXMLDesc", &pyobj_iface, &flags))
         return(NULL);
-    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+    iface = (virInterfacePtr) PyvirInterface_Get(pyobj_iface);
 LIBVIRT_BEGIN_ALLOW_THREADS;
 
-    c_retval = virNodeDeviceCreateXML(conn, xmlDesc, flags);
+    c_retval = virInterfaceGetXMLDesc(iface, flags);
 LIBVIRT_END_ALLOW_THREADS;
-    py_retval = libvirt_virNodeDevicePtrWrap((virNodeDevicePtr) c_retval);
+    py_retval = libvirt_charPtrWrap((char *) c_retval);
     return(py_retval);
 }
 
@@ -389,22 +409,20 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
-libvirt_virDomainCreateLinux(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+libvirt_virNetworkCreate(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
-    virDomainPtr c_retval;
-    virConnectPtr conn;
-    PyObject *pyobj_conn;
-    char * xmlDesc;
-    unsigned int flags;
+    int c_retval;
+    virNetworkPtr network;
+    PyObject *pyobj_network;
 
-    if (!PyArg_ParseTuple(args, (char *)"Ozi:virDomainCreateLinux", &pyobj_conn, &xmlDesc, &flags))
+    if (!PyArg_ParseTuple(args, (char *)"O:virNetworkCreate", &pyobj_network))
         return(NULL);
-    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+    network = (virNetworkPtr) PyvirNetwork_Get(pyobj_network);
 LIBVIRT_BEGIN_ALLOW_THREADS;
 
-    c_retval = virDomainCreateLinux(conn, xmlDesc, flags);
+    c_retval = virNetworkCreate(network);
 LIBVIRT_END_ALLOW_THREADS;
-    py_retval = libvirt_virDomainPtrWrap((virDomainPtr) c_retval);
+    py_retval = libvirt_intWrap((int) c_retval);
     return(py_retval);
 }
 
@@ -424,6 +442,26 @@ LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virDomainSetMaxMemory(domain, memory);
 LIBVIRT_END_ALLOW_THREADS;
     py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virInterfaceDefineXML(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    virInterfacePtr c_retval;
+    virConnectPtr conn;
+    PyObject *pyobj_conn;
+    char * xml;
+    unsigned int flags;
+
+    if (!PyArg_ParseTuple(args, (char *)"Ozi:virInterfaceDefineXML", &pyobj_conn, &xml, &flags))
+        return(NULL);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virInterfaceDefineXML(conn, xml, flags);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_virInterfacePtrWrap((virInterfacePtr) c_retval);
     return(py_retval);
 }
 
@@ -464,20 +502,22 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
-libvirt_virNetworkCreate(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+libvirt_virDomainCreateLinux(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
-    int c_retval;
-    virNetworkPtr network;
-    PyObject *pyobj_network;
+    virDomainPtr c_retval;
+    virConnectPtr conn;
+    PyObject *pyobj_conn;
+    char * xmlDesc;
+    unsigned int flags;
 
-    if (!PyArg_ParseTuple(args, (char *)"O:virNetworkCreate", &pyobj_network))
+    if (!PyArg_ParseTuple(args, (char *)"Ozi:virDomainCreateLinux", &pyobj_conn, &xmlDesc, &flags))
         return(NULL);
-    network = (virNetworkPtr) PyvirNetwork_Get(pyobj_network);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
 LIBVIRT_BEGIN_ALLOW_THREADS;
 
-    c_retval = virNetworkCreate(network);
+    c_retval = virDomainCreateLinux(conn, xmlDesc, flags);
 LIBVIRT_END_ALLOW_THREADS;
-    py_retval = libvirt_intWrap((int) c_retval);
+    py_retval = libvirt_virDomainPtrWrap((virDomainPtr) c_retval);
     return(py_retval);
 }
 
@@ -574,6 +614,25 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
+libvirt_virInterfaceCreate(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virInterfacePtr iface;
+    PyObject *pyobj_iface;
+    unsigned int flags;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oi:virInterfaceCreate", &pyobj_iface, &flags))
+        return(NULL);
+    iface = (virInterfacePtr) PyvirInterface_Get(pyobj_iface);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virInterfaceCreate(iface, flags);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
 libvirt_virDomainGetXMLDesc(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     char * c_retval;
@@ -607,6 +666,26 @@ LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virNodeDeviceFree(dev);
 LIBVIRT_END_ALLOW_THREADS;
     py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virNodeDeviceCreateXML(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    virNodeDevicePtr c_retval;
+    virConnectPtr conn;
+    PyObject *pyobj_conn;
+    char * xmlDesc;
+    unsigned int flags;
+
+    if (!PyArg_ParseTuple(args, (char *)"Ozi:virNodeDeviceCreateXML", &pyobj_conn, &xmlDesc, &flags))
+        return(NULL);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virNodeDeviceCreateXML(conn, xmlDesc, flags);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_virNodeDevicePtrWrap((virNodeDevicePtr) c_retval);
     return(py_retval);
 }
 
@@ -699,6 +778,27 @@ libvirt_virStorageVolGetXMLDesc(PyObject *self ATTRIBUTE_UNUSED, PyObject *args)
 LIBVIRT_BEGIN_ALLOW_THREADS;
 
     c_retval = virStorageVolGetXMLDesc(vol, flags);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_charPtrWrap((char *) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virConnectDomainXMLToNative(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    char * c_retval;
+    virConnectPtr conn;
+    PyObject *pyobj_conn;
+    char * nativeFormat;
+    char * domainXml;
+    unsigned int flags;
+
+    if (!PyArg_ParseTuple(args, (char *)"Ozzi:virConnectDomainXMLToNative", &pyobj_conn, &nativeFormat, &domainXml, &flags))
+        return(NULL);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virConnectDomainXMLToNative(conn, nativeFormat, domainXml, flags);
 LIBVIRT_END_ALLOW_THREADS;
     py_retval = libvirt_charPtrWrap((char *) c_retval);
     return(py_retval);
@@ -829,6 +929,24 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
+libvirt_virInterfaceGetName(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    const char * c_retval;
+    virInterfacePtr iface;
+    PyObject *pyobj_iface;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virInterfaceGetName", &pyobj_iface))
+        return(NULL);
+    iface = (virInterfacePtr) PyvirInterface_Get(pyobj_iface);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virInterfaceGetName(iface);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_charPtrConstWrap((const char *) c_retval);
+    return(py_retval);
+}
+
+PyObject *
 libvirt_virStoragePoolCreate(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     int c_retval;
@@ -842,6 +960,25 @@ libvirt_virStoragePoolCreate(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
 LIBVIRT_BEGIN_ALLOW_THREADS;
 
     c_retval = virStoragePoolCreate(pool, flags);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virStoragePoolDelete(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virStoragePoolPtr pool;
+    PyObject *pyobj_pool;
+    unsigned int flags;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oi:virStoragePoolDelete", &pyobj_pool, &flags))
+        return(NULL);
+    pool = (virStoragePoolPtr) PyvirStoragePool_Get(pyobj_pool);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStoragePoolDelete(pool, flags);
 LIBVIRT_END_ALLOW_THREADS;
     py_retval = libvirt_intWrap((int) c_retval);
     return(py_retval);
@@ -1083,6 +1220,24 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
+libvirt_virInterfaceGetConnect(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    virConnectPtr c_retval;
+    virInterfacePtr iface;
+    PyObject *pyobj_iface;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virInterfaceGetConnect", &pyobj_iface))
+        return(NULL);
+    iface = (virInterfacePtr) PyvirInterface_Get(pyobj_iface);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virInterfaceGetConnect(iface);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_virConnectPtrWrap((virConnectPtr) c_retval);
+    return(py_retval);
+}
+
+PyObject *
 libvirt_virNetworkGetName(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     const char * c_retval;
@@ -1252,25 +1407,6 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
-libvirt_virStoragePoolDelete(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
-    PyObject *py_retval;
-    int c_retval;
-    virStoragePoolPtr pool;
-    PyObject *pyobj_pool;
-    unsigned int flags;
-
-    if (!PyArg_ParseTuple(args, (char *)"Oi:virStoragePoolDelete", &pyobj_pool, &flags))
-        return(NULL);
-    pool = (virStoragePoolPtr) PyvirStoragePool_Get(pyobj_pool);
-LIBVIRT_BEGIN_ALLOW_THREADS;
-
-    c_retval = virStoragePoolDelete(pool, flags);
-LIBVIRT_END_ALLOW_THREADS;
-    py_retval = libvirt_intWrap((int) c_retval);
-    return(py_retval);
-}
-
-PyObject *
 libvirt_virConnectRef(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     int c_retval;
@@ -1323,6 +1459,24 @@ LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virNodeDeviceLookupByName(conn, name);
 LIBVIRT_END_ALLOW_THREADS;
     py_retval = libvirt_virNodeDevicePtrWrap((virNodeDevicePtr) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virInterfaceGetMACString(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    const char * c_retval;
+    virInterfacePtr iface;
+    PyObject *pyobj_iface;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virInterfaceGetMACString", &pyobj_iface))
+        return(NULL);
+    iface = (virInterfacePtr) PyvirInterface_Get(pyobj_iface);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virInterfaceGetMACString(iface);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_charPtrConstWrap((const char *) c_retval);
     return(py_retval);
 }
 
@@ -1382,19 +1536,23 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
-libvirt_virStorageVolLookupByKey(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+libvirt_virStorageVolCreateXMLFrom(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     virStorageVolPtr c_retval;
-    virConnectPtr conn;
-    PyObject *pyobj_conn;
-    char * key;
+    virStoragePoolPtr pool;
+    PyObject *pyobj_pool;
+    char * xmldesc;
+    virStorageVolPtr clonevol;
+    PyObject *pyobj_clonevol;
+    unsigned int flags;
 
-    if (!PyArg_ParseTuple(args, (char *)"Oz:virStorageVolLookupByKey", &pyobj_conn, &key))
+    if (!PyArg_ParseTuple(args, (char *)"OzOi:virStorageVolCreateXMLFrom", &pyobj_pool, &xmldesc, &pyobj_clonevol, &flags))
         return(NULL);
-    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+    pool = (virStoragePoolPtr) PyvirStoragePool_Get(pyobj_pool);
+    clonevol = (virStorageVolPtr) PyvirStorageVol_Get(pyobj_clonevol);
 LIBVIRT_BEGIN_ALLOW_THREADS;
 
-    c_retval = virStorageVolLookupByKey(conn, key);
+    c_retval = virStorageVolCreateXMLFrom(pool, xmldesc, clonevol, flags);
 LIBVIRT_END_ALLOW_THREADS;
     py_retval = libvirt_virStorageVolPtrWrap((virStorageVolPtr) c_retval);
     return(py_retval);
@@ -1674,6 +1832,42 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
+libvirt_virInterfaceRef(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virInterfacePtr iface;
+    PyObject *pyobj_iface;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virInterfaceRef", &pyobj_iface))
+        return(NULL);
+    iface = (virInterfacePtr) PyvirInterface_Get(pyobj_iface);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virInterfaceRef(iface);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virInterfaceFree(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virInterfacePtr iface;
+    PyObject *pyobj_iface;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virInterfaceFree", &pyobj_iface))
+        return(NULL);
+    iface = (virInterfacePtr) PyvirInterface_Get(pyobj_iface);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virInterfaceFree(iface);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
 libvirt_virNodeDeviceNumOfCaps(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     int c_retval;
@@ -1688,6 +1882,25 @@ LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virNodeDeviceNumOfCaps(dev);
 LIBVIRT_END_ALLOW_THREADS;
     py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virInterfaceLookupByMACString(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    virInterfacePtr c_retval;
+    virConnectPtr conn;
+    PyObject *pyobj_conn;
+    char * macstr;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oz:virInterfaceLookupByMACString", &pyobj_conn, &macstr))
+        return(NULL);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virInterfaceLookupByMACString(conn, macstr);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_virInterfacePtrWrap((virInterfacePtr) c_retval);
     return(py_retval);
 }
 
@@ -1724,6 +1937,25 @@ LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virNodeGetFreeMemory(conn);
 LIBVIRT_END_ALLOW_THREADS;
     py_retval = libvirt_longlongWrap((long long) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virInterfaceDestroy(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virInterfacePtr iface;
+    PyObject *pyobj_iface;
+    unsigned int flags;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oi:virInterfaceDestroy", &pyobj_iface, &flags))
+        return(NULL);
+    iface = (virInterfacePtr) PyvirInterface_Get(pyobj_iface);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virInterfaceDestroy(iface, flags);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap((int) c_retval);
     return(py_retval);
 }
 
@@ -1955,6 +2187,24 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
+libvirt_virInterfaceUndefine(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virInterfacePtr iface;
+    PyObject *pyobj_iface;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virInterfaceUndefine", &pyobj_iface))
+        return(NULL);
+    iface = (virInterfacePtr) PyvirInterface_Get(pyobj_iface);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virInterfaceUndefine(iface);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
 libvirt_virDomainSetVcpus(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     int c_retval;
@@ -1992,6 +2242,24 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
+libvirt_virConnectNumOfInterfaces(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virConnectPtr conn;
+    PyObject *pyobj_conn;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virConnectNumOfInterfaces", &pyobj_conn))
+        return(NULL);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virConnectNumOfInterfaces(conn);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
 libvirt_virDomainGetID(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     unsigned int c_retval;
@@ -2006,6 +2274,44 @@ LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virDomainGetID(domain);
 LIBVIRT_END_ALLOW_THREADS;
     py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virInterfaceLookupByName(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    virInterfacePtr c_retval;
+    virConnectPtr conn;
+    PyObject *pyobj_conn;
+    char * name;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oz:virInterfaceLookupByName", &pyobj_conn, &name))
+        return(NULL);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virInterfaceLookupByName(conn, name);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_virInterfacePtrWrap((virInterfacePtr) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virStorageVolLookupByKey(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    virStorageVolPtr c_retval;
+    virConnectPtr conn;
+    PyObject *pyobj_conn;
+    char * key;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oz:virStorageVolLookupByKey", &pyobj_conn, &key))
+        return(NULL);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virStorageVolLookupByKey(conn, key);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_virStorageVolPtrWrap((virStorageVolPtr) c_retval);
     return(py_retval);
 }
 
