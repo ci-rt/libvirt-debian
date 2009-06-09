@@ -1,3 +1,15 @@
+libvirt (0.6.4-1) unstable; urgency=low
+
+  * [dd3adb2] Imported Upstream version 0.6.4
+  * [2320162] update symbols file
+  * [89c9720] remove bashism (Closes: #530122)
+  * [30d86c1] drop patches fixed upstream:
+        0005-don-t-crash-with-def-NULL.patch
+        0006-Fix-QEMU-ARGV-detection-with-kvm-85.patch
+        0007-Declare-support-for-QEMU-migration-in-capabilities.patch
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 04 Jun 2009 12:50:01 +0200
+
 libvirt (0.6.3-4) unstable; urgency=low
 
   * [3607f2f] Install libvirt_lxc that got list somewhere between our
