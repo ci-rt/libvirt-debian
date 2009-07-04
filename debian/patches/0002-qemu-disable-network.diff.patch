@@ -22,10 +22,10 @@ index 403846a..c3f41d4 100644
  	mkdir -p $(DESTDIR)$(localstatedir)/run/libvirt
  	mkdir -p $(DESTDIR)$(localstatedir)/lib/libvirt
 diff --git a/qemud/Makefile.in b/qemud/Makefile.in
-index dbc6bb3..e8dfa5b 100644
+index ed8cea0..bb1e1bd 100644
 --- a/qemud/Makefile.in
 +++ b/qemud/Makefile.in
-@@ -1307,9 +1307,6 @@ remote_protocol.c: remote_protocol.h
+@@ -1375,9 +1375,6 @@ remote_protocol.c: remote_protocol.h
  @WITH_LIBVIRTD_TRUE@	test -z "$(UUID)" || \
  @WITH_LIBVIRTD_TRUE@	  sed -i -e "s,</name>,</name>\n  <uuid>$(UUID)</uuid>," \
  @WITH_LIBVIRTD_TRUE@	    $(DESTDIR)$(sysconfdir)/$(default_xml_dest)

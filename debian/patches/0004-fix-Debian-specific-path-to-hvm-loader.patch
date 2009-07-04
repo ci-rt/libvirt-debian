@@ -8,10 +8,10 @@ Closes: #517059
  1 files changed, 1 insertions(+), 1 deletions(-)
 
 diff --git a/src/xen_internal.c b/src/xen_internal.c
-index 06b0cba..252772d 100644
+index cc5a8f9..63b8785 100644
 --- a/src/xen_internal.c
 +++ b/src/xen_internal.c
-@@ -2202,7 +2202,7 @@ xenHypervisorBuildCapabilities(virConnectPtr conn,
+@@ -2212,7 +2212,7 @@ xenHypervisorBuildCapabilities(virConnectPtr conn,
                                                "/usr/lib64/xen/bin/qemu-dm" :
                                                "/usr/lib/xen/bin/qemu-dm"),
                                               (guest_archs[i].hvm ?
