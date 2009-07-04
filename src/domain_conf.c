@@ -39,6 +39,7 @@
 #include "util.h"
 #include "buf.h"
 #include "c-ctype.h"
+#include "logging.h"
 
 #define VIR_FROM_THIS VIR_FROM_DOMAIN
 
@@ -511,6 +512,31 @@ void virDomainObjListFree(virDomainObjListPtr vms)
     vms->count = 0;
 }
 
+
+static virDomainObjPtr virDomainObjNew(virConnectPtr conn)
+{
+    virDomainObjPtr domain;
+
+    if (VIR_ALLOC(domain) < 0) {
+        virReportOOMError(conn);
+        return NULL;
+    }
+
+    if (virMutexInit(&domain->lock) < 0) {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                             "%s", _("cannot initialize mutex"));
+        VIR_FREE(domain);
+        return NULL;
+    }
+
+    virDomainObjLock(domain);
+    domain->state = VIR_DOMAIN_SHUTOFF;
+    domain->monitorWatch = -1;
+    domain->monitor = -1;
+
+    return domain;
+}
+
 virDomainObjPtr virDomainAssignDef(virConnectPtr conn,
                                    virDomainObjListPtr doms,
                                    const virDomainDefPtr def)
@@ -530,29 +556,15 @@ virDomainObjPtr virDomainAssignDef(virConnectPtr conn,
         return domain;
     }
 
-    if (VIR_ALLOC(domain) < 0) {
-        virReportOOMError(conn);
-        return NULL;
-    }
-
-    if (virMutexInit(&domain->lock) < 0) {
-        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                             "%s", _("cannot initialize mutex"));
-        VIR_FREE(domain);
-        return NULL;
-    }
-
-    virDomainObjLock(domain);
-    domain->state = VIR_DOMAIN_SHUTOFF;
-    domain->def = def;
-    domain->monitorWatch = -1;
-    domain->monitor = -1;
-
     if (VIR_REALLOC_N(doms->objs, doms->count + 1) < 0) {
         virReportOOMError(conn);
-        VIR_FREE(domain);
         return NULL;
     }
+
+    if (!(domain = virDomainObjNew(conn)))
+        return NULL;
+
+    domain->def = def;
 
     doms->objs[doms->count] = domain;
     doms->count++;
@@ -1648,7 +1660,13 @@ virDomainHostdevSubsysUsbDefParseXML(virConnectPtr conn,
                                      int flags ATTRIBUTE_UNUSED) {
 
     int ret = -1;
+    int got_product, got_vendor;
     xmlNodePtr cur;
+
+    /* Product can validly be 0, so we need some extra help to determine
+     * if it is uninitialized*/
+    got_product = 0;
+    got_vendor = 0;
 
     cur = node->children;
     while (cur != NULL) {
@@ -1657,6 +1675,7 @@ virDomainHostdevSubsysUsbDefParseXML(virConnectPtr conn,
                 char *vendor = virXMLPropString(cur, "id");
 
                 if (vendor) {
+                    got_vendor = 1;
                     if (virStrToLong_ui(vendor, NULL, 0,
                                     &def->source.subsys.u.usb.vendor) < 0) {
                         virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
@@ -1674,6 +1693,7 @@ virDomainHostdevSubsysUsbDefParseXML(virConnectPtr conn,
                 char* product = virXMLPropString(cur, "id");
 
                 if (product) {
+                    got_product = 1;
                     if (virStrToLong_ui(product, NULL, 0,
                                         &def->source.subsys.u.usb.product) < 0) {
                         virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
@@ -1733,14 +1753,18 @@ virDomainHostdevSubsysUsbDefParseXML(virConnectPtr conn,
         cur = cur->next;
     }
 
-    if (def->source.subsys.u.usb.vendor == 0 &&
-        def->source.subsys.u.usb.product != 0) {
+    if (got_vendor && def->source.subsys.u.usb.vendor == 0) {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+            "%s", _("vendor cannot be 0."));
+        goto out;
+    }
+
+    if (!got_vendor && got_product) {
         virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
             "%s", _("missing vendor"));
         goto out;
     }
-    if (def->source.subsys.u.usb.vendor != 0 &&
-        def->source.subsys.u.usb.product == 0) {
+    if (got_vendor && !got_product) {
         virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
             "%s", _("missing product"));
         goto out;
@@ -2097,6 +2121,39 @@ int virDomainDiskQSort(const void *a, const void *b)
 }
 
 #ifndef PROXY
+static char *virDomainDefDefaultEmulator(virConnectPtr conn,
+                                         virDomainDefPtr def,
+                                         virCapsPtr caps) {
+    const char *type;
+    const char *emulator;
+    char *retemu;
+
+    type = virDomainVirtTypeToString(def->virtType);
+    if (!type) {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                             "%s", _("unknown virt type"));
+        return NULL;
+    }
+
+    emulator = virCapabilitiesDefaultGuestEmulator(caps,
+                                                   def->os.type,
+                                                   def->os.arch,
+                                                   type);
+
+    if (!emulator) {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                             _("no emulator for domain %s os type %s on architecture %s"),
+                             type, def->os.type, def->os.arch);
+        return NULL;
+    }
+
+    retemu = strdup(emulator);
+    if (!retemu)
+        virReportOOMError(conn);
+
+    return retemu;
+}
+
 static virDomainDefPtr virDomainDefParseXML(virConnectPtr conn,
                                             virCapsPtr caps,
                                             xmlXPathContextPtr ctxt, int flags)
@@ -2346,6 +2403,11 @@ static virDomainDefPtr virDomainDefParseXML(virConnectPtr conn,
     }
 
     def->emulator = virXPathString(conn, "string(./devices/emulator[1])", ctxt);
+    if (!def->emulator && virCapabilitiesIsEmulatorRequired(caps)) {
+        def->emulator = virDomainDefDefaultEmulator(conn, def, caps);
+        if (!def->emulator)
+            goto error;
+    }
 
     /* analysis of the disk devices */
     if ((n = virXPathNodeSet(conn, "./devices/disk", ctxt, &nodes)) < 0) {
@@ -2623,6 +2685,68 @@ no_memory:
     return NULL;
 }
 
+
+static virDomainObjPtr virDomainObjParseXML(virConnectPtr conn,
+                                            virCapsPtr caps,
+                                            xmlXPathContextPtr ctxt)
+{
+    char *tmp = NULL;
+    long val;
+    xmlNodePtr config;
+    xmlNodePtr oldnode;
+    virDomainObjPtr obj;
+
+    if (!(obj = virDomainObjNew(conn)))
+        return NULL;
+
+    if (!(config = virXPathNode(conn, "./domain", ctxt))) {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                             "%s", _("no domain config"));
+        goto error;
+    }
+
+    oldnode = ctxt->node;
+    ctxt->node = config;
+    obj->def = virDomainDefParseXML(conn, caps, ctxt, 0);
+    ctxt->node = oldnode;
+    if (!obj->def)
+        goto error;
+
+    if (!(tmp = virXPathString(conn, "string(./@state)", ctxt))) {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                             "%s", _("missing domain state"));
+        goto error;
+    }
+    if ((obj->state = virDomainStateTypeFromString(tmp)) < 0) {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                             _("invalid domain state '%s'"), tmp);
+        VIR_FREE(tmp);
+        goto error;
+    }
+    VIR_FREE(tmp);
+
+    if ((virXPathLong(conn, "string(./@pid)", ctxt, &val)) < 0) {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                             "%s", _("invalid pid"));
+        goto error;
+    }
+    obj->pid = (pid_t)val;
+
+    if(!(obj->monitorpath =
+         virXPathString(conn, "string(./monitor[1]/@path)", ctxt))) {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                             "%s", _("no monitor path"));
+        goto error;
+    }
+
+    return obj;
+
+error:
+    virDomainObjFree(obj);
+    return NULL;
+}
+
+
 /* Called from SAX on parsing errors in the XML. */
 static void
 catchXMLError (void *ctx, const char *msg ATTRIBUTE_UNUSED, ...)
@@ -2755,6 +2879,78 @@ cleanup:
     xmlXPathFreeContext(ctxt);
     return def;
 }
+
+
+virDomainObjPtr virDomainObjParseFile(virConnectPtr conn,
+                                      virCapsPtr caps,
+                                      const char *filename)
+{
+    xmlParserCtxtPtr pctxt;
+    xmlDocPtr xml = NULL;
+    xmlNodePtr root;
+    virDomainObjPtr obj = NULL;
+
+    /* Set up a parser context so we can catch the details of XML errors. */
+    pctxt = xmlNewParserCtxt ();
+    if (!pctxt || !pctxt->sax)
+        goto cleanup;
+    pctxt->sax->error = catchXMLError;
+    pctxt->_private = conn;
+
+    if (conn) virResetError (&conn->err);
+    xml = xmlCtxtReadFile (pctxt, filename, NULL,
+                           XML_PARSE_NOENT | XML_PARSE_NONET |
+                           XML_PARSE_NOWARNING);
+    if (!xml) {
+        if (virGetLastError() == NULL)
+              virDomainReportError(conn, VIR_ERR_XML_ERROR,
+                                   "%s", _("failed to parse xml document"));
+        goto cleanup;
+    }
+
+    if ((root = xmlDocGetRootElement(xml)) == NULL) {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                              "%s", _("missing root element"));
+        goto cleanup;
+    }
+
+    obj = virDomainObjParseNode(conn, caps, xml, root);
+
+cleanup:
+    xmlFreeParserCtxt (pctxt);
+    xmlFreeDoc (xml);
+    return obj;
+}
+
+
+virDomainObjPtr virDomainObjParseNode(virConnectPtr conn,
+                                      virCapsPtr caps,
+                                      xmlDocPtr xml,
+                                      xmlNodePtr root)
+{
+    xmlXPathContextPtr ctxt = NULL;
+    virDomainObjPtr obj = NULL;
+
+    if (!xmlStrEqual(root->name, BAD_CAST "domstatus")) {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                             "%s", _("incorrect root element"));
+        goto cleanup;
+    }
+
+    ctxt = xmlXPathNewContext(xml);
+    if (ctxt == NULL) {
+        virReportOOMError(conn);
+        goto cleanup;
+    }
+
+    ctxt->node = root;
+    obj = virDomainObjParseXML(conn, caps, ctxt);
+
+cleanup:
+    xmlXPathFreeContext(ctxt);
+    return obj;
+}
+
 #endif /* ! PROXY */
 
 /************************************************************************
@@ -3146,6 +3342,7 @@ virDomainNetDefFormat(virConnectPtr conn,
         else
             virBufferVSprintf(buf, "      <source port='%d'/>\n",
                               def->data.socket.port);
+        break;
 
     case VIR_DOMAIN_NET_TYPE_INTERNAL:
         virBufferEscapeString(buf, "      <source name='%s'/>\n",
@@ -3706,6 +3903,40 @@ char *virDomainDefFormat(virConnectPtr conn,
     return NULL;
 }
 
+char *virDomainObjFormat(virConnectPtr conn,
+                         virDomainObjPtr obj,
+                         int flags)
+{
+    char *config_xml = NULL, *xml = NULL;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+
+    virBufferVSprintf(&buf, "<domstatus state='%s' pid='%d'>\n",
+                      virDomainStateTypeToString(obj->state),
+                      obj->pid);
+    virBufferEscapeString(&buf, "  <monitor path='%s'/>\n", obj->monitorpath);
+
+    if (!(config_xml = virDomainDefFormat(conn,
+                                          obj->def,
+                                          flags)))
+        goto error;
+
+    virBufferAdd(&buf, config_xml, strlen(config_xml));
+    VIR_FREE(config_xml);
+    virBufferAddLit(&buf, "</domstatus>\n");
+
+    if (virBufferError(&buf))
+        goto no_memory;
+
+    return virBufferContentAndReset(&buf);
+
+no_memory:
+    virReportOOMError(conn);
+error:
+    xml = virBufferContentAndReset(&buf);
+    VIR_FREE(xml);
+    return NULL;
+}
+
 
 #ifndef PROXY
 
@@ -3781,6 +4012,27 @@ cleanup:
     return ret;
 }
 
+int virDomainSaveStatus(virConnectPtr conn,
+                        const char *statusDir,
+                        virDomainObjPtr obj)
+{
+    int ret = -1;
+    char *xml;
+
+    if (!(xml = virDomainObjFormat(conn,
+                                   obj,
+                                   VIR_DOMAIN_XML_SECURE)))
+        goto cleanup;
+
+    if (virDomainSaveXML(conn, statusDir, obj->def, xml))
+        goto cleanup;
+
+    ret = 0;
+cleanup:
+    VIR_FREE(xml);
+    return ret;
+}
+
 
 virDomainObjPtr virDomainLoadConfig(virConnectPtr conn,
                                     virCapsPtr caps,
@@ -3834,16 +4086,66 @@ error:
     return NULL;
 }
 
+static virDomainObjPtr virDomainLoadStatus(virConnectPtr conn,
+                                           virCapsPtr caps,
+                                           virDomainObjListPtr doms,
+                                           const char *statusDir,
+                                           const char *name,
+                                           virDomainLoadConfigNotify notify,
+                                           void *opaque)
+{
+    char *statusFile = NULL;
+    virDomainObjPtr obj = NULL;
+    virDomainObjPtr tmp = NULL;
+
+    if ((statusFile = virDomainConfigFile(conn, statusDir, name)) == NULL)
+        goto error;
+
+    if (!(obj = virDomainObjParseFile(conn, caps, statusFile)))
+        goto error;
+
+    tmp = virDomainFindByName(doms, obj->def->name);
+    if (tmp) {
+        virDomainObjUnlock(obj);
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                             _("unexpected domain %s already exists"),
+                             obj->def->name);
+        goto error;
+    }
+
+    if (VIR_REALLOC_N(doms->objs, doms->count + 1) < 0) {
+        virReportOOMError(conn);
+        goto error;
+    }
+
+    doms->objs[doms->count] = obj;
+    doms->count++;
+
+    if (notify)
+        (*notify)(obj, 1, opaque);
+
+    VIR_FREE(statusFile);
+    return obj;
+
+error:
+    virDomainObjFree(obj);
+    VIR_FREE(statusFile);
+    return NULL;
+}
+
 int virDomainLoadAllConfigs(virConnectPtr conn,
                             virCapsPtr caps,
                             virDomainObjListPtr doms,
                             const char *configDir,
                             const char *autostartDir,
+                            int liveStatus,
                             virDomainLoadConfigNotify notify,
                             void *opaque)
 {
     DIR *dir;
     struct dirent *entry;
+
+    VIR_INFO("Scanning for configs in %s", configDir);
 
     if (!(dir = opendir(configDir))) {
         if (errno == ENOENT)
@@ -3865,17 +4167,28 @@ int virDomainLoadAllConfigs(virConnectPtr conn,
 
         /* NB: ignoring errors, so one malformed config doesn't
            kill the whole process */
-        dom = virDomainLoadConfig(conn,
-                                  caps,
-                                  doms,
-                                  configDir,
-                                  autostartDir,
-                                  entry->d_name,
-                                  notify,
-                                  opaque);
+        VIR_INFO("Loading config file '%s.xml'", entry->d_name);
+        if (liveStatus)
+            dom = virDomainLoadStatus(conn,
+                                      caps,
+                                      doms,
+                                      configDir,
+                                      entry->d_name,
+                                      notify,
+                                      opaque);
+        else
+            dom = virDomainLoadConfig(conn,
+                                      caps,
+                                      doms,
+                                      configDir,
+                                      autostartDir,
+                                      entry->d_name,
+                                      notify,
+                                      opaque);
         if (dom) {
             virDomainObjUnlock(dom);
-            dom->persistent = 1;
+            if (!liveStatus)
+                dom->persistent = 1;
         }
     }
 
@@ -3966,34 +4279,6 @@ int virDiskNameToBusDeviceIndex(const virDomainDiskDefPtr disk,
     }
 
     return 0;
-}
-
-const char *virDomainDefDefaultEmulator(virConnectPtr conn,
-                                        virDomainDefPtr def,
-                                        virCapsPtr caps) {
-    const char *type;
-    const char *emulator;
-
-    type = virDomainVirtTypeToString(def->virtType);
-    if (!type) {
-        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                             "%s", _("unknown virt type"));
-        return NULL;
-    }
-
-    emulator = virCapabilitiesDefaultGuestEmulator(caps,
-                                                   def->os.type,
-                                                   def->os.arch,
-                                                   type);
-
-    if (!emulator) {
-        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                             _("no emulator for domain %s os type %s on architecture %s"),
-                             type, def->os.type, def->os.arch);
-        return NULL;
-    }
-
-    return emulator;
 }
 
 virDomainFSDefPtr virDomainGetRootFilesystem(virDomainDefPtr def)

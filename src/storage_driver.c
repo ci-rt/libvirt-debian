@@ -106,8 +106,7 @@ storageDriverAutostart(virStorageDriverStatePtr driver) {
  * Initialization function for the QEmu daemon
  */
 static int
-storageDriverStartup(void) {
-    uid_t uid = geteuid();
+storageDriverStartup(int privileged) {
     char *base = NULL;
     char driverConf[PATH_MAX];
 
@@ -120,10 +119,11 @@ storageDriverStartup(void) {
     }
     storageDriverLock(driverState);
 
-    if (!uid) {
+    if (privileged) {
         if ((base = strdup (SYSCONF_DIR "/libvirt")) == NULL)
             goto out_of_memory;
     } else {
+        uid_t uid = geteuid();
         char *userdir = virGetUserDirectory(NULL, uid);
 
         if (!userdir)
@@ -466,7 +466,7 @@ storagePoolCreate(virConnectPtr conn,
     virStorageBackendPtr backend;
 
     storageDriverLock(driver);
-    if (!(def = virStoragePoolDefParse(conn, xml, NULL)))
+    if (!(def = virStoragePoolDefParseString(conn, xml)))
         goto cleanup;
 
     pool = virStoragePoolObjFindByUUID(&driver->pools, def->uuid);
@@ -476,6 +476,8 @@ storagePoolCreate(virConnectPtr conn,
     if (pool) {
         virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
                               "%s", _("storage pool already exists"));
+        virStoragePoolObjUnlock(pool);
+        pool = NULL;
         goto cleanup;
     }
 
@@ -498,11 +500,13 @@ storagePoolCreate(virConnectPtr conn,
     pool->active = 1;
 
     ret = virGetStoragePool(conn, pool->def->name, pool->def->uuid);
+    virStoragePoolObjUnlock(pool);
+    pool = NULL;
 
 cleanup:
     virStoragePoolDefFree(def);
     if (pool)
-        virStoragePoolObjUnlock(pool);
+        virStoragePoolObjRemove(&driver->pools, pool);
     storageDriverUnlock(driver);
     return ret;
 }
@@ -518,7 +522,7 @@ storagePoolDefine(virConnectPtr conn,
     virStorageBackendPtr backend;
 
     storageDriverLock(driver);
-    if (!(def = virStoragePoolDefParse(conn, xml, NULL)))
+    if (!(def = virStoragePoolDefParseString(conn, xml)))
         goto cleanup;
 
     if ((backend = virStorageBackendForType(def->type)) == NULL)
@@ -1220,7 +1224,7 @@ storageVolumeCreateXML(virStoragePoolPtr obj,
     if ((backend = virStorageBackendForType(pool->def->type)) == NULL)
         goto cleanup;
 
-    voldef = virStorageVolDefParse(obj->conn, pool->def, xmldesc, NULL);
+    voldef = virStorageVolDefParseString(obj->conn, pool->def, xmldesc);
     if (voldef == NULL)
         goto cleanup;
 
@@ -1362,7 +1366,7 @@ storageVolumeCreateXMLFrom(virStoragePoolPtr obj,
         goto cleanup;
     }
 
-    newvol = virStorageVolDefParse(obj->conn, pool->def, xmldesc, NULL);
+    newvol = virStorageVolDefParseString(obj->conn, pool->def, xmldesc);
     if (newvol == NULL)
         goto cleanup;
 
@@ -1376,6 +1380,11 @@ storageVolumeCreateXMLFrom(virStoragePoolPtr obj,
     /* Is there ever a valid case for this? */
     if (newvol->capacity < origvol->capacity)
         newvol->capacity = origvol->capacity;
+
+    /* Make sure allocation is at least as large as the destination cap,
+     * to make absolutely sure we copy all possible contents */
+    if (newvol->allocation < origvol->capacity)
+        newvol->allocation = origvol->capacity;
 
     if (!backend->buildVolFrom) {
         virStorageReportError(obj->conn, VIR_ERR_NO_SUPPORT,

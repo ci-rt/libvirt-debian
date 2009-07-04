@@ -99,7 +99,7 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
      */
     if (access (filename, R_OK) == -1) return 0;
 
-    conf = virConfReadFile (filename);
+    conf = virConfReadFile (filename, 0);
     if (!conf) return 0;
 
 
@@ -186,6 +186,12 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
 static const char *const arch_info_hvm_x86_machines[] = {
     "pc", "isapc"
 };
+static const char *const arch_info_hvm_arm_machines[] = {
+  "versatilepb","integratorcp","versatileab","realview",
+  "akita","spitz","borzoi","terrier","sx1-v1","sx1",
+  "cheetah","n800","n810","lm3s811evb","lm3s6965evb",
+  "connex","verdex","mainstone","musicpal","tosa",
+};
 static const char *const arch_info_hvm_mips_machines[] = {
     "mips"
 };
@@ -236,6 +242,8 @@ static const struct qemu_arch_info const arch_info_hvm[] = {
        "/usr/bin/qemu", "/usr/bin/qemu-system-x86_64", arch_info_i686_flags, 4 },
     {  "x86_64", 64, arch_info_hvm_x86_machines, 2,
        "/usr/bin/qemu-system-x86_64", NULL, arch_info_x86_64_flags, 2 },
+    {  "arm", 32, arch_info_hvm_arm_machines, 20,
+       "/usr/bin/qemu-system-arm", NULL, NULL, 0 },
     {  "mips", 32, arch_info_hvm_mips_machines, 1,
        "/usr/bin/qemu-system-mips", NULL, NULL, 0 },
     {  "mipsel", 32, arch_info_hvm_mips_machines, 1,
@@ -377,8 +385,14 @@ virCapsPtr qemudCapsInit(void) {
     /* Using KVM's mac prefix for QEMU too */
     virCapabilitiesSetMacPrefix(caps, (unsigned char[]){ 0x52, 0x54, 0x00 });
 
-    if (virCapsInitNUMA(caps) < 0)
-        goto no_memory;
+    /* Some machines have problematic NUMA toplogy causing
+     * unexpected failures. We don't want to break the QEMU
+     * driver in this scenario, so log errors & carry on
+     */
+    if (nodeCapsInitNUMA(caps) < 0) {
+        virCapabilitiesFreeNUMAInfo(caps);
+        VIR_WARN0("Failed to query host NUMA topology, disabling NUMA capabilities");
+    }
 
     virCapabilitiesAddHostMigrateTransport(caps,
                                            "tcp");
@@ -405,6 +419,9 @@ virCapsPtr qemudCapsInit(void) {
             }
     }
 
+    /* QEMU Requires an emulator in the XML */
+    virCapabilitiesSetEmulatorRequired(caps);
+
     return caps;
 
  no_memory:
@@ -412,53 +429,12 @@ virCapsPtr qemudCapsInit(void) {
     return NULL;
 }
 
-
-int qemudExtractVersionInfo(const char *qemu,
-                            unsigned int *retversion,
-                            unsigned int *retflags) {
-    const char *const qemuarg[] = { qemu, "-help", NULL };
-    const char *const qemuenv[] = { "LC_ALL=C", NULL };
-    pid_t child;
-    int newstdout = -1;
-    int ret = -1, status;
-    unsigned int major, minor, micro;
-    unsigned int version, kvm_version;
+static unsigned int qemudComputeCmdFlags(const char *help,
+                                         unsigned int version,
+                                         unsigned int is_kvm,
+                                         unsigned int kvm_version)
+{
     unsigned int flags = 0;
-
-    if (retflags)
-        *retflags = 0;
-    if (retversion)
-        *retversion = 0;
-
-    if (virExec(NULL, qemuarg, qemuenv, NULL,
-                &child, -1, &newstdout, NULL, VIR_EXEC_NONE) < 0)
-        return -1;
-
-    char *help = NULL;
-    enum { MAX_HELP_OUTPUT_SIZE = 1024*64 };
-    int len = virFileReadLimFD(newstdout, MAX_HELP_OUTPUT_SIZE, &help);
-    if (len < 0) {
-        virReportSystemError(NULL, errno, "%s",
-                             _("Unable to read QEMU help output"));
-        goto cleanup2;
-    }
-
-    if (sscanf(help, "QEMU PC emulator version %u.%u.%u (kvm-%u)",
-               &major, &minor, &micro, &kvm_version) != 4)
-        kvm_version = 0;
-
-    if (!kvm_version &&
-        sscanf(help, "QEMU PC emulator version %u.%u.%u",
-               &major, &minor, &micro) != 3) {
-        char *eol = strchr(help, '\n');
-        if (eol) *eol = '\0';
-        qemudReportError(NULL, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                         _("cannot parse QEMU version number in '%s'"),
-                         help);
-        goto cleanup2;
-    }
-
-    version = (major * 1000 * 1000) + (minor * 1000) + micro;
 
     if (strstr(help, "-no-kqemu"))
         flags |= QEMUD_CMD_FLAG_KQEMU;
@@ -476,12 +452,15 @@ int qemudExtractVersionInfo(const char *qemu,
         flags |= QEMUD_CMD_FLAG_DRIVE;
         if (strstr(help, "cache=writethrough|writeback|none"))
             flags |= QEMUD_CMD_FLAG_DRIVE_CACHE_V2;
+        if (strstr(help, "format="))
+            flags |= QEMUD_CMD_FLAG_DRIVE_FORMAT;
     }
     if (strstr(help, "boot=on"))
         flags |= QEMUD_CMD_FLAG_DRIVE_BOOT;
     if (version >= 9000)
         flags |= QEMUD_CMD_FLAG_VNC_COLON;
-    if (kvm_version >= 74)
+
+    if (is_kvm && (version >= 10000 || kvm_version >= 74))
         flags |= QEMUD_CMD_FLAG_VNET_HDR;
 
     /*
@@ -494,16 +473,151 @@ int qemudExtractVersionInfo(const char *qemu,
      * was broken, because it blocked the monitor console
      * while waiting for data, so pretend it doesn't exist
      */
-    if (kvm_version >= 79) {
+    if (version >= 10000) {
+        flags |= QEMUD_CMD_FLAG_MIGRATE_QEMU_TCP;
+        flags |= QEMUD_CMD_FLAG_MIGRATE_QEMU_EXEC;
+    } else if (kvm_version >= 79) {
         flags |= QEMUD_CMD_FLAG_MIGRATE_QEMU_TCP;
         if (kvm_version >= 80)
             flags |= QEMUD_CMD_FLAG_MIGRATE_QEMU_EXEC;
     } else if (kvm_version > 0) {
         flags |= QEMUD_CMD_FLAG_MIGRATE_KVM_STDIO;
-    } else if (version >= 10000) {
-        flags |= QEMUD_CMD_FLAG_MIGRATE_QEMU_TCP;
-        flags |= QEMUD_CMD_FLAG_MIGRATE_QEMU_EXEC;
     }
+
+    return flags;
+}
+
+/* We parse the output of 'qemu -help' to get the QEMU
+ * version number. The first bit is easy, just parse
+ * 'QEMU PC emulator version x.y.z'.
+ *
+ * With qemu-kvm, however, that is followed by a string
+ * in parenthesis as follows:
+ *  - qemu-kvm-x.y.z in stable releases
+ *  - kvm-XX for kvm versions up to kvm-85
+ *  - qemu-kvm-devel-XX for kvm version kvm-86 and later
+ *
+ * For qemu-kvm versions before 0.10.z, we need to detect
+ * the KVM version number for some features. With 0.10.z
+ * and later, we just need the QEMU version number and
+ * whether it is KVM QEMU or mainline QEMU.
+ */
+#define QEMU_VERSION_STR    "QEMU PC emulator version"
+#define QEMU_KVM_VER_PREFIX "(qemu-kvm-"
+#define KVM_VER_PREFIX      "(kvm-"
+
+#define SKIP_BLANKS(p) do { while ((*(p) == ' ') || (*(p) == '\t')) (p)++; } while (0)
+
+int qemudParseHelpStr(const char *help,
+                      unsigned int *flags,
+                      unsigned int *version,
+                      unsigned int *is_kvm,
+                      unsigned int *kvm_version)
+{
+    unsigned major, minor, micro;
+    const char *p = help;
+
+    *flags = *version = *is_kvm = *kvm_version = 0;
+
+    if (!STRPREFIX(p, QEMU_VERSION_STR))
+        goto fail;
+
+    p += strlen(QEMU_VERSION_STR);
+
+    SKIP_BLANKS(p);
+
+    major = virParseNumber(&p);
+    if (major == -1 || *p != '.')
+        goto fail;
+
+    ++p;
+
+    minor = virParseNumber(&p);
+    if (major == -1 || *p != '.')
+        goto fail;
+
+    ++p;
+
+    micro = virParseNumber(&p);
+    if (major == -1)
+        goto fail;
+
+    SKIP_BLANKS(p);
+
+    if (STRPREFIX(p, QEMU_KVM_VER_PREFIX)) {
+        *is_kvm = 1;
+        p += strlen(QEMU_KVM_VER_PREFIX);
+    } else if (STRPREFIX(p, KVM_VER_PREFIX)) {
+        int ret;
+
+        *is_kvm = 1;
+        p += strlen(KVM_VER_PREFIX);
+
+        ret = virParseNumber(&p);
+        if (ret == -1)
+            goto fail;
+
+        *kvm_version = ret;
+    }
+
+    *version = (major * 1000 * 1000) + (minor * 1000) + micro;
+
+    *flags = qemudComputeCmdFlags(help, *version, *is_kvm, *kvm_version);
+
+    qemudDebug("Version %u.%u.%u, cooked version %u, flags %u",
+               major, minor, micro, *version, *flags);
+    if (*kvm_version)
+        qemudDebug("KVM version %d detected", *kvm_version);
+    else if (*is_kvm)
+        qemudDebug("qemu-kvm version %u.%u.%u detected", major, minor, micro);
+
+    return 0;
+
+fail:
+    p = strchr(help, '\n');
+    if (p)
+        p = strndup(help, p - help);
+
+    qemudReportError(NULL, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                     _("cannot parse QEMU version number in '%s'"),
+                     p ? p : help);
+
+    VIR_FREE(p);
+
+    return -1;
+}
+
+int qemudExtractVersionInfo(const char *qemu,
+                            unsigned int *retversion,
+                            unsigned int *retflags) {
+    const char *const qemuarg[] = { qemu, "-help", NULL };
+    const char *const qemuenv[] = { "LC_ALL=C", NULL };
+    pid_t child;
+    int newstdout = -1;
+    int ret = -1, status;
+    unsigned int version, is_kvm, kvm_version;
+    unsigned int flags = 0;
+
+    if (retflags)
+        *retflags = 0;
+    if (retversion)
+        *retversion = 0;
+
+    if (virExec(NULL, qemuarg, qemuenv, NULL,
+                &child, -1, &newstdout, NULL, VIR_EXEC_CLEAR_CAPS) < 0)
+        return -1;
+
+    char *help = NULL;
+    enum { MAX_HELP_OUTPUT_SIZE = 1024*64 };
+    int len = virFileReadLimFD(newstdout, MAX_HELP_OUTPUT_SIZE, &help);
+    if (len < 0) {
+        virReportSystemError(NULL, errno, "%s",
+                             _("Unable to read QEMU help output"));
+        goto cleanup2;
+    }
+
+    if (qemudParseHelpStr(help, &flags, &version, &is_kvm, &kvm_version) == -1)
+        goto cleanup2;
 
     if (retversion)
         *retversion = version;
@@ -511,11 +625,6 @@ int qemudExtractVersionInfo(const char *qemu,
         *retflags = flags;
 
     ret = 0;
-
-    qemudDebug("Version %d %d %d  Cooked version: %d, with flags ? %d",
-               major, minor, micro, version, flags);
-    if (kvm_version)
-        qemudDebug("KVM version %d detected", kvm_version);
 
 cleanup2:
     VIR_FREE(help);
@@ -825,11 +934,6 @@ int qemudBuildCommandLine(virConnectPtr conn,
     }
 
     emulator = def->emulator;
-    if (!emulator)
-        emulator = virDomainDefDefaultEmulator(conn, def, driver->caps);
-    if (!emulator)
-        return -1;
-
 
     /* Need to explicitly disable KQEMU if
      * 1. Arch matches host arch
@@ -1141,7 +1245,8 @@ int qemudBuildCommandLine(virConnectPtr conn,
             if (bootable &&
                 disk->device == VIR_DOMAIN_DISK_DEVICE_DISK)
                 virBufferAddLit(&opt, ",boot=on");
-            if (disk->driverType)
+            if (disk->driverType &&
+                qemuCmdFlags & QEMUD_CMD_FLAG_DRIVE_FORMAT)
                 virBufferVSprintf(&opt, ",format=%s", disk->driverType);
 
             if (disk->cachemode) {
@@ -2798,193 +2903,3 @@ cleanup:
     return def;
 }
 
-
-/* Called from SAX on parsing errors in the XML. */
-static void
-catchXMLError (void *ctx, const char *msg ATTRIBUTE_UNUSED, ...)
-{
-    xmlParserCtxtPtr ctxt = (xmlParserCtxtPtr) ctx;
-
-    if (ctxt) {
-        virConnectPtr conn = ctxt->_private;
-
-        if (ctxt->lastError.level == XML_ERR_FATAL &&
-            ctxt->lastError.message != NULL) {
-            qemudReportError (conn, NULL, NULL, VIR_ERR_XML_DETAIL,
-                                  _("at line %d: %s"),
-                                  ctxt->lastError.line,
-                                  ctxt->lastError.message);
-        }
-    }
-}
-
-
-/**
- * qemudDomainStatusParseFile
- *
- * read the last known status of a domain
- *
- * Returns 0 on success
- */
-qemudDomainStatusPtr
-qemudDomainStatusParseFile(virConnectPtr conn,
-                           virCapsPtr caps,
-                           const char *filename, int flags)
-{
-    xmlParserCtxtPtr pctxt = NULL;
-    xmlXPathContextPtr ctxt = NULL;
-    xmlDocPtr xml = NULL;
-    xmlNodePtr root, config_root;
-    virDomainDefPtr def = NULL;
-    char *tmp = NULL;
-    long val;
-    qemudDomainStatusPtr status = NULL;
-
-    if (VIR_ALLOC(status) < 0) {
-        virReportOOMError(conn);
-        goto error;
-    }
-
-    /* Set up a parser context so we can catch the details of XML errors. */
-    pctxt = xmlNewParserCtxt ();
-    if (!pctxt || !pctxt->sax)
-        goto error;
-    pctxt->sax->error = catchXMLError;
-    pctxt->_private = conn;
-
-    if (conn) virResetError (&conn->err);
-    xml = xmlCtxtReadFile (pctxt, filename, NULL,
-                           XML_PARSE_NOENT | XML_PARSE_NONET |
-                           XML_PARSE_NOWARNING);
-    if (!xml) {
-        if (conn && conn->err.code == VIR_ERR_NONE)
-              qemudReportError(conn, NULL, NULL, VIR_ERR_XML_ERROR,
-                                   "%s", _("failed to parse xml document"));
-        goto error;
-    }
-
-    if ((root = xmlDocGetRootElement(xml)) == NULL) {
-        qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                              "%s", _("missing root element"));
-        goto error;
-    }
-
-    ctxt = xmlXPathNewContext(xml);
-    if (ctxt == NULL) {
-        virReportOOMError(conn);
-        goto error;
-    }
-
-    if (!xmlStrEqual(root->name, BAD_CAST "domstatus")) {
-        qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                             "%s", _("incorrect root element"));
-        goto error;
-    }
-
-    ctxt->node = root;
-    if(!(tmp = virXPathString(conn, "string(./@state)", ctxt))) {
-        qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                             "%s", _("invalid domain state"));
-        goto error;
-    } else {
-        status->state = virDomainStateTypeFromString(tmp);
-        VIR_FREE(tmp);
-    }
-
-    if((virXPathLong(conn, "string(./@pid)", ctxt, &val)) < 0) {
-        qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                             "%s", _("invalid pid"));
-        goto error;
-    } else
-        status->pid = (pid_t)val;
-
-    if(!(tmp = virXPathString(conn, "string(./monitor[1]/@path)", ctxt))) {
-        qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                             "%s", _("no monitor path"));
-        goto error;
-    } else
-        status->monitorpath = tmp;
-
-    if(!(config_root = virXPathNode(conn, "./domain", ctxt))) {
-        qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                             "%s", _("no domain config"));
-        goto error;
-    }
-    if(!(def = virDomainDefParseNode(conn, caps, xml, config_root, flags)))
-        goto error;
-    else
-        status->def = def;
-
-cleanup:
-    xmlFreeParserCtxt (pctxt);
-    xmlXPathFreeContext(ctxt);
-    xmlFreeDoc (xml);
-    return status;
-
-error:
-    VIR_FREE(tmp);
-    VIR_FREE(status);
-    goto cleanup;
-}
-
-
-/**
- * qemudDomainStatusFormat
- *
- * Get the state of a running domain as XML
- *
- * Returns xml on success
- */
-static char*
-qemudDomainStatusFormat(virConnectPtr conn,
-                        virDomainObjPtr vm)
-{
-    char *config_xml = NULL, *xml = NULL;
-    virBuffer buf = VIR_BUFFER_INITIALIZER;
-
-    virBufferVSprintf(&buf, "<domstatus state='%s' pid='%d'>\n",
-                      virDomainStateTypeToString(vm->state),
-                      vm->pid);
-    virBufferEscapeString(&buf, "  <monitor path='%s'/>\n", vm->monitorpath);
-
-    if (!(config_xml = virDomainDefFormat(conn,
-                                          vm->def,
-                                          VIR_DOMAIN_XML_SECURE)))
-        goto cleanup;
-
-    virBufferAdd(&buf, config_xml, strlen(config_xml));
-    virBufferAddLit(&buf, "</domstatus>\n");
-
-    xml = virBufferContentAndReset(&buf);
-cleanup:
-    VIR_FREE(config_xml);
-    return xml;
-}
-
-
-/**
- * qemudSaveDomainStatus
- *
- * Save the current status of a running domain
- *
- * Returns 0 on success
- */
-int
-qemudSaveDomainStatus(virConnectPtr conn,
-                      struct qemud_driver *driver,
-                      virDomainObjPtr vm)
-{
-    int ret = -1;
-    char *xml = NULL;
-
-    if (!(xml = qemudDomainStatusFormat(conn, vm)))
-        goto cleanup;
-
-    if ((ret = virDomainSaveXML(conn, driver->stateDir, vm->def, xml)))
-        goto cleanup;
-
-    ret = 0;
-cleanup:
-    VIR_FREE(xml);
-    return ret;
-}

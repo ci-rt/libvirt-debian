@@ -128,7 +128,7 @@ int openvzExtractVersion(virConnectPtr conn,
 
     if (openvzExtractVersionInfo(VZCTL, &driver->version) < 0) {
         openvzError(conn, VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("Cound not extract vzctl version"));
+                    "%s", _("Could not extract vzctl version"));
         return -1;
     }
 
@@ -148,7 +148,7 @@ virCapsPtr openvzCapsInit(void)
                                    0, 0)) == NULL)
         goto no_memory;
 
-    if (virCapsInitNUMA(caps) < 0)
+    if (nodeCapsInitNUMA(caps) < 0)
         goto no_memory;
 
     virCapabilitiesSetMacPrefix(caps, (unsigned char[]){ 0x52, 0x54, 0x00 });
@@ -195,7 +195,7 @@ openvzReadNetworkConf(virConnectPtr conn,
     ret = openvzReadVPSConfigParam(veid, "IP_ADDRESS", temp, sizeof(temp));
     if (ret < 0) {
         openvzError(conn, VIR_ERR_INTERNAL_ERROR,
-                 _("Cound not read 'IP_ADDRESS' from config for container %d"),
+                 _("Could not read 'IP_ADDRESS' from config for container %d"),
                   veid);
         goto error;
     } else if (ret > 0) {
@@ -227,7 +227,7 @@ openvzReadNetworkConf(virConnectPtr conn,
     ret = openvzReadVPSConfigParam(veid, "NETIF", temp, sizeof(temp));
     if (ret < 0) {
         openvzError(conn, VIR_ERR_INTERNAL_ERROR,
-                     _("Cound not read 'NETIF' from config for container %d"),
+                     _("Could not read 'NETIF' from config for container %d"),
                      veid);
         goto error;
     } else if (ret > 0) {
@@ -356,7 +356,7 @@ openvzReadFSConf(virConnectPtr conn,
     ret = openvzReadVPSConfigParam(veid, "OSTEMPLATE", temp, sizeof(temp));
     if (ret < 0) {
         openvzError(conn, VIR_ERR_INTERNAL_ERROR,
-                    _("Cound not read 'OSTEMPLATE' from config for container %d"),
+                    _("Could not read 'OSTEMPLATE' from config for container %d"),
                     veid);
         goto error;
     } else if (ret > 0) {
@@ -370,7 +370,7 @@ openvzReadFSConf(virConnectPtr conn,
         ret = openvzReadVPSConfigParam(veid, "VE_PRIVATE", temp, sizeof(temp));
         if (ret <= 0) {
             openvzError(conn, VIR_ERR_INTERNAL_ERROR,
-                        _("Cound not read 'VE_PRIVATE' from config for container %d"),
+                        _("Could not read 'VE_PRIVATE' from config for container %d"),
                         veid);
             goto error;
         }
@@ -486,7 +486,7 @@ int openvzLoadDomains(struct openvz_driver *driver) {
         ret = openvzReadVPSConfigParam(veid, "CPUS", temp, sizeof(temp));
         if (ret < 0) {
             openvzError(NULL, VIR_ERR_INTERNAL_ERROR,
-                        _("Cound not read config for container %d"),
+                        _("Could not read config for container %d"),
                         veid);
             goto cleanup;
         } else if (ret > 0) {
@@ -527,11 +527,8 @@ openvzGetNodeCPUs(void)
 {
     virNodeInfo nodeinfo;
 
-    if (virNodeInfoPopulate(NULL, &nodeinfo) < 0) {
-        openvzError(NULL, VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("Cound not read nodeinfo"));
+    if (nodeGetInfo(NULL, &nodeinfo) < 0)
         return 0;
-    }
 
     return nodeinfo.cpus;
 }

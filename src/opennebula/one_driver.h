@@ -23,7 +23,7 @@
 #define ONE_DRIVER_H
 
 #include <config.h>
-#include <OneClient.h>
+#include "one_client.h"
 
 int oneRegister(void);
 

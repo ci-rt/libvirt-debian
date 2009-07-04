@@ -256,9 +256,7 @@ winsock_init (void)
 int
 virInitialize(void)
 {
-#ifdef ENABLE_DEBUG
     char *debugEnv;
-#endif
     if (initialized)
         return(0);
 
@@ -269,7 +267,6 @@ virInitialize(void)
         virRandomInitialize(time(NULL) ^ getpid()))
         return -1;
 
-#ifdef ENABLE_DEBUG
     debugEnv = getenv("LIBVIRT_DEBUG");
     if (debugEnv && *debugEnv && *debugEnv != '0') {
         if (STREQ(debugEnv, "2") || STREQ(debugEnv, "info"))
@@ -287,7 +284,6 @@ virInitialize(void)
     debugEnv = getenv("LIBVIRT_LOG_OUTPUTS");
     if (debugEnv)
         virLogParseOutputs(debugEnv);
-#endif
 
     DEBUG0("register drivers");
 
@@ -760,12 +756,13 @@ virRegisterStateDriver(virStateDriverPtr driver)
 
 /**
  * virStateInitialize:
+ * @privileged: set to 1 if running with root priviledge, 0 otherwise
  *
  * Initialize all virtualization drivers.
  *
  * Return 0 if all succeed, -1 upon any failure.
  */
-int virStateInitialize(void) {
+int virStateInitialize(int privileged) {
     int i, ret = 0;
 
     if (virInitialize() < 0)
@@ -773,7 +770,7 @@ int virStateInitialize(void) {
 
     for (i = 0 ; i < virStateDriverTabCount ; i++) {
         if (virStateDriverTab[i]->initialize &&
-            virStateDriverTab[i]->initialize() < 0)
+            virStateDriverTab[i]->initialize(privileged) < 0)
             ret = -1;
     }
     return ret;
@@ -1055,13 +1052,11 @@ do_open (const char *name,
     /* Secondary driver for storage. Optional */
     for (i = 0; i < virStorageDriverTabCount; i++) {
         res = virStorageDriverTab[i]->open (ret, auth, flags);
-#ifdef ENABLE_DEBUG
         DEBUG("storage driver %d %s returned %s",
               i, virStorageDriverTab[i]->name,
               res == VIR_DRV_OPEN_SUCCESS ? "SUCCESS" :
               (res == VIR_DRV_OPEN_DECLINED ? "DECLINED" :
                (res == VIR_DRV_OPEN_ERROR ? "ERROR" : "unknown status")));
-#endif
         if (res == VIR_DRV_OPEN_ERROR) {
             if (0 && STREQ(virStorageDriverTab[i]->name, "remote")) {
                 virLibConnWarning (NULL, VIR_WAR_NO_STORAGE,
@@ -4386,11 +4381,11 @@ error:
  * @domain: a domain object
  * @seclabel: pointer to a virSecurityLabel structure
  *
- * Extract security label of an active domain.
+ * Extract security label of an active domain. The 'label' field
+ * in the @seclabel argument will be initialized to the empty
+ * string if the domain is not running under a security model.
  *
- * Returns 0 in case of success, -1 in case of failure, and -2
- * if the operation is not supported (caller decides if that's
- * an error).
+ * Returns 0 in case of success, -1 in case of failure
  */
 int
 virDomainGetSecurityLabel(virDomainPtr domain, virSecurityLabelPtr seclabel)
@@ -4421,10 +4416,11 @@ virDomainGetSecurityLabel(virDomainPtr domain, virSecurityLabelPtr seclabel)
  * @conn: a connection object
  * @secmodel: pointer to a virSecurityModel structure
  *
- * Extract the security model of a hypervisor.
+ * Extract the security model of a hypervisor. The 'model' field
+ * in the @secmodel argument may be initialized to the empty
+ * string if the driver has not activated a security model.
  *
- * Returns 0 in case of success, -1 in case of failure, and -2 if the
- * operation is not supported (caller decides if that's an error).
+ * Returns 0 in case of success, -1 in case of failure
  */
 int
 virNodeGetSecurityModel(virConnectPtr conn, virSecurityModelPtr secmodel)

@@ -2079,7 +2079,15 @@ xenDaemonParseSxprGraphicsNew(virConnectPtr conn,
         if (sexpr_lookup(node, "device/vfb")) {
             /* New style graphics config for PV guests in >= 3.0.4,
              * or for HVM guests in >= 3.0.5 */
-            tmp = sexpr_node(node, "device/vfb/type");
+            if (sexpr_node(node, "device/vfb/type")) {
+                tmp = sexpr_node(node, "device/vfb/type");
+            } else if (sexpr_node(node, "device/vfb/vnc")) {
+                tmp = "vnc";
+            } else if (sexpr_node(node, "device/vfb/sdl")) {
+                tmp = "sdl";
+            } else {
+                tmp = "unknown";
+            }
 
             if (VIR_ALLOC(graphics) < 0)
                 goto no_memory;
@@ -2927,10 +2935,13 @@ xenDaemonOpen(virConnectPtr conn,
             xend_detect_config_version(conn) == -1)
             goto failed;
     } else if (STRCASEEQ (conn->uri->scheme, "http")) {
-        if (virAsprintf(&port, "%d", conn->uri->port) == -1)
+        if (conn->uri->port &&
+            virAsprintf(&port, "%d", conn->uri->port) == -1)
             goto failed;
 
-        if (xenDaemonOpen_tcp(conn, conn->uri->server, port) < 0 ||
+        if (xenDaemonOpen_tcp(conn,
+                              conn->uri->server ? conn->uri->server : "localhost",
+                              port ? port : "8000") < 0 ||
             xend_detect_config_version(conn) == -1)
             goto failed;
     } else {

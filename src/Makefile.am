@@ -149,7 +149,9 @@ ONE_DRIVER_SOURCES =					\
 		./opennebula/one_conf.c			\
 		./opennebula/one_conf.h			\
 		./opennebula/one_driver.c		\
-		./opennebula/one_driver.h
+		./opennebula/one_driver.h		\
+		./opennebula/one_client.c		\
+		./opennebula/one_client.h
 
 NETWORK_DRIVER_SOURCES =					\
 		network_driver.h network_driver.c
@@ -195,7 +197,10 @@ NODE_DEVICE_DRIVER_SOURCES =					\
 		node_device.c node_device.h
 
 NODE_DEVICE_DRIVER_HAL_SOURCES =				\
-		node_device_hal.c
+		node_device_hal.c				\
+		node_device_hal.h				\
+		node_device_hal_linux.c
+
 NODE_DEVICE_DRIVER_DEVKIT_SOURCES =				\
 		node_device_devkit.c
 
@@ -210,6 +215,8 @@ noinst_LTLIBRARIES = libvirt_util.la
 libvirt_la_LIBADD = libvirt_util.la
 libvirt_util_la_SOURCES =					\
 		$(UTIL_SOURCES)
+libvirt_util_la_CFLAGS =  $(CAPNG_CFLAGS)
+libvirt_util_la_LDFLAGS =  $(CAPNG_LIBS)
 
 noinst_LTLIBRARIES += libvirt_driver.la
 libvirt_la_LIBADD += libvirt_driver.la
@@ -352,6 +359,7 @@ noinst_LTLIBRARIES += libvirt_driver_one.la
 # Stateful, so linked to daemon instead
 #libvirt_la_LIBADD  += libvirt_driver_one.la
 endif
+libvirt_driver_one_la_CFLAGS = $(ONE_LIBS)
 libvirt_driver_one_la_LDFLAGS = $(ONE_LIBS)
 #libvirt_driver_one_la_CFLAGS  = "-DWITH_ONE"
 if WITH_DRIVER_MODULES
@@ -495,10 +503,6 @@ EXTRA_DIST +=							\
 # symbols aren't present at all.
 #
 
-if ENABLE_DEBUG
-USED_SYM_FILES += libvirt_debug.syms
-endif
-
 if WITH_DRIVER_MODULES
 USED_SYM_FILES += libvirt_driver_modules.syms
 endif
@@ -514,7 +518,6 @@ endif
 EXTRA_DIST += \
   libvirt_public.syms		\
   libvirt_private.syms		\
-  libvirt_debug.syms		\
   libvirt_driver_modules.syms	\
   libvirt_bridge.syms		\
   libvirt_linux.syms
@@ -663,9 +666,9 @@ libvirt_lxc_SOURCES =						\
 		$(LXC_CONTROLLER_SOURCES)			\
 		$(UTIL_SOURCES)					\
 		$(DOMAIN_CONF_SOURCES)
-libvirt_lxc_LDFLAGS = $(WARN_CFLAGS) $(COVERAGE_LDCFLAGS)
+libvirt_lxc_LDFLAGS = $(WARN_CFLAGS) $(COVERAGE_LDCFLAGS) $(CAPNG_LIBS)
 libvirt_lxc_LDADD = $(LIBXML_LIBS) $(NUMACTL_LIBS) ../gnulib/lib/libgnu.la
-libvirt_lxc_CFLAGS =  $(LIBPARTED_CFLAGS) $(NUMACTL_CFLAGS)
+libvirt_lxc_CFLAGS =  $(LIBPARTED_CFLAGS) $(NUMACTL_CFLAGS) $(CAPNG_CFLAGS)
 endif
 endif
 EXTRA_DIST += $(LXC_CONTROLLER_SOURCES)
