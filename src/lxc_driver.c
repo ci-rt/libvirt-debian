@@ -47,11 +47,12 @@
 #include "veth.h"
 #include "event.h"
 #include "cgroup.h"
+#include "nodeinfo.h"
 
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
-static int lxcStartup(void);
+static int lxcStartup(int privileged);
 static int lxcShutdown(void);
 static lxc_driver_t *lxc_driver = NULL;
 
@@ -67,46 +68,48 @@ static void lxcDriverUnlock(lxc_driver_t *driver)
 }
 
 
-static int lxcProbe(void)
-{
-    if (getuid() != 0 ||
-        lxcContainerAvailable(0) < 0)
-        return 0;
-
-    return 1;
-}
-
 static virDrvOpenStatus lxcOpen(virConnectPtr conn,
                                 virConnectAuthPtr auth ATTRIBUTE_UNUSED,
                                 int flags ATTRIBUTE_UNUSED)
 {
-    if (lxc_driver == NULL)
-        goto declineConnection;
-
     /* Verify uri was specified */
     if (conn->uri == NULL) {
-        if (!lxcProbe())
-            goto declineConnection;
+        if (lxc_driver == NULL)
+            return VIR_DRV_OPEN_DECLINED;
 
         conn->uri = xmlParseURI("lxc:///");
         if (!conn->uri) {
             virReportOOMError(conn);
             return VIR_DRV_OPEN_ERROR;
         }
-    } else if (conn->uri->scheme == NULL ||
-               STRNEQ(conn->uri->scheme, "lxc")) {
-        goto declineConnection;
-    } else if (!lxcProbe()) {
-        goto declineConnection;
-    }
+    } else {
+        if (conn->uri->scheme == NULL ||
+            STRNEQ(conn->uri->scheme, "lxc"))
+            return VIR_DRV_OPEN_DECLINED;
 
+        /* Leave for remote driver */
+        if (conn->uri->server != NULL)
+            return VIR_DRV_OPEN_DECLINED;
+
+        /* If path isn't '/' then they typoed, tell them correct path */
+        if (STRNEQ(conn->uri->path, "/")) {
+            lxcError(conn, NULL, VIR_ERR_INTERNAL_ERROR,
+                     _("unexpected LXC URI path '%s', try lxc:///"),
+                     conn->uri->path);
+            return VIR_DRV_OPEN_ERROR;
+        }
+
+        /* URI was good, but driver isn't active */
+        if (lxc_driver == NULL) {
+            lxcError(conn, NULL, VIR_ERR_INTERNAL_ERROR,
+                     _("lxc state driver is not active"));
+            return VIR_DRV_OPEN_ERROR;
+        }
+    }
 
     conn->privateData = lxc_driver;
 
     return VIR_DRV_OPEN_SUCCESS;
-
-declineConnection:
-    return VIR_DRV_OPEN_DECLINED;
 }
 
 static int lxcClose(virConnectPtr conn)
@@ -114,6 +117,19 @@ static int lxcClose(virConnectPtr conn)
     conn->privateData = NULL;
     return 0;
 }
+
+static char *lxcGetCapabilities(virConnectPtr conn) {
+    lxc_driver_t *driver = conn->privateData;
+    char *xml;
+
+    lxcDriverLock(driver);
+    if ((xml = virCapabilitiesFormatXML(driver->caps)) == NULL)
+        virReportOOMError(conn);
+    lxcDriverUnlock(driver);
+
+    return xml;
+}
+
 
 static virDomainPtr lxcDomainLookupByID(virConnectPtr conn,
                                         int id)
@@ -742,7 +758,6 @@ static int lxcControllerStart(virConnectPtr conn,
     fd_set keepfd;
     char appPtyStr[30];
     const char *emulator;
-    lxc_driver_t *driver = conn->privateData;
 
     FD_ZERO(&keepfd);
 
@@ -771,10 +786,6 @@ static int lxcControllerStart(virConnectPtr conn,
     snprintf(appPtyStr, sizeof(appPtyStr), "%d", appPty);
 
     emulator = vm->def->emulator;
-    if (!emulator)
-        emulator = virDomainDefDefaultEmulator(conn, vm->def, driver->caps);
-    if (!emulator)
-        return -1;
 
     ADD_ARG_LIT(emulator);
     ADD_ARG_LIT("--name");
@@ -1130,9 +1141,8 @@ static int lxcCheckNetNsSupport(void)
     return 1;
 }
 
-static int lxcStartup(void)
+static int lxcStartup(int privileged)
 {
-    uid_t uid = getuid();
     unsigned int i;
     char *ld;
 
@@ -1145,7 +1155,7 @@ static int lxcStartup(void)
         return -1;
 
     /* Check that the user is root */
-    if (0 != uid) {
+    if (!privileged) {
         return -1;
     }
 
@@ -1176,7 +1186,7 @@ static int lxcStartup(void)
                                 &lxc_driver->domains,
                                 lxc_driver->configDir,
                                 lxc_driver->autostartDir,
-                                NULL, NULL) < 0)
+                                0, NULL, NULL) < 0)
         goto cleanup;
 
     for (i = 0 ; i < lxc_driver->domains.count ; i++) {
@@ -1429,8 +1439,8 @@ static virDriver lxcDriver = {
     lxcVersion, /* version */
     lxcGetHostname, /* getHostname */
     NULL, /* getMaxVcpus */
-    NULL, /* nodeGetInfo */
-    NULL, /* getCapabilities */
+    nodeGetInfo, /* nodeGetInfo */
+    lxcGetCapabilities, /* getCapabilities */
     lxcListDomains, /* listDomains */
     lxcNumDomains, /* numOfDomains */
     lxcDomainCreateAndStart, /* domainCreateXML */
@@ -1478,8 +1488,8 @@ static virDriver lxcDriver = {
     NULL, /* domainInterfaceStats */
     NULL, /* domainBlockPeek */
     NULL, /* domainMemoryPeek */
-    NULL, /* nodeGetCellsFreeMemory */
-    NULL, /* getFreeMemory */
+    nodeGetCellsFreeMemory, /* nodeGetCellsFreeMemory */
+    nodeGetFreeMemory,  /* getFreeMemory */
     NULL, /* domainEventRegister */
     NULL, /* domainEventDeregister */
     NULL, /* domainMigratePrepare2 */

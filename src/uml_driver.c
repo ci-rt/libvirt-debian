@@ -45,11 +45,6 @@
 #include <sys/ioctl.h>
 #include <sys/inotify.h>
 
-#if HAVE_NUMACTL
-#define NUMA_VERSION1_COMPATIBILITY 1
-#include <numa.h>
-#endif
-
 #include "uml_driver.h"
 #include "uml_conf.h"
 #include "event.h"
@@ -70,9 +65,6 @@
 #define TEMPDIR LOCAL_STATE_DIR "/cache/libvirt"
 
 static int umlShutdown(void);
-
-#define umlLog(level, msg, ...)                                     \
-    virLogMessage(__FILE__, level, __func__, __LINE__, 0, msg, __VA_ARGS__)
 
 static void umlDriverLock(struct uml_driver *driver)
 {
@@ -100,8 +92,7 @@ static int umlSetCloseExec(int fd) {
         goto error;
     return 0;
  error:
-    umlLog(VIR_LOG_ERROR,
-             "%s", _("Failed to set close-on-exec file descriptor flag\n"));
+    VIR_ERROR0(_("Failed to set close-on-exec file descriptor flag"));
     return -1;
 }
 
@@ -131,9 +122,9 @@ umlAutostartConfigs(struct uml_driver *driver) {
      * to lookup the bridge associated with a virtual
      * network
      */
-    virConnectPtr conn = virConnectOpen(getuid() ?
-                                        "uml:///session" :
-                                        "uml:///system");
+    virConnectPtr conn = virConnectOpen(driver->privileged ?
+                                        "uml:///system" :
+                                        "uml:///session");
     /* Ignoring NULL conn which is mostly harmless here */
 
     for (i = 0 ; i < driver->domains.count ; i++) {
@@ -141,7 +132,7 @@ umlAutostartConfigs(struct uml_driver *driver) {
             !virDomainIsActive(driver->domains.objs[i]) &&
             umlStartVMDaemon(conn, driver, driver->domains.objs[i]) < 0) {
             virErrorPtr err = virGetLastError();
-            umlLog(VIR_LOG_ERROR, _("Failed to autostart VM '%s': %s\n"),
+            VIR_ERROR(_("Failed to autostart VM '%s': %s"),
                      driver->domains.objs[i]->def->name, err->message);
         }
     }
@@ -166,9 +157,10 @@ umlIdentifyOneChrPTY(virConnectPtr conn,
         return -1;
     }
 requery:
-    umlMonitorCommand(NULL, driver, dom, cmd, &res);
+    if (umlMonitorCommand(NULL, driver, dom, cmd, &res) < 0)
+        return -1;
 
-    if (STRPREFIX(res, "pts:")) {
+    if (res && STRPREFIX(res, "pts:")) {
         VIR_FREE(def->data.file.path);
         if ((def->data.file.path = strdup(res + 4)) == NULL) {
             virReportOOMError(conn);
@@ -176,7 +168,7 @@ requery:
             VIR_FREE(cmd);
             return -1;
         }
-    } else if (STRPREFIX(res, "pts")) {
+    } else if (!res || STRPREFIX(res, "pts")) {
         /* It can take a while to startup, so retry for
            upto 5 seconds */
         /* XXX should do this in a better non-blocking
@@ -263,19 +255,15 @@ reread:
         }
 
         if (e->mask & IN_DELETE) {
+            VIR_DEBUG("Got inotify domain shutdown '%s'", name);
             if (!virDomainIsActive(dom)) {
                 virDomainObjUnlock(dom);
                 continue;
             }
 
-            dom->def->id = -1;
-            dom->pid = -1;
-            if (dom->newDef) {
-                virDomainDefFree(dom->def);
-                dom->def = dom->newDef;
-            }
-            dom->state = VIR_DOMAIN_SHUTOFF;
+            umlShutdownVMDaemon(NULL, driver, dom);
         } else if (e->mask & (IN_CREATE | IN_MODIFY)) {
+            VIR_DEBUG("Got inotify domain startup '%s'", name);
             if (virDomainIsActive(dom)) {
                 virDomainObjUnlock(dom);
                 continue;
@@ -289,11 +277,13 @@ reread:
             dom->def->id = driver->nextvmid++;
             dom->state = VIR_DOMAIN_RUNNING;
 
-            if (umlOpenMonitor(NULL, driver, dom) < 0)
+            if (umlOpenMonitor(NULL, driver, dom) < 0) {
+                VIR_WARN0("Could not open monitor for new domain");
                 umlShutdownVMDaemon(NULL, driver, dom);
-
-            if (umlIdentifyChrPTY(NULL, driver, dom) < 0)
+            } else if (umlIdentifyChrPTY(NULL, driver, dom) < 0) {
+                VIR_WARN0("Could not identify charater devices for new domain");
                 umlShutdownVMDaemon(NULL, driver, dom);
+            }
         }
         virDomainObjUnlock(dom);
     }
@@ -308,7 +298,7 @@ cleanup:
  * Initialization function for the Uml daemon
  */
 static int
-umlStartup(void) {
+umlStartup(int privileged) {
     uid_t uid = geteuid();
     char *base = NULL;
     char driverConf[PATH_MAX];
@@ -316,6 +306,8 @@ umlStartup(void) {
 
     if (VIR_ALLOC(uml_driver) < 0)
         return -1;
+
+    uml_driver->privileged = privileged;
 
     if (virMutexInit(&uml_driver->lock) < 0) {
         VIR_FREE(uml_driver);
@@ -331,7 +323,7 @@ umlStartup(void) {
     if (!userdir)
         goto error;
 
-    if (!uid) {
+    if (privileged) {
         if (virAsprintf(&uml_driver->logDir,
                         "%s/log/libvirt/uml", LOCAL_STATE_DIR) == -1)
             goto out_of_memory;
@@ -372,17 +364,18 @@ umlStartup(void) {
 
 
     if ((uml_driver->inotifyFD = inotify_init()) < 0) {
-        umlLog(VIR_LOG_ERROR, "%s", _("cannot initialize inotify"));
+        VIR_ERROR0(_("cannot initialize inotify"));
         goto error;
     }
 
     if (virFileMakePath(uml_driver->monitorDir) < 0) {
         char ebuf[1024];
-        umlLog(VIR_LOG_ERROR, _("Failed to create monitor directory %s: %s"),
+        VIR_ERROR(_("Failed to create monitor directory %s: %s"),
                uml_driver->monitorDir, virStrerror(errno, ebuf, sizeof ebuf));
         goto error;
     }
 
+    VIR_INFO("Adding inotify watch on %s", uml_driver->monitorDir);
     if (inotify_add_watch(uml_driver->inotifyFD,
                           uml_driver->monitorDir,
                           IN_CREATE | IN_MODIFY | IN_DELETE) < 0) {
@@ -399,7 +392,7 @@ umlStartup(void) {
                                 &uml_driver->domains,
                                 uml_driver->configDir,
                                 uml_driver->autostartDir,
-                                NULL, NULL) < 0)
+                                0, NULL, NULL) < 0)
         goto error;
 
     umlAutostartConfigs(uml_driver);
@@ -410,8 +403,7 @@ umlStartup(void) {
     return 0;
 
 out_of_memory:
-    umlLog (VIR_LOG_ERROR,
-              "%s", _("umlStartup: out of memory\n"));
+    VIR_ERROR0(_("umlStartup: out of memory"));
 
 error:
     VIR_FREE(userdir);
@@ -438,7 +430,7 @@ umlReload(void) {
                             &uml_driver->domains,
                             uml_driver->configDir,
                             uml_driver->autostartDir,
-                            NULL, NULL);
+                            0, NULL, NULL);
 
     umlAutostartConfigs(uml_driver);
     umlDriverUnlock(uml_driver);
@@ -595,10 +587,11 @@ static int umlOpenMonitor(virConnectPtr conn,
     if (umlMonitorAddress(conn, driver, vm, &addr) < 0)
         return -1;
 
+    VIR_DEBUG("Dest address for monitor is '%s'", addr.sun_path);
 restat:
     if (stat(addr.sun_path, &sb) < 0) {
         if (errno == ENOENT &&
-            retries < 50) {
+            retries++ < 50) {
             usleep(1000 * 100);
             goto restat;
         }
@@ -612,7 +605,8 @@ restat:
     }
 
     memset(addr.sun_path, 0, sizeof addr.sun_path);
-    sprintf(addr.sun_path + 1, "%u", getpid());
+    sprintf(addr.sun_path + 1, "libvirt-uml-%u", vm->pid);
+    VIR_DEBUG("Reply address for monitor is '%s'", addr.sun_path+1);
     if (bind(vm->monitor, (struct sockaddr *)&addr, sizeof addr) < 0) {
         virReportSystemError(conn, errno,
                              "%s", _("cannot bind socket"));
@@ -656,6 +650,8 @@ static int umlMonitorCommand(virConnectPtr conn,
     int retlen = 0, ret = 0;
     struct sockaddr_un addr;
     unsigned int addrlen;
+
+    VIR_DEBUG("Run command '%s'", cmd);
 
     *reply = NULL;
 
@@ -706,6 +702,8 @@ static int umlMonitorCommand(virConnectPtr conn,
 
     } while (res.extra);
 
+    VIR_DEBUG("Command reply is '%s'", NULLSTR(retdata));
+
     *reply = retdata;
 
     return ret;
@@ -715,6 +713,35 @@ error:
     return -1;
 }
 
+
+static int umlCleanupTapDevices(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                virDomainObjPtr vm) {
+    int i;
+    int err;
+    int ret = 0;
+    brControl *brctl = NULL;
+    VIR_ERROR0("Cleanup tap");
+    if (brInit(&brctl) < 0)
+        return -1;
+
+    for (i = 0 ; i < vm->def->nnets ; i++) {
+        virDomainNetDefPtr def = vm->def->nets[i];
+
+        if (def->type != VIR_DOMAIN_NET_TYPE_BRIDGE &&
+            def->type != VIR_DOMAIN_NET_TYPE_NETWORK)
+            continue;
+
+        VIR_ERROR("Cleanup '%s'", def->ifname);
+        err = brDeleteTap(brctl, def->ifname);
+        if (err) {
+            VIR_ERROR("Cleanup failed %d", err);
+            ret = -1;
+        }
+    }
+    VIR_ERROR0("Cleanup tap done");
+    brShutdown(brctl);
+    return ret;
+}
 
 static int umlStartVMDaemon(virConnectPtr conn,
                             struct uml_driver *driver,
@@ -726,8 +753,6 @@ static int umlStartVMDaemon(virConnectPtr conn,
     char *logfile;
     int logfd = -1;
     struct stat sb;
-    int *tapfds = NULL;
-    int ntapfds = 0;
     fd_set keepfd;
     char ebuf[1024];
 
@@ -786,44 +811,42 @@ static int umlStartVMDaemon(virConnectPtr conn,
     }
 
     if (umlBuildCommandLine(conn, driver, vm,
-                            &argv, &progenv,
-                            &tapfds, &ntapfds) < 0) {
+                            &argv, &progenv) < 0) {
         close(logfd);
+        umlCleanupTapDevices(conn, vm);
         return -1;
     }
 
     tmp = progenv;
     while (*tmp) {
         if (safewrite(logfd, *tmp, strlen(*tmp)) < 0)
-            umlLog(VIR_LOG_WARN, _("Unable to write envv to logfile: %s\n"),
+            VIR_WARN(_("Unable to write envv to logfile: %s"),
                    virStrerror(errno, ebuf, sizeof ebuf));
         if (safewrite(logfd, " ", 1) < 0)
-            umlLog(VIR_LOG_WARN, _("Unable to write envv to logfile: %s\n"),
+            VIR_WARN(_("Unable to write envv to logfile: %s"),
                    virStrerror(errno, ebuf, sizeof ebuf));
         tmp++;
     }
     tmp = argv;
     while (*tmp) {
         if (safewrite(logfd, *tmp, strlen(*tmp)) < 0)
-            umlLog(VIR_LOG_WARN, _("Unable to write argv to logfile: %s\n"),
+            VIR_WARN(_("Unable to write argv to logfile: %s"),
                    virStrerror(errno, ebuf, sizeof ebuf));
         if (safewrite(logfd, " ", 1) < 0)
-            umlLog(VIR_LOG_WARN, _("Unable to write argv to logfile: %s\n"),
+            VIR_WARN(_("Unable to write argv to logfile: %s"),
                    virStrerror(errno, ebuf, sizeof ebuf));
         tmp++;
     }
     if (safewrite(logfd, "\n", 1) < 0)
-        umlLog(VIR_LOG_WARN, _("Unable to write argv to logfile: %s\n"),
+        VIR_WARN(_("Unable to write argv to logfile: %s"),
                  virStrerror(errno, ebuf, sizeof ebuf));
 
     vm->monitor = -1;
 
-    for (i = 0 ; i < ntapfds ; i++)
-        FD_SET(tapfds[i], &keepfd);
-
     ret = virExecDaemonize(conn, argv, progenv, &keepfd, &pid,
                            -1, &logfd, &logfd,
-                           0, NULL, NULL, NULL);
+                           VIR_EXEC_CLEAR_CAPS,
+                           NULL, NULL, NULL);
     close(logfd);
 
     for (i = 0 ; argv[i] ; i++)
@@ -834,15 +857,14 @@ static int umlStartVMDaemon(virConnectPtr conn,
         VIR_FREE(progenv[i]);
     VIR_FREE(progenv);
 
-    if (tapfds) {
-        for (i = 0 ; i < ntapfds ; i++) {
-            close(tapfds[i]);
-        }
-        VIR_FREE(tapfds);
-    }
+    if (ret < 0)
+        umlCleanupTapDevices(conn, vm);
 
     /* NB we don't mark it running here - we do that async
        with inotify */
+    /* XXX what if someone else tries to start it again
+       before we get the inotification ? Sounds like
+       trouble.... */
 
     return ret;
 }
@@ -852,20 +874,17 @@ static void umlShutdownVMDaemon(virConnectPtr conn ATTRIBUTE_UNUSED,
                                 virDomainObjPtr vm)
 {
     int ret;
-    if (!virDomainIsActive(vm) ||
-        vm->pid <= 1)
+    if (!virDomainIsActive(vm))
         return;
 
-
-    kill(vm->pid, SIGTERM);
+    virKillProcess(vm->pid, SIGTERM);
 
     if (vm->monitor != -1)
         close(vm->monitor);
     vm->monitor = -1;
 
     if ((ret = waitpid(vm->pid, NULL, 0)) != vm->pid) {
-        umlLog(VIR_LOG_WARN,
-               _("Got unexpected pid %d != %d\n"),
+        VIR_WARN(_("Got unexpected pid %d != %d"),
                ret, vm->pid);
     }
 
@@ -874,6 +893,8 @@ static void umlShutdownVMDaemon(virConnectPtr conn ATTRIBUTE_UNUSED,
     vm->state = VIR_DOMAIN_SHUTOFF;
     VIR_FREE(vm->vcpupids);
     vm->nvcpupids = 0;
+
+    umlCleanupTapDevices(conn, vm);
 
     if (vm->newDef) {
         virDomainDefFree(vm->def);
@@ -887,30 +908,49 @@ static void umlShutdownVMDaemon(virConnectPtr conn ATTRIBUTE_UNUSED,
 static virDrvOpenStatus umlOpen(virConnectPtr conn,
                                 virConnectAuthPtr auth ATTRIBUTE_UNUSED,
                                 int flags ATTRIBUTE_UNUSED) {
-    uid_t uid = getuid();
+    if (conn->uri == NULL) {
+        if (uml_driver == NULL)
+            return VIR_DRV_OPEN_DECLINED;
 
-    if (uml_driver == NULL)
-        goto decline;
-
-    if (conn->uri != NULL) {
-        if (conn->uri->scheme == NULL || conn->uri->path == NULL)
-            goto decline;
-
-        if (STRNEQ (conn->uri->scheme, "uml"))
-            goto decline;
-
-        if (uid != 0) {
-            if (STRNEQ (conn->uri->path, "/session"))
-                goto decline;
-        } else { /* root */
-            if (STRNEQ (conn->uri->path, "/system") &&
-                STRNEQ (conn->uri->path, "/session"))
-                goto decline;
-        }
-    } else {
-        conn->uri = xmlParseURI(uid ? "uml:///session" : "uml:///system");
+        conn->uri = xmlParseURI(uml_driver->privileged ?
+                                "uml:///system" :
+                                "uml:///session");
         if (!conn->uri) {
             virReportOOMError(conn);
+            return VIR_DRV_OPEN_ERROR;
+        }
+    } else {
+        if (conn->uri->scheme == NULL ||
+            STRNEQ (conn->uri->scheme, "uml"))
+            return VIR_DRV_OPEN_DECLINED;
+
+        /* Allow remote driver to deal with URIs with hostname server */
+        if (conn->uri->server != NULL)
+            return VIR_DRV_OPEN_DECLINED;
+
+
+        /* Check path and tell them correct path if they made a mistake */
+        if (uml_driver->privileged) {
+            if (STRNEQ (conn->uri->path, "/system") &&
+                STRNEQ (conn->uri->path, "/session")) {
+                umlReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                               _("unexpected UML URI path '%s', try uml:///system"),
+                               conn->uri->path);
+                return VIR_DRV_OPEN_ERROR;
+            }
+        } else {
+            if (STRNEQ (conn->uri->path, "/session")) {
+                umlReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                               _("unexpected UML URI path '%s', try uml:///session"),
+                               conn->uri->path);
+                return VIR_DRV_OPEN_ERROR;
+            }
+        }
+
+        /* URI was good, but driver isn't active */
+        if (uml_driver == NULL) {
+            umlReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("uml state driver is not active"));
             return VIR_DRV_OPEN_ERROR;
         }
     }
@@ -918,9 +958,6 @@ static virDrvOpenStatus umlOpen(virConnectPtr conn,
     conn->privateData = uml_driver;
 
     return VIR_DRV_OPEN_SUCCESS;
-
- decline:
-    return VIR_DRV_OPEN_DECLINED;
 }
 
 static int umlClose(virConnectPtr conn) {
@@ -933,11 +970,6 @@ static int umlClose(virConnectPtr conn) {
 
 static const char *umlGetType(virConnectPtr conn ATTRIBUTE_UNUSED) {
     return "UML";
-}
-
-static int umlGetNodeInfo(virConnectPtr conn,
-                          virNodeInfoPtr nodeinfo) {
-    return virNodeInfoPopulate(conn, nodeinfo);
 }
 
 
@@ -954,69 +986,6 @@ static char *umlGetCapabilities(virConnectPtr conn) {
 }
 
 
-#if HAVE_NUMACTL
-static int
-umlNodeGetCellsFreeMemory(virConnectPtr conn,
-                            unsigned long long *freeMems,
-                            int startCell,
-                            int maxCells)
-{
-    int n, lastCell, numCells;
-    int ret = -1;
-
-    if (numa_available() < 0) {
-        umlReportError(conn, NULL, NULL, VIR_ERR_NO_SUPPORT,
-                         "%s", _("NUMA not supported on this host"));
-        goto cleanup;
-    }
-    lastCell = startCell + maxCells - 1;
-    if (lastCell > numa_max_node())
-        lastCell = numa_max_node();
-
-    for (numCells = 0, n = startCell ; n <= lastCell ; n++) {
-        long long mem;
-        if (numa_node_size64(n, &mem) < 0) {
-            umlReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                             "%s", _("Failed to query NUMA free memory"));
-            goto cleanup;
-        }
-        freeMems[numCells++] = mem;
-    }
-    ret = numCells;
-
-cleanup:
-    return ret;
-}
-
-static unsigned long long
-umlNodeGetFreeMemory (virConnectPtr conn)
-{
-    unsigned long long freeMem = 0;
-    unsigned long long ret = -1;
-    int n;
-
-    if (numa_available() < 0) {
-        umlReportError(conn, NULL, NULL, VIR_ERR_NO_SUPPORT,
-                         "%s", _("NUMA not supported on this host"));
-        goto cleanup;
-    }
-
-    for (n = 0 ; n <= numa_max_node() ; n++) {
-        long long mem;
-        if (numa_node_size64(n, &mem) < 0) {
-            umlReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                             "%s", _("Failed to query NUMA free memory"));
-            goto cleanup;
-        }
-        freeMem += mem;
-    }
-    ret = freeMem;
-
-cleanup:
-    return ret;
-}
-
-#endif
 
 static int umlGetProcessInfo(unsigned long long *cpuTime, int pid) {
     char proc[PATH_MAX];
@@ -1826,7 +1795,7 @@ static virDriver umlDriver = {
     umlGetVersion, /* version */
     umlGetHostname, /* getHostname */
     NULL, /* getMaxVcpus */
-    umlGetNodeInfo, /* nodeGetInfo */
+    nodeGetInfo, /* nodeGetInfo */
     umlGetCapabilities, /* getCapabilities */
     umlListDomains, /* listDomains */
     umlNumDomains, /* numOfDomains */
@@ -1875,13 +1844,8 @@ static virDriver umlDriver = {
     NULL, /* domainInterfaceStats */
     umlDomainBlockPeek, /* domainBlockPeek */
     NULL, /* domainMemoryPeek */
-#if HAVE_NUMACTL
-    umlNodeGetCellsFreeMemory, /* nodeGetCellsFreeMemory */
-    umlNodeGetFreeMemory,  /* getFreeMemory */
-#else
-    NULL, /* nodeGetCellsFreeMemory */
-    NULL, /* getFreeMemory */
-#endif
+    virNodeGetCellsFreeMemory, /* nodeGetCellsFreeMemory */
+    virNodeGetFreeMemory,  /* getFreeMemory */
     NULL, /* domainEventRegister */
     NULL, /* domainEventDeregister */
     NULL, /* domainMigratePrepare2 */

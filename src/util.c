@@ -56,6 +56,10 @@
 #ifdef HAVE_GETPWUID_R
 #include <pwd.h>
 #endif
+#if HAVE_CAPNG
+#include <cap-ng.h>
+#endif
+
 
 #include "virterror_internal.h"
 #include "logging.h"
@@ -264,6 +268,29 @@ int virSetCloseExec(int fd) {
     return 0;
 }
 
+
+#if HAVE_CAPNG
+static int virClearCapabilities(void)
+{
+    int ret;
+
+    capng_clear(CAPNG_SELECT_BOTH);
+
+    if ((ret = capng_apply(CAPNG_SELECT_BOTH)) < 0) {
+        VIR_ERROR("cannot clear process capabilities %d", ret);
+        return -1;
+    }
+
+    return 0;
+}
+#else
+static int virClearCapabilities(void)
+{
+//    VIR_WARN0("libcap-ng support not compiled in, unable to clear capabilities");
+    return 0;
+}
+#endif
+
 /*
  * @conn Connection to report errors against
  * @argv argv to exec
@@ -349,10 +376,6 @@ __virExec(virConnectPtr conn,
         } else {
             childout = *outfd;
         }
-#ifndef ENABLE_DEBUG
-    } else {
-        childout = null;
-#endif
     }
 
     if (errfd != NULL) {
@@ -380,10 +403,6 @@ __virExec(virConnectPtr conn,
         } else {
             childerr = *errfd;
         }
-#ifndef ENABLE_DEBUG
-    } else {
-        childerr = null;
-#endif
     }
 
     if ((pid = fork()) < 0) {
@@ -488,6 +507,12 @@ __virExec(virConnectPtr conn,
     if (hook)
         if ((hook)(data) != 0)
             _exit(1);
+
+    /* The hook above may need todo something privileged, so
+     * we delay clearing capabilities until now */
+    if ((flags & VIR_EXEC_CLEAR_CAPS) &&
+        virClearCapabilities() < 0)
+        _exit(1);
 
     /* Daemonize as late as possible, so the parent process can detect
      * the above errors with wait* */
@@ -1073,7 +1098,35 @@ int virFileResolveLink(const char *linkpath,
 #endif
 }
 
+/*
+ * Finds a requested file in the PATH env. e.g.:
+ * "kvm-img" will return "/usr/bin/kvm-img"
+ *
+ * You must free the result
+ */
+char *virFindFileInPath(const char *file)
+{
+    char pathenv[PATH_MAX];
+    char *penv = pathenv;
+    char *pathseg;
+    char fullpath[PATH_MAX];
 
+    /* copy PATH env so we can tweak it */
+    strncpy(pathenv, getenv("PATH"), PATH_MAX);
+    pathenv[PATH_MAX - 1] = '\0';
+
+
+    /* for each path segment, append the file to search for and test for
+     * it. return it if found.
+     */
+    while ((pathseg = strsep(&penv, ":")) != NULL) {
+       snprintf(fullpath, PATH_MAX, "%s/%s", pathseg, file);
+       if (virFileExists(fullpath))
+           return strdup(fullpath);
+    }
+
+    return NULL;
+}
 int virFileExists(const char *path)
 {
     struct stat st;
@@ -1594,6 +1647,9 @@ int virEnumFromString(const char *const*types,
                       const char *type)
 {
     unsigned int i;
+    if (!type)
+        return -1;
+
     for (i = 0 ; i < ntypes ; i++)
         if (STREQ(types[i], type))
             return i;
@@ -1680,7 +1736,7 @@ char *virGetHostname(void)
 /* send signal to a single process */
 int virKillProcess(pid_t pid, int sig)
 {
-    if (pid < 1) {
+    if (pid <= 1) {
         errno = ESRCH;
         return -1;
     }

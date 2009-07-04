@@ -39,9 +39,6 @@
 #include "util.h"
 #include "threads.h"
 
-#ifdef ENABLE_DEBUG
-int debugFlag = 0;
-
 /*
  * Macro used to format the message as a string in virLogMessage
  * and borrowed from libxml2 (also used in virRaiseError)
@@ -122,7 +119,7 @@ static int virLogNbOutputs = 0;
 /*
  * Default priorities
  */
-static virLogPriority virLogDefaultPriority = VIR_LOG_WARN;
+static virLogPriority virLogDefaultPriority = VIR_LOG_DEFAULT;
 
 static int virLogResetFilters(void);
 static int virLogResetOutputs(void);
@@ -177,7 +174,7 @@ int virLogStartup(void) {
     virLogLen = 0;
     virLogStart = 0;
     virLogEnd = 0;
-    virLogDefaultPriority = VIR_LOG_WARN;
+    virLogDefaultPriority = VIR_LOG_DEFAULT;
     virLogUnlock();
     return(0);
 }
@@ -199,7 +196,7 @@ int virLogReset(void) {
     virLogLen = 0;
     virLogStart = 0;
     virLogEnd = 0;
-    virLogDefaultPriority = VIR_LOG_WARN;
+    virLogDefaultPriority = VIR_LOG_DEFAULT;
     virLogUnlock();
     return(0);
 }
@@ -692,7 +689,7 @@ int virLogParseOutputs(const char *outputs) {
     virSkipSpaces(&cur);
     while (*cur != 0) {
         prio= virParseNumber(&cur);
-        if ((prio < 0) || (prio > 4))
+        if ((prio < VIR_LOG_DEBUG) || (prio > VIR_LOG_ERROR))
             return(-1);
         if (*cur != ':')
             return(-1);
@@ -773,7 +770,7 @@ int virLogParseFilters(const char *filters) {
     virSkipSpaces(&cur);
     while (*cur != 0) {
         prio= virParseNumber(&cur);
-        if ((prio < 0) || (prio > 4))
+        if ((prio < VIR_LOG_DEBUG) || (prio > VIR_LOG_ERROR))
             return(-1);
         if (*cur != ':')
             return(-1);
@@ -793,5 +790,4 @@ int virLogParseFilters(const char *filters) {
     }
     return(ret);
 }
-#endif /* ENABLE_DEBUG */
 

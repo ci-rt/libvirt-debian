@@ -76,6 +76,7 @@ struct _virConfEntry {
 
 struct _virConf {
     const char* filename;
+    unsigned int flags;
     virConfEntryPtr entries;
 };
 
@@ -167,6 +168,7 @@ virConfNew(void)
         return(NULL);
     }
     ret->filename = NULL;
+    ret->flags = 0;
 
     return(ret);
 }
@@ -174,17 +176,20 @@ virConfNew(void)
 /**
  * virConfCreate:
  * @filename: the name to report errors
+ * @flags: combination of virConfFlag(s)
  *
  * Create a configuration internal structure
  *
  * Returns a pointer or NULL in case of error.
  */
 static virConfPtr
-virConfCreate(const char *filename)
+virConfCreate(const char *filename, unsigned int flags)
 {
     virConfPtr ret = virConfNew();
-    if (ret)
+    if (ret) {
         ret->filename = filename;
+        ret->flags = flags;
+    }
     return(ret);
 }
 
@@ -442,6 +447,11 @@ virConfParseValue(virConfParserCtxtPtr ctxt)
         if (str == NULL)
             return(NULL);
     } else if (CUR == '[') {
+        if (ctxt->conf->flags & VIR_CONF_FLAG_VMX_FORMAT) {
+            virConfError(ctxt, VIR_ERR_CONF_SYNTAX,
+                         _("lists not allowed in VMX format"));
+            return(NULL);
+        }
         type = VIR_CONF_LIST;
         NEXT;
         SKIP_BLANKS_AND_EOL;
@@ -481,6 +491,11 @@ virConfParseValue(virConfParserCtxtPtr ctxt)
             return(NULL);
         }
     } else if (c_isdigit(CUR) || (CUR == '-') || (CUR == '+')) {
+        if (ctxt->conf->flags & VIR_CONF_FLAG_VMX_FORMAT) {
+            virConfError(ctxt, VIR_ERR_CONF_SYNTAX,
+                         _("numbers not allowed in VMX format"));
+            return(NULL);
+        }
         if (virConfParseLong(ctxt, &l) < 0) {
             return(NULL);
         }
@@ -523,7 +538,10 @@ virConfParseName(virConfParserCtxtPtr ctxt)
         virConfError(ctxt, VIR_ERR_CONF_SYNTAX, _("expecting a name"));
         return(NULL);
     }
-    while ((ctxt->cur < ctxt->end) && (c_isalnum(CUR) || (CUR == '_')))
+    while ((ctxt->cur < ctxt->end) &&
+           (c_isalnum(CUR) || (CUR == '_') ||
+            ((ctxt->conf->flags & VIR_CONF_FLAG_VMX_FORMAT) &&
+             ((CUR == ':') || (CUR == '.')))))
         NEXT;
     ret = strndup(base, ctxt->cur - base);
     if (ret == NULL) {
@@ -649,6 +667,7 @@ virConfParseStatement(virConfParserCtxtPtr ctxt)
  * @filename: the name to report errors
  * @content: the configuration content in memory
  * @len: the length in bytes
+ * @flags: combination of virConfFlag(s)
  *
  * Parse the subset of the Python language needed to handle simple
  * Xen configuration files.
@@ -657,7 +676,8 @@ virConfParseStatement(virConfParserCtxtPtr ctxt)
  *         read or parse the file, use virConfFree() to free the data.
  */
 static virConfPtr
-virConfParse(const char *filename, const char *content, int len) {
+virConfParse(const char *filename, const char *content, int len,
+             unsigned int flags) {
     virConfParserCtxt ctxt;
 
     ctxt.filename = filename;
@@ -665,7 +685,7 @@ virConfParse(const char *filename, const char *content, int len) {
     ctxt.end = content + len - 1;
     ctxt.line = 1;
 
-    ctxt.conf = virConfCreate(filename);
+    ctxt.conf = virConfCreate(filename, flags);
     if (ctxt.conf == NULL)
         return(NULL);
 
@@ -695,6 +715,7 @@ error:
 /**
  * virConfReadFile:
  * @filename: the path to the configuration file.
+ * @flags: combination of virConfFlag(s)
  *
  * Reads a configuration file.
  *
@@ -702,7 +723,7 @@ error:
  *         read or parse the file, use virConfFree() to free the data.
  */
 virConfPtr
-virConfReadFile(const char *filename)
+virConfReadFile(const char *filename, unsigned int flags)
 {
     char *content;
     int len;
@@ -717,7 +738,7 @@ virConfReadFile(const char *filename)
         return NULL;
     }
 
-    conf = virConfParse(filename, content, len);
+    conf = virConfParse(filename, content, len, flags);
 
     VIR_FREE(content);
 
@@ -728,6 +749,7 @@ virConfReadFile(const char *filename)
  * virConfReadMem:
  * @memory: pointer to the content of the configuration file
  * @len: length in byte
+ * @flags: combination of virConfFlag(s)
  *
  * Reads a configuration file loaded in memory. The string can be
  * zero terminated in which case @len can be 0
@@ -736,7 +758,7 @@ virConfReadFile(const char *filename)
  *         parse the content, use virConfFree() to free the data.
  */
 virConfPtr
-virConfReadMem(const char *memory, int len)
+virConfReadMem(const char *memory, int len, unsigned int flags)
 {
     if ((memory == NULL) || (len < 0)) {
         virConfError(NULL, VIR_ERR_INVALID_ARG, __FUNCTION__);
@@ -745,7 +767,7 @@ virConfReadMem(const char *memory, int len)
     if (len == 0)
         len = strlen(memory);
 
-    return(virConfParse("memory conf", memory, len));
+    return(virConfParse("memory conf", memory, len, flags));
 }
 
 /**

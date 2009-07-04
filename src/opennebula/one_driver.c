@@ -45,7 +45,7 @@
 
 #define VIR_FROM_THIS VIR_FROM_ONE
 
-static int oneStartup(void);
+static int oneStartup(int privileged);
 static int oneShutdown(void);
 static int oneActive(void);
 
@@ -505,7 +505,7 @@ static int oneDomainShutdown(virDomainPtr dom)
             ret= 0;
             goto return_point;
         }
-        oneError(dom->conn, dom, VIR_ERR_OPERATION_FAILED,
+        oneError(dom->conn, dom, VIR_ERR_OPERATION_INVALID,
                  _("Wrong state to perform action"));
         goto return_point;
     }
@@ -541,7 +541,7 @@ static int oneDomainDestroy(virDomainPtr dom)
     if(c_oneCancel(vm->pid)) {
         /* VM not running, delete the instance at ONE DB */
         if(c_oneFinalize(vm->pid)){
-            oneError(dom->conn, dom, VIR_ERR_OPERATION_FAILED,
+            oneError(dom->conn, dom, VIR_ERR_OPERATION_INVALID,
                      _("Wrong state to perform action"));
             goto return_point;
         }
@@ -576,11 +576,11 @@ static int oneDomainSuspend(virDomainPtr dom)
                 ret=0;
                 goto return_point;
             }
-            oneError(dom->conn, dom, VIR_ERR_OPERATION_FAILED,
+            oneError(dom->conn, dom, VIR_ERR_OPERATION_INVALID,
                      _("Wrong state to perform action"));
             goto return_point;
         }
-        oneError(dom->conn,dom,VIR_ERR_OPERATION_FAILED,
+        oneError(dom->conn,dom, VIR_ERR_OPERATION_INVALID,
                  _("domain is not running"));
     } else {
         oneError(dom->conn, dom, VIR_ERR_INVALID_DOMAIN,
@@ -609,11 +609,11 @@ static int oneDomainResume(virDomainPtr dom)
                 ret=0;
                 goto return_point;
             }
-            oneError(dom->conn, dom, VIR_ERR_OPERATION_FAILED,
+            oneError(dom->conn, dom, VIR_ERR_OPERATION_INVALID,
                      _("Wrong state to perform action"));
             goto return_point;
         }
-        oneError(dom->conn,dom,VIR_ERR_OPERATION_FAILED,
+        oneError(dom->conn,dom, VIR_ERR_OPERATION_INVALID,
                  _("domain is not paused "));
     } else {
         oneError(dom->conn, dom, VIR_ERR_INVALID_DOMAIN,
@@ -628,7 +628,7 @@ return_point:
     return ret;
 };
 
-static int oneStartup(void){
+static int oneStartup(int privileged ATTRIBUTE_UNUSED){
 
     if (VIR_ALLOC(one_driver) < 0) {
         return -1;
@@ -749,6 +749,8 @@ static virDriver oneDriver = {
     NULL, /* domainGetSecurityLabel */
     NULL, /* nodeGetSecurityModel */
     NULL, /* domainDumpXML */
+    NULL, /* domainXMLFromNative */
+    NULL, /* domainXMLToNative */
     oneListDefinedDomains, /* listDefinedDomains */
     oneNumDefinedDomains, /* numOfDefinedDomains */
     oneDomainStart, /* domainCreate */

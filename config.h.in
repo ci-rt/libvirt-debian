@@ -69,6 +69,9 @@
 /* whether Avahi is used to broadcast server presense */
 #undef HAVE_AVAHI
 
+/* whether capng is available for privilege reduction */
+#undef HAVE_CAPNG
+
 /* Define to 1 if you have the `cfmakeraw' function. */
 #undef HAVE_CFMAKERAW
 
@@ -258,6 +261,9 @@
 /* Define to 1 if <sys/socket.h> defines AF_INET6. */
 #undef HAVE_IPV6
 
+/* Define to 1 if you have the `cap-ng' library (-lcap-ng). */
+#undef HAVE_LIBCAP_NG
+
 /* Define to 1 if you have the `dl' library (-ldl). */
 #undef HAVE_LIBDL
 
@@ -360,12 +366,6 @@
 
 /* Define to 1 if you have the <pwd.h> header file. */
 #undef HAVE_PWD_H
-
-/* whether qcow-create is available for non-raw files */
-#undef HAVE_QCOW_CREATE
-
-/* whether qemu-img is available for non-raw files */
-#undef HAVE_QEMU_IMG
 
 /* Define to 1 if you have the <random.h> header file. */
 #undef HAVE_RANDOM_H
@@ -602,6 +602,9 @@
 /* Define to 1 if you have the <xen/xen.h> header file. */
 #undef HAVE_XEN_XEN_H
 
+/* whether One is used to broadcast server presence */
+#undef HAVE_XMLRPC
+
 /* Have query_raw field in libxml2 xmlURI structure */
 #undef HAVE_XMLURI_QUERY_RAW
 
@@ -633,6 +636,10 @@
 /* Define to 1 if `lstat' dereferences a symlink specified with a trailing
    slash. */
 #undef LSTAT_FOLLOWS_SLASHED_SYMLINK
+
+/* Define to the sub-directory in which libtool stores uninstalled libraries.
+   */
+#undef LT_OBJDIR
 
 /* Location of lvcreate program */
 #undef LVCREATE
@@ -691,12 +698,6 @@
 
 /* Location of pvs program */
 #undef PVS
-
-/* Location or name of the qcow-create program */
-#undef QCOW_CREATE
-
-/* Location or name of the qemu-img program */
-#undef QEMU_IMG
 
 /* Define this to 1 if strerror is broken. */
 #undef REPLACE_STRERROR
@@ -858,11 +859,6 @@
 
 /* Number of bits in a file offset, on hosts where this is settable. */
 #undef _FILE_OFFSET_BITS
-
-/* Enable GNU extensions on systems that have them.  */
-#ifndef _GNU_SOURCE
-# undef _GNU_SOURCE
-#endif
 
 /* Define to 1 to make fseeko visible on some hosts (e.g. glibc 2.2). */
 #undef _LARGEFILE_SOURCE

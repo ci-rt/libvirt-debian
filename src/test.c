@@ -286,7 +286,7 @@ static int testOpenDefault(virConnectPtr conn) {
     netobj->persistent = 1;
     virNetworkObjUnlock(netobj);
 
-    if (!(pooldef = virStoragePoolDefParse(conn, defaultPoolXML, NULL)))
+    if (!(pooldef = virStoragePoolDefParseString(conn, defaultPoolXML)))
         goto error;
 
     if (!(poolobj = virStoragePoolObjAssignDef(conn, &privconn->pools,
@@ -341,6 +341,87 @@ static char *testBuildFilename(const char *relativeTo,
     }
 }
 
+static int testOpenVolumesForPool(virConnectPtr conn,
+                                  xmlDocPtr xml,
+                                  xmlXPathContextPtr ctxt,
+                                  const char *file,
+                                  virStoragePoolObjPtr pool,
+                                  int poolidx) {
+    char *vol_xpath;
+    int i, ret, func_ret = -1;
+    xmlNodePtr *vols = NULL;
+    virStorageVolDefPtr def;
+
+    /* Find storage volumes */
+    if (virAsprintf(&vol_xpath, "/node/pool[%d]/volume", poolidx) < 0) {
+        virReportOOMError(NULL);
+        goto error;
+    }
+
+    ret = virXPathNodeSet(conn, vol_xpath, ctxt, &vols);
+    VIR_FREE(vol_xpath);
+    if (ret < 0) {
+        testError(NULL, VIR_ERR_XML_ERROR,
+                  _("node vol list for pool '%s'"), pool->def->name);
+        goto error;
+    }
+
+    for (i = 0 ; i < ret ; i++) {
+        char *relFile = virXMLPropString(vols[i], "file");
+        if (relFile != NULL) {
+            char *absFile = testBuildFilename(file, relFile);
+            VIR_FREE(relFile);
+            if (!absFile) {
+                testError(NULL, VIR_ERR_INTERNAL_ERROR, "%s",
+                          _("resolving volume filename"));
+                goto error;
+            }
+
+            def = virStorageVolDefParseFile(conn, pool->def, absFile);
+            VIR_FREE(absFile);
+            if (!def)
+                goto error;
+        } else {
+            if ((def = virStorageVolDefParseNode(conn, pool->def, xml,
+                                                 vols[i])) == NULL) {
+                goto error;
+            }
+        }
+
+        if (VIR_REALLOC_N(pool->volumes.objs,
+                          pool->volumes.count+1) < 0) {
+            virReportOOMError(conn);
+            goto error;
+        }
+
+        if (virAsprintf(&def->target.path, "%s/%s",
+                        pool->def->target.path,
+                        def->name) == -1) {
+            virReportOOMError(conn);
+            goto error;
+        }
+
+        def->key = strdup(def->target.path);
+        if (def->key == NULL) {
+            virReportOOMError(conn);
+            goto error;
+        }
+
+        pool->def->allocation += def->allocation;
+        pool->def->available = (pool->def->capacity -
+                                pool->def->allocation);
+
+        pool->volumes.objs[pool->volumes.count++] = def;
+        def = NULL;
+    }
+
+    func_ret = 0;
+error:
+    virStorageVolDefFree(def);
+    VIR_FREE(vols);
+    return func_ret;
+}
+
 static int testOpenFromFile(virConnectPtr conn,
                             const char *file) {
     int fd = -1, i, ret;
@@ -381,7 +462,8 @@ static int testOpenFromFile(virConnectPtr conn,
     if (!(xml = xmlReadFd(fd, file, NULL,
                           XML_PARSE_NOENT | XML_PARSE_NONET |
                           XML_PARSE_NOERROR | XML_PARSE_NOWARNING))) {
-        testError(NULL, VIR_ERR_INTERNAL_ERROR, "%s", _("host"));
+        testError(NULL, VIR_ERR_INTERNAL_ERROR,
+                  _("Invalid XML in file '%s'"), file);
         goto error;
     }
     close(fd);
@@ -389,7 +471,8 @@ static int testOpenFromFile(virConnectPtr conn,
 
     root = xmlDocGetRootElement(xml);
     if ((root == NULL) || (!xmlStrEqual(root->name, BAD_CAST "node"))) {
-        testError(NULL, VIR_ERR_XML_ERROR, "%s", _("node"));
+        testError(NULL, VIR_ERR_XML_ERROR, "%s",
+                  _("Root element is not 'node'"));
         goto error;
     }
 
@@ -541,6 +624,7 @@ static int testOpenFromFile(virConnectPtr conn,
             goto error;
         }
         net->persistent = 1;
+        net->active = 1;
         virNetworkObjUnlock(net);
     }
     VIR_FREE(networks);
@@ -564,22 +648,13 @@ static int testOpenFromFile(virConnectPtr conn,
                 goto error;
             }
 
-            def = virStoragePoolDefParse(conn, NULL, absFile);
+            def = virStoragePoolDefParseFile(conn, absFile);
             VIR_FREE(absFile);
             if (!def)
                 goto error;
         } else {
-            xmlBufferPtr buf;
-            xmlSaveCtxtPtr sctxt;
-
-            buf = xmlBufferCreate();
-            sctxt = xmlSaveToBuffer(buf, NULL, 0);
-            xmlSaveTree(sctxt, pools[i]);
-            xmlSaveClose(sctxt);
-            if ((def = virStoragePoolDefParse(conn,
-                                              (const char *) buf->content,
-                                              NULL)) == NULL) {
-                xmlBufferFree(buf);
+            if ((def = virStoragePoolDefParseNode(conn, xml,
+                                                  pools[i])) == NULL) {
                 goto error;
             }
         }
@@ -595,6 +670,13 @@ static int testOpenFromFile(virConnectPtr conn,
             goto error;
         }
         pool->active = 1;
+
+        /* Find storage volumes */
+        if (testOpenVolumesForPool(conn, xml, ctxt, file, pool, i+1) < 0) {
+            virStoragePoolObjUnlock(pool);
+            goto error;
+        }
+
         virStoragePoolObjUnlock(pool);
     }
     VIR_FREE(pools);
@@ -636,9 +718,6 @@ static virDrvOpenStatus testOpen(virConnectPtr conn,
         return VIR_DRV_OPEN_DECLINED;
 
     /* Remote driver should handle these. */
-    if (conn->uri->server)
-        return VIR_DRV_OPEN_DECLINED;
-
     if (conn->uri->server)
         return VIR_DRV_OPEN_DECLINED;
 
@@ -1626,16 +1705,16 @@ static virDomainPtr testDomainDefineXML(virConnectPtr conn,
                                   def)) == NULL) {
         goto cleanup;
     }
+    def = NULL;
     dom->persistent = 1;
-    dom->def->id = -1;
+
     event = virDomainEventNewFromObj(dom,
                                      VIR_DOMAIN_EVENT_DEFINED,
                                      VIR_DOMAIN_EVENT_DEFINED_ADDED);
 
-    ret = virGetDomain(conn, def->name, def->uuid);
-    def = NULL;
+    ret = virGetDomain(conn, dom->def->name, dom->def->uuid);
     if (ret)
-        ret->id = -1;
+        ret->id = dom->def->id;
 
 cleanup:
     virDomainDefFree(def);
@@ -2517,7 +2596,7 @@ testStoragePoolCreate(virConnectPtr conn,
     virStoragePoolPtr ret = NULL;
 
     testDriverLock(privconn);
-    if (!(def = virStoragePoolDefParse(conn, xml, NULL)))
+    if (!(def = virStoragePoolDefParseString(conn, xml)))
         goto cleanup;
 
     pool = virStoragePoolObjFindByUUID(&privconn->pools, def->uuid);
@@ -2560,7 +2639,7 @@ testStoragePoolDefine(virConnectPtr conn,
     virStoragePoolPtr ret = NULL;
 
     testDriverLock(privconn);
-    if (!(def = virStoragePoolDefParse(conn, xml, NULL)))
+    if (!(def = virStoragePoolDefParseString(conn, xml)))
         goto cleanup;
 
     def->capacity = defaultPoolCap;
@@ -3085,7 +3164,7 @@ testStorageVolumeCreateXML(virStoragePoolPtr pool,
         goto cleanup;
     }
 
-    privvol = virStorageVolDefParse(pool->conn, privpool->def, xmldesc, NULL);
+    privvol = virStorageVolDefParseString(pool->conn, privpool->def, xmldesc);
     if (privvol == NULL)
         goto cleanup;
 
@@ -3166,7 +3245,7 @@ testStorageVolumeCreateXMLFrom(virStoragePoolPtr pool,
         goto cleanup;
     }
 
-    privvol = virStorageVolDefParse(pool->conn, privpool->def, xmldesc, NULL);
+    privvol = virStorageVolDefParseString(pool->conn, privpool->def, xmldesc);
     if (privvol == NULL)
         goto cleanup;
 

@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([libvirt], [0.6.4])
+AC_INIT([libvirt], [0.6.5])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AM_CONFIG_HEADER([config.h])
@@ -191,7 +191,7 @@ AC_ARG_WITH([vbox],
 AC_ARG_WITH([lxc],
 [  --with-lxc              add Linux Container support (on)],[],[with_lxc=yes])
 AC_ARG_WITH([one],
-[  --with-one              add ONE support (on)],[],[with_one=no])
+[  --with-one              add ONE support (on)],[],[with_one=check])
 AC_ARG_WITH([test],
 [  --with-test             add test driver support (on)],[],[with_test=yes])
 AC_ARG_WITH([remote],
@@ -420,11 +420,30 @@ AC_CHECK_HEADERS([linux/kvm.h])
 dnl OpenNebula driver Compilation setting
 dnl
 
-if test "$with_one" = "yes" ; then
- CFLAGS="$CFLAGS -I$ONE_LOCATION/include"
- ONE_LIBS="-L/usr/local/lib -lxmlrpc_client++ -lxmlrpc -lxmlrpc_util -lxmlrpc_xmlparse -lxmlrpc_xmltok -lxmlrpc++ -lxmlrpc_client -L$ONE_LOCATION/lib -loneapi"
- AC_SUBST([ONE_LIBS])
+XMLRPC_REQUIRED=1.14.0
+
+XMLRPC_CFLAGS=
+XMLRPC_LIBS=
+if test "x$with_one" = "xyes" -o "x$with_one" = "xcheck"; then
+    PKG_CHECK_MODULES(XMLRPC, xmlrpc_client >= $XMLRPC_REQUIRED,
+      [with_one=yes], [
+      if test "x$with_one" = "xcheck" ; then
+          with_one=no
+      else
+          AC_MSG_ERROR(
+            [You must install XMLRPC-C >= $XMLRPC_REQUIRED to compile libvirt ONE driver])
+      fi
+    ])
+    if test "x$with_one" = "xyes" ; then
+        AC_DEFINE_UNQUOTED([HAVE_XMLRPC], 1,
+          [whether One is used to broadcast server presence])
+    fi
 fi
+AM_CONDITIONAL([HAVE_XMLRPC], [test "x$with_one" = "xyes"])
+AM_CONDITIONAL([WITH_ONE], [test "x$with_one" = "xyes"])
+AC_SUBST([XMLRPC_CFLAGS])
+AC_SUBST([XMLRPC_LIBS])
+
 
 dnl Need to test if pkg-config exists
 PKG_PROG_PKG_CONFIG
@@ -749,6 +768,49 @@ AM_CONDITIONAL([HAVE_NUMACTL], [test "$with_numactl" != "no"])
 AC_SUBST([NUMACTL_CFLAGS])
 AC_SUBST([NUMACTL_LIBS])
 
+
+
+dnl libcap-ng
+AC_ARG_WITH([capng],
+  [  --with-capng         use libcap-ng to reduce libvirtd privileges],
+  [],
+  [with_capng=check])
+
+dnl
+dnl This check looks for 'capng_updatev' since that was
+dnl introduced in 0.4.0 release which need as minimum
+dnl
+CAPNG_CFLAGS=
+CAPNG_LIBS=
+if test "$with_qemu" = "yes" -a "$with_capng" != "no"; then
+  old_cflags="$CFLAGS"
+  old_libs="$LIBS"
+  if test "$with_capng" = "check"; then
+    AC_CHECK_HEADER([cap-ng.h],[],[with_capng=no])
+    AC_CHECK_LIB([cap-ng], [capng_updatev],[],[with_capng=no])
+    if test "$with_capng" != "no"; then
+      with_capng="yes"
+    fi
+  else
+    fail=0
+    AC_CHECK_HEADER([cap-ng.h],[],[fail=1])
+    AC_CHECK_LIB([cap-ng], [capng_updatev],[],[fail=1])
+    test $fail = 1 &&
+      AC_MSG_ERROR([You must install the capng >= 0.4.0 development package in order to compile and run libvirt])
+  fi
+  CFLAGS="$old_cflags"
+  LIBS="$old_libs"
+fi
+if test "$with_capng" = "yes"; then
+  CAPNG_LIBS="-lcap-ng"
+  AC_DEFINE_UNQUOTED([HAVE_CAPNG], 1, [whether capng is available for privilege reduction])
+fi
+AM_CONDITIONAL([HAVE_CAPNG], [test "$with_capng" != "no"])
+AC_SUBST([CAPNG_CFLAGS])
+AC_SUBST([CAPNG_LIBS])
+
+
+
 dnl virsh libraries
 AC_CHECK_HEADERS([readline/readline.h])
 
@@ -888,21 +950,6 @@ if test "$with_storage_fs" = "yes"; then
   AC_DEFINE_UNQUOTED([SHOWMOUNT], ["$SHOWMOUNT"],
     [Location or name of the showmount program])
 fi
-
-AC_PATH_PROG([QEMU_IMG], [qemu-img], [], [$PATH:/sbin:/usr/sbin:/bin:/usr/bin])
-if test -n "$QEMU_IMG" ; then
-  AC_DEFINE_UNQUOTED([HAVE_QEMU_IMG], 1, [whether qemu-img is available for non-raw files])
-  AC_DEFINE_UNQUOTED([QEMU_IMG],["$QEMU_IMG"],
-      [Location or name of the qemu-img program])
-fi
-
-AC_PATH_PROG([QCOW_CREATE], [qcow-create], [], [$PATH:/sbin:/usr/sbin:/bin:/usr/bin])
-if test -n "$QCOW_CREATE" ; then
-  AC_DEFINE_UNQUOTED([HAVE_QCOW_CREATE], 1, [whether qcow-create is available for non-raw files])
-  AC_DEFINE_UNQUOTED([QCOW_CREATE],["$QCOW_CREATE"],
-      [Location or name of the qcow-create program])
-fi
-
 
 if test "$with_storage_lvm" = "yes" -o "$with_storage_lvm" = "check"; then
   AC_PATH_PROG([PVCREATE], [pvcreate], [], [$PATH:/sbin:/usr/sbin])
@@ -1488,6 +1535,11 @@ AC_MSG_NOTICE([ numactl: $NUMACTL_CFLAGS $NUMACTL_LIBS])
 else
 AC_MSG_NOTICE([ numactl: no])
 fi
+if test "$with_capng" = "yes" ; then
+AC_MSG_NOTICE([   capng: $CAPNG_CFLAGS $CAPNG_LIBS])
+else
+AC_MSG_NOTICE([   capng: no])
+fi
 if test "$with_xen" = "yes" ; then
 AC_MSG_NOTICE([     xen: $XEN_CFLAGS $XEN_LIBS])
 else
@@ -1507,6 +1559,11 @@ if test "$with_netcf" = "yes" ; then
 AC_MSG_NOTICE([   netcf: $NETCF_CFLAGS $NETCF_LIBS])
 else
 AC_MSG_NOTICE([   netcf: no])
+fi
+if test "$with_one" = "yes" ; then
+AC_MSG_NOTICE([  xmlrpc: $XMLRPC_CFLAGS $XMLRPC_LIBS])
+else
+AC_MSG_NOTICE([  xmlrpc: no])
 fi
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Test suite])

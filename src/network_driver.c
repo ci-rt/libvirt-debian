@@ -182,7 +182,7 @@ networkAutostartConfigs(struct network_driver *driver) {
  * Initialization function for the QEmu daemon
  */
 static int
-networkStartup(void) {
+networkStartup(int privileged) {
     uid_t uid = geteuid();
     char *base = NULL;
     int err;
@@ -196,7 +196,7 @@ networkStartup(void) {
     }
     networkDriverLock(driverState);
 
-    if (!uid) {
+    if (privileged) {
         if (virAsprintf(&driverState->logDir,
                         "%s/log/libvirt/qemu", LOCAL_STATE_DIR) == -1)
             goto out_of_memory;
@@ -1350,6 +1350,12 @@ static int networkSetAutostart(virNetworkPtr net,
     if (!network) {
         networkReportError(net->conn, NULL, net, VIR_ERR_INVALID_NETWORK,
                          "%s", _("no network with matching uuid"));
+        goto cleanup;
+    }
+
+    if (!network->persistent) {
+        networkReportError(net->conn, NULL, net, VIR_ERR_INTERNAL_ERROR,
+                         "%s", _("cannot set autostart for transient network"));
         goto cleanup;
     }
 

@@ -28,6 +28,7 @@
 #include <libhal.h>
 
 #include "node_device_conf.h"
+#include "node_device_hal.h"
 #include "virterror_internal.h"
 #include "driver.h"
 #include "datatypes.h"
@@ -36,6 +37,8 @@
 #include "uuid.h"
 #include "logging.h"
 #include "node_device.h"
+
+#define VIR_FROM_THIS VIR_FROM_NODEDEV
 
 /*
  * Host device enumeration (HAL implementation)
@@ -214,8 +217,20 @@ static int gather_net_cap(LibHalContext *ctx, const char *udi,
 static int gather_scsi_host_cap(LibHalContext *ctx, const char *udi,
                                 union _virNodeDevCapData *d)
 {
+    int retval = 0;
+
     (void)get_int_prop(ctx, udi, "scsi_host.host", (int *)&d->scsi_host.host);
-    return 0;
+
+    retval = check_fc_host(d);
+
+    if (retval == -1) {
+        goto out;
+    }
+
+    retval = check_vport_capable(d);
+
+out:
+    return retval;
 }
 
 
@@ -240,6 +255,7 @@ static int gather_storage_cap(LibHalContext *ctx, const char *udi,
     (void)get_str_prop(ctx, udi, "storage.drive_type", &d->storage.drive_type);
     (void)get_str_prop(ctx, udi, "storage.model", &d->storage.model);
     (void)get_str_prop(ctx, udi, "storage.vendor", &d->storage.vendor);
+    (void)get_str_prop(ctx, udi, "storage.serial", &d->storage.serial);
     if (get_bool_prop(ctx, udi, "storage.removable", &val) == 0 && val) {
         d->storage.flags |= VIR_NODE_DEV_CAP_STORAGE_REMOVABLE;
         if (get_bool_prop(ctx, udi, "storage.removable.media_available",
@@ -413,6 +429,7 @@ static void dev_create(const char *udi)
     const char *name = hal_name(udi);
     int rv;
     char *privData = strdup(udi);
+    char *devicePath = NULL;
 
     if (!privData)
         return;
@@ -439,15 +456,22 @@ static void dev_create(const char *udi)
     if (def->caps == NULL)
         goto cleanup;
 
+    /* Some devices don't have a path in sysfs, so ignore failure */
+    get_str_prop(ctx, udi, "linux.sysfs_path", &devicePath);
+
     dev = virNodeDeviceAssignDef(NULL,
                                  &driverState->devs,
                                  def);
 
-    if (!dev)
+    if (!dev) {
+        VIR_FREE(devicePath);
         goto failure;
+    }
 
     dev->privateData = privData;
     dev->privateFree = free_udi;
+    dev->devicePath = devicePath;
+
     virNodeDeviceObjUnlock(dev);
 
     nodeDeviceUnlock(driverState);
@@ -661,7 +685,7 @@ static void toggle_dbus_watch(DBusWatch *watch,
 }
 
 
-static int halDeviceMonitorStartup(void)
+static int halDeviceMonitorStartup(int privileged ATTRIBUTE_UNUSED)
 {
     LibHalContext *hal_ctx = NULL;
     DBusConnection *dbus_conn = NULL;
@@ -785,10 +809,33 @@ static int halDeviceMonitorShutdown(void)
 
 static int halDeviceMonitorReload(void)
 {
-    /* XXX This isn't thread safe because its free'ing the thing
-     * we're locking */
-    (void)halDeviceMonitorShutdown();
-    return halDeviceMonitorStartup();
+    DBusError err;
+    char **udi = NULL;
+    int num_devs, i;
+    LibHalContext *hal_ctx;
+
+    VIR_INFO0("Reloading HAL device state");
+    nodeDeviceLock(driverState);
+    VIR_INFO0("Removing existing objects");
+    virNodeDeviceObjListFree(&driverState->devs);
+    nodeDeviceUnlock(driverState);
+
+    hal_ctx = DRV_STATE_HAL_CTX(driverState);
+    VIR_INFO0("Creating new objects");
+    dbus_error_init(&err);
+    udi = libhal_get_all_devices(hal_ctx, &num_devs, &err);
+    if (udi == NULL) {
+        fprintf(stderr, "%s: libhal_get_all_devices failed\n", __FUNCTION__);
+        return -1;
+    }
+    for (i = 0; i < num_devs; i++) {
+        dev_create(udi[i]);
+        VIR_FREE(udi[i]);
+    }
+    VIR_FREE(udi);
+    VIR_INFO0("HAL device reload complete");
+
+    return 0;
 }
 
 

@@ -235,7 +235,7 @@ static gnutls_session_t negotiate_gnutls_on_connection (virConnectPtr conn, stru
 
 #ifdef WITH_LIBVIRTD
 static int
-remoteStartup(void)
+remoteStartup(int privileged ATTRIBUTE_UNUSED)
 {
     /* Mark that we're inside the daemon so we can avoid
      * re-entering ourselves
@@ -295,7 +295,8 @@ remoteForkDaemon(virConnectPtr conn)
     }
 
     if (virExecDaemonize(NULL, daemonargs, NULL, NULL,
-                         &pid, -1, NULL, NULL, 0,
+                         &pid, -1, NULL, NULL,
+                         VIR_EXEC_CLEAR_CAPS,
                          NULL, NULL, NULL) < 0)
         return -1;
 
@@ -305,21 +306,28 @@ remoteForkDaemon(virConnectPtr conn)
 
 enum virDrvOpenRemoteFlags {
     VIR_DRV_OPEN_REMOTE_RO = (1 << 0),
-    VIR_DRV_OPEN_REMOTE_UNIX = (1 << 1),
-    VIR_DRV_OPEN_REMOTE_USER = (1 << 2),
-    VIR_DRV_OPEN_REMOTE_AUTOSTART = (1 << 3),
+    VIR_DRV_OPEN_REMOTE_USER      = (1 << 1), /* Use the per-user socket path */
+    VIR_DRV_OPEN_REMOTE_AUTOSTART = (1 << 2), /* Autostart a per-user daemon */
 };
 
-/* What transport? */
-enum {
-    trans_tls,
-    trans_unix,
-    trans_ssh,
-    trans_ext,
-    trans_tcp,
-} transport;
 
-
+/*
+ * URIs that this driver needs to handle:
+ *
+ * The easy answer:
+ *   - Everything that no one else has yet claimed, but nothing if
+ *     we're inside the libvirtd daemon
+ *
+ * The hard answer:
+ *   - Plain paths (///var/lib/xen/xend-socket)  -> UNIX domain socket
+ *   - xxx://servername/      -> TLS connection
+ *   - xxx+tls://servername/  -> TLS connection
+ *   - xxx+tls:///            -> TLS connection to localhost
+ *   - xxx+tcp://servername/  -> TCP connection
+ *   - xxx+tcp:///            -> TCP connection to localhost
+ *   - xxx+unix:///           -> UNIX domain socket
+ *   - xxx:///                -> UNIX domain socket
+ */
 static int
 doRemoteOpen (virConnectPtr conn,
               struct private_data *priv,
@@ -328,37 +336,51 @@ doRemoteOpen (virConnectPtr conn,
 {
     int wakeupFD[2] = { -1, -1 };
     char *transport_str = NULL;
+    enum {
+        trans_tls,
+        trans_unix,
+        trans_ssh,
+        trans_ext,
+        trans_tcp,
+    } transport;
+
+    /* We handle *ALL*  URIs here. The caller has rejected any
+     * URIs we don't care about */
 
     if (conn->uri) {
-        if (!conn->uri->scheme)
-            return VIR_DRV_OPEN_DECLINED;
-
-        transport_str = get_transport_from_scheme (conn->uri->scheme);
-
-        if (!transport_str || STRCASEEQ (transport_str, "tls"))
-            transport = trans_tls;
-        else if (STRCASEEQ (transport_str, "unix"))
+        if (!conn->uri->scheme) {
+            /* This is the ///var/lib/xen/xend-socket local path style */
             transport = trans_unix;
-        else if (STRCASEEQ (transport_str, "ssh"))
-            transport = trans_ssh;
-        else if (STRCASEEQ (transport_str, "ext"))
-            transport = trans_ext;
-        else if (STRCASEEQ (transport_str, "tcp"))
-            transport = trans_tcp;
-        else {
-            error (conn, VIR_ERR_INVALID_ARG,
-                   _("remote_open: transport in URL not recognised "
-                     "(should be tls|unix|ssh|ext|tcp)"));
-            return VIR_DRV_OPEN_ERROR;
+        } else {
+            transport_str = get_transport_from_scheme (conn->uri->scheme);
+
+            if (!transport_str) {
+                if (conn->uri->server)
+                    transport = trans_tls;
+                else
+                    transport = trans_unix;
+            } else {
+                if (STRCASEEQ (transport_str, "tls"))
+                    transport = trans_tls;
+                else if (STRCASEEQ (transport_str, "unix"))
+                    transport = trans_unix;
+                else if (STRCASEEQ (transport_str, "ssh"))
+                    transport = trans_ssh;
+                else if (STRCASEEQ (transport_str, "ext"))
+                    transport = trans_ext;
+                else if (STRCASEEQ (transport_str, "tcp"))
+                    transport = trans_tcp;
+                else {
+                    error (conn, VIR_ERR_INVALID_ARG,
+                           _("remote_open: transport in URL not recognised "
+                             "(should be tls|unix|ssh|ext|tcp)"));
+                    return VIR_DRV_OPEN_ERROR;
+                }
+            }
         }
-    }
-
-    if (!transport_str) {
-        if ((!conn->uri || !conn->uri->server) &&
-            (flags & VIR_DRV_OPEN_REMOTE_UNIX))
-            transport = trans_unix;
-        else
-            return VIR_DRV_OPEN_DECLINED; /* Decline - not a remote URL. */
+    } else {
+        /* No URI, then must be probing so use UNIX socket */
+        transport = trans_unix;
     }
 
     /* Local variables which we will initialise. These can
@@ -455,8 +477,9 @@ doRemoteOpen (virConnectPtr conn,
 
         /* Construct the original name. */
         if (!name) {
-            if (STREQ(conn->uri->scheme, "remote") ||
-                STRPREFIX(conn->uri->scheme, "remote+")) {
+            if (conn->uri->scheme &&
+                (STREQ(conn->uri->scheme, "remote") ||
+                 STRPREFIX(conn->uri->scheme, "remote+"))) {
                 /* Allow remote serve to probe */
                 name = strdup("");
             } else {
@@ -580,7 +603,7 @@ doRemoteOpen (virConnectPtr conn,
 
         freeaddrinfo (res);
         virReportSystemError(conn, saved_errno,
-                             _("unable to connect to '%s'"),
+                             _("unable to connect to libvirtd at '%s'"),
                              priv->hostname);
         goto failed;
 
@@ -700,7 +723,10 @@ doRemoteOpen (virConnectPtr conn,
         cmd_argv[j++] = strdup (priv->hostname);
         cmd_argv[j++] = strdup (netcat ? netcat : "nc");
         cmd_argv[j++] = strdup ("-U");
-        cmd_argv[j++] = strdup (sockname ? sockname : LIBVIRTD_PRIV_UNIX_SOCKET);
+        cmd_argv[j++] = strdup (sockname ? sockname :
+                                (flags & VIR_CONNECT_RO
+                                 ? LIBVIRTD_PRIV_UNIX_SOCKET_RO
+                                 : LIBVIRTD_PRIV_UNIX_SOCKET));
         cmd_argv[j++] = 0;
         assert (j == nr_args);
         for (j = 0; j < (nr_args-1); j++)
@@ -724,7 +750,8 @@ doRemoteOpen (virConnectPtr conn,
         }
 
         if (virExec(conn, (const char**)cmd_argv, NULL, NULL,
-                    &pid, sv[1], &(sv[1]), NULL, VIR_EXEC_NONE) < 0)
+                    &pid, sv[1], &(sv[1]), NULL,
+                    VIR_EXEC_CLEAR_CAPS) < 0)
             goto failed;
 
         /* Parent continues here. */
@@ -925,7 +952,6 @@ remoteOpenSecondaryDriver(virConnectPtr conn,
 
     if (flags & VIR_CONNECT_RO)
         rflags |= VIR_DRV_OPEN_REMOTE_RO;
-    rflags |= VIR_DRV_OPEN_REMOTE_UNIX;
 
     ret = doRemoteOpen(conn, *priv, auth, rflags);
     if (ret != VIR_DRV_OPEN_SUCCESS) {
@@ -958,19 +984,6 @@ remoteOpen (virConnectPtr conn,
 
     /*
      * If no servername is given, and no +XXX
-     * transport is listed, then force to a
-     * local UNIX socket connection
-     */
-    if (conn->uri &&
-        !conn->uri->server &&
-        conn->uri->scheme &&
-        !strchr(conn->uri->scheme, '+')) {
-        DEBUG0("Auto-remote UNIX socket");
-        rflags |= VIR_DRV_OPEN_REMOTE_UNIX;
-    }
-
-    /*
-     * If no servername is given, and no +XXX
      * transport is listed, or transport is unix,
      * and path is /session, and uid is unprivileged
      * then auto-spawn a daemon.
@@ -996,7 +1009,6 @@ remoteOpen (virConnectPtr conn,
      */
     if (!conn->uri) {
         DEBUG0("Auto-probe remote URI");
-        rflags |= VIR_DRV_OPEN_REMOTE_UNIX;
 #ifndef __sun
         if (getuid() > 0) {
             DEBUG0("Auto-spawn user daemon instance");
@@ -2313,6 +2325,8 @@ remoteDomainGetSecurityLabel (virDomainPtr domain, virSecurityLabelPtr seclabel)
 
     make_nonnull_domain (&args.dom, domain);
     memset (&ret, 0, sizeof ret);
+    memset (seclabel, 0, sizeof (*seclabel));
+
     if (call (domain->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_SECURITY_LABEL,
               (xdrproc_t) xdr_remote_domain_get_security_label_args, (char *)&args,
               (xdrproc_t) xdr_remote_domain_get_security_label_ret, (char *)&ret) == -1) {
@@ -2346,6 +2360,8 @@ remoteNodeGetSecurityModel (virConnectPtr conn, virSecurityModelPtr secmodel)
     remoteDriverLock(priv);
 
     memset (&ret, 0, sizeof ret);
+    memset (secmodel, 0, sizeof (*secmodel));
+
     if (call (conn, priv, 0, REMOTE_PROC_NODE_GET_SECURITY_MODEL,
               (xdrproc_t) xdr_void, NULL,
               (xdrproc_t) xdr_remote_node_get_security_model_ret, (char *)&ret) == -1) {
@@ -5434,7 +5450,7 @@ remoteNodeDeviceDestroy(virNodeDevicePtr dev)
 
     args.name = dev->name;
 
-    if (call(dev->conn, priv, 0, REMOTE_PROC_NODE_DEVICE_RESET,
+    if (call(dev->conn, priv, 0, REMOTE_PROC_NODE_DEVICE_DESTROY,
              (xdrproc_t) xdr_remote_node_device_destroy_args, (char *) &args,
              (xdrproc_t) xdr_void, (char *) NULL) == -1)
         goto done;

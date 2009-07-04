@@ -24,11 +24,12 @@
 #include "virterror_internal.h"
 #include "util.h"
 #include "memory.h"
-
+#include "logging.h"
 
 #define VIR_FROM_THIS VIR_FROM_SECURITY
 
 static char default_domain_context[1024];
+static char default_content_context[1024];
 static char default_image_context[1024];
 #define SECURITY_SELINUX_VOID_DOI       "0"
 #define SECURITY_SELINUX_NAME "selinux"
@@ -148,8 +149,13 @@ SELinuxInitialize(virConnectPtr conn)
     close(fd);
 
     ptr = strchrnul(default_image_context, '\n');
-    *ptr = '\0';
-
+    if (*ptr == '\n') {
+        *ptr = '\0';
+        strcpy(default_content_context, ptr+1);
+        ptr = strchrnul(default_content_context, '\n');
+        if (*ptr == '\n')
+            *ptr = '\0';
+    }
     return 0;
 }
 
@@ -216,6 +222,44 @@ done:
 }
 
 static int
+SELinuxReserveSecurityLabel(virConnectPtr conn,
+                            virDomainObjPtr vm)
+{
+    security_context_t pctx;
+    context_t ctx = NULL;
+    const char *mcs;
+
+    if (getpidcon(vm->pid, &pctx) == -1) {
+        char ebuf[1024];
+        virSecurityReportError(conn, VIR_ERR_ERROR, _("%s: error calling "
+                               "getpidcon(): %s"), __func__,
+                               virStrerror(errno, ebuf, sizeof ebuf));
+        return -1;
+    }
+
+    ctx = context_new(pctx);
+    VIR_FREE(pctx);
+    if (!ctx)
+        goto err;
+
+    mcs = context_range_get(ctx);
+    if (!mcs)
+        goto err;
+
+    mcsAdd(mcs);
+
+    context_free(ctx);
+
+    return 0;
+
+err:
+    context_free(ctx);
+    return -1;
+}
+
+
+
+static int
 SELinuxSecurityDriverProbe(void)
 {
     return is_selinux_enabled() ? SECURITY_DRIVER_ENABLE : SECURITY_DRIVER_DISABLE;
@@ -274,8 +318,19 @@ static int
 SELinuxSetFilecon(virConnectPtr conn, const char *path, char *tcon)
 {
     char ebuf[1024];
+    security_context_t econ;
 
-    if(setfilecon(path, tcon) < 0) {
+    VIR_INFO("Setting SELinux context on '%s' to '%s'", path, tcon);
+
+    if (setfilecon(path, tcon) < 0) {
+        if (getfilecon(path, &econ) >= 0) {
+            if (STREQ(tcon, econ)) {
+                freecon(econ);
+                /* It's alright, there's nothing to change anyway. */
+                return 0;
+            }
+            freecon(econ);
+        }
         virSecurityReportError(conn, VIR_ERR_ERROR,
                                _("%s: unable to set security context "
                                  "'\%s\' on %s: %s."), __func__,
@@ -298,9 +353,6 @@ SELinuxRestoreSecurityImageLabel(virConnectPtr conn,
     int err;
     char *newpath = NULL;
     const char *path = disk->src;
-
-    if (disk->readonly || disk->shared)
-        return 0;
 
     if ((err = virFileResolveLink(path, &newpath)) < 0) {
         virReportSystemError(conn, err,
@@ -328,8 +380,16 @@ SELinuxSetSecurityImageLabel(virConnectPtr conn,
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
 
-    if (secdef->imagelabel)
+    if (!disk->src)
+        return 0;
+
+    if (disk->shared) {
+        return SELinuxSetFilecon(conn, disk->src, default_image_context);
+    } else if (disk->readonly) {
+        return SELinuxSetFilecon(conn, disk->src, default_content_context);
+    } else if (secdef->imagelabel) {
         return SELinuxSetFilecon(conn, disk->src, secdef->imagelabel);
+    }
 
     return 0;
 }
@@ -403,9 +463,6 @@ SELinuxSetSecurityLabel(virConnectPtr conn,
 
     if (secdef->imagelabel) {
         for (i = 0 ; i < vm->def->ndisks ; i++) {
-            if (vm->def->disks[i]->readonly ||
-                vm->def->disks[i]->shared) continue;
-
             if (SELinuxSetSecurityImageLabel(conn, vm, vm->def->disks[i]) < 0)
                 return -1;
         }
@@ -422,6 +479,7 @@ virSecurityDriver virSELinuxSecurityDriver = {
     .domainSetSecurityImageLabel = SELinuxSetSecurityImageLabel,
     .domainRestoreSecurityImageLabel = SELinuxRestoreSecurityImageLabel,
     .domainGenSecurityLabel     = SELinuxGenSecurityLabel,
+    .domainReserveSecurityLabel     = SELinuxReserveSecurityLabel,
     .domainGetSecurityLabel     = SELinuxGetSecurityLabel,
     .domainRestoreSecurityLabel = SELinuxRestoreSecurityLabel,
     .domainSetSecurityLabel     = SELinuxSetSecurityLabel,

@@ -56,11 +56,14 @@ enum qemud_cmd_flags {
     QEMUD_CMD_FLAG_MIGRATE_QEMU_EXEC = (1 << 11), /* New migration syntax after merge to QEMU with EXEC transport */
     QEMUD_CMD_FLAG_DRIVE_CACHE_V2    = (1 << 12), /* Is the cache= flag wanting new v2 values */
     QEMUD_CMD_FLAG_KVM               = (1 << 13), /* Whether KVM is compiled in */
+    QEMUD_CMD_FLAG_DRIVE_FORMAT      = (1 << 14), /* Is -drive format= avail */
 };
 
 /* Main driver state */
 struct qemud_driver {
     virMutex lock;
+
+    int privileged;
 
     unsigned int qemuVersion;
     int nextvmid;
@@ -92,15 +95,6 @@ struct qemud_driver {
     virSecurityDriverPtr securityDriver;
 };
 
-/* Status needed to reconenct to running VMs */
-typedef struct _qemudDomainStatus qemudDomainStatus;
-typedef qemudDomainStatus *qemudDomainStatusPtr;
-struct _qemudDomainStatus {
-    char *monitorpath;
-    pid_t pid;
-    int state;
-    virDomainDefPtr def;
-};
 
 /* Port numbers used for KVM migration. */
 #define QEMUD_MIGRATION_FIRST_PORT 49152
@@ -125,6 +119,12 @@ int         qemudExtractVersionInfo     (const char *qemu,
                                          unsigned int *version,
                                          unsigned int *flags);
 
+int         qemudParseHelpStr           (const char *str,
+                                         unsigned int *flags,
+                                         unsigned int *version,
+                                         unsigned int *is_kvm,
+                                         unsigned int *kvm_version);
+
 int         qemudBuildCommandLine       (virConnectPtr conn,
                                          struct qemud_driver *driver,
                                          virDomainDefPtr def,
@@ -142,14 +142,5 @@ virDomainDefPtr qemuParseCommandLine(virConnectPtr conn,
 virDomainDefPtr qemuParseCommandLineString(virConnectPtr conn,
                                            virCapsPtr caps,
                                            const char *args);
-
-const char *qemudVirtTypeToString       (int type);
-qemudDomainStatusPtr qemudDomainStatusParseFile(virConnectPtr conn,
-                                                virCapsPtr caps,
-                                                const char *filename,
-                                                int flags);
-int qemudSaveDomainStatus(virConnectPtr conn,
-                          struct qemud_driver *driver,
-                          virDomainObjPtr vm);
 
 #endif /* __QEMUD_CONF_H */
