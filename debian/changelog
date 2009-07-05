@@ -1,3 +1,22 @@
+libvirt (0.6.5-1) unstable; urgency=low
+
+  [ Guido Günther ]
+  * [05e9a39] build-depend on policykit so polkit auth works with virsh
+    as well
+
+  [ C.J. Adams-Collier ]
+  * [a161c5f] allow to qemu to emulate arm
+
+  [ Guido Günther ]
+  * [b1e4c4b] Imported Upstream version 0.6.5
+  * [e764583] change private symbols to 0.6.5
+  * [f94fb48] drop 0005-allow-to-qemu-to-emulate-arm.patch fixed upstream.
+  * [7ad7896] bump standards version
+  * [e2c5867] tighten libvirt-bin's dependency on libvirt0 since libvirtd uses
+    private symbols
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 05 Jul 2009 13:07:53 +0200
+
 libvirt (0.6.4-1) unstable; urgency=low
 
   * [dd3adb2] Imported Upstream version 0.6.4
