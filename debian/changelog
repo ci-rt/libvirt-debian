@@ -1,3 +1,13 @@
+libvirt (0.6.5-3) unstable; urgency=low
+
+  * [72a8eb6] Add a versioned dependency on dpkg-dev (Closes: #537316)
+  * [ae20998] fix Debian Xen path patch to also cover the testsuite
+  * [b2a1c47] New patch 0001-Fix-PCI-device-hotplug-unplug-with-newer-
+    QEMU.patch pulled from upstream 326ecb7. Fixes PCI hotplug with
+    newer kvm.
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 29 Jul 2009 12:17:52 +0200
+
 libvirt (0.6.5-2) unstable; urgency=low
 
   * [45b9fdf] build-conflict on dpkg-dev (= 1.15.3) (Closes: #536673)
