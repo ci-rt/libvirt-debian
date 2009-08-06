@@ -34,6 +34,7 @@
 #include "domain_event.h"
 #include "threads.h"
 #include "security.h"
+#include "cgroup.h"
 
 #define qemudDebug(fmt, ...) do {} while(0)
 
@@ -57,6 +58,12 @@ enum qemud_cmd_flags {
     QEMUD_CMD_FLAG_DRIVE_CACHE_V2    = (1 << 12), /* Is the cache= flag wanting new v2 values */
     QEMUD_CMD_FLAG_KVM               = (1 << 13), /* Whether KVM is compiled in */
     QEMUD_CMD_FLAG_DRIVE_FORMAT      = (1 << 14), /* Is -drive format= avail */
+    QEMUD_CMD_FLAG_VGA               = (1 << 15), /* Is -vga avail */
+
+    /* features added in qemu-0.10.0 */
+    QEMUD_CMD_FLAG_0_10         = (1 << 16),
+    QEMUD_CMD_FLAG_NET_NAME     = QEMUD_CMD_FLAG_0_10, /* -net ...,name=str */
+    QEMUD_CMD_FLAG_HOST_NET_ADD = QEMUD_CMD_FLAG_0_10, /* host_net_add monitor command */
 };
 
 /* Main driver state */
@@ -65,8 +72,15 @@ struct qemud_driver {
 
     int privileged;
 
+    uid_t user;
+    gid_t group;
+
     unsigned int qemuVersion;
     int nextvmid;
+
+    virCgroupPtr cgroup;
+    int cgroupControllers;
+    char **cgroupDeviceACL;
 
     virDomainObjList domains;
 
@@ -111,7 +125,7 @@ struct qemud_driver {
 int qemudLoadDriverConfig(struct qemud_driver *driver,
                           const char *filename);
 
-virCapsPtr  qemudCapsInit               (void);
+virCapsPtr  qemudCapsInit               (virCapsPtr old_caps);
 
 int         qemudExtractVersion         (virConnectPtr conn,
                                          struct qemud_driver *driver);
@@ -128,12 +142,40 @@ int         qemudParseHelpStr           (const char *str,
 int         qemudBuildCommandLine       (virConnectPtr conn,
                                          struct qemud_driver *driver,
                                          virDomainDefPtr def,
+                                         virDomainChrDefPtr monitor_chr,
                                          unsigned int qemuCmdFlags,
                                          const char ***retargv,
                                          const char ***retenv,
                                          int **tapfds,
                                          int *ntapfds,
                                          const char *migrateFrom);
+
+int         qemuBuildHostNetStr         (virConnectPtr conn,
+                                         virDomainNetDefPtr net,
+                                         const char *prefix,
+                                         char type_sep,
+                                         int vlan,
+                                         const char *tapfd,
+                                         char **str);
+
+int         qemuBuildNicStr             (virConnectPtr conn,
+                                         virDomainNetDefPtr net,
+                                         const char *prefix,
+                                         char type_sep,
+                                         int vlan,
+                                         char **str);
+
+int         qemudNetworkIfaceConnect    (virConnectPtr conn,
+                                         struct qemud_driver *driver,
+                                         virDomainNetDefPtr net,
+                                         int qemuCmdFlags);
+
+int         qemuAssignNetNames          (virDomainDefPtr def,
+                                         virDomainNetDefPtr net);
+
+int         qemudProbeMachineTypes      (const char *binary,
+                                         virCapsGuestMachinePtr **machines,
+                                         int *nmachines);
 
 virDomainDefPtr qemuParseCommandLine(virConnectPtr conn,
                                      virCapsPtr caps,

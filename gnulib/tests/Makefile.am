@@ -51,6 +51,15 @@ EXTRA_libtests_a_SOURCES += accept.c
 
 ## end   gnulib module accept
 
+## begin gnulib module alignof-tests
+
+TESTS += test-alignof
+check_PROGRAMS += test-alignof
+
+EXTRA_DIST += test-alignof.c
+
+## end   gnulib module alignof-tests
+
 ## begin gnulib module alloca-opt-tests
 
 TESTS += test-alloca-opt
@@ -98,10 +107,10 @@ EXTRA_DIST += test-errno.c
 
 ## begin gnulib module fseeko-tests
 
-TESTS += test-fseeko.sh
+TESTS += test-fseeko.sh test-fseeko2.sh
 TESTS_ENVIRONMENT += EXEEXT='@EXEEXT@' srcdir='$(srcdir)'
 check_PROGRAMS += test-fseeko
-EXTRA_DIST += test-fseeko.c test-fseeko.sh
+EXTRA_DIST += test-fseeko.c test-fseeko.sh test-fseeko2.sh
 
 ## end   gnulib module fseeko-tests
 
@@ -176,6 +185,14 @@ EXTRA_DIST += test-lstat.c
 
 ## end   gnulib module lstat-tests
 
+## begin gnulib module memchr-tests
+
+TESTS += test-memchr
+check_PROGRAMS += test-memchr
+EXTRA_DIST += test-memchr.c zerosize-ptr.h
+
+## end   gnulib module memchr-tests
+
 ## begin gnulib module netdb-tests
 
 TESTS += test-netdb
@@ -221,6 +238,20 @@ EXTRA_DIST += test-random_r.c
 
 ## end   gnulib module random_r-tests
 
+## begin gnulib module select-tests
+
+TESTS += test-select test-select-in.sh test-select-out.sh
+# test-select-stdin has to be run by hand.
+TESTS_ENVIRONMENT += EXEEXT='@EXEEXT@'
+check_PROGRAMS += test-select test-select-fd test-select-stdin
+test_select_LDADD = $(LDADD) @LIBSOCKET@
+test_select_fd_LDADD = $(LDADD) @LIBSOCKET@
+test_select_stdin_LDADD = $(LDADD) @LIBSOCKET@
+
+EXTRA_DIST += test-select.c test-select-fd.c test-select-in.sh test-select-out.sh test-select-stdin.c
+
+## end   gnulib module select-tests
+
 ## begin gnulib module snprintf-tests
 
 TESTS += test-snprintf
@@ -233,6 +264,8 @@ EXTRA_DIST += test-snprintf.c
 ## begin gnulib module sockets
 
 libtests_a_SOURCES += sockets.h sockets.c
+
+EXTRA_DIST += w32sock.h
 
 ## end   gnulib module sockets
 
@@ -374,7 +407,7 @@ EXTRA_DIST += test-vasprintf.c
 
 TESTS += test-vc-list-files-git.sh
 TESTS += test-vc-list-files-cvs.sh
-TESTS_ENVIRONMENT += PATH='$(abs_aux_dir)':"$$PATH"
+TESTS_ENVIRONMENT += PATH='$(abs_aux_dir)'$(PATH_SEPARATOR)"$$PATH"
 EXTRA_DIST += test-vc-list-files-git.sh test-vc-list-files-cvs.sh
 
 ## end   gnulib module vc-list-files-tests

@@ -43,14 +43,14 @@
    language is requested. */
 #undef ENABLE_NLS
 
+/* Define to 1 if ungetc is broken when used on arbitrary bytes. */
+#undef FUNC_UNGETC_BROKEN
+
 /* Define if gettimeofday clobbers the localtime buffer. */
 #undef GETTIMEOFDAY_CLOBBERS_LOCALTIME
 
 /* Define to 1 when using the gnulib module ioctl. */
 #undef GNULIB_IOCTL
-
-/* Define to 1 when using the gnulib module sys_socket. */
-#undef GNULIB_SYS_SOCKET
 
 /* enable GnuTLS 1.0 compatibility macros */
 #undef GNUTLS_1_0_COMPAT
@@ -68,6 +68,9 @@
 
 /* whether Avahi is used to broadcast server presense */
 #undef HAVE_AVAHI
+
+/* Define to 1 if you have the <bp-sym.h> header file. */
+#undef HAVE_BP_SYM_H
 
 /* whether capng is available for privilege reduction */
 #undef HAVE_CAPNG
@@ -212,6 +215,9 @@
 /* Define to 1 if you have the `getmntent_r' function. */
 #undef HAVE_GETMNTENT_R
 
+/* Define to 1 if you have the `getpagesize' function. */
+#undef HAVE_GETPAGESIZE
+
 /* Define to 1 if you have the `getpass' function. */
 #undef HAVE_GETPASS
 
@@ -291,6 +297,9 @@
 /* Define to 1 if you have the `selinux' library (-lselinux). */
 #undef HAVE_LIBSELINUX
 
+/* Define to 1 if you have the <libssh/libssh.h> header file. */
+#undef HAVE_LIBSSH_LIBSSH_H
+
 /* Define to 1 if you have the `uuid' library (-luuid). */
 #undef HAVE_LIBUUID
 
@@ -321,11 +330,24 @@
 /* Define if the 'malloc' function is POSIX compliant. */
 #undef HAVE_MALLOC_POSIX
 
+/* Define to 1 if mmap()'s MAP_ANONYMOUS flag is available after including
+   config.h and <sys/mman.h>. */
+#undef HAVE_MAP_ANONYMOUS
+
+/* Define to 1 if you have the `mbrtowc' function. */
+#undef HAVE_MBRTOWC
+
+/* Define to 1 if you have the `memchr' function. */
+#undef HAVE_MEMCHR
+
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
 /* Define to 1 if you have the `mmap' function. */
 #undef HAVE_MMAP
+
+/* Define to 1 if you have the `mprotect' function. */
+#undef HAVE_MPROTECT
 
 /* Define to 1 if you have the <netdb.h> header file. */
 #undef HAVE_NETDB_H
@@ -335,6 +357,9 @@
 
 /* whether numactl is available for topology info */
 #undef HAVE_NUMACTL
+
+/* Define to 1 if you have the <OS.h> header file. */
+#undef HAVE_OS_H
 
 /* Define to 1 if you have the <paths.h> header file. */
 #undef HAVE_PATHS_H
@@ -390,6 +415,9 @@
 
 /* whether Cyrus SASL is available for authentication */
 #undef HAVE_SASL
+
+/* Define to 1 if the system has the type `sa_family_t'. */
+#undef HAVE_SA_FAMILY_T
 
 /* Define to 1 if you have the `sched_getaffinity' function. */
 #undef HAVE_SCHED_GETAFFINITY
@@ -452,6 +480,9 @@
 /* Define if you have the strndup() function and it works. */
 #undef HAVE_STRNDUP
 
+/* Define to 1 if you have the `strnlen' function. */
+#undef HAVE_STRNLEN
+
 /* Define to 1 if you have the `strsep' function. */
 #undef HAVE_STRSEP
 
@@ -466,6 +497,9 @@
 
 /* Define to 1 if `sa_len' is member of `struct sockaddr'. */
 #undef HAVE_STRUCT_SOCKADDR_SA_LEN
+
+/* Define to 1 if the system has the type `struct sockaddr_storage'. */
+#undef HAVE_STRUCT_SOCKADDR_STORAGE
 
 /* Define to 1 if you have the `sysctl' function. */
 #undef HAVE_SYSCTL
@@ -487,6 +521,9 @@
 
 /* Define to 1 if you have the <sys/ioctl.h> header file. */
 #undef HAVE_SYS_IOCTL_H
+
+/* Define to 1 if you have the <sys/mman.h> header file. */
+#undef HAVE_SYS_MMAN_H
 
 /* Define to 1 if you have the <sys/param.h> header file. */
 #undef HAVE_SYS_PARAM_H
@@ -575,8 +612,14 @@
 /* Define if you have the 'wchar_t' type. */
 #undef HAVE_WCHAR_T
 
+/* Define to 1 if you have the `wcrtomb' function. */
+#undef HAVE_WCRTOMB
+
 /* Define to 1 if you have the `wcslen' function. */
 #undef HAVE_WCSLEN
+
+/* Define to 1 if you have the `wcsnlen' function. */
+#undef HAVE_WCSNLEN
 
 /* Define to 1 if you have the <winsock2.h> header file. */
 #undef HAVE_WINSOCK2_H
@@ -650,6 +693,9 @@
 /* Location of lvs program */
 #undef LVS
 
+/* Define to a substitute value for mmap()'s MAP_ANONYMOUS flag. */
+#undef MAP_ANONYMOUS
+
 /* Location or name of the modprobe program */
 #undef MODPROBE
 
@@ -698,6 +744,12 @@
 
 /* Location of pvs program */
 #undef PVS
+
+/* QEMU group account */
+#undef QEMU_GROUP
+
+/* QEMU user account */
+#undef QEMU_USER
 
 /* Define this to 1 if strerror is broken. */
 #undef REPLACE_STRERROR
@@ -787,6 +839,9 @@
 /* whether to build drivers as modules */
 #undef WITH_DRIVER_MODULES
 
+/* whether ESX driver is enabled */
+#undef WITH_ESX
+
 /* whether libvirtd daemon is enabled */
 #undef WITH_LIBVIRTD
 
@@ -808,6 +863,9 @@
 
 /* whether OpenVZ driver is enabled */
 #undef WITH_OPENVZ
+
+/* whether IBM HMC / IVM driver is enabled */
+#undef WITH_PHYP
 
 /* Whether Xen proxy is enabled */
 #undef WITH_PROXY

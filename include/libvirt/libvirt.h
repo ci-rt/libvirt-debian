@@ -442,7 +442,7 @@ extern virConnectAuthPtr virConnectAuthPtrDefault;
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-#define LIBVIR_VERSION_NUMBER 6005
+#define LIBVIR_VERSION_NUMBER 7000
 
 int                     virGetVersion           (unsigned long *libVer,
                                                  const char *type,
@@ -619,6 +619,7 @@ int                     virDomainBlockPeek (virDomainPtr dom,
 /* Memory peeking flags. */
 typedef enum {
   VIR_MEMORY_VIRTUAL              = 1, /* addresses are virtual addresses */
+  VIR_MEMORY_PHYSICAL             = 2, /* addresses are physical addresses */
 } virDomainMemoryFlags;
 
 int                     virDomainMemoryPeek (virDomainPtr dom,
@@ -889,6 +890,11 @@ int                     virConnectNumOfInterfaces (virConnectPtr conn);
 int                     virConnectListInterfaces  (virConnectPtr conn,
                                                    char **const names,
                                                    int maxnames);
+
+int                     virConnectNumOfDefinedInterfaces (virConnectPtr conn);
+int                     virConnectListDefinedInterfaces  (virConnectPtr conn,
+                                                          char **const names,
+                                                          int maxnames);
 
 virInterfacePtr         virInterfaceLookupByName  (virConnectPtr conn,
                                                    const char *name);

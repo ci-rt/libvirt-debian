@@ -619,6 +619,7 @@ int                     virDomainBlockPeek (virDomainPtr dom,
 /* Memory peeking flags. */
 typedef enum {
   VIR_MEMORY_VIRTUAL              = 1, /* addresses are virtual addresses */
+  VIR_MEMORY_PHYSICAL             = 2, /* addresses are physical addresses */
 } virDomainMemoryFlags;
 
 int                     virDomainMemoryPeek (virDomainPtr dom,
@@ -889,6 +890,11 @@ int                     virConnectNumOfInterfaces (virConnectPtr conn);
 int                     virConnectListInterfaces  (virConnectPtr conn,
                                                    char **const names,
                                                    int maxnames);
+
+int                     virConnectNumOfDefinedInterfaces (virConnectPtr conn);
+int                     virConnectListDefinedInterfaces  (virConnectPtr conn,
+                                                          char **const names,
+                                                          int maxnames);
 
 virInterfacePtr         virInterfaceLookupByName  (virConnectPtr conn,
                                                    const char *name);

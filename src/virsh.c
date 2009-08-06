@@ -202,7 +202,7 @@ typedef struct __vshControl {
 static const vshCmdDef commands[];
 
 static void vshError(vshControl *ctl, int doexit, const char *format, ...)
-    ATTRIBUTE_FORMAT(printf, 3, 4);
+    ATTRIBUTE_FMT_PRINTF(3, 4);
 static int vshInit(vshControl *ctl);
 static int vshDeinit(vshControl *ctl);
 static void vshUsage(void);
@@ -228,6 +228,7 @@ static int vshCommandOptBool(const vshCmd *cmd, const char *name);
 #define VSH_BYID     (1 << 1)
 #define VSH_BYUUID   (1 << 2)
 #define VSH_BYNAME   (1 << 3)
+#define VSH_BYMAC    (1 << 4)
 
 static virDomainPtr vshCommandOptDomainBy(vshControl *ctl, const vshCmd *cmd,
                                           char **name, int flag);
@@ -243,6 +244,14 @@ static virNetworkPtr vshCommandOptNetworkBy(vshControl *ctl, const vshCmd *cmd,
 #define vshCommandOptNetwork(_ctl, _cmd, _name)                    \
     vshCommandOptNetworkBy(_ctl, _cmd, _name,                      \
                            VSH_BYUUID|VSH_BYNAME)
+
+static virInterfacePtr vshCommandOptInterfaceBy(vshControl *ctl, const vshCmd *cmd,
+                                                char **name, int flag);
+
+/* default is lookup by Name and MAC */
+#define vshCommandOptInterface(_ctl, _cmd, _name)                    \
+    vshCommandOptInterfaceBy(_ctl, _cmd, _name,                      \
+                           VSH_BYMAC|VSH_BYNAME)
 
 static virStoragePoolPtr vshCommandOptPoolBy(vshControl *ctl, const vshCmd *cmd,
                             const char *optname, char **name, int flag);
@@ -263,9 +272,9 @@ static virStorageVolPtr vshCommandOptVolBy(vshControl *ctl, const vshCmd *cmd,
                            VSH_BYUUID|VSH_BYNAME)
 
 static void vshPrintExtra(vshControl *ctl, const char *format, ...)
-    ATTRIBUTE_FORMAT(printf, 2, 3);
+    ATTRIBUTE_FMT_PRINTF(2, 3);
 static void vshDebug(vshControl *ctl, int level, const char *format, ...)
-    ATTRIBUTE_FORMAT(printf, 3, 4);
+    ATTRIBUTE_FMT_PRINTF(3, 4);
 
 /* XXX: add batch support */
 #define vshPrint(_ctl, ...)   fprintf(stdout, __VA_ARGS__)
@@ -274,6 +283,10 @@ static const char *vshDomainStateToString(int state);
 static const char *vshDomainVcpuStateToString(int state);
 static int vshConnectionUsability(vshControl *ctl, virConnectPtr conn,
                                   int showerror);
+
+static char *editWriteToTempFile (vshControl *ctl, const char *doc);
+static int   editFile (vshControl *ctl, const char *filename);
+static char *editReadBackFile (vshControl *ctl, const char *filename);
 
 static void *_vshMalloc(vshControl *ctl, size_t sz, const char *filename, int line);
 #define vshMalloc(_ctl, _sz)    _vshMalloc(_ctl, _sz, __FILE__, __LINE__)
@@ -482,6 +495,8 @@ cmdConnect(vshControl *ctl, const vshCmd *cmd)
     return ctl->conn ? TRUE : FALSE;
 }
 
+#ifndef WIN32
+
 /*
  * "console" command
  */
@@ -496,8 +511,6 @@ static const vshCmdOptDef opts_console[] = {
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("domain name, id or uuid")},
     {NULL, 0, 0, NULL}
 };
-
-#ifndef __MINGW32__
 
 static int
 cmdRunConsole(vshControl *ctl, virDomainPtr dom)
@@ -561,17 +574,6 @@ cmdRunConsole(vshControl *ctl, virDomainPtr dom)
     return ret;
 }
 
-#else /* __MINGW32__ */
-
-static int
-cmdRunConsole(vshControl *ctl, virDomainPtr dom ATTRIBUTE_UNUSED)
-{
-    vshError (ctl, FALSE, "%s", _("console not implemented on this platform"));
-    return FALSE;
-}
-
-#endif /* __MINGW32__ */
-
 static int
 cmdConsole(vshControl *ctl, const vshCmd *cmd)
 {
@@ -589,6 +591,9 @@ cmdConsole(vshControl *ctl, const vshCmd *cmd)
     virDomainFree(dom);
     return ret;
 }
+
+#endif /* WIN32 */
+
 
 /*
  * "list" command
@@ -771,8 +776,10 @@ cmdDomblkstat (vshControl *ctl, const vshCmd *cmd)
     if (!(dom = vshCommandOptDomain (ctl, cmd, &name)))
         return FALSE;
 
-    if (!(device = vshCommandOptString (cmd, "device", NULL)))
+    if (!(device = vshCommandOptString (cmd, "device", NULL))) {
+        virDomainFree(dom);
         return FALSE;
+    }
 
     if (virDomainBlockStats (dom, device, &stats, sizeof stats) == -1) {
         vshError (ctl, FALSE, _("Failed to get block stats %s %s"),
@@ -827,8 +834,10 @@ cmdDomIfstat (vshControl *ctl, const vshCmd *cmd)
     if (!(dom = vshCommandOptDomain (ctl, cmd, &name)))
         return FALSE;
 
-    if (!(device = vshCommandOptString (cmd, "interface", NULL)))
+    if (!(device = vshCommandOptString (cmd, "interface", NULL))) {
+        virDomainFree(dom);
         return FALSE;
+    }
 
     if (virDomainInterfaceStats (dom, device, &stats, sizeof stats) == -1) {
         vshError (ctl, FALSE, _("Failed to get interface stats %s %s"),
@@ -914,7 +923,9 @@ static const vshCmdInfo info_create[] = {
 
 static const vshCmdOptDef opts_create[] = {
     {"file", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("file containing an XML domain description")},
+#ifndef WIN32
     {"console", VSH_OT_BOOL, 0, gettext_noop("attach to console after creation")},
+#endif
     {NULL, 0, 0, NULL}
 };
 
@@ -926,7 +937,9 @@ cmdCreate(vshControl *ctl, const vshCmd *cmd)
     int found;
     int ret = TRUE;
     char *buffer;
+#ifndef WIN32
     int console = vshCommandOptBool(cmd, "console");
+#endif
 
     if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
         return FALSE;
@@ -944,8 +957,10 @@ cmdCreate(vshControl *ctl, const vshCmd *cmd)
     if (dom != NULL) {
         vshPrint(ctl, _("Domain %s created from %s\n"),
                  virDomainGetName(dom), from);
+#ifndef WIN32
         if (console)
             cmdRunConsole(ctl, dom);
+#endif
         virDomainFree(dom);
     } else {
         vshError(ctl, FALSE, _("Failed to create domain from %s"), from);
@@ -1066,7 +1081,9 @@ static const vshCmdInfo info_start[] = {
 
 static const vshCmdOptDef opts_start[] = {
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("name of the inactive domain")},
+#ifndef WIN32
     {"console", VSH_OT_BOOL, 0, gettext_noop("attach to console after creation")},
+#endif
     {NULL, 0, 0, NULL}
 };
 
@@ -1075,7 +1092,9 @@ cmdStart(vshControl *ctl, const vshCmd *cmd)
 {
     virDomainPtr dom;
     int ret = TRUE;
+#ifndef WIN32
     int console = vshCommandOptBool(cmd, "console");
+#endif
 
     if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
         return FALSE;
@@ -1092,8 +1111,10 @@ cmdStart(vshControl *ctl, const vshCmd *cmd)
     if (virDomainCreate(dom) == 0) {
         vshPrint(ctl, _("Domain %s started\n"),
                  virDomainGetName(dom));
+#ifndef WIN32
         if (console)
             cmdRunConsole(ctl, dom);
+#endif
     } else {
         vshError(ctl, FALSE, _("Failed to start domain %s"),
                  virDomainGetName(dom));
@@ -1164,25 +1185,111 @@ static const vshCmdOptDef opts_schedinfo[] = {
 };
 
 static int
+cmdSchedInfoUpdate(vshControl *ctl, const vshCmd *cmd,
+                   virSchedParameterPtr param)
+{
+    int found;
+    char *data;
+
+    /* Legacy 'weight' parameter */
+    if (STREQ(param->field, "weight") &&
+        param->type == VIR_DOMAIN_SCHED_FIELD_UINT &&
+        vshCommandOptBool(cmd, "weight")) {
+        int val;
+        val = vshCommandOptInt(cmd, "weight", &found);
+        if (!found) {
+            vshError(ctl, FALSE, "%s", _("Invalid value of weight"));
+            return -1;
+        } else {
+            param->value.ui = val;
+        }
+        return 1;
+    }
+
+    /* Legacy 'cap' parameter */
+    if (STREQ(param->field, "cap") &&
+        param->type == VIR_DOMAIN_SCHED_FIELD_UINT &&
+        vshCommandOptBool(cmd, "cap")) {
+        int val;
+        val = vshCommandOptInt(cmd, "cap", &found);
+        if (!found) {
+            vshError(ctl, FALSE, "%s", _("Invalid value of cap"));
+            return -1;
+        } else {
+            param->value.ui = val;
+        }
+        return 1;
+    }
+
+    if ((data = vshCommandOptString(cmd, "set", NULL))) {
+        char *val = strchr(data, '=');
+        int match = 0;
+        if (!val) {
+            vshError(ctl, FALSE, "%s", _("Invalid syntax for --set, expecting name=value"));
+            return -1;
+        }
+        *val = '\0';
+        match = STREQ(data, param->field);
+        *val = '=';
+        val++;
+
+        if (!match)
+            return 0;
+
+        switch (param->type) {
+        case VIR_DOMAIN_SCHED_FIELD_INT:
+            if (virStrToLong_i(val, NULL, 10, &param->value.i) < 0) {
+                vshError(ctl, FALSE, "%s",
+                         _("Invalid value for parameter, expecting an int"));
+                return -1;
+            }
+            break;
+        case VIR_DOMAIN_SCHED_FIELD_UINT:
+            if (virStrToLong_ui(val, NULL, 10, &param->value.ui) < 0) {
+                vshError(ctl, FALSE, "%s",
+                         _("Invalid value for parameter, expecting an unsigned int"));
+                return -1;
+            }
+            break;
+        case VIR_DOMAIN_SCHED_FIELD_LLONG:
+            if (virStrToLong_ll(val, NULL, 10, &param->value.l) < 0) {
+                vshError(ctl, FALSE, "%s",
+                         _("Invalid value for parameter, expecting an long long"));
+                return -1;
+            }
+            break;
+        case VIR_DOMAIN_SCHED_FIELD_ULLONG:
+            if (virStrToLong_ull(val, NULL, 10, &param->value.ul) < 0) {
+                vshError(ctl, FALSE, "%s",
+                         _("Invalid value for parameter, expecting an unsigned long long"));
+                return -1;
+            }
+            break;
+        case VIR_DOMAIN_SCHED_FIELD_DOUBLE:
+            if (virStrToDouble(val, NULL, &param->value.d) < 0) {
+                vshError(ctl, FALSE, "%s", _("Invalid value for parameter, expecting a double"));
+                return -1;
+            }
+            break;
+        case VIR_DOMAIN_SCHED_FIELD_BOOLEAN:
+            param->value.b = STREQ(val, "0") ? 0 : 1;
+        }
+        return 1;
+    }
+
+    return 0;
+}
+
+
+static int
 cmdSchedinfo(vshControl *ctl, const vshCmd *cmd)
 {
     char *schedulertype;
-    char *set;
-    char *param_name = NULL;
-    long long int param_value = 0;
     virDomainPtr dom;
     virSchedParameterPtr params = NULL;
-    int i, ret;
     int nparams = 0;
-    int nr_inputparams = 0;
-    int inputparams = 0;
-    int weightfound = 0;
-    int setfound = 0;
-    int weight = 0;
-    int capfound = 0;
-    int cap = 0;
-    char str_weight[] = "weight";
-    char str_cap[]    = "cap";
+    int update = 0;
+    int i, ret;
     int ret_val = FALSE;
 
     if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
@@ -1190,85 +1297,6 @@ cmdSchedinfo(vshControl *ctl, const vshCmd *cmd)
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return FALSE;
-
-    /* Deprecated Xen-only options */
-    if(vshCommandOptBool(cmd, "weight")) {
-        weight = vshCommandOptInt(cmd, "weight", &weightfound);
-        if (!weightfound) {
-            vshError(ctl, FALSE, "%s", _("Invalid value of weight"));
-            goto cleanup;
-        } else {
-            nr_inputparams++;
-        }
-    }
-
-    if(vshCommandOptBool(cmd, "cap")) {
-        cap = vshCommandOptInt(cmd, "cap", &capfound);
-        if (!capfound) {
-            vshError(ctl, FALSE, "%s", _("Invalid value of cap"));
-            goto cleanup;
-        } else {
-            nr_inputparams++;
-        }
-    }
-
-    if(vshCommandOptBool(cmd, "set")) {
-        set = vshCommandOptString(cmd, "set", &setfound);
-        if (!setfound) {
-            vshError(ctl, FALSE, "%s", _("Error getting param"));
-            goto cleanup;
-        }
-
-        param_name = vshMalloc(ctl, strlen(set) + 1);
-        if (param_name == NULL)
-            goto cleanup;
-
-        if (sscanf(set, "%[^=]=%lli", param_name, &param_value) != 2) {
-            vshError(ctl, FALSE, "%s", _("Invalid value of param"));
-            goto cleanup;
-        }
-
-        nr_inputparams++;
-    }
-
-    params = vshMalloc(ctl, sizeof (virSchedParameter) * nr_inputparams);
-    if (params == NULL) {
-        goto cleanup;
-    }
-
-    if (weightfound) {
-         strncpy(params[inputparams].field,str_weight,sizeof(str_weight));
-         params[inputparams].type = VIR_DOMAIN_SCHED_FIELD_UINT;
-         params[inputparams].value.ui = weight;
-         inputparams++;
-    }
-
-    if (capfound) {
-         strncpy(params[inputparams].field,str_cap,sizeof(str_cap));
-         params[inputparams].type = VIR_DOMAIN_SCHED_FIELD_UINT;
-         params[inputparams].value.ui = cap;
-         inputparams++;
-    }
-    /* End Deprecated Xen-only options */
-
-    if (setfound) {
-        strncpy(params[inputparams].field,param_name,sizeof(params[0].field));
-        params[inputparams].type = VIR_DOMAIN_SCHED_FIELD_LLONG;
-        params[inputparams].value.l = param_value;
-        inputparams++;
-    }
-
-    assert (inputparams == nr_inputparams);
-
-    /* Set SchedulerParameters */
-    if (inputparams > 0) {
-        ret = virDomainSetSchedulerParameters(dom, params, inputparams);
-        if (ret == -1) {
-            goto cleanup;
-        }
-    }
-    free(params);
-    params = NULL;
 
     /* Print SchedulerType */
     schedulertype = virDomainGetSchedulerType(dom, &nparams);
@@ -1281,21 +1309,38 @@ cmdSchedinfo(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
     }
 
-    /* Get SchedulerParameters */
-    params = vshMalloc(ctl, sizeof(virSchedParameter)* nparams);
-    if (params == NULL) {
-        goto cleanup;
-    }
-    for (i = 0; i < nparams; i++){
-        params[i].type = 0;
-        memset (params[i].field, 0, sizeof params[i].field);
-    }
-    ret = virDomainGetSchedulerParameters(dom, params, &nparams);
-    if (ret == -1) {
-        goto cleanup;
-    }
-    ret_val = TRUE;
-    if(nparams){
+    if (nparams) {
+        params = vshMalloc(ctl, sizeof(virSchedParameter)* nparams);
+        if (params == NULL)
+            goto cleanup;
+
+        memset(params, 0, sizeof(virSchedParameter)* nparams);
+        ret = virDomainGetSchedulerParameters(dom, params, &nparams);
+        if (ret == -1)
+            goto cleanup;
+
+        /* See if any params are being set */
+        for (i = 0; i < nparams; i++){
+            ret = cmdSchedInfoUpdate(ctl, cmd, &(params[i]));
+            if (ret == -1)
+                goto cleanup;
+
+            if (ret == 1)
+                update = 1;
+        }
+
+        /* Update parameters & refresh data */
+        if (update) {
+            ret = virDomainSetSchedulerParameters(dom, params, nparams);
+            if (ret == -1)
+                goto cleanup;
+
+            ret = virDomainGetSchedulerParameters(dom, params, &nparams);
+            if (ret == -1)
+                goto cleanup;
+        }
+
+        ret_val = TRUE;
         for (i = 0; i < nparams; i++){
             switch (params[i].type) {
             case VIR_DOMAIN_SCHED_FIELD_INT:
@@ -1305,10 +1350,10 @@ cmdSchedinfo(vshControl *ctl, const vshCmd *cmd)
                  printf("%-15s: %u\n",  params[i].field, params[i].value.ui);
                  break;
             case VIR_DOMAIN_SCHED_FIELD_LLONG:
-                 printf("%-15s: %Ld\n",  params[i].field, params[i].value.l);
+                 printf("%-15s: %lld\n",  params[i].field, params[i].value.l);
                  break;
             case VIR_DOMAIN_SCHED_FIELD_ULLONG:
-                 printf("%-15s: %Lu\n",  params[i].field, params[i].value.ul);
+                 printf("%-15s: %llu\n",  params[i].field, params[i].value.ul);
                  break;
             case VIR_DOMAIN_SCHED_FIELD_DOUBLE:
                  printf("%-15s: %f\n",  params[i].field, params[i].value.d);
@@ -1321,9 +1366,9 @@ cmdSchedinfo(vshControl *ctl, const vshCmd *cmd)
             }
         }
     }
+
  cleanup:
     free(params);
-    free(param_name);
     virDomainFree(dom);
     return ret_val;
 }
@@ -2515,6 +2560,7 @@ cmdNetworkAutostart(vshControl *ctl, const vshCmd *cmd)
     else
         vshPrint(ctl, _("Network %s unmarked as autostarted\n"), name);
 
+    virNetworkFree(network);
     return TRUE;
 }
 
@@ -2557,6 +2603,7 @@ cmdNetworkCreate(vshControl *ctl, const vshCmd *cmd)
     if (network != NULL) {
         vshPrint(ctl, _("Network %s created from %s\n"),
                  virNetworkGetName(network), from);
+        virNetworkFree(network);
     } else {
         vshError(ctl, FALSE, _("Failed to create network from %s"), from);
         ret = FALSE;
@@ -2604,6 +2651,7 @@ cmdNetworkDefine(vshControl *ctl, const vshCmd *cmd)
     if (network != NULL) {
         vshPrint(ctl, _("Network %s defined from %s\n"),
                  virNetworkGetName(network), from);
+        virNetworkFree(network);
     } else {
         vshError(ctl, FALSE, _("Failed to define network from %s"), from);
         ret = FALSE;
@@ -2692,6 +2740,106 @@ cmdNetworkDumpXML(vshControl *ctl, const vshCmd *cmd)
 
 
 /*
+ * "iface-edit" command
+ */
+static const vshCmdInfo info_interface_edit[] = {
+    {"help", gettext_noop("edit XML configuration for a physical host interface")},
+    {"desc", gettext_noop("Edit the XML configuration for a physical host interface.")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_interface_edit[] = {
+    {"interface", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("interface name or MAC address")},
+    {NULL, 0, 0, NULL}
+};
+
+static int
+cmdInterfaceEdit (vshControl *ctl, const vshCmd *cmd)
+{
+    int ret = FALSE;
+    virInterfacePtr iface = NULL;
+    char *tmp = NULL;
+    char *doc = NULL;
+    char *doc_edited = NULL;
+    char *doc_reread = NULL;
+    int flags = 0;
+
+    if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
+        goto cleanup;
+
+    iface = vshCommandOptInterface (ctl, cmd, NULL);
+    if (iface == NULL)
+        goto cleanup;
+
+    /* Get the XML configuration of the interface. */
+    doc = virInterfaceGetXMLDesc (iface, flags);
+    if (!doc)
+        goto cleanup;
+
+    /* Create and open the temporary file. */
+    tmp = editWriteToTempFile (ctl, doc);
+    if (!tmp) goto cleanup;
+
+    /* Start the editor. */
+    if (editFile (ctl, tmp) == -1) goto cleanup;
+
+    /* Read back the edited file. */
+    doc_edited = editReadBackFile (ctl, tmp);
+    if (!doc_edited) goto cleanup;
+
+    unlink (tmp);
+    tmp = NULL;
+
+    /* Compare original XML with edited.  Has it changed at all? */
+    if (STREQ (doc, doc_edited)) {
+        vshPrint (ctl, _("Interface %s XML configuration not changed.\n"),
+                  virInterfaceGetName (iface));
+        ret = TRUE;
+        goto cleanup;
+    }
+
+    /* Now re-read the interface XML.  Did someone else change it while
+     * it was being edited?  This also catches problems such as us
+     * losing a connection or the interface going away.
+     */
+    doc_reread = virInterfaceGetXMLDesc (iface, flags);
+    if (!doc_reread)
+        goto cleanup;
+
+    if (STRNEQ (doc, doc_reread)) {
+        vshError (ctl, FALSE, "%s",
+               _("ERROR: the XML configuration was changed by another user"));
+        goto cleanup;
+    }
+
+    /* Everything checks out, so redefine the interface. */
+    virInterfaceFree (iface);
+    iface = virInterfaceDefineXML (ctl->conn, doc_edited, 0);
+    if (!iface)
+        goto cleanup;
+
+    vshPrint (ctl, _("Interface %s XML configuration edited.\n"),
+              virInterfaceGetName(iface));
+
+    ret = TRUE;
+
+cleanup:
+    if (iface)
+        virInterfaceFree (iface);
+
+    free (doc);
+    free (doc_edited);
+    free (doc_reread);
+
+    if (tmp) {
+        unlink (tmp);
+        free (tmp);
+    }
+
+    return ret;
+}
+
+/*
  * "net-list" command
  */
 static const vshCmdInfo info_network_list[] = {
@@ -2748,8 +2896,11 @@ cmdNetworkList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
         if (maxinactive) {
             inactiveNames = vshMalloc(ctl, sizeof(char *) * maxinactive);
 
-            if ((maxinactive = virConnectListDefinedNetworks(ctl->conn, inactiveNames, maxinactive)) < 0) {
-                vshError(ctl, FALSE, "%s", _("Failed to list inactive networks"));
+            if ((maxinactive =
+                     virConnectListDefinedNetworks(ctl->conn, inactiveNames,
+                                                   maxinactive)) < 0) {
+                vshError(ctl, FALSE, "%s",
+                         _("Failed to list inactive networks"));
                 free(activeNames);
                 free(inactiveNames);
                 return FALSE;
@@ -2758,11 +2909,13 @@ cmdNetworkList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
             qsort(&inactiveNames[0], maxinactive, sizeof(char*), namesorter);
         }
     }
-    vshPrintExtra(ctl, "%-20s %-10s %s\n", _("Name"), _("State"), _("Autostart"));
+    vshPrintExtra(ctl, "%-20s %-10s %s\n", _("Name"), _("State"),
+                  _("Autostart"));
     vshPrintExtra(ctl, "-----------------------------------------\n");
 
     for (i = 0; i < maxactive; i++) {
-        virNetworkPtr network = virNetworkLookupByName(ctl->conn, activeNames[i]);
+        virNetworkPtr network =
+            virNetworkLookupByName(ctl->conn, activeNames[i]);
         const char *autostartStr;
         int autostart = 0;
 
@@ -2879,6 +3032,7 @@ cmdNetworkStart(vshControl *ctl, const vshCmd *cmd)
                  virNetworkGetName(network));
         ret = FALSE;
     }
+    virNetworkFree(network);
     return ret;
 }
 
@@ -2917,6 +3071,7 @@ cmdNetworkUndefine(vshControl *ctl, const vshCmd *cmd)
         ret = FALSE;
     }
 
+    virNetworkFree(network);
     return ret;
 }
 
@@ -2953,10 +3108,388 @@ cmdNetworkUuid(vshControl *ctl, const vshCmd *cmd)
     else
         vshError(ctl, FALSE, "%s", _("failed to get network UUID"));
 
+    virNetworkFree(network);
     return TRUE;
 }
 
 
+/**************************************************************************/
+/*
+ * "iface-list" command
+ */
+static const vshCmdInfo info_interface_list[] = {
+    {"help", gettext_noop("list physical host interfaces")},
+    {"desc", gettext_noop("Returns list of physical host interfaces.")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_interface_list[] = {
+    {"inactive", VSH_OT_BOOL, 0, gettext_noop("list inactive interfaces")},
+    {"all", VSH_OT_BOOL, 0, gettext_noop("list inactive & active interfaces")},
+    {NULL, 0, 0, NULL}
+};
+static int
+cmdInterfaceList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
+{
+    int inactive = vshCommandOptBool(cmd, "inactive");
+    int all = vshCommandOptBool(cmd, "all");
+    int active = !inactive || all ? 1 : 0;
+    int maxactive = 0, maxinactive = 0, i;
+    char **activeNames = NULL, **inactiveNames = NULL;
+    inactive |= all;
+
+    if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
+        return FALSE;
+
+    if (active) {
+        maxactive = virConnectNumOfInterfaces(ctl->conn);
+        if (maxactive < 0) {
+            vshError(ctl, FALSE, "%s", _("Failed to list active interfaces"));
+            return FALSE;
+        }
+        if (maxactive) {
+            activeNames = vshMalloc(ctl, sizeof(char *) * maxactive);
+
+            if ((maxactive = virConnectListInterfaces(ctl->conn, activeNames,
+                                                    maxactive)) < 0) {
+                vshError(ctl, FALSE, "%s",
+                         _("Failed to list active interfaces"));
+                free(activeNames);
+                return FALSE;
+            }
+
+            qsort(&activeNames[0], maxactive, sizeof(char *), namesorter);
+        }
+    }
+    if (inactive) {
+        maxinactive = virConnectNumOfDefinedInterfaces(ctl->conn);
+        if (maxinactive < 0) {
+            vshError(ctl, FALSE, "%s",
+                     _("Failed to list inactive interfaces"));
+            free(activeNames);
+            return FALSE;
+        }
+        if (maxinactive) {
+            inactiveNames = vshMalloc(ctl, sizeof(char *) * maxinactive);
+
+            if ((maxinactive =
+                     virConnectListDefinedInterfaces(ctl->conn, inactiveNames,
+                                                     maxinactive)) < 0) {
+                vshError(ctl, FALSE, "%s",
+                         _("Failed to list inactive interfaces"));
+                free(activeNames);
+                free(inactiveNames);
+                return FALSE;
+            }
+
+            qsort(&inactiveNames[0], maxinactive, sizeof(char*), namesorter);
+        }
+    }
+    vshPrintExtra(ctl, "%-20s %-10s %s\n", _("Name"), _("State"),
+                  _("MAC Address"));
+    vshPrintExtra(ctl, "--------------------------------------------\n");
+
+    for (i = 0; i < maxactive; i++) {
+        virInterfacePtr iface =
+            virInterfaceLookupByName(ctl->conn, activeNames[i]);
+
+        /* this kind of work with interfaces is not atomic */
+        if (!iface) {
+            free(activeNames[i]);
+            continue;
+        }
+
+        vshPrint(ctl, "%-20s %-10s %s\n",
+                 virInterfaceGetName(iface),
+                 _("active"),
+                 virInterfaceGetMACString(iface));
+        virInterfaceFree(iface);
+        free(activeNames[i]);
+    }
+    for (i = 0; i < maxinactive; i++) {
+        virInterfacePtr iface =
+            virInterfaceLookupByName(ctl->conn, inactiveNames[i]);
+
+        /* this kind of work with interfaces is not atomic */
+        if (!iface) {
+            free(inactiveNames[i]);
+            continue;
+        }
+
+        vshPrint(ctl, "%-20s %-10s %s\n",
+                 virInterfaceGetName(iface),
+                 _("inactive"),
+                 virInterfaceGetMACString(iface));
+        virInterfaceFree(iface);
+        free(inactiveNames[i]);
+    }
+    free(activeNames);
+    free(inactiveNames);
+    return TRUE;
+
+}
+
+/*
+ * "iface-name" command
+ */
+static const vshCmdInfo info_interface_name[] = {
+    {"help", gettext_noop("convert an interface MAC address to interface name")},
+    {"desc", ""},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_interface_name[] = {
+    {"interface", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("interface mac")},
+    {NULL, 0, 0, NULL}
+};
+
+static int
+cmdInterfaceName(vshControl *ctl, const vshCmd *cmd)
+{
+    virInterfacePtr iface;
+
+    if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
+        return FALSE;
+    if (!(iface = vshCommandOptInterfaceBy(ctl, cmd, NULL,
+                                           VSH_BYMAC)))
+        return FALSE;
+
+    vshPrint(ctl, "%s\n", virInterfaceGetName(iface));
+    virInterfaceFree(iface);
+    return TRUE;
+}
+
+/*
+ * "iface-mac" command
+ */
+static const vshCmdInfo info_interface_mac[] = {
+    {"help", gettext_noop("convert an interface name to interface MAC address")},
+    {"desc", ""},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_interface_mac[] = {
+    {"interface", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("interface name")},
+    {NULL, 0, 0, NULL}
+};
+
+static int
+cmdInterfaceMAC(vshControl *ctl, const vshCmd *cmd)
+{
+    virInterfacePtr iface;
+
+    if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
+        return FALSE;
+    if (!(iface = vshCommandOptInterfaceBy(ctl, cmd, NULL,
+                                           VSH_BYNAME)))
+        return FALSE;
+
+    vshPrint(ctl, "%s\n", virInterfaceGetMACString(iface));
+    virInterfaceFree(iface);
+    return TRUE;
+}
+
+/*
+ * "iface-dumpxml" command
+ */
+static const vshCmdInfo info_interface_dumpxml[] = {
+    {"help", gettext_noop("interface information in XML")},
+    {"desc", gettext_noop("Output the physical host interface information as an XML dump to stdout.")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_interface_dumpxml[] = {
+    {"interface", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("interface name or MAC address")},
+    {NULL, 0, 0, NULL}
+};
+
+static int
+cmdInterfaceDumpXML(vshControl *ctl, const vshCmd *cmd)
+{
+    virInterfacePtr iface;
+    int ret = TRUE;
+    char *dump;
+
+    if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
+        return FALSE;
+
+    if (!(iface = vshCommandOptInterface(ctl, cmd, NULL)))
+        return FALSE;
+
+    dump = virInterfaceGetXMLDesc(iface, 0);
+    if (dump != NULL) {
+        printf("%s", dump);
+        free(dump);
+    } else {
+        ret = FALSE;
+    }
+
+    virInterfaceFree(iface);
+    return ret;
+}
+
+/*
+ * "iface-define" command
+ */
+static const vshCmdInfo info_interface_define[] = {
+    {"help", gettext_noop("define (but don't start) a physical host interface from an XML file")},
+    {"desc", gettext_noop("Define a physical host interface.")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_interface_define[] = {
+    {"file", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("file containing an XML interface description")},
+    {NULL, 0, 0, NULL}
+};
+
+static int
+cmdInterfaceDefine(vshControl *ctl, const vshCmd *cmd)
+{
+    virInterfacePtr iface;
+    char *from;
+    int found;
+    int ret = TRUE;
+    char *buffer;
+
+    if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
+        return FALSE;
+
+    from = vshCommandOptString(cmd, "file", &found);
+    if (!found)
+        return FALSE;
+
+    if (virFileReadAll(from, VIRSH_MAX_XML_FILE, &buffer) < 0)
+        return FALSE;
+
+    iface = virInterfaceDefineXML(ctl->conn, buffer, 0);
+    free (buffer);
+
+    if (iface != NULL) {
+        vshPrint(ctl, _("Interface %s defined from %s\n"),
+                 virInterfaceGetName(iface), from);
+        virInterfaceFree (iface);
+    } else {
+        vshError(ctl, FALSE, _("Failed to define interface from %s"), from);
+        ret = FALSE;
+    }
+    return ret;
+}
+
+/*
+ * "iface-undefine" command
+ */
+static const vshCmdInfo info_interface_undefine[] = {
+    {"help", gettext_noop("undefine a physical host interface (remove it from configuration)")},
+    {"desc", gettext_noop("undefine an interface.")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_interface_undefine[] = {
+    {"interface", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("interface name or MAC address")},
+    {NULL, 0, 0, NULL}
+};
+
+static int
+cmdInterfaceUndefine(vshControl *ctl, const vshCmd *cmd)
+{
+    virInterfacePtr iface;
+    int ret = TRUE;
+    char *name;
+
+    if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
+        return FALSE;
+
+    if (!(iface = vshCommandOptInterface(ctl, cmd, &name)))
+        return FALSE;
+
+    if (virInterfaceUndefine(iface) == 0) {
+        vshPrint(ctl, _("Interface %s undefined\n"), name);
+    } else {
+        vshError(ctl, FALSE, _("Failed to undefine interface %s"), name);
+        ret = FALSE;
+    }
+
+    virInterfaceFree(iface);
+    return ret;
+}
+
+/*
+ * "iface-start" command
+ */
+static const vshCmdInfo info_interface_start[] = {
+    {"help", gettext_noop("start a physical host interface (enable it / \"if-up\")")},
+    {"desc", gettext_noop("start a physical host interface.")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_interface_start[] = {
+    {"interface", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("interface name or MAC address")},
+    {NULL, 0, 0, NULL}
+};
+
+static int
+cmdInterfaceStart(vshControl *ctl, const vshCmd *cmd)
+{
+    virInterfacePtr iface;
+    int ret = TRUE;
+    char *name;
+
+    if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
+        return FALSE;
+
+    if (!(iface = vshCommandOptInterface(ctl, cmd, &name)))
+        return FALSE;
+
+    if (virInterfaceCreate(iface, 0) == 0) {
+        vshPrint(ctl, _("Interface %s started\n"), name);
+    } else {
+        vshError(ctl, FALSE, _("Failed to start interface %s"), name);
+        ret = FALSE;
+    }
+
+    virInterfaceFree(iface);
+    return ret;
+}
+
+/*
+ * "iface-destroy" command
+ */
+static const vshCmdInfo info_interface_destroy[] = {
+    {"help", gettext_noop("destroy a physical host interface (disable it / \"if-down\")")},
+    {"desc", gettext_noop("destroy a physical host interface.")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_interface_destroy[] = {
+    {"interface", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("interface name or MAC address")},
+    {NULL, 0, 0, NULL}
+};
+
+static int
+cmdInterfaceDestroy(vshControl *ctl, const vshCmd *cmd)
+{
+    virInterfacePtr iface;
+    int ret = TRUE;
+    char *name;
+
+    if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
+        return FALSE;
+
+    if (!(iface = vshCommandOptInterface(ctl, cmd, &name)))
+        return FALSE;
+
+    if (virInterfaceDestroy(iface, 0) == 0) {
+        vshPrint(ctl, _("Interface %s destroyed\n"), name);
+    } else {
+        vshError(ctl, FALSE, _("Failed to destroy interface %s"), name);
+        ret = FALSE;
+    }
+
+    virInterfaceFree(iface);
+    return ret;
+}
+
+/**************************************************************************/
 /*
  * "pool-autostart" command
  */
@@ -3004,6 +3537,7 @@ cmdPoolAutostart(vshControl *ctl, const vshCmd *cmd)
     else
         vshPrint(ctl, _("Pool %s unmarked as autostarted\n"), name);
 
+    virStoragePoolFree(pool);
     return TRUE;
 }
 
@@ -3047,6 +3581,7 @@ cmdPoolCreate(vshControl *ctl, const vshCmd *cmd)
     if (pool != NULL) {
         vshPrint(ctl, _("Pool %s created from %s\n"),
                  virStoragePoolGetName(pool), from);
+        virStoragePoolFree(pool);
     } else {
         vshError(ctl, FALSE, _("Failed to create pool from %s"), from);
         ret = FALSE;
@@ -3100,6 +3635,7 @@ cmdNodeDeviceCreate(vshControl *ctl, const vshCmd *cmd)
     if (dev != NULL) {
         vshPrint(ctl, _("Node device %s created from %s\n"),
                  virNodeDeviceGetName(dev), from);
+        virNodeDeviceFree(dev);
     } else {
         vshError(ctl, FALSE, _("Failed to create node device from %s"), from);
         ret = FALSE;
@@ -3307,6 +3843,7 @@ cmdPoolDefine(vshControl *ctl, const vshCmd *cmd)
     if (pool != NULL) {
         vshPrint(ctl, _("Pool %s defined from %s\n"),
                  virStoragePoolGetName(pool), from);
+        virStoragePoolFree(pool);
     } else {
         vshError(ctl, FALSE, _("Failed to define pool from %s"), from);
         ret = FALSE;
@@ -3466,9 +4003,9 @@ cmdPoolDelete(vshControl *ctl, const vshCmd *cmd)
     } else {
         vshError(ctl, FALSE, _("Failed to delete pool %s"), name);
         ret = FALSE;
-        virStoragePoolFree(pool);
     }
 
+    virStoragePoolFree(pool);
     return ret;
 }
 
@@ -3966,6 +4503,8 @@ cmdPoolStart(vshControl *ctl, const vshCmd *cmd)
                  virStoragePoolGetName(pool));
         ret = FALSE;
     }
+
+    virStoragePoolFree(pool);
     return ret;
 }
 
@@ -4125,6 +4664,7 @@ cmdPoolUndefine(vshControl *ctl, const vshCmd *cmd)
         ret = FALSE;
     }
 
+    virStoragePoolFree(pool);
     return ret;
 }
 
@@ -4161,6 +4701,7 @@ cmdPoolUuid(vshControl *ctl, const vshCmd *cmd)
     else
         vshError(ctl, FALSE, "%s", _("failed to get pool UUID"));
 
+    virStoragePoolFree(pool);
     return TRUE;
 }
 
@@ -4285,6 +4826,8 @@ cleanup:
         virStoragePoolFree(pool);
     if (inputvol)
         virStorageVolFree(inputvol);
+    if (newvol)
+        virStorageVolFree(newvol);
     return ret;
 }
 
@@ -4354,7 +4897,7 @@ cmdVolClone(vshControl *ctl, const vshCmd *cmd)
 
     origpool = virStoragePoolLookupByVolume(origvol);
     if (!origpool) {
-        vshError(ctl, FALSE, _("failed to get parent pool"));
+        vshError(ctl, FALSE, "%s", _("failed to get parent pool"));
         goto cleanup;
     }
 
@@ -4377,7 +4920,6 @@ cmdVolClone(vshControl *ctl, const vshCmd *cmd)
     if (newvol != NULL) {
         vshPrint(ctl, _("Vol %s cloned from %s\n"),
                  virStorageVolGetName(newvol), virStorageVolGetName(origvol));
-        virStorageVolFree(newvol);
     } else {
         vshError(ctl, FALSE, _("Failed to clone vol from %s"),
                  virStorageVolGetName(origvol));
@@ -4391,6 +4933,8 @@ cleanup:
     xmlFree(newxml);
     if (origvol)
         virStorageVolFree(origvol);
+    if (newvol)
+        virStorageVolFree(newvol);
     if (origpool)
         virStoragePoolFree(origpool);
     return ret;
@@ -4430,9 +4974,9 @@ cmdVolDelete(vshControl *ctl, const vshCmd *cmd)
     } else {
         vshError(ctl, FALSE, _("Failed to delete vol %s"), name);
         ret = FALSE;
-        virStorageVolFree(vol);
     }
 
+    virStorageVolFree(vol);
     return ret;
 }
 
@@ -6046,6 +6590,90 @@ editReadBackFile (vshControl *ctl, const char *filename)
     return ret;
 }
 
+
+#ifndef WIN32
+/*
+ * "cd" command
+ */
+static const vshCmdInfo info_cd[] = {
+    {"help", gettext_noop("change the current directory")},
+    {"desc", gettext_noop("Change the current directory.")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_cd[] = {
+    {"dir", VSH_OT_DATA, 0, gettext_noop("directory to switch to (default: home or else root)")},
+    {NULL, 0, 0, NULL}
+};
+
+static int
+cmdCd(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
+{
+    const char *dir;
+    int found;
+
+    if (!ctl->imode) {
+        vshError(ctl, FALSE, "%s",
+                 _("cd: command valid only in interactive mode"));
+        return -1;
+    }
+
+    dir = vshCommandOptString(cmd, "dir", &found);
+    if (!found) {
+        uid_t uid = geteuid();
+        dir = virGetUserDirectory(NULL, uid);
+    }
+    if (!dir)
+        dir = "/";
+
+    if (chdir (dir) == -1) {
+        vshError(ctl, FALSE, _("cd: %s: %s"), strerror (errno), dir);
+        return -1;
+    }
+
+    return 0;
+}
+
+#endif
+
+#ifndef WIN32
+/*
+ * "pwd" command
+ */
+static const vshCmdInfo info_pwd[] = {
+    {"help", gettext_noop("print the current directory")},
+    {"desc", gettext_noop("Print the current directory.")},
+    {NULL, NULL}
+};
+
+static int
+cmdPwd(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
+{
+    char *cwd;
+    size_t path_max;
+    int err = TRUE;
+
+    path_max = (size_t) PATH_MAX + 2;
+    cwd = vshMalloc (ctl, path_max);
+    while (cwd) {
+        err = getcwd (cwd, path_max) == NULL;
+        if (!err || errno != ERANGE)
+            break;
+
+        path_max *= 2;
+        cwd = vshRealloc (ctl, cwd, path_max);
+    }
+
+    if (err)
+        vshError(ctl, FALSE, _("pwd: cannot get current directory: %s"), strerror (errno));
+    else
+        vshPrint (ctl, _("%s\n"), cwd);
+
+    free (cwd);
+    return !err;
+}
+#endif
+
 /*
  * "edit" command
  */
@@ -6209,8 +6837,13 @@ static const vshCmdDef commands[] = {
     {"attach-interface", cmdAttachInterface, opts_attach_interface, info_attach_interface},
     {"autostart", cmdAutostart, opts_autostart, info_autostart},
     {"capabilities", cmdCapabilities, NULL, info_capabilities},
+#ifndef WIN32
+    {"cd", cmdCd, opts_cd, info_cd},
+#endif
     {"connect", cmdConnect, opts_connect, info_connect},
+#ifndef WIN32
     {"console", cmdConsole, opts_console, info_console},
+#endif
     {"create", cmdCreate, opts_create, info_create},
     {"start", cmdStart, opts_start, info_start},
     {"destroy", cmdDestroy, opts_destroy, info_destroy},
@@ -6249,6 +6882,17 @@ static const vshCmdDef commands[] = {
     {"net-start", cmdNetworkStart, opts_network_start, info_network_start},
     {"net-undefine", cmdNetworkUndefine, opts_network_undefine, info_network_undefine},
     {"net-uuid", cmdNetworkUuid, opts_network_uuid, info_network_uuid},
+
+    {"iface-list", cmdInterfaceList, opts_interface_list, info_interface_list},
+    {"iface-name", cmdInterfaceName, opts_interface_name, info_interface_name},
+    {"iface-mac", cmdInterfaceMAC, opts_interface_mac, info_interface_mac},
+    {"iface-dumpxml", cmdInterfaceDumpXML, opts_interface_dumpxml, info_interface_dumpxml},
+    {"iface-define", cmdInterfaceDefine, opts_interface_define, info_interface_define},
+    {"iface-undefine", cmdInterfaceUndefine, opts_interface_undefine, info_interface_undefine},
+    {"iface-edit", cmdInterfaceEdit, opts_interface_edit, info_interface_edit},
+    {"iface-start", cmdInterfaceStart, opts_interface_start, info_interface_start},
+    {"iface-destroy", cmdInterfaceDestroy, opts_interface_destroy, info_interface_destroy},
+
     {"nodeinfo", cmdNodeinfo, NULL, info_nodeinfo},
 
     {"nodedev-list", cmdNodeListDevices, opts_node_list_devices, info_node_list_devices},
@@ -6277,6 +6921,9 @@ static const vshCmdDef commands[] = {
     {"pool-undefine", cmdPoolUndefine, opts_pool_undefine, info_pool_undefine},
     {"pool-uuid", cmdPoolUuid, opts_pool_uuid, info_pool_uuid},
 
+#ifndef WIN32
+    {"pwd", cmdPwd, NULL, info_pwd},
+#endif
     {"quit", cmdQuit, NULL, info_quit},
     {"reboot", cmdReboot, opts_reboot, info_reboot},
     {"restore", cmdRestore, opts_restore, info_restore},
@@ -6698,6 +7345,46 @@ vshCommandOptNetworkBy(vshControl *ctl, const vshCmd *cmd,
         vshError(ctl, FALSE, _("failed to get network '%s'"), n);
 
     return network;
+}
+
+static virInterfacePtr
+vshCommandOptInterfaceBy(vshControl *ctl, const vshCmd *cmd,
+                         char **name, int flag)
+{
+    virInterfacePtr iface = NULL;
+    char *n;
+    const char *optname = "interface";
+    if (!cmd_has_option (ctl, cmd, optname))
+        return NULL;
+
+    if (!(n = vshCommandOptString(cmd, optname, NULL))) {
+        vshError(ctl, FALSE, "%s", _("undefined interface identifier"));
+        return NULL;
+    }
+
+    vshDebug(ctl, 5, "%s: found option <%s>: %s\n",
+             cmd->def->name, optname, n);
+
+    if (name)
+        *name = n;
+
+    /* try it by NAME */
+    if ((iface == NULL) && (flag & VSH_BYNAME)) {
+        vshDebug(ctl, 5, "%s: <%s> trying as interface NAME\n",
+                 cmd->def->name, optname);
+        iface = virInterfaceLookupByName(ctl->conn, n);
+    }
+    /* try it by MAC */
+    if ((iface == NULL) && (flag & VSH_BYMAC)) {
+        vshDebug(ctl, 5, "%s: <%s> trying as interface MAC\n",
+                 cmd->def->name, optname);
+        iface = virInterfaceLookupByMACString(ctl->conn, n);
+    }
+
+    if (!iface)
+        vshError(ctl, FALSE, _("failed to get interface '%s'"), n);
+
+    return iface;
 }
 
 static virStoragePoolPtr

@@ -9,6 +9,7 @@ SUBDIRS = gnulib/lib include src qemud tools proxy docs gnulib/tests \
 ACLOCAL_AMFLAGS = -I m4 -I gnulib/m4
 
 EXTRA_DIST = \
+  ChangeLog-old \
   libvirt.spec libvirt.spec.in \
   mingw32-libvirt.spec.in \
   libvirt.pc libvirt.pc.in \
@@ -16,11 +17,11 @@ EXTRA_DIST = \
   .x-sc_avoid_if_before_free \
   .x-sc_require_config_h_first \
   .x-sc_prohibit_strcmp \
+  .x-sc_prohibit_strcmp_and_strncmp \
   .x-sc_require_config_h \
   .x-sc_prohibit_nonreentrant \
   Makefile.nonreentrant \
-  autogen.sh \
-  mylibtool
+  autogen.sh
 
 man_MANS = virsh.1
 
@@ -47,5 +48,21 @@ cov: clean-cov
 clean-cov:
 	rm -rf $(top_builddir)/coverage
 
+MAINTAINERCLEANFILES = .git-module-status
+
 # disable this check
 distuninstallcheck:
+
+dist-hook: gen-ChangeLog
+
+# Generate the ChangeLog file (with all entries since the switch to git)
+# and insert it into the directory we're about to use to create a tarball.
+gen_start_date = 2009-07-04
+.PHONY: gen-ChangeLog
+gen-ChangeLog:
+	if test -d .git; then					\
+	  $(top_srcdir)/build-aux/gitlog-to-changelog		\
+	    --since=$(gen_start_date) > $(distdir)/cl-t;	\
+	  rm -f $(distdir)/ChangeLog;				\
+	  mv $(distdir)/cl-t $(distdir)/ChangeLog;		\
+	fi

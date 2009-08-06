@@ -154,13 +154,16 @@ int virStrToLong_ull(char const *s,
                      char **end_ptr,
                      int base,
                      unsigned long long *result);
+int virStrToDouble(char const *s,
+                   char **end_ptr,
+                   double *result);
 
 int virMacAddrCompare (const char *mac1, const char *mac2);
 
 void virSkipSpaces(const char **str);
 int virParseNumber(const char **str);
 int virAsprintf(char **strp, const char *fmt, ...)
-    ATTRIBUTE_FORMAT(printf, 2, 3);
+    ATTRIBUTE_FMT_PRINTF(2, 3);
 
 #define VIR_MAC_BUFLEN 6
 #define VIR_MAC_PREFIX_BUFLEN 3
@@ -217,6 +220,14 @@ int virKillProcess(pid_t pid, int sig);
 #ifdef HAVE_GETPWUID_R
 char *virGetUserDirectory(virConnectPtr conn,
                           uid_t uid);
+char *virGetUserName(virConnectPtr conn,
+                     uid_t uid);
+int virGetUserID(virConnectPtr conn,
+                 const char *name,
+                 uid_t *uid);
+int virGetGroupID(virConnectPtr conn,
+                  const char *name,
+                  gid_t *gid);
 #endif
 
 int virRandomInitialize(unsigned int seed);

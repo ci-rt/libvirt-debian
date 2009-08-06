@@ -1518,6 +1518,35 @@ xdr_remote_list_interfaces_ret (XDR *xdrs, remote_list_interfaces_ret *objp)
 }
 
 bool_t
+xdr_remote_num_of_defined_interfaces_ret (XDR *xdrs, remote_num_of_defined_interfaces_ret *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->num))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_list_defined_interfaces_args (XDR *xdrs, remote_list_defined_interfaces_args *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->maxnames))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_list_defined_interfaces_ret (XDR *xdrs, remote_list_defined_interfaces_ret *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->names.names_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->names.names_len, REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX,
+                sizeof (remote_nonnull_string), (xdrproc_t) xdr_remote_nonnull_string))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_interface_lookup_by_name_args (XDR *xdrs, remote_interface_lookup_by_name_args *objp)
 {
 
@@ -2448,7 +2477,7 @@ xdr_remote_domain_events_deregister_ret (XDR *xdrs, remote_domain_events_deregis
 }
 
 bool_t
-xdr_remote_domain_event_ret (XDR *xdrs, remote_domain_event_ret *objp)
+xdr_remote_domain_event_msg (XDR *xdrs, remote_domain_event_msg *objp)
 {
 
          if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
@@ -2514,7 +2543,7 @@ xdr_remote_procedure (XDR *xdrs, remote_procedure *objp)
 }
 
 bool_t
-xdr_remote_message_direction (XDR *xdrs, remote_message_direction *objp)
+xdr_remote_message_type (XDR *xdrs, remote_message_type *objp)
 {
 
          if (!xdr_enum (xdrs, (enum_t *) objp))
@@ -2541,7 +2570,7 @@ xdr_remote_message_header (XDR *xdrs, remote_message_header *objp)
                  return FALSE;
          if (!xdr_remote_procedure (xdrs, &objp->proc))
                  return FALSE;
-         if (!xdr_remote_message_direction (xdrs, &objp->direction))
+         if (!xdr_remote_message_type (xdrs, &objp->type))
                  return FALSE;
          if (!xdr_u_int (xdrs, &objp->serial))
                  return FALSE;

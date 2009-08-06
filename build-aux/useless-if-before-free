@@ -1,14 +1,16 @@
 #!/usr/bin/perl -T
 # Detect instances of "if (p) free (p);".
 # Likewise for "if (p != NULL) free (p);".  And with braces.
+# Also detect "if (NULL != p) free (p);".
+# And with 0 in place of NULL.
 
-my $VERSION = '2008-05-25 17:36'; # UTC
+my $VERSION = '2009-04-16 15:57'; # UTC
 # The definition above must lie within the first 8 lines in order
 # for the Emacs time-stamp write hook (at end) to update it.
 # If you change this file with Emacs, please let the write hook
 # do its job.  Otherwise, update this string manually.
 
-# Copyright (C) 2008 Free Software Foundation, Inc.
+# Copyright (C) 2008, 2009 Free Software Foundation, Inc.
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -60,7 +62,7 @@ detect free-like functions named FOO and BAR.
 OPTIONS:
 
    --list       print only the name of each matching FILE (\0-terminated)
-   --name=N     add name N to the list of `free'-like functions to detect;
+   --name=N     add name N to the list of \`free\'-like functions to detect;
                   may be repeated
 
    --help       display this help and exit
@@ -82,6 +84,12 @@ and "kfree" calls in the linux kernel sources:
 EOF
     }
   exit $exit_code;
+}
+
+sub is_NULL ($)
+{
+  my ($expr) = @_;
+  return ($expr eq 'NULL' || $expr eq '0');
 }
 
 {
@@ -122,21 +130,31 @@ EOF
       while (defined (my $line = <FH>))
         {
           while ($line =~
-              /\b(if\s*\(\s*([^)]+?)(?:\s*!=\s*NULL)?\s*\)
+              /\b(if\s*\(\s*([^)]+?)(?:\s*!=\s*([^)]+?))?\s*\)
+              #  1          2                  3
                (?:   \s*$regexp\s*\((?:\s*\([^)]+\))?\s*([^)]+)\)|
                 \s*\{\s*$regexp\s*\((?:\s*\([^)]+\))?\s*([^)]+)\)\s*;\s*\}))/sxg)
             {
-              # Compare "if" expression and free'd expression,
-              # without regard to white space.
-              (my $e1 = $2) =~ tr/ \t//d;
-              my $e2 = defined $3 ? $3 : $4;
+              my $all = $1;
+              my ($lhs, $rhs) = ($2, $3);
+              my ($free_opnd, $braced_free_opnd) = ($4, $5);
+              my $non_NULL;
+              if (!defined $rhs) { $non_NULL = $lhs }
+              elsif (is_NULL $rhs) { $non_NULL = $lhs }
+              elsif (is_NULL $lhs) { $non_NULL = $rhs }
+              else { next }
+
+              # Compare the non-NULL part of the "if" expression and the
+              # free'd expression, without regard to white space.
+              $non_NULL =~ tr/ \t//d;
+              my $e2 = defined $free_opnd ? $free_opnd : $braced_free_opnd;
               $e2 =~ tr/ \t//d;
-              if ($e1 eq $e2)
+              if ($non_NULL eq $e2)
                 {
                   $found_match = 1;
                   $list
                     and (print "$file\0"), next FILE;
-                  print "$file: $1\n";
+                  print "$file: $all\n";
                 }
             }
         }
@@ -157,12 +175,20 @@ my $foo = <<'EOF';
 # This adjusts them, removing the unnecessary "if (p)" part.
 
 # FIXME: do something like this as an option (doesn't do braces):
-useless-if-before-free -l $(lid -knone free) | xargs -0 \
-  perl -0x3b -pi -e \
-   's/\bif\s*\(\s*(\S+?)(?:\s*!=\s*NULL)?\s*\)\s+(free\s*\((?:\s*\([^)]+\))?\s*\1\s*\))/$2/s'
+free=xfree
+git grep -l -z "$free *(" \
+  | xargs -0 useless-if-before-free -l --name="$free" \
+  | xargs -0 perl -0x3b -pi -e \
+   's/\bif\s*\(\s*(\S+?)(?:\s*!=\s*(?:0|NULL))?\s*\)\s+('"$free"'\s*\((?:\s*\([^)]+\))?\s*\1\s*\))/$2/s'
 
-# Or, with git:
-git ls-files -z |xargs -0 perl -0x3b -pi -e '...'
+# Use the following to remove redundant uses of kfree inside braces.
+# Note that -0777 puts perl in slurp-whole-file mode;
+# but we have plenty of memory, these days...
+free=kfree
+git grep -l -z "$free *(" \
+  | xargs -0 useless-if-before-free -l --name="$free" \
+  | xargs -0 perl -0777 -pi -e \
+     's/\bif\s*\(\s*(\S+?)(?:\s*!=\s*(?:0|NULL))?\s*\)\s*\{\s*('"$free"'\s*\((?:\s*\([^)]+\))?\s*\1\s*\);)\s*\}[^\n]*$/$2/gms'
 
 Be careful that the result of the above transformation is valid.
 If the matched string is followed by "else", then obviously, it won't be.

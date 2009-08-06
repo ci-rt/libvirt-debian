@@ -54,13 +54,21 @@ if test -z "$*"; then
         echo "to pass any to it, please specify them on the $0 command line."
 fi
 
-autopoint --force
-#rm -rf m4
-libtoolize --copy --force
-aclocal -I m4 -I gnulib/m4
-autoheader
-automake --add-missing
-autoconf
+# Ensure that whenever we pull in a gnulib update or otherwise change to a
+# different version (i.e., when switching branches), we also rerun ./bootstrap.
+curr_status=.git-module-status
+t=$(git submodule status)
+if test "$t" = "$(cat $curr_status 2>/dev/null)"; then
+    : # good, it's up to date
+else
+  echo running bootstrap...
+  ./bootstrap && echo "$t" > $curr_status
+fi
+
+# Automake requires that ChangeLog exist.
+touch ChangeLog
+
+autoreconf -if
 
 cd $THEDIR
 

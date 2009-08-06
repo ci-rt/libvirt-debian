@@ -1,4 +1,4 @@
-gnulib/lib/gai_strerror.c
+qemud/dispatch.c
 qemud/qemud.c
 qemud/remote.c
 src/bridge.c
@@ -6,6 +6,8 @@ src/conf.c
 src/console.c
 src/datatypes.c
 src/domain_conf.c
+src/interface_conf.c
+src/interface_driver.c
 src/iptables.c
 src/libvirt.c
 src/lxc_container.c
@@ -22,6 +24,7 @@ src/opennebula/one_driver.c
 src/openvz_conf.c
 src/openvz_driver.c
 src/pci.c
+src/phyp/phyp_driver.c
 src/proxy_internal.c
 src/qemu_conf.c
 src/qemu_driver.c

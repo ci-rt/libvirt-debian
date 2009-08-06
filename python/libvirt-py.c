@@ -223,24 +223,6 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
-libvirt_virConnectNumOfDomains(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
-    PyObject *py_retval;
-    int c_retval;
-    virConnectPtr conn;
-    PyObject *pyobj_conn;
-
-    if (!PyArg_ParseTuple(args, (char *)"O:virConnectNumOfDomains", &pyobj_conn))
-        return(NULL);
-    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
-LIBVIRT_BEGIN_ALLOW_THREADS;
-
-    c_retval = virConnectNumOfDomains(conn);
-LIBVIRT_END_ALLOW_THREADS;
-    py_retval = libvirt_intWrap((int) c_retval);
-    return(py_retval);
-}
-
-PyObject *
 libvirt_virInterfaceGetXMLDesc(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     char * c_retval;
@@ -1058,6 +1040,24 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
+libvirt_virConnectNumOfDefinedInterfaces(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virConnectPtr conn;
+    PyObject *pyobj_conn;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virConnectNumOfDefinedInterfaces", &pyobj_conn))
+        return(NULL);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virConnectNumOfDefinedInterfaces(conn);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
 libvirt_virNetworkDefineXML(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     virNetworkPtr c_retval;
@@ -1444,6 +1444,24 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
+libvirt_virNetworkUndefine(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virNetworkPtr network;
+    PyObject *pyobj_network;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virNetworkUndefine", &pyobj_network))
+        return(NULL);
+    network = (virNetworkPtr) PyvirNetwork_Get(pyobj_network);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virNetworkUndefine(network);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
 libvirt_virNodeDeviceLookupByName(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     virNodeDevicePtr c_retval;
@@ -1481,18 +1499,18 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
-libvirt_virNetworkRef(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+libvirt_virConnectNumOfDomains(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     int c_retval;
-    virNetworkPtr network;
-    PyObject *pyobj_network;
+    virConnectPtr conn;
+    PyObject *pyobj_conn;
 
-    if (!PyArg_ParseTuple(args, (char *)"O:virNetworkRef", &pyobj_network))
+    if (!PyArg_ParseTuple(args, (char *)"O:virConnectNumOfDomains", &pyobj_conn))
         return(NULL);
-    network = (virNetworkPtr) PyvirNetwork_Get(pyobj_network);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
 LIBVIRT_BEGIN_ALLOW_THREADS;
 
-    c_retval = virNetworkRef(network);
+    c_retval = virConnectNumOfDomains(conn);
 LIBVIRT_END_ALLOW_THREADS;
     py_retval = libvirt_intWrap((int) c_retval);
     return(py_retval);
@@ -1814,18 +1832,18 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
-libvirt_virNetworkUndefine(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+libvirt_virNetworkRef(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     int c_retval;
     virNetworkPtr network;
     PyObject *pyobj_network;
 
-    if (!PyArg_ParseTuple(args, (char *)"O:virNetworkUndefine", &pyobj_network))
+    if (!PyArg_ParseTuple(args, (char *)"O:virNetworkRef", &pyobj_network))
         return(NULL);
     network = (virNetworkPtr) PyvirNetwork_Get(pyobj_network);
 LIBVIRT_BEGIN_ALLOW_THREADS;
 
-    c_retval = virNetworkUndefine(network);
+    c_retval = virNetworkRef(network);
 LIBVIRT_END_ALLOW_THREADS;
     py_retval = libvirt_intWrap((int) c_retval);
     return(py_retval);

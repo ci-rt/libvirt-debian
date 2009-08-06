@@ -82,6 +82,9 @@ const REMOTE_NETWORK_NAME_LIST_MAX = 256;
 /* Upper limit on lists of interface names. */
 const REMOTE_INTERFACE_NAME_LIST_MAX = 256;
 
+/* Upper limit on lists of defined interface names. */
+const REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX = 256;
+
 /* Upper limit on lists of storage pool names. */
 const REMOTE_STORAGE_POOL_NAME_LIST_MAX = 256;
 
@@ -793,6 +796,18 @@ struct remote_list_interfaces_ret {
     remote_nonnull_string names<REMOTE_INTERFACE_NAME_LIST_MAX>;
 };
 
+struct remote_num_of_defined_interfaces_ret {
+    int num;
+};
+
+struct remote_list_defined_interfaces_args {
+    int maxnames;
+};
+
+struct remote_list_defined_interfaces_ret {
+    remote_nonnull_string names<REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX>;
+};
+
 struct remote_interface_lookup_by_name_args {
     remote_nonnull_string name;
 };
@@ -1222,7 +1237,7 @@ struct remote_domain_events_deregister_ret {
     int cb_registered;
 };
 
-struct remote_domain_event_ret {
+struct remote_domain_event_msg {
     remote_nonnull_domain dom;
     int event;
     int detail;
@@ -1406,26 +1421,61 @@ enum remote_procedure {
     REMOTE_PROC_INTERFACE_CREATE = 133,
     REMOTE_PROC_INTERFACE_DESTROY = 134,
     REMOTE_PROC_DOMAIN_XML_FROM_NATIVE = 135,
-    REMOTE_PROC_DOMAIN_XML_TO_NATIVE = 136
+    REMOTE_PROC_DOMAIN_XML_TO_NATIVE = 136,
+
+    REMOTE_PROC_NUM_OF_DEFINED_INTERFACES = 137,
+    REMOTE_PROC_LIST_DEFINED_INTERFACES = 138
 };
 
-/* Custom RPC structure. */
-/* Each message consists of:
- *    int length               Number of bytes in message _including_ length.
- *    remote_message_header    Header.
- * then either: args           Arguments (for REMOTE_CALL).
- *          or: ret            Return (for REMOTE_REPLY, status = REMOTE_OK)
- *          or: remote_error   Error (for REMOTE_REPLY, status = REMOTE_ERROR)
- *
- * The first two words (length, program number) are meant to be compatible
- * with the qemud protocol (qemud/protocol.x), although the rest of the
- * messages are completely different.
- */
 
-enum remote_message_direction {
-    REMOTE_CALL = 0,            /* client -> server */
-    REMOTE_REPLY = 1,           /* server -> client */
-    REMOTE_MESSAGE = 2          /* server -> client, asynchronous [NYI] */
+/*
+ * RPC wire format
+ *
+ * Each message consists of:
+ *
+ *    Name    | Type                  | Description
+ * -----------+-----------------------+------------------
+ *    Length  | int                   | Total number of bytes in message _including_ length.
+ *    Header  | remote_message_header | Control information about procedure call
+ *    Payload | -                     | Variable payload data per procedure
+ *
+ * In header, the 'serial' field varies according to:
+ *
+ *  - type == REMOTE_CALL
+ *      * serial is set by client, incrementing by 1 each time
+ *
+ *  - type == REMOTE_REPLY
+ *      * serial matches that from the corresponding REMOTE_CALL
+ *
+ *  - type == REMOTE_MESSAGE
+ *      * serial matches that from the corresponding REMOTE_CALL, or zero
+ *
+ *
+ * Payload varies according to type and status:
+ *
+ *  - type == REMOTE_CALL
+ *          XXX_args  for procedure
+ *
+ *  - type == REMOTE_REPLY
+ *     * status == REMOTE_OK
+ *          XXX_ret         for procedure
+ *     * status == REMOTE_ERROR
+ *          remote_error    Error information
+ *
+ *  - type == REMOTE_MESSAGE
+ *     * status == REMOTE_OK
+ *          XXX_args        for procedure
+ *     * status == REMOTE_ERROR
+ *          remote_error    Error information
+ *
+ */
+enum remote_message_type {
+    /* client -> server. args from a method call */
+    REMOTE_CALL = 0,
+    /* server -> client. reply/error from a method call */
+    REMOTE_REPLY = 1,
+    /* either direction. async notification */
+    REMOTE_MESSAGE = 2
 };
 
 enum remote_message_status {
@@ -1447,7 +1497,7 @@ struct remote_message_header {
     unsigned prog;              /* REMOTE_PROGRAM */
     unsigned vers;              /* REMOTE_PROTOCOL_VERSION */
     remote_procedure proc;      /* REMOTE_PROC_x */
-    remote_message_direction direction;
+    remote_message_type type;
     unsigned serial;            /* Serial number of message. */
     remote_message_status status;
 };

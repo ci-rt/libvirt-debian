@@ -1,5 +1,5 @@
 /*
- * remote.c: code handling remote requests (from remote_internal.c)
+ * remote.c: handlers for RPC method calls
  *
  * Copyright (C) 2007, 2008, 2009 Red Hat, Inc.
  *
@@ -48,21 +48,20 @@
 #include <polkit-dbus/polkit-dbus.h>
 #endif
 
+#include "remote.h"
+#include "dispatch.h"
+
 #include "libvirt_internal.h"
 #include "datatypes.h"
-#include "qemud.h"
 #include "memory.h"
 #include "util.h"
 
 #define VIR_FROM_THIS VIR_FROM_REMOTE
 #define REMOTE_DEBUG(fmt, ...) DEBUG(fmt, __VA_ARGS__)
 
-static void remoteDispatchFormatError (remote_error *rerr,
-                                       const char *fmt, ...)
-    ATTRIBUTE_FORMAT(printf, 2, 3);
 static virDomainPtr get_nonnull_domain (virConnectPtr conn, remote_nonnull_domain domain);
 static virNetworkPtr get_nonnull_network (virConnectPtr conn, remote_nonnull_network network);
-static virInterfacePtr get_nonnull_interface (virConnectPtr conn, remote_nonnull_interface interface);
+static virInterfacePtr get_nonnull_interface (virConnectPtr conn, remote_nonnull_interface iface);
 static virStoragePoolPtr get_nonnull_storage_pool (virConnectPtr conn, remote_nonnull_storage_pool pool);
 static virStorageVolPtr get_nonnull_storage_vol (virConnectPtr conn, remote_nonnull_storage_vol vol);
 static void make_nonnull_domain (remote_nonnull_domain *dom_dst, virDomainPtr dom_src);
@@ -72,326 +71,27 @@ static void make_nonnull_storage_pool (remote_nonnull_storage_pool *pool_dst, vi
 static void make_nonnull_storage_vol (remote_nonnull_storage_vol *vol_dst, virStorageVolPtr vol_src);
 static void make_nonnull_node_device (remote_nonnull_node_device *dev_dst, virNodeDevicePtr dev_src);
 
+
 #include "remote_dispatch_prototypes.h"
-
-typedef union {
-#include "remote_dispatch_args.h"
-} dispatch_args;
-
-typedef union {
-#include "remote_dispatch_ret.h"
-} dispatch_ret;
-
-
-/**
- * When the RPC handler is called:
- *
- *  - Server object is unlocked
- *  - Client object is unlocked
- *
- * Both must be locked before use. Server lock must
- * be held before attempting to lock client.
- *
- * Without any locking, it is safe to use:
- *
- *   'conn', 'rerr', 'args and 'ret'
- */
-typedef int (*dispatch_fn) (struct qemud_server *server,
-                            struct qemud_client *client,
-                            virConnectPtr conn,
-                            remote_error *err,
-                            dispatch_args *args,
-                            dispatch_ret *ret);
-
-typedef struct {
-    dispatch_fn fn;
-    xdrproc_t args_filter;
-    xdrproc_t ret_filter;
-} dispatch_data;
 
 static const dispatch_data const dispatch_table[] = {
 #include "remote_dispatch_table.h"
 };
 
+const dispatch_data const *remoteGetDispatchData(int proc)
+{
+    if (proc >= ARRAY_CARDINALITY(dispatch_table) ||
+        dispatch_table[proc].fn == NULL) {
+        return NULL;
+    }
+
+    return &(dispatch_table[proc]);
+}
+
 /* Prototypes */
 static void
 remoteDispatchDomainEventSend (struct qemud_client *client,
-                               struct qemud_client_message *msg,
-                               virDomainPtr dom,
-                               int event,
-                               int detail);
-
-
-/* Convert a libvirt  virError object into wire format */
-static void
-remoteDispatchCopyError (remote_error *rerr,
-                         virErrorPtr verr)
-{
-    rerr->code = verr->code;
-    rerr->domain = verr->domain;
-    rerr->message = verr->message ? malloc(sizeof(char*)) : NULL;
-    if (rerr->message) *rerr->message = strdup(verr->message);
-    rerr->level = verr->level;
-    rerr->str1 = verr->str1 ? malloc(sizeof(char*)) : NULL;
-    if (rerr->str1) *rerr->str1 = strdup(verr->str1);
-    rerr->str2 = verr->str2 ? malloc(sizeof(char*)) : NULL;
-    if (rerr->str2) *rerr->str2 = strdup(verr->str2);
-    rerr->str3 = verr->str3 ? malloc(sizeof(char*)) : NULL;
-    if (rerr->str3) *rerr->str3 = strdup(verr->str3);
-    rerr->int1 = verr->int1;
-    rerr->int2 = verr->int2;
-}
-
-
-/* A set of helpers for sending back errors to client
-   in various ways .... */
-
-static void
-remoteDispatchStringError (remote_error *rerr,
-                           int code, const char *msg)
-{
-    virError verr;
-
-    memset(&verr, 0, sizeof verr);
-
-    /* Construct the dummy libvirt virError. */
-    verr.code = code;
-    verr.domain = VIR_FROM_REMOTE;
-    verr.message = (char *)msg;
-    verr.level = VIR_ERR_ERROR;
-    verr.str1 = (char *)msg;
-
-    remoteDispatchCopyError(rerr, &verr);
-}
-
-static void
-remoteDispatchAuthError (remote_error *rerr)
-{
-    remoteDispatchStringError (rerr, VIR_ERR_AUTH_FAILED, "authentication failed");
-}
-
-static void
-remoteDispatchFormatError (remote_error *rerr,
-                           const char *fmt, ...)
-{
-    va_list args;
-    char msgbuf[1024];
-    char *msg = msgbuf;
-
-    va_start (args, fmt);
-    vsnprintf (msgbuf, sizeof msgbuf, fmt, args);
-    va_end (args);
-
-    remoteDispatchStringError (rerr, VIR_ERR_RPC, msg);
-}
-
-static void
-remoteDispatchGenericError (remote_error *rerr)
-{
-    remoteDispatchStringError(rerr,
-                              VIR_ERR_INTERNAL_ERROR,
-                              "library function returned error but did not set virterror");
-}
-
-static void
-remoteDispatchOOMError (remote_error *rerr)
-{
-    remoteDispatchStringError(rerr,
-                              VIR_ERR_NO_MEMORY,
-                              NULL);
-}
-
-static void
-remoteDispatchConnError (remote_error *rerr,
-                         virConnectPtr conn)
-{
-    virErrorPtr verr;
-
-    if (conn)
-        verr = virConnGetLastError(conn);
-    else
-        verr = virGetLastError();
-    if (verr)
-        remoteDispatchCopyError(rerr, verr);
-    else
-        remoteDispatchGenericError(rerr);
-}
-
-
-/* This function gets called from qemud when it detects an incoming
- * remote protocol message.  At this point, client->buffer contains
- * the full call message (including length word which we skip).
- *
- * Server object is unlocked
- * Client object is locked
- */
-int
-remoteDispatchClientRequest (struct qemud_server *server,
-                             struct qemud_client *client,
-                             struct qemud_client_message *msg)
-{
-    XDR xdr;
-    remote_message_header req, rep;
-    remote_error rerr;
-    dispatch_args args;
-    dispatch_ret ret;
-    const dispatch_data *data = NULL;
-    int rv = -1;
-    unsigned int len;
-    virConnectPtr conn = NULL;
-
-    memset(&args, 0, sizeof args);
-    memset(&ret, 0, sizeof ret);
-    memset(&rerr, 0, sizeof rerr);
-
-    /* Parse the header. */
-    xdrmem_create (&xdr,
-                   msg->buffer + REMOTE_MESSAGE_HEADER_XDR_LEN,
-                   msg->bufferLength - REMOTE_MESSAGE_HEADER_XDR_LEN,
-                   XDR_DECODE);
-
-    if (!xdr_remote_message_header (&xdr, &req))
-        goto fatal_error;
-
-    /* Check version, etc. */
-    if (req.prog != REMOTE_PROGRAM) {
-        remoteDispatchFormatError (&rerr,
-                                   _("program mismatch (actual %x, expected %x)"),
-                                   req.prog, REMOTE_PROGRAM);
-        goto rpc_error;
-    }
-    if (req.vers != REMOTE_PROTOCOL_VERSION) {
-        remoteDispatchFormatError (&rerr,
-                                   _("version mismatch (actual %x, expected %x)"),
-                                   req.vers, REMOTE_PROTOCOL_VERSION);
-        goto rpc_error;
-    }
-    if (req.direction != REMOTE_CALL) {
-        remoteDispatchFormatError (&rerr, _("direction (%d) != REMOTE_CALL"),
-                                   (int) req.direction);
-        goto rpc_error;
-    }
-    if (req.status != REMOTE_OK) {
-        remoteDispatchFormatError (&rerr, _("status (%d) != REMOTE_OK"),
-                                   (int) req.status);
-        goto rpc_error;
-    }
-
-    /* If client is marked as needing auth, don't allow any RPC ops,
-     * except for authentication ones
-     */
-    if (client->auth) {
-        if (req.proc != REMOTE_PROC_AUTH_LIST &&
-            req.proc != REMOTE_PROC_AUTH_SASL_INIT &&
-            req.proc != REMOTE_PROC_AUTH_SASL_START &&
-            req.proc != REMOTE_PROC_AUTH_SASL_STEP &&
-            req.proc != REMOTE_PROC_AUTH_POLKIT
-            ) {
-            /* Explicitly *NOT* calling  remoteDispatchAuthError() because
-               we want back-compatability with libvirt clients which don't
-               support the VIR_ERR_AUTH_FAILED error code */
-            remoteDispatchFormatError (&rerr, "%s", _("authentication required"));
-            goto rpc_error;
-        }
-    }
-
-    if (req.proc >= ARRAY_CARDINALITY(dispatch_table) ||
-        dispatch_table[req.proc].fn == NULL) {
-        remoteDispatchFormatError (&rerr, _("unknown procedure: %d"),
-                                   req.proc);
-        goto rpc_error;
-    }
-
-    data = &(dispatch_table[req.proc]);
-
-    /* De-serialize args off the wire */
-    if (!((data->args_filter)(&xdr, &args))) {
-        remoteDispatchFormatError (&rerr, "%s", _("parse args failed"));
-        goto rpc_error;
-    }
-
-    /* Call function. */
-    conn = client->conn;
-    virMutexUnlock(&client->lock);
-
-    /*
-     * When the RPC handler is called:
-     *
-     *  - Server object is unlocked
-     *  - Client object is unlocked
-     *
-     * Without locking, it is safe to use:
-     *
-     *   'conn', 'rerr', 'args and 'ret'
-     */
-    rv = (data->fn)(server, client, conn, &rerr, &args, &ret);
-
-    virMutexLock(&server->lock);
-    virMutexLock(&client->lock);
-    virMutexUnlock(&server->lock);
-
-    xdr_free (data->args_filter, (char*)&args);
-
-rpc_error:
-    xdr_destroy (&xdr);
-
-    /* Return header. */
-    rep.prog = req.prog;
-    rep.vers = req.vers;
-    rep.proc = req.proc;
-    rep.direction = REMOTE_REPLY;
-    rep.serial = req.serial;
-    rep.status = rv < 0 ? REMOTE_ERROR : REMOTE_OK;
-
-    /* Serialise the return header. */
-    xdrmem_create (&xdr, msg->buffer, sizeof msg->buffer, XDR_ENCODE);
-
-    len = 0; /* We'll come back and write this later. */
-    if (!xdr_u_int (&xdr, &len)) {
-        if (rv == 0) xdr_free (data->ret_filter, (char*)&ret);
-        goto fatal_error;
-    }
-
-    if (!xdr_remote_message_header (&xdr, &rep)) {
-        if (rv == 0) xdr_free (data->ret_filter, (char*)&ret);
-        goto fatal_error;
-    }
-
-    /* If OK, serialise return structure, if error serialise error. */
-    if (rv >= 0) {
-        if (!((data->ret_filter) (&xdr, &ret)))
-            goto fatal_error;
-        xdr_free (data->ret_filter, (char*)&ret);
-    } else /* error */ {
-        /* Error was NULL so synthesize an error. */
-        if (rerr.code == 0)
-            remoteDispatchGenericError(&rerr);
-        if (!xdr_remote_error (&xdr, &rerr))
-            goto fatal_error;
-        xdr_free((xdrproc_t)xdr_remote_error,  (char *)&rerr);
-    }
-
-    /* Write the length word. */
-    len = xdr_getpos (&xdr);
-    if (xdr_setpos (&xdr, 0) == 0)
-        goto fatal_error;
-
-    if (!xdr_u_int (&xdr, &len))
-        goto fatal_error;
-
-    xdr_destroy (&xdr);
-
-    msg->bufferLength = len;
-    msg->bufferOffset = 0;
-
-    return 0;
-
-fatal_error:
-    /* Seriously bad stuff happened, so we'll kill off this client
-       and not send back any RPC error */
-    xdr_destroy (&xdr);
-    return -1;
-}
+                               remote_domain_event_msg *data);
 
 int remoteRelayDomainEvent (virConnectPtr conn ATTRIBUTE_UNUSED,
                             virDomainPtr dom,
@@ -403,17 +103,17 @@ int remoteRelayDomainEvent (virConnectPtr conn ATTRIBUTE_UNUSED,
     REMOTE_DEBUG("Relaying domain event %d %d", event, detail);
 
     if (client) {
-        struct qemud_client_message *ev;
-
-        if (VIR_ALLOC(ev) < 0)
-            return -1;
+        remote_domain_event_msg data;
 
         virMutexLock(&client->lock);
 
-        remoteDispatchDomainEventSend (client, ev, dom, event, detail);
+        /* build return data */
+        memset(&data, 0, sizeof data);
+        make_nonnull_domain (&data.dom, dom);
+        data.event = event;
+        data.detail = detail;
 
-        if (qemudRegisterClientEvent(client->server, client, 1) < 0)
-            qemudDispatchClientFailure(client);
+        remoteDispatchDomainEventSend (client, &data);
 
         virMutexUnlock(&client->lock);
     }
@@ -1411,7 +1111,7 @@ remoteDispatchDomainGetSecurityLabel(struct qemud_server *server ATTRIBUTE_UNUSE
     memset(&seclabel, 0, sizeof seclabel);
     if (virDomainGetSecurityLabel(dom, &seclabel) == -1) {
         virDomainFree(dom);
-        remoteDispatchFormatError(rerr, "%s", _("unable to get security label"));
+        remoteDispatchConnError(rerr, conn);
         return -1;
     }
 
@@ -1440,7 +1140,7 @@ remoteDispatchNodeGetSecurityModel(struct qemud_server *server ATTRIBUTE_UNUSED,
 
     memset(&secmodel, 0, sizeof secmodel);
     if (virNodeGetSecurityModel(conn, &secmodel) == -1) {
-        remoteDispatchFormatError(rerr, "%s", _("unable to get security model"));
+        remoteDispatchConnError(rerr, conn);
         return -1;
     }
 
@@ -2647,6 +2347,57 @@ remoteDispatchListInterfaces (struct qemud_server *server ATTRIBUTE_UNUSED,
     ret->names.names_len =
         virConnectListInterfaces (conn,
                                   ret->names.names_val, args->maxnames);
+    if (ret->names.names_len == -1) {
+        VIR_FREE(ret->names.names_len);
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
+
+    return 0;
+}
+
+static int
+remoteDispatchNumOfDefinedInterfaces (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                      struct qemud_client *client ATTRIBUTE_UNUSED,
+                                      virConnectPtr conn,
+                                      remote_error *rerr,
+                                      void *args ATTRIBUTE_UNUSED,
+                                      remote_num_of_defined_interfaces_ret *ret)
+{
+
+    ret->num = virConnectNumOfDefinedInterfaces (conn);
+    if (ret->num == -1) {
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
+
+    return 0;
+}
+
+static int
+remoteDispatchListDefinedInterfaces (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                     struct qemud_client *client ATTRIBUTE_UNUSED,
+                                     virConnectPtr conn,
+                                     remote_error *rerr,
+                                     remote_list_defined_interfaces_args *args,
+                                     remote_list_defined_interfaces_ret *ret)
+{
+
+    if (args->maxnames > REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX) {
+        remoteDispatchFormatError (rerr,
+                                   "%s", _("maxnames > REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX"));
+        return -1;
+    }
+
+    /* Allocate return buffer. */
+    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
+        remoteDispatchOOMError(rerr);
+        return -1;
+    }
+
+    ret->names.names_len =
+        virConnectListDefinedInterfaces (conn,
+                                         ret->names.names_val, args->maxnames);
     if (ret->names.names_len == -1) {
         VIR_FREE(ret->names.names_len);
         remoteDispatchConnError(rerr, conn);
@@ -4666,24 +4417,6 @@ remoteDispatchNodeDeviceDestroy(struct qemud_server *server ATTRIBUTE_UNUSED,
 }
 
 
-/**************************
- * Async Events
- **************************/
-static int
-remoteDispatchDomainEvent (struct qemud_server *server ATTRIBUTE_UNUSED,
-                           struct qemud_client *client ATTRIBUTE_UNUSED,
-                           virConnectPtr conn ATTRIBUTE_UNUSED,
-                           remote_error *rerr ATTRIBUTE_UNUSED,
-                           void *args ATTRIBUTE_UNUSED,
-                           remote_domain_event_ret *ret ATTRIBUTE_UNUSED)
-{
-    /* This call gets dispatched from a client call.
-     * This does not make sense, as this should not be intiated
-     * from the client side in generated code.
-     */
-    remoteDispatchFormatError(rerr, "%s", _("unexpected async event method call"));
-    return -1;
-}
 
 /***************************
  * Register / deregister events
@@ -4728,72 +4461,58 @@ remoteDispatchDomainEventsDeregister (struct qemud_server *server ATTRIBUTE_UNUS
 
 static void
 remoteDispatchDomainEventSend (struct qemud_client *client,
-                               struct qemud_client_message *msg,
-                               virDomainPtr dom,
-                               int event,
-                               int detail)
+                               remote_domain_event_msg *data)
 {
-    remote_message_header rep;
+    struct qemud_client_message *msg = NULL;
     XDR xdr;
     unsigned int len;
-    remote_domain_event_ret data;
 
-    if (!client)
+    if (VIR_ALLOC(msg) < 0)
         return;
 
-    rep.prog = REMOTE_PROGRAM;
-    rep.vers = REMOTE_PROTOCOL_VERSION;
-    rep.proc = REMOTE_PROC_DOMAIN_EVENT;
-    rep.direction = REMOTE_MESSAGE;
-    rep.serial = 1;
-    rep.status = REMOTE_OK;
+    msg->hdr.prog = REMOTE_PROGRAM;
+    msg->hdr.vers = REMOTE_PROTOCOL_VERSION;
+    msg->hdr.proc = REMOTE_PROC_DOMAIN_EVENT;
+    msg->hdr.type = REMOTE_MESSAGE;
+    msg->hdr.serial = 1;
+    msg->hdr.status = REMOTE_OK;
+
+    if (remoteEncodeClientMessageHeader(msg) < 0)
+        goto error;
 
     /* Serialise the return header and event. */
-    xdrmem_create (&xdr, msg->buffer, sizeof msg->buffer, XDR_ENCODE);
+    xdrmem_create (&xdr,
+                   msg->buffer + msg->bufferOffset,
+                   msg->bufferLength - msg->bufferOffset,
+                   XDR_ENCODE);
 
-    len = 0; /* We'll come back and write this later. */
-    if (!xdr_u_int (&xdr, &len)) {
-        /*remoteDispatchError (client, NULL, "%s", _("xdr_u_int failed (1)"));*/
-        xdr_destroy (&xdr);
-        return;
-    }
+    if (!xdr_remote_domain_event_msg(&xdr, data))
+        goto xdr_error;
 
-    if (!xdr_remote_message_header (&xdr, &rep)) {
-        xdr_destroy (&xdr);
-        return;
-    }
 
-    /* build return data */
-    make_nonnull_domain (&data.dom, dom);
-    data.event = event;
-    data.detail = detail;
+    /* Update length word */
+    msg->bufferOffset += xdr_getpos (&xdr);
+    len = msg->bufferOffset;
+    if (xdr_setpos (&xdr, 0) == 0)
+        goto xdr_error;
 
-    if (!xdr_remote_domain_event_ret(&xdr, &data)) {
-        /*remoteDispatchError (client, NULL, "%s", _("serialise return struct"));*/
-        xdr_destroy (&xdr);
-        return;
-    }
-
-    len = xdr_getpos (&xdr);
-    if (xdr_setpos (&xdr, 0) == 0) {
-        /*remoteDispatchError (client, NULL, "%s", _("xdr_setpos failed"));*/
-        xdr_destroy (&xdr);
-        return;
-    }
-
-    if (!xdr_u_int (&xdr, &len)) {
-        /*remoteDispatchError (client, NULL, "%s", _("xdr_u_int failed (2)"));*/
-        xdr_destroy (&xdr);
-        return;
-    }
-
-    xdr_destroy (&xdr);
+    if (!xdr_u_int (&xdr, &len))
+        goto xdr_error;
 
     /* Send it. */
     msg->async = 1;
     msg->bufferLength = len;
     msg->bufferOffset = 0;
     qemudClientMessageQueuePush(&client->tx, msg);
+    qemudUpdateClientEvent(client);
+
+    xdr_destroy (&xdr);
+    return;
+
+xdr_error:
+    xdr_destroy(&xdr);
+error:
+    VIR_FREE(msg);
 }
 
 /*----- Helpers. -----*/

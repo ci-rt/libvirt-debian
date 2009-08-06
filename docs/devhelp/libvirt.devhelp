@@ -88,6 +88,7 @@
     <function name="VIR_ERR_INVALID_NODE_DEVICE" link="libvirt-virterror.html#VIR_ERR_INVALID_NODE_DEVICE"/>
     <function name="VIR_ERR_INVALID_STORAGE_POOL" link="libvirt-virterror.html#VIR_ERR_INVALID_STORAGE_POOL"/>
     <function name="VIR_ERR_INVALID_STORAGE_VOL" link="libvirt-virterror.html#VIR_ERR_INVALID_STORAGE_VOL"/>
+    <function name="VIR_ERR_MULTIPLE_INTERFACES" link="libvirt-virterror.html#VIR_ERR_MULTIPLE_INTERFACES"/>
     <function name="VIR_ERR_NETWORK_EXIST" link="libvirt-virterror.html#VIR_ERR_NETWORK_EXIST"/>
     <function name="VIR_ERR_NONE" link="libvirt-virterror.html#VIR_ERR_NONE"/>
     <function name="VIR_ERR_NO_CONNECT" link="libvirt-virterror.html#VIR_ERR_NO_CONNECT"/>
@@ -134,6 +135,7 @@
     <function name="VIR_FROM_CONF" link="libvirt-virterror.html#VIR_FROM_CONF"/>
     <function name="VIR_FROM_DOM" link="libvirt-virterror.html#VIR_FROM_DOM"/>
     <function name="VIR_FROM_DOMAIN" link="libvirt-virterror.html#VIR_FROM_DOMAIN"/>
+    <function name="VIR_FROM_ESX" link="libvirt-virterror.html#VIR_FROM_ESX"/>
     <function name="VIR_FROM_INTERFACE" link="libvirt-virterror.html#VIR_FROM_INTERFACE"/>
     <function name="VIR_FROM_LXC" link="libvirt-virterror.html#VIR_FROM_LXC"/>
     <function name="VIR_FROM_NET" link="libvirt-virterror.html#VIR_FROM_NET"/>
@@ -142,6 +144,7 @@
     <function name="VIR_FROM_NONE" link="libvirt-virterror.html#VIR_FROM_NONE"/>
     <function name="VIR_FROM_ONE" link="libvirt-virterror.html#VIR_FROM_ONE"/>
     <function name="VIR_FROM_OPENVZ" link="libvirt-virterror.html#VIR_FROM_OPENVZ"/>
+    <function name="VIR_FROM_PHYP" link="libvirt-virterror.html#VIR_FROM_PHYP"/>
     <function name="VIR_FROM_PROXY" link="libvirt-virterror.html#VIR_FROM_PROXY"/>
     <function name="VIR_FROM_QEMU" link="libvirt-virterror.html#VIR_FROM_QEMU"/>
     <function name="VIR_FROM_REMOTE" link="libvirt-virterror.html#VIR_FROM_REMOTE"/>
@@ -159,6 +162,7 @@
     <function name="VIR_FROM_XENXM" link="libvirt-virterror.html#VIR_FROM_XENXM"/>
     <function name="VIR_FROM_XEN_INOTIFY" link="libvirt-virterror.html#VIR_FROM_XEN_INOTIFY"/>
     <function name="VIR_FROM_XML" link="libvirt-virterror.html#VIR_FROM_XML"/>
+    <function name="VIR_MEMORY_PHYSICAL" link="libvirt-libvirt.html#VIR_MEMORY_PHYSICAL"/>
     <function name="VIR_MEMORY_VIRTUAL" link="libvirt-libvirt.html#VIR_MEMORY_VIRTUAL"/>
     <function name="VIR_MIGRATE_LIVE" link="libvirt-libvirt.html#VIR_MIGRATE_LIVE"/>
     <function name="VIR_STORAGE_POOL_BUILDING" link="libvirt-libvirt.html#VIR_STORAGE_POOL_BUILDING"/>
@@ -276,6 +280,7 @@
     <function name="virConnectGetURI ()" link="libvirt-libvirt.html#virConnectGetURI"/>
     <function name="virConnectGetVersion ()" link="libvirt-libvirt.html#virConnectGetVersion"/>
     <function name="virConnectListDefinedDomains ()" link="libvirt-libvirt.html#virConnectListDefinedDomains"/>
+    <function name="virConnectListDefinedInterfaces ()" link="libvirt-libvirt.html#virConnectListDefinedInterfaces"/>
     <function name="virConnectListDefinedNetworks ()" link="libvirt-libvirt.html#virConnectListDefinedNetworks"/>
     <function name="virConnectListDefinedStoragePools ()" link="libvirt-libvirt.html#virConnectListDefinedStoragePools"/>
     <function name="virConnectListDomains ()" link="libvirt-libvirt.html#virConnectListDomains"/>
@@ -283,6 +288,7 @@
     <function name="virConnectListNetworks ()" link="libvirt-libvirt.html#virConnectListNetworks"/>
     <function name="virConnectListStoragePools ()" link="libvirt-libvirt.html#virConnectListStoragePools"/>
     <function name="virConnectNumOfDefinedDomains ()" link="libvirt-libvirt.html#virConnectNumOfDefinedDomains"/>
+    <function name="virConnectNumOfDefinedInterfaces ()" link="libvirt-libvirt.html#virConnectNumOfDefinedInterfaces"/>
     <function name="virConnectNumOfDefinedNetworks ()" link="libvirt-libvirt.html#virConnectNumOfDefinedNetworks"/>
     <function name="virConnectNumOfDefinedStoragePools ()" link="libvirt-libvirt.html#virConnectNumOfDefinedStoragePools"/>
     <function name="virConnectNumOfDomains ()" link="libvirt-libvirt.html#virConnectNumOfDomains"/>

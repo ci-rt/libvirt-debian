@@ -62,12 +62,6 @@ static int qcowXGetBackingStore(virConnectPtr, char **,
 static int vmdk4GetBackingStore(virConnectPtr, char **,
                                 const unsigned char *, size_t);
 
-typedef int (*createFile)(virConnectPtr conn,
-                          virStorageVolDefPtr vol,
-                          virStorageVolDefPtr inputvol);
-
-static int track_allocation_progress = 0;
-
 /* Either 'magic' or 'extension' *must* be provided */
 struct FileTypeInfo {
     int type;           /* One of the constants above */
@@ -604,6 +598,7 @@ static int
 virStorageBackendFileSystemMount(virConnectPtr conn,
                                  virStoragePoolObjPtr pool) {
     char *src;
+    char *options;
     const char **mntargv;
 
     /* 'mount -t auto' doesn't seem to auto determine nfs (or cifs),
@@ -611,6 +606,10 @@ virStorageBackendFileSystemMount(virConnectPtr conn,
      *  accommodate this */
     int netauto = (pool->def->type == VIR_STORAGE_POOL_NETFS &&
                    pool->def->source.format == VIR_STORAGE_POOL_NETFS_AUTO);
+    int glusterfs = (pool->def->type == VIR_STORAGE_POOL_NETFS &&
+                 pool->def->source.format == VIR_STORAGE_POOL_NETFS_GLUSTERFS);
+
+    int option_index;
     int source_index;
 
     const char *netfs_auto_argv[] = {
@@ -632,9 +631,26 @@ virStorageBackendFileSystemMount(virConnectPtr conn,
         NULL,
     };
 
+    const char *glusterfs_argv[] = {
+        MOUNT,
+        "-t",
+        pool->def->type == VIR_STORAGE_POOL_FS ?
+        virStoragePoolFormatFileSystemTypeToString(pool->def->source.format) :
+        virStoragePoolFormatFileSystemNetTypeToString(pool->def->source.format),
+        NULL,
+        "-o",
+        NULL,
+        pool->def->target.path,
+        NULL,
+    };
+
     if (netauto) {
         mntargv = netfs_auto_argv;
         source_index = 1;
+    } else if (glusterfs) {
+        mntargv = glusterfs_argv;
+        source_index = 3;
+        option_index = 5;
     } else {
         mntargv = fs_argv;
         source_index = 3;
@@ -670,6 +686,12 @@ virStorageBackendFileSystemMount(virConnectPtr conn,
     }
 
     if (pool->def->type == VIR_STORAGE_POOL_NETFS) {
+        if (pool->def->source.format == VIR_STORAGE_POOL_NETFS_GLUSTERFS) {
+            if (virAsprintf(&options, "direct-io-mode=1") == -1) {
+                virReportOOMError(conn);
+                return -1;
+            }
+        }
         if (virAsprintf(&src, "%s:%s",
                         pool->def->source.host.name,
                         pool->def->source.dir) == -1) {
@@ -684,6 +706,10 @@ virStorageBackendFileSystemMount(virConnectPtr conn,
         }
     }
     mntargv[source_index] = src;
+
+    if (glusterfs) {
+        mntargv[option_index] = options;
+    }
 
     if (virRun(conn, mntargv, NULL) < 0) {
         VIR_FREE(src);
@@ -1012,160 +1038,10 @@ virStorageBackendFileSystemVolCreate(virConnectPtr conn,
     return 0;
 }
 
-static int createRaw(virConnectPtr conn,
-                     virStorageVolDefPtr vol,
-                     virStorageVolDefPtr inputvol) {
-    int fd = -1;
-    int inputfd = -1;
-    int ret = -1;
-    unsigned long long remain;
-    char *buf = NULL;
-
-    if ((fd = open(vol->target.path, O_RDWR | O_CREAT | O_EXCL,
-                   vol->target.perms.mode)) < 0) {
-        virReportSystemError(conn, errno,
-                             _("cannot create path '%s'"),
-                             vol->target.path);
-        goto cleanup;
-    }
-
-    if (inputvol) {
-        if ((inputfd = open(inputvol->target.path, O_RDONLY)) < 0) {
-            virReportSystemError(conn, errno,
-                                 _("could not open input path '%s'"),
-                                 inputvol->target.path);
-            goto cleanup;
-        }
-    }
-
-    /* Seek to the final size, so the capacity is available upfront
-     * for progress reporting */
-    if (ftruncate(fd, vol->capacity) < 0) {
-        virReportSystemError(conn, errno,
-                             _("cannot extend file '%s'"),
-                             vol->target.path);
-        goto cleanup;
-    }
-
-    remain = vol->allocation;
-
-    if (inputfd != -1) {
-        int amtread = -1;
-        size_t bytes = 1024 * 1024;
-        char zerobuf[512];
-
-        bzero(&zerobuf, sizeof(zerobuf));
-
-        if (VIR_ALLOC_N(buf, bytes) < 0) {
-            virReportOOMError(conn);
-            goto cleanup;
-        }
-
-        while (amtread != 0) {
-            int amtleft;
-
-            if (remain < bytes)
-                bytes = remain;
-
-            if ((amtread = saferead(inputfd, buf, bytes)) < 0) {
-                virReportSystemError(conn, errno,
-                                     _("failed reading from file '%s'"),
-                                     inputvol->target.path);
-                goto cleanup;
-            }
-            remain -= amtread;
-
-            /* Loop over amt read in 512 byte increments, looking for sparse
-             * blocks */
-            amtleft = amtread;
-            do {
-                int interval = ((512 > amtleft) ? amtleft : 512);
-                int offset = amtread - amtleft;
-
-                if (memcmp(buf+offset, zerobuf, interval) == 0) {
-                    if (lseek(fd, interval, SEEK_CUR) < 0) {
-                        virReportSystemError(conn, errno,
-                                             _("cannot extend file '%s'"),
-                                             vol->target.path);
-                        goto cleanup;
-                    }
-                } else if (safewrite(fd, buf+offset, interval) < 0) {
-                    virReportSystemError(conn, errno,
-                                         _("failed writing to file '%s'"),
-                                         vol->target.path);
-                    goto cleanup;
-
-                }
-            } while ((amtleft -= 512) > 0);
-        }
-    }
-
-    /* Pre-allocate any data if requested */
-    /* XXX slooooooooooooooooow on non-extents-based file systems */
-    if (remain) {
-        if (track_allocation_progress) {
-
-            while (remain) {
-                /* Allocate in chunks of 512MiB: big-enough chunk
-                 * size and takes approx. 9s on ext3. A progress
-                 * update every 9s is a fair-enough trade-off
-                 */
-                unsigned long long bytes = 512 * 1024 * 1024;
-                int r;
-
-                if (bytes > remain)
-                    bytes = remain;
-                if ((r = safezero(fd, 0, vol->allocation - remain,
-                                  bytes)) != 0) {
-                    virReportSystemError(conn, r,
-                                         _("cannot fill file '%s'"),
-                                         vol->target.path);
-                    goto cleanup;
-                }
-                remain -= bytes;
-            }
-        } else { /* No progress bars to be shown */
-            int r;
-
-            if ((r = safezero(fd, 0, 0, remain)) != 0) {
-                virReportSystemError(conn, r,
-                                     _("cannot fill file '%s'"),
-                                     vol->target.path);
-                goto cleanup;
-            }
-        }
-    }
-
-    if (close(fd) < 0) {
-        virReportSystemError(conn, errno,
-                             _("cannot close file '%s'"),
-                             vol->target.path);
-        goto cleanup;
-    }
-    fd = -1;
-
-    if (inputfd != -1 && close(inputfd) < 0) {
-        virReportSystemError(conn, errno,
-                             _("cannot close file '%s'"),
-                             inputvol->target.path);
-        goto cleanup;
-    }
-    inputfd = -1;
-
-    ret = 0;
-cleanup:
-    if (fd != -1)
-        close(fd);
-    if (inputfd != -1)
-        close(inputfd);
-    VIR_FREE(buf);
-
-    return ret;
-}
-
 static int createFileDir(virConnectPtr conn,
                          virStorageVolDefPtr vol,
-                         virStorageVolDefPtr inputvol) {
+                         virStorageVolDefPtr inputvol,
+                         unsigned int flags ATTRIBUTE_UNUSED) {
     if (inputvol) {
         virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
                               "%s",
@@ -1183,215 +1059,29 @@ static int createFileDir(virConnectPtr conn,
     return 0;
 }
 
-static int createQemuImg(virConnectPtr conn,
-                         virStorageVolDefPtr vol,
-                         virStorageVolDefPtr inputvol) {
-    char size[100];
-    char *create_tool;
-    short use_kvmimg;
-
-    const char *type = virStorageVolFormatFileSystemTypeToString(vol->target.format);
-    const char *backingType = vol->backingStore.path ?
-        virStorageVolFormatFileSystemTypeToString(vol->backingStore.format) : NULL;
-
-    const char *inputBackingPath = (inputvol ? inputvol->backingStore.path
-                                             : NULL);
-    const char *inputPath = inputvol ? inputvol->target.path : NULL;
-    /* Treat input block devices as 'raw' format */
-    const char *inputType = inputPath ?
-                            virStorageVolFormatFileSystemTypeToString(inputvol->type == VIR_STORAGE_VOL_BLOCK ? VIR_STORAGE_VOL_FILE_RAW : inputvol->target.format) :
-                            NULL;
-
-    const char **imgargv;
-    const char *imgargvnormal[] = {
-        NULL, "create",
-        "-f", type,
-        vol->target.path,
-        size,
-        NULL,
-    };
-    /* Extra NULL fields are for including "backingType" when using
-     * kvm-img. It's -F backingType
-     */
-    const char *imgargvbacking[] = {
-        NULL, "create",
-        "-f", type,
-        "-b", vol->backingStore.path,
-        vol->target.path,
-        size,
-        NULL,
-        NULL,
-        NULL
-    };
-    const char *convargv[] = {
-        NULL, "convert",
-        "-f", inputType,
-        "-O", type,
-        inputPath,
-        vol->target.path,
-        NULL,
-    };
-
-    if (type == NULL) {
-        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                              _("unknown storage vol type %d"),
-                              vol->target.format);
-        return -1;
-    }
-    if (inputvol && inputType == NULL) {
-        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                              _("unknown storage vol type %d"),
-                              inputvol->target.format);
-        return -1;
-    }
-
-    if (vol->backingStore.path) {
-
-        /* XXX: Not strictly required: qemu-img has an option a different
-         * backing store, not really sure what use it serves though, and it
-         * may cause issues with lvm. Untested essentially.
-         */
-        if (inputvol &&
-            (!inputBackingPath ||
-             STRNEQ(inputBackingPath, vol->backingStore.path))) {
-            virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                  "%s", _("a different backing store can not "
-                                          "be specified."));
-            return -1;
-        }
-
-        if (backingType == NULL) {
-            virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                  _("unknown storage vol backing store type %d"),
-                                  vol->backingStore.format);
-            return -1;
-        }
-        if (access(vol->backingStore.path, R_OK) != 0) {
-            virReportSystemError(conn, errno,
-                                 _("inaccessible backing store volume %s"),
-                                 vol->backingStore.path);
-            return -1;
-        }
-    }
-
-    if ((create_tool = virFindFileInPath("kvm-img")) != NULL)
-        use_kvmimg = 1;
-    else if ((create_tool = virFindFileInPath("qemu-img")) != NULL)
-        use_kvmimg = 0;
-    else {
-        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                              _("unable to find kvm-img or qemu-img"));
-        return -1;
-    }
-
-    if (inputvol) {
-        convargv[0] = create_tool;
-        imgargv = convargv;
-    } else if (vol->backingStore.path) {
-        imgargvbacking[0] = create_tool;
-        if (use_kvmimg) {
-            imgargvbacking[6] = "-F";
-            imgargvbacking[7] = backingType;
-            imgargvbacking[8] = vol->target.path;
-            imgargvbacking[9] = size;
-        }
-        imgargv = imgargvbacking;
-    } else {
-        imgargvnormal[0] = create_tool;
-        imgargv = imgargvnormal;
-    }
-
-
-    /* Size in KB */
-    snprintf(size, sizeof(size), "%llu", vol->capacity/1024);
-
-    if (virRun(conn, imgargv, NULL) < 0) {
-        VIR_FREE(imgargv[0]);
-        return -1;
-    }
-
-    VIR_FREE(imgargv[0]);
-
-    return 0;
-}
-
-/*
- * Xen removed the fully-functional qemu-img, and replaced it
- * with a partially functional qcow-create. Go figure ??!?
- */
-static int createQemuCreate(virConnectPtr conn,
-                            virStorageVolDefPtr vol,
-                            virStorageVolDefPtr inputvol) {
-    char size[100];
-    const char *imgargv[4];
-
-    if (inputvol) {
-        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                              "%s",
-                              _("cannot copy from volume with qcow-create"));
-        return -1;
-    }
-
-    if (vol->target.format != VIR_STORAGE_VOL_FILE_QCOW2) {
-        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                              _("unsupported storage vol type %d"),
-                              vol->target.format);
-        return -1;
-    }
-    if (vol->backingStore.path != NULL) {
-        virStorageReportError(conn, VIR_ERR_NO_SUPPORT,
-                              _("copy-on-write image not supported with "
-                              "qcow-create"));
-        return -1;
-    }
-
-    /* Size in MB - yes different units to qemu-img :-( */
-    snprintf(size, sizeof(size), "%llu", vol->capacity/1024/1024);
-
-    imgargv[0] = virFindFileInPath("qcow-create");
-    imgargv[1] = size;
-    imgargv[2] = vol->target.path;
-    imgargv[3] = NULL;
-
-    if (virRun(conn, imgargv, NULL) < 0) {
-        VIR_FREE(imgargv[0]);
-        return -1;
-    }
-
-    VIR_FREE(imgargv[0]);
-
-    return 0;
-}
-
 static int
 _virStorageBackendFileSystemVolBuild(virConnectPtr conn,
                                      virStorageVolDefPtr vol,
                                      virStorageVolDefPtr inputvol)
 {
     int fd;
-    createFile create_func;
-    char *create_tool;
+    virStorageBackendBuildVolFrom create_func;
+    int tool_type;
 
-    if (vol->target.format == VIR_STORAGE_VOL_FILE_RAW &&
-        (!inputvol ||
-         (inputvol->type == VIR_STORAGE_VOL_BLOCK ||
-          inputvol->target.format == VIR_STORAGE_VOL_FILE_RAW))) {
-          /* Raw file creation
-           * Raw -> Raw copying
-           * Block dev -> Raw copying
-           */
-        create_func = createRaw;
+    if (inputvol) {
+        create_func = virStorageBackendGetBuildVolFromFunction(conn, vol,
+                                                               inputvol);
+        if (!create_func)
+            return -1;
+    } else if (vol->target.format == VIR_STORAGE_VOL_FILE_RAW) {
+        create_func = virStorageBackendCreateRaw;
     } else if (vol->target.format == VIR_STORAGE_VOL_FILE_DIR) {
         create_func = createFileDir;
-    } else if ((create_tool = virFindFileInPath("kvm-img")) != NULL) {
-        VIR_FREE(create_tool);
-        create_func = createQemuImg;
-    } else if ((create_tool = virFindFileInPath("qemu-img")) != NULL) {
-        VIR_FREE(create_tool);
-        create_func = createQemuImg;
-    } else if ((create_tool = virFindFileInPath("qcow-create")) != NULL) {
-        VIR_FREE(create_tool);
-        create_func = createQemuCreate;
+    } else if ((tool_type = virStorageBackendFindFSImageTool(NULL)) != -1) {
+        create_func = virStorageBackendFSImageToolTypeToFunc(conn, tool_type);
+
+        if (!create_func)
+            return -1;
     } else {
         virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
                               "%s", _("creation of non-raw images "
@@ -1399,7 +1089,7 @@ _virStorageBackendFileSystemVolBuild(virConnectPtr conn,
         return -1;
     }
 
-    if (create_func(conn, vol, inputvol) < 0)
+    if (create_func(conn, vol, inputvol, 0) < 0)
         return -1;
 
     if ((fd = open(vol->target.path, O_RDONLY)) < 0) {

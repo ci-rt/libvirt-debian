@@ -3,7 +3,8 @@
 DAEMON_SOURCES =					\
 		event.c event.h				\
 		qemud.c qemud.h				\
-		remote.c				\
+		remote.c remote.h			\
+		dispatch.c dispatch.h			\
 		remote_dispatch_prototypes.h		\
 		remote_dispatch_table.h			\
 		remote_dispatch_args.h			\
@@ -132,6 +133,10 @@ endif
 
 if WITH_NETWORK
     libvirtd_LDADD += ../src/libvirt_driver_network.la
+endif
+
+if WITH_NETCF
+    libvirtd_LDADD += ../src/libvirt_driver_interface.la
 endif
 
 if WITH_NODE_DEVICES

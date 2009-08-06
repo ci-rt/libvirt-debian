@@ -167,7 +167,9 @@ def openReadOnly(name):
     """This function should be called first to get a restricted
       connection to the library functionalities. The set of APIs
       usable are then restricted on the available methods to
-       control the domains. """
+      control the domains.  See virConnectOpen for notes about
+      environment variables which can have an effect on opening
+       drivers """
     ret = libvirtmod.virConnectOpenReadOnly(name)
     if ret is None:raise libvirtError('virConnectOpenReadOnly() failed')
     return virConnect(_obj=ret)
@@ -517,6 +519,7 @@ class virDomain:
     def blockStats(self, path):
         """Extracts block device statistics for a domain """
         ret = libvirtmod.virDomainBlockStats(self._o, path)
+        if ret is None: raise libvirtError ('virDomainBlockStats() failed', dom=self)
         return ret
 
     def info(self):
@@ -530,6 +533,7 @@ class virDomain:
     def interfaceStats(self, path):
         """Extracts interface device statistics for a domain """
         ret = libvirtmod.virDomainInterfaceStats(self._o, path)
+        if ret is None: raise libvirtError ('virDomainInterfaceStats() failed', dom=self)
         return ret
 
     def pinVcpu(self, vcpu, cpumap):
@@ -1208,9 +1212,16 @@ class virConnect:
         __tmp = virInterface(self, _obj=ret)
         return __tmp
 
+    def listDefinedInterfaces(self, names, maxnames):
+        """Collect the list of defined (inactive) physical host
+           interfaces, and store their names in @names. """
+        ret = libvirtmod.virConnectListDefinedInterfaces(self._o, names, maxnames)
+        if ret == -1: raise libvirtError ('virConnectListDefinedInterfaces() failed', conn=self)
+        return ret
+
     def listInterfaces(self, names, maxnames):
-        """Collect the list of physical host interfaces, and store
-           their names in @names """
+        """Collect the list of active physical host interfaces, and
+           store their names in @names """
         ret = libvirtmod.virConnectListInterfaces(self._o, names, maxnames)
         if ret == -1: raise libvirtError ('virConnectListInterfaces() failed', conn=self)
         return ret
@@ -1323,6 +1334,13 @@ class virConnect:
         if ret == -1: raise libvirtError ('virConnectNumOfDefinedDomains() failed', conn=self)
         return ret
 
+    def numOfDefinedInterfaces(self):
+        """Provides the number of defined (inactive) interfaces on the
+           physical host. """
+        ret = libvirtmod.virConnectNumOfDefinedInterfaces(self._o)
+        if ret == -1: raise libvirtError ('virConnectNumOfDefinedInterfaces() failed', conn=self)
+        return ret
+
     def numOfDefinedNetworks(self):
         """Provides the number of inactive networks. """
         ret = libvirtmod.virConnectNumOfDefinedNetworks(self._o)
@@ -1350,7 +1368,8 @@ class virConnect:
         return ret
 
     def numOfInterfaces(self):
-        """Provides the number of interfaces on the physical host. """
+        """Provides the number of active interfaces on the physical
+           host. """
         ret = libvirtmod.virConnectNumOfInterfaces(self._o)
         if ret == -1: raise libvirtError ('virConnectNumOfInterfaces() failed', conn=self)
         return ret
@@ -1734,6 +1753,8 @@ VIR_FROM_SECURITY = 24
 VIR_FROM_VBOX = 25
 VIR_FROM_INTERFACE = 26
 VIR_FROM_ONE = 27
+VIR_FROM_ESX = 28
+VIR_FROM_PHYP = 29
 
 # virDomainEventStartedDetailType
 VIR_DOMAIN_EVENT_STARTED_BOOTED = 0
@@ -1848,9 +1869,11 @@ VIR_ERR_OPERATION_INVALID = 55
 VIR_WAR_NO_INTERFACE = 56
 VIR_ERR_NO_INTERFACE = 57
 VIR_ERR_INVALID_INTERFACE = 58
+VIR_ERR_MULTIPLE_INTERFACES = 59
 
 # virDomainMemoryFlags
 VIR_MEMORY_VIRTUAL = 1
+VIR_MEMORY_PHYSICAL = 2
 
 # virDomainEventStoppedDetailType
 VIR_DOMAIN_EVENT_STOPPED_SHUTDOWN = 0

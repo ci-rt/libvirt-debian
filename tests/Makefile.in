@@ -40,7 +40,8 @@ host_triplet = @host@
 noinst_PROGRAMS = virshtest$(EXEEXT) conftest$(EXEEXT) \
 	nodeinfotest$(EXEEXT) statstest$(EXEEXT) qparamtest$(EXEEXT) \
 	$(am__EXEEXT_1) $(am__EXEEXT_2) $(am__EXEEXT_3) \
-	$(am__EXEEXT_4) nodedevxml2xmltest$(EXEEXT) $(am__EXEEXT_5)
+	$(am__EXEEXT_4) nodedevxml2xmltest$(EXEEXT) \
+	interfacexml2xmltest$(EXEEXT) $(am__EXEEXT_5)
 @WITH_XEN_TRUE@am__append_2 = xml2sexprtest sexpr2xmltest \
 @WITH_XEN_TRUE@	reconnect xmconfigtest xencapstest
 
@@ -66,7 +67,8 @@ noinst_PROGRAMS = virshtest$(EXEEXT) conftest$(EXEEXT) \
 TESTS = virshtest$(EXEEXT) nodeinfotest$(EXEEXT) statstest$(EXEEXT) \
 	qparamtest$(EXEEXT) $(test_scripts) $(am__EXEEXT_6) \
 	$(am__EXEEXT_7) $(am__EXEEXT_2) $(am__EXEEXT_3) \
-	$(am__EXEEXT_5) nodedevxml2xmltest$(EXEEXT)
+	$(am__EXEEXT_5) nodedevxml2xmltest$(EXEEXT) \
+	interfacexml2xmltest$(EXEEXT)
 @WITH_XEN_TRUE@am__append_7 = xml2sexprtest \
 @WITH_XEN_TRUE@	sexpr2xmltest \
 @WITH_XEN_TRUE@	xmconfigtest \
@@ -100,6 +102,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/getdelim.m4 \
 	$(top_srcdir)/gnulib/m4/gethostname.m4 \
 	$(top_srcdir)/gnulib/m4/getline.m4 \
+	$(top_srcdir)/gnulib/m4/getpagesize.m4 \
 	$(top_srcdir)/gnulib/m4/getpass.m4 \
 	$(top_srcdir)/gnulib/m4/gettimeofday.m4 \
 	$(top_srcdir)/gnulib/m4/gnulib-common.m4 \
@@ -114,7 +117,9 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/lseek.m4 \
 	$(top_srcdir)/gnulib/m4/lstat.m4 \
 	$(top_srcdir)/gnulib/m4/malloc.m4 \
+	$(top_srcdir)/gnulib/m4/memchr.m4 \
 	$(top_srcdir)/gnulib/m4/mkstemp.m4 \
+	$(top_srcdir)/gnulib/m4/mmap-anon.m4 \
 	$(top_srcdir)/gnulib/m4/multiarch.m4 \
 	$(top_srcdir)/gnulib/m4/netdb_h.m4 \
 	$(top_srcdir)/gnulib/m4/netinet_in_h.m4 \
@@ -126,6 +131,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/printf.m4 \
 	$(top_srcdir)/gnulib/m4/random_r.m4 \
 	$(top_srcdir)/gnulib/m4/realloc.m4 \
+	$(top_srcdir)/gnulib/m4/select.m4 \
 	$(top_srcdir)/gnulib/m4/servent.m4 \
 	$(top_srcdir)/gnulib/m4/snprintf.m4 \
 	$(top_srcdir)/gnulib/m4/sockets.m4 \
@@ -151,6 +157,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/tempname.m4 \
 	$(top_srcdir)/gnulib/m4/time_h.m4 \
 	$(top_srcdir)/gnulib/m4/time_r.m4 \
+	$(top_srcdir)/gnulib/m4/ungetc.m4 \
 	$(top_srcdir)/gnulib/m4/unistd_h.m4 \
 	$(top_srcdir)/gnulib/m4/vasnprintf.m4 \
 	$(top_srcdir)/gnulib/m4/vasprintf.m4 \
@@ -191,12 +198,19 @@ am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	../gnulib/lib/libgnu.la $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1)
 conftest_DEPENDENCIES = $(am__DEPENDENCIES_2)
+AM_V_lt = $(am__v_lt_$(V))
+am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
+am__v_lt_0 = --silent
 am__eventtest_SOURCES_DIST = eventtest.c testutils.h testutils.c \
 	../qemud/event.c
 @WITH_LIBVIRTD_TRUE@am_eventtest_OBJECTS = eventtest.$(OBJEXT) \
 @WITH_LIBVIRTD_TRUE@	testutils.$(OBJEXT) event.$(OBJEXT)
 eventtest_OBJECTS = $(am_eventtest_OBJECTS)
 @WITH_LIBVIRTD_TRUE@eventtest_DEPENDENCIES = $(am__DEPENDENCIES_2)
+am_interfacexml2xmltest_OBJECTS = interfacexml2xmltest.$(OBJEXT) \
+	testutils.$(OBJEXT)
+interfacexml2xmltest_OBJECTS = $(am_interfacexml2xmltest_OBJECTS)
+interfacexml2xmltest_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_nodedevxml2xmltest_OBJECTS = nodedevxml2xmltest.$(OBJEXT) \
 	testutils.$(OBJEXT)
 nodedevxml2xmltest_OBJECTS = $(am_nodedevxml2xmltest_OBJECTS)
@@ -298,25 +312,39 @@ am__depfiles_maybe = depfiles
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
-LTCOMPILE = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
-	--mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
-	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+LTCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) \
+	$(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
+	$(AM_CFLAGS) $(CFLAGS)
+AM_V_CC = $(am__v_CC_$(V))
+am__v_CC_ = $(am__v_CC_$(AM_DEFAULT_VERBOSITY))
+am__v_CC_0 = @echo "  CC    " $@;
+AM_V_at = $(am__v_at_$(V))
+am__v_at_ = $(am__v_at_$(AM_DEFAULT_VERBOSITY))
+am__v_at_0 = @
 CCLD = $(CC)
-LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
-	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
-	$(LDFLAGS) -o $@
+LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(AM_LDFLAGS) $(LDFLAGS) -o $@
+AM_V_CCLD = $(am__v_CCLD_$(V))
+am__v_CCLD_ = $(am__v_CCLD_$(AM_DEFAULT_VERBOSITY))
+am__v_CCLD_0 = @echo "  CCLD  " $@;
+AM_V_GEN = $(am__v_GEN_$(V))
+am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
+am__v_GEN_0 = @echo "  GEN   " $@;
 SOURCES = $(conftest_SOURCES) $(eventtest_SOURCES) \
-	$(nodedevxml2xmltest_SOURCES) $(nodeinfotest_SOURCES) \
-	$(object_locking_SOURCES) $(qemuargv2xmltest_SOURCES) \
-	$(qemuhelptest_SOURCES) $(qemuxml2argvtest_SOURCES) \
-	$(qemuxml2xmltest_SOURCES) $(qparamtest_SOURCES) \
-	$(reconnect_SOURCES) $(seclabeltest_SOURCES) \
-	$(sexpr2xmltest_SOURCES) $(statstest_SOURCES) \
-	$(virshtest_SOURCES) $(xencapstest_SOURCES) \
-	$(xmconfigtest_SOURCES) $(xml2sexprtest_SOURCES)
+	$(interfacexml2xmltest_SOURCES) $(nodedevxml2xmltest_SOURCES) \
+	$(nodeinfotest_SOURCES) $(object_locking_SOURCES) \
+	$(qemuargv2xmltest_SOURCES) $(qemuhelptest_SOURCES) \
+	$(qemuxml2argvtest_SOURCES) $(qemuxml2xmltest_SOURCES) \
+	$(qparamtest_SOURCES) $(reconnect_SOURCES) \
+	$(seclabeltest_SOURCES) $(sexpr2xmltest_SOURCES) \
+	$(statstest_SOURCES) $(virshtest_SOURCES) \
+	$(xencapstest_SOURCES) $(xmconfigtest_SOURCES) \
+	$(xml2sexprtest_SOURCES)
 DIST_SOURCES = $(conftest_SOURCES) $(am__eventtest_SOURCES_DIST) \
-	$(nodedevxml2xmltest_SOURCES) $(nodeinfotest_SOURCES) \
-	$(am__object_locking_SOURCES_DIST) \
+	$(interfacexml2xmltest_SOURCES) $(nodedevxml2xmltest_SOURCES) \
+	$(nodeinfotest_SOURCES) $(am__object_locking_SOURCES_DIST) \
 	$(am__qemuargv2xmltest_SOURCES_DIST) \
 	$(am__qemuhelptest_SOURCES_DIST) \
 	$(am__qemuxml2argvtest_SOURCES_DIST) \
@@ -378,6 +406,7 @@ ACLOCAL = @ACLOCAL@
 ALLOCA = @ALLOCA@
 ALLOCA_H = @ALLOCA_H@
 AMTAR = @AMTAR@
+AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
 APPLE_UNIVERSAL_BUILD = @APPLE_UNIVERSAL_BUILD@
 AR = @AR@
 ARPA_INET_H = @ARPA_INET_H@
@@ -455,6 +484,7 @@ GNULIB_FFLUSH = @GNULIB_FFLUSH@
 GNULIB_FOPEN = @GNULIB_FOPEN@
 GNULIB_FPRINTF = @GNULIB_FPRINTF@
 GNULIB_FPRINTF_POSIX = @GNULIB_FPRINTF_POSIX@
+GNULIB_FPURGE = @GNULIB_FPURGE@
 GNULIB_FPUTC = @GNULIB_FPUTC@
 GNULIB_FPUTS = @GNULIB_FPUTS@
 GNULIB_FREOPEN = @GNULIB_FREOPEN@
@@ -509,6 +539,7 @@ GNULIB_MBSSEP = @GNULIB_MBSSEP@
 GNULIB_MBSSPN = @GNULIB_MBSSPN@
 GNULIB_MBSSTR = @GNULIB_MBSSTR@
 GNULIB_MBSTOK_R = @GNULIB_MBSTOK_R@
+GNULIB_MEMCHR = @GNULIB_MEMCHR@
 GNULIB_MEMMEM = @GNULIB_MEMMEM@
 GNULIB_MEMPCPY = @GNULIB_MEMPCPY@
 GNULIB_MEMRCHR = @GNULIB_MEMRCHR@
@@ -584,6 +615,7 @@ HAVE_ATOLL = @HAVE_ATOLL@
 HAVE_BTOWC = @HAVE_BTOWC@
 HAVE_CALLOC_POSIX = @HAVE_CALLOC_POSIX@
 HAVE_DECL_ENVIRON = @HAVE_DECL_ENVIRON@
+HAVE_DECL_FPURGE = @HAVE_DECL_FPURGE@
 HAVE_DECL_FREEADDRINFO = @HAVE_DECL_FREEADDRINFO@
 HAVE_DECL_GAI_STRERROR = @HAVE_DECL_GAI_STRERROR@
 HAVE_DECL_GETADDRINFO = @HAVE_DECL_GETADDRINFO@
@@ -642,6 +674,7 @@ HAVE_RAWMEMCHR = @HAVE_RAWMEMCHR@
 HAVE_READLINK = @HAVE_READLINK@
 HAVE_REALLOC_POSIX = @HAVE_REALLOC_POSIX@
 HAVE_RPMATCH = @HAVE_RPMATCH@
+HAVE_SA_FAMILY_T = @HAVE_SA_FAMILY_T@
 HAVE_SETENV = @HAVE_SETENV@
 HAVE_SIGNED_SIG_ATOMIC_T = @HAVE_SIGNED_SIG_ATOMIC_T@
 HAVE_SIGNED_WCHAR_T = @HAVE_SIGNED_WCHAR_T@
@@ -660,6 +693,7 @@ HAVE_STRTOLL = @HAVE_STRTOLL@
 HAVE_STRTOULL = @HAVE_STRTOULL@
 HAVE_STRUCT_ADDRINFO = @HAVE_STRUCT_ADDRINFO@
 HAVE_STRUCT_RANDOM_DATA = @HAVE_STRUCT_RANDOM_DATA@
+HAVE_STRUCT_SOCKADDR_STORAGE = @HAVE_STRUCT_SOCKADDR_STORAGE@
 HAVE_STRUCT_TIMEVAL = @HAVE_STRUCT_TIMEVAL@
 HAVE_STRVERSCMP = @HAVE_STRVERSCMP@
 HAVE_SYS_BITYPES_H = @HAVE_SYS_BITYPES_H@
@@ -698,6 +732,8 @@ IPTABLES_PATH = @IPTABLES_PATH@
 ISCSIADM = @ISCSIADM@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
+LIBCURL_CFLAGS = @LIBCURL_CFLAGS@
+LIBCURL_LIBS = @LIBCURL_LIBS@
 LIBICONV = @LIBICONV@
 LIBINTL = @LIBINTL@
 LIBOBJS = @LIBOBJS@
@@ -705,6 +741,8 @@ LIBPARTED_CFLAGS = @LIBPARTED_CFLAGS@
 LIBPARTED_LIBS = @LIBPARTED_LIBS@
 LIBS = @LIBS@
 LIBSOCKET = @LIBSOCKET@
+LIBSSH_CFLAGS = @LIBSSH_CFLAGS@
+LIBSSH_LIBS = @LIBSSH_LIBS@
 LIBTESTS_LIBDEPS = @LIBTESTS_LIBDEPS@
 LIBTOOL = @LIBTOOL@
 LIBVIRT_MAJOR_VERSION = @LIBVIRT_MAJOR_VERSION@
@@ -741,6 +779,23 @@ NETCF_LIBS = @NETCF_LIBS@
 NETDB_H = @NETDB_H@
 NETINET_IN_H = @NETINET_IN_H@
 NEXT_ARPA_INET_H = @NEXT_ARPA_INET_H@
+NEXT_AS_FIRST_DIRECTIVE_ARPA_INET_H = @NEXT_AS_FIRST_DIRECTIVE_ARPA_INET_H@
+NEXT_AS_FIRST_DIRECTIVE_ERRNO_H = @NEXT_AS_FIRST_DIRECTIVE_ERRNO_H@
+NEXT_AS_FIRST_DIRECTIVE_FLOAT_H = @NEXT_AS_FIRST_DIRECTIVE_FLOAT_H@
+NEXT_AS_FIRST_DIRECTIVE_NETDB_H = @NEXT_AS_FIRST_DIRECTIVE_NETDB_H@
+NEXT_AS_FIRST_DIRECTIVE_NETINET_IN_H = @NEXT_AS_FIRST_DIRECTIVE_NETINET_IN_H@
+NEXT_AS_FIRST_DIRECTIVE_STDINT_H = @NEXT_AS_FIRST_DIRECTIVE_STDINT_H@
+NEXT_AS_FIRST_DIRECTIVE_STDIO_H = @NEXT_AS_FIRST_DIRECTIVE_STDIO_H@
+NEXT_AS_FIRST_DIRECTIVE_STDLIB_H = @NEXT_AS_FIRST_DIRECTIVE_STDLIB_H@
+NEXT_AS_FIRST_DIRECTIVE_STRING_H = @NEXT_AS_FIRST_DIRECTIVE_STRING_H@
+NEXT_AS_FIRST_DIRECTIVE_SYS_IOCTL_H = @NEXT_AS_FIRST_DIRECTIVE_SYS_IOCTL_H@
+NEXT_AS_FIRST_DIRECTIVE_SYS_SELECT_H = @NEXT_AS_FIRST_DIRECTIVE_SYS_SELECT_H@
+NEXT_AS_FIRST_DIRECTIVE_SYS_SOCKET_H = @NEXT_AS_FIRST_DIRECTIVE_SYS_SOCKET_H@
+NEXT_AS_FIRST_DIRECTIVE_SYS_STAT_H = @NEXT_AS_FIRST_DIRECTIVE_SYS_STAT_H@
+NEXT_AS_FIRST_DIRECTIVE_SYS_TIME_H = @NEXT_AS_FIRST_DIRECTIVE_SYS_TIME_H@
+NEXT_AS_FIRST_DIRECTIVE_TIME_H = @NEXT_AS_FIRST_DIRECTIVE_TIME_H@
+NEXT_AS_FIRST_DIRECTIVE_UNISTD_H = @NEXT_AS_FIRST_DIRECTIVE_UNISTD_H@
+NEXT_AS_FIRST_DIRECTIVE_WCHAR_H = @NEXT_AS_FIRST_DIRECTIVE_WCHAR_H@
 NEXT_ERRNO_H = @NEXT_ERRNO_H@
 NEXT_FLOAT_H = @NEXT_FLOAT_H@
 NEXT_NETDB_H = @NEXT_NETDB_H@
@@ -802,6 +857,7 @@ REPLACE_FCLOSE = @REPLACE_FCLOSE@
 REPLACE_FFLUSH = @REPLACE_FFLUSH@
 REPLACE_FOPEN = @REPLACE_FOPEN@
 REPLACE_FPRINTF = @REPLACE_FPRINTF@
+REPLACE_FPURGE = @REPLACE_FPURGE@
 REPLACE_FREOPEN = @REPLACE_FREOPEN@
 REPLACE_FSEEK = @REPLACE_FSEEK@
 REPLACE_FSEEKO = @REPLACE_FSEEKO@
@@ -821,6 +877,7 @@ REPLACE_MBSINIT = @REPLACE_MBSINIT@
 REPLACE_MBSNRTOWCS = @REPLACE_MBSNRTOWCS@
 REPLACE_MBSRTOWCS = @REPLACE_MBSRTOWCS@
 REPLACE_MBSTATE_T = @REPLACE_MBSTATE_T@
+REPLACE_MEMCHR = @REPLACE_MEMCHR@
 REPLACE_MEMMEM = @REPLACE_MEMMEM@
 REPLACE_MKDIR = @REPLACE_MKDIR@
 REPLACE_MKSTEMP = @REPLACE_MKSTEMP@
@@ -829,6 +886,7 @@ REPLACE_OBSTACK_PRINTF = @REPLACE_OBSTACK_PRINTF@
 REPLACE_PERROR = @REPLACE_PERROR@
 REPLACE_PRINTF = @REPLACE_PRINTF@
 REPLACE_PUTENV = @REPLACE_PUTENV@
+REPLACE_SELECT = @REPLACE_SELECT@
 REPLACE_SNPRINTF = @REPLACE_SNPRINTF@
 REPLACE_SPRINTF = @REPLACE_SPRINTF@
 REPLACE_STDIO_WRITE_FUNCS = @REPLACE_STDIO_WRITE_FUNCS@
@@ -847,6 +905,7 @@ REPLACE_VPRINTF = @REPLACE_VPRINTF@
 REPLACE_VSNPRINTF = @REPLACE_VSNPRINTF@
 REPLACE_VSPRINTF = @REPLACE_VSPRINTF@
 REPLACE_WCRTOMB = @REPLACE_WCRTOMB@
+REPLACE_WCSNRTOMBS = @REPLACE_WCSNRTOMBS@
 REPLACE_WCSRTOMBS = @REPLACE_WCSRTOMBS@
 REPLACE_WCTOB = @REPLACE_WCTOB@
 REPLACE_WCWIDTH = @REPLACE_WCWIDTH@
@@ -985,16 +1044,24 @@ LDADDS = \
 	$(LIBSOCKET) \
         $(COVERAGE_LDFLAGS)
 
+qemuhelpdata = \
+	kvm-74 \
+	kvm-86 \
+	qemu-0.10.5 \
+	qemu-0.9.1 \
+	qemu-kvm-0.10.5
+
 EXTRA_DIST = oomtrace.pl test-lib.sh qemuxml2argvdata nodeinfodata \
 	capabilityschematest capabilityschemadata networkschematest \
-	domainschematest domainschemadata storagepoolschematest \
-	storagepoolschemadata storagevolschematest \
-	storagevolschemadata nodedevschematest nodedevschemadata \
+	domainschematest domainschemadata interfaceschemadata \
+	storagepoolschematest storagepoolschemadata \
+	storagevolschematest storagevolschemadata nodedevschematest \
+	nodedevschemadata $(patsubst %,qemuhelpdata/%,$(qemuhelpdata)) \
 	$(test_scripts) $(am__append_13) $(am__append_14) \
 	$(am__append_15) $(am__append_16)
-test_scripts = capabilityschematest networkschematest \
-	storagepoolschematest storagevolschematest domainschematest \
-	nodedevschematest $(am__append_6)
+test_scripts = capabilityschematest interfaceschematest \
+	networkschematest storagepoolschematest storagevolschematest \
+	domainschematest nodedevschematest $(am__append_6)
 path_add = $$abs_top_builddir/src$(PATH_SEPARATOR)$$abs_top_builddir/qemud
 
 # NB, automake < 1.10 does not provide the real
@@ -1058,6 +1125,11 @@ nodedevxml2xmltest_SOURCES = \
 	testutils.c testutils.h
 
 nodedevxml2xmltest_LDADD = $(LDADDS)
+interfacexml2xmltest_SOURCES = \
+	interfacexml2xmltest.c \
+	testutils.c testutils.h
+
+interfacexml2xmltest_LDADD = $(LDADDS)
 virshtest_SOURCES = \
 	virshtest.c \
 	testutils.c testutils.h
@@ -1138,58 +1210,61 @@ clean-noinstPROGRAMS:
 	rm -f $$list
 conftest$(EXEEXT): $(conftest_OBJECTS) $(conftest_DEPENDENCIES) 
 	@rm -f conftest$(EXEEXT)
-	$(LINK) $(conftest_OBJECTS) $(conftest_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(conftest_OBJECTS) $(conftest_LDADD) $(LIBS)
 eventtest$(EXEEXT): $(eventtest_OBJECTS) $(eventtest_DEPENDENCIES) 
 	@rm -f eventtest$(EXEEXT)
-	$(LINK) $(eventtest_OBJECTS) $(eventtest_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(eventtest_OBJECTS) $(eventtest_LDADD) $(LIBS)
+interfacexml2xmltest$(EXEEXT): $(interfacexml2xmltest_OBJECTS) $(interfacexml2xmltest_DEPENDENCIES) 
+	@rm -f interfacexml2xmltest$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(interfacexml2xmltest_OBJECTS) $(interfacexml2xmltest_LDADD) $(LIBS)
 nodedevxml2xmltest$(EXEEXT): $(nodedevxml2xmltest_OBJECTS) $(nodedevxml2xmltest_DEPENDENCIES) 
 	@rm -f nodedevxml2xmltest$(EXEEXT)
-	$(LINK) $(nodedevxml2xmltest_OBJECTS) $(nodedevxml2xmltest_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(nodedevxml2xmltest_OBJECTS) $(nodedevxml2xmltest_LDADD) $(LIBS)
 nodeinfotest$(EXEEXT): $(nodeinfotest_OBJECTS) $(nodeinfotest_DEPENDENCIES) 
 	@rm -f nodeinfotest$(EXEEXT)
-	$(LINK) $(nodeinfotest_OBJECTS) $(nodeinfotest_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(nodeinfotest_OBJECTS) $(nodeinfotest_LDADD) $(LIBS)
 @WITH_CIL_FALSE@object-locking$(EXEEXT): $(object_locking_OBJECTS) $(object_locking_DEPENDENCIES) 
 @WITH_CIL_FALSE@	@rm -f object-locking$(EXEEXT)
-@WITH_CIL_FALSE@	$(LINK) $(object_locking_OBJECTS) $(object_locking_LDADD) $(LIBS)
+@WITH_CIL_FALSE@	$(AM_V_CCLD)$(LINK) $(object_locking_OBJECTS) $(object_locking_LDADD) $(LIBS)
 qemuargv2xmltest$(EXEEXT): $(qemuargv2xmltest_OBJECTS) $(qemuargv2xmltest_DEPENDENCIES) 
 	@rm -f qemuargv2xmltest$(EXEEXT)
-	$(LINK) $(qemuargv2xmltest_OBJECTS) $(qemuargv2xmltest_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(qemuargv2xmltest_OBJECTS) $(qemuargv2xmltest_LDADD) $(LIBS)
 qemuhelptest$(EXEEXT): $(qemuhelptest_OBJECTS) $(qemuhelptest_DEPENDENCIES) 
 	@rm -f qemuhelptest$(EXEEXT)
-	$(LINK) $(qemuhelptest_OBJECTS) $(qemuhelptest_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(qemuhelptest_OBJECTS) $(qemuhelptest_LDADD) $(LIBS)
 qemuxml2argvtest$(EXEEXT): $(qemuxml2argvtest_OBJECTS) $(qemuxml2argvtest_DEPENDENCIES) 
 	@rm -f qemuxml2argvtest$(EXEEXT)
-	$(LINK) $(qemuxml2argvtest_OBJECTS) $(qemuxml2argvtest_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(qemuxml2argvtest_OBJECTS) $(qemuxml2argvtest_LDADD) $(LIBS)
 qemuxml2xmltest$(EXEEXT): $(qemuxml2xmltest_OBJECTS) $(qemuxml2xmltest_DEPENDENCIES) 
 	@rm -f qemuxml2xmltest$(EXEEXT)
-	$(LINK) $(qemuxml2xmltest_OBJECTS) $(qemuxml2xmltest_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(qemuxml2xmltest_OBJECTS) $(qemuxml2xmltest_LDADD) $(LIBS)
 qparamtest$(EXEEXT): $(qparamtest_OBJECTS) $(qparamtest_DEPENDENCIES) 
 	@rm -f qparamtest$(EXEEXT)
-	$(LINK) $(qparamtest_OBJECTS) $(qparamtest_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(qparamtest_OBJECTS) $(qparamtest_LDADD) $(LIBS)
 reconnect$(EXEEXT): $(reconnect_OBJECTS) $(reconnect_DEPENDENCIES) 
 	@rm -f reconnect$(EXEEXT)
-	$(LINK) $(reconnect_OBJECTS) $(reconnect_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(reconnect_OBJECTS) $(reconnect_LDADD) $(LIBS)
 seclabeltest$(EXEEXT): $(seclabeltest_OBJECTS) $(seclabeltest_DEPENDENCIES) 
 	@rm -f seclabeltest$(EXEEXT)
-	$(LINK) $(seclabeltest_OBJECTS) $(seclabeltest_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(seclabeltest_OBJECTS) $(seclabeltest_LDADD) $(LIBS)
 sexpr2xmltest$(EXEEXT): $(sexpr2xmltest_OBJECTS) $(sexpr2xmltest_DEPENDENCIES) 
 	@rm -f sexpr2xmltest$(EXEEXT)
-	$(LINK) $(sexpr2xmltest_OBJECTS) $(sexpr2xmltest_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(sexpr2xmltest_OBJECTS) $(sexpr2xmltest_LDADD) $(LIBS)
 statstest$(EXEEXT): $(statstest_OBJECTS) $(statstest_DEPENDENCIES) 
 	@rm -f statstest$(EXEEXT)
-	$(LINK) $(statstest_OBJECTS) $(statstest_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(statstest_OBJECTS) $(statstest_LDADD) $(LIBS)
 virshtest$(EXEEXT): $(virshtest_OBJECTS) $(virshtest_DEPENDENCIES) 
 	@rm -f virshtest$(EXEEXT)
-	$(LINK) $(virshtest_OBJECTS) $(virshtest_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(virshtest_OBJECTS) $(virshtest_LDADD) $(LIBS)
 xencapstest$(EXEEXT): $(xencapstest_OBJECTS) $(xencapstest_DEPENDENCIES) 
 	@rm -f xencapstest$(EXEEXT)
-	$(LINK) $(xencapstest_OBJECTS) $(xencapstest_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(xencapstest_OBJECTS) $(xencapstest_LDADD) $(LIBS)
 xmconfigtest$(EXEEXT): $(xmconfigtest_OBJECTS) $(xmconfigtest_DEPENDENCIES) 
 	@rm -f xmconfigtest$(EXEEXT)
-	$(LINK) $(xmconfigtest_OBJECTS) $(xmconfigtest_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(xmconfigtest_OBJECTS) $(xmconfigtest_LDADD) $(LIBS)
 xml2sexprtest$(EXEEXT): $(xml2sexprtest_OBJECTS) $(xml2sexprtest_DEPENDENCIES) 
 	@rm -f xml2sexprtest$(EXEEXT)
-	$(LINK) $(xml2sexprtest_OBJECTS) $(xml2sexprtest_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(xml2sexprtest_OBJECTS) $(xml2sexprtest_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -1200,6 +1275,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/conftest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/event.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eventtest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/interfacexml2xmltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nodedevxml2xmltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nodeinfotest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemuargv2xmltest.Po@am__quote@
@@ -1220,36 +1296,41 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xml2sexprtest.Po@am__quote@
 
 .c.o:
-@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c $<
 
 .c.obj:
-@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
 
 .c.lo:
-@am__fastdepCC_TRUE@	$(LTCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Plo
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LTCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Plo
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
 
 event.o: ../qemud/event.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT event.o -MD -MP -MF $(DEPDIR)/event.Tpo -c -o event.o `test -f '../qemud/event.c' || echo '$(srcdir)/'`../qemud/event.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/event.Tpo $(DEPDIR)/event.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT event.o -MD -MP -MF $(DEPDIR)/event.Tpo -c -o event.o `test -f '../qemud/event.c' || echo '$(srcdir)/'`../qemud/event.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/event.Tpo $(DEPDIR)/event.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../qemud/event.c' object='event.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o event.o `test -f '../qemud/event.c' || echo '$(srcdir)/'`../qemud/event.c
 
 event.obj: ../qemud/event.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT event.obj -MD -MP -MF $(DEPDIR)/event.Tpo -c -o event.obj `if test -f '../qemud/event.c'; then $(CYGPATH_W) '../qemud/event.c'; else $(CYGPATH_W) '$(srcdir)/../qemud/event.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/event.Tpo $(DEPDIR)/event.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT event.obj -MD -MP -MF $(DEPDIR)/event.Tpo -c -o event.obj `if test -f '../qemud/event.c'; then $(CYGPATH_W) '../qemud/event.c'; else $(CYGPATH_W) '$(srcdir)/../qemud/event.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/event.Tpo $(DEPDIR)/event.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../qemud/event.c' object='event.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o event.obj `if test -f '../qemud/event.c'; then $(CYGPATH_W) '../qemud/event.c'; else $(CYGPATH_W) '$(srcdir)/../qemud/event.c'; fi`

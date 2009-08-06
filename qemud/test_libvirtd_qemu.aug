@@ -79,6 +79,14 @@ vnc_sasl = 1
 # point to the directory, and create a qemu.conf in that location
 #
 vnc_sasl_dir = \"/some/directory/sasl2\"
+
+user = \"root\"
+
+group = \"root\"
+
+cgroup_controllers = [ \"cpu\", \"devices\" ]
+
+cgroup_device_acl = [ \"/dev/null\", \"/dev/full\", \"/dev/zero\" ]
 "
 
    test Libvirtd_qemu.lns get conf =
@@ -161,3 +169,18 @@ vnc_sasl_dir = \"/some/directory/sasl2\"
 { "#comment" = "point to the directory, and create a qemu.conf in that location" }
 { "#comment" = "" }
 { "vnc_sasl_dir" = "/some/directory/sasl2" }
+{ "#empty" }
+{ "user"= "root" }
+{ "#empty" }
+{ "group" = "root" }
+{ "#empty" }
+{ "cgroup_controllers"
+    { "1" = "cpu" }
+    { "2" = "devices" }
+}
+{ "#empty" }
+{ "cgroup_device_acl"
+    { "1" = "/dev/null" }
+    { "2" = "/dev/full" }
+    { "3" = "/dev/zero" }
+}

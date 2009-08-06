@@ -35,13 +35,21 @@ struct _virCapsGuestFeature {
     int toggle;
 };
 
+typedef struct _virCapsGuestMachine virCapsGuestMachine;
+typedef virCapsGuestMachine *virCapsGuestMachinePtr;
+struct _virCapsGuestMachine {
+    char *name;
+    char *canonical;
+};
+
 typedef struct _virCapsGuestDomainInfo virCapsGuestDomainInfo;
 typedef virCapsGuestDomainInfo *virCapsGuestDomainInfoPtr;
 struct _virCapsGuestDomainInfo {
     char *emulator;
     char *loader;
     int nmachines;
-    char **machines;
+    virCapsGuestMachinePtr *machines;
+    time_t emulator_mtime; /* do @machines need refreshing? */
 };
 
 typedef struct _virCapsGuestDomain virCapsGuestDomain;
@@ -152,6 +160,13 @@ virCapabilitiesAddHostNUMACell(virCapsPtr caps,
 
 
 
+extern virCapsGuestMachinePtr *
+virCapabilitiesAllocMachines(const char *const *names,
+                             int nnames);
+extern void
+virCapabilitiesFreeMachines(virCapsGuestMachinePtr *machines,
+                            int nmachines);
+
 extern virCapsGuestPtr
 virCapabilitiesAddGuest(virCapsPtr caps,
                         const char *ostype,
@@ -160,7 +175,7 @@ virCapabilitiesAddGuest(virCapsPtr caps,
                         const char *emulator,
                         const char *loader,
                         int nmachines,
-                        const char *const *machines);
+                        virCapsGuestMachinePtr *machines);
 
 extern virCapsGuestDomainPtr
 virCapabilitiesAddGuestDomain(virCapsGuestPtr guest,
@@ -168,7 +183,7 @@ virCapabilitiesAddGuestDomain(virCapsGuestPtr guest,
                               const char *emulator,
                               const char *loader,
                               int nmachines,
-                              const char *const *machines);
+                              virCapsGuestMachinePtr *machines);
 
 extern virCapsGuestFeaturePtr
 virCapabilitiesAddGuestFeature(virCapsGuestPtr guest,
