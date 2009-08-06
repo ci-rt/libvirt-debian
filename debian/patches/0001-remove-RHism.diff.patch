@@ -7,7 +7,7 @@ Subject: [PATCH] remove-RHism.diff
  1 files changed, 1 insertions(+), 1 deletions(-)
 
 diff --git a/virsh.1 b/virsh.1
-index 45ea614..321adeb 100644
+index ca03cc1..ffec62c 100644
 --- a/virsh.1
 +++ b/virsh.1
 @@ -171,7 +171,7 @@ the program.
