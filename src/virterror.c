@@ -124,6 +124,9 @@ static const char *virErrorDomainName(virErrorDomain domain) {
         case VIR_FROM_CONF:
             dom = "Config ";
             break;
+        case VIR_FROM_PHYP:
+            dom = "IBM power hypervisor ";
+            break;
         case VIR_FROM_OPENVZ:
             dom = "OpenVZ ";
             break;
@@ -162,6 +165,9 @@ static const char *virErrorDomainName(virErrorDomain domain) {
             break;
         case VIR_FROM_ONE:
             dom = "ONE ";
+            break;
+        case VIR_FROM_ESX:
+            dom = "ESX ";
             break;
     }
     return(dom);
@@ -1055,6 +1061,12 @@ virErrorMsg(virErrorNumber error, const char *info)
                 errmsg = _("invalid interface pointer in");
             else
                 errmsg = _("invalid interface pointer in %s");
+            break;
+        case VIR_ERR_MULTIPLE_INTERFACES:
+            if (info == NULL)
+                errmsg = _("multiple matching interfaces found");
+            else
+                errmsg = _("multiple matching interfaces found: %s");
             break;
     }
     return (errmsg);

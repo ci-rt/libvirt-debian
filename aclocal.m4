@@ -1058,6 +1058,33 @@ Check your system clock])
 fi
 AC_MSG_RESULT(yes)])
 
+# Copyright (C) 2009  Free Software Foundation, Inc.
+#
+# This file is free software; the Free Software Foundation
+# gives unlimited permission to copy and/or distribute it,
+# with or without modifications, as long as this notice is preserved.
+
+# serial 1
+
+# AM_SILENT_RULES([DEFAULT])
+# --------------------------
+# Enable less verbose build rules; with the default set to DEFAULT
+# (`yes' being less verbose, `no' or empty being verbose).
+AC_DEFUN([AM_SILENT_RULES],
+[AC_ARG_ENABLE([silent-rules],
+[  --enable-silent-rules          less verbose build output (undo: `make V=1')
+  --disable-silent-rules         verbose build output (undo: `make V=0')])
+case $enable_silent_rules in
+yes) AM_DEFAULT_VERBOSITY=0;;
+no)  AM_DEFAULT_VERBOSITY=1;;
+*)   AM_DEFAULT_VERBOSITY=m4_if([$1], [yes], [0], [1]);;
+esac
+AC_SUBST([AM_DEFAULT_VERBOSITY])dnl
+AM_BACKSLASH='\'
+AC_SUBST([AM_BACKSLASH])dnl
+_AM_SUBST_NOTMAKE([AM_BACKSLASH])dnl
+])
+
 # Copyright (C) 2001, 2003, 2005  Free Software Foundation, Inc.
 #
 # This file is free software; the Free Software Foundation
@@ -1214,6 +1241,7 @@ m4_include([gnulib/m4/getaddrinfo.m4])
 m4_include([gnulib/m4/getdelim.m4])
 m4_include([gnulib/m4/gethostname.m4])
 m4_include([gnulib/m4/getline.m4])
+m4_include([gnulib/m4/getpagesize.m4])
 m4_include([gnulib/m4/getpass.m4])
 m4_include([gnulib/m4/gettimeofday.m4])
 m4_include([gnulib/m4/gnulib-common.m4])
@@ -1228,7 +1256,9 @@ m4_include([gnulib/m4/longlong.m4])
 m4_include([gnulib/m4/lseek.m4])
 m4_include([gnulib/m4/lstat.m4])
 m4_include([gnulib/m4/malloc.m4])
+m4_include([gnulib/m4/memchr.m4])
 m4_include([gnulib/m4/mkstemp.m4])
+m4_include([gnulib/m4/mmap-anon.m4])
 m4_include([gnulib/m4/multiarch.m4])
 m4_include([gnulib/m4/netdb_h.m4])
 m4_include([gnulib/m4/netinet_in_h.m4])
@@ -1241,6 +1271,7 @@ m4_include([gnulib/m4/posix-shell.m4])
 m4_include([gnulib/m4/printf.m4])
 m4_include([gnulib/m4/random_r.m4])
 m4_include([gnulib/m4/realloc.m4])
+m4_include([gnulib/m4/select.m4])
 m4_include([gnulib/m4/servent.m4])
 m4_include([gnulib/m4/snprintf.m4])
 m4_include([gnulib/m4/sockets.m4])
@@ -1266,6 +1297,7 @@ m4_include([gnulib/m4/sys_time_h.m4])
 m4_include([gnulib/m4/tempname.m4])
 m4_include([gnulib/m4/time_h.m4])
 m4_include([gnulib/m4/time_r.m4])
+m4_include([gnulib/m4/ungetc.m4])
 m4_include([gnulib/m4/unistd_h.m4])
 m4_include([gnulib/m4/vasnprintf.m4])
 m4_include([gnulib/m4/vasprintf.m4])

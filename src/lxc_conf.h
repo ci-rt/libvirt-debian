@@ -28,8 +28,10 @@
 
 #include "internal.h"
 #include "domain_conf.h"
+#include "domain_event.h"
 #include "capabilities.h"
 #include "threads.h"
+#include "cgroup.h"
 
 #define LXC_CONFIG_DIR SYSCONF_DIR "/libvirt/lxc"
 #define LXC_STATE_DIR LOCAL_STATE_DIR "/run/libvirt/lxc"
@@ -41,12 +43,19 @@ struct __lxc_driver {
 
     virCapsPtr caps;
 
+    virCgroupPtr cgroup;
     virDomainObjList domains;
     char *configDir;
     char *autostartDir;
     char *stateDir;
     char *logDir;
     int have_netns;
+
+    /* An array of callbacks */
+    virDomainEventCallbackListPtr domainEventCallbacks;
+    virDomainEventQueuePtr domainEventQueue;
+    int domainEventTimer;
+    int domainEventDispatching;
 };
 
 int lxcLoadDriverConfig(lxc_driver_t *driver);
@@ -57,4 +66,3 @@ virCapsPtr lxcCapsInit(void);
                                __FUNCTION__, __LINE__, fmt)
 
 #endif /* LXC_CONF_H */
-

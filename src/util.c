@@ -55,6 +55,7 @@
 #include <netdb.h>
 #ifdef HAVE_GETPWUID_R
 #include <pwd.h>
+#include <grp.h>
 #endif
 #if HAVE_CAPNG
 #include <cap-ng.h>
@@ -376,6 +377,8 @@ __virExec(virConnectPtr conn,
         } else {
             childout = *outfd;
         }
+    } else {
+        childout = null;
     }
 
     if (errfd != NULL) {
@@ -403,6 +406,8 @@ __virExec(virConnectPtr conn,
         } else {
             childerr = *errfd;
         }
+    } else {
+        childerr = null;
     }
 
     if ((pid = fork()) < 0) {
@@ -508,12 +513,6 @@ __virExec(virConnectPtr conn,
         if ((hook)(data) != 0)
             _exit(1);
 
-    /* The hook above may need todo something privileged, so
-     * we delay clearing capabilities until now */
-    if ((flags & VIR_EXEC_CLEAR_CAPS) &&
-        virClearCapabilities() < 0)
-        _exit(1);
-
     /* Daemonize as late as possible, so the parent process can detect
      * the above errors with wait* */
     if (flags & VIR_EXEC_DAEMON) {
@@ -538,13 +537,23 @@ __virExec(virConnectPtr conn,
 
         if (pid > 0) {
             if (pidfile && virFileWritePidPath(pidfile,pid)) {
+                kill(pid, SIGTERM);
+                usleep(500*1000);
+                kill(pid, SIGTERM);
                 virReportSystemError(conn, errno,
-                                     "%s", _("could not write pidfile"));
+                                     _("could not write pidfile %s for %d"),
+                                     pidfile, pid);
                 _exit(1);
             }
             _exit(0);
         }
     }
+
+    /* The steps above may need todo something privileged, so
+     * we delay clearing capabilities until the last minute */
+    if ((flags & VIR_EXEC_CLEAR_CAPS) &&
+        virClearCapabilities() < 0)
+        _exit(1);
 
     if (envp)
         execve(argv[0], (char **) argv, (char**)envp);
@@ -1474,6 +1483,26 @@ virStrToLong_ull(char const *s, char **end_ptr, int base, unsigned long long *re
     return 0;
 }
 
+int
+virStrToDouble(char const *s,
+               char **end_ptr,
+               double *result)
+{
+    double val;
+    char *p;
+    int err;
+
+    errno = 0;
+    val = strtod(s, &p);
+    err = (errno || (!end_ptr && *p) || p == s);
+    if (end_ptr)
+        *end_ptr = p;
+    if (err)
+        return -1;
+    *result = val;
+    return 0;
+}
+
 /**
  * virSkipSpaces:
  * @str: pointer to the char pointer used
@@ -1821,8 +1850,14 @@ int virRandom(int max)
 
 
 #ifdef HAVE_GETPWUID_R
-char *virGetUserDirectory(virConnectPtr conn,
-                          uid_t uid)
+enum {
+    VIR_USER_ENT_DIRECTORY,
+    VIR_USER_ENT_NAME,
+};
+
+static char *virGetUserEnt(virConnectPtr conn,
+                           uid_t uid,
+                           int field)
 {
     char *strbuf;
     char *ret;
@@ -1850,12 +1885,101 @@ char *virGetUserDirectory(virConnectPtr conn,
         return NULL;
     }
 
-    ret = strdup(pw->pw_dir);
+    if (field == VIR_USER_ENT_DIRECTORY)
+        ret = strdup(pw->pw_dir);
+    else
+        ret = strdup(pw->pw_name);
 
     VIR_FREE(strbuf);
     if (!ret)
         virReportOOMError(conn);
 
     return ret;
+}
+
+char *virGetUserDirectory(virConnectPtr conn,
+                          uid_t uid)
+{
+    return virGetUserEnt(conn, uid, VIR_USER_ENT_DIRECTORY);
+}
+
+char *virGetUserName(virConnectPtr conn,
+                     uid_t uid)
+{
+    return virGetUserEnt(conn, uid, VIR_USER_ENT_NAME);
+}
+
+
+int virGetUserID(virConnectPtr conn,
+                 const char *name,
+                 uid_t *uid)
+{
+    char *strbuf;
+    struct passwd pwbuf;
+    struct passwd *pw = NULL;
+    size_t strbuflen = sysconf(_SC_GETPW_R_SIZE_MAX);
+
+    if (VIR_ALLOC_N(strbuf, strbuflen) < 0) {
+        virReportOOMError(conn);
+        return -1;
+    }
+
+    /*
+     * From the manpage (terrifying but true):
+     *
+     * ERRORS
+     *  0 or ENOENT or ESRCH or EBADF or EPERM or ...
+     *        The given name or uid was not found.
+     */
+    if (getpwnam_r(name, &pwbuf, strbuf, strbuflen, &pw) != 0 || pw == NULL) {
+        virReportSystemError(conn, errno,
+                             _("Failed to find user record for name '%s'"),
+                             name);
+        VIR_FREE(strbuf);
+        return -1;
+    }
+
+    *uid = pw->pw_uid;
+
+    VIR_FREE(strbuf);
+
+    return 0;
+}
+
+
+int virGetGroupID(virConnectPtr conn,
+                  const char *name,
+                  gid_t *gid)
+{
+    char *strbuf;
+    struct group grbuf;
+    struct group *gr = NULL;
+    size_t strbuflen = sysconf(_SC_GETGR_R_SIZE_MAX);
+
+    if (VIR_ALLOC_N(strbuf, strbuflen) < 0) {
+        virReportOOMError(conn);
+        return -1;
+    }
+
+    /*
+     * From the manpage (terrifying but true):
+     *
+     * ERRORS
+     *  0 or ENOENT or ESRCH or EBADF or EPERM or ...
+     *        The given name or uid was not found.
+     */
+    if (getgrnam_r(name, &grbuf, strbuf, strbuflen, &gr) != 0 || gr == NULL) {
+        virReportSystemError(conn, errno,
+                             _("Failed to find group record for name '%s'"),
+                             name);
+        VIR_FREE(strbuf);
+        return -1;
+    }
+
+    *gid = gr->gr_gid;
+
+    VIR_FREE(strbuf);
+
+    return 0;
 }
 #endif

@@ -75,7 +75,6 @@
     remote_domain_memory_peek_ret val_remote_domain_memory_peek_ret;
     remote_domain_events_register_ret val_remote_domain_events_register_ret;
     remote_domain_events_deregister_ret val_remote_domain_events_deregister_ret;
-    remote_domain_event_ret val_remote_domain_event_ret;
     remote_domain_migrate_prepare2_ret val_remote_domain_migrate_prepare2_ret;
     remote_domain_migrate_finish2_ret val_remote_domain_migrate_finish2_ret;
     remote_get_uri_ret val_remote_get_uri_ret;
@@ -98,3 +97,5 @@
     remote_interface_define_xml_ret val_remote_interface_define_xml_ret;
     remote_domain_xml_from_native_ret val_remote_domain_xml_from_native_ret;
     remote_domain_xml_to_native_ret val_remote_domain_xml_to_native_ret;
+    remote_num_of_defined_interfaces_ret val_remote_num_of_defined_interfaces_ret;
+    remote_list_defined_interfaces_ret val_remote_list_defined_interfaces_ret;

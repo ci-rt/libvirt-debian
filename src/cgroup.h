@@ -12,18 +12,30 @@
 #ifndef CGROUP_H
 #define CGROUP_H
 
-#include <stdint.h>
-
 struct virCgroup;
 typedef struct virCgroup *virCgroupPtr;
 
-#include "domain_conf.h"
+enum {
+    VIR_CGROUP_CONTROLLER_CPU,
+    VIR_CGROUP_CONTROLLER_CPUACCT,
+    VIR_CGROUP_CONTROLLER_CPUSET,
+    VIR_CGROUP_CONTROLLER_MEMORY,
+    VIR_CGROUP_CONTROLLER_DEVICES,
 
-int virCgroupHaveSupport(void);
+    VIR_CGROUP_CONTROLLER_LAST
+};
 
-int virCgroupForDomain(virDomainDefPtr def,
-                       const char *driverName,
-                       virCgroupPtr *group);
+VIR_ENUM_DECL(virCgroupController);
+
+int virCgroupForDriver(const char *name,
+                       virCgroupPtr *group,
+                       int privileged,
+                       int create);
+
+int virCgroupForDomain(virCgroupPtr driver,
+                       const char *name,
+                       virCgroupPtr *group,
+                       int create);
 
 int virCgroupAddTask(virCgroupPtr group, pid_t pid);
 
@@ -38,9 +50,21 @@ int virCgroupAllowDevice(virCgroupPtr group,
 int virCgroupAllowDeviceMajor(virCgroupPtr group,
                               char type,
                               int major);
+int virCgroupAllowDevicePath(virCgroupPtr group,
+                             const char *path);
 
-int virCgroupSetCpuShares(virCgroupPtr group, unsigned long shares);
-int virCgroupGetCpuShares(virCgroupPtr group, unsigned long *shares);
+int virCgroupDenyDevice(virCgroupPtr group,
+                        char type,
+                        int major,
+                        int minor);
+int virCgroupDenyDeviceMajor(virCgroupPtr group,
+                             char type,
+                             int major);
+int virCgroupDenyDevicePath(virCgroupPtr group,
+                            const char *path);
+
+int virCgroupSetCpuShares(virCgroupPtr group, unsigned long long shares);
+int virCgroupGetCpuShares(virCgroupPtr group, unsigned long long *shares);
 
 int virCgroupGetCpuacctUsage(virCgroupPtr group, unsigned long long *usage);
 

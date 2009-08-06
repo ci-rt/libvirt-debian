@@ -78,11 +78,23 @@ VIR_ENUM_IMPL(qemuDiskCacheV2, VIR_DOMAIN_DISK_CACHE_LAST,
               "writethrough",
               "writeback");
 
+VIR_ENUM_DECL(qemuVideo)
+
+VIR_ENUM_IMPL(qemuVideo, VIR_DOMAIN_VIDEO_TYPE_LAST,
+              "std",
+              "cirrus",
+              "vmware",
+              NULL, /* no arg needed for xen */
+              NULL /* don't support vbox */);
+
 
 int qemudLoadDriverConfig(struct qemud_driver *driver,
                           const char *filename) {
     virConfPtr conf;
     virConfValuePtr p;
+    char *user;
+    char *group;
+    int i;
 
     /* Setup 2 critical defaults */
     if (!(driver->vncListen = strdup("127.0.0.1"))) {
@@ -177,34 +189,99 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
         }
     }
 
+    p = virConfGetValue (conf, "user");
+    CHECK_TYPE ("user", VIR_CONF_STRING);
+    if (!(user = strdup(p && p->str ? p->str : QEMU_USER))) {
+        virReportOOMError(NULL);
+        virConfFree(conf);
+        return -1;
+    }
+    if (virGetUserID(NULL, user, &driver->user) < 0) {
+        VIR_FREE(user);
+        virConfFree(conf);
+        return -1;
+    }
+    VIR_FREE(user);
+
+    p = virConfGetValue (conf, "group");
+    CHECK_TYPE ("group", VIR_CONF_STRING);
+    if (!(group = strdup(p && p->str ? p->str : QEMU_GROUP))) {
+        virReportOOMError(NULL);
+        virConfFree(conf);
+        return -1;
+    }
+
+
+    if (virGetGroupID(NULL, group, &driver->group) < 0) {
+        VIR_FREE(group);
+        virConfFree(conf);
+        return -1;
+    }
+    VIR_FREE(group);
+
+    p = virConfGetValue (conf, "cgroup_controllers");
+    CHECK_TYPE ("cgroup_controllers", VIR_CONF_LIST);
+    if (p) {
+        virConfValuePtr pp;
+        for (i = 0, pp = p->list; pp; ++i, pp = pp->next) {
+            int ctl;
+            if (pp->type != VIR_CONF_STRING) {
+                VIR_ERROR("%s", _("cgroup_device_acl must be a list of strings"));
+                virConfFree(conf);
+                return -1;
+            }
+            ctl = virCgroupControllerTypeFromString(pp->str);
+            if (ctl < 0) {
+                VIR_ERROR("Unknown cgroup controller '%s'", pp->str);
+                virConfFree(conf);
+                return -1;
+            }
+            driver->cgroupControllers |= (1 << ctl);
+        }
+    } else {
+        driver->cgroupControllers =
+            (1 << VIR_CGROUP_CONTROLLER_CPU) |
+            (1 << VIR_CGROUP_CONTROLLER_DEVICES);
+    }
+    for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
+        if (driver->cgroupControllers & (1 << i)) {
+            VIR_INFO("Configured cgroup controller '%s'",
+                     virCgroupControllerTypeToString(i));
+        }
+    }
+
+    p = virConfGetValue (conf, "cgroup_device_acl");
+    CHECK_TYPE ("cgroup_device_acl", VIR_CONF_LIST);
+    if (p) {
+        int len = 0;
+        virConfValuePtr pp;
+        for (pp = p->list; pp; pp = pp->next)
+            len++;
+        if (VIR_ALLOC_N(driver->cgroupDeviceACL, 1+len) < 0) {
+            virReportOOMError(NULL);
+            virConfFree(conf);
+            return -1;
+        }
+        for (i = 0, pp = p->list; pp; ++i, pp = pp->next) {
+            if (pp->type != VIR_CONF_STRING) {
+                VIR_ERROR("%s", _("cgroup_device_acl must be a list of strings"));
+                virConfFree(conf);
+                return -1;
+            }
+            driver->cgroupDeviceACL[i] = strdup (pp->str);
+            if (driver->cgroupDeviceACL[i] == NULL) {
+                virReportOOMError(NULL);
+                virConfFree(conf);
+                return -1;
+            }
+
+        }
+        driver->cgroupDeviceACL[i] = NULL;
+    }
+
     virConfFree (conf);
     return 0;
 }
-
-/* The list of possible machine types for various architectures,
-   as supported by QEMU - taken from 'qemu -M ?' for each arch */
-static const char *const arch_info_hvm_x86_machines[] = {
-    "pc", "isapc"
-};
-static const char *const arch_info_hvm_arm_machines[] = {
-  "versatilepb","integratorcp","versatileab","realview",
-  "akita","spitz","borzoi","terrier","sx1-v1","sx1",
-  "cheetah","n800","n810","lm3s811evb","lm3s6965evb",
-  "connex","verdex","mainstone","musicpal","tosa",
-};
-static const char *const arch_info_hvm_mips_machines[] = {
-    "mips"
-};
-static const char *const arch_info_hvm_sparc_machines[] = {
-    "sun4m"
-};
-static const char *const arch_info_hvm_ppc_machines[] = {
-    "g3beige", "mac99", "prep"
-};
-
-static const char *const arch_info_xen_x86_machines[] = {
-    "xenner"
-};
 
 struct qemu_feature_flags {
     const char *name;
@@ -215,8 +292,7 @@ struct qemu_feature_flags {
 struct qemu_arch_info {
     const char *arch;
     int wordsize;
-    const char *const *machines;
-    int nmachines;
+    const char *machine;
     const char *binary;
     const char *altbinary;
     const struct qemu_feature_flags *flags;
@@ -238,47 +314,236 @@ static const struct qemu_feature_flags const arch_info_x86_64_flags [] = {
 
 /* The archicture tables for supported QEMU archs */
 static const struct qemu_arch_info const arch_info_hvm[] = {
-    {  "i686", 32, arch_info_hvm_x86_machines, 2,
-       "/usr/bin/qemu", "/usr/bin/qemu-system-x86_64", arch_info_i686_flags, 4 },
-    {  "x86_64", 64, arch_info_hvm_x86_machines, 2,
-       "/usr/bin/qemu-system-x86_64", NULL, arch_info_x86_64_flags, 2 },
-    {  "arm", 32, arch_info_hvm_arm_machines, 20,
-       "/usr/bin/qemu-system-arm", NULL, NULL, 0 },
-    {  "mips", 32, arch_info_hvm_mips_machines, 1,
-       "/usr/bin/qemu-system-mips", NULL, NULL, 0 },
-    {  "mipsel", 32, arch_info_hvm_mips_machines, 1,
-       "/usr/bin/qemu-system-mipsel", NULL, NULL, 0 },
-    {  "sparc", 32, arch_info_hvm_sparc_machines, 1,
-       "/usr/bin/qemu-system-sparc", NULL, NULL, 0 },
-    {  "ppc", 32, arch_info_hvm_ppc_machines, 3,
-       "/usr/bin/qemu-system-ppc", NULL, NULL, 0 },
+    {  "i686",   32, NULL, "/usr/bin/qemu",
+       "/usr/bin/qemu-system-x86_64", arch_info_i686_flags, 4 },
+    {  "x86_64", 64, NULL, "/usr/bin/qemu-system-x86_64",
+       NULL, arch_info_x86_64_flags, 2 },
+    {  "arm",    32, NULL, "/usr/bin/qemu-system-arm",    NULL, NULL, 0 },
+    {  "mips",   32, NULL, "/usr/bin/qemu-system-mips",   NULL, NULL, 0 },
+    {  "mipsel", 32, NULL, "/usr/bin/qemu-system-mipsel", NULL, NULL, 0 },
+    {  "sparc",  32, NULL, "/usr/bin/qemu-system-sparc",  NULL, NULL, 0 },
+    {  "ppc",    32, NULL, "/usr/bin/qemu-system-ppc",    NULL, NULL, 0 },
 };
 
 static const struct qemu_arch_info const arch_info_xen[] = {
-    {  "i686", 32, arch_info_xen_x86_machines, 1,
-       "/usr/bin/xenner", NULL, arch_info_i686_flags, 4 },
-    {  "x86_64", 64, arch_info_xen_x86_machines, 1,
-       "/usr/bin/xenner", NULL, arch_info_x86_64_flags, 2 },
+    {  "i686",   32, "xenner", "/usr/bin/xenner", NULL, arch_info_i686_flags, 4 },
+    {  "x86_64", 64, "xenner", "/usr/bin/xenner", NULL, arch_info_x86_64_flags, 2 },
 };
+
+
+/* Format is:
+ * <machine> <desc> [(default)|(alias of <canonical>)]
+ */
+static int
+qemudParseMachineTypesStr(const char *output,
+                          virCapsGuestMachinePtr **machines,
+                          int *nmachines)
+{
+    const char *p = output;
+    const char *next;
+    virCapsGuestMachinePtr *list = NULL;
+    int nitems = 0;
+
+    do {
+        const char *t;
+        virCapsGuestMachinePtr machine;
+
+        if ((next = strchr(p, '\n')))
+            ++next;
+
+        if (STRPREFIX(p, "Supported machines are:"))
+            continue;
+
+        if (!(t = strchr(p, ' ')) || (next && t >= next))
+            continue;
+
+        if (VIR_ALLOC(machine) < 0)
+            goto error;
+
+        if (!(machine->name = strndup(p, t - p))) {
+            VIR_FREE(machine);
+            goto error;
+        }
+
+        if (VIR_REALLOC_N(list, nitems + 1) < 0) {
+            VIR_FREE(machine->name);
+            VIR_FREE(machine);
+            goto error;
+        }
+
+        p = t;
+        if (!(t = strstr(p, "(default)")) || (next && t >= next)) {
+            list[nitems++] = machine;
+        } else {
+            /* put the default first in the list */
+            memmove(list + 1, list, sizeof(*list) * nitems);
+            list[0] = machine;
+            nitems++;
+        }
+
+        if ((t = strstr(p, "(alias of ")) && (!next || t < next)) {
+            p = t + strlen("(alias of ");
+            if (!(t = strchr(p, ')')) || (next && t >= next))
+                continue;
+
+            if (!(machine->canonical = strndup(p, t - p)))
+                goto error;
+        }
+    } while ((p = next));
+
+    *machines = list;
+    *nmachines = nitems;
+
+    return 0;
+
+error:
+    virCapabilitiesFreeMachines(list, nitems);
+    return -1;
+}
+
+int
+qemudProbeMachineTypes(const char *binary,
+                       virCapsGuestMachinePtr **machines,
+                       int *nmachines)
+{
+    const char *const qemuarg[] = { binary, "-M", "?", NULL };
+    const char *const qemuenv[] = { "LC_ALL=C", NULL };
+    char *output;
+    enum { MAX_MACHINES_OUTPUT_SIZE = 1024*4 };
+    pid_t child;
+    int newstdout = -1, len;
+    int ret = -1, status;
+
+    if (virExec(NULL, qemuarg, qemuenv, NULL,
+                &child, -1, &newstdout, NULL, VIR_EXEC_CLEAR_CAPS) < 0)
+        return -1;
+
+    len = virFileReadLimFD(newstdout, MAX_MACHINES_OUTPUT_SIZE, &output);
+    if (len < 0) {
+        virReportSystemError(NULL, errno, "%s",
+                             _("Unable to read 'qemu -M ?' output"));
+        goto cleanup;
+    }
+
+    if (qemudParseMachineTypesStr(output, machines, nmachines) < 0)
+        goto cleanup2;
+
+    ret = 0;
+
+cleanup2:
+    VIR_FREE(output);
+cleanup:
+    if (close(newstdout) < 0)
+        ret = -1;
+
+rewait:
+    if (waitpid(child, &status, 0) != child) {
+        if (errno == EINTR)
+            goto rewait;
+
+        VIR_ERROR(_("Unexpected exit status from qemu %d pid %lu"),
+                  WEXITSTATUS(status), (unsigned long)child);
+        ret = -1;
+    }
+    /* Check & log unexpected exit status, but don't fail,
+     * as there's really no need to throw an error if we did
+     * actually read a valid version number above */
+    if (WEXITSTATUS(status) != 0) {
+        VIR_WARN(_("Unexpected exit status '%d', qemu probably failed"),
+                 WEXITSTATUS(status));
+    }
+
+    return ret;
+}
+
+static int
+qemudGetOldMachines(const char *ostype,
+                    const char *arch,
+                    int wordsize,
+                    const char *emulator,
+                    time_t emulator_mtime,
+                    virCapsPtr old_caps,
+                    virCapsGuestMachinePtr **machines,
+                    int *nmachines)
+{
+    int i;
+
+    for (i = 0; i < old_caps->nguests; i++) {
+        virCapsGuestPtr guest = old_caps->guests[i];
+        virCapsGuestDomainInfoPtr info = &guest->arch.defaultInfo;
+        virCapsGuestMachinePtr *list;
+
+        if (!STREQ(ostype, guest->ostype) ||
+            !STREQ(arch, guest->arch.name) ||
+            wordsize != guest->arch.wordsize ||
+            !STREQ(emulator, info->emulator))
+            continue;
+
+        if (emulator_mtime != info->emulator_mtime) {
+            VIR_DEBUG("mtime on %s has changed, refreshing machine types",
+                      info->emulator);
+            return 0;
+        }
+
+        /* It sucks to have to dup these, when we're most likely going
+         * to free the old caps anyway - except if an error occurs, we'll
+         * stick with the old caps.
+         * Also, if we get OOM here, just let the caller try and probe
+         * the binary directly, which will probably fail too.
+         */
+        if (VIR_ALLOC_N(list, info->nmachines) < 0)
+            return 0;
+
+        for (i = 0; i < info->nmachines; i++) {
+            if (VIR_ALLOC(list[i]) < 0) {
+                virCapabilitiesFreeMachines(list, info->nmachines);
+                return 0;
+            }
+            if (info->machines[i]->name &&
+                !(list[i]->name = strdup(info->machines[i]->name))) {
+                virCapabilitiesFreeMachines(list, info->nmachines);
+                return 0;
+            }
+            if (info->machines[i]->canonical &&
+                !(list[i]->canonical = strdup(info->machines[i]->canonical))) {
+                virCapabilitiesFreeMachines(list, info->nmachines);
+                return 0;
+            }
+        }
+
+        *machines = list;
+        *nmachines = info->nmachines;
+
+        return 1;
+    }
+
+    return 0;
+}
 
 static int
 qemudCapsInitGuest(virCapsPtr caps,
+                   virCapsPtr old_caps,
                    const char *hostmachine,
                    const struct qemu_arch_info *info,
                    int hvm) {
     virCapsGuestPtr guest;
     int i;
-    int hasbase = 0;
-    int hasaltbase = 0;
     int haskvm = 0;
     int haskqemu = 0;
     const char *kvmbin = NULL;
+    const char *binary = NULL;
+    time_t binary_mtime;
+    virCapsGuestMachinePtr *machines = NULL;
+    int nmachines = 0;
+    struct stat st;
 
     /* Check for existance of base emulator, or alternate base
      * which can be used with magic cpu choice
      */
-    hasbase = (access(info->binary, X_OK) == 0);
-    hasaltbase = (info->altbinary && access(info->altbinary, X_OK) == 0);
+    if (access(info->binary, X_OK) == 0)
+        binary = info->binary;
+    else if (info->altbinary && access(info->altbinary, X_OK) == 0)
+        binary = info->altbinary;
 
     /* Can use acceleration for KVM/KQEMU if
      *  - host & guest arches match
@@ -296,6 +561,8 @@ qemudCapsInitGuest(virCapsPtr caps,
                 access("/dev/kvm", F_OK) == 0) {
                 haskvm = 1;
                 kvmbin = kvmbins[i];
+                if (!binary)
+                    binary = kvmbin;
                 break;
             }
         }
@@ -304,9 +571,47 @@ qemudCapsInitGuest(virCapsPtr caps,
             haskqemu = 1;
     }
 
-
-    if (!hasbase && !hasaltbase && !haskvm)
+    if (!binary)
         return 0;
+
+    if (stat(binary, &st) == 0) {
+        binary_mtime = st.st_mtime;
+    } else {
+        char ebuf[1024];
+        VIR_WARN(_("Failed to stat %s, most peculiar : %s"),
+                 binary, virStrerror(errno, ebuf, sizeof(ebuf)));
+        binary_mtime = 0;
+    }
+
+    if (info->machine) {
+        virCapsGuestMachinePtr machine;
+
+        if (VIR_ALLOC(machine) < 0)
+            return -1;
+
+        if (!(machine->name = strdup(info->machine))) {
+            VIR_FREE(machine);
+            return -1;
+        }
+
+        if (VIR_ALLOC_N(machines, nmachines) < 0) {
+            VIR_FREE(machine->name);
+            VIR_FREE(machine);
+            return -1;
+        }
+
+        machines[0] = machine;
+        nmachines = 1;
+    } else {
+        int probe = 1;
+        if (old_caps && binary_mtime)
+            probe = !qemudGetOldMachines(hvm ? "hvm" : "xen", info->arch,
+                                         info->wordsize, binary, binary_mtime,
+                                         old_caps, &machines, &nmachines);
+        if (probe &&
+            qemudProbeMachineTypes(binary, &machines, &nmachines) < 0)
+            return -1;
+    }
 
     /* We register kvm as the base emulator too, since we can
      * just give -no-kvm to disable acceleration if required */
@@ -314,12 +619,19 @@ qemudCapsInitGuest(virCapsPtr caps,
                                          hvm ? "hvm" : "xen",
                                          info->arch,
                                          info->wordsize,
-                                         (hasbase ? info->binary :
-                                          (hasaltbase ? info->altbinary : kvmbin)),
+                                         binary,
                                          NULL,
-                                         info->nmachines,
-                                         info->machines)) == NULL)
+                                         nmachines,
+                                         machines)) == NULL) {
+        for (i = 0; i < nmachines; i++) {
+            VIR_FREE(machines[i]->name);
+            VIR_FREE(machines[i]);
+        }
+        VIR_FREE(machines);
         return -1;
+    }
+
+    guest->arch.defaultInfo.emulator_mtime = binary_mtime;
 
     if (hvm) {
         if (virCapabilitiesAddGuestDomain(guest,
@@ -370,7 +682,7 @@ qemudCapsInitGuest(virCapsPtr caps,
     return 0;
 }
 
-virCapsPtr qemudCapsInit(void) {
+virCapsPtr qemudCapsInit(virCapsPtr old_caps) {
     struct utsname utsname;
     virCapsPtr caps;
     int i;
@@ -399,7 +711,7 @@ virCapsPtr qemudCapsInit(void) {
 
     /* First the pure HVM guests */
     for (i = 0 ; i < ARRAY_CARDINALITY(arch_info_hvm) ; i++)
-        if (qemudCapsInitGuest(caps,
+        if (qemudCapsInitGuest(caps, old_caps,
                                utsname.machine,
                                &arch_info_hvm[i], 1) < 0)
             goto no_memory;
@@ -412,7 +724,7 @@ virCapsPtr qemudCapsInit(void) {
             if (STREQ(arch_info_xen[i].arch, utsname.machine) ||
                 (STREQ(utsname.machine, "x86_64") &&
                  STREQ(arch_info_xen[i].arch, "i686"))) {
-                if (qemudCapsInitGuest(caps,
+                if (qemudCapsInitGuest(caps, old_caps,
                                        utsname.machine,
                                        &arch_info_xen[i], 0) < 0)
                     goto no_memory;
@@ -455,6 +767,8 @@ static unsigned int qemudComputeCmdFlags(const char *help,
         if (strstr(help, "format="))
             flags |= QEMUD_CMD_FLAG_DRIVE_FORMAT;
     }
+    if (strstr(help, "-vga") && !strstr(help, "-std-vga"))
+        flags |= QEMUD_CMD_FLAG_VGA;
     if (strstr(help, "boot=on"))
         flags |= QEMUD_CMD_FLAG_DRIVE_BOOT;
     if (version >= 9000)
@@ -483,6 +797,9 @@ static unsigned int qemudComputeCmdFlags(const char *help,
     } else if (kvm_version > 0) {
         flags |= QEMUD_CMD_FLAG_MIGRATE_KVM_STDIO;
     }
+
+    if (version >= 10000)
+        flags |= QEMUD_CMD_FLAG_0_10;
 
     return flags;
 }
@@ -697,43 +1014,35 @@ int qemudExtractVersion(virConnectPtr conn,
 }
 
 
-static char *
+int
 qemudNetworkIfaceConnect(virConnectPtr conn,
                          struct qemud_driver *driver,
-                         int **tapfds,
-                         int *ntapfds,
                          virDomainNetDefPtr net,
-                         int vlan,
-                         int vnet_hdr)
+                         int qemuCmdFlags)
 {
     char *brname;
-    char tapfdstr[4+3+32+7];
-    char *retval = NULL;
     int err;
     int tapfd = -1;
+    int vnet_hdr = 0;
 
     if (net->type == VIR_DOMAIN_NET_TYPE_NETWORK) {
         virNetworkPtr network = virNetworkLookupByName(conn,
                                                       net->data.network.name);
-        if (!network) {
-            qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                             _("Network '%s' not found"),
-                             net->data.network.name);
-            goto error;
-        }
+        if (!network)
+            return -1;
+
         brname = virNetworkGetBridgeName(network);
 
         virNetworkFree(network);
 
-        if (brname == NULL) {
-            goto error;
-        }
+        if (brname == NULL)
+            return -1;
     } else if (net->type == VIR_DOMAIN_NET_TYPE_BRIDGE) {
         brname = net->data.bridge.brname;
     } else {
         qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
                          _("Network type %d is not supported"), net->type);
-        goto error;
+        return -1;
     }
 
     if (!net->ifname ||
@@ -742,7 +1051,7 @@ qemudNetworkIfaceConnect(virConnectPtr conn,
         VIR_FREE(net->ifname);
         if (!(net->ifname = strdup("vnet%d"))) {
             virReportOOMError(conn);
-            goto error;
+            return -1;
         }
     }
 
@@ -751,8 +1060,12 @@ qemudNetworkIfaceConnect(virConnectPtr conn,
         qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
                          _("cannot initialize bridge support: %s"),
                          virStrerror(err, ebuf, sizeof ebuf));
-        goto error;
+        return -1;
     }
+
+    if (qemuCmdFlags & QEMUD_CMD_FLAG_VNET_HDR &&
+        net->model && STREQ(net->model, "virtio"))
+        vnet_hdr = 1;
 
     if ((err = brAddTap(driver->brctl, brname,
                         &net->ifname, vnet_hdr, &tapfd))) {
@@ -767,32 +1080,201 @@ qemudNetworkIfaceConnect(virConnectPtr conn,
                                "to bridge '%s' : %s"),
                              net->ifname, brname, virStrerror(err, ebuf, sizeof ebuf));
         }
-        goto error;
+        return -1;
     }
 
-    snprintf(tapfdstr, sizeof(tapfdstr),
-             "tap,fd=%d,vlan=%d",
-             tapfd, vlan);
-
-    if (!(retval = strdup(tapfdstr)))
-        goto no_memory;
-
-    if (VIR_REALLOC_N(*tapfds, (*ntapfds)+1) < 0)
-        goto no_memory;
-
-    (*tapfds)[(*ntapfds)++] = tapfd;
-
-    return retval;
-
- no_memory:
-    virReportOOMError(conn);
- error:
-    VIR_FREE(retval);
-    if (tapfd != -1)
-        close(tapfd);
-    return NULL;
+    return tapfd;
 }
 
+static const char *
+qemuNetTypeToHostNet(int type)
+{
+    switch (type) {
+    case VIR_DOMAIN_NET_TYPE_NETWORK:
+    case VIR_DOMAIN_NET_TYPE_BRIDGE:
+    case VIR_DOMAIN_NET_TYPE_ETHERNET:
+        return "tap";
+
+    case VIR_DOMAIN_NET_TYPE_CLIENT:
+    case VIR_DOMAIN_NET_TYPE_SERVER:
+    case VIR_DOMAIN_NET_TYPE_MCAST:
+        return "socket";
+
+    case VIR_DOMAIN_NET_TYPE_USER:
+    default:
+        return "user";
+    }
+}
+
+int
+qemuAssignNetNames(virDomainDefPtr def,
+                   virDomainNetDefPtr net)
+{
+    char *nic_name, *hostnet_name;
+    int i, nic_index = 0, hostnet_index = 0;
+
+    for (i = 0; i < def->nnets; i++) {
+        if (def->nets[i] == net)
+            continue;
+
+        if (!def->nets[i]->nic_name || !def->nets[i]->hostnet_name)
+            continue;
+
+        if ((def->nets[i]->model == NULL && net->model == NULL) ||
+            (def->nets[i]->model != NULL && net->model != NULL &&
+             STREQ(def->nets[i]->model, net->model)))
+            ++nic_index;
+
+        if (STREQ(qemuNetTypeToHostNet(def->nets[i]->type),
+                  qemuNetTypeToHostNet(net->type)))
+            ++hostnet_index;
+    }
+
+    if (virAsprintf(&nic_name, "%s.%d",
+                    net->model ? net->model : "nic",
+                    nic_index) < 0)
+        return -1;
+
+    if (virAsprintf(&hostnet_name, "%s.%d",
+                    qemuNetTypeToHostNet(net->type),
+                    hostnet_index) < 0) {
+        VIR_FREE(nic_name);
+        return -1;
+    }
+
+    net->nic_name = nic_name;
+    net->hostnet_name = hostnet_name;
+
+    return 0;
+}
+
+int
+qemuBuildNicStr(virConnectPtr conn,
+                virDomainNetDefPtr net,
+                const char *prefix,
+                char type_sep,
+                int vlan,
+                char **str)
+{
+    if (virAsprintf(str,
+                    "%snic%cmacaddr=%02x:%02x:%02x:%02x:%02x:%02x,vlan=%d%s%s%s%s",
+                    prefix ? prefix : "",
+                    type_sep,
+                    net->mac[0], net->mac[1],
+                    net->mac[2], net->mac[3],
+                    net->mac[4], net->mac[5],
+                    vlan,
+                    (net->model ? ",model=" : ""),
+                    (net->model ? net->model : ""),
+                    (net->nic_name ? ",name=" : ""),
+                    (net->nic_name ? net->nic_name : "")) < 0) {
+        virReportOOMError(conn);
+        return -1;
+    }
+
+    return 0;
+}
+
+int
+qemuBuildHostNetStr(virConnectPtr conn,
+                    virDomainNetDefPtr net,
+                    const char *prefix,
+                    char type_sep,
+                    int vlan,
+                    const char *tapfd,
+                    char **str)
+{
+    switch (net->type) {
+    case VIR_DOMAIN_NET_TYPE_NETWORK:
+    case VIR_DOMAIN_NET_TYPE_BRIDGE:
+        if (virAsprintf(str, "%stap%cfd=%s,vlan=%d%s%s",
+                        prefix ? prefix : "",
+                        type_sep, tapfd, vlan,
+                        (net->hostnet_name ? ",name=" : ""),
+                        (net->hostnet_name ? net->hostnet_name : "")) < 0) {
+            virReportOOMError(conn);
+            return -1;
+        }
+        break;
+
+    case VIR_DOMAIN_NET_TYPE_ETHERNET:
+        {
+            virBuffer buf = VIR_BUFFER_INITIALIZER;
+
+            if (prefix)
+                virBufferAdd(&buf, prefix, strlen(prefix));
+            virBufferAddLit(&buf, "tap");
+            if (net->ifname) {
+                virBufferVSprintf(&buf, "%cifname=%s", type_sep, net->ifname);
+                type_sep = ',';
+            }
+            if (net->data.ethernet.script) {
+                virBufferVSprintf(&buf, "%cscript=%s", type_sep,
+                                  net->data.ethernet.script);
+                type_sep = ',';
+            }
+            virBufferVSprintf(&buf, "%cvlan=%d", type_sep, vlan);
+            if (net->hostnet_name) {
+                virBufferVSprintf(&buf, "%cname=%s", type_sep,
+                                  net->hostnet_name);
+                type_sep = ',';
+            }
+            if (virBufferError(&buf)) {
+                virReportOOMError(conn);
+                return -1;
+            }
+
+            *str = virBufferContentAndReset(&buf);
+        }
+        break;
+
+    case VIR_DOMAIN_NET_TYPE_CLIENT:
+    case VIR_DOMAIN_NET_TYPE_SERVER:
+    case VIR_DOMAIN_NET_TYPE_MCAST:
+        {
+            const char *mode = NULL;
+
+            switch (net->type) {
+            case VIR_DOMAIN_NET_TYPE_CLIENT:
+                mode = "connect";
+                break;
+            case VIR_DOMAIN_NET_TYPE_SERVER:
+                mode = "listen";
+                break;
+            case VIR_DOMAIN_NET_TYPE_MCAST:
+                mode = "mcast";
+                break;
+            }
+
+            if (virAsprintf(str, "%ssocket%c%s=%s:%d,vlan=%d%s%s",
+                            prefix ? prefix : "",
+                            type_sep, mode,
+                            net->data.socket.address,
+                            net->data.socket.port,
+                            vlan,
+                            (net->hostnet_name ? ",name=" : ""),
+                            (net->hostnet_name ? net->hostnet_name : "")) < 0) {
+                virReportOOMError(conn);
+                return -1;
+            }
+        }
+        break;
+
+    case VIR_DOMAIN_NET_TYPE_USER:
+    default:
+        if (virAsprintf(str, "%suser%cvlan=%d%s%s",
+                        prefix ? prefix : "",
+                        type_sep, vlan,
+                        (net->hostnet_name ? ",name=" : ""),
+                        (net->hostnet_name ? net->hostnet_name : "")) < 0) {
+            virReportOOMError(conn);
+            return -1;
+        }
+        break;
+    }
+
+    return 0;
+}
 
 static int qemudBuildCommandLineChrDevStr(virDomainChrDefPtr dev,
                                           char *buf,
@@ -880,6 +1362,7 @@ static int qemudBuildCommandLineChrDevStr(virDomainChrDefPtr dev,
 int qemudBuildCommandLine(virConnectPtr conn,
                           struct qemud_driver *driver,
                           virDomainDefPtr def,
+                          virDomainChrDefPtr monitor_chr,
                           unsigned int qemuCmdFlags,
                           const char ***retargv,
                           const char ***retenv,
@@ -936,22 +1419,18 @@ int qemudBuildCommandLine(virConnectPtr conn,
     emulator = def->emulator;
 
     /* Need to explicitly disable KQEMU if
-     * 1. Arch matches host arch
-     * 2. Guest domain is 'qemu'
-     * 3. The qemu binary has the -no-kqemu flag
+     * 1. Guest domain is 'qemu'
+     * 2. The qemu binary has the -no-kqemu flag
      */
     if ((qemuCmdFlags & QEMUD_CMD_FLAG_KQEMU) &&
-        STREQ(ut.machine, def->os.arch) &&
         def->virtType == VIR_DOMAIN_VIRT_QEMU)
         disableKQEMU = 1;
 
     /* Need to explicitly disable KVM if
-     * 1. Arch matches host arch
-     * 2. Guest domain is 'qemu'
-     * 3. The qemu binary has the -no-kvm flag
+     * 1. Guest domain is 'qemu'
+     * 2. The qemu binary has the -no-kvm flag
      */
     if ((qemuCmdFlags & QEMUD_CMD_FLAG_KVM) &&
-        STREQ(ut.machine, def->os.arch) &&
         def->virtType == VIR_DOMAIN_VIRT_QEMU)
         disableKVM = 1;
 
@@ -1110,8 +1589,15 @@ int qemudBuildCommandLine(virConnectPtr conn,
     if (!def->graphics)
         ADD_ARG_LIT("-nographic");
 
-    ADD_ARG_LIT("-monitor");
-    ADD_ARG_LIT("pty");
+    if (monitor_chr) {
+        char buf[4096];
+
+        if (qemudBuildCommandLineChrDevStr(monitor_chr, buf, sizeof(buf)) < 0)
+            goto error;
+
+        ADD_ARG_LIT("-monitor");
+        ADD_ARG_LIT(buf);
+    }
 
     if (def->localtime)
         ADD_ARG_LIT("-localtime");
@@ -1316,102 +1802,50 @@ int qemudBuildCommandLine(virConnectPtr conn,
         ADD_ARG_LIT("-net");
         ADD_ARG_LIT("none");
     } else {
-        int vlan = 0;
         for (i = 0 ; i < def->nnets ; i++) {
-            char nic[100];
             virDomainNetDefPtr net = def->nets[i];
+            char *nic, *host;
+            char *tapfd_name = NULL;
 
-            if (snprintf(nic, sizeof(nic),
-                         "nic,macaddr=%02x:%02x:%02x:%02x:%02x:%02x,vlan=%d%s%s",
-                         net->mac[0], net->mac[1],
-                         net->mac[2], net->mac[3],
-                         net->mac[4], net->mac[5],
-                         vlan,
-                         (net->model ? ",model=" : ""),
-                         (net->model ? net->model : "")) >= sizeof(nic))
+            net->vlan = i;
+
+            if ((qemuCmdFlags & QEMUD_CMD_FLAG_NET_NAME) &&
+                qemuAssignNetNames(def, net) < 0)
+                goto no_memory;
+
+            if (qemuBuildNicStr(conn, net, NULL, ',', net->vlan, &nic) < 0)
                 goto error;
 
             ADD_ARG_LIT("-net");
-            ADD_ARG_LIT(nic);
-            ADD_ARG_LIT("-net");
+            ADD_ARG(nic);
 
-            switch (net->type) {
-            case VIR_DOMAIN_NET_TYPE_NETWORK:
-            case VIR_DOMAIN_NET_TYPE_BRIDGE:
-                {
-                    char *tap;
-                    int vnet_hdr = 0;
+            if (net->type == VIR_DOMAIN_NET_TYPE_NETWORK ||
+                net->type == VIR_DOMAIN_NET_TYPE_BRIDGE) {
+                int tapfd = qemudNetworkIfaceConnect(conn, driver, net, qemuCmdFlags);
+                if (tapfd < 0)
+                    goto error;
 
-                    if (qemuCmdFlags & QEMUD_CMD_FLAG_VNET_HDR &&
-                        net->model && STREQ(net->model, "virtio"))
-                        vnet_hdr = 1;
-
-                    tap = qemudNetworkIfaceConnect(conn, driver,
-                                                   tapfds, ntapfds,
-                                                   net, vlan, vnet_hdr);
-                    if (tap == NULL)
-                        goto error;
-                    ADD_ARG(tap);
-                    break;
+                if (VIR_REALLOC_N(*tapfds, (*ntapfds)+1) < 0) {
+                    close(tapfd);
+                    goto no_memory;
                 }
 
-            case VIR_DOMAIN_NET_TYPE_ETHERNET:
-                {
-                    virBuffer buf = VIR_BUFFER_INITIALIZER;
+                (*tapfds)[(*ntapfds)++] = tapfd;
 
-                    virBufferAddLit(&buf, "tap");
-                    if (net->ifname)
-                        virBufferVSprintf(&buf, ",ifname=%s", net->ifname);
-                    if (net->data.ethernet.script)
-                        virBufferVSprintf(&buf, ",script=%s", net->data.ethernet.script);
-                    virBufferVSprintf(&buf, ",vlan=%d", vlan);
-                    if (virBufferError(&buf))
-                        goto error;
-
-                    ADD_ARG(virBufferContentAndReset(&buf));
-                }
-                break;
-
-            case VIR_DOMAIN_NET_TYPE_CLIENT:
-            case VIR_DOMAIN_NET_TYPE_SERVER:
-            case VIR_DOMAIN_NET_TYPE_MCAST:
-                {
-                    char arg[PATH_MAX];
-                    const char *mode = NULL;
-                    switch (net->type) {
-                    case VIR_DOMAIN_NET_TYPE_CLIENT:
-                        mode = "connect";
-                        break;
-                    case VIR_DOMAIN_NET_TYPE_SERVER:
-                        mode = "listen";
-                        break;
-                    case VIR_DOMAIN_NET_TYPE_MCAST:
-                        mode = "mcast";
-                        break;
-                    }
-                    if (snprintf(arg, PATH_MAX-1, "socket,%s=%s:%d,vlan=%d",
-                                 mode,
-                                 net->data.socket.address,
-                                 net->data.socket.port,
-                                 vlan) >= (PATH_MAX-1))
-                        goto error;
-
-                    ADD_ARG_LIT(arg);
-                }
-                break;
-
-            case VIR_DOMAIN_NET_TYPE_USER:
-            default:
-                {
-                    char arg[PATH_MAX];
-                    if (snprintf(arg, PATH_MAX-1, "user,vlan=%d", vlan) >= (PATH_MAX-1))
-                        goto error;
-
-                    ADD_ARG_LIT(arg);
-                }
+                if (virAsprintf(&tapfd_name, "%d", tapfd) < 0)
+                    goto no_memory;
             }
 
-            vlan++;
+            if (qemuBuildHostNetStr(conn, net, NULL, ',',
+                                    net->vlan, tapfd_name, &host) < 0) {
+                VIR_FREE(tapfd_name);
+                goto error;
+            }
+
+            ADD_ARG_LIT("-net");
+            ADD_ARG(host);
+
+            VIR_FREE(tapfd_name);
         }
     }
 
@@ -1531,6 +1965,53 @@ int qemudBuildCommandLine(virConnectPtr conn,
             ADD_ENV(display);
         if (def->graphics[0]->data.sdl.fullscreen)
             ADD_ARG_LIT("-full-screen");
+    }
+
+    if (def->nvideos) {
+        if (def->nvideos > 1) {
+            qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                             "%s", _("only one video card is currently supported"));
+            goto error;
+        }
+
+        if (qemuCmdFlags & QEMUD_CMD_FLAG_VGA) {
+            if (def->videos[0]->type == VIR_DOMAIN_VIDEO_TYPE_XEN) {
+                /* nothing - vga has no effect on Xen pvfb */
+            } else {
+                const char *vgastr = qemuVideoTypeToString(def->videos[0]->type);
+                if (!vgastr) {
+                    qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                                     _("video type %s is not supported with QEMU"),
+                                     virDomainVideoTypeToString(def->videos[0]->type));
+                    goto error;
+                }
+
+                ADD_ARG_LIT("-vga");
+                ADD_ARG_LIT(vgastr);
+            }
+        } else {
+
+            switch (def->videos[0]->type) {
+            case VIR_DOMAIN_VIDEO_TYPE_VGA:
+                ADD_ARG_LIT("-std-vga");
+                break;
+
+            case VIR_DOMAIN_VIDEO_TYPE_VMVGA:
+                ADD_ARG_LIT("-vmwarevga");
+                break;
+
+            case VIR_DOMAIN_VIDEO_TYPE_XEN:
+            case VIR_DOMAIN_VIDEO_TYPE_CIRRUS:
+                /* No special args - this is the default */
+                break;
+
+            default:
+                qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                                 _("video type %s is not supported with QEMU"),
+                                 virDomainVideoTypeToString(def->videos[0]->type));
+                goto error;
+            }
+        }
     }
 
     /* Add sound hardware */
@@ -2428,6 +2909,7 @@ virDomainDefPtr qemuParseCommandLine(virConnectPtr conn,
     char *path;
     int nnics = 0;
     const char **nics = NULL;
+    int video = VIR_DOMAIN_VIDEO_TYPE_CIRRUS;
 
     if (!progargv[0]) {
         qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
@@ -2805,6 +3287,18 @@ virDomainDefPtr qemuParseCommandLine(virConnectPtr conn,
             def->os.bootloader = strdup(val);
             if (!def->os.bootloader)
                 goto no_memory;
+        } else if (STREQ(arg, "-vmwarevga")) {
+            video = VIR_DOMAIN_VIDEO_TYPE_VMVGA;
+        } else if (STREQ(arg, "-std-vga")) {
+            video = VIR_DOMAIN_VIDEO_TYPE_VGA;
+        } else if (STREQ(arg, "-vga")) {
+            WANT_VALUE();
+            video = qemuVideoTypeFromString(val);
+            if (video < 0) {
+                qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                                 _("unknown video adapter type '%s'"), val);
+                goto error;
+            }
         } else if (STREQ(arg, "-domid")) {
             WANT_VALUE();
             /* ignore, generted on the fly */
@@ -2859,6 +3353,24 @@ virDomainDefPtr qemuParseCommandLine(virConnectPtr conn,
         def->graphics[def->ngraphics++] = sdl;
     }
 
+    if (def->ngraphics) {
+        virDomainVideoDefPtr vid;
+        if (VIR_ALLOC(vid) < 0)
+            goto no_memory;
+        if (def->virtType == VIR_DOMAIN_VIRT_XEN)
+            vid->type = VIR_DOMAIN_VIDEO_TYPE_XEN;
+        else
+            vid->type = video;
+        vid->vram = virDomainVideoDefaultRAM(def, vid->type);
+        vid->heads = 1;
+
+        if (VIR_REALLOC_N(def->videos, def->nvideos+1) < 0) {
+            virDomainVideoDefFree(vid);
+            goto no_memory;
+        }
+        def->videos[def->nvideos++] = vid;
+    }
+
     VIR_FREE(nics);
 
     if (!def->name) {
@@ -2902,4 +3414,3 @@ cleanup:
 
     return def;
 }
-

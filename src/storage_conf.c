@@ -45,11 +45,6 @@
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
-/* Work around broken limits.h on debian etch */
-#if defined __GNUC__ && defined _GCC_LIMITS_H_ && ! defined ULLONG_MAX
-# define ULLONG_MAX   ULONG_LONG_MAX
-#endif
-
 #define virStorageError(conn, code, fmt...)                             \
             virReportErrorHelper(conn, VIR_FROM_STORAGE, code, __FILE__,\
                                   __FUNCTION__, __LINE__, fmt)
@@ -68,7 +63,7 @@ VIR_ENUM_IMPL(virStoragePoolFormatFileSystem,
 
 VIR_ENUM_IMPL(virStoragePoolFormatFileSystemNet,
               VIR_STORAGE_POOL_NETFS_LAST,
-              "auto", "nfs")
+              "auto", "nfs", "glusterfs")
 
 VIR_ENUM_IMPL(virStoragePoolFormatDisk,
               VIR_STORAGE_POOL_DISK_LAST,
@@ -95,7 +90,7 @@ VIR_ENUM_IMPL(virStorageVolFormatFileSystem,
 
 VIR_ENUM_IMPL(virStoragePartedFsType,
               VIR_STORAGE_PARTED_FS_TYPE_LAST,
-              "none", "ext2", "fat16",
+              "ext2", "ext2", "fat16",
               "fat32", "linux-swap",
               "ext2", "ext2",
               "extended")

@@ -34,6 +34,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
     const char **tmp = NULL;
     int ret = -1, len, flags;
     virDomainDefPtr vmdef = NULL;
+    virDomainChrDef monitor_chr;
 
     if (virtTestLoadFile(cmd, &expectargv, MAX_FILE) < 0)
         goto fail;
@@ -47,12 +48,17 @@ static int testCompareXMLToArgvFiles(const char *xml,
     else
         vmdef->id = -1;
 
+    monitor_chr.type = VIR_DOMAIN_CHR_TYPE_UNIX;
+    monitor_chr.data.nix.path = (char *)"/tmp/test-monitor";
+    monitor_chr.data.nix.listen = 1;
+
     flags = QEMUD_CMD_FLAG_VNC_COLON |
         QEMUD_CMD_FLAG_NO_REBOOT |
         extraFlags;
 
     if (qemudBuildCommandLine(NULL, &driver,
-                              vmdef, flags, &argv, &qenv,
+                              vmdef, &monitor_chr, flags,
+                              &argv, &qenv,
                               NULL, NULL, migrateFrom) < 0)
         goto fail;
 
@@ -216,7 +222,7 @@ mymain(int argc, char **argv)
 
     driver.vncSASL = 1;
     driver.vncSASLdir = strdup("/root/.sasl2");
-    DO_TEST("graphics-vnc-sasl", 0);
+    DO_TEST("graphics-vnc-sasl", QEMUD_CMD_FLAG_VGA);
     driver.vncTLS = 1;
     driver.vncTLSx509verify = 1;
     driver.vncTLSx509certdir = strdup("/etc/pki/tls/qemu");
@@ -239,6 +245,7 @@ mymain(int argc, char **argv)
     DO_TEST("net-virtio", 0);
     DO_TEST("net-eth", 0);
     DO_TEST("net-eth-ifname", 0);
+    DO_TEST("net-eth-names", QEMUD_CMD_FLAG_NET_NAME);
 
     DO_TEST("serial-vc", 0);
     DO_TEST("serial-pty", 0);

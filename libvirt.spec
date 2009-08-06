@@ -5,22 +5,27 @@
 %define with_qemu          0%{!?_without_qemu:1}
 %define with_openvz        0%{!?_without_openvz:1}
 %define with_lxc           0%{!?_without_lxc:1}
+%define with_vbox          0%{!?_without_vbox:1}
 %define with_sasl          0%{!?_without_sasl:1}
 %define with_avahi         0%{!?_without_avahi:1}
-# default to off
-%define with_polkit        0%{!?_without_polkit:0}
 %define with_python        0%{!?_without_python:1}
 %define with_libvirtd      0%{!?_without_libvirtd:1}
 %define with_uml           0%{!?_without_uml:1}
-%define with_one           0%{!?_without_uml:1}
+%define with_one           0%{!?_without_one:1}
 %define with_network       0%{!?_without_network:1}
 %define with_storage_fs    0%{!?_without_storage_fs:1}
 %define with_storage_lvm   0%{!?_without_storage_lvm:1}
 %define with_storage_iscsi 0%{!?_without_storage_iscsi:1}
 %define with_storage_disk  0%{!?_without_storage_disk:1}
 %define with_numactl       0%{!?_without_numactl:1}
-# default to off
+
+# default to off - selectively enabled below
+%define with_polkit        0%{!?_without_polkit:0}
 %define with_capng         0%{!?_without_capng:0}
+%define with_netcf         0%{!?_without_netcf:0}
+
+# default to off
+%define with_phyp          0%{!?_without_phyp:0}
 
 # Xen is available only on i386 x86_64 ia64
 %ifnarch i386 i586 i686 x86_64 ia64
@@ -46,6 +51,18 @@
 %define with_capng     0%{!?_without_capng:1}
 %endif
 
+%if 0%{?fedora} >= 12
+%define with_netcf     0%{!?_without_netcf:1}
+%endif
+
+%if 0%{?fedora} >= 12
+%define qemu_user  qemu
+%define qemu_group  qemu
+%else
+%define qemu_user  root
+%define qemu_group  root
+%endif
+
 #
 # If building on RHEL switch on the specific support
 #
@@ -60,31 +77,23 @@
 
 Summary: Library providing a simple API virtualization
 Name: libvirt
-Version: 0.6.5
+Version: 0.7.0
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 Source: libvirt-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 URL: http://libvirt.org/
-BuildRequires: python python-devel
-Requires: libxml2
-Requires: readline
-Requires: ncurses
+BuildRequires: python-devel
+
+# The client side, i.e. shared libs and virsh are in a subpackage
+Requires: libvirt-client = %{version}-%{release}
+
 Requires: dnsmasq
 Requires: bridge-utils
 Requires: iptables
 # needed for device enumeration
 Requires: hal
-# So remote clients can access libvirt over SSH tunnel
-# (client invokes 'nc' against the UNIX socket on the server)
-Requires: nc
-%if %{with_sasl}
-Requires: cyrus-sasl
-# Not technically required, but makes 'out-of-box' config
-# work correctly & doesn't have onerous dependencies
-Requires: cyrus-sasl-md5
-%endif
 %if %{with_polkit}
 Requires: PolicyKit >= 0.6
 %endif
@@ -94,6 +103,8 @@ BuildRequires: util-linux
 # For showmount in FS driver (netfs discovery)
 BuildRequires: nfs-utils
 Requires: nfs-utils
+# For glusterfs
+Requires: glusterfs-client >= 2.0.1
 %endif
 %if %{with_qemu}
 # From QEMU RPMs
@@ -135,9 +146,6 @@ BuildRequires: avahi-devel
 BuildRequires: libselinux-devel
 BuildRequires: dnsmasq
 BuildRequires: bridge-utils
-%if %{with_qemu}
-BuildRequires: qemu
-%endif
 %if %{with_sasl}
 BuildRequires: cyrus-sasl-devel
 %endif
@@ -174,26 +182,50 @@ BuildRequires: parted-devel
 BuildRequires: numactl-devel
 %endif
 %if %{with_capng}
-BuildRequires: capng-devel >= 0.5.0
+BuildRequires: libcap-ng-devel >= 0.5.0
 %endif
-Obsoletes: libvir
+%if %{with_phyp}
+BuildRequires: libssh-devel >= 0.3.1
+%endif
+%if %{with_netcf}
+BuildRequires: netcf-devel
+%endif
 
 # Fedora build root suckage
 BuildRequires: gawk
 
 %description
 Libvirt is a C toolkit to interact with the virtualization capabilities
-of recent versions of Linux (and other OSes).
+of recent versions of Linux (and other OSes). The main package includes
+the libvirtd server exporting the virtualization support.
+
+%package client
+Summary: Client side library and utilities of the libvirt library
+Group: Development/Libraries
+Requires: readline
+Requires: ncurses
+# So remote clients can access libvirt over SSH tunnel
+# (client invokes 'nc' against the UNIX socket on the server)
+Requires: nc
+%if %{with_sasl}
+Requires: cyrus-sasl
+# Not technically required, but makes 'out-of-box' config
+# work correctly & doesn't have onerous dependencies
+Requires: cyrus-sasl-md5
+%endif
+
+%description client
+Shared libraries and client binaries needed to access to the
+virtualization capabilities of recent versions of Linux (and other OSes).
 
 %package devel
 Summary: Libraries, includes, etc. to compile with the libvirt library
 Group: Development/Libraries
-Requires: libvirt = %{version}
+Requires: libvirt = %{version}-%{release}
 Requires: pkgconfig
 %if %{with_xen}
 Requires: xen-devel
 %endif
-Obsoletes: libvir-devel
 
 %description devel
 Includes and documentations for the C library providing an API to use
@@ -203,8 +235,7 @@ the virtualization capabilities of recent versions of Linux (and other OSes).
 %package python
 Summary: Python bindings for the libvirt library
 Group: Development/Libraries
-Requires: libvirt = %{version}
-Obsoletes: libvir-python
+Requires: libvirt = %{version}-%{release}
 
 %description python
 The libvirt-python package contains a module that permits applications
@@ -233,12 +264,20 @@ of recent versions of Linux (and other OSes).
 %define _without_lxc --without-lxc
 %endif
 
+%if ! %{with_vbox}
+%define _without_vbox --without-vbox
+%endif
+
 %if ! %{with_sasl}
 %define _without_sasl --without-sasl
 %endif
 
 %if ! %{with_avahi}
 %define _without_avahi --without-avahi
+%endif
+
+%if ! %{with_phyp}
+%define _without_phyp --without-phyp
 %endif
 
 %if ! %{with_polkit}
@@ -289,10 +328,19 @@ of recent versions of Linux (and other OSes).
 %define _without_numactl --without-numactl
 %endif
 
+%if ! %{with_capng}
+%define _without_capng --without-capng
+%endif
+
+%if ! %{with_netcf}
+%define _without_netcf --without-netcf
+%endif
+
 %configure %{?_without_xen} \
            %{?_without_qemu} \
            %{?_without_openvz} \
            %{?_without_lxc} \
+           %{?_without_vbox} \
            %{?_without_sasl} \
            %{?_without_avahi} \
            %{?_without_polkit} \
@@ -300,6 +348,7 @@ of recent versions of Linux (and other OSes).
            %{?_without_libvirtd} \
            %{?_without_uml} \
            %{?_without_one} \
+           %{?_without_phyp} \
            %{?_without_network} \
            %{?_with_rhel5_api} \
            %{?_without_storage_fs} \
@@ -307,10 +356,14 @@ of recent versions of Linux (and other OSes).
            %{?_without_storage_iscsi} \
            %{?_without_storage_disk} \
            %{?_without_numactl} \
+           %{?_without_capng} \
+           %{?_without_netcf} \
+           --with-qemu-user=%{qemu_user} \
+           --with-qemu-group=%{qemu_group} \
            --with-init-script=redhat \
-           --with-qemud-pid-file=%{_localstatedir}/run/libvirt_qemud.pid \
-           --with-remote-file=%{_localstatedir}/run/libvirtd.pid
+           --with-remote-pid-file=%{_localstatedir}/run/libvirtd.pid
 make %{?_smp_mflags}
+gzip -9 ChangeLog
 
 %install
 rm -fr %{buildroot}
@@ -352,11 +405,26 @@ rm -rf $RPM_BUILD_ROOT%{_datadir}/doc/libvirt-python-%{version}
 rm -rf $RPM_BUILD_ROOT%{_sysconfdir}/libvirt/qemu.conf
 %endif
 
+%if %{with_libvirtd}
+chmod 0644 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/libvirtd
+%endif
+
 %clean
 rm -fr %{buildroot}
 
+%pre
+%if 0%{?fedora} >= 12
+# Normally 'setup' adds this in /etc/passwd, but this is
+# here for case of upgrades from earlier Fedora. This
+# UID/GID pair is reserved for qemu:qemu
+getent group kvm >/dev/null || groupadd -g 36 -r kvm
+getent group qemu >/dev/null || groupadd -g 107 -r qemu
+getent passwd qemu >/dev/null || \
+  useradd -r -u 107 -g qemu -G kvm -d / -s /sbin/nologin \
+    -c "qemu user" qemu
+%endif
+
 %post
-/sbin/ldconfig
 
 %if %{with_libvirtd}
 %if %{with_qemu}
@@ -385,18 +453,14 @@ if [ $1 = 0 ]; then
 fi
 %endif
 
-%postun
-/sbin/ldconfig
+%post client -p /sbin/ldconfig
 
-%files -f %{name}.lang
+%postun client -p /sbin/ldconfig
+
+%files
 %defattr(-, root, root)
 
-%doc AUTHORS ChangeLog NEWS README COPYING.LIB TODO
-%{_mandir}/man1/virsh.1*
-%{_mandir}/man1/virt-xml-validate.1*
-%{_bindir}/virsh
-%{_bindir}/virt-xml-validate
-%{_libdir}/lib*.so.*
+%doc AUTHORS ChangeLog.gz NEWS README COPYING.LIB TODO
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/
 
 %if %{with_qemu}
@@ -416,36 +480,23 @@ fi
 %config(noreplace) %{_sysconfdir}/libvirt/qemu.conf
 %endif
 
-%if %{with_sasl}
-%config(noreplace) %{_sysconfdir}/sasl2/libvirt.conf
-%endif
-
 %if %{with_qemu}
 %dir %{_datadir}/libvirt/
 %dir %{_datadir}/libvirt/networks/
 %{_datadir}/libvirt/networks/default.xml
 %endif
 
-%dir %{_datadir}/libvirt/
-%dir %{_datadir}/libvirt/schemas/
-
-%{_datadir}/libvirt/schemas/domain.rng
-%{_datadir}/libvirt/schemas/network.rng
-%{_datadir}/libvirt/schemas/storagepool.rng
-%{_datadir}/libvirt/schemas/storagevol.rng
-%{_datadir}/libvirt/schemas/nodedev.rng
-%{_datadir}/libvirt/schemas/capability.rng
-
 %dir %{_localstatedir}/run/libvirt/
 
 %dir %{_localstatedir}/lib/libvirt/
-%dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/images/
+%dir %attr(0711, root, root) %{_localstatedir}/lib/libvirt/images/
 %dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/boot/
 %dir %attr(0700, root, root) %{_localstatedir}/cache/libvirt/
 
 %if %{with_qemu}
-%dir %{_localstatedir}/run/libvirt/qemu/
-%dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/qemu/
+%dir %attr(0700, %{qemu_user}, %{qemu_group}) %{_localstatedir}/run/libvirt/qemu/
+%dir %attr(0700, %{qemu_user}, %{qemu_group}) %{_localstatedir}/lib/libvirt/qemu/
+%dir %attr(0700, %{qemu_user}, %{qemu_group}) %{_localstatedir}/cache/libvirt/qemu/
 %endif
 %if %{with_lxc}
 %dir %{_localstatedir}/run/libvirt/lxc/
@@ -458,6 +509,7 @@ fi
 %if %{with_network}
 %dir %{_localstatedir}/run/libvirt/network/
 %dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/network/
+%dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/iptables/
 %dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/iptables/filter/
 %dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/iptables/nat/
 %endif
@@ -476,6 +528,7 @@ fi
 %{_datadir}/PolicyKit/policy/org.libvirt.unix.policy
 %endif
 
+%dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/
 %if %{with_qemu}
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/qemu/
 %endif
@@ -494,6 +547,31 @@ fi
 %endif
 
 %doc docs/*.xml
+
+%files client -f %{name}.lang
+%defattr(-, root, root)
+%doc AUTHORS ChangeLog.gz NEWS README COPYING.LIB TODO
+
+%{_mandir}/man1/virsh.1*
+%{_mandir}/man1/virt-xml-validate.1*
+%{_bindir}/virsh
+%{_bindir}/virt-xml-validate
+%{_libdir}/lib*.so.*
+
+%dir %{_datadir}/libvirt/
+%dir %{_datadir}/libvirt/schemas/
+
+%{_datadir}/libvirt/schemas/domain.rng
+%{_datadir}/libvirt/schemas/network.rng
+%{_datadir}/libvirt/schemas/storagepool.rng
+%{_datadir}/libvirt/schemas/storagevol.rng
+%{_datadir}/libvirt/schemas/nodedev.rng
+%{_datadir}/libvirt/schemas/capability.rng
+%{_datadir}/libvirt/schemas/interface.rng
+
+%if %{with_sasl}
+%config(noreplace) %{_sysconfdir}/sasl2/libvirt.conf
+%endif
 
 %files devel
 %defattr(-, root, root)
@@ -527,6 +605,15 @@ fi
 %endif
 
 %changelog
+* Wed Aug  5 2009 Daniel Veillard <veillard@redhat.com> - 0.7.0-1
+- ESX, VBox3, Power Hypervisor drivers
+- new net filesystem glusterfs
+- Storage cloning for LVM and Disk backends
+- interface implementation based on netcf
+- Support cgroups in QEMU driver
+- QEmu hotplug NIC support
+- a lot of fixes
+
 * Fri Jul  3 2009 Daniel Veillard <veillard@redhat.com> - 0.6.5-1
 - release of 0.6.5
 

@@ -270,11 +270,13 @@ virGetDomain(virConnectPtr conn, const char *name, const unsigned char *uuid) {
     /* TODO check the UUID */
     if (ret == NULL) {
         if (VIR_ALLOC(ret) < 0) {
+            virMutexUnlock(&conn->lock);
             virReportOOMError(conn);
             goto error;
         }
         ret->name = strdup(name);
         if (ret->name == NULL) {
+            virMutexUnlock(&conn->lock);
             virReportOOMError(conn);
             goto error;
         }
@@ -285,8 +287,9 @@ virGetDomain(virConnectPtr conn, const char *name, const unsigned char *uuid) {
             memcpy(&(ret->uuid[0]), uuid, VIR_UUID_BUFLEN);
 
         if (virHashAddEntry(conn->domains, name, ret) < 0) {
+            virMutexUnlock(&conn->lock);
             virLibConnError(conn, VIR_ERR_INTERNAL_ERROR,
-                            _("failed to add domain to connection hash table"));
+                            "%s", _("failed to add domain to connection hash table"));
             goto error;
         }
         conn->refs++;
@@ -299,7 +302,6 @@ virGetDomain(virConnectPtr conn, const char *name, const unsigned char *uuid) {
     return(ret);
 
  error:
-    virMutexUnlock(&conn->lock);
     if (ret != NULL) {
         VIR_FREE(ret->name);
         VIR_FREE(ret);
@@ -325,24 +327,28 @@ virReleaseDomain(virDomainPtr domain) {
     DEBUG("release domain %p %s", domain, domain->name);
 
     /* TODO search by UUID first as they are better differenciators */
-    if (virHashRemoveEntry(conn->domains, domain->name, NULL) < 0)
+    if (virHashRemoveEntry(conn->domains, domain->name, NULL) < 0) {
+        virMutexUnlock(&conn->lock);
         virLibConnError(conn, VIR_ERR_INTERNAL_ERROR,
-                        _("domain missing from connection hash table"));
+                        "%s", _("domain missing from connection hash table"));
+        conn = NULL;
+    }
 
     domain->magic = -1;
     domain->id = -1;
     VIR_FREE(domain->name);
     VIR_FREE(domain);
 
-    DEBUG("unref connection %p %d", conn, conn->refs);
-    conn->refs--;
-    if (conn->refs == 0) {
-        virReleaseConnect(conn);
-        /* Already unlocked mutex */
-        return;
+    if (conn) {
+        DEBUG("unref connection %p %d", conn, conn->refs);
+        conn->refs--;
+        if (conn->refs == 0) {
+            virReleaseConnect(conn);
+            /* Already unlocked mutex */
+            return;
+        }
+        virMutexUnlock(&conn->lock);
     }
-
-    virMutexUnlock(&conn->lock);
 }
 
 
@@ -406,11 +412,13 @@ virGetNetwork(virConnectPtr conn, const char *name, const unsigned char *uuid) {
     /* TODO check the UUID */
     if (ret == NULL) {
         if (VIR_ALLOC(ret) < 0) {
+            virMutexUnlock(&conn->lock);
             virReportOOMError(conn);
             goto error;
         }
         ret->name = strdup(name);
         if (ret->name == NULL) {
+            virMutexUnlock(&conn->lock);
             virReportOOMError(conn);
             goto error;
         }
@@ -420,8 +428,9 @@ virGetNetwork(virConnectPtr conn, const char *name, const unsigned char *uuid) {
             memcpy(&(ret->uuid[0]), uuid, VIR_UUID_BUFLEN);
 
         if (virHashAddEntry(conn->networks, name, ret) < 0) {
+            virMutexUnlock(&conn->lock);
             virLibConnError(conn, VIR_ERR_INTERNAL_ERROR,
-                            _("failed to add network to connection hash table"));
+                            "%s", _("failed to add network to connection hash table"));
             goto error;
         }
         conn->refs++;
@@ -431,7 +440,6 @@ virGetNetwork(virConnectPtr conn, const char *name, const unsigned char *uuid) {
     return(ret);
 
  error:
-    virMutexUnlock(&conn->lock);
     if (ret != NULL) {
         VIR_FREE(ret->name);
         VIR_FREE(ret);
@@ -457,23 +465,27 @@ virReleaseNetwork(virNetworkPtr network) {
     DEBUG("release network %p %s", network, network->name);
 
     /* TODO search by UUID first as they are better differenciators */
-    if (virHashRemoveEntry(conn->networks, network->name, NULL) < 0)
+    if (virHashRemoveEntry(conn->networks, network->name, NULL) < 0) {
+        virMutexUnlock(&conn->lock);
         virLibConnError(conn, VIR_ERR_INTERNAL_ERROR,
-                        _("network missing from connection hash table"));
+                        "%s", _("network missing from connection hash table"));
+        conn = NULL;
+    }
 
     network->magic = -1;
     VIR_FREE(network->name);
     VIR_FREE(network);
 
-    DEBUG("unref connection %p %d", conn, conn->refs);
-    conn->refs--;
-    if (conn->refs == 0) {
-        virReleaseConnect(conn);
-        /* Already unlocked mutex */
-        return;
+    if (conn) {
+        DEBUG("unref connection %p %d", conn, conn->refs);
+        conn->refs--;
+        if (conn->refs == 0) {
+            virReleaseConnect(conn);
+            /* Already unlocked mutex */
+            return;
+        }
+        virMutexUnlock(&conn->lock);
     }
-
-    virMutexUnlock(&conn->lock);
 }
 
 
@@ -516,9 +528,10 @@ virUnrefNetwork(virNetworkPtr network) {
  * @mac: pointer to the mac
  *
  * Lookup if the interface is already registered for that connection,
- * if yes return a new pointer to it, if no allocate a new structure,
- * and register it in the table. In any case a corresponding call to
- * virUnrefInterface() is needed to not leak data.
+ * if yes return a new pointer to it (possibly updating the MAC
+ * address), if no allocate a new structure, and register it in the
+ * table. In any case a corresponding call to virUnrefInterface() is
+ * needed to not leak data.
  *
  * Returns a pointer to the interface, or NULL in case of failure
  */
@@ -532,22 +545,54 @@ virGetInterface(virConnectPtr conn, const char *name, const char *mac) {
     }
     virMutexLock(&conn->lock);
 
-    /* TODO search by MAC first as they are better differentiators */
-
     ret = (virInterfacePtr) virHashLookup(conn->interfaces, name);
-    /* TODO check the MAC */
-    if (ret == NULL) {
+
+    if (ret != NULL) {
+        if (STRCASENEQ(ret->mac, mac)) {
+            /*
+             * If the mac address has changed, try to modify it in
+             * place, which will only work if the new mac is the
+             * same length as, or shorter than, the old mac.
+             */
+            size_t newmaclen = strlen(mac);
+            size_t oldmaclen = strlen(ret->mac);
+            if (newmaclen <= oldmaclen) {
+                strcpy(ret->mac, mac);
+            } else {
+                /*
+                 * If it's longer, we're kind of screwed, because we
+                 * can't add a new hashtable entry (it would clash
+                 * with the existing entry of same name), and we can't
+                 * free/re-alloc the existing entry's mac, as some
+                 * other thread may already be using the existing mac
+                 * pointer.  Fortunately, this should never happen,
+                 * since the length of the mac address for any
+                 * interface is determined by the type of the
+                 * interface, and that is unlikely to change.
+                 */
+                virMutexUnlock(&conn->lock);
+                virLibConnError(conn, VIR_ERR_INTERNAL_ERROR,
+_("Failed to change interface mac address from %s to %s due to differing lengths."),
+                                ret->mac, mac);
+                ret = NULL;
+                goto error;
+            }
+        }
+    } else {
         if (VIR_ALLOC(ret) < 0) {
+            virMutexUnlock(&conn->lock);
             virReportOOMError(conn);
             goto error;
         }
         ret->name = strdup(name);
         if (ret->name == NULL) {
+            virMutexUnlock(&conn->lock);
             virReportOOMError(conn);
             goto error;
         }
         ret->mac = strdup(mac);
         if (ret->mac == NULL) {
+            virMutexUnlock(&conn->lock);
             virReportOOMError(conn);
             goto error;
         }
@@ -556,8 +601,9 @@ virGetInterface(virConnectPtr conn, const char *name, const char *mac) {
         ret->conn = conn;
 
         if (virHashAddEntry(conn->interfaces, name, ret) < 0) {
+            virMutexUnlock(&conn->lock);
             virLibConnError(conn, VIR_ERR_INTERNAL_ERROR,
-                            _("failed to add interface to connection hash table"));
+                            "%s", _("failed to add interface to connection hash table"));
             goto error;
         }
         conn->refs++;
@@ -567,7 +613,6 @@ virGetInterface(virConnectPtr conn, const char *name, const char *mac) {
     return(ret);
 
  error:
-    virMutexUnlock(&conn->lock);
     if (ret != NULL) {
         VIR_FREE(ret->name);
         VIR_FREE(ret->mac);
@@ -593,25 +638,30 @@ virReleaseInterface(virInterfacePtr iface) {
     virConnectPtr conn = iface->conn;
     DEBUG("release interface %p %s", iface, iface->name);
 
-    /* TODO search by MAC first as they are better differenciators */
-    if (virHashRemoveEntry(conn->interfaces, iface->name, NULL) < 0)
+    if (virHashRemoveEntry(conn->interfaces, iface->name, NULL) < 0) {
+        /* unlock before reporting error because error report grabs lock */
+        virMutexUnlock(&conn->lock);
         virLibConnError(conn, VIR_ERR_INTERNAL_ERROR,
-                        _("interface missing from connection hash table"));
+                        "%s", _("interface missing from connection hash table"));
+        /* don't decr the conn refct if we weren't connected to it */
+        conn = NULL;
+    }
 
     iface->magic = -1;
     VIR_FREE(iface->name);
     VIR_FREE(iface->mac);
     VIR_FREE(iface);
 
-    DEBUG("unref connection %p %d", conn, conn->refs);
-    conn->refs--;
-    if (conn->refs == 0) {
-        virReleaseConnect(conn);
-        /* Already unlocked mutex */
-        return;
+    if (conn) {
+        DEBUG("unref connection %p %d", conn, conn->refs);
+        conn->refs--;
+        if (conn->refs == 0) {
+            virReleaseConnect(conn);
+            /* Already unlocked mutex */
+            return;
+        }
+        virMutexUnlock(&conn->lock);
     }
-
-    virMutexUnlock(&conn->lock);
 }
 
 
@@ -676,11 +726,13 @@ virGetStoragePool(virConnectPtr conn, const char *name, const unsigned char *uui
     /* TODO check the UUID */
     if (ret == NULL) {
         if (VIR_ALLOC(ret) < 0) {
+            virMutexUnlock(&conn->lock);
             virReportOOMError(conn);
             goto error;
         }
         ret->name = strdup(name);
         if (ret->name == NULL) {
+            virMutexUnlock(&conn->lock);
             virReportOOMError(conn);
             goto error;
         }
@@ -690,8 +742,9 @@ virGetStoragePool(virConnectPtr conn, const char *name, const unsigned char *uui
             memcpy(&(ret->uuid[0]), uuid, VIR_UUID_BUFLEN);
 
         if (virHashAddEntry(conn->storagePools, name, ret) < 0) {
+            virMutexUnlock(&conn->lock);
             virLibConnError(conn, VIR_ERR_INTERNAL_ERROR,
-                            _("failed to add storage pool to connection hash table"));
+                            "%s", _("failed to add storage pool to connection hash table"));
             goto error;
         }
         conn->refs++;
@@ -701,7 +754,6 @@ virGetStoragePool(virConnectPtr conn, const char *name, const unsigned char *uui
     return(ret);
 
 error:
-    virMutexUnlock(&conn->lock);
     if (ret != NULL) {
         VIR_FREE(ret->name);
         VIR_FREE(ret);
@@ -728,23 +780,27 @@ virReleaseStoragePool(virStoragePoolPtr pool) {
     DEBUG("release pool %p %s", pool, pool->name);
 
     /* TODO search by UUID first as they are better differenciators */
-    if (virHashRemoveEntry(conn->storagePools, pool->name, NULL) < 0)
+    if (virHashRemoveEntry(conn->storagePools, pool->name, NULL) < 0) {
+        virMutexUnlock(&conn->lock);
         virLibConnError(conn, VIR_ERR_INTERNAL_ERROR,
-                        _("pool missing from connection hash table"));
+                        "%s", _("pool missing from connection hash table"));
+        conn = NULL;
+    }
 
     pool->magic = -1;
     VIR_FREE(pool->name);
     VIR_FREE(pool);
 
-    DEBUG("unref connection %p %d", conn, conn->refs);
-    conn->refs--;
-    if (conn->refs == 0) {
-        virReleaseConnect(conn);
-        /* Already unlocked mutex */
-        return;
+    if (conn) {
+        DEBUG("unref connection %p %d", conn, conn->refs);
+        conn->refs--;
+        if (conn->refs == 0) {
+            virReleaseConnect(conn);
+            /* Already unlocked mutex */
+            return;
+        }
+        virMutexUnlock(&conn->lock);
     }
-
-    virMutexUnlock(&conn->lock);
 }
 
 
@@ -807,16 +863,19 @@ virGetStorageVol(virConnectPtr conn, const char *pool, const char *name, const c
     ret = (virStorageVolPtr) virHashLookup(conn->storageVols, key);
     if (ret == NULL) {
         if (VIR_ALLOC(ret) < 0) {
+            virMutexUnlock(&conn->lock);
             virReportOOMError(conn);
             goto error;
         }
         ret->pool = strdup(pool);
         if (ret->pool == NULL) {
+            virMutexUnlock(&conn->lock);
             virReportOOMError(conn);
             goto error;
         }
         ret->name = strdup(name);
         if (ret->name == NULL) {
+            virMutexUnlock(&conn->lock);
             virReportOOMError(conn);
             goto error;
         }
@@ -826,8 +885,9 @@ virGetStorageVol(virConnectPtr conn, const char *pool, const char *name, const c
         ret->conn = conn;
 
         if (virHashAddEntry(conn->storageVols, key, ret) < 0) {
+            virMutexUnlock(&conn->lock);
             virLibConnError(conn, VIR_ERR_INTERNAL_ERROR,
-                            _("failed to add storage vol to connection hash table"));
+                            "%s", _("failed to add storage vol to connection hash table"));
             goto error;
         }
         conn->refs++;
@@ -837,7 +897,6 @@ virGetStorageVol(virConnectPtr conn, const char *pool, const char *name, const c
     return(ret);
 
 error:
-    virMutexUnlock(&conn->lock);
     if (ret != NULL) {
         VIR_FREE(ret->name);
         VIR_FREE(ret->pool);
@@ -865,24 +924,28 @@ virReleaseStorageVol(virStorageVolPtr vol) {
     DEBUG("release vol %p %s", vol, vol->name);
 
     /* TODO search by UUID first as they are better differenciators */
-    if (virHashRemoveEntry(conn->storageVols, vol->key, NULL) < 0)
+    if (virHashRemoveEntry(conn->storageVols, vol->key, NULL) < 0) {
+        virMutexUnlock(&conn->lock);
         virLibConnError(conn, VIR_ERR_INTERNAL_ERROR,
-                        _("vol missing from connection hash table"));
+                        "%s", _("vol missing from connection hash table"));
+        conn = NULL;
+    }
 
     vol->magic = -1;
     VIR_FREE(vol->name);
     VIR_FREE(vol->pool);
     VIR_FREE(vol);
 
-    DEBUG("unref connection %p %d", conn, conn->refs);
-    conn->refs--;
-    if (conn->refs == 0) {
-        virReleaseConnect(conn);
-        /* Already unlocked mutex */
-        return;
+    if (conn) {
+        DEBUG("unref connection %p %d", conn, conn->refs);
+        conn->refs--;
+        if (conn->refs == 0) {
+            virReleaseConnect(conn);
+            /* Already unlocked mutex */
+            return;
+        }
+        virMutexUnlock(&conn->lock);
     }
-
-    virMutexUnlock(&conn->lock);
 }
 
 
@@ -943,7 +1006,8 @@ virGetNodeDevice(virConnectPtr conn, const char *name)
 
     ret = (virNodeDevicePtr) virHashLookup(conn->nodeDevices, name);
     if (ret == NULL) {
-       if (VIR_ALLOC(ret) < 0) {
+        if (VIR_ALLOC(ret) < 0) {
+            virMutexUnlock(&conn->lock);
             virReportOOMError(conn);
             goto error;
         }
@@ -951,13 +1015,15 @@ virGetNodeDevice(virConnectPtr conn, const char *name)
         ret->conn = conn;
         ret->name = strdup(name);
         if (ret->name == NULL) {
+            virMutexUnlock(&conn->lock);
             virReportOOMError(conn);
             goto error;
         }
 
         if (virHashAddEntry(conn->nodeDevices, name, ret) < 0) {
+            virMutexUnlock(&conn->lock);
             virLibConnError(conn, VIR_ERR_INTERNAL_ERROR,
-                            _("failed to add node dev to conn hash table"));
+                            "%s", _("failed to add node dev to conn hash table"));
             goto error;
         }
         conn->refs++;
@@ -967,7 +1033,6 @@ virGetNodeDevice(virConnectPtr conn, const char *name)
     return(ret);
 
 error:
-    virMutexUnlock(&conn->lock);
     if (ret != NULL) {
         VIR_FREE(ret->name);
         VIR_FREE(ret);
@@ -993,24 +1058,28 @@ virReleaseNodeDevice(virNodeDevicePtr dev) {
     virConnectPtr conn = dev->conn;
     DEBUG("release dev %p %s", dev, dev->name);
 
-    if (virHashRemoveEntry(conn->nodeDevices, dev->name, NULL) < 0)
+    if (virHashRemoveEntry(conn->nodeDevices, dev->name, NULL) < 0) {
+        virMutexUnlock(&conn->lock);
         virLibConnError(conn, VIR_ERR_INTERNAL_ERROR,
-                        _("dev missing from connection hash table"));
+                        "%s", _("dev missing from connection hash table"));
+        conn = NULL;
+    }
 
     dev->magic = -1;
     VIR_FREE(dev->name);
     VIR_FREE(dev->parent);
     VIR_FREE(dev);
 
-    DEBUG("unref connection %p %d", conn, conn->refs);
-    conn->refs--;
-    if (conn->refs == 0) {
-        virReleaseConnect(conn);
-        /* Already unlocked mutex */
-        return;
+    if (conn) {
+        DEBUG("unref connection %p %d", conn, conn->refs);
+        conn->refs--;
+        if (conn->refs == 0) {
+            virReleaseConnect(conn);
+            /* Already unlocked mutex */
+            return;
+        }
+        virMutexUnlock(&conn->lock);
     }
-
-    virMutexUnlock(&conn->lock);
 }
 
 

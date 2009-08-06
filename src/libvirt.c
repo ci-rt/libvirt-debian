@@ -55,8 +55,14 @@
 #ifdef WITH_OPENVZ
 #include "openvz_driver.h"
 #endif
+#ifdef WITH_PHYP
+#include "phyp/phyp_driver.h"
+#endif
 #ifdef WITH_VBOX
 #include "vbox/vbox_driver.h"
+#endif
+#ifdef WITH_ESX
+#include "esx/esx_driver.h"
 #endif
 #endif
 
@@ -308,6 +314,7 @@ virInitialize(void)
     virDriverLoadModule("xen");
     virDriverLoadModule("openvz");
     virDriverLoadModule("vbox");
+    virDriverLoadModule("esx");
     virDriverLoadModule("remote");
 #else
 #ifdef WITH_TEST
@@ -319,8 +326,14 @@ virInitialize(void)
 #ifdef WITH_OPENVZ
     if (openvzRegister() == -1) return -1;
 #endif
+#ifdef WITH_PHYP
+    if (phypRegister() == -1) return -1;
+#endif
 #ifdef WITH_VBOX
     if (vboxRegister() == -1) return -1;
+#endif
+#ifdef WITH_ESX
+    if (esxRegister() == -1) return -1;
 #endif
 #ifdef WITH_REMOTE
     if (remoteRegister () == -1) return -1;
@@ -889,6 +902,10 @@ virGetVersion(unsigned long *libVer, const char *type,
         if (STRCASEEQ(type, "LXC"))
             *typeVer = LIBVIR_VERSION_NUMBER;
 #endif
+#if WITH_PHYP
+        if (STRCASEEQ(type, "phyp"))
+            *typeVer = LIBVIR_VERSION_NUMBER;
+#endif
 #if WITH_OPENVZ
         if (STRCASEEQ(type, "OpenVZ"))
             *typeVer = LIBVIR_VERSION_NUMBER;
@@ -903,6 +920,10 @@ virGetVersion(unsigned long *libVer, const char *type,
 #endif
 #if WITH_ONE
         if (STRCASEEQ(type, "ONE"))
+            *typeVer = LIBVIR_VERSION_NUMBER;
+#endif
+#if WITH_ESX
+        if (STRCASEEQ(type, "ESX"))
             *typeVer = LIBVIR_VERSION_NUMBER;
 #endif
 #if WITH_REMOTE
@@ -1026,9 +1047,6 @@ do_open (const char *name,
         }
     }
 
-#if 0
-    /* TODO: reactivate once we have an interface driver */
-
     for (i = 0; i < virInterfaceDriverTabCount; i++) {
         res = virInterfaceDriverTab[i]->open (ret, auth, flags);
         DEBUG("interface driver %d %s returned %s",
@@ -1047,7 +1065,6 @@ do_open (const char *name,
             break;
         }
     }
-#endif
 
     /* Secondary driver for storage. Optional */
     for (i = 0; i < virStorageDriverTabCount; i++) {
@@ -1118,6 +1135,17 @@ failed:
  *
  * Returns a pointer to the hypervisor connection or NULL in case of error
  *
+ * If @name is NULL then probing will be done to determine a suitable
+ * default driver to activate. This involves trying each hypervisor
+ * in turn until one successfully opens. If the LIBVIRT_DEFAULT_URI
+ * environment variable is set, then it will be used in preference
+ * to probing for a driver.
+ *
+ * If connecting to an unprivileged hypervisor driver which requires
+ * the libvirtd daemon to be active, it will automatically be launched
+ * if not already running. This can be prevented by setting the
+ * environment variable LIBVIRT_AUTOSTART=0
+ *
  * URIs are documented at http://libvirt.org/uri.html
  */
 virConnectPtr
@@ -1138,6 +1166,9 @@ virConnectOpen (const char *name)
  * This function should be called first to get a restricted connection to the
  * library functionalities. The set of APIs usable are then restricted
  * on the available methods to control the domains.
+ *
+ * See virConnectOpen for notes about environment variables which can
+ * have an effect on opening drivers
  *
  * Returns a pointer to the hypervisor connection or NULL in case of error
  *
@@ -1163,6 +1194,9 @@ virConnectOpenReadOnly(const char *name)
  * This function should be called first to get a connection to the
  * Hypervisor. If necessary, authentication will be performed fetching
  * credentials via the callback
+ *
+ * See virConnectOpen for notes about environment variables which can
+ * have an effect on opening drivers
  *
  * Returns a pointer to the hypervisor connection or NULL in case of error
  *
@@ -2713,6 +2747,8 @@ virDomainGetXMLDesc(virDomainPtr domain, int flags)
         goto error;
     }
 
+    flags &= VIR_DOMAIN_XML_FLAGS_MASK;
+
     if (conn->driver->domainDumpXML) {
         char *ret;
         ret = conn->driver->domainDumpXML (domain, flags);
@@ -2980,7 +3016,7 @@ virDomainMigrate (virDomainPtr domain,
         ret = dconn->driver->domainMigratePrepare2
             (dconn, &cookie, &cookielen, uri, &uri_out, flags, dname,
              bandwidth, dom_xml);
-        free (dom_xml);
+        VIR_FREE (dom_xml);
         if (ret == -1) goto done;
         if (uri == NULL && uri_out == NULL) {
             virLibConnError (conn, VIR_ERR_INTERNAL_ERROR,
@@ -3022,8 +3058,8 @@ virDomainMigrate (virDomainPtr domain,
     }
 
  done:
-    free (uri_out);
-    free (cookie);
+    VIR_FREE (uri_out);
+    VIR_FREE (cookie);
     return ddomain;
 
 error:
@@ -3038,13 +3074,13 @@ error:
  */
 int
 virDomainMigratePrepare (virConnectPtr dconn,
-                           char **cookie,
-                           int *cookielen,
-                           const char *uri_in,
-                           char **uri_out,
-                           unsigned long flags,
-                           const char *dname,
-                           unsigned long bandwidth)
+                         char **cookie,
+                         int *cookielen,
+                         const char *uri_in,
+                         char **uri_out,
+                         unsigned long flags,
+                         const char *dname,
+                         unsigned long bandwidth)
 {
     VIR_DEBUG("dconn=%p, cookie=%p, cookielen=%p, uri_in=%s, uri_out=%p, "
               "flags=%lu, dname=%s, bandwidth=%lu", dconn, cookie, cookielen,
@@ -3563,7 +3599,7 @@ virDomainBlockStats (virDomainPtr dom, const char *path,
         virLibDomainError (NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
         return -1;
     }
-    if (!stats || size > sizeof stats2) {
+    if (!path || !stats || size > sizeof stats2) {
         virLibDomainError (dom, VIR_ERR_INVALID_ARG, __FUNCTION__);
         goto error;
     }
@@ -3621,7 +3657,7 @@ virDomainInterfaceStats (virDomainPtr dom, const char *path,
         virLibDomainError (NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
         return -1;
     }
-    if (!stats || size > sizeof stats2) {
+    if (!path || !stats || size > sizeof stats2) {
         virLibDomainError (dom, VIR_ERR_INVALID_ARG, __FUNCTION__);
         goto error;
     }
@@ -3798,18 +3834,19 @@ virDomainMemoryPeek (virDomainPtr dom,
         goto error;
     }
 
-    /* Flags must be VIR_MEMORY_VIRTUAL at the moment.
-     *
-     * Note on access to physical memory: A VIR_MEMORY_PHYSICAL flag is
+    /* Note on access to physical memory: A VIR_MEMORY_PHYSICAL flag is
      * a possibility.  However it isn't really useful unless the caller
      * can also access registers, particularly CR3 on x86 in order to
      * get the Page Table Directory.  Since registers are different on
      * every architecture, that would imply another call to get the
      * machine registers.
      *
-     * The QEMU driver handles only VIR_MEMORY_VIRTUAL, mapping it
+     * The QEMU driver handles VIR_MEMORY_VIRTUAL, mapping it
      * to the qemu 'memsave' command which does the virtual to physical
      * mapping inside qemu.
+     *
+     * The QEMU driver also handles VIR_MEMORY_PHYSICAL, mapping it
+     * to the qemu 'pmemsave' command.
      *
      * At time of writing there is no Xen driver.  However the Xen
      * hypervisor only lets you map physical pages from other domains,
@@ -3819,9 +3856,10 @@ virDomainMemoryPeek (virDomainPtr dom,
      * which does this, although we cannot copy this code directly
      * because of incompatible licensing.
      */
-    if (flags != VIR_MEMORY_VIRTUAL) {
+
+    if (flags != VIR_MEMORY_VIRTUAL && flags != VIR_MEMORY_PHYSICAL) {
         virLibDomainError (dom, VIR_ERR_INVALID_ARG,
-                           _("flags parameter must be VIR_MEMORY_VIRTUAL"));
+                     _("flags parameter must be VIR_MEMORY_VIRTUAL or VIR_MEMORY_PHYSICAL"));
         goto error;
     }
 
@@ -4399,15 +4437,24 @@ virDomainGetSecurityLabel(virDomainPtr domain, virSecurityLabelPtr seclabel)
 
     if (seclabel == NULL) {
         virLibDomainError(domain, VIR_ERR_INVALID_ARG, __FUNCTION__);
-        return -1;
+        goto error;
     }
 
     conn = domain->conn;
 
-    if (conn->driver->domainGetSecurityLabel)
-        return conn->driver->domainGetSecurityLabel(domain, seclabel);
+    if (conn->driver->domainGetSecurityLabel) {
+        int ret;
+        ret = conn->driver->domainGetSecurityLabel(domain, seclabel);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
 
-    virLibConnWarning(conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(domain->conn);
     return -1;
 }
 
@@ -4432,13 +4479,22 @@ virNodeGetSecurityModel(virConnectPtr conn, virSecurityModelPtr secmodel)
 
     if (secmodel == NULL) {
         virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
-        return -1;
+        goto error;
     }
 
-    if (conn->driver->nodeGetSecurityModel)
-        return conn->driver->nodeGetSecurityModel(conn, secmodel);
+    if (conn->driver->nodeGetSecurityModel) {
+        int ret;
+        ret = conn->driver->nodeGetSecurityModel(conn, secmodel);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
 
-    virLibConnWarning(conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(conn);
     return -1;
 }
 
@@ -5498,9 +5554,9 @@ virInterfaceGetConnect (virInterfacePtr iface)
  * virConnectNumOfInterfaces:
  * @conn: pointer to the hypervisor connection
  *
- * Provides the number of interfaces on the physical host.
+ * Provides the number of active interfaces on the physical host.
  *
- * Returns the number of interface found or -1 in case of error
+ * Returns the number of active interfaces found or -1 in case of error
  */
 int
 virConnectNumOfInterfaces(virConnectPtr conn)
@@ -5536,7 +5592,8 @@ error:
  * @names: array to collect the list of names of interfaces
  * @maxnames: size of @names
  *
- * Collect the list of physical host interfaces, and store their names in @names
+ * Collect the list of active physical host interfaces,
+ * and store their names in @names
  *
  * Returns the number of interfaces found or -1 in case of error
  */
@@ -5560,6 +5617,88 @@ virConnectListInterfaces(virConnectPtr conn, char **const names, int maxnames)
     if (conn->interfaceDriver && conn->interfaceDriver->listInterfaces) {
         int ret;
         ret = conn->interfaceDriver->listInterfaces (conn, names, maxnames);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(conn);
+    return -1;
+}
+
+/**
+ * virConnectNumOfDefinedInterfaces:
+ * @conn: pointer to the hypervisor connection
+ *
+ * Provides the number of defined (inactive) interfaces on the physical host.
+ *
+ * Returns the number of defined interface found or -1 in case of error
+ */
+int
+virConnectNumOfDefinedInterfaces(virConnectPtr conn)
+{
+    DEBUG("conn=%p", conn);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+
+    if (conn->interfaceDriver && conn->interfaceDriver->numOfDefinedInterfaces) {
+        int ret;
+        ret = conn->interfaceDriver->numOfDefinedInterfaces (conn);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(conn);
+    return -1;
+}
+
+/**
+ * virConnectListDefinedInterfaces:
+ * @conn: pointer to the hypervisor connection
+ * @names: array to collect the list of names of interfaces
+ * @maxnames: size of @names
+ *
+ * Collect the list of defined (inactive) physical host interfaces,
+ * and store their names in @names.
+ *
+ * Returns the number of interfaces found or -1 in case of error
+ */
+int
+virConnectListDefinedInterfaces(virConnectPtr conn,
+                                char **const names,
+                                int maxnames)
+{
+    DEBUG("conn=%p, names=%p, maxnames=%d", conn, names, maxnames);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+
+    if ((names == NULL) || (maxnames < 0)) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->interfaceDriver && conn->interfaceDriver->listDefinedInterfaces) {
+        int ret;
+        ret = conn->interfaceDriver->listDefinedInterfaces (conn, names, maxnames);
         if (ret < 0)
             goto error;
         return ret;
@@ -6557,7 +6696,7 @@ error:
  *
  * Undefine an inactive storage pool
  *
- * Returns a virStoragePoolPtr object, or NULL if creation failed
+ * Returns 0 on success, -1 on failure
  */
 int
 virStoragePoolUndefine(virStoragePoolPtr pool)

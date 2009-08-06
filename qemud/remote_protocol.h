@@ -29,6 +29,7 @@ typedef remote_nonnull_string *remote_string;
 #define REMOTE_MIGRATE_COOKIE_MAX 256
 #define REMOTE_NETWORK_NAME_LIST_MAX 256
 #define REMOTE_INTERFACE_NAME_LIST_MAX 256
+#define REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX 256
 #define REMOTE_STORAGE_POOL_NAME_LIST_MAX 256
 #define REMOTE_STORAGE_VOL_NAME_LIST_MAX 1024
 #define REMOTE_NODE_DEVICE_NAME_LIST_MAX 16384
@@ -847,6 +848,24 @@ struct remote_list_interfaces_ret {
 };
 typedef struct remote_list_interfaces_ret remote_list_interfaces_ret;
 
+struct remote_num_of_defined_interfaces_ret {
+        int num;
+};
+typedef struct remote_num_of_defined_interfaces_ret remote_num_of_defined_interfaces_ret;
+
+struct remote_list_defined_interfaces_args {
+        int maxnames;
+};
+typedef struct remote_list_defined_interfaces_args remote_list_defined_interfaces_args;
+
+struct remote_list_defined_interfaces_ret {
+        struct {
+                u_int names_len;
+                remote_nonnull_string *names_val;
+        } names;
+};
+typedef struct remote_list_defined_interfaces_ret remote_list_defined_interfaces_ret;
+
 struct remote_interface_lookup_by_name_args {
         remote_nonnull_string name;
 };
@@ -1378,12 +1397,12 @@ struct remote_domain_events_deregister_ret {
 };
 typedef struct remote_domain_events_deregister_ret remote_domain_events_deregister_ret;
 
-struct remote_domain_event_ret {
+struct remote_domain_event_msg {
         remote_nonnull_domain dom;
         int event;
         int detail;
 };
-typedef struct remote_domain_event_ret remote_domain_event_ret;
+typedef struct remote_domain_event_msg remote_domain_event_msg;
 
 struct remote_domain_xml_from_native_args {
         remote_nonnull_string nativeFormat;
@@ -1548,15 +1567,17 @@ enum remote_procedure {
         REMOTE_PROC_INTERFACE_DESTROY = 134,
         REMOTE_PROC_DOMAIN_XML_FROM_NATIVE = 135,
         REMOTE_PROC_DOMAIN_XML_TO_NATIVE = 136,
+        REMOTE_PROC_NUM_OF_DEFINED_INTERFACES = 137,
+        REMOTE_PROC_LIST_DEFINED_INTERFACES = 138,
 };
 typedef enum remote_procedure remote_procedure;
 
-enum remote_message_direction {
+enum remote_message_type {
         REMOTE_CALL = 0,
         REMOTE_REPLY = 1,
         REMOTE_MESSAGE = 2,
 };
-typedef enum remote_message_direction remote_message_direction;
+typedef enum remote_message_type remote_message_type;
 
 enum remote_message_status {
         REMOTE_OK = 0,
@@ -1569,7 +1590,7 @@ struct remote_message_header {
         u_int prog;
         u_int vers;
         remote_procedure proc;
-        remote_message_direction direction;
+        remote_message_type type;
         u_int serial;
         remote_message_status status;
 };
@@ -1710,6 +1731,9 @@ extern  bool_t xdr_remote_network_set_autostart_args (XDR *, remote_network_set_
 extern  bool_t xdr_remote_num_of_interfaces_ret (XDR *, remote_num_of_interfaces_ret*);
 extern  bool_t xdr_remote_list_interfaces_args (XDR *, remote_list_interfaces_args*);
 extern  bool_t xdr_remote_list_interfaces_ret (XDR *, remote_list_interfaces_ret*);
+extern  bool_t xdr_remote_num_of_defined_interfaces_ret (XDR *, remote_num_of_defined_interfaces_ret*);
+extern  bool_t xdr_remote_list_defined_interfaces_args (XDR *, remote_list_defined_interfaces_args*);
+extern  bool_t xdr_remote_list_defined_interfaces_ret (XDR *, remote_list_defined_interfaces_ret*);
 extern  bool_t xdr_remote_interface_lookup_by_name_args (XDR *, remote_interface_lookup_by_name_args*);
 extern  bool_t xdr_remote_interface_lookup_by_name_ret (XDR *, remote_interface_lookup_by_name_ret*);
 extern  bool_t xdr_remote_interface_lookup_by_mac_string_args (XDR *, remote_interface_lookup_by_mac_string_args*);
@@ -1802,13 +1826,13 @@ extern  bool_t xdr_remote_node_device_create_xml_ret (XDR *, remote_node_device_
 extern  bool_t xdr_remote_node_device_destroy_args (XDR *, remote_node_device_destroy_args*);
 extern  bool_t xdr_remote_domain_events_register_ret (XDR *, remote_domain_events_register_ret*);
 extern  bool_t xdr_remote_domain_events_deregister_ret (XDR *, remote_domain_events_deregister_ret*);
-extern  bool_t xdr_remote_domain_event_ret (XDR *, remote_domain_event_ret*);
+extern  bool_t xdr_remote_domain_event_msg (XDR *, remote_domain_event_msg*);
 extern  bool_t xdr_remote_domain_xml_from_native_args (XDR *, remote_domain_xml_from_native_args*);
 extern  bool_t xdr_remote_domain_xml_from_native_ret (XDR *, remote_domain_xml_from_native_ret*);
 extern  bool_t xdr_remote_domain_xml_to_native_args (XDR *, remote_domain_xml_to_native_args*);
 extern  bool_t xdr_remote_domain_xml_to_native_ret (XDR *, remote_domain_xml_to_native_ret*);
 extern  bool_t xdr_remote_procedure (XDR *, remote_procedure*);
-extern  bool_t xdr_remote_message_direction (XDR *, remote_message_direction*);
+extern  bool_t xdr_remote_message_type (XDR *, remote_message_type*);
 extern  bool_t xdr_remote_message_status (XDR *, remote_message_status*);
 extern  bool_t xdr_remote_message_header (XDR *, remote_message_header*);
 
@@ -1945,6 +1969,9 @@ extern bool_t xdr_remote_network_set_autostart_args ();
 extern bool_t xdr_remote_num_of_interfaces_ret ();
 extern bool_t xdr_remote_list_interfaces_args ();
 extern bool_t xdr_remote_list_interfaces_ret ();
+extern bool_t xdr_remote_num_of_defined_interfaces_ret ();
+extern bool_t xdr_remote_list_defined_interfaces_args ();
+extern bool_t xdr_remote_list_defined_interfaces_ret ();
 extern bool_t xdr_remote_interface_lookup_by_name_args ();
 extern bool_t xdr_remote_interface_lookup_by_name_ret ();
 extern bool_t xdr_remote_interface_lookup_by_mac_string_args ();
@@ -2037,13 +2064,13 @@ extern bool_t xdr_remote_node_device_create_xml_ret ();
 extern bool_t xdr_remote_node_device_destroy_args ();
 extern bool_t xdr_remote_domain_events_register_ret ();
 extern bool_t xdr_remote_domain_events_deregister_ret ();
-extern bool_t xdr_remote_domain_event_ret ();
+extern bool_t xdr_remote_domain_event_msg ();
 extern bool_t xdr_remote_domain_xml_from_native_args ();
 extern bool_t xdr_remote_domain_xml_from_native_ret ();
 extern bool_t xdr_remote_domain_xml_to_native_args ();
 extern bool_t xdr_remote_domain_xml_to_native_ret ();
 extern bool_t xdr_remote_procedure ();
-extern bool_t xdr_remote_message_direction ();
+extern bool_t xdr_remote_message_type ();
 extern bool_t xdr_remote_message_status ();
 extern bool_t xdr_remote_message_header ();
 

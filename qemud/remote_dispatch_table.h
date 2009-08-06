@@ -537,10 +537,10 @@
     .args_filter = (xdrproc_t) xdr_void,
     .ret_filter = (xdrproc_t) xdr_remote_domain_events_deregister_ret,
 },
-{   /* DomainEvent => 107 */
-    .fn = (dispatch_fn) remoteDispatchDomainEvent,
+{   /* Async event DomainEvent => 107 */
+    .fn = NULL,
     .args_filter = (xdrproc_t) xdr_void,
-    .ret_filter = (xdrproc_t) xdr_remote_domain_event_ret,
+    .ret_filter = (xdrproc_t) xdr_void,
 },
 {   /* DomainMigratePrepare2 => 108 */
     .fn = (dispatch_fn) remoteDispatchDomainMigratePrepare2,
@@ -686,4 +686,14 @@
     .fn = (dispatch_fn) remoteDispatchDomainXmlToNative,
     .args_filter = (xdrproc_t) xdr_remote_domain_xml_to_native_args,
     .ret_filter = (xdrproc_t) xdr_remote_domain_xml_to_native_ret,
+},
+{   /* NumOfDefinedInterfaces => 137 */
+    .fn = (dispatch_fn) remoteDispatchNumOfDefinedInterfaces,
+    .args_filter = (xdrproc_t) xdr_void,
+    .ret_filter = (xdrproc_t) xdr_remote_num_of_defined_interfaces_ret,
+},
+{   /* ListDefinedInterfaces => 138 */
+    .fn = (dispatch_fn) remoteDispatchListDefinedInterfaces,
+    .args_filter = (xdrproc_t) xdr_remote_list_defined_interfaces_args,
+    .ret_filter = (xdrproc_t) xdr_remote_list_defined_interfaces_ret,
 },

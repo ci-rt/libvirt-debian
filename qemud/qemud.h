@@ -52,15 +52,61 @@
 #ifdef HAVE_ANSIDECL_H
 #include <ansidecl.h>
 #endif
+
+#ifndef __GNUC_PREREQ
+#if defined __GNUC__ && defined __GNUC_MINOR__
+# define __GNUC_PREREQ(maj, min)                                        \
+    ((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
+#else
+#define __GNUC_PREREQ(maj,min) 0
+#endif
+#endif
+
+/**
+ * ATTRIBUTE_UNUSED:
+ *
+ * Macro to flag conciously unused parameters to functions
+ */
 #ifndef ATTRIBUTE_UNUSED
 #define ATTRIBUTE_UNUSED __attribute__((__unused__))
 #endif
-#ifndef ATTRIBUTE_FORMAT
-#define ATTRIBUTE_FORMAT(args...) __attribute__((__format__ (args)))
-#endif
+
+/**
+ * ATTRIBUTE_FMT_PRINTF
+ *
+ * Macro used to check printf like functions, if compiling
+ * with gcc.
+ *
+ * We use gnulib which guarentees we always have GNU style
+ * printf format specifiers even on broken Win32 platforms
+ * hence we have to force 'gnu_printf' for new GCC
+ */
+#ifndef ATTRIBUTE_FMT_PRINTF
+#if __GNUC_PREREQ (4, 4)
+#define ATTRIBUTE_FMT_PRINTF(fmtpos,argpos) __attribute__((__format__ (gnu_printf, fmtpos,argpos)))
 #else
+#define ATTRIBUTE_FMT_PRINTF(fmtpos,argpos) __attribute__((__format__ (printf, fmtpos,argpos)))
+#endif
+#endif
+
+#ifndef ATTRIBUTE_RETURN_CHECK
+#if __GNUC_PREREQ (3, 4)
+#define ATTRIBUTE_RETURN_CHECK __attribute__((__warn_unused_result__))
+#else
+#define ATTRIBUTE_RETURN_CHECK
+#endif
+#endif
+
+#else
+#ifndef ATTRIBUTE_UNUSED
 #define ATTRIBUTE_UNUSED
-#define ATTRIBUTE_FORMAT(...)
+#endif
+#ifndef ATTRIBUTE_FMT_PRINTF
+#define ATTRIBUTE_FMT_PRINTF(...)
+#endif
+#ifndef ATTRIBUTE_RETURN_CHECK
+#define ATTRIBUTE_RETURN_CHECK
+#endif
 #endif
 
 #define qemudDebug DEBUG
@@ -85,7 +131,22 @@ struct qemud_client_message {
 
     int async : 1;
 
+    remote_message_header hdr;
+
     struct qemud_client_message *next;
+};
+
+/* Allow for filtering of incoming messages to a custom
+ * dispatch processing queue, instead of client->dx.
+ */
+typedef int (*qemud_client_filter_func)(struct qemud_client_message *msg, void *opaque);
+struct qemud_client_filter {
+    qemud_client_filter_func query;
+    void *opaque;
+
+    struct qemud_client_message *dx;
+
+    struct qemud_client_filter *next;
 };
 
 /* Stores the per-client connection state */
@@ -132,6 +193,9 @@ struct qemud_client {
     /* Zero or many messages waiting for transmit
      * back to client, including async events */
     struct qemud_client_message *tx;
+    /* Filters to capture messages that would otherwise
+     * end up on the 'dx' queue */
+    struct qemud_client_filter *filters;
 
     /* This is only valid if a remote open call has been made on this
      * connection, otherwise it will be NULL.  Also if remote close is
@@ -140,8 +204,6 @@ struct qemud_client {
     virConnectPtr conn;
     int refs;
 
-    /* back-pointer to our server */
-    struct qemud_server *server;
 };
 
 #define QEMUD_CLIENT_MAGIC 0x7788aaee
@@ -197,29 +259,22 @@ struct qemud_server {
 };
 
 void qemudLog(int priority, const char *fmt, ...)
-    ATTRIBUTE_FORMAT(printf,2,3);
+    ATTRIBUTE_FMT_PRINTF(2,3);
 
 
-int
-remoteDispatchClientRequest (struct qemud_server *server,
-                             struct qemud_client *client,
-                             struct qemud_client_message *req);
 
 int qemudRegisterClientEvent(struct qemud_server *server,
-                             struct qemud_client *client,
-                             int update);
+                             struct qemud_client *client);
+void qemudUpdateClientEvent(struct qemud_client *client);
 
 void qemudDispatchClientFailure(struct qemud_client *client);
 
 void
 qemudClientMessageQueuePush(struct qemud_client_message **queue,
                             struct qemud_client_message *msg);
+struct qemud_client_message *
+qemudClientMessageQueueServe(struct qemud_client_message **queue);
 
-int remoteRelayDomainEvent (virConnectPtr conn ATTRIBUTE_UNUSED,
-                            virDomainPtr dom,
-                            int event,
-                            int detail,
-                            void *opaque);
 
 
 #if HAVE_POLKIT

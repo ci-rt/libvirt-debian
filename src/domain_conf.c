@@ -57,7 +57,8 @@ VIR_ENUM_IMPL(virDomainVirt, VIR_DOMAIN_VIRT_LAST,
               "vmware",
               "hyperv",
               "vbox",
-              "one")
+              "one",
+              "phyp")
 
 VIR_ENUM_IMPL(virDomainBoot, VIR_DOMAIN_BOOT_LAST,
               "fd",
@@ -82,6 +83,7 @@ VIR_ENUM_IMPL(virDomainDevice, VIR_DOMAIN_DEVICE_LAST,
               "interface",
               "input",
               "sound",
+              "video",
               "hostdev")
 
 VIR_ENUM_IMPL(virDomainDisk, VIR_DOMAIN_DISK_TYPE_LAST,
@@ -141,6 +143,13 @@ VIR_ENUM_IMPL(virDomainSoundModel, VIR_DOMAIN_SOUND_MODEL_LAST,
               "es1370",
               "pcspk",
               "ac97")
+
+VIR_ENUM_IMPL(virDomainVideo, VIR_DOMAIN_VIDEO_TYPE_LAST,
+              "vga",
+              "cirrus",
+              "vmvga",
+              "xen",
+              "vbox")
 
 VIR_ENUM_IMPL(virDomainInput, VIR_DOMAIN_INPUT_TYPE_LAST,
               "mouse",
@@ -330,6 +339,8 @@ void virDomainNetDefFree(virDomainNetDefPtr def)
     }
 
     VIR_FREE(def->ifname);
+    VIR_FREE(def->nic_name);
+    VIR_FREE(def->hostnet_name);
     VIR_FREE(def);
 }
 
@@ -374,6 +385,14 @@ void virDomainSoundDefFree(virDomainSoundDefPtr def)
     VIR_FREE(def);
 }
 
+void virDomainVideoDefFree(virDomainVideoDefPtr def)
+{
+    if (!def)
+        return;
+
+    VIR_FREE(def);
+}
+
 void virDomainHostdevDefFree(virDomainHostdevDefPtr def)
 {
     if (!def)
@@ -400,6 +419,9 @@ void virDomainDeviceDefFree(virDomainDeviceDefPtr def)
         break;
     case VIR_DOMAIN_DEVICE_SOUND:
         virDomainSoundDefFree(def->data.sound);
+        break;
+    case VIR_DOMAIN_DEVICE_VIDEO:
+        virDomainVideoDefFree(def->data.video);
         break;
     case VIR_DOMAIN_DEVICE_HOSTDEV:
         virDomainHostdevDefFree(def->data.hostdev);
@@ -458,6 +480,10 @@ void virDomainDefFree(virDomainDefPtr def)
         virDomainSoundDefFree(def->sounds[i]);
     VIR_FREE(def->sounds);
 
+    for (i = 0 ; i < def->nvideos ; i++)
+        virDomainVideoDefFree(def->videos[i]);
+    VIR_FREE(def->videos);
+
     for (i = 0 ; i < def->nhostdevs ; i++)
         virDomainHostdevDefFree(def->hostdevs[i]);
     VIR_FREE(def->hostdevs);
@@ -493,7 +519,8 @@ void virDomainObjFree(virDomainObjPtr dom)
     virDomainDefFree(dom->def);
     virDomainDefFree(dom->newDef);
 
-    VIR_FREE(dom->monitorpath);
+    virDomainChrDefFree(dom->monitor_chr);
+
     VIR_FREE(dom->vcpupids);
 
     virMutexDestroy(&dom->lock);
@@ -619,7 +646,7 @@ int virDomainDiskCompare(virDomainDiskDefPtr a,
 static virDomainDiskDefPtr
 virDomainDiskDefParseXML(virConnectPtr conn,
                          xmlNodePtr node,
-                         int flags ATTRIBUTE_UNUSED) {
+                         int flags) {
     virDomainDiskDefPtr def;
     xmlNodePtr cur;
     char *type = NULL;
@@ -630,6 +657,7 @@ virDomainDiskDefParseXML(virConnectPtr conn,
     char *target = NULL;
     char *bus = NULL;
     char *cachetag = NULL;
+    char *devaddr = NULL;
 
     if (VIR_ALLOC(def) < 0) {
         virReportOOMError(conn);
@@ -684,6 +712,9 @@ virDomainDiskDefParseXML(virConnectPtr conn,
                 def->readonly = 1;
             } else if (xmlStrEqual(cur->name, BAD_CAST "shareable")) {
                 def->shared = 1;
+            } else if ((flags & VIR_DOMAIN_XML_INTERNAL_STATUS) &&
+                       xmlStrEqual(cur->name, BAD_CAST "state")) {
+                devaddr = virXMLPropString(cur, "devaddr");
             }
         }
         cur = cur->next;
@@ -783,6 +814,17 @@ virDomainDiskDefParseXML(virConnectPtr conn,
         goto error;
     }
 
+    if (devaddr &&
+        sscanf(devaddr, "%x:%x:%x",
+               &def->pci_addr.domain,
+               &def->pci_addr.bus,
+               &def->pci_addr.slot) < 3) {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                             _("Unable to parse devaddr parameter '%s'"),
+                             devaddr);
+        goto error;
+    }
+
     def->src = source;
     source = NULL;
     def->dst = target;
@@ -801,6 +843,7 @@ cleanup:
     VIR_FREE(driverType);
     VIR_FREE(driverName);
     VIR_FREE(cachetag);
+    VIR_FREE(devaddr);
 
     return def;
 
@@ -918,6 +961,10 @@ virDomainNetDefParseXML(virConnectPtr conn,
     char *port = NULL;
     char *model = NULL;
     char *internal = NULL;
+    char *nic_name = NULL;
+    char *hostnet_name = NULL;
+    char *devaddr = NULL;
+    char *vlan = NULL;
 
     if (VIR_ALLOC(def) < 0) {
         virReportOOMError(conn);
@@ -983,6 +1030,12 @@ virDomainNetDefParseXML(virConnectPtr conn,
                 script = virXMLPropString(cur, "path");
             } else if (xmlStrEqual (cur->name, BAD_CAST "model")) {
                 model = virXMLPropString(cur, "type");
+            } else if ((flags & VIR_DOMAIN_XML_INTERNAL_STATUS) &&
+                       xmlStrEqual(cur->name, BAD_CAST "state")) {
+                nic_name = virXMLPropString(cur, "nic");
+                hostnet_name = virXMLPropString(cur, "hostnet");
+                devaddr = virXMLPropString(cur, "devaddr");
+                vlan = virXMLPropString(cur, "vlan");
             }
         }
         cur = cur->next;
@@ -992,6 +1045,28 @@ virDomainNetDefParseXML(virConnectPtr conn,
         virParseMacAddr((const char *)macaddr, def->mac);
     } else {
         virCapabilitiesGenerateMac(caps, def->mac);
+    }
+
+    if (devaddr &&
+        sscanf(devaddr, "%x:%x:%x",
+               &def->pci_addr.domain,
+               &def->pci_addr.bus,
+               &def->pci_addr.slot) < 3) {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                             _("Unable to parse devaddr parameter '%s'"),
+                             devaddr);
+        goto error;
+    }
+
+    def->nic_name = nic_name;
+    def->hostnet_name = hostnet_name;
+    nic_name = hostnet_name = NULL;
+
+    def->vlan = -1;
+    if (vlan && virStrToLong_i(vlan, NULL, 10, &def->vlan) < 0) {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
+                             _("Cannot parse <state> 'vlan' attribute"));
+        goto error;
     }
 
     switch (def->type) {
@@ -1113,6 +1188,10 @@ cleanup:
     VIR_FREE(model);
     VIR_FREE(type);
     VIR_FREE(internal);
+    VIR_FREE(nic_name);
+    VIR_FREE(hostnet_name);
+    VIR_FREE(devaddr);
+    VIR_FREE(vlan);
 
     return def;
 
@@ -1146,6 +1225,7 @@ error:
  * <serial type="tcp">
  *   <source mode="bind" host="0.0.0.0" service="2445"/>
  *   <target port="1"/>
+ *   <protocol type='raw'/>
  * </serial>
  *
  * <serial type="udp">
@@ -1180,32 +1260,11 @@ virDomainChrDefParseXML(virConnectPtr conn,
         return NULL;
     }
 
-    def->type = VIR_DOMAIN_CHR_TYPE_PTY;
     type = virXMLPropString(node, "type");
-    if (type != NULL) {
-        if (STREQ(type, "null"))
-            def->type = VIR_DOMAIN_CHR_TYPE_NULL;
-        else if (STREQ(type, "vc"))
-            def->type = VIR_DOMAIN_CHR_TYPE_VC;
-        else if (STREQ(type, "pty"))
-            def->type = VIR_DOMAIN_CHR_TYPE_PTY;
-        else if (STREQ(type, "dev"))
-            def->type = VIR_DOMAIN_CHR_TYPE_DEV;
-        else if (STREQ(type, "file"))
-            def->type = VIR_DOMAIN_CHR_TYPE_FILE;
-        else if (STREQ(type, "pipe"))
-            def->type = VIR_DOMAIN_CHR_TYPE_PIPE;
-        else if (STREQ(type, "stdio"))
-            def->type = VIR_DOMAIN_CHR_TYPE_STDIO;
-        else if (STREQ(type, "udp"))
-            def->type = VIR_DOMAIN_CHR_TYPE_UDP;
-        else if (STREQ(type, "tcp"))
-            def->type = VIR_DOMAIN_CHR_TYPE_TCP;
-        else if (STREQ(type, "unix"))
-            def->type = VIR_DOMAIN_CHR_TYPE_UNIX;
-        else
-            def->type = VIR_DOMAIN_CHR_TYPE_NULL;
-    }
+    if (type == NULL)
+        def->type = VIR_DOMAIN_CHR_TYPE_PTY;
+    else if ((def->type = virDomainChrTypeFromString(type)) < 0)
+        def->type = VIR_DOMAIN_CHR_TYPE_NULL;
 
     cur = node->children;
     while (cur != NULL) {
@@ -1234,11 +1293,16 @@ virDomainChrDefParseXML(virConnectPtr conn,
                             connectHost = virXMLPropString(cur, "host");
                         if (connectService == NULL)
                             connectService = virXMLPropString(cur, "service");
-                    } else {
+                    } else if (STREQ((const char *)mode, "bind")) {
                         if (bindHost == NULL)
                             bindHost = virXMLPropString(cur, "host");
                         if (bindService == NULL)
                             bindService = virXMLPropString(cur, "service");
+                    } else {
+                        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                                             _("Unknown source mode '%s'"),
+                                             mode);
+                        goto error;
                     }
 
                     if (def->type == VIR_DOMAIN_CHR_TYPE_UDP)
@@ -1317,11 +1381,18 @@ virDomainChrDefParseXML(virConnectPtr conn,
             bindService = NULL;
             def->data.tcp.listen = 1;
         }
-        if (protocol != NULL &&
-            STREQ(protocol, "telnet"))
-            def->data.tcp.protocol = VIR_DOMAIN_CHR_TCP_PROTOCOL_TELNET;
-        else
+
+        if (protocol == NULL ||
+            STREQ(protocol, "raw"))
             def->data.tcp.protocol = VIR_DOMAIN_CHR_TCP_PROTOCOL_RAW;
+        else if (STREQ(protocol, "telnet"))
+            def->data.tcp.protocol = VIR_DOMAIN_CHR_TCP_PROTOCOL_TELNET;
+        else {
+            virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                                 _("Unknown protocol '%s'"), protocol);
+            goto error;
+        }
+
         break;
 
     case VIR_DOMAIN_CHR_TYPE_UDP:
@@ -1651,6 +1722,133 @@ error:
     virDomainSoundDefFree(def);
     def = NULL;
     goto cleanup;
+}
+
+
+int
+virDomainVideoDefaultRAM(virDomainDefPtr def,
+                         int type)
+{
+    switch (type) {
+        /* Wierd, QEMU defaults to 9 MB ??! */
+    case VIR_DOMAIN_VIDEO_TYPE_VGA:
+    case VIR_DOMAIN_VIDEO_TYPE_CIRRUS:
+    case VIR_DOMAIN_VIDEO_TYPE_VMVGA:
+        if (def->virtType == VIR_DOMAIN_VIRT_VBOX)
+            return 8 * 1024;
+        else
+            return 9 * 1024;
+        break;
+
+    case VIR_DOMAIN_VIDEO_TYPE_XEN:
+        /* Original Xen PVFB hardcoded to 4 MB */
+        return 4 * 1024;
+
+    default:
+        return 0;
+    }
+}
+
+
+int
+virDomainVideoDefaultType(virDomainDefPtr def)
+{
+    switch (def->virtType) {
+    case VIR_DOMAIN_VIRT_TEST:
+    case VIR_DOMAIN_VIRT_QEMU:
+    case VIR_DOMAIN_VIRT_KQEMU:
+    case VIR_DOMAIN_VIRT_KVM:
+    case VIR_DOMAIN_VIRT_XEN:
+        if (def->os.type &&
+            (STREQ(def->os.type, "xen") ||
+             STREQ(def->os.type, "linux")))
+            return VIR_DOMAIN_VIDEO_TYPE_XEN;
+        else
+            return VIR_DOMAIN_VIDEO_TYPE_CIRRUS;
+
+    case VIR_DOMAIN_VIRT_VBOX:
+        return VIR_DOMAIN_VIDEO_TYPE_VBOX;
+
+    default:
+        return -1;
+    }
+}
+
+static virDomainVideoDefPtr
+virDomainVideoDefParseXML(virConnectPtr conn,
+                          const xmlNodePtr node,
+                          virDomainDefPtr dom,
+                          int flags ATTRIBUTE_UNUSED) {
+    virDomainVideoDefPtr def;
+    xmlNodePtr cur;
+    char *type = NULL;
+    char *heads = NULL;
+    char *vram = NULL;
+
+    if (VIR_ALLOC(def) < 0) {
+        virReportOOMError(conn);
+        return NULL;
+    }
+
+    cur = node->children;
+    while (cur != NULL) {
+        if (cur->type == XML_ELEMENT_NODE) {
+            if ((type == NULL) && (vram == NULL) && (heads == NULL) &&
+                xmlStrEqual(cur->name, BAD_CAST "model")) {
+                type = virXMLPropString(cur, "type");
+                vram = virXMLPropString(cur, "vram");
+                heads = virXMLPropString(cur, "heads");
+            }
+        }
+        cur = cur->next;
+    }
+
+    if (type) {
+        if ((def->type = virDomainVideoTypeFromString(type)) < 0) {
+            virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                                 _("unknown video model '%s'"), type);
+            goto error;
+        }
+    } else {
+        if ((def->type = virDomainVideoDefaultType(dom)) < 0) {
+            virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
+                                 _("missing video model and cannot determine default"));
+            goto error;
+        }
+    }
+
+    if (vram) {
+        if (virStrToLong_ui(vram, NULL, 10, &def->vram) < 0) {
+            virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                                 _("cannot parse video ram '%s'"), vram);
+            goto error;
+        }
+    } else {
+        def->vram = virDomainVideoDefaultRAM(dom, def->type);
+    }
+
+    if (heads) {
+        if (virStrToLong_ui(heads, NULL, 10, &def->heads) < 0) {
+            virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                                 _("cannot parse video heads '%s'"), heads);
+            goto error;
+        }
+    } else {
+        def->heads = 1;
+    }
+
+    VIR_FREE(type);
+    VIR_FREE(vram);
+    VIR_FREE(heads);
+
+    return def;
+
+error:
+    virDomainVideoDefFree(def);
+    VIR_FREE(type);
+    VIR_FREE(vram);
+    VIR_FREE(heads);
+    return NULL;
 }
 
 static int
@@ -1992,7 +2190,7 @@ virSecurityLabelDefParseXML(virConnectPtr conn,
     VIR_FREE(p);
     if (def->seclabel.type < 0) {
         virDomainReportError(conn, VIR_ERR_XML_ERROR,
-                             _("invalid security type"));
+                             "%s", _("invalid security type"));
         goto error;
     }
 
@@ -2014,7 +2212,7 @@ virSecurityLabelDefParseXML(virConnectPtr conn,
                                 VIR_SECURITY_LABEL_BUFLEN-1, ctxt);
         if (p == NULL) {
             virDomainReportError(conn, VIR_ERR_XML_ERROR,
-                                 _("security label is missing"));
+                                 "%s", _("security label is missing"));
             goto error;
         }
 
@@ -2028,7 +2226,7 @@ virSecurityLabelDefParseXML(virConnectPtr conn,
                                 VIR_SECURITY_LABEL_BUFLEN-1, ctxt);
         if (p == NULL) {
             virDomainReportError(conn, VIR_ERR_XML_ERROR,
-                                 _("security imagelabel is missing"));
+                                 "%s", _("security imagelabel is missing"));
             goto error;
         }
         def->seclabel.imagelabel = p;
@@ -2090,6 +2288,10 @@ virDomainDeviceDefPtr virDomainDeviceDefParse(virConnectPtr conn,
     } else if (xmlStrEqual(node->name, BAD_CAST "sound")) {
         dev->type = VIR_DOMAIN_DEVICE_SOUND;
         if (!(dev->data.sound = virDomainSoundDefParseXML(conn, node, flags)))
+            goto error;
+    } else if (xmlStrEqual(node->name, BAD_CAST "video")) {
+        dev->type = VIR_DOMAIN_DEVICE_VIDEO;
+        if (!(dev->data.video = virDomainVideoDefParseXML(conn, node, def, flags)))
             goto error;
     } else if (xmlStrEqual(node->name, BAD_CAST "hostdev")) {
         dev->type = VIR_DOMAIN_DEVICE_HOSTDEV;
@@ -2649,6 +2851,47 @@ static virDomainDefPtr virDomainDefParseXML(virConnectPtr conn,
     }
     VIR_FREE(nodes);
 
+    /* analysis of the video devices */
+    if ((n = virXPathNodeSet(conn, "./devices/video", ctxt, &nodes)) < 0) {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                             "%s", _("cannot extract video devices"));
+        goto error;
+    }
+    if (n && VIR_ALLOC_N(def->videos, n) < 0)
+        goto no_memory;
+    for (i = 0 ; i < n ; i++) {
+        virDomainVideoDefPtr video = virDomainVideoDefParseXML(conn,
+                                                               nodes[i],
+                                                               def,
+                                                               flags);
+        if (!video)
+            goto error;
+        def->videos[def->nvideos++] = video;
+    }
+    VIR_FREE(nodes);
+
+    /* For backwards compatability, if no <video> tag is set but there
+     * is a <graphics> tag, then we add a single video tag */
+    if (def->ngraphics && !def->nvideos) {
+        virDomainVideoDefPtr video;
+        if (VIR_ALLOC(video) < 0)
+            goto no_memory;
+        video->type = virDomainVideoDefaultType(def);
+        if (video->type < 0) {
+            virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
+                                 _("cannot determine default video type"));
+            VIR_FREE(video);
+            goto error;
+        }
+        video->vram = virDomainVideoDefaultRAM(def, video->type);
+        video->heads = 1;
+        if (VIR_ALLOC_N(def->videos, 1) < 0) {
+            virDomainVideoDefFree(video);
+            goto no_memory;
+        }
+        def->videos[def->nvideos++] = video;
+    }
+
     /* analysis of the host devices */
     if ((n = virXPathNodeSet(conn, "./devices/hostdev", ctxt, &nodes)) < 0) {
         virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
@@ -2695,6 +2938,7 @@ static virDomainObjPtr virDomainObjParseXML(virConnectPtr conn,
     xmlNodePtr config;
     xmlNodePtr oldnode;
     virDomainObjPtr obj;
+    char *monitorpath;
 
     if (!(obj = virDomainObjNew(conn)))
         return NULL;
@@ -2707,7 +2951,8 @@ static virDomainObjPtr virDomainObjParseXML(virConnectPtr conn,
 
     oldnode = ctxt->node;
     ctxt->node = config;
-    obj->def = virDomainDefParseXML(conn, caps, ctxt, 0);
+    obj->def = virDomainDefParseXML(conn, caps, ctxt,
+                                    VIR_DOMAIN_XML_INTERNAL_STATUS);
     ctxt->node = oldnode;
     if (!obj->def)
         goto error;
@@ -2732,16 +2977,44 @@ static virDomainObjPtr virDomainObjParseXML(virConnectPtr conn,
     }
     obj->pid = (pid_t)val;
 
-    if(!(obj->monitorpath =
-         virXPathString(conn, "string(./monitor[1]/@path)", ctxt))) {
+    if (VIR_ALLOC(obj->monitor_chr) < 0) {
+        virReportOOMError(conn);
+        goto error;
+    }
+
+    if (!(monitorpath =
+          virXPathString(conn, "string(./monitor[1]/@path)", ctxt))) {
         virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
                              "%s", _("no monitor path"));
         goto error;
     }
 
+    tmp = virXPathString(conn, "string(./monitor[1]/@type)", ctxt);
+    if (tmp)
+        obj->monitor_chr->type = virDomainChrTypeFromString(tmp);
+    else
+        obj->monitor_chr->type = VIR_DOMAIN_CHR_TYPE_PTY;
+    VIR_FREE(tmp);
+
+    switch (obj->monitor_chr->type) {
+    case VIR_DOMAIN_CHR_TYPE_PTY:
+        obj->monitor_chr->data.file.path = monitorpath;
+        break;
+    case VIR_DOMAIN_CHR_TYPE_UNIX:
+        obj->monitor_chr->data.nix.path = monitorpath;
+        break;
+    default:
+        VIR_FREE(monitorpath);
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                             _("unsupported monitor type '%s'"),
+                             virDomainChrTypeToString(obj->monitor_chr->type));
+        break;
+    }
+
     return obj;
 
 error:
+    virDomainChrDefFree(obj->monitor_chr);
     virDomainObjFree(obj);
     return NULL;
 }
@@ -3170,7 +3443,8 @@ virDomainLifecycleDefFormat(virConnectPtr conn,
 static int
 virDomainDiskDefFormat(virConnectPtr conn,
                        virBufferPtr buf,
-                       virDomainDiskDefPtr def)
+                       virDomainDiskDefPtr def,
+                       int flags)
 {
     const char *type = virDomainDiskTypeToString(def->type);
     const char *device = virDomainDiskDeviceTypeToString(def->device);
@@ -3227,6 +3501,16 @@ virDomainDiskDefFormat(virConnectPtr conn,
         virBufferAddLit(buf, "      <readonly/>\n");
     if (def->shared)
         virBufferAddLit(buf, "      <shareable/>\n");
+
+    if (flags & VIR_DOMAIN_XML_INTERNAL_STATUS) {
+        virBufferAddLit(buf, "      <state");
+        if (virDiskHasValidPciAddr(def))
+            virBufferVSprintf(buf, " devaddr='%.4x:%.2x:%.2x'",
+                              def->pci_addr.domain,
+                              def->pci_addr.bus,
+                              def->pci_addr.slot);
+        virBufferAddLit(buf, "/>\n");
+    }
 
     virBufferAddLit(buf, "    </disk>\n");
 
@@ -3287,7 +3571,8 @@ virDomainFSDefFormat(virConnectPtr conn,
 static int
 virDomainNetDefFormat(virConnectPtr conn,
                       virBufferPtr buf,
-                      virDomainNetDefPtr def)
+                      virDomainNetDefPtr def,
+                      int flags)
 {
     const char *type = virDomainNetTypeToString(def->type);
 
@@ -3357,6 +3642,22 @@ virDomainNetDefFormat(virConnectPtr conn,
     if (def->model)
         virBufferEscapeString(buf, "      <model type='%s'/>\n",
                               def->model);
+
+    if (flags & VIR_DOMAIN_XML_INTERNAL_STATUS) {
+        virBufferAddLit(buf, "      <state");
+        if (def->nic_name)
+            virBufferEscapeString(buf, " nic='%s'", def->nic_name);
+        if (def->hostnet_name)
+            virBufferEscapeString(buf, " hostnet='%s'", def->hostnet_name);
+        if (virNetHasValidPciAddr(def))
+            virBufferVSprintf(buf, " devaddr='%.4x:%.2x:%.2x'",
+                              def->pci_addr.domain,
+                              def->pci_addr.bus,
+                              def->pci_addr.slot);
+        if (def->vlan > 0)
+            virBufferVSprintf(buf, " vlan='%d'", def->vlan);
+        virBufferAddLit(buf, "/>\n");
+    }
 
     virBufferAddLit(buf, "    </interface>\n");
 
@@ -3481,6 +3782,32 @@ virDomainSoundDefFormat(virConnectPtr conn,
 
     virBufferVSprintf(buf, "    <sound model='%s'/>\n",
                       model);
+
+    return 0;
+}
+
+static int
+virDomainVideoDefFormat(virConnectPtr conn,
+                        virBufferPtr buf,
+                        virDomainVideoDefPtr def)
+{
+    const char *model = virDomainVideoTypeToString(def->type);
+
+    if (!model) {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                             _("unexpected video model %d"), def->type);
+        return -1;
+    }
+
+    virBufferAddLit(buf, "    <video>\n");
+    virBufferVSprintf(buf, "      <model type='%s'",
+                      model);
+    if (def->vram)
+        virBufferVSprintf(buf, " vram='%u'", def->vram);
+    if (def->heads)
+        virBufferVSprintf(buf, " heads='%u'", def->heads);
+    virBufferAddLit(buf, "/>\n");
+    virBufferAddLit(buf, "    </video>\n");
 
     return 0;
 }
@@ -3804,7 +4131,7 @@ char *virDomainDefFormat(virConnectPtr conn,
                               def->emulator);
 
     for (n = 0 ; n < def->ndisks ; n++)
-        if (virDomainDiskDefFormat(conn, &buf, def->disks[n]) < 0)
+        if (virDomainDiskDefFormat(conn, &buf, def->disks[n], flags) < 0)
             goto cleanup;
 
     for (n = 0 ; n < def->nfss ; n++)
@@ -3813,7 +4140,7 @@ char *virDomainDefFormat(virConnectPtr conn,
 
 
     for (n = 0 ; n < def->nnets ; n++)
-        if (virDomainNetDefFormat(conn, &buf, def->nets[n]) < 0)
+        if (virDomainNetDefFormat(conn, &buf, def->nets[n], flags) < 0)
             goto cleanup;
 
     for (n = 0 ; n < def->nserials ; n++)
@@ -3858,6 +4185,10 @@ char *virDomainDefFormat(virConnectPtr conn,
 
     for (n = 0 ; n < def->nsounds ; n++)
         if (virDomainSoundDefFormat(conn, &buf, def->sounds[n]) < 0)
+            goto cleanup;
+
+    for (n = 0 ; n < def->nvideos ; n++)
+        if (virDomainVideoDefFormat(conn, &buf, def->videos[n]) < 0)
             goto cleanup;
 
     for (n = 0 ; n < def->nhostdevs ; n++)
@@ -3909,11 +4240,25 @@ char *virDomainObjFormat(virConnectPtr conn,
 {
     char *config_xml = NULL, *xml = NULL;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
+    const char *monitorpath;
 
     virBufferVSprintf(&buf, "<domstatus state='%s' pid='%d'>\n",
                       virDomainStateTypeToString(obj->state),
                       obj->pid);
-    virBufferEscapeString(&buf, "  <monitor path='%s'/>\n", obj->monitorpath);
+
+    switch (obj->monitor_chr->type) {
+    case VIR_DOMAIN_CHR_TYPE_UNIX:
+        monitorpath = obj->monitor_chr->data.nix.path;
+        break;
+    default:
+    case VIR_DOMAIN_CHR_TYPE_PTY:
+        monitorpath = obj->monitor_chr->data.file.path;
+        break;
+    }
+
+    virBufferEscapeString(&buf, "  <monitor path='%s'", monitorpath);
+    virBufferVSprintf(&buf, " type='%s'/>\n",
+                      virDomainChrTypeToString(obj->monitor_chr->type));
 
     if (!(config_xml = virDomainDefFormat(conn,
                                           obj->def,
@@ -4016,12 +4361,11 @@ int virDomainSaveStatus(virConnectPtr conn,
                         const char *statusDir,
                         virDomainObjPtr obj)
 {
+    int flags = VIR_DOMAIN_XML_SECURE|VIR_DOMAIN_XML_INTERNAL_STATUS;
     int ret = -1;
     char *xml;
 
-    if (!(xml = virDomainObjFormat(conn,
-                                   obj,
-                                   VIR_DOMAIN_XML_SECURE)))
+    if (!(xml = virDomainObjFormat(conn, obj, flags)))
         goto cleanup;
 
     if (virDomainSaveXML(conn, statusDir, obj->def, xml))

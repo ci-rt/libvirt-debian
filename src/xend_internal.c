@@ -582,7 +582,7 @@ xend_op(virConnectPtr xend, const char *name, const char *key, ...)
  * Returns a parsed S-Expression in case of success, NULL in case of failure
  */
 static struct sexpr *sexpr_get(virConnectPtr xend, const char *fmt, ...)
-  ATTRIBUTE_FORMAT(printf,2,3);
+  ATTRIBUTE_FMT_PRINTF(2,3);
 
 static struct sexpr *
 sexpr_get(virConnectPtr xend, const char *fmt, ...)
@@ -2110,7 +2110,7 @@ xenDaemonParseSxprGraphicsNew(virConnectPtr conn,
             } else {
                 int port;
                 const char *listenAddr = sexpr_node(node, "device/vfb/vnclisten");
-                const char *vncPasswd = sexpr_node(node, "device/vfb/vncpasswd");;
+                const char *vncPasswd = sexpr_node(node, "device/vfb/vncpasswd");
                 const char *keymap = sexpr_node(node, "device/vfb/keymap");
                 const char *unused = sexpr_node(node, "device/vfb/vncunused");
 
@@ -3801,10 +3801,10 @@ xenDaemonDomainPinVcpu(virDomainPtr domain, unsigned int vcpu,
 
     priv = (xenUnifiedPrivatePtr) domain->conn->privateData;
     if (priv->xendConfigVersion < 3) {
-        buf[0] = ']';
-        buf[1] = 0;
+        mapstr[0] = '[';
+        mapstr[1] = 0;
     } else {
-        buf[0] = 0;
+        mapstr[0] = 0;
     }
 
     /* from bit map, build character string of mapped CPU numbers */

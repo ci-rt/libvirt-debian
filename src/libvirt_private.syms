@@ -30,6 +30,8 @@ virCapabilitiesSetMacPrefix;
 virCapabilitiesGenerateMac;
 virCapabilitiesSetEmulatorRequired;
 virCapabilitiesIsEmulatorRequired;
+virCapabilitiesAllocMachines;
+virCapabilitiesFreeMachines;
 
 
 # conf.h
@@ -91,6 +93,7 @@ virDomainLifecycleTypeFromString;
 virDomainLifecycleTypeToString;
 virDomainLoadAllConfigs;
 virDomainNetDefFree;
+virDomainNetTypeToString;
 virDomainObjFree;
 virDomainObjListFree;
 virDomainRemoveInactive;
@@ -100,6 +103,11 @@ virDomainSaveStatus;
 virDomainSoundDefFree;
 virDomainSoundModelTypeFromString;
 virDomainSoundModelTypeToString;
+virDomainVideoDefFree;
+virDomainVideoTypeToString;
+virDomainVideoTypeFromString;
+virDomainVideoDefaultRAM;
+virDomainVideoDefaultType;
 virDomainVirtTypeToString;
 virDomainFSDefFree;
 virDomainObjLock;
@@ -150,6 +158,15 @@ virHashSearch;
 virHashSize;
 
 
+# interface_conf.h
+virInterfaceDefFormat;
+virInterfaceDefParseFile;
+virInterfaceDefParseString;
+virInterfaceDefFree;
+
+# interface_driver.h
+interfaceRegister;
+
 # iptables.h
 iptablesAddForwardAllowCross;
 iptablesAddForwardAllowIn;
@@ -187,6 +204,7 @@ virDomainMigrateFinish;
 virDomainMigratePrepare2;
 virDomainMigrateFinish2;
 virRegisterDriver;
+virRegisterInterfaceDriver;
 virRegisterNetworkDriver;
 virRegisterStateDriver;
 virRegisterStorageDriver;
@@ -332,6 +350,7 @@ virStrToLong_i;
 virStrToLong_ll;
 virStrToLong_ull;
 virStrToLong_ui;
+virStrToDouble;
 virFileLinkPointsTo;
 virFileResolveLink;
 saferead;
@@ -366,6 +385,9 @@ virRun;
 virSkipSpaces;
 virKillProcess;
 virGetUserDirectory;
+virGetUserName;
+virGetUserID;
+virGetGroupID;
 
 
 # uuid.h

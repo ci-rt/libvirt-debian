@@ -41,6 +41,7 @@
 #include "capabilities.h"
 #include "memory.h"
 #include "network_conf.h"
+#include "interface_conf.h"
 #include "domain_conf.h"
 #include "domain_event.h"
 #include "event.h"
@@ -72,6 +73,7 @@ struct _testConn {
     virNodeInfo nodeInfo;
     virDomainObjList domains;
     virNetworkObjList networks;
+    virInterfaceObjList ifaces;
     virStoragePoolObjList pools;
     int numCells;
     testCell cells[MAX_CELLS];
@@ -202,6 +204,17 @@ static const char *defaultNetworkXML =
 "  </ip>"
 "</network>";
 
+static const char *defaultInterfaceXML =
+"<interface type=\"ethernet\" name=\"eth1\">"
+"  <start mode=\"onboot\"/>"
+"  <mac address=\"aa:bb:cc:dd:ee:ff\"/>"
+"  <mtu size=\"1492\"/>"
+"  <protocol family=\"ipv4\">"
+"    <ip address=\"192.168.0.5\" prefix=\"24\"/>"
+"    <route gateway=\"192.168.0.1\"/>"
+"  </protocol>"
+"</interface>";
+
 static const char *defaultPoolXML =
 "<pool type='dir'>"
 "  <name>default-pool</name>"
@@ -215,6 +228,66 @@ static const unsigned long long defaultPoolAlloc = 0;
 
 static int testStoragePoolObjSetDefaults(virConnectPtr conn, virStoragePoolObjPtr pool);
 
+static char *
+testDomainGenerateIfname(virConnectPtr conn,
+                         virDomainDefPtr domdef) {
+    int maxif = 1024;
+    int ifctr, i;
+
+    for (ifctr = 0; ifctr < maxif; ++ifctr) {
+        char *ifname;
+        int found = 0;
+
+        if (virAsprintf(&ifname, "testnet%d", ifctr) < 0) {
+            virReportOOMError(conn);
+            return NULL;
+        }
+
+        /* Generate network interface names */
+        for (i = 0 ; i < domdef->nnets ; i++) {
+            if (domdef->nets[i]->ifname &&
+                STREQ (domdef->nets[i]->ifname, ifname)) {
+                found = 1;
+                break;
+            }
+        }
+
+        if (!found)
+            return ifname;
+    }
+
+    testError(conn, VIR_ERR_INTERNAL_ERROR,
+              _("Exceeded max iface limit %d"), maxif);
+    return NULL;
+}
+
+static virDomainObjPtr
+testDomainAssignDef(virConnectPtr conn,
+                    virDomainObjList *domlist,
+                    virDomainDefPtr domdef)
+{
+    virDomainObjPtr domobj = NULL;
+    int i = 0;
+
+    for (i = 0; i < domdef->nnets; i++) {
+        char *ifname;
+        if (domdef->nets[i]->ifname)
+            continue;
+
+        ifname = testDomainGenerateIfname(conn, domdef);
+        if (!ifname)
+            goto error;
+
+        domdef->nets[i]->ifname = ifname;
+    }
+
+    if (!(domobj = virDomainAssignDef(conn, domlist, domdef)))
+        goto error;
+
+error:
+    return domobj;
+}
+
 static int testOpenDefault(virConnectPtr conn) {
     int u;
     struct timeval tv;
@@ -223,6 +296,8 @@ static int testOpenDefault(virConnectPtr conn) {
     virDomainObjPtr domobj = NULL;
     virNetworkDefPtr netdef = NULL;
     virNetworkObjPtr netobj = NULL;
+    virInterfaceDefPtr interfacedef = NULL;
+    virInterfaceObjPtr interfaceobj = NULL;
     virStoragePoolDefPtr pooldef = NULL;
     virStoragePoolObjPtr poolobj = NULL;
 
@@ -267,7 +342,7 @@ static int testOpenDefault(virConnectPtr conn) {
                                            defaultDomainXML,
                                            VIR_DOMAIN_XML_INACTIVE)))
         goto error;
-    if (!(domobj = virDomainAssignDef(conn, &privconn->domains, domdef))) {
+    if (!(domobj = testDomainAssignDef(conn, &privconn->domains, domdef))) {
         virDomainDefFree(domdef);
         goto error;
     }
@@ -285,6 +360,15 @@ static int testOpenDefault(virConnectPtr conn) {
     netobj->active = 1;
     netobj->persistent = 1;
     virNetworkObjUnlock(netobj);
+
+    if (!(interfacedef = virInterfaceDefParseString(conn, defaultInterfaceXML)))
+        goto error;
+    if (!(interfaceobj = virInterfaceAssignDef(conn, &privconn->ifaces, interfacedef))) {
+        virInterfaceDefFree(interfacedef);
+        goto error;
+    }
+    interfaceobj->active = 1;
+    virInterfaceObjUnlock(interfaceobj);
 
     if (!(pooldef = virStoragePoolDefParseString(conn, defaultPoolXML)))
         goto error;
@@ -309,6 +393,7 @@ static int testOpenDefault(virConnectPtr conn) {
 error:
     virDomainObjListFree(&privconn->domains);
     virNetworkObjListFree(&privconn->networks);
+    virInterfaceObjListFree(&privconn->ifaces);
     virStoragePoolObjListFree(&privconn->pools);
     virCapabilitiesFree(privconn->caps);
     testDriverUnlock(privconn);
@@ -429,10 +514,11 @@ static int testOpenFromFile(virConnectPtr conn,
     char *str;
     xmlDocPtr xml = NULL;
     xmlNodePtr root = NULL;
-    xmlNodePtr *domains = NULL, *networks = NULL, *pools = NULL;
+    xmlNodePtr *domains = NULL, *networks = NULL, *ifaces = NULL, *pools = NULL;
     xmlXPathContextPtr ctxt = NULL;
     virNodeInfoPtr nodeInfo;
     virNetworkObjPtr net;
+    virInterfaceObjPtr iface;
     virDomainObjPtr dom;
     testConnPtr privconn;
     if (VIR_ALLOC(privconn) < 0) {
@@ -582,7 +668,7 @@ static int testOpenFromFile(virConnectPtr conn,
                 goto error;
         }
 
-        if (!(dom = virDomainAssignDef(conn, &privconn->domains, def))) {
+        if (!(dom = testDomainAssignDef(conn, &privconn->domains, def))) {
             virDomainDefFree(def);
             goto error;
         }
@@ -628,6 +714,39 @@ static int testOpenFromFile(virConnectPtr conn,
         virNetworkObjUnlock(net);
     }
     VIR_FREE(networks);
+
+    /* Parse interface definitions */
+    ret = virXPathNodeSet(conn, "/node/interface", ctxt, &ifaces);
+    if (ret < 0) {
+        testError(NULL, VIR_ERR_XML_ERROR, "%s", _("node interface list"));
+        goto error;
+    }
+    for (i = 0 ; i < ret ; i++) {
+        virInterfaceDefPtr def;
+        char *relFile = virXMLPropString(ifaces[i], "file");
+        if (relFile != NULL) {
+            char *absFile = testBuildFilename(file, relFile);
+            VIR_FREE(relFile);
+            if (!absFile) {
+                testError(NULL, VIR_ERR_INTERNAL_ERROR, "%s", _("resolving interface filename"));
+                goto error;
+            }
+
+            def = virInterfaceDefParseFile(conn, absFile);
+            VIR_FREE(absFile);
+            if (!def)
+                goto error;
+        } else {
+        if ((def = virInterfaceDefParseNode(conn, xml, ifaces[i])) == NULL)
+                goto error;
+        }
+        if (!(iface = virInterfaceAssignDef(conn, &privconn->ifaces, def))) {
+            virInterfaceDefFree(def);
+            goto error;
+        }
+        virInterfaceObjUnlock(iface);
+    }
+    VIR_FREE(ifaces);
 
     /* Parse Storage Pool list */
     ret = virXPathNodeSet(conn, "/node/pool", ctxt, &pools);
@@ -692,11 +811,13 @@ static int testOpenFromFile(virConnectPtr conn,
     xmlFreeDoc(xml);
     VIR_FREE(domains);
     VIR_FREE(networks);
+    VIR_FREE(ifaces);
     VIR_FREE(pools);
     if (fd != -1)
         close(fd);
     virDomainObjListFree(&privconn->domains);
     virNetworkObjListFree(&privconn->networks);
+    virInterfaceObjListFree(&privconn->ifaces);
     virStoragePoolObjListFree(&privconn->pools);
     testDriverUnlock(privconn);
     VIR_FREE(privconn);
@@ -765,6 +886,7 @@ static int testClose(virConnectPtr conn)
     virCapabilitiesFree(privconn->caps);
     virDomainObjListFree(&privconn->domains);
     virNetworkObjListFree(&privconn->networks);
+    virInterfaceObjListFree(&privconn->ifaces);
     virStoragePoolObjListFree(&privconn->pools);
 
     virDomainEventCallbackListFree(privconn->domainEventCallbacks);
@@ -858,8 +980,8 @@ testDomainCreateXML(virConnectPtr conn, const char *xml,
                                        VIR_DOMAIN_XML_INACTIVE)) == NULL)
         goto cleanup;
 
-    if ((dom = virDomainAssignDef(conn, &privconn->domains,
-                                  def)) == NULL) {
+    if ((dom = testDomainAssignDef(conn, &privconn->domains,
+                                   def)) == NULL) {
         virDomainDefFree(def);
         goto cleanup;
     }
@@ -1409,8 +1531,8 @@ static int testDomainRestore(virConnectPtr conn,
     if (!def)
         goto cleanup;
 
-    if ((dom = virDomainAssignDef(conn, &privconn->domains,
-                                  def)) == NULL)
+    if ((dom = testDomainAssignDef(conn, &privconn->domains,
+                                   def)) == NULL)
         goto cleanup;
 
     dom->state = VIR_DOMAIN_RUNNING;
@@ -1701,8 +1823,8 @@ static virDomainPtr testDomainDefineXML(virConnectPtr conn,
                                        VIR_DOMAIN_XML_INACTIVE)) == NULL)
         goto cleanup;
 
-    if ((dom = virDomainAssignDef(conn, &privconn->domains,
-                                  def)) == NULL) {
+    if ((dom = testDomainAssignDef(conn, &privconn->domains,
+                                   def)) == NULL) {
         goto cleanup;
     }
     def = NULL;
@@ -1966,6 +2088,118 @@ static int testDomainSetSchedulerParams(virDomainPtr domain,
     ret = 0;
 
 cleanup:
+    if (privdom)
+        virDomainObjUnlock(privdom);
+    return ret;
+}
+
+static int testDomainBlockStats(virDomainPtr domain,
+                                const char *path,
+                                struct _virDomainBlockStats *stats)
+{
+    testConnPtr privconn = domain->conn->privateData;
+    virDomainObjPtr privdom;
+    struct timeval tv;
+    unsigned long long statbase;
+    int i, found = 0, ret = -1;
+
+    testDriverLock(privconn);
+    privdom = virDomainFindByName(&privconn->domains,
+                                  domain->name);
+    testDriverUnlock(privconn);
+
+    if (privdom == NULL) {
+        testError(domain->conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    for (i = 0 ; i < privdom->def->ndisks ; i++) {
+        if (STREQ(path, privdom->def->disks[i]->dst)) {
+            found = 1;
+            break;
+        }
+    }
+
+    if (!found) {
+        testError(domain->conn, VIR_ERR_INVALID_ARG,
+                  _("invalid path: %s"), path);
+        goto error;
+    }
+
+    if (gettimeofday(&tv, NULL) < 0) {
+        virReportSystemError(domain->conn, errno,
+                             "%s", _("getting time of day"));
+        goto error;
+    }
+
+    /* No significance to these numbers, just enough to mix it up*/
+    statbase = (tv.tv_sec * 1000UL * 1000UL) + tv.tv_usec;
+    stats->rd_req = statbase / 10;
+    stats->rd_bytes = statbase / 20;
+    stats->wr_req = statbase / 30;
+    stats->wr_bytes = statbase / 40;
+    stats->errs = tv.tv_sec / 2;
+
+    ret = 0;
+error:
+    if (privdom)
+        virDomainObjUnlock(privdom);
+    return ret;
+}
+
+static int testDomainInterfaceStats(virDomainPtr domain,
+                                    const char *path,
+                                    struct _virDomainInterfaceStats *stats)
+{
+    testConnPtr privconn = domain->conn->privateData;
+    virDomainObjPtr privdom;
+    struct timeval tv;
+    unsigned long long statbase;
+    int i, found = 0, ret = -1;
+
+    testDriverLock(privconn);
+    privdom = virDomainFindByName(&privconn->domains,
+                                  domain->name);
+    testDriverUnlock(privconn);
+
+    if (privdom == NULL) {
+        testError(domain->conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    for (i = 0 ; i < privdom->def->nnets ; i++) {
+        if (privdom->def->nets[i]->ifname &&
+            STREQ (privdom->def->nets[i]->ifname, path)) {
+            found = 1;
+            break;
+        }
+    }
+
+    if (!found) {
+        testError(domain->conn, VIR_ERR_INVALID_ARG,
+                  _("invalid path, '%s' is not a known interface"), path);
+        goto error;
+    }
+
+    if (gettimeofday(&tv, NULL) < 0) {
+        virReportSystemError(domain->conn, errno,
+                             "%s", _("getting time of day"));
+        goto error;
+    }
+
+    /* No significance to these numbers, just enough to mix it up*/
+    statbase = (tv.tv_sec * 1000UL * 1000UL) + tv.tv_usec;
+    stats->rx_bytes = statbase / 10;
+    stats->rx_packets = statbase / 100;
+    stats->rx_errs = tv.tv_sec / 1;
+    stats->rx_drop = tv.tv_sec / 2;
+    stats->tx_bytes = statbase / 20;
+    stats->tx_packets = statbase / 110;
+    stats->tx_errs = tv.tv_sec / 3;
+    stats->tx_drop = tv.tv_sec / 4;
+
+    ret = 0;
+error:
     if (privdom)
         virDomainObjUnlock(privdom);
     return ret;
@@ -2362,6 +2596,314 @@ cleanup:
         virNetworkObjUnlock(privnet);
     return ret;
 }
+
+
+/*
+ * Physical host interface routines
+ */
+
+static virDrvOpenStatus testOpenInterface(virConnectPtr conn,
+                                          virConnectAuthPtr auth ATTRIBUTE_UNUSED,
+                                          int flags ATTRIBUTE_UNUSED)
+{
+    if (STRNEQ(conn->driver->name, "Test"))
+        return VIR_DRV_OPEN_DECLINED;
+
+    conn->interfacePrivateData = conn->privateData;
+    return VIR_DRV_OPEN_SUCCESS;
+}
+
+static int testCloseInterface(virConnectPtr conn)
+{
+    conn->interfacePrivateData = NULL;
+    return 0;
+}
+
+
+static int testNumOfInterfaces(virConnectPtr conn)
+{
+    testConnPtr privconn = conn->privateData;
+    int i, count = 0;
+
+    testDriverLock(privconn);
+    for (i = 0 ; (i < privconn->ifaces.count); i++) {
+        virInterfaceObjLock(privconn->ifaces.objs[i]);
+        if (virInterfaceIsActive(privconn->ifaces.objs[i])) {
+            count++;
+        }
+        virInterfaceObjUnlock(privconn->ifaces.objs[i]);
+    }
+    testDriverUnlock(privconn);
+    return count;
+}
+
+static int testListInterfaces(virConnectPtr conn, char **const names, int nnames)
+{
+    testConnPtr privconn = conn->privateData;
+    int n = 0, i;
+
+    testDriverLock(privconn);
+    memset(names, 0, sizeof(*names)*nnames);
+    for (i = 0 ; (i < privconn->ifaces.count) && (n < nnames); i++) {
+        virInterfaceObjLock(privconn->ifaces.objs[i]);
+        if (virInterfaceIsActive(privconn->ifaces.objs[i])) {
+            if (!(names[n++] = strdup(privconn->ifaces.objs[i]->def->name))) {
+                virInterfaceObjUnlock(privconn->ifaces.objs[i]);
+                goto no_memory;
+            }
+        }
+        virInterfaceObjUnlock(privconn->ifaces.objs[i]);
+    }
+    testDriverUnlock(privconn);
+
+    return n;
+
+no_memory:
+    virReportOOMError(conn);
+    for (n = 0 ; n < nnames ; n++)
+        VIR_FREE(names[n]);
+    testDriverUnlock(privconn);
+    return -1;
+}
+
+static int testNumOfDefinedInterfaces(virConnectPtr conn)
+{
+    testConnPtr privconn = conn->privateData;
+    int i, count = 0;
+
+    testDriverLock(privconn);
+    for (i = 0 ; i < privconn->ifaces.count; i++) {
+        virInterfaceObjLock(privconn->ifaces.objs[i]);
+        if (!virInterfaceIsActive(privconn->ifaces.objs[i])) {
+            count++;
+        }
+        virInterfaceObjUnlock(privconn->ifaces.objs[i]);
+    }
+    testDriverUnlock(privconn);
+    return count;
+}
+
+static int testListDefinedInterfaces(virConnectPtr conn, char **const names, int nnames)
+{
+    testConnPtr privconn = conn->privateData;
+    int n = 0, i;
+
+    testDriverLock(privconn);
+    memset(names, 0, sizeof(*names)*nnames);
+    for (i = 0 ; (i < privconn->ifaces.count) && (n < nnames); i++) {
+        virInterfaceObjLock(privconn->ifaces.objs[i]);
+        if (!virInterfaceIsActive(privconn->ifaces.objs[i])) {
+            if (!(names[n++] = strdup(privconn->ifaces.objs[i]->def->name))) {
+                virInterfaceObjUnlock(privconn->ifaces.objs[i]);
+                goto no_memory;
+            }
+        }
+        virInterfaceObjUnlock(privconn->ifaces.objs[i]);
+    }
+    testDriverUnlock(privconn);
+
+    return n;
+
+no_memory:
+    virReportOOMError(conn);
+    for (n = 0 ; n < nnames ; n++)
+        VIR_FREE(names[n]);
+    testDriverUnlock(privconn);
+    return -1;
+}
+
+static virInterfacePtr testLookupInterfaceByName(virConnectPtr conn,
+                                                 const char *name)
+{
+    testConnPtr privconn = conn->privateData;
+    virInterfaceObjPtr iface;
+    virInterfacePtr ret = NULL;
+
+    testDriverLock(privconn);
+    iface = virInterfaceFindByName(&privconn->ifaces, name);
+    testDriverUnlock(privconn);
+
+    if (iface == NULL) {
+        testError (conn, VIR_ERR_NO_INTERFACE, NULL);
+        goto cleanup;
+    }
+
+    ret = virGetInterface(conn, iface->def->name, iface->def->mac);
+
+cleanup:
+    if (iface)
+        virInterfaceObjUnlock(iface);
+    return ret;
+}
+
+static virInterfacePtr testLookupInterfaceByMACString(virConnectPtr conn,
+                                                      const char *mac)
+{
+    testConnPtr privconn = conn->privateData;
+    virInterfaceObjPtr iface;
+    int ifacect;
+    virInterfacePtr ret = NULL;
+
+    testDriverLock(privconn);
+    ifacect = virInterfaceFindByMACString(&privconn->ifaces, mac, &iface, 1);
+    testDriverUnlock(privconn);
+
+    if (ifacect == 0) {
+        testError (conn, VIR_ERR_NO_INTERFACE, NULL);
+        goto cleanup;
+    }
+
+    if (ifacect > 1) {
+        testError (conn, VIR_ERR_MULTIPLE_INTERFACES, NULL);
+        goto cleanup;
+    }
+
+    ret = virGetInterface(conn, iface->def->name, iface->def->mac);
+
+cleanup:
+    if (iface)
+        virInterfaceObjUnlock(iface);
+    return ret;
+}
+
+static char *testInterfaceGetXMLDesc(virInterfacePtr iface,
+                                     unsigned int flags ATTRIBUTE_UNUSED)
+{
+    testConnPtr privconn = iface->conn->privateData;
+    virInterfaceObjPtr privinterface;
+    char *ret = NULL;
+
+    testDriverLock(privconn);
+    privinterface = virInterfaceFindByName(&privconn->ifaces,
+                                           iface->name);
+    testDriverUnlock(privconn);
+
+    if (privinterface == NULL) {
+        testError(iface->conn, VIR_ERR_NO_INTERFACE, __FUNCTION__);
+        goto cleanup;
+    }
+
+    ret = virInterfaceDefFormat(iface->conn, privinterface->def);
+
+cleanup:
+    if (privinterface)
+        virInterfaceObjUnlock(privinterface);
+    return ret;
+}
+
+
+static virInterfacePtr testInterfaceDefineXML(virConnectPtr conn, const char *xmlStr,
+                                              unsigned int flags ATTRIBUTE_UNUSED)
+{
+    testConnPtr privconn = conn->privateData;
+    virInterfaceDefPtr def;
+    virInterfaceObjPtr iface = NULL;
+    virInterfacePtr ret = NULL;
+
+    testDriverLock(privconn);
+    if ((def = virInterfaceDefParseString(conn, xmlStr)) == NULL)
+        goto cleanup;
+
+    if ((iface = virInterfaceAssignDef(conn, &privconn->ifaces, def)) == NULL)
+        goto cleanup;
+    def = NULL;
+
+    ret = virGetInterface(conn, iface->def->name, iface->def->mac);
+
+cleanup:
+    virInterfaceDefFree(def);
+    if (iface)
+        virInterfaceObjUnlock(iface);
+    testDriverUnlock(privconn);
+    return ret;
+}
+
+static int testInterfaceUndefine(virInterfacePtr iface)
+{
+    testConnPtr privconn = iface->conn->privateData;
+    virInterfaceObjPtr privinterface;
+    int ret = -1;
+
+    testDriverLock(privconn);
+    privinterface = virInterfaceFindByName(&privconn->ifaces,
+                                           iface->name);
+
+    if (privinterface == NULL) {
+        testError (iface->conn, VIR_ERR_NO_INTERFACE, NULL);
+        goto cleanup;
+    }
+
+    virInterfaceRemove(&privconn->ifaces,
+                       privinterface);
+    ret = 0;
+
+cleanup:
+    testDriverUnlock(privconn);
+    return ret;
+}
+
+static int testInterfaceCreate(virInterfacePtr iface,
+                               unsigned int flags ATTRIBUTE_UNUSED)
+{
+    testConnPtr privconn = iface->conn->privateData;
+    virInterfaceObjPtr privinterface;
+    int ret = -1;
+
+    testDriverLock(privconn);
+    privinterface = virInterfaceFindByName(&privconn->ifaces,
+                                           iface->name);
+
+    if (privinterface == NULL) {
+        testError (iface->conn, VIR_ERR_NO_INTERFACE, NULL);
+        goto cleanup;
+    }
+
+    if (privinterface->active != 0) {
+        testError (iface->conn, VIR_ERR_OPERATION_INVALID, NULL);
+        goto cleanup;
+    }
+
+    privinterface->active = 1;
+    ret = 0;
+
+cleanup:
+    if (privinterface)
+        virInterfaceObjUnlock(privinterface);
+    testDriverUnlock(privconn);
+    return ret;
+}
+
+static int testInterfaceDestroy(virInterfacePtr iface,
+                                unsigned int flags ATTRIBUTE_UNUSED)
+{
+    testConnPtr privconn = iface->conn->privateData;
+    virInterfaceObjPtr privinterface;
+    int ret = -1;
+
+    testDriverLock(privconn);
+    privinterface = virInterfaceFindByName(&privconn->ifaces,
+                                           iface->name);
+
+    if (privinterface == NULL) {
+        testError (iface->conn, VIR_ERR_NO_INTERFACE, NULL);
+        goto cleanup;
+    }
+
+    if (privinterface->active == 0) {
+        testError (iface->conn, VIR_ERR_OPERATION_INVALID, NULL);
+        goto cleanup;
+    }
+
+    privinterface->active = 0;
+    ret = 0;
+
+cleanup:
+    if (privinterface)
+        virInterfaceObjUnlock(privinterface);
+    testDriverUnlock(privconn);
+    return ret;
+}
+
 
 
 /*
@@ -3687,8 +4229,8 @@ static virDriver testDriver = {
     NULL, /* domainMigratePrepare */
     NULL, /* domainMigratePerform */
     NULL, /* domainMigrateFinish */
-    NULL, /* domainBlockStats */
-    NULL, /* domainInterfaceStats */
+    testDomainBlockStats, /* domainBlockStats */
+    testDomainInterfaceStats, /* domainInterfaceStats */
     NULL, /* domainBlockPeek */
     NULL, /* domainMemoryPeek */
     testNodeGetCellsFreeMemory, /* nodeGetCellsFreeMemory */
@@ -3722,6 +4264,24 @@ static virNetworkDriver testNetworkDriver = {
     testNetworkGetAutostart, /* networkGetAutostart */
     testNetworkSetAutostart, /* networkSetAutostart */
 };
+
+static virInterfaceDriver testInterfaceDriver = {
+    "Test",                     /* name */
+    testOpenInterface,          /* open */
+    testCloseInterface,         /* close */
+    testNumOfInterfaces,        /* numOfInterfaces */
+    testListInterfaces,         /* listInterfaces */
+    testNumOfDefinedInterfaces, /* numOfDefinedInterfaces */
+    testListDefinedInterfaces,  /* listDefinedInterfaces */
+    testLookupInterfaceByName,  /* interfaceLookupByName */
+    testLookupInterfaceByMACString, /* interfaceLookupByMACString */
+    testInterfaceGetXMLDesc,    /* interfaceGetXMLDesc */
+    testInterfaceDefineXML,     /* interfaceDefineXML */
+    testInterfaceUndefine,      /* interfaceUndefine */
+    testInterfaceCreate,        /* interfaceCreate */
+    testInterfaceDestroy,       /* interfaceDestroy */
+};
+
 
 static virStorageDriver testStorageDriver = {
     .name = "Test",
@@ -3781,6 +4341,8 @@ testRegister(void)
     if (virRegisterDriver(&testDriver) < 0)
         return -1;
     if (virRegisterNetworkDriver(&testNetworkDriver) < 0)
+        return -1;
+    if (virRegisterInterfaceDriver(&testInterfaceDriver) < 0)
         return -1;
     if (virRegisterStorageDriver(&testStorageDriver) < 0)
         return -1;

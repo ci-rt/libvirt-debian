@@ -44,12 +44,13 @@ host_triplet = @host@
 @WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_ONE_TRUE@am__append_5 = ../src/libvirt_driver_one.la
 @WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DIR_TRUE@am__append_6 = ../src/libvirt_driver_storage.la
 @WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NETWORK_TRUE@am__append_7 = ../src/libvirt_driver_network.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NODE_DEVICES_TRUE@am__append_8 = ../src/libvirt_driver_nodedev.la
-@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_9 = $(AVAHI_SOURCES)
-@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_10 = $(AVAHI_CFLAGS)
-@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_11 = $(AVAHI_LIBS)
-@WITH_LIBVIRTD_TRUE@am__append_12 = libvirtd.logrotate
-@LIBVIRT_INIT_SCRIPTS_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@am__append_13 = libvirtd.init
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NETCF_TRUE@am__append_8 = ../src/libvirt_driver_interface.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NODE_DEVICES_TRUE@am__append_9 = ../src/libvirt_driver_nodedev.la
+@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_10 = $(AVAHI_SOURCES)
+@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_11 = $(AVAHI_CFLAGS)
+@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_12 = $(AVAHI_LIBS)
+@WITH_LIBVIRTD_TRUE@am__append_13 = libvirtd.logrotate
+@LIBVIRT_INIT_SCRIPTS_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@am__append_14 = libvirtd.init
 subdir = qemud
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -66,6 +67,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/getdelim.m4 \
 	$(top_srcdir)/gnulib/m4/gethostname.m4 \
 	$(top_srcdir)/gnulib/m4/getline.m4 \
+	$(top_srcdir)/gnulib/m4/getpagesize.m4 \
 	$(top_srcdir)/gnulib/m4/getpass.m4 \
 	$(top_srcdir)/gnulib/m4/gettimeofday.m4 \
 	$(top_srcdir)/gnulib/m4/gnulib-common.m4 \
@@ -80,7 +82,9 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/lseek.m4 \
 	$(top_srcdir)/gnulib/m4/lstat.m4 \
 	$(top_srcdir)/gnulib/m4/malloc.m4 \
+	$(top_srcdir)/gnulib/m4/memchr.m4 \
 	$(top_srcdir)/gnulib/m4/mkstemp.m4 \
+	$(top_srcdir)/gnulib/m4/mmap-anon.m4 \
 	$(top_srcdir)/gnulib/m4/multiarch.m4 \
 	$(top_srcdir)/gnulib/m4/netdb_h.m4 \
 	$(top_srcdir)/gnulib/m4/netinet_in_h.m4 \
@@ -92,6 +96,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/printf.m4 \
 	$(top_srcdir)/gnulib/m4/random_r.m4 \
 	$(top_srcdir)/gnulib/m4/realloc.m4 \
+	$(top_srcdir)/gnulib/m4/select.m4 \
 	$(top_srcdir)/gnulib/m4/servent.m4 \
 	$(top_srcdir)/gnulib/m4/snprintf.m4 \
 	$(top_srcdir)/gnulib/m4/sockets.m4 \
@@ -117,6 +122,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/tempname.m4 \
 	$(top_srcdir)/gnulib/m4/time_h.m4 \
 	$(top_srcdir)/gnulib/m4/time_r.m4 \
+	$(top_srcdir)/gnulib/m4/ungetc.m4 \
 	$(top_srcdir)/gnulib/m4/unistd_h.m4 \
 	$(top_srcdir)/gnulib/m4/vasnprintf.m4 \
 	$(top_srcdir)/gnulib/m4/vasprintf.m4 \
@@ -141,11 +147,13 @@ am__installdirs = "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(augeasdir)" \
 	"$(DESTDIR)$(augeastestsdir)" "$(DESTDIR)$(confdir)"
 PROGRAMS = $(sbin_PROGRAMS)
 am__libvirtd_SOURCES_DIST = event.c event.h qemud.c qemud.h remote.c \
-	remote_dispatch_prototypes.h remote_dispatch_table.h \
-	remote_dispatch_args.h remote_dispatch_ret.h remote_protocol.h \
-	remote_protocol.c mdns.c mdns.h
+	remote.h dispatch.c dispatch.h remote_dispatch_prototypes.h \
+	remote_dispatch_table.h remote_dispatch_args.h \
+	remote_dispatch_ret.h remote_protocol.h remote_protocol.c \
+	mdns.c mdns.h
 am__objects_1 = libvirtd-event.$(OBJEXT) libvirtd-qemud.$(OBJEXT) \
-	libvirtd-remote.$(OBJEXT) libvirtd-remote_protocol.$(OBJEXT)
+	libvirtd-remote.$(OBJEXT) libvirtd-dispatch.$(OBJEXT) \
+	libvirtd-remote_protocol.$(OBJEXT)
 am__objects_2 = libvirtd-mdns.$(OBJEXT)
 @HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__objects_3 = $(am__objects_2)
 @WITH_LIBVIRTD_TRUE@am_libvirtd_OBJECTS = $(am__objects_1) \
@@ -161,26 +169,42 @@ am__DEPENDENCIES_1 =
 @WITH_LIBVIRTD_TRUE@	$(am__append_2) $(am__append_3) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_4) $(am__append_5) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_6) $(am__append_7) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_8) ../src/libvirt.la \
-@WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_2) \
+@WITH_LIBVIRTD_TRUE@	$(am__append_8) $(am__append_9) \
+@WITH_LIBVIRTD_TRUE@	../src/libvirt.la $(am__DEPENDENCIES_2) \
 @WITH_LIBVIRTD_TRUE@	../gnulib/lib/libgnu.la \
 @WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1)
-libvirtd_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
-	--mode=link $(CCLD) $(libvirtd_CFLAGS) $(CFLAGS) \
-	$(libvirtd_LDFLAGS) $(LDFLAGS) -o $@
+AM_V_lt = $(am__v_lt_$(V))
+am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
+am__v_lt_0 = --silent
+libvirtd_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libvirtd_CFLAGS) \
+	$(CFLAGS) $(libvirtd_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
-LTCOMPILE = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
-	--mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
-	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+LTCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) \
+	$(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
+	$(AM_CFLAGS) $(CFLAGS)
+AM_V_CC = $(am__v_CC_$(V))
+am__v_CC_ = $(am__v_CC_$(AM_DEFAULT_VERBOSITY))
+am__v_CC_0 = @echo "  CC    " $@;
+AM_V_at = $(am__v_at_$(V))
+am__v_at_ = $(am__v_at_$(AM_DEFAULT_VERBOSITY))
+am__v_at_0 = @
 CCLD = $(CC)
-LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
-	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
-	$(LDFLAGS) -o $@
+LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(AM_LDFLAGS) $(LDFLAGS) -o $@
+AM_V_CCLD = $(am__v_CCLD_$(V))
+am__v_CCLD_ = $(am__v_CCLD_$(AM_DEFAULT_VERBOSITY))
+am__v_CCLD_0 = @echo "  CCLD  " $@;
+AM_V_GEN = $(am__v_GEN_$(V))
+am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
+am__v_GEN_0 = @echo "  GEN   " $@;
 SOURCES = $(libvirtd_SOURCES)
 DIST_SOURCES = $(am__libvirtd_SOURCES_DIST)
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
@@ -212,6 +236,7 @@ ACLOCAL = @ACLOCAL@
 ALLOCA = @ALLOCA@
 ALLOCA_H = @ALLOCA_H@
 AMTAR = @AMTAR@
+AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
 APPLE_UNIVERSAL_BUILD = @APPLE_UNIVERSAL_BUILD@
 AR = @AR@
 ARPA_INET_H = @ARPA_INET_H@
@@ -289,6 +314,7 @@ GNULIB_FFLUSH = @GNULIB_FFLUSH@
 GNULIB_FOPEN = @GNULIB_FOPEN@
 GNULIB_FPRINTF = @GNULIB_FPRINTF@
 GNULIB_FPRINTF_POSIX = @GNULIB_FPRINTF_POSIX@
+GNULIB_FPURGE = @GNULIB_FPURGE@
 GNULIB_FPUTC = @GNULIB_FPUTC@
 GNULIB_FPUTS = @GNULIB_FPUTS@
 GNULIB_FREOPEN = @GNULIB_FREOPEN@
@@ -343,6 +369,7 @@ GNULIB_MBSSEP = @GNULIB_MBSSEP@
 GNULIB_MBSSPN = @GNULIB_MBSSPN@
 GNULIB_MBSSTR = @GNULIB_MBSSTR@
 GNULIB_MBSTOK_R = @GNULIB_MBSTOK_R@
+GNULIB_MEMCHR = @GNULIB_MEMCHR@
 GNULIB_MEMMEM = @GNULIB_MEMMEM@
 GNULIB_MEMPCPY = @GNULIB_MEMPCPY@
 GNULIB_MEMRCHR = @GNULIB_MEMRCHR@
@@ -418,6 +445,7 @@ HAVE_ATOLL = @HAVE_ATOLL@
 HAVE_BTOWC = @HAVE_BTOWC@
 HAVE_CALLOC_POSIX = @HAVE_CALLOC_POSIX@
 HAVE_DECL_ENVIRON = @HAVE_DECL_ENVIRON@
+HAVE_DECL_FPURGE = @HAVE_DECL_FPURGE@
 HAVE_DECL_FREEADDRINFO = @HAVE_DECL_FREEADDRINFO@
 HAVE_DECL_GAI_STRERROR = @HAVE_DECL_GAI_STRERROR@
 HAVE_DECL_GETADDRINFO = @HAVE_DECL_GETADDRINFO@
@@ -476,6 +504,7 @@ HAVE_RAWMEMCHR = @HAVE_RAWMEMCHR@
 HAVE_READLINK = @HAVE_READLINK@
 HAVE_REALLOC_POSIX = @HAVE_REALLOC_POSIX@
 HAVE_RPMATCH = @HAVE_RPMATCH@
+HAVE_SA_FAMILY_T = @HAVE_SA_FAMILY_T@
 HAVE_SETENV = @HAVE_SETENV@
 HAVE_SIGNED_SIG_ATOMIC_T = @HAVE_SIGNED_SIG_ATOMIC_T@
 HAVE_SIGNED_WCHAR_T = @HAVE_SIGNED_WCHAR_T@
@@ -494,6 +523,7 @@ HAVE_STRTOLL = @HAVE_STRTOLL@
 HAVE_STRTOULL = @HAVE_STRTOULL@
 HAVE_STRUCT_ADDRINFO = @HAVE_STRUCT_ADDRINFO@
 HAVE_STRUCT_RANDOM_DATA = @HAVE_STRUCT_RANDOM_DATA@
+HAVE_STRUCT_SOCKADDR_STORAGE = @HAVE_STRUCT_SOCKADDR_STORAGE@
 HAVE_STRUCT_TIMEVAL = @HAVE_STRUCT_TIMEVAL@
 HAVE_STRVERSCMP = @HAVE_STRVERSCMP@
 HAVE_SYS_BITYPES_H = @HAVE_SYS_BITYPES_H@
@@ -532,6 +562,8 @@ IPTABLES_PATH = @IPTABLES_PATH@
 ISCSIADM = @ISCSIADM@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
+LIBCURL_CFLAGS = @LIBCURL_CFLAGS@
+LIBCURL_LIBS = @LIBCURL_LIBS@
 LIBICONV = @LIBICONV@
 LIBINTL = @LIBINTL@
 LIBOBJS = @LIBOBJS@
@@ -539,6 +571,8 @@ LIBPARTED_CFLAGS = @LIBPARTED_CFLAGS@
 LIBPARTED_LIBS = @LIBPARTED_LIBS@
 LIBS = @LIBS@
 LIBSOCKET = @LIBSOCKET@
+LIBSSH_CFLAGS = @LIBSSH_CFLAGS@
+LIBSSH_LIBS = @LIBSSH_LIBS@
 LIBTESTS_LIBDEPS = @LIBTESTS_LIBDEPS@
 LIBTOOL = @LIBTOOL@
 LIBVIRT_MAJOR_VERSION = @LIBVIRT_MAJOR_VERSION@
@@ -575,6 +609,23 @@ NETCF_LIBS = @NETCF_LIBS@
 NETDB_H = @NETDB_H@
 NETINET_IN_H = @NETINET_IN_H@
 NEXT_ARPA_INET_H = @NEXT_ARPA_INET_H@
+NEXT_AS_FIRST_DIRECTIVE_ARPA_INET_H = @NEXT_AS_FIRST_DIRECTIVE_ARPA_INET_H@
+NEXT_AS_FIRST_DIRECTIVE_ERRNO_H = @NEXT_AS_FIRST_DIRECTIVE_ERRNO_H@
+NEXT_AS_FIRST_DIRECTIVE_FLOAT_H = @NEXT_AS_FIRST_DIRECTIVE_FLOAT_H@
+NEXT_AS_FIRST_DIRECTIVE_NETDB_H = @NEXT_AS_FIRST_DIRECTIVE_NETDB_H@
+NEXT_AS_FIRST_DIRECTIVE_NETINET_IN_H = @NEXT_AS_FIRST_DIRECTIVE_NETINET_IN_H@
+NEXT_AS_FIRST_DIRECTIVE_STDINT_H = @NEXT_AS_FIRST_DIRECTIVE_STDINT_H@
+NEXT_AS_FIRST_DIRECTIVE_STDIO_H = @NEXT_AS_FIRST_DIRECTIVE_STDIO_H@
+NEXT_AS_FIRST_DIRECTIVE_STDLIB_H = @NEXT_AS_FIRST_DIRECTIVE_STDLIB_H@
+NEXT_AS_FIRST_DIRECTIVE_STRING_H = @NEXT_AS_FIRST_DIRECTIVE_STRING_H@
+NEXT_AS_FIRST_DIRECTIVE_SYS_IOCTL_H = @NEXT_AS_FIRST_DIRECTIVE_SYS_IOCTL_H@
+NEXT_AS_FIRST_DIRECTIVE_SYS_SELECT_H = @NEXT_AS_FIRST_DIRECTIVE_SYS_SELECT_H@
+NEXT_AS_FIRST_DIRECTIVE_SYS_SOCKET_H = @NEXT_AS_FIRST_DIRECTIVE_SYS_SOCKET_H@
+NEXT_AS_FIRST_DIRECTIVE_SYS_STAT_H = @NEXT_AS_FIRST_DIRECTIVE_SYS_STAT_H@
+NEXT_AS_FIRST_DIRECTIVE_SYS_TIME_H = @NEXT_AS_FIRST_DIRECTIVE_SYS_TIME_H@
+NEXT_AS_FIRST_DIRECTIVE_TIME_H = @NEXT_AS_FIRST_DIRECTIVE_TIME_H@
+NEXT_AS_FIRST_DIRECTIVE_UNISTD_H = @NEXT_AS_FIRST_DIRECTIVE_UNISTD_H@
+NEXT_AS_FIRST_DIRECTIVE_WCHAR_H = @NEXT_AS_FIRST_DIRECTIVE_WCHAR_H@
 NEXT_ERRNO_H = @NEXT_ERRNO_H@
 NEXT_FLOAT_H = @NEXT_FLOAT_H@
 NEXT_NETDB_H = @NEXT_NETDB_H@
@@ -636,6 +687,7 @@ REPLACE_FCLOSE = @REPLACE_FCLOSE@
 REPLACE_FFLUSH = @REPLACE_FFLUSH@
 REPLACE_FOPEN = @REPLACE_FOPEN@
 REPLACE_FPRINTF = @REPLACE_FPRINTF@
+REPLACE_FPURGE = @REPLACE_FPURGE@
 REPLACE_FREOPEN = @REPLACE_FREOPEN@
 REPLACE_FSEEK = @REPLACE_FSEEK@
 REPLACE_FSEEKO = @REPLACE_FSEEKO@
@@ -655,6 +707,7 @@ REPLACE_MBSINIT = @REPLACE_MBSINIT@
 REPLACE_MBSNRTOWCS = @REPLACE_MBSNRTOWCS@
 REPLACE_MBSRTOWCS = @REPLACE_MBSRTOWCS@
 REPLACE_MBSTATE_T = @REPLACE_MBSTATE_T@
+REPLACE_MEMCHR = @REPLACE_MEMCHR@
 REPLACE_MEMMEM = @REPLACE_MEMMEM@
 REPLACE_MKDIR = @REPLACE_MKDIR@
 REPLACE_MKSTEMP = @REPLACE_MKSTEMP@
@@ -663,6 +716,7 @@ REPLACE_OBSTACK_PRINTF = @REPLACE_OBSTACK_PRINTF@
 REPLACE_PERROR = @REPLACE_PERROR@
 REPLACE_PRINTF = @REPLACE_PRINTF@
 REPLACE_PUTENV = @REPLACE_PUTENV@
+REPLACE_SELECT = @REPLACE_SELECT@
 REPLACE_SNPRINTF = @REPLACE_SNPRINTF@
 REPLACE_SPRINTF = @REPLACE_SPRINTF@
 REPLACE_STDIO_WRITE_FUNCS = @REPLACE_STDIO_WRITE_FUNCS@
@@ -681,6 +735,7 @@ REPLACE_VPRINTF = @REPLACE_VPRINTF@
 REPLACE_VSNPRINTF = @REPLACE_VSNPRINTF@
 REPLACE_VSPRINTF = @REPLACE_VSPRINTF@
 REPLACE_WCRTOMB = @REPLACE_WCRTOMB@
+REPLACE_WCSNRTOMBS = @REPLACE_WCSNRTOMBS@
 REPLACE_WCSRTOMBS = @REPLACE_WCSRTOMBS@
 REPLACE_WCTOB = @REPLACE_WCTOB@
 REPLACE_WCWIDTH = @REPLACE_WCWIDTH@
@@ -801,7 +856,8 @@ top_srcdir = @top_srcdir@
 DAEMON_SOURCES = \
 		event.c event.h				\
 		qemud.c qemud.h				\
-		remote.c				\
+		remote.c remote.h			\
+		dispatch.c dispatch.h			\
 		remote_dispatch_prototypes.h		\
 		remote_dispatch_table.h			\
 		remote_dispatch_args.h			\
@@ -829,7 +885,7 @@ EXTRA_DIST = \
 	$(AVAHI_SOURCES)				\
 	$(DAEMON_SOURCES)
 
-BUILT_SOURCES = $(am__append_12) $(am__append_13)
+BUILT_SOURCES = $(am__append_13) $(am__append_14)
 @WITH_LIBVIRTD_TRUE@UUID = $(shell uuidgen 2>/dev/null)
 @WITH_LIBVIRTD_TRUE@confdir = $(sysconfdir)/libvirt/
 @WITH_LIBVIRTD_TRUE@conf_DATA = libvirtd.conf
@@ -838,7 +894,7 @@ BUILT_SOURCES = $(am__append_12) $(am__append_13)
 @WITH_LIBVIRTD_TRUE@augeastestsdir = $(datadir)/augeas/lenses/tests
 @WITH_LIBVIRTD_TRUE@augeastests_DATA = test_libvirtd.aug test_libvirtd_qemu.aug
 @WITH_LIBVIRTD_TRUE@libvirtd_SOURCES = $(DAEMON_SOURCES) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_9)
+@WITH_LIBVIRTD_TRUE@	$(am__append_10)
 
 #-D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED=1 -D_POSIX_C_SOURCE=199506L
 @WITH_LIBVIRTD_TRUE@libvirtd_CFLAGS = -I$(top_srcdir)/gnulib/lib \
@@ -853,7 +909,7 @@ BUILT_SOURCES = $(am__append_12) $(am__append_13)
 @WITH_LIBVIRTD_TRUE@	-DQEMUD_PID_FILE="\"$(QEMUD_PID_FILE)\"" \
 @WITH_LIBVIRTD_TRUE@	-DREMOTE_PID_FILE="\"$(REMOTE_PID_FILE)\"" \
 @WITH_LIBVIRTD_TRUE@	-DGETTEXT_PACKAGE=\"$(PACKAGE)\" \
-@WITH_LIBVIRTD_TRUE@	$(am__append_10)
+@WITH_LIBVIRTD_TRUE@	$(am__append_11)
 @WITH_LIBVIRTD_TRUE@libvirtd_LDFLAGS = \
 @WITH_LIBVIRTD_TRUE@	$(WARN_CFLAGS) 					\
 @WITH_LIBVIRTD_TRUE@	$(COVERAGE_LDFLAGS)
@@ -867,8 +923,9 @@ BUILT_SOURCES = $(am__append_12) $(am__append_13)
 @WITH_LIBVIRTD_TRUE@	$(am__append_3) $(am__append_4) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_5) $(am__append_6) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_7) $(am__append_8) \
-@WITH_LIBVIRTD_TRUE@	../src/libvirt.la $(am__append_11) \
-@WITH_LIBVIRTD_TRUE@	../gnulib/lib/libgnu.la $(LIBSOCKET)
+@WITH_LIBVIRTD_TRUE@	$(am__append_9) ../src/libvirt.la \
+@WITH_LIBVIRTD_TRUE@	$(am__append_12) ../gnulib/lib/libgnu.la \
+@WITH_LIBVIRTD_TRUE@	$(LIBSOCKET)
 @HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policydir = $(datadir)/PolicyKit/policy
 @WITH_LIBVIRTD_TRUE@default_xml_dest = libvirt/qemu/networks/default.xml
 CLEANFILES = $(BUILT_SOURCES) *.cov *.gcov .libs/*.gcda .libs/*.gcno \
@@ -953,7 +1010,7 @@ clean-sbinPROGRAMS:
 	rm -f $$list
 libvirtd$(EXEEXT): $(libvirtd_OBJECTS) $(libvirtd_DEPENDENCIES) 
 	@rm -f libvirtd$(EXEEXT)
-	$(libvirtd_LINK) $(libvirtd_OBJECTS) $(libvirtd_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(libvirtd_LINK) $(libvirtd_OBJECTS) $(libvirtd_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -961,6 +1018,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-dispatch.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-event.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-mdns.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-qemud.Po@am__quote@
@@ -968,92 +1026,121 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-remote_protocol.Po@am__quote@
 
 .c.o:
-@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c $<
 
 .c.obj:
-@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
 
 .c.lo:
-@am__fastdepCC_TRUE@	$(LTCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Plo
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LTCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Plo
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
 
 libvirtd-event.o: event.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-event.o -MD -MP -MF $(DEPDIR)/libvirtd-event.Tpo -c -o libvirtd-event.o `test -f 'event.c' || echo '$(srcdir)/'`event.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libvirtd-event.Tpo $(DEPDIR)/libvirtd-event.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-event.o -MD -MP -MF $(DEPDIR)/libvirtd-event.Tpo -c -o libvirtd-event.o `test -f 'event.c' || echo '$(srcdir)/'`event.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-event.Tpo $(DEPDIR)/libvirtd-event.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='event.c' object='libvirtd-event.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-event.o `test -f 'event.c' || echo '$(srcdir)/'`event.c
 
 libvirtd-event.obj: event.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-event.obj -MD -MP -MF $(DEPDIR)/libvirtd-event.Tpo -c -o libvirtd-event.obj `if test -f 'event.c'; then $(CYGPATH_W) 'event.c'; else $(CYGPATH_W) '$(srcdir)/event.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libvirtd-event.Tpo $(DEPDIR)/libvirtd-event.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-event.obj -MD -MP -MF $(DEPDIR)/libvirtd-event.Tpo -c -o libvirtd-event.obj `if test -f 'event.c'; then $(CYGPATH_W) 'event.c'; else $(CYGPATH_W) '$(srcdir)/event.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-event.Tpo $(DEPDIR)/libvirtd-event.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='event.c' object='libvirtd-event.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-event.obj `if test -f 'event.c'; then $(CYGPATH_W) 'event.c'; else $(CYGPATH_W) '$(srcdir)/event.c'; fi`
 
 libvirtd-qemud.o: qemud.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-qemud.o -MD -MP -MF $(DEPDIR)/libvirtd-qemud.Tpo -c -o libvirtd-qemud.o `test -f 'qemud.c' || echo '$(srcdir)/'`qemud.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libvirtd-qemud.Tpo $(DEPDIR)/libvirtd-qemud.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-qemud.o -MD -MP -MF $(DEPDIR)/libvirtd-qemud.Tpo -c -o libvirtd-qemud.o `test -f 'qemud.c' || echo '$(srcdir)/'`qemud.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-qemud.Tpo $(DEPDIR)/libvirtd-qemud.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='qemud.c' object='libvirtd-qemud.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-qemud.o `test -f 'qemud.c' || echo '$(srcdir)/'`qemud.c
 
 libvirtd-qemud.obj: qemud.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-qemud.obj -MD -MP -MF $(DEPDIR)/libvirtd-qemud.Tpo -c -o libvirtd-qemud.obj `if test -f 'qemud.c'; then $(CYGPATH_W) 'qemud.c'; else $(CYGPATH_W) '$(srcdir)/qemud.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libvirtd-qemud.Tpo $(DEPDIR)/libvirtd-qemud.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-qemud.obj -MD -MP -MF $(DEPDIR)/libvirtd-qemud.Tpo -c -o libvirtd-qemud.obj `if test -f 'qemud.c'; then $(CYGPATH_W) 'qemud.c'; else $(CYGPATH_W) '$(srcdir)/qemud.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-qemud.Tpo $(DEPDIR)/libvirtd-qemud.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='qemud.c' object='libvirtd-qemud.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-qemud.obj `if test -f 'qemud.c'; then $(CYGPATH_W) 'qemud.c'; else $(CYGPATH_W) '$(srcdir)/qemud.c'; fi`
 
 libvirtd-remote.o: remote.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-remote.o -MD -MP -MF $(DEPDIR)/libvirtd-remote.Tpo -c -o libvirtd-remote.o `test -f 'remote.c' || echo '$(srcdir)/'`remote.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libvirtd-remote.Tpo $(DEPDIR)/libvirtd-remote.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-remote.o -MD -MP -MF $(DEPDIR)/libvirtd-remote.Tpo -c -o libvirtd-remote.o `test -f 'remote.c' || echo '$(srcdir)/'`remote.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-remote.Tpo $(DEPDIR)/libvirtd-remote.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='remote.c' object='libvirtd-remote.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-remote.o `test -f 'remote.c' || echo '$(srcdir)/'`remote.c
 
 libvirtd-remote.obj: remote.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-remote.obj -MD -MP -MF $(DEPDIR)/libvirtd-remote.Tpo -c -o libvirtd-remote.obj `if test -f 'remote.c'; then $(CYGPATH_W) 'remote.c'; else $(CYGPATH_W) '$(srcdir)/remote.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libvirtd-remote.Tpo $(DEPDIR)/libvirtd-remote.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-remote.obj -MD -MP -MF $(DEPDIR)/libvirtd-remote.Tpo -c -o libvirtd-remote.obj `if test -f 'remote.c'; then $(CYGPATH_W) 'remote.c'; else $(CYGPATH_W) '$(srcdir)/remote.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-remote.Tpo $(DEPDIR)/libvirtd-remote.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='remote.c' object='libvirtd-remote.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-remote.obj `if test -f 'remote.c'; then $(CYGPATH_W) 'remote.c'; else $(CYGPATH_W) '$(srcdir)/remote.c'; fi`
 
+libvirtd-dispatch.o: dispatch.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-dispatch.o -MD -MP -MF $(DEPDIR)/libvirtd-dispatch.Tpo -c -o libvirtd-dispatch.o `test -f 'dispatch.c' || echo '$(srcdir)/'`dispatch.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-dispatch.Tpo $(DEPDIR)/libvirtd-dispatch.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='dispatch.c' object='libvirtd-dispatch.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-dispatch.o `test -f 'dispatch.c' || echo '$(srcdir)/'`dispatch.c
+
+libvirtd-dispatch.obj: dispatch.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-dispatch.obj -MD -MP -MF $(DEPDIR)/libvirtd-dispatch.Tpo -c -o libvirtd-dispatch.obj `if test -f 'dispatch.c'; then $(CYGPATH_W) 'dispatch.c'; else $(CYGPATH_W) '$(srcdir)/dispatch.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-dispatch.Tpo $(DEPDIR)/libvirtd-dispatch.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='dispatch.c' object='libvirtd-dispatch.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-dispatch.obj `if test -f 'dispatch.c'; then $(CYGPATH_W) 'dispatch.c'; else $(CYGPATH_W) '$(srcdir)/dispatch.c'; fi`
+
 libvirtd-remote_protocol.o: remote_protocol.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-remote_protocol.o -MD -MP -MF $(DEPDIR)/libvirtd-remote_protocol.Tpo -c -o libvirtd-remote_protocol.o `test -f 'remote_protocol.c' || echo '$(srcdir)/'`remote_protocol.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libvirtd-remote_protocol.Tpo $(DEPDIR)/libvirtd-remote_protocol.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-remote_protocol.o -MD -MP -MF $(DEPDIR)/libvirtd-remote_protocol.Tpo -c -o libvirtd-remote_protocol.o `test -f 'remote_protocol.c' || echo '$(srcdir)/'`remote_protocol.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-remote_protocol.Tpo $(DEPDIR)/libvirtd-remote_protocol.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='remote_protocol.c' object='libvirtd-remote_protocol.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-remote_protocol.o `test -f 'remote_protocol.c' || echo '$(srcdir)/'`remote_protocol.c
 
 libvirtd-remote_protocol.obj: remote_protocol.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-remote_protocol.obj -MD -MP -MF $(DEPDIR)/libvirtd-remote_protocol.Tpo -c -o libvirtd-remote_protocol.obj `if test -f 'remote_protocol.c'; then $(CYGPATH_W) 'remote_protocol.c'; else $(CYGPATH_W) '$(srcdir)/remote_protocol.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libvirtd-remote_protocol.Tpo $(DEPDIR)/libvirtd-remote_protocol.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-remote_protocol.obj -MD -MP -MF $(DEPDIR)/libvirtd-remote_protocol.Tpo -c -o libvirtd-remote_protocol.obj `if test -f 'remote_protocol.c'; then $(CYGPATH_W) 'remote_protocol.c'; else $(CYGPATH_W) '$(srcdir)/remote_protocol.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-remote_protocol.Tpo $(DEPDIR)/libvirtd-remote_protocol.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='remote_protocol.c' object='libvirtd-remote_protocol.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-remote_protocol.obj `if test -f 'remote_protocol.c'; then $(CYGPATH_W) 'remote_protocol.c'; else $(CYGPATH_W) '$(srcdir)/remote_protocol.c'; fi`
 
 libvirtd-mdns.o: mdns.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-mdns.o -MD -MP -MF $(DEPDIR)/libvirtd-mdns.Tpo -c -o libvirtd-mdns.o `test -f 'mdns.c' || echo '$(srcdir)/'`mdns.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libvirtd-mdns.Tpo $(DEPDIR)/libvirtd-mdns.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-mdns.o -MD -MP -MF $(DEPDIR)/libvirtd-mdns.Tpo -c -o libvirtd-mdns.o `test -f 'mdns.c' || echo '$(srcdir)/'`mdns.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-mdns.Tpo $(DEPDIR)/libvirtd-mdns.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='mdns.c' object='libvirtd-mdns.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-mdns.o `test -f 'mdns.c' || echo '$(srcdir)/'`mdns.c
 
 libvirtd-mdns.obj: mdns.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-mdns.obj -MD -MP -MF $(DEPDIR)/libvirtd-mdns.Tpo -c -o libvirtd-mdns.obj `if test -f 'mdns.c'; then $(CYGPATH_W) 'mdns.c'; else $(CYGPATH_W) '$(srcdir)/mdns.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libvirtd-mdns.Tpo $(DEPDIR)/libvirtd-mdns.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-mdns.obj -MD -MP -MF $(DEPDIR)/libvirtd-mdns.Tpo -c -o libvirtd-mdns.obj `if test -f 'mdns.c'; then $(CYGPATH_W) 'mdns.c'; else $(CYGPATH_W) '$(srcdir)/mdns.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-mdns.Tpo $(DEPDIR)/libvirtd-mdns.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='mdns.c' object='libvirtd-mdns.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-mdns.obj `if test -f 'mdns.c'; then $(CYGPATH_W) 'mdns.c'; else $(CYGPATH_W) '$(srcdir)/mdns.c'; fi`

@@ -167,6 +167,8 @@ struct private_data {
     virDomainEventQueuePtr domainEvents;
     /* Timer for flushing domainEvents queue */
     int eventFlushTimer;
+    /* Flag if we're in process of dispatching */
+    int domainEventDispatching;
 
     /* Self-pipe to wakeup threads waiting in poll() */
     int wakeupSendFD;
@@ -206,10 +208,13 @@ static int remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in
 static int remoteAuthPolkit (virConnectPtr conn, struct private_data *priv, int in_open,
                              virConnectAuthPtr auth);
 #endif /* HAVE_POLKIT */
-static void error (virConnectPtr conn, virErrorNumber code, const char *info);
-static void errorf (virConnectPtr conn, virErrorNumber code,
-                     const char *fmt, ...) ATTRIBUTE_FORMAT(printf, 3, 4);
-static void server_error (virConnectPtr conn, remote_error *err);
+#define error(conn, code, info)                                 \
+    virReportErrorHelper(conn, VIR_FROM_QEMU, code, __FILE__,   \
+                         __FUNCTION__, __LINE__, "%s", info)
+#define errorf(conn, code, fmt...)                              \
+    virReportErrorHelper(conn, VIR_FROM_QEMU, code, __FILE__,   \
+                         __FUNCTION__, __LINE__, fmt)
+
 static virDomainPtr get_nonnull_domain (virConnectPtr conn, remote_nonnull_domain domain);
 static virNetworkPtr get_nonnull_network (virConnectPtr conn, remote_nonnull_network network);
 static virInterfacePtr get_nonnull_interface (virConnectPtr conn, remote_nonnull_interface iface);
@@ -972,6 +977,7 @@ remoteOpen (virConnectPtr conn,
 {
     struct private_data *priv;
     int ret, rflags = 0;
+    const char *autostart = getenv("LIBVIRT_AUTOSTART");
 
     if (inside_daemon)
         return VIR_DRV_OPEN_DECLINED;
@@ -994,11 +1000,14 @@ remoteOpen (virConnectPtr conn,
         conn->uri->scheme &&
         ((strchr(conn->uri->scheme, '+') == 0)||
          (strstr(conn->uri->scheme, "+unix") != NULL)) &&
-        STREQ(conn->uri->path, "/session") &&
+        (STREQ(conn->uri->path, "/session") ||
+         STRPREFIX(conn->uri->scheme, "test+")) &&
         getuid() > 0) {
         DEBUG0("Auto-spawn user daemon instance");
         rflags |= VIR_DRV_OPEN_REMOTE_USER;
-        rflags |= VIR_DRV_OPEN_REMOTE_AUTOSTART;
+        if (!autostart ||
+            STRNEQ(autostart, "0"))
+            rflags |= VIR_DRV_OPEN_REMOTE_AUTOSTART;
     }
 
     /*
@@ -1013,7 +1022,9 @@ remoteOpen (virConnectPtr conn,
         if (getuid() > 0) {
             DEBUG0("Auto-spawn user daemon instance");
             rflags |= VIR_DRV_OPEN_REMOTE_USER;
-            rflags |= VIR_DRV_OPEN_REMOTE_AUTOSTART;
+            if (!autostart ||
+                STRNEQ(autostart, "0"))
+                rflags |= VIR_DRV_OPEN_REMOTE_AUTOSTART;
         }
 #endif
     }
@@ -3888,6 +3899,78 @@ done:
     return rv;
 }
 
+static int
+remoteNumOfDefinedInterfaces (virConnectPtr conn)
+{
+    int rv = -1;
+    remote_num_of_defined_interfaces_ret ret;
+    struct private_data *priv = conn->interfacePrivateData;
+
+    remoteDriverLock(priv);
+
+    memset (&ret, 0, sizeof ret);
+    if (call (conn, priv, 0, REMOTE_PROC_NUM_OF_DEFINED_INTERFACES,
+              (xdrproc_t) xdr_void, (char *) NULL,
+              (xdrproc_t) xdr_remote_num_of_defined_interfaces_ret, (char *) &ret) == -1)
+        goto done;
+
+    rv = ret.num;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteListDefinedInterfaces (virConnectPtr conn, char **const names, int maxnames)
+{
+    int rv = -1;
+    int i;
+    remote_list_defined_interfaces_args args;
+    remote_list_defined_interfaces_ret ret;
+    struct private_data *priv = conn->interfacePrivateData;
+
+    remoteDriverLock(priv);
+
+    if (maxnames > REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX) {
+        errorf (conn, VIR_ERR_RPC,
+                _("too many remote interfaces: %d > %d"),
+                maxnames, REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX);
+        goto done;
+    }
+    args.maxnames = maxnames;
+
+    memset (&ret, 0, sizeof ret);
+    if (call (conn, priv, 0, REMOTE_PROC_LIST_DEFINED_INTERFACES,
+              (xdrproc_t) xdr_remote_list_defined_interfaces_args, (char *) &args,
+              (xdrproc_t) xdr_remote_list_defined_interfaces_ret, (char *) &ret) == -1)
+        goto done;
+
+    if (ret.names.names_len > maxnames) {
+        errorf (conn, VIR_ERR_RPC,
+                _("too many remote interfaces: %d > %d"),
+                ret.names.names_len, maxnames);
+        goto cleanup;
+    }
+
+    /* This call is caller-frees (although that isn't clear from
+     * the documentation).  However xdr_free will free up both the
+     * names and the list of pointers, so we have to strdup the
+     * names here.
+     */
+    for (i = 0; i < ret.names.names_len; ++i)
+        names[i] = strdup (ret.names.names_val[i]);
+
+    rv = ret.names.names_len;
+
+cleanup:
+    xdr_free ((xdrproc_t) xdr_remote_list_defined_interfaces_ret, (char *) &ret);
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
 static virInterfacePtr
 remoteInterfaceLookupByName (virConnectPtr conn,
                              const char *name)
@@ -6207,18 +6290,26 @@ static int remoteDomainEventDeregister (virConnectPtr conn,
 
     remoteDriverLock(priv);
 
-    if (virDomainEventCallbackListRemove(conn, priv->callbackList,
-                                         callback) < 0) {
-         error (conn, VIR_ERR_RPC, _("removing cb fron list"));
-         goto done;
-    }
-
-    if ( priv->callbackList->count == 0 ) {
-        /* Tell the server when we are the last callback deregistering */
-        if (call (conn, priv, 0, REMOTE_PROC_DOMAIN_EVENTS_DEREGISTER,
-                (xdrproc_t) xdr_void, (char *) NULL,
-                (xdrproc_t) xdr_void, (char *) NULL) == -1)
+    if (priv->domainEventDispatching) {
+        if (virDomainEventCallbackListMarkDelete(conn, priv->callbackList,
+                                                 callback) < 0) {
+            error (conn, VIR_ERR_RPC, _("marking cb for deletion"));
             goto done;
+        }
+    } else {
+        if (virDomainEventCallbackListRemove(conn, priv->callbackList,
+                                             callback) < 0) {
+            error (conn, VIR_ERR_RPC, _("removing cb from list"));
+            goto done;
+        }
+
+        if ( priv->callbackList->count == 0 ) {
+            /* Tell the server when we are the last callback deregistering */
+            if (call (conn, priv, 0, REMOTE_PROC_DOMAIN_EVENTS_DEREGISTER,
+                      (xdrproc_t) xdr_void, (char *) NULL,
+                      (xdrproc_t) xdr_void, (char *) NULL) == -1)
+                goto done;
+        }
     }
 
     rv = 0;
@@ -6263,7 +6354,7 @@ prepareCall(virConnectPtr conn,
     hdr.prog = REMOTE_PROGRAM;
     hdr.vers = REMOTE_PROTOCOL_VERSION;
     hdr.proc = proc_nr;
-    hdr.direction = REMOTE_CALL;
+    hdr.type = REMOTE_CALL;
     hdr.serial = rv->serial;
     hdr.status = REMOTE_OK;
 
@@ -6310,10 +6401,10 @@ error:
 
 
 static int
-processCallWrite(virConnectPtr conn,
-                 struct private_data *priv,
-                 int in_open /* if we are in virConnectOpen */,
-                 const char *bytes, int len)
+remoteIOWriteBuffer(virConnectPtr conn,
+                    struct private_data *priv,
+                    int in_open /* if we are in virConnectOpen */,
+                    const char *bytes, int len)
 {
     int ret;
 
@@ -6351,10 +6442,10 @@ processCallWrite(virConnectPtr conn,
 
 
 static int
-processCallRead(virConnectPtr conn,
-                struct private_data *priv,
-                int in_open /* if we are in virConnectOpen */,
-                char *bytes, int len)
+remoteIOReadBuffer(virConnectPtr conn,
+                   struct private_data *priv,
+                   int in_open /* if we are in virConnectOpen */,
+                   char *bytes, int len)
 {
     int ret;
 
@@ -6405,10 +6496,10 @@ processCallRead(virConnectPtr conn,
 
 
 static int
-processCallSendOne(virConnectPtr conn,
-                   struct private_data *priv,
-                   int in_open,
-                   struct remote_thread_call *thecall)
+remoteIOWriteMessage(virConnectPtr conn,
+                     struct private_data *priv,
+                     int in_open,
+                     struct remote_thread_call *thecall)
 {
 #if HAVE_SASL
     if (priv->saslconn) {
@@ -6434,9 +6525,9 @@ processCallSendOne(virConnectPtr conn,
             thecall->bufferOffset = thecall->bufferLength;
         }
 
-        ret = processCallWrite(conn, priv, in_open,
-                               priv->saslEncoded + priv->saslEncodedOffset,
-                               priv->saslEncodedLength - priv->saslEncodedOffset);
+        ret = remoteIOWriteBuffer(conn, priv, in_open,
+                                  priv->saslEncoded + priv->saslEncodedOffset,
+                                  priv->saslEncodedLength - priv->saslEncodedOffset);
         if (ret < 0)
             return ret;
         priv->saslEncodedOffset += ret;
@@ -6449,9 +6540,9 @@ processCallSendOne(virConnectPtr conn,
     } else {
 #endif
         int ret;
-        ret = processCallWrite(conn, priv, in_open,
-                               thecall->buffer + thecall->bufferOffset,
-                               thecall->bufferLength - thecall->bufferOffset);
+        ret = remoteIOWriteBuffer(conn, priv, in_open,
+                                  thecall->buffer + thecall->bufferOffset,
+                                  thecall->bufferLength - thecall->bufferOffset);
         if (ret < 0)
             return ret;
         thecall->bufferOffset += ret;
@@ -6468,8 +6559,8 @@ processCallSendOne(virConnectPtr conn,
 
 
 static int
-processCallSend(virConnectPtr conn, struct private_data *priv,
-                int in_open) {
+remoteIOHandleOutput(virConnectPtr conn, struct private_data *priv,
+                     int in_open) {
     struct remote_thread_call *thecall = priv->waitDispatch;
 
     while (thecall &&
@@ -6480,7 +6571,7 @@ processCallSend(virConnectPtr conn, struct private_data *priv,
         return -1; /* Shouldn't happen, but you never know... */
 
     while (thecall) {
-        int ret = processCallSendOne(conn, priv, in_open, thecall);
+        int ret = remoteIOWriteMessage(conn, priv, in_open, thecall);
         if (ret < 0)
             return ret;
 
@@ -6494,7 +6585,7 @@ processCallSend(virConnectPtr conn, struct private_data *priv,
 }
 
 static int
-processCallRecvSome(virConnectPtr conn, struct private_data *priv,
+remoteIOReadMessage(virConnectPtr conn, struct private_data *priv,
                     int in_open) {
     unsigned int wantData;
 
@@ -6510,8 +6601,8 @@ processCallRecvSome(virConnectPtr conn, struct private_data *priv,
             char encoded[8192];
             unsigned int encodedLen = sizeof(encoded);
             int ret, err;
-            ret = processCallRead(conn, priv, in_open,
-                                  encoded, encodedLen);
+            ret = remoteIOReadBuffer(conn, priv, in_open,
+                                     encoded, encodedLen);
             if (ret < 0)
                 return -1;
             if (ret == 0)
@@ -6546,9 +6637,9 @@ processCallRecvSome(virConnectPtr conn, struct private_data *priv,
 #endif
         int ret;
 
-        ret = processCallRead(conn, priv, in_open,
-                              priv->buffer + priv->bufferOffset,
-                              wantData);
+        ret = remoteIOReadBuffer(conn, priv, in_open,
+                                 priv->buffer + priv->bufferOffset,
+                                 wantData);
         if (ret < 0)
             return -1;
         if (ret == 0)
@@ -6563,32 +6654,9 @@ processCallRecvSome(virConnectPtr conn, struct private_data *priv,
 }
 
 
-static void
-processCallAsyncEvent(virConnectPtr conn, struct private_data *priv,
-                      int in_open,
-                      remote_message_header *hdr,
-                      XDR *xdr) {
-    /* An async message has come in while we were waiting for the
-     * response. Process it to pull it off the wire, and try again
-     */
-    DEBUG0("Encountered an event while waiting for a response");
-
-    if (in_open) {
-        DEBUG("Ignoring bogus event %d received while in open", hdr->proc);
-        return;
-    }
-
-    if (hdr->proc == REMOTE_PROC_DOMAIN_EVENT) {
-        remoteDomainQueueEvent(conn, xdr);
-        virEventUpdateTimeout(priv->eventFlushTimer, 0);
-    } else {
-        DEBUG("Unexpected event proc %d", hdr->proc);
-    }
-}
-
 static int
-processCallRecvLen(virConnectPtr conn, struct private_data *priv,
-                   int in_open) {
+remoteIODecodeMessageLength(virConnectPtr conn, struct private_data *priv,
+                            int in_open) {
     XDR xdr;
     unsigned int len;
 
@@ -6624,12 +6692,25 @@ processCallRecvLen(virConnectPtr conn, struct private_data *priv,
 
 
 static int
-processCallRecvMsg(virConnectPtr conn, struct private_data *priv,
-                   int in_open) {
+processCallDispatchReply(virConnectPtr conn, struct private_data *priv,
+                         int in_open,
+                         remote_message_header *hdr,
+                         XDR *xdr);
+
+static int
+processCallDispatchMessage(virConnectPtr conn, struct private_data *priv,
+                           int in_open,
+                           remote_message_header *hdr,
+                           XDR *xdr);
+
+
+static int
+processCallDispatch(virConnectPtr conn, struct private_data *priv,
+                    int in_open) {
     XDR xdr;
     struct remote_message_header hdr;
     int len = priv->bufferLength - 4;
-    struct remote_thread_call *thecall;
+    int rv = -1;
 
     /* Deserialise reply header. */
     xdrmem_create (&xdr, priv->buffer + 4, len, XDR_DECODE);
@@ -6657,30 +6738,44 @@ processCallRecvMsg(virConnectPtr conn, struct private_data *priv,
         return -1;
     }
 
-    /* Async events from server need special handling */
-    if (hdr.direction == REMOTE_MESSAGE) {
-        processCallAsyncEvent(conn, priv, in_open,
-                              &hdr, &xdr);
-        xdr_destroy(&xdr);
-        return 0;
+    switch (hdr.type) {
+    case REMOTE_REPLY: /* Normal RPC replies */
+        rv = processCallDispatchReply(conn, priv, in_open,
+                                      &hdr, &xdr);
+        break;
+
+    case REMOTE_MESSAGE: /* Async notifications */
+        rv = processCallDispatchMessage(conn, priv, in_open,
+                                        &hdr, &xdr);
+        break;
+
+    default:
+         virRaiseError (in_open ? NULL : conn,
+                        NULL, NULL, VIR_FROM_REMOTE,
+                        VIR_ERR_RPC, VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
+                        _("got unexpected RPC call %d from server"),
+                        hdr.proc);
+        rv = -1;
+        break;
     }
 
-    if (hdr.direction != REMOTE_REPLY) {
-        virRaiseError (in_open ? NULL : conn,
-                       NULL, NULL, VIR_FROM_REMOTE,
-                       VIR_ERR_RPC, VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
-                       _("got unexpected RPC call %d from server"),
-                       hdr.proc);
-        xdr_destroy(&xdr);
-        return -1;
-    }
+    xdr_destroy(&xdr);
+    return rv;
+}
+
+
+static int
+processCallDispatchReply(virConnectPtr conn, struct private_data *priv,
+                         int in_open,
+                         remote_message_header *hdr,
+                         XDR *xdr) {
+    struct remote_thread_call *thecall;
 
     /* Ok, definitely got an RPC reply now find
        out who's been waiting for it */
-
     thecall = priv->waitDispatch;
     while (thecall &&
-           thecall->serial != hdr.serial)
+           thecall->serial != hdr->serial)
         thecall = thecall->next;
 
     if (!thecall) {
@@ -6688,18 +6783,16 @@ processCallRecvMsg(virConnectPtr conn, struct private_data *priv,
                        NULL, NULL, VIR_FROM_REMOTE,
                        VIR_ERR_RPC, VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
                        _("no call waiting for reply with serial %d"),
-                       hdr.serial);
-        xdr_destroy(&xdr);
+                       hdr->serial);
         return -1;
     }
 
-    if (hdr.proc != thecall->proc_nr) {
+    if (hdr->proc != thecall->proc_nr) {
         virRaiseError (in_open ? NULL : conn,
                        NULL, NULL, VIR_FROM_REMOTE,
                        VIR_ERR_RPC, VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
                        _("unknown procedure (received %x, expected %x)"),
-                       hdr.proc, thecall->proc_nr);
-        xdr_destroy (&xdr);
+                       hdr->proc, thecall->proc_nr);
         return -1;
     }
 
@@ -6707,25 +6800,23 @@ processCallRecvMsg(virConnectPtr conn, struct private_data *priv,
      * structure), or REMOTE_ERROR (and what follows is a remote_error
      * structure).
      */
-    switch (hdr.status) {
+    switch (hdr->status) {
     case REMOTE_OK:
-        if (!(*thecall->ret_filter) (&xdr, thecall->ret)) {
+        if (!(*thecall->ret_filter) (xdr, thecall->ret)) {
             error (in_open ? NULL : conn, VIR_ERR_RPC,
                    _("unmarshalling ret"));
             return -1;
         }
         thecall->mode = REMOTE_MODE_COMPLETE;
-        xdr_destroy (&xdr);
         return 0;
 
     case REMOTE_ERROR:
         memset (&thecall->err, 0, sizeof thecall->err);
-        if (!xdr_remote_error (&xdr, &thecall->err)) {
+        if (!xdr_remote_error (xdr, &thecall->err)) {
             error (in_open ? NULL : conn,
                    VIR_ERR_RPC, _("unmarshalling remote_error"));
             return -1;
         }
-        xdr_destroy (&xdr);
         thecall->mode = REMOTE_MODE_ERROR;
         return 0;
 
@@ -6733,22 +6824,46 @@ processCallRecvMsg(virConnectPtr conn, struct private_data *priv,
         virRaiseError (in_open ? NULL : conn, NULL, NULL, VIR_FROM_REMOTE,
                        VIR_ERR_RPC, VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
                        _("unknown status (received %x)"),
-                       hdr.status);
-        xdr_destroy (&xdr);
+                       hdr->status);
         return -1;
     }
 }
 
+static int
+processCallDispatchMessage(virConnectPtr conn, struct private_data *priv,
+                           int in_open,
+                           remote_message_header *hdr,
+                           XDR *xdr) {
+    /* An async message has come in while we were waiting for the
+     * response. Process it to pull it off the wire, and try again
+     */
+    DEBUG0("Encountered an event while waiting for a response");
+
+    if (in_open) {
+        DEBUG("Ignoring bogus event %d received while in open", hdr->proc);
+        return -1;
+    }
+
+    if (hdr->proc == REMOTE_PROC_DOMAIN_EVENT) {
+        remoteDomainQueueEvent(conn, xdr);
+        virEventUpdateTimeout(priv->eventFlushTimer, 0);
+    } else {
+        return -1;
+        DEBUG("Unexpected event proc %d", hdr->proc);
+    }
+    return 0;
+}
+
 
 static int
-processCallRecv(virConnectPtr conn, struct private_data *priv,
-                int in_open)
+remoteIOHandleInput(virConnectPtr conn, struct private_data *priv,
+                    int in_open)
 {
     /* Read as much data as is available, until we get
      * EAGAIN
      */
     for (;;) {
-        int ret = processCallRecvSome(conn, priv, in_open);
+        int ret = remoteIOReadMessage(conn, priv, in_open);
 
         if (ret < 0)
             return -1;
@@ -6758,7 +6873,7 @@ processCallRecv(virConnectPtr conn, struct private_data *priv,
         /* Check for completion of our goal */
         if (priv->bufferOffset == priv->bufferLength) {
             if (priv->bufferOffset == 4) {
-                ret = processCallRecvLen(conn, priv, in_open);
+                ret = remoteIODecodeMessageLength(conn, priv, in_open);
                 if (ret < 0)
                     return -1;
 
@@ -6769,7 +6884,7 @@ processCallRecv(virConnectPtr conn, struct private_data *priv,
                  * next iteration.
                  */
             } else {
-                ret = processCallRecvMsg(conn, priv, in_open);
+                ret = processCallDispatch(conn, priv, in_open);
                 priv->bufferOffset = priv->bufferLength = 0;
                 /*
                  * We've completed one call, so return even
@@ -6790,10 +6905,10 @@ processCallRecv(virConnectPtr conn, struct private_data *priv,
  * to someone else.
  */
 static int
-processCalls(virConnectPtr conn,
-             struct private_data *priv,
-             int in_open,
-             struct remote_thread_call *thiscall)
+remoteIOEventLoop(virConnectPtr conn,
+                  struct private_data *priv,
+                  int in_open,
+                  struct remote_thread_call *thiscall)
 {
     struct pollfd fds[2];
     int ret;
@@ -6843,12 +6958,12 @@ processCalls(virConnectPtr conn,
         }
 
         if (fds[0].revents & POLLOUT) {
-            if (processCallSend(conn, priv, in_open) < 0)
+            if (remoteIOHandleOutput(conn, priv, in_open) < 0)
                 goto error;
         }
 
         if (fds[0].revents & POLLIN) {
-            if (processCallRecv(conn, priv, in_open) < 0)
+            if (remoteIOHandleInput(conn, priv, in_open) < 0)
                 goto error;
         }
 
@@ -6918,7 +7033,7 @@ error:
 }
 
 /*
- * This function performs a remote procedure call to procedure PROC_NR.
+ * This function sends a message to remote server and awaits a reply
  *
  * NB. This does not free the args structure (not desirable, since you
  * often want this allocated on the stack or else it contains strings
@@ -6951,24 +7066,16 @@ error:
  * NB(5) Don't Panic!
  */
 static int
-call (virConnectPtr conn, struct private_data *priv,
-      int flags /* if we are in virConnectOpen */,
-      int proc_nr,
-      xdrproc_t args_filter, char *args,
-      xdrproc_t ret_filter, char *ret)
+remoteIO(virConnectPtr conn,
+         struct private_data *priv,
+         int flags,
+         struct remote_thread_call *thiscall)
 {
     int rv;
-    struct remote_thread_call *thiscall;
 
-    DEBUG("Doing call %d %p", proc_nr, priv->waitDispatch);
-    thiscall = prepareCall(conn, priv, flags, proc_nr,
-                           args_filter, args,
-                           ret_filter, ret);
-
-    if (!thiscall) {
-        virReportOOMError (flags & REMOTE_CALL_IN_OPEN ? NULL : conn);
-        return -1;
-    }
+    DEBUG("Do proc=%d serial=%d length=%d wait=%p",
+          thiscall->proc_nr, thiscall->serial,
+          thiscall->bufferLength, priv->waitDispatch);
 
     /* Check to see if another thread is dispatching */
     if (priv->waitDispatch) {
@@ -6985,7 +7092,7 @@ call (virConnectPtr conn, struct private_data *priv,
         /* Force other thread to wakup from poll */
         safewrite(priv->wakeupSendFD, &ignore, sizeof(ignore));
 
-        DEBUG("Going to sleep %d %p %p", proc_nr, priv->waitDispatch, thiscall);
+        DEBUG("Going to sleep %d %p %p", thiscall->proc_nr, priv->waitDispatch, thiscall);
         /* Go to sleep while other thread is working... */
         if (virCondWait(&thiscall->cond, &priv->lock) < 0) {
             if (priv->waitDispatch == thiscall) {
@@ -7006,7 +7113,7 @@ call (virConnectPtr conn, struct private_data *priv,
             return -1;
         }
 
-        DEBUG("Wokeup from sleep %d %p %p", proc_nr, priv->waitDispatch, thiscall);
+        DEBUG("Wokeup from sleep %d %p %p", thiscall->proc_nr, priv->waitDispatch, thiscall);
         /* Two reasons we can be woken up
          *  1. Other thread has got our reply ready for us
          *  2. Other thread is all done, and it is our turn to
@@ -7030,7 +7137,7 @@ call (virConnectPtr conn, struct private_data *priv,
         priv->waitDispatch = thiscall;
     }
 
-    DEBUG("We have the buck %d %p %p", proc_nr, priv->waitDispatch, thiscall);
+    DEBUG("We have the buck %d %p %p", thiscall->proc_nr, priv->waitDispatch, thiscall);
     /*
      * The buck stops here!
      *
@@ -7048,9 +7155,9 @@ call (virConnectPtr conn, struct private_data *priv,
     if (priv->watch >= 0)
         virEventUpdateHandle(priv->watch, 0);
 
-    rv = processCalls(conn, priv,
-                      flags & REMOTE_CALL_IN_OPEN ? 1 : 0,
-                      thiscall);
+    rv = remoteIOEventLoop(conn, priv,
+                           flags & REMOTE_CALL_IN_OPEN ? 1 : 0,
+                           thiscall);
 
     if (priv->watch >= 0)
         virEventUpdateHandle(priv->watch, VIR_EVENT_HANDLE_READABLE);
@@ -7061,7 +7168,7 @@ call (virConnectPtr conn, struct private_data *priv,
     }
 
 cleanup:
-    DEBUG("All done with our call %d %p %p", proc_nr, priv->waitDispatch, thiscall);
+    DEBUG("All done with our call %d %p %p", thiscall->proc_nr, priv->waitDispatch, thiscall);
     if (thiscall->mode == REMOTE_MODE_ERROR) {
         /* See if caller asked us to keep quiet about missing RPCs
          * eg for interop with older servers */
@@ -7073,8 +7180,17 @@ cleanup:
             STRPREFIX(*thiscall->err.message, "unknown procedure")) {
             rv = -2;
         } else {
-            server_error (flags & REMOTE_CALL_IN_OPEN ? NULL : conn,
-                          &thiscall->err);
+            virRaiseErrorFull(flags & REMOTE_CALL_IN_OPEN ? NULL : conn,
+                              __FILE__, __FUNCTION__, __LINE__,
+                              thiscall->err.domain,
+                              thiscall->err.code,
+                              thiscall->err.level,
+                              thiscall->err.str1 ? *thiscall->err.str1 : NULL,
+                              thiscall->err.str2 ? *thiscall->err.str2 : NULL,
+                              thiscall->err.str3 ? *thiscall->err.str3 : NULL,
+                              thiscall->err.int1,
+                              thiscall->err.int2,
+                              "%s", thiscall->err.message ? *thiscall->err.message : NULL);
             rv = -1;
         }
         xdr_free((xdrproc_t)xdr_remote_error,  (char *)&thiscall->err);
@@ -7085,6 +7201,34 @@ cleanup:
     return rv;
 }
 
+
+/*
+ * Serial a set of arguments into a method call message,
+ * send that to the server and wait for reply
+ */
+static int
+call (virConnectPtr conn, struct private_data *priv,
+      int flags /* if we are in virConnectOpen */,
+      int proc_nr,
+      xdrproc_t args_filter, char *args,
+      xdrproc_t ret_filter, char *ret)
+{
+    struct remote_thread_call *thiscall;
+
+    thiscall = prepareCall(conn, priv, flags, proc_nr,
+                           args_filter, args,
+                           ret_filter, ret);
+
+    if (!thiscall) {
+        virReportOOMError (flags & REMOTE_CALL_IN_OPEN ? NULL : conn);
+        return -1;
+    }
+
+    return remoteIO(conn, priv, flags, thiscall);
+}
+
+
+
 /**
  * remoteDomainReadEvent
  *
@@ -7093,23 +7237,23 @@ cleanup:
 static virDomainEventPtr
 remoteDomainReadEvent(virConnectPtr conn, XDR *xdr)
 {
-    remote_domain_event_ret ret;
+    remote_domain_event_msg msg;
     virDomainPtr dom;
     virDomainEventPtr event = NULL;
-    memset (&ret, 0, sizeof ret);
+    memset (&msg, 0, sizeof msg);
 
     /* unmarshall parameters, and process it*/
-    if (! xdr_remote_domain_event_ret(xdr, &ret) ) {
+    if (! xdr_remote_domain_event_msg(xdr, &msg) ) {
         error (conn, VIR_ERR_RPC,
-               _("remoteDomainProcessEvent: unmarshalling ret"));
+               _("remoteDomainProcessEvent: unmarshalling msg"));
         return NULL;
     }
 
-    dom = get_nonnull_domain(conn,ret.dom);
+    dom = get_nonnull_domain(conn,msg.dom);
     if (!dom)
         return NULL;
 
-    event = virDomainEventNewFromDom(dom, ret.event, ret.detail);
+    event = virDomainEventNewFromDom(dom, msg.event, msg.detail);
 
     virDomainFree(dom);
     return event;
@@ -7168,11 +7312,25 @@ remoteDomainEventFired(int watch,
         goto done;
     }
 
-    if (processCallRecv(conn, priv, 0) < 0)
+    if (remoteIOHandleInput(conn, priv, 0) < 0)
         DEBUG0("Something went wrong during async message processing");
 
 done:
     remoteDriverUnlock(priv);
+}
+
+static void remoteDomainEventDispatchFunc(virConnectPtr conn,
+                                          virDomainEventPtr event,
+                                          virConnectDomainEventCallback cb,
+                                          void *cbopaque,
+                                          void *opaque)
+{
+    struct private_data *priv = opaque;
+
+    /* Drop the lock whle dispatching, for sake of re-entrancy */
+    remoteDriverUnlock(priv);
+    virDomainEventDispatchDefaultFunc(conn, event, cb, cbopaque, NULL);
+    remoteDriverLock(priv);
 }
 
 void
@@ -7180,76 +7338,38 @@ remoteDomainEventQueueFlush(int timer ATTRIBUTE_UNUSED, void *opaque)
 {
     virConnectPtr conn = opaque;
     struct private_data *priv = conn->privateData;
+    virDomainEventQueue tempQueue;
 
     remoteDriverLock(priv);
 
-    virDomainEventQueueDispatch(priv->domainEvents, priv->callbackList,
-                                virDomainEventDispatchDefaultFunc, NULL);
+    priv->domainEventDispatching = 1;
+
+    /* Copy the queue, so we're reentrant safe */
+    tempQueue.count = priv->domainEvents->count;
+    tempQueue.events = priv->domainEvents->events;
+    priv->domainEvents->count = 0;
+    priv->domainEvents->events = NULL;
+
+    virDomainEventQueueDispatch(&tempQueue, priv->callbackList,
+                                remoteDomainEventDispatchFunc, priv);
     virEventUpdateTimeout(priv->eventFlushTimer, -1);
+
+    /* Purge any deleted callbacks */
+    virDomainEventCallbackListPurgeMarked(priv->callbackList);
+
+    if ( priv->callbackList->count == 0 ) {
+        /* Tell the server when we are the last callback deregistering */
+        if (call (conn, priv, 0, REMOTE_PROC_DOMAIN_EVENTS_DEREGISTER,
+                  (xdrproc_t) xdr_void, (char *) NULL,
+                  (xdrproc_t) xdr_void, (char *) NULL) == -1)
+            VIR_WARN0("Failed to de-register events");
+    }
+
+    priv->domainEventDispatching = 0;
 
     remoteDriverUnlock(priv);
 }
 
-
-/* For errors internal to this library. */
-static void
-error (virConnectPtr conn, virErrorNumber code, const char *info)
-{
-    const char *errmsg;
-
-    errmsg = virErrorMsg (code, info);
-    virRaiseError (conn, NULL, NULL, VIR_FROM_REMOTE,
-                     code, VIR_ERR_ERROR, errmsg, info, NULL, 0, 0,
-                     errmsg, info);
-}
-
-/* For errors internal to this library.
-   Identical to the above, but with a format string and optional params.  */
-static void
-errorf (virConnectPtr conn, virErrorNumber code, const char *fmt, ...)
-{
-    const char *errmsg;
-    va_list args;
-    char errorMessage[256];
-
-    if (fmt) {
-        va_start(args, fmt);
-        vsnprintf(errorMessage, sizeof errorMessage - 1, fmt, args);
-        va_end(args);
-    } else {
-        errorMessage[0] = '\0';
-    }
-
-    errmsg = virErrorMsg (code, errorMessage);
-    virRaiseError (conn, NULL, NULL, VIR_FROM_REMOTE,
-                     code, VIR_ERR_ERROR,
-                     errmsg, errorMessage, NULL, -1, -1,
-                     errmsg, errorMessage);
-}
-
-/* For errors generated on the server side and sent back to us. */
-static void
-server_error (virConnectPtr conn, remote_error *err)
-{
-    virDomainPtr dom;
-    virNetworkPtr net;
-
-    /* Get the domain and network, if set. */
-    dom = err->dom ? get_nonnull_domain (conn, *err->dom) : NULL;
-    net = err->net ? get_nonnull_network (conn, *err->net) : NULL;
-
-    virRaiseError (conn, dom, net,
-                     err->domain, err->code, err->level,
-                     err->str1 ? *err->str1 : NULL,
-                     err->str2 ? *err->str2 : NULL,
-                     err->str3 ? *err->str3 : NULL,
-                     err->int1, err->int2,
-                     "%s", err->message ? *err->message : NULL);
-    if (dom)
-        virDomainFree(dom);
-    if (net)
-        virNetworkFree(net);
-}
 
 /* get_nonnull_domain and get_nonnull_network turn an on-wire
  * (name, uuid) pair into virDomainPtr or virNetworkPtr object.
@@ -7438,6 +7558,8 @@ static virInterfaceDriver interface_driver = {
     .close = remoteInterfaceClose,
     .numOfInterfaces = remoteNumOfInterfaces,
     .listInterfaces = remoteListInterfaces,
+    .numOfDefinedInterfaces = remoteNumOfDefinedInterfaces,
+    .listDefinedInterfaces = remoteListDefinedInterfaces,
     .interfaceLookupByName = remoteInterfaceLookupByName,
     .interfaceLookupByMACString = remoteInterfaceLookupByMACString,
     .interfaceGetXMLDesc = remoteInterfaceGetXMLDesc,

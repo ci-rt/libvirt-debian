@@ -6,6 +6,7 @@ INCLUDES = \
 	   -I@top_srcdir@/include \
 	   -I@top_srcdir@/qemud \
 	   $(LIBXML_CFLAGS) \
+	   $(LIBSSH_CFLAGS) \
 	   $(XEN_CFLAGS) \
 	   $(SELINUX_CFLAGS) \
 	   $(DRIVER_MODULE_CFLAGS) \
@@ -85,6 +86,9 @@ NETWORK_CONF_SOURCES =						\
 STORAGE_CONF_SOURCES =						\
 		storage_conf.h storage_conf.c
 
+# Interface driver generic impl APIs
+INTERFACE_CONF_SOURCES =					\
+		interface_conf.c interface_conf.h
 
 # The remote RPC driver, covering domains, storage, networks, etc
 REMOTE_DRIVER_SOURCES =						\
@@ -126,35 +130,51 @@ LXC_CONTROLLER_SOURCES =					\
 		veth.c veth.h                                   \
 		cgroup.c cgroup.h
 
+PHYP_DRIVER_SOURCES =						\
+		phyp/phyp_driver.c phyp/phyp_driver.h
+
 OPENVZ_DRIVER_SOURCES =						\
 		openvz_conf.c openvz_conf.h			\
 		openvz_driver.c openvz_driver.h
 
-VBOX_DRIVER_SOURCES =                                 \
-        vbox/vbox_XPCOMCGlue.c vbox/vbox_XPCOMCGlue.h \
-        vbox/vbox_driver.c vbox/vbox_driver.h         \
-        vbox/vbox_V2_2.c vbox/vbox_CAPI_v2_2.h
+VBOX_DRIVER_SOURCES =						\
+        vbox/vbox_XPCOMCGlue.c vbox/vbox_XPCOMCGlue.h		\
+        vbox/vbox_driver.c vbox/vbox_driver.h			\
+        vbox/vbox_V2_2.c vbox/vbox_CAPI_v2_2.h			\
+        vbox/vbox_V3_0.c vbox/vbox_CAPI_v3_0.h
 
 VBOX_DRIVER_EXTRA_DIST = vbox/vbox_tmpl.c vbox/README
 
 QEMU_DRIVER_SOURCES =						\
 		qemu_conf.c qemu_conf.h				\
-		qemu_driver.c qemu_driver.h
+		qemu_driver.c qemu_driver.h			\
+		cgroup.c cgroup.h
 
 UML_DRIVER_SOURCES =						\
 		uml_conf.c uml_conf.h				\
 		uml_driver.c uml_driver.h
 
-ONE_DRIVER_SOURCES =					\
-		./opennebula/one_conf.c			\
-		./opennebula/one_conf.h			\
-		./opennebula/one_driver.c		\
-		./opennebula/one_driver.h		\
-		./opennebula/one_client.c		\
+ONE_DRIVER_SOURCES =						\
+		./opennebula/one_conf.c				\
+		./opennebula/one_conf.h				\
+		./opennebula/one_driver.c			\
+		./opennebula/one_driver.h			\
+		./opennebula/one_client.c			\
 		./opennebula/one_client.h
+
+ESX_DRIVER_SOURCES =						\
+		esx/esx_driver.c esx/esx_driver.h		\
+		esx/esx_util.c esx/esx_util.h			\
+		esx/esx_vi.c esx/esx_vi.h			\
+		esx/esx_vi_methods.c esx/esx_vi_methods.h	\
+		esx/esx_vi_types.c esx/esx_vi_types.h		\
+		esx/esx_vmx.c esx/esx_vmx.h
 
 NETWORK_DRIVER_SOURCES =					\
 		network_driver.h network_driver.c
+
+INTERFACE_DRIVER_SOURCES =					\
+		interface_driver.h interface_driver.c
 
 # Storage backend specific impls
 STORAGE_DRIVER_SOURCES =					\
@@ -186,7 +206,7 @@ STORAGE_HELPER_DISK_SOURCES =					\
 
 
 # Security framework and drivers for various models
-SECURITY_DRIVER_SOURCES =                                      \
+SECURITY_DRIVER_SOURCES =					\
 		security.h security.c
 
 SECURITY_DRIVER_SELINUX_SOURCES =				\
@@ -225,6 +245,7 @@ libvirt_driver_la_SOURCES =					\
 		$(DOMAIN_CONF_SOURCES)				\
 		$(NETWORK_CONF_SOURCES)				\
 		$(STORAGE_CONF_SOURCES)				\
+		$(INTERFACE_CONF_SOURCES)			\
 		$(NODE_DEVICE_CONF_SOURCES)
 
 libvirt_driver_la_CFLAGS = $(XEN_CFLAGS) $(NUMACTL_CFLAGS)
@@ -277,6 +298,18 @@ if WITH_DRIVER_MODULES
 libvirt_driver_xen_la_LDFLAGS += -module -avoid-version
 endif
 libvirt_driver_xen_la_SOURCES = $(XEN_DRIVER_SOURCES)
+endif
+
+if WITH_PHYP
+if WITH_DRIVER_MODULES
+mod_LTLIBRARIES += libvirt_driver_phyp.la
+else
+noinst_LTLIBRARIES += libvirt_driver_phyp.la
+libvirt_la_LIBADD += libvirt_driver_phyp.la
+endif
+libvirt_driver_phyp_la_LDFLAGS = $(LIBSSH_LIBS)
+libvirt_driver_phyp_la_CFLAGS = $(LIBSSH_CFLAGS)
+libvirt_driver_phyp_la_SOURCES = $(PHYP_DRIVER_SOURCES)
 endif
 
 if WITH_OPENVZ
@@ -371,6 +404,21 @@ endif
 
 
 
+if WITH_ESX
+if WITH_DRIVER_MODULES
+mod_LTLIBRARIES += libvirt_driver_esx.la
+else
+noinst_LTLIBRARIES += libvirt_driver_esx.la
+libvirt_la_LIBADD += libvirt_driver_esx.la
+endif
+libvirt_driver_esx_la_CFLAGS = $(LIBCURL_CFLAGS)
+libvirt_driver_esx_la_LDFLAGS = $(LIBCURL_LIBS)
+if WITH_DRIVER_MODULES
+libvirt_driver_esx_la_LDFLAGS += -module -avoid-version
+endif
+libvirt_driver_esx_la_SOURCES = $(ESX_DRIVER_SOURCES)
+endif
+
 if WITH_NETWORK
 if WITH_DRIVER_MODULES
 mod_LTLIBRARIES += libvirt_driver_network.la
@@ -386,8 +434,18 @@ libvirt_driver_network_la_SOURCES = $(NETWORK_DRIVER_SOURCES)
 endif
 
 if WITH_NETCF
-libvirt_driver_interface_la_CFLAGS = $(NETCF_CFLAGS)
 libvirt_driver_interface_la_LDFLAGS = $(NETCF_LIBS)
+libvirt_driver_interface_la_CFLAGS = $(NETCF_CFLAGS)
+if WITH_DRIVER_MODULES
+mod_LTLIBRARIES += libvirt_driver_interface.la
+else
+noinst_LTLIBRARIES += libvirt_driver_interface.la
+libvirt_la_LIBADD += libvirt_driver_interface.la
+endif
+if WITH_DRIVER_MODULES
+libvirt_driver_interface_la_LDFLAGS += -module -avoid-version
+endif
+libvirt_driver_interface_la_SOURCES = $(INTERFACE_DRIVER_SOURCES)
 endif
 
 # Needed to keep automake quiet about conditionals
@@ -470,8 +528,11 @@ EXTRA_DIST +=							\
 		$(UML_DRIVER_SOURCES)				\
 		$(ONE_DRIVER_SOURCES)				\
 		$(OPENVZ_DRIVER_SOURCES)			\
+		$(PHYP_DRIVER_SOURCES)				\
 		$(VBOX_DRIVER_SOURCES)				\
+		$(ESX_DRIVER_SOURCES)				\
 		$(NETWORK_DRIVER_SOURCES)			\
+		$(INTERFACE_DRIVER_SOURCES)			\
 		$(STORAGE_DRIVER_SOURCES)			\
 		$(STORAGE_DRIVER_FS_SOURCES)			\
 		$(STORAGE_DRIVER_LVM_SOURCES)			\
@@ -680,6 +741,7 @@ install-exec-local:
 if WITH_QEMU
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/qemu"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/run/libvirt/qemu"
+	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/cache/libvirt/qemu"
 endif
 if WITH_LXC
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/lxc"
