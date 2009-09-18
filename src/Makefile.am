@@ -6,7 +6,7 @@ INCLUDES = \
 	   -I@top_srcdir@/include \
 	   -I@top_srcdir@/qemud \
 	   $(LIBXML_CFLAGS) \
-	   $(LIBSSH_CFLAGS) \
+	   $(LIBSSH2_CFLAGS) \
 	   $(XEN_CFLAGS) \
 	   $(SELINUX_CFLAGS) \
 	   $(DRIVER_MODULE_CFLAGS) \
@@ -51,7 +51,9 @@ UTIL_SOURCES =							\
 		logging.c logging.h				\
 		memory.c memory.h				\
 		pci.c pci.h					\
+		hostusb.c hostusb.h				\
 		qparams.c qparams.h				\
+		storage_encryption_conf.h storage_encryption_conf.c	\
 		threads.c threads.h				\
 		threads-pthread.h				\
 		threads-win32.h					\
@@ -89,6 +91,10 @@ STORAGE_CONF_SOURCES =						\
 # Interface driver generic impl APIs
 INTERFACE_CONF_SOURCES =					\
 		interface_conf.c interface_conf.h
+
+# Secret driver generic impl APIs
+SECRET_CONF_SOURCES =						\
+		secret_conf.h secret_conf.c
 
 # The remote RPC driver, covering domains, storage, networks, etc
 REMOTE_DRIVER_SOURCES =						\
@@ -176,6 +182,9 @@ NETWORK_DRIVER_SOURCES =					\
 INTERFACE_DRIVER_SOURCES =					\
 		interface_driver.h interface_driver.c
 
+SECRET_DRIVER_SOURCES =						\
+		secret_driver.h secret_driver.c
+
 # Storage backend specific impls
 STORAGE_DRIVER_SOURCES =					\
 		storage_driver.h storage_driver.c		\
@@ -197,6 +206,9 @@ STORAGE_DRIVER_ISCSI_SOURCES =					\
 
 STORAGE_DRIVER_SCSI_SOURCES =					\
 		storage_backend_scsi.h storage_backend_scsi.c
+
+STORAGE_DRIVER_MPATH_SOURCES =					\
+		storage_backend_mpath.h storage_backend_mpath.c
 
 STORAGE_DRIVER_DISK_SOURCES =					\
 		storage_backend_disk.h storage_backend_disk.c
@@ -246,7 +258,8 @@ libvirt_driver_la_SOURCES =					\
 		$(NETWORK_CONF_SOURCES)				\
 		$(STORAGE_CONF_SOURCES)				\
 		$(INTERFACE_CONF_SOURCES)			\
-		$(NODE_DEVICE_CONF_SOURCES)
+		$(NODE_DEVICE_CONF_SOURCES)			\
+		$(SECRET_CONF_SOURCES)
 
 libvirt_driver_la_CFLAGS = $(XEN_CFLAGS) $(NUMACTL_CFLAGS)
 libvirt_driver_la_LDFLAGS = $(XEN_LIBS) $(NUMACTL_LIBS)
@@ -307,8 +320,8 @@ else
 noinst_LTLIBRARIES += libvirt_driver_phyp.la
 libvirt_la_LIBADD += libvirt_driver_phyp.la
 endif
-libvirt_driver_phyp_la_LDFLAGS = $(LIBSSH_LIBS)
-libvirt_driver_phyp_la_CFLAGS = $(LIBSSH_CFLAGS)
+libvirt_driver_phyp_la_LDFLAGS = $(LIBSSH2_LIBS)
+libvirt_driver_phyp_la_CFLAGS = $(LIBSSH2_CFLAGS)
 libvirt_driver_phyp_la_SOURCES = $(PHYP_DRIVER_SOURCES)
 endif
 
@@ -392,8 +405,8 @@ noinst_LTLIBRARIES += libvirt_driver_one.la
 # Stateful, so linked to daemon instead
 #libvirt_la_LIBADD  += libvirt_driver_one.la
 endif
-libvirt_driver_one_la_CFLAGS = $(ONE_LIBS)
-libvirt_driver_one_la_LDFLAGS = $(ONE_LIBS)
+libvirt_driver_one_la_CFLAGS = $(XMLRPC_CFLAGS)
+libvirt_driver_one_la_LDFLAGS = $(XMLRPC_LIBS)
 #libvirt_driver_one_la_CFLAGS  = "-DWITH_ONE"
 if WITH_DRIVER_MODULES
 libvirt_driver_one_la_LDFLAGS += -module -avoid-version
@@ -448,8 +461,22 @@ endif
 libvirt_driver_interface_la_SOURCES = $(INTERFACE_DRIVER_SOURCES)
 endif
 
+if WITH_SECRETS
+if WITH_DRIVER_MODULES
+mod_LTLIBRARIES += libvirt_driver_secret.la
+else
+noinst_LTLIBRARIES += libvirt_driver_secret.la
+libvirt_la_LIBADD += libvirt_driver_secret.la
+endif
+if WITH_DRIVER_MODULES
+libvirt_driver_secret_la_LDFLAGS = -module -avoid-version ../gnulib/lib/libgnu.la
+endif
+libvirt_driver_secret_la_SOURCES = $(SECRET_DRIVER_SOURCES)
+endif
+
 # Needed to keep automake quiet about conditionals
 libvirt_driver_storage_la_SOURCES =
+libvirt_driver_storage_la_CFLAGS =
 if WITH_STORAGE_DIR
 if WITH_DRIVER_MODULES
 mod_LTLIBRARIES += libvirt_driver_storage.la
@@ -475,6 +502,11 @@ endif
 
 if WITH_STORAGE_SCSI
 libvirt_driver_storage_la_SOURCES += $(STORAGE_DRIVER_SCSI_SOURCES)
+endif
+
+if WITH_STORAGE_MPATH
+libvirt_driver_storage_la_SOURCES += $(STORAGE_DRIVER_MPATH_SOURCES)
+libvirt_driver_storage_la_CFLAGS += $(DEVMAPPER_CFLAGS)
 endif
 
 if WITH_STORAGE_DISK
@@ -538,11 +570,13 @@ EXTRA_DIST +=							\
 		$(STORAGE_DRIVER_LVM_SOURCES)			\
 		$(STORAGE_DRIVER_ISCSI_SOURCES)			\
 		$(STORAGE_DRIVER_SCSI_SOURCES)			\
+		$(STORAGE_DRIVER_MPATH_SOURCES)			\
 		$(STORAGE_DRIVER_DISK_SOURCES)			\
 		$(NODE_DEVICE_DRIVER_SOURCES)			\
 		$(NODE_DEVICE_DRIVER_HAL_SOURCES)		\
 		$(NODE_DEVICE_DRIVER_DEVKIT_SOURCES)		\
 		$(SECURITY_DRIVER_SELINUX_SOURCES)		\
+		$(SECRET_DRIVER_SOURCES)			\
 		$(VBOX_DRIVER_EXTRA_DIST)
 
 #
@@ -606,6 +640,7 @@ libvirt_la_LDFLAGS = $(VERSION_SCRIPT_FLAGS)libvirt.syms \
                     $(COVERAGE_CFLAGS:-f%=-Wc,-f%) \
                     $(LIBXML_LIBS) $(SELINUX_LIBS) \
 		    $(XEN_LIBS) $(DRIVER_MODULE_LIBS) \
+		    $(DEVMAPPER_LIBS) \
 		    @CYGWIN_EXTRA_LDFLAGS@ @MINGW_EXTRA_LDFLAGS@
 libvirt_la_CFLAGS = $(COVERAGE_CFLAGS) -DIN_LIBVIRT
 libvirt_la_DEPENDENCIES = $(libvirt_la_LIBADD) libvirt.syms

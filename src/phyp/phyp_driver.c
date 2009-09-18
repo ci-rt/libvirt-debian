@@ -34,8 +34,11 @@
 #include <unistd.h>
 #include <errno.h>
 #include <stdio.h>
-
-#include <libssh/libssh.h>
+#include <libssh2.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netdb.h>
 
 #include "internal.h"
 #include "util.h"
@@ -53,6 +56,10 @@
 
 #define VIR_FROM_THIS VIR_FROM_PHYP
 
+#define PHYP_CMD_DEBUG VIR_DEBUG("COMMAND:%s\n",cmd);
+
+static int escape_specialcharacters(char *src, char *dst, size_t dstlen);
+
 /*
  * URI: phyp://user@[hmc|ivm]/managed_system
  * */
@@ -61,24 +68,18 @@ static virDrvOpenStatus
 phypOpen(virConnectPtr conn,
          virConnectAuthPtr auth, int flags ATTRIBUTE_UNUSED)
 {
-    SSH_SESSION *session;
-    ConnectionData *connection_data;
-    char string[strlen(conn->uri->path)];
-
+    LIBSSH2_SESSION *session = NULL;
+    ConnectionData *connection_data = NULL;
+    char *string;
+    size_t len = 0;
     uuid_dbPtr uuid_db = NULL;
-
-    if (VIR_ALLOC(uuid_db) < 0)
-        virReportOOMError(conn);
-
-    if (VIR_ALLOC(connection_data) < 0)
-        virReportOOMError(conn);
+    int internal_socket;
 
     if (!conn || !conn->uri)
         return VIR_DRV_OPEN_DECLINED;
 
     if (conn->uri->scheme == NULL || STRNEQ(conn->uri->scheme, "phyp"))
         return VIR_DRV_OPEN_DECLINED;
-
 
     if (conn->uri->server == NULL) {
         virRaiseError(conn, NULL, NULL, 0, VIR_FROM_PHYP,
@@ -94,21 +95,37 @@ phypOpen(virConnectPtr conn,
         return VIR_DRV_OPEN_ERROR;
     }
 
-    if (escape_specialcharacters(conn->uri->path, string) == -1) {
+    if (VIR_ALLOC(uuid_db) < 0) {
+        virReportOOMError(conn);
+        goto failure;
+    }
+
+    if (VIR_ALLOC(connection_data) < 0) {
+        virReportOOMError(conn);
+        goto failure;
+    }
+
+    len = strlen(conn->uri->path) + 1;
+
+    if (VIR_ALLOC_N(string, len) < 0) {
+        virReportOOMError(conn);
+        goto failure;
+    }
+
+    if (escape_specialcharacters(conn->uri->path, string, len) == -1) {
         virRaiseError(conn, NULL, NULL, 0, VIR_FROM_PHYP,
                       VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0, "%s",
                       _("Error parsing 'path'. Invalid characters."));
-        return VIR_DRV_OPEN_ERROR;
+        goto failure;
     }
 
-    if ((session = openSSHSession(conn, auth)) == NULL) {
+    if ((session = openSSHSession(conn, auth, &internal_socket)) == NULL) {
         virRaiseError(conn, NULL, NULL, 0, VIR_FROM_PHYP,
                       VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0, "%s",
                       _("Error while opening SSH session."));
-        return VIR_DRV_OPEN_ERROR;
+        goto failure;
     }
-
-    conn->uri->path = string;
+    //conn->uri->path = string;
     connection_data->session = session;
     connection_data->auth = auth;
 
@@ -120,69 +137,108 @@ phypOpen(virConnectPtr conn,
     init_uuid_db(conn);
 
     return VIR_DRV_OPEN_SUCCESS;
+
+  failure:
+    VIR_FREE(uuid_db);
+    VIR_FREE(connection_data);
+    VIR_FREE(string);
+
+    return VIR_DRV_OPEN_ERROR;
 }
 
 static int
 phypClose(virConnectPtr conn)
 {
     ConnectionData *connection_data = conn->networkPrivateData;
-    SSH_SESSION *ssh_session = connection_data->session;
+    LIBSSH2_SESSION *session = connection_data->session;
 
-    ssh_disconnect(ssh_session);
+    libssh2_session_disconnect(session, "Disconnecting...");
+    libssh2_session_free(session);
 
     VIR_FREE(connection_data);
     return 0;
 }
 
-SSH_SESSION *
-openSSHSession(virConnectPtr conn, virConnectAuthPtr auth)
+LIBSSH2_SESSION *
+openSSHSession(virConnectPtr conn, virConnectAuthPtr auth,
+               int *internal_socket)
 {
-    SSH_SESSION *session;
-    SSH_OPTIONS *opt;
-    char *user = conn->uri->user;
-    char *host = conn->uri->server;
-    int ssh_auth = 0;
-    char *banner;
-    int port = 22;
-    char *password;
+    LIBSSH2_SESSION *session;
+    const char *hostname = conn->uri->server;
+    const char *username = conn->uri->user;
+    const char *password = NULL;
+    int sock;
+    int rc;
 
-    if (conn->uri->port)
-        port = conn->uri->port;
+    struct addrinfo *ai = NULL, *cur;
+    struct addrinfo hints;
+    int ret;
 
-    session = ssh_new();
-    opt = ssh_options_new();
+    memset (&hints, '\0', sizeof (hints));
+    hints.ai_flags = AI_ADDRCONFIG | AI_NUMERICSERV;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = 0;
 
-    /*setting some ssh options */
-    ssh_options_set_host(opt, host);
-    ssh_options_set_port(opt, port);
-    ssh_options_set_username(opt, user);
-    ssh_set_options(session, opt);
-
-    /*starting ssh connection */
-    if (ssh_connect(session)) {
-        virRaiseError(conn, NULL, NULL, 0, VIR_FROM_PHYP, VIR_ERR_ERROR,
-                      NULL, NULL, NULL, 0, 0, "%s",
-                      _("Connection failed."));
-        ssh_disconnect(session);
-        ssh_finalize();
+    ret = getaddrinfo (hostname, "22", &hints, &ai);
+    if (ret != 0) {
+        virRaiseError(conn, NULL, NULL, 0, VIR_FROM_PHYP,
+                      VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
+                      _("Error while getting %s address info"),
+                      hostname);
         goto err;
     }
 
-    /*trying to use pub key */
-    if ((ssh_auth =
-         ssh_userauth_autopubkey(session, NULL)) == SSH_AUTH_ERROR) {
-        VIR_WARN("%s", "Authentication with public key failed.");
+    cur = ai;
+    while (cur != NULL) {
+        sock = socket(cur->ai_family, cur->ai_socktype, cur->ai_protocol);
+        if (sock >= 0) {
+            if (connect (sock, cur->ai_addr, cur->ai_addrlen) == 0) {
+                goto connected;
+            }
+            close (sock);
+        }
+        cur = cur->ai_next;
     }
 
-    if ((banner = ssh_get_issue_banner(session))) {
-        VIR_INFO("%s", banner);
-        VIR_FREE(banner);
+    virRaiseError(conn, NULL, NULL, 0, VIR_FROM_PHYP,
+                  VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
+                  _("Failed to connect to %s"), hostname);
+    freeaddrinfo (ai);
+    goto err;
+
+connected:
+
+    (*internal_socket) = sock;
+
+    /* Create a session instance */
+    session = libssh2_session_init();
+    if (!session)
+        goto err;
+
+    /* tell libssh2 we want it all done non-blocking */
+    libssh2_session_set_blocking(session, 0);
+
+    while ((rc = libssh2_session_startup(session, sock)) ==
+           LIBSSH2_ERROR_EAGAIN) ;
+    if (rc) {
+        virRaiseError(conn, NULL, NULL, 0, VIR_FROM_PHYP,
+                      VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0, "%s",
+                      _("Failure establishing SSH session."));
+        goto err;
     }
 
-    if (ssh_auth != SSH_AUTH_SUCCESS) {
+    /* Trying authentication by pubkey */
+    while ((rc =
+            libssh2_userauth_publickey_fromfile(session, username,
+                                                "/home/user/"
+                                                ".ssh/id_rsa.pub",
+                                                "/home/user/"
+                                                ".ssh/id_rsa",
+                                                password)) ==
+           LIBSSH2_ERROR_EAGAIN) ;
+    if (rc) {
         int i;
         int hasPassphrase = 0;
-        int auth_check = 0;
 
         virConnectCredential creds[] = {
             {VIR_CRED_PASSPHRASE, "password", "Password", NULL, NULL, 0},
@@ -217,34 +273,32 @@ openSSHSession(virConnectPtr conn, virConnectAuthPtr auth)
             goto err;
         }
 
-        if (creds[0].result)
+        if (creds[0].result) {
             password = creds[0].result;
-        else {
+        } else {
             virRaiseError(conn, NULL, NULL, 0, VIR_FROM_PHYP,
-                          VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
-                          _("Unable to get password certificate: %s"),
-                          ssh_get_error(session));
-            ssh_disconnect(session);
+                          VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0, "%s",
+                          _("Unable to get password certificates"));
+            libssh2_session_disconnect(session, "Disconnecting...");
+            libssh2_session_free(session);
             goto err;
         }
 
-        char *username = user;
+        while ((rc =
+                libssh2_userauth_password(session, username,
+                                          password)) ==
+               LIBSSH2_ERROR_EAGAIN) ;
 
-        auth_check = ssh_userauth_password(session, username, password);
-        memset(password, 0, strlen(password));
-
-        if (auth_check != SSH_AUTH_SUCCESS) {
+        if (rc) {
             virRaiseError(conn, NULL, NULL, 0, VIR_FROM_PHYP,
-                          VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0,
-                          _("Authentication failed: %s"),
-                          ssh_get_error(session));
-            ssh_disconnect(session);
+                          VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0, "%s",
+                          _("Authentication failed"));
+            libssh2_session_disconnect(session, "Disconnecting");
+            libssh2_session_free(session);
             goto err;
         } else
             goto exit;
-    } else
-        goto exit;
-
+    }
   err:
     return NULL;
 
@@ -255,55 +309,72 @@ openSSHSession(virConnectPtr conn, virConnectAuthPtr auth)
 /* this functions is the layer that manipulates the ssh channel itself
  * and executes the commands on the remote machine */
 static char *
-phypExec(SSH_SESSION * session, char *cmd, int *exit_status,
+phypExec(LIBSSH2_SESSION * session, char *cmd, int *exit_status,
          virConnectPtr conn)
 {
-    CHANNEL *channel = channel_new(session);
+    LIBSSH2_CHANNEL *channel;
+    ConnectionData *connection_data = conn->networkPrivateData;
     virBuffer tex_ret = VIR_BUFFER_INITIALIZER;
-    char buf[4096] = { 0 };
-    int ret = 0;
+    char buffer[0x4000] = { 0 };
+    int exitcode;
+    int bytecount = 0;
+    int sock = connection_data->sock;
+    int rc = 0;
 
-    if (channel_open_session(channel) == SSH_ERROR) {
-        virRaiseError(NULL, NULL, NULL, 0, VIR_FROM_PHYP,
-                      VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0, "%s",
-                      _("Unable to open a SSH channel."));
+    /* Exec non-blocking on the remove host */
+    while ((channel = libssh2_channel_open_session(session)) == NULL &&
+           libssh2_session_last_error(session, NULL, NULL, 0) ==
+           LIBSSH2_ERROR_EAGAIN) {
+        waitsocket(sock, session);
+    }
+
+    if (channel == NULL) {
         goto err;
     }
 
-    if (channel_request_exec(channel, cmd) == SSH_ERROR) {
-        virRaiseError(NULL, NULL, NULL, 0, VIR_FROM_PHYP,
-                      VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0, "%s",
-                      _("Unable to execute remote command."));
+    while ((rc = libssh2_channel_exec(channel, cmd)) ==
+           LIBSSH2_ERROR_EAGAIN) {
+        waitsocket(sock, session);
+    }
+
+    if (rc != 0) {
         goto err;
     }
 
-    if (channel_send_eof(channel) == SSH_ERROR) {
-        virRaiseError(NULL, NULL, NULL, 0, VIR_FROM_PHYP,
-                      VIR_ERR_ERROR, NULL, NULL, NULL, 0, 0, "%s",
-                      _("Unable to send EOF."));
-        goto err;
-    }
-
-    while (channel && channel_is_open(channel)) {
-        ret = channel_read(channel, buf, sizeof(buf), 0);
-        if (ret < 0)
-            goto err;
-
-        if (ret == 0) {
-            channel_send_eof(channel);
-            if (channel_get_exit_status(channel) == -1)
-                goto err;
-
-            if (channel_close(channel) == SSH_ERROR)
-                goto err;
-
-            channel_free(channel);
-            channel = NULL;
-            goto exit;
+    for (;;) {
+        /* loop until we block */
+        do {
+            rc = libssh2_channel_read(channel, buffer, sizeof(buffer));
+            if (rc > 0) {
+                bytecount += rc;
+                virBufferVSprintf(&tex_ret, "%s", buffer);
+            }
         }
+        while (rc > 0);
 
-        virBufferAdd(&tex_ret, (const char *) &buf, ret);
+        /* this is due to blocking that would occur otherwise so we loop on
+         * this condition */
+        if (rc == LIBSSH2_ERROR_EAGAIN) {
+            waitsocket(sock, session);
+        } else {
+            break;
+        }
     }
+
+    exitcode = 127;
+
+    while ((rc = libssh2_channel_close(channel)) == LIBSSH2_ERROR_EAGAIN) {
+        waitsocket(sock, session);
+    }
+
+    if (rc == 0) {
+        exitcode = libssh2_channel_get_exit_status(channel);
+    }
+
+    (*exit_status) = exitcode;
+    libssh2_channel_free(channel);
+    channel = NULL;
+    goto exit;
 
   err:
     (*exit_status) = SSH_CMD_ERR;
@@ -322,7 +393,7 @@ phypExec(SSH_SESSION * session, char *cmd, int *exit_status,
 
 /* return the lpar_id given a name and a managed system name */
 static int
-phypGetLparID(SSH_SESSION * ssh_session, const char *managed_system,
+phypGetLparID(LIBSSH2_SESSION * session, const char *managed_system,
               const char *name, virConnectPtr conn)
 {
     int exit_status = 0;
@@ -336,13 +407,14 @@ phypGetLparID(SSH_SESSION * ssh_session, const char *managed_system,
         virReportOOMError(conn);
         goto err;
     }
+    PHYP_CMD_DEBUG;
 
-    const char *tex_ret = phypExec(ssh_session, cmd, &exit_status, conn);
+    const char *ret = phypExec(session, cmd, &exit_status, conn);
 
-    if (exit_status < 0 || tex_ret == NULL)
+    if (exit_status < 0 || ret == NULL)
         goto err;
 
-    if (virStrToLong_i(tex_ret, &char_ptr, 10, &lpar_id) == -1)
+    if (virStrToLong_i(ret, &char_ptr, 10, &lpar_id) == -1)
         goto err;
 
     VIR_FREE(cmd);
@@ -355,7 +427,7 @@ phypGetLparID(SSH_SESSION * ssh_session, const char *managed_system,
 
 /* return the lpar name given a lpar_id and a managed system name */
 static char *
-phypGetLparNAME(SSH_SESSION * ssh_session, const char *managed_system,
+phypGetLparNAME(LIBSSH2_SESSION * session, const char *managed_system,
                 unsigned int lpar_id, virConnectPtr conn)
 {
     char *cmd;
@@ -367,22 +439,23 @@ phypGetLparNAME(SSH_SESSION * ssh_session, const char *managed_system,
         virReportOOMError(conn);
         goto err;
     }
+    PHYP_CMD_DEBUG;
 
-    char *lpar_name = phypExec(ssh_session, cmd, &exit_status, conn);
+    char *ret = phypExec(session, cmd, &exit_status, conn);
 
-    if (lpar_name == NULL)
+    if (ret == NULL)
         goto err;
 
-    char *char_ptr = strchr(lpar_name, '\n');
+    char *char_ptr = strchr(ret, '\n');
 
     if (char_ptr)
         *char_ptr = '\0';
 
-    if (exit_status < 0 || lpar_name == NULL)
+    if (exit_status < 0 || ret == NULL)
         goto err;
 
     VIR_FREE(cmd);
-    return lpar_name;
+    return ret;
 
   err:
     VIR_FREE(cmd);
@@ -423,7 +496,7 @@ phypGetLparMem(virConnectPtr conn, const char *managed_system, int lpar_id,
                int type)
 {
     ConnectionData *connection_data = conn->networkPrivateData;
-    SSH_SESSION *ssh_session = connection_data->session;
+    LIBSSH2_SESSION *session = connection_data->session;
     char *cmd;
     char *char_ptr;
     int memory = 0;
@@ -447,13 +520,14 @@ phypGetLparMem(virConnectPtr conn, const char *managed_system, int lpar_id,
             goto err;
         }
     }
+    PHYP_CMD_DEBUG;
 
-    char *tex_ret = phypExec(ssh_session, cmd, &exit_status, conn);
+    char *ret = phypExec(session, cmd, &exit_status, conn);
 
-    if (tex_ret == NULL)
+    if (ret == NULL)
         goto err;
 
-    char *mem_char_ptr = strchr(tex_ret, '\n');
+    char *mem_char_ptr = strchr(ret, '\n');
 
     if (mem_char_ptr)
         *mem_char_ptr = '\0';
@@ -461,7 +535,7 @@ phypGetLparMem(virConnectPtr conn, const char *managed_system, int lpar_id,
     if (exit_status < 0)
         goto err;
 
-    if (virStrToLong_i(tex_ret, &char_ptr, 10, &memory) == -1)
+    if (virStrToLong_i(ret, &char_ptr, 10, &memory) == -1)
         goto err;
 
     VIR_FREE(cmd);
@@ -477,7 +551,7 @@ unsigned long
 phypGetLparCPU(virConnectPtr conn, const char *managed_system, int lpar_id)
 {
     ConnectionData *connection_data = conn->networkPrivateData;
-    SSH_SESSION *ssh_session = connection_data->session;
+    LIBSSH2_SESSION *session = connection_data->session;
     char *cmd;
     int exit_status = 0;
     int vcpus = 0;
@@ -488,17 +562,18 @@ phypGetLparCPU(virConnectPtr conn, const char *managed_system, int lpar_id)
         virReportOOMError(conn);
         goto err;
     }
-    char *tex_ret = phypExec(ssh_session, cmd, &exit_status, conn);
+    PHYP_CMD_DEBUG;
+    char *ret = phypExec(session, cmd, &exit_status, conn);
 
-    if (tex_ret == NULL)
+    if (ret == NULL)
         goto err;
 
-    char *char_ptr = strchr(tex_ret, '\n');
+    char *char_ptr = strchr(ret, '\n');
 
     if (char_ptr)
         *char_ptr = '\0';
 
-    if (virStrToLong_i(tex_ret, &char_ptr, 10, &vcpus) == -1)
+    if (virStrToLong_i(ret, &char_ptr, 10, &vcpus) == -1)
         goto err;
 
     if (exit_status < 0)
@@ -517,7 +592,7 @@ phypGetRemoteSlot(virConnectPtr conn, const char *managed_system,
                   const char *lpar_name)
 {
     ConnectionData *connection_data = conn->networkPrivateData;
-    SSH_SESSION *ssh_session = connection_data->session;
+    LIBSSH2_SESSION *session = connection_data->session;
     char *cmd;
     char *char_ptr;
     int remote_slot = 0;
@@ -529,12 +604,13 @@ phypGetRemoteSlot(virConnectPtr conn, const char *managed_system,
         virReportOOMError(conn);
         goto err;
     }
-    char *tex_ret = phypExec(ssh_session, cmd, &exit_status, conn);
+    PHYP_CMD_DEBUG;
+    char *ret = phypExec(session, cmd, &exit_status, conn);
 
-    if (tex_ret == NULL)
+    if (ret == NULL)
         goto err;
 
-    char *char_ptr2 = strchr(tex_ret, '\n');
+    char *char_ptr2 = strchr(ret, '\n');
 
     if (char_ptr2)
         *char_ptr2 = '\0';
@@ -542,7 +618,7 @@ phypGetRemoteSlot(virConnectPtr conn, const char *managed_system,
     if (exit_status < 0)
         goto err;
 
-    if (virStrToLong_i(tex_ret, &char_ptr, 10, &remote_slot) == -1)
+    if (virStrToLong_i(ret, &char_ptr, 10, &remote_slot) == -1)
         goto err;
 
     VIR_FREE(cmd);
@@ -558,7 +634,7 @@ phypGetBackingDevice(virConnectPtr conn, const char *managed_system,
                      char *lpar_name)
 {
     ConnectionData *connection_data = conn->networkPrivateData;
-    SSH_SESSION *ssh_session = connection_data->session;
+    LIBSSH2_SESSION *session = connection_data->session;
     char *cmd;
     int remote_slot = 0;
     int exit_status = 0;
@@ -573,8 +649,9 @@ phypGetBackingDevice(virConnectPtr conn, const char *managed_system,
         virReportOOMError(conn);
         goto err;
     }
+    PHYP_CMD_DEBUG;
 
-    char *ret = phypExec(ssh_session, cmd, &exit_status, conn);
+    char *ret = phypExec(session, cmd, &exit_status, conn);
 
     if (ret == NULL)
         goto err;
@@ -619,7 +696,7 @@ int
 phypGetLparState(virConnectPtr conn, unsigned int lpar_id)
 {
     ConnectionData *connection_data = conn->networkPrivateData;
-    SSH_SESSION *ssh_session = connection_data->session;
+    LIBSSH2_SESSION *session = connection_data->session;
     char *cmd;
     int exit_status = 0;
     char *char_ptr = NULL;
@@ -644,8 +721,9 @@ phypGetLparState(virConnectPtr conn, unsigned int lpar_id)
         virReportOOMError(conn);
         goto err;
     }
+    PHYP_CMD_DEBUG;
 
-    char *ret = phypExec(ssh_session, cmd, &exit_status, conn);
+    char *ret = phypExec(session, cmd, &exit_status, conn);
 
     if (ret == NULL)
         goto err;
@@ -677,7 +755,7 @@ int
 phypDiskType(virConnectPtr conn, char *backing_device)
 {
     ConnectionData *connection_data = conn->networkPrivateData;
-    SSH_SESSION *ssh_session = connection_data->session;
+    LIBSSH2_SESSION *session = connection_data->session;
     char *cmd;
     int exit_status = 0;
 
@@ -687,8 +765,9 @@ phypDiskType(virConnectPtr conn, char *backing_device)
         virReportOOMError(conn);
         goto err;
     }
+    PHYP_CMD_DEBUG;
 
-    char *ret = phypExec(ssh_session, cmd, &exit_status, conn);
+    char *ret = phypExec(session, cmd, &exit_status, conn);
 
     if (ret == NULL)
         goto err;
@@ -726,7 +805,7 @@ static int
 phypNumDomainsGeneric(virConnectPtr conn, unsigned int type)
 {
     ConnectionData *connection_data = conn->networkPrivateData;
-    SSH_SESSION *ssh_session = connection_data->session;
+    LIBSSH2_SESSION *session = connection_data->session;
     int exit_status = 0;
     int ndom = 0;
     char *char_ptr;
@@ -760,8 +839,9 @@ phypNumDomainsGeneric(virConnectPtr conn, unsigned int type)
         virReportOOMError(conn);
         goto err;
     }
+    PHYP_CMD_DEBUG;
 
-    char *ret = phypExec(ssh_session, cmd, &exit_status, conn);
+    char *ret = phypExec(session, cmd, &exit_status, conn);
 
     if (exit_status < 0 || ret == NULL)
         goto err;
@@ -801,7 +881,7 @@ phypListDomainsGeneric(virConnectPtr conn, int *ids, int nids,
                        unsigned int type)
 {
     ConnectionData *connection_data = conn->networkPrivateData;
-    SSH_SESSION *ssh_session = connection_data->session;
+    LIBSSH2_SESSION *session = connection_data->session;
     char *managed_system = conn->uri->path;
     int exit_status = 0;
     int got = 0;
@@ -837,21 +917,22 @@ phypListDomainsGeneric(virConnectPtr conn, int *ids, int nids,
         virReportOOMError(conn);
         goto err;
     }
-    char *domains = phypExec(ssh_session, cmd, &exit_status, conn);
+    PHYP_CMD_DEBUG;
+    char *ret = phypExec(session, cmd, &exit_status, conn);
 
-    /* I need to parse the textual return in order to get the domains */
-    if (exit_status < 0 || domains == NULL || got == 0)
+    /* I need to parse the textual return in order to get the ret */
+    if (exit_status < 0 || ret == NULL)
         goto err;
     else {
         while (got < nids) {
-            if (domains[i] == '\n') {
+            if (ret[i] == '\n') {
                 if (virStrToLong_i(id_c, &char_ptr, 10, &ids[got]) == -1)
                     return 0;
                 memset(id_c, 0, 10);
                 j = 0;
                 got++;
             } else {
-                id_c[j] = domains[i];
+                id_c[j] = ret[i];
                 j++;
             }
             i++;
@@ -876,7 +957,7 @@ static int
 phypListDefinedDomains(virConnectPtr conn, char **const names, int nnames)
 {
     ConnectionData *connection_data = conn->networkPrivateData;
-    SSH_SESSION *ssh_session = connection_data->session;
+    LIBSSH2_SESSION *session = connection_data->session;
     char *managed_system = conn->uri->path;
     int exit_status = 0;
     int got = 0;
@@ -903,8 +984,9 @@ phypListDefinedDomains(virConnectPtr conn, char **const names, int nnames)
         virReportOOMError(conn);
         goto err;
     }
+    PHYP_CMD_DEBUG;
 
-    char *ret = phypExec(ssh_session, cmd, &exit_status, conn);
+    char *ret = phypExec(session, cmd, &exit_status, conn);
 
     if (VIR_ALLOC(domains) < 0)
         virReportOOMError(conn);
@@ -948,7 +1030,7 @@ static virDomainPtr
 phypDomainLookupByName(virConnectPtr conn, const char *lpar_name)
 {
     ConnectionData *connection_data = conn->networkPrivateData;
-    SSH_SESSION *ssh_session = connection_data->session;
+    LIBSSH2_SESSION *session = connection_data->session;
     virDomainPtr dom = NULL;
     int lpar_id = 0;
     char *managed_system = conn->uri->path;
@@ -969,7 +1051,7 @@ phypDomainLookupByName(virConnectPtr conn, const char *lpar_name)
     if (char_ptr)
         *char_ptr = '\0';
 
-    lpar_id = phypGetLparID(ssh_session, managed_system, lpar_name, conn);
+    lpar_id = phypGetLparID(session, managed_system, lpar_name, conn);
     if (lpar_id < 0)
         goto err;
 
@@ -993,7 +1075,7 @@ static virDomainPtr
 phypDomainLookupByID(virConnectPtr conn, int lpar_id)
 {
     ConnectionData *connection_data = conn->networkPrivateData;
-    SSH_SESSION *ssh_session = connection_data->session;
+    LIBSSH2_SESSION *session = connection_data->session;
     virDomainPtr dom = NULL;
     char *managed_system = conn->uri->path;
     int exit_status = 0;
@@ -1014,7 +1096,7 @@ phypDomainLookupByID(virConnectPtr conn, int lpar_id)
     if (char_ptr)
         *char_ptr = '\0';
 
-    char *lpar_name = phypGetLparNAME(ssh_session, managed_system, lpar_id,
+    char *lpar_name = phypGetLparNAME(session, managed_system, lpar_id,
                                       conn);
 
     if (phypGetLparUUID(lpar_uuid, lpar_id, conn) == -1)
@@ -1042,7 +1124,7 @@ static char *
 phypDomainDumpXML(virDomainPtr dom, int flags)
 {
     ConnectionData *connection_data = dom->conn->networkPrivateData;
-    SSH_SESSION *ssh_session = connection_data->session;
+    LIBSSH2_SESSION *session = connection_data->session;
     virDomainDefPtr def = NULL;
     char *ret = NULL;
     char *managed_system = dom->conn->uri->path;
@@ -1069,7 +1151,7 @@ phypDomainDumpXML(virDomainPtr dom, int flags)
     def->virtType = VIR_DOMAIN_VIRT_PHYP;
     def->id = dom->id;
 
-    char *lpar_name = phypGetLparNAME(ssh_session, managed_system, def->id,
+    char *lpar_name = phypGetLparNAME(session, managed_system, def->id,
                                       dom->conn);
 
     if (lpar_name == NULL) {
@@ -1116,7 +1198,7 @@ static int
 phypDomainResume(virDomainPtr dom)
 {
     ConnectionData *connection_data = dom->conn->networkPrivateData;
-    SSH_SESSION *ssh_session = connection_data->session;
+    LIBSSH2_SESSION *session = connection_data->session;
     char *managed_system = dom->conn->uri->path;
     int exit_status = 0;
     char *char_ptr = NULL;
@@ -1141,8 +1223,9 @@ phypDomainResume(virDomainPtr dom)
         virReportOOMError(dom->conn);
         goto err;
     }
+    PHYP_CMD_DEBUG;
 
-    char *ret = phypExec(ssh_session, cmd, &exit_status, dom->conn);
+    char *ret = phypExec(session, cmd, &exit_status, dom->conn);
 
   err:
     VIR_FREE(cmd);
@@ -1155,7 +1238,7 @@ static int
 phypDomainShutdown(virDomainPtr dom)
 {
     ConnectionData *connection_data = dom->conn->networkPrivateData;
-    SSH_SESSION *ssh_session = connection_data->session;
+    LIBSSH2_SESSION *session = connection_data->session;
     char *managed_system = dom->conn->uri->path;
     int exit_status = 0;
     char *char_ptr = NULL;
@@ -1180,8 +1263,9 @@ phypDomainShutdown(virDomainPtr dom)
         virReportOOMError(dom->conn);
         goto err;
     }
+    PHYP_CMD_DEBUG;
 
-    char *ret = phypExec(ssh_session, cmd, &exit_status, dom->conn);
+    char *ret = phypExec(session, cmd, &exit_status, dom->conn);
 
   err:
     VIR_FREE(cmd);
@@ -1341,8 +1425,8 @@ init_uuid_db(virConnectPtr conn)
     return;
 }
 
-int
-escape_specialcharacters(char *src, char *dst)
+static int
+escape_specialcharacters(char *src, char *dst, size_t dstlen)
 {
     size_t len = strlen(src);
     char temp_buffer[len];
@@ -1367,8 +1451,39 @@ escape_specialcharacters(char *src, char *dst)
     }
     temp_buffer[j] = '\0';
 
-    if (strncpy(dst, temp_buffer, j) == NULL)
+    if (strncpy(dst, temp_buffer, dstlen) == NULL)
         return -1;
 
     return 0;
+}
+
+int
+waitsocket(int socket_fd, LIBSSH2_SESSION * session)
+{
+    struct timeval timeout;
+    int rc;
+    fd_set fd;
+    fd_set *writefd = NULL;
+    fd_set *readfd = NULL;
+    int dir;
+
+    timeout.tv_sec = 10;
+    timeout.tv_usec = 0;
+
+    FD_ZERO(&fd);
+
+    FD_SET(socket_fd, &fd);
+
+    /* now make sure we wait in the correct direction */
+    dir = libssh2_session_block_directions(session);
+
+    if (dir & LIBSSH2_SESSION_BLOCK_INBOUND)
+        readfd = &fd;
+
+    if (dir & LIBSSH2_SESSION_BLOCK_OUTBOUND)
+        writefd = &fd;
+
+    rc = select(socket_fd + 1, readfd, writefd, NULL, &timeout);
+
+    return rc;
 }

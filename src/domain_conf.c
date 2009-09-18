@@ -284,10 +284,12 @@ void virDomainDiskDefFree(virDomainDiskDefPtr def)
     if (!def)
         return;
 
+    VIR_FREE(def->serial);
     VIR_FREE(def->src);
     VIR_FREE(def->dst);
     VIR_FREE(def->driverName);
     VIR_FREE(def->driverType);
+    virStorageEncryptionFree(def->encryption);
 
     VIR_FREE(def);
 }
@@ -390,6 +392,7 @@ void virDomainVideoDefFree(virDomainVideoDefPtr def)
     if (!def)
         return;
 
+    VIR_FREE(def->accel);
     VIR_FREE(def);
 }
 
@@ -532,6 +535,9 @@ void virDomainObjListFree(virDomainObjListPtr vms)
 {
     unsigned int i;
 
+    if (!vms)
+        return;
+
     for (i = 0 ; i < vms->count ; i++)
         virDomainObjFree(vms->objs[i]);
 
@@ -627,19 +633,8 @@ void virDomainRemoveInactive(virDomainObjListPtr doms,
     }
 
 }
-#endif /* ! PROXY */
 
 
-int virDomainDiskCompare(virDomainDiskDefPtr a,
-                         virDomainDiskDefPtr b) {
-    if (a->bus == b->bus)
-        return virDiskNameToIndex(a->dst) - virDiskNameToIndex(b->dst);
-    else
-        return a->bus - b->bus;
-}
-
-
-#ifndef PROXY
 /* Parse the XML definition for a disk
  * @param node XML nodeset to parse for disk definition
  */
@@ -658,6 +653,8 @@ virDomainDiskDefParseXML(virConnectPtr conn,
     char *bus = NULL;
     char *cachetag = NULL;
     char *devaddr = NULL;
+    virStorageEncryptionPtr encryption = NULL;
+    char *serial = NULL;
 
     if (VIR_ALLOC(def) < 0) {
         virReportOOMError(conn);
@@ -715,6 +712,15 @@ virDomainDiskDefParseXML(virConnectPtr conn,
             } else if ((flags & VIR_DOMAIN_XML_INTERNAL_STATUS) &&
                        xmlStrEqual(cur->name, BAD_CAST "state")) {
                 devaddr = virXMLPropString(cur, "devaddr");
+            } else if (encryption == NULL &&
+                       xmlStrEqual(cur->name, BAD_CAST "encryption")) {
+                encryption = virStorageEncryptionParseNode(conn, node->doc,
+                                                           cur);
+                if (encryption == NULL)
+                    goto error;
+            } else if ((serial == NULL) &&
+                       (xmlStrEqual(cur->name, BAD_CAST "serial"))) {
+                serial = (char *)xmlNodeGetContent(cur);
             }
         }
         cur = cur->next;
@@ -833,6 +839,10 @@ virDomainDiskDefParseXML(virConnectPtr conn,
     driverName = NULL;
     def->driverType = driverType;
     driverType = NULL;
+    def->encryption = encryption;
+    encryption = NULL;
+    def->serial = serial;
+    serial = NULL;
 
 cleanup:
     VIR_FREE(bus);
@@ -844,6 +854,8 @@ cleanup:
     VIR_FREE(driverName);
     VIR_FREE(cachetag);
     VIR_FREE(devaddr);
+    VIR_FREE(serial);
+    virStorageEncryptionFree(encryption);
 
     return def;
 
@@ -1774,6 +1786,52 @@ virDomainVideoDefaultType(virDomainDefPtr def)
     }
 }
 
+static virDomainVideoAccelDefPtr
+virDomainVideoAccelDefParseXML(virConnectPtr conn, const xmlNodePtr node) {
+    xmlNodePtr cur;
+    virDomainVideoAccelDefPtr def;
+    char *support3d = NULL;
+    char *support2d = NULL;
+
+    cur = node->children;
+    while (cur != NULL) {
+        if (cur->type == XML_ELEMENT_NODE) {
+            if ((support3d == NULL) && (support2d == NULL) &&
+                xmlStrEqual(cur->name, BAD_CAST "acceleration")) {
+                support3d = virXMLPropString(cur, "accel3d");
+                support2d = virXMLPropString(cur, "accel2d");
+            }
+        }
+        cur = cur->next;
+    }
+
+    if ((support3d == NULL) && (support2d == NULL))
+        return(NULL);
+
+    if (VIR_ALLOC(def) < 0) {
+        virReportOOMError(conn);
+        return NULL;
+    }
+
+    if (support3d) {
+        if (STREQ(support3d, "yes"))
+            def->support3d = 1;
+        else
+            def->support3d = 0;
+        VIR_FREE(support3d);
+    }
+
+    if (support2d) {
+        if (STREQ(support2d, "yes"))
+            def->support2d = 1;
+        else
+            def->support2d = 0;
+        VIR_FREE(support2d);
+    }
+
+    return def;
+}
+
 static virDomainVideoDefPtr
 virDomainVideoDefParseXML(virConnectPtr conn,
                           const xmlNodePtr node,
@@ -1798,6 +1856,7 @@ virDomainVideoDefParseXML(virConnectPtr conn,
                 type = virXMLPropString(cur, "type");
                 vram = virXMLPropString(cur, "vram");
                 heads = virXMLPropString(cur, "heads");
+                def->accel = virDomainVideoAccelDefParseXML(conn, cur);
             }
         }
         cur = cur->next;
@@ -1977,7 +2036,8 @@ out:
 static int
 virDomainHostdevSubsysPciDefParseXML(virConnectPtr conn,
                                      const xmlNodePtr node,
-                                     virDomainHostdevDefPtr def) {
+                                     virDomainHostdevDefPtr def,
+                                     int flags) {
 
     int ret = -1;
     xmlNodePtr cur;
@@ -2047,6 +2107,20 @@ virDomainHostdevSubsysPciDefParseXML(virConnectPtr conn,
                 } else {
                     virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
                                          _("pci address needs function id"));
+                    goto out;
+                }
+            } else if ((flags & VIR_DOMAIN_XML_INTERNAL_STATUS) &&
+                       xmlStrEqual(cur->name, BAD_CAST "state")) {
+                char *devaddr = virXMLPropString(cur, "devaddr");
+                if (devaddr &&
+                    sscanf(devaddr, "%x:%x:%x",
+                           &def->source.subsys.u.pci.guest_addr.domain,
+                           &def->source.subsys.u.pci.guest_addr.bus,
+                           &def->source.subsys.u.pci.guest_addr.slot) < 3) {
+                    virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                                         _("Unable to parse devaddr parameter '%s'"),
+                                         devaddr);
+                    VIR_FREE(devaddr);
                     goto out;
                 }
             } else {
@@ -2123,7 +2197,7 @@ virDomainHostdevDefParseXML(virConnectPtr conn,
                 }
                 if (def->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
                     def->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI) {
-                        if (virDomainHostdevSubsysPciDefParseXML(conn, cur, def) < 0)
+                        if (virDomainHostdevSubsysPciDefParseXML(conn, cur, def, flags) < 0)
                             goto error;
                 }
             } else {
@@ -2314,13 +2388,60 @@ virDomainDeviceDefPtr virDomainDeviceDefParse(virConnectPtr conn,
 }
 #endif
 
-int virDomainDiskQSort(const void *a, const void *b)
-{
-    const virDomainDiskDefPtr *da = a;
-    const virDomainDiskDefPtr *db = b;
 
-    return virDomainDiskCompare(*da, *db);
+int virDomainDiskInsert(virDomainDefPtr def,
+                        virDomainDiskDefPtr disk)
+{
+
+    if (VIR_REALLOC_N(def->disks, def->ndisks+1) < 0)
+        return -1;
+
+    virDomainDiskInsertPreAlloced(def, disk);
+
+    return 0;
 }
+
+void virDomainDiskInsertPreAlloced(virDomainDefPtr def,
+                                   virDomainDiskDefPtr disk)
+{
+    int i;
+    /* Tenatively plan to insert disk at the end. */
+    int insertAt = -1;
+
+    /* Then work backwards looking for disks on
+     * the same bus. If we find a disk with a drive
+     * index greater than the new one, insert at
+     * that position
+     */
+    for (i = (def->ndisks - 1) ; i >= 0 ; i--) {
+        /* If bus matches and current disk is after
+         * new disk, then new disk should go here */
+        if (def->disks[i]->bus == disk->bus &&
+            (virDiskNameToIndex(def->disks[i]->dst) >
+             virDiskNameToIndex(disk->dst))) {
+            insertAt = i;
+        } else if (def->disks[i]->bus == disk->bus &&
+                   insertAt == -1) {
+            /* Last disk with match bus is before the
+             * new disk, then put new disk just after
+             */
+            insertAt = i + 1;
+        }
+    }
+
+    /* No disks with this bus yet, so put at end of list */
+    if (insertAt == -1)
+        insertAt = def->ndisks;
+
+    if (insertAt < def->ndisks)
+        memmove(def->disks + insertAt + 1,
+                def->disks + insertAt,
+                (sizeof(def->disks[0]) * (def->ndisks-insertAt)));
+
+    def->disks[insertAt] = disk;
+    def->ndisks++;
+}
+
 
 #ifndef PROXY
 static char *virDomainDefDefaultEmulator(virConnectPtr conn,
@@ -2399,8 +2520,7 @@ static virDomainDefPtr virDomainDefParseXML(virConnectPtr conn,
     /* Extract domain uuid */
     tmp = virXPathString(conn, "string(./uuid[1])", ctxt);
     if (!tmp) {
-        int err;
-        if ((err = virUUIDGenerate(def->uuid))) {
+        if (virUUIDGenerate(def->uuid)) {
             virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
                                  "%s", _("Failed to generate UUID"));
             goto error;
@@ -2423,6 +2543,10 @@ static virDomainDefPtr virDomainDefParseXML(virConnectPtr conn,
 
     if (virXPathULong(conn, "string(./currentMemory[1])", ctxt, &def->memory) < 0)
         def->memory = def->maxmem;
+
+    node = virXPathNode(conn, "./memoryBacking/hugepages", ctxt);
+    if (node)
+        def->hugepage_backed = 1;
 
     if (virXPathULong(conn, "string(./vcpu[1])", ctxt, &def->vcpus) < 0)
         def->vcpus = 1;
@@ -2628,8 +2752,6 @@ static virDomainDefPtr virDomainDefParseXML(virConnectPtr conn,
 
         def->disks[def->ndisks++] = disk;
     }
-    qsort(def->disks, def->ndisks, sizeof(*def->disks),
-          virDomainDiskQSort);
     VIR_FREE(nodes);
 
     /* analysis of the filesystems */
@@ -2939,6 +3061,8 @@ static virDomainObjPtr virDomainObjParseXML(virConnectPtr conn,
     xmlNodePtr oldnode;
     virDomainObjPtr obj;
     char *monitorpath;
+    xmlNodePtr *nodes = NULL;
+    int n, i;
 
     if (!(obj = virDomainObjNew(conn)))
         return NULL;
@@ -3011,9 +3135,32 @@ static virDomainObjPtr virDomainObjParseXML(virConnectPtr conn,
         break;
     }
 
+    n = virXPathNodeSet(conn, "./vcpus/vcpu", ctxt, &nodes);
+    if (n < 0)
+        goto error;
+    if (n) {
+        obj->nvcpupids = n;
+        if (VIR_REALLOC_N(obj->vcpupids, obj->nvcpupids) < 0)
+            goto error;
+
+        for (i = 0 ; i < n ; i++) {
+            char *pidstr = virXMLPropString(nodes[i], "pid");
+            if (!pidstr)
+                goto error;
+
+            if (virStrToLong_i(pidstr, NULL, 10, &(obj->vcpupids[i])) < 0) {
+                VIR_FREE(pidstr);
+                goto error;
+            }
+            VIR_FREE(pidstr);
+        }
+        VIR_FREE(nodes);
+    }
+
     return obj;
 
 error:
+    VIR_FREE(nodes);
     virDomainChrDefFree(obj->monitor_chr);
     virDomainObjFree(obj);
     return NULL;
@@ -3501,6 +3648,12 @@ virDomainDiskDefFormat(virConnectPtr conn,
         virBufferAddLit(buf, "      <readonly/>\n");
     if (def->shared)
         virBufferAddLit(buf, "      <shareable/>\n");
+    if (def->serial)
+        virBufferEscapeString(buf, "      <serial>%s</serial>\n",
+                              def->serial);
+    if (def->encryption != NULL &&
+        virStorageEncryptionFormat(conn, buf, def->encryption) < 0)
+        return -1;
 
     if (flags & VIR_DOMAIN_XML_INTERNAL_STATUS) {
         virBufferAddLit(buf, "      <state");
@@ -3786,6 +3939,19 @@ virDomainSoundDefFormat(virConnectPtr conn,
     return 0;
 }
 
+
+static void
+virDomainVideoAccelDefFormat(virBufferPtr buf,
+                             virDomainVideoAccelDefPtr def)
+{
+    virBufferVSprintf(buf, "        <acceleration accel3d='%s'",
+                      def->support3d ? "yes" : "no");
+    virBufferVSprintf(buf, " accel2d='%s'",
+                      def->support2d ? "yes" : "no");
+    virBufferAddLit(buf, "/>\n");
+}
+
+
 static int
 virDomainVideoDefFormat(virConnectPtr conn,
                         virBufferPtr buf,
@@ -3806,7 +3972,14 @@ virDomainVideoDefFormat(virConnectPtr conn,
         virBufferVSprintf(buf, " vram='%u'", def->vram);
     if (def->heads)
         virBufferVSprintf(buf, " heads='%u'", def->heads);
-    virBufferAddLit(buf, "/>\n");
+    if (def->accel) {
+        virBufferAddLit(buf, ">\n");
+        virDomainVideoAccelDefFormat(buf, def->accel);
+        virBufferAddLit(buf, "      </model>\n");
+    } else {
+        virBufferAddLit(buf, "/>\n");
+    }
+
     virBufferAddLit(buf, "    </video>\n");
 
     return 0;
@@ -3937,7 +4110,8 @@ virDomainGraphicsDefFormat(virConnectPtr conn,
 static int
 virDomainHostdevDefFormat(virConnectPtr conn,
                           virBufferPtr buf,
-                          virDomainHostdevDefPtr def)
+                          virDomainHostdevDefPtr def,
+                          int flags)
 {
     const char *mode = virDomainHostdevModeTypeToString(def->mode);
     const char *type;
@@ -3978,6 +4152,15 @@ virDomainHostdevDefFormat(virConnectPtr conn,
                           def->source.subsys.u.pci.bus,
                           def->source.subsys.u.pci.slot,
                           def->source.subsys.u.pci.function);
+        if (flags & VIR_DOMAIN_XML_INTERNAL_STATUS) {
+            virBufferAddLit(buf, "      <state");
+            if (virHostdevHasValidGuestAddr(def))
+                virBufferVSprintf(buf, " devaddr='%.4x:%.2x:%.2x'",
+                                  def->source.subsys.u.pci.guest_addr.domain,
+                                  def->source.subsys.u.pci.guest_addr.bus,
+                                  def->source.subsys.u.pci.guest_addr.slot);
+            virBufferAddLit(buf, "/>\n");
+        }
     }
 
     virBufferAddLit(buf, "      </source>\n");
@@ -4017,7 +4200,11 @@ char *virDomainDefFormat(virConnectPtr conn,
     virBufferVSprintf(&buf, "  <memory>%lu</memory>\n", def->maxmem);
     virBufferVSprintf(&buf, "  <currentMemory>%lu</currentMemory>\n",
                       def->memory);
-
+    if (def->hugepage_backed) {
+        virBufferAddLit(&buf, "  <memoryBacking>\n");
+        virBufferAddLit(&buf, "    <hugepages/>\n");
+        virBufferAddLit(&buf, "  </memoryBacking>\n");
+    }
     for (n = 0 ; n < def->cpumasklen ; n++)
         if (def->cpumask[n] != 1)
             allones = 0;
@@ -4192,7 +4379,7 @@ char *virDomainDefFormat(virConnectPtr conn,
             goto cleanup;
 
     for (n = 0 ; n < def->nhostdevs ; n++)
-        if (virDomainHostdevDefFormat(conn, &buf, def->hostdevs[n]) < 0)
+        if (virDomainHostdevDefFormat(conn, &buf, def->hostdevs[n], flags) < 0)
             goto cleanup;
 
     virBufferAddLit(&buf, "  </devices>\n");
@@ -4260,6 +4447,16 @@ char *virDomainObjFormat(virConnectPtr conn,
     virBufferVSprintf(&buf, " type='%s'/>\n",
                       virDomainChrTypeToString(obj->monitor_chr->type));
 
+
+    if (obj->nvcpupids) {
+        int i;
+        virBufferAddLit(&buf, "  <vcpus>\n");
+        for (i = 0 ; i < obj->nvcpupids ; i++) {
+            virBufferVSprintf(&buf, "    <vcpu pid='%d'/>\n", obj->vcpupids[i]);
+        }
+        virBufferAddLit(&buf, "  </vcpus>\n");
+    }
+
     if (!(config_xml = virDomainDefFormat(conn,
                                           obj->def,
                                           flags)))
@@ -4293,12 +4490,11 @@ int virDomainSaveXML(virConnectPtr conn,
     char *configFile = NULL;
     int fd = -1, ret = -1;
     size_t towrite;
-    int err;
 
     if ((configFile = virDomainConfigFile(conn, configDir, def->name)) == NULL)
         goto cleanup;
 
-    if ((err = virFileMakePath(configDir))) {
+    if (virFileMakePath(configDir)) {
         virReportSystemError(conn, errno,
                              _("cannot create config directory '%s'"),
                              configDir);
@@ -4333,6 +4529,7 @@ int virDomainSaveXML(virConnectPtr conn,
  cleanup:
     if (fd != -1)
         close(fd);
+    VIR_FREE(configFile);
     return ret;
 }
 

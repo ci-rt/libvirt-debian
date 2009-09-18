@@ -45,8 +45,9 @@
     ((((int) ((T)->tv_sec - (U)->tv_sec)) * 1000000.0 +	\
       ((int) ((T)->tv_usec - (U)->tv_usec))) / 1000.0)
 
+unsigned int testDebug = 0;
+
 static unsigned int testOOM = 0;
-static unsigned int testDebug = 0;
 static unsigned int testCounter = 0;
 
 double
@@ -367,10 +368,7 @@ int virtTestMain(int argc,
         }
     }
 
-    if (testOOM)
-        virAllocTestInit();
-
-    /* Run once to count allocs, and ensure it passes :-) */
+    /* Run once to prime any static allocations & ensure it passes */
     ret = (func)(argc, argv);
     if (ret != EXIT_SUCCESS)
         goto cleanup;
@@ -384,6 +382,13 @@ int virtTestMain(int argc,
         /* Makes next test runs quiet... */
         testOOM++;
         virSetErrorFunc(NULL, virtTestErrorFuncQuiet);
+
+        virAllocTestInit();
+
+        /* Run again to count allocs, and ensure it passes :-) */
+        ret = (func)(argc, argv);
+        if (ret != EXIT_SUCCESS)
+            goto cleanup;
 
         approxAlloc = virAllocTestCount();
         testCounter++;

@@ -92,6 +92,7 @@
 #ifdef WITH_NODE_DEVICES
 #include "node_device.h"
 #endif
+#include "secret_driver.h"
 #endif
 
 
@@ -131,11 +132,6 @@ static int verbose = 0;         /* -v: Verbose mode */
 static int timeout = -1;        /* -t: Shutdown timeout */
 static int sigwrite = -1;       /* Signal handler pipe */
 static int ipsock = 0;          /* -l  Listen for TCP/IP */
-
-/* Defaults for logging */
-static int log_level = VIR_LOG_DEFAULT;
-static char *log_filters = NULL;
-static char *log_outputs = NULL;
 
 /* Defaults for configuration file elements */
 static int listen_tls = 1;
@@ -819,6 +815,7 @@ static struct qemud_server *qemudInitialize(int sigread) {
     virDriverLoadModule("network");
     virDriverLoadModule("storage");
     virDriverLoadModule("nodedev");
+    virDriverLoadModule("secret");
     virDriverLoadModule("qemu");
     virDriverLoadModule("lxc");
     virDriverLoadModule("uml");
@@ -837,6 +834,7 @@ static struct qemud_server *qemudInitialize(int sigread) {
     (defined(HAVE_HAL) || defined(HAVE_DEVKIT))
     nodedevRegister();
 #endif
+    secretRegister();
 #ifdef WITH_QEMU
     qemuRegister();
 #endif
@@ -895,7 +893,7 @@ static struct qemud_server *qemudNetworkInit(struct qemud_server *server) {
     }
 #endif
 
-#ifdef HAVE_POLKIT
+#if HAVE_POLKIT0
     if (auth_unix_rw == REMOTE_AUTH_POLKIT ||
         auth_unix_ro == REMOTE_AUTH_POLKIT) {
         DBusError derr;
@@ -982,7 +980,7 @@ static struct qemud_server *qemudNetworkInit(struct qemud_server *server) {
             sock = sock->next;
         }
 
-#ifdef HAVE_POLKIT
+#if HAVE_POLKIT0
         if (server->sysbus)
             dbus_connection_unref(server->sysbus);
 #endif
@@ -2493,65 +2491,74 @@ remoteReadSaslAllowedUsernameList (virConfPtr conf ATTRIBUTE_UNUSED,
  */
 static int
 qemudSetLogging(virConfPtr conf, const char *filename) {
-    char *debugEnv;
+    int log_level;
+    char *log_filters = NULL;
+    char *log_outputs = NULL;
     int ret = -1;
 
     virLogReset();
 
     /*
-     * look for default logging level first from config file,
-     * then from environment variable and finally from command
-     * line options
+     * Libvirtd's order of precedence is:
+     * cmdline > environment > config
+     *
+     * In order to achieve this, we must process configuration in
+     * different order for the log level versus the filters and
+     * outputs. Because filters and outputs append, we have to look at
+     * the environment first and then only check the config file if
+     * there was no result from the environment. The default output is
+     * then applied only if there was no setting from either of the
+     * first two. Because we don't have a way to determine if the log
+     * level has been set, we must process variables in the opposite
+     * order, each one overriding the previous.
+     */
+    /*
+     * GET_CONF_INT returns 0 when there is no log_level setting in
+     * the config file. The conditional below eliminates a false
+     * warning in that case, but also has the side effect of missing
+     * a warning if the user actually does say log_level=0.
      */
     GET_CONF_INT (conf, filename, log_level);
-    debugEnv = getenv("LIBVIRT_DEBUG");
-    if (debugEnv && *debugEnv && *debugEnv != '0') {
-        if (STREQ(debugEnv, "2") || STREQ(debugEnv, "info"))
-            log_level = VIR_LOG_INFO;
-        else if (STREQ(debugEnv, "3") || STREQ(debugEnv, "warning"))
-            log_level = VIR_LOG_WARN;
-        else if (STREQ(debugEnv, "4") || STREQ(debugEnv, "error"))
-            log_level = VIR_LOG_ERROR;
-        else
-            log_level = VIR_LOG_DEBUG;
-    }
-    if ((verbose) && (log_level >= VIR_LOG_WARN))
-        log_level = VIR_LOG_INFO;
-    virLogSetDefaultPriority(log_level);
+    if (log_level != 0)
+        virLogSetDefaultPriority(log_level);
 
-    /* there is no default filters */
-    GET_CONF_STR (conf, filename, log_filters);
-    if (!log_filters) {
-        debugEnv = getenv("LIBVIRT_LOG_FILTERS");
-        if (debugEnv)
-            log_filters = strdup(debugEnv);
+    virLogSetFromEnv();
+
+    if (virLogGetNbFilters() == 0) {
+        GET_CONF_STR (conf, filename, log_filters);
+        virLogParseFilters(log_filters);
     }
-    virLogParseFilters(log_filters);
+
+    if (virLogGetNbOutputs() == 0) {
+        GET_CONF_STR (conf, filename, log_outputs);
+        virLogParseOutputs(log_outputs);
+    }
 
     /*
-     * by default save all warning and errors to syslog or
-     * all logs to stderr if not running as daemon
+     * If no defined outputs, then direct to syslog when running
+     * as daemon. Otherwise the default output is stderr.
      */
-    GET_CONF_STR (conf, filename, log_outputs);
-    if (!log_outputs) {
-        debugEnv = getenv("LIBVIRT_LOG_OUTPUTS");
-        if (debugEnv)
-            log_outputs = strdup(debugEnv);
-    }
-    if (!log_outputs) {
+    if (virLogGetNbOutputs() == 0) {
         char *tmp = NULL;
         if (godaemon) {
-            if (virAsprintf (&tmp, "%d:syslog:libvirtd", log_level) < 0)
+            if (virAsprintf (&tmp, "%d:syslog:libvirtd",
+                             virLogGetDefaultPriority()) < 0)
                 goto free_and_fail;
         } else {
-            if (virAsprintf(&tmp, "%d:stderr", log_level) < 0)
+            if (virAsprintf (&tmp, "%d:stderr",
+                             virLogGetDefaultPriority()) < 0)
                 goto free_and_fail;
         }
         virLogParseOutputs(tmp);
         VIR_FREE(tmp);
-    } else {
-        virLogParseOutputs(log_outputs);
     }
+
+    /*
+     * Command line override for --verbose
+     */
+    if ((verbose) && (virLogGetDefaultPriority() > VIR_LOG_INFO))
+        virLogSetDefaultPriority(VIR_LOG_INFO);
+
     ret = 0;
 
 free_and_fail:

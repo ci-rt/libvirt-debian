@@ -91,8 +91,10 @@ int virStorageBackendUpdateVolTargetInfoFD(virConnectPtr conn,
                                            int fd,
                                            unsigned long long *allocation,
                                            unsigned long long *capacity);
-
-void virStorageBackendWaitForDevices(virConnectPtr conn);
+int
+virStorageBackendUpdateVolTargetFormatFD(virConnectPtr conn,
+                                         virStorageVolTargetPtr target,
+                                         int fd);
 
 char *virStorageBackendStablePath(virConnectPtr conn,
                                   virStoragePoolObjPtr pool,
@@ -125,6 +127,5 @@ int virStorageBackendRunProgNul(virConnectPtr conn,
                                 virStorageBackendListVolNulFunc func,
                                 void *data);
 
-void virWaitForDevices(virConnectPtr conn);
 
 #endif /* __VIR_STORAGE_BACKEND_H__ */

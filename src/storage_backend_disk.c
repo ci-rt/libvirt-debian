@@ -325,7 +325,7 @@ virStorageBackendDiskRefreshPool(virConnectPtr conn,
     VIR_FREE(pool->def->source.devices[0].freeExtents);
     pool->def->source.devices[0].nfreeExtent = 0;
 
-    virStorageBackendWaitForDevices(conn);
+    virFileWaitForDevices(conn);
 
     if (virStorageBackendDiskReadGeometry(conn, pool) != 0) {
         return -1;
@@ -557,6 +557,13 @@ virStorageBackendDiskCreateVol(virConnectPtr conn,
         NULL
     };
 
+    if (vol->target.encryption != NULL) {
+        virStorageReportError(conn, VIR_ERR_NO_SUPPORT,
+                              "%s", _("storage pool does not support encrypted "
+                                      "volumes"));
+        return -1;
+    }
+
     if (virStorageBackendDiskPartFormat(conn, pool, vol, partFormat) != 0) {
         return -1;
     }
@@ -576,7 +583,7 @@ virStorageBackendDiskCreateVol(virConnectPtr conn,
         return -1;
 
     /* wait for device node to show up */
-    virStorageBackendWaitForDevices(conn);
+    virFileWaitForDevices(conn);
 
     /* Blow away free extent info, as we're about to re-populate it */
     VIR_FREE(pool->def->source.devices[0].freeExtents);

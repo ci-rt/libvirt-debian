@@ -10,6 +10,7 @@ virBufferAdd;
 virBufferAddChar;
 virBufferContentAndReset;
 virBufferError;
+virBufferURIEncodeString;
 
 
 # caps.h
@@ -52,10 +53,12 @@ virGetInterface;
 virGetNetwork;
 virGetStoragePool;
 virGetStorageVol;
+virGetSecret;
 virUnrefStorageVol;
 virGetNodeDevice;
 virUnrefDomain;
 virUnrefConnect;
+virUnrefSecret;
 
 
 # domain_conf.h
@@ -80,7 +83,8 @@ virDomainDeviceTypeToString;
 virDomainDiskBusTypeToString;
 virDomainDiskDefFree;
 virDomainDiskDeviceTypeToString;
-virDomainDiskQSort;
+virDomainDiskInsert;
+virDomainDiskInsertPreAlloced;
 virDomainFindByID;
 virDomainFindByName;
 virDomainFindByUUID;
@@ -88,6 +92,8 @@ virDomainGetRootFilesystem;
 virDomainGraphicsTypeFromString;
 virDomainGraphicsDefFree;
 virDomainHostdevDefFree;
+virDomainHostdevModeTypeToString;
+virDomainHostdevSubsysTypeToString;
 virDomainInputDefFree;
 virDomainLifecycleTypeFromString;
 virDomainLifecycleTypeToString;
@@ -162,7 +168,16 @@ virHashSize;
 virInterfaceDefFormat;
 virInterfaceDefParseFile;
 virInterfaceDefParseString;
+virInterfaceDefParseNode;
 virInterfaceDefFree;
+virInterfaceFindByName;
+virInterfaceFindByMACString;
+virInterfaceAssignDef;
+virInterfaceRemove;
+virInterfaceObjLock;
+virInterfaceObjUnlock;
+virInterfaceObjListFree;
+
 
 # interface_driver.h
 interfaceRegister;
@@ -209,13 +224,19 @@ virRegisterNetworkDriver;
 virRegisterStateDriver;
 virRegisterStorageDriver;
 virRegisterDeviceMonitor;
+virRegisterSecretDriver;
 
 
 # logging.h
 virLogMessage;
+virLogGetNbFilters;
+virLogGetNbOutputs;
+virLogGetDefaultPriority;
 virLogSetDefaultPriority;
+virLogSetFromEnv;
 virLogDefineFilter;
 virLogDefineOutput;
+virLogParseDefaultPriority;
 virLogParseFilters;
 virLogParseOutputs;
 virLogStartup;
@@ -278,6 +299,13 @@ pciFreeDevice;
 pciDettachDevice;
 pciReAttachDevice;
 pciResetDevice;
+pciDeviceSetManaged;
+pciDeviceGetManaged;
+pciDeviceListNew;
+pciDeviceListFree;
+pciDeviceListAdd;
+pciDeviceListDel;
+pciDeviceFileIterate;
 
 
 # qparams.h
@@ -285,6 +313,14 @@ qparam_get_query;
 qparam_query_parse;
 free_qparam_set;
 
+# secret_conf.h
+virSecretDefFree;
+virSecretDefParseString;
+virSecretDefParseFile;
+virSecretDefFormat;
+
+# secret_driver.h
+secretRegister;
 
 # security.h
 virSecurityDriverVerify;
@@ -329,6 +365,13 @@ virStoragePoolTypeFromString;
 virStoragePartedFsTypeTypeToString;
 virStoragePoolObjLock;
 virStoragePoolObjUnlock;
+
+# storage_encryption_conf.h
+virStorageEncryptionFree;
+virStorageEncryptionDropSecrets;
+virStorageEncryptionParseNode;
+virStorageEncryptionFormat;
+virStorageGenerateQcowPassphrase;
 
 
 # threads.h
@@ -388,7 +431,15 @@ virGetUserDirectory;
 virGetUserName;
 virGetUserID;
 virGetGroupID;
+virFileFindMountPoint;
+virFileWaitForDevices;
+virFileMatchesNameSuffix;
 
+
+# usb.h
+usbGetDevice;
+usbFreeDevice;
+usbDeviceFileIterate;
 
 # uuid.h
 virUUIDFormat;
@@ -399,7 +450,7 @@ virUUIDParse;
 # virterror_internal.h
 virReportErrorHelper;
 virErrorMsg;
-virRaiseError;
+virRaiseErrorFull;
 virReportSystemErrorFull;
 virReportOOMErrorFull;
 virStrerror;

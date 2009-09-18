@@ -297,8 +297,8 @@
 /* Define to 1 if you have the `selinux' library (-lselinux). */
 #undef HAVE_LIBSELINUX
 
-/* Define to 1 if you have the <libssh/libssh.h> header file. */
-#undef HAVE_LIBSSH_LIBSSH_H
+/* Define to 1 if you have the <libssh2.h> header file. */
+#undef HAVE_LIBSSH2_H
 
 /* Define to 1 if you have the `uuid' library (-luuid). */
 #undef HAVE_LIBUUID
@@ -346,6 +346,9 @@
 /* Define to 1 if you have the `mmap' function. */
 #undef HAVE_MMAP
 
+/* Define to 1 if you have the <mntent.h> header file. */
+#undef HAVE_MNTENT_H
+
 /* Define to 1 if you have the `mprotect' function. */
 #undef HAVE_MPROTECT
 
@@ -366,6 +369,12 @@
 
 /* use PolicyKit for UNIX socket access checks */
 #undef HAVE_POLKIT
+
+/* use PolicyKit for UNIX socket access checks */
+#undef HAVE_POLKIT0
+
+/* use PolicyKit for UNIX socket access checks */
+#undef HAVE_POLKIT1
 
 /* Define to 1 if you have the `polkit_context_is_caller_authorized' function.
    */
@@ -397,6 +406,9 @@
 
 /* Define to 1 if you have the `random_r' function. */
 #undef HAVE_RANDOM_R
+
+/* Define to 1 if you have the `rawmemchr' function. */
+#undef HAVE_RAWMEMCHR
 
 /* Define to 1 if you have the <readline/readline.h> header file. */
 #undef HAVE_READLINE_READLINE_H
@@ -446,6 +458,9 @@
 /* Define to 1 if stdbool.h conforms to C99. */
 #undef HAVE_STDBOOL_H
 
+/* Define to 1 if you have the <stddef.h> header file. */
+#undef HAVE_STDDEF_H
+
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
 
@@ -464,6 +479,9 @@
 
 /* Define to 1 if you have the `stpcpy' function. */
 #undef HAVE_STPCPY
+
+/* Define to 1 if you have the `strchrnul' function. */
+#undef HAVE_STRCHRNUL
 
 /* Define to 1 if you have the `strdup' function. */
 #undef HAVE_STRDUP
@@ -664,6 +682,9 @@
 /* Define to 1 if you have the `__fsetlocking' function. */
 #undef HAVE___FSETLOCKING
 
+/* Define HOST_NAME_MAX when <limits.h> does not define it. */
+#undef HOST_NAME_MAX
+
 /* path to iptables binary */
 #undef IPTABLES_PATH
 
@@ -725,6 +746,9 @@
 
 /* Location or name of the parted program */
 #undef PARTED
+
+/* Location of pkcheck program */
+#undef PKCHECK_PATH
 
 /* Location of polkit-auth program */
 #undef POLKIT_AUTH
@@ -882,6 +906,9 @@
 /* whether SELinux security driver is available */
 #undef WITH_SECDRIVER_SELINUX
 
+/* whether local secrets management driver is available */
+#undef WITH_SECRETS
+
 /* whether directory backend for storage driver is enabled */
 #undef WITH_STORAGE_DIR
 
@@ -896,6 +923,9 @@
 
 /* whether LVM backend for storage driver is enabled */
 #undef WITH_STORAGE_LVM
+
+/* whether mpath backend for storage driver is enabled */
+#undef WITH_STORAGE_MPATH
 
 /* whether SCSI backend for storage driver is enabled */
 #undef WITH_STORAGE_SCSI

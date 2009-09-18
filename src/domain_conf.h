@@ -30,6 +30,7 @@
 
 #include "internal.h"
 #include "capabilities.h"
+#include "storage_encryption_conf.h"
 #include "util.h"
 #include "threads.h"
 
@@ -109,6 +110,7 @@ struct _virDomainDiskDef {
     char *dst;
     char *driverName;
     char *driverType;
+    char *serial;
     int cachemode;
     unsigned int readonly : 1;
     unsigned int shared : 1;
@@ -117,6 +119,7 @@ struct _virDomainDiskDef {
         unsigned bus;
         unsigned slot;
     } pci_addr;
+    virStorageEncryptionPtr encryption;
 };
 
 static inline int
@@ -307,12 +310,21 @@ enum virDomainVideoType {
 };
 
 
+typedef struct _virDomainVideoAccelDef virDomainVideoAccelDef;
+typedef virDomainVideoAccelDef *virDomainVideoAccelDefPtr;
+struct _virDomainVideoAccelDef {
+    int support3d : 1;
+    int support2d : 1;
+};
+
+
 typedef struct _virDomainVideoDef virDomainVideoDef;
 typedef virDomainVideoDef *virDomainVideoDefPtr;
 struct _virDomainVideoDef {
     int type;
     unsigned int vram;
     unsigned int heads;
+    virDomainVideoAccelDefPtr accel;
 };
 
 /* 3 possible graphics console modes */
@@ -391,6 +403,11 @@ struct _virDomainHostdevDef {
                      unsigned bus;
                      unsigned slot;
                      unsigned function;
+                    struct {
+                        unsigned domain;
+                        unsigned bus;
+                        unsigned slot;
+                    } guest_addr;
                 } pci;
             } u;
         } subsys;
@@ -403,6 +420,14 @@ struct _virDomainHostdevDef {
     } source;
     char* target;
 };
+
+static inline int
+virHostdevHasValidGuestAddr(virDomainHostdevDefPtr def)
+{
+    return def->source.subsys.u.pci.guest_addr.domain ||
+           def->source.subsys.u.pci.guest_addr.bus ||
+           def->source.subsys.u.pci.guest_addr.slot;
+}
 
 /* Flags for the 'type' field in next struct */
 enum virDomainDeviceType {
@@ -511,6 +536,7 @@ struct _virDomainDef {
 
     unsigned long memory;
     unsigned long maxmem;
+    unsigned char hugepage_backed;
     unsigned long vcpus;
     int cpumasklen;
     char *cpumask;
@@ -670,9 +696,10 @@ char *virDomainCpuSetFormat(virConnectPtr conn,
                             char *cpuset,
                             int maxcpu);
 
-int virDomainDiskQSort(const void *a, const void *b);
-int virDomainDiskCompare(virDomainDiskDefPtr a,
-                         virDomainDiskDefPtr b);
+int virDomainDiskInsert(virDomainDefPtr def,
+                        virDomainDiskDefPtr disk);
+void virDomainDiskInsertPreAlloced(virDomainDefPtr def,
+                                   virDomainDiskDefPtr disk);
 
 int virDomainSaveXML(virConnectPtr conn,
                      const char *configDir,

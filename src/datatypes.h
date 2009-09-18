@@ -98,6 +98,16 @@
 #define VIR_IS_NODE_DEVICE(obj)                 ((obj) && (obj)->magic==VIR_NODE_DEVICE_MAGIC)
 #define VIR_IS_CONNECTED_NODE_DEVICE(obj)       (VIR_IS_NODE_DEVICE(obj) && VIR_IS_CONNECT((obj)->conn))
 
+/**
+ * VIR_SECRET_MAGIC:
+ *
+ * magic value used to protect the API when pointers to secret structures are
+ * passed down by the users.
+ */
+#define VIR_SECRET_MAGIC		0x5678DEAD
+#define VIR_IS_SECRET(obj)		((obj) && (obj)->magic==VIR_SECRET_MAGIC)
+#define VIR_IS_CONNECTED_SECRET(obj)	(VIR_IS_SECRET(obj) && VIR_IS_CONNECT((obj)->conn))
+
 
 /**
  * _virConnect:
@@ -119,6 +129,7 @@ struct _virConnect {
     virInterfaceDriverPtr interfaceDriver;
     virStorageDriverPtr storageDriver;
     virDeviceMonitorPtr  deviceMonitor;
+    virSecretDriverPtr secretDriver;
 
     /* Private data pointer which can be used by driver and
      * network driver as they wish.
@@ -129,6 +140,7 @@ struct _virConnect {
     void *            interfacePrivateData;
     void *            storagePrivateData;
     void *            devMonPrivateData;
+    void *            secretPrivateData;
 
     /*
      * The lock mutex must be acquired before accessing/changing
@@ -149,6 +161,7 @@ struct _virConnect {
     virHashTablePtr storagePools;/* hash table for known storage pools */
     virHashTablePtr storageVols;/* hash table for known storage vols */
     virHashTablePtr nodeDevices; /* hash table for known node devices */
+    virHashTablePtr secrets;  /* hash taboe for known secrets */
     int refs;                 /* reference count */
 };
 
@@ -233,6 +246,20 @@ struct _virNodeDevice {
     char *parent;                       /* parent device name */
 };
 
+/**
+ * _virSecret:
+ *
+ * Internal structure associated with a secret
+ */
+struct _virSecret {
+    unsigned int magic;                  /* specific value to check */
+    int refs;                            /* reference count */
+    virConnectPtr conn;                  /* pointer back to the connection */
+    unsigned char uuid[VIR_UUID_BUFLEN]; /* the domain unique identifier */
+    int usageType;                       /* the type of usage */
+    char *usageID;                       /* the usage's unique identifier */
+};
+
 
 /************************************************************************
  *									*
@@ -269,5 +296,11 @@ int virUnrefStorageVol(virStorageVolPtr vol);
 virNodeDevicePtr virGetNodeDevice(virConnectPtr conn,
                                   const char *name);
 int virUnrefNodeDevice(virNodeDevicePtr dev);
+
+virSecretPtr virGetSecret(virConnectPtr conn,
+                          const unsigned char *uuid,
+                          int usageType,
+                          const char *usageID);
+int virUnrefSecret(virSecretPtr secret);
 
 #endif

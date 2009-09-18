@@ -439,7 +439,6 @@ static int lxcDomainGetInfo(virDomainPtr dom,
 
     lxcDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
-    lxcDriverUnlock(driver);
 
     if (!vm) {
         lxcError(dom->conn, dom, VIR_ERR_INVALID_DOMAIN,
@@ -470,6 +469,7 @@ static int lxcDomainGetInfo(virDomainPtr dom,
     ret = 0;
 
 cleanup:
+    lxcDriverUnlock(driver);
     if (cgroup)
         virCgroupFree(&cgroup);
     if (vm)
@@ -1439,10 +1439,12 @@ static int lxcStartup(int privileged)
     lxcDriverLock(lxc_driver);
 
     /* Check that this is a container enabled kernel */
-    if(lxcContainerAvailable(0) < 0)
+    if (lxcContainerAvailable(0) < 0) {
+        VIR_INFO0("LXC support not available in this kernel, disabling driver");
         goto cleanup;
+    }
 
-    if(VIR_ALLOC(lxc_driver->domainEventCallbacks) < 0)
+    if (VIR_ALLOC(lxc_driver->domainEventCallbacks) < 0)
         goto cleanup;
     if (!(lxc_driver->domainEventQueue = virDomainEventQueueNew()))
         goto cleanup;
@@ -1665,7 +1667,6 @@ static int lxcSetSchedulerParameters(virDomainPtr domain,
 
     lxcDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, domain->uuid);
-    lxcDriverUnlock(driver);
 
     if (vm == NULL) {
         lxcError(NULL, domain, VIR_ERR_INTERNAL_ERROR,
@@ -1696,6 +1697,7 @@ static int lxcSetSchedulerParameters(virDomainPtr domain,
     ret = 0;
 
 cleanup:
+    lxcDriverUnlock(driver);
     virCgroupFree(&group);
     if (vm)
         virDomainObjUnlock(vm);
@@ -1723,7 +1725,6 @@ static int lxcGetSchedulerParameters(virDomainPtr domain,
 
     lxcDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, domain->uuid);
-    lxcDriverUnlock(driver);
 
     if (vm == NULL) {
         lxcError(NULL, domain, VIR_ERR_INTERNAL_ERROR,
@@ -1743,6 +1744,7 @@ static int lxcGetSchedulerParameters(virDomainPtr domain,
     ret = 0;
 
 cleanup:
+    lxcDriverUnlock(driver);
     virCgroupFree(&group);
     if (vm)
         virDomainObjUnlock(vm);

@@ -54,7 +54,7 @@
 #define VIR_FROM_THIS VIR_FROM_OPENVZ
 
 static char *openvzLocateConfDir(void);
-static int openvzGetVPSUUID(int vpsid, char *uuidstr);
+static int openvzGetVPSUUID(int vpsid, char *uuidstr, size_t len);
 static int openvzLocateConfFile(int vpsid, char *conffile, int maxlen, const char *ext);
 static int openvzAssignUUIDs(void);
 
@@ -183,7 +183,7 @@ openvzReadNetworkConf(virConnectPtr conn,
                       virDomainDefPtr def,
                       int veid) {
     int ret;
-    virDomainNetDefPtr net;
+    virDomainNetDefPtr net = NULL;
     char temp[4096];
     char *token, *saveptr = NULL;
 
@@ -239,15 +239,14 @@ openvzReadNetworkConf(virConnectPtr conn,
 
             net->type = VIR_DOMAIN_NET_TYPE_BRIDGE;
 
-            char *p = token, *next = token;
+            char *p = token;
             char cpy_temp[32];
             int len;
 
             /*parse string*/
             do {
-                while (*next != '\0' && *next != ',') next++;
+                char *next = strchrnul (token, ',');
                 if (STRPREFIX(p, "ifname=")) {
-                    p += 7;
                     /* skip in libvirt */
                 } else if (STRPREFIX(p, "host_ifname=")) {
                     p += 12;
@@ -469,7 +468,7 @@ int openvzLoadDomains(struct openvz_driver *driver) {
         if (virAsprintf(&dom->def->name, "%i", veid) < 0)
             goto no_memory;
 
-        openvzGetVPSUUID(veid, uuidstr);
+        openvzGetVPSUUID(veid, uuidstr, sizeof(uuidstr));
         ret = virUUIDParse(uuidstr, dom->def->uuid);
 
         if (ret == -1) {
@@ -692,7 +691,6 @@ openvz_copyfile(char* from_path, char* to_path)
     fd = -1;
     if (close(copy_fd) < 0)
         goto error;
-    copy_fd = -1;
 
     return 0;
 
@@ -805,7 +803,7 @@ openvz_readline(int fd, char *ptr, int maxlen)
 }
 
 static int
-openvzGetVPSUUID(int vpsid, char *uuidstr)
+openvzGetVPSUUID(int vpsid, char *uuidstr, size_t len)
 {
     char conf_file[PATH_MAX];
     char line[1024];
@@ -822,8 +820,10 @@ openvzGetVPSUUID(int vpsid, char *uuidstr)
 
     while(1) {
         ret = openvz_readline(fd, line, sizeof(line));
-        if(ret == -1)
+        if(ret == -1) {
+            close(fd);
             return -1;
+        }
 
         if(ret == 0) { /* EoF, UUID was not found */
             uuidstr[0] = 0;
@@ -832,7 +832,7 @@ openvzGetVPSUUID(int vpsid, char *uuidstr)
 
         sscanf(line, "%s %s\n", iden, uuidbuf);
         if(STREQ(iden, "#UUID:")) {
-            strncpy(uuidstr, uuidbuf, VIR_UUID_STRING_BUFLEN);
+            strncpy(uuidstr, uuidbuf, len);
             break;
         }
     }
@@ -856,7 +856,7 @@ openvzSetDefinedUUID(int vpsid, unsigned char *uuid)
     if (openvzLocateConfFile(vpsid, conf_file, PATH_MAX, "conf")<0)
        return -1;
 
-    if (openvzGetVPSUUID(vpsid, uuidstr))
+    if (openvzGetVPSUUID(vpsid, uuidstr, sizeof(uuidstr)))
         return -1;
 
     if (uuidstr[0] == 0) {

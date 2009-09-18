@@ -261,12 +261,10 @@ testDomainGenerateIfname(virConnectPtr conn,
     return NULL;
 }
 
-static virDomainObjPtr
-testDomainAssignDef(virConnectPtr conn,
-                    virDomainObjList *domlist,
-                    virDomainDefPtr domdef)
+static int
+testDomainGenerateIfnames(virConnectPtr conn,
+                          virDomainDefPtr domdef)
 {
-    virDomainObjPtr domobj = NULL;
     int i = 0;
 
     for (i = 0; i < domdef->nnets; i++) {
@@ -276,17 +274,14 @@ testDomainAssignDef(virConnectPtr conn,
 
         ifname = testDomainGenerateIfname(conn, domdef);
         if (!ifname)
-            goto error;
+            return -1;
 
         domdef->nets[i]->ifname = ifname;
     }
 
-    if (!(domobj = virDomainAssignDef(conn, domlist, domdef)))
-        goto error;
-
-error:
-    return domobj;
+    return 0;
 }
+
 
 static int testOpenDefault(virConnectPtr conn) {
     int u;
@@ -342,10 +337,11 @@ static int testOpenDefault(virConnectPtr conn) {
                                            defaultDomainXML,
                                            VIR_DOMAIN_XML_INACTIVE)))
         goto error;
-    if (!(domobj = testDomainAssignDef(conn, &privconn->domains, domdef))) {
-        virDomainDefFree(domdef);
+    if (testDomainGenerateIfnames(conn, domdef) < 0)
         goto error;
-    }
+    if (!(domobj = virDomainAssignDef(conn, &privconn->domains, domdef)))
+        goto error;
+    domdef = NULL;
     domobj->def->id = privconn->nextDomID++;
     domobj->state = VIR_DOMAIN_RUNNING;
     domobj->persistent = 1;
@@ -399,6 +395,7 @@ error:
     testDriverUnlock(privconn);
     conn->privateData = NULL;
     VIR_FREE(privconn);
+    virDomainDefFree(domdef);
     return VIR_DRV_OPEN_ERROR;
 }
 
@@ -435,7 +432,7 @@ static int testOpenVolumesForPool(virConnectPtr conn,
     char *vol_xpath;
     int i, ret, func_ret = -1;
     xmlNodePtr *vols = NULL;
-    virStorageVolDefPtr def;
+    virStorageVolDefPtr def = NULL;
 
     /* Find storage volumes */
     if (virAsprintf(&vol_xpath, "/node/pool[%d]/volume", poolidx) < 0) {
@@ -668,7 +665,8 @@ static int testOpenFromFile(virConnectPtr conn,
                 goto error;
         }
 
-        if (!(dom = testDomainAssignDef(conn, &privconn->domains, def))) {
+        if (testDomainGenerateIfnames(conn, def) < 0 ||
+            !(dom = virDomainAssignDef(conn, &privconn->domains, def))) {
             virDomainDefFree(def);
             goto error;
         }
@@ -980,11 +978,11 @@ testDomainCreateXML(virConnectPtr conn, const char *xml,
                                        VIR_DOMAIN_XML_INACTIVE)) == NULL)
         goto cleanup;
 
-    if ((dom = testDomainAssignDef(conn, &privconn->domains,
-                                   def)) == NULL) {
-        virDomainDefFree(def);
+    if (testDomainGenerateIfnames(conn, def) < 0)
         goto cleanup;
-    }
+    if (!(dom = virDomainAssignDef(conn, &privconn->domains, def)))
+        goto cleanup;
+    def = NULL;
     dom->state = VIR_DOMAIN_RUNNING;
     dom->def->id = privconn->nextDomID++;
 
@@ -992,15 +990,17 @@ testDomainCreateXML(virConnectPtr conn, const char *xml,
                                      VIR_DOMAIN_EVENT_STARTED,
                                      VIR_DOMAIN_EVENT_STARTED_BOOTED);
 
-    ret = virGetDomain(conn, def->name, def->uuid);
+    ret = virGetDomain(conn, dom->def->name, dom->def->uuid);
     if (ret)
-        ret->id = def->id;
+        ret->id = dom->def->id;
 
 cleanup:
     if (dom)
         virDomainObjUnlock(dom);
     if (event)
         testDomainEventQueue(privconn, event);
+    if (def)
+        virDomainDefFree(def);
     testDriverUnlock(privconn);
     return ret;
 }
@@ -1531,13 +1531,14 @@ static int testDomainRestore(virConnectPtr conn,
     if (!def)
         goto cleanup;
 
-    if ((dom = testDomainAssignDef(conn, &privconn->domains,
-                                   def)) == NULL)
+    if (testDomainGenerateIfnames(conn, def) < 0)
         goto cleanup;
+    if (!(dom = virDomainAssignDef(conn, &privconn->domains, def)))
+        goto cleanup;
+    def = NULL;
 
     dom->state = VIR_DOMAIN_RUNNING;
     dom->def->id = privconn->nextDomID++;
-    def = NULL;
     event = virDomainEventNewFromObj(dom,
                                      VIR_DOMAIN_EVENT_STARTED,
                                      VIR_DOMAIN_EVENT_STARTED_RESTORED);
@@ -1823,10 +1824,10 @@ static virDomainPtr testDomainDefineXML(virConnectPtr conn,
                                        VIR_DOMAIN_XML_INACTIVE)) == NULL)
         goto cleanup;
 
-    if ((dom = testDomainAssignDef(conn, &privconn->domains,
-                                   def)) == NULL) {
+    if (testDomainGenerateIfnames(conn, def) < 0)
         goto cleanup;
-    }
+    if (!(dom = virDomainAssignDef(conn, &privconn->domains, def)))
+        goto cleanup;
     def = NULL;
     dom->persistent = 1;
 
@@ -4173,6 +4174,20 @@ static void testDomainEventQueue(testConnPtr driver,
         virEventUpdateTimeout(driver->domainEventTimer, 0);
 }
 
+static virDrvOpenStatus testSecretOpen(virConnectPtr conn,
+                                       virConnectAuthPtr auth ATTRIBUTE_UNUSED,
+                                       int flags ATTRIBUTE_UNUSED) {
+    if (STRNEQ(conn->driver->name, "Test"))
+        return VIR_DRV_OPEN_DECLINED;
+
+    conn->secretPrivateData = conn->privateData;
+    return VIR_DRV_OPEN_SUCCESS;
+}
+
+static int testSecretClose(virConnectPtr conn) {
+    conn->secretPrivateData = NULL;
+    return 0;
+}
 
 static virDriver testDriver = {
     VIR_DRV_TEST,
@@ -4328,6 +4343,11 @@ static virDeviceMonitor testDevMonitor = {
     .close = testDevMonClose,
 };
 
+static virSecretDriver testSecretDriver = {
+    .name = "Test",
+    .open = testSecretOpen,
+    .close = testSecretClose,
+};
 
 
 /**
@@ -4347,6 +4367,8 @@ testRegister(void)
     if (virRegisterStorageDriver(&testStorageDriver) < 0)
         return -1;
     if (virRegisterDeviceMonitor(&testDevMonitor) < 0)
+        return -1;
+    if (virRegisterSecretDriver(&testSecretDriver) < 0)
         return -1;
 
     return 0;

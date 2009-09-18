@@ -4,6 +4,8 @@
   <start>
     <ref name="domain"/>
   </start>
+
+  <include href='storageencryption.rng'/>
   <!--
       We handle only document defining a domain
     -->
@@ -244,6 +246,15 @@
         </element>
       </optional>
       <optional>
+	<element name="memoryBacking">
+	  <optional>
+	    <element name="hugepages">
+	      <empty/>
+	    </element>
+	  </optional>
+	</element>
+      </optional>
+      <optional>
         <element name="vcpu">
           <optional>
             <attribute name="cpuset"/>
@@ -335,6 +346,14 @@
       <element name="shareable">
         <empty/>
       </element>
+    </optional>
+    <optional>
+      <element name="serial">
+        <ref name="diskSerial"/>
+      </element>
+    </optional>
+    <optional>
+      <ref name="encryption"/>
     </optional>
   </define>
   <!--
@@ -814,6 +833,26 @@
               <ref name="unsignedInt"/>
             </attribute>
           </optional>
+          <optional>
+            <element name="acceleration">
+              <optional>
+                <attribute name="accel3d">
+                  <choice>
+                    <value>yes</value>
+                    <value>no</value>
+                  </choice>
+                </attribute>
+              </optional>
+              <optional>
+                <attribute name="accel2d">
+                  <choice>
+                    <value>yes</value>
+                    <value>no</value>
+                  </choice>
+                </attribute>
+              </optional>
+            </element>
+          </optional>
 	</element>
       </optional>
     </element>
@@ -1133,6 +1172,11 @@
   <define name="domainName">
     <data type="string">
       <param name="pattern">[A-Za-z0-9_\.\+\-&amp;:/]+</param>
+    </data>
+  </define>
+  <define name="diskSerial">
+    <data type="string">
+      <param name="pattern">[A-Za-z0-9_\.\+\-]+</param>
     </data>
   </define>
   <define name="genericName">

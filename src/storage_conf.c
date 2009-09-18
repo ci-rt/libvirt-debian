@@ -53,7 +53,7 @@ VIR_ENUM_IMPL(virStoragePool,
               VIR_STORAGE_POOL_LAST,
               "dir", "fs", "netfs",
               "logical", "disk", "iscsi",
-              "scsi")
+              "scsi", "mpath")
 
 VIR_ENUM_IMPL(virStoragePoolFormatFileSystem,
               VIR_STORAGE_POOL_FS_LAST,
@@ -198,6 +198,11 @@ static virStoragePoolTypeInfo poolTypeInfo[] = {
             .formatToString = virStoragePoolFormatDiskTypeToString,
         }
     },
+    { .poolType = VIR_STORAGE_POOL_MPATH,
+      .volOptions = {
+            .formatToString = virStoragePoolFormatDiskTypeToString,
+        }
+    },
     { .poolType = VIR_STORAGE_POOL_DISK,
       .poolOptions = {
             .flags = (VIR_STORAGE_POOL_SOURCE_DEVICE),
@@ -260,8 +265,10 @@ virStorageVolDefFree(virStorageVolDefPtr def) {
 
     VIR_FREE(def->target.path);
     VIR_FREE(def->target.perms.label);
+    virStorageEncryptionFree(def->target.encryption);
     VIR_FREE(def->backingStore.path);
     VIR_FREE(def->backingStore.perms.label);
+    virStorageEncryptionFree(def->backingStore.encryption);
     VIR_FREE(def);
 }
 
@@ -917,12 +924,6 @@ virStorageSize(virConnectPtr conn,
                 1024ull;
             break;
 
-        case 'z':
-        case 'Z':
-            mult = 1024ull * 1024ull * 1024ull * 1024ull * 1024ull *
-                1024ull * 1024ull;
-            break;
-
         default:
             virStorageReportError(conn, VIR_ERR_XML_ERROR,
                                   _("unknown size units '%s'"), unit);
@@ -955,6 +956,7 @@ virStorageVolDefParseXML(virConnectPtr conn,
     char *allocation = NULL;
     char *capacity = NULL;
     char *unit = NULL;
+    xmlNodePtr node;
 
     options = virStorageVolOptionsForPoolType(pool->type);
     if (options == NULL)
@@ -1018,6 +1020,14 @@ virStorageVolDefParseXML(virConnectPtr conn,
     if (virStorageDefParsePerms(conn, ctxt, &ret->target.perms,
                                 "./target/permissions", 0600) < 0)
         goto cleanup;
+
+    node = virXPathNode(conn, "./target/encryption", ctxt);
+    if (node != NULL) {
+        ret->target.encryption = virStorageEncryptionParseNode(conn, ctxt->doc,
+                                                               node);
+        if (ret->target.encryption == NULL)
+            goto cleanup;
+    }
 
 
 
@@ -1188,6 +1198,10 @@ virStorageVolTargetDefFormat(virConnectPtr conn,
                           def->perms.label);
 
     virBufferAddLit(buf,"    </permissions>\n");
+
+    if (def->encryption != NULL &&
+        virStorageEncryptionFormat(conn, buf, def->encryption) < 0)
+        return -1;
 
     virBufferVSprintf(buf, "  </%s>\n", type);
 

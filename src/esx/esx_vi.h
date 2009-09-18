@@ -34,8 +34,7 @@
 typedef enum _esxVI_APIVersion esxVI_APIVersion;
 typedef enum _esxVI_ProductVersion esxVI_ProductVersion;
 typedef struct _esxVI_Context esxVI_Context;
-typedef struct _esxVI_RemoteResponse esxVI_RemoteResponse;
-typedef struct _esxVI_RemoteRequest esxVI_RemoteRequest;
+typedef struct _esxVI_Response esxVI_Response;
 typedef struct _esxVI_Enumeration esxVI_Enumeration;
 typedef struct _esxVI_EnumerationValue esxVI_EnumerationValue;
 typedef struct _esxVI_List esxVI_List;
@@ -88,60 +87,26 @@ int esxVI_Context_Connect(virConnectPtr conn, esxVI_Context *ctx,
                           const char *password, int noVerify);
 int esxVI_Context_Download(virConnectPtr conn, esxVI_Context *ctx,
                            const char *url, char **content);
+int esxVI_Context_Execute(virConnectPtr conn, esxVI_Context *ctx,
+                          const char *request, const char *xpathExpression,
+                          esxVI_Response **response, esxVI_Boolean expectList);
 
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * RemoteRequest
+ * Response
  */
 
-struct _esxVI_RemoteRequest {
-    char *request;                                    /* required */
-    char *xpathExpression;                            /* optional */
-};
-
-int esxVI_RemoteRequest_Alloc(virConnectPtr conn,
-                              esxVI_RemoteRequest **remoteRequest);
-void esxVI_RemoteRequest_Free(esxVI_RemoteRequest **remoteRequest);
-int esxVI_RemoteRequest_Execute(virConnectPtr conn, esxVI_Context *ctx,
-                                esxVI_RemoteRequest *remoteRequest,
-                                esxVI_RemoteResponse **remoteResponse);
-
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * RemoteResponse
- */
-
-struct _esxVI_RemoteResponse {
-    long response_code;                               /* required */
-    char *response;                                   /* required */
+struct _esxVI_Response {
+    long responseCode;                                /* required */
+    char *content;                                    /* required */
     xmlDocPtr document;                               /* optional */
     xmlXPathContextPtr xpathContext;                  /* optional */
-    xmlXPathObjectPtr xpathObject;                    /* optional */
+    xmlNodePtr node;                                  /* optional, list */
 };
 
-typedef int (*esxVI_RemoteResponse_DeserializeFunc) (virConnectPtr conn,
-                                                     xmlNodePtr node,
-                                                     void **item);
-typedef int (*esxVI_RemoteResponse_DeserializeListFunc) (virConnectPtr conn,
-                                                         xmlNodePtr node,
-                                                         esxVI_List **list);
-
-int esxVI_RemoteResponse_Alloc(virConnectPtr conn,
-                               esxVI_RemoteResponse **remoteResponse);
-void esxVI_RemoteResponse_Free(esxVI_RemoteResponse **remoteResponse);
-int esxVI_RemoteResponse_DeserializeXPathObject
-      (virConnectPtr conn, esxVI_RemoteResponse *remoteResponse,
-       esxVI_RemoteResponse_DeserializeFunc deserializeFunc, void **item);
-int esxVI_RemoteResponse_DeserializeXPathObjectList
-      (virConnectPtr conn, esxVI_RemoteResponse *remoteResponse,
-       esxVI_RemoteResponse_DeserializeListFunc deserializeListFunc,
-       esxVI_List **list);
-int esxVI_RemoteResponse_DeserializeXPathObjectAsManagedObjectReference
-    (virConnectPtr conn, esxVI_RemoteResponse *remoteResponse,
-     esxVI_ManagedObjectReference **managedObjectReference,
-     const char *expectedType);
+int esxVI_Response_Alloc(virConnectPtr conn, esxVI_Response **response);
+void esxVI_Response_Free(esxVI_Response **response);
 
 
 
@@ -231,6 +196,11 @@ int esxVI_GetObjectContent(virConnectPtr conn, esxVI_Context *ctx,
                            const char *type, esxVI_String *propertyNameList,
                            esxVI_Boolean recurse,
                            esxVI_ObjectContent **objectContentList);
+
+int esxVI_GetManagedEntityStatus
+      (virConnectPtr conn, esxVI_ObjectContent *objectContent,
+       const char *propertyName,
+       esxVI_ManagedEntityStatus *managedEntityStatus);
 
 int esxVI_GetVirtualMachinePowerState
       (virConnectPtr conn, esxVI_ObjectContent *virtualMachine,

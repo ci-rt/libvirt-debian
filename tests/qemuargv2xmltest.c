@@ -216,13 +216,14 @@ mymain(int argc, char **argv)
     DO_TEST("hostdev-usb-product", 0);
     DO_TEST("hostdev-usb-address", 0);
 
-    DO_TEST("hostdev-pci-address", 0);
+    DO_TEST("hostdev-pci-address", QEMUD_CMD_FLAG_PCIDEVICE);
 
     DO_TEST_FULL("restore-v1", QEMUD_CMD_FLAG_MIGRATE_KVM_STDIO, "stdio");
     DO_TEST_FULL("restore-v2", QEMUD_CMD_FLAG_MIGRATE_QEMU_EXEC, "stdio");
     DO_TEST_FULL("restore-v2", QEMUD_CMD_FLAG_MIGRATE_QEMU_EXEC, "exec:cat");
     DO_TEST_FULL("migrate", QEMUD_CMD_FLAG_MIGRATE_QEMU_TCP, "tcp:10.0.0.1:5000");
 
+    free(driver.stateDir);
     virCapabilitiesFree(driver.caps);
 
     return(ret==0 ? EXIT_SUCCESS : EXIT_FAILURE);

@@ -291,4 +291,25 @@ LIBVIRT_0.7.0 {
 	virConnectListDefinedInterfaces;
 } LIBVIRT_0.6.4;
 
+LIBVIRT_0.7.1 {
+    global:
+        virSecretGetConnect;
+        virConnectNumOfSecrets;
+        virConnectListSecrets;
+        virSecretLookupByUUID;
+        virSecretLookupByUUIDString;
+        virSecretLookupByUsage;
+        virSecretDefineXML;
+        virSecretGetUUID;
+        virSecretGetUUIDString;
+        virSecretGetUsageType;
+        virSecretGetUsageID;
+        virSecretGetXMLDesc;
+        virSecretSetValue;
+        virSecretGetValue;
+        virSecretUndefine;
+        virSecretRef;
+        virSecretFree;
+} LIBVIRT_0.7.0;
+
 # .... define new API here using predicted next version number ....

@@ -12,20 +12,19 @@
 %define with_libvirtd      0%{!?_without_libvirtd:1}
 %define with_uml           0%{!?_without_uml:1}
 %define with_one           0%{!?_without_one:1}
+%define with_phyp          0%{!?_without_phyp:1}
 %define with_network       0%{!?_without_network:1}
 %define with_storage_fs    0%{!?_without_storage_fs:1}
 %define with_storage_lvm   0%{!?_without_storage_lvm:1}
 %define with_storage_iscsi 0%{!?_without_storage_iscsi:1}
 %define with_storage_disk  0%{!?_without_storage_disk:1}
+%define with_storage_mpath 0%{!?_without_storage_mpath:1}
 %define with_numactl       0%{!?_without_numactl:1}
 
 # default to off - selectively enabled below
 %define with_polkit        0%{!?_without_polkit:0}
 %define with_capng         0%{!?_without_capng:0}
 %define with_netcf         0%{!?_without_netcf:0}
-
-# default to off
-%define with_phyp          0%{!?_without_phyp:0}
 
 # Xen is available only on i386 x86_64 ia64
 %ifnarch i386 i586 i686 x86_64 ia64
@@ -77,11 +76,11 @@
 
 Summary: Library providing a simple API virtualization
 Name: libvirt
-Version: 0.7.0
+Version: 0.7.1
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
-Source: libvirt-%{version}.tar.gz
+Source: http://libvirt.org/sources/libvirt-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 URL: http://libvirt.org/
 BuildRequires: python-devel
@@ -95,7 +94,11 @@ Requires: iptables
 # needed for device enumeration
 Requires: hal
 %if %{with_polkit}
+%if 0%{?fedora} >= 12
+Requires: polkit >= 0.93
+%else
 Requires: PolicyKit >= 0.6
+%endif
 %endif
 %if %{with_storage_fs}
 # For mount/umount in FS driver
@@ -104,11 +107,18 @@ BuildRequires: util-linux
 BuildRequires: nfs-utils
 Requires: nfs-utils
 # For glusterfs
+%if 0%{?fedora} >= 11
 Requires: glusterfs-client >= 2.0.1
+%endif
 %endif
 %if %{with_qemu}
 # From QEMU RPMs
 Requires: /usr/bin/qemu-img
+# For image compression
+Requires: gzip
+Requires: bzip2
+Requires: lzop
+Requires: xz
 %else
 %if %{with_xen}
 # From Xen RPMs
@@ -126,6 +136,10 @@ Requires: iscsi-initiator-utils
 %if %{with_storage_disk}
 # For disk driver
 Requires: parted
+%endif
+%if %{with_storage_mpath}
+# For multipath support
+Requires: device-mapper
 %endif
 %if %{with_xen}
 BuildRequires: xen-devel
@@ -150,7 +164,12 @@ BuildRequires: bridge-utils
 BuildRequires: cyrus-sasl-devel
 %endif
 %if %{with_polkit}
+%if 0%{?fedora} >= 12
+# Only need the binary, not -devel
+BuildRequires: polkit >= 0.93
+%else
 BuildRequires: PolicyKit-devel >= 0.6
+%endif
 %endif
 %if %{with_storage_fs}
 # For mount/umount in FS driver
@@ -177,6 +196,10 @@ BuildRequires: iscsi-initiator-utils
 # For disk driver
 BuildRequires: parted-devel
 %endif
+%if %{with_storage_mpath}
+# For Multipath support
+BuildRequires: device-mapper-devel
+%endif
 %if %{with_numactl}
 # For QEMU/LXC numa info
 BuildRequires: numactl-devel
@@ -185,7 +208,7 @@ BuildRequires: numactl-devel
 BuildRequires: libcap-ng-devel >= 0.5.0
 %endif
 %if %{with_phyp}
-BuildRequires: libssh-devel >= 0.3.1
+BuildRequires: libssh2-devel
 %endif
 %if %{with_netcf}
 BuildRequires: netcf-devel
@@ -324,6 +347,10 @@ of recent versions of Linux (and other OSes).
 %define _without_storage_disk --without-storage-disk
 %endif
 
+%if ! %{with_storage_mpath}
+%define _without_storage_mpath --without-storage-mpath
+%endif
+
 %if ! %{with_numactl}
 %define _without_numactl --without-numactl
 %endif
@@ -355,6 +382,7 @@ of recent versions of Linux (and other OSes).
            %{?_without_storage_lvm} \
            %{?_without_storage_iscsi} \
            %{?_without_storage_disk} \
+           %{?_without_storage_mpath} \
            %{?_without_numactl} \
            %{?_without_capng} \
            %{?_without_netcf} \
@@ -443,6 +471,9 @@ fi
 %endif
 
 /sbin/chkconfig --add libvirtd
+if [ "$1" -ge "1" ]; then
+	/sbin/service libvirtd condrestart > /dev/null 2>&1
+fi
 %endif
 
 %preun
@@ -490,11 +521,11 @@ fi
 
 %dir %{_localstatedir}/lib/libvirt/
 %dir %attr(0711, root, root) %{_localstatedir}/lib/libvirt/images/
-%dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/boot/
+%dir %attr(0711, root, root) %{_localstatedir}/lib/libvirt/boot/
 %dir %attr(0700, root, root) %{_localstatedir}/cache/libvirt/
 
 %if %{with_qemu}
-%dir %attr(0700, %{qemu_user}, %{qemu_group}) %{_localstatedir}/run/libvirt/qemu/
+%dir %attr(0700, root, root) %{_localstatedir}/run/libvirt/qemu/
 %dir %attr(0700, %{qemu_user}, %{qemu_group}) %{_localstatedir}/lib/libvirt/qemu/
 %dir %attr(0700, %{qemu_user}, %{qemu_group}) %{_localstatedir}/cache/libvirt/qemu/
 %endif
@@ -525,7 +556,11 @@ fi
 %endif
 
 %if %{with_polkit}
+%if 0%{?fedora} >= 12
+%{_datadir}/polkit-1/actions/org.libvirt.unix.policy
+%else
 %{_datadir}/PolicyKit/policy/org.libvirt.unix.policy
+%endif
 %endif
 
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/
@@ -568,6 +603,8 @@ fi
 %{_datadir}/libvirt/schemas/nodedev.rng
 %{_datadir}/libvirt/schemas/capability.rng
 %{_datadir}/libvirt/schemas/interface.rng
+%{_datadir}/libvirt/schemas/secret.rng
+%{_datadir}/libvirt/schemas/storageencryption.rng
 
 %if %{with_sasl}
 %config(noreplace) %{_sysconfdir}/sasl2/libvirt.conf
@@ -605,6 +642,15 @@ fi
 %endif
 
 %changelog
+* Tue Sep 15 2009 Daniel Veillard <veillard@redhat.com> - 0.7.1-1
+- ESX, VBox driver updates
+- mutipath support
+- support for encrypted (qcow) volume
+- compressed save image format for Qemu/KVM
+- QEmu host PCI device hotplug support
+- configuration of huge pages in guests
+- a lot of fixes
+
 * Wed Aug  5 2009 Daniel Veillard <veillard@redhat.com> - 0.7.0-1
 - ESX, VBox3, Power Hypervisor drivers
 - new net filesystem glusterfs

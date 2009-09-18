@@ -50,8 +50,7 @@
     "</soapenv:Envelope>"
 
 #define ESX_VI__SOAP__RESPONSE_XPATH(_type)                                   \
-    ((char *)"/soapenv:Envelope/soapenv:Body/"                                \
-             "vim:"_type"Response/vim:returnval")
+    "/soapenv:Envelope/soapenv:Body/vim:"_type"Response/vim:returnval"
 
 
 
@@ -59,60 +58,37 @@
  * VI Methods
  */
 
-static const char *_esxVI_RetrieveServiceContentRequest =
-ESX_VI__SOAP__REQUEST_HEADER
-  "<RetrieveServiceContent xmlns=\"urn:vim25\">"
-    "<_this xmlns=\"urn:vim25\" "
-           "xsi:type=\"ManagedObjectReference\" "
-           "type=\"ServiceInstance\">"
-      "ServiceInstance"
-    "</_this>"
-  "</RetrieveServiceContent>"
-ESX_VI__SOAP__REQUEST_FOOTER;
-
 int
 esxVI_RetrieveServiceContent(virConnectPtr conn, esxVI_Context *ctx,
                              esxVI_ServiceContent **serviceContent)
 {
     int result = 0;
-    esxVI_RemoteRequest *remoteRequest = NULL;
-    esxVI_RemoteResponse *remoteResponse = NULL;
+    const char *request = ESX_VI__SOAP__REQUEST_HEADER
+                            "<RetrieveServiceContent xmlns=\"urn:vim25\">"
+                              "<_this xmlns=\"urn:vim25\" "
+                                     "xsi:type=\"ManagedObjectReference\" "
+                                     "type=\"ServiceInstance\">"
+                                "ServiceInstance"
+                              "</_this>"
+                            "</RetrieveServiceContent>"
+                          ESX_VI__SOAP__REQUEST_FOOTER;
+    esxVI_Response *response = NULL;
 
     if (serviceContent == NULL || *serviceContent != NULL) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Invalid argument");
         return -1;
     }
 
-    if (esxVI_RemoteRequest_Alloc(conn, &remoteRequest) < 0) {
-        goto failure;
-    }
-
-    remoteRequest->request = (char *)_esxVI_RetrieveServiceContentRequest;
-    remoteRequest->xpathExpression =
-      ESX_VI__SOAP__RESPONSE_XPATH("RetrieveServiceContent");
-
-    if (esxVI_RemoteRequest_Execute(conn, ctx, remoteRequest,
-                                    &remoteResponse) < 0 ||
-        esxVI_RemoteResponse_DeserializeXPathObject
-          (conn, remoteResponse,
-           (esxVI_RemoteResponse_DeserializeFunc)
-             esxVI_ServiceContent_Deserialize,
-           (void **)serviceContent) < 0) {
+    if (esxVI_Context_Execute(conn, ctx, request,
+                              ESX_VI__SOAP__RESPONSE_XPATH("RetrieveServiceContent"),
+                              &response, esxVI_Boolean_False) < 0 ||
+        esxVI_ServiceContent_Deserialize(conn, response->node,
+                                         serviceContent) < 0) {
         goto failure;
     }
 
   cleanup:
-    /*
-     * Remove static values from the data structures to prevent them from
-     * being freed by the call to esxVI_RemoteRequest_Free().
-     */
-    if (remoteRequest != NULL) {
-        remoteRequest->request = NULL;
-        remoteRequest->xpathExpression = NULL;
-    }
-
-    esxVI_RemoteRequest_Free(&remoteRequest);
-    esxVI_RemoteResponse_Free(&remoteResponse);
+    esxVI_Response_Free(&response);
 
     return result;
 
@@ -130,9 +106,9 @@ esxVI_Login(virConnectPtr conn, esxVI_Context *ctx,
             esxVI_UserSession **userSession)
 {
     int result = 0;
-    esxVI_RemoteRequest *remoteRequest = NULL;
-    esxVI_RemoteResponse *remoteResponse = NULL;
     virBuffer buffer = VIR_BUFFER_INITIALIZER;
+    char *request = NULL;
+    esxVI_Response *response = NULL;
 
     if (ctx->service == NULL) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Invalid call");
@@ -147,8 +123,7 @@ esxVI_Login(virConnectPtr conn, esxVI_Context *ctx,
     virBufferAddLit(&buffer, ESX_VI__SOAP__REQUEST_HEADER);
     virBufferAddLit(&buffer, "<Login xmlns=\"urn:vim25\">");
 
-    if (esxVI_RemoteRequest_Alloc(conn, &remoteRequest) < 0 ||
-        esxVI_ManagedObjectReference_Serialize(conn,
+    if (esxVI_ManagedObjectReference_Serialize(conn,
                                                ctx->service->sessionManager,
                                                "_this", &buffer,
                                                esxVI_Boolean_True) < 0 ||
@@ -167,35 +142,25 @@ esxVI_Login(virConnectPtr conn, esxVI_Context *ctx,
         goto failure;
     }
 
-    remoteRequest->request = virBufferContentAndReset(&buffer);
-    remoteRequest->xpathExpression = ESX_VI__SOAP__RESPONSE_XPATH("Login");
+    request = virBufferContentAndReset(&buffer);
 
-    if (esxVI_RemoteRequest_Execute(conn, ctx, remoteRequest,
-                                    &remoteResponse) < 0 ||
-        esxVI_RemoteResponse_DeserializeXPathObject
-          (conn, remoteResponse,
-           (esxVI_RemoteResponse_DeserializeFunc)
-             esxVI_UserSession_Deserialize,
-           (void **)userSession) < 0) {
+    if (esxVI_Context_Execute(conn, ctx, request,
+                              ESX_VI__SOAP__RESPONSE_XPATH("Login"),
+                              &response, esxVI_Boolean_False) < 0 ||
+        esxVI_UserSession_Deserialize(conn, response->node, userSession) < 0) {
         goto failure;
     }
 
   cleanup:
-    /*
-     * Remove static values from the data structures to prevent them from
-     * being freed by the call to esxVI_RemoteRequest_Free().
-     */
-    if (remoteRequest != NULL) {
-        remoteRequest->xpathExpression = NULL;
-    }
-
-    esxVI_RemoteRequest_Free(&remoteRequest);
-    esxVI_RemoteResponse_Free(&remoteResponse);
+    VIR_FREE(request);
+    esxVI_Response_Free(&response);
 
     return result;
 
   failure:
-    free(virBufferContentAndReset(&buffer));
+    if (request == NULL) {
+        request = virBufferContentAndReset(&buffer);
+    }
 
     result = -1;
 
@@ -208,9 +173,9 @@ int
 esxVI_Logout(virConnectPtr conn, esxVI_Context *ctx)
 {
     int result = 0;
-    esxVI_RemoteRequest *remoteRequest = NULL;
-    esxVI_RemoteResponse *remoteResponse = NULL;
     virBuffer buffer = VIR_BUFFER_INITIALIZER;
+    char *request = NULL;
+    esxVI_Response *response = NULL;
 
     if (ctx->service == NULL) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Invalid call");
@@ -220,8 +185,7 @@ esxVI_Logout(virConnectPtr conn, esxVI_Context *ctx)
     virBufferAddLit(&buffer, ESX_VI__SOAP__REQUEST_HEADER);
     virBufferAddLit(&buffer, "<Logout xmlns=\"urn:vim25\">");
 
-    if (esxVI_RemoteRequest_Alloc(conn, &remoteRequest) < 0 ||
-        esxVI_ManagedObjectReference_Serialize(conn,
+    if (esxVI_ManagedObjectReference_Serialize(conn,
                                                ctx->service->sessionManager,
                                                "_this", &buffer,
                                                esxVI_Boolean_True) < 0) {
@@ -236,21 +200,23 @@ esxVI_Logout(virConnectPtr conn, esxVI_Context *ctx)
         goto failure;
     }
 
-    remoteRequest->request = virBufferContentAndReset(&buffer);
+    request = virBufferContentAndReset(&buffer);
 
-    if (esxVI_RemoteRequest_Execute(conn, ctx, remoteRequest,
-                                    &remoteResponse) < 0) {
+    if (esxVI_Context_Execute(conn, ctx, request, NULL, &response,
+                              esxVI_Boolean_False) < 0) {
         goto failure;
     }
 
   cleanup:
-    esxVI_RemoteRequest_Free(&remoteRequest);
-    esxVI_RemoteResponse_Free(&remoteResponse);
+    VIR_FREE(request);
+    esxVI_Response_Free(&response);
 
     return result;
 
   failure:
-    free(virBufferContentAndReset(&buffer));
+    if (request == NULL) {
+        request = virBufferContentAndReset(&buffer);
+    }
 
     result = -1;
 
@@ -265,9 +231,9 @@ esxVI_SessionIsActive(virConnectPtr conn, esxVI_Context *ctx,
                       esxVI_Boolean *active)
 {
     int result = 0;
-    esxVI_RemoteRequest *remoteRequest = NULL;
-    esxVI_RemoteResponse *remoteResponse = NULL;
     virBuffer buffer = VIR_BUFFER_INITIALIZER;
+    char *request = NULL;
+    esxVI_Response *response = NULL;
 
     if (ctx->service == NULL) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Invalid call");
@@ -282,8 +248,7 @@ esxVI_SessionIsActive(virConnectPtr conn, esxVI_Context *ctx,
     virBufferAddLit(&buffer, ESX_VI__SOAP__REQUEST_HEADER);
     virBufferAddLit(&buffer, "<SessionIsActive xmlns=\"urn:vim25\">");
 
-    if (esxVI_RemoteRequest_Alloc(conn, &remoteRequest) < 0 ||
-        esxVI_ManagedObjectReference_Serialize(conn,
+    if (esxVI_ManagedObjectReference_Serialize(conn,
                                                ctx->service->sessionManager,
                                                "_this", &buffer,
                                                esxVI_Boolean_True) < 0 ||
@@ -302,40 +267,25 @@ esxVI_SessionIsActive(virConnectPtr conn, esxVI_Context *ctx,
         goto failure;
     }
 
-    remoteRequest->request = virBufferContentAndReset(&buffer);
-    remoteRequest->xpathExpression =
-      ESX_VI__SOAP__RESPONSE_XPATH("SessionIsActive");
+    request = virBufferContentAndReset(&buffer);
 
-    if (esxVI_RemoteRequest_Execute(conn, ctx, remoteRequest,
-                                    &remoteResponse) < 0 ||
-        esxVI_RemoteResponse_DeserializeXPathObject
-          (conn, remoteResponse,
-           /*
-            * FIXME: esxVI_Boolean_Deserialize expects *boolean,
-            *        esxVI_RemoteResponse_DeserializeFunc expects void **,
-            *        passing *boolean casted to void * to it
-            */
-           (esxVI_RemoteResponse_DeserializeFunc)esxVI_Boolean_Deserialize,
-           (void *)active) < 0) {
+    if (esxVI_Context_Execute(conn, ctx, request,
+                              ESX_VI__SOAP__RESPONSE_XPATH("SessionIsActive"),
+                              &response, esxVI_Boolean_False) < 0 ||
+        esxVI_Boolean_Deserialize(conn, response->node, active) < 0) {
         goto failure;
     }
 
   cleanup:
-    /*
-     * Remove static values from the data structures to prevent them from
-     * being freed by the call to esxVI_RemoteRequest_Free().
-     */
-    if (remoteRequest != NULL) {
-        remoteRequest->xpathExpression = NULL;
-    }
-
-    esxVI_RemoteRequest_Free(&remoteRequest);
-    esxVI_RemoteResponse_Free(&remoteResponse);
+    VIR_FREE(request);
+    esxVI_Response_Free(&response);
 
     return result;
 
   failure:
-    free(virBufferContentAndReset(&buffer));
+    if (request == NULL) {
+        request = virBufferContentAndReset(&buffer);
+    }
 
     result = -1;
 
@@ -350,9 +300,9 @@ esxVI_RetrieveProperties(virConnectPtr conn, esxVI_Context *ctx,
                          esxVI_ObjectContent **objectContentList)
 {
     int result = 0;
-    esxVI_RemoteRequest *remoteRequest = NULL;
-    esxVI_RemoteResponse *remoteResponse = NULL;
     virBuffer buffer = VIR_BUFFER_INITIALIZER;
+    char *request = NULL;
+    esxVI_Response *response = NULL;
 
     if (ctx->service == NULL) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Invalid call");
@@ -367,8 +317,7 @@ esxVI_RetrieveProperties(virConnectPtr conn, esxVI_Context *ctx,
     virBufferAddLit(&buffer, ESX_VI__SOAP__REQUEST_HEADER);
     virBufferAddLit(&buffer, "<RetrieveProperties xmlns=\"urn:vim25\">");
 
-    if (esxVI_RemoteRequest_Alloc(conn, &remoteRequest) < 0 ||
-        esxVI_ManagedObjectReference_Serialize(conn,
+    if (esxVI_ManagedObjectReference_Serialize(conn,
                                                ctx->service->propertyCollector,
                                                "_this", &buffer,
                                                esxVI_Boolean_True) < 0 ||
@@ -386,36 +335,26 @@ esxVI_RetrieveProperties(virConnectPtr conn, esxVI_Context *ctx,
         goto failure;
     }
 
-    remoteRequest->request = virBufferContentAndReset(&buffer);
-    remoteRequest->xpathExpression =
-      ESX_VI__SOAP__RESPONSE_XPATH("RetrieveProperties");
+    request = virBufferContentAndReset(&buffer);
 
-    if (esxVI_RemoteRequest_Execute(conn, ctx, remoteRequest,
-                                    &remoteResponse) < 0 ||
-        esxVI_RemoteResponse_DeserializeXPathObjectList
-          (conn, remoteResponse,
-           (esxVI_RemoteResponse_DeserializeListFunc)
-             esxVI_ObjectContent_DeserializeList,
-           (esxVI_List **)objectContentList) < 0) {
+    if (esxVI_Context_Execute(conn, ctx, request,
+                              ESX_VI__SOAP__RESPONSE_XPATH("RetrieveProperties"),
+                              &response, esxVI_Boolean_True) < 0 ||
+        esxVI_ObjectContent_DeserializeList(conn, response->node,
+                                            objectContentList) < 0) {
         goto failure;
     }
 
   cleanup:
-    /*
-     * Remove static values from the data structures to prevent them from
-     * being freed by the call to esxVI_RemoteRequest_Free().
-     */
-    if (remoteRequest != NULL) {
-        remoteRequest->xpathExpression = NULL;
-    }
-
-    esxVI_RemoteRequest_Free(&remoteRequest);
-    esxVI_RemoteResponse_Free(&remoteResponse);
+    VIR_FREE(request);
+    esxVI_Response_Free(&response);
 
     return result;
 
   failure:
-    free(virBufferContentAndReset(&buffer));
+    if (request == NULL) {
+        request = virBufferContentAndReset(&buffer);
+    }
 
     result = -1;
 
@@ -512,7 +451,9 @@ esxVI_MigrateVM_Task(virConnectPtr conn, esxVI_Context *ctx,
     return result;
 
   failure:
-    free(virBufferContentAndReset(&buffer));
+    if (request == NULL) {
+        request = virBufferContentAndReset(&buffer);
+    }
 
     result = -1;
 
@@ -568,7 +509,60 @@ esxVI_ReconfigVM_Task(virConnectPtr conn, esxVI_Context *ctx,
     return result;
 
   failure:
-    free(virBufferContentAndReset(&buffer));
+    if (request == NULL) {
+        request = virBufferContentAndReset(&buffer);
+    }
+
+    result = -1;
+
+    goto cleanup;
+}
+
+
+
+int
+esxVI_UnregisterVM(virConnectPtr conn, esxVI_Context *ctx,
+                   esxVI_ManagedObjectReference *virtualMachine)
+{
+    int result = 0;
+    virBuffer buffer = VIR_BUFFER_INITIALIZER;
+    char *request = NULL;
+    esxVI_Response *response = NULL;
+
+    virBufferAddLit(&buffer, ESX_VI__SOAP__REQUEST_HEADER);
+    virBufferAddLit(&buffer, "<UnregisterVM xmlns=\"urn:vim25\">");
+
+    if (esxVI_ManagedObjectReference_Serialize(conn, virtualMachine, "_this",
+                                               &buffer,
+                                               esxVI_Boolean_True) < 0) {
+        goto failure;
+    }
+
+    virBufferAddLit(&buffer, "</UnregisterVM>");
+    virBufferAddLit(&buffer, ESX_VI__SOAP__REQUEST_FOOTER);
+
+    if (virBufferError(&buffer)) {
+        virReportOOMError(conn);
+        goto failure;
+    }
+
+    request = virBufferContentAndReset(&buffer);
+
+    if (esxVI_Context_Execute(conn, ctx, request, NULL, &response,
+                              esxVI_Boolean_False) < 0) {
+        goto failure;
+    }
+
+  cleanup:
+    VIR_FREE(request);
+    esxVI_Response_Free(&response);
+
+    return result;
+
+  failure:
+    if (request == NULL) {
+        request = virBufferContentAndReset(&buffer);
+    }
 
     result = -1;
 
@@ -584,9 +578,9 @@ esxVI_CreateFilter(virConnectPtr conn, esxVI_Context *ctx,
                    esxVI_ManagedObjectReference **propertyFilter)
 {
     int result = 0;
-    esxVI_RemoteRequest *remoteRequest = NULL;
-    esxVI_RemoteResponse *remoteResponse = NULL;
     virBuffer buffer = VIR_BUFFER_INITIALIZER;
+    char *request = NULL;
+    esxVI_Response *response = NULL;
 
     if (ctx->service == NULL) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Invalid call");
@@ -601,8 +595,7 @@ esxVI_CreateFilter(virConnectPtr conn, esxVI_Context *ctx,
     virBufferAddLit(&buffer, ESX_VI__SOAP__REQUEST_HEADER);
     virBufferAddLit(&buffer, "<CreateFilter xmlns=\"urn:vim25\">");
 
-    if (esxVI_RemoteRequest_Alloc(conn, &remoteRequest) < 0 ||
-        esxVI_ManagedObjectReference_Serialize(conn,
+    if (esxVI_ManagedObjectReference_Serialize(conn,
                                                ctx->service->propertyCollector,
                                                "_this", &buffer,
                                                esxVI_Boolean_True) < 0 ||
@@ -621,33 +614,27 @@ esxVI_CreateFilter(virConnectPtr conn, esxVI_Context *ctx,
         goto failure;
     }
 
-    remoteRequest->request = virBufferContentAndReset(&buffer);
-    remoteRequest->xpathExpression =
-      ESX_VI__SOAP__RESPONSE_XPATH("CreateFilter");
+    request = virBufferContentAndReset(&buffer);
 
-    if (esxVI_RemoteRequest_Execute(conn, ctx, remoteRequest,
-                                    &remoteResponse) < 0 ||
-        esxVI_RemoteResponse_DeserializeXPathObjectAsManagedObjectReference
-          (conn, remoteResponse, propertyFilter, "PropertyFilter") < 0) {
+    if (esxVI_Context_Execute(conn, ctx, request,
+                              ESX_VI__SOAP__RESPONSE_XPATH("CreateFilter"),
+                              &response, esxVI_Boolean_False) < 0 ||
+        esxVI_ManagedObjectReference_Deserialize(conn, response->node,
+                                                 propertyFilter,
+                                                 "PropertyFilter") < 0) {
         goto failure;
     }
 
   cleanup:
-    /*
-     * Remove static values from the data structures to prevent them from
-     * being freed by the call to esxVI_RemoteRequest_Free().
-     */
-    if (remoteRequest != NULL) {
-        remoteRequest->xpathExpression = NULL;
-    }
-
-    esxVI_RemoteRequest_Free(&remoteRequest);
-    esxVI_RemoteResponse_Free(&remoteResponse);
+    VIR_FREE(request);
+    esxVI_Response_Free(&response);
 
     return result;
 
   failure:
-    free(virBufferContentAndReset(&buffer));
+    if (request == NULL) {
+        request = virBufferContentAndReset(&buffer);
+    }
 
     result = -1;
 
@@ -661,9 +648,9 @@ esxVI_DestroyPropertyFilter(virConnectPtr conn, esxVI_Context *ctx,
                             esxVI_ManagedObjectReference *propertyFilter)
 {
     int result = 0;
-    esxVI_RemoteRequest *remoteRequest = NULL;
-    esxVI_RemoteResponse *remoteResponse = NULL;
     virBuffer buffer = VIR_BUFFER_INITIALIZER;
+    char *request = NULL;
+    esxVI_Response *response = NULL;
 
     if (ctx->service == NULL) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Invalid call");
@@ -673,8 +660,7 @@ esxVI_DestroyPropertyFilter(virConnectPtr conn, esxVI_Context *ctx,
     virBufferAddLit(&buffer, ESX_VI__SOAP__REQUEST_HEADER);
     virBufferAddLit(&buffer, "<DestroyPropertyFilter xmlns=\"urn:vim25\">");
 
-    if (esxVI_RemoteRequest_Alloc(conn, &remoteRequest) < 0 ||
-        esxVI_ManagedObjectReference_Serialize(conn, propertyFilter, "_this",
+    if (esxVI_ManagedObjectReference_Serialize(conn, propertyFilter, "_this",
                                                &buffer,
                                                esxVI_Boolean_True) < 0) {
         goto failure;
@@ -688,21 +674,23 @@ esxVI_DestroyPropertyFilter(virConnectPtr conn, esxVI_Context *ctx,
         goto failure;
     }
 
-    remoteRequest->request = virBufferContentAndReset(&buffer);
+    request = virBufferContentAndReset(&buffer);
 
-    if (esxVI_RemoteRequest_Execute(conn, ctx, remoteRequest,
-                                    &remoteResponse) < 0) {
+    if (esxVI_Context_Execute(conn, ctx, request, NULL, &response,
+                              esxVI_Boolean_False) < 0) {
         goto failure;
     }
 
   cleanup:
-    esxVI_RemoteRequest_Free(&remoteRequest);
-    esxVI_RemoteResponse_Free(&remoteResponse);
+    VIR_FREE(request);
+    esxVI_Response_Free(&response);
 
     return result;
 
   failure:
-    free(virBufferContentAndReset(&buffer));
+    if (request == NULL) {
+        request = virBufferContentAndReset(&buffer);
+    }
 
     result = -1;
 
@@ -716,9 +704,9 @@ esxVI_WaitForUpdates(virConnectPtr conn, esxVI_Context *ctx,
                      const char *version, esxVI_UpdateSet **updateSet)
 {
     int result = 0;
-    esxVI_RemoteRequest *remoteRequest = NULL;
-    esxVI_RemoteResponse *remoteResponse = NULL;
     virBuffer buffer = VIR_BUFFER_INITIALIZER;
+    char *request = NULL;
+    esxVI_Response *response = NULL;
 
     if (ctx->service == NULL) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Invalid call");
@@ -733,8 +721,7 @@ esxVI_WaitForUpdates(virConnectPtr conn, esxVI_Context *ctx,
     virBufferAddLit(&buffer, ESX_VI__SOAP__REQUEST_HEADER);
     virBufferAddLit(&buffer, "<WaitForUpdates xmlns=\"urn:vim25\">");
 
-    if (esxVI_RemoteRequest_Alloc(conn, &remoteRequest) < 0 ||
-        esxVI_ManagedObjectReference_Serialize(conn,
+    if (esxVI_ManagedObjectReference_Serialize(conn,
                                                ctx->service->propertyCollector,
                                                "_this", &buffer,
                                                esxVI_Boolean_True) < 0 ||
@@ -751,35 +738,25 @@ esxVI_WaitForUpdates(virConnectPtr conn, esxVI_Context *ctx,
         goto failure;
     }
 
-    remoteRequest->request = virBufferContentAndReset(&buffer);
-    remoteRequest->xpathExpression =
-      ESX_VI__SOAP__RESPONSE_XPATH("WaitForUpdates");
+    request = virBufferContentAndReset(&buffer);
 
-    if (esxVI_RemoteRequest_Execute(conn, ctx, remoteRequest,
-                                    &remoteResponse) < 0 ||
-        esxVI_RemoteResponse_DeserializeXPathObject
-          (conn, remoteResponse,
-           (esxVI_RemoteResponse_DeserializeFunc)esxVI_UpdateSet_Deserialize,
-           (void **)updateSet) < 0) {
+    if (esxVI_Context_Execute(conn, ctx, request,
+                              ESX_VI__SOAP__RESPONSE_XPATH("WaitForUpdates"),
+                              &response, esxVI_Boolean_False) < 0 ||
+        esxVI_UpdateSet_Deserialize(conn, response->node, updateSet) < 0) {
         goto failure;
     }
 
   cleanup:
-    /*
-     * Remove static values from the data structures to prevent them from
-     * being freed by the call to esxVI_RemoteRequest_Free().
-     */
-    if (remoteRequest != NULL) {
-        remoteRequest->xpathExpression = NULL;
-    }
-
-    esxVI_RemoteRequest_Free(&remoteRequest);
-    esxVI_RemoteResponse_Free(&remoteResponse);
+    VIR_FREE(request);
+    esxVI_Response_Free(&response);
 
     return result;
 
   failure:
-    free(virBufferContentAndReset(&buffer));
+    if (request == NULL) {
+        request = virBufferContentAndReset(&buffer);
+    }
 
     result = -1;
 
@@ -818,9 +795,9 @@ esxVI_ValidateMigration(virConnectPtr conn, esxVI_Context *ctx,
                         esxVI_Event **eventList)
 {
     int result = 0;
-    esxVI_RemoteRequest *remoteRequest = NULL;
-    esxVI_RemoteResponse *remoteResponse = NULL;
     virBuffer buffer = VIR_BUFFER_INITIALIZER;
+    char *request = NULL;
+    esxVI_Response *response = NULL;
 
     if (ctx->service == NULL) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Invalid call");
@@ -840,8 +817,7 @@ esxVI_ValidateMigration(virConnectPtr conn, esxVI_Context *ctx,
                                "ServiceInstance"
                              "</_this>");
 
-    if (esxVI_RemoteRequest_Alloc(conn, &remoteRequest) < 0 ||
-        esxVI_ManagedObjectReference_SerializeList(conn, virtualMachineList,
+    if (esxVI_ManagedObjectReference_SerializeList(conn, virtualMachineList,
                                                    "vm", &buffer,
                                                    esxVI_Boolean_True) < 0 ||
         esxVI_VirtualMachinePowerState_Serialize(conn, powerState, "state",
@@ -866,36 +842,25 @@ esxVI_ValidateMigration(virConnectPtr conn, esxVI_Context *ctx,
         goto failure;
     }
 
-    remoteRequest->request = virBufferContentAndReset(&buffer);
-    remoteRequest->xpathExpression =
-      ESX_VI__SOAP__RESPONSE_XPATH("ValidateMigration");
+    request = virBufferContentAndReset(&buffer);
 
-    if (esxVI_RemoteRequest_Execute(conn, ctx, remoteRequest,
-                                    &remoteResponse) < 0 ||
-        esxVI_RemoteResponse_DeserializeXPathObjectList
-          (conn, remoteResponse,
-           (esxVI_RemoteResponse_DeserializeListFunc)
-             esxVI_Event_DeserializeList,
-           (esxVI_List **)eventList) < 0) {
+    if (esxVI_Context_Execute(conn, ctx, request,
+                              ESX_VI__SOAP__RESPONSE_XPATH("ValidateMigration"),
+                              &response, esxVI_Boolean_True) < 0 ||
+        esxVI_Event_DeserializeList(conn, response->node, eventList) < 0) {
         goto failure;
     }
 
   cleanup:
-    /*
-     * Remove static values from the data structures to prevent them from
-     * being freed by the call to esxVI_RemoteRequest_Free().
-     */
-    if (remoteRequest != NULL) {
-        remoteRequest->xpathExpression = NULL;
-    }
-
-    esxVI_RemoteRequest_Free(&remoteRequest);
-    esxVI_RemoteResponse_Free(&remoteResponse);
+    VIR_FREE(request);
+    esxVI_Response_Free(&response);
 
     return result;
 
   failure:
-    free(virBufferContentAndReset(&buffer));
+    if (request == NULL) {
+        request = virBufferContentAndReset(&buffer);
+    }
 
     result = -1;
 
@@ -911,9 +876,9 @@ esxVI_FindByIp(virConnectPtr conn, esxVI_Context *ctx,
                  esxVI_ManagedObjectReference **managedObjectReference)
 {
     int result = 0;
-    esxVI_RemoteRequest *remoteRequest = NULL;
-    esxVI_RemoteResponse *remoteResponse = NULL;
     virBuffer buffer = VIR_BUFFER_INITIALIZER;
+    char *request = NULL;
+    esxVI_Response *response = NULL;
 
     if (ctx->service == NULL) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Invalid call");
@@ -928,8 +893,7 @@ esxVI_FindByIp(virConnectPtr conn, esxVI_Context *ctx,
     virBufferAddLit(&buffer, ESX_VI__SOAP__REQUEST_HEADER);
     virBufferAddLit(&buffer, "<FindByIp xmlns=\"urn:vim25\">");
 
-    if (esxVI_RemoteRequest_Alloc(conn, &remoteRequest) < 0 ||
-        esxVI_ManagedObjectReference_Serialize(conn, ctx->service->searchIndex,
+    if (esxVI_ManagedObjectReference_Serialize(conn, ctx->service->searchIndex,
                                                "_this", &buffer,
                                                esxVI_Boolean_True) < 0 ||
         esxVI_ManagedObjectReference_Serialize(conn, datacenter,
@@ -950,35 +914,28 @@ esxVI_FindByIp(virConnectPtr conn, esxVI_Context *ctx,
         goto failure;
     }
 
-    remoteRequest->request = virBufferContentAndReset(&buffer);
-    remoteRequest->xpathExpression =
-      ESX_VI__SOAP__RESPONSE_XPATH("FindByIp");
+    request = virBufferContentAndReset(&buffer);
 
-    if (esxVI_RemoteRequest_Execute(conn, ctx, remoteRequest,
-                                    &remoteResponse) < 0 ||
-        esxVI_RemoteResponse_DeserializeXPathObjectAsManagedObjectReference
-          (conn, remoteResponse, managedObjectReference,
+    if (esxVI_Context_Execute(conn, ctx, request,
+                              ESX_VI__SOAP__RESPONSE_XPATH("FindByIp"),
+                              &response, esxVI_Boolean_False) < 0 ||
+        esxVI_ManagedObjectReference_Deserialize
+          (conn, response->node, managedObjectReference,
            vmSearch == esxVI_Boolean_True ? "VirtualMachine"
                                           : "HostSystem") < 0) {
         goto failure;
     }
 
   cleanup:
-    /*
-     * Remove static values from the data structures to prevent them from
-     * being freed by the call to esxVI_RemoteRequest_Free().
-     */
-    if (remoteRequest != NULL) {
-        remoteRequest->xpathExpression = NULL;
-    }
-
-    esxVI_RemoteRequest_Free(&remoteRequest);
-    esxVI_RemoteResponse_Free(&remoteResponse);
+    VIR_FREE(request);
+    esxVI_Response_Free(&response);
 
     return result;
 
   failure:
-    free(virBufferContentAndReset(&buffer));
+    if (request == NULL) {
+        request = virBufferContentAndReset(&buffer);
+    }
 
     result = -1;
 
@@ -994,10 +951,10 @@ esxVI_FindByUuid(virConnectPtr conn, esxVI_Context *ctx,
                  esxVI_ManagedObjectReference **managedObjectReference)
 {
     int result = 0;
-    esxVI_RemoteRequest *remoteRequest = NULL;
-    esxVI_RemoteResponse *remoteResponse = NULL;
     char uuid_string[VIR_UUID_STRING_BUFLEN] = "";
     virBuffer buffer = VIR_BUFFER_INITIALIZER;
+    char *request = NULL;
+    esxVI_Response *response = NULL;
 
     if (ctx->service == NULL) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Invalid call");
@@ -1014,8 +971,7 @@ esxVI_FindByUuid(virConnectPtr conn, esxVI_Context *ctx,
     virBufferAddLit(&buffer, ESX_VI__SOAP__REQUEST_HEADER);
     virBufferAddLit(&buffer, "<FindByUuid xmlns=\"urn:vim25\">");
 
-    if (esxVI_RemoteRequest_Alloc(conn, &remoteRequest) < 0 ||
-        esxVI_ManagedObjectReference_Serialize(conn, ctx->service->searchIndex,
+    if (esxVI_ManagedObjectReference_Serialize(conn, ctx->service->searchIndex,
                                                "_this", &buffer,
                                                esxVI_Boolean_True) < 0 ||
         esxVI_ManagedObjectReference_Serialize(conn, datacenter,
@@ -1036,35 +992,28 @@ esxVI_FindByUuid(virConnectPtr conn, esxVI_Context *ctx,
         goto failure;
     }
 
-    remoteRequest->request = virBufferContentAndReset(&buffer);
-    remoteRequest->xpathExpression =
-      ESX_VI__SOAP__RESPONSE_XPATH("FindByUuid");
+    request = virBufferContentAndReset(&buffer);
 
-    if (esxVI_RemoteRequest_Execute(conn, ctx, remoteRequest,
-                                    &remoteResponse) < 0 ||
-        esxVI_RemoteResponse_DeserializeXPathObjectAsManagedObjectReference
-          (conn, remoteResponse, managedObjectReference,
+    if (esxVI_Context_Execute(conn, ctx, request,
+                              ESX_VI__SOAP__RESPONSE_XPATH("FindByUuid"),
+                              &response, esxVI_Boolean_False) < 0 ||
+        esxVI_ManagedObjectReference_Deserialize
+          (conn, response->node, managedObjectReference,
            vmSearch == esxVI_Boolean_True ? "VirtualMachine"
                                           : "HostSystem") < 0) {
         goto failure;
     }
 
   cleanup:
-    /*
-     * Remove static values from the data structures to prevent them from
-     * being freed by the call to esxVI_RemoteRequest_Free().
-     */
-    if (remoteRequest != NULL) {
-        remoteRequest->xpathExpression = NULL;
-    }
-
-    esxVI_RemoteRequest_Free(&remoteRequest);
-    esxVI_RemoteResponse_Free(&remoteResponse);
+    VIR_FREE(request);
+    esxVI_Response_Free(&response);
 
     return result;
 
   failure:
-    free(virBufferContentAndReset(&buffer));
+    if (request == NULL) {
+        request = virBufferContentAndReset(&buffer);
+    }
 
     result = -1;
 
@@ -1081,9 +1030,9 @@ esxVI_QueryAvailablePerfMetric(virConnectPtr conn, esxVI_Context *ctx,
                                esxVI_PerfMetricId **perfMetricIdList)
 {
     int result = 0;
-    esxVI_RemoteRequest *remoteRequest = NULL;
-    esxVI_RemoteResponse *remoteResponse = NULL;
     virBuffer buffer = VIR_BUFFER_INITIALIZER;
+    char *request = NULL;
+    esxVI_Response *response = NULL;
 
     if (ctx->service == NULL) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Invalid call");
@@ -1098,8 +1047,7 @@ esxVI_QueryAvailablePerfMetric(virConnectPtr conn, esxVI_Context *ctx,
     virBufferAddLit(&buffer, ESX_VI__SOAP__REQUEST_HEADER);
     virBufferAddLit(&buffer, "<QueryAvailablePerfMetric xmlns=\"urn:vim25\">");
 
-    if (esxVI_RemoteRequest_Alloc(conn, &remoteRequest) < 0 ||
-        esxVI_ManagedObjectReference_Serialize(conn, ctx->service->perfManager,
+    if (esxVI_ManagedObjectReference_Serialize(conn, ctx->service->perfManager,
                                                "_this", &buffer,
                                                esxVI_Boolean_True) < 0 ||
         esxVI_ManagedObjectReference_Serialize(conn, entity,
@@ -1122,36 +1070,26 @@ esxVI_QueryAvailablePerfMetric(virConnectPtr conn, esxVI_Context *ctx,
         goto failure;
     }
 
-    remoteRequest->request = virBufferContentAndReset(&buffer);
-    remoteRequest->xpathExpression =
-      ESX_VI__SOAP__RESPONSE_XPATH("QueryAvailablePerfMetric");
+    request = virBufferContentAndReset(&buffer);
 
-    if (esxVI_RemoteRequest_Execute(conn, ctx, remoteRequest,
-                                    &remoteResponse) < 0 ||
-        esxVI_RemoteResponse_DeserializeXPathObjectList
-          (conn, remoteResponse,
-           (esxVI_RemoteResponse_DeserializeListFunc)
-             esxVI_PerfMetricId_DeserializeList,
-           (esxVI_List **)perfMetricIdList) < 0) {
+    if (esxVI_Context_Execute(conn, ctx, request,
+                              ESX_VI__SOAP__RESPONSE_XPATH("QueryAvailablePerfMetric"),
+                              &response, esxVI_Boolean_True) < 0 ||
+        esxVI_PerfMetricId_DeserializeList(conn, response->node,
+                                           perfMetricIdList) < 0) {
         goto failure;
     }
 
   cleanup:
-    /*
-     * Remove static values from the data structures to prevent them from
-     * being freed by the call to esxVI_RemoteRequest_Free().
-     */
-    if (remoteRequest != NULL) {
-        remoteRequest->xpathExpression = NULL;
-    }
-
-    esxVI_RemoteRequest_Free(&remoteRequest);
-    esxVI_RemoteResponse_Free(&remoteResponse);
+    VIR_FREE(request);
+    esxVI_Response_Free(&response);
 
     return result;
 
   failure:
-    free(virBufferContentAndReset(&buffer));
+    if (request == NULL) {
+        request = virBufferContentAndReset(&buffer);
+    }
 
     result = -1;
 
@@ -1166,9 +1104,9 @@ esxVI_QueryPerfCounter(virConnectPtr conn, esxVI_Context *ctx,
                        esxVI_PerfCounterInfo **perfCounterInfoList)
 {
     int result = 0;
-    esxVI_RemoteRequest *remoteRequest = NULL;
-    esxVI_RemoteResponse *remoteResponse = NULL;
     virBuffer buffer = VIR_BUFFER_INITIALIZER;
+    char *request = NULL;
+    esxVI_Response *response = NULL;
 
     if (ctx->service == NULL) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Invalid call");
@@ -1183,8 +1121,7 @@ esxVI_QueryPerfCounter(virConnectPtr conn, esxVI_Context *ctx,
     virBufferAddLit(&buffer, ESX_VI__SOAP__REQUEST_HEADER);
     virBufferAddLit(&buffer, "<QueryPerfCounter xmlns=\"urn:vim25\">");
 
-    if (esxVI_RemoteRequest_Alloc(conn, &remoteRequest) < 0 ||
-        esxVI_ManagedObjectReference_Serialize(conn, ctx->service->perfManager,
+    if (esxVI_ManagedObjectReference_Serialize(conn, ctx->service->perfManager,
                                                "_this", &buffer,
                                                esxVI_Boolean_True) < 0 ||
         esxVI_Int_SerializeList(conn, counterIdList, "counterId", &buffer,
@@ -1200,36 +1137,26 @@ esxVI_QueryPerfCounter(virConnectPtr conn, esxVI_Context *ctx,
         goto failure;
     }
 
-    remoteRequest->request = virBufferContentAndReset(&buffer);
-    remoteRequest->xpathExpression =
-      ESX_VI__SOAP__RESPONSE_XPATH("QueryPerfCounter");
+    request = virBufferContentAndReset(&buffer);
 
-    if (esxVI_RemoteRequest_Execute(conn, ctx, remoteRequest,
-                                    &remoteResponse) < 0 ||
-        esxVI_RemoteResponse_DeserializeXPathObjectList
-          (conn, remoteResponse,
-           (esxVI_RemoteResponse_DeserializeListFunc)
-             esxVI_PerfCounterInfo_DeserializeList,
-           (esxVI_List **)perfCounterInfoList) < 0) {
+    if (esxVI_Context_Execute(conn, ctx, request,
+                              ESX_VI__SOAP__RESPONSE_XPATH("QueryPerfCounter"),
+                              &response, esxVI_Boolean_True) < 0 ||
+        esxVI_PerfCounterInfo_DeserializeList(conn, response->node,
+                                              perfCounterInfoList) < 0) {
         goto failure;
     }
 
   cleanup:
-    /*
-     * Remove static values from the data structures to prevent them from
-     * being freed by the call to esxVI_RemoteRequest_Free().
-     */
-    if (remoteRequest != NULL) {
-        remoteRequest->xpathExpression = NULL;
-    }
-
-    esxVI_RemoteRequest_Free(&remoteRequest);
-    esxVI_RemoteResponse_Free(&remoteResponse);
+    VIR_FREE(request);
+    esxVI_Response_Free(&response);
 
     return result;
 
   failure:
-    free(virBufferContentAndReset(&buffer));
+    if (request == NULL) {
+        request = virBufferContentAndReset(&buffer);
+    }
 
     result = -1;
 
@@ -1244,9 +1171,9 @@ esxVI_QueryPerf(virConnectPtr conn, esxVI_Context *ctx,
                 esxVI_PerfEntityMetric **perfEntityMetricList)
 {
     int result = 0;
-    esxVI_RemoteRequest *remoteRequest = NULL;
-    esxVI_RemoteResponse *remoteResponse = NULL;
     virBuffer buffer = VIR_BUFFER_INITIALIZER;
+    char *request = NULL;
+    esxVI_Response *response = NULL;
 
     if (ctx->service == NULL) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Invalid call");
@@ -1261,13 +1188,11 @@ esxVI_QueryPerf(virConnectPtr conn, esxVI_Context *ctx,
     virBufferAddLit(&buffer, ESX_VI__SOAP__REQUEST_HEADER);
     virBufferAddLit(&buffer, "<QueryPerf xmlns=\"urn:vim25\">");
 
-    if (esxVI_RemoteRequest_Alloc(conn, &remoteRequest) < 0 ||
-        esxVI_ManagedObjectReference_Serialize(conn, ctx->service->perfManager,
+    if (esxVI_ManagedObjectReference_Serialize(conn, ctx->service->perfManager,
                                                "_this", &buffer,
                                                esxVI_Boolean_True) < 0 ||
         esxVI_PerfQuerySpec_SerializeList(conn, querySpecList, "querySpec",
-                                          &buffer,
-                                          esxVI_Boolean_True) < 0) {
+                                          &buffer, esxVI_Boolean_True) < 0) {
         goto failure;
     }
 
@@ -1279,35 +1204,26 @@ esxVI_QueryPerf(virConnectPtr conn, esxVI_Context *ctx,
         goto failure;
     }
 
-    remoteRequest->request = virBufferContentAndReset(&buffer);
-    remoteRequest->xpathExpression = ESX_VI__SOAP__RESPONSE_XPATH("QueryPerf");
+    request = virBufferContentAndReset(&buffer);
 
-    if (esxVI_RemoteRequest_Execute(conn, ctx, remoteRequest,
-                                    &remoteResponse) < 0 ||
-        esxVI_RemoteResponse_DeserializeXPathObjectList
-          (conn, remoteResponse,
-           (esxVI_RemoteResponse_DeserializeListFunc)
-             esxVI_PerfEntityMetric_DeserializeList,
-           (esxVI_List **)perfEntityMetricList) < 0) {
+    if (esxVI_Context_Execute(conn, ctx, request,
+                              ESX_VI__SOAP__RESPONSE_XPATH("QueryPerf"),
+                              &response, esxVI_Boolean_True) < 0 ||
+        esxVI_PerfEntityMetric_DeserializeList(conn, response->node,
+                                               perfEntityMetricList) < 0) {
         goto failure;
     }
 
   cleanup:
-    /*
-     * Remove static values from the data structures to prevent them from
-     * being freed by the call to esxVI_RemoteRequest_Free().
-     */
-    if (remoteRequest != NULL) {
-        remoteRequest->xpathExpression = NULL;
-    }
-
-    esxVI_RemoteRequest_Free(&remoteRequest);
-    esxVI_RemoteResponse_Free(&remoteResponse);
+    VIR_FREE(request);
+    esxVI_Response_Free(&response);
 
     return result;
 
   failure:
-    free(virBufferContentAndReset(&buffer));
+    if (request == NULL) {
+        request = virBufferContentAndReset(&buffer);
+    }
 
     result = -1;
 

@@ -60,7 +60,9 @@
 #if HAVE_CAPNG
 #include <cap-ng.h>
 #endif
-
+#ifdef HAVE_MNTENT_H
+#include <mntent.h>
+#endif
 
 #include "virterror_internal.h"
 #include "logging.h"
@@ -509,10 +511,6 @@ __virExec(virConnectPtr conn,
         childerr != childout)
         close(childerr);
 
-    if (hook)
-        if ((hook)(data) != 0)
-            _exit(1);
-
     /* Daemonize as late as possible, so the parent process can detect
      * the above errors with wait* */
     if (flags & VIR_EXEC_DAEMON) {
@@ -548,6 +546,10 @@ __virExec(virConnectPtr conn,
             _exit(0);
         }
     }
+
+    if (hook)
+        if ((hook)(data) != 0)
+            _exit(1);
 
     /* The steps above may need todo something privileged, so
      * we delay clearing capabilities until the last minute */
@@ -661,7 +663,7 @@ int virExecDaemonize(virConnectPtr conn,
 
     ret = virExecWithHook(conn, argv, envp, keepfd, retpid,
                           infd, outfd, errfd,
-                          flags |= VIR_EXEC_DAEMON,
+                          flags | VIR_EXEC_DAEMON,
                           hook, data, pidfile);
 
     /* __virExec should have set an error */
@@ -1982,4 +1984,65 @@ int virGetGroupID(virConnectPtr conn,
 
     return 0;
 }
+#endif
+
+
+#ifdef HAVE_MNTENT_H
+/* search /proc/mounts for mount point of *type; return pointer to
+ * malloc'ed string of the path if found, otherwise return NULL
+ * with errno set to an appropriate value.
+ */
+char *virFileFindMountPoint(const char *type)
+{
+    FILE *f;
+    struct mntent mb;
+    char mntbuf[1024];
+    char *ret = NULL;
+
+    f = setmntent("/proc/mounts", "r");
+    if (!f)
+        return NULL;
+
+    while (getmntent_r(f, &mb, mntbuf, sizeof(mntbuf))) {
+        if (STREQ(mb.mnt_type, type)) {
+            ret = strdup(mb.mnt_dir);
+            goto cleanup;
+        }
+    }
+
+    if (!ret)
+        errno = ENOENT;
+
+cleanup:
+    endmntent(f);
+
+    return ret;
+}
+#endif
+
+#ifndef PROXY
+#if defined(UDEVADM) || defined(UDEVSETTLE)
+void virFileWaitForDevices(virConnectPtr conn)
+{
+#ifdef UDEVADM
+    const char *const settleprog[] = { UDEVADM, "settle", NULL };
+#else
+    const char *const settleprog[] = { UDEVSETTLE, NULL };
+#endif
+    int exitstatus;
+
+    if (access(settleprog[0], X_OK) != 0)
+        return;
+
+    /*
+     * NOTE: we ignore errors here; this is just to make sure that any device
+     * nodes that are being created finish before we try to scan them.
+     * If this fails for any reason, we still have the backup of polling for
+     * 5 seconds for device nodes.
+     */
+    virRun(conn, settleprog, &exitstatus);
+}
+#else
+void virFileWaitForDevices(virConnectPtr conn ATTRIBUTE_UNUSED) {}
+#endif
 #endif

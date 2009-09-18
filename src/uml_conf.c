@@ -45,6 +45,7 @@
 #include "nodeinfo.h"
 #include "verify.h"
 #include "bridge.h"
+#include "logging.h"
 
 #define VIR_FROM_THIS VIR_FROM_UML
 
@@ -63,8 +64,14 @@ virCapsPtr umlCapsInit(void) {
                                    0, 0)) == NULL)
         goto no_memory;
 
-    if (nodeCapsInitNUMA(caps) < 0)
-        goto no_memory;
+    /* Some machines have problematic NUMA toplogy causing
+     * unexpected failures. We don't want to break the QEMU
+     * driver in this scenario, so log errors & carry on
+     */
+    if (nodeCapsInitNUMA(caps) < 0) {
+        virCapabilitiesFreeNUMAInfo(caps);
+        VIR_WARN0("Failed to query host NUMA topology, disabling NUMA capabilities");
+    }
 
     if ((guest = virCapabilitiesAddGuest(caps,
                                          "uml",
@@ -97,9 +104,16 @@ umlConnectTapDevice(virConnectPtr conn,
                     virDomainNetDefPtr net,
                     const char *bridge)
 {
-    int tapfd = -1;
-    int err;
     brControl *brctl = NULL;
+    int tapfd = -1;
+    int template_ifname = 0;
+    int err;
+
+    if ((err = brInit(&brctl))) {
+        virReportSystemError(conn, err, "%s",
+                             _("cannot initialize bridge support"));
+        goto error;
+    }
 
     if (!net->ifname ||
         STRPREFIX(net->ifname, "vnet") ||
@@ -107,14 +121,8 @@ umlConnectTapDevice(virConnectPtr conn,
         VIR_FREE(net->ifname);
         if (!(net->ifname = strdup("vnet%d")))
             goto no_memory;
-    }
-
-    if ((err = brInit(&brctl))) {
-        char ebuf[1024];
-        umlReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                       _("cannot initialize bridge support: %s"),
-                       virStrerror(err, ebuf, sizeof ebuf));
-        goto error;
+        /* avoid exposing vnet%d in dumpxml or error outputs */
+        template_ifname = 1;
     }
 
     if ((err = brAddTap(brctl, bridge,
@@ -124,13 +132,17 @@ umlConnectTapDevice(virConnectPtr conn,
             umlReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
                            _("Failed to add tap interface to bridge. "
                              "%s is not a bridge device"), bridge);
+        } else if (template_ifname) {
+            virReportSystemError(conn, err,
+                                 _("Failed to add tap interface to bridge '%s'"),
+                                 bridge);
         } else {
-            char ebuf[1024];
-            umlReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                           _("Failed to add tap interface '%s' "
-                             "to bridge '%s' : %s"),
-                           net->ifname, bridge, virStrerror(err, ebuf, sizeof ebuf));
+            virReportSystemError(conn, err,
+                                 _("Failed to add tap interface '%s' to bridge '%s'"),
+                                 net->ifname, bridge);
         }
+        if (template_ifname)
+            VIR_FREE(net->ifname);
         goto error;
     }
     close(tapfd);
@@ -263,7 +275,7 @@ umlBuildCommandLineChr(virConnectPtr conn,
                        virDomainChrDefPtr def,
                        const char *dev)
 {
-    char *ret;
+    char *ret = NULL;
 
     switch (def->type) {
     case VIR_DOMAIN_CHR_TYPE_NULL:
