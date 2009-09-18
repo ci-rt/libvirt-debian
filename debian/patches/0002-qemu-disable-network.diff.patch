@@ -8,10 +8,10 @@ Subject: [PATCH] qemu-disable-network.diff
  2 files changed, 0 insertions(+), 6 deletions(-)
 
 diff --git a/qemud/Makefile.am b/qemud/Makefile.am
-index 959ff88..324fb4a 100644
+index 3d143da..e3f42c2 100644
 --- a/qemud/Makefile.am
 +++ b/qemud/Makefile.am
-@@ -166,9 +166,6 @@ install-data-local: install-init install-data-sasl install-data-polkit \
+@@ -173,9 +173,6 @@ install-data-local: install-init install-data-sasl install-data-polkit \
  	test -z "$(UUID)" || \
  	  sed -i -e "s,</name>,</name>\n  <uuid>$(UUID)</uuid>," \
  	    $(DESTDIR)$(sysconfdir)/$(default_xml_dest)
@@ -22,10 +22,10 @@ index 959ff88..324fb4a 100644
  	mkdir -p $(DESTDIR)$(localstatedir)/run/libvirt
  	mkdir -p $(DESTDIR)$(localstatedir)/lib/libvirt
 diff --git a/qemud/Makefile.in b/qemud/Makefile.in
-index 471d356..c2b314f 100644
+index ad8b93e..8e33361 100644
 --- a/qemud/Makefile.in
 +++ b/qemud/Makefile.in
-@@ -1462,9 +1462,6 @@ remote_protocol.c: remote_protocol.h
+@@ -1519,9 +1519,6 @@ remote_protocol.c: remote_protocol.h
  @WITH_LIBVIRTD_TRUE@	test -z "$(UUID)" || \
  @WITH_LIBVIRTD_TRUE@	  sed -i -e "s,</name>,</name>\n  <uuid>$(UUID)</uuid>," \
  @WITH_LIBVIRTD_TRUE@	    $(DESTDIR)$(sysconfdir)/$(default_xml_dest)
