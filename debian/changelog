@@ -1,3 +1,18 @@
+libvirt (0.7.1-1) unstable; urgency=low
+
+  [ Laurent Léonard ]
+  * [40fb620] Bump Debhelper version to 7.
+  * [e0e89f2] Bump Standards-Version to 3.8.3.
+  * [50a862f] Clean debian/rules.
+  * [e9c9906] Change build dependency on libreadline5-dev to
+    libreadline-dev.
+  * [b6cb738] Imported Upstream version 0.7.1
+  * [780f6a7] Redo patches.
+  * [3d66f37] Update libvirt-bin examples.
+  * [c01ed84] Update libvirt0 symbols.
+
+ -- Guido Günter <agx@sigxcpu.org>  Fri, 18 Sep 2009 16:37:16 +0200
+
 libvirt (0.7.0-1) experimental; urgency=low
 
   [ Laurent Léonard ]
