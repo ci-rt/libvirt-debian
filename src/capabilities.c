@@ -139,6 +139,7 @@ virCapabilitiesFreeNUMAInfo(virCapsPtr caps)
     for (i = 0 ; i < caps->host.nnumaCell ; i++)
         virCapabilitiesFreeHostNUMACell(caps->host.numaCell[i]);
     VIR_FREE(caps->host.numaCell);
+    caps->host.nnumaCell = 0;
 }
 
 /**
@@ -353,16 +354,17 @@ virCapabilitiesAddGuest(virCapsPtr caps,
     if (loader &&
         (guest->arch.defaultInfo.loader = strdup(loader)) == NULL)
         goto no_memory;
-    if (nmachines) {
-        guest->arch.defaultInfo.nmachines = nmachines;
-        guest->arch.defaultInfo.machines = machines;
-    }
 
     if (VIR_REALLOC_N(caps->guests,
                       caps->nguests + 1) < 0)
         goto no_memory;
     caps->guests[caps->nguests] = guest;
     caps->nguests++;
+
+    if (nmachines) {
+        guest->arch.defaultInfo.nmachines = nmachines;
+        guest->arch.defaultInfo.machines = machines;
+    }
 
     return guest;
 
@@ -406,10 +408,6 @@ virCapabilitiesAddGuestDomain(virCapsGuestPtr guest,
     if (loader &&
         (dom->info.loader = strdup(loader)) == NULL)
         goto no_memory;
-    if (nmachines) {
-        dom->info.nmachines = nmachines;
-        dom->info.machines = machines;
-    }
 
     if (VIR_REALLOC_N(guest->arch.domains,
                       guest->arch.ndomains + 1) < 0)
@@ -417,6 +415,10 @@ virCapabilitiesAddGuestDomain(virCapsGuestPtr guest,
     guest->arch.domains[guest->arch.ndomains] = dom;
     guest->arch.ndomains++;
 
+    if (nmachines) {
+        dom->info.nmachines = nmachines;
+        dom->info.machines = machines;
+    }
 
     return dom;
 
@@ -711,7 +713,7 @@ virCapabilitiesFormatXML(virCapsPtr caps)
 
             for (k = 0 ; k < caps->guests[i]->arch.domains[j]->info.nmachines ; k++) {
                 virCapsGuestMachinePtr machine = caps->guests[i]->arch.domains[j]->info.machines[k];
-                virBufferAddLit(&xml, "      <machine");
+                virBufferAddLit(&xml, "        <machine");
                 if (machine->canonical)
                     virBufferVSprintf(&xml, " canonical='%s'", machine->canonical);
                 virBufferVSprintf(&xml, ">%s</machine>\n", machine->name);

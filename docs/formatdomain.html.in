@@ -176,6 +176,9 @@
         ...
 	&lt;memory&gt;524288&lt;/memory&gt;
 	&lt;currentMemory&gt;524288&lt;/currentMemory&gt;
+	&lt;memoryBacking&gt;
+	  &lt;hugepages/&gt;
+        &lt;/memoryBacking&gt;
 	&lt;vcpu&gt;1&lt;/vcpu&gt;
 	...</pre>
 
@@ -188,6 +191,11 @@
 	be less than the maximum allocation, to allow for ballooning
 	up the guests memory on the fly. If this is omitted, it defaults
 	to the same value as the <code>memory<code> element</dd>
+      <dt><code>memoryBacking</code></dt>
+      <dd>The optional <code>memoryBacking</code> element, may have an
+	<code>hugepages</code> element set within it. This tells the
+	hypervisor that the guest should have its memory allocated using
+	hugepages instead of the normal native page size.</dd>
       <dt><code>vcpu</code></dt>
       <dd>The content of this element defines the number of virtual
 	CPUs allocated for the guest OS.</dd>
@@ -338,6 +346,9 @@
 	    &lt;driver name="tap" type="aio"&gt;
 	    &lt;source file='/var/lib/xen/images/fv0'/&gt;
 	    &lt;target dev='hda' bus='ide'/&gt;
+            &lt;encryption type='...'&gt;
+              ...
+            &lt;/encryption&gt;
 	  &lt;/disk&gt;
 	  ...</pre>
 
@@ -372,6 +383,11 @@
 	<code>driver</code> element allows them to be selected. The <code>name</code>
 	attribute is the primary backend driver name, while the optional <code>type</code>
 	attribute provides the sub-type. <span class="since">Since 0.1.8</span>
+      </dd>
+      <dt><code>encryption</code></dt>
+      <dd>If present, specifies how the volume is encrypted.  See
+        the <a href="formatstorageencryption.html">Storage Encryption</a> page
+        for more information.
       </dd>
     </dl>
 

@@ -63,6 +63,7 @@ struct _pciDevice {
     unsigned      pci_pm_cap_pos;
     unsigned      has_flr : 1;
     unsigned      has_pm_reset : 1;
+    unsigned      managed : 1;
 };
 
 /* For virReportOOMError()  and virReportSystemError() */
@@ -225,7 +226,7 @@ pciWrite32(pciDevice *dev, unsigned pos, uint32_t val)
     pciWrite(dev, pos, &buf[0], sizeof(buf));
 }
 
-typedef int (*pciIterPredicate)(pciDevice *, pciDevice *);
+typedef int (*pciIterPredicate)(pciDevice *, pciDevice *, void *);
 
 /* Iterate over available PCI devices calling @predicate
  * to compare each one to @dev.
@@ -236,7 +237,8 @@ static int
 pciIterDevices(virConnectPtr conn,
                pciIterPredicate predicate,
                pciDevice *dev,
-               pciDevice **matched)
+               pciDevice **matched,
+               void *data)
 {
     DIR *dir;
     struct dirent *entry;
@@ -254,7 +256,7 @@ pciIterDevices(virConnectPtr conn,
 
     while ((entry = readdir(dir))) {
         unsigned domain, bus, slot, function;
-        pciDevice *try;
+        pciDevice *check;
 
         /* Ignore '.' and '..' */
         if (entry->d_name[0] == '.')
@@ -266,18 +268,18 @@ pciIterDevices(virConnectPtr conn,
             continue;
         }
 
-        try = pciGetDevice(conn, domain, bus, slot, function);
-        if (!try) {
+        check = pciGetDevice(conn, domain, bus, slot, function);
+        if (!check) {
             ret = -1;
             break;
         }
 
-        if (predicate(try, dev)) {
-            VIR_DEBUG("%s %s: iter matched on %s", dev->id, dev->name, try->name);
-            *matched = try;
+        if (predicate(dev, check, data)) {
+            VIR_DEBUG("%s %s: iter matched on %s", dev->id, dev->name, check->name);
+            *matched = check;
             break;
         }
-        pciFreeDevice(conn, try);
+        pciFreeDevice(conn, check);
     }
     closedir(dir);
     return ret;
@@ -379,86 +381,70 @@ pciDetectPowerManagementReset(pciDevice *dev)
     return 0;
 }
 
-/* Any devices other than the one supplied on the same domain/bus ? */
+/* Any active devices other than the one supplied on the same domain/bus ? */
 static int
-pciSharesBus(pciDevice *a, pciDevice *b)
+pciSharesBusWithActive(pciDevice *dev, pciDevice *check, void *data)
 {
-    return
-        a->domain == b->domain &&
-        a->bus == b->bus &&
-        (a->slot != b->slot ||
-         a->function != b->function);
-}
+    pciDeviceList *activeDevs = data;
 
-static int
-pciBusContainsOtherDevices(virConnectPtr conn, pciDevice *dev)
-{
-    pciDevice *matched = NULL;
-    if (pciIterDevices(conn, pciSharesBus, dev, &matched) < 0)
-        return 1;
-    if (!matched)
+    if (dev->domain != check->domain ||
+        dev->bus != check->bus ||
+        (check->slot == check->slot &&
+         check->function == check->function))
         return 0;
-    pciFreeDevice(conn, matched);
+
+    if (activeDevs && !pciDeviceListFind(activeDevs, check))
+        return 0;
+
     return 1;
 }
 
-/* Any other functions on this device ? */
-static int
-pciSharesDevice(pciDevice *a, pciDevice *b)
+static pciDevice *
+pciBusContainsActiveDevices(virConnectPtr conn,
+                            pciDevice *dev,
+                            pciDeviceList *activeDevs)
 {
-    return
-        a->domain == b->domain &&
-        a->bus == b->bus &&
-        a->slot == b->slot &&
-        a->function != b->function;
+    pciDevice *active = NULL;
+    if (pciIterDevices(conn, pciSharesBusWithActive,
+                       dev, &active, activeDevs) < 0)
+        return NULL;
+    return active;
 }
 
+/* Is @check the parent of @dev ? */
 static int
-pciDeviceContainsOtherFunctions(virConnectPtr conn, pciDevice *dev)
-{
-    pciDevice *matched = NULL;
-    if (pciIterDevices(conn, pciSharesDevice, dev, &matched) < 0)
-        return 1;
-    if (!matched)
-        return 0;
-    pciFreeDevice(conn, matched);
-    return 1;
-}
-
-/* Is @a the parent of @b ? */
-static int
-pciIsParent(pciDevice *a, pciDevice *b)
+pciIsParent(pciDevice *dev, pciDevice *check, void *data ATTRIBUTE_UNUSED)
 {
     uint16_t device_class;
     uint8_t header_type, secondary, subordinate;
 
-    if (a->domain != b->domain)
+    if (dev->domain != check->domain)
         return 0;
 
     /* Is it a bridge? */
-    device_class = pciRead16(a, PCI_CLASS_DEVICE);
+    device_class = pciRead16(check, PCI_CLASS_DEVICE);
     if (device_class != PCI_CLASS_BRIDGE_PCI)
         return 0;
 
     /* Is it a plane? */
-    header_type = pciRead8(a, PCI_HEADER_TYPE);
+    header_type = pciRead8(check, PCI_HEADER_TYPE);
     if ((header_type & PCI_HEADER_TYPE_MASK) != PCI_HEADER_TYPE_BRIDGE)
         return 0;
 
-    secondary   = pciRead8(a, PCI_SECONDARY_BUS);
-    subordinate = pciRead8(a, PCI_SUBORDINATE_BUS);
+    secondary   = pciRead8(check, PCI_SECONDARY_BUS);
+    subordinate = pciRead8(check, PCI_SUBORDINATE_BUS);
 
-    VIR_DEBUG("%s %s: found parent device %s\n", b->id, b->name, a->name);
+    VIR_DEBUG("%s %s: found parent device %s\n", dev->id, dev->name, check->name);
 
     /* No, it's superman! */
-    return (b->bus >= secondary && b->bus <= subordinate);
+    return (dev->bus >= secondary && dev->bus <= subordinate);
 }
 
 static pciDevice *
 pciGetParentDevice(virConnectPtr conn, pciDevice *dev)
 {
     pciDevice *parent = NULL;
-    pciIterDevices(conn, pciIsParent, dev, &parent);
+    pciIterDevices(conn, pciIsParent, dev, &parent, NULL);
     return parent;
 }
 
@@ -466,9 +452,11 @@ pciGetParentDevice(virConnectPtr conn, pciDevice *dev)
  * devices behind a bus.
  */
 static int
-pciTrySecondaryBusReset(virConnectPtr conn, pciDevice *dev)
+pciTrySecondaryBusReset(virConnectPtr conn,
+                        pciDevice *dev,
+                        pciDeviceList *activeDevs)
 {
-    pciDevice *parent;
+    pciDevice *parent, *conflict;
     uint8_t config_space[PCI_CONF_LEN];
     uint16_t ctl;
     int ret = -1;
@@ -478,16 +466,19 @@ pciTrySecondaryBusReset(virConnectPtr conn, pciDevice *dev)
      * In future, we could allow it so long as those devices
      * are not in use by the host or other guests.
      */
-    if (pciBusContainsOtherDevices(conn, dev)) {
-        VIR_WARN("Other devices on bus with %s, not doing bus reset",
-                 dev->name);
+    if ((conflict = pciBusContainsActiveDevices(conn, dev, activeDevs))) {
+        pciReportError(conn, VIR_ERR_NO_SUPPORT,
+                       _("Active %s devices on bus with %s, not doing bus reset"),
+                       conflict->name, dev->name);
         return -1;
     }
 
     /* Find the parent bus */
     parent = pciGetParentDevice(conn, dev);
     if (!parent) {
-        VIR_WARN("Failed to find parent device for %s", dev->name);
+        pciReportError(conn, VIR_ERR_NO_SUPPORT,
+                       _("Failed to find parent device for %s"),
+                       dev->name);
         return -1;
     }
 
@@ -498,7 +489,9 @@ pciTrySecondaryBusReset(virConnectPtr conn, pciDevice *dev)
      * are multiple devices/functions
      */
     if (pciRead(dev, 0, config_space, PCI_CONF_LEN) < 0) {
-        VIR_WARN("Failed to save PCI config space for %s", dev->name);
+        pciReportError(conn, VIR_ERR_NO_SUPPORT,
+                       _("Failed to save PCI config space for %s"),
+                       dev->name);
         goto out;
     }
 
@@ -515,9 +508,12 @@ pciTrySecondaryBusReset(virConnectPtr conn, pciDevice *dev)
 
     usleep(200 * 1000); /* sleep 200ms */
 
-    if (pciWrite(dev, 0, config_space, PCI_CONF_LEN) < 0)
-        VIR_WARN("Failed to restore PCI config space for %s", dev->name);
-
+    if (pciWrite(dev, 0, config_space, PCI_CONF_LEN) < 0) {
+        pciReportError(conn, VIR_ERR_NO_SUPPORT,
+                       _("Failed to restore PCI config space for %s"),
+                       dev->name);
+        goto out;
+    }
     ret = 0;
 out:
     pciFreeDevice(conn, parent);
@@ -529,7 +525,7 @@ out:
  * above we require the device supports a full internal reset.
  */
 static int
-pciTryPowerManagementReset(virConnectPtr conn, pciDevice *dev)
+pciTryPowerManagementReset(virConnectPtr conn ATTRIBUTE_UNUSED, pciDevice *dev)
 {
     uint8_t config_space[PCI_CONF_LEN];
     uint32_t ctl;
@@ -537,19 +533,11 @@ pciTryPowerManagementReset(virConnectPtr conn, pciDevice *dev)
     if (!dev->pci_pm_cap_pos)
         return -1;
 
-    /* For now, we just refuse to do a power management reset
-     * if there are other functions on this device.
-     * In future, we could allow it so long as those functions
-     * are not in use by the host or other guests.
-     */
-    if (pciDeviceContainsOtherFunctions(conn, dev)) {
-        VIR_WARN("%s contains other functions, not resetting", dev->name);
-        return -1;
-    }
-
     /* Save and restore the device's config space. */
     if (pciRead(dev, 0, &config_space[0], PCI_CONF_LEN) < 0) {
-        VIR_WARN("Failed to save PCI config space for %s", dev->name);
+        pciReportError(conn, VIR_ERR_NO_SUPPORT,
+                       _("Failed to save PCI config space for %s"),
+                       dev->name);
         return -1;
     }
 
@@ -566,8 +554,12 @@ pciTryPowerManagementReset(virConnectPtr conn, pciDevice *dev)
 
     usleep(10 * 1000); /* sleep 10ms */
 
-    if (pciWrite(dev, 0, &config_space[0], PCI_CONF_LEN) < 0)
-        VIR_WARN("Failed to restore PCI config space for %s", dev->name);
+    if (pciWrite(dev, 0, &config_space[0], PCI_CONF_LEN) < 0) {
+        pciReportError(conn, VIR_ERR_NO_SUPPORT,
+                       _("Failed to restore PCI config space for %s"),
+                       dev->name);
+        return -1;
+    }
 
     return 0;
 }
@@ -591,9 +583,17 @@ pciInitDevice(virConnectPtr conn, pciDevice *dev)
 }
 
 int
-pciResetDevice(virConnectPtr conn, pciDevice *dev)
+pciResetDevice(virConnectPtr conn,
+               pciDevice *dev,
+               pciDeviceList *activeDevs)
 {
     int ret = -1;
+
+    if (activeDevs && pciDeviceListFind(activeDevs, dev)) {
+        pciReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                       _("Not resetting active device %s"), dev->name);
+        return -1;
+    }
 
     if (!dev->initted && pciInitDevice(conn, dev) < 0)
         return -1;
@@ -604,18 +604,25 @@ pciResetDevice(virConnectPtr conn, pciDevice *dev)
     if (dev->has_flr)
         return 0;
 
-    /* Bus reset is not an option with the root bus */
-    if (dev->bus != 0)
-        ret = pciTrySecondaryBusReset(conn, dev);
-
-    /* Next best option is a PCI power management reset */
-    if (ret < 0 && dev->has_pm_reset)
+    /* If the device supports PCI power management reset,
+     * that's the next best thing because it only resets
+     * the function, not the whole device.
+     */
+    if (dev->has_pm_reset)
         ret = pciTryPowerManagementReset(conn, dev);
 
-    if (ret < 0)
+    /* Bus reset is not an option with the root bus */
+    if (ret < 0 && dev->bus != 0)
+        ret = pciTrySecondaryBusReset(conn, dev, activeDevs);
+
+    if (ret < 0) {
+        virErrorPtr err = virGetLastError();
         pciReportError(conn, VIR_ERR_NO_SUPPORT,
-                       _("No PCI reset capability available for %s"),
-                       dev->name);
+                       _("Unable to reset PCI device %s: %s"),
+                       dev->name,
+                       err ? err->message : _("no FLR, PM reset or bus reset available"));
+    }
+
     return ret;
 }
 
@@ -902,8 +909,168 @@ pciGetDevice(virConnectPtr conn,
 void
 pciFreeDevice(virConnectPtr conn ATTRIBUTE_UNUSED, pciDevice *dev)
 {
+    if (!dev)
+        return;
     VIR_DEBUG("%s %s: freeing", dev->id, dev->name);
     if (dev->fd >= 0)
         close(dev->fd);
     VIR_FREE(dev);
+}
+
+void pciDeviceSetManaged(pciDevice *dev, unsigned managed)
+{
+    dev->managed = !!managed;
+}
+
+unsigned pciDeviceGetManaged(pciDevice *dev)
+{
+    return dev->managed;
+}
+
+pciDeviceList *
+pciDeviceListNew(virConnectPtr conn)
+{
+    pciDeviceList *list;
+
+    if (VIR_ALLOC(list) < 0) {
+        virReportOOMError(conn);
+        return NULL;
+    }
+
+    return list;
+}
+
+void
+pciDeviceListFree(virConnectPtr conn,
+                  pciDeviceList *list)
+{
+    int i;
+
+    if (!list)
+        return;
+
+    for (i = 0; i < list->count; i++) {
+        pciFreeDevice(conn, list->devs[i]);
+        list->devs[i] = NULL;
+    }
+
+    list->count = 0;
+    VIR_FREE(list->devs);
+    VIR_FREE(list);
+}
+
+int
+pciDeviceListAdd(virConnectPtr conn,
+                 pciDeviceList *list,
+                 pciDevice *dev)
+{
+    if (pciDeviceListFind(list, dev)) {
+        pciReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                       _("Device %s is already in use"), dev->name);
+        return -1;
+    }
+
+    if (VIR_REALLOC_N(list->devs, list->count+1) < 0) {
+        virReportOOMError(conn);
+        return -1;
+    }
+
+    list->devs[list->count++] = dev;
+
+    return 0;
+}
+
+void
+pciDeviceListDel(virConnectPtr conn ATTRIBUTE_UNUSED,
+                 pciDeviceList *list,
+                 pciDevice *dev)
+{
+    int i;
+
+    for (i = 0; i < list->count; i++) {
+        if (list->devs[i]->domain   != dev->domain ||
+            list->devs[i]->bus      != dev->bus    ||
+            list->devs[i]->slot     != dev->slot   ||
+            list->devs[i]->function != dev->function)
+            continue;
+
+        pciFreeDevice(conn, list->devs[i]);
+
+        if (i != --list->count)
+            memmove(&list->devs[i],
+                    &list->devs[i+1],
+                    sizeof(*list->devs) * (list->count-i));
+
+        if (VIR_REALLOC_N(list->devs, list->count) < 0) {
+            ; /* not fatal */
+        }
+
+        break;
+    }
+}
+
+pciDevice *
+pciDeviceListFind(pciDeviceList *list, pciDevice *dev)
+{
+    int i;
+
+    for (i = 0; i < list->count; i++)
+        if (list->devs[i]->domain   == dev->domain &&
+            list->devs[i]->bus      == dev->bus    &&
+            list->devs[i]->slot     == dev->slot   &&
+            list->devs[i]->function == dev->function)
+            return list->devs[i];
+    return NULL;
+}
+
+
+int pciDeviceFileIterate(virConnectPtr conn,
+                         pciDevice *dev,
+                         pciDeviceFileActor actor,
+                         void *opaque)
+{
+    char *pcidir = NULL;
+    char *file = NULL;
+    DIR *dir = NULL;
+    int ret = -1;
+    struct dirent *ent;
+
+    if (virAsprintf(&pcidir, "/sys/bus/pci/devices/%04x:%02x:%02x.%x",
+                    dev->domain, dev->bus, dev->slot, dev->function) < 0) {
+        virReportOOMError(conn);
+        goto cleanup;
+    }
+
+    if (!(dir = opendir(pcidir))) {
+        virReportSystemError(conn, errno,
+                             _("cannot open %s"), pcidir);
+        goto cleanup;
+    }
+
+    while ((ent = readdir(dir)) != NULL) {
+        /* Device assignment requires:
+         *   $PCIDIR/config, $PCIDIR/resource, $PCIDIR/resourceNNN, $PCIDIR/rom
+         */
+        if (STREQ(ent->d_name, "config") ||
+            STRPREFIX(ent->d_name, "resource") ||
+            STREQ(ent->d_name, "rom")) {
+            if (virAsprintf(&file, "%s/%s", pcidir, ent->d_name) < 0) {
+                virReportOOMError(conn);
+                goto cleanup;
+            }
+            if ((actor)(conn, dev, file, opaque) < 0)
+                goto cleanup;
+
+            VIR_FREE(file);
+        }
+    }
+
+    ret = 0;
+
+cleanup:
+    if (dir)
+        closedir(dir);
+    VIR_FREE(file);
+    VIR_FREE(pcidir);
+    return ret;
 }

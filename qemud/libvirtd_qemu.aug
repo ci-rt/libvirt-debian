@@ -29,10 +29,13 @@ module Libvirtd_qemu =
                  | str_entry "vnc_password"
                  | bool_entry "vnc_sasl"
                  | str_entry "vnc_sasl_dir"
+                 | str_entry "security_driver"
                  | str_entry "user"
                  | str_entry "group"
                  | str_array_entry "cgroup_controllers"
                  | str_array_entry "cgroup_device_acl"
+                 | str_entry "save_image_format"
+                 | str_entry "hugetlbfs_mount"
 
    (* Each enty in the config is one of the following three ... *)
    let entry = vnc_entry

@@ -25,6 +25,7 @@
 #include "virterror_internal.h"
 #include "logging.h"
 #include "memory.h"
+#include "uuid.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -109,6 +110,23 @@ virStorageVolFreeName(virStorageVolPtr vol, const char *name ATTRIBUTE_UNUSED)
 }
 
 /**
+ * virSecretFreeName:
+ * @secret_: a secret object
+ *
+ * Destroy the secret object, this is just used by the secret hash callback.
+ *
+ * Returns 0 in case of success and -1 in case of failure.
+ */
+static void
+virSecretFreeName(void *secret_, const char *name ATTRIBUTE_UNUSED)
+{
+    virSecretPtr secret;
+
+    secret = secret_;
+    virUnrefSecret(secret);
+}
+
+/**
  * virGetConnect:
  *
  * Allocates a new hypervisor connection structure
@@ -152,6 +170,9 @@ virGetConnect(void) {
     ret->nodeDevices = virHashCreate(256);
     if (ret->nodeDevices == NULL)
         goto failed;
+    ret->secrets = virHashCreate(20);
+    if (ret->secrets == NULL)
+        goto failed;
 
     ret->refs = 1;
     return(ret);
@@ -170,6 +191,8 @@ failed:
             virHashFree(ret->storageVols, (virHashDeallocator) virStorageVolFreeName);
         if (ret->nodeDevices != NULL)
             virHashFree(ret->nodeDevices, (virHashDeallocator) virNodeDeviceFree);
+        if (ret->secrets != NULL)
+            virHashFree(ret->secrets, virSecretFreeName);
 
         virMutexDestroy(&ret->lock);
         VIR_FREE(ret);
@@ -201,6 +224,8 @@ virReleaseConnect(virConnectPtr conn) {
         virHashFree(conn->storageVols, (virHashDeallocator) virStorageVolFreeName);
     if (conn->nodeDevices != NULL)
         virHashFree(conn->nodeDevices, (virHashDeallocator) virNodeDeviceFree);
+    if (conn->secrets != NULL)
+        virHashFree(conn->secrets, virSecretFreeName);
 
     virResetError(&conn->err);
 
@@ -233,6 +258,28 @@ virUnrefConnect(virConnectPtr conn) {
     conn->refs--;
     refs = conn->refs;
     if (refs == 0) {
+        /* make sure to release the connection lock before we call the
+         * close() callbacks, otherwise we will deadlock if an error
+         * is raised by any of the callbacks
+         */
+        virMutexUnlock(&conn->lock);
+        if (conn->networkDriver)
+            conn->networkDriver->close (conn);
+        if (conn->interfaceDriver)
+            conn->interfaceDriver->close (conn);
+        if (conn->storageDriver)
+            conn->storageDriver->close (conn);
+        if (conn->deviceMonitor)
+            conn->deviceMonitor->close (conn);
+        if (conn->secretDriver)
+            conn->secretDriver->close (conn);
+        if (conn->driver)
+            conn->driver->close (conn);
+
+        /* reacquire the connection lock since virReleaseConnect expects
+         * it to already be held
+         */
+        virMutexLock(&conn->lock);
         virReleaseConnect(conn);
         /* Already unlocked mutex */
         return (0);
@@ -1108,4 +1155,140 @@ virUnrefNodeDevice(virNodeDevicePtr dev) {
 
     virMutexUnlock(&dev->conn->lock);
     return (refs);
+}
+
+/**
+ * virGetSecret:
+ * @conn: the hypervisor connection
+ * @uuid: secret UUID
+ *
+ * Lookup if the secret is already registered for that connection, if so return
+ * a pointer to it, otherwise allocate a new structure, and register it in the
+ * table. In any case a corresponding call to virFreeSecret() is needed to not
+ * leak data.
+ *
+ * Returns a pointer to the secret, or NULL in case of failure
+ */
+virSecretPtr
+virGetSecret(virConnectPtr conn, const unsigned char *uuid,
+             int usageType, const char *usageID)
+{
+    virSecretPtr ret = NULL;
+    char uuidstr[VIR_UUID_STRING_BUFLEN];
+
+    if (!VIR_IS_CONNECT(conn) || uuid == NULL || usageID == NULL) {
+        virLibConnError(NULL, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return NULL;
+    }
+    virMutexLock(&conn->lock);
+
+    virUUIDFormat(uuid, uuidstr);
+
+    ret = virHashLookup(conn->secrets, uuidstr);
+    if (ret == NULL) {
+        if (VIR_ALLOC(ret) < 0) {
+            virMutexUnlock(&conn->lock);
+            virReportOOMError(conn);
+            goto error;
+        }
+        ret->magic = VIR_SECRET_MAGIC;
+        ret->conn = conn;
+        memcpy(&(ret->uuid[0]), uuid, VIR_UUID_BUFLEN);
+        ret->usageType = usageType;
+        if (!(ret->usageID = strdup(usageID))) {
+            virMutexUnlock(&conn->lock);
+            virReportOOMError(conn);
+            goto error;
+        }
+        if (virHashAddEntry(conn->secrets, uuidstr, ret) < 0) {
+            virMutexUnlock(&conn->lock);
+            virLibConnError(conn, VIR_ERR_INTERNAL_ERROR,
+                            "%s", _("failed to add secret to conn hash table"));
+            goto error;
+        }
+        conn->refs++;
+    }
+    ret->refs++;
+    virMutexUnlock(&conn->lock);
+    return ret;
+
+error:
+    if (ret != NULL) {
+        VIR_FREE(ret->usageID);
+        VIR_FREE(ret->uuid);
+        VIR_FREE(ret);
+    }
+    return NULL;
+}
+
+/**
+ * virReleaseSecret:
+ * @secret: the secret to release
+ *
+ * Unconditionally release all memory associated with a secret.  The conn.lock
+ * mutex must be held prior to calling this, and will be released prior to this
+ * returning. The secret obj must not be used once this method returns.
+ *
+ * It will also unreference the associated connection object, which may also be
+ * released if its ref count hits zero.
+ */
+static void
+virReleaseSecret(virSecretPtr secret) {
+    virConnectPtr conn = secret->conn;
+    char uuidstr[VIR_UUID_STRING_BUFLEN];
+    DEBUG("release secret %p %p", secret, secret->uuid);
+
+    virUUIDFormat(secret->uuid, uuidstr);
+    if (virHashRemoveEntry(conn->secrets, uuidstr, NULL) < 0) {
+        virMutexUnlock(&conn->lock);
+        virLibConnError(conn, VIR_ERR_INTERNAL_ERROR,
+                        "%s", _("secret missing from connection hash table"));
+        conn = NULL;
+    }
+
+    VIR_FREE(secret->usageID);
+    secret->magic = -1;
+    VIR_FREE(secret);
+
+    if (conn) {
+        DEBUG("unref connection %p %d", conn, conn->refs);
+        conn->refs--;
+        if (conn->refs == 0) {
+            virReleaseConnect(conn);
+            /* Already unlocked mutex */
+            return;
+        }
+        virMutexUnlock(&conn->lock);
+    }
+}
+
+/**
+ * virUnrefSecret:
+ * @secret: the secret to unreference
+ *
+ * Unreference the secret. If the use count drops to zero, the structure is
+ * actually freed.
+ *
+ * Returns the reference count or -1 in case of failure.
+ */
+int
+virUnrefSecret(virSecretPtr secret) {
+    int refs;
+
+    if (!VIR_IS_CONNECTED_SECRET(secret)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return -1;
+    }
+    virMutexLock(&secret->conn->lock);
+    DEBUG("unref secret %p %p %d", secret, secret->uuid, secret->refs);
+    secret->refs--;
+    refs = secret->refs;
+    if (refs == 0) {
+        virReleaseSecret(secret);
+        /* Already unlocked mutex */
+        return 0;
+    }
+
+    virMutexUnlock(&secret->conn->lock);
+    return refs;
 }

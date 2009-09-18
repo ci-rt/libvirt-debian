@@ -3,16 +3,16 @@
    Copyright (C) 2008-2009 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 3 of the License, or
+   it under the terms of the GNU Lesser General Public License as published by
+   the Free Software Foundation; either version 2.1 of the License, or
    (at your option) any later version.
 
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
+   GNU Lesser General Public License for more details.
 
-   You should have received a copy of the GNU General Public License
+   You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 /* Written by Simon Josefsson */
@@ -69,23 +69,31 @@ close_fd_maybe_socket (int fd, const struct close_hook *remaining_list)
 
 static struct close_hook close_sockets_hook;
 
+static int initialized_sockets_version /* = 0 */;
+
 #endif
 
 int
 gl_sockets_startup (int version)
 {
 #if WINDOWS_SOCKETS
-  WSADATA data;
-  int err;
+  if (version > initialized_sockets_version)
+    {
+      WSADATA data;
+      int err;
 
-  err = WSAStartup (version, &data);
-  if (err != 0)
-    return 1;
+      err = WSAStartup (version, &data);
+      if (err != 0)
+	return 1;
 
-  if (data.wVersion < version)
-    return 2;
+      if (data.wVersion < version)
+	return 2;
 
-  register_close_hook (close_fd_maybe_socket, &close_sockets_hook);
+      if (initialized_sockets_version == 0)
+	register_close_hook (close_fd_maybe_socket, &close_sockets_hook);
+
+      initialized_sockets_version = version;
+    }
 #endif
 
   return 0;
@@ -96,6 +104,8 @@ gl_sockets_cleanup (void)
 {
 #if WINDOWS_SOCKETS
   int err;
+
+  initialized_sockets_version = 0;
 
   unregister_close_hook (&close_sockets_hook);
 

@@ -78,6 +78,14 @@ EXTRA_DIST += test-arpa_inet.c
 
 ## end   gnulib module arpa_inet-tests
 
+## begin gnulib module base64-tests
+
+TESTS += test-base64
+check_PROGRAMS += test-base64
+EXTRA_DIST += test-base64.c
+
+## end   gnulib module base64-tests
+
 ## begin gnulib module bind
 
 
@@ -137,6 +145,7 @@ EXTRA_DIST += test-getdelim.c
 
 TESTS += test-gethostname
 check_PROGRAMS += test-gethostname
+test_gethostname_LDADD = $(LDADD) @GETHOSTNAME_LIB@
 EXTRA_DIST += test-gethostname.c
 
 ## end   gnulib module gethostname-tests
@@ -238,6 +247,14 @@ EXTRA_DIST += test-random_r.c
 
 ## end   gnulib module random_r-tests
 
+## begin gnulib module rawmemchr-tests
+
+TESTS += test-rawmemchr
+check_PROGRAMS += test-rawmemchr
+EXTRA_DIST += test-rawmemchr.c
+
+## end   gnulib module rawmemchr-tests
+
 ## begin gnulib module select-tests
 
 TESTS += test-select test-select-in.sh test-select-out.sh
@@ -261,14 +278,6 @@ EXTRA_DIST += test-snprintf.c
 
 ## end   gnulib module snprintf-tests
 
-## begin gnulib module sockets
-
-libtests_a_SOURCES += sockets.h sockets.c
-
-EXTRA_DIST += w32sock.h
-
-## end   gnulib module sockets
-
 ## begin gnulib module sockets-tests
 
 TESTS += test-sockets
@@ -286,6 +295,15 @@ check_PROGRAMS += test-stdbool
 EXTRA_DIST += test-stdbool.c
 
 ## end   gnulib module stdbool-tests
+
+## begin gnulib module stddef-tests
+
+TESTS += test-stddef
+check_PROGRAMS += test-stddef
+
+EXTRA_DIST += test-stddef.c
+
+## end   gnulib module stddef-tests
 
 ## begin gnulib module stdint-tests
 
@@ -313,6 +331,14 @@ check_PROGRAMS += test-stdlib
 EXTRA_DIST += test-stdlib.c
 
 ## end   gnulib module stdlib-tests
+
+## begin gnulib module strchrnul-tests
+
+TESTS += test-strchrnul
+check_PROGRAMS += test-strchrnul
+EXTRA_DIST += test-strchrnul.c
+
+## end   gnulib module strchrnul-tests
 
 ## begin gnulib module strerror-tests
 
@@ -420,6 +446,12 @@ check_PROGRAMS += test-wchar
 EXTRA_DIST += test-wchar.c
 
 ## end   gnulib module wchar-tests
+
+## begin gnulib module dummy
+
+libtests_a_SOURCES += dummy.c
+
+## end   gnulib module dummy
 
 # Clean up after Solaris cc.
 clean-local:

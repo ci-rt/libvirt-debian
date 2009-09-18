@@ -35,6 +35,7 @@
 #include "threads.h"
 #include "security.h"
 #include "cgroup.h"
+#include "pci.h"
 
 #define qemudDebug(fmt, ...) do {} while(0)
 
@@ -64,6 +65,10 @@ enum qemud_cmd_flags {
     QEMUD_CMD_FLAG_0_10         = (1 << 16),
     QEMUD_CMD_FLAG_NET_NAME     = QEMUD_CMD_FLAG_0_10, /* -net ...,name=str */
     QEMUD_CMD_FLAG_HOST_NET_ADD = QEMUD_CMD_FLAG_0_10, /* host_net_add monitor command */
+
+    QEMUD_CMD_FLAG_PCIDEVICE     = (1 << 17), /* PCI device assignment only supported by qemu-kvm */
+    QEMUD_CMD_FLAG_MEM_PATH      = (1 << 18), /* mmap'ped guest backing supported */
+    QEMUD_CMD_FLAG_DRIVE_SERIAL  = (1 << 19), /* -driver serial=  available */
 };
 
 /* Main driver state */
@@ -85,10 +90,16 @@ struct qemud_driver {
     virDomainObjList domains;
 
     brControl *brctl;
+    /* These four directories are ones libvirtd uses (so must be root:root
+     * to avoid security risk from QEMU processes */
     char *configDir;
     char *autostartDir;
     char *logDir;
     char *stateDir;
+    /* These two directories are ones QEMU processes use (so must match
+     * the QEMU user/group */
+    char *libDir;
+    char *cacheDir;
     unsigned int vncTLS : 1;
     unsigned int vncTLSx509verify : 1;
     unsigned int vncSASL : 1;
@@ -96,6 +107,8 @@ struct qemud_driver {
     char *vncListen;
     char *vncPassword;
     char *vncSASLdir;
+    char *hugetlbfs_mount;
+    char *hugepage_path;
 
     virCapsPtr caps;
 
@@ -107,6 +120,10 @@ struct qemud_driver {
 
     char *securityDriverName;
     virSecurityDriverPtr securityDriver;
+
+    char *saveImageFormat;
+
+    pciDeviceList *activePciHostdevs;
 };
 
 
@@ -176,6 +193,9 @@ int         qemuAssignNetNames          (virDomainDefPtr def,
 int         qemudProbeMachineTypes      (const char *binary,
                                          virCapsGuestMachinePtr **machines,
                                          int *nmachines);
+
+int         qemudCanonicalizeMachine    (struct qemud_driver *driver,
+                                         virDomainDefPtr def);
 
 virDomainDefPtr qemuParseCommandLine(virConnectPtr conn,
                                      virCapsPtr caps,

@@ -86,6 +86,7 @@
     <function name="VIR_ERR_INVALID_MAC" link="libvirt-virterror.html#VIR_ERR_INVALID_MAC"/>
     <function name="VIR_ERR_INVALID_NETWORK" link="libvirt-virterror.html#VIR_ERR_INVALID_NETWORK"/>
     <function name="VIR_ERR_INVALID_NODE_DEVICE" link="libvirt-virterror.html#VIR_ERR_INVALID_NODE_DEVICE"/>
+    <function name="VIR_ERR_INVALID_SECRET" link="libvirt-virterror.html#VIR_ERR_INVALID_SECRET"/>
     <function name="VIR_ERR_INVALID_STORAGE_POOL" link="libvirt-virterror.html#VIR_ERR_INVALID_STORAGE_POOL"/>
     <function name="VIR_ERR_INVALID_STORAGE_VOL" link="libvirt-virterror.html#VIR_ERR_INVALID_STORAGE_VOL"/>
     <function name="VIR_ERR_MULTIPLE_INTERFACES" link="libvirt-virterror.html#VIR_ERR_MULTIPLE_INTERFACES"/>
@@ -102,6 +103,7 @@
     <function name="VIR_ERR_NO_NODE_DEVICE" link="libvirt-virterror.html#VIR_ERR_NO_NODE_DEVICE"/>
     <function name="VIR_ERR_NO_OS" link="libvirt-virterror.html#VIR_ERR_NO_OS"/>
     <function name="VIR_ERR_NO_ROOT" link="libvirt-virterror.html#VIR_ERR_NO_ROOT"/>
+    <function name="VIR_ERR_NO_SECRET" link="libvirt-virterror.html#VIR_ERR_NO_SECRET"/>
     <function name="VIR_ERR_NO_SECURITY_MODEL" link="libvirt-virterror.html#VIR_ERR_NO_SECURITY_MODEL"/>
     <function name="VIR_ERR_NO_SOURCE" link="libvirt-virterror.html#VIR_ERR_NO_SOURCE"/>
     <function name="VIR_ERR_NO_STORAGE_POOL" link="libvirt-virterror.html#VIR_ERR_NO_STORAGE_POOL"/>
@@ -149,6 +151,7 @@
     <function name="VIR_FROM_QEMU" link="libvirt-virterror.html#VIR_FROM_QEMU"/>
     <function name="VIR_FROM_REMOTE" link="libvirt-virterror.html#VIR_FROM_REMOTE"/>
     <function name="VIR_FROM_RPC" link="libvirt-virterror.html#VIR_FROM_RPC"/>
+    <function name="VIR_FROM_SECRET" link="libvirt-virterror.html#VIR_FROM_SECRET"/>
     <function name="VIR_FROM_SECURITY" link="libvirt-virterror.html#VIR_FROM_SECURITY"/>
     <function name="VIR_FROM_SEXPR" link="libvirt-virterror.html#VIR_FROM_SEXPR"/>
     <function name="VIR_FROM_STATS_LINUX" link="libvirt-virterror.html#VIR_FROM_STATS_LINUX"/>
@@ -165,6 +168,8 @@
     <function name="VIR_MEMORY_PHYSICAL" link="libvirt-libvirt.html#VIR_MEMORY_PHYSICAL"/>
     <function name="VIR_MEMORY_VIRTUAL" link="libvirt-libvirt.html#VIR_MEMORY_VIRTUAL"/>
     <function name="VIR_MIGRATE_LIVE" link="libvirt-libvirt.html#VIR_MIGRATE_LIVE"/>
+    <function name="VIR_SECRET_USAGE_TYPE_NONE" link="libvirt-libvirt.html#VIR_SECRET_USAGE_TYPE_NONE"/>
+    <function name="VIR_SECRET_USAGE_TYPE_VOLUME" link="libvirt-libvirt.html#VIR_SECRET_USAGE_TYPE_VOLUME"/>
     <function name="VIR_STORAGE_POOL_BUILDING" link="libvirt-libvirt.html#VIR_STORAGE_POOL_BUILDING"/>
     <function name="VIR_STORAGE_POOL_BUILD_NEW" link="libvirt-libvirt.html#VIR_STORAGE_POOL_BUILD_NEW"/>
     <function name="VIR_STORAGE_POOL_BUILD_REPAIR" link="libvirt-libvirt.html#VIR_STORAGE_POOL_BUILD_REPAIR"/>
@@ -184,6 +189,7 @@
     <function name="VIR_WAR_NO_INTERFACE" link="libvirt-virterror.html#VIR_WAR_NO_INTERFACE"/>
     <function name="VIR_WAR_NO_NETWORK" link="libvirt-virterror.html#VIR_WAR_NO_NETWORK"/>
     <function name="VIR_WAR_NO_NODE" link="libvirt-virterror.html#VIR_WAR_NO_NODE"/>
+    <function name="VIR_WAR_NO_SECRET" link="libvirt-virterror.html#VIR_WAR_NO_SECRET"/>
     <function name="VIR_WAR_NO_STORAGE" link="libvirt-virterror.html#VIR_WAR_NO_STORAGE"/>
     <function name="virConnectAuthPtr" link="libvirt-libvirt.html#virConnectAuthPtr"/>
     <function name="virConnectCredentialPtr" link="libvirt-libvirt.html#virConnectCredentialPtr"/>
@@ -217,6 +223,8 @@
     <function name="virNodeInfoPtr" link="libvirt-libvirt.html#virNodeInfoPtr"/>
     <function name="virSchedParameterPtr" link="libvirt-libvirt.html#virSchedParameterPtr"/>
     <function name="virSchedParameterType" link="libvirt-libvirt.html#virSchedParameterType"/>
+    <function name="virSecretPtr" link="libvirt-libvirt.html#virSecretPtr"/>
+    <function name="virSecretUsageType" link="libvirt-libvirt.html#virSecretUsageType"/>
     <function name="virSecurityLabelPtr" link="libvirt-libvirt.html#virSecurityLabelPtr"/>
     <function name="virSecurityModelPtr" link="libvirt-libvirt.html#virSecurityModelPtr"/>
     <function name="virStoragePoolBuildFlags" link="libvirt-libvirt.html#virStoragePoolBuildFlags"/>
@@ -243,6 +251,7 @@
     <function name="virNodeDevice" link="libvirt-libvirt.html#virNodeDevice"/>
     <function name="virNodeInfo" link="libvirt-libvirt.html#virNodeInfo"/>
     <function name="virSchedParameter" link="libvirt-libvirt.html#virSchedParameter"/>
+    <function name="virSecret" link="libvirt-libvirt.html#virSecret"/>
     <function name="virSecurityLabel" link="libvirt-libvirt.html#virSecurityLabel"/>
     <function name="virSecurityModel" link="libvirt-libvirt.html#virSecurityModel"/>
     <function name="virStoragePool" link="libvirt-libvirt.html#virStoragePool"/>
@@ -286,6 +295,7 @@
     <function name="virConnectListDomains ()" link="libvirt-libvirt.html#virConnectListDomains"/>
     <function name="virConnectListInterfaces ()" link="libvirt-libvirt.html#virConnectListInterfaces"/>
     <function name="virConnectListNetworks ()" link="libvirt-libvirt.html#virConnectListNetworks"/>
+    <function name="virConnectListSecrets ()" link="libvirt-libvirt.html#virConnectListSecrets"/>
     <function name="virConnectListStoragePools ()" link="libvirt-libvirt.html#virConnectListStoragePools"/>
     <function name="virConnectNumOfDefinedDomains ()" link="libvirt-libvirt.html#virConnectNumOfDefinedDomains"/>
     <function name="virConnectNumOfDefinedInterfaces ()" link="libvirt-libvirt.html#virConnectNumOfDefinedInterfaces"/>
@@ -294,6 +304,7 @@
     <function name="virConnectNumOfDomains ()" link="libvirt-libvirt.html#virConnectNumOfDomains"/>
     <function name="virConnectNumOfInterfaces ()" link="libvirt-libvirt.html#virConnectNumOfInterfaces"/>
     <function name="virConnectNumOfNetworks ()" link="libvirt-libvirt.html#virConnectNumOfNetworks"/>
+    <function name="virConnectNumOfSecrets ()" link="libvirt-libvirt.html#virConnectNumOfSecrets"/>
     <function name="virConnectNumOfStoragePools ()" link="libvirt-libvirt.html#virConnectNumOfStoragePools"/>
     <function name="virConnectOpen ()" link="libvirt-libvirt.html#virConnectOpen"/>
     <function name="virConnectOpenAuth ()" link="libvirt-libvirt.html#virConnectOpenAuth"/>
@@ -405,6 +416,21 @@
     <function name="virResetError ()" link="libvirt-virterror.html#virResetError"/>
     <function name="virResetLastError ()" link="libvirt-virterror.html#virResetLastError"/>
     <function name="virSaveLastError ()" link="libvirt-virterror.html#virSaveLastError"/>
+    <function name="virSecretDefineXML ()" link="libvirt-libvirt.html#virSecretDefineXML"/>
+    <function name="virSecretFree ()" link="libvirt-libvirt.html#virSecretFree"/>
+    <function name="virSecretGetConnect ()" link="libvirt-libvirt.html#virSecretGetConnect"/>
+    <function name="virSecretGetUUID ()" link="libvirt-libvirt.html#virSecretGetUUID"/>
+    <function name="virSecretGetUUIDString ()" link="libvirt-libvirt.html#virSecretGetUUIDString"/>
+    <function name="virSecretGetUsageID ()" link="libvirt-libvirt.html#virSecretGetUsageID"/>
+    <function name="virSecretGetUsageType ()" link="libvirt-libvirt.html#virSecretGetUsageType"/>
+    <function name="virSecretGetValue ()" link="libvirt-libvirt.html#virSecretGetValue"/>
+    <function name="virSecretGetXMLDesc ()" link="libvirt-libvirt.html#virSecretGetXMLDesc"/>
+    <function name="virSecretLookupByUUID ()" link="libvirt-libvirt.html#virSecretLookupByUUID"/>
+    <function name="virSecretLookupByUUIDString ()" link="libvirt-libvirt.html#virSecretLookupByUUIDString"/>
+    <function name="virSecretLookupByUsage ()" link="libvirt-libvirt.html#virSecretLookupByUsage"/>
+    <function name="virSecretRef ()" link="libvirt-libvirt.html#virSecretRef"/>
+    <function name="virSecretSetValue ()" link="libvirt-libvirt.html#virSecretSetValue"/>
+    <function name="virSecretUndefine ()" link="libvirt-libvirt.html#virSecretUndefine"/>
     <function name="virSetErrorFunc ()" link="libvirt-virterror.html#virSetErrorFunc"/>
     <function name="virStoragePoolBuild ()" link="libvirt-libvirt.html#virStoragePoolBuild"/>
     <function name="virStoragePoolCreate ()" link="libvirt-libvirt.html#virStoragePoolCreate"/>

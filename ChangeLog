@@ -1,3 +1,1806 @@
+2009-09-15  Daniel Veillard  <veillard@redhat.com>
+
+	More whitespace problems
+
+	Fix some last minute whitespace problems.
+
+	Release of libvirt 0.7.1
+	* configure.in docs/news.html.in libvirt.spec.in src/libvirt_public.syms:
+	  updates to new release
+	* NEWS docs/devhelp/libvirt-libvirt.html docs/html/libvirt-libvirt.html
+	  docs/libvirt-api.xml docs/libvirt-refs.xml docs/news.html
+	  include/libvirt/libvirt.h: regenerated
+
+	Update a number of localizations and regenerate
+	* as.po bn_IN.po de.po gu.po hi.po kn.po ko.po ml.po mr.po or.po pa.po
+	  pl.po ta.po te.po zh_CN.po got updated
+
+2009-09-15  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix dlopen of secrets driver
+	* src/Makefile.am: Add gnulib.la for base64 functions
+	* src/libvirt_private.syms: Export virFileNameMatchesSuffix
+
+2009-09-14  Daniel P. Berrange  <berrange@redhat.com>
+
+	Add UUID definition required by storage encryption import
+	* docs/schemas/storagevol.rng: storage encryption rules require
+	  that UUID type be defined
+
+	Remove accidentally added UUID re-definition in storage schema
+	* docs/schemas/storageencryption.rng: Remove UUID definition
+	  since its provided by the domain.rng/storagevol.rng schemas
+	  that import this
+
+	Rebuild API docs
+
+	Make secrets RNG more strict
+	* docs/schemas/secret.rng: Require volume element to be an absolute
+	  path. Fix whitespace indentation
+
+	Fill in secret UUID for qcow encryption
+	* src/storage_backend_fs.c: Lookup & fill in secret passphrase UUID
+	  for storage volumes using encryption
+
+	Add usage type/id as a public API property of virSecret
+	* include/libvirt/libvirt.h, include/libvirt/libvirt.h.in: Add
+	  virSecretGetUsageType, virSecretGetUsageID and virLookupSecretByUsage
+	* python/generator.py: Mark virSecretGetUsageType, virSecretGetUsageID
+	  as not throwing exceptions
+	* qemud/remote.c: Implement dispatch for virLookupSecretByUsage
+	* qemud/remote_protocol.x: Add usage type & ID as attributes of
+	  remote_nonnull_secret. Add RPC calls for new public APIs
+	* qemud/remote_dispatch_args.h, qemud/remote_dispatch_prototypes.h,
+	  qemud/remote_dispatch_ret.h, qemud/remote_dispatch_table.h,
+	  qemud/remote_protocol.c, qemud/remote_protocol.h: Re-generate
+	* src/datatypes.c, src/datatypes.h: Add usageType and usageID as
+	  properties of virSecretPtr
+	* src/driver.h: Add virLookupSecretByUsage driver entry point
+	* src/libvirt.c: Implement virSecretGetUsageType, virSecretGetUsageID
+	  and virLookupSecretByUsage
+	* src/libvirt_public.syms: Export virSecretGetUsageType, virSecretGetUsageID
+	  and virLookupSecretByUsage
+	* src/remote_internal.c: Implement virLookupSecretByUsage entry
+	* src/secret_conf.c, src/secret_conf.h: Remove the
+	  virSecretUsageType enum, now in public API. Make volume
+	  path mandatory when parsing XML
+	* src/secret_driver.c: Enforce usage uniqueness when defining secrets.
+	  Implement virSecretLookupByUsage api method
+	* src/virsh.c: Include usage for secret-list command
+
+	Fix UUID handling in secrets/storage encryption APIs
+	Convert all the secret/storage encryption APIs / wire format to
+	handle UUIDs in raw format instead of non-canonical printable
+	format. Guarentees data format correctness.
+
+	* docs/schemas/storageencryption.rng: Make UUID mandatory for a secret
+	  and validate fully
+	* docs/schemas/secret.rng: Fully validate UUID
+	* include/libvirt/libvirt.h, include/libvirt/libvirt.h.in, Add
+	  virSecretLookupByUUID and virSecretGetUUID. Make
+	  virSecretGetUUIDString follow normal API design pattern
+	* python/generator.py: Skip generation of virSecretGetUUID,
+	  virSecretGetUUIDString and virSecretLookupByUUID
+	* python/libvir.c, python/libvirt-python-api.xml: Manual impl
+	  of virSecretGetUUID,virSecretGetUUIDString and virSecretLookupByUUID
+	* qemud/remote.c: s/virSecretLookupByUUIDString/virSecretLookupByUUID/
+	  Fix get_nonnull_secret/make_nonnull_secret to use unsigned char
+	* qemud/remote_protocol.x: Fix remote_nonnull_secret to use a
+	  remote_uuid instead of remote_nonnull_string for UUID field.
+	  Rename REMOTE_PROC_SECRET_LOOKUP_BY_UUID_STRING to
+	  REMOTE_PROC_SECRET_LOOKUP_BY_UUID_STRING and make it take an
+	  remote_uuid  value
+	* qemud/remote_dispatch_args.h, qemud/remote_dispatch_prototypes.h,
+	  qemud/remote_dispatch_ret.h, qemud/remote_dispatch_table.h,
+	  qemud/remote_protocol.c, qemud/remote_protocol.h: Re-generate
+	* src/datatypes.h, src/datatypes.c: Store UUID in raw format instead
+	  of printable. Change virGetSecret to use raw format UUID
+	* src/driver.h: Rename virDrvSecretLookupByUUIDString to
+	  virDrvSecretLookupByUUID and use raw format UUID
+	* src/libvirt.c: Add virSecretLookupByUUID and virSecretGetUUID
+	  and re-implement virSecretLookupByUUIDString and
+	  virSecretGetUUIDString in terms of those
+	* src/libvirt_public.syms: Add virSecretLookupByUUID and
+	  virSecretGetUUID
+	* src/remote_internal.c: Rename remoteSecretLookupByUUIDString
+	  to remoteSecretLookupByUUID. Fix typo in args for
+	  remoteSecretDefineXML impl. Use raw UUID format for
+	  get_nonnull_secret and make_nonnull_secret
+	* src/storage_encryption_conf.c, src/storage_encryption_conf.h:
+	  Storage UUID in raw format, and require it to be present in
+	  XML. Use UUID parser to validate.
+	* secret_conf.h, secret_conf.c: Generate a UUID if none is provided.
+	  Storage UUID in raw format.
+	* src/secret_driver.c: Adjust to deal with raw UUIDs. Save secrets
+	  in a filed with printable UUID, instead of base64 UUID.
+	* src/virsh.c: Adjust for changed public API contract of
+	  virSecretGetUUIDString.
+	* src/storage_Backend.c: DOn't undefine secret we just generated
+	  upon successful volume creation. Fix to handle raw UUIDs. Generate
+	  a non-clashing UUID
+	* src/qemu_driver.c: Change to use lookupByUUID instead of
+	  lookupByUUIDString
+
+2009-09-14  Pritesh Kothari  <Pritesh.Kothari@Sun.COM>
+
+	VBox bug when starting machine from old versions
+	* src/vbox/vbox_tmpl.c: fix a bug where one can't start domains defined
+	  with older builds or with empty "FRONTEND/Type" tag in their xml
+	  files.
+
+2009-09-14  Daniel P. Berrange  <berrange@redhat.com>
+
+	Save vcpuinfo in status file
+	* src/qemu_driver.c: Don't trust monitor for vcpu PID info on
+	  restart
+	* src/domain_conf.c: Save and load vCPU PID info from domain
+	  status file
+
+	Fix win32 platform build
+	* configure.in: Only define WITH_SECRETS if libvirtd is present
+	* src/Makefile.am: Only build secrets driver if WITH_SECRETS is
+	  defined. Always add SECRET_DRIVER_SOURCES to EXTRA_DIST
+
+	Restart libvirtd upon RPM upgrade
+	* libvirt.spec.in: Restart libvirtd in %post
+
+2009-09-14  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	ESX cleanup of CPU model strings
+	* src/esx/esx_driver.c: also strip (C) and (TM) from the CPU model
+	  strings
+
+	ESX avoid potential leaks
+	* src/esx/esx_driver.c: reorder some function calls to avoid potential
+	  virDomainPtr leaks
+
+2009-09-14  Pritesh Kothari  <Pritesh.Kothari@Sun.COM>
+
+	VBox 3.0.6 API change support
+	* src/vbox/vbox_CAPI_v3_0.h: this includes minor API changes for VBox
+	  3.0.6 released some days ago.
+
+2009-09-11  Miloslav Trmač  <mitr@redhat.com>
+
+	Add support for qcow encrypted volumes to qemu.
+	Integrate with QEMU monitor to provide encryption passphrase when
+	starting a guest using encrypted qcow volumes
+
+	* src/qemu_driver.c (findDomainDiskEncryption,
+	  findVolumeQcowPassphrase,
+	  qemudMonitorSendVolumePassphrase, qemudMonitorSendCont): Send a volume
+	  passphrase if qemu asks for it.
+
+	Provide missing passphrase when creating a volume.
+	If the <encryption format='qcow'> element does not specify a secret
+	during volume creation, generate a suitable secret and add it to the
+	<encryption> tag.  The caller can view the updated <encryption> tag
+	using virStorageVolGetXMLDesc().
+
+	Similarly, when <encryption format='default'/> is specified while
+	creating a qcow or qcow2-formatted volume, change the format to "qcow"
+	and generate a secret as described above.
+
+	* src/storage_encryption_conf.h (VIR_STORAGE_QCOW_PASSPHRASE_SIZE,
+	  virStorageGenerateQcowPasphrase),
+	  src/storage_encryption_conf.c (virStorageGenerateQcowPasphrase),
+	  src/libvirt_private.syms: Add virStorageGenerateQcowPasphrase().
+	* src/storage_backend.c (virStoragegenerateQcowEncryption,
+	  virStorageBackendCreateQemuImg): Generate a passphrase and
+	  <encryption> when creating a qcow-formatted encrypted volume and the
+	  user did not supply the information.
+
+	Add virsh commands for secrets APIs
+	* src/virsh.c: Add virsh commands.
+	* docs/virsh.pod, virsh.1: Update documentation.
+
+	Local file implementation of secret driver API
+	This implementation stores the secrets in an unencrypted text file,
+	for simplicity in implementation and debugging.
+
+	(Symmetric encryption, e.g. using gpgme, will not be difficult to add.
+	Because the TLS private key used by libvirtd is stored unencrypted,
+	encrypting the secrets file does not currently provide much additional
+	security.)
+
+	* include/libvirt/virterror.h, src/virterror.c (VIR_ERR_NO_SECRET): New
+	  error number.
+	* po/POTFILES.in, src/Makefile.am: Add secret_driver.
+	* bootstrap: Use gnulib's base64 module.
+	* src/secret_driver.c, src.secret_driver.h, src/libvirt_private.syms:
+	  Add local secret driver.
+	* qemud/qemud.c (qemudInitialize): Use the local secret driver.
+
+	Add an internal <secret> XML handling API
+	Add a <secret> XML handling API, separate from the local driver, to
+	avoid manually generating XML in other parts of libvirt.
+
+	* src/secret_conf.c, src/secret_conf.h: New files.
+	* po/POTFILES.in, src/Makefile.am: Add secret_conf.
+
+2009-09-10  Miloslav Trmač  <mitr@redhat.com>
+
+	Mask out flags used internally for virSecretGetValue
+	Add a VIR_SECRET_GET_VALUE_INTERNAL_CALL flag value, replacing the
+	originally separate libvirt_internal_call parameter.  The flag is used
+	to differentiate external virSecretGetValue() calls from internal calls
+	by libvirt drivers that need to use the secret even if it is private.
+
+	* src/libvirt_internal.h Remove VIR_DOMAIN_XML_FLAGS_MASK
+	* src/driver.h Add VIR_SECRET_GET_VALUE_FLAGS_MASK constant and
+	  VIR_SECRET_GET_VALUE_INTERNAL_CALL. Re-add the
+	  VIR_DOMAIN_XML_FLAGS_MASK constant
+	* src/libvirt.c (virSecretGetValue): Don't allow the user to specify
+	  internal flags.
+
+2009-09-10  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix use of dlopen modules
+	Remove the bogus dependancy between node_device.c & storage_backend.c
+	by moving the virWaitForDevices into util.h where it can be shared
+	safely
+
+	* src/storage_backend_disk.c, src/storage_backend_logical.c,
+	  src/storage_backend_mpath.c, src/storage_backend_scsi.c: Replace
+	  virStorageBackendWaitForDevices with virFileWaitForDevices
+	* src/storage_backend.c, src/storage_backend.h: Remove
+	  virStorageBackendWaitForDevices, virWaitForDevices
+	* src/util.h, src/util.c: Add virFileWaitForDevices
+	* configure.in: Move xmlrpc check further down after pkgconfig
+	  is detected
+	* src/Makefile.am: Add missing XMLRPC_CFLAGS/LIBS to opennebula
+	* src/libvirt_private.syms: Add many missing exports
+
+2009-09-10  Miloslav Trmač  <mitr@redhat.com>
+
+	Consolidate "cont" into qemudMonitorSendCont()
+	The interface allows qemudMonitorSendCont() to report errors that are
+	not overridden by its callers.
+
+	Also fix a potential infinite loop in qemuDomainCoreDump() if sending
+	cont repeatedly fails.
+
+	* src/qemu_driver.c (qemudMonitorSendCont): New function.
+	  (qemudAutostartConfigs): Reset error before each call to
+	  qemudStartVMDaemon().
+	  (qemudInitCpus, qemudDomainResume, qemudDomainCoreDump,
+	  qemudDomainRestore, qemudDomainMigratePerform,
+	  qemudDomainMigrateFinish2): Use qemudMonitorSendCont().
+
+	Add <usage> to <secret> docs
+	* docs/formatsecret.html.in, docs/formatsecret.html: Document <usage
+	  type='volume'>, replacing stand-alone <volume>.
+	* docs/schemas/secret.rng: Update schema to require <usage
+	  type='volume'>
+
+2009-09-10  Daniel P. Berrange  <berrange@redhat.com>
+
+	Cleanup sec driver error reporting to use virReportSystemError
+	* src/security_selinux.c: Use virReportSystemError whereever an
+	  errno is involved
+	* src/qemu_driver.c: Don't overwrite error message from the
+	  security driver
+
+	Support relabelling of USB and PCI devices
+	* src/security.h: Driver API for relabelling host devices
+	* src/security_selinux.c: Implement relabelling of PCI and USB
+	  devices
+	* src/qemu_driver.c: Relabel USB/PCI devices before hotplug
+
+	Port QEMU driver to use USB/PCI device helpers
+	* src/qemu_driver.c: Remove usbfs/sysfs iterator code and call
+	  into generic helper APIs instead when setting device permissions
+
+	Add helper APIs for iterating over PCI device resource files
+	* src/pci.h, src/pci.c: Helper for iterating over PCI device
+	  resource files
+	* src/libvirt_private.syms: Export pciDeviceFileIterate
+
+	Add helper module for dealing with USB host devices
+	* src/Makefile.am: Add usb.h and usb.h to libvirt_util.la
+	* src/libvirt_private.syms: Export symbols
+	* src/usb.c, src/usb.h: Helper APIs for USB host devices
+
+	Fix more OOM handling bugs
+	* src/qemu_conf.c: Fix leak of values upon OOM
+	* src/xend_internal.c: Fix missing check for OOM failure
+	* tests/qemuargv2xmltest.c, tests/qemuxml2argvtest.c: Free
+	  stateDir upon exit to avoid leak
+
+	Fix logging buffer overrun read
+	* src/logging.c: Fix buffer offset in logging read
+
+	Fix misc thread locking bugs / bogus warnings
+	Fix all thread locking bugs reported by object-locking test
+	case.
+
+	NB, some of the driver locking is getting too coarse. Driver
+	mutexes really need to be turned into RW locks instead to
+	significantly increase concurrency.
+
+	* src/lxc_driver.c: Fix useof driver when unlocked in the methods
+	  lxcDomainGetInfo, lxcSetSchedulerParameters, and
+	  lxcGetSchedulerParameters
+	* src/opennebula/one_driver.c: Fix missing unlock in oneDomainUndefine.
+	  Fix use of driver when unlocked in oneDomainGetInfo,
+	  oneGetOSType, oneDomainShutdown
+	* src/qemu_driver.c: Fix use of driver when unlocked in
+	  qemudDomainSavem, qemuGetSchedulerType, qemuSetSchedulerParameters
+	  and qemuGetSchedulerParameters
+	* src/storage_driver.c: Re-work storagePoolCreate to avoid bogus
+	  lock checking warning. Re-work storageVolumeCreateXMLFrom to
+	  remove a potential NULL de-reference & avoid bogus lock check
+	  warnings
+	* src/test.c: Remove testDomainAssignDef since it break lock chekc
+	  warnings.
+	* tests/object-locking.ml: Add oneDriverLock, oneDriverUnlock
+	  and one_driver_t methods/types to allow lock checking on the
+	   OpenNebula drivers
+
+2009-09-10  Mark McLoughlin  <markmc@redhat.com>
+
+	Test that domain-specific qemu machine types are used correctly
+	* tests/testutilsqemu.c: add a machine types list for /usr/bin/kvm
+	  which doesn't have any aliases, while the guest has aliases
+
+	* tests/qemuxml2argvdata/qemuxml2argv-machine-aliases2.*,
+	  tests/qemuxml2argvtest.c: add a test using /usr/bin/kvm and make
+	  sure that 'pc' machine type doesn't get canonicalized using the
+	  aliases in the guest machine type list
+
+	Simplify and fix qemudCanonicalizeMachine()
+	The algorithm is quite simple:
+
+	  If the emulator matches a guest's domain:
+	    if domain has machine type info:
+	      check the domain's machine type info
+	    else
+	      check the guest's default machine type info
+	  else if the emulator matches the guest's default emulator:
+	     check the guest's default machine type info
+
+	The previous implementation was incorrectly falling back to the default
+	machine type info if the domain's machine type info didn't have an
+	alias.
+
+	* src/qemu_driver.c: simplify and fix qemudCanonicalizeMachine()
+
+	Probe machine types from kvm binary too
+	Currently we only probe the main qemu binary for machine types, but we
+	should also probe the kvm binary.
+
+	* src/qemu_conf.c: probe kvm binary machines in qemudCapsInitGuest()
+
+	Look up machine types from all domains in qemudGetOldMachines()
+	Rather than just looking at the default domain info, look at all
+	domains
+
+	* src/qemu_conf.c: look at all domains in qemudGetOldMachines()
+
+	Split up qemudGetOldMachines()
+	We need to look at all the domain infos in guest capabilities, not
+	just the defaults.
+
+	In order to allow that, split out a qemudGetOldMachinesFromInfo()
+	from qemudGetOldMachines(). We'll make more use of it in the next
+	patch.
+
+	* src/qemu_conf.c: split out qemudGetOldMachinesFromInfo() from
+	  qemudGetOldMachines()
+
+	Test qemu machine aliases
+	* tests/testutilsqemu.c: make 'pc' an alias for qemu-system-x86_64
+
+	* tests/qemuxml2argvdata/qemuxml2argv-machine-aliases1.*,
+	  tests/qemuxml2argvtest.c: add a test which uses qemu-system-x86_64
+	  and make sure the machine type is canonicalized.
+
+	Re-factor qemu test machine allocation code
+	* test/testutilsqemu.c: split out code to testQemuAllocMachines()
+	  and make use of the ARRAY_CARDINALITY macro
+
+	Canonicalize the qemu machine type in qemuxml2argvtest
+	This doesn't have any affect on the current tests because we don't have
+	any machine aliases in the current test data.
+
+	* src/qemu_conf.h, src/qemu_driver.c: expose qemudCanonicalizeMachine()
+	  for the tests
+
+	* tests/qemuxml2argvtest.c: canonicalize the machine type
+
+	Dump qemu driver capabilities if test debugging enabled
+	* src/testutils.[ch]: make testDebug externally available
+
+	* src/testutilsqemu.c: if VIR_TEST_DEBUG is set, dump the qemu
+	  driver capabilities to stderr
+
+	Fix formatting of machine types in capabilities XML
+	* src/capabilities.c: fix machine type formatting in
+	  virCapabilitiesFormatXML()
+
+	Add qemu -help test data for qemu-kvm-0.11.0-rc2
+	* tests/qemuhelpdata/qemu-kvm-0.11.0-rc2: add data
+
+	* tests/qemuhelptest.c: add expected output
+
+	Add a more featureful qemu capabilities test data
+	Things added include
+
+	  - x86_64 host
+	  - Migration features
+	  - NUMA topology
+	  - Security model
+	  - Canonical machine types
+	  - Domain machine types
+	  - An arm guest
+	  - More machine types for mips, mipsel, sparc and ppc
+	  - An x86_64 xenner guest
+
+	This file was generated on a Fedora 12 machine using latest libvirt
+	and qemu-kvm-0.11.0-rc2
+
+	* tests/capabilityschemadata/caps-qemu-kvm.xml: add more features
+	  to test
+
+	Add arm arch to capabilities schema
+	* docs/schemas/capabilities.rng: add arm and sort arches
+
+	Update capabilities schema to allow multiple machines per domain
+	* docs/schemas/capabilities.rng: allow multiple machines per domain
+	  just like they are allowed for guests
+
+	Add esx and tcp migration uri transports to capabilities schema
+	* docs/schemas/capabilities.rng: include esx and tcp uri_transport
+
+2009-09-10  Chris Lalancette  <clalance@redhat.com>
+
+	Fix regression from "Avoid polling on FDs with no events"
+	After the mentioned patch was applied, I noticed that
+	shutting down a kvm guest from inside (i.e. poweroff) caused
+	the guest to shutdown, but not removed from the list of
+	active guests.  DanB pointed out that the problem is that
+	the virEventAddHandle() call in the qemu driver was asking
+	to watch for 0 events, not HANGUP | ERROR as it should.  Add
+	these events so that shutdown works again.
+
+2009-09-10  Jim Meyering  <meyering@redhat.com>
+
+	qemu_driver.c: factor out more duplication
+	* src/qemu_driver.c (qemudDomainRestore): Use the new ...TypeToString
+	function here, too.
+
+2009-09-10  Ryota Ozaki  <ozaki.ryota@gmail.com>
+
+	Close logfile fd after spawning qemu
+	* src/qemu_driver.c: avoid a leak of file descriptor when exec'ing qemu
+
+2009-09-10  Charles Duffy  <charles@dyfis.net>
+
+	Reintroduce support for lzop compression
+	lzop was removed due to some confusion over whether it provided functional
+	advantages distinct from xz. This has been addressed in the mailing list post
+	archived at http://permalink.gmane.org/gmane.comp.emulators.libvirt/16487, and
+	support for lzop is re-added here.
+
+	* libvirt.spec.in: add dependancy on lzop
+	* src/qemu.conf: update documentation of save_image_format
+	* src/qemu_driver.c: re-add lzop compression option
+
+2009-09-09  Daniel Veillard  <veillard@redhat.com>
+
+	Deprecate lzma and lzop in favor of xz, add dep
+	* src/qemu_driver.c: drop lzma and lzop images compression options
+	  as they are deprecated by xz
+	* libvirt.spec.in: add requires for xz/bzip2/gzip as they are needed
+	  to implement the compression options
+
+2009-09-09  Maximilian Wilhelm  <max@rfc2324.org>
+
+	Check for libssh2 >= 1.0 for phy driver
+	* configure.in: phyp driver uses libssh2_session_block_directions()
+	  which is only available in libssh2 >= 1.0, so check for this symbol
+	  too when configuring
+
+2009-09-09  Jim Meyering  <meyering@redhat.com>
+
+	qemu_driver.c: factor out duplication in compression-type handling
+	* src/qemu_driver.c (QEMUD_SAVE_FORMAT_LAST): Define.
+	(qemudSaveCompressionTypeFromString): Declare.
+	(qemudSaveCompressionTypeToString): Declare.
+	(qemudDomainSave): Use those functions rather than open-coding them.
+	Use "cat >> '%s' ..." in place of equivalent
+	"dd of='%s' oflag=append conv=notrunc ...".
+
+	also allow use of XZ for Qemu image compression
+	* src/qemu_driver.c (enum qemud_save_formats) [QEMUD_SAVE_FORMAT_XZ]:
+	New member.
+	[QEMUD_SAVE_FORMAT_LZMA]: Mark as deprecated.
+	Use an explicit value for each member.
+	(qemudDomainSave, qemudDomainRestore): Handle the new member.
+	* src/qemu.conf: Mention xz, too.
+
+	openvz_conf.c: remove dead store to "p"; use strchrnul
+	* src/openvz_conf.c (openvzReadNetworkConf): Replace open-coded
+	while loop with equivalent use of strchrnul.
+	* bootstrap (modules): Add strchrnul.
+
+	build: update gnulib submodule to latest
+
+2009-09-08  Daniel Veillard  <veillard@redhat.com>
+
+	Remove some tabs used for indent
+
+2009-09-08  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	Avoid another leak in src/xend_internal.c
+	* src/xend_internal.c: in xenDaemonLookupByID() if virGetDomain fails
+	  free up the name
+
+2009-09-08  Daniel Veillard  <veillard@redhat.com>
+
+	Updated a number of localizations and regenerated
+
+	Add flags and requires for Multipath storage
+	* libvirt.spec.in: the new multipath module requires device-mapper
+	  and device-mapper-devel for build
+
+2009-09-08  Dave Allan  <dallan@redhat.com>
+
+	Multipath storage support module
+	* configure.in src/Makefile.am src/storage_backend.[ch]
+	  src/storage_conf.[ch] src/storage_backend_mpath.[ch] po/POTFILES.in:
+	  add a new module for storage multipath, it requires device-mapper
+
+2009-09-08  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	Avoid a leak in xenDaemonLookupByID
+	* src/xend_internal.c: free name in xenDaemonLookupByID() if
+	  virGetDomain() fails
+
+2009-09-08  Miloslav Trmač  <mitr@redhat.com>
+
+	Add a missing comment
+	* src/libvirt_private.syms: Add a missing comment for
+	  storage_encryption_conf.h entries
+
+	Fix a pasto in storage_encryption_conf.c
+	* src/storage_encryption_conf.c: small typo fix in top comment
+
+2009-09-07  Jim Meyering  <meyering@redhat.com>
+
+	xm_internal.c: remove four useless comparisons after strchr
+	* src/xm_internal.c (xenXMDomainConfigParse): After t=strchr...
+	don't test *t; it's known.  This was *not* detected by clang,
+	but I spotted it since once instance was in the vicinity of the
+	dead increment of "data".
+
+	xm_internal.c: remove dead increment of "data"
+	* src/xm_internal.c (xenXMDomainConfigParse): Don't increment it.
+
+	network_driver.c: remove dead store to "err"
+	* src/network_driver.c (networkSetAutostart): ...and its decl.
+
+	iptables.c: remove dead store to "s"
+	* src/iptables.c (iptablesAddRemoveRule): Remove dead store.
+
+	util.c: avoid dead store to "flag"
+	* src/util.c (virExecDaemonize): Change flag |= VAR to "flag | VAR".
+
+	domain_conf.c: remove two dead stores
+	* src/domain_conf.c (virDomainSaveXML): Remove use and decl of "err".
+	(virDomainDefParseXML): Likewise.
+
+	xm_internal.c: remove two ret=... dead stores
+	* src/xm_internal.c (xenXMDomainCreate): Remove dead stores.
+
+	xm_internal.c: remove dead stores of local, "type"
+	* src/xm_internal.c (xenXMDomainConfigParse): Remove declaration
+	and useless containing if-block, too.
+
+2009-09-07  Pritesh Kothari  <Pritesh.Kothari@Sun.COM>
+
+	VBox fix minor bugs in display and added OOM checks
+	* src/vbox/vbox_tmpl.c: minor bug in selecting the graphics type. if the
+	  graphics type was desktop it was assumed that display is set for it,
+	  and thus crashed on strdup. Also adds a number of missing OOM checks.
+
+2009-09-07  Jim Meyering  <meyering@redhat.com>
+
+	network_conf.c: remove dead store to "err"
+	* src/network_conf.c (virNetworkDefParseXML): ...and its decl.
+
+	openvz_driver.c: avoid dead store to "err"
+	* src/openvz_driver.c (openvzGenerateContainerVethName): Remove use
+	and decl of "err".
+
+	xend_internal.c: Remove two dead stores to "ret"
+	* src/xend_internal.c (xenDaemonCreateXML): Don't set "ret" after
+	last use.
+
+	storage_driver.c: remove two dead stores to "backend"
+	* src/storage_driver.c (storagePoolGetInfo, storagePoolDefine):
+	Remove variable, backend, since its value was never used.
+
+2009-09-07  Daniel Veillard  <veillard@redhat.com>
+
+	Merge branch 'tmp'
+
+2009-09-07  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	Some close/fclose/closedir calls are missing
+	* src/openvz_conf.c src/qemu_driver.c src/storage_backend_scsi.c
+	  src/xen_inotify.c: closes various file descriptors leaks
+
+2009-09-04  Jim Meyering  <meyering@redhat.com>
+
+	lxc_container.c: avoid a leak on error paths
+	* src/lxc_container.c (lxcContainerMountBasicFS): Don't leak upon failure.
+	Add "cleanup:" label and change each post-allocation failure to
+	use "goto cleanup" rather than returning immediately.
+
+	qemu_conf.c: add a comment suggesting why we leave a dead-store
+	* src/qemu_conf.c (qemuBuildHostNetStr): Do not remove the type_sep=','
+	dead store, since not having it would be a problem if we ever add a
+	new attribute=VAL option.
+
+	hash.c: remove a dead store
+	* src/hash.c (virHashFree): Remove useless assignment to inside_table.
+
+	interface_conf.c: remove a dead-store and declaration
+	* src/interface_conf.c (virInterfaceDefParseDhcp): Remove unused "old".
+
+	eventtest.c: detect write failure and avoid dead stores
+	* tests/eventtest.c (mymain): Exit nonzero upon write failure.
+	This also avoids several dead stores of the form ret = safewrite...
+
+	openvz_conf.c: Remove dead store to copy_fd
+	* src/openvz_conf.c (openvz_copyfile): Remove unused assignment.
+
+	storage_backend_logical.c: appease clang: remove useless increment
+	* src/storage_backend_logical.c (virStorageBackendLogicalBuildPool):
+	Don't increment "n" when we won't use the result.
+
+2009-09-04  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	ESX raise error if UUID parse failed
+	* src/esx/esx_util.c: let esxUtil_GetConfigUUID() report an error if
+	  virUUIDParse() fails
+
+	ESX add domain undefine based on esxVI_UnregisterVM
+	* src/esx/esx_driver.c: add esxDomainUndefine() based on
+	  esxVI_UnregisterVM()
+	* src/esx/esx_vi_methods.[ch]: add esxVI_UnregisterVM()
+
+	ESX add esxGetCapabilities() with basic defaults
+	* src/esx/esx_driver.c: add esxCapsInit() with default caps and add
+	  esxGetCapabilities()
+
+	ESX simplify SOAP request and response handling
+	* src/esx/esx_vi.[ch]: convert esxVI_RemoteRequest_Execute() to a
+	  simpler esxVI_Context_Execute() version, remove esxVI_RemoteRequest
+	  and convert esxVI_RemoteResponse to esxVI_Response
+	* src/esx/esx_vi_methods.c: update and simplify callers to use
+	  esxVI_Context_Execute() instead of esxVI_RemoteRequest_Execute()
+
+	ESX use virXPathNode*() to simplify XPath handling
+	* src/esx/esx_vi.[ch]: use virXPathNode*() in
+	  esxVI_RemoteRequest_Execute() and remove
+	  esxVI_RemoteResponse_DeserializeXPathObject*()
+	* src/esx/esx_vi_methods.c: update callers to use the new syntax of
+	  esxVI_RemoteRequest_Execute()
+
+	ESX: make esxVI_GetVirtualMachineIdentity() robust
+	* src/esx/esx_driver.c: add configStatus to the requested properties
+	  to check it in esxVI_GetVirtualMachineIdentity()
+	* src/esx/esx_vi.[ch]: add esxVI_GetManagedEntityStatus()
+	  and use it in esxVI_GetVirtualMachineIdentity()
+	* src/esx/esx_vi_types.[ch]: add VI type esxVI_ManagedEntityStatus
+
+	ESX: Fix VMX path parsing and URL encoding
+	* src/esx/esx_driver.c: handle spaces in VMX file path and use a
+	  virBuffer to encode spaces correctly in the resulting URL
+	* src/esx/esx_vi.c: include the URL in the error message in case
+	  of a download error
+
+2009-09-04  Pritesh Kothari  <Pritesh.Kothari@Sun.COM>
+
+	VBox add Storage Volume support
+	* src/vbox/vbox_driver.c src/vbox/vbox_tmpl.c: adds the driver for
+	  storage volumes
+
+2009-09-04  Ryota Ozaki  <ozaki.ryota@gmail.com>
+
+	Fix several memory leaks
+	* src/domain_conf.c src/network_conf.c src/qemu_conf.c
+	  src/storage_backend_fs.c: various problems spotted by valgrind
+	  through libvirt code
+
+2009-09-04  Pritesh Kothari  <Pritesh.Kothari@Sun.COM>
+
+	VBox driver cleanups
+	* src/vbox/vbox_tmpl.c: a bit of cleanup
+
+2009-09-04  Laine Stump  <laine@laine.org>
+
+	Minor comment changes
+	* src/libvirt.c: fix some minor grammer (and one other) nits in comments
+	  that end up in generated API reference documentation
+
+	Fix a memory leak in virsh
+	* src/virsh.c: cmdNodeDeviceDumpXML wasn't freeing
+	  virNodeDeviceGetXMLDesc() return string
+
+2009-09-04  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix ID field in virDomainPtr after starting Xen VM
+	* src/xend_internal.c: Lookup guest after starting persistent
+	  config in order to refresh the domain ID field
+
+2009-09-04  Daniel Veillard  <veillard@redhat.com>
+
+	PHYP driver cleanups
+	* libvirt.spec.in: activate phyp and fix the BuildDep to libssh2-devel
+	* src/phyp/phyp_driver.c: fix a debug macro to use the normal logging API
+
+2009-09-04  Eduardo Otubo  <otubo@linux.vnet.ibm.com>
+
+	Switch Power Hypervisor to libssh2
+	* configure.in src/Makefile.am: change detection and flags
+	* src/phyp/phyp_driver.c src/phyp/phyp_driver.h: connection now
+	  need to be done as part of the driver code, cleaned up by DV
+
+2009-09-04  Chris Lalancette  <clalance@redhat.com>
+
+	Allow libvirtd to RPC to external libvirtd
+	* src/remote_internal.c: in remoteOpen() allow the daemon itself to make
+	  RPCs to an external libvirtd, but only if the URI is fully specified.
+
+2009-09-03  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix memory leak of monitor character device
+	* src/qemu_driver.c: Free the vm->monitor_chr field at VM shutdown.
+	  Unlink the UNIX domain socket at VM shutdown to avoid littering
+	  FS with old sockets
+
+	Automatically set correct ownership of QEMU state directories
+	* src/qemu_driver.c: Change ownership of /var/{lib,cache}/libvirt/qemu
+	  to match user/group that QEMU VMs are configured to run as.
+
+	Move QEMU monitor socket in /var/lib/libvirt/qemu
+	Separate the guest created QEMU monitor socket location
+	from the libvirtd create XML / PID data files, to improve
+	security separation when running QEMU non-root
+
+	* libvirt.spec.in: Leave /var/run/libvirt/qemu as root:root
+	* src/qemu_conf.h: Add libDir and cacheDir directory paths
+	* src/qemu_driver.c: Move QEMU monitor socket from
+	  stateDir to libDir to avoid making security critical directory
+	  accessible to QEMU guests.
+	* src/util.c: Delay running hook till after damonizing to
+	  ensure pidfile is still written before changing UID/GID
+
+	Avoid polling on FDs with no events enabled
+	If a file descriptor with events=0 was added to the libvirtd
+	event loop, it would still be added to the poll() fds' array.
+	While it wouldn't see any POLLIN/OUT events, it'd still get
+	triggered for HANGUP/ERROR events which was not in compliance
+	with the libvirt events API contract.
+
+	* qemud/event.c: Don't poll on FDs with events=0
+	* tests/eventtest.c: Add test case to validate fix to event.c
+
+2009-09-03  Jim Meyering  <meyering@redhat.com>
+
+	xen_internal.c: remove two unused local variables
+	* src/xen_internal.c (xenHypervisorSetSchedulerParameters): Remove
+	set-but-never-used local variables, cap_set and weight_set.
+
+2009-09-03  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	esx_vi: return -1 upon failure, as intended
+	* src/esx/esx_vi.c (esxVI_Enumeration_Deserialize): Fix
+	reversed goto and result=-1 statements.
+
+2009-09-03  Jim Meyering  <meyering@redhat.com>
+
+	python: let libvirt_virConnectDomainEventCallback indicate success
+	* python/libvir.c (libvirt_virConnectDomainEventCallback): Return 0
+	when successful, rather than always returning -1.
+	clang flagged this function for its dead-store of "ret=0".
+	Once "ret" was set to 0, it was never used, and
+	the function would always return -1.
+
+	mdns.c: remove dead initialization
+	* qemud/mdns.c (libvirtd_mdns_client_callback): Remove dead
+	initialization.
+
+	node_device_conf.c: remove dead initialization
+	* src/node_device_conf.c (virNodeDeviceDefFormat): Remove dead
+	initialization.
+
+	openvz_conf.c: don't use undefined local, "net"
+	* src/openvz_conf.c (openvzReadNetworkConf): Initialize "net".
+	Otherwise, upon openvzRead... failure, we would "goto error;"
+	where an uninitialized "net" could be dereferenced.
+
+	test.c: don't use undefined local, "def"
+	* src/test.c (testOpenVolumesForPool): Upon early virAsprintf or
+	virXPathNodeSet failure, "goto error" would take us to
+	virStorageVolDefFree(def), but with "def" not defined.
+	Initialize it to NULL.
+
+	uml_conf.c: don't return an uninitialized pointer
+	* src/uml_conf.c (umlBuildCommandLineChr): Initialize "ret".
+
+	storage_backend.c: assure clang that inputvol can't be NULL
+	* src/storage_backend.c: Include "internal.h".
+	(virStorageBackendCopyToFD): Mark inputvol parameter as "nonnull".
+	Remove test for non-NULL inputvol.  Both callers ensure it's non-NULL.
+
+	libvir.c: avoid NULL dereference in virStoragePoolSetAutostart
+	* src/libvirt.c (virStoragePoolSetAutostart): Return -1 if the pool
+	argument is invalid, rather than "goto error" where we could dereference
+	that possibly-NULL "pool".
+	(virConnectFindStoragePoolSources): Likewise.
+	(virConnectNumOfDomains): Likewise.
+	Daniel P. Berrange spotted that the two latter functions
+	needed the same treatment.
+
+	remote_internal.c: appease clang
+	* src/remote_internal.c (remoteNetworkOpen): Mark "conn" parameter
+	as non-NULL.  Remove now-unnecessary "conn == NULL" test.
+	(remoteDevMonOpen): Likewise.
+	(remoteSecretOpen): Likewise.
+	(remoteStorageOpen): Likewise.
+	(remoteInterfaceOpen): Likewise.
+
+	infra: define ATTRIBUTE_NONNULL to mark non-NULL parameters
+	* src/internal.h (ATTRIBUTE_NONNULL): Define.
+
+	lxc: don't unlink(NULL) in main
+	* src/lxc_controller.c (main): Unlink sockpath only if it's non-NULL.
+
+	lxc: avoid NULL dereference upon getmntent failure
+	* src/lxc_container.c (lxcContainerUnmountOldFS): Don't pass
+	a NULL pointer to qsort.
+
+	storage_conf.c: avoid overflow upon use of "z" or "Z" (zebi) suffix
+	* src/storage_conf.c (virStorageSize): Don't try to compute 1024^7,
+	since it's too large for a 64-bit type.
+
+	storage_backend_fs: avoid NULL dereference on opendir failure
+	* src/storage_backend_fs.c (virStorageBackendFileSystemRefresh):
+	Don't call closedir on a NULL pointer.
+
+2009-09-03  Pritesh Kothari  <Pritesh.Kothari@Sun.COM>
+
+	VBox cleanup and update of networking shutdown
+	* src/vbox/vbox_tmpl.c: merged vboxNetworkUndefine() and
+	  vboxNetworkDestroy() and added code to handle multiple hostonly
+	  interfaces.
+
+	VBox cleanup and update of networking XML functions
+	* src/vbox/vbox_tmpl.c: merged vboxNetworkCreateXML() and
+	  vboxNetworkDefineXML() and added code to handle multiple hostonly
+	  interfaces.
+
+2009-09-03  Daniel P. Berrange  <berrange@redhat.com>
+
+	Add support for setting disk drive serial numbers
+	* docs/schemas/domain.rng: Add <serial> element to disks
+	* src/domain_conf.h, src/domain_conf.c: XML parsing and
+	  formatting for disk serial numbers
+	* src/qemu_conf.c: Set serial number when launching guests
+	* tests/qemuxml2argvdata/qemuxml2argv-disk-drive-shared.args,
+	  tests/qemuxml2argvdata/qemuxml2argv-disk-drive-shared.xml: Add
+	  serial number to XML test
+
+	Support configuration of huge pages in guests
+	Add option to domain XML for
+
+	     <memoryBacking>
+	        <hugepages/>
+	     </memoryBacking>
+
+	* configure.in: Add check for mntent.h
+	* qemud/libvirtd_qemu.aug, qemud/test_libvirtd_qemu.aug, src/qemu.conf
+	  Add 'hugetlbfs_mount' config parameter
+	* src/qemu_conf.c, src/qemu_conf.h: Check for -mem-path flag in QEMU,
+	  and pass it when hugepages are requested.
+	  Load hugetlbfs_mount config parameter, search for mount if not given.
+	* src/qemu_driver.c: Free hugetlbfs_mount/path parameter in driver shutdown.
+	  Create directory for QEMU hugepage usage, chowning if required.
+	* docs/formatdomain.html.in: Document memoryBacking/hugepages elements
+	* docs/schemas/domain.rng: Add memoryBacking/hugepages elements to schema
+	* src/util.c, src/util.h, src/libvirt_private.syms: Add virFileFindMountPoint
+	  helper API
+	* tests/qemuhelptest.c: Add -mem-path constants
+	* tests/qemuxml2argvtest.c, tests/qemuxml2xmltest.c: Add tests for hugepage
+	  handling
+	* tests/qemuxml2argvdata/qemuxml2argv-hugepages.xml,
+	  tests/qemuxml2argvdata/qemuxml2argv-hugepages.args: Data files for
+	  hugepage tests
+
+	Fix misc OOM bugs
+	* tests/testutils.c: Run test function twice, once to prime it for
+	  static allocations, once to count the non-static allocations.
+	* tests/testutilsqemu.c: Initialize variable correctl
+	* src/capabilities.c: Don't free machines variable upon failure
+	  since caller must do that
+	* src/xm_internal.c: Add missing check for OOM in building VIF
+	  config param
+
+2009-09-03  Pritesh Kothari  <Pritesh.Kothari@Sun.COM>
+
+	VBox support for defining/dumping video devices
+	* src/vbox/vbox_tmpl.c: add setting of video and acceleration in
+	  VBox driver, and the ability to save this back for serialization
+
+	Generic parsing support for video acceleration
+	* docs/schemas/domain.rng: augment the video model with an optional
+	  acceleration element with optional accel2d and accel3d flags
+	* src/domain_conf.c src/domain_conf.h: exten the virDomainVideoDef
+	  structure with an optional accel field, virDomainVideoAccelDefParseXML
+	  and virDomainVideoAccelDefFormat functions to parse and serialize
+	  the structure.
+
+2009-09-02  Chris Lalancette  <clalance@redhat.com>
+
+	Fix bugs in virDomainMigrate v2 code.
+	Paolo Bonzini points out that in my refactoring of the code for
+	virDomainMigrate(), I added a check for the return value from
+	virDomainMigratePerform().  The problem is that we don't want to
+	exit if we fail, we actually want to go on and do
+	virDomainMigrateFinish2() with a non-0 return code to clean things
+	up.  Remove the check.
+
+	While reproducing this issue, I also noticed that we wouldn't
+	always properly propagate an error message.  In particular, I
+	found that if you blocked off the migration ports (with iptables)
+	and then tried the migration, it would actually fail but we would
+	get no failure output from Qemu.  Therefore, we would think we
+	succeeded, and leave a huge mess behind us.  Execute the monitor
+	command "info migrate", and look for a failure string in there
+	as well.
+
+2009-09-02  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	VMware ESX: Don't warn on some query parameter
+	* src/esx/esx_util.c: esxUtil_ParseQuery() warns if a known query
+	  parameter should be ignored due to the corresponding char/int pointer
+	  being NULL, instead of silently ignoring it. Fix the control flow.
+
+	VMware ESX: Allow ethernet address type 'vpx'
+	* src/esx/esx_vmx.c: add an extra type of addressType beside 'static'
+	  and 'generated', 'vpx' indicates that the MAC address was generated
+	  by a vCenter.
+
+2009-09-02  Daniel P. Berrange  <berrange@redhat.com>
+
+	Don't blindly reorder disk drives
+	Calling qsort() on the disks array causes disk to be
+	unneccessarily re-ordered, potentially breaking the
+	ability to boot if the boot disk gets moved later in
+	the list. The new algorithm will insert a new disk as
+	far to the end of the list as possible, while being
+	ordered correctly wrt other disks on the same bus.
+
+	* src/domain_conf.c, src/domain_conf.h: Remove disk sorting
+	  routines. Add API to insert a disk into existing list at
+	  the optimal position, without resorting disks
+	* src/libvirt_private.syms: Export virDomainDiskInsert
+	* src/xend_internal.c, src/xm_internal.c: Remove calls to
+	  qsort, use virDomainDiskInsert instead.
+	* src/qemu_driver.c: Remove calls to qsort, use virDoaminDiskInsert
+	  instead. Fix reordering bugs when hotunplugging disks and
+	  networks. Fix memory leak in disk/net unplug
+
+2009-09-02  Pritesh Kothari  <Pritesh.Kothari@Sun.COM>
+
+	Support for getting/setting number of cpus in VBox
+	* src/vbox/vbox_tmpl.c: adds support for getting/setting number of cpus
+
+2009-09-01  Daniel P. Berrange  <berrange@redhat.com>
+
+	Misc fixes to secrets API code
+	* proxy/Makefile.am: Build storage_encryption_conf.c since its a
+	  dependancy of domain_conf.c
+	* src/storage_encryption_conf.c: Disable XML parsing APis when
+	  build under proxy
+	* src/test.c: Add a dummy no-op secrets driver for test suite
+
+	Only add glusterfs dep for Fedora >= 11
+	* libvirt.spec.in: Conditionalize glusterfs requires line for
+	  Fedora >= 11, since other distros don't have it available
+
+	Remove redundant base64 include file
+	* src/storage_encryption_conf.c: Remove base64.h
+
+	Add Miloslav Trmač to AUTHORS file
+
+2009-09-01  Miloslav Trmač  <mitr@redhat.com>
+
+	Make handling of monitor prompts more general.
+	* src/qemu_driver.c: Support arbitrary callbacks for "secondary
+	  prompts".  Reimplement qemudMonitorCommandExtra using such a
+	  callback.
+
+	Don't assume buffered output echoes the command.
+	The if ((nlptr...)) implicitly assumes commptr != NULL (and that "buf"
+	starts with "cmd").  Make the assumption explicit, it will be broken in
+	a future patch.
+
+	* src/qemu_driver.c: Don't assume buffered monitor output echoes the
+	  command.
+
+	Attach encryption information to virDomainDiskDef.
+	The XML allows <encryption format='unencrypted'/>, this implementation
+	canonicalizes the internal representation so that "disk->encryption" is
+	non-NULL iff encryption information is available.
+
+	A domain with partial encryption information can be defined,
+	completeness of the information is not verified.  The domain won't
+	start until the remaining information is added, of course.
+
+	* docs/formatdomain.html, docs/formatdomain.html.in: Document
+	  new encryption options for disks
+	* docs/schemas/domain.rng: Pull in storage encryption schema
+	  rules
+	* src/domain_conf.h, src/domain_conf.c: Wire up storage encryption
+	  XML parsing/formatting APIs
+
+	Add support for encrypted (qcow) volume creation.
+	Supports only virStorageVolCreateXML, not virStorageVolCreateXMLFrom.
+
+	Curiously, qemu-img does not need the passphrase for anything to create
+	an encrypted volume.  This implementation thus does not need to touch
+	any secrets to work with cooperating clients.  More generic passphrase
+	handling is added in the next patch.
+
+	* src/storage_backend.c: Request encryption when creating qcow/qcow2
+	  files
+	* src/storage_backend_disk.c, src/storage_backend_fs.c,
+	  src/storage_backend_logical.c: Refuse to create volumes with
+	  encryption params set.
+
+	Recognize encryption format of qcow volumes.
+	(The implementation is not very generic, but that can be very
+	easily rectified if/when new encryption formats appear.)
+
+	* src/storage_backend_fs.c: Probe for qcow/qcow2 encryption
+	  algorithm field
+
+	Attach encryption information to virStorageVolDef.
+	The XML allows <encryption format='unencrypted'/>, this implementation
+	canonicalizes the internal representation so that "vol->encryption" is
+	non-NULL iff the volume is encrypted.
+
+	Note that partial encryption information (e.g. specifying an encryption
+	format, but not the key/passphrase) is valid, libvirt will automatically
+	choose value for the missing information during volume creation.  The
+	user can read the volume XML, and use the unmodified <encryption> tag in
+	future operations (without having to be able to understand) its contents.
+
+	* docs/formatstorage.html, docs/formatstorage.html.in: Document
+	  storage volume encryption options
+	* src/storage_conf.c, src/storage_conf.h: Hook up storage
+	  encryption XML handling
+	* tests/storagevolschemadata/vol-qcow2.xml: Test case for encryption
+	  schema changes
+
+	Add volume encryption information handling.
+	Define an <encryption> tag specifying volume encryption format and
+	format-depenedent parameters (e.g. passphrase, cipher name, key
+	length, key).
+
+	Currently the only defined parameter is a reference to a "secret"
+	(passphrase/key) managed using the virSecret* API.
+
+	Only the qcow/qcow2 encryption format, and a "default" format used to
+	let libvirt choose the format during volume creation, is currently
+	supported.
+
+	This patch does not add any users; the <encryption> tag is added in
+	the following patches to both volumes (to support encrypted volume
+	creation) and domains.
+
+	* docs/*.html: Re-generate
+	* docs/formatstorageencryption.html.in, docs/sitemap.html.in:
+	  Add page describing storage encryption data format
+	* docs/schemas/Makefile.am, docs/schemas/storageencryption.rng:
+	  Add RNG schema for storage encryption format
+	* po/POTFILES.in: Add src/storage_encryption_conf.c
+	* src/libvirt_private.syms: Export virStorageEncryption* functions
+	* src/storage_encryption_conf.h, src/storage_encryption_conf.c: Internal
+	  helper APIs for dealing with storage encryption format
+	* libvirt.spec.in, mingw32-libvirt.spec.in: Add storageencryption.rng
+	  RNG schema
+
+	Secret manipulation API docs refresh & wire up python generator
+	Sample session:
+
+	>>> import libvirt
+	>>> c = libvirt.open('qemu:///session')
+
+	>>> c.listSecrets()
+	['12247729-47d2-a783-88ce-b329d4781cd3', 'reee', 'abc']
+
+	>>> s = c.secretDefineXML("<secret ephemeral='no' private='no'>\n<description>Something for use</description>\n<volume>/foo/bar</volume>\n</secret>\n")
+
+	>>> s.UUIDString()
+	'340c2dfb-811b-eda8-da9e-25ccd7bfd650'
+
+	>>> s.XMLDesc()
+	"<secret ephemeral='no' private='no'>\n  <uuid>340c2dfb-811b-eda8-da9e-25ccd7bfd650</uuid>\n  <description>Something for use</description>\n  <volume>/foo/bar</volume>\n</secret>\n"
+
+	>>> s.setValue('abc\0xx\xffx')
+	0
+
+	>>> s.value()
+	'abc\x00xx\xffx'
+
+	>>> s.undefine()
+	0
+
+	* python/generator.py: Add rules for virSecret APIs
+	* python/libvir.c, python/libvirt-python-api.xml: Manual impl of
+	  virSecretSetValue, virSecretGetValue$ and virConnectListSecrets APIs
+	* python/libvirt_wrap.h, python/types.c: Wrapper for virSecret objects
+	* docs/libvirt-api.xml, docs/libvirt-refs.xml,
+	  docs/html/libvirt-virterror.html, docs/html/libvirt-libvirt.html,
+	  docs/devhelp/libvirt-virterror.html, docs/devhelp/libvirt-libvirt.html:
+	  Re-generate with 'make api'
+
+	Secret manipulation remote client
+	* src/remote_internal.c: Implement client binding for new secrets
+	  APIs
+	* src/datatypes.h: Add 'void *secretPrivateData' to virConnectPtr
+	  struct
+
+	Secret manipulation libvirtd wire protocol & remote dispatcher
+	* qemud/remote_protocol.x: Define wire protocol for secrets public
+	  APIs
+	* qemud/remote_protocol.h, qemud/remote_protocol.c,
+	  qemud/remote_dispatch_table.h, qemud/remote_dispatch_ret.h,
+	  qemud/remote_dispatch_prototypes.h, qemud/remote_dispatch_args.h:
+	  Re-generate from updated protocol definition
+	* qemud/remote.c: Implement RPC dispatchers for new secrets APIs
+
+	Secret manipulation public API implementation
+	* include/libvirt/virterror.h, src/virterror.c: Add VIR_ERR_INVALID_SECRET
+	  and VIR_FROM_SECRET
+	* src/libvirt.c: Define stubs for every new public API
+
+	Secret manipulation internal API
+	* include/libvirt/virterror.h, src/virterror.c: Add VIR_WAR_NO_SECRET
+	* src/libvirt_private.syms, src/datatypes.h, src/datatypes.c: Type
+	  virSecret struct definition and helper APIs
+	* src/driver.h: Sub-driver API definitions for secrets
+	* src/libvirt.c: Define new sub-driver for secrets
+
+	Secret manipulation public API
+	This patch adds a "secret" as a separately managed object, using a
+	special-purpose API to transfer the secret values between nodes and
+	libvirt users.
+
+	* docs/schemas/secret.rng, docs/schemas/Makefilem.am: Add new
+	  schema for virSecret objects
+	* docs/*html: Re-generated
+	* docs/formatsecret.html.in, docs/sitemap.html.in: Add page
+	  describing the virSecret XML schema
+	* include/libvirt/libvirt.h.in: Define the new virSecret public
+	  API
+	* src/libvirt_public.syms: Export symbols for new public APIs
+	* mingw32-libvirt.spec.in, libvirt.spec.in: Add secret.rng to
+	  files list
+
+2009-09-01  Daniel Veillard  <veillard@redhat.com>
+
+	Update chinese, polish and spanish localizations
+	* po/*: and update the po set
+
+2009-08-31  Charles Duffy  <charles@dyfis.net>
+
+	support lzop save compression for qemu
+	Per prior discussion -- this was, indeed, trivial.
+
+	I'm a little disappointed to be breaking the ordering characteristics of
+	the enum (as it had been ordered by increasing time requirements and
+	decreasing output size), but breaking any save files with the old
+	constants in the headers would of course be worse.
+
+	>From 2a9cdcfc88de091a8d34aa3fc3b1208d7681790e Mon Sep 17 00:00:00 2001
+	From: Charles Duffy <Charles_Duffy@dell.com>
+	Date: Fri, 28 Aug 2009 11:49:54 -0500
+	Subject: [PATCH] support lzop save compression for qemu
+
+	One of the larger disincentives towards use of compression for migrated-out save
+	files is performance impact. This patch adds support for lzop; CPU time for
+	compression is about 5x faster than gzip (the next most performant algorithm)
+	and decompression is about 3x faster.
+
+2009-08-31  Chris Lalancette  <clalance@redhat.com>
+
+	OpenVZ: accept NULL as type for GetMaxVCPUs.
+	All of the other drivers that support the getMaxVcpus callback
+	also accept a NULL value for type.  Make openvz also accept a
+	NULL value.
+
+	Remove use of strncpy in qemudExtractMonitorPath.
+	qemudExtractMonitorPath() was doing a VIR_ALLOC_N followed by a
+	strncpy.  However, this isn't necessary; we can do the same thing
+	using strndup, which is much safer.
+
+	Fix up virNodeGetCellsFreeMemory
+	The documentation for virNodeGetCellsFreeMemory claims the values
+	returned are in kilobytes, but that's actually wrong; the value
+	returned is actually in bytes.  Fix up the documentation to be
+	correct.
+
+2009-08-30  Jim Fehlig  <jfehlig@novell.com>
+
+	Fix sexpr2string() to handle empty list.
+	S-expression containing empty lists, e.g. (cpus (() () () ())),
+	was not being handled properly in sexpr2string() serialization.
+	Emit an empty list when encountering NIL sexpr kind.
+
+2009-08-27  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix driver entry table for UML numa APIs
+	* src/uml_driver.c: Fix numa API driver entries to avoid
+	  infinite loop
+
+2009-08-27  Pritesh Kothari  <Pritesh.Kothari@Sun.COM>
+
+	Fix crash in virsh vol-key command
+	* src/virsh.c: Pass in pool object to avoid crash in key lookup
+
+2009-08-25  Daniel P. Berrange  <berrange@redhat.com>
+
+	Refactor policycode auth code to avoid compiler warnings
+	* src/remote_internal.c: Split remoteAuthPolkit into separate
+	  impls for v0 and v1 to avoid compile warnings due to unused
+	  variables/params
+	* qemud/remote.c: Remove accidental tabs
+
+	Support new PolicyKit 1.0 API
+	* configure.in: Check for pkcheck which indicates new policykit
+	* qemud/Makefile.am: Install different versions of policy
+	* qemud/libvirtd.policy: Rename to libvirtd.policy-0
+	* qemud/libvirtd.policy-1: new style policy
+	* qemud/qemud.c, qemud/qemud.h, qemud/remote.c: Support new
+	  policykit API via external pkcheck helper
+	* src/remote_internal.c: Don't prompt for polkit auth with new
+	  policykit API
+	* libvirt.spec.in: deal with new policy install locations & deps
+
+2009-08-21  Darryl L. Pierce  <dpierce@redhat.com>
+
+	517157 fix selinux problem with images on NFS
+	* src/security_selinux.c: ignores EOPNOTSUPP when attempting to access an
+	  NFS share
+
+2009-08-21  Mark McLoughlin  <markmc@redhat.com>
+
+	spec file: add URL to Source tag
+	See https://fedoraproject.org/wiki/Packaging:SourceURL
+
+2009-08-20  Mattias Bolte  <matthias.bolte@googlemail.com>
+
+	Fix phypOpen() escape_specialcharacters
+	Matthias correctly points out that escape_specialcharaters() takes a
+	length, and since we are now malloc()'ing string in phypOpen instead of
+	making it a static array, we can't use sizeof(string) anymore.  Calculate
+	the proper strlen and then use that both to allocate the string and also
+	pass it to escape_specialcharacters().
+
+	Power Hypervisor: fix potential segfault
+	I came across this line in the phypOpen function:
+
+	char string[strlen(conn->uri->path)];
+
+	Here the path part of the given URI is used without checking it for
+	NULL, this can cause a segfault as strlen expects a string != NULL.
+	Beside that uuid_db and connection_data leak in case of an error.
+
+	In this line
+
+	conn->uri->path = string;
+
+	the original path of the URI leaks. The patch adds a VIR_FREE call
+	before setting the new path.
+
+	The attached patch is compile-tested but I don't have a Power
+	Hypervisor installation at hand to test it for real.
+
+	Matthias
+
+2009-08-20  Chris Lalancette  <clalance@redhat.com>
+
+	Small fixes for qemu save compression.
+	Fix up a small memory leak pointed out by DanB; I was forgetting
+	to release memory allocated to driver->saveImageFormat.
+	Also add the "save_image_format" and "security" entries to
+	the augeas lens.
+
+2009-08-19  Daniel P. Berrange  <berrange@redhat.com>
+
+	Add test for recently fixed crash with latest XenD
+	Test case for the fix applied in
+
+	  commit 14435163a086c0bcdff04308077fa46a5fa08bb0
+	  Author: Daniel Veillard <veillard@redhat.com>
+	  Date:   Fri Jun 26 18:14:16 2009 +0000
+
+	* tests/sexpr2xmldata/sexpr2xml-pv-vfb-type-crash.sexpr,
+	  tests/sexpr2xmldata/sexpr2xml-pv-vfb-type-crash.xml: Data
+	  files exhibiting the crash
+	* tests/sexpr2xmltest.c: Process new data files
+
+	Fix some typos & remove unhelpful acronyms in QEMU docs
+
+	Add documentation about the QEMU driver security features
+	* docs/drvqemu.html.in: Document DAC usage, SELinux integration,
+	  Linux capabilities, and Cgroups device ACLs
+
+2009-08-18  Mark McLoughlin  <markmc@redhat.com>
+
+	Fix bridge/tap system error reporting
+	* src/qemu_conf.c, src/uml_conf.c: use virReportSystemError() to report
+	  system errors
+
+	Don't expose 'vnet%d' to the user
+	https://bugzilla.redhat.com/517371
+
+	Matt Booth points out that if you use a non-existent bridge name when
+	start a guest you get a weird error message:
+
+	  Failed to add tap interface 'vnet%d' to bridge 'virbr0'
+
+	and dev='vnet%d' appears in the dumpxml output.
+
+	Fix that by not including 'vnet%d' in the error message and freeing the
+	'vnet%d' string if adding the tap device to the bridge fails.
+
+	* src/qemu_conf.c, src/uml_conf.c: fix qemudNetworkIfaceConnect()
+	  and umlConnectTapDevice() to not expose 'vnet%d' to the user
+
+	Maintain a list of active PCI hostdevs and use it in pciResetDevice()
+	As we start/shutdown guests, or hotplug/hot-unplug devices, we can add
+	or delete devices as appropriate from a list of active devices.
+
+	Then, in pciReset(), we can use this to determine whether its safe to
+	reset a device as a side effect of resetting another device.
+
+	* src/qemu_conf.h: add activePciHostdevs to qemud_driver
+
+	* src/qemu_driver.c: maintain the activePciHostdevs list, and pass it
+	  to pciResetDevice()
+
+	* src/pci.[ch]: pass the activeDevs list to pciResetDevice() and use
+	  it to determine whether a Secondary Bus Reset is safe
+
+	Simplify PCI hostdev prepare/re-attach using a pciDeviceList type
+	The qemuPrepareHostDevices() and qemuDomainReAttachHostDevices()
+	functions are clutter with a bunch of calls to pciGetDevice() and
+	pciFreeDevice() obscuring the basic logic.
+
+	Add a pciDeviceList type and add a qemuGetPciHostDeviceList() function
+	to build a list from a domain definition. Use this in prepare/re-attach
+	fto simplify things and eliminate the multiple pciGetDevice calls.
+
+	This is especially useful because in the next patch we need to iterate
+	the hostdevs list a third time and we also need a list type for keeping
+	track of active devices.
+
+	* src/pci.[ch]: add pciDeviceList type and also a per-device 'managed'
+	  property
+
+	* src/libvirt_private.syms: export the new functions
+
+	* src/qemu_driver.c: add qemuGetPciHostDeviceList() and re-write
+	  qemuPrepareHostDevices() and qemuDomainReAttachHostDevices() to use it
+
+	Use pci_addr=auto with QEMU's pci_add monitor command
+	Newer versions of QEMU accept 'pci_add auto', but older versions require
+	'pci_add pci_addr=auto'
+
+	* src/qemu_driver.c: use pci_addr= in qemudDomainAttachHostPciDevice()
+	  for older versions of QEMU
+
+	Fix thinko in PCI hostdev detach
+	* src/qemu_driver.c: Add missing break statement in
+	  qemudDomainDetachHostDevice()
+
+	Reset PCI host devices after hot-unplug
+	When we hot-unplug a PCI host device from a guest, we should reset it.
+
+	Both managed and unmanaged devices should be reset, but only managed
+	devices should be re-attached.
+
+	* src/qemu_driver.c: reset devices in qemudDomainDetachHostPciDevice()
+
+	Reset unmanaged PCI host devices before hotplug
+	Right now we're only resetting managed devices before hotplug, but we
+	should reset them irrespective of whether they are managed.
+
+	* src/qemu_driver.c: reset all PCI hostdevs before hotplug
+
+	Revert changes to allow pciResetDevice() reset multiple devices
+	It turns out that the previous attempt at this doesn't work well
+	in the case of hotplug. We need qemuCheckPciHostDevice() to
+	disallow the reset affecting devices already attach to the guest,
+	but we still need to avoid double locking the virDomainObjPtr.
+
+	This is all getting messy, I've a better idea.
+
+	This reverts commit 6318808270dd7679cd5dc082dcf2c7d85a432bd6 and
+	c106c8a18c63d9e4f2547724a4a563706f8f6778.
+
+	* src/qemu_driver.c, src/pci.[ch], src/xen_unified.c,
+	  src/libvirt_private.syms: revert a bunch of stuff.
+
+	Fix list updating after disk/network/hostdev hot-unplug
+	The current code makes a poor effort at updating the device arrays after
+	hot-unplug. Fix that and combine the two code paths into one.
+
+	* src/qemu_driver.c: fix list updating in qemudDomainDetachNetDevice(),
+	  qemudDomainDetachPciDiskDevice() and qemudDomainDetachHostPciDevice()
+
+	Re-name remote_internal.c:driver to remote_driver
+	Confused me when poking at another 'driver' variable in gdb which gcc
+	had optimized away
+
+	* src/remote_internal.c: rename driver to remote_driver
+
+	Cosmetic change to 'virsh nodedev-list --tree' output
+	Maybe it's just me, but I try to select an item from the tree using
+	double-click and get annoyed when "+-" gets included in the selection.
+
+	* src/virsh.c: add a space between "+-" and the node device name
+	  in 'virsh nodedev-list --tree'
+
+2009-08-18  Chris Lalancette  <clalance@redhat.com>
+
+	Fix up connection reference counting.
+	Currently the reference counting for connections is busted.  I
+	first noticed it while trying to use virConnectRef; it would
+	eventually cause a crash in the remote_internal driver, although
+	that was really just a victim.  Really, we should only call the
+	close callbacks on the methods when the references drop to 0.  To
+	accomplish this, move all of the close callbacks into
+	virUnrefConnect (since there are lots of internal users of that
+	function), and arrange for virConnectClose to call that.
+
+	V2: Make sure to drop the connection lock before we call the close
+	    callbacks, otherwise we could deadlock the daemon
+	V3: Fix up a crash when we got an error from one of the drivers
+
+2009-08-17  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix LXC driver crash when kernel doesn't support clone
+	* src/domain_conf.c: Make virDomainObjListFree a no-op if list
+	  is NULL
+	* src/domain_event.c: make virDomainEventCallbackListFree a no-op
+	  if event list is NULL
+	* src/lxc_driver.c: Log a message if LXC driver does not startup
+	  due to lacking kernel support
+
+2009-08-17  Chris Lalancette  <clalance@redhat.com>
+
+	Compressed save image format for Qemu.
+	Implement a compressed save image format for qemu.  While ideally
+	we would have the choice between compressed/non-compressed
+	available to the libvirt API, unfortunately there is no "flags"
+	parameter to the virDomainSave() API.  Therefore, implement this
+	as a qemu.conf option.  gzip, bzip2, and lzma are implemented, and
+	it should be very easy to implement additional compression
+	methods.
+
+	One open question is if/how we should detect the compression
+	binaries.  One way to do it is to do compile-time setting of the
+	paths (via configure.in), but that doesn't seem like a great thing
+	to do.  My preferred solution is not to detect at all;
+	when we go to run the commands that need them, if they
+	aren't available, or aren't available in one of the standard paths,
+	then we'll fail.  That's also the solution implemented in this patch.
+
+	In the future, we'll have a more robust (managed) save/restore API,
+	at which time we can expose this functionality properly in the API.
+
+	V2: get rid of redundant dd command and just use >> to append data.
+	V3: Add back the missing pieces for the enum and bumping the save version.
+	V4: Make the compressed field in the save_header an int.
+	    Implement LZMA compression.
+
+2009-08-14  Daniel P. Berrange  <berrange@redhat.com>
+
+	Remove 'the the' typo in docs
+
+2009-08-14  Mark McLoughlin  <markmc@redhat.com>
+
+	Check active domain hostdevs before allowing PCI reset
+	If a PCI device reset causes other devices to be reset, allow it so long
+	as those other devices are note assigned to another active domain.
+
+	Note, we need to take the driver lock qemudNodeDeviceReset() because the
+	check function will iterate over the domain list.
+
+	* src/qemu_conf.c: add qemuCheckPciHostDevice() to iterate over active
+	  domains checking whether the affected device is assigned
+
+	* src/pci.[ch]: add pciDeviceEquals() helper
+
+	Allow pciResetDevice() to reset multiple devices
+	When using a Secondary Bus Reset, all devices on the bus are reset.
+
+	Extend the pciResetDevice() API so that a 'check' callback can be
+	supplied which will verify that it is safe to reset the other devices
+	on the bus.
+
+	The virDomainObjPtr parameter is needed so that when the check function
+	iterates over the domain list, it can avoid double locking.
+
+	* src/pci.[ch]: add a 'check' callback to pciResetDevice(), re-work
+	  pciIterDevices() to pass the check function to the iter functions,
+	  use the check function in the bus iterator, return the first unsafe
+	  device from pciBusCheckOtherDevices() and include its details in
+	  the bus reset error message.
+
+	* src/qemu_driver.c, src/xen_uninified.c: just pass NULL as the
+	  check function for now
+
+	Improve PCI host device reset error message
+	Currently, if we are unable to reset a PCI device we return a fairly
+	generic 'No PCI reset capability available' error message.
+
+	Fix that by returning an error from the individual reset messages and
+	using that error to construct the higher level error mesage.
+
+	* src/pci.c: set errors in pciTryPowerManagementReset() and
+	  pciTrySecondaryBusReset() on failure; use those error messages
+	  in pciResetDevice(), or explain that no reset support is available
+
+	Reset and re-attach PCI host devices on guest shutdown
+	When the guest shuts down, we should attempt to restore all PCI host
+	devices to a sane state.
+
+	In the case of managed hostdevs, we should reset and re-attach the
+	devices. In the case of unmanaged hostdevs, we should just reset them.
+
+	Note, KVM will already reset assigned devices when the guest shuts
+	down using whatever means it can, so we are only doing it to cover the
+	cases the kernel can't handle.
+
+	* src/qemu_driver.c: add qemuDomainReAttachHostDevices() and call
+	  it from qemudShutdownVMDaemon()
+
+	Allow PM reset on multi-function PCI devices
+	It turns out that a PCI Power Management reset only affects individual
+	functions, and not the whole device.
+
+	The PCI Power Management spec talks about resetting the 'device' rather
+	than the 'function', but Intel's Dexuan Cui informs me that it is
+	actually a per-function reset.
+
+	Also, Yu Zhao has added pci_pm_reset() to the kernel, and it doesn't
+	reject multi-function devices, so it must be true! :-)
+
+	(A side issue is that we could defer the PM reset to the kernel if we
+	could detect that the kernel has PM reset support, but barring version
+	number checks we don't have a way to detect that support)
+
+	* src/pci.c: remove the pciDeviceContainsOtherFunctions() check from
+	  pciTryPowerManagementReset() and prefer PM reset over bus reset
+	  where both are available
+
+	Cc: Cui, Dexuan <dexuan.cui@intel.com>
+	Cc: Yu Zhao <yu.zhao@intel.com>
+
+	Detect KVM's PCI device assignment support
+	PCI device assignment is only supported in KVM's fork of qemu, so we
+	should really detect its availability and give a nice error if its
+	not supported.
+
+	* src/qemu_conf.[ch]: introduce QEMUD_CMD_FLAG_PCIDEVICE indicating
+	  that the -pcidevice command line option is available
+
+	* tests/*: update the tests
+
+	Add host PCI device hotplug support
+	Attaching a host PCI device to a qemu guest is done with a
+	straightforward 'pci_add auto host host=XX:XX.X' command.
+
+	Like with NIC and disk hotplug, we need to retain the guest PCI address
+	assigned by qemu so that we can use it for hot-unplug.
+
+	Identifying a device for detach is done using the host PCI address.
+
+	Managed mode is handled by detaching/resetting the device before
+	attaching it to the guest and re-attaching it after detaching it from
+	the guest.
+
+	* src/qemu_driver.c: add qemudDomainAttachHostPciDevice() and
+	  qemudDomainDetachHostPciDevice()
+
+	* src/domain_conf.h: add somewhere to store the guest PCI address
+
+	* src/domain_conf.c: handle formatting and parsing the guest PCI
+	  address
+
+	Re-factor hostdev hotplug
+	Re-factor the hostdev hotplug code so that we can easily add PCI
+	hostdev hotplug to qemudDomainAttachHostDevice().
+
+	* src/qemu_driver.c: rename qemudDomainAttachHostDevice() to
+	  qemudDomainAttachHostUsbDevice(); make qemudDomainAttachHostDevice()
+	  handle all hostdev types
+
+	* src/libvirt_private.syms: export a couple of hostdev related
+	  ToString() functions
+
+2009-08-13  Daniel P. Berrange  <berrange@redhat.com>
+
+	Make LXC / UML drivers robust against NUMA topology brokenness
+	Some kernel versions expose broken NUMA topology for some machines.
+	This causes the LXC/UML drivers to fail to start. QEMU driver was
+	already fixed for this problem
+
+	* src/lxc_conf.c: Log and ignore failure to populate NUMA info
+	* src/uml_conf.c: Log and ignore failure to populate NUMA info
+	* src/capabilities.c: Reset nnumaCell to 0 after freeing
+
+2009-08-11  Mark McLoughlin  <markmc@redhat.com>
+
+	Fix some URLs in virsh manpage
+	* docs/virsh.pod: don't reference format.html anymore, reference
+	  the formatdomain.html etc. pages
+
+	* virsh.1: re-generate
+
+2009-08-11  Chris Lalancette  <clalance@redhat.com>
+
+	Remove a duplicated assignment in Xen PCI parsing.
+
+	Fix up a few minor indentation issues.
+
+	Fix phyp escape_specialcharacters.
+	A couple of minor fixes to phyp escape_specialcharacters.  Make it
+	a static function (since it's only used in phyp/phyp_driver.c), and
+	make it take a dstlen parameter.  This paves the way for removing
+	strncpy in the future.
+
+	Make openvzGetVPSUUID take a len.
+	Minor fix to openvzGetVPSUUID to make it take a length parameter.
+	This ensures that it doesn't make assumptions about the length
+	of the UUID buffer, and paves the way for removal of strncpy in
+	the future.
+
+	Minor cleanup of error path for c_oneVmInfo.
+
+	Fix up a whitespace in comments in src/console.c
+
+	Fix up a stray whitespace in virHashGrow.
+
+	Run 'cont' on successful migration finish.
+	As of qemu 0.10.6, qemu now honors the -S flag on incoming migration.
+	That means that when the migration completes, we have to issue a
+	'cont' command to get the VM running again.  We do it unconditionally
+	since it won't hurt on older qemu.
+
+	Split virDomainMigrate into functions.
+	Re-factor virDomainMigrate to split out the version 1 and version 2
+	protocols into their own functions.  In reality, the two versions share
+	very little in common, so forcing them together in the same function was
+	just confusing.  This will also make adding tunnelled migration easier.
+
+	Fix QEMU domain status after restore.
+	When doing a restore, we were forgetting to update the state file
+	for the VM.  That means that if you do a save/restore, then shut
+	down libvirtd, then start it back up, you'll see the state of the
+	guest as "paused", even though it is really running.  We were
+	just forgetting a "virDomainSaveStatus" call in the restor path.
+
+2009-08-10  Mark McLoughlin  <markmc@redhat.com>
+
+	Handle kernels with no ipv6 support
+	If the ipv6 kernel module is not loaded, then we get this when starting
+	a virtual network:
+
+	  libvir: Network Config error :
+	  cannot enable /proc/sys/net/ipv6/conf/virbr0/disable_ipv6:
+	  No such file or directory
+
+	If disable_ipv6 is not present, we should just merrily continue on our
+	way.
+
+	* src/network_driver.c: make networkDisableIPV6() not fail if the kernel
+	  has no ipv6 support
+
+	Set perms on /var/lib/libvirt/boot to 0711
+	Allow qemu user to open kernel/initrds in this dir, but still prevent
+	others from listing it.
+
+	* libvirt.spec.in: set /var/lib/libvirt/boot perms to 0711
+
+	chown kernel/initrd before spawning qemu
+	If we're running qemu unprivileged, we need to chown any supplied kernel
+	or initrd before spawning it.
+
+	* src/qemu_driver.c: rename qemuDomainSetDiskOwnership() to
+	  qemuDomainSetFileOwnership(), pass it a path string instead of a disk
+	  definition and use it for chowning the kernel/initrd in
+	  qemuDomainSetAllDeviceOwnership()
+
+2009-08-07  Daniel P. Berrange  <berrange@redhat.com>
+
+	Add link to AbiCloud web management system
+
+2009-08-07  Chris Lalancette  <clalance@redhat.com>
+
+	Remove unsafe strncpy from esx_vmx.c
+	While trying to remove uses of unsafe strncpy in the tree, I came
+	across a couple of usages in the ESX driver.  To my eyes, the snprintf
+	replacements do the same thing in less code, and are also safer.
+
+	Tested-by: Mattias Bolte <matthias.bolte@googlemail.com>
+
+2009-08-06  Amy Griffis  <amy.griffis@hp.com>
+
+	Update logging documentation
+	* docs/logging.html[.in] try to include a little more description about
+	  the corner cases, things someone might get hung up on on.
+
+	Consolidate code for parsing the logging env
+	* src/logging.c src/logging.h src/libvirt_private.syms:
+	  define new functions virLogSetFromEnv and virLogParseDefaultPriority
+	* qemud/qemud.c src/libvirt.c tests/eventtest.c: cleanup to use the
+	  unified functions
+
+	Cleanup VIR_LOG_DEBUG parsing in eventtest
+	* tests/eventtest.c: don't covert high priority levels to debug level.
+	  Consider an invalid priority level setting a setup failure.
+
+	Several fixes to libvirtd's log setup
+	* qemud/qemud.c src/logging.[ch]: Similar as for general libvirt, don't
+	  convert high priority levels to debug level. Ignore LIBVIRT_LOG_FILTERS
+	  and LIBVIRT_LOG_OUTPUTS when they're set to the empty string, otherwise
+	  they can override a valid setting from the config file. Send all
+	  settings through the parser functions for validation, so that the
+	  existence of a bad setting doesn't nullify a good setting that should
+	  have applied -- particularly the default output. Keep the order of
+	  precedence consistent for all variables between the environment and
+	  the config file.  Warn when an invalid log level, filter, or output
+	  is ignored.
+	* src/libvirt_private.syms: export internally a few convenience functions
+
+	Tighten libvirt's parsing of logging env
+	* src/libvirt.c src/logging.c: Don't convert high priority levels to the
+	  debug level. Don't parse LIBVIRT_LOG_FILTERS and LIBVIRT_LOG_OUTPUTS
+	  when they're set to the empty string. Warn when the user specifies an
+	  invalid value (empty string remains a noop).
+	* po/POTFILES.in: src/logging.c now include translatable strings
+
+2009-08-06  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	Cleanup structure name naming
+	* src/esx/esx_driver.c src/esx/esx_util.[ch] src/esx/esx_vi.[ch]:
+	  just a name change
+
+	Fix memleak if esxOpen fails
+	* src/esx/esx_driver.c: if esxOpen failed, priv->transport wasn't freed
+
+	Add proper OOM reporting for esxDomainGetOSType
+	* src/esx/esx_driver.c: catch an unchecked strdup in
+	  esxDomainGetOSType()
+
+2009-08-05  Daniel Veillard  <veillard@redhat.com>
+
+	Release of libvirt-0.7.0
+	* configure.in NEWS docs/* libvirt.spec.in include/libvirt/libvirt.h:
+	  Release of 0.7.0
+	* po/*.po*: updated and regenerated the localization pool
+
 2009-08-05  Ryota Ozaki  <ozaki.ryota@gmail.com>
 
 	Add an allocation unit when calling qemu-img

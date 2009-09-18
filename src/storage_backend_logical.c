@@ -437,7 +437,7 @@ virStorageBackendLogicalBuildPool(virConnectPtr conn,
             goto cleanup;
     }
 
-    vgargv[n++] = NULL;
+    vgargv[n] = NULL;
 
     /* Now create the volume group itself */
     if (virRun(conn, vgargv, NULL) < 0)
@@ -478,7 +478,7 @@ virStorageBackendLogicalRefreshPool(virConnectPtr conn,
     };
     int exitstatus;
 
-    virStorageBackendWaitForDevices(conn);
+    virFileWaitForDevices(conn);
 
     /* Get list of all logical volumes */
     if (virStorageBackendLogicalFindLVs(conn, pool, NULL) < 0) {
@@ -580,6 +580,13 @@ virStorageBackendLogicalCreateVol(virConnectPtr conn,
         "-s", vol->backingStore.path, NULL
     };
     const char **cmdargv = cmdargvnew;
+
+    if (vol->target.encryption != NULL) {
+        virStorageReportError(conn, VIR_ERR_NO_SUPPORT,
+                              "%s", _("storage pool does not support encrypted "
+                                      "volumes"));
+        return -1;
+    }
 
     if (vol->backingStore.path) {
         cmdargv = cmdargvsnap;

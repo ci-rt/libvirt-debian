@@ -56,6 +56,9 @@ static int testCompareXMLToArgvFiles(const char *xml,
         QEMUD_CMD_FLAG_NO_REBOOT |
         extraFlags;
 
+    if (qemudCanonicalizeMachine(&driver, vmdef) < 0)
+        goto fail;
+
     if (qemudBuildCommandLine(NULL, &driver,
                               vmdef, &monitor_chr, flags,
                               &argv, &qenv,
@@ -160,7 +163,11 @@ mymain(int argc, char **argv)
 
     if ((driver.caps = testQemuCapsInit()) == NULL)
         return EXIT_FAILURE;
-    if((driver.stateDir = strdup("/nowhere")) == NULL)
+    if ((driver.stateDir = strdup("/nowhere")) == NULL)
+        return EXIT_FAILURE;
+    if ((driver.hugetlbfs_mount = strdup("/dev/hugepages")) == NULL)
+        return EXIT_FAILURE;
+    if ((driver.hugepage_path = strdup("/dev/hugepages/libvirt/qemu")) == NULL)
         return EXIT_FAILURE;
 
 #define DO_TEST_FULL(name, extraFlags, migrateFrom)                     \
@@ -183,12 +190,15 @@ mymain(int argc, char **argv)
     unsetenv("LD_LIBRARY_PATH");
 
     DO_TEST("minimal", QEMUD_CMD_FLAG_NAME);
+    DO_TEST("machine-aliases1", 0);
+    DO_TEST("machine-aliases2", 0);
     DO_TEST("boot-cdrom", 0);
     DO_TEST("boot-network", 0);
     DO_TEST("boot-floppy", 0);
     DO_TEST("bootloader", 0);
     DO_TEST("clock-utc", 0);
     DO_TEST("clock-localtime", 0);
+    DO_TEST("hugepages", QEMUD_CMD_FLAG_MEM_PATH);
     DO_TEST("disk-cdrom", 0);
     DO_TEST("disk-cdrom-empty", QEMUD_CMD_FLAG_DRIVE);
     DO_TEST("disk-floppy", 0);
@@ -204,7 +214,7 @@ mymain(int argc, char **argv)
     DO_TEST("disk-drive-fmt-qcow", QEMUD_CMD_FLAG_DRIVE |
             QEMUD_CMD_FLAG_DRIVE_BOOT | QEMUD_CMD_FLAG_DRIVE_FORMAT);
     DO_TEST("disk-drive-shared", QEMUD_CMD_FLAG_DRIVE |
-            QEMUD_CMD_FLAG_DRIVE_FORMAT);
+            QEMUD_CMD_FLAG_DRIVE_FORMAT | QEMUD_CMD_FLAG_DRIVE_SERIAL);
     DO_TEST("disk-drive-cache-v1-wt", QEMUD_CMD_FLAG_DRIVE |
             QEMUD_CMD_FLAG_DRIVE_FORMAT);
     DO_TEST("disk-drive-cache-v1-wb", QEMUD_CMD_FLAG_DRIVE |
@@ -263,13 +273,14 @@ mymain(int argc, char **argv)
     DO_TEST("hostdev-usb-product", 0);
     DO_TEST("hostdev-usb-address", 0);
 
-    DO_TEST("hostdev-pci-address", 0);
+    DO_TEST("hostdev-pci-address", QEMUD_CMD_FLAG_PCIDEVICE);
 
     DO_TEST_FULL("restore-v1", QEMUD_CMD_FLAG_MIGRATE_KVM_STDIO, "stdio");
     DO_TEST_FULL("restore-v2", QEMUD_CMD_FLAG_MIGRATE_QEMU_EXEC, "stdio");
     DO_TEST_FULL("restore-v2", QEMUD_CMD_FLAG_MIGRATE_QEMU_EXEC, "exec:cat");
     DO_TEST_FULL("migrate", QEMUD_CMD_FLAG_MIGRATE_QEMU_TCP, "tcp:10.0.0.1:5000");
 
+    free(driver.stateDir);
     virCapabilitiesFree(driver.caps);
 
     return(ret==0 ? EXIT_SUCCESS : EXIT_FAILURE);

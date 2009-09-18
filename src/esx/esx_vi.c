@@ -34,6 +34,7 @@
 #include "util.h"
 #include "uuid.h"
 #include "virterror_internal.h"
+#include "xml.h"
 #include "esx_vi.h"
 #include "esx_vi_methods.h"
 #include "esx_util.h"
@@ -377,7 +378,7 @@ esxVI_Context_Connect(virConnectPtr conn, esxVI_Context *ctx, const char *url,
     if (ctx->vmFolder == NULL || ctx->hostFolder == NULL) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
                      "The 'datacenter' object is missing the "
-                     "'vmFolder'/'hostFolder' propoerty");
+                     "'vmFolder'/'hostFolder' property");
         goto failure;
     }
 
@@ -398,8 +399,8 @@ esxVI_Context_Download(virConnectPtr conn, esxVI_Context *ctx, const char *url,
                        char **content)
 {
     virBuffer buffer = VIR_BUFFER_INITIALIZER;
-    CURLcode error_code;
-    long response_code;
+    CURLcode errorCode;
+    long responseCode;
 
     if (content == NULL || *content != NULL) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Invalid argument");
@@ -412,22 +413,22 @@ esxVI_Context_Download(virConnectPtr conn, esxVI_Context *ctx, const char *url,
     curl_easy_setopt(ctx->curl_handle, CURLOPT_WRITEDATA, &buffer);
     curl_easy_setopt(ctx->curl_handle, CURLOPT_HTTPGET, 1);
 
-    error_code = curl_easy_perform(ctx->curl_handle);
+    errorCode = curl_easy_perform(ctx->curl_handle);
 
-    if (error_code != CURLE_OK) {
+    if (errorCode != CURLE_OK) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
                      "curl_easy_perform() returned an error: %s (%d)",
-                     curl_easy_strerror(error_code), error_code);
+                     curl_easy_strerror(errorCode), errorCode);
         goto unlock;
     }
 
-    error_code = curl_easy_getinfo(ctx->curl_handle, CURLINFO_RESPONSE_CODE,
-                                   &response_code);
+    errorCode = curl_easy_getinfo(ctx->curl_handle, CURLINFO_RESPONSE_CODE,
+                                  &responseCode);
 
-    if (error_code != CURLE_OK) {
+    if (errorCode != CURLE_OK) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
                      "curl_easy_getinfo() returned an error: %s (%d)",
-                     curl_easy_strerror(error_code), error_code);
+                     curl_easy_strerror(errorCode), errorCode);
         goto unlock;
     }
 
@@ -440,9 +441,10 @@ esxVI_Context_Download(virConnectPtr conn, esxVI_Context *ctx, const char *url,
 
     *content = virBufferContentAndReset(&buffer);
 
-    if (response_code != 200) {
+    if (responseCode != 200) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                     "HTTP response code %d", (int)response_code);
+                     "HTTP response code %d while trying to download '%s'",
+                     (int)responseCode, url);
         goto failure;
     }
 
@@ -459,38 +461,21 @@ esxVI_Context_Download(virConnectPtr conn, esxVI_Context *ctx, const char *url,
     goto failure;
 }
 
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * RemoteRequest
- */
-
-/* esxVI_RemoteRequest_Alloc */
-ESX_VI__TEMPLATE__ALLOC(RemoteRequest);
-
-/* esxVI_RemoteRequest_Free */
-ESX_VI__TEMPLATE__FREE(RemoteRequest,
-{
-    VIR_FREE(item->request);
-    VIR_FREE(item->xpathExpression);
-});
-
 int
-esxVI_RemoteRequest_Execute(virConnectPtr conn, esxVI_Context *ctx,
-                            esxVI_RemoteRequest *remoteRequest,
-                            esxVI_RemoteResponse **remoteResponse)
+esxVI_Context_Execute(virConnectPtr conn, esxVI_Context *ctx,
+                      const char *request, const char *xpathExpression,
+                      esxVI_Response **response, esxVI_Boolean expectList)
 {
     virBuffer buffer = VIR_BUFFER_INITIALIZER;
     esxVI_Fault *fault = NULL;
-    CURLcode error_code;
+    CURLcode errorCode;
 
-    if (remoteRequest == NULL || remoteRequest->request == NULL ||
-        remoteResponse == NULL || *remoteResponse != NULL) {
+    if (request == NULL || response == NULL || *response != NULL) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Invalid argument");
         goto failure;
     }
 
-    if (esxVI_RemoteResponse_Alloc(conn, remoteResponse) < 0) {
+    if (esxVI_Response_Alloc(conn, response) < 0) {
         goto failure;
     }
 
@@ -498,27 +483,25 @@ esxVI_RemoteRequest_Execute(virConnectPtr conn, esxVI_Context *ctx,
 
     curl_easy_setopt(ctx->curl_handle, CURLOPT_URL, ctx->url);
     curl_easy_setopt(ctx->curl_handle, CURLOPT_WRITEDATA, &buffer);
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_POSTFIELDS,
-                     remoteRequest->request);
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_POSTFIELDSIZE,
-                     strlen(remoteRequest->request));
+    curl_easy_setopt(ctx->curl_handle, CURLOPT_POSTFIELDS, request);
+    curl_easy_setopt(ctx->curl_handle, CURLOPT_POSTFIELDSIZE, strlen(request));
 
-    error_code = curl_easy_perform(ctx->curl_handle);
+    errorCode = curl_easy_perform(ctx->curl_handle);
 
-    if (error_code != CURLE_OK) {
+    if (errorCode != CURLE_OK) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
                      "curl_easy_perform() returned an error: %s (%d)",
-                     curl_easy_strerror(error_code), error_code);
+                     curl_easy_strerror(errorCode), errorCode);
         goto unlock;
     }
 
-    error_code = curl_easy_getinfo(ctx->curl_handle, CURLINFO_RESPONSE_CODE,
-                                   &(*remoteResponse)->response_code);
+    errorCode = curl_easy_getinfo(ctx->curl_handle, CURLINFO_RESPONSE_CODE,
+                                  &(*response)->responseCode);
 
-    if (error_code != CURLE_OK) {
+    if (errorCode != CURLE_OK) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
                      "curl_easy_getinfo() returned an error: %s (%d)",
-                     curl_easy_strerror(error_code), error_code);
+                     curl_easy_strerror(errorCode), errorCode);
         goto unlock;
     }
 
@@ -529,70 +512,99 @@ esxVI_RemoteRequest_Execute(virConnectPtr conn, esxVI_Context *ctx,
         goto failure;
     }
 
-    (*remoteResponse)->response = virBufferContentAndReset(&buffer);
+    (*response)->content = virBufferContentAndReset(&buffer);
 
-    if ((*remoteResponse)->response_code == 500 ||
-        (remoteRequest->xpathExpression != NULL &&
-         (*remoteResponse)->response_code == 200)) {
-        (*remoteResponse)->document =
-          xmlReadDoc(BAD_CAST(*remoteResponse)->response, "", NULL,
-                     XML_PARSE_NONET);
+    if ((*response)->responseCode == 500 ||
+        (xpathExpression != NULL && (*response)->responseCode == 200)) {
+        (*response)->document = xmlReadDoc(BAD_CAST (*response)->content, "",
+                                           NULL, XML_PARSE_NONET);
 
-        if ((*remoteResponse)->document == NULL) {
+        if ((*response)->document == NULL) {
             ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
                          "Could not parse XML response");
             goto failure;
         }
 
-        if (xmlDocGetRootElement((*remoteResponse)->document) == NULL) {
+        if (xmlDocGetRootElement((*response)->document) == NULL) {
             ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
                          "XML response is an empty document");
             goto failure;
         }
 
-        (*remoteResponse)->xpathContext =
-            xmlXPathNewContext((*remoteResponse)->document);
+        (*response)->xpathContext = xmlXPathNewContext((*response)->document);
 
-        if ((*remoteResponse)->xpathContext == NULL) {
+        if ((*response)->xpathContext == NULL) {
             ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
                          "Could not create XPath context");
             goto failure;
         }
 
-        xmlXPathRegisterNs((*remoteResponse)->xpathContext, BAD_CAST "soapenv",
+        xmlXPathRegisterNs((*response)->xpathContext, BAD_CAST "soapenv",
                            BAD_CAST "http://schemas.xmlsoap.org/soap/envelope/");
-        xmlXPathRegisterNs((*remoteResponse)->xpathContext, BAD_CAST "vim",
+        xmlXPathRegisterNs((*response)->xpathContext, BAD_CAST "vim",
                            BAD_CAST "urn:vim25");
 
-        if ((*remoteResponse)->response_code == 500) {
-            (*remoteResponse)->xpathObject =
-                xmlXPathEval(BAD_CAST
-                             "/soapenv:Envelope/soapenv:Body/soapenv:Fault",
-                             (*remoteResponse)->xpathContext);
+        if ((*response)->responseCode == 500) {
+            (*response)->node =
+              virXPathNode(conn, "/soapenv:Envelope/soapenv:Body/soapenv:Fault",
+                           (*response)->xpathContext);
 
-            if (esxVI_RemoteResponse_DeserializeXPathObject
-                  (conn, *remoteResponse,
-                   (esxVI_RemoteResponse_DeserializeFunc)
-                     esxVI_Fault_Deserialize,
-                   (void **)&fault) < 0) {
+            if ((*response)->node == NULL) {
+                ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+                             "HTTP response code %d. VI Fault is unknown, "
+                             "XPath evaluation failed",
+                             (int)(*response)->responseCode);
+                goto failure;
+            }
+
+            if (esxVI_Fault_Deserialize(conn, (*response)->node, &fault) < 0) {
+                ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+                             "HTTP response code %d. VI Fault is unknown, "
+                             "deserialization failed",
+                             (int)(*response)->responseCode);
                 goto failure;
             }
 
             ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
                          "HTTP response code %d. VI Fault: %s - %s",
-                         (int)(*remoteResponse)->response_code,
+                         (int)(*response)->responseCode,
                          fault->faultcode, fault->faultstring);
 
             goto failure;
+        } else if (expectList == esxVI_Boolean_True) {
+            xmlNodePtr *nodeSet = NULL;
+            int nodeSet_size;
+
+            nodeSet_size = virXPathNodeSet(conn, xpathExpression,
+                                           (*response)->xpathContext,
+                                           &nodeSet);
+
+            if (nodeSet_size < 0) {
+                ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+                             "XPath evaluation of '%s' failed",
+                             xpathExpression);
+                goto failure;
+            } else if (nodeSet_size == 0) {
+                (*response)->node = NULL;
+            } else {
+                (*response)->node = nodeSet[0];
+            }
+
+            VIR_FREE(nodeSet);
         } else {
-            (*remoteResponse)->xpathObject =
-              xmlXPathEval(BAD_CAST remoteRequest->xpathExpression,
-                           (*remoteResponse)->xpathContext);
+            (*response)->node = virXPathNode(conn, xpathExpression,
+                                             (*response)->xpathContext);
+
+            if ((*response)->node == NULL) {
+                ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+                             "XPath evaluation of '%s' failed",
+                             xpathExpression);
+                goto failure;
+            }
         }
-    } else if ((*remoteResponse)->response_code != 200) {
+    } else if ((*response)->responseCode != 200) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                     "HTTP response code %d",
-                     (int)(*remoteResponse)->response_code);
+                     "HTTP response code %d", (int)(*response)->responseCode);
 
         goto failure;
     }
@@ -601,7 +613,7 @@ esxVI_RemoteRequest_Execute(virConnectPtr conn, esxVI_Context *ctx,
 
   failure:
     free(virBufferContentAndReset(&buffer));
-    esxVI_RemoteResponse_Free(remoteResponse);
+    esxVI_Response_Free(response);
     esxVI_Fault_Free(&fault);
 
     return -1;
@@ -615,130 +627,23 @@ esxVI_RemoteRequest_Execute(virConnectPtr conn, esxVI_Context *ctx,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * RemoteResponse
+ * Response
  */
 
-/* esxVI_RemoteResponse_Alloc */
-ESX_VI__TEMPLATE__ALLOC(RemoteResponse);
+/* esxVI_Response_Alloc */
+ESX_VI__TEMPLATE__ALLOC(Response);
 
-/* esxVI_RemoteResponse_Free */
-ESX_VI__TEMPLATE__FREE(RemoteResponse,
+/* esxVI_Response_Free */
+ESX_VI__TEMPLATE__FREE(Response,
 {
-    VIR_FREE(item->response);
+    VIR_FREE(item->content);
 
-    xmlXPathFreeObject(item->xpathObject);
     xmlXPathFreeContext(item->xpathContext);
 
     if (item->document != NULL) {
         xmlFreeDoc(item->document);
     }
 });
-
-int
-esxVI_RemoteResponse_DeserializeXPathObject
-  (virConnectPtr conn, esxVI_RemoteResponse *remoteResponse,
-   esxVI_RemoteResponse_DeserializeFunc deserializeFunc, void **item)
-{
-    xmlNodePtr node = NULL;
-
-    if (remoteResponse->xpathObject != NULL &&
-        remoteResponse->xpathObject->type == XPATH_NODESET) {
-        if (remoteResponse->xpathObject->nodesetval->nodeNr != 1) {
-            ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                         "Expecting 1 XML node but found '%d'",
-                         remoteResponse->xpathObject->nodesetval->nodeNr);
-            return -1;
-        }
-
-        node = remoteResponse->xpathObject->nodesetval->nodeTab[0];
-
-        if (node->type != XML_ELEMENT_NODE) {
-            ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                         "Wrong XML element type %d", node->type);
-            return -1;
-        }
-
-        if (deserializeFunc(conn, node, item) < 0) {
-            return -1;
-        }
-    } else {
-        ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "XPath error");
-        return -1;
-    }
-
-    return 0;
-}
-
-int
-esxVI_RemoteResponse_DeserializeXPathObjectList
-  (virConnectPtr conn, esxVI_RemoteResponse *remoteResponse,
-   esxVI_RemoteResponse_DeserializeListFunc deserializeListFunc,
-   esxVI_List **list)
-{
-    xmlNodePtr node = NULL;
-
-    if (remoteResponse->xpathObject != NULL &&
-        remoteResponse->xpathObject->type == XPATH_NODESET) {
-        if (remoteResponse->xpathObject->nodesetval->nodeNr > 0) {
-            node = remoteResponse->xpathObject->nodesetval->nodeTab[0];
-
-            if (node->type != XML_ELEMENT_NODE) {
-                ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                             "Wrong XML element type %d", node->type);
-                return -1;
-            }
-        } else {
-            node = NULL;
-        }
-
-        if (deserializeListFunc(conn, node, list) < 0) {
-            return -1;
-        }
-    } else {
-        ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "XPath error");
-        return -1;
-    }
-
-    return 0;
-}
-
-int
-esxVI_RemoteResponse_DeserializeXPathObjectAsManagedObjectReference
-  (virConnectPtr conn, esxVI_RemoteResponse *remoteResponse,
-   esxVI_ManagedObjectReference **managedObjectReference,
-   const char *expectedType)
-{
-    xmlNodePtr node = NULL;
-
-    if (remoteResponse->xpathObject != NULL &&
-        remoteResponse->xpathObject->type == XPATH_NODESET) {
-        if (remoteResponse->xpathObject->nodesetval->nodeNr != 1) {
-            ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                         "Expecting 1 XML node but found '%d'",
-                         remoteResponse->xpathObject->nodesetval->nodeNr);
-            return -1;
-        }
-
-        node = remoteResponse->xpathObject->nodesetval->nodeTab[0];
-
-        if (node->type != XML_ELEMENT_NODE) {
-            ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                         "Wrong XML element type %d", node->type);
-            return -1;
-        }
-
-        if (esxVI_ManagedObjectReference_Deserialize(conn, node,
-                                                     managedObjectReference,
-                                                     expectedType) < 0) {
-            return -1;
-        }
-    } else {
-        ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "XPath error");
-        return -1;
-    }
-
-    return 0;
-}
 
 
 
@@ -856,9 +761,8 @@ esxVI_Enumeration_Deserialize(virConnectPtr conn,
     return result;
 
   failure:
-    goto cleanup;
-
     result = -1;
+    goto cleanup;
 }
 
 
@@ -1359,6 +1263,30 @@ esxVI_GetObjectContent(virConnectPtr conn, esxVI_Context *ctx,
 
 
 int
+esxVI_GetManagedEntityStatus(virConnectPtr conn,
+                             esxVI_ObjectContent *objectContent,
+                             const char *propertyName,
+                             esxVI_ManagedEntityStatus *managedEntityStatus)
+{
+    esxVI_DynamicProperty *dynamicProperty;
+
+    for (dynamicProperty = objectContent->propSet; dynamicProperty != NULL;
+         dynamicProperty = dynamicProperty->_next) {
+        if (STREQ(dynamicProperty->name, propertyName)) {
+            return esxVI_ManagedEntityStatus_CastFromAnyType
+                     (conn, dynamicProperty->val, managedEntityStatus);
+        }
+    }
+
+    ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+                 "Missing '%s' property", propertyName);
+
+    return -1;
+}
+
+
+
+int
 esxVI_GetVirtualMachinePowerState(virConnectPtr conn,
                                   esxVI_ObjectContent *virtualMachine,
                                   esxVI_VirtualMachinePowerState *powerState)
@@ -1445,6 +1373,7 @@ esxVI_GetVirtualMachineIdentity(virConnectPtr conn,
 {
     const char *uuid_string = NULL;
     esxVI_DynamicProperty *dynamicProperty = NULL;
+    esxVI_ManagedEntityStatus configStatus = esxVI_ManagedEntityStatus_Undefined;
 
     if (STRNEQ(virtualMachine->obj->type, "VirtualMachine")) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
@@ -1496,30 +1425,43 @@ esxVI_GetVirtualMachineIdentity(virConnectPtr conn,
     }
 
     if (uuid != NULL) {
-        for (dynamicProperty = virtualMachine->propSet;
-             dynamicProperty != NULL;
-             dynamicProperty = dynamicProperty->_next) {
-            if (STREQ(dynamicProperty->name, "summary.config.uuid")) {
-                if (esxVI_AnyType_ExpectType(conn, dynamicProperty->val,
-                                             esxVI_Type_String) < 0) {
-                    goto failure;
+        if (esxVI_GetManagedEntityStatus(conn, virtualMachine, "configStatus",
+                                         &configStatus) < 0) {
+            goto failure;
+        }
+
+        if (configStatus == esxVI_ManagedEntityStatus_Green) {
+            for (dynamicProperty = virtualMachine->propSet;
+                 dynamicProperty != NULL;
+                 dynamicProperty = dynamicProperty->_next) {
+                if (STREQ(dynamicProperty->name, "config.uuid")) {
+                    if (esxVI_AnyType_ExpectType(conn, dynamicProperty->val,
+                                                 esxVI_Type_String) < 0) {
+                        goto failure;
+                    }
+
+                    uuid_string = dynamicProperty->val->string;
+                    break;
                 }
-
-                uuid_string = dynamicProperty->val->string;
-                break;
             }
-        }
 
-        if (uuid_string == NULL) {
-            ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                         "Could not get UUID of virtual machine");
-            goto failure;
-        }
+            if (uuid_string == NULL) {
+                ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+                             "Could not get UUID of virtual machine");
+                goto failure;
+            }
 
-        if (virUUIDParse(uuid_string, uuid) < 0) {
-            ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                         "Could not parse UUID from string '%s'", uuid_string);
-            goto failure;
+            if (virUUIDParse(uuid_string, uuid) < 0) {
+                ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+                             "Could not parse UUID from string '%s'",
+                             uuid_string);
+                goto failure;
+            }
+        } else {
+            memset(uuid, 0, VIR_UUID_BUFLEN);
+
+            VIR_WARN0("Cannot access UUID, because 'configStatus' property "
+                      "indicates a config problem");
         }
     }
 
@@ -1616,39 +1558,25 @@ esxVI_StartVirtualMachineTask(virConnectPtr conn, esxVI_Context *ctx,
                               esxVI_ManagedObjectReference **task)
 {
     int result = 0;
-    esxVI_RemoteRequest *remoteRequest = NULL;
-    esxVI_RemoteResponse *remoteResponse = NULL;
+    char *xpathExpression = NULL;
+    esxVI_Response *response = NULL;
 
-    if (esxVI_RemoteRequest_Alloc(conn, &remoteRequest) < 0) {
-        goto failure;
-    }
-
-    remoteRequest->request = (char *)request;
-
-    if (virAsprintf(&remoteRequest->xpathExpression,
+    if (virAsprintf(&xpathExpression,
                     ESX_VI__SOAP__RESPONSE_XPATH("%s_Task"), name) < 0) {
         virReportOOMError(conn);
         goto failure;
     }
 
-    if (esxVI_RemoteRequest_Execute(conn, ctx, remoteRequest,
-                                    &remoteResponse) < 0 ||
-        esxVI_RemoteResponse_DeserializeXPathObjectAsManagedObjectReference
-          (conn, remoteResponse, task, "Task") < 0) {
+    if (esxVI_Context_Execute(conn, ctx, request, xpathExpression, &response,
+                              esxVI_Boolean_False) < 0 ||
+        esxVI_ManagedObjectReference_Deserialize(conn, response->node, task,
+                                                 "Task") < 0) {
         goto failure;
     }
 
   cleanup:
-    /*
-     * Remove values given by the caller from the data structures to prevent
-     * them from being freed by the call to esxVI_RemoteRequest_Free().
-     */
-    if (remoteRequest != NULL) {
-        remoteRequest->request = NULL;
-    }
-
-    esxVI_RemoteRequest_Free(&remoteRequest);
-    esxVI_RemoteResponse_Free(&remoteResponse);
+    VIR_FREE(xpathExpression);
+    esxVI_Response_Free(&response);
 
     return result;
 
@@ -1714,13 +1642,13 @@ esxVI_StartSimpleVirtualMachineTask
 
 int
 esxVI_SimpleVirtualMachineMethod(virConnectPtr conn, esxVI_Context *ctx,
-                                const char *name,
-                                esxVI_ManagedObjectReference *virtualMachine)
+                                 const char *name,
+                                 esxVI_ManagedObjectReference *virtualMachine)
 {
     int result = 0;
-    esxVI_RemoteRequest *remoteRequest = NULL;
-    esxVI_RemoteResponse *remoteResponse = NULL;
     virBuffer buffer = VIR_BUFFER_INITIALIZER;
+    char *request = NULL;
+    esxVI_Response *response = NULL;
 
     if (ctx->service == NULL) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Invalid argument");
@@ -1732,8 +1660,7 @@ esxVI_SimpleVirtualMachineMethod(virConnectPtr conn, esxVI_Context *ctx,
     virBufferAdd(&buffer, name, -1);
     virBufferAddLit(&buffer, " xmlns=\"urn:vim25\">");
 
-    if (esxVI_RemoteRequest_Alloc(conn, &remoteRequest) < 0 ||
-        esxVI_ManagedObjectReference_Serialize(conn, virtualMachine, "_this",
+    if (esxVI_ManagedObjectReference_Serialize(conn, virtualMachine, "_this",
                                                &buffer,
                                                esxVI_Boolean_True) < 0) {
         goto failure;
@@ -1749,21 +1676,23 @@ esxVI_SimpleVirtualMachineMethod(virConnectPtr conn, esxVI_Context *ctx,
         goto failure;
     }
 
-    remoteRequest->request = virBufferContentAndReset(&buffer);
+    request = virBufferContentAndReset(&buffer);
 
-    if (esxVI_RemoteRequest_Execute(conn, ctx, remoteRequest,
-                                    &remoteResponse) < 0) {
+    if (esxVI_Context_Execute(conn, ctx, request, NULL, &response,
+                              esxVI_Boolean_False) < 0) {
         goto failure;
     }
 
   cleanup:
-    esxVI_RemoteRequest_Free(&remoteRequest);
-    esxVI_RemoteResponse_Free(&remoteResponse);
+    VIR_FREE(request);
+    esxVI_Response_Free(&response);
 
     return result;
 
   failure:
-    free(virBufferContentAndReset(&buffer));
+    if (request == NULL) {
+        request = virBufferContentAndReset(&buffer);
+    }
 
     result = -1;
 

@@ -26,6 +26,7 @@
 #include <sys/statvfs.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <dirent.h>
 #include <errno.h>
@@ -81,6 +82,9 @@ struct FileTypeInfo {
                           /* Store a COW base image path (possibly relative),
                            * or NULL if there is no COW base image, to RES;
                            * return BACKING_STORE_* */
+    int qcowCryptOffset;  /* Byte offset from start of file
+                           * where to find encryption mode,
+                           * -1 if encryption is not used */
     int (*getBackingStore)(virConnectPtr conn, char **res,
                            const unsigned char *buf, size_t buf_size);
 };
@@ -89,54 +93,54 @@ struct FileTypeInfo const fileTypeInfo[] = {
     /* XXX Untested
     { VIR_STORAGE_VOL_FILE_BOCHS, "Bochs Virtual HD Image", NULL,
       LV_LITTLE_ENDIAN, 64, 0x20000,
-      32+16+16+4+4+4+4+4, 8, 1, NULL },*/
+      32+16+16+4+4+4+4+4, 8, 1, -1, NULL },*/
     /* CLoop */
     /* XXX Untested
     { VIR_STORAGE_VOL_CLOOP, "#!/bin/sh\n#V2.0 Format\nmodprobe cloop file=$0 && mount -r -t iso9660 /dev/cloop $1\n", NULL,
       LV_LITTLE_ENDIAN, -1, 0,
-      -1, 0, 0, NULL }, */
+      -1, 0, 0, -1, NULL }, */
     /* Cow */
     { VIR_STORAGE_VOL_FILE_COW, "OOOM", NULL,
       LV_BIG_ENDIAN, 4, 2,
-      4+4+1024+4, 8, 1, cowGetBackingStore },
+      4+4+1024+4, 8, 1, -1, cowGetBackingStore },
     /* DMG */
     /* XXX QEMU says there's no magic for dmg, but we should check... */
     { VIR_STORAGE_VOL_FILE_DMG, NULL, ".dmg",
       0, -1, 0,
-      -1, 0, 0, NULL },
+      -1, 0, 0, -1, NULL },
     /* XXX there's probably some magic for iso we can validate too... */
     { VIR_STORAGE_VOL_FILE_ISO, NULL, ".iso",
       0, -1, 0,
-      -1, 0, 0, NULL },
+      -1, 0, 0, -1, NULL },
     /* Parallels */
     /* XXX Untested
     { VIR_STORAGE_VOL_FILE_PARALLELS, "WithoutFreeSpace", NULL,
       LV_LITTLE_ENDIAN, 16, 2,
-      16+4+4+4+4, 4, 512, NULL },
+      16+4+4+4+4, 4, 512, -1, NULL },
     */
     /* QCow */
     { VIR_STORAGE_VOL_FILE_QCOW, "QFI", NULL,
       LV_BIG_ENDIAN, 4, 1,
-      4+4+8+4+4, 8, 1, qcowXGetBackingStore },
+      4+4+8+4+4, 8, 1, 4+4+8+4+4+8+1+1+2, qcowXGetBackingStore },
     /* QCow 2 */
     { VIR_STORAGE_VOL_FILE_QCOW2, "QFI", NULL,
       LV_BIG_ENDIAN, 4, 2,
-      4+4+8+4+4, 8, 1, qcowXGetBackingStore },
+      4+4+8+4+4, 8, 1, 4+4+8+4+4+8, qcowXGetBackingStore },
     /* VMDK 3 */
     /* XXX Untested
     { VIR_STORAGE_VOL_FILE_VMDK, "COWD", NULL,
       LV_LITTLE_ENDIAN, 4, 1,
-      4+4+4, 4, 512, NULL },
+      4+4+4, 4, 512, -1, NULL },
     */
     /* VMDK 4 */
     { VIR_STORAGE_VOL_FILE_VMDK, "KDMV", NULL,
       LV_LITTLE_ENDIAN, 4, 1,
-      4+4+4, 8, 512, vmdk4GetBackingStore },
+      4+4+4, 8, 512, -1, vmdk4GetBackingStore },
     /* Connectix / VirtualPC */
     /* XXX Untested
     { VIR_STORAGE_VOL_FILE_VPC, "conectix", NULL,
       LV_BIG_ENDIAN, -1, 0,
-      -1, 0, 0, NULL},
+      -1, 0, 0, -1, NULL},
     */
 };
 
@@ -282,13 +286,16 @@ static int virStorageBackendProbeTarget(virConnectPtr conn,
                                         virStorageVolTargetPtr target,
                                         char **backingStore,
                                         unsigned long long *allocation,
-                                        unsigned long long *capacity) {
+                                        unsigned long long *capacity,
+                                        virStorageEncryptionPtr *encryption) {
     int fd;
     unsigned char head[20*512]; /* vmdk4GetBackingStore needs this much. */
     int len, i, ret;
 
     if (backingStore)
         *backingStore = NULL;
+    if (encryption)
+        *encryption = NULL;
 
     if ((fd = open(target->path, O_RDONLY)) < 0) {
         virReportSystemError(conn, errno,
@@ -317,6 +324,8 @@ static int virStorageBackendProbeTarget(virConnectPtr conn,
     /* First check file magic */
     for (i = 0 ; i < ARRAY_CARDINALITY(fileTypeInfo) ; i++) {
         int mlen;
+        bool encrypted_qcow = false;
+
         if (fileTypeInfo[i].magic == NULL)
             continue;
 
@@ -375,6 +384,16 @@ static int virStorageBackendProbeTarget(virConnectPtr conn,
             *capacity *= fileTypeInfo[i].sizeMultiplier;
         }
 
+        if (fileTypeInfo[i].qcowCryptOffset != -1) {
+            int crypt_format;
+
+            crypt_format = (head[fileTypeInfo[i].qcowCryptOffset] << 24) |
+                (head[fileTypeInfo[i].qcowCryptOffset+1] << 16) |
+                (head[fileTypeInfo[i].qcowCryptOffset+2] << 8) |
+                head[fileTypeInfo[i].qcowCryptOffset+3];
+            encrypted_qcow = crypt_format != 0;
+        }
+
         /* Validation passed, we know the file format now */
         target->format = fileTypeInfo[i].type;
         if (fileTypeInfo[i].getBackingStore != NULL && backingStore) {
@@ -399,6 +418,23 @@ static int virStorageBackendProbeTarget(virConnectPtr conn,
                     return -1;
                 }
             }
+        }
+        if (encryption != NULL && encrypted_qcow) {
+            virStorageEncryptionPtr enc;
+
+            if (VIR_ALLOC(enc) < 0) {
+                virReportOOMError(conn);
+                if (backingStore)
+                    VIR_FREE(*backingStore);
+                return -1;
+            }
+            enc->format = VIR_STORAGE_ENCRYPTION_FORMAT_QCOW;
+            *encryption = enc;
+            /* XXX ideally we'd fill in secret UUID here
+             * but we cannot guarentee 'conn' is non-NULL
+             * at this point in time :-(  So we only fill
+             * in secrets when someone first queries a vol
+             */
         }
         return 0;
     }
@@ -868,7 +904,8 @@ virStorageBackendFileSystemRefresh(virConnectPtr conn,
                                                 &vol->target,
                                                 &backingStore,
                                                 &vol->allocation,
-                                                &vol->capacity) < 0)) {
+                                                &vol->capacity,
+                                                &vol->target.encryption) < 0)) {
             if (ret == -1)
                 goto cleanup;
             else {
@@ -908,7 +945,8 @@ virStorageBackendFileSystemRefresh(virConnectPtr conn,
 
                 if ((ret = virStorageBackendProbeTarget(conn,
                                                         &vol->backingStore,
-                                                        NULL, NULL, NULL)) < 0) {
+                                                        NULL, NULL, NULL,
+                                                        NULL)) < 0) {
                     if (ret == -1)
                         goto cleanup;
                     else {
@@ -950,7 +988,8 @@ no_memory:
     /* fallthrough */
 
  cleanup:
-    closedir(dir);
+    if (dir)
+        closedir(dir);
     virStorageVolDefFree(vol);
     virStoragePoolObjClearVols(pool);
     return -1;
@@ -1022,6 +1061,7 @@ virStorageBackendFileSystemVolCreate(virConnectPtr conn,
 
     vol->type = VIR_STORAGE_VOL_FILE;
 
+    VIR_FREE(vol->target.path);
     if (virAsprintf(&vol->target.path, "%s/%s",
                     pool->def->target.path,
                     vol->name) == -1) {
@@ -1029,6 +1069,7 @@ virStorageBackendFileSystemVolCreate(virConnectPtr conn,
         return -1;
     }
 
+    VIR_FREE(vol->key);
     vol->key = strdup(vol->target.path);
     if (vol->key == NULL) {
         virReportOOMError(conn);
@@ -1069,6 +1110,13 @@ _virStorageBackendFileSystemVolBuild(virConnectPtr conn,
     int tool_type;
 
     if (inputvol) {
+        if (vol->target.encryption != NULL) {
+            virStorageReportError(conn, VIR_ERR_NO_SUPPORT,
+                                  "%s", _("storage pool does not support "
+                                          "building encrypted volumes from "
+                                          "other volumes"));
+            return -1;
+        }
         create_func = virStorageBackendGetBuildVolFromFunction(conn, vol,
                                                                inputvol);
         if (!create_func)
@@ -1187,8 +1235,42 @@ virStorageBackendFileSystemVolRefresh(virConnectPtr conn,
                                       virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
                                       virStorageVolDefPtr vol)
 {
+    int ret;
+
     /* Refresh allocation / permissions info in case its changed */
-    return virStorageBackendUpdateVolInfo(conn, vol, 0);
+    ret = virStorageBackendUpdateVolInfo(conn, vol, 0);
+    if (ret < 0)
+        return ret;
+
+    /* Load any secrets if posible */
+    if (vol->target.encryption &&
+        vol->target.encryption->format == VIR_STORAGE_ENCRYPTION_FORMAT_QCOW &&
+        vol->target.encryption->nsecrets == 0) {
+        virSecretPtr sec;
+        virStorageEncryptionSecretPtr encsec = NULL;
+
+        sec = virSecretLookupByUsage(conn,
+                                     VIR_SECRET_USAGE_TYPE_VOLUME,
+                                     vol->target.path);
+        if (sec) {
+            if (VIR_ALLOC_N(vol->target.encryption->secrets, 1) < 0 ||
+                VIR_ALLOC(encsec) < 0) {
+                VIR_FREE(vol->target.encryption->secrets);
+                virReportOOMError(conn);
+                virSecretFree(sec);
+                return -1;
+            }
+
+            vol->target.encryption->nsecrets = 1;
+            vol->target.encryption->secrets[0] = encsec;
+
+            encsec->type = VIR_STORAGE_ENCRYPTION_SECRET_TYPE_PASSPHRASE;
+            virSecretGetUUID(sec, encsec->uuid);
+            virSecretFree(sec);
+        }
+    }
+
+    return 0;
 }
 
 virStorageBackend virStorageBackendDirectory = {

@@ -26,6 +26,7 @@
 
 #include "internal.h"
 #include "util.h"
+#include "storage_encryption_conf.h"
 #include "threads.h"
 
 #include <libxml/tree.h>
@@ -77,6 +78,8 @@ struct _virStorageVolTarget {
     int format;
     virStoragePerms perms;
     int type; /* only used by disk backend for partition type */
+    /* Currently used only in virStorageVolDef.target, not in .backingstore. */
+    virStorageEncryptionPtr encryption;
 };
 
 
@@ -116,6 +119,7 @@ enum virStoragePoolType {
     VIR_STORAGE_POOL_DISK,     /* Disk partitions */
     VIR_STORAGE_POOL_ISCSI,    /* iSCSI targets */
     VIR_STORAGE_POOL_SCSI,     /* SCSI HBA */
+    VIR_STORAGE_POOL_MPATH,    /* Multipath devices */
 
     VIR_STORAGE_POOL_LAST,
 };

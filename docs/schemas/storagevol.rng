@@ -5,6 +5,8 @@
     <ref name='vol'/>
   </start>
 
+  <include href='storageencryption.rng'/>
+
 
   <define name='vol'>
     <element name='volume'>
@@ -73,6 +75,9 @@
       </optional>
       <ref name='format'/>
       <ref name='permissions'/>
+      <optional>
+        <ref name='encryption'/>
+      </optional>
     </element>
   </define>
 
@@ -193,5 +198,15 @@
     </data>
   </define>
 
+  <define name="UUID">
+    <choice>
+      <data type="string">
+        <param name="pattern">[a-fA-F0-9]{32}</param>
+      </data>
+      <data type="string">
+        <param name="pattern">[a-fA-F0-9]{8}\-([a-fA-F0-9]{4}\-){3}[a-fA-F0-9]{12}</param>
+      </data>
+    </choice>
+  </define>
 
 </grammar>

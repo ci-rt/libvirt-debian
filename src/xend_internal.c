@@ -2540,8 +2540,6 @@ xenDaemonParseSxpr(virConnectPtr conn,
             }
         }
     }
-    qsort(def->disks, def->ndisks, sizeof(*def->disks),
-          virDomainDiskQSort);
 
     /* in case of HVM we have USB device emulation */
     if (hvm &&
@@ -3725,7 +3723,7 @@ xenDaemonLookupByID(virConnectPtr conn, int id) {
     }
 
     ret = virGetDomain(conn, name, uuid);
-    if (ret == NULL) return NULL;
+    if (ret == NULL) goto error;
 
     ret->id = id;
     VIR_FREE(name);
@@ -3977,9 +3975,11 @@ xenDaemonLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
         return (NULL);
 
     ret = virGetDomain(conn, name, uuid);
-    if (ret == NULL) return NULL;
+    if (ret == NULL) goto cleanup;
 
     ret->id = id;
+
+  cleanup:
     VIR_FREE(name);
     return (ret);
 }
@@ -4030,10 +4030,10 @@ xenDaemonCreateXML(virConnectPtr conn, const char *xmlDesc,
     if (!(dom = virDomainLookupByName(conn, def->name)))
         goto error;
 
-    if ((ret = xend_wait_for_devices(conn, def->name)) < 0)
+    if (xend_wait_for_devices(conn, def->name) < 0)
         goto error;
 
-    if ((ret = xenDaemonDomainResume(dom)) < 0)
+    if (xenDaemonDomainResume(dom) < 0)
         goto error;
 
     virDomainDefFree(def);
@@ -4537,6 +4537,8 @@ virDomainPtr xenDaemonDomainDefineXML(virConnectPtr conn, const char *xmlDesc) {
 int xenDaemonDomainCreate(virDomainPtr domain)
 {
     xenUnifiedPrivatePtr priv;
+    int ret;
+    virDomainPtr tmp;
 
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
         virXendError((domain ? domain->conn : NULL), VIR_ERR_INVALID_ARG,
@@ -4549,7 +4551,17 @@ int xenDaemonDomainCreate(virDomainPtr domain)
     if (priv->xendConfigVersion < 3)
         return(-1);
 
-    return xend_op(domain->conn, domain->name, "op", "start", NULL);
+    ret = xend_op(domain->conn, domain->name, "op", "start", NULL);
+
+    if (ret != -1) {
+        /* Need to force a refresh of this object's ID */
+        tmp = virDomainLookupByName(domain->conn, domain->name);
+        if (tmp) {
+            domain->id = tmp->id;
+            virDomainFree(tmp);
+        }
+    }
+    return ret;
 }
 
 int xenDaemonDomainUndefine(virDomainPtr domain)
@@ -4732,7 +4744,7 @@ static const char *str_cap = "cap";
  */
 static int
 xenDaemonGetSchedulerParameters(virDomainPtr domain,
-                                 virSchedParameterPtr params, int *nparams)
+                                virSchedParameterPtr params, int *nparams)
 {
     xenUnifiedPrivatePtr priv;
     struct sexpr *root;
@@ -5214,6 +5226,9 @@ xenDaemonFormatSxprChr(virConnectPtr conn,
         break;
     }
 
+    if (virBufferError(buf))
+        return -1;
+
     return 0;
 }
 
@@ -5536,6 +5551,9 @@ xenDaemonFormatSxprSound(virConnectPtr conn,
         }
         virBufferVSprintf(buf, "%s%s", i ? "," : "", str);
     }
+
+    if (virBufferError(buf))
+        return -1;
 
     return 0;
 }

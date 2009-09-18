@@ -10,6 +10,7 @@ src/interface_conf.c
 src/interface_driver.c
 src/iptables.c
 src/libvirt.c
+src/logging.c
 src/lxc_container.c
 src/lxc_controller.c
 src/lxc_driver.c
@@ -29,6 +30,8 @@ src/proxy_internal.c
 src/qemu_conf.c
 src/qemu_driver.c
 src/remote_internal.c
+src/secret_conf.c
+src/secret_driver.c
 src/security.c
 src/security_selinux.c
 src/storage_backend.c
@@ -37,8 +40,10 @@ src/storage_backend_fs.c
 src/storage_backend_iscsi.c
 src/storage_backend_logical.c
 src/storage_backend_scsi.c
+src/storage_backend_mpath.c
 src/storage_conf.c
 src/storage_driver.c
+src/storage_encryption_conf.c
 src/test.c
 src/uml_conf.c
 src/uml_driver.c

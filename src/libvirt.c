@@ -86,6 +86,8 @@ static virStorageDriverPtr virStorageDriverTab[MAX_DRIVERS];
 static int virStorageDriverTabCount = 0;
 static virDeviceMonitorPtr virDeviceMonitorTab[MAX_DRIVERS];
 static int virDeviceMonitorTabCount = 0;
+static virSecretDriverPtr virSecretDriverTab[MAX_DRIVERS];
+static int virSecretDriverTabCount = 0;
 #ifdef WITH_LIBVIRTD
 static virStateDriverPtr virStateDriverTab[MAX_DRIVERS];
 static int virStateDriverTabCount = 0;
@@ -262,7 +264,6 @@ winsock_init (void)
 int
 virInitialize(void)
 {
-    char *debugEnv;
     if (initialized)
         return(0);
 
@@ -273,23 +274,7 @@ virInitialize(void)
         virRandomInitialize(time(NULL) ^ getpid()))
         return -1;
 
-    debugEnv = getenv("LIBVIRT_DEBUG");
-    if (debugEnv && *debugEnv && *debugEnv != '0') {
-        if (STREQ(debugEnv, "2") || STREQ(debugEnv, "info"))
-            virLogSetDefaultPriority(VIR_LOG_INFO);
-        else if (STREQ(debugEnv, "3") || STREQ(debugEnv, "warning"))
-            virLogSetDefaultPriority(VIR_LOG_WARN);
-        else if (STREQ(debugEnv, "4") || STREQ(debugEnv, "error"))
-            virLogSetDefaultPriority(VIR_LOG_ERROR);
-        else
-            virLogSetDefaultPriority(VIR_LOG_DEBUG);
-    }
-    debugEnv = getenv("LIBVIRT_LOG_FILTERS");
-    if (debugEnv)
-        virLogParseFilters(debugEnv);
-    debugEnv = getenv("LIBVIRT_LOG_OUTPUTS");
-    if (debugEnv)
-        virLogParseOutputs(debugEnv);
+    virLogSetFromEnv();
 
     DEBUG0("register drivers");
 
@@ -577,6 +562,31 @@ virLibNodeDeviceError(virNodeDevicePtr dev, virErrorNumber error,
 }
 
 /**
+ * virLibSecretError:
+ * @secret: the secret if available
+ * @error: the error number
+ * @info: extra information string
+ *
+ * Handle an error at the secret level
+ */
+static void
+virLibSecretError(virSecretPtr secret, virErrorNumber error, const char *info)
+{
+    virConnectPtr conn = NULL;
+    const char *errmsg;
+
+    if (error == VIR_ERR_OK)
+        return;
+
+    errmsg = virErrorMsg(error, info);
+    if (error != VIR_ERR_INVALID_SECRET)
+        conn = secret->conn;
+
+    virRaiseError(conn, NULL, NULL, VIR_FROM_SECRET, error, VIR_ERR_ERROR,
+                  errmsg, info, NULL, 0, 0, errmsg, info);
+}
+
+/**
  * virRegisterNetworkDriver:
  * @driver: pointer to a network driver block
  *
@@ -609,9 +619,9 @@ virRegisterNetworkDriver(virNetworkDriverPtr driver)
 
 /**
  * virRegisterInterfaceDriver:
- * @driver: pointer to a interface driver block
+ * @driver: pointer to an interface driver block
  *
- * Register a interface virtualization driver
+ * Register an interface virtualization driver
  *
  * Returns the driver priority or -1 in case of error.
  */
@@ -698,6 +708,37 @@ virRegisterDeviceMonitor(virDeviceMonitorPtr driver)
 
     virDeviceMonitorTab[virDeviceMonitorTabCount] = driver;
     return virDeviceMonitorTabCount++;
+}
+
+/**
+ * virRegisterSecretDriver:
+ * @driver: pointer to a secret driver block
+ *
+ * Register a secret driver
+ *
+ * Returns the driver priority or -1 in case of error.
+ */
+int
+virRegisterSecretDriver(virSecretDriverPtr driver)
+{
+    if (virInitialize() < 0)
+      return -1;
+
+    if (driver == NULL) {
+        virLibConnError(NULL, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return(-1);
+    }
+
+    if (virSecretDriverTabCount >= MAX_DRIVERS) {
+        virLibConnError(NULL, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return(-1);
+    }
+
+    DEBUG ("registering %s as secret driver %d",
+           driver->name, virSecretDriverTabCount);
+
+    virSecretDriverTab[virSecretDriverTabCount] = driver;
+    return virSecretDriverTabCount++;
 }
 
 /**
@@ -1113,11 +1154,29 @@ do_open (const char *name,
         }
     }
 
+    /* Secret manipulation driver. Optional */
+    for (i = 0; i < virSecretDriverTabCount; i++) {
+        res = virSecretDriverTab[i]->open (ret, auth, flags);
+        DEBUG("secret driver %d %s returned %s",
+              i, virSecretDriverTab[i]->name,
+              res == VIR_DRV_OPEN_SUCCESS ? "SUCCESS" :
+              (res == VIR_DRV_OPEN_DECLINED ? "DECLINED" :
+               (res == VIR_DRV_OPEN_ERROR ? "ERROR" : "unknown status")));
+        if (res == VIR_DRV_OPEN_ERROR) {
+            if (STREQ(virSecretDriverTab[i]->name, "remote")) {
+                virLibConnWarning (NULL, VIR_WAR_NO_SECRET,
+                                   "Is the daemon running ?");
+            }
+            break;
+         } else if (res == VIR_DRV_OPEN_SUCCESS) {
+            ret->secretDriver = virSecretDriverTab[i];
+            break;
+        }
+    }
+
     return ret;
 
 failed:
-    if (ret->driver) ret->driver->close (ret);
-
     /* Ensure a global error is set in case driver forgot */
     virSetGlobalError();
 
@@ -1238,19 +1297,7 @@ virConnectClose(virConnectPtr conn)
         return (-1);
     }
 
-    if (conn->networkDriver)
-        conn->networkDriver->close (conn);
-    if (conn->interfaceDriver)
-        conn->interfaceDriver->close (conn);
-    if (conn->storageDriver)
-        conn->storageDriver->close (conn);
-    if (conn->deviceMonitor)
-        conn->deviceMonitor->close (conn);
-    conn->driver->close (conn);
-
-    if (virUnrefConnect(conn) < 0)
-        return (-1);
-    return (0);
+    return virUnrefConnect(conn);
 }
 
 /**
@@ -1559,7 +1606,7 @@ virConnectNumOfDomains(virConnectPtr conn)
 
     if (!VIR_IS_CONNECT(conn)) {
         virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
-        goto error;
+        return -1;
     }
 
     if (conn->driver->numOfDomains) {
@@ -2870,6 +2917,144 @@ error:
 }
 
 
+static virDomainPtr
+virDomainMigrateVersion1 (virDomainPtr domain,
+                          virConnectPtr dconn,
+                          unsigned long flags,
+                          const char *dname,
+                          const char *uri,
+                          unsigned long bandwidth)
+{
+    virDomainPtr ddomain = NULL;
+    char *uri_out = NULL;
+    char *cookie = NULL;
+    int cookielen = 0;
+
+    /* Prepare the migration.
+     *
+     * The destination host may return a cookie, or leave cookie as
+     * NULL.
+     *
+     * The destination host MUST set uri_out if uri_in is NULL.
+     *
+     * If uri_in is non-NULL, then the destination host may modify
+     * the URI by setting uri_out.  If it does not wish to modify
+     * the URI, it should leave uri_out as NULL.
+     */
+    if (dconn->driver->domainMigratePrepare
+        (dconn, &cookie, &cookielen, uri, &uri_out, flags, dname,
+         bandwidth) == -1)
+        goto done;
+
+    if (uri == NULL && uri_out == NULL) {
+        virLibConnError (domain->conn, VIR_ERR_INTERNAL_ERROR,
+                         _("domainMigratePrepare did not set uri"));
+        goto done;
+    }
+    if (uri_out)
+        uri = uri_out; /* Did domainMigratePrepare change URI? */
+    assert (uri != NULL);
+
+    /* Perform the migration.  The driver isn't supposed to return
+     * until the migration is complete.
+     */
+    if (domain->conn->driver->domainMigratePerform
+        (domain, cookie, cookielen, uri, flags, dname, bandwidth) == -1)
+        goto done;
+
+    /* Get the destination domain and return it or error.
+     * 'domain' no longer actually exists at this point
+     * (or so we hope), but we still use the object in memory
+     * in order to get the name.
+     */
+    dname = dname ? dname : domain->name;
+    if (dconn->driver->domainMigrateFinish)
+        ddomain = dconn->driver->domainMigrateFinish
+            (dconn, dname, cookie, cookielen, uri, flags);
+    else
+        ddomain = virDomainLookupByName (dconn, dname);
+
+ done:
+    VIR_FREE (uri_out);
+    VIR_FREE (cookie);
+    return ddomain;
+}
+
+static virDomainPtr
+virDomainMigrateVersion2 (virDomainPtr domain,
+                          virConnectPtr dconn,
+                          unsigned long flags,
+                          const char *dname,
+                          const char *uri,
+                          unsigned long bandwidth)
+{
+    virDomainPtr ddomain = NULL;
+    char *uri_out = NULL;
+    char *cookie = NULL;
+    char *dom_xml = NULL;
+    int cookielen = 0, ret;
+
+    /* Prepare the migration.
+     *
+     * The destination host may return a cookie, or leave cookie as
+     * NULL.
+     *
+     * The destination host MUST set uri_out if uri_in is NULL.
+     *
+     * If uri_in is non-NULL, then the destination host may modify
+     * the URI by setting uri_out.  If it does not wish to modify
+     * the URI, it should leave uri_out as NULL.
+     */
+
+    /* In version 2 of the protocol, the prepare step is slightly
+     * different.  We fetch the domain XML of the source domain
+     * and pass it to Prepare2.
+     */
+    if (!domain->conn->driver->domainDumpXML) {
+        virLibConnError (domain->conn, VIR_ERR_INTERNAL_ERROR, __FUNCTION__);
+        return NULL;
+    }
+    dom_xml = domain->conn->driver->domainDumpXML (domain,
+                                                   VIR_DOMAIN_XML_SECURE);
+    if (!dom_xml)
+        return NULL;
+
+    ret = dconn->driver->domainMigratePrepare2
+        (dconn, &cookie, &cookielen, uri, &uri_out, flags, dname,
+         bandwidth, dom_xml);
+    VIR_FREE (dom_xml);
+    if (ret == -1)
+        goto done;
+
+    if (uri == NULL && uri_out == NULL) {
+        virLibConnError (domain->conn, VIR_ERR_INTERNAL_ERROR,
+                         _("domainMigratePrepare2 did not set uri"));
+        goto done;
+    }
+    if (uri_out)
+        uri = uri_out; /* Did domainMigratePrepare2 change URI? */
+    assert (uri != NULL);
+
+    /* Perform the migration.  The driver isn't supposed to return
+     * until the migration is complete.
+     */
+    ret = domain->conn->driver->domainMigratePerform
+        (domain, cookie, cookielen, uri, flags, dname, bandwidth);
+
+    /* In version 2 of the migration protocol, we pass the
+     * status code from the sender to the destination host,
+     * so it can do any cleanup if the migration failed.
+     */
+    dname = dname ? dname : domain->name;
+    ddomain = dconn->driver->domainMigrateFinish2
+        (dconn, dname, cookie, cookielen, uri, flags, ret);
+
+ done:
+    VIR_FREE (uri_out);
+    VIR_FREE (cookie);
+    return ddomain;
+}
+
 /**
  * virDomainMigrate:
  * @domain: a domain object
@@ -2926,140 +3111,52 @@ virDomainMigrate (virDomainPtr domain,
                   const char *uri,
                   unsigned long bandwidth)
 {
-    virConnectPtr conn;
     virDomainPtr ddomain = NULL;
-    char *uri_out = NULL;
-    char *cookie = NULL;
-    char *dom_xml = NULL;
-    int cookielen = 0, ret, version = 0;
     DEBUG("domain=%p, dconn=%p, flags=%lu, dname=%s, uri=%s, bandwidth=%lu",
           domain, dconn, flags, NULLSTR(dname), NULLSTR(uri), bandwidth);
 
     virResetLastError();
 
+    /* First checkout the source */
     if (!VIR_IS_CONNECTED_DOMAIN (domain)) {
         virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
         return NULL;
     }
-    conn = domain->conn;        /* Source connection. */
-    if (!VIR_IS_CONNECT (dconn)) {
-        virLibConnError (conn, VIR_ERR_INVALID_CONN, __FUNCTION__);
-        goto error;
-    }
-
     if (domain->conn->flags & VIR_CONNECT_RO) {
         virLibDomainError(domain, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
     }
+
+    /* Now checkout the destination */
+    if (!VIR_IS_CONNECT (dconn)) {
+        virLibConnError (domain->conn, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        goto error;
+    }
     if (dconn->flags & VIR_CONNECT_RO) {
-        /* NB, delibrately report error against source object, not dest here */
-        virLibDomainError(domain, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        /* NB, deliberately report error against source object, not dest */
+        virLibDomainError (domain, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
     }
 
     /* Check that migration is supported by both drivers. */
-    if (VIR_DRV_SUPPORTS_FEATURE (conn->driver, conn,
+    if (VIR_DRV_SUPPORTS_FEATURE (domain->conn->driver, domain->conn,
                                   VIR_DRV_FEATURE_MIGRATION_V1) &&
         VIR_DRV_SUPPORTS_FEATURE (dconn->driver, dconn,
                                   VIR_DRV_FEATURE_MIGRATION_V1))
-        version = 1;
-    else if (VIR_DRV_SUPPORTS_FEATURE (conn->driver, conn,
+        ddomain = virDomainMigrateVersion1 (domain, dconn, flags, dname, uri, bandwidth);
+    else if (VIR_DRV_SUPPORTS_FEATURE (domain->conn->driver, domain->conn,
                                        VIR_DRV_FEATURE_MIGRATION_V2) &&
              VIR_DRV_SUPPORTS_FEATURE (dconn->driver, dconn,
                                        VIR_DRV_FEATURE_MIGRATION_V2))
-        version = 2;
+        ddomain = virDomainMigrateVersion2 (domain, dconn, flags, dname, uri, bandwidth);
     else {
-        virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+        virLibConnError (domain->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
         goto error;
     }
 
-    /* Prepare the migration.
-     *
-     * The destination host may return a cookie, or leave cookie as
-     * NULL.
-     *
-     * The destination host MUST set uri_out if uri_in is NULL.
-     *
-     * If uri_in is non-NULL, then the destination host may modify
-     * the URI by setting uri_out.  If it does not wish to modify
-     * the URI, it should leave uri_out as NULL.
-     */
-    if (version == 1) {
-        ret = dconn->driver->domainMigratePrepare
-            (dconn, &cookie, &cookielen, uri, &uri_out, flags, dname,
-             bandwidth);
-        if (ret == -1) goto done;
-        if (uri == NULL && uri_out == NULL) {
-            virLibConnError (conn, VIR_ERR_INTERNAL_ERROR,
-                             _("domainMigratePrepare did not set uri"));
-            goto done;
-        }
-        if (uri_out) uri = uri_out; /* Did domainMigratePrepare change URI? */
+     if (ddomain == NULL)
+         goto error;
 
-        assert (uri != NULL);
-    }
-    else /* if (version == 2) */ {
-        /* In version 2 of the protocol, the prepare step is slightly
-         * different.  We fetch the domain XML of the source domain
-         * and pass it to Prepare2.
-         */
-        if (!conn->driver->domainDumpXML) {
-            virLibConnError (conn, VIR_ERR_INTERNAL_ERROR, __FUNCTION__);
-            goto error;
-        }
-        dom_xml = conn->driver->domainDumpXML (domain,
-                                               VIR_DOMAIN_XML_SECURE);
-
-        if (!dom_xml)
-            goto error;
-
-        ret = dconn->driver->domainMigratePrepare2
-            (dconn, &cookie, &cookielen, uri, &uri_out, flags, dname,
-             bandwidth, dom_xml);
-        VIR_FREE (dom_xml);
-        if (ret == -1) goto done;
-        if (uri == NULL && uri_out == NULL) {
-            virLibConnError (conn, VIR_ERR_INTERNAL_ERROR,
-                             _("domainMigratePrepare2 did not set uri"));
-            goto done;
-        }
-        if (uri_out) uri = uri_out; /* Did domainMigratePrepare2 change URI? */
-
-        assert (uri != NULL);
-    }
-
-    /* Perform the migration.  The driver isn't supposed to return
-     * until the migration is complete.
-     */
-    ret = conn->driver->domainMigratePerform
-        (domain, cookie, cookielen, uri, flags, dname, bandwidth);
-
-    if (version == 1) {
-        if (ret == -1) goto done;
-        /* Get the destination domain and return it or error.
-         * 'domain' no longer actually exists at this point
-         * (or so we hope), but we still use the object in memory
-         * in order to get the name.
-         */
-        dname = dname ? dname : domain->name;
-        if (dconn->driver->domainMigrateFinish)
-            ddomain = dconn->driver->domainMigrateFinish
-                (dconn, dname, cookie, cookielen, uri, flags);
-        else
-            ddomain = virDomainLookupByName (dconn, dname);
-    } else /* if (version == 2) */ {
-        /* In version 2 of the migration protocol, we pass the
-         * status code from the sender to the destination host,
-         * so it can do any cleanup if the migration failed.
-         */
-        dname = dname ? dname : domain->name;
-        ddomain = dconn->driver->domainMigrateFinish2
-            (dconn, dname, cookie, cookielen, uri, flags, ret);
-    }
-
- done:
-    VIR_FREE (uri_out);
-    VIR_FREE (cookie);
     return ddomain;
 
 error:
@@ -4594,7 +4691,7 @@ error:
  *
  * This call returns the amount of free memory in one or more NUMA cells.
  * The @freeMems array must be allocated by the caller and will be filled
- * with the amount of free memory in kilobytes for each cell requested,
+ * with the amount of free memory in bytes for each cell requested,
  * starting with startCell (in freeMems[0]), up to either
  * (startCell + maxCells), or the number of additional cells in the node,
  * whichever is smaller.
@@ -5344,7 +5441,7 @@ error:
 /**
  * virNetworkGetXMLDesc:
  * @network: a network object
- * @flags: and OR'ed set of extraction flags, not used yet
+ * @flags: an OR'ed set of extraction flags, not used yet
  *
  * Provide an XML description of the network. The description may be reused
  * later to relaunch the network with virNetworkCreateXML().
@@ -5524,7 +5621,7 @@ error:
 
 /**
  * virInterfaceGetConnect:
- * @iface: pointer to a interface
+ * @iface: pointer to an interface
  *
  * Provides the connection pointer associated with an interface.  The
  * reference counter on the connection is not increased by this
@@ -5798,7 +5895,7 @@ error:
 
 /**
  * virInterfaceGetName:
- * @iface: a interface object
+ * @iface: an interface object
  *
  * Get the public name for that interface
  *
@@ -5821,9 +5918,9 @@ virInterfaceGetName(virInterfacePtr iface)
 
 /**
  * virInterfaceGetMACString:
- * @iface: a interface object
+ * @iface: an interface object
  *
- * Get the MAC for a interface as string. For more information about
+ * Get the MAC for an interface as string. For more information about
  * MAC see RFC4122.
  *
  * Returns a pointer to the MAC address (in null-terminated ASCII
@@ -5846,11 +5943,11 @@ virInterfaceGetMACString(virInterfacePtr iface)
 
 /**
  * virInterfaceGetXMLDesc:
- * @iface: a interface object
- * @flags: and OR'ed set of extraction flags, not used yet
+ * @iface: an interface object
+ * @flags: an OR'ed set of extraction flags, not used yet
  *
  * Provide an XML description of the interface. The description may be reused
- * later to recreate the interface with virInterfaceCreateXML().
+ * later to redefine the interface with virInterfaceDefineXML().
  *
  * Returns a 0 terminated UTF-8 encoded XML instance, or NULL in case of error.
  *         the caller must free() the returned value.
@@ -6079,7 +6176,7 @@ error:
  * This method is typically useful for applications where multiple
  * threads are using a connection, and it is required that the
  * connection remain open until all threads have finished using
- * it. ie, each new thread using a interface would increment
+ * it. ie, each new thread using an interface would increment
  * the reference count.
  *
  * Returns 0 in case of success, -1 in case of failure.
@@ -6100,7 +6197,7 @@ virInterfaceRef(virInterfacePtr iface)
 
 /**
  * virInterfaceFree:
- * @iface: a interface object
+ * @iface: an interface object
  *
  * Free the interface object. The interface itself is unaltered.
  * The data structure is freed and should not be used thereafter.
@@ -6354,7 +6451,7 @@ virConnectFindStoragePoolSources(virConnectPtr conn,
 
     if (!VIR_IS_CONNECT(conn)) {
         virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
-        goto error;
+        return NULL;
     }
     if (type == NULL) {
         virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
@@ -7242,7 +7339,7 @@ virStoragePoolSetAutostart(virStoragePoolPtr pool,
 
     if (!VIR_IS_CONNECTED_STORAGE_POOL(pool)) {
         virLibStoragePoolError(NULL, VIR_ERR_INVALID_STORAGE_POOL, __FUNCTION__);
-        goto error;
+        return -1;
     }
 
     if (pool->conn->flags & VIR_CONNECT_RO) {
@@ -8604,4 +8701,693 @@ error:
     /* Copy to connection error object for back compatability */
     virSetConnError(conn);
     return -1;
+}
+
+/**
+ * virSecretGetConnect:
+ * @secret: A virSecret secret
+ *
+ * Provides the connection pointer associated with a secret.  The reference
+ * counter on the connection is not increased by this call.
+ *
+ * WARNING: When writing libvirt bindings in other languages, do not use this
+ * function.  Instead, store the connection and the secret object together.
+ *
+ * Returns the virConnectPtr or NULL in case of failure.
+ */
+virConnectPtr
+virSecretGetConnect (virSecretPtr secret)
+{
+    DEBUG("secret=%p", secret);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_SECRET (secret)) {
+        virLibSecretError (NULL, VIR_ERR_INVALID_SECRET, __FUNCTION__);
+        return NULL;
+    }
+    return secret->conn;
+}
+
+/**
+ * virConnectNumOfSecrets:
+ * @conn: virConnect connection
+ *
+ * Fetch number of currently defined secrets.
+ *
+ * Returns the number currently defined secrets.
+ */
+int
+virConnectNumOfSecrets(virConnectPtr conn)
+{
+    VIR_DEBUG("conn=%p", conn);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return -1;
+    }
+
+    if (conn->secretDriver != NULL &&
+        conn->secretDriver->numOfSecrets != NULL) {
+        int ret;
+
+        ret = conn->secretDriver->numOfSecrets(conn);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(conn);
+    return -1;
+}
+
+/**
+ * virConnectListSecrets:
+ * @conn: virConnect connection
+ * @uuids: Pointer to an array to store the UUIDs
+ * @maxuuids: size of the array.
+ *
+ * List UUIDs of defined secrets, store pointers to names in uuids.
+ *
+ * Returns the number of UUIDs provided in the array, or -1 on failure.
+ */
+int
+virConnectListSecrets(virConnectPtr conn, char **uuids, int maxuuids)
+{
+    VIR_DEBUG("conn=%p, uuids=%p, maxuuids=%d", conn, uuids, maxuuids);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return -1;
+    }
+    if (uuids == NULL || maxuuids < 0) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->secretDriver != NULL && conn->secretDriver->listSecrets != NULL) {
+        int ret;
+
+        ret = conn->secretDriver->listSecrets(conn, uuids, maxuuids);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(conn);
+    return -1;
+}
+
+/**
+ * virSecretLookupByUUID:
+ * @conn: pointer to the hypervisor connection
+ * @uuid: the raw UUID for the secret
+ *
+ * Try to lookup a secret on the given hypervisor based on its UUID.
+ * Uses the 16 bytes of raw data to describe the UUID
+ *
+ * Returns a new secret object or NULL in case of failure.  If the
+ * secret cannot be found, then VIR_ERR_NO_SECRET error is raised.
+ */
+virSecretPtr
+virSecretLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
+{
+    DEBUG("conn=%p, uuid=%s", conn, uuid);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (NULL);
+    }
+    if (uuid == NULL) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->secretDriver &&
+        conn->secretDriver->lookupByUUID) {
+        virSecretPtr ret;
+        ret = conn->secretDriver->lookupByUUID (conn, uuid);
+        if (!ret)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(conn);
+    return NULL;
+}
+
+/**
+ * virSecretLookupByUUIDString:
+ * @conn: pointer to the hypervisor connection
+ * @uuidstr: the string UUID for the secret
+ *
+ * Try to lookup a secret on the given hypervisor based on its UUID.
+ * Uses the printable string value to describe the UUID
+ *
+ * Returns a new secret object or NULL in case of failure.  If the
+ * secret cannot be found, then VIR_ERR_NO_SECRET error is raised.
+ */
+virSecretPtr
+virSecretLookupByUUIDString(virConnectPtr conn, const char *uuidstr)
+{
+    int raw[VIR_UUID_BUFLEN], i;
+    unsigned char uuid[VIR_UUID_BUFLEN];
+    int ret;
+
+    DEBUG("conn=%p, uuidstr=%s", conn, uuidstr);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (NULL);
+    }
+    if (uuidstr == NULL) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+    /* XXX: sexpr_uuid() also supports 'xxxx-xxxx-xxxx-xxxx' format.
+     *      We needn't it here. Right?
+     */
+    ret = sscanf(uuidstr,
+                 "%02x%02x%02x%02x-"
+                 "%02x%02x-"
+                 "%02x%02x-"
+                 "%02x%02x-"
+                 "%02x%02x%02x%02x%02x%02x",
+                 raw + 0, raw + 1, raw + 2, raw + 3,
+                 raw + 4, raw + 5, raw + 6, raw + 7,
+                 raw + 8, raw + 9, raw + 10, raw + 11,
+                 raw + 12, raw + 13, raw + 14, raw + 15);
+
+    if (ret!=VIR_UUID_BUFLEN) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+    for (i = 0; i < VIR_UUID_BUFLEN; i++)
+        uuid[i] = raw[i] & 0xFF;
+
+    return virSecretLookupByUUID(conn, &uuid[0]);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(conn);
+    return NULL;
+}
+
+
+/**
+ * virSecretLookupByUsage:
+ * @conn: pointer to the hypervisor connection
+ * @usageType: the type of secret usage
+ * @usageID: identifier of the object using the secret
+ *
+ * Try to lookup a secret on the given hypervisor based on its usage
+ * The usageID is unique within the set of secrets sharing the
+ * same usageType value.
+ *
+ * Returns a new secret object or NULL in case of failure.  If the
+ * secret cannot be found, then VIR_ERR_NO_SECRET error is raised.
+ */
+virSecretPtr
+virSecretLookupByUsage(virConnectPtr conn,
+                       int usageType,
+                       const char *usageID)
+{
+    DEBUG("conn=%p, usageType=%d usageID=%s", conn, usageType, NULLSTR(usageID));
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (NULL);
+    }
+    if (usageID == NULL) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->secretDriver &&
+        conn->secretDriver->lookupByUsage) {
+        virSecretPtr ret;
+        ret = conn->secretDriver->lookupByUsage (conn, usageType, usageID);
+        if (!ret)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(conn);
+    return NULL;
+}
+
+
+/**
+ * virSecretDefineXML:
+ * @conn: virConnect connection
+ * @xml: XML describing the secret.
+ * @flags: flags, use 0 for now
+ *
+ * If XML specifies an UUID, locates the specified secret and replaces all
+ * attributes of the secret specified by UUID by attributes specified in xml
+ * (any attributes not specified in xml are discarded).
+ *
+ * Otherwise, creates a new secret with an automatically chosen UUID, and
+ * initializes its attributes from xml.
+ *
+ * Returns a the secret on success, NULL on failure.
+ */
+virSecretPtr
+virSecretDefineXML(virConnectPtr conn, const char *xml, unsigned int flags)
+{
+    VIR_DEBUG("conn=%p, xml=%s, flags=%u", conn, xml, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return NULL;
+    }
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibConnError(conn, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+    if (xml == NULL) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->secretDriver != NULL && conn->secretDriver->defineXML != NULL) {
+        virSecretPtr ret;
+
+        ret = conn->secretDriver->defineXML(conn, xml, flags);
+        if (ret == NULL)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(conn);
+    return NULL;
+}
+
+/**
+ * virSecretGetUUID:
+ * @secret: A virSecret secret
+ * @uuid: buffer of VIR_UUID_BUFLEN bytes in size
+ *
+ * Fetches the UUID of the secret.
+ *
+ * Returns 0 on success with the uuid buffer being filled, or
+ * -1 upon failure.
+ */
+int
+virSecretGetUUID(virSecretPtr secret, unsigned char *uuid)
+{
+    VIR_DEBUG("secret=%p", secret);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_SECRET(secret)) {
+        virLibSecretError(NULL, VIR_ERR_INVALID_SECRET, __FUNCTION__);
+        return -1;
+    }
+    if (uuid == NULL) {
+        virLibSecretError(secret, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        /* Copy to connection error object for back compatability */
+        virSetConnError(secret->conn);
+        return -1;
+    }
+
+    memcpy(uuid, &secret->uuid[0], VIR_UUID_BUFLEN);
+
+    return 0;
+}
+
+/**
+ * virSecretGetUUIDString:
+ * @secret: a secret object
+ * @buf: pointer to a VIR_UUID_STRING_BUFLEN bytes array
+ *
+ * Get the UUID for a secret as string. For more information about
+ * UUID see RFC4122.
+ *
+ * Returns -1 in case of error, 0 in case of success
+ */
+int
+virSecretGetUUIDString(virSecretPtr secret, char *buf)
+{
+    unsigned char uuid[VIR_UUID_BUFLEN];
+    DEBUG("secret=%p, buf=%p", secret, buf);
+
+    virResetLastError();
+
+    if (!VIR_IS_SECRET(secret)) {
+        virLibSecretError(NULL, VIR_ERR_INVALID_SECRET, __FUNCTION__);
+        return (-1);
+    }
+    if (buf == NULL) {
+        virLibSecretError(secret, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if (virSecretGetUUID(secret, &uuid[0]))
+        goto error;
+
+    virUUIDFormat(uuid, buf);
+    return (0);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(secret->conn);
+    return -1;
+}
+
+/**
+ * virSecretGetUsageType:
+ * @secret: a secret object
+ *
+ * Get the type of object which uses this secret. The returned
+ * value is one of the constants defined in the virSecretUsageType
+ * enumeration. More values may be added to this enumeration in
+ * the future, so callers should expect to see usage types they
+ * do not explicitly know about.
+ *
+ * Returns a positive integer identifying the type of object,
+ * or -1 upon error.
+ */
+int
+virSecretGetUsageType(virSecretPtr secret)
+{
+    DEBUG("secret=%p", secret);
+
+    virResetLastError();
+
+    if (!VIR_IS_SECRET(secret)) {
+        virLibSecretError(NULL, VIR_ERR_INVALID_SECRET, __FUNCTION__);
+        return (-1);
+    }
+    return (secret->usageType);
+}
+
+/**
+ * virSecretGetUsageID:
+ * @secret: a secret object
+ *
+ * Get the unique identifier of the object with which this
+ * secret is to be used. The format of the identifier is
+ * dependant on the usage type of the secret. For a secret
+ * with a usage type of VIR_SECRET_USAGE_TYPE_VOLUME the
+ * identifier will be a fully qualfied path name. The
+ * identifiers are intended to be unique within the set of
+ * all secrets sharing the same usage type. ie, there shall
+ * only ever be one secret for each volume path.
+ *
+ * Returns a string identifying the object using the secret,
+ * or NULL upon error
+ */
+const char *
+virSecretGetUsageID(virSecretPtr secret)
+{
+    DEBUG("secret=%p", secret);
+
+    virResetLastError();
+
+    if (!VIR_IS_SECRET(secret)) {
+        virLibSecretError(NULL, VIR_ERR_INVALID_SECRET, __FUNCTION__);
+        return (NULL);
+    }
+    return (secret->usageID);
+}
+
+
+/**
+ * virSecretGetXMLDesc:
+ * @secret: A virSecret secret
+ * @flags: flags, use 0 for now
+ *
+ * Fetches an XML document describing attributes of the secret.
+ *
+ * Returns the XML document on success, NULL on failure.  The caller must
+ * free() the XML.
+ */
+char *
+virSecretGetXMLDesc(virSecretPtr secret, unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DEBUG("secret=%p, flags=%u", secret, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_SECRET(secret)) {
+        virLibSecretError(NULL, VIR_ERR_INVALID_SECRET, __FUNCTION__);
+        return NULL;
+    }
+
+    conn = secret->conn;
+    if (conn->secretDriver != NULL && conn->secretDriver->getXMLDesc != NULL) {
+        char *ret;
+
+        ret = conn->secretDriver->getXMLDesc(secret, flags);
+        if (ret == NULL)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(conn);
+    return NULL;
+}
+
+/**
+ * virSecretSetValue:
+ * @secret: A virSecret secret
+ * @value: Value of the secret
+ * @value_size: Size of the value
+ * @flags: flags, use 0 for now
+ *
+ * Sets the value of a secret.
+ *
+ * Returns 0 on success, -1 on failure.
+ */
+int
+virSecretSetValue(virSecretPtr secret, const unsigned char *value,
+                  size_t value_size, unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DEBUG("secret=%p, value=%p, value_size=%zu, flags=%u", secret, value,
+              value_size, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_SECRET(secret)) {
+        virLibSecretError(NULL, VIR_ERR_INVALID_SECRET, __FUNCTION__);
+        return -1;
+    }
+    conn = secret->conn;
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibSecretError(secret, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+    if (value == NULL) {
+        virLibSecretError(secret, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->secretDriver != NULL && conn->secretDriver->setValue != NULL) {
+        int ret;
+
+        ret = conn->secretDriver->setValue(secret, value, value_size, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(conn);
+    return -1;
+}
+
+/**
+ * virSecretGetValue:
+ * @secret: A virSecret connection
+ * @value_size: Place for storing size of the secret value
+ * @flags: flags, use 0 for now
+ *
+ * Fetches the value of a secret.
+ *
+ * Returns the secret value on success, NULL on failure.  The caller must
+ * free() the secret value.
+ */
+unsigned char *
+virSecretGetValue(virSecretPtr secret, size_t *value_size, unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DEBUG("secret=%p, value_size=%p, flags=%u", secret, value_size, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_SECRET(secret)) {
+        virLibSecretError(NULL, VIR_ERR_INVALID_SECRET, __FUNCTION__);
+        return NULL;
+    }
+    conn = secret->conn;
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibSecretError(secret, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+    if (value_size == NULL) {
+        virLibSecretError(secret, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    flags &= VIR_SECRET_GET_VALUE_FLAGS_MASK;
+
+    if (conn->secretDriver != NULL && conn->secretDriver->getValue != NULL) {
+        unsigned char *ret;
+
+        ret = conn->secretDriver->getValue(secret, value_size, flags);
+        if (ret == NULL)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(conn);
+    return NULL;
+}
+
+/**
+ * virSecretUndefine:
+ * @secret: A virSecret secret
+ *
+ * Deletes the specified secret.  This does not free the associated
+ * virSecretPtr object.
+ *
+ * Returns 0 on success, -1 on failure.
+ */
+int
+virSecretUndefine(virSecretPtr secret)
+{
+    virConnectPtr conn;
+
+    VIR_DEBUG("secret=%p", secret);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_SECRET(secret)) {
+        virLibSecretError(NULL, VIR_ERR_INVALID_SECRET, __FUNCTION__);
+        return -1;
+    }
+    conn = secret->conn;
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibSecretError(secret, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->secretDriver != NULL && conn->secretDriver->undefine != NULL) {
+        int ret;
+
+        ret = conn->secretDriver->undefine(secret);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(conn);
+    return -1;
+}
+
+/**
+ * virSecretRef:
+ * @secret: the secret to hold a reference on
+ *
+ * Increment the reference count on the secret. For each additional call to
+ * this method, there shall be a corresponding call to virSecretFree to release
+ * the reference count, once the caller no longer needs the reference to this
+ * object.
+ *
+ * This method is typically useful for applications where multiple threads are
+ * using a connection, and it is required that the connection remain open until
+ * all threads have finished using it. ie, each new thread using a secret would
+ * increment the reference count.
+ *
+ * Returns 0 in case of success, -1 in case of failure.
+ */
+int
+virSecretRef(virSecretPtr secret)
+{
+    if (!VIR_IS_CONNECTED_SECRET(secret)) {
+        virLibSecretError(NULL, VIR_ERR_INVALID_SECRET, __FUNCTION__);
+        return -1;
+    }
+    virMutexLock(&secret->conn->lock);
+    DEBUG("secret=%p refs=%d", secret, secret->refs);
+    secret->refs++;
+    virMutexUnlock(&secret->conn->lock);
+    return 0;
+}
+
+/**
+ * virSecretFree:
+ * @secret: pointer to a secret
+ *
+ * Release the secret handle. The underlying secret continues to exist.
+ *
+ * Return 0 on success, or -1 on error
+ */
+int
+virSecretFree(virSecretPtr secret)
+{
+    DEBUG("secret=%p", secret);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_SECRET(secret)) {
+        virLibSecretError(NULL, VIR_ERR_INVALID_SECRET, __FUNCTION__);
+        return -1;
+    }
+    if (virUnrefSecret(secret) < 0)
+        return -1;
+    return 0;
 }

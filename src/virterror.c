@@ -169,6 +169,9 @@ static const char *virErrorDomainName(virErrorDomain domain) {
         case VIR_FROM_ESX:
             dom = "ESX ";
             break;
+        case VIR_FROM_SECRET:
+            dom = "Secret Storage ";
+            break;
     }
     return(dom);
 }
@@ -1067,6 +1070,23 @@ virErrorMsg(virErrorNumber error, const char *info)
                 errmsg = _("multiple matching interfaces found");
             else
                 errmsg = _("multiple matching interfaces found: %s");
+            break;
+        case VIR_WAR_NO_SECRET:
+            if (info == NULL)
+                errmsg = _("Failed to find a secret storage driver");
+            else
+                errmsg = _("Failed to find a secret storage driver: %s");
+            break;
+        case VIR_ERR_INVALID_SECRET:
+            if (info == NULL)
+                errmsg = _("Invalid secret");
+            else
+                errmsg = _("Invalid secret: %s");
+        case VIR_ERR_NO_SECRET:
+            if (info == NULL)
+                errmsg = _("Secret not found");
+            else
+                errmsg = _("Secret not found: %s");
             break;
     }
     return (errmsg);

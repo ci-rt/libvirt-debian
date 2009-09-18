@@ -43,7 +43,7 @@
 #include <fnmatch.h>
 #include "virterror_internal.h"
 
-#ifdef HAVE_POLKIT
+#if HAVE_POLKIT0
 #include <polkit/polkit.h>
 #include <polkit-dbus/polkit-dbus.h>
 #endif
@@ -64,12 +64,14 @@ static virNetworkPtr get_nonnull_network (virConnectPtr conn, remote_nonnull_net
 static virInterfacePtr get_nonnull_interface (virConnectPtr conn, remote_nonnull_interface iface);
 static virStoragePoolPtr get_nonnull_storage_pool (virConnectPtr conn, remote_nonnull_storage_pool pool);
 static virStorageVolPtr get_nonnull_storage_vol (virConnectPtr conn, remote_nonnull_storage_vol vol);
+static virSecretPtr get_nonnull_secret (virConnectPtr conn, remote_nonnull_secret secret);
 static void make_nonnull_domain (remote_nonnull_domain *dom_dst, virDomainPtr dom_src);
 static void make_nonnull_network (remote_nonnull_network *net_dst, virNetworkPtr net_src);
 static void make_nonnull_interface (remote_nonnull_interface *interface_dst, virInterfacePtr interface_src);
 static void make_nonnull_storage_pool (remote_nonnull_storage_pool *pool_dst, virStoragePoolPtr pool_src);
 static void make_nonnull_storage_vol (remote_nonnull_storage_vol *vol_dst, virStorageVolPtr vol_src);
 static void make_nonnull_node_device (remote_nonnull_node_device *dev_dst, virNodeDevicePtr dev_src);
+static void make_nonnull_secret (remote_nonnull_secret *secret_dst, virSecretPtr secret_src);
 
 
 #include "remote_dispatch_prototypes.h"
@@ -3106,7 +3108,80 @@ remoteDispatchAuthSaslStep (struct qemud_server *server ATTRIBUTE_UNUSED,
 #endif /* HAVE_SASL */
 
 
-#if HAVE_POLKIT
+#if HAVE_POLKIT1
+static int
+remoteDispatchAuthPolkit (struct qemud_server *server,
+                          struct qemud_client *client,
+                          virConnectPtr conn ATTRIBUTE_UNUSED,
+                          remote_error *rerr,
+                          void *args ATTRIBUTE_UNUSED,
+                          remote_auth_polkit_ret *ret)
+{
+    pid_t callerPid;
+    uid_t callerUid;
+    const char *action;
+    int status = -1;
+    char pidbuf[50];
+    int rv;
+
+    virMutexLock(&server->lock);
+    virMutexLock(&client->lock);
+    virMutexUnlock(&server->lock);
+
+    action = client->readonly ?
+        "org.libvirt.unix.monitor" :
+        "org.libvirt.unix.manage";
+
+    const char * const pkcheck [] = {
+      PKCHECK_PATH,
+      "--action-id", action,
+      "--process", pidbuf,
+      "--allow-user-interaction",
+      NULL
+    };
+
+    REMOTE_DEBUG("Start PolicyKit auth %d", client->fd);
+    if (client->auth != REMOTE_AUTH_POLKIT) {
+        VIR_ERROR0(_("client tried invalid PolicyKit init request"));
+        goto authfail;
+    }
+
+    if (qemudGetSocketIdentity(client->fd, &callerUid, &callerPid) < 0) {
+        VIR_ERROR0(_("cannot get peer socket identity"));
+        goto authfail;
+    }
+
+    VIR_INFO(_("Checking PID %d running as %d"), callerPid, callerUid);
+
+    rv = snprintf(pidbuf, sizeof pidbuf, "%d", callerPid);
+    if (rv < 0 || rv >= sizeof pidbuf) {
+        VIR_ERROR(_("Caller PID was too large %d"), callerPid);
+        goto authfail;
+    }
+
+    if (virRun(NULL, pkcheck, &status) < 0) {
+        VIR_ERROR(_("Cannot invoke %s"), PKCHECK_PATH);
+        goto authfail;
+    }
+    if (status != 0) {
+        VIR_ERROR(_("Policy kit denied action %s from pid %d, uid %d, result: %d\n"),
+                  action, callerPid, callerUid, status);
+        goto authfail;
+    }
+    VIR_INFO(_("Policy allowed action %s from pid %d, uid %d"),
+             action, callerPid, callerUid);
+    ret->complete = 1;
+    client->auth = REMOTE_AUTH_NONE;
+
+    virMutexUnlock(&client->lock);
+    return 0;
+
+authfail:
+    remoteDispatchAuthError(rerr);
+    virMutexUnlock(&client->lock);
+    return -1;
+}
+#elif HAVE_POLKIT0
 static int
 remoteDispatchAuthPolkit (struct qemud_server *server,
                           struct qemud_client *client,
@@ -3217,7 +3292,7 @@ authfail:
     return -1;
 }
 
-#else /* HAVE_POLKIT */
+#else /* !HAVE_POLKIT0 & !HAVE_POLKIT1*/
 
 static int
 remoteDispatchAuthPolkit (struct qemud_server *server ATTRIBUTE_UNUSED,
@@ -3231,7 +3306,7 @@ remoteDispatchAuthPolkit (struct qemud_server *server ATTRIBUTE_UNUSED,
     remoteDispatchAuthError(rerr);
     return -1;
 }
-#endif /* HAVE_POLKIT */
+#endif /* HAVE_POLKIT1 */
 
 
 /***************************************************************
@@ -4515,6 +4590,215 @@ error:
     VIR_FREE(msg);
 }
 
+static int
+remoteDispatchNumOfSecrets (struct qemud_server *server ATTRIBUTE_UNUSED,
+                            struct qemud_client *client ATTRIBUTE_UNUSED,
+                            virConnectPtr conn, remote_error *err,
+                            void *args ATTRIBUTE_UNUSED,
+                            remote_num_of_secrets_ret *ret)
+{
+    ret->num = virConnectNumOfSecrets (conn);
+    if (ret->num == -1) {
+        remoteDispatchConnError (err, conn);
+        return -1;
+    }
+
+    return 0;
+}
+
+static int
+remoteDispatchListSecrets (struct qemud_server *server ATTRIBUTE_UNUSED,
+                           struct qemud_client *client ATTRIBUTE_UNUSED,
+                           virConnectPtr conn, remote_error *err,
+                           remote_list_secrets_args *args,
+                           remote_list_secrets_ret *ret)
+{
+    if (args->maxuuids > REMOTE_SECRET_UUID_LIST_MAX) {
+        remoteDispatchFormatError (err, "%s",
+                                   _("maxuuids > REMOTE_SECRET_UUID_LIST_MAX"));
+        return -1;
+    }
+
+    if (VIR_ALLOC_N (ret->uuids.uuids_val, args->maxuuids) < 0) {
+        remoteDispatchOOMError (err);
+        return -1;
+    }
+
+    ret->uuids.uuids_len = virConnectListSecrets (conn, ret->uuids.uuids_val,
+                                                  args->maxuuids);
+    if (ret->uuids.uuids_len == -1) {
+        VIR_FREE (ret->uuids.uuids_val);
+        remoteDispatchConnError (err, conn);
+        return -1;
+    }
+
+    return 0;
+}
+
+static int
+remoteDispatchSecretDefineXml (struct qemud_server *server ATTRIBUTE_UNUSED,
+                               struct qemud_client *client ATTRIBUTE_UNUSED,
+                               virConnectPtr conn, remote_error *err,
+                               remote_secret_define_xml_args *args,
+                               remote_secret_define_xml_ret *ret)
+{
+    virSecretPtr secret;
+
+    secret = virSecretDefineXML (conn, args->xml, args->flags);
+    if (secret == NULL) {
+        remoteDispatchConnError (err, conn);
+        return -1;
+    }
+
+    make_nonnull_secret (&ret->secret, secret);
+    virSecretFree (secret);
+    return 0;
+}
+
+static int
+remoteDispatchSecretGetValue (struct qemud_server *server ATTRIBUTE_UNUSED,
+                              struct qemud_client *client ATTRIBUTE_UNUSED,
+                              virConnectPtr conn, remote_error *err,
+                              remote_secret_get_value_args *args,
+                              remote_secret_get_value_ret *ret)
+{
+    virSecretPtr secret;
+    size_t value_size;
+    unsigned char *value;
+
+    secret = get_nonnull_secret (conn, args->secret);
+    if (secret == NULL) {
+        remoteDispatchConnError (err, conn);
+        return -1;
+    }
+
+    value = virSecretGetValue (secret, &value_size, args->flags);
+    if (value == NULL) {
+        remoteDispatchConnError (err, conn);
+        virSecretFree(secret);
+        return -1;
+    }
+
+    ret->value.value_len = value_size;
+    ret->value.value_val = (char *)value;
+    virSecretFree(secret);
+    return 0;
+}
+
+static int
+remoteDispatchSecretGetXmlDesc (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                struct qemud_client *client ATTRIBUTE_UNUSED,
+                                virConnectPtr conn, remote_error *err,
+                                remote_secret_get_xml_desc_args *args,
+                                remote_secret_get_xml_desc_ret *ret)
+{
+    virSecretPtr secret;
+
+    secret = get_nonnull_secret (conn, args->secret);
+    if (secret == NULL) {
+        remoteDispatchConnError (err, conn);
+        return -1;
+    }
+    ret->xml = virSecretGetXMLDesc (secret, args->flags);
+    if (ret->xml == NULL) {
+        remoteDispatchConnError (err, conn);
+        virSecretFree(secret);
+        return -1;
+    }
+    virSecretFree(secret);
+    return 0;
+}
+
+static int
+remoteDispatchSecretLookupByUuid (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                  struct qemud_client *client ATTRIBUTE_UNUSED,
+                                  virConnectPtr conn, remote_error *err,
+                                  remote_secret_lookup_by_uuid_args *args,
+                                  remote_secret_lookup_by_uuid_ret *ret)
+{
+    virSecretPtr secret;
+
+    secret = virSecretLookupByUUID (conn, (unsigned char *)args->uuid);
+    if (secret == NULL) {
+        remoteDispatchConnError (err, conn);
+        return -1;
+    }
+
+    make_nonnull_secret (&ret->secret, secret);
+    virSecretFree (secret);
+    return 0;
+}
+
+static int
+remoteDispatchSecretSetValue (struct qemud_server *server ATTRIBUTE_UNUSED,
+                              struct qemud_client *client ATTRIBUTE_UNUSED,
+                              virConnectPtr conn, remote_error *err,
+                              remote_secret_set_value_args *args,
+                              void *ret ATTRIBUTE_UNUSED)
+{
+    virSecretPtr secret;
+
+    secret = get_nonnull_secret (conn, args->secret);
+    if (secret == NULL) {
+        remoteDispatchConnError (err, conn);
+        return -1;
+    }
+    if (virSecretSetValue (secret, (const unsigned char *)args->value.value_val,
+                           args->value.value_len, args->flags) < 0) {
+        remoteDispatchConnError (err, conn);
+        virSecretFree(secret);
+        return -1;
+    }
+
+    virSecretFree(secret);
+    return 0;
+}
+
+static int
+remoteDispatchSecretUndefine (struct qemud_server *server ATTRIBUTE_UNUSED,
+                              struct qemud_client *client ATTRIBUTE_UNUSED,
+                              virConnectPtr conn, remote_error *err,
+                              remote_secret_undefine_args *args,
+                              void *ret ATTRIBUTE_UNUSED)
+{
+    virSecretPtr secret;
+
+    secret = get_nonnull_secret (conn, args->secret);
+    if (secret == NULL) {
+        remoteDispatchConnError (err, conn);
+        return -1;
+    }
+    if (virSecretUndefine (secret) < 0) {
+        remoteDispatchConnError (err, conn);
+        virSecretFree(secret);
+        return -1;
+    }
+
+    virSecretFree(secret);
+    return 0;
+}
+
+static int
+remoteDispatchSecretLookupByUsage (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                   struct qemud_client *client ATTRIBUTE_UNUSED,
+                                   virConnectPtr conn, remote_error *err,
+                                   remote_secret_lookup_by_usage_args *args,
+                                   remote_secret_lookup_by_usage_ret *ret)
+{
+    virSecretPtr secret;
+
+    secret = virSecretLookupByUsage (conn, args->usageType, args->usageID);
+    if (secret == NULL) {
+        remoteDispatchConnError (err, conn);
+        return -1;
+    }
+
+    make_nonnull_secret (&ret->secret, secret);
+    virSecretFree (secret);
+    return 0;
+}
+
+
 /*----- Helpers. -----*/
 
 /* get_nonnull_domain and get_nonnull_network turn an on-wire
@@ -4561,6 +4845,12 @@ get_nonnull_storage_vol (virConnectPtr conn, remote_nonnull_storage_vol vol)
     return ret;
 }
 
+static virSecretPtr
+get_nonnull_secret (virConnectPtr conn, remote_nonnull_secret secret)
+{
+    return virGetSecret (conn, BAD_CAST secret.uuid, secret.usageType, secret.usageID);
+}
+
 /* Make remote_nonnull_domain and remote_nonnull_network. */
 static void
 make_nonnull_domain (remote_nonnull_domain *dom_dst, virDomainPtr dom_src)
@@ -4604,4 +4894,12 @@ static void
 make_nonnull_node_device (remote_nonnull_node_device *dev_dst, virNodeDevicePtr dev_src)
 {
     dev_dst->name = strdup(dev_src->name);
+}
+
+static void
+make_nonnull_secret (remote_nonnull_secret *secret_dst, virSecretPtr secret_src)
+{
+    memcpy (secret_dst->uuid, secret_src->uuid, VIR_UUID_BUFLEN);
+    secret_dst->usageType = secret_src->usageType;
+    secret_dst->usageID = strdup (secret_src->usageID);
 }

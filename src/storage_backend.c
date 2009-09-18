@@ -1,7 +1,7 @@
 /*
  * storage_backend.c: internal storage driver backend contract
  *
- * Copyright (C) 2007-2008 Red Hat, Inc.
+ * Copyright (C) 2007-2009 Red Hat, Inc.
  * Copyright (C) 2007-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -43,12 +43,16 @@
 #include <selinux/selinux.h>
 #endif
 
+#include "datatypes.h"
 #include "virterror_internal.h"
 #include "util.h"
 #include "memory.h"
 #include "node_device.h"
-
+#include "internal.h"
+#include "secret_conf.h"
+#include "uuid.h"
 #include "storage_backend.h"
+#include "logging.h"
 
 #if WITH_STORAGE_LVM
 #include "storage_backend_logical.h"
@@ -58,6 +62,9 @@
 #endif
 #if WITH_STORAGE_SCSI
 #include "storage_backend_scsi.h"
+#endif
+#if WITH_STORAGE_MPATH
+#include "storage_backend_mpath.h"
 #endif
 #if WITH_STORAGE_DISK
 #include "storage_backend_disk.h"
@@ -89,6 +96,9 @@ static virStorageBackendPtr backends[] = {
 #if WITH_STORAGE_SCSI
     &virStorageBackendSCSI,
 #endif
+#if WITH_STORAGE_MPATH
+    &virStorageBackendMpath,
+#endif
 #if WITH_STORAGE_DISK
     &virStorageBackendDisk,
 #endif
@@ -103,7 +113,7 @@ enum {
     TOOL_QCOW_CREATE,
 };
 
-static int
+static int ATTRIBUTE_NONNULL (3)
 virStorageBackendCopyToFD(virConnectPtr conn,
                           virStorageVolDefPtr vol,
                           virStorageVolDefPtr inputvol,
@@ -119,13 +129,11 @@ virStorageBackendCopyToFD(virConnectPtr conn,
     char zerobuf[512];
     char *buf = NULL;
 
-    if (inputvol) {
-        if ((inputfd = open(inputvol->target.path, O_RDONLY)) < 0) {
-            virReportSystemError(conn, errno,
-                                 _("could not open input path '%s'"),
-                                 inputvol->target.path);
-            goto cleanup;
-        }
+    if ((inputfd = open(inputvol->target.path, O_RDONLY)) < 0) {
+        virReportSystemError(conn, errno,
+                             _("could not open input path '%s'"),
+                             inputvol->target.path);
+        goto cleanup;
     }
 
     bzero(&zerobuf, sizeof(zerobuf));
@@ -246,6 +254,13 @@ virStorageBackendCreateRaw(virConnectPtr conn,
     unsigned long long remain;
     char *buf = NULL;
 
+    if (vol->target.encryption != NULL) {
+        virStorageReportError(conn, VIR_ERR_NO_SUPPORT,
+                              "%s", _("storage pool does not support encrypted "
+                                      "volumes"));
+        return -1;
+    }
+
     if ((fd = open(vol->target.path, O_RDWR | O_CREAT | O_EXCL,
                    vol->target.perms.mode)) < 0) {
         virReportSystemError(conn, errno,
@@ -324,6 +339,120 @@ cleanup:
 }
 
 static int
+virStorageGenerateSecretUUID(virConnectPtr conn,
+                             unsigned char *uuid)
+{
+    unsigned attempt;
+
+    for (attempt = 0; attempt < 65536; attempt++) {
+        virSecretPtr tmp;
+        if (virUUIDGenerate(uuid) < 0) {
+            virSecretReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
+                                 _("unable to generate uuid"));
+            return -1;
+        }
+        tmp = conn->secretDriver->lookupByUUID(conn, uuid);
+        if (tmp == NULL)
+            return 0;
+
+        virSecretFree(tmp);
+    }
+
+    virSecretReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
+                         _("too many conflicts when generating an uuid"));
+
+    return -1;
+}
+
+static int
+virStorageGenerateQcowEncryption(virConnectPtr conn,
+                                 virStorageVolDefPtr vol)
+{
+    virSecretDefPtr def = NULL;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    virStorageEncryptionPtr enc;
+    virStorageEncryptionSecretPtr enc_secret = NULL;
+    virSecretPtr secret = NULL;
+    char *xml;
+    unsigned char value[VIR_STORAGE_QCOW_PASSPHRASE_SIZE];
+    int ret = -1;
+
+    if (conn->secretDriver == NULL ||
+        conn->secretDriver->lookupByUUID == NULL ||
+        conn->secretDriver->defineXML == NULL ||
+        conn->secretDriver->setValue == NULL) {
+        virStorageReportError(conn, VIR_ERR_NO_SUPPORT, "%s",
+                              _("secret storage not supported"));
+        goto cleanup;
+    }
+
+    enc = vol->target.encryption;
+    if (enc->nsecrets != 0) {
+        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
+                              _("secrets already defined"));
+        goto cleanup;
+    }
+
+    if (VIR_ALLOC(enc_secret) < 0 || VIR_REALLOC_N(enc->secrets, 1) < 0 ||
+        VIR_ALLOC(def) < 0) {
+        virReportOOMError(conn);
+        goto cleanup;
+    }
+
+    def->ephemeral = 0;
+    def->private = 0;
+    if (virStorageGenerateSecretUUID(conn, def->uuid) < 0)
+        goto cleanup;
+
+    def->usage_type = VIR_SECRET_USAGE_TYPE_VOLUME;
+    def->usage.volume = strdup(vol->target.path);
+    if (def->usage.volume == NULL) {
+        virReportOOMError(conn);
+        goto cleanup;
+    }
+    xml = virSecretDefFormat(conn, def);
+    virSecretDefFree(def);
+    def = NULL;
+    if (xml == NULL)
+        goto cleanup;
+
+    secret = conn->secretDriver->defineXML(conn, xml, 0);
+    if (secret == NULL) {
+        VIR_FREE(xml);
+        goto cleanup;
+    }
+    VIR_FREE(xml);
+
+    if (virStorageGenerateQcowPassphrase(conn, value) < 0)
+        goto cleanup;
+
+    if (conn->secretDriver->setValue(secret, value, sizeof(value), 0) < 0)
+        goto cleanup;
+
+    enc_secret->type = VIR_STORAGE_ENCRYPTION_SECRET_TYPE_PASSPHRASE;
+    memcpy(enc_secret->uuid, secret->uuid, VIR_UUID_BUFLEN);
+    enc->format = VIR_STORAGE_ENCRYPTION_FORMAT_QCOW;
+    enc->secrets[0] = enc_secret; /* Space for secrets[0] allocated above */
+    enc_secret = NULL;
+    enc->nsecrets = 1;
+
+    ret = 0;
+
+cleanup:
+    if (secret != NULL) {
+        if (ret != 0 &&
+            conn->secretDriver->undefine != NULL)
+            conn->secretDriver->undefine(secret);
+        virSecretFree(secret);
+    }
+    xml = virBufferContentAndReset(&buf);
+    VIR_FREE(xml);
+    virSecretDefFree(def);
+    VIR_FREE(enc_secret);
+    return ret;
+}
+
+static int
 virStorageBackendCreateQemuImg(virConnectPtr conn,
                                virStorageVolDefPtr vol,
                                virStorageVolDefPtr inputvol,
@@ -346,15 +475,17 @@ virStorageBackendCreateQemuImg(virConnectPtr conn,
                             NULL;
 
     const char **imgargv;
+    /* The extra NULL field is for indicating encryption (-e). */
     const char *imgargvnormal[] = {
         NULL, "create",
         "-f", type,
         vol->target.path,
         size,
         NULL,
+        NULL
     };
     /* Extra NULL fields are for including "backingType" when using
-     * kvm-img. It's -F backingType
+     * kvm-img (-F backingType), and for indicating encryption (-e).
      */
     const char *imgargvbacking[] = {
         NULL, "create",
@@ -362,6 +493,7 @@ virStorageBackendCreateQemuImg(virConnectPtr conn,
         "-b", vol->backingStore.path,
         vol->target.path,
         size,
+        NULL,
         NULL,
         NULL,
         NULL
@@ -417,6 +549,36 @@ virStorageBackendCreateQemuImg(virConnectPtr conn,
         }
     }
 
+    if (vol->target.encryption != NULL) {
+        virStorageEncryptionPtr enc;
+
+        if (vol->target.format != VIR_STORAGE_VOL_FILE_QCOW &&
+            vol->target.format != VIR_STORAGE_VOL_FILE_QCOW2) {
+            virStorageReportError(conn, VIR_ERR_NO_SUPPORT,
+                                  _("qcow volume encryption unsupported with "
+                                    "volume format %s"), type);
+            return -1;
+        }
+        enc = vol->target.encryption;
+        if (enc->format != VIR_STORAGE_ENCRYPTION_FORMAT_QCOW &&
+            enc->format != VIR_STORAGE_ENCRYPTION_FORMAT_DEFAULT) {
+            virStorageReportError(conn, VIR_ERR_NO_SUPPORT,
+                                  _("unsupported volume encryption format %d"),
+                                  vol->target.encryption->format);
+            return -1;
+        }
+        if (enc->nsecrets > 1) {
+            virStorageReportError(conn, VIR_ERR_INVALID_STORAGE_VOL,
+                                  _("too many secrets for qcow encryption"));
+            return -1;
+        }
+        if (enc->format == VIR_STORAGE_ENCRYPTION_FORMAT_DEFAULT ||
+            enc->nsecrets == 0) {
+            if (virStorageGenerateQcowEncryption(conn, vol) < 0)
+                return -1;
+        }
+    }
+
     if ((create_tool = virFindFileInPath("kvm-img")) != NULL)
         use_kvmimg = 1;
     else if ((create_tool = virFindFileInPath("qemu-img")) != NULL)
@@ -437,11 +599,16 @@ virStorageBackendCreateQemuImg(virConnectPtr conn,
             imgargvbacking[7] = backingType;
             imgargvbacking[8] = vol->target.path;
             imgargvbacking[9] = size;
-        }
+            if (vol->target.encryption != NULL)
+                imgargvbacking[10] = "-e";
+        } else if (vol->target.encryption != NULL)
+            imgargvbacking[8] = "-e";
         imgargv = imgargvbacking;
     } else {
         imgargvnormal[0] = create_tool;
         imgargv = imgargvnormal;
+        if (vol->target.encryption != NULL)
+            imgargv[6] = "-e";
     }
 
 
@@ -486,6 +653,12 @@ virStorageBackendCreateQcowCreate(virConnectPtr conn,
     if (vol->backingStore.path != NULL) {
         virStorageReportError(conn, VIR_ERR_NO_SUPPORT, "%s",
                               _("copy-on-write image not supported with "
+                                      "qcow-create"));
+        return -1;
+    }
+    if (vol->target.encryption != NULL) {
+        virStorageReportError(conn, VIR_ERR_NO_SUPPORT,
+                              "%s", _("encrypted volumes not supported with "
                                       "qcow-create"));
         return -1;
     }
@@ -581,31 +754,6 @@ virStorageBackendGetBuildVolFromFunction(virConnectPtr conn,
     else
         return virStorageBackendCreateRaw;
 }
-
-#if defined(UDEVADM) || defined(UDEVSETTLE)
-void virWaitForDevices(virConnectPtr conn)
-{
-#ifdef UDEVADM
-    const char *const settleprog[] = { UDEVADM, "settle", NULL };
-#else
-    const char *const settleprog[] = { UDEVSETTLE, NULL };
-#endif
-    int exitstatus;
-
-    if (access(settleprog[0], X_OK) != 0)
-        return;
-
-    /*
-     * NOTE: we ignore errors here; this is just to make sure that any device
-     * nodes that are being created finish before we try to scan them.
-     * If this fails for any reason, we still have the backup of polling for
-     * 5 seconds for device nodes.
-     */
-    virRun(conn, settleprog, &exitstatus);
-}
-#else
-void virWaitForDevices(virConnectPtr conn ATTRIBUTE_UNUSED) {}
-#endif
 
 
 virStorageBackendPtr
@@ -769,11 +917,81 @@ virStorageBackendUpdateVolTargetInfoFD(virConnectPtr conn,
     return 0;
 }
 
-void virStorageBackendWaitForDevices(virConnectPtr conn)
+
+struct diskType {
+    int part_table_type;
+    unsigned short offset;
+    unsigned short length;
+    unsigned long long magic;
+};
+
+
+static struct diskType const disk_types[] = {
+    { VIR_STORAGE_POOL_DISK_LVM2, 0x218, 8, 0x31303020324D564CULL },
+    { VIR_STORAGE_POOL_DISK_GPT,  0x200, 8, 0x5452415020494645ULL },
+    { VIR_STORAGE_POOL_DISK_DVH,  0x0,   4, 0x41A9E50BULL },
+    { VIR_STORAGE_POOL_DISK_MAC,  0x0,   2, 0x5245ULL },
+    { VIR_STORAGE_POOL_DISK_BSD,  0x40,  4, 0x82564557ULL },
+    { VIR_STORAGE_POOL_DISK_SUN,  0x1fc, 2, 0xBEDAULL },
+    /*
+     * NOTE: pc98 is funky; the actual signature is 0x55AA (just like dos), so
+     * we can't use that.  At the moment I'm relying on the "dummy" IPL
+     * bootloader data that comes from parted.  Luckily, the chances of running
+     * into a pc98 machine running libvirt are approximately nil.
+     */
+    /*{ 0x1fe, 2, 0xAA55UL },*/
+    { VIR_STORAGE_POOL_DISK_PC98, 0x0,   8, 0x314C5049000000CBULL },
+    /*
+     * NOTE: the order is important here; some other disk types (like GPT and
+     * and PC98) also have 0x55AA at this offset.  For that reason, the DOS
+     * one must be the last one.
+     */
+    { VIR_STORAGE_POOL_DISK_DOS,  0x1fe, 2, 0xAA55ULL },
+    { -1,                         0x0,   0, 0x0ULL },
+};
+
+
+int
+virStorageBackendUpdateVolTargetFormatFD(virConnectPtr conn,
+                                         virStorageVolTargetPtr target,
+                                         int fd)
 {
-    virWaitForDevices(conn);
-    return;
+    int i;
+    off_t start;
+    unsigned char buffer[1024];
+    ssize_t bytes;
+
+    /* make sure to set the target format "unknown" to begin with */
+    target->format = VIR_STORAGE_POOL_DISK_UNKNOWN;
+
+    start = lseek(fd, 0, SEEK_SET);
+    if (start < 0) {
+        virReportSystemError(conn, errno,
+                             _("cannot seek to beginning of file '%s'"),
+                             target->path);
+        return -1;
+    }
+    bytes = saferead(fd, buffer, sizeof(buffer));
+    if (bytes < 0) {
+        virReportSystemError(conn, errno,
+                             _("cannot read beginning of file '%s'"),
+                             target->path);
+        return -1;
+    }
+
+    for (i = 0; disk_types[i].part_table_type != -1; i++) {
+        if (disk_types[i].offset + disk_types[i].length > bytes)
+            continue;
+        if (memcmp(buffer+disk_types[i].offset, &disk_types[i].magic,
+            disk_types[i].length) == 0) {
+            target->format = disk_types[i].part_table_type;
+            break;
+        }
+    }
+
+    return 0;
 }
+
 
 /*
  * Given a volume path directly in /dev/XXX, iterate over the

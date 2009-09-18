@@ -248,7 +248,6 @@ resetAll(void)
 static int
 mymain(int argc, char **argv)
 {
-    int ret = 0;
     char *progname;
     int i;
     pthread_t eventThread;
@@ -272,15 +271,9 @@ mymain(int argc, char **argv)
     if (virThreadInitialize() < 0)
         return EXIT_FAILURE;
     char *debugEnv = getenv("LIBVIRT_DEBUG");
-    if (debugEnv && *debugEnv && *debugEnv != '0') {
-        if (STREQ(debugEnv, "2") || STREQ(debugEnv, "info"))
-            virLogSetDefaultPriority(VIR_LOG_INFO);
-        else if (STREQ(debugEnv, "3") || STREQ(debugEnv, "warning"))
-            virLogSetDefaultPriority(VIR_LOG_WARN);
-        else if (STREQ(debugEnv, "4") || STREQ(debugEnv, "error"))
-            virLogSetDefaultPriority(VIR_LOG_ERROR);
-        else
-            virLogSetDefaultPriority(VIR_LOG_DEBUG);
+    if (debugEnv && *debugEnv && (virLogParseDefaultPriority(debugEnv) == -1)) {
+        fprintf(stderr, "Invalid log level setting.\n");
+        return EXIT_FAILURE;
     }
 
     virEventInit();
@@ -310,7 +303,8 @@ mymain(int argc, char **argv)
     /* First time, is easy - just try triggering one of our
      * registered handles */
     startJob("Simple write", &test);
-    ret = safewrite(handles[1].pipeFD[1], &one, 1);
+    if (safewrite(handles[1].pipeFD[1], &one, 1) != 1)
+        return EXIT_FAILURE;
     if (finishJob(1, -1) != EXIT_SUCCESS)
         return EXIT_FAILURE;
 
@@ -320,7 +314,8 @@ mymain(int argc, char **argv)
      * try triggering another handle */
     virEventRemoveHandleImpl(handles[0].watch);
     startJob("Deleted before poll", &test);
-    ret = safewrite(handles[1].pipeFD[1], &one, 1);
+    if (safewrite(handles[1].pipeFD[1], &one, 1) != 1)
+        return EXIT_FAILURE;
     if (finishJob(1, -1) != EXIT_SUCCESS)
         return EXIT_FAILURE;
 
@@ -352,8 +347,9 @@ mymain(int argc, char **argv)
      * about */
     startJob("Deleted during dispatch", &test);
     handles[2].delete = handles[3].watch;
-    ret = safewrite(handles[2].pipeFD[1], &one, 1);
-    ret = safewrite(handles[3].pipeFD[1], &one, 1);
+    if (safewrite(handles[2].pipeFD[1], &one, 1) != 1
+        || safewrite(handles[3].pipeFD[1], &one, 1) != 1)
+        return EXIT_FAILURE;
     if (finishJob(2, -1) != EXIT_SUCCESS)
         return EXIT_FAILURE;
 
@@ -362,7 +358,8 @@ mymain(int argc, char **argv)
     /* Extreme fun, lets delete ourselves during dispatch */
     startJob("Deleted during dispatch", &test);
     handles[2].delete = handles[2].watch;
-    ret = safewrite(handles[2].pipeFD[1], &one, 1);
+    if (safewrite(handles[2].pipeFD[1], &one, 1) != 1)
+        return EXIT_FAILURE;
     if (finishJob(2, -1) != EXIT_SUCCESS)
         return EXIT_FAILURE;
 
@@ -436,6 +433,26 @@ mymain(int argc, char **argv)
     for (i = 0 ; i < NUM_TIME ; i++)
         virEventRemoveTimeoutImpl(timers[i].timer);
 
+    resetAll();
+
+    /* Final test, register same FD twice, once with no
+     * events, and make sure the right callback runs */
+    handles[0].pipeFD[0] = handles[1].pipeFD[0];
+    handles[0].pipeFD[1] = handles[1].pipeFD[1];
+
+    handles[0].watch = virEventAddHandleImpl(handles[0].pipeFD[0],
+                                             0,
+                                             testPipeReader,
+                                             &handles[0], NULL);
+    handles[1].watch = virEventAddHandleImpl(handles[1].pipeFD[0],
+                                             VIR_EVENT_HANDLE_READABLE,
+                                             testPipeReader,
+                                             &handles[1], NULL);
+    startJob("Write duplicate", &test);
+    if (safewrite(handles[1].pipeFD[1], &one, 1) != 1)
+        return EXIT_FAILURE;
+    if (finishJob(1, -1) != EXIT_SUCCESS)
+        return EXIT_FAILURE;
 
     //pthread_kill(eventThread, SIGTERM);
 

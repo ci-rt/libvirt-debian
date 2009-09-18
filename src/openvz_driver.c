@@ -504,11 +504,10 @@ openvzGenerateVethName(int veid, char *dev_name_ve)
 static char *
 openvzGenerateContainerVethName(int veid)
 {
-    int     ret;
     char    temp[1024];
 
     /* try to get line "^NETIF=..." from config */
-    if ( (ret = openvzReadVPSConfigParam(veid, "NETIF", temp, sizeof(temp))) <= 0) {
+    if (openvzReadVPSConfigParam(veid, "NETIF", temp, sizeof(temp)) <= 0) {
         snprintf(temp, sizeof(temp), "eth0");
     } else {
         char *saveptr;
@@ -1000,9 +999,10 @@ cleanup:
     return ret;
 }
 
-static int openvzGetMaxVCPUs(virConnectPtr conn, const char *type) {
-    if (STRCASEEQ(type, "openvz"))
-        return 1028; //OpenVZ has no limitation
+static int openvzGetMaxVCPUs(virConnectPtr conn, const char *type)
+{
+    if (type == NULL || STRCASEEQ(type, "openvz"))
+        return 1028; /* OpenVZ has no limitation */
 
     openvzError(conn, VIR_ERR_INVALID_ARG,
                      _("unknown type '%s'"), type);

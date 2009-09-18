@@ -22,10 +22,14 @@
 #ifndef __VIR_PCI_H__
 #define __VIR_PCI_H__
 
-#include <config.h>
 #include "internal.h"
 
 typedef struct _pciDevice pciDevice;
+
+typedef struct {
+    unsigned count;
+    pciDevice **devs;
+} pciDeviceList;
 
 pciDevice *pciGetDevice      (virConnectPtr  conn,
                               unsigned       domain,
@@ -39,6 +43,37 @@ int        pciDettachDevice  (virConnectPtr  conn,
 int        pciReAttachDevice (virConnectPtr  conn,
                               pciDevice     *dev);
 int        pciResetDevice    (virConnectPtr  conn,
-                              pciDevice     *dev);
+                              pciDevice     *dev,
+                              pciDeviceList *activeDevs);
+void      pciDeviceSetManaged(pciDevice     *dev,
+                              unsigned       managed);
+unsigned  pciDeviceGetManaged(pciDevice     *dev);
+
+pciDeviceList *pciDeviceListNew  (virConnectPtr conn);
+void           pciDeviceListFree (virConnectPtr conn,
+                                  pciDeviceList *list);
+int            pciDeviceListAdd  (virConnectPtr conn,
+                                  pciDeviceList *list,
+                                  pciDevice *dev);
+void           pciDeviceListDel  (virConnectPtr conn,
+                                  pciDeviceList *list,
+                                  pciDevice *dev);
+pciDevice *    pciDeviceListFind (pciDeviceList *list,
+                                  pciDevice *dev);
+
+/*
+ * Callback that will be invoked once for each file
+ * associated with / used for PCI host device access.
+ *
+ * Should return 0 if successfully processed, or
+ * -1 to indicate error and abort iteration
+ */
+typedef int (*pciDeviceFileActor)(virConnectPtr conn, pciDevice *dev,
+                                  const char *path, void *opaque);
+
+int pciDeviceFileIterate(virConnectPtr conn,
+                         pciDevice *dev,
+                         pciDeviceFileActor actor,
+                         void *opaque);
 
 #endif /* __VIR_PCI_H__ */

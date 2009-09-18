@@ -1,7 +1,7 @@
 /*
  * xm_internal.h: helper routines for dealing with inactive domains
  *
- * Copyright (C) 2006-2007 Red Hat
+ * Copyright (C) 2006-2007, 2009 Red Hat
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -862,7 +862,7 @@ xenXMDomainConfigParse(virConnectPtr conn, virConfPtr conf) {
              */
 
             /* Extract the source file path*/
-            if (!(offset = strchr(head, ',')) || offset[0] == '\0')
+            if (!(offset = strchr(head, ',')))
                 goto skipdisk;
             if ((offset - head) >= (PATH_MAX-1))
                 goto skipdisk;
@@ -882,7 +882,7 @@ xenXMDomainConfigParse(virConnectPtr conn, virConfPtr conf) {
                 head = head + 6;
 
             /* Extract the dest device name */
-            if (!(offset = strchr(head, ',')) || offset[0] == '\0')
+            if (!(offset = strchr(head, ',')))
                 goto skipdisk;
             if (VIR_ALLOC_N(disk->dst, (offset - head) + 1) < 0)
                 goto no_memory;
@@ -990,14 +990,11 @@ xenXMDomainConfigParse(virConnectPtr conn, virConfPtr conf) {
             disk = NULL;
         }
     }
-    qsort(def->disks, def->ndisks, sizeof(*def->disks),
-          virDomainDiskQSort);
 
     list = virConfGetValue(conf, "vif");
     if (list && list->type == VIR_CONF_LIST) {
         list = list->list;
         while (list) {
-            int type = -1;
             char script[PATH_MAX];
             char model[10];
             char ip[16];
@@ -1021,7 +1018,7 @@ xenXMDomainConfigParse(virConnectPtr conn, virConfPtr conf) {
                 char *data;
                 char *nextkey = strchr(key, ',');
 
-                if (!(data = strchr(key, '=')) || (data[0] == '\0'))
+                if (!(data = strchr(key, '=')))
                     goto skipnic;
                 data++;
 
@@ -1033,7 +1030,6 @@ xenXMDomainConfigParse(virConnectPtr conn, virConfPtr conf) {
                     mac[len] = '\0';
                 } else if (STRPREFIX(key, "bridge=")) {
                     int len = nextkey ? (nextkey - data) : sizeof(bridge)-1;
-                    type = 1;
                     if (len > (sizeof(bridge)-1))
                         len = sizeof(bridge)-1;
                     strncpy(bridge, data, len);
@@ -1069,11 +1065,6 @@ xenXMDomainConfigParse(virConnectPtr conn, virConfPtr conf) {
                                    nextkey[0] == '\t'))
                     nextkey++;
                 key = nextkey;
-            }
-
-            /* XXX Forcing to pretend its a bridge */
-            if (type == -1) {
-                type = 1;
             }
 
             if (VIR_ALLOC(net) < 0)
@@ -1160,7 +1151,6 @@ xenXMDomainConfigParse(virConnectPtr conn, virConfPtr conf) {
                 goto skippci;
 
             /* pci=['0000:00:1b.0','0000:00:13.0'] */
-            key = list->str;
             if (!(key = list->str))
                 goto skippci;
             if (!(nextkey = strchr(key, ':')))
@@ -1322,9 +1312,8 @@ xenXMDomainConfigParse(virConnectPtr conn, virConfPtr conf) {
                     nextkey++;
                 }
 
-                if (!(data = strchr(key, '=')) || (data[0] == '\0'))
+                if (!(data = strchr(key, '=')))
                     break;
-                data++;
 
                 if (graphics->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC) {
                     if (STRPREFIX(key, "vncunused=")) {
@@ -1418,7 +1407,7 @@ xenXMDomainConfigParse(virConnectPtr conn, virConfPtr conf) {
 no_memory:
     virReportOOMError(conn);
     /* fallthrough */
-  cleanup:
+cleanup:
     virDomainGraphicsDefFree(graphics);
     virDomainNetDefFree(net);
     virDomainDiskDefFree(disk);
@@ -1861,10 +1850,10 @@ int xenXMDomainCreate(virDomainPtr domain) {
         goto error;
     domain->id = ret;
 
-    if ((ret = xend_wait_for_devices(domain->conn, domain->name)) < 0)
+    if (xend_wait_for_devices(domain->conn, domain->name) < 0)
         goto error;
 
-    if ((ret = xenDaemonDomainResume(domain)) < 0)
+    if (xenDaemonDomainResume(domain) < 0)
         goto error;
 
     xenUnifiedUnlock(priv);
@@ -2048,6 +2037,9 @@ static int xenXMDomainConfigFormatNet(virConnectPtr conn,
     if (net->ifname)
         virBufferVSprintf(&buf, ",vifname=%s",
                           net->ifname);
+
+    if (virBufferError(&buf))
+        goto cleanup;
 
     if (VIR_ALLOC(val) < 0) {
         virReportOOMError(conn);
@@ -2840,14 +2832,11 @@ xenXMDomainAttachDevice(virDomainPtr domain, const char *xml) {
     switch (dev->type) {
     case VIR_DOMAIN_DEVICE_DISK:
     {
-        if (VIR_REALLOC_N(def->disks, def->ndisks+1) < 0) {
+        if (virDomainDiskInsert(def, dev->data.disk) < 0) {
             virReportOOMError(domain->conn);
             goto cleanup;
         }
-        def->disks[def->ndisks++] = dev->data.disk;
         dev->data.disk = NULL;
-        qsort(def->disks, def->ndisks, sizeof(*def->disks),
-              virDomainDiskQSort);
     }
     break;
 

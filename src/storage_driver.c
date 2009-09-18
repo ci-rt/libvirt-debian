@@ -489,24 +489,27 @@ storagePoolCreate(virConnectPtr conn,
     def = NULL;
 
     if (backend->startPool &&
-        backend->startPool(conn, pool) < 0)
+        backend->startPool(conn, pool) < 0) {
+        virStoragePoolObjRemove(&driver->pools, pool);
+        pool = NULL;
         goto cleanup;
+    }
 
     if (backend->refreshPool(conn, pool) < 0) {
         if (backend->stopPool)
             backend->stopPool(conn, pool);
+        virStoragePoolObjRemove(&driver->pools, pool);
+        pool = NULL;
         goto cleanup;
     }
     pool->active = 1;
 
     ret = virGetStoragePool(conn, pool->def->name, pool->def->uuid);
-    virStoragePoolObjUnlock(pool);
-    pool = NULL;
 
 cleanup:
     virStoragePoolDefFree(def);
     if (pool)
-        virStoragePoolObjRemove(&driver->pools, pool);
+        virStoragePoolObjUnlock(pool);
     storageDriverUnlock(driver);
     return ret;
 }
@@ -519,13 +522,12 @@ storagePoolDefine(virConnectPtr conn,
     virStoragePoolDefPtr def;
     virStoragePoolObjPtr pool = NULL;
     virStoragePoolPtr ret = NULL;
-    virStorageBackendPtr backend;
 
     storageDriverLock(driver);
     if (!(def = virStoragePoolDefParseString(conn, xml)))
         goto cleanup;
 
-    if ((backend = virStorageBackendForType(def->type)) == NULL)
+    if (virStorageBackendForType(def->type) == NULL)
         goto cleanup;
 
     if (!(pool = virStoragePoolObjAssignDef(conn, &driver->pools, def)))
@@ -847,7 +849,6 @@ storagePoolGetInfo(virStoragePoolPtr obj,
                    virStoragePoolInfoPtr info) {
     virStorageDriverStatePtr driver = obj->conn->storagePrivateData;
     virStoragePoolObjPtr pool;
-    virStorageBackendPtr backend;
     int ret = -1;
 
     storageDriverLock(driver);
@@ -860,7 +861,7 @@ storagePoolGetInfo(virStoragePoolPtr obj,
         goto cleanup;
     }
 
-    if ((backend = virStorageBackendForType(pool->def->type)) == NULL)
+    if (virStorageBackendForType(pool->def->type) == NULL)
         goto cleanup;
 
     memset(info, 0, sizeof(virStoragePoolInfo));
@@ -1321,27 +1322,23 @@ storageVolumeCreateXMLFrom(virStoragePoolPtr obj,
     virStorageBackendPtr backend;
     virStorageVolDefPtr origvol = NULL, newvol = NULL;
     virStorageVolPtr ret = NULL, volobj = NULL;
-    int buildret, diffpool;
-
-    diffpool = !STREQ(obj->name, vobj->pool);
+    int buildret;
 
     storageDriverLock(driver);
     pool = virStoragePoolObjFindByUUID(&driver->pools, obj->uuid);
-    if (diffpool) {
+    if (pool && STRNEQ(obj->name, vobj->pool)) {
         virStoragePoolObjUnlock(pool);
         origpool = virStoragePoolObjFindByName(&driver->pools, vobj->pool);
         virStoragePoolObjLock(pool);
-    } else
-        origpool = pool;
+    }
     storageDriverUnlock(driver);
-
     if (!pool) {
         virStorageReportError(obj->conn, VIR_ERR_INVALID_STORAGE_POOL,
                               "%s", _("no storage pool with matching uuid"));
         goto cleanup;
     }
 
-    if (diffpool && !origpool) {
+    if (STRNEQ(obj->name, vobj->pool) && !origpool) {
         virStorageReportError(obj->conn, VIR_ERR_NO_STORAGE_POOL,
                              _("no storage pool with matching name '%s'"),
                               vobj->pool);
@@ -1354,7 +1351,7 @@ storageVolumeCreateXMLFrom(virStoragePoolPtr obj,
         goto cleanup;
     }
 
-    if (diffpool && !virStoragePoolObjIsActive(origpool)) {
+    if (origpool && !virStoragePoolObjIsActive(origpool)) {
         virStorageReportError(obj->conn, VIR_ERR_INTERNAL_ERROR,
                               "%s", _("storage pool is not active"));
         goto cleanup;
@@ -1363,7 +1360,7 @@ storageVolumeCreateXMLFrom(virStoragePoolPtr obj,
     if ((backend = virStorageBackendForType(pool->def->type)) == NULL)
         goto cleanup;
 
-    origvol = virStorageVolDefFindByName(origpool, vobj->name);
+    origvol = virStorageVolDefFindByName(origpool ? origpool : pool, vobj->name);
     if (!origvol) {
         virStorageReportError(obj->conn, VIR_ERR_NO_STORAGE_VOL,
                              _("no storage vol with matching name '%s'"),
@@ -1429,7 +1426,7 @@ storageVolumeCreateXMLFrom(virStoragePoolPtr obj,
     newvol->building = 1;
     virStoragePoolObjUnlock(pool);
 
-    if (diffpool) {
+    if (origpool) {
         origpool->asyncjobs++;
         virStoragePoolObjUnlock(origpool);
     }
@@ -1438,7 +1435,7 @@ storageVolumeCreateXMLFrom(virStoragePoolPtr obj,
 
     storageDriverLock(driver);
     virStoragePoolObjLock(pool);
-    if (diffpool)
+    if (origpool)
         virStoragePoolObjLock(origpool);
     storageDriverUnlock(driver);
 
@@ -1447,7 +1444,7 @@ storageVolumeCreateXMLFrom(virStoragePoolPtr obj,
     newvol = NULL;
     pool->asyncjobs--;
 
-    if (diffpool) {
+    if (origpool) {
         origpool->asyncjobs--;
         virStoragePoolObjUnlock(origpool);
         origpool = NULL;
@@ -1469,7 +1466,7 @@ cleanup:
     virStorageVolDefFree(newvol);
     if (pool)
         virStoragePoolObjUnlock(pool);
-    if (diffpool && origpool)
+    if (origpool)
         virStoragePoolObjUnlock(origpool);
     return ret;
 }

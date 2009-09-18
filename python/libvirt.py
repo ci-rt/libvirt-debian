@@ -730,7 +730,7 @@ class virInterface:
           for applications where multiple threads are using a
           connection, and it is required that the connection remain
           open until all threads have finished using it. ie, each new
-          thread using a interface would increment the reference
+          thread using an interface would increment the reference
            count. """
         ret = libvirtmod.virInterfaceRef(self._o)
         if ret == -1: raise libvirtError ('virInterfaceRef() failed', net=self)
@@ -756,8 +756,8 @@ class virInterface:
         return __tmp
 
     def etMACString(self):
-        """Get the MAC for a interface as string. For more information
-           about MAC see RFC4122. """
+        """Get the MAC for an interface as string. For more
+           information about MAC see RFC4122. """
         ret = libvirtmod.virInterfaceGetMACString(self._o)
         if ret is None: raise libvirtError ('virInterfaceGetMACString() failed', net=self)
         return ret
@@ -769,8 +769,8 @@ class virInterface:
 
     def etXMLDesc(self, flags):
         """Provide an XML description of the interface. The
-          description may be reused later to recreate the interface
-           with virInterfaceCreateXML(). """
+          description may be reused later to redefine the interface
+           with virInterfaceDefineXML(). """
         ret = libvirtmod.virInterfaceGetXMLDesc(self._o, flags)
         if ret is None: raise libvirtError ('virInterfaceGetXMLDesc() failed', net=self)
         return ret
@@ -1226,6 +1226,12 @@ class virConnect:
         if ret == -1: raise libvirtError ('virConnectListInterfaces() failed', conn=self)
         return ret
 
+    def listSecrets(self):
+        """List the defined secret IDs """
+        ret = libvirtmod.virConnectListSecrets(self._o)
+        if ret is None: raise libvirtError ('virConnectListSecrets() failed', conn=self)
+        return ret
+
     def lookupByID(self, id):
         """Try to find a domain based on the hypervisor ID number Note
           that this won't work for inactive domains which have an ID
@@ -1380,6 +1386,12 @@ class virConnect:
         if ret == -1: raise libvirtError ('virConnectNumOfNetworks() failed', conn=self)
         return ret
 
+    def numOfSecrets(self):
+        """Fetch number of currently defined secrets. """
+        ret = libvirtmod.virConnectNumOfSecrets(self._o)
+        if ret == -1: raise libvirtError ('virConnectNumOfSecrets() failed', conn=self)
+        return ret
+
     def numOfStoragePools(self):
         """Provides the number of active storage pools """
         ret = libvirtmod.virConnectNumOfStoragePools(self._o)
@@ -1407,6 +1419,35 @@ class virConnect:
         ret = libvirtmod.virDomainRestore(self._o, frm)
         if ret == -1: raise libvirtError ('virDomainRestore() failed', conn=self)
         return ret
+
+    def secretDefineXML(self, xml, flags):
+        """If XML specifies an UUID, locates the specified secret and
+          replaces all attributes of the secret specified by UUID by
+          attributes specified in xml (any attributes not specified
+          in xml are discarded).  Otherwise, creates a new secret
+          with an automatically chosen UUID, and initializes its
+           attributes from xml. """
+        ret = libvirtmod.virSecretDefineXML(self._o, xml, flags)
+        if ret is None:raise libvirtError('virSecretDefineXML() failed', conn=self)
+        __tmp = virSecret(self, _obj=ret)
+        return __tmp
+
+    def secretLookupByUUIDString(self, uuidstr):
+        """Try to lookup a secret on the given hypervisor based on its
+           UUID. Uses the printable string value to describe the UUID """
+        ret = libvirtmod.virSecretLookupByUUIDString(self._o, uuidstr)
+        if ret is None:raise libvirtError('virSecretLookupByUUIDString() failed', conn=self)
+        __tmp = virSecret(self, _obj=ret)
+        return __tmp
+
+    def secretLookupByUsage(self, usageType, usageID):
+        """Try to lookup a secret on the given hypervisor based on its
+          usage The usageID is unique within the set of secrets
+           sharing the same usageType value. """
+        ret = libvirtmod.virSecretLookupByUsage(self._o, usageType, usageID)
+        if ret is None:raise libvirtError('virSecretLookupByUsage() failed', conn=self)
+        __tmp = virSecret(self, _obj=ret)
+        return __tmp
 
     def storagePoolCreateXML(self, xmlDesc, flags):
         """Create a new storage based on its XML description. The pool
@@ -1532,6 +1573,14 @@ class virConnect:
         ret = libvirtmod.virDomainLookupByUUID(self._o, uuid)
         if ret is None:raise libvirtError('virDomainLookupByUUID() failed', conn=self)
         __tmp = virDomain(self,_obj=ret)
+        return __tmp
+
+    def secretLookupByUUID(self, uuid):
+        """Try to lookup a secret on the given hypervisor based on its
+           UUID. """
+        ret = libvirtmod.virSecretLookupByUUID(self._o, uuid)
+        if ret is None:raise libvirtError('virSecretLookupByUUID() failed', conn=self)
+        __tmp = virSecret(self, _obj=ret)
         return __tmp
 
     #
@@ -1712,6 +1761,108 @@ class virNodeDevice:
         if ret is None: raise libvirtError ('virNodeDeviceListCaps() failed')
         return ret
 
+class virSecret:
+    def __init__(self, conn, _obj=None):
+        self._conn = conn
+        if _obj != None:self._o = _obj;return
+        self._o = None
+
+    def __del__(self):
+        if self._o != None:
+            libvirtmod.virSecretFree(self._o)
+        self._o = None
+
+    #
+    # virSecret functions from module libvirt
+    #
+
+    def XMLDesc(self, flags):
+        """Fetches an XML document describing attributes of the secret. """
+        ret = libvirtmod.virSecretGetXMLDesc(self._o, flags)
+        if ret is None: raise libvirtError ('virSecretGetXMLDesc() failed')
+        return ret
+
+    def connect(self):
+        """Provides the connection pointer associated with a secret. 
+          The reference counter on the connection is not increased by
+          this call.  WARNING: When writing libvirt bindings in other
+          languages, do not use this function.  Instead, store the
+           connection and the secret object together. """
+        ret = libvirtmod.virSecretGetConnect(self._o)
+        if ret is None:raise libvirtError('virSecretGetConnect() failed')
+        __tmp = virConnect(_obj=ret)
+        return __tmp
+
+    def ref(self):
+        """Increment the reference count on the secret. For each
+          additional call to this method, there shall be a
+          corresponding call to virSecretFree to release the
+          reference count, once the caller no longer needs the
+          reference to this object.  This method is typically useful
+          for applications where multiple threads are using a
+          connection, and it is required that the connection remain
+          open until all threads have finished using it. ie, each new
+           thread using a secret would increment the reference count. """
+        ret = libvirtmod.virSecretRef(self._o)
+        if ret == -1: raise libvirtError ('virSecretRef() failed')
+        return ret
+
+    def setValue(self, value, flags):
+        """Associates a value with a secret. """
+        ret = libvirtmod.virSecretSetValue(self._o, value, flags)
+        if ret == -1: raise libvirtError ('virSecretSetValue() failed')
+        return ret
+
+    def undefine(self):
+        """Deletes the specified secret.  This does not free the
+           associated virSecretPtr object. """
+        ret = libvirtmod.virSecretUndefine(self._o)
+        if ret == -1: raise libvirtError ('virSecretUndefine() failed')
+        return ret
+
+    def usageID(self):
+        """Get the unique identifier of the object with which this
+          secret is to be used. The format of the identifier is
+          dependant on the usage type of the secret. For a secret
+          with a usage type of VIR_SECRET_USAGE_TYPE_VOLUME the
+          identifier will be a fully qualfied path name. The
+          identifiers are intended to be unique within the set of all
+          secrets sharing the same usage type. ie, there shall only
+           ever be one secret for each volume path. """
+        ret = libvirtmod.virSecretGetUsageID(self._o)
+        return ret
+
+    def usageType(self):
+        """Get the type of object which uses this secret. The returned
+          value is one of the constants defined in the
+          virSecretUsageType enumeration. More values may be added to
+          this enumeration in the future, so callers should expect to
+           see usage types they do not explicitly know about. """
+        ret = libvirtmod.virSecretGetUsageType(self._o)
+        return ret
+
+    def value(self, flags):
+        """Fetches the value associated with a secret. """
+        ret = libvirtmod.virSecretGetValue(self._o, flags)
+        if ret is None: raise libvirtError ('virSecretGetValue() failed')
+        return ret
+
+    #
+    # virSecret functions from module python
+    #
+
+    def UUID(self):
+        """Extract the UUID unique Identifier of a secret. """
+        ret = libvirtmod.virSecretGetUUID(self._o)
+        if ret is None: raise libvirtError ('virSecretGetUUID() failed')
+        return ret
+
+    def UUIDString(self):
+        """Fetch globally unique ID of the secret as a string. """
+        ret = libvirtmod.virSecretGetUUIDString(self._o)
+        if ret is None: raise libvirtError ('virSecretGetUUIDString() failed')
+        return ret
+
 # virDomainMigrateFlags
 VIR_MIGRATE_LIVE = 1
 
@@ -1755,6 +1906,7 @@ VIR_FROM_INTERFACE = 26
 VIR_FROM_ONE = 27
 VIR_FROM_ESX = 28
 VIR_FROM_PHYP = 29
+VIR_FROM_SECRET = 30
 
 # virDomainEventStartedDetailType
 VIR_DOMAIN_EVENT_STARTED_BOOTED = 0
@@ -1870,6 +2022,9 @@ VIR_WAR_NO_INTERFACE = 56
 VIR_ERR_NO_INTERFACE = 57
 VIR_ERR_INVALID_INTERFACE = 58
 VIR_ERR_MULTIPLE_INTERFACES = 59
+VIR_WAR_NO_SECRET = 60
+VIR_ERR_INVALID_SECRET = 61
+VIR_ERR_NO_SECRET = 62
 
 # virDomainMemoryFlags
 VIR_MEMORY_VIRTUAL = 1
@@ -1925,4 +2080,8 @@ VIR_CRED_EXTERNAL = 9
 
 # virDomainCreateFlags
 VIR_DOMAIN_NONE = 0
+
+# virSecretUsageType
+VIR_SECRET_USAGE_TYPE_NONE = 0
+VIR_SECRET_USAGE_TYPE_VOLUME = 1
 
