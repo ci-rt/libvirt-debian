@@ -11,7 +11,7 @@ libvirt (0.7.1-1) unstable; urgency=low
   * [3d66f37] Update libvirt-bin examples.
   * [c01ed84] Update libvirt0 symbols.
 
- -- Guido Günter <agx@sigxcpu.org>  Fri, 18 Sep 2009 16:37:16 +0200
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 26 Sep 2009 17:15:02 +0200
 
 libvirt (0.7.0-1) experimental; urgency=low
 
