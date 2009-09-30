@@ -24,9 +24,12 @@ virCapabilitiesDefaultGuestEmulator;
 virCapabilitiesDefaultGuestMachine;
 virCapabilitiesFormatXML;
 virCapabilitiesFree;
+virCapabilitiesFreeNUMAInfo;
 virCapabilitiesNew;
 virCapabilitiesSetMacPrefix;
 virCapabilitiesGenerateMac;
+virCapabilitiesSetEmulatorRequired;
+virCapabilitiesIsEmulatorRequired;
 
 
 # conf.h
@@ -43,6 +46,7 @@ virConfWriteMem;
 
 # datatypes.h
 virGetDomain;
+virGetInterface;
 virGetNetwork;
 virGetStoragePool;
 virGetStorageVol;
@@ -62,7 +66,6 @@ virDomainCpuSetParse;
 virDomainChrDefFree;
 virDomainChrTypeFromString;
 virDomainChrTypeToString;
-virDomainDefDefaultEmulator;
 virDomainDefFormat;
 virDomainDefFree;
 virDomainDefParseFile;
@@ -93,6 +96,7 @@ virDomainObjListFree;
 virDomainRemoveInactive;
 virDomainSaveXML;
 virDomainSaveConfig;
+virDomainSaveStatus;
 virDomainSoundDefFree;
 virDomainSoundModelTypeFromString;
 virDomainSoundModelTypeToString;
@@ -189,6 +193,18 @@ virRegisterStorageDriver;
 virRegisterDeviceMonitor;
 
 
+# logging.h
+virLogMessage;
+virLogSetDefaultPriority;
+virLogDefineFilter;
+virLogDefineOutput;
+virLogParseFilters;
+virLogParseOutputs;
+virLogStartup;
+virLogShutdown;
+virLogReset;
+
+
 # memory.h
 virAlloc;
 virAllocN;
@@ -218,8 +234,10 @@ virNetworkObjUnlock;
 
 
 # nodeinfo.h
-virNodeInfoPopulate;
-virCapsInitNUMA;
+nodeGetInfo;
+nodeCapsInitNUMA;
+nodeGetCellsFreeMemory;
+nodeGetFreeMemory;
 
 
 # node_device_conf.h
@@ -262,7 +280,9 @@ virSecurityDriverGetModel;
 # storage_conf.h
 virStoragePoolDefFormat;
 virStoragePoolDefFree;
-virStoragePoolDefParse;
+virStoragePoolDefParseString;
+virStoragePoolDefParseFile;
+virStoragePoolDefParseNode;
 virStoragePoolLoadAllConfigs;
 virStoragePoolObjAssignDef;
 virStoragePoolObjClearVols;
@@ -279,13 +299,16 @@ virStorageVolDefFindByName;
 virStorageVolDefFindByPath;
 virStorageVolDefFormat;
 virStorageVolDefFree;
-virStorageVolDefParse;
+virStorageVolDefParseFile;
+virStorageVolDefParseString;
+virStorageVolDefParseNode;
 virStoragePoolFormatDiskTypeToString;
 virStoragePoolFormatFileSystemTypeToString;
 virStoragePoolFormatFileSystemNetTypeToString;
 virStorageVolFormatFileSystemTypeToString;
 virStorageVolFormatFileSystemTypeFromString;
 virStoragePoolTypeFromString;
+virStoragePartedFsTypeTypeToString;
 virStoragePoolObjLock;
 virStoragePoolObjUnlock;
 
@@ -320,13 +343,14 @@ virEnumToString;
 virEventAddHandle;
 virEventRemoveHandle;
 virExec;
-virExecWithHook;
+virExecDaemonize;
 virSetCloseExec;
 virSetNonBlock;
 virFormatMacAddr;
 virGetHostname;
 virParseMacAddr;
 virFileDeletePid;
+virFindFileInPath;
 virFileExists;
 virFileHasSuffix;
 virFileLinkPointsTo;

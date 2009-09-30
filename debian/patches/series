@@ -2,6 +2,4 @@
 0002-qemu-disable-network.diff.patch
 0003-allow-libvirt-group-to-access-the-socket.patch
 0004-fix-Debian-specific-path-to-hvm-loader.patch
-0005-don-t-crash-with-def-NULL.patch
-0006-Fix-QEMU-ARGV-detection-with-kvm-85.patch
-0007-Declare-support-for-QEMU-migration-in-capabilities.patch
+0005-Fix-PCI-device-hotplug-unplug-with-newer-QEMU.patch

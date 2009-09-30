@@ -184,7 +184,7 @@
       </attribute>
       <attribute name="machine">
         <choice>
-          <value>g3bw</value>
+          <value>g3beige</value>
           <value>mac99</value>
           <value>prep</value>
         </choice>
@@ -586,6 +586,20 @@
             <ref name="interface-options"/>
           </interleave>
         </group>
+        <group>
+          <attribute name="type">
+            <value>internal</value>
+          </attribute>
+          <interleave>
+            <element name="source">
+              <attribute name="name">
+                <ref name="deviceName"/>
+              </attribute>
+              <empty/>
+            </element>
+            <ref name="interface-options"/>
+          </interleave>
+        </group>
       </choice>
     </element>
   </define>
@@ -708,6 +722,63 @@
           <optional>
             <attribute name="keymap">
               <text/>
+            </attribute>
+          </optional>
+        </group>
+        <group>
+          <attribute name="type">
+            <value>rdp</value>
+          </attribute>
+          <optional>
+            <attribute name="port">
+              <ref name="PortNumber"/>
+            </attribute>
+          </optional>
+          <optional>
+            <attribute name="autoport">
+              <choice>
+                <value>yes</value>
+                <value>no</value>
+              </choice>
+            </attribute>
+          </optional>
+          <optional>
+            <attribute name="replaceUser">
+              <choice>
+                <value>yes</value>
+                <value>no</value>
+              </choice>
+            </attribute>
+          </optional>
+          <optional>
+            <attribute name="multiUser">
+              <choice>
+                <value>yes</value>
+                <value>no</value>
+              </choice>
+            </attribute>
+          </optional>
+          <optional>
+            <attribute name="listen">
+              <ref name="addrIP"/>
+            </attribute>
+          </optional>
+        </group>
+        <group>
+          <attribute name="type">
+            <value>desktop</value>
+          </attribute>
+          <optional>
+            <attribute name="display">
+              <text/>
+            </attribute>
+          </optional>
+          <optional>
+            <attribute name="fullscreen">
+              <choice>
+                <value>yes</value>
+                <value>no</value>
+              </choice>
             </attribute>
           </optional>
         </group>

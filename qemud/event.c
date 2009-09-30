@@ -30,7 +30,8 @@
 #include <errno.h>
 #include <unistd.h>
 
-#include "qemud.h"
+#include "threads.h"
+#include "logging.h"
 #include "event.h"
 #include "memory.h"
 #include "util.h"
@@ -83,10 +84,10 @@ struct virEventLoop {
 static struct virEventLoop eventLoop;
 
 /* Unique ID for the next FD watch to be registered */
-static int nextWatch = 0;
+static int nextWatch = 1;
 
 /* Unique ID for the next timer to be registered */
-static int nextTimer = 0;
+static int nextTimer = 1;
 
 static void virEventLock(void)
 {
@@ -142,15 +143,22 @@ int virEventAddHandleImpl(int fd, int events,
 
 void virEventUpdateHandleImpl(int watch, int events) {
     int i;
+    EVENT_DEBUG("Update handle w=%d e=%d", watch, events);
+
+    if (watch <= 0) {
+        VIR_WARN("Ignoring invalid update watch %d", watch);
+        return;
+    }
+
     virEventLock();
     for (i = 0 ; i < eventLoop.handlesCount ; i++) {
         if (eventLoop.handles[i].watch == watch) {
             eventLoop.handles[i].events =
                     virEventHandleTypeToPollEvent(events);
+            virEventInterruptLocked();
             break;
         }
     }
-    virEventInterruptLocked();
     virEventUnlock();
 }
 
@@ -163,6 +171,12 @@ void virEventUpdateHandleImpl(int watch, int events) {
 int virEventRemoveHandleImpl(int watch) {
     int i;
     EVENT_DEBUG("Remove handle %d", watch);
+
+    if (watch <= 0) {
+        VIR_WARN("Ignoring invalid remove watch %d", watch);
+        return -1;
+    }
+
     virEventLock();
     for (i = 0 ; i < eventLoop.handlesCount ; i++) {
         if (eventLoop.handles[i].deleted)
@@ -171,11 +185,11 @@ int virEventRemoveHandleImpl(int watch) {
         if (eventLoop.handles[i].watch == watch) {
             EVENT_DEBUG("mark delete %d %d", i, eventLoop.handles[i].fd);
             eventLoop.handles[i].deleted = 1;
+            virEventInterruptLocked();
             virEventUnlock();
             return 0;
         }
     }
-    virEventInterruptLocked();
     virEventUnlock();
     return -1;
 }
@@ -231,6 +245,12 @@ void virEventUpdateTimeoutImpl(int timer, int frequency) {
     struct timeval tv;
     int i;
     EVENT_DEBUG("Updating timer %d timeout with %d ms freq", timer, frequency);
+
+    if (timer <= 0) {
+        VIR_WARN("Ignoring invalid update timer %d", timer);
+        return;
+    }
+
     if (gettimeofday(&tv, NULL) < 0) {
         return;
     }
@@ -243,10 +263,10 @@ void virEventUpdateTimeoutImpl(int timer, int frequency) {
                 frequency >= 0 ? frequency +
                 (((unsigned long long)tv.tv_sec)*1000) +
                 (((unsigned long long)tv.tv_usec)/1000) : 0;
+            virEventInterruptLocked();
             break;
         }
     }
-    virEventInterruptLocked();
     virEventUnlock();
 }
 
@@ -259,6 +279,12 @@ void virEventUpdateTimeoutImpl(int timer, int frequency) {
 int virEventRemoveTimeoutImpl(int timer) {
     int i;
     EVENT_DEBUG("Remove timer %d", timer);
+
+    if (timer <= 0) {
+        VIR_WARN("Ignoring invalid remove timer %d", timer);
+        return -1;
+    }
+
     virEventLock();
     for (i = 0 ; i < eventLoop.timeoutsCount ; i++) {
         if (eventLoop.timeouts[i].deleted)
@@ -266,11 +292,11 @@ int virEventRemoveTimeoutImpl(int timer) {
 
         if (eventLoop.timeouts[i].timer == timer) {
             eventLoop.timeouts[i].deleted = 1;
+            virEventInterruptLocked();
             virEventUnlock();
             return 0;
         }
     }
-    virEventInterruptLocked();
     virEventUnlock();
     return -1;
 }
@@ -287,7 +313,7 @@ static int virEventCalculateTimeout(int *timeout) {
     EVENT_DEBUG("Calculate expiry of %d timers", eventLoop.timeoutsCount);
     /* Figure out if we need a timeout */
     for (i = 0 ; i < eventLoop.timeoutsCount ; i++) {
-        if (eventLoop.timeouts[i].deleted || eventLoop.timeouts[i].frequency < 0)
+        if (eventLoop.timeouts[i].frequency < 0)
             continue;
 
         EVENT_DEBUG("Got a timeout scheduled for %llu", eventLoop.timeouts[i].expiresAt);
@@ -324,32 +350,26 @@ static int virEventCalculateTimeout(int *timeout) {
  * file handles. The caller must free the returned data struct
  * returns: the pollfd array, or NULL on error
  */
-static int virEventMakePollFDs(struct pollfd **retfds) {
+static struct pollfd *virEventMakePollFDs(void) {
     struct pollfd *fds;
-    int i, nfds = 0;
+    int i;
+
+    /* Setup the poll file handle data structs */
+    if (VIR_ALLOC_N(fds, eventLoop.handlesCount) < 0)
+        return NULL;
 
     for (i = 0 ; i < eventLoop.handlesCount ; i++) {
-        if (eventLoop.handles[i].deleted)
-            continue;
-        nfds++;
-    }
-    *retfds = NULL;
-    /* Setup the poll file handle data structs */
-    if (VIR_ALLOC_N(fds, nfds) < 0)
-        return -1;
-
-    for (i = 0, nfds = 0 ; i < eventLoop.handlesCount ; i++) {
-        if (eventLoop.handles[i].deleted)
-            continue;
-        fds[nfds].fd = eventLoop.handles[i].fd;
-        fds[nfds].events = eventLoop.handles[i].events;
-        fds[nfds].revents = 0;
+        EVENT_DEBUG("Prepare n=%d w=%d, f=%d e=%d", i,
+                    eventLoop.handles[i].watch,
+                    eventLoop.handles[i].fd,
+                    eventLoop.handles[i].events);
+        fds[i].fd = eventLoop.handles[i].fd;
+        fds[i].events = eventLoop.handles[i].events;
+        fds[i].revents = 0;
         //EVENT_DEBUG("Wait for %d %d", eventLoop.handles[i].fd, eventLoop.handles[i].events);
-        nfds++;
     }
 
-    *retfds = fds;
-    return nfds;
+    return fds;
 }
 
 
@@ -409,26 +429,30 @@ static int virEventDispatchTimeouts(void) {
  * Returns 0 upon success, -1 if an error occurred
  */
 static int virEventDispatchHandles(int nfds, struct pollfd *fds) {
-    int i, n;
+    int i;
 
-    for (i = 0, n = 0 ; i < eventLoop.handlesCount && n < nfds ; i++) {
+    /* NB, use nfds not eventLoop.handlesCount, because new
+     * fds might be added on end of list, and they're not
+     * in the fds array we've got */
+    for (i = 0 ; i < nfds ; i++) {
         if (eventLoop.handles[i].deleted) {
-            EVENT_DEBUG("Skip deleted %d", eventLoop.handles[i].fd);
+            EVENT_DEBUG("Skip deleted n=%d w=%d f=%d", i,
+                        eventLoop.handles[i].watch, eventLoop.handles[i].fd);
             continue;
         }
 
-        if (fds[n].revents) {
+        if (fds[i].revents) {
             virEventHandleCallback cb = eventLoop.handles[i].cb;
             void *opaque = eventLoop.handles[i].opaque;
-            int hEvents = virPollEventToEventHandleType(fds[n].revents);
-            EVENT_DEBUG("Dispatch %d %d %p", fds[n].fd,
-                        fds[n].revents, eventLoop.handles[i].opaque);
+            int hEvents = virPollEventToEventHandleType(fds[i].revents);
+            EVENT_DEBUG("Dispatch n=%d f=%d w=%d e=%d %p", i,
+                        fds[i].fd, eventLoop.handles[i].watch,
+                        fds[i].revents, eventLoop.handles[i].opaque);
             virEventUnlock();
             (cb)(eventLoop.handles[i].watch,
-                 fds[n].fd, hEvents, opaque);
+                 fds[i].fd, hEvents, opaque);
             virEventLock();
         }
-        n++;
     }
 
     return 0;
@@ -519,22 +543,21 @@ static int virEventCleanupHandles(void) {
  * at least one file handle has an event, or a timer expires
  */
 int virEventRunOnce(void) {
-    struct pollfd *fds;
+    struct pollfd *fds = NULL;
     int ret, timeout, nfds;
 
     virEventLock();
     eventLoop.running = 1;
     eventLoop.leader = pthread_self();
-    if ((nfds = virEventMakePollFDs(&fds)) < 0) {
-        virEventUnlock();
-        return -1;
-    }
 
-    if (virEventCalculateTimeout(&timeout) < 0) {
-        VIR_FREE(fds);
-        virEventUnlock();
-        return -1;
-    }
+    if (virEventCleanupTimeouts() < 0 ||
+        virEventCleanupHandles() < 0)
+        goto error;
+
+    if (!(fds = virEventMakePollFDs()) ||
+        virEventCalculateTimeout(&timeout) < 0)
+        goto error;
+    nfds = eventLoop.handlesCount;
 
     virEventUnlock();
 
@@ -546,38 +569,31 @@ int virEventRunOnce(void) {
         if (errno == EINTR) {
             goto retry;
         }
-        VIR_FREE(fds);
-        return -1;
+        goto error_unlocked;
     }
 
     virEventLock();
-    if (virEventDispatchTimeouts() < 0) {
-        VIR_FREE(fds);
-        virEventUnlock();
-        return -1;
-    }
+    if (virEventDispatchTimeouts() < 0)
+        goto error;
 
     if (ret > 0 &&
-        virEventDispatchHandles(nfds, fds) < 0) {
-        VIR_FREE(fds);
-        virEventUnlock();
-        return -1;
-    }
-    VIR_FREE(fds);
+        virEventDispatchHandles(nfds, fds) < 0)
+        goto error;
 
-    if (virEventCleanupTimeouts() < 0) {
-        virEventUnlock();
-        return -1;
-    }
-
-    if (virEventCleanupHandles() < 0) {
-        virEventUnlock();
-        return -1;
-    }
+    if (virEventCleanupTimeouts() < 0 ||
+        virEventCleanupHandles() < 0)
+        goto error;
 
     eventLoop.running = 0;
     virEventUnlock();
+    VIR_FREE(fds);
     return 0;
+
+error:
+    virEventUnlock();
+error_unlocked:
+    VIR_FREE(fds);
+    return -1;
 }
 
 static void virEventHandleWakeup(int watch ATTRIBUTE_UNUSED,
@@ -597,10 +613,10 @@ int virEventInit(void)
         return -1;
 
     if (pipe(eventLoop.wakeupfd) < 0 ||
-        qemudSetNonBlock(eventLoop.wakeupfd[0]) < 0 ||
-        qemudSetNonBlock(eventLoop.wakeupfd[1]) < 0 ||
-        qemudSetCloseExec(eventLoop.wakeupfd[0]) < 0 ||
-        qemudSetCloseExec(eventLoop.wakeupfd[1]) < 0)
+        virSetNonBlock(eventLoop.wakeupfd[0]) < 0 ||
+        virSetNonBlock(eventLoop.wakeupfd[1]) < 0 ||
+        virSetCloseExec(eventLoop.wakeupfd[0]) < 0 ||
+        virSetCloseExec(eventLoop.wakeupfd[1]) < 0)
         return -1;
 
     if (virEventAddHandleImpl(eventLoop.wakeupfd[0],
@@ -616,9 +632,12 @@ static int virEventInterruptLocked(void)
     char c = '\0';
 
     if (!eventLoop.running ||
-        pthread_self() == eventLoop.leader)
+        pthread_self() == eventLoop.leader) {
+        VIR_DEBUG("Skip interrupt, %d %d", eventLoop.running, (int)eventLoop.leader);
         return 0;
+    }
 
+    VIR_DEBUG0("Interrupting");
     if (safewrite(eventLoop.wakeupfd[1], &c, sizeof(c)) != sizeof(c))
         return -1;
     return 0;

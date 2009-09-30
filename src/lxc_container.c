@@ -41,6 +41,10 @@
 /* For MS_MOVE */
 #include <linux/fs.h>
 
+#if HAVE_CAPNG
+#include <cap-ng.h>
+#endif
+
 #include "virterror_internal.h"
 #include "logging.h"
 #include "lxc_container.h"
@@ -440,7 +444,7 @@ static int lxcContainerPopulateDevices(void)
     /* Populate /dev/ with a few important bits */
     for (i = 0 ; i < ARRAY_CARDINALITY(devs) ; i++) {
         dev_t dev = makedev(devs[i].maj, devs[i].min);
-        if (mknod(devs[i].path, 0, dev) < 0 ||
+        if (mknod(devs[i].path, S_IFCHR, dev) < 0 ||
             chmod(devs[i].path, devs[i].mode)) {
             virReportSystemError(NULL, errno,
                                  _("failed to make device %s"),
@@ -457,7 +461,7 @@ static int lxcContainerPopulateDevices(void)
         }
     } else {
         dev_t dev = makedev(LXC_DEV_MAJ_TTY, LXC_DEV_MIN_PTMX);
-        if (mknod("/dev/ptmx", 0, dev) < 0 ||
+        if (mknod("/dev/ptmx", S_IFCHR, dev) < 0 ||
             chmod("/dev/ptmx", 0666)) {
             virReportSystemError(NULL, errno, "%s",
                                  _("failed to make device /dev/ptmx"));
@@ -639,6 +643,53 @@ static int lxcContainerSetupMounts(virDomainDefPtr vmDef,
         return lxcContainerSetupExtraMounts(vmDef);
 }
 
+
+/*
+ * This is running as the 'init' process insid the container.
+ * It removes some capabilities that could be dangerous to
+ * host system, since they are not currently "containerized"
+ */
+static int lxcContainerDropCapabilities(void)
+{
+#if HAVE_CAPNG
+    int ret;
+
+    capng_get_caps_process();
+
+    if ((ret = capng_updatev(CAPNG_DROP,
+                             CAPNG_EFFECTIVE | CAPNG_PERMITTED |
+                             CAPNG_INHERITABLE | CAPNG_BOUNDING_SET,
+                             CAP_SYS_BOOT, /* No use of reboot */
+                             CAP_SYS_MODULE, /* No kernel module loading */
+                             CAP_SYS_TIME, /* No changing the clock */
+                             CAP_AUDIT_CONTROL, /* No messing with auditing status */
+                             CAP_MAC_ADMIN, /* No messing with LSM config */
+                             -1 /* sentinal */)) < 0) {
+        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                 _("failed to remove capabilities %d"), ret);
+        return -1;
+    }
+
+    if ((ret = capng_apply(CAPNG_SELECT_BOTH)) < 0) {
+        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                 _("failed to apply capabilities: %d"), ret);
+        return -1;
+    }
+
+    /* Need to prevent them regaining any caps on exec */
+    if ((ret = capng_lock()) < 0) {
+        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                 _("failed to lock capabilities: %d"), ret);
+        return -1;
+    }
+
+#else
+    VIR_WARN0(_("libcap-ng support not compiled in, unable to clear capabilities"));
+#endif
+    return 0;
+}
+
+
 /**
  * lxcChild:
  * @argv: Pointer to container arguments
@@ -703,6 +754,10 @@ static int lxcContainerChild( void *data )
 
     /* enable interfaces */
     if (lxcContainerEnableInterfaces(argv->nveths, argv->veths) < 0)
+        return -1;
+
+    /* drop a set of root capabilities */
+    if (lxcContainerDropCapabilities() < 0)
         return -1;
 
     /* this function will only return if an error occured */

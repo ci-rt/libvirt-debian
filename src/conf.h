@@ -24,6 +24,12 @@ typedef enum {
     VIR_CONF_LIST = 3		/* a list */
 } virConfType;
 
+typedef enum {
+    VIR_CONF_FLAG_VMX_FORMAT = 1,  /* allow : and . in names for compatibility with
+                                      VMware VMX configuration file, but restrict
+                                      allowed value types to string only */
+} virConfFlags;
+
 static inline const char *
 virConfTypeName (virConfType t)
 {
@@ -62,9 +68,9 @@ typedef struct _virConf virConf;
 typedef virConf *virConfPtr;
 
 virConfPtr      virConfNew             (void);
-virConfPtr	virConfReadFile	(const char *filename);
+virConfPtr	virConfReadFile	(const char *filename, unsigned int flags);
 virConfPtr	virConfReadMem		(const char *memory,
-                                         int len);
+                                         int len, unsigned int flags);
 int		virConfFree		(virConfPtr conf);
 void            virConfFreeValue      (virConfValuePtr val);
 

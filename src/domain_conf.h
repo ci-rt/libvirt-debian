@@ -49,6 +49,7 @@ enum virDomainVirtType {
     VIR_DOMAIN_VIRT_VMWARE,
     VIR_DOMAIN_VIRT_HYPERV,
     VIR_DOMAIN_VIRT_VBOX,
+    VIR_DOMAIN_VIRT_ONE,
 
     VIR_DOMAIN_VIRT_LAST,
 };
@@ -138,6 +139,7 @@ enum virDomainNetType {
     VIR_DOMAIN_NET_TYPE_MCAST,
     VIR_DOMAIN_NET_TYPE_NETWORK,
     VIR_DOMAIN_NET_TYPE_BRIDGE,
+    VIR_DOMAIN_NET_TYPE_INTERNAL,
 
     VIR_DOMAIN_NET_TYPE_LAST,
 };
@@ -168,6 +170,9 @@ struct _virDomainNetDef {
             char *script;
             char *ipaddr;
         } bridge;
+        struct {
+            char *name;
+        } internal;
     } data;
     char *ifname;
 };
@@ -249,7 +254,7 @@ enum virDomainSoundModel {
     VIR_DOMAIN_SOUND_MODEL_SB16,
     VIR_DOMAIN_SOUND_MODEL_ES1370,
     VIR_DOMAIN_SOUND_MODEL_PCSPK,
-    VIR_DOMAIN_SOUND_MODEL_ES97,
+    VIR_DOMAIN_SOUND_MODEL_AC97,
 
     VIR_DOMAIN_SOUND_MODEL_LAST
 };
@@ -264,6 +269,8 @@ struct _virDomainSoundDef {
 enum virDomainGraphicsType {
     VIR_DOMAIN_GRAPHICS_TYPE_SDL,
     VIR_DOMAIN_GRAPHICS_TYPE_VNC,
+    VIR_DOMAIN_GRAPHICS_TYPE_RDP,
+    VIR_DOMAIN_GRAPHICS_TYPE_DESKTOP,
 
     VIR_DOMAIN_GRAPHICS_TYPE_LAST,
 };
@@ -285,6 +292,17 @@ struct _virDomainGraphicsDef {
             char *xauth;
             int fullscreen;
         } sdl;
+        struct {
+            int port;
+            char *listenAddr;
+            int autoport : 1;
+            int replaceUser : 1;
+            int multiUser : 1;
+        } rdp;
+        struct {
+            char *display;
+            int fullscreen : 1;
+        } desktop;
     } data;
 };
 
@@ -456,8 +474,8 @@ struct _virDomainDef {
 
     int localtime;
 
-    /* Only 1 */
-    virDomainGraphicsDefPtr graphics;
+    int ngraphics;
+    virDomainGraphicsDefPtr *graphics;
 
     int ndisks;
     virDomainDiskDefPtr *disks;
@@ -497,7 +515,6 @@ struct _virDomainObj {
     int monitor;
     char *monitorpath;
     int monitorWatch;
-    int logfile;
     int pid;
     int state;
 
@@ -571,9 +588,21 @@ virDomainDefPtr virDomainDefParseNode(virConnectPtr conn,
                                       xmlDocPtr doc,
                                       xmlNodePtr root,
                                       int flags);
+
+virDomainObjPtr virDomainObjParseFile(virConnectPtr conn,
+                                      virCapsPtr caps,
+                                      const char *filename);
+virDomainObjPtr virDomainObjParseNode(virConnectPtr conn,
+                                      virCapsPtr caps,
+                                      xmlDocPtr xml,
+                                      xmlNodePtr root);
+
 #endif
 char *virDomainDefFormat(virConnectPtr conn,
                          virDomainDefPtr def,
+                         int flags);
+char *virDomainObjFormat(virConnectPtr conn,
+                         virDomainObjPtr obj,
                          int flags);
 
 int virDomainCpuSetParse(virConnectPtr conn,
@@ -597,6 +626,9 @@ int virDomainSaveXML(virConnectPtr conn,
 int virDomainSaveConfig(virConnectPtr conn,
                         const char *configDir,
                         virDomainDefPtr def);
+int virDomainSaveStatus(virConnectPtr conn,
+                        const char *statusDir,
+                        virDomainObjPtr obj);
 
 typedef void (*virDomainLoadConfigNotify)(virDomainObjPtr dom,
                                           int newDomain,
@@ -616,6 +648,7 @@ int virDomainLoadAllConfigs(virConnectPtr conn,
                             virDomainObjListPtr doms,
                             const char *configDir,
                             const char *autostartDir,
+                            int liveStatus,
                             virDomainLoadConfigNotify notify,
                             void *opaque);
 
@@ -631,10 +664,6 @@ char *virDomainConfigFile(virConnectPtr conn,
 int virDiskNameToBusDeviceIndex(virDomainDiskDefPtr disk,
                                 int *busIdx,
                                 int *devIdx);
-
-const char *virDomainDefDefaultEmulator(virConnectPtr conn,
-                                        virDomainDefPtr def,
-                                        virCapsPtr caps);
 
 virDomainFSDefPtr virDomainGetRootFilesystem(virDomainDefPtr def);
 

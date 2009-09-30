@@ -1,5 +1,5 @@
 /*
- * config.h: VM configuration management
+ * qemu_conf.h: QEMU configuration management
  *
  * Copyright (C) 2006, 2007, 2009 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
@@ -56,11 +56,14 @@ enum qemud_cmd_flags {
     QEMUD_CMD_FLAG_MIGRATE_QEMU_EXEC = (1 << 11), /* New migration syntax after merge to QEMU with EXEC transport */
     QEMUD_CMD_FLAG_DRIVE_CACHE_V2    = (1 << 12), /* Is the cache= flag wanting new v2 values */
     QEMUD_CMD_FLAG_KVM               = (1 << 13), /* Whether KVM is compiled in */
+    QEMUD_CMD_FLAG_DRIVE_FORMAT      = (1 << 14), /* Is -drive format= avail */
 };
 
 /* Main driver state */
 struct qemud_driver {
     virMutex lock;
+
+    int privileged;
 
     unsigned int qemuVersion;
     int nextvmid;
@@ -92,19 +95,13 @@ struct qemud_driver {
     virSecurityDriverPtr securityDriver;
 };
 
-/* Status needed to reconenct to running VMs */
-typedef struct _qemudDomainStatus qemudDomainStatus;
-typedef qemudDomainStatus *qemudDomainStatusPtr;
-struct _qemudDomainStatus {
-    char *monitorpath;
-    pid_t pid;
-    int state;
-    virDomainDefPtr def;
-};
 
 /* Port numbers used for KVM migration. */
 #define QEMUD_MIGRATION_FIRST_PORT 49152
 #define QEMUD_MIGRATION_NUM_PORTS 64
+
+/* Config type for XML import/export conversions */
+#define QEMU_CONFIG_FORMAT_ARGV "qemu-argv"
 
 #define qemudReportError(conn, dom, net, code, fmt...)                       \
         virReportErrorHelper(conn, VIR_FROM_QEMU, code, __FILE__,          \
@@ -122,6 +119,12 @@ int         qemudExtractVersionInfo     (const char *qemu,
                                          unsigned int *version,
                                          unsigned int *flags);
 
+int         qemudParseHelpStr           (const char *str,
+                                         unsigned int *flags,
+                                         unsigned int *version,
+                                         unsigned int *is_kvm,
+                                         unsigned int *kvm_version);
+
 int         qemudBuildCommandLine       (virConnectPtr conn,
                                          struct qemud_driver *driver,
                                          virDomainDefPtr def,
@@ -132,13 +135,12 @@ int         qemudBuildCommandLine       (virConnectPtr conn,
                                          int *ntapfds,
                                          const char *migrateFrom);
 
-const char *qemudVirtTypeToString       (int type);
-qemudDomainStatusPtr qemudDomainStatusParseFile(virConnectPtr conn,
-                                                virCapsPtr caps,
-                                                const char *filename,
-                                                int flags);
-int qemudSaveDomainStatus(virConnectPtr conn,
-                          struct qemud_driver *driver,
-                          virDomainObjPtr vm);
+virDomainDefPtr qemuParseCommandLine(virConnectPtr conn,
+                                     virCapsPtr caps,
+                                     const char **progenv,
+                                     const char **progargv);
+virDomainDefPtr qemuParseCommandLineString(virConnectPtr conn,
+                                           virCapsPtr caps,
+                                           const char *args);
 
 #endif /* __QEMUD_CONF_H */

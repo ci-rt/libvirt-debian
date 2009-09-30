@@ -32,7 +32,7 @@ case "$1" in
     for domain in /etc/libvirt/qemu/*xml; do
         domain=$(basename $domain .xml)
         state=$(virsh domstate $domain)
-        if [ "$state" == "running" ]; then
+        if [ "$state" = "running" ]; then
             echo "suspending $domain ..."
             virsh save ${domain} ${suspenddir}/${domain}.dump
         fi

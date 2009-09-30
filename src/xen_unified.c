@@ -175,7 +175,7 @@ done:
 #ifdef WITH_LIBVIRTD
 
 static int
-xenInitialize (void)
+xenInitialize (int privileged ATTRIBUTE_UNUSED)
 {
     inside_daemon = 1;
     return 0;
@@ -241,25 +241,46 @@ xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, int flags)
             virReportOOMError (NULL);
             return VIR_DRV_OPEN_ERROR;
         }
+    } else {
+        if (conn->uri->scheme) {
+            /* Decline any scheme which isn't "xen://" or "http://". */
+            if (STRCASENEQ(conn->uri->scheme, "xen") &&
+                STRCASENEQ(conn->uri->scheme, "http"))
+                return VIR_DRV_OPEN_DECLINED;
+
+
+            /* Return an error if the path isn't '' or '/' */
+            if (conn->uri->path &&
+                STRNEQ(conn->uri->path, "") &&
+                STRNEQ(conn->uri->path, "/")) {
+                xenUnifiedError(NULL, VIR_ERR_INTERNAL_ERROR,
+                                _("unexpected Xen URI path '%s', try xen:///"),
+                                conn->uri->path);
+                return VIR_DRV_OPEN_ERROR;
+            }
+
+            /* Decline any xen:// URI with a server specified, allowing remote
+             * driver to handle, but keep any http:/// URIs */
+            if (STRCASEEQ(conn->uri->scheme, "xen") &&
+                conn->uri->server)
+                return VIR_DRV_OPEN_DECLINED;
+        } else {
+            /* Special case URI for Xen driver only:
+             *
+             * Treat a plain path as a Xen UNIX socket path, and give
+             * error unless path is absolute
+             */
+            if (!conn->uri->path || conn->uri->path[0] != '/') {
+                xenUnifiedError(NULL, VIR_ERR_INTERNAL_ERROR,
+                                _("unexpected Xen URI path '%s', try ///var/lib/xen/xend-socket"),
+                                NULLSTR(conn->uri->path));
+                return VIR_DRV_OPEN_ERROR;
+            }
+        }
     }
 
-    /* Refuse any scheme which isn't "xen://" or "http://". */
-    if (conn->uri->scheme &&
-        STRCASENEQ(conn->uri->scheme, "xen") &&
-        STRCASENEQ(conn->uri->scheme, "http"))
-        return VIR_DRV_OPEN_DECLINED;
-
-    /* xmlParseURI will parse a naked string like "foo" as a URI with
-     * a NULL scheme.  That's not useful for us because we want to only
-     * allow full pathnames (eg. ///var/lib/xen/xend-socket).  Decline
-     * anything else.
-     */
-    if (!conn->uri->scheme && (!conn->uri->path || conn->uri->path[0] != '/'))
-        return VIR_DRV_OPEN_DECLINED;
-
-    /* Refuse any xen:// URI with a server specified - allow remote to do it */
-    if (conn->uri->scheme && STRCASEEQ(conn->uri->scheme, "xen") && conn->uri->server)
-        return VIR_DRV_OPEN_DECLINED;
+    /* We now know the URI is definitely for this driver, so beyond
+     * here, don't return DECLINED, always use ERROR */
 
     /* Allocate per-connection private data. */
     if (VIR_ALLOC(priv) < 0) {
@@ -1043,6 +1064,97 @@ xenUnifiedDomainDumpXML (virDomainPtr dom, int flags)
     return NULL;
 }
 
+
+static char *
+xenUnifiedDomainXMLFromNative(virConnectPtr conn,
+                              const char *format,
+                              const char *config,
+                              unsigned int flags ATTRIBUTE_UNUSED)
+{
+    virDomainDefPtr def = NULL;
+    char *ret = NULL;
+    virConfPtr conf = NULL;
+    GET_PRIVATE(conn);
+
+    if (STRNEQ(format, XEN_CONFIG_FORMAT_XM) &&
+        STRNEQ(format, XEN_CONFIG_FORMAT_SEXPR)) {
+        xenUnifiedError(conn, VIR_ERR_INVALID_ARG,
+                        _("unsupported config type %s"), format);
+        return NULL;
+    }
+
+    if (STREQ(format, XEN_CONFIG_FORMAT_XM)) {
+        conf = virConfReadMem(config, strlen(config), 0);
+        if (!conf)
+            goto cleanup;
+
+        def = xenXMDomainConfigParse(conn, conf);
+    } else if (STREQ(format, XEN_CONFIG_FORMAT_SEXPR)) {
+        def = xenDaemonParseSxprString(conn, config, priv->xendConfigVersion);
+    }
+    if (!def)
+        goto cleanup;
+
+    ret = virDomainDefFormat(conn, def, 0);
+
+cleanup:
+    virDomainDefFree(def);
+    return ret;
+}
+
+
+#define MAX_CONFIG_SIZE (1024 * 65)
+static char *
+xenUnifiedDomainXMLToNative(virConnectPtr conn,
+                            const char *format,
+                            const char *xmlData,
+                            unsigned int flags ATTRIBUTE_UNUSED)
+{
+    virDomainDefPtr def = NULL;
+    char *ret = NULL;
+    virConfPtr conf = NULL;
+    GET_PRIVATE(conn);
+
+    if (STRNEQ(format, XEN_CONFIG_FORMAT_XM) &&
+        STRNEQ(format, XEN_CONFIG_FORMAT_SEXPR)) {
+        xenUnifiedError(conn, VIR_ERR_INVALID_ARG,
+                        _("unsupported config type %s"), format);
+        goto cleanup;
+    }
+
+    if (!(def = virDomainDefParseString(conn,
+                                        priv->caps,
+                                        xmlData,
+                                        0)))
+        goto cleanup;
+
+    if (STREQ(format, XEN_CONFIG_FORMAT_XM)) {
+        int len = MAX_CONFIG_SIZE;
+        conf = xenXMDomainConfigFormat(conn, def);
+        if (!conf)
+            goto cleanup;
+
+        if (VIR_ALLOC_N(ret, len) < 0) {
+            virReportOOMError(conn);
+            goto cleanup;
+        }
+
+        if (virConfWriteMem(ret, &len, conf) < 0) {
+            VIR_FREE(ret);
+            goto cleanup;
+        }
+    } else if (STREQ(format, XEN_CONFIG_FORMAT_SEXPR)) {
+        ret = xenDaemonFormatSxpr(conn, def, priv->xendConfigVersion);
+    }
+
+cleanup:
+    virDomainDefFree(def);
+    if (conf)
+        virConfFree(conf);
+    return ret;
+}
+
+
 static int
 xenUnifiedDomainMigratePrepare (virConnectPtr dconn,
                                 char **cookie,
@@ -1439,7 +1551,7 @@ xenUnifiedNodeDeviceGetPciInfo (virNodeDevicePtr dev,
     if (!xml)
         goto out;
 
-    def = virNodeDeviceDefParseString(dev->conn, xml);
+    def = virNodeDeviceDefParseString(dev->conn, xml, EXISTING_DEVICE);
     if (!def)
         goto out;
 
@@ -1580,6 +1692,8 @@ static virDriver xenUnifiedDriver = {
     NULL, /* domainGetSecurityLabel */
     NULL, /* nodeGetSecurityModel */
     xenUnifiedDomainDumpXML, /* domainDumpXML */
+    xenUnifiedDomainXMLFromNative, /* domainXmlFromNative */
+    xenUnifiedDomainXMLToNative, /* domainXmlToNative */
     xenUnifiedListDefinedDomains, /* listDefinedDomains */
     xenUnifiedNumOfDefinedDomains, /* numOfDefinedDomains */
     xenUnifiedDomainCreate, /* domainCreate */

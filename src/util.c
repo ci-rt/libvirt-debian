@@ -56,6 +56,10 @@
 #ifdef HAVE_GETPWUID_R
 #include <pwd.h>
 #endif
+#if HAVE_CAPNG
+#include <cap-ng.h>
+#endif
+
 
 #include "virterror_internal.h"
 #include "logging.h"
@@ -72,8 +76,6 @@
 #ifndef MIN
 # define MIN(a, b) ((a) < (b) ? (a) : (b))
 #endif
-
-#define virLog(msg...) fprintf(stderr, msg)
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -266,6 +268,50 @@ int virSetCloseExec(int fd) {
     return 0;
 }
 
+
+#if HAVE_CAPNG
+static int virClearCapabilities(void)
+{
+    int ret;
+
+    capng_clear(CAPNG_SELECT_BOTH);
+
+    if ((ret = capng_apply(CAPNG_SELECT_BOTH)) < 0) {
+        VIR_ERROR("cannot clear process capabilities %d", ret);
+        return -1;
+    }
+
+    return 0;
+}
+#else
+static int virClearCapabilities(void)
+{
+//    VIR_WARN0("libcap-ng support not compiled in, unable to clear capabilities");
+    return 0;
+}
+#endif
+
+/*
+ * @conn Connection to report errors against
+ * @argv argv to exec
+ * @envp optional enviroment to use for exec
+ * @keepfd options fd_ret to keep open for child process
+ * @retpid optional pointer to store child process pid
+ * @infd optional file descriptor to use as child input, otherwise /dev/null
+ * @outfd optional pointer to communicate output fd behavior
+ *        outfd == NULL : Use /dev/null
+ *        *outfd == -1  : Use a new fd
+ *        *outfd != -1  : Use *outfd
+ * @errfd optional pointer to communcate error fd behavior. See outfd
+ * @flags possible combination of the following:
+ *        VIR_EXEC_NONE     : Default function behavior
+ *        VIR_EXEC_NONBLOCK : Set child process output fd's as non-blocking
+ *        VIR_EXEC_DAEMON   : Daemonize the child process (don't use directly,
+ *                            use virExecDaemonize wrapper)
+ * @hook optional virExecHook function to call prior to exec
+ * @data data to pass to the hook function
+ * @pidfile path to use as pidfile for daemonized process (needs DAEMON flag)
+ */
 static int
 __virExec(virConnectPtr conn,
           const char *const*argv,
@@ -275,7 +321,8 @@ __virExec(virConnectPtr conn,
           int infd, int *outfd, int *errfd,
           int flags,
           virExecHook hook,
-          void *data)
+          void *data,
+          char *pidfile)
 {
     pid_t pid;
     int null, i, openmax;
@@ -329,10 +376,6 @@ __virExec(virConnectPtr conn,
         } else {
             childout = *outfd;
         }
-#ifndef ENABLE_DEBUG
-    } else {
-        childout = null;
-#endif
     }
 
     if (errfd != NULL) {
@@ -360,10 +403,6 @@ __virExec(virConnectPtr conn,
         } else {
             childerr = *errfd;
         }
-#ifndef ENABLE_DEBUG
-    } else {
-        childerr = null;
-#endif
     }
 
     if ((pid = fork()) < 0) {
@@ -425,7 +464,7 @@ __virExec(virConnectPtr conn,
     if (pthread_sigmask(SIG_SETMASK, &newmask, NULL) != 0) {
         virReportSystemError(conn, errno,
                              "%s", _("cannot unblock signals"));
-        return -1;
+        _exit(1);
     }
 
     openmax = sysconf (_SC_OPEN_MAX);
@@ -437,31 +476,6 @@ __virExec(virConnectPtr conn,
             (!keepfd ||
              !FD_ISSET(i, keepfd)))
             close(i);
-
-    if (flags & VIR_EXEC_DAEMON) {
-        if (setsid() < 0) {
-            virReportSystemError(conn, errno,
-                                 "%s", _("cannot become session leader"));
-            _exit(1);
-        }
-
-        if (chdir("/") < 0) {
-            virReportSystemError(conn, errno,
-                                 "%s", _("cannot change to root directory: %s"));
-            _exit(1);
-        }
-
-        pid = fork();
-        if (pid < 0) {
-            virReportSystemError(conn, errno,
-                                 "%s", _("cannot fork child process"));
-            _exit(1);
-        }
-
-        if (pid > 0)
-            _exit(0);
-    }
-
 
     if (dup2(infd >= 0 ? infd : null, STDIN_FILENO) < 0) {
         virReportSystemError(conn, errno,
@@ -493,6 +507,45 @@ __virExec(virConnectPtr conn,
     if (hook)
         if ((hook)(data) != 0)
             _exit(1);
+
+    /* The hook above may need todo something privileged, so
+     * we delay clearing capabilities until now */
+    if ((flags & VIR_EXEC_CLEAR_CAPS) &&
+        virClearCapabilities() < 0)
+        _exit(1);
+
+    /* Daemonize as late as possible, so the parent process can detect
+     * the above errors with wait* */
+    if (flags & VIR_EXEC_DAEMON) {
+        if (setsid() < 0) {
+            virReportSystemError(conn, errno,
+                                 "%s", _("cannot become session leader"));
+            _exit(1);
+        }
+
+        if (chdir("/") < 0) {
+            virReportSystemError(conn, errno,
+                                 "%s", _("cannot change to root directory: %s"));
+            _exit(1);
+        }
+
+        pid = fork();
+        if (pid < 0) {
+            virReportSystemError(conn, errno,
+                                 "%s", _("cannot fork child process"));
+            _exit(1);
+        }
+
+        if (pid > 0) {
+            if (pidfile && virFileWritePidPath(pidfile,pid)) {
+                virReportSystemError(conn, errno,
+                                     "%s", _("could not write pidfile"));
+                _exit(1);
+            }
+            _exit(0);
+        }
+    }
+
     if (envp)
         execve(argv[0], (char **) argv, (char**)envp);
     else
@@ -503,8 +556,6 @@ __virExec(virConnectPtr conn,
                          argv[0]);
 
     _exit(1);
-
-    return 0;
 
  cleanup:
     /* This is cleanup of parent process only - child
@@ -535,7 +586,8 @@ virExecWithHook(virConnectPtr conn,
                 int infd, int *outfd, int *errfd,
                 int flags,
                 virExecHook hook,
-                void *data)
+                void *data,
+                char *pidfile)
 {
     char *argv_str;
 
@@ -547,9 +599,16 @@ virExecWithHook(virConnectPtr conn,
     VIR_FREE(argv_str);
 
     return __virExec(conn, argv, envp, keepfd, retpid, infd, outfd, errfd,
-                     flags, hook, data);
+                     flags, hook, data, pidfile);
 }
 
+/*
+ * See __virExec for explanation of the arguments.
+ *
+ * Wrapper function for __virExec, with a simpler set of parameters.
+ * Used to insulate the numerous callers from changes to __virExec argument
+ * list.
+ */
 int
 virExec(virConnectPtr conn,
         const char *const*argv,
@@ -561,7 +620,57 @@ virExec(virConnectPtr conn,
 {
     return virExecWithHook(conn, argv, envp, keepfd, retpid,
                            infd, outfd, errfd,
-                           flags, NULL, NULL);
+                           flags, NULL, NULL, NULL);
+}
+
+/*
+ * See __virExec for explanation of the arguments.
+ *
+ * This function will wait for the intermediate process (between the caller
+ * and the daemon) to exit. retpid will be the pid of the daemon, which can
+ * be checked for example to see if the daemon crashed immediately.
+ *
+ * Returns 0 on success
+ *         -1 if initial fork failed (will have a reported error)
+ *         -2 if intermediate process failed
+ *         (won't have a reported error. pending on where the failure
+ *          occured and when in the process occured, the error output
+ *          could have gone to stderr or the passed errfd).
+ */
+int virExecDaemonize(virConnectPtr conn,
+                     const char *const*argv,
+                     const char *const*envp,
+                     const fd_set *keepfd,
+                     pid_t *retpid,
+                     int infd, int *outfd, int *errfd,
+                     int flags,
+                     virExecHook hook,
+                     void *data,
+                     char *pidfile) {
+    int ret;
+    int childstat = 0;
+
+    ret = virExecWithHook(conn, argv, envp, keepfd, retpid,
+                          infd, outfd, errfd,
+                          flags |= VIR_EXEC_DAEMON,
+                          hook, data, pidfile);
+
+    /* __virExec should have set an error */
+    if (ret != 0)
+        return -1;
+
+    /* Wait for intermediate process to exit */
+    while (waitpid(*retpid, &childstat, 0) == -1 &&
+                   errno == EINTR);
+
+    if (childstat != 0) {
+        ReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                    _("Intermediate daemon process exited with status %d."),
+                    WEXITSTATUS(childstat));
+        ret = -2;
+    }
+
+    return ret;
 }
 
 static int
@@ -679,7 +788,7 @@ virRun(virConnectPtr conn,
 
     if ((execret = __virExec(conn, argv, NULL, NULL,
                              &childpid, -1, &outfd, &errfd,
-                             VIR_EXEC_NONE, NULL, NULL)) < 0) {
+                             VIR_EXEC_NONE, NULL, NULL, NULL)) < 0) {
         ret = execret;
         goto error;
     }
@@ -852,19 +961,16 @@ int virFileReadLimFD(int fd_arg, int maxlen, char **buf)
 
 int virFileReadAll(const char *path, int maxlen, char **buf)
 {
-    char ebuf[1024];
     FILE *fh = fopen(path, "r");
     if (fh == NULL) {
-        virLog("Failed to open file '%s': %s\n",
-               path, virStrerror(errno, ebuf, sizeof ebuf));
+        virReportSystemError(NULL, errno, _("Failed to open file '%s'"), path);
         return -1;
     }
 
     int len = virFileReadLimFP (fh, maxlen, buf);
     fclose(fh);
     if (len < 0) {
-        virLog("Failed to read '%s': %s\n", path,
-               virStrerror(errno, ebuf, sizeof ebuf));
+        virReportSystemError(NULL, errno, _("Failed to read file '%s'"), path);
         return -1;
     }
 
@@ -992,7 +1098,35 @@ int virFileResolveLink(const char *linkpath,
 #endif
 }
 
+/*
+ * Finds a requested file in the PATH env. e.g.:
+ * "kvm-img" will return "/usr/bin/kvm-img"
+ *
+ * You must free the result
+ */
+char *virFindFileInPath(const char *file)
+{
+    char pathenv[PATH_MAX];
+    char *penv = pathenv;
+    char *pathseg;
+    char fullpath[PATH_MAX];
 
+    /* copy PATH env so we can tweak it */
+    strncpy(pathenv, getenv("PATH"), PATH_MAX);
+    pathenv[PATH_MAX - 1] = '\0';
+
+
+    /* for each path segment, append the file to search for and test for
+     * it. return it if found.
+     */
+    while ((pathseg = strsep(&penv, ":")) != NULL) {
+       snprintf(fullpath, PATH_MAX, "%s/%s", pathseg, file);
+       if (virFileExists(fullpath))
+           return strdup(fullpath);
+    }
+
+    return NULL;
+}
 int virFileExists(const char *path)
 {
     struct stat st;
@@ -1120,7 +1254,6 @@ int virFileOpenTtyAt(const char *ptmx ATTRIBUTE_UNUSED,
 }
 #endif
 
-
 char* virFilePid(const char *dir, const char* name)
 {
     char *pidfile;
@@ -1128,15 +1261,17 @@ char* virFilePid(const char *dir, const char* name)
     return pidfile;
 }
 
-
 int virFileWritePid(const char *dir,
                     const char *name,
                     pid_t pid)
 {
     int rc;
-    int fd;
-    FILE *file = NULL;
     char *pidfile = NULL;
+
+    if (name == NULL || dir == NULL) {
+        rc = EINVAL;
+        goto cleanup;
+    }
 
     if ((rc = virFileMakePath(dir)))
         goto cleanup;
@@ -1145,6 +1280,20 @@ int virFileWritePid(const char *dir,
         rc = ENOMEM;
         goto cleanup;
     }
+
+    rc = virFileWritePidPath(pidfile, pid);
+
+cleanup:
+    VIR_FREE(pidfile);
+    return rc;
+}
+
+int virFileWritePidPath(const char *pidfile,
+                        pid_t pid)
+{
+    int rc;
+    int fd;
+    FILE *file = NULL;
 
     if ((fd = open(pidfile,
                    O_WRONLY | O_CREAT | O_TRUNC,
@@ -1172,7 +1321,6 @@ cleanup:
         rc = errno;
     }
 
-    VIR_FREE(pidfile);
     return rc;
 }
 
@@ -1184,6 +1332,11 @@ int virFileReadPid(const char *dir,
     FILE *file;
     char *pidfile = NULL;
     *pid = 0;
+
+    if (name == NULL || dir == NULL) {
+        rc = EINVAL;
+        goto cleanup;
+    }
 
     if (!(pidfile = virFilePid(dir, name))) {
         rc = ENOMEM;
@@ -1218,6 +1371,11 @@ int virFileDeletePid(const char *dir,
 {
     int rc = 0;
     char *pidfile = NULL;
+
+    if (name == NULL || dir == NULL) {
+        rc = EINVAL;
+        goto cleanup;
+    }
 
     if (!(pidfile = virFilePid(dir, name))) {
         rc = ENOMEM;
@@ -1489,6 +1647,9 @@ int virEnumFromString(const char *const*types,
                       const char *type)
 {
     unsigned int i;
+    if (!type)
+        return -1;
+
     for (i = 0 ; i < ntypes ; i++)
         if (STREQ(types[i], type))
             return i;
@@ -1575,7 +1736,7 @@ char *virGetHostname(void)
 /* send signal to a single process */
 int virKillProcess(pid_t pid, int sig)
 {
-    if (pid < 1) {
+    if (pid <= 1) {
         errno = ESRCH;
         return -1;
     }

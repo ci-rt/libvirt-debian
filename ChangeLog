@@ -1,3 +1,1164 @@
+Fri Jul  3 15:08:24 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/qemu_conf.c: patch from C.J. Adams-Collier adding support
+	  for arm emulation if qemu-system-arm is present
+
+Thu Jul  3 11:27:14 GMT 2009 Mark McLoughlin <markmc@redhat.com>
+
+	Patch from Cole Robinson in https://bugzilla.redhat.com/499569
+
+	* src/security_selinux.c: Skip labelling if no src path
+	present
+
+Thu Jul  3 11:26:04 GMT 2009 Mark McLoughlin <markmc@redhat.com>
+
+	Patch from Tim Waugh in https://bugzilla.redhat.com/507555
+
+	* src/security_selinux.c: Don't unnecessarily try to change a
+	file context
+
+Thu Jul  3 11:24:44 GMT 2009 Mark McLoughlin <markmc@redhat.com>
+
+	Patch from Dan Berrange in https://bugzilla.redhat.com/493692
+
+	* src/security_selinux.c: Re-label shared and readonly images
+
+Thu Jul  2 15:58:09 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* docs/schemas/network.rng: fix the network schemas to match
+	  new accepted elements, patch by Satoru SATOH
+	* src/network_conf.c: fix network driver to save the domain name
+	  in XML if present, patch by Satoru SATOH
+	* AUTHORS: adding Satoru SATOH
+
+Wed Jul  1 23:29:33 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/node_device.c: fix an endless loop in node device XML dump,
+	  patch by Cole Robinson
+
+Wed Jul  1 23:23:19 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* docs/drvone.html docs/drvone.html.in: small OpenNebula driver
+	  doc update by Abel Miguez Rodriguez
+
+Wed Jul  1 16:22:38 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* docs/drvone.html.in docs/drvone.html docs/drivers.html.in
+	  docs/hvsupport.html.in docs/sitemap.html.in docs/*: added
+	  documentation for OpenNebula driver by Abel Miguez Rodriguez
+	  and regenerated the docs
+
+Wed Jul  1 15:05:25 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/libvirt.c src/virterror.c: fix some missing comments in public
+	  modules.
+	* docs/libvirt-api.xml docs/libvirt-refs.xml
+	  docs/devhelp/libvirt-libvirt.html docs/html/libvirt-libvirt.html:
+	  regenerated documentation
+	* po/*: updated the polish localization and regenerated
+
+Wed Jul  1 13:18:37 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* docs/logging.html[.in] qemud/libvirtd.conf qemud/qemud.c
+	  src/logging.[ch]: cleanup the logging code and docs to remove
+	  all references to log level 0, cleanup hardcoded values and add
+	  a default VIR_LOG_DEFAULT value, patch by Amy Griffis
+
+Wed Jul  1 12:38:28 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/opennebula/one_conf.c src/opennebula/one_driver.c: cleanup
+	  and small update for OpenNebula driver by Abel Miguez Rodriguez
+
+Wed Jul  1 11:38:15 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/opennebula/one_client.c, src/opennebula/one_client.h:
+	Remove unused code. Ensure null termination after strncpy
+
+Wed Jul  1 10:21:15 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/storage_driver.c: don't destroy a pool when calling create
+	  by mistake, patch by Dave Allan.
+
+Mon Jun 29 18:01:20 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Reduce LXC capabilities
+	* src/lxc_container.c: Use libcap-ng to clear capabilities,
+	and also drop SYS_MODULE, SYS_TIME, AUDIT_CONTROL, and
+	MAC_ADMIN, in addition to SYS_BOOT.
+	* src/lxc_controller.c: Drop all capabilities once container
+	has been spawned.
+
+Mon Jun 29 12:48:20 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Use libcap-ng to clear capabilities for many child processes
+	* src/Makefile.am: Link to libcap-ng in util code
+	* src/qemu_conf.c: Clear capabilities when running qemu -help
+	* src/qemu_driver.c: Clear capabilities when running VMs
+	* src/remote_internal.c: Clear capabilities for auto-spawned
+	libvirtd session daemon, and SSH tunnel client
+	* src/uml_driver.c: Clear capabilities for UML VMs
+	* src/util.h, src/util.c: Add virExec() flag to allow
+	clearing of capabilities when spawning processes
+
+Mon Jun 29 12:28:20 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Prepare for using libcap-ng
+	* configure.in: Add check for libcap-ng
+	* libvirt.spec.in: Build with libcap-ng on Fedora >= 12
+
+Mon Jun 29 12:01:20 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Add HACKING doc to the website
+	* docs/hacking.html.in, docs/sitemaps.html.in: HTML-ized
+	version of HACKING
+	* docs/internals.html, docs/sitemap.html, docs/api_extension.html,
+	docs/news.html: Re-generate for sitemap changes
+
+Mon Jun 29 10:51:20 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Fix crash in QEMU driver with bad capabilities data
+	* src/capabilities.c, src/capabilities.h: Export a method
+	virCapabilitiesFreeNUMAInfo()
+	* src/qemu_conf.c: Don't kill the whole QEMU driver if
+	populating capabilities with NUMA info fails.
+	* src/qemu_driver.c: Fix missing security model data
+	after capabilities refresh. Avoid leaving driver with
+	NULL capabilities if refresh fails.
+
+Fri Jun 26 22:13:16 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/parthelper.c: fix a superfluous % on printf format problem
+	  raised by Matthias Bolte
+
+Fri Jun 26 22:02:22 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/nodeinfo.c: sometimes libnuma can't handle some topologies,
+	  but those failures should not completely break libvirt, patch
+	  by Dan Berrange, fixes #506590
+
+Fri Jun 26 20:11:38 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/xend_internal.c: avoid a segfault when dumping XML with recent
+	  xen versions, patch by Sascha, fixes #503254
+
+Fri Jun 26 18:15:08 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/libvirt_private.syms src/parthelper.c src/storage_backend_disk.c
+	  src/storage_conf.c src/storage_conf.h: allow to create storage
+	  volumes on disk backend, patches by Henrik Persson
+	* AUTHORS: add Henrik Persson
+
+Fri Jun 26 17:06:18 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/Makefile.am src/libvirt.c src/libvirt_private.syms src/logging.c
+	  src/logging.h src/util.c src/libvirt_debug.syms: big cleanup of
+	  the debug configuration option and code by Amy Griffis
+
+Fri Jun 26 16:07:54 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/node_device.c src/node_device_hal.h src/node_device_hal_linux.c:
+	  fix bogus WWN in NPIV support, patch by David Allan
+
+Thu Jun 25 17:12:09 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/storage_conf.c: fix reading of storage pool definitions at startup
+	  patch by Cole Robinson
+
+Thu Jun 25 16:57:40 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/uml_driver.c: fix UML driver logging macros, patch by Amy
+	  Griffis
+	* AUTHORS: adding Amy Griffis
+
+Thu Jun 25 16:50:54 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/node_device_conf.c: fix a leak, patch by Dave Allan
+
+Thu Jun 25 15:46:11 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/qemu_driver.c: fix a domain state problem after
+	  migration, patch  by Federico Simoncelli, fixes #507537
+	* src/domain_conf.c:  fix a transcient domain state problem after
+	  destroy, patch  by Federico Simoncelli, fixes #507304
+	* AUTHORS: add Federico Simoncelli and Javier Fontan
+
+Thu Jun 25 10:32:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Fix broken dominfo command when no security driver is implemented
+	* src/libvirt.c: Clarify semantics of return value for
+	virDomainGetSecurityLabel and virNodeGetSecurityModel
+	* src/remote_internal.c src/qemu_driver.c: memset seclabel
+	to zero
+	* src/virsh.c: Check VIR_ERR_NO_SUPPORT when querying security
+	labels in dominfo command.
+
+Wed Jun 24 19:40:43 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* po/*: update a lot of translations, and regenerate the po* files
+
+Wed Jun 24 19:28:16 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* configure.in libvirt.spec.in src/Makefile.am
+	  src/opennebula/one_client.[ch] src/opennebula/one_conf.h
+	  src/opennebula/one_driver.[ch] : Finish the integration of OpenNebula,
+	  avoid dependancy on OpenNebula libraries, require xmlrpc-c-devel
+	  and build it by default, based on patch by Javier Fontan and DanB
+	  suggestions
+
+Wed Jun 24 18:15:56 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/opennebula/one_conf.c src/opennebula/one_driver.c: fix One
+	  driver compilation issues, patch by Javier Fontan and remove
+	  some tabs in format strings
+
+Mon Jun 22 12:40:11 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/libvirt_private.syms src/storage_conf.c src/storage_conf.h
+	src/storage_driver.c src/test.c:
+	Refactor storage XML parsing to be consistent with domain/network conf.
+
+Mon Jun 22 12:38:19 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/test.c: Activate virtual networks initialized in custom test driver.
+
+Mon Jun 22 12:35:34 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/util.c: Fix segfault if storage pool has no type attribute
+	(possibly others)
+
+Mon Jun 22 12:33:37 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/qemu_driver.c: Fix memory reporting for inactive domains
+	in the qemu driver.
+
+Mon Jun 22 12:31:38 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/storage_backend_fs.c src/storage_driver.c:
+	Fix raw storage volume creation for allocation < capacity.
+
+Mon Jun 22 11:09:18 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/test.c: Fix domain ID after redefining a running VM
+
+Mon Jun 22 12:27:39 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/conf.[ch]: restrict VMX syntax parsing types, patch by Matthias
+	  Bolte
+
+Mon Jun 22 12:14:48 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/storage_driver.c: cleanup when creating a storage pool fails,
+	  patch by Henrik Persson
+
+Fri Jun 19 14:32:41 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* qemud/qemud.c src/conf.c src/conf.h src/qemu_conf.c src/xen_unified.c
+	  src/xm_internal.c tests/conftest.c tests/xmconfigtest.c: extend
+	  the configuration parser for VMX syntax, patch by Matthias Bolte
+
+Thu Jun 18 14:56:24 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/remote_internal.c: Fix socket path for remote SSH
+	tunnels to honour read-only flag
+
+Wed Jun 17 10:31:35 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/node_device.[ch] src/storage_backend.[ch]: fixes a
+	  module dependency problem, patch by Dave Allan
+
+Tue Jun 16 14:30:05 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/domain_conf.c
+	tests/qemuxml2argvdata/qemuxml2argv-hostdev-usb-product.args
+	tests/qemuxml2argvdata/qemuxml2argv-hostdev-usb-product.xml:
+	Allow USB hostdev product to be 0x0000
+
+Tue Jun 16 11:43:17 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/storage_backend_fs.c: Fix FS volume creation with backing stores.
+
+Tue Jun 16 11:33:54 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/domain_conf.c src/domain_conf.h src/libvirt_private.syms
+	src/lxc_driver.c src/qemu_conf.c src/qemu_driver.c:
+	Set default emulator in domain_conf.*, rather than the driver.
+
+Tue Jun 16 11:18:00 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/capabilities.c src/capabilities.h src/libvirt_private.syms
+	src/lxc_conf.c src/qemu_conf.c: Add virCapabilities*EmulatorRequired.
+
+Tue Jun 16 11:16:17 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/qemu_conf.c src/qemu_conf.h tests/qemuhelptest.c
+	tests/qemuxml2argvtest.c:   Check that '-drive format=' is supported
+
+Tue Jun 16 10:04:32 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* tests/.cvsignore tests/.hgignore tests/.gitignore:
+	Add qemuhelptest to .*ignore files
+
+Tue Jun 16 10:00:50 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/qemu_conf.c: Fix qemu command flags fetching
+
+Tue Jun 16 10:30:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/xen_internal.c: Add new variant of availheap sysctl
+	for ABI changes in Xen
+
+Mon Jun 15 18:15:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Fix build on non-Linux targets
+	* src/nodeinfo.c: s/nodeError/nodeReportError/
+
+Mon Jun 15 15:58:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Fix build from tar.gz
+	* src/Makefile.am: Add missing node_device_hal.h to list of
+	distributed files
+
+Mon Jun 15 12:05:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/util.c: Fix bogus initialization in virFindFileInPath
+
+Fri Jun 12 14:16:42 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Remove use of getuid()==0 for privilege checks
+	* qemud/qemud.c, qemud/qemud.h, src/driver.h, src/libvirt.c,
+	src/libvirt_internal.h, src/lxc_driver.c, src/network_driver.c,
+	src/node_device_devkit.c, src/node_device_hal.c,
+	src/qemu_conf.h, src/qemu_driver.c, src/remote_internal.c,
+	src/storage_driver.c, src/uml_conf.h, src/uml_driver.c,
+	src/xen_internal.c, src/xen_unified.c: Remove all use of
+	getuid()/geteuid() to determine if privileged. Replace with
+	'privileged' flag provided by libvirtd, or direct access
+	checks.
+
+Fri Jun 12 13:36:42 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Include OS driver name (if any) in device XML
+	* src/node_device.c: Refresh OS driver when generating XML,
+	and include impl for Linux sysfs
+	* src/noe_device_conf.c, src/node_device_conf.h: Add field
+	for OS driver name to config
+	* src/node_device_hal.c: Record sysfs path to be used for
+	driver name fetching later.
+
+Fri Jun 12 13:06:42 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Improve error reporting for virConnectOpen URIs
+	* src/lxc_driver.c, src/openvz_driver.c, src/qemu_driver.c,
+	src/uml_driver.c, src/xen_unified.c: Always return ACCEPT
+	or ERROR for URIs without hostname set, but with the driver's
+	matching URI scheme. ie never decline a correct URI
+	* src/xend_internal.c: Default port to 8000 if not given
+	in the http:// URI.
+	* src/remote_internal.c: Accept all URIs not handled by an
+	earlier driver.
+	* src/virterror.c: Improve error message text for
+	VIR_ERR_NO_CONNECT code
+
+Fri Jun 12 12:26:42 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Fix re-detection of transient VMs after libvirtd restart
+	* src/domain_conf.c, src/domain_conf.h, src/libvirt_private.syms:
+	Extend virDomainLoadAllConfigs to allow for loading of live
+	state info from XML files. Add APIs to format/parse state info
+	from virDomainObjPtr to XML.
+	* src/lxc_driver.c, src/uml_driver.c: Adapt for API change in
+	virDomainLoadAllConfigs.
+	* src/qemu_driver.c, src/qemu_conf.c, src/qemu_conf.h: Remove
+	all code for loading live state files, and use standard APIs
+	from domain_conf.h.
+	* src/security.h, src/security_selinux.c: Add API for reserving
+	an existing in-use MCS context from a running VM detected at
+	daemon startup.
+
+Thu Jun 11 17:33:43 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* qemud/remote.c: fixing a typo pointed out by Runa Bhattacharjee
+
+Thu Jun 11 16:22:22 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/node_device_hal.c src/node_device_conf.[ch]: add support
+	  for serial number in HAL storage backend, patch by Dave Allan
+	* docs/schemas/nodedev.rng,
+	tests/nodedevschemadata/storage_serial_3600c0ff000d7a2a5d463ff4902000000.xml:
+	  update the schemas and add a test case, also by Dave Allan
+
+Thu Jun 11 15:18:44 GMT 2009 Mark McLoughlin <markmc@redhat.com>
+
+	* src/qemu_conf.[ch]: make qemuParseHelpStr() available
+	to tests
+
+	* tests/qemuhelptest.c, tests/qemuhelpdata/*: add tests
+	for 'qemu -help' parsing.
+
+Thu Jun 11 15:17:12 GMT 2009 Mark McLoughlin <markmc@redhat.com>
+
+	* src/qemu_conf.c: detect newer qemu-kvm versions
+
+Thu Jun 11 15:15:02 GMT 2009 Mark McLoughlin <markmc@redhat.com>
+
+	* src/qemu_conf.c: re-factor qemu version parsing.
+
+Thu Jun 11 15:14:37 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* configure.in src/libvirt_private.syms src/storage_backend_fs.c
+	  src/util.c src/util.h: find and use kvm-img, qemu-img or qcow-create
+	  dynamically at runtime, patch by Doug Goldstein
+	* AUTHORS: add Doug Goldstein
+
+Tue Jun  9 15:21:17 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* docs/formatdomain.html docs/formatdomain.html.in: typo fix
+	  by Garry Dolley
+
+Tue Jun  9 12:39:24 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	API extension docs (Dave Allen)
+	* docs/internals.html.in, docs/api_extension.html.in,
+	docs/sitemap.html.in: Start new section on libvirt internal
+	development & add doc about public API extensions
+	* docs/api_extension/*patch: Example patch files
+	* docs/*.html: Re-generate for updated sitemap
+
+Thu Jun  4 15:54:24 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/xm_internals.c: the memory shrinking on device removal
+	  didn't copy the right amount of memory, patch by Daniel Berrange
+	  fixes #497051
+
+Wed Jun  3 15:32:52 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/vbox/vbox_tmpl.c: Add NUMA memory APIs
+
+Wed Jun  3 15:44:55 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/network_driver.c: forbid set Autostart on transcient networks
+
+Wed Jun  3 14:30:52 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/vbox/vbox_tmpl.c: Switch to positional struct initializers
+	instead of named initializes, to match preferred style
+
+Wed Jun  3 14:29:52 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/lxc_driver.c: Implement capabilities and nodeinfo APIs
+
+Wed Jun  3 14:28:52 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Generic shared impls of all NUMA apis
+	* src/libvirt_private.syms: Add all nodeinfo.c APIs
+	* src/lxc_conf.c, src/openvz_conf, src/qemu_conf.c,
+	src/vbox/vbox_tmpl.c, src/uml_conf.c: Update for
+	changed API names in nodeinfo.h
+	* src/nodeinfo.c, src/nodeinfo.h: Add generic impls of
+	the virNodeGetCellsFreeMemory & virNodeGetFreeMemory APis
+	* src/openvz_driver.c: Use nodeGetInfo() directly in driver
+	* src/qemu_driver.c, src/uml_driver.c: Remove NUMA APis impls
+	in favour of generic impl in nodeinfo.c
+
+Wed Jun  3 14:12:47 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/openvz_conf.c src/virsh.c: various typo or english fixups
+	  raised by Runa Bhattacharjee
+
+Wed Jun  3 12:19:52 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Fix HAL driver restart thread safety
+	* src/node_device_hal.c: Only clear & recreate device objects,
+	not entire driver struct.
+	* src/node_device.c: Remove overly verbose logging of mutex
+	operations.
+
+Wed Jun  3 12:03:52 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Support networking in UML driver
+	* src/bridge.c: Add new brDeleteTap function. Allow brAddTap
+	to create a persistent tap devices.
+	* src/bridge.h, src/libvirt_bridge.syms: Add brDeleteTap
+	* src/domain_conf.c: Fix missing 'break' in network XML formatter
+	* src/uml_conf.c, src/uml_conf.h, src/uml_driver.c: Add support
+	for bridge, network, mcast and user mode network interfaces
+
+Wed Jun  3 11:53:52 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Misc User Mode Linux startup/shutdown bugs
+	* src/util.c: Make virKillProcess refuse to kill PID==1 too
+	* src/uml_driver.c: Increment retries counter when starting
+	guest. Check for monitor command failure. Use unique source
+	socket per domain for talking to monitor.  Use virKillProcess
+	for killing guests. Fix guest cleanup when getting inotify
+
+Wed Jun  3 11:32:52 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* qemud/qemud.c: Honour LIBVIRT_LOG_FILTERS/OUTPUTS env variables
+	when initializing logging.
+
+Tue Jun  2 17:05:52 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/Makefile.am src/node_device.[ch] src/node_device_conf.[ch]
+	  src/node_device_hal.[ch] src/node_device_hal_linux.c
+	  src/qemu_driver.c src/remote_internal.c src/storage_backend.c
+	  src/virsh.c src/xen_unified.c tests/nodedevxml2xmltest.c
+	  po/POTFILES.in: implementation for node device create and destroy
+	  in NPIV support, patch by David Allan
+
+Fri May 29 18:37:17 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* configure.in libvirt.spec.in NEWS docs/* po/*: release of
+	  libvirt-0.6.4
+	* src/libvirt.c src/virterror.c: some comments cleanups
+
+Fri May 29 15:34:30 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* qemud/qemud.c: Set free'd variables to NULL to avoid potential
+	double-free() scenario when client unexpectedly closes connection
+
+Fri May 29 15:26:30 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Win32 portability fixes
+	* docs/libvirt-api.xml, docs/libvirt-refs.xml,
+	docs/devhelp/libvirt-libvirt.html, docs/devhelp/libvirt-virterror.html,
+	docs/html/libvirt-libvirt.html, docs/html/libvirt-virterror.html:
+	Regenerate docs from new API docs
+	* include/libvirt/libvirt.h, include/libvirt/libvirt.h.in,
+	qemud/remote.c, qemud/remote_protocol.c, qemud/remote_protocol.h,
+	qemud/remote_protocol.x, src/datatypes.c, src/datatypes.h,
+	src/driver.h, src/libvirt.c, src/remote_internal.c: Change
+	all variable and field names from 'interface' to 'iface' to
+	avoid clash with Win32 COM object name
+	* tests/testutils.c: Disable regex code if not avaialble
+	* qemud/Makefile.am: Fix BUILT_SOURCES on non-libvirtd builds
+
+Fri May 29 16:25:32 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/lxc_container.c: fix a portability issue if PR_CAPBSET_DROP
+	  not defined.
+
+Fri May 29 10:16:13 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/network_driver.c src/network_conf.c src/network_conf.h:
+	Fix regression defining colliding networks at daemon startup.
+
+Fri May 29 10:13:55 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/network_driver.c: networkDestroy: Report error if network
+	is inactive
+
+Fri May 29 10:10:00 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/qemu_driver.c: qemu_driver: Fix another domain startup error
+	reporting race.
+
+Fri May 29 10:01:19 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/qemu_driver.c : qemuDomainLookupByUUID: print correct UUID
+	string on failed lookup.
+
+Fri May 29 10:00:01 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/virsh.c : virsh: Use consistent spacing for net-list
+
+Fri May 29 15:29:32 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/qemu_conf.c docs/schemas/domain.rng
+	  tests/capabilityschemadata/caps-qemu-kvm.xml: PPC Qemu Machine Type
+	  changed from g3bw to g3beige some time ago, patch by Thomas Baker
+
+Fri May 29 14:26:30 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Fix regression with network interface parsing
+	* src/domain_conf.c: Add missing 'break' statement in network
+	parser
+
+Fri May 29 14:26:10 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* docs/schemas/storagevol.rng docs/formatstorage.html[.in]
+	  tests/storagevolschemadata/vol-qcow2.xml: fix storage volume
+	  inconsistencies in schema and document, patch by Ryota Ozaki
+
+Fri May 29 14:07:13 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* po/*: update of many localizations, regenerate the po
+
+Thu May 28 14:20:30 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Fix misc bugs in ARGV -> XML convertor
+	* src/qemu_conf.c, src/qemu_conf.h, src/qemu_driver.c: Fill
+	in autogenerated MAC adress and UUID when converting ARGV
+	into XML. Avoid crash if net device vlan isn't specified.
+	Cope with quoting of argument values
+	* tests/qemuargv2xmltest.c: Initialize random number generator
+	and pass in capabilities when parsing ARGV
+
+Thu May 28 14:13:30 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Avoid broken networking with new QEMU/KVM >= 86
+	* src/qemu_conf.c: Remove ifname= and script= args to QEMU
+	when passing a TAP device file handle.
+
+Thu May 28 14:11:30 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Fix misc syntax check failures with OpenNebula driver
+	* src/opennebula/one_conf.c, src/opennebula/one_conf.h,
+	src/opennebula/one_driver.c, src/opennebula/one_driver.h: Kill
+	trailing whitespace, automatic re-indent of all code, added
+	missing translation marking
+	* Makefile.maint: Add oneError() as a function with translatable
+	strings.
+	* po/POTFILES.in: Add one_conf.c, one_driver.c
+
+Thu May 28 13:27:30 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/logging.c: Include function name & line number in all
+	logging levels.
+
+Thu May 28 12:00:30 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Fix python domain events example & binding.
+	* examples/domain-events/events-python/event-test.py: Fix
+	broken handling of timers
+	* python/libvir.c: Take reference on virDomainPtr object
+	before wrapping it to avoid double-free.
+
+Tue May 26 13:09:30 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Fix error location logging
+	* src/virterror.c, src/virterror_internal.h: Re-factor error
+	reporting APIs to ensure correct source location info is
+	passed through to eventual virLogMessage call.
+
+Tue May 26 11:25:30 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* tests/Makefile.am: Add ocaml intermediate files to CLEANFILES
+
+Mon May 25 13:52:30 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/opennebula/one_conf.[ch] src/opennebula/one_driver.[ch]:
+	  the OpenNebula driver
+	* configure.in include/libvirt/virterror.h qemud/Makefile.am
+	  qemud/qemud.c src/Makefile.am src/domain_conf.[ch] src/driver.h
+	  src/libvirt.c src/virterror.c: integration of the OpenNebula
+	  driver in the libvirt infrastructure
+	* AUTHORS: add Abel Miguez Rodriguez
+
+Mon May 25 11:42:15 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* examples/domain-events/events-c/event-test.c: fixed the example
+	  code for event handling, patch by Pritesh Kothari
+
+Thu May 21 15:22:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Test case for QEMU driver ARGV -> XML conversion
+	* tests/qemuargv2xmltest.c: Add test case for ARGV -> XML
+	conversion in QEMU driver
+	* tests/qemuxml2argvdata/qemuxml2argv-bootloader.args,
+	tests/qemuxml2argvdata/qemuxml2argv-bootloader.xml: Fix QEMU
+	binary to be xenner, not qemu-kvm
+	* tests/qemuxml2argvdata/qemuxml2argv-disk-cdrom-empty.xml: Remove
+	trailing blank line
+	* tests/qemuxml2argvdata/qemuxml2argv-hostdev-pci-address.xml:
+	Switch to unmanaged PCI device for tests
+	* tests/testutils.c, tests/testutils.h: Add API for stripping
+	lines matching a pattern.
+	* .hgignore, tests/.cvsignore, tests/.gitignore: Ignore new
+	test case binary
+
+Thu May 21 15:20:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* docs/drvqemu.html[.in], docs/drvxen.html[.in]: Add docs on
+	use of new domain XML conversions
+
+Thu May 21 15:16:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/qemu_driver.c, src/qemu_conf.c, src/qemu_conf.h: Add new
+	APIs for converting from QEMU argv into domain XML, and use for
+	domain XML conversion APIs.
+
+Thu May 21 15:15:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/domain_conf.h, src/vbox/vbox_tmp.c: Fix typo s/ES97/AC97/
+
+Thu May 21 14:59:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Basic domain XML conversions
+	* src/qemu_conf.c, src/qemu_conf.h, src/qemu_driver.c: Wire up
+	API for conversion from XML to native argv
+	* src/xen_unified.c, src/xen_unified.h: Wire up API for domain
+	XML conversions to & from native
+
+Thu May 21 14:48:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Remote protocol support for domain XML conversion APIs
+	* qemud/remote.c: Handlers for new RPC messages
+	* qemud/remote_dispatch_*.h, qemud/remote_protocol.c,
+	qemud/remote_protocol.h: Re-generate for new RPC calls
+	* qemud/remote_protocol.x: Add domain XML conversion APIs
+	* src/remote_internal.c: Client for domain XML conversion
+	APIs
+
+
+Thu May 21 14:32:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Public APIs for domain XML conversions.
+	* docs/devhelp/libvirt-libvirt.html, docs/devhelp/libvirt-virterror.html,
+	docs/html/libvirt-libvirt.html, docs/html/libvirt-virterror.html,
+	docs/libvirt-api.xml, docs/libvirt-refs.xml: Regenerate with new public
+	APIs
+	* include/libvirt/libvirt.h, include/libvirt/libvirt.h.in,
+	src/driver.h, src/libvirt.c, src/libvirt_public.syms: Add
+	virConnectDomainXMLFromNative and virConnectDomainXMLToNative
+	* src/lxc_driver.c, src/openvz_driver.c, src/qemu_driver.c,
+	src/remote_internal.c, src/test.c, src/uml_driver.c,
+	src/xen_unified.c: Stub out new API entry points
+	* src/virsh.c: Add domxml-to-native and domxml-from-native commands
+
+Thu May 21 11:52:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* python/generator.py, python/libvirt_wrap.h, python/types.c: Add
+	rules for generating virInterface APIs in python
+
+Thu May 21 10:01:43 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* docs/formatstorage.html[.in]: fix a error in format type example
+	  pointed out by Ryota Ozaki
+
+Wed May 20 16:23:10 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* configure.in include/libvirt/libvirt.h[.in]
+	  include/libvirt/virterror.h qemud/remote.c
+	  qemud/remote_dispatch_args.h qemud/remote_dispatch_prototypes.h
+	  qemud/remote_dispatch_ret.h qemud/remote_dispatch_table.h
+	  qemud/remote_protocol.[chx] src/Makefile.am src/datatypes.c
+	  src/datatypes.h src/driver.h src/libvirt.c src/remote_internal.c
+	  src/virterror.c src/libvirt_private.syms src/libvirt_public.syms:
+	  Add the Interface config APIs and remote stubs for those, patch
+	  by Laine Stump
+	* AUTHORS: add Laine
+
+Wed May 20 15:35:35 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* qemud/qemud.c src/console.c src/network_driver.c
+	  src/node_device_conf.c src/node_device_hal.c src/storage_conf.c
+	  src/util.c: cleanup of some direct stderr logging
+
+Wed May 20 15:33:27 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/pci.c: small portability patch
+
+Wed May 20 09:10:28 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/lxc_driver.c: fix a couple of error code, patch by
+	  Amy Griffis
+
+Tue May 19 09:39:01 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/storage_backend_fs.c: VolumeCreateXMLFrom FS storage
+	backend implementation.
+
+Tue May 19 09:36:48 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/storage_backend.h src/storage_driver.c: Storage driver
+	implementation for CreateXMLFrom
+
+Tue May 19 09:26:53 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/node_device_hal.c: Fix node device media insert/eject
+	detection.
+
+Tue May 19 09:24:54 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/node_device_hal.c: Fix a possible deadlock in HAL nodedev
+	driver.
+
+Tue May 19 09:22:43 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* Makefile.am: Fix rpm build: add 'mylibtool' to EXTRADIST.
+
+Tue May 19 09:20:54 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* qemud/Makefile.am: Generate some config files at build time.
+
+Tue May 19 09:16:37 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	Add documentation for <sound> device XML format.
+	* docs/formatdomain.html docs/formatdomain.html.in
+
+Tue May 19 09:14:12 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	Use virAsprintf, rather than VIR_ALLOC + strcpy + strcat
+	* qemud/remote.c src/remote_internal.c src/storage_backend.c
+	  src/storage_backend_fs.c src/storage_backend_logical.c
+	  src/test.c
+
+Tue May 19 09:04:05 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/virsh.c: Don't validate disk type in virsh attach-disk
+
+Tue May 19 09:00:43 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* python/libvir.py: Don't overwrite legitimate python import error.
+
+Tue May 19 12:04:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Fix misc locking bugs identified by lock checker
+	* src/test.c: Add missing driver lock calls in testOpen()
+	* src/uml_driver.c: Remove bogus driver unlock call in
+	umlDomainStart. Ensure driver lock is held for the duration
+	of umlDomainSetAutostart.
+	* src/network_driver.c: Ensure driver lock is held for the
+	duration of networkStart, networkDestroy and networkSetAutostart
+	* src/storage_driver.c: Ensure driver lock is held for the
+	duration of storagePoolRefresh, and storagePoolSetAutostart.
+	Ensure driver is locked before re-obtaining pool lock in
+	storageVolumeCreateXML.
+	* src/qemu_driver.c: Ensure lock is held when removing domain
+	event callbacks in qemudClose(). Drop driver lock before calling
+	qemudAutostartConfigs, since that will obtain a lock when calling
+	virConnectClose. Hold lock across duration of suspend, resume,
+	start, get security label, device attach and device detach
+	operations.
+
+Tue May 19 11:10:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Add an optional OCaml+CIL mutex lock checker
+	* .hgignore, src/.cvsignore, src/.gitignore, tests/.gitignore,
+	tests/.cvsignore: Ignore binary files from ocaml build. Ignore
+	.i and .s files from gcc -save-temps
+	* configure.in: Add --enable-test-locking arg to turn on build
+	of OCaml/CIL mutex locking test
+	* src/Makefile.am: Add $(LOCK_CHECKING_CFLAGS) used when lock
+	checking tests are enabled.
+	* tests/Makefile.am, tests/object-locking.ml: Add OCaml/CIL
+	program for validating mutex locking correctness
+
+Mon May 18 16:10:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/qemu_conf.c: Declare support for migration in capabilities
+
+Fri May 15 15:59:08 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/vbox/vbox_driver.c src/vbox/vbox_tmpl.c: last patch for
+	  hostonly networks support in vbox driver, patch by Pritesh Kothari
+
+Fri May 15 15:44:01 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/vbox/vbox_tmpl.c: implement vbox vrdp/sdl/gui support,
+	  patches by Pritesh Kothari
+
+Fri May 15 11:41:46 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* docs/schemas/domain.rng src/domain_conf.[ch] src/qemu_driver.c:
+	  extend the generic code for the RDP and desktop extensions of
+	  the graphic tag needed for vbox, patch by Pritesh Kothari
+
+Thu May 14 12:29:41 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/xend_internal.c: remove [] around cpumaps for recent xend
+	  patch by Tatsuro Enokura
+
+Wed May 13 13:37:02 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/virsh.c: Fix a few 'used uninitialized' warnings.
+
+Wed May 13 18:06:17 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/buf.c: avoid an XML attribute escaping bug #499791
+
+Wed May 13 12:34:06 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/lxc_container.c: Replace sys/capability.h with
+	linux/capability.h, to avoid unneccessary dependancy
+	on the libcap package.
+
+Tue May 12 16:39:06 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* tests/eventtest.c: Use safewrite instead of write
+	* po/POTFILES.in: Add src/vbox/vbox_driver.c
+
+Tue May 12 16:25:59 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/storage_backend_fs.c: Break out FS volume build routines to
+	their own functions.
+
+Tue May 12 16:16:09 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/virsh.c: Virsh commands vol-clone and vol-create-from
+
+Tue May 12 16:14:43 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/test.c: Test driver implementation of
+	virStorageVolCreateXMLFrom
+
+Tue May 12 16:11:14 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* qemud/remote.c qemud/remote_dispatch_args.h
+	  qemud/remote_dispatch_prototypes.h qemud/remote_distpatch_ret.h
+	  qemud/remote_dispatch_table.h qemud/remote_protocol.c
+	  qemud/remote_protocol.h qemud/remote_protocol.x
+	  src/remote_internal.c:
+	  Remote support for virStorageVolCreateXMLFrom
+
+Tue May 12 16:00:49 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* include/libvirt/libvirt.h include/libvirt/libvirt.c
+	  src/driver.h src/libvirt.c src/libvirt_public.syms:
+	  Public API definition for virStorageVolCreateXMLFrom
+	* docs/devhelp/libvirt-libvirt.html
+	  docs/devhelp/libvirt-virterror.html
+	  docs/html/libvirt-libvirt.html docs/html/libvirt-virterror.html
+	  docs/libvirt-api.xml docs/libvirt-refs.xml:
+	  Regenerate API documentation.
+
+Tue May 12 15:58:28 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/storage_backend.c: Document a function
+	* src/storage_backend_fs.c: Don't squash file probe errors.
+
+Tue May 12 17:45:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* .hgignore, tests/.cvsignore, tests/.gitignore: Ignore
+	new eventtest binary.
+	* tests/Makefile.am, tests/eventtest.c, tests/testutils.h: Add
+	test case for exercising the event loop
+
+Tue May 12 17:43:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Fix watch/timer event deletion
+	* qemud/event.c: Change handling of deleted watches/timers
+	to ensure correct dispatch of callbacks when deleted flag
+	is set
+
+Tue May 12 17:42:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* qemud/event.c: Start watch/timer IDs from 1 to avoid problem
+	with accidental uninitialized variables at 0. Fix interrupting
+	of main thread when updating/deleting watches/timers.
+
+Tue May 12 16:38:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* qemud/qemud.c, qemud/qemud.h, qemud/event.c: Remove use
+	of qemudSetNonBock/SetCloseExec in favour of virSetNonBlock
+	and virSetCloseExec.
+
+Tue May 12 16:38:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Allow for quieter build with 'make -s'
+	* configure.in: Use 'mylibtool' wrapper around 'libtool'
+	* mylibtool: Quiet version of libtool just printing build
+	target name without flags.
+
+Tue May 12 16:35:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Improve driver open URI handling
+	* src/vbox/vbox_driver.c: Register dummy no-op driver if
+	the virtualbox libraries are not avialable
+	* src/vbox/vbox_tmpl.c: Return fatal error if open fails
+	for a URI we expect to handle
+
+Tue May 12 17:25:52 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/network_driver.c: enable bridges which are not up, i.e.
+	  without an IP address, patch by Ludwig Nussel
+
+Mon May 11 16:25:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/datatypes.c: Change hash destructors to call the internal
+	virUnrefXXX methods instead of public virXXXFree methods (Laine
+	Stump)
+
+Mon May 11 16:25:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/lxc_container.c: Fix unused variable warning
+
+Mon May 11 16:15:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Fix QEMU ARGV detection with kvm >= 85
+	* src/qemu_conf.c: Increase limit on QEMU -help output size.
+	Improve error reporting when handling help output
+	* src/qemu_driver.c: Don't overwrite errors when extracting
+	QEMU versio ninfo
+
+Mon May 11 15:55:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/virsh.c: Report detailed error if initial connection open
+	attempt fails
+
+Mon May 11 16:03:37 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/lxc_container.c: drop LXC CAP_SYS_BOOT capability to avoid
+	  reboot from inside containers, patch by Ryota Ozaki
+
+Mon May 11 09:51:00 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/qemu_driver.c : Check that QEMU is still alive while
+	reading startup output.
+
+Mon May 11 09:44:40 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/util.[ch] : Add pidfile argument to __virExec
+	* src/proxy_internal.c src/qemu_driver.c src/uml_driver.c
+	src/remote_driver.c: Adjust virExecDaemonize calls accordingly.
+	* src/qemu_conf.c : No longer pass -pidfile argument to qemu
+	* tests/qemuxml2argvdata/*.args : Remove qemu -pidfile argument.
+
+Mon May 11 09:35:26 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/qemu_driver.c: Report qemu log data if we fail to daemonize.
+
+Mon May 11 09:29:52 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/libvirt_private.syms src/util.[ch]: Add a helper function
+	virExecDaemonize
+	* src/proxy_internal.c src/qemu_driver.c src/uml_driver.c
+	src/remote_driver.c: Use the new helper.
+
+Mon May 11 11:54:53 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/vbox/vbox_tmpl.c: "Host only" and "Internal" network support
+	  for vbox, patch by Pritesh Kothari
+
+Mon May 11 11:47:51 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/domain_conf.[ch] docs/schemas/domain.rng: add support
+	  for internal network in the generic part of the code, and
+	  update the Relax-NG grammar accordingly, patch by Pritesh Kothari
+
+Fri May  8 11:24:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/cgroup.c: Create cgroups mode 755, not 655 (Ryota Ozaki)
+
+Fri May  8 11:22:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Fix /dev/ population to use char devices (Ryota Ozaki)
+	* src/lxc_controller.c: Add /dev/ptmx to allow cgroup resources
+	* src/lxc_container.c: Create dev nodes as char devices, not
+	plain files
+
+Fri May  8 12:15:05 CEST 2009 Guido Günther <agx@sigxcpu.org>
+
+	* src/vbox/vbox_tmpl.c (virDrvOpen): return VIR_DRV_OPEN_DECLINED
+	  instead of VIR_DRV_OPEN_ERROR when vbox can't be found so other
+	  hypervisors can be probed. Patch by Pritesh Kothari.
+
+Fri May  8 12:09:12 CEST 2009 Guido Günther <agx@sigxcpu.org>
+
+	* src/vbox/vbox_tmpl.c (vboxUninitialize): fix crash when init fails
+	  early (i.e. due to vbox not being installed)
+
+Fri May  8 11:10:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/qemu_driver.c: Make name & UUID uniqueness checking in
+	define, create & restore functions more robust. Throw error
+	in destory operation, if guest isn't running
+
+Fri May  8 11:07:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/qemu_conf.c: Enable migrate/save/restore for QEMU
+	0.10.0 or later releases
+
+Fri May  8 11:05:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* src/driver.c: Log dlopen related errors at higher log level
+	so important messages are visible by default
+
+Fri May  8 10:56:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	* include/libvirt/virterror.h, src/virterror.c: Add new error
+	code VIR_ERR_OPERATION_INVALID for operations that are not
+	applicable at this time (eg, pause on an inactive guest)
+	* src/qemu_driver.c, src/xen_internal.c, src/xend_internal.c:
+	Use new error code where relevant.
+
+Thu May  7 09:31:22 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* qemud/libvirtd.init.in: improve the LSB init header for the
+	  init.d file, patch by Frederik Himpe
+
+Thu May  7 09:26:50 CEST 2009 Guido Günther <agx@sigxcpu.org>
+
+	* src/util.c (virFileWritePid): check for NULL pointers
+	  to avoid bogus pid files
+	  (virFileReadPid): likewise
+	  (virFileDeletePid): likewise
+
+Thu May  7 09:24:47 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/domain_conf.c src/domain_conf.h: parse and save multiple
+	  graphics elements instead of one, patch by Pritesh Kothari
+	* src/qemu_conf.c src/qemu_driver.c: adapt the qemu/kvm driver for
+	  the new structures, patch by Pritesh Kothari
+	* src/xend_internal.c src/xm_internal.c: same thing for Xen drivers
+
+Thu May  7 09:16:05 CEST 2009 Guido Günther <agx@sigxcpu.org>
+
+	* src/lxc_controller.c (main): don't crash when called without
+	arguments
+
+Wed May  6 16:55:02 GMT 2009 Mark McLoughlin <markmc@redhat.com>
+
+	* src/qemu_driver.c: fix handling of <hostdev managed='yes'>
+
+Wed May  6 10:19:36 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/qemu_driver.c : Refresh QEMU driver capabilities for each
+	getCapabilities call.
+
+Wed May  6 15:42:08 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/vbox/vbox_driver.c src/vbox/vbox_tmpl.c: changes in
+	  VirtualBox driver version detection and move informations
+	  from a global variable into a driver structure, patch by Pritesh
+	  Kothari.
+
+Wed May  6 15:27:04 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* libvirt.spec.in: add a couple of missing directories
+
+Wed May  6 15:22:08 CEST 2009 Daniel Veillard <veillard@redhat.com>
+
+	* src/vbox/vbox_XPCOMCGlue.[ch]: improve VirtualBox path detection
+	  patch by Pritesh Kothari
+
+Tue May  5 10:20:27 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/qemu_driver.c: Don't throw away StartVM errors when
+	migrating/restoring in qemu driver.
+
+Tue May  5 10:19:14 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/test.c: Small cleanups in test driver VolCreateXML
+
+Tue May  5 10:18:15 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/storage_driver.c: Remove some debug code from storage_driver.c
+
+Tue May  5 10:16:56 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/libvirt.c: Use proper error code in virStorageVolCreateXML
+
+Mon May  4 11:44:09 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/storage_backend_fs.c: Fix a comment typo in storage_backend_fs.c
+
+Mon May  4 11:42:01 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/util.c: virExec: Delay daemonizing as long as possible.
+
+Mon May  4 11:40:27 EDT 2009 Cole Robinson <crobinso@redhat.com>
+
+	* src/util.c: Add some documentation to __virExec and virExec
+
+Tue Apr 28 11:54:22 BST 2009 Daniel P. Berrange <berrange@redhat.com>
+
+	Fix check for -Wformat-security which depends on -Wformat
+	* m4/compiler-flags.m4: Set previously verified compiler flags
+	when checking new flags
+	* srv/virsh.c: Fix three non-critical format string bugs
+
 Fri Apr 24 15:55:56 CEST 2009 Daniel Veillard <veillard@redhat.com>
 
 	* NEWS configure.in libvirt.spec.in docs/*: release of 0.6.3

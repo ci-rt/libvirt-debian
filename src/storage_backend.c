@@ -46,6 +46,7 @@
 #include "virterror_internal.h"
 #include "util.h"
 #include "memory.h"
+#include "node_device.h"
 
 #include "storage_backend.h"
 
@@ -93,6 +94,32 @@ static virStorageBackendPtr backends[] = {
 #endif
     NULL
 };
+
+
+#if defined(UDEVADM) || defined(UDEVSETTLE)
+void virWaitForDevices(virConnectPtr conn)
+{
+#ifdef UDEVADM
+    const char *const settleprog[] = { UDEVADM, "settle", NULL };
+#else
+    const char *const settleprog[] = { UDEVSETTLE, NULL };
+#endif
+    int exitstatus;
+
+    if (access(settleprog[0], X_OK) != 0)
+        return;
+
+    /*
+     * NOTE: we ignore errors here; this is just to make sure that any device
+     * nodes that are being created finish before we try to scan them.
+     * If this fails for any reason, we still have the backup of polling for
+     * 5 seconds for device nodes.
+     */
+    virRun(conn, settleprog, &exitstatus);
+}
+#else
+void virWaitForDevices(virConnectPtr conn ATTRIBUTE_UNUSED) {}
+#endif
 
 
 virStorageBackendPtr
@@ -156,6 +183,17 @@ virStorageBackendUpdateVolInfo(virConnectPtr conn,
     return 0;
 }
 
+/*
+ * virStorageBackendUpdateVolTargetInfoFD:
+ * @conn: connection to report errors on
+ * @target: target definition ptr of volume to update
+ * @fd: fd of storage volume to update
+ * @allocation: If not NULL, updated allocation information will be stored
+ * @capacity: If not NULL, updated capacity info will be stored
+ *
+ * Returns 0 for success-1 on a legitimate error condition,
+ *    -2 if passed FD isn't a regular, char, or block file.
+ */
 int
 virStorageBackendUpdateVolTargetInfoFD(virConnectPtr conn,
                                        virStorageVolTargetPtr target,
@@ -245,30 +283,11 @@ virStorageBackendUpdateVolTargetInfoFD(virConnectPtr conn,
     return 0;
 }
 
-#if defined(UDEVADM) || defined(UDEVSETTLE)
 void virStorageBackendWaitForDevices(virConnectPtr conn)
 {
-#ifdef UDEVADM
-    const char *const settleprog[] = { UDEVADM, "settle", NULL };
-#else
-    const char *const settleprog[] = { UDEVSETTLE, NULL };
-#endif
-    int exitstatus;
-
-    if (access(settleprog[0], X_OK) != 0)
-        return;
-
-    /*
-     * NOTE: we ignore errors here; this is just to make sure that any device
-     * nodes that are being created finish before we try to scan them.
-     * If this fails for any reason, we still have the backup of polling for
-     * 5 seconds for device nodes.
-     */
-    virRun(conn, settleprog, &exitstatus);
+    virWaitForDevices(conn);
+    return;
 }
-#else
-void virStorageBackendWaitForDevices(virConnectPtr conn ATTRIBUTE_UNUSED) {}
-#endif
 
 /*
  * Given a volume path directly in /dev/XXX, iterate over the
@@ -331,16 +350,13 @@ virStorageBackendStablePath(virConnectPtr conn,
         if (dent->d_name[0] == '.')
             continue;
 
-        if (VIR_ALLOC_N(stablepath, strlen(pool->def->target.path) +
-                        1 + strlen(dent->d_name) + 1) < 0) {
+        if (virAsprintf(&stablepath, "%s/%s",
+                        pool->def->target.path,
+                        dent->d_name) == -1) {
             virReportOOMError(conn);
             closedir(dh);
             return NULL;
         }
-
-        strcpy(stablepath, pool->def->target.path);
-        strcat(stablepath, "/");
-        strcat(stablepath, dent->d_name);
 
         if (virFileLinkPointsTo(stablepath, devpath)) {
             closedir(dh);
@@ -678,3 +694,4 @@ virStorageBackendRunProgNul(virConnectPtr conn,
     return -1;
 }
 #endif
+

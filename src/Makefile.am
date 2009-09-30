@@ -16,7 +16,8 @@ INCLUDES = \
 	   -DLOCALEBASEDIR=\""$(datadir)/locale"\" \
            -DLOCAL_STATE_DIR=\""$(localstatedir)"\" \
            -DGETTEXT_PACKAGE=\"$(PACKAGE)\" \
-	   $(WARN_CFLAGS)
+	   $(WARN_CFLAGS) \
+	   $(LOCK_CHECKING_CFLAGS)
 
 confdir = $(sysconfdir)/libvirt/
 conf_DATA = qemu.conf
@@ -144,6 +145,14 @@ UML_DRIVER_SOURCES =						\
 		uml_conf.c uml_conf.h				\
 		uml_driver.c uml_driver.h
 
+ONE_DRIVER_SOURCES =					\
+		./opennebula/one_conf.c			\
+		./opennebula/one_conf.h			\
+		./opennebula/one_driver.c		\
+		./opennebula/one_driver.h		\
+		./opennebula/one_client.c		\
+		./opennebula/one_client.h
+
 NETWORK_DRIVER_SOURCES =					\
 		network_driver.h network_driver.c
 
@@ -188,7 +197,10 @@ NODE_DEVICE_DRIVER_SOURCES =					\
 		node_device.c node_device.h
 
 NODE_DEVICE_DRIVER_HAL_SOURCES =				\
-		node_device_hal.c
+		node_device_hal.c				\
+		node_device_hal.h				\
+		node_device_hal_linux.c
+
 NODE_DEVICE_DRIVER_DEVKIT_SOURCES =				\
 		node_device_devkit.c
 
@@ -203,6 +215,8 @@ noinst_LTLIBRARIES = libvirt_util.la
 libvirt_la_LIBADD = libvirt_util.la
 libvirt_util_la_SOURCES =					\
 		$(UTIL_SOURCES)
+libvirt_util_la_CFLAGS =  $(CAPNG_CFLAGS)
+libvirt_util_la_LDFLAGS =  $(CAPNG_LIBS)
 
 noinst_LTLIBRARIES += libvirt_driver.la
 libvirt_la_LIBADD += libvirt_driver.la
@@ -337,6 +351,26 @@ endif
 libvirt_driver_uml_la_SOURCES = $(UML_DRIVER_SOURCES)
 endif
 
+if WITH_ONE
+if WITH_DRIVER_MODULES
+mod_LTLIBRARIES += libvirt_driver_one.la
+else
+noinst_LTLIBRARIES += libvirt_driver_one.la
+# Stateful, so linked to daemon instead
+#libvirt_la_LIBADD  += libvirt_driver_one.la
+endif
+libvirt_driver_one_la_CFLAGS = $(ONE_LIBS)
+libvirt_driver_one_la_LDFLAGS = $(ONE_LIBS)
+#libvirt_driver_one_la_CFLAGS  = "-DWITH_ONE"
+if WITH_DRIVER_MODULES
+libvirt_driver_one_la_LDFLAGS += -module -avoid-version
+endif
+libvirt_driver_one_la_SOURCES = $(ONE_DRIVER_SOURCES)
+endif
+
+
+
+
 if WITH_NETWORK
 if WITH_DRIVER_MODULES
 mod_LTLIBRARIES += libvirt_driver_network.la
@@ -349,6 +383,11 @@ if WITH_DRIVER_MODULES
 libvirt_driver_network_la_LDFLAGS = -module -avoid-version
 endif
 libvirt_driver_network_la_SOURCES = $(NETWORK_DRIVER_SOURCES)
+endif
+
+if WITH_NETCF
+libvirt_driver_interface_la_CFLAGS = $(NETCF_CFLAGS)
+libvirt_driver_interface_la_LDFLAGS = $(NETCF_LIBS)
 endif
 
 # Needed to keep automake quiet about conditionals
@@ -429,6 +468,7 @@ EXTRA_DIST +=							\
 		$(QEMU_DRIVER_SOURCES)				\
 		$(LXC_DRIVER_SOURCES)				\
 		$(UML_DRIVER_SOURCES)				\
+		$(ONE_DRIVER_SOURCES)				\
 		$(OPENVZ_DRIVER_SOURCES)			\
 		$(VBOX_DRIVER_SOURCES)				\
 		$(NETWORK_DRIVER_SOURCES)			\
@@ -463,10 +503,6 @@ EXTRA_DIST +=							\
 # symbols aren't present at all.
 #
 
-if ENABLE_DEBUG
-USED_SYM_FILES += libvirt_debug.syms
-endif
-
 if WITH_DRIVER_MODULES
 USED_SYM_FILES += libvirt_driver_modules.syms
 endif
@@ -482,7 +518,6 @@ endif
 EXTRA_DIST += \
   libvirt_public.syms		\
   libvirt_private.syms		\
-  libvirt_debug.syms		\
   libvirt_driver_modules.syms	\
   libvirt_bridge.syms		\
   libvirt_linux.syms
@@ -631,9 +666,9 @@ libvirt_lxc_SOURCES =						\
 		$(LXC_CONTROLLER_SOURCES)			\
 		$(UTIL_SOURCES)					\
 		$(DOMAIN_CONF_SOURCES)
-libvirt_lxc_LDFLAGS = $(WARN_CFLAGS) $(COVERAGE_LDCFLAGS)
+libvirt_lxc_LDFLAGS = $(WARN_CFLAGS) $(COVERAGE_LDCFLAGS) $(CAPNG_LIBS)
 libvirt_lxc_LDADD = $(LIBXML_LIBS) $(NUMACTL_LIBS) ../gnulib/lib/libgnu.la
-libvirt_lxc_CFLAGS =  $(LIBPARTED_CFLAGS) $(NUMACTL_CFLAGS)
+libvirt_lxc_CFLAGS =  $(LIBPARTED_CFLAGS) $(NUMACTL_CFLAGS) $(CAPNG_CFLAGS)
 endif
 endif
 EXTRA_DIST += $(LXC_CONTROLLER_SOURCES)
@@ -662,5 +697,5 @@ if WITH_NETWORK
 endif
 
 
-CLEANFILES = *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda
+CLEANFILES = *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda *.i *.s
 DISTCLEANFILES = $(BUILT_SOURCES)

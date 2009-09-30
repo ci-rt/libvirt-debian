@@ -172,6 +172,8 @@ struct qemud_server {
     virMutex lock;
     virCond job;
 
+    int privileged;
+
     int nworkers;
     int nactiveworkers;
     struct qemud_worker *workers;
@@ -197,9 +199,6 @@ struct qemud_server {
 void qemudLog(int priority, const char *fmt, ...)
     ATTRIBUTE_FORMAT(printf,2,3);
 
-
-int qemudSetCloseExec(int fd);
-int qemudSetNonBlock(int fd);
 
 int
 remoteDispatchClientRequest (struct qemud_server *server,

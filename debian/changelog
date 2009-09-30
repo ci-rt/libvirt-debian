@@ -1,3 +1,50 @@
+libvirt (0.6.5-3) unstable; urgency=low
+
+  * [72a8eb6] Add a versioned dependency on dpkg-dev (Closes: #537316)
+  * [ae20998] fix Debian Xen path patch to also cover the testsuite
+  * [b2a1c47] New patch 0001-Fix-PCI-device-hotplug-unplug-with-newer-
+    QEMU.patch pulled from upstream 326ecb7. Fixes PCI hotplug with
+    newer kvm.
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 29 Jul 2009 12:17:52 +0200
+
+libvirt (0.6.5-2) unstable; urgency=low
+
+  * [45b9fdf] build-conflict on dpkg-dev (= 1.15.3) (Closes: #536673)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 12 Jul 2009 15:03:08 +0200
+
+libvirt (0.6.5-1) unstable; urgency=low
+
+  [ Guido Günther ]
+  * [05e9a39] build-depend on policykit so polkit auth works with virsh
+    as well
+
+  [ C.J. Adams-Collier ]
+  * [a161c5f] allow to qemu to emulate arm
+
+  [ Guido Günther ]
+  * [b1e4c4b] Imported Upstream version 0.6.5
+  * [e764583] change private symbols to 0.6.5
+  * [f94fb48] drop 0005-allow-to-qemu-to-emulate-arm.patch fixed upstream.
+  * [7ad7896] bump standards version
+  * [e2c5867] tighten libvirt-bin's dependency on libvirt0 since libvirtd uses
+    private symbols
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 05 Jul 2009 13:07:53 +0200
+
+libvirt (0.6.4-1) unstable; urgency=low
+
+  * [dd3adb2] Imported Upstream version 0.6.4
+  * [2320162] update symbols file
+  * [89c9720] remove bashism (Closes: #530122)
+  * [30d86c1] drop patches fixed upstream:
+        0005-don-t-crash-with-def-NULL.patch
+        0006-Fix-QEMU-ARGV-detection-with-kvm-85.patch
+        0007-Declare-support-for-QEMU-migration-in-capabilities.patch
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 04 Jun 2009 12:50:01 +0200
+
 libvirt (0.6.3-4~bpo50+1) lenny-backports; urgency=low
 
   * Rebuild for lenny-backports.

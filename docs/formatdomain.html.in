@@ -688,7 +688,7 @@ qemu-kvm -net nic,model=? /dev/null
 	auto-allocated). The <code>autoport</code> attribute is the new
 	preferred syntax for indicating autoallocation of the TCP port to use.
 	The <code>listen</code> attribute is an IP address for the server to
-	listen on. The <code>password</code> attribute provides a VNC password
+	listen on. The <code>passwd</code> attribute provides a VNC password
 	in clear text. The <code>keymap</code> attribute specifies the keymap
 	to use.</dd>
     </dl>
@@ -885,6 +885,30 @@ qemu-kvm -net nic,model=? /dev/null
         &lt;target port="1"/&gt;
       &lt;/serial&gt;
       ...</pre>
+
+
+    <h4><a name="elementsSound">Sound devices</a></h4>
+
+    <p>
+      A virtual sound card can be attached to the host via the
+      <code>sound</code> element. <span class="since">Since 0.4.3</span>
+    </p>
+
+    <pre>
+      ...
+      &lt;sound model='es1370'/&gt;
+      ...</pre>
+
+    <dl>
+      <dt><code>sound</code></dt>
+      <dd>
+        The <code>sound</code> element has one mandatory attribute,
+        <code>model</code>, which specifies what real sound device is emulated.
+        Valid values are specific to the underlying hypervisor, though typical
+        choices are 'es1370', 'sb16', and 'ac97'
+        (<span class="since">'ac97' only since 0.6.0</span>)
+      </dd>
+    </dl>
 
     <h2><a name="examples">Example configs</a></h2>
 

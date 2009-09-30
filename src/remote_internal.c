@@ -1,3 +1,4 @@
+
 /*
  * remote_internal.c: driver to provide access to libvirtd running
  *   on a remote machine
@@ -211,11 +212,13 @@ static void errorf (virConnectPtr conn, virErrorNumber code,
 static void server_error (virConnectPtr conn, remote_error *err);
 static virDomainPtr get_nonnull_domain (virConnectPtr conn, remote_nonnull_domain domain);
 static virNetworkPtr get_nonnull_network (virConnectPtr conn, remote_nonnull_network network);
+static virInterfacePtr get_nonnull_interface (virConnectPtr conn, remote_nonnull_interface iface);
 static virStoragePoolPtr get_nonnull_storage_pool (virConnectPtr conn, remote_nonnull_storage_pool pool);
 static virStorageVolPtr get_nonnull_storage_vol (virConnectPtr conn, remote_nonnull_storage_vol vol);
 static virNodeDevicePtr get_nonnull_node_device (virConnectPtr conn, remote_nonnull_node_device dev);
 static void make_nonnull_domain (remote_nonnull_domain *dom_dst, virDomainPtr dom_src);
 static void make_nonnull_network (remote_nonnull_network *net_dst, virNetworkPtr net_src);
+static void make_nonnull_interface (remote_nonnull_interface *interface_dst, virInterfacePtr interface_src);
 static void make_nonnull_storage_pool (remote_nonnull_storage_pool *pool_dst, virStoragePoolPtr vol_src);
 static void make_nonnull_storage_vol (remote_nonnull_storage_vol *vol_dst, virStorageVolPtr vol_src);
 void remoteDomainEventFired(int watch, int fd, int event, void *data);
@@ -232,7 +235,7 @@ static gnutls_session_t negotiate_gnutls_on_connection (virConnectPtr conn, stru
 
 #ifdef WITH_LIBVIRTD
 static int
-remoteStartup(void)
+remoteStartup(int privileged ATTRIBUTE_UNUSED)
 {
     /* Mark that we're inside the daemon so we can avoid
      * re-entering ourselves
@@ -284,7 +287,6 @@ remoteForkDaemon(virConnectPtr conn)
 {
     const char *daemonPath = remoteFindDaemonPath();
     const char *const daemonargs[] = { daemonPath, "--timeout=30", NULL };
-    int ret, status;
     pid_t pid;
 
     if (!daemonPath) {
@@ -292,18 +294,11 @@ remoteForkDaemon(virConnectPtr conn)
         return -1;
     }
 
-    if (virExec(NULL, daemonargs, NULL, NULL,
-                &pid, -1, NULL, NULL, VIR_EXEC_DAEMON) < 0)
+    if (virExecDaemonize(NULL, daemonargs, NULL, NULL,
+                         &pid, -1, NULL, NULL,
+                         VIR_EXEC_CLEAR_CAPS,
+                         NULL, NULL, NULL) < 0)
         return -1;
-    /*
-     * do a waitpid on the intermediate process to avoid zombies.
-     */
- retry_wait:
-    ret = waitpid(pid, &status, 0);
-    if (ret < 0) {
-        if (errno == EINTR)
-            goto retry_wait;
-    }
 
     return 0;
 }
@@ -311,21 +306,28 @@ remoteForkDaemon(virConnectPtr conn)
 
 enum virDrvOpenRemoteFlags {
     VIR_DRV_OPEN_REMOTE_RO = (1 << 0),
-    VIR_DRV_OPEN_REMOTE_UNIX = (1 << 1),
-    VIR_DRV_OPEN_REMOTE_USER = (1 << 2),
-    VIR_DRV_OPEN_REMOTE_AUTOSTART = (1 << 3),
+    VIR_DRV_OPEN_REMOTE_USER      = (1 << 1), /* Use the per-user socket path */
+    VIR_DRV_OPEN_REMOTE_AUTOSTART = (1 << 2), /* Autostart a per-user daemon */
 };
 
-/* What transport? */
-enum {
-    trans_tls,
-    trans_unix,
-    trans_ssh,
-    trans_ext,
-    trans_tcp,
-} transport;
 
-
+/*
+ * URIs that this driver needs to handle:
+ *
+ * The easy answer:
+ *   - Everything that no one else has yet claimed, but nothing if
+ *     we're inside the libvirtd daemon
+ *
+ * The hard answer:
+ *   - Plain paths (///var/lib/xen/xend-socket)  -> UNIX domain socket
+ *   - xxx://servername/      -> TLS connection
+ *   - xxx+tls://servername/  -> TLS connection
+ *   - xxx+tls:///            -> TLS connection to localhost
+ *   - xxx+tcp://servername/  -> TCP connection
+ *   - xxx+tcp:///            -> TCP connection to localhost
+ *   - xxx+unix:///           -> UNIX domain socket
+ *   - xxx:///                -> UNIX domain socket
+ */
 static int
 doRemoteOpen (virConnectPtr conn,
               struct private_data *priv,
@@ -334,37 +336,51 @@ doRemoteOpen (virConnectPtr conn,
 {
     int wakeupFD[2] = { -1, -1 };
     char *transport_str = NULL;
+    enum {
+        trans_tls,
+        trans_unix,
+        trans_ssh,
+        trans_ext,
+        trans_tcp,
+    } transport;
+
+    /* We handle *ALL*  URIs here. The caller has rejected any
+     * URIs we don't care about */
 
     if (conn->uri) {
-        if (!conn->uri->scheme)
-            return VIR_DRV_OPEN_DECLINED;
-
-        transport_str = get_transport_from_scheme (conn->uri->scheme);
-
-        if (!transport_str || STRCASEEQ (transport_str, "tls"))
-            transport = trans_tls;
-        else if (STRCASEEQ (transport_str, "unix"))
+        if (!conn->uri->scheme) {
+            /* This is the ///var/lib/xen/xend-socket local path style */
             transport = trans_unix;
-        else if (STRCASEEQ (transport_str, "ssh"))
-            transport = trans_ssh;
-        else if (STRCASEEQ (transport_str, "ext"))
-            transport = trans_ext;
-        else if (STRCASEEQ (transport_str, "tcp"))
-            transport = trans_tcp;
-        else {
-            error (conn, VIR_ERR_INVALID_ARG,
-                   _("remote_open: transport in URL not recognised "
-                     "(should be tls|unix|ssh|ext|tcp)"));
-            return VIR_DRV_OPEN_ERROR;
+        } else {
+            transport_str = get_transport_from_scheme (conn->uri->scheme);
+
+            if (!transport_str) {
+                if (conn->uri->server)
+                    transport = trans_tls;
+                else
+                    transport = trans_unix;
+            } else {
+                if (STRCASEEQ (transport_str, "tls"))
+                    transport = trans_tls;
+                else if (STRCASEEQ (transport_str, "unix"))
+                    transport = trans_unix;
+                else if (STRCASEEQ (transport_str, "ssh"))
+                    transport = trans_ssh;
+                else if (STRCASEEQ (transport_str, "ext"))
+                    transport = trans_ext;
+                else if (STRCASEEQ (transport_str, "tcp"))
+                    transport = trans_tcp;
+                else {
+                    error (conn, VIR_ERR_INVALID_ARG,
+                           _("remote_open: transport in URL not recognised "
+                             "(should be tls|unix|ssh|ext|tcp)"));
+                    return VIR_DRV_OPEN_ERROR;
+                }
+            }
         }
-    }
-
-    if (!transport_str) {
-        if ((!conn->uri || !conn->uri->server) &&
-            (flags & VIR_DRV_OPEN_REMOTE_UNIX))
-            transport = trans_unix;
-        else
-            return VIR_DRV_OPEN_DECLINED; /* Decline - not a remote URL. */
+    } else {
+        /* No URI, then must be probing so use UNIX socket */
+        transport = trans_unix;
     }
 
     /* Local variables which we will initialise. These can
@@ -461,8 +477,9 @@ doRemoteOpen (virConnectPtr conn,
 
         /* Construct the original name. */
         if (!name) {
-            if (STREQ(conn->uri->scheme, "remote") ||
-                STRPREFIX(conn->uri->scheme, "remote+")) {
+            if (conn->uri->scheme &&
+                (STREQ(conn->uri->scheme, "remote") ||
+                 STRPREFIX(conn->uri->scheme, "remote+"))) {
                 /* Allow remote serve to probe */
                 name = strdup("");
             } else {
@@ -586,7 +603,7 @@ doRemoteOpen (virConnectPtr conn,
 
         freeaddrinfo (res);
         virReportSystemError(conn, saved_errno,
-                             _("unable to connect to '%s'"),
+                             _("unable to connect to libvirtd at '%s'"),
                              priv->hostname);
         goto failed;
 
@@ -706,7 +723,10 @@ doRemoteOpen (virConnectPtr conn,
         cmd_argv[j++] = strdup (priv->hostname);
         cmd_argv[j++] = strdup (netcat ? netcat : "nc");
         cmd_argv[j++] = strdup ("-U");
-        cmd_argv[j++] = strdup (sockname ? sockname : LIBVIRTD_PRIV_UNIX_SOCKET);
+        cmd_argv[j++] = strdup (sockname ? sockname :
+                                (flags & VIR_CONNECT_RO
+                                 ? LIBVIRTD_PRIV_UNIX_SOCKET_RO
+                                 : LIBVIRTD_PRIV_UNIX_SOCKET));
         cmd_argv[j++] = 0;
         assert (j == nr_args);
         for (j = 0; j < (nr_args-1); j++)
@@ -730,7 +750,8 @@ doRemoteOpen (virConnectPtr conn,
         }
 
         if (virExec(conn, (const char**)cmd_argv, NULL, NULL,
-                    &pid, sv[1], &(sv[1]), NULL, VIR_EXEC_NONE) < 0)
+                    &pid, sv[1], &(sv[1]), NULL,
+                    VIR_EXEC_CLEAR_CAPS) < 0)
             goto failed;
 
         /* Parent continues here. */
@@ -931,7 +952,6 @@ remoteOpenSecondaryDriver(virConnectPtr conn,
 
     if (flags & VIR_CONNECT_RO)
         rflags |= VIR_DRV_OPEN_REMOTE_RO;
-    rflags |= VIR_DRV_OPEN_REMOTE_UNIX;
 
     ret = doRemoteOpen(conn, *priv, auth, rflags);
     if (ret != VIR_DRV_OPEN_SUCCESS) {
@@ -964,19 +984,6 @@ remoteOpen (virConnectPtr conn,
 
     /*
      * If no servername is given, and no +XXX
-     * transport is listed, then force to a
-     * local UNIX socket connection
-     */
-    if (conn->uri &&
-        !conn->uri->server &&
-        conn->uri->scheme &&
-        !strchr(conn->uri->scheme, '+')) {
-        DEBUG0("Auto-remote UNIX socket");
-        rflags |= VIR_DRV_OPEN_REMOTE_UNIX;
-    }
-
-    /*
-     * If no servername is given, and no +XXX
      * transport is listed, or transport is unix,
      * and path is /session, and uid is unprivileged
      * then auto-spawn a daemon.
@@ -1002,7 +1009,6 @@ remoteOpen (virConnectPtr conn,
      */
     if (!conn->uri) {
         DEBUG0("Auto-probe remote URI");
-        rflags |= VIR_DRV_OPEN_REMOTE_UNIX;
 #ifndef __sun
         if (getuid() > 0) {
             DEBUG0("Auto-spawn user daemon instance");
@@ -2319,6 +2325,8 @@ remoteDomainGetSecurityLabel (virDomainPtr domain, virSecurityLabelPtr seclabel)
 
     make_nonnull_domain (&args.dom, domain);
     memset (&ret, 0, sizeof ret);
+    memset (seclabel, 0, sizeof (*seclabel));
+
     if (call (domain->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_SECURITY_LABEL,
               (xdrproc_t) xdr_remote_domain_get_security_label_args, (char *)&args,
               (xdrproc_t) xdr_remote_domain_get_security_label_ret, (char *)&ret) == -1) {
@@ -2352,6 +2360,8 @@ remoteNodeGetSecurityModel (virConnectPtr conn, virSecurityModelPtr secmodel)
     remoteDriverLock(priv);
 
     memset (&ret, 0, sizeof ret);
+    memset (secmodel, 0, sizeof (*secmodel));
+
     if (call (conn, priv, 0, REMOTE_PROC_NODE_GET_SECURITY_MODEL,
               (xdrproc_t) xdr_void, NULL,
               (xdrproc_t) xdr_remote_node_get_security_model_ret, (char *)&ret) == -1) {
@@ -2404,6 +2414,68 @@ remoteDomainDumpXML (virDomainPtr domain, int flags)
 
     /* Caller frees. */
     rv = ret.xml;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static char *
+remoteDomainXMLFromNative (virConnectPtr conn,
+                           const char *format,
+                           const char *config,
+                           unsigned int flags)
+{
+    char *rv = NULL;
+    remote_domain_xml_from_native_args args;
+    remote_domain_xml_from_native_ret ret;
+    struct private_data *priv = conn->privateData;
+
+    remoteDriverLock(priv);
+
+    args.nativeFormat = (char *)format;
+    args.nativeConfig = (char *)config;
+    args.flags = flags;
+
+    memset (&ret, 0, sizeof ret);
+    if (call (conn, priv, 0, REMOTE_PROC_DOMAIN_XML_FROM_NATIVE,
+              (xdrproc_t) xdr_remote_domain_xml_from_native_args, (char *) &args,
+              (xdrproc_t) xdr_remote_domain_xml_from_native_ret, (char *) &ret) == -1)
+        goto done;
+
+    /* Caller frees. */
+    rv = ret.domainXml;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static char *
+remoteDomainXMLToNative (virConnectPtr conn,
+                         const char *format,
+                         const char *xml,
+                         unsigned int flags)
+{
+    char *rv = NULL;
+    remote_domain_xml_to_native_args args;
+    remote_domain_xml_to_native_ret ret;
+    struct private_data *priv = conn->privateData;
+
+    remoteDriverLock(priv);
+
+    args.nativeFormat = (char *)format;
+    args.domainXml = (char *)xml;
+    args.flags = flags;
+
+    memset (&ret, 0, sizeof ret);
+    if (call (conn, priv, 0, REMOTE_PROC_DOMAIN_XML_TO_NATIVE,
+              (xdrproc_t) xdr_remote_domain_xml_to_native_args, (char *) &args,
+              (xdrproc_t) xdr_remote_domain_xml_to_native_ret, (char *) &ret) == -1)
+        goto done;
+
+    /* Caller frees. */
+    rv = ret.nativeConfig;
 
 done:
     remoteDriverUnlock(priv);
@@ -3684,6 +3756,325 @@ done:
 /*----------------------------------------------------------------------*/
 
 static virDrvOpenStatus
+remoteInterfaceOpen (virConnectPtr conn,
+                   virConnectAuthPtr auth,
+                   int flags)
+{
+    if (inside_daemon)
+        return VIR_DRV_OPEN_DECLINED;
+
+    if (conn &&
+        conn->driver &&
+        STREQ (conn->driver->name, "remote")) {
+        struct private_data *priv;
+
+       /* If we're here, the remote driver is already
+         * in use due to a) a QEMU uri, or b) a remote
+         * URI. So we can re-use existing connection
+         */
+        priv = conn->privateData;
+        remoteDriverLock(priv);
+        priv->localUses++;
+        conn->interfacePrivateData = priv;
+        remoteDriverUnlock(priv);
+        return VIR_DRV_OPEN_SUCCESS;
+    } else {
+        /* Using a non-remote driver, so we need to open a
+         * new connection for interface APIs, forcing it to
+         * use the UNIX transport. This handles Xen driver
+         * which doesn't have its own impl of the interface APIs.
+         */
+        struct private_data *priv;
+        int ret;
+        ret = remoteOpenSecondaryDriver(conn,
+                                        auth,
+                                        flags,
+                                        &priv);
+        if (ret == VIR_DRV_OPEN_SUCCESS)
+            conn->interfacePrivateData = priv;
+        return ret;
+    }
+}
+
+static int
+remoteInterfaceClose (virConnectPtr conn)
+{
+    int rv = 0;
+    struct private_data *priv = conn->interfacePrivateData;
+
+    remoteDriverLock(priv);
+    priv->localUses--;
+    if (!priv->localUses) {
+        rv = doRemoteClose(conn, priv);
+        conn->interfacePrivateData = NULL;
+        remoteDriverUnlock(priv);
+        virMutexDestroy(&priv->lock);
+        VIR_FREE(priv);
+    }
+    if (priv)
+        remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteNumOfInterfaces (virConnectPtr conn)
+{
+    int rv = -1;
+    remote_num_of_interfaces_ret ret;
+    struct private_data *priv = conn->interfacePrivateData;
+
+    remoteDriverLock(priv);
+
+    memset (&ret, 0, sizeof ret);
+    if (call (conn, priv, 0, REMOTE_PROC_NUM_OF_INTERFACES,
+              (xdrproc_t) xdr_void, (char *) NULL,
+              (xdrproc_t) xdr_remote_num_of_interfaces_ret, (char *) &ret) == -1)
+        goto done;
+
+    rv = ret.num;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteListInterfaces (virConnectPtr conn, char **const names, int maxnames)
+{
+    int rv = -1;
+    int i;
+    remote_list_interfaces_args args;
+    remote_list_interfaces_ret ret;
+    struct private_data *priv = conn->interfacePrivateData;
+
+    remoteDriverLock(priv);
+
+    if (maxnames > REMOTE_INTERFACE_NAME_LIST_MAX) {
+        errorf (conn, VIR_ERR_RPC,
+                _("too many remote interfaces: %d > %d"),
+                maxnames, REMOTE_INTERFACE_NAME_LIST_MAX);
+        goto done;
+    }
+    args.maxnames = maxnames;
+
+    memset (&ret, 0, sizeof ret);
+    if (call (conn, priv, 0, REMOTE_PROC_LIST_INTERFACES,
+              (xdrproc_t) xdr_remote_list_interfaces_args, (char *) &args,
+              (xdrproc_t) xdr_remote_list_interfaces_ret, (char *) &ret) == -1)
+        goto done;
+
+    if (ret.names.names_len > maxnames) {
+        errorf (conn, VIR_ERR_RPC,
+                _("too many remote interfaces: %d > %d"),
+                ret.names.names_len, maxnames);
+        goto cleanup;
+    }
+
+    /* This call is caller-frees (although that isn't clear from
+     * the documentation).  However xdr_free will free up both the
+     * names and the list of pointers, so we have to strdup the
+     * names here.
+     */
+    for (i = 0; i < ret.names.names_len; ++i)
+        names[i] = strdup (ret.names.names_val[i]);
+
+    rv = ret.names.names_len;
+
+cleanup:
+    xdr_free ((xdrproc_t) xdr_remote_list_interfaces_ret, (char *) &ret);
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static virInterfacePtr
+remoteInterfaceLookupByName (virConnectPtr conn,
+                             const char *name)
+{
+    virInterfacePtr iface = NULL;
+    remote_interface_lookup_by_name_args args;
+    remote_interface_lookup_by_name_ret ret;
+    struct private_data *priv = conn->interfacePrivateData;
+
+    remoteDriverLock(priv);
+
+    args.name = (char *) name;
+
+    memset (&ret, 0, sizeof ret);
+    if (call (conn, priv, 0, REMOTE_PROC_INTERFACE_LOOKUP_BY_NAME,
+              (xdrproc_t) xdr_remote_interface_lookup_by_name_args, (char *) &args,
+              (xdrproc_t) xdr_remote_interface_lookup_by_name_ret, (char *) &ret) == -1)
+        goto done;
+
+    iface = get_nonnull_interface (conn, ret.iface);
+    xdr_free ((xdrproc_t) &xdr_remote_interface_lookup_by_name_ret, (char *) &ret);
+
+done:
+    remoteDriverUnlock(priv);
+    return iface;
+}
+
+static virInterfacePtr
+remoteInterfaceLookupByMACString (virConnectPtr conn,
+                                  const char *mac)
+{
+    virInterfacePtr iface = NULL;
+    remote_interface_lookup_by_mac_string_args args;
+    remote_interface_lookup_by_mac_string_ret ret;
+    struct private_data *priv = conn->interfacePrivateData;
+
+    remoteDriverLock(priv);
+
+    args.mac = (char *) mac;
+
+    memset (&ret, 0, sizeof ret);
+    if (call (conn, priv, 0, REMOTE_PROC_INTERFACE_LOOKUP_BY_MAC_STRING,
+              (xdrproc_t) xdr_remote_interface_lookup_by_mac_string_args, (char *) &args,
+              (xdrproc_t) xdr_remote_interface_lookup_by_mac_string_ret, (char *) &ret) == -1)
+        goto done;
+
+    iface = get_nonnull_interface (conn, ret.iface);
+    xdr_free ((xdrproc_t) &xdr_remote_interface_lookup_by_mac_string_ret, (char *) &ret);
+
+done:
+    remoteDriverUnlock(priv);
+    return iface;
+}
+
+static char *
+remoteInterfaceGetXMLDesc (virInterfacePtr iface,
+                           unsigned int flags)
+{
+    char *rv = NULL;
+    remote_interface_get_xml_desc_args args;
+    remote_interface_get_xml_desc_ret ret;
+    struct private_data *priv = iface->conn->interfacePrivateData;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_interface (&args.iface, iface);
+    args.flags = flags;
+
+    memset (&ret, 0, sizeof ret);
+    if (call (iface->conn, priv, 0, REMOTE_PROC_INTERFACE_GET_XML_DESC,
+              (xdrproc_t) xdr_remote_interface_get_xml_desc_args, (char *) &args,
+              (xdrproc_t) xdr_remote_interface_get_xml_desc_ret, (char *) &ret) == -1)
+        goto done;
+
+    /* Caller frees. */
+    rv = ret.xml;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static virInterfacePtr
+remoteInterfaceDefineXML (virConnectPtr conn,
+                          const char *xmlDesc,
+                          unsigned int flags)
+{
+    virInterfacePtr iface = NULL;
+    remote_interface_define_xml_args args;
+    remote_interface_define_xml_ret ret;
+    struct private_data *priv = conn->interfacePrivateData;
+
+    remoteDriverLock(priv);
+
+    args.xml = (char *) xmlDesc;
+    args.flags = flags;
+
+    memset (&ret, 0, sizeof ret);
+    if (call (conn, priv, 0, REMOTE_PROC_INTERFACE_DEFINE_XML,
+              (xdrproc_t) xdr_remote_interface_define_xml_args, (char *) &args,
+              (xdrproc_t) xdr_remote_interface_define_xml_ret, (char *) &ret) == -1)
+        goto done;
+
+    iface = get_nonnull_interface (conn, ret.iface);
+    xdr_free ((xdrproc_t) &xdr_remote_interface_define_xml_ret, (char *) &ret);
+
+done:
+    remoteDriverUnlock(priv);
+    return iface;
+}
+
+static int
+remoteInterfaceUndefine (virInterfacePtr iface)
+{
+    int rv = -1;
+    remote_interface_undefine_args args;
+    struct private_data *priv = iface->conn->interfacePrivateData;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_interface (&args.iface, iface);
+
+    if (call (iface->conn, priv, 0, REMOTE_PROC_INTERFACE_UNDEFINE,
+              (xdrproc_t) xdr_remote_interface_undefine_args, (char *) &args,
+              (xdrproc_t) xdr_void, (char *) NULL) == -1)
+        goto done;
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteInterfaceCreate (virInterfacePtr iface,
+                       unsigned int flags)
+{
+    int rv = -1;
+    remote_interface_create_args args;
+    struct private_data *priv = iface->conn->interfacePrivateData;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_interface (&args.iface, iface);
+    args.flags = flags;
+
+    if (call (iface->conn, priv, 0, REMOTE_PROC_INTERFACE_CREATE,
+              (xdrproc_t) xdr_remote_interface_create_args, (char *) &args,
+              (xdrproc_t) xdr_void, (char *) NULL) == -1)
+        goto done;
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteInterfaceDestroy (virInterfacePtr iface,
+                        unsigned int flags)
+{
+    int rv = -1;
+    remote_interface_destroy_args args;
+    struct private_data *priv = iface->conn->interfacePrivateData;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_interface (&args.iface, iface);
+    args.flags = flags;
+
+    if (call (iface->conn, priv, 0, REMOTE_PROC_INTERFACE_DESTROY,
+              (xdrproc_t) xdr_remote_interface_destroy_args, (char *) &args,
+              (xdrproc_t) xdr_void, (char *) NULL) == -1)
+        goto done;
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+/*----------------------------------------------------------------------*/
+
+static virDrvOpenStatus
 remoteStorageOpen (virConnectPtr conn,
                    virConnectAuthPtr auth,
                    int flags)
@@ -4508,6 +4899,38 @@ done:
     return vol;
 }
 
+static virStorageVolPtr
+remoteStorageVolCreateXMLFrom (virStoragePoolPtr pool,
+                               const char *xmlDesc,
+                               virStorageVolPtr clonevol,
+                               unsigned int flags)
+{
+    virStorageVolPtr newvol = NULL;
+    remote_storage_vol_create_xml_from_args args;
+    remote_storage_vol_create_xml_from_ret ret;
+    struct private_data *priv = pool->conn->storagePrivateData;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_storage_pool (&args.pool, pool);
+    make_nonnull_storage_vol (&args.clonevol, clonevol);
+    args.xml = (char *) xmlDesc;
+    args.flags = flags;
+
+    memset (&ret, 0, sizeof ret);
+    if (call (pool->conn, priv, 0, REMOTE_PROC_STORAGE_VOL_CREATE_XML_FROM,
+              (xdrproc_t) xdr_remote_storage_vol_create_xml_from_args, (char *) &args,
+              (xdrproc_t) xdr_remote_storage_vol_create_xml_from_ret, (char *) &ret) == -1)
+        goto done;
+
+    newvol = get_nonnull_storage_vol (pool->conn, ret.vol);
+    xdr_free ((xdrproc_t) &xdr_remote_storage_vol_create_xml_from_ret, (char *) &ret);
+
+done:
+    remoteDriverUnlock(priv);
+    return newvol;
+}
+
 static int
 remoteStorageVolDelete (virStorageVolPtr vol,
                         unsigned int flags)
@@ -5027,7 +5450,7 @@ remoteNodeDeviceDestroy(virNodeDevicePtr dev)
 
     args.name = dev->name;
 
-    if (call(dev->conn, priv, 0, REMOTE_PROC_NODE_DEVICE_RESET,
+    if (call(dev->conn, priv, 0, REMOTE_PROC_NODE_DEVICE_DESTROY,
              (xdrproc_t) xdr_remote_node_device_destroy_args, (char *) &args,
              (xdrproc_t) xdr_void, (char *) NULL) == -1)
         goto done;
@@ -5166,14 +5589,11 @@ static char *addrToString(struct sockaddr_storage *sa, socklen_t salen)
         return NULL;
     }
 
-    if (VIR_ALLOC_N(addr, strlen(host) + 1 + strlen(port) + 1) < 0) {
-        virReportOOMError (NULL);
+    if (virAsprintf(&addr, "%s;%s", host, port) == -1) {
+        virReportOOMError(NULL);
         return NULL;
     }
 
-    strcpy(addr, host);
-    strcat(addr, ";");
-    strcat(addr, port);
     return addr;
 }
 
@@ -6851,6 +7271,12 @@ get_nonnull_network (virConnectPtr conn, remote_nonnull_network network)
     return virGetNetwork (conn, network.name, BAD_CAST network.uuid);
 }
 
+static virInterfacePtr
+get_nonnull_interface (virConnectPtr conn, remote_nonnull_interface iface)
+{
+    return virGetInterface (conn, iface.name, iface.mac);
+}
+
 static virStoragePoolPtr
 get_nonnull_storage_pool (virConnectPtr conn, remote_nonnull_storage_pool pool)
 {
@@ -6883,6 +7309,14 @@ make_nonnull_network (remote_nonnull_network *net_dst, virNetworkPtr net_src)
 {
     net_dst->name = net_src->name;
     memcpy (net_dst->uuid, net_src->uuid, VIR_UUID_BUFLEN);
+}
+
+static void
+make_nonnull_interface (remote_nonnull_interface *interface_dst,
+                        virInterfacePtr interface_src)
+{
+    interface_dst->name = interface_src->name;
+    interface_dst->mac = interface_src->mac;
 }
 
 static void
@@ -6945,6 +7379,8 @@ static virDriver driver = {
     remoteDomainGetSecurityLabel, /* domainGetSecurityLabel */
     remoteNodeGetSecurityModel, /* nodeGetSecurityModel */
     remoteDomainDumpXML, /* domainDumpXML */
+    remoteDomainXMLFromNative, /* domainXMLFromNative */
+    remoteDomainXMLToNative, /* domainXMLToNative */
     remoteListDefinedDomains, /* listDefinedDomains */
     remoteNumOfDefinedDomains, /* numOfDefinedDomains */
     remoteDomainCreate, /* domainCreate */
@@ -6996,6 +7432,21 @@ static virNetworkDriver network_driver = {
     .networkSetAutostart = remoteNetworkSetAutostart,
 };
 
+static virInterfaceDriver interface_driver = {
+    .name = "remote",
+    .open = remoteInterfaceOpen,
+    .close = remoteInterfaceClose,
+    .numOfInterfaces = remoteNumOfInterfaces,
+    .listInterfaces = remoteListInterfaces,
+    .interfaceLookupByName = remoteInterfaceLookupByName,
+    .interfaceLookupByMACString = remoteInterfaceLookupByMACString,
+    .interfaceGetXMLDesc = remoteInterfaceGetXMLDesc,
+    .interfaceDefineXML = remoteInterfaceDefineXML,
+    .interfaceUndefine = remoteInterfaceUndefine,
+    .interfaceCreate = remoteInterfaceCreate,
+    .interfaceDestroy = remoteInterfaceDestroy,
+};
+
 static virStorageDriver storage_driver = {
     .name = "remote",
     .open = remoteStorageOpen,
@@ -7027,6 +7478,7 @@ static virStorageDriver storage_driver = {
     .volLookupByKey = remoteStorageVolLookupByKey,
     .volLookupByPath = remoteStorageVolLookupByPath,
     .volCreateXML = remoteStorageVolCreateXML,
+    .volCreateXMLFrom = remoteStorageVolCreateXMLFrom,
     .volDelete = remoteStorageVolDelete,
     .volGetInfo = remoteStorageVolGetInfo,
     .volGetXMLDesc = remoteStorageVolDumpXML,
@@ -7067,6 +7519,7 @@ remoteRegister (void)
 {
     if (virRegisterDriver (&driver) == -1) return -1;
     if (virRegisterNetworkDriver (&network_driver) == -1) return -1;
+    if (virRegisterInterfaceDriver (&interface_driver) == -1) return -1;
     if (virRegisterStorageDriver (&storage_driver) == -1) return -1;
     if (virRegisterDeviceMonitor (&dev_monitor) == -1) return -1;
 #ifdef WITH_LIBVIRTD
