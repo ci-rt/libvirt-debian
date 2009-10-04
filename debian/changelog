@@ -1,3 +1,11 @@
+libvirt (0.6.5-3~bpo50+1) lenny-backports; urgency=low
+
+  * Rebuild for lenny-backports.
+  * [8ec86d5] remove versioned dependency on dpkg-dev - Lenny isn't
+    affected by this problem.
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 30 Sep 2009 18:22:14 +0200
+
 libvirt (0.6.5-3) unstable; urgency=low
 
   * [72a8eb6] Add a versioned dependency on dpkg-dev (Closes: #537316)
