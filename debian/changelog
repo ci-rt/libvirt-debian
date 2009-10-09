@@ -1,3 +1,11 @@
+libvirt (0.7.1-2) unstable; urgency=low
+
+  * [f5299d3] document changes and release 0.7.1-1
+  * [f137c00] Allow for older versions of dpkg-dev to ease backports.
+  * [74f5832] Use Policykit 1.0 (Closes: #549500)
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 09 Oct 2009 20:32:02 +0200
+
 libvirt (0.7.1-1) unstable; urgency=low
 
   [ Laurent Léonard ]
