@@ -4,18 +4,18 @@ Subject: [PATCH] fix Debian specific path to hvm loader
 
 Closes: #517059
 ---
- src/xen_internal.c                     |    2 +-
+ src/xen/xen_hypervisor.c               |    2 +-
  tests/xencapsdata/xen-i686-pae-hvm.xml |    2 +-
  tests/xencapsdata/xen-ia64-be-hvm.xml  |    2 +-
  tests/xencapsdata/xen-ia64-hvm.xml     |    2 +-
  tests/xencapsdata/xen-x86_64-hvm.xml   |    4 ++--
  5 files changed, 6 insertions(+), 6 deletions(-)
 
-diff --git a/src/xen_internal.c b/src/xen_internal.c
-index 30fd8bd..c5ba835 100644
---- a/src/xen_internal.c
-+++ b/src/xen_internal.c
-@@ -2211,7 +2211,7 @@ xenHypervisorBuildCapabilities(virConnectPtr conn,
+diff --git a/src/xen/xen_hypervisor.c b/src/xen/xen_hypervisor.c
+index 3aa3c30..6f36fdc 100644
+--- a/src/xen/xen_hypervisor.c
++++ b/src/xen/xen_hypervisor.c
+@@ -2218,7 +2218,7 @@ xenHypervisorBuildCapabilities(virConnectPtr conn,
                                                "/usr/lib64/xen/bin/qemu-dm" :
                                                "/usr/lib/xen/bin/qemu-dm"),
                                               (guest_archs[i].hvm ?
