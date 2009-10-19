@@ -41,7 +41,6 @@
 #include "memory.h"
 #include "util.h"
 #include "bridge.h"
-#include "veth.h"
 
 #define VIR_FROM_THIS VIR_FROM_ONE
 
@@ -788,6 +787,7 @@ static virDriver oneDriver = {
     NULL, /* nodeDeviceDettach; */
     NULL, /* nodeDeviceReAttach; */
     NULL, /* nodeDeviceReset; */
+    NULL, /* domainMigratePrepareTunnel */
 };
 
 static virStateDriver oneStateDriver = {

@@ -4,6 +4,12 @@
    platforms at once. */
 #undef AA_APPLE_UNIVERSAL_BUILD
 
+/* path to apparmor directory */
+#undef APPARMOR_DIR
+
+/* path to kernel profiles */
+#undef APPARMOR_PROFILES_PATH
+
 /* Define to the number of bits in type 'ptrdiff_t'. */
 #undef BITSIZEOF_PTRDIFF_T
 
@@ -62,6 +68,9 @@
 /* Define to 1 if you have <alloca.h> and it should be used (not on Ultrix).
    */
 #undef HAVE_ALLOCA_H
+
+/* whether AppArmor is available for security */
+#undef HAVE_APPARMOR
 
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
@@ -266,6 +275,9 @@
 
 /* Define to 1 if <sys/socket.h> defines AF_INET6. */
 #undef HAVE_IPV6
+
+/* Define to 1 if you have the `apparmor' library (-lapparmor). */
+#undef HAVE_LIBAPPARMOR
 
 /* Define to 1 if you have the `cap-ng' library (-lcap-ng). */
 #undef HAVE_LIBCAP_NG
@@ -902,6 +914,9 @@
 
 /* whether building for the RHEL-5 API */
 #undef WITH_RHEL5_API
+
+/* whether AppArmor security driver is available */
+#undef WITH_SECDRIVER_APPARMOR
 
 /* whether SELinux security driver is available */
 #undef WITH_SECDRIVER_SELINUX

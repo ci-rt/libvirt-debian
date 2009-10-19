@@ -71,6 +71,7 @@ typedef enum _esxVI_VirtualMachinePowerState esxVI_VirtualMachinePowerState;
 typedef struct _esxVI_Fault esxVI_Fault;
 typedef struct _esxVI_ManagedObjectReference esxVI_ManagedObjectReference;
 typedef struct _esxVI_DynamicProperty esxVI_DynamicProperty;
+typedef struct _esxVI_HostCpuIdInfo esxVI_HostCpuIdInfo;
 typedef struct _esxVI_SelectionSpec esxVI_SelectionSpec;
 typedef struct _esxVI_TraversalSpec esxVI_TraversalSpec;
 typedef struct _esxVI_ObjectSpec esxVI_ObjectSpec;
@@ -85,6 +86,7 @@ typedef struct _esxVI_ServiceContent esxVI_ServiceContent;
 typedef struct _esxVI_UpdateSet esxVI_UpdateSet;
 typedef struct _esxVI_SharesInfo esxVI_SharesInfo;
 typedef struct _esxVI_ResourceAllocationInfo esxVI_ResourceAllocationInfo;
+typedef struct _esxVI_ResourcePoolResourceUsage esxVI_ResourcePoolResourceUsage;
 typedef struct _esxVI_VirtualMachineConfigSpec esxVI_VirtualMachineConfigSpec;
 typedef struct _esxVI_Event esxVI_Event;
 typedef struct _esxVI_UserSession esxVI_UserSession;
@@ -526,7 +528,39 @@ int esxVI_DynamicProperty_Deserialize(virConnectPtr conn, xmlNodePtr node,
                                       esxVI_DynamicProperty **dynamicProperty);
 int esxVI_DynamicProperty_DeserializeList
       (virConnectPtr conn, xmlNodePtr node,
-       esxVI_DynamicProperty **dynamicProperty);
+       esxVI_DynamicProperty **dynamicPropertyList);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: HostCpuIdInfo
+ */
+
+struct _esxVI_HostCpuIdInfo {
+    esxVI_HostCpuIdInfo *_next;                            /* optional */
+
+    esxVI_Int *level;                                      /* required */
+    char *vendor;                                          /* optional */
+    char *eax;                                             /* optional */
+    char *ebx;                                             /* optional */
+    char *ecx;                                             /* optional */
+    char *edx;                                             /* optional */
+};
+
+int esxVI_HostCpuIdInfo_Alloc(virConnectPtr conn,
+                              esxVI_HostCpuIdInfo **hostCpuIdInfo);
+void esxVI_HostCpuIdInfo_Free(esxVI_HostCpuIdInfo **hostCpuIdInfoList);
+int esxVI_HostCpuIdInfo_CastFromAnyType(virConnectPtr conn,
+                                        esxVI_AnyType *anyType,
+                                        esxVI_HostCpuIdInfo **hostCpuIdInfo);
+int esxVI_HostCpuIdInfo_CastListFromAnyType
+      (virConnectPtr conn, esxVI_AnyType *anyType,
+       esxVI_HostCpuIdInfo **hostCpuIdInfoList);
+int esxVI_HostCpuIdInfo_Deserialize(virConnectPtr conn, xmlNodePtr node,
+                                    esxVI_HostCpuIdInfo **hostCpuIdInfo);
+int esxVI_HostCpuIdInfo_DeserializeList
+      (virConnectPtr conn, xmlNodePtr node,
+       esxVI_HostCpuIdInfo **hostCpuIdInfoList);
 
 
 
@@ -631,7 +665,7 @@ int esxVI_PropertyChange_Deserialize(virConnectPtr conn, xmlNodePtr node,
                                      esxVI_PropertyChange **propertyChange);
 int esxVI_PropertyChange_DeserializeList
       (virConnectPtr conn, xmlNodePtr node,
-       esxVI_PropertyChange **propertyChange);
+       esxVI_PropertyChange **propertyChangeList);
 
 
 
@@ -902,6 +936,33 @@ int esxVI_ResourceAllocationInfo_Serialize
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: ResourcePoolResourceUsage
+ */
+
+struct _esxVI_ResourcePoolResourceUsage {
+    esxVI_Long *reservationUsed;                           /* required */
+    esxVI_Long *reservationUsedForVm;                      /* required */
+    esxVI_Long *unreservedForPool;                         /* required */
+    esxVI_Long *unreservedForVm;                           /* required */
+    esxVI_Long *overallUsage;                              /* required */
+    esxVI_Long *maxUsage;                                  /* required */
+};
+
+int esxVI_ResourcePoolResourceUsage_Alloc
+      (virConnectPtr conn,
+       esxVI_ResourcePoolResourceUsage **resourcePoolResourceUsage);
+void esxVI_ResourcePoolResourceUsage_Free
+       (esxVI_ResourcePoolResourceUsage **resourcePoolResourceUsage);
+int esxVI_ResourcePoolResourceUsage_CastFromAnyType
+      (virConnectPtr conn, esxVI_AnyType *anyType,
+       esxVI_ResourcePoolResourceUsage **resourcePoolResourceUsage);
+int esxVI_ResourcePoolResourceUsage_Deserialize
+      (virConnectPtr conn, xmlNodePtr node,
+       esxVI_ResourcePoolResourceUsage **resourcePoolResourceUsage);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Type: VirtualMachineConfigSpec
  */
 
@@ -1096,13 +1157,13 @@ int esxVI_PerfCounterInfo_DeserializeList
 struct _esxVI_PerfQuerySpec {
     esxVI_PerfQuerySpec *_next;                            /* optional */
 
-    esxVI_ManagedObjectReference* entity;                  /* required */
-    esxVI_DateTime* startTime;                             /* optional */
-    esxVI_DateTime* endTime;                               /* optional */
+    esxVI_ManagedObjectReference *entity;                  /* required */
+    esxVI_DateTime *startTime;                             /* optional */
+    esxVI_DateTime *endTime;                               /* optional */
     esxVI_Int *maxSample;                                  /* optional */
     esxVI_PerfMetricId *metricId;                          /* optional, list */
     esxVI_Int *intervalId;                                 /* optional */
-    char* format;                                          /* optional */ // FIXME: see PerfFormat
+    char *format;                                          /* optional */ // FIXME: see PerfFormat
 };
 
 int esxVI_PerfQuerySpec_Alloc(virConnectPtr conn,
@@ -1126,8 +1187,8 @@ int esxVI_PerfQuerySpec_SerializeList(virConnectPtr conn,
 struct _esxVI_PerfSampleInfo {
     esxVI_PerfSampleInfo *_next;                           /* optional */
 
-    esxVI_DateTime* timestamp;                             /* required */
-    esxVI_Int* interval;                                   /* required */
+    esxVI_DateTime *timestamp;                             /* required */
+    esxVI_Int *interval;                                   /* required */
 };
 
 int esxVI_PerfSampleInfo_Alloc(virConnectPtr conn,

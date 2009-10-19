@@ -20,12 +20,14 @@
  */
 
 #include <config.h>
+#include <unistd.h>
 
 #include "datatypes.h"
 #include "virterror_internal.h"
 #include "logging.h"
 #include "memory.h"
 #include "uuid.h"
+#include "util.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -926,8 +928,12 @@ virGetStorageVol(virConnectPtr conn, const char *pool, const char *name, const c
             virReportOOMError(conn);
             goto error;
         }
-        strncpy(ret->key, key, sizeof(ret->key)-1);
-        ret->key[sizeof(ret->key)-1] = '\0';
+        if (virStrcpyStatic(ret->key, key) == NULL) {
+            virMutexUnlock(&conn->lock);
+            virLibConnError(conn, VIR_ERR_INTERNAL_ERROR,
+                            _("Volume key %s too large for destination"), key);
+            goto error;
+        }
         ret->magic = VIR_STORAGE_VOL_MAGIC;
         ret->conn = conn;
 
@@ -1157,6 +1163,7 @@ virUnrefNodeDevice(virNodeDevicePtr dev) {
     return (refs);
 }
 
+
 /**
  * virGetSecret:
  * @conn: the hypervisor connection
@@ -1291,4 +1298,62 @@ virUnrefSecret(virSecretPtr secret) {
 
     virMutexUnlock(&secret->conn->lock);
     return refs;
+}
+
+virStreamPtr virGetStream(virConnectPtr conn) {
+    virStreamPtr ret = NULL;
+
+    virMutexLock(&conn->lock);
+
+    if (VIR_ALLOC(ret) < 0) {
+        virReportOOMError(conn);
+        goto error;
+    }
+    ret->magic = VIR_STREAM_MAGIC;
+    ret->conn = conn;
+    conn->refs++;
+    ret->refs++;
+    virMutexUnlock(&conn->lock);
+    return(ret);
+
+error:
+    virMutexUnlock(&conn->lock);
+    VIR_FREE(ret);
+    return(NULL);
+}
+
+static void
+virReleaseStream(virStreamPtr st) {
+    virConnectPtr conn = st->conn;
+    DEBUG("release dev %p", st);
+
+    st->magic = -1;
+    VIR_FREE(st);
+
+    DEBUG("unref connection %p %d", conn, conn->refs);
+    conn->refs--;
+    if (conn->refs == 0) {
+        virReleaseConnect(conn);
+        /* Already unlocked mutex */
+        return;
+    }
+
+    virMutexUnlock(&conn->lock);
+}
+
+int virUnrefStream(virStreamPtr st) {
+    int refs;
+
+    virMutexLock(&st->conn->lock);
+    DEBUG("unref stream %p %d", st, st->refs);
+    st->refs--;
+    refs = st->refs;
+    if (refs == 0) {
+        virReleaseStream(st);
+        /* Already unlocked mutex */
+        return (0);
+    }
+
+    virMutexUnlock(&st->conn->lock);
+    return (refs);
 }

@@ -35,7 +35,6 @@
 #include "virterror_internal.h"
 #include "logging.h"
 #include "datatypes.h"
-#include "libvirt_internal.h"
 #include "driver.h"
 
 #include "uuid.h"
@@ -44,16 +43,16 @@
 
 #ifndef WITH_DRIVER_MODULES
 #ifdef WITH_TEST
-#include "test.h"
+#include "test/test_driver.h"
 #endif
 #ifdef WITH_XEN
-#include "xen_unified.h"
+#include "xen/xen_driver.h"
 #endif
 #ifdef WITH_REMOTE
-#include "remote_internal.h"
+#include "remote/remote_driver.h"
 #endif
 #ifdef WITH_OPENVZ
-#include "openvz_driver.h"
+#include "openvz/openvz_driver.h"
 #endif
 #ifdef WITH_PHYP
 #include "phyp/phyp_driver.h"
@@ -561,6 +560,10 @@ virLibNodeDeviceError(virNodeDevicePtr dev, virErrorNumber error,
                     errmsg, info, NULL, 0, 0, errmsg, info);
 }
 
+#define virLibStreamError(conn, code, fmt...)                   \
+    virReportErrorHelper(conn, VIR_FROM_NONE, code, __FILE__,   \
+                         __FUNCTION__, __LINE__, fmt)
+
 /**
  * virLibSecretError:
  * @secret: the secret if available
@@ -814,7 +817,7 @@ virRegisterStateDriver(virStateDriverPtr driver)
  *
  * Initialize all virtualization drivers.
  *
- * Return 0 if all succeed, -1 upon any failure.
+ * Returns 0 if all succeed, -1 upon any failure.
  */
 int virStateInitialize(int privileged) {
     int i, ret = 0;
@@ -835,7 +838,7 @@ int virStateInitialize(int privileged) {
  *
  * Run each virtualization driver's cleanup method.
  *
- * Return 0 if all succeed, -1 upon any failure.
+ * Returns 0 if all succeed, -1 upon any failure.
  */
 int virStateCleanup(void) {
     int i, ret = 0;
@@ -853,7 +856,7 @@ int virStateCleanup(void) {
  *
  * Run each virtualization driver's reload method.
  *
- * Return 0 if all succeed, -1 upon any failure.
+ * Returns 0 if all succeed, -1 upon any failure.
  */
 int virStateReload(void) {
     int i, ret = 0;
@@ -871,7 +874,7 @@ int virStateReload(void) {
  *
  * Run each virtualization driver's "active" method.
  *
- * Return 0 if none are active, 1 if at least one is.
+ * Returns 0 if none are active, 1 if at least one is.
  */
 int virStateActive(void) {
     int i, ret = 0;
@@ -1349,8 +1352,11 @@ virDrvSupportsFeature (virConnectPtr conn, int feature)
     }
 
     ret = VIR_DRV_SUPPORTS_FEATURE (conn->driver, conn, feature);
-    /* Copy to connection error object for back compatability */
-    virSetConnError(conn);
+
+    if (ret < 0)
+        /* Copy to connection error object for back compatability */
+        virSetConnError(conn);
+
     return ret;
 }
 
@@ -1820,10 +1826,7 @@ error:
 virDomainPtr
 virDomainLookupByUUIDString(virConnectPtr conn, const char *uuidstr)
 {
-    int raw[VIR_UUID_BUFLEN], i;
     unsigned char uuid[VIR_UUID_BUFLEN];
-    int ret;
-
     DEBUG("conn=%p, uuidstr=%s", conn, uuidstr);
 
     virResetLastError();
@@ -1836,26 +1839,11 @@ virDomainLookupByUUIDString(virConnectPtr conn, const char *uuidstr)
         virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
         goto error;
     }
-    /* XXX: sexpr_uuid() also supports 'xxxx-xxxx-xxxx-xxxx' format.
-     *      We needn't it here. Right?
-     */
-    ret = sscanf(uuidstr,
-                 "%02x%02x%02x%02x-"
-                 "%02x%02x-"
-                 "%02x%02x-"
-                 "%02x%02x-"
-                 "%02x%02x%02x%02x%02x%02x",
-                 raw + 0, raw + 1, raw + 2, raw + 3,
-                 raw + 4, raw + 5, raw + 6, raw + 7,
-                 raw + 8, raw + 9, raw + 10, raw + 11,
-                 raw + 12, raw + 13, raw + 14, raw + 15);
 
-    if (ret!=VIR_UUID_BUFLEN) {
+    if (virUUIDParse(uuidstr, uuid) < 0) {
         virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
         goto error;
     }
-    for (i = 0; i < VIR_UUID_BUFLEN; i++)
-        uuid[i] = raw[i] & 0xFF;
 
     return virDomainLookupByUUID(conn, &uuid[0]);
 
@@ -3055,6 +3043,75 @@ virDomainMigrateVersion2 (virDomainPtr domain,
     return ddomain;
 }
 
+
+ /*
+  * This is sort of a migration v3
+  *
+  * In this version, the client does not talk to the destination
+  * libvirtd. The source libvirtd will still try to talk to the
+  * destination libvirtd though, and will do the prepare/perform/finish
+  * steps.
+  */
+static int
+virDomainMigratePeer2Peer (virDomainPtr domain,
+                           unsigned long flags,
+                           const char *dname,
+                           const char *uri,
+                           unsigned long bandwidth)
+{
+    if (!domain->conn->driver->domainMigratePerform) {
+        virLibConnError (domain->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+        return -1;
+    }
+
+    /* Perform the migration.  The driver isn't supposed to return
+     * until the migration is complete.
+     */
+    return domain->conn->driver->domainMigratePerform(domain,
+                                                      NULL, /* cookie */
+                                                      0,    /* cookielen */
+                                                      uri,
+                                                      flags,
+                                                      dname,
+                                                      bandwidth);
+}
+
+
+/*
+ * This is a variation on v1 & 2  migration
+ *
+ * This is for hypervisors which can directly handshake
+ * without any libvirtd involvement on destination either
+ * from client, or source libvirt.
+ *
+ * eg, XenD can talk direct to XenD, so libvirtd on dest
+ * does not need to be involved at all, or even running
+ */
+static int
+virDomainMigrateDirect (virDomainPtr domain,
+                        unsigned long flags,
+                        const char *dname,
+                        const char *uri,
+                        unsigned long bandwidth)
+{
+    if (!domain->conn->driver->domainMigratePerform) {
+        virLibConnError (domain->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+        return -1;
+    }
+
+    /* Perform the migration.  The driver isn't supposed to return
+     * until the migration is complete.
+     */
+    return domain->conn->driver->domainMigratePerform(domain,
+                                                      NULL, /* cookie */
+                                                      0,    /* cookielen */
+                                                      uri,
+                                                      flags,
+                                                      dname,
+                                                      bandwidth);
+}
+
+
 /**
  * virDomainMigrate:
  * @domain: a domain object
@@ -3068,22 +3125,34 @@ virDomainMigrateVersion2 (virDomainPtr domain,
  * host given by dconn (a connection to the destination host).
  *
  * Flags may be one of more of the following:
- *   VIR_MIGRATE_LIVE   Attempt a live migration.
+ *   VIR_MIGRATE_LIVE      Do not pause the VM during migration
+ *   VIR_MIGRATE_PEER2PEER Direct connection between source & destination hosts
+ *   VIR_MIGRATE_TUNNELLED Tunnel migration data over the libvirt RPC channel
+ *
+ * VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
+ * Applications using the VIR_MIGRATE_PEER2PEER flag will probably
+ * prefer to invoke virDomainMigrateToURI, avoiding the need to
+ * open connection to the destination host themselves.
  *
  * If a hypervisor supports renaming domains during migration,
  * then you may set the dname parameter to the new name (otherwise
  * it keeps the same name).  If this is not supported by the
  * hypervisor, dname must be NULL or else you will get an error.
  *
- * Since typically the two hypervisors connect directly to each
- * other in order to perform the migration, you may need to specify
- * a path from the source to the destination.  This is the purpose
- * of the uri parameter.  If uri is NULL, then libvirt will try to
- * find the best method.  Uri may specify the hostname or IP address
- * of the destination host as seen from the source.  Or uri may be
- * a URI giving transport, hostname, user, port, etc. in the usual
- * form.  Refer to driver documentation for the particular URIs
- * supported.
+ * If the VIR_MIGRATE_PEER2PEER flag is set, the uri parameter
+ * must be a valid libvirt connection URI, by which the source
+ * libvirt driver can connect to the destination libvirt. If
+ * omitted, the dconn connection object will be queried for its
+ * current URI.
+ *
+ * If the VIR_MIGRATE_PEER2PEER flag is NOT set, the URI parameter
+ * takes a hypervisor specific format. The hypervisor capabilities
+ * XML includes details of the support URI schemes. If omitted
+ * the dconn will be asked for a default URI.
+ *
+ * In either case it is typically only neccessary to specify a
+ * URI if the destination host has multiple interfaces and a
+ * specific interface is required to transmit migration data.
  *
  * The maximum bandwidth (in Mbps) that will be used to do migration
  * can be specified with the bandwidth parameter.  If set to 0,
@@ -3128,34 +3197,65 @@ virDomainMigrate (virDomainPtr domain,
     }
 
     /* Now checkout the destination */
-    if (!VIR_IS_CONNECT (dconn)) {
-        virLibConnError (domain->conn, VIR_ERR_INVALID_CONN, __FUNCTION__);
+    if (!VIR_IS_CONNECT(dconn)) {
+        virLibConnError(domain->conn, VIR_ERR_INVALID_CONN, __FUNCTION__);
         goto error;
     }
     if (dconn->flags & VIR_CONNECT_RO) {
         /* NB, deliberately report error against source object, not dest */
-        virLibDomainError (domain, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        virLibDomainError(domain, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
     }
 
-    /* Check that migration is supported by both drivers. */
-    if (VIR_DRV_SUPPORTS_FEATURE (domain->conn->driver, domain->conn,
-                                  VIR_DRV_FEATURE_MIGRATION_V1) &&
-        VIR_DRV_SUPPORTS_FEATURE (dconn->driver, dconn,
-                                  VIR_DRV_FEATURE_MIGRATION_V1))
-        ddomain = virDomainMigrateVersion1 (domain, dconn, flags, dname, uri, bandwidth);
-    else if (VIR_DRV_SUPPORTS_FEATURE (domain->conn->driver, domain->conn,
-                                       VIR_DRV_FEATURE_MIGRATION_V2) &&
-             VIR_DRV_SUPPORTS_FEATURE (dconn->driver, dconn,
-                                       VIR_DRV_FEATURE_MIGRATION_V2))
-        ddomain = virDomainMigrateVersion2 (domain, dconn, flags, dname, uri, bandwidth);
-    else {
-        virLibConnError (domain->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
-        goto error;
+    if (flags & VIR_MIGRATE_PEER2PEER) {
+        if (VIR_DRV_SUPPORTS_FEATURE (domain->conn->driver, domain->conn,
+                                      VIR_DRV_FEATURE_MIGRATION_P2P)) {
+            char *dstURI = NULL;
+            if (uri == NULL) {
+                dstURI = virConnectGetURI(dconn);
+                if (!uri)
+                    return NULL;
+            }
+
+            if (virDomainMigratePeer2Peer(domain, flags, dname, uri ? uri : dstURI, bandwidth) < 0) {
+                VIR_FREE(dstURI);
+                goto error;
+            }
+            VIR_FREE(dstURI);
+
+            ddomain = virDomainLookupByName (dconn, dname ? dname : domain->name);
+        } else {
+            /* This driver does not support peer to peer migration */
+            virLibConnError (domain->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+            goto error;
+        }
+    } else {
+        if (flags & VIR_MIGRATE_TUNNELLED) {
+            virLibConnError(domain->conn, VIR_ERR_OPERATION_INVALID,
+                            _("cannot perform tunnelled migration without using peer2peer flag"));
+            goto error;
+        }
+
+        /* Check that migration is supported by both drivers. */
+        if (VIR_DRV_SUPPORTS_FEATURE(domain->conn->driver, domain->conn,
+                                     VIR_DRV_FEATURE_MIGRATION_V1) &&
+            VIR_DRV_SUPPORTS_FEATURE(dconn->driver, dconn,
+                                     VIR_DRV_FEATURE_MIGRATION_V1))
+            ddomain = virDomainMigrateVersion1(domain, dconn, flags, dname, uri, bandwidth);
+        else if (VIR_DRV_SUPPORTS_FEATURE(domain->conn->driver, domain->conn,
+                                          VIR_DRV_FEATURE_MIGRATION_V2) &&
+                 VIR_DRV_SUPPORTS_FEATURE(dconn->driver, dconn,
+                                          VIR_DRV_FEATURE_MIGRATION_V2))
+            ddomain = virDomainMigrateVersion2(domain, dconn, flags, dname, uri, bandwidth);
+        else {
+            /* This driver does not support any migration method */
+            virLibConnError(domain->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+            goto error;
+        }
     }
 
-     if (ddomain == NULL)
-         goto error;
+    if (ddomain == NULL)
+        goto error;
 
     return ddomain;
 
@@ -3164,6 +3264,122 @@ error:
     virSetConnError(domain->conn);
     return NULL;
 }
+
+
+/**
+ * virDomainMigrateToURI:
+ * @domain: a domain object
+ * @duri: mandatory URI for the destination host
+ * @flags: flags
+ * @dname: (optional) rename domain to this at destination
+ * @bandwidth: (optional) specify migration bandwidth limit in Mbps
+ *
+ * Migrate the domain object from its current host to the destination
+ * host given by dconn (a connection to the destination host).
+ *
+ * Flags may be one of more of the following:
+ *   VIR_MIGRATE_LIVE      Do not pause the VM during migration
+ *   VIR_MIGRATE_PEER2PEER Direct connection between source & destination hosts
+ *   VIR_MIGRATE_TUNNELLED Tunnel migration data over the libvirt RPC channel
+ *
+ * VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
+ * Applications using the VIR_MIGRATE_PEER2PEER flag will probably
+ * prefer to invoke virDomainMigrateToURI, avoiding the need to
+ * open connection to the destination host themselves.
+ *
+ * If a hypervisor supports renaming domains during migration,
+ * then you may set the dname parameter to the new name (otherwise
+ * it keeps the same name).  If this is not supported by the
+ * hypervisor, dname must be NULL or else you will get an error.
+ *
+ * If the VIR_MIGRATE_PEER2PEER flag is set, the duri parameter
+ * must be a valid libvirt connection URI, by which the source
+ * libvirt driver can connect to the destination libvirt. If
+ * omitted, the dconn connection object will be queried for its
+ * current URI.
+ *
+ * If the VIR_MIGRATE_PEER2PEER flag is NOT set, the duri parameter
+ * takes a hypervisor specific format. The hypervisor capabilities
+ * XML includes details of the support URI schemes. If omitted
+ * the dconn will be asked for a default URI. Not all hypervisors
+ * will support this mode of migration, so if the VIR_MIGRATE_PEER2PEER
+ * flag is not set, then it may be neccessary to use the alternative
+ * virDomainMigrate API providing an explicit virConnectPtr for the
+ * destination host
+ *
+ * The maximum bandwidth (in Mbps) that will be used to do migration
+ * can be specified with the bandwidth parameter.  If set to 0,
+ * libvirt will choose a suitable default.  Some hypervisors do
+ * not support this feature and will return an error if bandwidth
+ * is not 0.
+ *
+ * To see which features are supported by the current hypervisor,
+ * see virConnectGetCapabilities, /capabilities/host/migration_features.
+ *
+ * There are many limitations on migration imposed by the underlying
+ * technology - for example it may not be possible to migrate between
+ * different processors even with the same architecture, or between
+ * different types of hypervisor.
+ *
+ * Returns 0 if the migration succeeded, -1 upon error.
+ */
+int
+virDomainMigrateToURI (virDomainPtr domain,
+                       const char *duri,
+                       unsigned long flags,
+                       const char *dname,
+                       unsigned long bandwidth)
+{
+    DEBUG("domain=%p, duri=%p, flags=%lu, dname=%s, bandwidth=%lu",
+          domain, NULLSTR(duri), flags, NULLSTR(dname), bandwidth);
+
+    virResetLastError();
+
+    /* First checkout the source */
+    if (!VIR_IS_CONNECTED_DOMAIN (domain)) {
+        virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        return -1;
+    }
+    if (domain->conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(domain, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (duri == NULL) {
+        virLibConnError (domain->conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if (flags & VIR_MIGRATE_PEER2PEER) {
+        if (VIR_DRV_SUPPORTS_FEATURE (domain->conn->driver, domain->conn,
+                                      VIR_DRV_FEATURE_MIGRATION_P2P)) {
+            if (virDomainMigratePeer2Peer (domain, flags, dname, duri, bandwidth) < 0)
+                goto error;
+        } else {
+            /* No peer to peer migration supported */
+            virLibConnError (domain->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+            goto error;
+        }
+    } else {
+        if (VIR_DRV_SUPPORTS_FEATURE (domain->conn->driver, domain->conn,
+                                      VIR_DRV_FEATURE_MIGRATION_DIRECT)) {
+            if (virDomainMigrateDirect (domain, flags, dname, duri, bandwidth) < 0)
+                goto error;
+        } else {
+            /* Cannot do a migration with only the perform step */
+            virLibConnError (domain->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+            goto error;
+        }
+    }
+
+    return 0;
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(domain->conn);
+    return -1;
+}
+
 
 /*
  * Not for public use.  This function is part of the internal
@@ -3406,6 +3622,58 @@ error:
     /* Copy to connection error object for back compatability */
     virSetConnError(dconn);
     return NULL;
+}
+
+
+/*
+ * Not for public use.  This function is part of the internal
+ * implementation of migration in the remote case.
+ */
+int
+virDomainMigratePrepareTunnel(virConnectPtr conn,
+                              virStreamPtr st,
+                              unsigned long flags,
+                              const char *dname,
+                              unsigned long bandwidth,
+                              const char *dom_xml)
+
+{
+    VIR_DEBUG("conn=%p, stream=%p, flags=%lu, dname=%s, "
+              "bandwidth=%lu, dom_xml=%s", conn, st, flags,
+              NULLSTR(dname), bandwidth, dom_xml);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return -1;
+    }
+
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibConnError(conn, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn != st->conn) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->driver->domainMigratePrepareTunnel) {
+        int rv = conn->driver->domainMigratePrepareTunnel(conn, st,
+                                                          flags, dname,
+                                                          bandwidth, dom_xml);
+        if (rv < 0)
+            goto error;
+        return rv;
+    }
+
+    virLibConnError(conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(conn);
+    return -1;
 }
 
 
@@ -5019,9 +5287,7 @@ error:
 virNetworkPtr
 virNetworkLookupByUUIDString(virConnectPtr conn, const char *uuidstr)
 {
-    int raw[VIR_UUID_BUFLEN], i;
     unsigned char uuid[VIR_UUID_BUFLEN];
-    int ret;
     DEBUG("conn=%p, uuidstr=%s", conn, uuidstr);
 
     virResetLastError();
@@ -5035,26 +5301,10 @@ virNetworkLookupByUUIDString(virConnectPtr conn, const char *uuidstr)
         goto error;
     }
 
-    /* XXX: sexpr_uuid() also supports 'xxxx-xxxx-xxxx-xxxx' format.
-     *      We needn't it here. Right?
-     */
-    ret = sscanf(uuidstr,
-                 "%02x%02x%02x%02x-"
-                 "%02x%02x-"
-                 "%02x%02x-"
-                 "%02x%02x-"
-                 "%02x%02x%02x%02x%02x%02x",
-                 raw + 0, raw + 1, raw + 2, raw + 3,
-                 raw + 4, raw + 5, raw + 6, raw + 7,
-                 raw + 8, raw + 9, raw + 10, raw + 11,
-                 raw + 12, raw + 13, raw + 14, raw + 15);
-
-    if (ret!=VIR_UUID_BUFLEN) {
+    if (virUUIDParse(uuidstr, uuid) < 0) {
         virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
         goto error;
     }
-    for (i = 0; i < VIR_UUID_BUFLEN; i++)
-        uuid[i] = raw[i] & 0xFF;
 
     return virNetworkLookupByUUID(conn, &uuid[0]);
 
@@ -7037,7 +7287,7 @@ virStoragePoolRef(virStoragePoolPtr pool)
  * involve communicating with a remote server, and/or initializing
  * new devices at the OS layer
  *
- * Return 0 if the volume list was refreshed, -1 on failure
+ * Returns 0 if the volume list was refreshed, -1 on failure
  */
 int
 virStoragePoolRefresh(virStoragePoolPtr pool,
@@ -7082,7 +7332,7 @@ error:
  *
  * Fetch the locally unique name of the storage pool
  *
- * Return the name of the pool, or NULL on error
+ * Returns the name of the pool, or NULL on error
  */
 const char*
 virStoragePoolGetName(virStoragePoolPtr pool)
@@ -7106,7 +7356,7 @@ virStoragePoolGetName(virStoragePoolPtr pool)
  *
  * Fetch the globally unique ID of the storage pool
  *
- * Return 0 on success, or -1 on error;
+ * Returns 0 on success, or -1 on error;
  */
 int
 virStoragePoolGetUUID(virStoragePoolPtr pool,
@@ -7142,7 +7392,7 @@ error:
  *
  * Fetch the globally unique ID of the storage pool as a string
  *
- * Return 0 on success, or -1 on error;
+ * Returns 0 on success, or -1 on error;
  */
 int
 virStoragePoolGetUUIDString(virStoragePoolPtr pool,
@@ -7183,7 +7433,7 @@ error:
  * Get volatile information about the storage pool
  * such as free space / usage summary
  *
- * returns 0 on success, or -1 on failure.
+ * Returns 0 on success, or -1 on failure.
  */
 int
 virStoragePoolGetInfo(virStoragePoolPtr pool,
@@ -7233,7 +7483,7 @@ error:
  * storage pool. This is suitable for later feeding back
  * into the virStoragePoolCreateXML method.
  *
- * returns a XML document, or NULL on error
+ * Returns a XML document, or NULL on error
  */
 char *
 virStoragePoolGetXMLDesc(virStoragePoolPtr pool,
@@ -7280,7 +7530,7 @@ error:
  * Fetches the value of the autostart flag, which determines
  * whether the pool is automatically started at boot time
  *
- * return 0 on success, -1 on failure
+ * Returns 0 on success, -1 on failure
  */
 int
 virStoragePoolGetAutostart(virStoragePoolPtr pool,
@@ -7326,7 +7576,7 @@ error:
  *
  * Sets the autostart flag
  *
- * returns 0 on success, -1 on failure
+ * Returns 0 on success, -1 on failure
  */
 int
 virStoragePoolSetAutostart(virStoragePoolPtr pool,
@@ -7487,7 +7737,7 @@ virStorageVolGetConnect (virStorageVolPtr vol)
  * Fetch a pointer to a storage volume based on its name
  * within a pool
  *
- * return a storage volume, or NULL if not found / error
+ * Returns a storage volume, or NULL if not found / error
  */
 virStorageVolPtr
 virStorageVolLookupByName(virStoragePoolPtr pool,
@@ -7532,7 +7782,7 @@ error:
  * Fetch a pointer to a storage volume based on its
  * globally unique key
  *
- * return a storage volume, or NULL if not found / error
+ * Returns a storage volume, or NULL if not found / error
  */
 virStorageVolPtr
 virStorageVolLookupByKey(virConnectPtr conn,
@@ -7575,7 +7825,7 @@ error:
  * Fetch a pointer to a storage volume based on its
  * locally (host) unique path
  *
- * return a storage volume, or NULL if not found / error
+ * Returns a storage volume, or NULL if not found / error
  */
 virStorageVolPtr
 virStorageVolLookupByPath(virConnectPtr conn,
@@ -7618,7 +7868,7 @@ error:
  * Fetch the storage volume name. This is unique
  * within the scope of a pool
  *
- * return the volume name, or NULL on error
+ * Returns the volume name, or NULL on error
  */
 const char*
 virStorageVolGetName(virStorageVolPtr vol)
@@ -7643,7 +7893,7 @@ virStorageVolGetName(virStorageVolPtr vol)
  * unique, so the same volume will have the same
  * key no matter what host it is accessed from
  *
- * return the volume key, or NULL on error
+ * Returns the volume key, or NULL on error
  */
 const char*
 virStorageVolGetKey(virStorageVolPtr vol)
@@ -7670,7 +7920,7 @@ virStorageVolGetKey(virStorageVolPtr vol)
  * on an XML description. Not all pools support
  * creation of volumes
  *
- * return the storage volume, or NULL on error
+ * Returns the storage volume, or NULL on error
  */
 virStorageVolPtr
 virStorageVolCreateXML(virStoragePoolPtr pool,
@@ -7720,7 +7970,7 @@ error:
  * volume (name, perms)  are passed via a typical volume
  * XML description.
  *
- * return the storage volume, or NULL on error
+ * Returns the storage volume, or NULL on error
  */
 virStorageVolPtr
 virStorageVolCreateXMLFrom(virStoragePoolPtr pool,
@@ -7774,7 +8024,7 @@ error:
  *
  * Delete the storage volume from the pool
  *
- * Return 0 on success, or -1 on error
+ * Returns 0 on success, or -1 on error
  */
 int
 virStorageVolDelete(virStorageVolPtr vol,
@@ -7820,7 +8070,7 @@ error:
  * Release the storage volume handle. The underlying
  * storage volume continues to exist.
  *
- * Return 0 on success, or -1 on error
+ * Returns 0 on success, or -1 on error
  */
 int
 virStorageVolFree(virStorageVolPtr vol)
@@ -7878,7 +8128,7 @@ virStorageVolRef(virStorageVolPtr vol)
  * Fetches volatile information about the storage
  * volume such as its current allocation
  *
- * Return 0 on success, or -1 on failure
+ * Returns 0 on success, or -1 on failure
  */
 int
 virStorageVolGetInfo(virStorageVolPtr vol,
@@ -7927,7 +8177,7 @@ error:
  * Fetch an XML document describing all aspects of
  * the storage volume
  *
- * Return the XML document, or NULL on error
+ * Returns the XML document, or NULL on error
  */
 char *
 virStorageVolGetXMLDesc(virStorageVolPtr vol,
@@ -8158,7 +8408,7 @@ error:
  * Fetch an XML document describing all aspects of
  * the device.
  *
- * Return the XML document, or NULL on error
+ * Returns the XML document, or NULL on error
  */
 char *virNodeDeviceGetXMLDesc(virNodeDevicePtr dev, unsigned int flags)
 {
@@ -8868,10 +9118,7 @@ error:
 virSecretPtr
 virSecretLookupByUUIDString(virConnectPtr conn, const char *uuidstr)
 {
-    int raw[VIR_UUID_BUFLEN], i;
     unsigned char uuid[VIR_UUID_BUFLEN];
-    int ret;
-
     DEBUG("conn=%p, uuidstr=%s", conn, uuidstr);
 
     virResetLastError();
@@ -8884,26 +9131,11 @@ virSecretLookupByUUIDString(virConnectPtr conn, const char *uuidstr)
         virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
         goto error;
     }
-    /* XXX: sexpr_uuid() also supports 'xxxx-xxxx-xxxx-xxxx' format.
-     *      We needn't it here. Right?
-     */
-    ret = sscanf(uuidstr,
-                 "%02x%02x%02x%02x-"
-                 "%02x%02x-"
-                 "%02x%02x-"
-                 "%02x%02x-"
-                 "%02x%02x%02x%02x%02x%02x",
-                 raw + 0, raw + 1, raw + 2, raw + 3,
-                 raw + 4, raw + 5, raw + 6, raw + 7,
-                 raw + 8, raw + 9, raw + 10, raw + 11,
-                 raw + 12, raw + 13, raw + 14, raw + 15);
 
-    if (ret!=VIR_UUID_BUFLEN) {
+    if (virUUIDParse(uuidstr, uuid) < 0) {
         virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
         goto error;
     }
-    for (i = 0; i < VIR_UUID_BUFLEN; i++)
-        uuid[i] = raw[i] & 0xFF;
 
     return virSecretLookupByUUID(conn, &uuid[0]);
 
@@ -9374,7 +9606,7 @@ virSecretRef(virSecretPtr secret)
  *
  * Release the secret handle. The underlying secret continues to exist.
  *
- * Return 0 on success, or -1 on error
+ * Returns 0 on success, or -1 on error
  */
 int
 virSecretFree(virSecretPtr secret)
@@ -9390,4 +9622,701 @@ virSecretFree(virSecretPtr secret)
     if (virUnrefSecret(secret) < 0)
         return -1;
     return 0;
+}
+
+
+/**
+ * virStreamNew:
+ * @conn: pointer to the connection
+ * @flags: control features of the stream
+ *
+ * Creates a new stream object which can be used to perform
+ * streamed I/O with other public API function.
+ *
+ * When no longer needed, a stream object must be released
+ * with virStreamFree. If a data stream has been used,
+ * then the application must call virStreamFinish or
+ * virStreamAbort before free'ing to, in order to notify
+ * the driver of termination.
+ *
+ * If a non-blocking data stream is required passed
+ * VIR_STREAM_NONBLOCK for flags, otherwise pass 0.
+ *
+ * Returns the new stream, or NULL upon error
+ */
+virStreamPtr
+virStreamNew(virConnectPtr conn,
+             unsigned int flags)
+{
+    virStreamPtr st;
+
+    DEBUG("conn=%p, flags=%u", conn, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (NULL);
+    }
+
+    st = virGetStream(conn);
+    if (st)
+        st->flags = flags;
+
+    return st;
+}
+
+
+/**
+ * virStreamRef:
+ * @stream: pointer to the stream
+ *
+ * Increment the reference count on the stream. For each
+ * additional call to this method, there shall be a corresponding
+ * call to virStreamFree to release the reference count, once
+ * the caller no longer needs the reference to this object.
+ *
+ * Returns 0 in case of success, -1 in case of failure
+ */
+int
+virStreamRef(virStreamPtr stream)
+{
+    if ((!VIR_IS_CONNECTED_STREAM(stream))) {
+        virLibConnError(NULL, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return(-1);
+    }
+    virMutexLock(&stream->conn->lock);
+    DEBUG("stream=%p refs=%d", stream, stream->refs);
+    stream->refs++;
+    virMutexUnlock(&stream->conn->lock);
+    return 0;
+}
+
+
+/**
+ * virStreamSend:
+ * @stream: pointer to the stream object
+ * @data: buffer to write to stream
+ * @nbytes: size of @data buffer
+ *
+ * Write a series of bytes to the stream. This method may
+ * block the calling application for an arbitrary amount
+ * of time. Once an application has finished sending data
+ * it should call virStreamFinish to wait for successful
+ * confirmation from the driver, or detect any error
+ *
+ * This method may not be used if a stream source has been
+ * registered
+ *
+ * Errors are not guaranteed to be reported synchronously
+ * with the call, but may instead be delayed until a
+ * subsequent call.
+ *
+ * A example using this with a hypothetical file upload
+ * API looks like
+ *
+ *   virStreamPtr st = virStreamNew(conn, 0);
+ *   int fd = open("demo.iso", O_RDONLY)
+ *
+ *   virConnectUploadFile(conn, "demo.iso", st);
+ *
+ *   while (1) {
+ *       char buf[1024];
+ *       int got = read(fd, buf, 1024);
+ *       if (got < 0) {
+ *          virStreamAbort(st);
+ *          break;
+ *       }
+ *       if (got == 0) {
+ *          virStreamFinish(st);
+ *          break;
+ *       }
+ *       int offset = 0;
+ *       while (offset < got) {
+ *          int sent = virStreamSend(st, buf+offset, got-offset)
+ *          if (sent < 0) {
+ *             virStreamAbort(st);
+ *             goto done;
+ *          }
+ *          offset += sent;
+ *       }
+ *   }
+ *   if (virStreamFinish(st) < 0)
+ *      ... report an error ....
+ * done:
+ *   virStreamFree(st);
+ *   close(fd);
+ *
+ * Returns the number of bytes written, which may be less
+ * than requested.
+ *
+ * Returns -1 upon error, at which time the stream will
+ * be marked as aborted, and the caller should now release
+ * the stream with virStreamFree.
+ *
+ * Returns -2 if the outgoing transmit buffers are full &
+ * the stream is marked as non-blocking.
+ */
+int virStreamSend(virStreamPtr stream,
+                  const char *data,
+                  size_t nbytes)
+{
+    DEBUG("stream=%p, data=%p, nbytes=%zi", stream, data, nbytes);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_STREAM(stream)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+
+    if (stream->driver &&
+        stream->driver->streamSend) {
+        int ret;
+        ret = (stream->driver->streamSend)(stream, data, nbytes);
+        if (ret == -2)
+            return -2;
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(stream->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(stream->conn);
+    return -1;
+}
+
+
+/**
+ * virStreamRecv:
+ * @stream: pointer to the stream object
+ * @data: buffer to write to stream
+ * @nbytes: size of @data buffer
+ *
+ * Write a series of bytes to the stream. This method may
+ * block the calling application for an arbitrary amount
+ * of time.
+ *
+ * Errors are not guaranteed to be reported synchronously
+ * with the call, but may instead be delayed until a
+ * subsequent call.
+ *
+ * A example using this with a hypothetical file download
+ * API looks like
+ *
+ *   virStreamPtr st = virStreamNew(conn, 0);
+ *   int fd = open("demo.iso", O_WRONLY, 0600)
+ *
+ *   virConnectDownloadFile(conn, "demo.iso", st);
+ *
+ *   while (1) {
+ *       char buf[1024];
+ *       int got = virStreamRecv(st, buf, 1024);
+ *       if (got < 0)
+ *          break;
+ *       if (got == 0) {
+ *          virStreamFinish(st);
+ *          break;
+ *       }
+ *       int offset = 0;
+ *       while (offset < got) {
+ *          int sent = write(fd, buf+offset, got-offset)
+ *          if (sent < 0) {
+ *             virStreamAbort(st);
+ *             goto done;
+ *          }
+ *          offset += sent;
+ *       }
+ *   }
+ *   if (virStreamFinish(st) < 0)
+ *      ... report an error ....
+ * done:
+ *   virStreamFree(st);
+ *   close(fd);
+ *
+ *
+ * Returns the number of bytes read, which may be less
+ * than requested.
+ *
+ * Returns 0 when the end of the stream is reached, at
+ * which time the caller should invoke virStreamFinish()
+ * to get confirmation of stream completion.
+ *
+ * Returns -1 upon error, at which time the stream will
+ * be marked as aborted, and the caller should now release
+ * the stream with virStreamFree.
+ *
+ * Returns -2 if there is no data pending to be read & the
+ * stream is marked as non-blocking.
+ */
+int virStreamRecv(virStreamPtr stream,
+                  char *data,
+                  size_t nbytes)
+{
+    DEBUG("stream=%p, data=%p, nbytes=%zi", stream, data, nbytes);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_STREAM(stream)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+
+    if (stream->driver &&
+        stream->driver->streamRecv) {
+        int ret;
+        ret = (stream->driver->streamRecv)(stream, data, nbytes);
+        if (ret == -2)
+            return -2;
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(stream->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(stream->conn);
+    return -1;
+}
+
+
+/**
+ * virStreamSendAll:
+ * @stream: pointer to the stream object
+ * @handler: source callback for reading data from application
+ * @opaque: application defined data
+ *
+ * Send the entire data stream, reading the data from the
+ * requested data source. This is simply a convenient alternative
+ * to virStreamSend, for apps that do blocking-I/o.
+ *
+ * A example using this with a hypothetical file upload
+ * API looks like
+ *
+ *   int mysource(virStreamPtr st, char *buf, int nbytes, void *opaque) {
+ *       int *fd = opaque;
+ *
+ *       return read(*fd, buf, nbytes);
+ *   }
+ *
+ *   virStreamPtr st = virStreamNew(conn, 0);
+ *   int fd = open("demo.iso", O_RDONLY)
+ *
+ *   virConnectUploadFile(conn, st);
+ *   if (virStreamSendAll(st, mysource, &fd) < 0) {
+ *      ...report an error ...
+ *      goto done;
+ *   }
+ *   if (virStreamFinish(st) < 0)
+ *      ...report an error...
+ *   virStreamFree(st);
+ *   close(fd);
+ *
+ * Returns 0 if all the data was successfully sent. The caller
+ * should invoke virStreamFinish(st) to flush the stream upon
+ * success and then virStreamFree
+ *
+ * Returns -1 upon any error, with virStreamAbort() already
+ * having been called,  so the caller need only call
+ * virStreamFree()
+ */
+int virStreamSendAll(virStreamPtr stream,
+                     virStreamSourceFunc handler,
+                     void *opaque)
+{
+    char *bytes = NULL;
+    int want = 1024*64;
+    int ret = -1;
+    DEBUG("stream=%p, handler=%p, opaque=%p", stream, handler, opaque);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_STREAM(stream)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+
+    if (stream->flags & VIR_STREAM_NONBLOCK) {
+        virLibConnError(NULL, VIR_ERR_OPERATION_INVALID,
+                        _("data sources cannot be used for non-blocking streams"));
+        goto cleanup;
+    }
+
+    if (VIR_ALLOC_N(bytes, want) < 0) {
+        virReportOOMError(stream->conn);
+        goto cleanup;
+    }
+
+    for (;;) {
+        int got, offset = 0;
+        got = (handler)(stream, bytes, want, opaque);
+        if (got < 0) {
+            virStreamAbort(stream);
+            goto cleanup;
+        }
+        if (got == 0)
+            break;
+        while (offset < got) {
+            int done;
+            done = virStreamSend(stream, bytes + offset, got - offset);
+            if (done < 0)
+                goto cleanup;
+            offset += done;
+        }
+    }
+    ret = 0;
+
+cleanup:
+    VIR_FREE(bytes);
+
+    /* Copy to connection error object for back compatability */
+    if (ret != 0)
+        virSetConnError(stream->conn);
+
+    return ret;
+}
+
+
+/**
+ * virStreamRecvAll:
+ * @stream: pointer to the stream object
+ * @handler: sink callback for writing data to application
+ * @opaque: application defined data
+ *
+ * Receive the entire data stream, sending the data to the
+ * requested data sink. This is simply a convenient alternative
+ * to virStreamRecv, for apps that do blocking-I/o.
+ *
+ * A example using this with a hypothetical file download
+ * API looks like
+ *
+ *   int mysink(virStreamPtr st, const char *buf, int nbytes, void *opaque) {
+ *       int *fd = opaque;
+ *
+ *       return write(*fd, buf, nbytes);
+ *   }
+ *
+ *   virStreamPtr st = virStreamNew(conn, 0);
+ *   int fd = open("demo.iso", O_WRONLY)
+ *
+ *   virConnectUploadFile(conn, st);
+ *   if (virStreamRecvAll(st, mysink, &fd) < 0) {
+ *      ...report an error ...
+ *      goto done;
+ *   }
+ *   if (virStreamFinish(st) < 0)
+ *      ...report an error...
+ *   virStreamFree(st);
+ *   close(fd);
+ *
+ * Returns 0 if all the data was successfully received. The caller
+ * should invoke virStreamFinish(st) to flush the stream upon
+ * success and then virStreamFree
+ *
+ * Returns -1 upon any error, with virStreamAbort() already
+ * having been called,  so the caller need only call
+ * virStreamFree()
+ */
+int virStreamRecvAll(virStreamPtr stream,
+                     virStreamSinkFunc handler,
+                     void *opaque)
+{
+    char *bytes = NULL;
+    int want = 1024*64;
+    int ret = -1;
+    DEBUG("stream=%p, handler=%p, opaque=%p", stream, handler, opaque);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_STREAM(stream)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+
+    if (stream->flags & VIR_STREAM_NONBLOCK) {
+        virLibConnError(NULL, VIR_ERR_OPERATION_INVALID,
+                        _("data sinks cannot be used for non-blocking streams"));
+        goto cleanup;
+    }
+
+
+    if (VIR_ALLOC_N(bytes, want) < 0) {
+        virReportOOMError(stream->conn);
+        goto cleanup;
+    }
+
+    for (;;) {
+        int got, offset = 0;
+        got = virStreamRecv(stream, bytes, want);
+        if (got < 0)
+            goto cleanup;
+        if (got == 0)
+            break;
+        while (offset < got) {
+            int done;
+            done = (handler)(stream, bytes + offset, got - offset, opaque);
+            if (done < 0) {
+                virStreamAbort(stream);
+                goto cleanup;
+            }
+            offset += done;
+        }
+    }
+    ret = 0;
+
+cleanup:
+    VIR_FREE(bytes);
+
+    /* Copy to connection error object for back compatability */
+    if (ret != 0)
+        virSetConnError(stream->conn);
+
+    return ret;
+}
+
+
+/**
+ * virStreamEventAddCallback:
+ * @stream: pointer to the stream object
+ * @events: set of events to monitor
+ * @cb: callback to invoke when an event occurs
+ * @opaque: application defined data
+ * @ff: callback to free @opaque data
+ *
+ * Register a callback to be notified when a stream
+ * becomes writable, or readable. This is most commonly
+ * used in conjunction with non-blocking data streams
+ * to integrate into an event loop
+ *
+ * Returns 0 on success, -1 upon error
+ */
+int virStreamEventAddCallback(virStreamPtr stream,
+                              int events,
+                              virStreamEventCallback cb,
+                              void *opaque,
+                              virFreeCallback ff)
+{
+    DEBUG("stream=%p, events=%d, cb=%p, opaque=%p, ff=%p", stream, events, cb, opaque, ff);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_STREAM(stream)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+
+    if (stream->driver &&
+        stream->driver->streamAddCallback) {
+        int ret;
+        ret = (stream->driver->streamAddCallback)(stream, events, cb, opaque, ff);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(stream->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(stream->conn);
+    return -1;
+}
+
+
+/**
+ * virStreamEventUpdateCallback:
+ * @stream: pointer to the stream object
+ * @events: set of events to monitor
+ *
+ * Changes the set of events to monitor for a stream. This allows
+ * for event notification to be changed without having to
+ * unregister & register the callback completely. This method
+ * is guarenteed to succeed if a callback is already registered
+ *
+ * Returns 0 on success, -1 if no callback is registered
+ */
+int virStreamEventUpdateCallback(virStreamPtr stream,
+                                 int events)
+{
+    DEBUG("stream=%p, events=%d", stream, events);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_STREAM(stream)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+
+    if (stream->driver &&
+        stream->driver->streamUpdateCallback) {
+        int ret;
+        ret = (stream->driver->streamUpdateCallback)(stream, events);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (stream->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(stream->conn);
+    return -1;
+}
+
+/**
+ * virStreamEventRemoveCallback:
+ * @stream: pointer to the stream object
+ *
+ * Remove a event callback from the stream
+ *
+ * Returns 0 on success, -1 on error
+ */
+int virStreamEventRemoveCallback(virStreamPtr stream)
+{
+    DEBUG("stream=%p", stream);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_STREAM(stream)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+
+    if (stream->driver &&
+        stream->driver->streamRemoveCallback) {
+        int ret;
+        ret = (stream->driver->streamRemoveCallback)(stream);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (stream->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(stream->conn);
+    return -1;
+}
+
+/**
+ * virStreamFinish:
+ * @stream: pointer to the stream object
+ *
+ * Indicate that there is no further data is to be transmitted
+ * on the stream. For output streams this should be called once
+ * all data has been written. For input streams this should be
+ * called once virStreamRecv returns end-of-file.
+ *
+ * This method is a synchronization point for all asynchronous
+ * errors, so if this returns a success code the application can
+ * be sure that all data has been successfully processed.
+ *
+ * Returns 0 on success, -1 upon error
+ */
+int virStreamFinish(virStreamPtr stream)
+{
+    DEBUG("stream=%p", stream);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_STREAM(stream)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+
+    if (stream->driver &&
+        stream->driver->streamFinish) {
+        int ret;
+        ret = (stream->driver->streamFinish)(stream);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (stream->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(stream->conn);
+    return -1;
+}
+
+/**
+ * virStreamAbort:
+ * @stream: pointer to the stream object
+ *
+ * Request that the in progress data transfer be cancelled
+ * abnormally before the end of the stream has been reached.
+ * For output streams this can be used to inform the driver
+ * that the stream is being terminated early. For input
+ * streams this can be used to inform the driver that it
+ * should stop sending data.
+ *
+ * Returns 0 on success, -1 upon error
+ */
+int virStreamAbort(virStreamPtr stream)
+{
+    DEBUG("stream=%p", stream);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_STREAM(stream)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+
+    if (stream->driver &&
+        stream->driver->streamAbort) {
+        int ret;
+        ret = (stream->driver->streamAbort)(stream);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (stream->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(stream->conn);
+    return -1;
+}
+
+/**
+ * virStreamFree:
+ * @stream: pointer to the stream object
+ *
+ * Decrement the reference count on a stream, releasing
+ * the stream object if the reference count has hit zero.
+ *
+ * There must not be a active data transfer in progress
+ * when releasing the stream. If a stream needs to be
+ * disposed of prior to end of stream being reached, then
+ * the virStreamAbort function should be called first.
+ *
+ * Returns 0 upon success, or -1 on error
+ */
+int virStreamFree(virStreamPtr stream)
+{
+    DEBUG("stream=%p", stream);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_STREAM(stream)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+
+    /* XXX Enforce shutdown before free'ing resources ? */
+
+    if (virUnrefStream(stream) < 0)
+        return (-1);
+    return (0);
 }

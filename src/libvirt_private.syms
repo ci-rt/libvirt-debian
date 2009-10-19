@@ -47,6 +47,27 @@ virConfWriteFile;
 virConfWriteMem;
 
 
+# cgroup.h
+virCgroupForDomain;
+virCgroupForDriver;
+virCgroupRemove;
+virCgroupFree;
+virCgroupAddTask;
+virCgroupSetMemory;
+virCgroupGetMemoryUsage;
+virCgroupSetCpuShares;
+virCgroupGetCpuShares;
+virCgroupDenyDevicePath;
+virCgroupAllowDevicePath;
+virCgroupDenyAllDevices;
+virCgroupAllowDeviceMajor;
+virCgroupControllerTypeToString;
+virCgroupControllerTypeFromString;
+virCgroupGetCpuacctUsage;
+virCgroupGetFreezerState;
+virCgroupSetFreezerState;
+
+
 # datatypes.h
 virGetDomain;
 virGetInterface;
@@ -59,6 +80,8 @@ virGetNodeDevice;
 virUnrefDomain;
 virUnrefConnect;
 virUnrefSecret;
+virGetStream;
+virUnrefStream;
 
 
 # domain_conf.h
@@ -218,6 +241,7 @@ virDomainMigratePerform;
 virDomainMigrateFinish;
 virDomainMigratePrepare2;
 virDomainMigrateFinish2;
+virDomainMigratePrepareTunnel;
 virRegisterDriver;
 virRegisterInterfaceDriver;
 virRegisterNetworkDriver;
@@ -231,6 +255,8 @@ virRegisterSecretDriver;
 virLogMessage;
 virLogGetNbFilters;
 virLogGetNbOutputs;
+virLogGetFilters;
+virLogGetOutputs;
 virLogGetDefaultPriority;
 virLogSetDefaultPriority;
 virLogSetFromEnv;
@@ -280,6 +306,7 @@ nodeGetFreeMemory;
 
 
 # node_device_conf.h
+virNodeDeviceHasCap;
 virNodeDeviceObjRemove;
 virNodeDevCapTypeToString;
 virNodeDeviceFindByName;
@@ -359,8 +386,6 @@ virStorageVolDefParseNode;
 virStoragePoolFormatDiskTypeToString;
 virStoragePoolFormatFileSystemTypeToString;
 virStoragePoolFormatFileSystemNetTypeToString;
-virStorageVolFormatFileSystemTypeToString;
-virStorageVolFormatFileSystemTypeFromString;
 virStoragePoolTypeFromString;
 virStoragePartedFsTypeTypeToString;
 virStoragePoolObjLock;
@@ -373,6 +398,11 @@ virStorageEncryptionParseNode;
 virStorageEncryptionFormat;
 virStorageGenerateQcowPassphrase;
 
+# storage_file.h
+virStorageFileFormatTypeToString;
+virStorageFileFormatTypeFromString;
+virStorageFileGetMetadata;
+virStorageFileGetMetadataFromFD;
 
 # threads.h
 virMutexInit;
@@ -417,6 +447,7 @@ virFileExists;
 virFileHasSuffix;
 virFileLinkPointsTo;
 virFileMakePath;
+virFileAbsPath;
 virFileOpenTty;
 virFileReadLimFD;
 virFilePid;
@@ -434,6 +465,7 @@ virGetGroupID;
 virFileFindMountPoint;
 virFileWaitForDevices;
 virFileMatchesNameSuffix;
+virArgvToString;
 
 
 # usb.h

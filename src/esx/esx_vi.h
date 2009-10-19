@@ -33,6 +33,7 @@
 
 typedef enum _esxVI_APIVersion esxVI_APIVersion;
 typedef enum _esxVI_ProductVersion esxVI_ProductVersion;
+typedef enum _esxVI_Occurence esxVI_Occurence;
 typedef struct _esxVI_Context esxVI_Context;
 typedef struct _esxVI_Response esxVI_Response;
 typedef struct _esxVI_Enumeration esxVI_Enumeration;
@@ -57,6 +58,13 @@ enum _esxVI_ProductVersion {
     esxVI_ProductVersion_VPX40
 };
 
+enum _esxVI_Occurence {
+    esxVI_Occurence_Undefined = 0,
+    esxVI_Occurence_RequiredItem,
+    esxVI_Occurence_OptionalItem,
+    esxVI_Occurence_List
+};
+
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -65,6 +73,7 @@ enum _esxVI_ProductVersion {
 
 struct _esxVI_Context {
     char *url;
+    char *ipAddress;
     CURL *curl_handle;
     struct curl_slist *curl_headers;
     virMutex curl_lock;
@@ -83,10 +92,13 @@ struct _esxVI_Context {
 int esxVI_Context_Alloc(virConnectPtr conn, esxVI_Context **ctx);
 void esxVI_Context_Free(esxVI_Context **ctx);
 int esxVI_Context_Connect(virConnectPtr conn, esxVI_Context *ctx,
-                          const char *url, const char *username,
-                          const char *password, int noVerify);
-int esxVI_Context_Download(virConnectPtr conn, esxVI_Context *ctx,
-                           const char *url, char **content);
+                          const char *ipAddress, const char *url,
+                          const char *username, const char *password,
+                          int noVerify);
+int esxVI_Context_DownloadFile(virConnectPtr conn, esxVI_Context *ctx,
+                               const char *url, char **content);
+int esxVI_Context_UploadFile(virConnectPtr conn, esxVI_Context *ctx,
+                             const char *url, const char *content);
 int esxVI_Context_Execute(virConnectPtr conn, esxVI_Context *ctx,
                           const char *request, const char *xpathExpression,
                           esxVI_Response **response, esxVI_Boolean expectList);
@@ -148,6 +160,9 @@ struct _esxVI_List {
 typedef int (*esxVI_List_FreeFunc) (esxVI_List **item);
 typedef int (*esxVI_List_DeepCopyFunc) (virConnectPtr conn, esxVI_List **dest,
                                         esxVI_List *src);
+typedef int (*esxVI_List_CastFromAnyTypeFunc) (virConnectPtr conn,
+                                               esxVI_AnyType *anyType,
+                                               esxVI_List **item);
 typedef int (*esxVI_List_SerializeFunc) (virConnectPtr conn, esxVI_List *item,
                                          const char *element,
                                          virBufferPtr output,
@@ -160,6 +175,10 @@ int esxVI_List_DeepCopy(virConnectPtr conn, esxVI_List **destList,
                         esxVI_List *srcList,
                         esxVI_List_DeepCopyFunc deepCopyFunc,
                         esxVI_List_FreeFunc freeFunc);
+int esxVI_List_CastFromAnyType(virConnectPtr conn, esxVI_AnyType *anyType,
+                               esxVI_List **list,
+                               esxVI_List_CastFromAnyTypeFunc castFromAnyTypeFunc,
+                               esxVI_List_FreeFunc freeFunc);
 int esxVI_List_Serialize(virConnectPtr conn, esxVI_List *list,
                          const char *element, virBufferPtr output,
                          esxVI_Boolean required,
@@ -214,14 +233,26 @@ int esxVI_GetVirtualMachineIdentity(virConnectPtr conn,
                                     esxVI_ObjectContent *virtualMachine,
                                     int *id, char **name, unsigned char *uuid);
 
+int esxVI_GetResourcePool(virConnectPtr conn, esxVI_Context *ctx,
+                          esxVI_ObjectContent *hostSystem,
+                          esxVI_ManagedObjectReference **resourcePool);
+
 int esxVI_LookupHostSystemByIp(virConnectPtr conn, esxVI_Context *ctx,
-                               const char *ip, esxVI_String *propertyNameList,
+                               const char *ipAddress,
+                               esxVI_String *propertyNameList,
                                esxVI_ObjectContent **hostSystem);
 
 int esxVI_LookupVirtualMachineByUuid(virConnectPtr conn, esxVI_Context *ctx,
                                      const unsigned char *uuid,
                                      esxVI_String *propertyNameList,
-                                     esxVI_ObjectContent **virtualMachine);
+                                     esxVI_ObjectContent **virtualMachine,
+                                     esxVI_Occurence occurence);
+
+int esxVI_LookupDatastoreByName(virConnectPtr conn, esxVI_Context *ctx,
+                                const char *name,
+                                esxVI_String *propertyNameList,
+                                esxVI_ObjectContent **datastore,
+                                esxVI_Occurence occurence);
 
 int esxVI_StartVirtualMachineTask(virConnectPtr conn, esxVI_Context *ctx,
                                   const char *name, const char *request,

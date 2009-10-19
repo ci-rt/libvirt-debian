@@ -45,6 +45,7 @@
 #include "virterror_internal.h"
 #include "domain_event.h"
 #include "storage_conf.h"
+#include "storage_file.h"
 #include "uuid.h"
 #include "event.h"
 #include "memory.h"
@@ -1328,8 +1329,10 @@ static int vboxDomainDestroy(virDomainPtr dom) {
 #else
                 IProgress *progress;
                 console->vtbl->PowerDown(console, &progress);
-                if (progress)
+                if (progress) {
+                    progress->vtbl->WaitForCompletion(progress, -1);
                     progress->vtbl->nsisupports.Release((nsISupports *)progress);
+                }
 #endif
                 console->vtbl->nsisupports.Release((nsISupports *)console);
                 ret = 0;
@@ -3184,7 +3187,8 @@ static virDomainPtr vboxDomainDefineXML(virConnectPtr conn, const char *xml) {
                         if (def->disks[i]->type == VIR_DOMAIN_DISK_TYPE_FILE) {
                             IHardDisk *hardDisk     = NULL;
                             PRUnichar *hddfileUtf16 = NULL;
-                            vboxIID *hdduuid        = NULL;
+                            vboxIID   *hdduuid      = NULL;
+                            PRUnichar *hddEmpty     = NULL;
                             /* Current Limitation: Harddisk can't be connected to
                              * Secondary Master as Secondary Master is always used
                              * for CD/DVD Drive, so don't connect the harddisk if it
@@ -3192,6 +3196,7 @@ static virDomainPtr vboxDomainDefineXML(virConnectPtr conn, const char *xml) {
                              */
 
                             data->pFuncs->pfnUtf8ToUtf16(def->disks[i]->src, &hddfileUtf16);
+                            data->pFuncs->pfnUtf8ToUtf16("", &hddEmpty);
 
                             data->vboxObj->vtbl->FindHardDisk(data->vboxObj, hddfileUtf16, &hardDisk);
 
@@ -3206,9 +3211,9 @@ static virDomainPtr vboxDomainDefineXML(virConnectPtr conn, const char *xml) {
                                                                   hddfileUtf16,
                                                                   AccessMode_ReadWrite,
                                                                   0,
-                                                                  NULL,
+                                                                  hddEmpty,
                                                                   0,
-                                                                  NULL,
+                                                                  hddEmpty,
                                                                   &hardDisk);
 #endif
                             }
@@ -3271,6 +3276,7 @@ static virDomainPtr vboxDomainDefineXML(virConnectPtr conn, const char *xml) {
                                 hardDisk->vtbl->imedium.nsisupports.Release((nsISupports *)hardDisk);
                             }
                             vboxIIDUnalloc(hdduuid);
+                            data->pFuncs->pfnUtf16Free(hddEmpty);
                             data->pFuncs->pfnUtf16Free(hddfileUtf16);
                         } else if (def->disks[i]->type == VIR_DOMAIN_DISK_TYPE_BLOCK) {
                         }
@@ -4755,7 +4761,7 @@ static virDrvOpenStatus vboxNetworkOpen(virConnectPtr conn,
         (data->vboxSession == NULL))
         goto cleanup;
 
-    DEBUG0("network intialized");
+    DEBUG0("network initialized");
     /* conn->networkPrivateData = some network specific data */
     return VIR_DRV_OPEN_SUCCESS;
 
@@ -4764,7 +4770,7 @@ cleanup:
 }
 
 static int vboxNetworkClose(virConnectPtr conn) {
-    DEBUG0("network unintialized");
+    DEBUG0("network uninitialized");
     conn->networkPrivateData = NULL;
     return 0;
 }
@@ -5600,7 +5606,7 @@ static virDrvOpenStatus vboxStorageOpen (virConnectPtr conn,
         (data->vboxSession == NULL))
         goto cleanup;
 
-    DEBUG0("vbox storage intialized");
+    DEBUG0("vbox storage initialized");
     /* conn->storagePrivateData = some storage specific data */
     return VIR_DRV_OPEN_SUCCESS;
 
@@ -5609,7 +5615,7 @@ cleanup:
 }
 
 static int vboxStorageClose (virConnectPtr conn) {
-    DEBUG0("vbox storage unintialized");
+    DEBUG0("vbox storage uninitialized");
     conn->storagePrivateData = NULL;
     return 0;
 }
@@ -5980,14 +5986,14 @@ static virStorageVolPtr vboxStorageVolCreateXML(virStoragePoolPtr pool,
 
         /* TODO: for now only the vmdk, vpc and vdi type harddisk
          * variants can be created, also since there is no vdi
-         * type in enum virStorageVolFormatFileSystem {} the default
+         * type in enum virStorageFileFormat {} the default
          * will be to create vdi if nothing is specified in
          * def->target.format
          */
 
-        if (def->target.format == VIR_STORAGE_VOL_FILE_VMDK) {
+        if (def->target.format == VIR_STORAGE_FILE_VMDK) {
             data->pFuncs->pfnUtf8ToUtf16("VMDK", &hddFormatUtf16);
-        } else if (def->target.format == VIR_STORAGE_VOL_FILE_VPC) {
+        } else if (def->target.format == VIR_STORAGE_FILE_VPC) {
             data->pFuncs->pfnUtf8ToUtf16("VHD", &hddFormatUtf16);
         } else {
             data->pFuncs->pfnUtf8ToUtf16("VDI", &hddFormatUtf16);
@@ -6302,13 +6308,13 @@ static char *vboxStorageVolGetXMLDesc(virStorageVolPtr vol, unsigned int flags A
                             DEBUG("Storage Volume Format: %s", hddFormatUtf8);
 
                             if (STRCASEEQ("vmdk", hddFormatUtf8))
-                                def.target.format = VIR_STORAGE_VOL_FILE_VMDK;
+                                def.target.format = VIR_STORAGE_FILE_VMDK;
                             else if (STRCASEEQ("vhd", hddFormatUtf8))
-                                def.target.format = VIR_STORAGE_VOL_FILE_VPC;
+                                def.target.format = VIR_STORAGE_FILE_VPC;
                             else
-                                def.target.format = VIR_STORAGE_VOL_FILE_RAW;
+                                def.target.format = VIR_STORAGE_FILE_RAW;
 
-                            /* TODO: need to add vdi to enum virStorageVolFormatFileSystem {}
+                            /* TODO: need to add vdi to enum virStorageFileFormat {}
                              * and then add it here
                              */
 
@@ -6426,8 +6432,8 @@ virDriver NAME(Driver) = {
     NULL, /* domainGetSecurityLabel */
     NULL, /* nodeGetSecurityModel */
     vboxDomainDumpXML, /* domainDumpXML */
-    NULL, /* domainXmlFromNative */
-    NULL, /* domainXmlToNative */
+    NULL, /* domainXMLFromNative */
+    NULL, /* domainXMLToNative */
     vboxListDefinedDomains, /* listDefinedDomains */
     vboxNumOfDefinedDomains, /* numOfDefinedDomains */
     vboxDomainCreate, /* domainCreate */
@@ -6461,7 +6467,7 @@ virDriver NAME(Driver) = {
     NULL, /* nodeDeviceDettach */
     NULL, /* nodeDeviceReAttach */
     NULL, /* nodeDeviceReset */
-
+    NULL, /* domainMigratePrepareTunnel */
 };
 
 virNetworkDriver NAME(NetworkDriver) = {

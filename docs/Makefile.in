@@ -183,6 +183,8 @@ ALLOCA = @ALLOCA@
 ALLOCA_H = @ALLOCA_H@
 AMTAR = @AMTAR@
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
+APPARMOR_CFLAGS = @APPARMOR_CFLAGS@
+APPARMOR_LIBS = @APPARMOR_LIBS@
 APPLE_UNIVERSAL_BUILD = @APPLE_UNIVERSAL_BUILD@
 AR = @AR@
 ARPA_INET_H = @ARPA_INET_H@
@@ -848,11 +850,11 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-SUBDIRS = schemas examples devhelp
+SUBDIRS = schemas
 
 # The directory containing the source code (if it contains documentation).
 DOC_SOURCE_DIR = ../src
-man_MANS = 
+DEVHELP_DIR = $(datadir)/gtk-doc/html/libvirt
 apihtml = \
   html/index.html		\
   html/libvirt-libvirt.html	\
@@ -864,13 +866,25 @@ apipng = \
   html/home.png	\
   html/right.png
 
+devhelphtml = \
+  devhelp/libvirt.devhelp	\
+  devhelp/index.html		\
+  devhelp/general.html		\
+  devhelp/libvirt-libvirt.html	\
+  devhelp/libvirt-virterror.html
+
+devhelppng = \
+  devhelp/home.png	\
+  devhelp/left.png	\
+  devhelp/right.png	\
+  devhelp/up.png
+
+devhelpcss = devhelp/style.css
+devhelpxsl = devhelp/devhelp.xsl devhelp/html.xsl
 png = \
-  16favicon.png \
   32favicon.png \
   footer_corner.png \
   footer_pattern.png \
-  libvirHeader.png \
-  libvirLogo.png \
   libvirt-header-bg.png \
   libvirt-header-logo.png \
   libvirtLogo.png \
@@ -880,13 +894,9 @@ png = \
   libvirt-driver-arch.png \
   libvirt-object-model.png \
   madeWith.png \
-  windows-cygwin-1.png \
-  windows-cygwin-2.png \
-  windows-cygwin-3.png \
   et.png
 
 gif = \
-  Libxml2-Logo-90x34.gif \
   architecture.gif \
   node.gif
 
@@ -895,14 +905,7 @@ dot_html = $(dot_html_in:%.html.in=%.html)
 patches = $(wildcard api_extension/*.patch)
 xml = \
   libvirt-api.xml \
-  libvirt-refs.xml \
-  testdomfc4.xml \
-  testdomfv0.xml \
-  testnetdef.xml \
-  testnetpriv.xml \
-  testnode.xml \
-  testpool.xml \
-  testvol.xml
+  libvirt-refs.xml
 
 fig = \
   libvirt-net-logical.fig \
@@ -915,10 +918,12 @@ EXTRA_DIST = \
   libvirt-api.xml libvirt-refs.xml apibuild.py	\
   site.xsl newapi.xsl news.xsl page.xsl	ChangeLog.xsl	\
   $(dot_html) $(dot_html_in) $(gif) $(apihtml) $(apipng) \
+  $(devhelphtml) $(devhelppng) $(devhelpcss) $(devhelpxsl) \
   $(xml) $(fig) $(png) \
   $(patches) \
-  virsh.pod ChangeLog.awk
+  ChangeLog.awk
 
+CLEANFILES = $(dot_html) $(apihtml) $(devhelphtml)
 all: all-recursive
 
 .SUFFIXES:
@@ -1174,6 +1179,7 @@ install-strip:
 mostlyclean-generic:
 
 clean-generic:
+	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
 
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
@@ -1268,16 +1274,11 @@ uninstall-am: uninstall-local
 	uninstall uninstall-am uninstall-local
 
 
-all: web $(top_builddir)/NEWS $(man_MANS)
+all: web
 
-virsh.1: virsh.pod
-	pod2man -c "Virtualization Support" -r "$(PACKAGE)-$(VERSION)" $(srcdir)/virsh.pod > $@-t
-	mv $@-t $@
-	cp $@ $(top_builddir)
+api: libvirt-api.xml libvirt-refs.xml
 
-api: libvirt-api.xml libvirt-refs.xml $(srcdir)/html/index.html
-
-web: $(dot_html)
+web: $(dot_html) html/index.html devhelp/index.html
 
 ChangeLog.xml: ../ChangeLog ChangeLog.awk
 	awk -f ChangeLog.awk < $< > $@
@@ -1304,7 +1305,7 @@ ChangeLog.html.in: ChangeLog.xml ChangeLog.xsl
 	  $(XMLLINT) --nonet --format --valid $< > $@ || : ; \
 	  else echo "missing XHTML1 DTD" ; fi ; fi );
 
-$(srcdir)/html/index.html: libvirt-api.xml newapi.xsl page.xsl sitemap.html.in
+html/index.html: libvirt-api.xml newapi.xsl page.xsl sitemap.html.in
 	-@(if [ -x $(XSLTPROC) ] ; then \
 	  echo "Rebuilding the HTML pages from the XML API" ; \
 	  $(XSLTPROC) --nonet $(srcdir)/newapi.xsl libvirt-api.xml ; fi )
@@ -1314,17 +1315,15 @@ $(srcdir)/html/index.html: libvirt-api.xml newapi.xsl page.xsl sitemap.html.in
 	  $(XMLLINT) --nonet --valid --noout html/*.html ; \
 	  else echo "missing XHTML1 DTD" ; fi ; fi );
 
+devhelp/index.html devhelp/libvirt.devhelp: libvirt-api.xml $(devhelpxsl)
+	-@(echo Rebuilding devhelp files)
+	-@(if [ -x $(XSLTPROC) ] ; then \
+	  $(XSLTPROC) --nonet -o devhelp/libvirt.devhelp $(top_srcdir)/docs/devhelp/devhelp.xsl $(top_srcdir)/docs/libvirt-api.xml ; fi );
+
 libvirt-api.xml libvirt-refs.xml: apibuild.py \
 		$(srcdir)/../include/libvirt/*.h \
-		$(srcdir)/../src/*.h $(srcdir)/../src/*.c
+		$(srcdir)/../src/libvirt.c $(srcdir)/../src/util/virterror.c
 	-(./apibuild.py)
-
-$(top_builddir)/NEWS: $(top_srcdir)/docs/news.xsl $(top_srcdir)/docs/news.html.in
-	-@(if [ -x $(XSLTPROC) ] ; then				\
-	  $(XSLTPROC) --nonet $(top_srcdir)/docs/news.xsl	\
-	     $(top_srcdir)/docs/news.html.in			\
-	   | perl -0777 -pe 's/\n\n+$$/\n/'			\
-	   > $@-t && mv $@-t $@ ; fi );
 
 clean-local:
 	rm -f *~ *.bak *.hierarchy *.signals *-unused.txt
@@ -1343,10 +1342,16 @@ install-data-local:
 	  $(INSTALL) -m 0644 $(srcdir)/$$h $(DESTDIR)$(HTML_DIR)/html; done
 	for p in $(apipng); do \
 	  $(INSTALL) -m 0644 $(srcdir)/$$p $(DESTDIR)$(HTML_DIR)/html; done
+	$(mkinstalldirs) $(DESTDIR)$(DEVHELP_DIR)
+	for file in $(devhelphtml) $(devhelppng) $(devhelpcss); do \
+	    @INSTALL@ -m 0644 $(srcdir)/$${file} $(DESTDIR)$(DEVHELP_DIR) ; \
+	done
 
 uninstall-local:
 	for h in $(apihtml); do rm $(DESTDIR)$(HTML_DIR)/$$h; done
 	for p in $(apipng); do rm $(DESTDIR)$(HTML_DIR)/$$p; done
+	for f in $(devhelphtml) $(devhelppng) $(devhelpcss); do \
+		rm $(DESTDIR)$(DEVHELP_DIR)$$f ; done
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

@@ -1347,8 +1347,8 @@ virDriver phypDriver = {
     NULL,                       /* domainGetSecurityLabel */
     NULL,                       /* nodeGetSecurityModel */
     phypDomainDumpXML,          /* domainDumpXML */
-    NULL,                       /* domainXmlFromNative */
-    NULL,                       /* domainXmlToNative */
+    NULL,                       /* domainXMLFromNative */
+    NULL,                       /* domainXMLToNative */
     phypListDefinedDomains,     /* listDefinedDomains */
     phypNumDefinedDomains,      /* numOfDefinedDomains */
     NULL,                       /* domainCreate */
@@ -1377,6 +1377,7 @@ virDriver phypDriver = {
     NULL,                       /* nodeDeviceDettach */
     NULL,                       /* nodeDeviceReAttach */
     NULL,                       /* nodeDeviceReset */
+    NULL,                       /* domainMigratePrepareTunnel */
 };
 
 int
@@ -1451,7 +1452,7 @@ escape_specialcharacters(char *src, char *dst, size_t dstlen)
     }
     temp_buffer[j] = '\0';
 
-    if (strncpy(dst, temp_buffer, dstlen) == NULL)
+    if (virStrcpy(dst, temp_buffer, dstlen) == NULL)
         return -1;
 
     return 0;
