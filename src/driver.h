@@ -44,25 +44,6 @@ typedef enum {
     VIR_DRV_OPEN_ERROR = -2,
 } virDrvOpenStatus;
 
-/* Feature detection.  This is a libvirt-private interface for determining
- * what features are supported by the driver.
- *
- * The remote driver passes features through to the real driver at the
- * remote end unmodified, except if you query a VIR_DRV_FEATURE_REMOTE*
- * feature.
- */
-    /* Driver supports V1-style virDomainMigrate, ie. domainMigratePrepare/
-     * domainMigratePerform/domainMigrateFinish.
-     */
-#define VIR_DRV_FEATURE_MIGRATION_V1 1
-
-    /* Driver is not local. */
-#define VIR_DRV_FEATURE_REMOTE 2
-
-    /* Driver supports V2-style virDomainMigrate, ie. domainMigratePrepare2/
-     * domainMigratePerform/domainMigrateFinish2.
-     */
-#define VIR_DRV_FEATURE_MIGRATION_V2 3
 
 /* Internal feature-detection macro.  Don't call drv->supports_feature
  * directly, because it may be NULL, use this macro instead.
@@ -347,6 +328,15 @@ typedef int
     (*virDrvNodeDeviceReset)
                     (virNodeDevicePtr dev);
 
+typedef int
+    (*virDrvDomainMigratePrepareTunnel)
+                    (virConnectPtr conn,
+                     virStreamPtr st,
+                     unsigned long flags,
+                     const char *dname,
+                     unsigned long resource,
+                     const char *dom_xml);
+
 /**
  * _virDriver:
  *
@@ -427,6 +417,7 @@ struct _virDriver {
     virDrvNodeDeviceDettach     nodeDeviceDettach;
     virDrvNodeDeviceReAttach    nodeDeviceReAttach;
     virDrvNodeDeviceReset       nodeDeviceReset;
+    virDrvDomainMigratePrepareTunnel domainMigratePrepareTunnel;
 };
 
 typedef int
@@ -878,6 +869,41 @@ struct _virSecretDriver {
     virDrvSecretGetValue getValue;
     virDrvSecretUndefine undefine;
 };
+
+
+typedef struct _virStreamDriver virStreamDriver;
+typedef virStreamDriver *virStreamDriverPtr;
+
+typedef int (*virDrvStreamSend)(virStreamPtr st,
+                                const char *data,
+                                size_t nbytes);
+typedef int (*virDrvStreamRecv)(virStreamPtr st,
+                                char *data,
+                                size_t nbytes);
+
+typedef int (*virDrvStreamEventAddCallback)(virStreamPtr stream,
+                                            int events,
+                                            virStreamEventCallback cb,
+                                            void *opaque,
+                                            virFreeCallback ff);
+
+typedef int (*virDrvStreamEventUpdateCallback)(virStreamPtr stream,
+                                               int events);
+typedef int (*virDrvStreamEventRemoveCallback)(virStreamPtr stream);
+typedef int (*virDrvStreamFinish)(virStreamPtr st);
+typedef int (*virDrvStreamAbort)(virStreamPtr st);
+
+
+struct _virStreamDriver {
+    virDrvStreamSend streamSend;
+    virDrvStreamRecv streamRecv;
+    virDrvStreamEventAddCallback streamAddCallback;
+    virDrvStreamEventUpdateCallback streamUpdateCallback;
+    virDrvStreamEventRemoveCallback streamRemoveCallback;
+    virDrvStreamFinish streamFinish;
+    virDrvStreamAbort streamAbort;
+};
+
 
 /*
  * Registration

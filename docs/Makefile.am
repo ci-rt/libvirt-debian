@@ -1,10 +1,10 @@
 ## Process this file with automake to produce Makefile.in
-SUBDIRS= schemas examples devhelp
+SUBDIRS= schemas
 
 # The directory containing the source code (if it contains documentation).
 DOC_SOURCE_DIR=../src
 
-man_MANS=
+DEVHELP_DIR=$(datadir)/gtk-doc/html/libvirt
 
 apihtml =			\
   html/index.html		\
@@ -17,13 +17,27 @@ apipng =	\
   html/home.png	\
   html/right.png
 
+devhelphtml = 			\
+  devhelp/libvirt.devhelp	\
+  devhelp/index.html		\
+  devhelp/general.html		\
+  devhelp/libvirt-libvirt.html	\
+  devhelp/libvirt-virterror.html
+
+devhelppng =		\
+  devhelp/home.png	\
+  devhelp/left.png	\
+  devhelp/right.png	\
+  devhelp/up.png
+
+devhelpcss = devhelp/style.css
+
+devhelpxsl = devhelp/devhelp.xsl devhelp/html.xsl
+
 png = \
-  16favicon.png \
   32favicon.png \
   footer_corner.png \
   footer_pattern.png \
-  libvirHeader.png \
-  libvirLogo.png \
   libvirt-header-bg.png \
   libvirt-header-logo.png \
   libvirtLogo.png \
@@ -33,13 +47,9 @@ png = \
   libvirt-driver-arch.png \
   libvirt-object-model.png \
   madeWith.png \
-  windows-cygwin-1.png \
-  windows-cygwin-2.png \
-  windows-cygwin-3.png \
   et.png
 
 gif = \
-  Libxml2-Logo-90x34.gif \
   architecture.gif \
   node.gif
 
@@ -50,14 +60,7 @@ patches = $(wildcard api_extension/*.patch)
 
 xml = \
   libvirt-api.xml \
-  libvirt-refs.xml \
-  testdomfc4.xml \
-  testdomfv0.xml \
-  testnetdef.xml \
-  testnetpriv.xml \
-  testnode.xml \
-  testpool.xml \
-  testvol.xml
+  libvirt-refs.xml
 
 fig = \
   libvirt-net-logical.fig \
@@ -70,20 +73,18 @@ EXTRA_DIST=					\
   libvirt-api.xml libvirt-refs.xml apibuild.py	\
   site.xsl newapi.xsl news.xsl page.xsl	ChangeLog.xsl	\
   $(dot_html) $(dot_html_in) $(gif) $(apihtml) $(apipng) \
+  $(devhelphtml) $(devhelppng) $(devhelpcss) $(devhelpxsl) \
   $(xml) $(fig) $(png) \
   $(patches) \
-  virsh.pod ChangeLog.awk
+  ChangeLog.awk
 
-all: web $(top_builddir)/NEWS $(man_MANS)
+CLEANFILES = $(dot_html) $(apihtml) $(devhelphtml)
 
-virsh.1: virsh.pod
-	pod2man -c "Virtualization Support" -r "$(PACKAGE)-$(VERSION)" $(srcdir)/virsh.pod > $@-t
-	mv $@-t $@
-	cp $@ $(top_builddir)
+all: web
 
-api: libvirt-api.xml libvirt-refs.xml $(srcdir)/html/index.html
+api: libvirt-api.xml libvirt-refs.xml
 
-web: $(dot_html)
+web: $(dot_html) html/index.html devhelp/index.html
 
 ChangeLog.xml: ../ChangeLog ChangeLog.awk
 	awk -f ChangeLog.awk < $< > $@
@@ -111,7 +112,7 @@ ChangeLog.html.in: ChangeLog.xml ChangeLog.xsl
 	  else echo "missing XHTML1 DTD" ; fi ; fi );
 
 
-$(srcdir)/html/index.html: libvirt-api.xml newapi.xsl page.xsl sitemap.html.in
+html/index.html: libvirt-api.xml newapi.xsl page.xsl sitemap.html.in
 	-@(if [ -x $(XSLTPROC) ] ; then \
 	  echo "Rebuilding the HTML pages from the XML API" ; \
 	  $(XSLTPROC) --nonet $(srcdir)/newapi.xsl libvirt-api.xml ; fi )
@@ -121,17 +122,16 @@ $(srcdir)/html/index.html: libvirt-api.xml newapi.xsl page.xsl sitemap.html.in
 	  $(XMLLINT) --nonet --valid --noout html/*.html ; \
 	  else echo "missing XHTML1 DTD" ; fi ; fi );
 
+devhelp/index.html devhelp/libvirt.devhelp: libvirt-api.xml $(devhelpxsl)
+	-@(echo Rebuilding devhelp files)
+	-@(if [ -x $(XSLTPROC) ] ; then \
+	  $(XSLTPROC) --nonet -o devhelp/libvirt.devhelp $(top_srcdir)/docs/devhelp/devhelp.xsl $(top_srcdir)/docs/libvirt-api.xml ; fi );
+
+
 libvirt-api.xml libvirt-refs.xml: apibuild.py \
 		$(srcdir)/../include/libvirt/*.h \
-		$(srcdir)/../src/*.h $(srcdir)/../src/*.c
+		$(srcdir)/../src/libvirt.c $(srcdir)/../src/util/virterror.c
 	-(./apibuild.py)
-
-$(top_builddir)/NEWS: $(top_srcdir)/docs/news.xsl $(top_srcdir)/docs/news.html.in
-	-@(if [ -x $(XSLTPROC) ] ; then				\
-	  $(XSLTPROC) --nonet $(top_srcdir)/docs/news.xsl	\
-	     $(top_srcdir)/docs/news.html.in			\
-	   | perl -0777 -pe 's/\n\n+$$/\n/'			\
-	   > $@-t && mv $@-t $@ ; fi );
 
 clean-local:
 	rm -f *~ *.bak *.hierarchy *.signals *-unused.txt
@@ -150,7 +150,13 @@ install-data-local:
 	  $(INSTALL) -m 0644 $(srcdir)/$$h $(DESTDIR)$(HTML_DIR)/html; done
 	for p in $(apipng); do \
 	  $(INSTALL) -m 0644 $(srcdir)/$$p $(DESTDIR)$(HTML_DIR)/html; done
+	$(mkinstalldirs) $(DESTDIR)$(DEVHELP_DIR)
+	for file in $(devhelphtml) $(devhelppng) $(devhelpcss); do \
+	    @INSTALL@ -m 0644 $(srcdir)/$${file} $(DESTDIR)$(DEVHELP_DIR) ; \
+	done
 
 uninstall-local:
 	for h in $(apihtml); do rm $(DESTDIR)$(HTML_DIR)/$$h; done
 	for p in $(apipng); do rm $(DESTDIR)$(HTML_DIR)/$$p; done
+	for f in $(devhelphtml) $(devhelppng) $(devhelpcss); do \
+		rm $(DESTDIR)$(DEVHELP_DIR)$$f ; done

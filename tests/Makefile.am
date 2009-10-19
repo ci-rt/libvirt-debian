@@ -8,13 +8,15 @@ SUBDIRS = confdata sexpr2xmldata \
 INCLUDES = \
 	-I$(top_srcdir)/gnulib/lib -I../gnulib/lib \
 	-I$(top_builddir)/include \
-	-I$(top_builddir)/src \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/src \
+	-I$(top_srcdir)/src/util \
+	-I$(top_srcdir)/src/conf \
 	$(LIBXML_CFLAGS) \
 	$(GNUTLS_CFLAGS) \
 	$(SASL_CFLAGS) \
 	$(SELINUX_CFLAGS) \
+	$(APPARMOR_CFLAGS) \
         -DGETTEXT_PACKAGE=\"$(PACKAGE)\" \
          $(COVERAGE_CFLAGS) \
          $(WARN_CFLAGS)
@@ -30,6 +32,7 @@ LDADDS = \
         $(GNUTLS_LIBS) \
         $(SASL_LIBS) \
         $(SELINUX_LIBS) \
+        $(APPARMOR_LIBS) \
         $(WARN_CFLAGS) \
 	../src/libvirt_test.la \
 	../gnulib/lib/libgnu.la \
@@ -41,7 +44,8 @@ qemuhelpdata = \
 	kvm-86 \
 	qemu-0.10.5 \
 	qemu-0.9.1 \
-	qemu-kvm-0.10.5
+	qemu-kvm-0.10.5 \
+	qemu-kvm-0.11.0-rc2
 
 EXTRA_DIST =		\
         oomtrace.pl     \
@@ -51,6 +55,7 @@ EXTRA_DIST =		\
 	capabilityschematest \
 	capabilityschemadata \
 	networkschematest \
+	networkschemadata \
 	domainschematest \
 	domainschemadata \
 	interfaceschemadata \
@@ -73,8 +78,16 @@ if WITH_QEMU
 noinst_PROGRAMS += qemuxml2argvtest qemuxml2xmltest qemuargv2xmltest qemuhelptest
 endif
 
+if WITH_ESX
+noinst_PROGRAMS += esxutilstest vmx2xmltest xml2vmxtest
+endif
+
 if WITH_SECDRIVER_SELINUX
 noinst_PROGRAMS += seclabeltest
+endif
+
+if WITH_SECDRIVER_APPARMOR
+noinst_PROGRAMS += secaatest
 endif
 
 if WITH_CIL
@@ -112,6 +125,9 @@ test_scripts +=				\
 	virsh-synopsis
 endif
 
+if WITH_SECDRIVER_APPARMOR
+test_scripts += virt-aa-helper-test
+endif
 EXTRA_DIST += $(test_scripts)
 
 TESTS = virshtest \
@@ -134,8 +150,16 @@ if WITH_QEMU
 TESTS += qemuxml2argvtest qemuxml2xmltest qemuargv2xmltest qemuhelptest
 endif
 
+if WITH_ESX
+TESTS += esxutilstest vmx2xmltest xml2vmxtest
+endif
+
 if WITH_SECDRIVER_SELINUX
 TESTS += seclabeltest
+endif
+
+if WITH_SECDRIVER_APPARMOR
+TESTS += secaatest
 endif
 
 if WITH_LIBVIRTD
@@ -147,7 +171,7 @@ TESTS += nodedevxml2xmltest
 
 TESTS += interfacexml2xmltest
 
-path_add = $$abs_top_builddir/src$(PATH_SEPARATOR)$$abs_top_builddir/qemud
+path_add = $$abs_top_builddir/src$(PATH_SEPARATOR)$$abs_top_builddir/daemon$(PATH_SEPARATOR)$$abs_top_builddir/tools
 
 # NB, automake < 1.10 does not provide the real
 # abs_top_{src/build}dir variables, so don't rely
@@ -220,6 +244,25 @@ else
 EXTRA_DIST += qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c qemuhelptest.c testutilsqemu.c testutilsqemu.h
 endif
 
+if WITH_ESX
+esxutilstest_SOURCES = \
+	esxutilstest.c \
+	testutils.c testutils.h
+esxutilstest_LDADD = ../src/libvirt_driver_esx.la $(LDADDS)
+
+vmx2xmltest_SOURCES = \
+	vmx2xmltest.c \
+	testutils.c testutils.h
+vmx2xmltest_LDADD = ../src/libvirt_driver_esx.la $(LDADDS)
+
+xml2vmxtest_SOURCES = \
+	xml2vmxtest.c \
+	testutils.c testutils.h
+xml2vmxtest_LDADD = ../src/libvirt_driver_esx.la $(LDADDS)
+else
+EXTRA_DIST += esxutilstest.c vmx2xmltest.c xml2vmxtest.c
+endif
+
 nodedevxml2xmltest_SOURCES = \
 	nodedevxml2xmltest.c \
 	testutils.c testutils.h
@@ -255,13 +298,21 @@ else
 EXTRA_DIST += seclabeltest.c
 endif
 
+if WITH_SECDRIVER_APPARMOR
+secaatest_SOURCES = \
+	secaatest.c
+secaatest_LDADD = ../src/libvirt_driver_security.la $(LDADDS)
+else
+EXTRA_DIST += secaatest.c
+endif
+
 qparamtest_SOURCES = \
 	qparamtest.c testutils.h testutils.c
 qparamtest_LDADD = $(LDADDS)
 
 if WITH_LIBVIRTD
 eventtest_SOURCES = \
-	eventtest.c testutils.h testutils.c ../qemud/event.c
+	eventtest.c testutils.h testutils.c ../daemon/event.c
 eventtest_LDADD = -lrt $(LDADDS)
 endif
 

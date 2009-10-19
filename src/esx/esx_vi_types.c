@@ -66,7 +66,7 @@
     int                                                                       \
     esxVI_##_type##_Alloc(virConnectPtr conn, esxVI_##_type **ptrptr)         \
     {                                                                         \
-        return esxVI_Alloc(conn, (void **)ptrptr, sizeof (esxVI_##_type));    \
+        return esxVI_Alloc(conn, (void **)ptrptr, sizeof(esxVI_##_type));     \
     }
 
 
@@ -115,10 +115,25 @@
 
 
 
+#define ESX_VI__TEMPLATE__LIST__CAST_FROM_ANY_TYPE(_type)                     \
+    int                                                                       \
+    esxVI_##_type##_CastListFromAnyType(virConnectPtr conn,                   \
+                                        esxVI_AnyType *anyType,               \
+                                        esxVI_##_type **list)                 \
+    {                                                                         \
+        return esxVI_List_CastFromAnyType                                     \
+                 (conn, anyType, (esxVI_List **)list,                         \
+                  (esxVI_List_CastFromAnyTypeFunc)                            \
+                    esxVI_##_type##_CastFromAnyType,                          \
+                  (esxVI_List_FreeFunc)esxVI_##_type##_Free);                 \
+    }
+
+
+
 #define ESX_VI__TEMPLATE__LIST__SERIALIZE(_type)                              \
     int                                                                       \
     esxVI_##_type##_SerializeList(virConnectPtr conn, esxVI_##_type *list,    \
-                                  const char* element, virBufferPtr output,   \
+                                  const char *element, virBufferPtr output,   \
                                   esxVI_Boolean required)                     \
     {                                                                         \
         return esxVI_List_Serialize(conn, (esxVI_List *)list,                 \
@@ -276,7 +291,7 @@
         if (value < (_min) || value > (_max)) {                               \
             ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,                        \
                          "Value '%s' is not representable as "_xsdType,       \
-                         (const char *) string);                              \
+                         (const char *)string);                               \
             goto failure;                                                     \
         }                                                                     \
                                                                               \
@@ -618,7 +633,8 @@ esxVI_AnyType_Deserialize(virConnectPtr conn, xmlNodePtr node,
                  BAD_CAST "http://www.w3.org/2001/XMLSchema-instance");
 
     if ((*anyType)->other == NULL) {
-        ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Missing 'type' property");
+        ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+                     "AnyType is missing 'type' property");
         goto failure;
     }
 
@@ -994,7 +1010,6 @@ ESX_VI__TEMPLATE__SERIALIZE_EXTRA(Long, "xsd:long",
 
 /* esxVI_Long_SerializeList */
 ESX_VI__TEMPLATE__LIST__SERIALIZE(Long);
-
 
 /* esxVI_Long_Deserialize */
 ESX_VI__TEMPLATE__DESERIALIZE_NUMBER(Long, "xsd:long", INT64_MIN, INT64_MAX);
@@ -1374,12 +1389,13 @@ esxVI_ManagedObjectReference_Deserialize
       (char *)xmlGetNoNsProp(node, BAD_CAST "type");
 
     if ((*managedObjectReference)->type == NULL) {
-        ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Missing 'type' property");
+        ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+                     "ManagedObjectReference is missing 'type' property");
         goto failure;
     }
 
     if (expectedType != NULL &&
-        !STREQ(expectedType, (*managedObjectReference)->type)) {
+        STRNEQ(expectedType, (*managedObjectReference)->type)) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
                      "Expected type '%s' but found '%s'", expectedType,
                      (*managedObjectReference)->type);
@@ -1464,6 +1480,51 @@ ESX_VI__TEMPLATE__DESERIALIZE(DynamicProperty,
 
 /* esxVI_DynamicProperty_DeserializeList */
 ESX_VI__TEMPLATE__LIST__DESERIALIZE(DynamicProperty);
+
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: HostCpuIdInfo
+ */
+
+/* esxVI_HostCpuIdInfo_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostCpuIdInfo);
+
+/* esxVI_HostCpuIdInfo_Free */
+ESX_VI__TEMPLATE__FREE(HostCpuIdInfo,
+{
+    esxVI_HostCpuIdInfo_Free(&item->_next);
+
+    VIR_FREE(item->vendor);
+    VIR_FREE(item->eax);
+    VIR_FREE(item->ebx);
+    VIR_FREE(item->ecx);
+    VIR_FREE(item->edx);
+});
+
+/* esxVI_HostCpuIdInfo_CastFromAnyType */
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(HostCpuIdInfo);
+
+/* esxVI_HostCpuIdInfo_CastListFromAnyType */
+ESX_VI__TEMPLATE__LIST__CAST_FROM_ANY_TYPE(HostCpuIdInfo);
+
+/* esxVI_HostCpuIdInfo_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(HostCpuIdInfo,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Int, level);
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, vendor);
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, eax);
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, ebx);
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, ecx);
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, edx);
+},
+{
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRED(level);
+});
+
+/* esxVI_HostCpuIdInfo_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(HostCpuIdInfo);
 
 
 
@@ -1555,7 +1616,7 @@ esxVI_TraversalSpec_Alloc(virConnectPtr conn,
                           esxVI_TraversalSpec **traversalSpec)
 {
     if (esxVI_Alloc(conn, (void **)traversalSpec,
-                    sizeof (esxVI_TraversalSpec)) < 0) {
+                    sizeof(esxVI_TraversalSpec)) < 0) {
         return -1;
     }
 
@@ -2160,6 +2221,48 @@ ESX_VI__TEMPLATE__SERIALIZE(ResourceAllocationInfo,
     ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Long, limit, False);
     ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(SharesInfo, shares, False);
     ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Long, overheadLimit, False);
+});
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: ResourcePoolResourceUsage
+ */
+
+/* esxVI_ResourcePoolResourceUsage_Alloc */
+ESX_VI__TEMPLATE__ALLOC(ResourcePoolResourceUsage);
+
+/* esxVI_ResourcePoolResourceUsage_Free */
+ESX_VI__TEMPLATE__FREE(ResourcePoolResourceUsage,
+{
+    esxVI_Long_Free(&item->reservationUsed);
+    esxVI_Long_Free(&item->reservationUsedForVm);
+    esxVI_Long_Free(&item->unreservedForPool);
+    esxVI_Long_Free(&item->unreservedForVm);
+    esxVI_Long_Free(&item->overallUsage);
+    esxVI_Long_Free(&item->maxUsage);
+});
+
+/* esxVI_ResourcePoolResourceUsage_CastFromAnyType */
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(ResourcePoolResourceUsage);
+
+/* esxVI_ResourcePoolResourceUsage_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(ResourcePoolResourceUsage,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, reservationUsed);
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, reservationUsedForVm);
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, unreservedForPool);
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, unreservedForVm);
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, overallUsage);
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, maxUsage);
+},
+{
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRED(reservationUsed);
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRED(reservationUsedForVm);
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRED(unreservedForPool);
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRED(unreservedForVm);
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRED(overallUsage);
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRED(maxUsage);
 });
 
 

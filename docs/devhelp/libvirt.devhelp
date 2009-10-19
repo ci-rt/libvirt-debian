@@ -168,6 +168,8 @@
     <function name="VIR_MEMORY_PHYSICAL" link="libvirt-libvirt.html#VIR_MEMORY_PHYSICAL"/>
     <function name="VIR_MEMORY_VIRTUAL" link="libvirt-libvirt.html#VIR_MEMORY_VIRTUAL"/>
     <function name="VIR_MIGRATE_LIVE" link="libvirt-libvirt.html#VIR_MIGRATE_LIVE"/>
+    <function name="VIR_MIGRATE_PEER2PEER" link="libvirt-libvirt.html#VIR_MIGRATE_PEER2PEER"/>
+    <function name="VIR_MIGRATE_TUNNELLED" link="libvirt-libvirt.html#VIR_MIGRATE_TUNNELLED"/>
     <function name="VIR_SECRET_USAGE_TYPE_NONE" link="libvirt-libvirt.html#VIR_SECRET_USAGE_TYPE_NONE"/>
     <function name="VIR_SECRET_USAGE_TYPE_VOLUME" link="libvirt-libvirt.html#VIR_SECRET_USAGE_TYPE_VOLUME"/>
     <function name="VIR_STORAGE_POOL_BUILDING" link="libvirt-libvirt.html#VIR_STORAGE_POOL_BUILDING"/>
@@ -183,6 +185,11 @@
     <function name="VIR_STORAGE_VOL_DELETE_NORMAL" link="libvirt-libvirt.html#VIR_STORAGE_VOL_DELETE_NORMAL"/>
     <function name="VIR_STORAGE_VOL_DELETE_ZEROED" link="libvirt-libvirt.html#VIR_STORAGE_VOL_DELETE_ZEROED"/>
     <function name="VIR_STORAGE_VOL_FILE" link="libvirt-libvirt.html#VIR_STORAGE_VOL_FILE"/>
+    <function name="VIR_STREAM_EVENT_ERROR" link="libvirt-libvirt.html#VIR_STREAM_EVENT_ERROR"/>
+    <function name="VIR_STREAM_EVENT_HANGUP" link="libvirt-libvirt.html#VIR_STREAM_EVENT_HANGUP"/>
+    <function name="VIR_STREAM_EVENT_READABLE" link="libvirt-libvirt.html#VIR_STREAM_EVENT_READABLE"/>
+    <function name="VIR_STREAM_EVENT_WRITABLE" link="libvirt-libvirt.html#VIR_STREAM_EVENT_WRITABLE"/>
+    <function name="VIR_STREAM_NONBLOCK" link="libvirt-libvirt.html#VIR_STREAM_NONBLOCK"/>
     <function name="VIR_VCPU_BLOCKED" link="libvirt-libvirt.html#VIR_VCPU_BLOCKED"/>
     <function name="VIR_VCPU_OFFLINE" link="libvirt-libvirt.html#VIR_VCPU_OFFLINE"/>
     <function name="VIR_VCPU_RUNNING" link="libvirt-libvirt.html#VIR_VCPU_RUNNING"/>
@@ -236,6 +243,9 @@
     <function name="virStorageVolInfoPtr" link="libvirt-libvirt.html#virStorageVolInfoPtr"/>
     <function name="virStorageVolPtr" link="libvirt-libvirt.html#virStorageVolPtr"/>
     <function name="virStorageVolType" link="libvirt-libvirt.html#virStorageVolType"/>
+    <function name="virStreamEventType" link="libvirt-libvirt.html#virStreamEventType"/>
+    <function name="virStreamFlags" link="libvirt-libvirt.html#virStreamFlags"/>
+    <function name="virStreamPtr" link="libvirt-libvirt.html#virStreamPtr"/>
     <function name="virVcpuInfoPtr" link="libvirt-libvirt.html#virVcpuInfoPtr"/>
     <function name="virVcpuState" link="libvirt-libvirt.html#virVcpuState"/>
     <function name="virConnect" link="libvirt-libvirt.html#virConnect"/>
@@ -258,6 +268,7 @@
     <function name="virStoragePoolInfo" link="libvirt-libvirt.html#virStoragePoolInfo"/>
     <function name="virStorageVol" link="libvirt-libvirt.html#virStorageVol"/>
     <function name="virStorageVolInfo" link="libvirt-libvirt.html#virStorageVolInfo"/>
+    <function name="virStream" link="libvirt-libvirt.html#virStream"/>
     <function name="virVcpuInfo" link="libvirt-libvirt.html#virVcpuInfo"/>
     <function name="virConnectAuthCallbackPtr" link="libvirt-libvirt.html#virConnectAuthCallbackPtr"/>
     <function name="virConnectDomainEventCallback" link="libvirt-libvirt.html#virConnectDomainEventCallback"/>
@@ -271,6 +282,9 @@
     <function name="virEventUpdateHandleFunc" link="libvirt-libvirt.html#virEventUpdateHandleFunc"/>
     <function name="virEventUpdateTimeoutFunc" link="libvirt-libvirt.html#virEventUpdateTimeoutFunc"/>
     <function name="virFreeCallback" link="libvirt-libvirt.html#virFreeCallback"/>
+    <function name="virStreamEventCallback" link="libvirt-libvirt.html#virStreamEventCallback"/>
+    <function name="virStreamSinkFunc" link="libvirt-libvirt.html#virStreamSinkFunc"/>
+    <function name="virStreamSourceFunc" link="libvirt-libvirt.html#virStreamSourceFunc"/>
     <function name="virConnectAuthPtrDefault" link="libvirt-libvirt.html#virConnectAuthPtrDefault"/>
     <function name="virConnCopyLastError ()" link="libvirt-virterror.html#virConnCopyLastError"/>
     <function name="virConnGetLastError ()" link="libvirt-virterror.html#virConnGetLastError"/>
@@ -345,6 +359,7 @@
     <function name="virDomainLookupByUUIDString ()" link="libvirt-libvirt.html#virDomainLookupByUUIDString"/>
     <function name="virDomainMemoryPeek ()" link="libvirt-libvirt.html#virDomainMemoryPeek"/>
     <function name="virDomainMigrate ()" link="libvirt-libvirt.html#virDomainMigrate"/>
+    <function name="virDomainMigrateToURI ()" link="libvirt-libvirt.html#virDomainMigrateToURI"/>
     <function name="virDomainPinVcpu ()" link="libvirt-libvirt.html#virDomainPinVcpu"/>
     <function name="virDomainReboot ()" link="libvirt-libvirt.html#virDomainReboot"/>
     <function name="virDomainRef ()" link="libvirt-libvirt.html#virDomainRef"/>
@@ -470,5 +485,17 @@
     <function name="virStorageVolLookupByName ()" link="libvirt-libvirt.html#virStorageVolLookupByName"/>
     <function name="virStorageVolLookupByPath ()" link="libvirt-libvirt.html#virStorageVolLookupByPath"/>
     <function name="virStorageVolRef ()" link="libvirt-libvirt.html#virStorageVolRef"/>
+    <function name="virStreamAbort ()" link="libvirt-libvirt.html#virStreamAbort"/>
+    <function name="virStreamEventAddCallback ()" link="libvirt-libvirt.html#virStreamEventAddCallback"/>
+    <function name="virStreamEventRemoveCallback ()" link="libvirt-libvirt.html#virStreamEventRemoveCallback"/>
+    <function name="virStreamEventUpdateCallback ()" link="libvirt-libvirt.html#virStreamEventUpdateCallback"/>
+    <function name="virStreamFinish ()" link="libvirt-libvirt.html#virStreamFinish"/>
+    <function name="virStreamFree ()" link="libvirt-libvirt.html#virStreamFree"/>
+    <function name="virStreamNew ()" link="libvirt-libvirt.html#virStreamNew"/>
+    <function name="virStreamRecv ()" link="libvirt-libvirt.html#virStreamRecv"/>
+    <function name="virStreamRecvAll ()" link="libvirt-libvirt.html#virStreamRecvAll"/>
+    <function name="virStreamRef ()" link="libvirt-libvirt.html#virStreamRef"/>
+    <function name="virStreamSend ()" link="libvirt-libvirt.html#virStreamSend"/>
+    <function name="virStreamSendAll ()" link="libvirt-libvirt.html#virStreamSendAll"/>
   </functions>
 </book>

@@ -25,76 +25,26 @@ else:
 #
 #######################################################################
 import os
-import xmllib
-try:
-    import sgmlop
-except ImportError:
-    sgmlop = None # accelerator not available
+import xml.sax
 
 debug = 0
 
-if sgmlop:
-    class FastParser:
-        """sgmlop based XML parser.  this is typically 15x faster
-           than SlowParser..."""
+def getparser():
+    # Attach parser to an unmarshalling object. return both objects.
+    target = docParser()
+    parser = xml.sax.make_parser()
+    parser.setContentHandler(target)
+    return parser, target
 
-        def __init__(self, target):
-
-            # setup callbacks
-            self.finish_starttag = target.start
-            self.finish_endtag = target.end
-            self.handle_data = target.data
-
-            # activate parser
-            self.parser = sgmlop.XMLParser()
-            self.parser.register(self)
-            self.feed = self.parser.feed
-            self.entity = {
-                "amp": "&", "gt": ">", "lt": "<",
-                "apos": "'", "quot": '"'
-                }
-
-        def close(self):
-            try:
-                self.parser.close()
-            finally:
-                self.parser = self.feed = None # nuke circular reference
-
-        def handle_entityref(self, entity):
-            # <string> entity
-            try:
-                self.handle_data(self.entity[entity])
-            except KeyError:
-                self.handle_data("&%s;" % entity)
-
-else:
-    FastParser = None
-
-
-class SlowParser(xmllib.XMLParser):
-    """slow but safe standard parser, based on the XML parser in
-       Python's standard library."""
-
-    def __init__(self, target):
-        self.unknown_starttag = target.start
-        self.handle_data = target.data
-        self.unknown_endtag = target.end
-        xmllib.XMLParser.__init__(self)
-
-def getparser(target = None):
-    # get the fastest available parser, and attach it to an
-    # unmarshalling object.  return both objects.
-    if target is None:
-        target = docParser()
-    if FastParser:
-        return FastParser(target), target
-    return SlowParser(target), target
-
-class docParser:
+class docParser(xml.sax.handler.ContentHandler):
     def __init__(self):
         self._methodname = None
         self._data = []
         self.in_function = 0
+
+        self.startElement = self.start
+        self.endElement = self.end
+        self.characters = self.data
 
     def close(self):
         if debug:
@@ -104,6 +54,11 @@ class docParser:
         return self._methodname
 
     def data(self, text):
+        if debug:
+            print "data %s" % text
+        self._data.append(text)
+
+    def cdata(self, text):
         if debug:
             print "data %s" % text
         self._data.append(text)
@@ -275,6 +230,11 @@ py_types = {
     'const virSecretPtr':  ('O', "virSecret", "virSecretPtr", "virSecretPtr"),
     'virSecret *':  ('O', "virSecret", "virSecretPtr", "virSecretPtr"),
     'const virSecret *':  ('O', "virSecret", "virSecretPtr", "virSecretPtr"),
+
+    'virStreamPtr':  ('O', "virStream", "virStreamPtr", "virStreamPtr"),
+    'const virStreamPtr':  ('O', "virStream", "virStreamPtr", "virStreamPtr"),
+    'virStream *':  ('O', "virStream", "virStreamPtr", "virStreamPtr"),
+    'const virStream *':  ('O', "virStream", "virStreamPtr", "virStreamPtr"),
 }
 
 py_return_types = {
@@ -287,8 +247,8 @@ foreign_encoding_args = (
 
 #######################################################################
 #
-#  This part writes the C <-> Python stubs libvirt2-py.[ch] and
-#  the table libxml2-export.c to add when registrering the Python module
+#  This part writes the C <-> Python stubs libvirt.[ch] and
+#  the table libvirt-export.c to add when registrering the Python module
 #
 #######################################################################
 
@@ -331,6 +291,8 @@ skip_impl = (
     'virSecretGetUUID',
     'virSecretGetUUIDString',
     'virSecretLookupByUUID',
+    'virStreamRecv',
+    'virStreamSend',
     'virStoragePoolGetUUID',
     'virStoragePoolGetUUIDString',
     'virStoragePoolLookupByUUID',
@@ -366,6 +328,31 @@ skip_function = (
     'virConnectDomainEventDeregister', # overridden in virConnect.py
     'virSaveLastError', # We have our own python error wrapper
     'virFreeError', # Only needed if we use virSaveLastError
+    'virStreamEventAddCallback',
+    'virStreamRecvAll',
+    'virStreamSendAll',
+    'virStreamRef',
+    'virStreamFree',
+
+    # These have no use for bindings users.
+    "virConnectRef",
+    "virDomainRef",
+    "virInterfaceRef",
+    "virNetworkRef",
+    "virNodeDeviceRef",
+    "virSecretRef",
+    "virStoragePoolRef",
+    "virStorageVolRef",
+
+    # This functions shouldn't be called via the bindings (and even the docs
+    # contain an explicit warning to that effect). The equivalent should be
+    # implemented in pure python for each class
+    "virDomainGetConnect",
+    "virInterfaceGetConnect",
+    "virNetworkGetConnect",
+    "virSecretGetConnect",
+    "virStoragePoolGetConnect",
+    "virStorageVolGetConnect",
 )
 
 
@@ -555,7 +542,7 @@ def buildStubs():
 
     py_types['pythonObject'] = ('O', "pythonObject", "pythonObject", "pythonObject")
     try:
-	f = open(os.path.join(srcPref,"libvirt-python-api.xml"))
+	f = open(os.path.join(srcPref,"libvirt-override-api.xml"))
 	data = f.read()
 	(parser, target)  = getparser()
 	parser.feed(data)
@@ -564,22 +551,22 @@ def buildStubs():
 	print file, ":", msg
 
 
-    print "Found %d functions in libvirt-python-api.xml" % (
+    print "Found %d functions in libvirt-override-api.xml" % (
 	  len(functions.keys()) - n)
     nb_wrap = 0
     failed = 0
     skipped = 0
 
-    include = open("libvirt-py.h", "w")
+    include = open("libvirt.h", "w")
     include.write("/* Generated */\n\n")
     export = open("libvirt-export.c", "w")
     export.write("/* Generated */\n\n")
-    wrapper = open("libvirt-py.c", "w")
+    wrapper = open("libvirt.c", "w")
     wrapper.write("/* Generated */\n\n")
     wrapper.write("#include <Python.h>\n")
     wrapper.write("#include <libvirt/libvirt.h>\n")
-    wrapper.write("#include \"libvirt_wrap.h\"\n")
-    wrapper.write("#include \"libvirt-py.h\"\n\n")
+    wrapper.write("#include \"typewrappers.h\"\n")
+    wrapper.write("#include \"libvirt.h\"\n\n")
     for function in functions.keys():
 	ret = print_function_wrapper(function, wrapper, export, include)
 	if ret < 0:
@@ -636,6 +623,8 @@ classes_type = {
     "virNodeDevice *": ("._o", "virNodeDevice(self, _obj=%s)", "virNodeDevice"),
     "virSecretPtr": ("._o", "virSecret(self, _obj=%s)", "virSecret"),
     "virSecret *": ("._o", "virSecret(self, _obj=%s)", "virSecret"),
+    "virStreamPtr": ("._o", "virStream(self, _obj=%s)", "virStream"),
+    "virStream *": ("._o", "virStream(self, _obj=%s)", "virStream"),
     "virConnectPtr": ("._o", "virConnect(_obj=%s)", "virConnect"),
     "virConnect *": ("._o", "virConnect(_obj=%s)", "virConnect"),
 }
@@ -645,7 +634,8 @@ converter_type = {
 
 primary_classes = ["virDomain", "virNetwork", "virInterface",
                    "virStoragePool", "virStorageVol",
-                   "virConnect", "virNodeDevice", "virSecret" ]
+                   "virConnect", "virNodeDevice", "virSecret",
+                   "virStream"]
 
 classes_ancestor = {
 }
@@ -656,8 +646,15 @@ classes_destructors = {
     "virStoragePool": "virStoragePoolFree",
     "virStorageVol": "virStorageVolFree",
     "virNodeDevice" : "virNodeDeviceFree",
-    "virSecret": "virSecretFree"
+    "virSecret": "virSecretFree",
+    # We hand-craft __del__ for this one
+    #"virStream": "virStreamFree",
 }
+
+class_skip_connect_impl = {
+    "virConnect" : True
+}
+
 
 functions_noexcept = {
     'virDomainGetID': True,
@@ -764,15 +761,20 @@ def nameFixup(name, classe, type, file):
         func = name[10:]
         func = string.lower(func[0:1]) + func[1:]
     elif name[0:15] == "virInterfaceGet":
-        func = name[13:]
+        func = name[15:]
         func = string.lower(func[0:1]) + func[1:]
     elif name[0:12] == "virInterface":
-        func = name[10:]
+        func = name[12:]
         func = string.lower(func[0:1]) + func[1:]
     elif name[0:12] == 'virSecretGet':
         func = name[12:]
         func = string.lower(func[0:1]) + func[1:]
     elif name[0:9] == 'virSecret':
+        func = name[9:]
+        func = string.lower(func[0:1]) + func[1:]
+    elif name[0:12] == 'virStreamNew':
+        func = "newStream"
+    elif name[0:9] == 'virStream':
         func = name[9:]
         func = string.lower(func[0:1]) + func[1:]
     elif name[0:17] == "virStoragePoolGet":
@@ -790,7 +792,7 @@ def nameFixup(name, classe, type, file):
     elif name[0:13] == "virNodeDevice":
         if name[13:16] == "Get":
             func = string.lower(name[16]) + name[17:]
-        elif name[13:19] == "Lookup" or name[13:] == "Create":
+        elif name[13:19] == "Lookup" or name[13:19] == "Create":
             func = string.lower(name[3]) + name[4:]
         else:
             func = string.lower(name[13]) + name[14:]
@@ -815,6 +817,9 @@ def nameFixup(name, classe, type, file):
         func = "OSType"
     if func == "xMLDesc":
         func = "XMLDesc"
+    if func == "mACString":
+        func = "MACString"
+
     return func
 
 
@@ -843,20 +848,14 @@ def writeDoc(name, args, indent, output):
      val = string.replace(val, "NULL", "None");
      output.write(indent)
      output.write('"""')
-     while len(val) > 60:
-         if val[0] == " ":
-	     val = val[1:]
-	     continue
-         str = val[0:60]
-         i = string.rfind(str, " ");
-         if i < 0:
-             i = 60
-         str = val[0:i]
-         val = val[i:]
+     i = string.find(val, "\n")
+     while i >= 0:
+         str = val[0:i+1]
+         val = val[i+1:]
          output.write(str)
-         output.write('\n  ');
+         i = string.find(val, "\n")
          output.write(indent)
-     output.write(val);
+     output.write(val)
      output.write(' """\n')
 
 def buildWrappers():
@@ -931,12 +930,30 @@ def buildWrappers():
 	info = (0, func, name, ret, args, file)
 	function_classes['None'].append(info)
 
-    classes = open("libvirtclass.py", "w")
+    classes = open("libvirt.py", "w")
 
-    txt = open("libvirtclass.txt", "w")
-    txt.write("          Generated Classes for libvir-python\n\n")
+    extra = open(os.path.join(srcPref,"libvirt-override.py"), "r")
+    classes.write("#!/usr/bin/python -i\n")
+    classes.write("#\n")
+    classes.write("# WARNING WARNING WARNING WARNING\n")
+    classes.write("#\n")
+    classes.write("# This file is automatically written by generator.py. Any changes\n")
+    classes.write("# made here will be lost.\n")
+    classes.write("#\n")
+    classes.write("# To change the manually written methods edit libvirt-override.py\n")
+    classes.write("# To change the automatically written methods edit generator.py\n")
+    classes.write("#\n")
+    classes.write("# WARNING WARNING WARNING WARNING\n")
+    classes.write("#\n")
+    classes.writelines(extra.readlines())
+    classes.write("#\n")
+    classes.write("# WARNING WARNING WARNING WARNING\n")
+    classes.write("#\n")
+    classes.write("# Automatically written part of python bindings for libvirt\n")
+    classes.write("#\n")
+    classes.write("# WARNING WARNING WARNING WARNING\n")
+    extra.close()
 
-    txt.write("#\n# Global functions of the module\n#\n\n")
     if function_classes.has_key("None"):
 	flist = function_classes["None"]
 	flist.sort(functionCompare)
@@ -945,10 +962,8 @@ def buildWrappers():
 	    (index, func, name, ret, args, file) = info
 	    if file != oldfile:
 		classes.write("#\n# Functions from module %s\n#\n\n" % file)
-		txt.write("\n# functions from module %s\n" % file)
 		oldfile = file
 	    classes.write("def %s(" % func)
-	    txt.write("%s()\n" % func);
 	    n = 0
 	    for arg in args:
 		if n != 0:
@@ -1025,14 +1040,11 @@ def buildWrappers():
 
 	    classes.write("\n");
 
-    txt.write("\n\n#\n# Set of classes of the module\n#\n\n")
     for classname in classes_list:
 	if classname == "None":
 	    pass
 	else:
 	    if classes_ancestor.has_key(classname):
-		txt.write("\n\nClass %s(%s)\n" % (classname,
-			  classes_ancestor[classname]))
 		classes.write("class %s(%s):\n" % (classname,
 			      classes_ancestor[classname]))
 		classes.write("    def __init__(self, _obj=None):\n")
@@ -1044,9 +1056,9 @@ def buildWrappers():
 		classes.write("        %s.__init__(self, _obj=_obj)\n\n" % (
 			      classes_ancestor[classname]))
 	    else:
-		txt.write("Class %s()\n" % (classname))
 		classes.write("class %s:\n" % (classname))
-                if classname in [ "virDomain", "virNetwork", "virInterface", "virStoragePool", "virStorageVol", "virNodeDevice", "virSecret" ]:
+                if classname in [ "virDomain", "virNetwork", "virInterface", "virStoragePool",
+                                  "virStorageVol", "virNodeDevice", "virSecret","virStream" ]:
                     classes.write("    def __init__(self, conn, _obj=None):\n")
                 else:
                     classes.write("    def __init__(self, _obj=None):\n")
@@ -1054,7 +1066,8 @@ def buildWrappers():
 		    list = reference_keepers[classname]
 		    for ref in list:
 		        classes.write("        self.%s = None\n" % ref[1])
-                if classname in [ "virDomain", "virNetwork", "virInterface", "virNodeDevice", "virSecret" ]:
+                if classname in [ "virDomain", "virNetwork", "virInterface",
+                                  "virNodeDevice", "virSecret", "virStream" ]:
                     classes.write("        self._conn = conn\n")
                 elif classname in [ "virStorageVol", "virStoragePool" ]:
                     classes.write("        self._conn = conn\n" + \
@@ -1070,6 +1083,12 @@ def buildWrappers():
 			      classes_destructors[classname]);
 		classes.write("        self._o = None\n\n");
 		destruct=classes_destructors[classname]
+
+            if not class_skip_connect_impl.has_key(classname):
+                # Build python safe 'connect' method
+                classes.write("    def connect(self):\n")
+                classes.write("        return self._conn\n\n")
+
 	    flist = function_classes[classname]
 	    flist.sort(functionCompare)
 	    oldfile = ""
@@ -1084,16 +1103,13 @@ def buildWrappers():
 		if file != oldfile:
 		    if file == "python_accessor":
 			classes.write("    # accessors for %s\n" % (classname))
-			txt.write("    # accessors\n")
 		    else:
 			classes.write("    #\n")
 			classes.write("    # %s functions from module %s\n" % (
 				      classname, file))
-			txt.write("\n    # functions from module %s\n" % file)
 			classes.write("    #\n\n")
 		oldfile = file
 		classes.write("    def %s(self" % func)
-		txt.write("    %s()\n" % func);
 		n = 0
 		for arg in args:
 		    if n != index:
@@ -1316,11 +1332,12 @@ def buildWrappers():
 		classes.write("\n");
             # Append "<classname>.py" to class def, iff it exists
             try:
-                extra = open(classname + ".py", "r")
+                extra = open(os.path.join(srcPref,"libvirt-override-" + classname + ".py"), "r")
                 classes.write ("    #\n")
                 classes.write ("    # %s methods from %s.py (hand coded)\n" % (classname,classname))
                 classes.write ("    #\n")
                 classes.writelines(extra.readlines())
+                classes.write("\n")
                 extra.close()
             except:
                 pass
@@ -1336,15 +1353,6 @@ def buildWrappers():
             classes.write("%s = %s\n" % (name,value))
         classes.write("\n");
 
-    if len(functions_skipped) != 0:
-	txt.write("\nFunctions skipped:\n")
-	for function in functions_skipped:
-	    txt.write("    %s\n" % function)
-    if len(functions_failed) != 0:
-	txt.write("\nFunctions failed:\n")
-	for function in functions_failed:
-	    txt.write("    %s\n" % function)
-    txt.close()
     classes.close()
 
 if buildStubs() < 0:

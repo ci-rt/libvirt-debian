@@ -50,7 +50,7 @@
 
 char *
 esxUtil_RequestUsername(virConnectAuthPtr auth, const char *defaultUsername,
-                        const char *server)
+                        const char *hostname)
 {
     unsigned int ncred;
     virConnectCredential cred;
@@ -58,7 +58,7 @@ esxUtil_RequestUsername(virConnectAuthPtr auth, const char *defaultUsername,
 
     memset(&cred, 0, sizeof(virConnectCredential));
 
-    if (virAsprintf(&prompt, "Enter username for %s [%s]", server,
+    if (virAsprintf(&prompt, "Enter username for %s [%s]", hostname,
                     defaultUsername) < 0) {
         return NULL;
     }
@@ -70,7 +70,7 @@ esxUtil_RequestUsername(virConnectAuthPtr auth, const char *defaultUsername,
 
         cred.type = VIR_CRED_AUTHNAME;
         cred.prompt = prompt;
-        cred.challenge = NULL;
+        cred.challenge = hostname;
         cred.defresult = defaultUsername;
         cred.result = NULL;
         cred.resultlen = 0;
@@ -91,7 +91,7 @@ esxUtil_RequestUsername(virConnectAuthPtr auth, const char *defaultUsername,
 
 char *
 esxUtil_RequestPassword(virConnectAuthPtr auth, const char *username,
-                        const char *server)
+                        const char *hostname)
 {
     unsigned int ncred;
     virConnectCredential cred;
@@ -100,7 +100,7 @@ esxUtil_RequestPassword(virConnectAuthPtr auth, const char *username,
     memset(&cred, 0, sizeof(virConnectCredential));
 
     if (virAsprintf(&prompt, "Enter %s password for %s", username,
-                    server) < 0) {
+                    hostname) < 0) {
         return NULL;
     }
 
@@ -112,7 +112,7 @@ esxUtil_RequestPassword(virConnectAuthPtr auth, const char *username,
 
         cred.type = auth->credtype[ncred];
         cred.prompt = prompt;
-        cred.challenge = NULL;
+        cred.challenge = hostname;
         cred.defresult = NULL;
         cred.result = NULL;
         cred.resultlen = 0;
@@ -264,6 +264,89 @@ esxUtil_ParseVirtualMachineIDString(const char *id_string, int *id)
 
 
 int
+esxUtil_ParseDatastoreRelatedPath(virConnectPtr conn,
+                                  const char *datastoreRelatedPath,
+                                  char **datastoreName,
+                                  char **directoryName, char **fileName)
+{
+    int result = 0;
+    char *directoryAndFileName = NULL;
+    char *separator = NULL;
+
+    if (datastoreName == NULL || *datastoreName != NULL ||
+        directoryName == NULL || *directoryName != NULL ||
+        fileName == NULL || *fileName != NULL) {
+        ESX_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Invalid argument");
+        goto failure;
+    }
+
+    /*
+     * Parse string as '[<datastore>] <path>'. '%as' is similar to '%s', but
+     * sscanf() will allocate the memory for the string, so the caller doesn't
+     * need to preallocate a buffer that's large enough.
+     *
+     * The s in '%as' can be replaced with a character set, e.g. [a-z].
+     *
+     * '%a[^]%]' matches <datastore>. '[^]%]' excludes ']' from the accepted
+     * characters, otherwise sscanf() wont match what it should.
+     *
+     * '%a[^\n]' matches <path>. '[^\n]' excludes '\n' from the accepted
+     * characters, otherwise sscanf() would only match up to the first space,
+     * but spaces are valid in <path>.
+     */
+    if (sscanf(datastoreRelatedPath, "[%a[^]%]] %a[^\n]", datastoreName,
+               &directoryAndFileName) != 2) {
+        ESX_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+                  "Datastore related path '%s' doesn't have expected format "
+                  "'[<datastore>] <path>'", datastoreRelatedPath);
+        goto failure;
+    }
+
+    /* Split <path> into <directory>/<file>, where <directory> is optional */
+    separator = strrchr(directoryAndFileName, '/');
+
+    if (separator != NULL) {
+        *separator++ = '\0';
+
+        *directoryName = directoryAndFileName;
+        directoryAndFileName = NULL;
+
+        if (*separator == '\0') {
+            ESX_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+                      "Datastore related path '%s' doesn't reference a file",
+                      datastoreRelatedPath);
+            goto failure;
+        }
+
+        *fileName = strdup(separator);
+
+        if (*fileName == NULL) {
+            virReportOOMError(conn);
+            goto failure;
+        }
+    } else {
+        *fileName = directoryAndFileName;
+        directoryAndFileName = NULL;
+    }
+
+  cleanup:
+    VIR_FREE(directoryAndFileName);
+
+    return result;
+
+  failure:
+    VIR_FREE(*datastoreName);
+    VIR_FREE(*directoryName);
+    VIR_FREE(*fileName);
+
+    result = -1;
+
+    goto cleanup;
+}
+
+
+
+int
 esxUtil_ResolveHostname(virConnectPtr conn, const char *hostname,
                         char *ipAddress, size_t ipAddress_length)
 {
@@ -271,7 +354,7 @@ esxUtil_ResolveHostname(virConnectPtr conn, const char *hostname,
     struct addrinfo *result = NULL;
     int errcode;
 
-    memset(&hints, 0, sizeof (struct addrinfo));
+    memset(&hints, 0, sizeof(struct addrinfo));
 
     hints.ai_flags = AI_ADDRCONFIG;
     hints.ai_family = AF_INET;
@@ -455,12 +538,12 @@ esxUtil_GetConfigLong(virConnectPtr conn, virConfPtr conf, const char *name,
 
 int
 esxUtil_GetConfigBoolean(virConnectPtr conn, virConfPtr conf,
-                         const char *name, int *boolval, int default_,
+                         const char *name, int *boolean_, int default_,
                          int optional)
 {
     virConfValuePtr value;
 
-    *boolval = default_;
+    *boolean_ = default_;
     value = virConfGetValue(conf, name);
 
     if (value == NULL) {
@@ -485,9 +568,9 @@ esxUtil_GetConfigBoolean(virConnectPtr conn, virConfPtr conf,
         }
 
         if (STRCASEEQ(value->str, "true")) {
-            *boolval = 1;
+            *boolean_ = 1;
         } else if (STRCASEEQ(value->str, "false")) {
-            *boolval = 0;
+            *boolean_ = 0;
         } else {
             ESX_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
                       "Config entry '%s' must represent a boolean value "
@@ -501,18 +584,4 @@ esxUtil_GetConfigBoolean(virConnectPtr conn, virConfPtr conf,
     }
 
     return 0;
-}
-
-
-
-int
-esxUtil_EqualSuffix(const char *string, const char* suffix)
-{
-    int difference = (int)strlen(string) - (int)strlen(suffix);
-
-    if (difference < 0) {
-        return -1;
-    } else {
-        return STRCASEEQ(string + difference, suffix);
-    }
 }

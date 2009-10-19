@@ -5,6 +5,197 @@
        http://libvirt.org/news.html
 
 
+0.7.2: Oct 14 2009:
+   - Features:
+        sVirt AppArmor security driver (Jamie Strandboge),
+        Add public API definition for data stream handling (Daniel P. Berrange),
+        ESX add esxDomainDefineXML() (Matthias Bolte),
+        LXC: suspend/resume support (Ryota Ozaki),
+        Big code tree cleanup (Daniel P. Berrange)
+
+   - Documentation:
+        Documentation and examples for SVirt Apparmor driver (Jamie Strandboge),
+        Fix documentation and comment typos (Paolo Bonzini),
+        Fix up a few typos in the tree. (Chris Lalancette),
+        Fix a typo in virNetHasValidPciAddr() too (Mark McLoughlin),
+        Fix a typo in virDiskHasValidPciAddr() (Jiri Denemark),
+        Fix a number of small typos (Dan Kenigsberg),
+        add doc for graphic and video elements (Florian Vichot),
+        Fix up 'neccessary -> necessary' in a comment. (Chris Lalancette),
+        Fix up comments for domainXML{To,From}Native. (Chris Lalancette),
+        Simple fix of a comment in qemuStringToArgvEnv. (Chris Lalancette),
+        Add a README file to src/ explaining the directory structure (Daniel P. Berrange),
+        doc: don't emit trailing blanks into generated and VC'd NEWS file (Jim Meyering)
+
+   - Portability:
+        Misc win32 build fixes (Daniel P. Berrange),
+        Don't require full daemon install for libvirt python bindings (Daniel P. Berrange),
+        Tweak specfile to fix RHEL6 rules & ESX/PHYP enablement (Daniel P. Berrange),
+        Bug Fixes:,
+        network: Fix printing XML 'delay' attribute (Cole Robinson),
+        Fix virFileReadLimFD/virFileReadAll to handle EINTR (Daniel P. Berrange),
+        storage: Fix generating iscsi 'auth' xml (Cole Robinson),
+        Fix QEMU restore from file in raw format (Daniel P. Berrange),
+        Take domain type into account when looking up default machine (Mark McLoughlin),
+        Fix schema to allow missing machine type (Mark McLoughlin),
+        Fix stream abort upon I/O failure during migration (Daniel P. Berrange),
+        Create /var/log/libvirt/{lxc,uml} dirs (Mark McLoughlin),
+        nodedev: Add locking in nodeNumOfDevices (Cole Robinson),
+        test: Throw a proper error in GetBridgeName (Cole Robinson),
+        526769 change logrotate config default to weekly (Daniel Veillard),
+        Fix emission of domain events messages (Daniel P. Berrange),
+        unbreak `make rpcgen' (Paolo Bonzini),
+        unbreak migration (Paolo Bonzini),
+        Fix USB device re-labelling (Mark McLoughlin),
+        Avoid a libvirtd crash on broken input 523418 (Daniel Veillard),
+        Re-label image file backing stores (Mark McLoughlin),
+        Fix memory leaks in libvirtd's message processing (Matthias Bolte),
+        Fix QEMU test suite with new VNC env variable (Daniel P. Berrange),
+        VBox vboxDomainDestroy forgot to wait for completion (Pritesh Kothari),
+        Vbox call OpenHardDisk with "" instead of NULL (Pritesh Kothari),
+        Avoid double free in errors in virsh (Jim Fehlig),
+        Fix crash in device hotplug cleanup code (Daniel P. Berrange),
+        Maintain value of ctxt->node in virInterfaceDefParseDhcp (Laine Stump),
+        Fix some XPath relative node resets (Daniel Veillard),
+        Fix unitialized variable in qemudDomainDetachHostPciDevice() (Charles Duffy),
+        ESX: Check if a datastore is accessible first (Matthias Bolte),
+        Fix handling of Xen(ner) detection (Daniel P. Berrange),
+        Fix xen driver refcounting. (Matthias Bolte),
+        prevent attempt to call cat -c during virDomainSave to raw (Charles Duffy),
+        Don't do virSetConnError when virDrvSupportsFeature is successful. (Chris Lalancette),
+        Fix a double-free in qemudRunLoop() (Chris Lalancette),
+        Fix leak in PCI hostdev hot-unplug (Mark McLoughlin),
+        Fix net/disk hot-unplug segfault (Mark McLoughlin)
+
+   - Improvements:
+        schema: Update storage pool schema. (Cole Robinson),
+        test: Activate interfaces specified through driver config file. (Cole Robinson),
+        Rewrite example domain events programm for python (Daniel P. Berrange),
+        Support a new peer-to-peer migration mode & public API (Daniel P. Berrange),
+        LXC add augeas support for config file (Amy Griffis),
+        LXC add driver config file lxc.conf (Amy Griffis),
+        LXC do not truncate container log files on restart (Amy Griffis),
+        LXC initialize logging configuration (Amy Griffis),
+        Add debug for envp[] in virExecWithHook() (Amy Griffis),
+        Add accessors for logging filters and outputs (Amy Griffis),
+        Add virFileAbsPath() utility (Amy Griffis),
+        LXC implement memory control APIs (Ryota Ozaki),
+        Add a domain argument to SVirt *RestoreImageLabel (Jamie Strandboge),
+        test: Support loading node device info from file/XML (Cole Robinson),
+        test: Implement node device driver. (Cole Robinson),
+        configure: Add explict --with-python option. (Cole Robinson),
+        Tunnelled migration. (Chris Lalancette),
+        Various monitor improvements for migration. (Chris Lalancette),
+        523639 Allows a <description> tag for domains (Daniel Veillard),
+        Add src/util/storage_file.c to the POTFILES.in. (Chris Lalancette),
+        Add a qemu feature flag for unix socket migration. (Chris Lalancette),
+        Let remoteClientStream only do RX if requested. (Chris Lalancette),
+        Introduce virStorageFileMetadata structure (Mark McLoughlin),
+        Allow control over QEMU audio backend (Daniel P. Berrange),
+        Handle data streams in remote client (Daniel P. Berrange),
+        Handle outgoing data streams in libvirtd (Daniel P. Berrange),
+        Handle incoming data streams in libvirtd (Daniel P. Berrange),
+        Lots of cleanups and improvement on QEmu monitor code (Daniel P. Berrange),
+        ESX add esxVI_Occurence enum to for occurences (Matthias Bolte),
+        ESX add x86_64 detection based on the CPUID (Matthias Bolte),
+        ESX add tests for the VMX to/from domain XML mapping (Matthias Bolte),
+        ESX Add esxDomainXMLToNative() (Matthias Bolte),
+        ESX Set challenge for auth callback to hostname (Matthias Bolte),
+        ESX Add esxNodeGetFreeMemory() (Matthias Bolte),
+        network: add 'bootp' and 'tftp' config (Paolo Bonzini),
+        OpenVZ Fix a restriction about domain names (Yuji NISHIDA),
+        Make pki_check.sh into an installed & supported tool (Daniel P. Berrange),
+        ESX add support for vmxnet3 virtual device (Shahar Klein)
+
+   - Cleanups:
+        remote: Don't print a warning every time a remote call fails (Cole Robinson),
+        storage: Report errors in FindPoolSources (Cole Robinson),
+        LXC fix return code handling in lxcVmStart (Ryota Ozaki),
+        Add a target for libvirt.devhelp (Daniel Veillard),
+        Remove some auto-generated files (Daniel P. Berrange),
+        Re-arrange doTunnelMigrate to simplify cleanup code (Daniel P. Berrange),
+        Separate out code for sending tunnelled data (Daniel P. Berrange),
+        Pull connection handling code out of doTunnelMigrate (Daniel P. Berrange),
+        Refactor native QEMU migration code (Daniel P. Berrange),
+        Don't force dconn to be NULL in virDomainMigrate (Daniel P. Berrange),
+        Remove unneccessary uri_in parameter from virMigratePrepareTunnel (Daniel P. Berrange),
+        Move the VIR_DRV_FEATURE* constants (Daniel P. Berrange),
+        Fix configure.ac message vertical alignment (Daniel P. Berrange),
+        cgroup: Fix -Werror breakage (Cole Robinson),
+        Fix handling return value of qemuMonitorSetBalloon (Ryota Ozaki),
+        Fix up "make check" (Chris Lalancette),
+        Fix rebuilding of devhelp files (Daniel P. Berrange),
+        Fix ordering of <exports> in API description file (Daniel P. Berrange),
+        node conf: Make parsing routines consistent with other drivers (Cole Robinson),
+        nodedev: Break out virNodeDeviceHasCap to node_conf (Cole Robinson),
+        python: Add a newline after custom classes (Cole Robinson),
+        python: Fix generated virInterface method names (Cole Robinson),
+        python: Use a pure python implementation of 'vir*GetConnect' (Cole Robinson),
+        python: Don't generate bindings for vir*Ref (Cole Robinson),
+        python: Don't generate conflicting conn.createXML functions. (Cole Robinson),
+        python: Remove use of xmllib in generator.py (Cole Robinson),
+        python: Remove FastParser from generator. (Cole Robinson),
+        Fix typo in Makefile.am breaking NEWS file generation (Daniel P. Berrange),
+        Fix build in separate build directory (Jiri Denemark),
+        Incorrect error message in virDomainNetDefParseXML (Florian Vichot),
+        Fix a few 'make rpm' breakages (Daniel Veillard),
+        Pass remote_message_header to the dispatch functions. (Chris Lalancette),
+        Fix up some warnings from stream DEBUG statements. (Chris Lalancette),
+        Fix apibuild.py warnings (Matthias Bolte),
+        Change signature of remoteSendStreamData() to fix compile warning (Matthias Bolte),
+        Add virStorageFileGetMetadata() helper (Mark McLoughlin),
+        Move virStorageGetMetadataFromFD() to libvirt_util (Mark McLoughlin),
+        Split virStorageGetMetadataFromFD() from virStorageBackendProbeTarget() (Mark McLoughlin),
+        Move file format enum to libvirt_util (Mark McLoughlin),
+        Remove hand-crafted UUID parsers (Daniel P. Berrange),
+        Helper functions for processing data streams in libvirtd (Daniel P. Berrange),
+        Standardize debugging messages in QEMU monitor code (Daniel P. Berrange),
+        Remove low level monitor APIs from header file (Daniel P. Berrange),
+        Rename qemudMonitorSendCont to qemuMonitorStartCPUs (Daniel P. Berrange),
+        Pull QEMU monitor interaction out to separate file (Daniel P. Berrange),
+        util.h needs libvirt.h for virConnectPtr (Mark McLoughlin),
+        Fix API doc extractor to stop munging comment formatting (Daniel P. Berrange),
+        Fix secret_driver compile warning, bug. (Charles Duffy),
+        ESX remove phantom mode (Matthias Bolte),
+        ESX replace esxUtil_EqualSuffix() with virFileHasSuffix() (Matthias Bolte),
+        ESX Whitespace cleanup (Matthias Bolte),
+        Fix up "make syntax-check" after the tree restructuring. (Chris Lalancette),
+        Introduce virStrncpy. (Chris Lalancette),
+        Ignore auto-generated header file (Daniel P. Berrange),
+        Remove an unnecessary variable from remoteIOReadMessage(). (Chris Lalancette),
+        Remove auto-generated header file from repo (Daniel P. Berrange),
+        Move example XML files into examples/xml (Daniel P. Berrange),
+        Remove all generated docs from source control (Daniel P. Berrange),
+        Fix missing data file in qemuhelpdata (Daniel P. Berrange),
+        Misc syntax-check fixes (Daniel P. Berrange),
+        Move remote protocol definition into src/remote/ (Daniel P. Berrange),
+        Move all shared utility files to src/util/ (Daniel P. Berrange),
+        Move all XML configuration handling to src/conf/ (Daniel P. Berrange),
+        Re-arrange python generator to make it clear what's auto-generated (Daniel P. Berrange),
+        Remove obsolete files (Daniel P. Berrange),
+        Move docs/examples into examples/ (Daniel P. Berrange),
+        Remove unused images from docs/ directory (Daniel P. Berrange),
+        Rename daemon main code (Daniel P. Berrange),
+        Move config files to align with driver sources (Daniel P. Berrange),
+        Move virsh into tools/ directory (Daniel P. Berrange),
+        Move security drivers to src/security/ (Daniel P. Berrange),
+        Move secret driver into src/secret/ (Daniel P. Berrange),
+        Move netcf interface driver into src/interface/ (Daniel P. Berrange),
+        Move network driver into src/network (Daniel P. Berrange),
+        Move remote driver to src/remote/ (Daniel P. Berrange),
+        Move test driver into src/test/ (Daniel P. Berrange),
+        Move node device drivers to src/node_device/ (Daniel P. Berrange),
+        Move storage drivers into src/storage/ (Daniel P. Berrange),
+        Move OpenVZ driver to src/openvz/ (Daniel P. Berrange),
+        Move UML driver to src/uml/ (Daniel P. Berrange),
+        Move QEMU driver to src/qemu/ (Daniel P. Berrange),
+        Move LXC driver into src/lxc/ (Daniel P. Berrange),
+        Move xen driver code into src/xen/ directory (Daniel P. Berrange),
+        Rename qemud/ directory to daemon/ (Daniel P. Berrange),
+        Refactor libvirt.spec to allow client-only builds (Daniel P. Berrange)
+
+
+
 0.7.1: Sep 15 2009:
    - New features:
         Add support for encrypted (qcow) volume creation. (Miloslav Trmač),
@@ -604,13 +795,13 @@
    - New features: VirtualBox driver support (Pritesh Kothari),
           virt-xml-validate new command (Daniel Berrange)
    - Portability: patch to build on Centos (Joseph Shraibman),
-          build breakage (Anton Protopopov), 
+          build breakage (Anton Protopopov),
    - Documentation: Linux Containers documentation (Serge Hallyn),
           improvement and updates of architecture pages, fix
           virNodeGetFreeMemory documentation to reflect reality,
           man page cleanups (Daniel Berrange), man page typo
           (Robert P. J. Day), VirtualBox Documentation (Pritesh Kothari),
-          
+
    - Bug fixes: veth off-by-one error (Dan Smith), vcpupin to inactive
           Xen crash (Takahashi Tomohiro), virsh ttyconsole return value,
           use format= not fmt= on QEmu commandline (Mark McLoughlin),
@@ -630,7 +821,7 @@
           (Dave Allan)
    - Cleanups: don't hardcode getgrnam_r buffer to 1024 bytes (Guido
           Günther), qemudBuildCommandLine API cleanup (Daniel Berrange),
-          
+
 
 
 0.6.2: Apr  3 2009:
@@ -747,7 +938,7 @@
           vnc keymap attributes (Guido Günther), HACKING file updates
          (Jim Meyering), new PCI passthrough format, libvirt-qpid and
          UML driver documentation (Daniel Berrange), provide RNG schemas
-         for all XML formats used in libvirt APIs (Daniel Berrange), 
+         for all XML formats used in libvirt APIs (Daniel Berrange),
    - Bug fixes: segfault on virtual network without bridge name (Cole
           Robinson), various locking fixes (Cole Robinson), fix serial
           and parallel devices on tcp/unix/telnet (Guido Günther), leak
@@ -781,7 +972,7 @@
           QEmu/KVM tun/tap performances (Mark McLoughlin), enable floppies
           for Xen fully virt (John Levon), support VNC password settings
           for QEmu/KVM (Daniel Berrange), qemu driver version reporting
-          (Daniel Berrange) 
+          (Daniel Berrange)
    - Cleanups: converting linked lists to arrays (Daniel Berrange),
           daemon RPC handling refactoring (Daniel Berrange), strings cleanups
           (Jim Meyering), gethostby* cleanup and test (Jim Meyering), some
@@ -809,7 +1000,7 @@
 0.5.1: Dec  4 2008:
    - Portability: fix missing dep in spec file, fix compilation with new
           NUMA libraries (Daniel Berrange), udev compatibility for RHEL (Chris
-          Lalancette), 
+          Lalancette),
    - Documentation: documentation copy and paste errors and typo (Cole
           Robinson)
    - Bug fixes: add a delay in storage backend for disks to show up
@@ -831,9 +1022,9 @@
 
 
 0.5.0: Nov 25 2008:
-   - New features: CPU and scheduler support for LXC (Dan Smith), SDL display configuration (Daniel Berrange), domain lifecycle event support for QEmu and Xen with python bindings (Ben Guthro and Daniel Berrange), KVM/QEmu migration support (Rich Jones and Chris Lalancette), User Mode Linux driver (Daniel Berrange), API for node device enumeration using HAL and DeviceKit with python bindings (David Lively), 
-   - Portability: RHEL build fixes, VPATH build (Guido Gunther), many MinGW related cleanups and fixes (Richard Jones), compilation without libvirtd (Richard Jones), Add a Windows icon (Richard Jones), sys/poll.h portability fixes (Daniel Berrange), gnulib and mingw cleanups (Jim Meyering), 
-   - Documentation: virsh man page cleanups (Mark McLoughlin), doc for NIC model selection (Richard Jones), monitoring section, link to AMQP bindings, inew APIs, UML driver docs (Daniel Berrange), 
+   - New features: CPU and scheduler support for LXC (Dan Smith), SDL display configuration (Daniel Berrange), domain lifecycle event support for QEmu and Xen with python bindings (Ben Guthro and Daniel Berrange), KVM/QEmu migration support (Rich Jones and Chris Lalancette), User Mode Linux driver (Daniel Berrange), API for node device enumeration using HAL and DeviceKit with python bindings (David Lively),
+   - Portability: RHEL build fixes, VPATH build (Guido Gunther), many MinGW related cleanups and fixes (Richard Jones), compilation without libvirtd (Richard Jones), Add a Windows icon (Richard Jones), sys/poll.h portability fixes (Daniel Berrange), gnulib and mingw cleanups (Jim Meyering),
+   - Documentation: virsh man page cleanups (Mark McLoughlin), doc for NIC model selection (Richard Jones), monitoring section, link to AMQP bindings, inew APIs, UML driver docs (Daniel Berrange),
    - Bug fixes: Xen interfaces ordering (Jim Fehlig), startup timeout with multiple pty (Cole Robinson), segfault if QEmu without active virtual network (Cole Robinson), qemu small leak (Eduardo Habkost), index creation for more than 26 disks (Sanjay Rao and Chris Wright), virRealloc handling of 0 (Daniel Berrange), missing pointer initialization (Chris Lalancette), bus device index bug (Guido Günther), avoid crash in some error patch (Chris Lalancette), fix a problem in storage back-end (Chris Lalancette), minimum domain memory size check for Xen (Shigeki Sakamoto), switch off QEmu cache if device is shared (Charles Duffy), logical volume definition before scan bug (Chris Lalancette), a couple of memory leaks on QEmu vnc (Jim Meyering), lvs parsing fixes (Cole Robinson),
    - Improvements: LXC resources control and internal cgroup API (Dan Smith), virDomainCreateLinux renamed virDomainDefineXML, network driver modularization (Daniel Berrange), change the way domain and net are reported in errors (Jim Meyering), partition table scan on iSCSI (Chris Lalancette), qemudDiskDeviceName to handle normal disks (Guido Günther), qemudDomainBlockStats improvement (Guido Günther), scsi/virtio hotplug support for KVM (Guido Günther), USB hot addition in QEmu (Guido Günther), logical pool and storage backend XML dump improvement (Chris Lalancette), MAC addresses prefix per driver (Daniel Berrange), OpenVZ getVersion support (Daniel Berrange), hot removal of scsi/virtio disks for KVM (Guido Günther), test storage driver (Cole Robinson), iSCSI and disk storage driver improvement on path handling (Chris Lalancette), UUID and ID support for Xenner (Daniel Berrange), better logging when when executing commands (Cole Robinson), bridged network for OpenVZ (Daniel Berrange), OpenVZ config file params (Evgeniy Sokolov), allow to build drivers as libtool convenience libs (Daniel Berrange), fully versioned linker script for exported ABI (Daniel Berrange), Push URI probing down into drivers open (Daniel Berrange), move all stateful drivers into the daemon binary (Daniel Berrange), improve domain event with a detail field (Daniel Berrange), domain events for QEMU driver (Daniel Berrange), event unregister callback crash (David Lively), plug a few leaks (Daniel Berrange), internal APIs for handling node device XML config (David Lively), tweaks to node device implementation (Daniel Berrange), OpenVZ vCPUs values init (Evgeniy Sokolov)
    - Cleanups: C99 initializers (Guido Gunther), test output (Cole Robinson), debug macro centralization (Cole Robinson), various error handling (Guido Günther), safewrite use cleanup (Jim Meyering), centralize error reporting logic (Cole Robinson), avoid printf warnings (Daniel Berrange), use arrays instead of list for internal APIs (Daniel Berrange), remove many format string warnings Jim Meyering), avoid syntax check warnings (Chris Lalancette), improve po-check and list generation (Jim Meyering), .gitignore generation and handling (Jim Meyering), use ARRAY_CARDINALITY (Jim Meyering), gnulib updates and switch to use netdb.h (Jim Meyering), drop usage of socket_errno (Jim Meyering), remove socketcompat.h (Jim Meyering), more tests (Jim Meyering), drop virStringList (Daniel Berrange), reformatting and isolation of the error APIs (Daniel Berrange), cleanup internal.h and move internal APIs in specific headers (Daniel Berrange), move domain events helpers into domain_events.c (Daniel Berrange), cleanup the way optional modules are compiled (Daniel Berrange), add new logging module, optional dlopen of drivers (Daniel Berrange), various new tests (Jim Meyering), cleanups when Xen is not configured in (Daniel Berrange), add some missing functions comments (Jim Meyering),
@@ -914,7 +1105,7 @@
           size bug (Jim Fehlig),  signed/unsigned issue in probing file
           (Cole Robinson), Fix Xen domains without PVFB console (Daniel
           Berrange), OpenVZ config read bug fix (Evgeniy Sokolov).
-          
+
    - Improvements: improved failure diagnostic for TAP (Jim Meyering),
           better exec and error diagnostic for OpenVZ commands (Evgeniy
           Sokolov), OpenVZ auto start and stop of domains (Evgeniy Sokolov),
@@ -949,16 +1140,16 @@
           rewrite (Jim Meyering), cleanup of the conditional compilation
           of C files (Daniel Berrange), shell quoting fixes (Jim Meyering),
           parallel build support (James Morris and Jim Meyering), new
-          convenenience virFileReadLimFD function (Jim Meyering).  
+          convenenience virFileReadLimFD function (Jim Meyering).
 
 
 0.4.4: Jun 25 2008:
    - Bug fixes: QEmu network serialization (Kaitlin Rupert), internal
           memory allocation fixes (Chris Lalancette Jim Meyering), virsh
 	  large file config problem (Jim Meyering), xen list APIs when
-	  max is zero, string escape problems in the xm driver 
+	  max is zero, string escape problems in the xm driver
    - Improvements: add autogen to tarballs, improve iSCSI support
-          (Chris Lalancette), localization updates 
+          (Chris Lalancette), localization updates
    - Cleanups: const-ness fixed (Daniel P. Berrange), string helpers
           for enumeations (Daniel P. Berrange)
 
@@ -977,7 +1168,7 @@
 	  (Daniel Berrange), libvirt Wiki (Daniel Berrange),
 	  policykit config docs (Cole Robinson), XML domain docs revamp
 	  (Daniel Berrange), docs for remote listen-tls/tcp fixes (Kenneth
-	  Nagin),  
+	  Nagin),
    - Bug fixes: save change to config file for Xen (Ryan Scott),
           fix /var/run/libvirt/ group ownership (Anton Protopopov),
 	  ancient libparted workaround (Soren Hansen), out of bount
@@ -1128,7 +1319,7 @@
       various english fixes (Bruce Montague), OCaml docs links (Richard Jones),
       describe the various bindings add Ruby link, Windows support page
       (Richard Jones), authentication documentation updates (Daniel Berrange)
-      
+
    - Bug fixes: NUMA topology error handling (Beth Kon), NUMA topology
       cells without CPU (Beth Kon), XML to/from XM bridge config (Daniel
       Berrange), XM processing of vnc parameters (Daniel Berrange), Reset
@@ -1153,7 +1344,7 @@
       parameter setting in XM config (Saori Fukuta), credential handling
       fixes (Daniel Berrange), fix compatibility with Xen 3.2.0 (Daniel
       Berrange)
-      
+
    - Improvements: /etc/libvirt/qemu.conf configuration for QEMU driver
       (Daniel Berrange), NUMA cpu pinning in config files (DV and Saori Fukuta),
       CDRom media change in KVM/QEMU (Daniel Berrange), tests for
@@ -1162,7 +1353,7 @@
       --without-libvirtd config option (Richard Jones), Python bindings for
       NUMA, add extra utility functions to buffer (Richard Jones),
       separate qparams module for handling query parameters (Richard Jones)
-      
+
    - Code cleanups: remove virDomainRestart from API as it was never used
       (Richard Jones), constify params for attach/detach APIs (Daniel Berrange),
       gcc printf attribute checkings (Jim Meyering), refactoring of device
@@ -1183,13 +1374,13 @@
       port (Richard Jones), disable the proxy if using PolicyKit, readline
       availability detection, test libvirtd's config-processing code (Jim
       Meyering), use a variable name as sizeof argument (Jim Meyering)
-      
+
 
 
 0.3.3: Sep 30 2007:
    - New features: Avahi mDNS daemon export (Daniel Berrange),
-      NUMA support (Beth Kan) 
-   - Documentation: cleanups (Toth Istvan), typos (Eduardo Pereira), 
+      NUMA support (Beth Kan)
+   - Documentation: cleanups (Toth Istvan), typos (Eduardo Pereira),
    - Bug fixes: memory corruption on large dumps (Masayuki Sunou), fix
       virsh vncdisplay command exit (Masayuki Sunou), Fix network stats
       TX/RX result (Richard Jones), warning on Xen 3.0.3 (Richard Jones),
@@ -1235,10 +1426,10 @@
       speedup of domain queries on Xen (Daniel berrange), augment XML dumps
       with interface devices names (Richard Jones), internal API to query
       drivers for features (Richard Jones).
-      
+
    - Cleanups: Improve virNodeGetInfo implentation (Daniel berrange),
       general UUID code cleanup (Daniel berrange), fix API generator
-      file selection. 
+      file selection.
 
 
 0.3.1: Jul 24 2007:
@@ -1272,7 +1463,7 @@
    - Secure Remote support (Richard Jones).
       See the remote page
       of the documentation
-  
+
    - Documentation: remote support (Richard Jones), description of
       the URI connection strings (Richard Jones), update of virsh man
       page, matrix of libvirt API/hypervisor support with version
@@ -1313,7 +1504,7 @@
 0.2.3: Jun 8 2007:
    - Documentation: documentation for upcoming remote access (Richard Jones),
       virConnectNumOfDefinedDomains doc (Jan Michael), virsh help messages
-      for dumpxml and net-dumpxml (Chris Wright), 
+      for dumpxml and net-dumpxml (Chris Wright),
    - Bug fixes: RelaxNG schemas regexp fix (Robin Green), RelaxNG arch bug
       (Mark McLoughlin), large buffers bug fixes (Shigeki Sakamoto), error
       on out of memory condition (Shigeki Sakamoto), virshStrdup fix, non-root
@@ -1373,7 +1564,7 @@
       signal handler error cleanup (Richard Jones), iptables internal code
       claenup (Mark McLoughlin), unified Xen driver (Richard Jones),
       cleanup XPath libxml2 calls, IPTables rules tightening (Daniel
-      Berrange), 
+      Berrange),
    - Improvements: more regression tests on XML (Daniel Berrange), Python
       bindings now generate exception in error cases (Richard Jones),
       Python bindings for vir*GetAutoStart (Daniel Berrange),
@@ -1381,7 +1572,7 @@
       fix hypervisor call to work with Xen 3.0.5 (Daniel Berrange),
       DomainGetOSType for inactive domains (Daniel Berrange), multiple boot
       devices for HVM (Daniel Berrange),
-      
+
 
 
 0.2.1: Mar 16 2007:
@@ -1486,7 +1677,7 @@
    - Support for localization of strings using gettext (Daniel Berrange)
    - Support for new Xen-3.0.3 cdrom and disk configuration (Daniel Berrange)
    - Support for setting VNC port when creating domains with new
-      xend config files (Daniel Berrange) 
+      xend config files (Daniel Berrange)
    - Fix bug when running against xen-3.0.2 hypercalls (Jim Fehlig)
    - Fix reconnection problem when talking directly to http xend
 
@@ -1520,7 +1711,7 @@
     floppy and cdrom (Daniel Berrange), features block in XML to report/ask
     PAE, ACPI, APIC for HVM domains (Daniel Berrange), fail saide-effect
     operations when using read-only connection, large improvements to test
-    driver (Daniel Berrange) 
+    driver (Daniel Berrange)
    - documentation: spelling (Daniel Berrange), test driver examples.
 
 
@@ -1599,7 +1790,7 @@
 
 
 0.0.3: Feb 9 2006:
-   - Switch name from from 'libvir' to libvirt
+   - Switch name from 'libvir' to libvirt
    - Starting infrastructure to add code examples
    - Update of python bindings for completeness
 

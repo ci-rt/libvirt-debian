@@ -3,25 +3,31 @@
 if WITH_PROXY
 INCLUDES = -I$(top_srcdir)/gnulib/lib -I../gnulib/lib \
            -I$(top_builddir)/include -I@top_srcdir@/include \
-	   -I@top_srcdir@/proxy -I@top_srcdir@/src @LIBXML_CFLAGS@ \
+	   -I@top_srcdir@/proxy -I@top_srcdir@/src \
+           -I@top_srcdir@/src/util \
+           -I@top_srcdir@/src/conf \
+           -I@top_srcdir@/src/xen \
+           @LIBXML_CFLAGS@ \
 	   -DPROXY  -DLOCALEBASEDIR=\""$(datadir)/locale"\" \
            -DGETTEXT_PACKAGE=\"$(PACKAGE)\" $(WARN_CFLAGS) $(XEN_CFLAGS)
 
 libexec_PROGRAMS = libvirt_proxy
 
-libvirt_proxy_SOURCES = libvirt_proxy.c @top_srcdir@/src/xend_internal.c \
-	    @top_srcdir@/src/xen_internal.c @top_srcdir@/src/virterror.c \
-	    @top_srcdir@/src/sexpr.c  \
-	    @top_srcdir@/src/threads.c  \
-            @top_srcdir@/src/xs_internal.c @top_srcdir@/src/buf.c \
-            @top_srcdir@/src/capabilities.c \
-            @top_srcdir@/src/memory.c \
-            @top_srcdir@/src/storage_encryption_conf.c \
-            @top_srcdir@/src/domain_conf.c \
-            @top_srcdir@/src/util.c \
-	    @top_srcdir@/src/event.c \
-	    @top_srcdir@/src/uuid.c \
-	    @top_srcdir@/src/logging.c
+libvirt_proxy_SOURCES = libvirt_proxy.c \
+            @top_srcdir@/src/util/buf.c \
+	    @top_srcdir@/src/util/logging.c \
+            @top_srcdir@/src/util/memory.c \
+	    @top_srcdir@/src/util/threads.c  \
+            @top_srcdir@/src/util/util.c \
+	    @top_srcdir@/src/util/uuid.c \
+            @top_srcdir@/src/util/virterror.c \
+            @top_srcdir@/src/conf/capabilities.c \
+            @top_srcdir@/src/conf/storage_encryption_conf.c \
+            @top_srcdir@/src/conf/domain_conf.c \
+            @top_srcdir@/src/xen/xend_internal.c \
+	    @top_srcdir@/src/xen/xen_hypervisor.c \
+	    @top_srcdir@/src/xen/sexpr.c  \
+            @top_srcdir@/src/xen/xs_internal.c
 libvirt_proxy_LDFLAGS = $(WARN_CFLAGS) $(XEN_LIBS)
 libvirt_proxy_DEPENDENCIES =
 libvirt_proxy_LDADD = ../gnulib/lib/libgnu.la

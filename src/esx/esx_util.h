@@ -30,15 +30,20 @@
 
 char *esxUtil_RequestUsername(virConnectAuthPtr auth,
                               const char *defaultUsername,
-                              const char *server);
+                              const char *hostname);
 
 char *esxUtil_RequestPassword(virConnectAuthPtr auth, const char *username,
-                              const char *server);
+                              const char *hostname);
 
 int esxUtil_ParseQuery(virConnectPtr conn, char **transport, char **vCenter,
                        int *noVerify);
 
 int esxUtil_ParseVirtualMachineIDString(const char *id_string, int *id);
+
+int esxUtil_ParseDatastoreRelatedPath(virConnectPtr conn,
+                                      const char *datastoreRelatedPath,
+                                      char **datastoreName,
+                                      char **directoryName, char **fileName);
 
 int esxUtil_ResolveHostname(virConnectPtr conn, const char *hostname,
                             char *ipAddress, size_t ipAddress_length);
@@ -53,9 +58,7 @@ int esxUtil_GetConfigLong(virConnectPtr conn, virConfPtr conf, const char *name,
                           long long *number, long long default_, int optional);
 
 int esxUtil_GetConfigBoolean(virConnectPtr conn, virConfPtr conf,
-                             const char *name, int *boolean, int default_,
+                             const char *name, int *boolean_, int default_,
                              int optional);
-
-int esxUtil_EqualSuffix(const char *string, const char* suffix);
 
 #endif /* __ESX_UTIL_H__ */

@@ -3,17 +3,20 @@
 LCOV = lcov
 GENHTML = genhtml
 
-SUBDIRS = gnulib/lib include src qemud tools proxy docs gnulib/tests \
-  python tests po examples/domain-events/events-c examples/hellolibvirt
+SUBDIRS = gnulib/lib include src daemon tools proxy docs gnulib/tests \
+  python tests po examples/domain-events/events-c examples/hellolibvirt \
+  examples/dominfo examples/domsuspend examples/python
 
 ACLOCAL_AMFLAGS = -I m4 -I gnulib/m4
+
+XML_EXAMPLES = $(wildcard examples/xml/test/*.xml) $(wildcard examples/xml/storage/*.xml)
 
 EXTRA_DIST = \
   ChangeLog-old \
   libvirt.spec libvirt.spec.in \
   mingw32-libvirt.spec.in \
   libvirt.pc libvirt.pc.in \
-  $(man_MANS) autobuild.sh \
+  autobuild.sh \
   .x-sc_avoid_if_before_free \
   .x-sc_require_config_h_first \
   .x-sc_prohibit_strcmp \
@@ -21,12 +24,21 @@ EXTRA_DIST = \
   .x-sc_require_config_h \
   .x-sc_prohibit_nonreentrant \
   Makefile.nonreentrant \
-  autogen.sh
-
-man_MANS = virsh.1
+  autogen.sh \
+  examples/domain-events/events-python \
+  $(XML_EXAMPLES)
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libvirt.pc
+
+NEWS: $(top_srcdir)/docs/news.xsl $(top_srcdir)/docs/news.html.in
+	-@(if [ -x $(XSLTPROC) ] ; then				\
+	  $(XSLTPROC) --nonet $(top_srcdir)/docs/news.xsl	\
+	     $(top_srcdir)/docs/news.html.in			\
+	   | perl -0777 -pe 's/\n\n+$$/\n/'			\
+	   | perl -pe 's/[ \t]+$$//'				\
+	   > $@-t && mv $@-t $@ ; fi );
+
 
 rpm: clean
 	@(unset CDPATH ; $(MAKE) dist && rpmbuild -ta $(distdir).tar.gz)
@@ -40,7 +52,7 @@ tests:
 
 cov: clean-cov
 	mkdir $(top_builddir)/coverage
-	$(LCOV) -c -o $(top_builddir)/coverage/libvirt.info.tmp -d $(top_srcdir)/src  -d $(top_srcdir)/qemud -d $(top_srcdir)/tests
+	$(LCOV) -c -o $(top_builddir)/coverage/libvirt.info.tmp -d $(top_srcdir)/src  -d $(top_srcdir)/daemon -d $(top_srcdir)/tests
 	$(LCOV) -r $(top_builddir)/coverage/libvirt.info.tmp -o $(top_builddir)/coverage/libvirt.info *usr*
 	rm $(top_builddir)/coverage/libvirt.info.tmp
 	$(GENHTML) -s -t "libvirt" -o $(top_builddir)/coverage --legend $(top_builddir)/coverage/libvirt.info

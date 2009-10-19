@@ -37,7 +37,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 subdir = python
-DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in TODO
+DIST_COMMON = README $(srcdir)/Makefile.am $(srcdir)/Makefile.in TODO
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/alloca.m4 \
@@ -156,11 +156,12 @@ am__base_list = \
 am__installdirs = "$(DESTDIR)$(pythondir)"
 LTLIBRARIES = $(python_LTLIBRARIES)
 @WITH_PYTHON_TRUE@libvirtmod_la_DEPENDENCIES = $(mylibs)
-am__libvirtmod_la_SOURCES_DIST = libvir.c types.c libvirt-py.c \
-	libvirt-py.h
-@WITH_PYTHON_TRUE@am_libvirtmod_la_OBJECTS = libvirtmod_la-libvir.lo \
-@WITH_PYTHON_TRUE@	libvirtmod_la-types.lo \
-@WITH_PYTHON_TRUE@	libvirtmod_la-libvirt-py.lo
+am__libvirtmod_la_SOURCES_DIST = libvirt-override.c typewrappers.c \
+	libvirt.c libvirt.h
+@WITH_PYTHON_TRUE@am_libvirtmod_la_OBJECTS =  \
+@WITH_PYTHON_TRUE@	libvirtmod_la-libvirt-override.lo \
+@WITH_PYTHON_TRUE@	libvirtmod_la-typewrappers.lo \
+@WITH_PYTHON_TRUE@	libvirtmod_la-libvirt.lo
 libvirtmod_la_OBJECTS = $(am_libvirtmod_la_OBJECTS)
 AM_V_lt = $(am__v_lt_$(V))
 am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
@@ -243,6 +244,8 @@ ALLOCA = @ALLOCA@
 ALLOCA_H = @ALLOCA_H@
 AMTAR = @AMTAR@
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
+APPARMOR_CFLAGS = @APPARMOR_CFLAGS@
+APPARMOR_LIBS = @APPARMOR_LIBS@
 APPLE_UNIVERSAL_BUILD = @APPLE_UNIVERSAL_BUILD@
 AR = @AR@
 ARPA_INET_H = @ARPA_INET_H@
@@ -918,21 +921,23 @@ INCLUDES = \
 
 DOCS_DIR = $(datadir)/doc/libvirt-python-$(LIBVIRT_VERSION)
 DOCS = ${srcdir}/TODO
-CLASSES_EXTRA = virConnect.py
+CLASSES_EXTRA = \
+	libvirt-override-virConnect.py \
+	libvirt-override-virStream.py
+
 EXTRA_DIST = \
-	libvir.c	\
-	types.c		\
-	generator.py	\
-	libvirt_wrap.h	\
-	libvirt.py	\
-	libvir.py	\
-	libvirt-python-api.xml \
+	generator.py		\
+	typewrappers.c		\
+	typewrappers.h		\
+	libvirt-override.c	\
+	libvirt-override.py	\
+	libvirt-override-api.xml \
 	$(CLASSES_EXTRA) \
 	$(DOCS)
 
 @WITH_PYTHON_TRUE@mylibs = $(top_builddir)/src/libvirt.la
 @WITH_PYTHON_TRUE@python_LTLIBRARIES = libvirtmod.la
-@WITH_PYTHON_TRUE@libvirtmod_la_SOURCES = libvir.c types.c libvirt-py.c libvirt-py.h
+@WITH_PYTHON_TRUE@libvirtmod_la_SOURCES = libvirt-override.c typewrappers.c libvirt.c libvirt.h
 # Python <= 2.4 header files contain a redundant decl, hence we
 # need extra flags here
 @WITH_PYTHON_TRUE@libvirtmod_la_CFLAGS = @WARN_PYTHON_CFLAGS@
@@ -943,14 +948,13 @@ EXTRA_DIST = \
 @WITH_PYTHON_TRUE@	@CYGWIN_EXTRA_LIBADD@ @CYGWIN_EXTRA_PYTHON_LIBADD@
 
 @WITH_PYTHON_TRUE@GENERATE = generator.py
-@WITH_PYTHON_TRUE@API_DESC = $(top_srcdir)/docs/libvirt-api.xml $(srcdir)/libvirt-python-api.xml
+@WITH_PYTHON_TRUE@API_DESC = $(top_srcdir)/docs/libvirt-api.xml $(srcdir)/libvirt-override-api.xml
 @WITH_PYTHON_TRUE@GENERATED = libvirt-export.c \
-@WITH_PYTHON_TRUE@           libvirtclass.txt \
-@WITH_PYTHON_TRUE@	   libvirt-py.c \
-@WITH_PYTHON_TRUE@	   libvirt-py.h \
-@WITH_PYTHON_TRUE@	   libvirtclass.py
+@WITH_PYTHON_TRUE@	   libvirt.c \
+@WITH_PYTHON_TRUE@	   libvirt.h \
+@WITH_PYTHON_TRUE@	   libvirt.py
 
-@WITH_PYTHON_TRUE@CLEANFILES = $(GENERATED) generated.stamp libvirt.py
+@WITH_PYTHON_TRUE@CLEANFILES = $(GENERATED) generated.stamp
 all: all-recursive
 
 .SUFFIXES:
@@ -1025,9 +1029,9 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtmod_la-libvir.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtmod_la-libvirt-py.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtmod_la-types.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtmod_la-libvirt-override.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtmod_la-libvirt.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtmod_la-typewrappers.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -1053,29 +1057,29 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
 
-libvirtmod_la-libvir.lo: libvir.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtmod_la_CFLAGS) $(CFLAGS) -MT libvirtmod_la-libvir.lo -MD -MP -MF $(DEPDIR)/libvirtmod_la-libvir.Tpo -c -o libvirtmod_la-libvir.lo `test -f 'libvir.c' || echo '$(srcdir)/'`libvir.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtmod_la-libvir.Tpo $(DEPDIR)/libvirtmod_la-libvir.Plo
+libvirtmod_la-libvirt-override.lo: libvirt-override.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtmod_la_CFLAGS) $(CFLAGS) -MT libvirtmod_la-libvirt-override.lo -MD -MP -MF $(DEPDIR)/libvirtmod_la-libvirt-override.Tpo -c -o libvirtmod_la-libvirt-override.lo `test -f 'libvirt-override.c' || echo '$(srcdir)/'`libvirt-override.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtmod_la-libvirt-override.Tpo $(DEPDIR)/libvirtmod_la-libvirt-override.Plo
 @am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='libvir.c' object='libvirtmod_la-libvir.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='libvirt-override.c' object='libvirtmod_la-libvirt-override.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtmod_la_CFLAGS) $(CFLAGS) -c -o libvirtmod_la-libvir.lo `test -f 'libvir.c' || echo '$(srcdir)/'`libvir.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtmod_la_CFLAGS) $(CFLAGS) -c -o libvirtmod_la-libvirt-override.lo `test -f 'libvirt-override.c' || echo '$(srcdir)/'`libvirt-override.c
 
-libvirtmod_la-types.lo: types.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtmod_la_CFLAGS) $(CFLAGS) -MT libvirtmod_la-types.lo -MD -MP -MF $(DEPDIR)/libvirtmod_la-types.Tpo -c -o libvirtmod_la-types.lo `test -f 'types.c' || echo '$(srcdir)/'`types.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtmod_la-types.Tpo $(DEPDIR)/libvirtmod_la-types.Plo
+libvirtmod_la-typewrappers.lo: typewrappers.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtmod_la_CFLAGS) $(CFLAGS) -MT libvirtmod_la-typewrappers.lo -MD -MP -MF $(DEPDIR)/libvirtmod_la-typewrappers.Tpo -c -o libvirtmod_la-typewrappers.lo `test -f 'typewrappers.c' || echo '$(srcdir)/'`typewrappers.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtmod_la-typewrappers.Tpo $(DEPDIR)/libvirtmod_la-typewrappers.Plo
 @am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='types.c' object='libvirtmod_la-types.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='typewrappers.c' object='libvirtmod_la-typewrappers.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtmod_la_CFLAGS) $(CFLAGS) -c -o libvirtmod_la-types.lo `test -f 'types.c' || echo '$(srcdir)/'`types.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtmod_la_CFLAGS) $(CFLAGS) -c -o libvirtmod_la-typewrappers.lo `test -f 'typewrappers.c' || echo '$(srcdir)/'`typewrappers.c
 
-libvirtmod_la-libvirt-py.lo: libvirt-py.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtmod_la_CFLAGS) $(CFLAGS) -MT libvirtmod_la-libvirt-py.lo -MD -MP -MF $(DEPDIR)/libvirtmod_la-libvirt-py.Tpo -c -o libvirtmod_la-libvirt-py.lo `test -f 'libvirt-py.c' || echo '$(srcdir)/'`libvirt-py.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtmod_la-libvirt-py.Tpo $(DEPDIR)/libvirtmod_la-libvirt-py.Plo
+libvirtmod_la-libvirt.lo: libvirt.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtmod_la_CFLAGS) $(CFLAGS) -MT libvirtmod_la-libvirt.lo -MD -MP -MF $(DEPDIR)/libvirtmod_la-libvirt.Tpo -c -o libvirtmod_la-libvirt.lo `test -f 'libvirt.c' || echo '$(srcdir)/'`libvirt.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtmod_la-libvirt.Tpo $(DEPDIR)/libvirtmod_la-libvirt.Plo
 @am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='libvirt-py.c' object='libvirtmod_la-libvirt-py.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='libvirt.c' object='libvirtmod_la-libvirt.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtmod_la_CFLAGS) $(CFLAGS) -c -o libvirtmod_la-libvirt-py.lo `test -f 'libvirt-py.c' || echo '$(srcdir)/'`libvirt-py.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtmod_la_CFLAGS) $(CFLAGS) -c -o libvirtmod_la-libvirt.lo `test -f 'libvirt.c' || echo '$(srcdir)/'`libvirt.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -1412,10 +1416,6 @@ uninstall-am: uninstall-local uninstall-pythonLTLIBRARIES
 @WITH_PYTHON_TRUE@	touch $@
 
 @WITH_PYTHON_TRUE@$(GENERATED): generated.stamp
-
-@WITH_PYTHON_TRUE@libvirt.py: $(srcdir)/libvir.py $(GENERATED) $(CLASSES_EXTRA)
-@WITH_PYTHON_TRUE@	cat $(srcdir)/libvir.py libvirtclass.py > $@-t
-@WITH_PYTHON_TRUE@	mv $@-t $@
 
 @WITH_PYTHON_TRUE@$(libvirtmod_la_OBJECTS): $(GENERATED)
 
