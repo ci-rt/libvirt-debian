@@ -3,6 +3,6 @@ docs/*.png
 docs/*.xml
 docs/*.html 
 docs/*.gif
-docs/examples/
 docs/html/
 docs/devhelp/
+examples/
