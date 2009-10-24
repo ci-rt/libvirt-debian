@@ -1,12 +1,12 @@
 #! /bin/sh
 #
-# Init skript for libvirtd
+# Init script for libvirtd
 #
 # (c) 2007 Guido Guenther <agx@sigxcpu.org>
 # based on the skeletons that comes with dh_make
 #
 ### BEGIN INIT INFO
-# Provides:          libvirtd
+# Provides:          libvirt-bin
 # Required-Start:    $network $local_fs
 # Required-Stop:     
 # Should-Start:      hal avahi
