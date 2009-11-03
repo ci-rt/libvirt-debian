@@ -1,13 +1,13 @@
-From: =?utf-8?q?Laurent=20L=C3=A9onard?= <laurent@open-minds.org>
+From: =?UTF-8?q?Laurent=20L=C3=A9onard?= <laurent@open-minds.org>
 Date: Sun, 25 Oct 2009 01:36:36 +0200
 Subject: [PATCH] Don't let parent of daemon exit until basic initialization is done.
 
 ---
- daemon/libvirtd.c |  116 +++++++++++++++++++++++++++++++++++++++++++++--------
- 1 files changed, 99 insertions(+), 17 deletions(-)
+ daemon/libvirtd.c |  118 +++++++++++++++++++++++++++++++++++++++++++++--------
+ 1 files changed, 100 insertions(+), 18 deletions(-)
 
 diff --git a/daemon/libvirtd.c b/daemon/libvirtd.c
-index 78dfb2d..d102c66 100644
+index 78dfb2d..57ef4be 100644
 --- a/daemon/libvirtd.c
 +++ b/daemon/libvirtd.c
 @@ -185,6 +185,30 @@ static int max_client_requests = 5;
@@ -89,7 +89,8 @@ index 78dfb2d..d102c66 100644
 +            /* We wait to make sure the first child forked successfully */
 +            if ((got = waitpid(pid, &exitstatus, 0)) < 0 ||
                  got != pid ||
-                 status != 0) {
+-                status != 0) {
++                exitstatus != 0) {
                  return -1;
              }
 -            _exit(0);
