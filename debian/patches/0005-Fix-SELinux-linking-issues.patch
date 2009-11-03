@@ -1,4 +1,4 @@
-From: =?utf-8?q?Laurent=20L=C3=A9onard?= <laurent@open-minds.org>
+From: =?UTF-8?q?Laurent=20L=C3=A9onard?= <laurent@open-minds.org>
 Date: Mon, 19 Oct 2009 21:16:34 +0200
 Subject: [PATCH] Fix SELinux linking issues.
 
