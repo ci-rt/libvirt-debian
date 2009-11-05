@@ -1,3 +1,19 @@
+libvirt (0.7.2-2) unstable; urgency=low
+
+  [ Laurent Léonard ]
+  * [a9ea205] Change requirement of libvirt-bin in libvirt- suspendonreboot.
+  * [a4db804] Update debian/patches/0006-Don-t-let-parent-of-daemon-
+    exit-until-basic-initiali.patch. Fix use of an uninitialized variable that
+    was causing a bug on i386 systems.
+  * [59e1e53] Redo patches.
+
+  [ Guido Günther ]
+  * upload to unstable
+  * [43f106a] Only remove masquerade roles for VIR_NETWORK_FORWARD_NAT
+    (Closes: #549949) - thanks to Rob S. Wolfram for testing
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 05 Nov 2009 20:44:21 +0100
+
 libvirt (0.7.2-1) experimental; urgency=low
 
   [ Laurent Léonard ]
