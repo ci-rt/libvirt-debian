@@ -1,0 +1,36 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Thu, 5 Nov 2009 20:28:11 +0100
+Subject: [PATCH] Only remove masquerade roles for VIR_NETWORK_FORWARD_NAT
+
+Closes: #549949
+---
+ src/network/bridge_driver.c |   11 +++++------
+ 1 files changed, 5 insertions(+), 6 deletions(-)
+
+diff --git a/src/network/bridge_driver.c b/src/network/bridge_driver.c
+index 95bc810..86ec392 100644
+--- a/src/network/bridge_driver.c
++++ b/src/network/bridge_driver.c
+@@ -765,16 +765,15 @@ static void
+ networkRemoveIptablesRules(struct network_driver *driver,
+                          virNetworkObjPtr network) {
+     if (network->def->forwardType != VIR_NETWORK_FORWARD_NONE) {
+-        iptablesRemoveForwardMasquerade(driver->iptables,
+-                                        network->def->network,
+-                                        network->def->forwardDev);
+-
+-        if (network->def->forwardType == VIR_NETWORK_FORWARD_NAT)
++        if (network->def->forwardType == VIR_NETWORK_FORWARD_NAT) {
++            iptablesRemoveForwardMasquerade(driver->iptables,
++                                                network->def->network,
++                                                network->def->forwardDev);
+             iptablesRemoveForwardAllowRelatedIn(driver->iptables,
+                                                 network->def->network,
+                                                 network->def->bridge,
+                                                 network->def->forwardDev);
+-        else if (network->def->forwardType == VIR_NETWORK_FORWARD_ROUTE)
++        } else if (network->def->forwardType == VIR_NETWORK_FORWARD_ROUTE)
+             iptablesRemoveForwardAllowIn(driver->iptables,
+                                          network->def->network,
+                                          network->def->bridge,
+-- 
