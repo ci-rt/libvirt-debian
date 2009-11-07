@@ -1,0 +1,55 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Sat, 7 Nov 2009 12:48:54 +0100
+Subject: [PATCH] Fix qemu:///session
+
+Backported from upsgtream's 79218cdd9887b132eb0f29fe2048f89e90beae1
+
+Closes: #554869
+---
+ src/lxc/lxc_driver.c |   23 +++++++++++++----------
+ 1 files changed, 13 insertions(+), 10 deletions(-)
+
+diff --git a/src/lxc/lxc_driver.c b/src/lxc/lxc_driver.c
+index 0b614e3..db47555 100644
+--- a/src/lxc/lxc_driver.c
++++ b/src/lxc/lxc_driver.c
+@@ -1600,12 +1600,21 @@ static int lxcStartup(int privileged)
+      * XXX remove this when valgrind is fixed
+      */
+     ld = getenv("LD_PRELOAD");
+-    if (ld && strstr(ld, "vgpreload"))
+-        return -1;
++    if (ld && strstr(ld, "vgpreload")) {
++        VIR_INFO0("Running under valgrind, disabling driver");
++        return 0;
++    }
+ 
+-    /* Check that the user is root */
++    /* Check that the user is root, silently disable if not */
+     if (!privileged) {
+-        return -1;
++        VIR_INFO0("Not running privileged, disabling driver");
++        return 0;
++    }
++
++    /* Check that this is a container enabled kernel */
++    if (lxcContainerAvailable(0) < 0) {
++        VIR_INFO0("LXC support not available in this kernel, disabling driver");
++        return 0;
+     }
+ 
+     if (VIR_ALLOC(lxc_driver) < 0) {
+@@ -1617,12 +1626,6 @@ static int lxcStartup(int privileged)
+     }
+     lxcDriverLock(lxc_driver);
+ 
+-    /* Check that this is a container enabled kernel */
+-    if (lxcContainerAvailable(0) < 0) {
+-        VIR_INFO0("LXC support not available in this kernel, disabling driver");
+-        goto cleanup;
+-    }
+-
+     if (VIR_ALLOC(lxc_driver->domainEventCallbacks) < 0)
+         goto cleanup;
+     if (!(lxc_driver->domainEventQueue = virDomainEventQueueNew()))
+-- 
