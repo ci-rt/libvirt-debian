@@ -1,3 +1,10 @@
+libvirt (0.7.2-3) unstable; urgency=low
+
+  * [2c0aa82] Fix qemu:///session Backported from upsgtream's
+    79218cdd9887b132eb0f29fe2048f89e90beae1 (Closes: #554869)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 07 Nov 2009 12:50:54 +0100
+
 libvirt (0.7.2-2) unstable; urgency=low
 
   [ Laurent Léonard ]
