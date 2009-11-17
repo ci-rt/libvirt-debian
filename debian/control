@@ -15,7 +15,8 @@ Standards-Version: 3.8.3
 
 Package: libvirt-bin
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, adduser, libvirt0 (= ${binary:Version}), logrotate
+Depends: ${shlibs:Depends}, ${misc:Depends}, adduser, libvirt0 (= ${binary:Version}), logrotate,
+ hal
 Enhances: qemu, kvm, xen
 Section: admin
 Recommends: netcat-openbsd, bridge-utils, dnsmasq-base (>= 2.46-1), iptables, qemu (>= 0.9.1)
