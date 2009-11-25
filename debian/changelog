@@ -1,3 +1,11 @@
+libvirt (0.7.2-4) unstable; urgency=low
+
+  * [213ca47] switch to new source format 3.0 (quilt)
+  * [f5a10e9] Depend on hal (Closes: #556730)
+  * [7d1422d] Drop build-dep on libpolkit-dbus-dev (Closes: #549500)
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 25 Nov 2009 19:02:17 +0100
+
 libvirt (0.7.2-3) unstable; urgency=low
 
   * [2c0aa82] Fix qemu:///session Backported from upsgtream's
