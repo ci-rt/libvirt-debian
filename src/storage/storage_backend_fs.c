@@ -136,14 +136,15 @@ struct _virNetfsDiscoverState {
 typedef struct _virNetfsDiscoverState virNetfsDiscoverState;
 
 static int
-virStorageBackendFileSystemNetFindPoolSourcesFunc(virConnectPtr conn ATTRIBUTE_UNUSED,
+virStorageBackendFileSystemNetFindPoolSourcesFunc(virConnectPtr conn,
                                                   virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
                                                   char **const groups,
                                                   void *data)
 {
     virNetfsDiscoverState *state = data;
     const char *name, *path;
-    virStoragePoolSource *src;
+    virStoragePoolSource *src = NULL;
+    int ret = -1;
 
     path = groups[0];
 
@@ -151,29 +152,33 @@ virStorageBackendFileSystemNetFindPoolSourcesFunc(virConnectPtr conn ATTRIBUTE_U
     if (name == NULL) {
         virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
                               _("invalid netfs path (no /): %s"), path);
-        return -1;
+        goto cleanup;
     }
     name += 1;
     if (*name == '\0') {
         virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
                               _("invalid netfs path (ends in /): %s"), path);
-        return -1;
+        goto cleanup;
     }
 
-    if (VIR_REALLOC_N(state->list.sources, state->list.nsources+1) < 0) {
-        virReportOOMError(conn);
-        return -1;
-    }
-    memset(state->list.sources + state->list.nsources, 0, sizeof(*state->list.sources));
+    if (!(src = virStoragePoolSourceListNewSource(conn, &state->list)))
+        goto cleanup;
 
-    src = state->list.sources + state->list.nsources++;
     if (!(src->host.name = strdup(state->host)) ||
-        !(src->dir = strdup(path)))
-        return -1;
+        !(src->dir = strdup(path))) {
+        virReportOOMError(conn);
+        goto cleanup;
+    }
     src->format = VIR_STORAGE_POOL_NETFS_NFS;
 
-    return 0;
+    src = NULL;
+    ret = 0;
+cleanup:
+    if (src)
+        virStoragePoolSourceFree(src);
+    return ret;
 }
+
 
 static char *
 virStorageBackendFileSystemNetFindPoolSources(virConnectPtr conn,
@@ -194,8 +199,6 @@ virStorageBackendFileSystemNetFindPoolSources(virConnectPtr conn,
     int vars[] = {
         1
     };
-    xmlDocPtr doc = NULL;
-    xmlXPathContextPtr xpath_ctxt = NULL;
     virNetfsDiscoverState state = {
         .host = NULL,
         .list = {
@@ -205,31 +208,18 @@ virStorageBackendFileSystemNetFindPoolSources(virConnectPtr conn,
         }
     };
     const char *prog[] = { SHOWMOUNT, "--no-headers", "--exports", NULL, NULL };
+    virStoragePoolSourcePtr source = NULL;
     int exitstatus;
     char *retval = NULL;
     unsigned int i;
 
-    doc = xmlReadDoc((const xmlChar *)srcSpec, "srcSpec.xml", NULL,
-                     XML_PARSE_NOENT | XML_PARSE_NONET |
-                     XML_PARSE_NOERROR | XML_PARSE_NOWARNING);
-    if (doc == NULL) {
-        virStorageReportError(conn, VIR_ERR_XML_ERROR, "%s", _("bad <source> spec"));
+    source = virStoragePoolDefParseSourceString(conn, srcSpec,
+                                                VIR_STORAGE_POOL_NETFS);
+    if (!source)
         goto cleanup;
-    }
 
-    xpath_ctxt = xmlXPathNewContext(doc);
-    if (xpath_ctxt == NULL) {
-        virReportOOMError(conn);
-        goto cleanup;
-    }
-
-    state.host = virXPathString(conn, "string(/source/host/@name)", xpath_ctxt);
-    if (!state.host || !state.host[0]) {
-        virStorageReportError(conn, VIR_ERR_XML_ERROR, "%s",
-                              _("missing <host> in <source> spec"));
-        goto cleanup;
-    }
-    prog[3] = state.host;
+    state.host = source->host.name;
+    prog[3] = source->host.name;
 
     if (virStorageBackendRunProgRegex(conn, NULL, prog, 1, regexes, vars,
                                       virStorageBackendFileSystemNetFindPoolSourcesFunc,
@@ -246,11 +236,10 @@ virStorageBackendFileSystemNetFindPoolSources(virConnectPtr conn,
     for (i = 0; i < state.list.nsources; i++)
         virStoragePoolSourceFree(&state.list.sources[i]);
 
-    VIR_FREE(state.list.sources);
-    VIR_FREE(state.host);
+    if (source)
+        virStoragePoolSourceFree(source);
 
-    xmlFreeDoc(doc);
-    xmlXPathFreeContext(xpath_ctxt);
+    VIR_FREE(state.list.sources);
 
     return retval;
 }

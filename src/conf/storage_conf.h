@@ -375,6 +375,13 @@ void virStoragePoolObjListFree(virStoragePoolObjListPtr pools);
 void virStoragePoolObjRemove(virStoragePoolObjListPtr pools,
                              virStoragePoolObjPtr pool);
 
+virStoragePoolSourcePtr
+virStoragePoolDefParseSourceString(virConnectPtr conn,
+                                   const char *srcSpec,
+                                   int pool_type);
+virStoragePoolSourcePtr
+virStoragePoolSourceListNewSource(virConnectPtr conn,
+                                  virStoragePoolSourceListPtr list);
 char *virStoragePoolSourceListFormat(virConnectPtr conn,
                                      virStoragePoolSourceListPtr def);
 
@@ -395,6 +402,7 @@ enum virStoragePoolFormatFileSystem {
     VIR_STORAGE_POOL_FS_VFAT,
     VIR_STORAGE_POOL_FS_HFSPLUS,
     VIR_STORAGE_POOL_FS_XFS,
+    VIR_STORAGE_POOL_FS_OCFS2,
     VIR_STORAGE_POOL_FS_LAST,
 };
 VIR_ENUM_DECL(virStoragePoolFormatFileSystem)

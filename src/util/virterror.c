@@ -1082,11 +1082,30 @@ virErrorMsg(virErrorNumber error, const char *info)
                 errmsg = _("Invalid secret");
             else
                 errmsg = _("Invalid secret: %s");
+            break;
         case VIR_ERR_NO_SECRET:
             if (info == NULL)
                 errmsg = _("Secret not found");
             else
                 errmsg = _("Secret not found: %s");
+            break;
+        case VIR_ERR_CONFIG_UNSUPPORTED:
+            if (info == NULL)
+                errmsg = _("unsupported configuration");
+            else
+                errmsg = _("unsupported configuration: %s");
+            break;
+        case VIR_ERR_OPERATION_TIMEOUT:
+            if (info == NULL)
+                errmsg = _("Timed out during operation");
+            else
+                errmsg = _("Timed out during operation: %s");
+            break;
+        case VIR_ERR_MIGRATE_PERSIST_FAILED:
+            if (info == NULL)
+                errmsg = _("Failed to make domain persistent after migration");
+            else
+                errmsg = _("Failed to make domain persistent after migration: %s");
             break;
     }
     return (errmsg);
@@ -1157,7 +1176,7 @@ const char *virStrerror(int theerrno, char *errBuf, size_t errBufLen)
     return errBuf;
 # endif
 #else
-    /* Mingw lacks strerror_r() and its strerror() is definitely not
+    /* Mingw lacks strerror_r and its strerror is definitely not
      * threadsafe, so safest option is to just print the raw errno
      * value - we can at least reliably & safely look it up in the
      * header files for debug purposes

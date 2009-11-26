@@ -56,6 +56,7 @@
     <reference name='VIR_DOMAIN_XML_SECURE' href='html/libvirt-libvirt.html#VIR_DOMAIN_XML_SECURE'/>
     <reference name='VIR_ERR_AUTH_FAILED' href='html/libvirt-virterror.html#VIR_ERR_AUTH_FAILED'/>
     <reference name='VIR_ERR_CALL_FAILED' href='html/libvirt-virterror.html#VIR_ERR_CALL_FAILED'/>
+    <reference name='VIR_ERR_CONFIG_UNSUPPORTED' href='html/libvirt-virterror.html#VIR_ERR_CONFIG_UNSUPPORTED'/>
     <reference name='VIR_ERR_CONF_SYNTAX' href='html/libvirt-virterror.html#VIR_ERR_CONF_SYNTAX'/>
     <reference name='VIR_ERR_DOM_EXIST' href='html/libvirt-virterror.html#VIR_ERR_DOM_EXIST'/>
     <reference name='VIR_ERR_DRIVER_FULL' href='html/libvirt-virterror.html#VIR_ERR_DRIVER_FULL'/>
@@ -74,6 +75,7 @@
     <reference name='VIR_ERR_INVALID_SECRET' href='html/libvirt-virterror.html#VIR_ERR_INVALID_SECRET'/>
     <reference name='VIR_ERR_INVALID_STORAGE_POOL' href='html/libvirt-virterror.html#VIR_ERR_INVALID_STORAGE_POOL'/>
     <reference name='VIR_ERR_INVALID_STORAGE_VOL' href='html/libvirt-virterror.html#VIR_ERR_INVALID_STORAGE_VOL'/>
+    <reference name='VIR_ERR_MIGRATE_PERSIST_FAILED' href='html/libvirt-virterror.html#VIR_ERR_MIGRATE_PERSIST_FAILED'/>
     <reference name='VIR_ERR_MULTIPLE_INTERFACES' href='html/libvirt-virterror.html#VIR_ERR_MULTIPLE_INTERFACES'/>
     <reference name='VIR_ERR_NETWORK_EXIST' href='html/libvirt-virterror.html#VIR_ERR_NETWORK_EXIST'/>
     <reference name='VIR_ERR_NONE' href='html/libvirt-virterror.html#VIR_ERR_NONE'/>
@@ -102,6 +104,7 @@
     <reference name='VIR_ERR_OPERATION_DENIED' href='html/libvirt-virterror.html#VIR_ERR_OPERATION_DENIED'/>
     <reference name='VIR_ERR_OPERATION_FAILED' href='html/libvirt-virterror.html#VIR_ERR_OPERATION_FAILED'/>
     <reference name='VIR_ERR_OPERATION_INVALID' href='html/libvirt-virterror.html#VIR_ERR_OPERATION_INVALID'/>
+    <reference name='VIR_ERR_OPERATION_TIMEOUT' href='html/libvirt-virterror.html#VIR_ERR_OPERATION_TIMEOUT'/>
     <reference name='VIR_ERR_OS_TYPE' href='html/libvirt-virterror.html#VIR_ERR_OS_TYPE'/>
     <reference name='VIR_ERR_PARSE_FAILED' href='html/libvirt-virterror.html#VIR_ERR_PARSE_FAILED'/>
     <reference name='VIR_ERR_POST_FAILED' href='html/libvirt-virterror.html#VIR_ERR_POST_FAILED'/>
@@ -151,11 +154,14 @@
     <reference name='VIR_FROM_XEN_INOTIFY' href='html/libvirt-virterror.html#VIR_FROM_XEN_INOTIFY'/>
     <reference name='VIR_FROM_XML' href='html/libvirt-virterror.html#VIR_FROM_XML'/>
     <reference name='VIR_GET_CPUMAP' href='html/libvirt-libvirt.html#VIR_GET_CPUMAP'/>
+    <reference name='VIR_INTERFACE_XML_INACTIVE' href='html/libvirt-libvirt.html#VIR_INTERFACE_XML_INACTIVE'/>
     <reference name='VIR_MEMORY_PHYSICAL' href='html/libvirt-libvirt.html#VIR_MEMORY_PHYSICAL'/>
     <reference name='VIR_MEMORY_VIRTUAL' href='html/libvirt-libvirt.html#VIR_MEMORY_VIRTUAL'/>
     <reference name='VIR_MIGRATE_LIVE' href='html/libvirt-libvirt.html#VIR_MIGRATE_LIVE'/>
     <reference name='VIR_MIGRATE_PEER2PEER' href='html/libvirt-libvirt.html#VIR_MIGRATE_PEER2PEER'/>
+    <reference name='VIR_MIGRATE_PERSIST_DEST' href='html/libvirt-libvirt.html#VIR_MIGRATE_PERSIST_DEST'/>
     <reference name='VIR_MIGRATE_TUNNELLED' href='html/libvirt-libvirt.html#VIR_MIGRATE_TUNNELLED'/>
+    <reference name='VIR_MIGRATE_UNDEFINE_SOURCE' href='html/libvirt-libvirt.html#VIR_MIGRATE_UNDEFINE_SOURCE'/>
     <reference name='VIR_NODEINFO_MAXCPUS' href='html/libvirt-libvirt.html#VIR_NODEINFO_MAXCPUS'/>
     <reference name='VIR_SECRET_USAGE_TYPE_NONE' href='html/libvirt-libvirt.html#VIR_SECRET_USAGE_TYPE_NONE'/>
     <reference name='VIR_SECRET_USAGE_TYPE_VOLUME' href='html/libvirt-libvirt.html#VIR_SECRET_USAGE_TYPE_VOLUME'/>
@@ -227,10 +233,13 @@
     <reference name='virConnectFlags' href='html/libvirt-libvirt.html#virConnectFlags'/>
     <reference name='virConnectGetCapabilities' href='html/libvirt-libvirt.html#virConnectGetCapabilities'/>
     <reference name='virConnectGetHostname' href='html/libvirt-libvirt.html#virConnectGetHostname'/>
+    <reference name='virConnectGetLibVersion' href='html/libvirt-libvirt.html#virConnectGetLibVersion'/>
     <reference name='virConnectGetMaxVcpus' href='html/libvirt-libvirt.html#virConnectGetMaxVcpus'/>
     <reference name='virConnectGetType' href='html/libvirt-libvirt.html#virConnectGetType'/>
     <reference name='virConnectGetURI' href='html/libvirt-libvirt.html#virConnectGetURI'/>
     <reference name='virConnectGetVersion' href='html/libvirt-libvirt.html#virConnectGetVersion'/>
+    <reference name='virConnectIsEncrypted' href='html/libvirt-libvirt.html#virConnectIsEncrypted'/>
+    <reference name='virConnectIsSecure' href='html/libvirt-libvirt.html#virConnectIsSecure'/>
     <reference name='virConnectListDefinedDomains' href='html/libvirt-libvirt.html#virConnectListDefinedDomains'/>
     <reference name='virConnectListDefinedInterfaces' href='html/libvirt-libvirt.html#virConnectListDefinedInterfaces'/>
     <reference name='virConnectListDefinedNetworks' href='html/libvirt-libvirt.html#virConnectListDefinedNetworks'/>
@@ -298,6 +307,8 @@
     <reference name='virDomainInterfaceStats' href='html/libvirt-libvirt.html#virDomainInterfaceStats'/>
     <reference name='virDomainInterfaceStatsPtr' href='html/libvirt-libvirt.html#virDomainInterfaceStatsPtr'/>
     <reference name='virDomainInterfaceStatsStruct' href='html/libvirt-libvirt.html#virDomainInterfaceStatsStruct'/>
+    <reference name='virDomainIsActive' href='html/libvirt-libvirt.html#virDomainIsActive'/>
+    <reference name='virDomainIsPersistent' href='html/libvirt-libvirt.html#virDomainIsPersistent'/>
     <reference name='virDomainLookupByID' href='html/libvirt-libvirt.html#virDomainLookupByID'/>
     <reference name='virDomainLookupByName' href='html/libvirt-libvirt.html#virDomainLookupByName'/>
     <reference name='virDomainLookupByUUID' href='html/libvirt-libvirt.html#virDomainLookupByUUID'/>
@@ -354,11 +365,13 @@
     <reference name='virInterfaceGetMACString' href='html/libvirt-libvirt.html#virInterfaceGetMACString'/>
     <reference name='virInterfaceGetName' href='html/libvirt-libvirt.html#virInterfaceGetName'/>
     <reference name='virInterfaceGetXMLDesc' href='html/libvirt-libvirt.html#virInterfaceGetXMLDesc'/>
+    <reference name='virInterfaceIsActive' href='html/libvirt-libvirt.html#virInterfaceIsActive'/>
     <reference name='virInterfaceLookupByMACString' href='html/libvirt-libvirt.html#virInterfaceLookupByMACString'/>
     <reference name='virInterfaceLookupByName' href='html/libvirt-libvirt.html#virInterfaceLookupByName'/>
     <reference name='virInterfacePtr' href='html/libvirt-libvirt.html#virInterfacePtr'/>
     <reference name='virInterfaceRef' href='html/libvirt-libvirt.html#virInterfaceRef'/>
     <reference name='virInterfaceUndefine' href='html/libvirt-libvirt.html#virInterfaceUndefine'/>
+    <reference name='virInterfaceXMLFlags' href='html/libvirt-libvirt.html#virInterfaceXMLFlags'/>
     <reference name='virNetwork' href='html/libvirt-libvirt.html#virNetwork'/>
     <reference name='virNetworkCreate' href='html/libvirt-libvirt.html#virNetworkCreate'/>
     <reference name='virNetworkCreateXML' href='html/libvirt-libvirt.html#virNetworkCreateXML'/>
@@ -372,6 +385,8 @@
     <reference name='virNetworkGetUUID' href='html/libvirt-libvirt.html#virNetworkGetUUID'/>
     <reference name='virNetworkGetUUIDString' href='html/libvirt-libvirt.html#virNetworkGetUUIDString'/>
     <reference name='virNetworkGetXMLDesc' href='html/libvirt-libvirt.html#virNetworkGetXMLDesc'/>
+    <reference name='virNetworkIsActive' href='html/libvirt-libvirt.html#virNetworkIsActive'/>
+    <reference name='virNetworkIsPersistent' href='html/libvirt-libvirt.html#virNetworkIsPersistent'/>
     <reference name='virNetworkLookupByName' href='html/libvirt-libvirt.html#virNetworkLookupByName'/>
     <reference name='virNetworkLookupByUUID' href='html/libvirt-libvirt.html#virNetworkLookupByUUID'/>
     <reference name='virNetworkLookupByUUIDString' href='html/libvirt-libvirt.html#virNetworkLookupByUUIDString'/>
@@ -450,6 +465,8 @@
     <reference name='virStoragePoolGetXMLDesc' href='html/libvirt-libvirt.html#virStoragePoolGetXMLDesc'/>
     <reference name='virStoragePoolInfo' href='html/libvirt-libvirt.html#virStoragePoolInfo'/>
     <reference name='virStoragePoolInfoPtr' href='html/libvirt-libvirt.html#virStoragePoolInfoPtr'/>
+    <reference name='virStoragePoolIsActive' href='html/libvirt-libvirt.html#virStoragePoolIsActive'/>
+    <reference name='virStoragePoolIsPersistent' href='html/libvirt-libvirt.html#virStoragePoolIsPersistent'/>
     <reference name='virStoragePoolListVolumes' href='html/libvirt-libvirt.html#virStoragePoolListVolumes'/>
     <reference name='virStoragePoolLookupByName' href='html/libvirt-libvirt.html#virStoragePoolLookupByName'/>
     <reference name='virStoragePoolLookupByUUID' href='html/libvirt-libvirt.html#virStoragePoolLookupByUUID'/>
@@ -564,6 +581,7 @@
       <ref name='VIR_DOMAIN_XML_SECURE'/>
       <ref name='VIR_ERR_AUTH_FAILED'/>
       <ref name='VIR_ERR_CALL_FAILED'/>
+      <ref name='VIR_ERR_CONFIG_UNSUPPORTED'/>
       <ref name='VIR_ERR_CONF_SYNTAX'/>
       <ref name='VIR_ERR_DOM_EXIST'/>
       <ref name='VIR_ERR_DRIVER_FULL'/>
@@ -582,6 +600,7 @@
       <ref name='VIR_ERR_INVALID_SECRET'/>
       <ref name='VIR_ERR_INVALID_STORAGE_POOL'/>
       <ref name='VIR_ERR_INVALID_STORAGE_VOL'/>
+      <ref name='VIR_ERR_MIGRATE_PERSIST_FAILED'/>
       <ref name='VIR_ERR_MULTIPLE_INTERFACES'/>
       <ref name='VIR_ERR_NETWORK_EXIST'/>
       <ref name='VIR_ERR_NONE'/>
@@ -610,6 +629,7 @@
       <ref name='VIR_ERR_OPERATION_DENIED'/>
       <ref name='VIR_ERR_OPERATION_FAILED'/>
       <ref name='VIR_ERR_OPERATION_INVALID'/>
+      <ref name='VIR_ERR_OPERATION_TIMEOUT'/>
       <ref name='VIR_ERR_OS_TYPE'/>
       <ref name='VIR_ERR_PARSE_FAILED'/>
       <ref name='VIR_ERR_POST_FAILED'/>
@@ -659,11 +679,14 @@
       <ref name='VIR_FROM_XEN_INOTIFY'/>
       <ref name='VIR_FROM_XML'/>
       <ref name='VIR_GET_CPUMAP'/>
+      <ref name='VIR_INTERFACE_XML_INACTIVE'/>
       <ref name='VIR_MEMORY_PHYSICAL'/>
       <ref name='VIR_MEMORY_VIRTUAL'/>
       <ref name='VIR_MIGRATE_LIVE'/>
       <ref name='VIR_MIGRATE_PEER2PEER'/>
+      <ref name='VIR_MIGRATE_PERSIST_DEST'/>
       <ref name='VIR_MIGRATE_TUNNELLED'/>
+      <ref name='VIR_MIGRATE_UNDEFINE_SOURCE'/>
       <ref name='VIR_NODEINFO_MAXCPUS'/>
       <ref name='VIR_SECRET_USAGE_TYPE_NONE'/>
       <ref name='VIR_SECRET_USAGE_TYPE_VOLUME'/>
@@ -739,10 +762,13 @@
       <ref name='virConnectFlags'/>
       <ref name='virConnectGetCapabilities'/>
       <ref name='virConnectGetHostname'/>
+      <ref name='virConnectGetLibVersion'/>
       <ref name='virConnectGetMaxVcpus'/>
       <ref name='virConnectGetType'/>
       <ref name='virConnectGetURI'/>
       <ref name='virConnectGetVersion'/>
+      <ref name='virConnectIsEncrypted'/>
+      <ref name='virConnectIsSecure'/>
       <ref name='virConnectListDefinedDomains'/>
       <ref name='virConnectListDefinedInterfaces'/>
       <ref name='virConnectListDefinedNetworks'/>
@@ -810,6 +836,8 @@
       <ref name='virDomainInterfaceStats'/>
       <ref name='virDomainInterfaceStatsPtr'/>
       <ref name='virDomainInterfaceStatsStruct'/>
+      <ref name='virDomainIsActive'/>
+      <ref name='virDomainIsPersistent'/>
       <ref name='virDomainLookupByID'/>
       <ref name='virDomainLookupByName'/>
       <ref name='virDomainLookupByUUID'/>
@@ -866,11 +894,13 @@
       <ref name='virInterfaceGetMACString'/>
       <ref name='virInterfaceGetName'/>
       <ref name='virInterfaceGetXMLDesc'/>
+      <ref name='virInterfaceIsActive'/>
       <ref name='virInterfaceLookupByMACString'/>
       <ref name='virInterfaceLookupByName'/>
       <ref name='virInterfacePtr'/>
       <ref name='virInterfaceRef'/>
       <ref name='virInterfaceUndefine'/>
+      <ref name='virInterfaceXMLFlags'/>
       <ref name='virNetwork'/>
       <ref name='virNetworkCreate'/>
       <ref name='virNetworkCreateXML'/>
@@ -884,6 +914,8 @@
       <ref name='virNetworkGetUUID'/>
       <ref name='virNetworkGetUUIDString'/>
       <ref name='virNetworkGetXMLDesc'/>
+      <ref name='virNetworkIsActive'/>
+      <ref name='virNetworkIsPersistent'/>
       <ref name='virNetworkLookupByName'/>
       <ref name='virNetworkLookupByUUID'/>
       <ref name='virNetworkLookupByUUIDString'/>
@@ -962,6 +994,8 @@
       <ref name='virStoragePoolGetXMLDesc'/>
       <ref name='virStoragePoolInfo'/>
       <ref name='virStoragePoolInfoPtr'/>
+      <ref name='virStoragePoolIsActive'/>
+      <ref name='virStoragePoolIsPersistent'/>
       <ref name='virStoragePoolListVolumes'/>
       <ref name='virStoragePoolLookupByName'/>
       <ref name='virStoragePoolLookupByUUID'/>
@@ -1195,6 +1229,7 @@
       <ref name='virDomainSetMemory'/>
     </type>
     <type name='unsigned long *'>
+      <ref name='virConnectGetLibVersion'/>
       <ref name='virConnectGetVersion'/>
       <ref name='virGetVersion'/>
     </type>
@@ -1229,10 +1264,13 @@
       <ref name='virConnectFindStoragePoolSources'/>
       <ref name='virConnectGetCapabilities'/>
       <ref name='virConnectGetHostname'/>
+      <ref name='virConnectGetLibVersion'/>
       <ref name='virConnectGetMaxVcpus'/>
       <ref name='virConnectGetType'/>
       <ref name='virConnectGetURI'/>
       <ref name='virConnectGetVersion'/>
+      <ref name='virConnectIsEncrypted'/>
+      <ref name='virConnectIsSecure'/>
       <ref name='virConnectListDefinedDomains'/>
       <ref name='virConnectListDefinedInterfaces'/>
       <ref name='virConnectListDefinedNetworks'/>
@@ -1325,6 +1363,8 @@
       <ref name='virDomainGetVcpus'/>
       <ref name='virDomainGetXMLDesc'/>
       <ref name='virDomainInterfaceStats'/>
+      <ref name='virDomainIsActive'/>
+      <ref name='virDomainIsPersistent'/>
       <ref name='virDomainMemoryPeek'/>
       <ref name='virDomainMigrate'/>
       <ref name='virDomainMigrateToURI'/>
@@ -1392,6 +1432,7 @@
       <ref name='virInterfaceGetMACString'/>
       <ref name='virInterfaceGetName'/>
       <ref name='virInterfaceGetXMLDesc'/>
+      <ref name='virInterfaceIsActive'/>
       <ref name='virInterfaceRef'/>
       <ref name='virInterfaceUndefine'/>
     </type>
@@ -1406,6 +1447,8 @@
       <ref name='virNetworkGetUUID'/>
       <ref name='virNetworkGetUUIDString'/>
       <ref name='virNetworkGetXMLDesc'/>
+      <ref name='virNetworkIsActive'/>
+      <ref name='virNetworkIsPersistent'/>
       <ref name='virNetworkRef'/>
       <ref name='virNetworkSetAutostart'/>
       <ref name='virNetworkUndefine'/>
@@ -1465,6 +1508,8 @@
       <ref name='virStoragePoolGetUUID'/>
       <ref name='virStoragePoolGetUUIDString'/>
       <ref name='virStoragePoolGetXMLDesc'/>
+      <ref name='virStoragePoolIsActive'/>
+      <ref name='virStoragePoolIsPersistent'/>
       <ref name='virStoragePoolListVolumes'/>
       <ref name='virStoragePoolNumOfVolumes'/>
       <ref name='virStoragePoolRef'/>
@@ -1601,11 +1646,14 @@
       <ref name='VIR_EVENT_HANDLE_READABLE'/>
       <ref name='VIR_EVENT_HANDLE_WRITABLE'/>
       <ref name='VIR_GET_CPUMAP'/>
+      <ref name='VIR_INTERFACE_XML_INACTIVE'/>
       <ref name='VIR_MEMORY_PHYSICAL'/>
       <ref name='VIR_MEMORY_VIRTUAL'/>
       <ref name='VIR_MIGRATE_LIVE'/>
       <ref name='VIR_MIGRATE_PEER2PEER'/>
+      <ref name='VIR_MIGRATE_PERSIST_DEST'/>
       <ref name='VIR_MIGRATE_TUNNELLED'/>
+      <ref name='VIR_MIGRATE_UNDEFINE_SOURCE'/>
       <ref name='VIR_NODEINFO_MAXCPUS'/>
       <ref name='VIR_SECRET_USAGE_TYPE_NONE'/>
       <ref name='VIR_SECRET_USAGE_TYPE_VOLUME'/>
@@ -1667,10 +1715,13 @@
       <ref name='virConnectFlags'/>
       <ref name='virConnectGetCapabilities'/>
       <ref name='virConnectGetHostname'/>
+      <ref name='virConnectGetLibVersion'/>
       <ref name='virConnectGetMaxVcpus'/>
       <ref name='virConnectGetType'/>
       <ref name='virConnectGetURI'/>
       <ref name='virConnectGetVersion'/>
+      <ref name='virConnectIsEncrypted'/>
+      <ref name='virConnectIsSecure'/>
       <ref name='virConnectListDefinedDomains'/>
       <ref name='virConnectListDefinedInterfaces'/>
       <ref name='virConnectListDefinedNetworks'/>
@@ -1736,6 +1787,8 @@
       <ref name='virDomainInterfaceStats'/>
       <ref name='virDomainInterfaceStatsPtr'/>
       <ref name='virDomainInterfaceStatsStruct'/>
+      <ref name='virDomainIsActive'/>
+      <ref name='virDomainIsPersistent'/>
       <ref name='virDomainLookupByID'/>
       <ref name='virDomainLookupByName'/>
       <ref name='virDomainLookupByUUID'/>
@@ -1784,11 +1837,13 @@
       <ref name='virInterfaceGetMACString'/>
       <ref name='virInterfaceGetName'/>
       <ref name='virInterfaceGetXMLDesc'/>
+      <ref name='virInterfaceIsActive'/>
       <ref name='virInterfaceLookupByMACString'/>
       <ref name='virInterfaceLookupByName'/>
       <ref name='virInterfacePtr'/>
       <ref name='virInterfaceRef'/>
       <ref name='virInterfaceUndefine'/>
+      <ref name='virInterfaceXMLFlags'/>
       <ref name='virNetwork'/>
       <ref name='virNetworkCreate'/>
       <ref name='virNetworkCreateXML'/>
@@ -1802,6 +1857,8 @@
       <ref name='virNetworkGetUUID'/>
       <ref name='virNetworkGetUUIDString'/>
       <ref name='virNetworkGetXMLDesc'/>
+      <ref name='virNetworkIsActive'/>
+      <ref name='virNetworkIsPersistent'/>
       <ref name='virNetworkLookupByName'/>
       <ref name='virNetworkLookupByUUID'/>
       <ref name='virNetworkLookupByUUIDString'/>
@@ -1876,6 +1933,8 @@
       <ref name='virStoragePoolGetXMLDesc'/>
       <ref name='virStoragePoolInfo'/>
       <ref name='virStoragePoolInfoPtr'/>
+      <ref name='virStoragePoolIsActive'/>
+      <ref name='virStoragePoolIsPersistent'/>
       <ref name='virStoragePoolListVolumes'/>
       <ref name='virStoragePoolLookupByName'/>
       <ref name='virStoragePoolLookupByUUID'/>
@@ -1934,6 +1993,7 @@
     <file name='virterror'>
       <ref name='VIR_ERR_AUTH_FAILED'/>
       <ref name='VIR_ERR_CALL_FAILED'/>
+      <ref name='VIR_ERR_CONFIG_UNSUPPORTED'/>
       <ref name='VIR_ERR_CONF_SYNTAX'/>
       <ref name='VIR_ERR_DOM_EXIST'/>
       <ref name='VIR_ERR_DRIVER_FULL'/>
@@ -1952,6 +2012,7 @@
       <ref name='VIR_ERR_INVALID_SECRET'/>
       <ref name='VIR_ERR_INVALID_STORAGE_POOL'/>
       <ref name='VIR_ERR_INVALID_STORAGE_VOL'/>
+      <ref name='VIR_ERR_MIGRATE_PERSIST_FAILED'/>
       <ref name='VIR_ERR_MULTIPLE_INTERFACES'/>
       <ref name='VIR_ERR_NETWORK_EXIST'/>
       <ref name='VIR_ERR_NONE'/>
@@ -1980,6 +2041,7 @@
       <ref name='VIR_ERR_OPERATION_DENIED'/>
       <ref name='VIR_ERR_OPERATION_FAILED'/>
       <ref name='VIR_ERR_OPERATION_INVALID'/>
+      <ref name='VIR_ERR_OPERATION_TIMEOUT'/>
       <ref name='VIR_ERR_OS_TYPE'/>
       <ref name='VIR_ERR_PARSE_FAILED'/>
       <ref name='VIR_ERR_POST_FAILED'/>
@@ -2102,7 +2164,6 @@
         </word>
         <word name='Applications'>
           <ref name='virDomainMigrate'/>
-          <ref name='virDomainMigrateToURI'/>
         </word>
         <word name='Authenticate'>
           <ref name='virConnectOpenAuth'/>
@@ -2200,6 +2261,7 @@
         <word name='Current'>
           <ref name='_virStoragePoolInfo'/>
           <ref name='_virStorageVolInfo'/>
+          <ref name='virInterfaceGetXMLDesc'/>
         </word>
       </letter>
       <letter name='D'>
@@ -2245,6 +2307,17 @@
           <ref name='virNetworkDestroy'/>
           <ref name='virNodeDeviceDestroy'/>
           <ref name='virStoragePoolDestroy'/>
+        </word>
+        <word name='Determine'>
+          <ref name='virConnectIsEncrypted'/>
+          <ref name='virConnectIsSecure'/>
+          <ref name='virDomainIsActive'/>
+          <ref name='virDomainIsPersistent'/>
+          <ref name='virInterfaceIsActive'/>
+          <ref name='virNetworkIsActive'/>
+          <ref name='virNetworkIsPersistent'/>
+          <ref name='virStoragePoolIsActive'/>
+          <ref name='virStoragePoolIsPersistent'/>
         </word>
         <word name='Dettach'>
           <ref name='virNodeDeviceDettach'/>
@@ -2378,6 +2451,8 @@
           <ref name='virNodeDeviceReset'/>
         </word>
       </letter>
+    </chunk>
+    <chunk name='chunk1'>
       <letter name='G'>
         <word name='Get'>
           <ref name='virConnectGetType'/>
@@ -2401,8 +2476,6 @@
           <ref name='virStoragePoolGetInfo'/>
         </word>
       </letter>
-    </chunk>
-    <chunk name='chunk1'>
       <letter name='H'>
         <word name='HBAs'>
           <ref name='virNodeDeviceCreateXML'/>
@@ -2582,6 +2655,7 @@
       <letter name='O'>
         <word name='OUT'>
           <ref name='cpumap'/>
+          <ref name='virConnectGetLibVersion'/>
           <ref name='virConnectGetVersion'/>
           <ref name='virDomainGetVcpus'/>
           <ref name='virGetVersion'/>
@@ -2647,6 +2721,7 @@
         </word>
         <word name='Provides'>
           <ref name='virConnectGetCapabilities'/>
+          <ref name='virConnectGetLibVersion'/>
           <ref name='virConnectGetMaxVcpus'/>
           <ref name='virConnectListDefinedStoragePools'/>
           <ref name='virConnectListStoragePools'/>
@@ -2777,6 +2852,9 @@
           <ref name='virSecretSetValue'/>
           <ref name='virStoragePoolSetAutostart'/>
         </word>
+        <word name='Setting'>
+          <ref name='virDomainMigrateToURI'/>
+        </word>
         <word name='Shutdown'>
           <ref name='virDomainShutdown'/>
         </word>
@@ -2804,6 +2882,8 @@
           <ref name='virDomainSuspend'/>
         </word>
       </letter>
+    </chunk>
+    <chunk name='chunk2'>
       <letter name='T'>
         <word name='TODO:'>
           <ref name='virDomainShutdown'/>
@@ -2838,9 +2918,10 @@
           <ref name='virDomainBlockPeek'/>
         </word>
       </letter>
-    </chunk>
-    <chunk name='chunk2'>
       <letter name='U'>
+        <word name='UNIX'>
+          <ref name='virConnectIsSecure'/>
+        </word>
         <word name='URI'>
           <ref name='virConnectGetURI'/>
           <ref name='virConnectOpen'/>
@@ -2934,6 +3015,9 @@
         <word name='VIR_GET_CPUMAP'>
           <ref name='VIR_GET_CPUMAP'/>
         </word>
+        <word name='VIR_INTERFACE_XML_INACTIVE'>
+          <ref name='virInterfaceGetXMLDesc'/>
+        </word>
         <word name='VIR_MEMORY_VIRTUAL'>
           <ref name='virDomainMemoryPeek'/>
         </word>
@@ -2945,7 +3029,15 @@
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrateToURI'/>
         </word>
+        <word name='VIR_MIGRATE_PERSIST_DEST'>
+          <ref name='virDomainMigrate'/>
+          <ref name='virDomainMigrateToURI'/>
+        </word>
         <word name='VIR_MIGRATE_TUNNELLED'>
+          <ref name='virDomainMigrate'/>
+          <ref name='virDomainMigrateToURI'/>
+        </word>
+        <word name='VIR_MIGRATE_UNDEFINE_SOURCE'>
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrateToURI'/>
         </word>
@@ -3115,6 +3207,7 @@
         </word>
         <word name='address'>
           <ref name='virInterfaceGetMACString'/>
+          <ref name='virInterfaceGetXMLDesc'/>
         </word>
         <word name='addresses'>
           <ref name='virDomainMemoryPeek'/>
@@ -3126,12 +3219,15 @@
           <ref name='virConnectDomainEventRegister'/>
           <ref name='virConnectGetCapabilities'/>
           <ref name='virDomainCreateLinux'/>
+          <ref name='virDomainIsPersistent'/>
           <ref name='virDomainReboot'/>
           <ref name='virDomainSave'/>
           <ref name='virDomainShutdown'/>
           <ref name='virEventRemoveHandleFunc'/>
           <ref name='virEventRemoveTimeoutFunc'/>
+          <ref name='virNetworkIsPersistent'/>
           <ref name='virNodeDeviceReset'/>
+          <ref name='virStoragePoolIsPersistent'/>
         </word>
         <word name='again'>
           <ref name='virNodeDeviceReAttach'/>
@@ -3314,7 +3410,6 @@
         </word>
         <word name='asked'>
           <ref name='virDomainMigrate'/>
-          <ref name='virDomainMigrateToURI'/>
         </word>
         <word name='aspects'>
           <ref name='virNodeDeviceGetXMLDesc'/>
@@ -3403,7 +3498,6 @@
         </word>
         <word name='avoiding'>
           <ref name='virDomainMigrate'/>
-          <ref name='virDomainMigrateToURI'/>
         </word>
       </letter>
     </chunk>
@@ -3529,6 +3623,9 @@
         <word name='bits'>
           <ref name='virDomainBlockPeek'/>
           <ref name='virDomainMemoryPeek'/>
+        </word>
+        <word name='bits:'>
+          <ref name='virInterfaceGetXMLDesc'/>
         </word>
         <word name='bitset'>
           <ref name='virEventAddHandleFunc'/>
@@ -3755,6 +3852,7 @@
           <ref name='virStreamEventUpdateCallback'/>
         </word>
         <word name='channel'>
+          <ref name='virConnectIsSecure'/>
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrateToURI'/>
         </word>
@@ -3776,6 +3874,9 @@
         <word name='chunks'>
           <ref name='virStreamSinkFunc'/>
           <ref name='virStreamSourceFunc'/>
+        </word>
+        <word name='classed'>
+          <ref name='virConnectIsSecure'/>
         </word>
         <word name='clean'>
           <ref name='virResetError'/>
@@ -3853,13 +3954,18 @@
         <word name='config'>
           <ref name='virConnectDomainXMLToNative'/>
           <ref name='virInterfaceDestroy'/>
+          <ref name='virInterfaceGetXMLDesc'/>
           <ref name='virInterfaceUndefine'/>
           <ref name='virStoragePoolDestroy'/>
         </word>
         <word name='configuration'>
           <ref name='virConnectDomainXMLFromNative'/>
           <ref name='virConnectDomainXMLToNative'/>
+          <ref name='virDomainIsPersistent'/>
           <ref name='virInterfaceDefineXML'/>
+          <ref name='virInterfaceGetXMLDesc'/>
+          <ref name='virNetworkIsPersistent'/>
+          <ref name='virStoragePoolIsPersistent'/>
           <ref name='virStorageVolGetPath'/>
         </word>
         <word name='configured'>
@@ -4058,6 +4164,7 @@
         <word name='current'>
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrateToURI'/>
+          <ref name='virInterfaceGetXMLDesc'/>
           <ref name='virStorageVolGetInfo'/>
         </word>
         <word name='currently'>
@@ -4065,9 +4172,13 @@
           <ref name='virConnectDomainXMLToNative'/>
           <ref name='virConnectNumOfSecrets'/>
           <ref name='virDomainCoreDump'/>
+          <ref name='virDomainIsActive'/>
+          <ref name='virInterfaceIsActive'/>
+          <ref name='virNetworkIsActive'/>
           <ref name='virNodeDeviceDettach'/>
           <ref name='virNodeDeviceReAttach'/>
           <ref name='virNodeDeviceReset'/>
+          <ref name='virStoragePoolIsActive'/>
           <ref name='virStoragePoolRefresh'/>
         </word>
       </letter>
@@ -4075,6 +4186,7 @@
     <chunk name='chunk4'>
       <letter name='d'>
         <word name='daemon'>
+          <ref name='virConnectGetLibVersion'/>
           <ref name='virConnectOpen'/>
         </word>
         <word name='datafile'>
@@ -4082,7 +4194,6 @@
         </word>
         <word name='dconn'>
           <ref name='virDomainMigrate'/>
-          <ref name='virDomainMigrateToURI'/>
         </word>
         <word name='deactivate'>
           <ref name='virInterfaceDestroy'/>
@@ -4355,7 +4466,10 @@
         </word>
         <word name='down'>
           <ref name='virDomainDestroy'/>
+          <ref name='virDomainIsPersistent'/>
           <ref name='virNetworkDestroy'/>
+          <ref name='virNetworkIsPersistent'/>
+          <ref name='virStoragePoolIsPersistent'/>
         </word>
         <word name='download'>
           <ref name='virStreamRecv'/>
@@ -4409,6 +4523,8 @@
           <ref name='virStorageVolGetPath'/>
         </word>
       </letter>
+    </chunk>
+    <chunk name='chunk5'>
       <letter name='e'>
         <word name='each'>
           <ref name='virConnectFindStoragePoolSources'/>
@@ -4433,11 +4549,15 @@
         <word name='early'>
           <ref name='virStreamAbort'/>
         </word>
+        <word name='eavesdropping'>
+          <ref name='virConnectIsSecure'/>
+        </word>
         <word name='effect'>
           <ref name='virConnectOpenAuth'/>
           <ref name='virConnectOpenReadOnly'/>
         </word>
         <word name='either'>
+          <ref name='virConnectIsSecure'/>
           <ref name='virDomainMigrate'/>
           <ref name='virNodeGetCellsFreeMemory'/>
           <ref name='virStorageVolGetPath'/>
@@ -4445,6 +4565,7 @@
         <word name='element'>
           <ref name='virConnectFindStoragePoolSources'/>
           <ref name='virConnectGetMaxVcpus'/>
+          <ref name='virDomainMigrateToURI'/>
         </word>
         <word name='else'>
           <ref name='virDomainMigrate'/>
@@ -4466,6 +4587,10 @@
           <ref name='virDomainGetXMLDesc'/>
           <ref name='virInterfaceGetXMLDesc'/>
           <ref name='virNetworkGetXMLDesc'/>
+        </word>
+        <word name='encrypted'>
+          <ref name='virConnectIsEncrypted'/>
+          <ref name='virConnectIsSecure'/>
         </word>
         <word name='end'>
           <ref name='virStreamAbort'/>
@@ -4556,7 +4681,10 @@
           <ref name='virConnectDomainEventRegister'/>
         </word>
         <word name='exist'>
+          <ref name='virDomainIsPersistent'/>
+          <ref name='virNetworkIsPersistent'/>
           <ref name='virSecretFree'/>
+          <ref name='virStoragePoolIsPersistent'/>
           <ref name='virStorageVolFree'/>
         </word>
         <word name='existing'>
@@ -4593,6 +4721,9 @@
         <word name='exporting'>
           <ref name='virConnectDomainXMLToNative'/>
         </word>
+        <word name='exposed'>
+          <ref name='virConnectIsSecure'/>
+        </word>
         <word name='extra'>
           <ref name='_virError'/>
           <ref name='virDomainCoreDump'/>
@@ -4613,8 +4744,6 @@
           <ref name='virNetworkGetXMLDesc'/>
         </word>
       </letter>
-    </chunk>
-    <chunk name='chunk5'>
       <letter name='f'>
         <word name='fact'>
           <ref name='virDomainMemoryPeek'/>
@@ -4678,6 +4807,9 @@
           <ref name='virStreamSendAll'/>
           <ref name='virStreamSourceFunc'/>
         </word>
+        <word name='files'>
+          <ref name='virInterfaceGetXMLDesc'/>
+        </word>
         <word name='filesystems'>
           <ref name='virDomainBlockPeek'/>
         </word>
@@ -4739,6 +4871,7 @@
         <word name='format'>
           <ref name='virConnectDomainXMLFromNative'/>
           <ref name='virConnectDomainXMLToNative'/>
+          <ref name='virConnectGetLibVersion'/>
           <ref name='virDomainGetVcpus'/>
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrateToURI'/>
@@ -4798,6 +4931,8 @@
           <ref name='virStorageVolDelete'/>
         </word>
       </letter>
+    </chunk>
+    <chunk name='chunk6'>
       <letter name='g'>
         <word name='general'>
           <ref name='virDomainShutdown'/>
@@ -4820,7 +4955,6 @@
           <ref name='virDomainGetMaxMemory'/>
           <ref name='virDomainInterfaceStats'/>
           <ref name='virDomainMigrate'/>
-          <ref name='virDomainMigrateToURI'/>
           <ref name='virSetErrorFunc'/>
           <ref name='virStreamRecv'/>
         </word>
@@ -4937,11 +5071,14 @@
         <word name='has'>
           <ref name='virDomainBlockPeek'/>
           <ref name='virDomainGetVcpus'/>
+          <ref name='virDomainIsPersistent'/>
           <ref name='virDomainMigrate'/>
           <ref name='virEventAddTimeoutFunc'/>
+          <ref name='virNetworkIsPersistent'/>
           <ref name='virNodeDeviceGetParent'/>
           <ref name='virNodeGetSecurityModel'/>
           <ref name='virStoragePoolDestroy'/>
+          <ref name='virStoragePoolIsPersistent'/>
           <ref name='virStreamAbort'/>
           <ref name='virStreamFinish'/>
           <ref name='virStreamFree'/>
@@ -4951,6 +5088,7 @@
           <ref name='virStreamSourceFunc'/>
         </word>
         <word name='have'>
+          <ref name='virConnectGetLibVersion'/>
           <ref name='virConnectOpenAuth'/>
           <ref name='virConnectOpenReadOnly'/>
           <ref name='virConnectRef'/>
@@ -4975,6 +5113,9 @@
         </word>
         <word name='here'>
           <ref name='virConnectGetMaxVcpus'/>
+        </word>
+        <word name='hinges'>
+          <ref name='virDomainMigrateToURI'/>
         </word>
         <word name='hit'>
           <ref name='virStreamFree'/>
@@ -5027,8 +5168,6 @@
           <ref name='virStreamSendAll'/>
         </word>
       </letter>
-    </chunk>
-    <chunk name='chunk6'>
       <letter name='i'>
         <word name='iSCSI'>
           <ref name='virConnectFindStoragePoolSources'/>
@@ -5092,9 +5231,13 @@
           <ref name='virConnectNumOfDefinedNetworks'/>
           <ref name='virConnectNumOfDefinedStoragePools'/>
           <ref name='virDomainGetMaxVcpus'/>
+          <ref name='virDomainIsActive'/>
           <ref name='virDomainLookupByID'/>
+          <ref name='virInterfaceIsActive'/>
+          <ref name='virNetworkIsActive'/>
           <ref name='virStoragePoolCreate'/>
           <ref name='virStoragePoolDefineXML'/>
+          <ref name='virStoragePoolIsActive'/>
           <ref name='virStoragePoolUndefine'/>
         </word>
         <word name='includes'>
@@ -5253,7 +5396,6 @@
         </word>
         <word name='invoke'>
           <ref name='virDomainMigrate'/>
-          <ref name='virDomainMigrateToURI'/>
           <ref name='virStreamEventAddCallback'/>
           <ref name='virStreamRecv'/>
           <ref name='virStreamRecvAll'/>
@@ -5292,6 +5434,8 @@
           <ref name='virStoragePoolDelete'/>
         </word>
       </letter>
+    </chunk>
+    <chunk name='chunk7'>
       <letter name='j'>
         <word name='join'>
           <ref name='virNetworkGetBridgeName'/>
@@ -5418,6 +5562,7 @@
           <ref name='LIBVIR_VERSION_NUMBER'/>
           <ref name='_virError'/>
           <ref name='virConnSetErrorFunc'/>
+          <ref name='virConnectGetLibVersion'/>
           <ref name='virConnectOpenReadOnly'/>
           <ref name='virCopyLastError'/>
           <ref name='virErrorFunc'/>
@@ -5432,6 +5577,7 @@
         </word>
         <word name='libvirt'>
           <ref name='virConnectDomainXMLFromNative'/>
+          <ref name='virConnectGetLibVersion'/>
           <ref name='virConnectOpen'/>
           <ref name='virConnectOpenAuth'/>
           <ref name='virConnectOpenReadOnly'/>
@@ -5514,6 +5660,9 @@
         <word name='little-endian'>
           <ref name='virDomainPinVcpu'/>
         </word>
+        <word name='live'>
+          <ref name='virInterfaceGetXMLDesc'/>
+        </word>
         <word name='local'>
           <ref name='virConnCopyLastError'/>
           <ref name='virConnGetLastError'/>
@@ -5584,8 +5733,6 @@
           <ref name='virDomainPinVcpu'/>
         </word>
       </letter>
-    </chunk>
-    <chunk name='chunk7'>
       <letter name='m'>
         <word name='machine'>
           <ref name='virDomainGetAutostart'/>
@@ -5606,6 +5753,7 @@
           <ref name='VIR_UUID_STRING_BUFLEN'/>
         </word>
         <word name='major'>
+          <ref name='virConnectGetLibVersion'/>
           <ref name='virConnectGetVersion'/>
           <ref name='virGetVersion'/>
         </word>
@@ -5672,7 +5820,10 @@
           <ref name='virStoragePoolListVolumes'/>
         </word>
         <word name='means'>
+          <ref name='virDomainIsPersistent'/>
           <ref name='virDomainPinVcpu'/>
+          <ref name='virNetworkIsPersistent'/>
+          <ref name='virStoragePoolIsPersistent'/>
         </word>
         <word name='mem'>
           <ref name='_virNodeInfo'/>
@@ -5717,6 +5868,7 @@
         </word>
         <word name='minor'>
           <ref name='LIBVIR_VERSION_NUMBER'/>
+          <ref name='virConnectGetLibVersion'/>
           <ref name='virConnectGetVersion'/>
           <ref name='virGetVersion'/>
         </word>
@@ -5832,6 +5984,8 @@
           <ref name='_virDomainBlockStats'/>
         </word>
       </letter>
+    </chunk>
+    <chunk name='chunk8'>
       <letter name='n'>
         <word name='names'>
           <ref name='virConnectListDefinedDomains'/>
@@ -5863,13 +6017,11 @@
           <ref name='virStreamSinkFunc'/>
           <ref name='virStreamSourceFunc'/>
         </word>
-        <word name='neccessary'>
-          <ref name='virDomainMigrate'/>
-          <ref name='virDomainMigrateToURI'/>
-        </word>
         <word name='necessary'>
           <ref name='VIR_NODEINFO_MAXCPUS'/>
           <ref name='virConnectOpenAuth'/>
+          <ref name='virDomainMigrate'/>
+          <ref name='virDomainMigrateToURI'/>
           <ref name='virNodeGetFreeMemory'/>
         </word>
         <word name='need'>
@@ -5880,7 +6032,6 @@
           <ref name='virDomainGetName'/>
           <ref name='virDomainLookupByID'/>
           <ref name='virDomainMigrate'/>
-          <ref name='virDomainMigrateToURI'/>
           <ref name='virInterfaceGetMACString'/>
           <ref name='virInterfaceGetName'/>
           <ref name='virNetworkGetName'/>
@@ -5902,6 +6053,9 @@
           <ref name='virStorageVolRef'/>
           <ref name='virStreamFree'/>
           <ref name='virStreamRef'/>
+        </word>
+        <word name='netmask'>
+          <ref name='virInterfaceGetXMLDesc'/>
         </word>
         <word name='networks'>
           <ref name='virConnectListDefinedNetworks'/>
@@ -5991,8 +6145,6 @@
           <ref name='virInterfaceLookupByMACString'/>
         </word>
       </letter>
-    </chunk>
-    <chunk name='chunk8'>
       <letter name='o'>
         <word name='objects'>
           <ref name='virDomainSetSchedulerParameters'/>
@@ -6032,7 +6184,6 @@
         </word>
         <word name='omitted'>
           <ref name='virDomainMigrate'/>
-          <ref name='virDomainMigrateToURI'/>
         </word>
         <word name='once'>
           <ref name='virConnectDomainEventRegister'/>
@@ -6058,6 +6209,7 @@
           <ref name='virDomainCreateXML'/>
           <ref name='virDomainDetachDevice'/>
           <ref name='virDomainGetVcpus'/>
+          <ref name='virDomainInterfaceStats'/>
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrateToURI'/>
           <ref name='virNetworkCreateXML'/>
@@ -6094,7 +6246,6 @@
           <ref name='virConnectRef'/>
           <ref name='virDomainBlockPeek'/>
           <ref name='virDomainMigrate'/>
-          <ref name='virDomainMigrateToURI'/>
           <ref name='virDomainRef'/>
           <ref name='virInterfaceRef'/>
           <ref name='virNetworkRef'/>
@@ -6119,6 +6270,7 @@
         </word>
         <word name='operation'>
           <ref name='virDomainGetOSType'/>
+          <ref name='virDomainMigrateToURI'/>
           <ref name='virDomainReboot'/>
           <ref name='virStoragePoolDelete'/>
           <ref name='virStreamSinkFunc'/>
@@ -6171,12 +6323,12 @@
         <word name='otherwise'>
           <ref name='VIR_CPU_USABLE'/>
           <ref name='virConnCopyLastError'/>
+          <ref name='virConnectGetLibVersion'/>
           <ref name='virConnectGetType'/>
           <ref name='virConnectGetVersion'/>
           <ref name='virCopyLastError'/>
           <ref name='virDomainDefineXML'/>
           <ref name='virDomainMigrate'/>
-          <ref name='virDomainMigrateToURI'/>
           <ref name='virGetVersion'/>
           <ref name='virInterfaceDefineXML'/>
           <ref name='virNetworkDefineXML'/>
@@ -6195,6 +6347,7 @@
           <ref name='virStreamFinish'/>
         </word>
         <word name='over'>
+          <ref name='virConnectIsSecure'/>
           <ref name='virDomainBlockPeek'/>
           <ref name='virDomainMemoryPeek'/>
           <ref name='virDomainMigrate'/>
@@ -6207,6 +6360,8 @@
           <ref name='virResetLastError'/>
         </word>
       </letter>
+    </chunk>
+    <chunk name='chunk9'>
       <letter name='p'>
         <word name='parameter'>
           <ref name='_virSchedParameter'/>
@@ -6313,12 +6468,19 @@
         <word name='perms'>
           <ref name='virStorageVolCreateXMLFrom'/>
         </word>
+        <word name='persist'>
+          <ref name='virDomainMigrate'/>
+          <ref name='virDomainMigrateToURI'/>
+        </word>
         <word name='persistent'>
           <ref name='virDomainCreateXML'/>
           <ref name='virDomainDefineXML'/>
+          <ref name='virDomainIsPersistent'/>
+          <ref name='virNetworkIsPersistent'/>
           <ref name='virStoragePoolCreateXML'/>
           <ref name='virStoragePoolDefineXML'/>
           <ref name='virStoragePoolDestroy'/>
+          <ref name='virStoragePoolIsPersistent'/>
           <ref name='virStorageVolGetPath'/>
         </word>
         <word name='physical'>
@@ -6331,6 +6493,9 @@
           <ref name='virDomainGetMaxMemory'/>
           <ref name='virDomainSetMaxMemory'/>
           <ref name='virDomainSetMemory'/>
+        </word>
+        <word name='pipe'>
+          <ref name='virConnectIsSecure'/>
         </word>
         <word name='point'>
           <ref name='virStreamFinish'/>
@@ -6374,7 +6539,6 @@
         </word>
         <word name='prefer'>
           <ref name='virDomainMigrate'/>
-          <ref name='virDomainMigrateToURI'/>
         </word>
         <word name='preferably'>
           <ref name='virDomainDefineXML'/>
@@ -6419,7 +6583,6 @@
         </word>
         <word name='probably'>
           <ref name='virDomainMigrate'/>
-          <ref name='virDomainMigrateToURI'/>
         </word>
         <word name='probing'>
           <ref name='virConnectOpen'/>
@@ -6492,15 +6655,12 @@
           <ref name='virEventAddTimeoutFunc'/>
         </word>
       </letter>
-    </chunk>
-    <chunk name='chunk9'>
       <letter name='q'>
         <word name='qualfied'>
           <ref name='virSecretGetUsageID'/>
         </word>
         <word name='queried'>
           <ref name='virDomainMigrate'/>
-          <ref name='virDomainMigrateToURI'/>
         </word>
         <word name='querying'>
           <ref name='virConnectFindStoragePoolSources'/>
@@ -6590,6 +6750,9 @@
         <word name='redefine'>
           <ref name='virInterfaceGetXMLDesc'/>
         </word>
+        <word name='redefining'>
+          <ref name='virInterfaceGetXMLDesc'/>
+        </word>
         <word name='redhat'>
           <ref name='virConnectGetType'/>
         </word>
@@ -6625,6 +6788,7 @@
           <ref name='virNetworkGetXMLDesc'/>
         </word>
         <word name='release'>
+          <ref name='virConnectGetLibVersion'/>
           <ref name='virConnectGetVersion'/>
           <ref name='virConnectRef'/>
           <ref name='virDomainRef'/>
@@ -6834,6 +6998,7 @@
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrateToURI'/>
           <ref name='virGetVersion'/>
+          <ref name='virInterfaceGetXMLDesc'/>
           <ref name='virNodeDeviceGetName'/>
           <ref name='virNodeGetCellsFreeMemory'/>
           <ref name='virStreamRecvAll'/>
@@ -6854,6 +7019,7 @@
           <ref name='virDomainGetVcpus'/>
           <ref name='virDomainGetXMLDesc'/>
           <ref name='virDomainInterfaceStats'/>
+          <ref name='virDomainMigrateToURI'/>
           <ref name='virDomainPinVcpu'/>
           <ref name='virDomainSetSchedulerParameters'/>
           <ref name='virGetVersion'/>
@@ -6875,6 +7041,7 @@
           <ref name='VIR_GET_CPUMAP'/>
           <ref name='_virDomainBlockStats'/>
           <ref name='virConnectGetHostname'/>
+          <ref name='virConnectGetLibVersion'/>
           <ref name='virConnectGetURI'/>
           <ref name='virConnectGetVersion'/>
           <ref name='virDomainBlockStats'/>
@@ -6895,20 +7062,26 @@
           <ref name='_virDomainInfo'/>
           <ref name='virConnectClose'/>
           <ref name='virConnectGetHostname'/>
+          <ref name='virConnectGetLibVersion'/>
           <ref name='virConnectGetVersion'/>
+          <ref name='virConnectIsSecure'/>
           <ref name='virConnectOpen'/>
           <ref name='virDomainCreate'/>
           <ref name='virDomainDestroy'/>
           <ref name='virDomainFree'/>
           <ref name='virDomainGetMaxVcpus'/>
           <ref name='virDomainGetSecurityLabel'/>
+          <ref name='virDomainIsActive'/>
           <ref name='virDomainMemoryPeek'/>
           <ref name='virDomainSave'/>
           <ref name='virDomainUndefine'/>
+          <ref name='virInterfaceIsActive'/>
           <ref name='virNetworkCreate'/>
           <ref name='virNetworkDestroy'/>
           <ref name='virNetworkFree'/>
+          <ref name='virNetworkIsActive'/>
           <ref name='virNetworkUndefine'/>
+          <ref name='virStoragePoolIsActive'/>
         </word>
         <word name='runs'>
           <ref name='virDomainGetMaxMemory'/>
@@ -6973,6 +7146,9 @@
           <ref name='virSecretGetUsageID'/>
           <ref name='virSecretLookupByUsage'/>
         </word>
+        <word name='secure'>
+          <ref name='virConnectIsSecure'/>
+        </word>
         <word name='security'>
           <ref name='virDomainGetSecurityLabel'/>
           <ref name='virNodeGetSecurityModel'/>
@@ -7027,7 +7203,11 @@
         </word>
         <word name='setting'>
           <ref name='virConnectOpen'/>
+          <ref name='virInterfaceGetXMLDesc'/>
           <ref name='virStoragePoolSetAutostart'/>
+        </word>
+        <word name='settings'>
+          <ref name='virInterfaceGetXMLDesc'/>
         </word>
         <word name='shall'>
           <ref name='virConnectDomainEventRegister'/>
@@ -7052,6 +7232,11 @@
         <word name='shutdown'>
           <ref name='virDomainDestroy'/>
           <ref name='virNetworkDestroy'/>
+        </word>
+        <word name='shutting'>
+          <ref name='virDomainIsPersistent'/>
+          <ref name='virNetworkIsPersistent'/>
+          <ref name='virStoragePoolIsPersistent'/>
         </word>
         <word name='significant'>
           <ref name='virDomainPinVcpu'/>
@@ -7087,6 +7272,7 @@
         </word>
         <word name='socket'>
           <ref name='_virNodeInfo'/>
+          <ref name='virConnectIsSecure'/>
         </word>
         <word name='software'>
           <ref name='virConnectGetType'/>
@@ -7136,6 +7322,7 @@
           <ref name='virSecretUndefine'/>
         </word>
         <word name='specifies'>
+          <ref name='virDomainMigrateToURI'/>
           <ref name='virSecretDefineXML'/>
         </word>
         <word name='specify'>
@@ -7185,6 +7372,7 @@
         </word>
         <word name='static'>
           <ref name='virConnectGetType'/>
+          <ref name='virInterfaceGetXMLDesc'/>
         </word>
         <word name='statistic'>
           <ref name='virDomainBlockStats'/>
@@ -7202,8 +7390,11 @@
           <ref name='virSetErrorFunc'/>
         </word>
         <word name='still'>
+          <ref name='virDomainIsPersistent'/>
           <ref name='virDomainReboot'/>
           <ref name='virDomainShutdown'/>
+          <ref name='virNetworkIsPersistent'/>
+          <ref name='virStoragePoolIsPersistent'/>
         </word>
         <word name='stop'>
           <ref name='virDomainUndefine'/>
@@ -7285,6 +7476,7 @@
         </word>
         <word name='successful'>
           <ref name='virDomainMigrate'/>
+          <ref name='virDomainMigrateToURI'/>
           <ref name='virDomainSave'/>
           <ref name='virNodeDeviceCreateXML'/>
           <ref name='virStreamSend'/>
@@ -7310,6 +7502,7 @@
           <ref name='virConnectOpen'/>
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrateToURI'/>
+          <ref name='virInterfaceGetXMLDesc'/>
           <ref name='virStoragePoolGetXMLDesc'/>
         </word>
         <word name='summary'>
@@ -7430,7 +7623,6 @@
         </word>
         <word name='themselves'>
           <ref name='virDomainMigrate'/>
-          <ref name='virDomainMigrateToURI'/>
         </word>
         <word name='there'>
           <ref name='virConnectClose'/>
@@ -7544,6 +7736,11 @@
           <ref name='virStreamAbort'/>
           <ref name='virStreamFree'/>
         </word>
+        <word name='transient'>
+          <ref name='virDomainIsPersistent'/>
+          <ref name='virNetworkIsPersistent'/>
+          <ref name='virStoragePoolIsPersistent'/>
+        </word>
         <word name='transmit'>
           <ref name='virDomainMigrate'/>
           <ref name='virStreamSend'/>
@@ -7607,6 +7804,10 @@
         <word name='unbinding'>
           <ref name='virNodeDeviceDettach'/>
           <ref name='virNodeDeviceReAttach'/>
+        </word>
+        <word name='undefine'>
+          <ref name='virDomainMigrate'/>
+          <ref name='virDomainMigrateToURI'/>
         </word>
         <word name='undefined'>
           <ref name='virDomainDefineXML'/>
@@ -7735,6 +7936,9 @@
           <ref name='virConnectOpenReadOnly'/>
           <ref name='virDomainMigrate'/>
         </word>
+        <word name='uri_transports'>
+          <ref name='virDomainMigrateToURI'/>
+        </word>
         <word name='usable'>
           <ref name='VIR_CPU_USABLE'/>
           <ref name='VIR_UNUSE_CPU'/>
@@ -7764,6 +7968,7 @@
           <ref name='virDomainMigrateToURI'/>
           <ref name='virErrorFunc'/>
           <ref name='virInterfaceGetConnect'/>
+          <ref name='virInterfaceGetXMLDesc'/>
           <ref name='virNetworkGetConnect'/>
           <ref name='virNodeDeviceDettach'/>
           <ref name='virNodeDeviceReAttach'/>
@@ -7836,9 +8041,11 @@
           <ref name='virConnectDomainEventRegister'/>
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrateToURI'/>
+          <ref name='virInterfaceGetXMLDesc'/>
         </word>
         <word name='values'>
           <ref name='_virConnectAuth'/>
+          <ref name='virConnectGetLibVersion'/>
           <ref name='virDomainGetSchedulerParameters'/>
           <ref name='virGetVersion'/>
           <ref name='virSecretGetUsageType'/>
@@ -7860,11 +8067,13 @@
         </word>
         <word name='version'>
           <ref name='LIBVIR_VERSION_NUMBER'/>
+          <ref name='virConnectGetLibVersion'/>
           <ref name='virConnectGetVersion'/>
           <ref name='virGetVersion'/>
         </word>
         <word name='via'>
           <ref name='virConnectOpenAuth'/>
+          <ref name='virInterfaceGetXMLDesc'/>
           <ref name='virStorageVolCreateXMLFrom'/>
         </word>
         <word name='virConnect'>
@@ -7954,7 +8163,6 @@
         </word>
         <word name='virDomainMigrateToURI'>
           <ref name='virDomainMigrate'/>
-          <ref name='virDomainMigrateToURI'/>
         </word>
         <word name='virDomainPinVcpu'>
           <ref name='VIR_COPY_CPUMAP'/>
@@ -8218,6 +8426,8 @@
           <ref name='virNodeDeviceCreateXML'/>
         </word>
       </letter>
+    </chunk>
+    <chunk name='chunk13'>
       <letter name='w'>
         <word name='wait'>
           <ref name='virStreamSend'/>
@@ -8376,8 +8586,6 @@
           <ref name='virConnectGetType'/>
         </word>
       </letter>
-    </chunk>
-    <chunk name='chunk13'>
       <letter name='x'>
         <word name='xen'>
           <ref name='virConnectOpen'/>
@@ -8396,7 +8604,6 @@
           <ref name='virInterfaceCreate'/>
           <ref name='virInterfaceDefineXML'/>
           <ref name='virInterfaceDestroy'/>
-          <ref name='virInterfaceGetXMLDesc'/>
           <ref name='virNetworkGetXMLDesc'/>
         </word>
         <word name='you'>
@@ -8405,7 +8612,6 @@
           <ref name='virDomainInterfaceStats'/>
           <ref name='virDomainMemoryPeek'/>
           <ref name='virDomainMigrate'/>
-          <ref name='virDomainMigrateToURI'/>
         </word>
         <word name='your'>
           <ref name='virDomainBlockPeek'/>
@@ -8422,20 +8628,20 @@
       </letter>
     </chunk>
     <chunks>
-      <chunk name='chunk0' start='A' end='G'/>
-      <chunk name='chunk1' start='H' end='T'/>
-      <chunk name='chunk2' start='U' end='a'/>
+      <chunk name='chunk0' start='A' end='F'/>
+      <chunk name='chunk1' start='G' end='S'/>
+      <chunk name='chunk2' start='T' end='a'/>
       <chunk name='chunk3' start='b' end='c'/>
-      <chunk name='chunk4' start='d' end='e'/>
-      <chunk name='chunk5' start='f' end='h'/>
-      <chunk name='chunk6' start='i' end='l'/>
-      <chunk name='chunk7' start='m' end='n'/>
-      <chunk name='chunk8' start='o' end='p'/>
-      <chunk name='chunk9' start='q' end='r'/>
+      <chunk name='chunk4' start='d' end='d'/>
+      <chunk name='chunk5' start='e' end='f'/>
+      <chunk name='chunk6' start='g' end='i'/>
+      <chunk name='chunk7' start='j' end='m'/>
+      <chunk name='chunk8' start='n' end='o'/>
+      <chunk name='chunk9' start='p' end='r'/>
       <chunk name='chunk10' start='s' end='s'/>
       <chunk name='chunk11' start='t' end='u'/>
-      <chunk name='chunk12' start='v' end='w'/>
-      <chunk name='chunk13' start='x' end='z'/>
+      <chunk name='chunk12' start='v' end='v'/>
+      <chunk name='chunk13' start='w' end='z'/>
     </chunks>
   </index>
 </apirefs>

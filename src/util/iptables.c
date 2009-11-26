@@ -382,7 +382,7 @@ iptRulesNew(const char *table,
     return NULL;
 }
 
-static int
+static int ATTRIBUTE_SENTINEL
 iptablesAddRemoveRule(iptRules *rules, int action, const char *arg, ...)
 {
     va_list args;
@@ -1067,7 +1067,7 @@ iptablesForwardMasquerade(iptablesContext *ctx,
         return iptablesAddRemoveRule(ctx->nat_postrouting,
                                      action,
                                      "--source", network,
-                                     "--destination", "!", network,
+                                     "!", "--destination", network,
                                      "--out-interface", physdev,
                                      "--jump", "MASQUERADE",
                                      NULL);
@@ -1075,7 +1075,7 @@ iptablesForwardMasquerade(iptablesContext *ctx,
         return iptablesAddRemoveRule(ctx->nat_postrouting,
                                      action,
                                      "--source", network,
-                                     "--destination", "!", network,
+                                     "!", "--destination", network,
                                      "--jump", "MASQUERADE",
                                      NULL);
     }

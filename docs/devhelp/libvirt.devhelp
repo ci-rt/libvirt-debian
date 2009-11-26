@@ -71,6 +71,7 @@
     <function name="VIR_DOMAIN_XML_SECURE" link="libvirt-libvirt.html#VIR_DOMAIN_XML_SECURE"/>
     <function name="VIR_ERR_AUTH_FAILED" link="libvirt-virterror.html#VIR_ERR_AUTH_FAILED"/>
     <function name="VIR_ERR_CALL_FAILED" link="libvirt-virterror.html#VIR_ERR_CALL_FAILED"/>
+    <function name="VIR_ERR_CONFIG_UNSUPPORTED" link="libvirt-virterror.html#VIR_ERR_CONFIG_UNSUPPORTED"/>
     <function name="VIR_ERR_CONF_SYNTAX" link="libvirt-virterror.html#VIR_ERR_CONF_SYNTAX"/>
     <function name="VIR_ERR_DOM_EXIST" link="libvirt-virterror.html#VIR_ERR_DOM_EXIST"/>
     <function name="VIR_ERR_DRIVER_FULL" link="libvirt-virterror.html#VIR_ERR_DRIVER_FULL"/>
@@ -89,6 +90,7 @@
     <function name="VIR_ERR_INVALID_SECRET" link="libvirt-virterror.html#VIR_ERR_INVALID_SECRET"/>
     <function name="VIR_ERR_INVALID_STORAGE_POOL" link="libvirt-virterror.html#VIR_ERR_INVALID_STORAGE_POOL"/>
     <function name="VIR_ERR_INVALID_STORAGE_VOL" link="libvirt-virterror.html#VIR_ERR_INVALID_STORAGE_VOL"/>
+    <function name="VIR_ERR_MIGRATE_PERSIST_FAILED" link="libvirt-virterror.html#VIR_ERR_MIGRATE_PERSIST_FAILED"/>
     <function name="VIR_ERR_MULTIPLE_INTERFACES" link="libvirt-virterror.html#VIR_ERR_MULTIPLE_INTERFACES"/>
     <function name="VIR_ERR_NETWORK_EXIST" link="libvirt-virterror.html#VIR_ERR_NETWORK_EXIST"/>
     <function name="VIR_ERR_NONE" link="libvirt-virterror.html#VIR_ERR_NONE"/>
@@ -117,6 +119,7 @@
     <function name="VIR_ERR_OPERATION_DENIED" link="libvirt-virterror.html#VIR_ERR_OPERATION_DENIED"/>
     <function name="VIR_ERR_OPERATION_FAILED" link="libvirt-virterror.html#VIR_ERR_OPERATION_FAILED"/>
     <function name="VIR_ERR_OPERATION_INVALID" link="libvirt-virterror.html#VIR_ERR_OPERATION_INVALID"/>
+    <function name="VIR_ERR_OPERATION_TIMEOUT" link="libvirt-virterror.html#VIR_ERR_OPERATION_TIMEOUT"/>
     <function name="VIR_ERR_OS_TYPE" link="libvirt-virterror.html#VIR_ERR_OS_TYPE"/>
     <function name="VIR_ERR_PARSE_FAILED" link="libvirt-virterror.html#VIR_ERR_PARSE_FAILED"/>
     <function name="VIR_ERR_POST_FAILED" link="libvirt-virterror.html#VIR_ERR_POST_FAILED"/>
@@ -165,11 +168,14 @@
     <function name="VIR_FROM_XENXM" link="libvirt-virterror.html#VIR_FROM_XENXM"/>
     <function name="VIR_FROM_XEN_INOTIFY" link="libvirt-virterror.html#VIR_FROM_XEN_INOTIFY"/>
     <function name="VIR_FROM_XML" link="libvirt-virterror.html#VIR_FROM_XML"/>
+    <function name="VIR_INTERFACE_XML_INACTIVE" link="libvirt-libvirt.html#VIR_INTERFACE_XML_INACTIVE"/>
     <function name="VIR_MEMORY_PHYSICAL" link="libvirt-libvirt.html#VIR_MEMORY_PHYSICAL"/>
     <function name="VIR_MEMORY_VIRTUAL" link="libvirt-libvirt.html#VIR_MEMORY_VIRTUAL"/>
     <function name="VIR_MIGRATE_LIVE" link="libvirt-libvirt.html#VIR_MIGRATE_LIVE"/>
     <function name="VIR_MIGRATE_PEER2PEER" link="libvirt-libvirt.html#VIR_MIGRATE_PEER2PEER"/>
+    <function name="VIR_MIGRATE_PERSIST_DEST" link="libvirt-libvirt.html#VIR_MIGRATE_PERSIST_DEST"/>
     <function name="VIR_MIGRATE_TUNNELLED" link="libvirt-libvirt.html#VIR_MIGRATE_TUNNELLED"/>
+    <function name="VIR_MIGRATE_UNDEFINE_SOURCE" link="libvirt-libvirt.html#VIR_MIGRATE_UNDEFINE_SOURCE"/>
     <function name="VIR_SECRET_USAGE_TYPE_NONE" link="libvirt-libvirt.html#VIR_SECRET_USAGE_TYPE_NONE"/>
     <function name="VIR_SECRET_USAGE_TYPE_VOLUME" link="libvirt-libvirt.html#VIR_SECRET_USAGE_TYPE_VOLUME"/>
     <function name="VIR_STORAGE_POOL_BUILDING" link="libvirt-libvirt.html#VIR_STORAGE_POOL_BUILDING"/>
@@ -225,6 +231,7 @@
     <function name="virErrorPtr" link="libvirt-virterror.html#virErrorPtr"/>
     <function name="virEventHandleType" link="libvirt-libvirt.html#virEventHandleType"/>
     <function name="virInterfacePtr" link="libvirt-libvirt.html#virInterfacePtr"/>
+    <function name="virInterfaceXMLFlags" link="libvirt-libvirt.html#virInterfaceXMLFlags"/>
     <function name="virNetworkPtr" link="libvirt-libvirt.html#virNetworkPtr"/>
     <function name="virNodeDevicePtr" link="libvirt-libvirt.html#virNodeDevicePtr"/>
     <function name="virNodeInfoPtr" link="libvirt-libvirt.html#virNodeInfoPtr"/>
@@ -298,10 +305,13 @@
     <function name="virConnectFindStoragePoolSources ()" link="libvirt-libvirt.html#virConnectFindStoragePoolSources"/>
     <function name="virConnectGetCapabilities ()" link="libvirt-libvirt.html#virConnectGetCapabilities"/>
     <function name="virConnectGetHostname ()" link="libvirt-libvirt.html#virConnectGetHostname"/>
+    <function name="virConnectGetLibVersion ()" link="libvirt-libvirt.html#virConnectGetLibVersion"/>
     <function name="virConnectGetMaxVcpus ()" link="libvirt-libvirt.html#virConnectGetMaxVcpus"/>
     <function name="virConnectGetType ()" link="libvirt-libvirt.html#virConnectGetType"/>
     <function name="virConnectGetURI ()" link="libvirt-libvirt.html#virConnectGetURI"/>
     <function name="virConnectGetVersion ()" link="libvirt-libvirt.html#virConnectGetVersion"/>
+    <function name="virConnectIsEncrypted ()" link="libvirt-libvirt.html#virConnectIsEncrypted"/>
+    <function name="virConnectIsSecure ()" link="libvirt-libvirt.html#virConnectIsSecure"/>
     <function name="virConnectListDefinedDomains ()" link="libvirt-libvirt.html#virConnectListDefinedDomains"/>
     <function name="virConnectListDefinedInterfaces ()" link="libvirt-libvirt.html#virConnectListDefinedInterfaces"/>
     <function name="virConnectListDefinedNetworks ()" link="libvirt-libvirt.html#virConnectListDefinedNetworks"/>
@@ -353,6 +363,8 @@
     <function name="virDomainGetVcpus ()" link="libvirt-libvirt.html#virDomainGetVcpus"/>
     <function name="virDomainGetXMLDesc ()" link="libvirt-libvirt.html#virDomainGetXMLDesc"/>
     <function name="virDomainInterfaceStats ()" link="libvirt-libvirt.html#virDomainInterfaceStats"/>
+    <function name="virDomainIsActive ()" link="libvirt-libvirt.html#virDomainIsActive"/>
+    <function name="virDomainIsPersistent ()" link="libvirt-libvirt.html#virDomainIsPersistent"/>
     <function name="virDomainLookupByID ()" link="libvirt-libvirt.html#virDomainLookupByID"/>
     <function name="virDomainLookupByName ()" link="libvirt-libvirt.html#virDomainLookupByName"/>
     <function name="virDomainLookupByUUID ()" link="libvirt-libvirt.html#virDomainLookupByUUID"/>
@@ -387,6 +399,7 @@
     <function name="virInterfaceGetMACString ()" link="libvirt-libvirt.html#virInterfaceGetMACString"/>
     <function name="virInterfaceGetName ()" link="libvirt-libvirt.html#virInterfaceGetName"/>
     <function name="virInterfaceGetXMLDesc ()" link="libvirt-libvirt.html#virInterfaceGetXMLDesc"/>
+    <function name="virInterfaceIsActive ()" link="libvirt-libvirt.html#virInterfaceIsActive"/>
     <function name="virInterfaceLookupByMACString ()" link="libvirt-libvirt.html#virInterfaceLookupByMACString"/>
     <function name="virInterfaceLookupByName ()" link="libvirt-libvirt.html#virInterfaceLookupByName"/>
     <function name="virInterfaceRef ()" link="libvirt-libvirt.html#virInterfaceRef"/>
@@ -403,6 +416,8 @@
     <function name="virNetworkGetUUID ()" link="libvirt-libvirt.html#virNetworkGetUUID"/>
     <function name="virNetworkGetUUIDString ()" link="libvirt-libvirt.html#virNetworkGetUUIDString"/>
     <function name="virNetworkGetXMLDesc ()" link="libvirt-libvirt.html#virNetworkGetXMLDesc"/>
+    <function name="virNetworkIsActive ()" link="libvirt-libvirt.html#virNetworkIsActive"/>
+    <function name="virNetworkIsPersistent ()" link="libvirt-libvirt.html#virNetworkIsPersistent"/>
     <function name="virNetworkLookupByName ()" link="libvirt-libvirt.html#virNetworkLookupByName"/>
     <function name="virNetworkLookupByUUID ()" link="libvirt-libvirt.html#virNetworkLookupByUUID"/>
     <function name="virNetworkLookupByUUIDString ()" link="libvirt-libvirt.html#virNetworkLookupByUUIDString"/>
@@ -461,6 +476,8 @@
     <function name="virStoragePoolGetUUID ()" link="libvirt-libvirt.html#virStoragePoolGetUUID"/>
     <function name="virStoragePoolGetUUIDString ()" link="libvirt-libvirt.html#virStoragePoolGetUUIDString"/>
     <function name="virStoragePoolGetXMLDesc ()" link="libvirt-libvirt.html#virStoragePoolGetXMLDesc"/>
+    <function name="virStoragePoolIsActive ()" link="libvirt-libvirt.html#virStoragePoolIsActive"/>
+    <function name="virStoragePoolIsPersistent ()" link="libvirt-libvirt.html#virStoragePoolIsPersistent"/>
     <function name="virStoragePoolListVolumes ()" link="libvirt-libvirt.html#virStoragePoolListVolumes"/>
     <function name="virStoragePoolLookupByName ()" link="libvirt-libvirt.html#virStoragePoolLookupByName"/>
     <function name="virStoragePoolLookupByUUID ()" link="libvirt-libvirt.html#virStoragePoolLookupByUUID"/>

@@ -103,7 +103,6 @@ typedef struct {
     virMutex lock;
     int version;
 
-    virDomainObjList domains;
     virCapsPtr caps;
 
     IVirtualBox *vboxObj;
@@ -485,7 +484,6 @@ static void vboxUninitialize(vboxGlobalData *data) {
     if (data->pFuncs)
         data->pFuncs->pfnComUninitialize();
 
-    virDomainObjListFree(&data->domains);
     virCapabilitiesFree(data->caps);
 #if VBOX_API_VERSION == 2002
     /* No domainEventCallbacks in 2.2.* version */
@@ -593,18 +591,14 @@ static int vboxGetVersion(virConnectPtr conn, unsigned long *version) {
     return 0;
 }
 
-static char *vboxGetHostname(virConnectPtr conn) {
-    char *hostname;
+static int vboxIsSecure(virConnectPtr conn ATTRIBUTE_UNUSED) {
+    /* Driver is using local, non-network based transport */
+    return 1;
+}
 
-    /* the return string should be freed by caller */
-    hostname = virGetHostname();
-    if (hostname == NULL) {
-        vboxError(conn, VIR_ERR_INTERNAL_ERROR,"%s",
-                  "failed to determine host name");
-        return NULL;
-    }
-
-    return hostname;
+static int vboxIsEncrypted(virConnectPtr conn ATTRIBUTE_UNUSED) {
+    /* No encryption is needed, or used on the local transport*/
+    return 0;
 }
 
 static int vboxGetMaxVcpus(virConnectPtr conn, const char *type ATTRIBUTE_UNUSED) {
@@ -1030,6 +1024,93 @@ static virDomainPtr vboxDomainLookupByName(virConnectPtr conn, const char *name)
     return dom;
 }
 
+
+static int vboxDomainIsActive(virDomainPtr dom) {
+    nsresult rc;
+    vboxGlobalData *data = dom->conn->privateData;
+    IMachine **machines  = NULL;
+    PRUint32 machineCnt  = 0;
+    vboxIID *iid         = NULL;
+    char      *machineNameUtf8  = NULL;
+    PRUnichar *machineNameUtf16 = NULL;
+    unsigned char iidl[VIR_UUID_BUFLEN];
+    int i, matched = 0;
+    int ret = -1;
+
+    if(data->vboxObj) {
+        rc = data->vboxObj->vtbl->GetMachines(data->vboxObj, &machineCnt, &machines);
+        if (NS_FAILED(rc)) {
+            vboxError(dom->conn, VIR_ERR_INTERNAL_ERROR,"%s, rc=%08x",
+                      "Could not get list of machines",(unsigned)rc);
+            return -1;
+        }
+
+        for (i = 0; i < machineCnt; ++i) {
+            IMachine *machine = machines[i];
+            PRBool isAccessible = PR_FALSE;
+
+            if (!machine)
+                continue;
+
+            machine->vtbl->GetAccessible(machine, &isAccessible);
+            if (isAccessible) {
+
+                machine->vtbl->GetId(machine, &iid);
+                if (!iid)
+                    continue;
+                vboxIIDToUUID(iidl, iid);
+                vboxIIDUnalloc(iid);
+
+                if (memcmp(dom->uuid, iidl, VIR_UUID_BUFLEN) == 0) {
+
+                    PRUint32 state;
+
+                    matched = 1;
+
+                    machine->vtbl->GetName(machine, &machineNameUtf16);
+                    data->pFuncs->pfnUtf16ToUtf8(machineNameUtf16, &machineNameUtf8);
+
+                    machine->vtbl->GetState(machine, &state);
+
+                    if ((state == MachineState_Starting)   ||
+                        (state == MachineState_Running)    ||
+                        (state == MachineState_Stuck)      ||
+                        (state == MachineState_Stopping)   ||
+                        (state == MachineState_Saving)     ||
+                        (state == MachineState_Restoring)  ||
+                        (state == MachineState_Discarding) ||
+                        (state == MachineState_Paused) )
+                        ret = 1;
+                    else
+                        ret = 0;
+                }
+
+                if (matched == 1)
+                    break;
+            }
+        }
+
+        /* Do the cleanup and take care you dont leak any memory */
+        if (machineNameUtf8)
+            data->pFuncs->pfnUtf8Free(machineNameUtf8);
+        if (machineNameUtf16)
+            data->pFuncs->pfnComUnallocMem(machineNameUtf16);
+        for (i = 0; i < machineCnt; ++i) {
+            if (machines[i])
+                machines[i]->vtbl->nsisupports.Release((nsISupports *)machines[i]);
+        }
+    }
+
+    return ret;
+}
+
+
+static int vboxDomainIsPersistent(virDomainPtr dom ATTRIBUTE_UNUSED) {
+    /* XXX All domains appear to be persistent. Is this true ? */
+    return 1;
+}
+
+
 static int vboxDomainSuspend(virDomainPtr dom) {
     nsresult rc;
     vboxGlobalData *data = dom->conn->privateData;
@@ -1349,13 +1430,18 @@ cleanup:
     return ret;
 }
 
-static char *vboxDomainGetOSType(virDomainPtr dom ATTRIBUTE_UNUSED) {
+static char *vboxDomainGetOSType(virDomainPtr dom) {
     /* Returning "hvm" always as suggested on list, cause
      * this functions seems to be badly named and it
      * is supposed to pass the ABI name and not the domain
      * operating system driver as I had imagined ;)
      */
-    return strdup("hvm");
+    char *osType = strdup("hvm");
+
+    if (osType == NULL)
+        virReportOOMError(dom->conn);
+
+    return osType;
 }
 
 static int vboxDomainSetMemory(virDomainPtr dom, unsigned long memory) {
@@ -1897,7 +1983,7 @@ static char *vboxDomainDumpXML(virDomainPtr dom, int flags) {
                                 if (valueDisplayUtf8)
                                     sdlDisplay = strdup(valueDisplayUtf8);
                                 if (sdlDisplay == NULL) {
-                                    vboxError(dom->conn, VIR_ERR_SYSTEM_ERROR, "%s", "strdup failed");
+                                    virReportOOMError(dom->conn);
                                     /* just don't go to cleanup yet as it is ok to have
                                      * sdlDisplay as NULL and we check it below if it
                                      * exist and then only use it there
@@ -1911,7 +1997,7 @@ static char *vboxDomainDumpXML(virDomainPtr dom, int flags) {
                                 if (valueDisplayUtf8)
                                     guiDisplay = strdup(valueDisplayUtf8);
                                 if (guiDisplay == NULL) {
-                                    vboxError(dom->conn, VIR_ERR_SYSTEM_ERROR, "%s", "strdup failed");
+                                    virReportOOMError(dom->conn);
                                     /* just don't go to cleanup yet as it is ok to have
                                      * guiDisplay as NULL and we check it below if it
                                      * exist and then only use it there
@@ -1948,7 +2034,7 @@ static char *vboxDomainDumpXML(virDomainPtr dom, int flags) {
                             def->graphics[def->ngraphics]->type = VIR_DOMAIN_GRAPHICS_TYPE_DESKTOP;
                             def->graphics[def->ngraphics]->data.desktop.display = strdup(getenv("DISPLAY"));
                             if (def->graphics[def->ngraphics]->data.desktop.display == NULL) {
-                                vboxError(dom->conn, VIR_ERR_SYSTEM_ERROR, "%s", "strdup failed");
+                                virReportOOMError(dom->conn);
                                 /* just don't go to cleanup yet as it is ok to have
                                  * display as NULL
                                  */
@@ -2221,7 +2307,9 @@ static char *vboxDomainDumpXML(virDomainPtr dom, int flags) {
                                      MACAddress[4], MACAddress[5], MACAddress[6], MACAddress[7],
                                      MACAddress[8], MACAddress[9], MACAddress[10], MACAddress[11]);
 
-                            virParseMacAddr(macaddr, def->nets[netAdpIncCnt]->mac);
+                            /* XXX some real error handling here some day ... */
+                            if (virParseMacAddr(macaddr, def->nets[netAdpIncCnt]->mac) < 0)
+                            {}
 
                             netAdpIncCnt++;
 
@@ -2417,9 +2505,9 @@ static char *vboxDomainDumpXML(virDomainPtr dom, int flags) {
                             serialPort->vtbl->GetIRQ(serialPort, &IRQ);
                             serialPort->vtbl->GetIOBase(serialPort, &IOBase);
                             if ((IRQ == 4) && (IOBase == 1016)) {
-                                def->serials[serialPortIncCount]->dstPort = 0;
+                                def->serials[serialPortIncCount]->target.port = 0;
                             } else if ((IRQ == 3) && (IOBase == 760)) {
-                                def->serials[serialPortIncCount]->dstPort = 1;
+                                def->serials[serialPortIncCount]->target.port = 1;
                             }
 
                             serialPort->vtbl->GetPath(serialPort, &pathUtf16);
@@ -2483,9 +2571,9 @@ static char *vboxDomainDumpXML(virDomainPtr dom, int flags) {
                             parallelPort->vtbl->GetIRQ(parallelPort, &IRQ);
                             parallelPort->vtbl->GetIOBase(parallelPort, &IOBase);
                             if ((IRQ == 7) && (IOBase == 888)) {
-                                def->parallels[parallelPortIncCount]->dstPort = 0;
+                                def->parallels[parallelPortIncCount]->target.port = 0;
                             } else if ((IRQ == 5) && (IOBase == 632)) {
-                                def->parallels[parallelPortIncCount]->dstPort = 1;
+                                def->parallels[parallelPortIncCount]->target.port = 1;
                             }
 
                             def->parallels[parallelPortIncCount]->type = VIR_DOMAIN_CHR_TYPE_FILE;
@@ -3507,7 +3595,7 @@ static virDomainPtr vboxDomainDefineXML(virConnectPtr conn, const char *xml) {
                 ISerialPort *serialPort = NULL;
 
                 DEBUG("SerialPort(%d): Type: %d", i, def->serials[i]->type);
-                DEBUG("SerialPort(%d): dstPort: %d", i, def->serials[i]->dstPort);
+                DEBUG("SerialPort(%d): target.port: %d", i, def->serials[i]->target.port);
 
                 machine->vtbl->GetSerialPort(machine, i, &serialPort);
                 if (serialPort) {
@@ -3522,17 +3610,17 @@ static virDomainPtr vboxDomainDefineXML(virConnectPtr conn, const char *xml) {
                      * TODO: make this more flexible
                      */
                     /* TODO: to improve the libvirt XMl handling so
-                     * that def->serials[i]->dstPort shows real port
+                     * that def->serials[i]->target.port shows real port
                      * and not always start at 0
                      */
                     if (def->serials[i]->type == VIR_DOMAIN_CHR_TYPE_DEV) {
                         serialPort->vtbl->SetPath(serialPort, pathUtf16);
-                        if (def->serials[i]->dstPort == 0) {
+                        if (def->serials[i]->target.port == 0) {
                             serialPort->vtbl->SetIRQ(serialPort, 4);
                             serialPort->vtbl->SetIOBase(serialPort, 1016);
                             DEBUG(" serialPort-%d irq: %d, iobase 0x%x, path: %s",
                                   i, 4, 1016, def->serials[i]->data.file.path);
-                        } else if (def->serials[i]->dstPort == 1) {
+                        } else if (def->serials[i]->target.port == 1) {
                             serialPort->vtbl->SetIRQ(serialPort, 3);
                             serialPort->vtbl->SetIOBase(serialPort, 760);
                             DEBUG(" serialPort-%d irq: %d, iobase 0x%x, path: %s",
@@ -3541,12 +3629,12 @@ static virDomainPtr vboxDomainDefineXML(virConnectPtr conn, const char *xml) {
                         serialPort->vtbl->SetHostMode(serialPort, PortMode_HostDevice);
                     } else if (def->serials[i]->type == VIR_DOMAIN_CHR_TYPE_PIPE) {
                         serialPort->vtbl->SetPath(serialPort, pathUtf16);
-                        if (def->serials[i]->dstPort == 0) {
+                        if (def->serials[i]->target.port == 0) {
                             serialPort->vtbl->SetIRQ(serialPort, 4);
                             serialPort->vtbl->SetIOBase(serialPort, 1016);
                             DEBUG(" serialPort-%d irq: %d, iobase 0x%x, path: %s",
                                   i, 4, 1016, def->serials[i]->data.file.path);
-                        } else if (def->serials[i]->dstPort == 1) {
+                        } else if (def->serials[i]->target.port == 1) {
                             serialPort->vtbl->SetIRQ(serialPort, 3);
                             serialPort->vtbl->SetIOBase(serialPort, 760);
                             DEBUG(" serialPort-%d irq: %d, iobase 0x%x, path: %s",
@@ -3587,7 +3675,7 @@ static virDomainPtr vboxDomainDefineXML(virConnectPtr conn, const char *xml) {
                 IParallelPort *parallelPort = NULL;
 
                 DEBUG("ParallelPort(%d): Type: %d", i, def->parallels[i]->type);
-                DEBUG("ParallelPort(%d): dstPort: %d", i, def->parallels[i]->dstPort);
+                DEBUG("ParallelPort(%d): target.port: %d", i, def->parallels[i]->target.port);
 
                 machine->vtbl->GetParallelPort(machine, i, &parallelPort);
                 if (parallelPort) {
@@ -3997,6 +4085,11 @@ static int vboxDomainAttachDevice(virDomainPtr dom, const char *xml) {
 
     def->os.type = strdup("hvm");
 
+    if (def->os.type == NULL) {
+        virReportOOMError(dom->conn);
+        goto cleanup;
+    }
+
     dev = virDomainDeviceDefParse(dom->conn, data->caps, def, xml,
                                   VIR_DOMAIN_XML_INACTIVE);
     if (dev == NULL) {
@@ -4189,6 +4282,11 @@ static int vboxDomainDetachDevice(virDomainPtr dom, const char *xml) {
     }
 
     def->os.type = strdup("hvm");
+
+    if (def->os.type == NULL) {
+        virReportOOMError(dom->conn);
+        goto cleanup;
+    }
 
     dev = virDomainDeviceDefParse(dom->conn, data->caps, def, xml,
                                   VIR_DOMAIN_XML_INACTIVE);
@@ -6402,7 +6500,8 @@ virDriver NAME(Driver) = {
     NULL, /* supports_feature */
     NULL, /* type */
     vboxGetVersion, /* version */
-    vboxGetHostname, /* getHostname */
+    NULL, /* libvirtVersion (impl. in libvirt.c) */
+    virGetHostname, /* getHostname */
     vboxGetMaxVcpus, /* getMaxVcpus */
     nodeGetInfo, /* nodeGetInfo */
     vboxGetCapabilities, /* getCapabilities */
@@ -6468,6 +6567,10 @@ virDriver NAME(Driver) = {
     NULL, /* nodeDeviceReAttach */
     NULL, /* nodeDeviceReset */
     NULL, /* domainMigratePrepareTunnel */
+    vboxIsEncrypted,
+    vboxIsSecure,
+    vboxDomainIsActive,
+    vboxDomainIsPersistent,
 };
 
 virNetworkDriver NAME(NetworkDriver) = {

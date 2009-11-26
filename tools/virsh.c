@@ -523,8 +523,9 @@ cmdRunConsole(vshControl *ctl, virDomainPtr dom)
     char *doc;
     char *thatHost = NULL;
     char *thisHost = NULL;
+    virDomainInfo dominfo;
 
-    if (!(thisHost = virGetHostname())) {
+    if (!(thisHost = virGetHostname(ctl->conn))) {
         vshError(ctl, "%s", _("Failed to get local hostname"));
         goto cleanup;
     }
@@ -536,6 +537,16 @@ cmdRunConsole(vshControl *ctl, virDomainPtr dom)
 
     if (STRNEQ(thisHost, thatHost)) {
         vshError(ctl, "%s", _("Cannot connect to a remote console device"));
+        goto cleanup;
+    }
+
+    if (virDomainGetInfo(dom, &dominfo) < 0) {
+        vshError(ctl, "%s", _("Unable to get domain status"));
+        goto cleanup;
+    }
+
+    if (dominfo.state == VIR_DOMAIN_SHUTOFF) {
+        vshError(ctl, "%s", _("The domain is not running"));
         goto cleanup;
     }
 
@@ -2465,6 +2476,8 @@ static const vshCmdOptDef opts_migrate[] = {
     {"p2p", VSH_OT_BOOL, 0, gettext_noop("peer-2-peer migration")},
     {"direct", VSH_OT_BOOL, 0, gettext_noop("direct migration")},
     {"tunnelled", VSH_OT_BOOL, 0, gettext_noop("tunnelled migration")},
+    {"persistent", VSH_OT_BOOL, 0, gettext_noop("persist VM on destination")},
+    {"undefinesource", VSH_OT_BOOL, 0, gettext_noop("undefine VM on source")},
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("domain name, id or uuid")},
     {"desturi", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("connection URI of the destination host")},
     {"migrateuri", VSH_OT_DATA, 0, gettext_noop("migration URI, usually can be omitted")},
@@ -2504,13 +2517,19 @@ cmdMigrate (vshControl *ctl, const vshCmd *cmd)
     if (vshCommandOptBool (cmd, "tunnelled"))
         flags |= VIR_MIGRATE_TUNNELLED;
 
+    if (vshCommandOptBool (cmd, "persistent"))
+        flags |= VIR_MIGRATE_PERSIST_DEST;
+
+    if (vshCommandOptBool (cmd, "undefinesource"))
+        flags |= VIR_MIGRATE_UNDEFINE_SOURCE;
+
     if ((flags & VIR_MIGRATE_PEER2PEER) ||
         vshCommandOptBool (cmd, "direct")) {
         /* For peer2peer migration or direct migration we only expect one URI
          * a libvirt URI, or a hypervisor specific URI. */
 
         if (migrateuri != NULL) {
-            vshError(ctl, FALSE, "%s", _("migrate: Unexpected migrateuri for peer2peer/direct migration"));
+            vshError(ctl, "%s", _("migrate: Unexpected migrateuri for peer2peer/direct migration"));
             goto done;
         }
 
@@ -2784,7 +2803,7 @@ cmdInterfaceEdit (vshControl *ctl, const vshCmd *cmd)
     char *doc = NULL;
     char *doc_edited = NULL;
     char *doc_reread = NULL;
-    int flags = 0;
+    int flags = VIR_INTERFACE_XML_INACTIVE;
 
     if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
         goto cleanup;
@@ -3318,6 +3337,7 @@ static const vshCmdInfo info_interface_dumpxml[] = {
 
 static const vshCmdOptDef opts_interface_dumpxml[] = {
     {"interface", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("interface name or MAC address")},
+    {"inactive", VSH_OT_BOOL, 0, gettext_noop("show inactive defined XML")},
     {NULL, 0, 0, NULL}
 };
 
@@ -3327,6 +3347,11 @@ cmdInterfaceDumpXML(vshControl *ctl, const vshCmd *cmd)
     virInterfacePtr iface;
     int ret = TRUE;
     char *dump;
+    int flags = 0;
+    int inactive = vshCommandOptBool(cmd, "inactive");
+
+    if (inactive)
+        flags |= VIR_INTERFACE_XML_INACTIVE;
 
     if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
         return FALSE;
@@ -3334,7 +3359,7 @@ cmdInterfaceDumpXML(vshControl *ctl, const vshCmd *cmd)
     if (!(iface = vshCommandOptInterface(ctl, cmd, NULL)))
         return FALSE;
 
-    dump = virInterfaceGetXMLDesc(iface, 0);
+    dump = virInterfaceGetXMLDesc(iface, flags);
     if (dump != NULL) {
         printf("%s", dump);
         free(dump);
@@ -4613,8 +4638,7 @@ cmdVolCreateAs(vshControl *ctl, const vshCmd *cmd)
 
     if (format) {
         virBufferAddLit(&buf, "  <target>\n");
-        if (format)
-            virBufferVSprintf(&buf, "    <format type='%s'/>\n",format);
+        virBufferVSprintf(&buf, "    <format type='%s'/>\n",format);
         virBufferAddLit(&buf, "  </target>\n");
     }
     virBufferAddLit(&buf, "</volume>\n");
@@ -6821,6 +6845,7 @@ editWriteToTempFile (vshControl *ctl, const char *doc)
     if (fd == -1) {
         vshError(ctl, _("mkstemp: failed to create temporary file: %s"),
                  strerror(errno));
+        free (ret);
         return NULL;
     }
 
@@ -7661,7 +7686,7 @@ vshCommandOptNetworkBy(vshControl *ctl, const vshCmd *cmd,
         *name = n;
 
     /* try it by UUID */
-    if (network==NULL && (flag & VSH_BYUUID) && strlen(n)==VIR_UUID_STRING_BUFLEN-1) {
+    if ((flag & VSH_BYUUID) && (strlen(n) == VIR_UUID_STRING_BUFLEN-1)) {
         vshDebug(ctl, 5, "%s: <%s> trying as network UUID\n",
                  cmd->def->name, optname);
         network = virNetworkLookupByUUIDString(ctl->conn, n);
@@ -7701,7 +7726,7 @@ vshCommandOptInterfaceBy(vshControl *ctl, const vshCmd *cmd,
         *name = n;
 
     /* try it by NAME */
-    if ((iface == NULL) && (flag & VSH_BYNAME)) {
+    if ((flag & VSH_BYNAME)) {
         vshDebug(ctl, 5, "%s: <%s> trying as interface NAME\n",
                  cmd->def->name, optname);
         iface = virInterfaceLookupByName(ctl->conn, n);
@@ -7738,13 +7763,13 @@ vshCommandOptPoolBy(vshControl *ctl, const vshCmd *cmd, const char *optname,
         *name = n;
 
     /* try it by UUID */
-    if (pool==NULL && (flag & VSH_BYUUID) && strlen(n)==VIR_UUID_STRING_BUFLEN-1) {
+    if ((flag & VSH_BYUUID) && (strlen(n) == VIR_UUID_STRING_BUFLEN-1)) {
         vshDebug(ctl, 5, "%s: <%s> trying as pool UUID\n",
                  cmd->def->name, optname);
         pool = virStoragePoolLookupByUUIDString(ctl->conn, n);
     }
     /* try it by NAME */
-    if (pool==NULL && (flag & VSH_BYNAME)) {
+    if (pool == NULL && (flag & VSH_BYNAME)) {
         vshDebug(ctl, 5, "%s: <%s> trying as pool NAME\n",
                  cmd->def->name, optname);
         pool = virStoragePoolLookupByName(ctl->conn, n);

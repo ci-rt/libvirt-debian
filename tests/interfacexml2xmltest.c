@@ -43,8 +43,6 @@ static int testCompareXMLToXMLFiles(const char *xml) {
     ret = 0;
 
  fail:
-    if (ret != 0)
-        fprintf(stderr, "expected: -------\n%s", actual);
     free(actual);
     virInterfaceDefFree(dev);
     return ret;
@@ -76,7 +74,7 @@ mymain(int argc, char **argv)
         abs_srcdir = getcwd(cwd, sizeof(cwd));
 
 #define DO_TEST(name) \
-    if (virtTestRun("Node device XML-2-XML " name, \
+    if (virtTestRun("Interface XML-2-XML " name, \
                     1, testCompareXMLToXMLHelper, (name)) < 0) \
         ret = -1
 
