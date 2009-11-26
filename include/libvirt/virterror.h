@@ -170,6 +170,10 @@ typedef enum {
     VIR_WAR_NO_SECRET, /* failed to start secret storage */
     VIR_ERR_INVALID_SECRET, /* invalid secret */
     VIR_ERR_NO_SECRET, /* secret not found */
+    VIR_ERR_CONFIG_UNSUPPORTED, /* unsupported configuration construct */
+    VIR_ERR_OPERATION_TIMEOUT, /* timeout occurred during operation */
+    VIR_ERR_MIGRATE_PERSIST_FAILED, /* a migration worked, but making the
+                                       VM persist on the dest host failed */
 } virErrorNumber;
 
 /**

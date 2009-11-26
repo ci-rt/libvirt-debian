@@ -1257,7 +1257,8 @@ int virFileOpenTtyAt(const char *ptmx ATTRIBUTE_UNUSED,
 char* virFilePid(const char *dir, const char* name)
 {
     char *pidfile;
-    virAsprintf(&pidfile, "%s/%s.pid", dir, name);
+    if (virAsprintf(&pidfile, "%s/%s.pid", dir, name) < 0)
+        return NULL;
     return pidfile;
 }
 
@@ -1804,30 +1805,42 @@ int virDiskNameToIndex(const char *name) {
 #define AI_CANONIDN 0
 #endif
 
-char *virGetHostname(void)
+char *virGetHostname(virConnectPtr conn)
 {
     int r;
     char hostname[HOST_NAME_MAX+1], *result;
     struct addrinfo hints, *info;
 
     r = gethostname (hostname, sizeof(hostname));
-    if (r == -1)
+    if (r == -1) {
+        virReportSystemError (conn, errno,
+                              "%s", _("failed to determine host name"));
         return NULL;
+    }
     NUL_TERMINATE(hostname);
 
     memset(&hints, 0, sizeof(hints));
     hints.ai_flags = AI_CANONNAME|AI_CANONIDN;
     hints.ai_family = AF_UNSPEC;
     r = getaddrinfo(hostname, NULL, &hints, &info);
-    if (r != 0)
+    if (r != 0) {
+        ReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                    _("getaddrinfo failed for '%s': %s"),
+                    hostname, gai_strerror(r));
         return NULL;
+    }
     if (info->ai_canonname == NULL) {
+        ReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                    "%s", _("could not determine canonical host name"));
         freeaddrinfo(info);
         return NULL;
     }
 
     /* Caller frees this string. */
     result = strdup (info->ai_canonname);
+    if (!result)
+        virReportOOMError(conn);
+
     freeaddrinfo(info);
     return result;
 }
@@ -2108,9 +2121,38 @@ void virFileWaitForDevices(virConnectPtr conn)
      * If this fails for any reason, we still have the backup of polling for
      * 5 seconds for device nodes.
      */
-    virRun(conn, settleprog, &exitstatus);
+    if (virRun(conn, settleprog, &exitstatus) < 0)
+    {}
 }
 #else
 void virFileWaitForDevices(virConnectPtr conn ATTRIBUTE_UNUSED) {}
 #endif
 #endif
+
+int virBuildPathInternal(char **path, ...)
+{
+    char *path_component = NULL;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    va_list ap;
+    int ret = 0;
+
+    va_start(ap, *path);
+
+    path_component = va_arg(ap, char *);
+    virBufferAdd(&buf, path_component, -1);
+
+    while ((path_component = va_arg(ap, char *)) != NULL)
+    {
+        virBufferAddChar(&buf, '/');
+        virBufferAdd(&buf, path_component, -1);
+    }
+
+    va_end(ap);
+
+    *path = virBufferContentAndReset(&buf);
+    if (*path == NULL) {
+        ret = -1;
+    }
+
+    return ret;
+}

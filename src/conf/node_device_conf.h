@@ -41,6 +41,7 @@ enum virNodeDevCapType {
     VIR_NODE_DEV_CAP_USB_INTERFACE,	/* USB interface */
     VIR_NODE_DEV_CAP_NET,		/* Network device */
     VIR_NODE_DEV_CAP_SCSI_HOST,		/* SCSI Host Bus Adapter */
+    VIR_NODE_DEV_CAP_SCSI_TARGET,	/* SCSI Target */
     VIR_NODE_DEV_CAP_SCSI,		/* SCSI device */
     VIR_NODE_DEV_CAP_STORAGE,		/* Storage device */
     VIR_NODE_DEV_CAP_LAST
@@ -101,6 +102,7 @@ struct _virNodeDevCapsDef {
             unsigned function;
             unsigned product;
             unsigned vendor;
+            unsigned class;
             char *product_name;
             char *vendor_name;
         } pci_dev;
@@ -121,6 +123,7 @@ struct _virNodeDevCapsDef {
         } usb_if;
         struct {
             char *address;
+            unsigned address_len;
             char *ifname;
             enum virNodeDevNetCapType subtype;  /* LAST -> no subtype */
         } net;
@@ -131,6 +134,9 @@ struct _virNodeDevCapsDef {
             unsigned flags;
         } scsi_host;
         struct {
+            char *name;
+        } scsi_target;
+        struct {
             unsigned host;
             unsigned bus;
             unsigned target;
@@ -139,6 +145,8 @@ struct _virNodeDevCapsDef {
         } scsi;
         struct {
             unsigned long long size;
+            unsigned long long num_blocks;
+            unsigned long long logical_block_size;
             unsigned long long removable_media_size;
             char *block;
             char *bus;
@@ -157,7 +165,9 @@ typedef struct _virNodeDeviceDef virNodeDeviceDef;
 typedef virNodeDeviceDef *virNodeDeviceDefPtr;
 struct _virNodeDeviceDef {
     char *name;                         /* device name (unique on node) */
+    char *sysfs_path;                   /* udev name/sysfs path */
     char *parent;			/* optional parent device name */
+    char *parent_sysfs_path;            /* udev parent name/sysfs path */
     char *driver;                       /* optional driver name */
     virNodeDevCapsDefPtr caps;		/* optional device capabilities */
 };
@@ -168,7 +178,6 @@ typedef virNodeDeviceObj *virNodeDeviceObjPtr;
 struct _virNodeDeviceObj {
     virMutex lock;
 
-    char *devicePath;                   /* OS specific path to device metadat, eg sysfs */
     virNodeDeviceDefPtr def;		/* device definition */
     void *privateData;			/* driver-specific private data */
     void (*privateFree)(void *data);	/* destructor for private data */
@@ -199,6 +208,9 @@ int virNodeDeviceHasCap(const virNodeDeviceObjPtr dev, const char *cap);
 
 virNodeDeviceObjPtr virNodeDeviceFindByName(const virNodeDeviceObjListPtr devs,
                                             const char *name);
+virNodeDeviceObjPtr
+virNodeDeviceFindBySysfsPath(const virNodeDeviceObjListPtr devs,
+                             const char *sysfs_path);
 
 virNodeDeviceObjPtr virNodeDeviceAssignDef(virConnectPtr conn,
                                            virNodeDeviceObjListPtr devs,
@@ -220,6 +232,17 @@ virNodeDeviceDefPtr virNodeDeviceDefParseNode(virConnectPtr conn,
                                               xmlDocPtr xml,
                                               xmlNodePtr root,
                                               int create);
+
+int virNodeDeviceGetWWNs(virConnectPtr conn,
+                         virNodeDeviceDefPtr def,
+                         char **wwnn,
+                         char **wwpn);
+
+int virNodeDeviceGetParentHost(virConnectPtr conn,
+                               const virNodeDeviceObjListPtr devs,
+                               const char *dev_name,
+                               const char *parent_name,
+                               int *parent_host);
 
 void virNodeDeviceDefFree(virNodeDeviceDefPtr def);
 

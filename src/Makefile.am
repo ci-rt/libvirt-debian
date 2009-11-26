@@ -51,10 +51,12 @@ UTIL_SOURCES =							\
 		util/event.c util/event.h			\
 		util/hash.c util/hash.h				\
 		util/iptables.c util/iptables.h			\
+		util/ebtables.c util/ebtables.h			\
 		util/logging.c util/logging.h			\
 		util/memory.c util/memory.h			\
 		util/pci.c util/pci.h				\
 		util/hostusb.c util/hostusb.h			\
+		util/network.c util/network.h			\
 		util/qparams.c util/qparams.h			\
 		util/stats_linux.c util/stats_linux.h		\
 		util/storage_file.c util/storage_file.h		\
@@ -181,9 +183,12 @@ VBOX_DRIVER_EXTRA_DIST = vbox/vbox_tmpl.c vbox/README
 
 QEMU_DRIVER_SOURCES =						\
 		qemu/qemu_conf.c qemu/qemu_conf.h		\
+		qemu/qemu_monitor.c qemu/qemu_monitor.h		\
 		qemu/qemu_monitor_text.c			\
 		qemu/qemu_monitor_text.h			\
-		qemu/qemu_driver.c qemu/qemu_driver.h
+		qemu/qemu_driver.c qemu/qemu_driver.h        	\
+		qemu/qemu_bridge_filter.c 			\
+		qemu/qemu_bridge_filter.h
 
 UML_DRIVER_SOURCES =						\
 		uml/uml_conf.c uml/uml_conf.h			\
@@ -254,15 +259,17 @@ SECURITY_DRIVER_APPARMOR_SOURCES =				\
 
 
 NODE_DEVICE_DRIVER_SOURCES =					\
-		node_device/node_device_driver.c node_device/node_device_driver.h
+		node_device/node_device_driver.c \
+		node_device/node_device_driver.h \
+		node_device/node_device_linux_sysfs.c
 
 NODE_DEVICE_DRIVER_HAL_SOURCES =				\
 		node_device/node_device_hal.c			\
-		node_device/node_device_hal.h			\
-		node_device/node_device_hal_linux.c
+		node_device/node_device_hal.h
 
-NODE_DEVICE_DRIVER_DEVKIT_SOURCES =				\
-		node_device/node_device_devkit.c
+NODE_DEVICE_DRIVER_UDEV_SOURCES =				\
+		node_device/node_device_udev.c			\
+		node_device/node_device_udev.h
 
 
 #########################
@@ -637,10 +644,10 @@ libvirt_driver_nodedev_la_SOURCES += $(NODE_DEVICE_DRIVER_HAL_SOURCES)
 libvirt_driver_nodedev_la_CFLAGS += $(HAL_CFLAGS)
 libvirt_driver_nodedev_la_LDFLAGS += $(HAL_LIBS)
 endif
-if HAVE_DEVKIT
-libvirt_driver_nodedev_la_SOURCES += $(NODE_DEVICE_DRIVER_DEVKIT_SOURCES)
-libvirt_driver_nodedev_la_CFLAGS += $(DEVKIT_CFLAGS)
-libvirt_driver_nodedev_la_LDFLAGS += $(DEVKIT_LIBS)
+if HAVE_UDEV
+libvirt_driver_nodedev_la_SOURCES += $(NODE_DEVICE_DRIVER_UDEV_SOURCES)
+libvirt_driver_nodedev_la_CFLAGS += $(UDEV_CFLAGS) $(PCIACCESS_CFLAGS)
+libvirt_driver_nodedev_la_LDFLAGS += $(UDEV_LIBS) $(PCIACCESS_LIBS)
 endif
 
 if WITH_DRIVER_MODULES
@@ -657,6 +664,8 @@ libvirt_driver_security_la_CFLAGS = \
 libvirt_driver_security_la_LDFLAGS =
 if WITH_SECDRIVER_SELINUX
 libvirt_driver_security_la_SOURCES += $(SECURITY_DRIVER_SELINUX_SOURCES)
+libvirt_driver_security_la_CFLAGS += $(SELINUX_CFLAGS)
+libvirt_driver_security_la_LDFLAGS += $(SELINUX_LIBS)
 endif
 if WITH_SECDRIVER_APPARMOR
 libvirt_driver_security_la_SOURCES += $(SECURITY_DRIVER_APPARMOR_SOURCES)
@@ -688,7 +697,7 @@ EXTRA_DIST +=							\
 		$(STORAGE_DRIVER_DISK_SOURCES)			\
 		$(NODE_DEVICE_DRIVER_SOURCES)			\
 		$(NODE_DEVICE_DRIVER_HAL_SOURCES)		\
-		$(NODE_DEVICE_DRIVER_DEVKIT_SOURCES)		\
+		$(NODE_DEVICE_DRIVER_UDEV_SOURCES)		\
 		$(SECURITY_DRIVER_SELINUX_SOURCES)		\
 		$(SECURITY_DRIVER_APPARMOR_SOURCES)		\
 		$(SECRET_DRIVER_SOURCES)			\

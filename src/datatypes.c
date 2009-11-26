@@ -71,7 +71,7 @@ virNetworkFreeName(virNetworkPtr network, const char *name ATTRIBUTE_UNUSED)
 
 /**
  * virInterfaceFreeName:
- * @interface: a interface object
+ * @interface: an interface object
  *
  * Destroy the interface object, this is just used by the interface hash callback.
  *
@@ -588,10 +588,15 @@ virInterfacePtr
 virGetInterface(virConnectPtr conn, const char *name, const char *mac) {
     virInterfacePtr ret = NULL;
 
-    if ((!VIR_IS_CONNECT(conn)) || (name == NULL) || (mac == NULL)) {
+    if ((!VIR_IS_CONNECT(conn)) || (name == NULL)) {
         virLibConnError(NULL, VIR_ERR_INVALID_ARG, __FUNCTION__);
         return(NULL);
     }
+
+    /* a NULL mac from caller is okay. Treat it as blank */
+    if (mac == NULL)
+       mac = "";
+
     virMutexLock(&conn->lock);
 
     ret = (virInterfacePtr) virHashLookup(conn->interfaces, name);
@@ -674,7 +679,7 @@ _("Failed to change interface mac address from %s to %s due to differing lengths
  * virReleaseInterface:
  * @interface: the interface to release
  *
- * Unconditionally release all memory associated with a interface.
+ * Unconditionally release all memory associated with an interface.
  * The conn.lock mutex must be held prior to calling this, and will
  * be released prior to this returning. The interface obj must not
  * be used once this method returns.

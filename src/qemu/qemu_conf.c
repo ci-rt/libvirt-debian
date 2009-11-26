@@ -40,6 +40,7 @@
 #include "c-ctype.h"
 #include "virterror_internal.h"
 #include "qemu_conf.h"
+#include "qemu_bridge_filter.h"
 #include "uuid.h"
 #include "buf.h"
 #include "conf.h"
@@ -50,6 +51,7 @@
 #include "xml.h"
 #include "nodeinfo.h"
 #include "logging.h"
+#include "network.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -61,7 +63,8 @@ VIR_ENUM_IMPL(virDomainDiskQEMUBus, VIR_DOMAIN_DISK_BUS_LAST,
               "virtio",
               "xen",
               "usb",
-              "uml")
+              "uml",
+              "sata")
 
 
 VIR_ENUM_DECL(qemuDiskCacheV1)
@@ -243,7 +246,7 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
         for (i = 0, pp = p->list; pp; ++i, pp = pp->next) {
             int ctl;
             if (pp->type != VIR_CONF_STRING) {
-                VIR_ERROR("%s", _("cgroup_device_acl must be a list of strings"));
+                VIR_ERROR("%s", _("cgroup_controllers must be a list of strings"));
                 virConfFree(conf);
                 return -1;
             }
@@ -317,6 +320,24 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
              return -1;
          }
      }
+
+    p = virConfGetValue (conf, "mac_filter");
+    CHECK_TYPE ("mac_filter", VIR_CONF_LONG);
+    if (p && p->l) {
+        driver->macFilter = p->l;
+        if (!(driver->ebtables = ebtablesContextNew("qemu"))) {
+            driver->macFilter = 0;
+            virReportSystemError(NULL, errno,
+                                 _("failed to enable mac filter in in '%s'"),
+                                 __FILE__);
+        }
+
+        if ((errno = networkDisableAllFrames(driver))) {
+            virReportSystemError(NULL, errno,
+                         _("failed to add rule to drop all frames in '%s'"),
+                                 __FILE__);
+        }
+    }
 
     virConfFree (conf);
     return 0;
@@ -397,17 +418,17 @@ qemudParseMachineTypesStr(const char *output,
             continue;
 
         if (VIR_ALLOC(machine) < 0)
-            goto error;
+            goto no_memory;
 
         if (!(machine->name = strndup(p, t - p))) {
             VIR_FREE(machine);
-            goto error;
+            goto no_memory;
         }
 
         if (VIR_REALLOC_N(list, nitems + 1) < 0) {
             VIR_FREE(machine->name);
             VIR_FREE(machine);
-            goto error;
+            goto no_memory;
         }
 
         p = t;
@@ -426,7 +447,7 @@ qemudParseMachineTypesStr(const char *output,
                 continue;
 
             if (!(machine->canonical = strndup(p, t - p)))
-                goto error;
+                goto no_memory;
         }
     } while ((p = next));
 
@@ -435,7 +456,8 @@ qemudParseMachineTypesStr(const char *output,
 
     return 0;
 
-error:
+  no_memory:
+    virReportOOMError(NULL);
     virCapabilitiesFreeMachines(list, nitems);
     return -1;
 }
@@ -505,6 +527,9 @@ qemudGetOldMachinesFromInfo(virCapsGuestDomainInfoPtr info,
     virCapsGuestMachinePtr *list;
     int i;
 
+    if (!info->nmachines)
+        return 0;
+
     if (!info->emulator || !STREQ(emulator, info->emulator))
         return 0;
 
@@ -514,23 +539,22 @@ qemudGetOldMachinesFromInfo(virCapsGuestDomainInfoPtr info,
         return 0;
     }
 
-    if (VIR_ALLOC_N(list, info->nmachines) < 0)
+    if (VIR_ALLOC_N(list, info->nmachines) < 0) {
+        virReportOOMError(NULL);
         return 0;
+    }
 
     for (i = 0; i < info->nmachines; i++) {
         if (VIR_ALLOC(list[i]) < 0) {
-            virCapabilitiesFreeMachines(list, info->nmachines);
-            return 0;
+            goto no_memory;
         }
         if (info->machines[i]->name &&
             !(list[i]->name = strdup(info->machines[i]->name))) {
-            virCapabilitiesFreeMachines(list, info->nmachines);
-            return 0;
+            goto no_memory;
         }
         if (info->machines[i]->canonical &&
             !(list[i]->canonical = strdup(info->machines[i]->canonical))) {
-            virCapabilitiesFreeMachines(list, info->nmachines);
-            return 0;
+            goto no_memory;
         }
     }
 
@@ -538,6 +562,11 @@ qemudGetOldMachinesFromInfo(virCapsGuestDomainInfoPtr info,
     *nmachines = info->nmachines;
 
     return 1;
+
+  no_memory:
+    virReportOOMError(NULL);
+    virCapabilitiesFreeMachines(list, info->nmachines);
+    return 0;
 }
 
 static int
@@ -645,15 +674,19 @@ qemudCapsInitGuest(virCapsPtr caps,
     if (info->machine) {
         virCapsGuestMachinePtr machine;
 
-        if (VIR_ALLOC(machine) < 0)
+        if (VIR_ALLOC(machine) < 0) {
+            virReportOOMError(NULL);
             return -1;
+        }
 
         if (!(machine->name = strdup(info->machine))) {
+            virReportOOMError(NULL);
             VIR_FREE(machine);
             return -1;
         }
 
         if (VIR_ALLOC_N(machines, nmachines) < 0) {
+            virReportOOMError(NULL);
             VIR_FREE(machine->name);
             VIR_FREE(machine);
             return -1;
@@ -845,6 +878,8 @@ static unsigned int qemudComputeCmdFlags(const char *help,
         flags |= QEMUD_CMD_FLAG_KQEMU;
     if (strstr(help, "-no-kvm"))
         flags |= QEMUD_CMD_FLAG_KVM;
+    if (strstr(help, "-enable-kvm"))
+        flags |= QEMUD_CMD_FLAG_ENABLE_KVM;
     if (strstr(help, "-no-reboot"))
         flags |= QEMUD_CMD_FLAG_NO_REBOOT;
     if (strstr(help, "-name"))
@@ -872,6 +907,8 @@ static unsigned int qemudComputeCmdFlags(const char *help,
         flags |= QEMUD_CMD_FLAG_PCIDEVICE;
     if (strstr(help, "-mem-path"))
         flags |= QEMUD_CMD_FLAG_MEM_PATH;
+    if (strstr(help, "-chardev"))
+        flags |= QEMUD_CMD_FLAG_CHARDEV;
 
     if (version >= 9000)
         flags |= QEMUD_CMD_FLAG_VNC_COLON;
@@ -1103,10 +1140,8 @@ int qemudExtractVersion(virConnectPtr conn,
         return -1;
 
     if (stat(binary, &sb) < 0) {
-        char ebuf[1024];
-        qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                         _("Cannot find QEMU binary %s: %s"), binary,
-                         virStrerror(errno, ebuf, sizeof ebuf));
+        virReportSystemError(conn, errno,
+                             _("Cannot find QEMU binary %s"), binary);
         return -1;
     }
 
@@ -1143,7 +1178,10 @@ qemudNetworkIfaceConnect(virConnectPtr conn,
         if (brname == NULL)
             return -1;
     } else if (net->type == VIR_DOMAIN_NET_TYPE_BRIDGE) {
-        brname = strdup(net->data.bridge.brname);
+        if (!(brname = strdup(net->data.bridge.brname))) {
+            virReportOOMError(conn);
+            return -1;
+        }
     } else {
         qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
                          _("Network type %d is not supported"), net->type);
@@ -1191,6 +1229,14 @@ qemudNetworkIfaceConnect(virConnectPtr conn,
         if (template_ifname)
             VIR_FREE(net->ifname);
         tapfd = -1;
+    }
+
+    if (driver->macFilter) {
+        if ((err = networkAllowMacOnPort(conn, driver, net->ifname, net->mac))) {
+            virReportSystemError(conn, err,
+                 _("failed to add ebtables rule to allow MAC address on  '%s'"),
+                                 net->ifname);
+        }
     }
 
 cleanup:
@@ -1245,12 +1291,15 @@ qemuAssignNetNames(virDomainDefPtr def,
 
     if (virAsprintf(&nic_name, "%s.%d",
                     net->model ? net->model : "nic",
-                    nic_index) < 0)
+                    nic_index) < 0) {
+        virReportOOMError(NULL);
         return -1;
+    }
 
     if (virAsprintf(&hostnet_name, "%s.%d",
                     qemuNetTypeToHostNet(net->type),
                     hostnet_index) < 0) {
+        virReportOOMError(NULL);
         VIR_FREE(nic_name);
         return -1;
     }
@@ -1381,83 +1430,133 @@ qemuBuildHostNetStr(virConnectPtr conn,
     return 0;
 }
 
-static int qemudBuildCommandLineChrDevStr(virDomainChrDefPtr dev,
-                                          char *buf,
-                                          int buflen)
+/* This function outputs a -chardev command line option which describes only the
+ * host side of the character device */
+static void qemudBuildCommandLineChrDevChardevStr(virDomainChrDefPtr dev,
+                                                  const char *const id,
+                                                  virBufferPtr buf)
 {
-    switch (dev->type) {
+    bool telnet;
+    switch(dev->type) {
     case VIR_DOMAIN_CHR_TYPE_NULL:
-        if (virStrcpy(buf, "null", buflen) == NULL)
-            return -1;
+        virBufferVSprintf(buf, "null,id=%s", id);
         break;
 
     case VIR_DOMAIN_CHR_TYPE_VC:
-        if (virStrcpy(buf, "vc", buflen) == NULL)
-            return -1;
+        virBufferVSprintf(buf, "vc,id=%s", id);
         break;
 
     case VIR_DOMAIN_CHR_TYPE_PTY:
-        if (virStrcpy(buf, "pty", buflen) == NULL)
-            return -1;
+        virBufferVSprintf(buf, "pty,id=%s", id);
         break;
 
     case VIR_DOMAIN_CHR_TYPE_DEV:
-        if (snprintf(buf, buflen, "%s",
-                     dev->data.file.path) >= buflen)
-            return -1;
+        virBufferVSprintf(buf, "tty,id=%s,path=%s", id, dev->data.file.path);
         break;
 
     case VIR_DOMAIN_CHR_TYPE_FILE:
-        if (snprintf(buf, buflen, "file:%s",
-                     dev->data.file.path) >= buflen)
-            return -1;
+        virBufferVSprintf(buf, "file,id=%s,path=%s", id, dev->data.file.path);
         break;
 
     case VIR_DOMAIN_CHR_TYPE_PIPE:
-        if (snprintf(buf, buflen, "pipe:%s",
-                     dev->data.file.path) >= buflen)
-            return -1;
+        virBufferVSprintf(buf, "pipe,id=%s,path=%s", id, dev->data.file.path);
         break;
 
     case VIR_DOMAIN_CHR_TYPE_STDIO:
-        if (virStrcpy(buf, "stdio", buflen) == NULL)
-            return -1;
+        virBufferVSprintf(buf, "stdio,id=%s", id);
         break;
 
     case VIR_DOMAIN_CHR_TYPE_UDP:
-        if (snprintf(buf, buflen, "udp:%s:%s@%s:%s",
-                     dev->data.udp.connectHost,
-                     dev->data.udp.connectService,
-                     dev->data.udp.bindHost,
-                     dev->data.udp.bindService) >= buflen)
-            return -1;
+        virBufferVSprintf(buf,
+                          "udp,id=%s,host=%s,port=%s,localaddr=%s,localport=%s",
+                          id,
+                          dev->data.udp.connectHost,
+                          dev->data.udp.connectService,
+                          dev->data.udp.bindHost,
+                          dev->data.udp.bindService);
+        break;
+
+    case VIR_DOMAIN_CHR_TYPE_TCP:
+        telnet = dev->data.tcp.protocol == VIR_DOMAIN_CHR_TCP_PROTOCOL_TELNET;
+        virBufferVSprintf(buf,
+                          "socket,id=%s,host=%s,port=%s%s%s",
+                          id,
+                          dev->data.tcp.host,
+                          dev->data.tcp.service,
+                          telnet ? ",telnet" : "",
+                          dev->data.tcp.listen ? ",server,nowait" : "");
+        break;
+
+    case VIR_DOMAIN_CHR_TYPE_UNIX:
+        virBufferVSprintf(buf,
+                          "socket,id=%s,path=%s%s",
+                          id,
+                          dev->data.nix.path,
+                          dev->data.nix.listen ? ",server,nowait" : "");
+        break;
+    }
+}
+
+static void qemudBuildCommandLineChrDevStr(virDomainChrDefPtr dev,
+                                           virBufferPtr buf)
+{
+    switch (dev->type) {
+    case VIR_DOMAIN_CHR_TYPE_NULL:
+        virBufferAddLit(buf, "null");
+        break;
+
+    case VIR_DOMAIN_CHR_TYPE_VC:
+        virBufferAddLit(buf, "vc");
+        break;
+
+    case VIR_DOMAIN_CHR_TYPE_PTY:
+        virBufferAddLit(buf, "pty");
+        break;
+
+    case VIR_DOMAIN_CHR_TYPE_DEV:
+        virBufferStrcat(buf, dev->data.file.path, NULL);
+        break;
+
+    case VIR_DOMAIN_CHR_TYPE_FILE:
+        virBufferVSprintf(buf, "file:%s", dev->data.file.path);
+        break;
+
+    case VIR_DOMAIN_CHR_TYPE_PIPE:
+        virBufferVSprintf(buf, "pipe:%s", dev->data.file.path);
+        break;
+
+    case VIR_DOMAIN_CHR_TYPE_STDIO:
+        virBufferAddLit(buf, "stdio");
+        break;
+
+    case VIR_DOMAIN_CHR_TYPE_UDP:
+        virBufferVSprintf(buf, "udp:%s:%s@%s:%s",
+                          dev->data.udp.connectHost,
+                          dev->data.udp.connectService,
+                          dev->data.udp.bindHost,
+                          dev->data.udp.bindService);
         break;
 
     case VIR_DOMAIN_CHR_TYPE_TCP:
         if (dev->data.tcp.protocol == VIR_DOMAIN_CHR_TCP_PROTOCOL_TELNET) {
-            if (snprintf(buf, buflen, "telnet:%s:%s%s",
-                         dev->data.tcp.host,
-                         dev->data.tcp.service,
-                         dev->data.tcp.listen ? ",server,nowait" : "") >= buflen)
-                return -1;
+            virBufferVSprintf(buf, "telnet:%s:%s%s",
+                              dev->data.tcp.host,
+                              dev->data.tcp.service,
+                              dev->data.tcp.listen ? ",server,nowait" : "");
         } else {
-            if (snprintf(buf, buflen, "tcp:%s:%s%s",
-                         dev->data.tcp.host,
-                         dev->data.tcp.service,
-                         dev->data.tcp.listen ? ",server,nowait" : "") >= buflen)
-                return -1;
+            virBufferVSprintf(buf, "tcp:%s:%s%s",
+                              dev->data.tcp.host,
+                              dev->data.tcp.service,
+                              dev->data.tcp.listen ? ",server,nowait" : "");
         }
         break;
 
     case VIR_DOMAIN_CHR_TYPE_UNIX:
-        if (snprintf(buf, buflen, "unix:%s%s",
-                     dev->data.nix.path,
-                     dev->data.nix.listen ? ",server,nowait" : "") >= buflen)
-            return -1;
+        virBufferVSprintf(buf, "unix:%s%s",
+                          dev->data.nix.path,
+                          dev->data.nix.listen ? ",server,nowait" : "");
         break;
     }
-
-    return 0;
 }
 
 #define QEMU_SERIAL_PARAM_ACCEPTED_CHARS \
@@ -1498,6 +1597,7 @@ int qemudBuildCommandLine(virConnectPtr conn,
     struct utsname ut;
     int disableKQEMU = 0;
     int disableKVM = 0;
+    int enableKVM = 0;
     int qargc = 0, qarga = 0;
     const char **qargv = NULL;
     int qenvc = 0, qenva = 0;
@@ -1555,6 +1655,15 @@ int qemudBuildCommandLine(virConnectPtr conn,
     if ((qemuCmdFlags & QEMUD_CMD_FLAG_KVM) &&
         def->virtType == VIR_DOMAIN_VIRT_QEMU)
         disableKVM = 1;
+
+    /* Should explicitly enable KVM if
+     * 1. Guest domain is 'kvm'
+     * 2. The qemu binary has the -enable-kvm flag
+     * NOTE: user must be responsible for loading the kvm modules
+     */
+    if ((qemuCmdFlags & QEMUD_CMD_FLAG_ENABLE_KVM) &&
+        def->virtType == VIR_DOMAIN_VIRT_KVM)
+        enableKVM = 1;
 
     /*
      * Need to force a 32-bit guest CPU type if
@@ -1683,6 +1792,8 @@ int qemudBuildCommandLine(virConnectPtr conn,
         ADD_ARG_LIT("-no-kqemu");
     if (disableKVM)
         ADD_ARG_LIT("-no-kvm");
+    if (enableKVM)
+        ADD_ARG_LIT("-enable-kvm");
     ADD_ARG_LIT("-m");
     ADD_ARG_LIT(memory);
     if (def->hugepage_backed) {
@@ -1745,13 +1856,14 @@ int qemudBuildCommandLine(virConnectPtr conn,
         ADD_ARG_LIT("-nographic");
 
     if (monitor_chr) {
-        char buf[4096];
+        virBuffer buf = VIR_BUFFER_INITIALIZER;
 
-        if (qemudBuildCommandLineChrDevStr(monitor_chr, buf, sizeof(buf)) < 0)
+        qemudBuildCommandLineChrDevStr(monitor_chr, &buf);
+        if (virBufferError(&buf))
             goto error;
 
         ADD_ARG_LIT("-monitor");
-        ADD_ARG_LIT(buf);
+        ADD_ARG(virBufferContentAndReset(&buf));
     }
 
     if (def->localtime)
@@ -2031,14 +2143,15 @@ int qemudBuildCommandLine(virConnectPtr conn,
         ADD_ARG_LIT("none");
     } else {
         for (i = 0 ; i < def->nserials ; i++) {
-            char buf[4096];
+            virBuffer buf = VIR_BUFFER_INITIALIZER;
             virDomainChrDefPtr serial = def->serials[i];
 
-            if (qemudBuildCommandLineChrDevStr(serial, buf, sizeof(buf)) < 0)
+            qemudBuildCommandLineChrDevStr(serial, &buf);
+            if (virBufferError(&buf))
                 goto error;
 
             ADD_ARG_LIT("-serial");
-            ADD_ARG_LIT(buf);
+            ADD_ARG(virBufferContentAndReset(&buf));
         }
     }
 
@@ -2047,14 +2160,55 @@ int qemudBuildCommandLine(virConnectPtr conn,
         ADD_ARG_LIT("none");
     } else {
         for (i = 0 ; i < def->nparallels ; i++) {
-            char buf[4096];
+            virBuffer buf = VIR_BUFFER_INITIALIZER;
             virDomainChrDefPtr parallel = def->parallels[i];
 
-            if (qemudBuildCommandLineChrDevStr(parallel, buf, sizeof(buf)) < 0)
+            qemudBuildCommandLineChrDevStr(parallel, &buf);
+            if (virBufferError(&buf))
                 goto error;
 
             ADD_ARG_LIT("-parallel");
-            ADD_ARG_LIT(buf);
+            ADD_ARG(virBufferContentAndReset(&buf));
+        }
+    }
+
+    for (i = 0 ; i < def->nchannels ; i++) {
+        virBuffer buf = VIR_BUFFER_INITIALIZER;
+        char id[16];
+
+        virDomainChrDefPtr channel = def->channels[i];
+
+        if (snprintf(id, sizeof(id), "channel%i", i) > sizeof(id))
+            goto error;
+
+        switch(channel->targetType) {
+        case VIR_DOMAIN_CHR_TARGET_TYPE_GUESTFWD:
+            if (!(qemuCmdFlags & QEMUD_CMD_FLAG_CHARDEV)) {
+                qemudReportError(conn, NULL, NULL, VIR_ERR_NO_SUPPORT,
+                     "%s", _("guestfwd requires QEMU to support -chardev"));
+                goto error;
+            }
+
+            qemudBuildCommandLineChrDevChardevStr(channel, id, &buf);
+            if (virBufferError(&buf))
+                goto error;
+
+            ADD_ARG_LIT("-chardev");
+            ADD_ARG(virBufferContentAndReset(&buf));
+
+            const char *addr = virSocketFormatAddr(channel->target.addr);
+            int port = virSocketGetPort(channel->target.addr);
+
+            virBufferVSprintf(&buf, "user,guestfwd=tcp:%s:%i-chardev:%s",
+                              addr, port, id);
+
+            VIR_FREE(addr);
+
+            if (virBufferError(&buf))
+                goto error;
+
+            ADD_ARG_LIT("-net");
+            ADD_ARG(virBufferContentAndReset(&buf));
         }
     }
 
@@ -2230,6 +2384,28 @@ int qemudBuildCommandLine(virConnectPtr conn,
         ADD_ARG(modstr);
     }
 
+    /* Add watchdog hardware */
+    if (def->watchdog) {
+        virDomainWatchdogDefPtr watchdog = def->watchdog;
+        const char *model = virDomainWatchdogModelTypeToString(watchdog->model);
+        if (!model) {
+            qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                             "%s", _("invalid watchdog model"));
+            goto error;
+        }
+        ADD_ARG_LIT("-watchdog");
+        ADD_ARG_LIT(model);
+
+        const char *action = virDomainWatchdogActionTypeToString(watchdog->action);
+        if (!action) {
+            qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                             "%s", _("invalid watchdog action"));
+            goto error;
+        }
+        ADD_ARG_LIT("-watchdog-action");
+        ADD_ARG_LIT(action);
+    }
+
     /* Add host passthrough hardware */
     for (i = 0 ; i < def->nhostdevs ; i++) {
         int ret;
@@ -2272,7 +2448,7 @@ int qemudBuildCommandLine(virConnectPtr conn,
                            hostdev->source.subsys.u.pci.function);
             if (ret < 0) {
                 pcidev = NULL;
-                goto error;
+                goto no_memory;
             }
             ADD_ARG_LIT("-pcidevice");
             ADD_ARG_LIT(pcidev);
@@ -2427,6 +2603,7 @@ no_memory:
     for (i = 0 ; i < argcount ; i++)
         VIR_FREE(arglist[i]);
     VIR_FREE(arglist);
+    virReportOOMError(NULL);
     return -1;
 }
 
@@ -2816,7 +2993,14 @@ qemuParseCommandLineNet(virConnectPtr conn,
     for (i = 0 ; i < nkeywords ; i++) {
         if (STREQ(keywords[i], "macaddr")) {
             genmac = 0;
-            virParseMacAddr(values[i], def->mac);
+            if (virParseMacAddr(values[i], def->mac) < 0) {
+                qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                                 _("unable to parse mac address '%s'"),
+                                 values[i]);
+                virDomainNetDefFree(def);
+                def = NULL;
+                goto cleanup;
+            }
         } else if (STREQ(keywords[i], "model")) {
             def->model = values[i];
             values[i] = NULL;
@@ -3008,12 +3192,19 @@ qemuParseCommandLineChr(virConnectPtr conn,
             def->data.udp.connectHost = strndup(val, svc1-val);
         else
             def->data.udp.connectHost = strdup(val);
+
+        if (!def->data.udp.connectHost)
+            goto no_memory;
+
         if (svc1) {
             svc1++;
             if (host2)
                 def->data.udp.connectService = strndup(svc1, host2-svc1);
             else
                 def->data.udp.connectService = strdup(svc1);
+
+            if (!def->data.udp.connectService)
+                goto no_memory;
         }
 
         if (host2) {
@@ -3022,10 +3213,15 @@ qemuParseCommandLineChr(virConnectPtr conn,
                 def->data.udp.bindHost = strndup(host2, svc2-host2);
             else
                 def->data.udp.bindHost = strdup(host2);
+
+            if (!def->data.udp.bindHost)
+                goto no_memory;
         }
         if (svc2) {
             svc2++;
             def->data.udp.bindService = strdup(svc2);
+            if (!def->data.udp.bindService)
+                goto no_memory;
         }
     } else if (STRPREFIX(val, "tcp:") ||
                STRPREFIX(val, "telnet:")) {
@@ -3048,12 +3244,16 @@ qemuParseCommandLineChr(virConnectPtr conn,
             def->data.tcp.listen = 1;
 
         def->data.tcp.host = strndup(val, svc-val);
+        if (!def->data.tcp.host)
+            goto no_memory;
         svc++;
         if (opt) {
             def->data.tcp.service = strndup(svc, opt-svc);
         } else {
             def->data.tcp.service = strdup(svc);
         }
+        if (!def->data.tcp.service)
+            goto no_memory;
     } else if (STRPREFIX(val, "unix:")) {
         const char *opt;
         val += strlen("unix:");
@@ -3349,7 +3549,8 @@ virDomainDefPtr qemuParseCommandLine(virConnectPtr conn,
                     virDomainChrDefFree(chr);
                     goto no_memory;
                 }
-                chr->dstPort = def->nserials;
+                chr->targetType = VIR_DOMAIN_CHR_TARGET_TYPE_SERIAL;
+                chr->target.port = def->nserials;
                 def->serials[def->nserials++] = chr;
             }
         } else if (STREQ(arg, "-parallel")) {
@@ -3362,7 +3563,8 @@ virDomainDefPtr qemuParseCommandLine(virConnectPtr conn,
                     virDomainChrDefFree(chr);
                     goto no_memory;
                 }
-                chr->dstPort = def->nparallels;
+                chr->targetType = VIR_DOMAIN_CHR_TARGET_TYPE_PARALLEL;
+                chr->target.port = def->nparallels;
                 def->parallels[def->nparallels++] = chr;
             }
         } else if (STREQ(arg, "-usbdevice")) {
@@ -3479,6 +3681,24 @@ virDomainDefPtr qemuParseCommandLine(virConnectPtr conn,
 
                 start = tmp ? tmp + 1 : NULL;
             }
+        } else if (STREQ(arg, "-watchdog")) {
+            WANT_VALUE();
+            int model = virDomainWatchdogModelTypeFromString (val);
+
+            if (model != -1) {
+                virDomainWatchdogDefPtr wd;
+                if (VIR_ALLOC(wd) < 0)
+                    goto no_memory;
+                wd->model = model;
+                wd->action = VIR_DOMAIN_WATCHDOG_ACTION_RESET;
+                def->watchdog = wd;
+            }
+        } else if (STREQ(arg, "-watchdog-action") && def->watchdog) {
+            WANT_VALUE();
+            int action = virDomainWatchdogActionTypeFromString (val);
+
+            if (action != -1)
+                def->watchdog->action = action;
         } else if (STREQ(arg, "-bootloader")) {
             WANT_VALUE();
             def->os.bootloader = strdup(val);

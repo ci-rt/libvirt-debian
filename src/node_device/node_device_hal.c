@@ -364,7 +364,7 @@ static int gather_capabilities(LibHalContext *ctx, const char *udi,
 {
     char *bus_name = NULL;
     virNodeDevCapsDefPtr caps = NULL;
-    char **hal_cap_names;
+    char **hal_cap_names = NULL;
     int rv, i;
 
     if (STREQ(udi, "/org/freedesktop/Hal/devices/computer")) {
@@ -470,7 +470,7 @@ static void dev_create(const char *udi)
 
     dev->privateData = privData;
     dev->privateFree = free_udi;
-    dev->devicePath = devicePath;
+    dev->def->sysfs_path = devicePath;
 
     virNodeDeviceObjUnlock(dev);
 
@@ -692,6 +692,7 @@ static int halDeviceMonitorStartup(int privileged ATTRIBUTE_UNUSED)
     DBusError err;
     char **udi = NULL;
     int num_devs, i;
+    int ret = -1;
 
     /* Ensure caps_tbl is sorted by capability name */
     qsort(caps_tbl, ARRAY_CARDINALITY(caps_tbl), sizeof(caps_tbl[0]),
@@ -728,7 +729,11 @@ static int halDeviceMonitorStartup(int privileged ATTRIBUTE_UNUSED)
         goto failure;
     }
     if (!libhal_ctx_init(hal_ctx, &err)) {
-        VIR_ERROR0("libhal_ctx_init failed\n");
+        VIR_ERROR0("libhal_ctx_init failed, haldaemon is probably not running\n");
+        /* We don't want to show a fatal error here,
+           otherwise entire libvirtd shuts down when
+           hald isn't running */
+        ret = 0;
         goto failure;
     }
 
@@ -742,6 +747,16 @@ static int halDeviceMonitorStartup(int privileged ATTRIBUTE_UNUSED)
         goto failure;
     }
 
+    /* Populate with known devices */
+    driverState->privateData = hal_ctx;
+
+    /* We need to unlock state now, since setting these callbacks cause
+     * a dbus RPC call, and while this call is waiting for the reply,
+     * a signal may already arrive, triggering the callback and thus
+     * requiring the lock !
+     */
+    nodeDeviceUnlock(driverState);
+
     /* Register HAL event callbacks */
     if (!libhal_ctx_set_device_added(hal_ctx, device_added) ||
         !libhal_ctx_set_device_removed(hal_ctx, device_removed) ||
@@ -753,10 +768,6 @@ static int halDeviceMonitorStartup(int privileged ATTRIBUTE_UNUSED)
         goto failure;
     }
 
-    /* Populate with known devices */
-    driverState->privateData = hal_ctx;
-
-    nodeDeviceUnlock(driverState);
     udi = libhal_get_all_devices(hal_ctx, &num_devs, &err);
     if (udi == NULL) {
         VIR_ERROR0("libhal_get_all_devices failed\n");
@@ -778,15 +789,10 @@ static int halDeviceMonitorStartup(int privileged ATTRIBUTE_UNUSED)
     virNodeDeviceObjListFree(&driverState->devs);
     if (hal_ctx)
         (void)libhal_ctx_free(hal_ctx);
-    if (udi) {
-        for (i = 0; i < num_devs; i++)
-            VIR_FREE(udi[i]);
-        VIR_FREE(udi);
-    }
     nodeDeviceUnlock(driverState);
     VIR_FREE(driverState);
 
-    return -1;
+    return ret;
 }
 
 
@@ -873,6 +879,7 @@ static virDeviceMonitor halDeviceMonitor = {
 
 
 static virStateDriver halStateDriver = {
+    .name = "HAL",
     .initialize = halDeviceMonitorStartup,
     .cleanup = halDeviceMonitorShutdown,
     .reload = halDeviceMonitorReload,

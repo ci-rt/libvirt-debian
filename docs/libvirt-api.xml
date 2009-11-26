@@ -71,11 +71,14 @@
      <exports symbol='VIR_EVENT_HANDLE_HANGUP' type='enum'/>
      <exports symbol='VIR_EVENT_HANDLE_READABLE' type='enum'/>
      <exports symbol='VIR_EVENT_HANDLE_WRITABLE' type='enum'/>
+     <exports symbol='VIR_INTERFACE_XML_INACTIVE' type='enum'/>
      <exports symbol='VIR_MEMORY_PHYSICAL' type='enum'/>
      <exports symbol='VIR_MEMORY_VIRTUAL' type='enum'/>
      <exports symbol='VIR_MIGRATE_LIVE' type='enum'/>
      <exports symbol='VIR_MIGRATE_PEER2PEER' type='enum'/>
+     <exports symbol='VIR_MIGRATE_PERSIST_DEST' type='enum'/>
      <exports symbol='VIR_MIGRATE_TUNNELLED' type='enum'/>
+     <exports symbol='VIR_MIGRATE_UNDEFINE_SOURCE' type='enum'/>
      <exports symbol='VIR_SECRET_USAGE_TYPE_NONE' type='enum'/>
      <exports symbol='VIR_SECRET_USAGE_TYPE_VOLUME' type='enum'/>
      <exports symbol='VIR_STORAGE_POOL_BUILDING' type='enum'/>
@@ -130,6 +133,7 @@
      <exports symbol='virEventHandleType' type='typedef'/>
      <exports symbol='virInterface' type='typedef'/>
      <exports symbol='virInterfacePtr' type='typedef'/>
+     <exports symbol='virInterfaceXMLFlags' type='typedef'/>
      <exports symbol='virNetwork' type='typedef'/>
      <exports symbol='virNetworkPtr' type='typedef'/>
      <exports symbol='virNodeDevice' type='typedef'/>
@@ -189,10 +193,13 @@
      <exports symbol='virConnectFindStoragePoolSources' type='function'/>
      <exports symbol='virConnectGetCapabilities' type='function'/>
      <exports symbol='virConnectGetHostname' type='function'/>
+     <exports symbol='virConnectGetLibVersion' type='function'/>
      <exports symbol='virConnectGetMaxVcpus' type='function'/>
      <exports symbol='virConnectGetType' type='function'/>
      <exports symbol='virConnectGetURI' type='function'/>
      <exports symbol='virConnectGetVersion' type='function'/>
+     <exports symbol='virConnectIsEncrypted' type='function'/>
+     <exports symbol='virConnectIsSecure' type='function'/>
      <exports symbol='virConnectListDefinedDomains' type='function'/>
      <exports symbol='virConnectListDefinedInterfaces' type='function'/>
      <exports symbol='virConnectListDefinedNetworks' type='function'/>
@@ -242,6 +249,8 @@
      <exports symbol='virDomainGetVcpus' type='function'/>
      <exports symbol='virDomainGetXMLDesc' type='function'/>
      <exports symbol='virDomainInterfaceStats' type='function'/>
+     <exports symbol='virDomainIsActive' type='function'/>
+     <exports symbol='virDomainIsPersistent' type='function'/>
      <exports symbol='virDomainLookupByID' type='function'/>
      <exports symbol='virDomainLookupByName' type='function'/>
      <exports symbol='virDomainLookupByUUID' type='function'/>
@@ -283,6 +292,7 @@
      <exports symbol='virInterfaceGetMACString' type='function'/>
      <exports symbol='virInterfaceGetName' type='function'/>
      <exports symbol='virInterfaceGetXMLDesc' type='function'/>
+     <exports symbol='virInterfaceIsActive' type='function'/>
      <exports symbol='virInterfaceLookupByMACString' type='function'/>
      <exports symbol='virInterfaceLookupByName' type='function'/>
      <exports symbol='virInterfaceRef' type='function'/>
@@ -299,6 +309,8 @@
      <exports symbol='virNetworkGetUUID' type='function'/>
      <exports symbol='virNetworkGetUUIDString' type='function'/>
      <exports symbol='virNetworkGetXMLDesc' type='function'/>
+     <exports symbol='virNetworkIsActive' type='function'/>
+     <exports symbol='virNetworkIsPersistent' type='function'/>
      <exports symbol='virNetworkLookupByName' type='function'/>
      <exports symbol='virNetworkLookupByUUID' type='function'/>
      <exports symbol='virNetworkLookupByUUIDString' type='function'/>
@@ -353,6 +365,8 @@
      <exports symbol='virStoragePoolGetUUID' type='function'/>
      <exports symbol='virStoragePoolGetUUIDString' type='function'/>
      <exports symbol='virStoragePoolGetXMLDesc' type='function'/>
+     <exports symbol='virStoragePoolIsActive' type='function'/>
+     <exports symbol='virStoragePoolIsPersistent' type='function'/>
      <exports symbol='virStoragePoolListVolumes' type='function'/>
      <exports symbol='virStoragePoolLookupByName' type='function'/>
      <exports symbol='virStoragePoolLookupByUUID' type='function'/>
@@ -399,6 +413,7 @@
      <author>Daniel Veillard &lt;veillard@redhat.com&gt; </author>
      <exports symbol='VIR_ERR_AUTH_FAILED' type='enum'/>
      <exports symbol='VIR_ERR_CALL_FAILED' type='enum'/>
+     <exports symbol='VIR_ERR_CONFIG_UNSUPPORTED' type='enum'/>
      <exports symbol='VIR_ERR_CONF_SYNTAX' type='enum'/>
      <exports symbol='VIR_ERR_DOM_EXIST' type='enum'/>
      <exports symbol='VIR_ERR_DRIVER_FULL' type='enum'/>
@@ -417,6 +432,7 @@
      <exports symbol='VIR_ERR_INVALID_SECRET' type='enum'/>
      <exports symbol='VIR_ERR_INVALID_STORAGE_POOL' type='enum'/>
      <exports symbol='VIR_ERR_INVALID_STORAGE_VOL' type='enum'/>
+     <exports symbol='VIR_ERR_MIGRATE_PERSIST_FAILED' type='enum'/>
      <exports symbol='VIR_ERR_MULTIPLE_INTERFACES' type='enum'/>
      <exports symbol='VIR_ERR_NETWORK_EXIST' type='enum'/>
      <exports symbol='VIR_ERR_NONE' type='enum'/>
@@ -445,6 +461,7 @@
      <exports symbol='VIR_ERR_OPERATION_DENIED' type='enum'/>
      <exports symbol='VIR_ERR_OPERATION_FAILED' type='enum'/>
      <exports symbol='VIR_ERR_OPERATION_INVALID' type='enum'/>
+     <exports symbol='VIR_ERR_OPERATION_TIMEOUT' type='enum'/>
      <exports symbol='VIR_ERR_OS_TYPE' type='enum'/>
      <exports symbol='VIR_ERR_PARSE_FAILED' type='enum'/>
      <exports symbol='VIR_ERR_POST_FAILED' type='enum'/>
@@ -625,6 +642,7 @@
     <enum name='VIR_DOMAIN_XML_SECURE' file='libvirt' value='1' type='virDomainXMLFlags' info='dump security sensitive information too'/>
     <enum name='VIR_ERR_AUTH_FAILED' file='virterror' value='45' type='virErrorNumber' info='authentication failed'/>
     <enum name='VIR_ERR_CALL_FAILED' file='virterror' value='26' type='virErrorNumber' info='not supported by the drivers (DEPRECATED)'/>
+    <enum name='VIR_ERR_CONFIG_UNSUPPORTED' file='virterror' value='63' type='virErrorNumber' info='unsupported configuration construct'/>
     <enum name='VIR_ERR_CONF_SYNTAX' file='virterror' value='33' type='virErrorNumber' info='failed to parse the syntax of a conf file'/>
     <enum name='VIR_ERR_DOM_EXIST' file='virterror' value='28' type='virErrorNumber' info='the domain already exist'/>
     <enum name='VIR_ERR_DRIVER_FULL' file='virterror' value='25' type='virErrorNumber' info='too many drivers registered'/>
@@ -643,6 +661,8 @@
     <enum name='VIR_ERR_INVALID_SECRET' file='virterror' value='61' type='virErrorNumber' info='invalid secret'/>
     <enum name='VIR_ERR_INVALID_STORAGE_POOL' file='virterror' value='46' type='virErrorNumber' info='invalid storage pool object'/>
     <enum name='VIR_ERR_INVALID_STORAGE_VOL' file='virterror' value='47' type='virErrorNumber' info='invalid storage vol object'/>
+    <enum name='VIR_ERR_MIGRATE_PERSIST_FAILED' file='virterror' value='65' type='virErrorNumber' info=' a migration worked, but making the
+VM persist on the dest host failed'/>
     <enum name='VIR_ERR_MULTIPLE_INTERFACES' file='virterror' value='59' type='virErrorNumber' info='more than one matching interface found'/>
     <enum name='VIR_ERR_NETWORK_EXIST' file='virterror' value='37' type='virErrorNumber' info='the network already exist'/>
     <enum name='VIR_ERR_NONE' file='virterror' value='0' type='virErrorLevel'/>
@@ -657,7 +677,7 @@
     <enum name='VIR_ERR_NO_NODE_DEVICE' file='virterror' value='53' type='virErrorNumber' info='node device not found'/>
     <enum name='VIR_ERR_NO_OS' file='virterror' value='22' type='virErrorNumber' info='missing domain OS information'/>
     <enum name='VIR_ERR_NO_ROOT' file='virterror' value='18' type='virErrorNumber' info='missing root device information'/>
-    <enum name='VIR_ERR_NO_SECRET' file='virterror' value='62' type='virErrorNumber' info=' secret not found'/>
+    <enum name='VIR_ERR_NO_SECRET' file='virterror' value='62' type='virErrorNumber' info='secret not found'/>
     <enum name='VIR_ERR_NO_SECURITY_MODEL' file='virterror' value='54' type='virErrorNumber' info='security model not found'/>
     <enum name='VIR_ERR_NO_SOURCE' file='virterror' value='19' type='virErrorNumber' info='missing source device information'/>
     <enum name='VIR_ERR_NO_STORAGE_POOL' file='virterror' value='49' type='virErrorNumber' info='storage pool not found'/>
@@ -671,6 +691,7 @@
     <enum name='VIR_ERR_OPERATION_DENIED' file='virterror' value='29' type='virErrorNumber' info='operation forbidden on read-only connections'/>
     <enum name='VIR_ERR_OPERATION_FAILED' file='virterror' value='9' type='virErrorNumber' info='a command to hypervisor failed'/>
     <enum name='VIR_ERR_OPERATION_INVALID' file='virterror' value='55' type='virErrorNumber' info='operation is not applicable at this time'/>
+    <enum name='VIR_ERR_OPERATION_TIMEOUT' file='virterror' value='64' type='virErrorNumber' info='timeout occurred during operation'/>
     <enum name='VIR_ERR_OS_TYPE' file='virterror' value='16' type='virErrorNumber' info='unknown OS type'/>
     <enum name='VIR_ERR_PARSE_FAILED' file='virterror' value='32' type='virErrorNumber' info='failed to parse a conf file'/>
     <enum name='VIR_ERR_POST_FAILED' file='virterror' value='11' type='virErrorNumber' info='a HTTP POST command to failed'/>
@@ -719,11 +740,14 @@
     <enum name='VIR_FROM_XENXM' file='virterror' value='15' type='virErrorDomain' info='Error at Xen XM layer'/>
     <enum name='VIR_FROM_XEN_INOTIFY' file='virterror' value='23' type='virErrorDomain' info='Error from xen inotify layer'/>
     <enum name='VIR_FROM_XML' file='virterror' value='5' type='virErrorDomain' info='Error in the XML code'/>
+    <enum name='VIR_INTERFACE_XML_INACTIVE' file='libvirt' value='1' type='virInterfaceXMLFlags' info=' dump inactive interface information'/>
     <enum name='VIR_MEMORY_PHYSICAL' file='libvirt' value='2' type='virDomainMemoryFlags' info=' addresses are physical addresses'/>
     <enum name='VIR_MEMORY_VIRTUAL' file='libvirt' value='1' type='virDomainMemoryFlags' info='addresses are virtual addresses'/>
     <enum name='VIR_MIGRATE_LIVE' file='libvirt' value='1' type='virDomainMigrateFlags' info='live migration'/>
     <enum name='VIR_MIGRATE_PEER2PEER' file='libvirt' value='2' type='virDomainMigrateFlags' info='direct source -&gt; dest host control channel'/>
-    <enum name='VIR_MIGRATE_TUNNELLED' file='libvirt' value='4' type='virDomainMigrateFlags' info=' tunnel migration data over libvirtd connection'/>
+    <enum name='VIR_MIGRATE_PERSIST_DEST' file='libvirt' value='8' type='virDomainMigrateFlags' info='persist the VM on the destination'/>
+    <enum name='VIR_MIGRATE_TUNNELLED' file='libvirt' value='4' type='virDomainMigrateFlags' info='tunnel migration data over libvirtd connection'/>
+    <enum name='VIR_MIGRATE_UNDEFINE_SOURCE' file='libvirt' value='16' type='virDomainMigrateFlags' info=' undefine the VM on the source'/>
     <enum name='VIR_SECRET_USAGE_TYPE_NONE' file='libvirt' value='0' type='virSecretUsageType'/>
     <enum name='VIR_SECRET_USAGE_TYPE_VOLUME' file='libvirt' value='1' type='virSecretUsageType' info=' Expect more owner types later...'/>
     <enum name='VIR_STORAGE_POOL_BUILDING' file='libvirt' value='1' type='virStoragePoolState' info='Initializing pool, not available'/>
@@ -849,6 +873,7 @@ see note above'/>
     <typedef name='virInterfacePtr' file='libvirt' type='virInterface *'>
       <info><![CDATA[a virInterfacePtr is pointer to a virInterface private structure, this is the type used to reference a virtual interface in the API.]]></info>
     </typedef>
+    <typedef name='virInterfaceXMLFlags' file='libvirt' type='enum'/>
     <struct name='virNetwork' file='libvirt' type='struct _virNetwork'/>
     <typedef name='virNetworkPtr' file='libvirt' type='virNetwork *'>
       <info><![CDATA[a virNetworkPtr is pointer to a virNetwork private structure, this is the type used to reference a virtual network in the API.]]></info>
@@ -1076,11 +1101,18 @@ local storage resources only)]]></info>
     </function>
     <function name='virConnectGetHostname' file='libvirt' module='libvirt'>
       <info><![CDATA[This returns the system hostname on which the hypervisor is
-running (the result of the gethostname(2) system call).  If
+running (the result of the gethostname system call).  If
 we are connected to a remote system, then this returns the
 hostname of the remote system.]]></info>
       <return type='char *' info='the hostname which must be freed by the caller, or NULL if there was an error.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to a hypervisor connection'/>
+    </function>
+    <function name='virConnectGetLibVersion' file='libvirt' module='libvirt'>
+      <info><![CDATA[Provides @libVer, which is the version of libvirt used by the
+  daemon running on the @conn host]]></info>
+      <return type='int' info='-1 in case of failure, 0 otherwise, and values for @libVer have the format major * 1,000,000 + minor * 1,000 + release.'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
+      <arg name='libVer' type='unsigned long *' info='returns the libvirt library version used on the connection (OUT)'/>
     </function>
     <function name='virConnectGetMaxVcpus' file='libvirt' module='libvirt'>
       <info><![CDATA[Provides the maximum number of virtual CPUs supported for a guest VM of a
@@ -1113,6 +1145,20 @@ with a Read-Only connection.]]></info>
       <return type='int' info='-1 in case of error, 0 otherwise. if the version can&apos;t be extracted by lack of capacities returns 0 and @hvVer is 0, otherwise @hvVer value is major * 1,000,000 + minor * 1,000 + release'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
       <arg name='hvVer' type='unsigned long *' info='return value for the version of the running hypervisor (OUT)'/>
+    </function>
+    <function name='virConnectIsEncrypted' file='libvirt' module='libvirt'>
+      <info><![CDATA[Determine if the connection to the hypervisor is encrypted]]></info>
+      <return type='int' info='1 if encrypted, 0 if not encrypted, -1 on error'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to the connection object'/>
+    </function>
+    <function name='virConnectIsSecure' file='libvirt' module='libvirt'>
+      <info><![CDATA[Determine if the connection to the hypervisor is secure
+
+A connection will be classed as secure if it is either
+encrypted, or running over a channel which is not exposed
+to eavesdropping (eg a UNIX domain socket, or pipe)]]></info>
+      <return type='int' info='1 if secure, 0 if secure, -1 on error'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to the connection object'/>
     </function>
     <function name='virConnectListDefinedDomains' file='libvirt' module='libvirt'>
       <info><![CDATA[list the defined but inactive domains, stores the pointers to the names
@@ -1513,7 +1559,7 @@ and also in cpumaps if this pointer isn't NULL.]]></info>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object, or NULL for Domain0'/>
       <arg name='info' type='virVcpuInfoPtr' info='pointer to an array of virVcpuInfo structures (OUT)'/>
       <arg name='maxinfo' type='int' info='number of structures in info array'/>
-      <arg name='cpumaps' type='unsigned char *' info='pointer to an bit map of real CPUs for all vcpus of this domain (in 8-bit bytes) (OUT) If cpumaps is NULL, then no cpumap information is returned by the API. It&apos;s assumed there is &lt;maxinfo&gt; cpumap in cpumaps array. The memory allocated to cpumaps must be (maxinfo * maplen) bytes (ie: calloc(maxinfo, maplen)). One cpumap inside cpumaps has the format described in virDomainPinVcpu() API.'/>
+      <arg name='cpumaps' type='unsigned char *' info='pointer to a bit map of real CPUs for all vcpus of this domain (in 8-bit bytes) (OUT) If cpumaps is NULL, then no cpumap information is returned by the API. It&apos;s assumed there is &lt;maxinfo&gt; cpumap in cpumaps array. The memory allocated to cpumaps must be (maxinfo * maplen) bytes (ie: calloc(maxinfo, maplen)). One cpumap inside cpumaps has the format described in virDomainPinVcpu() API.'/>
       <arg name='maplen' type='int' info='number of bytes in one cpumap, from 1 up to size of CPU map in underlying virtualization system (Xen...).'/>
     </function>
     <function name='virDomainGetXMLDesc' file='libvirt' module='libvirt'>
@@ -1529,7 +1575,7 @@ attached to the domain.
 
 The path parameter is the name of the network interface.
 
-Domains may have more than network interface.  To get stats for
+Domains may have more than one network interface.  To get stats for
 each you should make multiple calls to this function.
 
 Individual fields within the stats structure may be returned
@@ -1540,6 +1586,17 @@ that particular statistic.]]></info>
       <arg name='path' type='const char *' info='path to the interface'/>
       <arg name='stats' type='virDomainInterfaceStatsPtr' info='network interface stats (returned)'/>
       <arg name='size' type='size_t' info='size of stats structure'/>
+    </function>
+    <function name='virDomainIsActive' file='libvirt' module='libvirt'>
+      <info><![CDATA[Determine if the domain is currently running]]></info>
+      <return type='int' info='1 if running, 0 if inactive, -1 on error'/>
+      <arg name='dom' type='virDomainPtr' info='pointer to the domain object'/>
+    </function>
+    <function name='virDomainIsPersistent' file='libvirt' module='libvirt'>
+      <info><![CDATA[Determine if the domain has a persistent configuration
+which means it will still exist after shutting down]]></info>
+      <return type='int' info='1 if persistent, 0 if transient, -1 on error'/>
+      <arg name='dom' type='virDomainPtr' info='pointer to the domain object'/>
     </function>
     <function name='virDomainLookupByID' file='libvirt' module='libvirt'>
       <info><![CDATA[Try to find a domain based on the hypervisor ID number
@@ -1603,6 +1660,10 @@ Flags may be one of more of the following:
   VIR_MIGRATE_LIVE      Do not pause the VM during migration
   VIR_MIGRATE_PEER2PEER Direct connection between source & destination hosts
   VIR_MIGRATE_TUNNELLED Tunnel migration data over the libvirt RPC channel
+  VIR_MIGRATE_PERSIST_DEST If the migration is successful, persist the domain
+                           on the destination host.
+  VIR_MIGRATE_UNDEFINE_SOURCE If the migration is successful, undefine the
+                              domain on the source host.
 
 VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
 Applications using the VIR_MIGRATE_PEER2PEER flag will probably
@@ -1625,7 +1686,7 @@ takes a hypervisor specific format. The hypervisor capabilities
 XML includes details of the support URI schemes. If omitted
 the dconn will be asked for a default URI.
 
-In either case it is typically only neccessary to specify a
+In either case it is typically only necessary to specify a
 URI if the destination host has multiple interfaces and a
 specific interface is required to transmit migration data.
 
@@ -1652,37 +1713,37 @@ different types of hypervisor.]]></info>
     </function>
     <function name='virDomainMigrateToURI' file='libvirt' module='libvirt'>
       <info><![CDATA[Migrate the domain object from its current host to the destination
-host given by dconn (a connection to the destination host).
+host given by duri.
 
 Flags may be one of more of the following:
   VIR_MIGRATE_LIVE      Do not pause the VM during migration
   VIR_MIGRATE_PEER2PEER Direct connection between source & destination hosts
   VIR_MIGRATE_TUNNELLED Tunnel migration data over the libvirt RPC channel
+  VIR_MIGRATE_PERSIST_DEST If the migration is successful, persist the domain
+                           on the destination host.
+  VIR_MIGRATE_UNDEFINE_SOURCE If the migration is successful, undefine the
+                              domain on the source host.
+
+The operation of this API hinges on the VIR_MIGRATE_PEER2PEER flag.
+If the VIR_MIGRATE_PEER2PEER flag is NOT set, the duri parameter
+takes a hypervisor specific format. The uri_transports element of the
+hypervisor capabilities XML includes details of the supported URI
+schemes. Not all hypervisors will support this mode of migration, so
+if the VIR_MIGRATE_PEER2PEER flag is not set, then it may be necessary
+to use the alternative virDomainMigrate API providing and explicit
+virConnectPtr for the destination host.
+
+If the VIR_MIGRATE_PEER2PEER flag IS set, the duri parameter
+must be a valid libvirt connection URI, by which the source
+libvirt driver can connect to the destination libvirt.
 
 VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
-Applications using the VIR_MIGRATE_PEER2PEER flag will probably
-prefer to invoke virDomainMigrateToURI, avoiding the need to
-open connection to the destination host themselves.
 
 If a hypervisor supports renaming domains during migration,
-then you may set the dname parameter to the new name (otherwise
-it keeps the same name).  If this is not supported by the
-hypervisor, dname must be NULL or else you will get an error.
-
-If the VIR_MIGRATE_PEER2PEER flag is set, the duri parameter
-must be a valid libvirt connection URI, by which the source
-libvirt driver can connect to the destination libvirt. If
-omitted, the dconn connection object will be queried for its
-current URI.
-
-If the VIR_MIGRATE_PEER2PEER flag is NOT set, the duri parameter
-takes a hypervisor specific format. The hypervisor capabilities
-XML includes details of the support URI schemes. If omitted
-the dconn will be asked for a default URI. Not all hypervisors
-will support this mode of migration, so if the VIR_MIGRATE_PEER2PEER
-flag is not set, then it may be neccessary to use the alternative
-virDomainMigrate API providing an explicit virConnectPtr for the
-destination host
+the dname parameter specifies the new name for the domain.
+Setting dname to NULL keeps the domain name the same.  If domain
+renaming is not supported by the hypervisor, dname must be NULL or
+else an error will be returned.
 
 The maximum bandwidth (in Mbps) that will be used to do migration
 can be specified with the bandwidth parameter.  If set to 0,
@@ -1742,7 +1803,7 @@ the reference count.]]></info>
       <arg name='from' type='const char *' info='path to the'/>
     </function>
     <function name='virDomainResume' file='libvirt' module='libvirt'>
-      <info><![CDATA[Resume an suspended domain, the process is restarted from the state where
+      <info><![CDATA[Resume a suspended domain, the process is restarted from the state where
 it was frozen by calling virSuspendDomain().
 This function may requires privileged access]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
@@ -1998,11 +2059,23 @@ MAC see RFC4122.]]></info>
       <arg name='iface' type='virInterfacePtr' info='an interface object'/>
     </function>
     <function name='virInterfaceGetXMLDesc' file='libvirt' module='libvirt'>
-      <info><![CDATA[Provide an XML description of the interface. The description may be reused
-later to redefine the interface with virInterfaceDefineXML().]]></info>
+      <info><![CDATA[VIR_INTERFACE_XML_INACTIVE - return the static configuration,
+                                  suitable for use redefining the
+                                  interface via virInterfaceDefineXML()
+
+Provide an XML description of the interface. If
+VIR_INTERFACE_XML_INACTIVE is set, the description may be reused
+later to redefine the interface with virInterfaceDefineXML(). If it
+is not set, the ip address and netmask will be the current live
+setting of the interface, not the settings from the config files.]]></info>
       <return type='char *' info='a 0 terminated UTF-8 encoded XML instance, or NULL in case of error. the caller must free() the returned value.'/>
       <arg name='iface' type='virInterfacePtr' info='an interface object'/>
-      <arg name='flags' type='unsigned int' info='an OR&apos;ed set of extraction flags, not used yet'/>
+      <arg name='flags' type='unsigned int' info='an OR&apos;ed set of extraction flags. Current valid bits:'/>
+    </function>
+    <function name='virInterfaceIsActive' file='libvirt' module='libvirt'>
+      <info><![CDATA[Determine if the interface is currently running]]></info>
+      <return type='int' info='1 if running, 0 if inactive, -1 on error'/>
+      <arg name='iface' type='virInterfacePtr' info='pointer to the interface object'/>
     </function>
     <function name='virInterfaceLookupByMACString' file='libvirt' module='libvirt'>
       <info><![CDATA[Try to lookup an interface on the given hypervisor based on its MAC.]]></info>
@@ -2118,6 +2191,17 @@ later to relaunch the network with virNetworkCreateXML().]]></info>
       <return type='char *' info='a 0 terminated UTF-8 encoded XML instance, or NULL in case of error. the caller must free() the returned value.'/>
       <arg name='network' type='virNetworkPtr' info='a network object'/>
       <arg name='flags' type='int' info='an OR&apos;ed set of extraction flags, not used yet'/>
+    </function>
+    <function name='virNetworkIsActive' file='libvirt' module='libvirt'>
+      <info><![CDATA[Determine if the network is currently running]]></info>
+      <return type='int' info='1 if running, 0 if inactive, -1 on error'/>
+      <arg name='net' type='virNetworkPtr' info='pointer to the network object'/>
+    </function>
+    <function name='virNetworkIsPersistent' file='libvirt' module='libvirt'>
+      <info><![CDATA[Determine if the network has a persistent configuration
+which means it will still exist after shutting down]]></info>
+      <return type='int' info='1 if persistent, 0 if transient, -1 on error'/>
+      <arg name='net' type='virNetworkPtr' info='pointer to the network object'/>
     </function>
     <function name='virNetworkLookupByName' file='libvirt' module='libvirt'>
       <info><![CDATA[Try to lookup a network on the given hypervisor based on its name.]]></info>
@@ -2348,7 +2432,7 @@ their own error object.]]></info>
       <return type='virErrorPtr' info='a pointer to the copied error or NULL if allocation failed. It is the caller&apos;s responsibility to free the error with virFreeError().'/>
     </function>
     <function name='virSecretDefineXML' file='libvirt' module='libvirt'>
-      <info><![CDATA[If XML specifies an UUID, locates the specified secret and replaces all
+      <info><![CDATA[If XML specifies a UUID, locates the specified secret and replaces all
 attributes of the secret specified by UUID by attributes specified in xml
 (any attributes not specified in xml are discarded).
 
@@ -2580,6 +2664,17 @@ into the virStoragePoolCreateXML method.]]></info>
       <arg name='pool' type='virStoragePoolPtr' info='pointer to storage pool'/>
       <arg name='flags' type='unsigned int' info='flags for XML format options (set of virDomainXMLFlags)'/>
     </function>
+    <function name='virStoragePoolIsActive' file='libvirt' module='libvirt'>
+      <info><![CDATA[Determine if the storage pool is currently running]]></info>
+      <return type='int' info='1 if running, 0 if inactive, -1 on error'/>
+      <arg name='pool' type='virStoragePoolPtr' info='pointer to the storage pool object'/>
+    </function>
+    <function name='virStoragePoolIsPersistent' file='libvirt' module='libvirt'>
+      <info><![CDATA[Determine if the storage pool has a persistent configuration
+which means it will still exist after shutting down]]></info>
+      <return type='int' info='1 if persistent, 0 if transient, -1 on error'/>
+      <arg name='pool' type='virStoragePoolPtr' info='pointer to the storage pool object'/>
+    </function>
     <function name='virStoragePoolListVolumes' file='libvirt' module='libvirt'>
       <info><![CDATA[Fetch list of storage volume names, limiting to
 at most maxnames.]]></info>
@@ -2794,7 +2889,7 @@ be invoked once for each event which is pending.]]></info>
       <arg name='opaque' type='void *' info='user data registered with handle'/>
     </functype>
     <function name='virStreamEventRemoveCallback' file='libvirt' module='libvirt'>
-      <info><![CDATA[Remove a event callback from the stream]]></info>
+      <info><![CDATA[Remove an event callback from the stream]]></info>
       <return type='int' info='0 on success, -1 on error'/>
       <arg name='stream' type='virStreamPtr' info='pointer to the stream object'/>
     </function>
@@ -2823,7 +2918,7 @@ be sure that all data has been successfully processed.]]></info>
       <info><![CDATA[Decrement the reference count on a stream, releasing
 the stream object if the reference count has hit zero.
 
-There must not be a active data transfer in progress
+There must not be an active data transfer in progress
 when releasing the stream. If a stream needs to be
 disposed of prior to end of stream being reached, then
 the virStreamAbort function should be called first.]]></info>
@@ -2855,7 +2950,7 @@ Errors are not guaranteed to be reported synchronously
 with the call, but may instead be delayed until a
 subsequent call.
 
-A example using this with a hypothetical file download
+An example using this with a hypothetical file download
 API looks like
 
   virStreamPtr st = virStreamNew(conn, 0);
@@ -2897,7 +2992,7 @@ done:
 requested data sink. This is simply a convenient alternative
 to virStreamRecv, for apps that do blocking-I/o.
 
-A example using this with a hypothetical file download
+An example using this with a hypothetical file download
 API looks like
 
   int mysink(virStreamPtr st, const char *buf, int nbytes, void *opaque) {
@@ -2945,7 +3040,7 @@ Errors are not guaranteed to be reported synchronously
 with the call, but may instead be delayed until a
 subsequent call.
 
-A example using this with a hypothetical file upload
+An example using this with a hypothetical file upload
 API looks like
 
   virStreamPtr st = virStreamNew(conn, 0);
@@ -2989,7 +3084,7 @@ done:
 requested data source. This is simply a convenient alternative
 to virStreamSend, for apps that do blocking-I/o.
 
-A example using this with a hypothetical file upload
+An example using this with a hypothetical file upload
 API looks like
 
   int mysource(virStreamPtr st, char *buf, int nbytes, void *opaque) {

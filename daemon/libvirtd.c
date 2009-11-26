@@ -185,6 +185,30 @@ static int max_client_requests = 5;
 static sig_atomic_t sig_errors = 0;
 static int sig_lasterrno = 0;
 
+enum {
+    VIR_DAEMON_ERR_NONE = 0,
+    VIR_DAEMON_ERR_PIDFILE,
+    VIR_DAEMON_ERR_RUNDIR,
+    VIR_DAEMON_ERR_INIT,
+    VIR_DAEMON_ERR_SIGNAL,
+    VIR_DAEMON_ERR_PRIVS,
+    VIR_DAEMON_ERR_NETWORK,
+    VIR_DAEMON_ERR_CONFIG,
+
+    VIR_DAEMON_ERR_LAST
+};
+
+VIR_ENUM_DECL(virDaemonErr)
+VIR_ENUM_IMPL(virDaemonErr, VIR_DAEMON_ERR_LAST,
+              "Initialization successful",
+              "Unable to obtain pidfile",
+              "Unable to create rundir",
+              "Unable to initialize libvirt",
+              "Unable to setup signal handlers",
+              "Unable to drop privileges",
+              "Unable to initialize network sockets",
+              "Unable to load configuration file")
+
 static void sig_handler(int sig, siginfo_t * siginfo,
                         void* context ATTRIBUTE_UNUSED) {
     int origerrno;
@@ -335,7 +359,6 @@ qemudDispatchSignalEvent(int watch ATTRIBUTE_UNUSED,
                          void *opaque) {
     struct qemud_server *server = (struct qemud_server *)opaque;
     siginfo_t siginfo;
-    int ret;
 
     virMutexLock(&server->lock);
 
@@ -346,8 +369,6 @@ qemudDispatchSignalEvent(int watch ATTRIBUTE_UNUSED,
         virMutexUnlock(&server->lock);
         return;
     }
-
-    ret = 0;
 
     switch (siginfo.si_signo) {
     case SIGHUP:
@@ -360,7 +381,7 @@ qemudDispatchSignalEvent(int watch ATTRIBUTE_UNUSED,
     case SIGQUIT:
     case SIGTERM:
         VIR_WARN(_("Shutting down on signal %d"), siginfo.si_signo);
-        server->shutdown = 1;
+        server->quitEventThread = 1;
         break;
 
     default:
@@ -368,14 +389,15 @@ qemudDispatchSignalEvent(int watch ATTRIBUTE_UNUSED,
         break;
     }
 
-    if (ret != 0)
-        server->shutdown = 1;
-
     virMutexUnlock(&server->lock);
 }
 
 
-static int qemudGoDaemon(void) {
+static int daemonForkIntoBackground(void) {
+    int statuspipe[2];
+    if (pipe(statuspipe) < 0)
+        return -1;
+
     int pid = fork();
     switch (pid) {
     case 0:
@@ -383,6 +405,8 @@ static int qemudGoDaemon(void) {
             int stdinfd = -1;
             int stdoutfd = -1;
             int nextpid;
+
+            close(statuspipe[0]);
 
             if ((stdinfd = open("/dev/null", O_RDONLY)) < 0)
                 goto cleanup;
@@ -407,7 +431,7 @@ static int qemudGoDaemon(void) {
             nextpid = fork();
             switch (nextpid) {
             case 0:
-                return 0;
+                return statuspipe[1];
             case -1:
                 return -1;
             default:
@@ -428,15 +452,29 @@ static int qemudGoDaemon(void) {
 
     default:
         {
-            int got, status = 0;
-            /* We wait to make sure the next child forked
-               successfully */
-            if ((got = waitpid(pid, &status, 0)) < 0 ||
+            int got, exitstatus = 0;
+            int ret;
+            char status;
+
+            close(statuspipe[1]);
+
+            /* We wait to make sure the first child forked successfully */
+            if ((got = waitpid(pid, &exitstatus, 0)) < 0 ||
                 got != pid ||
-                status != 0) {
+                exitstatus != 0) {
                 return -1;
             }
-            _exit(0);
+
+            /* Now block until the second child initializes successfully */
+        again:
+            ret = read(statuspipe[0], &status, 1);
+            if (ret == -1 && errno == EINTR)
+                goto again;
+
+            if (ret == 1 && status != 0) {
+                fprintf(stderr, "error: %s\n", virDaemonErrTypeToString(status));
+            }
+            _exit(ret == 1 && status == 0 ? 0 : 1);
         }
     }
 }
@@ -535,16 +573,6 @@ static int qemudListenUnix(struct qemud_server *server,
         goto cleanup;
     }
 
-    if ((sock->watch = virEventAddHandleImpl(sock->fd,
-                                             VIR_EVENT_HANDLE_READABLE |
-                                             VIR_EVENT_HANDLE_ERROR |
-                                             VIR_EVENT_HANDLE_HANGUP,
-                                             qemudDispatchServerEvent,
-                                             server, NULL)) < 0) {
-        VIR_ERROR0(_("Failed to add server event callback"));
-        goto cleanup;
-    }
-
     sock->next = server->sockets;
     server->sockets = sock;
     server->nsockets++;
@@ -587,19 +615,28 @@ remoteMakeSockets (int *fds, int max_fds, int *nfds_r, const char *node, const c
         int opt = 1;
         setsockopt (fds[*nfds_r], SOL_SOCKET, SO_REUSEADDR, &opt, sizeof opt);
 
+#ifdef IPV6_V6ONLY
+        if (runp->ai_family == PF_INET6) {
+            int on = 1;
+            /*
+             * Normally on Linux an INET6 socket will bind to the INET4
+             * address too. If getaddrinfo returns results with INET4
+             * first though, this will result in INET6 binding failing.
+             * We can trivially cope with multiple server sockets, so
+             * we force it to only listen on IPv6
+             */
+            setsockopt(fds[*nfds_r], IPPROTO_IPV6,IPV6_V6ONLY,
+                       (void*)&on, sizeof on);
+        }
+#endif
+
         if (bind (fds[*nfds_r], runp->ai_addr, runp->ai_addrlen) == -1) {
             if (errno != EADDRINUSE) {
                 VIR_ERROR(_("bind: %s"), virStrerror (errno, ebuf, sizeof ebuf));
                 return -1;
             }
             close (fds[*nfds_r]);
-        }
-        else {
-            if (listen (fds[*nfds_r], SOMAXCONN) == -1) {
-                VIR_ERROR(_("listen: %s"),
-                          virStrerror (errno, ebuf, sizeof ebuf));
-                return -1;
-            }
+        } else {
             ++*nfds_r;
         }
         runp = runp->ai_next;
@@ -675,17 +712,6 @@ remoteListenTCP (struct qemud_server *server,
                       virStrerror (errno, ebuf, sizeof ebuf));
             goto cleanup;
         }
-
-        if ((sock->watch = virEventAddHandleImpl(sock->fd,
-                                                 VIR_EVENT_HANDLE_READABLE |
-                                                 VIR_EVENT_HANDLE_ERROR |
-                                                 VIR_EVENT_HANDLE_HANGUP,
-                                                 qemudDispatchServerEvent,
-                                                 server, NULL)) < 0) {
-            VIR_ERROR0(_("Failed to add server event callback"));
-            goto cleanup;
-        }
-
     }
 
     return 0;
@@ -706,9 +732,15 @@ static int qemudInitPaths(struct qemud_server *server,
     int ret = -1;
     char *sock_dir_prefix = NULL;
 
-    if (unix_sock_dir)
+    if (unix_sock_dir) {
         sock_dir = unix_sock_dir;
-    else {
+        /* Change the group ownership of /var/run/libvirt to unix_sock_gid */
+        if (server->privileged) {
+            if (chown(unix_sock_dir, -1, unix_sock_gid) < 0)
+                VIR_ERROR(_("Failed to change group ownership of %s"),
+                          unix_sock_dir);
+        }
+    } else {
         sock_dir = sockname;
         if (server->privileged) {
             dir_prefix = strdup (LOCAL_STATE_DIR);
@@ -752,13 +784,16 @@ static int qemudInitPaths(struct qemud_server *server,
             goto snprintf_error;
     }
 
-    if (server->privileged)
-        server->logDir = strdup (LOCAL_STATE_DIR "/log/libvirt");
-    else
-        virAsprintf(&server->logDir, "%s/.libvirt/log", dir_prefix);
+    if (server->privileged) {
+        if (!(server->logDir = strdup (LOCAL_STATE_DIR "/log/libvirt")))
+            virReportOOMError(NULL);
+    } else {
+        if (virAsprintf(&server->logDir, "%s/.libvirt/log", dir_prefix) < 0)
+            virReportOOMError(NULL);
+    }
 
     if (server->logDir == NULL)
-        virReportOOMError(NULL);
+        goto cleanup;
 
     ret = 0;
 
@@ -773,7 +808,13 @@ static int qemudInitPaths(struct qemud_server *server,
     return ret;
 }
 
-static struct qemud_server *qemudInitialize(int sigread) {
+static void virshErrorHandler(void *opaque ATTRIBUTE_UNUSED, virErrorPtr err ATTRIBUTE_UNUSED)
+{
+    /* Don't do anything, since logging infrastructure already
+     * took care of reporting the error */
+}
+
+static struct qemud_server *qemudInitialize(void) {
     struct qemud_server *server;
 
     if (VIR_ALLOC(server) < 0) {
@@ -781,26 +822,29 @@ static struct qemud_server *qemudInitialize(int sigread) {
         return NULL;
     }
 
+    server->privileged = geteuid() == 0 ? 1 : 0;
+    server->sigread = server->sigwrite = -1;
+
     if (virMutexInit(&server->lock) < 0) {
         VIR_ERROR("%s", _("cannot initialize mutex"));
         VIR_FREE(server);
+        return NULL;
     }
     if (virCondInit(&server->job) < 0) {
         VIR_ERROR("%s", _("cannot initialize condition variable"));
         virMutexDestroy(&server->lock);
         VIR_FREE(server);
-    }
-
-    server->privileged = geteuid() == 0 ? 1 : 0;
-    server->sigread = sigread;
-
-    if (virEventInit() < 0) {
-        VIR_ERROR0(_("Failed to initialize event system"));
-        VIR_FREE(server);
         return NULL;
     }
 
-    virInitialize();
+    if (virEventInit() < 0) {
+        VIR_ERROR0(_("Failed to initialize event system"));
+        virMutexDestroy(&server->lock);
+        if (virCondDestroy(&server->job) < 0)
+        {}
+        VIR_FREE(server);
+        return NULL;
+    }
 
     /*
      * Note that the order is important: the first ones have a higher
@@ -812,7 +856,7 @@ static struct qemud_server *qemudInitialize(int sigread) {
 #ifdef WITH_DRIVER_MODULES
     /* We don't care if any of these fail, because the whole point
      * is to allow users to only install modules they want to use.
-     * If they try to use a open a connection for a module that
+     * If they try to open a connection for a module that
      * is not loaded they'll get a suitable error at that point
      */
     virDriverLoadModule("network");
@@ -833,8 +877,7 @@ static struct qemud_server *qemudInitialize(int sigread) {
 #ifdef WITH_STORAGE_DIR
     storageRegister();
 #endif
-#if defined(WITH_NODE_DEVICES) && \
-    (defined(HAVE_HAL) || defined(HAVE_DEVKIT))
+#if defined(WITH_NODE_DEVICES)
     nodedevRegister();
 #endif
     secretRegister();
@@ -859,13 +902,10 @@ static struct qemud_server *qemudInitialize(int sigread) {
                          virEventUpdateTimeoutImpl,
                          virEventRemoveTimeoutImpl);
 
-    virStateInitialize(server->privileged);
-
     return server;
 }
 
-static struct qemud_server *qemudNetworkInit(struct qemud_server *server) {
-    struct qemud_socket *sock;
+static int qemudNetworkInit(struct qemud_server *server) {
     char sockname[PATH_MAX];
     char roSockname[PATH_MAX];
 #if HAVE_SASL
@@ -932,20 +972,24 @@ static struct qemud_server *qemudNetworkInit(struct qemud_server *server) {
 #ifdef HAVE_AVAHI
     if (server->privileged && mdns_adv) {
         struct libvirtd_mdns_group *group;
+        struct qemud_socket *sock;
         int port = 0;
 
         server->mdns = libvirtd_mdns_new();
 
         if (!mdns_name) {
-            char groupname[64], localhost[HOST_NAME_MAX+1], *tmp;
+            char groupname[64], *localhost, *tmp;
             /* Extract the host part of the potentially FQDN */
-            gethostname(localhost, HOST_NAME_MAX);
-            localhost[HOST_NAME_MAX] = '\0';
+            localhost = virGetHostname(NULL);
+            if (localhost == NULL)
+                goto cleanup;
+
             if ((tmp = strchr(localhost, '.')))
                 *tmp = '\0';
             snprintf(groupname, sizeof(groupname)-1, "Virtualization Host %s", localhost);
             groupname[sizeof(groupname)-1] = '\0';
             group = libvirtd_mdns_add_group(server->mdns, groupname);
+            VIR_FREE(localhost);
         } else {
             group = libvirtd_mdns_add_group(server->mdns, mdns_name);
         }
@@ -973,23 +1017,30 @@ static struct qemud_server *qemudNetworkInit(struct qemud_server *server) {
     }
 #endif
 
-    return server;
+    return 0;
 
  cleanup:
-    if (server) {
-        sock = server->sockets;
-        while (sock) {
-            close(sock->fd);
-            sock = sock->next;
+    return -1;
+}
+
+static int qemudNetworkEnable(struct qemud_server *server) {
+    struct qemud_socket *sock;
+
+    sock = server->sockets;
+    while (sock) {
+        if ((sock->watch = virEventAddHandleImpl(sock->fd,
+                                                 VIR_EVENT_HANDLE_READABLE |
+                                                 VIR_EVENT_HANDLE_ERROR |
+                                                 VIR_EVENT_HANDLE_HANGUP,
+                                                 qemudDispatchServerEvent,
+                                                 server, NULL)) < 0) {
+            VIR_ERROR0(_("Failed to add server event callback"));
+            return -1;
         }
 
-#if HAVE_POLKIT0
-        if (server->sysbus)
-            dbus_connection_unref(server->sysbus);
-#endif
-        free(server);
+        sock = sock->next;
     }
-    return NULL;
+    return 0;
 }
 
 static gnutls_session_t
@@ -2136,7 +2187,7 @@ static void qemudInactiveTimer(int timerid, void *data) {
         virEventUpdateTimeoutImpl(timerid, -1);
     } else {
         DEBUG0("Timer expired and inactive, shutting down");
-        server->shutdown = 1;
+        server->quitEventThread = 1;
     }
 }
 
@@ -2166,9 +2217,10 @@ static void qemudFreeClient(struct qemud_client *client) {
     VIR_FREE(client);
 }
 
-static int qemudRunLoop(struct qemud_server *server) {
+static void *qemudRunLoop(void *opaque) {
+    struct qemud_server *server = opaque;
     int timerid = -1;
-    int ret = -1, i;
+    int i;
     int timerActive = 0;
 
     virMutexLock(&server->lock);
@@ -2178,7 +2230,7 @@ static int qemudRunLoop(struct qemud_server *server) {
                                           qemudInactiveTimer,
                                           server, NULL)) < 0) {
         VIR_ERROR0(_("Failed to register shutdown timeout"));
-        return -1;
+        return NULL;
     }
 
     if (min_workers > max_workers)
@@ -2187,7 +2239,7 @@ static int qemudRunLoop(struct qemud_server *server) {
     server->nworkers = max_workers;
     if (VIR_ALLOC_N(server->workers, server->nworkers) < 0) {
         VIR_ERROR0(_("Failed to allocate workers"));
-        return -1;
+        return NULL;
     }
 
     for (i = 0 ; i < min_workers ; i++) {
@@ -2196,7 +2248,7 @@ static int qemudRunLoop(struct qemud_server *server) {
         server->nactiveworkers++;
     }
 
-    for (;;) {
+    for (;!server->quitEventThread;) {
         /* A shutdown timeout is specified, so check
          * if any drivers have active state, if not
          * shutdown after timeout seconds
@@ -2268,11 +2320,6 @@ static int qemudRunLoop(struct qemud_server *server) {
                 server->nactiveworkers--;
             }
         }
-
-        if (server->shutdown) {
-            ret = 0;
-            break;
-        }
     }
 
 cleanup:
@@ -2291,17 +2338,41 @@ cleanup:
     VIR_FREE(server->workers);
 
     virMutexUnlock(&server->lock);
-    return ret;
+    return NULL;
 }
+
+
+static int qemudStartEventLoop(struct qemud_server *server) {
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    /* We want to join the eventloop, so don't detach it */
+    /*pthread_attr_setdetachstate(&attr, 1);*/
+
+    if (pthread_create(&server->eventThread,
+                       &attr,
+                       qemudRunLoop,
+                       server) != 0)
+        return -1;
+
+    server->hasEventThread = 1;
+
+    return 0;
+}
+
 
 static void qemudCleanup(struct qemud_server *server) {
     struct qemud_socket *sock;
 
-    close(server->sigread);
+    if (server->sigread != -1)
+        close(server->sigread);
+    if (server->sigwrite != -1)
+        close(server->sigwrite);
 
     sock = server->sockets;
     while (sock) {
         struct qemud_socket *next = sock->next;
+        if (sock->watch)
+            virEventRemoveHandleImpl(sock->watch);
         close(sock->fd);
         free(sock);
         sock = next;
@@ -2317,6 +2388,11 @@ static void qemudCleanup(struct qemud_server *server) {
         }
         free(server->saslUsernameWhitelist);
     }
+#endif
+
+#if HAVE_POLKIT0
+        if (server->sysbus)
+            dbus_connection_unref(server->sysbus);
 #endif
 
     virStateCleanup();
@@ -2509,8 +2585,9 @@ remoteReadSaslAllowedUsernameList (virConfPtr conf ATTRIBUTE_UNUSED,
  * debugging is asked for then output informations or debug.
  */
 static int
-qemudSetLogging(virConfPtr conf, const char *filename) {
-    int log_level;
+qemudSetLogging(virConfPtr conf, const char *filename)
+{
+    int log_level = 0;
     char *log_filters = NULL;
     char *log_outputs = NULL;
     int ret = -1;
@@ -2530,12 +2607,6 @@ qemudSetLogging(virConfPtr conf, const char *filename) {
      * first two. Because we don't have a way to determine if the log
      * level has been set, we must process variables in the opposite
      * order, each one overriding the previous.
-     */
-    /*
-     * GET_CONF_INT returns 0 when there is no log_level setting in
-     * the config file. The conditional below eliminates a false
-     * warning in that case, but also has the side effect of missing
-     * a warning if the user actually does say log_level=0.
      */
     GET_CONF_INT (conf, filename, log_level);
     if (log_level != 0)
@@ -2785,6 +2856,67 @@ qemudSetupPrivs (void)
 #define qemudSetupPrivs() 0
 #endif
 
+
+/*
+ * Doing anything non-trivial in signal handlers is pretty dangerous,
+ * since there are very few async-signal safe POSIX funtions. To
+ * deal with this we setup a very simple signal handler. It simply
+ * writes the signal number to a pipe. The main event loop then sees
+ * the signal on the pipe and can safely do the processing from
+ * event loop context
+ */
+static int
+daemonSetupSignals(struct qemud_server *server)
+{
+    struct sigaction sig_action;
+    int sigpipe[2];
+
+    if (pipe(sigpipe) < 0)
+        return -1;
+
+    if (virSetNonBlock(sigpipe[0]) < 0 ||
+        virSetNonBlock(sigpipe[1]) < 0 ||
+        virSetCloseExec(sigpipe[0]) < 0 ||
+        virSetCloseExec(sigpipe[1]) < 0) {
+        char ebuf[1024];
+        VIR_ERROR(_("Failed to create pipe: %s"),
+                  virStrerror(errno, ebuf, sizeof ebuf));
+        goto error;
+    }
+
+    sig_action.sa_sigaction = sig_handler;
+    sig_action.sa_flags = SA_SIGINFO;
+    sigemptyset(&sig_action.sa_mask);
+
+    sigaction(SIGHUP, &sig_action, NULL);
+    sigaction(SIGINT, &sig_action, NULL);
+    sigaction(SIGQUIT, &sig_action, NULL);
+    sigaction(SIGTERM, &sig_action, NULL);
+    sigaction(SIGCHLD, &sig_action, NULL);
+
+    sig_action.sa_handler = SIG_IGN;
+    sigaction(SIGPIPE, &sig_action, NULL);
+
+    if (virEventAddHandleImpl(sigpipe[0],
+                              VIR_EVENT_HANDLE_READABLE,
+                              qemudDispatchSignalEvent,
+                              server, NULL) < 0) {
+        VIR_ERROR0(_("Failed to register callback for signal pipe"));
+        goto error;
+    }
+
+    server->sigread = sigpipe[0];
+    server->sigwrite = sigpipe[1];
+    sigwrite = sigpipe[1];
+
+    return 0;
+
+error:
+    close(sigpipe[0]);
+    close(sigpipe[1]);
+    return -1;
+}
+
 /* Print command-line usage. */
 static void
 usage (const char *argv0)
@@ -2838,10 +2970,9 @@ enum {
 #define MAX_LISTEN 5
 int main(int argc, char **argv) {
     struct qemud_server *server = NULL;
-    struct sigaction sig_action;
-    int sigpipe[2];
     const char *pid_file = NULL;
     const char *remote_config_file = NULL;
+    int statuswrite = -1;
     int ret = 1;
 
     struct option opts[] = {
@@ -2855,6 +2986,8 @@ int main(int argc, char **argv) {
         { "help", no_argument, NULL, '?' },
         {0, 0, 0, 0}
     };
+
+    virInitialize();
 
     while (1) {
         int optidx = 0;
@@ -2923,10 +3056,10 @@ int main(int argc, char **argv) {
 
     if (godaemon) {
         char ebuf[1024];
-        if (qemudGoDaemon() < 0) {
+        if ((statuswrite = daemonForkIntoBackground()) < 0) {
             VIR_ERROR(_("Failed to fork as daemon: %s"),
                       virStrerror(errno, ebuf, sizeof ebuf));
-            goto error1;
+            goto error;
         }
     }
 
@@ -2938,33 +3071,11 @@ int main(int argc, char **argv) {
 
     /* If we have a pidfile set, claim it now, exiting if already taken */
     if (pid_file != NULL &&
-        qemudWritePidFile (pid_file) < 0)
-        goto error1;
-
-    if (pipe(sigpipe) < 0 ||
-        virSetNonBlock(sigpipe[0]) < 0 ||
-        virSetNonBlock(sigpipe[1]) < 0 ||
-        virSetCloseExec(sigpipe[0]) < 0 ||
-        virSetCloseExec(sigpipe[1]) < 0) {
-        char ebuf[1024];
-        VIR_ERROR(_("Failed to create pipe: %s"),
-                  virStrerror(errno, ebuf, sizeof ebuf));
-        goto error2;
+        qemudWritePidFile (pid_file) < 0) {
+        pid_file = NULL; /* Prevent unlinking of someone else's pid ! */
+        ret = VIR_DAEMON_ERR_PIDFILE;
+        goto error;
     }
-    sigwrite = sigpipe[1];
-
-    sig_action.sa_sigaction = sig_handler;
-    sig_action.sa_flags = SA_SIGINFO;
-    sigemptyset(&sig_action.sa_mask);
-
-    sigaction(SIGHUP, &sig_action, NULL);
-    sigaction(SIGINT, &sig_action, NULL);
-    sigaction(SIGQUIT, &sig_action, NULL);
-    sigaction(SIGTERM, &sig_action, NULL);
-    sigaction(SIGCHLD, &sig_action, NULL);
-
-    sig_action.sa_handler = SIG_IGN;
-    sigaction(SIGPIPE, &sig_action, NULL);
 
     /* Ensure the rundir exists (on tmpfs on some systems) */
     if (geteuid() == 0) {
@@ -2972,8 +3083,11 @@ int main(int argc, char **argv) {
 
         if (mkdir (rundir, 0755)) {
             if (errno != EEXIST) {
-                VIR_ERROR0 (_("unable to create rundir"));
-                return -1;
+                char ebuf[1024];
+                VIR_ERROR(_("unable to create rundir %s: %s"), rundir,
+                          virStrerror(errno, ebuf, sizeof(ebuf)));
+                ret = VIR_DAEMON_ERR_RUNDIR;
+                goto error;
             }
         }
     }
@@ -2984,51 +3098,105 @@ int main(int argc, char **argv) {
      * which is also passed into all libvirt stateful
      * drivers
      */
-    if (qemudSetupPrivs() < 0)
-        goto error2;
+    if (qemudSetupPrivs() < 0) {
+        ret = VIR_DAEMON_ERR_PRIVS;
+        goto error;
+    }
 
-    if (!(server = qemudInitialize(sigpipe[0]))) {
-        ret = 2;
-        goto error2;
+    if (!(server = qemudInitialize())) {
+        ret = VIR_DAEMON_ERR_INIT;
+        goto error;
+    }
+
+    if ((daemonSetupSignals(server)) < 0) {
+        ret = VIR_DAEMON_ERR_SIGNAL;
+        goto error;
     }
 
     /* Read the config file (if it exists). */
-    if (remoteReadConfigFile (server, remote_config_file) < 0)
-        goto error2;
-
-    /* Change the group ownership of /var/run/libvirt to unix_sock_gid */
-    if (unix_sock_dir && server->privileged) {
-        if (chown(unix_sock_dir, -1, unix_sock_gid) < 0)
-            VIR_ERROR(_("Failed to change group ownership of %s"),
-                      unix_sock_dir);
+    if (remoteReadConfigFile (server, remote_config_file) < 0) {
+        ret = VIR_DAEMON_ERR_CONFIG;
+        goto error;
     }
 
-    if (virEventAddHandleImpl(sigpipe[0],
-                              VIR_EVENT_HANDLE_READABLE,
-                              qemudDispatchSignalEvent,
-                              server, NULL) < 0) {
-        VIR_ERROR0(_("Failed to register callback for signal pipe"));
-        ret = 3;
-        goto error2;
+    /* Disable error func, now logging is setup */
+    virSetErrorFunc(NULL, virshErrorHandler);
+
+    if (qemudNetworkInit(server) < 0) {
+        ret = VIR_DAEMON_ERR_NETWORK;
+        goto error;
     }
 
-    if (!(server = qemudNetworkInit(server))) {
-        ret = 2;
-        goto error2;
+    /* Tell parent of daemon that basic initialization is complete
+     * In particular we're ready to accept net connections & have
+     * written the pidfile
+     */
+    if (statuswrite != -1) {
+        char status = 0;
+        while (write(statuswrite, &status, 1) == -1 &&
+               errno == EINTR)
+            ;
+        close(statuswrite);
+        statuswrite = -1;
     }
 
-    qemudRunLoop(server);
+    /* Start the event loop in a background thread, since
+     * state initialization needs events to be being processed */
+    if (qemudStartEventLoop(server) < 0) {
+        VIR_ERROR0("Event thread startup failed");
+        goto error;
+    }
+
+    /* Start the stateful HV drivers
+     * This is delibrately done after telling the parent process
+     * we're ready, since it can take a long time and this will
+     * seriously delay OS bootup process */
+    if (virStateInitialize(server->privileged) < 0) {
+        VIR_ERROR0("Driver state initialization failed");
+        goto shutdown;
+    }
+
+    /* Start accepting new clients from network */
+    virMutexLock(&server->lock);
+    if (qemudNetworkEnable(server) < 0) {
+        VIR_ERROR0("Network event loop enablement failed");
+        goto shutdown;
+    }
+    virMutexUnlock(&server->lock);
 
     ret = 0;
 
-error2:
+shutdown:
+    /* In a non-0 shutdown scenario we need to tell event loop
+     * to quit immediately. Otherwise in normal case we just
+     * sit in the thread join forever. Sure this means the
+     * main thread doesn't do anything useful ever, but that's
+     * not too much of drain on resources
+     */
+    if (ret != 0) {
+        virMutexLock(&server->lock);
+        if (server->hasEventThread)
+            /* This SIGQUIT triggers the shutdown process */
+            kill(getpid(), SIGQUIT);
+        virMutexUnlock(&server->lock);
+    }
+    pthread_join(server->eventThread, NULL);
+
+error:
+    if (statuswrite != -1) {
+        if (ret != 0) {
+            /* Tell parent of daemon what failed */
+            char status = ret;
+            while (write(statuswrite, &status, 1) == -1 &&
+                   errno == EINTR)
+                ;
+        }
+        close(statuswrite);
+    }
     if (server)
         qemudCleanup(server);
     if (pid_file)
         unlink (pid_file);
-    close(sigwrite);
-
-error1:
     virLogShutdown();
     return ret;
 }

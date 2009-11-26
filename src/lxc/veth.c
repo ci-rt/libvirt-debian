@@ -92,13 +92,13 @@ int vethCreate(char* veth1, int veth1MaxLen,
     while ((1 > strlen(veth1)) || STREQ(veth1, veth2)) {
         vethDev = getFreeVethName(veth1, veth1MaxLen, 0);
         ++vethDev;
-        DEBUG("assigned veth1: %s", veth1);
+        DEBUG("Assigned veth1: %s", veth1);
     }
 
     while ((1 > strlen(veth2)) || STREQ(veth1, veth2)) {
         vethDev = getFreeVethName(veth2, veth2MaxLen, vethDev);
         ++vethDev;
-        DEBUG("assigned veth2: %s", veth2);
+        DEBUG("Assigned veth2: %s", veth2);
     }
 
     DEBUG("veth1: %s veth2: %s", veth1, veth2);
@@ -182,12 +182,12 @@ error_out:
 
 /**
  * moveInterfaceToNetNs:
- * @interface: name of device
+ * @iface: name of device
  * @pidInNs: PID of process in target net namespace
  *
  * Moves the given device into the target net namespace specified by the given
  * pid using this command:
- *     ip link set interface netns pidInNs
+ *     ip link set @iface netns @pidInNs
  *
  * Returns 0 on success or -1 in case of error
  */
@@ -214,5 +214,67 @@ int moveInterfaceToNetNs(const char* iface, int pidInNs)
 
 error_out:
     VIR_FREE(pid);
+    return rc;
+}
+
+/**
+ * setMacAddr
+ * @iface: name of device
+ * @macaddr: MAC address to be assigned
+ *
+ * Changes the MAC address of the given device with the
+ * given address using this command:
+ *     ip link set @iface address @macaddr
+ *
+ * Returns 0 on success or -1 in case of error
+ */
+int setMacAddr(const char* iface, const char* macaddr)
+{
+    int rc = -1;
+    const char *argv[] = {
+        "ip", "link", "set", iface, "address", macaddr, NULL
+    };
+    int cmdResult;
+
+    if (NULL == iface) {
+        goto error_out;
+    }
+
+    rc = virRun(NULL, argv, &cmdResult);
+    if (0 == rc)
+        rc = cmdResult;
+
+error_out:
+    return rc;
+}
+
+/**
+ * setInterfaceName
+ * @iface: name of device
+ * @new: new name of @iface
+ *
+ * Changes the name of the given device with the
+ * given new name using this command:
+ *     ip link set @iface name @new
+ *
+ * Returns 0 on success or -1 in case of error
+ */
+int setInterfaceName(const char* iface, const char* new)
+{
+    int rc = -1;
+    const char *argv[] = {
+        "ip", "link", "set", iface, "name", new, NULL
+    };
+    int cmdResult;
+
+    if (NULL == iface || NULL == new) {
+        goto error_out;
+    }
+
+    rc = virRun(NULL, argv, &cmdResult);
+    if (0 == rc)
+        rc = cmdResult;
+
+error_out:
     return rc;
 }

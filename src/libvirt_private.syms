@@ -123,8 +123,6 @@ virDomainLifecycleTypeToString;
 virDomainLoadAllConfigs;
 virDomainNetDefFree;
 virDomainNetTypeToString;
-virDomainObjFree;
-virDomainObjListFree;
 virDomainRemoveInactive;
 virDomainSaveXML;
 virDomainSaveConfig;
@@ -132,6 +130,10 @@ virDomainSaveStatus;
 virDomainSoundDefFree;
 virDomainSoundModelTypeFromString;
 virDomainSoundModelTypeToString;
+virDomainWatchdogModelTypeFromString;
+virDomainWatchdogModelTypeToString;
+virDomainWatchdogActionTypeFromString;
+virDomainWatchdogActionTypeToString;
 virDomainVideoDefFree;
 virDomainVideoTypeToString;
 virDomainVideoTypeFromString;
@@ -143,6 +145,14 @@ virDomainObjLock;
 virDomainObjUnlock;
 virDomainStateTypeToString;
 virDomainStateTypeFromString;
+virDomainObjIsDuplicate;
+virDomainObjListGetInactiveNames;
+virDomainObjListGetActiveIDs;
+virDomainObjListNumOfDomains;
+virDomainObjListInit;
+virDomainObjListDeinit;
+virDomainObjRef;
+virDomainObjUnref;
 
 
 # domain_event.h
@@ -164,6 +174,13 @@ virDomainEventFree;
 virDomainEventDispatchDefaultFunc;
 virDomainEventDispatch;
 virDomainEventQueueDispatch;
+
+
+# ebtables.h
+ebtablesAddForwardAllowIn;
+ebtablesAddForwardPolicyReject;
+ebtablesContextNew;
+ebtablesRemoveForwardAllowIn;
 
 
 # event.h
@@ -204,6 +221,7 @@ virInterfaceObjListFree;
 
 # interface_driver.h
 interfaceRegister;
+
 
 # iptables.h
 iptablesAddForwardAllowCross;
@@ -277,6 +295,19 @@ virReallocN;
 virFree;
 
 
+# network.h
+virSocketAddrInNetwork;
+virSocketAddrIsNetmask;
+virSocketCheckNetmask;
+virSocketFormatAddr;
+virSocketGetPort;
+virSocketGetRange;
+virSocketParseAddr;
+virSocketParseIpv4Addr;
+virSocketParseIpv6Addr;
+virSocketSetPort;
+
+
 # network_conf.h
 virNetworkAssignDef;
 virNetworkConfigFile;
@@ -310,6 +341,7 @@ virNodeDeviceHasCap;
 virNodeDeviceObjRemove;
 virNodeDevCapTypeToString;
 virNodeDeviceFindByName;
+virNodeDeviceFindBySysfsPath;
 virNodeDeviceObjListFree;
 virNodeDeviceDefFree;
 virNodeDevCapsDefFree;
@@ -318,6 +350,8 @@ virNodeDeviceDefParseString;
 virNodeDeviceObjLock;
 virNodeDeviceObjUnlock;
 virNodeDeviceAssignDef;
+virNodeDeviceGetWWNs;
+virNodeDeviceGetParentHost;
 
 
 # pci.h
@@ -333,6 +367,11 @@ pciDeviceListFree;
 pciDeviceListAdd;
 pciDeviceListDel;
 pciDeviceFileIterate;
+pciDeviceListCount;
+pciDeviceListGet;
+pciDeviceListLock;
+pciDeviceListUnlock;
+pciDeviceListSteal;
 
 
 # qparams.h
@@ -374,6 +413,8 @@ virStoragePoolObjListFree;
 virStoragePoolObjRemove;
 virStoragePoolObjSaveDef;
 virStoragePoolSourceFree;
+virStoragePoolDefParseSourceString;
+virStoragePoolSourceListNewSource;
 virStoragePoolSourceListFormat;
 virStorageVolDefFindByKey;
 virStorageVolDefFindByName;
@@ -413,6 +454,7 @@ virMutexUnlock;
 virCondInit;
 virCondDestroy;
 virCondWait;
+virCondWaitUntil;
 virCondSignal;
 virCondBroadcast;
 

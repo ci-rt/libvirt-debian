@@ -45,6 +45,7 @@
 #include "memory.h"
 #include "node_device_conf.h"
 #include "pci.h"
+#include "uuid.h"
 
 #define VIR_FROM_THIS VIR_FROM_XEN
 
@@ -138,14 +139,20 @@ xenDomainUsedCpus(virDomainPtr dom)
     if (xenUnifiedNodeGetInfo(dom->conn, &nodeinfo) < 0)
         return(NULL);
 
-    if (VIR_ALLOC_N(cpulist, priv->nbNodeCpus) < 0)
+    if (VIR_ALLOC_N(cpulist, priv->nbNodeCpus) < 0) {
+        virReportOOMError(dom->conn);
         goto done;
-    if (VIR_ALLOC_N(cpuinfo, nb_vcpu) < 0)
+    }
+    if (VIR_ALLOC_N(cpuinfo, nb_vcpu) < 0) {
+        virReportOOMError(dom->conn);
         goto done;
+    }
     cpumaplen = VIR_CPU_MAPLEN(VIR_NODEINFO_MAXCPUS(nodeinfo));
     if (xalloc_oversized(nb_vcpu, cpumaplen) ||
-        VIR_ALLOC_N(cpumap, nb_vcpu * cpumaplen) < 0)
+        VIR_ALLOC_N(cpumap, nb_vcpu * cpumaplen) < 0) {
+        virReportOOMError(dom->conn);
         goto done;
+    }
 
     if ((ncpus = xenUnifiedDomainGetVcpus(dom, cpuinfo, nb_vcpu,
                                           cpumap, cpumaplen)) >= 0) {
@@ -182,6 +189,7 @@ xenInitialize (int privileged ATTRIBUTE_UNUSED)
 }
 
 static virStateDriver state_driver = {
+    .name = "Xen",
     .initialize = xenInitialize,
 };
 
@@ -478,22 +486,24 @@ xenUnifiedGetVersion (virConnectPtr conn, unsigned long *hvVer)
     return -1;
 }
 
-/* NB: Even if connected to the proxy, we're still on the
- * same machine.
- */
-static char *
-xenUnifiedGetHostname (virConnectPtr conn)
+static int
+xenUnifiedIsEncrypted(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
-    char *result;
+    return 0;
+}
 
-    result = virGetHostname();
-    if (result == NULL) {
-        virReportSystemError(conn, errno,
-                             "%s", _("cannot lookup hostname"));
-        return NULL;
-    }
-    /* Caller frees this string. */
-    return result;
+static int
+xenUnifiedIsSecure(virConnectPtr conn)
+{
+    GET_PRIVATE(conn);
+    int ret = 1;
+
+    /* All drivers are secure, except for XenD over TCP */
+    if (priv->opened[XEN_UNIFIED_XEND_OFFSET] &&
+        priv->addrfamily != AF_UNIX)
+        ret = 0;
+
+    return ret;
 }
 
 static int
@@ -579,13 +589,31 @@ static int
 xenUnifiedNumOfDomains (virConnectPtr conn)
 {
     GET_PRIVATE(conn);
-    int i, ret;
+    int ret;
 
-    for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
-        if (priv->opened[i] && drivers[i]->numOfDomains) {
-            ret = drivers[i]->numOfDomains (conn);
-            if (ret >= 0) return ret;
-        }
+    /* Try xenstore. */
+    if (priv->opened[XEN_UNIFIED_XS_OFFSET]) {
+        ret = xenStoreNumOfDomains (conn);
+        if (ret >= 0) return ret;
+    }
+
+    /* Try HV. */
+    if (priv->opened[XEN_UNIFIED_HYPERVISOR_OFFSET]) {
+        ret = xenHypervisorNumOfDomains (conn);
+        if (ret >= 0) return ret;
+    }
+
+    /* Try xend. */
+    if (priv->opened[XEN_UNIFIED_XEND_OFFSET]) {
+        ret = xenDaemonNumOfDomains (conn);
+        if (ret >= 0) return ret;
+    }
+
+    /* Try proxy. */
+    if (priv->opened[XEN_UNIFIED_PROXY_OFFSET]) {
+        ret = xenProxyNumOfDomains (conn);
+        if (ret >= 0) return ret;
+    }
 
     return -1;
 }
@@ -736,6 +764,75 @@ xenUnifiedDomainLookupByName (virConnectPtr conn,
     /* Not found. */
     xenUnifiedError (conn, VIR_ERR_NO_DOMAIN, __FUNCTION__);
     return NULL;
+}
+
+
+static int
+xenUnifiedDomainIsActive(virDomainPtr dom)
+{
+    virDomainPtr currdom;
+    int ret = -1;
+
+    /* ID field in dom may be outdated, so re-lookup */
+    currdom = xenUnifiedDomainLookupByUUID(dom->conn, dom->uuid);
+
+    if (currdom) {
+        ret = currdom->id == -1 ? 0 : 1;
+        virDomainFree(currdom);
+    }
+
+    return ret;
+}
+
+static int
+xenUnifiedDomainisPersistent(virDomainPtr dom)
+{
+    GET_PRIVATE(dom->conn);
+    virDomainPtr currdom = NULL;
+    int ret = -1;
+
+    if (priv->opened[XEN_UNIFIED_XM_OFFSET]) {
+        /* Old Xen, pre-inactive domain management.
+         * If the XM driver can see the guest, it is definitely persistent */
+        currdom = xenXMDomainLookupByUUID(dom->conn, dom->uuid);
+        if (currdom)
+            ret = 1;
+        else
+            ret = 0;
+    } else {
+        /* New Xen with inactive domain management */
+        if (priv->opened[XEN_UNIFIED_XEND_OFFSET]) {
+            currdom = xenDaemonLookupByUUID(dom->conn, dom->uuid);
+            if (currdom) {
+                if (currdom->id == -1) {
+                    /* If its inactive, then trivially, it must be persistent */
+                    ret = 1;
+                } else {
+                    char *path;
+                    char uuidstr[VIR_UUID_STRING_BUFLEN];
+
+                    /* If its running there's no official way to tell, so we
+                     * go behind xend's back & look at the config dir */
+
+                    virUUIDFormat(dom->uuid, uuidstr);
+                    if (virAsprintf(&path, "%s/%s", XEND_DOMAINS_DIR, uuidstr) < 0) {
+                        virReportOOMError(NULL);
+                        goto done;
+                    }
+                    if (access(path, R_OK) == 0)
+                        ret = 1;
+                    else if (errno == ENOENT)
+                        ret = 0;
+                }
+            }
+        }
+    }
+
+done:
+    if (currdom)
+        virDomainFree(currdom);
+
+    return ret;
 }
 
 static int
@@ -1204,9 +1301,47 @@ xenUnifiedDomainMigrateFinish (virConnectPtr dconn,
                                const char *cookie ATTRIBUTE_UNUSED,
                                int cookielen ATTRIBUTE_UNUSED,
                                const char *uri ATTRIBUTE_UNUSED,
-                               unsigned long flags ATTRIBUTE_UNUSED)
+                               unsigned long flags)
 {
-    return xenUnifiedDomainLookupByName (dconn, dname);
+    virDomainPtr dom = NULL;
+    char *domain_xml = NULL;
+    virDomainPtr dom_new = NULL;
+
+    dom = xenUnifiedDomainLookupByName (dconn, dname);
+    if (! dom) {
+        return NULL;
+    }
+
+    if (flags & VIR_MIGRATE_PERSIST_DEST) {
+        domain_xml = xenDaemonDomainDumpXML (dom, 0, NULL);
+        if (! domain_xml) {
+            xenUnifiedError(dconn, VIR_ERR_MIGRATE_PERSIST_FAILED,
+                            _("failed to get XML representation of migrated domain"));
+            goto failure;
+        }
+
+        dom_new = xenDaemonDomainDefineXML (dconn, domain_xml);
+        if (! dom_new) {
+            xenUnifiedError (dconn, VIR_ERR_MIGRATE_PERSIST_FAILED,
+                             _("failed to define domain on destination host"));
+            goto failure;
+        }
+
+        /* Free additional reference added by Define */
+        virDomainFree (dom_new);
+    }
+
+    VIR_FREE (domain_xml);
+
+    return dom;
+
+
+failure:
+    virDomainFree (dom);
+
+    VIR_FREE (domain_xml);
+
+    return NULL;
 }
 
 static int
@@ -1502,9 +1637,6 @@ xenUnifiedDomainEventRegister (virConnectPtr conn,
     ret = virDomainEventCallbackListAdd(conn, priv->domainEventCallbacks,
                                         callback, opaque, freefunc);
 
-    if (ret == 0)
-        conn->refs++;
-
     xenUnifiedUnlock(priv);
     return (ret);
 }
@@ -1529,9 +1661,6 @@ xenUnifiedDomainEventDeregister (virConnectPtr conn,
     else
         ret = virDomainEventCallbackListRemove(conn, priv->domainEventCallbacks,
                                                callback);
-
-    if (ret == 0)
-        virUnrefConnect(conn);
 
     xenUnifiedUnlock(priv);
     return ret;
@@ -1665,7 +1794,8 @@ static virDriver xenUnifiedDriver = {
     xenUnifiedSupportsFeature, /* supports_feature */
     xenUnifiedType, /* type */
     xenUnifiedGetVersion, /* version */
-    xenUnifiedGetHostname, /* getHostname */
+    NULL, /* libvirtVersion (impl. in libvirt.c) */
+    virGetHostname, /* getHostname */
     xenUnifiedGetMaxVcpus, /* getMaxVcpus */
     xenUnifiedNodeGetInfo, /* nodeGetInfo */
     xenUnifiedGetCapabilities, /* getCapabilities */
@@ -1726,6 +1856,10 @@ static virDriver xenUnifiedDriver = {
     xenUnifiedNodeDeviceReAttach, /* nodeDeviceReAttach */
     xenUnifiedNodeDeviceReset, /* nodeDeviceReset */
     NULL, /* domainMigratePrepareTunnel */
+    xenUnifiedIsEncrypted,
+    xenUnifiedIsSecure,
+    xenUnifiedDomainIsActive,
+    xenUnifiedDomainisPersistent,
 };
 
 /**

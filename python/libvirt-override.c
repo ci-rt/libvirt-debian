@@ -728,6 +728,31 @@ libvirt_virGetVersion (PyObject *self ATTRIBUTE_UNUSED, PyObject *args)
         return Py_BuildValue ((char *) "kk", libVer, typeVer);
 }
 
+static PyObject *
+libvirt_virConnectGetLibVersion (PyObject *self ATTRIBUTE_UNUSED,
+                                     PyObject *args)
+{
+    unsigned long libVer;
+    int c_retval;
+    virConnectPtr conn;
+    PyObject *pyobj_conn;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virConnectGetLibVersion",
+                          &pyobj_conn))
+        return(NULL);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virConnectGetLibVersion(conn, &libVer);
+
+    LIBVIRT_END_ALLOW_THREADS;
+
+    if (c_retval == -1)
+        return VIR_PY_INT_FAIL;
+
+    return PyInt_FromLong (libVer);
+}
 
 static PyObject *
 libvirt_virConnectListDomainsID(PyObject *self ATTRIBUTE_UNUSED,
@@ -1736,6 +1761,106 @@ libvirt_virSecretSetValue(PyObject *self ATTRIBUTE_UNUSED,
     return py_retval;
 }
 
+static PyObject *
+libvirt_virConnectListInterfaces(PyObject *self ATTRIBUTE_UNUSED,
+                                 PyObject *args) {
+    PyObject *py_retval;
+    char **names = NULL;
+    int c_retval, i;
+    virConnectPtr conn;
+    PyObject *pyobj_conn;
+
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virConnectListInterfaces", &pyobj_conn))
+        return(NULL);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+
+    c_retval = virConnectNumOfInterfaces(conn);
+    if (c_retval < 0)
+        return VIR_PY_NONE;
+
+    if (c_retval) {
+        names = malloc(sizeof(*names) * c_retval);
+        if (!names)
+            return VIR_PY_NONE;
+        c_retval = virConnectListInterfaces(conn, names, c_retval);
+        if (c_retval < 0) {
+            free(names);
+            return VIR_PY_NONE;
+        }
+    }
+    py_retval = PyList_New(c_retval);
+    if (py_retval == NULL) {
+        if (names) {
+            for (i = 0;i < c_retval;i++)
+                free(names[i]);
+            free(names);
+        }
+        return VIR_PY_NONE;
+    }
+
+    if (names) {
+        for (i = 0;i < c_retval;i++) {
+            PyList_SetItem(py_retval, i, libvirt_constcharPtrWrap(names[i]));
+            free(names[i]);
+        }
+        free(names);
+    }
+
+    return(py_retval);
+}
+
+
+static PyObject *
+libvirt_virConnectListDefinedInterfaces(PyObject *self ATTRIBUTE_UNUSED,
+                                        PyObject *args) {
+    PyObject *py_retval;
+    char **names = NULL;
+    int c_retval, i;
+    virConnectPtr conn;
+    PyObject *pyobj_conn;
+
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virConnectListDefinedInterfaces",
+                          &pyobj_conn))
+        return(NULL);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+
+    c_retval = virConnectNumOfDefinedInterfaces(conn);
+    if (c_retval < 0)
+        return VIR_PY_NONE;
+
+    if (c_retval) {
+        names = malloc(sizeof(*names) * c_retval);
+        if (!names)
+            return VIR_PY_NONE;
+        c_retval = virConnectListDefinedInterfaces(conn, names, c_retval);
+        if (c_retval < 0) {
+            free(names);
+            return VIR_PY_NONE;
+        }
+    }
+    py_retval = PyList_New(c_retval);
+    if (py_retval == NULL) {
+        if (names) {
+            for (i = 0;i < c_retval;i++)
+                free(names[i]);
+            free(names);
+        }
+        return VIR_PY_NONE;
+    }
+
+    if (names) {
+        for (i = 0;i < c_retval;i++) {
+            PyList_SetItem(py_retval, i, libvirt_constcharPtrWrap(names[i]));
+            free(names[i]);
+        }
+        free(names);
+    }
+
+    return(py_retval);
+}
+
 /*******************************************
  * Helper functions to avoid importing modules
  * for every callback
@@ -2354,8 +2479,11 @@ libvirt_virEventInvokeHandleCallback(PyObject *self ATTRIBUTE_UNUSED,
     cb     = (virEventHandleCallback) PyvirEventHandleCallback_Get(py_f);
     opaque = (void *) PyvirVoidPtr_Get(py_opaque);
 
-    if(cb)
+    if(cb) {
+        LIBVIRT_BEGIN_ALLOW_THREADS;
         cb (watch, fd, event, opaque);
+        LIBVIRT_END_ALLOW_THREADS;
+    }
 
     return VIR_PY_INT_SUCCESS;
 }
@@ -2378,8 +2506,11 @@ libvirt_virEventInvokeTimeoutCallback(PyObject *self ATTRIBUTE_UNUSED,
 
     cb     = (virEventTimeoutCallback) PyvirEventTimeoutCallback_Get(py_f);
     opaque = (void *) PyvirVoidPtr_Get(py_opaque);
-    if(cb)
+    if(cb) {
+        LIBVIRT_BEGIN_ALLOW_THREADS;
         cb (timer, opaque);
+        LIBVIRT_END_ALLOW_THREADS;
+    }
 
     return VIR_PY_INT_SUCCESS;
 }
@@ -2392,6 +2523,7 @@ libvirt_virEventInvokeTimeoutCallback(PyObject *self ATTRIBUTE_UNUSED,
 static PyMethodDef libvirtMethods[] = {
 #include "libvirt-export.c"
     {(char *) "virGetVersion", libvirt_virGetVersion, METH_VARARGS, NULL},
+    {(char *) "virConnectGetLibVersion", libvirt_virConnectGetLibVersion, METH_VARARGS, NULL},
     {(char *) "virConnectOpenAuth", libvirt_virConnectOpenAuth, METH_VARARGS, NULL},
     {(char *) "virConnectListDomainsID", libvirt_virConnectListDomainsID, METH_VARARGS, NULL},
     {(char *) "virConnectListDefinedDomains", libvirt_virConnectListDefinedDomains, METH_VARARGS, NULL},
@@ -2440,6 +2572,8 @@ static PyMethodDef libvirtMethods[] = {
     {(char *) "virConnectListSecrets", libvirt_virConnectListSecrets, METH_VARARGS, NULL},
     {(char *) "virSecretGetValue", libvirt_virSecretGetValue, METH_VARARGS, NULL},
     {(char *) "virSecretSetValue", libvirt_virSecretSetValue, METH_VARARGS, NULL},
+    {(char *) "virConnectListInterfaces", libvirt_virConnectListInterfaces, METH_VARARGS, NULL},
+    {(char *) "virConnectListDefinedInterfaces", libvirt_virConnectListDefinedInterfaces, METH_VARARGS, NULL},
     {NULL, NULL, 0, NULL}
 };
 

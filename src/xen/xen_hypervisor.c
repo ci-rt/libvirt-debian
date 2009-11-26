@@ -109,6 +109,14 @@ typedef privcmd_hypercall_t hypercall_t;
 #define SYS_IFACE_MIN_VERS_NUMA 4
 #endif
 
+/* xen-unstable changeset 19788 removed MAX_VIRT_CPUS from public
+ * headers.  Its semanitc was retained with XEN_LEGACY_MAX_VCPUS.
+ * Ensure MAX_VIRT_CPUS is defined accordingly.
+ */
+#if !defined(MAX_VIRT_CPUS) && defined(XEN_LEGACY_MAX_VCPUS)
+#define MAX_VIRT_CPUS XEN_LEGACY_MAX_VCPUS
+#endif
+
 static int xen_ioctl_hypercall_cmd = 0;
 static int initialized = 0;
 static int in_init = 0;
@@ -1114,11 +1122,15 @@ xenHypervisorGetSchedulerType(virDomainPtr domain, int *nparams)
         switch (op.u.getschedulerid.sched_id){
             case XEN_SCHEDULER_SEDF:
                 schedulertype = strdup("sedf");
+                if (schedulertype == NULL)
+                    virReportOOMError(domain->conn);
                 if (nparams)
                     *nparams = 6;
                 break;
             case XEN_SCHEDULER_CREDIT:
                 schedulertype = strdup("credit");
+                if (schedulertype == NULL)
+                    virReportOOMError(domain->conn);
                 if (nparams)
                     *nparams = 2;
                 break;
@@ -2298,9 +2310,7 @@ get_cpu_flags(virConnectPtr conn, const char **hvm, int *pae, int *longmode)
 
     if ((fd = open("/dev/cpu/self/cpuid", O_RDONLY)) == -1 ||
         pread(fd, &regs, sizeof(regs), 0) != sizeof(regs)) {
-        char ebuf[1024];
-        virXenError(conn, VIR_ERR_SYSTEM_ERROR,
-            "couldn't read CPU flags: %s", virStrerror(errno, ebuf, sizeof ebuf));
+        virReportSystemError(conn, errno, "%s", _("could not read CPU flags"));
         goto out;
     }
 
@@ -2757,6 +2767,7 @@ xenHypervisorDomainGetOSType (virDomainPtr dom)
 {
     xenUnifiedPrivatePtr priv;
     xen_getdomaininfo dominfo;
+    char *ostype = NULL;
 
     priv = (xenUnifiedPrivatePtr) dom->conn->privateData;
     if (priv->handle < 0)
@@ -2776,8 +2787,36 @@ xenHypervisorDomainGetOSType (virDomainPtr dom)
         return (NULL);
 
     if (XEN_GETDOMAININFO_FLAGS(dominfo) & DOMFLAGS_HVM)
-        return strdup("hvm");
-    return strdup("linux");
+        ostype = strdup("hvm");
+    else
+        ostype = strdup("linux");
+
+    if (ostype == NULL)
+        virReportOOMError(dom->conn);
+
+    return ostype;
+}
+
+int
+xenHypervisorHasDomain(virConnectPtr conn,
+                       int id)
+{
+    xenUnifiedPrivatePtr priv;
+    xen_getdomaininfo dominfo;
+
+    priv = (xenUnifiedPrivatePtr) conn->privateData;
+    if (priv->handle < 0)
+        return 0;
+
+    XEN_GETDOMAININFO_CLEAR(dominfo);
+
+    if (virXen_getdomaininfo(priv->handle, id, &dominfo) < 0)
+        return 0;
+
+    if (XEN_GETDOMAININFO_DOMAIN(dominfo) != id)
+        return 0;
+
+    return 1;
 }
 
 virDomainPtr

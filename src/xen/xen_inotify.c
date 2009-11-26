@@ -47,8 +47,6 @@
         virReportErrorHelper(NULL, VIR_FROM_XEN_INOTIFY, code, __FILE__,      \
                                __FUNCTION__, __LINE__, fmt)
 
-#define LIBVIRTD_DOMAINS_DIR "/var/lib/xend/domains"
-
 struct xenUnifiedDriver xenInotifyDriver = {
     xenInotifyOpen, /* open */
     xenInotifyClose, /* close */
@@ -107,6 +105,7 @@ xenInotifyXenCacheLookup(virConnectPtr conn,
 
     if (!*name) {
         DEBUG0("Error getting dom from def");
+        virReportOOMError(conn);
         return -1;
     }
     return 0;
@@ -125,7 +124,7 @@ xenInotifyXendDomainsDirLookup(virConnectPtr conn, const char *filename,
     * a filename in the manner:
     * /var/lib/xend/domains/<uuid>/
     */
-    uuid_str = filename + strlen(LIBVIRTD_DOMAINS_DIR) + 1;
+    uuid_str = filename + strlen(XEND_DOMAINS_DIR) + 1;
 
     if (virUUIDParse(uuid_str, rawuuid) < 0) {
         virXenInotifyError(NULL, VIR_ERR_INTERNAL_ERROR,
@@ -142,11 +141,10 @@ xenInotifyXendDomainsDirLookup(virConnectPtr conn, const char *filename,
            search for, and create a domain from the stored
            list info */
         for (i = 0 ; i < priv->configInfoList->count ; i++) {
-            if (!memcmp(uuid, priv->configInfoList->doms[i]->uuid, VIR_UUID_BUFLEN)) {
+            if (!memcmp(rawuuid, priv->configInfoList->doms[i]->uuid, VIR_UUID_BUFLEN)) {
                 *name = strdup(priv->configInfoList->doms[i]->name);
                 if (!*name) {
-                    virXenInotifyError(NULL, VIR_ERR_INTERNAL_ERROR,
-                                       _("finding dom for %s"), uuid_str);
+                    virReportOOMError(conn);
                     return -1;
                 }
                 memcpy(uuid, priv->configInfoList->doms[i]->uuid, VIR_UUID_BUFLEN);
@@ -159,8 +157,10 @@ xenInotifyXendDomainsDirLookup(virConnectPtr conn, const char *filename,
         return -1;
     }
 
-    if (!(*name = strdup(dom->name)))
+    if (!(*name = strdup(dom->name))) {
+        virReportOOMError(conn);
         return -1;
+    }
     memcpy(uuid, dom->uuid, VIR_UUID_BUFLEN);
     virDomainFree(dom);
     /* succeeded too find domain by uuid */
@@ -198,7 +198,7 @@ static int
 xenInotifyXendDomainsDirRemoveEntry(virConnectPtr conn,
                                     const char *fname) {
     xenUnifiedPrivatePtr priv = conn->privateData;
-    const char *uuidstr = fname + strlen(LIBVIRTD_DOMAINS_DIR) + 1;
+    const char *uuidstr = fname + strlen(XEND_DOMAINS_DIR) + 1;
     unsigned char uuid[VIR_UUID_BUFLEN];
     int i;
 
@@ -332,7 +332,7 @@ reread:
                 xenInotifyDomainEventFromFile(conn, fname,
                                               VIR_DOMAIN_EVENT_UNDEFINED,
                                               VIR_DOMAIN_EVENT_UNDEFINED_REMOVED);
-            if (!event)
+            if (event)
                 xenUnifiedDomainEventDispatch(conn->privateData, event);
             else
                 virXenInotifyError(NULL, VIR_ERR_INTERNAL_ERROR,
@@ -380,7 +380,7 @@ cleanup:
  * Returns 0 or -1 in case of error.
  */
 virDrvOpenStatus
-xenInotifyOpen(virConnectPtr conn ATTRIBUTE_UNUSED,
+xenInotifyOpen(virConnectPtr conn,
              virConnectAuthPtr auth ATTRIBUTE_UNUSED,
              int flags ATTRIBUTE_UNUSED)
 {
@@ -393,12 +393,11 @@ xenInotifyOpen(virConnectPtr conn ATTRIBUTE_UNUSED,
         priv->useXenConfigCache = 1;
     } else {
         /* /var/lib/xend/domains/<uuid>/config.sxp */
-        priv->configDir = LIBVIRTD_DOMAINS_DIR;
+        priv->configDir = XEND_DOMAINS_DIR;
         priv->useXenConfigCache = 0;
 
         if (VIR_ALLOC(priv->configInfoList) < 0) {
-            virXenInotifyError(NULL, VIR_ERR_INTERNAL_ERROR,
-                               "%s", _("failed to allocate configInfoList"));
+            virReportOOMError(conn);
             return -1;
         }
 

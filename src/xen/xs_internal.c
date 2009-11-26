@@ -305,17 +305,15 @@ xenStoreOpen(virConnectPtr conn,
 #ifndef PROXY
     /* Init activeDomainList */
     if (VIR_ALLOC(priv->activeDomainList) < 0) {
-        virXenStoreError(NULL, VIR_ERR_INTERNAL_ERROR,
-                                 "%s", _("failed to allocate activeDomainList"));
+        virReportOOMError(conn);
         return -1;
     }
 
     /* Init watch list before filling in domInfoList,
        so we can know if it is the first time through
        when the callback fires */
-    if ( VIR_ALLOC(priv->xsWatchList) < 0 ) {
-        virXenStoreError(NULL, VIR_ERR_INTERNAL_ERROR,
-                                 "%s", _("failed to allocate xsWatchList"));
+    if (VIR_ALLOC(priv->xsWatchList) < 0) {
+        virReportOOMError(conn);
         return -1;
     }
 
@@ -545,8 +543,9 @@ int
 xenStoreNumOfDomains(virConnectPtr conn)
 {
     unsigned int num;
-    char **idlist;
-    int ret = -1;
+    char **idlist = NULL, *endptr;
+    int i, ret = -1, realnum = 0;
+    long id;
     xenUnifiedPrivatePtr priv;
 
     if (conn == NULL) {
@@ -559,10 +558,22 @@ xenStoreNumOfDomains(virConnectPtr conn)
         virXenStoreError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
         return(-1);
     }
+
     idlist = xs_directory(priv->xshandle, 0, "/local/domain", &num);
     if (idlist) {
-        free(idlist);
-        ret = num;
+        for (i = 0; i < num; i++) {
+            id = strtol(idlist[i], &endptr, 10);
+            if ((endptr == idlist[i]) || (*endptr != 0))
+                goto out;
+
+            /* Sometimes xenstore has stale domain IDs, so filter
+               against the hypervisor's info */
+            if (xenHypervisorHasDomain(conn, (int)id))
+                realnum++;
+        }
+out:
+        VIR_FREE (idlist);
+        ret = realnum;
     }
     return(ret);
 }
@@ -579,7 +590,7 @@ xenStoreNumOfDomains(virConnectPtr conn)
  * Returns the number of domain found or -1 in case of error
  */
 static int
-xenStoreDoListDomains(xenUnifiedPrivatePtr priv, int *ids, int maxids)
+xenStoreDoListDomains(virConnectPtr conn, xenUnifiedPrivatePtr priv, int *ids, int maxids)
 {
     char **idlist = NULL, *endptr;
     unsigned int num, i;
@@ -597,7 +608,11 @@ xenStoreDoListDomains(xenUnifiedPrivatePtr priv, int *ids, int maxids)
         id = strtol(idlist[i], &endptr, 10);
         if ((endptr == idlist[i]) || (*endptr != 0))
             goto out;
-        ids[ret++] = (int) id;
+
+        /* Sometimes xenstore has stale domain IDs, so filter
+           against the hypervisor's info */
+        if (xenHypervisorHasDomain(conn, (int)id))
+            ids[ret++] = (int) id;
     }
 
 out:
@@ -629,7 +644,7 @@ xenStoreListDomains(virConnectPtr conn, int *ids, int maxids)
     priv = (xenUnifiedPrivatePtr) conn->privateData;
 
     xenUnifiedLock(priv);
-    ret = xenStoreDoListDomains(priv, ids, maxids);
+    ret = xenStoreDoListDomains(conn, priv, ids, maxids);
     xenUnifiedUnlock(priv);
 
     return(ret);
@@ -892,7 +907,8 @@ xenStoreDomainGetOSTypeID(virConnectPtr conn, int id) {
     }
     if (str == NULL)
         str = strdup("linux");
-
+    if (str == NULL)
+        virReportOOMError(conn);
 
     return (str);
 }
@@ -944,6 +960,10 @@ xenStoreDomainGetNetworkID(virConnectPtr conn, int id, const char *mac) {
 
         if (match) {
             ret = strdup(list[i]);
+
+            if (ret == NULL)
+                virReportOOMError(conn);
+
             break;
         }
     }
@@ -995,15 +1015,19 @@ xenStoreDomainGetDiskID(virConnectPtr conn, int id, const char *dev) {
             if (val == NULL)
                 break;
             if ((devlen != len) || memcmp(val, dev, len)) {
-                free (val);
+                VIR_FREE (val);
             } else {
                 ret = strdup(list[i]);
-                free (val);
-                free (list);
+
+                if (ret == NULL)
+                    virReportOOMError(conn);
+
+                VIR_FREE (val);
+                VIR_FREE (list);
                 return (ret);
             }
         }
-        free (list);
+        VIR_FREE (list);
     }
     snprintf(dir, sizeof(dir), "/local/domain/0/backend/tap/%d", id);
     list = xs_directory(priv->xshandle, 0, dir, &num);
@@ -1014,15 +1038,19 @@ xenStoreDomainGetDiskID(virConnectPtr conn, int id, const char *dev) {
             if (val == NULL)
                 break;
             if ((devlen != len) || memcmp(val, dev, len)) {
-                free (val);
+                VIR_FREE (val);
             } else {
                 ret = strdup(list[i]);
-                free (val);
-                free (list);
+
+                if (ret == NULL)
+                    virReportOOMError(conn);
+
+                VIR_FREE (val);
+                VIR_FREE (list);
                 return (ret);
             }
         }
-        free (list);
+        VIR_FREE (list);
     }
     return (NULL);
 }
@@ -1100,7 +1128,7 @@ int xenStoreAddWatch(virConnectPtr conn,
                      xenStoreWatchCallback cb,
                      void *opaque)
 {
-    xenStoreWatchPtr watch;
+    xenStoreWatchPtr watch = NULL;
     int n;
     xenStoreWatchListPtr list;
     xenUnifiedPrivatePtr priv = (xenUnifiedPrivatePtr) conn->privateData;
@@ -1123,25 +1151,38 @@ int xenStoreAddWatch(virConnectPtr conn,
     }
 
     if (VIR_ALLOC(watch) < 0)
-        return -1;
+        goto no_memory;
+
     watch->path   = strdup(path);
     watch->token  = strdup(token);
     watch->cb     = cb;
     watch->opaque = opaque;
 
+    if (watch->path == NULL || watch->token == NULL) {
+        goto no_memory;
+    }
+
     /* Make space on list */
     n = list->count;
     if (VIR_REALLOC_N(list->watches, n + 1) < 0) {
-        virXenStoreError(NULL, VIR_ERR_INTERNAL_ERROR,
-                                 "%s", _("reallocating list"));
-        VIR_FREE(watch);
-        return -1;
+        goto no_memory;
     }
 
     list->watches[n] = watch;
     list->count++;
 
     return xs_watch(priv->xshandle, watch->path, watch->token);
+
+  no_memory:
+    if (watch) {
+        VIR_FREE(watch->path);
+        VIR_FREE(watch->token);
+        VIR_FREE(watch);
+    }
+
+    virReportOOMError(conn);
+
+    return -1;
 }
 
 /*
@@ -1275,7 +1316,7 @@ retry:
         virReportOOMError(NULL);
         return -1;
     }
-    nread = xenStoreDoListDomains(priv, new_domids, new_domain_cnt);
+    nread = xenStoreDoListDomains(conn, priv, new_domids, new_domain_cnt);
     if (nread != new_domain_cnt) {
         // mismatch. retry this read
         VIR_FREE(new_domids);
@@ -1356,7 +1397,7 @@ retry:
         virReportOOMError(NULL);
         return -1;
     }
-    nread = xenStoreDoListDomains(priv, new_domids, new_domain_cnt);
+    nread = xenStoreDoListDomains(conn, priv, new_domids, new_domain_cnt);
     if (nread != new_domain_cnt) {
         // mismatch. retry this read
         VIR_FREE(new_domids);

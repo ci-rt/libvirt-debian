@@ -53,9 +53,32 @@ void virInterfaceBareDefFree(virInterfaceBareDefPtr def) {
     VIR_FREE(def);
 }
 
+static
+void virInterfaceIpDefFree(virInterfaceIpDefPtr def) {
+    if (def == NULL)
+        return;
+    VIR_FREE(def->address);
+    VIR_FREE(def);
+}
+
+static
+void virInterfaceProtocolDefFree(virInterfaceProtocolDefPtr def) {
+    int ii;
+
+    if (def == NULL)
+        return;
+    for (ii = 0; ii < def->nips; ii++) {
+        virInterfaceIpDefFree(def->ips[ii]);
+    }
+    VIR_FREE(def->ips);
+    VIR_FREE(def->family);
+    VIR_FREE(def->gateway);
+    VIR_FREE(def);
+}
+
 void virInterfaceDefFree(virInterfaceDefPtr def)
 {
-    int i;
+    int i, pp;
 
     if (def == NULL)
         return;
@@ -89,10 +112,11 @@ void virInterfaceDefFree(virInterfaceDefPtr def)
             break;
     }
 
-    VIR_FREE(def->proto.family);
-    VIR_FREE(def->proto.address);
-    VIR_FREE(def->proto.gateway);
-
+    /* free all protos */
+    for (pp = 0; pp < def->nprotos; pp++) {
+        virInterfaceProtocolDefFree(def->protos[pp]);
+    }
+    VIR_FREE(def->protos);
     VIR_FREE(def);
 }
 
@@ -128,12 +152,9 @@ virInterfaceDefParseStartMode(virConnectPtr conn, virInterfaceDefPtr def,
     char *tmp;
 
     tmp = virXPathString(conn, "string(./start/@mode)", ctxt);
-    if (tmp == NULL) {
-        virInterfaceReportError(conn, VIR_ERR_XML_ERROR,
-                        "%s", _("interface misses the start mode attribute"));
-        return(-1);
-    }
-    if (STREQ(tmp, "onboot"))
+    if (tmp == NULL)
+        def->startmode = VIR_INTERFACE_START_UNSPECIFIED;
+    else if (STREQ(tmp, "onboot"))
         def->startmode = VIR_INTERFACE_START_ONBOOT;
     else if (STREQ(tmp, "hotplug"))
         def->startmode = VIR_INTERFACE_START_HOTPLUG;
@@ -225,22 +246,22 @@ virInterfaceDefParseBondArpValid(virConnectPtr conn, xmlXPathContextPtr ctxt) {
 }
 
 static int
-virInterfaceDefParseDhcp(virConnectPtr conn, virInterfaceDefPtr def,
+virInterfaceDefParseDhcp(virConnectPtr conn, virInterfaceProtocolDefPtr def,
                          xmlNodePtr dhcp, xmlXPathContextPtr ctxt) {
     xmlNodePtr save;
     char *tmp;
     int ret = 0;
 
-    def->proto.dhcp = 1;
+    def->dhcp = 1;
     save = ctxt->node;
     ctxt->node = dhcp;
     /* Not much to do in the current version */
     tmp = virXPathString(conn, "string(./@peerdns)", ctxt);
     if (tmp) {
         if (STREQ(tmp, "yes"))
-            def->proto.peerdns = 1;
+            def->peerdns = 1;
         else if (STREQ(tmp, "no"))
-            def->proto.peerdns = 0;
+            def->peerdns = 0;
         else {
             virInterfaceReportError(conn, VIR_ERR_XML_ERROR,
                               _("unknown dhcp peerdns value %s"), tmp);
@@ -248,89 +269,210 @@ virInterfaceDefParseDhcp(virConnectPtr conn, virInterfaceDefPtr def,
         }
         VIR_FREE(tmp);
     } else
-        def->proto.peerdns = -1;
+        def->peerdns = -1;
 
     ctxt->node = save;
     return(ret);
 }
 
 static int
-virInterfaceDefParseIp(virConnectPtr conn, virInterfaceDefPtr def,
-                   xmlNodePtr ip ATTRIBUTE_UNUSED, xmlXPathContextPtr ctxt) {
+virInterfaceDefParseIp(virConnectPtr conn, virInterfaceIpDefPtr def,
+                       xmlXPathContextPtr ctxt) {
     int ret = 0;
     char *tmp;
     long l;
 
-    tmp = virXPathString(conn, "string(./ip[1]/@address)", ctxt);
-    def->proto.address = tmp;
+    tmp = virXPathString(conn, "string(./@address)", ctxt);
+    def->address = tmp;
     if (tmp != NULL) {
-        ret = virXPathLong(conn, "string(./ip[1]/@prefix)", ctxt, &l);
+        ret = virXPathLong(conn, "string(./@prefix)", ctxt, &l);
         if (ret == 0)
-            def->proto.prefix = (int) l;
+            def->prefix = (int) l;
         else if (ret == -2) {
             virInterfaceReportError(conn, VIR_ERR_XML_ERROR,
                               "%s", _("Invalid ip address prefix value"));
             return(-1);
         }
     }
-    tmp = virXPathString(conn, "string(./route[1]/@gateway)", ctxt);
-    def->proto.gateway = tmp;
 
     return(0);
 }
 
 static int
-virInterfaceDefParseProtoIPv4(virConnectPtr conn, virInterfaceDefPtr def,
+virInterfaceDefParseProtoIPv4(virConnectPtr conn, virInterfaceProtocolDefPtr def,
                               xmlXPathContextPtr ctxt) {
-    xmlNodePtr cur;
-    int ret;
+    xmlNodePtr dhcp;
+    xmlNodePtr *ipNodes = NULL;
+    int nIpNodes, ii, ret = -1;
+    char *tmp;
 
-    cur = virXPathNode(conn, "./dhcp", ctxt);
-    if (cur != NULL)
-        ret = virInterfaceDefParseDhcp(conn, def, cur, ctxt);
-    else {
-        cur = virXPathNode(conn, "./ip", ctxt);
-        if (cur != NULL)
-            ret = virInterfaceDefParseIp(conn, def, cur, ctxt);
-        else {
-            virInterfaceReportError(conn, VIR_ERR_XML_ERROR,
-                                "%s", _("interface miss dhcp or ip adressing"));
-            ret = -1;
-        }
+    tmp = virXPathString(conn, "string(./route[1]/@gateway)", ctxt);
+    def->gateway = tmp;
+
+    dhcp = virXPathNode(conn, "./dhcp", ctxt);
+    if (dhcp != NULL) {
+        ret = virInterfaceDefParseDhcp(conn, def, dhcp, ctxt);
+        if (ret != 0)
+           return(ret);
     }
+
+    nIpNodes = virXPathNodeSet(conn, "./ip", ctxt, &ipNodes);
+    if (ipNodes == NULL)
+        return 0;
+
+    if (VIR_ALLOC_N(def->ips, nIpNodes) < 0) {
+        virReportOOMError(conn);
+        goto error;
+    }
+
+    def->nips = 0;
+    for (ii = 0; ii < nIpNodes; ii++) {
+
+        virInterfaceIpDefPtr ip;
+
+        if (VIR_ALLOC(ip) < 0) {
+            virReportOOMError(conn);
+            goto error;
+        }
+
+        ctxt->node = ipNodes[ii];
+        ret = virInterfaceDefParseIp(conn, ip, ctxt);
+        if (ret != 0) {
+            virInterfaceIpDefFree(ip);
+            goto error;
+        }
+        def->ips[def->nips++] = ip;
+    }
+
+    ret = 0;
+
+error:
+    VIR_FREE(ipNodes);
+    return(ret);
+}
+
+static int
+virInterfaceDefParseProtoIPv6(virConnectPtr conn, virInterfaceProtocolDefPtr def,
+                              xmlXPathContextPtr ctxt) {
+    xmlNodePtr dhcp, autoconf;
+    xmlNodePtr *ipNodes = NULL;
+    int nIpNodes, ii, ret = -1;
+    char *tmp;
+
+    tmp = virXPathString(conn, "string(./route[1]/@gateway)", ctxt);
+    def->gateway = tmp;
+
+    autoconf = virXPathNode(conn, "./autoconf", ctxt);
+    if (autoconf != NULL)
+        def->autoconf = 1;
+
+    dhcp = virXPathNode(conn, "./dhcp", ctxt);
+    if (dhcp != NULL) {
+        ret = virInterfaceDefParseDhcp(conn, def, dhcp, ctxt);
+        if (ret != 0)
+           return(ret);
+    }
+
+    nIpNodes = virXPathNodeSet(conn, "./ip", ctxt, &ipNodes);
+    if (ipNodes == NULL)
+        return 0;
+
+    if (VIR_ALLOC_N(def->ips, nIpNodes) < 0) {
+        virReportOOMError(conn);
+        goto error;
+    }
+
+    def->nips = 0;
+    for (ii = 0; ii < nIpNodes; ii++) {
+
+        virInterfaceIpDefPtr ip;
+
+        if (VIR_ALLOC(ip) < 0) {
+            virReportOOMError(conn);
+            goto error;
+        }
+
+        ctxt->node = ipNodes[ii];
+        ret = virInterfaceDefParseIp(conn, ip, ctxt);
+        if (ret != 0) {
+            virInterfaceIpDefFree(ip);
+            goto error;
+        }
+        def->ips[def->nips++] = ip;
+    }
+
+    ret = 0;
+
+error:
+    VIR_FREE(ipNodes);
     return(ret);
 }
 
 static int
 virInterfaceDefParseIfAdressing(virConnectPtr conn, virInterfaceDefPtr def,
                                 xmlXPathContextPtr ctxt) {
-    xmlNodePtr cur, save;
-    int ret;
+    xmlNodePtr save;
+    xmlNodePtr *protoNodes = NULL;
+    int nProtoNodes, pp, ret = -1;
     char *tmp;
 
-    cur = virXPathNode(conn, "./protocol[1]", ctxt);
-    if (cur == NULL)
-        return(0);
     save = ctxt->node;
-    ctxt->node = cur;
-    tmp = virXPathString(conn, "string(./@family)", ctxt);
-    if (tmp == NULL) {
-        virInterfaceReportError(conn, VIR_ERR_XML_ERROR,
-                            "%s", _("protocol misses the family attribute"));
-        ret = -1;
-        goto done;
-    }
-    if (STREQ(tmp, "ipv4")) {
-        def->proto.family = tmp;
-        ret = virInterfaceDefParseProtoIPv4(conn, def, ctxt);
-    } else {
-        virInterfaceReportError(conn, VIR_ERR_XML_ERROR,
-                            _("unsupported protocol family '%s'"), tmp);
-        ret = -1;
-        VIR_FREE(tmp);
+
+    nProtoNodes = virXPathNodeSet(conn, "./protocol", ctxt, &protoNodes);
+    if (nProtoNodes <= 0) {
+        /* no protocols is an acceptable outcome */
+        return 0;
     }
 
-done:
+    if (VIR_ALLOC_N(def->protos, nProtoNodes) < 0) {
+        virReportOOMError(conn);
+        goto error;
+    }
+
+    def->nprotos = 0;
+    for (pp = 0; pp < nProtoNodes; pp++) {
+
+        virInterfaceProtocolDefPtr proto;
+
+        if (VIR_ALLOC(proto) < 0) {
+            virReportOOMError(conn);
+            goto error;
+        }
+
+        ctxt->node = protoNodes[pp];
+        tmp = virXPathString(conn, "string(./@family)", ctxt);
+        if (tmp == NULL) {
+            virInterfaceReportError(conn, VIR_ERR_XML_ERROR,
+                                    "%s", _("protocol misses the family attribute"));
+            virInterfaceProtocolDefFree(proto);
+            goto error;
+        }
+        proto->family = tmp;
+        if (STREQ(tmp, "ipv4")) {
+            ret = virInterfaceDefParseProtoIPv4(conn, proto, ctxt);
+            if (ret != 0) {
+                virInterfaceProtocolDefFree(proto);
+                goto error;
+            }
+        } else if (STREQ(tmp, "ipv6")) {
+            ret = virInterfaceDefParseProtoIPv6(conn, proto, ctxt);
+            if (ret != 0) {
+                virInterfaceProtocolDefFree(proto);
+                goto error;
+            }
+        } else {
+            virInterfaceReportError(conn, VIR_ERR_XML_ERROR,
+                                    _("unsupported protocol family '%s'"), tmp);
+            virInterfaceProtocolDefFree(proto);
+            goto error;
+        }
+        def->protos[def->nprotos++] = proto;
+    }
+
+    ret = 0;
+
+error:
+    VIR_FREE(protoNodes);
     ctxt->node = save;
     return(ret);
 
@@ -489,12 +631,16 @@ static int
 virInterfaceDefParseBond(virConnectPtr conn, virInterfaceDefPtr def,
                          xmlXPathContextPtr ctxt) {
     xmlNodePtr node;
-    int ret = 0;
+    int ret = -1;
     unsigned long tmp;
 
     def->data.bond.mode = virInterfaceDefParseBondMode(conn, ctxt);
     if (def->data.bond.mode < 0)
         goto error;
+
+    ret = virInterfaceDefParseBondItfs(conn, def, ctxt);
+    if (ret != 0)
+       goto error;
 
     node = virXPathNode(conn, "./miimon[1]", ctxt);
     if (node != NULL) {
@@ -527,15 +673,13 @@ virInterfaceDefParseBond(virConnectPtr conn, virInterfaceDefPtr def,
         }
 
         def->data.bond.carrier = virInterfaceDefParseBondMiiCarrier(conn, ctxt);
-        if (def->data.bond.carrier < 0)
+        if (def->data.bond.carrier < 0) {
+            ret = -1;
             goto error;
+        }
 
-        ret = virInterfaceDefParseBondItfs(conn, def, ctxt);
+    } else if ((node = virXPathNode(conn, "./arpmon[1]", ctxt)) != NULL) {
 
-        goto done;
-    }
-    node = virXPathNode(conn, "./arpmon[1]", ctxt);
-    if (node != NULL) {
         def->data.bond.monit = VIR_INTERFACE_BOND_MONIT_ARP;
 
         ret = virXPathULong(conn, "string(./arpmon/@interval)", ctxt, &tmp);
@@ -551,23 +695,17 @@ virInterfaceDefParseBond(virConnectPtr conn, virInterfaceDefPtr def,
         if (def->data.bond.target == NULL) {
             virInterfaceReportError(conn, VIR_ERR_XML_ERROR,
                  "%s", _("bond interface arpmon target missing"));
+            ret = -1;
             goto error;
         }
 
         def->data.bond.validate = virInterfaceDefParseBondArpValid(conn, ctxt);
-        if (def->data.bond.validate < 0)
+        if (def->data.bond.validate < 0) {
+            ret = -1;
             goto error;
-
-        ret = virInterfaceDefParseBondItfs(conn, def, ctxt);
-
-        goto done;
+        }
     }
-
-    virInterfaceReportError(conn, VIR_ERR_XML_ERROR,
-                "%s", _("bond interface need miimon or arpmon element"));
 error:
-    ret = -1;
-done:
     return(ret);
 }
 
@@ -967,11 +1105,6 @@ virInterfaceBondDefFormat(virConnectPtr conn, virBufferPtr buf,
         else if (def->data.bond.validate == VIR_INTERFACE_BOND_ARP_ALL)
             virBufferAddLit(buf, " validate='all'");
         virBufferAddLit(buf, "/>\n");
-    } else {
-        virInterfaceReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                _("bond monitoring type %d unknown"),
-                                def->data.bond.monit);
-        return(-1);
     }
     for (i = 0;i < def->data.bond.nbItf;i++) {
         if (virInterfaceBareDevDefFormat(conn, buf, def->data.bond.itf[i]) < 0)
@@ -1005,32 +1138,44 @@ virInterfaceVlanDefFormat(virConnectPtr conn, virBufferPtr buf,
 static int
 virInterfaceProtocolDefFormat(virConnectPtr conn ATTRIBUTE_UNUSED,
                               virBufferPtr buf, const virInterfaceDefPtr def) {
-    if (def->proto.family == NULL)
-        return(0);
-    virBufferVSprintf(buf, "  <protocol family='%s'>\n", def->proto.family);
-    if (def->proto.dhcp) {
-        if (def->proto.peerdns == 0)
-            virBufferAddLit(buf, "    <dhcp peerdns='no'/>\n");
-        else if (def->proto.peerdns == 1)
-            virBufferAddLit(buf, "    <dhcp peerdns='yes'/>\n");
-        else
-            virBufferAddLit(buf, "    <dhcp/>\n");
-    } else {
-        /* theorically if we don't have dhcp we should have an address */
-        if (def->proto.address != NULL) {
-            if (def->proto.prefix != 0)
-                virBufferVSprintf(buf, "    <ip address='%s' prefix='%d'/>\n",
-                                  def->proto.address, def->proto.prefix);
+    int pp, ii;
+
+    for (pp = 0; pp < def->nprotos; pp++) {
+
+        virBufferVSprintf(buf, "  <protocol family='%s'>\n", def->protos[pp]->family);
+
+        if (def->protos[pp]->autoconf) {
+            virBufferAddLit(buf, "    <autoconf/>\n");
+        }
+
+        if (def->protos[pp]->dhcp) {
+            if (def->protos[pp]->peerdns == 0)
+                virBufferAddLit(buf, "    <dhcp peerdns='no'/>\n");
+            else if (def->protos[pp]->peerdns == 1)
+                virBufferAddLit(buf, "    <dhcp peerdns='yes'/>\n");
             else
-                virBufferVSprintf(buf, "    <ip address='%s'/>\n",
-                                  def->proto.address);
+                virBufferAddLit(buf, "    <dhcp/>\n");
         }
-        if (def->proto.gateway != NULL) {
+
+        for (ii = 0; ii < def->protos[pp]->nips; ii++) {
+            if (def->protos[pp]->ips[ii]->address != NULL) {
+
+                virBufferVSprintf(buf, "    <ip address='%s'",
+                                  def->protos[pp]->ips[ii]->address);
+                if (def->protos[pp]->ips[ii]->prefix != 0) {
+                    virBufferVSprintf(buf, " prefix='%d'",
+                                      def->protos[pp]->ips[ii]->prefix);
+                }
+                virBufferAddLit(buf, "/>\n");
+            }
+        }
+        if (def->protos[pp]->gateway != NULL) {
             virBufferVSprintf(buf, "    <route gateway='%s'/>\n",
-                              def->proto.gateway);
+                              def->protos[pp]->gateway);
         }
+
+        virBufferAddLit(buf, "  </protocol>\n");
     }
-    virBufferAddLit(buf, "  </protocol>\n");
     return(0);
 }
 
@@ -1039,6 +1184,8 @@ virInterfaceStartmodeDefFormat(virConnectPtr conn, virBufferPtr buf,
                                enum virInterfaceStartMode startmode) {
     const char *mode;
     switch (startmode) {
+        case VIR_INTERFACE_START_UNSPECIFIED:
+            return 0;
         case VIR_INTERFACE_START_NONE:
             mode = "none";
             break;

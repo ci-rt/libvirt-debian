@@ -1,3 +1,1772 @@
+2009-11-20  Daniel Veillard  <veillard@redhat.com>
+
+	Release of libvirt-0.7.4
+	0.7.3 was broken
+
+	* configure.in docs/news.html.in: release of 0.7.4
+	* configure.in libvirt.spec.in: require netcf >= 0.1.4
+	* src/Makefile.am: node_device/node_device_udev.h was missing from
+	  NODE_DEVICE_DRIVER_UDEV_SOURCES breaking compilation on platforms with
+	  udev
+
+	Release of libvirt-0.7.3
+	* configure.in docs/news.html.in libvirt.spec.in: describe new release
+	* po/*.po*: regenerate
+
+2009-11-20  Daniel P. Berrange  <berrange@redhat.com>
+
+	Enable udev instead of hal on F12 / RHEL-6 or later
+	HAL has been deprecated since F12 and RHEL-6, so if building on
+	these platforms, switch on the udev driver instead
+
+	* libvirt.spec.in: Activate udev on F12/RHEL6
+
+2009-11-20  Cole Robinson  <crobinso@redhat.com>
+
+	Document overriding domain interface target
+	* docs/formatdomain.html.in: document that vnet and vif are reserved
+	  names and will be ignored if manually specified.
+
+	python: Actually implement list*Interfaces bindings
+	* python/generator.py python/libvirt-override-api.xml
+	  python/libvirt-override.c: implement the bindings for
+	  virConnectListInterfaces() and virConnectListDefinedInterfaces()
+
+2009-11-20  Daniel Veillard  <veillard@redhat.com>
+
+	514532 Fix man page, most operation are synchronous
+	* tools/virsh.pod: the man page was stating that most operations
+	  are asynchronous while in fact most of them are synchronous except
+	  domain shutdown, setvcpus and setmem.
+
+	504262 Check for duplicated UUID in XM Xen defines
+	* src/xen/xm_internal.c: the XM driver was not checking for previously
+	  defined UUID on new defines. Similar to virDomainObjIsDuplicate()
+	  behaviour.
+
+	512069 fix domain XML schemas for backward compatibility
+	For backward compatibility we used to add the tty path as
+	a tty attribute on console of type pty, duplicating the value
+	now found in source/@path, but the Relax-NG grammar wasn't
+	extended for this
+	    <console type='pty' tty='/dev/pts/8'>
+	      <source path='/dev/pts/8'/>
+	      <target port='0'/>
+	    </console>
+
+	* docs/schemas/domain.rng: allow an optional tty attribute
+	  containing a devicePath
+
+2009-11-20  Steve Yarmie  <steve.yarmie@gmail.com>
+
+	qemu-kvm needs -enable-kvm flag for VT optimization
+	Recent qemu releases require command option '-enable-qemu' in order
+	for the kvm functionality be activated. Libvirt needs to pass this flag
+	to qemu when starting a domain. Note that without the option,
+	even if both the kernel and qemu support KVM, KVM will not be activated
+	and VMs will be very slow.
+
+	* src/qemu/qemu_conf.h src/qemu/qemu_conf.c: parse the extra command
+	  line option from help and add it when running kvm
+	* tests/qemuhelptest.c: this modified the flags output for qemu-0.10.5
+	  and qemu-kvm-0.11.0-rc2 regression tests
+
+	fix deprecated iptables command syntax
+	* src/util/iptables.c: `--option !  this` is deprecated in favor of
+	  `! --option this` syntax, change the output command accordingly
+
+2009-11-19  Dave Allan  <dallan@redhat.com>
+
+	remove sysfs_path and parent_sysfs_path from XML
+	Erroneously included the sysfs_path and parent_sysfs_path elements in
+	the node device xml, they were not supposed to show up there
+
+	* src/conf/node_device_conf.c: remove the output of the 2 fields
+
+	Removing devicePath member from dev struct
+	I realized that I inadvertently added a member to the def struct to
+	contain each device's sysfs path when there was an existing member in the
+	dev struct for "OS specific path to device metadat, eg sysfs"  Since the
+	udev backend needs to record the sysfs path while it's in the process of
+	creating the device, before the dev struct gets allocated, I chose to
+	remove the member from the dev struct.
+
+	* src/conf/node_device_conf.c src/conf/node_device_conf.h
+	  src/node_device/node_device_driver.c src/node_device/node_device_hal.c
+	  src/node_device/node_device_udev.c: remove devicePath from the
+	  structure and use def->sysfs_path instead
+
+	report OOM in two places in node_device_driver.c
+	* src/node_device/node_device_driver.c: two places where not calling
+	  virReportOOMError after strdup failure
+
+2009-11-18  Daniel P. Berrange  <berrange@redhat.com>
+
+	Ensure driver lock is released when entering QEMU monitor
+	The qemudStartVMDaemon() and several functions it calls use
+	the QEMU monitor. The QEMU driver is locked while this function
+	is executing, so it is rquired to release the driver lock and
+	reacquire it either side of issuing a monitor command. It
+	failed todo so, leading to deadlock
+
+	* qemu/qemu_driver.c: Release driver when in qemudStartVMDaemon
+	  and things it calls
+
+2009-11-17  Daniel Veillard  <veillard@redhat.com>
+
+	Updated localization and regenerated the pos
+	updated el.po es.po or.po pl.po ta.po te.po
+	ran make update-po
+
+2009-11-17  Matthew Booth  <mbooth@redhat.com>
+
+	Fix typo in error message
+
+2009-11-16  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	Whitespace cleanup for pre-tags on the website
+
+2009-11-16  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix type in configure output summary
+	* configure.in: Fix typo in PCIACCESS_LIBS
+
+2009-11-16  Daniel Veillard  <veillard@redhat.com>
+
+	Remove a compilation warning on uninitialized var
+
+2009-11-16  Guido Günther  <agx@sigxcpu.org>
+
+	only remove masquerade roles for VIR_NETWORK_FORWARD_NAT
+	Fixes http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=549949
+
+2009-11-15  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	esx: Fix CPU clock Hz to MHz conversion
+
+	esx: Fix memory leak in esxVI_HostCpuIdInfo_Free()
+
+	esx: Fix MAC address formatting
+	VMware uses two MAC address prefixes: 00:0c:29 and 00:50:56. The 00:0c:29
+	prefix is used for ESX server generated addresses. The 00:50:56 prefix is
+	split into two parts. MAC addresses above 00:50:56:3f:ff:ff are generated
+	by a vCenter. The rest of the 00:50:56 prefix can be assigned manually.
+	Any MAC address within the 00:0c:29 and 00:50:56 prefix can be specified
+	in a domain XML config and the driver will handle the details internally.
+
+	* src/esx/esx_vmx.c: fix MAC address formatting
+	* tests/xml2vmxdata/*: update test files accordingly
+
+	esx: Handle 'vmxnet3' in esxVMX_FormatEthernet()
+	In commit 3c80fac2588cbc9e5ee7e7069e1ca4468f2359d3 'vmxnet3' handling
+	was added to esxVMX_ParseEthernet(), but not to the inverse function
+	esxVMX_FormatEthernet().
+
+	esx: Add documentation to the website
+	* docs/drivers.html.in: list the ESX driver
+	* docs/drvesx.html.in: the new ESX driver documentation
+	* docs/hvsupport.html.in: add the ESX driver to the matrix
+	* docs/index.html.in, docs/sitemap.html.in: list the ESX driver
+	* src/esx/esx_driver.c: fix and cleanup some comments
+
+	Change DTD references to use public instead of system identifier
+	Debian's /etc/xml/catalog doesn't contain system identifiers, so use
+	public identifiers instead.
+
+	* docs/Makefile.am: use public instead of system identifier
+	* docs/site.xsl: use matching public identifier
+
+2009-11-15  Jim Fehlig  <jfehlig@novell.com>
+
+	Fix compilation of libvirt against xen-unstable
+	* src/xen/xen_hypervisor.c: xen-unstable changeset 19788 removed
+	  MAX_VIRT_CPUS from public headers, breaking compilation of libvirt
+	  on -unstable.  Its semanitc was retained with XEN_LEGACY_MAX_VCPUS.
+	  Ensure MAX_VIRT_CPUS is defined accordingly.
+
+2009-11-13  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix probing for libpciaccess
+	If 'with_udev=check' then missing pciaccess should not be a fatal
+	error. It should merely disable the udev driver.
+
+	* configure.in: Fix pciaccess check to be non-fatal
+
+	Remove obsolte devicekit checks
+	Device kit support was removed, but the configure.ac checks were
+	left in place. A number of the XXX_REQUIRED=X.Y.Z variables were
+	not declared in the correct location (ie top of the file)
+
+	* configure.in: Remove device kit checks & move mis-placed variables
+	  to correct location
+
+	Fix incorrect reference counting logic in qemu monitor open
+	The QEMU monitor open method would not take a reference on
+	the virDomainObjPtr until it had successfully opened the
+	monitor. The cleanup code upon failure to open though would
+	call qemuMonitorClose() which would in turn decrement the
+	reference count. This caused the virDoaminObjPtr to be mistakenly
+	freed and then the whole driver crashes
+
+	* src/qemu/qemu_monitor.c: Fix reference counting in
+	  qemuMonitorOpen
+
+	Don't return fatal error in HAL driver init if HAL isn't running
+	The HAL driver returns a fatal error code in the case where HAL
+	is not running. This causes the entire libvirtd daemon to quit
+	which isn't desirable. Instead it should simply disable the HAL
+	driver
+
+	* src/node_device/node_device_hal.c: Quietly disable HAL if it is
+	  not running
+
+	Fix cleanup when state driver init fails
+	* daemon/libvirtd.c: Fix incorrect goto label causing cleanup to
+	  be missed when state driver init fails
+
+2009-11-13  Matthew Booth  <mbooth@redhat.com>
+
+	Small guestfwd code cleanup
+	* src/qemu/qemu_conf.c: Remove and inline qemudBuildCommandLineChrDevTargetStr
+
+	Small indentation cleanup of domain schema
+
+2009-11-13  Jamie Strandboge  <jamie@canonical.com>
+
+	AppArmor code cleanups
+	* src/security/security_apparmor.c: a few code cleanups following a
+	  review on the list
+
+	AppArmor handling of accesses to readonly files
+	Fixes https://launchpad.net/bugs/453335
+
+	* src/security/virt-aa-helper.c: suppress confusing and misleading
+	  apparmor denied message when kvm/qemu tries to open a libvirt specified
+	  readonly file (such as a cdrom) with write permissions. libvirt uses
+	  the readonly attribute for the security driver only, and has no way
+	  of telling kvm/qemu that the device should be opened readonly
+
+	AppArmor require absolute paths
+	Fixes https://launchpad.net/bugs/460271
+
+	* src/security/virt-aa-helper.c: require absolute path for dynamic added
+	  files. This is required by AppArmor and conveniently prevents adding
+	  tcp consoles to the profile
+
+	AppArmor updates of examples
+	* examples/apparmor/libvirt-qemu: adds pulseaudio, alsa and preliminary
+	  save/restore to the example apparmor abstraction
+	* examples/apparmor/usr.sbin.libvirtd: allows libvirtd access to inet
+	  dgram, inet6 dgram, inet6 stream and /usr/lib/libvirt/*
+
+2009-11-13  Daniel P. Berrange  <berrange@redhat.com>
+
+	Check that domain is running when starting console
+	The 'virsh console' command did not check if the domain was
+	already running before attempting to fetch the XML and extract
+	the console PTY path. This caused a slightly unhelpful / misleading
+	error message for the user. The explicit check ensures the user
+	gets an explicit 'domain is not running' message.
+
+	* tools/virsh.c: Validate that state != VIR_DOMAIN_SHUTOFF in
+	  virsh console command
+
+	Fix incorrect variable passed to LXC event callback
+	The wrong variable was being passed in with the LXC event callback
+	resulting in a later deadlock or crash
+
+	* src/lxc/lxc_driver.c: Pass 'vm' instead of 'driver' to event
+	  callback
+
+	Fix check for existance of cgroups at creation
+	In the scenario where the cgroups were mounted but the
+	particular group did not exist, and the caller had not
+	requested auto-creation, the code would fail to return
+	an error condition. This caused the lxc_controller to
+	think the cgroup existed, and it then later failed when
+	attempting to use it
+
+	* src/util/cgroup.c: Raise an error if the cgroup path does not
+	  exist
+
+	Fix race condition in HAL driver startup
+	There is a race condition in HAL driver startup where the callback
+	can get triggered before we have finished startup. This then causes
+	a deadlock in the driver.
+
+	* src/node_device/node_device_hal.c: RElease driver lock before
+	  registering DBus callbacks
+
+	Fix formatting of XML for an inactive guest
+	If the virDomainDefPtr object has an 'id' of -1, then forcably
+	set the VIR_DOMAIN_XML_INACTIVE flag to ensure generated XML
+	does not include any cruft from the previously running guest
+	such as console PTY path, or VNC port.
+
+	* src/conf/domain_conf.c: Set VIR_DOMAIN_XML_INACTIVE if
+	  def->id is -1. Replace checks for def->id == -1 with
+	  check against flags & VIR_DOMAIN_XML_INACTIVE.
+
+	Remove capng_lock() call when spawning LXC container init process
+	The capng_lock() call sets the SECURE_NO_SETUID_FIXUP and SECURE_NOROOT
+	bits on the process. This prevents the kernel granting capabilities to
+	processes with an effective UID of 0, or with setuid programs. This is
+	not actually what we want in the container init process. It should be
+	allowed to run setuid processes & keep capabilities when root. All that
+	is required is masking a handful of dangerous capabilities from the
+	bounding set.
+
+	* src/lxc/lxc_container.c: Remove bogus capng_lock() call.
+
+	Fix initscript to check daemon pidfile
+	The libvirtd initscript could get confused between the system and
+	session instances of the daemon. To avoid this it is neccessary
+	to check the pidfile explicitly.
+
+	* daemon/libvirtd.init.in: Always check the pidfile of the system
+	  daemon to avoid confusion with the session daemons
+
+2009-11-13  Jamie Strandboge  <jamie@canonical.com>
+
+	Fix virt-aa-helper when host and os.type arch differ
+	* src/security/virt-aa-helper.c: get_definition() now calls the new
+	  caps_mockup() function which will parse the XML for os.type,
+	  os.type.arch and then sets the wordsize.  These attributes are needed
+	  only to get a valid virCapsPtr for virDomainDefParseString(). The -H
+	  and -b options are now removed from virt-aa-helper (they weren't used
+	  yet anyway).
+	* tests/virt-aa-helper-test: extend and fixes tests, chmod'ed 755
+
+2009-11-12  David Allan  <dallan@redhat.com>
+
+	Add translation of PCI vendor and product IDs
+	uses libpciaccess to provide human readable names for PCI vendor and
+	device IDs
+	* configure.in: add a requirement for libpciaccess >= 0.10.0
+	* src/Makefile.am: add the associated compilation flags and link
+	* src/node_device/node_device_udev.c: lookup the libpciaccess for
+	  vendor name and product name based on their ids
+
+	Remove DevKit node device backend
+	* configure.in src/Makefile.am: remove the configuration check and
+	  build instructions
+	* src/node_device/node_device_devkit.c: removed the module
+	* src/node_device/node_device_driver.c src/node_device/node_device_driver.h:
+	  removed references to the old backend
+
+	Add scsi_target device type
+	* src/conf/node_device_conf.h src/conf/node_device_conf.c: add specific
+	  support for SCSI target in node device capabilities
+	* src/node_device/node_device_udev.c: add some extra detection code
+	  when handling udev output
+
+	Implement a node device backend using libudev
+	* configure.in: add new --with-udev, disabled by default, and requiring
+	  libudev > 145
+	* src/node_device/node_device_udev.c src/node_device/node_device_udev.h:
+	  the new node device backend
+	* src/node_device/node_device_linux_sysfs.c: moved node_device_hal_linux.c
+	  to a better file name
+	* src/conf/node_device_conf.c src/conf/node_device_conf.h: add a couple
+	  of fields in node device definitions, and an API to look them up,
+	  remove a couple of unused fields from previous patch.
+	* src/node_device/node_device_driver.c src/node_device/node_device_driver.h:
+	  plug the new driver
+	* po/POTFILES.in src/Makefile.am src/libvirt_private.syms: add the new
+	  files and symbols
+	* src/util/util.h src/util/util.c: add a new convenience macro
+	  virBuildPath and virBuildPathInternal() function
+
+	Add several fields to node device capabilities
+	* src/conf/node_device_conf.h src/conf/node_device_conf.c: add the new
+	  fields in the structure as well as parsing and serialization
+
+2009-11-12  Cole Robinson  <crobinso@redhat.com>
+
+	Add virConnectGetLibvirtVersion API
+	There is currently no way to determine the libvirt version of a remote
+	libvirtd we are connected to. This is a useful piece of data to enable
+	feature detection.
+
+2009-11-12  Maximilian Wilhelm  <max@rfc2324.org>
+
+	Implement finer grained migration control for Xen
+	* src/xen/xen_driver.c: Add support for VIR_MIGRATE_PERSIST_DEST flag
+	* src/xen/xend_internal.c: Add support for VIR_MIGRATE_UNDEFINE_SOURCE flag
+	* include/libvirt/virterror.h, src/util/virterror.c: Add new errorcode
+	  VIR_ERR_MIGRATE_PERSIST_FAILED
+
+2009-11-12  pritesh  <Pritesh.Kothari@Sun.COM>
+
+	Support for SATA Disks in virDomainDiskBus
+	* src/conf/domain_conf.h src/conf/domain_conf.c: add the new entry in
+	  the enum and lists of virDomainDiskBus
+	* src/qemu/qemu_conf.c: same for virDomainDiskQEMUBus
+
+2009-11-12  Ryota Ozaki  <ozaki.ryota@gmail.com>
+
+	LXC implement missing DomainInterfaceStats API
+	* src/lxc/lxc_driver.c: add lxcDomainInterfaceStats implementing
+	  virDomainInterfaceStats()
+
+2009-11-12  Daniel P. Berrange  <berrange@redhat.com>
+
+	Filter out stale domains from xenstore listing
+	The xenstore database sometimes has stale domain IDs which are not
+	present in the hypervisor anymore. Filter these out to avoid causing
+	confusion
+
+	* src/xen/xs_internal.c: Filter domain IDs against HV's list
+	* src/xen/xen_hypervisor.h, src/xen/xen_hypervisor.c: Add new
+	  xenHypervisorHasDomain() method for checking ID validity
+
+2009-11-12  Jonas Eriksson  <jonas.j.eriksson@ericsson.com>
+
+	Fix logic in xenUnifiedNumOfDomains to match xenUnifiedListDomains
+	The xenUnifiedNumOfDomains and xenUnifiedListDomains methods work
+	together as a pair, so it is critical they both apply the same
+	logic. With the current mis-matched logic it is possible to sometimes
+	get into a state when you miss certain active guests.
+
+	* src/xen/xen_driver.c: Change xenUnifiedNumOfDomains ordering to
+	  match xenUnifiedListDomains.
+
+2009-11-12  Daniel P. Berrange  <berrange@redhat.com>
+
+	Disable IPv6 socket auto-binding to IPv4 socket
+	Sometimes getaddrinfo returns IPv4 addresses before IPv6 addresses.
+	IPv6 sockets default to attempting to bind to IPv4 addresses too.
+	So if the IPv4 address is activated first, then binding to IPv6
+	will unneccessarily fail.
+
+	* daemon/libvirtd.c: Bind to IPv6 and IPv4 addresses separately
+
+	Exclude numactl on s390[x]
+	The numactl package is not applicable for s390[x] arches, so do
+	not enable it as a build dep.
+
+	* libvirt.spec.in: Exclude numactl on s390[x]
+
+2009-11-12  Ryota Ozaki  <ozaki.ryota@gmail.com>
+
+	Fix error handling in qemuMonitorOpen
+	* src/qemu/qemu_monitor.c: add error check for qemuMonitorOpenXXX
+	  returned file descriptor
+
+2009-11-11  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix save and restore with non-privileged guests and SELinux
+	When running qemu:///system instance, libvirtd runs as root,
+	but QEMU may optionally be configured to run non-root. When
+	then saving a guest to a state file, the file is initially
+	created as root, and thus QEMU cannot write to it. It is also
+	missing labelling required to allow access via SELinux.
+
+	* src/qemu/qemu_driver.c: Set ownership on save image before
+	  running migrate command in virDomainSave impl. Call out to
+	  security driver to set save image labelling
+	* src/security/security_driver.h: Add driver APIs for setting
+	  and restoring saved state file labelling
+	* src/security/security_selinux.c: Implement saved state file
+	  labelling for SELinux
+
+2009-11-11  Gerhard Stenzel  <gstenzel@linux.vnet.ibm.com>
+
+	disable mac_filter config switch by default
+	* src/qemu/qemu.conf:  disables the mac_filter config switch by default
+	  to match existing convention, also document the option
+
+2009-11-11  Ryota Ozaki  <ozaki.ryota@gmail.com>
+
+	Prevent initializing ebtables if disabled in qemu.conf
+	* src/qemu/qemu_conf.c: don't initialize ebtables if
+	  disabled
+
+2009-11-11  Eduardo Otubo  <otubo@linux.vnet.ibm.com>
+
+	phyp: too much timeout when polling socket
+	* src/phyp/phyp_driver.c: a 10s timeout on socket availability was way
+	  too long, reduced to 1ms
+
+2009-11-11  Ryota Ozaki  <ozaki.ryota@gmail.com>
+
+	Fix warning on make due to missing cast (int)
+	* src/qemu/qemu_monitor.c src/qemu/qemu_monitor_text.c: cast size_t to
+	  int when passing to '%d'
+
+2009-11-11  Eduardo Otubo  <otubo@linux.vnet.ibm.com>
+
+	phyp: Reorder keyboard_interactive label in openSSHSession()
+	Finish changes intended to be part of commit
+	6c70802374d1cb9316769fea750a6c2c198901ff
+
+2009-11-10  Daniel P. Berrange  <berrange@redhat.com>
+
+	Implmentation of new APIs to checking state/persistence of objects
+	This implements the virConnectIsSecure, virConnectIsEncrypted,
+	virDomainIsPersistent, virDomainIsActive, virNetworkIsActive,
+	virNetworkIsPersistent, virStoragePoolIsActive,
+	virStoragePoolIsPersistent, virInterfaceIsActive APIs in
+	(nearly) all drivers. Exceptions are:
+
+	 phyp: missing domainIsActive/Persistent
+	 esx: missing domainIsPersistent
+	 opennebula: missing domainIsActive/Persistent
+
+	* src/remote/remote_protocol.x: Define remote wire ABI for newly
+	  added APIs.
+	* daemon/remote_dispatch*.h: Re-generated from remote_protocol.x
+	* src/esx/esx_driver.c, src/lxc/lxc_driver.c, src/network/bridge_driver.c,
+	  src/opennebula/one_driver.c, src/openvz/openvz_conf.c,
+	  src/openvz/openvz_driver.c, src/phyp/phyp_driver.c,
+	  src/remote/remote_driver.c, src/storage/storage_driver.c,
+	  src/test/test_driver.c, src/uml/uml_driver.c, src/vbox/vbox_tmpl.c,
+	  src/xen/xen_driver.c, src/xen/xen_driver.h, src/xen/xen_inotify.c,
+	  src/xen/xen_inotify.h: Implement all the new APIs where possible
+
+	New APIs for checking some object properties
+	Introduce a number of new APIs to  expose some boolean properties
+	of objects, which cannot otherwise reliably determined, nor are
+	aspects of the XML configuration.
+
+	 * virDomainIsActive: Checking virDomainGetID is not reliable
+	   since it is not possible to distinguish between error condition
+	   and inactive domain for ID of -1.
+	 * virDomainIsPersistent: Check whether a persistent config exists
+	   for the domain
+
+	 * virNetworkIsActive: Check whether the network is active
+	 * virNetworkIsPersistent: Check whether a persistent config exists
+	   for the network
+
+	 * virStoragePoolIsActive: Check whether the storage pool is active
+	 * virStoragePoolIsPersistent: Check whether a persistent config exists
+	   for the storage pool
+
+	 * virInterfaceIsActive: Check whether the host interface is active
+
+	 * virConnectIsSecure: whether the communication channel to the
+	   hypervisor is secure
+	 * virConnectIsEncrypted: whether any network based commnunication
+	   channels are encrypted
+
+	NB, a channel can be secure, even if not encrypted, eg if it does
+	not involve the network, like a UNIX socket, or pipe.
+
+	 * include/libvirt/libvirt.h.in: Define public API
+	 * src/driver.h: Define internal driver API
+	 * src/libvirt.c: Implement public API entry point
+	 * src/libvirt_public.syms: Export API symbols
+	 * src/esx/esx_driver.c, src/lxc/lxc_driver.c,
+	   src/interface/netcf_driver.c, src/network/bridge_driver.c,
+	   src/opennebula/one_driver.c, src/openvz/openvz_driver.c,
+	   src/phyp/phyp_driver.c, src/qemu/qemu_driver.c,
+	   src/remote/remote_driver.c, src/test/test_driver.c,
+	   src/uml/uml_driver.c, src/vbox/vbox_tmpl.c,
+	   src/xen/xen_driver.c: Stub out driver tables
+
+2009-11-10  Daniel Veillard  <veillard@redhat.com>
+
+	Various fixes following a code review part 2
+	* daemon/libvirtd.c tools/virsh.c: Steve Grubb <sgrubb@redhat.com> found
+	  a few more issues
+
+	Various fixes following a code review
+	* src/libvirt.c src/lxc/lxc_conf.c src/lxc/lxc_container.c
+	  src/lxc/lxc_controller.c src/node_device/node_device_hal.c
+	  src/openvz/openvz_conf.c src/qemu/qemu_driver.c
+	  src/qemu/qemu_monitor_text.c src/remote/remote_driver.c
+	  src/storage/storage_backend_disk.c src/storage/storage_driver.c
+	  src/util/logging.c src/xen/sexpr.c src/xen/xend_internal.c
+	  src/xen/xm_internal.c: Steve Grubb <sgrubb@redhat.com> sent a code
+	  review and those are the fixes correcting the problems
+
+2009-11-10  Daniel P. Berrange  <berrange@redhat.com>
+
+	Allow timeouts waiting for QEMU job lock
+	Some monitor commands may take a very long time to complete. It is
+	not desirable to block other incoming API calls forever. With this
+	change, if an existing API call is holding the job lock, additional
+	API calls will not wait forever. They will time out after a short
+	period of time, allowing application to retry later.
+
+	* include/libvirt/virterror.h, src/util/virterror.c: Add new
+	  VIR_ERR_OPERATION_TIMEOUT error code
+	* src/qemu/qemu_driver.c: Change to a timed condition variable
+	  wait for acquiring the monitor job lock
+
+	Release driver and domain lock when running monitor commands
+	QEMU monitor commands may sleep for a prolonged period of time.
+	If the virDomainObjPtr or qemu driver lock is held this will
+	needlessly block execution of many other API calls. it also
+	prevents asynchronous monitor events from being dispatched
+	while a monitor command is executing, because deadlock will
+	ensure.
+
+	To resolve this, it is neccessary to release all locks while
+	executing a monitor command. This change introduces a flag
+	indicating that a monitor job is active, and a condition
+	variable to synchronize access to this flag. This ensures that
+	only a single thread can be making a state change or executing
+	a monitor command at a time, while still allowing other API
+	calls to be completed without blocking
+
+	* src/qemu/qemu_driver.c: Release driver and domain lock when
+	  running monitor commands. Re-add locking to disk passphrase
+	  callback
+	* src/qemu/THREADS.txt: Document threading rules
+
+	Fully asynchronous monitor I/O processing
+	Change the QEMU monitor file handle watch to poll for both
+	read & write events, as well as EOF. All I/O to/from the
+	QEMU monitor FD is now done in the event callback thread.
+
+	When the QEMU driver needs to send a command, it puts the
+	data to be sent into a qemuMonitorMessagePtr object instance,
+	queues it for dispatch, and then goes to sleep on a condition
+	variable. The event thread sends all the data, and then waits
+	for the reply to arrive, putting the response / error data
+	back into the qemuMonitorMessagePtr and notifying the condition
+	variable.
+
+	There is a temporary hack in the disk passphrase callback to
+	avoid acquiring the domain lock.  This avoids a deadlock in
+	the command processing, since the domain lock is still held
+	when running monitor commands. The next commit will remove
+	the locking when running commands & thus allow re-introduction
+	of locking the disk passphrase callback
+
+	* src/qemu/qemu_driver.c: Temporarily don't acquire lock in
+	  disk passphrase callback. To be reverted in next commit
+	* src/qemu/qemu_monitor.c, src/qemu/qemu_monitor.h: Remove
+	  raw I/O functions, and a generic qemuMonitorSend() for
+	  invoking a command
+	* src/qemu/qemu_monitor_text.c, src/qemu/qemu_monitor_text.h:
+	  Remove all low level I/O, and use the new qemuMonitorSend()
+	  API. Provide a qemuMonitorTextIOProcess() method for detecting
+	  command/reply/prompt boundaries in the monitor data stream
+
+2009-11-10  Eduardo Otubo  <otubo@linux.vnet.ibm.com>
+
+	phyp: ssh authentication with public key fixed
+	Use ssh keyfiles from the current user's home directory instead of trying
+	to use keyfiles from a hardcoded /home/user directory. Fallback to
+	username/password authentication if keyfiles are not available or keyfile
+	authentication failed.
+
+2009-11-10  Daniel P. Berrange  <berrange@redhat.com>
+
+	Add reference counting on virDomainObjPtr objects
+	Add reference counting on the virDomainObjPtr objects. With the
+	forthcoming asynchronous QEMU monitor, it will be neccessary to
+	release the lock on virDomainObjPtr while waiting for a monitor
+	command response. It is neccessary to ensure one thread can't
+	delete a virDomainObjPtr while another is waiting. By introducing
+	reference counting threads can make sure objects they are using
+	are not accidentally deleted while unlocked.
+
+	* src/conf/domain_conf.h, src/conf/domain_conf.c: Add
+	  virDomainObjRef/Unref APIs, remove virDomainObjFree
+	* src/openvz/openvz_conf.c: replace call to virDomainObjFree
+	  with virDomainObjUnref
+
+	Locking of the qemuMonitorPtr object
+	In preparation of the monitor I/O process becoming fully asynchronous,
+	it is neccessary to ensure all access to internals of the qemuMonitorPtr
+	object is protected by a mutex lock.
+
+	* src/qemu/qemu_monitor.c, src/qemu/qemu_monitor.h: Add mutex for locking
+	  monitor.
+	* src/qemu/qemu_driver.c: Add locking around all monitor commands
+
+	Wrap text mode monitor APIs, pass qemuMonitorPtr directly to APIs
+	Change the QEMU driver to not directly invoke the text mode monitor
+	APIs. Instead add a generic wrapper layer, which will eventually
+	invoke either the text or JSON protocol code as needed. Pass an
+	qemuMonitorPtr object into the monitor APIs instead of virDomainObjPtr
+	to complete the de-coupling of the monitor impl from virDomainObj
+	data structures
+
+	* src/qemu/qemu_conf.h: Remove qemuDomainObjPrivate definition
+	* src/qemu/qemu_driver.c: Add qemuDomainObjPrivate definition.
+	  Pass qemuMonitorPtr into all monitor APIs instead of the
+	  virDomainObjPtr instance.
+	* src/qemu/qemu_monitor.c, src/qemu/qemu_monitor.h: Add thin
+	  wrappers for all qemuMonitorXXX command APIs, calling into
+	  qemu_monitor_text.c/h
+	* src/qemu/qemu_monitor_text.c, src/qemu/qemu_monitor_text.h:
+	  Rename qemuMonitor -> qemuMonitorText & update to accept
+	  qemuMonitorPtr instead of virDomainObjPtr
+
+	Move encryption lookup back into qemu driver file
+	Decouple the monitor code from the virDomainDefPtr structure
+	by moving the disk encryption lookup code back into the
+	qemu_driver.c file. Instead provide a function callback to
+	the monitor code which can be invoked to retrieve encryption
+	data as required.
+
+	* src/qemu/qemu_driver.c: Add findDomainDiskEncryption,
+	  and findVolumeQcowPassphrase. Pass address of the method
+	  findVolumeQcowPassphrase into qemuMonitorOpen()
+	* src/qemu/qemu_monitor.c: Associate a disk
+	  encryption function callback with the qemuMonitorPtr
+	  object.
+	* src/qemu/qemu_monitor_text.c: Remove findDomainDiskEncryption
+	  and findVolumeQcowPassphrase.
+
+	Make use of private data structure for monitor state
+	Introduce a new qemuDomainObjPrivate object which is used to store
+	the private QEMU specific data associated with each virDomainObjPtr
+	instance. This contains a single member, an instance of the new
+	qemuMonitorPtr object which encapsulates the QEMU monitor state.
+	The internals of the latter are private to the qemu_monitor* files,
+	not to be shown to qemu_driver.c
+
+	* src/qemu/qemu_conf.h: Definition of qemuDomainObjPrivate.
+	* src/qemu/qemu_driver.c: Register a functions for creating
+	  and freeing qemuDomainObjPrivate instances with the domain
+	  capabilities. Remove the qemudDispatchVMEvent() watch since
+	  I/O watches are now handled by the monitor code itself. Pass
+	  a new qemuHandleMonitorEOF() callback into qemuMonitorOpen
+	  to allow notification when the monitor quits.
+	* src/qemu/qemu_monitor.c, src/qemu/qemu_monitor.h: Introduce
+	  the 'qemuMonitor' object. Temporarily add new APIs
+	  qemuMonitorWrite, qemuMonitorRead, qemuMonitorWaitForInput
+	  to allow text based monitor impl to perform I/O.
+	* src/qemu/qemu_monitor_text.c: Call APIs for reading/writing
+	  to monitor instead of accessing the file handle directly.
+
+	Move code for low level QEMU monitor interaction into separate file
+	The qemu_driver.c code should not contain any code that interacts
+	with the QEMU monitor at a low level. A previous commit moved all
+	the command invocations out. This change moves out the code which
+	actually opens the monitor device.
+
+	* src/qemu/qemu_driver.c: Remove qemudOpenMonitor & methods called
+	  from it.
+	* src/Makefile.am: Add qemu_monitor.{c,h}
+	* src/qemu/qemu_monitor.h: Add qemuMonitorOpen()
+	* src/qemu/qemu_monitor.c: All code for opening the monitor
+
+	Add a new timed condition variable wait API
+	* src/util/threads.h, src/util/threads-pthread.c,
+	  src/libvirt_private.syms: Add virCondWaitUntil()
+
+	Fix errno handling for pthreads wrappers
+	* src/util/threads-pthread.c: pthreads APIs do not set errno, instead
+	  the return value is the positive errno. Set errno based on the return
+	  value in the wrappers
+
+	Make pciDeviceList struct opaque
+	* src/util/pci.c, src/util/pci.h: Make the pciDeviceList struct
+	  opaque to callers of the API. Add accessor methods for managing
+	  devices in the list
+	* src/qemu/qemu_driver.c: Update to use APIs instead of directly
+	  accessing pciDeviceList fields
+
+2009-11-09  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	Add missing OOM error checks, reports and cleanups
+
+2009-11-09  Matthew Booth  <mbooth@redhat.com>
+
+	Add documentation for <channel> domain element
+	* src/formatdomain.html.in: Add <channel> element documentation
+
+	Separate character device doc guest and host parts
+	* docs/formatdomain.html.in: refactors the existing character device
+	  documentation to make it explicit which directives configure the guest
+	  interface, and which configure the host interface.
+
+2009-11-09  Gerhard Stenzel  <gerhard.stenzel@de.ibm.com>
+
+	Removes the ebtablesSaveRules() function
+	As it was basically unimplemented and more confusing than useful
+	at the moment.
+	* src/libvirt_private.syms: remove from internal symbols list
+	* src/qemu/qemu_bridge_filter.c src/util/ebtables.c: remove code and
+	  one use of the unimplemented function
+
+2009-11-08  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	opennebula: Fix potential memory/mutex leak in state driver startup
+	In case of an error the domains hash and the driver mutex may leak.
+
+	* src/opennebula/one_driver.c: free/destroy domains hash and driver
+	  mutex in error cases
+
+	Add a Python example that lists active ESX domains
+	It also demonstrates how to use the libvirt.openAuth() method.
+
+	* examples/python/Makefile.am: add esxlist.py to EXTRA_DIST
+	* examples/python/README: add some notes about esxlist.py
+	* examples/python/esxlist.py: the new example
+
+2009-11-07  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	phyp: Use actual error code instead of 0
+
+2009-11-06  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	phyp: Don't use VIR_ALLOC if a stack variable is good enough
+
+	phyp: Fix several UUID table related problems
+	- Make reading ID from file working for IDs > 127
+	- Fix inverse error check for writing ID to file
+	- Use feof() to distinguish EOF from real error of fread()
+	- Don't interpret libssh2 error codes as number of bytes
+
+	phyp: Check for exit_status < 0 before parsing the result
+
+	phyp: memcpy/memmove/memset can't fail, so don't check for error
+	Also reset UUID to all 0 instead of all 48 (== '0') in phypUUIDTable_RemLpar()
+
+	phyp: Make generic domain listing functions return -1 in case of error
+	phypNumDomainsGeneric() and phypListDomainsGeneric() return 0 in case
+	of an error. This makes it impossible to distinguish between an actual
+	error and no domains being defined on the hypervisor. It also turn the
+	no domains situation into an error. Return -1 in case of an error to
+	fix this problem.
+
+	phyp: Break potential infinite loops
+
+	phyp: Fix memory/session leaks and potential invalid frees
+
+	Fix configure check for libssh2
+	* configure.in: add -L$libssh2_path to LIBS for the AC_TRY_LINK check
+
+2009-11-06  Daniel Veillard  <veillard@redhat.com>
+
+	524280 pass max lease option to dnsmasq
+	* src/network/bridge_driver.c: when exec'ing dnsmaq, if there are
+	  DHCP ranges defined, then compute and pass the --dhcp-lease-max
+	  deriving the maximum number of leases
+
+	Store the range size when adding a DHCP range
+	* src/conf/network_conf.h: extend the structure to store the range
+	* src/conf/network_conf.c: before adding a range parse the IP addresses
+	  do some checking and keep the size
+
+	Repair getIPv4Addr after the ntohl conversion
+	* src/util/network.c: getIPv4Addr() got broken when the input
+	  network address value got converted from network to host byte order
+
+2009-11-06  Cole Robinson  <crobinso@redhat.com>
+
+	qemu: Allow cpu pinning for all logical CPUs, not just physical
+	This is what virsh already expects when printing output, and what
+	'man cpuset' claims to support.
+
+	qemu: Use same create/define overwrite logic for migration prepare.
+
+	qemu: Break out function to check if we can create/define/restore
+	Use this function in the qemu, uml, lxc, and test drivers.
+
+2009-11-06  Matthew Booth  <mbooth@redhat.com>
+
+	Cleanup whitespace in docs
+	This patch is the result of running the following command in the docs
+	directory: sed -i 's/\t/        /g; s/\s*$//' *.html.in
+
+	* docs/*.html.in:convert tabs into 8 spaces and remove trailing whitespace
+
+	Use virBuffer when building QEMU char dev command line
+	* src/qemu/qemu_conf.c: Update qemudBuildCommandLineChrDevStr to use a
+	  virBuffer
+
+	Cleanup virBuffer usage in qemdBuildCommandLine
+	* src/qemu_qemu_conf.c: Cleanup usage of virBuffer in qemudBuildCommandLine
+
+2009-11-06  Paolo Bonzini  <pbonzini@redhat.com>
+
+	Add sentinel attribute for NULL terminated arg lists
+	* src/internal.h (ATTRIBUTE_SENTINEL): New, it's a ggc feature and
+	  protected as such
+	* src/util/buf.c (virBufferStrcat): Use it.
+	* src/util/ebtables.c (ebtablesAddRemoveRule): Use it.
+	* src/util/iptables.c (iptableAddRemoveRule: Use it.
+	* src/util/qparams.h (new_qparam_set, append_qparams): Use it.
+	* docs/apibuild.py: avoid breaking the API generator with that new
+	  internal keyword macro
+
+2009-11-05  Cole Robinson  <crobinso@redhat.com>
+
+	test: Update inactive guest config on shutdown
+	This matches the expected behavior of state drivers such as QEMU.
+
+	test: Add testDomainShutdownState helper
+	Performs changes needed when stopping a VM (which are currently duplicated
+	in several places, and forgotten in others).
+
+2009-11-05  Paolo Bonzini  <pbonzini@redhat.com>
+
+	Fix some cut-and-paste error in migration code
+	* src/qemu/qemu_driver.c: in qemudDomainMigratePerform call
+	  doPeer2PeerMigrate for VIR_MIGRATE_PEER2PEER.
+
+2009-11-05  Matthew Booth  <mbooth@redhat.com>
+
+	Properly convert port numbers to/from network byte order
+	* src/util/network.c: Add htons and ntohs in virSocket(Get|Set)Port
+
+2009-11-05  Eduardo Otubo  <otubo@linux.vnet.ibm.com>
+
+	POWER add create() and destroy() support
+	* src/phyp/phyp_driver.[ch]: add new entry points and a number of
+	  cleanups
+
+2009-11-05  Matthew Booth  <mbooth@redhat.com>
+
+	Ensure guestfwd address is IPv4 and various cleanups
+	* include/libvirt/virterror.h src/util/virterror.c: add a new error
+	  VIR_ERR_CONFIG_UNSUPPORTED for valid but unsupported configuration options
+	* src/conf/domain_conf.c: Throw an error if guestfwd address isn't IPv4
+	  and cleanup a number of parsing return error values.
+
+2009-11-05  Daniel Veillard  <veillard@redhat.com>
+
+	Forgot test case on previous commit
+
+2009-11-05  Matthew Booth  <mbooth@redhat.com>
+
+	Support for <channel> in domain and QEmu backend
+	allows the following to be specified in a domain:
+	<channel type='pipe'>
+	  <source path='/tmp/guestfwd'/>
+	  <target type='guestfwd' address='10.0.2.1' port='4600'/>
+	</channel>
+
+	* proxy/Makefile.am: add network.c as dep of domain_conf.c
+	* docs/schemas/domain.rng src/conf/domain_conf.[ch]: extend the domain
+	  schemas and the parsing/serialization side for the new construct
+
+	QEmu support will add the following on the qemu command line:
+	 -chardev pipe,id=channel0,path=/tmp/guestfwd
+	 -net user,guestfwd=tcp:10.0.2.1:4600-chardev:channel0
+
+	* src/qemu/qemu_conf.c: Add argument output for channel
+	* tests/qemuxml2(argv|xml)test.c: Add test for <channel> domain syntax
+
+	Detect availability of QEMU -chardev CLI option
+	* src/qemu/qemu_conf.h: defines a new QEMUD_CMD_FLAG_CHARDEV flag
+	* src/qemu/qemu_conf.c: parse the output for -chardev and set flag
+	  appropriately
+
+	Allow character devices to have different target types
+	A character device's target (it's interface in the guest) had only a
+	single property: port. This patch is in preparation for adding targets
+	which require other properties.
+	Since this changes the conf type for character devices this affects
+	a number of drivers:
+
+	* src/conf/domain_conf.[ch] src/esx/esx_vmx.c src/qemu/qemu_conf.c
+	  src/qemu/qemu_driver.c src/uml/uml_conf.c src/uml/uml_driver.c
+	  src/vbox/vbox_tmpl.c src/xen/xend_internal.c src/xen/xm_internal.c:
+	  target properties are moved into a union in virDomainChrDef, and a
+	  targetType field is added to identify which union member should be
+	  used. All current code which touches a virDomainChrDef is updated both
+	  to use the new union field, and to populate targetType if necessary.
+
+2009-11-05  Ryota Ozaki  <ozaki.ryota@gmail.com>
+
+	LXC allow container to have ethN interfaces
+	Current implementation of lxc driver creates vethN named
+	interface(s) in the host and passes as it is to a container.
+	The reason why it doesn't use ethN is due to the limitation
+	that one namespace cannot have multiple iterfaces that have
+	an identical name so that we give up creating ethN named
+	interface in the host for the container.
+
+	However, we should be able to allow the container to have
+	ethN by changing the name after clone(CLONE_NEWNET).
+
+	* src/lxc/lxc_container.c src/lxc/veth.c src/lxc/veth.h: do the clone
+	  and then renames interfaces eth0 ... ethN to keep the interface names
+	  familiar in the domain
+
+	LXC cleanup deep indentation in lxcDomainSetAutostart
+	* src/lxc/lxc_driver.c: refactor lxcDomainSetAutostart() to avoid deep
+	  indentation of the code
+
+	LXC messages cleanup and fix lxcError
+	* src/lxc/lxc_container.c src/lxc/lxc_controller.c src/lxc/lxc_driver.c
+	  src/lxc/veth.c: most of cleanups are just capitalizing their messages
+	  though, some fixes wrong error messages and awkward indentations, and
+	  improves error messages.
+
+	LXC fix wrong or out-of-date function descriptions
+	* src/lxc/lxc_container.c src/lxc/lxc_controller.c src/lxc/lxc_driver.c
+	  src/lxc/veth.c: fix broken function comments
+
+2009-11-04  Cole Robinson  <crobinso@redhat.com>
+
+	docs: <clock> property is 'offset', not 'sync'
+
+2009-11-03  Gerhard Stenzel  <gstenzel@linux.vnet.ibm.com>
+
+	add MAC address based port filtering to qemu
+	* src/qemu/qemu.conf src/qemu/qemu_conf.c src/qemu/qemu_conf.h: there is
+	  a new config type option for mac filtering
+	* src/qemu/qemu_bridge_filter.[ch]: new module for the ebtable entry points
+	* src/qemu/qemu_driver.c: plug the MAC filtering at the right places
+	  in the domain life cycle
+	* src/Makefile.am po/POTFILES.in: add the new module
+
+	New ebtables module wrapper
+	* configure.in: look for ebtables binary location if present
+	* src/Makefile.am: add the new module
+	* src/util/ebtables.[ch]: new module and internal APIs around
+	  the ebtables binary
+	* src/libvirt_private.syms: export the symbols only internally
+
+2009-11-03  Cole Robinson  <crobinso@redhat.com>
+
+	test: Implement virDomainPinVcpu
+
+	test: Implement virDomainGetVcpus
+
+	test: Update vcpu runtime info in SetVcpus
+
+	test: Use privateData to track running VM vcpu state
+
+	test: Break out wrapper for setting up started domain state.
+	This should be a no op for now, but we will use this function to set up
+	transient state in the future.
+
+	test: Fixes for SetVcpus
+	- Implement DomainGetMaxVCPUs
+	- Use GetMaxVCPUs to validate requested CPU amount
+	- Deny the 'hotplug' for a running domain.
+
+	qemu: Remove compiled out localhost migration support
+	Pretty sure this would deadlock now that we have proper locking, so
+	remove the code.
+
+	storage: conf: Fix memory leak in encryption parsing
+
+	Various error reporting fixes
+	- Don't duplicate SystemError
+	- Use proper error code in domain_conf
+	- Fix a broken error call in qemu_conf
+	- Don't use VIR_ERR_ERROR in security driver (isn't a valid code in this case)
+
+	Improve error reporting for virConnectGetHostname calls
+	All drivers have copy + pasted inadequate error reporting which wraps
+	util.c:virGetHostname. Move all error reporting to this function, and improve
+	what we report.
+
+	Changes from v1:
+	  Drop the driver wrappers around virGetHostname. This means we still need
+	  to keep the new conn argument to virGetHostname, but I think it's worth
+	  it.
+
+2009-11-03  Laine Stump  <laine@laine.org>
+
+	Fix improper error return in virInterfaceDefParseProtoIPvX
+	* src/conf/interface_conf.c: the code was erronously returning -1
+	  in the two functions if <dhcp> is not provided
+
+	Make monitor type (miimon/arpmon) optional in bond xml
+	* src/conf/interface_conf.c: lack of one of these in the live xml output
+	  was causing the parse in virInterfaceDefParseBond() to fail
+
+	Fix virInterfaceIpDefPtr leak during virInterfaceIpDefFree
+	* src/conf/interface_conf.c: forgot to free the structure itself
+
+	Support for IPv6 / multiple addresses per interfaces
+	This patch updates the xml parsing and formatting, and the associated
+	virInterfaceDef data structure to support IPv6, along the way adding
+	support for multiple protocols per interface, and multiple IP
+	addresses per protocol.
+	* src/conf/interface_conf.[ch]: update the structures, code for parsing
+	  and serialization
+
+	Support reporting live interface IP/netmask
+	This patch adds the flag VIR_INTERFACE_XML_INACTIVE to
+	virInterfaceGetXMLDesc's flags. When it is*not* set (the default), the
+	live interface info will be returned in the XML (in particular, the IP
+	address(es) and netmask(s) will be retrieved by querying the interface
+	directly, rather than  reporting what's in the config file). The
+	backend of this is in netcf's ncf_if_xml_state() function.
+
+	* configure.in libvirt.spec.in: requires netcf >= 0.1.3
+	* include/libvirt/libvirt.h.in: adds flag VIR_INTERFACE_XML_INACTIVE
+	* src/conf/interface_conf.c src/interface/netcf_driver.c src/libvirt.c:
+	  update the parsing and backend routines accordingly
+	* tools/virsh.c: change interface edit to inactive definition and
+	  adds the inactive flag for interface dump
+
+	Make startmode optional in toplevel interface definition
+	The minimal XML returned from ncf_if_xml_state() doesn't contain this
+	attribute (which makes no sense in the case of reporting current
+	status of the interface), and it was preventing it from passing
+	through the parse/format step.
+
+	* src/conf/interface_conf.[ch]: add a new virInterfaceStartMode value
+	  and modify loading/saving accordingly
+
+2009-11-03  Daniel P. Berrange  <berrange@redhat.com>
+
+	Move libvirtd event loop into background thread
+	The virStateInitialize() call for starting up stateful drivers
+	may require that the event loop is running already. This it is
+	neccessary to start the event loop before this call. At the
+	same time, network clients must not be processed until afte
+	virStateInitialize has completed.
+
+	The qemudListenUnix() and remoteListenTCP() methods must
+	therefore not register file handle watches, merely open the
+	network sockets & listen() on them. This means clients can
+	connected and are queued, pending completion of initialization
+
+	The qemudRunLoop() method is moved into a background thread
+	that is started early to allow access to the event loop during
+	driver initialization. The main process thread leader pretty
+	much does nothing once the daemon is running, merely waits
+	for the event loop thread to quit
+
+	* daemon/libvirtd.c, daemon/libvirtd.h: Move event loop into
+	  a background thread
+	* daemon/THREADING.txt: Rewrite docs to better reflect reality
+
+2009-11-03  Dan Kenigsberg  <danken@redhat.com>
+
+	give up python interpreter lock before calling cb
+	suggested by danpb on irc, patch by danken fixed for proper C syntax
+
+	* python/libvirt-override.c: on event callback release the python
+	  interpreter lock and take it again when coming back so that the
+	  callback can reinvoke libvirt.
+
+2009-11-03  Laine Stump  <laine@laine.org>
+
+	Allow NULL mac address in virGetInterface
+	There are places where an interface will not have a mac address, and netcf
+	returns this as a NULL pointer rather than a pointer to an empty string.
+	Rather than checking for this all over the place in libvirt, just save it
+	in the virInterface object as an empty string.
+
+	* src/datatypes.c: allow NULL mac in virGetInterface()
+
+2009-11-03  Daniel Veillard  <veillard@redhat.com>
+
+	Fix compilation problems
+	introduced on commit 9231aa7d9563745c64e4f69afabca65d28bfae25
+	* src/qemu/qemu_driver.c: in qemudRemoveDomainStatus fix a reference
+	  to an undefined variable buf and free up an allocated string
+
+2009-11-03  Chris Lalancette  <clalance@redhat.com>
+
+	Fix up NLS warnings.
+	When building with --disable-nls, I got a few messages like this:
+
+	storage/storage_backend.c: In function 'virStorageBackendCreateQemuImg':
+	storage/storage_backend.c:571: warning: format not a string literal and no format arguments
+
+	Fix these up.
+
+	Remove redundant virFileDeletePID() call
+	qemudShutdownVMDaemon() calls qemudRemoveDomainStatus(), which
+	then calls virFileDeletePID().  qemudShutdownVMDaemon() then
+	unnecessarily calls virFileDeletePID() again.  Remove this second
+	usage of it, and also slightly refactor qemudRemoveDomainStatus()
+	to VIR_WARN appropriate error messages.
+
+2009-11-03  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix return value in virStateInitialize impl for LXC
+	The LXC driver was mistakenly returning -1 for lxcStartup()
+	in scenarios that are not an error. This caused the libvirtd
+	to quit for unprivileged users. This fixes the return code
+	of LXC driver, and also adds a "name" field to the virStateDriver
+	struct and logging to make it easier to find these problems
+	in the future
+
+	* src/driver.h: Add a 'name' field to state driver to allow
+	  easy identification during failures
+	* src/libvirt.c: Log name of failed driver for virStateInit
+	  failures
+	* src/lxc/lxc_driver.c: Don't return a failure code for
+	  lxcStartup() if LXC is not available on this host, simply
+	  disable the driver.
+	* src/network/bridge_driver.c, src/node_device/node_device_devkit.c,
+	  src/node_device/node_device_hal.c, src/opennebula/one_driver.c,
+	  src/qemu/qemu_driver.c, src/remote/remote_driver.c,
+	  src/secret/secret_driver.c, src/storage/storage_driver.c,
+	  src/uml/uml_driver.c, src/xen/xen_driver.c: Fill in name
+	  field in virStateDriver struct
+
+2009-11-02  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	ESX: Fix memory leak in list handling functions.
+	If an error occurs between the allocation of an item and appending it
+	to the list, the item leaks. Free such orphaned items in error cases.
+
+	* src/esx/esx_vi.c: free orphaned items in error cases
+
+	ESX: Don't automatically follow redirects.
+	The default transport for the VI API is HTTPS. If the server redirects
+	from HTTPS to HTTP the driver would silently follow that redirection.
+	The user assumes to communicate with the server over a secure transport
+	but isn't.
+
+	This patch disables automatical redirection following. The driver reports
+	an error if the server tries to redirect.
+
+	* src/esx/esx_vi.c: refactor the call to curl_easy_perform() into a
+	  function and do error handling there, disable automatical redirection
+	  following for curl
+	* src/esx/esx_vi.h: change the type of responseCode to int
+
+	ESX: Unify naming of VI API utility and convenience functions.
+	Unified function naming scheme:
+	- 'lookup' functions query the ESX or vCenter for information
+	- 'get' functions return information from a local object
+
+	* src/esx/esx_driver.c, src/esx/esx_vi.[ch]: unify function naming
+
+	ESX: Change disk selection for datastore detection.
+	In order to register a new virtual machine the ESX driver needs to upload
+	a VMX file to a datastore. Try to put this file beside the main VMDK file
+	of the virtual machine. Change the disk selection for datastore detection
+	to choose the first file-based harddisk instead of just the first disk.
+	The first disk may be a CDROM disk and ISO images are normaly not located
+	in the virtual machine's directory.
+
+	* src/esx/esx_driver.c: change disk selection for datastore detection
+
+	ESX: Fallback to the preliminary name if the datastore cannot be found.
+	This allows to use domain-xml-from-native with VMX files that reference
+	unavailable datastores.
+
+	* src/esx/esx_vmx.c: fallback to the preliminary name if the datastore
+	  cannot be found
+
+2009-11-02  Daniel P. Berrange  <berrange@redhat.com>
+
+	Rename internal APis
+	Rename virDomainIsActive to virDomainObjIsActive, and
+	virInterfaceIsActive to virInterfaceObjIsActive and finally
+	virNetworkIsActive to virNetworkObjIsActive.
+
+	* src/conf/domain_conf.c, src/conf/domain_conf.h,
+	  src/conf/interface_conf.h, src/conf/network_conf.c,
+	  src/conf/network_conf.h, src/lxc/lxc_driver.c,
+	  src/network/bridge_driver.c, src/opennebula/one_driver.c,
+	  src/openvz/openvz_driver.c, src/qemu/qemu_driver.c,
+	  src/test/test_driver.c, src/uml/uml_driver.c: Update for
+	  renamed APIs.
+
+2009-11-02  Matthew Booth  <mbooth@redhat.com>
+
+	Fix --with-init-script configure option
+	* configure.in daemon/Makefile.am: the --with-init-script configure
+	  option was broken, and always defaulted based on the existence of
+	  /etc/redhat-release. This was a systematic typo based on
+	  mixed use of init-script and init-scripts.
+
+2009-11-02  Daniel P. Berrange  <berrange@redhat.com>
+
+	Don't let parent of daemon exit until basic initialization is done
+	The daemonizing code lets the parent exit almost immediately. This
+	means that it may think it has successfully started even when
+	important failures occur like not being able to acquire the PID
+	file. It also means network sockets are not yet open.
+
+	To address this when daemonizing the parent passes an open pipe
+	file descriptor to the child. The child does its basic initialization
+	and then writes a status code to the pipe indicating either success,
+	or failure. This ensures that when daemonizing, the parent does not
+	exit until the pidfile is acquired & basic network sockets are open.
+
+	Initialization of the libvirt drivers is still done asynchronously
+	since this may take a very long time.
+
+	* daemon/libvirtd.c: Force parent to stay around until basic config
+	  file, pidfile & network socket init is completed
+
+	Pull signal setup code out into separate method
+	* daemon/libvirtd.c: Introduce a daemonSetupSignals() method
+	  and put all signal handling code there
+	* daemon/libvirtd.h: Add sigread/sigwrite to qemud_server type
+
+2009-11-02  Yuji NISHIDA  <nishidy@nict.go.jp>
+
+	Set KMEMSIZE for OpenVZ domains being defined
+	* src/openvz/openvz_driver.c: add a new openvzDomainSetMemoryInternal()
+	  function, used to initialize the KMEMSIZE parameter of a container.
+
+2009-11-02  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix duplicating logging of errors in libvirtd
+	The libvirt default error handling callback will print all errors
+	to stderr. The libvirtd default logging callback will do the same.
+	Set a no-op error handling callback in libvirtd to prevent this
+	duplication
+
+	* daemon/libvirtd.c: Register a no-op error handling function
+
+	Fix initialization order bugs
+	virInitialize must be the first libvirt function called to ensure
+	threads, error handling & random number generator are all setup.
+
+	Move UNIX socket directory permissions change to place of use
+
+	Misc cleanup to network socket init
+	* daemon/libvirtd.c: Change qemudNetworkInit() so that it doesn't try
+	to free its argument, leaving the caller todo cleanup as is normal
+	practice. Add missing policykit cleanup to qemudCleanup, and remove
+	server watch if set. Remove duplicated call to listen() on TCP sockets
+
+	Annotate many methods with ATTRIBUTE_RETURN_CHECK & fix problems
+	Nearly all of the methods in src/util/util.h have error codes that
+	must be checked by the caller to correct detect & report failure.
+	Add ATTRIBUTE_RETURN_CHECK to ensure compile time validation of
+	this
+
+	* daemon/libvirtd.c: Add explicit check on return value of virAsprintf
+	* src/conf/domain_conf.c: Add missing check on virParseMacAddr return
+	  value status & report error
+	* src/network/bridge_driver.c: Add missing OOM check on virAsprintf
+	  and report error
+	* src/qemu/qemu_conf.c: Add missing check on virParseMacAddr return
+	  value status & report error
+	* src/security/security_selinux.c: Remove call to virRandomInitialize
+	  that's done in libvirt.c already
+	* src/storage/storage_backend_logical.c: Add check & log on virRun
+	  return status
+	* src/util/util.c: Add missing checks on virAsprintf/Run status
+	* src/util/util.h: Annotate all methods with ATTRIBUTE_RETURN_CHECK
+	  if they return an error status code
+	* src/vbox/vbox_tmpl.c: Add missing check on virParseMacAddr
+	* src/xen/xm_internal.c: Add missing checks on virAsprintf
+	* tests/qemuargv2xmltest.c: Remove bogus call to virRandomInitialize()
+
+	Allow for a driver specific private data blob in virDomainObjPtr
+	The virDomainObjPtr object stores state about a running domain.
+	This object is shared across all drivers so it is not appropriate
+	to include driver specific state here. This patch adds the ability
+	to request a blob of private data per domain object instance. The
+	driver must provide a allocator & deallocator for this purpose
+
+	THis patch abuses the virCapabilitiesPtr structure for storing the
+	allocator/deallocator callbacks, since it is already being abused
+	for other internal things relating to parsing. This should be moved
+	out into a separate object at some point.
+
+	* src/conf/capabilities.h: Add privateDataAllocFunc and
+	  privateDataFreeFunc fields
+	* src/conf/domain_conf.c: Invoke the driver allocators / deallocators
+	  when creating/freeing virDomainObjPtr instances.
+	* src/conf/domain_conf.h: Pass virCapsPtr into virDomainAssignDef
+	  to allow access to the driver specific allocator function
+	* src/lxc/lxc_driver.c, src/opennebula/one_driver.c,
+	  src/openvz/openvz_driver.c, src/qemu/qemu_driver.c,
+	  src/test/test_driver.c, src/uml/uml_driver.c: Update for
+	  change in virDomainAssignDef contract
+
+2009-11-02  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	Don't use private struct member names of in6_addr
+	__in6_u.__u6_addr16 is the private name for this struct member,
+	s6_addr16 is the public one
+	* src/util/network.c: dont use the private field, but the public one.
+
+2009-11-02  Matthew Booth  <mbooth@redhat.com>
+
+	More network utility functions
+	* src/util/network.[ch] Add functions for address->text and get/set
+	  port number
+	* src/libvirt_private.syms: add new entry points
+
+2009-10-30  Matthew Booth  <mbooth@redhat.com>
+
+	Fix typo in network.c function comments
+	* src/util/network.c: fix a few typo
+
+2009-10-30  Daniel Veillard  <veillard@redhat.com>
+
+	Add symbols from new network.h module
+	* src/libvirt_private.syms: keep all symbols from network.h private
+
+	Set of new network related utilities
+	* src/util/network.h src/util/network.c: utilities to parse network
+	  addresses, check netmask and compute ranges
+
+2009-10-30  Pritesh Kothari  <Pritesh.Kothari@Sun.COM>
+
+	Fix configure detection of device mapper
+	* configure.in: the PKG_CHECK_MODULES() for it would not work on
+	  Ubuntu and SuSE, so add a direct check fallback
+
+2009-10-30  Daniel Veillard  <veillard@redhat.com>
+
+	Remote code caught EINTR making it ininterruptable
+	John Levon raised the issue that remoteIOEventLoop() poll call was
+	reissued after EINTR was caught making it uninterruptible.
+	* src/remote/remote_driver.c: catch EAGAIN instead as suggested by
+	  Richard Jones
+
+2009-10-28  Daniel P. Berrange  <berrange@redhat.com>
+
+	Convert virDomainObjListPtr to use a hash of domain objects
+	The current virDomainObjListPtr object stores domain objects in
+	an array. This means that to find a particular objects requires
+	O(n) time, and more critically acquiring O(n) mutex locks.
+
+	The new impl replaces the array with a virHashTable, keyed off
+	UUID. Finding a object based on UUID is now O(1) time, and only
+	requires a single mutex lock. Finding by name/id is unchanged
+	in complexity.
+
+	In changing this, all code which iterates over the array had
+	to be updated to use a hash table iterator function callback.
+	Several of the functions which were identically duplicating
+	across all drivers were pulled into domain_conf.c
+
+	* src/conf/domain_conf.h, src/conf/domain_conf.c: Change
+	  virDomainObjListPtr to use virHashTable. Add a initializer
+	  method virDomainObjListInit, and rename virDomainObjListFree
+	  to virDomainObjListDeinit, since its not actually freeing
+	  the container, only its contents. Also add some convenient
+	  methods virDomainObjListGetInactiveNames,
+	  virDomainObjListGetActiveIDs and virDomainObjListNumOfDomains
+	  which can be used to implement the correspondingly named
+	  public API entry points in drivers
+	* src/libvirt_private.syms: Export new methods from domain_conf.h
+	* src/lxc/lxc_driver.c, src/opennebula/one_driver.c,
+	  src/openvz/openvz_conf.c, src/openvz/openvz_driver.c,
+	  src/qemu/qemu_driver.c, src/test/test_driver.c,
+	  src/uml/uml_driver.c, src/vbox/vbox_tmpl.c: Update all code
+	  to deal with hash tables instead of arrays for domains
+
+2009-10-28  Mark McLoughlin  <markmc@redhat.com>
+
+	libvirt-devel should only require libvirt-client
+	There's a long known issue where if you install libvirt in a guest,
+	the default virtual network will conflict with the default virtual
+	network in the host.
+
+	That's one of the reasons we have the libvirt-client RPM - it allows
+	you to install the client library without having the host side
+	installed.
+
+	Rich Jones points out that if you install libvirt-devel in a guest,
+	then you get libvirtd installed and the network conflict:
+
+	  https://bugzilla.redhat.com/531200
+
+	libvirt-devel should only require libvirt-client - e.g. nothing in
+	the devel package pertains to anything in the libvirt RPM. The Fedora
+	packaging guidelines say:
+
+	  https://fedoraproject.org/wiki/Packaging/Guidelines#Devel_Packages
+
+	  Devel packages must require the base package using a fully versioned
+	  dependency ...
+
+	But for all intents and purposes, libvirt-client is our base RPM.
+
+	* libvirt.spec.in: make libvirt-devel require libvirt-client
+
+2009-10-28  Cole Robinson  <crobinso@redhat.com>
+
+	virterror: Add a missing 'break' for VIR_ERR_INVALID_SECRET
+
+	qemu: migrate: Don't require manual URI to specify a port
+	The xen driver will generate a migration port if only a hostname is passed
+	in the optional migrate URI, so let's do the same in qemu.
+
+	Fix p2p migration without a passed uri.
+
+	qemu: Fix an error message in GetVcpus
+
+	test: Support virStorageFindPoolSources
+	The results are hardcoded into the test driver, no option to read from a
+	testfile is implemented at this time.
+
+	storage: Add ParseSourceString function for use with FindPoolSources.
+	This will simplify adding FindPoolSources support to more pool backends in
+	the future (as well as the test driver).
+
+	storage: Break out function to add pool source to a SourceList.
+	Similar in theory to *AssignDef type functions, this duplicate functionality
+	will be used by an future FindPoolSources implementations.
+
+	storage: Break out pool source parsing to a separate function.
+	We need to parse a source XML block for FindPoolSources, so this is a step
+	in sharing the parsing. The new storage pool XML 2 XML tests cover this area
+	pretty well to ensure we aren't causing regressions.
+
+2009-10-28  Chris Lalancette  <clalance@redhat.com>
+
+	Update the documentation for virDomainMigrateToURI
+
+2009-10-28  Paolo Bonzini  <pbonzini@redhat.com>
+
+	Add support for an external TFTP boot server
+	This patch adds an optional attribute to the <bootp> tag, that
+	allows to specify a TFTP server address other than the address of
+	the DHCP server itself.
+
+	This can be used to forward the BOOTP settings of the host down to the
+	guest.  This is something that configurations such as Xen's default
+	network achieve naturally, but must be done manually for NAT.
+
+	* docs/formatnetwork.html.in: Document new attribute.
+	* docs/schemas/network.rng: Add it to schema.
+	* src/conf/network_conf.h: Add it to struct.
+	* src/conf/network_conf.c: Add it to parser and pretty printer.
+	* src/network/bridge_driver.c: Put it in the dnsmasq command line.
+	* tests/networkxml2xmlin/netboot-proxy-network.xml
+	  tests/networkxml2xmlout/netboot-proxy-network.xml
+	  tests/networkxml2xmltest.c: add new tests
+
+2009-10-27  Cole Robinson  <crobinso@redhat.com>
+
+	test: Support virNodeDeviceCreate and virNodeDeviceDestroy
+
+2009-10-27  Dan Kenigsberg  <danken@redhat.com>
+
+	Fix some typos in comments
+
+2009-10-26  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	Fix problems in the Xen inotify driver.
+	In xenInotifyXendDomainsDirLookup() the wrong UUID variable is used
+	to search in the config info list.
+
+	In xenInotifyEvent() the event is dispatched if it's NULL.
+
+	Both were introduced in bc898df2c74fe3c8efedfbbd430737bac950e65e.
+
+	Fix error message in qemudLoadDriverConfig()
+	* src/qemu/qemu_conf.c: change the error message to refer to
+	  'cgroup_controllers' instead of 'cgroup_device_acl'
+
+2009-10-26  Chris Lalancette  <clalance@redhat.com>
+
+	Add a new syntax-check rule for gethostname.
+	We should always be using virGetHostname in place of
+	gethostname; thus add in a new syntax-check rule to make
+	sure no new uses creep in.
+
+	Various syntax-check fixes.
+	Make a pass over the syntax-check files, tightening up regex's,
+	un-ignoring certain files, and cleaning things up.
+
+	Tighten up nonreentrant syntax-check.
+	We can slightly tighten up the regex's used to detect the use of
+	nonreentrant functions.  We can also check src/util/virterror.c
+	by modifying a comment; I think it's worth it to get the additional
+	coverage.
+
+	Replace a gethostname by virGetHostname in libvirtd.c
+
+	Replace two strcmp() by STREQ() in qemu_driver.c
+
+	Replace gethostname by virGetHostname in xend_internal.c
+
+	Remove a completely bogus reference increment in the Xen driver.
+	xenUnifiedDomainEventRegister() calls out to
+	virDomainEventCallbackListAdd(), which increments the reference
+	count on the connection.  That is fine, but then
+	xenUnifiedDomainEventRegister() increments the usage count again,
+	leading to a usage count leak.  Remove the increment in the xen
+	register, and the UnrefConnect in the xen unregister.
+
+	Add a default log_level to qemudSetLogging to remove a build warning.
+	(original patch from Charles Duffy)
+
+	Better error message when libvirtd fails to start.
+
+2009-10-22  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	Fix potential false-positive OOM error reporting.
+	If no matching device was found (cap == NULL) then no strdup() call
+	was made and *wwnn and *wwpn are untouched. Checking them for NULL
+	in this situation may result in reporting an false-positive OOM error
+	because *wwnn and *wwpn may be initialized to NULL by the caller.
+
+	Only check *wwnn and *wwpn for NULL if a matching device was found
+	(cap != NULL) and thus strdup() was called.
+
+	* src/conf/node_device_conf.c: only report an OOM error if there
+	  really is one
+
+2009-10-22  Daniel Veillard  <veillard@redhat.com>
+
+	Consolidate virXPathNodeSet()
+	virXPathNodeSet() could return -1 when doing an evaluation failure
+	due to xmlXPathEval() from libxml2 behaviour.
+	* src/util/xml.c: make sure we always return 0 unless the returned
+	  XPath type is of the wrong type (meaning the query passed didn't
+	  evaluate to a node set and code must be fixed)
+
+2009-10-21  Richard Jones  <rjones@redhat.com>
+
+	Support QEMU watchdog device.
+	This adds simple support for configuring a guest with a QEMU/KVM
+	virtual hardware watchdog device.
+
+2009-10-21  Dan Kenigsberg  <danken@redhat.com>
+
+	Do not log rotate very small logs
+	Without this, after few weeks without use, each defined domain grows a
+	tail of empty gzipped logs, instead of keeping just the last log of
+	interest.
+
+	* daemon/libvirtd.logrotate.in: only rotate when the log is over 100 KBytes
+
+2009-10-21  Daniel Veillard  <veillard@redhat.com>
+
+	528575 avoid libvirtd crash on LCX domain autostart
+	https://bugzilla.redhat.com/show_bug.cgi?id=528575
+	virsh -c lxc:/// autostart vm1
+	was crashing the daemon
+
+	* src/lxc/lxc_conf.h src/lxc/lxc_conf.c: initialize the driver
+	  autostartDir to avoid a NULL reference and implement autostart for LXC
+
+2009-10-21  Jim Fehlig  <jfehlig@novell.com>
+
+	Fix virsh.c compilation warning
+	* tools/virsh.c: call to vshError() containing 'doexit' parameter
+	  sneaked in after said parameter was removed
+
+	Fix SELinux linking issues
+	* src/Makefile.am: add selinux CFLAGS and linker flags to security driver
+
+2009-10-21  Ryota Ozaki  <ozaki.ryota@gmail.com>
+
+	LXC implement missing macaddr assignment feature
+	Currently MAC address configuration of container veth is just ignored.
+	This patch implements the missing feature.
+
+	* src/lxc/veth.c, src/lxc/veth.h: add setMacAddr
+	* src/lxc/lxc_driver.c: set macaddr of container veth if specified
+
+2009-10-21  Daniel Veillard  <veillard@redhat.com>
+
+	Fix a make dist error due to wrong EXTRA_DIST paths
+	* tests/Makefile.am: networkpoolxml2xmlout and networkpoolxml2xmlin are
+	  really networkxml2xmlout and networkxml2xmlin
+
+2009-10-20  Cole Robinson  <crobinso@redhat.com>
+
+	node device: Break out get_wwns and get_parent_node helpers
+	These will be used by the test driver, so move them to a shareable space.
+
+	node device: Fix locking issue in virNodeDeviceDestroy
+	Certain error paths won't unlock the node device object.
+
+	tests: Centralize VIR_TEST_DEBUG lookup, and document it
+	Provide a simple interface for other tests to lookup the testDebug variable.
+	Also remove a redundant error message in interface tests.
+
+	If anyone feels inclined to change this env variable to match the existing
+	LIBVIRT_* format, it should now be easier to do so.
+
+	tests: Initialize virRandom in for test suite.
+	Otherwise any virRandom calls will result in a segfault.
+
+2009-10-19  Daniel P. Berrange  <berrange@redhat.com>
+
+	Remove bogus const annotations to hash iterator
+	Most of the hash iterators need to modify either payload of
+	data args. The const annotation prevents this.
+
+	* src/util/hash.h, src/util/hash.c: Remove const-ness from
+	  virHashForEach/Iterator
+	* src/xen/xm_internal.c: Remove bogus casts
+
+2009-10-19  Dan Kenigsberg  <danken@redhat.com>
+
+	fix virDomainMigrateToURI doc
+	* src/libvirt.c: remove reverences to non existent dconn parameter
+	  when using that entry point.
+
+2009-10-19  Ryota Ozaki  <ozaki.ryota@gmail.com>
+
+	LXC fix virCgroupGetValueStr problem with \n
+	A cgroup file returns integer value terminated with '\n' and remaining
+	it has sometimes harmful effects, for example it leads virStrToLong_ull
+	to fail.
+	* src/util/cgroup.c: strip out terminating \n when reading a value
+
+2009-10-17  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	Remove bashisms from schema tests.
+	Introduced in commit 39a7be470cc5477a96a4d53194291bf4c7b07185.
+
+	* tests/*schematest: replace 'source' with '.'
+	* tests/schematestutils.sh: remove 'function' keyword and add '()'
+
+2009-10-16  Cole Robinson  <crobinso@redhat.com>
+
+	tests: Add storage volume XML 2 XML tests.
+
+	tests: Add network XML to XML tests.
+
+	schema: Update network schema.
+	Make things a bit more readable, and properly handle forward mode 'route'.
+
+	tests: Add XML 2 XML tests for storage pools.
+	Move existing schema data to an input directory. Add extra files for more
+	thorough XML testing.
+
+	tests: Break out duplicate schema verification functionality.
+	All schema tests have identical functionality, so avoid the duplication.
+
+	tests: Fix text output for interface XML 2 XML
+
+2009-10-15  Mark McLoughlin  <markmc@redhat.com>
+
+	Don't copy old machines from a domain which has none
+	If the the qemu and kvm binaries are the same, we don't include machine
+	types in the kvm domain info.
+
+	However, the code which refreshes the machine types info from the
+	previous capabilities structure first looks at the kvm domain's info,
+	finds it matches and then copies the empty machine types list over
+	for the top-level qemu domain.
+
+	That doesn't make sense, we shouldn't copy an empty machin types list.
+
+	* src/qemu/qemu_conf.c: qemudGetOldMachinesFromInfo(): don't copy an
+	  empty machine types list.
+
+2009-10-15  Laine Stump  <laine@laine.org>
+
+	Avoid crash in virBufferEscapeString
+	* src/util/buf.c: if virBufferEscapeString was called on a buffer that
+	  had 0 bytes of space, a size of -1 will be passed to snprintf, resulting
+	  in a segmentation fault, this preallocate some space.
+
+2009-10-14  Jim Fehlig  <jfehlig@novell.com>
+
+	Add ocfs2 to list of fs pool types
+	* src/conf/storage_conf.c src/conf/storage_conf.h: extend the enums
+	  and values
+	* docs/schemas/storagepool.rng: add to the list of storage pool type
+	  formats
+
+2009-10-14  Ryota Ozaki  <ozaki.ryota@gmail.com>
+
+	LXC complement PATH environment variable
+	* src/lxc/lxc_driver.c: without PATH, the controller will definitely
+	  fail to call ip command
+
+2009-10-14  Chris Lalancette  <clalance@redhat.com>
+
+	Finer grained migration control
+	Normally, when you migrate a domain from host A to host B,
+	the domain on host A remains defined but shutoff and the domain
+	on host B remains running but is a "transient".  Add a new
+	flag to virDomainMigrate() to allow the original domain to be
+	undefined on source host A, and a new flag to virDomainMigrate() to
+	allow the new domain to be persisted on the destination host B.
+
 2009-10-14  Daniel Veillard  <veillard@redhat.com>
 
 	Release of 0.7.2

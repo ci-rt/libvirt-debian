@@ -70,7 +70,10 @@ static int update_caps(virNodeDeviceObjPtr dev)
 }
 
 
-#ifdef __linux__
+#if defined (__linux__) && defined (HAVE_HAL)
+/* Under libudev changes to the driver name should be picked up as
+ * "change" events, so we don't call update driver name unless we're
+ * using the HAL backend. */
 static int update_driver_name(virConnectPtr conn,
                               virNodeDeviceObjPtr dev)
 {
@@ -82,7 +85,7 @@ static int update_driver_name(virConnectPtr conn,
 
     VIR_FREE(dev->def->driver);
 
-    if (virAsprintf(&driver_link, "%s/driver", dev->devicePath) < 0) {
+    if (virAsprintf(&driver_link, "%s/driver", dev->def->sysfs_path) < 0) {
         virReportOOMError(conn);
         goto cleanup;
     }
@@ -172,6 +175,7 @@ nodeListDevices(virConnectPtr conn,
             virNodeDeviceHasCap(driver->devs.objs[i], cap)) {
             if ((names[ndevs++] = strdup(driver->devs.objs[i]->def->name)) == NULL) {
                 virNodeDeviceObjUnlock(driver->devs.objs[i]);
+                virReportOOMError(conn);
                 goto failure;
             }
         }
@@ -376,8 +380,10 @@ nodeDeviceListCaps(virNodeDevicePtr dev, char **const names, int maxnames)
 
     for (caps = obj->def->caps; caps && ncaps < maxnames; caps = caps->next) {
         names[ncaps] = strdup(virNodeDevCapTypeToString(caps->type));
-        if (names[ncaps++] == NULL)
+        if (names[ncaps++] == NULL) {
+            virReportOOMError(dev->conn);
             goto cleanup;
+        }
     }
     ret = ncaps;
 
@@ -455,92 +461,6 @@ cleanup:
     VIR_FREE(operation_path);
     VIR_DEBUG("%s", _("Vport operation complete"));
     return retval;
-}
-
-
-static int
-get_wwns(virConnectPtr conn,
-         virNodeDeviceDefPtr def,
-         char **wwnn,
-         char **wwpn)
-{
-    virNodeDevCapsDefPtr cap = NULL;
-    int ret = 0;
-
-    cap = def->caps;
-    while (cap != NULL) {
-        if (cap->type == VIR_NODE_DEV_CAP_SCSI_HOST &&
-            cap->data.scsi_host.flags & VIR_NODE_DEV_CAP_FLAG_HBA_FC_HOST) {
-            *wwnn = strdup(cap->data.scsi_host.wwnn);
-            *wwpn = strdup(cap->data.scsi_host.wwpn);
-            break;
-        }
-
-        cap = cap->next;
-    }
-
-    if (cap == NULL) {
-        virNodeDeviceReportError(conn, VIR_ERR_NO_SUPPORT,
-                                 "%s", _("Device is not a fibre channel HBA"));
-        ret = -1;
-    }
-
-    if (*wwnn == NULL || *wwpn == NULL) {
-        /* Free the other one, if allocated... */
-        VIR_FREE(wwnn);
-        VIR_FREE(wwpn);
-        ret = -1;
-        virReportOOMError(conn);
-    }
-
-    return ret;
-}
-
-
-static int
-get_parent_host(virConnectPtr conn,
-                virDeviceMonitorStatePtr driver,
-                const char *dev_name,
-                const char *parent_name,
-                int *parent_host)
-{
-    virNodeDeviceObjPtr parent = NULL;
-    virNodeDevCapsDefPtr cap = NULL;
-    int ret = 0;
-
-    parent = virNodeDeviceFindByName(&driver->devs, parent_name);
-    if (parent == NULL) {
-        virNodeDeviceReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                 _("Could not find parent HBA for '%s'"),
-                                 dev_name);
-        ret = -1;
-        goto out;
-    }
-
-    cap = parent->def->caps;
-    while (cap != NULL) {
-        if (cap->type == VIR_NODE_DEV_CAP_SCSI_HOST &&
-            (cap->data.scsi_host.flags &
-             VIR_NODE_DEV_CAP_FLAG_HBA_VPORT_OPS)) {
-                *parent_host = cap->data.scsi_host.host;
-                break;
-        }
-
-        cap = cap->next;
-    }
-
-    if (cap == NULL) {
-        virNodeDeviceReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                 _("Parent HBA %s is not capable "
-                                   "of vport operations"),
-                                 parent->def->name);
-        ret = -1;
-    }
-
-    virNodeDeviceObjUnlock(parent);
-
-out:
-    return ret;
 }
 
 
@@ -630,15 +550,15 @@ nodeDeviceCreateXML(virConnectPtr conn,
         goto cleanup;
     }
 
-    if (get_wwns(conn, def, &wwnn, &wwpn) == -1) {
+    if (virNodeDeviceGetWWNs(conn, def, &wwnn, &wwpn) == -1) {
         goto cleanup;
     }
 
-    if (get_parent_host(conn,
-                        driver,
-                        def->name,
-                        def->parent,
-                        &parent_host) == -1) {
+    if (virNodeDeviceGetParentHost(conn,
+                                   &driver->devs,
+                                   def->name,
+                                   def->parent,
+                                   &parent_host) == -1) {
         goto cleanup;
     }
 
@@ -685,13 +605,13 @@ nodeDeviceDestroy(virNodeDevicePtr dev)
         goto out;
     }
 
-    if (get_wwns(dev->conn, obj->def, &wwnn, &wwpn) == -1) {
+    if (virNodeDeviceGetWWNs(dev->conn, obj->def, &wwnn, &wwpn) == -1) {
         goto out;
     }
 
     parent_name = strdup(obj->def->parent);
 
-    /* get_parent_host will cause the device object's lock to be
+    /* virNodeDeviceGetParentHost will cause the device object's lock to be
      * taken, so we have to dup the parent's name and drop the lock
      * before calling it.  We don't need the reference to the object
      * any more once we have the parent's name.  */
@@ -703,11 +623,11 @@ nodeDeviceDestroy(virNodeDevicePtr dev)
         goto out;
     }
 
-    if (get_parent_host(dev->conn,
-                        driver,
-                        dev->name,
-                        parent_name,
-                        &parent_host) == -1) {
+    if (virNodeDeviceGetParentHost(dev->conn,
+                                   &driver->devs,
+                                   dev->name,
+                                   parent_name,
+                                   &parent_host) == -1) {
         goto out;
     }
 
@@ -720,6 +640,8 @@ nodeDeviceDestroy(virNodeDevicePtr dev)
     }
 
 out:
+    if (obj)
+        virNodeDeviceObjUnlock(obj);
     VIR_FREE(parent_name);
     VIR_FREE(wwnn);
     VIR_FREE(wwpn);
@@ -742,17 +664,17 @@ void registerCommonNodeFuncs(virDeviceMonitorPtr driver)
 
 
 int nodedevRegister(void) {
-#if defined(HAVE_HAL) && defined(HAVE_DEVKIT)
+#if defined(HAVE_HAL) && defined(HAVE_UDEV)
     /* Register only one of these two - they conflict */
     if (halNodeRegister() == -1)
-        return devkitNodeRegister();
+        return udevNodeRegister();
     return 0;
 #else
 #ifdef HAVE_HAL
     return halNodeRegister();
 #endif
-#ifdef HAVE_DEVKIT
-    return devkitNodeRegister();
+#ifdef HAVE_UDEV
+    return udevNodeRegister();
 #endif
 #endif
 }

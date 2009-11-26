@@ -291,7 +291,7 @@ virInitialize(void)
 #ifdef WITH_DRIVER_MODULES
     /* We don't care if any of these fail, because the whole point
      * is to allow users to only install modules they want to use.
-     * If they try to use a open a connection for a module that
+     * If they try to open a connection for a module that
      * is not loaded they'll get a suitable error at that point
      */
     virDriverLoadModule("test");
@@ -827,8 +827,11 @@ int virStateInitialize(int privileged) {
 
     for (i = 0 ; i < virStateDriverTabCount ; i++) {
         if (virStateDriverTab[i]->initialize &&
-            virStateDriverTab[i]->initialize(privileged) < 0)
+            virStateDriverTab[i]->initialize(privileged) < 0) {
+            VIR_ERROR("Initialization of %s state driver failed",
+                      virStateDriverTab[i]->name);
             ret = -1;
+        }
     }
     return ret;
 }
@@ -1119,7 +1122,7 @@ do_open (const char *name,
               (res == VIR_DRV_OPEN_DECLINED ? "DECLINED" :
                (res == VIR_DRV_OPEN_ERROR ? "ERROR" : "unknown status")));
         if (res == VIR_DRV_OPEN_ERROR) {
-            if (0 && STREQ(virStorageDriverTab[i]->name, "remote")) {
+            if (STREQ(virStorageDriverTab[i]->name, "remote")) {
                 virLibConnWarning (NULL, VIR_WAR_NO_STORAGE,
                                    "Is the daemon running ?");
             }
@@ -1437,11 +1440,55 @@ error:
 }
 
 /**
+ * virConnectGetLibVersion:
+ * @conn: pointer to the hypervisor connection
+ * @libVer: returns the libvirt library version used on the connection (OUT)
+ *
+ * Provides @libVer, which is the version of libvirt used by the
+ *   daemon running on the @conn host
+ *
+ * Returns -1 in case of failure, 0 otherwise, and values for @libVer have
+ *      the format major * 1,000,000 + minor * 1,000 + release.
+ */
+int
+virConnectGetLibVersion(virConnectPtr conn, unsigned long *libVer)
+{
+    int ret = -1;
+    DEBUG("conn=%p, libVir=%p", conn, libVer);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return -1;
+    }
+
+    if (libVer == NULL) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->driver->libvirtVersion) {
+        ret = conn->driver->libvirtVersion(conn, libVer);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+   *libVer = LIBVIR_VERSION_NUMBER;
+    ret = 0;
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(conn);
+    return ret;
+}
+
+/**
  * virConnectGetHostname:
  * @conn: pointer to a hypervisor connection
  *
  * This returns the system hostname on which the hypervisor is
- * running (the result of the gethostname(2) system call).  If
+ * running (the result of the gethostname system call).  If
  * we are connected to a remote system, then this returns the
  * hostname of the remote system.
  *
@@ -2050,7 +2097,7 @@ error:
  * virDomainResume:
  * @domain: a domain object
  *
- * Resume an suspended domain, the process is restarted from the state where
+ * Resume a suspended domain, the process is restarted from the state where
  * it was frozen by calling virSuspendDomain().
  * This function may requires privileged access
  *
@@ -3128,6 +3175,10 @@ virDomainMigrateDirect (virDomainPtr domain,
  *   VIR_MIGRATE_LIVE      Do not pause the VM during migration
  *   VIR_MIGRATE_PEER2PEER Direct connection between source & destination hosts
  *   VIR_MIGRATE_TUNNELLED Tunnel migration data over the libvirt RPC channel
+ *   VIR_MIGRATE_PERSIST_DEST If the migration is successful, persist the domain
+ *                            on the destination host.
+ *   VIR_MIGRATE_UNDEFINE_SOURCE If the migration is successful, undefine the
+ *                               domain on the source host.
  *
  * VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
  * Applications using the VIR_MIGRATE_PEER2PEER flag will probably
@@ -3150,7 +3201,7 @@ virDomainMigrateDirect (virDomainPtr domain,
  * XML includes details of the support URI schemes. If omitted
  * the dconn will be asked for a default URI.
  *
- * In either case it is typically only neccessary to specify a
+ * In either case it is typically only necessary to specify a
  * URI if the destination host has multiple interfaces and a
  * specific interface is required to transmit migration data.
  *
@@ -3213,7 +3264,7 @@ virDomainMigrate (virDomainPtr domain,
             char *dstURI = NULL;
             if (uri == NULL) {
                 dstURI = virConnectGetURI(dconn);
-                if (!uri)
+                if (!dstURI)
                     return NULL;
             }
 
@@ -3275,37 +3326,37 @@ error:
  * @bandwidth: (optional) specify migration bandwidth limit in Mbps
  *
  * Migrate the domain object from its current host to the destination
- * host given by dconn (a connection to the destination host).
+ * host given by duri.
  *
  * Flags may be one of more of the following:
  *   VIR_MIGRATE_LIVE      Do not pause the VM during migration
  *   VIR_MIGRATE_PEER2PEER Direct connection between source & destination hosts
  *   VIR_MIGRATE_TUNNELLED Tunnel migration data over the libvirt RPC channel
+ *   VIR_MIGRATE_PERSIST_DEST If the migration is successful, persist the domain
+ *                            on the destination host.
+ *   VIR_MIGRATE_UNDEFINE_SOURCE If the migration is successful, undefine the
+ *                               domain on the source host.
+ *
+ * The operation of this API hinges on the VIR_MIGRATE_PEER2PEER flag.
+ * If the VIR_MIGRATE_PEER2PEER flag is NOT set, the duri parameter
+ * takes a hypervisor specific format. The uri_transports element of the
+ * hypervisor capabilities XML includes details of the supported URI
+ * schemes. Not all hypervisors will support this mode of migration, so
+ * if the VIR_MIGRATE_PEER2PEER flag is not set, then it may be necessary
+ * to use the alternative virDomainMigrate API providing and explicit
+ * virConnectPtr for the destination host.
+ *
+ * If the VIR_MIGRATE_PEER2PEER flag IS set, the duri parameter
+ * must be a valid libvirt connection URI, by which the source
+ * libvirt driver can connect to the destination libvirt.
  *
  * VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
- * Applications using the VIR_MIGRATE_PEER2PEER flag will probably
- * prefer to invoke virDomainMigrateToURI, avoiding the need to
- * open connection to the destination host themselves.
  *
  * If a hypervisor supports renaming domains during migration,
- * then you may set the dname parameter to the new name (otherwise
- * it keeps the same name).  If this is not supported by the
- * hypervisor, dname must be NULL or else you will get an error.
- *
- * If the VIR_MIGRATE_PEER2PEER flag is set, the duri parameter
- * must be a valid libvirt connection URI, by which the source
- * libvirt driver can connect to the destination libvirt. If
- * omitted, the dconn connection object will be queried for its
- * current URI.
- *
- * If the VIR_MIGRATE_PEER2PEER flag is NOT set, the duri parameter
- * takes a hypervisor specific format. The hypervisor capabilities
- * XML includes details of the support URI schemes. If omitted
- * the dconn will be asked for a default URI. Not all hypervisors
- * will support this mode of migration, so if the VIR_MIGRATE_PEER2PEER
- * flag is not set, then it may be neccessary to use the alternative
- * virDomainMigrate API providing an explicit virConnectPtr for the
- * destination host
+ * the dname parameter specifies the new name for the domain.
+ * Setting dname to NULL keeps the domain name the same.  If domain
+ * renaming is not supported by the hypervisor, dname must be NULL or
+ * else an error will be returned.
  *
  * The maximum bandwidth (in Mbps) that will be used to do migration
  * can be specified with the bandwidth parameter.  If set to 0,
@@ -3998,7 +4049,7 @@ error:
  *
  * The path parameter is the name of the network interface.
  *
- * Domains may have more than network interface.  To get stats for
+ * Domains may have more than one network interface.  To get stats for
  * each you should make multiple calls to this function.
  *
  * Individual fields within the stats structure may be returned
@@ -4679,7 +4730,7 @@ error:
  * @domain: pointer to domain object, or NULL for Domain0
  * @info: pointer to an array of virVcpuInfo structures (OUT)
  * @maxinfo: number of structures in info array
- * @cpumaps: pointer to an bit map of real CPUs for all vcpus of this
+ * @cpumaps: pointer to a bit map of real CPUs for all vcpus of this
  *      domain (in 8-bit bytes) (OUT)
  *	If cpumaps is NULL, then no cpumap information is returned by the API.
  *	It's assumed there is <maxinfo> cpumap in cpumaps array.
@@ -6194,10 +6245,17 @@ virInterfaceGetMACString(virInterfacePtr iface)
 /**
  * virInterfaceGetXMLDesc:
  * @iface: an interface object
- * @flags: an OR'ed set of extraction flags, not used yet
+ * @flags: an OR'ed set of extraction flags. Current valid bits:
  *
- * Provide an XML description of the interface. The description may be reused
- * later to redefine the interface with virInterfaceDefineXML().
+ *      VIR_INTERFACE_XML_INACTIVE - return the static configuration,
+ *                                   suitable for use redefining the
+ *                                   interface via virInterfaceDefineXML()
+ *
+ * Provide an XML description of the interface. If
+ * VIR_INTERFACE_XML_INACTIVE is set, the description may be reused
+ * later to redefine the interface with virInterfaceDefineXML(). If it
+ * is not set, the ip address and netmask will be the current live
+ * setting of the interface, not the settings from the config files.
  *
  * Returns a 0 terminated UTF-8 encoded XML instance, or NULL in case of error.
  *         the caller must free() the returned value.
@@ -6214,7 +6272,7 @@ virInterfaceGetXMLDesc(virInterfacePtr iface, unsigned int flags)
         virLibInterfaceError(NULL, VIR_ERR_INVALID_INTERFACE, __FUNCTION__);
         return (NULL);
     }
-    if (flags != 0) {
+    if ((flags & ~VIR_INTERFACE_XML_INACTIVE) != 0) {
         virLibInterfaceError(iface, VIR_ERR_INVALID_ARG, __FUNCTION__);
         goto error;
     }
@@ -9201,7 +9259,7 @@ error:
  * @xml: XML describing the secret.
  * @flags: flags, use 0 for now
  *
- * If XML specifies an UUID, locates the specified secret and replaces all
+ * If XML specifies a UUID, locates the specified secret and replaces all
  * attributes of the secret specified by UUID by attributes specified in xml
  * (any attributes not specified in xml are discarded).
  *
@@ -9712,7 +9770,7 @@ virStreamRef(virStreamPtr stream)
  * with the call, but may instead be delayed until a
  * subsequent call.
  *
- * A example using this with a hypothetical file upload
+ * An example using this with a hypothetical file upload
  * API looks like
  *
  *   virStreamPtr st = virStreamNew(conn, 0);
@@ -9804,7 +9862,7 @@ error:
  * with the call, but may instead be delayed until a
  * subsequent call.
  *
- * A example using this with a hypothetical file download
+ * An example using this with a hypothetical file download
  * API looks like
  *
  *   virStreamPtr st = virStreamNew(conn, 0);
@@ -9895,7 +9953,7 @@ error:
  * requested data source. This is simply a convenient alternative
  * to virStreamSend, for apps that do blocking-I/o.
  *
- * A example using this with a hypothetical file upload
+ * An example using this with a hypothetical file upload
  * API looks like
  *
  *   int mysource(virStreamPtr st, char *buf, int nbytes, void *opaque) {
@@ -9992,7 +10050,7 @@ cleanup:
  * requested data sink. This is simply a convenient alternative
  * to virStreamRecv, for apps that do blocking-I/o.
  *
- * A example using this with a hypothetical file download
+ * An example using this with a hypothetical file download
  * API looks like
  *
  *   int mysink(virStreamPtr st, const char *buf, int nbytes, void *opaque) {
@@ -10173,7 +10231,7 @@ error:
  * virStreamEventRemoveCallback:
  * @stream: pointer to the stream object
  *
- * Remove a event callback from the stream
+ * Remove an event callback from the stream
  *
  * Returns 0 on success, -1 on error
  */
@@ -10296,7 +10354,7 @@ error:
  * Decrement the reference count on a stream, releasing
  * the stream object if the reference count has hit zero.
  *
- * There must not be a active data transfer in progress
+ * There must not be an active data transfer in progress
  * when releasing the stream. If a stream needs to be
  * disposed of prior to end of stream being reached, then
  * the virStreamAbort function should be called first.
@@ -10319,4 +10377,314 @@ int virStreamFree(virStreamPtr stream)
     if (virUnrefStream(stream) < 0)
         return (-1);
     return (0);
+}
+
+
+/**
+ * virDomainIsActive:
+ * @dom: pointer to the domain object
+ *
+ * Determine if the domain is currently running
+ *
+ * Returns 1 if running, 0 if inactive, -1 on error
+ */
+int virDomainIsActive(virDomainPtr dom)
+{
+    DEBUG("dom=%p", dom);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(dom)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+    if (dom->conn->driver->domainIsActive) {
+        int ret;
+        ret = dom->conn->driver->domainIsActive(dom);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(dom->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(dom->conn);
+    return -1;
+}
+
+/**
+ * virDomainIsPersistent:
+ * @dom: pointer to the domain object
+ *
+ * Determine if the domain has a persistent configuration
+ * which means it will still exist after shutting down
+ *
+ * Returns 1 if persistent, 0 if transient, -1 on error
+ */
+int virDomainIsPersistent(virDomainPtr dom)
+{
+    DEBUG("dom=%p", dom);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(dom)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+    if (dom->conn->driver->domainIsPersistent) {
+        int ret;
+        ret = dom->conn->driver->domainIsPersistent(dom);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(dom->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(dom->conn);
+    return -1;
+}
+
+/**
+ * virNetworkIsActive:
+ * @net: pointer to the network object
+ *
+ * Determine if the network is currently running
+ *
+ * Returns 1 if running, 0 if inactive, -1 on error
+ */
+int virNetworkIsActive(virNetworkPtr net)
+{
+    DEBUG("net=%p", net);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_NETWORK(net)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+    if (net->conn->networkDriver->networkIsActive) {
+        int ret;
+        ret = net->conn->networkDriver->networkIsActive(net);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(net->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(net->conn);
+    return -1;
+}
+
+
+/**
+ * virNetworkIsPersistent:
+ * @net: pointer to the network object
+ *
+ * Determine if the network has a persistent configuration
+ * which means it will still exist after shutting down
+ *
+ * Returns 1 if persistent, 0 if transient, -1 on error
+ */
+int virNetworkIsPersistent(virNetworkPtr net)
+{
+    DEBUG("net=%p", net);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_NETWORK(net)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+    if (net->conn->networkDriver->networkIsPersistent) {
+        int ret;
+        ret = net->conn->networkDriver->networkIsPersistent(net);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(net->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(net->conn);
+    return -1;
+}
+
+
+/**
+ * virStoragePoolIsActive:
+ * @pool: pointer to the storage pool object
+ *
+ * Determine if the storage pool is currently running
+ *
+ * Returns 1 if running, 0 if inactive, -1 on error
+ */
+int virStoragePoolIsActive(virStoragePoolPtr pool)
+{
+    DEBUG("pool=%p", pool);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_STORAGE_POOL(pool)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+    if (pool->conn->storageDriver->poolIsActive) {
+        int ret;
+        ret = pool->conn->storageDriver->poolIsActive(pool);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(pool->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(pool->conn);
+    return -1;
+}
+
+
+/**
+ * virStoragePoolIsPersistent:
+ * @pool: pointer to the storage pool object
+ *
+ * Determine if the storage pool has a persistent configuration
+ * which means it will still exist after shutting down
+ *
+ * Returns 1 if persistent, 0 if transient, -1 on error
+ */
+int virStoragePoolIsPersistent(virStoragePoolPtr pool)
+{
+    DEBUG("pool=%p", pool);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_STORAGE_POOL(pool)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+    if (pool->conn->storageDriver->poolIsPersistent) {
+        int ret;
+        ret = pool->conn->storageDriver->poolIsPersistent(pool);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(pool->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(pool->conn);
+    return -1;
+}
+
+
+/**
+ * virInterfaceIsActive:
+ * @iface: pointer to the interface object
+ *
+ * Determine if the interface is currently running
+ *
+ * Returns 1 if running, 0 if inactive, -1 on error
+ */
+int virInterfaceIsActive(virInterfacePtr iface)
+{
+    DEBUG("iface=%p", iface);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_INTERFACE(iface)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+    if (iface->conn->interfaceDriver->interfaceIsActive) {
+        int ret;
+        ret = iface->conn->interfaceDriver->interfaceIsActive(iface);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(iface->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(iface->conn);
+    return -1;
+}
+
+
+/**
+ * virConnectIsEncrypted:
+ * @conn: pointer to the connection object
+ *
+ * Determine if the connection to the hypervisor is encrypted
+ *
+ * Returns 1 if encrypted, 0 if not encrypted, -1 on error
+ */
+int virConnectIsEncrypted(virConnectPtr conn)
+{
+    DEBUG("conn=%p", conn);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+    if (conn->driver->isEncrypted) {
+        int ret;
+        ret = conn->driver->isEncrypted(conn);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(conn);
+    return -1;
+}
+
+/**
+ * virConnectIsSecure:
+ * @conn: pointer to the connection object
+ *
+ * Determine if the connection to the hypervisor is secure
+ *
+ * A connection will be classed as secure if it is either
+ * encrypted, or running over a channel which is not exposed
+ * to eavesdropping (eg a UNIX domain socket, or pipe)
+ *
+ * Returns 1 if secure, 0 if secure, -1 on error
+ */
+int virConnectIsSecure(virConnectPtr conn)
+{
+    DEBUG("conn=%p", conn);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return (-1);
+    }
+    if (conn->driver->isSecure) {
+        int ret;
+        ret = conn->driver->isSecure(conn);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(conn);
+    return -1;
 }

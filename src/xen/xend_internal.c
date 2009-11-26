@@ -1055,8 +1055,13 @@ xenDaemonDomainLookupByID(virConnectPtr xend,
                    "%s", _("domain information incomplete, missing name"));
       goto error;
     }
-    if (domname)
+    if (domname) {
       *domname = strdup(name);
+      if (*domname == NULL) {
+          virReportOOMError(xend);
+          goto error;
+      }
+    }
 
     if (sexpr_uuid(uuid, root, "domain/uuid") < 0) {
       virXendError(xend, VIR_ERR_INTERNAL_ERROR,
@@ -1364,16 +1369,14 @@ xend_parse_sexp_desc_char(virConnectPtr conn,
                 goto no_memory;
         }
 
-        if (connectPort) {
-            if (connectHost) {
-                virBufferVSprintf(buf,
-                                  "      <source mode='connect' host='%s' service='%s'/>\n",
-                                  connectHost, connectPort);
-            } else {
-                virBufferVSprintf(buf,
-                                  "      <source mode='connect' service='%s'/>\n",
-                                  connectPort);
-            }
+        if (connectHost) {
+            virBufferVSprintf(buf,
+                              "      <source mode='connect' host='%s' service='%s'/>\n",
+                              connectHost, connectPort);
+        } else {
+            virBufferVSprintf(buf,
+                              "      <source mode='connect' service='%s'/>\n",
+                              connectPort);
         }
         if (bindPort) {
             if (bindHost) {
@@ -2569,6 +2572,7 @@ xenDaemonParseSxpr(virConnectPtr conn,
                 virDomainChrDefFree(chr);
                 goto no_memory;
             }
+            chr->targetType = VIR_DOMAIN_CHR_TARGET_TYPE_SERIAL;
             def->serials[def->nserials++] = chr;
         }
         tmp = sexpr_node(root, "domain/image/hvm/parallel");
@@ -2581,12 +2585,14 @@ xenDaemonParseSxpr(virConnectPtr conn,
                 virDomainChrDefFree(chr);
                 goto no_memory;
             }
+            chr->targetType = VIR_DOMAIN_CHR_TARGET_TYPE_PARALLEL;
             def->parallels[def->nparallels++] = chr;
         }
     } else {
         /* Fake a paravirt console, since that's not in the sexpr */
         if (!(def->console = xenDaemonParseSxprChar(conn, "pty", tty)))
             goto error;
+        def->console->targetType = VIR_DOMAIN_CHR_TARGET_TYPE_CONSOLE;
     }
     VIR_FREE(tty);
 
@@ -2943,8 +2949,10 @@ xenDaemonOpen(virConnectPtr conn,
             goto failed;
     } else if (STRCASEEQ (conn->uri->scheme, "http")) {
         if (conn->uri->port &&
-            virAsprintf(&port, "%d", conn->uri->port) == -1)
+            virAsprintf(&port, "%d", conn->uri->port) == -1) {
+            virReportOOMError(conn);
             goto failed;
+        }
 
         if (xenDaemonOpen_tcp(conn,
                               conn->uri->server ? conn->uri->server : "localhost",
@@ -3160,6 +3168,9 @@ xenDaemonDomainGetOSType(virDomainPtr domain)
     } else {
         type = strdup("linux");
     }
+
+    if (type == NULL)
+        virReportOOMError(domain->conn);
 
     sexpr_free(root);
 
@@ -3685,7 +3696,7 @@ error:
  *
  * Returns the number of domain found or -1 in case of error
  */
-static int
+int
 xenDaemonNumOfDomains(virConnectPtr conn)
 {
     struct sexpr *root = NULL;
@@ -3956,6 +3967,10 @@ xenDaemonLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
             if (id >= 0) {
                 if (!memcmp(uuid, ident, VIR_UUID_BUFLEN)) {
                     name = strdup(*tmp);
+
+                    if (name == NULL)
+                        virReportOOMError(conn);
+
                     break;
                 }
             }
@@ -3976,7 +3991,14 @@ xenDaemonLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
             id = sexpr_int(root, "domain/domid");
         else
             id = -1;
-        name = domname ? strdup(domname) : NULL;
+
+        if (domname) {
+            name = strdup(domname);
+
+            if (name == NULL)
+                virReportOOMError(conn);
+        }
+
         sexpr_free(root);
     }
 
@@ -4305,8 +4327,7 @@ xenDaemonDomainSetAutostart(virDomainPtr domain,
         autonode->u.s.car->u.value = (autostart ? strdup("start")
                                                 : strdup("ignore"));
         if (!(autonode->u.s.car->u.value)) {
-            virXendError(domain->conn, VIR_ERR_INTERNAL_ERROR,
-                         "%s", _("no memory"));
+            virReportOOMError(domain->conn);
             goto error;
         }
 
@@ -4342,25 +4363,14 @@ xenDaemonDomainMigratePrepare (virConnectPtr dconn,
                                const char *dname ATTRIBUTE_UNUSED,
                                unsigned long resource ATTRIBUTE_UNUSED)
 {
-    int r;
-    char hostname [HOST_NAME_MAX+1];
-
     /* If uri_in is NULL, get the current hostname as a best guess
      * of how the source host should connect to us.  Note that caller
      * deallocates this string.
      */
     if (uri_in == NULL) {
-        r = gethostname (hostname, HOST_NAME_MAX+1);
-        if (r == -1) {
-            virReportSystemError(dconn, errno,
-                                 _("unable to resolve name %s"), hostname);
+        *uri_out = virGetHostname(dconn);
+        if (*uri_out == NULL)
             return -1;
-        }
-        *uri_out = strdup (hostname);
-        if (*uri_out == NULL) {
-            virReportOOMError(dconn);
-            return -1;
-        }
     }
 
     return 0;
@@ -4386,6 +4396,8 @@ xenDaemonDomainMigratePerform (virDomainPtr domain,
     int ret;
     char *p, *hostname = NULL;
 
+    int undefined_source = 0;
+
     /* Xen doesn't support renaming domains during migration. */
     if (dname) {
         virXendError (conn, VIR_ERR_NO_SUPPORT,
@@ -4404,11 +4416,24 @@ xenDaemonDomainMigratePerform (virDomainPtr domain,
         return -1;
     }
 
-    /* Check the flags. */
+    /*
+     * Check the flags.
+     */
     if ((flags & VIR_MIGRATE_LIVE)) {
         strcpy (live, "1");
         flags &= ~VIR_MIGRATE_LIVE;
     }
+
+    /* Undefine the VM on the source host after migration? */
+    if (flags & VIR_MIGRATE_UNDEFINE_SOURCE) {
+       undefined_source = 1;
+       flags &= ~VIR_MIGRATE_UNDEFINE_SOURCE;
+    }
+
+    /* Ignore the persist_dest flag here */
+    if (flags & VIR_MIGRATE_PERSIST_DEST)
+        flags &= ~VIR_MIGRATE_PERSIST_DEST;
+
     /* XXX we could easily do tunnelled & peer2peer migration too
        if we want to. support these... */
     if (flags != 0) {
@@ -4493,6 +4518,9 @@ xenDaemonDomainMigratePerform (virDomainPtr domain,
                    "resource", "0", /* required, xend ignores it */
                    NULL);
     VIR_FREE (hostname);
+
+    if (ret == 0 && undefined_source)
+        xenDaemonDomainUndefine (domain);
 
     DEBUG0("migration done");
 
@@ -4636,7 +4664,7 @@ error:
 static int
 xenDaemonListDefinedDomains(virConnectPtr conn, char **const names, int maxnames) {
     struct sexpr *root = NULL;
-    int ret = -1;
+    int i, ret = -1;
     struct sexpr *_for_i, *node;
     xenUnifiedPrivatePtr priv = (xenUnifiedPrivatePtr) conn->privateData;
 
@@ -4659,12 +4687,19 @@ xenDaemonListDefinedDomains(virConnectPtr conn, char **const names, int maxnames
         if (node->kind != SEXPR_VALUE)
             continue;
 
-        names[ret++] = strdup(node->u.value);
+        if ((names[ret++] = strdup(node->u.value)) == NULL) {
+            virReportOOMError(conn);
+            goto error;
+        }
+
         if (ret >= maxnames)
             break;
     }
 
 error:
+    for (i = 0; i < ret; ++i)
+        VIR_FREE(names[i]);
+
     sexpr_free(root);
     return(ret);
 }
@@ -4716,14 +4751,14 @@ xenDaemonGetSchedulerType(virDomainPtr domain, int *nparams)
     if (STREQ (ret, "credit")) {
         schedulertype = strdup("credit");
         if (schedulertype == NULL){
-            virXendError(domain->conn, VIR_ERR_SYSTEM_ERROR, "%s", _("strdup failed"));
+            virReportOOMError(domain->conn);
             goto error;
         }
         *nparams = XEN_SCHED_CRED_NPARAM;
     } else if (STREQ (ret, "sedf")) {
         schedulertype = strdup("sedf");
         if (schedulertype == NULL){
-            virXendError(domain->conn, VIR_ERR_SYSTEM_ERROR, "%s", _("strdup failed"));
+            virReportOOMError(domain->conn);
             goto error;
         }
         *nparams = XEN_SCHED_SEDF_NPARAM;

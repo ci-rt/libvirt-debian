@@ -39,6 +39,9 @@
 /* Location or name of the dnsmasq program */
 #undef DNSMASQ
 
+/* path to ebtables binary */
+#undef EBTABLES_PATH
+
 /* whether debugging is enabled */
 #undef ENABLE_DEBUG
 
@@ -182,12 +185,6 @@
    don't. */
 #undef HAVE_DECL___FSETLOCKING
 
-/* use DeviceKit for host device enumeration */
-#undef HAVE_DEVKIT
-
-/* Define to 1 if you have the `devkit_client_connect' function. */
-#undef HAVE_DEVKIT_CLIENT_CONNECT
-
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
 
@@ -281,6 +278,9 @@
 
 /* Define to 1 if you have the `cap-ng' library (-lcap-ng). */
 #undef HAVE_LIBCAP_NG
+
+/* Define to 1 if you have the `devmapper' library (-ldevmapper). */
+#undef HAVE_LIBDEVMAPPER
 
 /* Define to 1 if you have the `dl' library (-ldl). */
 #undef HAVE_LIBDL
@@ -620,6 +620,9 @@
 
 /* Define to 1 if you have the <time.h> header file. */
 #undef HAVE_TIME_H
+
+/* use UDEV for host device enumeration */
+#undef HAVE_UDEV
 
 /* Define to 1 if you have the `uname' function. */
 #undef HAVE_UNAME

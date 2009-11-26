@@ -216,6 +216,68 @@ esxVI_CURL_Debug(CURL *curl ATTRIBUTE_UNUSED, curl_infotype type,
 }
 #endif
 
+static int
+esxVI_CURL_Perform(virConnectPtr conn, esxVI_Context *ctx, const char *url)
+{
+    CURLcode errorCode;
+    long responseCode = 0;
+#if LIBCURL_VERSION_NUM >= 0x071202 /* 7.18.2 */
+    const char *redirectUrl = NULL;
+#endif
+
+    errorCode = curl_easy_perform(ctx->curl_handle);
+
+    if (errorCode != CURLE_OK) {
+        ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+                     "curl_easy_perform() returned an error: %s (%d)",
+                     curl_easy_strerror(errorCode), errorCode);
+        return -1;
+    }
+
+    errorCode = curl_easy_getinfo(ctx->curl_handle, CURLINFO_RESPONSE_CODE,
+                                  &responseCode);
+
+    if (errorCode != CURLE_OK) {
+        ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+                     "curl_easy_getinfo(CURLINFO_RESPONSE_CODE) returned an "
+                     "error: %s (%d)", curl_easy_strerror(errorCode),
+                     errorCode);
+        return -1;
+    }
+
+    if (responseCode < 0) {
+        ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+                     "curl_easy_getinfo(CURLINFO_RESPONSE_CODE) returned a "
+                     "negative response code");
+        return -1;
+    }
+
+    if (responseCode == 301) {
+#if LIBCURL_VERSION_NUM >= 0x071202 /* 7.18.2 */
+        errorCode = curl_easy_getinfo(ctx->curl_handle, CURLINFO_REDIRECT_URL,
+                                      &redirectUrl);
+
+        if (errorCode != CURLE_OK) {
+            ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+                         "curl_easy_getinfo(CURLINFO_REDIRECT_URL) returned "
+                         "an error: %s (%d)", curl_easy_strerror(errorCode),
+                         errorCode);
+        } else {
+            ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+                         "The server redirects from '%s' to '%s'", url,
+                         redirectUrl);
+        }
+#else
+        ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+                     "The server redirects from '%s'", url);
+#endif
+
+        return -1;
+    }
+
+    return responseCode;
+}
+
 int
 esxVI_Context_Connect(virConnectPtr conn, esxVI_Context *ctx, const char *url,
                       const char *ipAddress, const char *username,
@@ -269,7 +331,7 @@ esxVI_Context_Connect(virConnectPtr conn, esxVI_Context *ctx, const char *url,
     curl_easy_setopt(ctx->curl_handle, CURLOPT_URL, ctx->url);
     curl_easy_setopt(ctx->curl_handle, CURLOPT_USERAGENT, "libvirt-esx");
     curl_easy_setopt(ctx->curl_handle, CURLOPT_HEADER, 0);
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_FOLLOWLOCATION, 1);
+    curl_easy_setopt(ctx->curl_handle, CURLOPT_FOLLOWLOCATION, 0);
     curl_easy_setopt(ctx->curl_handle, CURLOPT_SSL_VERIFYPEER, noVerify ? 0 : 1);
     curl_easy_setopt(ctx->curl_handle, CURLOPT_SSL_VERIFYHOST, noVerify ? 0 : 2);
     curl_easy_setopt(ctx->curl_handle, CURLOPT_COOKIEFILE, "");
@@ -374,9 +436,10 @@ esxVI_Context_Connect(virConnectPtr conn, esxVI_Context *ctx, const char *url,
     }
 
     /* Get pointer to Datacenter for later use */
-    if (esxVI_GetObjectContent(conn, ctx, ctx->service->rootFolder,
-                               "Datacenter", propertyNameList,
-                               esxVI_Boolean_True, &datacenterList) < 0) {
+    if (esxVI_LookupObjectContentByType(conn, ctx, ctx->service->rootFolder,
+                                        "Datacenter", propertyNameList,
+                                        esxVI_Boolean_True,
+                                        &datacenterList) < 0) {
         goto failure;
     }
 
@@ -432,8 +495,7 @@ esxVI_Context_DownloadFile(virConnectPtr conn, esxVI_Context *ctx,
                            const char *url, char **content)
 {
     virBuffer buffer = VIR_BUFFER_INITIALIZER;
-    CURLcode errorCode;
-    long responseCode;
+    int responseCode = 0;
 
     if (content == NULL || *content != NULL) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Invalid argument");
@@ -447,26 +509,18 @@ esxVI_Context_DownloadFile(virConnectPtr conn, esxVI_Context *ctx,
     curl_easy_setopt(ctx->curl_handle, CURLOPT_UPLOAD, 0);
     curl_easy_setopt(ctx->curl_handle, CURLOPT_HTTPGET, 1);
 
-    errorCode = curl_easy_perform(ctx->curl_handle);
-
-    if (errorCode != CURLE_OK) {
-        ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                     "curl_easy_perform() returned an error: %s (%d)",
-                     curl_easy_strerror(errorCode), errorCode);
-        goto unlock;
-    }
-
-    errorCode = curl_easy_getinfo(ctx->curl_handle, CURLINFO_RESPONSE_CODE,
-                                  &responseCode);
-
-    if (errorCode != CURLE_OK) {
-        ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                     "curl_easy_getinfo() returned an error: %s (%d)",
-                     curl_easy_strerror(errorCode), errorCode);
-        goto unlock;
-    }
+    responseCode = esxVI_CURL_Perform(conn, ctx, url);
 
     virMutexUnlock(&ctx->curl_lock);
+
+    if (responseCode < 0) {
+        goto failure;
+    } else if (responseCode != 200) {
+        ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+                     "HTTP response code %d while trying to download '%s'",
+                     responseCode, url);
+        goto failure;
+    }
 
     if (virBufferError(&buffer)) {
         virReportOOMError(conn);
@@ -475,32 +529,19 @@ esxVI_Context_DownloadFile(virConnectPtr conn, esxVI_Context *ctx,
 
     *content = virBufferContentAndReset(&buffer);
 
-    if (responseCode != 200) {
-        ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                     "HTTP response code %d while trying to download '%s'",
-                     (int)responseCode, url);
-        goto failure;
-    }
-
     return 0;
 
   failure:
     free(virBufferContentAndReset(&buffer));
 
     return -1;
-
-  unlock:
-    virMutexUnlock(&ctx->curl_lock);
-
-    goto failure;
 }
 
 int
 esxVI_Context_UploadFile(virConnectPtr conn, esxVI_Context *ctx,
                          const char *url, const char *content)
 {
-    CURLcode errorCode;
-    long responseCode;
+    int responseCode = 0;
 
     if (content == NULL) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Invalid argument");
@@ -514,40 +555,20 @@ esxVI_Context_UploadFile(virConnectPtr conn, esxVI_Context *ctx,
     curl_easy_setopt(ctx->curl_handle, CURLOPT_UPLOAD, 1);
     curl_easy_setopt(ctx->curl_handle, CURLOPT_INFILESIZE, strlen(content));
 
-    errorCode = curl_easy_perform(ctx->curl_handle);
-
-    if (errorCode != CURLE_OK) {
-        ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                     "curl_easy_perform() returned an error: %s (%d)",
-                     curl_easy_strerror(errorCode), errorCode);
-        goto unlock;
-    }
-
-    errorCode = curl_easy_getinfo(ctx->curl_handle, CURLINFO_RESPONSE_CODE,
-                                  &responseCode);
-
-    if (errorCode != CURLE_OK) {
-        ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                     "curl_easy_getinfo() returned an error: %s (%d)",
-                     curl_easy_strerror(errorCode), errorCode);
-        goto unlock;
-    }
+    responseCode = esxVI_CURL_Perform(conn, ctx, url);
 
     virMutexUnlock(&ctx->curl_lock);
 
-    if (responseCode != 200 && responseCode != 201) {
+    if (responseCode < 0) {
+        return -1;
+    } else if (responseCode != 200 && responseCode != 201) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
                      "HTTP response code %d while trying to upload to '%s'",
-                     (int)responseCode, url);
+                     responseCode, url);
         return -1;
     }
 
     return 0;
-
-  unlock:
-    virMutexUnlock(&ctx->curl_lock);
-
-    return -1;
 }
 
 int
@@ -557,7 +578,6 @@ esxVI_Context_Execute(virConnectPtr conn, esxVI_Context *ctx,
 {
     virBuffer buffer = VIR_BUFFER_INITIALIZER;
     esxVI_Fault *fault = NULL;
-    CURLcode errorCode;
 
     if (request == NULL || response == NULL || *response != NULL) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Invalid argument");
@@ -576,26 +596,13 @@ esxVI_Context_Execute(virConnectPtr conn, esxVI_Context *ctx,
     curl_easy_setopt(ctx->curl_handle, CURLOPT_POSTFIELDS, request);
     curl_easy_setopt(ctx->curl_handle, CURLOPT_POSTFIELDSIZE, strlen(request));
 
-    errorCode = curl_easy_perform(ctx->curl_handle);
-
-    if (errorCode != CURLE_OK) {
-        ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                     "curl_easy_perform() returned an error: %s (%d)",
-                     curl_easy_strerror(errorCode), errorCode);
-        goto unlock;
-    }
-
-    errorCode = curl_easy_getinfo(ctx->curl_handle, CURLINFO_RESPONSE_CODE,
-                                  &(*response)->responseCode);
-
-    if (errorCode != CURLE_OK) {
-        ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                     "curl_easy_getinfo() returned an error: %s (%d)",
-                     curl_easy_strerror(errorCode), errorCode);
-        goto unlock;
-    }
+    (*response)->responseCode = esxVI_CURL_Perform(conn, ctx, ctx->url);
 
     virMutexUnlock(&ctx->curl_lock);
+
+    if ((*response)->responseCode < 0) {
+        goto failure;
+    }
 
     if (virBufferError(&buffer)) {
         virReportOOMError(conn);
@@ -694,8 +701,7 @@ esxVI_Context_Execute(virConnectPtr conn, esxVI_Context *ctx,
         }
     } else if ((*response)->responseCode != 200) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                     "HTTP response code %d", (int)(*response)->responseCode);
-
+                     "HTTP response code %d", (*response)->responseCode);
         goto failure;
     }
 
@@ -707,11 +713,6 @@ esxVI_Context_Execute(virConnectPtr conn, esxVI_Context *ctx,
     esxVI_Fault_Free(&fault);
 
     return -1;
-
-  unlock:
-    virMutexUnlock(&ctx->curl_lock);
-
-    goto failure;
 }
 
 
@@ -958,21 +959,14 @@ esxVI_List_CastFromAnyType(virConnectPtr conn, esxVI_AnyType *anyType,
 
         esxVI_AnyType_Free(&childAnyType);
 
-        if (esxVI_AnyType_Deserialize(conn, childNode, &childAnyType) < 0) {
+        if (esxVI_AnyType_Deserialize(conn, childNode, &childAnyType) < 0 ||
+            castFromAnyTypeFunc(conn, childAnyType, &item) < 0 ||
+            esxVI_List_Append(conn, list, item) < 0) {
             goto failure;
         }
 
         item = NULL;
-
-        if (castFromAnyTypeFunc(conn, childAnyType, &item) < 0) {
-            goto failure;
-        }
-
-        if (esxVI_List_Append(conn, list, item) < 0) {
-            goto failure;
-        }
     }
-
 
   cleanup:
     esxVI_AnyType_Free(&childAnyType);
@@ -980,6 +974,7 @@ esxVI_List_CastFromAnyType(virConnectPtr conn, esxVI_AnyType *anyType,
     return result;
 
   failure:
+    freeFunc(&item);
     freeFunc(list);
 
     result = -1;
@@ -1038,20 +1033,18 @@ esxVI_List_Deserialize(virConnectPtr conn, xmlNodePtr node, esxVI_List **list,
             goto failure;
         }
 
+        if (deserializeFunc(conn, node, &item) < 0 ||
+            esxVI_List_Append(conn, list, item) < 0) {
+            goto failure;
+        }
+
         item = NULL;
-
-        if (deserializeFunc(conn, node, &item) < 0) {
-            goto failure;
-        }
-
-        if (esxVI_List_Append(conn, list, item) < 0) {
-            goto failure;
-        }
     }
 
     return 0;
 
   failure:
+    freeFunc(&item);
     freeFunc(list);
 
     return -1;
@@ -1061,6 +1054,10 @@ esxVI_List_Deserialize(virConnectPtr conn, xmlNodePtr node, esxVI_List **list,
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Utility and Convenience Functions
+ *
+ * Function naming scheme:
+ *  - 'lookup' functions query the ESX or vCenter for information
+ *  - 'get' functions get information from a local object
  */
 
 int
@@ -1301,9 +1298,11 @@ esxVI_EnsureSession(virConnectPtr conn, esxVI_Context *ctx)
 #else
     if (esxVI_String_AppendValueToList(conn, &propertyNameList,
                                        "currentSession") < 0 ||
-        esxVI_GetObjectContent(conn, ctx, ctx->service->sessionManager,
-                               "SessionManager", propertyNameList,
-                               esxVI_Boolean_False, &sessionManager) < 0) {
+        esxVI_LookupObjectContentByType(conn, ctx,
+                                        ctx->service->sessionManager,
+                                        "SessionManager", propertyNameList,
+                                        esxVI_Boolean_False,
+                                        &sessionManager) < 0) {
         goto failure;
     }
 
@@ -1358,11 +1357,12 @@ esxVI_EnsureSession(virConnectPtr conn, esxVI_Context *ctx)
 
 
 int
-esxVI_GetObjectContent(virConnectPtr conn, esxVI_Context *ctx,
-                       esxVI_ManagedObjectReference *root,
-                       const char *type, esxVI_String *propertyNameList,
-                       esxVI_Boolean recurse,
-                       esxVI_ObjectContent **objectContentList)
+esxVI_LookupObjectContentByType(virConnectPtr conn, esxVI_Context *ctx,
+                                esxVI_ManagedObjectReference *root,
+                                const char *type,
+                                esxVI_String *propertyNameList,
+                                esxVI_Boolean recurse,
+                                esxVI_ObjectContent **objectContentList)
 {
     int result = 0;
     esxVI_ObjectSpec *objectSpec = NULL;
@@ -1479,9 +1479,9 @@ esxVI_GetVirtualMachinePowerState(virConnectPtr conn,
 
 
 int
-esxVI_GetNumberOfDomainsByPowerState(virConnectPtr conn, esxVI_Context *ctx,
-                                     esxVI_VirtualMachinePowerState powerState,
-                                     esxVI_Boolean inverse)
+esxVI_LookupNumberOfDomainsByPowerState(virConnectPtr conn, esxVI_Context *ctx,
+                                        esxVI_VirtualMachinePowerState powerState,
+                                        esxVI_Boolean inverse)
 {
     esxVI_String *propertyNameList = NULL;
     esxVI_ObjectContent *virtualMachineList = NULL;
@@ -1492,9 +1492,10 @@ esxVI_GetNumberOfDomainsByPowerState(virConnectPtr conn, esxVI_Context *ctx,
 
     if (esxVI_String_AppendValueToList(conn, &propertyNameList,
                                        "runtime.powerState") < 0 ||
-        esxVI_GetObjectContent(conn, ctx, ctx->vmFolder, "VirtualMachine",
-                               propertyNameList, esxVI_Boolean_True,
-                               &virtualMachineList) < 0) {
+        esxVI_LookupObjectContentByType(conn, ctx, ctx->vmFolder,
+                                        "VirtualMachine", propertyNameList,
+                                        esxVI_Boolean_True,
+                                        &virtualMachineList) < 0) {
         goto failure;
     }
 
@@ -1646,9 +1647,10 @@ esxVI_GetVirtualMachineIdentity(virConnectPtr conn,
 
 
 
-int esxVI_GetResourcePool(virConnectPtr conn, esxVI_Context *ctx,
-                          esxVI_ObjectContent *hostSystem,
-                          esxVI_ManagedObjectReference **resourcePool)
+int
+esxVI_LookupResourcePoolByHostSystem
+  (virConnectPtr conn, esxVI_Context *ctx, esxVI_ObjectContent *hostSystem,
+   esxVI_ManagedObjectReference **resourcePool)
 {
     int result = 0;
     esxVI_String *propertyNameList = NULL;
@@ -1684,9 +1686,10 @@ int esxVI_GetResourcePool(virConnectPtr conn, esxVI_Context *ctx,
 
     if (esxVI_String_AppendValueToList(conn, &propertyNameList,
                                        "resourcePool") < 0 ||
-        esxVI_GetObjectContent(conn, ctx, managedObjectReference,
-                               "ComputeResource", propertyNameList,
-                               esxVI_Boolean_False, &computeResource) < 0) {
+        esxVI_LookupObjectContentByType(conn, ctx, managedObjectReference,
+                                        "ComputeResource", propertyNameList,
+                                        esxVI_Boolean_False,
+                                        &computeResource) < 0) {
         goto failure;
     }
 
@@ -1751,9 +1754,9 @@ esxVI_LookupHostSystemByIp(virConnectPtr conn, esxVI_Context *ctx,
         goto failure;
     }
 
-    if (esxVI_GetObjectContent(conn, ctx, managedObjectReference,
-                               "HostSystem", propertyNameList,
-                               esxVI_Boolean_False, hostSystem) < 0) {
+    if (esxVI_LookupObjectContentByType(conn, ctx, managedObjectReference,
+                                        "HostSystem", propertyNameList,
+                                        esxVI_Boolean_False, hostSystem) < 0) {
         goto failure;
     }
 
@@ -1803,9 +1806,10 @@ esxVI_LookupVirtualMachineByUuid(virConnectPtr conn, esxVI_Context *ctx,
         }
     }
 
-    if (esxVI_GetObjectContent(conn, ctx, managedObjectReference,
-                               "VirtualMachine", propertyNameList,
-                               esxVI_Boolean_False, virtualMachine) < 0) {
+    if (esxVI_LookupObjectContentByType(conn, ctx, managedObjectReference,
+                                        "VirtualMachine", propertyNameList,
+                                        esxVI_Boolean_False,
+                                        virtualMachine) < 0) {
         goto failure;
     }
 
@@ -1852,9 +1856,10 @@ esxVI_LookupDatastoreByName(virConnectPtr conn, esxVI_Context *ctx,
         goto failure;
     }
 
-    if (esxVI_GetObjectContent(conn, ctx, ctx->datacenter,
-                               "Datastore", completePropertyNameList,
-                               esxVI_Boolean_True, &datastoreList) < 0) {
+    if (esxVI_LookupObjectContentByType(conn, ctx, ctx->datacenter,
+                                        "Datastore", completePropertyNameList,
+                                        esxVI_Boolean_True,
+                                        &datastoreList) < 0) {
         goto failure;
     }
 

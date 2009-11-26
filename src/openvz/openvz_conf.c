@@ -329,12 +329,14 @@ openvz_replace(const char* str,
                const char* to) {
     const char* offset = NULL;
     const char* str_start = str;
-    int to_len = strlen(to);
-    int from_len = strlen(from);
+    int to_len;
+    int from_len;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
-    if(!from)
+    if ((!from) || (!to))
         return NULL;
+    from_len = strlen(from);
+    to_len = strlen(to);
 
     while((offset = strstr(str_start, from)))
     {
@@ -386,8 +388,8 @@ openvzReadFSConf(virConnectPtr conn,
         if (VIR_ALLOC(fs) < 0)
             goto no_memory;
 
-        if(virAsprintf(&veid_str, "%d", veid) < 0)
-          goto error;
+        if (virAsprintf(&veid_str, "%d", veid) < 0)
+            goto no_memory;
 
         fs->type = VIR_DOMAIN_FS_TYPE_MOUNT;
         fs->src = openvz_replace(temp, "$VEID", veid_str);
@@ -421,7 +423,7 @@ openvzFreeDriver(struct openvz_driver *driver)
     if (!driver)
         return;
 
-    virDomainObjListFree(&driver->domains);
+    virDomainObjListDeinit(&driver->domains);
     virCapabilitiesFree(driver->caps);
 }
 
@@ -463,6 +465,8 @@ int openvzLoadDomains(struct openvz_driver *driver) {
             goto cleanup;
         }
 
+        virDomainObjLock(dom);
+
         if (VIR_ALLOC(dom->def) < 0)
             goto no_memory;
 
@@ -471,8 +475,11 @@ int openvzLoadDomains(struct openvz_driver *driver) {
         else
             dom->state = VIR_DOMAIN_RUNNING;
 
+        dom->refs = 1;
         dom->pid = veid;
         dom->def->id = dom->state == VIR_DOMAIN_SHUTOFF ? -1 : veid;
+        /* XXX OpenVZ doesn't appear to have concept of a transient domain */
+        dom->persistent = 1;
 
         if (virAsprintf(&dom->def->name, "%i", veid) < 0)
             goto no_memory;
@@ -509,11 +516,11 @@ int openvzLoadDomains(struct openvz_driver *driver) {
         openvzReadNetworkConf(NULL, dom->def, veid);
         openvzReadFSConf(NULL, dom->def, veid);
 
-        if (VIR_REALLOC_N(driver->domains.objs,
-                          driver->domains.count + 1) < 0)
+        virUUIDFormat(dom->def->uuid, uuidstr);
+        if (virHashAddEntry(driver->domains.objs, uuidstr, dom) < 0)
             goto no_memory;
 
-        driver->domains.objs[driver->domains.count++] = dom;
+        virDomainObjUnlock(dom);
         dom = NULL;
     }
 
@@ -526,7 +533,7 @@ int openvzLoadDomains(struct openvz_driver *driver) {
 
  cleanup:
     fclose(fp);
-    virDomainObjFree(dom);
+    virDomainObjUnref(dom);
     return -1;
 }
 
@@ -548,8 +555,10 @@ openvzWriteConfigParam(const char * conf_file, const char *param, const char *va
     int fd = -1, temp_fd = -1;
     char line[PATH_MAX] ;
 
-    if (virAsprintf(&temp_file, "%s.tmp", conf_file)<0)
+    if (virAsprintf(&temp_file, "%s.tmp", conf_file)<0) {
+        virReportOOMError(NULL);
         return -1;
+    }
 
     fd = open(conf_file, O_RDONLY);
     if (fd == -1)
@@ -734,8 +743,10 @@ openvzCopyDefaultConfig(int vpsid)
     if (confdir == NULL)
         goto cleanup;
 
-    if (virAsprintf(&default_conf_file, "%s/ve-%s.conf-sample", confdir, configfile_value) < 0)
+    if (virAsprintf(&default_conf_file, "%s/ve-%s.conf-sample", confdir, configfile_value) < 0) {
+        virReportOOMError(NULL);
         goto cleanup;
+    }
 
     if (openvzLocateConfFile(vpsid, conf_file, PATH_MAX, "conf")<0)
         goto cleanup;

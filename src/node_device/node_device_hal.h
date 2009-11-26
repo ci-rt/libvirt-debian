@@ -22,23 +22,4 @@
 #ifndef __VIR_NODE_DEVICE_HAL_H__
 #define __VIR_NODE_DEVICE_HAL_H__
 
-#ifdef __linux__
-
-#define check_fc_host(d) check_fc_host_linux(d)
-int check_fc_host_linux(union _virNodeDevCapData *d);
-
-#define check_vport_capable(d) check_vport_capable_linux(d)
-int check_vport_capable_linux(union _virNodeDevCapData *d);
-
-#define read_wwn(host, file, wwn) read_wwn_linux(host, file, wwn)
-int read_wwn_linux(int host, const char *file, char **wwn);
-
-#else  /* __linux__ */
-
-#define check_fc_host(d)
-#define check_vport_capable(d)
-#define read_wwn(host, file, wwn)
-
-#endif /* __linux__ */
-
 #endif /* __VIR_NODE_DEVICE_HAL_H__ */

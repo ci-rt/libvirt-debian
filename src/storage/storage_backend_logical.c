@@ -36,6 +36,7 @@
 #include "storage_conf.h"
 #include "util.h"
 #include "memory.h"
+#include "logging.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
@@ -278,15 +279,10 @@ virStorageBackendLogicalFindPoolSourcesFunc(virConnectPtr conn,
     }
 
     if (thisSource == NULL) {
-        if (VIR_REALLOC_N(sourceList->sources, sourceList->nsources + 1) != 0) {
-            virReportOOMError(conn);
+        if (!(thisSource = virStoragePoolSourceListNewSource(conn,
+                                                             sourceList)))
             goto err_no_memory;
-        }
 
-        thisSource = &sourceList->sources[sourceList->nsources];
-        sourceList->nsources++;
-
-        memset(thisSource, 0, sizeof(*thisSource));
         thisSource->name = vgname;
     }
     else
@@ -341,7 +337,9 @@ virStorageBackendLogicalFindPoolSources(virConnectPtr conn,
      * that might be hanging around, so if this fails for some reason, the
      * worst that happens is that scanning doesn't pick everything up
      */
-    virRun(conn, scanprog, &exitstatus);
+    if (virRun(conn, scanprog, &exitstatus) < 0) {
+        VIR_WARN0("Failure when running vgscan to refresh physical volumes");
+    }
 
     memset(&sourceList, 0, sizeof(sourceList));
     sourceList.type = VIR_STORAGE_POOL_LOGICAL;

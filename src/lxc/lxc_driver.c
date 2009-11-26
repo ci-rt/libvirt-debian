@@ -48,6 +48,7 @@
 #include "event.h"
 #include "nodeinfo.h"
 #include "uuid.h"
+#include "stats_linux.h"
 
 
 #define VIR_FROM_THIS VIR_FROM_LXC
@@ -98,7 +99,7 @@ static virDrvOpenStatus lxcOpen(virConnectPtr conn,
         /* If path isn't '/' then they typoed, tell them correct path */
         if (STRNEQ(conn->uri->path, "/")) {
             lxcError(conn, NULL, VIR_ERR_INTERNAL_ERROR,
-                     _("unexpected LXC URI path '%s', try lxc:///"),
+                     _("Unexpected LXC URI path '%s', try lxc:///"),
                      conn->uri->path);
             return VIR_DRV_OPEN_ERROR;
         }
@@ -127,6 +128,21 @@ static int lxcClose(virConnectPtr conn)
     conn->privateData = NULL;
     return 0;
 }
+
+
+static int lxcIsSecure(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    /* Trivially secure, since always inside the daemon */
+    return 1;
+}
+
+
+static int lxcIsEncrypted(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    /* Not encrypted, but remote driver takes care of that */
+    return 0;
+}
+
 
 static char *lxcGetCapabilities(virConnectPtr conn) {
     lxc_driver_t *driver = conn->privateData;
@@ -218,33 +234,68 @@ cleanup:
     return dom;
 }
 
-static int lxcListDomains(virConnectPtr conn, int *ids, int nids) {
-    lxc_driver_t *driver = conn->privateData;
-    int got = 0, i;
+
+static int lxcDomainIsActive(virDomainPtr dom)
+{
+    lxc_driver_t *driver = dom->conn->privateData;
+    virDomainObjPtr obj;
+    int ret = -1;
 
     lxcDriverLock(driver);
-    for (i = 0 ; i < driver->domains.count && got < nids ; i++) {
-        virDomainObjLock(driver->domains.objs[i]);
-        if (virDomainIsActive(driver->domains.objs[i]))
-            ids[got++] = driver->domains.objs[i]->def->id;
-        virDomainObjUnlock(driver->domains.objs[i]);
+    obj = virDomainFindByUUID(&driver->domains, dom->uuid);
+    lxcDriverUnlock(driver);
+    if (!obj) {
+        lxcError(dom->conn, NULL, VIR_ERR_NO_DOMAIN, NULL);
+        goto cleanup;
     }
+    ret = virDomainObjIsActive(obj);
+
+cleanup:
+    if (obj)
+        virDomainObjUnlock(obj);
+    return ret;
+}
+
+
+static int lxcDomainIsPersistent(virDomainPtr dom)
+{
+    lxc_driver_t *driver = dom->conn->privateData;
+    virDomainObjPtr obj;
+    int ret = -1;
+
+    lxcDriverLock(driver);
+    obj = virDomainFindByUUID(&driver->domains, dom->uuid);
+    lxcDriverUnlock(driver);
+    if (!obj) {
+        lxcError(dom->conn, NULL, VIR_ERR_NO_DOMAIN, NULL);
+        goto cleanup;
+    }
+    ret = obj->persistent;
+
+cleanup:
+    if (obj)
+        virDomainObjUnlock(obj);
+    return ret;
+}
+
+
+static int lxcListDomains(virConnectPtr conn, int *ids, int nids) {
+    lxc_driver_t *driver = conn->privateData;
+    int n;
+
+    lxcDriverLock(driver);
+    n = virDomainObjListGetActiveIDs(&driver->domains, ids, nids);
     lxcDriverUnlock(driver);
 
-    return got;
+    return n;
 }
 
 static int lxcNumDomains(virConnectPtr conn) {
     lxc_driver_t *driver = conn->privateData;
-    int n = 0, i;
+    int n;
 
     lxcDriverLock(driver);
-    for (i = 0 ; i < driver->domains.count ; i++) {
-        virDomainObjLock(driver->domains.objs[i]);
-        if (virDomainIsActive(driver->domains.objs[i]))
-            n++;
-        virDomainObjUnlock(driver->domains.objs[i]);
-    }
+    n = virDomainObjListNumOfDomains(&driver->domains, 1);
     lxcDriverUnlock(driver);
 
     return n;
@@ -253,43 +304,22 @@ static int lxcNumDomains(virConnectPtr conn) {
 static int lxcListDefinedDomains(virConnectPtr conn,
                                  char **const names, int nnames) {
     lxc_driver_t *driver = conn->privateData;
-    int got = 0, i;
+    int n;
 
     lxcDriverLock(driver);
-    for (i = 0 ; i < driver->domains.count && got < nnames ; i++) {
-        virDomainObjLock(driver->domains.objs[i]);
-        if (!virDomainIsActive(driver->domains.objs[i])) {
-            if (!(names[got++] = strdup(driver->domains.objs[i]->def->name))) {
-                virReportOOMError(conn);
-                virDomainObjUnlock(driver->domains.objs[i]);
-                goto cleanup;
-            }
-        }
-        virDomainObjUnlock(driver->domains.objs[i]);
-    }
+    n = virDomainObjListGetInactiveNames(&driver->domains, names, nnames);
     lxcDriverUnlock(driver);
 
-    return got;
-
- cleanup:
-    for (i = 0 ; i < got ; i++)
-        VIR_FREE(names[i]);
-    lxcDriverUnlock(driver);
-    return -1;
+    return n;
 }
 
 
 static int lxcNumDefinedDomains(virConnectPtr conn) {
     lxc_driver_t *driver = conn->privateData;
-    int n = 0, i;
+    int n;
 
     lxcDriverLock(driver);
-    for (i = 0 ; i < driver->domains.count ; i++) {
-        virDomainObjLock(driver->domains.objs[i]);
-        if (!virDomainIsActive(driver->domains.objs[i]))
-            n++;
-        virDomainObjUnlock(driver->domains.objs[i]);
-    }
+    n = virDomainObjListNumOfDomains(&driver->domains, 0);
     lxcDriverUnlock(driver);
 
     return n;
@@ -304,41 +334,15 @@ static virDomainPtr lxcDomainDefine(virConnectPtr conn, const char *xml)
     virDomainObjPtr vm = NULL;
     virDomainPtr dom = NULL;
     virDomainEventPtr event = NULL;
-    int newVM = 1;
+    int dupVM;
 
     lxcDriverLock(driver);
     if (!(def = virDomainDefParseString(conn, driver->caps, xml,
                                         VIR_DOMAIN_XML_INACTIVE)))
         goto cleanup;
 
-    /* See if a VM with matching UUID already exists */
-    vm = virDomainFindByUUID(&driver->domains, def->uuid);
-    if (vm) {
-        /* UUID matches, but if names don't match, refuse it */
-        if (STRNEQ(vm->def->name, def->name)) {
-            char uuidstr[VIR_UUID_STRING_BUFLEN];
-            virUUIDFormat(vm->def->uuid, uuidstr);
-            lxcError(conn, NULL, VIR_ERR_OPERATION_FAILED,
-                     _("domain '%s' is already defined with uuid %s"),
-                     vm->def->name, uuidstr);
-            goto cleanup;
-        }
-
-        /* UUID & name match */
-        virDomainObjUnlock(vm);
-        newVM = 0;
-    } else {
-        /* UUID does not match, but if a name matches, refuse it */
-        vm = virDomainFindByName(&driver->domains, def->name);
-        if (vm) {
-            char uuidstr[VIR_UUID_STRING_BUFLEN];
-            virUUIDFormat(vm->def->uuid, uuidstr);
-            lxcError(conn, NULL, VIR_ERR_OPERATION_FAILED,
-                     _("domain '%s' is already defined with uuid %s"),
-                     def->name, uuidstr);
-            goto cleanup;
-        }
-    }
+   if ((dupVM = virDomainObjIsDuplicate(&driver->domains, def, 0)) < 0)
+        goto cleanup;
 
     if ((def->nets != NULL) && !(driver->have_netns)) {
         lxcError(conn, NULL, VIR_ERR_NO_SUPPORT,
@@ -346,7 +350,8 @@ static virDomainPtr lxcDomainDefine(virConnectPtr conn, const char *xml)
         goto cleanup;
     }
 
-    if (!(vm = virDomainAssignDef(conn, &driver->domains, def)))
+    if (!(vm = virDomainAssignDef(conn, driver->caps,
+                                  &driver->domains, def)))
         goto cleanup;
     def = NULL;
     vm->persistent = 1;
@@ -361,7 +366,7 @@ static virDomainPtr lxcDomainDefine(virConnectPtr conn, const char *xml)
 
     event = virDomainEventNewFromObj(vm,
                                      VIR_DOMAIN_EVENT_DEFINED,
-                                     newVM ?
+                                     !dupVM ?
                                      VIR_DOMAIN_EVENT_DEFINED_ADDED :
                                      VIR_DOMAIN_EVENT_DEFINED_UPDATED);
 
@@ -390,19 +395,19 @@ static int lxcDomainUndefine(virDomainPtr dom)
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
     if (!vm) {
         lxcError(dom->conn, dom, VIR_ERR_INVALID_DOMAIN,
-                 "%s", _("no domain with matching uuid"));
+                 "%s", _("No domain with matching uuid"));
         goto cleanup;
     }
 
-    if (virDomainIsActive(vm)) {
+    if (virDomainObjIsActive(vm)) {
         lxcError(dom->conn, dom, VIR_ERR_OPERATION_INVALID,
-                 "%s", _("cannot delete active domain"));
+                 "%s", _("Cannot delete active domain"));
         goto cleanup;
     }
 
     if (!vm->persistent) {
         lxcError(dom->conn, dom, VIR_ERR_OPERATION_INVALID,
-                 "%s", _("cannot undefine transient domain"));
+                 "%s", _("Cannot undefine transient domain"));
         goto cleanup;
     }
 
@@ -442,30 +447,30 @@ static int lxcDomainGetInfo(virDomainPtr dom,
 
     if (!vm) {
         lxcError(dom->conn, dom, VIR_ERR_INVALID_DOMAIN,
-                 "%s", _("no domain with matching uuid"));
+                 "%s", _("No domain with matching uuid"));
         goto cleanup;
     }
 
     info->state = vm->state;
 
-    if (!virDomainIsActive(vm) || driver->cgroup == NULL) {
+    if (!virDomainObjIsActive(vm) || driver->cgroup == NULL) {
         info->cpuTime = 0;
         info->memory = vm->def->memory;
     } else {
         if (virCgroupForDomain(driver->cgroup, vm->def->name, &cgroup, 0) != 0) {
             lxcError(dom->conn, dom, VIR_ERR_INTERNAL_ERROR,
-                     _("Unable to get cgroup for %s\n"), vm->def->name);
+                     _("Unable to get cgroup for %s"), vm->def->name);
             goto cleanup;
         }
 
         if (virCgroupGetCpuacctUsage(cgroup, &(info->cpuTime)) < 0) {
             lxcError(dom->conn, dom, VIR_ERR_OPERATION_FAILED,
-                     "%s", _("cannot read cputime for domain"));
+                     "%s", _("Cannot read cputime for domain"));
             goto cleanup;
         }
         if (virCgroupGetMemoryUsage(cgroup, &(info->memory)) < 0) {
             lxcError(dom->conn, dom, VIR_ERR_OPERATION_FAILED,
-                     "%s", _("cannot read memory usage for domain"));
+                     "%s", _("Cannot read memory usage for domain"));
             goto cleanup;
         }
     }
@@ -495,11 +500,14 @@ static char *lxcGetOSType(virDomainPtr dom)
 
     if (!vm) {
         lxcError(dom->conn, dom, VIR_ERR_INVALID_DOMAIN,
-                 "%s", _("no domain with matching uuid"));
+                 "%s", _("No domain with matching uuid"));
         goto cleanup;
     }
 
     ret = strdup(vm->def->os.type);
+
+    if (ret == NULL)
+        virReportOOMError(dom->conn);
 
 cleanup:
     if (vm)
@@ -521,7 +529,7 @@ static unsigned long lxcDomainGetMaxMemory(virDomainPtr dom) {
         char uuidstr[VIR_UUID_STRING_BUFLEN];
         virUUIDFormat(dom->uuid, uuidstr);
         lxcError(dom->conn, dom, VIR_ERR_NO_DOMAIN,
-                         _("no domain with matching uuid '%s'"), uuidstr);
+                         _("No domain with matching uuid '%s'"), uuidstr);
         goto cleanup;
     }
 
@@ -546,13 +554,13 @@ static int lxcDomainSetMaxMemory(virDomainPtr dom, unsigned long newmax) {
         char uuidstr[VIR_UUID_STRING_BUFLEN];
         virUUIDFormat(dom->uuid, uuidstr);
         lxcError(dom->conn, dom, VIR_ERR_NO_DOMAIN,
-                         _("no domain with matching uuid '%s'"), uuidstr);
+                         _("No domain with matching uuid '%s'"), uuidstr);
         goto cleanup;
     }
 
     if (newmax < vm->def->memory) {
         lxcError(dom->conn, dom, VIR_ERR_INVALID_ARG,
-                         "%s", _("cannot set max memory lower than current memory"));
+                         "%s", _("Cannot set max memory lower than current memory"));
         goto cleanup;
     }
 
@@ -578,17 +586,17 @@ static int lxcDomainSetMemory(virDomainPtr dom, unsigned long newmem) {
         char uuidstr[VIR_UUID_STRING_BUFLEN];
         virUUIDFormat(dom->uuid, uuidstr);
         lxcError(dom->conn, dom, VIR_ERR_NO_DOMAIN,
-                 _("no domain with matching uuid '%s'"), uuidstr);
+                 _("No domain with matching uuid '%s'"), uuidstr);
         goto cleanup;
     }
 
     if (newmem > vm->def->maxmem) {
         lxcError(dom->conn, dom, VIR_ERR_INVALID_ARG,
-                 "%s", _("cannot set memory higher than max memory"));
+                 "%s", _("Cannot set memory higher than max memory"));
         goto cleanup;
     }
 
-    if (virDomainIsActive(vm)) {
+    if (virDomainObjIsActive(vm)) {
         if (virCgroupForDomain(driver->cgroup, vm->def->name, &cgroup, 0) != 0) {
             lxcError(dom->conn, dom, VIR_ERR_INTERNAL_ERROR,
                      _("Unable to get cgroup for %s\n"), vm->def->name);
@@ -597,7 +605,7 @@ static int lxcDomainSetMemory(virDomainPtr dom, unsigned long newmem) {
 
         if (virCgroupSetMemory(cgroup, newmem) < 0) {
             lxcError(dom->conn, dom, VIR_ERR_OPERATION_FAILED,
-                     "%s", _("cannot set memory for domain"));
+                     "%s", _("Failed to set memory for domain"));
             goto cleanup;
         }
     } else {
@@ -626,7 +634,7 @@ static char *lxcDomainDumpXML(virDomainPtr dom,
 
     if (!vm) {
         lxcError(dom->conn, dom, VIR_ERR_INVALID_DOMAIN,
-                 "%s", _("no domain with matching uuid"));
+                 "%s", _("No domain with matching uuid"));
         goto cleanup;
     }
 
@@ -644,7 +652,9 @@ cleanup:
 
 /**
  * lxcVmCleanup:
- * @vm: Ptr to VM to clean up
+ * @conn: pointer to connection
+ * @driver: pointer to driver structure
+ * @vm: pointer to VM to clean up
  *
  * waitpid() on the container process.  kill and wait the tty process
  * This is called by both lxcDomainDestroy and lxcSigHandler when a
@@ -652,7 +662,7 @@ cleanup:
  *
  * Returns 0 on success or -1 in case of error
  */
-static int lxcVMCleanup(virConnectPtr conn,
+static int lxcVmCleanup(virConnectPtr conn,
                         lxc_driver_t *driver,
                         virDomainObjPtr  vm)
 {
@@ -713,7 +723,10 @@ static int lxcVMCleanup(virConnectPtr conn,
 
 /**
  * lxcSetupInterfaces:
+ * @conn: pointer to connection
  * @def: pointer to virtual machine structure
+ * @nveths: number of interfaces
+ * @veths: interface names
  *
  * Sets up the container interfaces by creating the veth device pairs and
  * attaching the parent end to the appropriate bridge.  The container end
@@ -758,7 +771,7 @@ static int lxcSetupInterfaces(virConnectPtr conn,
         DEBUG("bridge: %s", bridge);
         if (NULL == bridge) {
             lxcError(conn, NULL, VIR_ERR_INTERNAL_ERROR,
-                     "%s", _("failed to get bridge for interface"));
+                     "%s", _("Failed to get bridge for interface"));
             goto error_exit;
         }
 
@@ -769,33 +782,49 @@ static int lxcSetupInterfaces(virConnectPtr conn,
         DEBUG("parentVeth: %s, containerVeth: %s", parentVeth, containerVeth);
         if (0 != (rc = vethCreate(parentVeth, PATH_MAX, containerVeth, PATH_MAX))) {
             lxcError(conn, NULL, VIR_ERR_INTERNAL_ERROR,
-                     _("failed to create veth device pair: %d"), rc);
+                     _("Failed to create veth device pair: %d"), rc);
             goto error_exit;
         }
         if (NULL == def->nets[i]->ifname) {
             def->nets[i]->ifname = strdup(parentVeth);
         }
-        if (VIR_REALLOC_N(*veths, (*nveths)+1) < 0)
+        if (VIR_REALLOC_N(*veths, (*nveths)+1) < 0) {
+            virReportOOMError(conn);
             goto error_exit;
-        if (((*veths)[(*nveths)++] = strdup(containerVeth)) == NULL)
+        }
+        if (((*veths)[(*nveths)] = strdup(containerVeth)) == NULL) {
+            virReportOOMError(conn);
             goto error_exit;
+        }
+        (*nveths)++;
 
         if (NULL == def->nets[i]->ifname) {
-            lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                     "%s", _("failed to allocate veth names"));
+            virReportOOMError(conn);
             goto error_exit;
+        }
+
+        if (def->nets[i]->mac) {
+            char macaddr[VIR_MAC_STRING_BUFLEN];
+            virFormatMacAddr(def->nets[i]->mac, macaddr);
+            if (0 != (rc = setMacAddr(containerVeth, macaddr))) {
+                virReportSystemError(conn, rc,
+                                     _("Failed to set %s to %s"),
+                                     macaddr, containerVeth);
+                goto error_exit;
+            }
         }
 
         if (0 != (rc = brAddInterface(brctl, bridge, parentVeth))) {
             virReportSystemError(conn, rc,
-                                 _("failed to add %s device to %s"),
+                                 _("Failed to add %s device to %s"),
                                  parentVeth, bridge);
             goto error_exit;
         }
 
         if (0 != (rc = vethInterfaceUpOrDown(parentVeth, 1))) {
-            virReportSystemError(conn, rc, "%s",
-                                 _("failed to enable parent ns veth device"));
+            virReportSystemError(conn, rc,
+                                 _("Failed to enable %s device"),
+                                 parentVeth);
             goto error_exit;
         }
 
@@ -825,7 +854,7 @@ static int lxcMonitorClient(virConnectPtr conn,
 
     if ((fd = socket(PF_UNIX, SOCK_STREAM, 0)) < 0) {
         virReportSystemError(conn, errno, "%s",
-                             _("failed to create client socket"));
+                             _("Failed to create client socket"));
         goto error;
     }
 
@@ -839,7 +868,7 @@ static int lxcMonitorClient(virConnectPtr conn,
 
     if (connect(fd, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
         virReportSystemError(conn, errno, "%s",
-                             _("failed to connect to client socket"));
+                             _("Failed to connect to client socket"));
         goto error;
     }
 
@@ -864,14 +893,14 @@ static int lxcVmTerminate(virConnectPtr conn,
 
     if (vm->pid <= 0) {
         lxcError(conn, NULL, VIR_ERR_INTERNAL_ERROR,
-                 _("invalid PID %d for container"), vm->pid);
+                 _("Invalid PID %d for container"), vm->pid);
         return -1;
     }
 
     if (kill(vm->pid, signum) < 0) {
         if (errno != ESRCH) {
             virReportSystemError(conn, errno,
-                                 _("failed to kill pid %d"),
+                                 _("Failed to kill pid %d"),
                                  vm->pid);
             return -1;
         }
@@ -879,7 +908,7 @@ static int lxcVmTerminate(virConnectPtr conn,
 
     vm->state = VIR_DOMAIN_SHUTDOWN;
 
-    return lxcVMCleanup(conn, driver, vm);
+    return lxcVmCleanup(conn, driver, vm);
 }
 
 static void lxcMonitorEvent(int watch,
@@ -887,27 +916,15 @@ static void lxcMonitorEvent(int watch,
                             int events ATTRIBUTE_UNUSED,
                             void *data)
 {
-    lxc_driver_t *driver = data;
-    virDomainObjPtr vm = NULL;
+    lxc_driver_t *driver = lxc_driver;
+    virDomainObjPtr vm = data;
     virDomainEventPtr event = NULL;
-    unsigned int i;
 
     lxcDriverLock(driver);
-    for (i = 0 ; i < driver->domains.count ; i++) {
-        virDomainObjPtr tmpvm = driver->domains.objs[i];
-        virDomainObjLock(tmpvm);
-        if (tmpvm->monitorWatch == watch) {
-            vm = tmpvm;
-            break;
-        }
-        virDomainObjUnlock(tmpvm);
-    }
-    if (!vm) {
-        virEventRemoveHandle(watch);
-        goto cleanup;
-    }
+    virDomainObjLock(vm);
+    lxcDriverUnlock(driver);
 
-    if (vm->monitor != fd) {
+    if (vm->monitor != fd || vm->monitorWatch != watch) {
         virEventRemoveHandle(watch);
         goto cleanup;
     }
@@ -927,9 +944,11 @@ static void lxcMonitorEvent(int watch,
 cleanup:
     if (vm)
         virDomainObjUnlock(vm);
-    if (event)
+    if (event) {
+        lxcDriverLock(driver);
         lxcDomainEventQueue(driver, event);
-    lxcDriverUnlock(driver);
+        lxcDriverUnlock(driver);
+    }
 }
 
 
@@ -1005,6 +1024,19 @@ static int lxcControllerStart(virConnectPtr conn,
         lenv[lenvc++] = envval;                                         \
     } while (0)
 
+#define ADD_ENV_COPY(envname)                                           \
+    do {                                                                \
+        char *val = getenv(envname);                                    \
+        if (val != NULL) {                                              \
+            ADD_ENV_PAIR(envname, val);                                 \
+        }                                                               \
+    } while (0)
+
+    /*
+     * The controller may call ip command, so we have to remain PATH.
+     */
+    ADD_ENV_COPY("PATH");
+
     log_level = virLogGetDefaultPriority();
     if (virAsprintf(&tmp, "LIBVIRT_DEBUG=%d", log_level) < 0)
         goto no_memory;
@@ -1066,14 +1098,14 @@ static int lxcControllerStart(virConnectPtr conn,
     while ((rc = waitpid(child, &status, 0) == -1) && errno == EINTR);
     if (rc == -1) {
         virReportSystemError(conn, errno,
-                             _("cannot wait for '%s'"),
+                             _("Cannot wait for '%s'"),
                              largv[0]);
         goto cleanup;
     }
 
     if (!(WIFEXITED(status) && WEXITSTATUS(status) == 0)) {
         lxcError(conn, NULL, VIR_ERR_INTERNAL_ERROR,
-                 _("container '%s' unexpectedly shutdown during startup"),
+                 _("Container '%s' unexpectedly shutdown during startup"),
                  largv[0]);
         goto cleanup;
     }
@@ -1128,7 +1160,7 @@ static int lxcVmStart(virConnectPtr conn,
 
     if ((r = virFileMakePath(driver->logDir)) < 0) {
         virReportSystemError(conn, r,
-                             _("cannot create log directory '%s'"),
+                             _("Cannot create log directory '%s'"),
                              driver->logDir);
         return -1;
     }
@@ -1142,7 +1174,7 @@ static int lxcVmStart(virConnectPtr conn,
     /* open parent tty */
     if (virFileOpenTty(&parentTty, &parentTtyPath, 1) < 0) {
         virReportSystemError(conn, errno, "%s",
-                             _("failed to allocate tty"));
+                             _("Failed to allocate tty"));
         goto cleanup;
     }
     if (vm->def->console &&
@@ -1163,7 +1195,7 @@ static int lxcVmStart(virConnectPtr conn,
     if ((logfd = open(logfile, O_WRONLY | O_APPEND | O_CREAT,
              S_IRUSR|S_IWUSR)) < 0) {
         virReportSystemError(conn, errno,
-                             _("failed to open '%s'"),
+                             _("Failed to open '%s'"),
                              logfile);
         goto cleanup;
     }
@@ -1195,7 +1227,7 @@ static int lxcVmStart(virConnectPtr conn,
              vm->monitor,
              VIR_EVENT_HANDLE_ERROR | VIR_EVENT_HANDLE_HANGUP,
              lxcMonitorEvent,
-             driver, NULL)) < 0) {
+             vm, NULL)) < 0) {
         lxcVmTerminate(conn, driver, vm, 0);
         goto cleanup;
     }
@@ -1239,7 +1271,7 @@ static int lxcDomainStart(virDomainPtr dom)
     vm = virDomainFindByName(&driver->domains, dom->name);
     if (!vm) {
         lxcError(dom->conn, dom, VIR_ERR_INVALID_DOMAIN,
-                 _("no domain named %s"), dom->name);
+                 _("No domain named %s"), dom->name);
         goto cleanup;
     }
 
@@ -1290,38 +1322,8 @@ lxcDomainCreateAndStart(virConnectPtr conn,
                                         VIR_DOMAIN_XML_INACTIVE)))
         goto cleanup;
 
-    /* See if a VM with matching UUID already exists */
-    vm = virDomainFindByUUID(&driver->domains, def->uuid);
-    if (vm) {
-        /* UUID matches, but if names don't match, refuse it */
-        if (STRNEQ(vm->def->name, def->name)) {
-            char uuidstr[VIR_UUID_STRING_BUFLEN];
-            virUUIDFormat(vm->def->uuid, uuidstr);
-            lxcError(conn, NULL, VIR_ERR_OPERATION_FAILED,
-                     _("domain '%s' is already defined with uuid %s"),
-                     vm->def->name, uuidstr);
-            goto cleanup;
-        }
-
-        /* UUID & name match, but if VM is already active, refuse it */
-        if (virDomainIsActive(vm)) {
-            lxcError(conn, NULL, VIR_ERR_OPERATION_FAILED,
-                     _("domain is already active as '%s'"), vm->def->name);
-            goto cleanup;
-        }
-        virDomainObjUnlock(vm);
-    } else {
-        /* UUID does not match, but if a name matches, refuse it */
-        vm = virDomainFindByName(&driver->domains, def->name);
-        if (vm) {
-            char uuidstr[VIR_UUID_STRING_BUFLEN];
-            virUUIDFormat(vm->def->uuid, uuidstr);
-            lxcError(conn, NULL, VIR_ERR_OPERATION_FAILED,
-                     _("domain '%s' is already defined with uuid %s"),
-                     def->name, uuidstr);
-            goto cleanup;
-        }
-    }
+    if (virDomainObjIsDuplicate(&driver->domains, def, 1) < 0)
+        goto cleanup;
 
     if ((def->nets != NULL) && !(driver->have_netns)) {
         lxcError(conn, NULL, VIR_ERR_NO_SUPPORT,
@@ -1330,7 +1332,8 @@ lxcDomainCreateAndStart(virConnectPtr conn,
     }
 
 
-    if (!(vm = virDomainAssignDef(conn, &driver->domains, def)))
+    if (!(vm = virDomainAssignDef(conn, driver->caps,
+                                  &driver->domains, def)))
         goto cleanup;
     def = NULL;
 
@@ -1360,7 +1363,7 @@ cleanup:
 
 /**
  * lxcDomainShutdown:
- * @dom: Ptr to domain to shutdown
+ * @dom: pointer to domain to shutdown
  *
  * Sends SIGINT to container root process to request it to shutdown
  *
@@ -1377,7 +1380,7 @@ static int lxcDomainShutdown(virDomainPtr dom)
     vm = virDomainFindByID(&driver->domains, dom->id);
     if (!vm) {
         lxcError(dom->conn, dom, VIR_ERR_INVALID_DOMAIN,
-                 _("no domain with id %d"), dom->id);
+                 _("No domain with id %d"), dom->id);
         goto cleanup;
     }
 
@@ -1493,7 +1496,7 @@ static void lxcDomainEventQueue(lxc_driver_t *driver,
 
 /**
  * lxcDomainDestroy:
- * @dom: Ptr to domain to destroy
+ * @dom: pointer to domain to destroy
  *
  * Sends SIGKILL to container root process to terminate the container
  *
@@ -1510,7 +1513,7 @@ static int lxcDomainDestroy(virDomainPtr dom)
     vm = virDomainFindByID(&driver->domains, dom->id);
     if (!vm) {
         lxcError(dom->conn, dom, VIR_ERR_INVALID_DOMAIN,
-                 _("no domain with id %d"), dom->id);
+                 _("No domain with id %d"), dom->id);
         goto cleanup;
     }
 
@@ -1548,9 +1551,40 @@ static int lxcCheckNetNsSupport(void)
 }
 
 
+struct lxcAutostartData {
+    lxc_driver_t *driver;
+    virConnectPtr conn;
+};
+
+static void
+lxcAutostartDomain(void *payload, const char *name ATTRIBUTE_UNUSED, void *opaque)
+{
+    virDomainObjPtr vm = payload;
+    const struct lxcAutostartData *data = opaque;
+
+    virDomainObjLock(vm);
+    if (vm->autostart &&
+        !virDomainObjIsActive(vm)) {
+        int ret = lxcVmStart(data->conn, data->driver, vm);
+        if (ret < 0) {
+            virErrorPtr err = virGetLastError();
+            VIR_ERROR(_("Failed to autostart VM '%s': %s\n"),
+                      vm->def->name,
+                      err ? err->message : "");
+        } else {
+            virDomainEventPtr event =
+                virDomainEventNewFromObj(vm,
+                                         VIR_DOMAIN_EVENT_STARTED,
+                                         VIR_DOMAIN_EVENT_STARTED_BOOTED);
+            if (event)
+                lxcDomainEventQueue(data->driver, event);
+        }
+    }
+    virDomainObjUnlock(vm);
+}
+
 static void
 lxcAutostartConfigs(lxc_driver_t *driver) {
-    unsigned int i;
     /* XXX: Figure out a better way todo this. The domain
      * startup code needs a connection handle in order
      * to lookup the bridge associated with a virtual
@@ -1559,39 +1593,65 @@ lxcAutostartConfigs(lxc_driver_t *driver) {
     virConnectPtr conn = virConnectOpen("lxc:///");
     /* Ignoring NULL conn which is mostly harmless here */
 
+    struct lxcAutostartData data = { driver, conn };
+
     lxcDriverLock(driver);
-    for (i = 0 ; i < driver->domains.count ; i++) {
-        virDomainObjPtr vm = driver->domains.objs[i];
-        virDomainObjLock(vm);
-        if (vm->autostart &&
-            !virDomainIsActive(vm)) {
-            int ret = lxcVmStart(conn, driver, vm);
-            if (ret < 0) {
-                virErrorPtr err = virGetLastError();
-                VIR_ERROR(_("Failed to autostart VM '%s': %s\n"),
-                          vm->def->name,
-                          err ? err->message : "");
-            } else {
-                virDomainEventPtr event =
-                    virDomainEventNewFromObj(vm,
-                                             VIR_DOMAIN_EVENT_STARTED,
-                                             VIR_DOMAIN_EVENT_STARTED_BOOTED);
-                if (event)
-                    lxcDomainEventQueue(driver, event);
-            }
-        }
-        virDomainObjUnlock(vm);
-    }
+    virHashForEach(driver->domains.objs, lxcAutostartDomain, &data);
     lxcDriverUnlock(driver);
 
     if (conn)
         virConnectClose(conn);
 }
 
+static void
+lxcReconnectVM(void *payload, const char *name ATTRIBUTE_UNUSED, void *opaque)
+{
+    virDomainObjPtr vm = payload;
+    lxc_driver_t *driver = opaque;
+    char *config = NULL;
+    virDomainDefPtr tmp;
+
+    virDomainObjLock(vm);
+    if ((vm->monitor = lxcMonitorClient(NULL, driver, vm)) < 0) {
+        goto cleanup;
+    }
+
+    /* Read pid from controller */
+    if ((virFileReadPid(lxc_driver->stateDir, vm->def->name, &vm->pid)) != 0) {
+        close(vm->monitor);
+        vm->monitor = -1;
+        goto cleanup;
+    }
+
+    if ((config = virDomainConfigFile(NULL,
+                                      driver->stateDir,
+                                      vm->def->name)) == NULL)
+        goto cleanup;
+
+    /* Try and load the live config */
+    tmp = virDomainDefParseFile(NULL, driver->caps, config, 0);
+    VIR_FREE(config);
+    if (tmp) {
+        vm->newDef = vm->def;
+        vm->def = tmp;
+    }
+
+    if (vm->pid != 0) {
+        vm->def->id = vm->pid;
+        vm->state = VIR_DOMAIN_RUNNING;
+    } else {
+        vm->def->id = -1;
+        close(vm->monitor);
+        vm->monitor = -1;
+    }
+
+cleanup:
+    virDomainObjUnlock(vm);
+}
+
 
 static int lxcStartup(int privileged)
 {
-    unsigned int i;
     char *ld;
     int rc;
 
@@ -1600,12 +1660,21 @@ static int lxcStartup(int privileged)
      * XXX remove this when valgrind is fixed
      */
     ld = getenv("LD_PRELOAD");
-    if (ld && strstr(ld, "vgpreload"))
-        return -1;
+    if (ld && strstr(ld, "vgpreload")) {
+        VIR_INFO0("Running under valgrind, disabling driver");
+        return 0;
+    }
 
-    /* Check that the user is root */
+    /* Check that the user is root, silently disable if not */
     if (!privileged) {
-        return -1;
+        VIR_INFO0("Not running privileged, disabling driver");
+        return 0;
+    }
+
+    /* Check that this is a container enabled kernel */
+    if (lxcContainerAvailable(0) < 0) {
+        VIR_INFO0("LXC support not available in this kernel, disabling driver");
+        return 0;
     }
 
     if (VIR_ALLOC(lxc_driver) < 0) {
@@ -1617,11 +1686,8 @@ static int lxcStartup(int privileged)
     }
     lxcDriverLock(lxc_driver);
 
-    /* Check that this is a container enabled kernel */
-    if (lxcContainerAvailable(0) < 0) {
-        VIR_INFO0("LXC support not available in this kernel, disabling driver");
+    if (virDomainObjListInit(&lxc_driver->domains) < 0)
         goto cleanup;
-    }
 
     if (VIR_ALLOC(lxc_driver->domainEventCallbacks) < 0)
         goto cleanup;
@@ -1657,50 +1723,7 @@ static int lxcStartup(int privileged)
                                 0, NULL, NULL) < 0)
         goto cleanup;
 
-    for (i = 0 ; i < lxc_driver->domains.count ; i++) {
-        virDomainObjPtr vm = lxc_driver->domains.objs[i];
-        char *config = NULL;
-        virDomainDefPtr tmp;
-
-        virDomainObjLock(vm);
-        if ((vm->monitor = lxcMonitorClient(NULL, lxc_driver, vm)) < 0) {
-            virDomainObjUnlock(vm);
-            continue;
-        }
-
-        /* Read pid from controller */
-        if ((rc = virFileReadPid(lxc_driver->stateDir, vm->def->name, &vm->pid)) != 0) {
-            close(vm->monitor);
-            vm->monitor = -1;
-            virDomainObjUnlock(vm);
-            continue;
-        }
-
-        if ((config = virDomainConfigFile(NULL,
-                                          lxc_driver->stateDir,
-                                          vm->def->name)) == NULL) {
-            virDomainObjUnlock(vm);
-            continue;
-        }
-
-        /* Try and load the live config */
-        tmp = virDomainDefParseFile(NULL, lxc_driver->caps, config, 0);
-        VIR_FREE(config);
-        if (tmp) {
-            vm->newDef = vm->def;
-            vm->def = tmp;
-        }
-
-        if (vm->pid != 0) {
-            vm->def->id = vm->pid;
-            vm->state = VIR_DOMAIN_RUNNING;
-        } else {
-            vm->def->id = -1;
-            close(vm->monitor);
-            vm->monitor = -1;
-        }
-        virDomainObjUnlock(vm);
-    }
+    virHashForEach(lxc_driver->domains.objs, lxcReconnectVM, lxc_driver);
 
     lxcDriverUnlock(lxc_driver);
     return 0;
@@ -1756,7 +1779,7 @@ static int lxcShutdown(void)
         return(-1);
 
     lxcDriverLock(lxc_driver);
-    virDomainObjListFree(&lxc_driver->domains);
+    virDomainObjListDeinit(&lxc_driver->domains);
 
     virDomainEventCallbackListFree(lxc_driver->domainEventCallbacks);
     virDomainEventQueueFree(lxc_driver->domainEventQueue);
@@ -1785,19 +1808,13 @@ static int lxcShutdown(void)
  */
 static int
 lxcActive(void) {
-    unsigned int i;
-    int active = 0;
+    int active;
 
     if (lxc_driver == NULL)
         return(0);
 
     lxcDriverLock(lxc_driver);
-    for (i = 0 ; i < lxc_driver->domains.count ; i++) {
-        virDomainObjLock(lxc_driver->domains.objs[i]);
-        if (virDomainIsActive(lxc_driver->domains.objs[i]))
-            active = 1;
-        virDomainObjUnlock(lxc_driver->domains.objs[i]);
-    }
+    active = virDomainObjListNumOfDomains(&lxc_driver->domains, 1);
     lxcDriverUnlock(lxc_driver);
 
     return active;
@@ -1823,13 +1840,19 @@ static int lxcVersion(virConnectPtr conn, unsigned long *version)
     return 0;
 }
 
-static char *lxcGetSchedulerType(virDomainPtr domain ATTRIBUTE_UNUSED,
-                                 int *nparams)
+static char *lxcGetSchedulerType(virDomainPtr domain, int *nparams)
 {
+    char *schedulerType = NULL;
+
     if (nparams)
         *nparams = 1;
 
-    return strdup("posix");
+    schedulerType = strdup("posix");
+
+    if (schedulerType == NULL)
+        virReportOOMError(domain->conn);
+
+    return schedulerType;
 }
 
 static int lxcSetSchedulerParameters(virDomainPtr domain,
@@ -1860,8 +1883,8 @@ static int lxcSetSchedulerParameters(virDomainPtr domain,
     for (i = 0; i < nparams; i++) {
         virSchedParameterPtr param = &params[i];
         if (param->type != VIR_DOMAIN_SCHED_FIELD_ULLONG) {
-            lxcError(NULL, domain, VIR_ERR_INVALID_ARG,
-                     _("invalid type for cpu_shares tunable, expected a 'ullong'"));
+            lxcError(NULL, domain, VIR_ERR_INVALID_ARG, "%s",
+                     _("Invalid type for cpu_shares tunable, expected a 'ullong'"));
             goto cleanup;
         }
 
@@ -1935,6 +1958,65 @@ cleanup:
     return ret;
 }
 
+#ifdef __linux__
+static int
+lxcDomainInterfaceStats(virDomainPtr dom,
+                        const char *path,
+                        struct _virDomainInterfaceStats *stats)
+{
+    lxc_driver_t *driver = dom->conn->privateData;
+    virDomainObjPtr vm;
+    int i;
+    int ret = -1;
+
+    lxcDriverLock(driver);
+    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+    lxcDriverUnlock(driver);
+
+    if (!vm) {
+        char uuidstr[VIR_UUID_STRING_BUFLEN];
+        virUUIDFormat(dom->uuid, uuidstr);
+        lxcError(dom->conn, dom, VIR_ERR_NO_DOMAIN,
+                 _("No domain with matching uuid '%s'"), uuidstr);
+        goto cleanup;
+    }
+
+    if (!virDomainObjIsActive(vm)) {
+        lxcError(dom->conn, dom, VIR_ERR_OPERATION_INVALID,
+                 "%s", _("Domain is not running"));
+        goto cleanup;
+    }
+
+    /* Check the path is one of the domain's network interfaces. */
+    for (i = 0 ; i < vm->def->nnets ; i++) {
+        if (vm->def->nets[i]->ifname &&
+            STREQ(vm->def->nets[i]->ifname, path)) {
+            ret = 0;
+            break;
+        }
+    }
+
+    if (ret == 0)
+        ret = linuxDomainInterfaceStats(dom->conn, path, stats);
+    else
+        lxcError(dom->conn, dom, VIR_ERR_INVALID_ARG,
+                 _("Invalid path, '%s' is not a known interface"), path);
+
+cleanup:
+    if (vm)
+        virDomainObjUnlock(vm);
+    return ret;
+}
+#else
+static int
+lxcDomainInterfaceStats(virDomainPtr dom,
+                        const char *path ATTRIBUTE_UNUSED,
+                        struct _virDomainInterfaceStats *stats ATTRIBUTE_UNUSED)
+    lxcError(dom->conn, dom, VIR_ERR_NO_SUPPORT, "%s", __FUNCTION__);
+    return -1;
+}
+#endif
+
 static int lxcDomainGetAutostart(virDomainPtr dom,
                                    int *autostart) {
     lxc_driver_t *driver = dom->conn->privateData;
@@ -1949,7 +2031,7 @@ static int lxcDomainGetAutostart(virDomainPtr dom,
         char uuidstr[VIR_UUID_STRING_BUFLEN];
         virUUIDFormat(dom->uuid, uuidstr);
         lxcError(dom->conn, dom, VIR_ERR_NO_DOMAIN,
-                 _("no domain with matching uuid '%s'"), uuidstr);
+                 _("No domain with matching uuid '%s'"), uuidstr);
         goto cleanup;
     }
 
@@ -1976,51 +2058,58 @@ static int lxcDomainSetAutostart(virDomainPtr dom,
         char uuidstr[VIR_UUID_STRING_BUFLEN];
         virUUIDFormat(dom->uuid, uuidstr);
         lxcError(dom->conn, dom, VIR_ERR_NO_DOMAIN,
-                 _("no domain with matching uuid '%s'"), uuidstr);
+                 _("No domain with matching uuid '%s'"), uuidstr);
         goto cleanup;
     }
 
     if (!vm->persistent) {
         lxcError(dom->conn, dom, VIR_ERR_INTERNAL_ERROR,
-                 "%s", _("cannot set autostart for transient domain"));
+                 "%s", _("Cannot set autostart for transient domain"));
         goto cleanup;
     }
 
     autostart = (autostart != 0);
 
-    if (vm->autostart != autostart) {
-        if ((configFile = virDomainConfigFile(dom->conn, driver->configDir, vm->def->name)) == NULL)
+    if (vm->autostart == autostart) {
+        ret = 0;
+        goto cleanup;
+    }
+
+    configFile = virDomainConfigFile(dom->conn, driver->configDir,
+                                     vm->def->name);
+    if (configFile == NULL)
+        goto cleanup;
+    autostartLink = virDomainConfigFile(dom->conn, driver->autostartDir,
+                                        vm->def->name);
+    if (autostartLink == NULL)
+        goto cleanup;
+
+    if (autostart) {
+        int err;
+
+        if ((err = virFileMakePath(driver->autostartDir))) {
+            virReportSystemError(dom->conn, err,
+                                 _("Cannot create autostart directory %s"),
+                                 driver->autostartDir);
             goto cleanup;
-        if ((autostartLink = virDomainConfigFile(dom->conn, driver->autostartDir, vm->def->name)) == NULL)
-            goto cleanup;
-
-        if (autostart) {
-            int err;
-
-            if ((err = virFileMakePath(driver->autostartDir))) {
-                virReportSystemError(dom->conn, err,
-                                     _("cannot create autostart directory %s"),
-                                     driver->autostartDir);
-                goto cleanup;
-            }
-
-            if (symlink(configFile, autostartLink) < 0) {
-                virReportSystemError(dom->conn, errno,
-                                     _("Failed to create symlink '%s to '%s'"),
-                                     autostartLink, configFile);
-                goto cleanup;
-            }
-        } else {
-            if (unlink(autostartLink) < 0 && errno != ENOENT && errno != ENOTDIR) {
-                virReportSystemError(dom->conn, errno,
-                                     _("Failed to delete symlink '%s'"),
-                                     autostartLink);
-                goto cleanup;
-            }
         }
 
-        vm->autostart = autostart;
+        if (symlink(configFile, autostartLink) < 0) {
+            virReportSystemError(dom->conn, errno,
+                                 _("Failed to create symlink '%s to '%s'"),
+                                 autostartLink, configFile);
+            goto cleanup;
+        }
+    } else {
+        if (unlink(autostartLink) < 0 && errno != ENOENT && errno != ENOTDIR) {
+            virReportSystemError(dom->conn, errno,
+                                 _("Failed to delete symlink '%s'"),
+                                 autostartLink);
+            goto cleanup;
+        }
     }
+
+    vm->autostart = autostart;
     ret = 0;
 
 cleanup:
@@ -2030,20 +2119,6 @@ cleanup:
         virDomainObjUnlock(vm);
     lxcDriverUnlock(driver);
     return ret;
-}
-
-static char *lxcGetHostname (virConnectPtr conn)
-{
-    char *result;
-
-    result = virGetHostname();
-    if (result == NULL) {
-        virReportSystemError (conn, errno,
-                              "%s", _("failed to determine host name"));
-        return NULL;
-    }
-    /* Caller frees this string. */
-    return result;
 }
 
 static int lxcFreezeContainer(lxc_driver_t *driver, virDomainObjPtr vm)
@@ -2152,20 +2227,20 @@ static int lxcDomainSuspend(virDomainPtr dom)
         char uuidstr[VIR_UUID_STRING_BUFLEN];
         virUUIDFormat(dom->uuid, uuidstr);
         lxcError(dom->conn, dom, VIR_ERR_NO_DOMAIN,
-                 _("no domain with matching uuid '%s'"), uuidstr);
+                 _("No domain with matching uuid '%s'"), uuidstr);
         goto cleanup;
     }
 
-    if (!virDomainIsActive(vm)) {
+    if (!virDomainObjIsActive(vm)) {
         lxcError(dom->conn, dom, VIR_ERR_OPERATION_INVALID,
-                         "%s", _("domain is not running"));
+                 "%s", _("Domain is not running"));
         goto cleanup;
     }
 
     if (vm->state != VIR_DOMAIN_PAUSED) {
         if (lxcFreezeContainer(driver, vm) < 0) {
             lxcError(dom->conn, dom, VIR_ERR_OPERATION_FAILED,
-                             "%s", _("suspend operation failed"));
+                     "%s", _("Suspend operation failed"));
             goto cleanup;
         }
         vm->state = VIR_DOMAIN_PAUSED;
@@ -2217,20 +2292,20 @@ static int lxcDomainResume(virDomainPtr dom)
         char uuidstr[VIR_UUID_STRING_BUFLEN];
         virUUIDFormat(dom->uuid, uuidstr);
         lxcError(dom->conn, dom, VIR_ERR_NO_DOMAIN,
-                 _("no domain with matching uuid '%s'"), uuidstr);
+                 _("No domain with matching uuid '%s'"), uuidstr);
         goto cleanup;
     }
 
-    if (!virDomainIsActive(vm)) {
+    if (!virDomainObjIsActive(vm)) {
         lxcError(dom->conn, dom, VIR_ERR_OPERATION_INVALID,
-                         "%s", _("domain is not running"));
+                 "%s", _("Domain is not running"));
         goto cleanup;
     }
 
     if (vm->state == VIR_DOMAIN_PAUSED) {
         if (lxcUnfreezeContainer(driver, vm) < 0) {
             lxcError(dom->conn, dom, VIR_ERR_OPERATION_FAILED,
-                             "%s", _("resume operation failed"));
+                     "%s", _("Resume operation failed"));
             goto cleanup;
         }
         vm->state = VIR_DOMAIN_RUNNING;
@@ -2263,7 +2338,8 @@ static virDriver lxcDriver = {
     NULL, /* supports_feature */
     NULL, /* type */
     lxcVersion, /* version */
-    lxcGetHostname, /* getHostname */
+    NULL, /* libvirtVersion (impl. in libvirt.c) */
+    virGetHostname, /* getHostname */
     NULL, /* getMaxVcpus */
     nodeGetInfo, /* nodeGetInfo */
     lxcGetCapabilities, /* getCapabilities */
@@ -2311,7 +2387,7 @@ static virDriver lxcDriver = {
     NULL, /* domainMigratePerform */
     NULL, /* domainMigrateFinish */
     NULL, /* domainBlockStats */
-    NULL, /* domainInterfaceStats */
+    lxcDomainInterfaceStats, /* domainInterfaceStats */
     NULL, /* domainBlockPeek */
     NULL, /* domainMemoryPeek */
     nodeGetCellsFreeMemory, /* nodeGetCellsFreeMemory */
@@ -2324,9 +2400,14 @@ static virDriver lxcDriver = {
     NULL, /* nodeDeviceReAttach */
     NULL, /* nodeDeviceReset */
     NULL, /* domainMigratePrepareTunnel */
+    lxcIsEncrypted,
+    lxcIsSecure,
+    lxcDomainIsActive,
+    lxcDomainIsPersistent,
 };
 
 static virStateDriver lxcStateDriver = {
+    .name = "LXC",
     .initialize = lxcStartup,
     .cleanup = lxcShutdown,
     .active = lxcActive,
