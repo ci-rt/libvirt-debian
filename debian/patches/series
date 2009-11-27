@@ -2,7 +2,3 @@
 0002-qemu-disable-network.diff.patch
 0003-allow-libvirt-group-to-access-the-socket.patch
 0004-fix-Debian-specific-path-to-hvm-loader.patch
-0005-Fix-SELinux-linking-issues.patch
-0006-Don-t-let-parent-of-daemon-exit-until-basic-initiali.patch
-0007-Only-remove-masquerade-roles-for-VIR_NETWORK_FORWARD.patch
-0008-Fix-qemu-session.patch
