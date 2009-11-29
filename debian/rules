@@ -48,7 +48,11 @@ DEB_DH_MAKESHLIBS_ARGS_libvirt0 += -V 'libvirt0 (>= 0.5.0)'
 DEB_DH_INSTALLINIT_ARGS = --no-restart-on-upgrade -- defaults 28 72
 DEB_DH_INSTALLLOGROTATE_ARGS = --name=libvirtd
 
+EXAMPLES_DIR = $(CURDIR)/debian/libvirt-doc/usr/share/doc/libvirt-doc/examples/
+
 binary-install/libvirt-doc::
-	cd debian/libvirt-doc/usr/share/doc/libvirt-doc/examples && \
-		find * -name "*.o" -type f -delete -o -name .libs -type d -exec rm -rf {} \; && \
-		rm -f domain-events/events-c/event-test dominfo/info1 domsuspend/suspend hellolibvirt/hellolibvirt
+	find $(EXAMPLES_DIR) -name "*.o" -type f -delete -o -name .libs -type d -exec rm -rf {} \;
+	rm -f $(EXAMPLES_DIR)domain-events/events-c/event-test
+	rm -f $(EXAMPLES_DIR)dominfo/info1
+	rm -f $(EXAMPLES_DIR)domsuspend/suspend
+	rm -f $(EXAMPLES_DIR)hellolibvirt/hellolibvirt
