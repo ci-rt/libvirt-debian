@@ -1,3 +1,21 @@
+libvirt (0.7.4-1) unstable; urgency=low
+
+  [ Laurent Léonard ]
+  * [8f2761b] Imported Upstream version 0.7.4
+  * [20b6b3d] Drop patches. 
+      * 0005-Fix-SELinux-linking-issues.patch - fixed upstream.
+      * 0006-Don-t-let-parent-of-daemon-exit-until-basic-initiali.patch -
+        fixed upstream.
+      * 0007-Only-remove-masquerade-roles-for-VIR_NETWORK_FORWARD.patch -
+        applied upstream. 
+      * 0008-Fix-qemu-session.patch - fixed upstream.
+  * [e41f8c6] Update libvirt0 symbols.
+  * [f184e28] Revert "switch to new source format 3.0 (quilt)" This reverts
+    commit 213ca47bbbefe2dc95be58a09db34669e3be5797.
+  * [65084d2] Enhance handling of examples.
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 01 Dec 2009 18:51:18 +0100
+
 libvirt (0.7.2-4) unstable; urgency=low
 
   * [213ca47] switch to new source format 3.0 (quilt)
