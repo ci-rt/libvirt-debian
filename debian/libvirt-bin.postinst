@@ -25,12 +25,13 @@ case "$1" in
 	fi
 
 	# user and group libvirt runs qemu/kvm instances with
-	if ! getent group libvirt-qemu >/dev/null; then
-		addgroup --system libvirt-qemu
+	if ! getent group kvm >/dev/null; then
+		addgroup --quiet --system kvm
 	fi
 	if ! getent passwd libvirt-qemu >/dev/null; then
-		adduser --system \
-			--ingroup libvirt-qemu \
+		adduser --quiet \
+			--system \
+			--ingroup kvm \
 			--quiet \
 			--disabled-login \
 			--disabled-password \
@@ -38,9 +39,6 @@ case "$1" in
                         --no-create-home \
 			-gecos "Libvirt Qemu" \
 			libvirt-qemu
-		if getent group kvm >/dev/null; then
-			adduser libvirt-qemu kvm
-		fi
 	fi
 
 	# libvirt from 0.6.0 on is safe to restart with running vms:
