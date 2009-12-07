@@ -30,7 +30,7 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	--with-avahi             \
 	--with-sasl              \
 	--with-polkit		 \
-        --with-hal		 \
+        --with-udev		 \
         --with-storage-fs        \
         --with-storage-lvm       \
         --with-storage-iscsi     \
