@@ -1,3 +1,14 @@
+libvirt (0.7.4-2) experimental; urgency=low
+
+  * [65d3755] Disable SELinux to work around #559356
+  * [19bd427] Run qemu instances as qemu-libvirt instead of root by default
+    (Closes: #558197)
+  * [0a6c03b] Use kvm as primary group for libvirt-qemu user
+  * [e5ae24b] Fix udev backend startup
+  * [f610a8e] Use udev instead of hal backend
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 07 Dec 2009 21:20:20 +0100
+
 libvirt (0.7.4-1) unstable; urgency=low
 
   [ Laurent Léonard ]
