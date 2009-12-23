@@ -8,10 +8,10 @@ Subject: [PATCH] qemu-disable-network.diff
  2 files changed, 0 insertions(+), 6 deletions(-)
 
 diff --git a/src/Makefile.am b/src/Makefile.am
-index 26be8e2..ac3c5ea 100644
+index 8ef0e81..f59eb08 100644
 --- a/src/Makefile.am
 +++ b/src/Makefile.am
-@@ -887,9 +887,6 @@ if WITH_NETWORK
+@@ -913,9 +913,6 @@ if WITH_NETWORK
  	test -z "$(UUID)" || \
  	  sed -i -e "s,</name>,</name>\n  <uuid>$(UUID)</uuid>," \
  	    $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml
@@ -22,10 +22,10 @@ index 26be8e2..ac3c5ea 100644
  
  uninstall-local::
 diff --git a/src/Makefile.in b/src/Makefile.in
-index 3a9c662..a401cd9 100644
+index 5301dfc..143fe64 100644
 --- a/src/Makefile.in
 +++ b/src/Makefile.in
-@@ -3927,9 +3927,6 @@ install-data-local:
+@@ -4197,9 +4197,6 @@ install-data-local:
  @WITH_NETWORK_TRUE@	test -z "$(UUID)" || \
  @WITH_NETWORK_TRUE@	  sed -i -e "s,</name>,</name>\n  <uuid>$(UUID)</uuid>," \
  @WITH_NETWORK_TRUE@	    $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml
