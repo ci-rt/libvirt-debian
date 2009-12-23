@@ -43,7 +43,7 @@ AC_DEFUN([gl_INIT],
   gl_COMMON
   gl_source_base='gnulib/lib'
 changequote(,)dnl
-LTALLOCA=`echo "$ALLOCA" | sed 's/\.[^.]* /.lo /g;s/\.[^.]*$/.lo/'`
+LTALLOCA=`echo "$ALLOCA" | sed -e 's/\.[^.]* /.lo /g;s/\.[^.]*$/.lo/'`
 changequote([, ])dnl
 AC_SUBST([LTALLOCA])
   gl_FUNC_ALLOCA
@@ -71,8 +71,6 @@ AC_SUBST([LTALLOCA])
   gl_UNISTD_MODULE_INDICATOR([gethostname])
   gl_FUNC_GETLINE
   gl_STDIO_MODULE_INDICATOR([getline])
-  gl_FUNC_GETPAGESIZE
-  gl_UNISTD_MODULE_INDICATOR([getpagesize])
   gl_FUNC_GETPASS
   dnl you must add AM_GNU_GETTEXT([external]) or similar to configure.ac.
   AM_GNU_GETTEXT_VERSION([0.17])
@@ -127,6 +125,8 @@ AC_SUBST([LTALLOCA])
   gl_STDLIB_MODULE_INDICATOR([random_r])
   gl_FUNC_RAWMEMCHR
   gl_STRING_MODULE_INDICATOR([rawmemchr])
+  gl_FUNC_READLINK
+  gl_UNISTD_MODULE_INDICATOR([readlink])
   gl_FUNC_REALLOC_POSIX
   gl_STDLIB_MODULE_INDICATOR([realloc-posix])
   AC_REQUIRE([gl_HEADER_SYS_SOCKET])
@@ -166,6 +166,9 @@ AC_SUBST([LTALLOCA])
   gl_SYS_SOCKET_MODULE_INDICATOR([socket])
   gl_SOCKETS
   gl_TYPE_SOCKLEN_T
+  gt_TYPE_SSIZE_T
+  gl_FUNC_STAT
+  gl_SYS_STAT_MODULE_INDICATOR([stat])
   AM_STDBOOL_H
   gl_STDDEF_H
   gl_STDINT_H
@@ -230,7 +233,7 @@ AC_SUBST([LTALLOCA])
     if test -n "$gl_LIBOBJS"; then
       # Remove the extension.
       sed_drop_objext='s/\.o$//;s/\.obj$//'
-      for i in `for i in $gl_LIBOBJS; do echo "$i"; done | sed "$sed_drop_objext" | sort | uniq`; do
+      for i in `for i in $gl_LIBOBJS; do echo "$i"; done | sed -e "$sed_drop_objext" | sort | uniq`; do
         gl_libobjs="$gl_libobjs $i.$ac_objext"
         gl_ltlibobjs="$gl_ltlibobjs $i.lo"
       done
@@ -258,16 +261,21 @@ AC_SUBST([LTALLOCA])
   fi
   gl_SYS_SOCKET_MODULE_INDICATOR([bind])
   gl_FUNC_UNGETC_WORKS
+  AC_C_BIGENDIAN
+  AC_C_BIGENDIAN
   AC_REQUIRE([gl_HEADER_SYS_SOCKET])
   if test "$ac_cv_header_winsock2_h" = yes; then
     AC_LIBOBJ([listen])
   fi
   gl_SYS_SOCKET_MODULE_INDICATOR([listen])
+  gl_PATHMAX
   AC_CHECK_HEADERS_ONCE([unistd.h sys/wait.h])
   AC_CHECK_HEADERS_ONCE([unistd.h sys/wait.h])
   gt_TYPE_WCHAR_T
   gt_TYPE_WINT_T
-  AC_CHECK_FUNCS([shutdown])
+  gl_FUNC_SYMLINK
+  gl_UNISTD_MODULE_INDICATOR([symlink])
+  AC_CHECK_FUNCS_ONCE([shutdown])
   abs_aux_dir=`cd "$ac_aux_dir"; pwd`
   AC_SUBST([abs_aux_dir])
   m4_ifval(gltests_LIBSOURCES_LIST, [
@@ -292,7 +300,7 @@ AC_SUBST([LTALLOCA])
     if test -n "$gltests_LIBOBJS"; then
       # Remove the extension.
       sed_drop_objext='s/\.o$//;s/\.obj$//'
-      for i in `for i in $gltests_LIBOBJS; do echo "$i"; done | sed "$sed_drop_objext" | sort | uniq`; do
+      for i in `for i in $gltests_LIBOBJS; do echo "$i"; done | sed -e "$sed_drop_objext" | sort | uniq`; do
         gltests_libobjs="$gltests_libobjs $i.$ac_objext"
         gltests_ltlibobjs="$gltests_ltlibobjs $i.lo"
       done
@@ -361,6 +369,7 @@ AC_DEFUN([gltests_LIBSOURCES], [
 # This macro records the list of files which have been installed by
 # gnulib-tool and may be removed by future gnulib-tool invocations.
 AC_DEFUN([gl_FILE_LIST], [
+  build-aux/arg-nonnull.h
   build-aux/config.rpath
   build-aux/gitlog-to-changelog
   build-aux/link-warning.h
@@ -370,6 +379,8 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/alignof.h
   lib/alloca.c
   lib/alloca.in.h
+  lib/areadlink.c
+  lib/areadlink.h
   lib/arpa_inet.in.h
   lib/asnprintf.c
   lib/asprintf.c
@@ -391,7 +402,6 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/getdelim.c
   lib/gethostname.c
   lib/getline.c
-  lib/getpagesize.c
   lib/getpass.c
   lib/getpass.h
   lib/gettext.h
@@ -420,6 +430,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/random_r.c
   lib/rawmemchr.c
   lib/rawmemchr.valgrind
+  lib/readlink.c
   lib/realloc.c
   lib/recv.c
   lib/select.c
@@ -430,6 +441,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/socket.c
   lib/sockets.c
   lib/sockets.h
+  lib/stat.c
   lib/stdbool.in.h
   lib/stddef.in.h
   lib/stdint.in.h
@@ -469,6 +481,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/base64.m4
   m4/close.m4
   m4/codeset.m4
+  m4/dos.m4
   m4/errno_h.m4
   m4/extensions.m4
   m4/fclose.m4
@@ -478,7 +491,6 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/getdelim.m4
   m4/gethostname.m4
   m4/getline.m4
-  m4/getpagesize.m4
   m4/getpass.m4
   m4/gettext.m4
   m4/gettimeofday.m4
@@ -515,6 +527,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/netinet_in_h.m4
   m4/nls.m4
   m4/onceonly.m4
+  m4/pathmax.m4
   m4/perror.m4
   m4/physmem.m4
   m4/po.m4
@@ -525,6 +538,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/progtest.m4
   m4/random_r.m4
   m4/rawmemchr.m4
+  m4/readlink.m4
   m4/realloc.m4
   m4/select.m4
   m4/servent.m4
@@ -533,6 +547,8 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/sockets.m4
   m4/socklen.m4
   m4/sockpfaf.m4
+  m4/ssize_t.m4
+  m4/stat.m4
   m4/stdbool.m4
   m4/stddef_h.m4
   m4/stdint.m4
@@ -547,6 +563,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/strndup.m4
   m4/strnlen.m4
   m4/strsep.m4
+  m4/symlink.m4
   m4/sys_ioctl_h.m4
   m4/sys_select_h.m4
   m4/sys_socket_h.m4
@@ -568,6 +585,8 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/xsize.m4
   tests/test-alignof.c
   tests/test-alloca-opt.c
+  tests/test-areadlink.c
+  tests/test-areadlink.h
   tests/test-arpa_inet.c
   tests/test-base64.c
   tests/test-c-ctype.c
@@ -580,9 +599,12 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-gethostname.c
   tests/test-getline.c
   tests/test-gettimeofday.c
+  tests/test-inet_ntop.c
+  tests/test-inet_pton.c
   tests/test-lseek.c
   tests/test-lseek.sh
   tests/test-lstat.c
+  tests/test-lstat.h
   tests/test-memchr.c
   tests/test-netdb.c
   tests/test-netinet_in.c
@@ -591,6 +613,8 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-poll.c
   tests/test-random_r.c
   tests/test-rawmemchr.c
+  tests/test-readlink.c
+  tests/test-readlink.h
   tests/test-select-fd.c
   tests/test-select-in.sh
   tests/test-select-out.sh
@@ -598,6 +622,8 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-select.c
   tests/test-snprintf.c
   tests/test-sockets.c
+  tests/test-stat.c
+  tests/test-stat.h
   tests/test-stdbool.c
   tests/test-stddef.c
   tests/test-stdint.c
@@ -606,6 +632,8 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-strchrnul.c
   tests/test-strerror.c
   tests/test-string.c
+  tests/test-symlink.c
+  tests/test-symlink.h
   tests/test-sys_select.c
   tests/test-sys_socket.c
   tests/test-sys_stat.c
@@ -622,6 +650,9 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/bind.c
   tests=lib/dummy.c
   tests=lib/listen.c
+  tests=lib/pathmax.h
+  tests=lib/same-inode.h
+  tests=lib/symlink.c
   tests=lib/w32sock.h
   top/GNUmakefile
   top/maint.mk

@@ -98,6 +98,8 @@ mymain(int argc, char **argv)
     DO_TEST("disk-many");
     DO_TEST("disk-xenvbd");
     DO_TEST("disk-usb");
+    DO_TEST("floppy-drive-fat");
+    DO_TEST("disk-drive-fat");
     DO_TEST("disk-drive-fmt-qcow");
     DO_TEST("disk-drive-cache-v1-wt");
     DO_TEST("disk-drive-cache-v1-wb");
@@ -144,6 +146,6 @@ VIRT_TEST_MAIN(mymain)
 
 #else
 
-int main (void) { exit (77); /* means 'test skipped' to automake */ }
+int main (void) { exit (EXIT_AM_SKIP); }
 
 #endif /* WITH_QEMU */

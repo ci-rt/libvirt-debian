@@ -147,7 +147,7 @@ int oneSubmitVM(virConnectPtr    conn,
 
     if ((oneid = c_oneAllocateTemplate(templ)) < 0) {
         oneError(conn, NULL, VIR_ERR_OPERATION_FAILED,
-                 _("Error submitting virtual machine to OpenNebula"));
+                 "%s", _("Error submitting virtual machine to OpenNebula"));
         VIR_FREE(templ);
         return -1;
     }
@@ -278,7 +278,6 @@ char* xmlOneTemplate(virConnectPtr conn,virDomainDefPtr def)
 
 no_memory:
     virReportOOMError(conn);
-    char* tmp = virBufferContentAndReset(&buf);
-    VIR_FREE(tmp);
+    virBufferFreeAndReset(&buf);
     return NULL;
 };

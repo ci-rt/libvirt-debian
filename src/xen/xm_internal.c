@@ -152,9 +152,6 @@ static int xenXMConfigGetBool(virConnectPtr conn,
     if (val->type == VIR_CONF_LONG) {
         *value = val->l ? 1 : 0;
     } else if (val->type == VIR_CONF_STRING) {
-        if (!val->str) {
-            *value = def;
-        }
         *value = STREQ(val->str, "1") ? 1 : 0;
     } else {
         xenXMError(conn, VIR_ERR_INTERNAL_ERROR,
@@ -183,9 +180,6 @@ static int xenXMConfigGetULong(virConnectPtr conn,
         *value = val->l;
     } else if (val->type == VIR_CONF_STRING) {
         char *ret;
-        if (!val->str) {
-            *value = def;
-        }
         *value = strtol(val->str, &ret, 10);
         if (ret == val->str) {
             xenXMError(conn, VIR_ERR_INTERNAL_ERROR,
@@ -1020,6 +1014,7 @@ xenXMDomainConfigParse(virConnectPtr conn, virConfPtr conf) {
         while (list) {
             char script[PATH_MAX];
             char model[10];
+            char type[10];
             char ip[16];
             char mac[18];
             char bridge[50];
@@ -1031,6 +1026,7 @@ xenXMDomainConfigParse(virConnectPtr conn, virConfPtr conf) {
             script[0] = '\0';
             ip[0] = '\0';
             model[0] = '\0';
+            type[0] = '\0';
             vifname[0] = '\0';
 
             if ((list->type != VIR_CONF_STRING) || (list->str == NULL))
@@ -1074,6 +1070,13 @@ xenXMDomainConfigParse(virConnectPtr conn, virConfPtr conf) {
                     if (virStrncpy(model, data, len, sizeof(model)) == NULL) {
                         xenXMError(conn, VIR_ERR_INTERNAL_ERROR,
                                    _("Model %s too big for destination"), data);
+                        goto skipnic;
+                    }
+                } else if (STRPREFIX(key, "type=")) {
+                    int len = nextkey ? (nextkey - data) : sizeof(type) - 1;
+                    if (virStrncpy(type, data, len, sizeof(type)) == NULL) {
+                        xenXMError(conn, VIR_ERR_INTERNAL_ERROR,
+                                   _("Type %s too big for destination"), data);
                         goto skipnic;
                     }
                 } else if (STRPREFIX(key, "vifname=")) {
@@ -1145,8 +1148,14 @@ xenXMDomainConfigParse(virConnectPtr conn, virConfPtr conf) {
                     !(net->data.ethernet.ipaddr = strdup(ip)))
                     goto no_memory;
             }
+
             if (model[0] &&
                 !(net->model = strdup(model)))
+                goto no_memory;
+
+            if (!model[0] && type[0] &&
+                STREQ(type, "netfront") &&
+                !(net->model = strdup("netfront")))
                 goto no_memory;
 
             if (vifname[0] &&
@@ -1735,6 +1744,7 @@ int xenXMDomainPinVcpu(virDomainPtr domain,
             }
 
     if (virBufferError(&mapbuf)) {
+        virBufferFreeAndReset(&mapbuf);
         virReportOOMError(domain->conn);
         goto cleanup;
     }
@@ -1965,7 +1975,6 @@ static int xenXMDomainConfigFormatDisk(virConnectPtr conn,
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     virConfValuePtr val, tmp;
-    char *str;
 
     if(disk->src) {
         if (disk->driverName) {
@@ -1973,9 +1982,19 @@ static int xenXMDomainConfigFormatDisk(virConnectPtr conn,
             if (STREQ(disk->driverName, "tap"))
                 virBufferVSprintf(&buf, "%s:", disk->driverType ? disk->driverType : "aio");
         } else {
-            virBufferVSprintf(&buf, "%s:",
-                              disk->type == VIR_DOMAIN_DISK_TYPE_FILE ?
-                              "file" : "phy");
+            switch (disk->type) {
+            case VIR_DOMAIN_DISK_TYPE_FILE:
+                virBufferAddLit(&buf, "file:");
+                break;
+            case VIR_DOMAIN_DISK_TYPE_BLOCK:
+                virBufferAddLit(&buf, "phy:");
+                break;
+            default:
+                xenXMError(conn, VIR_ERR_INTERNAL_ERROR,
+                           _("unsupported disk type %s"),
+                           virDomainDiskTypeToString(disk->type));
+                goto cleanup;
+            }
         }
         virBufferVSprintf(&buf, "%s", disk->src);
     }
@@ -1996,7 +2015,7 @@ static int xenXMDomainConfigFormatDisk(virConnectPtr conn,
 
     if (virBufferError(&buf)) {
         virReportOOMError(conn);
-        return -1;
+        goto cleanup;
     }
 
     if (VIR_ALLOC(val) < 0) {
@@ -2017,8 +2036,7 @@ static int xenXMDomainConfigFormatDisk(virConnectPtr conn,
     return 0;
 
 cleanup:
-    str = virBufferContentAndReset(&buf);
-    VIR_FREE(str);
+    virBufferFreeAndReset(&buf);
     return -1;
 }
 
@@ -2029,7 +2047,6 @@ static int xenXMDomainConfigFormatNet(virConnectPtr conn,
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     virConfValuePtr val, tmp;
-    char *str;
     xenUnifiedPrivatePtr priv = (xenUnifiedPrivatePtr) conn->privateData;
 
     virBufferVSprintf(&buf, "mac=%02x:%02x:%02x:%02x:%02x:%02x",
@@ -2082,19 +2099,34 @@ static int xenXMDomainConfigFormatNet(virConnectPtr conn,
         goto cleanup;
     }
 
-    if (hvm && priv->xendConfigVersion <= XEND_CONFIG_MAX_VERS_NET_TYPE_IOEMU)
+    if (!hvm) {
+        if (net->model != NULL)
+            virBufferVSprintf(&buf, ",model=%s", net->model);
+    }
+    else if (net->model == NULL) {
+        /*
+         * apparently type ioemu breaks paravirt drivers on HVM so skip this
+         * from XEND_CONFIG_MAX_VERS_NET_TYPE_IOEMU
+         */
+        if (priv->xendConfigVersion <= XEND_CONFIG_MAX_VERS_NET_TYPE_IOEMU)
+            virBufferAddLit(&buf, ",type=ioemu");
+    }
+    else if (STREQ(net->model, "netfront")) {
+        virBufferAddLit(&buf, ",type=netfront");
+    }
+    else {
+        virBufferVSprintf(&buf, ",model=%s", net->model);
         virBufferAddLit(&buf, ",type=ioemu");
-
-    if (net->model)
-        virBufferVSprintf(&buf, ",model=%s",
-                          net->model);
+    }
 
     if (net->ifname)
         virBufferVSprintf(&buf, ",vifname=%s",
                           net->ifname);
 
-    if (virBufferError(&buf))
+    if (virBufferError(&buf)) {
+        virReportOOMError(conn);
         goto cleanup;
+    }
 
     if (VIR_ALLOC(val) < 0) {
         virReportOOMError(conn);
@@ -2114,8 +2146,7 @@ static int xenXMDomainConfigFormatNet(virConnectPtr conn,
     return 0;
 
 cleanup:
-    str = virBufferContentAndReset(&buf);
-    VIR_FREE(str);
+    virBufferFreeAndReset(&buf);
     return -1;
 }
 
@@ -2444,8 +2475,10 @@ virConfPtr xenXMDomainConfigFormat(virConnectPtr conn,
                     virBufferVSprintf(&buf, ",keymap=%s",
                                       def->graphics[0]->data.vnc.keymap);
             }
-            if (virBufferError(&buf))
+            if (virBufferError(&buf)) {
+                virBufferFreeAndReset(&buf);
                 goto no_memory;
+            }
 
             vfbstr = virBufferContentAndReset(&buf);
 

@@ -149,6 +149,7 @@ static void testDomainObjPrivateFree(void *data)
 {
     testDomainObjPrivatePtr priv = data;
 
+    VIR_FREE(priv->vcpu_infos);
     VIR_FREE(priv->cpumaps);
     VIR_FREE(priv);
 }
@@ -1163,6 +1164,7 @@ static int testClose(virConnectPtr conn)
     testDriverLock(privconn);
     virCapabilitiesFree(privconn->caps);
     virDomainObjListDeinit(&privconn->domains);
+    virNodeDeviceObjListFree(&privconn->devs);
     virNetworkObjListFree(&privconn->networks);
     virInterfaceObjListFree(&privconn->ifaces);
     virStoragePoolObjListFree(&privconn->pools);
@@ -1909,15 +1911,16 @@ static int testDomainCoreDump(virDomainPtr domain,
         goto cleanup;
     }
 
-    testDomainShutdownState(domain, privdom);
-    event = virDomainEventNewFromObj(privdom,
-                                     VIR_DOMAIN_EVENT_STOPPED,
-                                     VIR_DOMAIN_EVENT_STOPPED_CRASHED);
-
-    if (!privdom->persistent) {
-        virDomainRemoveInactive(&privconn->domains,
-                                privdom);
-        privdom = NULL;
+    if (flags & VIR_DUMP_CRASH) {
+        testDomainShutdownState(domain, privdom);
+        event = virDomainEventNewFromObj(privdom,
+                                         VIR_DOMAIN_EVENT_STOPPED,
+                                         VIR_DOMAIN_EVENT_STOPPED_CRASHED);
+        if (!privdom->persistent) {
+            virDomainRemoveInactive(&privconn->domains,
+                                    privdom);
+            privdom = NULL;
+        }
     }
 
     ret = 0;
@@ -5217,6 +5220,7 @@ static virDriver testDriver = {
     NULL, /* domainMigrateFinish */
     testDomainBlockStats, /* domainBlockStats */
     testDomainInterfaceStats, /* domainInterfaceStats */
+    NULL, /* domainMemoryStats */
     NULL, /* domainBlockPeek */
     NULL, /* domainMemoryPeek */
     testNodeGetCellsFreeMemory, /* nodeGetCellsFreeMemory */
@@ -5233,6 +5237,7 @@ static virDriver testDriver = {
     testIsSecure, /* isEncrypted */
     testDomainIsActive, /* domainIsActive */
     testDomainIsPersistent, /* domainIsPersistent */
+    NULL, /* cpuCompare */
 };
 
 static virNetworkDriver testNetworkDriver = {

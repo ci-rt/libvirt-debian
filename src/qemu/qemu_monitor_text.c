@@ -51,88 +51,6 @@ typedef int qemuMonitorExtraPromptHandler(qemuMonitorPtr mon,
                                           void *data);
 
 
-static char *qemuMonitorEscape(const char *in, int shell)
-{
-    int len = 0;
-    int i, j;
-    char *out;
-
-    /* To pass through the QEMU monitor, we need to use escape
-       sequences: \r, \n, \", \\
-
-       To pass through both QEMU + the shell, we need to escape
-       the single character ' as the five characters '\\''
-    */
-
-    for (i = 0; in[i] != '\0'; i++) {
-        switch(in[i]) {
-        case '\r':
-        case '\n':
-        case '"':
-        case '\\':
-            len += 2;
-            break;
-        case '\'':
-            if (shell)
-                len += 5;
-            else
-                len += 1;
-            break;
-        default:
-            len += 1;
-            break;
-        }
-    }
-
-    if (VIR_ALLOC_N(out, len + 1) < 0)
-        return NULL;
-
-    for (i = j = 0; in[i] != '\0'; i++) {
-        switch(in[i]) {
-        case '\r':
-            out[j++] = '\\';
-            out[j++] = 'r';
-            break;
-        case '\n':
-            out[j++] = '\\';
-            out[j++] = 'n';
-            break;
-        case '"':
-        case '\\':
-            out[j++] = '\\';
-            out[j++] = in[i];
-            break;
-        case '\'':
-            if (shell) {
-                out[j++] = '\'';
-                out[j++] = '\\';
-                out[j++] = '\\';
-                out[j++] = '\'';
-                out[j++] = '\'';
-            } else {
-                out[j++] = in[i];
-            }
-            break;
-        default:
-            out[j++] = in[i];
-            break;
-        }
-    }
-    out[j] = '\0';
-
-    return out;
-}
-
-static char *qemuMonitorEscapeArg(const char *in)
-{
-    return qemuMonitorEscape(in, 0);
-}
-
-static char *qemuMonitorEscapeShell(const char *in)
-{
-    return qemuMonitorEscape(in, 1);
-}
-
 /* When connecting to a monitor, QEMU will print a greeting like
  *
  * QEMU 0.11.0 monitor - type 'help' for more information
@@ -176,46 +94,78 @@ int qemuMonitorTextIOProcess(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
 
     /* Look for a non-zero reply followed by prompt */
     if (msg && !msg->finished) {
-        const char *end;
+        char *start = NULL;
+        char *end = NULL;
+        char *skip;
 
-        /* We might get a prompt for a password */
-        end = strstr(data + used, PASSWORD_PROMPT);
-        if (end) {
-            VIR_DEBUG("Woooo passwowrd [%s]", data + used);
-            if (msg->passwordHandler) {
-                size_t consumed;
-                /* Try and handle the prompt */
-                if (msg->passwordHandler(mon, msg,
-                                         data + used,
-                                         len - used,
-                                         msg->passwordOpaque) < 0)
-                    return -1;
-
-                /* Skip over prompt now */
-                consumed = (end + strlen(PASSWORD_PROMPT))
-                    - (data + used);
-                used += consumed;
-            } else {
-                errno = EACCES;
-                return -1;
+        /* If we're here, we've already sent the command. We now
+         * strip the trailing '\r' because it makes the matching
+         * code that follows a little easier ie we can just strstr()
+         * for the original command
+         */
+        if (msg->txLength > 0) {
+            char *tmp;
+            if ((tmp = strchr(msg->txBuffer, '\r'))) {
+                *tmp = '\0';
             }
         }
 
-        /* We use the arrival of BASIC_PROMPT to detect when we've got a
-         * complete reply available from a command */
-        end = strstr(data + used, BASIC_PROMPT);
-        if (end) {
-            /* QEMU echos the command back to us, full of control
-             * character junk that we don't want. Fortunately this
-             * is all terminated by LINE_ENDING, so we can easily
-             * skip over the control character junk */
-            const char *start = strstr(data + used, LINE_ENDING);
-            if (!start)
-                start = data + used;
-            else
-                start += strlen(LINE_ENDING);
-            int want = end - start;
+        /* QEMU echos the command back to us, full of control
+         * character junk that we don't want. We have to skip
+         * over this junk by looking for the first complete
+         * repetition of our command. Then we can look for
+         * the prompt that is supposed to follow
+         *
+         * NB, we can't optimize by immediately looking for
+         * LINE_ENDING, because QEMU 0.10 has bad problems
+         * when initially connecting where it might write a
+         * prompt in the wrong place. So we must not look
+         * for LINE_ENDING, or BASIC_PROMPT until we've
+         * seen our original command echod.
+         */
+        skip = strstr(data + used, msg->txBuffer);
 
+        /* After the junk we should have a line ending... */
+        if (skip) {
+            start = strstr(skip + strlen(msg->txBuffer), LINE_ENDING);
+        }
+
+        /* ... then our command reply data, following by a (qemu) prompt */
+        if (start) {
+            char *passwd;
+            start += strlen(LINE_ENDING);
+
+            /* We might get a prompt for a password before the (qemu) prompt */
+            passwd = strstr(start, PASSWORD_PROMPT);
+            if (passwd) {
+                VIR_DEBUG("Seen a passwowrd prompt [%s]", data + used);
+                if (msg->passwordHandler) {
+                    int i;
+                    /* Try and handle the prompt */
+                    if (msg->passwordHandler(mon, msg,
+                                             start,
+                                             passwd - start + strlen(PASSWORD_PROMPT),
+                                             msg->passwordOpaque) < 0)
+                        return -1;
+
+                    /* Blank out the password prompt so we don't re-trigger
+                     * if we have to go back to sleep for more I/O */
+                    for (i = 0 ; i < strlen(PASSWORD_PROMPT) ; i++)
+                        start[i] = ' ';
+
+                    /* Handled, so skip forward over password prompt */
+                    start = passwd;
+                } else {
+                    errno = EACCES;
+                    return -1;
+                }
+            }
+
+            end = strstr(start, BASIC_PROMPT);
+        }
+
+        if (start && end) {
+            int want = end - start;
             /* Annoyingly some commands may not have any reply data
              * at all upon success, but since we've detected the
              * BASIC_PROMPT we can reasonably reliably cope */
@@ -504,6 +454,65 @@ error:
     return 0;
 }
 
+static int parseMemoryStat(char **text, unsigned int tag,
+                           const char *search, virDomainMemoryStatPtr stat)
+{
+    char *dummy;
+    unsigned long long value;
+
+    if (STRPREFIX (*text, search)) {
+        *text += strlen(search);
+        if (virStrToLong_ull (*text, &dummy, 10, &value)) {
+            DEBUG ("error reading %s: %s", search, *text);
+            return 0;
+        }
+
+        /* Convert bytes to kilobytes for libvirt */
+        switch (tag) {
+            case VIR_DOMAIN_MEMORY_STAT_SWAP_IN:
+            case VIR_DOMAIN_MEMORY_STAT_SWAP_OUT:
+            case VIR_DOMAIN_MEMORY_STAT_UNUSED:
+            case VIR_DOMAIN_MEMORY_STAT_AVAILABLE:
+                value = value >> 10;
+        }
+        stat->tag = tag;
+        stat->val = value;
+        return 1;
+    }
+    return 0;
+}
+
+/* The reply from the 'info balloon' command may contain additional memory
+ * statistics in the form: '[,<tag>=<val>]*'
+ */
+static int qemuMonitorParseExtraBalloonInfo(char *text,
+                                            virDomainMemoryStatPtr stats,
+                                            unsigned int nr_stats)
+{
+    char *p = text;
+    unsigned int nr_stats_found = 0;
+
+    while (*p && nr_stats_found < nr_stats) {
+        if (parseMemoryStat(&p, VIR_DOMAIN_MEMORY_STAT_SWAP_IN,
+                            ",mem_swapped_in=", &stats[nr_stats_found]) ||
+            parseMemoryStat(&p, VIR_DOMAIN_MEMORY_STAT_SWAP_OUT,
+                            ",mem_swapped_out=", &stats[nr_stats_found]) ||
+            parseMemoryStat(&p, VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT,
+                            ",major_page_faults=", &stats[nr_stats_found]) ||
+            parseMemoryStat(&p, VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT,
+                            ",minor_page_faults=", &stats[nr_stats_found]) ||
+            parseMemoryStat(&p, VIR_DOMAIN_MEMORY_STAT_UNUSED,
+                            ",free_mem=", &stats[nr_stats_found]) ||
+            parseMemoryStat(&p, VIR_DOMAIN_MEMORY_STAT_AVAILABLE,
+                            ",total_mem=", &stats[nr_stats_found]))
+            nr_stats_found++;
+
+        /* Skip to the next label */
+        p = strchr (p, ',');
+        if (!p) break;
+    }
+    return nr_stats_found;
+}
 
 
 /* The reply from QEMU contains 'ballon: actual=421' where value is in MB */
@@ -545,6 +554,30 @@ int qemuMonitorTextGetBalloonInfo(qemuMonitorPtr mon,
     }
 
 cleanup:
+    VIR_FREE(reply);
+    return ret;
+}
+
+int qemuMonitorTextGetMemoryStats(qemuMonitorPtr mon,
+                                  virDomainMemoryStatPtr stats,
+                                  unsigned int nr_stats)
+{
+    char *reply = NULL;
+    int ret = 0;
+    char *offset;
+
+    if (qemuMonitorCommand(mon, "info balloon", &reply) < 0) {
+        qemudReportError(NULL, NULL, NULL, VIR_ERR_OPERATION_FAILED,
+                         "%s", _("could not query memory balloon statistics"));
+        return -1;
+    }
+
+    if ((offset = strstr(reply, BALLOON_PREFIX)) != NULL) {
+        if ((offset = strchr(reply, ',')) != NULL) {
+            ret = qemuMonitorParseExtraBalloonInfo(offset, stats, nr_stats);
+        }
+    }
+
     VIR_FREE(reply);
     return ret;
 }
@@ -775,7 +808,8 @@ cleanup:
 
 int qemuMonitorTextChangeMedia(qemuMonitorPtr mon,
                                const char *devname,
-                               const char *newmedia)
+                               const char *newmedia,
+                               const char *format ATTRIBUTE_UNUSED)
 {
     char *cmd = NULL;
     char *reply = NULL;
@@ -903,11 +937,6 @@ cleanup:
 #define MIGRATION_TRANSFER_PREFIX "transferred ram: "
 #define MIGRATION_REMAINING_PREFIX "remaining ram: "
 #define MIGRATION_TOTAL_PREFIX "total ram: "
-
-VIR_ENUM_DECL(qemuMonitorMigrationStatus)
-VIR_ENUM_IMPL(qemuMonitorMigrationStatus,
-              QEMU_MONITOR_MIGRATION_STATUS_LAST,
-              "inactive", "active", "completed", "failed", "cancelled")
 
 int qemuMonitorTextGetMigrationStatus(qemuMonitorPtr mon,
                                       int *status,
@@ -1103,8 +1132,8 @@ cleanup:
 }
 
 int qemuMonitorTextMigrateToUnix(qemuMonitorPtr mon,
-                             int background,
-                             const char *unixfile)
+                                 int background,
+                                 const char *unixfile)
 {
     char *dest = NULL;
     int ret = -1;
@@ -1125,7 +1154,7 @@ int qemuMonitorTextMigrateCancel(qemuMonitorPtr mon)
 {
     char *info = NULL;
 
-    if (qemuMonitorCommand(mon, "migrate cancel", &info) < 0) {
+    if (qemuMonitorCommand(mon, "migrate_cancel", &info) < 0) {
         qemudReportError(NULL, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
                          "%s", _("cannot run monitor command to cancel migration"));
         return -1;
@@ -1645,6 +1674,87 @@ int qemuMonitorTextRemoveHostNetwork(qemuMonitorPtr mon,
 
 cleanup:
     VIR_FREE(cmd);
+    VIR_FREE(reply);
+    return ret;
+}
+
+
+/* Parse the output of "info chardev" and return a hash of pty paths.
+ *
+ * Output is:
+ * foo: filename=pty:/dev/pts/7
+ * monitor: filename=stdio
+ * serial0: filename=vc
+ * parallel0: filename=vc
+ *
+ * Non-pty lines are ignored. In the above example, key is 'foo', value is
+ * '/dev/pty/7'. The hash will contain only a single value.
+ */
+
+int qemuMonitorTextGetPtyPaths(qemuMonitorPtr mon,
+                               virHashTablePtr paths)
+{
+    const char *cmd = "info chardev";
+    char *reply = NULL;
+    int ret = -1;
+
+    if (qemuMonitorCommand(mon, cmd, &reply) < 0) {
+        qemudReportError(NULL, NULL, NULL, VIR_ERR_OPERATION_FAILED,
+                         _("failed to retrieve chardev info in qemu with '%s'"),
+                         cmd);
+        goto cleanup;
+    }
+
+    char *pos = reply;                  /* The current start of searching */
+    char *end = pos + strlen(reply);    /* The end of the reply string */
+    char *eol;                   /* The character which ends the current line */
+
+    while (pos < end) {
+        /* Split the output into lines */
+        eol = memchr(pos, '\n', end - pos);
+        if (eol == NULL)
+            eol = end;
+
+        /* Look for 'filename=pty:' */
+#define NEEDLE "filename=pty:"
+        char *needle = memmem(pos, eol - pos, NEEDLE, strlen(NEEDLE));
+
+        /* If it's not there we can ignore this line */
+        if (!needle)
+            goto next;
+
+        /* id is everthing from the beginning of the line to the ':'
+         * find ':' and turn it into a terminator */
+        char *colon = memchr(pos, ':', needle - pos);
+        if (colon == NULL)
+            goto next;
+        *colon = '\0';
+        char *id = pos;
+
+        /* Path is everything after needle to the end of the line */
+        *eol = '\0';
+        char *path = strdup(needle + strlen(NEEDLE));
+        if (path == NULL) {
+            virReportOOMError(NULL);
+            goto cleanup;
+        }
+
+        if (virHashAddEntry(paths, id, path) < 0) {
+            qemudReportError(NULL, NULL, NULL, VIR_ERR_OPERATION_FAILED,
+                             _("failed to save chardev path '%s'"),
+                             path);
+            VIR_FREE(path);
+            goto cleanup;
+        }
+#undef NEEDLE
+
+    next:
+        pos = eol + 1;
+    }
+
+    ret = 0;
+
+cleanup:
     VIR_FREE(reply);
     return ret;
 }

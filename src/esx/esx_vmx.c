@@ -608,7 +608,7 @@ esxVMX_AbsolutePathToDatastoreRelatedPath(virConnectPtr conn,
     if (ctx != NULL) {
         if (esxVI_LookupDatastoreByName(conn, ctx, preliminaryDatastoreName,
                                         NULL, &datastore,
-                                        esxVI_Occurence_OptionalItem) < 0) {
+                                        esxVI_Occurrence_OptionalItem) < 0) {
             goto failure;
         }
 
@@ -1165,14 +1165,14 @@ esxVMX_ParseSCSIController(virConnectPtr conn, virConfPtr conf, int controller,
 
     if (virtualDev == NULL || *virtualDev != NULL) {
         ESX_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Invalid argument");
-        goto failure;
+        return -1;
     }
 
     if (controller < 0 || controller > 3) {
         ESX_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
                   "SCSI controller index %d out of [0..3] range",
                   controller);
-        goto failure;
+        return -1;
     }
 
     snprintf(present_name, sizeof(present_name), "scsi%d.present", controller);
@@ -1207,31 +1207,6 @@ esxVMX_ParseSCSIController(virConnectPtr conn, virConfPtr conf, int controller,
     VIR_FREE(*virtualDev);
 
     return -1;
-}
-
-
-
-char *
-esxVMX_IndexToDiskName(virConnectPtr conn, int idx, const char *prefix)
-{
-    char *name = NULL;
-
-    if (idx < 0) {
-        ESX_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                  "Disk index %d is negative", idx);
-    } else if (idx < 26) {
-        if (virAsprintf(&name, "%s%c", prefix, 'a' + idx) < 0)
-            virReportOOMError(conn);
-    } else if (idx < 702) {
-        if (virAsprintf(&name, "%s%c%c", prefix, 'a' + idx / 26 - 1,
-                        'a' + (idx % 26)) < 0)
-            virReportOOMError(conn);
-    } else {
-        ESX_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                  "Disk index %d is too large", idx);
-    }
-
-    return name;
 }
 
 
@@ -1337,8 +1312,8 @@ esxVMX_ParseDisk(virConnectPtr conn, esxVI_Context *ctx, virConfPtr conf,
             }
 
             (*def)->dst =
-               esxVMX_IndexToDiskName
-                 (conn, controller * 15 + (id < 7 ? id : id - 1), "sd");
+               virIndexToDiskName
+                 (controller * 15 + (id < 7 ? id : id - 1), "sd");
 
             if ((*def)->dst == NULL) {
                 goto failure;
@@ -1371,8 +1346,7 @@ esxVMX_ParseDisk(virConnectPtr conn, esxVI_Context *ctx, virConfPtr conf,
                 goto failure;
             }
 
-            (*def)->dst = esxVMX_IndexToDiskName(conn, controller * 2 + id,
-                                                 "hd");
+            (*def)->dst = virIndexToDiskName(controller * 2 + id, "hd");
 
             if ((*def)->dst == NULL) {
                 goto failure;
@@ -1398,7 +1372,7 @@ esxVMX_ParseDisk(virConnectPtr conn, esxVI_Context *ctx, virConfPtr conf,
                 goto failure;
             }
 
-            (*def)->dst = esxVMX_IndexToDiskName(conn, controller, "fd");
+            (*def)->dst = virIndexToDiskName(controller, "fd");
 
             if ((*def)->dst == NULL) {
                 goto failure;
@@ -1668,7 +1642,7 @@ esxVMX_ParseEthernet(virConnectPtr conn, virConfPtr conf, int controller,
         ESX_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
                   "Ethernet controller index %d out of [0..3] range",
                   controller);
-        goto failure;
+        return -1;
     }
 
     if (VIR_ALLOC(*def) < 0) {
@@ -1866,7 +1840,7 @@ esxVMX_ParseSerial(virConnectPtr conn, esxVI_Context *ctx, virConfPtr conf,
     if (port < 0 || port > 3) {
         ESX_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
                   "Serial port index %d out of [0..3] range", port);
-        goto failure;
+        return -1;
     }
 
     if (VIR_ALLOC(*def) < 0) {
@@ -1990,7 +1964,7 @@ esxVMX_ParseParallel(virConnectPtr conn, esxVI_Context *ctx, virConfPtr conf,
     if (port < 0 || port > 2) {
         ESX_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
                   "Parallel port index %d out of [0..2] range", port);
-        goto failure;
+        return -1;
     }
 
     if (VIR_ALLOC(*def) < 0) {
@@ -2150,7 +2124,6 @@ esxVMX_FormatConfig(virConnectPtr conn, esxVI_Context *ctx,
     int sched_cpu_affinity_length;
     unsigned char zero[VIR_UUID_BUFLEN];
     virBuffer buffer = VIR_BUFFER_INITIALIZER;
-    char *vmx = NULL;
 
     memset(zero, 0, VIR_UUID_BUFLEN);
 
@@ -2373,16 +2346,10 @@ esxVMX_FormatConfig(virConnectPtr conn, esxVI_Context *ctx,
         goto failure;
     }
 
-    vmx = virBufferContentAndReset(&buffer);
-
-    return vmx;
+    return virBufferContentAndReset(&buffer);
 
   failure:
-    if (vmx == NULL) {
-        vmx = virBufferContentAndReset(&buffer);
-    }
-
-    VIR_FREE(vmx);
+    virBufferFreeAndReset(&buffer);
 
     return NULL;
 }

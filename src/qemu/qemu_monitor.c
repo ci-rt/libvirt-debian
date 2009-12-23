@@ -30,6 +30,7 @@
 
 #include "qemu_monitor.h"
 #include "qemu_monitor_text.h"
+#include "qemu_monitor_json.h"
 #include "qemu_conf.h"
 #include "event.h"
 #include "virterror_internal.h"
@@ -38,11 +39,13 @@
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
+#define QEMU_DEBUG_RAW_IO 0
+
 struct _qemuMonitor {
     virMutex lock;
     virCond notify;
 
-    virDomainObjPtr dom;
+    int refs;
 
     int fd;
     int watch;
@@ -50,8 +53,7 @@ struct _qemuMonitor {
 
     virDomainObjPtr vm;
 
-    qemuMonitorEOFNotify eofCB;
-    qemuMonitorDiskSecretLookup secretCB;
+    qemuMonitorCallbacksPtr cb;
 
     /* If there's a command being processed this will be
      * non-NULL */
@@ -67,11 +69,119 @@ struct _qemuMonitor {
      * the next monitor msg */
     int lastErrno;
 
-    /* If the monitor callback is currently active */
+    /* If the monitor EOF callback is currently active (stops more commands being run) */
     unsigned eofcb: 1;
-    /* If the monitor callback should free the closed monitor */
+    /* If the monitor is in process of shutting down */
     unsigned closed: 1;
+
+    unsigned json: 1;
 };
+
+
+VIR_ENUM_IMPL(qemuMonitorMigrationStatus,
+              QEMU_MONITOR_MIGRATION_STATUS_LAST,
+              "inactive", "active", "completed", "failed", "cancelled")
+
+static char *qemuMonitorEscape(const char *in, int shell)
+{
+    int len = 0;
+    int i, j;
+    char *out;
+
+    /* To pass through the QEMU monitor, we need to use escape
+       sequences: \r, \n, \", \\
+
+       To pass through both QEMU + the shell, we need to escape
+       the single character ' as the five characters '\\''
+    */
+
+    for (i = 0; in[i] != '\0'; i++) {
+        switch(in[i]) {
+        case '\r':
+        case '\n':
+        case '"':
+        case '\\':
+            len += 2;
+            break;
+        case '\'':
+            if (shell)
+                len += 5;
+            else
+                len += 1;
+            break;
+        default:
+            len += 1;
+            break;
+        }
+    }
+
+    if (VIR_ALLOC_N(out, len + 1) < 0)
+        return NULL;
+
+    for (i = j = 0; in[i] != '\0'; i++) {
+        switch(in[i]) {
+        case '\r':
+            out[j++] = '\\';
+            out[j++] = 'r';
+            break;
+        case '\n':
+            out[j++] = '\\';
+            out[j++] = 'n';
+            break;
+        case '"':
+        case '\\':
+            out[j++] = '\\';
+            out[j++] = in[i];
+            break;
+        case '\'':
+            if (shell) {
+                out[j++] = '\'';
+                out[j++] = '\\';
+                out[j++] = '\\';
+                out[j++] = '\'';
+                out[j++] = '\'';
+            } else {
+                out[j++] = in[i];
+            }
+            break;
+        default:
+            out[j++] = in[i];
+            break;
+        }
+    }
+    out[j] = '\0';
+
+    return out;
+}
+
+char *qemuMonitorEscapeArg(const char *in)
+{
+    return qemuMonitorEscape(in, 0);
+}
+
+char *qemuMonitorEscapeShell(const char *in)
+{
+    return qemuMonitorEscape(in, 1);
+}
+
+
+#if QEMU_DEBUG_RAW_IO
+#include <c-ctype.h>
+static char * qemuMonitorEscapeNonPrintable(const char *text)
+{
+    int i;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    for (i = 0 ; text[i] != '\0' ; i++) {
+        if (c_isprint(text[i]) ||
+            text[i] == '\n' ||
+            (text[i] == '\r' && text[i+1] == '\n'))
+            virBufferVSprintf(&buf,"%c", text[i]);
+        else
+            virBufferVSprintf(&buf, "0x%02x", text[i]);
+    }
+    return virBufferContentAndReset(&buf);
+}
+#endif
 
 void qemuMonitorLock(qemuMonitorPtr mon)
 {
@@ -84,19 +194,32 @@ void qemuMonitorUnlock(qemuMonitorPtr mon)
 }
 
 
-static void qemuMonitorFree(qemuMonitorPtr mon, int lockDomain)
+static void qemuMonitorFree(qemuMonitorPtr mon)
 {
-    VIR_DEBUG("mon=%p, lockDomain=%d", mon, lockDomain);
-    if (mon->vm) {
-        if (lockDomain)
-            virDomainObjLock(mon->vm);
-        if (!virDomainObjUnref(mon->vm) && lockDomain)
-            virDomainObjUnlock(mon->vm);
-    }
+    VIR_DEBUG("mon=%p", mon);
     if (virCondDestroy(&mon->notify) < 0)
     {}
     virMutexDestroy(&mon->lock);
     VIR_FREE(mon);
+}
+
+int qemuMonitorRef(qemuMonitorPtr mon)
+{
+    mon->refs++;
+    return mon->refs;
+}
+
+int qemuMonitorUnref(qemuMonitorPtr mon)
+{
+    mon->refs--;
+
+    if (mon->refs == 0) {
+        qemuMonitorUnlock(mon);
+        qemuMonitorFree(mon);
+        return 0;
+    }
+
+    return mon->refs;
 }
 
 
@@ -179,10 +302,23 @@ qemuMonitorIOProcess(qemuMonitorPtr mon)
     if (mon->msg && mon->msg->txOffset == mon->msg->txLength)
         msg = mon->msg;
 
+#if QEMU_DEBUG_RAW_IO
+    char *str1 = qemuMonitorEscapeNonPrintable(msg ? msg->txBuffer : "");
+    char *str2 = qemuMonitorEscapeNonPrintable(mon->buffer);
+    VIR_ERROR("Process %d %p %p [[[[%s]]][[[%s]]]", (int)mon->bufferOffset, mon->msg, msg, str1, str2);
+    VIR_FREE(str1);
+    VIR_FREE(str2);
+#else
     VIR_DEBUG("Process %d", (int)mon->bufferOffset);
-    len = qemuMonitorTextIOProcess(mon,
-                                   mon->buffer, mon->bufferOffset,
-                                   msg);
+#endif
+    if (mon->json)
+        len = qemuMonitorJSONIOProcess(mon,
+                                       mon->buffer, mon->bufferOffset,
+                                       msg);
+    else
+        len = qemuMonitorTextIOProcess(mon,
+                                       mon->buffer, mon->bufferOffset,
+                                       msg);
 
     if (len < 0) {
         mon->lastErrno = errno;
@@ -348,6 +484,7 @@ qemuMonitorIO(int watch, int fd, int events, void *opaque) {
     int quit = 0, failed = 0;
 
     qemuMonitorLock(mon);
+    qemuMonitorRef(mon);
     VIR_DEBUG("Monitor %p I/O on watch %d fd %d events %d", mon, watch, fd, events);
 
     if (mon->fd != fd || mon->watch != watch) {
@@ -407,32 +544,35 @@ qemuMonitorIO(int watch, int fd, int events, void *opaque) {
      * but is this safe ?  I think it is, because the callback
      * will try to acquire the virDomainObjPtr mutex next */
     if (failed || quit) {
+        void (*eofNotify)(qemuMonitorPtr, virDomainObjPtr, int)
+            = mon->cb->eofNotify;
+        virDomainObjPtr vm = mon->vm;
         /* Make sure anyone waiting wakes up now */
         virCondSignal(&mon->notify);
-        mon->eofcb = 1;
-        qemuMonitorUnlock(mon);
+        if (qemuMonitorUnref(mon) > 0)
+            qemuMonitorUnlock(mon);
         VIR_DEBUG("Triggering EOF callback error? %d", failed);
-        mon->eofCB(mon, mon->vm, failed);
-
-        qemuMonitorLock(mon);
-        if (mon->closed) {
-            qemuMonitorUnlock(mon);
-            VIR_DEBUG("Delayed free of monitor %p", mon);
-            qemuMonitorFree(mon, 1);
-        } else {
-            qemuMonitorUnlock(mon);
-        }
+        (eofNotify)(mon, vm, failed);
     } else {
-        qemuMonitorUnlock(mon);
+        if (qemuMonitorUnref(mon) > 0)
+            qemuMonitorUnlock(mon);
     }
 }
 
 
 qemuMonitorPtr
 qemuMonitorOpen(virDomainObjPtr vm,
-                qemuMonitorEOFNotify eofCB)
+                virDomainChrDefPtr config,
+                int json,
+                qemuMonitorCallbacksPtr cb)
 {
     qemuMonitorPtr mon;
+
+    if (!cb || !cb->eofNotify) {
+        qemudReportError(NULL, NULL, NULL, VIR_ERR_INTERNAL_ERROR, "%s",
+                         _("EOF notify callback must be supplied"));
+        return NULL;
+    }
 
     if (VIR_ALLOC(mon) < 0) {
         virReportOOMError(NULL);
@@ -453,25 +593,26 @@ qemuMonitorOpen(virDomainObjPtr vm,
         return NULL;
     }
     mon->fd = -1;
+    mon->refs = 1;
     mon->vm = vm;
-    mon->eofCB = eofCB;
+    mon->json = json;
+    mon->cb = cb;
     qemuMonitorLock(mon);
-    virDomainObjRef(vm);
 
-    switch (vm->monitor_chr->type) {
+    switch (config->type) {
     case VIR_DOMAIN_CHR_TYPE_UNIX:
         mon->hasSendFD = 1;
-        mon->fd = qemuMonitorOpenUnix(vm->monitor_chr->data.nix.path);
+        mon->fd = qemuMonitorOpenUnix(config->data.nix.path);
         break;
 
     case VIR_DOMAIN_CHR_TYPE_PTY:
-        mon->fd = qemuMonitorOpenPty(vm->monitor_chr->data.file.path);
+        mon->fd = qemuMonitorOpenPty(config->data.file.path);
         break;
 
     default:
         qemudReportError(NULL, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
                          _("unable to handle monitor type: %s"),
-                         virDomainChrTypeToString(vm->monitor_chr->type));
+                         virDomainChrTypeToString(config->type));
         goto cleanup;
     }
 
@@ -512,10 +653,14 @@ cleanup:
 }
 
 
-void qemuMonitorClose(qemuMonitorPtr mon)
+int qemuMonitorClose(qemuMonitorPtr mon)
 {
+    int refs;
+
     if (!mon)
-        return;
+        return 0;
+
+    VIR_DEBUG("mon=%p", mon);
 
     qemuMonitorLock(mon);
     if (!mon->closed) {
@@ -523,25 +668,17 @@ void qemuMonitorClose(qemuMonitorPtr mon)
             virEventRemoveHandle(mon->watch);
         if (mon->fd != -1)
             close(mon->fd);
-        /* NB: don't reset  fd / watch fields, since active
-         * callback may still want them */
+        /* NB: ordinarily one might immediately set mon->watch to -1
+         * and mon->fd to -1, but there may be a callback active
+         * that is still relying on these fields being valid. So
+         * we merely close them, but not clear their values and
+         * use this explicit 'closed' flag to track this state */
         mon->closed = 1;
     }
 
-    if (mon->eofcb) {
-        VIR_DEBUG("Mark monitor to be deleted %p", mon);
+    if ((refs = qemuMonitorUnref(mon)) > 0)
         qemuMonitorUnlock(mon);
-    } else {
-        VIR_DEBUG("Delete monitor now %p", mon);
-        qemuMonitorFree(mon, 0);
-    }
-}
-
-
-void qemuMonitorRegisterDiskSecretLookup(qemuMonitorPtr mon,
-                                         qemuMonitorDiskSecretLookup secretCB)
-{
-    mon->secretCB = secretCB;
+    return refs;
 }
 
 
@@ -552,7 +689,6 @@ int qemuMonitorSend(qemuMonitorPtr mon,
 
     if (mon->eofcb) {
         msg->lastErrno = EIO;
-        qemuMonitorUnlock(mon);
         return -1;
     }
 
@@ -581,10 +717,77 @@ int qemuMonitorGetDiskSecret(qemuMonitorPtr mon,
                              char **secret,
                              size_t *secretLen)
 {
+    int ret = -1;
     *secret = NULL;
     *secretLen = 0;
 
-    return mon->secretCB(mon, conn, mon->vm, path, secret, secretLen);
+    qemuMonitorRef(mon);
+    qemuMonitorUnlock(mon);
+    if (mon->cb && mon->cb->diskSecretLookup)
+        ret = mon->cb->diskSecretLookup(mon, conn, mon->vm, path, secret, secretLen);
+    qemuMonitorLock(mon);
+    qemuMonitorUnref(mon);
+    return ret;
+}
+
+
+int qemuMonitorEmitShutdown(qemuMonitorPtr mon)
+{
+    int ret = -1;
+    VIR_DEBUG("mon=%p", mon);
+
+    qemuMonitorRef(mon);
+    qemuMonitorUnlock(mon);
+    if (mon->cb && mon->cb->domainShutdown)
+        ret = mon->cb->domainShutdown(mon, mon->vm);
+    qemuMonitorLock(mon);
+    qemuMonitorUnref(mon);
+    return ret;
+}
+
+
+int qemuMonitorEmitReset(qemuMonitorPtr mon)
+{
+    int ret = -1;
+    VIR_DEBUG("mon=%p", mon);
+
+    qemuMonitorRef(mon);
+    qemuMonitorUnlock(mon);
+    if (mon->cb && mon->cb->domainReset)
+        ret = mon->cb->domainReset(mon, mon->vm);
+    qemuMonitorLock(mon);
+    qemuMonitorUnref(mon);
+    return ret;
+}
+
+
+int qemuMonitorEmitPowerdown(qemuMonitorPtr mon)
+{
+    int ret = -1;
+    VIR_DEBUG("mon=%p", mon);
+
+    qemuMonitorRef(mon);
+    qemuMonitorUnlock(mon);
+    if (mon->cb && mon->cb->domainPowerdown)
+        ret = mon->cb->domainPowerdown(mon, mon->vm);
+    qemuMonitorLock(mon);
+    qemuMonitorUnref(mon);
+    return ret;
+}
+
+
+int qemuMonitorEmitStop(qemuMonitorPtr mon)
+{
+    int ret = -1;
+    VIR_DEBUG("mon=%p", mon);
+
+    qemuMonitorRef(mon);
+    qemuMonitorUnlock(mon);
+    if (mon->cb && mon->cb->domainStop)
+        ret = mon->cb->domainStop(mon, mon->vm);
+    qemuMonitorLock(mon);
+    qemuMonitorUnref(mon);
+    return ret;
 }
 
 
@@ -592,43 +795,68 @@ int
 qemuMonitorStartCPUs(qemuMonitorPtr mon,
                      virConnectPtr conn)
 {
+    int ret;
     DEBUG("mon=%p, fd=%d", mon, mon->fd);
 
-    return qemuMonitorTextStartCPUs(mon, conn);
+    if (mon->json)
+        ret = qemuMonitorJSONStartCPUs(mon, conn);
+    else
+        ret = qemuMonitorTextStartCPUs(mon, conn);
+    return ret;
 }
 
 
 int
 qemuMonitorStopCPUs(qemuMonitorPtr mon)
 {
+    int ret;
     DEBUG("mon=%p, fd=%d", mon, mon->fd);
 
-    return qemuMonitorTextStopCPUs(mon);
+    if (mon->json)
+        ret = qemuMonitorJSONStopCPUs(mon);
+    else
+        ret = qemuMonitorTextStopCPUs(mon);
+    return ret;
 }
 
 
 int qemuMonitorSystemPowerdown(qemuMonitorPtr mon)
 {
+    int ret;
     DEBUG("mon=%p, fd=%d", mon, mon->fd);
 
-    return qemuMonitorTextSystemPowerdown(mon);
+    if (mon->json)
+        ret = qemuMonitorJSONSystemPowerdown(mon);
+    else
+        ret = qemuMonitorTextSystemPowerdown(mon);
+    return ret;
 }
 
 
 int qemuMonitorGetCPUInfo(qemuMonitorPtr mon,
                           int **pids)
 {
+    int ret;
     DEBUG("mon=%p, fd=%d", mon, mon->fd);
 
-    return qemuMonitorTextGetCPUInfo(mon, pids);
+    if (mon->json)
+        ret = qemuMonitorJSONGetCPUInfo(mon, pids);
+    else
+        ret = qemuMonitorTextGetCPUInfo(mon, pids);
+    return ret;
 }
 
 int qemuMonitorGetBalloonInfo(qemuMonitorPtr mon,
                               unsigned long *currmem)
 {
+    int ret;
     DEBUG("mon=%p, fd=%d", mon, mon->fd);
 
-    return qemuMonitorTextGetBalloonInfo(mon, currmem);
+    if (mon->json)
+        ret = qemuMonitorJSONGetBalloonInfo(mon, currmem);
+    else
+        ret = qemuMonitorTextGetBalloonInfo(mon, currmem);
+    return ret;
 }
 
 
@@ -640,49 +868,78 @@ int qemuMonitorGetBlockStatsInfo(qemuMonitorPtr mon,
                                  long long *wr_bytes,
                                  long long *errs)
 {
+    int ret;
     DEBUG("mon=%p, fd=%d dev=%s", mon, mon->fd, devname);
 
-    return qemuMonitorTextGetBlockStatsInfo(mon, devname,
-                                            rd_req, rd_bytes,
-                                            wr_req, wr_bytes,
-                                            errs);
+    if (mon->json)
+        ret = qemuMonitorJSONGetBlockStatsInfo(mon, devname,
+                                               rd_req, rd_bytes,
+                                               wr_req, wr_bytes,
+                                               errs);
+    else
+        ret = qemuMonitorTextGetBlockStatsInfo(mon, devname,
+                                               rd_req, rd_bytes,
+                                               wr_req, wr_bytes,
+                                               errs);
+    return ret;
 }
 
 
 int qemuMonitorSetVNCPassword(qemuMonitorPtr mon,
                               const char *password)
 {
+    int ret;
     DEBUG("mon=%p, fd=%d", mon, mon->fd);
 
-    return qemuMonitorTextSetVNCPassword(mon, password);
+    if (mon->json)
+        ret = qemuMonitorJSONSetVNCPassword(mon, password);
+    else
+        ret = qemuMonitorTextSetVNCPassword(mon, password);
+    return ret;
 }
 
 
 int qemuMonitorSetBalloon(qemuMonitorPtr mon,
                           unsigned long newmem)
 {
+    int ret;
     DEBUG("mon=%p, fd=%d newmem=%lu", mon, mon->fd, newmem);
 
-    return qemuMonitorTextSetBalloon(mon, newmem);
+    if (mon->json)
+        ret = qemuMonitorJSONSetBalloon(mon, newmem);
+    else
+        ret = qemuMonitorTextSetBalloon(mon, newmem);
+    return ret;
 }
 
 int qemuMonitorEjectMedia(qemuMonitorPtr mon,
                           const char *devname)
 {
+    int ret;
     DEBUG("mon=%p, fd=%d devname=%s", mon, mon->fd, devname);
 
-    return qemuMonitorTextEjectMedia(mon, devname);
+    if (mon->json)
+        ret = qemuMonitorJSONEjectMedia(mon, devname);
+    else
+        ret = qemuMonitorTextEjectMedia(mon, devname);
+    return ret;
 }
 
 
 int qemuMonitorChangeMedia(qemuMonitorPtr mon,
                            const char *devname,
-                           const char *newmedia)
+                           const char *newmedia,
+                           const char *format)
 {
-    DEBUG("mon=%p, fd=%d devname=%s newmedia=%s",
-          mon, mon->fd, devname, newmedia);
+    int ret;
+    DEBUG("mon=%p, fd=%d devname=%s newmedia=%s format=%s",
+          mon, mon->fd, devname, newmedia, format);
 
-    return qemuMonitorTextChangeMedia(mon, devname, newmedia);
+    if (mon->json)
+        ret = qemuMonitorJSONChangeMedia(mon, devname, newmedia, format);
+    else
+        ret = qemuMonitorTextChangeMedia(mon, devname, newmedia, format);
+    return ret;
 }
 
 
@@ -691,10 +948,15 @@ int qemuMonitorSaveVirtualMemory(qemuMonitorPtr mon,
                                  size_t length,
                                  const char *path)
 {
+    int ret;
     DEBUG("mon=%p, fd=%d offset=%llu length=%zu path=%s",
           mon, mon->fd, offset, length, path);
 
-    return qemuMonitorTextSaveVirtualMemory(mon, offset, length, path);
+    if (mon->json)
+        ret = qemuMonitorJSONSaveVirtualMemory(mon, offset, length, path);
+    else
+        ret = qemuMonitorTextSaveVirtualMemory(mon, offset, length, path);
+    return ret;
 }
 
 int qemuMonitorSavePhysicalMemory(qemuMonitorPtr mon,
@@ -702,19 +964,29 @@ int qemuMonitorSavePhysicalMemory(qemuMonitorPtr mon,
                                   size_t length,
                                   const char *path)
 {
+    int ret;
     DEBUG("mon=%p, fd=%d offset=%llu length=%zu path=%s",
           mon, mon->fd, offset, length, path);
 
-    return qemuMonitorTextSavePhysicalMemory(mon, offset, length, path);
+    if (mon->json)
+        ret = qemuMonitorJSONSavePhysicalMemory(mon, offset, length, path);
+    else
+        ret = qemuMonitorTextSavePhysicalMemory(mon, offset, length, path);
+    return ret;
 }
 
 
 int qemuMonitorSetMigrationSpeed(qemuMonitorPtr mon,
                                  unsigned long bandwidth)
 {
+    int ret;
     DEBUG("mon=%p, fd=%d bandwidth=%lu", mon, mon->fd, bandwidth);
 
-    return qemuMonitorTextSetMigrationSpeed(mon, bandwidth);
+    if (mon->json)
+        ret = qemuMonitorJSONSetMigrationSpeed(mon, bandwidth);
+    else
+        ret = qemuMonitorTextSetMigrationSpeed(mon, bandwidth);
+    return ret;
 }
 
 int qemuMonitorGetMigrationStatus(qemuMonitorPtr mon,
@@ -723,12 +995,20 @@ int qemuMonitorGetMigrationStatus(qemuMonitorPtr mon,
                                   unsigned long long *remaining,
                                   unsigned long long *total)
 {
+    int ret;
     DEBUG("mon=%p, fd=%d", mon, mon->fd);
 
-    return qemuMonitorTextGetMigrationStatus(mon, status,
-                                             transferred,
-                                             remaining,
-                                             total);
+    if (mon->json)
+        ret = qemuMonitorJSONGetMigrationStatus(mon, status,
+                                                transferred,
+                                                remaining,
+                                                total);
+    else
+        ret = qemuMonitorTextGetMigrationStatus(mon, status,
+                                                transferred,
+                                                remaining,
+                                                total);
+    return ret;
 }
 
 
@@ -737,10 +1017,15 @@ int qemuMonitorMigrateToHost(qemuMonitorPtr mon,
                              const char *hostname,
                              int port)
 {
+    int ret;
     DEBUG("mon=%p, fd=%d hostname=%s port=%d",
           mon, mon->fd, hostname, port);
 
-    return qemuMonitorTextMigrateToHost(mon, background, hostname, port);
+    if (mon->json)
+        ret = qemuMonitorJSONMigrateToHost(mon, background, hostname, port);
+    else
+        ret = qemuMonitorTextMigrateToHost(mon, background, hostname, port);
+    return ret;
 }
 
 
@@ -749,35 +1034,55 @@ int qemuMonitorMigrateToCommand(qemuMonitorPtr mon,
                                 const char * const *argv,
                                 const char *target)
 {
+    int ret;
     DEBUG("mon=%p, fd=%d argv=%p target=%s",
           mon, mon->fd, argv, target);
 
-    return qemuMonitorTextMigrateToCommand(mon, background, argv, target);
+    if (mon->json)
+        ret = qemuMonitorJSONMigrateToCommand(mon, background, argv, target);
+    else
+        ret = qemuMonitorTextMigrateToCommand(mon, background, argv, target);
+    return ret;
 }
 
 int qemuMonitorMigrateToUnix(qemuMonitorPtr mon,
                              int background,
                              const char *unixfile)
 {
+    int ret;
     DEBUG("mon=%p fd=%d unixfile=%s",
           mon, mon->fd, unixfile);
 
-    return qemuMonitorTextMigrateToUnix(mon, background, unixfile);
+    if (mon->json)
+        ret = qemuMonitorJSONMigrateToUnix(mon, background, unixfile);
+    else
+        ret = qemuMonitorTextMigrateToUnix(mon, background, unixfile);
+    return ret;
 }
 
 int qemuMonitorMigrateCancel(qemuMonitorPtr mon)
 {
+    int ret;
     DEBUG("mon=%p fd=%d", mon, mon->fd);
 
-    return qemuMonitorTextMigrateCancel(mon);
+    if (mon->json)
+        ret = qemuMonitorJSONMigrateCancel(mon);
+    else
+        ret = qemuMonitorTextMigrateCancel(mon);
+    return ret;
 }
 
 int qemuMonitorAddUSBDisk(qemuMonitorPtr mon,
                           const char *path)
 {
+    int ret;
     DEBUG("mon=%p, fd=%d path=%s", mon, mon->fd, path);
 
-    return qemuMonitorTextAddUSBDisk(mon, path);
+    if (mon->json)
+        ret = qemuMonitorJSONAddUSBDisk(mon, path);
+    else
+        ret = qemuMonitorTextAddUSBDisk(mon, path);
+    return ret;
 }
 
 
@@ -785,19 +1090,29 @@ int qemuMonitorAddUSBDeviceExact(qemuMonitorPtr mon,
                                  int bus,
                                  int dev)
 {
+    int ret;
     DEBUG("mon=%p, fd=%d bus=%d dev=%d", mon, mon->fd, bus, dev);
 
-    return qemuMonitorTextAddUSBDeviceExact(mon, bus, dev);
+    if (mon->json)
+        ret = qemuMonitorJSONAddUSBDeviceExact(mon, bus, dev);
+    else
+        ret = qemuMonitorTextAddUSBDeviceExact(mon, bus, dev);
+    return ret;
 }
 
 int qemuMonitorAddUSBDeviceMatch(qemuMonitorPtr mon,
                                  int vendor,
                                  int product)
 {
+    int ret;
     DEBUG("mon=%p, fd=%d vendor=%d product=%d",
           mon, mon->fd, vendor, product);
 
-    return qemuMonitorTextAddUSBDeviceMatch(mon, vendor, product);
+    if (mon->json)
+        ret = qemuMonitorJSONAddUSBDeviceMatch(mon, vendor, product);
+    else
+        ret = qemuMonitorTextAddUSBDeviceMatch(mon, vendor, product);
+    return ret;
 }
 
 
@@ -810,16 +1125,26 @@ int qemuMonitorAddPCIHostDevice(qemuMonitorPtr mon,
                                 unsigned *guestBus,
                                 unsigned *guestSlot)
 {
+    int ret;
     DEBUG("mon=%p, fd=%d domain=%d bus=%d slot=%d function=%d",
           mon, mon->fd,
           hostDomain, hostBus, hostSlot, hostFunction);
 
-    return qemuMonitorTextAddPCIHostDevice(mon, hostDomain,
-                                           hostBus, hostSlot,
-                                           hostFunction,
-                                           guestDomain,
-                                           guestBus,
-                                           guestSlot);
+    if (mon->json)
+        ret = qemuMonitorJSONAddPCIHostDevice(mon, hostDomain,
+                                              hostBus, hostSlot,
+                                              hostFunction,
+                                              guestDomain,
+                                              guestBus,
+                                              guestSlot);
+    else
+        ret = qemuMonitorTextAddPCIHostDevice(mon, hostDomain,
+                                              hostBus, hostSlot,
+                                              hostFunction,
+                                              guestDomain,
+                                              guestBus,
+                                              guestSlot);
+    return ret;
 }
 
 
@@ -830,11 +1155,17 @@ int qemuMonitorAddPCIDisk(qemuMonitorPtr mon,
                           unsigned *guestBus,
                           unsigned *guestSlot)
 {
+    int ret;
     DEBUG("mon=%p, fd=%d path=%s bus=%s",
           mon, mon->fd, path, bus);
 
-    return qemuMonitorTextAddPCIDisk(mon, path, bus,
-                                     guestDomain, guestBus, guestSlot);
+    if (mon->json)
+        ret = qemuMonitorJSONAddPCIDisk(mon, path, bus,
+                                        guestDomain, guestBus, guestSlot);
+    else
+        ret = qemuMonitorTextAddPCIDisk(mon, path, bus,
+                                        guestDomain, guestBus, guestSlot);
+    return ret;
 }
 
 
@@ -844,10 +1175,16 @@ int qemuMonitorAddPCINetwork(qemuMonitorPtr mon,
                              unsigned *guestBus,
                              unsigned *guestSlot)
 {
+    int ret;
     DEBUG("mon=%p, fd=%d nicstr=%s", mon, mon->fd, nicstr);
 
-    return qemuMonitorTextAddPCINetwork(mon, nicstr, guestDomain,
-                                        guestBus, guestSlot);
+    if (mon->json)
+        ret = qemuMonitorJSONAddPCINetwork(mon, nicstr, guestDomain,
+                                           guestBus, guestSlot);
+    else
+        ret = qemuMonitorTextAddPCINetwork(mon, nicstr, guestDomain,
+                                           guestBus, guestSlot);
+    return ret;
 }
 
 
@@ -856,11 +1193,17 @@ int qemuMonitorRemovePCIDevice(qemuMonitorPtr mon,
                                unsigned guestBus,
                                unsigned guestSlot)
 {
+    int ret;
     DEBUG("mon=%p, fd=%d domain=%d bus=%d slot=%d",
           mon, mon->fd, guestDomain, guestBus, guestSlot);
 
-    return qemuMonitorTextRemovePCIDevice(mon, guestDomain,
-                                          guestBus, guestSlot);
+    if (mon->json)
+        ret = qemuMonitorJSONRemovePCIDevice(mon, guestDomain,
+                                             guestBus, guestSlot);
+    else
+        ret = qemuMonitorTextRemovePCIDevice(mon, guestDomain,
+                                             guestBus, guestSlot);
+    return ret;
 }
 
 
@@ -868,30 +1211,45 @@ int qemuMonitorSendFileHandle(qemuMonitorPtr mon,
                               const char *fdname,
                               int fd)
 {
+    int ret;
     DEBUG("mon=%p, fd=%d fdname=%s fd=%d",
           mon, mon->fd, fdname, fd);
 
-    return qemuMonitorTextSendFileHandle(mon, fdname, fd);
+    if (mon->json)
+        ret = qemuMonitorJSONSendFileHandle(mon, fdname, fd);
+    else
+        ret = qemuMonitorTextSendFileHandle(mon, fdname, fd);
+    return ret;
 }
 
 
 int qemuMonitorCloseFileHandle(qemuMonitorPtr mon,
                                const char *fdname)
 {
+    int ret;
     DEBUG("mon=%p, fd=%d fdname=%s",
           mon, mon->fd, fdname);
 
-    return qemuMonitorTextCloseFileHandle(mon, fdname);
+    if (mon->json)
+        ret = qemuMonitorJSONCloseFileHandle(mon, fdname);
+    else
+        ret = qemuMonitorTextCloseFileHandle(mon, fdname);
+    return ret;
 }
 
 
 int qemuMonitorAddHostNetwork(qemuMonitorPtr mon,
                               const char *netstr)
 {
+    int ret;
     DEBUG("mon=%p, fd=%d netstr=%s",
           mon, mon->fd, netstr);
 
-    return qemuMonitorTextAddHostNetwork(mon, netstr);
+    if (mon->json)
+        ret = qemuMonitorJSONAddHostNetwork(mon, netstr);
+    else
+        ret = qemuMonitorTextAddHostNetwork(mon, netstr);
+    return ret;
 }
 
 
@@ -899,8 +1257,22 @@ int qemuMonitorRemoveHostNetwork(qemuMonitorPtr mon,
                                  int vlan,
                                  const char *netname)
 {
+    int ret;
     DEBUG("mon=%p, fd=%d netname=%s",
           mon, mon->fd, netname);
 
-    return qemuMonitorTextRemoveHostNetwork(mon, vlan, netname);
+    if (mon->json)
+        ret = qemuMonitorJSONRemoveHostNetwork(mon, vlan, netname);
+    else
+        ret = qemuMonitorTextRemoveHostNetwork(mon, vlan, netname);
+    return ret;
+}
+
+int qemuMonitorGetPtyPaths(qemuMonitorPtr mon,
+                           virHashTablePtr paths)
+{
+    DEBUG("mon=%p, fd=%d",
+          mon, mon->fd);
+
+    return qemuMonitorTextGetPtyPaths(mon, paths);
 }

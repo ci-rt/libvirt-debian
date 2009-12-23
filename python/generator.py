@@ -160,7 +160,7 @@ def enum(type, name, value):
 
 functions_failed = []
 functions_skipped = [
-    "virConnectListDomains"
+    "virConnectListDomains",
 ]
 
 skipped_modules = {
@@ -281,6 +281,7 @@ skip_impl = (
     'virNetworkGetAutostart',
     'virDomainBlockStats',
     'virDomainInterfaceStats',
+    'virDomainMemoryStats',
     'virNodeGetCellsFreeMemory',
     'virDomainGetSchedulerType',
     'virDomainGetSchedulerParameters',

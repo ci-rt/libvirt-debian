@@ -246,7 +246,7 @@ char *virNodeDeviceDefFormat(virConnectPtr conn,
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     virNodeDevCapsDefPtr caps;
-    char *tmp;
+    unsigned int i = 0;
 
     virBufferAddLit(&buf, "<device>\n");
     virBufferEscapeString(&buf, "  <name>%s</name>\n", def->name);
@@ -318,6 +318,30 @@ char *virNodeDeviceDefFormat(virConnectPtr conn,
                                       data->pci_dev.vendor_name);
             else
                 virBufferAddLit(&buf, " />\n");
+            if (data->pci_dev.flags & VIR_NODE_DEV_CAP_FLAG_PCI_PHYSICAL_FUNCTION) {
+                virBufferAddLit(&buf, "    <capability type='phys_function'>\n");
+                virBufferVSprintf(&buf,
+                                  "      <address domain='0x%.4x' bus='0x%.2x' "
+                                  "slot='0x%.2x' function='0x%.1x'/>\n",
+                                  data->pci_dev.physical_function->domain,
+                                  data->pci_dev.physical_function->bus,
+                                  data->pci_dev.physical_function->slot,
+                                  data->pci_dev.physical_function->function);
+                virBufferAddLit(&buf, "    </capability>\n");
+            }
+            if (data->pci_dev.flags & VIR_NODE_DEV_CAP_FLAG_PCI_VIRTUAL_FUNCTION) {
+                virBufferAddLit(&buf, "    <capability type='virt_functions'>\n");
+                for (i = 0 ; i < data->pci_dev.num_virtual_functions ; i++) {
+                    virBufferVSprintf(&buf,
+                                      "      <address domain='0x%.4x' bus='0x%.2x' "
+                                      "slot='0x%.2x' function='0x%.1x'/>\n",
+                                      data->pci_dev.virtual_functions[i]->domain,
+                                      data->pci_dev.virtual_functions[i]->bus,
+                                      data->pci_dev.virtual_functions[i]->slot,
+                                      data->pci_dev.virtual_functions[i]->function);
+                }
+                virBufferAddLit(&buf, "    </capability>\n");
+            }
             break;
         case VIR_NODE_DEV_CAP_USB_DEV:
             virBufferVSprintf(&buf, "    <bus>%d</bus>\n", data->usb_dev.bus);
@@ -422,6 +446,11 @@ char *virNodeDeviceDefFormat(virConnectPtr conn,
                                   "</media_available>\n", avl ? 1 : 0);
                 virBufferVSprintf(&buf, "      <media_size>%llu</media_size>\n",
                                   data->storage.removable_media_size);
+                if (data->storage.media_label)
+                    virBufferEscapeString(&buf,
+                                      "      <media_label>%s</media_label>\n",
+                                      data->storage.media_label);
+
                 if (data->storage.logical_block_size > 0)
                     virBufferVSprintf(&buf, "      <logical_block_size>%llu"
                                       "</logical_block_size>\n",
@@ -464,8 +493,7 @@ char *virNodeDeviceDefFormat(virConnectPtr conn,
 
  no_memory:
     virReportOOMError(conn);
-    tmp = virBufferContentAndReset(&buf);
-    VIR_FREE(tmp);
+    virBufferFreeAndReset(&buf);
     return NULL;
 }
 
@@ -574,6 +602,8 @@ virNodeDevCapStorageParseXML(virConnectPtr conn,
 
             if (virXPathBoolean(conn, "count(./media_available[. = '1']) > 0", ctxt))
                 data->storage.flags |= VIR_NODE_DEV_CAP_STORAGE_REMOVABLE_MEDIA_AVAILABLE;
+
+            data->storage.media_label = virXPathString(conn, "string(./media_label[1])", ctxt);
 
             val = 0;
             if (virNodeDevCapsDefParseULongLong(conn, "number(./media_size[1])", ctxt, &val, def,
@@ -1387,6 +1417,7 @@ out:
 
 void virNodeDevCapsDefFree(virNodeDevCapsDefPtr caps)
 {
+    int i = 0;
     union _virNodeDevCapData *data = &caps->data;
 
     switch (caps->type) {
@@ -1402,6 +1433,10 @@ void virNodeDevCapsDefFree(virNodeDevCapsDefPtr caps)
     case VIR_NODE_DEV_CAP_PCI_DEV:
         VIR_FREE(data->pci_dev.product_name);
         VIR_FREE(data->pci_dev.vendor_name);
+        VIR_FREE(data->pci_dev.physical_function);
+        for (i = 0 ; i < data->pci_dev.num_virtual_functions ; i++) {
+            VIR_FREE(data->pci_dev.virtual_functions[i]);
+        }
         break;
     case VIR_NODE_DEV_CAP_USB_DEV:
         VIR_FREE(data->usb_dev.product_name);
@@ -1431,6 +1466,7 @@ void virNodeDevCapsDefFree(virNodeDevCapsDefPtr caps)
         VIR_FREE(data->storage.model);
         VIR_FREE(data->storage.vendor);
         VIR_FREE(data->storage.serial);
+        VIR_FREE(data->storage.media_label);
         break;
     case VIR_NODE_DEV_CAP_LAST:
         /* This case is here to shutup the compiler */

@@ -26,6 +26,10 @@
 
 #include "internal.h"
 #include "util.h"
+#include "buf.h"
+#include "cpu_conf.h"
+
+#include <libxml/xpath.h>
 
 typedef struct _virCapsGuestFeature virCapsGuestFeature;
 typedef virCapsGuestFeature *virCapsGuestFeaturePtr;
@@ -105,6 +109,7 @@ struct _virCapsHost {
     int nnumaCell;
     virCapsHostNUMACellPtr *numaCell;
     virCapsHostSecModel secModel;
+    virCPUDefPtr cpu;
 };
 
 typedef struct _virCaps virCaps;
@@ -117,6 +122,8 @@ struct _virCaps {
     unsigned int emulatorRequired : 1;
     void *(*privateDataAllocFunc)(void);
     void (*privateDataFreeFunc)(void *);
+    int (*privateDataXMLFormat)(virBufferPtr, void *);
+    int (*privateDataXMLParse)(xmlXPathContextPtr, void *);
 };
 
 
@@ -160,6 +167,10 @@ virCapabilitiesAddHostNUMACell(virCapsPtr caps,
                                int ncpus,
                                const int *cpus);
 
+
+extern int
+virCapabilitiesSetHostCPU(virCapsPtr caps,
+                          virCPUDefPtr cpu);
 
 
 extern virCapsGuestMachinePtr *

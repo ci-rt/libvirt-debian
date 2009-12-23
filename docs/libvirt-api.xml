@@ -20,6 +20,10 @@
      <exports symbol='VIR_UUID_BUFLEN' type='macro'/>
      <exports symbol='VIR_UUID_STRING_BUFLEN' type='macro'/>
      <exports symbol='VIR_CONNECT_RO' type='enum'/>
+     <exports symbol='VIR_CPU_COMPARE_ERROR' type='enum'/>
+     <exports symbol='VIR_CPU_COMPARE_IDENTICAL' type='enum'/>
+     <exports symbol='VIR_CPU_COMPARE_INCOMPATIBLE' type='enum'/>
+     <exports symbol='VIR_CPU_COMPARE_SUPERSET' type='enum'/>
      <exports symbol='VIR_CRED_AUTHNAME' type='enum'/>
      <exports symbol='VIR_CRED_CNONCE' type='enum'/>
      <exports symbol='VIR_CRED_ECHOPROMPT' type='enum'/>
@@ -53,6 +57,13 @@
      <exports symbol='VIR_DOMAIN_EVENT_SUSPENDED_PAUSED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_UNDEFINED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_UNDEFINED_REMOVED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_MEMORY_STAT_AVAILABLE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_MEMORY_STAT_NR' type='enum'/>
+     <exports symbol='VIR_DOMAIN_MEMORY_STAT_SWAP_IN' type='enum'/>
+     <exports symbol='VIR_DOMAIN_MEMORY_STAT_SWAP_OUT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_MEMORY_STAT_UNUSED' type='enum'/>
      <exports symbol='VIR_DOMAIN_NONE' type='enum'/>
      <exports symbol='VIR_DOMAIN_NOSTATE' type='enum'/>
      <exports symbol='VIR_DOMAIN_PAUSED' type='enum'/>
@@ -67,6 +78,8 @@
      <exports symbol='VIR_DOMAIN_SHUTOFF' type='enum'/>
      <exports symbol='VIR_DOMAIN_XML_INACTIVE' type='enum'/>
      <exports symbol='VIR_DOMAIN_XML_SECURE' type='enum'/>
+     <exports symbol='VIR_DUMP_CRASH' type='enum'/>
+     <exports symbol='VIR_DUMP_LIVE' type='enum'/>
      <exports symbol='VIR_EVENT_HANDLE_ERROR' type='enum'/>
      <exports symbol='VIR_EVENT_HANDLE_HANGUP' type='enum'/>
      <exports symbol='VIR_EVENT_HANDLE_READABLE' type='enum'/>
@@ -75,6 +88,7 @@
      <exports symbol='VIR_MEMORY_PHYSICAL' type='enum'/>
      <exports symbol='VIR_MEMORY_VIRTUAL' type='enum'/>
      <exports symbol='VIR_MIGRATE_LIVE' type='enum'/>
+     <exports symbol='VIR_MIGRATE_PAUSED' type='enum'/>
      <exports symbol='VIR_MIGRATE_PEER2PEER' type='enum'/>
      <exports symbol='VIR_MIGRATE_PERSIST_DEST' type='enum'/>
      <exports symbol='VIR_MIGRATE_TUNNELLED' type='enum'/>
@@ -102,6 +116,7 @@
      <exports symbol='VIR_VCPU_BLOCKED' type='enum'/>
      <exports symbol='VIR_VCPU_OFFLINE' type='enum'/>
      <exports symbol='VIR_VCPU_RUNNING' type='enum'/>
+     <exports symbol='virCPUCompareResult' type='typedef'/>
      <exports symbol='virConnect' type='typedef'/>
      <exports symbol='virConnectAuth' type='typedef'/>
      <exports symbol='virConnectAuthPtr' type='typedef'/>
@@ -113,6 +128,7 @@
      <exports symbol='virDomain' type='typedef'/>
      <exports symbol='virDomainBlockStatsPtr' type='typedef'/>
      <exports symbol='virDomainBlockStatsStruct' type='typedef'/>
+     <exports symbol='virDomainCoreDumpFlags' type='typedef'/>
      <exports symbol='virDomainCreateFlags' type='typedef'/>
      <exports symbol='virDomainEventDefinedDetailType' type='typedef'/>
      <exports symbol='virDomainEventResumedDetailType' type='typedef'/>
@@ -126,6 +142,9 @@
      <exports symbol='virDomainInterfaceStatsPtr' type='typedef'/>
      <exports symbol='virDomainInterfaceStatsStruct' type='typedef'/>
      <exports symbol='virDomainMemoryFlags' type='typedef'/>
+     <exports symbol='virDomainMemoryStatPtr' type='typedef'/>
+     <exports symbol='virDomainMemoryStatStruct' type='typedef'/>
+     <exports symbol='virDomainMemoryStatTags' type='typedef'/>
      <exports symbol='virDomainMigrateFlags' type='typedef'/>
      <exports symbol='virDomainPtr' type='typedef'/>
      <exports symbol='virDomainState' type='typedef'/>
@@ -175,6 +194,7 @@
      <exports symbol='_virDomainBlockStats' type='struct'/>
      <exports symbol='_virDomainInfo' type='struct'/>
      <exports symbol='_virDomainInterfaceStats' type='struct'/>
+     <exports symbol='_virDomainMemoryStat' type='struct'/>
      <exports symbol='_virNodeInfo' type='struct'/>
      <exports symbol='_virSchedParameter' type='struct'/>
      <exports symbol='_virSecurityLabel' type='struct'/>
@@ -185,6 +205,7 @@
      <exports symbol='virConnectAuthPtrDefault' type='variable'/>
      <exports symbol='virConnectAuthCallbackPtr' type='function'/>
      <exports symbol='virConnectClose' type='function'/>
+     <exports symbol='virConnectCompareCPU' type='function'/>
      <exports symbol='virConnectDomainEventCallback' type='function'/>
      <exports symbol='virConnectDomainEventDeregister' type='function'/>
      <exports symbol='virConnectDomainEventRegister' type='function'/>
@@ -256,6 +277,7 @@
      <exports symbol='virDomainLookupByUUID' type='function'/>
      <exports symbol='virDomainLookupByUUIDString' type='function'/>
      <exports symbol='virDomainMemoryPeek' type='function'/>
+     <exports symbol='virDomainMemoryStats' type='function'/>
      <exports symbol='virDomainMigrate' type='function'/>
      <exports symbol='virDomainMigrateToURI' type='function'/>
      <exports symbol='virDomainPinVcpu' type='function'/>
@@ -476,6 +498,7 @@
      <exports symbol='VIR_ERR_XML_DETAIL' type='enum'/>
      <exports symbol='VIR_ERR_XML_ERROR' type='enum'/>
      <exports symbol='VIR_FROM_CONF' type='enum'/>
+     <exports symbol='VIR_FROM_CPU' type='enum'/>
      <exports symbol='VIR_FROM_DOM' type='enum'/>
      <exports symbol='VIR_FROM_DOMAIN' type='enum'/>
      <exports symbol='VIR_FROM_ESX' type='enum'/>
@@ -593,6 +616,10 @@
       <info><![CDATA[This macro provides the length of the buffer required for virDomainGetUUIDString()]]></info>
     </macro>
     <enum name='VIR_CONNECT_RO' file='libvirt' value='1' type='virConnectFlags' info=' A readonly connection'/>
+    <enum name='VIR_CPU_COMPARE_ERROR' file='libvirt' value='-1' type='virCPUCompareResult'/>
+    <enum name='VIR_CPU_COMPARE_IDENTICAL' file='libvirt' value='1' type='virCPUCompareResult'/>
+    <enum name='VIR_CPU_COMPARE_INCOMPATIBLE' file='libvirt' value='0' type='virCPUCompareResult'/>
+    <enum name='VIR_CPU_COMPARE_SUPERSET' file='libvirt' value='2' type='virCPUCompareResult'/>
     <enum name='VIR_CRED_AUTHNAME' file='libvirt' value='2' type='virConnectCredentialType' info='Identify to authorize as'/>
     <enum name='VIR_CRED_CNONCE' file='libvirt' value='4' type='virConnectCredentialType' info='client supplies a nonce'/>
     <enum name='VIR_CRED_ECHOPROMPT' file='libvirt' value='6' type='virConnectCredentialType' info='Challenge response'/>
@@ -626,6 +653,26 @@
     <enum name='VIR_DOMAIN_EVENT_SUSPENDED_PAUSED' file='libvirt' value='0' type='virDomainEventSuspendedDetailType' info='Normal suspend due to admin pause'/>
     <enum name='VIR_DOMAIN_EVENT_UNDEFINED' file='libvirt' value='1' type='virDomainEventType'/>
     <enum name='VIR_DOMAIN_EVENT_UNDEFINED_REMOVED' file='libvirt' value='0' type='virDomainEventUndefinedDetailType' info=' Deleted the config file'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_AVAILABLE' file='libvirt' value='5' type='virDomainMemoryStatTags' info='* The number of statistics supported by this version of the interface.
+* To add new statistics, add them to the enum and increase this value.
+*'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT' file='libvirt' value='2' type='virDomainMemoryStatTags'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT' file='libvirt' value='3' type='virDomainMemoryStatTags' info='* The amount of memory left completely unused by the system.  Memory that
+* is available but used for reclaimable caches should NOT be reported as
+* free.  This value is expressed in kB.
+*'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_NR' file='libvirt' value='6' type='virDomainMemoryStatTags'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_SWAP_IN' file='libvirt' value='0' type='virDomainMemoryStatTags' info='The total amount of memory written out to swap space (in kB).'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_SWAP_OUT' file='libvirt' value='1' type='virDomainMemoryStatTags' info='* Page faults occur when a process makes a valid access to virtual memory
+* that is not available.  When servicing the page fault, if disk IO is
+* required, it is considered a major fault.  If not, it is a minor fault.
+* These are expressed as the number of faults that have occurred.
+*'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_UNUSED' file='libvirt' value='4' type='virDomainMemoryStatTags' info='* The total amount of usable memory as seen by the domain.  This value
+* may be less than the amount of memory assigned to the domain if a
+* balloon driver is in use or if the guest OS does not initialize all
+* assigned pages.  This value is expressed in kB.
+*'/>
     <enum name='VIR_DOMAIN_NONE' file='libvirt' value='0' type='virDomainCreateFlags'/>
     <enum name='VIR_DOMAIN_NOSTATE' file='libvirt' value='0' type='virDomainState' info='no state'/>
     <enum name='VIR_DOMAIN_PAUSED' file='libvirt' value='3' type='virDomainState' info='the domain is paused by user'/>
@@ -640,6 +687,8 @@
     <enum name='VIR_DOMAIN_SHUTOFF' file='libvirt' value='5' type='virDomainState' info='the domain is shut off'/>
     <enum name='VIR_DOMAIN_XML_INACTIVE' file='libvirt' value='2' type='virDomainXMLFlags' info=' dump inactive domain information'/>
     <enum name='VIR_DOMAIN_XML_SECURE' file='libvirt' value='1' type='virDomainXMLFlags' info='dump security sensitive information too'/>
+    <enum name='VIR_DUMP_CRASH' file='libvirt' value='1' type='virDomainCoreDumpFlags' info='crash after dump'/>
+    <enum name='VIR_DUMP_LIVE' file='libvirt' value='2' type='virDomainCoreDumpFlags' info=' live dump'/>
     <enum name='VIR_ERR_AUTH_FAILED' file='virterror' value='45' type='virErrorNumber' info='authentication failed'/>
     <enum name='VIR_ERR_CALL_FAILED' file='virterror' value='26' type='virErrorNumber' info='not supported by the drivers (DEPRECATED)'/>
     <enum name='VIR_ERR_CONFIG_UNSUPPORTED' file='virterror' value='63' type='virErrorNumber' info='unsupported configuration construct'/>
@@ -710,6 +759,7 @@ VM persist on the dest host failed'/>
     <enum name='VIR_EVENT_HANDLE_READABLE' file='libvirt' value='1' type='virEventHandleType'/>
     <enum name='VIR_EVENT_HANDLE_WRITABLE' file='libvirt' value='2' type='virEventHandleType'/>
     <enum name='VIR_FROM_CONF' file='virterror' value='9' type='virErrorDomain' info='Error in the configuration file handling'/>
+    <enum name='VIR_FROM_CPU' file='virterror' value='31' type='virErrorDomain' info=' Error from CPU driver'/>
     <enum name='VIR_FROM_DOM' file='virterror' value='6' type='virErrorDomain' info='Error when operating on a domain'/>
     <enum name='VIR_FROM_DOMAIN' file='virterror' value='20' type='virErrorDomain' info='Error from domain config'/>
     <enum name='VIR_FROM_ESX' file='virterror' value='28' type='virErrorDomain' info='Error from ESX driver'/>
@@ -726,7 +776,7 @@ VM persist on the dest host failed'/>
     <enum name='VIR_FROM_QEMU' file='virterror' value='10' type='virErrorDomain' info='Error at the QEMU daemon'/>
     <enum name='VIR_FROM_REMOTE' file='virterror' value='13' type='virErrorDomain' info='Error from remote driver'/>
     <enum name='VIR_FROM_RPC' file='virterror' value='7' type='virErrorDomain' info='Error in the XML-RPC code'/>
-    <enum name='VIR_FROM_SECRET' file='virterror' value='30' type='virErrorDomain' info=' Error from secret storage'/>
+    <enum name='VIR_FROM_SECRET' file='virterror' value='30' type='virErrorDomain' info='Error from secret storage'/>
     <enum name='VIR_FROM_SECURITY' file='virterror' value='24' type='virErrorDomain' info='Error from security framework'/>
     <enum name='VIR_FROM_SEXPR' file='virterror' value='4' type='virErrorDomain' info='Error in the S-Expression code'/>
     <enum name='VIR_FROM_STATS_LINUX' file='virterror' value='16' type='virErrorDomain' info='Error in the Linux Stats code'/>
@@ -744,10 +794,11 @@ VM persist on the dest host failed'/>
     <enum name='VIR_MEMORY_PHYSICAL' file='libvirt' value='2' type='virDomainMemoryFlags' info=' addresses are physical addresses'/>
     <enum name='VIR_MEMORY_VIRTUAL' file='libvirt' value='1' type='virDomainMemoryFlags' info='addresses are virtual addresses'/>
     <enum name='VIR_MIGRATE_LIVE' file='libvirt' value='1' type='virDomainMigrateFlags' info='live migration'/>
+    <enum name='VIR_MIGRATE_PAUSED' file='libvirt' value='32' type='virDomainMigrateFlags' info=' pause on remote side'/>
     <enum name='VIR_MIGRATE_PEER2PEER' file='libvirt' value='2' type='virDomainMigrateFlags' info='direct source -&gt; dest host control channel'/>
     <enum name='VIR_MIGRATE_PERSIST_DEST' file='libvirt' value='8' type='virDomainMigrateFlags' info='persist the VM on the destination'/>
     <enum name='VIR_MIGRATE_TUNNELLED' file='libvirt' value='4' type='virDomainMigrateFlags' info='tunnel migration data over libvirtd connection'/>
-    <enum name='VIR_MIGRATE_UNDEFINE_SOURCE' file='libvirt' value='16' type='virDomainMigrateFlags' info=' undefine the VM on the source'/>
+    <enum name='VIR_MIGRATE_UNDEFINE_SOURCE' file='libvirt' value='16' type='virDomainMigrateFlags' info='undefine the VM on the source'/>
     <enum name='VIR_SECRET_USAGE_TYPE_NONE' file='libvirt' value='0' type='virSecretUsageType'/>
     <enum name='VIR_SECRET_USAGE_TYPE_VOLUME' file='libvirt' value='1' type='virSecretUsageType' info=' Expect more owner types later...'/>
     <enum name='VIR_STORAGE_POOL_BUILDING' file='libvirt' value='1' type='virStoragePoolState' info='Initializing pool, not available'/>
@@ -776,6 +827,7 @@ VM persist on the dest host failed'/>
     <enum name='VIR_WAR_NO_NODE' file='virterror' value='51' type='virErrorNumber' info='failed to start node driver'/>
     <enum name='VIR_WAR_NO_SECRET' file='virterror' value='60' type='virErrorNumber' info='failed to start secret storage'/>
     <enum name='VIR_WAR_NO_STORAGE' file='virterror' value='48' type='virErrorNumber' info='failed to start storage'/>
+    <typedef name='virCPUCompareResult' file='libvirt' type='enum'/>
     <struct name='virConnect' file='libvirt' type='struct _virConnect'/>
     <struct name='virConnectAuth' file='libvirt' type='struct _virConnectAuth'>
       <field name='credtype' type='int *' info=' List of supported virConnectCredentialType values'/>
@@ -809,6 +861,7 @@ VM persist on the dest host failed'/>
       <field name='wr_bytes' type='long long' info=' number of written bytes'/>
       <field name='errs' type='long long' info=' In Xen this returns the mysterious &apos;oo_req&apos;.'/>
     </struct>
+    <typedef name='virDomainCoreDumpFlags' file='libvirt' type='enum'/>
     <typedef name='virDomainCreateFlags' file='libvirt' type='enum'/>
     <typedef name='virDomainEventDefinedDetailType' file='libvirt' type='enum'/>
     <typedef name='virDomainEventResumedDetailType' file='libvirt' type='enum'/>
@@ -841,6 +894,12 @@ VM persist on the dest host failed'/>
       <field name='tx_drop' type='long long' info=''/>
     </struct>
     <typedef name='virDomainMemoryFlags' file='libvirt' type='enum'/>
+    <typedef name='virDomainMemoryStatPtr' file='libvirt' type='virDomainMemoryStatStruct *'/>
+    <struct name='virDomainMemoryStatStruct' file='libvirt' type='struct _virDomainMemoryStat'>
+      <field name='tag' type='int' info=''/>
+      <field name='val' type='unsigned long long' info=''/>
+    </struct>
+    <typedef name='virDomainMemoryStatTags' file='libvirt' type='enum'/>
     <typedef name='virDomainMigrateFlags' file='libvirt' type='enum'/>
     <typedef name='virDomainPtr' file='libvirt' type='virDomain *'>
       <info><![CDATA[a virDomainPtr is pointer to a virDomain private structure, this is the type used to reference a domain in the API.]]></info>
@@ -1027,6 +1086,13 @@ especially if there is running domain which need further monitoring by
 the application.]]></info>
       <return type='int' info='0 in case of success or -1 in case of error.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
+    </function>
+    <function name='virConnectCompareCPU' file='libvirt' module='libvirt'>
+      <info><![CDATA[]]></info>
+      <return type='int' info='comparison result according to enum virCPUCompareResult'/>
+      <arg name='conn' type='virConnectPtr' info='virConnect connection'/>
+      <arg name='xmlDesc' type='const char *' info=''/>
+      <arg name='flags' type='unsigned int' info=''/>
     </function>
     <functype name='virConnectDomainEventCallback' file='libvirt' module='libvirt'>
       <info><![CDATA[A callback function to be registered, and called when a domain event occurs]]></info>
@@ -1560,7 +1626,7 @@ and also in cpumaps if this pointer isn't NULL.]]></info>
       <arg name='info' type='virVcpuInfoPtr' info='pointer to an array of virVcpuInfo structures (OUT)'/>
       <arg name='maxinfo' type='int' info='number of structures in info array'/>
       <arg name='cpumaps' type='unsigned char *' info='pointer to a bit map of real CPUs for all vcpus of this domain (in 8-bit bytes) (OUT) If cpumaps is NULL, then no cpumap information is returned by the API. It&apos;s assumed there is &lt;maxinfo&gt; cpumap in cpumaps array. The memory allocated to cpumaps must be (maxinfo * maplen) bytes (ie: calloc(maxinfo, maplen)). One cpumap inside cpumaps has the format described in virDomainPinVcpu() API.'/>
-      <arg name='maplen' type='int' info='number of bytes in one cpumap, from 1 up to size of CPU map in underlying virtualization system (Xen...).'/>
+      <arg name='maplen' type='int' info='number of bytes in one cpumap, from 1 up to size of CPU map in underlying virtualization system (Xen...). Must be zero when cpumaps is NULL and positive when it is non-NULL.'/>
     </function>
     <function name='virDomainGetXMLDesc' file='libvirt' module='libvirt'>
       <info><![CDATA[Provide an XML description of the domain. The description may be reused
@@ -1652,6 +1718,33 @@ connection you should split large requests to <= 65536 bytes.]]></info>
       <arg name='buffer' type='void *' info='return buffer (must be at least size bytes)'/>
       <arg name='flags' type='unsigned int' info='flags, see below'/>
     </function>
+    <function name='virDomainMemoryStats' file='libvirt' module='libvirt'>
+      <info><![CDATA[This function provides memory statistics for the domain.
+
+Up to 'nr_stats' elements of 'stats' will be populated with memory statistics
+from the domain.  Only statistics supported by the domain, the driver, and
+this version of libvirt will be returned.
+
+Memory Statistics:
+
+VIR_DOMAIN_MEMORY_STAT_SWAP_IN:
+    The total amount of data read from swap space (in kb).
+VIR_DOMAIN_MEMORY_STAT_SWAP_OUT:
+    The total amount of memory written out to swap space (in kb).
+VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT:
+    The number of page faults that required disk IO to service.
+VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT:
+    The number of page faults serviced without disk IO.
+VIR_DOMAIN_MEMORY_STAT_UNUSED:
+    The amount of memory which is not being used for any purpose (in kb).
+VIR_DOMAIN_MEMORY_STAT_AVAILABLE:
+    The total amount of memory available to the domain's OS (in kb).]]></info>
+      <return type='int' info='The number of stats provided or -1 in case of failure.'/>
+      <arg name='dom' type='virDomainPtr' info='pointer to the domain object'/>
+      <arg name='stats' type='virDomainMemoryStatPtr' info='nr_stats-sized array of stat structures (returned)'/>
+      <arg name='nr_stats' type='unsigned int' info='number of memory statistics requested'/>
+      <arg name='flags' type='unsigned int' info='unused, always pass 0'/>
+    </function>
     <function name='virDomainMigrate' file='libvirt' module='libvirt'>
       <info><![CDATA[Migrate the domain object from its current host to the destination
 host given by dconn (a connection to the destination host).
@@ -1664,6 +1757,7 @@ Flags may be one of more of the following:
                            on the destination host.
   VIR_MIGRATE_UNDEFINE_SOURCE If the migration is successful, undefine the
                               domain on the source host.
+  VIR_MIGRATE_PAUSED    Leave the domain suspended on the remote side.
 
 VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
 Applications using the VIR_MIGRATE_PEER2PEER flag will probably

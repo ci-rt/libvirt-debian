@@ -96,6 +96,8 @@ static int networkShutdownNetworkDaemon(virConnectPtr conn,
                                       struct network_driver *driver,
                                       virNetworkObjPtr network);
 
+static void networkReloadIptablesRules(struct network_driver *driver);
+
 static struct network_driver *driverState = NULL;
 
 
@@ -257,6 +259,7 @@ networkStartup(int privileged) {
         goto error;
 
     networkFindActiveConfigs(driverState);
+    networkReloadIptablesRules(driverState);
     networkAutostartConfigs(driverState);
 
     networkDriverUnlock(driverState);
@@ -291,12 +294,7 @@ networkReload(void) {
                              &driverState->networks,
                              driverState->networkConfigDir,
                              driverState->networkAutostartDir);
-
-     if (driverState->iptables) {
-        VIR_INFO0(_("Reloading iptables rules\n"));
-        iptablesReloadRules(driverState->iptables);
-    }
-
+    networkReloadIptablesRules(driverState);
     networkAutostartConfigs(driverState);
     networkDriverUnlock(driverState);
     return 0;
@@ -754,8 +752,6 @@ networkAddIptablesRules(virConnectPtr conn,
              !networkAddRoutingIptablesRules(conn, driver, network))
         goto err8;
 
-    iptablesSaveRules(driver->iptables);
-
     return 1;
 
  err8:
@@ -809,7 +805,27 @@ networkRemoveIptablesRules(struct network_driver *driver,
     iptablesRemoveTcpInput(driver->iptables, network->def->bridge, 53);
     iptablesRemoveUdpInput(driver->iptables, network->def->bridge, 67);
     iptablesRemoveTcpInput(driver->iptables, network->def->bridge, 67);
-    iptablesSaveRules(driver->iptables);
+}
+
+static void
+networkReloadIptablesRules(struct network_driver *driver)
+{
+    unsigned int i;
+
+    VIR_INFO0(_("Reloading iptables rules"));
+
+    for (i = 0 ; i < driver->networks.count ; i++) {
+        virNetworkObjLock(driver->networks.objs[i]);
+
+        if (virNetworkObjIsActive(driver->networks.objs[i])) {
+            networkRemoveIptablesRules(driver, driver->networks.objs[i]);
+            if (!networkAddIptablesRules(NULL, driver, driver->networks.objs[i])) {
+                /* failed to add but already logged */
+            }
+        }
+
+        virNetworkObjUnlock(driver->networks.objs[i]);
+    }
 }
 
 /* Enable IP Forwarding. Return 0 for success, -1 for failure. */

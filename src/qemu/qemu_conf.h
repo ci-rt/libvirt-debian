@@ -37,6 +37,8 @@
 #include "security/security_driver.h"
 #include "cgroup.h"
 #include "pci.h"
+#include "cpu_conf.h"
+#include "driver.h"
 
 #define qemudDebug(fmt, ...) do {} while(0)
 
@@ -74,6 +76,7 @@ enum qemud_cmd_flags {
     QEMUD_CMD_FLAG_MIGRATE_QEMU_UNIX = (1 << 21), /* Does qemu support unix domain sockets for migration? */
     QEMUD_CMD_FLAG_CHARDEV       = (1 << 22), /* Is the new -chardev arg available */
     QEMUD_CMD_FLAG_ENABLE_KVM    = (1 << 23), /* Is the -enable-kvm flag available to "enable KVM full virtualization support" */
+    QEMUD_CMD_FLAG_MONITOR_JSON  = (1 << 24), /* JSON mode for monitor */
 };
 
 /* Main driver state */
@@ -168,6 +171,7 @@ int         qemudBuildCommandLine       (virConnectPtr conn,
                                          struct qemud_driver *driver,
                                          virDomainDefPtr def,
                                          virDomainChrDefPtr monitor_chr,
+                                         int monitor_json,
                                          unsigned int qemuCmdFlags,
                                          const char ***retargv,
                                          const char ***retenv,
@@ -199,6 +203,11 @@ int         qemuAssignNetNames          (virDomainDefPtr def,
 int         qemudProbeMachineTypes      (const char *binary,
                                          virCapsGuestMachinePtr **machines,
                                          int *nmachines);
+
+int         qemudProbeCPUModels         (const char *qemu,
+                                         const char *arch,
+                                         unsigned int *count,
+                                         const char ***cpus);
 
 int         qemudCanonicalizeMachine    (struct qemud_driver *driver,
                                          virDomainDefPtr def);

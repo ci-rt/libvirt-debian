@@ -14,6 +14,7 @@ AUTOMAKE_OPTIONS = 1.5 foreign
 
 SUBDIRS =
 TESTS =
+XFAIL_TESTS =
 TESTS_ENVIRONMENT =
 noinst_PROGRAMS =
 check_PROGRAMS =
@@ -68,6 +69,14 @@ check_PROGRAMS += test-alloca-opt
 EXTRA_DIST += test-alloca-opt.c
 
 ## end   gnulib module alloca-opt-tests
+
+## begin gnulib module areadlink-tests
+
+TESTS += test-areadlink
+check_PROGRAMS += test-areadlink
+EXTRA_DIST += test-areadlink.h test-areadlink.c
+
+## end   gnulib module areadlink-tests
 
 ## begin gnulib module arpa_inet-tests
 
@@ -168,6 +177,43 @@ EXTRA_DIST += test-gettimeofday.c
 
 ## end   gnulib module gettimeofday-tests
 
+## begin gnulib module inet_ntop-tests
+
+TESTS += test-inet_ntop
+check_PROGRAMS += test-inet_ntop
+test_inet_ntop_LDADD = $(LDADD) @INET_NTOP_LIB@
+EXTRA_DIST += test-inet_ntop.c
+
+## end   gnulib module inet_ntop-tests
+
+## begin gnulib module inet_pton-tests
+
+TESTS += test-inet_pton
+check_PROGRAMS += test-inet_pton
+test_inet_pton_LDADD = $(LDADD) @INET_PTON_LIB@
+EXTRA_DIST += test-inet_pton.c
+
+## end   gnulib module inet_pton-tests
+
+## begin gnulib module link-warning
+
+BUILT_SOURCES += link-warning.h
+# The link-warning.h that gets inserted into generated .h files is the same as
+# build-aux/link-warning.h, except that it has the copyright header cut off.
+link-warning.h: $(top_srcdir)/build-aux/link-warning.h
+	$(AM_V_GEN)rm -f $@-t $@ && \
+	sed -n -e '/GL_LINK_WARNING/,$$p' \
+	  < $(top_srcdir)/build-aux/link-warning.h \
+	  > $@-t && \
+	mv $@-t $@
+MOSTLYCLEANFILES += link-warning.h link-warning.h-t
+
+LINK_WARNING_H=link-warning.h
+
+EXTRA_DIST += $(top_srcdir)/build-aux/link-warning.h
+
+## end   gnulib module link-warning
+
 ## begin gnulib module listen
 
 
@@ -190,7 +236,7 @@ EXTRA_DIST += test-lseek.c test-lseek.sh
 
 TESTS += test-lstat
 check_PROGRAMS += test-lstat
-EXTRA_DIST += test-lstat.c
+EXTRA_DIST += test-lstat.h test-lstat.c
 
 ## end   gnulib module lstat-tests
 
@@ -219,6 +265,13 @@ check_PROGRAMS += test-netinet_in
 EXTRA_DIST += test-netinet_in.c
 
 ## end   gnulib module netinet_in-tests
+
+## begin gnulib module pathmax
+
+
+EXTRA_DIST += pathmax.h
+
+## end   gnulib module pathmax
 
 ## begin gnulib module perror-tests
 
@@ -255,13 +308,28 @@ EXTRA_DIST += test-rawmemchr.c
 
 ## end   gnulib module rawmemchr-tests
 
+## begin gnulib module readlink-tests
+
+TESTS += test-readlink
+check_PROGRAMS += test-readlink
+EXTRA_DIST += test-readlink.h test-readlink.c
+
+## end   gnulib module readlink-tests
+
+## begin gnulib module same-inode
+
+
+EXTRA_DIST += same-inode.h
+
+## end   gnulib module same-inode
+
 ## begin gnulib module select-tests
 
 TESTS += test-select test-select-in.sh test-select-out.sh
 # test-select-stdin has to be run by hand.
 TESTS_ENVIRONMENT += EXEEXT='@EXEEXT@'
 check_PROGRAMS += test-select test-select-fd test-select-stdin
-test_select_LDADD = $(LDADD) @LIBSOCKET@
+test_select_LDADD = $(LDADD) @LIBSOCKET@ $(INET_PTON_LIB)
 test_select_fd_LDADD = $(LDADD) @LIBSOCKET@
 test_select_stdin_LDADD = $(LDADD) @LIBSOCKET@
 
@@ -286,6 +354,14 @@ test_sockets_LDADD = $(LDADD) @LIBSOCKET@
 EXTRA_DIST += test-sockets.c
 
 ## end   gnulib module sockets-tests
+
+## begin gnulib module stat-tests
+
+TESTS += test-stat
+check_PROGRAMS += test-stat
+EXTRA_DIST += test-stat.h test-stat.c
+
+## end   gnulib module stat-tests
 
 ## begin gnulib module stdbool-tests
 
@@ -356,6 +432,23 @@ check_PROGRAMS += test-string
 EXTRA_DIST += test-string.c
 
 ## end   gnulib module string-tests
+
+## begin gnulib module symlink
+
+
+EXTRA_DIST += symlink.c
+
+EXTRA_libtests_a_SOURCES += symlink.c
+
+## end   gnulib module symlink
+
+## begin gnulib module symlink-tests
+
+TESTS += test-symlink
+check_PROGRAMS += test-symlink
+EXTRA_DIST += test-symlink.h test-symlink.c
+
+## end   gnulib module symlink-tests
 
 ## begin gnulib module sys_select-tests
 
