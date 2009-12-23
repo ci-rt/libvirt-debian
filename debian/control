@@ -2,7 +2,7 @@ Source: libvirt
 Section: libs
 Priority: optional
 Maintainer: Debian Libvirt Maintainers <pkg-libvirt-maintainers@lists.alioth.debian.org>
-Uploaders: Guido Günther <agx@sigxcpu.org>
+Uploaders: Guido Günther <agx@sigxcpu.org>, Laurent Léonard <laurent@open-minds.org>
 Build-Depends: cdbs (>= 0.4.43), debhelper (>= 7), libxml2-dev, libncurses5-dev, libreadline-dev, zlib1g-dev, libgnutls-dev, python-dev (>= 2.3.5-11), python-central (>= 0.5.6), quilt, libavahi-client-dev, libsasl2-dev, libxen-dev [i386 amd64], lvm2, qemu [amd64 i386 powerpc sparc], open-iscsi, libparted1.8-dev, libselinux1-dev, libdevmapper-dev, uuid-dev, libhal-dev, module-init-tools,
  policykit-1,
  dpkg-dev (<< 1.15.3) | dpkg-dev (>> 1.15.3),
@@ -13,6 +13,7 @@ Vcs-Git: git://git.debian.org/git/pkg-libvirt/libvirt.git
 Vcs-Browser: http://git.debian.org/?p=pkg-libvirt/libvirt.git
 Homepage: http://libvirt.org
 Standards-Version: 3.8.3
+DM-Upload-Allowed: yes
 
 Package: libvirt-bin
 Architecture: any
