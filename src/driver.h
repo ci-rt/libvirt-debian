@@ -229,6 +229,12 @@ typedef int
                      struct _virDomainInterfaceStats *stats);
 
 typedef int
+    (*virDrvDomainMemoryStats)
+                    (virDomainPtr domain,
+                     struct _virDomainMemoryStat *stats,
+                     unsigned int nr_stats);
+
+typedef int
     (*virDrvDomainBlockPeek)
                     (virDomainPtr domain,
                      const char *path,
@@ -349,6 +355,11 @@ typedef int
 typedef int
     (*virDrvDomainIsPersistent)(virDomainPtr dom);
 
+typedef int
+    (*virDrvCPUCompare)(virConnectPtr conn,
+                        const char *cpu,
+                        unsigned int flags);
+
 /**
  * _virDriver:
  *
@@ -419,6 +430,7 @@ struct _virDriver {
     virDrvDomainMigrateFinish	domainMigrateFinish;
     virDrvDomainBlockStats      domainBlockStats;
     virDrvDomainInterfaceStats  domainInterfaceStats;
+    virDrvDomainMemoryStats     domainMemoryStats;
     virDrvDomainBlockPeek	domainBlockPeek;
     virDrvDomainMemoryPeek      domainMemoryPeek;
     virDrvNodeGetCellsFreeMemory	nodeGetCellsFreeMemory;
@@ -435,6 +447,7 @@ struct _virDriver {
     virDrvConnectIsSecure      isSecure;
     virDrvDomainIsActive       domainIsActive;
     virDrvDomainIsPersistent   domainIsPersistent;
+    virDrvCPUCompare            cpuCompare;
 };
 
 typedef int

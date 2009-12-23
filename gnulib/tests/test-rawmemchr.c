@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 Free Software Foundation
+ * Copyright (C) 2008, 2009 Free Software Foundation
  * Written by Eric Blake and Bruno Haible
  *
  * This program is free software: you can redistribute it and/or modify
@@ -23,15 +23,15 @@
 #include <stdlib.h>
 
 #define ASSERT(expr) \
-  do									     \
-    {									     \
-      if (!(expr))							     \
-	{								     \
-	  fprintf (stderr, "%s:%d: assertion failed\n", __FILE__, __LINE__); \
-	  fflush (stderr);						     \
-	  abort ();							     \
-	}								     \
-    }									     \
+  do                                                                         \
+    {                                                                        \
+      if (!(expr))                                                           \
+        {                                                                    \
+          fprintf (stderr, "%s:%d: assertion failed\n", __FILE__, __LINE__); \
+          fflush (stderr);                                                   \
+          abort ();                                                          \
+        }                                                                    \
+    }                                                                        \
   while (0)
 
 /* Calculating void * + int is not portable, so this wrapper converts
@@ -39,7 +39,7 @@
 #define RAWMEMCHR (char *) rawmemchr
 
 int
-main ()
+main (void)
 {
   size_t n = 0x100000;
   char *input = malloc (n + 1);

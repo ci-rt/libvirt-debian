@@ -28,6 +28,7 @@
 #include "internal.h"
 
 #include "domain_conf.h"
+#include "hash.h"
 
 typedef struct _qemuMonitor qemuMonitor;
 typedef qemuMonitor *qemuMonitorPtr;
@@ -59,32 +60,50 @@ struct _qemuMonitorMessage {
     void *passwordOpaque;
 };
 
-typedef void (*qemuMonitorEOFNotify)(qemuMonitorPtr mon,
-                                     virDomainObjPtr vm,
-                                     int withError);
+typedef struct _qemuMonitorCallbacks qemuMonitorCallbacks;
+typedef qemuMonitorCallbacks *qemuMonitorCallbacksPtr;
+struct _qemuMonitorCallbacks {
+    void (*eofNotify)(qemuMonitorPtr mon,
+                      virDomainObjPtr vm,
+                      int withError);
+    /* XXX we'd really like to avoid virCOnnectPtr here
+     * It is required so the callback can find the active
+     * secret driver. Need to change this to work like the
+     * security drivers do, to avoid this
+     */
+    int (*diskSecretLookup)(qemuMonitorPtr mon,
+                            virConnectPtr conn,
+                            virDomainObjPtr vm,
+                            const char *path,
+                            char **secret,
+                            size_t *secretLen);
 
-/* XXX we'd really like to avoid virCOnnectPtr here
- * It is required so the callback can find the active
- * secret driver. Need to change this to work like the
- * security drivers do, to avoid this
- */
-typedef int (*qemuMonitorDiskSecretLookup)(qemuMonitorPtr mon,
-                                           virConnectPtr conn,
-                                           virDomainObjPtr vm,
-                                           const char *path,
-                                           char **secret,
-                                           size_t *secretLen);
+    int (*domainShutdown)(qemuMonitorPtr mon,
+                          virDomainObjPtr vm);
+    int (*domainReset)(qemuMonitorPtr mon,
+                       virDomainObjPtr vm);
+    int (*domainPowerdown)(qemuMonitorPtr mon,
+                           virDomainObjPtr vm);
+    int (*domainStop)(qemuMonitorPtr mon,
+                      virDomainObjPtr vm);
+};
+
+
+char *qemuMonitorEscapeArg(const char *in);
+char *qemuMonitorEscapeShell(const char *in);
 
 qemuMonitorPtr qemuMonitorOpen(virDomainObjPtr vm,
-                               qemuMonitorEOFNotify eofCB);
+                               virDomainChrDefPtr config,
+                               int json,
+                               qemuMonitorCallbacksPtr cb);
 
-void qemuMonitorClose(qemuMonitorPtr mon);
+int qemuMonitorClose(qemuMonitorPtr mon);
 
 void qemuMonitorLock(qemuMonitorPtr mon);
 void qemuMonitorUnlock(qemuMonitorPtr mon);
 
-void qemuMonitorRegisterDiskSecretLookup(qemuMonitorPtr mon,
-                                         qemuMonitorDiskSecretLookup secretCB);
+int qemuMonitorRef(qemuMonitorPtr mon);
+int qemuMonitorUnref(qemuMonitorPtr mon);
 
 /* This API is for use by the internal Text/JSON monitor impl code only */
 int qemuMonitorSend(qemuMonitorPtr mon,
@@ -97,6 +116,10 @@ int qemuMonitorGetDiskSecret(qemuMonitorPtr mon,
                              char **secret,
                              size_t *secretLen);
 
+int qemuMonitorEmitShutdown(qemuMonitorPtr mon);
+int qemuMonitorEmitReset(qemuMonitorPtr mon);
+int qemuMonitorEmitPowerdown(qemuMonitorPtr mon);
+int qemuMonitorEmitStop(qemuMonitorPtr mon);
 
 int qemuMonitorStartCPUs(qemuMonitorPtr mon,
                          virConnectPtr conn);
@@ -125,12 +148,16 @@ int qemuMonitorSetBalloon(qemuMonitorPtr mon,
 /* XXX should we pass the virDomainDiskDefPtr instead
  * and hide devname details inside monitor. Reconsider
  * this when doing the QMP implementation
+ *
+ * XXXX 'eject' has gained a 'force' flag we might like
+ * to make use of...
  */
 int qemuMonitorEjectMedia(qemuMonitorPtr mon,
                           const char *devname);
 int qemuMonitorChangeMedia(qemuMonitorPtr mon,
                            const char *devname,
-                           const char *newmedia);
+                           const char *newmedia,
+                           const char *format);
 
 
 int qemuMonitorSaveVirtualMemory(qemuMonitorPtr mon,
@@ -154,6 +181,8 @@ enum {
 
     QEMU_MONITOR_MIGRATION_STATUS_LAST
 };
+
+VIR_ENUM_DECL(qemuMonitorMigrationStatus)
 
 int qemuMonitorGetMigrationStatus(qemuMonitorPtr mon,
                                   int *status,
@@ -244,5 +273,7 @@ int qemuMonitorRemoveHostNetwork(qemuMonitorPtr mon,
                                  int vlan,
                                  const char *netname);
 
+int qemuMonitorGetPtyPaths(qemuMonitorPtr mon,
+                           virHashTablePtr paths);
 
 #endif /* QEMU_MONITOR_H */

@@ -172,6 +172,9 @@ static const char *virErrorDomainName(virErrorDomain domain) {
         case VIR_FROM_SECRET:
             dom = "Secret Storage ";
             break;
+        case VIR_FROM_CPU:
+            dom = "CPU ";
+            break;
     }
     return(dom);
 }
@@ -345,10 +348,10 @@ virResetError(virErrorPtr err)
 {
     if (err == NULL)
         return;
-    free(err->message);
-    free(err->str1);
-    free(err->str2);
-    free(err->str3);
+    VIR_FREE(err->message);
+    VIR_FREE(err->str1);
+    VIR_FREE(err->str2);
+    VIR_FREE(err->str3);
     memset(err, 0, sizeof(virError));
 }
 

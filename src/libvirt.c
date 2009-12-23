@@ -22,6 +22,7 @@
 #include <sys/wait.h>
 #endif
 #include <time.h>
+#include <gcrypt.h>
 
 #include <libxml/parser.h>
 #include <libxml/xpath.h>
@@ -251,6 +252,60 @@ winsock_init (void)
 }
 #endif
 
+static int virTLSMutexInit (void **priv)
+{                                                                             \
+    virMutexPtr lock = NULL;
+
+    if (VIR_ALLOC(lock) < 0)
+        return ENOMEM;
+
+    if (virMutexInit(lock) < 0) {
+        VIR_FREE(lock);
+        return errno;
+    }
+
+    *priv = lock;
+    return 0;
+}
+
+static int virTLSMutexDestroy(void **priv)
+{
+    virMutexPtr lock = *priv;
+    virMutexDestroy(lock);
+    VIR_FREE(lock);
+    return 0;
+}
+
+static int virTLSMutexLock(void **priv)
+{
+    virMutexPtr lock = *priv;
+    virMutexLock(lock);
+    return 0;
+}
+
+static int virTLSMutexUnlock(void **priv)
+{
+    virMutexPtr lock = *priv;
+    virMutexUnlock(lock);
+    return 0;
+}
+
+static struct gcry_thread_cbs virTLSThreadImpl = {
+    /* GCRY_THREAD_OPTION_VERSION was added in gcrypt 1.4.2 */
+#ifdef GCRY_THREAD_OPTION_VERSION
+    (GCRY_THREAD_OPTION_PTHREAD | (GCRY_THREAD_OPTION_VERSION << 8)),
+#else
+    GCRY_THREAD_OPTION_PTHREAD,
+#endif
+    NULL,
+    virTLSMutexInit,
+    virTLSMutexDestroy,
+    virTLSMutexLock,
+    virTLSMutexUnlock,
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
+};
+
+
 /**
  * virInitialize:
  *
@@ -272,6 +327,9 @@ virInitialize(void)
         virErrorInitialize() < 0 ||
         virRandomInitialize(time(NULL) ^ getpid()))
         return -1;
+
+    gcry_control(GCRYCTL_SET_THREAD_CBS, &virTLSThreadImpl);
+    gcry_check_version(NULL);
 
     virLogSetFromEnv();
 
@@ -2963,7 +3021,13 @@ virDomainMigrateVersion1 (virDomainPtr domain,
     virDomainPtr ddomain = NULL;
     char *uri_out = NULL;
     char *cookie = NULL;
-    int cookielen = 0;
+    int cookielen = 0, ret;
+    virDomainInfo info;
+
+    ret = virDomainGetInfo (domain, &info);
+    if (ret == 0 && info.state == VIR_DOMAIN_PAUSED) {
+        flags |= VIR_MIGRATE_PAUSED;
+    }
 
     /* Prepare the migration.
      *
@@ -3028,6 +3092,7 @@ virDomainMigrateVersion2 (virDomainPtr domain,
     char *cookie = NULL;
     char *dom_xml = NULL;
     int cookielen = 0, ret;
+    virDomainInfo info;
 
     /* Prepare the migration.
      *
@@ -3053,6 +3118,11 @@ virDomainMigrateVersion2 (virDomainPtr domain,
                                                    VIR_DOMAIN_XML_SECURE);
     if (!dom_xml)
         return NULL;
+
+    ret = virDomainGetInfo (domain, &info);
+    if (ret == 0 && info.state == VIR_DOMAIN_PAUSED) {
+        flags |= VIR_MIGRATE_PAUSED;
+    }
 
     ret = dconn->driver->domainMigratePrepare2
         (dconn, &cookie, &cookielen, uri, &uri_out, flags, dname,
@@ -3179,6 +3249,7 @@ virDomainMigrateDirect (virDomainPtr domain,
  *                            on the destination host.
  *   VIR_MIGRATE_UNDEFINE_SOURCE If the migration is successful, undefine the
  *                               domain on the source host.
+ *   VIR_MIGRATE_PAUSED    Leave the domain suspended on the remote side.
  *
  * VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
  * Applications using the VIR_MIGRATE_PEER2PEER flag will probably
@@ -4096,6 +4167,77 @@ error:
 }
 
 /**
+ * virDomainMemoryStats:
+ * @dom: pointer to the domain object
+ * @stats: nr_stats-sized array of stat structures (returned)
+ * @nr_stats: number of memory statistics requested
+ * @flags: unused, always pass 0
+ *
+ * This function provides memory statistics for the domain.
+ *
+ * Up to 'nr_stats' elements of 'stats' will be populated with memory statistics
+ * from the domain.  Only statistics supported by the domain, the driver, and
+ * this version of libvirt will be returned.
+ *
+ * Memory Statistics:
+ *
+ * VIR_DOMAIN_MEMORY_STAT_SWAP_IN:
+ *     The total amount of data read from swap space (in kb).
+ * VIR_DOMAIN_MEMORY_STAT_SWAP_OUT:
+ *     The total amount of memory written out to swap space (in kb).
+ * VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT:
+ *     The number of page faults that required disk IO to service.
+ * VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT:
+ *     The number of page faults serviced without disk IO.
+ * VIR_DOMAIN_MEMORY_STAT_UNUSED:
+ *     The amount of memory which is not being used for any purpose (in kb).
+ * VIR_DOMAIN_MEMORY_STAT_AVAILABLE:
+ *     The total amount of memory available to the domain's OS (in kb).
+ *
+ * Returns: The number of stats provided or -1 in case of failure.
+ */
+int virDomainMemoryStats (virDomainPtr dom, virDomainMemoryStatPtr stats,
+                          unsigned int nr_stats, unsigned int flags)
+{
+    virConnectPtr conn;
+    unsigned long nr_stats_ret = 0;
+    DEBUG("domain=%p, stats=%p, nr_stats=%u", dom, stats, nr_stats);
+
+    if (flags != 0) {
+        virLibDomainError (dom, VIR_ERR_INVALID_ARG,
+                           _("flags must be zero"));
+        goto error;
+    }
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN (dom)) {
+        virLibDomainError (NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        return -1;
+    }
+    if (!stats || nr_stats == 0)
+        return 0;
+
+    if (nr_stats > VIR_DOMAIN_MEMORY_STAT_NR)
+        nr_stats = VIR_DOMAIN_MEMORY_STAT_NR;
+
+    conn = dom->conn;
+    if (conn->driver->domainMemoryStats) {
+        nr_stats_ret = conn->driver->domainMemoryStats (dom, stats, nr_stats);
+        if (nr_stats_ret == -1)
+            goto error;
+        return nr_stats_ret;
+    }
+
+    virLibDomainError (dom, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    /* Copy to connection error object for back compatability */
+    virSetConnError(dom->conn);
+    return -1;
+}
+
+/**
  * virDomainBlockPeek:
  * @dom: pointer to the domain object
  * @path: path to the block device
@@ -4740,6 +4882,7 @@ error:
  *      virDomainPinVcpu() API.
  * @maplen: number of bytes in one cpumap, from 1 up to size of CPU map in
  *	underlying virtualization system (Xen...).
+ *	Must be zero when cpumaps is NULL and positive when it is non-NULL.
  *
  * Extract information about virtual CPUs of domain, store it in info array
  * and also in cpumaps if this pointer isn't NULL.
@@ -4763,7 +4906,11 @@ virDomainGetVcpus(virDomainPtr domain, virVcpuInfoPtr info, int maxinfo,
         virLibDomainError(domain, VIR_ERR_INVALID_ARG, __FUNCTION__);
         goto error;
     }
-    if (cpumaps != NULL && maplen < 1) {
+
+    /* Ensure that domainGetVcpus (aka remoteDomainGetVcpus) does not
+       try to memcpy anything into a NULL pointer.  */
+    if ((cpumaps == NULL && maplen != 0)
+        || (cpumaps && maplen <= 0)) {
         virLibDomainError(domain, VIR_ERR_INVALID_ARG, __FUNCTION__);
         goto error;
     }
@@ -10687,4 +10834,47 @@ error:
     /* Copy to connection error object for back compatability */
     virSetConnError(conn);
     return -1;
+}
+
+
+/**
+ * virConnectCompareCPU:
+ * @conn: virConnect connection
+ * @xml: XML describing the CPU to compare with host CPU
+ *
+ * Returns comparison result according to enum virCPUCompareResult
+ */
+int
+virConnectCompareCPU(virConnectPtr conn,
+                     const char *xmlDesc,
+                     unsigned int flags)
+{
+    VIR_DEBUG("conn=%p, xmlDesc=%s", conn, xmlDesc);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        return VIR_CPU_COMPARE_ERROR;
+    }
+    if (xmlDesc == NULL) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->driver->cpuCompare) {
+        int ret;
+
+        ret = conn->driver->cpuCompare(conn, xmlDesc, flags);
+        if (ret == VIR_CPU_COMPARE_ERROR)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    /* Copy to connection error object for back compatibility */
+    virSetConnError(conn);
+    return VIR_CPU_COMPARE_ERROR;
 }

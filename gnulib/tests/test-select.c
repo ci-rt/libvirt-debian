@@ -51,7 +51,7 @@ enum { SEL_IN = 1, SEL_OUT = 2, SEL_EXC = 4 };
 #define SO_REUSEPORT    SO_REUSEADDR
 #endif
 
-#define TEST_PORT	12345
+#define TEST_PORT       12345
 
 
 /* Minimal testing infrastructure.  */
@@ -84,7 +84,7 @@ test (void (*fn) (void), const char *msg)
 /* Funny socket code.  */
 
 static int
-open_server_socket ()
+open_server_socket (void)
 {
   int s, x;
   struct sockaddr_in ia;
@@ -355,7 +355,7 @@ test_pipe (void)
 /* Do them all.  */
 
 int
-main ()
+main (void)
 {
   int result;
 

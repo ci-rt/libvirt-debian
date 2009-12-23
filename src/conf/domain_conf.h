@@ -31,6 +31,7 @@
 #include "internal.h"
 #include "capabilities.h"
 #include "storage_encryption_conf.h"
+#include "cpu_conf.h"
 #include "util.h"
 #include "threads.h"
 #include "hash.h"
@@ -67,6 +68,7 @@ enum virDomainVirtType {
 enum virDomainDiskType {
     VIR_DOMAIN_DISK_TYPE_BLOCK,
     VIR_DOMAIN_DISK_TYPE_FILE,
+    VIR_DOMAIN_DISK_TYPE_DIR,
 
     VIR_DOMAIN_DISK_TYPE_LAST
 };
@@ -634,6 +636,7 @@ struct _virDomainDef {
     virDomainChrDefPtr console;
     virSecurityLabelDef seclabel;
     virDomainWatchdogDefPtr watchdog;
+    virCPUDefPtr cpu;
 };
 
 /* Guest VM runtime state */
@@ -643,14 +646,8 @@ struct _virDomainObj {
     virMutex lock;
     int refs;
 
-    int monitor;
-    virDomainChrDefPtr monitor_chr;
-    int monitorWatch;
     int pid;
     int state;
-
-    int nvcpupids;
-    int *vcpupids;
 
     unsigned int autostart : 1;
     unsigned int persistent : 1;
@@ -743,6 +740,7 @@ char *virDomainDefFormat(virConnectPtr conn,
                          virDomainDefPtr def,
                          int flags);
 char *virDomainObjFormat(virConnectPtr conn,
+                         virCapsPtr caps,
                          virDomainObjPtr obj,
                          int flags);
 
@@ -769,6 +767,7 @@ int virDomainSaveConfig(virConnectPtr conn,
                         const char *configDir,
                         virDomainDefPtr def);
 int virDomainSaveStatus(virConnectPtr conn,
+                        virCapsPtr caps,
                         const char *statusDir,
                         virDomainObjPtr obj);
 

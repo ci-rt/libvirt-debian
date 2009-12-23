@@ -858,6 +858,9 @@ virConfSetValue (virConfPtr conf,
 {
     virConfEntryPtr cur, prev = NULL;
 
+    if (value && value->type == VIR_CONF_STRING && value->str == NULL)
+        return -1;
+
     cur = conf->entries;
     while (cur != NULL) {
         if ((cur->name != NULL) && (STREQ(cur->name, setting))) {
@@ -927,15 +930,15 @@ virConfWriteFile(const char *filename, virConfPtr conf)
     }
 
     if (virBufferError(&buf)) {
+        virBufferFreeAndReset(&buf);
         virReportOOMError(NULL);
         return -1;
     }
 
     fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR );
     if (fd < 0) {
-        char *tmp = virBufferContentAndReset(&buf);
+        virBufferFreeAndReset(&buf);
         virConfError(NULL, VIR_ERR_WRITE_FAILED, _("failed to open file"));
-        VIR_FREE(tmp);
         return -1;
     }
 
@@ -983,6 +986,7 @@ virConfWriteMem(char *memory, int *len, virConfPtr conf)
     }
 
     if (virBufferError(&buf)) {
+        virBufferFreeAndReset(&buf);
         virReportOOMError(NULL);
         return -1;
     }

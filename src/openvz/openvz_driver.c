@@ -792,8 +792,7 @@ openvzDomainSetNetworkConfig(virConnectPtr conn,
     return 0;
 
 exit:
-    param = virBufferContentAndReset(&buf);
-    VIR_FREE(param);
+    virBufferFreeAndReset(&buf);
     return -1;
 }
 
@@ -1518,6 +1517,7 @@ static virDriver openvzDriver = {
     NULL, /* domainMigrateFinish */
     NULL, /* domainBlockStats */
     NULL, /* domainInterfaceStats */
+    NULL, /* domainMemoryStats */
     NULL, /* domainBlockPeek */
     NULL, /* domainMemoryPeek */
     NULL, /* nodeGetCellsFreeMemory */
@@ -1534,6 +1534,7 @@ static virDriver openvzDriver = {
     openvzIsSecure,
     openvzDomainIsActive,
     openvzDomainIsPersistent,
+    NULL, /* cpuCompare */
 };
 
 int openvzRegister(void) {

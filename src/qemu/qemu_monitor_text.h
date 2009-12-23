@@ -28,6 +28,7 @@
 #include "internal.h"
 
 #include "qemu_monitor.h"
+#include "hash.h"
 
 int qemuMonitorTextIOProcess(qemuMonitorPtr mon,
                              const char *data,
@@ -44,6 +45,9 @@ int qemuMonitorTextGetCPUInfo(qemuMonitorPtr mon,
                               int **pids);
 int qemuMonitorTextGetBalloonInfo(qemuMonitorPtr mon,
                                   unsigned long *currmem);
+int qemuMonitorTextGetMemoryStats(qemuMonitorPtr mon,
+                                  virDomainMemoryStatPtr stats,
+                                  unsigned int nr_stats);
 int qemuMonitorTextGetBlockStatsInfo(qemuMonitorPtr mon,
                                      const char *devname,
                                      long long *rd_req,
@@ -62,7 +66,8 @@ int qemuMonitorTextEjectMedia(qemuMonitorPtr mon,
                               const char *devname);
 int qemuMonitorTextChangeMedia(qemuMonitorPtr mon,
                                const char *devname,
-                               const char *newmedia);
+                               const char *newmedia,
+                               const char *format);
 
 
 int qemuMonitorTextSaveVirtualMemory(qemuMonitorPtr mon,
@@ -151,5 +156,8 @@ int qemuMonitorTextAddHostNetwork(qemuMonitorPtr mon,
 int qemuMonitorTextRemoveHostNetwork(qemuMonitorPtr mon,
                                      int vlan,
                                      const char *netname);
+
+int qemuMonitorTextGetPtyPaths(qemuMonitorPtr mon,
+                               virHashTablePtr paths);
 
 #endif /* QEMU_MONITOR_TEXT_H */

@@ -333,6 +333,61 @@ struct _virDomainInterfaceStats {
  */
 typedef virDomainInterfaceStatsStruct *virDomainInterfaceStatsPtr;
 
+/**
+ * Memory Statistics Tags:
+ */
+typedef enum {
+    /* The total amount of data read from swap space (in kB). */
+    VIR_DOMAIN_MEMORY_STAT_SWAP_IN         = 0,
+    /* The total amount of memory written out to swap space (in kB). */
+    VIR_DOMAIN_MEMORY_STAT_SWAP_OUT        = 1,
+
+    /*
+     * Page faults occur when a process makes a valid access to virtual memory
+     * that is not available.  When servicing the page fault, if disk IO is
+     * required, it is considered a major fault.  If not, it is a minor fault.
+     * These are expressed as the number of faults that have occurred.
+     */
+    VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT     = 2,
+    VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT     = 3,
+
+    /*
+     * The amount of memory left completely unused by the system.  Memory that
+     * is available but used for reclaimable caches should NOT be reported as
+     * free.  This value is expressed in kB.
+     */
+    VIR_DOMAIN_MEMORY_STAT_UNUSED          = 4,
+
+    /*
+     * The total amount of usable memory as seen by the domain.  This value
+     * may be less than the amount of memory assigned to the domain if a
+     * balloon driver is in use or if the guest OS does not initialize all
+     * assigned pages.  This value is expressed in kB.
+     */
+    VIR_DOMAIN_MEMORY_STAT_AVAILABLE       = 5,
+
+    /*
+     * The number of statistics supported by this version of the interface.
+     * To add new statistics, add them to the enum and increase this value.
+     */
+    VIR_DOMAIN_MEMORY_STAT_NR              = 6,
+} virDomainMemoryStatTags;
+
+typedef struct _virDomainMemoryStat virDomainMemoryStatStruct;
+
+struct _virDomainMemoryStat {
+    int tag;
+    unsigned long long val;
+};
+
+typedef virDomainMemoryStatStruct *virDomainMemoryStatPtr;
+
+
+/* Domain core dump flags. */
+typedef enum {
+    VIR_DUMP_CRASH   = (1 << 0), /* crash after dump */
+    VIR_DUMP_LIVE    = (1 << 1), /* live dump */
+} virDomainCoreDumpFlags;
 
 /* Domain migration flags. */
 typedef enum {
@@ -341,6 +396,7 @@ typedef enum {
     VIR_MIGRATE_TUNNELLED         = (1 << 2), /* tunnel migration data over libvirtd connection */
     VIR_MIGRATE_PERSIST_DEST      = (1 << 3), /* persist the VM on the destination */
     VIR_MIGRATE_UNDEFINE_SOURCE   = (1 << 4), /* undefine the VM on the source */
+    VIR_MIGRATE_PAUSED            = (1 << 5), /* pause on remote side */
 } virDomainMigrateFlags;
 
 /* Domain migration. */
@@ -637,6 +693,10 @@ int                     virDomainInterfaceStats (virDomainPtr dom,
                                                  const char *path,
                                                  virDomainInterfaceStatsPtr stats,
                                                  size_t size);
+int                     virDomainMemoryStats (virDomainPtr dom,
+                                              virDomainMemoryStatPtr stats,
+                                              unsigned int nr_stats,
+                                              unsigned int flags);
 int                     virDomainBlockPeek (virDomainPtr dom,
                                             const char *path,
                                             unsigned long long offset,
@@ -1669,6 +1729,31 @@ int virInterfaceIsActive(virInterfacePtr iface);
 int virConnectIsEncrypted(virConnectPtr conn);
 int virConnectIsSecure(virConnectPtr conn);
 
+/*
+ * CPU specification API
+ */
+
+typedef enum {
+    VIR_CPU_COMPARE_ERROR           = -1,
+    VIR_CPU_COMPARE_INCOMPATIBLE    = 0,
+    VIR_CPU_COMPARE_IDENTICAL       = 1,
+    VIR_CPU_COMPARE_SUPERSET        = 2
+} virCPUCompareResult;
+
+/**
+ * virConnectCompareCPU:
+ *
+ * @conn: virConnect connection
+ * @xmlDesc: XML description of either guest or host cpu with <cpu> root tag
+ * @flags: comparison flags
+ *
+ * Compares given CPU with host cpu.
+ *
+ * Returns virCPUCompareResult.
+ */
+int virConnectCompareCPU(virConnectPtr conn,
+                         const char *xmlDesc,
+                         unsigned int flags);
 
 
 #ifdef __cplusplus

@@ -64,6 +64,7 @@
 #include <mntent.h>
 #endif
 
+#include "areadlink.h"
 #include "virterror_internal.h"
 #include "logging.h"
 #include "event.h"
@@ -936,7 +937,7 @@ saferead_lim (int fd, size_t max_len, size_t *length)
         }
     }
 
-    free (buf);
+    VIR_FREE(buf);
     errno = save_errno;
     return NULL;
 }
@@ -1059,10 +1060,7 @@ int virFileLinkPointsTo(const char *checkLink,
 int virFileResolveLink(const char *linkpath,
                        char **resultpath)
 {
-#ifdef HAVE_READLINK
     struct stat st;
-    char *buf;
-    int n;
 
     *resultpath = NULL;
 
@@ -1075,28 +1073,9 @@ int virFileResolveLink(const char *linkpath,
         return 0;
     }
 
-    /* Posix says that 'st_size' field from
-     * result of an lstat() call is filled with
-     * number of bytes in the destination
-     * filename.
-     */
-    if (VIR_ALLOC_N(buf, st.st_size + 1) < 0)
-        return -ENOMEM;
+    *resultpath = areadlink (linkpath);
 
-    if ((n = readlink(linkpath, buf, st.st_size)) < 0) {
-        VIR_FREE(buf);
-        return -errno;
-    }
-
-    buf[n] = '\0';
-
-    *resultpath = buf;
-    return 0;
-#else
-    if (!(*resultpath = strdup(linkpath)))
-        return -ENOMEM;
-    return 0;
-#endif
+    return *resultpath == NULL ? -1 : 0;
 }
 
 /*
@@ -1789,7 +1768,7 @@ int virDiskNameToIndex(const char *name) {
         return -1;
 
     for (i = 0; *ptr; i++) {
-        idx = (idx + i) * 26;
+        idx = (idx + (i < 1 ? 0 : 1)) * 26;
 
         if (!c_islower(*ptr))
             return -1;
@@ -1799,6 +1778,36 @@ int virDiskNameToIndex(const char *name) {
     }
 
     return idx;
+}
+
+char *virIndexToDiskName(int idx, const char *prefix)
+{
+    char *name = NULL;
+    int i, k, offset;
+
+    if (idx < 0) {
+        ReportError(NULL, VIR_ERR_INTERNAL_ERROR,
+                    _("Disk index %d is negative"), idx);
+        return NULL;
+    }
+
+    for (i = 0, k = idx; k >= 0; ++i, k = k / 26 - 1) { }
+
+    offset = strlen(prefix);
+
+    if (VIR_ALLOC_N(name, offset + i + 1)) {
+        virReportOOMError(NULL);
+        return NULL;
+    }
+
+    strcpy(name, prefix);
+    name[offset + i] = '\0';
+
+    for (i = i - 1, k = idx; k >= 0; --i, k = k / 26 - 1) {
+        name[offset + i] = 'a' + (k % 26);
+    }
+
+    return name;
 }
 
 #ifndef AI_CANONIDN

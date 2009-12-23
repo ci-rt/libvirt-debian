@@ -2,6 +2,7 @@ daemon/dispatch.c
 daemon/libvirtd.c
 daemon/remote.c
 daemon/stream.c
+src/conf/cpu_conf.c
 src/conf/domain_conf.c
 src/conf/interface_conf.c
 src/conf/network_conf.c
@@ -9,6 +10,9 @@ src/conf/node_device_conf.c
 src/conf/secret_conf.c
 src/conf/storage_conf.c
 src/conf/storage_encryption_conf.c
+src/cpu/cpu.c
+src/cpu/cpu_map.c
+src/cpu/cpu_x86.c
 src/datatypes.c
 src/interface/netcf_driver.c
 src/libvirt.c
@@ -29,6 +33,7 @@ src/qemu/qemu_bridge_filter.c
 src/qemu/qemu_conf.c
 src/qemu/qemu_driver.c
 src/qemu/qemu_monitor.c
+src/qemu/qemu_monitor_json.c
 src/qemu/qemu_monitor_text.c
 src/remote/remote_driver.c
 src/secret/secret_driver.c
@@ -49,9 +54,10 @@ src/uml/uml_conf.c
 src/uml/uml_driver.c
 src/util/bridge.c
 src/util/conf.c
-src/util/iptables.c
+src/util/json.c
 src/util/logging.c
 src/util/pci.c
+src/util/processinfo.c
 src/util/storage_file.c
 src/util/util.c
 src/util/uuid.c
