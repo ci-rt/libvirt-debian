@@ -1,6 +1,7 @@
-/* getpagesize emulation for systems where it cannot be done in a C macro.
+/* Read symbolic links without size limitation.
 
-   Copyright (C) 2007 Free Software Foundation, Inc.
+   Copyright (C) 2001, 2003, 2004, 2007, 2009 Free Software
+   Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as published by
@@ -15,25 +16,18 @@
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
-/* Written by Bruno Haible and Martin Lambers.  */
+/* Written by Jim Meyering <jim@meyering.net>  */
 
-#include <config.h>
+#include <stddef.h>
 
-/* Specification. */
-#include <unistd.h>
+extern char *areadlink (char const *filename);
+extern char *areadlink_with_size (char const *filename, size_t size_hint);
 
-/* This implementation is only for native Win32 systems.  */
-#if (defined _WIN32 || defined __WIN32__) && ! defined __CYGWIN__
+#if GNULIB_AREADLINKAT
+extern char *areadlinkat (int fd, char const *filename);
+#endif
 
-# define WIN32_LEAN_AND_MEAN
-# include <windows.h>
-
-int
-getpagesize (void)
-{
-  SYSTEM_INFO system_info;
-  GetSystemInfo (&system_info);
-  return system_info.dwPageSize;
-}
-
+#if GNULIB_AREADLINKAT_WITH_SIZE
+extern char *areadlinkat_with_size (int fd, char const *filename,
+                                    size_t size_hint);
 #endif

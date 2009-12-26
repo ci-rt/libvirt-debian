@@ -93,7 +93,9 @@
 #ifdef WITH_NODE_DEVICES
 #include "node_device/node_device_driver.h"
 #endif
+#ifdef WITH_SECRETS
 #include "secret/secret_driver.h"
+#endif
 #endif
 
 
@@ -582,7 +584,7 @@ static int qemudListenUnix(struct qemud_server *server,
  cleanup:
     if (sock->fd)
         close(sock->fd);
-    free(sock);
+    VIR_FREE(sock);
     return -1;
 }
 
@@ -803,8 +805,8 @@ static int qemudInitPaths(struct qemud_server *server,
                   _("Resulting path too long for buffer in qemudInitPaths()"));
 
  cleanup:
-    free (dir_prefix);
-    free (sock_dir_prefix);
+    VIR_FREE(dir_prefix);
+    VIR_FREE(sock_dir_prefix);
     return ret;
 }
 
@@ -880,7 +882,9 @@ static struct qemud_server *qemudInitialize(void) {
 #if defined(WITH_NODE_DEVICES)
     nodedevRegister();
 #endif
+#ifdef WITH_SECRETS
     secretRegister();
+#endif
 #ifdef WITH_QEMU
     qemuRegister();
 #endif
@@ -1422,7 +1426,8 @@ static int qemudDispatchServer(struct qemud_server *server, struct qemud_socket 
     if (client &&
         client->tlssession) gnutls_deinit (client->tlssession);
     close (fd);
-    VIR_FREE(client->rx);
+    if (client)
+        VIR_FREE(client->rx);
     VIR_FREE(client);
     return -1;
 }
@@ -1452,8 +1457,7 @@ void qemudDispatchClientFailure(struct qemud_client *client) {
         sasl_dispose(&client->saslconn);
         client->saslconn = NULL;
     }
-    free(client->saslUsername);
-    client->saslUsername = NULL;
+    VIR_FREE(client->saslUsername);
 #endif
     if (client->tlssession) {
         gnutls_deinit (client->tlssession);
@@ -2374,19 +2378,19 @@ static void qemudCleanup(struct qemud_server *server) {
         if (sock->watch)
             virEventRemoveHandleImpl(sock->watch);
         close(sock->fd);
-        free(sock);
+        VIR_FREE(sock);
         sock = next;
     }
-    free(server->logDir);
+    VIR_FREE(server->logDir);
 
 #ifdef HAVE_SASL
     if (server->saslUsernameWhitelist) {
         char **list = server->saslUsernameWhitelist;
         while (*list) {
-            free(*list);
+            VIR_FREE(*list);
             list++;
         }
-        free(server->saslUsernameWhitelist);
+        VIR_FREE(server->saslUsernameWhitelist);
     }
 #endif
 
@@ -2743,10 +2747,9 @@ remoteReadConfigFile (struct qemud_server *server, const char *filename)
                 goto free_and_fail;
             }
             unix_sock_gid = grp->gr_gid;
-            VIR_FREE (buf);
+            VIR_FREE(buf);
         }
-        free (unix_sock_group);
-        unix_sock_group = NULL;
+        VIR_FREE(unix_sock_group);
     }
 
     GET_CONF_STR (conf, filename, unix_sock_ro_perms);
@@ -2755,8 +2758,7 @@ remoteReadConfigFile (struct qemud_server *server, const char *filename)
             VIR_ERROR(_("Failed to parse mode '%s'"), unix_sock_ro_perms);
             goto free_and_fail;
         }
-        free (unix_sock_ro_perms);
-        unix_sock_ro_perms = NULL;
+        VIR_FREE(unix_sock_ro_perms);
     }
 
     GET_CONF_STR (conf, filename, unix_sock_rw_perms);
@@ -2765,8 +2767,7 @@ remoteReadConfigFile (struct qemud_server *server, const char *filename)
             VIR_ERROR(_("Failed to parse mode '%s'"), unix_sock_rw_perms);
             goto free_and_fail;
         }
-        free (unix_sock_rw_perms);
-        unix_sock_rw_perms = NULL;
+        VIR_FREE(unix_sock_rw_perms);
     }
 
     GET_CONF_STR (conf, filename, unix_sock_dir);
@@ -2801,12 +2802,11 @@ remoteReadConfigFile (struct qemud_server *server, const char *filename)
 
  free_and_fail:
     virConfFree (conf);
-    free (mdns_name);
-    mdns_name = NULL;
-    free (unix_sock_ro_perms);
-    free (unix_sock_rw_perms);
-    free (unix_sock_group);
-    VIR_FREE (buf);
+    VIR_FREE(mdns_name);
+    VIR_FREE(unix_sock_ro_perms);
+    VIR_FREE(unix_sock_rw_perms);
+    VIR_FREE(unix_sock_group);
+    VIR_FREE(buf);
 
     /* Don't bother trying to free listen_addr, tcp_port, tls_port, key_file,
        cert_file, ca_file, or crl_file, since they are initialized to
@@ -2817,9 +2817,8 @@ remoteReadConfigFile (struct qemud_server *server, const char *filename)
     if (tls_allowed_dn_list) {
         int i;
         for (i = 0; tls_allowed_dn_list[i]; i++)
-            free (tls_allowed_dn_list[i]);
-        free (tls_allowed_dn_list);
-        tls_allowed_dn_list = NULL;
+            VIR_FREE(tls_allowed_dn_list[i]);
+        VIR_FREE(tls_allowed_dn_list);
     }
 
     return -1;
@@ -2939,7 +2938,7 @@ libvirt management daemon:\n\
 \n\
   Default paths:\n\
 \n\
-    Configuration file (unless overridden by -c):\n\
+    Configuration file (unless overridden by -f):\n\
       " SYSCONF_DIR "/libvirt/libvirtd.conf\n\
 \n\
     Sockets (as root):\n\
@@ -3041,7 +3040,7 @@ int main(int argc, char **argv) {
         default:
             fprintf (stderr, "libvirtd: internal error: unknown flag: %c\n",
                      c);
-            exit (1);
+            exit (EXIT_FAILURE);
         }
     }
 

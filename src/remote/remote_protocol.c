@@ -4,7 +4,7 @@
  * It was generated using rpcgen.
  */
 
-#include "remote_protocol.h"
+#include "./remote/remote_protocol.h"
 #include "internal.h"
 #include <arpa/inet.h>
 
@@ -592,6 +592,41 @@ xdr_remote_domain_interface_stats_ret (XDR *xdrs, remote_domain_interface_stats_
          if (!xdr_int64_t (xdrs, &objp->tx_errs))
                  return FALSE;
          if (!xdr_int64_t (xdrs, &objp->tx_drop))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_memory_stats_args (XDR *xdrs, remote_domain_memory_stats_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->maxStats))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_memory_stat (XDR *xdrs, remote_domain_memory_stat *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->tag))
+                 return FALSE;
+         if (!xdr_uint64_t (xdrs, &objp->val))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_memory_stats_ret (XDR *xdrs, remote_domain_memory_stats_ret *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->stats.stats_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->stats.stats_len, REMOTE_DOMAIN_MEMORY_STATS_MAX,
+                sizeof (remote_domain_memory_stat), (xdrproc_t) xdr_remote_domain_memory_stat))
                  return FALSE;
         return TRUE;
 }
@@ -2852,6 +2887,26 @@ xdr_remote_interface_is_active_ret (XDR *xdrs, remote_interface_is_active_ret *o
 {
 
          if (!xdr_int (xdrs, &objp->active))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_cpu_compare_args (XDR *xdrs, remote_cpu_compare_args *objp)
+{
+
+         if (!xdr_remote_nonnull_string (xdrs, &objp->xml))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_cpu_compare_ret (XDR *xdrs, remote_cpu_compare_ret *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->result))
                  return FALSE;
         return TRUE;
 }

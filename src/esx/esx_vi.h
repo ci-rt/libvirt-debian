@@ -33,7 +33,7 @@
 
 typedef enum _esxVI_APIVersion esxVI_APIVersion;
 typedef enum _esxVI_ProductVersion esxVI_ProductVersion;
-typedef enum _esxVI_Occurence esxVI_Occurence;
+typedef enum _esxVI_Occurrence esxVI_Occurrence;
 typedef struct _esxVI_Context esxVI_Context;
 typedef struct _esxVI_Response esxVI_Response;
 typedef struct _esxVI_Enumeration esxVI_Enumeration;
@@ -58,11 +58,12 @@ enum _esxVI_ProductVersion {
     esxVI_ProductVersion_VPX40
 };
 
-enum _esxVI_Occurence {
-    esxVI_Occurence_Undefined = 0,
-    esxVI_Occurence_RequiredItem,
-    esxVI_Occurence_OptionalItem,
-    esxVI_Occurence_List
+enum _esxVI_Occurrence {
+    esxVI_Occurrence_Undefined = 0,
+    esxVI_Occurrence_RequiredItem,
+    esxVI_Occurrence_OptionalItem,
+    esxVI_Occurrence_List,
+    esxVI_Occurrence_None
 };
 
 
@@ -100,8 +101,8 @@ int esxVI_Context_DownloadFile(virConnectPtr conn, esxVI_Context *ctx,
 int esxVI_Context_UploadFile(virConnectPtr conn, esxVI_Context *ctx,
                              const char *url, const char *content);
 int esxVI_Context_Execute(virConnectPtr conn, esxVI_Context *ctx,
-                          const char *request, const char *xpathExpression,
-                          esxVI_Response **response, esxVI_Boolean expectList);
+                          const char *methodName, const char *request,
+                          esxVI_Response **response, esxVI_Occurrence occurrence);
 
 
 
@@ -113,7 +114,6 @@ struct _esxVI_Response {
     int responseCode;                                 /* required */
     char *content;                                    /* required */
     xmlDocPtr document;                               /* optional */
-    xmlXPathContextPtr xpathContext;                  /* optional */
     xmlNodePtr node;                                  /* optional, list */
 };
 
@@ -138,7 +138,7 @@ struct _esxVI_Enumeration {
 
 int esxVI_Enumeration_CastFromAnyType(virConnectPtr conn,
                                       const esxVI_Enumeration *enumeration,
-                                      esxVI_AnyType *anyType, int *boolean);
+                                      esxVI_AnyType *anyType, int *value);
 int esxVI_Enumeration_Serialize(virConnectPtr conn,
                                 const esxVI_Enumeration *enumeration,
                                 int value, const char *element,
@@ -229,6 +229,10 @@ int esxVI_GetVirtualMachinePowerState
       (virConnectPtr conn, esxVI_ObjectContent *virtualMachine,
        esxVI_VirtualMachinePowerState *powerState);
 
+int esxVI_GetVirtualMachineQuestionInfo
+      (virConnectPtr conn, esxVI_ObjectContent *virtualMachine,
+       esxVI_VirtualMachineQuestionInfo **questionInfo);
+
 int esxVI_LookupNumberOfDomainsByPowerState
       (virConnectPtr conn, esxVI_Context *ctx,
        esxVI_VirtualMachinePowerState powerState, esxVI_Boolean inverse);
@@ -250,13 +254,32 @@ int esxVI_LookupVirtualMachineByUuid(virConnectPtr conn, esxVI_Context *ctx,
                                      const unsigned char *uuid,
                                      esxVI_String *propertyNameList,
                                      esxVI_ObjectContent **virtualMachine,
-                                     esxVI_Occurence occurence);
+                                     esxVI_Occurrence occurrence);
+
+int esxVI_LookupVirtualMachineByUuidAndPrepareForTask
+      (virConnectPtr conn, esxVI_Context *ctx, const unsigned char *uuid,
+       esxVI_String *propertyNameList, esxVI_ObjectContent **virtualMachine,
+       esxVI_Boolean autoAnswer);
 
 int esxVI_LookupDatastoreByName(virConnectPtr conn, esxVI_Context *ctx,
                                 const char *name,
                                 esxVI_String *propertyNameList,
                                 esxVI_ObjectContent **datastore,
-                                esxVI_Occurence occurence);
+                                esxVI_Occurrence occurrence);
+
+int esxVI_LookupTaskInfoByTask(virConnectPtr conn, esxVI_Context *ctx,
+                               esxVI_ManagedObjectReference *task,
+                               esxVI_TaskInfo **taskInfo);
+
+int esxVI_LookupPendingTaskInfoListByVirtualMachine
+      (virConnectPtr conn, esxVI_Context *ctx,
+       esxVI_ObjectContent *virtualMachine,
+       esxVI_TaskInfo **pendingTaskInfoList);
+
+int esxVI_LookupAndHandleVirtualMachineQuestion(virConnectPtr conn,
+                                                esxVI_Context *ctx,
+                                                const unsigned char *uuid,
+                                                esxVI_Boolean autoAnswer);
 
 int esxVI_StartVirtualMachineTask(virConnectPtr conn, esxVI_Context *ctx,
                                   const char *name, const char *request,
@@ -271,8 +294,16 @@ int esxVI_SimpleVirtualMachineMethod
       (virConnectPtr conn, esxVI_Context *ctx, const char *name,
        esxVI_ManagedObjectReference *virtualMachine);
 
+int esxVI_HandleVirtualMachineQuestion
+      (virConnectPtr conn, esxVI_Context *ctx,
+       esxVI_ManagedObjectReference *virtualMachine,
+       esxVI_VirtualMachineQuestionInfo *questionInfo,
+       esxVI_Boolean autoAnswer);
+
 int esxVI_WaitForTaskCompletion(virConnectPtr conn, esxVI_Context *ctx,
                                 esxVI_ManagedObjectReference *task,
+                                const unsigned char *virtualMachineUuid,
+                                esxVI_Boolean autoAnswer,
                                 esxVI_TaskInfoState *finalState);
 
 #endif /* __ESX_VI_H__ */

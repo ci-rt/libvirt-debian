@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([libvirt], [0.7.4])
+AC_INIT([libvirt], [0.7.5])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AM_CONFIG_HEADER([config.h])
@@ -78,12 +78,32 @@ AC_SUBST(VERSION_SCRIPT_FLAGS)
 
 LIBVIRT_COMPILE_WARNINGS([maximum])
 
+AC_MSG_CHECKING([for CPUID instruction])
+AC_COMPILE_IFELSE(AC_LANG_PROGRAM(
+  [[
+    #include <stdint.h>
+  ]],
+  [[
+    uint32_t eax, ebx, ecx, edx;
+    asm volatile (
+        "cpuid"
+        : "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
+        : "a" (eax));
+  ]]),
+  [have_cpuid=yes],
+  [have_cpuid=no])
+if test "x$have_cpuid" = xyes; then
+  AC_DEFINE_UNQUOTED([HAVE_CPUID], 1, [whether CPUID instruction is supported])
+fi
+AC_MSG_RESULT([$have_cpuid])
+
+
 dnl Support large files / 64 bit seek offsets.
 dnl Use --disable-largefile if you don't want this.
 AC_SYS_LARGEFILE
 
 dnl Availability of various common functions (non-fatal if missing).
-AC_CHECK_FUNCS([cfmakeraw regexec uname sched_getaffinity getuid getgid posix_fallocate mmap readlink])
+AC_CHECK_FUNCS([cfmakeraw regexec uname sched_getaffinity getuid getgid posix_fallocate mmap])
 
 dnl Availability of various not common threadsafe functions
 AC_CHECK_FUNCS([strerror_r strtok_r getmntent_r getgrnam_r getpwuid_r])
@@ -96,7 +116,8 @@ dnl If portablexdr is installed, prefer that.
 dnl Otherwise try -lrpc (Cygwin) -lxdr (some MinGW), -lnsl (Solaris)
 dnl or none (most Unix)
 AC_CHECK_LIB([portablexdr],[xdrmem_create],[],[
-	AC_SEARCH_LIBS([xdrmem_create],[rpc xdr nsl])
+	AC_SEARCH_LIBS([xdrmem_create],[rpc xdr nsl],[],
+		[AC_MSG_ERROR([Cannot find a XDR library])])
 	])
 
 AC_CHECK_LIB([intl],[gettext],[])
@@ -267,27 +288,6 @@ AC_ARG_WITH([rhel5-api],
 		[build for the RHEL-5 API [default=no]])])
 if test x"$with_rhel5_api" = x"yes"; then
    AC_DEFINE([WITH_RHEL5_API], [1], [whether building for the RHEL-5 API])
-fi
-
-dnl
-dnl ensure that Fedora's system-config-firewall knows
-dnl about libvirt's iptables rules
-dnl
-AC_ARG_ENABLE([iptables-lokkit],
-              [AC_HELP_STRING([--enable-iptables-lokkit=no/yes/check],
-	   [enable registering libvirt's iptables rules with Fedora's lokkit])],
-                             [],[enable_iptables_lokkit=check])
-if test x"$enable_iptables_lokkit" != x"no"; then
-   AC_PATH_PROG([LOKKIT_PATH],[lokkit], [], [/usr/sbin:$PATH])
-fi
-
-if test x"$enable_iptables_lokkit" = x"yes" -a x"$LOKKIT_PATH" = x; then
-   AC_MSG_ERROR([Cannot find lokkit and --enable-iptables-lokkit specified])
-fi
-
-if test x"$LOKKIT_PATH" != x; then
-   AC_DEFINE([ENABLE_IPTABLES_LOKKIT], [], [whether support for Fedora's lokkit is enabled])
-   AC_DEFINE_UNQUOTED([LOKKIT_PATH], "$LOKKIT_PATH", [path to lokkit binary])
 fi
 
 AC_PATH_PROG([IPTABLES_PATH], [iptables], /sbin/iptables, [/usr/sbin:$PATH])
@@ -542,20 +542,20 @@ AC_SUBST([LIBXML_LIBS])
 
 dnl xmlURI structure has query_raw?
 old_cflags="$CFLAGS"
-old_ldflags="$LDFLAGS"
+old_libs="$LIBS"
 CFLAGS="$CFLAGS $LIBXML_CFLAGS"
-LDFLAGS="$LDFLAGS $LIBXML_LIBS"
+LIBS="$LIBS $LIBXML_LIBS"
 AC_CHECK_MEMBER([struct _xmlURI.query_raw],
 		[AC_DEFINE([HAVE_XMLURI_QUERY_RAW], [], [Have query_raw field in libxml2 xmlURI structure])],,
 		[#include <libxml/uri.h>])
 CFLAGS="$old_cflags"
-LDFLAGS="$old_ldflags"
+LIBS="$old_libs"
 
 dnl GnuTLS library
 GNUTLS_CFLAGS=
 GNUTLS_LIBS=
 GNUTLS_FOUND=no
-if test -z "$PKG_CONFIG" ; then
+if test -x "$PKG_CONFIG" ; then
   PKG_CHECK_MODULES(GNUTLS, gnutls >= $GNUTLS_REQUIRED,
      [GNUTLS_FOUND=yes], [GNUTLS_FOUND=no])
 fi
@@ -568,8 +568,12 @@ if test "$GNUTLS_FOUND" = "no"; then
   test $fail = 1 &&
     AC_MSG_ERROR([You must install the GnuTLS library in order to compile and run libvirt])
 
-  GNUTLS_LIBS=$LIBS
+  dnl Not all versions of gnutls include -lgcrypt, and so we add
+  dnl it explicitly for the calls to gcry_control/check_version
+  GNUTLS_LIBS="$LIBS -lgcrypt"
   LIBS="$old_libs"
+else
+  GNUTLS_LIBS="$GNUTLS_LIBS -lgcrypt"
 fi
 
 AC_SUBST([GNUTLS_CFLAGS])
@@ -579,15 +583,15 @@ dnl Old versions of GnuTLS uses types like 'gnutls_session' instead
 dnl of 'gnutls_session_t'.  Try to detect this type if defined so
 dnl that we can offer backwards compatibility.
 old_cflags="$CFLAGS"
-old_ldflags="$LDFLAGS"
+old_libs="$LIBS"
 CFLAGS="$CFLAGS $GNUTLS_CFLAGS"
-LDFLAGS="$LDFLAGS $GNUTLS_LIBS"
+LIBS="$LIBS $GNUTLS_LIBS"
 AC_CHECK_TYPE([gnutls_session],
 	AC_DEFINE([GNUTLS_1_0_COMPAT],[],
 		[enable GnuTLS 1.0 compatibility macros]),,
 	[#include <gnutls/gnutls.h>])
 CFLAGS="$old_cflags"
-LDFLAGS="$old_ldflags"
+LIBS="$old_libs"
 
 
 dnl Cyrus SASL
@@ -609,7 +613,7 @@ if test "x$with_sasl" != "xno"; then
   CFLAGS="$CFLAGS $SASL_CFLAGS"
   LIBS="$LIBS $SASL_LIBS"
   AC_CHECK_HEADER([sasl/sasl.h],[],[
-    if test "x$with_sasl" != "xcheck" ; then
+    if test "x$with_sasl" = "xcheck" ; then
         with_sasl=no
     else
         fail=1
@@ -643,6 +647,56 @@ fi
 AM_CONDITIONAL([HAVE_SASL], [test "x$with_sasl" = "xyes"])
 AC_SUBST([SASL_CFLAGS])
 AC_SUBST([SASL_LIBS])
+
+
+dnl YAJL JSON library http://lloyd.github.com/yajl/
+AC_ARG_WITH([yajl],
+  [  --with-yajl         use YAJL for JSON parsing/formatting],
+  [],
+  [with_yajl=check])
+
+YAJL_CFLAGS=
+YAJL_LIBS=
+if test "x$with_yajl" != "xno"; then
+  if test "x$with_yajl" != "xyes" -a "x$with_yajl" != "xcheck"; then
+    YAJL_CFLAGS="-I$with_yajl/include"
+    YAJL_LIBS="-L$with_yajl/lib"
+  fi
+  fail=0
+  old_cppflags="$CPPFLAGS"
+  old_libs="$LIBS"
+  CPPFLAGS="$CPPFLAGS $YAJL_CFLAGS"
+  LIBS="$LIBS $YAJL_LIBS"
+  AC_CHECK_HEADER([yajl/yajl_common.h],[],[
+    if test "x$with_yajl" = "xcheck" ; then
+        with_yajl=no
+    else
+        fail=1
+    fi])
+  if test "x$with_yajl" != "xno" ; then
+    AC_CHECK_LIB([yajl], [yajl_parse],[
+      YAJL_LIBS="$YAJL_LIBS -lyajl"
+      with_yajl=yes
+    ],[
+      if test "x$with_yajl" = "xcheck" ; then
+        with_yajl=no
+      else
+        fail=1
+      fi
+    ])
+  fi
+  test $fail = 1 &&
+    AC_MSG_ERROR([You must install the YAJL development package in order to compile libvirt])
+  CPPFLAGS="$old_cppflags"
+  LIBS="$old_libs"
+  if test "x$with_yajl" = "xyes" ; then
+    AC_DEFINE_UNQUOTED([HAVE_YAJL], 1,
+      [whether YAJL is available for JSON parsing/formatting])
+  fi
+fi
+AM_CONDITIONAL([HAVE_YAJL], [test "x$with_yajl" = "xyes"])
+AC_SUBST([YAJL_CFLAGS])
+AC_SUBST([YAJL_LIBS])
 
 
 dnl PolicyKit library
@@ -685,12 +739,12 @@ if test "x$with_polkit" = "xyes" -o "x$with_polkit" = "xcheck"; then
         [use PolicyKit for UNIX socket access checks])
 
       old_CFLAGS=$CFLAGS
-      old_LDFLAGS=$LDFLAGS
+      old_LIBS=$LIBS
       CFLAGS="$CFLAGS $POLKIT_CFLAGS"
-      LDFLAGS="$LDFLAGS $POLKIT_LIBS"
+      LIBS="$LIBS $POLKIT_LIBS"
       AC_CHECK_FUNCS([polkit_context_is_caller_authorized])
       CFLAGS="$old_CFLAGS"
-      LDFLAGS="$old_LDFLAGS"
+      LIBS="$old_LIBS"
 
       AC_PATH_PROG([POLKIT_AUTH], [polkit-auth])
       if test "x$POLKIT_AUTH" != "x"; then
@@ -1414,75 +1468,69 @@ AC_ARG_WITH([python],
 
 PYTHON_VERSION=
 PYTHON_INCLUDES=
-PYTHON_SITE_PACKAGES=
-PYTHON_TESTS=
-pythondir=
 if test "$with_python" != "no" ; then
     if test -x "$with_python/bin/python"
     then
-        echo Found python in $with_python/bin/python
+        AC_MSG_NOTICE(Found python in $with_python/bin/python)
         PYTHON="$with_python/bin/python"
+        with_python=yes
     else
-	if test -x "$with_python"
-	then
-	    echo Found python in $with_python
-	    PYTHON="$with_python"
-	else
-	    if test -x "$PYTHON"
-	    then
-	        echo Found python in environment PYTHON=$PYTHON
-		with_python=`$PYTHON -c "import sys; print sys.exec_prefix"`
-	    else
-		AC_PATH_PROG([PYTHON], [python python2.6 python2.5 python2.4 python2.3 python2.2 python2.1 python2.0 python1.6 python1.5])
-	    fi
-	fi
+        if test -x "$with_python"
+        then
+            AC_MSG_NOTICE(Found python in $with_python)
+            PYTHON="$with_python"
+            with_python=yes
+        else
+            if test -x "$PYTHON"
+            then
+                AC_MSG_NOTICE(Found python in environment PYTHON=$PYTHON)
+                with_python=yes
+            fi
+        fi
     fi
-    if test "$PYTHON" != ""
-    then
-        PYTHON_VERSION=`$PYTHON -c "import sys; print sys.version[[0:3]]"`
-	echo Found Python version $PYTHON_VERSION
-    fi
-    if test "$PYTHON_VERSION" != ""
-    then
-	if test -r $with_python/include/python$PYTHON_VERSION/Python.h -a \
-	   -d $with_python/lib/python$PYTHON_VERSION/site-packages
-	then
-	    PYTHON_INCLUDES=$with_python/include/python$PYTHON_VERSION
-	    PYTHON_SITE_PACKAGES=$libdir/python$PYTHON_VERSION/site-packages
-	else
-	    if test -r $prefix/include/python$PYTHON_VERSION/Python.h
-	    then
-	        PYTHON_INCLUDES=$prefix/include/python$PYTHON_VERSION
-	        PYTHON_SITE_PACKAGES=$libdir/python$PYTHON_VERSION/site-packages
-	    else
-		if test -r /usr/include/python$PYTHON_VERSION/Python.h
-		then
-		    PYTHON_INCLUDES=/usr/include/python$PYTHON_VERSION
-	            PYTHON_SITE_PACKAGES=$libdir/python$PYTHON_VERSION/site-packages
-		else
-		    echo could not find python$PYTHON_VERSION/Python.h
-		fi
-	    fi
-	    if test ! -d "$PYTHON_SITE_PACKAGES"
-	    then
-		    PYTHON_SITE_PACKAGES=`$PYTHON -c "from distutils import sysconfig; print sysconfig.get_python_lib()"`
-	    fi
-	fi
-    fi
-    if test "$with_python" != "yes"
-    then
-        pythondir='$(PYTHON_SITE_PACKAGES)'
+
+    if test "$with_python" == "yes" ; then
+        AM_PATH_PYTHON(,, [:])
+
+        if test "$PYTHON" != : ; then
+            PYTHON_CONFIG="$PYTHON-config"
+
+            if test -x "$PYTHON_CONFIG"
+            then
+                PYTHON_INCLUDES=`$PYTHON_CONFIG --includes`
+            else
+                if test -r $PYTHON_EXEC_PREFIX/include/python$PYTHON_VERSION/Python.h
+                then
+                    PYTHON_INCLUDES=-I$PYTHON_EXEC_PREFIX/include/python$PYTHON_VERSION
+                else
+                    if test -r $prefix/include/python$PYTHON_VERSION/Python.h
+                    then
+                        PYTHON_INCLUDES=-I$prefix/include/python$PYTHON_VERSION
+                    else
+                        if test -r /usr/include/python$PYTHON_VERSION/Python.h
+                        then
+                            PYTHON_INCLUDES=-I/usr/include/python$PYTHON_VERSION
+                        else
+                            AC_MSG_NOTICE([Could not find python$PYTHON_VERSION/Python.h, disabling bindings])
+                            with_python=no
+                        fi
+                    fi
+                fi
+            fi
+        else
+            AC_MSG_NOTICE([Could not find python interpreter, disabling bindings])
+            with_python=no
+        fi
     else
-        pythondir='$(libdir)/python$(PYTHON_VERSION)/site-packages'
+        AC_MSG_NOTICE([Could not find python in $with_python, disabling bindings])
+        with_python=no
     fi
-else
-    PYTHON=
 fi
-AM_CONDITIONAL([WITH_PYTHON], test "$PYTHON_INCLUDES" != "")
-AC_SUBST([pythondir])
+AM_CONDITIONAL([WITH_PYTHON], [test "$with_python" = "yes"])
 AC_SUBST([PYTHON_VERSION])
 AC_SUBST([PYTHON_INCLUDES])
-AC_SUBST([PYTHON_SITE_PACKAGES])
+
+
 
 AC_MSG_CHECKING([whether this host is running a Xen kernel])
 RUNNING_XEN=
@@ -1678,17 +1726,18 @@ if test "x$with_hal" = "xyes" -o "x$with_hal" = "xcheck"; then
     fi
   ])
   if test "x$with_hal" = "xyes" ; then
-    AC_DEFINE_UNQUOTED([HAVE_HAL], 1,
-      [use HAL for host device enumeration])
-
     old_CFLAGS=$CFLAGS
-    old_LDFLAGS=$LDFLAGS
+    old_LIBS=$LIBS
     CFLAGS="$CFLAGS $HAL_CFLAGS"
-    LDFLAGS="$LDFLAGS $HAL_LIBS"
+    LIBS="$LIBS $HAL_LIBS"
     AC_CHECK_FUNCS([libhal_get_all_devices],,[with_hal=no])
     AC_CHECK_FUNCS([dbus_watch_get_unix_fd])
     CFLAGS="$old_CFLAGS"
-    LDFLAGS="$old_LDFLAGS"
+    LIBS="$old_LIBS"
+  fi
+  if test "x$with_hal" = "xyes" ; then
+    AC_DEFINE_UNQUOTED([HAVE_HAL], 1,
+      [use HAL for host device enumeration])
   fi
 fi
 AM_CONDITIONAL([HAVE_HAL], [test "x$with_hal" = "xyes"])
@@ -1788,6 +1837,7 @@ AC_OUTPUT(Makefile src/Makefile include/Makefile docs/Makefile \
           tests/xmconfigdata/Makefile \
           tests/xencapsdata/Makefile \
           tests/confdata/Makefile \
+          examples/apparmor/Makefile \
           examples/domain-events/events-c/Makefile \
           examples/domsuspend/Makefile \
           examples/dominfo/Makefile \
@@ -1858,6 +1908,11 @@ if test "$with_sasl" != "no" ; then
 AC_MSG_NOTICE([    sasl: $SASL_CFLAGS $SASL_LIBS])
 else
 AC_MSG_NOTICE([    sasl: no])
+fi
+if test "$with_yajl" != "no" ; then
+AC_MSG_NOTICE([    yajl: $YAJL_CFLAGS $YAJL_LIBS])
+else
+AC_MSG_NOTICE([    yajl: no])
 fi
 if test "$with_avahi" = "yes" ; then
 AC_MSG_NOTICE([   avahi: $AVAHI_CFLAGS $AVAHI_LIBS])

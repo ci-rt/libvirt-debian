@@ -22,9 +22,6 @@
 
 #include <config.h>
 
-#define __STDC_FORMAT_MACROS
-#include <inttypes.h>
-
 #include <libxml/parser.h>
 #include <libxml/xpathInternals.h>
 
@@ -517,7 +514,7 @@ esxVI_Context_DownloadFile(virConnectPtr conn, esxVI_Context *ctx,
         goto failure;
     } else if (responseCode != 200) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                     "HTTP response code %d while trying to download '%s'",
+                     "HTTP response code %d for download from '%s'",
                      responseCode, url);
         goto failure;
     }
@@ -532,7 +529,7 @@ esxVI_Context_DownloadFile(virConnectPtr conn, esxVI_Context *ctx,
     return 0;
 
   failure:
-    free(virBufferContentAndReset(&buffer));
+    virBufferFreeAndReset(&buffer);
 
     return -1;
 }
@@ -563,7 +560,7 @@ esxVI_Context_UploadFile(virConnectPtr conn, esxVI_Context *ctx,
         return -1;
     } else if (responseCode != 200 && responseCode != 201) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                     "HTTP response code %d while trying to upload to '%s'",
+                     "HTTP response code %d for upload to '%s'",
                      responseCode, url);
         return -1;
     }
@@ -573,11 +570,15 @@ esxVI_Context_UploadFile(virConnectPtr conn, esxVI_Context *ctx,
 
 int
 esxVI_Context_Execute(virConnectPtr conn, esxVI_Context *ctx,
-                      const char *request, const char *xpathExpression,
-                      esxVI_Response **response, esxVI_Boolean expectList)
+                      const char *methodName, const char *request,
+                      esxVI_Response **response, esxVI_Occurrence occurrence)
 {
+    int result = 0;
     virBuffer buffer = VIR_BUFFER_INITIALIZER;
     esxVI_Fault *fault = NULL;
+    char *xpathExpression = NULL;
+    xmlXPathContextPtr xpathContext = NULL;
+    xmlNodePtr responseNode = NULL;
 
     if (request == NULL || response == NULL || *response != NULL) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Invalid argument");
@@ -611,108 +612,146 @@ esxVI_Context_Execute(virConnectPtr conn, esxVI_Context *ctx,
 
     (*response)->content = virBufferContentAndReset(&buffer);
 
-    if ((*response)->responseCode == 500 ||
-        (xpathExpression != NULL && (*response)->responseCode == 200)) {
+    if ((*response)->responseCode == 500 || (*response)->responseCode == 200) {
         (*response)->document = xmlReadDoc(BAD_CAST (*response)->content, "",
                                            NULL, XML_PARSE_NONET);
 
         if ((*response)->document == NULL) {
             ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                         "Could not parse XML response");
+                         "Response for call to '%s' could not be parsed",
+                         methodName);
             goto failure;
         }
 
         if (xmlDocGetRootElement((*response)->document) == NULL) {
             ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                         "XML response is an empty document");
+                         "Response for call to '%s' is an empty XML document",
+                         methodName);
             goto failure;
         }
 
-        (*response)->xpathContext = xmlXPathNewContext((*response)->document);
+        xpathContext = xmlXPathNewContext((*response)->document);
 
-        if ((*response)->xpathContext == NULL) {
+        if (xpathContext == NULL) {
             ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
                          "Could not create XPath context");
             goto failure;
         }
 
-        xmlXPathRegisterNs((*response)->xpathContext, BAD_CAST "soapenv",
+        xmlXPathRegisterNs(xpathContext, BAD_CAST "soapenv",
                            BAD_CAST "http://schemas.xmlsoap.org/soap/envelope/");
-        xmlXPathRegisterNs((*response)->xpathContext, BAD_CAST "vim",
-                           BAD_CAST "urn:vim25");
+        xmlXPathRegisterNs(xpathContext, BAD_CAST "vim", BAD_CAST "urn:vim25");
 
         if ((*response)->responseCode == 500) {
             (*response)->node =
               virXPathNode(conn, "/soapenv:Envelope/soapenv:Body/soapenv:Fault",
-                           (*response)->xpathContext);
+                           xpathContext);
 
             if ((*response)->node == NULL) {
                 ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                             "HTTP response code %d. VI Fault is unknown, "
-                             "XPath evaluation failed",
-                             (int)(*response)->responseCode);
+                             "HTTP response code %d for call to '%s'. "
+                             "Fault is unknown, XPath evaluation failed",
+                             (*response)->responseCode, methodName);
                 goto failure;
             }
 
             if (esxVI_Fault_Deserialize(conn, (*response)->node, &fault) < 0) {
                 ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                             "HTTP response code %d. VI Fault is unknown, "
-                             "deserialization failed",
-                             (int)(*response)->responseCode);
+                             "HTTP response code %d for call to '%s'. "
+                             "Fault is unknown, deserialization failed",
+                             (*response)->responseCode, methodName);
                 goto failure;
             }
 
             ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                         "HTTP response code %d. VI Fault: %s - %s",
-                         (int)(*response)->responseCode,
-                         fault->faultcode, fault->faultstring);
-
+                         "HTTP response code %d for call to '%s'. "
+                         "Fault: %s - %s", (*response)->responseCode,
+                         methodName, fault->faultcode, fault->faultstring);
             goto failure;
-        } else if (expectList == esxVI_Boolean_True) {
-            xmlNodePtr *nodeSet = NULL;
-            int nodeSet_size;
-
-            nodeSet_size = virXPathNodeSet(conn, xpathExpression,
-                                           (*response)->xpathContext,
-                                           &nodeSet);
-
-            if (nodeSet_size < 0) {
-                ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                             "XPath evaluation of '%s' failed",
-                             xpathExpression);
+        } else {
+            if (virAsprintf(&xpathExpression,
+                            "/soapenv:Envelope/soapenv:Body/vim:%sResponse",
+                            methodName) < 0) {
+                virReportOOMError(conn);
                 goto failure;
-            } else if (nodeSet_size == 0) {
-                (*response)->node = NULL;
-            } else {
-                (*response)->node = nodeSet[0];
             }
 
-            VIR_FREE(nodeSet);
-        } else {
-            (*response)->node = virXPathNode(conn, xpathExpression,
-                                             (*response)->xpathContext);
+            responseNode = virXPathNode(conn, xpathExpression, xpathContext);
 
-            if ((*response)->node == NULL) {
+            if (responseNode == NULL) {
                 ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                             "XPath evaluation of '%s' failed",
-                             xpathExpression);
+                             "XPath evaluation of response for call to '%s' "
+                             "failed", methodName);
+                goto failure;
+            }
+
+            xpathContext->node = responseNode;
+            (*response)->node = virXPathNode(conn, "./vim:returnval",
+                                             xpathContext);
+
+            switch (occurrence) {
+              case esxVI_Occurrence_RequiredItem:
+                if ((*response)->node == NULL) {
+                    ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+                                 "Call to '%s' returned an empty result, "
+                                 "expecting a non-empty result", methodName);
+                    goto failure;
+                }
+
+                break;
+
+              case esxVI_Occurrence_OptionalItem:
+                if ((*response)->node != NULL &&
+                    (*response)->node->next != NULL) {
+                    ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+                                 "Call to '%s' returned a list, expecting "
+                                 "exactly one item", methodName);
+                    goto failure;
+                }
+
+                break;
+
+              case esxVI_Occurrence_List:
+                /* Any amount of items is valid */
+                break;
+
+              case esxVI_Occurrence_None:
+                if ((*response)->node != NULL) {
+                    ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+                                 "Call to '%s' returned something, expecting "
+                                 "an empty result", methodName);
+                    goto failure;
+                }
+
+                break;
+
+              default:
+                ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+                             "Invalid argument (occurrence)");
                 goto failure;
             }
         }
-    } else if ((*response)->responseCode != 200) {
+    } else {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                     "HTTP response code %d", (*response)->responseCode);
+                     "HTTP response code %d for call to '%s'",
+                     (*response)->responseCode, methodName);
         goto failure;
     }
 
-    return 0;
+  cleanup:
+    VIR_FREE(xpathExpression);
+    xmlXPathFreeContext(xpathContext);
+
+    return result;
 
   failure:
-    free(virBufferContentAndReset(&buffer));
+    virBufferFreeAndReset(&buffer);
     esxVI_Response_Free(response);
     esxVI_Fault_Free(&fault);
 
-    return -1;
+    result = -1;
+
+    goto cleanup;
 }
 
 
@@ -728,8 +767,6 @@ ESX_VI__TEMPLATE__ALLOC(Response);
 ESX_VI__TEMPLATE__FREE(Response,
 {
     VIR_FREE(item->content);
-
-    xmlXPathFreeContext(item->xpathContext);
 
     if (item->document != NULL) {
         xmlFreeDoc(item->document);
@@ -935,7 +972,7 @@ esxVI_List_CastFromAnyType(virConnectPtr conn, esxVI_AnyType *anyType,
     if (list == NULL || *list != NULL ||
         castFromAnyTypeFunc == NULL || freeFunc == NULL) {
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Invalid argument");
-        goto failure;
+        return -1;
     }
 
     if (anyType == NULL) {
@@ -946,10 +983,10 @@ esxVI_List_CastFromAnyType(virConnectPtr conn, esxVI_AnyType *anyType,
         ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
                      "Expecting type to begin with 'ArrayOf' but found '%s'",
                      anyType->other);
-        goto failure;
+        return -1;
     }
 
-    for (childNode = anyType->_node->xmlChildrenNode; childNode != NULL;
+    for (childNode = anyType->_node->children; childNode != NULL;
          childNode = childNode->next) {
         if (childNode->type != XML_ELEMENT_NODE) {
             ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
@@ -981,7 +1018,6 @@ esxVI_List_CastFromAnyType(virConnectPtr conn, esxVI_AnyType *anyType,
 
     goto cleanup;
 }
-
 
 int
 esxVI_List_Serialize(virConnectPtr conn, esxVI_List *list, const char *element,
@@ -1075,6 +1111,8 @@ esxVI_Alloc(virConnectPtr conn, void **ptrptr, size_t size)
 
     return 0;
 }
+
+
 
 int
 esxVI_CheckSerializationNecessity(virConnectPtr conn, const char *element,
@@ -1479,6 +1517,33 @@ esxVI_GetVirtualMachinePowerState(virConnectPtr conn,
 
 
 int
+esxVI_GetVirtualMachineQuestionInfo
+  (virConnectPtr conn, esxVI_ObjectContent *virtualMachine,
+   esxVI_VirtualMachineQuestionInfo **questionInfo)
+{
+    esxVI_DynamicProperty *dynamicProperty;
+
+    if (questionInfo == NULL || *questionInfo != NULL) {
+        ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Invalid argument");
+        return -1;
+    }
+
+    for (dynamicProperty = virtualMachine->propSet; dynamicProperty != NULL;
+         dynamicProperty = dynamicProperty->_next) {
+        if (STREQ(dynamicProperty->name, "runtime.question")) {
+            if (esxVI_VirtualMachineQuestionInfo_CastFromAnyType
+                  (conn, dynamicProperty->val, questionInfo) < 0) {
+                return -1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+
+
+int
 esxVI_LookupNumberOfDomainsByPowerState(virConnectPtr conn, esxVI_Context *ctx,
                                         esxVI_VirtualMachinePowerState powerState,
                                         esxVI_Boolean inverse)
@@ -1778,7 +1843,7 @@ esxVI_LookupVirtualMachineByUuid(virConnectPtr conn, esxVI_Context *ctx,
                                  const unsigned char *uuid,
                                  esxVI_String *propertyNameList,
                                  esxVI_ObjectContent **virtualMachine,
-                                 esxVI_Occurence occurence)
+                                 esxVI_Occurrence occurrence)
 {
     int result = 0;
     esxVI_ManagedObjectReference *managedObjectReference = NULL;
@@ -1795,12 +1860,12 @@ esxVI_LookupVirtualMachineByUuid(virConnectPtr conn, esxVI_Context *ctx,
     }
 
     if (managedObjectReference == NULL) {
-        if (occurence == esxVI_Occurence_OptionalItem) {
+        if (occurrence == esxVI_Occurrence_OptionalItem) {
             return 0;
         } else {
             virUUIDFormat(uuid, uuid_string);
 
-            ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+            ESX_VI_ERROR(conn, VIR_ERR_NO_DOMAIN,
                          "Could not find domain with UUID '%s'", uuid_string);
             goto failure;
         }
@@ -1827,10 +1892,64 @@ esxVI_LookupVirtualMachineByUuid(virConnectPtr conn, esxVI_Context *ctx,
 
 
 int
+esxVI_LookupVirtualMachineByUuidAndPrepareForTask
+  (virConnectPtr conn, esxVI_Context *ctx, const unsigned char *uuid,
+   esxVI_String *propertyNameList, esxVI_ObjectContent **virtualMachine,
+   esxVI_Boolean autoAnswer)
+{
+    int result = 0;
+    esxVI_String *completePropertyNameList = NULL;
+    esxVI_VirtualMachineQuestionInfo *questionInfo = NULL;
+    esxVI_TaskInfo *pendingTaskInfoList = NULL;
+
+    if (esxVI_String_DeepCopyList(conn, &completePropertyNameList,
+                                  propertyNameList) < 0 ||
+        esxVI_String_AppendValueListToList(conn, &completePropertyNameList,
+                                           "runtime.question\0"
+                                           "recentTask\0") < 0 ||
+        esxVI_LookupVirtualMachineByUuid(conn, ctx, uuid,
+                                         completePropertyNameList,
+                                         virtualMachine,
+                                         esxVI_Occurrence_RequiredItem) < 0 ||
+        esxVI_GetVirtualMachineQuestionInfo(conn, *virtualMachine,
+                                            &questionInfo) < 0 ||
+        esxVI_LookupPendingTaskInfoListByVirtualMachine
+           (conn, ctx, *virtualMachine, &pendingTaskInfoList) < 0) {
+        goto failure;
+    }
+
+    if (questionInfo != NULL &&
+        esxVI_HandleVirtualMachineQuestion(conn, ctx, (*virtualMachine)->obj,
+                                           questionInfo, autoAnswer) < 0) {
+        goto failure;
+    }
+
+    if (pendingTaskInfoList != NULL) {
+        ESX_VI_ERROR(conn, VIR_ERR_OPERATION_INVALID,
+                     "Other tasks are pending for this domain");
+        goto failure;
+    }
+
+  cleanup:
+    esxVI_String_Free(&completePropertyNameList);
+    esxVI_VirtualMachineQuestionInfo_Free(&questionInfo);
+    esxVI_TaskInfo_Free(&pendingTaskInfoList);
+
+    return result;
+
+  failure:
+    result = -1;
+
+    goto cleanup;
+}
+
+
+
+int
 esxVI_LookupDatastoreByName(virConnectPtr conn, esxVI_Context *ctx,
                             const char *name, esxVI_String *propertyNameList,
                             esxVI_ObjectContent **datastore,
-                            esxVI_Occurence occurence)
+                            esxVI_Occurrence occurrence)
 {
     int result = 0;
     esxVI_String *completePropertyNameList = NULL;
@@ -1864,7 +1983,7 @@ esxVI_LookupDatastoreByName(virConnectPtr conn, esxVI_Context *ctx,
     }
 
     if (datastoreList == NULL) {
-        if (occurence == esxVI_Occurence_OptionalItem) {
+        if (occurrence == esxVI_Occurrence_OptionalItem) {
             goto cleanup;
         } else {
             ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
@@ -1959,7 +2078,7 @@ esxVI_LookupDatastoreByName(virConnectPtr conn, esxVI_Context *ctx,
         }
     }
 
-    if (occurence != esxVI_Occurence_OptionalItem) {
+    if (occurrence != esxVI_Occurrence_OptionalItem) {
         if (numInaccessibleDatastores > 0) {
             ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
                          "Could not find datastore '%s', maybe it's "
@@ -1986,30 +2105,187 @@ esxVI_LookupDatastoreByName(virConnectPtr conn, esxVI_Context *ctx,
 
 
 
+int esxVI_LookupTaskInfoByTask(virConnectPtr conn, esxVI_Context *ctx,
+                               esxVI_ManagedObjectReference *task,
+                               esxVI_TaskInfo **taskInfo)
+{
+    int result = 0;
+    esxVI_String *propertyNameList = NULL;
+    esxVI_ObjectContent *objectContent = NULL;
+    esxVI_DynamicProperty *dynamicProperty = NULL;
+
+    if (taskInfo == NULL || *taskInfo != NULL) {
+        ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Invalid argument");
+        return -1;
+    }
+
+    if (esxVI_String_AppendValueToList(conn, &propertyNameList, "info") < 0 ||
+        esxVI_LookupObjectContentByType(conn, ctx, task, "Task",
+                                        propertyNameList, esxVI_Boolean_False,
+                                        &objectContent) < 0) {
+        goto failure;
+    }
+
+    for (dynamicProperty = objectContent->propSet; dynamicProperty != NULL;
+         dynamicProperty = dynamicProperty->_next) {
+        if (STREQ(dynamicProperty->name, "info")) {
+            if (esxVI_TaskInfo_CastFromAnyType(conn, dynamicProperty->val,
+                                               taskInfo) < 0) {
+                goto failure;
+            }
+
+            break;
+        } else {
+            VIR_WARN("Unexpected '%s' property", dynamicProperty->name);
+        }
+    }
+
+  cleanup:
+    esxVI_String_Free(&propertyNameList);
+    esxVI_ObjectContent_Free(&objectContent);
+
+    return result;
+
+  failure:
+    result = -1;
+
+    goto cleanup;
+}
+
+
+
+int
+esxVI_LookupPendingTaskInfoListByVirtualMachine
+  (virConnectPtr conn, esxVI_Context *ctx, esxVI_ObjectContent *virtualMachine,
+   esxVI_TaskInfo **pendingTaskInfoList)
+{
+    int result = 0;
+    esxVI_String *propertyNameList = NULL;
+    esxVI_ManagedObjectReference *recentTaskList = NULL;
+    esxVI_ManagedObjectReference *recentTask = NULL;
+    esxVI_DynamicProperty *dynamicProperty = NULL;
+    esxVI_TaskInfo *taskInfo = NULL;
+
+    if (pendingTaskInfoList == NULL || *pendingTaskInfoList != NULL) {
+        ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR, "Invalid argument");
+        return -1;
+    }
+
+    /* Get list of recent tasks */
+    for (dynamicProperty = virtualMachine->propSet; dynamicProperty != NULL;
+         dynamicProperty = dynamicProperty->_next) {
+        if (STREQ(dynamicProperty->name, "recentTask")) {
+            if (esxVI_ManagedObjectReference_CastListFromAnyType
+                  (conn, dynamicProperty->val, &recentTaskList, "Task") < 0) {
+                goto failure;
+            }
+
+            break;
+        }
+    }
+
+    /* Lookup task info for each task */
+    for (recentTask = recentTaskList; recentTask != NULL;
+         recentTask = recentTask->_next) {
+        if (esxVI_LookupTaskInfoByTask(conn, ctx, recentTask, &taskInfo) < 0) {
+            goto failure;
+        }
+
+        if (taskInfo->state == esxVI_TaskInfoState_Queued ||
+            taskInfo->state == esxVI_TaskInfoState_Running) {
+            if (esxVI_TaskInfo_AppendToList(conn, pendingTaskInfoList,
+                                            taskInfo) < 0) {
+                goto failure;
+            }
+
+            taskInfo = NULL;
+        } else {
+            esxVI_TaskInfo_Free(&taskInfo);
+        }
+    }
+
+  cleanup:
+    esxVI_String_Free(&propertyNameList);
+    esxVI_ManagedObjectReference_Free(&recentTaskList);
+    esxVI_TaskInfo_Free(&taskInfo);
+
+    return result;
+
+  failure:
+    esxVI_TaskInfo_Free(pendingTaskInfoList);
+
+    result = -1;
+
+    goto cleanup;
+}
+
+
+
+int
+esxVI_LookupAndHandleVirtualMachineQuestion(virConnectPtr conn,
+                                            esxVI_Context *ctx,
+                                            const unsigned char *uuid,
+                                            esxVI_Boolean autoAnswer)
+{
+    int result = 0;
+    esxVI_ObjectContent *virtualMachine = NULL;
+    esxVI_String *propertyNameList = NULL;
+    esxVI_VirtualMachineQuestionInfo *questionInfo = NULL;
+
+    if (esxVI_String_AppendValueToList(conn, &propertyNameList,
+                                       "runtime.question") < 0 ||
+        esxVI_LookupVirtualMachineByUuid(conn, ctx, uuid, propertyNameList,
+                                         &virtualMachine,
+                                         esxVI_Occurrence_RequiredItem) < 0 ||
+        esxVI_GetVirtualMachineQuestionInfo(conn, virtualMachine,
+                                            &questionInfo) < 0) {
+        goto failure;
+    }
+
+    if (questionInfo != NULL &&
+        esxVI_HandleVirtualMachineQuestion(conn, ctx, virtualMachine->obj,
+                                           questionInfo, autoAnswer) < 0) {
+        goto failure;
+    }
+
+  cleanup:
+    esxVI_ObjectContent_Free(&virtualMachine);
+    esxVI_String_Free(&propertyNameList);
+    esxVI_VirtualMachineQuestionInfo_Free(&questionInfo);
+
+    return result;
+
+  failure:
+    result = -1;
+
+    goto cleanup;
+}
+
+
+
 int
 esxVI_StartVirtualMachineTask(virConnectPtr conn, esxVI_Context *ctx,
                               const char *name, const char *request,
                               esxVI_ManagedObjectReference **task)
 {
     int result = 0;
-    char *xpathExpression = NULL;
+    char *methodName = NULL;
     esxVI_Response *response = NULL;
 
-    if (virAsprintf(&xpathExpression,
-                    ESX_VI__SOAP__RESPONSE_XPATH("%s_Task"), name) < 0) {
+    if (virAsprintf(&methodName, "%s_Task", name) < 0) {
         virReportOOMError(conn);
         goto failure;
     }
 
-    if (esxVI_Context_Execute(conn, ctx, request, xpathExpression, &response,
-                              esxVI_Boolean_False) < 0 ||
+    if (esxVI_Context_Execute(conn, ctx, methodName, request, &response,
+                              esxVI_Occurrence_RequiredItem) < 0 ||
         esxVI_ManagedObjectReference_Deserialize(conn, response->node, task,
                                                  "Task") < 0) {
         goto failure;
     }
 
   cleanup:
-    VIR_FREE(xpathExpression);
+    VIR_FREE(methodName);
     esxVI_Response_Free(&response);
 
     return result;
@@ -2065,7 +2341,7 @@ esxVI_StartSimpleVirtualMachineTask
     return result;
 
   failure:
-    free(virBufferContentAndReset(&buffer));
+    virBufferFreeAndReset(&buffer);
 
     result = -1;
 
@@ -2112,8 +2388,8 @@ esxVI_SimpleVirtualMachineMethod(virConnectPtr conn, esxVI_Context *ctx,
 
     request = virBufferContentAndReset(&buffer);
 
-    if (esxVI_Context_Execute(conn, ctx, request, NULL, &response,
-                              esxVI_Boolean_False) < 0) {
+    if (esxVI_Context_Execute(conn, ctx, name, request, &response,
+                              esxVI_Occurrence_None) < 0) {
         goto failure;
     }
 
@@ -2124,8 +2400,105 @@ esxVI_SimpleVirtualMachineMethod(virConnectPtr conn, esxVI_Context *ctx,
     return result;
 
   failure:
-    if (request == NULL) {
-        request = virBufferContentAndReset(&buffer);
+    virBufferFreeAndReset(&buffer);
+
+    result = -1;
+
+    goto cleanup;
+}
+
+
+
+int
+esxVI_HandleVirtualMachineQuestion
+  (virConnectPtr conn, esxVI_Context *ctx,
+   esxVI_ManagedObjectReference *virtualMachine,
+   esxVI_VirtualMachineQuestionInfo *questionInfo,
+   esxVI_Boolean autoAnswer)
+{
+    int result = 0;
+    esxVI_ElementDescription *elementDescription = NULL;
+    virBuffer buffer = VIR_BUFFER_INITIALIZER;
+    esxVI_ElementDescription *answerChoice = NULL;
+    int answerIndex = 0;
+    char *possibleAnswers = NULL;
+
+    if (questionInfo->choice->choiceInfo != NULL) {
+        for (elementDescription = questionInfo->choice->choiceInfo;
+             elementDescription != NULL;
+             elementDescription = elementDescription->_next) {
+            virBufferVSprintf(&buffer, "'%s'", elementDescription->label);
+
+            if (elementDescription->_next != NULL) {
+                virBufferAddLit(&buffer, ", ");
+            }
+
+            if (answerChoice == NULL &&
+                questionInfo->choice->defaultIndex != NULL &&
+                questionInfo->choice->defaultIndex->value == answerIndex) {
+                answerChoice = elementDescription;
+            }
+
+            ++answerIndex;
+        }
+
+        if (virBufferError(&buffer)) {
+            virReportOOMError(conn);
+            goto failure;
+        }
+
+        possibleAnswers = virBufferContentAndReset(&buffer);
+    }
+
+    if (autoAnswer == esxVI_Boolean_True) {
+        if (possibleAnswers == NULL) {
+            ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+                         "Pending question blocks virtual machine execution, "
+                         "question is '%s', no possible answers",
+                         questionInfo->text);
+            goto failure;
+        } else if (answerChoice == NULL) {
+            ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+                         "Pending question blocks virtual machine execution, "
+                         "question is '%s', possible answers are %s, but no "
+                         "default answer is specified", questionInfo->text,
+                         possibleAnswers);
+            goto failure;
+        }
+
+        VIR_INFO("Pending question blocks virtual machine execution, "
+                 "question is '%s', possible answers are %s, responding "
+                 "with default answer '%s'", questionInfo->text,
+                 possibleAnswers, answerChoice->label);
+
+        if (esxVI_AnswerVM(conn, ctx, virtualMachine, questionInfo->id,
+                           answerChoice->key) < 0) {
+            goto failure;
+        }
+    } else {
+        if (possibleAnswers != NULL) {
+            ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+                         "Pending question blocks virtual machine execution, "
+                         "question is '%s', possible answers are %s",
+                         questionInfo->text, possibleAnswers);
+        } else {
+            ESX_VI_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+                         "Pending question blocks virtual machine execution, "
+                         "question is '%s', no possible answers",
+                         questionInfo->text);
+        }
+
+        goto failure;
+    }
+
+  cleanup:
+    VIR_FREE(possibleAnswers);
+
+    return result;
+
+  failure:
+    if (possibleAnswers == NULL) {
+        possibleAnswers = virBufferContentAndReset(&buffer);
     }
 
     result = -1;
@@ -2138,6 +2511,8 @@ esxVI_SimpleVirtualMachineMethod(virConnectPtr conn, esxVI_Context *ctx,
 int
 esxVI_WaitForTaskCompletion(virConnectPtr conn, esxVI_Context *ctx,
                             esxVI_ManagedObjectReference *task,
+                            const unsigned char *virtualMachineUuid,
+                            esxVI_Boolean autoAnswer,
                             esxVI_TaskInfoState *finalState)
 {
     int result = 0;
@@ -2152,6 +2527,7 @@ esxVI_WaitForTaskCompletion(virConnectPtr conn, esxVI_Context *ctx,
     esxVI_PropertyChange *propertyChange = NULL;
     esxVI_AnyType *propertyValue = NULL;
     esxVI_TaskInfoState state = esxVI_TaskInfoState_Undefined;
+    esxVI_TaskInfo *taskInfo = NULL;
 
     version = strdup("");
 
@@ -2188,6 +2564,35 @@ esxVI_WaitForTaskCompletion(virConnectPtr conn, esxVI_Context *ctx,
     while (state != esxVI_TaskInfoState_Success &&
            state != esxVI_TaskInfoState_Error) {
         esxVI_UpdateSet_Free(&updateSet);
+
+        if (virtualMachineUuid != NULL) {
+            if (esxVI_LookupAndHandleVirtualMachineQuestion
+                  (conn, ctx, virtualMachineUuid, autoAnswer) < 0) {
+                /*
+                 * FIXME: Disable error reporting here, so possible errors from
+                 *        esxVI_LookupTaskInfoByTask() and esxVI_CancelTask()
+                 *        don't overwrite the actual error
+                 */
+                if (esxVI_LookupTaskInfoByTask(conn, ctx, task, &taskInfo)) {
+                    goto failure;
+                }
+
+                if (taskInfo->cancelable == esxVI_Boolean_True) {
+                    if (esxVI_CancelTask(conn, ctx, task) < 0) {
+                        VIR_ERROR0("Cancelable task is blocked by an "
+                                   "unanswered question but cancelation "
+                                   "failed");
+                    }
+                } else {
+                    VIR_ERROR0("Non-cancelable task is blocked by an "
+                               "unanswered question");
+                }
+
+                /* FIXME: Enable error reporting here again */
+
+                goto failure;
+            }
+        }
 
         if (esxVI_WaitForUpdates(conn, ctx, version, &updateSet) < 0) {
             goto failure;
@@ -2261,6 +2666,7 @@ esxVI_WaitForTaskCompletion(virConnectPtr conn, esxVI_Context *ctx,
     esxVI_ManagedObjectReference_Free(&propertyFilter);
     VIR_FREE(version);
     esxVI_UpdateSet_Free(&updateSet);
+    esxVI_TaskInfo_Free(&taskInfo);
 
     return result;
 

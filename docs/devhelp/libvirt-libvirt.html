@@ -52,6 +52,7 @@
 #define <a href="#VIR_USE_CPU">VIR_USE_CPU</a>(cpumap, cpu);
 #define <a href="#VIR_UUID_BUFLEN">VIR_UUID_BUFLEN</a>;
 #define <a href="#VIR_UUID_STRING_BUFLEN">VIR_UUID_STRING_BUFLEN</a>;
+typedef enum <a href="#virCPUCompareResult">virCPUCompareResult</a>;
 typedef struct _virConnect <a href="#virConnect">virConnect</a>;
 typedef struct _virConnectAuth <a href="#virConnectAuth">virConnectAuth</a>;
 typedef <a href="libvirt-libvirt.html#virConnectAuth">virConnectAuth</a> * <a href="#virConnectAuthPtr">virConnectAuthPtr</a>;
@@ -63,6 +64,7 @@ typedef <a href="libvirt-libvirt.html#virConnect">virConnect</a> * <a href="#vir
 typedef struct _virDomain <a href="#virDomain">virDomain</a>;
 typedef <a href="libvirt-libvirt.html#virDomainBlockStatsStruct">virDomainBlockStatsStruct</a> * <a href="#virDomainBlockStatsPtr">virDomainBlockStatsPtr</a>;
 typedef struct _virDomainBlockStats <a href="#virDomainBlockStatsStruct">virDomainBlockStatsStruct</a>;
+typedef enum <a href="#virDomainCoreDumpFlags">virDomainCoreDumpFlags</a>;
 typedef enum <a href="#virDomainCreateFlags">virDomainCreateFlags</a>;
 typedef enum <a href="#virDomainEventDefinedDetailType">virDomainEventDefinedDetailType</a>;
 typedef enum <a href="#virDomainEventResumedDetailType">virDomainEventResumedDetailType</a>;
@@ -76,6 +78,9 @@ typedef <a href="libvirt-libvirt.html#virDomainInfo">virDomainInfo</a> * <a href
 typedef <a href="libvirt-libvirt.html#virDomainInterfaceStatsStruct">virDomainInterfaceStatsStruct</a> * <a href="#virDomainInterfaceStatsPtr">virDomainInterfaceStatsPtr</a>;
 typedef struct _virDomainInterfaceStats <a href="#virDomainInterfaceStatsStruct">virDomainInterfaceStatsStruct</a>;
 typedef enum <a href="#virDomainMemoryFlags">virDomainMemoryFlags</a>;
+typedef <a href="libvirt-libvirt.html#virDomainMemoryStatStruct">virDomainMemoryStatStruct</a> * <a href="#virDomainMemoryStatPtr">virDomainMemoryStatPtr</a>;
+typedef struct _virDomainMemoryStat <a href="#virDomainMemoryStatStruct">virDomainMemoryStatStruct</a>;
+typedef enum <a href="#virDomainMemoryStatTags">virDomainMemoryStatTags</a>;
 typedef enum <a href="#virDomainMigrateFlags">virDomainMigrateFlags</a>;
 typedef <a href="libvirt-libvirt.html#virDomain">virDomain</a> * <a href="#virDomainPtr">virDomainPtr</a>;
 typedef enum <a href="#virDomainState">virDomainState</a>;
@@ -122,6 +127,7 @@ typedef <a href="libvirt-libvirt.html#virVcpuInfo">virVcpuInfo</a> * <a href="#v
 typedef enum <a href="#virVcpuState">virVcpuState</a>;
 typedef int <a href="#virConnectAuthCallbackPtr">virConnectAuthCallbackPtr</a>	(<a href="libvirt-libvirt.html#virConnectCredentialPtr">virConnectCredentialPtr</a> cred, <br/>					 unsigned int ncred, <br/>					 void * cbdata);
 int	<a href="#virConnectClose">virConnectClose</a>			(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
+int	<a href="#virConnectCompareCPU">virConnectCompareCPU</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xmlDesc, <br/>					 unsigned int flags);
 typedef int <a href="#virConnectDomainEventCallback">virConnectDomainEventCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 int event, <br/>					 int detail, <br/>					 void * opaque);
 int	<a href="#virConnectDomainEventDeregister">virConnectDomainEventDeregister</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virConnectDomainEventCallback">virConnectDomainEventCallback</a> cb);
 int	<a href="#virConnectDomainEventRegister">virConnectDomainEventRegister</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virConnectDomainEventCallback">virConnectDomainEventCallback</a> cb, <br/>					 void * opaque, <br/>					 <a href="libvirt-libvirt.html#virFreeCallback">virFreeCallback</a> freecb);
@@ -193,6 +199,7 @@ int	<a href="#virDomainIsPersistent">virDomainIsPersistent</a>		(<a href="libvir
 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	<a href="#virDomainLookupByUUID">virDomainLookupByUUID</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const unsigned char * uuid);
 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	<a href="#virDomainLookupByUUIDString">virDomainLookupByUUIDString</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * uuidstr);
 int	<a href="#virDomainMemoryPeek">virDomainMemoryPeek</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 unsigned long long start, <br/>					 size_t size, <br/>					 void * buffer, <br/>					 unsigned int flags);
+int	<a href="#virDomainMemoryStats">virDomainMemoryStats</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 <a href="libvirt-libvirt.html#virDomainMemoryStatPtr">virDomainMemoryStatPtr</a> stats, <br/>					 unsigned int nr_stats, <br/>					 unsigned int flags);
 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	<a href="#virDomainMigrate">virDomainMigrate</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> dconn, <br/>					 unsigned long flags, <br/>					 const char * dname, <br/>					 const char * uri, <br/>					 unsigned long bandwidth);
 int	<a href="#virDomainMigrateToURI">virDomainMigrateToURI</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * duri, <br/>					 unsigned long flags, <br/>					 const char * dname, <br/>					 unsigned long bandwidth);
 int	<a href="#virDomainPinVcpu">virDomainPinVcpu</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int vcpu, <br/>					 unsigned char * cpumap, <br/>					 int maplen);
@@ -407,6 +414,15 @@ typedef int <a href="#virStreamSourceFunc">virStreamSourceFunc</a>		(<a href="li
 </pre><p>This macro provides the length of the buffer required for virDomainGetUUIDString()</p>
 </div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virCPUCompareResult">Enum </a>virCPUCompareResult</h3><pre class="programlisting">enum <a href="#virCPUCompareResult">virCPUCompareResult</a> {
+    <a name="VIR_CPU_COMPARE_ERROR">VIR_CPU_COMPARE_ERROR</a> = -1
+    <a name="VIR_CPU_COMPARE_INCOMPATIBLE">VIR_CPU_COMPARE_INCOMPATIBLE</a> = 0
+    <a name="VIR_CPU_COMPARE_IDENTICAL">VIR_CPU_COMPARE_IDENTICAL</a> = 1
+    <a name="VIR_CPU_COMPARE_SUPERSET">VIR_CPU_COMPARE_SUPERSET</a> = 2
+};
+</pre><p/>
+</div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnect">Structure </a>virConnect</h3><pre class="programlisting">struct _virConnect {
 The content of this structure is not made public by the API.
 } virConnect;
@@ -482,6 +498,13 @@ The content of this structure is not made public by the API.
     long long	wr_bytes	: number of written bytes
     long long	errs	: In Xen this returns the mysterious 'oo_req'.
 } virDomainBlockStatsStruct;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainCoreDumpFlags">Enum </a>virDomainCoreDumpFlags</h3><pre class="programlisting">enum <a href="#virDomainCoreDumpFlags">virDomainCoreDumpFlags</a> {
+    <a name="VIR_DUMP_CRASH">VIR_DUMP_CRASH</a> = 1 /* crash after dump */
+    <a name="VIR_DUMP_LIVE">VIR_DUMP_LIVE</a> = 2 /*  live dump */
+};
 </pre><p/>
 </div>
         <hr/>
@@ -586,12 +609,36 @@ The content of this structure is not made public by the API.
 </pre><p/>
 </div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainMemoryStatPtr">Typedef </a>virDomainMemoryStatPtr</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainMemoryStatStruct">virDomainMemoryStatStruct</a> * virDomainMemoryStatPtr;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainMemoryStatStruct">Structure </a>virDomainMemoryStatStruct</h3><pre class="programlisting">struct _virDomainMemoryStat {
+    int	tag
+    unsigned long long	val
+} virDomainMemoryStatStruct;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainMemoryStatTags">Enum </a>virDomainMemoryStatTags</h3><pre class="programlisting">enum <a href="#virDomainMemoryStatTags">virDomainMemoryStatTags</a> {
+    <a name="VIR_DOMAIN_MEMORY_STAT_SWAP_IN">VIR_DOMAIN_MEMORY_STAT_SWAP_IN</a> = 0 /* The total amount of memory written out to swap space (in kB). */
+    <a name="VIR_DOMAIN_MEMORY_STAT_SWAP_OUT">VIR_DOMAIN_MEMORY_STAT_SWAP_OUT</a> = 1 /* * Page faults occur when a process makes a valid access to virtual memory * that is not available.  When servicing the page fault, if disk IO is * required, it is considered a major fault.  If not, it is a minor fault. * These are expressed as the number of faults that have occurred. * */
+    <a name="VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT">VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT</a> = 2
+    <a name="VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT">VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT</a> = 3 /* * The amount of memory left completely unused by the system.  Memory that * is available but used for reclaimable caches should NOT be reported as * free.  This value is expressed in kB. * */
+    <a name="VIR_DOMAIN_MEMORY_STAT_UNUSED">VIR_DOMAIN_MEMORY_STAT_UNUSED</a> = 4 /* * The total amount of usable memory as seen by the domain.  This value * may be less than the amount of memory assigned to the domain if a * balloon driver is in use or if the guest OS does not initialize all * assigned pages.  This value is expressed in kB. * */
+    <a name="VIR_DOMAIN_MEMORY_STAT_AVAILABLE">VIR_DOMAIN_MEMORY_STAT_AVAILABLE</a> = 5 /* * The number of statistics supported by this version of the interface. * To add new statistics, add them to the enum and increase this value. * */
+    <a name="VIR_DOMAIN_MEMORY_STAT_NR">VIR_DOMAIN_MEMORY_STAT_NR</a> = 6
+};
+</pre><p/>
+</div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainMigrateFlags">Enum </a>virDomainMigrateFlags</h3><pre class="programlisting">enum <a href="#virDomainMigrateFlags">virDomainMigrateFlags</a> {
     <a name="VIR_MIGRATE_LIVE">VIR_MIGRATE_LIVE</a> = 1 /* live migration */
     <a name="VIR_MIGRATE_PEER2PEER">VIR_MIGRATE_PEER2PEER</a> = 2 /* direct source -&gt; dest host control channel */
     <a name="VIR_MIGRATE_TUNNELLED">VIR_MIGRATE_TUNNELLED</a> = 4 /* tunnel migration data over libvirtd connection */
     <a name="VIR_MIGRATE_PERSIST_DEST">VIR_MIGRATE_PERSIST_DEST</a> = 8 /* persist the VM on the destination */
-    <a name="VIR_MIGRATE_UNDEFINE_SOURCE">VIR_MIGRATE_UNDEFINE_SOURCE</a> = 16 /*  undefine the VM on the source */
+    <a name="VIR_MIGRATE_UNDEFINE_SOURCE">VIR_MIGRATE_UNDEFINE_SOURCE</a> = 16 /* undefine the VM on the source */
+    <a name="VIR_MIGRATE_PAUSED">VIR_MIGRATE_PAUSED</a> = 32 /*  pause on remote side */
 };
 </pre><p/>
 </div>
@@ -982,6 +1029,10 @@ especially if there is running domain which need further monitoring by
 the application.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success or -1 in case of error.</td></tr></tbody></table></div></div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectCompareCPU"/>virConnectCompareCPU ()</h3><pre class="programlisting">int	virConnectCompareCPU		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xmlDesc, <br/>					 unsigned int flags)<br/>
+</pre><p/>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td><a href="libvirt-libvirt.html#virConnect">virConnect</a> connection</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>comparison result according to enum <a href="libvirt-libvirt.html#virCPUCompareResult">virCPUCompareResult</a></td></tr></tbody></table></div></div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventDeregister"/>virConnectDomainEventDeregister ()</h3><pre class="programlisting">int	virConnectDomainEventDeregister	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virConnectDomainEventCallback">virConnectDomainEventCallback</a> cb)<br/>
 </pre><p>Removes a Domain Event Callback.
 De-registering for a domain callback will disable
@@ -1364,7 +1415,7 @@ UUID see RFC4122.</p>
         <div class="refsect2" lang="en"><h3><a name="virDomainGetVcpus"/>virDomainGetVcpus ()</h3><pre class="programlisting">int	virDomainGetVcpus		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virVcpuInfoPtr">virVcpuInfoPtr</a> info, <br/>					 int maxinfo, <br/>					 unsigned char * cpumaps, <br/>					 int maplen)<br/>
 </pre><p>Extract information about virtual CPUs of domain, store it in info array
 and also in cpumaps if this pointer isn't NULL.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object, or NULL for Domain0</td></tr><tr><td><span class="term"><i><tt>info</tt></i>:</span></td><td>pointer to an array of <a href="libvirt-libvirt.html#virVcpuInfo">virVcpuInfo</a> structures (OUT)</td></tr><tr><td><span class="term"><i><tt>maxinfo</tt></i>:</span></td><td>number of structures in info array</td></tr><tr><td><span class="term"><i><tt>cpumaps</tt></i>:</span></td><td>pointer to a bit map of real CPUs for all vcpus of this domain (in 8-bit bytes) (OUT) If cpumaps is NULL, then no cpumap information is returned by the API. It's assumed there is &lt;maxinfo&gt; cpumap in cpumaps array. The memory allocated to cpumaps must be (maxinfo * maplen) bytes (ie: calloc(maxinfo, maplen)). One cpumap inside cpumaps has the format described in virDomainPinVcpu() API.</td></tr><tr><td><span class="term"><i><tt>maplen</tt></i>:</span></td><td>number of bytes in one cpumap, from 1 up to size of CPU map in underlying virtualization system (Xen...).</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of info filled in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object, or NULL for Domain0</td></tr><tr><td><span class="term"><i><tt>info</tt></i>:</span></td><td>pointer to an array of <a href="libvirt-libvirt.html#virVcpuInfo">virVcpuInfo</a> structures (OUT)</td></tr><tr><td><span class="term"><i><tt>maxinfo</tt></i>:</span></td><td>number of structures in info array</td></tr><tr><td><span class="term"><i><tt>cpumaps</tt></i>:</span></td><td>pointer to a bit map of real CPUs for all vcpus of this domain (in 8-bit bytes) (OUT) If cpumaps is NULL, then no cpumap information is returned by the API. It's assumed there is &lt;maxinfo&gt; cpumap in cpumaps array. The memory allocated to cpumaps must be (maxinfo * maplen) bytes (ie: calloc(maxinfo, maplen)). One cpumap inside cpumaps has the format described in virDomainPinVcpu() API.</td></tr><tr><td><span class="term"><i><tt>maplen</tt></i>:</span></td><td>number of bytes in one cpumap, from 1 up to size of CPU map in underlying virtualization system (Xen...). Must be zero when cpumaps is NULL and positive when it is non-NULL.</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of info filled in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainGetXMLDesc"/>virDomainGetXMLDesc ()</h3><pre class="programlisting">char *	virDomainGetXMLDesc		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 int flags)<br/>
 </pre><p>Provide an XML description of the domain. The description may be reused
@@ -1435,6 +1486,29 @@ For your program to be able to work reliably over a remote
 connection you should split large requests to &lt;= 65536 bytes.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to the domain object</td></tr><tr><td><span class="term"><i><tt>start</tt></i>:</span></td><td>start of memory to peek</td></tr><tr><td><span class="term"><i><tt>size</tt></i>:</span></td><td>size of memory to peek</td></tr><tr><td><span class="term"><i><tt>buffer</tt></i>:</span></td><td>return buffer (must be at least size bytes)</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>flags, see below</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success or -1 in case of failure. really 64 bits</td></tr></tbody></table></div></div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainMemoryStats"/>virDomainMemoryStats ()</h3><pre class="programlisting">int	virDomainMemoryStats		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 <a href="libvirt-libvirt.html#virDomainMemoryStatPtr">virDomainMemoryStatPtr</a> stats, <br/>					 unsigned int nr_stats, <br/>					 unsigned int flags)<br/>
+</pre><p>This function provides memory statistics for the domain.
+
+Up to 'nr_stats' elements of 'stats' will be populated with memory statistics
+from the domain. Only statistics supported by the domain, the driver, and
+this version of libvirt will be returned.
+
+Memory Statistics:
+
+VIR_DOMAIN_MEMORY_STAT_SWAP_IN:
+ The total amount of data read from swap space (in kb).
+VIR_DOMAIN_MEMORY_STAT_SWAP_OUT:
+ The total amount of memory written out to swap space (in kb).
+VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT:
+ The number of page faults that required disk IO to service.
+VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT:
+ The number of page faults serviced without disk IO.
+VIR_DOMAIN_MEMORY_STAT_UNUSED:
+ The amount of memory which is not being used for any purpose (in kb).
+VIR_DOMAIN_MEMORY_STAT_AVAILABLE:
+ The total amount of memory available to the domain's OS (in kb).</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to the domain object</td></tr><tr><td><span class="term"><i><tt>stats</tt></i>:</span></td><td>nr_stats-sized array of stat structures (returned)</td></tr><tr><td><span class="term"><i><tt>nr_stats</tt></i>:</span></td><td>number of memory statistics requested</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>unused, always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>The number of stats provided or -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainMigrate"/>virDomainMigrate ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	virDomainMigrate	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> dconn, <br/>					 unsigned long flags, <br/>					 const char * dname, <br/>					 const char * uri, <br/>					 unsigned long bandwidth)<br/>
 </pre><p>Migrate the domain object from its current host to the destination
 host given by dconn (a connection to the destination host).
@@ -1447,6 +1521,7 @@ Flags may be one of more of the following:
  on the destination host.
  <a href="libvirt-libvirt.html#VIR_MIGRATE_UNDEFINE_SOURCE">VIR_MIGRATE_UNDEFINE_SOURCE</a> If the migration is successful, undefine the
  domain on the source host.
+ <a href="libvirt-libvirt.html#VIR_MIGRATE_PAUSED">VIR_MIGRATE_PAUSED</a> Leave the domain suspended on the remote side.
 
 VIR_MIGRATE_TUNNELLED requires that <a href="libvirt-libvirt.html#VIR_MIGRATE_PEER2PEER">VIR_MIGRATE_PEER2PEER</a> be set.
 Applications using the <a href="libvirt-libvirt.html#VIR_MIGRATE_PEER2PEER">VIR_MIGRATE_PEER2PEER</a> flag will probably

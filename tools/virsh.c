@@ -885,6 +885,60 @@ cmdDomIfstat (vshControl *ctl, const vshCmd *cmd)
 }
 
 /*
+ * "dommemstats" command
+ */
+static const vshCmdInfo info_dommemstat[] = {
+    {"help", gettext_noop("get memory statistics for a domain")},
+    {"desc", gettext_noop("Get memory statistics for a runnng domain.")},
+    {NULL,NULL}
+};
+
+static const vshCmdOptDef opts_dommemstat[] = {
+    {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("domain name, id or uuid")},
+    {NULL, 0, 0, NULL}
+};
+
+static int
+cmdDomMemStat(vshControl *ctl, const vshCmd *cmd)
+{
+    virDomainPtr dom;
+    char *name;
+    struct _virDomainMemoryStat stats[VIR_DOMAIN_MEMORY_STAT_NR];
+    unsigned int nr_stats, i;
+
+    if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
+        return FALSE;
+
+    if (!(dom = vshCommandOptDomain(ctl, cmd, &name)))
+        return FALSE;
+
+    nr_stats = virDomainMemoryStats (dom, stats, VIR_DOMAIN_MEMORY_STAT_NR, 0);
+    if (nr_stats == -1) {
+        vshError(ctl, _("Failed to get memory statistics for domain %s"), name);
+        virDomainFree(dom);
+        return FALSE;
+    }
+
+    for (i = 0; i < nr_stats; i++) {
+        if (stats[i].tag == VIR_DOMAIN_MEMORY_STAT_SWAP_IN)
+            vshPrint (ctl, "swap_in %llu\n", stats[i].val);
+        if (stats[i].tag == VIR_DOMAIN_MEMORY_STAT_SWAP_OUT)
+            vshPrint (ctl, "swap_out %llu\n", stats[i].val);
+        if (stats[i].tag == VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT)
+            vshPrint (ctl, "major_fault %llu\n", stats[i].val);
+        if (stats[i].tag == VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT)
+            vshPrint (ctl, "minor_fault %llu\n", stats[i].val);
+        if (stats[i].tag == VIR_DOMAIN_MEMORY_STAT_UNUSED)
+            vshPrint (ctl, "unused %llu\n", stats[i].val);
+        if (stats[i].tag == VIR_DOMAIN_MEMORY_STAT_AVAILABLE)
+            vshPrint (ctl, "available %llu\n", stats[i].val);
+    }
+
+    virDomainFree(dom);
+    return TRUE;
+}
+
+/*
  * "suspend" command
  */
 static const vshCmdInfo info_suspend[] = {
@@ -1431,6 +1485,8 @@ static const vshCmdInfo info_dump[] = {
 };
 
 static const vshCmdOptDef opts_dump[] = {
+    {"live", VSH_OT_BOOL, 0, gettext_noop("perform a live core dump if supported")},
+    {"crash", VSH_OT_BOOL, 0, gettext_noop("crash the domain after core dump")},
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("domain name, id or uuid")},
     {"file", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("where to dump the core")},
     {NULL, 0, 0, NULL}
@@ -1443,6 +1499,7 @@ cmdDump(vshControl *ctl, const vshCmd *cmd)
     char *name;
     char *to;
     int ret = TRUE;
+    int flags = 0;
 
     if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
         return FALSE;
@@ -1453,7 +1510,12 @@ cmdDump(vshControl *ctl, const vshCmd *cmd)
     if (!(dom = vshCommandOptDomain(ctl, cmd, &name)))
         return FALSE;
 
-    if (virDomainCoreDump(dom, to, 0) == 0) {
+    if (vshCommandOptBool (cmd, "live"))
+        flags |= VIR_DUMP_LIVE;
+    if (vshCommandOptBool (cmd, "crash"))
+        flags |= VIR_DUMP_CRASH;
+
+    if (virDomainCoreDump(dom, to, flags) == 0) {
         vshPrint(ctl, _("Domain %s dumped to %s\n"), name, to);
     } else {
         vshError(ctl, _("Failed to core dump domain %s to %s"), name, to);
@@ -2478,6 +2540,7 @@ static const vshCmdOptDef opts_migrate[] = {
     {"tunnelled", VSH_OT_BOOL, 0, gettext_noop("tunnelled migration")},
     {"persistent", VSH_OT_BOOL, 0, gettext_noop("persist VM on destination")},
     {"undefinesource", VSH_OT_BOOL, 0, gettext_noop("undefine VM on source")},
+    {"suspend", VSH_OT_BOOL, 0, gettext_noop("do not restart the domain on the destination host")},
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("domain name, id or uuid")},
     {"desturi", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("connection URI of the destination host")},
     {"migrateuri", VSH_OT_DATA, 0, gettext_noop("migration URI, usually can be omitted")},
@@ -2519,9 +2582,11 @@ cmdMigrate (vshControl *ctl, const vshCmd *cmd)
 
     if (vshCommandOptBool (cmd, "persistent"))
         flags |= VIR_MIGRATE_PERSIST_DEST;
-
     if (vshCommandOptBool (cmd, "undefinesource"))
         flags |= VIR_MIGRATE_UNDEFINE_SOURCE;
+
+    if (vshCommandOptBool (cmd, "suspend"))
+        flags |= VIR_MIGRATE_PAUSED;
 
     if ((flags & VIR_MIGRATE_PEER2PEER) ||
         vshCommandOptBool (cmd, "direct")) {
@@ -3800,7 +3865,7 @@ static int buildPoolXML(const vshCmd *cmd, char **retname, char **xml) {
     return TRUE;
 
 cleanup:
-    free(virBufferContentAndReset(&buf));
+    virBufferFreeAndReset(&buf);
     return FALSE;
 }
 
@@ -4663,7 +4728,7 @@ cmdVolCreateAs(vshControl *ctl, const vshCmd *cmd)
     }
 
  cleanup:
-    free(virBufferContentAndReset(&buf));
+    virBufferFreeAndReset(&buf);
     virStoragePoolFree(pool);
     return FALSE;
 }
@@ -5275,12 +5340,14 @@ static int
 cmdVolPath(vshControl *ctl, const vshCmd *cmd)
 {
     virStorageVolPtr vol;
+    char *name = NULL;
 
     if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
         return FALSE;
-    if (!(vol = vshCommandOptVolBy(ctl, cmd, "vol", "pool", NULL,
-                                   VSH_BYUUID)))
+
+    if (!(vol = vshCommandOptVol(ctl, cmd, "vol", "pool", &name))) {
         return FALSE;
+    }
 
     vshPrint(ctl, "%s\n", virStorageVolGetPath(vol));
     virStorageVolFree(vol);
@@ -6823,6 +6890,70 @@ cmdDetachDisk(vshControl *ctl, const vshCmd *cmd)
     return ret;
 }
 
+/*
+ * "cpu-compare" command
+ */
+static const vshCmdInfo info_cpu_compare[] = {
+    {"help", gettext_noop("compare host CPU with a CPU described by an XML file")},
+    {"desc", gettext_noop("compare CPU with host CPU")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_cpu_compare[] = {
+    {"file", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("file containing an XML CPU description")},
+    {NULL, 0, 0, NULL}
+};
+
+static int
+cmdCPUCompare(vshControl *ctl, const vshCmd *cmd)
+{
+    char *from;
+    int found;
+    int ret = TRUE;
+    char *buffer;
+    int result;
+
+    if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
+        return FALSE;
+
+    from = vshCommandOptString(cmd, "file", &found);
+    if (!found)
+        return FALSE;
+
+    if (virFileReadAll(from, VIRSH_MAX_XML_FILE, &buffer) < 0)
+        return FALSE;
+
+    result = virConnectCompareCPU(ctl->conn, buffer, 0);
+    free (buffer);
+
+    switch (result) {
+    case VIR_CPU_COMPARE_INCOMPATIBLE:
+        vshPrint(ctl, _("CPU described in %s is incompatible with host CPU\n"),
+                 from);
+        ret = FALSE;
+        break;
+
+    case VIR_CPU_COMPARE_IDENTICAL:
+        vshPrint(ctl, _("CPU described in %s is identical to host CPU\n"),
+                 from);
+        ret = TRUE;
+        break;
+
+    case VIR_CPU_COMPARE_SUPERSET:
+        vshPrint(ctl, _("Host CPU is a superset of CPU described in %s\n"),
+                 from);
+        ret = TRUE;
+        break;
+
+    case VIR_CPU_COMPARE_ERROR:
+    default:
+        vshError(ctl, _("Failed to compare host CPU with %s"), from);
+        ret = FALSE;
+    }
+
+    return ret;
+}
+
 /* Common code for the edit / net-edit / pool-edit functions which follow. */
 static char *
 editWriteToTempFile (vshControl *ctl, const char *doc)
@@ -7194,6 +7325,7 @@ static const vshCmdDef commands[] = {
 #ifndef WIN32
     {"console", cmdConsole, opts_console, info_console},
 #endif
+    {"cpu-compare", cmdCPUCompare, opts_cpu_compare, info_cpu_compare},
     {"create", cmdCreate, opts_create, info_create},
     {"start", cmdStart, opts_start, info_start},
     {"destroy", cmdDestroy, opts_destroy, info_destroy},
@@ -7208,6 +7340,7 @@ static const vshCmdDef commands[] = {
     {"domstate", cmdDomstate, opts_domstate, info_domstate},
     {"domblkstat", cmdDomblkstat, opts_domblkstat, info_domblkstat},
     {"domifstat", cmdDomIfstat, opts_domifstat, info_domifstat},
+    {"dommemstat", cmdDomMemStat, opts_dommemstat, info_dommemstat},
     {"domxml-from-native", cmdDomXMLFromNative, opts_domxmlfromnative, info_domxmlfromnative},
     {"domxml-to-native", cmdDomXMLToNative, opts_domxmltonative, info_domxmltonative},
     {"dumpxml", cmdDumpXML, opts_dumpxml, info_dumpxml},
@@ -8036,6 +8169,7 @@ vshCommandParse(vshControl *ctl, char *cmdstr)
                     goto syntaxError;   /* ... or ignore this command only? */
                 }
                 free(tkdata);
+                tkdata = NULL;
             } else if (tk == VSH_TK_OPTION) {
                 if (!(opt = vshCmddefGetOption(cmd, tkdata))) {
                     vshError(ctl,

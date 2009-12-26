@@ -27,6 +27,7 @@
 
 #include "verify.h"
 #include "internal.h"
+#include <unistd.h>
 #include <sys/select.h>
 #include <sys/types.h>
 
@@ -186,7 +187,7 @@ void virGenerateMacAddr(const unsigned char *prefix,
                         unsigned char *addr);
 
 int virDiskNameToIndex(const char* str);
-
+char *virIndexToDiskName(int idx, const char *prefix);
 
 int virEnumFromString(const char *const*types,
                       unsigned int ntypes,

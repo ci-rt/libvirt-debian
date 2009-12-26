@@ -67,7 +67,10 @@ libvirt_virDomainBlockStats(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
         return(NULL);
     domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
 
+    LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virDomainBlockStats(domain, path, &stats, sizeof(stats));
+    LIBVIRT_END_ALLOW_THREADS;
+
     if (c_retval < 0)
         return VIR_PY_NONE;
 
@@ -96,7 +99,10 @@ libvirt_virDomainInterfaceStats(PyObject *self ATTRIBUTE_UNUSED, PyObject *args)
         return(NULL);
     domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
 
+    LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virDomainInterfaceStats(domain, path, &stats, sizeof(stats));
+    LIBVIRT_END_ALLOW_THREADS;
+
     if (c_retval < 0)
         return VIR_PY_NONE;
 
@@ -114,6 +120,49 @@ libvirt_virDomainInterfaceStats(PyObject *self ATTRIBUTE_UNUSED, PyObject *args)
     return(info);
 }
 
+static PyObject *
+libvirt_virDomainMemoryStats(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    virDomainPtr domain;
+    PyObject *pyobj_domain;
+    unsigned int nr_stats, i;
+    virDomainMemoryStatStruct stats[VIR_DOMAIN_MEMORY_STAT_NR];
+    PyObject *info;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virDomainMemoryStats", &pyobj_domain))
+        return(NULL);
+    domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
+
+    nr_stats = virDomainMemoryStats(domain, stats,
+                                    VIR_DOMAIN_MEMORY_STAT_NR, 0);
+    if (nr_stats == -1)
+        return VIR_PY_NONE;
+
+    /* convert to a Python dictionary */
+    if ((info = PyDict_New()) == NULL)
+        return VIR_PY_NONE;
+
+    for (i = 0; i < nr_stats; i++) {
+        if (stats[i].tag == VIR_DOMAIN_MEMORY_STAT_SWAP_IN)
+            PyDict_SetItem(info, libvirt_constcharPtrWrap("swap_in"),
+                           PyLong_FromUnsignedLongLong(stats[i].val));
+        else if (stats[i].tag == VIR_DOMAIN_MEMORY_STAT_SWAP_OUT)
+            PyDict_SetItem(info, libvirt_constcharPtrWrap("swap_out"),
+                           PyLong_FromUnsignedLongLong(stats[i].val));
+        else if (stats[i].tag == VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT)
+            PyDict_SetItem(info, libvirt_constcharPtrWrap("major_fault"),
+                           PyLong_FromUnsignedLongLong(stats[i].val));
+        else if (stats[i].tag == VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT)
+            PyDict_SetItem(info, libvirt_constcharPtrWrap("minor_fault"),
+                           PyLong_FromUnsignedLongLong(stats[i].val));
+        else if (stats[i].tag == VIR_DOMAIN_MEMORY_STAT_UNUSED)
+            PyDict_SetItem(info, libvirt_constcharPtrWrap("unused"),
+                           PyLong_FromUnsignedLongLong(stats[i].val));
+        else if (stats[i].tag == VIR_DOMAIN_MEMORY_STAT_AVAILABLE)
+            PyDict_SetItem(info, libvirt_constcharPtrWrap("available"),
+                           PyLong_FromUnsignedLongLong(stats[i].val));
+    }
+    return info;
+}
 
 static PyObject *
 libvirt_virDomainGetSchedulerType(PyObject *self ATTRIBUTE_UNUSED,
@@ -128,7 +177,9 @@ libvirt_virDomainGetSchedulerType(PyObject *self ATTRIBUTE_UNUSED,
         return(NULL);
     domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
 
+    LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virDomainGetSchedulerType(domain, &nparams);
+    LIBVIRT_END_ALLOW_THREADS;
     if (c_retval == NULL)
         return VIR_PY_NONE;
 
@@ -150,6 +201,7 @@ libvirt_virDomainGetSchedulerParameters(PyObject *self ATTRIBUTE_UNUSED,
     virDomainPtr domain;
     PyObject *pyobj_domain, *info;
     char *c_retval;
+    int i_retval;
     int nparams, i;
     virSchedParameterPtr params;
 
@@ -158,7 +210,10 @@ libvirt_virDomainGetSchedulerParameters(PyObject *self ATTRIBUTE_UNUSED,
         return(NULL);
     domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
 
+    LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virDomainGetSchedulerType(domain, &nparams);
+    LIBVIRT_END_ALLOW_THREADS;
+
     if (c_retval == NULL)
         return VIR_PY_NONE;
     free(c_retval);
@@ -166,7 +221,11 @@ libvirt_virDomainGetSchedulerParameters(PyObject *self ATTRIBUTE_UNUSED,
     if ((params = malloc(sizeof(*params)*nparams)) == NULL)
         return VIR_PY_NONE;
 
-    if (virDomainGetSchedulerParameters(domain, params, &nparams) < 0) {
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    i_retval = virDomainGetSchedulerParameters(domain, params, &nparams);
+    LIBVIRT_END_ALLOW_THREADS;
+
+    if (i_retval < 0) {
         free(params);
         return VIR_PY_NONE;
     }
@@ -223,6 +282,7 @@ libvirt_virDomainSetSchedulerParameters(PyObject *self ATTRIBUTE_UNUSED,
     virDomainPtr domain;
     PyObject *pyobj_domain, *info;
     char *c_retval;
+    int i_retval;
     int nparams, i;
     virSchedParameterPtr params;
 
@@ -231,7 +291,10 @@ libvirt_virDomainSetSchedulerParameters(PyObject *self ATTRIBUTE_UNUSED,
         return(NULL);
     domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
 
+    LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virDomainGetSchedulerType(domain, &nparams);
+    LIBVIRT_END_ALLOW_THREADS;
+
     if (c_retval == NULL)
         return VIR_PY_INT_FAIL;
     free(c_retval);
@@ -239,7 +302,11 @@ libvirt_virDomainSetSchedulerParameters(PyObject *self ATTRIBUTE_UNUSED,
     if ((params = malloc(sizeof(*params)*nparams)) == NULL)
         return VIR_PY_INT_FAIL;
 
-    if (virDomainGetSchedulerParameters(domain, params, &nparams) < 0) {
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    i_retval = virDomainGetSchedulerParameters(domain, params, &nparams);
+    LIBVIRT_END_ALLOW_THREADS;
+
+    if (i_retval < 0) {
         free(params);
         return VIR_PY_INT_FAIL;
     }
@@ -292,7 +359,10 @@ libvirt_virDomainSetSchedulerParameters(PyObject *self ATTRIBUTE_UNUSED,
         }
     }
 
-    if (virDomainSetSchedulerParameters(domain, params, nparams) < 0) {
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    i_retval = virDomainSetSchedulerParameters(domain, params, nparams);
+    LIBVIRT_END_ALLOW_THREADS;
+    if (i_retval < 0) {
         free(params);
         return VIR_PY_INT_FAIL;
     }
@@ -311,16 +381,23 @@ libvirt_virDomainGetVcpus(PyObject *self ATTRIBUTE_UNUSED,
     virVcpuInfoPtr cpuinfo = NULL;
     unsigned char *cpumap = NULL;
     int cpumaplen, i;
+    int i_retval;
 
     if (!PyArg_ParseTuple(args, (char *)"O:virDomainGetVcpus",
                           &pyobj_domain))
         return(NULL);
     domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
 
-    if (virNodeGetInfo(virDomainGetConnect(domain), &nodeinfo) != 0)
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    i_retval = virNodeGetInfo(virDomainGetConnect(domain), &nodeinfo);
+    LIBVIRT_END_ALLOW_THREADS;
+    if (i_retval < 0)
         return VIR_PY_NONE;
 
-    if (virDomainGetInfo(domain, &dominfo) != 0)
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    i_retval = virDomainGetInfo(domain, &dominfo);
+    LIBVIRT_END_ALLOW_THREADS;
+    if (i_retval < 0)
         return VIR_PY_NONE;
 
     if ((cpuinfo = malloc(sizeof(*cpuinfo)*dominfo.nrVirtCpu)) == NULL)
@@ -330,9 +407,12 @@ libvirt_virDomainGetVcpus(PyObject *self ATTRIBUTE_UNUSED,
     if ((cpumap = malloc(dominfo.nrVirtCpu * cpumaplen)) == NULL)
         goto cleanup;
 
-    if (virDomainGetVcpus(domain,
-                          cpuinfo, dominfo.nrVirtCpu,
-                          cpumap, cpumaplen) < 0)
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    i_retval = virDomainGetVcpus(domain,
+                                 cpuinfo, dominfo.nrVirtCpu,
+                                 cpumap, cpumaplen);
+    LIBVIRT_END_ALLOW_THREADS;
+    if (i_retval < 0)
         goto cleanup;
 
     /* convert to a Python tuple of long objects */
@@ -395,13 +475,17 @@ libvirt_virDomainPinVcpu(PyObject *self ATTRIBUTE_UNUSED,
     virNodeInfo nodeinfo;
     unsigned char *cpumap;
     int cpumaplen, i, vcpu;
+    int i_retval;
 
     if (!PyArg_ParseTuple(args, (char *)"OiO:virDomainPinVcpu",
                           &pyobj_domain, &vcpu, &pycpumap))
         return(NULL);
     domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
 
-    if (virNodeGetInfo(virDomainGetConnect(domain), &nodeinfo) != 0)
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    i_retval = virNodeGetInfo(virDomainGetConnect(domain), &nodeinfo);
+    LIBVIRT_END_ALLOW_THREADS;
+    if (i_retval < 0)
         return VIR_PY_INT_FAIL;
 
     cpumaplen = VIR_CPU_MAPLEN(VIR_NODEINFO_MAXCPUS(nodeinfo));
@@ -418,9 +502,14 @@ libvirt_virDomainPinVcpu(PyObject *self ATTRIBUTE_UNUSED,
             VIR_UNUSE_CPU(cpumap, i);
     }
 
-    virDomainPinVcpu(domain, vcpu, cpumap, cpumaplen);
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    i_retval = virDomainPinVcpu(domain, vcpu, cpumap, cpumaplen);
+    LIBVIRT_END_ALLOW_THREADS;
     Py_DECREF(truth);
     free(cpumap);
+
+    if (i_retval < 0)
+        return VIR_PY_INT_FAIL;
 
     return VIR_PY_INT_SUCCESS;
 }
@@ -471,7 +560,10 @@ libvirt_virConnGetLastError(PyObject *self ATTRIBUTE_UNUSED, PyObject *args)
         return(NULL);
     conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
 
-    if ((err = virConnGetLastError(conn)) == NULL)
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    err = virConnGetLastError(conn);
+    LIBVIRT_END_ALLOW_THREADS;
+    if (err == NULL)
         return VIR_PY_NONE;
 
     if ((info = PyTuple_New(9)) == NULL)
@@ -793,7 +885,9 @@ libvirt_virConnectListDefinedDomains(PyObject *self ATTRIBUTE_UNUSED,
         return(NULL);
     conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
 
+    LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virConnectNumOfDefinedDomains(conn);
+    LIBVIRT_END_ALLOW_THREADS;
     if (c_retval < 0)
         return VIR_PY_NONE;
 
@@ -801,7 +895,9 @@ libvirt_virConnectListDefinedDomains(PyObject *self ATTRIBUTE_UNUSED,
         names = malloc(sizeof(*names) * c_retval);
         if (!names)
             return VIR_PY_NONE;
+        LIBVIRT_BEGIN_ALLOW_THREADS;
         c_retval = virConnectListDefinedDomains(conn, names, c_retval);
+        LIBVIRT_END_ALLOW_THREADS;
         if (c_retval < 0) {
             free(names);
             return VIR_PY_NONE;
@@ -966,7 +1062,9 @@ libvirt_virConnectListNetworks(PyObject *self ATTRIBUTE_UNUSED,
         return(NULL);
     conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
 
+    LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virConnectNumOfNetworks(conn);
+    LIBVIRT_END_ALLOW_THREADS;
     if (c_retval < 0)
         return VIR_PY_NONE;
 
@@ -974,7 +1072,9 @@ libvirt_virConnectListNetworks(PyObject *self ATTRIBUTE_UNUSED,
         names = malloc(sizeof(*names) * c_retval);
         if (!names)
             return VIR_PY_NONE;
+        LIBVIRT_BEGIN_ALLOW_THREADS;
         c_retval = virConnectListNetworks(conn, names, c_retval);
+        LIBVIRT_END_ALLOW_THREADS;
         if (c_retval < 0) {
             free(names);
             return VIR_PY_NONE;
@@ -1008,7 +1108,9 @@ libvirt_virConnectListDefinedNetworks(PyObject *self ATTRIBUTE_UNUSED,
         return(NULL);
     conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
 
+    LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virConnectNumOfDefinedNetworks(conn);
+    LIBVIRT_END_ALLOW_THREADS;
     if (c_retval < 0)
         return VIR_PY_NONE;
 
@@ -1016,7 +1118,9 @@ libvirt_virConnectListDefinedNetworks(PyObject *self ATTRIBUTE_UNUSED,
         names = malloc(sizeof(*names) * c_retval);
         if (!names)
             return VIR_PY_NONE;
+        LIBVIRT_BEGIN_ALLOW_THREADS;
         c_retval = virConnectListDefinedNetworks(conn, names, c_retval);
+        LIBVIRT_END_ALLOW_THREADS;
         if (c_retval < 0) {
             free(names);
             return VIR_PY_NONE;
@@ -1211,7 +1315,9 @@ libvirt_virConnectListStoragePools(PyObject *self ATTRIBUTE_UNUSED,
         return(NULL);
     conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
 
+    LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virConnectNumOfStoragePools(conn);
+    LIBVIRT_END_ALLOW_THREADS;
     if (c_retval < 0)
         return VIR_PY_NONE;
 
@@ -1219,7 +1325,9 @@ libvirt_virConnectListStoragePools(PyObject *self ATTRIBUTE_UNUSED,
         names = malloc(sizeof(*names) * c_retval);
         if (!names)
             return VIR_PY_NONE;
+        LIBVIRT_BEGIN_ALLOW_THREADS;
         c_retval = virConnectListStoragePools(conn, names, c_retval);
+        LIBVIRT_END_ALLOW_THREADS;
         if (c_retval < 0) {
             free(names);
             return VIR_PY_NONE;
@@ -1261,7 +1369,9 @@ libvirt_virConnectListDefinedStoragePools(PyObject *self ATTRIBUTE_UNUSED,
         return(NULL);
     conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
 
+    LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virConnectNumOfDefinedStoragePools(conn);
+    LIBVIRT_END_ALLOW_THREADS;
     if (c_retval < 0)
         return VIR_PY_NONE;
 
@@ -1269,7 +1379,9 @@ libvirt_virConnectListDefinedStoragePools(PyObject *self ATTRIBUTE_UNUSED,
         names = malloc(sizeof(*names) * c_retval);
         if (!names)
             return VIR_PY_NONE;
+        LIBVIRT_BEGIN_ALLOW_THREADS;
         c_retval = virConnectListDefinedStoragePools(conn, names, c_retval);
+        LIBVIRT_END_ALLOW_THREADS;
         if (c_retval < 0) {
             free(names);
             return VIR_PY_NONE;
@@ -1311,7 +1423,9 @@ libvirt_virStoragePoolListVolumes(PyObject *self ATTRIBUTE_UNUSED,
         return(NULL);
     pool = (virStoragePoolPtr) PyvirStoragePool_Get(pyobj_pool);
 
+    LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virStoragePoolNumOfVolumes(pool);
+    LIBVIRT_END_ALLOW_THREADS;
     if (c_retval < 0)
         return VIR_PY_NONE;
 
@@ -1319,7 +1433,9 @@ libvirt_virStoragePoolListVolumes(PyObject *self ATTRIBUTE_UNUSED,
         names = malloc(sizeof(*names) * c_retval);
         if (!names)
             return VIR_PY_NONE;
+        LIBVIRT_BEGIN_ALLOW_THREADS;
         c_retval = virStoragePoolListVolumes(pool, names, c_retval);
+        LIBVIRT_END_ALLOW_THREADS;
         if (c_retval < 0) {
             free(names);
             return VIR_PY_NONE;
@@ -1520,7 +1636,9 @@ libvirt_virNodeListDevices(PyObject *self ATTRIBUTE_UNUSED,
         return(NULL);
     conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
 
+    LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virNodeNumOfDevices(conn, cap, flags);
+    LIBVIRT_END_ALLOW_THREADS;
     if (c_retval < 0)
         return VIR_PY_NONE;
 
@@ -1528,7 +1646,9 @@ libvirt_virNodeListDevices(PyObject *self ATTRIBUTE_UNUSED,
         names = malloc(sizeof(*names) * c_retval);
         if (!names)
             return VIR_PY_NONE;
+        LIBVIRT_BEGIN_ALLOW_THREADS;
         c_retval = virNodeListDevices(conn, cap, names, c_retval, flags);
+        LIBVIRT_END_ALLOW_THREADS;
         if (c_retval < 0) {
             free(names);
             return VIR_PY_NONE;
@@ -1560,7 +1680,9 @@ libvirt_virNodeDeviceListCaps(PyObject *self ATTRIBUTE_UNUSED,
         return(NULL);
     dev = (virNodeDevicePtr) PyvirNodeDevice_Get(pyobj_dev);
 
+    LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virNodeDeviceNumOfCaps(dev);
+    LIBVIRT_END_ALLOW_THREADS;
     if (c_retval < 0)
         return VIR_PY_NONE;
 
@@ -1568,7 +1690,9 @@ libvirt_virNodeDeviceListCaps(PyObject *self ATTRIBUTE_UNUSED,
         names = malloc(sizeof(*names) * c_retval);
         if (!names)
             return VIR_PY_NONE;
+        LIBVIRT_BEGIN_ALLOW_THREADS;
         c_retval = virNodeDeviceListCaps(dev, names, c_retval);
+        LIBVIRT_END_ALLOW_THREADS;
         if (c_retval < 0) {
             free(names);
             return VIR_PY_NONE;
@@ -1775,7 +1899,9 @@ libvirt_virConnectListInterfaces(PyObject *self ATTRIBUTE_UNUSED,
         return(NULL);
     conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
 
+    LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virConnectNumOfInterfaces(conn);
+    LIBVIRT_END_ALLOW_THREADS;
     if (c_retval < 0)
         return VIR_PY_NONE;
 
@@ -1783,7 +1909,9 @@ libvirt_virConnectListInterfaces(PyObject *self ATTRIBUTE_UNUSED,
         names = malloc(sizeof(*names) * c_retval);
         if (!names)
             return VIR_PY_NONE;
+        LIBVIRT_BEGIN_ALLOW_THREADS;
         c_retval = virConnectListInterfaces(conn, names, c_retval);
+        LIBVIRT_END_ALLOW_THREADS;
         if (c_retval < 0) {
             free(names);
             return VIR_PY_NONE;
@@ -1826,7 +1954,9 @@ libvirt_virConnectListDefinedInterfaces(PyObject *self ATTRIBUTE_UNUSED,
         return(NULL);
     conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
 
+    LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virConnectNumOfDefinedInterfaces(conn);
+    LIBVIRT_END_ALLOW_THREADS;
     if (c_retval < 0)
         return VIR_PY_NONE;
 
@@ -1834,7 +1964,9 @@ libvirt_virConnectListDefinedInterfaces(PyObject *self ATTRIBUTE_UNUSED,
         names = malloc(sizeof(*names) * c_retval);
         if (!names)
             return VIR_PY_NONE;
+        LIBVIRT_BEGIN_ALLOW_THREADS;
         c_retval = virConnectListDefinedInterfaces(conn, names, c_retval);
+        LIBVIRT_END_ALLOW_THREADS;
         if (c_retval < 0) {
             free(names);
             return VIR_PY_NONE;
@@ -2546,6 +2678,7 @@ static PyMethodDef libvirtMethods[] = {
     {(char *) "virNetworkGetAutostart", libvirt_virNetworkGetAutostart, METH_VARARGS, NULL},
     {(char *) "virDomainBlockStats", libvirt_virDomainBlockStats, METH_VARARGS, NULL},
     {(char *) "virDomainInterfaceStats", libvirt_virDomainInterfaceStats, METH_VARARGS, NULL},
+    {(char *) "virDomainMemoryStats", libvirt_virDomainMemoryStats, METH_VARARGS, NULL},
     {(char *) "virNodeGetCellsFreeMemory", libvirt_virNodeGetCellsFreeMemory, METH_VARARGS, NULL},
     {(char *) "virDomainGetSchedulerType", libvirt_virDomainGetSchedulerType, METH_VARARGS, NULL},
     {(char *) "virDomainGetSchedulerParameters", libvirt_virDomainGetSchedulerParameters, METH_VARARGS, NULL},

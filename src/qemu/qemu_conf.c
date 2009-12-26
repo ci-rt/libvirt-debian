@@ -52,6 +52,7 @@
 #include "nodeinfo.h"
 #include "logging.h"
 #include "network.h"
+#include "cpu/cpu.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -608,6 +609,151 @@ qemudGetOldMachines(const char *ostype,
     return 0;
 }
 
+
+typedef int
+(*qemudParseCPUModels)(const char *output,
+                       unsigned int *retcount,
+                       const char ***retcpus);
+
+/* Format:
+ * <arch> <model>
+ */
+static int
+qemudParseX86Models(const char *output,
+                    unsigned int *retcount,
+                    const char ***retcpus)
+{
+    const char *p = output;
+    const char *next;
+    unsigned int count = 0;
+    const char **cpus = NULL;
+    int i;
+
+    do {
+        const char *t;
+
+        if ((next = strchr(p, '\n')))
+            next++;
+
+        if (!(t = strchr(p, ' ')) || (next && t >= next))
+            continue;
+
+        if (!STRPREFIX(p, "x86"))
+            continue;
+
+        p = t;
+        while (*p == ' ')
+            p++;
+
+        if (*p == '\0' || *p == '\n')
+            continue;
+
+        if (retcpus) {
+            if (VIR_REALLOC_N(cpus, count + 1) < 0)
+                goto error;
+
+            if (next)
+                cpus[count] = strndup(p, next - p - 1);
+            else
+                cpus[count] = strdup(p);
+
+            if (!cpus[count])
+                goto error;
+        }
+        count++;
+    } while ((p = next));
+
+    if (retcount)
+        *retcount = count;
+    if (retcpus)
+        *retcpus = cpus;
+
+    return 0;
+
+error:
+    if (cpus) {
+        for (i = 0; i < count; i++)
+            VIR_FREE(cpus[i]);
+    }
+    VIR_FREE(cpus);
+
+    return -1;
+}
+
+
+int
+qemudProbeCPUModels(const char *qemu,
+                    const char *arch,
+                    unsigned int *count,
+                    const char ***cpus)
+{
+    const char *const qemuarg[] = { qemu, "-cpu", "?", NULL };
+    const char *const qemuenv[] = { "LC_ALL=C", NULL };
+    enum { MAX_MACHINES_OUTPUT_SIZE = 1024*4 };
+    char *output = NULL;
+    int newstdout = -1;
+    int ret = -1;
+    pid_t child;
+    int status;
+    int len;
+    qemudParseCPUModels parse;
+
+    if (count)
+        *count = 0;
+    if (cpus)
+        *cpus = NULL;
+
+    if (STREQ(arch, "i686") || STREQ(arch, "x86_64"))
+        parse = qemudParseX86Models;
+    else {
+        VIR_DEBUG(_("don't know how to parse %s CPU models"), arch);
+        return 0;
+    }
+
+    if (virExec(NULL, qemuarg, qemuenv, NULL,
+                &child, -1, &newstdout, NULL, VIR_EXEC_CLEAR_CAPS) < 0)
+        return -1;
+
+    len = virFileReadLimFD(newstdout, MAX_MACHINES_OUTPUT_SIZE, &output);
+    if (len < 0) {
+        virReportSystemError(NULL, errno, "%s",
+                             _("Unable to read QEMU supported CPU models"));
+        goto cleanup;
+    }
+
+    if (parse(output, count, cpus) < 0) {
+        virReportOOMError(NULL);
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(output);
+    if (close(newstdout) < 0)
+        ret = -1;
+
+rewait:
+    if (waitpid(child, &status, 0) != child) {
+        if (errno == EINTR)
+            goto rewait;
+
+        VIR_ERROR(_("Unexpected exit status from qemu %d pid %lu"),
+                  WEXITSTATUS(status), (unsigned long)child);
+        ret = -1;
+    }
+    /* Check & log unexpected exit status, but don't fail,
+     * as there's really no need to throw an error if we did
+     * actually read a valid version number above */
+    if (WEXITSTATUS(status) != 0) {
+        VIR_WARN(_("Unexpected exit status '%d', qemu probably failed"),
+                 WEXITSTATUS(status));
+    }
+
+    return ret;
+}
+
+
 static int
 qemudCapsInitGuest(virCapsPtr caps,
                    virCapsPtr old_caps,
@@ -624,6 +770,7 @@ qemudCapsInitGuest(virCapsPtr caps,
     virCapsGuestMachinePtr *machines = NULL;
     int nmachines = 0;
     struct stat st;
+    unsigned int ncpus;
 
     /* Check for existance of base emulator, or alternate base
      * which can be used with magic cpu choice
@@ -725,6 +872,11 @@ qemudCapsInitGuest(virCapsPtr caps,
 
     guest->arch.defaultInfo.emulator_mtime = binary_mtime;
 
+    if (qemudProbeCPUModels(binary, info->arch, &ncpus, NULL) == 0
+        && ncpus > 0
+        && !virCapabilitiesAddGuestFeature(guest, "cpuselection", 1, 0))
+        return -1;
+
     if (hvm) {
         if (virCapabilitiesAddGuestDomain(guest,
                                           "qemu",
@@ -808,6 +960,49 @@ qemudCapsInitGuest(virCapsPtr caps,
     return 0;
 }
 
+
+static int
+qemudCapsInitCPU(virCapsPtr caps,
+                 const char *arch)
+{
+    virCPUDefPtr cpu = NULL;
+    union cpuData *data = NULL;
+    virNodeInfo nodeinfo;
+    int ret = -1;
+
+    if (VIR_ALLOC(cpu) < 0
+        || !(cpu->arch = strdup(arch))) {
+        virReportOOMError(NULL);
+        goto error;
+    }
+
+    if (nodeGetInfo(NULL, &nodeinfo))
+        goto error;
+
+    cpu->type = VIR_CPU_TYPE_HOST;
+    cpu->sockets = nodeinfo.sockets;
+    cpu->cores = nodeinfo.cores;
+    cpu->threads = nodeinfo.threads;
+
+    if (!(data = cpuNodeData(NULL, arch))
+        || cpuDecode(NULL, cpu, data, 0, NULL) < 0)
+        goto error;
+
+    caps->host.cpu = cpu;
+
+    ret = 0;
+
+cleanup:
+    cpuDataFree(NULL, arch, data);
+
+    return ret;
+
+error:
+    virCPUDefFree(cpu);
+    goto cleanup;
+}
+
+
 virCapsPtr qemudCapsInit(virCapsPtr old_caps) {
     struct utsname utsname;
     virCapsPtr caps;
@@ -830,6 +1025,15 @@ virCapsPtr qemudCapsInit(virCapsPtr old_caps) {
     if (nodeCapsInitNUMA(caps) < 0) {
         virCapabilitiesFreeNUMAInfo(caps);
         VIR_WARN0("Failed to query host NUMA topology, disabling NUMA capabilities");
+    }
+
+    if (old_caps == NULL || old_caps->host.cpu == NULL) {
+        if (qemudCapsInitCPU(caps, utsname.machine) < 0)
+            VIR_WARN0("Failed to get host CPU");
+    }
+    else {
+        caps->host.cpu = old_caps->host.cpu;
+        old_caps->host.cpu = NULL;
     }
 
     virCapabilitiesAddHostMigrateTransport(caps,
@@ -941,6 +1145,13 @@ static unsigned int qemudComputeCmdFlags(const char *help,
 
     if (version >= 10000)
         flags |= QEMUD_CMD_FLAG_0_10;
+
+    /* Keep disabled till we're actually ready to turn on JSON mode
+     * The plan is todo it in 0.13.0 QEMU, but lets wait & see... */
+#if 0
+    if (version >= 13000)
+        flags |= QEMUD_CMD_FLAG_MONITOR_JSON;
+#endif
 
     return flags;
 }
@@ -1376,6 +1587,7 @@ qemuBuildHostNetStr(virConnectPtr conn,
                 type_sep = ','; /* dead-store, but leave it, in case... */
             }
             if (virBufferError(&buf)) {
+                virBufferFreeAndReset(&buf);
                 virReportOOMError(conn);
                 return -1;
             }
@@ -1559,6 +1771,99 @@ static void qemudBuildCommandLineChrDevStr(virDomainChrDefPtr dev,
     }
 }
 
+
+static int
+qemudBuildCommandLineCPU(virConnectPtr conn,
+                         const struct qemud_driver *driver,
+                         const virDomainDefPtr def,
+                         const char *emulator,
+                         const struct utsname *ut,
+                         char **opt)
+{
+    const virCPUDefPtr host = driver->caps->host.cpu;
+    virCPUDefPtr guest = NULL;
+    unsigned int ncpus = 0;
+    const char **cpus = NULL;
+    union cpuData *data = NULL;
+    int ret = -1;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    int i;
+
+    if (def->cpu && def->cpu->model
+        && qemudProbeCPUModels(emulator, ut->machine, &ncpus, &cpus) < 0)
+        goto cleanup;
+
+    if (ncpus > 0 && host) {
+        virCPUCompareResult cmp;
+
+        cmp = cpuGuestData(conn, host, def->cpu, &data);
+        switch (cmp) {
+        case VIR_CPU_COMPARE_INCOMPATIBLE:
+            qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                    "%s", _("guest CPU is not compatible with host CPU"));
+            /* fall through */
+        case VIR_CPU_COMPARE_ERROR:
+            goto cleanup;
+
+        default:
+            break;
+        }
+
+        if (VIR_ALLOC(guest) < 0 || !(guest->arch = strdup(ut->machine)))
+            goto no_memory;
+
+        if (cpuDecode(conn, guest, data, ncpus, cpus) < 0)
+            goto cleanup;
+
+        virBufferVSprintf(&buf, "%s", guest->model);
+        for (i = 0; i < guest->nfeatures; i++)
+            virBufferVSprintf(&buf, ",+%s", guest->features[i].name);
+    }
+    else {
+        /*
+         * Need to force a 32-bit guest CPU type if
+         *
+         *  1. guest OS is i686
+         *  2. host OS is x86_64
+         *  3. emulator is qemu-kvm or kvm
+         *
+         * Or
+         *
+         *  1. guest OS is i686
+         *  2. emulator is qemu-system-x86_64
+         */
+        if (STREQ(def->os.arch, "i686") &&
+            ((STREQ(ut->machine, "x86_64") &&
+              strstr(emulator, "kvm")) ||
+             strstr(emulator, "x86_64")))
+            virBufferAddLit(&buf, "qemu32");
+    }
+
+    if (virBufferError(&buf))
+        goto no_memory;
+
+    *opt = virBufferContentAndReset(&buf);
+
+    ret = 0;
+
+cleanup:
+    virCPUDefFree(guest);
+    cpuDataFree(conn, ut->machine, data);
+
+    if (cpus) {
+        for (i = 0; i < ncpus; i++)
+            VIR_FREE(cpus[i]);
+        VIR_FREE(cpus);
+    }
+
+    return ret;
+
+no_memory:
+    virReportOOMError(conn);
+    goto cleanup;
+}
+
+
 #define QEMU_SERIAL_PARAM_ACCEPTED_CHARS \
   "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"
 
@@ -1584,6 +1889,7 @@ int qemudBuildCommandLine(virConnectPtr conn,
                           struct qemud_driver *driver,
                           virDomainDefPtr def,
                           virDomainChrDefPtr monitor_chr,
+                          int monitor_json,
                           unsigned int qemuCmdFlags,
                           const char ***retargv,
                           const char ***retenv,
@@ -1605,7 +1911,7 @@ int qemudBuildCommandLine(virConnectPtr conn,
     const char *emulator;
     char uuid[VIR_UUID_STRING_BUFLEN];
     char domid[50];
-    const char *cpu = NULL;
+    char *cpu;
 
     uname_normalize(&ut);
 
@@ -1664,24 +1970,6 @@ int qemudBuildCommandLine(virConnectPtr conn,
     if ((qemuCmdFlags & QEMUD_CMD_FLAG_ENABLE_KVM) &&
         def->virtType == VIR_DOMAIN_VIRT_KVM)
         enableKVM = 1;
-
-    /*
-     * Need to force a 32-bit guest CPU type if
-     *
-     *  1. guest OS is i686
-     *  2. host OS is x86_64
-     *  3. emulator is qemu-kvm or kvm
-     *
-     * Or
-     *
-     *  1. guest OS is i686
-     *  2. emulator is qemu-system-x86_64
-     */
-    if (STREQ(def->os.arch, "i686") &&
-        ((STREQ(ut.machine, "x86_64") &&
-          strstr(emulator, "kvm")) ||
-         strstr(emulator, "x86_64")))
-        cpu = "qemu32";
 
 #define ADD_ARG_SPACE                                                   \
     do { \
@@ -1783,9 +2071,14 @@ int qemudBuildCommandLine(virConnectPtr conn,
         ADD_ARG_LIT("-M");
         ADD_ARG_LIT(def->os.machine);
     }
+
+    if (qemudBuildCommandLineCPU(conn, driver, def, emulator, &ut, &cpu) < 0)
+        goto error;
+
     if (cpu) {
         ADD_ARG_LIT("-cpu");
         ADD_ARG_LIT(cpu);
+        VIR_FREE(cpu);
     }
 
     if (disableKQEMU)
@@ -1858,9 +2151,34 @@ int qemudBuildCommandLine(virConnectPtr conn,
     if (monitor_chr) {
         virBuffer buf = VIR_BUFFER_INITIALIZER;
 
-        qemudBuildCommandLineChrDevStr(monitor_chr, &buf);
-        if (virBufferError(&buf))
-            goto error;
+        /* Use -chardev if it's available */
+        if (qemuCmdFlags & QEMUD_CMD_FLAG_CHARDEV) {
+            qemudBuildCommandLineChrDevChardevStr(monitor_chr, "monitor", &buf);
+            if (virBufferError(&buf)) {
+                virBufferFreeAndReset(&buf);
+                goto no_memory;
+            }
+
+            ADD_ARG_LIT("-chardev");
+            ADD_ARG(virBufferContentAndReset(&buf));
+
+            if (monitor_json)
+                virBufferAddLit(&buf, "control,");
+
+            virBufferAddLit(&buf, "chardev:monitor");
+        }
+
+        else {
+            if (monitor_json)
+                virBufferAddLit(&buf, "control,");
+
+            qemudBuildCommandLineChrDevStr(monitor_chr, &buf);
+        }
+
+        if (virBufferError(&buf)) {
+            virBufferFreeAndReset(&buf);
+            goto no_memory;
+        }
 
         ADD_ARG_LIT("-monitor");
         ADD_ARG(virBufferContentAndReset(&buf));
@@ -1994,8 +2312,30 @@ int qemudBuildCommandLine(virConnectPtr conn,
                 break;
             }
 
-            virBufferVSprintf(&opt, "file=%s", disk->src ? disk->src : "");
-            virBufferVSprintf(&opt, ",if=%s", bus);
+            if (disk->src) {
+                if (disk->type == VIR_DOMAIN_DISK_TYPE_DIR) {
+                    /* QEMU only supports magic FAT format for now */
+                    if (disk->driverType &&
+                        STRNEQ(disk->driverType, "fat")) {
+                        qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                                         _("unsupported disk driver type for '%s'"),
+                                         disk->driverType);
+                        goto error;
+                    }
+                    if (!disk->readonly) {
+                        qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR, "%s",
+                                         _("cannot create virtual FAT disks in read-write mode"));
+                        goto error;
+                    }
+                    if (disk->device == VIR_DOMAIN_DISK_DEVICE_FLOPPY)
+                        virBufferVSprintf(&opt, "file=fat:floppy:%s,", disk->src);
+                    else
+                        virBufferVSprintf(&opt, "file=fat:%s,", disk->src);
+                } else {
+                    virBufferVSprintf(&opt, "file=%s,", disk->src);
+                }
+            }
+            virBufferVSprintf(&opt, "if=%s", bus);
             if (disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM)
                 virBufferAddLit(&opt, ",media=cdrom");
             virBufferVSprintf(&opt, ",index=%d", idx);
@@ -2003,6 +2343,7 @@ int qemudBuildCommandLine(virConnectPtr conn,
                 disk->device == VIR_DOMAIN_DISK_DEVICE_DISK)
                 virBufferAddLit(&opt, ",boot=on");
             if (disk->driverType &&
+                disk->type != VIR_DOMAIN_DISK_TYPE_DIR &&
                 qemuCmdFlags & QEMUD_CMD_FLAG_DRIVE_FORMAT)
                 virBufferVSprintf(&opt, ",format=%s", disk->driverType);
             if (disk->serial &&
@@ -2024,8 +2365,8 @@ int qemudBuildCommandLine(virConnectPtr conn,
             }
 
             if (virBufferError(&opt)) {
-                virReportOOMError(conn);
-                goto error;
+                virBufferFreeAndReset(&opt);
+                goto no_memory;
             }
 
             optstr = virBufferContentAndReset(&opt);
@@ -2071,7 +2412,27 @@ int qemudBuildCommandLine(virConnectPtr conn,
                 }
             }
 
-            snprintf(file, PATH_MAX, "%s", disk->src);
+            if (disk->type == VIR_DOMAIN_DISK_TYPE_DIR) {
+                /* QEMU only supports magic FAT format for now */
+                if (disk->driverType &&
+                    STRNEQ(disk->driverType, "fat")) {
+                    qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                                     _("unsupported disk driver type for '%s'"),
+                                     disk->driverType);
+                    goto error;
+                }
+                if (!disk->readonly) {
+                    qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR, "%s",
+                                     _("cannot create virtual FAT disks in read-write mode"));
+                    goto error;
+                }
+                if (disk->device == VIR_DOMAIN_DISK_DEVICE_FLOPPY)
+                    snprintf(file, PATH_MAX, "fat:floppy:%s", disk->src);
+                else
+                    snprintf(file, PATH_MAX, "fat:%s", disk->src);
+            } else {
+                snprintf(file, PATH_MAX, "%s", disk->src);
+            }
 
             ADD_ARG_LIT(dev);
             ADD_ARG_LIT(file);
@@ -2146,12 +2507,42 @@ int qemudBuildCommandLine(virConnectPtr conn,
             virBuffer buf = VIR_BUFFER_INITIALIZER;
             virDomainChrDefPtr serial = def->serials[i];
 
-            qemudBuildCommandLineChrDevStr(serial, &buf);
-            if (virBufferError(&buf))
-                goto error;
+            /* Use -chardev if it's available */
+            if (qemuCmdFlags & QEMUD_CMD_FLAG_CHARDEV) {
+                char id[16];
 
-            ADD_ARG_LIT("-serial");
-            ADD_ARG(virBufferContentAndReset(&buf));
+                if (snprintf(id, sizeof(id), "serial%i", i) > sizeof(id))
+                    goto error;
+
+                qemudBuildCommandLineChrDevChardevStr(serial, id, &buf);
+                if (virBufferError(&buf)) {
+                    virBufferFreeAndReset(&buf);
+                    goto no_memory;
+                }
+
+                ADD_ARG_LIT("-chardev");
+                ADD_ARG(virBufferContentAndReset(&buf));
+
+                virBufferVSprintf(&buf, "chardev:%s", id);
+                if (virBufferError(&buf)) {
+                    virBufferFreeAndReset(&buf);
+                    goto no_memory;
+                }
+
+                ADD_ARG_LIT("-serial");
+                ADD_ARG(virBufferContentAndReset(&buf));
+            }
+
+            else {
+                qemudBuildCommandLineChrDevStr(serial, &buf);
+                if (virBufferError(&buf)) {
+                    virBufferFreeAndReset(&buf);
+                    goto no_memory;
+                }
+
+                ADD_ARG_LIT("-serial");
+                ADD_ARG(virBufferContentAndReset(&buf));
+            }
         }
     }
 
@@ -2163,12 +2554,42 @@ int qemudBuildCommandLine(virConnectPtr conn,
             virBuffer buf = VIR_BUFFER_INITIALIZER;
             virDomainChrDefPtr parallel = def->parallels[i];
 
-            qemudBuildCommandLineChrDevStr(parallel, &buf);
-            if (virBufferError(&buf))
-                goto error;
+            /* Use -chardev if it's available */
+            if (qemuCmdFlags & QEMUD_CMD_FLAG_CHARDEV) {
+                char id[16];
 
-            ADD_ARG_LIT("-parallel");
-            ADD_ARG(virBufferContentAndReset(&buf));
+                if (snprintf(id, sizeof(id), "parallel%i", i) > sizeof(id))
+                    goto error;
+
+                qemudBuildCommandLineChrDevChardevStr(parallel, id, &buf);
+                if (virBufferError(&buf)) {
+                    virBufferFreeAndReset(&buf);
+                    goto no_memory;
+                }
+
+                ADD_ARG_LIT("-chardev");
+                ADD_ARG(virBufferContentAndReset(&buf));
+
+                virBufferVSprintf(&buf, "chardev:%s", id);
+                if (virBufferError(&buf)) {
+                    virBufferFreeAndReset(&buf);
+                    goto no_memory;
+                }
+
+                ADD_ARG_LIT("-parallel");
+                ADD_ARG(virBufferContentAndReset(&buf));
+            }
+
+            else {
+                qemudBuildCommandLineChrDevStr(parallel, &buf);
+                if (virBufferError(&buf)) {
+                    virBufferFreeAndReset(&buf);
+                    goto no_memory;
+                }
+
+                ADD_ARG_LIT("-parallel");
+                ADD_ARG(virBufferContentAndReset(&buf));
+            }
         }
     }
 
@@ -2190,8 +2611,10 @@ int qemudBuildCommandLine(virConnectPtr conn,
             }
 
             qemudBuildCommandLineChrDevChardevStr(channel, id, &buf);
-            if (virBufferError(&buf))
-                goto error;
+            if (virBufferError(&buf)) {
+                virBufferFreeAndReset(&buf);
+                goto no_memory;
+            }
 
             ADD_ARG_LIT("-chardev");
             ADD_ARG(virBufferContentAndReset(&buf));
@@ -2204,8 +2627,10 @@ int qemudBuildCommandLine(virConnectPtr conn,
 
             VIR_FREE(addr);
 
-            if (virBufferError(&buf))
-                goto error;
+            if (virBufferError(&buf)) {
+                virBufferFreeAndReset(&buf);
+                goto no_memory;
+            }
 
             ADD_ARG_LIT("-net");
             ADD_ARG(virBufferContentAndReset(&buf));
@@ -2263,8 +2688,10 @@ int qemudBuildCommandLine(virConnectPtr conn,
             virBufferVSprintf(&opt, "%d",
                               def->graphics[0]->data.vnc.port - 5900);
         }
-        if (virBufferError(&opt))
+        if (virBufferError(&opt)) {
+            virBufferFreeAndReset(&opt);
             goto no_memory;
+        }
 
         optstr = virBufferContentAndReset(&opt);
 
@@ -2735,6 +3162,7 @@ qemuParseCommandLineDisk(virConnectPtr conn,
 
     def->bus = VIR_DOMAIN_DISK_BUS_IDE;
     def->device = VIR_DOMAIN_DISK_DEVICE_DISK;
+    def->type = VIR_DOMAIN_DISK_TYPE_FILE;
 
     for (i = 0 ; i < nkeywords ; i++) {
         if (STREQ(keywords[i], "file")) {
@@ -3289,6 +3717,79 @@ error:
     return NULL;
 }
 
+
+static int
+qemuParseCommandLineCPU(virConnectPtr conn,
+                        virDomainDefPtr dom,
+                        const char *val)
+{
+    virCPUDefPtr cpu;
+    const char *p = val;
+    const char *next;
+
+    if (VIR_ALLOC(cpu) < 0)
+        goto no_memory;
+
+    cpu->type = VIR_CPU_TYPE_GUEST;
+
+    do {
+        if (*p == '\0' || *p == ',')
+            goto syntax;
+
+        if ((next = strchr(p, ',')))
+            next++;
+
+        if (!cpu->model) {
+            if (next)
+                cpu->model = strndup(p, next - p - 1);
+            else
+                cpu->model = strdup(p);
+
+            if (!cpu->model)
+                goto no_memory;
+        }
+        else if (*p == '+' || *p == '-') {
+            char *feature;
+            int policy;
+            int ret;
+
+            if (*p == '+')
+                policy = VIR_CPU_FEATURE_REQUIRE;
+            else
+                policy = VIR_CPU_FEATURE_DISABLE;
+
+            p++;
+            if (*p == '\0' || *p == ',')
+                goto syntax;
+
+            if (next)
+                feature = strndup(p, next - p - 1);
+            else
+                feature = strdup(p);
+
+            ret = virCPUDefAddFeature(conn, cpu, feature, policy);
+            VIR_FREE(feature);
+            if (ret < 0)
+                goto error;
+        }
+    } while ((p = next));
+
+    dom->cpu = cpu;
+    return 0;
+
+syntax:
+    qemudReportError(conn, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+            _("unknown CPU syntax '%s'"), val);
+    goto error;
+
+no_memory:
+    virReportOOMError(conn);
+error:
+    virCPUDefFree(cpu);
+    return -1;
+}
+
+
 /*
  * Analyse the env and argv settings and reconstruct a
  * virDomainDefPtr representing these settings as closely
@@ -3716,6 +4217,10 @@ virDomainDefPtr qemuParseCommandLine(virConnectPtr conn,
                                  _("unknown video adapter type '%s'"), val);
                 goto error;
             }
+        } else if (STREQ(arg, "-cpu")) {
+            WANT_VALUE();
+            if (qemuParseCommandLineCPU(conn, def, val) < 0)
+                goto error;
         } else if (STREQ(arg, "-domid")) {
             WANT_VALUE();
             /* ignore, generted on the fly */

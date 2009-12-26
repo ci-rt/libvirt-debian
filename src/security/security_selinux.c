@@ -77,8 +77,8 @@ mcsRemove(const char *mcs)
             else {
                 mcsList = ptr->next;
             }
-            free(ptr->mcs);
-            free(ptr);
+            VIR_FREE(ptr->mcs);
+            VIR_FREE(ptr);
             return 0;
         }
         prevptr = ptr;
@@ -293,7 +293,7 @@ SELinuxGetSecurityLabel(virConnectPtr conn,
     }
 
     strcpy(sec->label, (char *) ctx);
-    free(ctx);
+    VIR_FREE(ctx);
 
     sec->enforcing = security_getenforce();
     if (sec->enforcing == -1) {
@@ -687,6 +687,9 @@ SELinuxSetSecurityLabel(virConnectPtr conn,
 
     if (secdef->imagelabel) {
         for (i = 0 ; i < vm->def->ndisks ; i++) {
+            /* XXX fixme - we need to recursively label the entriy tree :-( */
+            if (vm->def->disks[i]->type == VIR_DOMAIN_DISK_TYPE_DIR)
+                continue;
             if (SELinuxSetSecurityImageLabel(conn, vm, vm->def->disks[i]) < 0)
                 return -1;
         }

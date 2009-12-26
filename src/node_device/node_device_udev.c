@@ -37,7 +37,7 @@
 #include "uuid.h"
 #include "util.h"
 #include "buf.h"
-#include "daemon/event.h"
+#include "event.h"
 
 #define VIR_FROM_THIS VIR_FROM_NODEDEV
 
@@ -323,6 +323,7 @@ static int udevGenerateDeviceName(struct udev_device *device,
     }
 
     if (virBufferError(&buf)) {
+        virBufferFreeAndReset(&buf);
         VIR_ERROR("Buffer error when generating device name for device "
                   "with sysname '%s'\n", udev_device_get_sysname(device));
         ret = -1;
@@ -867,6 +868,11 @@ static int udevProcessCDROM(struct udev_device *device,
         def->caps->data.storage.flags |=
             VIR_NODE_DEV_CAP_STORAGE_REMOVABLE_MEDIA_AVAILABLE;
 
+        if (udevGetStringProperty(device, "ID_FS_LABEL",
+                                  &data->storage.media_label) == PROPERTY_ERROR) {
+            goto out;
+        }
+
         if (udevGetUint64SysfsAttr(device,
                                    "size",
                                    &data->storage.num_blocks) == PROPERTY_ERROR) {
@@ -947,8 +953,14 @@ static int udevProcessStorage(struct udev_device *device,
 {
     union _virNodeDevCapData *data = &def->caps->data;
     int ret = -1;
+    const char* devnode;
 
-    data->storage.block = strdup(udev_device_get_devnode(device));
+    devnode = udev_device_get_devnode(device);
+    if(!devnode) {
+        VIR_DEBUG("No devnode for '%s'\n", udev_device_get_devpath(device));
+        goto out;
+    }
+    data->storage.block = strdup(devnode);
     if (udevGetStringProperty(device,
                               "DEVNAME",
                               &data->storage.block) == PROPERTY_ERROR) {
@@ -1519,10 +1531,10 @@ static int udevDeviceMonitorStartup(int privileged ATTRIBUTE_UNUSED)
      * enumeration.  The alternative is to register the callback after
      * we enumerate, in which case we will fail to create any devices
      * that appear while the enumeration is taking place.  */
-    if (virEventAddHandleImpl(udev_monitor_get_fd(udev_monitor),
-                              VIR_EVENT_HANDLE_READABLE,
-                              udevEventHandleCallback,
-                              NULL, NULL) == -1) {
+    if (virEventAddHandle(udev_monitor_get_fd(udev_monitor),
+                          VIR_EVENT_HANDLE_READABLE,
+                          udevEventHandleCallback,
+                          NULL, NULL) == -1) {
         ret = -1;
         goto out;
     }

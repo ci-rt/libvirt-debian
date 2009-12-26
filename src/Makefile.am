@@ -16,6 +16,7 @@ INCLUDES =							\
 		-DSBINDIR=\""$(sbindir)"\"			\
 		-DSYSCONF_DIR="\"$(sysconfdir)\""		\
 		-DLOCALEBASEDIR=\""$(datadir)/locale"\"		\
+		-DPKGDATADIR=\""$(pkgdatadir)"\"		\
 		-DLOCAL_STATE_DIR=\""$(localstatedir)"\"	\
 		-DGETTEXT_PACKAGE=\"$(PACKAGE)\"		\
 		$(WARN_CFLAGS)					\
@@ -52,9 +53,11 @@ UTIL_SOURCES =							\
 		util/hash.c util/hash.h				\
 		util/iptables.c util/iptables.h			\
 		util/ebtables.c util/ebtables.h			\
+		util/json.c util/json.h				\
 		util/logging.c util/logging.h			\
 		util/memory.c util/memory.h			\
 		util/pci.c util/pci.h				\
+		util/processinfo.c util/processinfo.h		\
 		util/hostusb.c util/hostusb.h			\
 		util/network.c util/network.h			\
 		util/qparams.c util/qparams.h			\
@@ -112,6 +115,9 @@ NODE_DEVICE_CONF_SOURCES =                                     \
 ENCRYPTION_CONF_SOURCES =					\
 		conf/storage_encryption_conf.c conf/storage_encryption_conf.h
 
+CPU_CONF_SOURCES =						\
+		conf/cpu_conf.c conf/cpu_conf.h
+
 CONF_SOURCES =							\
 		$(DOMAIN_CONF_SOURCES)				\
 		$(DOMAIN_EVENT_SOURCES)				\
@@ -120,7 +126,8 @@ CONF_SOURCES =							\
 		$(STORAGE_CONF_SOURCES)				\
 		$(ENCRYPTION_CONF_SOURCES)			\
 		$(INTERFACE_CONF_SOURCES)			\
-		$(SECRET_CONF_SOURCES)
+		$(SECRET_CONF_SOURCES)				\
+		$(CPU_CONF_SOURCES)
 
 # The remote RPC driver, covering domains, storage, networks, etc
 REMOTE_DRIVER_SOURCES =						\
@@ -177,7 +184,8 @@ VBOX_DRIVER_SOURCES =						\
         vbox/vbox_XPCOMCGlue.c vbox/vbox_XPCOMCGlue.h		\
         vbox/vbox_driver.c vbox/vbox_driver.h			\
         vbox/vbox_V2_2.c vbox/vbox_CAPI_v2_2.h			\
-        vbox/vbox_V3_0.c vbox/vbox_CAPI_v3_0.h
+        vbox/vbox_V3_0.c vbox/vbox_CAPI_v3_0.h			\
+        vbox/vbox_V3_1.c vbox/vbox_CAPI_v3_1.h
 
 VBOX_DRIVER_EXTRA_DIST = vbox/vbox_tmpl.c vbox/README
 
@@ -186,7 +194,9 @@ QEMU_DRIVER_SOURCES =						\
 		qemu/qemu_monitor.c qemu/qemu_monitor.h		\
 		qemu/qemu_monitor_text.c			\
 		qemu/qemu_monitor_text.h			\
-		qemu/qemu_driver.c qemu/qemu_driver.h        	\
+		qemu/qemu_monitor_json.c			\
+		qemu/qemu_monitor_json.h			\
+		qemu/qemu_driver.c qemu/qemu_driver.h		\
 		qemu/qemu_bridge_filter.c 			\
 		qemu/qemu_bridge_filter.h
 
@@ -271,6 +281,15 @@ NODE_DEVICE_DRIVER_UDEV_SOURCES =				\
 		node_device/node_device_udev.c			\
 		node_device/node_device_udev.h
 
+CPU_SOURCES =							\
+		cpu/cpu.h cpu/cpu.c				\
+		cpu/cpu_generic.h cpu/cpu_generic.c		\
+		cpu/cpu_x86.h cpu/cpu_x86.c cpu/cpu_x86_data.h	\
+		cpu/cpu_map.h cpu/cpu_map.c
+
+pkgdata_DATA =	cpu/cpu_map.xml
+
+EXTRA_DIST += 	$(pkgdata_DATA)
 
 #########################
 #
@@ -282,8 +301,8 @@ noinst_LTLIBRARIES = libvirt_util.la
 libvirt_la_LIBADD = libvirt_util.la
 libvirt_util_la_SOURCES =					\
 		$(UTIL_SOURCES)
-libvirt_util_la_CFLAGS =  $(CAPNG_CFLAGS)
-libvirt_util_la_LDFLAGS =  $(CAPNG_LIBS)
+libvirt_util_la_CFLAGS =  $(CAPNG_CFLAGS) $(YAJL_CFLAGS)
+libvirt_util_la_LDFLAGS =  $(CAPNG_LIBS) $(YAJL_LIBS)
 
 
 noinst_LTLIBRARIES += libvirt_conf.la
@@ -291,6 +310,12 @@ libvirt_la_LIBADD += libvirt_conf.la
 libvirt_conf_la_SOURCES = $(CONF_SOURCES)
 libvirt_conf_la_CFLAGS =
 libvirt_conf_la_LDFLAGS =
+
+noinst_LTLIBRARIES += libvirt_cpu.la
+libvirt_la_LIBADD += libvirt_cpu.la
+libvirt_cpu_la_CFLAGS = \
+		-I@top_srcdir@/src/conf
+libvirt_cpu_la_SOURCES = $(CPU_SOURCES)
 
 
 noinst_LTLIBRARIES += libvirt_driver.la
@@ -573,7 +598,8 @@ if WITH_DRIVER_MODULES
 mod_LTLIBRARIES += libvirt_driver_secret.la
 else
 noinst_LTLIBRARIES += libvirt_driver_secret.la
-libvirt_la_LIBADD += libvirt_driver_secret.la
+# Stateful, so linked to daemon instead
+#libvirt_la_LIBADD += libvirt_driver_secret.la
 endif
 libvirt_driver_secret_la_CFLAGS = \
 		-I@top_srcdir@/src/conf
@@ -826,13 +852,15 @@ libvirt_lxc_SOURCES =						\
 		$(UTIL_SOURCES)					\
 		$(NODE_INFO_SOURCES)				\
 		$(ENCRYPTION_CONF_SOURCES)			\
-		$(DOMAIN_CONF_SOURCES)
-libvirt_lxc_LDFLAGS = $(WARN_CFLAGS) $(COVERAGE_LDCFLAGS) $(CAPNG_LIBS)
+		$(DOMAIN_CONF_SOURCES)				\
+		$(CPU_CONF_SOURCES)
+libvirt_lxc_LDFLAGS = $(WARN_CFLAGS) $(COVERAGE_LDCFLAGS) $(CAPNG_LIBS) $(YAJL_LIBS)
 libvirt_lxc_LDADD = $(LIBXML_LIBS) $(NUMACTL_LIBS) ../gnulib/lib/libgnu.la
 libvirt_lxc_CFLAGS =				\
 		$(LIBPARTED_CFLAGS)		\
 		$(NUMACTL_CFLAGS)		\
 		$(CAPNG_CFLAGS)			\
+		$(YAJL_CFLAGS)			\
 		-I@top_srcdir@/src/conf
 endif
 endif
@@ -877,8 +905,6 @@ if WITH_UML
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/run/libvirt/uml"
 endif
 if WITH_NETWORK
-	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/iptables/filter"
-	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/iptables/nat"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/network"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/run/libvirt/network"
 	$(MKDIR_P) "$(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart"
@@ -915,8 +941,6 @@ if WITH_NETWORK
 	rm -f $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml
 	rmdir "$(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart" || :
 	rmdir "$(DESTDIR)$(sysconfdir)/libvirt/qemu/networks" || :
-	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/iptables/filter" ||:
-	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/iptables/nat" ||:
 	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/network" ||:
 	rmdir "$(DESTDIR)$(localstatedir)/run/libvirt/network" ||:
 endif
