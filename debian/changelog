@@ -1,3 +1,18 @@
+libvirt (0.7.5-1) experimental; urgency=low
+
+  [ Laurent Léonard ]
+  * [96f8d94] Imported Upstream version 0.7.5
+  * [f8089a1] Redo patches.
+  * [294ce3d] Update libvirt0 symbols.
+  * [1c97be7] Allow DM upload and add myself as uploader.
+  * [5635a32] Clean debian/watch.
+
+  [ Guido Günther ]
+  * [45f98ae] Drop 0005-udev_device_get_devpath-might-return-NULL.patch
+    applied upstream.
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 26 Dec 2009 17:45:47 +0100
+
 libvirt (0.7.4-2) experimental; urgency=low
 
   * [65d3755] Disable SELinux to work around #559356
