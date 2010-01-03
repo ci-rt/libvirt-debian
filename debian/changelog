@@ -1,3 +1,10 @@
+libvirt (0.7.5-2) unstable; urgency=low
+
+  * Upload to unstable
+  * [d6c5ca5] Add debugging symbols for all packages
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 03 Jan 2010 20:01:12 +0100
+
 libvirt (0.7.5-1) experimental; urgency=low
 
   [ Laurent Léonard ]
