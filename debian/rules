@@ -38,6 +38,8 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	--with-init-scripts=none \
 	--without-numactl	 \
 	--without-selinux        \
+	--without-esx		 \
+	--without-libssh2	 \
 	--enable-debug		 \
 	$(BUILD_XEN)		 \
 	$(BUILD_VBOX)		 \
