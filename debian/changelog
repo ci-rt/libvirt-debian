@@ -1,3 +1,13 @@
+libvirt (0.7.5-3) unstable; urgency=low
+
+  * [4d41fd7] Also look for dmi information in /sys/class older kernels such
+    as 2.6.26 have it there. (Closes: #564020)
+  * [1c0e0b5] Explicitly disable ESX support
+  * [c3c84f6] Terminate nc on EOF (Closes: #564053) - thanks to Gabor Gombas
+    for the patch
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 08 Jan 2010 11:07:34 +0100
+
 libvirt (0.7.5-2) unstable; urgency=low
 
   * Upload to unstable
