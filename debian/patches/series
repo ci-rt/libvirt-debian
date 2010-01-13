@@ -4,3 +4,4 @@
 0004-fix-Debian-specific-path-to-hvm-loader.patch
 0005-Also-look-for-dmi-information-in-sys-class.patch
 0006-Terminate-nc-on-EOF.patch
+0007-Implement-path-lookup-for-USB-by-vendor-product.patch
