@@ -1,3 +1,12 @@
+libvirt (0.7.5-4) unstable; urgency=low
+
+  * [18520c0] Same description of supported virt techs in all binary packages
+    (Closes: #564909) - thanks to Loïc Minier
+  * [49c357c] Implement path lookup for USB by vendor:product (Closes:
+    #563502) - thanks to Cole Robinson
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 13 Jan 2010 23:57:26 +0100
+
 libvirt (0.7.5-3) unstable; urgency=low
 
   * [4d41fd7] Also look for dmi information in /sys/class older kernels such
