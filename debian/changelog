@@ -1,3 +1,17 @@
+libvirt (0.7.5-5) unstable; urgency=low
+
+  [ Guido Günther ]
+  * [d8e60e8] Add css to docs
+  * [f6e41ae] New patch 0008-qemu-Use-log-output-for-pty-assignment-if-
+    info-chard.patch qemu: Use log output for pty assignment if 'info
+    chardev' is unavailable - thanks to Matthias Bolte
+
+  [ Laurent Léonard ]
+  * [0905f82] Fix QEMU driver custom domain status XML extensions. -
+    thanks to Daniel P. Berrange
+
+ -- Laurent Léonard <laurent@open-minds.org>  Tue, 19 Jan 2010 23:16:16 +0100
+
 libvirt (0.7.5-4) unstable; urgency=low
 
   * [18520c0] Same description of supported virt techs in all binary packages
