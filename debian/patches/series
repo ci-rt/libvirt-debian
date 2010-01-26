@@ -7,3 +7,4 @@
 0007-Implement-path-lookup-for-USB-by-vendor-product.patch
 0008-qemu-Use-log-output-for-pty-assignment-if-info-chard.patch
 0009-Fix-QEMU-driver-custom-domain-status-XML-extensions.patch
+0010-Don-t-free-an-uninitalized-pointer-in-update_driver_.patch
