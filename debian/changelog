@@ -1,3 +1,22 @@
+libvirt (0.7.5-6) unstable; urgency=low
+
+  [ Laurent Léonard ]
+  * [a3b98c9] Don't free an uninitalized pointer in update_driver_name()
+    (Closes: #565983) - thanks to Matthias Bolte
+  * [719976d] Handle only official releases in debian/watch.
+  * [83902d9] Bump Standards-Version to 3.8.4.
+
+  [ Guido Günther ]
+  * [959640d] New patch 0011-Fix-parsing-of-info-chardev-line-
+    endings.patch Fix parsing of 'info chardev' line endings (Closes:
+    #567818) - thanks to Matthew Booth
+
+  [ Laurent Léonard ]
+  * [0b2a9dd] Add $remote_fs to Required-Start and Required-Stop in
+    libvirt-bin init script.
+
+ -- Laurent Léonard <laurent@open-minds.org>  Mon, 01 Feb 2010 00:03:58 +0100
+
 libvirt (0.7.5-5) unstable; urgency=low
 
   [ Guido Günther ]
