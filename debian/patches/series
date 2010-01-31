@@ -8,3 +8,4 @@
 0008-qemu-Use-log-output-for-pty-assignment-if-info-chard.patch
 0009-Fix-QEMU-driver-custom-domain-status-XML-extensions.patch
 0010-Don-t-free-an-uninitalized-pointer-in-update_driver_.patch
+0011-Fix-parsing-of-info-chardev-line-endings.patch
