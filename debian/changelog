@@ -1,3 +1,11 @@
+libvirt (0.7.6-1) unstable; urgency=low
+
+  * [0229557] Imported Upstream version 0.7.6
+  * [6fdc00b] Drop patches.
+  * [1b0670b] Update libvirt0 symbols.
+
+ -- Laurent Léonard <laurent@open-minds.org>  Thu, 04 Feb 2010 00:38:08 +0100
+
 libvirt (0.7.5-6) unstable; urgency=low
 
   [ Laurent Léonard ]
