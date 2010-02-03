@@ -2,10 +2,4 @@
 0002-qemu-disable-network.diff.patch
 0003-allow-libvirt-group-to-access-the-socket.patch
 0004-fix-Debian-specific-path-to-hvm-loader.patch
-0005-Also-look-for-dmi-information-in-sys-class.patch
-0006-Terminate-nc-on-EOF.patch
-0007-Implement-path-lookup-for-USB-by-vendor-product.patch
-0008-qemu-Use-log-output-for-pty-assignment-if-info-chard.patch
-0009-Fix-QEMU-driver-custom-domain-status-XML-extensions.patch
-0010-Don-t-free-an-uninitalized-pointer-in-update_driver_.patch
-0011-Fix-parsing-of-info-chardev-line-endings.patch
+0005-Terminate-nc-on-EOF.patch

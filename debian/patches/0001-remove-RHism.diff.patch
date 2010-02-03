@@ -7,7 +7,7 @@ Subject: [PATCH] remove-RHism.diff
  1 files changed, 1 insertions(+), 1 deletions(-)
 
 diff --git a/tools/virsh.pod b/tools/virsh.pod
-index ee8cc11..d2458f5 100644
+index 10f622f..f76b8e5 100644
 --- a/tools/virsh.pod
 +++ b/tools/virsh.pod
 @@ -34,7 +34,7 @@ the program.

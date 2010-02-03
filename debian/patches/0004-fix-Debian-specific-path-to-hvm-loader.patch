@@ -12,10 +12,10 @@ Closes: #517059
  5 files changed, 6 insertions(+), 6 deletions(-)
 
 diff --git a/src/xen/xen_hypervisor.c b/src/xen/xen_hypervisor.c
-index 8279a74..5001d91 100644
+index 16c91e1..633f6af 100644
 --- a/src/xen/xen_hypervisor.c
 +++ b/src/xen/xen_hypervisor.c
-@@ -2230,7 +2230,7 @@ xenHypervisorBuildCapabilities(virConnectPtr conn,
+@@ -2288,7 +2288,7 @@ xenHypervisorBuildCapabilities(virConnectPtr conn,
                                                "/usr/lib64/xen/bin/qemu-dm" :
                                                "/usr/lib/xen/bin/qemu-dm"),
                                               (guest_archs[i].hvm ?
