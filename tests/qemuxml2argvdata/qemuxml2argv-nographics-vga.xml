@@ -17,18 +17,8 @@
     <disk type='block' device='disk'>
       <source dev='/dev/HostVG/QEMUGuest1'/>
       <target dev='hda' bus='ide'/>
+      <address type='drive' controller='0' bus='0' unit='0'/>
     </disk>
-    <hostdev mode='subsystem' type='usb' managed='no'>
-      <source>
-        <vendor id='0x0204'/>
-        <product id='0x6025'/>
-      </source>
-    </hostdev>
-    <hostdev mode='subsystem' type='usb' managed='no'>
-      <source>
-        <vendor id='0x1234'/>
-        <product id='0x0000'/>
-      </source>
-    </hostdev>
+    <controller type='ide' index='0'/>
   </devices>
 </domain>

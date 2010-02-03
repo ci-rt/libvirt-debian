@@ -140,11 +140,11 @@
           or:
         </p>
         <pre>
-  cvs diff -up &gt; libvirt-myfeature.patch
+  git diff &gt; libvirt-myfeature.patch
 </pre></li><li>Split large changes into a series of smaller patches, self-contained
         if possible, with an explanation of each patch and an explanation of how
-        the sequence of patches fits together.</li><li>Make sure your patches apply against libvirt CVS.  Developers
-        only follow CVS and don't care much about released versions.</li><li><p>Run the automated tests on your code before submitting any changes.
+        the sequence of patches fits together.</li><li>Make sure your patches apply against libvirt GIT.  Developers
+        only follow GIT and don't care much about released versions.</li><li><p>Run the automated tests on your code before submitting any changes.
           In particular, configure with compile warnings set to -Werror:</p>
         <pre>
   ./configure --enable-compile-warnings=error
@@ -331,7 +331,7 @@
      STREQ(a,b)
      STRNEQ(a,b)
 </pre>
-      </li><li><p>For case sensitive equality:</p>
+      </li><li><p>For case insensitive equality:</p>
         <pre>
      STRCASEEQ(a,b)
      STRCASENEQ(a,b)
@@ -342,7 +342,7 @@
      STREQLEN(a,b,n)
      STRNEQLEN(a,b,n)
 </pre>
-      </li><li><p>For case sensitive equality of a substring:</p>
+      </li><li><p>For case insensitive equality of a substring:</p>
 
         <pre>
      STRCASEEQLEN(a,b,n)

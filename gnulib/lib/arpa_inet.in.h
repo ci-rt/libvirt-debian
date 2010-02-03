@@ -1,6 +1,6 @@
 /* A GNU-like <arpa/inet.h>.
 
-   Copyright (C) 2005-2006, 2008-2009 Free Software Foundation, Inc.
+   Copyright (C) 2005-2006, 2008-2010 Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as published by
@@ -19,8 +19,11 @@
 #ifndef _GL_ARPA_INET_H
 
 /* Gnulib's sys/socket.h is responsible for pulling in winsock2.h etc
-   under MinGW. */
-#include <sys/socket.h>
+   under MinGW.
+   But avoid namespace pollution on glibc systems.  */
+#ifndef __GLIBC__
+# include <sys/socket.h>
+#endif
 
 #if @HAVE_ARPA_INET_H@
 

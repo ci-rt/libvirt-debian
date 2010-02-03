@@ -2,7 +2,7 @@
  * json.c: JSON object parsing/formatting
  *
  * Copyright (C) 2009 Daniel P. Berrange
- * Copyright (C) 2009 Red Hat, Inc.
+ * Copyright (C) 2009-2010 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -82,8 +82,9 @@ void virJSONValueFree(virJSONValuePtr value)
     case VIR_JSON_TYPE_NUMBER:
         VIR_FREE(value->data.number);
         break;
-
     }
+
+    VIR_FREE(value);
 }
 
 
@@ -440,7 +441,7 @@ virJSONValuePtr virJSONValueArrayGet(virJSONValuePtr array, unsigned int element
     return array->data.array.values[element];
 }
 
-char *virJSONValueGetString(virJSONValuePtr string)
+const char *virJSONValueGetString(virJSONValuePtr string)
 {
     if (string->type != VIR_JSON_TYPE_STRING)
         return NULL;
@@ -508,7 +509,7 @@ int virJSONValueIsNull(virJSONValuePtr val)
 }
 
 
-char *virJSONValueObjectGetString(virJSONValuePtr object, const char *key)
+const char *virJSONValueObjectGetString(virJSONValuePtr object, const char *key)
 {
     virJSONValuePtr val;
     if (object->type != VIR_JSON_TYPE_OBJECT)

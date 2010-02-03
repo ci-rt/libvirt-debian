@@ -90,8 +90,8 @@ void virReportOOMErrorFull(virConnectPtr conn,
                      __FILE__, __FUNCTION__, __LINE__)
 
 
-void virSetGlobalError(void);
-void virSetConnError(virConnectPtr conn);
+int virSetError(virErrorPtr newerr);
+void virDispatchError(virConnectPtr conn);
 const char *virStrerror(int theerrno, char *errBuf, size_t errBufLen);
 
 #endif

@@ -231,7 +231,7 @@ remoteDispatchGetType (struct qemud_server *server ATTRIBUTE_UNUSED,
      */
     ret->type = strdup (type);
     if (!ret->type) {
-        remoteDispatchFormatError (rerr, "%s", _("out of memory in strdup"));
+        remoteDispatchOOMError(rerr);
         return -1;
     }
 
@@ -3375,7 +3375,7 @@ remoteDispatchAuthPolkit (struct qemud_server *server,
         goto authfail;
     }
     if (status != 0) {
-        VIR_ERROR(_("Policy kit denied action %s from pid %d, uid %d, result: %d\n"),
+        VIR_ERROR(_("Policy kit denied action %s from pid %d, uid %d, result: %d"),
                   action, callerPid, callerUid, status);
         goto authfail;
     }
@@ -3442,7 +3442,7 @@ remoteDispatchAuthPolkit (struct qemud_server *server,
 
     if (!(pkaction = polkit_action_new())) {
         char ebuf[1024];
-        VIR_ERROR(_("Failed to create polkit action %s\n"),
+        VIR_ERROR(_("Failed to create polkit action %s"),
                   virStrerror(errno, ebuf, sizeof ebuf));
         polkit_caller_unref(pkcaller);
         goto authfail;
@@ -3452,7 +3452,7 @@ remoteDispatchAuthPolkit (struct qemud_server *server,
     if (!(pkcontext = polkit_context_new()) ||
         !polkit_context_init(pkcontext, &pkerr)) {
         char ebuf[1024];
-        VIR_ERROR(_("Failed to create polkit context %s\n"),
+        VIR_ERROR(_("Failed to create polkit context %s"),
                   (pkerr ? polkit_error_get_error_message(pkerr)
                    : virStrerror(errno, ebuf, sizeof ebuf)));
         if (pkerr)
@@ -3484,7 +3484,7 @@ remoteDispatchAuthPolkit (struct qemud_server *server,
     polkit_caller_unref(pkcaller);
     polkit_action_unref(pkaction);
     if (pkresult != POLKIT_RESULT_YES) {
-        VIR_ERROR(_("Policy kit denied action %s from pid %d, uid %d, result: %s\n"),
+        VIR_ERROR(_("Policy kit denied action %s from pid %d, uid %d, result: %s"),
                   action, callerPid, callerUid,
                   polkit_result_to_string_representation(pkresult));
         goto authfail;
@@ -4489,7 +4489,7 @@ remoteDispatchNodeDeviceDumpXml (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dev = virNodeDeviceLookupByName(conn, args->name);
     if (dev == NULL) {
-        remoteDispatchFormatError(rerr, "%s", _("node_device not found"));
+        remoteDispatchConnError(rerr, conn);
         return -1;
     }
 
@@ -4520,7 +4520,7 @@ remoteDispatchNodeDeviceGetParent (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dev = virNodeDeviceLookupByName(conn, args->name);
     if (dev == NULL) {
-        remoteDispatchFormatError(rerr, "%s", _("node_device not found"));
+        remoteDispatchConnError(rerr, conn);
         return -1;
     }
 
@@ -4562,7 +4562,7 @@ remoteDispatchNodeDeviceNumOfCaps (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dev = virNodeDeviceLookupByName(conn, args->name);
     if (dev == NULL) {
-        remoteDispatchFormatError(rerr, "%s", _("node_device not found"));
+        remoteDispatchConnError(rerr, conn);
         return -1;
     }
 
@@ -4591,7 +4591,7 @@ remoteDispatchNodeDeviceListCaps (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dev = virNodeDeviceLookupByName(conn, args->name);
     if (dev == NULL) {
-        remoteDispatchFormatError(rerr, "%s", _("node_device not found"));
+        remoteDispatchConnError(rerr, conn);
         return -1;
     }
 
@@ -4634,7 +4634,7 @@ remoteDispatchNodeDeviceDettach (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dev = virNodeDeviceLookupByName(conn, args->name);
     if (dev == NULL) {
-        remoteDispatchFormatError(rerr, "%s", _("node_device not found"));
+        remoteDispatchConnError(rerr, conn);
         return -1;
     }
 
@@ -4661,7 +4661,7 @@ remoteDispatchNodeDeviceReAttach (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dev = virNodeDeviceLookupByName(conn, args->name);
     if (dev == NULL) {
-        remoteDispatchFormatError(rerr, "%s", _("node_device not found"));
+        remoteDispatchConnError(rerr, conn);
         return -1;
     }
 
@@ -4688,7 +4688,7 @@ remoteDispatchNodeDeviceReset (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dev = virNodeDeviceLookupByName(conn, args->name);
     if (dev == NULL) {
-        remoteDispatchFormatError(rerr, "%s", _("node_device not found"));
+        remoteDispatchConnError(rerr, conn);
         return -1;
     }
 
@@ -4738,7 +4738,7 @@ remoteDispatchNodeDeviceDestroy(struct qemud_server *server ATTRIBUTE_UNUSED,
 
     dev = virNodeDeviceLookupByName(conn, args->name);
     if (dev == NULL) {
-        remoteDispatchFormatError(rerr, "%s", _("node_device not found"));
+        remoteDispatchConnError(rerr, conn);
         return -1;
     }
 
@@ -4766,12 +4766,17 @@ remoteDispatchDomainEventsRegister (struct qemud_server *server ATTRIBUTE_UNUSED
 {
     CHECK_CONN(client);
 
-    /* Register event delivery callback */
-    REMOTE_DEBUG("%s","Registering to relay remote events");
-    virConnectDomainEventRegister(conn, remoteRelayDomainEvent, client, NULL);
+    if (virConnectDomainEventRegister(conn,
+                                      remoteRelayDomainEvent,
+                                      client, NULL) < 0) {
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
 
-    if(ret)
+    if (ret)
         ret->cb_registered = 1;
+
+    client->domain_events_registered = 1;
     return 0;
 }
 
@@ -4786,12 +4791,15 @@ remoteDispatchDomainEventsDeregister (struct qemud_server *server ATTRIBUTE_UNUS
 {
     CHECK_CONN(client);
 
-    /* Deregister event delivery callback */
-    REMOTE_DEBUG("%s","Deregistering to relay remote events");
-    virConnectDomainEventDeregister(conn, remoteRelayDomainEvent);
+    if (virConnectDomainEventDeregister(conn, remoteRelayDomainEvent) < 0) {
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
 
-    if(ret)
+    if (ret)
         ret->cb_registered = 0;
+
+    client->domain_events_registered = 0;
     return 0;
 }
 

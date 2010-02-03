@@ -1,7 +1,7 @@
 /*
  * qemu_monitor_text.c: interaction with QEMU monitor console
  *
- * Copyright (C) 2006-2009 Red Hat, Inc.
+ * Copyright (C) 2006-2010 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -44,6 +44,8 @@
 #define QEMU_CMD_PROMPT "\n(qemu) "
 #define QEMU_PASSWD_PROMPT "Password: "
 
+#define DEBUG_IO 0
+
 /* Return -1 for error, 0 for success */
 typedef int qemuMonitorExtraPromptHandler(qemuMonitorPtr mon,
                                           const char *buf,
@@ -67,7 +69,7 @@ typedef int qemuMonitorExtraPromptHandler(qemuMonitorPtr mon,
 
 int qemuMonitorTextIOProcess(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
                              const char *data,
-                             size_t len,
+                             size_t len ATTRIBUTE_UNUSED,
                              qemuMonitorMessagePtr msg)
 {
     int used = 0;
@@ -79,18 +81,24 @@ int qemuMonitorTextIOProcess(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
         /* We see the greeting prefix, but not postfix, so pretend we've
            not consumed anything. We'll restart when more data arrives. */
         if (!offset) {
+#if DEBUG_IO
             VIR_DEBUG0("Partial greeting seen, getting out & waiting for more");
+#endif
             return 0;
         }
 
         used = offset - data + strlen(GREETING_POSTFIX);
 
+#if DEBUG_IO
         VIR_DEBUG0("Discarded monitor greeting");
+#endif
     }
 
     /* Don't print raw data in debug because its full of control chars */
     /*VIR_DEBUG("Process data %d byts of data [%s]", len - used, data + used);*/
+#if DEBUG_IO
     VIR_DEBUG("Process data %d byts of data", (int)(len - used));
+#endif
 
     /* Look for a non-zero reply followed by prompt */
     if (msg && !msg->finished) {
@@ -138,7 +146,9 @@ int qemuMonitorTextIOProcess(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
             /* We might get a prompt for a password before the (qemu) prompt */
             passwd = strstr(start, PASSWORD_PROMPT);
             if (passwd) {
+#if DEBUG_IO
                 VIR_DEBUG("Seen a passwowrd prompt [%s]", data + used);
+#endif
                 if (msg->passwordHandler) {
                     int i;
                     /* Try and handle the prompt */
@@ -176,9 +186,11 @@ int qemuMonitorTextIOProcess(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
                 memcpy(msg->rxBuffer + msg->rxLength, start, want);
                 msg->rxLength += want;
                 msg->rxBuffer[msg->rxLength] = '\0';
+#if DEBUG_IO
                 VIR_DEBUG("Finished %d byte reply [%s]", want, msg->rxBuffer);
             } else {
                 VIR_DEBUG0("Finished 0 byte reply");
+#endif
             }
             msg->finished = 1;
             used += end - (data + used);
@@ -186,7 +198,9 @@ int qemuMonitorTextIOProcess(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
         }
     }
 
+#if DEBUG_IO
     VIR_DEBUG("Total used %d", used);
+#endif
     return used;
 }
 
@@ -235,9 +249,11 @@ qemuMonitorCommandWithHandler(qemuMonitorPtr mon,
         }
     }
 
-    if (ret < 0)
+    if (ret < 0) {
         virReportSystemError(NULL, msg.lastErrno,
                              _("cannot send monitor command '%s'"), cmd);
+        VIR_FREE(*reply);
+    }
 
     return ret;
 }
@@ -507,7 +523,11 @@ static int qemuMonitorParseExtraBalloonInfo(char *text,
                             ",total_mem=", &stats[nr_stats_found]))
             nr_stats_found++;
 
-        /* Skip to the next label */
+        /* Skip to the next label.  When *p is ',' the last match attempt
+         * failed so try to match the next ','.
+         */
+        if (*p == ',')
+            p++;
         p = strchr (p, ',');
         if (!p) break;
     }
@@ -1281,9 +1301,7 @@ int qemuMonitorTextAddUSBDeviceMatch(qemuMonitorPtr mon,
 static int
 qemuMonitorTextParsePciAddReply(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
                                 const char *reply,
-                                unsigned *domain,
-                                unsigned *bus,
-                                unsigned *slot)
+                                virDomainDevicePCIAddress *addr)
 {
     char *s, *e;
 
@@ -1300,43 +1318,43 @@ qemuMonitorTextParsePciAddReply(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
     if (STRPREFIX(s, "domain ")) {
         s += strlen("domain ");
 
-        if (virStrToLong_ui(s, &e, 10, domain) == -1) {
-            VIR_WARN(_("Unable to parse domain number '%s'\n"), s);
+        if (virStrToLong_ui(s, &e, 10, &addr->domain) == -1) {
+            VIR_WARN(_("Unable to parse domain number '%s'"), s);
             return -1;
         }
 
         if (!STRPREFIX(e, ", ")) {
-            VIR_WARN(_("Expected ', ' parsing pci_add reply '%s'\n"), s);
+            VIR_WARN(_("Expected ', ' parsing pci_add reply '%s'"), s);
             return -1;
         }
         s = e + 2;
     }
 
     if (!STRPREFIX(s, "bus ")) {
-        VIR_WARN(_("Expected 'bus ' parsing pci_add reply '%s'\n"), s);
+        VIR_WARN(_("Expected 'bus ' parsing pci_add reply '%s'"), s);
         return -1;
     }
     s += strlen("bus ");
 
-    if (virStrToLong_ui(s, &e, 10, bus) == -1) {
-        VIR_WARN(_("Unable to parse bus number '%s'\n"), s);
+    if (virStrToLong_ui(s, &e, 10, &addr->bus) == -1) {
+        VIR_WARN(_("Unable to parse bus number '%s'"), s);
         return -1;
     }
 
     if (!STRPREFIX(e, ", ")) {
-        VIR_WARN(_("Expected ', ' parsing pci_add reply '%s'\n"), s);
+        VIR_WARN(_("Expected ', ' parsing pci_add reply '%s'"), s);
         return -1;
     }
     s = e + 2;
 
     if (!STRPREFIX(s, "slot ")) {
-        VIR_WARN(_("Expected 'slot ' parsing pci_add reply '%s'\n"), s);
+        VIR_WARN(_("Expected 'slot ' parsing pci_add reply '%s'"), s);
         return -1;
     }
     s += strlen("slot ");
 
-    if (virStrToLong_ui(s, &e, 10, slot) == -1) {
-        VIR_WARN(_("Unable to parse slot number '%s'\n"), s);
+    if (virStrToLong_ui(s, &e, 10, &addr->slot) == -1) {
+        VIR_WARN(_("Unable to parse slot number '%s'"), s);
         return -1;
     }
 
@@ -1345,23 +1363,18 @@ qemuMonitorTextParsePciAddReply(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
 
 
 int qemuMonitorTextAddPCIHostDevice(qemuMonitorPtr mon,
-                                    unsigned hostDomain ATTRIBUTE_UNUSED,
-                                    unsigned hostBus,
-                                    unsigned hostSlot,
-                                    unsigned hostFunction,
-                                    unsigned *guestDomain,
-                                    unsigned *guestBus,
-                                    unsigned *guestSlot)
+                                    virDomainDevicePCIAddress *hostAddr,
+                                    virDomainDevicePCIAddress *guestAddr)
 {
     char *cmd;
     char *reply = NULL;
     int ret = -1;
 
-    *guestDomain = *guestBus = *guestSlot = 0;
+    memset(guestAddr, 0, sizeof(*guestAddr));
 
-    /* XXX hostDomain */
+    /* XXX hostAddr->domain */
     if (virAsprintf(&cmd, "pci_add pci_addr=auto host host=%.2x:%.2x.%.1x",
-                    hostBus, hostSlot, hostFunction) < 0) {
+                    hostAddr->bus, hostAddr->slot, hostAddr->function) < 0) {
         virReportOOMError(NULL);
         goto cleanup;
     }
@@ -1378,10 +1391,7 @@ int qemuMonitorTextAddPCIHostDevice(qemuMonitorPtr mon,
         goto cleanup;
     }
 
-    if (qemuMonitorTextParsePciAddReply(mon, reply,
-                                        guestDomain,
-                                        guestBus,
-                                        guestSlot) < 0) {
+    if (qemuMonitorTextParsePciAddReply(mon, reply, guestAddr) < 0) {
         qemudReportError(NULL, NULL, NULL, VIR_ERR_OPERATION_FAILED,
                          _("parsing pci_add reply failed: %s"), reply);
         goto cleanup;
@@ -1399,9 +1409,8 @@ cleanup:
 int qemuMonitorTextAddPCIDisk(qemuMonitorPtr mon,
                               const char *path,
                               const char *bus,
-                              unsigned *guestDomain,
-                              unsigned *guestBus,
-                              unsigned *guestSlot) {
+                              virDomainDevicePCIAddress *guestAddr)
+{
     char *cmd = NULL;
     char *reply = NULL;
     char *safe_path = NULL;
@@ -1427,8 +1436,7 @@ try_command:
         goto cleanup;
     }
 
-    if (qemuMonitorTextParsePciAddReply(mon, reply,
-                                        guestDomain, guestBus, guestSlot) < 0) {
+    if (qemuMonitorTextParsePciAddReply(mon, reply, guestAddr) < 0) {
         if (!tryOldSyntax && strstr(reply, "invalid char in expression")) {
             VIR_FREE(reply);
             VIR_FREE(cmd);
@@ -1453,9 +1461,7 @@ cleanup:
 
 int qemuMonitorTextAddPCINetwork(qemuMonitorPtr mon,
                                  const char *nicstr,
-                                 unsigned *guestDomain,
-                                 unsigned *guestBus,
-                                 unsigned *guestSlot)
+                                 virDomainDevicePCIAddress *guestAddr)
 {
     char *cmd;
     char *reply = NULL;
@@ -1472,8 +1478,7 @@ int qemuMonitorTextAddPCINetwork(qemuMonitorPtr mon,
         goto cleanup;
     }
 
-    if (qemuMonitorTextParsePciAddReply(mon, reply,
-                                        guestDomain, guestBus, guestSlot) < 0) {
+    if (qemuMonitorTextParsePciAddReply(mon, reply, guestAddr) < 0) {
         qemudReportError(NULL, NULL, NULL, VIR_ERR_OPERATION_FAILED,
                          _("parsing pci_add reply failed: %s"), reply);
         goto cleanup;
@@ -1489,9 +1494,7 @@ cleanup:
 
 
 int qemuMonitorTextRemovePCIDevice(qemuMonitorPtr mon,
-                                   unsigned guestDomain,
-                                   unsigned guestBus,
-                                   unsigned guestSlot)
+                                   virDomainDevicePCIAddress *guestAddr)
 {
     char *cmd = NULL;
     char *reply = NULL;
@@ -1500,13 +1503,14 @@ int qemuMonitorTextRemovePCIDevice(qemuMonitorPtr mon,
 
 try_command:
     if (tryOldSyntax) {
-        if (virAsprintf(&cmd, "pci_del 0 %.2x", guestSlot) < 0) {
+        if (virAsprintf(&cmd, "pci_del 0 %.2x", guestAddr->slot) < 0) {
             virReportOOMError(NULL);
             goto cleanup;
         }
     } else {
+        /* XXX function ? */
         if (virAsprintf(&cmd, "pci_del pci_addr=%.4x:%.2x:%.2x",
-                        guestDomain, guestBus, guestSlot) < 0) {
+                        guestAddr->domain, guestAddr->bus, guestAddr->slot) < 0) {
             virReportOOMError(NULL);
             goto cleanup;
         }
@@ -1534,7 +1538,7 @@ try_command:
         strstr(reply, "Invalid pci address")) {
         qemudReportError (NULL, NULL, NULL, VIR_ERR_OPERATION_FAILED,
                           _("failed to detach PCI device, invalid address %.4x:%.2x:%.2x: %s"),
-                          guestDomain, guestBus, guestSlot, reply);
+                          guestAddr->domain, guestAddr->bus, guestAddr->slot, reply);
         goto cleanup;
     }
 
@@ -1694,26 +1698,35 @@ cleanup:
 int qemuMonitorTextGetPtyPaths(qemuMonitorPtr mon,
                                virHashTablePtr paths)
 {
-    const char *cmd = "info chardev";
     char *reply = NULL;
     int ret = -1;
 
-    if (qemuMonitorCommand(mon, cmd, &reply) < 0) {
-        qemudReportError(NULL, NULL, NULL, VIR_ERR_OPERATION_FAILED,
-                         _("failed to retrieve chardev info in qemu with '%s'"),
-                         cmd);
+    if (qemuMonitorCommand(mon, "info chardev", &reply) < 0) {
+        qemudReportError(NULL, NULL, NULL, VIR_ERR_OPERATION_FAILED, "%s",
+                         _("failed to retrieve chardev info in qemu with 'info chardev'"));
         goto cleanup;
     }
 
-    char *pos = reply;                  /* The current start of searching */
-    char *end = pos + strlen(reply);    /* The end of the reply string */
+    char *pos;                          /* The current start of searching */
+    char *next = reply;                 /* The start of the next line */
     char *eol;                   /* The character which ends the current line */
+    char *end = reply + strlen(reply);  /* The end of the reply string */
 
-    while (pos < end) {
+    while (next) {
+        pos = next;
+
         /* Split the output into lines */
         eol = memchr(pos, '\n', end - pos);
-        if (eol == NULL)
+        if (eol == NULL) {
             eol = end;
+            next = NULL;
+        } else {
+            next = eol + 1;
+        }
+
+        /* Ignore all whitespace immediately before eol */
+        while (eol > pos && c_isspace(*(eol-1)))
+            eol -= 1;
 
         /* Look for 'filename=pty:' */
 #define NEEDLE "filename=pty:"
@@ -1721,13 +1734,13 @@ int qemuMonitorTextGetPtyPaths(qemuMonitorPtr mon,
 
         /* If it's not there we can ignore this line */
         if (!needle)
-            goto next;
+            continue;
 
         /* id is everthing from the beginning of the line to the ':'
          * find ':' and turn it into a terminator */
         char *colon = memchr(pos, ':', needle - pos);
         if (colon == NULL)
-            goto next;
+            continue;
         *colon = '\0';
         char *id = pos;
 
@@ -1747,14 +1760,363 @@ int qemuMonitorTextGetPtyPaths(qemuMonitorPtr mon,
             goto cleanup;
         }
 #undef NEEDLE
-
-    next:
-        pos = eol + 1;
     }
 
     ret = 0;
 
 cleanup:
     VIR_FREE(reply);
+    return ret;
+}
+
+
+int qemuMonitorTextAttachPCIDiskController(qemuMonitorPtr mon,
+                                           const char *bus,
+                                           virDomainDevicePCIAddress *guestAddr)
+{
+    char *cmd = NULL;
+    char *reply = NULL;
+    int tryOldSyntax = 0;
+    int ret = -1;
+
+try_command:
+    if (virAsprintf(&cmd, "pci_add %s storage if=%s",
+                    (tryOldSyntax ? "0": "pci_addr=auto"), bus) < 0) {
+        virReportOOMError(NULL);
+        goto cleanup;
+    }
+
+    if (qemuMonitorCommand(mon, cmd, &reply) < 0) {
+        qemudReportError(NULL, NULL, NULL, VIR_ERR_OPERATION_FAILED,
+                         _("cannot attach %s disk controller"), bus);
+        goto cleanup;
+    }
+
+    if (qemuMonitorTextParsePciAddReply(mon, reply, guestAddr) < 0) {
+        if (!tryOldSyntax && strstr(reply, "invalid char in expression")) {
+            VIR_FREE(reply);
+            VIR_FREE(cmd);
+            tryOldSyntax = 1;
+            goto try_command;
+        }
+
+        qemudReportError (NULL, NULL, NULL, VIR_ERR_OPERATION_FAILED,
+                          _("adding %s disk controller failed: %s"), bus, reply);
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(cmd);
+    VIR_FREE(reply);
+    return ret;
+}
+
+
+static int
+qemudParseDriveAddReply(const char *reply,
+                        virDomainDeviceDriveAddressPtr addr)
+{
+    char *s, *e;
+
+    /* If the command succeeds qemu prints:
+     * OK bus X, unit Y
+     */
+
+    if (!(s = strstr(reply, "OK ")))
+        return -1;
+
+    s += 3;
+
+    if (STRPREFIX(s, "bus ")) {
+        s += strlen("bus ");
+
+        if (virStrToLong_ui(s, &e, 10, &addr->bus) == -1) {
+            VIR_WARN(_("Unable to parse bus '%s'"), s);
+            return -1;
+        }
+
+        if (!STRPREFIX(e, ", ")) {
+            VIR_WARN(_("Expected ', ' parsing drive_add reply '%s'"), s);
+            return -1;
+        }
+        s = e + 2;
+    }
+
+    if (!STRPREFIX(s, "unit ")) {
+        VIR_WARN(_("Expected 'unit ' parsing drive_add reply '%s'"), s);
+        return -1;
+    }
+    s += strlen("bus ");
+
+    if (virStrToLong_ui(s, &e, 10, &addr->unit) == -1) {
+        VIR_WARN(_("Unable to parse unit number '%s'"), s);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+int qemuMonitorTextAttachDrive(qemuMonitorPtr mon,
+                               const char *drivestr,
+                               virDomainDevicePCIAddress *controllerAddr,
+                               virDomainDeviceDriveAddress *driveAddr)
+{
+    char *cmd = NULL;
+    char *reply = NULL;
+    int ret = -1;
+    char *safe_str;
+    int tryOldSyntax = 0;
+
+    safe_str = qemuMonitorEscapeArg(drivestr);
+    if (!safe_str) {
+        virReportOOMError(NULL);
+        return -1;
+    }
+
+try_command:
+    ret = virAsprintf(&cmd, "drive_add %s%.2x:%.2x:%.2x %s",
+                      (tryOldSyntax ? "" : "pci_addr="),
+                      controllerAddr->domain, controllerAddr->bus,
+                      controllerAddr->slot, safe_str);
+    if (ret == -1) {
+        virReportOOMError(NULL);
+        goto cleanup;
+    }
+
+    if (qemuMonitorCommand(mon, cmd, &reply) < 0) {
+        qemudReportError(NULL, NULL, NULL, VIR_ERR_OPERATION_FAILED,
+                         _("failed to close fd in qemu with '%s'"), cmd);
+        goto cleanup;
+    }
+
+    if (qemudParseDriveAddReply(reply, driveAddr) < 0) {
+        if (!tryOldSyntax && strstr(reply, "invalid char in expression")) {
+            VIR_FREE(reply);
+            VIR_FREE(cmd);
+            tryOldSyntax = 1;
+            goto try_command;
+        }
+        qemudReportError (NULL, NULL, NULL, VIR_ERR_OPERATION_FAILED,
+                          _("adding %s disk failed: %s"), drivestr, reply);
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(cmd);
+    VIR_FREE(reply);
+    VIR_FREE(safe_str);
+    return ret;
+}
+
+
+/*
+ * The format we're after looks like this
+ *
+ *   (qemu) info pci
+ *   Bus  0, device   0, function 0:
+ *     Host bridge: PCI device 8086:1237
+ *       id ""
+ *   Bus  0, device   1, function 0:
+ *     ISA bridge: PCI device 8086:7000
+ *       id ""
+ *   Bus  0, device   1, function 1:
+ *     IDE controller: PCI device 8086:7010
+ *       BAR4: I/O at 0xc000 [0xc00f].
+ *       id ""
+ *   Bus  0, device   1, function 3:
+ *     Bridge: PCI device 8086:7113
+ *       IRQ 9.
+ *       id ""
+ *   Bus  0, device   2, function 0:
+ *     VGA controller: PCI device 1013:00b8
+ *       BAR0: 32 bit prefetchable memory at 0xf0000000 [0xf1ffffff].
+ *       BAR1: 32 bit memory at 0xf2000000 [0xf2000fff].
+ *       id ""
+ *   Bus  0, device   3, function 0:
+ *     Ethernet controller: PCI device 8086:100e
+ *      IRQ 11.
+ *      BAR0: 32 bit memory at 0xf2020000 [0xf203ffff].
+ *      BAR1: I/O at 0xc040 [0xc07f].
+ *       id ""
+ *
+ * Of this, we're interesting in the vendor/product ID
+ * and the bus/device/function data.
+ */
+#define CHECK_END(p) if (!(p)) break;
+#define SKIP_TO(p, lbl)                                            \
+    (p) = strstr((p), (lbl));                                      \
+    if (p)                                                         \
+        (p) += strlen(lbl);
+#define GET_INT(p, base, val)                                           \
+    if (virStrToLong_ui((p), &(p), (base), &(val)) < 0) {               \
+        qemudReportError(NULL, NULL, NULL, VIR_ERR_OPERATION_FAILED,    \
+                         _("cannot parse value for %s"), #val);         \
+        break;                                                          \
+    }
+#define SKIP_SPACE(p)                           \
+    while (*(p) == ' ') (p)++;
+
+int qemuMonitorTextGetAllPCIAddresses(qemuMonitorPtr mon,
+                                      qemuMonitorPCIAddress **retaddrs)
+{
+    char *reply;
+    qemuMonitorPCIAddress *addrs = NULL;
+    int naddrs = 0;
+    char *p;
+
+    *retaddrs = NULL;
+
+    if (qemuMonitorCommand(mon, "info pci", &reply) < 0) {
+        qemudReportError(NULL, NULL, NULL, VIR_ERR_OPERATION_FAILED,
+                         "%s", _("cannot query PCI addresses"));
+        return -1;
+    }
+
+    p = reply;
+
+
+    while (p) {
+        unsigned int bus, slot, func, vendor, product;
+
+        SKIP_TO(p, "  Bus");
+        CHECK_END(p);
+        SKIP_SPACE(p);
+        GET_INT(p, 10, bus);
+        CHECK_END(p);
+
+        SKIP_TO(p, ", device");
+        CHECK_END(p);
+        SKIP_SPACE(p);
+        GET_INT(p, 10, slot);
+        CHECK_END(p);
+
+        SKIP_TO(p, ", function");
+        CHECK_END(p);
+        SKIP_SPACE(p);
+        GET_INT(p, 10, func);
+        CHECK_END(p);
+
+        SKIP_TO(p, "PCI device");
+        CHECK_END(p);
+        SKIP_SPACE(p);
+        GET_INT(p, 16, vendor);
+        CHECK_END(p);
+
+        if (*p != ':')
+            break;
+        p++;
+        GET_INT(p, 16, product);
+
+        if (VIR_REALLOC_N(addrs, naddrs+1) < 0) {
+            virReportOOMError(NULL);
+            goto error;
+        }
+
+        addrs[naddrs].addr.domain = 0;
+        addrs[naddrs].addr.bus = bus;
+        addrs[naddrs].addr.slot = slot;
+        addrs[naddrs].addr.function = func;
+        addrs[naddrs].vendor = vendor;
+        addrs[naddrs].product = product;
+        naddrs++;
+
+        VIR_DEBUG("Got dev %d:%d:%d   %x:%x", bus, slot, func, vendor, product);
+    }
+
+    VIR_FREE(reply);
+
+    *retaddrs = addrs;
+
+    return naddrs;
+
+error:
+    VIR_FREE(addrs);
+    VIR_FREE(reply);
+    return -1;
+}
+#undef GET_INT
+#undef SKIP_SPACE
+#undef CHECK_END
+#undef SKIP_TO
+
+
+int qemuMonitorTextAddDevice(qemuMonitorPtr mon,
+                             const char *devicestr)
+{
+    char *cmd = NULL;
+    char *reply = NULL;
+    char *safedev;
+    int ret = -1;
+
+    if (!(safedev = qemuMonitorEscapeArg(devicestr))) {
+        virReportOOMError(NULL);
+        goto cleanup;
+    }
+
+    if (virAsprintf(&cmd, "device_add %s", safedev) < 0) {
+        virReportOOMError(NULL);
+        goto cleanup;
+    }
+
+    if (qemuMonitorCommand(mon, cmd, &reply) < 0) {
+        qemudReportError(NULL, NULL, NULL, VIR_ERR_OPERATION_FAILED,
+                         _("cannot attach %s device"), devicestr);
+        goto cleanup;
+    }
+
+    if (STRNEQ(reply, "")) {
+        qemudReportError (NULL, NULL, NULL, VIR_ERR_OPERATION_FAILED,
+                          _("adding %s device failed: %s"), devicestr, reply);
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(cmd);
+    VIR_FREE(reply);
+    return ret;
+}
+
+
+int qemuMonitorTextAddDrive(qemuMonitorPtr mon,
+                            const char *drivestr)
+{
+    char *cmd = NULL;
+    char *reply = NULL;
+    int ret = -1;
+    char *safe_str;
+
+    safe_str = qemuMonitorEscapeArg(drivestr);
+    if (!safe_str) {
+        virReportOOMError(NULL);
+        return -1;
+    }
+
+    /* 'dummy' here is just a placeholder since there is no PCI
+     * address required when attaching drives to a controller */
+    ret = virAsprintf(&cmd, "drive_add dummy %s", safe_str);
+    if (ret == -1) {
+        virReportOOMError(NULL);
+        goto cleanup;
+    }
+
+    if (qemuMonitorCommand(mon, cmd, &reply) < 0) {
+        qemudReportError(NULL, NULL, NULL, VIR_ERR_OPERATION_FAILED,
+                         _("failed to close fd in qemu with '%s'"), cmd);
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(cmd);
+    VIR_FREE(reply);
+    VIR_FREE(safe_str);
     return ret;
 }

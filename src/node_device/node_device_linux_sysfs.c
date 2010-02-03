@@ -2,7 +2,7 @@
  * node_device_hal_linuc.c: Linux specific code to gather device data
  * not available through HAL.
  *
- * Copyright (C) 2009 Red Hat, Inc.
+ * Copyright (C) 2009-2010 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -23,6 +23,8 @@
 #include <config.h>
 
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <stdlib.h>
 
 #include "node_device_driver.h"
 #include "node_device_hal.h"
@@ -51,7 +53,7 @@ static int open_wwn_file(const char *prefix,
 
     /* fd will be closed by caller */
     if ((*fd = open(wwn_path, O_RDONLY)) != -1) {
-        VIR_ERROR(_("Opened WWN path '%s' for reading"),
+        VIR_DEBUG(_("Opened WWN path '%s' for reading"),
                   wwn_path);
     } else {
         VIR_ERROR(_("Failed to open WWN path '%s' for reading"),
@@ -241,16 +243,17 @@ out:
 static int get_sriov_function(const char *device_link,
                               struct pci_config_address **bdf)
 {
-    char *device_path = NULL, *config_address = NULL;
+    char *config_address = NULL;
+    char *device_path = NULL;
     char errbuf[64];
     int ret = SRIOV_ERROR;
 
-    VIR_DEBUG("Attempting to resolve device path from device link '%s'\n",
+    VIR_DEBUG("Attempting to resolve device path from device link '%s'",
               device_link);
 
     if (!virFileExists(device_link)) {
 
-        VIR_DEBUG("SR IOV function link '%s' does not exist\n", device_link);
+        VIR_DEBUG("SR IOV function link '%s' does not exist", device_link);
         /* Not an SR IOV device, not an error, either. */
         ret = SRIOV_NOT_FOUND;
 
@@ -258,27 +261,27 @@ static int get_sriov_function(const char *device_link,
 
     }
 
-    device_path = realpath(device_link, device_path);
+    device_path = canonicalize_file_name (device_link);
     if (device_path == NULL) {
         memset(errbuf, '\0', sizeof(errbuf));
-        VIR_ERROR("Failed to resolve device link '%s': '%s'\n", device_link,
+        VIR_ERROR("Failed to resolve device link '%s': '%s'", device_link,
                   virStrerror(errno, errbuf, sizeof(errbuf)));
         goto out;
     }
 
-    VIR_DEBUG("SR IOV device path is '%s'\n", device_path);
+    VIR_DEBUG("SR IOV device path is '%s'", device_path);
     config_address = basename(device_path);
     if (VIR_ALLOC(*bdf) != 0) {
-        VIR_ERROR0("Failed to allocate memory for PCI device name\n");
+        VIR_ERROR0("Failed to allocate memory for PCI device name");
         goto out;
     }
 
     if (parse_pci_config_address(config_address, *bdf) != 0) {
-        VIR_ERROR("Failed to parse PCI config address '%s'\n", config_address);
+        VIR_ERROR("Failed to parse PCI config address '%s'", config_address);
         goto out;
     }
 
-    VIR_DEBUG("SR IOV function %.4x:%.2x:%.2x.%.1x/>\n",
+    VIR_DEBUG("SR IOV function %.4x:%.2x:%.2x.%.1x",
               (*bdf)->domain,
               (*bdf)->bus,
               (*bdf)->slot,
@@ -341,7 +344,7 @@ int get_virtual_functions_linux(const char *sysfs_path,
                 goto out;
             }
 
-            VIR_DEBUG("Number of virtual functions: %d\n", *num_funcs);
+            VIR_DEBUG("Number of virtual functions: %d", *num_funcs);
             if (VIR_REALLOC_N(d->pci_dev.virtual_functions,
                               (*num_funcs) + 1) != 0) {
                 virReportOOMError(NULL);
@@ -366,11 +369,11 @@ int get_virtual_functions_linux(const char *sysfs_path,
         }
     }
 
-    closedir(dir);
-
     ret = 0;
 
 out:
+    if (dir)
+        closedir(dir);
     VIR_FREE(device_link);
     return 0;
 }

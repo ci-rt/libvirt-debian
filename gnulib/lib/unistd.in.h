@@ -1,5 +1,5 @@
 /* Substitute for and wrapper around <unistd.h>.
-   Copyright (C) 2003-2009 Free Software Foundation, Inc.
+   Copyright (C) 2003-2010 Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as published by
@@ -33,23 +33,43 @@
 #include <stddef.h>
 
 /* mingw doesn't define the SEEK_* or *_FILENO macros in <unistd.h>.  */
-#if !(defined SEEK_CUR && defined SEEK_END && defined SEEK_SET)
+/* Cygwin 1.7.1 declares symlinkat in <stdio.h>, not in <unistd.h>.  */
+/* But avoid namespace pollution on glibc systems.  */
+#if (!(defined SEEK_CUR && defined SEEK_END && defined SEEK_SET) \
+     || (@GNULIB_SYMLINKAT@ || defined GNULIB_POSIXCHECK)) \
+    && ! defined __GLIBC__
 # include <stdio.h>
+#endif
+
+/* Cygwin 1.7.1 declares unlinkat in <fcntl.h>, not in <unistd.h>.  */
+/* But avoid namespace pollution on glibc systems.  */
+#if (@GNULIB_UNLINKAT@ || defined GNULIB_POSIXCHECK) && ! defined __GLIBC__
+# include <fcntl.h>
 #endif
 
 /* mingw fails to declare _exit in <unistd.h>.  */
 /* mingw, BeOS, Haiku declare environ in <stdlib.h>, not in <unistd.h>.  */
-#include <stdlib.h>
+/* Solaris declares getcwd not only in <unistd.h> but also in <stdlib.h>.  */
+/* But avoid namespace pollution on glibc systems.  */
+#ifndef __GLIBC__
+# include <stdlib.h>
+#endif
 
-#if ((@GNULIB_WRITE@ && @REPLACE_WRITE@ && @GNULIB_UNISTD_H_SIGPIPE@)   \
-     || (@GNULIB_READLINK@ && (!@HAVE_READLINK@ || @REPLACE_READLINK@)) \
-     || (@GNULIB_READLINKAT@ && !@HAVE_READLINKAT@))
+/* mingw declares getcwd in <io.h>, not in <unistd.h>.  */
+#if ((@GNULIB_GETCWD@ || defined GNULIB_POSIXCHECK) \
+     && ((defined _WIN32 || defined __WIN32__) && ! defined __CYGWIN__))
+# include <io.h>
+#endif
+
+#if (@GNULIB_WRITE@ || @GNULIB_READLINK@ || @GNULIB_READLINKAT@ \
+     || @GNULIB_PREAD@ || defined GNULIB_POSIXCHECK)
 /* Get ssize_t.  */
 # include <sys/types.h>
 #endif
 
-/* Get getopt(), optarg, optind, opterr, optopt.  */
-#if @GNULIB_UNISTD_H_GETOPT@ && !defined _GL_SYSTEM_GETOPT
+/* Get getopt(), optarg, optind, opterr, optopt.
+   But avoid namespace pollution on glibc systems.  */
+#if @GNULIB_UNISTD_H_GETOPT@ && !defined __GLIBC__ && !defined _GL_SYSTEM_GETOPT
 # include <getopt.h>
 #endif
 
@@ -97,6 +117,8 @@
 /* The definition of GL_LINK_WARNING is copied here.  */
 
 /* The definition of _GL_ARG_NONNULL is copied here.  */
+
+/* The definition of _GL_WARN_ON_USE is copied here.  */
 
 
 /* OS/2 EMX lacks these macros.  */
@@ -230,11 +252,17 @@ extern char **environ;
 #  endif
 # endif
 #elif defined GNULIB_POSIXCHECK
-# undef environ
-# define environ \
-    (GL_LINK_WARNING ("environ is unportable - " \
-                      "use gnulib module environ for portability"), \
-     environ)
+# if HAVE_RAW_DECL_ENVIRON
+static inline char ***
+rpl_environ (void)
+{
+  return &environ;
+}
+_GL_WARN_ON_USE (rpl_environ, "environ is unportable - "
+                 "use gnulib module environ for portability");
+#  undef environ
+#  define environ (*rpl_environ ())
+# endif
 #endif
 
 
@@ -346,9 +374,6 @@ extern int ftruncate (int fd, off_t length);
 
 
 #if @GNULIB_GETCWD@
-/* Include the headers that might declare getcwd so that they will not
-   cause confusion if included after this file.  */
-# include <stdlib.h>
 # if @REPLACE_GETCWD@
 /* Get the name of the current working directory, and put it in SIZE bytes
    of BUF.
@@ -459,6 +484,29 @@ extern int gethostname(char *name, size_t len) _GL_ARG_NONNULL ((1));
 #endif
 
 
+#if @GNULIB_GETLOGIN@
+/* Returns the user's login name, or NULL if it cannot be found.  Upon error,
+   returns NULL with errno set.
+
+   See <http://www.opengroup.org/susv3xsh/getlogin.html>.
+
+   Most programs don't need to use this function, because the information is
+   available through environment variables:
+     ${LOGNAME-$USER}        on Unix platforms,
+     $USERNAME               on native Windows platforms.
+ */
+# if !@HAVE_GETLOGIN@
+extern char *getlogin (void);
+# endif
+#elif defined GNULIB_POSIXCHECK
+# undef getlogin
+# define getlogin() \
+    (GL_LINK_WARNING ("getlogin is unportable - " \
+                      "use gnulib module getlogin for portability"), \
+     getlogin ())
+#endif
+
+
 #if @GNULIB_GETLOGIN_R@
 /* Copies the user's login name to NAME.
    The array pointed to by NAME has room for SIZE bytes.
@@ -468,6 +516,11 @@ extern int gethostname(char *name, size_t len) _GL_ARG_NONNULL ((1));
    provided (this case is hopefully rare but is left open by the POSIX spec).
 
    See <http://www.opengroup.org/susv3xsh/getlogin.html>.
+
+   Most programs don't need to use this function, because the information is
+   available through environment variables:
+     ${LOGNAME-$USER}        on Unix platforms,
+     $USERNAME               on native Windows platforms.
  */
 # if !@HAVE_DECL_GETLOGIN_R@
 extern int getlogin_r (char *name, size_t size) _GL_ARG_NONNULL ((1));
@@ -627,7 +680,7 @@ extern int linkat (int fd1, const char *path1, int fd2, const char *path2,
 # endif
 #elif defined GNULIB_POSIXCHECK
 # undef linkat
-# define link(f1,path1,f2,path2,f)              \
+# define linkat(f1,path1,f2,path2,f)              \
     (GL_LINK_WARNING ("linkat is unportable - " \
                       "use gnulib module linkat for portability"), \
      linkat (f1, path1, f2, path2,f))

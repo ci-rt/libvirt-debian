@@ -198,7 +198,7 @@ wr_sync(virConnectPtr xend, int fd, void *buffer, size_t size, int do_read)
                              "%s", _("failed to read from Xen Daemon"));
             else
                 virXendError(xend, VIR_ERR_INTERNAL_ERROR,
-                             "%s", _("failed to read from Xen Daemon"));
+                             "%s", _("failed to write to Xen Daemon"));
 
             return (-1);
         }
@@ -748,11 +748,12 @@ int
 xenDaemonOpen_unix(virConnectPtr conn, const char *path)
 {
     struct sockaddr_un *addr;
-    xenUnifiedPrivatePtr priv = (xenUnifiedPrivatePtr) conn->privateData;
+    xenUnifiedPrivatePtr priv;
 
     if ((conn == NULL) || (path == NULL))
         return (-1);
 
+    priv = (xenUnifiedPrivatePtr) conn->privateData;
     memset(&priv->addr, 0, sizeof(priv->addr));
     priv->addrfamily = AF_UNIX;
     /*
@@ -4552,15 +4553,21 @@ xenDaemonDomainMigratePerform (virDomainPtr domain,
 
     DEBUG("hostname = %s, port = %s", hostname, port);
 
-    /* Make the call. */
+    /* Make the call.
+     * NB:  xend will fail the operation if any parameters are
+     * missing but happily accept unknown parameters.  This works
+     * to our advantage since all parameters supported and required
+     * by current xend can be included without breaking older xend.
+     */
     ret = xend_op (domain->conn, domain->name,
                    "op", "migrate",
                    "destination", hostname,
                    "live", live,
                    "port", port,
-                   "node", "-1",
-                   "ssl", "0",
-                   "resource", "0", /* required, xend ignores it */
+                   "node", "-1", /* xen-unstable c/s 17753 */
+                   "ssl", "0", /* xen-unstable c/s 17709 */
+                   "change_home_server", "0", /* xen-unstable c/s 20326 */
+                   "resource", "0", /* removed by xen-unstable c/s 17553 */
                    NULL);
     VIR_FREE (hostname);
 

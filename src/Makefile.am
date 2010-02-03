@@ -198,7 +198,11 @@ QEMU_DRIVER_SOURCES =						\
 		qemu/qemu_monitor_json.h			\
 		qemu/qemu_driver.c qemu/qemu_driver.h		\
 		qemu/qemu_bridge_filter.c 			\
-		qemu/qemu_bridge_filter.h
+		qemu/qemu_bridge_filter.h			\
+		qemu/qemu_security_stacked.h			\
+		qemu/qemu_security_stacked.c			\
+		qemu/qemu_security_dac.h			\
+		qemu/qemu_security_dac.c
 
 UML_DRIVER_SOURCES =						\
 		uml/uml_conf.c uml/uml_conf.h			\
@@ -213,7 +217,13 @@ ONE_DRIVER_SOURCES =						\
 		./opennebula/one_client.h
 
 ESX_DRIVER_SOURCES =						\
+		esx/esx_private.h						\
 		esx/esx_driver.c esx/esx_driver.h		\
+		esx/esx_interface_driver.c esx/esx_interface_driver.h		\
+		esx/esx_network_driver.c esx/esx_network_driver.h		\
+		esx/esx_storage_driver.c esx/esx_storage_driver.h		\
+		esx/esx_device_monitor.c esx/esx_device_monitor.h		\
+		esx/esx_secret_driver.c esx/esx_secret_driver.h		\
 		esx/esx_util.c esx/esx_util.h			\
 		esx/esx_vi.c esx/esx_vi.h			\
 		esx/esx_vi_methods.c esx/esx_vi_methods.h	\
@@ -367,7 +377,7 @@ if HAVE_RPCGEN
 # Maintainer-only target for re-generating the derived .c/.h source
 # files, which are actually derived from the .x file.
 #
-# For committing protocol changes to CVS, the GLIBC rpcgen *must*
+# For committing protocol changes to GIT, the GLIBC rpcgen *must*
 # be used.
 #
 # Support for non-GLIB rpcgen is here as a convenience for
@@ -800,13 +810,13 @@ libvirt.syms: libvirt_public.syms $(USED_SYM_FILES)
 # Empty source list - it merely links a bunch of convenience libs together
 libvirt_la_SOURCES =
 libvirt_la_LIBADD += \
-		    @CYGWIN_EXTRA_LIBADD@ ../gnulib/lib/libgnu.la
+		    $(CYGWIN_EXTRA_LIBADD) ../gnulib/lib/libgnu.la
 libvirt_la_LDFLAGS = $(VERSION_SCRIPT_FLAGS)libvirt.syms \
-                     -version-info @LIBVIRT_VERSION_INFO@ \
+                     -version-info $(LIBVIRT_VERSION_INFO) \
                     $(COVERAGE_CFLAGS:-f%=-Wc,-f%) \
                     $(LIBXML_LIBS) \
 		    $(DRIVER_MODULE_LIBS) \
-		    @CYGWIN_EXTRA_LDFLAGS@ @MINGW_EXTRA_LDFLAGS@
+		    $(CYGWIN_EXTRA_LDFLAGS) $(MINGW_EXTRA_LDFLAGS)
 libvirt_la_CFLAGS = $(COVERAGE_CFLAGS) -DIN_LIBVIRT
 libvirt_la_DEPENDENCIES = $(libvirt_la_LIBADD) libvirt.syms
 
@@ -818,8 +828,8 @@ noinst_LTLIBRARIES += libvirt_test.la
 # Remove version script from convenience library
 test_LDFLAGS =						\
   $$(echo '$(libvirt_la_LDFLAGS)'			\
-     |sed 's!@VERSION_SCRIPT_FLAGS@libvirt.syms!!'	\
-     |sed 's!-version-info @LIBVIRT_VERSION_INFO@!!')
+     |sed 's!$(VERSION_SCRIPT_FLAGS)libvirt.syms!!'	\
+     |sed 's!-version-info $(LIBVIRT_VERSION_INFO)!!')
 
 # Just like the above, but with a slightly different set of public symbols.
 libvirt_test_la_SOURCES = $(libvirt_la_SOURCES)
@@ -876,9 +886,9 @@ virt_aa_helper_LDFLAGS = $(WARN_CFLAGS)
 virt_aa_helper_LDADD =						\
 		$(WARN_CFLAGS)					\
 		$(LIBXML_LIBS)					\
-		@top_srcdir@/gnulib/lib/libgnu.la		\
 		@top_srcdir@/src/libvirt_conf.la		\
-		@top_srcdir@/src/libvirt_util.la
+		@top_srcdir@/src/libvirt_util.la		\
+		@top_srcdir@/gnulib/lib/libgnu.la
 virt_aa_helper_CFLAGS =						\
 		-I@top_srcdir@/src/conf				\
 		-I@top_srcdir@/src/security

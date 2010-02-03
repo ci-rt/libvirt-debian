@@ -834,7 +834,7 @@ static int lxcSetupInterfaces(virConnectPtr conn,
             goto error_exit;
         }
 
-        if (def->nets[i]->mac) {
+        {
             char macaddr[VIR_MAC_STRING_BUFLEN];
             virFormatMacAddr(def->nets[i]->mac, macaddr);
             if (0 != (rc = setMacAddr(containerVeth, macaddr))) {
@@ -1193,7 +1193,7 @@ static int lxcVmStart(virConnectPtr conn,
     char **veths = NULL;
     lxcDomainObjPrivatePtr priv = vm->privateData;
 
-    if ((r = virFileMakePath(driver->logDir)) < 0) {
+    if ((r = virFileMakePath(driver->logDir)) != 0) {
         virReportSystemError(conn, r,
                              _("Cannot create log directory '%s'"),
                              driver->logDir);
@@ -1603,7 +1603,7 @@ lxcAutostartDomain(void *payload, const char *name ATTRIBUTE_UNUSED, void *opaqu
         int ret = lxcVmStart(data->conn, data->driver, vm);
         if (ret < 0) {
             virErrorPtr err = virGetLastError();
-            VIR_ERROR(_("Failed to autostart VM '%s': %s\n"),
+            VIR_ERROR(_("Failed to autostart VM '%s': %s"),
                       vm->def->name,
                       err ? err->message : "");
         } else {

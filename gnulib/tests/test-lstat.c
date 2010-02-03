@@ -1,5 +1,5 @@
 /* Test of lstat() function.
-   Copyright (C) 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -20,6 +20,13 @@
 
 #include <sys/stat.h>
 
+/* Caution: lstat may be a function-like macro.  Although this
+   signature check must pass, it may be the signature of the real (and
+   broken) lstat rather than rpl_lstat.  Most code should not use the
+   address of lstat.  */
+#include "signature.h"
+SIGNATURE_CHECK (lstat, int, (char const *, struct stat *));
+
 #include <fcntl.h>
 #include <errno.h>
 #include <stdbool.h>
@@ -28,18 +35,7 @@
 #include <unistd.h>
 
 #include "same-inode.h"
-
-#define ASSERT(expr) \
-  do                                                                         \
-    {                                                                        \
-      if (!(expr))                                                           \
-        {                                                                    \
-          fprintf (stderr, "%s:%d: assertion failed\n", __FILE__, __LINE__);  \
-          fflush (stderr);                                                   \
-          abort ();                                                          \
-        }                                                                    \
-    }                                                                        \
-  while (0)
+#include "macros.h"
 
 #define BASE "test-lstat.t"
 
@@ -56,5 +52,8 @@ do_lstat (char const *name, struct stat *st)
 int
 main (void)
 {
+  /* Remove any leftovers from a previous partial run.  */
+  system ("rm -rf " BASE "*");
+
   return test_lstat_func (do_lstat, true);
 }

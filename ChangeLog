@@ -1,4 +1,2197 @@
+2010-02-03  Daniel Veillard  <veillard@redhat.com>
+
+	Release of libvirt-0.7.6
+	* configure.ac docs/news.html.in libvirt.spec.in: version bump and doc
+	  updates
+	* po/*.po*: updated and regenerated the localizations
+
+2010-02-03  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix restore of QEMU guests with PCI device reservation
+	When restoring from a saved guest image, the XML would already
+	contain the PCI slot ID of the IDE controller & video card.
+	The attempt to explicitly reserve this upfront would thus fail
+	everytime.
+
+	* src/qemu/qemu_conf.c: Reserve IDE controller / video card
+	  slot at time of need, rather than upfront
+
+2010-02-03  Laine Stump  <laine@laine.org>
+
+	Another fork() log locking cleanup in file creation
+	Similar fix as previous one but for fork() usage when creating
+	a file or directory
+
+	* src/util/util.c: virLogLock() and virLogUnlock() around fork()
+	  in virFileCreate() and virDirCreateSimple()
+
+2010-02-03  Cole Robinson  <crobinso@redhat.com>
+
+	Fix log locking problem when using fork() in the library
+	Ad pointed out by Dan Berrange:
+	So if some thread in libvirtd is currently executing a logging call,
+	while another thread calls virExec(), that other thread no longer
+	exists in the child, but its lock is never released. So when the
+	child then does virLogReset() it deadlocks.
+
+	The only way I see to address this, is for the parent process to call
+	virLogLock(), immediately before fork(), and then virLogUnlock()
+	afterwards in both parent & child. This will ensure that no other
+	thread
+	can be holding the lock across fork().
+
+	* src/util/logging.[ch] src/libvirt_private.syms: export virLogLock() and
+	  virLogUnlock()
+	* src/util/util.c: lock just before forking and unlock just after - in
+	  both parent and child.
+
+2010-02-03  David Allan  <dallan@redhat.com>
+
+	Fix locking for udev device add/remove
+	The original udev node device backend neglected to lock the driverState
+	struct containing the device list when adding and removing devices
+	* src/node_device/node_device_udev.c: add necessary locks in
+	  udevRemoveOneDevice() and udevAddOneDevice()
+
+2010-02-03  Jim Meyering  <meyering@redhat.com>
+
+	interface_conf.c: don't use a negative value as allocation size
+	* src/conf/interface_conf.c (virInterfaceDefParseProtoIPv4): If
+	virXPathNodeSet returns -1, indicate failure by returning -1 right away.
+	(virInterfaceDefParseProtoIPv6): Likewise.
+
+	virStoragePoolSourceListNewSource: avoid unconditional leak
+	* src/conf/storage_conf.c (virStoragePoolSourceListNewSource):
+	Remove an unused (and leaked) allocation.
+
+	xs_internal.c: don't use a negative value as allocation size
+	* src/xen/xs_internal.c (xenStoreDomainIntroduced): Don't use -1
+	as an allocation size upon xenStoreNumOfDomains failure.
+	(xenStoreDomainReleased): Likewise.
+
+2010-02-02  Daniel P. Berrange  <berrange@redhat.com>
+
+	Ensure QEMU DAC security driver is activated at all times
+	If the primary security driver (SELinux/AppArmour) was disabled
+	then the secondary QEMU DAC security driver was also disabled.
+	This is mistaken, because the latter must be active at all times
+
+	* src/qemu/qemu_driver.c: Ensure DAC driver is always active
+
+2010-02-02  Jim Meyering  <meyering@redhat.com>
+
+	xen_hypervisor.c: remove all "domain == NULL" tests, ...
+	* src/xen/xen_hypervisor.c: Remove all "domain == NULL" tests.
+	* src/xen/xen_hypervisor.h: Instead, use ATTRIBUTE_NONNULL to
+	mark each "domain" parameter as "known always to be non-NULL".
+
+	xen_hypervisor.c: avoid NULL deref for NULL domain argument
+	* src/xen/xen_hypervisor.c (xenHypervisorGetVcpus): Don't attempt
+	to diagnose an unlikely NULL-domain or NULL-domain->conn error.
+
+2010-02-02  Daniel P. Berrange  <berrange@redhat.com>
+
+	Tweak USB hostdevice XML handling
+	When attaching a USB host device based on vendor/product, libvirt
+	will resolve the vendor/product into a device/bus pair. This means
+	that when printing XML we should allow device/bus info to be printed
+	at any time if present
+
+	* src/conf/domain_conf.c, docs/schemas/domain.rng: Allow USB device
+	  bus info alongside vendor/product
+
+	Fix QEMU hotplug device alias assignment
+	To allow devices to be hot(un-)plugged it is neccessary to ensure
+	they all have a unique device aliases. This fixes the hotplug
+	methods to assign device aliases before invoking the monitor
+	commands which need them
+
+	* src/qemu/qemu_conf.c, src/qemu/qemu_conf.h: Expose methods
+	  for assigning device aliases for disks, host devices and
+	  controllers
+	* src/qemu/qemu_driver.c: Assign device aliases when hotplugging
+	  all types of device
+	* tests/qemuxml2argvdata/qemuxml2argv-hostdev-pci-address-device.args,
+	  tests/qemuxml2argvdata/qemuxml2argv-hostdev-usb-address-device.args:
+	  Update for changed hostdev naming scheme
+
+	Disable QEMU monitor IO debugging by default
+
+	Re-arrange QEMU device alias assignment code
+	This patch re-arranges the QEMU device alias assignment code to
+	make it easier to call into the same codeblock when performing
+	device hotplug. The new code has the ability to skip over already
+	assigned names to facilitate hotplug
+
+	* src/qemu/qemu_driver.c: Call qemuAssignDeviceNetAlias()
+	  instead of qemuAssignNetNames
+	* src/qemu/qemu_conf.h: Export qemuAssignDeviceNetAlias()
+	  instead of qemuAssignNetNames
+	* src/qemu/qemu_driver.c: Merge the legacy disk/network alias
+	  assignment code into the main methods
+
+	Remove direct storage of hostnet_name & vlan
+	The current way of assigning names to the host network backend and
+	NIC device in QEMU was over complicated, by varying naming scheme
+	based on the NIC model and backend type. This simplifies the naming
+	to simply be 'net0' and 'hostnet0', allowing code to easily determine
+	the host network name and vlan based off the primary device alias
+	name 'net0'. This in turn allows removal of alot of QEMU specific
+	code from the XML parser, and makes it easier to assign new unique
+	names for NICs that are hotplugged
+
+	* src/conf/domain_conf.c, src/conf/domain_conf.h: Remove hostnet_name
+	  and vlan fields from virNetworkDefPtr
+	* src/qemu/qemu_conf.c, src/qemu/qemu_conf.h, src/qemu/qemu_driver.c:
+	  Use a single network alias naming scheme regardless of NIC type
+	  or backend type. Determine VLANs from the alias name.
+	* tests/qemuxml2argvdata/qemuxml2argv-net-eth-names.args,
+	  tests/qemuxml2argvdata/qemuxml2argv-net-virtio-device.args,
+	  tests/qemuxml2argvdata/qemuxml2argv-net-virtio-netdev.args: Update
+	  for new simpler naming scheme
+
+	Remove use of -netdev arg with QEMU
+	The QEMU 0.12.x tree has the -netdev command line argument, but not
+	corresponding monitor command. We can't enable the former, without
+	the latter since it will break hotplug/unplug.
+
+	* src/qemu/qemu_conf.c, src/qemu/qemu_conf.h: Disable -netdev usage
+	  until 0.13 at earliest
+	* tests/qemuxml2argvtest.c: Add test for -netdev syntax
+	* tests/qemuxml2argvdata/qemuxml2argv-net-virtio-netdev.args,
+	  tests/qemuxml2argvdata/qemuxml2argv-net-virtio-netdev.xml: Test
+	  data files for -netdev syntax
+
+	Assign PCI addresses before hotplugging devices
+	PCI disk, disk controllers, net devices and host devices need to
+	have PCI addresses assigned before they are hot-plugged
+
+	* src/qemu/qemu_conf.c: Add APIs for ensuring a device has an
+	  address and releasing unused addresses
+	* src/qemu/qemu_driver.c: Ensure all devices have addresses
+	  when hotplugging.
+
+	Rewrite way QEMU PCI addresses are allocated
+	The current QEMU code allocates PCI addresses incrementally starting
+	at 4. This is not satisfactory because the user may have given some
+	addresses in their XML config, which need to be skipped over when
+	allocating addresses to remaining devices.
+
+	It is thus neccessary to maintain a list of already allocated PCI
+	addresses and then only allocate ones that remain unused. This is
+	also required for domain device hotplug to work properly later.
+
+	* src/qemu/qemu_conf.c, src/qemu/qemu_conf.h: Add APIs for creating
+	  list of existing PCI addresses, and allocating new addresses.
+	  Refactor address assignment to use this code
+	* src/qemu/qemu_driver.c: Pull PCI address assignment up into the
+	  qemuStartVMDaemon() method, as a prelude to moving it into the
+	  'define' method. Update list of allocated addresses when connecting
+	  to a running VM at daemon startup.
+	* tests/qemuxml2argvtest.c, tests/qemuargv2xmltest.c,
+	  tests/qemuxml2xmltest.c: Remove USB product test since all
+	  passthrough is done based on address
+	* tests/qemuxml2argvdata/qemuxml2argv-hostdev-usb-product.args,
+	  tests/qemuxml2argvdata/qemuxml2argv-hostdev-usb-product.xml: Kil
+	  unused data files
+
+	Introduce generic virDomainDeviceInfo iterator function
+	The virDomainDeviceInfoIterate() function will provide a
+	convenient way to iterate over all devices in a domain.
+
+	* src/conf/domain_conf.c, src/conf/domain_conf.h,
+	  src/libvirt_private.syms: Add virDomainDeviceInfoIterate()
+	  function.
+
+	Make hotplug use new device_add where possible
+	Since QEMU startup uses the new -device argument, the hotplug
+	code needs todo the same. This converts disk, network and
+	host device hotplug to use the device_add command
+
+	* src/qemu/qemu_driver.c: Use new device_add monitor APIs
+	  whereever possible
+
+	Introduce internal QEMU monitor APIs for drive + device hotadd
+	The way QEMU is started has been changed to use '-device' and
+	the new style '-drive' syntax. This needs to be mirrored in
+	the hotplug code, requiring addition of two new APIs.
+
+	* src/qemu/qemu_monitor.h, src/qemu/qemu_monitor.c: Define APIs
+	  qemuMonitorAddDevice() and qemuMonitorAddDrive()
+	* src/qemu/qemu_monitor_json.c, src/qemu/qemu_monitor_json.h,
+	  src/qemu/qemu_monitor_text.c, src/qemu/qemu_monitor_text.h:
+	  Implement the new monitor APIs
+
+	Split out QEMU code for building PCI/USB hostdev arg values
+	To allow for better code reuse from hotplug methods, the code for
+	generating PCI/USB hostdev arg values is split out into separate
+	methods
+
+	* qemu/qemu_conf.h, qemu/qemu_conf.c: Introduce new APis for
+	  qemuBuildPCIHostdevPCIDevStr, qemuBuildUSBHostdevUsbDevStr
+	  and qemuBuildUSBHostdevDevStr
+
+	Standard internal API syntax for building QEMU command line arguments
+	All the helper functions for building command line arguments
+	now return a 'char *', instead of acepting a 'char **' or
+	virBufferPtr argument
+
+	* qemu/qemu_conf.c: Standardize syntax for building args
+	* qemu/qemu_conf.h: Export all functions for building args
+	* qemu/qemu_driver.c: Update for changed syntax for building
+	  NIC/hostnet args
+
+2010-02-02  Jim Meyering  <meyering@redhat.com>
+
+	libvirtd.c: avoid closing a negative socket file descriptor
+	* daemon/libvirtd.c (qemudListenUnix): Close socket only if non-negative.
+
+	storage_backend.c: avoid closing a negative file descriptor
+	* src/storage/storage_backend.c (virStorageBackendRunProgRegex):
+	Don't close a negative (read-only) file descriptor.
+
+	avoid a probable EINVAL from lseek
+	* src/qemu/qemu_driver.c (qemudLogReadFD): Don't pass a negative
+	offset (from a preceding failed attempt to seek to EOF) to this use
+	of lseek.
+
+2010-02-02  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	udev: Don't let strtoul parse USB busnum and devnum as octal
+	udevGetUintProperty was called with base set to 0 for busnum and devnum.
+	With base 0 strtoul parses the number as octal if it start with a 0. But
+	busnum and devnum are decimal and udev returns them padded with leading
+	zeros. So strtoul parses them as octal. This works for certain decimal
+	values like 001-007, but fails for values like 008.
+
+	Change udevProcessUSBDevice to use base 10 for busnum and devnum.
+
+2010-02-01  Jim Meyering  <meyering@redhat.com>
+
+	util.c (two more): don't use a negative value as allocation size
+	* src/util/util.c (virGetUserID, virGetGroupID): In the unlikely event
+	that sysconf(_SC_GETPW_R_SIZE_MAX) fails, don't use -1 as the size in
+	the subsequent allocation.
+
+	json.c: avoid an unconditional leak from most qemuMonitorJSON* functions
+	* src/util/json.c (virJSONValueFree): Free the "value" pointer, too.
+
+	avoid format-related warnings
+	* src/qemu/qemu_monitor_text.c (qemuMonitorTextGetAllPCIAddresses):
+	Use %s.
+	* src/storage/storage_backend_iscsi.c (virStorageBackendCreateIfaceIQN):
+	Likewise.
+	* tools/virsh.c (cmdSecretSetValue): Likewise.
+
+2010-02-01  Eric Blake  <ebb9@byu.net>
+
+	maint: avoid excess parens in STREQ
+	* src/internal.h (STREQ, STRCASEEQ, STRNEQ, STRCASENEQ, STREQLEN)
+	(STRCASEEQLEN, STRNEQLEN, STRCASENEQLEN, STRPREFIX): Avoid
+	redundant parenthesis.
+	* examples/domain-events/events-c/event-test.c (STREQ): Likewise.
+	* src/storage/parthelper.c (STREQ): Likewise.
+
+2010-02-01  Jiri Denemark  <jdenemar@redhat.com>
+
+	Move models/nmodels mismatch checking one level up
+
+	Log flags in virConnectCompareCPU
+	* src/libvirt.c: extend the debug statement to log flags too
+
+2010-02-01  Chris Lalancette  <clalance@redhat.com>
+
+	Fix PCI host reattach on domain detach.
+	Similar to the race fixed by
+	be34c3c7efbb1ea8999530f98b99c5dde3793f84, make sure
+	to wait around for KVM to release the resources from
+	a hot-detached PCI device before attempting to
+	rebind that device to the host driver.
+
+2010-02-01  Matthew Booth  <mbooth@redhat.com>
+
+	Clarify controllers -device string in QEMU driver
+	The QEMU driver contained code to generate a -device string for piix4-ide, but
+	wasn't using it. This change removes this string generation. It also adds a
+	comment explaining why IDE and FDC controllers don't generate -device strings.
+
+	The change also generates an error if a sata controller is specified for a QEMU
+	domain, as this isn't supported.
+
+	* src/qemu/qemu_conf.c: Remove VIR_DOMAIN_CONTROLLER_TYPE_IDE handler in
+	  qemuBuildControllerDevStr(). Ignore IDE and FDC controllers. Error if
+	  SATA controller is discovered. Add comments.
+
+2010-02-01  Chris Lalancette  <clalance@redhat.com>
+
+	Fix up a comment in virHashUpdateEntry
+
+	Look in /usr/libexec for the qemu-kvm binary.
+	On RHEL-5 the qemu-kvm binary is located in /usr/libexec.
+	To reduce confusion for people trying to run upstream libvirt
+	on RHEL-5 machines, make the qemu driver look in /usr/libexec
+	for the qemu-kvm binary.
+
+	To make this work, I modified virFindFileInPath to handle an
+	absolute path correctly.  I also ran into an issue where
+	NULL was sometimes being passed for the file parameter
+	to virFindFileInPath; it didn't crash prior to this patch
+	since it was building paths like /usr/bin/(null).  This
+	is non-standard behavior, though, so I added a NULL
+	check at the beginning.
+
+2010-01-29  Eric Blake  <ebb9@byu.net>
+
+	maint: fix spelling error in hacking
+	* HACKING: STRCASEEQ is case insensitive.
+	* docs/hacking.html.in: Likewise.
+
+2010-01-29  Jim Meyering  <meyering@redhat.com>
+
+	util.c (virGetUserEnt): don't use a negative value as allocation size
+	* src/util/util.c (virGetUserEnt): In the unlikely event that
+	sysconf(_SC_GETPW_R_SIZE_MAX) fails, don't use -1 as the size in
+	the subsequent allocation.
+
+2010-01-27  Jim Fehlig  <jfehlig@novell.com>
+
+	Support Xen 4.0 sysctl version 7
+	xen-unstable c/s 20762 bumped XEN_SYSCTL_INTERFACE_VERSION to 7.  The
+	interface change does not affect libvirt, other than xenHypervisorInit()
+	failing since version 7 is not tried.
+
+	The attached patch accommodates the upcoming Xen 4.0 release by checking
+	for XEN_SYSCTL_INTERFACE_VERSION 7.  If found, it sets
+	XEN_DOMCTL_INTERFACE_VERSION to 6, which is also new to Xen 4.0.
+
+2010-01-27  Matthew Booth  <mbooth@redhat.com>
+
+	Add missing sata controller type to domain.rng
+	* docs/schemas/domain.rng: Add sata controller type
+
+2010-01-27  Jim Meyering  <meyering@redhat.com>
+
+	cpu_x86.c: avoid NULL-deref for invalid arguments
+	* src/cpu/cpu_x86.c (x86Decode): Do not dereference NULL
+	when "models" is NULL and nmodels is 1 or greater.
+
+	portability to non-glibc: don't use realpath(..., NULL)
+	it causes a NULL-dereference on some systems like Solaris 10.
+	* src/node_device/node_device_linux_sysfs.c. Include <stdlib.h>.
+	(get_sriov_function): Use canonicalize_file_name, not realpath.
+	* bootstrap (modules): Add canonicalize-lgpl.
+
+	pci.c: correct an erroneous expression
+	* src/util/pci.c (pciDeviceDownstreamLacksACS): Fix a typo
+	that rendered a subexpression always false.
+
+2010-01-26  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	udev: Set the state driver name
+
+	Remove undefined symbols from libvirt_private.syms
+
+	udev: Remove event handle on shutdown
+	This fixes a segfault when the event handler is called after shutdown
+	when the global driver state is NULL again.
+
+	Also fix a locking issue in an error path.
+
+	Don't call disabled timer callbacks in event-test.c
+	This fixes a segfault in the remote driver that occurs for example when
+	the event-test is run inside a domain-0 and libvirtd is also running.
+
+	esx: Output error details from libcurl
+
+	Add missing function parameter documentation
+
+2010-01-26  Jim Meyering  <meyering@redhat.com>
+
+	hostusb: closedir only if non-NULL; rename labels: s/error/cleanup/
+	* src/util/hostusb.c (usbSysReadFile): Rename labels s/error/cleanup/
+	(usbFindBusByVendor): Likewise.  And closedir only if non-NULL.
+
+2010-01-26  Laine Stump  <laine@laine.org>
+
+	Cleanup of large buffer on stack in virFileMakePath
+	virFileMakePath is a recursive function that was creates a buffer
+	PATH_MAX bytes long for each recursion (one recursion for each element
+	in the path). This changes it to have no buffers on the stack, and to
+	allocate just one buffer total, no matter how many elements are in the
+	path. Because the modified algorithm requires a char* to be passed in
+	rather than const char *, it is now 2 functions - a toplevel API
+	function that remains identical in function, and a 2nd helper function
+	called for the recursions, which 1) doesn't allocate anything, and 2)
+	takes a char* arg, so it can modify the contents.
+	* src/util/util.c: rewrite virFileMakePath
+
+2010-01-26  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	esx: Stop passing around virConnectPtr for error reporting
+
+2010-01-25  Chris Lalancette  <clalance@redhat.com>
+
+	Revert "Fix libvirtd restart for domains with PCI passthrough devices"
+	This reverts commit cdc42d0a4865199a941d330dbb6ca1ef426323ae.
+	As DanB pointed out, this patch is actually wrong.  The real
+	bug that was causing me to see this problem is a bug
+	introduced in a RHEL-5 libvirt snapshot, and I'm going to
+	fix the real bug there.
+
+	Fix a crash when restarting libvirtd.
+	If you shutdown libvirtd while a domain with PCI
+	devices is running, then try to restart libvirtd,
+	libvirtd will crash.
+
+	This happens because qemuUpdateActivePciHostdevs() is calling
+	pciDeviceListSteal() with a dev of 0x0 (NULL), and then trying
+	to dereference it.  This patch fixes it up so that
+	qemuUpdateActivePciHostdevs() steals the devices after first
+	Get()'ting them, avoiding the crash.
+
+	Fix two instances of misspelled 'pseudo'
+
+2010-01-25  Jim Meyering  <meyering@redhat.com>
+
+	qemuMonitorTextAttachDrive: avoid two leaks
+	* src/qemu/qemu_monitor_text.c (qemuMonitorTextAttachDrive): Most other
+	failures in this function would "goto cleanup", but one mistakenly
+	returned directly, skipping the cleanup and resulting in a leak.
+	In addition, iterating the "try_command" loop would clobber, and
+	thus leak, the "cmd" allocated on the first iteration,
+	so be careful to free it in addition to "reply" beforehand.
+
+2010-01-25  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	qemu: Search binaries in PATH instead of hardcoding /usr/bin
+
+2010-01-25  Daniel P. Berrange  <berrange@redhat.com>
+
+	Implement QMP support for extracting CPU thread ID
+	The KVM build of QEMU includs the thread ID of each vCPU in the
+	'query-cpus' output. This is required for pinning guests to
+	particular host CPUs
+
+	* src/qemu/qemu_monitor_json.c: Extract 'thread_id' from CPU info
+
+	Misc fixes to QMP monitor support for QEMU
+	* src/util/json.c, src/util/json.h: Declare returned strings
+	  to be const
+	* src/qemu/qemu_monitor.c: Wire up JSON mode for qemuMonitorGetPtyPaths
+	* src/qemu/qemu_monitor_json.c, src/qemu/qemu_monitor_json.h: Fix
+	  const correctness. Add missing error message in the function
+	  qemuMonitorJSONGetAllPCIAddresses. Add implementation of the
+	  qemuMonitorGetPtyPaths function calling 'query-chardev'.
+
+	Add some missing include files which break build in certain platforms
+	Two files were using functions from <sys/stat.h> but not including
+	in. Most of the time they got this automatically via another header,
+	but certain build flag combinations can reveal the problem
+
+	* src/lxc/lxc_container.c, src/node_device/node_device_linux_sysfs.c:
+	  Add <sys/stat.h>
+
+	Fix setup of compatability serial devices from console device
+	The <console> tag is supposed to result in addition of a single
+	<serial> device for HVM guests. The 'targetType' attribute was
+	missing though causing the compatibility code to add a second
+	<console> device
+
+	* src/conf/domain_conf.c: Set targetType for serial device
+
+2010-01-25  Jim Meyering  <meyering@redhat.com>
+
+	usbGetDevice: don't leak a "usbDevice" buffer on failure path
+	* src/util/hostusb.c (usbGetDevice): Free "dev" when returning NULL.
+
+	qemuMonitorTextGetMemoryStats: plug a leak on an error path
+	* src/qemu/qemu_monitor_text.c (qemuMonitorCommandWithHandler):
+	Always free *reply, upon failure.
+
+	usbFindBusByVendor: don't leak a DIR buffer and FD
+	* src/util/hostusb.c (usbFindBusByVendor): Don't leak a DIR buffer
+	and file descriptor.
+
+2010-01-25  Eric Blake  <ebb9@byu.net>
+
+	Start modernizing configure
+	* configure.ac: reanmed configura.in, use AC_CONFIG_HEADERS instead of
+	  AM_CONFIG_HEADER
+
+2010-01-22  Chris Lalancette  <clalance@redhat.com>
+
+	Fix libvirtd restart for domains with PCI passthrough devices
+	When libvirtd shuts down, it places a <state/> tag in the XML
+	state file it writes out for guests with PCI passthrough
+	devices.  For devices that are attached at bootup time, the
+	state tag is empty.  However, at libvirtd startup time, it
+	ignores anything with a <state/> tag in the XML, effectively
+	hiding the guest.
+	This patch remove the check for VIR_DOMAIN_XML_INTERNAL_STATUS
+	when parsing the XML.
+	* src/conf/domain_conf.c: remove VIR_DOMAIN_XML_INTERNAL_STATUS
+	  flag check in virDomainHostdevSubsysPciDefParseXML()
+
+	qemu: Fix race between device rebind and kvm cleanup
+	Certain hypervisors (like qemu/kvm) map the PCI bar(s) on
+	the host when doing device passthrough.  This can lead to a race
+	condition where the hypervisor is still cleaning up the device while
+	libvirt is trying to re-attach it to the host device driver.  To avoid
+	this situation, we look through /proc/iomem, and if the hypervisor is
+	still holding onto the bar (denoted by the string in the matcher variable),
+	then we can wait around a bit for that to clear up.
+
+	v2: Thanks to review by DV, make sure we wait the full timeout per-device
+
+	Fix device assignment with root devices
+	The patches to add ACS checking to PCI device passthrough
+	introduced a bug.  With the current code, if you try to
+	passthrough a device on the root bus (i.e. bus 0), then
+	it denies the passthrough.  This is because the code in
+	pciDeviceIsBehindSwitchLackingACS() to check for a parent
+	device doesn't take into account the possibility of the
+	root bus.  If we are on the root bus, it means we
+	legitimately can't find a parent, and it also means that
+	we don't have to worry about whether ACS is enabled.
+	Therefore return 0 (indicating we don't lack ACS) from
+	pciDeviceIsBehindSwitchLackingACS().
+
+	Add a rule to check for uses of readlink.
+
+	Use virFileResolveLink instead of readlink in AppArmor
+
+	Fix a compile warning in parthelper.c
+
+2010-01-22  Taizo ITO  <taizo.ito@hde.co.jp>
+
+	Add virConnectGetVersion Python API
+	adds a new python API call for retrieving the running
+	hypervisor version used by a connection: virConnectGetVersion
+
+	* python/generator.py: skip virConnectGetVersion from autogenerated
+	* python/libvirt-override-api.xml python/libvirt-override.c: define
+	  direct native bindings
+
+2010-01-22  Jamie Strandboge  <jamie@canonical.com>
+
+	Remove AppArmor compile warnings
+	* src/security/security_apparmor.c: unused variable in
+	  AppArmorSetSecurityAllLabel and unused parameter in
+	  AppArmorReleaseSecurityLabel
+
+2010-01-22  Chris Lalancette  <clalance@redhat.com>
+
+	Remove unused PROC_MOUNT_BUF_LEN #define
+
+2010-01-22  Daniel Veillard  <veillard@redhat.com>
+
+	Update polish translation and regenerate localizations
+
+2010-01-21  Daniel P. Berrange  <berrange@redhat.com>
+
+	Add docs about new mailing list
+	* docs/contact.html.in: Document new users mailing list
+
+2010-01-21  Adam Litke  <agl@us.ibm.com>
+
+	domMemoryStats / qemu: Fix parsing of unknown stats
+	Fix a small problem with the qemu memory stats parsing algorithm.  If qemu
+	reports a stat that libvirt does not recognize, skip past it so parsing can
+	continue.  This corrects a potential infinite loop in the parsing code that can
+	only be triggered if new statistics are added to qemu.
+
+	* src/qemu/qemu_monitor_text.c: qemuMonitorParseExtraBalloonInfo add a
+	  skip for extra ','
+
+2010-01-21  David Allan  <dallan@redhat.com>
+
+	Corrected log level of WWN path message
+	* src/node_device/node_device_linux_sysfs.c: open_wwn_file() the
+	  VIR_ERROR resllay should be just a VIR_DEBUG
+
+2010-01-21  Daniel Veillard  <veillard@redhat.com>
+
+	Fix an error when looking for devices in syspath
+	* src/node_device/node_device_udev.c: udevSetupSystemDev() only print the
+	  error message if lookup failed in both DMI_DEVPATH and DMI_DEVPATH_FALLBACK
+
+2010-01-21  Dan Kenigsberg  <danken@redhat.com>
+
+	Allow surrounding whitespace in uuid
+	* src/util/uuid.c: extend virUUIDParse to allow leading and trailing
+	  spaces in UUIDs
+
+2010-01-21  Jim Meyering  <meyering@redhat.com>
+
+	fix "make distcheck" failure
+	* tests/Makefile.am (qemuhelpdata): Add qemu-0.12.1.
+
+	avoid more format-related warnings
+	* src/qemu/qemu_conf.c (qemuBuildDriveStr): Use "%s".
+	* src/qemu/qemu_monitor_json.c (qemuMonitorJSONGetGuestPCIAddress):
+	(qemuMonitorJSONGetGuestDriveAddress): Likewise.
+
+	avoid format-related warnings
+	* src/conf/domain_conf.c (virDomainDeviceInfoParseXML): Use "%s".
+
+2010-01-21  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix off-by-1 in SCSI drive hotplug
+	The loop looking for the controller associated with a SCI drive had
+	an off by one, causing it to miss the last controller.
+
+	* src/qemu/qemu_driver.c: Fix off-by-1 in searching for SCSI
+	  drive hotplug
+
+	Fix leak in hotplug code in QEMU driver
+	The hotplug code in QEMU was leaking memory because although the
+	inner device object was being moved into the main virDomainDefPtr
+	config object, the outer container virDomainDeviceDefPtr was not.
+
+	 * src/qemu/qemu_driver.c: Clarify code to show that the inner
+	   device object is owned by the main domain config upon
+	   successfull attach.
+
+	Add configuration option to turn off dynamic permissions management
+	Add the ability to turn off dynamic management of file permissions
+	for libvirt guests.
+
+	* qemu/libvirtd_qemu.aug: Support 'dynamic_ownership' flag
+	* qemu/qemu.conf: Document 'dynamic_ownership' flag.
+	* qemu/qemu_conf.c: Load 'dynamic_ownership' flag
+	* qemu/test_libvirtd_qemu.aug: Test 'dynamic_ownership' flag
+
+	Fix security driver calls in hotplug cleanup paths
+	The hotplug code was not correctly invoking the security driver
+	in error paths. If a hotplug attempt failed, the device would
+	be left with VM permissions applied, rather than restored to the
+	original permissions. Also, a CDROM media that is ejected was
+	not restored to original permissions. Finally there was a bogus
+	call to set hostdev permissions in the hostdev unplug code
+
+	* qemu/qemu_driver.c: Fix security driver usage in hotplug/unplug
+
+	Add missing call to re-attach host devices if VM startup fails
+	If there is a problem with VM startup, PCI devices may be left
+	assigned to pci-stub / pci-back. Adding a call to reattach
+	host devices in the cleanup path is required.
+
+	* qemu/qemu_driver.c: qemuDomainReAttachHostDevices() when
+	  VM startup fails
+
+	Switch QEMU driver over to use the DAC security driver
+	Remove all the QEMU driver calls for setting file ownership and
+	process uid/gid. Instead wire in the QEMU DAC security driver,
+	stacking it ontop of the primary SELinux/AppArmour driver.
+
+	* qemu/qemu_driver.c: Switch over to new DAC security driver
+
+	Introduce a new DAC security driver for QEMU
+	This new security driver is responsible for managing UID/GID changes
+	to the QEMU process, and any files/disks/devices assigned to it.
+
+	* qemu/qemu_conf.h: Add flag for disabling automatic file permission
+	  changes
+	* qemu/qemu_security_dac.h, qemu/qemu_security_dac.c: New DAC driver
+	  for QEMU guests
+	* Makefile.am: Add new files
+
+	Introduce a stacked security driver impl for QEMU
+	* qemu/qemu_conf.h: Add securityPrimaryDriver and
+	  securitySecondaryDriver fields to 'struct qemud_driver'
+	* Makefile.am: Add new files
+	* qemu/qemu_security_stacked.c, qemu/qemu_security_stacked.h: A
+	  simple stacked security driver
+
+	Pull initial disk labelling out into libvirtd instead of exec hook
+	Pulling the disk labelling code out of the exec hook, and into
+	libvirtd will allow it to access shared state in the daemon. It
+	will also make debugging & error reporting easier / more reliable.
+
+	* qemu/qemu_driver.c: Move initial disk labelling calls up into
+	  libvirtd. Add cleanup of disk labels upon failure
+
+	Fix leak of allocated security label
+	If a VM fails to start, we can't simply free the security label
+	strings, we must call the domainReleaseSecurityLabel() method
+	otherwise the reserved 'mcs' level will be leaked in SElinux
+
+	* src/qemu/qemu_driver.c: Invoke domainReleaseSecurityLabel()
+	  when domain fails to start
+
+	Refactor setup & cleanup of security labels in security driver
+	The current security driver architecture has the following
+	split of logic
+
+	 * domainGenSecurityLabel
+
+	    Allocate the unique label for the domain about to be started
+
+	 * domainGetSecurityLabel
+
+	    Retrieve the current live security label for a process
+
+	 * domainSetSecurityLabel
+
+	    Apply the previously allocated label to the current process
+	    Setup all disk image / device labelling
+
+	 * domainRestoreSecurityLabel
+
+	    Restore the original disk image / device labelling.
+	    Release the unique label for the domain
+
+	The 'domainSetSecurityLabel' method is special because it runs
+	in the context of the child process between the fork + exec.
+
+	This is require in order to set the process label. It is not
+	required in order to label disks/devices though. Having the
+	disk labelling code run in the child process limits what it
+	can do.
+
+	In particularly libvirtd would like to remember the current
+	disk image label, and only change shared image labels for the
+	first VM to start. This requires use & update of global state
+	in the libvirtd daemon, and thus cannot run in the child
+	process context.
+
+	The solution is to split domainSetSecurityLabel into two parts,
+	one applies process label, and the other handles disk image
+	labelling. At the same time domainRestoreSecurityLabel is
+	similarly split, just so that it matches the style. Thus the
+	previous 4 methods are replaced by the following 6 new methods
+
+	 * domainGenSecurityLabel
+
+	    Allocate the unique label for the domain about to be started
+	    No actual change here.
+
+	 * domainReleaseSecurityLabel
+
+	   Release the unique label for the domain
+
+	 * domainGetSecurityProcessLabel
+
+	   Retrieve the current live security label for a process
+	   Merely renamed for clarity.
+
+	 * domainSetSecurityProcessLabel
+
+	   Apply the previously allocated label to the current process
+
+	 * domainRestoreSecurityAllLabel
+
+	    Restore the original disk image / device labelling.
+
+	 * domainSetSecurityAllLabel
+
+	    Setup all disk image / device labelling
+
+	The SELinux and AppArmour drivers are then updated to comply with
+	this new spec. Notice that the AppArmour driver was actually a
+	little different. It was creating its profile for the disk image
+	and device labels in the 'domainGenSecurityLabel' method, where as
+	the SELinux driver did it in 'domainSetSecurityLabel'. With the
+	new method split, we can have consistency, with both drivers doing
+	that in the domainSetSecurityAllLabel method.
+
+	NB, the AppArmour changes here haven't been compiled so may not
+	build.
+
+	Make security drivers responsible for checking dynamic vs static labelling
+	The QEMU driver is doing 90% of the calls to check for static vs
+	dynamic labelling. Except it is forgetting todo so in many places,
+	in particular hotplug is mistakenly assigning disk labels. Move
+	all this logic into the security drivers themselves, so the HV
+	drivers don't have to think about it.
+
+	* src/security/security_driver.h: Add virDomainObjPtr parameter
+	  to virSecurityDomainRestoreHostdevLabel and to
+	  virSecurityDomainRestoreSavedStateLabel
+	* src/security/security_selinux.c, src/security/security_apparmor.c:
+	  Add explicit checks for VIR_DOMAIN_SECLABEL_STATIC and skip all
+	  chcon() code in those cases
+	* src/qemu/qemu_driver.c: Remove all checks for VIR_DOMAIN_SECLABEL_STATIC
+	  or VIR_DOMAIN_SECLABEL_DYNAMIC. Add missing checks for possibly NULL
+	  driver entry points.
+
+2010-01-21  David Allan  <dallan@redhat.com>
+
+	Implement support for multi IQN
+	Allows the initiator to use a variety of IQNs rather than just the
+	system IQN when creating iSCSI pools.
+	* docs/schemas/storagepool.rng: extends the syntax with <iqn name="..."/>
+	* src/conf/storage_conf.[ch]: read and stores the iqn name
+	* src/storage/storage_backend_iscsi.[ch]: implement the IQN selection
+	  when detected
+
+2010-01-21  Jiri Denemark  <jdenemar@redhat.com>
+
+	Let make fail when XHTML validation fails
+
+2010-01-21  Laine Stump  <laine@laine.org>
+
+	Fix uses of virFileMakePath
+	* src/lxc/lxc_container.c src/lxc/lxc_controller.c src/lxc/lxc_driver.c
+	  src/network/bridge_driver.c src/qemu/qemu_driver.c
+	  src/uml/uml_driver.c: virFileMakePath returns 0 for success, or the
+	  value of errno on failure, so error checking should be to test
+	  if non-zero, not if lower than 0
+
+	Create storage pool directories with proper uid/gid/mode
+	Previously the uid/gid/mode in the xml was ignored when creating new
+	storage pool directories. This commit attempts to honor the requested
+	permissions, and spits out an error if it can't.
+
+	Note that when creating the directory, the rest of the path leading up
+	to the final element is created using current uid/gid/mode, and the
+	final element gets the settings from xml. It is NOT an error for the
+	directory to already exist; in this case, the perms for the existing
+	directory are just set (if necessary).
+
+	* src/storage/storage_backend_fs.c: update the virStorageBackendFileSystemBuild
+	  function to check the directory hierarchy separately then create the
+	  leaf directory with the right attributes
+
+	Create storage volumes directly with desired uid/gid
+	In order to avoid problems trying to chown files that were created by
+	root on a root-squashing nfs server, fork a new process that setuid's
+	to the desired uid before creating the file. (It's only done this way
+	if the pool containing the new volume is of type 'netfs', otherwise
+	the old method of creating the file followed by chown() is used.)
+
+	This changes the semantics of the "create_func" slightly - previously
+	it was assumed that this function just created the file, then the
+	caller would chown it to the desired uid. Now, create_func does both
+	operations.
+
+	There are multiple functions that can take on the role of create_func:
+
+	createFileDir - previously called mkdir(), now calls virDirCreate().
+	virStorageBackendCreateRaw - previously called open(),
+	                             now calls virFileCreate().
+	virStorageBackendCreateQemuImg - use virRunWithHook() to setuid/gid.
+	virStorageBackendCreateQcowCreate - same.
+	virStorageBackendCreateBlockFrom - preserve old behavior (but attempt
+	                                   chown when necessary even if not root)
+
+	* src/storage/storage_backend.[ch] src/storage/storage_backend_disk.c
+	  src/storage/storage_backend_fs.c src/storage/storage_backend_logical.c
+	  src/storage/storage_driver.c: change the create_func implementations,
+	  also propagate the pool information to be able to detect NETFS ones.
+
+	New utility functions virFileCreate and virDirCreate
+	These functions create a new file or directory with the given
+	uid/gid. If the flag VIR_FILE_CREATE_AS_UID is given, they do this by
+	forking a new process, calling setuid/setgid in the new process, and
+	then creating the file. This is better than simply calling open then
+	fchown, because in the latter case, a root-squashing nfs server would
+	create the new file as user nobody, then refuse to allow fchown.
+
+	If VIR_FILE_CREATE_AS_UID is not specified, the simpler tactic of
+	creating the file/dir, then chowning is is used. This gives better
+	results in cases where the parent directory isn't on a root-squashing
+	NFS server, but doesn't give permission for the specified uid/gid to
+	create files. (Note that if the fork/setuid method fails to create the
+	file due to access privileges, the parent process will make a second
+	attempt using this simpler method.)
+
+	If the bit VIR_FILE_CREATE_ALLOW_EXIST is set in the flags, an
+	existing file/directory will not cause an error; in this case, the
+	function will simply set the permissions of the file/directory to
+	those requested. If VIR_FILE_CREATE_ALLOW_EXIST is not specified, an
+	existing file/directory is considered (and reported as) an error.
+
+	Return from both of these functions is 0 on success, or the value of
+	errno if there was a failure.
+
+	* src/util/util.[ch]: add the 2 new util functions
+
+	Add virRunWithHook util function
+	* src/util/util.[ch]: similar to virExecWithHook, but waits for child to
+	  exit. Useful for doing things like setuid after the fork but before the
+	  exec.
+
+2010-01-20  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	Unset copied environment variables in qemuxml2argvtest
+	The test expected all environment variables copied in qemudBuildCommandLine
+	to have known values. So all of them have to be either set to a known value
+	or be unset. SDL_VIDEODRIVER and QEMU_AUDIO_DRV are not handled at all but
+	should be handled. Unset both, otherwise the test will fail if they are set
+	in the testing environment.
+
+	* src/qemu/qemu_conf.c: add a comment about copied environment variables
+	  and qemuxml2argvtest
+	* tests/qemuxml2argvtest.c: unset SDL_VIDEODRIVER and QEMU_AUDIO_DRV
+
+	qemu: Don't allocate zero bytes
+
+2010-01-20  Jim Meyering  <meyering@redhat.com>
+
+	clean-up: remove unnecessary closedir call
+	* src/node_device/node_device_linux_sysfs.c (get_virtual_functions_linux):
+	Remove unnecessary closedir.  Spotted by Dave Allan.
+
+	node_device_linux_sysfs.c: avoid opendir/fd leak on error path
+	* src/node_device/node_device_linux_sysfs.c(get_virtual_functions_linux):
+	Don't leak a DIR buffer and file descriptor on error path.
+
+	domain_conf.c: avoid a leak and the need for "cleanup:" block
+	* src/conf/domain_conf.c (virDomainChrDefFormat): Plug a leak on
+	an error path, and at the same time, eliminate the need for a
+	"cleanup:" block.  Before, the "return -1" after the switch
+	would leak an "addr" string.  Now, by reversing the port,addr-
+	getting blocks we can free "addr" immediately and skip the goto.
+
+2010-01-20  Daniel P. Berrange  <berrange@redhat.com>
+
+	Make all bitfields unsigned ints to avoid unexpected values in casts
+	The 'int virInterfaceIsActive()' method was directly returning the
+	value of the 'int active:1' bitfield in virIntefaceDefPtr. A bitfield
+	with a signed integer, will hold the values 0 and -1, not 0 and +1
+	as might be expected. This meant that virInterfaceIsActive() was
+	always returning -1 when the interface was active, not +1 & thus all
+	callers thought an error had occurred. To protect against this kind
+	of mistake again, change all bitfields to be unsigned ints
+
+	* daemon/libvirtd.h, src/conf/domain_conf.h, src/conf/interface_conf.h,
+	  src/conf/network_conf.h: Change bitfields to unsigned int.
+
+	Fix QEMU driver custom domain status XML extensions
+	Invoking the virConnectGetCapabilities() method causes the QEMU
+	driver to rebuild its internal capabilities object. Unfortunately
+	it was forgetting to register the custom domain status XML hooks
+	again.
+
+	To avoid this kind of error in the future, the code which builds
+	capabilities is refactored into one single method, which can be
+	called from all locations, ensuring reliable rebuilds.
+
+	* src/qemu/qemu_driver.c: Fix rebuilding of capabilities XML and
+	  guarentee it is always consistent
+
+2010-01-20  Jiri Denemark  <jdenemar@redhat.com>
+
+	Document cpu-compare command in virsh man page
+
+	Document <cpu> elements in capabilities and domain XML
+
+2010-01-20  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	docs: Remove outdated information about remote limitations
+
+2010-01-19  Jim Meyering  <meyering@redhat.com>
+
+	logging: confirm that we want to ignore a write error
+	* src/util/logging.c (virLogMessage): Include "ignore-value.h".
+	Use it to ignore the return value of safewrite.
+	Use STDERR_FILENO, rather than "2".
+	* bootstrap (modules): Add ignore-value.
+	* gnulib: Update to latest, for ignore-value that is now LGPLv2+.
+
+	xen_driver: don't leak a parsed-config buffer
+	* src/xen/xen_driver.c (xenUnifiedDomainXMLFromNative): Also
+	free "conf" before returning.
+
+2010-01-19  Laine Stump  <laine@laine.org>
+
+	Update interface.rng and xml test files to match netcf 0.1.5
+	The RNG now supports IPv6 and bonds attached to bridges, along with
+	some other minor tweaks. All test files from netcf have been copied to
+	the test directory and added to the xml2xml and schema tests (and they
+	all pass, of course ;-)
+
+	Support bond interfaces attached to bridges in interface xml.
+	This was accomplished in xml parsing by doing away with the
+	stripped-down virInterfaceBareDef object, and just always using
+	virInterfaceDef, but with restrictions in certain places (eg, the type
+	of subordinate interface allowed in parsing depends on the parent
+	interface).
+
+	xml formatting was similarly adjusted. In addition, the formatting
+	functions keep track of the level of interface nesting, and insert
+	extra leading spaces on each line accordingly (using %*s).
+
+	The only change in formatted xml from previous (aside frmo supporting
+	new combinations of interface types) is that the subordinate ethernet
+	interfaces take up 2 lines rather than one, eg:
+
+	   <interface type='ethernet' name='eth0'>
+	   </interface>
+
+	instead of:
+
+	   <interface type='ethernet' name='eth0'/>
+
+	Allow empty bridges in interface xml.
+
+	Support delay property in interface bridge xml.
+
+2010-01-19  Jim Meyering  <meyering@redhat.com>
+
+	storage_conf: plug a leak on OOM error path
+	* src/conf/storage_conf.c (virStoragePoolSourceListNewSource):
+	Free just-allocated "source" upon VIR_REALLOC_N failure.
+
+2010-01-19  Jiri Denemark  <jdenemar@redhat.com>
+
+	Remove superfluous new lines from messages
+	I noticed some debug messages are printed with an empty lines after
+	them. This patch removes these empty lines from all invocations of the
+	following macros:
+	    VIR_DEBUG
+	    VIR_DEBUG0
+	    VIR_ERROR
+	    VIR_ERROR0
+	    VIR_INFO
+	    VIR_WARN
+	    VIR_WARN0
+
+	Use pciDeviceIsAssignable in qemu driver
+
+	Tests for ACS in PCIe switches
+	New pciDeviceIsAssignable() function for checking whether a given PCI
+	device can be assigned to a guest was added. Currently it only checks
+	for ACS being enabled on all PCIe switches between root and the PCI
+	device. In the future, it could be the right place to check whether a
+	device is unbound or bound to a stub driver.
+
+2010-01-19  Daniel Veillard  <veillard@redhat.com>
+
+	Add Jiri Denemark <jdenemar@redhat.com> to commiters
+
+2010-01-19  Jiri Denemark  <jdenemar@redhat.com>
+
+	Allow for CPU topology specification without model
+	Currently CPU topology may only be specified together with CPU model:
+	    <cpu match='exact'>
+	        <model>name</model>
+	        <topology sockets='1' cores='2' threads='3'/>
+	    </cpu>
+
+	This patch allows for CPU topology specification without the need for
+	also specifying CPU model:
+	    <cpu>
+	        <topology sockets='1' cores='2' threads='3'/>
+	    </cpu>
+
+	'match' attribute and 'model' element are made optional with the
+	restriction that 'match' attribute has to be set when 'model' is
+	present.
+
+	Add debug messages for CPU incompatibility
+	When comparing incompatible CPUs, the reason for this incompatibility is
+	logged as a debug message.
+
+	Take disabled/forced CPU features into account
+	When comparing x86 CPUs, features with 'disabled' policy were mistakenly
+	required to be supported by the host CPU.
+
+	Likewise, features with 'force' policy which were supported by host CPU
+	would make CPUs incompatible if 'strict' match was used by guest CPU.
+
+	This patch fixes both issues.
+
+	Implement CPU topology support for QEMU driver
+	QEMU's command line equivalent for the following domain XML fragment
+	    <vcpus>2</vcpus>
+	    <cpu ...>
+	        ...
+	        <topology sockets='1' cores='2', threads='1'/>
+	    </cpu>
+
+	is
+
+	    -smp 2,sockets=1,cores=2,threads=1
+
+	This syntax was introduced in QEMU-0.12.
+
+	Version 2 changes:
+	- -smp argument build split into a separate function
+	- always add ",sockets=S,cores=C,threads=T" to -smp if qemu supports it
+	- use qemuParseCommandLineKeywords for command line parsing
+
+	Version 3 changes:
+	- ADD_ARG_LIT => ADD_ARG and line reordering in qemudBuildCommandLine
+	- rebased
+
+	Enhance qemuParseCommandLineKeywords
+	Current version expects name=value,... list and when an incorrect string
+	such as "a,b,c=d" would be parsed as "a,b,c" keyword with "d" value
+	without reporting any error, which is probably not the expected
+	behavior.
+
+	This patch adds an extra argument called allowEmptyValue, which if
+	non-zero will permit keywords with no value; "a,b=c,,d=" will be parsed
+	as follows:
+	    keyword value
+	    "a"     NULL
+	    "b"     "c"
+	    ""      NULL
+	    "d"     ""
+
+	In case allowEmptyValue is zero, the string is required to contain
+	name=value pairs only; retvalues is guaranteed to contain non-NULL
+	pointers. Now, "a,b,c=d" will result in an error.
+
+2010-01-18  Daniel P. Berrange  <berrange@redhat.com>
+
+	Convert VirtIO balloon over to -device syntax
+	Replace
+
+	   -balloon virtio
+
+	With
+
+	   -device virtio-balloon-pci,id=balloon0,bus=pci.0,addr=0x3
+
+	This allows it to get correct assigned PCI address as declared in
+	previous patch
+
+	 * src/qemu/qemu_conf.c: Convert Virtio ballon to -device and
+	   give it an explicit PCI address
+	 * tests/qemuxml2argvdata/qemuxml2argv-*args: Add in virtio balloon
+	   where appropriate
+
+	Auto-assign PCI addresses
+	Instead of relying on QEMU to assign PCI addresses and then querying
+	them with 'info pci', manually assign all PCI addresses before starting
+	the guest.  These addresses are not stable across reboots. That will
+	come in a later patch
+
+	NB, the PIIX3 (IDE, FDC, ISA-Bridge) will always have slot 1 and
+	VGA will always have slot 2. We declare the Virtio Balloon gets
+	slot 3, and then all remaining slots are for configured devices.
+
+	* src/qemu/qemu_conf.c: If -device is supported, then assign all PCI
+	  addresses when building the command line
+	* src/qemu/qemu_driver.c: Don't query monitor for PCI addresses if
+	  they have already been assigned
+	* tests/qemuxml2argvdata/qemuxml2argv-hostdev-pci-address-device.args,
+	  tests/qemuxml2argvdata/qemuxml2argv-net-virtio-device.args,
+	  tests/qemuxml2argvdata/qemuxml2argv-sound-device.args,
+	  tests/qemuxml2argvdata/qemuxml2argv-watchdog-device.args: Update
+	  to include PCI slot/bus information
+
+	Pass -vga none if no video card specified
+	QEMU always configures a VGA card. If no video card is included in
+	the libvirt XML, it is neccessary to explicitly turn off the default
+	using -vga none
+
+	* src/qemu/qemu_conf.c: Pass -vga none if no video card is configured
+	* tests/qemuargv2xmltest.c, tests/qemuxml2argvtest.c: Test for
+	  handling -vga none.
+	* tests/qemuxml2argvdata/qemuxml2argv-nographics-vga.args,
+	  tests/qemuxml2argvdata/qemuxml2argv-nographics-vga.xml: Test
+	  data files
+
+	Add support for explicit -sdl flag to QEMU
+	Not all QEMU builds default to SDL graphics for their display.
+	Newer QEMU now has an explicit -sdl flag, which we can use to
+	explicitly request SDL intead of relying on the default. This
+	protects libvirt against unexpected changes in graphics default
+
+	* src/qemu/qemu_conf.c, src/qemu/qemu_conf.h: Probe for -sdl
+	  flag and use it if it is found
+	* tests/qemuhelptest.c: Add SDL flag to tests
+
+	Convert guestfwd to -device, and add -sdl explicit args
+	The old syntax was
+
+	   -chardev SOMECONFIG
+	   -nic user,guestfwd=tcp:IP:PORT-chardev:CHARDEV
+
+	The new syntax is
+
+	   -chardev SOMECONFIG
+	   -netdev user,guestfwd=tcp:IP:PORT,chardev=ID,id=user-ID
+
+	Convert PCI device assignment over to -device
+	The old syntax is
+
+	  -pcidevice host=BUS:SLOT:FUNCTION
+
+	The new syntax is
+
+	  -device pci-assign,host=BUS:SLOT:FUNCTION,addr=<PCI SLOT>,id=host0
+
+	Convert USB input devices to -device
+
+	Convert USB hostdevices over to -device
+	The old syntax was
+
+	   -usbdevice host:PRODUCT:VENDOR
+
+	Or
+
+	   -usbdevice host:BUS.DEV
+
+	The new syntax is
+
+	   -device usb-host,product=PRODUCT,vendor=VENDOR
+
+	Or
+
+	   -device usb-host,hostbus=BUS,hostaddr=DEV
+
+	Convert USB disks over to -device
+	The previous syntax was severely limited in its options
+
+	  -usbdevice disk:/home/berrange/output.img
+
+	The new syntax is the same as for other disk types
+
+	  -drive file=/home/berrange/output.img,if=none,id=usb-1,index=1
+	  -device usb-storage,drive=usb-1
+
+	Again, the index= arg is wrong here, and will be removed in a
+	later merge
+
+	Convert NICs over to use -device & -netdev where possible
+	The current syntax uses a pair of args
+
+	   -net nic,macaddr=52:54:00:56:6c:55,vlan=3,model=pcnet,name=pcnet.0
+	   -net user,vlan=3,name=user.0
+
+	The new syntax does not  need the vlan craziness anymore, and
+	so has a simplified pair of args
+
+	   -netdev user,id=user.0
+	   -device pcnet,netdev=user.0,id=pcnet.0,mac=52:54:00:56:6c:55,addr=<PCI SLOT>
+
+	Convert disk drive over to use -device where available
+	The current preferred syntax for disk drives uses
+
+	  -drive file=/vms/plain.qcow,if=virtio,index=0,boot=on,format=qcow
+
+	The new syntax splits this up into a pair of linked args
+
+	  -drive file=/vms/plain.qcow,if=none,id=drive-virtio-0,format=qcow2
+	  -device virtio-blk-pci,drive=drive-virtio-0,id=virtio-0,addr=<PCI SLOT>
+
+	SCSI/IDE devices also get a bus property linking them to the
+	controller
+
+	  -device scsi-disk,drive=drive-scsi0-0-0,id=scsi0-0-0,bus=scsi0.0,scsi-id=0
+	  -device ide-drive,drive=drive-ide0-0-0,id=ide0-0-0,bus=ide0,unit=0
+
+	Convert audio devices over to -device syntax
+	The current syntax for audio devices is a horrible multiplexed
+	arg
+
+	    -soundhw sb16,pcspk,ac97
+
+	The new syntax is
+
+	    -device sb16,id=sound0
+
+	or
+
+	    -device AC97,id=sound1,addr=<PCI SLOT>
+
+	NB, pcspk still uses the old -soundhw syntax
+
+	Convert watchdog to -device
+	The current syntax for watchdogs is
+
+	    -watchdog i6300esb
+
+	The new syntax will now be
+
+	    -device i6300esb,id=watchdogNN,addr=<PCI-SLOT>
+
+	Convert character devices over to use -device
+	The current character device syntax uses either
+
+	  -serial tty,path=/dev/ttyS2
+
+	Or
+
+	  -chardev tty,id=serial0,path=/dev/ttyS2 -serial chardev:serial0
+
+	With the new -device support, we now prefer
+
+	  -chardev file,id=serial0,path=/tmp/serial.log -device isa-serial,chardev=serial0
+
+	This patch changes the existing -chardev syntax to use this new
+	scheme, and fallbacks to the old plain -serial syntax for old
+	QEMU.
+
+	The monitor device changes to
+
+	  -chardev socket,id=monitor,path=/tmp/test-monitor,server,nowait -mon chardev=monitor
+
+	In addition, this patch adds --nodefaults, which kills off the
+	default serial, parallel, vga and nic devices. THis avoids the
+	need for us to explicitly turn each off
+
+	Assign device aliases for all devices at startup
+	When starting a guest, give every device a unique alias. This will
+	be used for the 'id' parameter in -device args in later patches.
+	It can also be used to uniquely identify devices in the monitor
+
+	For old QEMU without -device, assign disk names based on QEMU's
+	historical naming scheme.
+
+	* src/qemu/qemu_conf.c: Assign unique device aliases
+	* src/qemu/qemu_driver.c: Remove obsolete qemudDiskDeviceName
+	  and use the device alias in eject & blockstats commands
+
+2010-01-18  Jim Meyering  <meyering@redhat.com>
+
+	storage_backend_fs.c: do not ignore probe failure
+	* src/storage/storage_backend_fs.c (virStorageBackendFileSystemRefresh):
+	Correct parentheses.  The documented intent is to ignore non-regular
+	files, yet due to a parenthesization error all errors were handled
+	that way.
+
+2010-01-18  Daniel P. Berrange  <berrange@redhat.com>
+
+	Probe for -device and use -nodefaults
+	Probe for the new -device flag and if available set the -nodefaults
+	flag, instead of using -net none, -serial none or -parallel none.
+	Other device types will be converted to use -device in later patches.
+	The -nodefaults flag will help avoid unwelcome surprises from future
+	QEMU releases
+
+	* src/qemu/qemu_conf.c: Probe for -device. Add -nodefaults flag.
+	  Remove -net none, -serial none or -parallel none
+	* src/qemu/qemu_conf.h: Define QEMU_CMD_FLAG_DEVICE
+	* tests/qemuhelpdata/qemu-0.12.1: New data file for 0.12.1 QEMU
+	* tests/qemuhelptest.c: Test feature extraction from 0.12.1 QEMU
+
+	Add device info to serial, parallel, channel, input & fs devices
+	Although the serial, parallel, chanel, input & fs devices do
+	not have PCI address info, they can all have device aliases.
+	Thus it neccessary to associate the virDomainDeviceInfo data
+	with them all.
+
+	* src/conf/domain_conf.c, src/conf/domain_conf.h: Add hooks for
+	  parsing / formatting device info for serial, parallel, channel
+	  input and fs devices.
+	* docs/schemas/domain.rng: Associate device info with character
+	  devices, input & fs device
+
+	Introduce device aliases
+	This patch introduces the support for giving all devices a short,
+	unique name, henceforth known as a 'device alias'.  These aliases
+	are not set by the end user, instead being assigned by the hypervisor
+	if it decides it want to support this concept.
+
+	The QEMU driver sets them whenever using the -device arg syntax
+	and uses them for improved hotplug/hotunplug. it is the intent
+	that other APIs (block / interface stats & device hotplug) be
+	able to accept device alias names in the future.
+
+	The XML syntax is
+
+	   <alias name="video0"/>
+
+	This may appear in any type of device that supports device info.
+
+	* src/conf/domain_conf.c, src/conf/domain_conf.h: Add a 'alias'
+	  field to virDomainDeviceInfo struct & parse/format it in XML
+	* src/libvirt_private.syms: Export virDomainDefClearDeviceAliases
+	* src/qemu/qemu_conf.c: Replace use of "nic_name" field with the
+	  standard device alias
+	* src/qemu/qemu_driver.c: Clear device aliases at shutdown
+
+	Clear assigned PCI devices at shutdown
+	The PCI device addresses are only valid while the VM is running,
+	since they are auto-assigned by QEMU. After shutdown they must
+	all be cleared. Future QEMU driver enhancement will allow for
+	persistent PCI address assignment
+
+	* src/conf/domain_conf.h, src/conf/domain_conf.c, src/libvirt_private.syms
+	  Add virDomainDefClearPCIAddresses() method for wiping out auto assigned
+	  PCI addresses
+	* src/qemu/qemu_driver.c: Clear PCI addresses at VM shutdown
+
+	Auto-add disk controllers based on defined disks
+	Existing applications using libvirt are not aware of the disk
+	controller concept. Thus, after parsing the <disk> definitions
+	in the XML, it is neccessary to create <controller> elements
+	to satisfy all requested disks, as per their defined drive
+	addresses
+
+	* src/conf/domain_conf.c, src/conf/domain_conf.h,
+	  src/libvirt_private.syms: Add virDomainDefAddDiskControllers()
+	  method for populating disk controllers, and call it after
+	  parsing disk definitions.
+	* src/qemu/qemu_conf.c: Call virDomainDefAddDiskControllers()
+	  when doing ARGV -> XML conversion
+	* tests/qemuxml2argvdata/qemuxml2argv*.xml: Add disk controller
+	  data to all data files which don't have it already
+
+	Avoid free'ing a constant string in chardev lookup code
+	 * src/qemu/qemu_monitor_text.c: Don't free const string in
+	   qemuMonitorTextGetPtyPaths()
+
+	Remove restriction on duplicated sound devices in parser
+	It is perfectly acceptable to have multiple sound devices of
+	same type in guest configuration. If the underlying hypervisor
+	does not like this, it is its job to complain, not the XML
+	parser's
+
+	* src/conf/domain_conf.c: Remove hack which deleted duplicated
+	  sound device models.
+	* tests/xml2sexprdata/xml2sexpr-fv-sound.xml: Remove duplicate
+	  models
+
+	Detect PCI addresses at QEMU startup
+	Hotunplug of devices requires that we know their PCI address. Even
+	hotplug of SCSI drives, required that we know the PCI address of
+	the SCSI controller to attach the drive to. We can find this out
+	by running 'info pci' and then correlating the vendor/product IDs
+	with the devices we booted with.
+
+	Although this approach is somewhat fragile, it is the only viable
+	option with QEMU < 0.12, since there is no way for libvirto set
+	explicit PCI addresses when creating devices in the first place.
+	For QEMU > 0.12, this code will not be used.
+
+	* src/qemu/qemu_driver.c: Assign all dynamic PCI addresses on
+	  startup of QEMU VM, matching vendor/product IDs
+	* src/qemu/qemu_monitor.c, src/qemu/qemu_monitor.h,
+	  src/qemu/qemu_monitor_json.c, src/qemu/qemu_monitor_json.h,
+	  src/qemu/qemu_monitor_text.c, src/qemu/qemu_monitor_text.h: Add
+	  API for fetching PCI device address mapping
+
+	Properly support SCSI drive hotplug
+	The current SCSI hotplug support attaches a brand new SCSI controller
+	for every disk. This is broken because the semantics differ from those
+	used when starting the VM initially. In the latter case, each SCSI
+	controller is filled before a new one is added.
+
+	If the user specifies an high drive index (sdazz) then at initial
+	startup, many intermediate SCSI controllers may be added with no
+	drives.
+
+	This patch changes SCSI hotplug so that it exactly matches the
+	behaviour of initial startup. First the SCSI controller number is
+	determined for the drive to be hotplugged. If any controller upto
+	and including that controller number is not yet present, it is
+	attached. Then finally the drive is attached to the last controller.
+
+	NB, this breaks SCSI hotunplug, because there is no 'drive_del'
+	command in current QEMU. Previous SCSI hotunplug was broken in
+	any case because it was unplugging the entire controller, not
+	just the drive in question.
+
+	A future QEMU will allow proper SCSI hotunplug of a drive.
+
+	This patch is derived from work done by Wolfgang Mauerer on disk
+	controllers.
+
+	* src/qemu/qemu_driver.c: Fix SCSI hotplug to add a drive to
+	 the correct controller, instead of just attaching a new
+	  controller.
+	* src/qemu/qemu_monitor.c, src/qemu/qemu_monitor.h,
+	  src/qemu/qemu_monitor_json.c, src/qemu/qemu_monitor_json.h,
+	  src/qemu/qemu_monitor_text.c, src/qemu/qemu_monitor_text.h: Add
+	  support for 'drive_add' command
+
+2010-01-18  Wolfgang Mauerer  <wolfgang.mauerer@siemens.com>
+
+	Implement SCSI controller hotplug/unplug for QEMU
+	This patch allows for explicit hotplug/unplug of SCSI controllers.
+	Ordinarily this is not required, since QEMU/libvirt will attach
+	a new SCSI controller whenever one is required. Allowing explicit
+	hotplug of controllers though, enables the caller to specify a
+	static PCI address, instead of auto-assigning the next available
+	PCI slot. Or it will when we have static PCI addressing.
+
+	This patch is derived from Wolfgang Mauerer's disk controller
+	patch series.
+
+	* src/qemu/qemu_driver.c: Support hotplug & unplug of SCSI
+	  controllers
+	* src/qemu/qemu_monitor.c, src/qemu/qemu_monitor.h,
+	  src/qemu/qemu_monitor_json.c, src/qemu/qemu_monitor_json.h,
+	  src/qemu/qemu_monitor_text.c, src/qemu/qemu_monitor_text.h: Add
+	  new API for attaching PCI SCSI controllers
+
+2010-01-18  Jim Meyering  <meyering@redhat.com>
+
+	vbox_tmpl.c: remove useless array-is-non-NULL comparisons
+	* src/vbox/vbox_tmpl.c (vboxStorageVolDelete): Remove always-true
+	array-is-non-NULL test.  git grep 'key\[.*\];'|grep -F .h
+	src/datatypes.h:    char key[PATH_MAX];
+	(vboxStorageVolGetInfo): Likewise.
+	(vboxStorageVolGetXMLDesc): Likewise.
+	(vboxStorageVolGetPath): Likewise.
+	(vboxDomainDefineXML): Likewise. (but now with "mac[]")
+
+	lxc_driver: remove useless comparison
+	* src/lxc/lxc_driver.c (lxcSetupInterfaces): Remove always-true
+	array-is-non-NULL test.  git grep 'mac\[.*\];'|grep -F .h
+	src/conf/domain_conf.h:    unsigned char mac[VIR_MAC_BUFLEN];
+
+	build: update gnulib submodule to latest
+
+	gnulib added a new syntax-check test: use $(VAR), not @VAR@
+	The latter is not officially "wrong", but *is* terribly anachronistic.
+	I think automake documentation or comments call that syntax obsolescent.
+	* cfg.mk (_makefile_at_at_check_exceptions): Exempt @SCHEMADIR@
+	and @SYSCONFDIR@ uses -- there are no Makefile variables for those.
+	* docs/Makefile.am: Use $(INSTALL), not @INSTALL@.
+	* examples/dominfo/Makefile.am: Similar.
+	* examples/domsuspend/Makefile.am: Similar.
+	* proxy/Makefile.am: Similar.
+	* python/Makefile.am: Similar.
+	* python/tests/Makefile.am: Similar.
+	* src/Makefile.am: Similar.
+	* tests/Makefile.am: Similar.
+
+	storage_backend.h: include required headers
+	* src/storage/storage_backend.h: Include <stdint.h>.
+
+	esx_vi_types.c: include required headers
+	* src/esx/esx_vi_types.c: Include <stdint.h>.
+
+	vbox: include required headers
+	* src/vbox/vbox_driver.c: Include <stdint.h> <unistd.h> <sys/types.h>.
+
+	cpu_x86_data.h: include required header
+	* src/cpu/cpu_x86_data.h: Include <stdint.h>.
+
+	util.c: include required header, no longer masked by gnulib
+	Until recently, some gnulib-generated replacement headers
+	included *other* headers that were not strictly necessary,
+	thus masking the need in this file for an explicit <stdlib.h>.
+	* src/util/util.c: Include <stdlib.h> for declarations of e.g.,
+	strtol, random_r, getenv, etc.
+
+2010-01-18  Jiri Denemark  <jdenemar@redhat.com>
+
+	Use closest CPU model when decoding from CPUID
+	Current implementation of x86Decode() used for CPUID -> model+features
+	translation does not always select the closest CPU model. When walking
+	through all models from cpu_map.xml the function considers a new
+	candidate as a better choice than a previously selected candidate only
+	if the new one is a superset of the old one. In case the new candidate
+	is closer to host CPU but lacks some feature comparing to the old
+	candidate, the function does not choose well.
+
+	This patch changes the algorithm so that the closest model is always
+	selected. That is, the model which requires the lowest number of
+	additional features to describe host CPU.
+
+2010-01-18  Diego Elio Pettenò  <flameeyes@gmail.com>
+
+	Change detection of xen so that it's actually automatic rather than forced.
+	This ensures that ./configure will work fine if xen development packages
+	are not around, rather than fail. When passing ./configure --with-xen, the
+	lack of xen development packages become fatal.
+
+	Standardise ./configure --help options reporting.
+	Always use AC_HELP_STRING for the help text for options at ./configure,
+	so that the output is properly aligned.
+
+	Use proper quadrigraphs for outputting the brackets.
+
+	Always use autoconf-style [default=$foo] output to state the default, both
+	where it was stated before and where it wasn't.
+
+	This time, include Matthias Bolte notes regarding defaults, and removing
+	PFX specification from phyp.
+
+2010-01-18  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	qemu: Use log output for pty assignment if 'info chardev' is unavailable
+	qemudFindCharDevicePTYsMonitor reports an error if 'info chardev' didn't
+	provide information for a requested device, even if the log output parsing
+	had found the pty path for that device. This makes pty assignment fail for
+	older QEMU/KVM versions. For example KVM 72 on Debian doesn't support
+	'info chardev', so qemuMonitorTextGetPtyPaths cannot parse any useful
+	information and the hash for device-id-to-pty-path mapping stays empty.
+
+	Make qemudFindCharDevicePTYsMonitor report an error only if the log output
+	parsing and the 'info chardev' parsing failed to provide the pty path.
+
+	esx: Add VNC support
+	* src/conf/domain_conf.c: add defaults for the video device
+	* src/esx/esx_vmx.[ch]: add VNC support to the VMX handling
+	* tests/vmx2xmltest.c, tests/xml2vmxtest.c: add tests for the VNC support
+
+	esx: Make the domain part of the hostname optional
+	Before the driver assumed that there is always a domain part. That's
+	not true. Now the domain part is handled as optional.
+
+	esx: Add stubs for secondary driver types
+	This stops libvirt from probing for a libvirtd on the ESX server and
+	sets the base for the implementation of the secondary drivers.
+
+2010-01-18  David Jorm  <dfj@dfj.bne.redhat.com>
+
+	BZs 528709 548485
+
+2010-01-15  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	Fix validation of news.html
+
+2010-01-15  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix build of Xen proxy daemon
+	* src/conf/domain_conf.c: Allow virDomainDeviceInfoIsSet,
+	  virDomainDeviceInfoClear & virDomainDeviceInfoFormat when
+	  building Xen proxy
+
+	Remove obsolete comment in QEMU JSON code
+	* src/qemu/qemu_monitor_json.c: We fill in the PCI function number
+	   now, so remove obsolete XXX comment
+
+	Specify bus/unit instead of index for disks with QEMU
+	The current code for using -drive simply sets the -drive 'index'
+	parameter. QEMU internally converts this to bus/unit depending
+	on the type of drive. This does not give us precise control over
+	the bus/unit assignment though. This change switches over to make
+	libvirt explicitly calculate the bus/unit number.
+
+	In addition bus/unit/index are actually irrelevant for VirtIO
+	disks, since each virtio disk is a separate PCI device. No disk
+	controller is involved.
+
+	Doing the conversion to bus/unit in libvirt allows us to correctly
+	attach SCSI controllers when required.
+
+	* src/qemu/qemu_conf.c: Specify bus/unit instead of index for
+	  disks
+	* tests/qemuxml2argvdata/qemuxml2argv-disk*.args: Switch over from
+	  using index=NNNN, to bus=NN, unit=NN for SCSI/IDE/Floppy disks
+
+	Split code for building QEMU -drive arg in separate method
+	To enable it to be called from multiple locations, split out
+	the code for building the -drive arg string. This will be needed
+	by later patches which do drive hotplug, the conversion to use
+	-device, and the conversion to controller/bus/unit addressing
+
+	* src/qemu/qemu_conf.c, src/qemu/qemu_conf.h: Add qemuBuildDriveStr
+	  for building -drive arg string
+
+	Convert monitor over to use virDomainDeviceAddress
+	Convert the QEMU monitor APIs over to use virDomainDeviceAddress
+	structs for passing addresses in/out, instead of individual bits.
+	This makes the number of parameters smaller & easier to deal with.
+	No functional change
+
+	* src/qemu/qemu_driver.c, src/qemu/qemu_monitor.c,
+	  src/qemu/qemu_monitor.h, src/qemu/qemu_monitor_text.c,
+	  src/qemu/qemu_monitor_text.h: Change monitor hotplug APIs to
+	  take an explicit address ptr for all host/guest addresses
+
+2010-01-15  Jim Fehlig  <jfehlig@novell.com>
+
+	Minor fixes for API extension doc
+	Update the API Extensions doc to reflect new source directory layout.
+
+2010-01-15  Wolfgang Mauerer  <wolfgang.mauerer@siemens.com>
+
+	Add new domain device: "controller"
+	This augments virDomainDevice with a <controller> element
+	that is used to represent disk controllers (e.g., scsi
+	controllers). The XML format is given by
+
+	  <controller type="scsi" index="<num>">
+	     <address type="pci" domain="0xNUM" bus="0xNUM" slot="0xNUM"/>
+	  </controller>
+
+	where type denotes the disk interface (scsi, ide,...), index
+	is an integer that identifies the controller for association
+	with disks, and the <address> element specifies the controller
+	address on the PCI bus as described in previous commits
+	The address element can be omitted; in this case, an address
+	will be assigned automatically.
+
+	Most of the code in this patch is from Wolfgang Mauerer's
+	previous disk controller series
+
+	 * docs/schemas/domain.rng: Define syntax for <controller>
+	   XML element
+	 * src/conf/domain_conf.c, src/conf/domain_conf.h: Define
+	   virDomainControllerDef struct, and routines for parsing
+	   and formatting XML
+	* src/libvirt_private.syms: Add virDomainControllerInsert
+	   and virDomainControllerDefFree
+
+2010-01-15  Daniel P. Berrange  <berrange@redhat.com>
+
+	Set default disk controller/bus/unit props
+	When parsing the <disk> element specification, if no <address>
+	is provided for the disk, then automatically assign one based on
+	the <target dev='sdXX'/> device name. This provides for backwards
+	compatability with existing applications using libvirt, while also
+	allowing new apps to have complete fine grained control.
+
+	* src/conf/domain_conf.h, src/conf/domain_conf.c,
+	  src/libvirt_private.syms: Add virDomainDiskDefAssignAddress()
+	  for assigning a controller/bus/unit address based on disk target
+	* src/qemu/qemu_conf.c: Call virDomainDiskDefAssignAddress() after
+	  generating XML from ARGV
+	* tests/qemuxml2argvdata/*.xml: Add in drive address information
+	  to all XML files
+
+	Add address info to sound, video and watchdog devices
+	Add the virDomainDeviceAddress information to the sound, video
+	and watchdog devices. This means all of them gain the new XML
+	element
+
+	  <address .... />
+
+	This brings them upto par with disk/net/hostdev devices which
+	already have address info
+
+	* src/conf/domain_conf.h: Add virDomainDeviceAddress to sound,
+	  video & watchdog device struts.
+	* src/conf/domain_conf.c: Hook up parsing/formatting for
+	  virDomainDeviceAddress in sound, video & watchdog devices
+	* docs/schemas/domain.rng: Associate device address info
+	  with sound, video & watchdog
+
+	Extend the virDomainDeviceAddress struture to allow disk controller addresses
+	Introduce a new structure
+
+	      struct _virDomainDeviceDriveAddress {
+	        unsigned int controller;
+	        unsigned int bus;
+	        unsigned int unit;
+	      };
+
+	and plug that into virDomainDeviceAddress and generates XML that
+	looks like
+
+	  <address type='drive' controller='1' bus='0' unit='5'/>
+
+	This syntax will be used by the QEMU driver to explicitly control
+	how drives are attached to the bus
+
+	* src/conf/domain_conf.h, src/conf/domain_conf.c: Parsing and
+	  formatting of drive addresses
+	* docs/schemas/domain.rng: Define new address format for drives
+
+	Introduce a standardized data structure for device addresses
+	All guest devices now use a common device address structure
+	summarized by:
+
+	  enum virDomainDeviceAddressType {
+	    VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE,
+	    VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI,
+	  };
+
+	  struct _virDomainDevicePCIAddress {
+	    unsigned int domain;
+	    unsigned int bus;
+	    unsigned int slot;
+	    unsigned int function;
+	  };
+
+	  struct _virDomainDeviceInfo {
+	    int type;
+	    union {
+	        virDomainDevicePCIAddress pci;
+	    } addr;
+	  };
+
+	This replaces the anonymous structs in Disk/Net/Hostdev data
+	structures. Where available, the address is *always* printed
+	in the XML file, instead of being hidden in the internal state
+	file.
+
+	  <address type='pci' domain='0x0000' bus='0x1e' slot='0x07' function='0x0'/>
+
+	The structure definition is based on Wolfgang Mauerer's disk
+	controller patch series.
+
+	* docs/schemas/domain.rng: Define the <address> syntax and
+	  associate it with disk/net/hostdev devices
+	* src/conf/domain_conf.h, src/conf/domain_conf.c,
+	  src/libvirt_private.syms: APIs for parsing/formatting address
+	  information. Also remove the QEMU specific 'pci_addr' attributes
+	* src/qemu/qemu_driver.c: Replace use of 'pci_addr' attrs with
+	  new standardized format.
+
+	Make test suite output less verbose
+	Only print out '.' for each test case, full test output can be
+	re-enabled with VIR_TEST_VERBOSE=1, or VIR_TEST_DEBUG=XXXX
+
+	Sample output now looks like
+
+	  TEST: statstest
+	        ........................................ 40
+	        ...................................      75  OK
+	  PASS: statstest
+	  TEST: qparamtest
+	        ................................         32  OK
+	  PASS: qparamtest
+	  TEST:
+	        ............                             12  OK
+
+2010-01-15  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	Fix compilation of virt-aa-helper.c
+	Commit 5073aa994af460e775cb3e548528e28d7660fcc8 added an additional
+	'}' to a case block that messed up the block structure of the get_files
+	function.
+
+2010-01-15  Jim Meyering  <meyering@redhat.com>
+
+	xen: do not report a write-to-Xen-daemon failure as a read failure
+	* src/xen/xend_internal.c (wr_sync): Correct the diagnostic.
+
+2010-01-14  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	Fix linkage of virt-aa-helper to libgnu.a
+
+2010-01-14  Cole Robinson  <crobinso@redhat.com>
+
+	util: Make sure virExec hook failures are raised
+	With the introduction virDispatchError, hook function errors are
+	never sent through the error callback, so users will never see
+	these messages.
+
+	Fix this by calling virDispatchError after hook failure.
+
+2010-01-13  Cole Robinson  <crobinso@redhat.com>
+
+	Implement path lookup for USB by vendor:product
+	Based off how QEMU does it, look through /sys/bus/usb/devices/* for
+	matching vendor:product info, and if found, use info from the surrounding
+	files to build the device's /dev/bus/usb path.
+
+	This fixes USB device assignment by vendor:product when running qemu
+	as non-root (well, it should, but for some reason I couldn't reproduce
+	the failure people are seeing in [1], but it appears to work properly)
+
+	[1] https://bugzilla.redhat.com/show_bug.cgi?id=542450
+
+	daemon: Don't blindly unregister domain events
+	The daemon will attempt to unregister domain events on client disconnect,
+	even if no events were ever registered. This raises an unneeded error.
+
+	Track in the qemu_client structure if events have been registered, and
+	check this when performing cleanup.
+
+	daemon: Fix various error reporting issues
+	Many node device calls weren't properly relaying error messages, and
+	domain event registeration was not checking for error.
+
+	events: Report errors on failure
+
+	node_device: udev: Fix memory leak
+	We are setting the same property two different ways without
+	free'ing in between. Just drop the second assignment.
+
+	node_device: udev: Enumerate floppy devices
+	There are quite a few differences between how udev exposes legacy
+	and USB floppy devs, but this patch takes care of both variants.
+
+	node_device: udev: Use base 16 for product/vendor
+	udev doesn't prefix USB product/vendor info with '0x', so the
+	strtol conversions were wrong for the product field (vendor already
+	set the correct base). Make the change for PCI product/vendor as
+	well to be safe.
+
+	This fixes USB device assignment via virt-manager.
+
+	util: Remove logging handlers in virExec
+	This allows debug statements and raised errors in hook functions to
+	actually be logged somewhere (stderr). Users can enable debugging in the
+	daemon and now see more info in /var/log/libvirt/...
+
+2010-01-12  Jim Fehlig  <jfehlig@novell.com>
+
+	Fix migration in xend driver
+	Upstream xen has changed parameters to the migration operation
+	several times over the past 18 months.  Changeset 17553 removed
+	the resouce parameter,  Changesets 17709, 17753, and 20326 added
+	ssl, node, and change_home_server parameters respectively.
+
+	Fortunately, testing has revealed that xend will fail the
+	operation if a parameter is missing but happily honor it if
+	unknown parameters are provided.  Thus all currently supported
+	parameters can be provided, satisfying current xend but not
+	regressing older versions.
+
+2010-01-12  Cole Robinson  <crobinso@redhat.com>
+
+	Commit bootstrap .gitignore additions
+
+	qemu: Disable errors in qemudShutdownVMDaemon
+
+	libvirt.c: Preserve MigratePerform failure
+
+	qemu: migrate: Save MigratePerform error in MigrateFinish.
+	This way we won't squash the original error report in
+	MigratePerform, as is done for P2P and Tunneled migration.
+
+	virterror: Add virSetError
+	Can be used to re-set an old error, which may have been squashed by
+	other functions (like cleanup routines). Will be used in subsequent patches
+
+2010-01-12  Daniel P. Berrange  <berrange@redhat.com>
+
+	Ensure error handling callback functions are called from safe context
+	The virRaiseErrorFull() may invoke the error handler callback
+	functions an application has registered. This is not good
+	because the connection object may not be available at this
+	point, and the caller may be holding locks. This creates a
+	problem if the error handler calls back into libvirt.
+
+	The solutuon is to move invocation of the handler into the
+	final cleanup code in the public API entry points, where it
+	is guarenteed to have safe state.
+
+	* src/libvirt.c: Invoke virDispatchError() in all error paths
+	* src/util/virterror.c: Remove virSetConnError/virSetGlobalError,
+	  replacing with virDispatchError(). Move invocation of the
+	  error callbacks into virDispatchError() instead of the
+	  virRaiseErrorFull function which is not in a safe context
+
+	Revert 7aee22939f7f67a60e24472e5acc40b3b5b9d152
+	Revert commit 7aee22939f7f67a60e24472e5acc40b3b5b9d152 since it
+	is mistakenly adding an extra parameter to virsh that does not
+	belong there.
+
+2010-01-12  David Jorm  <dfj@dfj.bne.redhat.com>
+
+	cpu_shares parameter limit documented
+
+2010-01-11  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	Document the domain XML cache attribute for disk devices
+
+	qemu: Fix a memory leak in qemudExtractTTYPath
+	qemudWaitForMonitor calls qemudReadLogOutput with qemudFindCharDevicePTYs
+	as callback. qemudFindCharDevicePTYs calls qemudExtractTTYPath to assign
+	a string to chr->data.file.path. Afterwards qemudWaitForMonitor may call
+	qemudFindCharDevicePTYsMonitor that overwrites chr->data.file.path without
+	freeing the old value. This results in leaking the memory allocated by
+	qemudExtractTTYPath.
+
+	Report an OOM error if the strdup in qemudFindCharDevicePTYsMonitor fails.
+
+2010-01-11  Guido Günther  <agx@sigxcpu.org>
+
+	Also look for dmi information in /sys/class
+	older kernels such as 2.6.26 have it there.
+
+2010-01-11  Laine Stump  <laine@laine.org>
+
+	Fix UUID random generator to use /dev/random
+	Only use pseudo-random generator for uuid if using /dev/random fails.
+	* src/util/uuid.c: The original code. would only print the warning
+	  message if using /dev/random failed, but would still go ahead and call
+	  virUUIDGeneratePseudoRandomBytes in all cases anyway.
+
+2010-01-09  Jim Meyering  <meyering@redhat.com>
+
+	avoid another "make distcheck" failure
+	* docs/Makefile.am (uninstall-local): Separate $$f from preceding
+	dir name with a "/" and use $$(basename $$f) rather than $$f, since
+	some values of $$f are prefixed with devhelp/.
+
+	avoid newly-introduced test failure
+	* tests/qemuxml2argvdata/qemuxml2argv-hugepages.args: Update
+	expected output to match, now that we use -mem-prealloc.
+
+	proxy_internal.c: mark "request" parameter as nonnull
+	* src/xen/proxy_internal.c (xenProxyCommand): Mark "request"
+	as an always-non-NULL parameter.
+
+	don't test "res == NULL" after we've already dereferenced "res"
+	* src/xen/proxy_internal.c (xenProxyCommand): "res" is known to be
+	non-NULL at that point, so remove the "res == NULL" guard.
+
+	fix 7 "make check" test failures in non-srcdir build
+	* tests/capabilityschematest: Define and use $srcdir.
+	* tests/domainschematest: Likewise.
+	* tests/interfaceschematest: Likewise.
+	* tests/networkschematest: Likewise.
+	* tests/nodedevschematest: Likewise.
+	* tests/storagepoolschematest: Likewise.
+	* tests/storagevolschematest: Likewise.
+
+2010-01-08  Jim Meyering  <jim@meyering.net>
+
+	let "configure --disable-shared" work once again
+	Without this change, ./autogen.sh --disable-shared && make would
+	evoke a "can not build a shared library" failure for libvirtmod.la
+	due to the new use of libtool's -shared link option in
+	python/Makefile.am.  Now, --disable-shared also
+	disables building python.
+
+	* configure.in: Make --disable-shared imply --without-python and
+	silently override --with-python.
+	Improved by: Diego Elio Pettenò <flameeyes@gmail.com>
+
+2010-01-08  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	esx: Dump the raw response in case of an SOAP fault
+	Currently only the faultcode and faultstring are deserialized, the
+	detail part is ignored. The implementation of many new SOAP types
+	would be necessary to deserialize the detail part correctly. As an
+	intermediate solution the raw response is dumped to the debug log.
+
+	esx: Warn if the ESX server is in maintenance mode
+
+	Replace old CVS references with GIT
+
+2010-01-08  Daniel Veillard  <veillard@redhat.com>
+
+	Qemu: ask for memory preallocation with large pages
+	The -mem-prealloc flag should be used when using large pages
+	This ensures qemu tries to allocate all required memory immediately,
+	rather than when first used. The latter mode will crash qemu
+	if hugepages aren't available when accessed, while the former
+	should gracefully fallback to non-hugepages.
+
+	* src/qemu/qemu_conf.c: add -mem-prealloc flag to qemu command line
+	  when using large pages
+
+2010-01-07  Jim Fehlig  <jfehlig@novell.com>
+
+	xen hypervisor: xen domctl version 6
+	xen-unstable c/s 20685 changed the domctl interface, adding a field to
+	xen_domctl_getdomaininfo structure.  This additional field causes stack
+	corruption in libvirt.  xen-unstable c/s 20711 rightly bumped the domctl
+	interface version so it is at least possible to handle the new field.
+	This change accounts for shr_pages field added to xen_domctl_getdomaininfo
+	structure.
+
+2010-01-07  Jim Meyering  <meyering@redhat.com>
+
+	network/bridge_driver.c: avoid potential NULL-dereference
+	* src/network/bridge_driver.c (networkBuildDnsmasqArgv): Correct
+	test for NULL *argv.
+
+2010-01-07  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	virsh: Use VIR_FREE instead of free
+	virsh uses other parts of the internal API already, so use VIR_FREE also.
+
+	virsh: Add persistent history using libreadline
+
+	esx: Fix 'vpx' MAC address range and allow arbitrary MAC addresses
+	The MAC addresses with 00:50:56 prefix are split into several ranges:
+
+	  00:50:56:00:00:00 - 00:50:56:3f:ff:ff  'static' range (manually assigned)
+	  00:50:56:80:00:00 - 00:50:56:bf:ff:ff  'vpx' range (assigned by a VI Client)
+
+	Erroneously the 'vpx' range was assumed to be larger and to occupy the
+	remaining addresses of the 00:50:56 prefix that are not part of the 'static'
+	range.
+
+	00:50:56 was used as prefix for generated MAC addresses, this is not possible
+	anymore, because there are gaps in the allowed ranges. Therefore, change the
+	prefix to 00:0c:29 which is the prefix for auto generated MAC addresses anyway.
+
+	Allow arbitrary MAC addresses to be used and set the checkMACAddress VMX option
+	to false in case the MAC address doesn't fall into any predefined range.
+
+	* docs/drvesx.html.in: update website accordingly
+	* src/esx/esx_driver.c: set the auto generation prefix to 00:0c:29
+	* src/esx/esx_vmx.c: fix MAC address range handling and allow arbitrary MAC
+	  addresses
+	* tests/vmx2xml*, tests/xml2vmx*: add some basic MAC address range tests
+
+	esx: Fix deserialization for VI API calls CancelTask and UnregisterVM
+
+	esx: Fix and improve the libcurl debug callback
+	The data passed to the callback is not guaranteed to be zero terminated,
+	take care of that by coping the data and adding a zero terminator.
+
+	Also dump the data for other types than CURLINFO_TEXT.
+
+	Set CURLOPT_VERBOSE to 1 so the debug callback is called when enabled.
+
+	esx: Don't warn about an empty URI path
+
+	esx: Also allow virtualHW version 4 for ESX 4.0
+	A domain with virtualHW version 4 is allowed on an ESX 4.0 server.
+	If a domain is migrated from an ESX 3.5 server to an ESX 4.0 server
+	then the virtualHW version stays the same. So a ESX 4.0 server can
+	host domains with virtualHW version 4.
+
+	Don't free an uninitalized pointer in update_driver_name()
+	This invalid free results in heap corruption. Some symptoms I saw
+	because of this were libvirtd crashing and virt-manager hanging
+	while trying to enumerate devices.
+
+2010-01-06  Jim Meyering  <meyering@redhat.com>
+
+	xend_internal: don't let invalid input provoke NULL dereference
+	* src/xen/xend_internal.c (xenDaemonOpen_unix): Do not dereference
+	a NULL "conn".  Move first deref to follow the "conn == NULL" test.
+
+2010-01-06  Adam Litke  <agl@us.ibm.com>
+
+	qemu: Always enable the virtio balloon driver
+	The behavior for the qemu balloon device has changed.  Formerly, a virtio
+	balloon device was provided by default.  Now, '-balloon virtio' must be
+	specified on the command line to enable it.  This patch causes libvirt to
+	add '-balloon virtio' to the command line whenever the -balloon option is
+	available.
+	* src/qemu/qemu_conf.c src/qemu/qemu_conf.h: check for the new flag and
+	  add "-baloon vitio" to qemu command when needed
+	* tests/qemuhelptest.c: add the new flag for detection
+
+2010-01-06  David Allan  <dallan@redhat.com>
+
+	Don't update vol details after build
+	This patch removes the call to vol update after the volume build completes.
+	The update call is currently meaningless anyway because the vol build is passed
+	a copy of the definition, so the update result is thrown away.  More
+	importantly, if the user specified a selinux label for the volume, the update
+	call results in a double free of the label
+	* src/storage/storage_backend_fs.c: remove the update call
+
+2010-01-06  Diego Elio Pettenò  <flameeyes@gmail.com>
+
+	Disable building of static Python module
+	* python/Makefile.am: python modules are loaded at runtime so the static
+	  version is not needed, avoid building it
+
+2010-01-06  Matthew Booth  <mbooth@redhat.com>
+
+	Fix parsing of 'info chardev' line endings
+	This change makes the 'info chardev' parser ignore any trailing
+	whitespace on a line. This fixes a specific problem handling a '\r\n'
+	line ending.
+
+	* src/qemu/qemu_monitor_text.c: Ignore trailing whitespace in
+	  'info chardev' output.
+
+2010-01-05  Jim Meyering  <meyering@redhat.com>
+
+	vbox_tmpl.c: don't leak a domain pointer upon failure to create
+	* src/vbox/vbox_tmpl.c (vboxDomainCreateXML): "Unref" the domain
+	upon failure.  Patch by Matthias Bolte.
+
+	vbox_tmpl.c: avoid NULL deref upon vboxDomainCreateXML failure
+	* src/vbox/vbox_tmpl.c (vboxDomainCreateXML): Don't call
+	vboxDomainUndefine on a NULL "dom".
+
+	qemu_driver.c: remove useless, warning-provoking test
+	* src/qemu/qemu_driver.c (qemudDomainMigratePrepare2): Remove useless
+	test of always-non-NULL uri_out parameter.  Use ATTRIBUTE_NONNULL to
+	inform tools.
+
+	qemu_driver.c: avoid NULL dereference upon disk-op failure
+	* src/qemu/qemu_driver.c (qemudDomainAttachDevice): Call
+	virCgroupDenyDevicePath only if cgroup is non-NULL.
+
+	openvz_conf.c: don't dereference NULL upon failure
+	* src/openvz/openvz_conf.c (openvzLoadDomains): Avoid NULL deref
+	of "dom".
+
+2009-12-28  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	Distribute vmx2xml and xml2vmx test data files
+
 2009-12-23  Daniel Veillard  <veillard@redhat.com>
+
+	Release of libvirt-0.7.5
 
 	Update and regenerate localizations
 	upate of as.po bn_IN.po de.po es.po gu.po hi.po kn.po ml.po mr.po or.po

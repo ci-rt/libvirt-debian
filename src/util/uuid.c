@@ -104,9 +104,10 @@ virUUIDGenerate(unsigned char *uuid)
         VIR_WARN(_("Falling back to pseudorandom UUID,"
                    " failed to generate random bytes: %s"),
                  virStrerror(err, ebuf, sizeof ebuf));
+        err = virUUIDGeneratePseudoRandomBytes(uuid, VIR_UUID_BUFLEN);
     }
 
-    return virUUIDGeneratePseudoRandomBytes(uuid, VIR_UUID_BUFLEN);
+    return(err);
 }
 
 /* Convert C from hexadecimal character to integer.  */
@@ -145,9 +146,13 @@ virUUIDParse(const char *uuidstr, unsigned char *uuid) {
 
     /*
      * do a liberal scan allowing '-' and ' ' anywhere between character
-     * pairs as long as there is 32 of them in the end.
+     * pairs, and surrounding whitespace, as long as there are exactly
+     * 32 hexadecimal digits the end.
      */
     cur = uuidstr;
+    while (c_isspace(*cur))
+        cur++;
+
     for (i = 0;i < VIR_UUID_BUFLEN;) {
         uuid[i] = 0;
         if (*cur == 0)
@@ -167,6 +172,12 @@ virUUIDParse(const char *uuidstr, unsigned char *uuid) {
             goto error;
         uuid[i] += hextobin(*cur);
         i++;
+        cur++;
+    }
+
+    while (*cur) {
+        if (!c_isspace(*cur))
+            goto error;
         cur++;
     }
 

@@ -112,32 +112,20 @@ int qemuMonitorJSONAddUSBDeviceMatch(qemuMonitorPtr mon,
 
 
 int qemuMonitorJSONAddPCIHostDevice(qemuMonitorPtr mon,
-                                    unsigned hostDomain,
-                                    unsigned hostBus,
-                                    unsigned hostSlot,
-                                    unsigned hostFunction,
-                                    unsigned *guestDomain,
-                                    unsigned *guestBus,
-                                    unsigned *guestSlot);
+                                    virDomainDevicePCIAddress *hostAddr,
+                                    virDomainDevicePCIAddress *guestAddr);
 
 int qemuMonitorJSONAddPCIDisk(qemuMonitorPtr mon,
                               const char *path,
                               const char *bus,
-                              unsigned *guestDomain,
-                              unsigned *guestBus,
-                              unsigned *guestSlot);
+                              virDomainDevicePCIAddress *guestAddr);
 
 int qemuMonitorJSONAddPCINetwork(qemuMonitorPtr mon,
                                  const char *nicstr,
-                                 unsigned *guestDomain,
-                                 unsigned *guestBus,
-                                 unsigned *guestSlot);
+                                 virDomainDevicePCIAddress *guestAddr);
 
 int qemuMonitorJSONRemovePCIDevice(qemuMonitorPtr mon,
-                                   unsigned guestDomain,
-                                   unsigned guestBus,
-                                   unsigned guestSlot);
-
+                                   virDomainDevicePCIAddress *guestAddr);
 
 int qemuMonitorJSONSendFileHandle(qemuMonitorPtr mon,
                                   const char *fdname,
@@ -152,5 +140,26 @@ int qemuMonitorJSONAddHostNetwork(qemuMonitorPtr mon,
 int qemuMonitorJSONRemoveHostNetwork(qemuMonitorPtr mon,
                                      int vlan,
                                      const char *netname);
+
+int qemuMonitorJSONGetPtyPaths(qemuMonitorPtr mon,
+                               virHashTablePtr paths);
+
+int qemuMonitorJSONAttachPCIDiskController(qemuMonitorPtr mon,
+                                           const char *bus,
+                                           virDomainDevicePCIAddress *guestAddr);
+
+int qemuMonitorJSONAttachDrive(qemuMonitorPtr mon,
+                               const char *drivestr,
+                               virDomainDevicePCIAddress *controllerAddr,
+                               virDomainDeviceDriveAddress *driveAddr);
+
+int qemuMonitorJSONGetAllPCIAddresses(qemuMonitorPtr mon,
+                                      qemuMonitorPCIAddress **addrs);
+
+int qemuMonitorJSONAddDevice(qemuMonitorPtr mon,
+                             const char *devicestr);
+
+int qemuMonitorJSONAddDrive(qemuMonitorPtr mon,
+                            const char *drivestr);
 
 #endif /* QEMU_MONITOR_JSON_H */

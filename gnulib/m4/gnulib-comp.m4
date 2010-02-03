@@ -1,5 +1,5 @@
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# Copyright (C) 2002-2009 Free Software Foundation, Inc.
+# Copyright (C) 2002-2010 Free Software Foundation, Inc.
 #
 # This file is free software, distributed under the terms of the GNU
 # General Public License.  As a special exception to the GNU General
@@ -88,6 +88,7 @@ AC_SUBST([LTALLOCA])
         [AC_CONFIG_LINKS([$GNUmakefile:$GNUmakefile], [],
   	[GNUmakefile=$GNUmakefile])])
   gl_HOSTENT
+  AC_REQUIRE([AC_C_INLINE])
   gl_INET_NTOP
   gl_ARPA_INET_MODULE_INDICATOR([inet_ntop])
   gl_INET_PTON
@@ -376,6 +377,7 @@ AC_DEFUN([gl_FILE_LIST], [
   build-aux/mktempd
   build-aux/useless-if-before-free
   build-aux/vc-list-files
+  build-aux/warn-on-use.h
   lib/alignof.h
   lib/alloca.c
   lib/alloca.in.h
@@ -406,6 +408,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/getpass.h
   lib/gettext.h
   lib/gettimeofday.c
+  lib/ignore-value.h
   lib/inet_ntop.c
   lib/inet_pton.c
   lib/intprops.h
@@ -579,10 +582,13 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/vasnprintf.m4
   m4/vasprintf.m4
   m4/visibility.m4
+  m4/warn-on-use.m4
   m4/wchar.m4
   m4/wchar_t.m4
   m4/wint_t.m4
   m4/xsize.m4
+  tests/macros.h
+  tests/signature.h
   tests/test-alignof.c
   tests/test-alloca-opt.c
   tests/test-areadlink.c
@@ -634,6 +640,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-string.c
   tests/test-symlink.c
   tests/test-symlink.h
+  tests/test-sys_ioctl.c
   tests/test-sys_select.c
   tests/test-sys_socket.c
   tests/test-sys_stat.c

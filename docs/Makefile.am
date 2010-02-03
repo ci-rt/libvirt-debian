@@ -108,7 +108,7 @@ ChangeLog.html.in: ChangeLog.xml ChangeLog.xsl
 	@(if [ -x $(XMLLINT) -a -x $(XMLCATALOG) ] ; then \
 	  if $(XMLCATALOG) /etc/xml/catalog "-//W3C//DTD XHTML 1.0 Strict//EN" > /dev/null ; then \
 	  echo "Validating $@" ; \
-	  $(XMLLINT) --nonet --format --valid $< > $@ || : ; \
+	  $(XMLLINT) --nonet --format --valid $< > $@ || (rm $@ && exit 1) ; \
 	  else echo "missing XHTML1 DTD" ; fi ; fi );
 
 
@@ -143,7 +143,7 @@ rebuild: api all
 
 install-data-local:
 	$(mkinstalldirs) $(DESTDIR)$(HTML_DIR)
-	-@INSTALL@ -m 0644 $(srcdir)/FAQ.html \
+	-$(INSTALL) -m 0644 $(srcdir)/FAQ.html \
 	    $(srcdir)/Libxml2-Logo-90x34.gif $(DESTDIR)$(HTML_DIR)
 	$(mkinstalldirs) $(DESTDIR)$(HTML_DIR)/html
 	for h in $(apihtml); do \
@@ -152,11 +152,12 @@ install-data-local:
 	  $(INSTALL) -m 0644 $(srcdir)/$$p $(DESTDIR)$(HTML_DIR)/html; done
 	$(mkinstalldirs) $(DESTDIR)$(DEVHELP_DIR)
 	for file in $(devhelphtml) $(devhelppng) $(devhelpcss); do \
-	    @INSTALL@ -m 0644 $(srcdir)/$${file} $(DESTDIR)$(DEVHELP_DIR) ; \
+	    $(INSTALL) -m 0644 $(srcdir)/$${file} $(DESTDIR)$(DEVHELP_DIR) ; \
 	done
 
 uninstall-local:
 	for h in $(apihtml); do rm $(DESTDIR)$(HTML_DIR)/$$h; done
 	for p in $(apipng); do rm $(DESTDIR)$(HTML_DIR)/$$p; done
 	for f in $(devhelphtml) $(devhelppng) $(devhelpcss); do \
-		rm $(DESTDIR)$(DEVHELP_DIR)$$f ; done
+	  rm $(DESTDIR)$(DEVHELP_DIR)/$$(basename $$f); \
+	done

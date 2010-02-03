@@ -142,6 +142,8 @@
               </li><li>
                 <a href="#elementsResources">Basic resources</a>
               </li><li>
+                <a href="#elementsCPU">CPU model and topology</a>
+              </li><li>
                 <a href="#elementsLifecycle">Lifecycle control</a>
               </li><li>
                 <a href="#elementsFeatures">Hypervisor features</a>
@@ -373,6 +375,63 @@
         hugepages instead of the normal native page size.</dd><dt><code>vcpu</code></dt><dd>The content of this element defines the number of virtual
         CPUs allocated for the guest OS.</dd></dl>
         <h3>
+          <a name="elementsCPU" id="elementsCPU">CPU model and topology</a>
+        </h3>
+        <p>
+      Requirements for CPU model, its features and topology can be specified
+      using the following collection of elements.
+      <span class="since">Since 0.7.5</span>
+    </p>
+        <pre>
+        ...
+        &lt;cpu match='exact'&gt;
+          &lt;model&gt;core2duo&lt;/model&gt;
+          &lt;topology sockets='1' cores='2' threads='1'/&gt;
+          &lt;feature policy='disable' name='lahf_lm'/&gt;
+        &lt;/cpu&gt;
+        ...</pre>
+        <p>
+      In case no restrictions need to be put on CPU model and its features, a
+      simpler <code>cpu</code> element can be used.
+      <span class="since">Since 0.7.6</span>
+    </p>
+        <pre>
+        ...
+        &lt;cpu&gt;
+          &lt;topology sockets='1' cores='2' threads='1'/&gt;
+        &lt;/cpu&gt;
+        ...</pre>
+        <dl><dt><code>cpu</code></dt><dd>The <code>cpu</code> element is the main container for describing
+        guest CPU requirements. Its <code>match</code> attribute specified how
+        strictly has the virtual CPU provided to the guest match these
+        requirements. <span class="since">Since 0.7.6</span> the
+        <code>match</code> attribute can be omitted if <code>topology</code>
+        is the only element within <code>cpu</code>. Possible values for the
+        <code>match</code> attribute are:
+
+        <dl><dt><code>minimum</code></dt><dd>The specified CPU model and features describes the minimum
+            requested CPU.</dd><dt><code>exact</code></dt><dd>The virtual CPU provided to the guest will exactly match the
+            specification</dd><dt><code>strict</code></dt><dd>The guest will not be created unless the host CPU does exactly
+            match the specification.</dd></dl></dd><dt><code>model</code></dt><dd>The content of the <code>model</code> element specifies CPU model
+        requested by the guest. The list of available CPU models and their
+        definition can be found in <code>cpu_map.xml</code> file installed
+        in libvirt's data directory.</dd><dt><code>topology</code></dt><dd>The <code>topology</code> element specifies requested topology of
+        virtual CPU provided to the guest. Three non-zero values have to be
+        given for <code>sockets</code>, <code>cores</code>, and
+        <code>threads</code>: total number of CPU sockets, number of cores per
+        socket, and number of threads per core, respectively.</dd><dt><code>feature</code></dt><dd>The <code>cpu</code> element can contain zero or more
+        <code>elements</code> used to fine-tune features provided by the
+        selected CPU model. The list of known feature names can be found in
+        the same file as CPU models. The meaning of each <code>feature</code>
+        element depends on its <code>policy</code> attribute, which has to be
+        set to one of the following values:
+
+        <dl><dt><code>force</code></dt><dd>The virtual CPU will claim the feature is supported regardless
+            of it being supported by host CPU.</dd><dt><code>require</code></dt><dd>Guest creation will fail unless the feature is supported by host
+            CPU.</dd><dt><code>optional</code></dt><dd>The feature will be supported by virtual CPU if and only if it
+            is supported by host CPU.</dd><dt><code>disable</code></dt><dd>The feature will not be supported by virtual CPU.</dd><dt><code>forbid</code></dt><dd>Guest creation will fail if the feature is supported by host
+            CPU.</dd></dl></dd></dl>
+        <h3>
           <a name="elementsLifecycle" id="elementsLifecycle">Lifecycle control</a>
         </h3>
         <p>
@@ -476,7 +535,7 @@
         <pre>
           ...
           &lt;disk type='file'&gt;
-            &lt;driver name="tap" type="aio"&gt;
+            &lt;driver name="tap" type="aio" cache="default"&gt;
             &lt;source file='/var/lib/xen/images/fv0'/&gt;
             &lt;target dev='hda' bus='ide'/&gt;
             &lt;encryption type='...'&gt;
@@ -507,7 +566,9 @@
         "usb" attribute value since after 0.4.4</span></dd><dt><code>driver</code></dt><dd>If the hypervisor supports multiple backend drivers, then the optional
         <code>driver</code> element allows them to be selected. The <code>name</code>
         attribute is the primary backend driver name, while the optional <code>type</code>
-        attribute provides the sub-type. <span class="since">Since 0.1.8</span>
+        attribute provides the sub-type. The optional <code>cache</code> attribute
+        controls the cache mechanism, possible values are "default", "none",
+        "writethrough" and "writeback". <span class="since">Since 0.1.8</span>
       </dd><dt><code>encryption</code></dt><dd>If present, specifies how the volume is encrypted.  See
         the <a href="formatstorageencryption.html">Storage Encryption</a> page
         for more information.

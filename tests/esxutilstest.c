@@ -75,7 +75,7 @@ testDiskNameToIndex(const void *data ATTRIBUTE_UNUSED)
         k = virDiskNameToIndex(name);
 
         if (k != i) {
-            if (virtTestGetDebug() > 0) {
+            if (virTestGetDebug() > 0) {
                 fprintf(stderr, "\nExpect [%d]\n", i);
                 fprintf(stderr, "Actual [%d]\n", k);
             }
@@ -122,8 +122,7 @@ testParseDatastoreRelatedPath(const void *data ATTRIBUTE_UNUSED)
         VIR_FREE(directoryName);
         VIR_FREE(fileName);
 
-        if (esxUtil_ParseDatastoreRelatedPath(NULL,
-                                              paths[i].datastoreRelatedPath,
+        if (esxUtil_ParseDatastoreRelatedPath(paths[i].datastoreRelatedPath,
                                               &datastoreName, &directoryName,
                                               &fileName) != paths[i].result) {
             goto failure;

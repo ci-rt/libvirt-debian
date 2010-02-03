@@ -222,13 +222,8 @@ int qemuMonitorAddUSBDeviceMatch(qemuMonitorPtr mon,
 
 
 int qemuMonitorAddPCIHostDevice(qemuMonitorPtr mon,
-                                unsigned hostDomain,
-                                unsigned hostBus,
-                                unsigned hostSlot,
-                                unsigned hostFunction,
-                                unsigned *guestDomain,
-                                unsigned *guestBus,
-                                unsigned *guestSlot);
+                                virDomainDevicePCIAddress *hostAddr,
+                                virDomainDevicePCIAddress *guestAddr);
 
 /* XXX disk driver type eg,  qcow/etc.
  * XXX cache mode
@@ -236,23 +231,17 @@ int qemuMonitorAddPCIHostDevice(qemuMonitorPtr mon,
 int qemuMonitorAddPCIDisk(qemuMonitorPtr mon,
                           const char *path,
                           const char *bus,
-                          unsigned *guestDomain,
-                          unsigned *guestBus,
-                          unsigned *guestSlot);
+                          virDomainDevicePCIAddress *guestAddr);
 
 /* XXX do we really want to hardcode 'nicstr' as the
  * sendable item here
  */
 int qemuMonitorAddPCINetwork(qemuMonitorPtr mon,
                              const char *nicstr,
-                             unsigned *guestDomain,
-                             unsigned *guestBus,
-                             unsigned *guestSlot);
+                             virDomainDevicePCIAddress *guestAddr);
 
 int qemuMonitorRemovePCIDevice(qemuMonitorPtr mon,
-                               unsigned guestDomain,
-                               unsigned guestBus,
-                               unsigned guestSlot);
+                               virDomainDevicePCIAddress *guestAddr);
 
 
 int qemuMonitorSendFileHandle(qemuMonitorPtr mon,
@@ -275,5 +264,31 @@ int qemuMonitorRemoveHostNetwork(qemuMonitorPtr mon,
 
 int qemuMonitorGetPtyPaths(qemuMonitorPtr mon,
                            virHashTablePtr paths);
+
+int qemuMonitorAttachPCIDiskController(qemuMonitorPtr mon,
+                                       const char *bus,
+                                       virDomainDevicePCIAddress *guestAddr);
+
+int qemuMonitorAttachDrive(qemuMonitorPtr mon,
+                           const char *drivestr,
+                           virDomainDevicePCIAddress *controllerAddr,
+                           virDomainDeviceDriveAddress *driveAddr);
+
+
+typedef struct _qemuMonitorPCIAddress qemuMonitorPCIAddress;
+struct _qemuMonitorPCIAddress {
+    unsigned int vendor;
+    unsigned int product;
+    virDomainDevicePCIAddress addr;
+};
+
+int qemuMonitorGetAllPCIAddresses(qemuMonitorPtr mon,
+                                  qemuMonitorPCIAddress **addrs);
+
+int qemuMonitorAddDevice(qemuMonitorPtr mon,
+                         const char *devicestr);
+
+int qemuMonitorAddDrive(qemuMonitorPtr mon,
+                        const char *drivestr);
 
 #endif /* QEMU_MONITOR_H */

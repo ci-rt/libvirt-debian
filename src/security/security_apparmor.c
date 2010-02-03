@@ -258,22 +258,23 @@ get_profile_name(virConnectPtr conn, virDomainObjPtr vm)
 static int
 use_apparmor(void)
 {
-    char libvirt_daemon[PATH_MAX];
     int rc = -1;
-    ssize_t len = 0;
+    char *libvirt_daemon = NULL;
 
-    if ((len = readlink("/proc/self/exe", libvirt_daemon,
-                        PATH_MAX - 1)) < 0) {
+    if (virFileResolveLink("/proc/self/exe", &libvirt_daemon) < 0) {
         virSecurityReportError(NULL, VIR_ERR_INTERNAL_ERROR,
                                "%s", _("could not find libvirtd"));
         return rc;
     }
-    libvirt_daemon[len] = '\0';
 
     if (access(APPARMOR_PROFILES_PATH, R_OK) != 0)
-        return rc;
+        goto cleanup;
 
-    return profile_status(libvirt_daemon, 1);
+    rc = profile_status(libvirt_daemon, 1);
+
+cleanup:
+    VIR_FREE(libvirt_daemon);
+    return rc;
 }
 
 /* Called on libvirtd startup to see if AppArmor is available */
@@ -327,6 +328,9 @@ AppArmorGenSecurityLabel(virConnectPtr conn, virDomainObjPtr vm)
     int rc = -1;
     char *profile_name = NULL;
 
+    if (vm->def->seclabel.type == VIR_DOMAIN_SECLABEL_STATIC)
+        return 0;
+
     if ((vm->def->seclabel.label) ||
         (vm->def->seclabel.model) || (vm->def->seclabel.imagelabel)) {
         virSecurityReportError(conn, VIR_ERR_INTERNAL_ERROR,
@@ -337,16 +341,6 @@ AppArmorGenSecurityLabel(virConnectPtr conn, virDomainObjPtr vm)
 
     if ((profile_name = get_profile_name(conn, vm)) == NULL)
         return rc;
-
-    /* if the profile is not already loaded, then load one */
-    if (profile_loaded(profile_name) < 0) {
-        if (load_profile(conn, profile_name, vm, NULL) < 0) {
-            virSecurityReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                   _("cannot generate AppArmor profile "
-                                   "\'%s\'"), profile_name);
-            goto clean;
-        }
-    }
 
     vm->def->seclabel.label = strndup(profile_name, strlen(profile_name));
     if (!vm->def->seclabel.label) {
@@ -372,7 +366,6 @@ AppArmorGenSecurityLabel(virConnectPtr conn, virDomainObjPtr vm)
     goto clean;
 
   err:
-    remove_profile(profile_name);
     VIR_FREE(vm->def->seclabel.label);
     VIR_FREE(vm->def->seclabel.imagelabel);
     VIR_FREE(vm->def->seclabel.model);
@@ -383,12 +376,31 @@ AppArmorGenSecurityLabel(virConnectPtr conn, virDomainObjPtr vm)
     return rc;
 }
 
+static int
+AppArmorSetSecurityAllLabel(virConnectPtr conn, virDomainObjPtr vm)
+{
+    if (vm->def->seclabel.type == VIR_DOMAIN_SECLABEL_STATIC)
+        return 0;
+
+    /* if the profile is not already loaded, then load one */
+    if (profile_loaded(vm->def->seclabel.label) < 0) {
+        if (load_profile(conn, vm->def->seclabel.label, vm, NULL) < 0) {
+            virSecurityReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                                   _("cannot generate AppArmor profile "
+                                   "\'%s\'"), vm->def->seclabel.label);
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
 /* Seen with 'virsh dominfo <vm>'. This function only called if the VM is
  * running.
  */
 static int
-AppArmorGetSecurityLabel(virConnectPtr conn,
-                         virDomainObjPtr vm, virSecurityLabelPtr sec)
+AppArmorGetSecurityProcessLabel(virConnectPtr conn,
+                                virDomainObjPtr vm, virSecurityLabelPtr sec)
 {
     int rc = -1;
     char *profile_name = NULL;
@@ -420,20 +432,30 @@ AppArmorGetSecurityLabel(virConnectPtr conn,
  * more details. Currently called via qemudShutdownVMDaemon.
  */
 static int
-AppArmorRestoreSecurityLabel(virConnectPtr conn, virDomainObjPtr vm)
+AppArmorReleaseSecurityLabel(virConnectPtr conn ATTRIBUTE_UNUSED, virDomainObjPtr vm)
+{
+    const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
+
+    VIR_FREE(secdef->model);
+    VIR_FREE(secdef->label);
+    VIR_FREE(secdef->imagelabel);
+
+    return 0;
+}
+
+
+static int
+AppArmorRestoreSecurityAllLabel(virConnectPtr conn, virDomainObjPtr vm)
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
     int rc = 0;
 
-    if (secdef->imagelabel) {
+    if (secdef->type == VIR_DOMAIN_SECLABEL_DYNAMIC) {
         if ((rc = remove_profile(secdef->label)) != 0) {
             virSecurityReportError(conn, VIR_ERR_INTERNAL_ERROR,
                                    _("could not remove profile for \'%s\'"),
                                    secdef->label);
         }
-        VIR_FREE(secdef->model);
-        VIR_FREE(secdef->label);
-        VIR_FREE(secdef->imagelabel);
     }
     return rc;
 }
@@ -442,8 +464,8 @@ AppArmorRestoreSecurityLabel(virConnectPtr conn, virDomainObjPtr vm)
  * LOCAL_STATE_DIR/log/libvirt/qemu/<vm name>.log
  */
 static int
-AppArmorSetSecurityLabel(virConnectPtr conn,
-                         virSecurityDriverPtr drv, virDomainObjPtr vm)
+AppArmorSetSecurityProcessLabel(virConnectPtr conn,
+                                virSecurityDriverPtr drv, virDomainObjPtr vm)
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
     int rc = -1;
@@ -486,21 +508,23 @@ AppArmorRestoreSecurityImageLabel(virConnectPtr conn,
     int rc = -1;
     char *profile_name = NULL;
 
-    if (secdef->imagelabel) {
-        if ((profile_name = get_profile_name(conn, vm)) == NULL)
-            return rc;
+    if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
+        return 0;
 
-        /* Update the profile only if it is loaded */
-        if (profile_loaded(secdef->imagelabel) >= 0) {
-            if (load_profile(conn, secdef->imagelabel, vm, NULL) < 0) {
-                virSecurityReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                       _("cannot update AppArmor profile "
-                                       "\'%s\'"),
-                                       secdef->imagelabel);
-                goto clean;
-            }
+    if ((profile_name = get_profile_name(conn, vm)) == NULL)
+        return rc;
+
+    /* Update the profile only if it is loaded */
+    if (profile_loaded(secdef->imagelabel) >= 0) {
+        if (load_profile(conn, secdef->imagelabel, vm, NULL) < 0) {
+            virSecurityReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                                   _("cannot update AppArmor profile "
+                                     "\'%s\'"),
+                                   secdef->imagelabel);
+            goto clean;
         }
     }
+
     rc = 0;
   clean:
     VIR_FREE(profile_name);
@@ -516,6 +540,9 @@ AppArmorSetSecurityImageLabel(virConnectPtr conn,
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
     int rc = -1;
     char *profile_name;
+
+    if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
+        return 0;
 
     if (!disk->src)
         return 0;
@@ -576,19 +603,29 @@ AppArmorReserveSecurityLabel(virConnectPtr conn ATTRIBUTE_UNUSED,
 
 static int
 AppArmorSetSecurityHostdevLabel(virConnectPtr conn ATTRIBUTE_UNUSED,
-                                virDomainObjPtr vm ATTRIBUTE_UNUSED,
+                                virDomainObjPtr vm,
                                 virDomainHostdevDefPtr dev ATTRIBUTE_UNUSED)
 
 {
+    const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
+
+    if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
+        return 0;
+
     /* TODO: call load_profile with an update vm->def */
     return 0;
 }
 
 static int
 AppArmorRestoreSecurityHostdevLabel(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                    virDomainObjPtr vm,
                                     virDomainHostdevDefPtr dev ATTRIBUTE_UNUSED)
 
 {
+    const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
+    if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
+        return 0;
+
     /* TODO: call load_profile (needs virDomainObjPtr vm) */
     return 0;
 }
@@ -602,9 +639,11 @@ virSecurityDriver virAppArmorSecurityDriver = {
     .domainRestoreSecurityImageLabel = AppArmorRestoreSecurityImageLabel,
     .domainGenSecurityLabel = AppArmorGenSecurityLabel,
     .domainReserveSecurityLabel = AppArmorReserveSecurityLabel,
-    .domainGetSecurityLabel = AppArmorGetSecurityLabel,
-    .domainRestoreSecurityLabel = AppArmorRestoreSecurityLabel,
-    .domainSetSecurityLabel = AppArmorSetSecurityLabel,
+    .domainReleaseSecurityLabel = AppArmorReleaseSecurityLabel,
+    .domainGetSecurityProcessLabel = AppArmorGetSecurityProcessLabel,
+    .domainSetSecurityProcessLabel = AppArmorSetSecurityProcessLabel,
+    .domainRestoreSecurityAllLabel = AppArmorRestoreSecurityAllLabel,
+    .domainSetSecurityAllLabel = AppArmorSetSecurityAllLabel,
     .domainSetSecurityHostdevLabel = AppArmorSetSecurityHostdevLabel,
     .domainRestoreSecurityHostdevLabel = AppArmorRestoreSecurityHostdevLabel,
 };

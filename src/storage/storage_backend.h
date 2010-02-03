@@ -1,7 +1,7 @@
 /*
  * storage_backend.h: internal storage driver backend contract
  *
- * Copyright (C) 2007-2008 Red Hat, Inc.
+ * Copyright (C) 2007-2010 Red Hat, Inc.
  * Copyright (C) 2007-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -24,6 +24,7 @@
 #ifndef __VIR_STORAGE_BACKEND_H__
 #define __VIR_STORAGE_BACKEND_H__
 
+#include <stdint.h>
 #include "internal.h"
 #include "storage_conf.h"
 
@@ -34,14 +35,18 @@ typedef int (*virStorageBackendRefreshPool)(virConnectPtr conn, virStoragePoolOb
 typedef int (*virStorageBackendStopPool)(virConnectPtr conn, virStoragePoolObjPtr pool);
 typedef int (*virStorageBackendDeletePool)(virConnectPtr conn, virStoragePoolObjPtr pool, unsigned int flags);
 
-typedef int (*virStorageBackendBuildVol)(virConnectPtr conn, virStorageVolDefPtr vol);
+typedef int (*virStorageBackendBuildVol)(virConnectPtr conn,
+                                         virStoragePoolObjPtr pool, virStorageVolDefPtr vol);
 typedef int (*virStorageBackendCreateVol)(virConnectPtr conn, virStoragePoolObjPtr pool, virStorageVolDefPtr vol);
 typedef int (*virStorageBackendRefreshVol)(virConnectPtr conn, virStoragePoolObjPtr pool, virStorageVolDefPtr vol);
 typedef int (*virStorageBackendDeleteVol)(virConnectPtr conn, virStoragePoolObjPtr pool, virStorageVolDefPtr vol, unsigned int flags);
-typedef int (*virStorageBackendBuildVolFrom)(virConnectPtr conn, virStorageVolDefPtr origvol, virStorageVolDefPtr newvol, unsigned int flags);
+typedef int (*virStorageBackendBuildVolFrom)(virConnectPtr conn, virStoragePoolObjPtr pool,
+                                             virStorageVolDefPtr origvol, virStorageVolDefPtr newvol,
+                                             unsigned int flags);
 
 /* File creation/cloning functions used for cloning between backends */
 int virStorageBackendCreateRaw(virConnectPtr conn,
+                               virStoragePoolObjPtr pool,
                                virStorageVolDefPtr vol,
                                virStorageVolDefPtr inputvol,
                                unsigned int flags);

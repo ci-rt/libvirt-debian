@@ -1,7 +1,7 @@
 /*
  * cpu_x86.c: CPU driver for CPUs with x86 compatible CPUID instruction
  *
- * Copyright (C) 2009 Red Hat, Inc.
+ * Copyright (C) 2009-2010 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -235,6 +235,55 @@ x86DataFromModel(const struct x86_model *model)
     }
 
     return data;
+}
+
+
+static virCPUDefPtr
+x86DataToCPU(const union cpuData *data,
+             const struct x86_model *model,
+             const struct x86_map *map)
+{
+    virCPUDefPtr cpu;
+    union cpuData *tmp = NULL;
+    struct cpuX86cpuid *cpuid;
+    const struct x86_feature *feature;
+    int i;
+
+    if (VIR_ALLOC(cpu) < 0 ||
+        (cpu->model = strdup(model->name)) == NULL ||
+        (tmp = x86DataCopy(data)) == NULL)
+        goto no_memory;
+
+    for (i = 0; i < model->ncpuid; i++) {
+        x86cpuidClearBits(x86DataCpuid(tmp, model->cpuid[i].function),
+                          model->cpuid + i);
+    }
+
+    feature = map->features;
+    while (feature != NULL) {
+        for (i = 0; i < feature->ncpuid; i++) {
+            if ((cpuid = x86DataCpuid(tmp, feature->cpuid[i].function))
+                && x86cpuidMatchMasked(cpuid, feature->cpuid + i)) {
+                x86cpuidClearBits(cpuid, feature->cpuid + i);
+                if (virCPUDefAddFeature(NULL, cpu, feature->name,
+                                        VIR_CPU_FEATURE_REQUIRE) < 0)
+                    goto error;
+            }
+        }
+
+        feature = feature->next;
+    }
+
+cleanup:
+    x86DataFree(tmp);
+    return cpu;
+
+no_memory:
+    virReportOOMError(NULL);
+error:
+    virCPUDefFree(cpu);
+    cpu = NULL;
+    goto cleanup;
 }
 
 
@@ -755,8 +804,10 @@ x86Compute(virCPUDefPtr host,
             }
         }
 
-        if (!found)
+        if (!found) {
+            VIR_DEBUG("CPU arch %s does not match host arch", cpu->arch);
             return VIR_CPU_COMPARE_INCOMPATIBLE;
+        }
     }
 
     if ((map = x86LoadMap()) == NULL)
@@ -780,11 +831,14 @@ x86Compute(virCPUDefPtr host,
     if (!(cpu_forbid = x86ModelFromCPU(cpu, map, VIR_CPU_FEATURE_FORBID)))
         goto error;
 
+    x86ModelSubtract(cpu_require, cpu_disable);
+
     if ((diff = x86ModelCopy(host_model)) == NULL)
         goto no_memory;
 
     x86ModelSubtract(diff, cpu_require);
     x86ModelSubtract(diff, cpu_optional);
+    x86ModelSubtract(diff, cpu_force);
 
     for (i = 0; i < cpu_forbid->ncpuid; i++) {
         const struct cpuX86cpuid *cpuid1;
@@ -796,6 +850,8 @@ x86Compute(virCPUDefPtr host,
                               cpuid1->function);
 
         if (cpuid2 != NULL && x86cpuidMatchAny(cpuid2, cpuid1)) {
+            VIR_DEBUG("Host CPU provides forbidden features in CPUID function 0x%x",
+                      cpuid1->function);
             ret = VIR_CPU_COMPARE_INCOMPATIBLE;
             goto out;
         }
@@ -803,6 +859,7 @@ x86Compute(virCPUDefPtr host,
 
     result = x86ModelCompare(host_model, cpu_require);
     if (result == SUBSET || result == UNRELATED) {
+        VIR_DEBUG0("Host CPU does not provide all required features");
         ret = VIR_CPU_COMPARE_INCOMPATIBLE;
         goto out;
     }
@@ -819,6 +876,7 @@ x86Compute(virCPUDefPtr host,
     if (ret == VIR_CPU_COMPARE_SUPERSET
         && cpu->type == VIR_CPU_TYPE_GUEST
         && cpu->match == VIR_CPU_MATCH_STRICT) {
+        VIR_DEBUG0("Host CPU does not strictly match guest CPU");
         ret = VIR_CPU_COMPARE_INCOMPATIBLE;
         goto out;
     }
@@ -887,10 +945,9 @@ x86Decode(virCPUDefPtr cpu,
 {
     int ret = -1;
     struct x86_map *map;
-    const struct x86_feature *feature;
-    const struct x86_model *model = NULL;
     const struct x86_model *candidate;
-    union cpuData *tmp = NULL;
+    virCPUDefPtr cpuCandidate;
+    virCPUDefPtr cpuModel = NULL;
     struct cpuX86cpuid *cpuid;
     int i;
 
@@ -899,6 +956,8 @@ x86Decode(virCPUDefPtr cpu,
 
     candidate = map->models;
     while (candidate != NULL) {
+        bool allowed = (models == NULL);
+
         for (i = 0; i < candidate->ncpuid; i++) {
             cpuid = x86DataCpuid(data, candidate->cpuid[i].function);
             if (cpuid == NULL
@@ -906,65 +965,49 @@ x86Decode(virCPUDefPtr cpu,
                 goto next;
         }
 
-        if (model == NULL
-            || x86ModelCompare(model, candidate) == SUBSET) {
-            bool found = false;
-            for (i = 0; i < nmodels; i++) {
-                if (STREQ(models[i], candidate->name)) {
-                    found = true;
-                    break;
-                }
+        for (i = 0; i < nmodels; i++) {
+            if (STREQ(models[i], candidate->name)) {
+                allowed = true;
+                break;
             }
-
-            if (nmodels > 0 && !found) {
-                VIR_DEBUG("CPU model %s not allowed by hypervisor; ignoring",
-                          candidate->name);
-            }
-            else
-                model = candidate;
         }
+
+        if (!allowed) {
+            VIR_DEBUG("CPU model %s not allowed by hypervisor; ignoring",
+                      candidate->name);
+            goto next;
+        }
+
+        if (!(cpuCandidate = x86DataToCPU(data, candidate, map)))
+            goto out;
+
+        if (cpuModel == NULL
+            || cpuModel->nfeatures > cpuCandidate->nfeatures) {
+            virCPUDefFree(cpuModel);
+            cpuModel = cpuCandidate;
+        } else
+            virCPUDefFree(cpuCandidate);
 
     next:
         candidate = candidate->next;
     }
 
-    if (model == NULL) {
+    if (cpuModel == NULL) {
         virCPUReportError(NULL, VIR_ERR_INTERNAL_ERROR,
                 "%s", _("Cannot find suitable CPU model for given data"));
         goto out;
     }
 
-    if ((cpu->model = strdup(model->name)) == NULL
-        || (tmp = x86DataCopy(data)) == NULL) {
-        virReportOOMError(NULL);
-        goto out;
-    }
-
-    for (i = 0; i < model->ncpuid; i++) {
-        x86cpuidClearBits(x86DataCpuid(tmp, model->cpuid[i].function),
-                          model->cpuid + i);
-    }
-
-    feature = map->features;
-    while (feature != NULL) {
-        for (i = 0; i < feature->ncpuid; i++) {
-            if ((cpuid = x86DataCpuid(tmp, feature->cpuid[i].function))
-                && x86cpuidMatchMasked(cpuid, feature->cpuid + i)) {
-                x86cpuidClearBits(cpuid, feature->cpuid + i);
-                if (virCPUDefAddFeature(NULL, cpu, feature->name,
-                                        VIR_CPU_FEATURE_REQUIRE) < 0)
-                    goto out;
-            }
-        }
-
-        feature = feature->next;
-    }
+    cpu->model = cpuModel->model;
+    cpu->nfeatures = cpuModel->nfeatures;
+    cpu->features = cpuModel->features;
+    VIR_FREE(cpuModel);
 
     ret = 0;
 
 out:
-    x86DataFree(tmp);
     x86MapFree(map);
+    virCPUDefFree(cpuModel);
 
     return ret;
 }

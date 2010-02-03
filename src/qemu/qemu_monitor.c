@@ -1117,33 +1117,18 @@ int qemuMonitorAddUSBDeviceMatch(qemuMonitorPtr mon,
 
 
 int qemuMonitorAddPCIHostDevice(qemuMonitorPtr mon,
-                                unsigned hostDomain,
-                                unsigned hostBus,
-                                unsigned hostSlot,
-                                unsigned hostFunction,
-                                unsigned *guestDomain,
-                                unsigned *guestBus,
-                                unsigned *guestSlot)
+                                virDomainDevicePCIAddress *hostAddr,
+                                virDomainDevicePCIAddress *guestAddr)
 {
     int ret;
     DEBUG("mon=%p, fd=%d domain=%d bus=%d slot=%d function=%d",
           mon, mon->fd,
-          hostDomain, hostBus, hostSlot, hostFunction);
+          hostAddr->domain, hostAddr->bus, hostAddr->slot, hostAddr->function);
 
     if (mon->json)
-        ret = qemuMonitorJSONAddPCIHostDevice(mon, hostDomain,
-                                              hostBus, hostSlot,
-                                              hostFunction,
-                                              guestDomain,
-                                              guestBus,
-                                              guestSlot);
+        ret = qemuMonitorJSONAddPCIHostDevice(mon, hostAddr, guestAddr);
     else
-        ret = qemuMonitorTextAddPCIHostDevice(mon, hostDomain,
-                                              hostBus, hostSlot,
-                                              hostFunction,
-                                              guestDomain,
-                                              guestBus,
-                                              guestSlot);
+        ret = qemuMonitorTextAddPCIHostDevice(mon, hostAddr, guestAddr);
     return ret;
 }
 
@@ -1151,58 +1136,47 @@ int qemuMonitorAddPCIHostDevice(qemuMonitorPtr mon,
 int qemuMonitorAddPCIDisk(qemuMonitorPtr mon,
                           const char *path,
                           const char *bus,
-                          unsigned *guestDomain,
-                          unsigned *guestBus,
-                          unsigned *guestSlot)
+                          virDomainDevicePCIAddress *guestAddr)
 {
     int ret;
     DEBUG("mon=%p, fd=%d path=%s bus=%s",
           mon, mon->fd, path, bus);
 
     if (mon->json)
-        ret = qemuMonitorJSONAddPCIDisk(mon, path, bus,
-                                        guestDomain, guestBus, guestSlot);
+        ret = qemuMonitorJSONAddPCIDisk(mon, path, bus, guestAddr);
     else
-        ret = qemuMonitorTextAddPCIDisk(mon, path, bus,
-                                        guestDomain, guestBus, guestSlot);
+        ret = qemuMonitorTextAddPCIDisk(mon, path, bus, guestAddr);
     return ret;
 }
 
 
 int qemuMonitorAddPCINetwork(qemuMonitorPtr mon,
                              const char *nicstr,
-                             unsigned *guestDomain,
-                             unsigned *guestBus,
-                             unsigned *guestSlot)
+                             virDomainDevicePCIAddress *guestAddr)
 {
     int ret;
     DEBUG("mon=%p, fd=%d nicstr=%s", mon, mon->fd, nicstr);
 
     if (mon->json)
-        ret = qemuMonitorJSONAddPCINetwork(mon, nicstr, guestDomain,
-                                           guestBus, guestSlot);
+        ret = qemuMonitorJSONAddPCINetwork(mon, nicstr, guestAddr);
     else
-        ret = qemuMonitorTextAddPCINetwork(mon, nicstr, guestDomain,
-                                           guestBus, guestSlot);
+        ret = qemuMonitorTextAddPCINetwork(mon, nicstr, guestAddr);
     return ret;
 }
 
 
 int qemuMonitorRemovePCIDevice(qemuMonitorPtr mon,
-                               unsigned guestDomain,
-                               unsigned guestBus,
-                               unsigned guestSlot)
+                               virDomainDevicePCIAddress *guestAddr)
 {
     int ret;
-    DEBUG("mon=%p, fd=%d domain=%d bus=%d slot=%d",
-          mon, mon->fd, guestDomain, guestBus, guestSlot);
+    DEBUG("mon=%p, fd=%d domain=%d bus=%d slot=%d function=%d",
+          mon, mon->fd, guestAddr->domain, guestAddr->bus,
+          guestAddr->slot, guestAddr->function);
 
     if (mon->json)
-        ret = qemuMonitorJSONRemovePCIDevice(mon, guestDomain,
-                                             guestBus, guestSlot);
+        ret = qemuMonitorJSONRemovePCIDevice(mon, guestAddr);
     else
-        ret = qemuMonitorTextRemovePCIDevice(mon, guestDomain,
-                                             guestBus, guestSlot);
+        ret = qemuMonitorTextRemovePCIDevice(mon, guestAddr);
     return ret;
 }
 
@@ -1271,8 +1245,89 @@ int qemuMonitorRemoveHostNetwork(qemuMonitorPtr mon,
 int qemuMonitorGetPtyPaths(qemuMonitorPtr mon,
                            virHashTablePtr paths)
 {
+    int ret;
     DEBUG("mon=%p, fd=%d",
           mon, mon->fd);
 
-    return qemuMonitorTextGetPtyPaths(mon, paths);
+    if (mon->json)
+        ret = qemuMonitorJSONGetPtyPaths(mon, paths);
+    else
+        ret = qemuMonitorTextGetPtyPaths(mon, paths);
+    return ret;
+}
+
+
+int qemuMonitorAttachPCIDiskController(qemuMonitorPtr mon,
+                                       const char *bus,
+                                       virDomainDevicePCIAddress *guestAddr)
+{
+    DEBUG("mon=%p, fd=%d type=%s", mon, mon->fd, bus);
+    int ret;
+
+    if (mon->json)
+        ret = qemuMonitorJSONAttachPCIDiskController(mon, bus, guestAddr);
+    else
+        ret = qemuMonitorTextAttachPCIDiskController(mon, bus, guestAddr);
+
+    return ret;
+}
+
+
+int qemuMonitorAttachDrive(qemuMonitorPtr mon,
+                           const char *drivestr,
+                           virDomainDevicePCIAddress *controllerAddr,
+                           virDomainDeviceDriveAddress *driveAddr)
+{
+    DEBUG("mon=%p, fd=%d drivestr=%s domain=%d bus=%d slot=%d function=%d",
+          mon, mon->fd, drivestr,
+          controllerAddr->domain, controllerAddr->bus,
+          controllerAddr->slot, controllerAddr->function);
+    int ret;
+
+    if (mon->json)
+        ret = qemuMonitorJSONAttachDrive(mon, drivestr, controllerAddr, driveAddr);
+    else
+        ret = qemuMonitorTextAttachDrive(mon, drivestr, controllerAddr, driveAddr);
+
+    return ret;
+}
+
+int qemuMonitorGetAllPCIAddresses(qemuMonitorPtr mon,
+                                  qemuMonitorPCIAddress **addrs)
+{
+    DEBUG("mon=%p, fd=%d addrs=%p", mon, mon->fd, addrs);
+    int ret;
+
+    if (mon->json)
+        ret = qemuMonitorJSONGetAllPCIAddresses(mon, addrs);
+    else
+        ret = qemuMonitorTextGetAllPCIAddresses(mon, addrs);
+    return ret;
+}
+
+
+int qemuMonitorAddDevice(qemuMonitorPtr mon,
+                         const char *devicestr)
+{
+    DEBUG("mon=%p, fd=%d device=%s", mon, mon->fd, devicestr);
+    int ret;
+
+    if (mon->json)
+        ret = qemuMonitorJSONAddDevice(mon, devicestr);
+    else
+        ret = qemuMonitorTextAddDevice(mon, devicestr);
+    return ret;
+}
+
+int qemuMonitorAddDrive(qemuMonitorPtr mon,
+                        const char *drivestr)
+{
+    DEBUG("mon=%p, fd=%d drive=%s", mon, mon->fd, drivestr);
+    int ret;
+
+    if (mon->json)
+        ret = qemuMonitorJSONAddDrive(mon, drivestr);
+    else
+        ret = qemuMonitorTextAddDrive(mon, drivestr);
+    return ret;
 }
