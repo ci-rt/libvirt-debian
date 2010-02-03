@@ -1,6 +1,6 @@
 /* Test the getaddrinfo module.
 
-   Copyright (C) 2006-2009 Free Software Foundation, Inc.
+   Copyright (C) 2006-2010 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -18,7 +18,15 @@
 /* Written by Simon Josefsson.  */
 
 #include <config.h>
+
 #include <netdb.h>
+
+#include "signature.h"
+SIGNATURE_CHECK (freeaddrinfo, void, (struct addrinfo *));
+SIGNATURE_CHECK (gai_strerror, char const *, (int));
+SIGNATURE_CHECK (getaddrinfo, int, (char const *, char const *,
+                                    struct addrinfo const *,
+                                    struct addrinfo **));
 
 #include <arpa/inet.h>
 #include <errno.h>

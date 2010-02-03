@@ -165,6 +165,9 @@ SELinuxGenSecurityLabel(virConnectPtr conn,
     int c1 = 0;
     int c2 = 0;
 
+    if (vm->def->seclabel.type == VIR_DOMAIN_SECLABEL_STATIC)
+        return 0;
+
     if (vm->def->seclabel.label ||
         vm->def->seclabel.model ||
         vm->def->seclabel.imagelabel) {
@@ -225,6 +228,9 @@ SELinuxReserveSecurityLabel(virConnectPtr conn,
     context_t ctx = NULL;
     const char *mcs;
 
+    if (vm->def->seclabel.type == VIR_DOMAIN_SECLABEL_STATIC)
+        return 0;
+
     if (getpidcon(vm->pid, &pctx) == -1) {
         virReportSystemError(conn, errno,
                              _("unable to get PID %d security context"), vm->pid);
@@ -271,9 +277,9 @@ SELinuxSecurityDriverOpen(virConnectPtr conn, virSecurityDriverPtr drv)
 }
 
 static int
-SELinuxGetSecurityLabel(virConnectPtr conn,
-                        virDomainObjPtr vm,
-                        virSecurityLabelPtr sec)
+SELinuxGetSecurityProcessLabel(virConnectPtr conn,
+                               virDomainObjPtr vm,
+                               virSecurityLabelPtr sec)
 {
     security_context_t ctx;
 
@@ -376,9 +382,14 @@ err:
 
 static int
 SELinuxRestoreSecurityImageLabel(virConnectPtr conn,
-                                 virDomainObjPtr vm ATTRIBUTE_UNUSED,
+                                 virDomainObjPtr vm,
                                  virDomainDiskDefPtr disk)
 {
+    const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
+
+    if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
+        return 0;
+
     /* Don't restore labels on readoly/shared disks, because
      * other VMs may still be accessing these
      * Alternatively we could iterate over all running
@@ -404,6 +415,9 @@ SELinuxSetSecurityImageLabel(virConnectPtr conn,
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
     const char *path;
+
+    if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
+        return 0;
 
     if (!disk->src)
         return 0;
@@ -474,27 +488,28 @@ SELinuxSetSecurityHostdevLabel(virConnectPtr conn,
                                virDomainHostdevDefPtr dev)
 
 {
+    const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
     int ret = -1;
+
+    if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
+        return 0;
 
     if (dev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
         return 0;
 
     switch (dev->source.subsys.type) {
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB: {
-        if (dev->source.subsys.u.usb.bus && dev->source.subsys.u.usb.device) {
-            usbDevice *usb = usbGetDevice(conn,
-                                          dev->source.subsys.u.usb.bus,
-                                          dev->source.subsys.u.usb.device);
+        usbDevice *usb = usbGetDevice(conn,
+                                      dev->source.subsys.u.usb.bus,
+                                      dev->source.subsys.u.usb.device,
+                                      dev->source.subsys.u.usb.vendor,
+                                      dev->source.subsys.u.usb.product);
 
-            if (!usb)
-                goto done;
+        if (!usb)
+            goto done;
 
-            ret = usbDeviceFileIterate(conn, usb, SELinuxSetSecurityUSBLabel, vm);
-            usbFreeDevice(conn, usb);
-        } else {
-            /* XXX deal with product/vendor better */
-            ret = 0;
-        }
+        ret = usbDeviceFileIterate(conn, usb, SELinuxSetSecurityUSBLabel, vm);
+        usbFreeDevice(conn, usb);
         break;
     }
 
@@ -544,10 +559,15 @@ SELinuxRestoreSecurityUSBLabel(virConnectPtr conn,
 
 static int
 SELinuxRestoreSecurityHostdevLabel(virConnectPtr conn,
+                                   virDomainObjPtr vm,
                                    virDomainHostdevDefPtr dev)
 
 {
+    const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
     int ret = -1;
+
+    if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
+        return 0;
 
     if (dev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
         return 0;
@@ -556,7 +576,9 @@ SELinuxRestoreSecurityHostdevLabel(virConnectPtr conn,
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB: {
         usbDevice *usb = usbGetDevice(conn,
                                       dev->source.subsys.u.usb.bus,
-                                      dev->source.subsys.u.usb.device);
+                                      dev->source.subsys.u.usb.device,
+                                      dev->source.subsys.u.usb.vendor,
+                                      dev->source.subsys.u.usb.product);
 
         if (!usb)
             goto done;
@@ -593,8 +615,8 @@ done:
 }
 
 static int
-SELinuxRestoreSecurityLabel(virConnectPtr conn,
-                            virDomainObjPtr vm)
+SELinuxRestoreSecurityAllLabel(virConnectPtr conn,
+                               virDomainObjPtr vm)
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
     int i;
@@ -602,26 +624,42 @@ SELinuxRestoreSecurityLabel(virConnectPtr conn,
 
     VIR_DEBUG("Restoring security label on %s", vm->def->name);
 
-    if (secdef->imagelabel) {
-        for (i = 0 ; i < vm->def->nhostdevs ; i++) {
-            if (SELinuxRestoreSecurityHostdevLabel(conn, vm->def->hostdevs[i]) < 0)
-                rc = -1;
-        }
-        for (i = 0 ; i < vm->def->ndisks ; i++) {
-            if (SELinuxRestoreSecurityImageLabel(conn, vm,
-                                                 vm->def->disks[i]) < 0)
-                rc = -1;
-        }
-        VIR_FREE(secdef->model);
-        VIR_FREE(secdef->label);
-        context_t con = context_new(secdef->imagelabel);
-        if (con) {
-            mcsRemove(context_range_get(con));
-            context_free(con);
-        }
-        VIR_FREE(secdef->imagelabel);
+    if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
+        return 0;
+
+    for (i = 0 ; i < vm->def->nhostdevs ; i++) {
+        if (SELinuxRestoreSecurityHostdevLabel(conn, vm, vm->def->hostdevs[i]) < 0)
+            rc = -1;
     }
+    for (i = 0 ; i < vm->def->ndisks ; i++) {
+        if (SELinuxRestoreSecurityImageLabel(conn, vm,
+                                             vm->def->disks[i]) < 0)
+            rc = -1;
+    }
+
     return rc;
+}
+
+static int
+SELinuxReleaseSecurityLabel(virConnectPtr conn ATTRIBUTE_UNUSED,
+                            virDomainObjPtr vm)
+{
+    const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
+
+    if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
+        return 0;
+
+    context_t con = context_new(secdef->label);
+    if (con) {
+        mcsRemove(context_range_get(con));
+        context_free(con);
+    }
+
+    VIR_FREE(secdef->model);
+    VIR_FREE(secdef->label);
+    VIR_FREE(secdef->imagelabel);
+
+    return 0;
 }
 
 
@@ -632,14 +670,23 @@ SELinuxSetSavedStateLabel(virConnectPtr conn,
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
 
+    if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
+        return 0;
+
     return SELinuxSetFilecon(conn, savefile, secdef->imagelabel);
 }
 
 
 static int
 SELinuxRestoreSavedStateLabel(virConnectPtr conn,
+                              virDomainObjPtr vm,
                               const char *savefile)
 {
+    const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
+
+    if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
+        return 0;
+
     return SELinuxRestoreSecurityFileLabel(conn, savefile);
 }
 
@@ -659,13 +706,15 @@ SELinuxSecurityVerify(virConnectPtr conn, virDomainDefPtr def)
 }
 
 static int
-SELinuxSetSecurityLabel(virConnectPtr conn,
-                        virSecurityDriverPtr drv,
-                        virDomainObjPtr vm)
+SELinuxSetSecurityProcessLabel(virConnectPtr conn,
+                               virSecurityDriverPtr drv,
+                               virDomainObjPtr vm)
 {
     /* TODO: verify DOI */
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
-    int i;
+
+    if (vm->def->seclabel.label == NULL)
+        return 0;
 
     if (!STREQ(drv->name, secdef->model)) {
         virSecurityReportError(conn, VIR_ERR_INTERNAL_ERROR,
@@ -685,18 +734,32 @@ SELinuxSetSecurityLabel(virConnectPtr conn,
             return -1;
     }
 
-    if (secdef->imagelabel) {
-        for (i = 0 ; i < vm->def->ndisks ; i++) {
-            /* XXX fixme - we need to recursively label the entriy tree :-( */
-            if (vm->def->disks[i]->type == VIR_DOMAIN_DISK_TYPE_DIR)
-                continue;
-            if (SELinuxSetSecurityImageLabel(conn, vm, vm->def->disks[i]) < 0)
-                return -1;
+    return 0;
+}
+
+static int
+SELinuxSetSecurityAllLabel(virConnectPtr conn,
+                           virDomainObjPtr vm)
+{
+    const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
+    int i;
+
+    if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
+        return 0;
+
+    for (i = 0 ; i < vm->def->ndisks ; i++) {
+        /* XXX fixme - we need to recursively label the entire tree :-( */
+        if (vm->def->disks[i]->type == VIR_DOMAIN_DISK_TYPE_DIR) {
+            VIR_WARN("Unable to relabel directory tree %s for disk %s",
+                     vm->def->disks[i]->src, vm->def->disks[i]->dst);
+            continue;
         }
-        for (i = 0 ; i < vm->def->nhostdevs ; i++) {
-            if (SELinuxSetSecurityHostdevLabel(conn, vm, vm->def->hostdevs[i]) < 0)
-                return -1;
-        }
+        if (SELinuxSetSecurityImageLabel(conn, vm, vm->def->disks[i]) < 0)
+            return -1;
+    }
+    for (i = 0 ; i < vm->def->nhostdevs ; i++) {
+        if (SELinuxSetSecurityHostdevLabel(conn, vm, vm->def->hostdevs[i]) < 0)
+            return -1;
     }
 
     return 0;
@@ -711,9 +774,11 @@ virSecurityDriver virSELinuxSecurityDriver = {
     .domainRestoreSecurityImageLabel = SELinuxRestoreSecurityImageLabel,
     .domainGenSecurityLabel     = SELinuxGenSecurityLabel,
     .domainReserveSecurityLabel     = SELinuxReserveSecurityLabel,
-    .domainGetSecurityLabel     = SELinuxGetSecurityLabel,
-    .domainRestoreSecurityLabel = SELinuxRestoreSecurityLabel,
-    .domainSetSecurityLabel     = SELinuxSetSecurityLabel,
+    .domainReleaseSecurityLabel     = SELinuxReleaseSecurityLabel,
+    .domainGetSecurityProcessLabel     = SELinuxGetSecurityProcessLabel,
+    .domainSetSecurityProcessLabel     = SELinuxSetSecurityProcessLabel,
+    .domainRestoreSecurityAllLabel = SELinuxRestoreSecurityAllLabel,
+    .domainSetSecurityAllLabel     = SELinuxSetSecurityAllLabel,
     .domainSetSecurityHostdevLabel = SELinuxSetSecurityHostdevLabel,
     .domainRestoreSecurityHostdevLabel = SELinuxRestoreSecurityHostdevLabel,
     .domainSetSavedStateLabel = SELinuxSetSavedStateLabel,

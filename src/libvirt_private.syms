@@ -129,6 +129,9 @@ virDomainDiskDefFree;
 virDomainDiskDeviceTypeToString;
 virDomainDiskInsert;
 virDomainDiskInsertPreAlloced;
+virDomainDiskDefAssignAddress;
+virDomainControllerInsert;
+virDomainControllerInsertPreAlloced;
 virDomainFindByID;
 virDomainFindByName;
 virDomainFindByUUID;
@@ -174,6 +177,17 @@ virDomainObjListInit;
 virDomainObjListDeinit;
 virDomainObjRef;
 virDomainObjUnref;
+virDomainDevicePCIAddressEqual;
+virDomainDeviceAddressIsValid;
+virDomainDevicePCIAddressIsValid;
+virDomainDeviceInfoIsSet;
+virDomainControllerTypeToString;
+virDomainControllerDefFree;
+virDomainDeviceAddressTypeToString;
+virDomainDefAddDiskControllers;
+virDomainDefClearPCIAddresses;
+virDomainDefClearDeviceAliases;
+virDomainDeviceInfoIterate;
 
 
 # domain_event.h
@@ -352,6 +366,8 @@ virLogParseOutputs;
 virLogStartup;
 virLogShutdown;
 virLogReset;
+virLogLock;
+virLogUnlock;
 
 
 # memory.h
@@ -424,6 +440,7 @@ pciGetDevice;
 pciFreeDevice;
 pciDettachDevice;
 pciReAttachDevice;
+pciWaitForDeviceCleanup;
 pciResetDevice;
 pciDeviceSetManaged;
 pciDeviceGetManaged;
@@ -435,6 +452,7 @@ pciDeviceFileIterate;
 pciDeviceListCount;
 pciDeviceListGet;
 pciDeviceListSteal;
+pciDeviceIsAssignable;
 
 
 # processinfo.h
@@ -593,6 +611,7 @@ virRaiseErrorFull;
 virReportSystemErrorFull;
 virReportOOMErrorFull;
 virStrerror;
+virSetError;
 
 
 # xml.h

@@ -35,14 +35,14 @@ testCompareFiles(const char *vmx, const char *xml, esxVI_APIVersion apiVersion)
         goto failure;
     }
 
-    def = esxVMX_ParseConfig(NULL, NULL, vmxData, "datastore", "directory",
+    def = esxVMX_ParseConfig(NULL, vmxData, "datastore", "directory",
                              apiVersion);
 
     if (def == NULL) {
         goto failure;
     }
 
-    formatted = virDomainDefFormat(NULL, def, 0);
+    formatted = virDomainDefFormat(NULL, def, VIR_DOMAIN_XML_SECURE);
 
     if (formatted == NULL) {
         goto failure;
@@ -120,6 +120,8 @@ mymain(int argc, char **argv)
     DO_TEST("minimal", "minimal", esxVI_APIVersion_25);
     DO_TEST("minimal-64bit", "minimal-64bit", esxVI_APIVersion_25);
 
+    DO_TEST("graphics-vnc", "graphics-vnc", esxVI_APIVersion_25);
+
     DO_TEST("scsi-buslogic", "scsi-buslogic", esxVI_APIVersion_25);
     DO_TEST("scsi-writethrough", "scsi-writethrough", esxVI_APIVersion_25);
 
@@ -138,6 +140,11 @@ mymain(int argc, char **argv)
 
     DO_TEST("ethernet-custom", "ethernet-custom", esxVI_APIVersion_25);
     DO_TEST("ethernet-bridged", "ethernet-bridged", esxVI_APIVersion_25);
+
+    DO_TEST("ethernet-generated", "ethernet-generated", esxVI_APIVersion_25);
+    DO_TEST("ethernet-static", "ethernet-static", esxVI_APIVersion_25);
+    DO_TEST("ethernet-vpx", "ethernet-vpx", esxVI_APIVersion_25);
+    DO_TEST("ethernet-other", "ethernet-other", esxVI_APIVersion_25);
 
     DO_TEST("serial-file", "serial-file", esxVI_APIVersion_25);
     DO_TEST("serial-device", "serial-device", esxVI_APIVersion_25);

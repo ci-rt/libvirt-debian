@@ -14,7 +14,7 @@
         __func__, __LINE__)
 #define DEBUG(fmt, ...) printf("%s:%d: " fmt "\n", \
         __func__, __LINE__, __VA_ARGS__)
-#define STREQ(a,b) (strcmp((a),(b)) == 0)
+#define STREQ(a,b) (strcmp(a,b) == 0)
 
 #ifndef ATTRIBUTE_UNUSED
 #define ATTRIBUTE_UNUSED __attribute__((__unused__))
@@ -335,9 +335,10 @@ int main(int argc, char **argv)
 
             sts = poll(&pfd, 1, TIMEOUT_MS);
 
-            /* We are assuming timeout of 0 here - so execute every time */
-            if(t_cb && t_active)
+            /* if t_timeout < 0 then t_cb must not be called */
+            if (t_cb && t_active && t_timeout >= 0) {
                 t_cb(t_timeout,t_opaque);
+            }
 
             if (sts == 0) {
                 /* DEBUG0("Poll timeout"); */

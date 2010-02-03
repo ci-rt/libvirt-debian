@@ -1,5 +1,5 @@
 /* Stub for symlink().
-   Copyright (C) 2009 Free Software Foundation, Inc.
+   Copyright (C) 2009, 2010 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -47,8 +47,8 @@ rpl_symlink (char const *contents, char const *name)
 
 /* The system does not support symlinks.  */
 int
-symlink (char const *contents _UNUSED_PARAMETER_,
-         char const *name _UNUSED_PARAMETER_)
+symlink (char const *contents _GL_UNUSED,
+         char const *name _GL_UNUSED)
 {
   errno = ENOSYS;
   return -1;

@@ -990,8 +990,6 @@ cleanup:
 
 static virDomainPtr vboxDomainCreateXML(virConnectPtr conn, const char *xml,
                                         unsigned int flags ATTRIBUTE_UNUSED) {
-    virDomainPtr dom = NULL;
-
     /* VirtualBox currently doesn't have support for running
      * virtual machines without actually defining them and thus
      * for time being just define new machine and start it.
@@ -1000,19 +998,17 @@ static virDomainPtr vboxDomainCreateXML(virConnectPtr conn, const char *xml,
      * change this behaviour to the expected one.
      */
 
-    dom = vboxDomainDefineXML(conn, xml);
-    if (dom) {
-        if (vboxDomainCreate(dom) < 0)
-            goto cleanup;
-    } else {
-        goto cleanup;
+    virDomainPtr dom = vboxDomainDefineXML(conn, xml);
+    if (dom == NULL)
+        return NULL;
+
+    if (vboxDomainCreate(dom) < 0) {
+        vboxDomainUndefine(dom);
+        virUnrefDomain(dom);
+        return NULL;
     }
 
     return dom;
-
-cleanup:
-    vboxDomainUndefine(dom);
-    return NULL;
 }
 
 static virDomainPtr vboxDomainLookupByID(virConnectPtr conn, int id) {
@@ -4088,9 +4084,7 @@ static virDomainPtr vboxDomainDefineXML(virConnectPtr conn, const char *xml) {
                 }
 
                 VBOX_UTF8_TO_UTF16(macaddrvbox, &MACAddress);
-                if (def->nets[i]->mac) {
-                    adapter->vtbl->SetMACAddress(adapter, MACAddress);
-                }
+                adapter->vtbl->SetMACAddress(adapter, MACAddress);
                 VBOX_UTF16_FREE(MACAddress);
             }
         }
@@ -6649,9 +6643,6 @@ static int vboxStorageVolDelete(virStorageVolPtr vol,
     int i = 0;
     int j = 0;
 
-    if (!vol->key)
-        return ret;
-
     vboxUtf8toIID(vol->conn, vol->key, &hddIID);
     if (!hddIID)
         return ret;
@@ -6778,8 +6769,7 @@ static int vboxStorageVolGetInfo(virStorageVolPtr vol, virStorageVolInfoPtr info
     vboxIID   *hddIID    = NULL;
     nsresult rc;
 
-    if (   !vol->key
-        || !info)
+    if (!info)
         return ret;
 
     vboxUtf8toIID(vol->conn, vol->key, &hddIID);
@@ -6827,9 +6817,6 @@ static char *vboxStorageVolGetXMLDesc(virStorageVolPtr vol, unsigned int flags A
     virStorageVolDef def;
     int defOk = 0;
     nsresult rc;
-
-    if (!vol->key)
-        return ret;
 
     memset(&pool, 0, sizeof(pool));
     memset(&def, 0, sizeof(def));
@@ -6922,9 +6909,6 @@ static char *vboxStorageVolGetPath(virStorageVolPtr vol) {
     IHardDisk *hardDisk  = NULL;
     vboxIID   *hddIID    = NULL;
     nsresult rc;
-
-    if (!vol->key)
-        return ret;
 
     vboxUtf8toIID(vol->conn, vol->key, &hddIID);
     if (!hddIID)

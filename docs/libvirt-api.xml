@@ -1088,11 +1088,11 @@ the application.]]></info>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
     </function>
     <function name='virConnectCompareCPU' file='libvirt' module='libvirt'>
-      <info><![CDATA[]]></info>
+      <info><![CDATA[Compares the given CPU description with the host CPU]]></info>
       <return type='int' info='comparison result according to enum virCPUCompareResult'/>
       <arg name='conn' type='virConnectPtr' info='virConnect connection'/>
-      <arg name='xmlDesc' type='const char *' info=''/>
-      <arg name='flags' type='unsigned int' info=''/>
+      <arg name='xmlDesc' type='const char *' info='XML describing the CPU to compare with host CPU'/>
+      <arg name='flags' type='unsigned int' info='currently unused, pass 0'/>
     </function>
     <functype name='virConnectDomainEventCallback' file='libvirt' module='libvirt'>
       <info><![CDATA[A callback function to be registered, and called when a domain event occurs]]></info>

@@ -1,6 +1,6 @@
 /* A GNU-like <string.h>.
 
-   Copyright (C) 1995-1996, 2001-2009 Free Software Foundation, Inc.
+   Copyright (C) 1995-1996, 2001-2010 Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as published by
@@ -30,6 +30,11 @@
 
 /* NetBSD 5.0 mis-defines NULL.  */
 #include <stddef.h>
+
+/* MirBSD defines mbslen as a macro.  */
+#if @GNULIB_MBSLEN@ && defined __MirBSD__
+# include <wchar.h>
+#endif
 
 #ifndef __attribute__
 /* This feature is available in gcc versions 2.5 and later.  */
@@ -439,6 +444,12 @@ extern char *strtok_r (char *restrict s, char const *restrict delim,
 #if @GNULIB_MBSLEN@
 /* Return the number of multibyte characters in the character string STRING.
    This considers multibyte characters, unlike strlen, which counts bytes.  */
+# ifdef __MirBSD__  /* MirBSD defines mbslen as a macro.  Override it.  */
+#  undef mbslen
+# endif
+# if @HAVE_MBSLEN@  /* AIX, OSF/1, MirBSD define mbslen already in libc.  */
+#  define mbslen rpl_mbslen
+# endif
 extern size_t mbslen (const char *string) _GL_ARG_NONNULL ((1));
 #endif
 

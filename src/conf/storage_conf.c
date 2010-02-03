@@ -1,7 +1,7 @@
 /*
  * storage_conf.c: config handling for storage driver
  *
- * Copyright (C) 2006-2009 Red Hat, Inc.
+ * Copyright (C) 2006-2010 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -106,11 +106,12 @@ struct _virStorageVolOptions {
 
 /* Flags to indicate mandatory components in the pool source */
 enum {
-    VIR_STORAGE_POOL_SOURCE_HOST    = (1<<0),
-    VIR_STORAGE_POOL_SOURCE_DEVICE  = (1<<1),
-    VIR_STORAGE_POOL_SOURCE_DIR     = (1<<2),
-    VIR_STORAGE_POOL_SOURCE_ADAPTER = (1<<3),
-    VIR_STORAGE_POOL_SOURCE_NAME    = (1<<4),
+    VIR_STORAGE_POOL_SOURCE_HOST            = (1<<0),
+    VIR_STORAGE_POOL_SOURCE_DEVICE          = (1<<1),
+    VIR_STORAGE_POOL_SOURCE_DIR             = (1<<2),
+    VIR_STORAGE_POOL_SOURCE_ADAPTER         = (1<<3),
+    VIR_STORAGE_POOL_SOURCE_NAME            = (1<<4),
+    VIR_STORAGE_POOL_SOURCE_INITIATOR_IQN   = (1<<5),
 };
 
 
@@ -179,7 +180,8 @@ static virStoragePoolTypeInfo poolTypeInfo[] = {
     { .poolType = VIR_STORAGE_POOL_ISCSI,
       .poolOptions = {
             .flags = (VIR_STORAGE_POOL_SOURCE_HOST |
-                      VIR_STORAGE_POOL_SOURCE_DEVICE),
+                      VIR_STORAGE_POOL_SOURCE_DEVICE |
+                      VIR_STORAGE_POOL_SOURCE_INITIATOR_IQN),
         },
       .volOptions = {
             .formatToString = virStoragePoolFormatDiskTypeToString,
@@ -283,6 +285,7 @@ virStoragePoolSourceFree(virStoragePoolSourcePtr source) {
     VIR_FREE(source->dir);
     VIR_FREE(source->name);
     VIR_FREE(source->adapter);
+    VIR_FREE(source->initiator.iqn);
 
     if (source->authType == VIR_STORAGE_POOL_AUTH_CHAP) {
         VIR_FREE(source->auth.chap.login);
@@ -421,6 +424,8 @@ virStoragePoolDefParseSource(virConnectPtr conn,
     }
 
     source->host.name = virXPathString(conn, "string(./host/@name)", ctxt);
+    source->initiator.iqn = virXPathString(conn,
+                                       "string(./initiator/iqn/@name)", ctxt);
 
     nsource = virXPathNodeSet(conn, "./device", ctxt, &nodeset);
     if (nsource > 0) {
@@ -1688,11 +1693,6 @@ virStoragePoolSourceListNewSource(virConnectPtr conn,
                                   virStoragePoolSourceListPtr list)
 {
     virStoragePoolSourcePtr source;
-
-    if (VIR_ALLOC(source) < 0) {
-        virReportOOMError(conn);
-        return NULL;
-    }
 
     if (VIR_REALLOC_N(list->sources, list->nsources+1) < 0) {
         virReportOOMError(conn);

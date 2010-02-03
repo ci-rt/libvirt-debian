@@ -1,5 +1,5 @@
 /* Tests of stat.
-   Copyright (C) 2009 Free Software Foundation, Inc.
+   Copyright (C) 2009, 2010 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -20,27 +20,22 @@
 
 #include <sys/stat.h>
 
+/* Caution: stat may be a function-like macro.  Although this
+   signature check must pass, it may be the signature of the real (and
+   broken) stat rather than rpl_stat.  Most code should not use the
+   address of stat.  */
+#include "signature.h"
+SIGNATURE_CHECK (stat, int, (char const *, struct stat *));
+
 #include <fcntl.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 
 #include "pathmax.h"
 #include "same-inode.h"
-
-#define ASSERT(expr) \
-  do                                                                         \
-    {                                                                        \
-      if (!(expr))                                                           \
-        {                                                                    \
-          fprintf (stderr, "%s:%d: assertion failed\n", __FILE__, __LINE__);  \
-          fflush (stderr);                                                   \
-          abort ();                                                          \
-        }                                                                    \
-    }                                                                        \
-  while (0)
+#include "macros.h"
 
 #define BASE "test-stat.t"
 

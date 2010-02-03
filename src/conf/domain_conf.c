@@ -1,7 +1,7 @@
 /*
  * domain_conf.c: domain XML processing
  *
- * Copyright (C) 2006-2009 Red Hat, Inc.
+ * Copyright (C) 2006-2010 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -86,7 +86,13 @@ VIR_ENUM_IMPL(virDomainDevice, VIR_DOMAIN_DEVICE_LAST,
               "sound",
               "video",
               "hostdev",
-              "watchdog")
+              "watchdog",
+              "controller")
+
+VIR_ENUM_IMPL(virDomainDeviceAddress, VIR_DOMAIN_DEVICE_ADDRESS_TYPE_LAST,
+              "none",
+              "pci",
+              "drive");
 
 VIR_ENUM_IMPL(virDomainDisk, VIR_DOMAIN_DISK_TYPE_LAST,
               "block",
@@ -113,6 +119,12 @@ VIR_ENUM_IMPL(virDomainDiskCache, VIR_DOMAIN_DISK_CACHE_LAST,
               "none",
               "writethrough",
               "writeback")
+
+VIR_ENUM_IMPL(virDomainController, VIR_DOMAIN_CONTROLLER_TYPE_LAST,
+              "ide",
+              "fdc",
+              "scsi",
+              "sata")
 
 VIR_ENUM_IMPL(virDomainFS, VIR_DOMAIN_FS_TYPE_LAST,
               "mount",
@@ -343,6 +355,7 @@ void virDomainInputDefFree(virDomainInputDefPtr def)
     if (!def)
         return;
 
+    virDomainDeviceInfoClear(&def->info);
     VIR_FREE(def);
 }
 
@@ -357,6 +370,17 @@ void virDomainDiskDefFree(virDomainDiskDefPtr def)
     VIR_FREE(def->driverName);
     VIR_FREE(def->driverType);
     virStorageEncryptionFree(def->encryption);
+    virDomainDeviceInfoClear(&def->info);
+
+    VIR_FREE(def);
+}
+
+void virDomainControllerDefFree(virDomainControllerDefPtr def)
+{
+    if (!def)
+        return;
+
+    virDomainDeviceInfoClear(&def->info);
 
     VIR_FREE(def);
 }
@@ -368,6 +392,7 @@ void virDomainFSDefFree(virDomainFSDefPtr def)
 
     VIR_FREE(def->src);
     VIR_FREE(def->dst);
+    virDomainDeviceInfoClear(&def->info);
 
     VIR_FREE(def);
 }
@@ -408,8 +433,9 @@ void virDomainNetDefFree(virDomainNetDefPtr def)
     }
 
     VIR_FREE(def->ifname);
-    VIR_FREE(def->nic_name);
-    VIR_FREE(def->hostnet_name);
+
+    virDomainDeviceInfoClear(&def->info);
+
     VIR_FREE(def);
 }
 
@@ -449,6 +475,8 @@ void virDomainChrDefFree(virDomainChrDefPtr def)
         break;
     }
 
+    virDomainDeviceInfoClear(&def->info);
+
     VIR_FREE(def);
 }
 
@@ -456,6 +484,8 @@ void virDomainSoundDefFree(virDomainSoundDefPtr def)
 {
     if (!def)
         return;
+
+    virDomainDeviceInfoClear(&def->info);
 
     VIR_FREE(def);
 }
@@ -465,6 +495,8 @@ void virDomainWatchdogDefFree(virDomainWatchdogDefPtr def)
     if (!def)
         return;
 
+    virDomainDeviceInfoClear(&def->info);
+
     VIR_FREE(def);
 }
 
@@ -472,6 +504,8 @@ void virDomainVideoDefFree(virDomainVideoDefPtr def)
 {
     if (!def)
         return;
+
+    virDomainDeviceInfoClear(&def->info);
 
     VIR_FREE(def->accel);
     VIR_FREE(def);
@@ -483,6 +517,7 @@ void virDomainHostdevDefFree(virDomainHostdevDefPtr def)
         return;
 
     VIR_FREE(def->target);
+    virDomainDeviceInfoClear(&def->info);
     VIR_FREE(def);
 }
 
@@ -512,6 +547,9 @@ void virDomainDeviceDefFree(virDomainDeviceDefPtr def)
         break;
     case VIR_DOMAIN_DEVICE_WATCHDOG:
         virDomainWatchdogDefFree(def->data.watchdog);
+        break;
+    case VIR_DOMAIN_DEVICE_CONTROLLER:
+        virDomainControllerDefFree(def->data.controller);
         break;
     }
 
@@ -545,6 +583,10 @@ void virDomainDefFree(virDomainDefPtr def)
     for (i = 0 ; i < def->ndisks ; i++)
         virDomainDiskDefFree(def->disks[i]);
     VIR_FREE(def->disks);
+
+    for (i = 0 ; i < def->ncontrollers ; i++)
+        virDomainControllerDefFree(def->controllers[i]);
+    VIR_FREE(def->controllers);
 
     for (i = 0 ; i < def->nfss ; i++)
         virDomainFSDefFree(def->fss[i]);
@@ -731,6 +773,444 @@ void virDomainRemoveInactive(virDomainObjListPtr doms,
 }
 
 
+int virDomainDeviceAddressIsValid(virDomainDeviceInfoPtr info,
+                                  int type)
+{
+    if (info->type != type)
+        return 0;
+
+    switch (info->type) {
+    case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI:
+        return virDomainDevicePCIAddressIsValid(&info->addr.pci);
+
+    case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE:
+        return virDomainDeviceDriveAddressIsValid(&info->addr.drive);
+    }
+
+    return 0;
+}
+
+
+int virDomainDevicePCIAddressIsValid(virDomainDevicePCIAddressPtr addr)
+{
+    return addr->domain || addr->bus || addr->slot;
+}
+
+
+int virDomainDeviceDriveAddressIsValid(virDomainDeviceDriveAddressPtr addr ATTRIBUTE_UNUSED)
+{
+    /*return addr->controller || addr->bus || addr->unit;*/
+    return 1; /* 0 is valid for all fields, so any successfully parsed addr is valid */
+}
+#endif /* !PROXY */
+
+
+int virDomainDeviceInfoIsSet(virDomainDeviceInfoPtr info)
+{
+    if (info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
+        return 1;
+    if (info->alias)
+        return 1;
+    return 0;
+}
+
+
+void virDomainDeviceInfoClear(virDomainDeviceInfoPtr info)
+{
+    VIR_FREE(info->alias);
+    memset(&info->addr, 0, sizeof(info->addr));
+    info->type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE;
+}
+
+
+static int virDomainDeviceInfoClearAlias(virDomainDefPtr def ATTRIBUTE_UNUSED,
+                                         virDomainDeviceInfoPtr info,
+                                         void *opaque ATTRIBUTE_UNUSED)
+{
+    VIR_FREE(info->alias);
+    return 0;
+}
+
+static int virDomainDeviceInfoClearPCIAddress(virDomainDefPtr def ATTRIBUTE_UNUSED,
+                                              virDomainDeviceInfoPtr info,
+                                              void *opaque ATTRIBUTE_UNUSED)
+{
+    if (info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
+        memset(&info->addr, 0, sizeof(info->addr));
+        info->type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE;
+    }
+    return 0;
+}
+
+int virDomainDeviceInfoIterate(virDomainDefPtr def,
+                               virDomainDeviceInfoCallback cb,
+                               void *opaque)
+{
+    int i;
+
+    for (i = 0; i < def->ndisks ; i++)
+        if (cb(def, &def->disks[i]->info, opaque) < 0)
+            return -1;
+    for (i = 0; i < def->nnets ; i++)
+        if (cb(def, &def->nets[i]->info, opaque) < 0)
+            return -1;
+    for (i = 0; i < def->nsounds ; i++)
+        if (cb(def, &def->sounds[i]->info, opaque) < 0)
+            return -1;
+    for (i = 0; i < def->nhostdevs ; i++)
+        if (cb(def, &def->hostdevs[i]->info, opaque) < 0)
+            return -1;
+    for (i = 0; i < def->nvideos ; i++)
+        if (cb(def, &def->videos[i]->info, opaque) < 0)
+            return -1;
+    for (i = 0; i < def->ncontrollers ; i++)
+        if (cb(def, &def->controllers[i]->info, opaque) < 0)
+            return -1;
+    for (i = 0; i < def->nserials ; i++)
+        if (cb(def, &def->serials[i]->info, opaque) < 0)
+            return -1;
+    for (i = 0; i < def->nparallels ; i++)
+        if (cb(def, &def->parallels[i]->info, opaque) < 0)
+            return -1;
+    for (i = 0; i < def->nchannels ; i++)
+        if (cb(def, &def->channels[i]->info, opaque) < 0)
+            return -1;
+    for (i = 0; i < def->ninputs ; i++)
+        if (cb(def, &def->inputs[i]->info, opaque) < 0)
+            return -1;
+    for (i = 0; i < def->nfss ; i++)
+        if (cb(def, &def->fss[i]->info, opaque) < 0)
+            return -1;
+    if (def->watchdog)
+        if (cb(def, &def->watchdog->info, opaque) < 0)
+            return -1;
+    if (def->console)
+        if (cb(def, &def->console->info, opaque) < 0)
+            return -1;
+    return 0;
+}
+
+
+void virDomainDefClearPCIAddresses(virDomainDefPtr def)
+{
+    virDomainDeviceInfoIterate(def, virDomainDeviceInfoClearPCIAddress, NULL);
+}
+
+void virDomainDefClearDeviceAliases(virDomainDefPtr def)
+{
+    virDomainDeviceInfoIterate(def, virDomainDeviceInfoClearAlias, NULL);
+}
+
+
+/* Generate a string representation of a device address
+ * @param address Device address to stringify
+ */
+static int virDomainDeviceInfoFormat(virBufferPtr buf,
+                                     virDomainDeviceInfoPtr info,
+                                     int flags)
+{
+    if (!info) {
+        virDomainReportError(NULL, VIR_ERR_INTERNAL_ERROR, "%s",
+                             _("missing device information"));
+        return -1;
+    }
+
+    if (info->alias &&
+        !(flags & VIR_DOMAIN_XML_INACTIVE)) {
+        virBufferVSprintf(buf, "      <alias name='%s'/>\n", info->alias);
+    }
+
+    if (info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
+        return 0;
+
+    /* We'll be in domain/devices/[device type]/ so 3 level indent */
+    virBufferVSprintf(buf, "      <address type='%s'",
+                      virDomainDeviceAddressTypeToString(info->type));
+
+    switch (info->type) {
+    case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI:
+        virBufferVSprintf(buf, " domain='0x%.4x' bus='0x%.2x' slot='0x%.2x' function='0x%.1x'",
+                          info->addr.pci.domain,
+                          info->addr.pci.bus,
+                          info->addr.pci.slot,
+                          info->addr.pci.function);
+        break;
+
+    case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE:
+        virBufferVSprintf(buf, " controller='%d' bus='%d' unit='%d'",
+                          info->addr.drive.controller,
+                          info->addr.drive.bus,
+                          info->addr.drive.unit);
+        break;
+
+    default:
+        virDomainReportError(NULL, VIR_ERR_INTERNAL_ERROR,
+                             _("unknown address type '%d'"), info->type);
+        return -1;
+    }
+
+    virBufferAddLit(buf, "/>\n");
+
+    return 0;
+}
+
+
+#ifndef PROXY
+
+int virDomainDevicePCIAddressEqual(virDomainDevicePCIAddressPtr a,
+                                   virDomainDevicePCIAddressPtr b)
+{
+    if (a->domain == b->domain &&
+        a->bus    == b->bus &&
+        a->slot   == b->slot &&
+        a->function == b->function)
+        return 1;
+
+    return 0;
+}
+
+
+int virDomainDeviceDriveAddressEqual(virDomainDeviceDriveAddressPtr a,
+                                     virDomainDeviceDriveAddressPtr b)
+{
+    if (a->controller == b->controller &&
+        a->bus == b->bus &&
+        a->unit == b->unit)
+        return 1;
+
+    return 0;
+}
+
+
+static int
+virDomainDevicePCIAddressParseXML(virConnectPtr conn,
+                                  xmlNodePtr node,
+                                  virDomainDevicePCIAddressPtr addr)
+{
+    char *domain, *slot, *bus, *function;
+    int ret = -1;
+
+    memset(addr, 0, sizeof(*addr));
+
+    domain   = virXMLPropString(node, "domain");
+    bus      = virXMLPropString(node, "bus");
+    slot     = virXMLPropString(node, "slot");
+    function = virXMLPropString(node, "function");
+
+    if (domain &&
+        virStrToLong_ui(domain, NULL, 16, &addr->domain) < 0) {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
+                             _("Cannot parse <address> 'domain' attribute"));
+        goto cleanup;
+    }
+
+    if (bus &&
+        virStrToLong_ui(bus, NULL, 16, &addr->bus) < 0) {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
+                             _("Cannot parse <address> 'bus' attribute"));
+        goto cleanup;
+    }
+
+    if (slot &&
+        virStrToLong_ui(slot, NULL, 16, &addr->slot) < 0) {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
+                             _("Cannot parse <address> 'slot' attribute"));
+        goto cleanup;
+    }
+
+    if (function &&
+        virStrToLong_ui(function, NULL, 16, &addr->function) < 0) {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
+                             _("Cannot parse <address> 'function' attribute"));
+        goto cleanup;
+    }
+
+    if (!virDomainDevicePCIAddressIsValid(addr)) {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
+                             _("Insufficient specification for PCI address"));
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(domain);
+    VIR_FREE(bus);
+    VIR_FREE(slot);
+    VIR_FREE(function);
+    return ret;
+}
+
+
+static int
+virDomainDeviceDriveAddressParseXML(virConnectPtr conn,
+                                    xmlNodePtr node,
+                                    virDomainDeviceDriveAddressPtr addr)
+{
+    char *bus, *unit, *controller;
+    int ret = -1;
+
+    memset(addr, 0, sizeof(*addr));
+
+    controller = virXMLPropString(node, "controller");
+    bus = virXMLPropString(node, "bus");
+    unit = virXMLPropString(node, "unit");
+
+    if (controller &&
+        virStrToLong_ui(controller, NULL, 10, &addr->controller) < 0) {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
+                             _("Cannot parse <address> 'controller' attribute"));
+        goto cleanup;
+    }
+
+    if (bus &&
+        virStrToLong_ui(bus, NULL, 10, &addr->bus) < 0) {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
+                             _("Cannot parse <address> 'bus' attribute"));
+        goto cleanup;
+    }
+
+    if (unit &&
+        virStrToLong_ui(unit, NULL, 10, &addr->unit) < 0) {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
+                             _("Cannot parse <address> 'unit' attribute"));
+        goto cleanup;
+    }
+
+    if (!virDomainDeviceDriveAddressIsValid(addr)) {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
+                             _("Insufficient specification for drive address"));
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(controller);
+    VIR_FREE(bus);
+    VIR_FREE(unit);
+    return ret;
+}
+
+/* Parse the XML definition for a device address
+ * @param node XML nodeset to parse for device address definition
+ */
+static int
+virDomainDeviceInfoParseXML(virConnectPtr conn,
+                            xmlNodePtr node,
+                            virDomainDeviceInfoPtr info,
+                            int flags)
+{
+    xmlNodePtr cur;
+    xmlNodePtr address = NULL;
+    xmlNodePtr alias = NULL;
+    char *type = NULL;
+    int ret = -1;
+
+    virDomainDeviceInfoClear(info);
+
+    cur = node->children;
+    while (cur != NULL) {
+        if (cur->type == XML_ELEMENT_NODE) {
+            if (alias == NULL &&
+                !(flags & VIR_DOMAIN_XML_INACTIVE) &&
+                xmlStrEqual(cur->name, BAD_CAST "alias")) {
+                alias = cur;
+            } else if (address == NULL &&
+                       xmlStrEqual(cur->name, BAD_CAST "address")) {
+                address = cur;
+            }
+        }
+        cur = cur->next;
+    }
+
+    if (alias)
+        info->alias = virXMLPropString(alias, "name");
+
+    if (!address)
+        return 0;
+
+    type = virXMLPropString(address, "type");
+
+    if (type) {
+        if ((info->type = virDomainDeviceAddressTypeFromString(type)) < 0) {
+            virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                                 _("unknown address type '%s'"), type);
+            goto cleanup;
+        }
+    } else {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                             "%s", _("No type specified for device address"));
+        goto cleanup;
+    }
+
+    switch (info->type) {
+    case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI:
+        if (virDomainDevicePCIAddressParseXML(conn, address, &info->addr.pci) < 0)
+            goto cleanup;
+        break;
+
+    case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE:
+        if (virDomainDeviceDriveAddressParseXML(conn, address, &info->addr.drive) < 0)
+            goto cleanup;
+        break;
+
+    default:
+        /* Should not happen */
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                             "%s", _("Unknown device address type"));
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    if (ret == -1)
+        VIR_FREE(info->alias);
+    VIR_FREE(type);
+    return ret;
+}
+
+
+void
+virDomainDiskDefAssignAddress(virDomainDiskDefPtr def)
+{
+    int idx = virDiskNameToIndex(def->dst);
+
+    switch (def->bus) {
+    case VIR_DOMAIN_DISK_BUS_SCSI:
+        /* For SCSI we define the default mapping to be 7 units
+         * per bus, 1 bus per controller, many controllers */
+        def->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE;
+        def->info.addr.drive.controller = idx / 7;
+        def->info.addr.drive.bus = 0;
+        def->info.addr.drive.unit = idx % 7;
+        break;
+
+    case VIR_DOMAIN_DISK_BUS_IDE:
+        /* For IDE we define the default mapping to be 2 units
+         * per bus, 2 bus per controller, many controllers */
+        def->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE;
+        def->info.addr.drive.controller = idx / 4;
+        def->info.addr.drive.bus = (idx % 4) / 2;
+        def->info.addr.drive.unit = (idx % 2);
+        break;
+
+    case VIR_DOMAIN_DISK_BUS_FDC:
+        /* For FDC we define the default mapping to be 2 units
+         * per bus, 1 bus per controller, many controllers */
+        def->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE;
+        def->info.addr.drive.controller = idx / 2;
+        def->info.addr.drive.bus = 0;
+        def->info.addr.drive.unit = idx % 2;
+        break;
+
+    default:
+        /* Other disk bus's aren't controller based */
+        break;
+    }
+}
+
 /* Parse the XML definition for a disk
  * @param node XML nodeset to parse for disk definition
  */
@@ -819,6 +1299,7 @@ virDomainDiskDefParseXML(virConnectPtr conn,
                 def->shared = 1;
             } else if ((flags & VIR_DOMAIN_XML_INTERNAL_STATUS) &&
                        xmlStrEqual(cur->name, BAD_CAST "state")) {
+                /* Legacy back-compat. Don't add any more attributes here */
                 devaddr = virXMLPropString(cur, "devaddr");
             } else if (encryption == NULL &&
                        xmlStrEqual(cur->name, BAD_CAST "encryption")) {
@@ -928,15 +1409,20 @@ virDomainDiskDefParseXML(virConnectPtr conn,
         goto error;
     }
 
-    if (devaddr &&
-        sscanf(devaddr, "%x:%x:%x",
-               &def->pci_addr.domain,
-               &def->pci_addr.bus,
-               &def->pci_addr.slot) < 3) {
-        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                             _("Unable to parse devaddr parameter '%s'"),
-                             devaddr);
-        goto error;
+    if (devaddr) {
+        if (sscanf(devaddr, "%x:%x:%x",
+                   &def->info.addr.pci.domain,
+                   &def->info.addr.pci.bus,
+                   &def->info.addr.pci.slot) < 3) {
+            virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                                 _("Unable to parse devaddr parameter '%s'"),
+                                 devaddr);
+            goto error;
+        }
+        def->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI;
+    } else {
+        if (virDomainDeviceInfoParseXML(conn, node, &def->info, flags) < 0)
+            goto error;
     }
 
     def->src = source;
@@ -951,6 +1437,9 @@ virDomainDiskDefParseXML(virConnectPtr conn,
     encryption = NULL;
     def->serial = serial;
     serial = NULL;
+
+    if (def->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
+        virDomainDiskDefAssignAddress(def);
 
 cleanup:
     VIR_FREE(bus);
@@ -974,13 +1463,70 @@ cleanup:
 }
 
 
+/* Parse the XML definition for a controller
+ * @param node XML nodeset to parse for controller definition
+ */
+static virDomainControllerDefPtr
+virDomainControllerDefParseXML(virConnectPtr conn,
+                               xmlNodePtr node,
+                               int flags)
+{
+    virDomainControllerDefPtr def;
+    char *type = NULL;
+    char *idx = NULL;
+
+    if (VIR_ALLOC(def) < 0) {
+        virReportOOMError(conn);
+        return NULL;
+    }
+
+    type = virXMLPropString(node, "type");
+    if (type) {
+        if ((def->type = virDomainDiskBusTypeFromString(type)) < 0) {
+            virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                                 _("unknown disk controller type '%s'"), type);
+            goto error;
+        }
+    }
+
+    idx = virXMLPropString(node, "index");
+    if (idx) {
+        if (virStrToLong_i(idx, NULL, 10, &def->idx) < 0) {
+            virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                                 _("cannot parse disk controller index %s"), idx);
+            goto error;
+        }
+    }
+
+    if (virDomainDeviceInfoParseXML(conn, node, &def->info, flags) < 0)
+        goto error;
+
+    if (def->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE &&
+        def->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
+                             _("Disk controllers must use the 'pci' address type"));
+        goto error;
+    }
+
+cleanup:
+    VIR_FREE(type);
+    VIR_FREE(idx);
+
+    return def;
+
+ error:
+    virDomainControllerDefFree(def);
+    def = NULL;
+    goto cleanup;
+}
+
 /* Parse the XML definition for a disk
  * @param node XML nodeset to parse for disk definition
  */
 static virDomainFSDefPtr
 virDomainFSDefParseXML(virConnectPtr conn,
                        xmlNodePtr node,
-                       int flags ATTRIBUTE_UNUSED) {
+                       int flags) {
     virDomainFSDefPtr def;
     xmlNodePtr cur;
     char *type = NULL;
@@ -1044,6 +1590,9 @@ virDomainFSDefParseXML(virConnectPtr conn,
     def->dst = target;
     target = NULL;
 
+    if (virDomainDeviceInfoParseXML(conn, node, &def->info, flags) < 0)
+        goto error;
+
 cleanup:
     VIR_FREE(type);
     VIR_FREE(target);
@@ -1081,10 +1630,7 @@ virDomainNetDefParseXML(virConnectPtr conn,
     char *port = NULL;
     char *model = NULL;
     char *internal = NULL;
-    char *nic_name = NULL;
-    char *hostnet_name = NULL;
     char *devaddr = NULL;
-    char *vlan = NULL;
 
     if (VIR_ALLOC(def) < 0) {
         virReportOOMError(conn);
@@ -1153,10 +1699,8 @@ virDomainNetDefParseXML(virConnectPtr conn,
                 model = virXMLPropString(cur, "type");
             } else if ((flags & VIR_DOMAIN_XML_INTERNAL_STATUS) &&
                        xmlStrEqual(cur->name, BAD_CAST "state")) {
-                nic_name = virXMLPropString(cur, "nic");
-                hostnet_name = virXMLPropString(cur, "hostnet");
+                /* Legacy back-compat. Don't add any more attributes here */
                 devaddr = virXMLPropString(cur, "devaddr");
-                vlan = virXMLPropString(cur, "vlan");
             }
         }
         cur = cur->next;
@@ -1173,25 +1717,28 @@ virDomainNetDefParseXML(virConnectPtr conn,
         virCapabilitiesGenerateMac(caps, def->mac);
     }
 
-    if (devaddr &&
-        sscanf(devaddr, "%x:%x:%x",
-               &def->pci_addr.domain,
-               &def->pci_addr.bus,
-               &def->pci_addr.slot) < 3) {
-        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                             _("Unable to parse devaddr parameter '%s'"),
-                             devaddr);
-        goto error;
+    if (devaddr) {
+        if (sscanf(devaddr, "%x:%x:%x",
+                   &def->info.addr.pci.domain,
+                   &def->info.addr.pci.bus,
+                   &def->info.addr.pci.slot) < 3) {
+            virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                                 _("Unable to parse devaddr parameter '%s'"),
+                                 devaddr);
+            goto error;
+        }
+        def->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI;
+    } else {
+        if (virDomainDeviceInfoParseXML(conn, node, &def->info, flags) < 0)
+            goto error;
     }
 
-    def->nic_name = nic_name;
-    def->hostnet_name = hostnet_name;
-    nic_name = hostnet_name = NULL;
-
-    def->vlan = -1;
-    if (vlan && virStrToLong_i(vlan, NULL, 10, &def->vlan) < 0) {
+    /* XXX what about ISA/USB based NIC models - once we support
+     * them we should make sure address type is correct */
+    if (def->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE &&
+        def->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
         virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
-                             _("Cannot parse <state> 'vlan' attribute"));
+                             _("Network interfaces must use 'pci' address type"));
         goto error;
     }
 
@@ -1314,10 +1861,7 @@ cleanup:
     VIR_FREE(model);
     VIR_FREE(type);
     VIR_FREE(internal);
-    VIR_FREE(nic_name);
-    VIR_FREE(hostnet_name);
     VIR_FREE(devaddr);
-    VIR_FREE(vlan);
 
     return def;
 
@@ -1369,7 +1913,7 @@ error:
 static virDomainChrDefPtr
 virDomainChrDefParseXML(virConnectPtr conn,
                         xmlNodePtr node,
-                        int flags ATTRIBUTE_UNUSED) {
+                        int flags) {
     xmlNodePtr cur;
     char *type = NULL;
     char *bindHost = NULL;
@@ -1663,6 +2207,9 @@ virDomainChrDefParseXML(virConnectPtr conn,
         break;
     }
 
+    if (virDomainDeviceInfoParseXML(conn, node, &def->info, flags) < 0)
+        goto error;
+
 cleanup:
     VIR_FREE(mode);
     VIR_FREE(protocol);
@@ -1689,7 +2236,7 @@ static virDomainInputDefPtr
 virDomainInputDefParseXML(virConnectPtr conn,
                           const char *ostype,
                           xmlNodePtr node,
-                          int flags ATTRIBUTE_UNUSED) {
+                          int flags) {
     virDomainInputDefPtr def;
     char *type = NULL;
     char *bus = NULL;
@@ -1758,6 +2305,9 @@ virDomainInputDefParseXML(virConnectPtr conn,
             def->bus = VIR_DOMAIN_INPUT_BUS_XEN;
         }
     }
+
+    if (virDomainDeviceInfoParseXML(conn, node, &def->info, flags) < 0)
+        goto error;
 
 cleanup:
     VIR_FREE(type);
@@ -1931,8 +2481,8 @@ error:
 static virDomainSoundDefPtr
 virDomainSoundDefParseXML(virConnectPtr conn,
                           const xmlNodePtr node,
-                          int flags ATTRIBUTE_UNUSED) {
-
+                          int flags)
+{
     char *model;
     virDomainSoundDefPtr def;
 
@@ -1947,6 +2497,9 @@ virDomainSoundDefParseXML(virConnectPtr conn,
                              _("unknown sound model '%s'"), model);
         goto error;
     }
+
+    if (virDomainDeviceInfoParseXML(conn, node, &def->info, flags) < 0)
+        goto error;
 
 cleanup:
     VIR_FREE(model);
@@ -1963,7 +2516,8 @@ error:
 static virDomainWatchdogDefPtr
 virDomainWatchdogDefParseXML(virConnectPtr conn,
                              const xmlNodePtr node,
-                             int flags ATTRIBUTE_UNUSED) {
+                             int flags)
+{
 
     char *model = NULL;
     char *action = NULL;
@@ -1999,6 +2553,9 @@ virDomainWatchdogDefParseXML(virConnectPtr conn,
         }
     }
 
+    if (virDomainDeviceInfoParseXML(conn, node, &def->info, flags) < 0)
+        goto error;
+
 cleanup:
     VIR_FREE (action);
     VIR_FREE (model);
@@ -2023,6 +2580,8 @@ virDomainVideoDefaultRAM(virDomainDefPtr def,
     case VIR_DOMAIN_VIDEO_TYPE_VMVGA:
         if (def->virtType == VIR_DOMAIN_VIRT_VBOX)
             return 8 * 1024;
+        else if (def->virtType == VIR_DOMAIN_VIRT_VMWARE)
+            return 4 * 1024;
         else
             return 9 * 1024;
         break;
@@ -2055,6 +2614,9 @@ virDomainVideoDefaultType(virDomainDefPtr def)
 
     case VIR_DOMAIN_VIRT_VBOX:
         return VIR_DOMAIN_VIDEO_TYPE_VBOX;
+
+    case VIR_DOMAIN_VIRT_VMWARE:
+        return VIR_DOMAIN_VIDEO_TYPE_VMVGA;
 
     default:
         return -1;
@@ -2111,7 +2673,7 @@ static virDomainVideoDefPtr
 virDomainVideoDefParseXML(virConnectPtr conn,
                           const xmlNodePtr node,
                           virDomainDefPtr dom,
-                          int flags ATTRIBUTE_UNUSED) {
+                          int flags) {
     virDomainVideoDefPtr def;
     xmlNodePtr cur;
     char *type = NULL;
@@ -2170,6 +2732,9 @@ virDomainVideoDefParseXML(virConnectPtr conn,
     } else {
         def->heads = 1;
     }
+
+    if (virDomainDeviceInfoParseXML(conn, node, &def->info, flags) < 0)
+        goto error;
 
     VIR_FREE(type);
     VIR_FREE(vram);
@@ -2321,83 +2886,27 @@ virDomainHostdevSubsysPciDefParseXML(virConnectPtr conn,
     while (cur != NULL) {
         if (cur->type == XML_ELEMENT_NODE) {
             if (xmlStrEqual(cur->name, BAD_CAST "address")) {
+                virDomainDevicePCIAddressPtr addr =
+                    &def->source.subsys.u.pci;
 
-                char *domain = virXMLPropString(cur, "domain");
-                if (domain) {
-                    if (virStrToLong_ui(domain, NULL, 0,
-                                    &def->source.subsys.u.pci.domain) < 0) {
-                        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                             _("cannot parse domain %s"),
-                                             domain);
-                        VIR_FREE(domain);
-                        goto out;
-                    }
-                    VIR_FREE(domain);
-                }
-
-                char *bus = virXMLPropString(cur, "bus");
-                if (bus) {
-                    if (virStrToLong_ui(bus, NULL, 0,
-                                        &def->source.subsys.u.pci.bus) < 0) {
-                        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                             _("cannot parse bus %s"), bus);
-                        VIR_FREE(bus);
-                        goto out;
-                    }
-                    VIR_FREE(bus);
-                } else {
-                    virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                         "%s", _("pci address needs bus id"));
+                if (virDomainDevicePCIAddressParseXML(conn, cur, addr) < 0)
                     goto out;
-                }
-
-                char *slot = virXMLPropString(cur, "slot");
-                if (slot) {
-                    if (virStrToLong_ui(slot, NULL, 0,
-                                        &def->source.subsys.u.pci.slot) < 0)  {
-                        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                             _("cannot parse slot %s"),
-                                             slot);
-                        VIR_FREE(slot);
-                        goto out;
-                    }
-                    VIR_FREE(slot);
-                } else {
-                    virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                         "%s", _("pci address needs slot id"));
-                    goto out;
-                }
-
-                char *function = virXMLPropString(cur, "function");
-                if (function) {
-                    if (virStrToLong_ui(function, NULL, 0,
-                                    &def->source.subsys.u.pci.function) < 0)  {
-                        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                                             _("cannot parse function %s"),
-                                             function);
-                        VIR_FREE(function);
-                        goto out;
-                    }
-                    VIR_FREE(function);
-                } else {
-                    virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
-                                         _("pci address needs function id"));
-                    goto out;
-                }
             } else if ((flags & VIR_DOMAIN_XML_INTERNAL_STATUS) &&
                        xmlStrEqual(cur->name, BAD_CAST "state")) {
+                /* Legacy back-compat. Don't add any more attributes here */
                 char *devaddr = virXMLPropString(cur, "devaddr");
                 if (devaddr &&
                     sscanf(devaddr, "%x:%x:%x",
-                           &def->source.subsys.u.pci.guest_addr.domain,
-                           &def->source.subsys.u.pci.guest_addr.bus,
-                           &def->source.subsys.u.pci.guest_addr.slot) < 3) {
+                           &def->info.addr.pci.domain,
+                           &def->info.addr.pci.bus,
+                           &def->info.addr.pci.slot) < 3) {
                     virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
                                          _("Unable to parse devaddr parameter '%s'"),
                                          devaddr);
                     VIR_FREE(devaddr);
                     goto out;
                 }
+                def->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI;
             } else {
                 virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
                                      _("unknown pci source type '%s'"),
@@ -2475,12 +2984,31 @@ virDomainHostdevDefParseXML(virConnectPtr conn,
                         if (virDomainHostdevSubsysPciDefParseXML(conn, cur, def, flags) < 0)
                             goto error;
                 }
+            } else if (xmlStrEqual(cur->name, BAD_CAST "address")) {
             } else {
                 virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
                                      _("unknown node %s"), cur->name);
             }
         }
         cur = cur->next;
+    }
+
+    if (def->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE) {
+        if (virDomainDeviceInfoParseXML(conn, node, &def->info, flags) < 0)
+            goto error;
+    }
+
+    if (def->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS) {
+        switch (def->source.subsys.type) {
+        case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI:
+            if (def->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE &&
+                def->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
+                virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
+                                     _("PCI host devices must use 'pci' address type"));
+                goto error;
+            }
+            break;
+        }
     }
 
 cleanup:
@@ -2640,8 +3168,7 @@ virDomainDeviceDefPtr virDomainDeviceDefParse(virConnectPtr conn,
             goto error;
     } else if (xmlStrEqual(node->name, BAD_CAST "watchdog")) {
         dev->type = VIR_DOMAIN_DEVICE_WATCHDOG;
-        if (!(dev->data.watchdog = virDomainWatchdogDefParseXML(conn, node,
-                                                                flags)))
+        if (!(dev->data.watchdog = virDomainWatchdogDefParseXML(conn, node, flags)))
             goto error;
     } else if (xmlStrEqual(node->name, BAD_CAST "video")) {
         dev->type = VIR_DOMAIN_DEVICE_VIDEO;
@@ -2650,6 +3177,10 @@ virDomainDeviceDefPtr virDomainDeviceDefParse(virConnectPtr conn,
     } else if (xmlStrEqual(node->name, BAD_CAST "hostdev")) {
         dev->type = VIR_DOMAIN_DEVICE_HOSTDEV;
         if (!(dev->data.hostdev = virDomainHostdevDefParseXML(conn, node, flags)))
+            goto error;
+    } else if (xmlStrEqual(node->name, BAD_CAST "controller")) {
+        dev->type = VIR_DOMAIN_DEVICE_CONTROLLER;
+        if (!(dev->data.controller = virDomainControllerDefParseXML(conn, node, flags)))
             goto error;
     } else {
         virDomainReportError(conn, VIR_ERR_XML_ERROR,
@@ -2720,6 +3251,59 @@ void virDomainDiskInsertPreAlloced(virDomainDefPtr def,
 
     def->disks[insertAt] = disk;
     def->ndisks++;
+}
+
+
+int virDomainControllerInsert(virDomainDefPtr def,
+                              virDomainControllerDefPtr controller)
+{
+
+    if (VIR_REALLOC_N(def->controllers, def->ncontrollers+1) < 0)
+        return -1;
+
+    virDomainControllerInsertPreAlloced(def, controller);
+
+    return 0;
+}
+
+void virDomainControllerInsertPreAlloced(virDomainDefPtr def,
+                                         virDomainControllerDefPtr controller)
+{
+    int i;
+    /* Tenatively plan to insert controller at the end. */
+    int insertAt = -1;
+
+    /* Then work backwards looking for controllers of
+     * the same type. If we find a controller with a
+     * index greater than the new one, insert at
+     * that position
+     */
+    for (i = (def->ncontrollers - 1) ; i >= 0 ; i--) {
+        /* If bus matches and current controller is after
+         * new controller, then new controller should go here */
+        if ((def->controllers[i]->type == controller->type) &&
+            (def->controllers[i]->idx > controller->idx)) {
+            insertAt = i;
+        } else if (def->controllers[i]->type == controller->type &&
+                   insertAt == -1) {
+            /* Last controller with match bus is before the
+             * new controller, then put new controller just after
+             */
+            insertAt = i + 1;
+        }
+    }
+
+    /* No controllers with this bus yet, so put at end of list */
+    if (insertAt == -1)
+        insertAt = def->ncontrollers;
+
+    if (insertAt < def->ncontrollers)
+        memmove(def->controllers + insertAt + 1,
+                def->controllers + insertAt,
+                (sizeof(def->controllers[0]) * (def->ncontrollers-insertAt)));
+
+    def->controllers[insertAt] = controller;
+    def->ncontrollers++;
 }
 
 
@@ -3038,6 +3622,31 @@ static virDomainDefPtr virDomainDefParseXML(virConnectPtr conn,
     }
     VIR_FREE(nodes);
 
+    /* analysis of the controller devices */
+    if ((n = virXPathNodeSet(conn, "./devices/controller", ctxt, &nodes)) < 0) {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                             "%s", _("cannot extract controller devices"));
+        goto error;
+    }
+    if (n && VIR_ALLOC_N(def->controllers, n) < 0)
+        goto no_memory;
+    for (i = 0 ; i < n ; i++) {
+        virDomainControllerDefPtr controller = virDomainControllerDefParseXML(conn,
+                                                                              nodes[i],
+                                                                              flags);
+        if (!controller)
+            goto error;
+
+        def->controllers[def->ncontrollers++] = controller;
+    }
+    VIR_FREE(nodes);
+
+    /* Auto-add any further disk controllers implied by declared <disk>
+     * elements, but not present as <controller> elements
+     */
+    if (virDomainDefAddDiskControllers(def) < 0)
+        goto error;
+
     /* analysis of the filesystems */
     if ((n = virXPathNodeSet(conn, "./devices/filesystem", ctxt, &nodes)) < 0) {
         virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
@@ -3141,6 +3750,7 @@ static virDomainDefPtr virDomainDefParseXML(virConnectPtr conn,
                 }
                 def->nserials = 1;
                 def->serials[0] = chr;
+                chr->targetType = VIR_DOMAIN_CHR_TARGET_TYPE_SERIAL;
             }
         } else {
             def->console = chr;
@@ -3255,22 +3865,11 @@ static virDomainDefPtr virDomainDefParseXML(virConnectPtr conn,
     if (n && VIR_ALLOC_N(def->sounds, n) < 0)
         goto no_memory;
     for (i = 0 ; i < n ; i++) {
-        int collision = 0, j;
         virDomainSoundDefPtr sound = virDomainSoundDefParseXML(conn,
                                                                nodes[i],
                                                                flags);
         if (!sound)
             goto error;
-
-        /* Verify there's no duplicated sound card */
-        for (j = 0 ; j < def->nsounds ; j++) {
-            if (def->sounds[j]->model == sound->model)
-                collision = 1;
-        }
-        if (collision) {
-            virDomainSoundDefFree(sound);
-            continue;
-        }
 
         def->sounds[def->nsounds++] = sound;
     }
@@ -3350,7 +3949,7 @@ static virDomainDefPtr virDomainDefParseXML(virConnectPtr conn,
     }
     if (n > 0) {
         virDomainWatchdogDefPtr watchdog =
-            virDomainWatchdogDefParseXML (conn, nodes[0], flags);
+            virDomainWatchdogDefParseXML(conn, nodes[0], flags);
         if (!watchdog)
             goto error;
 
@@ -3648,6 +4247,96 @@ cleanup:
     xmlXPathFreeContext(ctxt);
     return obj;
 }
+
+static int virDomainDefMaybeAddDiskController(virDomainDefPtr def,
+                                              int type,
+                                              int idx)
+{
+    int found = 0;
+    int i;
+    virDomainControllerDefPtr cont;
+
+    for (i = 0 ; (i < def->ncontrollers) && !found; i++) {
+        if (def->controllers[i]->type == type &&
+            def->controllers[i]->idx == idx)
+            found = 1;
+    }
+
+    if (found)
+        return 0;
+
+    if (VIR_ALLOC(cont) < 0) {
+        virReportOOMError(NULL);
+        return -1;
+    }
+
+    cont->type = type;
+    cont->idx = idx;
+
+    if (VIR_REALLOC_N(def->controllers, def->ncontrollers+1) < 0) {
+        VIR_FREE(cont);
+        virReportOOMError(NULL);
+        return -1;
+    }
+    def->controllers[def->ncontrollers] = cont;
+    def->ncontrollers++;
+
+    return 0;
+}
+
+static int virDomainDefAddDiskControllersForType(virDomainDefPtr def,
+                                                 int controllerType,
+                                                 int diskBus)
+{
+    int i;
+    int maxController = -1;
+
+    for (i = 0 ; i < def->ndisks ; i++) {
+        if (def->disks[i]->bus != diskBus)
+            continue;
+
+        if (def->disks[i]->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE)
+            continue;
+
+        if ((int)def->disks[i]->info.addr.drive.controller > maxController)
+            maxController = def->disks[i]->info.addr.drive.controller;
+    }
+
+    for (i = 0 ; i <= maxController ; i++) {
+        if (virDomainDefMaybeAddDiskController(def, controllerType, i) < 0)
+            return -1;
+    }
+
+    return 0;
+}
+
+
+/*
+ * Based on the declared <address type=drive> info for any disks,
+ * add neccessary drive controllers which are not already present
+ * in the XML. This is for compat with existing apps which will
+ * not know/care about <controller> info in the XML
+ */
+int virDomainDefAddDiskControllers(virDomainDefPtr def)
+{
+    if (virDomainDefAddDiskControllersForType(def,
+                                              VIR_DOMAIN_CONTROLLER_TYPE_SCSI,
+                                              VIR_DOMAIN_DISK_BUS_SCSI) < 0)
+        return -1;
+
+    if (virDomainDefAddDiskControllersForType(def,
+                                              VIR_DOMAIN_CONTROLLER_TYPE_FDC,
+                                              VIR_DOMAIN_DISK_BUS_FDC) < 0)
+        return -1;
+
+    if (virDomainDefAddDiskControllersForType(def,
+                                              VIR_DOMAIN_CONTROLLER_TYPE_IDE,
+                                              VIR_DOMAIN_DISK_BUS_IDE) < 0)
+        return -1;
+
+    return 0;
+}
+
 
 #endif /* ! PROXY */
 
@@ -3947,15 +4636,8 @@ virDomainDiskDefFormat(virConnectPtr conn,
         virStorageEncryptionFormat(conn, buf, def->encryption) < 0)
         return -1;
 
-    if (flags & VIR_DOMAIN_XML_INTERNAL_STATUS) {
-        virBufferAddLit(buf, "      <state");
-        if (virDiskHasValidPciAddr(def))
-            virBufferVSprintf(buf, " devaddr='%.4x:%.2x:%.2x'",
-                              def->pci_addr.domain,
-                              def->pci_addr.bus,
-                              def->pci_addr.slot);
-        virBufferAddLit(buf, "/>\n");
-    }
+    if (virDomainDeviceInfoFormat(buf, &def->info, flags) < 0)
+        return -1;
 
     virBufferAddLit(buf, "    </disk>\n");
 
@@ -3963,9 +4645,40 @@ virDomainDiskDefFormat(virConnectPtr conn,
 }
 
 static int
+virDomainControllerDefFormat(virConnectPtr conn,
+                             virBufferPtr buf,
+                             virDomainControllerDefPtr def,
+                             int flags)
+{
+    const char *type = virDomainControllerTypeToString(def->type);
+
+    if (!type) {
+        virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
+                             _("unexpected controller type %d"), def->type);
+        return -1;
+    }
+
+    virBufferVSprintf(buf,
+                      "    <controller type='%s' index='%d'",
+                      type, def->idx);
+
+    if (virDomainDeviceInfoIsSet(&def->info)) {
+        virBufferAddLit(buf, ">\n");
+        if (virDomainDeviceInfoFormat(buf, &def->info, flags) < 0)
+            return -1;
+        virBufferAddLit(buf, "    </controller>\n");
+    } else {
+        virBufferAddLit(buf, "/>\n");
+    }
+
+    return 0;
+}
+
+static int
 virDomainFSDefFormat(virConnectPtr conn,
                      virBufferPtr buf,
-                     virDomainFSDefPtr def)
+                     virDomainFSDefPtr def,
+                     int flags)
 {
     const char *type = virDomainFSTypeToString(def->type);
 
@@ -4007,6 +4720,9 @@ virDomainFSDefFormat(virConnectPtr conn,
 
     if (def->readonly)
         virBufferAddLit(buf, "      <readonly/>\n");
+
+    if (virDomainDeviceInfoFormat(buf, &def->info, flags) < 0)
+        return -1;
 
     virBufferAddLit(buf, "    </filesystem>\n");
 
@@ -4088,21 +4804,8 @@ virDomainNetDefFormat(virConnectPtr conn,
         virBufferEscapeString(buf, "      <model type='%s'/>\n",
                               def->model);
 
-    if (flags & VIR_DOMAIN_XML_INTERNAL_STATUS) {
-        virBufferAddLit(buf, "      <state");
-        if (def->nic_name)
-            virBufferEscapeString(buf, " nic='%s'", def->nic_name);
-        if (def->hostnet_name)
-            virBufferEscapeString(buf, " hostnet='%s'", def->hostnet_name);
-        if (virNetHasValidPciAddr(def))
-            virBufferVSprintf(buf, " devaddr='%.4x:%.2x:%.2x'",
-                              def->pci_addr.domain,
-                              def->pci_addr.bus,
-                              def->pci_addr.slot);
-        if (def->vlan > 0)
-            virBufferVSprintf(buf, " vlan='%d'", def->vlan);
-        virBufferAddLit(buf, "/>\n");
-    }
+    if (virDomainDeviceInfoFormat(buf, &def->info, flags) < 0)
+        return -1;
 
     virBufferAddLit(buf, "    </interface>\n");
 
@@ -4120,7 +4823,6 @@ virDomainChrDefFormat(virConnectPtr conn,
     const char *targetName = virDomainChrTargetTypeToString(def->targetType);
     const char *elementName;
 
-    const char *addr = NULL;
     int ret = 0;
 
     switch (def->targetType) {
@@ -4136,8 +4838,7 @@ virDomainChrDefFormat(virConnectPtr conn,
     if (!type) {
         virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR,
                              _("unexpected char type %d"), def->type);
-        ret = -1;
-        goto cleanup;
+        return -1;
     }
 
     /* Compat with legacy  <console tty='/dev/pts/5'/> syntax */
@@ -4220,23 +4921,25 @@ virDomainChrDefFormat(virConnectPtr conn,
 
     switch (def->targetType) {
     case VIR_DOMAIN_CHR_TARGET_TYPE_GUESTFWD:
-        addr = virSocketFormatAddr(def->target.addr);
-        if (addr == NULL) {
-            virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
-                                 _("Unable to format guestfwd address"));
-            ret = -1;
-            goto cleanup;
+        {
+            int port = virSocketGetPort(def->target.addr);
+            if (port < 0) {
+                virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
+                                     _("Unable to format guestfwd port"));
+                return -1;
+            }
+            const char *addr = virSocketFormatAddr(def->target.addr);
+            if (addr == NULL) {
+                virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
+                                     _("Unable to format guestfwd address"));
+                return -1;
+            }
+            virBufferVSprintf(buf,
+                    "      <target type='guestfwd' address='%s' port='%d'/>\n",
+                              addr, port);
+            VIR_FREE(addr);
+            break;
         }
-        int port = virSocketGetPort(def->target.addr);
-        if (port < 0) {
-            virDomainReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
-                                 _("Unable to format guestfwd port"));
-            ret = -1;
-            goto cleanup;
-        }
-        virBufferVSprintf(buf, "      <target type='guestfwd' address='%s' port='%d'/>\n",
-                          addr, port);
-        break;
 
     case VIR_DOMAIN_CHR_TARGET_TYPE_PARALLEL:
     case VIR_DOMAIN_CHR_TARGET_TYPE_SERIAL:
@@ -4252,11 +4955,11 @@ virDomainChrDefFormat(virConnectPtr conn,
         return -1;
     }
 
+    if (virDomainDeviceInfoFormat(buf, &def->info, flags) < 0)
+        return -1;
+
     virBufferVSprintf(buf, "    </%s>\n",
                       elementName);
-
-cleanup:
-    VIR_FREE(addr);
 
     return ret;
 }
@@ -4264,7 +4967,8 @@ cleanup:
 static int
 virDomainSoundDefFormat(virConnectPtr conn,
                         virBufferPtr buf,
-                        virDomainSoundDefPtr def)
+                        virDomainSoundDefPtr def,
+                        int flags)
 {
     const char *model = virDomainSoundModelTypeToString(def->model);
 
@@ -4274,8 +4978,17 @@ virDomainSoundDefFormat(virConnectPtr conn,
         return -1;
     }
 
-    virBufferVSprintf(buf, "    <sound model='%s'/>\n",
+    virBufferVSprintf(buf, "    <sound model='%s'",
                       model);
+
+    if (virDomainDeviceInfoIsSet(&def->info)) {
+        virBufferAddLit(buf, ">\n");
+        if (virDomainDeviceInfoFormat(buf, &def->info, flags) < 0)
+            return -1;
+        virBufferAddLit(buf, "    </sound>\n");
+    } else {
+        virBufferAddLit(buf, "/>\n");
+    }
 
     return 0;
 }
@@ -4284,7 +4997,8 @@ virDomainSoundDefFormat(virConnectPtr conn,
 static int
 virDomainWatchdogDefFormat(virConnectPtr conn,
                            virBufferPtr buf,
-                           virDomainWatchdogDefPtr def)
+                           virDomainWatchdogDefPtr def,
+                           int flags)
 {
     const char *model = virDomainWatchdogModelTypeToString (def->model);
     const char *action = virDomainWatchdogActionTypeToString (def->action);
@@ -4301,8 +5015,17 @@ virDomainWatchdogDefFormat(virConnectPtr conn,
         return -1;
     }
 
-    virBufferVSprintf(buf, "    <watchdog model='%s' action='%s'/>\n",
+    virBufferVSprintf(buf, "    <watchdog model='%s' action='%s'",
                       model, action);
+
+    if (virDomainDeviceInfoIsSet(&def->info)) {
+        virBufferAddLit(buf, ">\n");
+        if (virDomainDeviceInfoFormat(buf, &def->info, flags) < 0)
+            return -1;
+        virBufferAddLit(buf, "    </watchdog>\n");
+    } else {
+        virBufferAddLit(buf, "/>\n");
+    }
 
     return 0;
 }
@@ -4323,7 +5046,8 @@ virDomainVideoAccelDefFormat(virBufferPtr buf,
 static int
 virDomainVideoDefFormat(virConnectPtr conn,
                         virBufferPtr buf,
-                        virDomainVideoDefPtr def)
+                        virDomainVideoDefPtr def,
+                        int flags)
 {
     const char *model = virDomainVideoTypeToString(def->type);
 
@@ -4348,6 +5072,9 @@ virDomainVideoDefFormat(virConnectPtr conn,
         virBufferAddLit(buf, "/>\n");
     }
 
+    if (virDomainDeviceInfoFormat(buf, &def->info, flags) < 0)
+        return -1;
+
     virBufferAddLit(buf, "    </video>\n");
 
     return 0;
@@ -4356,7 +5083,8 @@ virDomainVideoDefFormat(virConnectPtr conn,
 static int
 virDomainInputDefFormat(virConnectPtr conn,
                         virBufferPtr buf,
-                        virDomainInputDefPtr def)
+                        virDomainInputDefPtr def,
+                        int flags)
 {
     const char *type = virDomainInputTypeToString(def->type);
     const char *bus = virDomainInputBusTypeToString(def->bus);
@@ -4372,8 +5100,17 @@ virDomainInputDefFormat(virConnectPtr conn,
         return -1;
     }
 
-    virBufferVSprintf(buf, "    <input type='%s' bus='%s'/>\n",
+    virBufferVSprintf(buf, "    <input type='%s' bus='%s'",
                       type, bus);
+
+    if (virDomainDeviceInfoIsSet(&def->info)) {
+        virBufferAddLit(buf, ">\n");
+        if (virDomainDeviceInfoFormat(buf, &def->info, flags) < 0)
+            return -1;
+        virBufferAddLit(buf, "    </input>\n");
+    } else {
+        virBufferAddLit(buf, "/>\n");
+    }
 
     return 0;
 }
@@ -4507,30 +5244,25 @@ virDomainHostdevDefFormat(virConnectPtr conn,
                               def->source.subsys.u.usb.vendor);
             virBufferVSprintf(buf, "        <product id='0x%.4x'/>\n",
                               def->source.subsys.u.usb.product);
-        } else {
+        }
+        if (def->source.subsys.u.usb.bus ||
+            def->source.subsys.u.usb.device)
             virBufferVSprintf(buf, "        <address bus='%d' device='%d'/>\n",
                               def->source.subsys.u.usb.bus,
                               def->source.subsys.u.usb.device);
-        }
-    }
-    if (def->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI) {
+    } else if (def->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI) {
         virBufferVSprintf(buf, "        <address domain='0x%.4x' bus='0x%.2x' slot='0x%.2x' function='0x%.1x'/>\n",
                           def->source.subsys.u.pci.domain,
                           def->source.subsys.u.pci.bus,
                           def->source.subsys.u.pci.slot,
                           def->source.subsys.u.pci.function);
-        if (flags & VIR_DOMAIN_XML_INTERNAL_STATUS) {
-            virBufferAddLit(buf, "      <state");
-            if (virHostdevHasValidGuestAddr(def))
-                virBufferVSprintf(buf, " devaddr='%.4x:%.2x:%.2x'",
-                                  def->source.subsys.u.pci.guest_addr.domain,
-                                  def->source.subsys.u.pci.guest_addr.bus,
-                                  def->source.subsys.u.pci.guest_addr.slot);
-            virBufferAddLit(buf, "/>\n");
-        }
     }
 
     virBufferAddLit(buf, "      </source>\n");
+
+    if (virDomainDeviceInfoFormat(buf, &def->info, flags) < 0)
+        return -1;
+
     virBufferAddLit(buf, "    </hostdev>\n");
 
     return 0;
@@ -4698,8 +5430,12 @@ char *virDomainDefFormat(virConnectPtr conn,
         if (virDomainDiskDefFormat(conn, &buf, def->disks[n], flags) < 0)
             goto cleanup;
 
+    for (n = 0 ; n < def->ncontrollers ; n++)
+        if (virDomainControllerDefFormat(conn, &buf, def->controllers[n], flags) < 0)
+            goto cleanup;
+
     for (n = 0 ; n < def->nfss ; n++)
-        if (virDomainFSDefFormat(conn, &buf, def->fss[n]) < 0)
+        if (virDomainFSDefFormat(conn, &buf, def->fss[n], flags) < 0)
             goto cleanup;
 
 
@@ -4735,7 +5471,7 @@ char *virDomainDefFormat(virConnectPtr conn,
 
     for (n = 0 ; n < def->ninputs ; n++)
         if (def->inputs[n]->bus == VIR_DOMAIN_INPUT_BUS_USB &&
-            virDomainInputDefFormat(conn, &buf, def->inputs[n]) < 0)
+            virDomainInputDefFormat(conn, &buf, def->inputs[n], flags) < 0)
             goto cleanup;
 
     if (def->ngraphics > 0) {
@@ -4743,10 +5479,11 @@ char *virDomainDefFormat(virConnectPtr conn,
         virDomainInputDef autoInput = {
             VIR_DOMAIN_INPUT_TYPE_MOUSE,
             STREQ(def->os.type, "hvm") ?
-            VIR_DOMAIN_INPUT_BUS_PS2 : VIR_DOMAIN_INPUT_BUS_XEN
+            VIR_DOMAIN_INPUT_BUS_PS2 : VIR_DOMAIN_INPUT_BUS_XEN,
+            { .alias = NULL },
         };
 
-        if (virDomainInputDefFormat(conn, &buf, &autoInput) < 0)
+        if (virDomainInputDefFormat(conn, &buf, &autoInput, flags) < 0)
             goto cleanup;
 
         for (n = 0 ; n < def->ngraphics ; n++)
@@ -4755,11 +5492,11 @@ char *virDomainDefFormat(virConnectPtr conn,
     }
 
     for (n = 0 ; n < def->nsounds ; n++)
-        if (virDomainSoundDefFormat(conn, &buf, def->sounds[n]) < 0)
+        if (virDomainSoundDefFormat(conn, &buf, def->sounds[n], flags) < 0)
             goto cleanup;
 
     for (n = 0 ; n < def->nvideos ; n++)
-        if (virDomainVideoDefFormat(conn, &buf, def->videos[n]) < 0)
+        if (virDomainVideoDefFormat(conn, &buf, def->videos[n], flags) < 0)
             goto cleanup;
 
     for (n = 0 ; n < def->nhostdevs ; n++)
@@ -4767,7 +5504,7 @@ char *virDomainDefFormat(virConnectPtr conn,
             goto cleanup;
 
     if (def->watchdog)
-        virDomainWatchdogDefFormat (conn, &buf, def->watchdog);
+        virDomainWatchdogDefFormat (conn, &buf, def->watchdog, flags);
 
     virBufferAddLit(&buf, "  </devices>\n");
 

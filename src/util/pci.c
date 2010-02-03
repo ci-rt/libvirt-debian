@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009 Red Hat, Inc.
+ * Copyright (C) 2009-2010 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -139,6 +139,28 @@ struct _pciDeviceList {
 /* ECN_AF 6.x.1  Advanced Features Capability Structure */
 #define PCI_AF_CAP              0x3     /* Advanced features capabilities */
 #define  PCI_AF_CAP_FLR         0x2     /* Function Level Reset */
+
+#define PCI_EXP_FLAGS           0x2
+#define PCI_EXP_FLAGS_TYPE      0x00f0
+#define PCI_EXP_TYPE_DOWNSTREAM 0x6
+
+#define PCI_EXT_CAP_BASE          0x100
+#define PCI_EXT_CAP_LIMIT         0x1000
+#define PCI_EXT_CAP_ID_MASK       0x0000ffff
+#define PCI_EXT_CAP_OFFSET_SHIFT  20
+#define PCI_EXT_CAP_OFFSET_MASK   0x00000ffc
+
+#define PCI_EXT_CAP_ID_ACS      0x000d
+#define PCI_EXT_ACS_CTRL        0x06
+
+#define PCI_EXT_CAP_ACS_SV      0x01
+#define PCI_EXT_CAP_ACS_RR      0x04
+#define PCI_EXT_CAP_ACS_CR      0x08
+#define PCI_EXT_CAP_ACS_UF      0x10
+#define PCI_EXT_CAP_ACS_ENABLED (PCI_EXT_CAP_ACS_SV | \
+                                 PCI_EXT_CAP_ACS_RR | \
+                                 PCI_EXT_CAP_ACS_CR | \
+                                 PCI_EXT_CAP_ACS_UF)
 
 static int
 pciOpenConfig(pciDevice *dev)
@@ -326,6 +348,30 @@ pciFindCapabilityOffset(pciDevice *dev, unsigned capability)
     return 0;
 }
 
+static unsigned int
+pciFindExtendedCapabilityOffset(pciDevice *dev, unsigned capability)
+{
+    int ttl;
+    unsigned int pos;
+    uint32_t header;
+
+    /* minimum 8 bytes per capability */
+    ttl = (PCI_EXT_CAP_LIMIT - PCI_EXT_CAP_BASE) / 8;
+    pos = PCI_EXT_CAP_BASE;
+
+    while (ttl > 0 && pos >= PCI_EXT_CAP_BASE) {
+        header = pciRead32(dev, pos);
+
+        if ((header & PCI_EXT_CAP_ID_MASK) == capability)
+            return pos;
+
+        pos = (header >> PCI_EXT_CAP_OFFSET_SHIFT) & PCI_EXT_CAP_OFFSET_MASK;
+        ttl--;
+    }
+
+    return 0;
+}
+
 static unsigned
 pciDetectFunctionLevelReset(pciDevice *dev)
 {
@@ -440,7 +486,7 @@ pciIsParent(pciDevice *dev, pciDevice *check, void *data ATTRIBUTE_UNUSED)
     secondary   = pciRead8(check, PCI_SECONDARY_BUS);
     subordinate = pciRead8(check, PCI_SUBORDINATE_BUS);
 
-    VIR_DEBUG("%s %s: found parent device %s\n", dev->id, dev->name, check->name);
+    VIR_DEBUG("%s %s: found parent device %s", dev->id, dev->name, check->name);
 
     /* No, it's superman! */
     return (dev->bus >= secondary && dev->bus <= subordinate);
@@ -837,6 +883,103 @@ pciReAttachDevice(virConnectPtr conn, pciDevice *dev)
     return pciUnBindDeviceFromStub(conn, dev, driver);
 }
 
+/* Certain hypervisors (like qemu/kvm) map the PCI bar(s) on
+ * the host when doing device passthrough.  This can lead to a race
+ * condition where the hypervisor is still cleaning up the device while
+ * libvirt is trying to re-attach it to the host device driver.  To avoid
+ * this situation, we look through /proc/iomem, and if the hypervisor is
+ * still holding onto the bar (denoted by the string in the matcher variable),
+ * then we can wait around a bit for that to clear up.
+ *
+ * A typical /proc/iomem looks like this (snipped for brevity):
+ * 00010000-0008efff : System RAM
+ * 0008f000-0008ffff : reserved
+ * ...
+ * 00100000-cc9fcfff : System RAM
+ *   00200000-00483d3b : Kernel code
+ *   00483d3c-005c88df : Kernel data
+ * cc9fd000-ccc71fff : ACPI Non-volatile Storage
+ * ...
+ * d0200000-d02fffff : PCI Bus #05
+ *   d0200000-d021ffff : 0000:05:00.0
+ *     d0200000-d021ffff : e1000e
+ *   d0220000-d023ffff : 0000:05:00.0
+ *     d0220000-d023ffff : e1000e
+ * ...
+ * f0000000-f0003fff : 0000:00:1b.0
+ *   f0000000-f0003fff : kvm_assigned_device
+ *
+ * Returns 0 if we are clear to continue, and 1 if the hypervisor is still
+ * holding onto the resource.
+ */
+int
+pciWaitForDeviceCleanup(pciDevice *dev, const char *matcher)
+{
+    FILE *fp;
+    char line[160];
+    unsigned long long start, end;
+    int consumed;
+    char *rest;
+    unsigned long long domain;
+    int bus, slot, function;
+    int in_matching_device;
+    int ret;
+    size_t match_depth;
+
+    fp = fopen("/proc/iomem", "r");
+    if (!fp) {
+        /* If we failed to open iomem, we just basically ignore the error.  The
+         * unbind might succeed anyway, and besides, it's very likely we have
+         * no way to report the error
+         */
+        VIR_DEBUG0("Failed to open /proc/iomem, trying to continue anyway");
+        return 0;
+    }
+
+    ret = 0;
+    in_matching_device = 0;
+    match_depth = 0;
+    while (fgets(line, sizeof(line), fp) != 0) {
+        /* the logic here is a bit confusing.  For each line, we look to
+         * see if it matches the domain:bus:slot.function we were given.
+         * If this line matches the DBSF, then any subsequent lines indented
+         * by 2 spaces are the PCI regions for this device.  It's also
+         * possible that none of the PCI regions are currently mapped, in
+         * which case we have no indented regions.  This code handles all
+         * of these situations
+         */
+        if (in_matching_device && (strspn(line, " ") == (match_depth + 2))) {
+            if (sscanf(line, "%Lx-%Lx : %n", &start, &end, &consumed) != 2)
+                continue;
+
+            rest = line + consumed;
+            if (STRPREFIX(rest, matcher)) {
+                ret = 1;
+                break;
+            }
+        }
+        else {
+            in_matching_device = 0;
+            if (sscanf(line, "%Lx-%Lx : %n", &start, &end, &consumed) != 2)
+                continue;
+
+            rest = line + consumed;
+            if (sscanf(rest, "%Lx:%x:%x.%x", &domain, &bus, &slot, &function) != 4)
+                continue;
+
+            if (domain != dev->domain || bus != dev->bus || slot != dev->slot ||
+                function != dev->function)
+                continue;
+            in_matching_device = 1;
+            match_depth = strspn(line, " ");
+        }
+    }
+
+    fclose(fp);
+
+    return ret;
+}
+
 static char *
 pciReadDeviceID(pciDevice *dev, const char *id_name)
 {
@@ -1109,4 +1252,118 @@ cleanup:
     VIR_FREE(file);
     VIR_FREE(pcidir);
     return ret;
+}
+
+static int
+pciDeviceDownstreamLacksACS(virConnectPtr conn,
+                            pciDevice *dev)
+{
+    uint16_t flags;
+    uint16_t ctrl;
+    unsigned int pos;
+
+    if (!dev->initted && pciInitDevice(conn, dev) < 0)
+        return -1;
+
+    pos = dev->pcie_cap_pos;
+    if (!pos || pciRead16(dev, PCI_CLASS_DEVICE) != PCI_CLASS_BRIDGE_PCI)
+        return 0;
+
+    flags = pciRead16(dev, pos + PCI_EXP_FLAGS);
+    if (((flags & PCI_EXP_FLAGS_TYPE) >> 4) != PCI_EXP_TYPE_DOWNSTREAM)
+        return 0;
+
+    pos = pciFindExtendedCapabilityOffset(dev, PCI_EXT_CAP_ID_ACS);
+    if (!pos) {
+        VIR_DEBUG("%s %s: downstream port lacks ACS", dev->id, dev->name);
+        return 1;
+    }
+
+    ctrl = pciRead16(dev, pos + PCI_EXT_ACS_CTRL);
+    if ((ctrl & PCI_EXT_CAP_ACS_ENABLED) != PCI_EXT_CAP_ACS_ENABLED) {
+        VIR_DEBUG("%s %s: downstream port has ACS disabled",
+                  dev->id, dev->name);
+        return 1;
+    }
+
+    return 0;
+}
+
+static int
+pciDeviceIsBehindSwitchLackingACS(virConnectPtr conn,
+                                  pciDevice *dev)
+{
+    pciDevice *parent;
+
+    parent = pciGetParentDevice(conn, dev);
+    if (!parent) {
+        /* if we have no parent, and this is the root bus, ACS doesn't come
+         * into play since devices on the root bus can't P2P without going
+         * through the root IOMMU.
+         */
+        if (dev->bus == 0)
+            return 0;
+        else {
+            pciReportError(conn, VIR_ERR_NO_SUPPORT,
+                           _("Failed to find parent device for %s"),
+                           dev->name);
+            return -1;
+        }
+    }
+
+    /* XXX we should rather fail when we can't find device's parent and
+     * stop the loop when we get to root instead of just stopping when no
+     * parent can be found
+     */
+    do {
+        pciDevice *tmp;
+        int acs;
+
+        acs = pciDeviceDownstreamLacksACS(conn, parent);
+
+        if (acs) {
+            pciFreeDevice(conn, parent);
+            if (acs < 0)
+                return -1;
+            else
+                return 1;
+        }
+
+        tmp = parent;
+        parent = pciGetParentDevice(conn, parent);
+        pciFreeDevice(conn, tmp);
+    } while (parent);
+
+    return 0;
+}
+
+int pciDeviceIsAssignable(virConnectPtr conn,
+                          pciDevice *dev,
+                          int strict_acs_check)
+{
+    int ret;
+
+    /* XXX This could be a great place to actually check that a non-managed
+     * device isn't in use, e.g. by checking that device is either un-bound
+     * or bound to a stub driver.
+     */
+
+    ret = pciDeviceIsBehindSwitchLackingACS(conn, dev);
+    if (ret < 0)
+        return 0;
+
+    if (ret) {
+        if (!strict_acs_check) {
+            VIR_DEBUG("%s %s: strict ACS check disabled; device assignment allowed",
+                      dev->id, dev->name);
+        } else {
+            pciReportError(conn, VIR_ERR_NO_SUPPORT,
+                           _("Device %s is behind a switch lacking ACS and "
+                             "cannot be assigned"),
+                           dev->name);
+            return 0;
+        }
+    }
+
+    return 1;
 }

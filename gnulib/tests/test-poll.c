@@ -1,5 +1,5 @@
 /* Test of poll() function.
-   Copyright (C) 2008-2009 Free Software Foundation, Inc.
+   Copyright (C) 2008-2010 Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -19,12 +19,16 @@
 
 #include <config.h>
 
+#include <poll.h>
+
+#include "signature.h"
+SIGNATURE_CHECK (poll, int, (struct pollfd[], nfds_t, int));
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <poll.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <stdbool.h>

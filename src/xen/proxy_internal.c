@@ -1,7 +1,7 @@
 /*
  * proxy_client.c: client side of the communication with the libvirt proxy.
  *
- * Copyright (C) 2006, 2008, 2009 Red Hat, Inc.
+ * Copyright (C) 2006, 2008, 2009, 2010 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -146,11 +146,11 @@ virProxyForkServer(void)
     const char *proxyarg[2];
 
     if (!proxyPath) {
-        VIR_WARN0("failed to find libvirt_proxy\n");
+        VIR_WARN0("failed to find libvirt_proxy");
         return(-1);
     }
 
-    VIR_DEBUG("Asking to launch %s\n", proxyPath);
+    VIR_DEBUG("Asking to launch %s", proxyPath);
 
     proxyarg[0] = proxyPath;
     proxyarg[1] = NULL;
@@ -158,7 +158,7 @@ virProxyForkServer(void)
     if (virExecDaemonize(NULL, proxyarg, NULL, NULL,
                          &pid, -1, NULL, NULL, 0,
                          NULL, NULL, NULL) < 0)
-        VIR_ERROR0("Failed to fork libvirt_proxy\n");
+        VIR_ERROR0("Failed to fork libvirt_proxy");
 
     return (0);
 }
@@ -239,9 +239,9 @@ virProxyCloseSocket(xenUnifiedPrivatePtr priv) {
 
     ret = close(priv->proxy);
     if (ret != 0)
-        VIR_WARN(_("Failed to close socket %d\n"), priv->proxy);
+        VIR_WARN(_("Failed to close socket %d"), priv->proxy);
     else
-        VIR_DEBUG("Closed socket %d\n", priv->proxy);
+        VIR_DEBUG("Closed socket %d", priv->proxy);
     priv->proxy = -1;
     return(ret);
 }
@@ -267,14 +267,14 @@ retry:
     ret = read(fd, buffer, len);
     if (ret < 0) {
         if (errno == EINTR) {
-            VIR_DEBUG("read socket %d interrupted\n", fd);
+            VIR_DEBUG("read socket %d interrupted", fd);
             goto retry;
         }
-        VIR_WARN("Failed to read socket %d\n", fd);
+        VIR_WARN("Failed to read socket %d", fd);
         return(-1);
     }
 
-    VIR_DEBUG("read %d bytes from socket %d\n",
+    VIR_DEBUG("read %d bytes from socket %d",
               ret, fd);
     return(ret);
 }
@@ -296,10 +296,10 @@ virProxyWriteClientSocket(int fd, const char *data, int len) {
 
     ret = safewrite(fd, data, len);
     if (ret < 0) {
-        VIR_WARN(_("Failed to write to socket %d\n"), fd);
+        VIR_WARN(_("Failed to write to socket %d"), fd);
         return(-1);
     }
-    VIR_DEBUG("wrote %d bytes to socket %d\n",
+    VIR_DEBUG("wrote %d bytes to socket %d",
               len, fd);
 
     return(0);
@@ -340,7 +340,7 @@ xenProxyClose(virConnectPtr conn)
     return 0;
 }
 
-static int
+static int ATTRIBUTE_NONNULL(2)
 xenProxyCommand(virConnectPtr conn, virProxyPacketPtr request,
                 virProxyFullPacketPtr answer, int quiet) {
     static int serial = 0;
@@ -444,14 +444,14 @@ retry:
     /*
      * do more checks on the incoming packet.
      */
-    if ((res == NULL) || (res->version != PROXY_PROTO_VERSION) ||
+    if ((res->version != PROXY_PROTO_VERSION) ||
         (res->len < sizeof(virProxyPacket))) {
         virProxyError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
                       _("Communication error with proxy: malformed packet\n"));
         goto error;
     }
     if (res->serial != serial) {
-        VIR_WARN(_("got asynchronous packet number %d\n"), res->serial);
+        VIR_WARN(_("got asynchronous packet number %d"), res->serial);
         goto retry;
     }
 

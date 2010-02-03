@@ -1,7 +1,7 @@
 /*
  * driver.c: core driver methods for managing qemu guests
  *
- * Copyright (C) 2006-2009 Red Hat, Inc.
+ * Copyright (C) 2006-2010 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -513,7 +513,7 @@ networkBuildDnsmasqArgv(virConnectPtr conn,
     return 0;
 
  no_memory:
-    if (argv) {
+    if (*argv) {
         for (i = 0; (*argv)[i]; i++)
             VIR_FREE((*argv)[i]);
         VIR_FREE(*argv);
@@ -539,13 +539,13 @@ dhcpStartDhcpDaemon(virConnectPtr conn,
         return -1;
     }
 
-    if ((err = virFileMakePath(NETWORK_PID_DIR)) < 0) {
+    if ((err = virFileMakePath(NETWORK_PID_DIR)) != 0) {
         virReportSystemError(conn, err,
                              _("cannot create directory %s"),
                              NETWORK_PID_DIR);
         return -1;
     }
-    if ((err = virFileMakePath(NETWORK_STATE_DIR)) < 0) {
+    if ((err = virFileMakePath(NETWORK_STATE_DIR)) != 0) {
         virReportSystemError(conn, err,
                              _("cannot create directory %s"),
                              NETWORK_STATE_DIR);
@@ -977,14 +977,14 @@ static int networkStartNetworkDaemon(virConnectPtr conn,
  err_delbr1:
     if ((err = brSetInterfaceUp(driver->brctl, network->def->bridge, 0))) {
         char ebuf[1024];
-        VIR_WARN(_("Failed to bring down bridge '%s' : %s\n"),
+        VIR_WARN(_("Failed to bring down bridge '%s' : %s"),
                  network->def->bridge, virStrerror(err, ebuf, sizeof ebuf));
     }
 
  err_delbr:
     if ((err = brDeleteBridge(driver->brctl, network->def->bridge))) {
         char ebuf[1024];
-        VIR_WARN(_("Failed to delete bridge '%s' : %s\n"),
+        VIR_WARN(_("Failed to delete bridge '%s' : %s"),
                  network->def->bridge, virStrerror(err, ebuf, sizeof ebuf));
     }
 
@@ -998,7 +998,7 @@ static int networkShutdownNetworkDaemon(virConnectPtr conn,
     int err;
     char *stateFile;
 
-    VIR_INFO(_("Shutting down network '%s'\n"), network->def->name);
+    VIR_INFO(_("Shutting down network '%s'"), network->def->name);
 
     if (!virNetworkObjIsActive(network))
         return 0;
@@ -1017,12 +1017,12 @@ static int networkShutdownNetworkDaemon(virConnectPtr conn,
 
     char ebuf[1024];
     if ((err = brSetInterfaceUp(driver->brctl, network->def->bridge, 0))) {
-        VIR_WARN(_("Failed to bring down bridge '%s' : %s\n"),
+        VIR_WARN(_("Failed to bring down bridge '%s' : %s"),
                  network->def->bridge, virStrerror(err, ebuf, sizeof ebuf));
     }
 
     if ((err = brDeleteBridge(driver->brctl, network->def->bridge))) {
-        VIR_WARN(_("Failed to delete bridge '%s' : %s\n"),
+        VIR_WARN(_("Failed to delete bridge '%s' : %s"),
                  network->def->bridge, virStrerror(err, ebuf, sizeof ebuf));
     }
 

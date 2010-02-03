@@ -19,22 +19,13 @@
 
 #include <string.h>
 
-#include <stdio.h>
+#include "signature.h"
+SIGNATURE_CHECK (memchr, void *, (void const *, int, size_t));
+
 #include <stdlib.h>
 
 #include "zerosize-ptr.h"
-
-#define ASSERT(expr) \
-  do                                                                         \
-    {                                                                        \
-      if (!(expr))                                                           \
-        {                                                                    \
-          fprintf (stderr, "%s:%d: assertion failed\n", __FILE__, __LINE__); \
-          fflush (stderr);                                                   \
-          abort ();                                                          \
-        }                                                                    \
-    }                                                                        \
-  while (0)
+#include "macros.h"
 
 /* Calculating void * + int is not portable, so this wrapper converts
    to char * to make the tests easier to write.  */

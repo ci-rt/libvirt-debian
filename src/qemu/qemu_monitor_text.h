@@ -116,32 +116,20 @@ int qemuMonitorTextAddUSBDeviceMatch(qemuMonitorPtr mon,
 
 
 int qemuMonitorTextAddPCIHostDevice(qemuMonitorPtr mon,
-                                    unsigned hostDomain,
-                                    unsigned hostBus,
-                                    unsigned hostSlot,
-                                    unsigned hostFunction,
-                                    unsigned *guestDomain,
-                                    unsigned *guestBus,
-                                    unsigned *guestSlot);
+                                    virDomainDevicePCIAddress *hostAddr,
+                                    virDomainDevicePCIAddress *guestAddr);
 
 int qemuMonitorTextAddPCIDisk(qemuMonitorPtr mon,
                               const char *path,
                               const char *bus,
-                              unsigned *guestDomain,
-                              unsigned *guestBus,
-                              unsigned *guestSlot);
+                              virDomainDevicePCIAddress *guestAddr);
 
 int qemuMonitorTextAddPCINetwork(qemuMonitorPtr mon,
                                  const char *nicstr,
-                                 unsigned *guestDomain,
-                                 unsigned *guestBus,
-                                 unsigned *guestSlot);
+                                 virDomainDevicePCIAddress *guestAddr);
 
 int qemuMonitorTextRemovePCIDevice(qemuMonitorPtr mon,
-                                   unsigned guestDomain,
-                                   unsigned guestBus,
-                                   unsigned guestSlot);
-
+                                   virDomainDevicePCIAddress *guestAddr);
 
 int qemuMonitorTextSendFileHandle(qemuMonitorPtr mon,
                                   const char *fdname,
@@ -159,5 +147,23 @@ int qemuMonitorTextRemoveHostNetwork(qemuMonitorPtr mon,
 
 int qemuMonitorTextGetPtyPaths(qemuMonitorPtr mon,
                                virHashTablePtr paths);
+
+int qemuMonitorTextAttachPCIDiskController(qemuMonitorPtr mon,
+                                           const char *bus,
+                                           virDomainDevicePCIAddress *guestAddr);
+
+int qemuMonitorTextAttachDrive(qemuMonitorPtr mon,
+                               const char *drivestr,
+                               virDomainDevicePCIAddress *controllerAddr,
+                               virDomainDeviceDriveAddress *driveAddr);
+
+int qemuMonitorTextGetAllPCIAddresses(qemuMonitorPtr mon,
+                                      qemuMonitorPCIAddress **addrs);
+
+int qemuMonitorTextAddDevice(qemuMonitorPtr mon,
+                             const char *devicestr);
+
+int qemuMonitorTextAddDrive(qemuMonitorPtr mon,
+                             const char *drivestr);
 
 #endif /* QEMU_MONITOR_TEXT_H */
