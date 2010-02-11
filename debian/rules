@@ -40,7 +40,7 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	--without-selinux        \
 	--without-esx		 \
 	--without-libssh2	 \
-	--without-capng	 	 \
+	--with-capng		 \
 	--enable-debug		 \
 	$(BUILD_XEN)		 \
 	$(BUILD_VBOX)		 \
