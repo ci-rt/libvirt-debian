@@ -2,7 +2,7 @@ usr/bin/*
 usr/sbin/*
 etc/libvirt/*
 etc/sasl2/*
-usr/share/polkit-1/*
+usr/share/PolicyKit/*
 usr/lib/libvirt/*
 usr/share/augeas/*
 usr/share/libvirt/*
