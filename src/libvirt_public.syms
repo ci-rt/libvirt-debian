@@ -285,4 +285,68 @@ LIBVIRT_0.6.4 {
 	virConnectDomainXMLToNative;
 } LIBVIRT_0.6.3;
 
+LIBVIRT_0.7.0 {
+    global:
+	virConnectNumOfDefinedInterfaces;
+	virConnectListDefinedInterfaces;
+} LIBVIRT_0.6.4;
+
+LIBVIRT_0.7.1 {
+    global:
+        virSecretGetConnect;
+        virConnectNumOfSecrets;
+        virConnectListSecrets;
+        virSecretLookupByUUID;
+        virSecretLookupByUUIDString;
+        virSecretLookupByUsage;
+        virSecretDefineXML;
+        virSecretGetUUID;
+        virSecretGetUUIDString;
+        virSecretGetUsageType;
+        virSecretGetUsageID;
+        virSecretGetXMLDesc;
+        virSecretSetValue;
+        virSecretGetValue;
+        virSecretUndefine;
+        virSecretRef;
+        virSecretFree;
+} LIBVIRT_0.7.0;
+
+LIBVIRT_0.7.2 {
+    global:
+	virStreamNew;
+	virStreamRef;
+	virStreamSend;
+	virStreamRecv;
+	virStreamSendAll;
+	virStreamRecvAll;
+	virStreamEventAddCallback;
+	virStreamEventUpdateCallback;
+	virStreamEventRemoveCallback;
+	virStreamFinish;
+	virStreamAbort;
+	virStreamFree;
+	virDomainMigrateToURI;
+} LIBVIRT_0.7.1;
+
+LIBVIRT_0.7.3 {
+    global:
+	virConnectGetLibVersion;
+	virConnectIsEncrypted;
+	virConnectIsSecure;
+	virDomainIsActive;
+	virDomainIsPersistent;
+	virNetworkIsActive;
+	virNetworkIsPersistent;
+	virStoragePoolIsActive;
+	virStoragePoolIsPersistent;
+	virInterfaceIsActive;
+} LIBVIRT_0.7.2;
+
+LIBVIRT_0.7.5 {
+    global:
+        virConnectCompareCPU;
+        virDomainMemoryStats;
+} LIBVIRT_0.7.3;
+
 # .... define new API here using predicted next version number ....

@@ -28,6 +28,10 @@
 
 #include <config.h>
 
+#include <stdint.h>
+#include <unistd.h>
+#include <sys/types.h>
+
 #include "internal.h"
 
 #include "datatypes.h"
@@ -41,10 +45,13 @@
 
 extern virDriver vbox22Driver;
 extern virNetworkDriver vbox22NetworkDriver;
-#if 0
-extern virDriver vbox25Driver;
-extern virNetworkDriver vbox25NetworkDriver;
-#endif
+extern virStorageDriver vbox22StorageDriver;
+extern virDriver vbox30Driver;
+extern virNetworkDriver vbox30NetworkDriver;
+extern virStorageDriver vbox30StorageDriver;
+extern virDriver vbox31Driver;
+extern virNetworkDriver vbox31NetworkDriver;
+extern virStorageDriver vbox31StorageDriver;
 
 static virDriver vboxDriverDummy;
 
@@ -57,6 +64,7 @@ static virDriver vboxDriverDummy;
 int vboxRegister(void) {
     virDriverPtr        driver;
     virNetworkDriverPtr networkDriver;
+    virStorageDriverPtr storageDriver;
     uint32_t            uVersion;
 
     /*
@@ -67,6 +75,7 @@ int vboxRegister(void) {
      */
     driver        = &vboxDriverDummy;
     networkDriver = &vbox22NetworkDriver;
+    storageDriver = &vbox22StorageDriver;
 
     /* Init the glue and get the API version. */
     if (VBoxCGlueInit() == 0) {
@@ -85,12 +94,17 @@ int vboxRegister(void) {
             DEBUG0("VirtualBox API version: 2.2");
             driver        = &vbox22Driver;
             networkDriver = &vbox22NetworkDriver;
-#if 0
-        } else if (uVersion >= 2002051 && uVersion < 2005051) {
-            DEBUG0("VirtualBox API version: 2.5");
-            driver        = &vbox25Driver;
-            networkDriver = &vbox25NetworkDriver;
-#endif
+            storageDriver = &vbox22StorageDriver;
+        } else if (uVersion >= 2002051 && uVersion < 3000051) {
+            DEBUG0("VirtualBox API version: 3.0");
+            driver        = &vbox30Driver;
+            networkDriver = &vbox30NetworkDriver;
+            storageDriver = &vbox30StorageDriver;
+        } else if (uVersion >= 3000051 && uVersion < 3001051) {
+            DEBUG0("VirtualBox API version: 3.1");
+            driver        = &vbox31Driver;
+            networkDriver = &vbox31NetworkDriver;
+            storageDriver = &vbox31StorageDriver;
         } else {
             DEBUG0("Unsupport VirtualBox API version");
         }
@@ -102,6 +116,8 @@ int vboxRegister(void) {
     if (virRegisterDriver(driver) < 0)
         return -1;
     if (virRegisterNetworkDriver(networkDriver) < 0)
+        return -1;
+    if (virRegisterStorageDriver(storageDriver) < 0)
         return -1;
 
     return 0;

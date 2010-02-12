@@ -1,3 +1,200 @@
+libvirt (0.7.6-1) unstable; urgency=low
+
+  * [0229557] Imported Upstream version 0.7.6
+  * [6fdc00b] Drop patches.
+  * [1b0670b] Update libvirt0 symbols.
+
+ -- Laurent Léonard <laurent@open-minds.org>  Thu, 04 Feb 2010 00:38:08 +0100
+
+libvirt (0.7.5-6) unstable; urgency=low
+
+  [ Laurent Léonard ]
+  * [a3b98c9] Don't free an uninitalized pointer in update_driver_name()
+    (Closes: #565983) - thanks to Matthias Bolte
+  * [719976d] Handle only official releases in debian/watch.
+  * [83902d9] Bump Standards-Version to 3.8.4.
+
+  [ Guido Günther ]
+  * [959640d] New patch 0011-Fix-parsing-of-info-chardev-line-
+    endings.patch Fix parsing of 'info chardev' line endings (Closes:
+    #567818) - thanks to Matthew Booth
+
+  [ Laurent Léonard ]
+  * [0b2a9dd] Add $remote_fs to Required-Start and Required-Stop in
+    libvirt-bin init script.
+
+ -- Laurent Léonard <laurent@open-minds.org>  Mon, 01 Feb 2010 00:03:58 +0100
+
+libvirt (0.7.5-5) unstable; urgency=low
+
+  [ Guido Günther ]
+  * [d8e60e8] Add css to docs
+  * [f6e41ae] New patch 0008-qemu-Use-log-output-for-pty-assignment-if-
+    info-chard.patch qemu: Use log output for pty assignment if 'info
+    chardev' is unavailable - thanks to Matthias Bolte
+
+  [ Laurent Léonard ]
+  * [0905f82] Fix QEMU driver custom domain status XML extensions. -
+    thanks to Daniel P. Berrange
+
+ -- Laurent Léonard <laurent@open-minds.org>  Tue, 19 Jan 2010 23:16:16 +0100
+
+libvirt (0.7.5-4) unstable; urgency=low
+
+  * [18520c0] Same description of supported virt techs in all binary packages
+    (Closes: #564909) - thanks to Loïc Minier
+  * [49c357c] Implement path lookup for USB by vendor:product (Closes:
+    #563502) - thanks to Cole Robinson
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 13 Jan 2010 23:57:26 +0100
+
+libvirt (0.7.5-3) unstable; urgency=low
+
+  * [4d41fd7] Also look for dmi information in /sys/class older kernels such
+    as 2.6.26 have it there. (Closes: #564020)
+  * [1c0e0b5] Explicitly disable ESX support
+  * [c3c84f6] Terminate nc on EOF (Closes: #564053) - thanks to Gabor Gombas
+    for the patch
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 08 Jan 2010 11:07:34 +0100
+
+libvirt (0.7.5-2) unstable; urgency=low
+
+  * Upload to unstable
+  * [d6c5ca5] Add debugging symbols for all packages
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 03 Jan 2010 20:01:12 +0100
+
+libvirt (0.7.5-1) experimental; urgency=low
+
+  [ Laurent Léonard ]
+  * [96f8d94] Imported Upstream version 0.7.5
+  * [f8089a1] Redo patches.
+  * [294ce3d] Update libvirt0 symbols.
+  * [1c97be7] Allow DM upload and add myself as uploader.
+  * [5635a32] Clean debian/watch.
+
+  [ Guido Günther ]
+  * [45f98ae] Drop 0005-udev_device_get_devpath-might-return-NULL.patch
+    applied upstream.
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 26 Dec 2009 17:45:47 +0100
+
+libvirt (0.7.4-2) experimental; urgency=low
+
+  * [65d3755] Disable SELinux to work around #559356
+  * [19bd427] Run qemu instances as qemu-libvirt instead of root by default
+    (Closes: #558197)
+  * [0a6c03b] Use kvm as primary group for libvirt-qemu user
+  * [e5ae24b] Fix udev backend startup
+  * [f610a8e] Use udev instead of hal backend
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 07 Dec 2009 21:20:20 +0100
+
+libvirt (0.7.4-1) unstable; urgency=low
+
+  [ Laurent Léonard ]
+  * [8f2761b] Imported Upstream version 0.7.4
+  * [20b6b3d] Drop patches. 
+      * 0005-Fix-SELinux-linking-issues.patch - fixed upstream.
+      * 0006-Don-t-let-parent-of-daemon-exit-until-basic-initiali.patch -
+        fixed upstream.
+      * 0007-Only-remove-masquerade-roles-for-VIR_NETWORK_FORWARD.patch -
+        applied upstream. 
+      * 0008-Fix-qemu-session.patch - fixed upstream.
+  * [e41f8c6] Update libvirt0 symbols.
+  * [f184e28] Revert "switch to new source format 3.0 (quilt)" This reverts
+    commit 213ca47bbbefe2dc95be58a09db34669e3be5797.
+  * [65084d2] Enhance handling of examples.
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 01 Dec 2009 18:51:18 +0100
+
+libvirt (0.7.2-4) unstable; urgency=low
+
+  * [213ca47] switch to new source format 3.0 (quilt)
+  * [f5a10e9] Depend on hal (Closes: #556730)
+  * [7d1422d] Drop build-dep on libpolkit-dbus-dev (Closes: #549500)
+  * [95ad85c] Depend on libcap-ng-dev for lxc driver.
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 25 Nov 2009 20:39:17 +0100
+
+libvirt (0.7.2-3) unstable; urgency=low
+
+  * [2c0aa82] Fix qemu:///session Backported from upsgtream's
+    79218cdd9887b132eb0f29fe2048f89e90beae1 (Closes: #554869)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 07 Nov 2009 12:50:54 +0100
+
+libvirt (0.7.2-2) unstable; urgency=low
+
+  [ Laurent Léonard ]
+  * [a9ea205] Change requirement of libvirt-bin in libvirt- suspendonreboot.
+  * [a4db804] Update debian/patches/0006-Don-t-let-parent-of-daemon-
+    exit-until-basic-initiali.patch. Fix use of an uninitialized variable that
+    was causing a bug on i386 systems.
+  * [59e1e53] Redo patches.
+
+  [ Guido Günther ]
+  * upload to unstable
+  * [43f106a] Only remove masquerade roles for VIR_NETWORK_FORWARD_NAT
+    (Closes: #549949) - thanks to Rob S. Wolfram for testing
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 05 Nov 2009 20:44:21 +0100
+
+libvirt (0.7.2-1) experimental; urgency=low
+
+  [ Laurent Léonard ]
+  * [51a4814] Imported Upstream version 0.7.2
+  * [12268f6] Update patches.
+  * [175d497] Fix SELinux linking issues. Pulled from upstream
+    309acaa0230494b8ec08d03375c10238cb2daf55.
+  * [5cfdaf8] Update libvirt-doc docs.
+  * [dc2059f] Update libvirt-bin manpages.
+  * [a62a4a7] Update libvirt-bin examples.
+  * [9e38cbc] Update libvirt0 symbols.
+  * [412b12f] Make init.d script provide itself.
+  * [35451bf] Update debian/rules to support new example files.
+  * [43b7dac] Don't let parent of daemon exit until basic initialization is
+    done.
+  * [5a37e69] Make init.d provide libvirtd for backward compatibility.
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 26 Oct 2009 20:14:23 +0100
+
+libvirt (0.7.1-2) unstable; urgency=low
+
+  * [f5299d3] document changes and release 0.7.1-1
+  * [f137c00] Allow for older versions of dpkg-dev to ease backports.
+  * [74f5832] Use Policykit 1.0 (Closes: #549500)
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 09 Oct 2009 20:32:02 +0200
+
+libvirt (0.7.1-1) unstable; urgency=low
+
+  [ Laurent Léonard ]
+  * [40fb620] Bump Debhelper version to 7.
+  * [e0e89f2] Bump Standards-Version to 3.8.3.
+  * [50a862f] Clean debian/rules.
+  * [e9c9906] Change build dependency on libreadline5-dev to
+    libreadline-dev.
+  * [b6cb738] Imported Upstream version 0.7.1
+  * [780f6a7] Redo patches.
+  * [3d66f37] Update libvirt-bin examples.
+  * [c01ed84] Update libvirt0 symbols.
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 26 Sep 2009 17:15:02 +0200
+
+libvirt (0.7.0-1) experimental; urgency=low
+
+  [ Laurent Léonard ]
+  * [4fb1a38] Imported Upstream version 0.7.0
+  * [5578fd3] Drop 0005-Fix-PCI-device-hotplug-unplug-with-newer-
+    QEMU.patch. Fixed upstream.
+  * [9a8afd0] Redo patches.
+  * [937ab63] Update symbols.
+  * [b4bd1ea] Update section in doc-base control file.
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 09 Aug 2009 13:35:42 +0200
+
 libvirt (0.6.5-3~bpo50+1) lenny-backports; urgency=low
 
   * Rebuild for lenny-backports.

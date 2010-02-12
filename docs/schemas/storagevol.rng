@@ -1,10 +1,11 @@
-<!-- A Relax NG schema for the libvirt node device XML format -->
+<!-- A Relax NG schema for the libvirt storage volume XML format -->
 <grammar xmlns="http://relaxng.org/ns/structure/1.0"
     datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
-  <!-- We handle only document defining a domain -->
   <start>
     <ref name='vol'/>
   </start>
+
+  <include href='storageencryption.rng'/>
 
 
   <define name='vol'>
@@ -74,6 +75,9 @@
       </optional>
       <ref name='format'/>
       <ref name='permissions'/>
+      <optional>
+        <ref name='encryption'/>
+      </optional>
     </element>
   </define>
 
@@ -194,5 +198,15 @@
     </data>
   </define>
 
+  <define name="UUID">
+    <choice>
+      <data type="string">
+        <param name="pattern">[a-fA-F0-9]{32}</param>
+      </data>
+      <data type="string">
+        <param name="pattern">[a-fA-F0-9]{8}\-([a-fA-F0-9]{4}\-){3}[a-fA-F0-9]{12}</param>
+      </data>
+    </choice>
+  </define>
 
 </grammar>

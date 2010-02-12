@@ -1,5 +1,5 @@
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# Copyright (C) 2002-2009 Free Software Foundation, Inc.
+# Copyright (C) 2002-2010 Free Software Foundation, Inc.
 #
 # This file is free software, distributed under the terms of the GNU
 # General Public License.  As a special exception to the GNU General
@@ -43,12 +43,13 @@ AC_DEFUN([gl_INIT],
   gl_COMMON
   gl_source_base='gnulib/lib'
 changequote(,)dnl
-LTALLOCA=`echo "$ALLOCA" | sed 's/\.[^.]* /.lo /g;s/\.[^.]*$/.lo/'`
+LTALLOCA=`echo "$ALLOCA" | sed -e 's/\.[^.]* /.lo /g;s/\.[^.]*$/.lo/'`
 changequote([, ])dnl
 AC_SUBST([LTALLOCA])
   gl_FUNC_ALLOCA
   gl_HEADER_ARPA_INET
   AC_PROG_MKDIR_P
+  gl_FUNC_BASE64
   gl_FUNC_CLOSE
   gl_UNISTD_MODULE_INDICATOR([close])
   AC_REQUIRE([gl_HEADER_SYS_SOCKET])
@@ -56,7 +57,7 @@ AC_SUBST([LTALLOCA])
     AC_LIBOBJ([connect])
   fi
   gl_SYS_SOCKET_MODULE_INDICATOR([connect])
-  AC_REQUIRE([gl_HEADER_ERRNO_H])
+  gl_HEADER_ERRNO_H
   gl_FUNC_FCLOSE
   gl_STDIO_MODULE_INDICATOR([fclose])
   gl_FLOAT_H
@@ -76,13 +77,27 @@ AC_SUBST([LTALLOCA])
   AC_SUBST([LIBINTL])
   AC_SUBST([LTLIBINTL])
   gl_FUNC_GETTIMEOFDAY
+  # Autoconf 2.61a.99 and earlier don't support linking a file only
+  # in VPATH builds.  But since GNUmakefile is for maintainer use
+  # only, it does not matter if we skip the link with older autoconf.
+  # Automake 1.10.1 and earlier try to remove GNUmakefile in non-VPATH
+  # builds, so use a shell variable to bypass this.
+  GNUmakefile=GNUmakefile
+  m4_if(m4_version_compare([2.61a.100],
+  	m4_defn([m4_PACKAGE_VERSION])), [1], [],
+        [AC_CONFIG_LINKS([$GNUmakefile:$GNUmakefile], [],
+  	[GNUmakefile=$GNUmakefile])])
   gl_HOSTENT
+  AC_REQUIRE([AC_C_INLINE])
   gl_INET_NTOP
   gl_ARPA_INET_MODULE_INDICATOR([inet_ntop])
   gl_INET_PTON
   gl_ARPA_INET_MODULE_INDICATOR([inet_pton])
   AC_REQUIRE([gl_HEADER_SYS_SOCKET])
   if test "$ac_cv_header_winsock2_h" = yes; then
+    dnl Even if the 'socket' module is not used here, another part of the
+    dnl application may use it and pass file descriptors that refer to
+    dnl sockets to the ioctl() function. So enable the support for sockets.
     AC_LIBOBJ([ioctl])
     gl_REPLACE_SYS_IOCTL_H
   fi
@@ -94,9 +109,11 @@ AC_SUBST([LTALLOCA])
   gl_SYS_STAT_MODULE_INDICATOR([lstat])
   gl_FUNC_MALLOC_POSIX
   gl_STDLIB_MODULE_INDICATOR([malloc-posix])
+  gl_FUNC_MEMCHR
+  gl_STRING_MODULE_INDICATOR([memchr])
   gl_FUNC_MKSTEMP
   gl_STDLIB_MODULE_INDICATOR([mkstemp])
-  AC_REQUIRE([gl_MULTIARCH])
+  gl_MULTIARCH
   gl_HEADER_NETDB
   gl_HEADER_NETINET_IN
   AC_PROG_MKDIR_P
@@ -107,6 +124,10 @@ AC_SUBST([LTALLOCA])
   gl_POSIX_SHELL
   gl_FUNC_RANDOM_R
   gl_STDLIB_MODULE_INDICATOR([random_r])
+  gl_FUNC_RAWMEMCHR
+  gl_STRING_MODULE_INDICATOR([rawmemchr])
+  gl_FUNC_READLINK
+  gl_UNISTD_MODULE_INDICATOR([readlink])
   gl_FUNC_REALLOC_POSIX
   gl_STDLIB_MODULE_INDICATOR([realloc-posix])
   AC_REQUIRE([gl_HEADER_SYS_SOCKET])
@@ -114,6 +135,8 @@ AC_SUBST([LTALLOCA])
     AC_LIBOBJ([recv])
   fi
   gl_SYS_SOCKET_MODULE_INDICATOR([recv])
+  gl_FUNC_SELECT
+  gl_SYS_SELECT_MODULE_INDICATOR([select])
   AC_REQUIRE([gl_HEADER_SYS_SOCKET])
   if test "$ac_cv_header_winsock2_h" = yes; then
     AC_LIBOBJ([send])
@@ -132,14 +155,30 @@ AC_SUBST([LTALLOCA])
   if test "$ac_cv_header_winsock2_h" = yes; then
     AC_LIBOBJ([socket])
   fi
+  # When this module is used, sockets may actually occur as file descriptors,
+  # hence it is worth warning if the modules 'close' and 'ioctl' are not used.
+  m4_ifdef([gl_UNISTD_H_DEFAULTS], [AC_REQUIRE([gl_UNISTD_H_DEFAULTS])])
+  m4_ifdef([gl_SYS_IOCTL_H_DEFAULTS], [AC_REQUIRE([gl_SYS_IOCTL_H_DEFAULTS])])
+  AC_REQUIRE([gl_PREREQ_SYS_H_WINSOCK2])
+  if test "$ac_cv_header_winsock2_h" = yes; then
+    UNISTD_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS=1
+    SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS=1
+  fi
   gl_SYS_SOCKET_MODULE_INDICATOR([socket])
+  gl_SOCKETS
   gl_TYPE_SOCKLEN_T
+  gt_TYPE_SSIZE_T
+  gl_FUNC_STAT
+  gl_SYS_STAT_MODULE_INDICATOR([stat])
   AM_STDBOOL_H
+  gl_STDDEF_H
   gl_STDINT_H
   gl_STDIO_H
   gl_STDLIB_H
   gl_FUNC_STPCPY
   gl_STRING_MODULE_INDICATOR([stpcpy])
+  gl_FUNC_STRCHRNUL
+  gl_STRING_MODULE_INDICATOR([strchrnul])
   gl_FUNC_STRDUP_POSIX
   gl_STRING_MODULE_INDICATOR([strdup])
   gl_FUNC_STRERROR
@@ -156,7 +195,6 @@ AC_SUBST([LTALLOCA])
   gl_HEADER_SYS_SELECT
   AC_PROG_MKDIR_P
   gl_HEADER_SYS_SOCKET
-  gl_MODULE_INDICATOR([sys_socket])
   AC_PROG_MKDIR_P
   gl_HEADER_SYS_STAT_H
   AC_PROG_MKDIR_P
@@ -170,8 +208,8 @@ AC_SUBST([LTALLOCA])
   gl_FUNC_VASPRINTF
   gl_STDIO_MODULE_INDICATOR([vasprintf])
   m4_ifdef([AM_XGETTEXT_OPTION],
-    [AM_XGETTEXT_OPTION([--flag=asprintf:2:c-format])
-     AM_XGETTEXT_OPTION([--flag=vasprintf:2:c-format])])
+    [AM_][XGETTEXT_OPTION([--flag=asprintf:2:c-format])
+     AM_][XGETTEXT_OPTION([--flag=vasprintf:2:c-format])])
   gl_WCHAR_H
   gl_XSIZE
   m4_ifval(gl_LIBSOURCES_LIST, [
@@ -196,7 +234,7 @@ AC_SUBST([LTALLOCA])
     if test -n "$gl_LIBOBJS"; then
       # Remove the extension.
       sed_drop_objext='s/\.o$//;s/\.obj$//'
-      for i in `for i in $gl_LIBOBJS; do echo "$i"; done | sed "$sed_drop_objext" | sort | uniq`; do
+      for i in `for i in $gl_LIBOBJS; do echo "$i"; done | sed -e "$sed_drop_objext" | sort | uniq`; do
         gl_libobjs="$gl_libobjs $i.$ac_objext"
         gl_ltlibobjs="$gl_ltlibobjs $i.lo"
       done
@@ -223,16 +261,22 @@ AC_SUBST([LTALLOCA])
     AC_LIBOBJ([bind])
   fi
   gl_SYS_SOCKET_MODULE_INDICATOR([bind])
+  gl_FUNC_UNGETC_WORKS
+  AC_C_BIGENDIAN
+  AC_C_BIGENDIAN
   AC_REQUIRE([gl_HEADER_SYS_SOCKET])
   if test "$ac_cv_header_winsock2_h" = yes; then
     AC_LIBOBJ([listen])
   fi
   gl_SYS_SOCKET_MODULE_INDICATOR([listen])
+  gl_PATHMAX
   AC_CHECK_HEADERS_ONCE([unistd.h sys/wait.h])
-  gl_SOCKETS
+  AC_CHECK_HEADERS_ONCE([unistd.h sys/wait.h])
   gt_TYPE_WCHAR_T
   gt_TYPE_WINT_T
-  AC_CHECK_FUNCS([shutdown])
+  gl_FUNC_SYMLINK
+  gl_UNISTD_MODULE_INDICATOR([symlink])
+  AC_CHECK_FUNCS_ONCE([shutdown])
   abs_aux_dir=`cd "$ac_aux_dir"; pwd`
   AC_SUBST([abs_aux_dir])
   m4_ifval(gltests_LIBSOURCES_LIST, [
@@ -257,7 +301,7 @@ AC_SUBST([LTALLOCA])
     if test -n "$gltests_LIBOBJS"; then
       # Remove the extension.
       sed_drop_objext='s/\.o$//;s/\.obj$//'
-      for i in `for i in $gltests_LIBOBJS; do echo "$i"; done | sed "$sed_drop_objext" | sort | uniq`; do
+      for i in `for i in $gltests_LIBOBJS; do echo "$i"; done | sed -e "$sed_drop_objext" | sort | uniq`; do
         gltests_libobjs="$gltests_libobjs $i.$ac_objext"
         gltests_ltlibobjs="$gltests_ltlibobjs $i.lo"
       done
@@ -326,18 +370,28 @@ AC_DEFUN([gltests_LIBSOURCES], [
 # This macro records the list of files which have been installed by
 # gnulib-tool and may be removed by future gnulib-tool invocations.
 AC_DEFUN([gl_FILE_LIST], [
+  build-aux/arg-nonnull.h
   build-aux/config.rpath
+  build-aux/gitlog-to-changelog
   build-aux/link-warning.h
   build-aux/mktempd
   build-aux/useless-if-before-free
   build-aux/vc-list-files
+  build-aux/warn-on-use.h
+  lib/alignof.h
   lib/alloca.c
   lib/alloca.in.h
+  lib/areadlink.c
+  lib/areadlink.h
   lib/arpa_inet.in.h
   lib/asnprintf.c
   lib/asprintf.c
+  lib/base64.c
+  lib/base64.h
   lib/c-ctype.c
   lib/c-ctype.h
+  lib/close-hook.c
+  lib/close-hook.h
   lib/close.c
   lib/connect.c
   lib/errno.in.h
@@ -354,6 +408,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/getpass.h
   lib/gettext.h
   lib/gettimeofday.c
+  lib/ignore-value.h
   lib/inet_ntop.c
   lib/inet_pton.c
   lib/intprops.h
@@ -361,6 +416,8 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/lseek.c
   lib/lstat.c
   lib/malloc.c
+  lib/memchr.c
+  lib/memchr.valgrind
   lib/mkstemp.c
   lib/netdb.in.h
   lib/netinet_in.in.h
@@ -374,20 +431,30 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/printf-parse.c
   lib/printf-parse.h
   lib/random_r.c
+  lib/rawmemchr.c
+  lib/rawmemchr.valgrind
+  lib/readlink.c
   lib/realloc.c
   lib/recv.c
+  lib/select.c
   lib/send.c
   lib/setsockopt.c
   lib/size_max.h
   lib/snprintf.c
   lib/socket.c
+  lib/sockets.c
+  lib/sockets.h
+  lib/stat.c
   lib/stdbool.in.h
+  lib/stddef.in.h
   lib/stdint.in.h
   lib/stdio-impl.h
   lib/stdio-write.c
   lib/stdio.in.h
   lib/stdlib.in.h
   lib/stpcpy.c
+  lib/strchrnul.c
+  lib/strchrnul.valgrind
   lib/strdup.c
   lib/strerror.c
   lib/string.in.h
@@ -414,8 +481,10 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/00gnulib.m4
   m4/alloca.m4
   m4/arpa_inet_h.m4
+  m4/base64.m4
   m4/close.m4
   m4/codeset.m4
+  m4/dos.m4
   m4/errno_h.m4
   m4/extensions.m4
   m4/fclose.m4
@@ -453,12 +522,15 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/lseek.m4
   m4/lstat.m4
   m4/malloc.m4
+  m4/memchr.m4
   m4/mkstemp.m4
+  m4/mmap-anon.m4
   m4/multiarch.m4
   m4/netdb_h.m4
   m4/netinet_in_h.m4
   m4/nls.m4
   m4/onceonly.m4
+  m4/pathmax.m4
   m4/perror.m4
   m4/physmem.m4
   m4/po.m4
@@ -468,25 +540,33 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/printf.m4
   m4/progtest.m4
   m4/random_r.m4
+  m4/rawmemchr.m4
+  m4/readlink.m4
   m4/realloc.m4
+  m4/select.m4
   m4/servent.m4
   m4/size_max.m4
   m4/snprintf.m4
   m4/sockets.m4
   m4/socklen.m4
   m4/sockpfaf.m4
+  m4/ssize_t.m4
+  m4/stat.m4
   m4/stdbool.m4
+  m4/stddef_h.m4
   m4/stdint.m4
   m4/stdint_h.m4
   m4/stdio_h.m4
   m4/stdlib_h.m4
   m4/stpcpy.m4
+  m4/strchrnul.m4
   m4/strdup.m4
   m4/strerror.m4
   m4/string_h.m4
   m4/strndup.m4
   m4/strnlen.m4
   m4/strsep.m4
+  m4/symlink.m4
   m4/sys_ioctl_h.m4
   m4/sys_select_h.m4
   m4/sys_socket_h.m4
@@ -497,42 +577,70 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/time_h.m4
   m4/time_r.m4
   m4/uintmax_t.m4
+  m4/ungetc.m4
   m4/unistd_h.m4
   m4/vasnprintf.m4
   m4/vasprintf.m4
   m4/visibility.m4
+  m4/warn-on-use.m4
   m4/wchar.m4
   m4/wchar_t.m4
   m4/wint_t.m4
   m4/xsize.m4
+  tests/macros.h
+  tests/signature.h
+  tests/test-alignof.c
   tests/test-alloca-opt.c
+  tests/test-areadlink.c
+  tests/test-areadlink.h
   tests/test-arpa_inet.c
+  tests/test-base64.c
   tests/test-c-ctype.c
   tests/test-errno.c
   tests/test-fseeko.c
   tests/test-fseeko.sh
+  tests/test-fseeko2.sh
   tests/test-getaddrinfo.c
   tests/test-getdelim.c
   tests/test-gethostname.c
   tests/test-getline.c
   tests/test-gettimeofday.c
+  tests/test-inet_ntop.c
+  tests/test-inet_pton.c
   tests/test-lseek.c
   tests/test-lseek.sh
   tests/test-lstat.c
+  tests/test-lstat.h
+  tests/test-memchr.c
   tests/test-netdb.c
   tests/test-netinet_in.c
   tests/test-perror.c
   tests/test-perror.sh
   tests/test-poll.c
   tests/test-random_r.c
+  tests/test-rawmemchr.c
+  tests/test-readlink.c
+  tests/test-readlink.h
+  tests/test-select-fd.c
+  tests/test-select-in.sh
+  tests/test-select-out.sh
+  tests/test-select-stdin.c
+  tests/test-select.c
   tests/test-snprintf.c
   tests/test-sockets.c
+  tests/test-stat.c
+  tests/test-stat.h
   tests/test-stdbool.c
+  tests/test-stddef.c
   tests/test-stdint.c
   tests/test-stdio.c
   tests/test-stdlib.c
+  tests/test-strchrnul.c
   tests/test-strerror.c
   tests/test-string.c
+  tests/test-symlink.c
+  tests/test-symlink.h
+  tests/test-sys_ioctl.c
   tests/test-sys_select.c
   tests/test-sys_socket.c
   tests/test-sys_stat.c
@@ -544,10 +652,15 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-vc-list-files-cvs.sh
   tests/test-vc-list-files-git.sh
   tests/test-wchar.c
+  tests/zerosize-ptr.h
   tests=lib/accept.c
   tests=lib/bind.c
+  tests=lib/dummy.c
   tests=lib/listen.c
-  tests=lib/sockets.c
-  tests=lib/sockets.h
+  tests=lib/pathmax.h
+  tests=lib/same-inode.h
+  tests=lib/symlink.c
   tests=lib/w32sock.h
+  top/GNUmakefile
+  top/maint.mk
 ])

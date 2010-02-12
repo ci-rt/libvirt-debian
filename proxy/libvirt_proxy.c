@@ -27,10 +27,10 @@
 #include "datatypes.h"
 #include "proxy_internal.h"
 #include "util.h"
-#include "xen_internal.h"
+#include "xen_hypervisor.h"
 #include "xend_internal.h"
 #include "xs_internal.h"
-#include "xen_unified.h"
+#include "xen_driver.h"
 
 static int fdServer = -1;
 static int debug = 0;
@@ -170,7 +170,11 @@ proxyListenUnixSocket(const char *path) {
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
     addr.sun_path[0] = '\0';
-    strncpy(&addr.sun_path[1], path, (sizeof(addr) - 4) - 2);
+    if (virStrcpy(&addr.sun_path[1], path, sizeof(addr.sun_path) - 1) == NULL) {
+        fprintf(stderr, "Path %s too long to fit into destination\n", path);
+        close(fd);
+        return -1;
+    }
 
     /*
      * now bind the socket to that address and listen on it
@@ -812,14 +816,14 @@ int main(int argc, char **argv) {
              persist = 1;
          } else {
              usage(argv[0]);
-             exit(1);
+             exit(EXIT_FAILURE);
          }
     }
 
 
     if (geteuid() != 0) {
         fprintf(stderr, "%s must be run as root or suid\n", argv[0]);
-        /* exit(1); */
+        /* exit(EXIT_FAILURE); */
     }
 
     /*
@@ -834,19 +838,19 @@ int main(int argc, char **argv) {
      * failure.
      */
     if (proxyListenUnixSocket(PROXY_SOCKET_PATH) < 0)
-        exit(0);
+        exit(EXIT_SUCCESS);
     if (proxyInitXen() == 0)
         proxyMainLoop();
     sleep(1);
     proxyCloseUnixSocket();
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 
 #else /* WITHOUT_XEN */
 
 int main(void) {
     fprintf(stderr, "libvirt was compiled without Xen support\n");
-    exit(1);
+    exit(EXIT_FAILURE);
 }
 
 #endif /* WITH_XEN */

@@ -22,6 +22,8 @@ The primary maintainers and people with commit access rights:
   Dan Smith            <danms@us.ibm.com>
   Guido Günther        <agx@sigxcpu.org>
   John Levon           <john.levon@sun.com>
+  Matthias Bolte       <matthias.bolte@googlemail.com>
+  Jiri Denemark        <jdenemar@redhat.com>
 
 Patches have also been contributed by:
 
@@ -52,7 +54,7 @@ Patches have also been contributed by:
   Charles Duffy        <Charles_Duffy@messageone.com>
   Nguyen Anh Quynh     <aquynh@gmail.com>
   James Morris         <jmorris@namei.org>
-  Chris Wrigh          <chrisw@redhat.com>
+  Chris Wright         <chrisw@redhat.com>
   Ben Guthro           <ben.guthro@gmail.com>
   Shigeki Sakamoto     <fj0588di@aa.jp.fujitsu.com>
   Gerd von Egidy       <lists@egidy.de>
@@ -77,6 +79,16 @@ Patches have also been contributed by:
   Amy Griffis          <amy.griffis@hp.com>
   Henrik Persson E     <henrik.e.persson@ericsson.com>
   Satoru SATOH         <satoru.satoh@gmail.com>
+  Paolo Bonzini        <pbonzini@redhat.com>
+  Miloslav Trmač       <mitr@redhat.com>
+  Jamie Strandboge     <jamie@canonical.com>
+  Gerhard Stenzel      <gerhard.stenzel@de.ibm.com>
+  Matthew Booth        <mbooth@redhat.com>
+  Diego Elio Pettenò   <flameeyes@gmail.com>
+  Adam Litke           <agl@us.ibm.com>
+  Steve Yarmie         <steve.yarmie@gmail.com>
+  Dan Kenigsberg       <danken@redhat.com>
+  Yuji NISHIDA         <nishidy@nict.go.jp>
 
   [....send patches to get your name here....]
 

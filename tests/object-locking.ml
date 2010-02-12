@@ -128,7 +128,8 @@ let driverLockMethods = [
     "umlDriverLock";
     "nodedevDriverLock";
     "networkDriverLock";
-    "storageDriverLock"
+    "storageDriverLock";
+    "oneDriverLock"
 ]
 
 (*
@@ -142,7 +143,8 @@ let driverUnlockMethods = [
     "umlDriverUnlock";
     "nodedevDriverUnlock";
     "networkDriverUnlock";
-    "storageDriverUnlock"
+    "storageDriverUnlock";
+    "oneDriverUnlock"
 ]
 
 (*
@@ -159,6 +161,7 @@ let lockableDrivers = [
       "virStorageDriverStatePtr";
       "network_driver";
       "virDeviceMonitorState";
+      "one_driver_t";
 ]
 
 
@@ -329,7 +332,7 @@ let isLockableDriverNull exp =
 
 
 (*
- * Prior to validating a function, intialize these
+ * Prior to validating a function, initialize these
  * to VS.empty
  *
  * They contain the list of driver and object variables
@@ -823,5 +826,3 @@ let () =
       )
     | _ -> ()
   ) file.globals;
-
-

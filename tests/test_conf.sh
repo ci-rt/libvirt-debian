@@ -1,33 +1,28 @@
 #!/bin/sh
 
-if test "$VERBOSE" = yes; then
-  set -x
-  virsh --version
-fi
+test -z "$srcdir" && srcdir=$(pwd)
 
-. $srcdir/test-lib.sh
+. "$srcdir/test-lib.sh"
 
-set -e
-if test "x$abs_srcdir" = x; then
-  abs_srcdir=`pwd`
-  abs_builddir=`pwd`
-fi
+test_intro $this_test
 
 fail=0
-i=1
+i=0
 data_dir=$abs_srcdir/confdata
 for f in $(cd "$data_dir" && echo *.conf)
 do
+    i=`expr $i + 1`
     "$abs_builddir/conftest" "$data_dir/$f" > "$f-actual"
     expected="$data_dir"/`echo "$f" | sed s+\.conf$+\.out+`
     if compare "$expected" "$f-actual"; then
-        msg=OK
+        ret=0
     else
-        msg=FAILED
+        ret=1
         fail=1
     fi
-    printf "%2d) %-60s      ... %s\n" $i "$f" $msg
-    i=`expr $i + 1`
+    test_result $i "$f" $ret
 done
+
+test_final $i $fail
 
 (exit $fail); exit $fail

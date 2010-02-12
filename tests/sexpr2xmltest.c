@@ -7,8 +7,8 @@
 #include "internal.h"
 #include "xml.h"
 #include "datatypes.h"
-#include "xen_unified.h"
-#include "xend_internal.h"
+#include "xen/xen_driver.h"
+#include "xen/xend_internal.h"
 #include "testutils.h"
 #include "testutilsxen.h"
 
@@ -129,6 +129,7 @@ mymain(int argc, char **argv)
     DO_TEST("pv-vfb-orig", "pv-vfb-orig", 2);
     DO_TEST("pv-vfb-new", "pv-vfb-new", 3);
     DO_TEST("pv-vfb-new-vncdisplay", "pv-vfb-new-vncdisplay", 3);
+    DO_TEST("pv-vfb-type-crash", "pv-vfb-type-crash", 3);
     DO_TEST("fv-autoport", "fv-autoport", 3);
     DO_TEST("pv-bootloader", "pv-bootloader", 1);
 
@@ -167,10 +168,12 @@ mymain(int argc, char **argv)
     DO_TEST("fv-sound", "fv-sound", 1);
     DO_TEST("fv-sound-all", "fv-sound-all", 1);
 
+    DO_TEST("fv-net-ioemu", "fv-net-ioemu", 1);
+    DO_TEST("fv-net-netfront", "fv-net-netfront", 1);
+
     virCapabilitiesFree(caps);
 
     return(ret==0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 
 VIRT_TEST_MAIN(mymain)
-

@@ -12,7 +12,7 @@
 
 #include "internal.h"
 #include "testutils.h"
-#include "qemu_conf.h"
+#include "qemu/qemu_conf.h"
 #include "testutilsqemu.h"
 
 static char *progname;
@@ -92,16 +92,22 @@ mymain(int argc, char **argv)
     DO_TEST("bootloader");
     DO_TEST("clock-utc");
     DO_TEST("clock-localtime");
+    DO_TEST("hugepages");
     DO_TEST("disk-cdrom");
     DO_TEST("disk-floppy");
     DO_TEST("disk-many");
     DO_TEST("disk-xenvbd");
     DO_TEST("disk-usb");
+    DO_TEST("disk-virtio");
+    DO_TEST("floppy-drive-fat");
+    DO_TEST("disk-drive-fat");
     DO_TEST("disk-drive-fmt-qcow");
     DO_TEST("disk-drive-cache-v1-wt");
     DO_TEST("disk-drive-cache-v1-wb");
     DO_TEST("disk-drive-cache-v1-none");
     DO_TEST("graphics-vnc");
+    DO_TEST("graphics-vnc-sasl");
+    DO_TEST("graphics-vnc-tls");
     DO_TEST("graphics-sdl");
     DO_TEST("graphics-sdl-fullscreen");
     DO_TEST("input-usbmouse");
@@ -126,8 +132,8 @@ mymain(int argc, char **argv)
     DO_TEST("serial-many");
     DO_TEST("parallel-tcp");
     DO_TEST("console-compat");
+    DO_TEST("channel-guestfwd");
 
-    DO_TEST("hostdev-usb-product");
     DO_TEST("hostdev-usb-address");
     DO_TEST("hostdev-pci-address");
 
@@ -140,6 +146,6 @@ VIRT_TEST_MAIN(mymain)
 
 #else
 
-int main (void) { exit (77); /* means 'test skipped' to automake */ }
+int main (void) { exit (EXIT_AM_SKIP); }
 
 #endif /* WITH_QEMU */

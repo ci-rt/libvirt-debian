@@ -53,18 +53,22 @@ typedef enum {
     VIR_FROM_REMOTE,	/* Error from remote driver */
     VIR_FROM_OPENVZ,    /* Error from OpenVZ driver */
     VIR_FROM_XENXM,	/* Error at Xen XM layer */
-    VIR_FROM_STATS_LINUX, /* Error in the Linux Stats code */
-    VIR_FROM_LXC,   /* Error from Linux Container driver */
+    VIR_FROM_STATS_LINUX,/* Error in the Linux Stats code */
+    VIR_FROM_LXC,       /* Error from Linux Container driver */
     VIR_FROM_STORAGE,   /* Error from storage driver */
     VIR_FROM_NETWORK,   /* Error from network config */
     VIR_FROM_DOMAIN,    /* Error from domain config */
     VIR_FROM_UML,       /* Error at the UML driver */
-    VIR_FROM_NODEDEV, /* Error from node device monitor */
-    VIR_FROM_XEN_INOTIFY, /* Error from xen inotify layer */
+    VIR_FROM_NODEDEV,   /* Error from node device monitor */
+    VIR_FROM_XEN_INOTIFY,/* Error from xen inotify layer */
     VIR_FROM_SECURITY,  /* Error from security framework */
-    VIR_FROM_VBOX,    /* Error from VirtualBox driver */
+    VIR_FROM_VBOX,      /* Error from VirtualBox driver */
     VIR_FROM_INTERFACE, /* Error when operating on an interface */
-    VIR_FROM_ONE,     /* Error from OpenNebula driver */
+    VIR_FROM_ONE,       /* Error from OpenNebula driver */
+    VIR_FROM_ESX,       /* Error from ESX driver */
+    VIR_FROM_PHYP,      /* Error from IBM power hypervisor */
+    VIR_FROM_SECRET,    /* Error from secret storage */
+    VIR_FROM_CPU,       /* Error from CPU driver */
 } virErrorDomain;
 
 
@@ -163,6 +167,14 @@ typedef enum {
     VIR_WAR_NO_INTERFACE, /* failed to start interface driver */
     VIR_ERR_NO_INTERFACE, /* interface driver not running */
     VIR_ERR_INVALID_INTERFACE, /* invalid interface object */
+    VIR_ERR_MULTIPLE_INTERFACES, /* more than one matching interface found */
+    VIR_WAR_NO_SECRET, /* failed to start secret storage */
+    VIR_ERR_INVALID_SECRET, /* invalid secret */
+    VIR_ERR_NO_SECRET, /* secret not found */
+    VIR_ERR_CONFIG_UNSUPPORTED, /* unsupported configuration construct */
+    VIR_ERR_OPERATION_TIMEOUT, /* timeout occurred during operation */
+    VIR_ERR_MIGRATE_PERSIST_FAILED, /* a migration worked, but making the
+                                       VM persist on the dest host failed */
 } virErrorNumber;
 
 /**

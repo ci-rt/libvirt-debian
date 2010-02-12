@@ -24,6 +24,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "one_client.h"
+#include "datatypes.h"
+#include "util.h"
+#include "memory.h"
 
 oneClient one_client;
 
@@ -52,12 +55,12 @@ int c_oneReturnCode(xmlrpc_value *resultP)
     if( return_code )
     {
         xmlrpc_DECREF(resultP);
-        free(return_string);
+        VIR_FREE(return_string);
         return 0;
     }
     else
     {
-        free(one_client.error);
+        VIR_FREE(one_client.error);
 
         one_client.error=return_string;
         return -1;
@@ -123,7 +126,7 @@ int c_oneAllocateTemplate(char* vm_template)
         xmlrpc_DECREF(valueP);
         xmlrpc_DECREF(resultP);
 
-        free(one_client.error);
+        VIR_FREE(one_client.error);
 
         one_client.error=return_string;
         return -1;
@@ -171,11 +174,12 @@ int c_oneFinalize(int vmid)
     return c_oneAction(vmid, (char *)"finalize");
 }
 
-int c_oneVmInfo(int vmid, char* ret_info,int length)
+int c_oneVmInfo(int vmid, char* ret_info, int length)
 {
     xmlrpc_value *resultP;
     int return_code;
     char *return_string;
+    int retval = -1;
 
     resultP = xmlrpc_client_call(&one_client.env, one_client.url,
         "one.vmget_info", "(si)", one_client.session, vmid);
@@ -185,21 +189,15 @@ int c_oneVmInfo(int vmid, char* ret_info,int length)
 
     if( return_code )
     {
-        strncpy(ret_info, return_string, length-1);
-        ret_info[length-1] = '\0';
-
-        xmlrpc_DECREF(resultP);
-        free(return_string);
-
-        return 0;
+        if (virStrncpy(ret_info, return_string, length-1, length) != NULL)
+            /* Only set the return value to 0 if we succeeded */
+            retval = 0;
     }
-    else
-    {
-        xmlrpc_DECREF(resultP);
-        free(return_string);
 
-        return -1;
-    }
+    xmlrpc_DECREF(resultP);
+    VIR_FREE(return_string);
+
+    return retval;
 }
 
 void c_oneFree()
@@ -207,5 +205,3 @@ void c_oneFree()
     xmlrpc_env_clean(&one_client.env);
     xmlrpc_client_cleanup();
 }
-
-

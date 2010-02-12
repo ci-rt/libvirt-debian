@@ -12,7 +12,7 @@
 
 #include "internal.h"
 #include "testutils.h"
-#include "qemu_conf.h"
+#include "qemu/qemu_conf.h"
 
 #include "testutilsqemu.h"
 
@@ -34,6 +34,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
     const char **tmp = NULL;
     int ret = -1, len, flags;
     virDomainDefPtr vmdef = NULL;
+    virDomainChrDef monitor_chr;
 
     if (virtTestLoadFile(cmd, &expectargv, MAX_FILE) < 0)
         goto fail;
@@ -47,12 +48,35 @@ static int testCompareXMLToArgvFiles(const char *xml,
     else
         vmdef->id = -1;
 
+    memset(&monitor_chr, 0, sizeof(monitor_chr));
+    monitor_chr.type = VIR_DOMAIN_CHR_TYPE_UNIX;
+    monitor_chr.data.nix.path = (char *)"/tmp/test-monitor";
+    monitor_chr.data.nix.listen = 1;
+    if (!(monitor_chr.info.alias = strdup("monitor")))
+        goto fail;
+
     flags = QEMUD_CMD_FLAG_VNC_COLON |
         QEMUD_CMD_FLAG_NO_REBOOT |
         extraFlags;
 
+    if (qemudCanonicalizeMachine(&driver, vmdef) < 0)
+        goto fail;
+
+    if (flags & QEMUD_CMD_FLAG_DEVICE) {
+        qemuDomainPCIAddressSetPtr pciaddrs;
+        if (!(pciaddrs = qemuDomainPCIAddressSetCreate(vmdef)))
+            goto fail;
+
+        if (qemuAssignDevicePCISlots(vmdef, pciaddrs) < 0)
+            goto fail;
+
+        qemuDomainPCIAddressSetFree(pciaddrs);
+    }
+
+
     if (qemudBuildCommandLine(NULL, &driver,
-                              vmdef, flags, &argv, &qenv,
+                              vmdef, &monitor_chr, 0, flags,
+                              &argv, &qenv,
                               NULL, NULL, migrateFrom) < 0)
         goto fail;
 
@@ -154,7 +178,11 @@ mymain(int argc, char **argv)
 
     if ((driver.caps = testQemuCapsInit()) == NULL)
         return EXIT_FAILURE;
-    if((driver.stateDir = strdup("/nowhere")) == NULL)
+    if ((driver.stateDir = strdup("/nowhere")) == NULL)
+        return EXIT_FAILURE;
+    if ((driver.hugetlbfs_mount = strdup("/dev/hugepages")) == NULL)
+        return EXIT_FAILURE;
+    if ((driver.hugepage_path = strdup("/dev/hugepages/libvirt/qemu")) == NULL)
         return EXIT_FAILURE;
 
 #define DO_TEST_FULL(name, extraFlags, migrateFrom)                     \
@@ -168,6 +196,9 @@ mymain(int argc, char **argv)
 #define DO_TEST(name, extraFlags)                       \
         DO_TEST_FULL(name, extraFlags, NULL)
 
+    /* Unset or set all envvars here that are copied in qemudBuildCommandLine
+     * using ADD_ENV_COPY, otherwise these tests may fail due to unexpected
+     * values for these envvars */
     setenv("PATH", "/bin", 1);
     setenv("USER", "test", 1);
     setenv("LOGNAME", "test", 1);
@@ -175,14 +206,19 @@ mymain(int argc, char **argv)
     unsetenv("TMPDIR");
     unsetenv("LD_PRELOAD");
     unsetenv("LD_LIBRARY_PATH");
+    unsetenv("QEMU_AUDIO_DRV");
+    unsetenv("SDL_AUDIODRIVER");
 
     DO_TEST("minimal", QEMUD_CMD_FLAG_NAME);
+    DO_TEST("machine-aliases1", 0);
+    DO_TEST("machine-aliases2", 0);
     DO_TEST("boot-cdrom", 0);
     DO_TEST("boot-network", 0);
     DO_TEST("boot-floppy", 0);
-    DO_TEST("bootloader", 0);
+    DO_TEST("bootloader", QEMUD_CMD_FLAG_DOMID);
     DO_TEST("clock-utc", 0);
     DO_TEST("clock-localtime", 0);
+    DO_TEST("hugepages", QEMUD_CMD_FLAG_MEM_PATH);
     DO_TEST("disk-cdrom", 0);
     DO_TEST("disk-cdrom-empty", QEMUD_CMD_FLAG_DRIVE);
     DO_TEST("disk-floppy", 0);
@@ -195,10 +231,14 @@ mymain(int argc, char **argv)
             QEMUD_CMD_FLAG_DRIVE_BOOT);
     DO_TEST("disk-drive-boot-cdrom", QEMUD_CMD_FLAG_DRIVE |
             QEMUD_CMD_FLAG_DRIVE_BOOT);
+    DO_TEST("floppy-drive-fat", QEMUD_CMD_FLAG_DRIVE |
+            QEMUD_CMD_FLAG_DRIVE_BOOT | QEMUD_CMD_FLAG_DRIVE_FORMAT);
+    DO_TEST("disk-drive-fat", QEMUD_CMD_FLAG_DRIVE |
+            QEMUD_CMD_FLAG_DRIVE_BOOT | QEMUD_CMD_FLAG_DRIVE_FORMAT);
     DO_TEST("disk-drive-fmt-qcow", QEMUD_CMD_FLAG_DRIVE |
             QEMUD_CMD_FLAG_DRIVE_BOOT | QEMUD_CMD_FLAG_DRIVE_FORMAT);
     DO_TEST("disk-drive-shared", QEMUD_CMD_FLAG_DRIVE |
-            QEMUD_CMD_FLAG_DRIVE_FORMAT);
+            QEMUD_CMD_FLAG_DRIVE_FORMAT | QEMUD_CMD_FLAG_DRIVE_SERIAL);
     DO_TEST("disk-drive-cache-v1-wt", QEMUD_CMD_FLAG_DRIVE |
             QEMUD_CMD_FLAG_DRIVE_FORMAT);
     DO_TEST("disk-drive-cache-v1-wb", QEMUD_CMD_FLAG_DRIVE |
@@ -212,11 +252,12 @@ mymain(int argc, char **argv)
     DO_TEST("disk-drive-cache-v2-none", QEMUD_CMD_FLAG_DRIVE |
             QEMUD_CMD_FLAG_DRIVE_CACHE_V2 | QEMUD_CMD_FLAG_DRIVE_FORMAT);
     DO_TEST("disk-usb", 0);
+    DO_TEST("disk-usb-device", QEMUD_CMD_FLAG_DRIVE | QEMUD_CMD_FLAG_DEVICE);
     DO_TEST("graphics-vnc", 0);
 
     driver.vncSASL = 1;
     driver.vncSASLdir = strdup("/root/.sasl2");
-    DO_TEST("graphics-vnc-sasl", 0);
+    DO_TEST("graphics-vnc-sasl", QEMUD_CMD_FLAG_VGA);
     driver.vncTLS = 1;
     driver.vncTLSx509verify = 1;
     driver.vncTLSx509certdir = strdup("/etc/pki/tls/qemu");
@@ -228,17 +269,21 @@ mymain(int argc, char **argv)
 
     DO_TEST("graphics-sdl", 0);
     DO_TEST("graphics-sdl-fullscreen", 0);
+    DO_TEST("nographics-vga", QEMUD_CMD_FLAG_VGA);
     DO_TEST("input-usbmouse", 0);
     DO_TEST("input-usbtablet", 0);
-    DO_TEST("input-xen", 0);
+    DO_TEST("input-xen", QEMUD_CMD_FLAG_DOMID);
     DO_TEST("misc-acpi", 0);
     DO_TEST("misc-no-reboot", 0);
     DO_TEST("misc-uuid", QEMUD_CMD_FLAG_NAME |
-        QEMUD_CMD_FLAG_UUID | QEMUD_CMD_FLAG_DOMID);
+            QEMUD_CMD_FLAG_UUID);
     DO_TEST("net-user", 0);
     DO_TEST("net-virtio", 0);
+    DO_TEST("net-virtio-device", QEMUD_CMD_FLAG_DEVICE);
+    DO_TEST("net-virtio-netdev", QEMUD_CMD_FLAG_DEVICE | QEMUD_CMD_FLAG_NETDEV);
     DO_TEST("net-eth", 0);
     DO_TEST("net-eth-ifname", 0);
+    DO_TEST("net-eth-names", QEMUD_CMD_FLAG_NET_NAME);
 
     DO_TEST("serial-vc", 0);
     DO_TEST("serial-pty", 0);
@@ -251,18 +296,37 @@ mymain(int argc, char **argv)
     DO_TEST("serial-many", 0);
     DO_TEST("parallel-tcp", 0);
     DO_TEST("console-compat", 0);
+
+    DO_TEST("serial-vc-chardev", QEMUD_CMD_FLAG_CHARDEV|QEMUD_CMD_FLAG_DEVICE);
+    DO_TEST("serial-pty-chardev", QEMUD_CMD_FLAG_CHARDEV|QEMUD_CMD_FLAG_DEVICE);
+    DO_TEST("serial-dev-chardev", QEMUD_CMD_FLAG_CHARDEV|QEMUD_CMD_FLAG_DEVICE);
+    DO_TEST("serial-file-chardev", QEMUD_CMD_FLAG_CHARDEV|QEMUD_CMD_FLAG_DEVICE);
+    DO_TEST("serial-unix-chardev", QEMUD_CMD_FLAG_CHARDEV|QEMUD_CMD_FLAG_DEVICE);
+    DO_TEST("serial-tcp-chardev", QEMUD_CMD_FLAG_CHARDEV|QEMUD_CMD_FLAG_DEVICE);
+    DO_TEST("serial-udp-chardev", QEMUD_CMD_FLAG_CHARDEV|QEMUD_CMD_FLAG_DEVICE);
+    DO_TEST("serial-tcp-telnet-chardev", QEMUD_CMD_FLAG_CHARDEV|QEMUD_CMD_FLAG_DEVICE);
+    DO_TEST("serial-many-chardev", QEMUD_CMD_FLAG_CHARDEV|QEMUD_CMD_FLAG_DEVICE);
+    DO_TEST("parallel-tcp-chardev", QEMUD_CMD_FLAG_CHARDEV|QEMUD_CMD_FLAG_DEVICE);
+    DO_TEST("console-compat-chardev", QEMUD_CMD_FLAG_CHARDEV|QEMUD_CMD_FLAG_DEVICE);
+
+    DO_TEST("channel-guestfwd", QEMUD_CMD_FLAG_CHARDEV|QEMUD_CMD_FLAG_DEVICE);
+
+    DO_TEST("watchdog", 0);
+    DO_TEST("watchdog-device", QEMUD_CMD_FLAG_DEVICE);
     DO_TEST("sound", 0);
+    DO_TEST("sound-device", QEMUD_CMD_FLAG_DEVICE);
 
-    DO_TEST("hostdev-usb-product", 0);
     DO_TEST("hostdev-usb-address", 0);
-
-    DO_TEST("hostdev-pci-address", 0);
+    DO_TEST("hostdev-usb-address-device", QEMUD_CMD_FLAG_DEVICE);
+    DO_TEST("hostdev-pci-address", QEMUD_CMD_FLAG_PCIDEVICE);
+    DO_TEST("hostdev-pci-address-device", QEMUD_CMD_FLAG_PCIDEVICE|QEMUD_CMD_FLAG_DEVICE);
 
     DO_TEST_FULL("restore-v1", QEMUD_CMD_FLAG_MIGRATE_KVM_STDIO, "stdio");
     DO_TEST_FULL("restore-v2", QEMUD_CMD_FLAG_MIGRATE_QEMU_EXEC, "stdio");
     DO_TEST_FULL("restore-v2", QEMUD_CMD_FLAG_MIGRATE_QEMU_EXEC, "exec:cat");
     DO_TEST_FULL("migrate", QEMUD_CMD_FLAG_MIGRATE_QEMU_TCP, "tcp:10.0.0.1:5000");
 
+    free(driver.stateDir);
     virCapabilitiesFree(driver.caps);
 
     return(ret==0 ? EXIT_SUCCESS : EXIT_FAILURE);

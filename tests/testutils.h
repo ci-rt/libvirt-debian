@@ -1,7 +1,7 @@
 /*
  * utils.c: test utils
  *
- * Copyright (C) 2005, 2008 Red Hat, Inc.
+ * Copyright (C) 2005, 2008-2009 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -13,9 +13,12 @@
 
 #include <stdio.h>
 
+#define EXIT_AM_SKIP 77 /* tell Automake we're skipping a test */
+
 double virtTestCountAverage(double *items,
                             int nitems);
 
+void virtTestResult(const char *name, int ret, const char *msg, ...);
 int virtTestRun(const char *title,
                 int nloops,
                 int (*body)(const void *data),
@@ -33,6 +36,9 @@ int virtTestClearLineRegex(const char *pattern,
 int virtTestDifference(FILE *stream,
                        const char *expect,
                        const char *actual);
+
+unsigned int virTestGetDebug(void);
+unsigned int virTestGetVerbose(void);
 
 int virtTestMain(int argc,
                  char **argv,

@@ -31,7 +31,7 @@
 #include "threads.h"
 #include "logging.h"
 #include "util.h"
-#include "../qemud/event.h"
+#include "../daemon/event.h"
 
 #define NUM_FDS 5
 #define NUM_TIME 5
@@ -139,7 +139,7 @@ static void *eventThreadLoop(void *data ATTRIBUTE_UNUSED) {
 
 
 static int
-verifyFired(int handle, int timer)
+verifyFired(const char *name, int handle, int timer)
 {
     int handleFired = 0;
     int timerFired = 0;
@@ -147,25 +147,25 @@ verifyFired(int handle, int timer)
     for (i = 0 ; i < NUM_FDS ; i++) {
         if (handles[i].fired) {
             if (i != handle) {
-                fprintf(stderr, "FAIL Handle %d fired, but expected %d\n", i, handle);
+                virtTestResult(name, 1, "Handle %d fired, but expected %d\n", i, handle);
                 return EXIT_FAILURE;
             } else {
                 if (handles[i].error != EV_ERROR_NONE) {
-                    fprintf(stderr, "FAIL Handle %d fired, but had error %d\n", i,
-                            handles[i].error);
+                    virtTestResult(name, 1, "Handle %d fired, but had error %d\n", i,
+                                   handles[i].error);
                     return EXIT_FAILURE;
                 }
                 handleFired = 1;
             }
         } else {
             if (i == handle) {
-                fprintf(stderr, "FAIL Handle %d should have fired, but didn't\n", handle);
+                virtTestResult(name, 1, "Handle %d should have fired, but didn't\n", handle);
                 return EXIT_FAILURE;
             }
         }
     }
     if (handleFired != 1 && handle != -1) {
-        fprintf(stderr, "FAIL Something wierd happened, expecting handle %d\n", handle);
+        virtTestResult(name, 1, "Something wierd happened, expecting handle %d\n", handle);
         return EXIT_FAILURE;
     }
 
@@ -173,34 +173,33 @@ verifyFired(int handle, int timer)
     for (i = 0 ; i < NUM_TIME ; i++) {
         if (timers[i].fired) {
             if (i != timer) {
-                fprintf(stderr, "FAIL Timer %d fired, but expected %d\n", i, timer);
+                virtTestResult(name, 1, "Timer %d fired, but expected %d\n", i, timer);
                 return EXIT_FAILURE;
             } else {
                 if (timers[i].error != EV_ERROR_NONE) {
-                    fprintf(stderr, "FAIL Timer %d fired, but had error %d\n", i,
-                            timers[i].error);
+                    virtTestResult(name, 1, "Timer %d fired, but had error %d\n", i,
+                                   timers[i].error);
                     return EXIT_FAILURE;
                 }
                 timerFired = 1;
             }
         } else {
             if (i == timer) {
-                fprintf(stderr, "FAIL Timer %d should have fired, but didn't\n", timer);
+                virtTestResult(name, 1, "Timer %d should have fired, but didn't\n", timer);
                 return EXIT_FAILURE;
             }
         }
     }
     if (timerFired != 1 && timer != -1) {
-        fprintf(stderr, "FAIL Something wierd happened, expecting timer %d\n", timer);
+        virtTestResult(name, 1, "Something wierd happened, expecting timer %d\n", timer);
         return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;
 }
 
 static void
-startJob(const char *msg, int *test)
+startJob(void)
 {
-    fprintf(stderr, "%2d: %s ", (*test)++, msg);
     eventThreadRunOnce = 1;
     eventThreadJobDone = 0;
     pthread_cond_signal(&eventThreadRunCond);
@@ -210,7 +209,7 @@ startJob(const char *msg, int *test)
 }
 
 static int
-finishJob(int handle, int timer)
+finishJob(const char *name, int handle, int timer)
 {
     struct timespec waitTime;
     int rc;
@@ -220,14 +219,14 @@ finishJob(int handle, int timer)
     while (!eventThreadJobDone && rc == 0)
         rc = pthread_cond_timedwait(&eventThreadJobCond, &eventThreadMutex, &waitTime);
     if (rc != 0) {
-        fprintf(stderr, "FAIL Timed out waiting for pipe event\n");
+        virtTestResult(name, 1, "Timed out waiting for pipe event\n");
         return EXIT_FAILURE;
     }
 
-    if (verifyFired(handle, timer) != EXIT_SUCCESS)
+    if (verifyFired(name, handle, timer) != EXIT_SUCCESS)
         return EXIT_FAILURE;
 
-    fprintf(stderr, "OK\n");
+    virtTestResult(name, 0, NULL);
     return EXIT_SUCCESS;
 }
 
@@ -248,12 +247,10 @@ resetAll(void)
 static int
 mymain(int argc, char **argv)
 {
-    int ret = 0;
     char *progname;
     int i;
     pthread_t eventThread;
     char one = '1';
-    int test = 1;
 
     progname = argv[0];
 
@@ -272,15 +269,9 @@ mymain(int argc, char **argv)
     if (virThreadInitialize() < 0)
         return EXIT_FAILURE;
     char *debugEnv = getenv("LIBVIRT_DEBUG");
-    if (debugEnv && *debugEnv && *debugEnv != '0') {
-        if (STREQ(debugEnv, "2") || STREQ(debugEnv, "info"))
-            virLogSetDefaultPriority(VIR_LOG_INFO);
-        else if (STREQ(debugEnv, "3") || STREQ(debugEnv, "warning"))
-            virLogSetDefaultPriority(VIR_LOG_WARN);
-        else if (STREQ(debugEnv, "4") || STREQ(debugEnv, "error"))
-            virLogSetDefaultPriority(VIR_LOG_ERROR);
-        else
-            virLogSetDefaultPriority(VIR_LOG_DEBUG);
+    if (debugEnv && *debugEnv && (virLogParseDefaultPriority(debugEnv) == -1)) {
+        fprintf(stderr, "Invalid log level setting.\n");
+        return EXIT_FAILURE;
     }
 
     virEventInit();
@@ -309,9 +300,10 @@ mymain(int argc, char **argv)
 
     /* First time, is easy - just try triggering one of our
      * registered handles */
-    startJob("Simple write", &test);
-    ret = safewrite(handles[1].pipeFD[1], &one, 1);
-    if (finishJob(1, -1) != EXIT_SUCCESS)
+    startJob();
+    if (safewrite(handles[1].pipeFD[1], &one, 1) != 1)
+        return EXIT_FAILURE;
+    if (finishJob("Simple write", 1, -1) != EXIT_SUCCESS)
         return EXIT_FAILURE;
 
     resetAll();
@@ -319,9 +311,10 @@ mymain(int argc, char **argv)
     /* Now lets delete one before starting poll(), and
      * try triggering another handle */
     virEventRemoveHandleImpl(handles[0].watch);
-    startJob("Deleted before poll", &test);
-    ret = safewrite(handles[1].pipeFD[1], &one, 1);
-    if (finishJob(1, -1) != EXIT_SUCCESS)
+    startJob();
+    if (safewrite(handles[1].pipeFD[1], &one, 1) != 1)
+        return EXIT_FAILURE;
+    if (finishJob("Deleted before poll", 1, -1) != EXIT_SUCCESS)
         return EXIT_FAILURE;
 
     resetAll();
@@ -332,13 +325,13 @@ mymain(int argc, char **argv)
     /* NB: this case is subject to a bit of a race condition.
      * We yield & sleep, and pray that the other thread gets
      * scheduled before we run EventRemoveHandleImpl */
-    startJob("Interrupted during poll", &test);
+    startJob();
     pthread_mutex_unlock(&eventThreadMutex);
     sched_yield();
     usleep(100 * 1000);
     pthread_mutex_lock(&eventThreadMutex);
     virEventRemoveHandleImpl(handles[1].watch);
-    if (finishJob(-1, -1) != EXIT_SUCCESS)
+    if (finishJob("Interrupted during poll", -1, -1) != EXIT_SUCCESS)
         return EXIT_FAILURE;
 
     resetAll();
@@ -350,20 +343,22 @@ mymain(int argc, char **argv)
      * before poll() exits for the first safewrite(). We don't
      * see a hard failure in other cases, so nothing to worry
      * about */
-    startJob("Deleted during dispatch", &test);
+    startJob();
     handles[2].delete = handles[3].watch;
-    ret = safewrite(handles[2].pipeFD[1], &one, 1);
-    ret = safewrite(handles[3].pipeFD[1], &one, 1);
-    if (finishJob(2, -1) != EXIT_SUCCESS)
+    if (safewrite(handles[2].pipeFD[1], &one, 1) != 1
+        || safewrite(handles[3].pipeFD[1], &one, 1) != 1)
+        return EXIT_FAILURE;
+    if (finishJob("Deleted during dispatch", 2, -1) != EXIT_SUCCESS)
         return EXIT_FAILURE;
 
     resetAll();
 
     /* Extreme fun, lets delete ourselves during dispatch */
-    startJob("Deleted during dispatch", &test);
+    startJob();
     handles[2].delete = handles[2].watch;
-    ret = safewrite(handles[2].pipeFD[1], &one, 1);
-    if (finishJob(2, -1) != EXIT_SUCCESS)
+    if (safewrite(handles[2].pipeFD[1], &one, 1) != 1)
+        return EXIT_FAILURE;
+    if (finishJob("Deleted during dispatch", 2, -1) != EXIT_SUCCESS)
         return EXIT_FAILURE;
 
     resetAll();
@@ -372,8 +367,8 @@ mymain(int argc, char **argv)
 
     /* Run a timer on its own */
     virEventUpdateTimeoutImpl(timers[1].timer, 100);
-    startJob("Firing a timer", &test);
-    if (finishJob(-1, 1) != EXIT_SUCCESS)
+    startJob();
+    if (finishJob("Firing a timer", -1, 1) != EXIT_SUCCESS)
         return EXIT_FAILURE;
     virEventUpdateTimeoutImpl(timers[1].timer, -1);
 
@@ -383,8 +378,8 @@ mymain(int argc, char **argv)
      * try triggering another timer */
     virEventUpdateTimeoutImpl(timers[1].timer, 100);
     virEventRemoveTimeoutImpl(timers[0].timer);
-    startJob("Deleted before poll", &test);
-    if (finishJob(-1, 1) != EXIT_SUCCESS)
+    startJob();
+    if (finishJob("Deleted before poll", -1, 1) != EXIT_SUCCESS)
         return EXIT_FAILURE;
     virEventUpdateTimeoutImpl(timers[1].timer, -1);
 
@@ -396,13 +391,13 @@ mymain(int argc, char **argv)
     /* NB: this case is subject to a bit of a race condition.
      * We yield & sleep, and pray that the other thread gets
      * scheduled before we run EventRemoveTimeoutImpl */
-    startJob("Interrupted during poll", &test);
+    startJob();
     pthread_mutex_unlock(&eventThreadMutex);
     sched_yield();
     usleep(100 * 1000);
     pthread_mutex_lock(&eventThreadMutex);
     virEventRemoveTimeoutImpl(timers[1].timer);
-    if (finishJob(-1, -1) != EXIT_SUCCESS)
+    if (finishJob("Interrupted during poll", -1, -1) != EXIT_SUCCESS)
         return EXIT_FAILURE;
 
     resetAll();
@@ -416,9 +411,9 @@ mymain(int argc, char **argv)
      * about */
     virEventUpdateTimeoutImpl(timers[2].timer, 100);
     virEventUpdateTimeoutImpl(timers[3].timer, 100);
-    startJob("Deleted during dispatch", &test);
+    startJob();
     timers[2].delete = timers[3].timer;
-    if (finishJob(-1, 2) != EXIT_SUCCESS)
+    if (finishJob("Deleted during dispatch", -1, 2) != EXIT_SUCCESS)
         return EXIT_FAILURE;
     virEventUpdateTimeoutImpl(timers[2].timer, -1);
 
@@ -426,9 +421,9 @@ mymain(int argc, char **argv)
 
     /* Extreme fun, lets delete ourselves during dispatch */
     virEventUpdateTimeoutImpl(timers[2].timer, 100);
-    startJob("Deleted during dispatch", &test);
+    startJob();
     timers[2].delete = timers[2].timer;
-    if (finishJob(-1, 2) != EXIT_SUCCESS)
+    if (finishJob("Deleted during dispatch", -1, 2) != EXIT_SUCCESS)
         return EXIT_FAILURE;
 
     for (i = 0 ; i < NUM_FDS ; i++)
@@ -436,6 +431,26 @@ mymain(int argc, char **argv)
     for (i = 0 ; i < NUM_TIME ; i++)
         virEventRemoveTimeoutImpl(timers[i].timer);
 
+    resetAll();
+
+    /* Final test, register same FD twice, once with no
+     * events, and make sure the right callback runs */
+    handles[0].pipeFD[0] = handles[1].pipeFD[0];
+    handles[0].pipeFD[1] = handles[1].pipeFD[1];
+
+    handles[0].watch = virEventAddHandleImpl(handles[0].pipeFD[0],
+                                             0,
+                                             testPipeReader,
+                                             &handles[0], NULL);
+    handles[1].watch = virEventAddHandleImpl(handles[1].pipeFD[0],
+                                             VIR_EVENT_HANDLE_READABLE,
+                                             testPipeReader,
+                                             &handles[1], NULL);
+    startJob();
+    if (safewrite(handles[1].pipeFD[1], &one, 1) != 1)
+        return EXIT_FAILURE;
+    if (finishJob("Write duplicate", 1, -1) != EXIT_SUCCESS)
+        return EXIT_FAILURE;
 
     //pthread_kill(eventThread, SIGTERM);
 

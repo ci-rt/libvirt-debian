@@ -82,13 +82,13 @@ static int testCompareOutput(const char *expect_rel, const char *filter,
 }
 #endif
 
-#define VIRSH_DEFAULT     "../src/virsh", \
+#define VIRSH_DEFAULT     "../tools/virsh", \
     "--connect", \
     "test:///default"
 
 static char *custom_uri;
 
-#define VIRSH_CUSTOM     "../src/virsh", \
+#define VIRSH_CUSTOM     "../tools/virsh", \
     "--connect", \
     custom_uri
 
@@ -231,10 +231,10 @@ mymain(int argc, char **argv)
         abs_srcdir = getcwd(cwd, sizeof(cwd));
 
 #ifdef WIN32
-    exit (77); /* means 'test skipped' for automake */
+    exit (EXIT_AM_SKIP);
 #endif
 
-    snprintf(buffer, PATH_MAX-1, "test://%s/../docs/testnode.xml", abs_srcdir);
+    snprintf(buffer, PATH_MAX-1, "test://%s/../examples/xml/test/testnode.xml", abs_srcdir);
     buffer[PATH_MAX-1] = '\0';
     progname = argv[0];
     custom_uri = buffer;

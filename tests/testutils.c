@@ -45,8 +45,10 @@
     ((((int) ((T)->tv_sec - (U)->tv_sec)) * 1000000.0 +	\
       ((int) ((T)->tv_usec - (U)->tv_usec))) / 1000.0)
 
+static unsigned int testDebug = -1;
+static unsigned int testVerbose = -1;
+
 static unsigned int testOOM = 0;
-static unsigned int testDebug = 0;
 static unsigned int testCounter = 0;
 
 double
@@ -59,6 +61,38 @@ virtTestCountAverage(double *items, int nitems)
         sum += items[i];
 
     return (double) (sum / nitems);
+}
+
+
+void virtTestResult(const char *name, int ret, const char *msg, ...)
+{
+    va_list vargs;
+    va_start(vargs, msg);
+
+    testCounter++;
+    if (virTestGetVerbose()) {
+        fprintf(stderr, "%3d) %-60s ", testCounter, name);
+        if (ret == 0)
+            fprintf(stderr, "OK\n");
+        else {
+            fprintf(stderr, "FAILED\n");
+            if (msg) {
+                vfprintf(stderr, msg, vargs);
+            }
+        }
+    } else {
+        if (testCounter != 1 &&
+            !((testCounter-1) % 40)) {
+            fprintf(stderr, " %-3d\n", (testCounter-1));
+            fprintf(stderr, "      ");
+        }
+        if (ret == 0)
+            fprintf(stderr, ".");
+        else
+            fprintf(stderr, "!");
+    }
+
+    va_end(vargs);
 }
 
 /*
@@ -75,8 +109,8 @@ virtTestRun(const char *title, int nloops, int (*body)(const void *data), const 
     testCounter++;
 
     if (testOOM < 2) {
-        fprintf(stderr, "%2d) %-65s ... ", testCounter, title);
-        fflush(stderr);
+        if (virTestGetVerbose())
+            fprintf(stderr, "%2d) %-65s ... ", testCounter, title);
     }
 
     if (nloops > 1 && (ts = calloc(nloops,
@@ -96,13 +130,25 @@ virtTestRun(const char *title, int nloops, int (*body)(const void *data), const 
         }
     }
     if (testOOM < 2) {
-        if (ret == 0 && ts)
-            fprintf(stderr, "OK     [%.5f ms]\n",
-                    virtTestCountAverage(ts, nloops));
-        else if (ret == 0)
-            fprintf(stderr, "OK\n");
-        else
-            fprintf(stderr, "FAILED\n");
+        if (virTestGetVerbose()) {
+            if (ret == 0 && ts)
+                fprintf(stderr, "OK     [%.5f ms]\n",
+                        virtTestCountAverage(ts, nloops));
+            else if (ret == 0)
+                fprintf(stderr, "OK\n");
+            else
+                fprintf(stderr, "FAILED\n");
+        } else {
+            if (testCounter != 1 &&
+                !((testCounter-1) % 40)) {
+                fprintf(stderr, " %-3d\n", (testCounter-1));
+                fprintf(stderr, "      ");
+            }
+            if (ret == 0)
+                fprintf(stderr, ".");
+            else
+                fprintf(stderr, "!");
+        }
     }
 
     free(ts);
@@ -156,7 +202,6 @@ void virtTestCaptureProgramExecChild(const char *const argv[],
     int i;
     int open_max;
     int stdinfd = -1;
-    int stderrfd = -1;
     const char *const env[] = {
         "LANG=C",
 #if WITH_DRIVER_MODULES
@@ -167,13 +212,10 @@ void virtTestCaptureProgramExecChild(const char *const argv[],
 
     if ((stdinfd = open("/dev/null", O_RDONLY)) < 0)
         goto cleanup;
-    if ((stderrfd = open("/dev/null", O_WRONLY)) < 0)
-        goto cleanup;
 
     open_max = sysconf (_SC_OPEN_MAX);
     for (i = 0; i < open_max; i++) {
         if (i != stdinfd &&
-            i != stderrfd &&
             i != pipefd)
             close(i);
     }
@@ -182,7 +224,7 @@ void virtTestCaptureProgramExecChild(const char *const argv[],
         goto cleanup;
     if (dup2(pipefd, STDOUT_FILENO) != STDOUT_FILENO)
         goto cleanup;
-    if (dup2(stderrfd, STDERR_FILENO) != STDERR_FILENO)
+    if (dup2(pipefd, STDERR_FILENO) != STDERR_FILENO)
         goto cleanup;
 
     /* SUS is crazy here, hence the cast */
@@ -191,8 +233,6 @@ void virtTestCaptureProgramExecChild(const char *const argv[],
  cleanup:
     if (stdinfd != -1)
         close(stdinfd);
-    if (stderrfd != -1)
-        close(stderrfd);
 }
 
 int virtTestCaptureProgramOutput(const char *const argv[],
@@ -260,10 +300,10 @@ int virtTestDifference(FILE *stream,
     const char *actualStart = actual;
     const char *actualEnd = actual + (strlen(actual)-1);
 
-    if (!testDebug)
+    if (!virTestGetDebug())
         return 0;
 
-    if (testDebug < 2) {
+    if (virTestGetDebug() < 2) {
         /* Skip to first character where they differ */
         while (*expectStart && *actualStart &&
                *actualStart == *expectStart) {
@@ -327,12 +367,38 @@ virtTestErrorHook(int n, void *data ATTRIBUTE_UNUSED)
 }
 #endif
 
+static unsigned int
+virTestGetFlag(const char *name) {
+    char *flagStr;
+    unsigned int flag;
+
+    if ((flagStr = getenv(name)) == NULL)
+        return 0;
+
+    if (virStrToLong_ui(flagStr, NULL, 10, &flag) < 0)
+        return 0;
+
+    return flag;
+}
+
+unsigned int
+virTestGetDebug() {
+    if (testDebug == -1)
+        testDebug = virTestGetFlag("VIR_TEST_DEBUG");
+    return testDebug;
+}
+
+unsigned int
+virTestGetVerbose() {
+    if (testVerbose == -1)
+        testVerbose = virTestGetFlag("VIR_TEST_VERBOSE");
+    return testVerbose || virTestGetDebug();
+}
 
 int virtTestMain(int argc,
                  char **argv,
                  int (*func)(int, char **))
 {
-    char *debugStr;
     int ret;
 #if TEST_OOM
     int approxAlloc = 0;
@@ -344,14 +410,15 @@ int virtTestMain(int argc,
     int worker = 0;
 #endif
 
+    fprintf(stderr, "TEST: %s\n", STRPREFIX(argv[0], "./") ? argv[0] + 2 : argv[0]);
+    if (!virTestGetVerbose())
+        fprintf(stderr, "      ");
+
     if (virThreadInitialize() < 0 ||
-        virErrorInitialize() < 0)
+        virErrorInitialize() < 0 ||
+        virRandomInitialize(time(NULL) ^ getpid()))
         return 1;
 
-    if ((debugStr = getenv("VIR_TEST_DEBUG")) != NULL) {
-        if (virStrToLong_ui(debugStr, NULL, 10, &testDebug) < 0)
-            testDebug = 0;
-    }
 
 #if TEST_OOM
     if ((oomStr = getenv("VIR_TEST_OOM")) != NULL) {
@@ -373,16 +440,13 @@ int virtTestMain(int argc,
         }
     }
 
-    if (testOOM)
-        virAllocTestInit();
-
-    /* Run once to count allocs, and ensure it passes :-) */
+    /* Run once to prime any static allocations & ensure it passes */
     ret = (func)(argc, argv);
     if (ret != EXIT_SUCCESS)
         goto cleanup;
 
 #if TEST_OOM_TRACE
-    if (testDebug)
+    if (virTestGetDebug())
         virAllocTestHook(virtTestErrorHook, NULL);
 #endif
 
@@ -391,9 +455,16 @@ int virtTestMain(int argc,
         testOOM++;
         virSetErrorFunc(NULL, virtTestErrorFuncQuiet);
 
+        virAllocTestInit();
+
+        /* Run again to count allocs, and ensure it passes :-) */
+        ret = (func)(argc, argv);
+        if (ret != EXIT_SUCCESS)
+            goto cleanup;
+
         approxAlloc = virAllocTestCount();
         testCounter++;
-        if (testDebug)
+        if (virTestGetDebug())
             fprintf(stderr, "%d) OOM...\n", testCounter);
         else
             fprintf(stderr, "%d) OOM of %d allocs ", testCounter, approxAlloc);
@@ -415,7 +486,7 @@ int virtTestMain(int argc,
             if (mp &&
                 (n % mp) != (worker - 1))
                 continue;
-            if (!testDebug) {
+            if (!virTestGetDebug()) {
                 if (mp)
                     fprintf(stderr, "%d", worker);
                 else
@@ -444,7 +515,7 @@ int virtTestMain(int argc,
             }
         }
 
-        if (testDebug)
+        if (virTestGetDebug())
             fprintf(stderr, " ... OOM of %d allocs", approxAlloc);
 
         if (ret == EXIT_SUCCESS)
@@ -458,6 +529,12 @@ cleanup:
 #endif
 
     virResetLastError();
+    if (!virTestGetVerbose()) {
+        int i;
+        for (i = (testCounter % 40) ; i < 40 ; i++)
+            fprintf(stderr, " ");
+        fprintf(stderr, " %-3d %s\n", testCounter, ret == 0 ? "OK" : "FAIL");
+    }
     return ret;
 }
 

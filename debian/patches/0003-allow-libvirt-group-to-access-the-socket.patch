@@ -3,13 +3,13 @@ Date: Thu, 26 Jun 2008 20:01:38 +0200
 Subject: [PATCH] allow libvirt group to access the socket
 
 ---
- qemud/libvirtd.conf |    8 ++++----
+ daemon/libvirtd.conf |    8 ++++----
  1 files changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/qemud/libvirtd.conf b/qemud/libvirtd.conf
+diff --git a/daemon/libvirtd.conf b/daemon/libvirtd.conf
 index 49de466..cc5f056 100644
---- a/qemud/libvirtd.conf
-+++ b/qemud/libvirtd.conf
+--- a/daemon/libvirtd.conf
++++ b/daemon/libvirtd.conf
 @@ -78,7 +78,7 @@
  # without becoming root.
  #

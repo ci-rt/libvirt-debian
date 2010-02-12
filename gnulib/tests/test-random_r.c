@@ -1,5 +1,5 @@
 /* Test random_r.
-   Copyright (C) 2008 Free Software Foundation, Inc.
+   Copyright (C) 2008-2010 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -15,21 +15,19 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include <config.h>
+
 #include <stdlib.h>
-#include <stdio.h>
+
+#include "signature.h"
+SIGNATURE_CHECK (srandom_r, int, (unsigned int, struct random_data *));
+SIGNATURE_CHECK (initstate_r, int, (unsigned int, char *, size_t,
+                                    struct random_data *));
+SIGNATURE_CHECK (setstate_r, int, (char *, struct random_data *));
+SIGNATURE_CHECK (random_r, int, (struct random_data *, int32_t *));
+
 #include <time.h>
 
-#define ASSERT(expr) \
-  do									     \
-    {									     \
-      if (!(expr))							     \
-        {								     \
-          fprintf (stderr, "%s:%d: assertion failed\n", __FILE__, __LINE__); \
-          fflush (stderr);						     \
-          abort ();							     \
-        }								     \
-    }									     \
-  while (0)
+#include "macros.h"
 
 int
 main ()
@@ -48,7 +46,7 @@ main ()
       ASSERT (random_r (&rand_state, &r) == 0);
       ASSERT (0 <= r);
       if (RAND_MAX / 2 < r)
-	++n_big;
+        ++n_big;
     }
 
   /* Fail if none of the numbers were larger than RAND_MAX / 2.  */

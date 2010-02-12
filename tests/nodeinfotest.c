@@ -15,7 +15,7 @@
 static int
 mymain(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 {
-    exit (77); /* means 'test skipped' for automake */
+    exit (EXIT_AM_SKIP);
 }
 
 #else
@@ -112,4 +112,3 @@ mymain(int argc, char **argv)
 #endif /* __linux__ */
 
 VIRT_TEST_MAIN(mymain)
-

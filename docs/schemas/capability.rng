@@ -1,7 +1,6 @@
-<!-- A Relax NG schema for the libvirt node device XML format -->
+<!-- A Relax NG schema for the libvirt capabilities XML format -->
 <grammar xmlns="http://relaxng.org/ns/structure/1.0"
     datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
-  <!-- We handle only document defining a domain -->
   <start>
     <ref name='capabilities'/>
   </start>
@@ -25,6 +24,9 @@
 	</element>
 	<optional>
 	  <ref name='cpufeatures'/>
+	</optional>
+	<optional>
+	  <ref name='cpuspec'/>
 	</optional>
       </element>
       <optional>
@@ -68,6 +70,31 @@
     </element>
   </define>
 
+  <define name='cpuspec'>
+    <element name='model'>
+      <text/>
+    </element>
+    <element name='topology'>
+      <attribute name='sockets'>
+        <ref name='positiveInteger'/>
+      </attribute>
+      <attribute name='cores'>
+        <ref name='positiveInteger'/>
+      </attribute>
+      <attribute name='threads'>
+        <ref name='positiveInteger'/>
+      </attribute>
+    </element>
+    <zeroOrMore>
+      <element name='feature'>
+        <attribute name='name'>
+          <ref name='featureName'/>
+        </attribute>
+        <empty/>
+      </element>
+    </zeroOrMore>
+  </define>
+
   <define name='migration'>
     <element name='migration_features'>
       <optional>
@@ -80,6 +107,8 @@
 	  <oneOrMore>
 	    <element name='uri_transport'>
 	      <choice>
+		<value>esx</value>
+		<value>tcp</value>
 		<value>xenmigr</value>
 	      </choice>
 	    </element>
@@ -196,6 +225,11 @@
 
   <define name='machine'>
     <element name='machine'>
+      <optional>
+        <attribute name='canonical'>
+          <text/>
+        </attribute>
+      </optional>
       <text/>
     </element>
   </define>
@@ -218,9 +252,9 @@
       <optional>
 	<ref name='emulator'/>
       </optional>
-      <optional>
+      <zeroOrMore>
 	<ref name='machine'/>
-      </optional>
+      </zeroOrMore>
     </element>
   </define>
 
@@ -253,6 +287,11 @@
 	  <empty/>
 	</element>
       </optional>
+      <optional>
+        <element name='cpuselection'>
+          <empty/>
+        </element>
+      </optional>
     </element>
   </define>
 
@@ -273,21 +312,28 @@
 
   <define name='archnames'>
     <choice>
+      <value>arm</value>
       <value>i686</value>
-      <value>x86_64</value>
-      <value>ppc</value>
-      <value>ppc64</value>
       <value>ia64</value>
-      <value>s390</value>
       <value>mips</value>
       <value>mipsel</value>
+      <value>ppc64</value>
+      <value>ppc</value>
+      <value>s390</value>
       <value>sparc</value>
+      <value>x86_64</value>
     </choice>
   </define>
 
 
+  <define name='positiveInteger'>
+    <data type='positiveInteger'>
+      <param name="pattern">[0-9]+</param>
+    </data>
+  </define>
+
   <define name='uint'>
-    <data type='string'>
+    <data type='unsignedInt'>
       <param name="pattern">[0-9]+</param>
     </data>
   </define>
@@ -298,5 +344,9 @@
     </data>
   </define>
 
+  <define name='featureName'>
+    <data type='string'>
+      <param name='pattern'>[a-zA-Z0-9\-_]+</param>
+    </data>
+  </define>
 </grammar>
-

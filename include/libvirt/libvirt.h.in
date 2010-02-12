@@ -110,6 +110,24 @@ typedef enum {
      VIR_DOMAIN_NONE = 0
 } virDomainCreateFlags;
 
+
+
+/**
+ * virStream:
+ *
+ * a virStream is a private structure representing a data stream.
+ */
+typedef struct _virStream virStream;
+
+/**
+ * virStreamPtr:
+ *
+ * a virStreamPtr is pointer to a virStream private structure, this is the
+ * type used to reference a data stream in the API.
+ */
+typedef virStream *virStreamPtr;
+
+
 /**
  * VIR_SECURITY_LABEL_BUFLEN:
  *
@@ -315,16 +333,80 @@ struct _virDomainInterfaceStats {
  */
 typedef virDomainInterfaceStatsStruct *virDomainInterfaceStatsPtr;
 
+/**
+ * Memory Statistics Tags:
+ */
+typedef enum {
+    /* The total amount of data read from swap space (in kB). */
+    VIR_DOMAIN_MEMORY_STAT_SWAP_IN         = 0,
+    /* The total amount of memory written out to swap space (in kB). */
+    VIR_DOMAIN_MEMORY_STAT_SWAP_OUT        = 1,
+
+    /*
+     * Page faults occur when a process makes a valid access to virtual memory
+     * that is not available.  When servicing the page fault, if disk IO is
+     * required, it is considered a major fault.  If not, it is a minor fault.
+     * These are expressed as the number of faults that have occurred.
+     */
+    VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT     = 2,
+    VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT     = 3,
+
+    /*
+     * The amount of memory left completely unused by the system.  Memory that
+     * is available but used for reclaimable caches should NOT be reported as
+     * free.  This value is expressed in kB.
+     */
+    VIR_DOMAIN_MEMORY_STAT_UNUSED          = 4,
+
+    /*
+     * The total amount of usable memory as seen by the domain.  This value
+     * may be less than the amount of memory assigned to the domain if a
+     * balloon driver is in use or if the guest OS does not initialize all
+     * assigned pages.  This value is expressed in kB.
+     */
+    VIR_DOMAIN_MEMORY_STAT_AVAILABLE       = 5,
+
+    /*
+     * The number of statistics supported by this version of the interface.
+     * To add new statistics, add them to the enum and increase this value.
+     */
+    VIR_DOMAIN_MEMORY_STAT_NR              = 6,
+} virDomainMemoryStatTags;
+
+typedef struct _virDomainMemoryStat virDomainMemoryStatStruct;
+
+struct _virDomainMemoryStat {
+    int tag;
+    unsigned long long val;
+};
+
+typedef virDomainMemoryStatStruct *virDomainMemoryStatPtr;
+
+
+/* Domain core dump flags. */
+typedef enum {
+    VIR_DUMP_CRASH   = (1 << 0), /* crash after dump */
+    VIR_DUMP_LIVE    = (1 << 1), /* live dump */
+} virDomainCoreDumpFlags;
 
 /* Domain migration flags. */
 typedef enum {
-  VIR_MIGRATE_LIVE              = 1, /* live migration */
+    VIR_MIGRATE_LIVE              = (1 << 0), /* live migration */
+    VIR_MIGRATE_PEER2PEER         = (1 << 1), /* direct source -> dest host control channel */
+    VIR_MIGRATE_TUNNELLED         = (1 << 2), /* tunnel migration data over libvirtd connection */
+    VIR_MIGRATE_PERSIST_DEST      = (1 << 3), /* persist the VM on the destination */
+    VIR_MIGRATE_UNDEFINE_SOURCE   = (1 << 4), /* undefine the VM on the source */
+    VIR_MIGRATE_PAUSED            = (1 << 5), /* pause on remote side */
 } virDomainMigrateFlags;
 
 /* Domain migration. */
 virDomainPtr virDomainMigrate (virDomainPtr domain, virConnectPtr dconn,
                                unsigned long flags, const char *dname,
                                const char *uri, unsigned long bandwidth);
+
+int virDomainMigrateToURI (virDomainPtr domain, const char *duri,
+                           unsigned long flags, const char *dname,
+                           unsigned long bandwidth);
 
 /**
  * VIR_NODEINFO_MAXCPUS:
@@ -463,6 +545,8 @@ int                     virConnectClose         (virConnectPtr conn);
 const char *            virConnectGetType       (virConnectPtr conn);
 int                     virConnectGetVersion    (virConnectPtr conn,
                                                  unsigned long *hvVer);
+int                     virConnectGetLibVersion (virConnectPtr conn,
+                                                 unsigned long *libVer);
 char *                  virConnectGetHostname   (virConnectPtr conn);
 char *                  virConnectGetURI        (virConnectPtr conn);
 
@@ -609,6 +693,10 @@ int                     virDomainInterfaceStats (virDomainPtr dom,
                                                  const char *path,
                                                  virDomainInterfaceStatsPtr stats,
                                                  size_t size);
+int                     virDomainMemoryStats (virDomainPtr dom,
+                                              virDomainMemoryStatPtr stats,
+                                              unsigned int nr_stats,
+                                              unsigned int flags);
 int                     virDomainBlockPeek (virDomainPtr dom,
                                             const char *path,
                                             unsigned long long offset,
@@ -619,6 +707,7 @@ int                     virDomainBlockPeek (virDomainPtr dom,
 /* Memory peeking flags. */
 typedef enum {
   VIR_MEMORY_VIRTUAL              = 1, /* addresses are virtual addresses */
+  VIR_MEMORY_PHYSICAL             = 2, /* addresses are physical addresses */
 } virDomainMemoryFlags;
 
 int                     virDomainMemoryPeek (virDomainPtr dom,
@@ -890,6 +979,11 @@ int                     virConnectListInterfaces  (virConnectPtr conn,
                                                    char **const names,
                                                    int maxnames);
 
+int                     virConnectNumOfDefinedInterfaces (virConnectPtr conn);
+int                     virConnectListDefinedInterfaces  (virConnectPtr conn,
+                                                          char **const names,
+                                                          int maxnames);
+
 virInterfacePtr         virInterfaceLookupByName  (virConnectPtr conn,
                                                    const char *name);
 virInterfacePtr         virInterfaceLookupByMACString (virConnectPtr conn,
@@ -897,6 +991,10 @@ virInterfacePtr         virInterfaceLookupByMACString (virConnectPtr conn,
 
 const char*             virInterfaceGetName       (virInterfacePtr iface);
 const char*             virInterfaceGetMACString  (virInterfacePtr iface);
+
+typedef enum {
+    VIR_INTERFACE_XML_INACTIVE = 1 /* dump inactive interface information */
+} virInterfaceXMLFlags;
 
 char *                  virInterfaceGetXMLDesc    (virInterfacePtr iface,
                                                    unsigned int flags);
@@ -1442,6 +1540,222 @@ void virEventRegisterImpl(virEventAddHandleFunc addHandle,
                           virEventAddTimeoutFunc addTimeout,
                           virEventUpdateTimeoutFunc updateTimeout,
                           virEventRemoveTimeoutFunc removeTimeout);
+
+/*
+ * Secret manipulation API
+ */
+
+/**
+ * virSecret:
+ *
+ * A virSecret stores a secret value (e.g. a passphrase or encryption key)
+ * and associated metadata.
+ */
+typedef struct _virSecret virSecret;
+typedef virSecret *virSecretPtr;
+
+typedef enum {
+    VIR_SECRET_USAGE_TYPE_NONE = 0,
+    VIR_SECRET_USAGE_TYPE_VOLUME = 1,
+    /* Expect more owner types later... */
+} virSecretUsageType;
+
+virConnectPtr           virSecretGetConnect     (virSecretPtr secret);
+int                     virConnectNumOfSecrets  (virConnectPtr conn);
+int                     virConnectListSecrets   (virConnectPtr conn,
+                                                 char **uuids,
+                                                 int maxuuids);
+virSecretPtr            virSecretLookupByUUID(virConnectPtr conn,
+                                              const unsigned char *uuid);
+virSecretPtr            virSecretLookupByUUIDString(virConnectPtr conn,
+                                                    const char *uuid);
+virSecretPtr            virSecretLookupByUsage(virConnectPtr conn,
+                                               int usageType,
+                                               const char *usageID);
+virSecretPtr            virSecretDefineXML      (virConnectPtr conn,
+                                                 const char *xml,
+                                                 unsigned int flags);
+int                     virSecretGetUUID        (virSecretPtr secret,
+                                                 unsigned char *buf);
+int                     virSecretGetUUIDString  (virSecretPtr secret,
+                                                 char *buf);
+int                     virSecretGetUsageType   (virSecretPtr secret);
+const char *            virSecretGetUsageID     (virSecretPtr secret);
+char *                  virSecretGetXMLDesc     (virSecretPtr secret,
+                                                 unsigned int flags);
+int                     virSecretSetValue       (virSecretPtr secret,
+                                                 const unsigned char *value,
+                                                 size_t value_size,
+                                                 unsigned int flags);
+unsigned char *         virSecretGetValue       (virSecretPtr secret,
+                                                 size_t *value_size,
+                                                 unsigned int flags);
+int                     virSecretUndefine       (virSecretPtr secret);
+int                     virSecretRef            (virSecretPtr secret);
+int                     virSecretFree           (virSecretPtr secret);
+
+typedef enum {
+    VIR_STREAM_NONBLOCK = (1 << 0),
+} virStreamFlags;
+
+virStreamPtr virStreamNew(virConnectPtr conn,
+                          unsigned int flags);
+int virStreamRef(virStreamPtr st);
+
+int virStreamSend(virStreamPtr st,
+                  const char *data,
+                  size_t nbytes);
+
+int virStreamRecv(virStreamPtr st,
+                  char *data,
+                  size_t nbytes);
+
+
+/**
+ * virStreamSourceFunc:
+ *
+ * @st: the stream object
+ * @data: preallocated array to be filled with data
+ * @nbytes: size of the data array
+ * @opaque: optional application provided data
+ *
+ * The virStreamSourceFunc callback is used together
+ * with the virStreamSendAll function for libvirt to
+ * obtain the data that is to be sent.
+ *
+ * The callback will be invoked multiple times,
+ * fetching data in small chunks. The application
+ * should fill the 'data' array with upto 'nbytes'
+ * of data and then return the number actual number
+ * of bytes. The callback will continue to be
+ * invoked until it indicates the end of the source
+ * has been reached by returning 0. A return value
+ * of -1 at any time will abort the send operation
+ *
+ * Returns the number of bytes filled, 0 upon end
+ * of file, or -1 upon error
+ */
+typedef int (*virStreamSourceFunc)(virStreamPtr st,
+                                   char *data,
+                                   size_t nbytes,
+                                   void *opaque);
+
+int virStreamSendAll(virStreamPtr st,
+                     virStreamSourceFunc handler,
+                     void *opaque);
+
+/**
+ * virStreamSinkFunc:
+ *
+ * @st: the stream object
+ * @data: preallocated array to be filled with data
+ * @nbytes: size of the data array
+ * @opaque: optional application provided data
+ *
+ * The virStreamSinkFunc callback is used together
+ * with the virStreamRecvAll function for libvirt to
+ * provide the data that has been received.
+ *
+ * The callback will be invoked multiple times,
+ * providing data in small chunks. The application
+ * should consume up 'nbytes' from the 'data' array
+ * of data and then return the number actual number
+ * of bytes consumed. The callback will continue to be
+ * invoked until it indicates the end of the stream
+ * has been reached. A return value of -1 at any time
+ * will abort the receive operation
+ *
+ * Returns the number of bytes consumed or -1 upon
+ * error
+ */
+typedef int (*virStreamSinkFunc)(virStreamPtr st,
+                                 const char *data,
+                                 size_t nbytes,
+                                 void *opaque);
+
+int virStreamRecvAll(virStreamPtr st,
+                     virStreamSinkFunc handler,
+                     void *opaque);
+
+typedef enum {
+    VIR_STREAM_EVENT_READABLE  = (1 << 0),
+    VIR_STREAM_EVENT_WRITABLE  = (1 << 1),
+    VIR_STREAM_EVENT_ERROR     = (1 << 2),
+    VIR_STREAM_EVENT_HANGUP    = (1 << 3),
+} virStreamEventType;
+
+
+/**
+ * virStreamEventCallback:
+ *
+ * @stream: stream on which the event occurred
+ * @events: bitset of events from virEventHandleType constants
+ * @opaque: user data registered with handle
+ *
+ * Callback for receiving stream events. The callback will
+ * be invoked once for each event which is pending.
+ */
+typedef void (*virStreamEventCallback)(virStreamPtr stream, int events, void *opaque);
+
+int virStreamEventAddCallback(virStreamPtr stream,
+                              int events,
+                              virStreamEventCallback cb,
+                              void *opaque,
+                              virFreeCallback ff);
+
+int virStreamEventUpdateCallback(virStreamPtr stream,
+                                 int events);
+
+int virStreamEventRemoveCallback(virStreamPtr stream);
+
+
+int virStreamFinish(virStreamPtr st);
+int virStreamAbort(virStreamPtr st);
+
+int virStreamFree(virStreamPtr st);
+
+
+int virDomainIsActive(virDomainPtr dom);
+int virDomainIsPersistent(virDomainPtr dom);
+
+int virNetworkIsActive(virNetworkPtr net);
+int virNetworkIsPersistent(virNetworkPtr net);
+
+int virStoragePoolIsActive(virStoragePoolPtr pool);
+int virStoragePoolIsPersistent(virStoragePoolPtr pool);
+
+int virInterfaceIsActive(virInterfacePtr iface);
+
+int virConnectIsEncrypted(virConnectPtr conn);
+int virConnectIsSecure(virConnectPtr conn);
+
+/*
+ * CPU specification API
+ */
+
+typedef enum {
+    VIR_CPU_COMPARE_ERROR           = -1,
+    VIR_CPU_COMPARE_INCOMPATIBLE    = 0,
+    VIR_CPU_COMPARE_IDENTICAL       = 1,
+    VIR_CPU_COMPARE_SUPERSET        = 2
+} virCPUCompareResult;
+
+/**
+ * virConnectCompareCPU:
+ *
+ * @conn: virConnect connection
+ * @xmlDesc: XML description of either guest or host cpu with <cpu> root tag
+ * @flags: comparison flags
+ *
+ * Compares given CPU with host cpu.
+ *
+ * Returns virCPUCompareResult.
+ */
+int virConnectCompareCPU(virConnectPtr conn,
+                         const char *xmlDesc,
+                         unsigned int flags);
+
+
 #ifdef __cplusplus
 }
 #endif
