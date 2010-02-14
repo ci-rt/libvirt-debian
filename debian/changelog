@@ -1,3 +1,14 @@
+libvirt (0.7.6-2) unstable; urgency=low
+
+  * [72790fc] Drop hal dependency We're using udev for device enumeration.
+  * [ce225c4][11cc6e9] New patch
+    0006-Don-t-drop-caps-when-exec-ing-qemu.patch: Don't drop caps when
+    exec'ing qemu. Instead of disabling libcap-ng better exclude this one exec
+    so we get the additional security for the rest of the calls. Makes
+    interface type="network" work again. (Closes: #565767)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 14 Feb 2010 18:22:30 +0100
+
 libvirt (0.7.6-1) unstable; urgency=low
 
   * [0229557] Imported Upstream version 0.7.6
