@@ -1,3 +1,11 @@
+libvirt (0.7.7-1) unstable; urgency=low
+
+  * [f944460] Imported Upstream version 0.7.7
+  * [bd457cc] Redo patches.
+  * [098d1d3] Update libvirt0 symbols.
+
+ -- Laurent Léonard <laurent@open-minds.org>  Fri, 05 Mar 2010 17:49:17 +0100
+
 libvirt (0.7.6-2) unstable; urgency=low
 
   * [72790fc] Drop hal dependency We're using udev for device enumeration.
