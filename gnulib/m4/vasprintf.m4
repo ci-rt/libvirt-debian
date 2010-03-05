@@ -1,3 +1,5 @@
+# -*- buffer-read-only: t -*- vi: set ro:
+# DO NOT EDIT! GENERATED AUTOMATICALLY!
 # vasprintf.m4 serial 6
 dnl Copyright (C) 2002-2003, 2006-2007, 2009-2010 Free Software Foundation,
 dnl Inc.

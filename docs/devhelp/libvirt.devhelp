@@ -37,6 +37,9 @@
     <function name="VIR_CRED_USERNAME" link="libvirt-libvirt.html#VIR_CRED_USERNAME"/>
     <function name="VIR_DOMAIN_BLOCKED" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCKED"/>
     <function name="VIR_DOMAIN_CRASHED" link="libvirt-libvirt.html#VIR_DOMAIN_CRASHED"/>
+    <function name="VIR_DOMAIN_DEVICE_MODIFY_CONFIG" link="libvirt-libvirt.html#VIR_DOMAIN_DEVICE_MODIFY_CONFIG"/>
+    <function name="VIR_DOMAIN_DEVICE_MODIFY_CURRENT" link="libvirt-libvirt.html#VIR_DOMAIN_DEVICE_MODIFY_CURRENT"/>
+    <function name="VIR_DOMAIN_DEVICE_MODIFY_LIVE" link="libvirt-libvirt.html#VIR_DOMAIN_DEVICE_MODIFY_LIVE"/>
     <function name="VIR_DOMAIN_EVENT_DEFINED" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_DEFINED"/>
     <function name="VIR_DOMAIN_EVENT_DEFINED_ADDED" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_DEFINED_ADDED"/>
     <function name="VIR_DOMAIN_EVENT_DEFINED_UPDATED" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_DEFINED_UPDATED"/>
@@ -228,6 +231,7 @@
     <function name="virDomainBlockStatsPtr" link="libvirt-libvirt.html#virDomainBlockStatsPtr"/>
     <function name="virDomainCoreDumpFlags" link="libvirt-libvirt.html#virDomainCoreDumpFlags"/>
     <function name="virDomainCreateFlags" link="libvirt-libvirt.html#virDomainCreateFlags"/>
+    <function name="virDomainDeviceModifyFlags" link="libvirt-libvirt.html#virDomainDeviceModifyFlags"/>
     <function name="virDomainEventDefinedDetailType" link="libvirt-libvirt.html#virDomainEventDefinedDetailType"/>
     <function name="virDomainEventResumedDetailType" link="libvirt-libvirt.html#virDomainEventResumedDetailType"/>
     <function name="virDomainEventStartedDetailType" link="libvirt-libvirt.html#virDomainEventStartedDetailType"/>
@@ -317,6 +321,7 @@
     <function name="virConnGetLastError ()" link="libvirt-virterror.html#virConnGetLastError"/>
     <function name="virConnResetLastError ()" link="libvirt-virterror.html#virConnResetLastError"/>
     <function name="virConnSetErrorFunc ()" link="libvirt-virterror.html#virConnSetErrorFunc"/>
+    <function name="virConnectBaselineCPU ()" link="libvirt-libvirt.html#virConnectBaselineCPU"/>
     <function name="virConnectClose ()" link="libvirt-libvirt.html#virConnectClose"/>
     <function name="virConnectCompareCPU ()" link="libvirt-libvirt.html#virConnectCompareCPU"/>
     <function name="virConnectDomainEventDeregister ()" link="libvirt-libvirt.html#virConnectDomainEventDeregister"/>
@@ -358,6 +363,7 @@
     <function name="virCopyLastError ()" link="libvirt-virterror.html#virCopyLastError"/>
     <function name="virDefaultErrorFunc ()" link="libvirt-virterror.html#virDefaultErrorFunc"/>
     <function name="virDomainAttachDevice ()" link="libvirt-libvirt.html#virDomainAttachDevice"/>
+    <function name="virDomainAttachDeviceFlags ()" link="libvirt-libvirt.html#virDomainAttachDeviceFlags"/>
     <function name="virDomainBlockPeek ()" link="libvirt-libvirt.html#virDomainBlockPeek"/>
     <function name="virDomainBlockStats ()" link="libvirt-libvirt.html#virDomainBlockStats"/>
     <function name="virDomainCoreDump ()" link="libvirt-libvirt.html#virDomainCoreDump"/>
@@ -367,6 +373,7 @@
     <function name="virDomainDefineXML ()" link="libvirt-libvirt.html#virDomainDefineXML"/>
     <function name="virDomainDestroy ()" link="libvirt-libvirt.html#virDomainDestroy"/>
     <function name="virDomainDetachDevice ()" link="libvirt-libvirt.html#virDomainDetachDevice"/>
+    <function name="virDomainDetachDeviceFlags ()" link="libvirt-libvirt.html#virDomainDetachDeviceFlags"/>
     <function name="virDomainFree ()" link="libvirt-libvirt.html#virDomainFree"/>
     <function name="virDomainGetAutostart ()" link="libvirt-libvirt.html#virDomainGetAutostart"/>
     <function name="virDomainGetConnect ()" link="libvirt-libvirt.html#virDomainGetConnect"/>

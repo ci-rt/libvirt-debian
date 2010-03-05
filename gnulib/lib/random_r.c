@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /*
    Copyright (C) 1995, 2005, 2008-2010 Free Software Foundation, Inc.
 

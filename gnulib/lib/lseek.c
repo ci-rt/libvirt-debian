@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* An lseek() function that detects pipes.
    Copyright (C) 2007, 2009, 2010 Free Software Foundation, Inc.
 

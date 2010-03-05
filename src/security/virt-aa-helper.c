@@ -203,7 +203,7 @@ parserCommand(const char *profile_name, const char cmd)
         const char * const argv[] = {
             "/sbin/apparmor_parser", flag, profile, NULL
         };
-        if (virRun(NULL, argv, NULL) != 0) {
+        if (virRun(argv, NULL) != 0) {
             vah_error(NULL, 0, "failed to run apparmor_parser");
             return -1;
         }
@@ -626,12 +626,12 @@ caps_mockup(vahControl * ctl, const char *xmlStr)
     }
     ctxt->node = root;
 
-    ctl->hvm = virXPathString(NULL, "string(./os/type[1])", ctxt);
+    ctl->hvm = virXPathString("string(./os/type[1])", ctxt);
     if (!ctl->hvm || STRNEQ(ctl->hvm, "hvm")) {
         vah_error(ctl, 0, "os.type is not 'hvm'");
         goto cleanup;
     }
-    ctl->arch = virXPathString(NULL, "string(./os/type[1]/@arch)", ctxt);
+    ctl->arch = virXPathString("string(./os/type[1]/@arch)", ctxt);
     if (!ctl->arch) {
         /* The XML we are given should have an arch, but in case it doesn't,
          * just use the host's arch.
@@ -690,7 +690,7 @@ get_definition(vahControl * ctl, const char *xmlStr)
         goto exit;
     }
 
-    ctl->def = virDomainDefParseString(NULL, ctl->caps, xmlStr, 0);
+    ctl->def = virDomainDefParseString(ctl->caps, xmlStr, 0);
     if (ctl->def == NULL) {
         vah_error(ctl, 0, "could not parse XML");
         goto exit;
@@ -767,8 +767,7 @@ vah_add_file(virBufferPtr buf, const char *path, const char *perms)
 }
 
 static int
-file_iterate_cb(virConnectPtr conn ATTRIBUTE_UNUSED,
-                usbDevice *dev ATTRIBUTE_UNUSED,
+file_iterate_cb(usbDevice *dev ATTRIBUTE_UNUSED,
                 const char *file, void *opaque)
 {
     virBufferPtr buf = opaque;
@@ -836,25 +835,21 @@ get_files(vahControl * ctl)
             virDomainHostdevDefPtr dev = ctl->def->hostdevs[i];
             switch (dev->source.subsys.type) {
             case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB: {
-                usbDevice *usb = usbGetDevice(NULL,
-                                          dev->source.subsys.u.usb.bus,
-                                          dev->source.subsys.u.usb.device,
-                                          dev->source.subsys.u.usb.vendor,
-                                          dev->source.subsys.u.usb.product);
+                usbDevice *usb = usbGetDevice(dev->source.subsys.u.usb.bus,
+                                              dev->source.subsys.u.usb.device);
 
                 if (usb == NULL)
                     continue;
 
-                rc = usbDeviceFileIterate(NULL, usb,
-                                          file_iterate_cb, &buf);
-                usbFreeDevice(NULL, usb);
+                rc = usbDeviceFileIterate(usb, file_iterate_cb, &buf);
+                usbFreeDevice(usb);
                 if (rc != 0)
                     goto clean;
                 break;
             }
 /* TODO: update so files in /sys are readonly
             case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI: {
-                pciDevice *pci = pciGetDevice(NULL,
+                pciDevice *pci = pciGetDevice(
                            dev->source.subsys.u.pci.domain,
                            dev->source.subsys.u.pci.bus,
                            dev->source.subsys.u.pci.slot,
@@ -864,7 +859,7 @@ get_files(vahControl * ctl)
                     continue;
 
                 rc = pciDeviceFileIterate(NULL, pci, file_iterate_cb, &buf);
-                pciFreeDevice(NULL, pci);
+                pciFreeDevice(pci);
 
                 break;
             }

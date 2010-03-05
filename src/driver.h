@@ -192,8 +192,16 @@ typedef int
         (*virDrvDomainAttachDevice)	(virDomainPtr domain,
                                          const char *xml);
 typedef int
+        (*virDrvDomainAttachDeviceFlags) (virDomainPtr domain,
+                                          const char *xml,
+                                          unsigned int flags);
+typedef int
         (*virDrvDomainDetachDevice)	(virDomainPtr domain,
                                          const char *xml);
+typedef int
+        (*virDrvDomainDetachDeviceFlags) (virDomainPtr domain,
+                                          const char *xml,
+                                          unsigned int flags);
 typedef int
         (*virDrvDomainGetAutostart)	(virDomainPtr domain,
                                          int *autostart);
@@ -359,6 +367,18 @@ typedef int
     (*virDrvCPUCompare)(virConnectPtr conn,
                         const char *cpu,
                         unsigned int flags);
+typedef char *
+    (*virDrvCPUBaseline)(virConnectPtr conn,
+                         const char **xmlCPUs,
+                         unsigned int ncpus,
+                         unsigned int flags);
+
+typedef int
+    (*virDrvDomainGetJobInfo)(virDomainPtr domain,
+                              virDomainJobInfoPtr info);
+
+typedef int
+    (*virDrvDomainAbortJob)(virDomainPtr domain);
 
 /**
  * _virDriver:
@@ -419,7 +439,9 @@ struct _virDriver {
     virDrvDomainDefineXML           domainDefineXML;
     virDrvDomainUndefine            domainUndefine;
     virDrvDomainAttachDevice	domainAttachDevice;
+    virDrvDomainAttachDeviceFlags	domainAttachDeviceFlags;
     virDrvDomainDetachDevice	domainDetachDevice;
+    virDrvDomainDetachDeviceFlags	domainDetachDeviceFlags;
     virDrvDomainGetAutostart	domainGetAutostart;
     virDrvDomainSetAutostart	domainSetAutostart;
     virDrvDomainGetSchedulerType	domainGetSchedulerType;
@@ -448,6 +470,9 @@ struct _virDriver {
     virDrvDomainIsActive       domainIsActive;
     virDrvDomainIsPersistent   domainIsPersistent;
     virDrvCPUCompare            cpuCompare;
+    virDrvCPUBaseline           cpuBaseline;
+    virDrvDomainGetJobInfo     domainGetJobInfo;
+    virDrvDomainAbortJob     domainAbortJob;
 };
 
 typedef int

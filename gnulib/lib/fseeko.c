@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* An fseeko() function that, together with fflush(), is POSIX compliant.
    Copyright (C) 2007-2010 Free Software Foundation, Inc.
 

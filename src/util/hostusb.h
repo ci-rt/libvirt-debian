@@ -26,13 +26,14 @@
 
 typedef struct _usbDevice usbDevice;
 
-usbDevice *usbGetDevice      (virConnectPtr  conn,
-                              unsigned       bus,
-                              unsigned       devno,
-                              unsigned       vendor,
-                              unsigned       product);
-void       usbFreeDevice     (virConnectPtr  conn,
-                              usbDevice     *dev);
+usbDevice *usbGetDevice(unsigned bus,
+                        unsigned devno);
+usbDevice *usbFindDevice(unsigned vendor,
+                         unsigned product);
+void       usbFreeDevice (usbDevice *dev);
+
+unsigned usbDeviceGetBus(usbDevice *dev);
+unsigned usbDeviceGetDevno(usbDevice *dev);
 
 /*
  * Callback that will be invoked once for each file
@@ -41,11 +42,10 @@ void       usbFreeDevice     (virConnectPtr  conn,
  * Should return 0 if successfully processed, or
  * -1 to indicate error and abort iteration
  */
-typedef int (*usbDeviceFileActor)(virConnectPtr conn, usbDevice *dev,
+typedef int (*usbDeviceFileActor)(usbDevice *dev,
                                   const char *path, void *opaque);
 
-int usbDeviceFileIterate(virConnectPtr conn,
-                         usbDevice *dev,
+int usbDeviceFileIterate(usbDevice *dev,
                          usbDeviceFileActor actor,
                          void *opaque);
 

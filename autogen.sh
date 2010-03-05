@@ -1,11 +1,11 @@
 #!/bin/sh
 # Run this to generate all the initial makefiles, etc.
 
-srcdir=`dirname $0`
+srcdir=`dirname "$0"`
 test -z "$srcdir" && srcdir=.
 
 THEDIR=`pwd`
-cd $srcdir
+cd "$srcdir"
 DIE=0
 
 (autopoint --version) < /dev/null > /dev/null 2>&1 || {
@@ -65,22 +65,21 @@ fi
 # Ensure that whenever we pull in a gnulib update or otherwise change to a
 # different version (i.e., when switching branches), we also rerun ./bootstrap.
 curr_status=.git-module-status
-t=$(git submodule status)
+t=$(git submodule status|sed 's/^[ +-]//;s/ .*//')
 if test "$t" = "$(cat $curr_status 2>/dev/null)"; then
-    : # good, it's up to date
+    : # good, it's up to date, all we need is autoreconf
+    autoreconf -if
 else
   echo running bootstrap...
-  ./bootstrap && echo "$t" > $curr_status
+  ./bootstrap && echo "$t" > $curr_status || {
+    echo "Failed to bootstrap gnulib, please investigate."
+    exit 1;
+  }
 fi
 
-# Automake requires that ChangeLog exist.
-touch ChangeLog
+cd "$THEDIR"
 
-autoreconf -if
-
-cd $THEDIR
-
-if test x$OBJ_DIR != x; then
+if test "x$OBJ_DIR" != x; then
     mkdir -p "$OBJ_DIR"
     cd "$OBJ_DIR"
 fi

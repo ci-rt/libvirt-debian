@@ -57,7 +57,7 @@ profile_status(const char *str, const int check_enforcing)
 
     /* create string that is '<str> \0' for accurate matching */
     if (virAsprintf(&tmp, "%s ", str) == -1) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         return rc;
     }
 
@@ -65,13 +65,13 @@ profile_status(const char *str, const int check_enforcing)
         /* create string that is '<str> (enforce)\0' for accurate matching */
         if (virAsprintf(&etmp, "%s (enforce)", str) == -1) {
             VIR_FREE(tmp);
-            virReportOOMError(NULL);
+            virReportOOMError();
             return rc;
         }
     }
 
     if (virFileReadAll(APPARMOR_PROFILES_PATH, MAX_FILE_LEN, &content) < 0) {
-        virReportSystemError(NULL, errno,
+        virReportSystemError(errno,
                              _("Failed to read AppArmor profiles list "
                              "\'%s\'"), APPARMOR_PROFILES_PATH);
         goto clean;
@@ -112,7 +112,7 @@ profile_status_file(const char *str)
     int len;
 
     if (virAsprintf(&profile, "%s/%s", APPARMOR_DIR "/libvirt", str) == -1) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         return rc;
     }
 
@@ -120,14 +120,14 @@ profile_status_file(const char *str)
         goto failed;
 
     if ((len = virFileReadAll(profile, MAX_FILE_LEN, &content)) < 0) {
-        virReportSystemError(NULL, errno,
+        virReportSystemError(errno,
                              _("Failed to read \'%s\'"), profile);
         goto failed;
     }
 
     /* create string that is ' <str> flags=(complain)\0' */
     if (virAsprintf(&tmp, " %s flags=(complain)", str) == -1) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         goto failed;
     }
 
@@ -148,7 +148,7 @@ profile_status_file(const char *str)
  * load (add) a profile. Will create one if necessary
  */
 static int
-load_profile(virConnectPtr conn, const char *profile, virDomainObjPtr vm,
+load_profile(const char *profile, virDomainObjPtr vm,
              virDomainDiskDefPtr disk)
 {
     int rc = -1, status, ret;
@@ -158,11 +158,11 @@ load_profile(virConnectPtr conn, const char *profile, virDomainObjPtr vm,
     pid_t child;
 
     if (pipe(pipefd) < -1) {
-        virReportSystemError(conn, errno, "%s", _("unable to create pipe"));
+        virReportSystemError(errno, "%s", _("unable to create pipe"));
         return rc;
     }
 
-    xml = virDomainDefFormat(conn, vm->def, VIR_DOMAIN_XML_SECURE);
+    xml = virDomainDefFormat(vm->def, VIR_DOMAIN_XML_SECURE);
     if (!xml)
         goto clean;
 
@@ -173,19 +173,19 @@ load_profile(virConnectPtr conn, const char *profile, virDomainObjPtr vm,
         const char *const argv[] = {
             VIRT_AA_HELPER, "-c", "-u", profile, NULL
         };
-        ret = virExec(conn, argv, NULL, NULL, &child,
+        ret = virExec(argv, NULL, NULL, &child,
                       pipefd[0], NULL, NULL, VIR_EXEC_CLEAR_CAPS);
     } else if (disk && disk->src) {
         const char *const argv[] = {
             VIRT_AA_HELPER, "-r", "-u", profile, "-f", disk->src, NULL
         };
-        ret = virExec(conn, argv, NULL, NULL, &child,
+        ret = virExec(argv, NULL, NULL, &child,
                       pipefd[0], NULL, NULL, VIR_EXEC_CLEAR_CAPS);
     } else {
         const char *const argv[] = {
             VIRT_AA_HELPER, "-r", "-u", profile, NULL
         };
-        ret = virExec(conn, argv, NULL, NULL, &child,
+        ret = virExec(argv, NULL, NULL, &child,
                       pipefd[0], NULL, NULL, VIR_EXEC_CLEAR_CAPS);
     }
     if (ret < 0)
@@ -193,7 +193,7 @@ load_profile(virConnectPtr conn, const char *profile, virDomainObjPtr vm,
 
     /* parent continues here */
     if (safewrite(pipefd[1], xml, strlen(xml)) < 0) {
-        virReportSystemError(conn, errno, "%s", _("unable to write to pipe"));
+        virReportSystemError(errno, "%s", _("unable to write to pipe"));
         goto clean;
     }
     close(pipefd[1]);
@@ -204,7 +204,7 @@ load_profile(virConnectPtr conn, const char *profile, virDomainObjPtr vm,
         if (errno == EINTR)
             goto rewait;
 
-        virSecurityReportError(conn, VIR_ERR_INTERNAL_ERROR,
+        virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
                                _("Unexpected exit status from virt-aa-helper "
                                "%d pid %lu"),
                                WEXITSTATUS(status), (unsigned long)child);
@@ -230,21 +230,21 @@ remove_profile(const char *profile)
         VIRT_AA_HELPER, "-R", "-u", profile, NULL
     };
 
-    if (virRun(NULL, argv, NULL) == 0)
+    if (virRun(argv, NULL) == 0)
         rc = 0;
 
     return rc;
 }
 
 static char *
-get_profile_name(virConnectPtr conn, virDomainObjPtr vm)
+get_profile_name(virDomainObjPtr vm)
 {
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     char *name = NULL;
 
     virUUIDFormat(vm->def->uuid, uuidstr);
     if (virAsprintf(&name, "%s%s", AA_PREFIX, uuidstr) < 0) {
-        virReportOOMError(conn);
+        virReportOOMError();
         return NULL;
     }
 
@@ -262,7 +262,7 @@ use_apparmor(void)
     char *libvirt_daemon = NULL;
 
     if (virFileResolveLink("/proc/self/exe", &libvirt_daemon) < 0) {
-        virSecurityReportError(NULL, VIR_ERR_INTERNAL_ERROR,
+        virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
                                "%s", _("could not find libvirtd"));
         return rc;
     }
@@ -290,12 +290,12 @@ AppArmorSecurityDriverProbe(void)
     /* see if template file exists */
     if (virAsprintf(&template, "%s/TEMPLATE",
                                APPARMOR_DIR "/libvirt") == -1) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         return rc;
     }
 
     if (!virFileExists(template)) {
-        virSecurityReportError(NULL, VIR_ERR_INTERNAL_ERROR,
+        virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
                                _("template \'%s\' does not exist"), template);
         goto clean;
     }
@@ -311,9 +311,9 @@ AppArmorSecurityDriverProbe(void)
  * currently not used.
  */
 static int
-AppArmorSecurityDriverOpen(virConnectPtr conn, virSecurityDriverPtr drv)
+AppArmorSecurityDriverOpen(virSecurityDriverPtr drv)
 {
-    virSecurityDriverSetDOI(conn, drv, SECURITY_APPARMOR_VOID_DOI);
+    virSecurityDriverSetDOI(drv, SECURITY_APPARMOR_VOID_DOI);
     return 0;
 }
 
@@ -323,7 +323,7 @@ AppArmorSecurityDriverOpen(virConnectPtr conn, virSecurityDriverPtr drv)
  * called on shutdown.
 */
 static int
-AppArmorGenSecurityLabel(virConnectPtr conn, virDomainObjPtr vm)
+AppArmorGenSecurityLabel(virDomainObjPtr vm)
 {
     int rc = -1;
     char *profile_name = NULL;
@@ -333,18 +333,18 @@ AppArmorGenSecurityLabel(virConnectPtr conn, virDomainObjPtr vm)
 
     if ((vm->def->seclabel.label) ||
         (vm->def->seclabel.model) || (vm->def->seclabel.imagelabel)) {
-        virSecurityReportError(conn, VIR_ERR_INTERNAL_ERROR,
+        virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
                                "%s",
                                _("security label already defined for VM"));
         return rc;
     }
 
-    if ((profile_name = get_profile_name(conn, vm)) == NULL)
+    if ((profile_name = get_profile_name(vm)) == NULL)
         return rc;
 
     vm->def->seclabel.label = strndup(profile_name, strlen(profile_name));
     if (!vm->def->seclabel.label) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         goto clean;
     }
 
@@ -352,13 +352,13 @@ AppArmorGenSecurityLabel(virConnectPtr conn, virDomainObjPtr vm)
     vm->def->seclabel.imagelabel = strndup(profile_name,
                                            strlen(profile_name));
     if (!vm->def->seclabel.imagelabel) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         goto err;
     }
 
     vm->def->seclabel.model = strdup(SECURITY_APPARMOR_NAME);
     if (!vm->def->seclabel.model) {
-        virReportOOMError(conn);
+        virReportOOMError();
         goto err;
     }
 
@@ -377,15 +377,15 @@ AppArmorGenSecurityLabel(virConnectPtr conn, virDomainObjPtr vm)
 }
 
 static int
-AppArmorSetSecurityAllLabel(virConnectPtr conn, virDomainObjPtr vm)
+AppArmorSetSecurityAllLabel(virDomainObjPtr vm)
 {
     if (vm->def->seclabel.type == VIR_DOMAIN_SECLABEL_STATIC)
         return 0;
 
     /* if the profile is not already loaded, then load one */
     if (profile_loaded(vm->def->seclabel.label) < 0) {
-        if (load_profile(conn, vm->def->seclabel.label, vm, NULL) < 0) {
-            virSecurityReportError(conn, VIR_ERR_INTERNAL_ERROR,
+        if (load_profile(vm->def->seclabel.label, vm, NULL) < 0) {
+            virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
                                    _("cannot generate AppArmor profile "
                                    "\'%s\'"), vm->def->seclabel.label);
             return -1;
@@ -399,24 +399,23 @@ AppArmorSetSecurityAllLabel(virConnectPtr conn, virDomainObjPtr vm)
  * running.
  */
 static int
-AppArmorGetSecurityProcessLabel(virConnectPtr conn,
-                                virDomainObjPtr vm, virSecurityLabelPtr sec)
+AppArmorGetSecurityProcessLabel(virDomainObjPtr vm, virSecurityLabelPtr sec)
 {
     int rc = -1;
     char *profile_name = NULL;
 
-    if ((profile_name = get_profile_name(conn, vm)) == NULL)
+    if ((profile_name = get_profile_name(vm)) == NULL)
         return rc;
 
     if (virStrcpy(sec->label, profile_name,
         VIR_SECURITY_LABEL_BUFLEN) == NULL) {
-        virSecurityReportError(conn, VIR_ERR_INTERNAL_ERROR,
+        virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
                                "%s", _("error copying profile name"));
         goto clean;
     }
 
     if ((sec->enforcing = profile_status(profile_name, 1)) < 0) {
-        virSecurityReportError(conn, VIR_ERR_INTERNAL_ERROR,
+        virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
                                "%s", _("error calling profile_status()"));
         goto clean;
     }
@@ -432,7 +431,7 @@ AppArmorGetSecurityProcessLabel(virConnectPtr conn,
  * more details. Currently called via qemudShutdownVMDaemon.
  */
 static int
-AppArmorReleaseSecurityLabel(virConnectPtr conn ATTRIBUTE_UNUSED, virDomainObjPtr vm)
+AppArmorReleaseSecurityLabel(virDomainObjPtr vm)
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
 
@@ -445,14 +444,14 @@ AppArmorReleaseSecurityLabel(virConnectPtr conn ATTRIBUTE_UNUSED, virDomainObjPt
 
 
 static int
-AppArmorRestoreSecurityAllLabel(virConnectPtr conn, virDomainObjPtr vm)
+AppArmorRestoreSecurityAllLabel(virDomainObjPtr vm)
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
     int rc = 0;
 
     if (secdef->type == VIR_DOMAIN_SECLABEL_DYNAMIC) {
         if ((rc = remove_profile(secdef->label)) != 0) {
-            virSecurityReportError(conn, VIR_ERR_INTERNAL_ERROR,
+            virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
                                    _("could not remove profile for \'%s\'"),
                                    secdef->label);
         }
@@ -464,18 +463,17 @@ AppArmorRestoreSecurityAllLabel(virConnectPtr conn, virDomainObjPtr vm)
  * LOCAL_STATE_DIR/log/libvirt/qemu/<vm name>.log
  */
 static int
-AppArmorSetSecurityProcessLabel(virConnectPtr conn,
-                                virSecurityDriverPtr drv, virDomainObjPtr vm)
+AppArmorSetSecurityProcessLabel(virSecurityDriverPtr drv, virDomainObjPtr vm)
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
     int rc = -1;
     char *profile_name = NULL;
 
-    if ((profile_name = get_profile_name(conn, vm)) == NULL)
+    if ((profile_name = get_profile_name(vm)) == NULL)
         return rc;
 
     if (STRNEQ(drv->name, secdef->model)) {
-        virSecurityReportError(conn, VIR_ERR_INTERNAL_ERROR,
+        virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
                                _("security label driver mismatch: "
                                "\'%s\' model configured for domain, but "
                                "hypervisor driver is \'%s\'."),
@@ -485,7 +483,7 @@ AppArmorSetSecurityProcessLabel(virConnectPtr conn,
     }
 
     if (aa_change_profile(profile_name) < 0) {
-        virSecurityReportError(conn, VIR_ERR_INTERNAL_ERROR,
+        virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
                                _("error calling aa_change_profile()"));
         goto clean;
     }
@@ -500,8 +498,7 @@ AppArmorSetSecurityProcessLabel(virConnectPtr conn,
 
 /* Called when hotplugging */
 static int
-AppArmorRestoreSecurityImageLabel(virConnectPtr conn,
-                                  virDomainObjPtr vm,
+AppArmorRestoreSecurityImageLabel(virDomainObjPtr vm,
                                   virDomainDiskDefPtr disk ATTRIBUTE_UNUSED)
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
@@ -511,13 +508,13 @@ AppArmorRestoreSecurityImageLabel(virConnectPtr conn,
     if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
         return 0;
 
-    if ((profile_name = get_profile_name(conn, vm)) == NULL)
+    if ((profile_name = get_profile_name(vm)) == NULL)
         return rc;
 
     /* Update the profile only if it is loaded */
     if (profile_loaded(secdef->imagelabel) >= 0) {
-        if (load_profile(conn, secdef->imagelabel, vm, NULL) < 0) {
-            virSecurityReportError(conn, VIR_ERR_INTERNAL_ERROR,
+        if (load_profile(secdef->imagelabel, vm, NULL) < 0) {
+            virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
                                    _("cannot update AppArmor profile "
                                      "\'%s\'"),
                                    secdef->imagelabel);
@@ -534,8 +531,7 @@ AppArmorRestoreSecurityImageLabel(virConnectPtr conn,
 
 /* Called when hotplugging */
 static int
-AppArmorSetSecurityImageLabel(virConnectPtr conn,
-                              virDomainObjPtr vm, virDomainDiskDefPtr disk)
+AppArmorSetSecurityImageLabel(virDomainObjPtr vm, virDomainDiskDefPtr disk)
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
     int rc = -1;
@@ -550,18 +546,18 @@ AppArmorSetSecurityImageLabel(virConnectPtr conn,
     if (secdef->imagelabel) {
         /* if the device doesn't exist, error out */
         if (!virFileExists(disk->src)) {
-            virSecurityReportError(conn, VIR_ERR_INTERNAL_ERROR,
+            virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
                                    _("\'%s\' does not exist"), disk->src);
             return rc;
         }
 
-        if ((profile_name = get_profile_name(conn, vm)) == NULL)
+        if ((profile_name = get_profile_name(vm)) == NULL)
             return rc;
 
         /* update the profile only if it is loaded */
         if (profile_loaded(secdef->imagelabel) >= 0) {
-            if (load_profile(conn, secdef->imagelabel, vm, disk) < 0) {
-                virSecurityReportError(conn, VIR_ERR_INTERNAL_ERROR,
+            if (load_profile(secdef->imagelabel, vm, disk) < 0) {
+                virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
                                      _("cannot update AppArmor profile "
                                      "\'%s\'"),
                                      secdef->imagelabel);
@@ -578,13 +574,13 @@ AppArmorSetSecurityImageLabel(virConnectPtr conn,
 }
 
 static int
-AppArmorSecurityVerify(virConnectPtr conn, virDomainDefPtr def)
+AppArmorSecurityVerify(virDomainDefPtr def)
 {
     const virSecurityLabelDefPtr secdef = &def->seclabel;
 
     if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC) {
         if (use_apparmor() < 0 || profile_status(secdef->label, 0) < 0) {
-            virSecurityReportError(conn, VIR_ERR_XML_ERROR,
+            virSecurityReportError(VIR_ERR_XML_ERROR,
                                    _("Invalid security label \'%s\'"),
                                    secdef->label);
             return -1;
@@ -594,16 +590,14 @@ AppArmorSecurityVerify(virConnectPtr conn, virDomainDefPtr def)
 }
 
 static int
-AppArmorReserveSecurityLabel(virConnectPtr conn ATTRIBUTE_UNUSED,
-                            virDomainObjPtr vm ATTRIBUTE_UNUSED)
+AppArmorReserveSecurityLabel(virDomainObjPtr vm ATTRIBUTE_UNUSED)
 {
     /* NOOP. Nothing to reserve with AppArmor */
     return 0;
 }
 
 static int
-AppArmorSetSecurityHostdevLabel(virConnectPtr conn ATTRIBUTE_UNUSED,
-                                virDomainObjPtr vm,
+AppArmorSetSecurityHostdevLabel(virDomainObjPtr vm,
                                 virDomainHostdevDefPtr dev ATTRIBUTE_UNUSED)
 
 {
@@ -617,8 +611,7 @@ AppArmorSetSecurityHostdevLabel(virConnectPtr conn ATTRIBUTE_UNUSED,
 }
 
 static int
-AppArmorRestoreSecurityHostdevLabel(virConnectPtr conn ATTRIBUTE_UNUSED,
-                                    virDomainObjPtr vm,
+AppArmorRestoreSecurityHostdevLabel(virDomainObjPtr vm,
                                     virDomainHostdevDefPtr dev ATTRIBUTE_UNUSED)
 
 {

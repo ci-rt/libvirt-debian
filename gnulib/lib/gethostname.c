@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* gethostname emulation for SysV and POSIX.1.
 
    Copyright (C) 1992, 2003, 2006, 2008, 2009, 2010 Free Software Foundation,

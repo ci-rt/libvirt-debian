@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Self tests for base64.
    Copyright (C) 2004, 2008, 2009, 2010 Free Software Foundation, Inc.
    Written by Simon Josefsson.

@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Parse printf format string.
    Copyright (C) 1999, 2002-2003, 2005, 2007, 2009-2010 Free Software
    Foundation, Inc.

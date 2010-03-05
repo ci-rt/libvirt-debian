@@ -168,7 +168,7 @@
 
 Summary: Library providing a simple API virtualization
 Name: libvirt
-Version: 0.7.6
+Version: 0.7.7
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
@@ -815,6 +815,14 @@ fi
 %endif
 
 %changelog
+* Fri Mar  5 2010 Daniel Veillard <veillard@redhat.com> - 0.7.7-1
+- macvtap support
+- async job handling
+- virtio channel
+- computing baseline CPU
+- virDomain{Attach,Detach}DeviceFlags
+- assorted bug fixes and lots of cleanups
+
 * Wed Feb  3 2010 Daniel Veillard <veillard@redhat.com> - 0.7.6-1
 
 * Wed Dec 23 2009 Daniel Veillard <veillard@redhat.com> - 0.7.5-1

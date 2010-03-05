@@ -42,15 +42,20 @@ DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	ABOUT-NLS AUTHORS COPYING COPYING.LIB ChangeLog INSTALL NEWS \
 	TODO build-aux/compile build-aux/config.guess \
 	build-aux/config.rpath build-aux/config.sub build-aux/depcomp \
-	build-aux/install-sh build-aux/ltmain.sh build-aux/missing \
-	build-aux/mkinstalldirs
+	build-aux/install-sh build-aux/ltmain.sh build-aux/mdate-sh \
+	build-aux/missing build-aux/mkinstalldirs \
+	build-aux/texinfo.tex
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/arpa_inet_h.m4 \
 	$(top_srcdir)/gnulib/m4/base64.m4 \
+	$(top_srcdir)/gnulib/m4/canonicalize.m4 \
 	$(top_srcdir)/gnulib/m4/close.m4 \
+	$(top_srcdir)/gnulib/m4/dirname.m4 \
 	$(top_srcdir)/gnulib/m4/dos.m4 \
+	$(top_srcdir)/gnulib/m4/double-slash-root.m4 \
+	$(top_srcdir)/gnulib/m4/eealloc.m4 \
 	$(top_srcdir)/gnulib/m4/errno_h.m4 \
 	$(top_srcdir)/gnulib/m4/extensions.m4 \
 	$(top_srcdir)/gnulib/m4/fclose.m4 \
@@ -74,6 +79,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/lseek.m4 \
 	$(top_srcdir)/gnulib/m4/lstat.m4 \
 	$(top_srcdir)/gnulib/m4/malloc.m4 \
+	$(top_srcdir)/gnulib/m4/malloca.m4 \
 	$(top_srcdir)/gnulib/m4/memchr.m4 \
 	$(top_srcdir)/gnulib/m4/mkstemp.m4 \
 	$(top_srcdir)/gnulib/m4/mmap-anon.m4 \
@@ -257,6 +263,7 @@ CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
 COMPILER_FLAGS = @COMPILER_FLAGS@
+CONFIG_INCLUDE = @CONFIG_INCLUDE@
 COVERAGE_CFLAGS = @COVERAGE_CFLAGS@
 COVERAGE_LDFLAGS = @COVERAGE_LDFLAGS@
 CPP = @CPP@
@@ -270,9 +277,10 @@ DEPDIR = @DEPDIR@
 DEVMAPPER_CFLAGS = @DEVMAPPER_CFLAGS@
 DEVMAPPER_LIBS = @DEVMAPPER_LIBS@
 DLLTOOL = @DLLTOOL@
+DLOPEN_LIBS = @DLOPEN_LIBS@
 DNSMASQ = @DNSMASQ@
-DRIVER_MODULES_CFLAGS = @DRIVER_MODULES_CFLAGS@
-DRIVER_MODULES_LIBS = @DRIVER_MODULES_LIBS@
+DRIVER_MODULE_CFLAGS = @DRIVER_MODULE_CFLAGS@
+DRIVER_MODULE_LIBS = @DRIVER_MODULE_LIBS@
 DSYMUTIL = @DSYMUTIL@
 DUMPBIN = @DUMPBIN@
 EBTABLES_PATH = @EBTABLES_PATH@
@@ -346,6 +354,7 @@ GNULIB_GETPEERNAME = @GNULIB_GETPEERNAME@
 GNULIB_GETSOCKNAME = @GNULIB_GETSOCKNAME@
 GNULIB_GETSOCKOPT = @GNULIB_GETSOCKOPT@
 GNULIB_GETSUBOPT = @GNULIB_GETSUBOPT@
+GNULIB_GETTIMEOFDAY = @GNULIB_GETTIMEOFDAY@
 GNULIB_GETUSERSHELL = @GNULIB_GETUSERSHELL@
 GNULIB_INET_NTOP = @GNULIB_INET_NTOP@
 GNULIB_INET_PTON = @GNULIB_INET_PTON@
@@ -523,6 +532,7 @@ HAVE_GETHOSTNAME = @HAVE_GETHOSTNAME@
 HAVE_GETLOGIN = @HAVE_GETLOGIN@
 HAVE_GETPAGESIZE = @HAVE_GETPAGESIZE@
 HAVE_GETSUBOPT = @HAVE_GETSUBOPT@
+HAVE_GETTIMEOFDAY = @HAVE_GETTIMEOFDAY@
 HAVE_GETUSERSHELL = @HAVE_GETUSERSHELL@
 HAVE_INTTYPES_H = @HAVE_INTTYPES_H@
 HAVE_LCHMOD = @HAVE_LCHMOD@
@@ -772,6 +782,7 @@ REPLACE_FTELL = @REPLACE_FTELL@
 REPLACE_FTELLO = @REPLACE_FTELLO@
 REPLACE_FUTIMENS = @REPLACE_FUTIMENS@
 REPLACE_GETCWD = @REPLACE_GETCWD@
+REPLACE_GETDELIM = @REPLACE_GETDELIM@
 REPLACE_GETGROUPS = @REPLACE_GETGROUPS@
 REPLACE_GETLINE = @REPLACE_GETLINE@
 REPLACE_GETPAGESIZE = @REPLACE_GETPAGESIZE@
@@ -865,7 +876,6 @@ STRIP = @STRIP@
 SYS_IOCTL_H_HAVE_WINSOCK2_H = @SYS_IOCTL_H_HAVE_WINSOCK2_H@
 SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS = @SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS@
 SYS_SOCKET_H = @SYS_SOCKET_H@
-SYS_TIME_H = @SYS_TIME_H@
 SYS_TIME_H_DEFINES_STRUCT_TIMESPEC = @SYS_TIME_H_DEFINES_STRUCT_TIMESPEC@
 TAR = @TAR@
 TIME_H_DEFINES_STRUCT_TIMESPEC = @TIME_H_DEFINES_STRUCT_TIMESPEC@
@@ -970,7 +980,10 @@ SUBDIRS = gnulib/lib include src daemon tools proxy docs gnulib/tests \
   examples/dominfo examples/domsuspend examples/python examples/apparmor
 
 ACLOCAL_AMFLAGS = -I m4 -I gnulib/m4
-XML_EXAMPLES = $(wildcard examples/xml/test/*.xml) $(wildcard examples/xml/storage/*.xml)
+XML_EXAMPLES = \
+  $(patsubst $(srcdir)/%,%,$(wildcard $(addprefix $(srcdir)/examples/xml/, \
+					test/*.xml storage/*.xml)))
+
 EXTRA_DIST = \
   ChangeLog-old \
   libvirt.spec libvirt.spec.in \

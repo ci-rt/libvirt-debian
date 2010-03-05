@@ -1,3 +1,5 @@
+# -*- buffer-read-only: t -*- vi: set ro:
+# DO NOT EDIT! GENERATED AUTOMATICALLY!
 # strdup.m4 serial 11
 
 dnl Copyright (C) 2002-2010 Free Software Foundation, Inc.

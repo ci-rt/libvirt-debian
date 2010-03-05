@@ -890,6 +890,32 @@ remoteDispatchDomainAttachDevice (struct qemud_server *server ATTRIBUTE_UNUSED,
 }
 
 static int
+remoteDispatchDomainAttachDeviceFlags (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                       struct qemud_client *client ATTRIBUTE_UNUSED,
+                                       virConnectPtr conn,
+                                       remote_message_header *hdr ATTRIBUTE_UNUSED,
+                                       remote_error *rerr,
+                                       remote_domain_attach_device_flags_args *args,
+                                       void *ret ATTRIBUTE_UNUSED)
+{
+    virDomainPtr dom;
+
+    dom = get_nonnull_domain (conn, args->dom);
+    if (dom == NULL) {
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
+
+    if (virDomainAttachDeviceFlags (dom, args->xml, args->flags) == -1) {
+        virDomainFree(dom);
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
+    virDomainFree(dom);
+    return 0;
+}
+
+static int
 remoteDispatchDomainCreate (struct qemud_server *server ATTRIBUTE_UNUSED,
                             struct qemud_client *client ATTRIBUTE_UNUSED,
                             virConnectPtr conn,
@@ -1005,6 +1031,33 @@ remoteDispatchDomainDetachDevice (struct qemud_server *server ATTRIBUTE_UNUSED,
     }
 
     if (virDomainDetachDevice (dom, args->xml) == -1) {
+        virDomainFree(dom);
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
+
+    virDomainFree(dom);
+    return 0;
+}
+
+static int
+remoteDispatchDomainDetachDeviceFlags (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                       struct qemud_client *client ATTRIBUTE_UNUSED,
+                                       virConnectPtr conn,
+                                       remote_message_header *hdr ATTRIBUTE_UNUSED,
+                                       remote_error *rerr,
+                                       remote_domain_detach_device_flags_args *args,
+                                       void *ret ATTRIBUTE_UNUSED)
+{
+    virDomainPtr dom;
+
+    dom = get_nonnull_domain (conn, args->dom);
+    if (dom == NULL) {
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
+
+    if (virDomainDetachDeviceFlags (dom, args->xml, args->flags) == -1) {
         virDomainFree(dom);
         remoteDispatchConnError(rerr, conn);
         return -1;
@@ -2824,7 +2877,7 @@ static char *addrToString(remote_error *rerr,
     }
 
     if (virAsprintf(&addr, "%s;%s", host, port) == -1) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         return NULL;
     }
 
@@ -3370,7 +3423,7 @@ remoteDispatchAuthPolkit (struct qemud_server *server,
         goto authfail;
     }
 
-    if (virRun(NULL, pkcheck, &status) < 0) {
+    if (virRun(pkcheck, &status) < 0) {
         VIR_ERROR(_("Cannot invoke %s"), PKCHECK_PATH);
         goto authfail;
     }
@@ -5308,6 +5361,104 @@ remoteDispatchCpuCompare(struct qemud_server *server ATTRIBUTE_UNUSED,
     }
 
     ret->result = result;
+    return 0;
+}
+
+
+static int
+remoteDispatchCpuBaseline(struct qemud_server *server ATTRIBUTE_UNUSED,
+                          struct qemud_client *client ATTRIBUTE_UNUSED,
+                          virConnectPtr conn,
+                          remote_message_header *hdr ATTRIBUTE_UNUSED,
+                          remote_error *err,
+                          remote_cpu_baseline_args *args,
+                          remote_cpu_baseline_ret *ret)
+{
+    char *cpu;
+
+    cpu = virConnectBaselineCPU(conn,
+                                (const char **) args->xmlCPUs.xmlCPUs_val,
+                                args->xmlCPUs.xmlCPUs_len,
+                                args->flags);
+    if (cpu == NULL) {
+        remoteDispatchConnError(err, conn);
+        return -1;
+    }
+
+    ret->cpu = cpu;
+
+    return 0;
+}
+
+
+static int
+remoteDispatchDomainGetJobInfo (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                struct qemud_client *client ATTRIBUTE_UNUSED,
+                                virConnectPtr conn,
+                                remote_message_header *hdr ATTRIBUTE_UNUSED,
+                                remote_error *rerr,
+                                remote_domain_get_job_info_args *args,
+                                remote_domain_get_job_info_ret *ret)
+{
+    virDomainPtr dom;
+    virDomainJobInfo info;
+
+    dom = get_nonnull_domain (conn, args->dom);
+    if (dom == NULL) {
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
+
+    if (virDomainGetJobInfo (dom, &info) == -1) {
+        virDomainFree(dom);
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
+
+    ret->type = info.type;
+    ret->timeElapsed = info.timeElapsed;
+    ret->timeRemaining = info.timeRemaining;
+    ret->dataTotal = info.dataTotal;
+    ret->dataProcessed = info.dataProcessed;
+    ret->dataRemaining = info.dataRemaining;
+    ret->memTotal = info.memTotal;
+    ret->memProcessed = info.memProcessed;
+    ret->memRemaining = info.memRemaining;
+    ret->fileTotal = info.fileTotal;
+    ret->fileProcessed = info.fileProcessed;
+    ret->fileRemaining = info.fileRemaining;
+
+    virDomainFree(dom);
+
+    return 0;
+}
+
+
+static int
+remoteDispatchDomainAbortJob (struct qemud_server *server ATTRIBUTE_UNUSED,
+                              struct qemud_client *client ATTRIBUTE_UNUSED,
+                              virConnectPtr conn,
+                              remote_message_header *hdr ATTRIBUTE_UNUSED,
+                              remote_error *rerr,
+                              remote_domain_abort_job_args *args,
+                              void *ret ATTRIBUTE_UNUSED)
+{
+    virDomainPtr dom;
+
+    dom = get_nonnull_domain (conn, args->dom);
+    if (dom == NULL) {
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
+
+    if (virDomainAbortJob (dom) == -1) {
+        virDomainFree(dom);
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
+
+    virDomainFree(dom);
+
     return 0;
 }
 

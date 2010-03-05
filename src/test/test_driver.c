@@ -1,7 +1,7 @@
 /*
  * test.c: A "mock" hypervisor for use by application unit tests
  *
- * Copyright (C) 2006-2009 Red Hat, Inc.
+ * Copyright (C) 2006-2010 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -205,10 +205,18 @@ testBuildCapabilities(virConnectPtr conn) {
     caps->privateDataAllocFunc = testDomainObjPrivateAlloc;
     caps->privateDataFreeFunc = testDomainObjPrivateFree;
 
+    caps->host.secModel.model = strdup("testSecurity");
+    if (!caps->host.secModel.model)
+        goto no_memory;
+
+    caps->host.secModel.doi = strdup("");
+    if (!caps->host.secModel.doi)
+        goto no_memory;
+
     return caps;
 
 no_memory:
-    virReportOOMError(conn);
+    virReportOOMError();
     virCapabilitiesFree(caps);
     return NULL;
 }
@@ -301,8 +309,7 @@ static const char *defaultNodeXML =
 static const unsigned long long defaultPoolCap = (100 * 1024 * 1024 * 1024ull);
 static const unsigned long long defaultPoolAlloc = 0;
 
-static int testStoragePoolObjSetDefaults(virConnectPtr conn,
-                                         virStoragePoolObjPtr pool);
+static int testStoragePoolObjSetDefaults(virStoragePoolObjPtr pool);
 static int testNodeGetInfo(virConnectPtr conn, virNodeInfoPtr info);
 
 static char *
@@ -316,7 +323,7 @@ testDomainGenerateIfname(virConnectPtr conn,
         int found = 0;
 
         if (virAsprintf(&ifname, "testnet%d", ifctr) < 0) {
-            virReportOOMError(conn);
+            virReportOOMError();
             return NULL;
         }
 
@@ -423,12 +430,12 @@ testDomainUpdateVCPUs(virConnectPtr conn,
     cpumaplen = VIR_CPU_MAPLEN(maxcpu);
 
     if (VIR_REALLOC_N(privdata->vcpu_infos, nvcpus) < 0) {
-        virReportOOMError(conn);
+        virReportOOMError();
         goto cleanup;
     }
 
     if (VIR_REALLOC_N(privdata->cpumaps, nvcpus * cpumaplen) < 0) {
-        virReportOOMError(conn);
+        virReportOOMError();
         goto cleanup;
     }
 
@@ -501,7 +508,7 @@ static int testOpenDefault(virConnectPtr conn) {
     virNodeDeviceObjPtr nodeobj = NULL;
 
     if (VIR_ALLOC(privconn) < 0) {
-        virReportOOMError(conn);
+        virReportOOMError();
         return VIR_DRV_OPEN_ERROR;
     }
     if (virMutexInit(&privconn->lock) < 0) {
@@ -515,7 +522,7 @@ static int testOpenDefault(virConnectPtr conn) {
     conn->privateData = privconn;
 
     if (gettimeofday(&tv, NULL) < 0) {
-        virReportSystemError(conn, errno,
+        virReportSystemError(errno,
                              "%s", _("getting time of day"));
         goto error;
     }
@@ -540,13 +547,13 @@ static int testOpenDefault(virConnectPtr conn) {
 
     privconn->nextDomID = 1;
 
-    if (!(domdef = virDomainDefParseString(conn, privconn->caps,
+    if (!(domdef = virDomainDefParseString(privconn->caps,
                                            defaultDomainXML,
                                            VIR_DOMAIN_XML_INACTIVE)))
         goto error;
     if (testDomainGenerateIfnames(conn, domdef) < 0)
         goto error;
-    if (!(domobj = virDomainAssignDef(conn, privconn->caps,
+    if (!(domobj = virDomainAssignDef(privconn->caps,
                                       &privconn->domains, domdef)))
         goto error;
     domdef = NULL;
@@ -559,9 +566,9 @@ static int testOpenDefault(virConnectPtr conn) {
     domobj->persistent = 1;
     virDomainObjUnlock(domobj);
 
-    if (!(netdef = virNetworkDefParseString(conn, defaultNetworkXML)))
+    if (!(netdef = virNetworkDefParseString(defaultNetworkXML)))
         goto error;
-    if (!(netobj = virNetworkAssignDef(conn, &privconn->networks, netdef))) {
+    if (!(netobj = virNetworkAssignDef(&privconn->networks, netdef))) {
         virNetworkDefFree(netdef);
         goto error;
     }
@@ -569,25 +576,25 @@ static int testOpenDefault(virConnectPtr conn) {
     netobj->persistent = 1;
     virNetworkObjUnlock(netobj);
 
-    if (!(interfacedef = virInterfaceDefParseString(conn, defaultInterfaceXML)))
+    if (!(interfacedef = virInterfaceDefParseString(defaultInterfaceXML)))
         goto error;
-    if (!(interfaceobj = virInterfaceAssignDef(conn, &privconn->ifaces, interfacedef))) {
+    if (!(interfaceobj = virInterfaceAssignDef(&privconn->ifaces, interfacedef))) {
         virInterfaceDefFree(interfacedef);
         goto error;
     }
     interfaceobj->active = 1;
     virInterfaceObjUnlock(interfaceobj);
 
-    if (!(pooldef = virStoragePoolDefParseString(conn, defaultPoolXML)))
+    if (!(pooldef = virStoragePoolDefParseString(defaultPoolXML)))
         goto error;
 
-    if (!(poolobj = virStoragePoolObjAssignDef(conn, &privconn->pools,
+    if (!(poolobj = virStoragePoolObjAssignDef(&privconn->pools,
                                                pooldef))) {
         virStoragePoolDefFree(pooldef);
         goto error;
     }
 
-    if (testStoragePoolObjSetDefaults(conn, poolobj) == -1) {
+    if (testStoragePoolObjSetDefaults(poolobj) == -1) {
         virStoragePoolObjUnlock(poolobj);
         goto error;
     }
@@ -595,9 +602,9 @@ static int testOpenDefault(virConnectPtr conn) {
     virStoragePoolObjUnlock(poolobj);
 
     /* Init default node device */
-    if (!(nodedef = virNodeDeviceDefParseString(conn, defaultNodeXML, 0)))
+    if (!(nodedef = virNodeDeviceDefParseString(defaultNodeXML, 0)))
         goto error;
-    if (!(nodeobj = virNodeDeviceAssignDef(conn, &privconn->devs,
+    if (!(nodeobj = virNodeDeviceAssignDef(&privconn->devs,
                                            nodedef))) {
         virNodeDeviceDefFree(nodedef);
         goto error;
@@ -649,8 +656,7 @@ static char *testBuildFilename(const char *relativeTo,
     }
 }
 
-static int testOpenVolumesForPool(virConnectPtr conn,
-                                  xmlDocPtr xml,
+static int testOpenVolumesForPool(xmlDocPtr xml,
                                   xmlXPathContextPtr ctxt,
                                   const char *file,
                                   virStoragePoolObjPtr pool,
@@ -662,11 +668,11 @@ static int testOpenVolumesForPool(virConnectPtr conn,
 
     /* Find storage volumes */
     if (virAsprintf(&vol_xpath, "/node/pool[%d]/volume", poolidx) < 0) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         goto error;
     }
 
-    ret = virXPathNodeSet(conn, vol_xpath, ctxt, &vols);
+    ret = virXPathNodeSet(vol_xpath, ctxt, &vols);
     VIR_FREE(vol_xpath);
     if (ret < 0) {
         testError(NULL, VIR_ERR_XML_ERROR,
@@ -685,12 +691,12 @@ static int testOpenVolumesForPool(virConnectPtr conn,
                 goto error;
             }
 
-            def = virStorageVolDefParseFile(conn, pool->def, absFile);
+            def = virStorageVolDefParseFile(pool->def, absFile);
             VIR_FREE(absFile);
             if (!def)
                 goto error;
         } else {
-            if ((def = virStorageVolDefParseNode(conn, pool->def, xml,
+            if ((def = virStorageVolDefParseNode(pool->def, xml,
                                                  vols[i])) == NULL) {
                 goto error;
             }
@@ -698,20 +704,20 @@ static int testOpenVolumesForPool(virConnectPtr conn,
 
         if (VIR_REALLOC_N(pool->volumes.objs,
                           pool->volumes.count+1) < 0) {
-            virReportOOMError(conn);
+            virReportOOMError();
             goto error;
         }
 
         if (virAsprintf(&def->target.path, "%s/%s",
                         pool->def->target.path,
                         def->name) == -1) {
-            virReportOOMError(conn);
+            virReportOOMError();
             goto error;
         }
 
         def->key = strdup(def->target.path);
         if (def->key == NULL) {
-            virReportOOMError(conn);
+            virReportOOMError();
             goto error;
         }
 
@@ -746,7 +752,7 @@ static int testOpenFromFile(virConnectPtr conn,
     virDomainObjPtr dom;
     testConnPtr privconn;
     if (VIR_ALLOC(privconn) < 0) {
-        virReportOOMError(conn);
+        virReportOOMError();
         return VIR_DRV_OPEN_ERROR;
     }
     if (virMutexInit(&privconn->lock) < 0) {
@@ -766,7 +772,7 @@ static int testOpenFromFile(virConnectPtr conn,
         goto error;
 
     if ((fd = open(file, O_RDONLY)) < 0) {
-        virReportSystemError(NULL, errno,
+        virReportSystemError(errno,
                              _("loading host definition file '%s'"),
                              file);
         goto error;
@@ -806,7 +812,7 @@ static int testOpenFromFile(virConnectPtr conn,
     memmove(&privconn->nodeInfo, &defaultNodeInfo, sizeof(defaultNodeInfo));
 
     nodeInfo = &privconn->nodeInfo;
-    ret = virXPathLong(conn, "string(/node/cpu/nodes[1])", ctxt, &l);
+    ret = virXPathLong("string(/node/cpu/nodes[1])", ctxt, &l);
     if (ret == 0) {
         nodeInfo->nodes = l;
     } else if (ret == -2) {
@@ -814,7 +820,7 @@ static int testOpenFromFile(virConnectPtr conn,
         goto error;
     }
 
-    ret = virXPathLong(conn, "string(/node/cpu/sockets[1])", ctxt, &l);
+    ret = virXPathLong("string(/node/cpu/sockets[1])", ctxt, &l);
     if (ret == 0) {
         nodeInfo->sockets = l;
     } else if (ret == -2) {
@@ -822,7 +828,7 @@ static int testOpenFromFile(virConnectPtr conn,
         goto error;
     }
 
-    ret = virXPathLong(conn, "string(/node/cpu/cores[1])", ctxt, &l);
+    ret = virXPathLong("string(/node/cpu/cores[1])", ctxt, &l);
     if (ret == 0) {
         nodeInfo->cores = l;
     } else if (ret == -2) {
@@ -830,7 +836,7 @@ static int testOpenFromFile(virConnectPtr conn,
         goto error;
     }
 
-    ret = virXPathLong(conn, "string(/node/cpu/threads[1])", ctxt, &l);
+    ret = virXPathLong("string(/node/cpu/threads[1])", ctxt, &l);
     if (ret == 0) {
         nodeInfo->threads = l;
     } else if (ret == -2) {
@@ -839,7 +845,7 @@ static int testOpenFromFile(virConnectPtr conn,
     }
 
     nodeInfo->cpus = nodeInfo->cores * nodeInfo->threads * nodeInfo->sockets * nodeInfo->nodes;
-    ret = virXPathLong(conn, "string(/node/cpu/active[1])", ctxt, &l);
+    ret = virXPathLong("string(/node/cpu/active[1])", ctxt, &l);
     if (ret == 0) {
         if (l < nodeInfo->cpus) {
             nodeInfo->cpus = l;
@@ -848,7 +854,7 @@ static int testOpenFromFile(virConnectPtr conn,
         testError(NULL, VIR_ERR_XML_ERROR, "%s", _("node active cpu"));
         goto error;
     }
-    ret = virXPathLong(conn, "string(/node/cpu/mhz[1])", ctxt, &l);
+    ret = virXPathLong("string(/node/cpu/mhz[1])", ctxt, &l);
     if (ret == 0) {
         nodeInfo->mhz = l;
     } else if (ret == -2) {
@@ -856,7 +862,7 @@ static int testOpenFromFile(virConnectPtr conn,
         goto error;
     }
 
-    str = virXPathString(conn, "string(/node/cpu/model[1])", ctxt);
+    str = virXPathString("string(/node/cpu/model[1])", ctxt);
     if (str != NULL) {
         if (virStrcpyStatic(nodeInfo->model, str) == NULL) {
             testError(NULL, VIR_ERR_INTERNAL_ERROR,
@@ -867,7 +873,7 @@ static int testOpenFromFile(virConnectPtr conn,
         VIR_FREE(str);
     }
 
-    ret = virXPathLong(conn, "string(/node/memory[1])", ctxt, &l);
+    ret = virXPathLong("string(/node/memory[1])", ctxt, &l);
     if (ret == 0) {
         nodeInfo->memory = l;
     } else if (ret == -2) {
@@ -875,7 +881,7 @@ static int testOpenFromFile(virConnectPtr conn,
         goto error;
     }
 
-    ret = virXPathNodeSet(conn, "/node/domain", ctxt, &domains);
+    ret = virXPathNodeSet("/node/domain", ctxt, &domains);
     if (ret < 0) {
         testError(NULL, VIR_ERR_XML_ERROR, "%s", _("node domain list"));
         goto error;
@@ -891,19 +897,19 @@ static int testOpenFromFile(virConnectPtr conn,
                 testError(NULL, VIR_ERR_INTERNAL_ERROR, "%s", _("resolving domain filename"));
                 goto error;
             }
-            def = virDomainDefParseFile(conn, privconn->caps, absFile,
+            def = virDomainDefParseFile(privconn->caps, absFile,
                                         VIR_DOMAIN_XML_INACTIVE);
             VIR_FREE(absFile);
             if (!def)
                 goto error;
         } else {
-            if ((def = virDomainDefParseNode(conn, privconn->caps, xml, domains[i],
-                                   VIR_DOMAIN_XML_INACTIVE)) == NULL)
+            if ((def = virDomainDefParseNode(privconn->caps, xml, domains[i],
+                                             VIR_DOMAIN_XML_INACTIVE)) == NULL)
                 goto error;
         }
 
         if (testDomainGenerateIfnames(conn, def) < 0 ||
-            !(dom = virDomainAssignDef(conn, privconn->caps,
+            !(dom = virDomainAssignDef(privconn->caps,
                                        &privconn->domains, def))) {
             virDomainDefFree(def);
             goto error;
@@ -919,7 +925,7 @@ static int testOpenFromFile(virConnectPtr conn,
     }
     VIR_FREE(domains);
 
-    ret = virXPathNodeSet(conn, "/node/network", ctxt, &networks);
+    ret = virXPathNodeSet("/node/network", ctxt, &networks);
     if (ret < 0) {
         testError(NULL, VIR_ERR_XML_ERROR, "%s", _("node network list"));
         goto error;
@@ -935,15 +941,15 @@ static int testOpenFromFile(virConnectPtr conn,
                 goto error;
             }
 
-            def = virNetworkDefParseFile(conn, absFile);
+            def = virNetworkDefParseFile(absFile);
             VIR_FREE(absFile);
             if (!def)
                 goto error;
         } else {
-            if ((def = virNetworkDefParseNode(conn, xml, networks[i])) == NULL)
+            if ((def = virNetworkDefParseNode(xml, networks[i])) == NULL)
                 goto error;
         }
-        if (!(net = virNetworkAssignDef(conn, &privconn->networks,
+        if (!(net = virNetworkAssignDef(&privconn->networks,
                                         def))) {
             virNetworkDefFree(def);
             goto error;
@@ -955,7 +961,7 @@ static int testOpenFromFile(virConnectPtr conn,
     VIR_FREE(networks);
 
     /* Parse interface definitions */
-    ret = virXPathNodeSet(conn, "/node/interface", ctxt, &ifaces);
+    ret = virXPathNodeSet("/node/interface", ctxt, &ifaces);
     if (ret < 0) {
         testError(NULL, VIR_ERR_XML_ERROR, "%s", _("node interface list"));
         goto error;
@@ -971,16 +977,16 @@ static int testOpenFromFile(virConnectPtr conn,
                 goto error;
             }
 
-            def = virInterfaceDefParseFile(conn, absFile);
+            def = virInterfaceDefParseFile(absFile);
             VIR_FREE(absFile);
             if (!def)
                 goto error;
         } else {
-            if ((def = virInterfaceDefParseNode(conn, xml, ifaces[i])) == NULL)
+            if ((def = virInterfaceDefParseNode(xml, ifaces[i])) == NULL)
                 goto error;
         }
 
-        if (!(iface = virInterfaceAssignDef(conn, &privconn->ifaces, def))) {
+        if (!(iface = virInterfaceAssignDef(&privconn->ifaces, def))) {
             virInterfaceDefFree(def);
             goto error;
         }
@@ -991,7 +997,7 @@ static int testOpenFromFile(virConnectPtr conn,
     VIR_FREE(ifaces);
 
     /* Parse Storage Pool list */
-    ret = virXPathNodeSet(conn, "/node/pool", ctxt, &pools);
+    ret = virXPathNodeSet("/node/pool", ctxt, &pools);
     if (ret < 0) {
         testError(NULL, VIR_ERR_XML_ERROR, "%s", _("node pool list"));
         goto error;
@@ -1009,31 +1015,31 @@ static int testOpenFromFile(virConnectPtr conn,
                 goto error;
             }
 
-            def = virStoragePoolDefParseFile(conn, absFile);
+            def = virStoragePoolDefParseFile(absFile);
             VIR_FREE(absFile);
             if (!def)
                 goto error;
         } else {
-            if ((def = virStoragePoolDefParseNode(conn, xml,
+            if ((def = virStoragePoolDefParseNode(xml,
                                                   pools[i])) == NULL) {
                 goto error;
             }
         }
 
-        if (!(pool = virStoragePoolObjAssignDef(conn, &privconn->pools,
+        if (!(pool = virStoragePoolObjAssignDef(&privconn->pools,
                                                 def))) {
             virStoragePoolDefFree(def);
             goto error;
         }
 
-        if (testStoragePoolObjSetDefaults(conn, pool) == -1) {
+        if (testStoragePoolObjSetDefaults(pool) == -1) {
             virStoragePoolObjUnlock(pool);
             goto error;
         }
         pool->active = 1;
 
         /* Find storage volumes */
-        if (testOpenVolumesForPool(conn, xml, ctxt, file, pool, i+1) < 0) {
+        if (testOpenVolumesForPool(xml, ctxt, file, pool, i+1) < 0) {
             virStoragePoolObjUnlock(pool);
             goto error;
         }
@@ -1042,7 +1048,7 @@ static int testOpenFromFile(virConnectPtr conn,
     }
     VIR_FREE(pools);
 
-    ret = virXPathNodeSet(conn, "/node/device", ctxt, &devs);
+    ret = virXPathNodeSet("/node/device", ctxt, &devs);
     if (ret < 0) {
         testError(NULL, VIR_ERR_XML_ERROR, "%s", _("node device list"));
         goto error;
@@ -1062,15 +1068,15 @@ static int testOpenFromFile(virConnectPtr conn,
                 goto error;
             }
 
-            def = virNodeDeviceDefParseFile(conn, absFile, 0);
+            def = virNodeDeviceDefParseFile(absFile, 0);
             VIR_FREE(absFile);
             if (!def)
                 goto error;
         } else {
-            if ((def = virNodeDeviceDefParseNode(conn, xml, devs[i], 0)) == NULL)
+            if ((def = virNodeDeviceDefParseNode(xml, devs[i], 0)) == NULL)
                 goto error;
         }
-        if (!(dev = virNodeDeviceAssignDef(conn, &privconn->devs, def))) {
+        if (!(dev = virNodeDeviceAssignDef(&privconn->devs, def))) {
             virNodeDeviceDefFree(def);
             goto error;
         }
@@ -1142,7 +1148,7 @@ static virDrvOpenStatus testOpen(virConnectPtr conn,
         /* Init callback list */
         if (VIR_ALLOC(privconn->domainEventCallbacks) < 0 ||
             !(privconn->domainEventQueue = virDomainEventQueueNew())) {
-            virReportOOMError(NULL);
+            virReportOOMError();
             testDriverUnlock(privconn);
             testClose(conn);
             return VIR_DRV_OPEN_ERROR;
@@ -1222,7 +1228,7 @@ static char *testGetCapabilities (virConnectPtr conn)
     char *xml;
     testDriverLock(privconn);
     if ((xml = virCapabilitiesFormatXML(privconn->caps)) == NULL)
-        virReportOOMError(conn);
+        virReportOOMError();
     testDriverUnlock(privconn);
     return xml;
 }
@@ -1292,7 +1298,7 @@ testDomainCreateXML(virConnectPtr conn, const char *xml,
     virDomainEventPtr event = NULL;
 
     testDriverLock(privconn);
-    if ((def = virDomainDefParseString(conn, privconn->caps, xml,
+    if ((def = virDomainDefParseString(privconn->caps, xml,
                                        VIR_DOMAIN_XML_INACTIVE)) == NULL)
         goto cleanup;
 
@@ -1301,7 +1307,7 @@ testDomainCreateXML(virConnectPtr conn, const char *xml,
 
     if (testDomainGenerateIfnames(conn, def) < 0)
         goto cleanup;
-    if (!(dom = virDomainAssignDef(conn, privconn->caps,
+    if (!(dom = virDomainAssignDef(privconn->caps,
                                    &privconn->domains, def)))
         goto cleanup;
     def = NULL;
@@ -1708,45 +1714,44 @@ static int testDomainSave(virDomainPtr domain,
         goto cleanup;
     }
 
-    xml = virDomainDefFormat(domain->conn,
-                             privdom->def,
+    xml = virDomainDefFormat(privdom->def,
                              VIR_DOMAIN_XML_SECURE);
 
     if (xml == NULL) {
-        virReportSystemError(domain->conn, errno,
+        virReportSystemError(errno,
                              _("saving domain '%s' failed to allocate space for metadata"),
                              domain->name);
         goto cleanup;
     }
 
     if ((fd = open(path, O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR)) < 0) {
-        virReportSystemError(domain->conn, errno,
+        virReportSystemError(errno,
                              _("saving domain '%s' to '%s': open failed"),
                              domain->name, path);
         goto cleanup;
     }
     len = strlen(xml);
     if (safewrite(fd, TEST_SAVE_MAGIC, sizeof(TEST_SAVE_MAGIC)) < 0) {
-        virReportSystemError(domain->conn, errno,
+        virReportSystemError(errno,
                              _("saving domain '%s' to '%s': write failed"),
                              domain->name, path);
         goto cleanup;
     }
     if (safewrite(fd, (char*)&len, sizeof(len)) < 0) {
-        virReportSystemError(domain->conn, errno,
+        virReportSystemError(errno,
                              _("saving domain '%s' to '%s': write failed"),
                              domain->name, path);
         goto cleanup;
     }
     if (safewrite(fd, xml, len) < 0) {
-        virReportSystemError(domain->conn, errno,
+        virReportSystemError(errno,
                              _("saving domain '%s' to '%s': write failed"),
                              domain->name, path);
         goto cleanup;
     }
 
     if (close(fd) < 0) {
-        virReportSystemError(domain->conn, errno,
+        virReportSystemError(errno,
                              _("saving domain '%s' to '%s': write failed"),
                              domain->name, path);
         goto cleanup;
@@ -1798,13 +1803,13 @@ static int testDomainRestore(virConnectPtr conn,
     int ret = -1;
 
     if ((fd = open(path, O_RDONLY)) < 0) {
-        virReportSystemError(conn, errno,
+        virReportSystemError(errno,
                              _("cannot read domain image '%s'"),
                              path);
         goto cleanup;
     }
     if (saferead(fd, magic, sizeof(magic)) != sizeof(magic)) {
-        virReportSystemError(conn, errno,
+        virReportSystemError(errno,
                              _("incomplete save header in '%s'"),
                              path);
         goto cleanup;
@@ -1815,7 +1820,7 @@ static int testDomainRestore(virConnectPtr conn,
         goto cleanup;
     }
     if (saferead(fd, (char*)&len, sizeof(len)) != sizeof(len)) {
-        virReportSystemError(conn, errno,
+        virReportSystemError(errno,
                              _("failed to read metadata length in '%s'"),
                              path);
         goto cleanup;
@@ -1826,18 +1831,18 @@ static int testDomainRestore(virConnectPtr conn,
         goto cleanup;
     }
     if (VIR_ALLOC_N(xml, len+1) < 0) {
-        virReportOOMError(conn);
+        virReportOOMError();
         goto cleanup;
     }
     if (saferead(fd, xml, len) != len) {
-        virReportSystemError(conn, errno,
+        virReportSystemError(errno,
                              _("incomplete metdata in '%s'"), path);
         goto cleanup;
     }
     xml[len] = '\0';
 
     testDriverLock(privconn);
-    def = virDomainDefParseString(conn, privconn->caps, xml,
+    def = virDomainDefParseString(privconn->caps, xml,
                                   VIR_DOMAIN_XML_INACTIVE);
     if (!def)
         goto cleanup;
@@ -1847,7 +1852,7 @@ static int testDomainRestore(virConnectPtr conn,
 
     if (testDomainGenerateIfnames(conn, def) < 0)
         goto cleanup;
-    if (!(dom = virDomainAssignDef(conn, privconn->caps,
+    if (!(dom = virDomainAssignDef(privconn->caps,
                                    &privconn->domains, def)))
         goto cleanup;
     def = NULL;
@@ -1893,19 +1898,19 @@ static int testDomainCoreDump(virDomainPtr domain,
     }
 
     if ((fd = open(to, O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR)) < 0) {
-        virReportSystemError(domain->conn, errno,
+        virReportSystemError(errno,
                              _("domain '%s' coredump: failed to open %s"),
                              domain->name, to);
         goto cleanup;
     }
     if (safewrite(fd, TEST_SAVE_MAGIC, sizeof(TEST_SAVE_MAGIC)) < 0) {
-        virReportSystemError(domain->conn, errno,
+        virReportSystemError(errno,
                              _("domain '%s' coredump: failed to write header to %s"),
                              domain->name, to);
         goto cleanup;
     }
     if (close(fd) < 0) {
-        virReportSystemError(domain->conn, errno,
+        virReportSystemError(errno,
                              _("domain '%s' coredump: write failed: %s"),
                              domain->name, to);
         goto cleanup;
@@ -1935,10 +1940,10 @@ cleanup:
     return ret;
 }
 
-static char *testGetOSType(virDomainPtr dom) {
+static char *testGetOSType(virDomainPtr dom ATTRIBUTE_UNUSED) {
     char *ret = strdup("linux");
     if (!ret)
-        virReportOOMError(dom->conn);
+        virReportOOMError();
     return ret;
 }
 
@@ -2109,7 +2114,7 @@ static int testDomainGetVcpus(virDomainPtr domain,
     privdomdata = privdom->privateData;
 
     if (gettimeofday(&tv, NULL) < 0) {
-        virReportSystemError(domain->conn, errno,
+        virReportSystemError(errno,
                              "%s", _("getting time of day"));
         goto cleanup;
     }
@@ -2242,8 +2247,7 @@ static char *testDomainDumpXML(virDomainPtr domain, int flags)
     def = (flags & VIR_DOMAIN_XML_INACTIVE) &&
         privdom->newDef ? privdom->newDef : privdom->def;
 
-    ret = virDomainDefFormat(domain->conn,
-                             def,
+    ret = virDomainDefFormat(def,
                              flags);
 
 cleanup:
@@ -2288,7 +2292,7 @@ static virDomainPtr testDomainDefineXML(virConnectPtr conn,
     int dupVM;
 
     testDriverLock(privconn);
-    if ((def = virDomainDefParseString(conn, privconn->caps, xml,
+    if ((def = virDomainDefParseString(privconn->caps, xml,
                                        VIR_DOMAIN_XML_INACTIVE)) == NULL)
         goto cleanup;
 
@@ -2297,7 +2301,7 @@ static virDomainPtr testDomainDefineXML(virConnectPtr conn,
 
     if (testDomainGenerateIfnames(conn, def) < 0)
         goto cleanup;
-    if (!(dom = virDomainAssignDef(conn, privconn->caps,
+    if (!(dom = virDomainAssignDef(privconn->caps,
                                    &privconn->domains, def)))
         goto cleanup;
     def = NULL;
@@ -2481,7 +2485,7 @@ cleanup:
     return ret;
 }
 
-static char *testDomainGetSchedulerType(virDomainPtr domain,
+static char *testDomainGetSchedulerType(virDomainPtr domain ATTRIBUTE_UNUSED,
                                         int *nparams)
 {
     char *type = NULL;
@@ -2489,7 +2493,7 @@ static char *testDomainGetSchedulerType(virDomainPtr domain,
     *nparams = 1;
     type = strdup("fair");
     if (!type)
-        virReportOOMError(domain->conn);
+        virReportOOMError();
 
     return type;
 }
@@ -2604,7 +2608,7 @@ static int testDomainBlockStats(virDomainPtr domain,
     }
 
     if (gettimeofday(&tv, NULL) < 0) {
-        virReportSystemError(domain->conn, errno,
+        virReportSystemError(errno,
                              "%s", _("getting time of day"));
         goto error;
     }
@@ -2659,7 +2663,7 @@ static int testDomainInterfaceStats(virDomainPtr domain,
     }
 
     if (gettimeofday(&tv, NULL) < 0) {
-        virReportSystemError(domain->conn, errno,
+        virReportSystemError(errno,
                              "%s", _("getting time of day"));
         goto error;
     }
@@ -2783,7 +2787,7 @@ static int testListNetworks(virConnectPtr conn, char **const names, int nnames) 
     return n;
 
 no_memory:
-    virReportOOMError(conn);
+    virReportOOMError();
     for (n = 0 ; n < nnames ; n++)
         VIR_FREE(names[n]);
     testDriverUnlock(privconn);
@@ -2826,7 +2830,7 @@ static int testListDefinedNetworks(virConnectPtr conn, char **const names, int n
     return n;
 
 no_memory:
-    virReportOOMError(conn);
+    virReportOOMError();
     for (n = 0 ; n < nnames ; n++)
         VIR_FREE(names[n]);
     testDriverUnlock(privconn);
@@ -2884,10 +2888,10 @@ static virNetworkPtr testNetworkCreate(virConnectPtr conn, const char *xml) {
     virNetworkPtr ret = NULL;
 
     testDriverLock(privconn);
-    if ((def = virNetworkDefParseString(conn, xml)) == NULL)
+    if ((def = virNetworkDefParseString(xml)) == NULL)
         goto cleanup;
 
-    if ((net = virNetworkAssignDef(conn, &privconn->networks, def)) == NULL)
+    if ((net = virNetworkAssignDef(&privconn->networks, def)) == NULL)
         goto cleanup;
     def = NULL;
     net->active = 1;
@@ -2909,10 +2913,10 @@ static virNetworkPtr testNetworkDefine(virConnectPtr conn, const char *xml) {
     virNetworkPtr ret = NULL;
 
     testDriverLock(privconn);
-    if ((def = virNetworkDefParseString(conn, xml)) == NULL)
+    if ((def = virNetworkDefParseString(xml)) == NULL)
         goto cleanup;
 
-    if ((net = virNetworkAssignDef(conn, &privconn->networks, def)) == NULL)
+    if ((net = virNetworkAssignDef(&privconn->networks, def)) == NULL)
         goto cleanup;
     def = NULL;
     net->persistent = 1;
@@ -3033,7 +3037,7 @@ static char *testNetworkDumpXML(virNetworkPtr network, int flags ATTRIBUTE_UNUSE
         goto cleanup;
     }
 
-    ret = virNetworkDefFormat(network->conn, privnet->def);
+    ret = virNetworkDefFormat(privnet->def);
 
 cleanup:
     if (privnet)
@@ -3064,7 +3068,7 @@ static char *testNetworkGetBridgeName(virNetworkPtr network) {
     }
 
     if (!(bridge = strdup(privnet->def->bridge))) {
-        virReportOOMError(network->conn);
+        virReportOOMError();
         goto cleanup;
     }
 
@@ -3186,7 +3190,7 @@ static int testListInterfaces(virConnectPtr conn, char **const names, int nnames
     return n;
 
 no_memory:
-    virReportOOMError(conn);
+    virReportOOMError();
     for (n = 0 ; n < nnames ; n++)
         VIR_FREE(names[n]);
     testDriverUnlock(privconn);
@@ -3232,7 +3236,7 @@ static int testListDefinedInterfaces(virConnectPtr conn, char **const names, int
     return n;
 
 no_memory:
-    virReportOOMError(conn);
+    virReportOOMError();
     for (n = 0 ; n < nnames ; n++)
         VIR_FREE(names[n]);
     testDriverUnlock(privconn);
@@ -3332,7 +3336,7 @@ static char *testInterfaceGetXMLDesc(virInterfacePtr iface,
         goto cleanup;
     }
 
-    ret = virInterfaceDefFormat(iface->conn, privinterface->def);
+    ret = virInterfaceDefFormat(privinterface->def);
 
 cleanup:
     if (privinterface)
@@ -3350,10 +3354,10 @@ static virInterfacePtr testInterfaceDefineXML(virConnectPtr conn, const char *xm
     virInterfacePtr ret = NULL;
 
     testDriverLock(privconn);
-    if ((def = virInterfaceDefParseString(conn, xmlStr)) == NULL)
+    if ((def = virInterfaceDefParseString(xmlStr)) == NULL)
         goto cleanup;
 
-    if ((iface = virInterfaceAssignDef(conn, &privconn->ifaces, def)) == NULL)
+    if ((iface = virInterfaceAssignDef(&privconn->ifaces, def)) == NULL)
         goto cleanup;
     def = NULL;
 
@@ -3460,8 +3464,7 @@ cleanup:
  */
 
 
-static int testStoragePoolObjSetDefaults(virConnectPtr conn,
-                                         virStoragePoolObjPtr pool) {
+static int testStoragePoolObjSetDefaults(virStoragePoolObjPtr pool) {
 
     pool->def->capacity = defaultPoolCap;
     pool->def->allocation = defaultPoolAlloc;
@@ -3469,7 +3472,7 @@ static int testStoragePoolObjSetDefaults(virConnectPtr conn,
 
     pool->configFile = strdup("\0");
     if (!pool->configFile) {
-        virReportOOMError(conn);
+        virReportOOMError();
         return -1;
     }
 
@@ -3582,7 +3585,7 @@ testStorageListPools(virConnectPtr conn,
     return n;
 
 no_memory:
-    virReportOOMError(conn);
+    virReportOOMError();
     for (n = 0 ; n < nnames ; n++)
         VIR_FREE(names[n]);
     testDriverUnlock(privconn);
@@ -3629,7 +3632,7 @@ testStorageListDefinedPools(virConnectPtr conn,
     return n;
 
 no_memory:
-    virReportOOMError(conn);
+    virReportOOMError();
     for (n = 0 ; n < nnames ; n++)
         VIR_FREE(names[n]);
     testDriverUnlock(privconn);
@@ -3731,7 +3734,7 @@ testStorageFindPoolSources(virConnectPtr conn,
     }
 
     if (srcSpec) {
-        source = virStoragePoolDefParseSourceString(conn, srcSpec, pool_type);
+        source = virStoragePoolDefParseSourceString(srcSpec, pool_type);
         if (!source)
             goto cleanup;
     }
@@ -3741,7 +3744,7 @@ testStorageFindPoolSources(virConnectPtr conn,
     case VIR_STORAGE_POOL_LOGICAL:
         ret = strdup(defaultPoolSourcesLogicalXML);
         if (!ret)
-            virReportOOMError(conn);
+            virReportOOMError();
         break;
 
     case VIR_STORAGE_POOL_NETFS:
@@ -3753,7 +3756,7 @@ testStorageFindPoolSources(virConnectPtr conn,
 
         if (virAsprintf(&ret, defaultPoolSourcesNetFSXML,
                         source->host.name) < 0)
-            virReportOOMError(conn);
+            virReportOOMError();
         break;
 
     default:
@@ -3763,6 +3766,7 @@ testStorageFindPoolSources(virConnectPtr conn,
 
 cleanup:
     virStoragePoolSourceFree(source);
+    VIR_FREE(source);
     return ret;
 }
 
@@ -3777,7 +3781,7 @@ testStoragePoolCreate(virConnectPtr conn,
     virStoragePoolPtr ret = NULL;
 
     testDriverLock(privconn);
-    if (!(def = virStoragePoolDefParseString(conn, xml)))
+    if (!(def = virStoragePoolDefParseString(xml)))
         goto cleanup;
 
     pool = virStoragePoolObjFindByUUID(&privconn->pools, def->uuid);
@@ -3789,11 +3793,11 @@ testStoragePoolCreate(virConnectPtr conn,
         goto cleanup;
     }
 
-    if (!(pool = virStoragePoolObjAssignDef(conn, &privconn->pools, def)))
+    if (!(pool = virStoragePoolObjAssignDef(&privconn->pools, def)))
         goto cleanup;
     def = NULL;
 
-    if (testStoragePoolObjSetDefaults(conn, pool) == -1) {
+    if (testStoragePoolObjSetDefaults(pool) == -1) {
         virStoragePoolObjRemove(&privconn->pools, pool);
         pool = NULL;
         goto cleanup;
@@ -3820,18 +3824,18 @@ testStoragePoolDefine(virConnectPtr conn,
     virStoragePoolPtr ret = NULL;
 
     testDriverLock(privconn);
-    if (!(def = virStoragePoolDefParseString(conn, xml)))
+    if (!(def = virStoragePoolDefParseString(xml)))
         goto cleanup;
 
     def->capacity = defaultPoolCap;
     def->allocation = defaultPoolAlloc;
     def->available = defaultPoolCap - defaultPoolAlloc;
 
-    if (!(pool = virStoragePoolObjAssignDef(conn, &privconn->pools, def)))
+    if (!(pool = virStoragePoolObjAssignDef(&privconn->pools, def)))
         goto cleanup;
     def = NULL;
 
-    if (testStoragePoolObjSetDefaults(conn, pool) == -1) {
+    if (testStoragePoolObjSetDefaults(pool) == -1) {
         virStoragePoolObjRemove(&privconn->pools, pool);
         pool = NULL;
         goto cleanup;
@@ -4059,7 +4063,7 @@ testStoragePoolDumpXML(virStoragePoolPtr pool,
         goto cleanup;
     }
 
-    ret = virStoragePoolDefFormat(pool->conn, privpool->def);
+    ret = virStoragePoolDefFormat(privpool->def);
 
 cleanup:
     if (privpool)
@@ -4190,7 +4194,7 @@ testStoragePoolListVolumes(virStoragePoolPtr pool,
 
     for (i = 0 ; i < privpool->volumes.count && n < maxnames ; i++) {
         if ((names[n++] = strdup(privpool->volumes.objs[i]->name)) == NULL) {
-            virReportOOMError(pool->conn);
+            virReportOOMError();
             goto cleanup;
         }
     }
@@ -4345,7 +4349,7 @@ testStorageVolumeCreateXML(virStoragePoolPtr pool,
         goto cleanup;
     }
 
-    privvol = virStorageVolDefParseString(pool->conn, privpool->def, xmldesc);
+    privvol = virStorageVolDefParseString(privpool->def, xmldesc);
     if (privvol == NULL)
         goto cleanup;
 
@@ -4366,20 +4370,20 @@ testStorageVolumeCreateXML(virStoragePoolPtr pool,
 
     if (VIR_REALLOC_N(privpool->volumes.objs,
                       privpool->volumes.count+1) < 0) {
-        virReportOOMError(pool->conn);
+        virReportOOMError();
         goto cleanup;
     }
 
     if (virAsprintf(&privvol->target.path, "%s/%s",
                     privpool->def->target.path,
                     privvol->name) == -1) {
-        virReportOOMError(pool->conn);
+        virReportOOMError();
         goto cleanup;
     }
 
     privvol->key = strdup(privvol->target.path);
     if (privvol->key == NULL) {
-        virReportOOMError(pool->conn);
+        virReportOOMError();
         goto cleanup;
     }
 
@@ -4426,7 +4430,7 @@ testStorageVolumeCreateXMLFrom(virStoragePoolPtr pool,
         goto cleanup;
     }
 
-    privvol = virStorageVolDefParseString(pool->conn, privpool->def, xmldesc);
+    privvol = virStorageVolDefParseString(privpool->def, xmldesc);
     if (privvol == NULL)
         goto cleanup;
 
@@ -4457,20 +4461,20 @@ testStorageVolumeCreateXMLFrom(virStoragePoolPtr pool,
 
     if (VIR_REALLOC_N(privpool->volumes.objs,
                       privpool->volumes.count+1) < 0) {
-        virReportOOMError(pool->conn);
+        virReportOOMError();
         goto cleanup;
     }
 
     if (virAsprintf(&privvol->target.path, "%s/%s",
                     privpool->def->target.path,
                     privvol->name) == -1) {
-        virReportOOMError(pool->conn);
+        virReportOOMError();
         goto cleanup;
     }
 
     privvol->key = strdup(privvol->target.path);
     if (privvol->key == NULL) {
-        virReportOOMError(pool->conn);
+        virReportOOMError();
         goto cleanup;
     }
 
@@ -4649,7 +4653,7 @@ testStorageVolumeGetXMLDesc(virStorageVolPtr vol,
         goto cleanup;
     }
 
-    ret = virStorageVolDefFormat(vol->conn, privpool->def, privvol);
+    ret = virStorageVolDefFormat(privpool->def, privvol);
 
 cleanup:
     if (privpool)
@@ -4691,7 +4695,7 @@ testStorageVolumeGetPath(virStorageVolPtr vol) {
 
     ret = strdup(privvol->target.path);
     if (ret == NULL)
-        virReportOOMError(vol->conn);
+        virReportOOMError();
 
 cleanup:
     if (privpool)
@@ -4782,7 +4786,7 @@ testNodeDeviceLookupByName(virConnectPtr conn, const char *name)
     testDriverUnlock(driver);
 
     if (!obj) {
-        virNodeDeviceReportError(conn, VIR_ERR_NO_NODE_DEVICE, NULL);
+        virNodeDeviceReportError(VIR_ERR_NO_NODE_DEVICE, NULL);
         goto cleanup;
     }
 
@@ -4807,13 +4811,13 @@ testNodeDeviceDumpXML(virNodeDevicePtr dev,
     testDriverUnlock(driver);
 
     if (!obj) {
-        virNodeDeviceReportError(dev->conn, VIR_ERR_NO_NODE_DEVICE,
-                                _("no node device with matching name '%s'"),
+        virNodeDeviceReportError(VIR_ERR_NO_NODE_DEVICE,
+                                 _("no node device with matching name '%s'"),
                                  dev->name);
         goto cleanup;
     }
 
-    ret = virNodeDeviceDefFormat(dev->conn, obj->def);
+    ret = virNodeDeviceDefFormat(obj->def);
 
 cleanup:
     if (obj)
@@ -4833,7 +4837,7 @@ testNodeDeviceGetParent(virNodeDevicePtr dev)
     testDriverUnlock(driver);
 
     if (!obj) {
-        virNodeDeviceReportError(dev->conn, VIR_ERR_NO_NODE_DEVICE,
+        virNodeDeviceReportError(VIR_ERR_NO_NODE_DEVICE,
                                 _("no node device with matching name '%s'"),
                                  dev->name);
         goto cleanup;
@@ -4842,9 +4846,9 @@ testNodeDeviceGetParent(virNodeDevicePtr dev)
     if (obj->def->parent) {
         ret = strdup(obj->def->parent);
         if (!ret)
-            virReportOOMError(dev->conn);
+            virReportOOMError();
     } else {
-        virNodeDeviceReportError(dev->conn, VIR_ERR_INTERNAL_ERROR,
+        virNodeDeviceReportError(VIR_ERR_INTERNAL_ERROR,
                                  "%s", _("no parent for this device"));
     }
 
@@ -4869,8 +4873,8 @@ testNodeDeviceNumOfCaps(virNodeDevicePtr dev)
     testDriverUnlock(driver);
 
     if (!obj) {
-        virNodeDeviceReportError(dev->conn, VIR_ERR_NO_NODE_DEVICE,
-                                _("no node device with matching name '%s'"),
+        virNodeDeviceReportError(VIR_ERR_NO_NODE_DEVICE,
+                                 _("no node device with matching name '%s'"),
                                  dev->name);
         goto cleanup;
     }
@@ -4900,7 +4904,7 @@ testNodeDeviceListCaps(virNodeDevicePtr dev, char **const names, int maxnames)
     testDriverUnlock(driver);
 
     if (!obj) {
-        virNodeDeviceReportError(dev->conn, VIR_ERR_NO_NODE_DEVICE,
+        virNodeDeviceReportError(VIR_ERR_NO_NODE_DEVICE,
                                 _("no node device with matching name '%s'"),
                                  dev->name);
         goto cleanup;
@@ -4939,18 +4943,17 @@ testNodeDeviceCreateXML(virConnectPtr conn,
 
     testDriverLock(driver);
 
-    def = virNodeDeviceDefParseString(conn, xmlDesc, CREATE_DEVICE);
+    def = virNodeDeviceDefParseString(xmlDesc, CREATE_DEVICE);
     if (def == NULL) {
         goto cleanup;
     }
 
     /* We run these next two simply for validation */
-    if (virNodeDeviceGetWWNs(conn, def, &wwnn, &wwpn) == -1) {
+    if (virNodeDeviceGetWWNs(def, &wwnn, &wwpn) == -1) {
         goto cleanup;
     }
 
-    if (virNodeDeviceGetParentHost(conn,
-                                   &driver->devs,
+    if (virNodeDeviceGetParentHost(&driver->devs,
                                    def->name,
                                    def->parent,
                                    &parent_host) == -1) {
@@ -4961,7 +4964,7 @@ testNodeDeviceCreateXML(virConnectPtr conn,
      * we don't have. Use WWPN instead. */
     VIR_FREE(def->name);
     if (!(def->name = strdup(wwpn))) {
-        virReportOOMError(conn);
+        virReportOOMError();
         goto cleanup;
     }
 
@@ -4977,7 +4980,7 @@ testNodeDeviceCreateXML(virConnectPtr conn,
     }
 
 
-    if (!(obj = virNodeDeviceAssignDef(conn, &driver->devs, def))) {
+    if (!(obj = virNodeDeviceAssignDef(&driver->devs, def))) {
         goto cleanup;
     }
     virNodeDeviceObjUnlock(obj);
@@ -5007,17 +5010,17 @@ testNodeDeviceDestroy(virNodeDevicePtr dev)
     testDriverUnlock(driver);
 
     if (!obj) {
-        virNodeDeviceReportError(dev->conn, VIR_ERR_NO_NODE_DEVICE, NULL);
+        virNodeDeviceReportError(VIR_ERR_NO_NODE_DEVICE, NULL);
         goto out;
     }
 
-    if (virNodeDeviceGetWWNs(dev->conn, obj->def, &wwnn, &wwpn) == -1) {
+    if (virNodeDeviceGetWWNs(obj->def, &wwnn, &wwpn) == -1) {
         goto out;
     }
 
     parent_name = strdup(obj->def->parent);
     if (parent_name == NULL) {
-        virReportOOMError(dev->conn);
+        virReportOOMError();
         goto out;
     }
 
@@ -5028,8 +5031,7 @@ testNodeDeviceDestroy(virNodeDevicePtr dev)
     virNodeDeviceObjUnlock(obj);
 
     /* We do this just for basic validation */
-    if (virNodeDeviceGetParentHost(dev->conn,
-                                   &driver->devs,
+    if (virNodeDeviceGetParentHost(&driver->devs,
                                    dev->name,
                                    parent_name,
                                    &parent_host) == -1) {
@@ -5209,7 +5211,9 @@ static virDriver testDriver = {
     testDomainDefineXML, /* domainDefineXML */
     testDomainUndefine, /* domainUndefine */
     NULL, /* domainAttachDevice */
+    NULL, /* domainAttachDeviceFlags */
     NULL, /* domainDetachDevice */
+    NULL, /* domainDetachDeviceFlags */
     testDomainGetAutostart, /* domainGetAutostart */
     testDomainSetAutostart, /* domainSetAutostart */
     testDomainGetSchedulerType, /* domainGetSchedulerType */
@@ -5238,6 +5242,9 @@ static virDriver testDriver = {
     testDomainIsActive, /* domainIsActive */
     testDomainIsPersistent, /* domainIsPersistent */
     NULL, /* cpuCompare */
+    NULL, /* cpuBaseline */
+    NULL, /* domainGetJobInfo */
+    NULL, /* domainAbortJob */
 };
 
 static virNetworkDriver testNetworkDriver = {

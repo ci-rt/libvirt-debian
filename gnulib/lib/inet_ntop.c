@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* inet_ntop.c -- convert IPv4 and IPv6 addresses from binary to text form
 
    Copyright (C) 2005-2006, 2008-2010 Free Software Foundation, Inc.

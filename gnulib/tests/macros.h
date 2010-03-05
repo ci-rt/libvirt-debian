@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Common macros used by gnulib tests.
    Copyright (C) 2006-2010 Free Software Foundation, Inc.
 

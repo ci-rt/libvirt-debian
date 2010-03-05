@@ -78,6 +78,7 @@ static int lxcSetContainerResources(virDomainDefPtr def)
         {'c', LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_FULL},
         {'c', LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_RANDOM},
         {'c', LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_URANDOM},
+        {'c', LXC_DEV_MAJ_TTY, LXC_DEV_MIN_TTY},
         {'c', LXC_DEV_MAJ_TTY, LXC_DEV_MIN_CONSOLE},
         {'c', LXC_DEV_MAJ_TTY, LXC_DEV_MIN_PTMX},
         {0,   0, 0}};
@@ -88,14 +89,14 @@ static int lxcSetContainerResources(virDomainDefPtr def)
         if (rc == -ENXIO || rc == -ENOENT)
             return 0;
 
-        virReportSystemError(NULL, -rc, "%s",
+        virReportSystemError(-rc, "%s",
                              _("Unable to get cgroup for driver"));
         return rc;
     }
 
     rc = virCgroupForDomain(driver, def->name, &cgroup, 1);
     if (rc != 0) {
-        virReportSystemError(NULL, -rc,
+        virReportSystemError(-rc,
                              _("Unable to create cgroup for domain %s"),
                              def->name);
         goto cleanup;
@@ -103,7 +104,7 @@ static int lxcSetContainerResources(virDomainDefPtr def)
 
     rc = virCgroupSetMemory(cgroup, def->maxmem);
     if (rc != 0) {
-        virReportSystemError(NULL, -rc,
+        virReportSystemError(-rc,
                              _("Unable to set memory limit for domain %s"),
                              def->name);
         goto cleanup;
@@ -111,7 +112,7 @@ static int lxcSetContainerResources(virDomainDefPtr def)
 
     rc = virCgroupDenyAllDevices(cgroup);
     if (rc != 0) {
-        virReportSystemError(NULL, -rc,
+        virReportSystemError(-rc,
                              _("Unable to deny devices for domain %s"),
                              def->name);
         goto cleanup;
@@ -124,7 +125,7 @@ static int lxcSetContainerResources(virDomainDefPtr def)
                                   dev->major,
                                   dev->minor);
         if (rc != 0) {
-            virReportSystemError(NULL, -rc,
+            virReportSystemError(-rc,
                                  _("Unable to allow device %c:%d:%d for domain %s"),
                                  dev->type, dev->major, dev->minor, def->name);
             goto cleanup;
@@ -133,7 +134,7 @@ static int lxcSetContainerResources(virDomainDefPtr def)
 
     rc = virCgroupAllowDeviceMajor(cgroup, 'c', LXC_DEV_MAJ_PTY);
     if (rc != 0) {
-        virReportSystemError(NULL, -rc,
+        virReportSystemError(-rc,
                              _("Unable to allow PYT devices for domain %s"),
                              def->name);
         goto cleanup;
@@ -141,7 +142,7 @@ static int lxcSetContainerResources(virDomainDefPtr def)
 
     rc = virCgroupAddTask(cgroup, getpid());
     if (rc != 0) {
-        virReportSystemError(NULL, -rc,
+        virReportSystemError(-rc,
                              _("Unable to add task %d to cgroup for domain %s"),
                              getpid(), def->name);
     }
@@ -159,7 +160,7 @@ static char*lxcMonitorPath(virDomainDefPtr def)
 
     if (virAsprintf(&sockpath, "%s/%s.sock",
                     LXC_STATE_DIR, def->name) < 0)
-        virReportOOMError(NULL);
+        virReportOOMError();
     return sockpath;
 }
 
@@ -169,7 +170,7 @@ static int lxcMonitorServer(const char *sockpath)
     struct sockaddr_un addr;
 
     if ((fd = socket(PF_UNIX, SOCK_STREAM, 0)) < 0) {
-        virReportSystemError(NULL, errno,
+        virReportSystemError(errno,
                              _("failed to create server socket '%s'"),
                              sockpath);
         goto error;
@@ -179,19 +180,19 @@ static int lxcMonitorServer(const char *sockpath)
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
     if (virStrcpyStatic(addr.sun_path, sockpath) == NULL) {
-        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+        lxcError(VIR_ERR_INTERNAL_ERROR,
                  _("Socket path %s too long for destination"), sockpath);
         goto error;
     }
 
     if (bind(fd, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
-        virReportSystemError(NULL, errno,
+        virReportSystemError(errno,
                              _("failed to bind server socket '%s'"),
                              sockpath);
         goto error;
     }
     if (listen(fd, 30 /* backlog */ ) < 0) {
-        virReportSystemError(NULL, errno,
+        virReportSystemError(errno,
                              _("failed to listen server socket %s"),
                              sockpath);
         goto error;
@@ -225,14 +226,14 @@ static int lxcFdForward(int readFd, int writeFd)
             goto cleanup;
         }
 
-        virReportSystemError(NULL, errno,
+        virReportSystemError(errno,
                              _("read of fd %d failed"),
                              readFd);
         goto cleanup;
     }
 
     if (1 != (safewrite(writeFd, buf, 1))) {
-        virReportSystemError(NULL, errno,
+        virReportSystemError(errno,
                              _("write to fd %d failed"),
                              writeFd);
         goto cleanup;
@@ -253,7 +254,7 @@ static int lxcControllerClearCapabilities(void)
     capng_clear(CAPNG_SELECT_BOTH);
 
     if ((ret = capng_apply(CAPNG_SELECT_BOTH)) < 0) {
-        lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+        lxcError(VIR_ERR_INTERNAL_ERROR,
                  _("failed to apply capabilities: %d"), ret);
         return -1;
     }
@@ -301,11 +302,11 @@ static int lxcControllerMain(int monitor,
     fdArray[0].active = 0;
     fdArray[1].fd = contPty;
     fdArray[1].active = 0;
-
+    VIR_ERROR("monitor=%d client=%d appPty=%d contPty=%d", monitor,client, appPty, contPty);
     /* create the epoll fild descriptor */
     epollFd = epoll_create(2);
     if (0 > epollFd) {
-        virReportSystemError(NULL, errno, "%s",
+        virReportSystemError(errno, "%s",
                              _("epoll_create(2) failed"));
         goto cleanup;
     }
@@ -315,13 +316,13 @@ static int lxcControllerMain(int monitor,
     epollEvent.events = EPOLLIN|EPOLLET;    /* edge triggered */
     epollEvent.data.fd = appPty;
     if (0 > epoll_ctl(epollFd, EPOLL_CTL_ADD, appPty, &epollEvent)) {
-        virReportSystemError(NULL, errno, "%s",
+        virReportSystemError(errno, "%s",
                              _("epoll_ctl(appPty) failed"));
         goto cleanup;
     }
     epollEvent.data.fd = contPty;
     if (0 > epoll_ctl(epollFd, EPOLL_CTL_ADD, contPty, &epollEvent)) {
-        virReportSystemError(NULL, errno, "%s",
+        virReportSystemError(errno, "%s",
                              _("epoll_ctl(contPty) failed"));
         goto cleanup;
     }
@@ -329,7 +330,7 @@ static int lxcControllerMain(int monitor,
     epollEvent.events = EPOLLIN;
     epollEvent.data.fd = monitor;
     if (0 > epoll_ctl(epollFd, EPOLL_CTL_ADD, monitor, &epollEvent)) {
-        virReportSystemError(NULL, errno, "%s",
+        virReportSystemError(errno, "%s",
                              _("epoll_ctl(monitor) failed"));
         goto cleanup;
     }
@@ -337,7 +338,7 @@ static int lxcControllerMain(int monitor,
     epollEvent.events = EPOLLHUP;
     epollEvent.data.fd = client;
     if (0 > epoll_ctl(epollFd, EPOLL_CTL_ADD, client, &epollEvent)) {
-        virReportSystemError(NULL, errno, "%s",
+        virReportSystemError(errno, "%s",
                              _("epoll_ctl(client) failed"));
         goto cleanup;
     }
@@ -357,13 +358,13 @@ static int lxcControllerMain(int monitor,
                 epollEvent.events = EPOLLHUP;
                 epollEvent.data.fd = client;
                 if (0 > epoll_ctl(epollFd, EPOLL_CTL_ADD, client, &epollEvent)) {
-                    virReportSystemError(NULL, errno, "%s",
+                    virReportSystemError(errno, "%s",
                                          _("epoll_ctl(client) failed"));
                     goto cleanup;
                 }
             } else if (client != -1 && epollEvent.data.fd == client) {
                 if (0 > epoll_ctl(epollFd, EPOLL_CTL_DEL, client, &epollEvent)) {
-                    virReportSystemError(NULL, errno, "%s",
+                    virReportSystemError(errno, "%s",
                                          _("epoll_ctl(client) failed"));
                     goto cleanup;
                 }
@@ -380,7 +381,7 @@ static int lxcControllerMain(int monitor,
                     DEBUG("EPOLLHUP from fd %d", epollEvent.data.fd);
                     continue;
                 } else {
-                    lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+                    lxcError(VIR_ERR_INTERNAL_ERROR,
                              _("error event %d"), epollEvent.events);
                     goto cleanup;
                 }
@@ -401,7 +402,7 @@ static int lxcControllerMain(int monitor,
             }
 
             /* error */
-            virReportSystemError(NULL, errno, "%s",
+            virReportSystemError(errno, "%s",
                                  _("epoll_wait() failed"));
             goto cleanup;
 
@@ -451,7 +452,7 @@ static int lxcControllerMoveInterfaces(unsigned int nveths,
     unsigned int i;
     for (i = 0 ; i < nveths ; i++)
         if (moveInterfaceToNetNs(veths[i], container) < 0) {
-            lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+            lxcError(VIR_ERR_INTERNAL_ERROR,
                      _("Failed to move interface %s to ns %d"),
                      veths[i], container);
             return -1;
@@ -476,7 +477,7 @@ static int lxcControllerCleanupInterfaces(unsigned int nveths,
     unsigned int i;
     for (i = 0 ; i < nveths ; i++)
         if (vethDelete(veths[i]) < 0)
-            lxcError(NULL, NULL, VIR_ERR_INTERNAL_ERROR,
+            lxcError(VIR_ERR_INTERNAL_ERROR,
                      _("Failed to delete veth: %s"), veths[i]);
             /* will continue to try to cleanup any other interfaces */
 
@@ -509,12 +510,15 @@ lxcControllerRun(virDomainDefPtr def,
     char *devptmx = NULL;
 
     if (socketpair(PF_UNIX, SOCK_STREAM, 0, control) < 0) {
-        virReportSystemError(NULL, errno, "%s",
+        virReportSystemError(errno, "%s",
                              _("sockpair failed"));
         goto cleanup;
     }
 
     root = virDomainGetRootFilesystem(def);
+
+    if (lxcSetContainerResources(def) < 0)
+        goto cleanup;
 
     /*
      * If doing a chroot style setup, we need to prepare
@@ -539,25 +543,25 @@ lxcControllerRun(virDomainDefPtr def,
     if (root) {
         VIR_DEBUG0("Setting up private /dev/pts");
         if (unshare(CLONE_NEWNS) < 0) {
-            virReportSystemError(NULL, errno, "%s",
+            virReportSystemError(errno, "%s",
                                  _("Cannot unshare mount namespace"));
             goto cleanup;
         }
 
         if (mount("", "/", NULL, MS_SLAVE|MS_REC, NULL) < 0) {
-            virReportSystemError(NULL, errno, "%s",
+            virReportSystemError(errno, "%s",
                                  _("Failed to switch root mount into slave mode"));
             goto cleanup;
         }
 
         if (virAsprintf(&devpts, "%s/dev/pts", root->src) < 0 ||
             virAsprintf(&devptmx, "%s/dev/pts/ptmx", root->src) < 0) {
-            virReportOOMError(NULL);
+            virReportOOMError();
             goto cleanup;
         }
 
         if (virFileMakePath(devpts) != 0) {
-            virReportSystemError(NULL, errno,
+            virReportSystemError(errno,
                                  _("Failed to make path %s"),
                                  devpts);
             goto cleanup;
@@ -565,7 +569,7 @@ lxcControllerRun(virDomainDefPtr def,
 
         VIR_DEBUG("Mouting 'devpts' on %s", devpts);
         if (mount("devpts", devpts, "devpts", 0, "newinstance,ptmxmode=0666") < 0) {
-            virReportSystemError(NULL, errno,
+            virReportSystemError(errno,
                                  _("Failed to mount devpts on %s"),
                                  devpts);
             goto cleanup;
@@ -583,7 +587,7 @@ lxcControllerRun(virDomainDefPtr def,
                              &containerPty,
                              &containerPtyPath,
                              0) < 0) {
-            virReportSystemError(NULL, errno, "%s",
+            virReportSystemError(errno, "%s",
                                  _("Failed to allocate tty"));
             goto cleanup;
         }
@@ -592,15 +596,12 @@ lxcControllerRun(virDomainDefPtr def,
         if (virFileOpenTty(&containerPty,
                            &containerPtyPath,
                            0) < 0) {
-            virReportSystemError(NULL, errno, "%s",
+            virReportSystemError(errno, "%s",
                                  _("Failed to allocate tty"));
             goto cleanup;
         }
     }
 
-
-    if (lxcSetContainerResources(def) < 0)
-        goto cleanup;
 
     if ((container = lxcContainerStart(def,
                                        nveths,
@@ -683,18 +684,18 @@ int main(int argc, char *argv[])
 
         case 'n':
             if ((name = strdup(optarg)) == NULL) {
-                virReportOOMError(NULL);
+                virReportOOMError();
                 goto cleanup;
             }
             break;
 
         case 'v':
             if (VIR_REALLOC_N(veths, nveths+1) < 0) {
-                virReportOOMError(NULL);
+                virReportOOMError();
                 goto cleanup;
             }
             if ((veths[nveths++] = strdup(optarg)) == NULL) {
-                virReportOOMError(NULL);
+                virReportOOMError();
                 goto cleanup;
             }
             break;
@@ -742,12 +743,11 @@ int main(int argc, char *argv[])
     if ((caps = lxcCapsInit()) == NULL)
         goto cleanup;
 
-    if ((configFile = virDomainConfigFile(NULL,
-                                          LXC_STATE_DIR,
+    if ((configFile = virDomainConfigFile(LXC_STATE_DIR,
                                           name)) == NULL)
         goto cleanup;
 
-    if ((def = virDomainDefParseFile(NULL, caps, configFile,
+    if ((def = virDomainDefParseFile(caps, configFile,
                                      VIR_DOMAIN_XML_INACTIVE)) == NULL)
         goto cleanup;
 
@@ -769,7 +769,7 @@ int main(int argc, char *argv[])
 
         if (pid > 0) {
             if ((rc = virFileWritePid(LXC_STATE_DIR, name, pid)) != 0) {
-                virReportSystemError(NULL, rc,
+                virReportSystemError(rc,
                                      _("Unable to write pid file '%s/%s.pid'"),
                                      LXC_STATE_DIR, name);
                 _exit(1);
@@ -783,13 +783,13 @@ int main(int argc, char *argv[])
 
         /* Don't hold onto any cwd we inherit from libvirtd either */
         if (chdir("/") < 0) {
-            virReportSystemError(NULL, errno, "%s",
+            virReportSystemError(errno, "%s",
                                  _("Unable to change to root dir"));
             goto cleanup;
         }
 
         if (setsid() < 0) {
-            virReportSystemError(NULL, errno, "%s",
+            virReportSystemError(errno, "%s",
                                  _("Unable to become session leader"));
             goto cleanup;
         }
@@ -800,7 +800,7 @@ int main(int argc, char *argv[])
 
     /* Accept initial client which is the libvirtd daemon */
     if ((client = accept(monitor, NULL, 0)) < 0) {
-        virReportSystemError(NULL, errno, "%s",
+        virReportSystemError(errno, "%s",
                              _("Failed to accept a connection from driver"));
         goto cleanup;
     }

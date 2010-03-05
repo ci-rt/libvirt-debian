@@ -12,10 +12,10 @@
 
 struct testInfo {
     const char *name;
-    unsigned flags;
-    unsigned version;
-    unsigned is_kvm;
-    unsigned kvm_version;
+    unsigned long long flags;
+    unsigned int version;
+    unsigned int is_kvm;
+    unsigned int kvm_version;
 };
 
 static char *progname;
@@ -41,18 +41,20 @@ static int testHelpStrParsing(const void *data)
     char path[PATH_MAX];
     char helpStr[MAX_HELP_OUTPUT_SIZE];
     char *help = &(helpStr[0]);
-    unsigned flags, version, is_kvm, kvm_version;
+    unsigned int version, is_kvm, kvm_version;
+    unsigned long long flags;
 
     snprintf(path, PATH_MAX, "%s/qemuhelpdata/%s", abs_srcdir, info->name);
 
     if (virtTestLoadFile(path, &help, MAX_HELP_OUTPUT_SIZE) < 0)
         return -1;
 
-    if (qemudParseHelpStr(help, &flags, &version, &is_kvm, &kvm_version) == -1)
+    if (qemudParseHelpStr("QEMU", help, &flags,
+                          &version, &is_kvm, &kvm_version) == -1)
         return -1;
 
     if (flags != info->flags) {
-        fprintf(stderr, "Computed flags do not match: got 0x%x, expected 0x%x\n",
+        fprintf(stderr, "Computed flags do not match: got 0x%llx, expected 0x%llx\n",
                 flags, info->flags);
 
         if (getenv("VIR_TEST_DEBUG"))
@@ -224,7 +226,8 @@ mymain(int argc, char **argv)
             QEMUD_CMD_FLAG_CHARDEV |
             QEMUD_CMD_FLAG_BALLOON |
             QEMUD_CMD_FLAG_DEVICE |
-            QEMUD_CMD_FLAG_SMP_TOPOLOGY,
+            QEMUD_CMD_FLAG_SMP_TOPOLOGY |
+            QEMUD_CMD_FLAG_RTC,
             12001, 0,  0);
 
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;

@@ -1,7 +1,7 @@
 /*
  * cpu.h: internal functions for CPU manipulation
  *
- * Copyright (C) 2009 Red Hat, Inc.
+ * Copyright (C) 2009--2010 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -30,9 +30,9 @@
 #include "cpu_x86_data.h"
 
 
-#define virCPUReportError(conn, code, fmt...)                           \
-        virReportErrorHelper(conn, VIR_FROM_CPU, code, __FILE__,        \
-                             __FUNCTION__, __LINE__, fmt)
+#define virCPUReportError(code, fmt...)                           \
+    virReportErrorHelper(NULL, VIR_FROM_CPU, code, __FILE__,      \
+                         __FUNCTION__, __LINE__, fmt)
 
 
 union cpuData {
@@ -48,8 +48,8 @@ typedef virCPUCompareResult
 typedef int
 (*cpuArchDecode)    (virCPUDefPtr cpu,
                      const union cpuData *data,
-                     unsigned int nmodels,
-                     const char **models);
+                     const char **models,
+                     unsigned int nmodels);
 
 typedef int
 (*cpuArchEncode)    (const virCPUDefPtr cpu,
@@ -70,6 +70,12 @@ typedef virCPUCompareResult
                      virCPUDefPtr guest,
                      union cpuData **data);
 
+typedef virCPUDefPtr
+(*cpuArchBaseline)  (virCPUDefPtr *cpus,
+                     unsigned int ncpus,
+                     const char **models,
+                     unsigned int nmodels);
+
 
 struct cpuArchDriver {
     const char *name;
@@ -81,29 +87,26 @@ struct cpuArchDriver {
     cpuArchDataFree     free;
     cpuArchNodeData     nodeData;
     cpuArchGuestData    guestData;
+    cpuArchBaseline     baseline;
 };
 
 
 extern virCPUCompareResult
-cpuCompareXML(virConnectPtr conn,
-              virCPUDefPtr host,
+cpuCompareXML(virCPUDefPtr host,
               const char *xml);
 
 extern virCPUCompareResult
-cpuCompare  (virConnectPtr conn,
-             virCPUDefPtr host,
+cpuCompare  (virCPUDefPtr host,
              virCPUDefPtr cpu);
 
 extern int
-cpuDecode   (virConnectPtr conn,
-             virCPUDefPtr cpu,
+cpuDecode   (virCPUDefPtr cpu,
              const union cpuData *data,
-             unsigned int nmodels,
-             const char **models);
+             const char **models,
+             unsigned int nmodels);
 
 extern int
-cpuEncode   (virConnectPtr conn,
-             const char *arch,
+cpuEncode   (const char *arch,
              const virCPUDefPtr cpu,
              union cpuData **forced,
              union cpuData **required,
@@ -112,18 +115,27 @@ cpuEncode   (virConnectPtr conn,
              union cpuData **forbidden);
 
 extern void
-cpuDataFree (virConnectPtr conn,
-             const char *arch,
+cpuDataFree (const char *arch,
              union cpuData *data);
 
 extern union cpuData *
-cpuNodeData (virConnectPtr conn,
-             const char *arch);
+cpuNodeData (const char *arch);
 
 extern virCPUCompareResult
-cpuGuestData(virConnectPtr conn,
-             virCPUDefPtr host,
+cpuGuestData(virCPUDefPtr host,
              virCPUDefPtr guest,
              union cpuData **data);
+
+extern char *
+cpuBaselineXML(const char **xmlCPUs,
+               unsigned int ncpus,
+               const char **models,
+               unsigned int nmodels);
+
+extern virCPUDefPtr
+cpuBaseline (virCPUDefPtr *cpus,
+             unsigned int ncpus,
+             const char **models,
+             unsigned int nmodels);
 
 #endif /* __VIR_CPU_H__ */

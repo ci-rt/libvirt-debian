@@ -793,8 +793,8 @@ struct xenUnifiedDriver xenHypervisorDriver = {
     NULL, /* domainCreate */
     NULL, /* domainDefineXML */
     NULL, /* domainUndefine */
-    NULL, /* domainAttachDevice */
-    NULL, /* domainDetachDevice */
+    NULL, /* domainAttachDeviceFlags */
+    NULL, /* domainDetachDeviceFlags */
     NULL, /* domainGetAutostart */
     NULL, /* domainSetAutostart */
     xenHypervisorGetSchedulerType, /* domainGetSchedulerType */
@@ -1173,14 +1173,14 @@ xenHypervisorGetSchedulerType(virDomainPtr domain, int *nparams)
             case XEN_SCHEDULER_SEDF:
                 schedulertype = strdup("sedf");
                 if (schedulertype == NULL)
-                    virReportOOMError(domain->conn);
+                    virReportOOMError();
                 if (nparams)
                     *nparams = 6;
                 break;
             case XEN_SCHEDULER_CREDIT:
                 schedulertype = strdup("credit");
                 if (schedulertype == NULL)
-                    virReportOOMError(domain->conn);
+                    virReportOOMError();
                 if (nparams)
                     *nparams = 2;
                 break;
@@ -1477,7 +1477,7 @@ xenHypervisorDomainInterfaceStats (virDomainPtr dom,
         return -1;
     }
 
-    return linuxDomainInterfaceStats (dom->conn, path, stats);
+    return linuxDomainInterfaceStats(path, stats);
 #else
     virXenErrorFunc (dom->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__,
                      "/proc/net/dev: Interface not found", 0);
@@ -1727,7 +1727,7 @@ virXen_setvcpumap(int handle, int id, unsigned int vcpu,
          * for Xen, and also nr_cpus must be 'sizeof(uint64_t) * 8'       */
         if (maplen < 8) {
             if (VIR_ALLOC_N(new, sizeof(uint64_t)) < 0) {
-                virReportOOMError(NULL);
+                virReportOOMError();
                 return (-1);
             }
             memcpy(new, cpumap, maplen);
@@ -2052,7 +2052,7 @@ xenHypervisorInit(void)
     hypervisor_version = 2;
 
     if (VIR_ALLOC(ipt) < 0) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         return(-1);
     }
     /* Currently consider RHEL5.0 Fedora7, xen-3.1, and xen-unstable */
@@ -2368,7 +2368,7 @@ get_cpu_flags(virConnectPtr conn, const char **hvm, int *pae, int *longmode)
 
     if ((fd = open("/dev/cpu/self/cpuid", O_RDONLY)) == -1 ||
         pread(fd, &regs, sizeof(regs), 0) != sizeof(regs)) {
-        virReportSystemError(conn, errno, "%s", _("could not read CPU flags"));
+        virReportSystemError(errno, "%s", _("could not read CPU flags"));
         goto out;
     }
 
@@ -2460,7 +2460,7 @@ xenHypervisorMakeCapabilitiesSunOS(virConnectPtr conn)
                                                utsname.machine,
                                                pae, hvm,
                                                guest_arches, i)) == NULL)
-        virReportOOMError(NULL);
+        virReportOOMError();
 
     return caps;
 }
@@ -2623,7 +2623,7 @@ xenHypervisorMakeCapabilitiesInternal(virConnectPtr conn,
     return caps;
 
  no_memory:
-    virReportOOMError(NULL);
+    virReportOOMError();
     virCapabilitiesFree(caps);
     return NULL;
 }
@@ -2649,7 +2649,7 @@ xenHypervisorMakeCapabilities(virConnectPtr conn)
     cpuinfo = fopen ("/proc/cpuinfo", "r");
     if (cpuinfo == NULL) {
         if (errno != ENOENT) {
-            virReportSystemError(conn, errno,
+            virReportSystemError(errno,
                                  _("cannot read file %s"),
                                  "/proc/cpuinfo");
             return NULL;
@@ -2660,7 +2660,7 @@ xenHypervisorMakeCapabilities(virConnectPtr conn)
     if (capabilities == NULL) {
         if (errno != ENOENT) {
             fclose(cpuinfo);
-            virReportSystemError(conn, errno,
+            virReportSystemError(errno,
                                  _("cannot read file %s"),
                                  "/sys/hypervisor/properties/capabilities");
             return NULL;
@@ -2696,7 +2696,7 @@ xenHypervisorGetCapabilities (virConnectPtr conn)
     char *xml;
 
     if (!(xml = virCapabilitiesFormatXML(priv->caps))) {
-        virReportOOMError(conn);
+        virReportOOMError();
         return NULL;
     }
 
@@ -2729,7 +2729,7 @@ xenHypervisorNumOfDomains(virConnectPtr conn)
 
  retry:
     if (!(XEN_GETDOMAININFOLIST_ALLOC(dominfos, maxids))) {
-        virReportOOMError(conn);
+        virReportOOMError();
         return(-1);
     }
 
@@ -2790,7 +2790,7 @@ xenHypervisorListDomains(virConnectPtr conn, int *ids, int maxids)
         return(0);
 
     if (!(XEN_GETDOMAININFOLIST_ALLOC(dominfos, maxids))) {
-        virReportOOMError(conn);
+        virReportOOMError();
         return(-1);
     }
 
@@ -2862,7 +2862,7 @@ xenHypervisorDomainGetOSType (virDomainPtr dom)
         ostype = strdup("linux");
 
     if (ostype == NULL)
-        virReportOOMError(dom->conn);
+        virReportOOMError();
 
     return ostype;
 }
@@ -2940,7 +2940,7 @@ xenHypervisorLookupDomainByUUID(virConnectPtr conn,
 
  retry:
     if (!(XEN_GETDOMAININFOLIST_ALLOC(dominfos, maxids))) {
-        virReportOOMError(conn);
+        virReportOOMError();
         return(NULL);
     }
 

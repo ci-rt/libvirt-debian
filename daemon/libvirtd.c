@@ -474,7 +474,10 @@ static int daemonForkIntoBackground(void) {
                 goto again;
 
             if (ret == 1 && status != 0) {
-                fprintf(stderr, "error: %s\n", virDaemonErrTypeToString(status));
+                fprintf(stderr,
+                        "error: %s. Check /var/log/messages or run without "
+                        "--daemon for more info.\n",
+                        virDaemonErrTypeToString(status));
             }
             _exit(ret == 1 && status == 0 ? 0 : 1);
         }
@@ -557,8 +560,10 @@ static int qemudListenUnix(struct qemud_server *server,
 
     oldgrp = getgid();
     oldmask = umask(readonly ? ~unix_sock_ro_mask : ~unix_sock_rw_mask);
-    if (server->privileged)
-        setgid(unix_sock_gid);
+    if (server->privileged && setgid(unix_sock_gid)) {
+        VIR_ERROR(_("Failed to set group ID to %d"), unix_sock_gid);
+        goto cleanup;
+    }
 
     if (bind(sock->fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
         VIR_ERROR(_("Failed to bind socket to '%s': %s"),
@@ -566,8 +571,10 @@ static int qemudListenUnix(struct qemud_server *server,
         goto cleanup;
     }
     umask(oldmask);
-    if (server->privileged)
-        setgid(oldgrp);
+    if (server->privileged && setgid(oldgrp)) {
+        VIR_ERROR(_("Failed to restore group ID to %d"), oldgrp);
+        goto cleanup;
+    }
 
     if (listen(sock->fd, 30) < 0) {
         VIR_ERROR(_("Failed to listen for connections on '%s': %s"),
@@ -747,7 +754,7 @@ static int qemudInitPaths(struct qemud_server *server,
         if (server->privileged) {
             dir_prefix = strdup (LOCAL_STATE_DIR);
             if (dir_prefix == NULL) {
-                virReportOOMError(NULL);
+                virReportOOMError();
                 goto cleanup;
             }
             if (snprintf (sock_dir, maxlen, "%s/run/libvirt",
@@ -755,7 +762,7 @@ static int qemudInitPaths(struct qemud_server *server,
                 goto snprintf_error;
         } else {
             uid_t uid = geteuid();
-            dir_prefix = virGetUserDirectory(NULL, uid);
+            dir_prefix = virGetUserDirectory(uid);
             if (dir_prefix == NULL) {
                 /* Do not diagnose here; virGetUserDirectory does that.  */
                 goto snprintf_error;
@@ -768,7 +775,7 @@ static int qemudInitPaths(struct qemud_server *server,
 
     sock_dir_prefix = strdup (sock_dir);
     if (!sock_dir_prefix) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         goto cleanup;
     }
 
@@ -788,10 +795,10 @@ static int qemudInitPaths(struct qemud_server *server,
 
     if (server->privileged) {
         if (!(server->logDir = strdup (LOCAL_STATE_DIR "/log/libvirt")))
-            virReportOOMError(NULL);
+            virReportOOMError();
     } else {
         if (virAsprintf(&server->logDir, "%s/.libvirt/log", dir_prefix) < 0)
-            virReportOOMError(NULL);
+            virReportOOMError();
     }
 
     if (server->logDir == NULL)
@@ -1495,16 +1502,15 @@ static void *qemudWorker(void *data)
         struct qemud_client_message *msg;
 
         virMutexLock(&server->lock);
-        while (((client = qemudPendingJob(server)) == NULL) &&
-               !worker->quitRequest) {
-            if (virCondWait(&server->job, &server->lock) < 0) {
+        while ((client = qemudPendingJob(server)) == NULL) {
+            if (worker->quitRequest ||
+                virCondWait(&server->job, &server->lock) < 0) {
                 virMutexUnlock(&server->lock);
                 return NULL;
             }
         }
         if (worker->quitRequest) {
-            if (client)
-                virMutexUnlock(&client->lock);
+            virMutexUnlock(&client->lock);
             virMutexUnlock(&server->lock);
             return NULL;
         }

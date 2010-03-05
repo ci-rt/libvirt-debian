@@ -51,13 +51,11 @@ int virStorageBackendCreateRaw(virConnectPtr conn,
                                virStorageVolDefPtr inputvol,
                                unsigned int flags);
 virStorageBackendBuildVolFrom
-virStorageBackendGetBuildVolFromFunction(virConnectPtr conn,
-                                         virStorageVolDefPtr vol,
+virStorageBackendGetBuildVolFromFunction(virStorageVolDefPtr vol,
                                          virStorageVolDefPtr inputvol);
 int virStorageBackendFindFSImageTool(char **tool);
 virStorageBackendBuildVolFrom
-virStorageBackendFSImageToolTypeToFunc(virConnectPtr conn,
-                                       int tool_type);
+virStorageBackendFSImageToolTypeToFunc(int tool_type);
 
 
 typedef struct _virStorageBackend virStorageBackend;
@@ -83,40 +81,32 @@ struct _virStorageBackend {
 virStorageBackendPtr virStorageBackendForType(int type);
 
 
-int virStorageBackendUpdateVolInfo(virConnectPtr conn,
-                                   virStorageVolDefPtr vol,
+int virStorageBackendUpdateVolInfo(virStorageVolDefPtr vol,
                                    int withCapacity);
 
-int virStorageBackendUpdateVolTargetInfo(virConnectPtr conn,
-                                         virStorageVolTargetPtr target,
+int virStorageBackendUpdateVolTargetInfo(virStorageVolTargetPtr target,
                                          unsigned long long *allocation,
                                          unsigned long long *capacity);
-int virStorageBackendUpdateVolTargetInfoFD(virConnectPtr conn,
-                                           virStorageVolTargetPtr target,
+int virStorageBackendUpdateVolTargetInfoFD(virStorageVolTargetPtr target,
                                            int fd,
                                            unsigned long long *allocation,
                                            unsigned long long *capacity);
 int
-virStorageBackendUpdateVolTargetFormatFD(virConnectPtr conn,
-                                         virStorageVolTargetPtr target,
+virStorageBackendUpdateVolTargetFormatFD(virStorageVolTargetPtr target,
                                          int fd);
 
-char *virStorageBackendStablePath(virConnectPtr conn,
-                                  virStoragePoolObjPtr pool,
+char *virStorageBackendStablePath(virStoragePoolObjPtr pool,
                                   const char *devpath);
 
-typedef int (*virStorageBackendListVolRegexFunc)(virConnectPtr conn,
-                                                 virStoragePoolObjPtr pool,
+typedef int (*virStorageBackendListVolRegexFunc)(virStoragePoolObjPtr pool,
                                                  char **const groups,
                                                  void *data);
-typedef int (*virStorageBackendListVolNulFunc)(virConnectPtr conn,
-                                               virStoragePoolObjPtr pool,
+typedef int (*virStorageBackendListVolNulFunc)(virStoragePoolObjPtr pool,
                                                size_t n_tokens,
                                                char **const groups,
                                                void *data);
 
-int virStorageBackendRunProgRegex(virConnectPtr conn,
-                                  virStoragePoolObjPtr pool,
+int virStorageBackendRunProgRegex(virStoragePoolObjPtr pool,
                                   const char *const*prog,
                                   int nregex,
                                   const char **regex,
@@ -125,8 +115,7 @@ int virStorageBackendRunProgRegex(virConnectPtr conn,
                                   void *data,
                                   int *exitstatus);
 
-int virStorageBackendRunProgNul(virConnectPtr conn,
-                                virStoragePoolObjPtr pool,
+int virStorageBackendRunProgNul(virStoragePoolObjPtr pool,
                                 const char **prog,
                                 size_t n_columns,
                                 virStorageBackendListVolNulFunc func,

@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Test of select() substitute, reading or writing from a given file descriptor.
    Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
 

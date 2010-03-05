@@ -271,6 +271,7 @@ skip_impl = (
     'virConnGetLastError',
     'virGetLastError',
     'virDomainGetInfo',
+    'virDomainGetJobInfo',
     'virNodeGetInfo',
     'virDomainGetUUID',
     'virDomainGetUUIDString',
@@ -308,6 +309,7 @@ skip_impl = (
     'virEventRegisterImpl',
     'virNodeListDevices',
     'virNodeDeviceListCaps',
+    'virConnectBaselineCPU',
 )
 
 
@@ -318,7 +320,6 @@ skip_function = (
     'virConnectListDomains', # Python API is called virConectListDomainsID for unknown reasons
     'virConnSetErrorFunc', # Not used in Python API  XXX is this a bug ?
     'virResetError', # Not used in Python API  XXX is this a bug ?
-    'virConnectGetVersion', # Not used in Python API  XXX is this a bug ?
     'virGetVersion', # Python C code is manually written
     'virSetErrorFunc', # Python API is called virRegisterErrorHandler for unknown reasons
     'virConnCopyLastError', # Python API is called virConnGetLastError instead

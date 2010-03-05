@@ -34,6 +34,7 @@
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 #include <libxml/xpath.h>
+#include <libxml/xmlsave.h>
 
 #ifdef HAVE_READLINE_READLINE_H
 #include <readline/readline.h>
@@ -326,6 +327,28 @@ static int namesorter(const void *a, const void *b) {
   return strcasecmp(*sa, *sb);
 }
 
+static double
+prettyCapacity(unsigned long long val,
+               const char **unit) {
+    if (val < 1024) {
+        *unit = "";
+        return (double)val;
+    } else if (val < (1024.0l * 1024.0l)) {
+        *unit = "KB";
+        return (((double)val / 1024.0l));
+    } else if (val < (1024.0l * 1024.0l * 1024.0l)) {
+        *unit = "MB";
+        return ((double)val / (1024.0l * 1024.0l));
+    } else if (val < (1024.0l * 1024.0l * 1024.0l * 1024.0l)) {
+        *unit = "GB";
+        return ((double)val / (1024.0l * 1024.0l * 1024.0l));
+    } else {
+        *unit = "TB";
+        return ((double)val / (1024.0l * 1024.0l * 1024.0l * 1024.0l));
+    }
+}
+
+
 static virErrorPtr last_error;
 
 /*
@@ -351,8 +374,16 @@ virshErrorHandler(void *unused ATTRIBUTE_UNUSED, virErrorPtr error)
 static void
 virshReportError(vshControl *ctl)
 {
-    if (last_error == NULL)
-        return;
+    if (last_error == NULL) {
+        /* Calling directly into libvirt util functions won't trigger the
+         * error callback (which sets last_error), so check it ourselves.
+         *
+         * If the returned error has CODE_OK, this most likely means that
+         * no error was ever raised, so just ignore */
+        last_error = virSaveLastError();
+        if (!last_error || last_error->code == VIR_ERR_OK)
+            return;
+    }
 
     if (last_error->code == VIR_ERR_OK) {
         vshError(ctl, "%s", _("unknown error"));
@@ -1786,6 +1817,127 @@ cmdDominfo(vshControl *ctl, const vshCmd *cmd)
             }
         }
     }
+    virDomainFree(dom);
+    return ret;
+}
+
+/*
+ * "domjobinfo" command
+ */
+static const vshCmdInfo info_domjobinfo[] = {
+    {"help", gettext_noop("domain job information")},
+    {"desc", gettext_noop("Returns information about jobs running on a domain.")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_domjobinfo[] = {
+    {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("domain name, id or uuid")},
+    {NULL, 0, 0, NULL}
+};
+
+
+static int
+cmdDomjobinfo(vshControl *ctl, const vshCmd *cmd)
+{
+    virDomainJobInfo info;
+    virDomainPtr dom;
+    int ret = TRUE, autostart;
+    unsigned int id;
+    char *str, uuid[VIR_UUID_STRING_BUFLEN];
+
+    if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
+        return FALSE;
+
+    if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
+        return FALSE;
+
+    if (virDomainGetJobInfo(dom, &info) == 0) {
+        const char *unit;
+        double val;
+
+        vshPrint(ctl, "%-17s ", _("Job type:"));
+        switch (info.type) {
+        case VIR_DOMAIN_JOB_BOUNDED:
+            vshPrint(ctl, "%-12s\n", _("Bounded"));
+            break;
+
+        case VIR_DOMAIN_JOB_UNBOUNDED:
+            vshPrint(ctl, "%-12s\n", _("Unbounded"));
+            break;
+
+        case VIR_DOMAIN_JOB_NONE:
+        default:
+            vshPrint(ctl, "%-12s\n", _("None"));
+            goto cleanup;
+        }
+
+        vshPrint(ctl, "%-17s %-12llu ms\n", _("Time elapsed:"), info.timeElapsed);
+        if (info.type == VIR_DOMAIN_JOB_BOUNDED)
+            vshPrint(ctl, "%-17s %-12llu ms\n", _("Time remaining:"), info.timeRemaining);
+        if (info.dataTotal || info.dataRemaining || info.dataProcessed) {
+            val = prettyCapacity(info.dataProcessed, &unit);
+            vshPrint(ctl, "%-17s %-.3lf %s\n", _("Data processed:"), val, unit);
+            val = prettyCapacity(info.dataRemaining, &unit);
+            vshPrint(ctl, "%-17s %-.3lf %s\n", _("Data remaining:"), val, unit);
+            val = prettyCapacity(info.dataTotal, &unit);
+            vshPrint(ctl, "%-17s %-.3lf %s\n", _("Data total:"), val, unit);
+        }
+        if (info.memTotal || info.memRemaining || info.memProcessed) {
+            val = prettyCapacity(info.memProcessed, &unit);
+            vshPrint(ctl, "%-17s %-.3lf %s\n", _("Memory processed:"), val, unit);
+            val = prettyCapacity(info.memRemaining, &unit);
+            vshPrint(ctl, "%-17s %-.3lf %s\n", _("Memory remaining:"), val, unit);
+            val = prettyCapacity(info.memTotal, &unit);
+            vshPrint(ctl, "%-17s %-.3lf %s\n", _("Memory total:"), val, unit);
+        }
+        if (info.fileTotal || info.fileRemaining || info.fileProcessed) {
+            val = prettyCapacity(info.fileProcessed, &unit);
+            vshPrint(ctl, "%-17s %-.3lf %s\n", _("File processed:"), val, unit);
+            val = prettyCapacity(info.fileRemaining, &unit);
+            vshPrint(ctl, "%-17s %-.3lf %s\n", _("File remaining:"), val, unit);
+            val = prettyCapacity(info.fileTotal, &unit);
+            vshPrint(ctl, "%-17s %-.3lf %s\n", _("File total:"), val, unit);
+        }
+    } else {
+        ret = FALSE;
+    }
+cleanup:
+    virDomainFree(dom);
+    return ret;
+}
+
+/*
+ * "domjobabort" command
+ */
+static const vshCmdInfo info_domjobabort[] = {
+    {"help", gettext_noop("abort active domain job")},
+    {"desc", gettext_noop("Aborts the currently running domain job")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_domjobabort[] = {
+    {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("domain name, id or uuid")},
+    {NULL, 0, 0, NULL}
+};
+
+static int
+cmdDomjobabort(vshControl *ctl, const vshCmd *cmd)
+{
+    virDomainPtr dom;
+    int ret = TRUE;
+    unsigned int id;
+    char *str, uuid[VIR_UUID_STRING_BUFLEN];
+
+    if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
+        return FALSE;
+
+    if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
+        return FALSE;
+
+    if (virDomainAbortJob(dom) < 0)
+        ret = FALSE;
+
+cleanup:
     virDomainFree(dom);
     return ret;
 }
@@ -4035,8 +4187,9 @@ cmdPoolBuild(vshControl *ctl, const vshCmd *cmd)
     } else {
         vshError(ctl, _("Failed to build pool %s"), name);
         ret = FALSE;
-        virStoragePoolFree(pool);
     }
+
+    virStoragePoolFree(pool);
 
     return ret;
 }
@@ -4421,17 +4574,16 @@ static const vshCmdOptDef opts_find_storage_pool_sources[] = {
 static int
 cmdPoolDiscoverSources(vshControl * ctl, const vshCmd * cmd ATTRIBUTE_UNUSED)
 {
-    char *type, *srcSpec, *srcSpecFile, *srcList;
+    char *type, *srcSpecFile, *srcList;
+    char *srcSpec = NULL;
     int found;
 
     type = vshCommandOptString(cmd, "type", &found);
     if (!found)
         return FALSE;
     srcSpecFile = vshCommandOptString(cmd, "srcSpec", &found);
-    if (!found) {
+    if (!found)
         srcSpecFile = NULL;
-        srcSpec = NULL;
-    }
 
     if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
         return FALSE;
@@ -4451,27 +4603,6 @@ cmdPoolDiscoverSources(vshControl * ctl, const vshCmd * cmd ATTRIBUTE_UNUSED)
     return TRUE;
 }
 
-
-static double
-prettyCapacity(unsigned long long val,
-               const char **unit) {
-    if (val < 1024) {
-        *unit = "";
-        return (double)val;
-    } else if (val < (1024.0l * 1024.0l)) {
-        *unit = "KB";
-        return (((double)val / 1024.0l));
-    } else if (val < (1024.0l * 1024.0l * 1024.0l)) {
-        *unit = "MB";
-        return ((double)val / (1024.0l * 1024.0l));
-    } else if (val < (1024.0l * 1024.0l * 1024.0l * 1024.0l)) {
-        *unit = "GB";
-        return ((double)val / (1024.0l * 1024.0l * 1024.0l));
-    } else {
-        *unit = "TB";
-        return ((double)val / (1024.0l * 1024.0l * 1024.0l * 1024.0l));
-    }
-}
 
 /*
  * "pool-info" command
@@ -6285,6 +6416,7 @@ static const vshCmdInfo info_attach_device[] = {
 static const vshCmdOptDef opts_attach_device[] = {
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("domain name, id or uuid")},
     {"file",   VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("XML file")},
+    {"persistent", VSH_OT_BOOL, 0, gettext_noop("persist device attachment")},
     {NULL, 0, 0, NULL}
 };
 
@@ -6296,6 +6428,7 @@ cmdAttachDevice(vshControl *ctl, const vshCmd *cmd)
     char *buffer;
     int ret = TRUE;
     int found;
+    unsigned int flags;
 
     if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
         return FALSE;
@@ -6315,7 +6448,14 @@ cmdAttachDevice(vshControl *ctl, const vshCmd *cmd)
         return FALSE;
     }
 
-    ret = virDomainAttachDevice(dom, buffer);
+    if (vshCommandOptBool(cmd, "persistent")) {
+        flags = VIR_DOMAIN_DEVICE_MODIFY_CONFIG;
+        if (virDomainIsActive(dom) == 1)
+           flags |= VIR_DOMAIN_DEVICE_MODIFY_LIVE;
+        ret = virDomainAttachDeviceFlags(dom, buffer, flags);
+    } else {
+        ret = virDomainAttachDevice(dom, buffer);
+    }
     VIR_FREE(buffer);
 
     if (ret < 0) {
@@ -6343,6 +6483,7 @@ static const vshCmdInfo info_detach_device[] = {
 static const vshCmdOptDef opts_detach_device[] = {
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("domain name, id or uuid")},
     {"file",   VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("XML file")},
+    {"persistent", VSH_OT_BOOL, 0, gettext_noop("persist device detachment")},
     {NULL, 0, 0, NULL}
 };
 
@@ -6354,6 +6495,7 @@ cmdDetachDevice(vshControl *ctl, const vshCmd *cmd)
     char *buffer;
     int ret = TRUE;
     int found;
+    unsigned int flags;
 
     if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
         return FALSE;
@@ -6373,7 +6515,14 @@ cmdDetachDevice(vshControl *ctl, const vshCmd *cmd)
         return FALSE;
     }
 
-    ret = virDomainDetachDevice(dom, buffer);
+    if (vshCommandOptBool(cmd, "persistent")) {
+        flags = VIR_DOMAIN_DEVICE_MODIFY_CONFIG;
+        if (virDomainIsActive(dom) == 1)
+           flags |= VIR_DOMAIN_DEVICE_MODIFY_LIVE;
+        ret = virDomainDetachDeviceFlags(dom, buffer, flags);
+    } else {
+        ret = virDomainDetachDevice(dom, buffer);
+    }
     VIR_FREE(buffer);
 
     if (ret < 0) {
@@ -6405,6 +6554,7 @@ static const vshCmdOptDef opts_attach_interface[] = {
     {"target", VSH_OT_DATA, 0, gettext_noop("target network name")},
     {"mac",    VSH_OT_DATA, 0, gettext_noop("MAC address")},
     {"script", VSH_OT_DATA, 0, gettext_noop("script used to bridge network interface")},
+    {"persistent", VSH_OT_BOOL, 0, gettext_noop("persist interface attachment")},
     {NULL, 0, 0, NULL}
 };
 
@@ -6415,6 +6565,7 @@ cmdAttachInterface(vshControl *ctl, const vshCmd *cmd)
     char *mac, *target, *script, *type, *source;
     int typ, ret = FALSE;
     char *buf = NULL, *tmp = NULL;
+    unsigned int flags;
 
     if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
         goto cleanup;
@@ -6489,13 +6640,22 @@ cmdAttachInterface(vshControl *ctl, const vshCmd *cmd)
     if (!buf) goto cleanup;
     strcat(buf, "    </interface>\n");
 
-    if (virDomainAttachDevice(dom, buf)) {
-        goto cleanup;
+    if (vshCommandOptBool(cmd, "persistent")) {
+        flags = VIR_DOMAIN_DEVICE_MODIFY_CONFIG;
+        if (virDomainIsActive(dom) == 1)
+            flags |= VIR_DOMAIN_DEVICE_MODIFY_LIVE;
+        ret = virDomainAttachDeviceFlags(dom, buf, flags);
     } else {
-        vshPrint(ctl, "%s", _("Interface attached successfully\n"));
+        ret = virDomainAttachDevice(dom, buf);
     }
 
-    ret = TRUE;
+    if (ret != 0) {
+        vshError(ctl, _("Failed to attach interface"));
+        ret = FALSE;
+    } else {
+        vshPrint(ctl, "%s", _("Interface attached successfully\n"));
+        ret = TRUE;
+    }
 
  cleanup:
     if (dom)
@@ -6518,6 +6678,7 @@ static const vshCmdOptDef opts_detach_interface[] = {
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("domain name, id or uuid")},
     {"type",   VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("network interface type")},
     {"mac",    VSH_OT_STRING, 0, gettext_noop("MAC address")},
+    {"persistent", VSH_OT_BOOL, 0, gettext_noop("persist interface detachment")},
     {NULL, 0, 0, NULL}
 };
 
@@ -6534,6 +6695,7 @@ cmdDetachInterface(vshControl *ctl, const vshCmd *cmd)
     char *doc, *mac =NULL, *type;
     char buf[64];
     int i = 0, diff_mac, ret = FALSE;
+    unsigned int flags;
 
     if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
         goto cleanup;
@@ -6605,10 +6767,21 @@ cmdDetachInterface(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
     }
 
-    ret = virDomainDetachDevice(dom, (char *)xmlBufferContent(xml_buf));
-    if (ret != 0)
+    if (vshCommandOptBool(cmd, "persistent")) {
+        flags = VIR_DOMAIN_DEVICE_MODIFY_CONFIG;
+        if (virDomainIsActive(dom) == 1)
+            flags |= VIR_DOMAIN_DEVICE_MODIFY_LIVE;
+        ret = virDomainDetachDeviceFlags(dom,
+                                         (char *)xmlBufferContent(xml_buf),
+                                         flags);
+    } else {
+        ret = virDomainDetachDevice(dom, (char *)xmlBufferContent(xml_buf));
+    }
+
+    if (ret != 0) {
+        vshError(ctl, _("Failed to detach interface"));
         ret = FALSE;
-    else {
+    } else {
         vshPrint(ctl, "%s", _("Interface detached successfully\n"));
         ret = TRUE;
     }
@@ -6642,6 +6815,7 @@ static const vshCmdOptDef opts_attach_disk[] = {
     {"subdriver", VSH_OT_STRING, 0, gettext_noop("subdriver of disk device")},
     {"type",    VSH_OT_STRING, 0, gettext_noop("target device type")},
     {"mode",    VSH_OT_STRING, 0, gettext_noop("mode of device reading and writing")},
+    {"persistent", VSH_OT_BOOL, 0, gettext_noop("persist disk attachment")},
     {NULL, 0, 0, NULL}
 };
 
@@ -6652,6 +6826,7 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
     char *source, *target, *driver, *subdriver, *type, *mode;
     int isFile = 0, ret = FALSE;
     char *buf = NULL, *tmp = NULL;
+    unsigned int flags;
 
     if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
         goto cleanup;
@@ -6767,12 +6942,22 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
     if (!buf) goto cleanup;
     strcat(buf, "    </disk>\n");
 
-    if (virDomainAttachDevice(dom, buf))
-        goto cleanup;
-    else
-        vshPrint(ctl, "%s", _("Disk attached successfully\n"));
+    if (vshCommandOptBool(cmd, "persistent")) {
+        flags = VIR_DOMAIN_DEVICE_MODIFY_CONFIG;
+        if (virDomainIsActive(dom) == 1)
+            flags |= VIR_DOMAIN_DEVICE_MODIFY_LIVE;
+        ret = virDomainAttachDeviceFlags(dom, buf, flags);
+    } else {
+        ret = virDomainAttachDevice(dom, buf);
+    }
 
-    ret = TRUE;
+    if (ret != 0) {
+        vshError(ctl, _("Failed to attach disk"));
+        ret = FALSE;
+    } else {
+        vshPrint(ctl, "%s", _("Disk attached successfully\n"));
+        ret = TRUE;
+    }
 
  cleanup:
     if (dom)
@@ -6794,6 +6979,7 @@ static const vshCmdInfo info_detach_disk[] = {
 static const vshCmdOptDef opts_detach_disk[] = {
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("domain name, id or uuid")},
     {"target", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("target of disk device")},
+    {"persistent", VSH_OT_BOOL, 0, gettext_noop("persist disk detachment")},
     {NULL, 0, 0, NULL}
 };
 
@@ -6809,6 +6995,7 @@ cmdDetachDisk(vshControl *ctl, const vshCmd *cmd)
     virDomainPtr dom = NULL;
     char *doc, *target;
     int i = 0, diff_tgt, ret = FALSE;
+    unsigned int flags;
 
     if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
         goto cleanup;
@@ -6874,10 +7061,21 @@ cmdDetachDisk(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
     }
 
-    ret = virDomainDetachDevice(dom, (char *)xmlBufferContent(xml_buf));
-    if (ret != 0)
+    if (vshCommandOptBool(cmd, "persistent")) {
+        flags = VIR_DOMAIN_DEVICE_MODIFY_CONFIG;
+        if (virDomainIsActive(dom) == 1)
+            flags |= VIR_DOMAIN_DEVICE_MODIFY_LIVE;
+        ret = virDomainDetachDeviceFlags(dom,
+                                         (char *)xmlBufferContent(xml_buf),
+                                         flags);
+    } else {
+        ret = virDomainDetachDevice(dom, (char *)xmlBufferContent(xml_buf));
+    }
+
+    if (ret != 0) {
+        vshError(ctl, _("Failed to detach disk"));
         ret = FALSE;
-    else {
+    } else {
         vshPrint(ctl, "%s", _("Disk detached successfully\n"));
         ret = TRUE;
     }
@@ -6956,6 +7154,123 @@ cmdCPUCompare(vshControl *ctl, const vshCmd *cmd)
     }
 
     return ret;
+}
+
+/*
+ * "cpu-baseline" command
+ */
+static const vshCmdInfo info_cpu_baseline[] = {
+    {"help", gettext_noop("compute baseline CPU")},
+    {"desc", gettext_noop("Compute baseline CPU for a set of given CPUs.")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_cpu_baseline[] = {
+    {"file", VSH_OT_DATA, VSH_OFLAG_REQ, gettext_noop("file containing XML CPU descriptions")},
+    {NULL, 0, 0, NULL}
+};
+
+static int
+cmdCPUBaseline(vshControl *ctl, const vshCmd *cmd)
+{
+    char *from;
+    int found;
+    int ret = TRUE;
+    char *buffer;
+    char *result = NULL;
+    const char **list = NULL;
+    unsigned int count = 0;
+    xmlDocPtr doc = NULL;
+    xmlNodePtr node_list;
+    xmlXPathContextPtr ctxt = NULL;
+    xmlSaveCtxtPtr sctxt = NULL;
+    xmlBufferPtr buf = NULL;
+    xmlXPathObjectPtr obj = NULL;
+    int res, i;
+
+    if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
+        return FALSE;
+
+    from = vshCommandOptString(cmd, "file", &found);
+    if (!found)
+        return FALSE;
+
+    if (virFileReadAll(from, VIRSH_MAX_XML_FILE, &buffer) < 0)
+        return FALSE;
+
+    doc = xmlNewDoc(NULL);
+    if (doc == NULL)
+        goto no_memory;
+
+    res = xmlParseBalancedChunkMemory(doc, NULL, NULL, 0, buffer, &node_list);
+    if (res != 0) {
+        vshError(ctl, _("Failed to parse XML fragment %s"), from);
+        ret = FALSE;
+        goto cleanup;
+    }
+
+    xmlAddChildList((xmlNodePtr) doc, node_list);
+
+    ctxt = xmlXPathNewContext(doc);
+    if (!ctxt)
+        goto no_memory;
+
+    obj = xmlXPathEval(BAD_CAST "//cpu[not(ancestor::cpu)]", ctxt);
+    if ((obj == NULL) || (obj->nodesetval == NULL) ||
+        (obj->nodesetval->nodeTab == NULL))
+        goto cleanup;
+
+    for (i = 0;i < obj->nodesetval->nodeNr;i++) {
+        buf = xmlBufferCreate();
+        if (buf == NULL)
+            goto no_memory;
+        sctxt = xmlSaveToBuffer(buf, NULL, 0);
+        if (sctxt == NULL) {
+            xmlBufferFree(buf);
+            goto no_memory;
+        }
+
+        xmlSaveTree(sctxt, obj->nodesetval->nodeTab[i]);
+        xmlSaveClose(sctxt);
+
+        list = vshRealloc(ctl, list, sizeof(char *) * (count + 1));
+        list[count++] = (char *) buf->content;
+        buf->content = NULL;
+        xmlBufferFree(buf);
+        buf = NULL;
+    }
+
+    if (count == 0) {
+        vshError(ctl, _("No host CPU specified in '%s'"), from);
+        ret = FALSE;
+        goto cleanup;
+    }
+
+    result = virConnectBaselineCPU(ctl->conn, list, count, 0);
+
+    if (result)
+        vshPrint(ctl, "%s", result);
+    else
+        ret = FALSE;
+
+cleanup:
+    xmlXPathFreeObject(obj);
+    xmlXPathFreeContext(ctxt);
+    xmlFreeDoc(doc);
+    VIR_FREE(result);
+    if ((list != NULL) && (count > 0)) {
+        for (i = 0;i < count;i++)
+            VIR_FREE(list[i]);
+    }
+    VIR_FREE(list);
+    VIR_FREE(buffer);
+
+    return ret;
+
+no_memory:
+    vshError(ctl, "%s", _("Out of memory"));
+    ret = FALSE;
+    goto cleanup;
 }
 
 /* Common code for the edit / net-edit / pool-edit functions which follow. */
@@ -7105,7 +7420,7 @@ cmdCd(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
     dir = vshCommandOptString(cmd, "dir", &found);
     if (!found) {
         uid_t uid = geteuid();
-        dir = virGetUserDirectory(NULL, uid);
+        dir = virGetUserDirectory(uid);
     }
     if (!dir)
         dir = "/";
@@ -7329,6 +7644,7 @@ static const vshCmdDef commands[] = {
 #ifndef WIN32
     {"console", cmdConsole, opts_console, info_console},
 #endif
+    {"cpu-baseline", cmdCPUBaseline, opts_cpu_baseline, info_cpu_baseline},
     {"cpu-compare", cmdCPUCompare, opts_cpu_compare, info_cpu_compare},
     {"create", cmdCreate, opts_create, info_create},
     {"start", cmdStart, opts_start, info_start},
@@ -7340,6 +7656,8 @@ static const vshCmdDef commands[] = {
     {"domid", cmdDomid, opts_domid, info_domid},
     {"domuuid", cmdDomuuid, opts_domuuid, info_domuuid},
     {"dominfo", cmdDominfo, opts_dominfo, info_dominfo},
+    {"domjobinfo", cmdDomjobinfo, opts_domjobinfo, info_domjobinfo},
+    {"domjobabort", cmdDomjobabort, opts_domjobabort, info_domjobabort},
     {"domname", cmdDomname, opts_domname, info_domname},
     {"domstate", cmdDomstate, opts_domstate, info_domstate},
     {"domblkstat", cmdDomblkstat, opts_domblkstat, info_domblkstat},
@@ -8155,8 +8473,10 @@ vshCommandParse(vshControl *ctl, char *cmdstr)
 
             str = end;
 
-            if (tk == VSH_TK_END)
+            if (tk == VSH_TK_END) {
+                VIR_FREE(tkdata);
                 break;
+            }
             if (tk == VSH_TK_ERROR)
                 goto syntaxError;
 
@@ -8706,7 +9026,7 @@ vshReadlineInit(vshControl *ctl)
     stifle_history(500);
 
     /* Prepare to read/write history from/to the ~/.virsh/history file */
-    userdir = virGetUserDirectory(NULL, getuid());
+    userdir = virGetUserDirectory(getuid());
 
     if (userdir == NULL)
         return -1;

@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* connect.c --- wrappers for Windows connect function
 
    Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.

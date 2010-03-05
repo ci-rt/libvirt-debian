@@ -79,8 +79,8 @@ struct xenUnifiedDriver xenInotifyDriver = {
     NULL, /* domainCreate */
     NULL, /* domainDefineXML */
     NULL, /* domainUndefine */
-    NULL, /* domainAttachDevice */
-    NULL, /* domainDetachDevice */
+    NULL, /* domainAttachDeviceFlags */
+    NULL, /* domainDetachDeviceFlags */
     NULL, /* domainGetAutostart */
     NULL, /* domainSetAutostart */
     NULL, /* domainGetSchedulerType */
@@ -105,7 +105,7 @@ xenInotifyXenCacheLookup(virConnectPtr conn,
 
     if (!*name) {
         DEBUG0("Error getting dom from def");
-        virReportOOMError(conn);
+        virReportOOMError();
         return -1;
     }
     return 0;
@@ -144,7 +144,7 @@ xenInotifyXendDomainsDirLookup(virConnectPtr conn, const char *filename,
             if (!memcmp(rawuuid, priv->configInfoList->doms[i]->uuid, VIR_UUID_BUFLEN)) {
                 *name = strdup(priv->configInfoList->doms[i]->name);
                 if (!*name) {
-                    virReportOOMError(conn);
+                    virReportOOMError();
                     return -1;
                 }
                 memcpy(uuid, priv->configInfoList->doms[i]->uuid, VIR_UUID_BUFLEN);
@@ -158,7 +158,7 @@ xenInotifyXendDomainsDirLookup(virConnectPtr conn, const char *filename,
     }
 
     if (!(*name = strdup(dom->name))) {
-        virReportOOMError(conn);
+        virReportOOMError();
         return -1;
     }
     memcpy(uuid, dom->uuid, VIR_UUID_BUFLEN);
@@ -397,13 +397,13 @@ xenInotifyOpen(virConnectPtr conn,
         priv->useXenConfigCache = 0;
 
         if (VIR_ALLOC(priv->configInfoList) < 0) {
-            virReportOOMError(conn);
+            virReportOOMError();
             return -1;
         }
 
         /* populate initial list */
         if (!(dh = opendir(priv->configDir))) {
-            virReportSystemError(NULL, errno,
+            virReportSystemError(errno,
                                  _("cannot open directory: %s"),
                                  priv->configDir);
             return -1;
@@ -431,7 +431,7 @@ xenInotifyOpen(virConnectPtr conn,
     }
 
     if ((priv->inotifyFD = inotify_init()) < 0) {
-        virReportSystemError(NULL, errno,
+        virReportSystemError(errno,
                              "%s", _("initializing inotify"));
         return -1;
     }
@@ -442,7 +442,7 @@ xenInotifyOpen(virConnectPtr conn,
                           IN_CREATE |
                           IN_CLOSE_WRITE | IN_DELETE |
                           IN_MOVED_TO | IN_MOVED_FROM) < 0) {
-        virReportSystemError(NULL, errno,
+        virReportSystemError(errno,
                              _("adding watch on %s"),
                              priv->configDir);
         return -1;

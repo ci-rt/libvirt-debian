@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* strerror.c --- POSIX compatible system error routine
 
    Copyright (C) 2007-2010 Free Software Foundation, Inc.

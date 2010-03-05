@@ -35,7 +35,7 @@ static virSecurityDriverPtr security_drivers[] = {
 };
 
 int
-virSecurityDriverVerify(virConnectPtr conn, virDomainDefPtr def)
+virSecurityDriverVerify(virDomainDefPtr def)
 {
     unsigned int i;
     const virSecurityLabelDefPtr secdef = &def->seclabel;
@@ -46,10 +46,10 @@ virSecurityDriverVerify(virConnectPtr conn, virDomainDefPtr def)
 
     for (i = 0; security_drivers[i] != NULL ; i++) {
         if (STREQ(security_drivers[i]->name, secdef->model)) {
-            return security_drivers[i]->domainSecurityVerify(conn, def);
+            return security_drivers[i]->domainSecurityVerify(def);
         }
     }
-    virSecurityReportError(conn, VIR_ERR_XML_ERROR,
+    virSecurityReportError(VIR_ERR_XML_ERROR,
                            _("invalid security model '%s'"), secdef->model);
     return -1;
 }
@@ -72,7 +72,7 @@ virSecurityDriverStartup(virSecurityDriverPtr *drv,
         switch (tmp->probe()) {
         case SECURITY_DRIVER_ENABLE:
             virSecurityDriverInit(tmp);
-            if (tmp->open(NULL, tmp) == -1) {
+            if (tmp->open(tmp) == -1) {
                 return -1;
             } else {
                 *drv = tmp;
@@ -90,24 +90,6 @@ virSecurityDriverStartup(virSecurityDriverPtr *drv,
     return -2;
 }
 
-void
-virSecurityReportError(virConnectPtr conn, int code, const char *fmt, ...)
-{
-    va_list args;
-    char errorMessage[1024];
-
-    if (fmt) {
-        va_start(args, fmt);
-        vsnprintf(errorMessage, sizeof(errorMessage) - 1, fmt, args);
-        va_end(args);
-    } else
-        errorMessage[0] = '\0';
-
-    virRaiseError(conn, NULL, NULL, VIR_FROM_SECURITY, code,
-                  VIR_ERR_ERROR, NULL, NULL, NULL, -1, -1, "%s",
-                  errorMessage);
-}
-
 /*
  * Helpers
  */
@@ -118,12 +100,11 @@ virSecurityDriverInit(virSecurityDriverPtr drv)
 }
 
 int
-virSecurityDriverSetDOI(virConnectPtr conn,
-                        virSecurityDriverPtr drv,
+virSecurityDriverSetDOI(virSecurityDriverPtr drv,
                         const char *doi)
 {
     if (strlen(doi) >= VIR_SECURITY_DOI_BUFLEN) {
-        virSecurityReportError(conn, VIR_ERR_INTERNAL_ERROR,
+        virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
                                _("%s: DOI \'%s\' is "
                                "longer than the maximum allowed length of %d"),
                                __func__, doi, VIR_SECURITY_DOI_BUFLEN - 1);

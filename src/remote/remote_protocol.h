@@ -48,6 +48,7 @@ typedef remote_nonnull_string *remote_string;
 #define REMOTE_SECURITY_DOI_MAX VIR_SECURITY_DOI_BUFLEN
 #define REMOTE_SECRET_VALUE_MAX 65536
 #define REMOTE_SECRET_UUID_LIST_MAX 16384
+#define REMOTE_CPU_BASELINE_MAX 256
 
 typedef char remote_uuid[VIR_UUID_BUFLEN];
 
@@ -718,11 +719,25 @@ struct remote_domain_attach_device_args {
 };
 typedef struct remote_domain_attach_device_args remote_domain_attach_device_args;
 
+struct remote_domain_attach_device_flags_args {
+        remote_nonnull_domain dom;
+        remote_nonnull_string xml;
+        u_int flags;
+};
+typedef struct remote_domain_attach_device_flags_args remote_domain_attach_device_flags_args;
+
 struct remote_domain_detach_device_args {
         remote_nonnull_domain dom;
         remote_nonnull_string xml;
 };
 typedef struct remote_domain_detach_device_args remote_domain_detach_device_args;
+
+struct remote_domain_detach_device_flags_args {
+        remote_nonnull_domain dom;
+        remote_nonnull_string xml;
+        u_int flags;
+};
+typedef struct remote_domain_detach_device_flags_args remote_domain_detach_device_flags_args;
 
 struct remote_domain_get_autostart_args {
         remote_nonnull_domain dom;
@@ -1649,6 +1664,46 @@ struct remote_cpu_compare_ret {
         int result;
 };
 typedef struct remote_cpu_compare_ret remote_cpu_compare_ret;
+
+struct remote_cpu_baseline_args {
+        struct {
+                u_int xmlCPUs_len;
+                remote_nonnull_string *xmlCPUs_val;
+        } xmlCPUs;
+        u_int flags;
+};
+typedef struct remote_cpu_baseline_args remote_cpu_baseline_args;
+
+struct remote_cpu_baseline_ret {
+        remote_nonnull_string cpu;
+};
+typedef struct remote_cpu_baseline_ret remote_cpu_baseline_ret;
+
+struct remote_domain_get_job_info_args {
+        remote_nonnull_domain dom;
+};
+typedef struct remote_domain_get_job_info_args remote_domain_get_job_info_args;
+
+struct remote_domain_get_job_info_ret {
+        int type;
+        uint64_t timeElapsed;
+        uint64_t timeRemaining;
+        uint64_t dataTotal;
+        uint64_t dataProcessed;
+        uint64_t dataRemaining;
+        uint64_t memTotal;
+        uint64_t memProcessed;
+        uint64_t memRemaining;
+        uint64_t fileTotal;
+        uint64_t fileProcessed;
+        uint64_t fileRemaining;
+};
+typedef struct remote_domain_get_job_info_ret remote_domain_get_job_info_ret;
+
+struct remote_domain_abort_job_args {
+        remote_nonnull_domain dom;
+};
+typedef struct remote_domain_abort_job_args remote_domain_abort_job_args;
 #define REMOTE_PROGRAM 0x20008086
 #define REMOTE_PROTOCOL_VERSION 1
 
@@ -1812,6 +1867,11 @@ enum remote_procedure {
         REMOTE_PROC_GET_LIB_VERSION = 157,
         REMOTE_PROC_CPU_COMPARE = 158,
         REMOTE_PROC_DOMAIN_MEMORY_STATS = 159,
+        REMOTE_PROC_DOMAIN_ATTACH_DEVICE_FLAGS = 160,
+        REMOTE_PROC_DOMAIN_DETACH_DEVICE_FLAGS = 161,
+        REMOTE_PROC_CPU_BASELINE = 162,
+        REMOTE_PROC_DOMAIN_GET_JOB_INFO = 163,
+        REMOTE_PROC_DOMAIN_ABORT_JOB = 164,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -1950,7 +2010,9 @@ extern  bool_t xdr_remote_domain_get_security_label_args (XDR *, remote_domain_g
 extern  bool_t xdr_remote_domain_get_security_label_ret (XDR *, remote_domain_get_security_label_ret*);
 extern  bool_t xdr_remote_node_get_security_model_ret (XDR *, remote_node_get_security_model_ret*);
 extern  bool_t xdr_remote_domain_attach_device_args (XDR *, remote_domain_attach_device_args*);
+extern  bool_t xdr_remote_domain_attach_device_flags_args (XDR *, remote_domain_attach_device_flags_args*);
 extern  bool_t xdr_remote_domain_detach_device_args (XDR *, remote_domain_detach_device_args*);
+extern  bool_t xdr_remote_domain_detach_device_flags_args (XDR *, remote_domain_detach_device_flags_args*);
 extern  bool_t xdr_remote_domain_get_autostart_args (XDR *, remote_domain_get_autostart_args*);
 extern  bool_t xdr_remote_domain_get_autostart_ret (XDR *, remote_domain_get_autostart_ret*);
 extern  bool_t xdr_remote_domain_set_autostart_args (XDR *, remote_domain_set_autostart_args*);
@@ -2114,6 +2176,11 @@ extern  bool_t xdr_remote_interface_is_active_args (XDR *, remote_interface_is_a
 extern  bool_t xdr_remote_interface_is_active_ret (XDR *, remote_interface_is_active_ret*);
 extern  bool_t xdr_remote_cpu_compare_args (XDR *, remote_cpu_compare_args*);
 extern  bool_t xdr_remote_cpu_compare_ret (XDR *, remote_cpu_compare_ret*);
+extern  bool_t xdr_remote_cpu_baseline_args (XDR *, remote_cpu_baseline_args*);
+extern  bool_t xdr_remote_cpu_baseline_ret (XDR *, remote_cpu_baseline_ret*);
+extern  bool_t xdr_remote_domain_get_job_info_args (XDR *, remote_domain_get_job_info_args*);
+extern  bool_t xdr_remote_domain_get_job_info_ret (XDR *, remote_domain_get_job_info_ret*);
+extern  bool_t xdr_remote_domain_abort_job_args (XDR *, remote_domain_abort_job_args*);
 extern  bool_t xdr_remote_procedure (XDR *, remote_procedure*);
 extern  bool_t xdr_remote_message_type (XDR *, remote_message_type*);
 extern  bool_t xdr_remote_message_status (XDR *, remote_message_status*);
@@ -2226,7 +2293,9 @@ extern bool_t xdr_remote_domain_get_security_label_args ();
 extern bool_t xdr_remote_domain_get_security_label_ret ();
 extern bool_t xdr_remote_node_get_security_model_ret ();
 extern bool_t xdr_remote_domain_attach_device_args ();
+extern bool_t xdr_remote_domain_attach_device_flags_args ();
 extern bool_t xdr_remote_domain_detach_device_args ();
+extern bool_t xdr_remote_domain_detach_device_flags_args ();
 extern bool_t xdr_remote_domain_get_autostart_args ();
 extern bool_t xdr_remote_domain_get_autostart_ret ();
 extern bool_t xdr_remote_domain_set_autostart_args ();
@@ -2390,6 +2459,11 @@ extern bool_t xdr_remote_interface_is_active_args ();
 extern bool_t xdr_remote_interface_is_active_ret ();
 extern bool_t xdr_remote_cpu_compare_args ();
 extern bool_t xdr_remote_cpu_compare_ret ();
+extern bool_t xdr_remote_cpu_baseline_args ();
+extern bool_t xdr_remote_cpu_baseline_ret ();
+extern bool_t xdr_remote_domain_get_job_info_args ();
+extern bool_t xdr_remote_domain_get_job_info_ret ();
+extern bool_t xdr_remote_domain_abort_job_args ();
 extern bool_t xdr_remote_procedure ();
 extern bool_t xdr_remote_message_type ();
 extern bool_t xdr_remote_message_status ();

@@ -376,7 +376,7 @@ esxVI_Context_Connect(esxVI_Context *ctx, const char *url,
     ctx->password = strdup(password);
 
     if (ctx->username == NULL || ctx->password == NULL) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         goto failure;
     }
 
@@ -543,7 +543,7 @@ esxVI_Context_DownloadFile(esxVI_Context *ctx, const char *url, char **content)
     }
 
     if (virBufferError(&buffer)) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         goto failure;
     }
 
@@ -629,7 +629,7 @@ esxVI_Context_Execute(esxVI_Context *ctx, const char *methodName,
     }
 
     if (virBufferError(&buffer)) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         goto failure;
     }
 
@@ -667,7 +667,7 @@ esxVI_Context_Execute(esxVI_Context *ctx, const char *methodName,
 
         if ((*response)->responseCode == 500) {
             (*response)->node =
-              virXPathNode(NULL, "/soapenv:Envelope/soapenv:Body/soapenv:Fault",
+              virXPathNode("/soapenv:Envelope/soapenv:Body/soapenv:Fault",
                            xpathContext);
 
             if ((*response)->node == NULL) {
@@ -701,11 +701,11 @@ esxVI_Context_Execute(esxVI_Context *ctx, const char *methodName,
             if (virAsprintf(&xpathExpression,
                             "/soapenv:Envelope/soapenv:Body/vim:%sResponse",
                             methodName) < 0) {
-                virReportOOMError(NULL);
+                virReportOOMError();
                 goto failure;
             }
 
-            responseNode = virXPathNode(NULL, xpathExpression, xpathContext);
+            responseNode = virXPathNode(xpathExpression, xpathContext);
 
             if (responseNode == NULL) {
                 ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
@@ -715,8 +715,7 @@ esxVI_Context_Execute(esxVI_Context *ctx, const char *methodName,
             }
 
             xpathContext->node = responseNode;
-            (*response)->node = virXPathNode(NULL, "./vim:returnval",
-                                             xpathContext);
+            (*response)->node = virXPathNode("./vim:returnval", xpathContext);
 
             switch (occurrence) {
               case esxVI_Occurrence_RequiredItem:
@@ -1128,7 +1127,7 @@ esxVI_Alloc(void **ptrptr, size_t size)
     }
 
     if (virAllocN(ptrptr, size, 1) < 0) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         return -1;
     }
 
@@ -1317,16 +1316,18 @@ esxVI_BuildFullTraversalSpecList(esxVI_SelectionSpec **fullTraversalSpecList)
  * you try to call it. Query the session manager for the current session of
  * this connection instead and re-login if there is no current session for this
  * connection.
+ *
+ * Update: 'ESX 4.0.0 build-171294' doesn't implement this method.
  */
 #define ESX_VI_USE_SESSION_IS_ACTIVE 0
 
 int
 esxVI_EnsureSession(esxVI_Context *ctx)
 {
-    int result = 0;
 #if ESX_VI_USE_SESSION_IS_ACTIVE
     esxVI_Boolean active = esxVI_Boolean_Undefined;
 #else
+    int result = 0;
     esxVI_String *propertyNameList = NULL;
     esxVI_ObjectContent *sessionManager = NULL;
     esxVI_DynamicProperty *dynamicProperty = NULL;
@@ -1352,6 +1353,8 @@ esxVI_EnsureSession(esxVI_Context *ctx)
             return -1;
         }
     }
+
+    return 0;
 #else
     if (esxVI_String_AppendValueToList(&propertyNameList,
                                        "currentSession") < 0 ||
@@ -1388,16 +1391,11 @@ esxVI_EnsureSession(esxVI_Context *ctx)
                      "last login");
         goto failure;
     }
-#endif
 
   cleanup:
-#if ESX_VI_USE_SESSION_IS_ACTIVE
-    /* nothing */
-#else
     esxVI_String_Free(&propertyNameList);
     esxVI_ObjectContent_Free(&sessionManager);
     esxVI_UserSession_Free(&currentSession);
-#endif
 
     return result;
 
@@ -1405,8 +1403,7 @@ esxVI_EnsureSession(esxVI_Context *ctx)
     result = -1;
 
     goto cleanup;
-
-    return 0;
+#endif
 }
 
 
@@ -1657,7 +1654,7 @@ esxVI_GetVirtualMachineIdentity(esxVI_ObjectContent *virtualMachine,
                 *name = strdup(dynamicProperty->val->string);
 
                 if (*name == NULL) {
-                    virReportOOMError(NULL);
+                    virReportOOMError();
                     goto failure;
                 }
 
@@ -2279,7 +2276,7 @@ esxVI_StartVirtualMachineTask(esxVI_Context *ctx, const char *name,
     esxVI_Response *response = NULL;
 
     if (virAsprintf(&methodName, "%s_Task", name) < 0) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         goto failure;
     }
 
@@ -2330,7 +2327,7 @@ esxVI_StartSimpleVirtualMachineTask
     virBufferAddLit(&buffer, ESX_VI__SOAP__REQUEST_FOOTER);
 
     if (virBufferError(&buffer)) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         goto failure;
     }
 
@@ -2385,7 +2382,7 @@ esxVI_SimpleVirtualMachineMethod(esxVI_Context *ctx, const char *name,
     virBufferAddLit(&buffer, ESX_VI__SOAP__REQUEST_FOOTER);
 
     if (virBufferError(&buffer)) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         goto failure;
     }
 
@@ -2445,7 +2442,7 @@ esxVI_HandleVirtualMachineQuestion
         }
 
         if (virBufferError(&buffer)) {
-            virReportOOMError(NULL);
+            virReportOOMError();
             goto failure;
         }
 
@@ -2534,7 +2531,7 @@ esxVI_WaitForTaskCompletion(esxVI_Context *ctx,
     version = strdup("");
 
     if (version == NULL) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         goto failure;
     }
 
@@ -2604,7 +2601,7 @@ esxVI_WaitForTaskCompletion(esxVI_Context *ctx,
         version = strdup(updateSet->version);
 
         if (version == NULL) {
-            virReportOOMError(NULL);
+            virReportOOMError();
             goto failure;
         }
 

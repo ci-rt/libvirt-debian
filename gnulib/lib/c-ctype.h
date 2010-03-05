@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Character handling in C locale.
 
    These functions work like the corresponding functions in <ctype.h>,

@@ -120,7 +120,7 @@ static virDrvOpenStatus interfaceOpenInterface(virConnectPtr conn,
 
     if (VIR_ALLOC(driverState) < 0)
     {
-        virReportOOMError(conn);
+        virReportOOMError();
         goto alloc_error;
     }
 
@@ -139,7 +139,7 @@ static virDrvOpenStatus interfaceOpenInterface(virConnectPtr conn,
     }
 
     conn->interfacePrivateData = driverState;
-    return 0;
+    return VIR_DRV_OPEN_SUCCESS;
 
 netcf_error:
     if (driverState->netcf)
@@ -150,7 +150,7 @@ netcf_error:
 mutex_error:
     VIR_FREE(driverState);
 alloc_error:
-    return -1;
+    return VIR_DRV_OPEN_ERROR;
 }
 
 static int interfaceCloseInterface(virConnectPtr conn)
@@ -356,13 +356,13 @@ static char *interfaceGetXMLDesc(virInterfacePtr ifinfo,
         goto cleanup;
     }
 
-    ifacedef = virInterfaceDefParseString(ifinfo->conn, xmlstr);
+    ifacedef = virInterfaceDefParseString(xmlstr);
     if (!ifacedef) {
         /* error was already reported */
         goto cleanup;
     }
 
-    ret = virInterfaceDefFormat(ifinfo->conn, ifacedef);
+    ret = virInterfaceDefFormat(ifacedef);
     if (!ret) {
         /* error was already reported */
         goto cleanup;
@@ -388,13 +388,13 @@ static virInterfacePtr interfaceDefineXML(virConnectPtr conn,
 
     interfaceDriverLock(driver);
 
-    ifacedef = virInterfaceDefParseString(conn, xml);
+    ifacedef = virInterfaceDefParseString(xml);
     if (!ifacedef) {
         /* error was already reported */
         goto cleanup;
     }
 
-    xmlstr = virInterfaceDefFormat(conn, ifacedef);
+    xmlstr = virInterfaceDefFormat(ifacedef);
     if (!xmlstr) {
         /* error was already reported */
         goto cleanup;

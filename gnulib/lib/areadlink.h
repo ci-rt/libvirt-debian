@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Read symbolic links without size limitation.
 
    Copyright (C) 2001, 2003-2004, 2007, 2009-2010 Free Software Foundation,

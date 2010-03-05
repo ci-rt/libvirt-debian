@@ -42,7 +42,7 @@ sexpr_new(void)
     struct sexpr *ret;
 
     if (VIR_ALLOC(ret) < 0) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         return (NULL);
     }
     ret->kind = SEXPR_NIL;
@@ -119,6 +119,7 @@ sexpr_string(const char *str, ssize_t len)
     }
 
     if (ret->u.value == NULL) {
+        VIR_FREE(ret);
         return NULL;
     }
 
@@ -349,7 +350,7 @@ _string2sexpr(const char *buffer, size_t * end)
 
             ret->u.value = strndup(start, ptr - start);
             if (ret->u.value == NULL) {
-                virReportOOMError(NULL);
+                virReportOOMError();
                 goto error;
             }
 
@@ -365,7 +366,7 @@ _string2sexpr(const char *buffer, size_t * end)
 
             ret->u.value = strndup(start, ptr - start);
             if (ret->u.value == NULL) {
-                virReportOOMError(NULL);
+                virReportOOMError();
                 goto error;
             }
         }

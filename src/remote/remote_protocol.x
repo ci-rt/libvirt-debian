@@ -155,6 +155,11 @@ const REMOTE_SECRET_VALUE_MAX = 65536;
  */
 const REMOTE_SECRET_UUID_LIST_MAX = 16384;
 
+/*
+ * Upper limit on list of CPUs accepted when computing a baseline CPU.
+ */
+const REMOTE_CPU_BASELINE_MAX = 256;
+
 /* UUID.  VIR_UUID_BUFLEN definition comes from libvirt.h */
 typedef opaque remote_uuid[VIR_UUID_BUFLEN];
 
@@ -708,9 +713,21 @@ struct remote_domain_attach_device_args {
     remote_nonnull_string xml;
 };
 
+struct remote_domain_attach_device_flags_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string xml;
+    unsigned int flags;
+};
+
 struct remote_domain_detach_device_args {
     remote_nonnull_domain dom;
     remote_nonnull_string xml;
+};
+
+struct remote_domain_detach_device_flags_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string xml;
+    unsigned int flags;
 };
 
 struct remote_domain_get_autostart_args {
@@ -1461,6 +1478,45 @@ struct remote_cpu_compare_ret {
 };
 
 
+struct remote_cpu_baseline_args {
+    remote_nonnull_string xmlCPUs<REMOTE_CPU_BASELINE_MAX>;
+    unsigned flags;
+};
+
+struct remote_cpu_baseline_ret {
+    remote_nonnull_string cpu;
+};
+
+
+struct remote_domain_get_job_info_args {
+    remote_nonnull_domain dom;
+};
+
+struct remote_domain_get_job_info_ret {
+    int type;
+
+    unsigned hyper timeElapsed;
+    unsigned hyper timeRemaining;
+
+    unsigned hyper dataTotal;
+    unsigned hyper dataProcessed;
+    unsigned hyper dataRemaining;
+
+    unsigned hyper memTotal;
+    unsigned hyper memProcessed;
+    unsigned hyper memRemaining;
+
+    unsigned hyper fileTotal;
+    unsigned hyper fileProcessed;
+    unsigned hyper fileRemaining;
+};
+
+
+struct remote_domain_abort_job_args {
+    remote_nonnull_domain dom;
+};
+
+
 /*----- Protocol. -----*/
 
 /* Define the program number, protocol version and procedure numbers here. */
@@ -1641,7 +1697,13 @@ enum remote_procedure {
     REMOTE_PROC_INTERFACE_IS_ACTIVE = 156,
     REMOTE_PROC_GET_LIB_VERSION = 157,
     REMOTE_PROC_CPU_COMPARE = 158,
-    REMOTE_PROC_DOMAIN_MEMORY_STATS = 159
+    REMOTE_PROC_DOMAIN_MEMORY_STATS = 159,
+    REMOTE_PROC_DOMAIN_ATTACH_DEVICE_FLAGS = 160,
+
+    REMOTE_PROC_DOMAIN_DETACH_DEVICE_FLAGS = 161,
+    REMOTE_PROC_CPU_BASELINE = 162,
+    REMOTE_PROC_DOMAIN_GET_JOB_INFO = 163,
+    REMOTE_PROC_DOMAIN_ABORT_JOB = 164
 
     /*
      * Notice how the entries are grouped in sets of 10 ?

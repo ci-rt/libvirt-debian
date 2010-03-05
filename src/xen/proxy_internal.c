@@ -76,8 +76,8 @@ struct xenUnifiedDriver xenProxyDriver = {
     NULL, /* domainCreate */
     NULL, /* domainDefineXML */
     NULL, /* domainUndefine */
-    NULL, /* domainAttachDevice */
-    NULL, /* domainDetachDevice */
+    NULL, /* domainAttachDeviceFlags */
+    NULL, /* domainDetachDeviceFlags */
     NULL, /* domainGetAutostart */
     NULL, /* domainSetAutostart */
     NULL, /* domainGetSchedulerType */
@@ -155,7 +155,7 @@ virProxyForkServer(void)
     proxyarg[0] = proxyPath;
     proxyarg[1] = NULL;
 
-    if (virExecDaemonize(NULL, proxyarg, NULL, NULL,
+    if (virExecDaemonize(proxyarg, NULL, NULL,
                          &pid, -1, NULL, NULL, 0,
                          NULL, NULL, NULL) < 0)
         VIR_ERROR0("Failed to fork libvirt_proxy");
@@ -377,7 +377,7 @@ xenProxyCommand(virConnectPtr conn, virProxyPacketPtr request,
                                      request->len);
     if (ret < 0) {
         if (!quiet)
-            virReportSystemError(conn, errno, "%s",
+            virReportSystemError(errno, "%s",
                                  _("failed to write proxy request"));
         goto error;
     }
@@ -388,7 +388,7 @@ retry:
                                         sizeof(virProxyPacket));
         if (ret < 0) {
             if (!quiet)
-                virReportSystemError(conn, errno, "%s",
+                virReportSystemError(errno, "%s",
                                      _("failed to read proxy reply"));
             goto error;
         }
@@ -411,7 +411,7 @@ retry:
                                         sizeof(virProxyPacket));
         if (ret < 0) {
             if (!quiet)
-                virReportSystemError(conn, errno, "%s",
+                virReportSystemError(errno, "%s",
                                      _("failed to read proxy reply"));
             goto error;
         }
@@ -939,7 +939,7 @@ xenProxyGetCapabilities (virConnectPtr conn)
 
     xmllen = ans.len - sizeof (virProxyPacket);
     if (VIR_ALLOC_N(xml, xmllen+1) < 0) {
-        virReportOOMError (conn);
+        virReportOOMError();
         return NULL;
     }
     memmove (xml, ans.extra.str, xmllen);
@@ -989,7 +989,7 @@ xenProxyDomainDumpXML(virDomainPtr domain, int flags ATTRIBUTE_UNUSED)
     }
     xmllen = ans.len - sizeof(virProxyPacket);
     if (VIR_ALLOC_N(xml, xmllen+1) < 0) {
-        virReportOOMError(domain->conn);
+        virReportOOMError();
         return NULL;
     }
     memmove(xml, &ans.extra.dinfo, xmllen);
@@ -1044,7 +1044,7 @@ xenProxyDomainGetOSType(virDomainPtr domain)
     }
     oslen = ans.len - sizeof(virProxyPacket);
     if (VIR_ALLOC_N(ostype, oslen+1) < 0) {
-        virReportOOMError(domain->conn);
+        virReportOOMError();
         return NULL;
     }
     memmove(ostype, &ans.extra.dinfo, oslen);

@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Compile-time assert-like macros.
 
    Copyright (C) 2005-2006, 2009-2010 Free Software Foundation, Inc.

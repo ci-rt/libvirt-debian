@@ -74,8 +74,7 @@ static int update_caps(virNodeDeviceObjPtr dev)
 /* Under libudev changes to the driver name should be picked up as
  * "change" events, so we don't call update driver name unless we're
  * using the HAL backend. */
-static int update_driver_name(virConnectPtr conn,
-                              virNodeDeviceObjPtr dev)
+static int update_driver_name(virNodeDeviceObjPtr dev)
 {
     char *driver_link = NULL;
     char *devpath = NULL;
@@ -85,7 +84,7 @@ static int update_driver_name(virConnectPtr conn,
     VIR_FREE(dev->def->driver);
 
     if (virAsprintf(&driver_link, "%s/driver", dev->def->sysfs_path) < 0) {
-        virReportOOMError(conn);
+        virReportOOMError();
         goto cleanup;
     }
 
@@ -97,7 +96,7 @@ static int update_driver_name(virConnectPtr conn,
     }
 
     if (virFileResolveLink(driver_link, &devpath) < 0) {
-        virReportSystemError(conn, errno,
+        virReportSystemError(errno,
                              _("cannot resolve driver link %s"), driver_link);
         goto cleanup;
     }
@@ -106,7 +105,7 @@ static int update_driver_name(virConnectPtr conn,
     if (p) {
         dev->def->driver = strdup(p+1);
         if (!dev->def->driver) {
-            virReportOOMError(conn);
+            virReportOOMError();
             goto cleanup;
         }
     }
@@ -119,8 +118,7 @@ cleanup:
 }
 #else
 /* XXX: Implement me for non-linux */
-static int update_driver_name(virConnectPtr conn ATTRIBUTE_UNUSED,
-                              virNodeDeviceObjPtr dev ATTRIBUTE_UNUSED)
+static int update_driver_name(virNodeDeviceObjPtr dev ATTRIBUTE_UNUSED)
 {
     return 0;
 }
@@ -174,7 +172,7 @@ nodeListDevices(virConnectPtr conn,
             virNodeDeviceHasCap(driver->devs.objs[i], cap)) {
             if ((names[ndevs++] = strdup(driver->devs.objs[i]->def->name)) == NULL) {
                 virNodeDeviceObjUnlock(driver->devs.objs[i]);
-                virReportOOMError(conn);
+                virReportOOMError();
                 goto failure;
             }
         }
@@ -205,7 +203,7 @@ static virNodeDevicePtr nodeDeviceLookupByName(virConnectPtr conn,
     nodeDeviceUnlock(driver);
 
     if (!obj) {
-        virNodeDeviceReportError(conn, VIR_ERR_NO_NODE_DEVICE, NULL);
+        virNodeDeviceReportError(VIR_ERR_NO_NODE_DEVICE, NULL);
         goto cleanup;
     }
 
@@ -276,16 +274,16 @@ static char *nodeDeviceDumpXML(virNodeDevicePtr dev,
     nodeDeviceUnlock(driver);
 
     if (!obj) {
-        virNodeDeviceReportError(dev->conn, VIR_ERR_NO_NODE_DEVICE,
-                                _("no node device with matching name '%s'"),
+        virNodeDeviceReportError(VIR_ERR_NO_NODE_DEVICE,
+                                 _("no node device with matching name '%s'"),
                                  dev->name);
         goto cleanup;
     }
 
-    update_driver_name(dev->conn, obj);
+    update_driver_name(obj);
     update_caps(obj);
 
-    ret = virNodeDeviceDefFormat(dev->conn, obj->def);
+    ret = virNodeDeviceDefFormat(obj->def);
 
 cleanup:
     if (obj)
@@ -305,8 +303,8 @@ static char *nodeDeviceGetParent(virNodeDevicePtr dev)
     nodeDeviceUnlock(driver);
 
     if (!obj) {
-        virNodeDeviceReportError(dev->conn, VIR_ERR_NO_NODE_DEVICE,
-                                _("no node device with matching name '%s'"),
+        virNodeDeviceReportError(VIR_ERR_NO_NODE_DEVICE,
+                                 _("no node device with matching name '%s'"),
                                  dev->name);
         goto cleanup;
     }
@@ -314,9 +312,9 @@ static char *nodeDeviceGetParent(virNodeDevicePtr dev)
     if (obj->def->parent) {
         ret = strdup(obj->def->parent);
         if (!ret)
-            virReportOOMError(dev->conn);
+            virReportOOMError();
     } else {
-        virNodeDeviceReportError(dev->conn, VIR_ERR_INTERNAL_ERROR,
+        virNodeDeviceReportError(VIR_ERR_INTERNAL_ERROR,
                                  "%s", _("no parent for this device"));
     }
 
@@ -340,8 +338,8 @@ static int nodeDeviceNumOfCaps(virNodeDevicePtr dev)
     nodeDeviceUnlock(driver);
 
     if (!obj) {
-        virNodeDeviceReportError(dev->conn, VIR_ERR_NO_NODE_DEVICE,
-                                _("no node device with matching name '%s'"),
+        virNodeDeviceReportError(VIR_ERR_NO_NODE_DEVICE,
+                                 _("no node device with matching name '%s'"),
                                  dev->name);
         goto cleanup;
     }
@@ -371,8 +369,8 @@ nodeDeviceListCaps(virNodeDevicePtr dev, char **const names, int maxnames)
     nodeDeviceUnlock(driver);
 
     if (!obj) {
-        virNodeDeviceReportError(dev->conn, VIR_ERR_NO_NODE_DEVICE,
-                                _("no node device with matching name '%s'"),
+        virNodeDeviceReportError(VIR_ERR_NO_NODE_DEVICE,
+                                 _("no node device with matching name '%s'"),
                                  dev->name);
         goto cleanup;
     }
@@ -380,7 +378,7 @@ nodeDeviceListCaps(virNodeDevicePtr dev, char **const names, int maxnames)
     for (caps = obj->def->caps; caps && ncaps < maxnames; caps = caps->next) {
         names[ncaps] = strdup(virNodeDevCapTypeToString(caps->type));
         if (names[ncaps++] == NULL) {
-            virReportOOMError(dev->conn);
+            virReportOOMError();
             goto cleanup;
         }
     }
@@ -399,8 +397,7 @@ cleanup:
 
 
 static int
-nodeDeviceVportCreateDelete(virConnectPtr conn,
-                            const int parent_host,
+nodeDeviceVportCreateDelete(const int parent_host,
                             const char *wwpn,
                             const char *wwnn,
                             int operation)
@@ -417,7 +414,7 @@ nodeDeviceVportCreateDelete(virConnectPtr conn,
         operation_file = LINUX_SYSFS_VPORT_DELETE_POSTFIX;
         break;
     default:
-        virNodeDeviceReportError(conn, VIR_ERR_INTERNAL_ERROR,
+        virNodeDeviceReportError(VIR_ERR_INTERNAL_ERROR,
                                  _("Invalid vport operation (%d)"), operation);
         retval = -1;
         goto cleanup;
@@ -430,7 +427,7 @@ nodeDeviceVportCreateDelete(virConnectPtr conn,
                     parent_host,
                     operation_file) < 0) {
 
-        virReportOOMError(conn);
+        virReportOOMError();
         retval = -1;
         goto cleanup;
     }
@@ -442,13 +439,13 @@ nodeDeviceVportCreateDelete(virConnectPtr conn,
                     wwpn,
                     wwnn) < 0) {
 
-        virReportOOMError(conn);
+        virReportOOMError();
         retval = -1;
         goto cleanup;
     }
 
     if (virFileWriteStr(operation_path, vport_name) == -1) {
-        virReportSystemError(conn, errno,
+        virReportSystemError(errno,
                              _("Write of '%s' to '%s' during "
                                "vport create/delete failed"),
                              vport_name, operation_path);
@@ -464,13 +461,13 @@ cleanup:
 
 
 static int
-get_time(virConnectPtr conn, time_t *t)
+get_time(time_t *t)
 {
     int ret = 0;
 
     *t = time(NULL);
     if (*t == (time_t)-1) {
-        virNodeDeviceReportError(conn, VIR_ERR_INTERNAL_ERROR,
+        virNodeDeviceReportError(VIR_ERR_INTERNAL_ERROR,
                                  "%s", _("Could not get current time"));
 
         *t = 0;
@@ -508,11 +505,11 @@ find_new_device(virConnectPtr conn, const char *wwnn, const char *wwpn)
      * doesn't become invalid.  */
     nodeDeviceUnlock(driver);
 
-    get_time(conn, &start);
+    get_time(&start);
 
     while ((now - start) < LINUX_NEW_DEVICE_WAIT_TIME) {
 
-        virFileWaitForDevices(conn);
+        virFileWaitForDevices();
 
         dev = nodeDeviceLookupByWWN(conn, wwnn, wwpn);
 
@@ -521,7 +518,7 @@ find_new_device(virConnectPtr conn, const char *wwnn, const char *wwpn)
         }
 
         sleep(5);
-        if (get_time(conn, &now) == -1) {
+        if (get_time(&now) == -1) {
             break;
         }
     }
@@ -544,25 +541,23 @@ nodeDeviceCreateXML(virConnectPtr conn,
 
     nodeDeviceLock(driver);
 
-    def = virNodeDeviceDefParseString(conn, xmlDesc, CREATE_DEVICE);
+    def = virNodeDeviceDefParseString(xmlDesc, CREATE_DEVICE);
     if (def == NULL) {
         goto cleanup;
     }
 
-    if (virNodeDeviceGetWWNs(conn, def, &wwnn, &wwpn) == -1) {
+    if (virNodeDeviceGetWWNs(def, &wwnn, &wwpn) == -1) {
         goto cleanup;
     }
 
-    if (virNodeDeviceGetParentHost(conn,
-                                   &driver->devs,
+    if (virNodeDeviceGetParentHost(&driver->devs,
                                    def->name,
                                    def->parent,
                                    &parent_host) == -1) {
         goto cleanup;
     }
 
-    if (nodeDeviceVportCreateDelete(conn,
-                                    parent_host,
+    if (nodeDeviceVportCreateDelete(parent_host,
                                     wwpn,
                                     wwnn,
                                     VPORT_CREATE) == -1) {
@@ -574,7 +569,7 @@ nodeDeviceCreateXML(virConnectPtr conn,
      * we're returning what we get... */
 
     if (dev == NULL) {
-        virNodeDeviceReportError(conn, VIR_ERR_NO_NODE_DEVICE, NULL);
+        virNodeDeviceReportError(VIR_ERR_NO_NODE_DEVICE, NULL);
     }
 
 cleanup:
@@ -600,11 +595,11 @@ nodeDeviceDestroy(virNodeDevicePtr dev)
     nodeDeviceUnlock(driver);
 
     if (!obj) {
-        virNodeDeviceReportError(dev->conn, VIR_ERR_NO_NODE_DEVICE, NULL);
+        virNodeDeviceReportError(VIR_ERR_NO_NODE_DEVICE, NULL);
         goto out;
     }
 
-    if (virNodeDeviceGetWWNs(dev->conn, obj->def, &wwnn, &wwpn) == -1) {
+    if (virNodeDeviceGetWWNs(obj->def, &wwnn, &wwpn) == -1) {
         goto out;
     }
 
@@ -618,20 +613,18 @@ nodeDeviceDestroy(virNodeDevicePtr dev)
     obj = NULL;
 
     if (parent_name == NULL) {
-        virReportOOMError(dev->conn);
+        virReportOOMError();
         goto out;
     }
 
-    if (virNodeDeviceGetParentHost(dev->conn,
-                                   &driver->devs,
+    if (virNodeDeviceGetParentHost(&driver->devs,
                                    dev->name,
                                    parent_name,
                                    &parent_host) == -1) {
         goto out;
     }
 
-    if (nodeDeviceVportCreateDelete(dev->conn,
-                                    parent_host,
+    if (nodeDeviceVportCreateDelete(parent_host,
                                     wwpn,
                                     wwnn,
                                     VPORT_DELETE) == -1) {

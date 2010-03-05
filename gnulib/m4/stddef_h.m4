@@ -1,3 +1,5 @@
+# -*- buffer-read-only: t -*- vi: set ro:
+# DO NOT EDIT! GENERATED AUTOMATICALLY!
 dnl A placeholder for POSIX 2008 <stddef.h>, for platforms that have issues.
 # stddef_h.m4 serial 1
 dnl Copyright (C) 2009, 2010 Free Software Foundation, Inc.

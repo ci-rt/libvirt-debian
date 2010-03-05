@@ -61,6 +61,7 @@ int qemuMonitorTextSetVNCPassword(qemuMonitorPtr mon,
                                   const char *password);
 int qemuMonitorTextSetBalloon(qemuMonitorPtr mon,
                               unsigned long newmem);
+int qemuMonitorTextSetCPU(qemuMonitorPtr mon, int cpu, int online);
 
 int qemuMonitorTextEjectMedia(qemuMonitorPtr mon,
                               const char *devname);
@@ -163,7 +164,14 @@ int qemuMonitorTextGetAllPCIAddresses(qemuMonitorPtr mon,
 int qemuMonitorTextAddDevice(qemuMonitorPtr mon,
                              const char *devicestr);
 
+int qemuMonitorTextDelDevice(qemuMonitorPtr mon,
+                             const char *devicestr);
+
 int qemuMonitorTextAddDrive(qemuMonitorPtr mon,
                              const char *drivestr);
+
+int qemuMonitorTextSetDrivePassphrase(qemuMonitorPtr mon,
+                                      const char *alias,
+                                      const char *passphrase);
 
 #endif /* QEMU_MONITOR_TEXT_H */

@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* bind.c --- wrappers for Windows bind function
 
    Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.

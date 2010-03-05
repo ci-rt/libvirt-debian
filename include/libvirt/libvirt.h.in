@@ -845,8 +845,21 @@ int                     virDomainGetVcpus       (virDomainPtr domain,
  */
 #define VIR_GET_CPUMAP(cpumaps,maplen,vcpu)     &(cpumaps[(vcpu)*(maplen)])
 
+
+typedef enum {
+
+   VIR_DOMAIN_DEVICE_MODIFY_CURRENT = 0, /* Modify device allocation based on current domain state */
+   VIR_DOMAIN_DEVICE_MODIFY_LIVE = (1 << 0), /* Modify live device allocation */
+   VIR_DOMAIN_DEVICE_MODIFY_CONFIG = (1 << 1), /* Modify persisted device allocation */
+} virDomainDeviceModifyFlags;
+
 int virDomainAttachDevice(virDomainPtr domain, const char *xml);
 int virDomainDetachDevice(virDomainPtr domain, const char *xml);
+
+int virDomainAttachDeviceFlags(virDomainPtr domain,
+                               const char *xml, unsigned int flags);
+int virDomainDetachDeviceFlags(virDomainPtr domain,
+                               const char *xml, unsigned int flags);
 
 /*
  * NUMA support
@@ -1754,6 +1767,74 @@ typedef enum {
 int virConnectCompareCPU(virConnectPtr conn,
                          const char *xmlDesc,
                          unsigned int flags);
+
+
+/**
+ * virConnectBaselineCPU:
+ *
+ * @conn: virConnect connection
+ * @ncpus: number of CPUs in xmlCPUs
+ * @xmlCPUs: array of XML descriptions of host CPUs
+ * @flags: fine-tuning flags
+ *
+ * Computes the most feature-rich CPU which is compatible with all given
+ * host CPUs.
+ *
+ * Returns XML description of the computed CPU or NULL on error.
+ */
+char *virConnectBaselineCPU(virConnectPtr conn,
+                            const char **xmlCPUs,
+                            unsigned int ncpus,
+                            unsigned int flags);
+
+typedef enum {
+    VIR_DOMAIN_JOB_NONE      = 0, /* No job is active */
+    VIR_DOMAIN_JOB_BOUNDED   = 1, /* Job with a finite completion time */
+    VIR_DOMAIN_JOB_UNBOUNDED = 2, /* Job without a finite completion time */
+    VIR_DOMAIN_JOB_COMPLETED = 3, /* Job has finished, but isn't cleaned up */
+    VIR_DOMAIN_JOB_FAILED    = 4, /* Job hit error, but isn't cleaned up */
+    VIR_DOMAIN_JOB_CANCELLED = 5, /* Job was aborted, but isn't cleaned up */
+} virDomainJobType;
+
+typedef struct _virDomainJobInfo virDomainJobInfo;
+typedef virDomainJobInfo *virDomainJobInfoPtr;
+struct _virDomainJobInfo {
+    /* One of virDomainJobType */
+    int type;
+
+    /* Time is measured in mill-seconds */
+    unsigned long long timeElapsed;    /* Always set */
+    unsigned long long timeRemaining;  /* Only for VIR_DOMAIN_JOB_BOUNDED */
+
+    /* Data is measured in bytes unless otherwise specified
+     * and is measuring the job as a whole
+     *
+     * For VIR_DOMAIN_JOB_UNBOUNDED, dataTotal may be less
+     * than the final sum of dataProcessed + dataRemaining
+     * in the event that the hypervisor has to repeat some
+     * data eg due to dirtied pages during migration
+     *
+     * For VIR_DOMAIN_JOB_BOUNDED, dataTotal shall always
+     * equal sum of dataProcessed + dataRemaining
+     */
+    unsigned long long dataTotal;
+    unsigned long long dataProcessed;
+    unsigned long long dataRemaining;
+
+    /* As above, but only tracking guest memory progress */
+    unsigned long long memTotal;
+    unsigned long long memProcessed;
+    unsigned long long memRemaining;
+
+    /* As above, but only tracking guest disk file progress */
+    unsigned long long fileTotal;
+    unsigned long long fileProcessed;
+    unsigned long long fileRemaining;
+};
+
+int virDomainGetJobInfo(virDomainPtr dom,
+                        virDomainJobInfoPtr info);
+int virDomainAbortJob(virDomainPtr dom);
 
 
 #ifdef __cplusplus

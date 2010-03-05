@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Tests of areadlink and friends.
    Copyright (C) 2009, 2010 Free Software Foundation, Inc.
 

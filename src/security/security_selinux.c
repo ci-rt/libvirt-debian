@@ -103,21 +103,21 @@ err:
 }
 
 static int
-SELinuxInitialize(virConnectPtr conn)
+SELinuxInitialize(void)
 {
     char *ptr = NULL;
     int fd = 0;
 
     fd = open(selinux_virtual_domain_context_path(), O_RDONLY);
     if (fd < 0) {
-        virReportSystemError(conn, errno,
+        virReportSystemError(errno,
                              _("cannot open SELinux virtual domain context file '%s'"),
                              selinux_virtual_domain_context_path());
         return -1;
     }
 
     if (saferead(fd, default_domain_context, sizeof(default_domain_context)) < 0) {
-        virReportSystemError(conn, errno,
+        virReportSystemError(errno,
                              _("cannot read SELinux virtual domain context file %s"),
                              selinux_virtual_domain_context_path());
         close(fd);
@@ -129,14 +129,14 @@ SELinuxInitialize(virConnectPtr conn)
     *ptr = '\0';
 
     if ((fd = open(selinux_virtual_image_context_path(), O_RDONLY)) < 0) {
-        virReportSystemError(conn, errno,
+        virReportSystemError(errno,
                              _("cannot open SELinux virtual image context file %s"),
                              selinux_virtual_image_context_path());
         return -1;
     }
 
     if (saferead(fd, default_image_context, sizeof(default_image_context)) < 0) {
-        virReportSystemError(conn, errno,
+        virReportSystemError(errno,
                              _("cannot read SELinux virtual image context file %s"),
                              selinux_virtual_image_context_path());
         close(fd);
@@ -156,8 +156,7 @@ SELinuxInitialize(virConnectPtr conn)
 }
 
 static int
-SELinuxGenSecurityLabel(virConnectPtr conn,
-                        virDomainObjPtr vm)
+SELinuxGenSecurityLabel(virDomainObjPtr vm)
 {
     int rc = -1;
     char mcs[1024];
@@ -171,7 +170,7 @@ SELinuxGenSecurityLabel(virConnectPtr conn,
     if (vm->def->seclabel.label ||
         vm->def->seclabel.model ||
         vm->def->seclabel.imagelabel) {
-        virSecurityReportError(conn, VIR_ERR_INTERNAL_ERROR,
+        virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
                                "%s", _("security label already defined for VM"));
         return rc;
     }
@@ -192,19 +191,19 @@ SELinuxGenSecurityLabel(virConnectPtr conn,
 
     vm->def->seclabel.label = SELinuxGenNewContext(default_domain_context, mcs);
     if (! vm->def->seclabel.label)  {
-        virSecurityReportError(conn, VIR_ERR_INTERNAL_ERROR,
+        virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
                                _("cannot generate selinux context for %s"), mcs);
         goto err;
     }
     vm->def->seclabel.imagelabel = SELinuxGenNewContext(default_image_context, mcs);
     if (! vm->def->seclabel.imagelabel)  {
-        virSecurityReportError(conn, VIR_ERR_INTERNAL_ERROR,
+        virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
                                _("cannot generate selinux context for %s"), mcs);
         goto err;
     }
     vm->def->seclabel.model = strdup(SECURITY_SELINUX_NAME);
     if (!vm->def->seclabel.model) {
-        virReportOOMError(conn);
+        virReportOOMError();
         goto err;
     }
 
@@ -221,8 +220,7 @@ done:
 }
 
 static int
-SELinuxReserveSecurityLabel(virConnectPtr conn,
-                            virDomainObjPtr vm)
+SELinuxReserveSecurityLabel(virDomainObjPtr vm)
 {
     security_context_t pctx;
     context_t ctx = NULL;
@@ -232,7 +230,7 @@ SELinuxReserveSecurityLabel(virConnectPtr conn,
         return 0;
 
     if (getpidcon(vm->pid, &pctx) == -1) {
-        virReportSystemError(conn, errno,
+        virReportSystemError(errno,
                              _("unable to get PID %d security context"), vm->pid);
         return -1;
     }
@@ -266,32 +264,31 @@ SELinuxSecurityDriverProbe(void)
 }
 
 static int
-SELinuxSecurityDriverOpen(virConnectPtr conn, virSecurityDriverPtr drv)
+SELinuxSecurityDriverOpen(virSecurityDriverPtr drv)
 {
     /*
      * Where will the DOI come from?  SELinux configuration, or qemu
      * configuration? For the moment, we'll just set it to "0".
      */
-    virSecurityDriverSetDOI(conn, drv, SECURITY_SELINUX_VOID_DOI);
-    return SELinuxInitialize(conn);
+    virSecurityDriverSetDOI(drv, SECURITY_SELINUX_VOID_DOI);
+    return SELinuxInitialize();
 }
 
 static int
-SELinuxGetSecurityProcessLabel(virConnectPtr conn,
-                               virDomainObjPtr vm,
+SELinuxGetSecurityProcessLabel(virDomainObjPtr vm,
                                virSecurityLabelPtr sec)
 {
     security_context_t ctx;
 
     if (getpidcon(vm->pid, &ctx) == -1) {
-        virReportSystemError(conn, errno,
+        virReportSystemError(errno,
                              _("unable to get PID %d security context"),
                              vm->pid);
         return -1;
     }
 
     if (strlen((char *) ctx) >= VIR_SECURITY_LABEL_BUFLEN) {
-        virSecurityReportError(conn, VIR_ERR_INTERNAL_ERROR,
+        virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
                                _("security label exceeds "
                                  "maximum length: %d"),
                                VIR_SECURITY_LABEL_BUFLEN - 1);
@@ -303,7 +300,7 @@ SELinuxGetSecurityProcessLabel(virConnectPtr conn,
 
     sec->enforcing = security_getenforce();
     if (sec->enforcing == -1) {
-        virReportSystemError(conn, errno, "%s",
+        virReportSystemError(errno, "%s",
                              _("error calling security_getenforce()"));
         return -1;
     }
@@ -312,7 +309,7 @@ SELinuxGetSecurityProcessLabel(virConnectPtr conn,
 }
 
 static int
-SELinuxSetFilecon(virConnectPtr conn, const char *path, char *tcon)
+SELinuxSetFilecon(const char *path, char *tcon)
 {
     security_context_t econ;
 
@@ -337,7 +334,7 @@ SELinuxSetFilecon(virConnectPtr conn, const char *path, char *tcon)
          * virt_use_{nfs,usb,pci}  boolean tunables to allow it...
          */
         if (setfilecon_errno != EOPNOTSUPP) {
-            virReportSystemError(conn, setfilecon_errno,
+            virReportSystemError(setfilecon_errno,
                                  _("unable to set security context '%s' on '%s'"),
                                  tcon, path);
             if (security_getenforce() == 1)
@@ -351,8 +348,7 @@ SELinuxSetFilecon(virConnectPtr conn, const char *path, char *tcon)
 }
 
 static int
-SELinuxRestoreSecurityFileLabel(virConnectPtr conn,
-                                const char *path)
+SELinuxRestoreSecurityFileLabel(const char *path)
 {
     struct stat buf;
     security_context_t fcon = NULL;
@@ -363,7 +359,7 @@ SELinuxRestoreSecurityFileLabel(virConnectPtr conn,
     VIR_INFO("Restoring SELinux context on '%s'", path);
 
     if ((err = virFileResolveLink(path, &newpath)) < 0) {
-        virReportSystemError(conn, err,
+        virReportSystemError(err,
                              _("cannot resolve symlink %s"), path);
         goto err;
     }
@@ -372,7 +368,7 @@ SELinuxRestoreSecurityFileLabel(virConnectPtr conn,
         goto err;
 
     if (matchpathcon(newpath, buf.st_mode, &fcon) == 0)  {
-        rc = SELinuxSetFilecon(conn, newpath, fcon);
+        rc = SELinuxSetFilecon(newpath, fcon);
     }
 err:
     VIR_FREE(fcon);
@@ -381,8 +377,7 @@ err:
 }
 
 static int
-SELinuxRestoreSecurityImageLabel(virConnectPtr conn,
-                                 virDomainObjPtr vm,
+SELinuxRestoreSecurityImageLabel(virDomainObjPtr vm,
                                  virDomainDiskDefPtr disk)
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
@@ -404,12 +399,11 @@ SELinuxRestoreSecurityImageLabel(virConnectPtr conn,
     if (!disk->src)
         return 0;
 
-    return SELinuxRestoreSecurityFileLabel(conn, disk->src);
+    return SELinuxRestoreSecurityFileLabel(disk->src);
 }
 
 static int
-SELinuxSetSecurityImageLabel(virConnectPtr conn,
-                             virDomainObjPtr vm,
+SELinuxSetSecurityImageLabel(virDomainObjPtr vm,
                              virDomainDiskDefPtr disk)
 
 {
@@ -429,7 +423,7 @@ SELinuxSetSecurityImageLabel(virConnectPtr conn,
 
         memset(&meta, 0, sizeof(meta));
 
-        ret = virStorageFileGetMetadata(conn, path, &meta);
+        ret = virStorageFileGetMetadata(path, &meta);
 
         if (path != disk->src)
             VIR_FREE(path);
@@ -439,7 +433,7 @@ SELinuxSetSecurityImageLabel(virConnectPtr conn,
             return -1;
 
         if (meta.backingStore != NULL &&
-            SELinuxSetFilecon(conn, meta.backingStore,
+            SELinuxSetFilecon(meta.backingStore,
                               default_content_context) < 0) {
             VIR_FREE(meta.backingStore);
             return -1;
@@ -449,11 +443,11 @@ SELinuxSetSecurityImageLabel(virConnectPtr conn,
     } while (path != NULL);
 
     if (disk->shared) {
-        return SELinuxSetFilecon(conn, disk->src, default_image_context);
+        return SELinuxSetFilecon(disk->src, default_image_context);
     } else if (disk->readonly) {
-        return SELinuxSetFilecon(conn, disk->src, default_content_context);
+        return SELinuxSetFilecon(disk->src, default_content_context);
     } else if (secdef->imagelabel) {
-        return SELinuxSetFilecon(conn, disk->src, secdef->imagelabel);
+        return SELinuxSetFilecon(disk->src, secdef->imagelabel);
     }
 
     return 0;
@@ -461,30 +455,27 @@ SELinuxSetSecurityImageLabel(virConnectPtr conn,
 
 
 static int
-SELinuxSetSecurityPCILabel(virConnectPtr conn,
-                           pciDevice *dev ATTRIBUTE_UNUSED,
+SELinuxSetSecurityPCILabel(pciDevice *dev ATTRIBUTE_UNUSED,
                            const char *file, void *opaque)
 {
     virDomainObjPtr vm = opaque;
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
 
-    return SELinuxSetFilecon(conn, file, secdef->imagelabel);
+    return SELinuxSetFilecon(file, secdef->imagelabel);
 }
 
 static int
-SELinuxSetSecurityUSBLabel(virConnectPtr conn,
-                           usbDevice *dev ATTRIBUTE_UNUSED,
+SELinuxSetSecurityUSBLabel(usbDevice *dev ATTRIBUTE_UNUSED,
                            const char *file, void *opaque)
 {
     virDomainObjPtr vm = opaque;
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
 
-    return SELinuxSetFilecon(conn, file, secdef->imagelabel);
+    return SELinuxSetFilecon(file, secdef->imagelabel);
 }
 
 static int
-SELinuxSetSecurityHostdevLabel(virConnectPtr conn,
-                               virDomainObjPtr vm,
+SELinuxSetSecurityHostdevLabel(virDomainObjPtr vm,
                                virDomainHostdevDefPtr dev)
 
 {
@@ -499,23 +490,19 @@ SELinuxSetSecurityHostdevLabel(virConnectPtr conn,
 
     switch (dev->source.subsys.type) {
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB: {
-        usbDevice *usb = usbGetDevice(conn,
-                                      dev->source.subsys.u.usb.bus,
-                                      dev->source.subsys.u.usb.device,
-                                      dev->source.subsys.u.usb.vendor,
-                                      dev->source.subsys.u.usb.product);
+        usbDevice *usb = usbGetDevice(dev->source.subsys.u.usb.bus,
+                                      dev->source.subsys.u.usb.device);
 
         if (!usb)
             goto done;
 
-        ret = usbDeviceFileIterate(conn, usb, SELinuxSetSecurityUSBLabel, vm);
-        usbFreeDevice(conn, usb);
+        ret = usbDeviceFileIterate(usb, SELinuxSetSecurityUSBLabel, vm);
+        usbFreeDevice(usb);
         break;
     }
 
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI: {
-        pciDevice *pci = pciGetDevice(conn,
-                                      dev->source.subsys.u.pci.domain,
+        pciDevice *pci = pciGetDevice(dev->source.subsys.u.pci.domain,
                                       dev->source.subsys.u.pci.bus,
                                       dev->source.subsys.u.pci.slot,
                                       dev->source.subsys.u.pci.function);
@@ -523,8 +510,8 @@ SELinuxSetSecurityHostdevLabel(virConnectPtr conn,
         if (!pci)
             goto done;
 
-        ret = pciDeviceFileIterate(conn, pci, SELinuxSetSecurityPCILabel, vm);
-        pciFreeDevice(conn, pci);
+        ret = pciDeviceFileIterate(pci, SELinuxSetSecurityPCILabel, vm);
+        pciFreeDevice(pci);
 
         break;
     }
@@ -540,26 +527,23 @@ done:
 
 
 static int
-SELinuxRestoreSecurityPCILabel(virConnectPtr conn,
-                               pciDevice *dev ATTRIBUTE_UNUSED,
+SELinuxRestoreSecurityPCILabel(pciDevice *dev ATTRIBUTE_UNUSED,
                                const char *file,
                                void *opaque ATTRIBUTE_UNUSED)
 {
-    return SELinuxRestoreSecurityFileLabel(conn, file);
+    return SELinuxRestoreSecurityFileLabel(file);
 }
 
 static int
-SELinuxRestoreSecurityUSBLabel(virConnectPtr conn,
-                               usbDevice *dev ATTRIBUTE_UNUSED,
+SELinuxRestoreSecurityUSBLabel(usbDevice *dev ATTRIBUTE_UNUSED,
                                const char *file,
                                void *opaque ATTRIBUTE_UNUSED)
 {
-    return SELinuxRestoreSecurityFileLabel(conn, file);
+    return SELinuxRestoreSecurityFileLabel(file);
 }
 
 static int
-SELinuxRestoreSecurityHostdevLabel(virConnectPtr conn,
-                                   virDomainObjPtr vm,
+SELinuxRestoreSecurityHostdevLabel(virDomainObjPtr vm,
                                    virDomainHostdevDefPtr dev)
 
 {
@@ -574,24 +558,20 @@ SELinuxRestoreSecurityHostdevLabel(virConnectPtr conn,
 
     switch (dev->source.subsys.type) {
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB: {
-        usbDevice *usb = usbGetDevice(conn,
-                                      dev->source.subsys.u.usb.bus,
-                                      dev->source.subsys.u.usb.device,
-                                      dev->source.subsys.u.usb.vendor,
-                                      dev->source.subsys.u.usb.product);
+        usbDevice *usb = usbGetDevice(dev->source.subsys.u.usb.bus,
+                                      dev->source.subsys.u.usb.device);
 
         if (!usb)
             goto done;
 
-        ret = usbDeviceFileIterate(conn, usb, SELinuxRestoreSecurityUSBLabel, NULL);
-        usbFreeDevice(conn, usb);
+        ret = usbDeviceFileIterate(usb, SELinuxRestoreSecurityUSBLabel, NULL);
+        usbFreeDevice(usb);
 
         break;
     }
 
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI: {
-        pciDevice *pci = pciGetDevice(conn,
-                                      dev->source.subsys.u.pci.domain,
+        pciDevice *pci = pciGetDevice(dev->source.subsys.u.pci.domain,
                                       dev->source.subsys.u.pci.bus,
                                       dev->source.subsys.u.pci.slot,
                                       dev->source.subsys.u.pci.function);
@@ -599,8 +579,8 @@ SELinuxRestoreSecurityHostdevLabel(virConnectPtr conn,
         if (!pci)
             goto done;
 
-        ret = pciDeviceFileIterate(conn, pci, SELinuxRestoreSecurityPCILabel, NULL);
-        pciFreeDevice(conn, pci);
+        ret = pciDeviceFileIterate(pci, SELinuxRestoreSecurityPCILabel, NULL);
+        pciFreeDevice(pci);
 
         break;
     }
@@ -615,8 +595,7 @@ done:
 }
 
 static int
-SELinuxRestoreSecurityAllLabel(virConnectPtr conn,
-                               virDomainObjPtr vm)
+SELinuxRestoreSecurityAllLabel(virDomainObjPtr vm)
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
     int i;
@@ -628,11 +607,11 @@ SELinuxRestoreSecurityAllLabel(virConnectPtr conn,
         return 0;
 
     for (i = 0 ; i < vm->def->nhostdevs ; i++) {
-        if (SELinuxRestoreSecurityHostdevLabel(conn, vm, vm->def->hostdevs[i]) < 0)
+        if (SELinuxRestoreSecurityHostdevLabel(vm, vm->def->hostdevs[i]) < 0)
             rc = -1;
     }
     for (i = 0 ; i < vm->def->ndisks ; i++) {
-        if (SELinuxRestoreSecurityImageLabel(conn, vm,
+        if (SELinuxRestoreSecurityImageLabel(vm,
                                              vm->def->disks[i]) < 0)
             rc = -1;
     }
@@ -641,8 +620,7 @@ SELinuxRestoreSecurityAllLabel(virConnectPtr conn,
 }
 
 static int
-SELinuxReleaseSecurityLabel(virConnectPtr conn ATTRIBUTE_UNUSED,
-                            virDomainObjPtr vm)
+SELinuxReleaseSecurityLabel(virDomainObjPtr vm)
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
 
@@ -664,8 +642,7 @@ SELinuxReleaseSecurityLabel(virConnectPtr conn ATTRIBUTE_UNUSED,
 
 
 static int
-SELinuxSetSavedStateLabel(virConnectPtr conn,
-                          virDomainObjPtr vm,
+SELinuxSetSavedStateLabel(virDomainObjPtr vm,
                           const char *savefile)
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
@@ -673,13 +650,12 @@ SELinuxSetSavedStateLabel(virConnectPtr conn,
     if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
         return 0;
 
-    return SELinuxSetFilecon(conn, savefile, secdef->imagelabel);
+    return SELinuxSetFilecon(savefile, secdef->imagelabel);
 }
 
 
 static int
-SELinuxRestoreSavedStateLabel(virConnectPtr conn,
-                              virDomainObjPtr vm,
+SELinuxRestoreSavedStateLabel(virDomainObjPtr vm,
                               const char *savefile)
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
@@ -687,17 +663,17 @@ SELinuxRestoreSavedStateLabel(virConnectPtr conn,
     if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
         return 0;
 
-    return SELinuxRestoreSecurityFileLabel(conn, savefile);
+    return SELinuxRestoreSecurityFileLabel(savefile);
 }
 
 
 static int
-SELinuxSecurityVerify(virConnectPtr conn, virDomainDefPtr def)
+SELinuxSecurityVerify(virDomainDefPtr def)
 {
     const virSecurityLabelDefPtr secdef = &def->seclabel;
     if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC) {
         if (security_check_context(secdef->label) != 0) {
-            virSecurityReportError(conn, VIR_ERR_XML_ERROR,
+            virSecurityReportError(VIR_ERR_XML_ERROR,
                                    _("Invalid security label %s"), secdef->label);
             return -1;
         }
@@ -706,8 +682,7 @@ SELinuxSecurityVerify(virConnectPtr conn, virDomainDefPtr def)
 }
 
 static int
-SELinuxSetSecurityProcessLabel(virConnectPtr conn,
-                               virSecurityDriverPtr drv,
+SELinuxSetSecurityProcessLabel(virSecurityDriverPtr drv,
                                virDomainObjPtr vm)
 {
     /* TODO: verify DOI */
@@ -717,7 +692,7 @@ SELinuxSetSecurityProcessLabel(virConnectPtr conn,
         return 0;
 
     if (!STREQ(drv->name, secdef->model)) {
-        virSecurityReportError(conn, VIR_ERR_INTERNAL_ERROR,
+        virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
                                _("security label driver mismatch: "
                                  "'%s' model configured for domain, but "
                                  "hypervisor driver is '%s'."),
@@ -727,7 +702,7 @@ SELinuxSetSecurityProcessLabel(virConnectPtr conn,
     }
 
     if (setexeccon(secdef->label) == -1) {
-        virReportSystemError(conn, errno,
+        virReportSystemError(errno,
                              _("unable to set security context '%s'"),
                              secdef->label);
         if (security_getenforce() == 1)
@@ -738,8 +713,7 @@ SELinuxSetSecurityProcessLabel(virConnectPtr conn,
 }
 
 static int
-SELinuxSetSecurityAllLabel(virConnectPtr conn,
-                           virDomainObjPtr vm)
+SELinuxSetSecurityAllLabel(virDomainObjPtr vm)
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
     int i;
@@ -754,11 +728,11 @@ SELinuxSetSecurityAllLabel(virConnectPtr conn,
                      vm->def->disks[i]->src, vm->def->disks[i]->dst);
             continue;
         }
-        if (SELinuxSetSecurityImageLabel(conn, vm, vm->def->disks[i]) < 0)
+        if (SELinuxSetSecurityImageLabel(vm, vm->def->disks[i]) < 0)
             return -1;
     }
     for (i = 0 ; i < vm->def->nhostdevs ; i++) {
-        if (SELinuxSetSecurityHostdevLabel(conn, vm, vm->def->hostdevs[i]) < 0)
+        if (SELinuxSetSecurityHostdevLabel(vm, vm->def->hostdevs[i]) < 0)
             return -1;
     }
 

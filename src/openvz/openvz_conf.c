@@ -84,7 +84,7 @@ openvzExtractVersionInfo(const char *cmd, int *retversion)
     if (retversion)
         *retversion = 0;
 
-    if (virExec(NULL, vzarg, vzenv, NULL,
+    if (virExec(vzarg, vzenv, NULL,
                 &child, -1, &newstdout, NULL, VIR_EXEC_NONE) < 0)
         return -1;
 
@@ -315,7 +315,7 @@ openvzReadNetworkConf(virConnectPtr conn,
 
     return 0;
 no_memory:
-    virReportOOMError(conn);
+    virReportOOMError();
 error:
     virDomainNetDefFree(net);
     return -1;
@@ -411,7 +411,7 @@ openvzReadFSConf(virConnectPtr conn,
 
     return 0;
 no_memory:
-    virReportOOMError(conn);
+    virReportOOMError();
 error:
     virDomainFSDefFree(fs);
     return -1;
@@ -427,6 +427,7 @@ openvzFreeDriver(struct openvz_driver *driver)
 
     virDomainObjListDeinit(&driver->domains);
     virCapabilitiesFree(driver->caps);
+    VIR_FREE(driver);
 }
 
 
@@ -531,7 +532,7 @@ int openvzLoadDomains(struct openvz_driver *driver) {
     return 0;
 
  no_memory:
-    virReportOOMError(NULL);
+    virReportOOMError();
 
  cleanup:
     fclose(fp);
@@ -559,7 +560,7 @@ openvzWriteConfigParam(const char * conf_file, const char *param, const char *va
     char line[PATH_MAX] ;
 
     if (virAsprintf(&temp_file, "%s.tmp", conf_file)<0) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         return -1;
     }
 
@@ -747,7 +748,7 @@ openvzCopyDefaultConfig(int vpsid)
         goto cleanup;
 
     if (virAsprintf(&default_conf_file, "%s/ve-%s.conf-sample", confdir, configfile_value) < 0) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         goto cleanup;
     }
 
@@ -907,7 +908,11 @@ static int
 openvzSetUUID(int vpsid){
     unsigned char uuid[VIR_UUID_BUFLEN];
 
-    virUUIDGenerate(uuid);
+    if (virUUIDGenerate(uuid)) {
+        openvzError(NULL, VIR_ERR_INTERNAL_ERROR,
+                    "%s", _("Failed to generate UUID"));
+        return -1;
+    }
 
     return openvzSetDefinedUUID(vpsid, uuid);
 }
@@ -947,4 +952,40 @@ static int openvzAssignUUIDs(void)
     closedir(dp);
     VIR_FREE(conf_dir);
     return 0;
+}
+
+
+/*
+ * Return CTID from name
+ *
+ */
+
+int openvzGetVEID(const char *name) {
+    char *cmd;
+    int veid;
+    FILE *fp;
+    bool ok;
+
+    if (virAsprintf(&cmd, "%s %s -ovpsid -H", VZLIST, name) < 0) {
+        openvzError(NULL, VIR_ERR_INTERNAL_ERROR, "%s",
+                    _("virAsprintf failed"));
+        return -1;
+    }
+
+    fp = popen(cmd, "r");
+    VIR_FREE(cmd);
+
+    if (fp == NULL) {
+        openvzError(NULL, VIR_ERR_INTERNAL_ERROR, "%s", _("popen failed"));
+        return -1;
+    }
+
+    ok = fscanf(fp, "%d\n", &veid ) == 1;
+    fclose(fp);
+    if (ok && veid >= 0)
+        return veid;
+
+    openvzError(NULL, VIR_ERR_INTERNAL_ERROR,
+                "%s", _("Failed to parse vzlist output"));
+    return -1;
 }

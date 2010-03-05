@@ -1,3 +1,5 @@
+# -*- buffer-read-only: t -*- vi: set ro:
+# DO NOT EDIT! GENERATED AUTOMATICALLY!
 # memchr.m4 serial 7
 dnl Copyright (C) 2002-2004, 2009-2010 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
