@@ -140,17 +140,17 @@ xenDomainUsedCpus(virDomainPtr dom)
         return(NULL);
 
     if (VIR_ALLOC_N(cpulist, priv->nbNodeCpus) < 0) {
-        virReportOOMError(dom->conn);
+        virReportOOMError();
         goto done;
     }
     if (VIR_ALLOC_N(cpuinfo, nb_vcpu) < 0) {
-        virReportOOMError(dom->conn);
+        virReportOOMError();
         goto done;
     }
     cpumaplen = VIR_CPU_MAPLEN(VIR_NODEINFO_MAXCPUS(nodeinfo));
     if (xalloc_oversized(nb_vcpu, cpumaplen) ||
         VIR_ALLOC_N(cpumap, nb_vcpu * cpumaplen) < 0) {
-        virReportOOMError(dom->conn);
+        virReportOOMError();
         goto done;
     }
 
@@ -169,7 +169,7 @@ xenDomainUsedCpus(virDomainPtr dom)
                 }
             }
         }
-        res = virDomainCpuSetFormat(dom->conn, cpulist, priv->nbNodeCpus);
+        res = virDomainCpuSetFormat(cpulist, priv->nbNodeCpus);
     }
 
 done:
@@ -246,7 +246,7 @@ xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, int flags)
 
         conn->uri = xmlParseURI("xen:///");
         if (!conn->uri) {
-            virReportOOMError (NULL);
+            virReportOOMError();
             return VIR_DRV_OPEN_ERROR;
         }
     } else {
@@ -292,7 +292,7 @@ xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, int flags)
 
     /* Allocate per-connection private data. */
     if (VIR_ALLOC(priv) < 0) {
-        virReportOOMError (NULL);
+        virReportOOMError();
         return VIR_DRV_OPEN_ERROR;
     }
     if (virMutexInit(&priv->lock) < 0) {
@@ -304,7 +304,7 @@ xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, int flags)
 
     /* Allocate callback list */
     if (VIR_ALLOC(cbList) < 0) {
-        virReportOOMError (NULL);
+        virReportOOMError();
         virMutexDestroy(&priv->lock);
         VIR_FREE(priv);
         return VIR_DRV_OPEN_ERROR;
@@ -546,7 +546,7 @@ xenUnifiedGetCapabilities (virConnectPtr conn)
     char *xml;
 
     if (!(xml = virCapabilitiesFormatXML(priv->caps))) {
-        virReportOOMError(conn);
+        virReportOOMError();
         return NULL;
     }
 
@@ -816,7 +816,7 @@ xenUnifiedDomainisPersistent(virDomainPtr dom)
 
                     virUUIDFormat(dom->uuid, uuidstr);
                     if (virAsprintf(&path, "%s/%s", XEND_DOMAINS_DIR, uuidstr) < 0) {
-                        virReportOOMError(NULL);
+                        virReportOOMError();
                         goto done;
                     }
                     if (access(path, R_OK) == 0)
@@ -1195,7 +1195,7 @@ xenUnifiedDomainXMLFromNative(virConnectPtr conn,
     if (!def)
         goto cleanup;
 
-    ret = virDomainDefFormat(conn, def, 0);
+    ret = virDomainDefFormat(def, 0);
 
 cleanup:
     virDomainDefFree(def);
@@ -1224,8 +1224,7 @@ xenUnifiedDomainXMLToNative(virConnectPtr conn,
         goto cleanup;
     }
 
-    if (!(def = virDomainDefParseString(conn,
-                                        priv->caps,
+    if (!(def = virDomainDefParseString(priv->caps,
                                         xmlData,
                                         0)))
         goto cleanup;
@@ -1237,7 +1236,7 @@ xenUnifiedDomainXMLToNative(virConnectPtr conn,
             goto cleanup;
 
         if (VIR_ALLOC_N(ret, len) < 0) {
-            virReportOOMError(conn);
+            virReportOOMError();
             goto cleanup;
         }
 
@@ -1428,10 +1427,29 @@ xenUnifiedDomainAttachDevice (virDomainPtr dom, const char *xml)
 {
     GET_PRIVATE(dom->conn);
     int i;
+    unsigned int flags = VIR_DOMAIN_DEVICE_MODIFY_CONFIG;
+
+    if (dom->id >= 0)
+        flags |= VIR_DOMAIN_DEVICE_MODIFY_LIVE;
 
     for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
-        if (priv->opened[i] && drivers[i]->domainAttachDevice &&
-            drivers[i]->domainAttachDevice (dom, xml) == 0)
+        if (priv->opened[i] && drivers[i]->domainAttachDeviceFlags &&
+            drivers[i]->domainAttachDeviceFlags(dom, xml, flags) == 0)
+            return 0;
+
+    return -1;
+}
+
+static int
+xenUnifiedDomainAttachDeviceFlags (virDomainPtr dom, const char *xml,
+                                   unsigned int flags)
+{
+    GET_PRIVATE(dom->conn);
+    int i;
+
+    for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
+        if (priv->opened[i] && drivers[i]->domainAttachDeviceFlags &&
+            drivers[i]->domainAttachDeviceFlags(dom, xml, flags) == 0)
             return 0;
 
     return -1;
@@ -1442,10 +1460,29 @@ xenUnifiedDomainDetachDevice (virDomainPtr dom, const char *xml)
 {
     GET_PRIVATE(dom->conn);
     int i;
+    unsigned int flags = VIR_DOMAIN_DEVICE_MODIFY_CONFIG;
+
+    if (dom->id >= 0)
+        flags |= VIR_DOMAIN_DEVICE_MODIFY_LIVE;
 
     for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
-        if (priv->opened[i] && drivers[i]->domainDetachDevice &&
-            drivers[i]->domainDetachDevice (dom, xml) == 0)
+        if (priv->opened[i] && drivers[i]->domainDetachDeviceFlags &&
+            drivers[i]->domainDetachDeviceFlags(dom, xml, flags) == 0)
+            return 0;
+
+    return -1;
+}
+
+static int
+xenUnifiedDomainDetachDeviceFlags (virDomainPtr dom, const char *xml,
+                                   unsigned int flags)
+{
+    GET_PRIVATE(dom->conn);
+    int i;
+
+    for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
+        if (priv->opened[i] && drivers[i]->domainDetachDeviceFlags &&
+            drivers[i]->domainDetachDeviceFlags(dom, xml, flags) == 0)
             return 0;
 
     return -1;
@@ -1685,7 +1722,7 @@ xenUnifiedNodeDeviceGetPciInfo (virNodeDevicePtr dev,
     if (!xml)
         goto out;
 
-    def = virNodeDeviceDefParseString(dev->conn, xml, EXISTING_DEVICE);
+    def = virNodeDeviceDefParseString(xml, EXISTING_DEVICE);
     if (!def)
         goto out;
 
@@ -1725,16 +1762,16 @@ xenUnifiedNodeDeviceDettach (virNodeDevicePtr dev)
     if (xenUnifiedNodeDeviceGetPciInfo(dev, &domain, &bus, &slot, &function) < 0)
         return -1;
 
-    pci = pciGetDevice(dev->conn, domain, bus, slot, function);
+    pci = pciGetDevice(domain, bus, slot, function);
     if (!pci)
         return -1;
 
-    if (pciDettachDevice(dev->conn, pci) < 0)
+    if (pciDettachDevice(pci) < 0)
         goto out;
 
     ret = 0;
 out:
-    pciFreeDevice(dev->conn, pci);
+    pciFreeDevice(pci);
     return ret;
 }
 
@@ -1748,16 +1785,16 @@ xenUnifiedNodeDeviceReAttach (virNodeDevicePtr dev)
     if (xenUnifiedNodeDeviceGetPciInfo(dev, &domain, &bus, &slot, &function) < 0)
         return -1;
 
-    pci = pciGetDevice(dev->conn, domain, bus, slot, function);
+    pci = pciGetDevice(domain, bus, slot, function);
     if (!pci)
         return -1;
 
-    if (pciReAttachDevice(dev->conn, pci) < 0)
+    if (pciReAttachDevice(pci) < 0)
         goto out;
 
     ret = 0;
 out:
-    pciFreeDevice(dev->conn, pci);
+    pciFreeDevice(pci);
     return ret;
 }
 
@@ -1771,16 +1808,16 @@ xenUnifiedNodeDeviceReset (virNodeDevicePtr dev)
     if (xenUnifiedNodeDeviceGetPciInfo(dev, &domain, &bus, &slot, &function) < 0)
         return -1;
 
-    pci = pciGetDevice(dev->conn, domain, bus, slot, function);
+    pci = pciGetDevice(domain, bus, slot, function);
     if (!pci)
         return -1;
 
-    if (pciResetDevice(dev->conn, pci, NULL) < 0)
+    if (pciResetDevice(pci, NULL) < 0)
         goto out;
 
     ret = 0;
 out:
-    pciFreeDevice(dev->conn, pci);
+    pciFreeDevice(pci);
     return ret;
 }
 
@@ -1835,7 +1872,9 @@ static virDriver xenUnifiedDriver = {
     xenUnifiedDomainDefineXML, /* domainDefineXML */
     xenUnifiedDomainUndefine, /* domainUndefine */
     xenUnifiedDomainAttachDevice, /* domainAttachDevice */
+    xenUnifiedDomainAttachDeviceFlags, /* domainAttachDeviceFlags */
     xenUnifiedDomainDetachDevice, /* domainDetachDevice */
+    xenUnifiedDomainDetachDeviceFlags, /* domainDetachDeviceFlags */
     xenUnifiedDomainGetAutostart, /* domainGetAutostart */
     xenUnifiedDomainSetAutostart, /* domainSetAutostart */
     xenUnifiedDomainGetSchedulerType, /* domainGetSchedulerType */
@@ -1864,6 +1903,9 @@ static virDriver xenUnifiedDriver = {
     xenUnifiedDomainIsActive,
     xenUnifiedDomainisPersistent,
     NULL, /* cpuCompare */
+    NULL, /* cpuBaseline */
+    NULL, /* domainGetJobInfo */
+    NULL, /* domainAbortJob */
 };
 
 /**
@@ -1948,7 +1990,7 @@ xenUnifiedAddDomainInfo(xenUnifiedDomainInfoListPtr list,
     list->count++;
     return 0;
 memory_error:
-    virReportOOMError (NULL);
+    virReportOOMError();
     if (info)
         VIR_FREE(info->name);
     VIR_FREE(info);

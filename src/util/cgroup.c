@@ -183,6 +183,7 @@ static int virCgroupDetectPlacement(virCgroupPtr group)
     return 0;
 
 no_memory:
+    fclose(mapping);
     return -ENOMEM;
 
 }
@@ -432,6 +433,7 @@ static int virCgroupCpuSetInherit(virCgroupPtr parent, virCgroupPtr group)
                                   VIR_CGROUP_CONTROLLER_CPUSET,
                                   inherit_values[i],
                                   value);
+        VIR_FREE(value);
 
         if (rc != 0) {
             VIR_ERROR("Failed to set %s %d", inherit_values[i], rc);
@@ -517,7 +519,8 @@ err:
 }
 
 static int virCgroupAppRoot(int privileged,
-                            virCgroupPtr *group)
+                            virCgroupPtr *group,
+                            int create)
 {
     virCgroupPtr rootgrp = NULL;
     int rc;
@@ -531,7 +534,7 @@ static int virCgroupAppRoot(int privileged,
     } else {
         char *rootname;
         char *username;
-        username = virGetUserName(NULL, getuid());
+        username = virGetUserName(getuid());
         if (!username) {
             rc = -ENOMEM;
             goto cleanup;
@@ -549,7 +552,7 @@ static int virCgroupAppRoot(int privileged,
     if (rc != 0)
         goto cleanup;
 
-    rc = virCgroupMakeGroup(rootgrp, *group, 1);
+    rc = virCgroupMakeGroup(rootgrp, *group, create);
 
 cleanup:
     virCgroupFree(&rootgrp);
@@ -636,7 +639,7 @@ int virCgroupForDriver(const char *name,
     char *path = NULL;
     virCgroupPtr rootgrp = NULL;
 
-    rc = virCgroupAppRoot(privileged, &rootgrp);
+    rc = virCgroupAppRoot(privileged, &rootgrp, create);
     if (rc != 0)
         goto out;
 

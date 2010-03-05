@@ -1,3 +1,5 @@
+# -*- buffer-read-only: t -*- vi: set ro:
+# DO NOT EDIT! GENERATED AUTOMATICALLY!
 # onceonly.m4 serial 6
 dnl Copyright (C) 2002-2003, 2005-2006, 2008-2010 Free Software Foundation,
 dnl Inc.

@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* intprops.h -- properties of integer types
 
    Copyright (C) 2001, 2002, 2003, 2004, 2005, 2009, 2010 Free Software

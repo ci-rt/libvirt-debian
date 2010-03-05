@@ -1,3 +1,5 @@
+# -*- buffer-read-only: t -*- vi: set ro:
+# DO NOT EDIT! GENERATED AUTOMATICALLY!
 ## DO NOT EDIT! GENERATED AUTOMATICALLY!
 ## Process this file with automake to produce Makefile.in.
 # Copyright (C) 2002-2010 Free Software Foundation, Inc.
@@ -42,6 +44,8 @@ libtests_a_LIBADD = $(gltests_LIBOBJS)
 libtests_a_DEPENDENCIES = $(gltests_LIBOBJS)
 EXTRA_libtests_a_SOURCES =
 AM_LIBTOOLFLAGS = --preserve-dup-deps
+
+TESTS_ENVIRONMENT += EXEEXT='@EXEEXT@' srcdir='$(srcdir)'
 
 ## begin gnulib module accept
 
@@ -136,6 +140,14 @@ EXTRA_DIST += test-c-ctype.c macros.h
 
 ## end   gnulib module c-ctype-tests
 
+## begin gnulib module canonicalize-lgpl-tests
+
+TESTS += test-canonicalize-lgpl
+check_PROGRAMS += test-canonicalize-lgpl
+EXTRA_DIST += test-canonicalize-lgpl.c signature.h macros.h
+
+## end   gnulib module canonicalize-lgpl-tests
+
 ## begin gnulib module errno-tests
 
 TESTS += test-errno
@@ -148,7 +160,6 @@ EXTRA_DIST += test-errno.c
 ## begin gnulib module fseeko-tests
 
 TESTS += test-fseeko.sh test-fseeko2.sh
-TESTS_ENVIRONMENT += EXEEXT='@EXEEXT@' srcdir='$(srcdir)'
 check_PROGRAMS += test-fseeko
 EXTRA_DIST += test-fseeko.c test-fseeko.sh test-fseeko2.sh signature.h macros.h
 
@@ -217,30 +228,6 @@ EXTRA_DIST += test-inet_pton.c signature.h macros.h
 
 ## end   gnulib module inet_pton-tests
 
-## begin gnulib module link-warning
-
-# The BUILT_SOURCES created by this Makefile snippet are not used via #include
-# statements but through direct file reference. Therefore this snippet must be
-# present in all Makefile.am that need it. This is ensured by the applicability
-# 'all' defined above.
-
-BUILT_SOURCES += link-warning.h
-# The link-warning.h that gets inserted into generated .h files is the same as
-# build-aux/link-warning.h, except that it has the copyright header cut off.
-link-warning.h: $(top_srcdir)/build-aux/link-warning.h
-	$(AM_V_GEN)rm -f $@-t $@ && \
-	sed -n -e '/GL_LINK_WARNING/,$$p' \
-	  < $(top_srcdir)/build-aux/link-warning.h \
-	  > $@-t && \
-	mv $@-t $@
-MOSTLYCLEANFILES += link-warning.h link-warning.h-t
-
-LINK_WARNING_H=link-warning.h
-
-EXTRA_DIST += $(top_srcdir)/build-aux/link-warning.h
-
-## end   gnulib module link-warning
-
 ## begin gnulib module listen
 
 
@@ -253,7 +240,6 @@ EXTRA_libtests_a_SOURCES += listen.c
 ## begin gnulib module lseek-tests
 
 TESTS += test-lseek.sh
-TESTS_ENVIRONMENT += EXEEXT='@EXEEXT@' srcdir='$(srcdir)'
 check_PROGRAMS += test-lseek
 EXTRA_DIST += test-lseek.c test-lseek.sh signature.h macros.h
 
@@ -266,6 +252,15 @@ check_PROGRAMS += test-lstat
 EXTRA_DIST += test-lstat.h test-lstat.c signature.h macros.h
 
 ## end   gnulib module lstat-tests
+
+## begin gnulib module malloca-tests
+
+TESTS += test-malloca
+check_PROGRAMS += test-malloca
+
+EXTRA_DIST += test-malloca.c
+
+## end   gnulib module malloca-tests
 
 ## begin gnulib module memchr-tests
 
@@ -291,17 +286,9 @@ EXTRA_DIST += test-netinet_in.c
 
 ## end   gnulib module netinet_in-tests
 
-## begin gnulib module pathmax
-
-
-EXTRA_DIST += pathmax.h
-
-## end   gnulib module pathmax
-
 ## begin gnulib module perror-tests
 
 TESTS += test-perror.sh
-TESTS_ENVIRONMENT += EXEEXT='@EXEEXT@' srcdir='$(srcdir)'
 check_PROGRAMS += test-perror
 EXTRA_DIST += signature.h test-perror.c test-perror.sh
 
@@ -351,7 +338,6 @@ EXTRA_DIST += same-inode.h
 
 TESTS += test-select test-select-in.sh test-select-out.sh
 # test-select-stdin has to be run by hand.
-TESTS_ENVIRONMENT += EXEEXT='@EXEEXT@'
 check_PROGRAMS += test-select test-select-fd test-select-stdin
 test_select_LDADD = $(LDADD) @LIBSOCKET@ $(INET_PTON_LIB)
 test_select_fd_LDADD = $(LDADD) @LIBSOCKET@

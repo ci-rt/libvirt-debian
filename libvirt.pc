@@ -4,8 +4,8 @@ libdir=${exec_prefix}/lib
 includedir=${prefix}/include
 
 Name: libvirt
-Version: 0.7.6
+Version: 0.7.7
 Description: libvirt library
 Requires:
-Libs: -L${libdir} -lvirt -lpthread 
+Libs: -L${libdir} -lvirt -ldl -lpthread 
 Cflags: -I${includedir}

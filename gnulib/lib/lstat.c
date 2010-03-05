@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Work around a bug of lstat on some systems
 
    Copyright (C) 1997-2006, 2008-2010 Free Software Foundation, Inc.

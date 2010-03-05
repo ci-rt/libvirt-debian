@@ -49,10 +49,10 @@ static int testCompareXMLToArgvFiles(const char *xml,
     if (virtTestLoadFile(xml, &expectxml, MAX_FILE) < 0)
         goto fail;
 
-    if (!(vmdef = qemuParseCommandLineString(NULL, driver.caps, cmd)))
+    if (!(vmdef = qemuParseCommandLineString(driver.caps, cmd)))
         goto fail;
 
-    if (!(actualxml = virDomainDefFormat(NULL, vmdef, 0)))
+    if (!(actualxml = virDomainDefFormat(vmdef, 0)))
         goto fail;
 
     if (blankProblemElements(expectxml) < 0 ||
@@ -75,7 +75,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
 
 struct testInfo {
     const char *name;
-    int extraFlags;
+    unsigned long long extraFlags;
     const char *migrateFrom;
 };
 

@@ -15,6 +15,8 @@
 
 @SET_MAKE@
 
+# -*- buffer-read-only: t -*- vi: set ro:
+# DO NOT EDIT! GENERATED AUTOMATICALLY!
 # Copyright (C) 2002-2010 Free Software Foundation, Inc.
 #
 # This file is free software, distributed under the terms of the GNU
@@ -48,24 +50,25 @@ build_triplet = @build@
 host_triplet = @host@
 TESTS = test-alignof$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-areadlink$(EXEEXT) test-arpa_inet$(EXEEXT) \
-	test-base64$(EXEEXT) test-c-ctype$(EXEEXT) test-errno$(EXEEXT) \
+	test-base64$(EXEEXT) test-c-ctype$(EXEEXT) \
+	test-canonicalize-lgpl$(EXEEXT) test-errno$(EXEEXT) \
 	test-fseeko.sh test-fseeko2.sh test-getaddrinfo$(EXEEXT) \
 	test-getdelim$(EXEEXT) test-gethostname$(EXEEXT) \
 	test-getline$(EXEEXT) test-gettimeofday$(EXEEXT) \
 	test-inet_ntop$(EXEEXT) test-inet_pton$(EXEEXT) test-lseek.sh \
-	test-lstat$(EXEEXT) test-memchr$(EXEEXT) test-netdb$(EXEEXT) \
-	test-netinet_in$(EXEEXT) test-perror.sh test-poll$(EXEEXT) \
-	test-random_r$(EXEEXT) test-rawmemchr$(EXEEXT) \
-	test-readlink$(EXEEXT) test-select$(EXEEXT) test-select-in.sh \
-	test-select-out.sh test-snprintf$(EXEEXT) \
-	test-sockets$(EXEEXT) test-stat$(EXEEXT) test-stdbool$(EXEEXT) \
-	test-stddef$(EXEEXT) test-stdint$(EXEEXT) test-stdio$(EXEEXT) \
-	test-stdlib$(EXEEXT) test-strchrnul$(EXEEXT) \
-	test-strerror$(EXEEXT) test-string$(EXEEXT) \
-	test-symlink$(EXEEXT) test-sys_ioctl$(EXEEXT) \
-	test-sys_select$(EXEEXT) test-sys_socket$(EXEEXT) \
-	test-sys_stat$(EXEEXT) test-sys_time$(EXEEXT) \
-	test-time$(EXEEXT) test-unistd$(EXEEXT) \
+	test-lstat$(EXEEXT) test-malloca$(EXEEXT) test-memchr$(EXEEXT) \
+	test-netdb$(EXEEXT) test-netinet_in$(EXEEXT) test-perror.sh \
+	test-poll$(EXEEXT) test-random_r$(EXEEXT) \
+	test-rawmemchr$(EXEEXT) test-readlink$(EXEEXT) \
+	test-select$(EXEEXT) test-select-in.sh test-select-out.sh \
+	test-snprintf$(EXEEXT) test-sockets$(EXEEXT) \
+	test-stat$(EXEEXT) test-stdbool$(EXEEXT) test-stddef$(EXEEXT) \
+	test-stdint$(EXEEXT) test-stdio$(EXEEXT) test-stdlib$(EXEEXT) \
+	test-strchrnul$(EXEEXT) test-strerror$(EXEEXT) \
+	test-string$(EXEEXT) test-symlink$(EXEEXT) \
+	test-sys_ioctl$(EXEEXT) test-sys_select$(EXEEXT) \
+	test-sys_socket$(EXEEXT) test-sys_stat$(EXEEXT) \
+	test-sys_time$(EXEEXT) test-time$(EXEEXT) test-unistd$(EXEEXT) \
 	test-vasnprintf$(EXEEXT) test-vasprintf$(EXEEXT) \
 	test-vc-list-files-git.sh test-vc-list-files-cvs.sh \
 	test-wchar$(EXEEXT)
@@ -73,14 +76,16 @@ XFAIL_TESTS =
 noinst_PROGRAMS =
 check_PROGRAMS = test-alignof$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-areadlink$(EXEEXT) test-arpa_inet$(EXEEXT) \
-	test-base64$(EXEEXT) test-c-ctype$(EXEEXT) test-errno$(EXEEXT) \
+	test-base64$(EXEEXT) test-c-ctype$(EXEEXT) \
+	test-canonicalize-lgpl$(EXEEXT) test-errno$(EXEEXT) \
 	test-fseeko$(EXEEXT) test-getaddrinfo$(EXEEXT) \
 	test-getdelim$(EXEEXT) test-gethostname$(EXEEXT) \
 	test-getline$(EXEEXT) test-gettimeofday$(EXEEXT) \
 	test-inet_ntop$(EXEEXT) test-inet_pton$(EXEEXT) \
-	test-lseek$(EXEEXT) test-lstat$(EXEEXT) test-memchr$(EXEEXT) \
-	test-netdb$(EXEEXT) test-netinet_in$(EXEEXT) \
-	test-perror$(EXEEXT) test-poll$(EXEEXT) test-random_r$(EXEEXT) \
+	test-lseek$(EXEEXT) test-lstat$(EXEEXT) test-malloca$(EXEEXT) \
+	test-memchr$(EXEEXT) test-netdb$(EXEEXT) \
+	test-netinet_in$(EXEEXT) test-perror$(EXEEXT) \
+	test-poll$(EXEEXT) test-random_r$(EXEEXT) \
 	test-rawmemchr$(EXEEXT) test-readlink$(EXEEXT) \
 	test-select$(EXEEXT) test-select-fd$(EXEEXT) \
 	test-select-stdin$(EXEEXT) test-snprintf$(EXEEXT) \
@@ -102,8 +107,12 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/arpa_inet_h.m4 \
 	$(top_srcdir)/gnulib/m4/base64.m4 \
+	$(top_srcdir)/gnulib/m4/canonicalize.m4 \
 	$(top_srcdir)/gnulib/m4/close.m4 \
+	$(top_srcdir)/gnulib/m4/dirname.m4 \
 	$(top_srcdir)/gnulib/m4/dos.m4 \
+	$(top_srcdir)/gnulib/m4/double-slash-root.m4 \
+	$(top_srcdir)/gnulib/m4/eealloc.m4 \
 	$(top_srcdir)/gnulib/m4/errno_h.m4 \
 	$(top_srcdir)/gnulib/m4/extensions.m4 \
 	$(top_srcdir)/gnulib/m4/fclose.m4 \
@@ -127,6 +136,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/lseek.m4 \
 	$(top_srcdir)/gnulib/m4/lstat.m4 \
 	$(top_srcdir)/gnulib/m4/malloc.m4 \
+	$(top_srcdir)/gnulib/m4/malloca.m4 \
 	$(top_srcdir)/gnulib/m4/memchr.m4 \
 	$(top_srcdir)/gnulib/m4/mkstemp.m4 \
 	$(top_srcdir)/gnulib/m4/mmap-anon.m4 \
@@ -243,6 +253,11 @@ test_c_ctype_OBJECTS = test-c-ctype.$(OBJEXT)
 test_c_ctype_LDADD = $(LDADD)
 test_c_ctype_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
 	libtests.a $(am__DEPENDENCIES_1)
+test_canonicalize_lgpl_SOURCES = test-canonicalize-lgpl.c
+test_canonicalize_lgpl_OBJECTS = test-canonicalize-lgpl.$(OBJEXT)
+test_canonicalize_lgpl_LDADD = $(LDADD)
+test_canonicalize_lgpl_DEPENDENCIES = libtests.a \
+	../../gnulib/lib/libgnu.la libtests.a $(am__DEPENDENCIES_1)
 test_errno_SOURCES = test-errno.c
 test_errno_OBJECTS = test-errno.$(OBJEXT)
 test_errno_LDADD = $(LDADD)
@@ -291,6 +306,11 @@ test_lstat_SOURCES = test-lstat.c
 test_lstat_OBJECTS = test-lstat.$(OBJEXT)
 test_lstat_LDADD = $(LDADD)
 test_lstat_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
+test_malloca_SOURCES = test-malloca.c
+test_malloca_OBJECTS = test-malloca.$(OBJEXT)
+test_malloca_LDADD = $(LDADD)
+test_malloca_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
 	libtests.a $(am__DEPENDENCIES_1)
 test_memchr_SOURCES = test-memchr.c
 test_memchr_OBJECTS = test-memchr.$(OBJEXT)
@@ -472,10 +492,11 @@ am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
 am__v_GEN_0 = @echo "  GEN   " $@;
 SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-alignof.c test-alloca-opt.c test-areadlink.c \
-	test-arpa_inet.c test-base64.c test-c-ctype.c test-errno.c \
-	test-fseeko.c test-getaddrinfo.c test-getdelim.c \
-	test-gethostname.c test-getline.c test-gettimeofday.c \
-	test-inet_ntop.c test-inet_pton.c test-lseek.c test-lstat.c \
+	test-arpa_inet.c test-base64.c test-c-ctype.c \
+	test-canonicalize-lgpl.c test-errno.c test-fseeko.c \
+	test-getaddrinfo.c test-getdelim.c test-gethostname.c \
+	test-getline.c test-gettimeofday.c test-inet_ntop.c \
+	test-inet_pton.c test-lseek.c test-lstat.c test-malloca.c \
 	test-memchr.c test-netdb.c test-netinet_in.c test-perror.c \
 	test-poll.c test-random_r.c test-rawmemchr.c test-readlink.c \
 	test-select.c test-select-fd.c test-select-stdin.c \
@@ -487,10 +508,11 @@ SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-vasnprintf.c test-vasprintf.c test-wchar.c
 DIST_SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-alignof.c test-alloca-opt.c test-areadlink.c \
-	test-arpa_inet.c test-base64.c test-c-ctype.c test-errno.c \
-	test-fseeko.c test-getaddrinfo.c test-getdelim.c \
-	test-gethostname.c test-getline.c test-gettimeofday.c \
-	test-inet_ntop.c test-inet_pton.c test-lseek.c test-lstat.c \
+	test-arpa_inet.c test-base64.c test-c-ctype.c \
+	test-canonicalize-lgpl.c test-errno.c test-fseeko.c \
+	test-getaddrinfo.c test-getdelim.c test-gethostname.c \
+	test-getline.c test-gettimeofday.c test-inet_ntop.c \
+	test-inet_pton.c test-lseek.c test-lstat.c test-malloca.c \
 	test-memchr.c test-netdb.c test-netinet_in.c test-perror.c \
 	test-poll.c test-random_r.c test-rawmemchr.c test-readlink.c \
 	test-select.c test-select-fd.c test-select-stdin.c \
@@ -573,6 +595,7 @@ CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
 COMPILER_FLAGS = @COMPILER_FLAGS@
+CONFIG_INCLUDE = @CONFIG_INCLUDE@
 COVERAGE_CFLAGS = @COVERAGE_CFLAGS@
 COVERAGE_LDFLAGS = @COVERAGE_LDFLAGS@
 CPP = @CPP@
@@ -586,9 +609,10 @@ DEPDIR = @DEPDIR@
 DEVMAPPER_CFLAGS = @DEVMAPPER_CFLAGS@
 DEVMAPPER_LIBS = @DEVMAPPER_LIBS@
 DLLTOOL = @DLLTOOL@
+DLOPEN_LIBS = @DLOPEN_LIBS@
 DNSMASQ = @DNSMASQ@
-DRIVER_MODULES_CFLAGS = @DRIVER_MODULES_CFLAGS@
-DRIVER_MODULES_LIBS = @DRIVER_MODULES_LIBS@
+DRIVER_MODULE_CFLAGS = @DRIVER_MODULE_CFLAGS@
+DRIVER_MODULE_LIBS = @DRIVER_MODULE_LIBS@
 DSYMUTIL = @DSYMUTIL@
 DUMPBIN = @DUMPBIN@
 EBTABLES_PATH = @EBTABLES_PATH@
@@ -662,6 +686,7 @@ GNULIB_GETPEERNAME = @GNULIB_GETPEERNAME@
 GNULIB_GETSOCKNAME = @GNULIB_GETSOCKNAME@
 GNULIB_GETSOCKOPT = @GNULIB_GETSOCKOPT@
 GNULIB_GETSUBOPT = @GNULIB_GETSUBOPT@
+GNULIB_GETTIMEOFDAY = @GNULIB_GETTIMEOFDAY@
 GNULIB_GETUSERSHELL = @GNULIB_GETUSERSHELL@
 GNULIB_INET_NTOP = @GNULIB_INET_NTOP@
 GNULIB_INET_PTON = @GNULIB_INET_PTON@
@@ -839,6 +864,7 @@ HAVE_GETHOSTNAME = @HAVE_GETHOSTNAME@
 HAVE_GETLOGIN = @HAVE_GETLOGIN@
 HAVE_GETPAGESIZE = @HAVE_GETPAGESIZE@
 HAVE_GETSUBOPT = @HAVE_GETSUBOPT@
+HAVE_GETTIMEOFDAY = @HAVE_GETTIMEOFDAY@
 HAVE_GETUSERSHELL = @HAVE_GETUSERSHELL@
 HAVE_INTTYPES_H = @HAVE_INTTYPES_H@
 HAVE_LCHMOD = @HAVE_LCHMOD@
@@ -1088,6 +1114,7 @@ REPLACE_FTELL = @REPLACE_FTELL@
 REPLACE_FTELLO = @REPLACE_FTELLO@
 REPLACE_FUTIMENS = @REPLACE_FUTIMENS@
 REPLACE_GETCWD = @REPLACE_GETCWD@
+REPLACE_GETDELIM = @REPLACE_GETDELIM@
 REPLACE_GETGROUPS = @REPLACE_GETGROUPS@
 REPLACE_GETLINE = @REPLACE_GETLINE@
 REPLACE_GETPAGESIZE = @REPLACE_GETPAGESIZE@
@@ -1181,7 +1208,6 @@ STRIP = @STRIP@
 SYS_IOCTL_H_HAVE_WINSOCK2_H = @SYS_IOCTL_H_HAVE_WINSOCK2_H@
 SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS = @SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS@
 SYS_SOCKET_H = @SYS_SOCKET_H@
-SYS_TIME_H = @SYS_TIME_H@
 SYS_TIME_H_DEFINES_STRUCT_TIMESPEC = @SYS_TIME_H_DEFINES_STRUCT_TIMESPEC@
 TAR = @TAR@
 TIME_H_DEFINES_STRUCT_TIMESPEC = @TIME_H_DEFINES_STRUCT_TIMESPEC@
@@ -1281,10 +1307,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = 1.5 foreign
 SUBDIRS = 
-# test-select-stdin has to be run by hand.
 TESTS_ENVIRONMENT = EXEEXT='@EXEEXT@' srcdir='$(srcdir)' \
-	EXEEXT='@EXEEXT@' srcdir='$(srcdir)' EXEEXT='@EXEEXT@' \
-	srcdir='$(srcdir)' EXEEXT='@EXEEXT@' \
 	PATH='$(abs_aux_dir)'$(PATH_SEPARATOR)"$$PATH"
 noinst_HEADERS = 
 noinst_LIBRARIES = 
@@ -1293,18 +1316,18 @@ EXTRA_DIST = accept.c w32sock.h test-alignof.c test-alloca-opt.c \
 	test-areadlink.h test-areadlink.c macros.h \
 	$(top_srcdir)/build-aux/arg-nonnull.h test-arpa_inet.c \
 	test-base64.c macros.h bind.c w32sock.h test-c-ctype.c \
-	macros.h test-errno.c test-fseeko.c test-fseeko.sh \
-	test-fseeko2.sh signature.h macros.h signature.h \
-	test-getaddrinfo.c test-getdelim.c signature.h macros.h \
-	signature.h test-gethostname.c test-getline.c signature.h \
-	macros.h signature.h test-gettimeofday.c test-inet_ntop.c \
-	signature.h macros.h test-inet_pton.c signature.h macros.h \
-	$(top_srcdir)/build-aux/link-warning.h listen.c w32sock.h \
-	test-lseek.c test-lseek.sh signature.h macros.h test-lstat.h \
-	test-lstat.c signature.h macros.h test-memchr.c zerosize-ptr.h \
-	signature.h macros.h test-netdb.c test-netinet_in.c pathmax.h \
-	signature.h test-perror.c test-perror.sh signature.h \
-	test-poll.c test-random_r.c signature.h macros.h \
+	macros.h test-canonicalize-lgpl.c signature.h macros.h \
+	test-errno.c test-fseeko.c test-fseeko.sh test-fseeko2.sh \
+	signature.h macros.h signature.h test-getaddrinfo.c \
+	test-getdelim.c signature.h macros.h signature.h \
+	test-gethostname.c test-getline.c signature.h macros.h \
+	signature.h test-gettimeofday.c test-inet_ntop.c signature.h \
+	macros.h test-inet_pton.c signature.h macros.h listen.c \
+	w32sock.h test-lseek.c test-lseek.sh signature.h macros.h \
+	test-lstat.h test-lstat.c signature.h macros.h test-malloca.c \
+	test-memchr.c zerosize-ptr.h signature.h macros.h test-netdb.c \
+	test-netinet_in.c signature.h test-perror.c test-perror.sh \
+	signature.h test-poll.c test-random_r.c signature.h macros.h \
 	test-rawmemchr.c signature.h macros.h test-readlink.h \
 	test-readlink.c signature.h macros.h same-inode.h signature.h \
 	test-select.c test-select-fd.c test-select-in.sh \
@@ -1325,16 +1348,11 @@ EXTRA_DIST = accept.c w32sock.h test-alignof.c test-alloca-opt.c \
 # statements but through direct file reference. Therefore this snippet must be
 # present in all Makefile.am that need it. This is ensured by the applicability
 # 'all' defined above.
-
-# The BUILT_SOURCES created by this Makefile snippet are not used via #include
-# statements but through direct file reference. Therefore this snippet must be
-# present in all Makefile.am that need it. This is ensured by the applicability
-# 'all' defined above.
-BUILT_SOURCES = arg-nonnull.h link-warning.h warn-on-use.h
+BUILT_SOURCES = arg-nonnull.h warn-on-use.h
 SUFFIXES = 
 MOSTLYCLEANFILES = core *.stackdump arg-nonnull.h arg-nonnull.h-t \
-	test-getdelim.txt test-getline.txt link-warning.h \
-	link-warning.h-t warn-on-use.h warn-on-use.h-t
+	test-getdelim.txt test-getline.txt warn-on-use.h \
+	warn-on-use.h-t
 MOSTLYCLEANDIRS = 
 CLEANFILES = 
 DISTCLEANFILES = 
@@ -1355,7 +1373,6 @@ test_getaddrinfo_LDADD = $(LDADD) @GETADDRINFO_LIB@ @LIBINTL@
 test_gethostname_LDADD = $(LDADD) @GETHOSTNAME_LIB@
 test_inet_ntop_LDADD = $(LDADD) @INET_NTOP_LIB@
 test_inet_pton_LDADD = $(LDADD) @INET_PTON_LIB@
-LINK_WARNING_H = link-warning.h
 test_poll_LDADD = $(LDADD) @LIBSOCKET@ $(INET_PTON_LIB)
 test_select_LDADD = $(LDADD) @LIBSOCKET@ $(INET_PTON_LIB)
 test_select_fd_LDADD = $(LDADD) @LIBSOCKET@
@@ -1443,6 +1460,9 @@ test-base64$(EXEEXT): $(test_base64_OBJECTS) $(test_base64_DEPENDENCIES)
 test-c-ctype$(EXEEXT): $(test_c_ctype_OBJECTS) $(test_c_ctype_DEPENDENCIES) 
 	@rm -f test-c-ctype$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_c_ctype_OBJECTS) $(test_c_ctype_LDADD) $(LIBS)
+test-canonicalize-lgpl$(EXEEXT): $(test_canonicalize_lgpl_OBJECTS) $(test_canonicalize_lgpl_DEPENDENCIES) 
+	@rm -f test-canonicalize-lgpl$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_canonicalize_lgpl_OBJECTS) $(test_canonicalize_lgpl_LDADD) $(LIBS)
 test-errno$(EXEEXT): $(test_errno_OBJECTS) $(test_errno_DEPENDENCIES) 
 	@rm -f test-errno$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_errno_OBJECTS) $(test_errno_LDADD) $(LIBS)
@@ -1476,6 +1496,9 @@ test-lseek$(EXEEXT): $(test_lseek_OBJECTS) $(test_lseek_DEPENDENCIES)
 test-lstat$(EXEEXT): $(test_lstat_OBJECTS) $(test_lstat_DEPENDENCIES) 
 	@rm -f test-lstat$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_lstat_OBJECTS) $(test_lstat_LDADD) $(LIBS)
+test-malloca$(EXEEXT): $(test_malloca_OBJECTS) $(test_malloca_DEPENDENCIES) 
+	@rm -f test-malloca$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_malloca_OBJECTS) $(test_malloca_LDADD) $(LIBS)
 test-memchr$(EXEEXT): $(test_memchr_OBJECTS) $(test_memchr_DEPENDENCIES) 
 	@rm -f test-memchr$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_memchr_OBJECTS) $(test_memchr_LDADD) $(LIBS)
@@ -1593,6 +1616,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-arpa_inet.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-base64.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-c-ctype.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-canonicalize-lgpl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-errno.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-fseeko.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-getaddrinfo.Po@am__quote@
@@ -1604,6 +1628,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-inet_pton.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-lseek.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-lstat.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-malloca.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-memchr.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-netdb.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-netinet_in.Po@am__quote@
@@ -2091,14 +2116,6 @@ arg-nonnull.h: $(top_srcdir)/build-aux/arg-nonnull.h
 	$(AM_V_GEN)rm -f $@-t $@ && \
 	sed -n -e '/GL_ARG_NONNULL/,$$p' \
 	  < $(top_srcdir)/build-aux/arg-nonnull.h \
-	  > $@-t && \
-	mv $@-t $@
-# The link-warning.h that gets inserted into generated .h files is the same as
-# build-aux/link-warning.h, except that it has the copyright header cut off.
-link-warning.h: $(top_srcdir)/build-aux/link-warning.h
-	$(AM_V_GEN)rm -f $@-t $@ && \
-	sed -n -e '/GL_LINK_WARNING/,$$p' \
-	  < $(top_srcdir)/build-aux/link-warning.h \
 	  > $@-t && \
 	mv $@-t $@
 # The warn-on-use.h that gets inserted into generated .h files is the same as

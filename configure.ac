@@ -1,9 +1,10 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([libvirt], [0.7.6])
+AC_INIT([libvirt], [0.7.7])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_MACRO_DIR([m4])
 dnl Make automake keep quiet about wildcards & other GNUmake-isms
 AM_INIT_AUTOMAKE([-Wno-portability])
 
@@ -302,6 +303,12 @@ fi
 AM_CONDITIONAL([WITH_OPENVZ], [test "$with_openvz" = "yes"])
 
 if test "x$with_vbox" = "xyes"; then
+    AC_SEARCH_LIBS([dlopen], [dl], [], [AC_MSG_ERROR([Unable to find dlopen()])])
+    case $ac_cv_search_dlopen in
+      no*) DLOPEN_LIBS= ;;
+      *) DLOPEN_LIBS=$ac_cv_search_dlopen ;;
+    esac
+    AC_SUBST([DLOPEN_LIBS])
     AC_DEFINE_UNQUOTED([WITH_VBOX], 1, [whether VirtualBox driver is enabled])
 fi
 AM_CONDITIONAL([WITH_VBOX], [test "$with_vbox" = "yes"])
@@ -1649,6 +1656,11 @@ AM_CONDITIONAL([WITH_LIBVIRTD],[test "x$with_libvirtd" = "xyes"])
 dnl Check for gettext
 AM_GNU_GETTEXT_VERSION([0.14.1])
 AM_GNU_GETTEXT([external])
+dnl Since we're using such an old version of gettext, we must also define
+dnl this symbol, in order to make the autopoint-supplied Makefile.in.in
+dnl work properly.
+AC_SUBST([MKINSTALLDIRS], ["\$(top_builddir)/$ac_aux_dir/mkinstalldirs"])
+
 ALL_LINGUAS=`cd "$srcdir/po" > /dev/null && ls *.po | sed 's+\.po$++'`
 
 dnl Extra link-time flags for Cygwin.
@@ -1687,14 +1699,14 @@ AC_ARG_WITH([driver-modules],
   [],
   [with_driver_modules=no])
 
-DRIVER_MODULES_CFLAGS=
-DRIVER_MODULES_LIBS=
+DRIVER_MODULE_CFLAGS=
+DRIVER_MODULE_LIBS=
 if test "x$with_driver_modules" = "xyes" ; then
   old_cflags="$CFLAGS"
   old_libs="$LIBS"
   fail=0
   AC_CHECK_HEADER([dlfcn.h],[],[fail=1])
-  AC_CHECK_LIB([dl], [dlopen],[],[fail=1])
+  AC_SEARCH_LIBS([dlopen], [dl], [], [fail=1])
   test $fail = 1 &&
       AC_MSG_ERROR([You must have dlfcn.h / dlopen() support to build driver modules])
 
@@ -1702,13 +1714,16 @@ if test "x$with_driver_modules" = "xyes" ; then
   LIBS="$old_libs"
 fi
 if test "$with_driver_modules" = "yes"; then
-  DRIVER_MODULES_CFLAGS="-export-dynamic"
-  DRIVER_MODULES_LIBS="-ldl"
+  DRIVER_MODULE_CFLAGS="-export-dynamic"
+  case $ac_cv_search_dlopen in
+    no*) DRIVER_MODULE_LIBS= ;;
+    *) DRIVER_MODULE_LIBS=$ac_cv_search_dlopen ;;
+  esac
   AC_DEFINE_UNQUOTED([WITH_DRIVER_MODULES], 1, [whether to build drivers as modules])
 fi
 AM_CONDITIONAL([WITH_DRIVER_MODULES], [test "$with_driver_modules" != "no"])
-AC_SUBST([DRIVER_MODULES_CFLAGS])
-AC_SUBST([DRIVER_MODULES_LIBS])
+AC_SUBST([DRIVER_MODULE_CFLAGS])
+AC_SUBST([DRIVER_MODULE_LIBS])
 
 
 # Set LV_LIBTOOL_OBJDIR to "." or $lt_cv_objdir, depending on whether
@@ -1827,6 +1842,30 @@ AC_ARG_WITH([qemu-group],
 AC_DEFINE_UNQUOTED([QEMU_USER], ["$QEMU_USER"], [QEMU user account])
 AC_DEFINE_UNQUOTED([QEMU_GROUP], ["$QEMU_GROUP"], [QEMU group account])
 
+
+AC_ARG_WITH([macvtap],
+  AC_HELP_STRING([--with-macvtap],[enable macvtap device @<:@default=check@:>@]),
+  [with_macvtap=${withval}],
+  [with_macvtap=check])
+
+if test "$with_macvtap" != "no" ; then
+    AC_TRY_COMPILE([ #include <linux/if_link.h> ],
+                   [ int x = MACVLAN_MODE_BRIDGE; ],
+                   [ with_macvtap=yes ],
+                   [ if test "$with_macvtap" = "yes" ; then
+                         AC_MSG_ERROR([Installed linux headers don't show support for macvtap device.])
+                     fi
+                     with_macvtap=no ])
+    if test "$with_macvtap" = "yes" ; then
+        val=1
+    else
+        val=0
+    fi
+    AC_DEFINE_UNQUOTED([WITH_MACVTAP], $val, [whether macvtap support is enabled])
+fi
+AM_CONDITIONAL([WITH_MACVTAP], [test "$with_macvtap" = "yes"])
+
+
 # Only COPYING.LIB is under version control, yet COPYING
 # is included as part of the distribution tarball.
 # Copy one to the other, but only if this is a srcdir-build.
@@ -1878,6 +1917,7 @@ AC_MSG_NOTICE([  Remote: $with_remote])
 AC_MSG_NOTICE([ Network: $with_network])
 AC_MSG_NOTICE([Libvirtd: $with_libvirtd])
 AC_MSG_NOTICE([   netcf: $with_netcf])
+AC_MSG_NOTICE([ macvtap: $with_macvtap])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Storage Drivers])
 AC_MSG_NOTICE([])
@@ -1898,7 +1938,7 @@ AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Driver Loadable Modules])
 AC_MSG_NOTICE([])
 if test "$with_driver_modules" != "no" ; then
-AC_MSG_NOTICE([  dlopen: $DRIVER_MODULES_CFLAGS $DRIVER_MODULES_LIBS])
+AC_MSG_NOTICE([  dlopen: $DRIVER_MODULE_CFLAGS $DRIVER_MODULE_LIBS])
 else
 AC_MSG_NOTICE([  dlopen: no])
 fi

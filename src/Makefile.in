@@ -151,8 +151,12 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/arpa_inet_h.m4 \
 	$(top_srcdir)/gnulib/m4/base64.m4 \
+	$(top_srcdir)/gnulib/m4/canonicalize.m4 \
 	$(top_srcdir)/gnulib/m4/close.m4 \
+	$(top_srcdir)/gnulib/m4/dirname.m4 \
 	$(top_srcdir)/gnulib/m4/dos.m4 \
+	$(top_srcdir)/gnulib/m4/double-slash-root.m4 \
+	$(top_srcdir)/gnulib/m4/eealloc.m4 \
 	$(top_srcdir)/gnulib/m4/errno_h.m4 \
 	$(top_srcdir)/gnulib/m4/extensions.m4 \
 	$(top_srcdir)/gnulib/m4/fclose.m4 \
@@ -176,6 +180,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/lseek.m4 \
 	$(top_srcdir)/gnulib/m4/lstat.m4 \
 	$(top_srcdir)/gnulib/m4/malloc.m4 \
+	$(top_srcdir)/gnulib/m4/malloca.m4 \
 	$(top_srcdir)/gnulib/m4/memchr.m4 \
 	$(top_srcdir)/gnulib/m4/mkstemp.m4 \
 	$(top_srcdir)/gnulib/m4/mmap-anon.m4 \
@@ -617,7 +622,8 @@ libvirt_driver_uml_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 @WITH_DRIVER_MODULES_FALSE@@WITH_UML_TRUE@am_libvirt_driver_uml_la_rpath =
 @WITH_DRIVER_MODULES_TRUE@@WITH_UML_TRUE@am_libvirt_driver_uml_la_rpath =  \
 @WITH_DRIVER_MODULES_TRUE@@WITH_UML_TRUE@	-rpath $(moddir)
-libvirt_driver_vbox_la_LIBADD =
+@WITH_VBOX_TRUE@libvirt_driver_vbox_la_DEPENDENCIES =  \
+@WITH_VBOX_TRUE@	$(am__DEPENDENCIES_1)
 am__libvirt_driver_vbox_la_SOURCES_DIST = vbox/vbox_XPCOMCGlue.c \
 	vbox/vbox_XPCOMCGlue.h vbox/vbox_driver.c vbox/vbox_driver.h \
 	vbox/vbox_V2_2.c vbox/vbox_CAPI_v2_2.h vbox/vbox_V3_0.c \
@@ -683,13 +689,13 @@ am__objects_53 = libvirt_util_la-bridge.lo libvirt_util_la-buf.lo \
 	libvirt_util_la-event.lo libvirt_util_la-hash.lo \
 	libvirt_util_la-iptables.lo libvirt_util_la-ebtables.lo \
 	libvirt_util_la-json.lo libvirt_util_la-logging.lo \
-	libvirt_util_la-memory.lo libvirt_util_la-pci.lo \
-	libvirt_util_la-processinfo.lo libvirt_util_la-hostusb.lo \
-	libvirt_util_la-network.lo libvirt_util_la-qparams.lo \
-	libvirt_util_la-stats_linux.lo libvirt_util_la-storage_file.lo \
-	libvirt_util_la-threads.lo libvirt_util_la-uuid.lo \
-	libvirt_util_la-util.lo libvirt_util_la-xml.lo \
-	libvirt_util_la-virterror.lo
+	libvirt_util_la-macvtap.lo libvirt_util_la-memory.lo \
+	libvirt_util_la-pci.lo libvirt_util_la-processinfo.lo \
+	libvirt_util_la-hostusb.lo libvirt_util_la-network.lo \
+	libvirt_util_la-qparams.lo libvirt_util_la-stats_linux.lo \
+	libvirt_util_la-storage_file.lo libvirt_util_la-threads.lo \
+	libvirt_util_la-uuid.lo libvirt_util_la-util.lo \
+	libvirt_util_la-xml.lo libvirt_util_la-virterror.lo
 am_libvirt_util_la_OBJECTS = $(am__objects_53)
 libvirt_util_la_OBJECTS = $(am_libvirt_util_la_OBJECTS)
 libvirt_util_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
@@ -708,18 +714,19 @@ am__libvirt_lxc_SOURCES_DIST = lxc/lxc_conf.c lxc/lxc_conf.h \
 	util/event.c util/event.h util/hash.c util/hash.h \
 	util/iptables.c util/iptables.h util/ebtables.c \
 	util/ebtables.h util/json.c util/json.h util/logging.c \
-	util/logging.h util/memory.c util/memory.h util/pci.c \
-	util/pci.h util/processinfo.c util/processinfo.h \
-	util/hostusb.c util/hostusb.h util/network.c util/network.h \
-	util/qparams.c util/qparams.h util/stats_linux.c \
-	util/stats_linux.h util/storage_file.c util/storage_file.h \
-	util/threads.c util/threads.h util/threads-pthread.h \
-	util/threads-win32.h util/uuid.c util/uuid.h util/util.c \
-	util/util.h util/xml.c util/xml.h util/virterror.c \
-	util/virterror_internal.h nodeinfo.h nodeinfo.c \
-	conf/storage_encryption_conf.c conf/storage_encryption_conf.h \
-	conf/capabilities.c conf/capabilities.h conf/domain_conf.c \
-	conf/domain_conf.h conf/cpu_conf.c conf/cpu_conf.h
+	util/logging.h util/macvtap.c util/macvtap.h util/memory.c \
+	util/memory.h util/pci.c util/pci.h util/processinfo.c \
+	util/processinfo.h util/hostusb.c util/hostusb.h \
+	util/network.c util/network.h util/qparams.c util/qparams.h \
+	util/stats_linux.c util/stats_linux.h util/storage_file.c \
+	util/storage_file.h util/threads.c util/threads.h \
+	util/threads-pthread.h util/threads-win32.h util/uuid.c \
+	util/uuid.h util/util.c util/util.h util/xml.c util/xml.h \
+	util/virterror.c util/virterror_internal.h nodeinfo.h \
+	nodeinfo.c conf/storage_encryption_conf.c \
+	conf/storage_encryption_conf.h conf/capabilities.c \
+	conf/capabilities.h conf/domain_conf.c conf/domain_conf.h \
+	conf/cpu_conf.c conf/cpu_conf.h
 am__objects_54 = libvirt_lxc-lxc_conf.$(OBJEXT) \
 	libvirt_lxc-lxc_container.$(OBJEXT) \
 	libvirt_lxc-lxc_controller.$(OBJEXT) \
@@ -729,8 +736,9 @@ am__objects_55 = libvirt_lxc-bridge.$(OBJEXT) \
 	libvirt_lxc-cgroup.$(OBJEXT) libvirt_lxc-event.$(OBJEXT) \
 	libvirt_lxc-hash.$(OBJEXT) libvirt_lxc-iptables.$(OBJEXT) \
 	libvirt_lxc-ebtables.$(OBJEXT) libvirt_lxc-json.$(OBJEXT) \
-	libvirt_lxc-logging.$(OBJEXT) libvirt_lxc-memory.$(OBJEXT) \
-	libvirt_lxc-pci.$(OBJEXT) libvirt_lxc-processinfo.$(OBJEXT) \
+	libvirt_lxc-logging.$(OBJEXT) libvirt_lxc-macvtap.$(OBJEXT) \
+	libvirt_lxc-memory.$(OBJEXT) libvirt_lxc-pci.$(OBJEXT) \
+	libvirt_lxc-processinfo.$(OBJEXT) \
 	libvirt_lxc-hostusb.$(OBJEXT) libvirt_lxc-network.$(OBJEXT) \
 	libvirt_lxc-qparams.$(OBJEXT) \
 	libvirt_lxc-stats_linux.$(OBJEXT) \
@@ -884,6 +892,7 @@ CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
 COMPILER_FLAGS = @COMPILER_FLAGS@
+CONFIG_INCLUDE = @CONFIG_INCLUDE@
 COVERAGE_CFLAGS = @COVERAGE_CFLAGS@
 COVERAGE_LDFLAGS = @COVERAGE_LDFLAGS@
 CPP = @CPP@
@@ -897,9 +906,10 @@ DEPDIR = @DEPDIR@
 DEVMAPPER_CFLAGS = @DEVMAPPER_CFLAGS@
 DEVMAPPER_LIBS = @DEVMAPPER_LIBS@
 DLLTOOL = @DLLTOOL@
+DLOPEN_LIBS = @DLOPEN_LIBS@
 DNSMASQ = @DNSMASQ@
-DRIVER_MODULES_CFLAGS = @DRIVER_MODULES_CFLAGS@
-DRIVER_MODULES_LIBS = @DRIVER_MODULES_LIBS@
+DRIVER_MODULE_CFLAGS = @DRIVER_MODULE_CFLAGS@
+DRIVER_MODULE_LIBS = @DRIVER_MODULE_LIBS@
 DSYMUTIL = @DSYMUTIL@
 DUMPBIN = @DUMPBIN@
 EBTABLES_PATH = @EBTABLES_PATH@
@@ -973,6 +983,7 @@ GNULIB_GETPEERNAME = @GNULIB_GETPEERNAME@
 GNULIB_GETSOCKNAME = @GNULIB_GETSOCKNAME@
 GNULIB_GETSOCKOPT = @GNULIB_GETSOCKOPT@
 GNULIB_GETSUBOPT = @GNULIB_GETSUBOPT@
+GNULIB_GETTIMEOFDAY = @GNULIB_GETTIMEOFDAY@
 GNULIB_GETUSERSHELL = @GNULIB_GETUSERSHELL@
 GNULIB_INET_NTOP = @GNULIB_INET_NTOP@
 GNULIB_INET_PTON = @GNULIB_INET_PTON@
@@ -1150,6 +1161,7 @@ HAVE_GETHOSTNAME = @HAVE_GETHOSTNAME@
 HAVE_GETLOGIN = @HAVE_GETLOGIN@
 HAVE_GETPAGESIZE = @HAVE_GETPAGESIZE@
 HAVE_GETSUBOPT = @HAVE_GETSUBOPT@
+HAVE_GETTIMEOFDAY = @HAVE_GETTIMEOFDAY@
 HAVE_GETUSERSHELL = @HAVE_GETUSERSHELL@
 HAVE_INTTYPES_H = @HAVE_INTTYPES_H@
 HAVE_LCHMOD = @HAVE_LCHMOD@
@@ -1399,6 +1411,7 @@ REPLACE_FTELL = @REPLACE_FTELL@
 REPLACE_FTELLO = @REPLACE_FTELLO@
 REPLACE_FUTIMENS = @REPLACE_FUTIMENS@
 REPLACE_GETCWD = @REPLACE_GETCWD@
+REPLACE_GETDELIM = @REPLACE_GETDELIM@
 REPLACE_GETGROUPS = @REPLACE_GETGROUPS@
 REPLACE_GETLINE = @REPLACE_GETLINE@
 REPLACE_GETPAGESIZE = @REPLACE_GETPAGESIZE@
@@ -1492,7 +1505,6 @@ STRIP = @STRIP@
 SYS_IOCTL_H_HAVE_WINSOCK2_H = @SYS_IOCTL_H_HAVE_WINSOCK2_H@
 SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS = @SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS@
 SYS_SOCKET_H = @SYS_SOCKET_H@
-SYS_TIME_H = @SYS_TIME_H@
 SYS_TIME_H_DEFINES_STRUCT_TIMESPEC = @SYS_TIME_H_DEFINES_STRUCT_TIMESPEC@
 TAR = @TAR@
 TIME_H_DEFINES_STRUCT_TIMESPEC = @TIME_H_DEFINES_STRUCT_TIMESPEC@
@@ -1637,7 +1649,7 @@ EXTRA_DIST = $(conf_DATA) util/threads-pthread.c util/threads-win32.c \
 	$(SECURITY_DRIVER_APPARMOR_SOURCES) $(SECRET_DRIVER_SOURCES) \
 	$(VBOX_DRIVER_EXTRA_DIST) libvirt_public.syms \
 	libvirt_private.syms libvirt_driver_modules.syms \
-	libvirt_bridge.syms libvirt_linux.syms \
+	libvirt_bridge.syms libvirt_linux.syms libvirt_macvtap.syms \
 	$(STORAGE_HELPER_DISK_SOURCES) $(LXC_CONTROLLER_SOURCES) \
 	$(SECURITY_DRIVER_APPARMOR_HELPER_SOURCES)
 @WITH_NETWORK_TRUE@UUID = $(shell uuidgen 2>/dev/null)
@@ -1669,6 +1681,7 @@ UTIL_SOURCES = \
 		util/ebtables.c util/ebtables.h			\
 		util/json.c util/json.h				\
 		util/logging.c util/logging.h			\
+		util/macvtap.c util/macvtap.h			\
 		util/memory.c util/memory.h			\
 		util/pci.c util/pci.h				\
 		util/processinfo.c util/processinfo.h		\
@@ -1949,7 +1962,7 @@ libvirt_driver_la_CFLAGS = $(NUMACTL_CFLAGS)	\
 
 libvirt_driver_la_LDFLAGS = $(NUMACTL_LIBS)
 USED_SYM_FILES = libvirt_private.syms $(am__append_77) \
-	$(am__append_78) $(am__append_79)
+	$(am__append_78) $(am__append_79) libvirt_macvtap.syms
 @WITH_TEST_TRUE@libvirt_driver_test_la_CFLAGS = \
 @WITH_TEST_TRUE@		-I@top_srcdir@/src/conf
 
@@ -1984,6 +1997,7 @@ USED_SYM_FILES = libvirt_private.syms $(am__append_77) \
 @WITH_VBOX_TRUE@		-I@top_srcdir@/src/conf
 
 @WITH_DRIVER_MODULES_TRUE@@WITH_VBOX_TRUE@libvirt_driver_vbox_la_LDFLAGS = -module -avoid-version
+@WITH_VBOX_TRUE@libvirt_driver_vbox_la_LIBADD = $(DLOPEN_LIBS)
 @WITH_VBOX_TRUE@libvirt_driver_vbox_la_SOURCES = $(VBOX_DRIVER_SOURCES)
 # Stateful, so linked to daemon instead
 #libvirt_la_LIBADD += libvirt_driver_qemu.la
@@ -2440,6 +2454,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_lxc-lxc_conf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_lxc-lxc_container.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_lxc-lxc_controller.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_lxc-macvtap.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_lxc-memory.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_lxc-network.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_lxc-nodeinfo.Po@am__quote@
@@ -2467,6 +2482,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_util_la-iptables.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_util_la-json.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_util_la-logging.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_util_la-macvtap.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_util_la-memory.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_util_la-network.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_util_la-pci.Plo@am__quote@
@@ -3257,6 +3273,14 @@ libvirt_util_la-logging.lo: util/logging.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o libvirt_util_la-logging.lo `test -f 'util/logging.c' || echo '$(srcdir)/'`util/logging.c
 
+libvirt_util_la-macvtap.lo: util/macvtap.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT libvirt_util_la-macvtap.lo -MD -MP -MF $(DEPDIR)/libvirt_util_la-macvtap.Tpo -c -o libvirt_util_la-macvtap.lo `test -f 'util/macvtap.c' || echo '$(srcdir)/'`util/macvtap.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirt_util_la-macvtap.Tpo $(DEPDIR)/libvirt_util_la-macvtap.Plo
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='util/macvtap.c' object='libvirt_util_la-macvtap.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -c -o libvirt_util_la-macvtap.lo `test -f 'util/macvtap.c' || echo '$(srcdir)/'`util/macvtap.c
+
 libvirt_util_la-memory.lo: util/memory.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_util_la_CFLAGS) $(CFLAGS) -MT libvirt_util_la-memory.lo -MD -MP -MF $(DEPDIR)/libvirt_util_la-memory.Tpo -c -o libvirt_util_la-memory.lo `test -f 'util/memory.c' || echo '$(srcdir)/'`util/memory.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirt_util_la-memory.Tpo $(DEPDIR)/libvirt_util_la-memory.Plo
@@ -3584,6 +3608,22 @@ libvirt_lxc-logging.obj: util/logging.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='util/logging.c' object='libvirt_lxc-logging.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -c -o libvirt_lxc-logging.obj `if test -f 'util/logging.c'; then $(CYGPATH_W) 'util/logging.c'; else $(CYGPATH_W) '$(srcdir)/util/logging.c'; fi`
+
+libvirt_lxc-macvtap.o: util/macvtap.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -MT libvirt_lxc-macvtap.o -MD -MP -MF $(DEPDIR)/libvirt_lxc-macvtap.Tpo -c -o libvirt_lxc-macvtap.o `test -f 'util/macvtap.c' || echo '$(srcdir)/'`util/macvtap.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirt_lxc-macvtap.Tpo $(DEPDIR)/libvirt_lxc-macvtap.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='util/macvtap.c' object='libvirt_lxc-macvtap.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -c -o libvirt_lxc-macvtap.o `test -f 'util/macvtap.c' || echo '$(srcdir)/'`util/macvtap.c
+
+libvirt_lxc-macvtap.obj: util/macvtap.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -MT libvirt_lxc-macvtap.obj -MD -MP -MF $(DEPDIR)/libvirt_lxc-macvtap.Tpo -c -o libvirt_lxc-macvtap.obj `if test -f 'util/macvtap.c'; then $(CYGPATH_W) 'util/macvtap.c'; else $(CYGPATH_W) '$(srcdir)/util/macvtap.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirt_lxc-macvtap.Tpo $(DEPDIR)/libvirt_lxc-macvtap.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='util/macvtap.c' object='libvirt_lxc-macvtap.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -c -o libvirt_lxc-macvtap.obj `if test -f 'util/macvtap.c'; then $(CYGPATH_W) 'util/macvtap.c'; else $(CYGPATH_W) '$(srcdir)/util/macvtap.c'; fi`
 
 libvirt_lxc-memory.o: util/memory.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_lxc_CFLAGS) $(CFLAGS) -MT libvirt_lxc-memory.o -MD -MP -MF $(DEPDIR)/libvirt_lxc-memory.Tpo -c -o libvirt_lxc-memory.o `test -f 'util/memory.c' || echo '$(srcdir)/'`util/memory.c

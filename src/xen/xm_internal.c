@@ -65,8 +65,10 @@
 static int xenXMConfigSetString(virConfPtr conf, const char *setting,
                                 const char *str);
 char * xenXMAutoAssignMac(void);
-static int xenXMDomainAttachDevice(virDomainPtr domain, const char *xml);
-static int xenXMDomainDetachDevice(virDomainPtr domain, const char *xml);
+static int xenXMDomainAttachDeviceFlags(virDomainPtr domain, const char *xml,
+                                        unsigned int flags);
+static int xenXMDomainDetachDeviceFlags(virDomainPtr domain, const char *xml,
+                                        unsigned int flags);
 
 #define XM_REFRESH_INTERVAL 10
 
@@ -109,8 +111,8 @@ struct xenUnifiedDriver xenXMDriver = {
     xenXMDomainCreate, /* domainCreate */
     xenXMDomainDefineXML, /* domainDefineXML */
     xenXMDomainUndefine, /* domainUndefine */
-    xenXMDomainAttachDevice, /* domainAttachDevice */
-    xenXMDomainDetachDevice, /* domainDetachDevice */
+    xenXMDomainAttachDeviceFlags, /* domainAttachDeviceFlags */
+    xenXMDomainDetachDeviceFlags, /* domainDetachDeviceFlags */
     NULL, /* domainGetAutostart */
     NULL, /* domainSetAutostart */
     NULL, /* domainGetSchedulerType */
@@ -251,7 +253,7 @@ static int xenXMConfigCopyStringInternal(virConnectPtr conn,
     }
 
     if (!(*value = strdup(val->str))) {
-        virReportOOMError(conn);
+        virReportOOMError();
         return -1;
     }
 
@@ -395,7 +397,7 @@ xenXMConfigCacheAddFile(virConnectPtr conn, const char *filename)
 
     /* Get modified time */
     if ((stat(filename, &st) < 0)) {
-        virReportSystemError(conn, errno,
+        virReportSystemError(errno,
                              _("cannot stat: %s"),
                              filename);
         return -1;
@@ -432,7 +434,7 @@ xenXMConfigCacheAddFile(virConnectPtr conn, const char *filename)
     } else { /* Completely new entry */
         newborn = 1;
         if (VIR_ALLOC(entry) < 0) {
-            virReportOOMError(conn);
+            virReportOOMError();
             return -1;
         }
         memcpy(entry->filename, filename, PATH_MAX);
@@ -492,7 +494,7 @@ int xenXMConfigCacheRefresh (virConnectPtr conn) {
     struct xenXMConfigReaperData args;
 
     if (now == ((time_t)-1)) {
-        virReportSystemError(conn, errno,
+        virReportSystemError(errno,
                              "%s", _("cannot get time of day"));
         return (-1);
     }
@@ -505,7 +507,7 @@ int xenXMConfigCacheRefresh (virConnectPtr conn) {
 
     /* Process the files in the config dir */
     if (!(dh = opendir(priv->configDir))) {
-        virReportSystemError(conn, errno,
+        virReportSystemError(errno,
                              _("cannot read directory %s"),
                              priv->configDir);
         return (-1);
@@ -681,9 +683,10 @@ xenXMDomainConfigParse(virConnectPtr conn, virConfPtr conf) {
     virDomainHostdevDefPtr hostdev = NULL;
     int i;
     const char *defaultArch, *defaultMachine;
+    int vmlocaltime = 0;
 
     if (VIR_ALLOC(def) < 0) {
-        virReportOOMError(conn);
+        virReportOOMError();
         return NULL;
     }
 
@@ -782,7 +785,7 @@ xenXMDomainConfigParse(virConnectPtr conn, virConfPtr conf) {
         if (VIR_ALLOC_N(def->cpumask, def->cpumasklen) < 0)
             goto no_memory;
 
-        if (virDomainCpuSetParse(conn, &str, 0,
+        if (virDomainCpuSetParse(&str, 0,
                                  def->cpumask, def->cpumasklen) < 0)
             goto cleanup;
     }
@@ -828,8 +831,12 @@ xenXMDomainConfigParse(virConnectPtr conn, virConfPtr conf) {
         else if (val)
             def->features |= (1 << VIR_DOMAIN_FEATURE_APIC);
     }
-    if (xenXMConfigGetBool(conn, conf, "localtime", &def->localtime, 0) < 0)
+    if (xenXMConfigGetBool(conn, conf, "localtime", &vmlocaltime, 0) < 0)
         goto cleanup;
+
+    def->clock.offset = vmlocaltime ?
+        VIR_DOMAIN_CLOCK_OFFSET_LOCALTIME :
+        VIR_DOMAIN_CLOCK_OFFSET_UTC;
 
     if (xenXMConfigCopyStringOpt(conn, conf, "device_model", &def->emulator) < 0)
         goto cleanup;
@@ -1464,7 +1471,7 @@ xenXMDomainConfigParse(virConnectPtr conn, virConfPtr conf) {
     return def;
 
 no_memory:
-    virReportOOMError(conn);
+    virReportOOMError();
     /* fallthrough */
 cleanup:
     virDomainGraphicsDefFree(graphics);
@@ -1502,7 +1509,7 @@ char *xenXMDomainDumpXML(virDomainPtr domain, int flags) {
     if (!(entry = virHashLookup(priv->configCache, filename)))
         goto cleanup;
 
-    ret = virDomainDefFormat(domain->conn, entry->def, flags);
+    ret = virDomainDefFormat(entry->def, flags);
 
 cleanup:
     xenUnifiedUnlock(priv);
@@ -1745,7 +1752,7 @@ int xenXMDomainPinVcpu(virDomainPtr domain,
 
     if (virBufferError(&mapbuf)) {
         virBufferFreeAndReset(&mapbuf);
-        virReportOOMError(domain->conn);
+        virReportOOMError();
         goto cleanup;
     }
 
@@ -1753,11 +1760,10 @@ int xenXMDomainPinVcpu(virDomainPtr domain,
     mapsave = mapstr;
 
     if (VIR_ALLOC_N(cpuset, maxcpu) < 0) {
-        virReportOOMError(domain->conn);
+        virReportOOMError();
         goto cleanup;
     }
-    if (virDomainCpuSetParse(domain->conn,
-                             (const char **)&mapstr, 0,
+    if (virDomainCpuSetParse((const char **)&mapstr, 0,
                              cpuset, maxcpu) < 0)
         goto cleanup;
 
@@ -1934,7 +1940,7 @@ int xenXMConfigSetInt(virConfPtr conf, const char *setting, long l) {
     virConfValuePtr value = NULL;
 
     if (VIR_ALLOC(value) < 0) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         return -1;
     }
 
@@ -1951,7 +1957,7 @@ int xenXMConfigSetString(virConfPtr conf, const char *setting, const char *str) 
     virConfValuePtr value = NULL;
 
     if (VIR_ALLOC(value) < 0) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         return -1;
     }
 
@@ -1959,7 +1965,7 @@ int xenXMConfigSetString(virConfPtr conf, const char *setting, const char *str) 
     value->next = NULL;
     if (!(value->str = strdup(str))) {
         VIR_FREE(value);
-        virReportOOMError(NULL);
+        virReportOOMError();
         return -1;
     }
 
@@ -2014,12 +2020,12 @@ static int xenXMDomainConfigFormatDisk(virConnectPtr conn,
         virBufferAddLit(&buf, ",w");
 
     if (virBufferError(&buf)) {
-        virReportOOMError(conn);
+        virReportOOMError();
         goto cleanup;
     }
 
     if (VIR_ALLOC(val) < 0) {
-        virReportOOMError(conn);
+        virReportOOMError();
         goto cleanup;
     }
 
@@ -2124,12 +2130,12 @@ static int xenXMDomainConfigFormatNet(virConnectPtr conn,
                           net->ifname);
 
     if (virBufferError(&buf)) {
-        virReportOOMError(conn);
+        virReportOOMError();
         goto cleanup;
     }
 
     if (VIR_ALLOC(val) < 0) {
-        virReportOOMError(conn);
+        virReportOOMError();
         goto cleanup;
     }
 
@@ -2153,8 +2159,7 @@ cleanup:
 
 
 static int
-xenXMDomainConfigFormatPCI(virConnectPtr conn,
-                           virConfPtr conf,
+xenXMDomainConfigFormatPCI(virConfPtr conf,
                            virDomainDefPtr def)
 {
 
@@ -2171,7 +2176,7 @@ xenXMDomainConfigFormatPCI(virConnectPtr conn,
         return 0;
 
     if (VIR_ALLOC(pciVal) < 0) {
-        virReportOOMError(conn);
+        virReportOOMError();
         return -1;
     }
 
@@ -2189,13 +2194,13 @@ xenXMDomainConfigFormatPCI(virConnectPtr conn,
                             def->hostdevs[i]->source.subsys.u.pci.bus,
                             def->hostdevs[i]->source.subsys.u.pci.slot,
                             def->hostdevs[i]->source.subsys.u.pci.function) < 0) {
-                virReportOOMError(conn);
+                virReportOOMError();
                 goto error;
             }
 
             if (VIR_ALLOC(val) < 0) {
                 VIR_FREE(buf);
-                virReportOOMError(conn);
+                virReportOOMError();
                 goto error;
             }
             val->type = VIR_CONF_STRING;
@@ -2260,7 +2265,7 @@ virConfPtr xenXMDomainConfigFormat(virConnectPtr conn,
         goto no_memory;
 
     if ((def->cpumask != NULL) &&
-        ((cpus = virDomainCpuSetFormat(conn, def->cpumask,
+        ((cpus = virDomainCpuSetFormat(def->cpumask,
                                        def->cpumasklen)) == NULL))
         goto cleanup;
 
@@ -2323,8 +2328,25 @@ virConfPtr xenXMDomainConfigFormat(virConnectPtr conn,
             goto no_memory;
 
 
-        if (xenXMConfigSetInt(conf, "localtime", def->localtime ? 1 : 0) < 0)
-            goto no_memory;
+        if (def->clock.offset == VIR_DOMAIN_CLOCK_OFFSET_LOCALTIME) {
+            if (def->clock.data.timezone) {
+                xenXMError(conn, VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("configurable timezones are not supported"));
+                goto cleanup;
+            }
+
+            if (xenXMConfigSetInt(conf, "localtime", 1) < 0)
+                goto no_memory;
+        } else if (def->clock.offset == VIR_DOMAIN_CLOCK_OFFSET_UTC) {
+            if (xenXMConfigSetInt(conf, "localtime", 0) < 0)
+                goto no_memory;
+        } else {
+            /* XXX We could support Xen's rtc clock offset */
+            xenXMError(conn, VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("unsupported clock offset '%s'"),
+                       virDomainClockOffsetTypeToString(def->clock.offset));
+            goto cleanup;
+        }
 
         if (priv->xendConfigVersion == 1) {
             for (i = 0 ; i < def->ndisks ; i++) {
@@ -2550,7 +2572,7 @@ virConfPtr xenXMDomainConfigFormat(virConnectPtr conn,
     }
     VIR_FREE(netVal);
 
-    if (xenXMDomainConfigFormatPCI(conn, conf, def) < 0)
+    if (xenXMDomainConfigFormatPCI(conf, def) < 0)
         goto cleanup;
 
     if (hvm) {
@@ -2608,7 +2630,7 @@ virConfPtr xenXMDomainConfigFormat(virConnectPtr conn,
     return conf;
 
 no_memory:
-    virReportOOMError(conn);
+    virReportOOMError();
 
 cleanup:
     virConfFreeValue(diskVal);
@@ -2650,7 +2672,7 @@ virDomainPtr xenXMDomainDefineXML(virConnectPtr conn, const char *xml) {
         return (NULL);
     }
 
-    if (!(def = virDomainDefParseString(conn, priv->caps, xml,
+    if (!(def = virDomainDefParseString(priv->caps, xml,
                                         VIR_DOMAIN_XML_INACTIVE))) {
         xenUnifiedUnlock(priv);
         return (NULL);
@@ -2726,7 +2748,7 @@ virDomainPtr xenXMDomainDefineXML(virConnectPtr conn, const char *xml) {
         goto error;
 
     if (VIR_ALLOC(entry) < 0) {
-        virReportOOMError(conn);
+        virReportOOMError();
         goto error;
     }
 
@@ -2875,7 +2897,7 @@ int xenXMListDefinedDomains(virConnectPtr conn, char **const names, int maxnames
         for (i = 0; i < ctx.count; i++)
             VIR_FREE(ctx.names[i]);
 
-        virReportOOMError(conn);
+        virReportOOMError();
         goto cleanup;
     }
 
@@ -2914,17 +2936,21 @@ cleanup:
 
 
 /**
- * xenXMDomainAttachDevice:
+ * xenXMDomainAttachDeviceFlags:
  * @domain: pointer to domain object
  * @xml: pointer to XML description of device
+ * @flags: an OR'ed set of virDomainDeviceModifyFlags
  *
  * Create a virtual device attachment to backend.
  * XML description is translated into config file.
+ * This driver only supports device allocation to
+ * persisted config.
  *
  * Returns 0 in case of success, -1 in case of failure.
  */
 static int
-xenXMDomainAttachDevice(virDomainPtr domain, const char *xml) {
+xenXMDomainAttachDeviceFlags(virDomainPtr domain, const char *xml,
+                             unsigned int flags) {
     const char *filename = NULL;
     xenXMConfCachePtr entry = NULL;
     int ret = -1;
@@ -2940,7 +2966,7 @@ xenXMDomainAttachDevice(virDomainPtr domain, const char *xml) {
 
     if (domain->conn->flags & VIR_CONNECT_RO)
         return -1;
-    if (domain->id != -1)
+    if (domain->id != -1 && !(flags & VIR_DOMAIN_DEVICE_MODIFY_CONFIG))
         return -1;
 
     priv = (xenUnifiedPrivatePtr) domain->conn->privateData;
@@ -2952,8 +2978,7 @@ xenXMDomainAttachDevice(virDomainPtr domain, const char *xml) {
         goto cleanup;
     def = entry->def;
 
-    if (!(dev = virDomainDeviceDefParse(domain->conn,
-                                        priv->caps,
+    if (!(dev = virDomainDeviceDefParse(priv->caps,
                                         entry->def,
                                         xml, VIR_DOMAIN_XML_INACTIVE)))
         goto cleanup;
@@ -2962,7 +2987,7 @@ xenXMDomainAttachDevice(virDomainPtr domain, const char *xml) {
     case VIR_DOMAIN_DEVICE_DISK:
     {
         if (virDomainDiskInsert(def, dev->data.disk) < 0) {
-            virReportOOMError(domain->conn);
+            virReportOOMError();
             goto cleanup;
         }
         dev->data.disk = NULL;
@@ -2972,7 +2997,7 @@ xenXMDomainAttachDevice(virDomainPtr domain, const char *xml) {
     case VIR_DOMAIN_DEVICE_NET:
     {
         if (VIR_REALLOC_N(def->nets, def->nnets+1) < 0) {
-            virReportOOMError(domain->conn);
+            virReportOOMError();
             goto cleanup;
         }
         def->nets[def->nnets++] = dev->data.net;
@@ -3002,16 +3027,20 @@ xenXMDomainAttachDevice(virDomainPtr domain, const char *xml) {
 
 
 /**
- * xenXMDomainDetachDevice:
+ * xenXMDomainDetachDeviceFlags:
  * @domain: pointer to domain object
  * @xml: pointer to XML description of device
+ * @flags: an OR'ed set of virDomainDeviceModifyFlags
  *
  * Destroy a virtual device attachment to backend.
+ * This driver only supports device deallocation from
+ * persisted config.
  *
  * Returns 0 in case of success, -1 in case of failure.
  */
 static int
-xenXMDomainDetachDevice(virDomainPtr domain, const char *xml) {
+xenXMDomainDetachDeviceFlags(virDomainPtr domain, const char *xml,
+                             unsigned int flags) {
     const char *filename = NULL;
     xenXMConfCachePtr entry = NULL;
     virDomainDeviceDefPtr dev = NULL;
@@ -3029,7 +3058,7 @@ xenXMDomainDetachDevice(virDomainPtr domain, const char *xml) {
 
     if (domain->conn->flags & VIR_CONNECT_RO)
         return -1;
-    if (domain->id != -1)
+    if (domain->id != -1 && !(flags & VIR_DOMAIN_DEVICE_MODIFY_CONFIG))
         return -1;
 
     priv = (xenUnifiedPrivatePtr) domain->conn->privateData;
@@ -3041,8 +3070,7 @@ xenXMDomainDetachDevice(virDomainPtr domain, const char *xml) {
         goto cleanup;
     def = entry->def;
 
-    if (!(dev = virDomainDeviceDefParse(domain->conn,
-                                        priv->caps,
+    if (!(dev = virDomainDeviceDefParse(priv->caps,
                                         entry->def,
                                         xml, VIR_DOMAIN_XML_INACTIVE)))
         goto cleanup;
@@ -3138,13 +3166,13 @@ int xenXMDomainGetAutostart(virDomainPtr dom, int *autostart)
     int ret = -1;
 
     if (!linkname || !config) {
-        virReportOOMError(dom->conn);
+        virReportOOMError();
         goto cleanup;
     }
 
     *autostart = virFileLinkPointsTo(linkname, config);
     if (*autostart < 0) {
-        virReportSystemError(dom->conn, errno,
+        virReportSystemError(errno,
                              _("cannot check link %s points to config %s"),
                              linkname, config);
         goto cleanup;
@@ -3166,14 +3194,14 @@ int xenXMDomainSetAutostart(virDomainPtr dom, int autostart)
     int ret = -1;
 
     if (!linkname || !config) {
-        virReportOOMError(dom->conn);
+        virReportOOMError();
         goto cleanup;
     }
 
     if (autostart) {
         if (symlink(config, linkname) < 0 &&
             errno != EEXIST) {
-            virReportSystemError(dom->conn, errno,
+            virReportSystemError(errno,
                                  _("failed to create link %s to %s"),
                                  config, linkname);
             goto cleanup;
@@ -3181,7 +3209,7 @@ int xenXMDomainSetAutostart(virDomainPtr dom, int autostart)
     } else {
         if (unlink(linkname)  < 0 &&
             errno != ENOENT) {
-            virReportSystemError(dom->conn, errno,
+            virReportSystemError(errno,
                                  _("failed to remove link %s"),
                                  linkname);
             goto cleanup;

@@ -4,7 +4,7 @@
  *           entry points where an automatically generated stub is
  *           unpractical
  *
- * Copyright (C) 2005, 2007-2009 Red Hat, Inc.
+ * Copyright (C) 2005, 2007-2010 Red Hat, Inc.
  *
  * Daniel Veillard <veillard@redhat.com>
  */
@@ -2019,6 +2019,94 @@ libvirt_virConnectListDefinedInterfaces(PyObject *self ATTRIBUTE_UNUSED,
     return(py_retval);
 }
 
+
+static PyObject *
+libvirt_virConnectBaselineCPU(PyObject *self ATTRIBUTE_UNUSED,
+                              PyObject *args) {
+    PyObject *pyobj_conn;
+    PyObject *list;
+    virConnectPtr conn;
+    unsigned int flags;
+    const char **xmlcpus = NULL;
+    int ncpus = 0;
+    char *base_cpu;
+    PyObject *pybase_cpu;
+
+    if (!PyArg_ParseTuple(args, (char *)"OOi:virConnectBaselineCPU",
+                          &pyobj_conn, &list, &flags))
+        return(NULL);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+
+    if (PyList_Check(list)) {
+        int i;
+
+        ncpus = PyList_Size(list);
+        if ((xmlcpus = malloc(ncpus * sizeof(*xmlcpus))) == NULL)
+            return VIR_PY_INT_FAIL;
+
+        for (i = 0; i < ncpus; i++) {
+            xmlcpus[i] = PyString_AsString(PyList_GetItem(list, i));
+            if (xmlcpus[i] == NULL) {
+                free(xmlcpus);
+                return VIR_PY_INT_FAIL;
+            }
+        }
+    }
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    base_cpu = virConnectBaselineCPU(conn, xmlcpus, ncpus, flags);
+    LIBVIRT_END_ALLOW_THREADS;
+
+    free(xmlcpus);
+
+    if (base_cpu == NULL)
+        return VIR_PY_INT_FAIL;
+
+    pybase_cpu = PyString_FromString(base_cpu);
+    free(base_cpu);
+
+    if (pybase_cpu == NULL)
+        return VIR_PY_INT_FAIL;
+
+    return pybase_cpu;
+}
+
+
+static PyObject *
+libvirt_virDomainGetJobInfo(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virDomainPtr domain;
+    PyObject *pyobj_domain;
+    virDomainJobInfo info;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virDomainGetJobInfo", &pyobj_domain))
+        return(NULL);
+    domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    c_retval = virDomainGetJobInfo(domain, &info);
+    LIBVIRT_END_ALLOW_THREADS;
+    if (c_retval < 0)
+        return VIR_PY_NONE;
+    py_retval = PyList_New(12);
+    PyList_SetItem(py_retval, 0, libvirt_intWrap((int) info.type));
+    PyList_SetItem(py_retval, 1, libvirt_ulonglongWrap(info.timeElapsed));
+    PyList_SetItem(py_retval, 2, libvirt_ulonglongWrap(info.timeRemaining));
+    PyList_SetItem(py_retval, 3, libvirt_ulonglongWrap(info.dataTotal));
+    PyList_SetItem(py_retval, 4, libvirt_ulonglongWrap(info.dataProcessed));
+    PyList_SetItem(py_retval, 5, libvirt_ulonglongWrap(info.dataRemaining));
+    PyList_SetItem(py_retval, 6, libvirt_ulonglongWrap(info.memTotal));
+    PyList_SetItem(py_retval, 7, libvirt_ulonglongWrap(info.memProcessed));
+    PyList_SetItem(py_retval, 8, libvirt_ulonglongWrap(info.memRemaining));
+    PyList_SetItem(py_retval, 9, libvirt_ulonglongWrap(info.fileTotal));
+    PyList_SetItem(py_retval, 10, libvirt_ulonglongWrap(info.fileProcessed));
+    PyList_SetItem(py_retval, 11, libvirt_ulonglongWrap(info.fileRemaining));
+
+    return(py_retval);
+}
+
+
 /*******************************************
  * Helper functions to avoid importing modules
  * for every callback
@@ -2734,6 +2822,8 @@ static PyMethodDef libvirtMethods[] = {
     {(char *) "virSecretSetValue", libvirt_virSecretSetValue, METH_VARARGS, NULL},
     {(char *) "virConnectListInterfaces", libvirt_virConnectListInterfaces, METH_VARARGS, NULL},
     {(char *) "virConnectListDefinedInterfaces", libvirt_virConnectListDefinedInterfaces, METH_VARARGS, NULL},
+    {(char *) "virConnectBaselineCPU", libvirt_virConnectBaselineCPU, METH_VARARGS, NULL},
+    {(char *) "virDomainGetJobInfo", libvirt_virDomainGetJobInfo, METH_VARARGS, NULL},
     {NULL, NULL, 0, NULL}
 };
 

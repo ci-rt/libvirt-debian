@@ -99,6 +99,8 @@ qemuMonitorPtr qemuMonitorOpen(virDomainObjPtr vm,
 
 int qemuMonitorClose(qemuMonitorPtr mon);
 
+int qemuMonitorSetCapabilities(qemuMonitorPtr mon);
+
 void qemuMonitorLock(qemuMonitorPtr mon);
 void qemuMonitorUnlock(qemuMonitorPtr mon);
 
@@ -144,6 +146,8 @@ int qemuMonitorSetVNCPassword(qemuMonitorPtr mon,
                               const char *password);
 int qemuMonitorSetBalloon(qemuMonitorPtr mon,
                           unsigned long newmem);
+int qemuMonitorSetCPU(qemuMonitorPtr mon, int cpu, int online);
+
 
 /* XXX should we pass the virDomainDiskDefPtr instead
  * and hide devname details inside monitor. Reconsider
@@ -288,7 +292,14 @@ int qemuMonitorGetAllPCIAddresses(qemuMonitorPtr mon,
 int qemuMonitorAddDevice(qemuMonitorPtr mon,
                          const char *devicestr);
 
+int qemuMonitorDelDevice(qemuMonitorPtr mon,
+                         const char *devicestr);
+
 int qemuMonitorAddDrive(qemuMonitorPtr mon,
                         const char *drivestr);
+
+int qemuMonitorSetDrivePassphrase(qemuMonitorPtr mon,
+                                  const char *alias,
+                                  const char *passphrase);
 
 #endif /* QEMU_MONITOR_H */

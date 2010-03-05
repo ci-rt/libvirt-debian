@@ -2,6 +2,7 @@
 /*
  * esx_driver.c: core driver methods for managing VMware ESX hosts
  *
+ * Copyright (C) 2010 Red Hat, Inc.
  * Copyright (C) 2009, 2010 Matthias Bolte <matthias.bolte@googlemail.com>
  * Copyright (C) 2009 Maximilian Wilhelm <max@rfc2324.org>
  *
@@ -172,7 +173,7 @@ esxCapsInit(esxPrivate *priv)
     }
 
     if (caps == NULL) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         return NULL;
     }
 
@@ -292,7 +293,7 @@ esxOpen(virConnectPtr conn, virConnectAuthPtr auth, int flags ATTRIBUTE_UNUSED)
 
     /* Allocate per-connection private data */
     if (VIR_ALLOC(priv) < 0) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         goto failure;
     }
 
@@ -341,7 +342,7 @@ esxOpen(virConnectPtr conn, virConnectAuthPtr auth, int flags ATTRIBUTE_UNUSED)
 
     if (virAsprintf(&url, "%s://%s:%d/sdk", priv->transport,
                     conn->uri->server, conn->uri->port) < 0) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         goto failure;
     }
 
@@ -349,7 +350,7 @@ esxOpen(virConnectPtr conn, virConnectAuthPtr auth, int flags ATTRIBUTE_UNUSED)
         username = strdup(conn->uri->user);
 
         if (username == NULL) {
-            virReportOOMError(NULL);
+            virReportOOMError();
             goto failure;
         }
     } else {
@@ -448,7 +449,7 @@ esxOpen(virConnectPtr conn, virConnectAuthPtr auth, int flags ATTRIBUTE_UNUSED)
                     vCenter = strdup(dynamicProperty->val->string);
 
                     if (vCenter == NULL) {
-                        virReportOOMError(NULL);
+                        virReportOOMError();
                         goto failure;
                     }
 
@@ -482,7 +483,7 @@ esxOpen(virConnectPtr conn, virConnectAuthPtr auth, int flags ATTRIBUTE_UNUSED)
 
         if (virAsprintf(&url, "%s://%s/sdk", priv->transport,
                         vCenter) < 0) {
-            virReportOOMError(NULL);
+            virReportOOMError();
             goto failure;
         }
 
@@ -558,17 +559,20 @@ esxOpen(virConnectPtr conn, virConnectAuthPtr auth, int flags ATTRIBUTE_UNUSED)
 static int
 esxClose(virConnectPtr conn)
 {
-    esxPrivate *priv = (esxPrivate *)conn->privateData;
+    esxPrivate *priv = conn->privateData;
+    int result = 0;
 
-    esxVI_EnsureSession(priv->host);
-
-    esxVI_Logout(priv->host);
+    if (esxVI_EnsureSession(priv->host) < 0 ||
+        esxVI_Logout(priv->host) < 0) {
+        result = -1;
+    }
     esxVI_Context_Free(&priv->host);
 
     if (priv->vCenter != NULL) {
-        esxVI_EnsureSession(priv->vCenter);
-
-        esxVI_Logout(priv->vCenter);
+        if (esxVI_EnsureSession(priv->vCenter) < 0 ||
+            esxVI_Logout(priv->vCenter) < 0) {
+            result = -1;
+        }
         esxVI_Context_Free(&priv->vCenter);
     }
 
@@ -579,7 +583,7 @@ esxClose(virConnectPtr conn)
 
     conn->privateData = NULL;
 
-    return 0;
+    return result;
 }
 
 
@@ -645,7 +649,7 @@ esxSupportsVMotion(esxPrivate *priv)
 static int
 esxSupportsFeature(virConnectPtr conn, int feature)
 {
-    esxPrivate *priv = (esxPrivate *)conn->privateData;
+    esxPrivate *priv = conn->privateData;
     esxVI_Boolean supportsVMotion = esxVI_Boolean_Undefined;
 
     switch (feature) {
@@ -678,7 +682,7 @@ esxGetType(virConnectPtr conn ATTRIBUTE_UNUSED)
 static int
 esxGetVersion(virConnectPtr conn, unsigned long *version)
 {
-    esxPrivate *priv = (esxPrivate *)conn->privateData;
+    esxPrivate *priv = conn->privateData;
     char *temp;
     unsigned int major, minor, release;
 
@@ -716,7 +720,7 @@ esxGetVersion(virConnectPtr conn, unsigned long *version)
 static char *
 esxGetHostname(virConnectPtr conn)
 {
-    esxPrivate *priv = (esxPrivate *)conn->privateData;
+    esxPrivate *priv = conn->privateData;
     esxVI_String *propertyNameList = NULL;
     esxVI_ObjectContent *hostSystem = NULL;
     esxVI_DynamicProperty *dynamicProperty = NULL;
@@ -777,12 +781,12 @@ esxGetHostname(virConnectPtr conn)
         complete = strdup(hostName);
 
         if (complete == NULL) {
-            virReportOOMError(NULL);
+            virReportOOMError();
             goto failure;
         }
     } else {
         if (virAsprintf(&complete, "%s.%s", hostName, domainName) < 0) {
-            virReportOOMError(NULL);
+            virReportOOMError();
             goto failure;
         }
     }
@@ -805,7 +809,7 @@ static int
 esxNodeGetInfo(virConnectPtr conn, virNodeInfoPtr nodeinfo)
 {
     int result = 0;
-    esxPrivate *priv = (esxPrivate *)conn->privateData;
+    esxPrivate *priv = conn->privateData;
     esxVI_String *propertyNameList = NULL;
     esxVI_ObjectContent *hostSystem = NULL;
     esxVI_DynamicProperty *dynamicProperty = NULL;
@@ -958,11 +962,11 @@ esxNodeGetInfo(virConnectPtr conn, virNodeInfoPtr nodeinfo)
 static char *
 esxGetCapabilities(virConnectPtr conn)
 {
-    esxPrivate *priv = (esxPrivate *)conn->privateData;
+    esxPrivate *priv = conn->privateData;
     char *xml = virCapabilitiesFormatXML(priv->caps);
 
     if (xml == NULL) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         return NULL;
     }
 
@@ -974,7 +978,7 @@ esxGetCapabilities(virConnectPtr conn)
 static int
 esxListDomains(virConnectPtr conn, int *ids, int maxids)
 {
-    esxPrivate *priv = (esxPrivate *)conn->privateData;
+    esxPrivate *priv = conn->privateData;
     esxVI_ObjectContent *virtualMachineList = NULL;
     esxVI_ObjectContent *virtualMachine = NULL;
     esxVI_String *propertyNameList = NULL;
@@ -1046,7 +1050,7 @@ esxListDomains(virConnectPtr conn, int *ids, int maxids)
 static int
 esxNumberOfDomains(virConnectPtr conn)
 {
-    esxPrivate *priv = (esxPrivate *)conn->privateData;
+    esxPrivate *priv = conn->privateData;
 
     if (esxVI_EnsureSession(priv->host) < 0) {
         return -1;
@@ -1062,7 +1066,7 @@ esxNumberOfDomains(virConnectPtr conn)
 static virDomainPtr
 esxDomainLookupByID(virConnectPtr conn, int id)
 {
-    esxPrivate *priv = (esxPrivate *)conn->privateData;
+    esxPrivate *priv = conn->privateData;
     esxVI_String *propertyNameList = NULL;
     esxVI_ObjectContent *virtualMachineList = NULL;
     esxVI_ObjectContent *virtualMachine = NULL;
@@ -1145,7 +1149,7 @@ esxDomainLookupByID(virConnectPtr conn, int id)
 static virDomainPtr
 esxDomainLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
 {
-    esxPrivate *priv = (esxPrivate *)conn->privateData;
+    esxPrivate *priv = conn->privateData;
     esxVI_String *propertyNameList = NULL;
     esxVI_ObjectContent *virtualMachine = NULL;
     esxVI_VirtualMachinePowerState powerState;
@@ -1199,7 +1203,7 @@ esxDomainLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
 static virDomainPtr
 esxDomainLookupByName(virConnectPtr conn, const char *name)
 {
-    esxPrivate *priv = (esxPrivate *)conn->privateData;
+    esxPrivate *priv = conn->privateData;
     esxVI_String *propertyNameList = NULL;
     esxVI_ObjectContent *virtualMachineList = NULL;
     esxVI_ObjectContent *virtualMachine = NULL;
@@ -1283,7 +1287,7 @@ static int
 esxDomainSuspend(virDomainPtr domain)
 {
     int result = 0;
-    esxPrivate *priv = (esxPrivate *)domain->conn->privateData;
+    esxPrivate *priv = domain->conn->privateData;
     esxVI_ObjectContent *virtualMachine = NULL;
     esxVI_String *propertyNameList = NULL;
     esxVI_VirtualMachinePowerState powerState;
@@ -1338,7 +1342,7 @@ static int
 esxDomainResume(virDomainPtr domain)
 {
     int result = 0;
-    esxPrivate *priv = (esxPrivate *)domain->conn->privateData;
+    esxPrivate *priv = domain->conn->privateData;
     esxVI_ObjectContent *virtualMachine = NULL;
     esxVI_String *propertyNameList = NULL;
     esxVI_VirtualMachinePowerState powerState;
@@ -1393,7 +1397,7 @@ static int
 esxDomainShutdown(virDomainPtr domain)
 {
     int result = 0;
-    esxPrivate *priv = (esxPrivate *)domain->conn->privateData;
+    esxPrivate *priv = domain->conn->privateData;
     esxVI_ObjectContent *virtualMachine = NULL;
     esxVI_String *propertyNameList = NULL;
     esxVI_VirtualMachinePowerState powerState;
@@ -1438,7 +1442,7 @@ static int
 esxDomainReboot(virDomainPtr domain, unsigned int flags ATTRIBUTE_UNUSED)
 {
     int result = 0;
-    esxPrivate *priv = (esxPrivate *)domain->conn->privateData;
+    esxPrivate *priv = domain->conn->privateData;
     esxVI_ObjectContent *virtualMachine = NULL;
     esxVI_String *propertyNameList = NULL;
     esxVI_VirtualMachinePowerState powerState;
@@ -1483,7 +1487,7 @@ static int
 esxDomainDestroy(virDomainPtr domain)
 {
     int result = 0;
-    esxPrivate *priv = (esxPrivate *)domain->conn->privateData;
+    esxPrivate *priv = domain->conn->privateData;
     esxVI_Context *ctx = NULL;
     esxVI_ObjectContent *virtualMachine = NULL;
     esxVI_String *propertyNameList = NULL;
@@ -1547,7 +1551,7 @@ esxDomainGetOSType(virDomainPtr domain ATTRIBUTE_UNUSED)
     char *osType = strdup("hvm");
 
     if (osType == NULL) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         return NULL;
     }
 
@@ -1559,7 +1563,7 @@ esxDomainGetOSType(virDomainPtr domain ATTRIBUTE_UNUSED)
 static unsigned long
 esxDomainGetMaxMemory(virDomainPtr domain)
 {
-    esxPrivate *priv = (esxPrivate *)domain->conn->privateData;
+    esxPrivate *priv = domain->conn->privateData;
     esxVI_String *propertyNameList = NULL;
     esxVI_ObjectContent *virtualMachine = NULL;
     esxVI_DynamicProperty *dynamicProperty = NULL;
@@ -1616,7 +1620,7 @@ static int
 esxDomainSetMaxMemory(virDomainPtr domain, unsigned long memory)
 {
     int result = 0;
-    esxPrivate *priv = (esxPrivate *)domain->conn->privateData;
+    esxPrivate *priv = domain->conn->privateData;
     esxVI_ObjectContent *virtualMachine = NULL;
     esxVI_VirtualMachineConfigSpec *spec = NULL;
     esxVI_ManagedObjectReference *task = NULL;
@@ -1669,7 +1673,7 @@ static int
 esxDomainSetMemory(virDomainPtr domain, unsigned long memory)
 {
     int result = 0;
-    esxPrivate *priv = (esxPrivate *)domain->conn->privateData;
+    esxPrivate *priv = domain->conn->privateData;
     esxVI_ObjectContent *virtualMachine = NULL;
     esxVI_VirtualMachineConfigSpec *spec = NULL;
     esxVI_ManagedObjectReference *task = NULL;
@@ -1723,7 +1727,7 @@ static int
 esxDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info)
 {
     int result = 0;
-    esxPrivate *priv = (esxPrivate *)domain->conn->privateData;
+    esxPrivate *priv = domain->conn->privateData;
     esxVI_String *propertyNameList = NULL;
     esxVI_ObjectContent *virtualMachine = NULL;
     esxVI_DynamicProperty *dynamicProperty = NULL;
@@ -1978,7 +1982,7 @@ static int
 esxDomainSetVcpus(virDomainPtr domain, unsigned int nvcpus)
 {
     int result = 0;
-    esxPrivate *priv = (esxPrivate *)domain->conn->privateData;
+    esxPrivate *priv = domain->conn->privateData;
     int maxVcpus;
     esxVI_ObjectContent *virtualMachine = NULL;
     esxVI_VirtualMachineConfigSpec *spec = NULL;
@@ -2050,7 +2054,7 @@ esxDomainSetVcpus(virDomainPtr domain, unsigned int nvcpus)
 static int
 esxDomainGetMaxVcpus(virDomainPtr domain)
 {
-    esxPrivate *priv = (esxPrivate *)domain->conn->privateData;
+    esxPrivate *priv = domain->conn->privateData;
     esxVI_String *propertyNameList = NULL;
     esxVI_ObjectContent *hostSystem = NULL;
     esxVI_DynamicProperty *dynamicProperty = NULL;
@@ -2109,7 +2113,7 @@ esxDomainGetMaxVcpus(virDomainPtr domain)
 static char *
 esxDomainDumpXML(virDomainPtr domain, int flags)
 {
-    esxPrivate *priv = (esxPrivate *)domain->conn->privateData;
+    esxPrivate *priv = domain->conn->privateData;
     esxVI_String *propertyNameList = NULL;
     esxVI_ObjectContent *virtualMachine = NULL;
     esxVI_DynamicProperty *dynamicProperty = NULL;
@@ -2168,7 +2172,7 @@ esxDomainDumpXML(virDomainPtr domain, int flags)
     virBufferURIEncodeString(&buffer, datastoreName);
 
     if (virBufferError(&buffer)) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         goto failure;
     }
 
@@ -2182,7 +2186,7 @@ esxDomainDumpXML(virDomainPtr domain, int flags)
                              priv->host->apiVersion);
 
     if (def != NULL) {
-        xml = virDomainDefFormat(domain->conn, def, flags);
+        xml = virDomainDefFormat(def, flags);
     }
 
   cleanup:
@@ -2211,7 +2215,7 @@ esxDomainXMLFromNative(virConnectPtr conn, const char *nativeFormat,
                        const char *nativeConfig,
                        unsigned int flags ATTRIBUTE_UNUSED)
 {
-    esxPrivate *priv = (esxPrivate *)conn->privateData;
+    esxPrivate *priv = conn->privateData;
     virDomainDefPtr def = NULL;
     char *xml = NULL;
 
@@ -2225,7 +2229,7 @@ esxDomainXMLFromNative(virConnectPtr conn, const char *nativeFormat,
                              priv->host->apiVersion);
 
     if (def != NULL) {
-        xml = virDomainDefFormat(conn, def, VIR_DOMAIN_XML_INACTIVE);
+        xml = virDomainDefFormat(def, VIR_DOMAIN_XML_INACTIVE);
     }
 
     virDomainDefFree(def);
@@ -2240,7 +2244,7 @@ esxDomainXMLToNative(virConnectPtr conn, const char *nativeFormat,
                      const char *domainXml,
                      unsigned int flags ATTRIBUTE_UNUSED)
 {
-    esxPrivate *priv = (esxPrivate *)conn->privateData;
+    esxPrivate *priv = conn->privateData;
     virDomainDefPtr def = NULL;
     char *vmx = NULL;
 
@@ -2250,7 +2254,7 @@ esxDomainXMLToNative(virConnectPtr conn, const char *nativeFormat,
         return NULL;
     }
 
-    def = virDomainDefParseString(conn, priv->caps, domainXml, 0);
+    def = virDomainDefParseString(priv->caps, domainXml, 0);
 
     if (def == NULL) {
         return NULL;
@@ -2268,7 +2272,7 @@ esxDomainXMLToNative(virConnectPtr conn, const char *nativeFormat,
 static int
 esxListDefinedDomains(virConnectPtr conn, char **const names, int maxnames)
 {
-    esxPrivate *priv = (esxPrivate *)conn->privateData;
+    esxPrivate *priv = conn->privateData;
     esxVI_String *propertyNameList = NULL;
     esxVI_ObjectContent *virtualMachineList = NULL;
     esxVI_ObjectContent *virtualMachine = NULL;
@@ -2322,7 +2326,7 @@ esxListDefinedDomains(virConnectPtr conn, char **const names, int maxnames)
                 names[count] = strdup(dynamicProperty->val->string);
 
                 if (names[count] == NULL) {
-                    virReportOOMError(NULL);
+                    virReportOOMError();
                     goto failure;
                 }
 
@@ -2358,7 +2362,7 @@ esxListDefinedDomains(virConnectPtr conn, char **const names, int maxnames)
 static int
 esxNumberOfDefinedDomains(virConnectPtr conn)
 {
-    esxPrivate *priv = (esxPrivate *)conn->privateData;
+    esxPrivate *priv = conn->privateData;
 
     if (esxVI_EnsureSession(priv->host) < 0) {
         return -1;
@@ -2375,7 +2379,7 @@ static int
 esxDomainCreate(virDomainPtr domain)
 {
     int result = 0;
-    esxPrivate *priv = (esxPrivate *)domain->conn->privateData;
+    esxPrivate *priv = domain->conn->privateData;
     esxVI_ObjectContent *virtualMachine = NULL;
     esxVI_String *propertyNameList = NULL;
     esxVI_VirtualMachinePowerState powerState;
@@ -2430,7 +2434,7 @@ esxDomainCreate(virDomainPtr domain)
 static virDomainPtr
 esxDomainDefineXML(virConnectPtr conn, const char *xml ATTRIBUTE_UNUSED)
 {
-    esxPrivate *priv = (esxPrivate *)conn->privateData;
+    esxPrivate *priv = conn->privateData;
     virDomainDefPtr def = NULL;
     char *vmx = NULL;
     int i;
@@ -2454,7 +2458,7 @@ esxDomainDefineXML(virConnectPtr conn, const char *xml ATTRIBUTE_UNUSED)
     }
 
     /* Parse domain XML */
-    def = virDomainDefParseString(conn, priv->caps, xml,
+    def = virDomainDefParseString(priv->caps, xml,
                                   VIR_DOMAIN_XML_INACTIVE);
 
     if (def == NULL) {
@@ -2546,7 +2550,7 @@ esxDomainDefineXML(virConnectPtr conn, const char *xml ATTRIBUTE_UNUSED)
     virBufferURIEncodeString(&buffer, datastoreName);
 
     if (virBufferError(&buffer)) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         goto failure;
     }
 
@@ -2555,13 +2559,13 @@ esxDomainDefineXML(virConnectPtr conn, const char *xml ATTRIBUTE_UNUSED)
     if (directoryName != NULL) {
         if (virAsprintf(&datastoreRelatedPath, "[%s] %s/%s.vmx", datastoreName,
                         directoryName, def->name) < 0) {
-            virReportOOMError(NULL);
+            virReportOOMError();
             goto failure;
         }
     } else {
         if (virAsprintf(&datastoreRelatedPath, "[%s] %s.vmx", datastoreName,
                         def->name) < 0) {
-            virReportOOMError(NULL);
+            virReportOOMError();
             goto failure;
         }
     }
@@ -2638,7 +2642,7 @@ static int
 esxDomainUndefine(virDomainPtr domain)
 {
     int result = 0;
-    esxPrivate *priv = (esxPrivate *)domain->conn->privateData;
+    esxPrivate *priv = domain->conn->privateData;
     esxVI_Context *ctx = NULL;
     esxVI_ObjectContent *virtualMachine = NULL;
     esxVI_String *propertyNameList = NULL;
@@ -2724,7 +2728,7 @@ esxDomainGetSchedulerType(virDomainPtr domain ATTRIBUTE_UNUSED, int *nparams)
     char *type = strdup("allocation");
 
     if (type == NULL) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         return NULL;
     }
 
@@ -2740,7 +2744,7 @@ esxDomainGetSchedulerParameters(virDomainPtr domain,
                                 virSchedParameterPtr params, int *nparams)
 {
     int result = 0;
-    esxPrivate *priv = (esxPrivate *)domain->conn->privateData;
+    esxPrivate *priv = domain->conn->privateData;
     esxVI_String *propertyNameList = NULL;
     esxVI_ObjectContent *virtualMachine = NULL;
     esxVI_DynamicProperty *dynamicProperty = NULL;
@@ -2869,7 +2873,7 @@ esxDomainSetSchedulerParameters(virDomainPtr domain,
                                 virSchedParameterPtr params, int nparams)
 {
     int result = 0;
-    esxPrivate *priv = (esxPrivate *)domain->conn->privateData;
+    esxPrivate *priv = domain->conn->privateData;
     esxVI_ObjectContent *virtualMachine = NULL;
     esxVI_VirtualMachineConfigSpec *spec = NULL;
     esxVI_SharesInfo *sharesInfo = NULL;
@@ -3012,7 +3016,7 @@ esxDomainMigratePrepare(virConnectPtr dconn,
 
         if (virAsprintf(uri_out, "%s://%s:%d/sdk", transport,
                         dconn->uri->server, dconn->uri->port) < 0) {
-            virReportOOMError(NULL);
+            virReportOOMError();
             goto failure;
         }
     }
@@ -3040,7 +3044,7 @@ esxDomainMigratePerform(virDomainPtr domain,
                         unsigned long bandwidth ATTRIBUTE_UNUSED)
 {
     int result = 0;
-    esxPrivate *priv = (esxPrivate *)domain->conn->privateData;
+    esxPrivate *priv = domain->conn->privateData;
     xmlURIPtr xmlUri = NULL;
     char hostIpAddress[NI_MAXHOST] = "";
     esxVI_ObjectContent *virtualMachine = NULL;
@@ -3071,7 +3075,7 @@ esxDomainMigratePerform(virDomainPtr domain,
     xmlUri = xmlParseURI(uri);
 
     if (xmlUri == NULL) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         goto failure;
     }
 
@@ -3171,7 +3175,7 @@ static unsigned long long
 esxNodeGetFreeMemory(virConnectPtr conn)
 {
     unsigned long long result = 0;
-    esxPrivate *priv = (esxPrivate *)conn->privateData;
+    esxPrivate *priv = conn->privateData;
     esxVI_String *propertyNameList = NULL;
     esxVI_ObjectContent *hostSystem = NULL;
     esxVI_ManagedObjectReference *managedObjectReference = NULL;
@@ -3249,7 +3253,7 @@ esxNodeGetFreeMemory(virConnectPtr conn)
 static int
 esxIsEncrypted(virConnectPtr conn)
 {
-    esxPrivate *priv = (esxPrivate *)conn->privateData;
+    esxPrivate *priv = conn->privateData;
 
     if (STRCASEEQ(priv->transport, "https")) {
         return 1;
@@ -3263,7 +3267,7 @@ esxIsEncrypted(virConnectPtr conn)
 static int
 esxIsSecure(virConnectPtr conn)
 {
-    esxPrivate *priv = (esxPrivate *)conn->privateData;
+    esxPrivate *priv = conn->privateData;
 
     if (STRCASEEQ(priv->transport, "https")) {
         return 1;
@@ -3278,7 +3282,7 @@ static int
 esxDomainIsActive(virDomainPtr domain)
 {
     int result = 0;
-    esxPrivate *priv = (esxPrivate *)domain->conn->privateData;
+    esxPrivate *priv = domain->conn->privateData;
     esxVI_ObjectContent *virtualMachine = NULL;
     esxVI_String *propertyNameList = NULL;
     esxVI_VirtualMachinePowerState powerState;
@@ -3372,7 +3376,9 @@ static virDriver esxDriver = {
     esxDomainDefineXML,              /* domainDefineXML */
     esxDomainUndefine,               /* domainUndefine */
     NULL,                            /* domainAttachDevice */
+    NULL,                            /* domainAttachDeviceFlags */
     NULL,                            /* domainDetachDevice */
+    NULL,                            /* domainDetachDeviceFlags */
     NULL,                            /* domainGetAutostart */
     NULL,                            /* domainSetAutostart */
     esxDomainGetSchedulerType,       /* domainGetSchedulerType */
@@ -3401,6 +3407,9 @@ static virDriver esxDriver = {
     esxDomainIsActive,               /* domainIsActive */
     esxDomainIsPersistent,           /* domainIsPersistent */
     NULL,                            /* cpuCompare */
+    NULL,                            /* cpuBaseline */
+    NULL, /* domainGetJobInfo */
+    NULL, /* domainAbortJob */
 };
 
 

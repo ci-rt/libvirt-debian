@@ -34,6 +34,8 @@ int qemuMonitorJSONIOProcess(qemuMonitorPtr mon,
                              size_t len,
                              qemuMonitorMessagePtr msg);
 
+int qemuMonitorJSONSetCapabilities(qemuMonitorPtr mon);
+
 int qemuMonitorJSONStartCPUs(qemuMonitorPtr mon,
                              virConnectPtr conn);
 int qemuMonitorJSONStopCPUs(qemuMonitorPtr mon);
@@ -57,6 +59,7 @@ int qemuMonitorJSONSetVNCPassword(qemuMonitorPtr mon,
                                   const char *password);
 int qemuMonitorJSONSetBalloon(qemuMonitorPtr mon,
                               unsigned long newmem);
+int qemuMonitorJSONSetCPU(qemuMonitorPtr mon, int cpu, int online);
 
 int qemuMonitorJSONEjectMedia(qemuMonitorPtr mon,
                               const char *devname);
@@ -159,7 +162,14 @@ int qemuMonitorJSONGetAllPCIAddresses(qemuMonitorPtr mon,
 int qemuMonitorJSONAddDevice(qemuMonitorPtr mon,
                              const char *devicestr);
 
+int qemuMonitorJSONDelDevice(qemuMonitorPtr mon,
+                             const char *devicestr);
+
 int qemuMonitorJSONAddDrive(qemuMonitorPtr mon,
                             const char *drivestr);
+
+int qemuMonitorJSONSetDrivePassphrase(qemuMonitorPtr mon,
+                                      const char *alias,
+                                      const char *passphrase);
 
 #endif /* QEMU_MONITOR_JSON_H */

@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* xsize.h -- Checked size_t computations.
 
    Copyright (C) 2003, 2008, 2009, 2010 Free Software Foundation, Inc.

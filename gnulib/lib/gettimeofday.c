@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Provide gettimeofday for systems that don't have it or for which it's broken.
 
    Copyright (C) 2001-2003, 2005-2007, 2009-2010 Free Software Foundation, Inc.
@@ -100,7 +102,7 @@ rpl_tzset (void)
    causes problems.  */
 
 int
-rpl_gettimeofday (struct timeval *restrict tv, void *restrict tz)
+gettimeofday (struct timeval *restrict tv, void *restrict tz)
 {
 #undef gettimeofday
 #if HAVE_GETTIMEOFDAY

@@ -1,3 +1,5 @@
+# -*- buffer-read-only: t -*- vi: set ro:
+# DO NOT EDIT! GENERATED AUTOMATICALLY!
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
 # Copyright (C) 2002-2010 Free Software Foundation, Inc.
 #
@@ -15,7 +17,7 @@
 # In projects using CVS, this file can be treated like other built files.
 
 
-# This macro should be invoked from ./configure.in, in the section
+# This macro should be invoked from ./configure.ac, in the section
 # "Checks for programs", right after AC_PROG_CC, and certainly before
 # any checks for libraries, header files, types and library functions.
 AC_DEFUN([gl_EARLY],
@@ -29,7 +31,7 @@ AC_DEFUN([gl_EARLY],
   AC_REQUIRE([AC_FUNC_FSEEKO])
 ])
 
-# This macro should be invoked from ./configure.in, in the section
+# This macro should be invoked from ./configure.ac, in the section
 # "Check for header files, types and library functions".
 AC_DEFUN([gl_INIT],
 [
@@ -50,6 +52,10 @@ AC_SUBST([LTALLOCA])
   gl_HEADER_ARPA_INET
   AC_PROG_MKDIR_P
   gl_FUNC_BASE64
+  gl_CANONICALIZE_LGPL
+  gl_MODULE_INDICATOR([canonicalize-lgpl])
+  gl_STDLIB_MODULE_INDICATOR([canonicalize_file_name])
+  gl_STDLIB_MODULE_INDICATOR([realpath])
   gl_FUNC_CLOSE
   gl_UNISTD_MODULE_INDICATOR([close])
   AC_REQUIRE([gl_HEADER_SYS_SOCKET])
@@ -57,6 +63,8 @@ AC_SUBST([LTALLOCA])
     AC_LIBOBJ([connect])
   fi
   gl_SYS_SOCKET_MODULE_INDICATOR([connect])
+  gl_DIRNAME_LGPL
+  gl_DOUBLE_SLASH_ROOT
   gl_HEADER_ERRNO_H
   gl_FUNC_FCLOSE
   gl_STDIO_MODULE_INDICATOR([fclose])
@@ -77,6 +85,7 @@ AC_SUBST([LTALLOCA])
   AC_SUBST([LIBINTL])
   AC_SUBST([LTLIBINTL])
   gl_FUNC_GETTIMEOFDAY
+  gl_SYS_TIME_MODULE_INDICATOR([gettimeofday])
   # Autoconf 2.61a.99 and earlier don't support linking a file only
   # in VPATH builds.  But since GNUmakefile is for maintainer use
   # only, it does not matter if we skip the link with older autoconf.
@@ -107,8 +116,11 @@ AC_SUBST([LTALLOCA])
   gl_UNISTD_MODULE_INDICATOR([lseek])
   gl_FUNC_LSTAT
   gl_SYS_STAT_MODULE_INDICATOR([lstat])
+  AC_CONFIG_COMMANDS_PRE([m4_ifdef([AH_HEADER],
+    [AC_SUBST([CONFIG_INCLUDE], m4_defn([AH_HEADER]))])])
   gl_FUNC_MALLOC_POSIX
   gl_STDLIB_MODULE_INDICATOR([malloc-posix])
+  gl_MALLOCA
   gl_FUNC_MEMCHR
   gl_STRING_MODULE_INDICATOR([memchr])
   gl_FUNC_MKSTEMP
@@ -117,6 +129,7 @@ AC_SUBST([LTALLOCA])
   gl_HEADER_NETDB
   gl_HEADER_NETINET_IN
   AC_PROG_MKDIR_P
+  gl_PATHMAX
   gl_FUNC_PERROR
   gl_STRING_MODULE_INDICATOR([perror])
   gl_PHYSMEM
@@ -269,7 +282,6 @@ AC_SUBST([LTALLOCA])
     AC_LIBOBJ([listen])
   fi
   gl_SYS_SOCKET_MODULE_INDICATOR([listen])
-  gl_PATHMAX
   AC_CHECK_HEADERS_ONCE([unistd.h sys/wait.h])
   AC_CHECK_HEADERS_ONCE([unistd.h sys/wait.h])
   gt_TYPE_WCHAR_T
@@ -373,7 +385,6 @@ AC_DEFUN([gl_FILE_LIST], [
   build-aux/arg-nonnull.h
   build-aux/config.rpath
   build-aux/gitlog-to-changelog
-  build-aux/link-warning.h
   build-aux/mktempd
   build-aux/useless-if-before-free
   build-aux/vc-list-files
@@ -388,12 +399,16 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/asprintf.c
   lib/base64.c
   lib/base64.h
+  lib/basename-lgpl.c
   lib/c-ctype.c
   lib/c-ctype.h
+  lib/canonicalize-lgpl.c
   lib/close-hook.c
   lib/close-hook.h
   lib/close.c
   lib/connect.c
+  lib/dirname-lgpl.c
+  lib/dirname.h
   lib/errno.in.h
   lib/fclose.c
   lib/float+.h
@@ -416,11 +431,15 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/lseek.c
   lib/lstat.c
   lib/malloc.c
+  lib/malloca.c
+  lib/malloca.h
+  lib/malloca.valgrind
   lib/memchr.c
   lib/memchr.valgrind
   lib/mkstemp.c
   lib/netdb.in.h
   lib/netinet_in.in.h
+  lib/pathmax.h
   lib/perror.c
   lib/physmem.c
   lib/physmem.h
@@ -458,6 +477,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/strdup.c
   lib/strerror.c
   lib/string.in.h
+  lib/stripslash.c
   lib/strndup.c
   lib/strnlen.c
   lib/strsep.c
@@ -482,9 +502,13 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/alloca.m4
   m4/arpa_inet_h.m4
   m4/base64.m4
+  m4/canonicalize.m4
   m4/close.m4
   m4/codeset.m4
+  m4/dirname.m4
   m4/dos.m4
+  m4/double-slash-root.m4
+  m4/eealloc.m4
   m4/errno_h.m4
   m4/extensions.m4
   m4/fclose.m4
@@ -522,6 +546,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/lseek.m4
   m4/lstat.m4
   m4/malloc.m4
+  m4/malloca.m4
   m4/memchr.m4
   m4/mkstemp.m4
   m4/mmap-anon.m4
@@ -596,6 +621,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-arpa_inet.c
   tests/test-base64.c
   tests/test-c-ctype.c
+  tests/test-canonicalize-lgpl.c
   tests/test-errno.c
   tests/test-fseeko.c
   tests/test-fseeko.sh
@@ -611,6 +637,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-lseek.sh
   tests/test-lstat.c
   tests/test-lstat.h
+  tests/test-malloca.c
   tests/test-memchr.c
   tests/test-netdb.c
   tests/test-netinet_in.c
@@ -657,7 +684,6 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/bind.c
   tests=lib/dummy.c
   tests=lib/listen.c
-  tests=lib/pathmax.h
   tests=lib/same-inode.h
   tests=lib/symlink.c
   tests=lib/w32sock.h

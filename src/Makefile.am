@@ -55,6 +55,7 @@ UTIL_SOURCES =							\
 		util/ebtables.c util/ebtables.h			\
 		util/json.c util/json.h				\
 		util/logging.c util/logging.h			\
+		util/macvtap.c util/macvtap.h			\
 		util/memory.c util/memory.h			\
 		util/pci.c util/pci.h				\
 		util/processinfo.c util/processinfo.h		\
@@ -462,6 +463,7 @@ libvirt_driver_vbox_la_CFLAGS = \
 if WITH_DRIVER_MODULES
 libvirt_driver_vbox_la_LDFLAGS = -module -avoid-version
 endif
+libvirt_driver_vbox_la_LIBADD = $(DLOPEN_LIBS)
 libvirt_driver_vbox_la_SOURCES = $(VBOX_DRIVER_SOURCES)
 endif
 
@@ -784,12 +786,15 @@ if WITH_LINUX
 USED_SYM_FILES += libvirt_linux.syms
 endif
 
+USED_SYM_FILES += libvirt_macvtap.syms
+
 EXTRA_DIST += \
   libvirt_public.syms		\
   libvirt_private.syms		\
   libvirt_driver_modules.syms	\
   libvirt_bridge.syms		\
-  libvirt_linux.syms
+  libvirt_linux.syms		\
+  libvirt_macvtap.syms
 
 BUILT_SOURCES = libvirt.syms
 

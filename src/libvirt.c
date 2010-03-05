@@ -159,7 +159,7 @@ static int virConnectAuthCallbackDefault(virConnectCredentialPtr cred,
         case VIR_CRED_AUTHNAME:
         case VIR_CRED_ECHOPROMPT:
         case VIR_CRED_REALM:
-            if (printf("%s:", cred[i].prompt) < 0)
+            if (printf("%s: ", cred[i].prompt) < 0)
                 return -1;
             if (fflush(stdout) != 0)
                 return -1;
@@ -178,7 +178,7 @@ static int virConnectAuthCallbackDefault(virConnectCredentialPtr cred,
 
         case VIR_CRED_PASSPHRASE:
         case VIR_CRED_NOECHOPROMPT:
-            if (printf("%s:", cred[i].prompt) < 0)
+            if (printf("%s: ", cred[i].prompt) < 0)
                 return -1;
             if (fflush(stdout) != 0)
                 return -1;
@@ -1646,7 +1646,7 @@ virConnectGetURI (virConnectPtr conn)
 
     name = (char *)xmlSaveUri(conn->uri);
     if (!name) {
-        virReportOOMError (conn);
+        virReportOOMError();
         goto error;
     }
     return name;
@@ -2758,6 +2758,9 @@ error:
  * to Domain0 i.e. the domain where the application runs.
  * This function requires privileged access to the hypervisor.
  *
+ * This command only changes the runtime configuration of the domain,
+ * so can only be called on an active domain.
+ *
  * Returns 0 in case of success and -1 in case of failure.
  */
 int
@@ -2807,6 +2810,9 @@ error:
  * domain. If domain is NULL, then this change the amount of memory reserved
  * to Domain0 i.e. the domain where the application runs.
  * This function may requires privileged access to the hypervisor.
+ *
+ * This command only changes the runtime configuration of the domain,
+ * so can only be called on an active domain.
  *
  * Returns 0 in case of success and -1 in case of failure.
  */
@@ -4821,6 +4827,9 @@ error:
  * does not support it or if growing the number is arbitrary limited.
  * This function requires privileged access to the hypervisor.
  *
+ * This command only changes the runtime configuration of the domain,
+ * so can only be called on an active domain.
+ *
  * Returns 0 in case of success, -1 in case of failure.
  */
 
@@ -4878,6 +4887,9 @@ error:
  *
  * Dynamically change the real CPUs which can be allocated to a virtual CPU.
  * This function requires privileged access to the hypervisor.
+ *
+ * This command only changes the runtime configuration of the domain,
+ * so can only be called on an active domain.
  *
  * Returns 0 in case of success, -1 in case of failure.
  */
@@ -5121,7 +5133,8 @@ error:
  * @domain: pointer to domain object
  * @xml: pointer to XML description of one device
  *
- * Create a virtual device attachment to backend.
+ * Create a virtual device attachment to backend.  This function,
+ * having hotplug semantics, is only allowed on an active domain.
  *
  * Returns 0 in case of success, -1 in case of failure.
  */
@@ -5145,14 +5158,68 @@ virDomainAttachDevice(virDomainPtr domain, const char *xml)
     conn = domain->conn;
 
     if (conn->driver->domainAttachDevice) {
+       int ret;
+       ret = conn->driver->domainAttachDevice (domain, xml);
+       if (ret < 0)
+          goto error;
+       return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(domain->conn);
+    return -1;
+}
+
+/**
+ * virDomainAttachDeviceFlags:
+ * @domain: pointer to domain object
+ * @xml: pointer to XML description of one device
+ * @flags: an OR'ed set of virDomainDeviceModifyFlags
+ *
+ * Attach a virtual device to a domain, using the flags parameter
+ * to control how the device is attached.  VIR_DOMAIN_DEVICE_MODIFY_CURRENT
+ * specifies that the device allocation is made based on current domain
+ * state.  VIR_DOMAIN_DEVICE_MODIFY_LIVE specifies that the device shall be
+ * allocated to the active domain instance only and is not added to the
+ * persisted domain configuration.  VIR_DOMAIN_DEVICE_MODIFY_CONFIG
+ * specifies that the device shall be allocated to the persisted domain
+ * configuration only.  Note that the target hypervisor must return an
+ * error if unable to satisfy flags.  E.g. the hypervisor driver will
+ * return failure if LIVE is specified but it only supports modifying the
+ * persisted device allocation.
+ *
+ * Returns 0 in case of success, -1 in case of failure.
+ */
+int
+virDomainAttachDeviceFlags(virDomainPtr domain,
+                           const char *xml, unsigned int flags)
+{
+    virConnectPtr conn;
+    DEBUG("domain=%p, xml=%s, flags=%d", domain, xml, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        return (-1);
+    }
+    if (domain->conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(domain, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+    conn = domain->conn;
+
+    if (conn->driver->domainAttachDeviceFlags) {
         int ret;
-        ret = conn->driver->domainAttachDevice (domain, xml);
+        ret = conn->driver->domainAttachDeviceFlags(domain, xml, flags);
         if (ret < 0)
             goto error;
         return ret;
     }
 
-    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    virLibConnError(conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
 
 error:
     virDispatchError(domain->conn);
@@ -5164,7 +5231,8 @@ error:
  * @domain: pointer to domain object
  * @xml: pointer to XML description of one device
  *
- * Destroy a virtual device attachment to backend.
+ * Destroy a virtual device attachment to backend.  This function,
+ * having hot-unplug semantics, is only allowed on an active domain.
  *
  * Returns 0 in case of success, -1 in case of failure.
  */
@@ -5190,12 +5258,66 @@ virDomainDetachDevice(virDomainPtr domain, const char *xml)
     if (conn->driver->domainDetachDevice) {
         int ret;
         ret = conn->driver->domainDetachDevice (domain, xml);
+         if (ret < 0)
+             goto error;
+         return ret;
+     }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(domain->conn);
+    return -1;
+}
+
+/**
+ * virDomainDetachDeviceFlags:
+ * @domain: pointer to domain object
+ * @xml: pointer to XML description of one device
+ * @flags: an OR'ed set of virDomainDeviceModifyFlags
+ *
+ * Detach a virtual device from a domain, using the flags parameter
+ * to control how the device is detached.  VIR_DOMAIN_DEVICE_MODIFY_CURRENT
+ * specifies that the device allocation is removed based on current domain
+ * state.  VIR_DOMAIN_DEVICE_MODIFY_LIVE specifies that the device shall be
+ * deallocated from the active domain instance only and is not from the
+ * persisted domain configuration.  VIR_DOMAIN_DEVICE_MODIFY_CONFIG
+ * specifies that the device shall be deallocated from the persisted domain
+ * configuration only.  Note that the target hypervisor must return an
+ * error if unable to satisfy flags.  E.g. the hypervisor driver will
+ * return failure if LIVE is specified but it only supports removing the
+ * persisted device allocation.
+ *
+ * Returns 0 in case of success, -1 in case of failure.
+ */
+int
+virDomainDetachDeviceFlags(virDomainPtr domain,
+                           const char *xml, unsigned int flags)
+{
+    virConnectPtr conn;
+    DEBUG("domain=%p, xml=%s, flags=%d", domain, xml, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        return (-1);
+    }
+    if (domain->conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(domain, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+    conn = domain->conn;
+
+    if (conn->driver->domainDetachDeviceFlags) {
+        int ret;
+        ret = conn->driver->domainDetachDeviceFlags(domain, xml, flags);
         if (ret < 0)
             goto error;
         return ret;
     }
 
-    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    virLibConnError(conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
 
 error:
     virDispatchError(domain->conn);
@@ -10250,7 +10372,7 @@ int virStreamSendAll(virStreamPtr stream,
     }
 
     if (VIR_ALLOC_N(bytes, want) < 0) {
-        virReportOOMError(stream->conn);
+        virReportOOMError();
         goto cleanup;
     }
 
@@ -10348,7 +10470,7 @@ int virStreamRecvAll(virStreamPtr stream,
 
 
     if (VIR_ALLOC_N(bytes, want) < 0) {
-        virReportOOMError(stream->conn);
+        virReportOOMError();
         goto cleanup;
     }
 
@@ -10979,4 +11101,156 @@ virConnectCompareCPU(virConnectPtr conn,
 error:
     virDispatchError(conn);
     return VIR_CPU_COMPARE_ERROR;
+}
+
+
+/**
+ * virConnectBaselineCPU:
+ *
+ * @conn: virConnect connection
+ * @xmlCPUs: array of XML descriptions of host CPUs
+ * @ncpus: number of CPUs in xmlCPUs
+ * @flags: fine-tuning flags, currently unused, pass 0.
+ *
+ * Computes the most feature-rich CPU which is compatible with all given
+ * host CPUs.
+ *
+ * Returns XML description of the computed CPU or NULL on error.
+ */
+char *
+virConnectBaselineCPU(virConnectPtr conn,
+                      const char **xmlCPUs,
+                      unsigned int ncpus,
+                      unsigned int flags)
+{
+    unsigned int i;
+
+    VIR_DEBUG("conn=%p, xmlCPUs=%p, ncpus=%u, flags=%u",
+              conn, xmlCPUs, ncpus, flags);
+    if (xmlCPUs) {
+        for (i = 0; i < ncpus; i++)
+            VIR_DEBUG("xmlCPUs[%u]=%s", i, NULLSTR(xmlCPUs[i]));
+    }
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        virDispatchError(NULL);
+        return NULL;
+    }
+    if (xmlCPUs == NULL) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->driver->cpuBaseline) {
+        char *cpu;
+
+        cpu = conn->driver->cpuBaseline(conn, xmlCPUs, ncpus, flags);
+        if (!cpu)
+            goto error;
+        return cpu;
+    }
+
+    virLibConnError(conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(conn);
+    return NULL;
+}
+
+
+/**
+ * virDomainGetJobInfo:
+ * @domain: a domain object
+ * @info: pointer to a virDomainJobInfo structure allocated by the user
+ *
+ * Extract information about progress of a background job on a domain.
+ * Will return an error if the domain is not active.
+ *
+ * Returns 0 in case of success and -1 in case of failure.
+ */
+int
+virDomainGetJobInfo(virDomainPtr domain, virDomainJobInfoPtr info)
+{
+    virConnectPtr conn;
+    DEBUG("domain=%p, info=%p", domain, info);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return (-1);
+    }
+    if (info == NULL) {
+        virLibDomainError(domain, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    memset(info, 0, sizeof(virDomainJobInfo));
+
+    conn = domain->conn;
+
+    if (conn->driver->domainGetJobInfo) {
+        int ret;
+        ret = conn->driver->domainGetJobInfo (domain, info);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(domain->conn);
+    return -1;
+}
+
+
+/**
+ * virDomainAbortJob:
+ * @domain: a domain object
+ *
+ * Requests that the current background job be aborted at the
+ * soonest opportunity. This will block until the job has
+ * either completed, or aborted.
+ *
+ * Returns 0 in case of success and -1 in case of failure.
+ */
+int
+virDomainAbortJob(virDomainPtr domain)
+{
+    virConnectPtr conn;
+
+    DEBUG("domain=%p", domain);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return (-1);
+    }
+
+    conn = domain->conn;
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(domain, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->driver->domainAbortJob) {
+        int ret;
+        ret = conn->driver->domainAbortJob(domain);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(conn);
+    return -1;
 }

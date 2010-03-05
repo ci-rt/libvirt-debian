@@ -66,6 +66,7 @@ typedef <a href="libvirt-libvirt.html#virDomainBlockStatsStruct">virDomainBlockS
 typedef struct _virDomainBlockStats <a href="#virDomainBlockStatsStruct">virDomainBlockStatsStruct</a>;
 typedef enum <a href="#virDomainCoreDumpFlags">virDomainCoreDumpFlags</a>;
 typedef enum <a href="#virDomainCreateFlags">virDomainCreateFlags</a>;
+typedef enum <a href="#virDomainDeviceModifyFlags">virDomainDeviceModifyFlags</a>;
 typedef enum <a href="#virDomainEventDefinedDetailType">virDomainEventDefinedDetailType</a>;
 typedef enum <a href="#virDomainEventResumedDetailType">virDomainEventResumedDetailType</a>;
 typedef enum <a href="#virDomainEventStartedDetailType">virDomainEventStartedDetailType</a>;
@@ -126,6 +127,7 @@ typedef struct _virVcpuInfo <a href="#virVcpuInfo">virVcpuInfo</a>;
 typedef <a href="libvirt-libvirt.html#virVcpuInfo">virVcpuInfo</a> * <a href="#virVcpuInfoPtr">virVcpuInfoPtr</a>;
 typedef enum <a href="#virVcpuState">virVcpuState</a>;
 typedef int <a href="#virConnectAuthCallbackPtr">virConnectAuthCallbackPtr</a>	(<a href="libvirt-libvirt.html#virConnectCredentialPtr">virConnectCredentialPtr</a> cred, <br/>					 unsigned int ncred, <br/>					 void * cbdata);
+char *	<a href="#virConnectBaselineCPU">virConnectBaselineCPU</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char ** xmlCPUs, <br/>					 unsigned int ncpus, <br/>					 unsigned int flags);
 int	<a href="#virConnectClose">virConnectClose</a>			(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
 int	<a href="#virConnectCompareCPU">virConnectCompareCPU</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xmlDesc, <br/>					 unsigned int flags);
 typedef int <a href="#virConnectDomainEventCallback">virConnectDomainEventCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 int event, <br/>					 int detail, <br/>					 void * opaque);
@@ -166,6 +168,7 @@ int	<a href="#virConnectNumOfStoragePools">virConnectNumOfStoragePools</a>	(<a h
 <a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a>	<a href="#virConnectOpenReadOnly">virConnectOpenReadOnly</a>	(const char * name);
 int	<a href="#virConnectRef">virConnectRef</a>			(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
 int	<a href="#virDomainAttachDevice">virDomainAttachDevice</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * xml);
+int	<a href="#virDomainAttachDeviceFlags">virDomainAttachDeviceFlags</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * xml, <br/>					 unsigned int flags);
 int	<a href="#virDomainBlockPeek">virDomainBlockPeek</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * path, <br/>					 unsigned long long offset, <br/>					 size_t size, <br/>					 void * buffer, <br/>					 unsigned int flags);
 int	<a href="#virDomainBlockStats">virDomainBlockStats</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * path, <br/>					 <a href="libvirt-libvirt.html#virDomainBlockStatsPtr">virDomainBlockStatsPtr</a> stats, <br/>					 size_t size);
 int	<a href="#virDomainCoreDump">virDomainCoreDump</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * to, <br/>					 int flags);
@@ -175,6 +178,7 @@ int	<a href="#virDomainCreate">virDomainCreate</a>			(<a href="libvirt-libvirt.h
 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	<a href="#virDomainDefineXML">virDomainDefineXML</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xml);
 int	<a href="#virDomainDestroy">virDomainDestroy</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
 int	<a href="#virDomainDetachDevice">virDomainDetachDevice</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * xml);
+int	<a href="#virDomainDetachDeviceFlags">virDomainDetachDeviceFlags</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * xml, <br/>					 unsigned int flags);
 int	<a href="#virDomainFree">virDomainFree</a>			(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
 int	<a href="#virDomainGetAutostart">virDomainGetAutostart</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 int * autostart);
 <a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a>	<a href="#virDomainGetConnect">virDomainGetConnect</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom);
@@ -510,6 +514,14 @@ The content of this structure is not made public by the API.
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainCreateFlags">Enum </a>virDomainCreateFlags</h3><pre class="programlisting">enum <a href="#virDomainCreateFlags">virDomainCreateFlags</a> {
     <a name="VIR_DOMAIN_NONE">VIR_DOMAIN_NONE</a> = 0
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainDeviceModifyFlags">Enum </a>virDomainDeviceModifyFlags</h3><pre class="programlisting">enum <a href="#virDomainDeviceModifyFlags">virDomainDeviceModifyFlags</a> {
+    <a name="VIR_DOMAIN_DEVICE_MODIFY_CURRENT">VIR_DOMAIN_DEVICE_MODIFY_CURRENT</a> = 0 /* Modify device allocation based on current domain state */
+    <a name="VIR_DOMAIN_DEVICE_MODIFY_LIVE">VIR_DOMAIN_DEVICE_MODIFY_LIVE</a> = 1 /* Modify live device allocation */
+    <a name="VIR_DOMAIN_DEVICE_MODIFY_CONFIG">VIR_DOMAIN_DEVICE_MODIFY_CONFIG</a> = 2 /*  Modify persisted device allocation */
 };
 </pre><p/>
 </div>
@@ -1022,6 +1034,11 @@ of -1 at any time will abort the send operation</p>
 </pre><p/>
 </div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectBaselineCPU"/>virConnectBaselineCPU ()</h3><pre class="programlisting">char *	virConnectBaselineCPU		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char ** xmlCPUs, <br/>					 unsigned int ncpus, <br/>					 unsigned int flags)<br/>
+</pre><p>Computes the most feature-rich CPU which is compatible with all given
+host CPUs.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td><a href="libvirt-libvirt.html#virConnect">virConnect</a> connection</td></tr><tr><td><span class="term"><i><tt>xmlCPUs</tt></i>:</span></td><td>array of XML descriptions of host CPUs</td></tr><tr><td><span class="term"><i><tt>ncpus</tt></i>:</span></td><td>number of CPUs in xmlCPUs</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>fine-tuning flags, currently unused, pass 0.</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>XML description of the computed CPU or NULL on error.</td></tr></tbody></table></div></div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectClose"/>virConnectClose ()</h3><pre class="programlisting">int	virConnectClose			(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn)<br/>
 </pre><p>This function closes the connection to the Hypervisor. This should
 not be called if further interaction with the Hypervisor are needed
@@ -1242,8 +1259,23 @@ the reference count.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>the connection to hold a reference on</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainAttachDevice"/>virDomainAttachDevice ()</h3><pre class="programlisting">int	virDomainAttachDevice		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * xml)<br/>
-</pre><p>Create a virtual device attachment to backend.</p>
+</pre><p>Create a virtual device attachment to backend. This function,
+having hotplug semantics, is only allowed on an active domain.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>xml</tt></i>:</span></td><td>pointer to XML description of one device</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainAttachDeviceFlags"/>virDomainAttachDeviceFlags ()</h3><pre class="programlisting">int	virDomainAttachDeviceFlags	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * xml, <br/>					 unsigned int flags)<br/>
+</pre><p>Attach a virtual device to a domain, using the flags parameter
+to control how the device is attached. VIR_DOMAIN_DEVICE_MODIFY_CURRENT
+specifies that the device allocation is made based on current domain
+state. <a href="libvirt-libvirt.html#VIR_DOMAIN_DEVICE_MODIFY_LIVE">VIR_DOMAIN_DEVICE_MODIFY_LIVE</a> specifies that the device shall be
+allocated to the active domain instance only and is not added to the
+persisted domain configuration. VIR_DOMAIN_DEVICE_MODIFY_CONFIG
+specifies that the device shall be allocated to the persisted domain
+configuration only. Note that the target hypervisor must return an
+error if unable to satisfy flags. E.g. the hypervisor driver will
+return failure if LIVE is specified but it only supports modifying the
+persisted device allocation.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>xml</tt></i>:</span></td><td>pointer to XML description of one device</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>an OR'ed set of <a href="libvirt-libvirt.html#virDomainDeviceModifyFlags">virDomainDeviceModifyFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainBlockPeek"/>virDomainBlockPeek ()</h3><pre class="programlisting">int	virDomainBlockPeek		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * path, <br/>					 unsigned long long offset, <br/>					 size_t size, <br/>					 void * buffer, <br/>					 unsigned int flags)<br/>
 </pre><p>This function allows you to read the contents of a domain's
@@ -1332,8 +1364,23 @@ This function may require privileged access</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainDetachDevice"/>virDomainDetachDevice ()</h3><pre class="programlisting">int	virDomainDetachDevice		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * xml)<br/>
-</pre><p>Destroy a virtual device attachment to backend.</p>
+</pre><p>Destroy a virtual device attachment to backend. This function,
+having hot-unplug semantics, is only allowed on an active domain.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>xml</tt></i>:</span></td><td>pointer to XML description of one device</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainDetachDeviceFlags"/>virDomainDetachDeviceFlags ()</h3><pre class="programlisting">int	virDomainDetachDeviceFlags	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * xml, <br/>					 unsigned int flags)<br/>
+</pre><p>Detach a virtual device from a domain, using the flags parameter
+to control how the device is detached. VIR_DOMAIN_DEVICE_MODIFY_CURRENT
+specifies that the device allocation is removed based on current domain
+state. <a href="libvirt-libvirt.html#VIR_DOMAIN_DEVICE_MODIFY_LIVE">VIR_DOMAIN_DEVICE_MODIFY_LIVE</a> specifies that the device shall be
+deallocated from the active domain instance only and is not from the
+persisted domain configuration. VIR_DOMAIN_DEVICE_MODIFY_CONFIG
+specifies that the device shall be deallocated from the persisted domain
+configuration only. Note that the target hypervisor must return an
+error if unable to satisfy flags. E.g. the hypervisor driver will
+return failure if LIVE is specified but it only supports removing the
+persisted device allocation.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>xml</tt></i>:</span></td><td>pointer to XML description of one device</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>an OR'ed set of <a href="libvirt-libvirt.html#virDomainDeviceModifyFlags">virDomainDeviceModifyFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainFree"/>virDomainFree ()</h3><pre class="programlisting">int	virDomainFree			(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain)<br/>
 </pre><p>Free the domain object. The running instance is kept alive.
@@ -1614,7 +1661,10 @@ different types of hypervisor.</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainPinVcpu"/>virDomainPinVcpu ()</h3><pre class="programlisting">int	virDomainPinVcpu		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int vcpu, <br/>					 unsigned char * cpumap, <br/>					 int maplen)<br/>
 </pre><p>Dynamically change the real CPUs which can be allocated to a virtual CPU.
-This function requires privileged access to the hypervisor.</p>
+This function requires privileged access to the hypervisor.
+
+This command only changes the runtime configuration of the domain,
+so can only be called on an active domain.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object, or NULL for Domain0</td></tr><tr><td><span class="term"><i><tt>vcpu</tt></i>:</span></td><td>virtual CPU number</td></tr><tr><td><span class="term"><i><tt>cpumap</tt></i>:</span></td><td>pointer to a bit map of real CPUs (in 8-bit bytes) (IN) Each bit set to 1 means that corresponding CPU is usable. Bytes are stored in little-endian order: CPU0-7, 8-15... In each byte, lowest CPU number is least significant bit.</td></tr><tr><td><span class="term"><i><tt>maplen</tt></i>:</span></td><td>number of bytes in cpumap, from 1 up to size of CPU map in underlying virtualization system (Xen...). If maplen &lt; size, missing bytes are set to zero. If maplen &gt; size, failure code is returned.</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainReboot"/>virDomainReboot ()</h3><pre class="programlisting">int	virDomainReboot			(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int flags)<br/>
@@ -1662,14 +1712,20 @@ when the host machine boots.</p>
 </pre><p>Dynamically change the maximum amount of physical memory allocated to a
 domain. If domain is NULL, then this change the amount of memory reserved
 to Domain0 i.e. the domain where the application runs.
-This function requires privileged access to the hypervisor.</p>
+This function requires privileged access to the hypervisor.
+
+This command only changes the runtime configuration of the domain,
+so can only be called on an active domain.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object or NULL</td></tr><tr><td><span class="term"><i><tt>memory</tt></i>:</span></td><td>the memory size in kilobytes</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSetMemory"/>virDomainSetMemory ()</h3><pre class="programlisting">int	virDomainSetMemory		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned long memory)<br/>
 </pre><p>Dynamically change the target amount of physical memory allocated to a
 domain. If domain is NULL, then this change the amount of memory reserved
 to Domain0 i.e. the domain where the application runs.
-This function may requires privileged access to the hypervisor.</p>
+This function may requires privileged access to the hypervisor.
+
+This command only changes the runtime configuration of the domain,
+so can only be called on an active domain.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object or NULL</td></tr><tr><td><span class="term"><i><tt>memory</tt></i>:</span></td><td>the memory size in kilobytes</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSetSchedulerParameters"/>virDomainSetSchedulerParameters ()</h3><pre class="programlisting">int	virDomainSetSchedulerParameters	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virSchedParameterPtr">virSchedParameterPtr</a> params, <br/>					 int nparams)<br/>
@@ -1680,7 +1736,10 @@ This function may requires privileged access to the hypervisor.</p>
 </pre><p>Dynamically change the number of virtual CPUs used by the domain.
 Note that this call may fail if the underlying virtualization hypervisor
 does not support it or if growing the number is arbitrary limited.
-This function requires privileged access to the hypervisor.</p>
+This function requires privileged access to the hypervisor.
+
+This command only changes the runtime configuration of the domain,
+so can only be called on an active domain.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object, or NULL for Domain0</td></tr><tr><td><span class="term"><i><tt>nvcpus</tt></i>:</span></td><td>the new number of virtual CPUs for this domain</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainShutdown"/>virDomainShutdown ()</h3><pre class="programlisting">int	virDomainShutdown		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain)<br/>

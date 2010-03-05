@@ -72,6 +72,8 @@ virCgroupSetFreezerState;
 
 
 # cpu.h
+cpuBaseline;
+cpuBaselineXML;
 cpuCompare;
 cpuCompareXML;
 cpuDataFree;
@@ -177,17 +179,18 @@ virDomainObjListInit;
 virDomainObjListDeinit;
 virDomainObjRef;
 virDomainObjUnref;
-virDomainDevicePCIAddressEqual;
 virDomainDeviceAddressIsValid;
 virDomainDevicePCIAddressIsValid;
 virDomainDeviceInfoIsSet;
 virDomainControllerTypeToString;
 virDomainControllerDefFree;
 virDomainDeviceAddressTypeToString;
-virDomainDefAddDiskControllers;
+virDomainDefAddImplicitControllers;
 virDomainDefClearPCIAddresses;
 virDomainDefClearDeviceAliases;
 virDomainDeviceInfoIterate;
+virDomainClockOffsetTypeToString;
+virDomainClockOffsetTypeFromString;
 
 
 # domain_event.h
@@ -564,6 +567,7 @@ virExecDaemonize;
 virSetCloseExec;
 virSetNonBlock;
 virFormatMacAddr;
+virGetHostnameLocalhost;
 virGetHostname;
 virParseMacAddr;
 virFileDeletePid;
@@ -595,7 +599,10 @@ virArgvToString;
 
 # usb.h
 usbGetDevice;
+usbFindDevice;
 usbFreeDevice;
+usbDeviceGetBus;
+usbDeviceGetDevno;
 usbDeviceFileIterate;
 
 # uuid.h
@@ -625,6 +632,7 @@ virXPathStringLimit;
 virXPathBoolean;
 virXPathNumber;
 virXPathULong;
+virXPathLongLong;
 virXPathULongLong;
 virXPathLongHex;
 virXPathULongHex;

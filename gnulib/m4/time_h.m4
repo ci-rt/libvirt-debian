@@ -1,3 +1,5 @@
+# -*- buffer-read-only: t -*- vi: set ro:
+# DO NOT EDIT! GENERATED AUTOMATICALLY!
 # Configure a more-standard replacement for <time.h>.
 
 # Copyright (C) 2000-2001, 2003-2007, 2009-2010 Free Software Foundation, Inc.

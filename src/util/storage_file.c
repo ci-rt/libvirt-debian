@@ -1,7 +1,7 @@
 /*
  * storage_file.c: file utility functions for FS storage backend
  *
- * Copyright (C) 2007-2009 Red Hat, Inc.
+ * Copyright (C) 2007-2010 Red Hat, Inc.
  * Copyright (C) 2007-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -26,6 +26,7 @@
 
 #include <unistd.h>
 #include <fcntl.h>
+#include "dirname.h"
 #include "memory.h"
 #include "virterror_internal.h"
 
@@ -70,16 +71,12 @@ struct FileTypeInfo {
     int qcowCryptOffset;  /* Byte offset from start of file
                            * where to find encryption mode,
                            * -1 if encryption is not used */
-    int (*getBackingStore)(virConnectPtr conn, char **res,
-                           const unsigned char *buf, size_t buf_size);
+    int (*getBackingStore)(char **res, const unsigned char *buf, size_t buf_size);
 };
 
-static int cowGetBackingStore(virConnectPtr, char **,
-                              const unsigned char *, size_t);
-static int qcowXGetBackingStore(virConnectPtr, char **,
-                                const unsigned char *, size_t);
-static int vmdk4GetBackingStore(virConnectPtr, char **,
-                                const unsigned char *, size_t);
+static int cowGetBackingStore(char **, const unsigned char *, size_t);
+static int qcowXGetBackingStore(char **, const unsigned char *, size_t);
+static int vmdk4GetBackingStore(char **, const unsigned char *, size_t);
 
 
 static struct FileTypeInfo const fileTypeInfo[] = {
@@ -139,8 +136,7 @@ static struct FileTypeInfo const fileTypeInfo[] = {
 };
 
 static int
-cowGetBackingStore(virConnectPtr conn,
-                   char **res,
+cowGetBackingStore(char **res,
                    const unsigned char *buf,
                    size_t buf_size)
 {
@@ -153,15 +149,14 @@ cowGetBackingStore(virConnectPtr conn,
 
     *res = strndup ((const char*)buf + 4+4, COW_FILENAME_MAXLEN);
     if (*res == NULL) {
-        virReportOOMError(conn);
+        virReportOOMError();
         return BACKING_STORE_ERROR;
     }
     return BACKING_STORE_OK;
 }
 
 static int
-qcowXGetBackingStore(virConnectPtr conn,
-                     char **res,
+qcowXGetBackingStore(char **res,
                      const unsigned char *buf,
                      size_t buf_size)
 {
@@ -192,7 +187,7 @@ qcowXGetBackingStore(virConnectPtr conn,
     if (size + 1 == 0)
         return BACKING_STORE_INVALID;
     if (VIR_ALLOC_N(*res, size + 1) < 0) {
-        virReportOOMError(conn);
+        virReportOOMError();
         return BACKING_STORE_ERROR;
     }
     memcpy(*res, buf + offset, size);
@@ -202,8 +197,7 @@ qcowXGetBackingStore(virConnectPtr conn,
 
 
 static int
-vmdk4GetBackingStore(virConnectPtr conn,
-                     char **res,
+vmdk4GetBackingStore(char **res,
                      const unsigned char *buf,
                      size_t buf_size)
 {
@@ -233,7 +227,7 @@ vmdk4GetBackingStore(virConnectPtr conn,
     *end = '\0';
     *res = strdup(start);
     if (*res == NULL) {
-        virReportOOMError(conn);
+        virReportOOMError();
         return BACKING_STORE_ERROR;
     }
     return BACKING_STORE_OK;
@@ -246,26 +240,19 @@ vmdk4GetBackingStore(virConnectPtr conn,
 static char *
 absolutePathFromBaseFile(const char *base_file, const char *path)
 {
-    size_t base_size, path_size;
-    char *res, *p;
+    char *res;
+    size_t d_len = dir_len (base_file);
 
-    if (*path == '/')
+    /* If path is already absolute, or if dirname(base_file) is ".",
+       just return a copy of path.  */
+    if (*path == '/' || d_len == 0)
         return strdup(path);
 
-    base_size = strlen(base_file) + 1;
-    path_size = strlen(path) + 1;
-    if (VIR_ALLOC_N(res, base_size - 1 + path_size) < 0)
+    /* Ensure that the following cast-to-int is valid.  */
+    if (d_len > INT_MAX)
         return NULL;
-    memcpy(res, base_file, base_size);
-    p = strrchr(res, '/');
-    if (p != NULL)
-        p++;
-    else
-        p = res;
-    memcpy(p, path, path_size);
-    if (VIR_REALLOC_N(res, (p + path_size) - res) < 0) {
-        /* Ignore failure */
-    }
+
+    virAsprintf(&res, "%.*s/%s", (int) d_len, base_file, path);
     return res;
 }
 
@@ -274,8 +261,7 @@ absolutePathFromBaseFile(const char *base_file, const char *path)
  * it is, and info about its capacity if available.
  */
 int
-virStorageFileGetMetadataFromFD(virConnectPtr conn,
-                                const char *path,
+virStorageFileGetMetadataFromFD(const char *path,
                                 int fd,
                                 virStorageFileMetadata *meta)
 {
@@ -286,7 +272,7 @@ virStorageFileGetMetadataFromFD(virConnectPtr conn,
     meta->format = VIR_STORAGE_FILE_RAW;
 
     if ((len = read(fd, head, sizeof(head))) < 0) {
-        virReportSystemError(conn, errno, _("cannot read header '%s'"), path);
+        virReportSystemError(errno, _("cannot read header '%s'"), path);
         return -1;
     }
 
@@ -367,7 +353,7 @@ virStorageFileGetMetadataFromFD(virConnectPtr conn,
         if (fileTypeInfo[i].getBackingStore != NULL) {
             char *base;
 
-            switch (fileTypeInfo[i].getBackingStore(conn, &base, head, len)) {
+            switch (fileTypeInfo[i].getBackingStore(&base, head, len)) {
             case BACKING_STORE_OK:
                 break;
 
@@ -381,7 +367,7 @@ virStorageFileGetMetadataFromFD(virConnectPtr conn,
                 meta->backingStore = absolutePathFromBaseFile(path, base);
                 VIR_FREE(base);
                 if (meta->backingStore == NULL) {
-                    virReportOOMError(conn);
+                    virReportOOMError();
                     return -1;
                 }
             }
@@ -405,18 +391,17 @@ virStorageFileGetMetadataFromFD(virConnectPtr conn,
 }
 
 int
-virStorageFileGetMetadata(virConnectPtr conn,
-                          const char *path,
+virStorageFileGetMetadata(const char *path,
                           virStorageFileMetadata *meta)
 {
     int fd, ret;
 
     if ((fd = open(path, O_RDONLY)) < 0) {
-        virReportSystemError(conn, errno, _("cannot open file '%s'"), path);
+        virReportSystemError(errno, _("cannot open file '%s'"), path);
         return -1;
     }
 
-    ret = virStorageFileGetMetadataFromFD(conn, path, fd, meta);
+    ret = virStorageFileGetMetadataFromFD(path, fd, meta);
 
     close(fd);
 

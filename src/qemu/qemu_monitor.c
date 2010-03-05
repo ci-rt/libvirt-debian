@@ -232,7 +232,7 @@ qemuMonitorOpenUnix(const char *monitor)
     int ret, i = 0;
 
     if ((monfd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
-        virReportSystemError(NULL, errno,
+        virReportSystemError(errno,
                              "%s", _("failed to create socket"));
         return -1;
     }
@@ -240,8 +240,8 @@ qemuMonitorOpenUnix(const char *monitor)
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
     if (virStrcpyStatic(addr.sun_path, monitor) == NULL) {
-        qemudReportError(NULL, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                         _("Monitor path %s too big for destination"), monitor);
+        qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                        _("Monitor path %s too big for destination"), monitor);
         goto error;
     }
 
@@ -257,14 +257,14 @@ qemuMonitorOpenUnix(const char *monitor)
             continue;
         }
 
-        virReportSystemError(NULL, errno, "%s",
+        virReportSystemError(errno, "%s",
                              _("failed to connect to monitor socket"));
         goto error;
 
     } while ((++i <= timeout*5) && (usleep(.2 * 1000000) <= 0));
 
     if (ret != 0) {
-        virReportSystemError(NULL, errno, "%s",
+        virReportSystemError(errno, "%s",
                              _("monitor socket did not show up."));
         goto error;
     }
@@ -282,8 +282,8 @@ qemuMonitorOpenPty(const char *monitor)
     int monfd;
 
     if ((monfd = open(monitor, O_RDWR)) < 0) {
-        qemudReportError(NULL, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                         _("Unable to open monitor path %s"), monitor);
+        qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                        _("Unable to open monitor path %s"), monitor);
         return -1;
     }
 
@@ -569,25 +569,25 @@ qemuMonitorOpen(virDomainObjPtr vm,
     qemuMonitorPtr mon;
 
     if (!cb || !cb->eofNotify) {
-        qemudReportError(NULL, NULL, NULL, VIR_ERR_INTERNAL_ERROR, "%s",
-                         _("EOF notify callback must be supplied"));
+        qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                        _("EOF notify callback must be supplied"));
         return NULL;
     }
 
     if (VIR_ALLOC(mon) < 0) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         return NULL;
     }
 
     if (virMutexInit(&mon->lock) < 0) {
-        qemudReportError(NULL, NULL, NULL, VIR_ERR_INTERNAL_ERROR, "%s",
-                         _("cannot initialize monitor mutex"));
+        qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                        _("cannot initialize monitor mutex"));
         VIR_FREE(mon);
         return NULL;
     }
     if (virCondInit(&mon->notify) < 0) {
-        qemudReportError(NULL, NULL, NULL, VIR_ERR_INTERNAL_ERROR, "%s",
-                         _("cannot initialize monitor condition"));
+        qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                        _("cannot initialize monitor condition"));
         virMutexDestroy(&mon->lock);
         VIR_FREE(mon);
         return NULL;
@@ -610,22 +610,22 @@ qemuMonitorOpen(virDomainObjPtr vm,
         break;
 
     default:
-        qemudReportError(NULL, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                         _("unable to handle monitor type: %s"),
-                         virDomainChrTypeToString(config->type));
+        qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                        _("unable to handle monitor type: %s"),
+                        virDomainChrTypeToString(config->type));
         goto cleanup;
     }
 
     if (mon->fd == -1) goto cleanup;
 
     if (virSetCloseExec(mon->fd) < 0) {
-        qemudReportError(NULL, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                         "%s", _("Unable to set monitor close-on-exec flag"));
+        qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                        "%s", _("Unable to set monitor close-on-exec flag"));
         goto cleanup;
     }
     if (virSetNonBlock(mon->fd) < 0) {
-        qemudReportError(NULL, NULL, NULL, VIR_ERR_INTERNAL_ERROR,
-                         "%s", _("Unable to put monitor into non-blocking mode"));
+        qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                        "%s", _("Unable to put monitor into non-blocking mode"));
         goto cleanup;
     }
 
@@ -636,8 +636,8 @@ qemuMonitorOpen(virDomainObjPtr vm,
                                         VIR_EVENT_HANDLE_READABLE,
                                         qemuMonitorIO,
                                         mon, NULL)) < 0) {
-        qemudReportError(NULL, NULL, NULL, VIR_ERR_INTERNAL_ERROR, "%s",
-                         _("unable to register monitor events"));
+        qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                        _("unable to register monitor events"));
         goto cleanup;
     }
 
@@ -791,6 +791,19 @@ int qemuMonitorEmitStop(qemuMonitorPtr mon)
 }
 
 
+int qemuMonitorSetCapabilities(qemuMonitorPtr mon)
+{
+    int ret;
+    DEBUG("mon=%p, fd=%d", mon, mon->fd);
+
+    if (mon->json)
+        ret = qemuMonitorJSONSetCapabilities(mon);
+    else
+        ret = 0;
+    return ret;
+}
+
+
 int
 qemuMonitorStartCPUs(qemuMonitorPtr mon,
                      virConnectPtr conn)
@@ -911,6 +924,20 @@ int qemuMonitorSetBalloon(qemuMonitorPtr mon,
         ret = qemuMonitorTextSetBalloon(mon, newmem);
     return ret;
 }
+
+
+int qemuMonitorSetCPU(qemuMonitorPtr mon, int cpu, int online)
+{
+    int ret;
+    DEBUG("mon=%p, fd=%d cpu=%d online=%d", mon, mon->fd, cpu, online);
+
+    if (mon->json)
+        ret = qemuMonitorJSONSetCPU(mon, cpu, online);
+    else
+        ret = qemuMonitorTextSetCPU(mon, cpu, online);
+    return ret;
+}
+
 
 int qemuMonitorEjectMedia(qemuMonitorPtr mon,
                           const char *devname)
@@ -1305,6 +1332,19 @@ int qemuMonitorGetAllPCIAddresses(qemuMonitorPtr mon,
     return ret;
 }
 
+int qemuMonitorDelDevice(qemuMonitorPtr mon,
+                         const char *devicestr)
+{
+    DEBUG("mon=%p, fd=%d device(del)=%s", mon, mon->fd, devicestr);
+    int ret;
+
+    if (mon->json)
+        ret = qemuMonitorJSONDelDevice(mon, devicestr);
+    else
+        ret = qemuMonitorTextDelDevice(mon, devicestr);
+    return ret;
+}
+
 
 int qemuMonitorAddDevice(qemuMonitorPtr mon,
                          const char *devicestr)
@@ -1329,5 +1369,20 @@ int qemuMonitorAddDrive(qemuMonitorPtr mon,
         ret = qemuMonitorJSONAddDrive(mon, drivestr);
     else
         ret = qemuMonitorTextAddDrive(mon, drivestr);
+    return ret;
+}
+
+
+int qemuMonitorSetDrivePassphrase(qemuMonitorPtr mon,
+                                  const char *alias,
+                                  const char *passphrase)
+{
+    DEBUG("mon=%p, fd=%d alias=%s passphrase=%p(value hidden)", mon, mon->fd, alias, passphrase);
+    int ret;
+
+    if (mon->json)
+        ret = qemuMonitorJSONSetDrivePassphrase(mon, alias, passphrase);
+    else
+        ret = qemuMonitorTextSetDrivePassphrase(mon, alias, passphrase);
     return ret;
 }

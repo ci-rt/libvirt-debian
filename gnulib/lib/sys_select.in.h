@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Substitute for <sys/select.h>.
    Copyright (C) 2007-2010 Free Software Foundation, Inc.
 
@@ -63,13 +65,13 @@
 #ifndef _GL_SYS_SELECT_H
 #define _GL_SYS_SELECT_H
 
-#if !@HAVE_SYS_SELECT_H@
+#if !@HAVE_SYS_SELECT_H@ || @REPLACE_SELECT@
 
 /* A platform that lacks <sys/select.h>.  */
 
 # include <sys/socket.h>
 
-/* The definition of GL_LINK_WARNING is copied here.  */
+/* The definition of _GL_WARN_ON_USE is copied here.  */
 
 # ifdef __cplusplus
 extern "C" {
@@ -86,10 +88,10 @@ extern int rpl_select (int, fd_set *, fd_set *, fd_set *, struct timeval *);
 #  define select select_used_without_requesting_gnulib_module_select
 # elif defined GNULIB_POSIXCHECK
 #  undef select
-#  define select(n,r,w,e,t) \
-     (GL_LINK_WARNING ("select is not always POSIX compliant - " \
-                       "use gnulib module select for portability"), \
-      select (n, r, w, e, t))
+#  if HAVE_RAW_DECL_SELECT
+_GL_WARN_ON_USE (select, "select is not always POSIX compliant - "
+                 "use gnulib module select for portability");
+#  endif
 # endif
 
 # ifdef __cplusplus

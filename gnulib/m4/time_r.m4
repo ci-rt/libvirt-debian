@@ -1,3 +1,5 @@
+# -*- buffer-read-only: t -*- vi: set ro:
+# DO NOT EDIT! GENERATED AUTOMATICALLY!
 dnl Reentrant time functions like localtime_r.
 
 dnl Copyright (C) 2003, 2006, 2007, 2008, 2009, 2010 Free Software Foundation,

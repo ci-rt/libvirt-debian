@@ -137,6 +137,17 @@ x86cpuidClearBits(struct cpuX86cpuid *cpuid,
 }
 
 
+static inline void
+x86cpuidAndBits(struct cpuX86cpuid *cpuid,
+                const struct cpuX86cpuid *mask)
+{
+    cpuid->eax &= mask->eax;
+    cpuid->ebx &= mask->ebx;
+    cpuid->ecx &= mask->ecx;
+    cpuid->edx &= mask->edx;
+}
+
+
 static struct cpuX86cpuid *
 x86DataCpuid(const union cpuData *data,
              uint32_t function)
@@ -265,7 +276,7 @@ x86DataToCPU(const union cpuData *data,
             if ((cpuid = x86DataCpuid(tmp, feature->cpuid[i].function))
                 && x86cpuidMatchMasked(cpuid, feature->cpuid + i)) {
                 x86cpuidClearBits(cpuid, feature->cpuid + i);
-                if (virCPUDefAddFeature(NULL, cpu, feature->name,
+                if (virCPUDefAddFeature(cpu, feature->name,
                                         VIR_CPU_FEATURE_REQUIRE) < 0)
                     goto error;
             }
@@ -279,7 +290,7 @@ cleanup:
     return cpu;
 
 no_memory:
-    virReportOOMError(NULL);
+    virReportOOMError();
 error:
     virCPUDefFree(cpu);
     cpu = NULL;
@@ -332,20 +343,20 @@ x86FeatureLoad(xmlXPathContextPtr ctxt,
     if (VIR_ALLOC(feature) < 0)
         goto no_memory;
 
-    feature->name = virXPathString(NULL, "string(@name)", ctxt);
+    feature->name = virXPathString("string(@name)", ctxt);
     if (feature->name == NULL) {
-        virCPUReportError(NULL, VIR_ERR_INTERNAL_ERROR,
+        virCPUReportError(VIR_ERR_INTERNAL_ERROR,
                 "%s", _("Missing CPU feature name"));
         goto ignore;
     }
 
     if (x86FeatureFind(map, feature->name)) {
-        virCPUReportError(NULL, VIR_ERR_INTERNAL_ERROR,
+        virCPUReportError(VIR_ERR_INTERNAL_ERROR,
                 _("CPU feature %s already defined"), feature->name);
         goto ignore;
     }
 
-    n = virXPathNodeSet(NULL, "./cpuid", ctxt, &nodes);
+    n = virXPathNodeSet("./cpuid", ctxt, &nodes);
     if (n < 0)
         goto ignore;
 
@@ -362,15 +373,15 @@ x86FeatureLoad(xmlXPathContextPtr ctxt,
 
         ctxt->node = nodes[i];
         fun = eax = ebx = ecx = edx = 0;
-        ret_fun = virXPathULongHex(NULL, "string(@function)", ctxt, &fun);
-        ret_eax = virXPathULongHex(NULL, "string(@eax)", ctxt, &eax);
-        ret_ebx = virXPathULongHex(NULL, "string(@ebx)", ctxt, &ebx);
-        ret_ecx = virXPathULongHex(NULL, "string(@ecx)", ctxt, &ecx);
-        ret_edx = virXPathULongHex(NULL, "string(@edx)", ctxt, &edx);
+        ret_fun = virXPathULongHex("string(@function)", ctxt, &fun);
+        ret_eax = virXPathULongHex("string(@eax)", ctxt, &eax);
+        ret_ebx = virXPathULongHex("string(@ebx)", ctxt, &ebx);
+        ret_ecx = virXPathULongHex("string(@ecx)", ctxt, &ecx);
+        ret_edx = virXPathULongHex("string(@edx)", ctxt, &edx);
 
         if (ret_fun < 0 || ret_eax == -2 || ret_ebx == -2
             || ret_ecx == -2 || ret_edx == -2) {
-            virCPUReportError(NULL, VIR_ERR_INTERNAL_ERROR,
+            virCPUReportError(VIR_ERR_INTERNAL_ERROR,
                     _("Invalid cpuid[%d] in %s feature"), i, feature->name);
             goto ignore;
         }
@@ -396,7 +407,7 @@ out:
     return ret;
 
 no_memory:
-    virReportOOMError(NULL);
+    virReportOOMError();
     ret = -1;
 
 ignore:
@@ -477,6 +488,27 @@ x86ModelSubtract(struct x86_model *model1,
 }
 
 
+static void
+x86ModelIntersect(struct x86_model *model1,
+                  const struct x86_model *model2)
+{
+    int i;
+    struct cpuX86cpuid *cpuid;
+
+    for (i = 0; i < model1->ncpuid; i++) {
+        struct cpuX86cpuid *intersection = model1->cpuid + i;
+
+        cpuid = x86cpuidFind(model2->cpuid,
+                             model2->ncpuid,
+                             intersection->function);
+        if (cpuid != NULL)
+            x86cpuidAndBits(intersection, cpuid);
+        else
+            x86cpuidClearBits(intersection, intersection);
+    }
+}
+
+
 static int
 x86ModelAdd(struct x86_model *model1,
             const struct x86_model *model2)
@@ -539,7 +571,7 @@ x86ModelFromCPU(const virCPUDefPtr cpu,
     if (cpu->type == VIR_CPU_TYPE_HOST
         || policy == VIR_CPU_FEATURE_REQUIRE) {
         if ((model = x86ModelFind(map, cpu->model)) == NULL) {
-            virCPUReportError(NULL, VIR_ERR_INTERNAL_ERROR,
+            virCPUReportError(VIR_ERR_INTERNAL_ERROR,
                     _("Unknown CPU model %s"), cpu->model);
             goto error;
         }
@@ -558,7 +590,7 @@ x86ModelFromCPU(const virCPUDefPtr cpu,
             continue;
 
         if ((feature = x86FeatureFind(map, cpu->features[i].name)) == NULL) {
-            virCPUReportError(NULL, VIR_ERR_INTERNAL_ERROR,
+            virCPUReportError(VIR_ERR_INTERNAL_ERROR,
                     _("Unknown CPU feature %s"), cpu->features[i].name);
             goto error;
         }
@@ -570,7 +602,7 @@ x86ModelFromCPU(const virCPUDefPtr cpu,
     return model;
 
 no_memory:
-    virReportOOMError(NULL);
+    virReportOOMError();
 
 error:
     x86ModelFree(model);
@@ -645,27 +677,27 @@ x86ModelLoad(xmlXPathContextPtr ctxt,
     if (VIR_ALLOC(model) < 0)
         goto no_memory;
 
-    model->name = virXPathString(NULL, "string(@name)", ctxt);
+    model->name = virXPathString("string(@name)", ctxt);
     if (model->name == NULL) {
-        virCPUReportError(NULL, VIR_ERR_INTERNAL_ERROR,
+        virCPUReportError(VIR_ERR_INTERNAL_ERROR,
                 "%s", _("Missing CPU model name"));
         goto ignore;
     }
 
-    if (virXPathNode(NULL, "./model", ctxt) != NULL) {
+    if (virXPathNode("./model", ctxt) != NULL) {
         const struct x86_model *ancestor;
         char *name;
 
-        name = virXPathString(NULL, "string(./model/@name)", ctxt);
+        name = virXPathString("string(./model/@name)", ctxt);
         if (name == NULL) {
-            virCPUReportError(NULL, VIR_ERR_INTERNAL_ERROR,
+            virCPUReportError(VIR_ERR_INTERNAL_ERROR,
                     _("Missing ancestor's name in CPU model %s"),
                     model->name);
             goto ignore;
         }
 
         if ((ancestor = x86ModelFind(map, name)) == NULL) {
-            virCPUReportError(NULL, VIR_ERR_INTERNAL_ERROR,
+            virCPUReportError(VIR_ERR_INTERNAL_ERROR,
                     _("Ancestor model %s not found for CPU model %s"),
                     name, model->name);
             VIR_FREE(name);
@@ -682,7 +714,7 @@ x86ModelLoad(xmlXPathContextPtr ctxt,
                sizeof(*model->cpuid) * model->ncpuid);
     }
 
-    n = virXPathNodeSet(NULL, "./feature", ctxt, &nodes);
+    n = virXPathNodeSet("./feature", ctxt, &nodes);
     if (n < 0)
         goto ignore;
 
@@ -691,13 +723,13 @@ x86ModelLoad(xmlXPathContextPtr ctxt,
         char *name;
 
         if ((name = virXMLPropString(nodes[i], "name")) == NULL) {
-            virCPUReportError(NULL, VIR_ERR_INTERNAL_ERROR,
+            virCPUReportError(VIR_ERR_INTERNAL_ERROR,
                     _("Missing feature name for CPU model %s"), model->name);
             goto ignore;
         }
 
         if ((feature = x86FeatureFind(map, name)) == NULL) {
-            virCPUReportError(NULL, VIR_ERR_INTERNAL_ERROR,
+            virCPUReportError(VIR_ERR_INTERNAL_ERROR,
                     _("Feature %s required by CPU model %s not found"),
                     name, model->name);
             VIR_FREE(name);
@@ -721,7 +753,7 @@ out:
     return ret;
 
 no_memory:
-    virReportOOMError(NULL);
+    virReportOOMError();
     ret = -1;
 
 ignore:
@@ -758,7 +790,7 @@ x86LoadMap(void)
     struct x86_map *map;
 
     if (VIR_ALLOC(map) < 0) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         return NULL;
     }
 
@@ -912,7 +944,7 @@ out:
     return ret;
 
 no_memory:
-    virReportOOMError(NULL);
+    virReportOOMError();
 
 error:
     ret = VIR_CPU_COMPARE_ERROR;
@@ -940,8 +972,8 @@ x86GuestData(virCPUDefPtr host,
 static int
 x86Decode(virCPUDefPtr cpu,
           const union cpuData *data,
-          unsigned int nmodels,
-          const char **models)
+          const char **models,
+          unsigned int nmodels)
 {
     int ret = -1;
     struct x86_map *map;
@@ -966,7 +998,7 @@ x86Decode(virCPUDefPtr cpu,
         }
 
         for (i = 0; i < nmodels; i++) {
-            if (STREQ(models[i], candidate->name)) {
+            if (models && models[i] && STREQ(models[i], candidate->name)) {
                 allowed = true;
                 break;
             }
@@ -993,7 +1025,7 @@ x86Decode(virCPUDefPtr cpu,
     }
 
     if (cpuModel == NULL) {
-        virCPUReportError(NULL, VIR_ERR_INTERNAL_ERROR,
+        virCPUReportError(VIR_ERR_INTERNAL_ERROR,
                 "%s", _("Cannot find suitable CPU model for given data"));
         goto out;
     }
@@ -1025,7 +1057,7 @@ x86EncodePolicy(const virCPUDefPtr cpu,
         return NULL;
 
     if (!(data = x86DataFromModel(model)))
-        virReportOOMError(NULL);
+        virReportOOMError();
 
     x86ModelFree(model);
 
@@ -1150,7 +1182,7 @@ cpuidSet(uint32_t base, struct cpuX86cpuid **set)
     max = cpuid.eax - base;
 
     if (VIR_ALLOC_N(*set, max + 1) < 0) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         return -1;
     }
 
@@ -1170,7 +1202,7 @@ x86NodeData(void)
     union cpuData *data;
 
     if (VIR_ALLOC(data) < 0) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         return NULL;
     }
 
@@ -1192,6 +1224,59 @@ error:
 #endif
 
 
+static virCPUDefPtr
+x86Baseline(virCPUDefPtr *cpus,
+            unsigned int ncpus,
+            const char **models,
+            unsigned int nmodels)
+{
+    struct x86_map *map = NULL;
+    struct x86_model *base_model = NULL;
+    union cpuData *data = NULL;
+    virCPUDefPtr cpu = NULL;
+    unsigned int i;
+
+    if (!(map = x86LoadMap()))
+        goto error;
+
+    if (!(base_model = x86ModelFromCPU(cpus[0], map, 0)))
+        goto error;
+
+    if (VIR_ALLOC(cpu) < 0 ||
+        !(cpu->arch = strdup(cpus[0]->arch)))
+        goto no_memory;
+
+    for (i = 1; i < ncpus; i++) {
+        struct x86_model *model;
+        if (!(model = x86ModelFromCPU(cpus[i], map, 0)))
+            goto error;
+
+        x86ModelIntersect(base_model, model);
+        x86ModelFree(model);
+    }
+
+    if (!(data = x86DataFromModel(base_model)))
+        goto no_memory;
+
+    if (x86Decode(cpu, data, models, nmodels) < 0)
+        goto error;
+
+cleanup:
+    x86DataFree(data);
+    x86ModelFree(base_model);
+    x86MapFree(map);
+
+    return cpu;
+
+no_memory:
+    virReportOOMError();
+error:
+    virCPUDefFree(cpu);
+    cpu = NULL;
+    goto cleanup;
+}
+
+
 struct cpuArchDriver cpuDriverX86 = {
     .name = "x86",
     .arch = archs,
@@ -1205,5 +1290,6 @@ struct cpuArchDriver cpuDriverX86 = {
 #else
     .nodeData   = NULL,
 #endif
-    .guestData  = x86GuestData
+    .guestData  = x86GuestData,
+    .baseline   = x86Baseline,
 };

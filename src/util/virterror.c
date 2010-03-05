@@ -304,7 +304,7 @@ int
 virSetError(virErrorPtr newerr)
 {
     virErrorPtr err;
-    err = virGetLastError();
+    err = virLastErrorObject();
     if (!err)
         return -1;
 
@@ -1197,7 +1197,6 @@ const char *virStrerror(int theerrno, char *errBuf, size_t errBufLen)
 
 /**
  * virReportSystemErrorFull:
- * @conn: the hyperisor connection
  * @domcode: the virErrorDomain indicating where it's coming from
  * @theerrno: an errno number
  * @filename: filename where error was raised
@@ -1208,8 +1207,7 @@ const char *virStrerror(int theerrno, char *errBuf, size_t errBufLen)
  *
  * Convenience internal routine called when a system error is detected.
  */
-void virReportSystemErrorFull(virConnectPtr conn,
-                              int domcode,
+void virReportSystemErrorFull(int domcode,
                               int theerrno,
                               const char *filename,
                               const char *funcname,
@@ -1243,14 +1241,13 @@ void virReportSystemErrorFull(virConnectPtr conn,
     if (!msgDetail)
         msgDetail = errnoDetail;
 
-    virRaiseErrorFull(conn, filename, funcname, linenr,
+    virRaiseErrorFull(NULL, filename, funcname, linenr,
                       domcode, VIR_ERR_SYSTEM_ERROR, VIR_ERR_ERROR,
                       msg, msgDetail, NULL, -1, -1, msg, msgDetail);
 }
 
 /**
  * virReportOOMErrorFull:
- * @conn: the hyperisor connection
  * @domcode: the virErrorDomain indicating where it's coming from
  * @filename: filename where error was raised
  * @funcname: function name where error was raised
@@ -1259,8 +1256,7 @@ void virReportSystemErrorFull(virConnectPtr conn,
  * Convenience internal routine called when an out of memory error is
  * detected
  */
-void virReportOOMErrorFull(virConnectPtr conn,
-                           int domcode,
+void virReportOOMErrorFull(int domcode,
                            const char *filename,
                            const char *funcname,
                            size_t linenr)
@@ -1268,7 +1264,7 @@ void virReportOOMErrorFull(virConnectPtr conn,
     const char *virerr;
 
     virerr = virErrorMsg(VIR_ERR_NO_MEMORY, NULL);
-    virRaiseErrorFull(conn, filename, funcname, linenr,
+    virRaiseErrorFull(NULL, filename, funcname, linenr,
                       domcode, VIR_ERR_NO_MEMORY, VIR_ERR_ERROR,
                       virerr, NULL, NULL, -1, -1, virerr, NULL);
 }

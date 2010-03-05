@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Tests of areadlink.
    Copyright (C) 2009, 2010 Free Software Foundation, Inc.
 
@@ -29,6 +31,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "ignore-value.h"
 #include "macros.h"
 
 #define BASE "test-areadlink.t"
@@ -46,7 +49,7 @@ int
 main (void)
 {
   /* Remove any leftovers from a previous partial run.  */
-  system ("rm -rf " BASE "*");
+  ignore_value (system ("rm -rf " BASE "*"));
 
   return test_areadlink (do_areadlink, true);
 }

@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A C macro for emitting warnings if a function is used.
    Copyright (C) 2010 Free Software Foundation, Inc.
 

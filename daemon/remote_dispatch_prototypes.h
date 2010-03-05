@@ -50,6 +50,14 @@ static int remoteDispatchClose(
     remote_error *err,
     void *args,
     void *ret);
+static int remoteDispatchCpuBaseline(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_cpu_baseline_args *args,
+    remote_cpu_baseline_ret *ret);
 static int remoteDispatchCpuCompare(
     struct qemud_server *server,
     struct qemud_client *client,
@@ -58,6 +66,14 @@ static int remoteDispatchCpuCompare(
     remote_error *err,
     remote_cpu_compare_args *args,
     remote_cpu_compare_ret *ret);
+static int remoteDispatchDomainAbortJob(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_domain_abort_job_args *args,
+    void *ret);
 static int remoteDispatchDomainAttachDevice(
     struct qemud_server *server,
     struct qemud_client *client,
@@ -65,6 +81,14 @@ static int remoteDispatchDomainAttachDevice(
     remote_message_header *hdr,
     remote_error *err,
     remote_domain_attach_device_args *args,
+    void *ret);
+static int remoteDispatchDomainAttachDeviceFlags(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_domain_attach_device_flags_args *args,
     void *ret);
 static int remoteDispatchDomainBlockPeek(
     struct qemud_server *server,
@@ -130,6 +154,14 @@ static int remoteDispatchDomainDetachDevice(
     remote_error *err,
     remote_domain_detach_device_args *args,
     void *ret);
+static int remoteDispatchDomainDetachDeviceFlags(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_domain_detach_device_flags_args *args,
+    void *ret);
 static int remoteDispatchDomainDumpXml(
     struct qemud_server *server,
     struct qemud_client *client,
@@ -170,6 +202,14 @@ static int remoteDispatchDomainGetInfo(
     remote_error *err,
     remote_domain_get_info_args *args,
     remote_domain_get_info_ret *ret);
+static int remoteDispatchDomainGetJobInfo(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_domain_get_job_info_args *args,
+    remote_domain_get_job_info_ret *ret);
 static int remoteDispatchDomainGetMaxMemory(
     struct qemud_server *server,
     struct qemud_client *client,

@@ -802,3 +802,28 @@
     .args_filter = (xdrproc_t) xdr_remote_domain_memory_stats_args,
     .ret_filter = (xdrproc_t) xdr_remote_domain_memory_stats_ret,
 },
+{   /* DomainAttachDeviceFlags => 160 */
+    .fn = (dispatch_fn) remoteDispatchDomainAttachDeviceFlags,
+    .args_filter = (xdrproc_t) xdr_remote_domain_attach_device_flags_args,
+    .ret_filter = (xdrproc_t) xdr_void,
+},
+{   /* DomainDetachDeviceFlags => 161 */
+    .fn = (dispatch_fn) remoteDispatchDomainDetachDeviceFlags,
+    .args_filter = (xdrproc_t) xdr_remote_domain_detach_device_flags_args,
+    .ret_filter = (xdrproc_t) xdr_void,
+},
+{   /* CpuBaseline => 162 */
+    .fn = (dispatch_fn) remoteDispatchCpuBaseline,
+    .args_filter = (xdrproc_t) xdr_remote_cpu_baseline_args,
+    .ret_filter = (xdrproc_t) xdr_remote_cpu_baseline_ret,
+},
+{   /* DomainGetJobInfo => 163 */
+    .fn = (dispatch_fn) remoteDispatchDomainGetJobInfo,
+    .args_filter = (xdrproc_t) xdr_remote_domain_get_job_info_args,
+    .ret_filter = (xdrproc_t) xdr_remote_domain_get_job_info_ret,
+},
+{   /* DomainAbortJob => 164 */
+    .fn = (dispatch_fn) remoteDispatchDomainAbortJob,
+    .args_filter = (xdrproc_t) xdr_remote_domain_abort_job_args,
+    .ret_filter = (xdrproc_t) xdr_void,
+},

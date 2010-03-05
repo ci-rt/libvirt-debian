@@ -110,7 +110,7 @@ umlConnectTapDevice(virConnectPtr conn,
     int err;
 
     if ((err = brInit(&brctl))) {
-        virReportSystemError(conn, err, "%s",
+        virReportSystemError(err, "%s",
                              _("cannot initialize bridge support"));
         goto error;
     }
@@ -133,11 +133,11 @@ umlConnectTapDevice(virConnectPtr conn,
                            _("Failed to add tap interface to bridge. "
                              "%s is not a bridge device"), bridge);
         } else if (template_ifname) {
-            virReportSystemError(conn, err,
+            virReportSystemError(err,
                                  _("Failed to add tap interface to bridge '%s'"),
                                  bridge);
         } else {
-            virReportSystemError(conn, err,
+            virReportSystemError(err,
                                  _("Failed to add tap interface '%s' to bridge '%s'"),
                                  net->ifname, bridge);
         }
@@ -152,7 +152,7 @@ umlConnectTapDevice(virConnectPtr conn,
     return 0;
 
 no_memory:
-    virReportOOMError(conn);
+    virReportOOMError();
 error:
     brShutdown(brctl);
     return -1;
@@ -257,7 +257,7 @@ umlBuildCommandLineNet(virConnectPtr conn,
     }
 
     if (virBufferError(&buf)) {
-        virReportOOMError(conn);
+        virReportOOMError();
         return NULL;
     }
 
@@ -278,14 +278,14 @@ umlBuildCommandLineChr(virConnectPtr conn,
     switch (def->type) {
     case VIR_DOMAIN_CHR_TYPE_NULL:
         if (virAsprintf(&ret, "%s%d=null", dev, def->target.port) < 0) {
-            virReportOOMError(conn);
+            virReportOOMError();
             return NULL;
         }
         break;
 
     case VIR_DOMAIN_CHR_TYPE_PTY:
         if (virAsprintf(&ret, "%s%d=pts", dev, def->target.port) < 0) {
-            virReportOOMError(conn);
+            virReportOOMError();
             return NULL;
         }
         break;
@@ -293,14 +293,14 @@ umlBuildCommandLineChr(virConnectPtr conn,
     case VIR_DOMAIN_CHR_TYPE_DEV:
         if (virAsprintf(&ret, "%s%d=tty:%s", dev, def->target.port,
                         def->data.file.path) < 0) {
-            virReportOOMError(conn);
+            virReportOOMError();
             return NULL;
         }
         break;
 
     case VIR_DOMAIN_CHR_TYPE_STDIO:
         if (virAsprintf(&ret, "%s%d=fd:0,fd:1", dev, def->target.port) < 0) {
-            virReportOOMError(conn);
+            virReportOOMError();
             return NULL;
         }
         break;
@@ -314,7 +314,7 @@ umlBuildCommandLineChr(virConnectPtr conn,
 
         if (virAsprintf(&ret, "%s%d=port:%s", dev, def->target.port,
                         def->data.tcp.service) < 0) {
-            virReportOOMError(conn);
+            virReportOOMError();
             return NULL;
         }
         break;
@@ -534,7 +534,7 @@ int umlBuildCommandLine(virConnectPtr conn,
     return 0;
 
  no_memory:
-    virReportOOMError(conn);
+    virReportOOMError();
  error:
 
     if (qargv) {

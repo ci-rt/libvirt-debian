@@ -1,3 +1,5 @@
+# -*- buffer-read-only: t -*- vi: set ro:
+# DO NOT EDIT! GENERATED AUTOMATICALLY!
 # Check for stdbool.h that conforms to C99.
 
 dnl Copyright (C) 2002-2006, 2009-2010 Free Software Foundation, Inc.

@@ -282,8 +282,8 @@
       virDomainPtr domain;
 
       if (VIR_ALLOC(domain) &lt; 0) {
-         __virRaiseError(VIR_ERROR_NO_MEMORY)
-         return NULL;
+          virReportOOMError();
+          return NULL;
       }
 </pre></li><li><p>eg to allocate an array of objects</p>
 
@@ -292,8 +292,8 @@
        int ndomains = 10;
 
        if (VIR_ALLOC_N(domains, ndomains) &lt; 0) {
-         __virRaiseError(VIR_ERROR_NO_MEMORY)
-         return NULL;
+           virReportOOMError();
+           return NULL;
        }
 </pre></li><li><p>eg to allocate an array of object pointers</p>
 
@@ -302,8 +302,8 @@
        int ndomains = 10;
 
        if (VIR_ALLOC_N(domains, ndomains) &lt; 0) {
-         __virRaiseError(VIR_ERROR_NO_MEMORY)
-         return NULL;
+           virReportOOMError();
+           return NULL;
        }
 </pre></li><li><p>eg to re-allocate the array of domains to be longer</p>
 
@@ -311,8 +311,8 @@
        ndomains = 20
 
        if (VIR_REALLOC_N(domains, ndomains) &lt; 0) {
-         __virRaiseError(VIR_ERROR_NO_MEMORY)
-         return NULL;
+           virReportOOMError();
+           return NULL;
        }
 </pre></li><li><p>eg to free the domain</p>
 
@@ -379,7 +379,7 @@
 
      if (virBufferError(&amp;buf)) {
          virBufferFreeAndReset(&amp;buf);
-         virReportOOMError(...);
+         virReportOOMError();
          return NULL;
      }
 
@@ -472,7 +472,7 @@
     </p>
         <ul><li>if a recently commited patch breaks compilation on a platform
         or for a given driver then it's fine to commit a minimal fix
-        directly without getting the review feedback first</li><li>if make check or make syntax-chek breaks, if there is
+        directly without getting the review feedback first</li><li>if make check or make syntax-check breaks, if there is
         an obvious fix, it's fine to commit immediately.
         The patch should still be sent to the list (or tell what the fix was if
         trivial) and 'make check syntax-check' should pass too before commiting
