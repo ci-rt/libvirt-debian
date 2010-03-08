@@ -1,6 +1,7 @@
 #!/usr/bin/make -f
 
 DEB_PYTHON_SYSTEM = pycentral
+DEB_BUILD_PARALLEL = yes
 
 ifneq (,$(findstring $(DEB_HOST_ARCH), i386 amd64))
   BUILD_XEN = --with-xen
