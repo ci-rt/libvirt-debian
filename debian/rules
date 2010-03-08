@@ -42,6 +42,7 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	--without-esx		 \
 	--without-libssh2	 \
 	--with-capng		 \
+	--with-numactl		 \
 	--enable-debug		 \
 	$(BUILD_XEN)		 \
 	$(BUILD_VBOX)		 \
