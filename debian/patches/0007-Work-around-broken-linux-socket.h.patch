@@ -1,0 +1,22 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Tue, 9 Mar 2010 14:21:07 +0100
+Subject: [PATCH] Work around broken linux/socket.h
+
+lacking sa_family_t typedef.
+---
+ configure |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
+
+diff --git a/configure b/configure
+index 3db3c68..626293c 100755
+--- a/configure
++++ b/configure
+@@ -57871,6 +57871,7 @@ _ACEOF
+ cat confdefs.h >>conftest.$ac_ext
+ cat >>conftest.$ac_ext <<_ACEOF
+ /* end confdefs.h.  */
++ #include <bits/sockaddr.h>
+  #include <linux/if_link.h>
+ int
+ main ()
+-- 
