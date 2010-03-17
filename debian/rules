@@ -31,11 +31,12 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	--with-avahi             \
 	--with-sasl              \
 	--with-polkit		 \
-        --with-udev		 \
-        --with-storage-fs        \
-        --with-storage-lvm       \
-        --with-storage-iscsi     \
-        --with-storage-disk      \
+	--with-udev		 \
+	--without-hal		 \
+	--with-storage-fs        \
+	--with-storage-lvm       \
+	--with-storage-iscsi     \
+	--with-storage-disk      \
 	--with-init-scripts=none \
 	--without-numactl	 \
 	--without-selinux        \
