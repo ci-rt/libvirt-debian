@@ -1,3 +1,17 @@
+libvirt (0.7.7-3) unstable; urgency=low
+
+  * The "fix all those crashes" release
+  * [f74e13a] Explicitly disable hal (Closes: #574177)
+  * [21ef92b] New patch 0009-security-Set-permissions-for-kernel- initrd.patch
+    security: Set permissions for kernel/initrd (Closes: #574241) - thanks to
+    Cole Robinson
+  * [b69d3cc] Revert "Enable NUMA support" since it breaks the python
+    bindings.
+  * [5f2ca4a] New patch 0010-Don-t-crash-without-a-security-driver.patch Don't
+    crash without a security driver (Closes: #574359)
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 17 Mar 2010 21:05:35 +0100
+
 libvirt (0.7.7-2) unstable; urgency=low
 
   [ Guido Günther ]
