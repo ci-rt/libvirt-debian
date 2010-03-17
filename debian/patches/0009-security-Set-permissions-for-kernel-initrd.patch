@@ -1,0 +1,87 @@
+From: Cole Robinson <crobinso@redhat.com>
+Date: Fri, 12 Mar 2010 13:38:39 -0500
+Subject: [PATCH] security: Set permissions for kernel/initrd
+
+Fixes URL installs when running virt-install as root on Fedora.
+
+Closes: #574241
+Origin: upstream, http://libvirt.org/git/?p=libvirt.git;a=commit;h=3f1aa08af6580c215d973bc6bf57f505dbf8b926
+---
+ src/qemu/qemu_security_dac.c    |   21 +++++++++++++++++++++
+ src/security/security_selinux.c |   16 ++++++++++++++++
+ 2 files changed, 37 insertions(+), 0 deletions(-)
+
+diff --git a/src/qemu/qemu_security_dac.c b/src/qemu/qemu_security_dac.c
+index 6911f48..1883fbe 100644
+--- a/src/qemu/qemu_security_dac.c
++++ b/src/qemu/qemu_security_dac.c
+@@ -332,6 +332,15 @@ qemuSecurityDACRestoreSecurityAllLabel(virDomainObjPtr vm)
+                                                      vm->def->disks[i]) < 0)
+             rc = -1;
+     }
++
++    if (vm->def->os.kernel &&
++        qemuSecurityDACRestoreSecurityFileLabel(vm->def->os.kernel) < 0)
++        rc = -1;
++
++    if (vm->def->os.initrd &&
++        qemuSecurityDACRestoreSecurityFileLabel(vm->def->os.initrd) < 0)
++        rc = -1;
++
+     return rc;
+ }
+ 
+@@ -356,6 +365,18 @@ qemuSecurityDACSetSecurityAllLabel(virDomainObjPtr vm)
+             return -1;
+     }
+ 
++    if (vm->def->os.kernel &&
++        qemuSecurityDACSetOwnership(vm->def->os.kernel,
++                                    driver->user,
++                                    driver->group) < 0)
++        return -1;
++
++    if (vm->def->os.initrd &&
++        qemuSecurityDACSetOwnership(vm->def->os.initrd,
++                                    driver->user,
++                                    driver->group) < 0)
++        return -1;
++
+     return 0;
+ }
+ 
+diff --git a/src/security/security_selinux.c b/src/security/security_selinux.c
+index b2c8581..975b315 100644
+--- a/src/security/security_selinux.c
++++ b/src/security/security_selinux.c
+@@ -616,6 +616,14 @@ SELinuxRestoreSecurityAllLabel(virDomainObjPtr vm)
+             rc = -1;
+     }
+ 
++    if (vm->def->os.kernel &&
++        SELinuxRestoreSecurityFileLabel(vm->def->os.kernel) < 0)
++        rc = -1;
++
++    if (vm->def->os.initrd &&
++        SELinuxRestoreSecurityFileLabel(vm->def->os.initrd) < 0)
++        rc = -1;
++
+     return rc;
+ }
+ 
+@@ -736,6 +744,14 @@ SELinuxSetSecurityAllLabel(virDomainObjPtr vm)
+             return -1;
+     }
+ 
++    if (vm->def->os.kernel &&
++        SELinuxSetFilecon(vm->def->os.kernel, default_content_context) < 0)
++        return -1;
++
++    if (vm->def->os.initrd &&
++        SELinuxSetFilecon(vm->def->os.initrd, default_content_context) < 0)
++        return -1;
++
+     return 0;
+ }
+ 
+-- 

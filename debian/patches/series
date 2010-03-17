@@ -6,3 +6,4 @@
 0006-Don-t-drop-caps-when-exec-ing-qemu.patch
 0007-Work-around-broken-linux-socket.h.patch
 0008-qemu-Fix-USB-by-product-with-security-enabled.patch
+0009-security-Set-permissions-for-kernel-initrd.patch
