@@ -7,3 +7,4 @@
 0007-Work-around-broken-linux-socket.h.patch
 0008-qemu-Fix-USB-by-product-with-security-enabled.patch
 0009-security-Set-permissions-for-kernel-initrd.patch
+0010-Don-t-crash-without-a-security-driver.patch

@@ -1,0 +1,23 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Wed, 17 Mar 2010 21:04:11 +0100
+Subject: [PATCH] Don't crash without a security driver
+
+Closes: #574359
+---
+ src/qemu/qemu_driver.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/src/qemu/qemu_driver.c b/src/qemu/qemu_driver.c
+index d5ac904..ec05c0e 100644
+--- a/src/qemu/qemu_driver.c
++++ b/src/qemu/qemu_driver.c
+@@ -4902,7 +4902,7 @@ static int qemudNodeGetSecurityModel(virConnectPtr conn,
+     int ret = 0;
+ 
+     qemuDriverLock(driver);
+-    if (!driver->securityDriver) {
++    if (!driver->securityPrimaryDriver) {
+         memset(secmodel, 0, sizeof (*secmodel));
+         goto cleanup;
+     }
+-- 
