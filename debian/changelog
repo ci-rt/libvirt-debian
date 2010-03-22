@@ -1,3 +1,14 @@
+libvirt (0.7.7-4) unstable; urgency=low
+
+  [ Guido Günther ]
+  * [cf4919c] Recommend either qemu-kvm or qemu
+
+  [ Laurent Léonard ]
+  * [1b12f02] Change libparted1.8-dev build dependency to libparted0- dev.
+    (Closes: #574906)
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 22 Mar 2010 20:50:30 +0100
+
 libvirt (0.7.7-3) unstable; urgency=low
 
   * The "fix all those crashes" release
