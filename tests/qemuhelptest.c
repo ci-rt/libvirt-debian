@@ -2,13 +2,13 @@
 
 #ifdef WITH_QEMU
 
-#include <stdio.h>
-#include <stdlib.h>
+# include <stdio.h>
+# include <stdlib.h>
 
-#include "testutils.h"
-#include "qemu/qemu_conf.h"
+# include "testutils.h"
+# include "qemu/qemu_conf.h"
 
-#define MAX_HELP_OUTPUT_SIZE 1024*64
+# define MAX_HELP_OUTPUT_SIZE 1024*64
 
 struct testInfo {
     const char *name;
@@ -101,7 +101,7 @@ mymain(int argc, char **argv)
     if (!abs_srcdir)
         abs_srcdir = getcwd(cwd, sizeof(cwd));
 
-#define DO_TEST(name, flags, version, is_kvm, kvm_version)                          \
+# define DO_TEST(name, flags, version, is_kvm, kvm_version)                          \
     do {                                                                            \
         const struct testInfo info = { name, flags, version, is_kvm, kvm_version }; \
         if (virtTestRun("QEMU Help String Parsing " name,                           \
@@ -126,7 +126,8 @@ mymain(int argc, char **argv)
             QEMUD_CMD_FLAG_MIGRATE_KVM_STDIO |
             QEMUD_CMD_FLAG_KVM |
             QEMUD_CMD_FLAG_DRIVE_FORMAT |
-            QEMUD_CMD_FLAG_MEM_PATH,
+            QEMUD_CMD_FLAG_MEM_PATH |
+            QEMUD_CMD_FLAG_TDF,
             9001,  1, 74);
     DO_TEST("qemu-0.10.5",
             QEMUD_CMD_FLAG_KQEMU |
@@ -143,7 +144,9 @@ mymain(int argc, char **argv)
             QEMUD_CMD_FLAG_VGA |
             QEMUD_CMD_FLAG_0_10 |
             QEMUD_CMD_FLAG_ENABLE_KVM |
-            QEMUD_CMD_FLAG_SDL,
+            QEMUD_CMD_FLAG_SDL |
+            QEMUD_CMD_FLAG_RTC_TD_HACK |
+            QEMUD_CMD_FLAG_NO_HPET,
             10005, 0,  0);
     DO_TEST("qemu-kvm-0.10.5",
             QEMUD_CMD_FLAG_VNC_COLON |
@@ -163,7 +166,11 @@ mymain(int argc, char **argv)
             QEMUD_CMD_FLAG_0_10 |
             QEMUD_CMD_FLAG_PCIDEVICE |
             QEMUD_CMD_FLAG_MEM_PATH |
-            QEMUD_CMD_FLAG_SDL,
+            QEMUD_CMD_FLAG_SDL |
+            QEMUD_CMD_FLAG_RTC_TD_HACK |
+            QEMUD_CMD_FLAG_NO_HPET |
+            QEMUD_CMD_FLAG_NO_KVM_PIT |
+            QEMUD_CMD_FLAG_TDF,
             10005, 1,  0);
     DO_TEST("kvm-86",
             QEMUD_CMD_FLAG_VNC_COLON |
@@ -182,7 +189,11 @@ mymain(int argc, char **argv)
             QEMUD_CMD_FLAG_VGA |
             QEMUD_CMD_FLAG_0_10 |
             QEMUD_CMD_FLAG_PCIDEVICE |
-            QEMUD_CMD_FLAG_SDL,
+            QEMUD_CMD_FLAG_SDL |
+            QEMUD_CMD_FLAG_RTC_TD_HACK |
+            QEMUD_CMD_FLAG_NO_HPET |
+            QEMUD_CMD_FLAG_NO_KVM_PIT |
+            QEMUD_CMD_FLAG_TDF,
             10050, 1,  0);
     DO_TEST("qemu-kvm-0.11.0-rc2",
             QEMUD_CMD_FLAG_VNC_COLON |
@@ -204,7 +215,11 @@ mymain(int argc, char **argv)
             QEMUD_CMD_FLAG_MEM_PATH |
             QEMUD_CMD_FLAG_ENABLE_KVM |
             QEMUD_CMD_FLAG_BALLOON |
-            QEMUD_CMD_FLAG_SDL,
+            QEMUD_CMD_FLAG_SDL |
+            QEMUD_CMD_FLAG_RTC_TD_HACK |
+            QEMUD_CMD_FLAG_NO_HPET |
+            QEMUD_CMD_FLAG_NO_KVM_PIT |
+            QEMUD_CMD_FLAG_TDF,
             10092, 1,  0);
     DO_TEST("qemu-0.12.1",
             QEMUD_CMD_FLAG_VNC_COLON |
@@ -227,7 +242,8 @@ mymain(int argc, char **argv)
             QEMUD_CMD_FLAG_BALLOON |
             QEMUD_CMD_FLAG_DEVICE |
             QEMUD_CMD_FLAG_SMP_TOPOLOGY |
-            QEMUD_CMD_FLAG_RTC,
+            QEMUD_CMD_FLAG_RTC |
+            QEMUD_CMD_FLAG_NO_HPET,
             12001, 0,  0);
 
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;

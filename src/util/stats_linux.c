@@ -1,7 +1,7 @@
 /*
  * Linux block and network stats.
  *
- * Copyright (C) 2007-2009 Red Hat, Inc.
+ * Copyright (C) 2007-2010 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -13,24 +13,24 @@
 /* This file only applies on Linux. */
 #ifdef __linux__
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <string.h>
-#include <unistd.h>
-#include <regex.h>
+# include <stdio.h>
+# include <stdlib.h>
+# include <fcntl.h>
+# include <string.h>
+# include <unistd.h>
+# include <regex.h>
 
-#include "virterror_internal.h"
-#include "datatypes.h"
-#include "util.h"
-#include "stats_linux.h"
-#include "memory.h"
+# include "virterror_internal.h"
+# include "datatypes.h"
+# include "util.h"
+# include "stats_linux.h"
+# include "memory.h"
 
-#define VIR_FROM_THIS VIR_FROM_STATS_LINUX
+# define VIR_FROM_THIS VIR_FROM_STATS_LINUX
 
-#define virStatsError(code, fmt...)                            \
+# define virStatsError(code, ...)                               \
     virReportErrorHelper(NULL, VIR_FROM_THIS, code, __FILE__,  \
-                         __FUNCTION__, __LINE__, fmt)
+                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 
 /*-------------------- interface stats --------------------*/

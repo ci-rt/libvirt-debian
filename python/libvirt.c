@@ -98,12 +98,37 @@ LIBVIRT_END_ALLOW_THREADS;
 }
 
 PyObject *
-libvirt_virInitialize(PyObject *self ATTRIBUTE_UNUSED, PyObject *args ATTRIBUTE_UNUSED) {
+libvirt_virStorageVolWipe(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     int c_retval;
+    virStorageVolPtr vol;
+    PyObject *pyobj_vol;
+    unsigned int flags;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oi:virStorageVolWipe", &pyobj_vol, &flags))
+        return(NULL);
+    vol = (virStorageVolPtr) PyvirStorageVol_Get(pyobj_vol);
 LIBVIRT_BEGIN_ALLOW_THREADS;
 
-    c_retval = virInitialize();
+    c_retval = virStorageVolWipe(vol, flags);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virDomainAbortJob(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virDomainPtr domain;
+    PyObject *pyobj_domain;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virDomainAbortJob", &pyobj_domain))
+        return(NULL);
+    domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virDomainAbortJob(domain);
 LIBVIRT_END_ALLOW_THREADS;
     py_retval = libvirt_intWrap((int) c_retval);
     return(py_retval);
@@ -631,6 +656,26 @@ libvirt_virConnectCompareCPU(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
 LIBVIRT_BEGIN_ALLOW_THREADS;
 
     c_retval = virConnectCompareCPU(conn, xmlDesc, flags);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virDomainMigrateSetMaxDowntime(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virDomainPtr domain;
+    PyObject *pyobj_domain;
+    unsigned long long downtime;
+    unsigned int flags;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oli:virDomainMigrateSetMaxDowntime", &pyobj_domain, &downtime, &flags))
+        return(NULL);
+    domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virDomainMigrateSetMaxDowntime(domain, downtime, flags);
 LIBVIRT_END_ALLOW_THREADS;
     py_retval = libvirt_intWrap((int) c_retval);
     return(py_retval);
@@ -1759,6 +1804,18 @@ libvirt_virConnectNumOfDefinedDomains(PyObject *self ATTRIBUTE_UNUSED, PyObject 
 LIBVIRT_BEGIN_ALLOW_THREADS;
 
     c_retval = virConnectNumOfDefinedDomains(conn);
+LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap((int) c_retval);
+    return(py_retval);
+}
+
+PyObject *
+libvirt_virInitialize(PyObject *self ATTRIBUTE_UNUSED, PyObject *args ATTRIBUTE_UNUSED) {
+    PyObject *py_retval;
+    int c_retval;
+LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    c_retval = virInitialize();
 LIBVIRT_END_ALLOW_THREADS;
     py_retval = libvirt_intWrap((int) c_retval);
     return(py_retval);

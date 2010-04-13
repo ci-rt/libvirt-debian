@@ -72,7 +72,7 @@
 #define IsConsoleHandle(h) (((long) (h) & 3) == 3)
 
 static BOOL
-IsSocketHandle(HANDLE h)
+IsSocketHandle (HANDLE h)
 {
   WSANETWORKEVENTS ev;
 

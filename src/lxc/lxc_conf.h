@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2010 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
  * lxc_conf.h: header file for linux container config functions
@@ -22,21 +23,21 @@
  */
 
 #ifndef LXC_CONF_H
-#define LXC_CONF_H
+# define LXC_CONF_H
 
-#include <config.h>
+# include <config.h>
 
-#include "internal.h"
-#include "domain_conf.h"
-#include "domain_event.h"
-#include "capabilities.h"
-#include "threads.h"
-#include "cgroup.h"
+# include "internal.h"
+# include "domain_conf.h"
+# include "domain_event.h"
+# include "capabilities.h"
+# include "threads.h"
+# include "cgroup.h"
 
-#define LXC_CONFIG_DIR SYSCONF_DIR "/libvirt/lxc"
-#define LXC_STATE_DIR LOCAL_STATE_DIR "/run/libvirt/lxc"
-#define LXC_LOG_DIR LOCAL_STATE_DIR "/log/libvirt/lxc"
-#define LXC_AUTOSTART_DIR LXC_CONFIG_DIR "/autostart"
+# define LXC_CONFIG_DIR SYSCONF_DIR "/libvirt/lxc"
+# define LXC_STATE_DIR LOCAL_STATE_DIR "/run/libvirt/lxc"
+# define LXC_LOG_DIR LOCAL_STATE_DIR "/log/libvirt/lxc"
+# define LXC_AUTOSTART_DIR LXC_CONFIG_DIR "/autostart"
 
 typedef struct __lxc_driver lxc_driver_t;
 struct __lxc_driver {
@@ -63,8 +64,8 @@ struct __lxc_driver {
 int lxcLoadDriverConfig(lxc_driver_t *driver);
 virCapsPtr lxcCapsInit(void);
 
-#define lxcError(code, fmt...)                                          \
+# define lxcError(code, ...)                                             \
     virReportErrorHelper(NULL, VIR_FROM_LXC, code, __FILE__,            \
-                         __FUNCTION__, __LINE__, fmt)
+                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 #endif /* LXC_CONF_H */

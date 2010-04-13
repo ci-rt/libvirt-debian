@@ -1,6 +1,6 @@
 
 /*
- * esx_util.h: utility methods for the VMware ESX driver
+ * esx_util.h: utility functions for the VMware ESX driver
  *
  * Copyright (C) 2009 Matthias Bolte <matthias.bolte@googlemail.com>
  *
@@ -21,19 +21,12 @@
  */
 
 #ifndef __ESX_UTIL_H__
-#define __ESX_UTIL_H__
+# define __ESX_UTIL_H__
 
-#include <libxml/uri.h>
+# include <libxml/uri.h>
 
-#include "internal.h"
-#include "conf.h"
-
-char *esxUtil_RequestUsername(virConnectAuthPtr auth,
-                              const char *defaultUsername,
-                              const char *hostname);
-
-char *esxUtil_RequestPassword(virConnectAuthPtr auth, const char *username,
-                              const char *hostname);
+# include "internal.h"
+# include "conf.h"
 
 int esxUtil_ParseQuery(xmlURIPtr uri, char **transport, char **vCenter,
                        int *noVerify, int *autoAnswer);

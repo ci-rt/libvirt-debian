@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2010 Red Hat, Inc.
  * Copyright (C) 2010 IBM Corporation
  *
  * This library is free software; you can redistribute it and/or
@@ -28,32 +29,32 @@
 
 #if WITH_MACVTAP
 
-#include <stdio.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <stdint.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
+# include <stdio.h>
+# include <errno.h>
+# include <fcntl.h>
+# include <stdint.h>
+# include <sys/socket.h>
+# include <sys/ioctl.h>
 
-#include <linux/if.h>
-#include <linux/netlink.h>
-#include <linux/rtnetlink.h>
-#include <linux/if_tun.h>
+# include <linux/if.h>
+# include <linux/netlink.h>
+# include <linux/rtnetlink.h>
+# include <linux/if_tun.h>
 
-#include "util.h"
-#include "memory.h"
-#include "macvtap.h"
-#include "conf/domain_conf.h"
-#include "virterror_internal.h"
+# include "util.h"
+# include "memory.h"
+# include "macvtap.h"
+# include "conf/domain_conf.h"
+# include "virterror_internal.h"
 
-#define VIR_FROM_THIS VIR_FROM_NET
+# define VIR_FROM_THIS VIR_FROM_NET
 
-#define ReportError(conn, code, fmt...)                                      \
-        virReportErrorHelper(conn, VIR_FROM_NET, code, __FILE__,          \
-                               __FUNCTION__, __LINE__, fmt)
+# define macvtapError(code, ...)                                           \
+        virReportErrorHelper(NULL, VIR_FROM_NET, code, __FILE__,           \
+                             __FUNCTION__, __LINE__, __VA_ARGS__)
 
-#define MACVTAP_NAME_PREFIX	"macvtap"
-#define MACVTAP_NAME_PATTERN	"macvtap%d"
+# define MACVTAP_NAME_PREFIX	"macvtap"
+# define MACVTAP_NAME_PATTERN	"macvtap%d"
 
 static int nlOpen(void)
 {
@@ -192,7 +193,7 @@ nlAppend(struct nlmsghdr *nlm, int totlen, const void *data, int datalen)
 
 
 static int
-getIfIndex(virConnectPtr conn,
+getIfIndex(bool reportError,
            const char *ifname,
            int *idx)
 {
@@ -205,20 +206,20 @@ getIfIndex(virConnectPtr conn,
 
     if (virStrncpy(ifreq.ifr_name, ifname, strlen(ifname),
                    sizeof(ifreq.ifr_name)) == NULL) {
-        if (conn)
-            ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                        _("invalid interface name %s"),
-                        ifname);
+        if (reportError)
+            macvtapError(VIR_ERR_INTERNAL_ERROR,
+                         _("invalid interface name %s"),
+                         ifname);
         rc = EINVAL;
         goto err_exit;
     }
     if (ioctl(fd, SIOCGIFINDEX, &ifreq) >= 0)
         *idx = ifreq.ifr_ifindex;
     else {
-        if (conn)
-            ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                        _("interface %s does not exist"),
-                        ifname);
+        if (reportError)
+            macvtapError(VIR_ERR_INTERNAL_ERROR,
+                         _("interface %s does not exist"),
+                         ifname);
         rc = ENODEV;
     }
 
@@ -295,8 +296,7 @@ ifUp(const char *name, int up)
 
 
 static int
-link_add(virConnectPtr conn,
-         const char *type,
+link_add(const char *type,
          const unsigned char *macaddress, int macaddrsize,
          const char *ifname,
          const char *srcdev,
@@ -314,7 +314,7 @@ link_add(virConnectPtr conn,
     char *recvbuf = NULL;
     int recvbuflen;
 
-    if (getIfIndex(conn, srcdev, &ifindex) != 0)
+    if (getIfIndex(true, srcdev, &ifindex) != 0)
         return -1;
 
     *retry = 0;
@@ -433,14 +433,14 @@ link_add(virConnectPtr conn,
     return rc;
 
 malformed_resp:
-    ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                _("malformed netlink response message"));
+    macvtapError(VIR_ERR_INTERNAL_ERROR, "%s",
+                 _("malformed netlink response message"));
     VIR_FREE(recvbuf);
     return -1;
 
 buffer_too_small:
-    ReportError(conn, VIR_ERR_INTERNAL_ERROR,
-                _("internal buffer is too small"));
+    macvtapError(VIR_ERR_INTERNAL_ERROR, "%s",
+                 _("internal buffer is too small"));
     return -1;
 }
 
@@ -511,21 +511,20 @@ link_del(const char *name)
     return rc;
 
 malformed_resp:
-    ReportError(NULL, VIR_ERR_INTERNAL_ERROR,
-                "%s", _("malformed netlink response message"));
+    macvtapError(VIR_ERR_INTERNAL_ERROR, "%s",
+                 _("malformed netlink response message"));
     VIR_FREE(recvbuf);
     return -1;
 
 buffer_too_small:
-    ReportError(NULL, VIR_ERR_INTERNAL_ERROR,
-                "%s", _("internal buffer is too small"));
+    macvtapError(VIR_ERR_INTERNAL_ERROR, "%s",
+                 _("internal buffer is too small"));
     return -1;
 }
 
 
 /* Open the macvtap's tap device.
- * @conn: Pointer to virConnect object
- * @name: Name of the macvtap interface
+ * @ifname: Name of the macvtap interface
  * @retries : Number of retries in case udev for example may need to be
  *            waited for to create the tap chardev
  * Returns negative value in case of error, the file descriptor otherwise.
@@ -676,7 +675,6 @@ configMacvtapTap(int tapfd, int vnet_hdr)
  * openMacvtapTap:
  * Create an instance of a macvtap device and open its tap character
  * device.
- * @conn: Pointer to virConnect object
  * @tgifname: Interface name that the macvtap is supposed to have. May
  *    be NULL if this function is supposed to choose a name
  * @macaddress: The MAC address for the macvtap device
@@ -688,13 +686,11 @@ configMacvtapTap(int tapfd, int vnet_hdr)
  *     to the caller to free the string.
  *
  * Returns file descriptor of the tap device in case of success,
- * negative value otherwise with error message attached to the 'conn'
- * object.
+ * negative value otherwise with error reported.
  *
  */
 int
-openMacvtapTap(virConnectPtr conn,
-               const char *tgifname,
+openMacvtapTap(const char *tgifname,
                const unsigned char *macaddress,
                const char *linkdev,
                int mode,
@@ -712,7 +708,7 @@ openMacvtapTap(virConnectPtr conn,
     *res_ifname = NULL;
 
     if (tgifname) {
-        if(getIfIndex(NULL, tgifname, &ifindex) == 0) {
+        if(getIfIndex(false, tgifname, &ifindex) == 0) {
             if (STRPREFIX(tgifname,
                           MACVTAP_NAME_PREFIX)) {
                 goto create_name;
@@ -722,7 +718,7 @@ openMacvtapTap(virConnectPtr conn,
             return -1;
         }
         cr_ifname = tgifname;
-        rc = link_add(conn, type, macaddress, 6, tgifname, linkdev,
+        rc = link_add(type, macaddress, 6, tgifname, linkdev,
                       macvtapMode, &do_retry);
         if (rc)
             return -1;
@@ -731,8 +727,8 @@ create_name:
         retries = 5;
         for (c = 0; c < 8192; c++) {
             snprintf(ifname, sizeof(ifname), MACVTAP_NAME_PATTERN, c);
-            if (getIfIndex(NULL, ifname, &ifindex) == ENODEV) {
-                rc = link_add(conn, type, macaddress, 6, ifname, linkdev,
+            if (getIfIndex(false, ifname, &ifindex) == ENODEV) {
+                rc = link_add(type, macaddress, 6, ifname, linkdev,
                               macvtapMode, &do_retry);
                 if (rc == 0)
                     break;

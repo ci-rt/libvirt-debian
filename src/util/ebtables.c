@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2009 IBM Corp.
- * Copyright (C) 2007-2009 Red Hat, Inc.
+ * Copyright (C) 2007-2010 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -35,11 +35,11 @@
 #include <sys/stat.h>
 
 #ifdef HAVE_SYS_WAIT_H
-#include <sys/wait.h>
+# include <sys/wait.h>
 #endif
 
 #ifdef HAVE_PATHS_H
-#include <paths.h>
+# include <paths.h>
 #endif
 
 #include "internal.h"
@@ -185,7 +185,7 @@ ebtablesAddRemoveRule(ebtRules *rules, int action, const char *arg, ...)
         1;  /*   arg           */
 
     va_start(args, arg);
-    while ((s = va_arg(args, const char *)))
+    while (va_arg(args, const char *))
         n++;
 
     va_end(args);

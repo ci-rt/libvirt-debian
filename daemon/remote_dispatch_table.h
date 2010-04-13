@@ -537,7 +537,7 @@
     .args_filter = (xdrproc_t) xdr_void,
     .ret_filter = (xdrproc_t) xdr_remote_domain_events_deregister_ret,
 },
-{   /* Async event DomainEvent => 107 */
+{   /* Async event DomainEventLifecycle => 107 */
     .fn = NULL,
     .args_filter = (xdrproc_t) xdr_void,
     .ret_filter = (xdrproc_t) xdr_void,
@@ -825,5 +825,150 @@
 {   /* DomainAbortJob => 164 */
     .fn = (dispatch_fn) remoteDispatchDomainAbortJob,
     .args_filter = (xdrproc_t) xdr_remote_domain_abort_job_args,
+    .ret_filter = (xdrproc_t) xdr_void,
+},
+{   /* StorageVolWipe => 165 */
+    .fn = (dispatch_fn) remoteDispatchStorageVolWipe,
+    .args_filter = (xdrproc_t) xdr_remote_storage_vol_wipe_args,
+    .ret_filter = (xdrproc_t) xdr_void,
+},
+{   /* DomainMigrateSetMaxDowntime => 166 */
+    .fn = (dispatch_fn) remoteDispatchDomainMigrateSetMaxDowntime,
+    .args_filter = (xdrproc_t) xdr_remote_domain_migrate_set_max_downtime_args,
+    .ret_filter = (xdrproc_t) xdr_void,
+},
+{   /* DomainEventsRegisterAny => 167 */
+    .fn = (dispatch_fn) remoteDispatchDomainEventsRegisterAny,
+    .args_filter = (xdrproc_t) xdr_remote_domain_events_register_any_args,
+    .ret_filter = (xdrproc_t) xdr_void,
+},
+{   /* DomainEventsDeregisterAny => 168 */
+    .fn = (dispatch_fn) remoteDispatchDomainEventsDeregisterAny,
+    .args_filter = (xdrproc_t) xdr_remote_domain_events_deregister_any_args,
+    .ret_filter = (xdrproc_t) xdr_void,
+},
+{   /* Async event DomainEventReboot => 169 */
+    .fn = NULL,
+    .args_filter = (xdrproc_t) xdr_void,
+    .ret_filter = (xdrproc_t) xdr_void,
+},
+{   /* Async event DomainEventRtcChange => 170 */
+    .fn = NULL,
+    .args_filter = (xdrproc_t) xdr_void,
+    .ret_filter = (xdrproc_t) xdr_void,
+},
+{   /* Async event DomainEventWatchdog => 171 */
+    .fn = NULL,
+    .args_filter = (xdrproc_t) xdr_void,
+    .ret_filter = (xdrproc_t) xdr_void,
+},
+{   /* Async event DomainEventIoError => 172 */
+    .fn = NULL,
+    .args_filter = (xdrproc_t) xdr_void,
+    .ret_filter = (xdrproc_t) xdr_void,
+},
+{   /* Async event DomainEventGraphics => 173 */
+    .fn = NULL,
+    .args_filter = (xdrproc_t) xdr_void,
+    .ret_filter = (xdrproc_t) xdr_void,
+},
+{   /* DomainUpdateDeviceFlags => 174 */
+    .fn = (dispatch_fn) remoteDispatchDomainUpdateDeviceFlags,
+    .args_filter = (xdrproc_t) xdr_remote_domain_update_device_flags_args,
+    .ret_filter = (xdrproc_t) xdr_void,
+},
+{   /* NwfilterLookupByName => 175 */
+    .fn = (dispatch_fn) remoteDispatchNwfilterLookupByName,
+    .args_filter = (xdrproc_t) xdr_remote_nwfilter_lookup_by_name_args,
+    .ret_filter = (xdrproc_t) xdr_remote_nwfilter_lookup_by_name_ret,
+},
+{   /* NwfilterLookupByUuid => 176 */
+    .fn = (dispatch_fn) remoteDispatchNwfilterLookupByUuid,
+    .args_filter = (xdrproc_t) xdr_remote_nwfilter_lookup_by_uuid_args,
+    .ret_filter = (xdrproc_t) xdr_remote_nwfilter_lookup_by_uuid_ret,
+},
+{   /* NwfilterGetXmlDesc => 177 */
+    .fn = (dispatch_fn) remoteDispatchNwfilterGetXmlDesc,
+    .args_filter = (xdrproc_t) xdr_remote_nwfilter_get_xml_desc_args,
+    .ret_filter = (xdrproc_t) xdr_remote_nwfilter_get_xml_desc_ret,
+},
+{   /* NumOfNwfilters => 178 */
+    .fn = (dispatch_fn) remoteDispatchNumOfNwfilters,
+    .args_filter = (xdrproc_t) xdr_void,
+    .ret_filter = (xdrproc_t) xdr_remote_num_of_nwfilters_ret,
+},
+{   /* ListNwfilters => 179 */
+    .fn = (dispatch_fn) remoteDispatchListNwfilters,
+    .args_filter = (xdrproc_t) xdr_remote_list_nwfilters_args,
+    .ret_filter = (xdrproc_t) xdr_remote_list_nwfilters_ret,
+},
+{   /* NwfilterDefineXml => 180 */
+    .fn = (dispatch_fn) remoteDispatchNwfilterDefineXml,
+    .args_filter = (xdrproc_t) xdr_remote_nwfilter_define_xml_args,
+    .ret_filter = (xdrproc_t) xdr_remote_nwfilter_define_xml_ret,
+},
+{   /* NwfilterUndefine => 181 */
+    .fn = (dispatch_fn) remoteDispatchNwfilterUndefine,
+    .args_filter = (xdrproc_t) xdr_remote_nwfilter_undefine_args,
+    .ret_filter = (xdrproc_t) xdr_void,
+},
+{   /* DomainManagedSave => 182 */
+    .fn = (dispatch_fn) remoteDispatchDomainManagedSave,
+    .args_filter = (xdrproc_t) xdr_remote_domain_managed_save_args,
+    .ret_filter = (xdrproc_t) xdr_void,
+},
+{   /* DomainHasManagedSaveImage => 183 */
+    .fn = (dispatch_fn) remoteDispatchDomainHasManagedSaveImage,
+    .args_filter = (xdrproc_t) xdr_remote_domain_has_managed_save_image_args,
+    .ret_filter = (xdrproc_t) xdr_remote_domain_has_managed_save_image_ret,
+},
+{   /* DomainManagedSaveRemove => 184 */
+    .fn = (dispatch_fn) remoteDispatchDomainManagedSaveRemove,
+    .args_filter = (xdrproc_t) xdr_remote_domain_managed_save_remove_args,
+    .ret_filter = (xdrproc_t) xdr_void,
+},
+{   /* DomainSnapshotCreateXml => 185 */
+    .fn = (dispatch_fn) remoteDispatchDomainSnapshotCreateXml,
+    .args_filter = (xdrproc_t) xdr_remote_domain_snapshot_create_xml_args,
+    .ret_filter = (xdrproc_t) xdr_remote_domain_snapshot_create_xml_ret,
+},
+{   /* DomainSnapshotDumpXml => 186 */
+    .fn = (dispatch_fn) remoteDispatchDomainSnapshotDumpXml,
+    .args_filter = (xdrproc_t) xdr_remote_domain_snapshot_dump_xml_args,
+    .ret_filter = (xdrproc_t) xdr_remote_domain_snapshot_dump_xml_ret,
+},
+{   /* DomainSnapshotNum => 187 */
+    .fn = (dispatch_fn) remoteDispatchDomainSnapshotNum,
+    .args_filter = (xdrproc_t) xdr_remote_domain_snapshot_num_args,
+    .ret_filter = (xdrproc_t) xdr_remote_domain_snapshot_num_ret,
+},
+{   /* DomainSnapshotListNames => 188 */
+    .fn = (dispatch_fn) remoteDispatchDomainSnapshotListNames,
+    .args_filter = (xdrproc_t) xdr_remote_domain_snapshot_list_names_args,
+    .ret_filter = (xdrproc_t) xdr_remote_domain_snapshot_list_names_ret,
+},
+{   /* DomainSnapshotLookupByName => 189 */
+    .fn = (dispatch_fn) remoteDispatchDomainSnapshotLookupByName,
+    .args_filter = (xdrproc_t) xdr_remote_domain_snapshot_lookup_by_name_args,
+    .ret_filter = (xdrproc_t) xdr_remote_domain_snapshot_lookup_by_name_ret,
+},
+{   /* DomainHasCurrentSnapshot => 190 */
+    .fn = (dispatch_fn) remoteDispatchDomainHasCurrentSnapshot,
+    .args_filter = (xdrproc_t) xdr_remote_domain_has_current_snapshot_args,
+    .ret_filter = (xdrproc_t) xdr_remote_domain_has_current_snapshot_ret,
+},
+{   /* DomainSnapshotCurrent => 191 */
+    .fn = (dispatch_fn) remoteDispatchDomainSnapshotCurrent,
+    .args_filter = (xdrproc_t) xdr_remote_domain_snapshot_current_args,
+    .ret_filter = (xdrproc_t) xdr_remote_domain_snapshot_current_ret,
+},
+{   /* DomainRevertToSnapshot => 192 */
+    .fn = (dispatch_fn) remoteDispatchDomainRevertToSnapshot,
+    .args_filter = (xdrproc_t) xdr_remote_domain_revert_to_snapshot_args,
+    .ret_filter = (xdrproc_t) xdr_void,
+},
+{   /* DomainSnapshotDelete => 193 */
+    .fn = (dispatch_fn) remoteDispatchDomainSnapshotDelete,
+    .args_filter = (xdrproc_t) xdr_remote_domain_snapshot_delete_args,
     .ret_filter = (xdrproc_t) xdr_void,
 },

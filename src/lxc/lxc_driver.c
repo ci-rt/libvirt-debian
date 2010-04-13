@@ -49,6 +49,7 @@
 #include "nodeinfo.h"
 #include "uuid.h"
 #include "stats_linux.h"
+#include "hooks.h"
 
 
 #define VIR_FROM_THIS VIR_FROM_LXC
@@ -381,7 +382,7 @@ static virDomainPtr lxcDomainDefine(virConnectPtr conn, const char *xml)
     }
 
     if (!(vm = virDomainAssignDef(driver->caps,
-                                  &driver->domains, def)))
+                                  &driver->domains, def, false)))
         goto cleanup;
     def = NULL;
     vm->persistent = 1;
@@ -625,9 +626,15 @@ static int lxcDomainSetMemory(virDomainPtr dom, unsigned long newmem) {
     }
 
     if (virDomainObjIsActive(vm)) {
+        if (driver->cgroup == NULL) {
+            lxcError(VIR_ERR_NO_SUPPORT,
+                     "%s", _("cgroups must be configured on the host"));
+            goto cleanup;
+        }
+
         if (virCgroupForDomain(driver->cgroup, vm->def->name, &cgroup, 0) != 0) {
             lxcError(VIR_ERR_INTERNAL_ERROR,
-                     _("Unable to get cgroup for %s\n"), vm->def->name);
+                     _("Unable to get cgroup for %s"), vm->def->name);
             goto cleanup;
         }
 
@@ -716,6 +723,16 @@ static int lxcVmCleanup(lxc_driver_t *driver,
         DEBUG("container exited with rc: %d", rc);
     }
 
+    /* now that we know it's stopped call the hook if present */
+    if (virHookPresent(VIR_HOOK_DRIVER_LXC)) {
+        char *xml = virDomainDefFormat(vm->def, 0);
+
+        /* we can't stop the operation even if the script raised an error */
+        virHookCall(VIR_HOOK_DRIVER_LXC, vm->def->name,
+                    VIR_HOOK_LXC_OP_STOPPED, VIR_HOOK_SUBOP_END, NULL, xml);
+        VIR_FREE(xml);
+    }
+
     virEventRemoveHandle(priv->monitorWatch);
     close(priv->monitor);
 
@@ -793,6 +810,16 @@ static int lxcSetupInterfaces(virConnectPtr conn,
         }
         case VIR_DOMAIN_NET_TYPE_BRIDGE:
             bridge = def->nets[i]->data.bridge.brname;
+            break;
+
+        case VIR_DOMAIN_NET_TYPE_USER:
+        case VIR_DOMAIN_NET_TYPE_ETHERNET:
+        case VIR_DOMAIN_NET_TYPE_SERVER:
+        case VIR_DOMAIN_NET_TYPE_CLIENT:
+        case VIR_DOMAIN_NET_TYPE_MCAST:
+        case VIR_DOMAIN_NET_TYPE_INTERNAL:
+        case VIR_DOMAIN_NET_TYPE_DIRECT:
+        case VIR_DOMAIN_NET_TYPE_LAST:
             break;
         }
 
@@ -1114,6 +1141,22 @@ static int lxcControllerStart(lxc_driver_t *driver,
 
     FD_SET(appPty, &keepfd);
 
+    /* now that we know it is about to start call the hook if present */
+    if (virHookPresent(VIR_HOOK_DRIVER_LXC)) {
+        char *xml = virDomainDefFormat(vm->def, 0);
+        int hookret;
+
+        hookret = virHookCall(VIR_HOOK_DRIVER_LXC, vm->def->name,
+                    VIR_HOOK_LXC_OP_START, VIR_HOOK_SUBOP_BEGIN, NULL, xml);
+        VIR_FREE(xml);
+
+        /*
+         * If the script raised an error abort the launch
+         */
+        if (hookret < 0)
+            goto cleanup;
+    }
+
     if (virExec(largv, lenv, &keepfd, &child,
                 -1, &logfd, &logfd,
                 VIR_EXEC_NONE) < 0)
@@ -1362,7 +1405,7 @@ lxcDomainCreateAndStart(virConnectPtr conn,
 
 
     if (!(vm = virDomainAssignDef(driver->caps,
-                                  &driver->domains, def)))
+                                  &driver->domains, def, false)))
         goto cleanup;
     def = NULL;
 
@@ -1433,10 +1476,10 @@ cleanup:
 
 
 static int
-lxcDomainEventRegister (virConnectPtr conn,
-                        virConnectDomainEventCallback callback,
-                        void *opaque,
-                        virFreeCallback freecb)
+lxcDomainEventRegister(virConnectPtr conn,
+                       virConnectDomainEventCallback callback,
+                       void *opaque,
+                       virFreeCallback freecb)
 {
     lxc_driver_t *driver = conn->privateData;
     int ret;
@@ -1449,9 +1492,10 @@ lxcDomainEventRegister (virConnectPtr conn,
     return ret;
 }
 
+
 static int
-lxcDomainEventDeregister (virConnectPtr conn,
-                          virConnectDomainEventCallback callback)
+lxcDomainEventDeregister(virConnectPtr conn,
+                         virConnectDomainEventCallback callback)
 {
     lxc_driver_t *driver = conn->privateData;
     int ret;
@@ -1468,9 +1512,52 @@ lxcDomainEventDeregister (virConnectPtr conn,
     return ret;
 }
 
+
+static int
+lxcDomainEventRegisterAny(virConnectPtr conn,
+                          virDomainPtr dom,
+                          int eventID,
+                          virConnectDomainEventGenericCallback callback,
+                          void *opaque,
+                          virFreeCallback freecb)
+{
+    lxc_driver_t *driver = conn->privateData;
+    int ret;
+
+    lxcDriverLock(driver);
+    ret = virDomainEventCallbackListAddID(conn,
+                                          driver->domainEventCallbacks,
+                                          dom, eventID,
+                                          callback, opaque, freecb);
+    lxcDriverUnlock(driver);
+
+    return ret;
+}
+
+
+static int
+lxcDomainEventDeregisterAny(virConnectPtr conn,
+                            int callbackID)
+{
+    lxc_driver_t *driver = conn->privateData;
+    int ret;
+
+    lxcDriverLock(driver);
+    if (driver->domainEventDispatching)
+        ret = virDomainEventCallbackListMarkDeleteID(conn, driver->domainEventCallbacks,
+                                                     callbackID);
+    else
+        ret = virDomainEventCallbackListRemoveID(conn, driver->domainEventCallbacks,
+                                                 callbackID);
+    lxcDriverUnlock(driver);
+
+    return ret;
+}
+
+
 static void lxcDomainEventDispatchFunc(virConnectPtr conn,
                                        virDomainEventPtr event,
-                                       virConnectDomainEventCallback cb,
+                                       virConnectDomainEventGenericCallback cb,
                                        void *cbopaque,
                                        void *opaque)
 {
@@ -1864,19 +1951,13 @@ lxcActive(void) {
 static int lxcVersion(virConnectPtr conn ATTRIBUTE_UNUSED, unsigned long *version)
 {
     struct utsname ver;
-    int maj;
-    int min;
-    int rev;
 
     uname(&ver);
 
-    if (sscanf(ver.release, "%i.%i.%i", &maj, &min, &rev) != 3) {
-        lxcError(VIR_ERR_INTERNAL_ERROR,
-                 _("Unknown release: %s"), ver.release);
+    if (virParseVersionString(ver.release, version) < 0) {
+        lxcError(VIR_ERR_INTERNAL_ERROR, _("Unknown release: %s"), ver.release);
         return -1;
     }
-
-    *version = (maj * 1000 * 1000) + (min * 1000) + rev;
 
     return 0;
 }
@@ -2422,6 +2503,7 @@ static virDriver lxcDriver = {
     NULL, /* domainAttachDeviceFlags */
     NULL, /* domainDetachDevice */
     NULL, /* domainDetachDeviceFlags */
+    NULL, /* domainUpdateDeviceFlags */
     lxcDomainGetAutostart, /* domainGetAutostart */
     lxcDomainSetAutostart, /* domainSetAutostart */
     lxcGetSchedulerType, /* domainGetSchedulerType */
@@ -2445,14 +2527,29 @@ static virDriver lxcDriver = {
     NULL, /* nodeDeviceReAttach */
     NULL, /* nodeDeviceReset */
     NULL, /* domainMigratePrepareTunnel */
-    lxcIsEncrypted,
-    lxcIsSecure,
-    lxcDomainIsActive,
-    lxcDomainIsPersistent,
+    lxcIsEncrypted, /* isEncrypted */
+    lxcIsSecure, /* isSecure */
+    lxcDomainIsActive, /* domainIsActive */
+    lxcDomainIsPersistent, /* domainIsPersistent */
     NULL, /* cpuCompare */
     NULL, /* cpuBaseline */
     NULL, /* domainGetJobInfo */
     NULL, /* domainAbortJob */
+    NULL, /* domainMigrateSetMaxDowntime */
+    lxcDomainEventRegisterAny, /* domainEventRegisterAny */
+    lxcDomainEventDeregisterAny, /* domainEventDeregisterAny */
+    NULL, /* domainManagedSave */
+    NULL, /* domainHasManagedSaveImage */
+    NULL, /* domainManagedSaveRemove */
+    NULL, /* domainSnapshotCreateXML */
+    NULL, /* domainSnapshotDumpXML */
+    NULL, /* domainSnapshotNum */
+    NULL, /* domainSnapshotListNames */
+    NULL, /* domainSnapshotLookupByName */
+    NULL, /* domainHasCurrentSnapshot */
+    NULL, /* domainSnapshotCurrent */
+    NULL, /* domainRevertToSnapshot */
+    NULL, /* domainSnapshotDelete */
 };
 
 static virStateDriver lxcStateDriver = {

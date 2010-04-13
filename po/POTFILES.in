@@ -8,6 +8,8 @@ src/conf/domain_event.c
 src/conf/interface_conf.c
 src/conf/network_conf.c
 src/conf/node_device_conf.c
+src/conf/nwfilter_conf.c
+src/conf/nwfilter_params.c
 src/conf/secret_conf.c
 src/conf/storage_conf.c
 src/conf/storage_encryption_conf.c
@@ -16,6 +18,12 @@ src/cpu/cpu_generic.c
 src/cpu/cpu_map.c
 src/cpu/cpu_x86.c
 src/datatypes.c
+src/esx/esx_driver.c
+src/esx/esx_util.c
+src/esx/esx_vi.c
+src/esx/esx_vi_methods.c
+src/esx/esx_vi_types.c
+src/esx/esx_vmx.c
 src/interface/netcf_driver.c
 src/libvirt.c
 src/lxc/lxc_container.c
@@ -26,6 +34,10 @@ src/node_device/node_device_driver.c
 src/node_device/node_device_linux_sysfs.c
 src/node_device/node_device_udev.c
 src/nodeinfo.c
+src/nwfilter/nwfilter_driver.c
+src/nwfilter/nwfilter_ebiptables_driver.c
+src/nwfilter/nwfilter_gentech_driver.c
+src/nwfilter/nwfilter_learnipaddr.c
 src/opennebula/one_conf.c
 src/opennebula/one_driver.c
 src/openvz/openvz_conf.c
@@ -55,8 +67,10 @@ src/storage/storage_driver.c
 src/test/test_driver.c
 src/uml/uml_conf.c
 src/uml/uml_driver.c
+src/util/authhelper.c
 src/util/bridge.c
 src/util/conf.c
+src/util/hooks.c
 src/util/hostusb.c
 src/util/json.c
 src/util/logging.c
@@ -78,5 +92,7 @@ src/xen/xen_hypervisor.c
 src/xen/xen_inotify.c
 src/xen/xm_internal.c
 src/xen/xs_internal.c
+src/xenapi/xenapi_driver.c
+src/xenapi/xenapi_utils.c
 tools/console.c
 tools/virsh.c

@@ -4,14 +4,14 @@
  */
 
 #ifndef __VIR_DRIVER_H__
-#define __VIR_DRIVER_H__
+# define __VIR_DRIVER_H__
 
-#include "config.h"
-#include <stdbool.h>
+# include "config.h"
+# include <stdbool.h>
 
-#include <libxml/uri.h>
+# include <libxml/uri.h>
 
-#include "internal.h"
+# include "internal.h"
 /*
  * List of registered drivers numbers
  */
@@ -27,6 +27,7 @@ typedef enum {
     VIR_DRV_ONE = 9,
     VIR_DRV_ESX = 10,
     VIR_DRV_PHYP = 11,
+    VIR_DRV_XENAPI = 12
 } virDrvNo;
 
 
@@ -55,7 +56,7 @@ typedef enum {
  *   0     Feature is not supported.
  *   -1    Error.
  */
-#define VIR_DRV_SUPPORTS_FEATURE(drv,conn,feature)                      \
+# define VIR_DRV_SUPPORTS_FEATURE(drv,conn,feature)                      \
     ((drv)->supports_feature ? (drv)->supports_feature((conn),(feature)) : 0)
 
 typedef virDrvOpenStatus
@@ -200,6 +201,10 @@ typedef int
                                          const char *xml);
 typedef int
         (*virDrvDomainDetachDeviceFlags) (virDomainPtr domain,
+                                          const char *xml,
+                                          unsigned int flags);
+typedef int
+        (*virDrvDomainUpdateDeviceFlags) (virDomainPtr domain,
                                           const char *xml,
                                           unsigned int flags);
 typedef int
@@ -380,6 +385,70 @@ typedef int
 typedef int
     (*virDrvDomainAbortJob)(virDomainPtr domain);
 
+typedef int
+    (*virDrvDomainMigrateSetMaxDowntime)(virDomainPtr domain,
+                                         unsigned long long downtime,
+                                         unsigned int flags);
+
+typedef int
+    (*virDrvDomainEventRegisterAny)(virConnectPtr conn,
+                                    virDomainPtr dom,
+                                    int eventID,
+                                    virConnectDomainEventGenericCallback cb,
+                                    void *opaque,
+                                    virFreeCallback freecb);
+
+typedef int
+    (*virDrvDomainEventDeregisterAny)(virConnectPtr conn,
+                                      int callbackID);
+
+typedef int
+    (*virDrvDomainManagedSave)(virDomainPtr domain, unsigned int flags);
+
+typedef int
+    (*virDrvDomainHasManagedSaveImage)(virDomainPtr domain, unsigned int flags);
+
+typedef int
+    (*virDrvDomainManagedSaveRemove)(virDomainPtr domain, unsigned int flags);
+
+typedef virDomainSnapshotPtr
+    (*virDrvDomainSnapshotCreateXML)(virDomainPtr domain,
+                                     const char *xmlDesc,
+                                     unsigned int flags);
+
+typedef char *
+    (*virDrvDomainSnapshotDumpXML)(virDomainSnapshotPtr snapshot,
+                                   unsigned int flags);
+
+typedef int
+    (*virDrvDomainSnapshotNum)(virDomainPtr domain, unsigned int flags);
+
+typedef int
+    (*virDrvDomainSnapshotListNames)(virDomainPtr domain, char **names,
+                                     int nameslen,
+                                     unsigned int flags);
+
+typedef virDomainSnapshotPtr
+    (*virDrvDomainSnapshotLookupByName)(virDomainPtr domain,
+                                        const char *name,
+                                        unsigned int flags);
+
+typedef int
+    (*virDrvDomainHasCurrentSnapshot)(virDomainPtr domain, unsigned int flags);
+
+typedef virDomainSnapshotPtr
+    (*virDrvDomainSnapshotCurrent)(virDomainPtr domain,
+                                   unsigned int flags);
+
+typedef int
+    (*virDrvDomainRevertToSnapshot)(virDomainSnapshotPtr snapshot,
+                                    unsigned int flags);
+
+typedef int
+    (*virDrvDomainSnapshotDelete)(virDomainSnapshotPtr snapshot,
+                                  unsigned int flags);
+
+
 /**
  * _virDriver:
  *
@@ -442,6 +511,7 @@ struct _virDriver {
     virDrvDomainAttachDeviceFlags	domainAttachDeviceFlags;
     virDrvDomainDetachDevice	domainDetachDevice;
     virDrvDomainDetachDeviceFlags	domainDetachDeviceFlags;
+    virDrvDomainUpdateDeviceFlags	domainUpdateDeviceFlags;
     virDrvDomainGetAutostart	domainGetAutostart;
     virDrvDomainSetAutostart	domainSetAutostart;
     virDrvDomainGetSchedulerType	domainGetSchedulerType;
@@ -473,6 +543,21 @@ struct _virDriver {
     virDrvCPUBaseline           cpuBaseline;
     virDrvDomainGetJobInfo     domainGetJobInfo;
     virDrvDomainAbortJob     domainAbortJob;
+    virDrvDomainMigrateSetMaxDowntime  domainMigrateSetMaxDowntime;
+    virDrvDomainEventRegisterAny domainEventRegisterAny;
+    virDrvDomainEventDeregisterAny domainEventDeregisterAny;
+    virDrvDomainManagedSave domainManagedSave;
+    virDrvDomainHasManagedSaveImage domainHasManagedSaveImage;
+    virDrvDomainManagedSaveRemove domainManagedSaveRemove;
+    virDrvDomainSnapshotCreateXML domainSnapshotCreateXML;
+    virDrvDomainSnapshotDumpXML domainSnapshotDumpXML;
+    virDrvDomainSnapshotNum domainSnapshotNum;
+    virDrvDomainSnapshotListNames domainSnapshotListNames;
+    virDrvDomainSnapshotLookupByName domainSnapshotLookupByName;
+    virDrvDomainHasCurrentSnapshot domainHasCurrentSnapshot;
+    virDrvDomainSnapshotCurrent domainSnapshotCurrent;
+    virDrvDomainRevertToSnapshot domainRevertToSnapshot;
+    virDrvDomainSnapshotDelete domainSnapshotDelete;
 };
 
 typedef int
@@ -722,6 +807,10 @@ typedef int
                                              unsigned int flags);
 
 typedef int
+    (*virDrvStorageVolWipe)                  (virStorageVolPtr vol,
+                                              unsigned int flags);
+
+typedef int
     (*virDrvStorageVolGetInfo)               (virStorageVolPtr vol,
                                               virStorageVolInfoPtr info);
 typedef char *
@@ -790,6 +879,7 @@ struct _virStorageDriver {
     virDrvStorageVolCreateXML volCreateXML;
     virDrvStorageVolCreateXMLFrom volCreateXMLFrom;
     virDrvStorageVolDelete volDelete;
+    virDrvStorageVolWipe volWipe;
     virDrvStorageVolGetInfo volGetInfo;
     virDrvStorageVolGetXMLDesc volGetXMLDesc;
     virDrvStorageVolGetPath volGetPath;
@@ -797,7 +887,7 @@ struct _virStorageDriver {
     virDrvStoragePoolIsPersistent   poolIsPersistent;
 };
 
-#ifdef WITH_LIBVIRTD
+# ifdef WITH_LIBVIRTD
 typedef int (*virDrvStateInitialize) (int privileged);
 typedef int (*virDrvStateCleanup) (void);
 typedef int (*virDrvStateReload) (void);
@@ -813,7 +903,7 @@ struct _virStateDriver {
     virDrvStateReload      reload;
     virDrvStateActive      active;
 };
-#endif
+# endif
 
 
 typedef struct _virDeviceMonitor virDeviceMonitor;
@@ -871,20 +961,16 @@ struct _virDeviceMonitor {
 };
 
 /* bits 16 and above of virDomainXMLFlags are for internal use */
-#define VIR_DOMAIN_XML_FLAGS_MASK 0xffff
+# define VIR_DOMAIN_XML_FLAGS_MASK 0xffff
 
 /* Bits 16 and above of virSecretGetValue flags are for internal use */
-#define VIR_SECRET_GET_VALUE_FLAGS_MASK 0xffff
+# define VIR_SECRET_GET_VALUE_FLAGS_MASK 0xffff
 
 enum {
     /* This getValue call is inside libvirt, override the "private" flag.
        This flag can not be set by outside callers. */
     VIR_SECRET_GET_VALUE_INTERNAL_CALL = 1 << 16
 };
-
-/* Make sure ... INTERNAL_CALL can not be set by the caller */
-verify((VIR_SECRET_GET_VALUE_INTERNAL_CALL &
-        VIR_SECRET_GET_VALUE_FLAGS_MASK) == 0);
 
 typedef virSecretPtr
     (*virDrvSecretLookupByUUID)        (virConnectPtr conn,
@@ -982,6 +1068,58 @@ struct _virStreamDriver {
 };
 
 
+typedef int
+    (*virDrvConnectNumOfNWFilters)        (virConnectPtr conn);
+typedef int
+    (*virDrvConnectListNWFilters)         (virConnectPtr conn,
+                                           char **const names,
+                                           int maxnames);
+typedef virNWFilterPtr
+    (*virDrvNWFilterLookupByName)             (virConnectPtr conn,
+                                               const char *name);
+typedef virNWFilterPtr
+    (*virDrvNWFilterLookupByUUID)             (virConnectPtr conn,
+                                               const unsigned char *uuid);
+typedef virNWFilterPtr
+    (*virDrvNWFilterDefineXML)                (virConnectPtr conn,
+                                               const char *xmlDesc,
+                                               unsigned int flags);
+typedef int
+    (*virDrvNWFilterUndefine)                 (virNWFilterPtr pool);
+
+typedef char *
+    (*virDrvNWFilterGetXMLDesc)              (virNWFilterPtr pool,
+                                              unsigned int flags);
+
+
+typedef struct _virNWFilterDriver virNWFilterDriver;
+typedef virNWFilterDriver *virNWFilterDriverPtr;
+
+/**
+ * _virNWFilterDriver:
+ *
+ * Structure associated to a network filter driver, defining the various
+ * entry points for it.
+ *
+ * All drivers must support the following fields/methods:
+ *  - open
+ *  - close
+ */
+struct _virNWFilterDriver {
+    const char * name;    /* the name of the driver */
+    virDrvOpen            open;
+    virDrvClose           close;
+
+    virDrvConnectNumOfNWFilters numOfNWFilters;
+    virDrvConnectListNWFilters listNWFilters;
+    virDrvNWFilterLookupByName nwfilterLookupByName;
+    virDrvNWFilterLookupByUUID nwfilterLookupByUUID;
+    virDrvNWFilterDefineXML defineXML;
+    virDrvNWFilterUndefine undefine;
+    virDrvNWFilterGetXMLDesc getXMLDesc;
+};
+
+
 /*
  * Registration
  * TODO: also need ways to (des)activate a given driver
@@ -993,9 +1131,10 @@ int virRegisterInterfaceDriver(virInterfaceDriverPtr);
 int virRegisterStorageDriver(virStorageDriverPtr);
 int virRegisterDeviceMonitor(virDeviceMonitorPtr);
 int virRegisterSecretDriver(virSecretDriverPtr);
-#ifdef WITH_LIBVIRTD
+int virRegisterNWFilterDriver(virNWFilterDriverPtr);
+# ifdef WITH_LIBVIRTD
 int virRegisterStateDriver(virStateDriverPtr);
-#endif
+# endif
 void *virDriverLoadModule(const char *name);
 
 #endif /* __VIR_DRIVER_H__ */

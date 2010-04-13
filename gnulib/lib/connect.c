@@ -2,7 +2,7 @@
 /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* connect.c --- wrappers for Windows connect function
 
-   Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
+   Copyright (C) 2008-2010 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as published by
@@ -31,7 +31,7 @@
 #undef connect
 
 int
-rpl_connect (int fd, struct sockaddr *sockaddr, int len)
+rpl_connect (int fd, const struct sockaddr *sockaddr, socklen_t len)
 {
   SOCKET sock = FD_TO_SOCKET (fd);
   int r = connect (sock, sockaddr, len);

@@ -20,9 +20,13 @@ INCLUDES =							\
 		-DLOCAL_STATE_DIR=\""$(localstatedir)"\"	\
 		-DGETTEXT_PACKAGE=\"$(PACKAGE)\"		\
 		$(WARN_CFLAGS)					\
-		$(LOCK_CHECKING_CFLAGS)
+		$(LOCK_CHECKING_CFLAGS)			\
+		-DIN_LIBVIRT				\
+		$(WIN32_EXTRA_CFLAGS)
 
 EXTRA_DIST = $(conf_DATA)
+
+BUILT_SOURCES =
 
 if WITH_NETWORK
 UUID=$(shell uuidgen 2>/dev/null)
@@ -45,12 +49,14 @@ augeastest_DATA =
 # These files are not related to driver APIs. Simply generic
 # helper APIs for various purposes
 UTIL_SOURCES =							\
+		util/authhelper.c util/authhelper.h		\
 		util/bridge.c util/bridge.h			\
 		util/buf.c util/buf.h				\
 		util/conf.c util/conf.h				\
 		util/cgroup.c util/cgroup.h			\
 		util/event.c util/event.h			\
 		util/hash.c util/hash.h				\
+		util/hooks.c util/hooks.h			\
 		util/iptables.c util/iptables.h			\
 		util/ebtables.c util/ebtables.h			\
 		util/json.c util/json.h				\
@@ -94,8 +100,17 @@ DOMAIN_EVENT_SOURCES =						\
 		conf/domain_event.c conf/domain_event.h
 
 # Network driver generic impl APIs
-NETWORK_CONF_SOURCES =                                         \
+NETWORK_CONF_SOURCES =						\
 		conf/network_conf.c conf/network_conf.h
+
+# Network filter driver generic impl APIs
+NWFILTER_PARAM_CONF_SOURCES =					\
+		conf/nwfilter_params.c conf/nwfilter_params.h	\
+		conf/nwfilter_conf.h
+
+NWFILTER_CONF_SOURCES =					\
+		$(NWFILTER_PARAM_CONF_SOURCES)			\
+		conf/nwfilter_conf.c conf/nwfilter_conf.h
 
 # Storage driver generic impl APIs
 STORAGE_CONF_SOURCES =                                         \
@@ -123,6 +138,7 @@ CONF_SOURCES =							\
 		$(DOMAIN_CONF_SOURCES)				\
 		$(DOMAIN_EVENT_SOURCES)				\
 		$(NETWORK_CONF_SOURCES)				\
+		$(NWFILTER_CONF_SOURCES)			\
 		$(NODE_DEVICE_CONF_SOURCES)			\
 		$(STORAGE_CONF_SOURCES)				\
 		$(ENCRYPTION_CONF_SOURCES)			\
@@ -205,6 +221,11 @@ QEMU_DRIVER_SOURCES =						\
 		qemu/qemu_security_dac.h			\
 		qemu/qemu_security_dac.c
 
+XENAPI_DRIVER_SOURCES =								\
+		xenapi/xenapi_driver.c xenapi/xenapi_driver.h	\
+		xenapi/xenapi_driver_private.h					\
+		xenapi/xenapi_utils.c xenapi/xenapi_utils.h
+
 UML_DRIVER_SOURCES =						\
 		uml/uml_conf.c uml/uml_conf.h			\
 		uml/uml_driver.c uml/uml_driver.h
@@ -230,6 +251,20 @@ ESX_DRIVER_SOURCES =						\
 		esx/esx_vi_methods.c esx/esx_vi_methods.h	\
 		esx/esx_vi_types.c esx/esx_vi_types.h		\
 		esx/esx_vmx.c esx/esx_vmx.h
+
+ESX_DRIVER_GENERATED =							\
+		esx/esx_vi_types.generated.c				\
+		esx/esx_vi_types.generated.h				\
+		esx/esx_vi_types.generated.typedef			\
+		esx/esx_vi_types.generated.typeenum			\
+		esx/esx_vi_types.generated.typetostring			\
+		esx/esx_vi_types.generated.typefromstring
+
+ESX_DRIVER_EXTRA_DIST =						\
+		esx/README						\
+		esx/esx_vi_generator.input				\
+		esx/esx_vi_generator.py					\
+		$(ESX_DRIVER_GENERATED)
 
 NETWORK_DRIVER_SOURCES =					\
 		network/bridge_driver.h network/bridge_driver.c
@@ -266,6 +301,16 @@ STORAGE_DRIVER_DISK_SOURCES =					\
 
 STORAGE_HELPER_DISK_SOURCES =					\
 		storage/parthelper.c
+
+# Network filters
+NWFILTER_DRIVER_SOURCES =					\
+		nwfilter/nwfilter_driver.h nwfilter/nwfilter_driver.c	\
+		nwfilter/nwfilter_gentech_driver.c			\
+		nwfilter/nwfilter_gentech_driver.h			\
+		nwfilter/nwfilter_ebiptables_driver.c			\
+		nwfilter/nwfilter_ebiptables_driver.h			\
+		nwfilter/nwfilter_learnipaddr.c				\
+		nwfilter/nwfilter_learnipaddr.h
 
 
 # Security framework and drivers for various models
@@ -467,6 +512,22 @@ libvirt_driver_vbox_la_LIBADD = $(DLOPEN_LIBS)
 libvirt_driver_vbox_la_SOURCES = $(VBOX_DRIVER_SOURCES)
 endif
 
+if WITH_XENAPI
+if WITH_DRIVER_MODULES
+mod_LTLIBRARIES += libvirt_driver_xenapi.la
+else
+noinst_LTLIBRARIES += libvirt_driver_xenapi.la
+libvirt_la_LIBADD += libvirt_driver_xenapi.la
+endif
+libvirt_driver_xenapi_la_CFLAGS = $(LIBXENSERVER_CFLAGS) $(LIBCURL_CFLAGS) \
+		-I@top_srcdir@/src/conf
+libvirt_driver_xenapi_la_LDFLAGS = $(LIBXENSERVER_LIBS) $(LIBCURL_LIBS)
+if WITH_DRIVER_MODULES
+libvirt_driver_xenapi_la_LDFLAGS += -module -avoid-version
+endif
+libvirt_driver_xenapi_la_SOURCES = $(XENAPI_DRIVER_SOURCES)
+endif
+
 if WITH_QEMU
 if WITH_DRIVER_MODULES
 mod_LTLIBRARIES += libvirt_driver_qemu.la
@@ -551,7 +612,10 @@ libvirt_driver_one_la_SOURCES = $(ONE_DRIVER_SOURCES)
 endif
 
 
+BUILT_SOURCES += $(ESX_DRIVER_GENERATED)
 
+$(ESX_DRIVER_GENERATED): $(srcdir)/esx/esx_vi_generator.input $(srcdir)/esx/esx_vi_generator.py
+	-srcdir=$(srcdir) $(srcdir)/esx/esx_vi_generator.py
 
 if WITH_ESX
 if WITH_DRIVER_MODULES
@@ -567,6 +631,7 @@ if WITH_DRIVER_MODULES
 libvirt_driver_esx_la_LDFLAGS += -module -avoid-version
 endif
 libvirt_driver_esx_la_SOURCES = $(ESX_DRIVER_SOURCES)
+libvirt_driver_esx_la_DEPENDENCIES = $(ESX_DRIVER_GENERATED)
 endif
 
 if WITH_NETWORK
@@ -694,6 +759,23 @@ endif
 endif
 
 
+if WITH_NWFILTER
+if WITH_DRIVER_MODULES
+mod_LTLIBRARIES += libvirt_driver_nwfilter.la
+else
+libvirt_la_LIBADD += libvirt_driver_nwfilter.la
+noinst_LTLIBRARIES += libvirt_driver_nwfilter.la
+endif
+libvirt_driver_nwfilter_la_CFLAGS = $(LIBPCAP_CFLAGS) \
+		-I@top_srcdir@/src/conf
+libvirt_driver_nwfilter_la_LDFLAGS = $(LIBPCAP_LIBS)
+if WITH_DRIVER_MODULES
+libvirt_driver_nwfilter_la_LDFLAGS += -module -avoid-version ../gnulib/lib/libgnu.la
+endif
+libvirt_driver_nwfilter_la_SOURCES = $(NWFILTER_DRIVER_SOURCES)
+endif
+
+
 libvirt_driver_security_la_SOURCES = $(SECURITY_DRIVER_SOURCES)
 noinst_LTLIBRARIES += libvirt_driver_security.la
 libvirt_la_LIBADD += libvirt_driver_security.la
@@ -723,7 +805,9 @@ EXTRA_DIST +=							\
 		$(OPENVZ_DRIVER_SOURCES)			\
 		$(PHYP_DRIVER_SOURCES)				\
 		$(VBOX_DRIVER_SOURCES)				\
+		$(XENAPI_DRIVER_SOURCES)			\
 		$(ESX_DRIVER_SOURCES)				\
+		$(ESX_DRIVER_EXTRA_DIST)			\
 		$(NETWORK_DRIVER_SOURCES)			\
 		$(INTERFACE_DRIVER_SOURCES)			\
 		$(STORAGE_DRIVER_SOURCES)			\
@@ -736,20 +820,24 @@ EXTRA_DIST +=							\
 		$(NODE_DEVICE_DRIVER_SOURCES)			\
 		$(NODE_DEVICE_DRIVER_HAL_SOURCES)		\
 		$(NODE_DEVICE_DRIVER_UDEV_SOURCES)		\
+		$(NWFILTER_DRIVER_SOURCES)			\
 		$(SECURITY_DRIVER_SELINUX_SOURCES)		\
 		$(SECURITY_DRIVER_APPARMOR_SOURCES)		\
 		$(SECRET_DRIVER_SOURCES)			\
 		$(VBOX_DRIVER_EXTRA_DIST)
 
-check-local:
+check-local: augeas-check
+
+.PHONY: augeas-check
+augeas-check:
 if WITH_QEMU
-	if test -x '$(AUGPARSE)'; then \
+	$(AM_V_GEN)if test -x '$(AUGPARSE)'; then \
 	    '$(AUGPARSE)' -I $(srcdir)/qemu \
 	    $(srcdir)/qemu/test_libvirtd_qemu.aug; \
 	fi
 endif
 if WITH_LXC
-	if test -x '$(AUGPARSE)'; then \
+	$(AM_V_GEN)if test -x '$(AUGPARSE)'; then \
 	    '$(AUGPARSE)' -I $(srcdir)/lxc \
 	    $(srcdir)/lxc/test_libvirtd_lxc.aug; \
 	fi
@@ -786,7 +874,13 @@ if WITH_LINUX
 USED_SYM_FILES += libvirt_linux.syms
 endif
 
+if WITH_MACVTAP
 USED_SYM_FILES += libvirt_macvtap.syms
+endif
+
+if WITH_LIBVIRTD
+USED_SYM_FILES += libvirt_daemon.syms
+endif
 
 EXTRA_DIST += \
   libvirt_public.syms		\
@@ -794,36 +888,45 @@ EXTRA_DIST += \
   libvirt_driver_modules.syms	\
   libvirt_bridge.syms		\
   libvirt_linux.syms		\
-  libvirt_macvtap.syms
+  libvirt_macvtap.syms		\
+  libvirt_daemon.syms
 
-BUILT_SOURCES = libvirt.syms
+BUILT_SOURCES += libvirt.syms libvirt.def
 
 libvirt.syms: libvirt_public.syms $(USED_SYM_FILES)
-	rm -f $@-tmp $@
-	printf '# WARNING: generated from the following:\n# $^\n\n' >$@-tmp
-	cat $(srcdir)/libvirt_public.syms >>$@-tmp
-	printf '\n\n# Private symbols\n\n' >>$@-tmp
-	printf 'LIBVIRT_PRIVATE_$(VERSION) {\n\n'  >>$@-tmp
-	printf 'global:\n\n' >>$@-tmp
+	$(AM_V_GEN)rm -f $@-tmp $@ ; \
+	printf '# WARNING: generated from the following:\n# $^\n\n' >$@-tmp && \
+	cat $(srcdir)/libvirt_public.syms >>$@-tmp && \
+	printf '\n\n# Private symbols\n\n' >>$@-tmp && \
+	printf 'LIBVIRT_PRIVATE_$(VERSION) {\n\n'  >>$@-tmp && \
+	printf 'global:\n\n' >>$@-tmp && \
 	for file in $(USED_SYM_FILES); do \
 	    cat $(srcdir)/$$file >>$@-tmp; \
-	done
-	printf '\n\nlocal:\n*;\n\n};' >>$@-tmp
-	chmod a-w $@-tmp
+	done && \
+	printf '\n\nlocal:\n*;\n\n};' >>$@-tmp && \
+	chmod a-w $@-tmp && \
 	mv $@-tmp libvirt.syms
+
+libvirt.def: libvirt.syms
+	$(AM_V_GEN)rm -f -- $@-tmp $@ ; \
+	printf 'EXPORTS\n' > $@-tmp && \
+	sed -e '/^$$/d; /#/d; /:/d; /\}/d; /\*/d; /LIBVIRT_/d; s/[ \t]*\(.*\)\;/    \1/g' $^ >> $@-tmp && \
+	chmod a-w $@-tmp && \
+	mv $@-tmp libvirt.def
 
 # Empty source list - it merely links a bunch of convenience libs together
 libvirt_la_SOURCES =
 libvirt_la_LIBADD += \
 		    $(CYGWIN_EXTRA_LIBADD) ../gnulib/lib/libgnu.la
-libvirt_la_LDFLAGS = $(VERSION_SCRIPT_FLAGS)libvirt.syms \
+libvirt_la_LDFLAGS = $(VERSION_SCRIPT_FLAGS)$(LIBVIRT_SYMBOL_FILE) \
                      -version-info $(LIBVIRT_VERSION_INFO) \
                     $(COVERAGE_CFLAGS:-f%=-Wc,-f%) \
                     $(LIBXML_LIBS) \
+                    $(LIBPCAP_LIBS) \
 		    $(DRIVER_MODULE_LIBS) \
 		    $(CYGWIN_EXTRA_LDFLAGS) $(MINGW_EXTRA_LDFLAGS)
 libvirt_la_CFLAGS = $(COVERAGE_CFLAGS) -DIN_LIBVIRT
-libvirt_la_DEPENDENCIES = $(libvirt_la_LIBADD) libvirt.syms
+libvirt_la_DEPENDENCIES = $(libvirt_la_LIBADD) $(LIBVIRT_SYMBOL_FILE)
 
 # Create an automake "convenience library" version of libvirt_la,
 # just for testing, since the test harness requires access to internal
@@ -833,7 +936,7 @@ noinst_LTLIBRARIES += libvirt_test.la
 # Remove version script from convenience library
 test_LDFLAGS =						\
   $$(echo '$(libvirt_la_LDFLAGS)'			\
-     |sed 's!$(VERSION_SCRIPT_FLAGS)libvirt.syms!!'	\
+     |sed 's!$(VERSION_SCRIPT_FLAGS)$(LIBVIRT_SYMBOL_FILE)!!'	\
      |sed 's!-version-info $(LIBVIRT_VERSION_INFO)!!')
 
 # Just like the above, but with a slightly different set of public symbols.
@@ -868,7 +971,8 @@ libvirt_lxc_SOURCES =						\
 		$(NODE_INFO_SOURCES)				\
 		$(ENCRYPTION_CONF_SOURCES)			\
 		$(DOMAIN_CONF_SOURCES)				\
-		$(CPU_CONF_SOURCES)
+		$(CPU_CONF_SOURCES)				\
+		$(NWFILTER_PARAM_CONF_SOURCES)
 libvirt_lxc_LDFLAGS = $(WARN_CFLAGS) $(COVERAGE_LDCFLAGS) $(CAPNG_LIBS) $(YAJL_LIBS)
 libvirt_lxc_LDADD = $(LIBXML_LIBS) $(NUMACTL_LIBS) ../gnulib/lib/libgnu.la
 libvirt_lxc_CFLAGS =				\

@@ -2,7 +2,7 @@
 /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* send.c --- wrappers for Windows send function
 
-   Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
+   Copyright (C) 2008-2010 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as published by
@@ -30,8 +30,8 @@
 
 #undef send
 
-int
-rpl_send (int fd, const void *buf, int len, int flags)
+ssize_t
+rpl_send (int fd, const void *buf, size_t len, int flags)
 {
   SOCKET sock = FD_TO_SOCKET (fd);
   int r = send (sock, buf, len, flags);

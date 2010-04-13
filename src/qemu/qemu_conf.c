@@ -54,6 +54,7 @@
 #include "network.h"
 #include "macvtap.h"
 #include "cpu/cpu.h"
+#include "nwfilter/nwfilter_gentech_driver.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -139,7 +140,7 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
 
 #define CHECK_TYPE(name,typ) if (p && p->type != (typ)) {               \
         qemuReportError(VIR_ERR_INTERNAL_ERROR,                         \
-                         "remoteReadConfigFile: %s: %s: expected type " #typ "\n", \
+                         "remoteReadConfigFile: %s: %s: expected type " #typ, \
                          filename, (name));                             \
         virConfFree(conf);                                              \
         return -1;                                                      \
@@ -891,9 +892,10 @@ qemudCapsInitGuest(virCapsPtr caps,
 
     guest->arch.defaultInfo.emulator_mtime = binary_mtime;
 
-    if (qemudProbeCPUModels(binary, info->arch, &ncpus, NULL) == 0
-        && ncpus > 0
-        && !virCapabilitiesAddGuestFeature(guest, "cpuselection", 1, 0))
+    if (caps->host.cpu &&
+        qemudProbeCPUModels(binary, info->arch, &ncpus, NULL) == 0 &&
+        ncpus > 0 &&
+        !virCapabilitiesAddGuestFeature(guest, "cpuselection", 1, 0))
         goto error;
 
     if (hvm) {
@@ -1159,6 +1161,16 @@ static unsigned long long qemudComputeCmdFlags(const char *help,
     /* The trailing ' ' is important to avoid a bogus match */
     if (strstr(help, "-rtc "))
         flags |= QEMUD_CMD_FLAG_RTC;
+    /* to wit */
+    if (strstr(help, "-rtc-td-hack"))
+        flags |= QEMUD_CMD_FLAG_RTC_TD_HACK;
+    if (strstr(help, "-no-hpet"))
+        flags |= QEMUD_CMD_FLAG_NO_HPET;
+    if (strstr(help, "-no-kvm-pit-reinjection"))
+        flags |= QEMUD_CMD_FLAG_NO_KVM_PIT;
+    if (strstr(help, "-tdf"))
+        flags |= QEMUD_CMD_FLAG_TDF;
+
     /* Keep disabled till we're actually ready to turn on netdev mode
      * The plan is todo it in 0.13.0 QEMU, but lets wait & see... */
 #if 0
@@ -1182,6 +1194,10 @@ static unsigned long long qemudComputeCmdFlags(const char *help,
 
     if (is_kvm && (version >= 10000 || kvm_version >= 74))
         flags |= QEMUD_CMD_FLAG_VNET_HDR;
+
+    if (is_kvm && strstr(help, ",vhost=")) {
+        flags |= QEMUD_CMD_FLAG_VNET_HOST;
+    }
 
     /*
      * Handling of -incoming arg with varying features
@@ -1454,7 +1470,7 @@ qemudPhysIfaceConnect(virConnectPtr conn,
         net->model && STREQ(net->model, "virtio"))
         vnet_hdr = 1;
 
-    rc = openMacvtapTap(conn, net->ifname, net->mac, linkdev, brmode,
+    rc = openMacvtapTap(net->ifname, net->mac, linkdev, brmode,
                         &res_ifname, vnet_hdr);
     if (rc >= 0) {
         VIR_FREE(net->ifname);
@@ -1466,6 +1482,17 @@ qemudPhysIfaceConnect(virConnectPtr conn,
             virReportSystemError(err,
                  _("failed to add ebtables rule to allow MAC address on  '%s'"),
                                  net->ifname);
+        }
+    }
+
+    if (rc >= 0) {
+        if ((net->filter) && (net->ifname)) {
+            err = virNWFilterInstantiateFilter(conn, net);
+            if (err) {
+                close(rc);
+                rc = -1;
+                delMacvtap(net->ifname);
+            }
         }
     }
 #else
@@ -1590,10 +1617,41 @@ qemudNetworkIfaceConnect(virConnectPtr conn,
         }
     }
 
+    if (tapfd >= 0) {
+        if ((net->filter) && (net->ifname)) {
+            err = virNWFilterInstantiateFilter(conn, net);
+            if (err) {
+                close(tapfd);
+                tapfd = -1;
+            }
+        }
+    }
+
 cleanup:
     VIR_FREE(brname);
 
     return tapfd;
+}
+
+
+int
+qemudOpenVhostNet(virDomainNetDefPtr net,
+                  unsigned long long qemuCmdFlags)
+{
+
+    /* If qemu supports vhost-net mode (including the -netdev command
+     * option), the nic model is virtio, and we can open
+     * /dev/vhost_net, assume that vhost-net mode is available and
+     * return the fd to /dev/vhost_net. Otherwise, return -1.
+     */
+
+    if (!(qemuCmdFlags & QEMUD_CMD_FLAG_VNET_HOST &&
+          qemuCmdFlags & QEMUD_CMD_FLAG_NETDEV &&
+          qemuCmdFlags & QEMUD_CMD_FLAG_DEVICE &&
+          net->model && STREQ(net->model, "virtio")))
+        return -1;
+
+    return open("/dev/vhost-net", O_RDWR, 0);
 }
 
 
@@ -2398,6 +2456,9 @@ qemuBuildDriveStr(virDomainDiskDefPtr disk,
     if (bootable &&
         disk->device == VIR_DOMAIN_DISK_DEVICE_DISK)
         virBufferAddLit(&opt, ",boot=on");
+    if (disk->readonly &&
+        qemuCmdFlags & QEMUD_CMD_FLAG_DEVICE)
+        virBufferAddLit(&opt, ",readonly=on");
     if (disk->driverType &&
         disk->type != VIR_DOMAIN_DISK_TYPE_DIR &&
         qemuCmdFlags & QEMUD_CMD_FLAG_DRIVE_FORMAT)
@@ -2418,6 +2479,14 @@ qemuBuildDriveStr(virDomainDiskDefPtr disk,
         virBufferVSprintf(&opt, ",cache=%s", mode);
     } else if (disk->shared && !disk->readonly) {
         virBufferAddLit(&opt, ",cache=off");
+    }
+
+    if (qemuCmdFlags & QEMUD_CMD_FLAG_MONITOR_JSON) {
+        if (disk->error_policy) {
+            virBufferVSprintf(&opt, ",werror=%s,rerror=%s",
+                              virDomainDiskErrorPolicyTypeToString(disk->error_policy),
+                              virDomainDiskErrorPolicyTypeToString(disk->error_policy));
+        }
     }
 
     if (virBufferError(&opt)) {
@@ -2608,7 +2677,8 @@ char *
 qemuBuildHostNetStr(virDomainNetDefPtr net,
                     char type_sep,
                     int vlan,
-                    const char *tapfd)
+                    const char *tapfd,
+                    const char *vhostfd)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
@@ -2657,6 +2727,14 @@ qemuBuildHostNetStr(virDomainNetDefPtr net,
                               net->data.socket.address,
                               net->data.socket.port);
             break;
+        case VIR_DOMAIN_NET_TYPE_USER:
+        case VIR_DOMAIN_NET_TYPE_ETHERNET:
+        case VIR_DOMAIN_NET_TYPE_NETWORK:
+        case VIR_DOMAIN_NET_TYPE_BRIDGE:
+        case VIR_DOMAIN_NET_TYPE_INTERNAL:
+        case VIR_DOMAIN_NET_TYPE_DIRECT:
+        case VIR_DOMAIN_NET_TYPE_LAST:
+            break;
         }
         type_sep = ',';
         break;
@@ -2675,6 +2753,10 @@ qemuBuildHostNetStr(virDomainNetDefPtr net,
     } else {
         virBufferVSprintf(&buf, "%cid=host%s",
                           type_sep, net->info.alias);
+    }
+
+    if (vhostfd && *vhostfd) {
+        virBufferVSprintf(&buf, ",vhost=on,vhostfd=%s", vhostfd);
     }
 
     if (virBufferError(&buf)) {
@@ -3033,7 +3115,7 @@ qemuBuildVirtioSerialPortDevStr(virDomainChrDefPtr dev)
             VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_SERIAL)
         {
             qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                            _("virtio serial device has invalid address type"));
+                            "%s", _("virtio serial device has invalid address type"));
             goto error;
         }
 
@@ -3098,6 +3180,47 @@ qemuBuildClockArgStr(virDomainClockDefPtr def)
         goto error;
     }
 
+    /* Look for an 'rtc' timer element, and add in appropriate clock= and driftfix= */
+    int i;
+    for (i = 0; i < def->ntimers; i++) {
+        if (def->timers[i]->name == VIR_DOMAIN_TIMER_NAME_RTC) {
+            switch (def->timers[i]->track) {
+            case -1: /* unspecified - use hypervisor default */
+                break;
+            case VIR_DOMAIN_TIMER_TRACK_BOOT:
+                qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                _("unsupported rtc timer track '%s'"),
+                                virDomainTimerTrackTypeToString(def->timers[i]->track));
+                goto error;
+            case VIR_DOMAIN_TIMER_TRACK_GUEST:
+                virBufferAddLit(&buf, ",clock=vm");
+                break;
+            case VIR_DOMAIN_TIMER_TRACK_WALL:
+                virBufferAddLit(&buf, ",clock=host");
+                break;
+            }
+
+            switch (def->timers[i]->tickpolicy) {
+            case -1:
+            case VIR_DOMAIN_TIMER_TICKPOLICY_DELAY:
+                /* This is the default - missed ticks delivered when
+                   next scheduled, at normal rate */
+                break;
+            case VIR_DOMAIN_TIMER_TICKPOLICY_CATCHUP:
+                /* deliver ticks at a faster rate until caught up */
+                virBufferAddLit(&buf, ",driftfix=slew");
+                break;
+            case VIR_DOMAIN_TIMER_TICKPOLICY_MERGE:
+            case VIR_DOMAIN_TIMER_TICKPOLICY_DISCARD:
+                qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                _("unsupported rtc timer tickpolicy '%s'"),
+                                virDomainTimerTickpolicyTypeToString(def->timers[i]->tickpolicy));
+                goto error;
+            }
+            break; /* no need to check other timers - there is only one rtc */
+        }
+    }
+
     if (virBufferError(&buf)) {
         virReportOOMError();
         goto error;
@@ -3127,9 +3250,16 @@ qemuBuildCpuArgStr(const struct qemud_driver *driver,
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     int i;
 
-    if (def->cpu && def->cpu->model
-        && qemudProbeCPUModels(emulator, ut->machine, &ncpus, &cpus) < 0)
-        goto cleanup;
+    if (def->cpu && def->cpu->model) {
+        if (qemudProbeCPUModels(emulator, ut->machine, &ncpus, &cpus) < 0)
+            goto cleanup;
+
+        if (!ncpus || !host) {
+            qemuReportError(VIR_ERR_NO_SUPPORT, "%s",
+                            _("CPU specification not supported by hypervisor"));
+            goto cleanup;
+        }
+    }
 
     if (ncpus > 0 && host) {
         virCPUCompareResult cmp;
@@ -3251,7 +3381,9 @@ int qemudBuildCommandLine(virConnectPtr conn,
                           const char ***retenv,
                           int **tapfds,
                           int *ntapfds,
-                          const char *migrateFrom) {
+                          const char *migrateFrom,
+                          virDomainSnapshotObjPtr current_snapshot)
+{
     int i;
     char memory[50];
     char boot[VIR_DOMAIN_BOOT_LAST];
@@ -3268,6 +3400,7 @@ int qemudBuildCommandLine(virConnectPtr conn,
     char domid[50];
     char *cpu;
     char *smp;
+    int last_good_net = -1;
 
     uname_normalize(&ut);
 
@@ -3571,6 +3704,105 @@ int qemudBuildCommandLine(virConnectPtr conn,
         ADD_ENV_PAIR("TZ", def->clock.data.timezone);
     }
 
+    for (i = 0; i < def->clock.ntimers; i++) {
+        switch (def->clock.timers[i]->name) {
+        default:
+        case VIR_DOMAIN_TIMER_NAME_PLATFORM:
+        case VIR_DOMAIN_TIMER_NAME_TSC:
+            qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                            _("unsupported timer type (name) '%s'"),
+                            virDomainTimerNameTypeToString(def->clock.timers[i]->name));
+            goto error;
+
+        case VIR_DOMAIN_TIMER_NAME_RTC:
+            /* This has already been taken care of (in qemuBuildClockArgStr)
+               if QEMUD_CMD_FLAG_RTC is set (mutually exclusive with
+               QEMUD_FLAG_RTC_TD_HACK) */
+            if (qemuCmdFlags & QEMUD_CMD_FLAG_RTC_TD_HACK) {
+                switch (def->clock.timers[i]->tickpolicy) {
+                case -1:
+                case VIR_DOMAIN_TIMER_TICKPOLICY_DELAY:
+                    /* the default - do nothing */
+                    break;
+                case VIR_DOMAIN_TIMER_TICKPOLICY_CATCHUP:
+                    ADD_ARG_LIT("-rtc-td-hack");
+                    break;
+                case VIR_DOMAIN_TIMER_TICKPOLICY_MERGE:
+                case VIR_DOMAIN_TIMER_TICKPOLICY_DISCARD:
+                    qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                    _("unsupported rtc tickpolicy '%s'"),
+                                    virDomainTimerTickpolicyTypeToString(def->clock.timers[i]->tickpolicy));
+                goto error;
+                }
+            } else if (!(qemuCmdFlags & QEMUD_CMD_FLAG_RTC)
+                       && (def->clock.timers[i]->tickpolicy
+                           != VIR_DOMAIN_TIMER_TICKPOLICY_DELAY)
+                       && (def->clock.timers[i]->tickpolicy != -1)) {
+                /* a non-default rtc policy was given, but there is no
+                   way to implement it in this version of qemu */
+                qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                _("unsupported rtc tickpolicy '%s'"),
+                                virDomainTimerTickpolicyTypeToString(def->clock.timers[i]->tickpolicy));
+                goto error;
+            }
+            break;
+
+        case VIR_DOMAIN_TIMER_NAME_PIT:
+            switch (def->clock.timers[i]->tickpolicy) {
+            case -1:
+            case VIR_DOMAIN_TIMER_TICKPOLICY_DELAY:
+                /* delay is the default if we don't have kernel
+                   (-no-kvm-pit), otherwise, the default is catchup. */
+                if (qemuCmdFlags & QEMUD_CMD_FLAG_NO_KVM_PIT)
+                    ADD_ARG_LIT("-no-kvm-pit-reinjection");
+                break;
+            case VIR_DOMAIN_TIMER_TICKPOLICY_CATCHUP:
+                if (qemuCmdFlags & QEMUD_CMD_FLAG_NO_KVM_PIT) {
+                    /* do nothing - this is default for kvm-pit */
+                } else if (qemuCmdFlags & QEMUD_CMD_FLAG_TDF) {
+                    /* -tdf switches to 'catchup' with userspace pit. */
+                    ADD_ARG_LIT("-tdf");
+                } else {
+                    /* can't catchup if we have neither pit mode */
+                    qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                    _("unsupported pit tickpolicy '%s'"),
+                                    virDomainTimerTickpolicyTypeToString(def->clock.timers[i]->tickpolicy));
+                    goto error;
+                }
+                break;
+            case VIR_DOMAIN_TIMER_TICKPOLICY_MERGE:
+            case VIR_DOMAIN_TIMER_TICKPOLICY_DISCARD:
+                /* no way to support these modes for pit in qemu */
+                qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                _("unsupported pit tickpolicy '%s'"),
+                                virDomainTimerTickpolicyTypeToString(def->clock.timers[i]->tickpolicy));
+                goto error;
+            }
+            break;
+
+        case VIR_DOMAIN_TIMER_NAME_HPET:
+            /* the only meaningful attribute for hpet is "present". If
+             * present is -1, that means it wasn't specified, and
+             * should be left at the default for the
+             * hypervisor. "default" when -no-hpet exists is "yes",
+             * and when -no-hpet doesn't exist is "no". "confusing"?
+             * "yes"! */
+
+            if (qemuCmdFlags & QEMUD_CMD_FLAG_NO_HPET) {
+                if (def->clock.timers[i]->present == 0)
+                    ADD_ARG_LIT("-no-hpet");
+            } else {
+                /* no hpet timer available. The only possible action
+                   is to raise an error if present="yes" */
+                if (def->clock.timers[i]->present == 1) {
+                    qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                    "%s", _("pit timer is not supported"));
+                }
+            }
+            break;
+        }
+    }
+
     if ((qemuCmdFlags & QEMUD_CMD_FLAG_NO_REBOOT) &&
         def->onReboot != VIR_DOMAIN_LIFECYCLE_RESTART)
         ADD_ARG_LIT("-no-reboot");
@@ -3825,6 +4057,7 @@ int qemudBuildCommandLine(virConnectPtr conn,
             virDomainNetDefPtr net = def->nets[i];
             char *nic, *host;
             char tapfd_name[50];
+            char vhostfd_name[50] = "";
             int vlan;
 
             /* VLANs are not used with -netdev, so don't record them */
@@ -3868,6 +4101,24 @@ int qemudBuildCommandLine(virConnectPtr conn,
                     goto no_memory;
             }
 
+            if (net->type == VIR_DOMAIN_NET_TYPE_NETWORK ||
+                net->type == VIR_DOMAIN_NET_TYPE_BRIDGE ||
+                net->type == VIR_DOMAIN_NET_TYPE_DIRECT) {
+                /* Attempt to use vhost-net mode for these types of
+                   network device */
+                int vhostfd = qemudOpenVhostNet(net, qemuCmdFlags);
+                if (vhostfd >= 0) {
+                    if (VIR_REALLOC_N(*tapfds, (*ntapfds)+1) < 0) {
+                        close(vhostfd);
+                        goto no_memory;
+                    }
+
+                    (*tapfds)[(*ntapfds)++] = vhostfd;
+                    if (snprintf(vhostfd_name, sizeof(vhostfd_name), "%d", vhostfd)
+                        >= sizeof(vhostfd_name))
+                        goto no_memory;
+                }
+            }
             /* Possible combinations:
              *
              *  1. Old way:   -net nic,model=e1000,vlan=1 -net tap,vlan=1
@@ -3879,8 +4130,8 @@ int qemudBuildCommandLine(virConnectPtr conn,
             if ((qemuCmdFlags & QEMUD_CMD_FLAG_NETDEV) &&
                 (qemuCmdFlags & QEMUD_CMD_FLAG_DEVICE)) {
                 ADD_ARG_LIT("-netdev");
-                if (!(host = qemuBuildHostNetStr(net, ',',
-                                                 vlan, tapfd_name)))
+                if (!(host = qemuBuildHostNetStr(net, ',', vlan,
+                                                 tapfd_name, vhostfd_name)))
                     goto error;
                 ADD_ARG(host);
             }
@@ -3898,11 +4149,12 @@ int qemudBuildCommandLine(virConnectPtr conn,
             if (!((qemuCmdFlags & QEMUD_CMD_FLAG_NETDEV) &&
                   (qemuCmdFlags & QEMUD_CMD_FLAG_DEVICE))) {
                 ADD_ARG_LIT("-net");
-                if (!(host = qemuBuildHostNetStr(net, ',',
-                                                 vlan, tapfd_name)))
+                if (!(host = qemuBuildHostNetStr(net, ',', vlan,
+                                                 tapfd_name, vhostfd_name)))
                     goto error;
                 ADD_ARG(host);
             }
+            last_good_net = i;
         }
     }
 
@@ -4336,6 +4588,11 @@ int qemudBuildCommandLine(virConnectPtr conn,
         ADD_ARG_LIT("virtio");
     }
 
+    if (current_snapshot && current_snapshot->def->active) {
+        ADD_ARG_LIT("-loadvm");
+        ADD_ARG_LIT(current_snapshot->def->name);
+    }
+
     ADD_ARG(NULL);
     ADD_ENV(NULL);
 
@@ -4362,6 +4619,11 @@ int qemudBuildCommandLine(virConnectPtr conn,
         for (i = 0 ; i < qenvc ; i++)
             VIR_FREE((qenv)[i]);
         VIR_FREE(qenv);
+    }
+    for (i = 0; i <= last_good_net; i++) {
+        virDomainNetDefPtr net = def->nets[i];
+        if ((net->filter) && (net->ifname))
+            virNWFilterTeardownFilter(net);
     }
     return -1;
 
@@ -4670,6 +4932,14 @@ qemuParseCommandLineDisk(const char *val,
                 def->cachemode = VIR_DOMAIN_DISK_CACHE_WRITEBACK;
             else if (STREQ(values[i], "writethrough"))
                 def->cachemode = VIR_DOMAIN_DISK_CACHE_WRITETHRU;
+        } else if (STREQ(keywords[i], "werror") ||
+                   STREQ(keywords[i], "rerror")) {
+            if (STREQ(values[i], "stop"))
+                def->error_policy = VIR_DOMAIN_DISK_ERROR_POLICY_STOP;
+            else if (STREQ(values[i], "ignore"))
+                def->error_policy = VIR_DOMAIN_DISK_ERROR_POLICY_IGNORE;
+            else if (STREQ(values[i], "enospace"))
+                def->error_policy = VIR_DOMAIN_DISK_ERROR_POLICY_ENOSPACE;
         } else if (STREQ(keywords[i], "index")) {
             if (virStrToLong_i(values[i], NULL, 10, &idx) < 0) {
                 virDomainDiskDefFree(def);
@@ -4694,6 +4964,9 @@ qemuParseCommandLineDisk(const char *val,
                                 _("cannot parse drive unit '%s'"), val);
                 goto cleanup;
             }
+        } else if (STREQ(keywords[i], "readonly")) {
+            if ((values[i] == NULL) || STREQ(values[i], "on"))
+                def->readonly = 1;
         }
     }
 
@@ -4760,7 +5033,13 @@ qemuParseCommandLineDisk(const char *val,
     else
         def->dst[2] = 'a' + idx;
 
-    virDomainDiskDefAssignAddress(def);
+    if (virDomainDiskDefAssignAddress(def) < 0) {
+        qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                        _("invalid device name '%s'"), def->dst);
+        virDomainDiskDefFree(def);
+        def = NULL;
+        /* fall through to "cleanup" */
+    }
 
 cleanup:
     for (i = 0 ; i < nkeywords ; i++) {
@@ -4966,14 +5245,14 @@ qemuParseCommandLinePCI(const char *val)
     }
 
     start = val + strlen("host=");
-    if (virStrToLong_i(start, &end, 16, &bus) < 0 || !end || *end != ':') {
+    if (virStrToLong_i(start, &end, 16, &bus) < 0 || *end != ':') {
         qemuReportError(VIR_ERR_INTERNAL_ERROR,
                         _("cannot extract PCI device bus '%s'"), val);
         VIR_FREE(def);
         goto cleanup;
     }
     start = end + 1;
-    if (virStrToLong_i(start, &end, 16, &slot) < 0 || !end || *end != '.') {
+    if (virStrToLong_i(start, &end, 16, &slot) < 0 || *end != '.') {
         qemuReportError(VIR_ERR_INTERNAL_ERROR,
                         _("cannot extract PCI device slot '%s'"), val);
         VIR_FREE(def);
@@ -5024,7 +5303,7 @@ qemuParseCommandLineUSB(const char *val)
 
     start = val + strlen("host:");
     if (strchr(start, ':')) {
-        if (virStrToLong_i(start, &end, 16, &first) < 0 || !end || *end != ':') {
+        if (virStrToLong_i(start, &end, 16, &first) < 0 || *end != ':') {
             qemuReportError(VIR_ERR_INTERNAL_ERROR,
                             _("cannot extract USB device vendor '%s'"), val);
             VIR_FREE(def);
@@ -5038,7 +5317,7 @@ qemuParseCommandLineUSB(const char *val)
             goto cleanup;
         }
     } else {
-        if (virStrToLong_i(start, &end, 10, &first) < 0 || !end || *end != '.') {
+        if (virStrToLong_i(start, &end, 10, &first) < 0 || *end != '.') {
             qemuReportError(VIR_ERR_INTERNAL_ERROR,
                              _("cannot extract USB device bus '%s'"), val);
             VIR_FREE(def);
@@ -5322,13 +5601,11 @@ qemuParseCommandLineSmp(virDomainDefPtr dom,
     for (i = 0; i < nkws; i++) {
         if (vals[i] == NULL) {
             if (i > 0 ||
-                virStrToLong_i(kws[i], &end, 10, &n) < 0 ||
-                !end || *end != '\0')
+                virStrToLong_i(kws[i], &end, 10, &n) < 0 || *end != '\0')
                 goto syntax;
             dom->vcpus = n;
         } else {
-            if (virStrToLong_i(vals[i], &end, 10, &n) < 0 ||
-                !end || *end != '\0')
+            if (virStrToLong_i(vals[i], &end, 10, &n) < 0 || *end != '\0')
                 goto syntax;
             if (STREQ(kws[i], "sockets"))
                 sockets = n;
@@ -5568,7 +5845,8 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr caps,
                 goto no_memory;
             }
 
-            virDomainDiskDefAssignAddress(disk);
+            if (virDomainDiskDefAssignAddress(disk) < 0)
+                goto error;
 
             if (VIR_REALLOC_N(def->disks, def->ndisks+1) < 0) {
                 virDomainDiskDefFree(disk);

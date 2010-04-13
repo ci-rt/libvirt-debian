@@ -6,19 +6,19 @@
 #include <signal.h>
 
 #if HAVE_SYS_POLL_H
-#include <sys/types.h>
-#include <sys/poll.h>
-#include <libvirt/libvirt.h>
+# include <sys/types.h>
+# include <sys/poll.h>
+# include <libvirt/libvirt.h>
 
-#define DEBUG0(fmt) printf("%s:%d :: " fmt "\n", \
+# define DEBUG0(fmt) printf("%s:%d :: " fmt "\n", \
         __func__, __LINE__)
-#define DEBUG(fmt, ...) printf("%s:%d: " fmt "\n", \
+# define DEBUG(fmt, ...) printf("%s:%d: " fmt "\n", \
         __func__, __LINE__, __VA_ARGS__)
-#define STREQ(a,b) (strcmp(a,b) == 0)
+# define STREQ(a,b) (strcmp(a,b) == 0)
 
-#ifndef ATTRIBUTE_UNUSED
-#define ATTRIBUTE_UNUSED __attribute__((__unused__))
-#endif
+# ifndef ATTRIBUTE_UNUSED
+#  define ATTRIBUTE_UNUSED __attribute__((__unused__))
+# endif
 
 /* handle globals */
 int h_fd = 0;
@@ -28,7 +28,7 @@ virFreeCallback h_ff = NULL;
 void *h_opaque = NULL;
 
 /* timeout globals */
-#define TIMEOUT_MS 1000
+# define TIMEOUT_MS 1000
 int t_active = 0;
 int t_timeout = -1;
 virEventTimeoutCallback t_cb = NULL;
@@ -38,10 +38,6 @@ void *t_opaque = NULL;
 
 /* Prototypes */
 const char *eventToString(int event);
-int myDomainEventCallback1 (virConnectPtr conn, virDomainPtr dom,
-                            int event, int detail, void *opaque);
-int myDomainEventCallback2 (virConnectPtr conn, virDomainPtr dom,
-                            int event, int detail, void *opaque);
 int myEventAddHandleFunc  (int fd, int event,
                            virEventHandleCallback cb,
                            void *opaque,
@@ -152,11 +148,11 @@ static const char *eventDetailToString(int event, int detail) {
     return ret;
 }
 
-int myDomainEventCallback1 (virConnectPtr conn ATTRIBUTE_UNUSED,
-                            virDomainPtr dom,
-                            int event,
-                            int detail,
-                            void *opaque ATTRIBUTE_UNUSED)
+static int myDomainEventCallback1(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                  virDomainPtr dom,
+                                  int event,
+                                  int detail,
+                                  void *opaque ATTRIBUTE_UNUSED)
 {
     printf("%s EVENT: Domain %s(%d) %s %s\n", __func__, virDomainGetName(dom),
            virDomainGetID(dom), eventToString(event),
@@ -164,15 +160,101 @@ int myDomainEventCallback1 (virConnectPtr conn ATTRIBUTE_UNUSED,
     return 0;
 }
 
-int myDomainEventCallback2 (virConnectPtr conn ATTRIBUTE_UNUSED,
-                            virDomainPtr dom,
-                            int event,
-                            int detail,
-                            void *opaque ATTRIBUTE_UNUSED)
+static int myDomainEventCallback2(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                  virDomainPtr dom,
+                                  int event,
+                                  int detail,
+                                  void *opaque ATTRIBUTE_UNUSED)
 {
     printf("%s EVENT: Domain %s(%d) %s %s\n", __func__, virDomainGetName(dom),
            virDomainGetID(dom), eventToString(event),
            eventDetailToString(event, detail));
+    return 0;
+}
+
+static int myDomainEventRebootCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                       virDomainPtr dom,
+                                       void *opaque ATTRIBUTE_UNUSED)
+{
+    printf("%s EVENT: Domain %s(%d) rebooted\n", __func__, virDomainGetName(dom),
+           virDomainGetID(dom));
+
+    return 0;
+}
+
+static int myDomainEventRTCChangeCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                          virDomainPtr dom,
+                                          long long offset,
+                                          void *opaque ATTRIBUTE_UNUSED)
+{
+    printf("%s EVENT: Domain %s(%d) rtc change %lld\n", __func__, virDomainGetName(dom),
+           virDomainGetID(dom), offset);
+
+    return 0;
+}
+
+static int myDomainEventWatchdogCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                         virDomainPtr dom,
+                                         int action,
+                                         void *opaque ATTRIBUTE_UNUSED)
+{
+    printf("%s EVENT: Domain %s(%d) watchdog action=%d\n", __func__, virDomainGetName(dom),
+           virDomainGetID(dom), action);
+
+    return 0;
+}
+
+static int myDomainEventIOErrorCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                        virDomainPtr dom,
+                                        const char *srcPath,
+                                        const char *devAlias,
+                                        int action,
+                                        void *opaque ATTRIBUTE_UNUSED)
+{
+    printf("%s EVENT: Domain %s(%d) io error path=%s alias=%s action=%d\n", __func__, virDomainGetName(dom),
+           virDomainGetID(dom), srcPath, devAlias, action);
+
+    return 0;
+}
+
+static int myDomainEventGraphicsCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                         virDomainPtr dom,
+                                         int phase,
+                                         virDomainEventGraphicsAddressPtr local,
+                                         virDomainEventGraphicsAddressPtr remote,
+                                         const char *authScheme,
+                                         virDomainEventGraphicsSubjectPtr subject,
+                                         void *opaque ATTRIBUTE_UNUSED)
+{
+    int i;
+    printf("%s EVENT: Domain %s(%d) graphics ", __func__, virDomainGetName(dom),
+           virDomainGetID(dom));
+
+    switch (phase) {
+    case VIR_DOMAIN_EVENT_GRAPHICS_CONNECT:
+        printf("connected ");
+        break;
+    case VIR_DOMAIN_EVENT_GRAPHICS_INITIALIZE:
+        printf("initialized ");
+        break;
+    case VIR_DOMAIN_EVENT_GRAPHICS_DISCONNECT:
+        printf("disconnected ");
+        break;
+    }
+
+    printf("local: family=%d node=%s service=%s ",
+           local->family, local->node, local->service);
+    printf("remote: family=%d node=%s service=%s ",
+           remote->family, remote->node, remote->service);
+
+    printf("auth: %s ", authScheme);
+    for (i = 0 ; i < subject->nidentity ; i++) {
+        printf(" identity: %s=%s",
+               subject->identities[i].type,
+               subject->identities[i].name);
+    }
+    printf("\n");
+
     return 0;
 }
 
@@ -293,6 +375,12 @@ int main(int argc, char **argv)
     int sts;
     int callback1ret = -1;
     int callback2ret = -1;
+    int callback3ret = -1;
+    int callback4ret = -1;
+    int callback5ret = -1;
+    int callback6ret = -1;
+    int callback7ret = -1;
+
     struct sigaction action_stop = {
         .sa_handler = stop
     };
@@ -310,7 +398,7 @@ int main(int argc, char **argv)
                           myEventRemoveTimeoutFunc);
 
     virConnectPtr dconn = NULL;
-    dconn = virConnectOpen (argv[1] ? argv[1] : NULL);
+    dconn = virConnectOpenReadOnly (argv[1] ? argv[1] : NULL);
     if (!dconn) {
         printf("error opening\n");
         return -1;
@@ -324,10 +412,44 @@ int main(int argc, char **argv)
     /* Add 2 callbacks to prove this works with more than just one */
     callback1ret = virConnectDomainEventRegister(dconn, myDomainEventCallback1,
                                                  strdup("callback 1"), myFreeFunc);
-    callback2ret = virConnectDomainEventRegister(dconn, myDomainEventCallback2,
-                                                 strdup("callback 2"), myFreeFunc);
+    callback2ret = virConnectDomainEventRegisterAny(dconn,
+                                                    NULL,
+                                                    VIR_DOMAIN_EVENT_ID_LIFECYCLE,
+                                                    VIR_DOMAIN_EVENT_CALLBACK(myDomainEventCallback2),
+                                                    strdup("callback 2"), myFreeFunc);
+    callback3ret = virConnectDomainEventRegisterAny(dconn,
+                                                    NULL,
+                                                    VIR_DOMAIN_EVENT_ID_REBOOT,
+                                                    VIR_DOMAIN_EVENT_CALLBACK(myDomainEventRebootCallback),
+                                                    strdup("callback reboot"), myFreeFunc);
+    callback4ret = virConnectDomainEventRegisterAny(dconn,
+                                                    NULL,
+                                                    VIR_DOMAIN_EVENT_ID_RTC_CHANGE,
+                                                    VIR_DOMAIN_EVENT_CALLBACK(myDomainEventRTCChangeCallback),
+                                                    strdup("callback rtcchange"), myFreeFunc);
+    callback5ret = virConnectDomainEventRegisterAny(dconn,
+                                                    NULL,
+                                                    VIR_DOMAIN_EVENT_ID_WATCHDOG,
+                                                    VIR_DOMAIN_EVENT_CALLBACK(myDomainEventWatchdogCallback),
+                                                    strdup("callback watchdog"), myFreeFunc);
+    callback6ret = virConnectDomainEventRegisterAny(dconn,
+                                                    NULL,
+                                                    VIR_DOMAIN_EVENT_ID_IO_ERROR,
+                                                    VIR_DOMAIN_EVENT_CALLBACK(myDomainEventIOErrorCallback),
+                                                    strdup("callback io error"), myFreeFunc);
+    callback7ret = virConnectDomainEventRegisterAny(dconn,
+                                                    NULL,
+                                                    VIR_DOMAIN_EVENT_ID_GRAPHICS,
+                                                    VIR_DOMAIN_EVENT_CALLBACK(myDomainEventGraphicsCallback),
+                                                    strdup("callback graphics"), myFreeFunc);
 
-    if ((callback1ret == 0) && (callback2ret == 0) ) {
+    if ((callback1ret != -1) &&
+        (callback2ret != -1) &&
+        (callback3ret != -1) &&
+        (callback4ret != -1) &&
+        (callback5ret != -1) &&
+        (callback6ret != -1) &&
+        (callback7ret != -1)) {
         while(run) {
             struct pollfd pfd = { .fd = h_fd,
                               .events = h_event,
@@ -364,8 +486,12 @@ int main(int argc, char **argv)
 
         DEBUG0("Deregistering event handlers");
         virConnectDomainEventDeregister(dconn, myDomainEventCallback1);
-        virConnectDomainEventDeregister(dconn, myDomainEventCallback2);
-
+        virConnectDomainEventDeregisterAny(dconn, callback2ret);
+        virConnectDomainEventDeregisterAny(dconn, callback3ret);
+        virConnectDomainEventDeregisterAny(dconn, callback4ret);
+        virConnectDomainEventDeregisterAny(dconn, callback5ret);
+        virConnectDomainEventDeregisterAny(dconn, callback6ret);
+        virConnectDomainEventDeregisterAny(dconn, callback7ret);
     }
 
     DEBUG0("Closing connection");
