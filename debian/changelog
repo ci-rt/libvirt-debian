@@ -1,3 +1,12 @@
+libvirt (0.8.0-1) unstable; urgency=low
+
+  * Imported Upstream version 0.8.0
+  * Drop patches.
+  * Update libvirt0 symbols.
+  * Switch to new source format 3.0 (quilt).
+
+ -- Laurent Léonard <laurent@open-minds.org>  Tue, 13 Apr 2010 20:50:29 +0200
+
 libvirt (0.7.7-4) unstable; urgency=low
 
   [ Guido Günther ]
