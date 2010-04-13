@@ -2,7 +2,7 @@
  * libvirt.c: Main interfaces for the libvirt library to handle virtualization
  *           domains from a process running in domain 0
  *
- * Copyright (C) 2005,2006,2008,2009 Red Hat, Inc.
+ * Copyright (C) 2005-2006, 2008-2010 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -19,7 +19,7 @@
 #include <unistd.h>
 #include <assert.h>
 #ifdef HAVE_SYS_WAIT_H
-#include <sys/wait.h>
+# include <sys/wait.h>
 #endif
 #include <time.h>
 #include <gcrypt.h>
@@ -30,7 +30,7 @@
 #include "getpass.h"
 
 #ifdef HAVE_WINSOCK2_H
-#include <winsock2.h>
+# include <winsock2.h>
 #endif
 
 #include "virterror_internal.h"
@@ -43,27 +43,30 @@
 #include "memory.h"
 
 #ifndef WITH_DRIVER_MODULES
-#ifdef WITH_TEST
-#include "test/test_driver.h"
-#endif
-#ifdef WITH_XEN
-#include "xen/xen_driver.h"
-#endif
-#ifdef WITH_REMOTE
-#include "remote/remote_driver.h"
-#endif
-#ifdef WITH_OPENVZ
-#include "openvz/openvz_driver.h"
-#endif
-#ifdef WITH_PHYP
-#include "phyp/phyp_driver.h"
-#endif
-#ifdef WITH_VBOX
-#include "vbox/vbox_driver.h"
-#endif
-#ifdef WITH_ESX
-#include "esx/esx_driver.h"
-#endif
+# ifdef WITH_TEST
+#  include "test/test_driver.h"
+# endif
+# ifdef WITH_XEN
+#  include "xen/xen_driver.h"
+# endif
+# ifdef WITH_REMOTE
+#  include "remote/remote_driver.h"
+# endif
+# ifdef WITH_OPENVZ
+#  include "openvz/openvz_driver.h"
+# endif
+# ifdef WITH_PHYP
+#  include "phyp/phyp_driver.h"
+# endif
+# ifdef WITH_VBOX
+#  include "vbox/vbox_driver.h"
+# endif
+# ifdef WITH_ESX
+#  include "esx/esx_driver.h"
+# endif
+# ifdef WITH_XENAPI
+#  include "xenapi/xenapi_driver.h"
+# endif
 #endif
 
 #define VIR_FROM_THIS VIR_FROM_NONE
@@ -88,6 +91,8 @@ static virDeviceMonitorPtr virDeviceMonitorTab[MAX_DRIVERS];
 static int virDeviceMonitorTabCount = 0;
 static virSecretDriverPtr virSecretDriverTab[MAX_DRIVERS];
 static int virSecretDriverTabCount = 0;
+static virNWFilterDriverPtr virNWFilterDriverTab[MAX_DRIVERS];
+static int virNWFilterDriverTabCount = 0;
 #ifdef WITH_LIBVIRTD
 static virStateDriverPtr virStateDriverTab[MAX_DRIVERS];
 static int virStateDriverTabCount = 0;
@@ -357,29 +362,33 @@ virInitialize(void)
     virDriverLoadModule("openvz");
     virDriverLoadModule("vbox");
     virDriverLoadModule("esx");
+    virDriverLoadModule("xenapi");
     virDriverLoadModule("remote");
 #else
-#ifdef WITH_TEST
+# ifdef WITH_TEST
     if (testRegister() == -1) return -1;
-#endif
-#ifdef WITH_XEN
+# endif
+# ifdef WITH_XEN
     if (xenRegister () == -1) return -1;
-#endif
-#ifdef WITH_OPENVZ
+# endif
+# ifdef WITH_OPENVZ
     if (openvzRegister() == -1) return -1;
-#endif
-#ifdef WITH_PHYP
+# endif
+# ifdef WITH_PHYP
     if (phypRegister() == -1) return -1;
-#endif
-#ifdef WITH_VBOX
+# endif
+# ifdef WITH_VBOX
     if (vboxRegister() == -1) return -1;
-#endif
-#ifdef WITH_ESX
+# endif
+# ifdef WITH_ESX
     if (esxRegister() == -1) return -1;
-#endif
-#ifdef WITH_REMOTE
+# endif
+# ifdef WITH_XENAPI
+    if (xenapiRegister() == -1) return -1;
+# endif
+# ifdef WITH_REMOTE
     if (remoteRegister () == -1) return -1;
-#endif
+# endif
 #endif
 
     return(0);
@@ -618,9 +627,9 @@ virLibNodeDeviceError(virNodeDevicePtr dev, virErrorNumber error,
                     errmsg, info, NULL, 0, 0, errmsg, info);
 }
 
-#define virLibStreamError(conn, code, fmt...)                   \
+#define virLibStreamError(conn, code, ...)                      \
     virReportErrorHelper(conn, VIR_FROM_NONE, code, __FILE__,   \
-                         __FUNCTION__, __LINE__, fmt)
+                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 /**
  * virLibSecretError:
@@ -644,6 +653,57 @@ virLibSecretError(virSecretPtr secret, virErrorNumber error, const char *info)
         conn = secret->conn;
 
     virRaiseError(conn, NULL, NULL, VIR_FROM_SECRET, error, VIR_ERR_ERROR,
+                  errmsg, info, NULL, 0, 0, errmsg, info);
+}
+
+/**
+ * virLibNWFilterError:
+ * @conn: the connection if available
+ * @error: the error number
+ * @info: extra information string
+ *
+ * Handle an error at the connection level
+ */
+static void
+virLibNWFilterError(virNWFilterPtr pool, virErrorNumber error,
+                    const char *info)
+{
+    virConnectPtr conn = NULL;
+    const char *errmsg;
+
+    if (error == VIR_ERR_OK)
+        return;
+
+    errmsg = virErrorMsg(error, info);
+    if (error != VIR_ERR_INVALID_NWFILTER)
+        conn = pool->conn;
+
+    virRaiseError(conn, NULL, NULL, VIR_FROM_NWFILTER, error, VIR_ERR_ERROR,
+                  errmsg, info, NULL, 0, 0, errmsg, info);
+}
+
+/**
+ * virLibDomainSnapshotError:
+ * @snapshot: the snapshot if available
+ * @error: the error number
+ * @info: extra information string
+ *
+ * Handle an error at the domain snapshot level
+ */
+static void
+virLibDomainSnapshotError(virDomainSnapshotPtr snapshot, virErrorNumber error, const char *info)
+{
+    virConnectPtr conn = NULL;
+    const char *errmsg;
+
+    if (error == VIR_ERR_OK)
+        return;
+
+    errmsg = virErrorMsg(error, info);
+    if (error != VIR_ERR_INVALID_DOMAIN_SNAPSHOT)
+        conn = snapshot->domain->conn;
+
+    virRaiseError(conn, NULL, NULL, VIR_FROM_DOMAIN_SNAPSHOT, error, VIR_ERR_ERROR,
                   errmsg, info, NULL, 0, 0, errmsg, info);
 }
 
@@ -801,6 +861,38 @@ virRegisterSecretDriver(virSecretDriverPtr driver)
     virSecretDriverTab[virSecretDriverTabCount] = driver;
     return virSecretDriverTabCount++;
 }
+
+/**
+ * virRegisterNWFilterDriver:
+ * @driver: pointer to a network filter driver block
+ *
+ * Register a network filter virtualization driver
+ *
+ * Returns the driver priority or -1 in case of error.
+ */
+int
+virRegisterNWFilterDriver(virNWFilterDriverPtr driver)
+{
+    if (virInitialize() < 0)
+      return -1;
+
+    if (driver == NULL) {
+        virLibConnError(NULL, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return -1;
+    }
+
+    if (virNWFilterDriverTabCount >= MAX_DRIVERS) {
+        virLibConnError(NULL, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return -1;
+    }
+
+    DEBUG ("registering %s as network filter driver %d",
+           driver->name, virNWFilterDriverTabCount);
+
+    virNWFilterDriverTab[virNWFilterDriverTabCount] = driver;
+    return virNWFilterDriverTabCount++;
+}
+
 
 /**
  * virRegisterDriver:
@@ -991,50 +1083,54 @@ virGetVersion(unsigned long *libVer, const char *type,
 #else
         *typeVer = 0;
 
-#if WITH_XEN
+# if WITH_XEN
         if (STRCASEEQ(type, "Xen"))
             *typeVer = xenUnifiedVersion();
-#endif
-#if WITH_TEST
+# endif
+# if WITH_TEST
         if (STRCASEEQ(type, "Test"))
             *typeVer = LIBVIR_VERSION_NUMBER;
-#endif
-#if WITH_QEMU
+# endif
+# if WITH_QEMU
         if (STRCASEEQ(type, "QEMU"))
             *typeVer = LIBVIR_VERSION_NUMBER;
-#endif
-#if WITH_LXC
+# endif
+# if WITH_LXC
         if (STRCASEEQ(type, "LXC"))
             *typeVer = LIBVIR_VERSION_NUMBER;
-#endif
-#if WITH_PHYP
+# endif
+# if WITH_PHYP
         if (STRCASEEQ(type, "phyp"))
             *typeVer = LIBVIR_VERSION_NUMBER;
-#endif
-#if WITH_OPENVZ
+# endif
+# if WITH_OPENVZ
         if (STRCASEEQ(type, "OpenVZ"))
             *typeVer = LIBVIR_VERSION_NUMBER;
-#endif
-#if WITH_VBOX
+# endif
+# if WITH_VBOX
         if (STRCASEEQ(type, "VBox"))
             *typeVer = LIBVIR_VERSION_NUMBER;
-#endif
-#if WITH_UML
+# endif
+# if WITH_UML
         if (STRCASEEQ(type, "UML"))
             *typeVer = LIBVIR_VERSION_NUMBER;
-#endif
-#if WITH_ONE
+# endif
+# if WITH_ONE
         if (STRCASEEQ(type, "ONE"))
             *typeVer = LIBVIR_VERSION_NUMBER;
-#endif
-#if WITH_ESX
+# endif
+# if WITH_ESX
         if (STRCASEEQ(type, "ESX"))
             *typeVer = LIBVIR_VERSION_NUMBER;
-#endif
-#if WITH_REMOTE
+# endif
+# if WITH_XENAPI
+        if (STRCASEEQ(type, "XenAPI"))
+            *typeVer = LIBVIR_VERSION_NUMBER;
+# endif
+# if WITH_REMOTE
         if (STRCASEEQ(type, "Remote"))
             *typeVer = remoteVersion();
-#endif
+# endif
         if (*typeVer == 0) {
             virLibConnError(NULL, VIR_ERR_NO_SUPPORT, type);
             goto error;
@@ -1238,6 +1334,26 @@ do_open (const char *name,
             break;
          } else if (res == VIR_DRV_OPEN_SUCCESS) {
             ret->secretDriver = virSecretDriverTab[i];
+            break;
+        }
+    }
+
+    /* Network filter driver. Optional */
+    for (i = 0; i < virNWFilterDriverTabCount; i++) {
+        res = virNWFilterDriverTab[i]->open (ret, auth, flags);
+        DEBUG("nwfilter driver %d %s returned %s",
+              i, virNWFilterDriverTab[i]->name,
+              res == VIR_DRV_OPEN_SUCCESS ? "SUCCESS" :
+              (res == VIR_DRV_OPEN_DECLINED ? "DECLINED" :
+               (res == VIR_DRV_OPEN_ERROR ? "ERROR" : "unknown status")));
+        if (res == VIR_DRV_OPEN_ERROR) {
+            if (STREQ(virNWFilterDriverTab[i]->name, "remote")) {
+                virLibConnWarning (NULL, VIR_WAR_NO_NWFILTER,
+                                   _("Is the daemon running ?"));
+            }
+            break;
+         } else if (res == VIR_DRV_OPEN_SUCCESS) {
+            ret->nwfilterDriver = virNWFilterDriverTab[i];
             break;
         }
     }
@@ -1569,8 +1685,9 @@ virConnectGetLibVersion(virConnectPtr conn, unsigned long *libVer)
         return ret;
     }
 
-   *libVer = LIBVIR_VERSION_NUMBER;
-    ret = 0;
+    *libVer = LIBVIR_VERSION_NUMBER;
+    return 0;
+
 error:
     virDispatchError(conn);
     return ret;
@@ -1857,7 +1974,7 @@ error:
  *
  * Deprecated after 0.4.6.
  * Renamed to virDomainCreateXML() providing identical functionality.
- * This existing name will left indefinitely for API compatability.
+ * This existing name will left indefinitely for API compatibility.
  *
  * Returns a new domain object or NULL in case of failure
  */
@@ -3165,7 +3282,8 @@ virDomainMigrateVersion2 (virDomainPtr domain,
         return NULL;
     }
     dom_xml = domain->conn->driver->domainDumpXML (domain,
-                                                   VIR_DOMAIN_XML_SECURE);
+                                                   VIR_DOMAIN_XML_SECURE |
+                                                   VIR_DOMAIN_XML_UPDATE_CPU);
     if (!dom_xml)
         return NULL;
 
@@ -5136,6 +5254,10 @@ error:
  * Create a virtual device attachment to backend.  This function,
  * having hotplug semantics, is only allowed on an active domain.
  *
+ * For compatibility, this method can also be used to change the media
+ * in an existing CDROM/Floppy device, however, applications are
+ * recommended to use the virDomainUpdateDeviceFlag method instead.
+ *
  * Returns 0 in case of success, -1 in case of failure.
  */
 int
@@ -5189,6 +5311,10 @@ error:
  * error if unable to satisfy flags.  E.g. the hypervisor driver will
  * return failure if LIVE is specified but it only supports modifying the
  * persisted device allocation.
+ *
+ * For compatibility, this method can also be used to change the media
+ * in an existing CDROM/Floppy device, however, applications are
+ * recommended to use the virDomainUpdateDeviceFlag method instead.
  *
  * Returns 0 in case of success, -1 in case of failure.
  */
@@ -5312,6 +5438,64 @@ virDomainDetachDeviceFlags(virDomainPtr domain,
     if (conn->driver->domainDetachDeviceFlags) {
         int ret;
         ret = conn->driver->domainDetachDeviceFlags(domain, xml, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(domain->conn);
+    return -1;
+}
+
+/**
+ * virDomainUpdateDeviceFlags:
+ * @domain: pointer to domain object
+ * @xml: pointer to XML description of one device
+ * @flags: an OR'ed set of virDomainDeviceModifyFlags
+ *
+ * Change a virtual device on a domain, using the flags parameter
+ * to control how the device is changed.  VIR_DOMAIN_DEVICE_MODIFY_CURRENT
+ * specifies that the device change is made based on current domain
+ * state.  VIR_DOMAIN_DEVICE_MODIFY_LIVE specifies that the device shall be
+ * changed on the active domain instance only and is not added to the
+ * persisted domain configuration. VIR_DOMAIN_DEVICE_MODIFY_CONFIG
+ * specifies that the device shall be changed on the persisted domain
+ * configuration only.  Note that the target hypervisor must return an
+ * error if unable to satisfy flags.  E.g. the hypervisor driver will
+ * return failure if LIVE is specified but it only supports modifying the
+ * persisted device allocation.
+ *
+ * This method is used for actions such changing CDROM/Floppy device
+ * media, altering the graphics configuration such as password,
+ * reconfiguring the NIC device backend connectivity, etc.
+ *
+ * Returns 0 in case of success, -1 in case of failure.
+ */
+int
+virDomainUpdateDeviceFlags(virDomainPtr domain,
+                           const char *xml, unsigned int flags)
+{
+    virConnectPtr conn;
+    DEBUG("domain=%p, xml=%s, flags=%d", domain, xml, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        return (-1);
+    }
+    if (domain->conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(domain, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+    conn = domain->conn;
+
+    if (conn->driver->domainUpdateDeviceFlags) {
+        int ret;
+        ret = conn->driver->domainUpdateDeviceFlags(domain, xml, flags);
         if (ret < 0)
             goto error;
         return ret;
@@ -8468,6 +8652,53 @@ error:
 
 
 /**
+ * virStorageVolWipe:
+ * @vol: pointer to storage volume
+ * @flags: future flags, use 0 for now
+ *
+ * Ensure data previously on a volume is not accessible to future reads
+ *
+ * Returns 0 on success, or -1 on error
+ */
+int
+virStorageVolWipe(virStorageVolPtr vol,
+                  unsigned int flags)
+{
+    virConnectPtr conn;
+    VIR_DEBUG("vol=%p, flags=%u", vol, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_STORAGE_VOL(vol)) {
+        virLibStorageVolError(NULL, VIR_ERR_INVALID_STORAGE_VOL, __FUNCTION__);
+        virDispatchError(NULL);
+        return (-1);
+    }
+
+    conn = vol->conn;
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibStorageVolError(vol, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->storageDriver && conn->storageDriver->volWipe) {
+        int ret;
+        ret = conn->storageDriver->volWipe(vol, flags);
+        if (ret < 0) {
+            goto error;
+        }
+        return ret;
+    }
+
+    virLibConnError(conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(vol->conn);
+    return -1;
+}
+
+
+/**
  * virStorageVolFree:
  * @vol: pointer to storage volume
  *
@@ -9280,8 +9511,12 @@ error:
  * @opaque: opaque data to pass on to the callback
  * @freecb: optional function to deallocate opaque when not used anymore
  *
- * Adds a Domain Event Callback.
- * Registering for a domain callback will enable delivery of the events
+ * Adds a callback to receive notifications of domain lifecycle events
+ * occurring on a connection
+ *
+ * Use of this method is no longer recommended. Instead applications
+ * should try virConnectDomainEventRegisterAny which has a more flexible
+ * API contract
  *
  * The virDomainPtr object handle passed into the callback upon delivery
  * of an event is only valid for the duration of execution of the callback.
@@ -9330,9 +9565,12 @@ error:
  * @conn: pointer to the connection
  * @cb: callback to the function handling domain events
  *
- * Removes a Domain Event Callback.
- * De-registering for a domain callback will disable
- * delivery of this event type
+ * Removes a callback previously registered with the virConnectDomainEventRegister
+ * funtion.
+ *
+ * Use of this method is no longer recommended. Instead applications
+ * should try virConnectDomainEventUnregisterAny which has a more flexible
+ * API contract
  *
  * Returns 0 on success, -1 on failure
  */
@@ -10953,6 +11191,512 @@ error:
 }
 
 
+
+/**
+ * virConnectNumOfNWFilters:
+ * @conn: pointer to the hypervisor connection
+ *
+ * Provides the number of nwfilters.
+ *
+ * Returns the number of nwfilters found or -1 in case of error
+ */
+int
+virConnectNumOfNWFilters(virConnectPtr conn)
+{
+    DEBUG("conn=%p", conn);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    if (conn->nwfilterDriver && conn->nwfilterDriver->numOfNWFilters) {
+        int ret;
+        ret = conn->nwfilterDriver->numOfNWFilters (conn);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+
+/**
+ * virConnectListNWFilters:
+ * @conn: pointer to the hypervisor connection
+ * @names: array to collect the list of names of network filters
+ * @maxnames: size of @names
+ *
+ * Collect the list of network filters, and store their names in @names
+ *
+ * Returns the number of network filters found or -1 in case of error
+ */
+int
+virConnectListNWFilters(virConnectPtr conn, char **const names, int maxnames)
+{
+    DEBUG("conn=%p, names=%p, maxnames=%d", conn, names, maxnames);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    if ((names == NULL) || (maxnames < 0)) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->nwfilterDriver && conn->nwfilterDriver->listNWFilters) {
+        int ret;
+        ret = conn->nwfilterDriver->listNWFilters (conn, names, maxnames);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+
+/**
+ * virNWFilterLookupByName:
+ * @conn: pointer to the hypervisor connection
+ * @name: name for the network filter
+ *
+ * Try to lookup a network filter on the given hypervisor based on its name.
+ *
+ * Returns a new nwfilter object or NULL in case of failure.  If the
+ * network filter cannot be found, then VIR_ERR_NO_NWFILTER error is raised.
+ */
+virNWFilterPtr
+virNWFilterLookupByName(virConnectPtr conn, const char *name)
+{
+    DEBUG("conn=%p, name=%s", conn, name);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        virDispatchError(NULL);
+        return (NULL);
+    }
+    if (name == NULL) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto  error;
+    }
+
+    if (conn->nwfilterDriver && conn->nwfilterDriver->nwfilterLookupByName) {
+        virNWFilterPtr ret;
+        ret = conn->nwfilterDriver->nwfilterLookupByName (conn, name);
+        if (!ret)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(conn);
+    return NULL;
+}
+
+/**
+ * virNWFilterLookupByUUID:
+ * @conn: pointer to the hypervisor connection
+ * @uuid: the raw UUID for the network filter
+ *
+ * Try to lookup a network filter on the given hypervisor based on its UUID.
+ *
+ * Returns a new nwfilter object or NULL in case of failure.  If the
+ * nwfdilter cannot be found, then VIR_ERR_NO_NWFILTER error is raised.
+ */
+virNWFilterPtr
+virNWFilterLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
+{
+    DEBUG("conn=%p, uuid=%s", conn, uuid);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        virDispatchError(NULL);
+        return (NULL);
+    }
+    if (uuid == NULL) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->nwfilterDriver && conn->nwfilterDriver->nwfilterLookupByUUID){
+        virNWFilterPtr ret;
+        ret = conn->nwfilterDriver->nwfilterLookupByUUID (conn, uuid);
+        if (!ret)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(conn);
+    return NULL;
+}
+
+/**
+ * virNWFilterLookupByUUIDString:
+ * @conn: pointer to the hypervisor connection
+ * @uuidstr: the string UUID for the nwfilter
+ *
+ * Try to lookup an nwfilter on the given hypervisor based on its UUID.
+ *
+ * Returns a new nwfilter object or NULL in case of failure.  If the
+ * nwfilter cannot be found, then VIR_ERR_NO_NWFILTER error is raised.
+ */
+virNWFilterPtr
+virNWFilterLookupByUUIDString(virConnectPtr conn, const char *uuidstr)
+{
+    unsigned char uuid[VIR_UUID_BUFLEN];
+    DEBUG("conn=%p, uuidstr=%s", conn, uuidstr);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        virDispatchError(NULL);
+        return (NULL);
+    }
+    if (uuidstr == NULL) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if (virUUIDParse(uuidstr, uuid) < 0) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    return virNWFilterLookupByUUID(conn, &uuid[0]);
+
+error:
+    virDispatchError(conn);
+    return NULL;
+}
+
+/**
+ * virNWFilterFree:
+ * @nwfilter: a nwfilter object
+ *
+ * Free the nwfilter object. The running instance is kept alive.
+ * The data structure is freed and should not be used thereafter.
+ *
+ * Returns 0 in case of success and -1 in case of failure.
+ */
+int
+virNWFilterFree(virNWFilterPtr nwfilter)
+{
+    DEBUG("nwfilter=%p", nwfilter);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_NWFILTER(nwfilter)) {
+        virLibNWFilterError(NULL, VIR_ERR_INVALID_NWFILTER, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+    if (virUnrefNWFilter(nwfilter) < 0) {
+        virDispatchError(NULL);
+        return -1;
+    }
+    return 0;
+}
+
+/**
+ * virNWFilterGetName:
+ * @nwfilter: a nwfilter object
+ *
+ * Get the public name for the network filter
+ *
+ * Returns a pointer to the name or NULL, the string need not be deallocated
+ * its lifetime will be the same as the nwfilter object.
+ */
+const char *
+virNWFilterGetName(virNWFilterPtr nwfilter)
+{
+    DEBUG("nwfilter=%p", nwfilter);
+
+    virResetLastError();
+
+    if (!VIR_IS_NWFILTER(nwfilter)) {
+        virLibNWFilterError(NULL, VIR_ERR_INVALID_NWFILTER, __FUNCTION__);
+        virDispatchError(NULL);
+        return (NULL);
+    }
+    return (nwfilter->name);
+}
+
+/**
+ * virNWFilterGetUUID:
+ * @nwfilter: a nwfilter object
+ * @uuid: pointer to a VIR_UUID_BUFLEN bytes array
+ *
+ * Get the UUID for a network filter
+ *
+ * Returns -1 in case of error, 0 in case of success
+ */
+int
+virNWFilterGetUUID(virNWFilterPtr nwfilter, unsigned char *uuid)
+{
+    DEBUG("nwfilter=%p, uuid=%p", nwfilter, uuid);
+
+    virResetLastError();
+
+    if (!VIR_IS_NWFILTER(nwfilter)) {
+        virLibNWFilterError(NULL, VIR_ERR_INVALID_NWFILTER, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+    if (uuid == NULL) {
+        virLibNWFilterError(nwfilter, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    memcpy(uuid, &nwfilter->uuid[0], VIR_UUID_BUFLEN);
+
+    return 0;
+
+error:
+    virDispatchError(nwfilter->conn);
+    return -1;
+}
+
+/**
+ * virNWFilterGetUUIDString:
+ * @nwfilter: a nwfilter object
+ * @buf: pointer to a VIR_UUID_STRING_BUFLEN bytes array
+ *
+ * Get the UUID for a network filter as string. For more information about
+ * UUID see RFC4122.
+ *
+ * Returns -1 in case of error, 0 in case of success
+ */
+int
+virNWFilterGetUUIDString(virNWFilterPtr nwfilter, char *buf)
+{
+    unsigned char uuid[VIR_UUID_BUFLEN];
+    DEBUG("nwfilter=%p, buf=%p", nwfilter, buf);
+
+    virResetLastError();
+
+    if (!VIR_IS_NWFILTER(nwfilter)) {
+        virLibNWFilterError(NULL, VIR_ERR_INVALID_NWFILTER, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+    if (buf == NULL) {
+        virLibNWFilterError(nwfilter, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if (virNWFilterGetUUID(nwfilter, &uuid[0]))
+        goto error;
+
+    virUUIDFormat(uuid, buf);
+    return 0;
+
+error:
+    virDispatchError(nwfilter->conn);
+    return -1;
+}
+
+
+/**
+ * virNWFilterDefineXML:
+ * @conn: pointer to the hypervisor connection
+ * @xmlDesc: an XML description of the nwfilter
+ *
+ * Define a new network filter, based on an XML description
+ * similar to the one returned by virNWFilterGetXMLDesc()
+ *
+ * Returns a new nwfilter object or NULL in case of failure
+ */
+virNWFilterPtr
+virNWFilterDefineXML(virConnectPtr conn, const char *xmlDesc)
+{
+    DEBUG("conn=%p, xmlDesc=%s", conn, xmlDesc);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        virDispatchError(NULL);
+        return (NULL);
+    }
+    if (xmlDesc == NULL) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibConnError(conn, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->nwfilterDriver && conn->nwfilterDriver->defineXML) {
+        virNWFilterPtr ret;
+        ret = conn->nwfilterDriver->defineXML (conn, xmlDesc, 0);
+        if (!ret)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(conn);
+    return NULL;
+}
+
+
+/**
+ * virNWFilterUndefine:
+ * @nwfilter: a nwfilter object
+ *
+ * Undefine the nwfilter object. This call will not succeed if
+ * a running VM is referencing the filter. This does not free the
+ * associated virNWFilterPtr object.
+ *
+ * Returns 0 in case of success and -1 in case of failure.
+ */
+int
+virNWFilterUndefine(virNWFilterPtr nwfilter)
+{
+    virConnectPtr conn;
+    DEBUG("nwfilter=%p", nwfilter);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_NWFILTER(nwfilter)) {
+        virLibNWFilterError(NULL, VIR_ERR_INVALID_NWFILTER, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = nwfilter->conn;
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibNWFilterError(nwfilter, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->nwfilterDriver && conn->nwfilterDriver->undefine) {
+        int ret;
+        ret = conn->nwfilterDriver->undefine (nwfilter);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(nwfilter->conn);
+    return -1;
+}
+
+
+/**
+ * virNWFilterGetXMLDesc:
+ * @nwfilter: a nwfilter object
+ * @flags: an OR'ed set of extraction flags, not used yet
+ *
+ * Provide an XML description of the network filter. The description may be
+ * reused later to redefine the network filter with virNWFilterCreateXML().
+ *
+ * Returns a 0 terminated UTF-8 encoded XML instance, or NULL in case of error.
+ *         the caller must free() the returned value.
+ */
+char *
+virNWFilterGetXMLDesc(virNWFilterPtr nwfilter, int flags)
+{
+    virConnectPtr conn;
+    DEBUG("nwfilter=%p, flags=%d", nwfilter, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_NWFILTER(nwfilter)) {
+        virLibNWFilterError(NULL, VIR_ERR_INVALID_NWFILTER, __FUNCTION__);
+        virDispatchError(NULL);
+        return (NULL);
+    }
+    if (flags != 0) {
+        virLibNWFilterError(nwfilter, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    conn = nwfilter->conn;
+
+    if (conn->nwfilterDriver && conn->nwfilterDriver->getXMLDesc) {
+        char *ret;
+        ret = conn->nwfilterDriver->getXMLDesc (nwfilter, flags);
+        if (!ret)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(nwfilter->conn);
+    return NULL;
+}
+
+
+/**
+ * virNWFilterRef:
+ * @nwfilter: the nwfilter to hold a reference on
+ *
+ * Increment the reference count on the nwfilter. For each
+ * additional call to this method, there shall be a corresponding
+ * call to virNWFilterFree to release the reference count, once
+ * the caller no longer needs the reference to this object.
+ *
+ * This method is typically useful for applications where multiple
+ * threads are using a connection, and it is required that the
+ * connection remain open until all threads have finished using
+ * it. ie, each new thread using an nwfilter would increment
+ * the reference count.
+ *
+ * Returns 0 in case of success, -1 in case of failure.
+ */
+int
+virNWFilterRef(virNWFilterPtr nwfilter)
+{
+    if ((!VIR_IS_CONNECTED_NWFILTER(nwfilter))) {
+        virLibConnError(NULL, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+    virMutexLock(&nwfilter->conn->lock);
+    DEBUG("nwfilter=%p refs=%d", nwfilter, nwfilter->refs);
+    nwfilter->refs++;
+    virMutexUnlock(&nwfilter->conn->lock);
+    return 0;
+}
+
+
 /**
  * virInterfaceIsActive:
  * @iface: pointer to the interface object
@@ -11253,4 +11997,736 @@ virDomainAbortJob(virDomainPtr domain)
 error:
     virDispatchError(conn);
     return -1;
+}
+
+
+/**
+ * virDomainMigrateSetMaxDowntime:
+ * @domain: a domain object
+ * @downtime: maximum tolerable downtime for live migration, in milliseconds
+ * @flags: fine-tuning flags, currently unused, use 0
+ *
+ * Sets maximum tolerable time for which the domain is allowed to be paused
+ * at the end of live migration. It's supposed to be called while the domain is
+ * being live-migrated as a reaction to migration progress.
+ *
+ * Returns 0 in case of success, -1 otherwise.
+ */
+int
+virDomainMigrateSetMaxDowntime(virDomainPtr domain,
+                               unsigned long long downtime,
+                               unsigned int flags)
+{
+    virConnectPtr conn;
+
+    DEBUG("domain=%p, downtime=%llu, flags=%u", domain, downtime, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = domain->conn;
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(domain, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->driver->domainMigrateSetMaxDowntime) {
+        if (conn->driver->domainMigrateSetMaxDowntime(domain, downtime, flags) < 0)
+            goto error;
+        return 0;
+    }
+
+    virLibConnError(conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+/**
+ * virConnectDomainEventRegisterAny:
+ * @conn: pointer to the connection
+ * @dom: pointer to the domain
+ * @eventID: the event type to receive
+ * @cb: callback to the function handling domain events
+ * @opaque: opaque data to pass on to the callback
+ * @freecb: optional function to deallocate opaque when not used anymore
+ *
+ * Adds a callback to receive notifications of arbitrary domain events
+ * occurring on a domain.
+ *
+ * If dom is NULL, then events will be monitored for any domain. If dom
+ * is non-NULL, then only the specific domain will be monitored
+ *
+ * Most types of event have a callback providing a custom set of parameters
+ * for the event. When registering an event, it is thus neccessary to use
+ * the VIR_DOMAIN_EVENT_CALLBACK() macro to cast the supplied function pointer
+ * to match the signature of this method.
+ *
+ * The virDomainPtr object handle passed into the callback upon delivery
+ * of an event is only valid for the duration of execution of the callback.
+ * If the callback wishes to keep the domain object after the callback
+ * returns, it shall take a reference to it, by calling virDomainRef.
+ * The reference can be released once the object is no longer required
+ * by calling virDomainFree.
+ *
+ * The return value from this method is a positive integer identifier
+ * for the callback. To unregister a callback, this callback ID should
+ * be passed to the virDomainEventUnregisterAny method
+ *
+ * Returns a callback identifier on success, -1 on failure
+ */
+int
+virConnectDomainEventRegisterAny(virConnectPtr conn,
+                                 virDomainPtr dom,
+                                 int eventID,
+                                 virConnectDomainEventGenericCallback cb,
+                                 void *opaque,
+                                 virFreeCallback freecb)
+{
+    DEBUG("conn=%p dom=%p, eventID=%d, cb=%p, opaque=%p, freecb=%p", conn, dom, eventID, cb, opaque, freecb);
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        virDispatchError(NULL);
+        return (-1);
+    }
+    if (dom != NULL &&
+        !(VIR_IS_CONNECTED_DOMAIN(dom) && dom->conn == conn)) {
+        virLibConnError(conn, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        virDispatchError(conn);
+        return (-1);
+    }
+    if (eventID < 0 || eventID >= VIR_DOMAIN_EVENT_ID_LAST || cb == NULL) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if ((conn->driver) && (conn->driver->domainEventRegisterAny)) {
+        int ret;
+        ret = conn->driver->domainEventRegisterAny(conn, dom, eventID, cb, opaque, freecb);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+/**
+ * virConnectDomainEventDeregisterAny:
+ * @conn: pointer to the connection
+ * @callbackID: the callback identifier
+ *
+ * Removes an event callback. The callbackID parameter should be the
+ * vaule obtained from a previous virDomainEventRegisterAny method.
+ *
+ * Returns 0 on success, -1 on failure
+ */
+int
+virConnectDomainEventDeregisterAny(virConnectPtr conn,
+                                   int callbackID)
+{
+    DEBUG("conn=%p, callbackID=%d", conn, callbackID);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        virDispatchError(NULL);
+        return (-1);
+    }
+    if (callbackID < 0) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+    if ((conn->driver) && (conn->driver->domainEventDeregisterAny)) {
+        int ret;
+        ret = conn->driver->domainEventDeregisterAny(conn, callbackID);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+/**
+ * virDomainManagedSave:
+ * @dom: pointer to the domain
+ * @flags: optional flags currently unused
+ *
+ * This method will suspend a domain and save its memory contents to
+ * a file on disk. After the call, if successful, the domain is not
+ * listed as running anymore.
+ * The difference from virDomainSave() is that libvirt is keeping track of
+ * the saved state itself, and will reuse it once the domain is being
+ * restarted (automatically or via an explicit libvirt call).
+ * As a result any running domain is sure to not have a managed saved image.
+ *
+ * Returns 0 in case of success or -1 in case of failure
+ */
+int virDomainManagedSave(virDomainPtr dom, unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DEBUG("dom=%p, flags=%u", dom, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(dom)) {
+        virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = dom->conn;
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(dom, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->driver->domainManagedSave) {
+        int ret;
+
+        ret = conn->driver->domainManagedSave(dom, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+/**
+ * virDomainHasManagedSaveImage:
+ * @dom: pointer to the domain
+ * @flags: optional flags currently unused
+ *
+ * Check if a domain has a managed save image as created by
+ * virDomainManagedSave(). Note that any running domain should not have
+ * such an image, as it should have been removed on restart.
+ *
+ * Returns 0 if no image is present, 1 if an image is present, and
+ *         -1 in case of error
+ */
+int virDomainHasManagedSaveImage(virDomainPtr dom, unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DEBUG("dom=%p, flags=%u", dom, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(dom)) {
+        virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = dom->conn;
+
+    if (conn->driver->domainHasManagedSaveImage) {
+        int ret;
+
+        ret = conn->driver->domainHasManagedSaveImage(dom, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+/**
+ * virDomainManagedSaveRemove:
+ * @dom: pointer to the domain
+ * @flags: optional flags currently unused
+ *
+ * Remove any managed save image for this domain.
+ *
+ * Returns 0 in case of success, and -1 in case of error
+ */
+int virDomainManagedSaveRemove(virDomainPtr dom, unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DEBUG("dom=%p, flags=%u", dom, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(dom)) {
+        virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = dom->conn;
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(dom, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->driver->domainManagedSaveRemove) {
+        int ret;
+
+        ret = conn->driver->domainManagedSaveRemove(dom, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+/**
+ * virDomainSnapshotCreateXML:
+ * @domain: a domain object
+ * @xmlDesc: string containing an XML description of the domain
+ * @flags: unused flag parameters; callers should pass 0
+ *
+ * Creates a new snapshot of a domain based on the snapshot xml
+ * contained in xmlDesc.
+ *
+ * Returns an (opaque) virDomainSnapshotPtr on success, NULL on failure.
+ */
+virDomainSnapshotPtr
+virDomainSnapshotCreateXML(virDomainPtr domain,
+                           const char *xmlDesc,
+                           unsigned int flags)
+{
+    virConnectPtr conn;
+
+    DEBUG("domain=%p, xmlDesc=%s, flags=%u", domain, xmlDesc, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return NULL;
+    }
+
+    conn = domain->conn;
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibConnError(conn, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->driver->domainSnapshotCreateXML) {
+        virDomainSnapshotPtr ret;
+        ret = conn->driver->domainSnapshotCreateXML(domain, xmlDesc, flags);
+        if (!ret)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(conn);
+    return NULL;
+}
+
+/**
+ * virDomainSnapshotGetXMLDesc:
+ * @snapshot: a domain snapshot object
+ * @flags: unused flag parameters; callers should pass 0
+ *
+ * Provide an XML description of the domain snapshot.
+ *
+ * Returns a 0 terminated UTF-8 encoded XML instance, or NULL in case of error.
+ *         the caller must free() the returned value.
+ */
+char *
+virDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
+                            unsigned int flags)
+{
+    virConnectPtr conn;
+    DEBUG("snapshot=%p, flags=%d", snapshot, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_DOMAIN_SNAPSHOT(snapshot)) {
+        virLibDomainSnapshotError(NULL, VIR_ERR_INVALID_DOMAIN_SNAPSHOT,
+                                  __FUNCTION__);
+        virDispatchError(NULL);
+        return (NULL);
+    }
+
+    conn = snapshot->domain->conn;
+
+    if ((conn->flags & VIR_CONNECT_RO) && (flags & VIR_DOMAIN_XML_SECURE)) {
+        virLibConnError(conn, VIR_ERR_OPERATION_DENIED,
+                        _("virDomainSnapshotGetXMLDesc with secure flag"));
+        goto error;
+    }
+
+    if (conn->driver->domainSnapshotDumpXML) {
+        char *ret;
+        ret = conn->driver->domainSnapshotDumpXML(snapshot, flags);
+        if (!ret)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(conn);
+    return NULL;
+}
+
+/**
+ * virDomainSnapshotNum:
+ * @domain: a domain object
+ * @flags: unused flag parameters; callers should pass 0
+ *
+ * Provides the number of domain snapshots for this domain..
+ *
+ * Returns the number of domain snapshost found or -1 in case of error.
+ */
+int
+virDomainSnapshotNum(virDomainPtr domain, unsigned int flags)
+{
+    virConnectPtr conn;
+    DEBUG("domain=%p", domain);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = domain->conn;
+    if (conn->driver->domainSnapshotNum) {
+        int ret = conn->driver->domainSnapshotNum(domain, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+/**
+ * virDomainSnapshotListNames:
+ * @domain: a domain object
+ * @names: array to collect the list of names of snapshots
+ * @nameslen: size of @names
+ * @flags: unused flag parameters; callers should pass 0
+ *
+ * Collect the list of domain snapshots for the given domain, and store
+ * their names in @names.  Caller is responsible for freeing each member
+ * of the array.
+ *
+ * Returns the number of domain snapshots found or -1 in case of error.
+ */
+int
+virDomainSnapshotListNames(virDomainPtr domain, char **names, int nameslen,
+                           unsigned int flags)
+{
+    virConnectPtr conn;
+
+    DEBUG("domain=%p, names=%p, nameslen=%d, flags=%u",
+          domain, names, nameslen, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = domain->conn;
+
+    if ((names == NULL) || (nameslen < 0)) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->driver->domainSnapshotListNames) {
+        int ret = conn->driver->domainSnapshotListNames(domain, names,
+                                                        nameslen, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+/**
+ * virDomainSnapshotLookupByName:
+ * @domain: a domain object
+ * @name: name for the domain snapshot
+ * @flags: unused flag parameters; callers should pass 0
+ *
+ * Try to lookup a domain snapshot based on its name.
+ *
+ * Returns a domain snapshot object or NULL in case of failure.  If the
+ * domain snapshot cannot be found, then the VIR_ERR_NO_DOMAIN_SNAPSHOT
+ * error is raised.
+ */
+virDomainSnapshotPtr
+virDomainSnapshotLookupByName(virDomainPtr domain,
+                              const char *name,
+                              unsigned int flags)
+{
+    virConnectPtr conn;
+    DEBUG("domain=%p, name=%s, flags=%u", domain, name, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return (NULL);
+    }
+
+    conn = domain->conn;
+
+    if (name == NULL) {
+        virLibConnError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->driver->domainSnapshotLookupByName) {
+        virDomainSnapshotPtr dom;
+        dom = conn->driver->domainSnapshotLookupByName(domain, name, flags);
+        if (!dom)
+            goto error;
+        return dom;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(conn);
+    return NULL;
+}
+
+/**
+ * virDomainHasCurrentSnapshot:
+ * @domain: pointer to the domain object
+ * @flags: unused flag parameters; callers should pass 0
+ *
+ * Determine if the domain has a current snapshot.
+ *
+ * Returns 1 if such snapshot exists, 0 if it doesn't, -1 on error.
+ */
+int
+virDomainHasCurrentSnapshot(virDomainPtr domain, unsigned int flags)
+{
+    virConnectPtr conn;
+    DEBUG("domain=%p, flags=%u", domain, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = domain->conn;
+
+    if (conn->driver->domainHasCurrentSnapshot) {
+        int ret = conn->driver->domainHasCurrentSnapshot(domain, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+/**
+ * virDomainSnapshotCurrent:
+ * @domain: a domain object
+ * @flags: unused flag parameters; callers should pass 0
+ *
+ * Get the current snapshot for a domain, if any.
+ *
+ * Returns a domain snapshot object or NULL in case of failure.  If the
+ * current domain snapshot cannot be found, then the VIR_ERR_NO_DOMAIN_SNAPSHOT
+ * error is raised.
+ */
+virDomainSnapshotPtr
+virDomainSnapshotCurrent(virDomainPtr domain,
+                         unsigned int flags)
+{
+    virConnectPtr conn;
+    DEBUG("domain=%p, flags=%u", domain, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return (NULL);
+    }
+
+    conn = domain->conn;
+
+    if (conn->driver->domainSnapshotCurrent) {
+        virDomainSnapshotPtr snap;
+        snap = conn->driver->domainSnapshotCurrent(domain, flags);
+        if (!snap)
+            goto error;
+        return snap;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(conn);
+    return NULL;
+}
+
+/**
+ * virDomainRevertToSnapshot
+ * @snapshot: a domain snapshot object
+ * @flags: unused flag parameters; callers should pass 0
+ *
+ * Revert the domain to a given snapshot.
+ *
+ * Returns 0 if the creation is successful, -1 on error.
+ */
+int
+virDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
+                          unsigned int flags)
+{
+    virConnectPtr conn;
+
+    DEBUG("snapshot=%p, flags=%u", snapshot, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_DOMAIN_SNAPSHOT(snapshot)) {
+        virLibDomainSnapshotError(NULL, VIR_ERR_INVALID_DOMAIN_SNAPSHOT,
+                                  __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = snapshot->domain->conn;
+
+    if (conn->driver->domainRevertToSnapshot) {
+        int ret = conn->driver->domainRevertToSnapshot(snapshot, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+/**
+ * virDomainSnapshotDelete
+ * @snapshot: a domain snapshot object
+ * @flags: flag parameters
+ *
+ * Delete the snapshot.
+ *
+ * If @flags is 0, then just this snapshot is deleted, and changes from
+ * this snapshot are automatically merged into children snapshots.  If
+ * flags is VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN, then this snapshot
+ * and any children snapshots are deleted.
+ *
+ * Returns 0 if the snapshot was successfully deleted, -1 on error.
+ */
+int
+virDomainSnapshotDelete(virDomainSnapshotPtr snapshot,
+                        unsigned int flags)
+{
+    virConnectPtr conn;
+
+    DEBUG("snapshot=%p, flags=%u", snapshot, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_DOMAIN_SNAPSHOT(snapshot)) {
+        virLibDomainSnapshotError(NULL, VIR_ERR_INVALID_DOMAIN_SNAPSHOT,
+                                  __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = snapshot->domain->conn;
+
+    if (conn->driver->domainSnapshotDelete) {
+        int ret = conn->driver->domainSnapshotDelete(snapshot, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+/**
+ * virDomainSnapshotFree:
+ * @snapshot: a domain snapshot object
+ *
+ * Free the domain snapshot object.  The snapshot itself is not modified.
+ * The data structure is freed and should not be used thereafter.
+ *
+ * Returns 0 in case of success and -1 in case of failure.
+ */
+int
+virDomainSnapshotFree(virDomainSnapshotPtr snapshot)
+{
+    DEBUG("snapshot=%p", snapshot);
+
+    virResetLastError();
+
+    if (!VIR_IS_DOMAIN_SNAPSHOT(snapshot)) {
+        virLibDomainSnapshotError(NULL, VIR_ERR_INVALID_DOMAIN_SNAPSHOT,
+                                  __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+    if (virUnrefDomainSnapshot(snapshot) < 0) {
+        virDispatchError(NULL);
+        return -1;
+    }
+    return 0;
 }

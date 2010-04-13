@@ -4,6 +4,7 @@
  *                /etc/xen
  *                /var/lib/xend/domains
  *
+ * Copyright (C) 2010 Red Hat, Inc.
  * Copyright (C) 2008 VirtualIron
  *
  * This library is free software; you can redistribute it and/or
@@ -43,9 +44,9 @@
 
 #define VIR_FROM_THIS VIR_FROM_XEN_INOTIFY
 
-#define virXenInotifyError(conn, code, fmt...)                                 \
+#define virXenInotifyError(code, ...)                                   \
         virReportErrorHelper(NULL, VIR_FROM_XEN_INOTIFY, code, __FILE__,      \
-                               __FUNCTION__, __LINE__, fmt)
+                             __FUNCTION__, __LINE__, __VA_ARGS__)
 
 struct xenUnifiedDriver xenInotifyDriver = {
     xenInotifyOpen, /* open */
@@ -81,6 +82,7 @@ struct xenUnifiedDriver xenInotifyDriver = {
     NULL, /* domainUndefine */
     NULL, /* domainAttachDeviceFlags */
     NULL, /* domainDetachDeviceFlags */
+    NULL, /* domainUpdateDeviceFlags */
     NULL, /* domainGetAutostart */
     NULL, /* domainSetAutostart */
     NULL, /* domainGetSchedulerType */
@@ -127,7 +129,7 @@ xenInotifyXendDomainsDirLookup(virConnectPtr conn, const char *filename,
     uuid_str = filename + strlen(XEND_DOMAINS_DIR) + 1;
 
     if (virUUIDParse(uuid_str, rawuuid) < 0) {
-        virXenInotifyError(NULL, VIR_ERR_INTERNAL_ERROR,
+        virXenInotifyError(VIR_ERR_INTERNAL_ERROR,
                            _("parsing uuid %s"), uuid_str);
         return -1;
     }
@@ -152,7 +154,7 @@ xenInotifyXendDomainsDirLookup(virConnectPtr conn, const char *filename,
                 return 0;
             }
         }
-        virXenInotifyError(NULL, VIR_ERR_INTERNAL_ERROR,
+        virXenInotifyError(VIR_ERR_INTERNAL_ERROR,
                            "%s", _("finding dom on config list"));
         return -1;
     }
@@ -203,7 +205,7 @@ xenInotifyXendDomainsDirRemoveEntry(virConnectPtr conn,
     int i;
 
     if (virUUIDParse(uuidstr, uuid) < 0) {
-        virXenInotifyError(NULL, VIR_ERR_INTERNAL_ERROR,
+        virXenInotifyError(VIR_ERR_INTERNAL_ERROR,
                            _("parsing uuid %s"), uuidstr);
         return -1;
     }
@@ -239,14 +241,14 @@ xenInotifyXendDomainsDirAddEntry(virConnectPtr conn,
     xenUnifiedPrivatePtr priv = conn->privateData;
 
     if (xenInotifyDomainLookup(conn, fname, &name, uuid) < 0) {
-        virXenInotifyError(NULL, VIR_ERR_INTERNAL_ERROR,
+        virXenInotifyError(VIR_ERR_INTERNAL_ERROR,
                            "%s", _("Error looking up domain"));
         return -1;
     }
 
     if (xenUnifiedAddDomainInfo(priv->configInfoList,
                                 -1, name, uuid) < 0) {
-        virXenInotifyError(NULL, VIR_ERR_INTERNAL_ERROR,
+        virXenInotifyError(VIR_ERR_INTERNAL_ERROR,
                         "%s", _("Error adding file to config cache"));
         VIR_FREE(name);
         return -1;
@@ -292,7 +294,7 @@ xenInotifyEvent(int watch ATTRIBUTE_UNUSED,
     if( conn && conn->privateData ) {
         priv = conn->privateData;
     } else {
-        virXenInotifyError(NULL, VIR_ERR_INTERNAL_ERROR,
+        virXenInotifyError(VIR_ERR_INTERNAL_ERROR,
                            "%s", _("conn, or private data is NULL"));
         return;
     }
@@ -335,18 +337,18 @@ reread:
             if (event)
                 xenUnifiedDomainEventDispatch(conn->privateData, event);
             else
-                virXenInotifyError(NULL, VIR_ERR_INTERNAL_ERROR,
+                virXenInotifyError(VIR_ERR_INTERNAL_ERROR,
                                    "%s", _("looking up dom"));
 
             if (xenInotifyRemoveDomainConfigInfo(conn, fname) < 0 ) {
-                virXenInotifyError(NULL, VIR_ERR_INTERNAL_ERROR,
+                virXenInotifyError(VIR_ERR_INTERNAL_ERROR,
                                    "%s", _("Error adding file to config cache"));
                 goto cleanup;
             }
         } else if (e->mask & ( IN_CREATE | IN_CLOSE_WRITE | IN_MOVED_TO) ) {
             virDomainEventPtr event;
             if (xenInotifyAddDomainConfigInfo(conn, fname) < 0 ) {
-                virXenInotifyError(NULL, VIR_ERR_INTERNAL_ERROR,
+                virXenInotifyError(VIR_ERR_INTERNAL_ERROR,
                                    "%s", _("Error adding file to config cache"));
                 goto cleanup;
             }
@@ -358,7 +360,7 @@ reread:
             if (event)
                 xenUnifiedDomainEventDispatch(conn->privateData, event);
             else
-                virXenInotifyError(NULL, VIR_ERR_INTERNAL_ERROR,
+                virXenInotifyError(VIR_ERR_INTERNAL_ERROR,
                                    "%s", _("looking up dom"));
 
         }
@@ -421,7 +423,7 @@ xenInotifyOpen(virConnectPtr conn,
             strcat(path, ent->d_name);
 
             if (xenInotifyAddDomainConfigInfo(conn, path) < 0 ) {
-                virXenInotifyError(NULL, VIR_ERR_INTERNAL_ERROR,
+                virXenInotifyError(VIR_ERR_INTERNAL_ERROR,
                                    "%s", _("Error adding file to config list"));
                 closedir(dh);
                 return -1;

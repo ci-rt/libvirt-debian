@@ -23,12 +23,12 @@
 
 
 #ifndef QEMU_MONITOR_TEXT_H
-#define QEMU_MONITOR_TEXT_H
+# define QEMU_MONITOR_TEXT_H
 
-#include "internal.h"
+# include "internal.h"
 
-#include "qemu_monitor.h"
-#include "hash.h"
+# include "qemu_monitor.h"
+# include "hash.h"
 
 int qemuMonitorTextIOProcess(qemuMonitorPtr mon,
                              const char *data,
@@ -82,6 +82,9 @@ int qemuMonitorTextSavePhysicalMemory(qemuMonitorPtr mon,
 
 int qemuMonitorTextSetMigrationSpeed(qemuMonitorPtr mon,
                                      unsigned long bandwidth);
+
+int qemuMonitorTextSetMigrationDowntime(qemuMonitorPtr mon,
+                                        unsigned long long downtime);
 
 int qemuMonitorTextGetMigrationStatus(qemuMonitorPtr mon,
                                       int *status,
@@ -173,5 +176,9 @@ int qemuMonitorTextAddDrive(qemuMonitorPtr mon,
 int qemuMonitorTextSetDrivePassphrase(qemuMonitorPtr mon,
                                       const char *alias,
                                       const char *passphrase);
+
+int qemuMonitorTextCreateSnapshot(qemuMonitorPtr mon, const char *name);
+int qemuMonitorTextLoadSnapshot(qemuMonitorPtr mon, const char *name);
+int qemuMonitorTextDeleteSnapshot(qemuMonitorPtr mon, const char *name);
 
 #endif /* QEMU_MONITOR_TEXT_H */

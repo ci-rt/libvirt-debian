@@ -430,7 +430,7 @@ SELinuxSetSecurityImageLabel(virDomainObjPtr vm,
         path = NULL;
 
         if (ret < 0)
-            return -1;
+           break;
 
         if (meta.backingStore != NULL &&
             SELinuxSetFilecon(meta.backingStore,
@@ -616,6 +616,14 @@ SELinuxRestoreSecurityAllLabel(virDomainObjPtr vm)
             rc = -1;
     }
 
+    if (vm->def->os.kernel &&
+        SELinuxRestoreSecurityFileLabel(vm->def->os.kernel) < 0)
+        rc = -1;
+
+    if (vm->def->os.initrd &&
+        SELinuxRestoreSecurityFileLabel(vm->def->os.initrd) < 0)
+        rc = -1;
+
     return rc;
 }
 
@@ -624,7 +632,8 @@ SELinuxReleaseSecurityLabel(virDomainObjPtr vm)
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
 
-    if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
+    if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC ||
+        secdef->label == NULL)
         return 0;
 
     context_t con = context_new(secdef->label);
@@ -735,6 +744,14 @@ SELinuxSetSecurityAllLabel(virDomainObjPtr vm)
         if (SELinuxSetSecurityHostdevLabel(vm, vm->def->hostdevs[i]) < 0)
             return -1;
     }
+
+    if (vm->def->os.kernel &&
+        SELinuxSetFilecon(vm->def->os.kernel, default_content_context) < 0)
+        return -1;
+
+    if (vm->def->os.initrd &&
+        SELinuxSetFilecon(vm->def->os.initrd, default_content_context) < 0)
+        return -1;
 
     return 0;
 }

@@ -2,19 +2,19 @@
 
 #ifdef WITH_ESX
 
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
+# include <stdio.h>
+# include <string.h>
+# include <unistd.h>
 
-#include "internal.h"
-#include "memory.h"
-#include "testutils.h"
-#include "esx/esx_vmx.h"
+# include "internal.h"
+# include "memory.h"
+# include "testutils.h"
+# include "esx/esx_vmx.h"
 
 static char *progname = NULL;
 static char *abs_srcdir = NULL;
 
-#define MAX_FILE 4096
+# define MAX_FILE 4096
 
 static int
 testCompareFiles(const char *vmx, const char *xml, esxVI_APIVersion apiVersion)
@@ -26,6 +26,7 @@ testCompareFiles(const char *vmx, const char *xml, esxVI_APIVersion apiVersion)
     char *vmxPtr = &(vmxData[0]);
     char *xmlPtr = &(xmlData[0]);
     virDomainDefPtr def = NULL;
+    virErrorPtr err = NULL;
 
     if (virtTestLoadFile(vmx, &vmxPtr, MAX_FILE) < 0) {
         goto failure;
@@ -39,12 +40,16 @@ testCompareFiles(const char *vmx, const char *xml, esxVI_APIVersion apiVersion)
                              apiVersion);
 
     if (def == NULL) {
+        err = virGetLastError();
+        fprintf(stderr, "ERROR: %s\n", err != NULL ? err->message : "<unknown>");
         goto failure;
     }
 
     formatted = virDomainDefFormat(def, VIR_DOMAIN_XML_SECURE);
 
     if (formatted == NULL) {
+        err = virGetLastError();
+        fprintf(stderr, "ERROR: %s\n", err != NULL ? err->message : "<unknown>");
         goto failure;
     }
 
@@ -107,7 +112,7 @@ mymain(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    #define DO_TEST(_in, _out, _version)                                      \
+# define DO_TEST(_in, _out, _version)                                      \
         do {                                                                  \
             struct testInfo info = { _in, _out, _version };                   \
             virResetLastError();                                              \
@@ -117,12 +122,15 @@ mymain(int argc, char **argv)
             }                                                                 \
         } while (0)
 
+    DO_TEST("case-insensitive-1", "case-insensitive-1", esxVI_APIVersion_25);
+    DO_TEST("case-insensitive-2", "case-insensitive-2", esxVI_APIVersion_25);
+
     DO_TEST("minimal", "minimal", esxVI_APIVersion_25);
     DO_TEST("minimal-64bit", "minimal-64bit", esxVI_APIVersion_25);
 
     DO_TEST("graphics-vnc", "graphics-vnc", esxVI_APIVersion_25);
 
-    DO_TEST("scsi-buslogic", "scsi-buslogic", esxVI_APIVersion_25);
+    DO_TEST("scsi-driver", "scsi-driver", esxVI_APIVersion_25);
     DO_TEST("scsi-writethrough", "scsi-writethrough", esxVI_APIVersion_25);
 
     DO_TEST("harddisk-scsi-file", "harddisk-scsi-file", esxVI_APIVersion_25);

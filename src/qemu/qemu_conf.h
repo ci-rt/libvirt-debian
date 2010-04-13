@@ -22,27 +22,27 @@
  */
 
 #ifndef __QEMUD_CONF_H
-#define __QEMUD_CONF_H
+# define __QEMUD_CONF_H
 
-#include <config.h>
+# include <config.h>
 
-#include "ebtables.h"
-#include "internal.h"
-#include "bridge.h"
-#include "capabilities.h"
-#include "network_conf.h"
-#include "domain_conf.h"
-#include "domain_event.h"
-#include "threads.h"
-#include "security/security_driver.h"
-#include "cgroup.h"
-#include "pci.h"
-#include "cpu_conf.h"
-#include "driver.h"
+# include "ebtables.h"
+# include "internal.h"
+# include "bridge.h"
+# include "capabilities.h"
+# include "network_conf.h"
+# include "domain_conf.h"
+# include "domain_event.h"
+# include "threads.h"
+# include "security/security_driver.h"
+# include "cgroup.h"
+# include "pci.h"
+# include "cpu_conf.h"
+# include "driver.h"
 
-#define qemudDebug(fmt, ...) do {} while(0)
+# define qemudDebug(fmt, ...) do {} while(0)
 
-#define QEMUD_CPUMASK_LEN CPU_SETSIZE
+# define QEMUD_CPUMASK_LEN CPU_SETSIZE
 
 /* Internal flags to keep track of qemu command line capabilities */
 enum qemud_cmd_flags {
@@ -83,6 +83,11 @@ enum qemud_cmd_flags {
     QEMUD_CMD_FLAG_SMP_TOPOLOGY  = (1 << 28), /* Is sockets=s,cores=c,threads=t available for -smp? */
     QEMUD_CMD_FLAG_NETDEV        = (1 << 29), /* The -netdev flag & netdev_add/remove monitor commands */
     QEMUD_CMD_FLAG_RTC           = (1 << 30), /* The -rtc flag for clock options */
+    QEMUD_CMD_FLAG_VNET_HOST     = (1 << 31), /* vnet-host support is available in qemu */
+    QEMUD_CMD_FLAG_RTC_TD_HACK   = (1LL << 32), /* -rtd-td-hack available */
+    QEMUD_CMD_FLAG_NO_HPET       = (1LL << 33), /* -no-hpet flag is supported */
+    QEMUD_CMD_FLAG_NO_KVM_PIT    = (1LL << 34), /* -no-kvm-pit-reinjection supported */
+    QEMUD_CMD_FLAG_TDF           = (1LL << 35), /* -tdf flag (user-mode pit catchup) */
 };
 
 /* Main driver state */
@@ -115,6 +120,8 @@ struct qemud_driver {
      * the QEMU user/group */
     char *libDir;
     char *cacheDir;
+    char *saveDir;
+    char *snapshotDir;
     unsigned int vncTLS : 1;
     unsigned int vncTLSx509verify : 1;
     unsigned int vncSASL : 1;
@@ -152,18 +159,18 @@ typedef struct _qemuDomainPCIAddressSet qemuDomainPCIAddressSet;
 typedef qemuDomainPCIAddressSet *qemuDomainPCIAddressSetPtr;
 
 /* Port numbers used for KVM migration. */
-#define QEMUD_MIGRATION_FIRST_PORT 49152
-#define QEMUD_MIGRATION_NUM_PORTS 64
+# define QEMUD_MIGRATION_FIRST_PORT 49152
+# define QEMUD_MIGRATION_NUM_PORTS 64
 
 /* Config type for XML import/export conversions */
-#define QEMU_CONFIG_FORMAT_ARGV "qemu-argv"
+# define QEMU_CONFIG_FORMAT_ARGV "qemu-argv"
 
-#define QEMU_DRIVE_HOST_PREFIX "drive-"
-#define QEMU_VIRTIO_SERIAL_PREFIX "virtio-serial"
+# define QEMU_DRIVE_HOST_PREFIX "drive-"
+# define QEMU_VIRTIO_SERIAL_PREFIX "virtio-serial"
 
-#define qemuReportError(code, fmt...)                                   \
+# define qemuReportError(code, ...)                                      \
     virReportErrorHelper(NULL, VIR_FROM_QEMU, code, __FILE__,           \
-                         __FUNCTION__, __LINE__, fmt)
+                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 
 int qemudLoadDriverConfig(struct qemud_driver *driver,
@@ -193,14 +200,16 @@ int         qemudBuildCommandLine       (virConnectPtr conn,
                                          const char ***retenv,
                                          int **tapfds,
                                          int *ntapfds,
-                                         const char *migrateFrom)
+                                         const char *migrateFrom,
+                                         virDomainSnapshotObjPtr current_snapshot)
     ATTRIBUTE_NONNULL(1);
 
 /* With vlan == -1, use netdev syntax, else old hostnet */
 char * qemuBuildHostNetStr(virDomainNetDefPtr net,
                            char type_sep,
                            int vlan,
-                           const char *tapfd);
+                           const char *tapfd,
+                           const char *vhostfd);
 
 /* Legacy, pre device support */
 char * qemuBuildNicStr(virDomainNetDefPtr net,
@@ -251,6 +260,10 @@ int         qemudNetworkIfaceConnect    (virConnectPtr conn,
                                          virDomainNetDefPtr net,
                                          unsigned long long qemuCmdFlags)
     ATTRIBUTE_NONNULL(1);
+
+int
+qemudOpenVhostNet(virDomainNetDefPtr net,
+                  unsigned long long qemuCmdFlags);
 
 int qemudPhysIfaceConnect(virConnectPtr conn,
                           struct qemud_driver *driver,

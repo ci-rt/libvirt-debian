@@ -25,7 +25,9 @@ EXTRA_DIST =						\
 	libvirtd.sasl					\
 	libvirtd.sysconf				\
 	libvirtd.aug                                    \
-	libvirtd.logrotate.in                           \
+	libvirtd.qemu.logrotate.in                      \
+	libvirtd.lxc.logrotate.in                       \
+	libvirtd.uml.logrotate.in                       \
 	test_libvirtd.aug                               \
 	$(AVAHI_SOURCES)				\
 	$(DAEMON_SOURCES)
@@ -114,6 +116,10 @@ endif
 if WITH_SECRETS
     libvirtd_LDADD += ../src/libvirt_driver_secret.la
 endif
+
+if WITH_NWFILTER
+    libvirtd_LDADD += ../src/libvirt_driver_nwfilter.la
+endif
 endif
 
 libvirtd_LDADD += ../src/libvirt.la
@@ -166,31 +172,48 @@ remote.c: remote_dispatch_prototypes.h \
 REMOTE_PROTOCOL = $(top_srcdir)/src/remote/remote_protocol.x
 
 remote_dispatch_prototypes.h: $(srcdir)/remote_generate_stubs.pl $(REMOTE_PROTOCOL)
-	perl -w $(srcdir)/remote_generate_stubs.pl -p $(REMOTE_PROTOCOL) > $@
+	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -p $(REMOTE_PROTOCOL) > $@
 
 remote_dispatch_table.h: $(srcdir)/remote_generate_stubs.pl $(REMOTE_PROTOCOL)
-	perl -w $(srcdir)/remote_generate_stubs.pl -t $(REMOTE_PROTOCOL) > $@
+	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -t $(REMOTE_PROTOCOL) > $@
 
 remote_dispatch_args.h: $(srcdir)/remote_generate_stubs.pl $(REMOTE_PROTOCOL)
-	perl -w $(srcdir)/remote_generate_stubs.pl -a $(REMOTE_PROTOCOL) > $@
+	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -a $(REMOTE_PROTOCOL) > $@
 
 remote_dispatch_ret.h: $(srcdir)/remote_generate_stubs.pl $(REMOTE_PROTOCOL)
-	perl -w $(srcdir)/remote_generate_stubs.pl -r $(REMOTE_PROTOCOL) > $@
+	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -r $(REMOTE_PROTOCOL) > $@
 
-BUILT_SOURCES += libvirtd.logrotate
+LOGROTATE_CONFS = libvirtd.qemu.logrotate libvirtd.lxc.logrotate \
+                  libvirtd.uml.logrotate
 
-libvirtd.logrotate: libvirtd.logrotate.in
-	sed						\
-	    -e s!\@localstatedir\@!@localstatedir@!g	\
+BUILT_SOURCES += $(LOGROTATE_CONFS)
+
+libvirtd.qemu.logrotate: libvirtd.qemu.logrotate.in
+	sed							\
+	    -e 's![@]localstatedir[@]!$(localstatedir)!g'	\
 	    < $< > $@-t
 	mv $@-t $@
 
-install-logrotate: libvirtd.logrotate
+libvirtd.lxc.logrotate: libvirtd.lxc.logrotate.in
+	$(AM_V_GEN)sed						\
+	    -e 's![@]localstatedir[@]!$(localstatedir)!g'	\
+	    < $< > $@-t &&					\
+	    mv $@-t $@
+
+libvirtd.uml.logrotate: libvirtd.uml.logrotate.in
+	$(AM_V_GEN)sed						\
+	    -e 's![@]localstatedir[@]!$(localstatedir)!g'	\
+	    < $< > $@-t &&					\
+	    mv $@-t $@
+
+install-logrotate: $(LOGROTATE_CONFS)
 	mkdir -p $(DESTDIR)$(localstatedir)/log/libvirt/qemu/
 	mkdir -p $(DESTDIR)$(localstatedir)/log/libvirt/lxc/
 	mkdir -p $(DESTDIR)$(localstatedir)/log/libvirt/uml/
 	mkdir -p $(DESTDIR)$(sysconfdir)/logrotate.d/
-	$(INSTALL_DATA) $< $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd
+	$(INSTALL_DATA) libvirtd.qemu.logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.qemu
+	$(INSTALL_DATA) libvirtd.lxc.logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.lxc
+	$(INSTALL_DATA) libvirtd.uml.logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.uml
 
 if LIBVIRT_INIT_SCRIPT_RED_HAT
 install-init: libvirtd.init
@@ -208,13 +231,13 @@ uninstall-init:
 BUILT_SOURCES += libvirtd.init
 
 libvirtd.init: libvirtd.init.in
-	sed						\
+	$(AM_V_GEN)sed					\
 	    -e s!\@localstatedir\@!@localstatedir@!g	\
 	    -e s!\@sbindir\@!@sbindir@!g		\
 	    -e s!\@sysconfdir\@!@sysconfdir@!g		\
-	    < $< > $@-t
-	chmod a+x $@-t
-	mv $@-t $@
+	    < $< > $@-t &&				\
+	    chmod a+x $@-t &&				\
+	    mv $@-t $@
 
 check-local:
 	test -x '$(AUGPARSE)' \

@@ -1,5 +1,6 @@
 
 /*
+ * Copyright (C) 2010 Red Hat, Inc.
  * Copyright IBM Corp. 2009
  *
  * phyp_driver.c: ssh layer to access Power Hypervisors
@@ -45,6 +46,7 @@
 #include <domain_event.h>
 
 #include "internal.h"
+#include "authhelper.h"
 #include "util.h"
 #include "datatypes.h"
 #include "buf.h"
@@ -61,9 +63,9 @@
 
 #define VIR_FROM_THIS VIR_FROM_PHYP
 
-#define PHYP_ERROR(conn, code, fmt...)                                        \
-    virReportErrorHelper(conn, VIR_FROM_PHYP, code, __FILE__, __FUNCTION__,   \
-                         __LINE__, fmt)
+#define PHYP_ERROR(code, ...)                                                 \
+    virReportErrorHelper(NULL, VIR_FROM_PHYP, code, __FILE__, __FUNCTION__,   \
+                         __LINE__, __VA_ARGS__)
 
 /*
  * URI: phyp://user@[hmc|ivm]/managed_system
@@ -90,20 +92,14 @@ phypOpen(virConnectPtr conn,
         return VIR_DRV_OPEN_DECLINED;
 
     if (conn->uri->server == NULL) {
-        PHYP_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+        PHYP_ERROR(VIR_ERR_INTERNAL_ERROR,
                    "%s", _("Missing server name in phyp:// URI"));
         return VIR_DRV_OPEN_ERROR;
     }
 
     if (conn->uri->path == NULL) {
-        PHYP_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+        PHYP_ERROR(VIR_ERR_INTERNAL_ERROR,
                    "%s", _("Missing managed system name in phyp:// URI"));
-        return VIR_DRV_OPEN_ERROR;
-    }
-
-    if (conn->uri->user == NULL) {
-        PHYP_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
-                   "%s", _("Missing username in phyp:// URI"));
         return VIR_DRV_OPEN_ERROR;
     }
 
@@ -149,19 +145,18 @@ phypOpen(virConnectPtr conn,
         *char_ptr = '\0';
 
     if (escape_specialcharacters(conn->uri->path, string, len) == -1) {
-        PHYP_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+        PHYP_ERROR(VIR_ERR_INTERNAL_ERROR,
                    "%s", _("Error parsing 'path'. Invalid characters."));
         goto failure;
     }
 
     if ((session = openSSHSession(conn, auth, &internal_socket)) == NULL) {
-        PHYP_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+        PHYP_ERROR(VIR_ERR_INTERNAL_ERROR,
                    "%s", _("Error while opening SSH session."));
         goto failure;
     }
-    //conn->uri->path = string;
+
     connection_data->session = session;
-    connection_data->auth = auth;
 
     uuid_table->nlpars = 0;
     uuid_table->lpars = NULL;
@@ -244,8 +239,8 @@ openSSHSession(virConnectPtr conn, virConnectAuthPtr auth,
 {
     LIBSSH2_SESSION *session;
     const char *hostname = conn->uri->server;
-    const char *username = conn->uri->user;
-    const char *password = NULL;
+    char *username = NULL;
+    char *password = NULL;
     int sock;
     int rc;
     struct addrinfo *ai = NULL, *cur;
@@ -269,6 +264,28 @@ openSSHSession(virConnectPtr conn, virConnectAuthPtr auth,
         goto err;
     }
 
+    if (conn->uri->user != NULL) {
+        username = strdup(conn->uri->user);
+
+        if (username == NULL) {
+            virReportOOMError();
+            goto err;
+        }
+    } else {
+        if (auth == NULL || auth->cb == NULL) {
+            PHYP_ERROR(VIR_ERR_AUTH_FAILED,
+                       "%s", _("No authentication callback provided."));
+            goto err;
+        }
+
+        username = virRequestUsername(auth, NULL, conn->uri->server);
+
+        if (username == NULL) {
+            PHYP_ERROR(VIR_ERR_AUTH_FAILED, "%s", _("Username request failed"));
+            goto err;
+        }
+    }
+
     memset(&hints, 0, sizeof(hints));
     hints.ai_flags = AI_ADDRCONFIG | AI_NUMERICSERV;
     hints.ai_socktype = SOCK_STREAM;
@@ -276,7 +293,7 @@ openSSHSession(virConnectPtr conn, virConnectAuthPtr auth,
 
     ret = getaddrinfo(hostname, "22", &hints, &ai);
     if (ret != 0) {
-        PHYP_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+        PHYP_ERROR(VIR_ERR_INTERNAL_ERROR,
                    _("Error while getting %s address info"), hostname);
         goto err;
     }
@@ -293,7 +310,7 @@ openSSHSession(virConnectPtr conn, virConnectAuthPtr auth,
         cur = cur->ai_next;
     }
 
-    PHYP_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+    PHYP_ERROR(VIR_ERR_INTERNAL_ERROR,
                _("Failed to connect to %s"), hostname);
     freeaddrinfo(ai);
     goto err;
@@ -313,7 +330,7 @@ openSSHSession(virConnectPtr conn, virConnectAuthPtr auth,
     while ((rc = libssh2_session_startup(session, sock)) ==
            LIBSSH2_ERROR_EAGAIN) ;
     if (rc) {
-        PHYP_ERROR(conn, VIR_ERR_INTERNAL_ERROR,
+        PHYP_ERROR(VIR_ERR_INTERNAL_ERROR,
                    "%s", _("Failure establishing SSH session."));
         goto disconnect;
     }
@@ -335,44 +352,16 @@ openSSHSession(virConnectPtr conn, virConnectAuthPtr auth,
     if (rc == LIBSSH2_ERROR_SOCKET_NONE
         || rc == LIBSSH2_ERROR_PUBLICKEY_UNRECOGNIZED
         || rc == LIBSSH2_ERROR_PUBLICKEY_UNVERIFIED) {
-        int i;
-        int hasPassphrase = 0;
-
-        virConnectCredential creds[] = {
-            {VIR_CRED_PASSPHRASE, "password", "Password", NULL, NULL, 0},
-        };
-
-        if (!auth || !auth->cb) {
-            PHYP_ERROR(conn, VIR_ERR_AUTH_FAILED,
+        if (auth == NULL || auth->cb == NULL) {
+            PHYP_ERROR(VIR_ERR_AUTH_FAILED,
                        "%s", _("No authentication callback provided."));
             goto disconnect;
         }
 
-        for (i = 0; i < auth->ncredtype; i++) {
-            if (auth->credtype[i] == VIR_CRED_PASSPHRASE)
-                hasPassphrase = 1;
-        }
+        password = virRequestPassword(auth, username, conn->uri->server);
 
-        if (!hasPassphrase) {
-            PHYP_ERROR(conn, VIR_ERR_AUTH_FAILED,
-                       "%s", _("Required credentials are not supported."));
-            goto disconnect;
-        }
-
-        int res =
-            (auth->cb) (creds, ARRAY_CARDINALITY(creds), auth->cbdata);
-
-        if (res < 0) {
-            PHYP_ERROR(conn, VIR_ERR_AUTH_FAILED,
-                       "%s", _("Unable to fetch credentials."));
-            goto disconnect;
-        }
-
-        if (creds[0].result) {
-            password = creds[0].result;
-        } else {
-            PHYP_ERROR(conn, VIR_ERR_AUTH_FAILED,
-                       "%s", _("Unable to get password certificates"));
+        if (password == NULL) {
+            PHYP_ERROR(VIR_ERR_AUTH_FAILED, "%s", _("Password request failed"));
             goto disconnect;
         }
 
@@ -382,7 +371,7 @@ openSSHSession(virConnectPtr conn, virConnectAuthPtr auth,
                LIBSSH2_ERROR_EAGAIN) ;
 
         if (rc) {
-            PHYP_ERROR(conn, VIR_ERR_AUTH_FAILED,
+            PHYP_ERROR(VIR_ERR_AUTH_FAILED,
                        "%s", _("Authentication failed"));
             goto disconnect;
         } else
@@ -403,6 +392,7 @@ openSSHSession(virConnectPtr conn, virConnectAuthPtr auth,
     VIR_FREE(userhome);
     VIR_FREE(pubkey);
     VIR_FREE(pvtkey);
+    VIR_FREE(username);
     VIR_FREE(password);
     return NULL;
 
@@ -410,6 +400,7 @@ openSSHSession(virConnectPtr conn, virConnectAuthPtr auth,
     VIR_FREE(userhome);
     VIR_FREE(pubkey);
     VIR_FREE(pvtkey);
+    VIR_FREE(username);
     VIR_FREE(password);
     return session;
 }
@@ -1625,6 +1616,7 @@ virDriver phypDriver = {
     NULL,                       /* domainAttachDeviceFlags */
     NULL,                       /* domainDetachDevice */
     NULL,                       /* domainDetachDeviceFlags */
+    NULL,                       /* domainUpdateDeviceFlags */
     NULL,                       /* domainGetAutostart */
     NULL,                       /* domainSetAutostart */
     NULL,                       /* domainGetSchedulerType */
@@ -1648,14 +1640,29 @@ virDriver phypDriver = {
     NULL,                       /* nodeDeviceReAttach */
     NULL,                       /* nodeDeviceReset */
     NULL,                       /* domainMigratePrepareTunnel */
-    phypIsEncrypted,
-    phypIsSecure,
+    phypIsEncrypted,            /* isEncrypted */
+    phypIsSecure,               /* isSecure */
     NULL,                       /* domainIsActive */
     NULL,                       /* domainIsPersistent */
     NULL,                       /* cpuCompare */
     NULL,                       /* cpuBaseline */
     NULL, /* domainGetJobInfo */
     NULL, /* domainAbortJob */
+    NULL, /* domainMigrateSetMaxDowntime */
+    NULL, /* domainEventRegisterAny */
+    NULL, /* domainEventDeregisterAny */
+    NULL, /* domainManagedSave */
+    NULL, /* domainHasManagedSaveImage */
+    NULL, /* domainManagedSaveRemove */
+    NULL, /* domainSnapshotCreateXML */
+    NULL, /* domainSnapshotDumpXML */
+    NULL, /* domainSnapshotNum */
+    NULL, /* domainSnapshotListNames */
+    NULL, /* domainSnapshotLookupByName */
+    NULL, /* domainHasCurrentSnapshot */
+    NULL, /* domainSnapshotCurrent */
+    NULL, /* domainRevertToSnapshot */
+    NULL, /* domainSnapshotDelete */
 };
 
 int

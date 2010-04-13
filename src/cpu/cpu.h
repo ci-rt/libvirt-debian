@@ -1,7 +1,7 @@
 /*
  * cpu.h: internal functions for CPU manipulation
  *
- * Copyright (C) 2009--2010 Red Hat, Inc.
+ * Copyright (C) 2009-2010 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -22,17 +22,17 @@
  */
 
 #ifndef __VIR_CPU_H__
-#define __VIR_CPU_H__
+# define __VIR_CPU_H__
 
-#include "virterror_internal.h"
-#include "datatypes.h"
-#include "conf/cpu_conf.h"
-#include "cpu_x86_data.h"
+# include "virterror_internal.h"
+# include "datatypes.h"
+# include "conf/cpu_conf.h"
+# include "cpu_x86_data.h"
 
 
-#define virCPUReportError(code, fmt...)                           \
+# define virCPUReportError(code, ...)                              \
     virReportErrorHelper(NULL, VIR_FROM_CPU, code, __FILE__,      \
-                         __FUNCTION__, __LINE__, fmt)
+                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 
 union cpuData {
@@ -76,6 +76,10 @@ typedef virCPUDefPtr
                      const char **models,
                      unsigned int nmodels);
 
+typedef int
+(*cpuArchUpdate)    (virCPUDefPtr guest,
+                     const virCPUDefPtr host);
+
 
 struct cpuArchDriver {
     const char *name;
@@ -88,6 +92,7 @@ struct cpuArchDriver {
     cpuArchNodeData     nodeData;
     cpuArchGuestData    guestData;
     cpuArchBaseline     baseline;
+    cpuArchUpdate       update;
 };
 
 
@@ -137,5 +142,9 @@ cpuBaseline (virCPUDefPtr *cpus,
              unsigned int ncpus,
              const char **models,
              unsigned int nmodels);
+
+extern int
+cpuUpdate   (virCPUDefPtr guest,
+             const virCPUDefPtr host);
 
 #endif /* __VIR_CPU_H__ */

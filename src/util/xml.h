@@ -3,13 +3,13 @@
  */
 
 #ifndef __VIR_XML_H__
-#define __VIR_XML_H__
+# define __VIR_XML_H__
 
-#include "internal.h"
+# include "internal.h"
 
-#include <libxml/parser.h>
-#include <libxml/tree.h>
-#include <libxml/xpath.h>
+# include <libxml/parser.h>
+# include <libxml/tree.h>
+# include <libxml/xpath.h>
 
 int              virXPathBoolean(const char *xpath,
                                  xmlXPathContextPtr ctxt);
@@ -46,5 +46,24 @@ int              virXPathNodeSet(const char *xpath,
                                  xmlNodePtr **list);
 char *          virXMLPropString(xmlNodePtr node,
                                  const char *name);
+
+xmlDocPtr      virXMLParseHelper(int domcode,
+                                 const char *filename,
+                                 const char *xmlStr,
+                                 const char *url);
+xmlDocPtr   virXMLParseStrHelper(int domcode,
+                                 const char *xmlStr,
+                                 const char *url);
+xmlDocPtr  virXMLParseFileHelper(int domcode,
+                                 const char *filename);
+
+# define virXMLParse(filename, xmlStr, url)                     \
+        virXMLParseHelper(VIR_FROM_THIS, filename, xmlStr, url)
+
+# define virXMLParseString(xmlStr, url)                         \
+        virXMLParseStrHelper(VIR_FROM_THIS, xmlStr, url)
+
+# define virXMLParseFile(filename)                              \
+        virXMLParseFileHelper(VIR_FROM_THIS, filename)
 
 #endif                          /* __VIR_XML_H__ */

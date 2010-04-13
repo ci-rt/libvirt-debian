@@ -1,8 +1,9 @@
 
 /*
- * esx_storage_driver.c: storage driver methods for managing VMware ESX
+ * esx_storage_driver.c: storage driver functions for managing VMware ESX
  *                       host storage
  *
+ * Copyright (C) 2010 Red Hat, Inc.
  * Copyright (C) 2010 Matthias Bolte <matthias.bolte@googlemail.com>
  *
  * This library is free software; you can redistribute it and/or
@@ -24,7 +25,6 @@
 #include <config.h>
 
 #include "internal.h"
-#include "virterror_internal.h"
 #include "util.h"
 #include "memory.h"
 #include "logging.h"
@@ -36,10 +36,6 @@
 #include "esx_util.h"
 
 #define VIR_FROM_THIS VIR_FROM_ESX
-
-#define ESX_ERROR(conn, code, fmt...)                                         \
-    virReportErrorHelper(conn, VIR_FROM_ESX, code, __FILE__, __FUNCTION__,    \
-                         __LINE__, fmt)
 
 
 
@@ -101,6 +97,7 @@ static virStorageDriver esxStorageDriver = {
     NULL,                                  /* volCreateXML */
     NULL,                                  /* volCreateXMLFrom */
     NULL,                                  /* volDelete */
+    NULL,                                  /* volWipe */
     NULL,                                  /* volGetInfo */
     NULL,                                  /* volGetXMLDesc */
     NULL,                                  /* volGetPath */

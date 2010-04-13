@@ -1,6 +1,6 @@
 
 /*
- * esx_interface_driver.h: interface driver methods for managing VMware ESX
+ * esx_interface_driver.h: interface driver functions for managing VMware ESX
  *                         host interfaces
  *
  * Copyright (C) 2010 Matthias Bolte <matthias.bolte@googlemail.com>
@@ -22,7 +22,7 @@
  */
 
 #ifndef __ESX_INTERFACE_DRIVER_H__
-#define __ESX_INTERFACE_DRIVER_H__
+# define __ESX_INTERFACE_DRIVER_H__
 
 int esxInterfaceRegister(void);
 

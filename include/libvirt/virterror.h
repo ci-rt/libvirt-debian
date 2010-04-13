@@ -12,13 +12,13 @@
  */
 
 #ifndef __VIR_VIRERR_H__
-#define __VIR_VIRERR_H__
+# define __VIR_VIRERR_H__
 
-#include <libvirt/libvirt.h>
+# include <libvirt/libvirt.h>
 
-#ifdef __cplusplus
+# ifdef __cplusplus
 extern "C" {
-#endif
+# endif
 
 /**
  * virErrorLevel:
@@ -69,6 +69,10 @@ typedef enum {
     VIR_FROM_PHYP,      /* Error from IBM power hypervisor */
     VIR_FROM_SECRET,    /* Error from secret storage */
     VIR_FROM_CPU,       /* Error from CPU driver */
+    VIR_FROM_XENAPI,    /* Error from XenAPI */
+    VIR_FROM_NWFILTER,  /* Error from network filter driver */
+    VIR_FROM_HOOK,      /* Error from Synchronous hooks */
+    VIR_FROM_DOMAIN_SNAPSHOT, /* Error from domain snapshot */
 } virErrorDomain;
 
 
@@ -168,6 +172,10 @@ typedef enum {
     VIR_ERR_NO_INTERFACE, /* interface driver not running */
     VIR_ERR_INVALID_INTERFACE, /* invalid interface object */
     VIR_ERR_MULTIPLE_INTERFACES, /* more than one matching interface found */
+    VIR_WAR_NO_NWFILTER, /* failed to start nwfilter driver */
+    VIR_ERR_INVALID_NWFILTER, /* invalid nwfilter object */
+    VIR_ERR_NO_NWFILTER, /* nw filter pool not found */
+    VIR_ERR_BUILD_FIREWALL, /* nw filter pool not found */
     VIR_WAR_NO_SECRET, /* failed to start secret storage */
     VIR_ERR_INVALID_SECRET, /* invalid secret */
     VIR_ERR_NO_SECRET, /* secret not found */
@@ -175,6 +183,9 @@ typedef enum {
     VIR_ERR_OPERATION_TIMEOUT, /* timeout occurred during operation */
     VIR_ERR_MIGRATE_PERSIST_FAILED, /* a migration worked, but making the
                                        VM persist on the dest host failed */
+    VIR_ERR_HOOK_SCRIPT_FAILED, /* a synchronous hook script failed */
+    VIR_ERR_INVALID_DOMAIN_SNAPSHOT, /* invalid domain snapshot */
+    VIR_ERR_NO_DOMAIN_SNAPSHOT, /* domain snapshot not found */
 } virErrorNumber;
 
 /**
@@ -210,8 +221,8 @@ void			virConnSetErrorFunc	(virConnectPtr conn,
                                                  virErrorFunc handler);
 int			virConnCopyLastError	(virConnectPtr conn,
                                                  virErrorPtr to);
-#ifdef __cplusplus
+# ifdef __cplusplus
 }
-#endif
+# endif
 
 #endif /* __VIR_VIRERR_H__ */

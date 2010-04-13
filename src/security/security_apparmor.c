@@ -174,19 +174,19 @@ load_profile(const char *profile, virDomainObjPtr vm,
             VIRT_AA_HELPER, "-c", "-u", profile, NULL
         };
         ret = virExec(argv, NULL, NULL, &child,
-                      pipefd[0], NULL, NULL, VIR_EXEC_CLEAR_CAPS);
+                      pipefd[0], NULL, NULL, VIR_EXEC_NONE);
     } else if (disk && disk->src) {
         const char *const argv[] = {
             VIRT_AA_HELPER, "-r", "-u", profile, "-f", disk->src, NULL
         };
         ret = virExec(argv, NULL, NULL, &child,
-                      pipefd[0], NULL, NULL, VIR_EXEC_CLEAR_CAPS);
+                      pipefd[0], NULL, NULL, VIR_EXEC_NONE);
     } else {
         const char *const argv[] = {
             VIRT_AA_HELPER, "-r", "-u", profile, NULL
         };
         ret = virExec(argv, NULL, NULL, &child,
-                      pipefd[0], NULL, NULL, VIR_EXEC_CLEAR_CAPS);
+                      pipefd[0], NULL, NULL, VIR_EXEC_NONE);
     }
     if (ret < 0)
         goto clean;
@@ -483,7 +483,7 @@ AppArmorSetSecurityProcessLabel(virSecurityDriverPtr drv, virDomainObjPtr vm)
     }
 
     if (aa_change_profile(profile_name) < 0) {
-        virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
+        virSecurityReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                _("error calling aa_change_profile()"));
         goto clean;
     }

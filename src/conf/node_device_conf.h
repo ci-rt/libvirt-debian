@@ -1,6 +1,7 @@
 /*
  * node_device_conf.h: config handling for node devices
  *
+ * Copyright (C) 2010 Red Hat, Inc.
  * Copyright (C) 2008 Virtual Iron Software, Inc.
  * Copyright (C) 2008 David F. Lively
  *
@@ -22,16 +23,16 @@
  */
 
 #ifndef __VIR_NODE_DEVICE_CONF_H__
-#define __VIR_NODE_DEVICE_CONF_H__
+# define __VIR_NODE_DEVICE_CONF_H__
 
-#include "internal.h"
-#include "util.h"
-#include "threads.h"
+# include "internal.h"
+# include "util.h"
+# include "threads.h"
 
-#include <libxml/tree.h>
+# include <libxml/tree.h>
 
-#define CREATE_DEVICE 1
-#define EXISTING_DEVICE 0
+# define CREATE_DEVICE 1
+# define EXISTING_DEVICE 0
 
 enum virNodeDevCapType {
     /* Keep in sync with VIR_ENUM_IMPL in node_device_conf.c */
@@ -217,9 +218,9 @@ struct _virDeviceMonitorState {
     void *privateData;			/* driver-specific private data */
 };
 
-#define virNodeDeviceReportError(code, fmt...)                          \
+# define virNodeDeviceReportError(code, ...)                             \
     virReportErrorHelper(NULL, VIR_FROM_NODEDEV, code, __FILE__,	\
-                         __FUNCTION__, __LINE__, fmt)
+                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 int virNodeDeviceHasCap(const virNodeDeviceObjPtr dev, const char *cap);
 

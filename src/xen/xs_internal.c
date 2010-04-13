@@ -78,6 +78,7 @@ struct xenUnifiedDriver xenStoreDriver = {
     NULL, /* domainUndefine */
     NULL, /* domainAttachDeviceFlags */
     NULL, /* domainDetachDeviceFlags */
+    NULL, /* domainUpdateDeviceFlags */
     NULL, /* domainGetAutostart */
     NULL, /* domainSetAutostart */
     NULL, /* domainGetSchedulerType */
@@ -87,9 +88,9 @@ struct xenUnifiedDriver xenStoreDriver = {
 
 #endif /* ! PROXY */
 
-#define virXenStoreError(conn, code, fmt...)                                 \
+#define virXenStoreError(code, ...)                                  \
         virReportErrorHelper(NULL, VIR_FROM_XENSTORE, code, __FILE__,      \
-                               __FUNCTION__, __LINE__, fmt)
+                             __FUNCTION__, __LINE__, __VA_ARGS__)
 
 /************************************************************************
  *									*
@@ -296,8 +297,8 @@ xenStoreOpen(virConnectPtr conn,
          * remote) mechanism.
          */
         if (xenHavePrivilege()) {
-            virXenStoreError(NULL, VIR_ERR_NO_XEN,
-                                 "%s", _("failed to connect to Xen Store"));
+            virXenStoreError(VIR_ERR_NO_XEN,
+                             "%s", _("failed to connect to Xen Store"));
         }
         return (-1);
     }
@@ -321,8 +322,8 @@ xenStoreOpen(virConnectPtr conn,
     if ( xenStoreAddWatch(conn, "@releaseDomain",
                      "releaseDomain", xenStoreDomainReleased, priv) < 0 )
     {
-        virXenStoreError(NULL, VIR_ERR_INTERNAL_ERROR,
-                                 "%s", _("adding watch @releaseDomain"));
+        virXenStoreError(VIR_ERR_INTERNAL_ERROR,
+                         "%s", _("adding watch @releaseDomain"));
         return -1;
     }
 
@@ -330,8 +331,8 @@ xenStoreOpen(virConnectPtr conn,
     if( xenStoreAddWatch(conn, "@introduceDomain",
                      "introduceDomain", xenStoreDomainIntroduced, priv) < 0 )
     {
-        virXenStoreError(NULL, VIR_ERR_INTERNAL_ERROR,
-                                 "%s", _("adding watch @introduceDomain"));
+        virXenStoreError(VIR_ERR_INTERNAL_ERROR,
+                         "%s", _("adding watch @introduceDomain"));
         return -1;
     }
 
@@ -341,7 +342,7 @@ xenStoreOpen(virConnectPtr conn,
                                            xenStoreWatchEvent,
                                            conn,
                                            NULL)) < 0)
-        DEBUG0("Failed to add event handle, disabling events\n");
+        DEBUG0("Failed to add event handle, disabling events");
 
 #endif //PROXY
     return 0;
@@ -361,7 +362,7 @@ xenStoreClose(virConnectPtr conn)
     xenUnifiedPrivatePtr priv;
 
     if (conn == NULL) {
-        virXenStoreError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virXenStoreError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return(-1);
     }
 
@@ -418,8 +419,7 @@ xenStoreGetDomainInfo(virDomainPtr domain, virDomainInfoPtr info)
         return (-1);
 
     if ((domain == NULL) || (domain->conn == NULL) || (info == NULL)) {
-        virXenStoreError(domain ? domain->conn : NULL, VIR_ERR_INVALID_ARG,
-                         __FUNCTION__);
+        virXenStoreError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return(-1);
     }
 
@@ -447,7 +447,7 @@ xenStoreGetDomainInfo(virDomainPtr domain, virDomainInfoPtr info)
         info->memory = 0;
         info->maxMem = 0;
     }
-#if 0
+# if 0
     /* doesn't seems to work */
     tmp = virDomainDoStoreQuery(domain->conn, domain->id, "cpu_time");
     if (tmp != NULL) {
@@ -456,7 +456,7 @@ xenStoreGetDomainInfo(virDomainPtr domain, virDomainInfoPtr info)
     } else {
         info->cpuTime = 0;
     }
-#endif
+# endif
     snprintf(request, 199, "/local/domain/%d/cpu", domain->id);
     request[199] = 0;
     tmp2 = virConnectDoStoreList(domain->conn, request, &nb_vcpus);
@@ -484,8 +484,7 @@ xenStoreDomainSetMemory(virDomainPtr domain, unsigned long memory)
 
     if ((domain == NULL) || (domain->conn == NULL) ||
         (memory < 1024 * MIN_XEN_GUEST_SIZE)) {
-        virXenStoreError(domain ? domain->conn : NULL, VIR_ERR_INVALID_ARG,
-                         __FUNCTION__);
+        virXenStoreError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return(-1);
     }
     if (domain->id == -1)
@@ -549,13 +548,13 @@ xenStoreNumOfDomains(virConnectPtr conn)
     xenUnifiedPrivatePtr priv;
 
     if (conn == NULL) {
-        virXenStoreError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virXenStoreError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return -1;
     }
 
     priv = (xenUnifiedPrivatePtr) conn->privateData;
     if (priv->xshandle == NULL) {
-        virXenStoreError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virXenStoreError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return(-1);
     }
 
@@ -637,7 +636,7 @@ xenStoreListDomains(virConnectPtr conn, int *ids, int maxids)
     int ret;
 
     if ((conn == NULL) || (ids == NULL)) {
-        virXenStoreError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virXenStoreError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return(-1);
     }
 
@@ -672,7 +671,7 @@ xenStoreLookupByName(virConnectPtr conn, const char *name)
     xenUnifiedPrivatePtr priv;
 
     if ((conn == NULL) || (name == NULL)) {
-        virXenStoreError(conn, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virXenStoreError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return(NULL);
     }
 
@@ -689,10 +688,10 @@ xenStoreLookupByName(virConnectPtr conn, const char *name)
         if ((endptr == idlist[i]) || (*endptr != 0)) {
             goto done;
         }
-#if 0
+# if 0
         if (virConnectCheckStoreID(conn, (int) id) < 0)
             continue;
-#endif
+# endif
         snprintf(prop, 199, "/local/domain/%s/name", idlist[i]);
         prop[199] = 0;
         tmp = xs_read(priv->xshandle, 0, prop, &len);
@@ -736,8 +735,7 @@ xenStoreDomainShutdown(virDomainPtr domain)
     xenUnifiedPrivatePtr priv;
 
     if ((domain == NULL) || (domain->conn == NULL)) {
-        virXenStoreError((domain ? domain->conn : NULL), VIR_ERR_INVALID_ARG,
-                         __FUNCTION__);
+        virXenStoreError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return(-1);
     }
     if (domain->id == -1 || domain->id == 0)
@@ -771,8 +769,7 @@ xenStoreDomainReboot(virDomainPtr domain, unsigned int flags ATTRIBUTE_UNUSED)
     xenUnifiedPrivatePtr priv;
 
     if ((domain == NULL) || (domain->conn == NULL)) {
-        virXenStoreError((domain ? domain->conn : NULL), VIR_ERR_INVALID_ARG,
-                         __FUNCTION__);
+        virXenStoreError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return(-1);
     }
     if (domain->id == -1 || domain->id == 0)
@@ -802,8 +799,7 @@ xenStoreDomainGetOSType(virDomainPtr domain) {
     char *vm, *str = NULL;
 
     if ((domain == NULL) || (domain->conn == NULL)) {
-        virXenStoreError((domain ? domain->conn : NULL), VIR_ERR_INVALID_ARG,
-                         __FUNCTION__);
+        virXenStoreError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return(NULL);
     }
 
@@ -1199,8 +1195,8 @@ int xenStoreAddWatch(virConnectPtr conn,
     for (n=0; n < list->count; n++) {
         if( STREQ(list->watches[n]->path, path) &&
             STREQ(list->watches[n]->token, token)) {
-            virXenStoreError(NULL, VIR_ERR_INTERNAL_ERROR,
-                                 "%s", _("watch already tracked"));
+            virXenStoreError(VIR_ERR_INTERNAL_ERROR,
+                             "%s", _("watch already tracked"));
             return -1;
         }
     }

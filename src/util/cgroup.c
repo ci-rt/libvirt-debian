@@ -12,9 +12,8 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include <inttypes.h>
 #ifdef HAVE_MNTENT_H
-#include <mntent.h>
+# include <mntent.h>
 #endif
 #include <fcntl.h>
 #include <string.h>
@@ -374,7 +373,7 @@ static int virCgroupGetValueI64(virCgroupPtr group,
     if (rc != 0)
         goto out;
 
-    if (sscanf(strval, "%" SCNi64, value) != 1)
+    if (virStrToLong_ll(strval, NULL, 10, value) < 0)
         rc = -EINVAL;
 out:
     VIR_FREE(strval);
@@ -691,6 +690,9 @@ int virCgroupForDomain(virCgroupPtr driver,
 {
     int rc;
     char *path;
+
+    if (driver == NULL)
+        return -EINVAL;
 
     if (virAsprintf(&path, "%s/%s", driver->path, name) < 0)
         return -ENOMEM;

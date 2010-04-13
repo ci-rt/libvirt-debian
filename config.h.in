@@ -13,6 +13,9 @@
 /* path to kernel profiles */
 #undef APPARMOR_PROFILES_PATH
 
+/* path to bash binary */
+#undef BASH_PATH
+
 /* Define to the number of bits in type 'ptrdiff_t'. */
 #undef BITSIZEOF_PTRDIFF_T
 
@@ -75,6 +78,9 @@
 /* Define to 1 if ungetc is broken when used on arbitrary bytes. */
 #undef FUNC_UNGETC_BROKEN
 
+/* path to gawk binary */
+#undef GAWK_PATH
+
 /* Define if gettimeofday clobbers the localtime buffer. */
 #undef GETTIMEOFDAY_CLOBBERS_LOCALTIME
 
@@ -82,14 +88,151 @@
    declaration of the second argument to gettimeofday. */
 #undef GETTIMEOFDAY_TIMEZONE
 
-/* Define to 1 when using the gnulib module canonicalize-lgpl. */
+/* Define to a C preprocessor expression that evaluates to 1 or 0, depending
+   whether the gnulib module canonicalize-lgpl shall be considered present. */
 #undef GNULIB_CANONICALIZE_LGPL
 
-/* Define to 1 when using the gnulib module ioctl. */
-#undef GNULIB_IOCTL
+/* Define to 1 when the gnulib module accept should be tested. */
+#undef GNULIB_TEST_ACCEPT
+
+/* Define to 1 when the gnulib module bind should be tested. */
+#undef GNULIB_TEST_BIND
+
+/* Define to 1 when the gnulib module canonicalize_file_name should be tested.
+   */
+#undef GNULIB_TEST_CANONICALIZE_FILE_NAME
+
+/* Define to 1 when the gnulib module close should be tested. */
+#undef GNULIB_TEST_CLOSE
+
+/* Define to 1 when the gnulib module connect should be tested. */
+#undef GNULIB_TEST_CONNECT
+
+/* Define to 1 when the gnulib module fclose should be tested. */
+#undef GNULIB_TEST_FCLOSE
+
+/* Define to 1 when the gnulib module fseeko should be tested. */
+#undef GNULIB_TEST_FSEEKO
+
+/* Define to 1 when the gnulib module getdelim should be tested. */
+#undef GNULIB_TEST_GETDELIM
+
+/* Define to 1 when the gnulib module gethostname should be tested. */
+#undef GNULIB_TEST_GETHOSTNAME
+
+/* Define to 1 when the gnulib module getline should be tested. */
+#undef GNULIB_TEST_GETLINE
+
+/* Define to 1 when the gnulib module gettimeofday should be tested. */
+#undef GNULIB_TEST_GETTIMEOFDAY
+
+/* Define to 1 when the gnulib module ioctl should be tested. */
+#undef GNULIB_TEST_IOCTL
+
+/* Define to 1 when the gnulib module listen should be tested. */
+#undef GNULIB_TEST_LISTEN
+
+/* Define to 1 when the gnulib module lseek should be tested. */
+#undef GNULIB_TEST_LSEEK
+
+/* Define to 1 when the gnulib module lstat should be tested. */
+#undef GNULIB_TEST_LSTAT
+
+/* Define to 1 when the gnulib module malloc-posix should be tested. */
+#undef GNULIB_TEST_MALLOC_POSIX
+
+/* Define to 1 when the gnulib module memchr should be tested. */
+#undef GNULIB_TEST_MEMCHR
+
+/* Define to 1 when the gnulib module mkstemp should be tested. */
+#undef GNULIB_TEST_MKSTEMP
+
+/* Define to 1 when the gnulib module mktime should be tested. */
+#undef GNULIB_TEST_MKTIME
+
+/* Define to 1 when the gnulib module perror should be tested. */
+#undef GNULIB_TEST_PERROR
+
+/* Define to 1 when the gnulib module random_r should be tested. */
+#undef GNULIB_TEST_RANDOM_R
+
+/* Define to 1 when the gnulib module rawmemchr should be tested. */
+#undef GNULIB_TEST_RAWMEMCHR
+
+/* Define to 1 when the gnulib module readlink should be tested. */
+#undef GNULIB_TEST_READLINK
+
+/* Define to 1 when the gnulib module realloc-posix should be tested. */
+#undef GNULIB_TEST_REALLOC_POSIX
+
+/* Define to 1 when the gnulib module realpath should be tested. */
+#undef GNULIB_TEST_REALPATH
+
+/* Define to 1 when the gnulib module recv should be tested. */
+#undef GNULIB_TEST_RECV
+
+/* Define to 1 when the gnulib module select should be tested. */
+#undef GNULIB_TEST_SELECT
+
+/* Define to 1 when the gnulib module send should be tested. */
+#undef GNULIB_TEST_SEND
+
+/* Define to 1 when the gnulib module setsockopt should be tested. */
+#undef GNULIB_TEST_SETSOCKOPT
+
+/* Define to 1 when the gnulib module snprintf should be tested. */
+#undef GNULIB_TEST_SNPRINTF
+
+/* Define to 1 when the gnulib module socket should be tested. */
+#undef GNULIB_TEST_SOCKET
+
+/* Define to 1 when the gnulib module stat should be tested. */
+#undef GNULIB_TEST_STAT
+
+/* Define to 1 when the gnulib module stpcpy should be tested. */
+#undef GNULIB_TEST_STPCPY
+
+/* Define to 1 when the gnulib module strchrnul should be tested. */
+#undef GNULIB_TEST_STRCHRNUL
+
+/* Define to 1 when the gnulib module strdup should be tested. */
+#undef GNULIB_TEST_STRDUP
+
+/* Define to 1 when the gnulib module strerror should be tested. */
+#undef GNULIB_TEST_STRERROR
+
+/* Define to 1 when the gnulib module strndup should be tested. */
+#undef GNULIB_TEST_STRNDUP
+
+/* Define to 1 when the gnulib module strnlen should be tested. */
+#undef GNULIB_TEST_STRNLEN
+
+/* Define to 1 when the gnulib module strptime should be tested. */
+#undef GNULIB_TEST_STRPTIME
+
+/* Define to 1 when the gnulib module strsep should be tested. */
+#undef GNULIB_TEST_STRSEP
+
+/* Define to 1 when the gnulib module symlink should be tested. */
+#undef GNULIB_TEST_SYMLINK
+
+/* Define to 1 when the gnulib module timegm should be tested. */
+#undef GNULIB_TEST_TIMEGM
+
+/* Define to 1 when the gnulib module time_r should be tested. */
+#undef GNULIB_TEST_TIME_R
+
+/* Define to 1 when the gnulib module vasprintf should be tested. */
+#undef GNULIB_TEST_VASPRINTF
 
 /* enable GnuTLS 1.0 compatibility macros */
 #undef GNUTLS_1_0_COMPAT
+
+/* path to grep binary */
+#undef GREP_PATH
+
+/* Define to 1 if you have the `alarm' function. */
+#undef HAVE_ALARM
 
 /* Define to 1 if you have 'alloca' after including <alloca.h>, a header that
    may be supplied by this distribution. */
@@ -202,6 +345,10 @@
    don't. */
 #undef HAVE_DECL_STRERROR
 
+/* Define to 1 if you have the declaration of `strncasecmp', and to 0 if you
+   don't. */
+#undef HAVE_DECL_STRNCASECMP
+
 /* Define to 1 if you have the declaration of `strndup', and to 0 if you
    don't. */
 #undef HAVE_DECL_STRNDUP
@@ -209,6 +356,10 @@
 /* Define to 1 if you have the declaration of `strnlen', and to 0 if you
    don't. */
 #undef HAVE_DECL_STRNLEN
+
+/* Define to 1 if you have the declaration of `timegm', and to 0 if you don't.
+   */
+#undef HAVE_DECL_TIMEGM
 
 /* Define to 1 if you have the declaration of `_snprintf', and to 0 if you
    don't. */
@@ -300,6 +451,9 @@
    declares uintmax_t. */
 #undef HAVE_INTTYPES_H_WITH_UINTMAX
 
+/* Define to 1 if you have the `ioctl' function. */
+#undef HAVE_IOCTL
+
 /* Define to 1 if <sys/socket.h> defines AF_INET. */
 #undef HAVE_IPV4
 
@@ -329,6 +483,9 @@
 
 /* Define to 1 if you have the `parted' library (-lparted). */
 #undef HAVE_LIBPARTED
+
+/* whether libpcap can be used */
+#undef HAVE_LIBPCAP
 
 /* Define to 1 if you have the `portablexdr' library (-lportablexdr). */
 #undef HAVE_LIBPORTABLEXDR
@@ -399,6 +556,9 @@
 
 /* Define to 1 if you have the <netinet/in.h> header file. */
 #undef HAVE_NETINET_IN_H
+
+/* Define to 1 if you have the <net/ethernet.h> header file. */
+#undef HAVE_NET_ETHERNET_H
 
 /* whether numactl is available for topology info */
 #undef HAVE_NUMACTL
@@ -579,6 +739,9 @@
 /* Define to 1 if getusershell is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_GETUSERSHELL
 
+/* Define to 1 if grantpt is declared even after undefining macros. */
+#undef HAVE_RAW_DECL_GRANTPT
+
 /* Define to 1 if inet_ntop is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_INET_NTOP
 
@@ -675,6 +838,9 @@
 /* Define to 1 if pread is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_PREAD
 
+/* Define to 1 if ptsname is declared even after undefining macros. */
+#undef HAVE_RAW_DECL_PTSNAME
+
 /* Define to 1 if random_r is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_RANDOM_R
 
@@ -750,6 +916,9 @@
 /* Define to 1 if stpncpy is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_STPNCPY
 
+/* Define to 1 if strcasecmp is declared even after undefining macros. */
+#undef HAVE_RAW_DECL_STRCASECMP
+
 /* Define to 1 if strcasestr is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_STRCASESTR
 
@@ -758,6 +927,9 @@
 
 /* Define to 1 if strdup is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_STRDUP
+
+/* Define to 1 if strncasecmp is declared even after undefining macros. */
+#undef HAVE_RAW_DECL_STRNCASECMP
 
 /* Define to 1 if strndup is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_STRNDUP
@@ -795,11 +967,17 @@
 /* Define to 1 if symlinkat is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_SYMLINKAT
 
+/* Define to 1 if ttyname_r is declared even after undefining macros. */
+#undef HAVE_RAW_DECL_TTYNAME_R
+
 /* Define to 1 if unlink is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_UNLINK
 
 /* Define to 1 if unlinkat is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_UNLINKAT
+
+/* Define to 1 if unlockpt is declared even after undefining macros. */
+#undef HAVE_RAW_DECL_UNLOCKPT
 
 /* Define to 1 if unsetenv is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_UNSETENV
@@ -904,6 +1082,9 @@
 /* Define to 1 if you have the `stpcpy' function. */
 #undef HAVE_STPCPY
 
+/* Define to 1 if you have the `strcasecmp' function. */
+#undef HAVE_STRCASECMP
+
 /* Define to 1 if you have the `strchrnul' function. */
 #undef HAVE_STRCHRNUL
 
@@ -919,11 +1100,17 @@
 /* Define to 1 if you have the <string.h> header file. */
 #undef HAVE_STRING_H
 
+/* Define to 1 if you have the `strncasecmp' function. */
+#undef HAVE_STRNCASECMP
+
 /* Define to 1 if you have the `strndup' function. */
 #undef HAVE_STRNDUP
 
 /* Define to 1 if you have the `strnlen' function. */
 #undef HAVE_STRNLEN
+
+/* Define to 1 if you have the `strptime' function. */
+#undef HAVE_STRPTIME
 
 /* Define to 1 if you have the `strsep' function. */
 #undef HAVE_STRSEP
@@ -1033,8 +1220,14 @@
 /* Define to 1 if you have the <termios.h> header file. */
 #undef HAVE_TERMIOS_H
 
+/* Define to 1 if you have the `timegm' function. */
+#undef HAVE_TIMEGM
+
 /* Define to 1 if you have the <time.h> header file. */
 #undef HAVE_TIME_H
+
+/* Define if struct tm has the tm_gmtoff member. */
+#undef HAVE_TM_GMTOFF
 
 /* use UDEV for host device enumeration */
 #undef HAVE_UDEV
@@ -1117,6 +1310,9 @@
 
 /* Define HOST_NAME_MAX when <limits.h> does not define it. */
 #undef HOST_NAME_MAX
+
+/* path to ip6tables binary */
+#undef IP6TABLES_PATH
 
 /* path to iptables binary */
 #undef IPTABLES_PATH
@@ -1335,6 +1531,9 @@
 /* with node device driver */
 #undef WITH_NODE_DEVICES
 
+/* whether local network filter management driver is available */
+#undef WITH_NWFILTER
+
 /* whether ONE driver is enabled */
 #undef WITH_ONE
 
@@ -1397,6 +1596,9 @@
 
 /* whether Xen driver is enabled */
 #undef WITH_XEN
+
+/* whether XenAPI driver is enabled */
+#undef WITH_XENAPI
 
 /* whether Xen inotify sub-driver is enabled */
 #undef WITH_XEN_INOTIFY
@@ -1463,6 +1665,9 @@
 /* Define to empty if `const' does not conform to ANSI C. */
 #undef const
 
+/* Define to `int' if <sys/types.h> doesn't define. */
+#undef gid_t
+
 /* Define to rpl_gmtime if the replacement function should be used. */
 #undef gmtime
 
@@ -1487,6 +1692,9 @@
 
 /* Define to rpl_localtime if the replacement function should be used. */
 #undef localtime
+
+/* Define to rpl_mktime if the replacement function should be used. */
+#undef mktime
 
 /* Define to the type of st_nlink in struct stat, or a supertype. */
 #undef nlink_t
@@ -1522,6 +1730,9 @@
 
 /* Define to rpl_strnlen if the replacement function should be used. */
 #undef strnlen
+
+/* Define to `int' if <sys/types.h> doesn't define. */
+#undef uid_t
 
 /* Define as a marker that can be attached to declarations that might not
     be used.  This helps to reduce warnings, such as from

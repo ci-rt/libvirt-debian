@@ -38,31 +38,31 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #if HAVE_SYS_WAIT_H
-#include <sys/wait.h>
+# include <sys/wait.h>
 #endif
 #if HAVE_MMAP
-#include <sys/mman.h>
+# include <sys/mman.h>
 #endif
 #include <string.h>
 #include <signal.h>
 #if HAVE_TERMIOS_H
-#include <termios.h>
+# include <termios.h>
 #endif
 #include "c-ctype.h"
 
 #ifdef HAVE_PATHS_H
-#include <paths.h>
+# include <paths.h>
 #endif
 #include <netdb.h>
 #ifdef HAVE_GETPWUID_R
-#include <pwd.h>
-#include <grp.h>
+# include <pwd.h>
+# include <grp.h>
 #endif
 #if HAVE_CAPNG
-#include <cap-ng.h>
+# include <cap-ng.h>
 #endif
 #ifdef HAVE_MNTENT_H
-#include <mntent.h>
+# include <mntent.h>
 #endif
 
 #include "areadlink.h"
@@ -85,9 +85,9 @@
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
-#define virUtilError(code, fmt...)                                         \
+#define virUtilError(code, ...)                                            \
         virReportErrorHelper(NULL, VIR_FROM_NONE, code, __FILE__,          \
-                             __FUNCTION__, __LINE__, fmt)
+                             __FUNCTION__, __LINE__, __VA_ARGS__)
 
 /* Like read(), but restarts after EINTR */
 int saferead(int fd, void *buf, size_t count)
@@ -135,7 +135,7 @@ int safezero(int fd, int flags ATTRIBUTE_UNUSED, off_t offset, off_t len)
 }
 #else
 
-#ifdef HAVE_MMAP
+# ifdef HAVE_MMAP
 int safezero(int fd, int flags ATTRIBUTE_UNUSED, off_t offset, off_t len)
 {
     int r;
@@ -158,7 +158,7 @@ int safezero(int fd, int flags ATTRIBUTE_UNUSED, off_t offset, off_t len)
     return 0;
 }
 
-#else /* HAVE_MMAP */
+# else /* HAVE_MMAP */
 
 int safezero(int fd, int flags ATTRIBUTE_UNUSED, off_t offset, off_t len)
 {
@@ -195,7 +195,7 @@ int safezero(int fd, int flags ATTRIBUTE_UNUSED, off_t offset, off_t len)
     VIR_FREE(buf);
     return 0;
 }
-#endif /* HAVE_MMAP */
+# endif /* HAVE_MMAP */
 #endif /* HAVE_POSIX_FALLOCATE */
 
 #ifndef PROXY
@@ -244,14 +244,14 @@ virArgvToString(const char *const *argv)
 }
 
 int virSetNonBlock(int fd) {
-#ifndef WIN32
+# ifndef WIN32
     int flags;
     if ((flags = fcntl(fd, F_GETFL)) < 0)
         return -1;
     flags |= O_NONBLOCK;
     if ((fcntl(fd, F_SETFL, flags)) < 0)
         return -1;
-#else
+# else
     unsigned long flag = 1;
 
     /* This is actually Gnulib's replacement rpl_ioctl function.
@@ -259,12 +259,12 @@ int virSetNonBlock(int fd) {
      */
     if (ioctl (fd, FIONBIO, (void *) &flag) == -1)
         return -1;
-#endif
+# endif
     return 0;
 }
 
 
-#ifndef WIN32
+# ifndef WIN32
 
 int virSetCloseExec(int fd) {
     int flags;
@@ -277,7 +277,7 @@ int virSetCloseExec(int fd) {
 }
 
 
-#if HAVE_CAPNG
+#  if HAVE_CAPNG
 static int virClearCapabilities(void)
 {
     int ret;
@@ -291,13 +291,13 @@ static int virClearCapabilities(void)
 
     return 0;
 }
-#else
+#  else
 static int virClearCapabilities(void)
 {
 //    VIR_WARN0("libcap-ng support not compiled in, unable to clear capabilities");
     return 0;
 }
-#endif
+#  endif
 
 
 /* virFork() - fork a new process while avoiding various race/deadlock conditions
@@ -316,7 +316,9 @@ static int virClearCapabilities(void)
 
  */
 int virFork(pid_t *pid) {
+#  ifdef HAVE_PTHREAD_H
     sigset_t oldmask, newmask;
+#  endif
     struct sigaction sig_action;
     int saved_errno, ret = -1;
 
@@ -326,6 +328,7 @@ int virFork(pid_t *pid) {
      * Need to block signals now, so that child process can safely
      * kill off caller's signal handlers without a race.
      */
+#  ifdef HAVE_PTHREAD_H
     sigfillset(&newmask);
     if (pthread_sigmask(SIG_SETMASK, &newmask, &oldmask) != 0) {
         saved_errno = errno;
@@ -333,6 +336,7 @@ int virFork(pid_t *pid) {
                              "%s", _("cannot block signals"));
         goto cleanup;
     }
+#  endif
 
     /* Ensure we hold the logging lock, to protect child processes
      * from deadlocking on another thread's inherited mutex state */
@@ -345,9 +349,11 @@ int virFork(pid_t *pid) {
     virLogUnlock();
 
     if (*pid < 0) {
+#  ifdef HAVE_PTHREAD_H
         /* attempt to restore signal mask, but ignore failure, to
            avoid obscuring the fork failure */
         ignore_value (pthread_sigmask(SIG_SETMASK, &oldmask, NULL));
+#  endif
         virReportSystemError(saved_errno,
                              "%s", _("cannot fork child process"));
         goto cleanup;
@@ -357,6 +363,7 @@ int virFork(pid_t *pid) {
 
         /* parent process */
 
+#  ifdef HAVE_PTHREAD_H
         /* Restore our original signal mask now that the child is
            safely running */
         if (pthread_sigmask(SIG_SETMASK, &oldmask, NULL) != 0) {
@@ -364,6 +371,7 @@ int virFork(pid_t *pid) {
             virReportSystemError(errno, "%s", _("cannot unblock signals"));
             goto cleanup;
         }
+#  endif
         ret = 0;
 
     } else {
@@ -399,6 +407,7 @@ int virFork(pid_t *pid) {
             sigaction(i, &sig_action, NULL);
         }
 
+#  ifdef HAVE_PTHREAD_H
         /* Unmask all signals in child, since we've no idea
            what the caller's done with their signal mask
            and don't want to propagate that to children */
@@ -408,6 +417,7 @@ int virFork(pid_t *pid) {
             virReportSystemError(errno, "%s", _("cannot unblock signals"));
             goto cleanup;
         }
+#  endif
         ret = 0;
     }
 
@@ -776,7 +786,7 @@ int virExecDaemonize(const char *const*argv,
     return ret;
 }
 
-static int
+int
 virPipeReadUntilEOF(int outfd, int errfd,
                     char **outbuf, char **errbuf) {
 
@@ -944,7 +954,12 @@ virRunWithHook(const char *const*argv,
     return ret;
 }
 
-#else /* __MINGW32__ */
+# else /* WIN32 */
+
+int virSetCloseExec(int fd ATTRIBUTE_UNUSED)
+{
+    return -1;
+}
 
 int
 virRunWithHook(const char *const *argv ATTRIBUTE_UNUSED,
@@ -955,7 +970,8 @@ virRunWithHook(const char *const *argv ATTRIBUTE_UNUSED,
     if (status)
         *status = ENOTSUP;
     else
-        virUtilError(VIR_ERR_INTERNAL_ERROR, __FUNCTION__);
+        virUtilError(VIR_ERR_INTERNAL_ERROR,
+                     "%s", _("virRunWithHook is not implemented for WIN32"));
     return -1;
 }
 
@@ -969,11 +985,31 @@ virExec(const char *const*argv ATTRIBUTE_UNUSED,
         int *errfd ATTRIBUTE_UNUSED,
         int flags ATTRIBUTE_UNUSED)
 {
-    virUtilError(VIR_ERR_INTERNAL_ERROR, __FUNCTION__);
+    virUtilError(VIR_ERR_INTERNAL_ERROR,
+                 "%s", _("virExec is not implemented for WIN32"));
     return -1;
 }
 
-#endif /* __MINGW32__ */
+int
+virExecDaemonize(const char *const*argv ATTRIBUTE_UNUSED,
+                 const char *const*envp ATTRIBUTE_UNUSED,
+                 const fd_set *keepfd ATTRIBUTE_UNUSED,
+                 pid_t *retpid ATTRIBUTE_UNUSED,
+                 int infd ATTRIBUTE_UNUSED,
+                 int *outfd ATTRIBUTE_UNUSED,
+                 int *errfd ATTRIBUTE_UNUSED,
+                 int flags ATTRIBUTE_UNUSED,
+                 virExecHook hook ATTRIBUTE_UNUSED,
+                 void *data ATTRIBUTE_UNUSED,
+                 char *pidfile ATTRIBUTE_UNUSED)
+{
+    virUtilError(VIR_ERR_INTERNAL_ERROR,
+                 "%s", _("virExecDaemonize is not implemented for WIN32"));
+
+    return -1;
+}
+
+# endif /* WIN32 */
 
 int
 virRun(const char *const*argv,
@@ -1030,10 +1066,17 @@ saferead_lim (int fd, size_t max_len, size_t *length)
 
 /* A wrapper around saferead_lim that maps a failure due to
    exceeding the maximum size limitation to EOVERFLOW.  */
-int virFileReadLimFD(int fd, int maxlen, char **buf)
+int
+virFileReadLimFD(int fd, int maxlen, char **buf)
 {
     size_t len;
-    char *s = saferead_lim (fd, maxlen+1, &len);
+    char *s;
+
+    if (maxlen <= 0) {
+        errno = EINVAL;
+        return -1;
+    }
+    s = saferead_lim (fd, maxlen+1, &len);
     if (s == NULL)
         return -1;
     if (len > maxlen || (int)len != len) {
@@ -1117,7 +1160,7 @@ int virFileHasSuffix(const char *str,
     return STREQ(str + len - suffixlen, suffix);
 }
 
-#define SAME_INODE(Stat_buf_1, Stat_buf_2) \
+# define SAME_INODE(Stat_buf_1, Stat_buf_2) \
   ((Stat_buf_1).st_ino == (Stat_buf_2).st_ino \
    && (Stat_buf_1).st_dev == (Stat_buf_2).st_dev)
 
@@ -1214,7 +1257,7 @@ int virFileExists(const char *path)
     return(0);
 }
 
-
+# ifndef WIN32
 static int virFileOperationNoFork(const char *path, int openflags, mode_t mode,
                                   uid_t uid, gid_t gid,
                                   virFileOperationHook hook, void *hookdata,
@@ -1304,7 +1347,6 @@ error:
     return ret;
 }
 
-#ifndef WIN32
 int virFileOperation(const char *path, int openflags, mode_t mode,
                      uid_t uid, gid_t gid,
                      virFileOperationHook hook, void *hookdata,
@@ -1523,21 +1565,35 @@ childerror:
     _exit(ret);
 }
 
-#else /* WIN32 */
+# else /* WIN32 */
 
-int virFileOperation(const char *path, int openflags, mode_t mode,
-                  uid_t uid, gid_t gid,
-                  virFileOperationHook hook, void *hookdata,
-                  unsigned int flags) {
-    return virFileOperationNoFork(path, openflags, mode, uid, gid,
-                                  hook, hookdata, flags);
+int virFileOperation(const char *path ATTRIBUTE_UNUSED,
+                     int openflags ATTRIBUTE_UNUSED,
+                     mode_t mode ATTRIBUTE_UNUSED,
+                     uid_t uid ATTRIBUTE_UNUSED,
+                     gid_t gid ATTRIBUTE_UNUSED,
+                     virFileOperationHook hook ATTRIBUTE_UNUSED,
+                     void *hookdata ATTRIBUTE_UNUSED,
+                     unsigned int flags ATTRIBUTE_UNUSED)
+{
+    virUtilError(VIR_ERR_INTERNAL_ERROR,
+                 "%s", _("virFileOperation is not implemented for WIN32"));
+
+    return -1;
 }
 
-int virDirCreate(const char *path, mode_t mode,
-                 uid_t uid, gid_t gid, unsigned int flags) {
-    return virDirCreateNoFork(path, mode, uid, gid, flags);
+int virDirCreate(const char *path ATTRIBUTE_UNUSED,
+                 mode_t mode ATTRIBUTE_UNUSED,
+                 uid_t uid ATTRIBUTE_UNUSED,
+                 gid_t gid ATTRIBUTE_UNUSED,
+                 unsigned int flags ATTRIBUTE_UNUSED)
+{
+    virUtilError(VIR_ERR_INTERNAL_ERROR,
+                 "%s", _("virDirCreate is not implemented for WIN32"));
+
+    return -1;
 }
-#endif
+# endif /* WIN32 */
 
 static int virFileMakePathHelper(char *path) {
     struct stat st;
@@ -1631,7 +1687,7 @@ int virFileOpenTty(int *ttymaster,
                             rawmode);
 }
 
-#ifdef __linux__
+# ifdef __linux__
 int virFileOpenTtyAt(const char *ptmx,
                      int *ttymaster,
                      char **ttyName,
@@ -1681,7 +1737,7 @@ cleanup:
     return rc;
 
 }
-#else
+# else
 int virFileOpenTtyAt(const char *ptmx ATTRIBUTE_UNUSED,
                      int *ttymaster ATTRIBUTE_UNUSED,
                      char **ttyName ATTRIBUTE_UNUSED,
@@ -1689,7 +1745,7 @@ int virFileOpenTtyAt(const char *ptmx ATTRIBUTE_UNUSED,
 {
     return -1;
 }
-#endif
+# endif
 
 char* virFilePid(const char *dir, const char* name)
 {
@@ -2018,6 +2074,41 @@ virParseNumber(const char **str)
     return (ret);
 }
 
+
+/**
+ * virParseVersionString:
+ * @str: const char pointer to the version string
+ * @version: unsigned long pointer to output the version number
+ *
+ * Parse an unsigned version number from a version string. Expecting
+ * 'major.minor.micro' format, ignoring an optional suffix.
+ *
+ * The major, minor and micro numbers are encoded into a single version number:
+ *
+ *   1000000 * major + 1000 * minor + micro
+ *
+ * Returns the 0 for success, -1 for error.
+ */
+int
+virParseVersionString(const char *str, unsigned long *version)
+{
+    unsigned int major, minor, micro;
+    char *tmp;
+
+    if (virStrToLong_ui(str, &tmp, 10, &major) < 0 || *tmp != '.')
+        return -1;
+
+    if (virStrToLong_ui(tmp + 1, &tmp, 10, &minor) < 0 || *tmp != '.')
+        return -1;
+
+    if (virStrToLong_ui(tmp + 1, &tmp, 10, &micro) < 0)
+        return -1;
+
+    *version = 1000000 * major + 1000 * minor + micro;
+
+    return 0;
+}
+
 /**
  * virAsprintf
  *
@@ -2204,8 +2295,9 @@ const char *virEnumToString(const char *const*types,
     return types[type];
 }
 
-/* Translates a device name of the form (regex) "[fhv]d[a-z]+" into
- * the corresponding index (e.g. sda => 0, hdz => 25, vdaa => 26)
+/* Translates a device name of the form (regex) /^[fhv]d[a-z]+[0-9]*$/
+ * into the corresponding index (e.g. sda => 0, hdz => 25, vdaa => 26)
+ * Note that any trailing string of digits is simply ignored.
  * @param name The name of the device
  * @return name's index, or -1 on failure
  */
@@ -2229,11 +2321,16 @@ int virDiskNameToIndex(const char *name) {
         idx = (idx + (i < 1 ? 0 : 1)) * 26;
 
         if (!c_islower(*ptr))
-            return -1;
+            break;
 
         idx += *ptr - 'a';
         ptr++;
     }
+
+    /* Count the trailing digits.  */
+    size_t n_digits = strspn(ptr, "0123456789");
+    if (ptr[n_digits] != '\0')
+        return -1;
 
     return idx;
 }
@@ -2269,7 +2366,7 @@ char *virIndexToDiskName(int idx, const char *prefix)
 }
 
 #ifndef AI_CANONIDN
-#define AI_CANONIDN 0
+# define AI_CANONIDN 0
 #endif
 
 char *virGetHostnameLocalhost(int allow_localhost)
@@ -2578,7 +2675,46 @@ int virGetGroupID(const char *name,
 
     return 0;
 }
-#endif
+
+#else /* HAVE_GETPWUID_R */
+
+char *
+virGetUserDirectory(uid_t uid ATTRIBUTE_UNUSED)
+{
+    virUtilError(VIR_ERR_INTERNAL_ERROR,
+                 "%s", _("virGetUserDirectory is not available"));
+
+    return NULL;
+}
+
+char *
+virGetUserName(uid_t uid ATTRIBUTE_UNUSED)
+{
+    virUtilError(VIR_ERR_INTERNAL_ERROR,
+                 "%s", _("virGetUserName is not available"));
+
+    return NULL;
+}
+
+int virGetUserID(const char *name ATTRIBUTE_UNUSED,
+                 uid_t *uid ATTRIBUTE_UNUSED)
+{
+    virUtilError(VIR_ERR_INTERNAL_ERROR,
+                 "%s", _("virGetUserID is not available"));
+
+    return 0;
+}
+
+
+int virGetGroupID(const char *name ATTRIBUTE_UNUSED,
+                  gid_t *gid ATTRIBUTE_UNUSED)
+{
+    virUtilError(VIR_ERR_INTERNAL_ERROR,
+                 "%s", _("virGetGroupID is not available"));
+
+    return 0;
+}
+#endif /* HAVE_GETPWUID_R */
 
 
 #ifdef HAVE_MNTENT_H
@@ -2612,17 +2748,28 @@ cleanup:
 
     return ret;
 }
-#endif
+
+#else /* HAVE_MNTENT_H */
+
+char *
+virFileFindMountPoint(const char *type ATTRIBUTE_UNUSED)
+{
+    errno = ENOSYS;
+
+    return NULL;
+}
+
+#endif /* HAVE_MNTENT_H */
 
 #ifndef PROXY
-#if defined(UDEVADM) || defined(UDEVSETTLE)
+# if defined(UDEVADM) || defined(UDEVSETTLE)
 void virFileWaitForDevices(void)
 {
-#ifdef UDEVADM
+#  ifdef UDEVADM
     const char *const settleprog[] = { UDEVADM, "settle", NULL };
-#else
+#  else
     const char *const settleprog[] = { UDEVSETTLE, NULL };
-#endif
+#  endif
     int exitstatus;
 
     if (access(settleprog[0], X_OK) != 0)
@@ -2637,9 +2784,9 @@ void virFileWaitForDevices(void)
     if (virRun(settleprog, &exitstatus) < 0)
     {}
 }
-#else
+# else
 void virFileWaitForDevices(void) {}
-#endif
+# endif
 #endif
 
 int virBuildPathInternal(char **path, ...)

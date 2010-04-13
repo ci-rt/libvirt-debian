@@ -36,6 +36,7 @@
 #include "uuid.h"
 #include "hostusb.h"
 #include "pci.h"
+#include "storage_file.h"
 
 static char *progname;
 
@@ -182,6 +183,8 @@ parserCommand(const char *profile_name, const char cmd)
 {
     char flag[3];
     char profile[PATH_MAX];
+    int status;
+    int ret;
 
     if (strchr("arR", cmd) == NULL) {
         vah_error(NULL, 0, "invalid flag");
@@ -203,9 +206,17 @@ parserCommand(const char *profile_name, const char cmd)
         const char * const argv[] = {
             "/sbin/apparmor_parser", flag, profile, NULL
         };
-        if (virRun(argv, NULL) != 0) {
-            vah_error(NULL, 0, "failed to run apparmor_parser");
-            return -1;
+        if ((ret = virRun(argv, &status)) != 0 ||
+            (WIFEXITED(status) && WEXITSTATUS(status) != 0)) {
+            if (ret != 0) {
+                vah_error(NULL, 0, "failed to run apparmor_parser");
+                return -1;
+            } else if (cmd == 'R' && WIFEXITED(status) && WEXITSTATUS(status) == 234) {
+                vah_warning("unable to unload already unloaded profile (non-fatal)");
+            } else {
+                vah_error(NULL, 0, "apparmor_parser exited with error");
+                return -1;
+            }
         }
     }
 
@@ -479,7 +490,7 @@ static int
 valid_path(const char *path, const bool readonly)
 {
     struct stat sb;
-    int npaths;
+    int npaths, opaths;
     const char * const restricted[] = {
         "/bin/",
         "/etc/",
@@ -504,6 +515,10 @@ valid_path(const char *path, const bool readonly)
         "/vmlinuz",
         "/initrd",
         "/initrd.img"
+    };
+    /* override the above with these */
+    const char * const override[] = {
+        "/sys/devices/pci"	/* for hostdev pci devices */
     };
 
     if (path == NULL || strlen(path) > PATH_MAX - 1) {
@@ -542,9 +557,12 @@ valid_path(const char *path, const bool readonly)
         }
     }
 
+    opaths = sizeof(override)/sizeof *(override);
+
     npaths = sizeof(restricted)/sizeof *(restricted);
-    if (array_starts_with(path, restricted, npaths) == 0)
-        return 1;
+    if (array_starts_with(path, restricted, npaths) == 0 &&
+        array_starts_with(path, override, opaths) != 0)
+            return 1;
 
     npaths = sizeof(restricted_rw)/sizeof *(restricted_rw);
     if (!readonly) {
@@ -690,7 +708,8 @@ get_definition(vahControl * ctl, const char *xmlStr)
         goto exit;
     }
 
-    ctl->def = virDomainDefParseString(ctl->caps, xmlStr, 0);
+    ctl->def = virDomainDefParseString(ctl->caps, xmlStr,
+                                       VIR_DOMAIN_XML_INACTIVE);
     if (ctl->def == NULL) {
         vah_error(ctl, 0, "could not parse XML");
         goto exit;
@@ -756,7 +775,7 @@ vah_add_file(virBufferPtr buf, const char *path, const char *perms)
 
     virBufferVSprintf(buf, "  \"%s\" %s,\n", tmp, perms);
     if (readonly) {
-        virBufferVSprintf(buf, "  # don't audit writes to readonly media\n");
+        virBufferVSprintf(buf, "  # don't audit writes to readonly files\n");
         virBufferVSprintf(buf, "  deny \"%s\" w,\n", tmp);
     }
 
@@ -767,8 +786,16 @@ vah_add_file(virBufferPtr buf, const char *path, const char *perms)
 }
 
 static int
-file_iterate_cb(usbDevice *dev ATTRIBUTE_UNUSED,
-                const char *file, void *opaque)
+file_iterate_hostdev_cb(usbDevice *dev ATTRIBUTE_UNUSED,
+                        const char *file, void *opaque)
+{
+    virBufferPtr buf = opaque;
+    return vah_add_file(buf, file, "rw");
+}
+
+static int
+file_iterate_pci_cb(pciDevice *dev ATTRIBUTE_UNUSED,
+                        const char *file, void *opaque)
 {
     virBufferPtr buf = opaque;
     return vah_add_file(buf, file, "rw");
@@ -798,6 +825,33 @@ get_files(vahControl * ctl)
     for (i = 0; i < ctl->def->ndisks; i++)
         if (ctl->def->disks[i] && ctl->def->disks[i]->src) {
             int ret;
+            const char *path;
+
+            path = ctl->def->disks[i]->src;
+            do {
+                virStorageFileMetadata meta;
+
+                memset(&meta, 0, sizeof(meta));
+
+                ret = virStorageFileGetMetadata(path, &meta);
+
+                if (path != ctl->def->disks[i]->src)
+                    VIR_FREE(path);
+                path = NULL;
+
+                if (ret < 0) {
+                    vah_warning("could not open path, skipping");
+                    continue;
+                }
+
+                if (meta.backingStore != NULL &&
+                    (ret = vah_add_file(&buf, meta.backingStore, "rw")) != 0) {
+                    VIR_FREE(meta.backingStore);
+                    goto clean;
+                }
+
+                path = meta.backingStore;
+            } while (path != NULL);
 
             if (ctl->def->disks[i]->readonly)
                 ret = vah_add_file(&buf, ctl->def->disks[i]->src, "r");
@@ -818,16 +872,22 @@ get_files(vahControl * ctl)
         if (vah_add_file(&buf, ctl->def->console->data.file.path, "w") != 0)
             goto clean;
 
-    if (ctl->def->os.kernel && ctl->def->os.kernel)
+    if (ctl->def->os.kernel)
         if (vah_add_file(&buf, ctl->def->os.kernel, "r") != 0)
             goto clean;
 
-    if (ctl->def->os.initrd && ctl->def->os.initrd)
+    if (ctl->def->os.initrd)
         if (vah_add_file(&buf, ctl->def->os.initrd, "r") != 0)
             goto clean;
 
     if (ctl->def->os.loader && ctl->def->os.loader)
         if (vah_add_file(&buf, ctl->def->os.loader, "r") != 0)
+            goto clean;
+
+    if (ctl->def->ngraphics == 1 &&
+        ctl->def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_SDL)
+        if (vah_add_file(&buf, ctl->def->graphics[0]->data.sdl.xauth,
+                         "r") != 0)
             goto clean;
 
     for (i = 0; i < ctl->def->nhostdevs; i++)
@@ -841,13 +901,13 @@ get_files(vahControl * ctl)
                 if (usb == NULL)
                     continue;
 
-                rc = usbDeviceFileIterate(usb, file_iterate_cb, &buf);
+                rc = usbDeviceFileIterate(usb, file_iterate_hostdev_cb, &buf);
                 usbFreeDevice(usb);
                 if (rc != 0)
                     goto clean;
                 break;
             }
-/* TODO: update so files in /sys are readonly
+
             case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI: {
                 pciDevice *pci = pciGetDevice(
                            dev->source.subsys.u.pci.domain,
@@ -858,12 +918,12 @@ get_files(vahControl * ctl)
                 if (pci == NULL)
                     continue;
 
-                rc = pciDeviceFileIterate(NULL, pci, file_iterate_cb, &buf);
+                rc = pciDeviceFileIterate(pci, file_iterate_pci_cb, &buf);
                 pciFreeDevice(pci);
 
                 break;
             }
-*/
+
             default:
                 rc = 0;
                 break;

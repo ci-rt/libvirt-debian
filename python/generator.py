@@ -169,7 +169,13 @@ skipped_modules = {
 skipped_types = {
 #    'int *': "usually a return type",
      'virConnectDomainEventCallback': "No function types in python",
+     'virConnectDomainEventGenericCallback': "No function types in python",
+     'virConnectDomainEventRTCChangeCallback': "No function types in python",
+     'virConnectDomainEventWatchdogCallback': "No function types in python",
+     'virConnectDomainEventIOErrorCallback': "No function types in python",
+     'virConnectDomainEventGraphicsCallback': "No function types in python",
      'virEventAddHandleFunc': "No function types in python",
+     'virNWFilterPtr': "No function types in python",
 }
 
 #######################################################################
@@ -235,6 +241,8 @@ py_types = {
     'const virStreamPtr':  ('O', "virStream", "virStreamPtr", "virStreamPtr"),
     'virStream *':  ('O', "virStream", "virStreamPtr", "virStreamPtr"),
     'const virStream *':  ('O', "virStream", "virStreamPtr", "virStreamPtr"),
+
+    'virDomainSnapshotPtr':  ('O', "virDomainSnapshot", "virDomainSnapshotPtr", "virDomainSnapshotPtr"),
 }
 
 py_return_types = {
@@ -268,6 +276,7 @@ skip_impl = (
     'virConnectListStorageVols',
     'virConnectListDefinedStorageVols',
     'virConnectListDefinedInterfaces',
+    'virConnectListNWFilters',
     'virConnGetLastError',
     'virGetLastError',
     'virDomainGetInfo',
@@ -310,6 +319,7 @@ skip_impl = (
     'virNodeListDevices',
     'virNodeDeviceListCaps',
     'virConnectBaselineCPU',
+    'virDomainSnapshotListNames',
 )
 
 
@@ -330,6 +340,8 @@ skip_function = (
     'virNodeGetSecurityModel', # Needs investigation...
     'virConnectDomainEventRegister',   # overridden in virConnect.py
     'virConnectDomainEventDeregister', # overridden in virConnect.py
+    'virConnectDomainEventRegisterAny',   # overridden in virConnect.py
+    'virConnectDomainEventDeregisterAny', # overridden in virConnect.py
     'virSaveLastError', # We have our own python error wrapper
     'virFreeError', # Only needed if we use virSaveLastError
     'virStreamEventAddCallback',

@@ -23,11 +23,11 @@
 
 
 #ifndef QEMU_MONITOR_JSON_H
-#define QEMU_MONITOR_JSON_H
+# define QEMU_MONITOR_JSON_H
 
-#include "internal.h"
+# include "internal.h"
 
-#include "qemu_monitor.h"
+# include "qemu_monitor.h"
 
 int qemuMonitorJSONIOProcess(qemuMonitorPtr mon,
                              const char *data,
@@ -80,6 +80,9 @@ int qemuMonitorJSONSavePhysicalMemory(qemuMonitorPtr mon,
 
 int qemuMonitorJSONSetMigrationSpeed(qemuMonitorPtr mon,
                                      unsigned long bandwidth);
+
+int qemuMonitorJSONSetMigrationDowntime(qemuMonitorPtr mon,
+                                        unsigned long long downtime);
 
 int qemuMonitorJSONGetMigrationStatus(qemuMonitorPtr mon,
                                       int *status,
@@ -171,5 +174,9 @@ int qemuMonitorJSONAddDrive(qemuMonitorPtr mon,
 int qemuMonitorJSONSetDrivePassphrase(qemuMonitorPtr mon,
                                       const char *alias,
                                       const char *passphrase);
+
+int qemuMonitorJSONCreateSnapshot(qemuMonitorPtr mon, const char *name);
+int qemuMonitorJSONLoadSnapshot(qemuMonitorPtr mon, const char *name);
+int qemuMonitorJSONDeleteSnapshot(qemuMonitorPtr mon, const char *name);
 
 #endif /* QEMU_MONITOR_JSON_H */

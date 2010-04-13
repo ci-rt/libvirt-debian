@@ -593,7 +593,8 @@ int qemuMonitorTextGetMemoryStats(qemuMonitorPtr mon,
     }
 
     if ((offset = strstr(reply, BALLOON_PREFIX)) != NULL) {
-        if ((offset = strchr(reply, ',')) != NULL) {
+        offset += strlen(BALLOON_PREFIX);
+        if ((offset = strchr(offset, ',')) != NULL) {
             ret = qemuMonitorParseExtraBalloonInfo(offset, stats, nr_stats);
         }
     }
@@ -906,6 +907,13 @@ int qemuMonitorTextChangeMedia(qemuMonitorPtr mon,
         goto cleanup;
     }
 
+    /* Could not open message indicates bad filename */
+    if (strstr(reply, "\nCould not open ")) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED,
+                        _("could not change media on %s: %s"), devname, reply);
+        goto cleanup;
+    }
+
     ret = 0;
 
 cleanup:
@@ -938,7 +946,7 @@ static int qemuMonitorTextSaveMemory(qemuMonitorPtr mon,
 
     if (qemuMonitorCommand(mon, cmd, &reply) < 0) {
         qemuReportError(VIR_ERR_OPERATION_FAILED,
-                        _("could save memory region to '%s'"), path);
+                        _("could not save memory region to '%s'"), path);
         goto cleanup;
     }
 
@@ -985,7 +993,34 @@ int qemuMonitorTextSetMigrationSpeed(qemuMonitorPtr mon,
 
     if (qemuMonitorCommand(mon, cmd, &info) < 0) {
         qemuReportError(VIR_ERR_OPERATION_FAILED,
-                        "%s", _("could restrict migration speed"));
+                        "%s", _("could not restrict migration speed"));
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(info);
+    VIR_FREE(cmd);
+    return ret;
+}
+
+
+int qemuMonitorTextSetMigrationDowntime(qemuMonitorPtr mon,
+                                        unsigned long long downtime)
+{
+    char *cmd = NULL;
+    char *info = NULL;
+    int ret = -1;
+
+    if (virAsprintf(&cmd, "migrate_set_downtime %llums", downtime) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if (qemuMonitorCommand(mon, cmd, &info) < 0) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED,
+                        "%s", _("could not set maximum migration downtime"));
         goto cleanup;
     }
 
@@ -1047,7 +1082,7 @@ int qemuMonitorTextGetMigrationStatus(qemuMonitorPtr mon,
                 goto done;
             tmp += strlen(MIGRATION_TRANSFER_PREFIX);
 
-            if (virStrToLong_ull(tmp, &end, 10, transferred) < 0 || !end) {
+            if (virStrToLong_ull(tmp, &end, 10, transferred) < 0) {
                 qemuReportError(VIR_ERR_INTERNAL_ERROR,
                                 _("cannot parse migration data transferred statistic %s"), tmp);
                 goto cleanup;
@@ -1059,7 +1094,7 @@ int qemuMonitorTextGetMigrationStatus(qemuMonitorPtr mon,
                 goto done;
             tmp += strlen(MIGRATION_REMAINING_PREFIX);
 
-            if (virStrToLong_ull(tmp, &end, 10, remaining) < 0 || !end) {
+            if (virStrToLong_ull(tmp, &end, 10, remaining) < 0) {
                 qemuReportError(VIR_ERR_INTERNAL_ERROR,
                                 _("cannot parse migration data remaining statistic %s"), tmp);
                 goto cleanup;
@@ -1070,7 +1105,7 @@ int qemuMonitorTextGetMigrationStatus(qemuMonitorPtr mon,
                 goto done;
             tmp += strlen(MIGRATION_TOTAL_PREFIX);
 
-            if (virStrToLong_ull(tmp, &end, 10, total) < 0 || !end) {
+            if (virStrToLong_ull(tmp, &end, 10, total) < 0) {
                 qemuReportError(VIR_ERR_INTERNAL_ERROR,
                                 _("cannot parse migration data total statistic %s"), tmp);
                 goto cleanup;
@@ -2260,5 +2295,146 @@ cleanup:
     VIR_FREE(cmd);
     VIR_FREE(reply);
     VIR_FREE(safe_str);
+    return ret;
+}
+
+int qemuMonitorTextCreateSnapshot(qemuMonitorPtr mon, const char *name)
+{
+    char *cmd;
+    char *reply = NULL;
+    int ret = -1;
+
+    if (virAsprintf(&cmd, "savevm \"%s\"", name) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    if (qemuMonitorCommand(mon, cmd, &reply)) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED,
+                        _("failed to take snapshot using command '%s'"), cmd);
+        goto cleanup;
+    }
+
+    if (strstr(reply, "Error while creating snapshot") != NULL) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED,
+                        _("Failed to take snapshot: %s"), reply);
+        goto cleanup;
+    }
+    else if (strstr(reply, "No block device can accept snapshots") != NULL) {
+        qemuReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                        _("this domain does not have a device to take snapshots"));
+        goto cleanup;
+    }
+    else if (strstr(reply, "Could not open VM state file") != NULL) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED, "%s", reply);
+        goto cleanup;
+    }
+    else if (strstr(reply, "Error") != NULL
+             && strstr(reply, "while writing VM") != NULL) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED, "%s", reply);
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(cmd);
+    VIR_FREE(reply);
+    return ret;
+}
+
+int qemuMonitorTextLoadSnapshot(qemuMonitorPtr mon, const char *name)
+{
+    char *cmd;
+    char *reply = NULL;
+    int ret = -1;
+
+    if (virAsprintf(&cmd, "loadvm \"%s\"", name) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    if (qemuMonitorCommand(mon, cmd, &reply)) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED,
+                         _("failed to restore snapshot using command '%s'"),
+                         cmd);
+        goto cleanup;
+    }
+
+    if (strstr(reply, "No block device supports snapshots") != NULL) {
+        qemuReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                        _("this domain does not have a device to load snapshots"));
+        goto cleanup;
+    }
+    else if (strstr(reply, "Could not find snapshot") != NULL) {
+        qemuReportError(VIR_ERR_OPERATION_INVALID,
+                         _("the snapshot '%s' does not exist, and was not loaded"),
+                         name);
+        goto cleanup;
+    }
+    else if (strstr(reply, "Snapshots not supported on device") != NULL) {
+        qemuReportError(VIR_ERR_OPERATION_INVALID, "%s", reply);
+        goto cleanup;
+    }
+    else if (strstr(reply, "Could not open VM state file") != NULL) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED, "%s", reply);
+        goto cleanup;
+    }
+    else if (strstr(reply, "Error") != NULL
+             && strstr(reply, "while loading VM state") != NULL) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED, "%s", reply);
+        goto cleanup;
+    }
+    else if (strstr(reply, "Error") != NULL
+             && strstr(reply, "while activating snapshot on") != NULL) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED, "%s", reply);
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(cmd);
+    VIR_FREE(reply);
+    return ret;
+}
+
+int qemuMonitorTextDeleteSnapshot(qemuMonitorPtr mon, const char *name)
+{
+    char *cmd;
+    char *reply = NULL;
+    int ret = -1;
+
+    if (virAsprintf(&cmd, "delvm \"%s\"", name) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+    if (qemuMonitorCommand(mon, cmd, &reply)) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED,
+                         _("failed to delete snapshot using command '%s'"),
+                         cmd);
+        goto cleanup;
+    }
+
+    if (strstr(reply, "No block device supports snapshots") != NULL) {
+        qemuReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                        _("this domain does not have a device to delete snapshots"));
+        goto cleanup;
+    }
+    else if (strstr(reply, "Snapshots not supported on device") != NULL) {
+        qemuReportError(VIR_ERR_OPERATION_INVALID, "%s", reply);
+        goto cleanup;
+    }
+    else if (strstr(reply, "Error") != NULL
+             && strstr(reply, "while deleting snapshot") != NULL) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED, "%s", reply);
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(cmd);
+    VIR_FREE(reply);
     return ret;
 }

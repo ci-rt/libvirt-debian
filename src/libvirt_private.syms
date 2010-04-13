@@ -81,6 +81,7 @@ cpuDecode;
 cpuEncode;
 cpuGuestData;
 cpuNodeData;
+cpuUpdate;
 
 
 # cpu_conf.h
@@ -89,6 +90,7 @@ virCPUDefParseXML;
 virCPUDefFormat;
 virCPUDefFormatBuf;
 virCPUDefAddFeature;
+virCPUDefCopy;
 
 
 # datatypes.h
@@ -105,6 +107,9 @@ virUnrefConnect;
 virUnrefSecret;
 virGetStream;
 virUnrefStream;
+virGetNWFilter;
+virUnrefNWFilter;
+virGetDomainSnapshot;
 
 
 # domain_conf.h
@@ -139,6 +144,7 @@ virDomainFindByName;
 virDomainFindByUUID;
 virDomainGetRootFilesystem;
 virDomainGraphicsTypeFromString;
+virDomainGraphicsTypeToString;
 virDomainGraphicsDefFree;
 virDomainHostdevDefFree;
 virDomainHostdevModeTypeToString;
@@ -191,15 +197,39 @@ virDomainDefClearDeviceAliases;
 virDomainDeviceInfoIterate;
 virDomainClockOffsetTypeToString;
 virDomainClockOffsetTypeFromString;
+virDomainDiskErrorPolicyTypeToString;
+virDomainTimerNameTypeToString;
+virDomainTimerNameTypeFromString;
+virDomainTimerTrackTypeToString;
+virDomainTimerTrackTypeFromString;
+virDomainTimerTickpolicyTypeToString;
+virDomainTimerTickpolicyTypeFromString;
+virDomainTimerModeTypeToString;
+virDomainTimerModeTypeFromString;
+virDomainSnapshotObjListGetNames;
+virDomainSnapshotObjListNum;
+virDomainSnapshotFindByName;
+virDomainSnapshotObjListRemove;
+virDomainSnapshotHasChildren;
+virDomainSnapshotObjUnref;
+virDomainSnapshotDefParseString;
+virDomainSnapshotDefFormat;
+virDomainSnapshotAssignDef;
 
 
 # domain_event.h
 virDomainEventCallbackListAdd;
+virDomainEventCallbackListAddID;
 virDomainEventCallbackListFree;
 virDomainEventCallbackListRemove;
+virDomainEventCallbackListRemoveID;
 virDomainEventCallbackListRemoveConn;
 virDomainEventCallbackListMarkDelete;
+virDomainEventCallbackListMarkDeleteID;
 virDomainEventCallbackListPurgeMarked;
+virDomainEventCallbackListCount;
+virDomainEventCallbackListCountID;
+virDomainEventCallbackListEventID;
 virDomainEventQueueNew;
 virDomainEventQueueFree;
 virDomainEventQueuePop;
@@ -208,6 +238,16 @@ virDomainEventNew;
 virDomainEventNewFromDom;
 virDomainEventNewFromObj;
 virDomainEventNewFromDef;
+virDomainEventRebootNewFromDom;
+virDomainEventRebootNewFromObj;
+virDomainEventRTCChangeNewFromDom;
+virDomainEventRTCChangeNewFromObj;
+virDomainEventWatchdogNewFromDom;
+virDomainEventWatchdogNewFromObj;
+virDomainEventIOErrorNewFromDom;
+virDomainEventIOErrorNewFromObj;
+virDomainEventGraphicsNewFromDom;
+virDomainEventGraphicsNewFromObj;
 virDomainEventFree;
 virDomainEventDispatchDefaultFunc;
 virDomainEventDispatch;
@@ -242,6 +282,12 @@ virHashSearch;
 virHashSize;
 
 
+# hooks.h
+virHookCall;
+virHookInitialize;
+virHookPresent;
+
+
 # interface_conf.h
 virInterfaceDefFormat;
 virInterfaceDefParseFile;
@@ -255,10 +301,6 @@ virInterfaceRemove;
 virInterfaceObjLock;
 virInterfaceObjUnlock;
 virInterfaceObjListFree;
-
-
-# interface_driver.h
-interfaceRegister;
 
 
 # iptables.h
@@ -285,10 +327,6 @@ iptablesRemoveUdpInput;
 
 
 # libvirt_internal.h
-virStateInitialize;
-virStateCleanup;
-virStateReload;
-virStateActive;
 virDrvSupportsFeature;
 virDomainMigratePrepare;
 virDomainMigratePerform;
@@ -299,10 +337,10 @@ virDomainMigratePrepareTunnel;
 virRegisterDriver;
 virRegisterInterfaceDriver;
 virRegisterNetworkDriver;
-virRegisterStateDriver;
 virRegisterStorageDriver;
 virRegisterDeviceMonitor;
 virRegisterSecretDriver;
+virRegisterNWFilterDriver;
 
 
 # json.h
@@ -436,6 +474,51 @@ virNodeDeviceObjUnlock;
 virNodeDeviceAssignDef;
 virNodeDeviceGetWWNs;
 virNodeDeviceGetParentHost;
+
+
+# nwfilter_conf.h
+virNWFilterPoolLoadAllConfigs;
+virNWFilterPoolObjAssignDef;
+virNWFilterPoolObjSaveDef;
+virNWFilterPoolObjFindByName;
+virNWFilterPoolObjFindByUUID;
+virNWFilterPoolObjLock;
+virNWFilterPoolObjUnlock;
+virNWFilterPoolObjRemove;
+virNWFilterDefFree;
+virNWFilterDefParseString;
+virNWFilterPoolObjDeleteDef;
+virNWFilterPoolObjListFree;
+virNWFilterDefFormat;
+virNWFilterChainSuffixTypeToString;
+virNWFilterRuleActionTypeToString;
+virNWFilterRuleProtocolTypeToString;
+virNWFilterJumpTargetTypeToString;
+virNWFilterRegisterCallbackDriver;
+virNWFilterTestUnassignDef;
+virNWFilterConfLayerInit;
+virNWFilterConfLayerShutdown;
+virNWFilterLockFilterUpdates;
+virNWFilterUnlockFilterUpdates;
+
+
+#nwfilter_params.h
+virNWFilterHashTableCreate;
+virNWFilterHashTableFree;
+virNWFilterHashTablePut;
+virNWFilterHashTablePutAll;
+virNWFilterHashTableRemoveEntry;
+
+
+# nwfilter_gentech_driver.h
+virNWFilterInstantiateFilter;
+virNWFilterTeardownFilter;
+
+
+# nwfilter_learnipaddr.h
+virNWFilterGetIpAddrForIfname;
+virNWFilterDelIpAddrForIfname;
+virNWFilterLookupLearnReq;
 
 
 # pci.h
@@ -583,6 +666,8 @@ virFilePid;
 virFileReadPid;
 virFileLinkPointsTo;
 virParseNumber;
+virParseVersionString;
+virPipeReadUntilEOF;
 virAsprintf;
 virRun;
 virSkipSpaces;

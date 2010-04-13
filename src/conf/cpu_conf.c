@@ -31,9 +31,9 @@
 
 #define VIR_FROM_THIS VIR_FROM_CPU
 
-#define virCPUReportError(code, fmt...)                           \
+#define virCPUReportError(code, ...)                              \
     virReportErrorHelper(NULL, VIR_FROM_CPU, code, __FILE__,      \
-                         __FUNCTION__, __LINE__, fmt)
+                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 VIR_ENUM_IMPL(virCPUMatch, VIR_CPU_MATCH_LAST,
               "minimum",
@@ -67,6 +67,43 @@ virCPUDefFree(virCPUDefPtr def)
 }
 
 
+virCPUDefPtr
+virCPUDefCopy(const virCPUDefPtr cpu)
+{
+    virCPUDefPtr copy;
+    unsigned int i;
+
+    if (!cpu)
+        return NULL;
+
+    if (VIR_ALLOC(copy) < 0
+        || (cpu->arch && !(copy->arch = strdup(cpu->arch)))
+        || (cpu->model && !(copy->model = strdup(cpu->model)))
+        || VIR_ALLOC_N(copy->features, cpu->nfeatures) < 0)
+        goto no_memory;
+
+    copy->type = cpu->type;
+    copy->match = cpu->match;
+    copy->sockets = cpu->sockets;
+    copy->cores = cpu->cores;
+    copy->threads = cpu->threads;
+    copy->nfeatures = cpu->nfeatures;
+
+    for (i = 0; i < copy->nfeatures; i++) {
+        copy->features[i].policy = cpu->features[i].policy;
+        if (!(copy->features[i].name = strdup(cpu->features[i].name)))
+            goto no_memory;
+    }
+
+    return copy;
+
+no_memory:
+    virReportOOMError();
+    virCPUDefFree(copy);
+    return NULL;
+}
+
+
 #ifndef PROXY
 virCPUDefPtr
 virCPUDefParseXML(const xmlNodePtr node,
@@ -77,6 +114,13 @@ virCPUDefParseXML(const xmlNodePtr node,
     xmlNodePtr *nodes = NULL;
     int n;
     unsigned int i;
+
+    if (!xmlStrEqual(node->name, BAD_CAST "cpu")) {
+        virCPUReportError(VIR_ERR_INTERNAL_ERROR,
+                          "%s",
+                          _("XML does not contain expected 'cpu' element"));
+        return NULL;
+    }
 
     if (VIR_ALLOC(def) < 0) {
         virReportOOMError();

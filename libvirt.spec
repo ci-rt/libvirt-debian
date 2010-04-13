@@ -61,6 +61,7 @@
 %define with_udev          0%{!?_without_udev:0}
 %define with_hal           0%{!?_without_hal:0}
 %define with_yajl          0%{!?_without_yajl:0}
+%define with_libpcap       0%{!?_without_libpcap:0}
 
 # Non-server/HV driver defaults which are always enabled
 %define with_python        0%{!?_without_python:1}
@@ -147,6 +148,11 @@
 %define with_yajl     0%{!?_without_yajl:%{server_drivers}}
 %endif
 
+# Enable libpcap library
+%if %{with_qemu}
+%define with_libpcap  0%{!?_without_libpcap:%{server_drivers}}
+%endif
+
 # Force QEMU to run as non-root
 %if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
 %define qemu_user  qemu
@@ -168,7 +174,7 @@
 
 Summary: Library providing a simple API virtualization
 Name: libvirt
-Version: 0.7.7
+Version: 0.8.0
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
@@ -265,6 +271,9 @@ BuildRequires: libpciaccess-devel >= 0.10.9
 %endif
 %if %{with_yajl}
 BuildRequires: yajl-devel
+%endif
+%if %{with_libpcap}
+BuildRequires: libpcap-devel
 %endif
 %if %{with_avahi}
 BuildRequires: avahi-devel
@@ -592,9 +601,14 @@ rm -rf $RPM_BUILD_ROOT%{_datadir}/doc/libvirt-%{version}
 
 %if ! %{with_qemu}
 rm -rf $RPM_BUILD_ROOT%{_sysconfdir}/libvirt/qemu.conf
+rm -rf $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/libvirtd.qemu
 %endif
 %if ! %{with_lxc}
 rm -rf $RPM_BUILD_ROOT%{_sysconfdir}/libvirt/lxc.conf
+rm -rf $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/libvirtd.qemu
+%endif
+%if ! %{with_uml}
+rm -rf $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/libvirtd.uml
 %endif
 
 %if %{with_libvirtd}
@@ -624,7 +638,7 @@ getent passwd qemu >/dev/null || \
 # or on the first upgrade from a non-network aware libvirt only.
 # We check this by looking to see if the daemon is already installed
 /sbin/chkconfig --list libvirtd 1>/dev/null 2>&1
-if [ $? != 0 -a ! -f %{_sysconfdir}/libvirt/qemu/networks/default.xml ]
+if test $? != 0 && test ! -f %{_sysconfdir}/libvirt/qemu/networks/default.xml
 then
     UUID=`/usr/bin/uuidgen`
     sed -e "s,</name>,</name>\n  <uuid>$UUID</uuid>," \
@@ -665,19 +679,26 @@ fi
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/qemu/networks/autostart
 %endif
 
+%dir %attr(0700, root, root) %{_sysconfdir}/libvirt/nwfilter/
+%{_sysconfdir}/libvirt/nwfilter/*.xml
+
 %{_sysconfdir}/rc.d/init.d/libvirtd
 %config(noreplace) %{_sysconfdir}/sysconfig/libvirtd
 %config(noreplace) %{_sysconfdir}/libvirt/libvirtd.conf
-%config(noreplace) %{_sysconfdir}/logrotate.d/libvirtd
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/qemu/
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/lxc/
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/uml/
 
 %if %{with_qemu}
 %config(noreplace) %{_sysconfdir}/libvirt/qemu.conf
+%config(noreplace) %{_sysconfdir}/logrotate.d/libvirtd.qemu
 %endif
 %if %{with_lxc}
 %config(noreplace) %{_sysconfdir}/libvirt/lxc.conf
+%config(noreplace) %{_sysconfdir}/logrotate.d/libvirtd.lxc
+%endif
+%if %{with_uml}
+%config(noreplace) %{_sysconfdir}/logrotate.d/libvirtd.uml
 %endif
 
 %dir %{_datadir}/libvirt/
@@ -773,6 +794,7 @@ fi
 %{_datadir}/libvirt/schemas/interface.rng
 %{_datadir}/libvirt/schemas/secret.rng
 %{_datadir}/libvirt/schemas/storageencryption.rng
+%{_datadir}/libvirt/schemas/nwfilter.rng
 
 %{_datadir}/libvirt/cpu_map.xml
 
@@ -815,6 +837,20 @@ fi
 %endif
 
 %changelog
+* Mon Apr 12 2010 Daniel Veillard <veillard@redhat.com> - 0.8.0-1
+- Snapshotting support (QEmu/VBox/ESX)
+- Network filtering API
+- XenAPI driver
+- new APIs for domain events
+- Libvirt managed save API
+- timer subselection for domain clock
+- synchronous hooks
+- API to update guest CPU to host CPU
+- virDomainUpdateDeviceFlags new API
+- migrate max downtime API
+- volume wiping API
+- and many bug fixes
+
 * Fri Mar  5 2010 Daniel Veillard <veillard@redhat.com> - 0.7.7-1
 - macvtap support
 - async job handling

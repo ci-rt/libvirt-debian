@@ -49,6 +49,12 @@ static void qemuMonitorJSONHandleShutdown(qemuMonitorPtr mon, virJSONValuePtr da
 static void qemuMonitorJSONHandleReset(qemuMonitorPtr mon, virJSONValuePtr data);
 static void qemuMonitorJSONHandlePowerdown(qemuMonitorPtr mon, virJSONValuePtr data);
 static void qemuMonitorJSONHandleStop(qemuMonitorPtr mon, virJSONValuePtr data);
+static void qemuMonitorJSONHandleRTCChange(qemuMonitorPtr mon, virJSONValuePtr data);
+static void qemuMonitorJSONHandleWatchdog(qemuMonitorPtr mon, virJSONValuePtr data);
+static void qemuMonitorJSONHandleIOError(qemuMonitorPtr mon, virJSONValuePtr data);
+static void qemuMonitorJSONHandleVNCConnect(qemuMonitorPtr mon, virJSONValuePtr data);
+static void qemuMonitorJSONHandleVNCInitialize(qemuMonitorPtr mon, virJSONValuePtr data);
+static void qemuMonitorJSONHandleVNCDisconnect(qemuMonitorPtr mon, virJSONValuePtr data);
 
 struct {
     const char *type;
@@ -58,6 +64,12 @@ struct {
     { "RESET", qemuMonitorJSONHandleReset, },
     { "POWERDOWN", qemuMonitorJSONHandlePowerdown, },
     { "STOP", qemuMonitorJSONHandleStop, },
+    { "RTC_CHANGE", qemuMonitorJSONHandleRTCChange, },
+    { "WATCHDOG", qemuMonitorJSONHandleWatchdog, },
+    { "BLOCK_IO_ERROR", qemuMonitorJSONHandleIOError, },
+    { "VNC_CONNECTED", qemuMonitorJSONHandleVNCConnect, },
+    { "VNC_INITIALIZED", qemuMonitorJSONHandleVNCInitialize, },
+    { "VNC_DISCONNECTED", qemuMonitorJSONHandleVNCDisconnect, },
 };
 
 
@@ -495,6 +507,138 @@ static void qemuMonitorJSONHandleStop(qemuMonitorPtr mon, virJSONValuePtr data A
     qemuMonitorEmitStop(mon);
 }
 
+static void qemuMonitorJSONHandleRTCChange(qemuMonitorPtr mon, virJSONValuePtr data)
+{
+    long long offset = 0;
+    if (virJSONValueObjectGetNumberLong(data, "offset", &offset) < 0) {
+        VIR_WARN0("missing offset in RTC change event");
+        offset = 0;
+    }
+    qemuMonitorEmitRTCChange(mon, offset);
+}
+
+VIR_ENUM_DECL(qemuMonitorWatchdogAction)
+VIR_ENUM_IMPL(qemuMonitorWatchdogAction, VIR_DOMAIN_EVENT_WATCHDOG_DEBUG + 1,
+              "none", "pause", "reset", "poweroff", "shutdown", "debug");
+
+static void qemuMonitorJSONHandleWatchdog(qemuMonitorPtr mon, virJSONValuePtr data)
+{
+    const char *action;
+    int actionID;
+    if (!(action = virJSONValueObjectGetString(data, "action"))) {
+        VIR_WARN0("missing action in watchdog event");
+    }
+    if (action) {
+        if ((actionID = qemuMonitorWatchdogActionTypeFromString(action)) < 0) {
+            VIR_WARN("unknown action %s in watchdog event", action);
+            actionID = VIR_DOMAIN_EVENT_WATCHDOG_NONE;
+        }
+    } else {
+            actionID = VIR_DOMAIN_EVENT_WATCHDOG_NONE;
+    }
+    qemuMonitorEmitWatchdog(mon, actionID);
+}
+
+VIR_ENUM_DECL(qemuMonitorIOErrorAction)
+VIR_ENUM_IMPL(qemuMonitorIOErrorAction, VIR_DOMAIN_EVENT_IO_ERROR_REPORT + 1,
+              "ignore", "stop", "report");
+
+
+static void qemuMonitorJSONHandleIOError(qemuMonitorPtr mon, virJSONValuePtr data)
+{
+    const char *device;
+    const char *action;
+    int actionID;
+
+    /* Throughout here we try our best to carry on upon errors,
+       since it's imporatant to get as much info as possible out
+       to the application */
+
+    if ((action = virJSONValueObjectGetString(data, "action")) == NULL) {
+        VIR_WARN0("Missing action in disk io error event");
+        action = "ignore";
+    }
+
+    if ((device = virJSONValueObjectGetString(data, "device")) == NULL) {
+        VIR_WARN0("missing device in disk io error event");
+    }
+
+    if ((actionID = qemuMonitorIOErrorActionTypeFromString(action)) < 0) {
+        VIR_WARN("unknown disk io error action '%s'", action);
+        actionID = VIR_DOMAIN_EVENT_IO_ERROR_NONE;
+    }
+
+    qemuMonitorEmitIOError(mon, device, actionID);
+}
+
+
+VIR_ENUM_DECL(qemuMonitorGraphicsAddressFamily)
+VIR_ENUM_IMPL(qemuMonitorGraphicsAddressFamily, VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV6 + 1,
+              "ipv4", "ipv6");
+
+static void qemuMonitorJSONHandleVNC(qemuMonitorPtr mon, virJSONValuePtr data, int phase)
+{
+    const char *localNode, *localService, *localFamily;
+    const char *remoteNode, *remoteService, *remoteFamily;
+    const char *authScheme, *saslUsername, *x509dname;
+    int localFamilyID, remoteFamilyID;
+    virJSONValuePtr client;
+    virJSONValuePtr server;
+
+    if (!(client = virJSONValueObjectGet(data, "client"))) {
+        VIR_WARN0("missing client info in VNC event");
+        return;
+    }
+    if (!(server = virJSONValueObjectGet(data, "server"))) {
+        VIR_WARN0("missing server info in VNC event");
+        return;
+    }
+
+    authScheme = virJSONValueObjectGetString(server, "auth");
+
+    localFamily = virJSONValueObjectGetString(server, "family");
+    localNode = virJSONValueObjectGetString(server, "host");
+    localService = virJSONValueObjectGetString(server, "service");
+
+    remoteFamily = virJSONValueObjectGetString(client, "family");
+    remoteNode = virJSONValueObjectGetString(client, "host");
+    remoteService = virJSONValueObjectGetString(client, "service");
+
+    saslUsername = virJSONValueObjectGetString(client, "sasl_username");
+    x509dname = virJSONValueObjectGetString(client, "x509_dname");
+
+    if ((localFamilyID = qemuMonitorGraphicsAddressFamilyTypeFromString(localFamily)) < 0) {
+        VIR_WARN("unknown address family '%s'", localFamily);
+        localFamilyID = VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV4;
+    }
+    if ((remoteFamilyID = qemuMonitorGraphicsAddressFamilyTypeFromString(remoteFamily)) < 0) {
+        VIR_WARN("unknown address family '%s'", remoteFamily);
+        remoteFamilyID = VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV4;
+    }
+
+    qemuMonitorEmitGraphics(mon, phase,
+                            localFamilyID, localNode, localService,
+                            remoteFamilyID, remoteNode, remoteService,
+                            authScheme, x509dname, saslUsername);
+}
+
+static void qemuMonitorJSONHandleVNCConnect(qemuMonitorPtr mon, virJSONValuePtr data)
+{
+    qemuMonitorJSONHandleVNC(mon, data, VIR_DOMAIN_EVENT_GRAPHICS_CONNECT);
+}
+
+
+static void qemuMonitorJSONHandleVNCInitialize(qemuMonitorPtr mon, virJSONValuePtr data)
+{
+    qemuMonitorJSONHandleVNC(mon, data, VIR_DOMAIN_EVENT_GRAPHICS_INITIALIZE);
+}
+
+
+static void qemuMonitorJSONHandleVNCDisconnect(qemuMonitorPtr mon, virJSONValuePtr data)
+{
+    qemuMonitorJSONHandleVNC(mon, data, VIR_DOMAIN_EVENT_GRAPHICS_DISCONNECT);
+}
+
 
 int
 qemuMonitorJSONSetCapabilities(qemuMonitorPtr mon)
@@ -648,7 +792,7 @@ qemuMonitorJSONExtractCPUInfo(virJSONValuePtr reply,
 
     *pids = threads;
     threads = NULL;
-    ret = 0;
+    ret = ncpus;
 
 cleanup:
     VIR_FREE(threads);
@@ -1074,6 +1218,35 @@ int qemuMonitorJSONSetMigrationSpeed(qemuMonitorPtr mon,
                                      "s:value", bandwidthstr,
                                      NULL);
     VIR_FREE(bandwidthstr);
+    if (!cmd)
+        return -1;
+
+    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+
+    if (ret == 0)
+        ret = qemuMonitorJSONCheckError(cmd, reply);
+
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+
+int qemuMonitorJSONSetMigrationDowntime(qemuMonitorPtr mon,
+                                        unsigned long long downtime)
+{
+    int ret;
+    char *downtimestr;
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+    if (virAsprintf(&downtimestr, "%llums", downtime) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+    cmd = qemuMonitorJSONMakeCommand("migrate_set_downtime",
+                                     "s:value", downtimestr,
+                                     NULL);
+    VIR_FREE(downtimestr);
     if (!cmd)
         return -1;
 
@@ -1971,6 +2144,72 @@ int qemuMonitorJSONSetDrivePassphrase(qemuMonitorPtr mon,
                                      "s:password", passphrase,
                                      NULL);
     VIR_FREE(drive);
+    if (!cmd)
+        return -1;
+
+    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+
+    if (ret == 0)
+        ret = qemuMonitorJSONCheckError(cmd, reply);
+
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+int qemuMonitorJSONCreateSnapshot(qemuMonitorPtr mon, const char *name)
+{
+    int ret;
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+
+    cmd = qemuMonitorJSONMakeCommand("savevm",
+                                     "s:name", name,
+                                     NULL);
+    if (!cmd)
+        return -1;
+
+    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+
+    if (ret == 0)
+        ret = qemuMonitorJSONCheckError(cmd, reply);
+
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+int qemuMonitorJSONLoadSnapshot(qemuMonitorPtr mon, const char *name)
+{
+    int ret;
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+
+    cmd = qemuMonitorJSONMakeCommand("loadvm",
+                                     "s:name", name,
+                                     NULL);
+    if (!cmd)
+        return -1;
+
+    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+
+    if (ret == 0)
+        ret = qemuMonitorJSONCheckError(cmd, reply);
+
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+int qemuMonitorJSONDeleteSnapshot(qemuMonitorPtr mon, const char *name)
+{
+    int ret;
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+
+    cmd = qemuMonitorJSONMakeCommand("delvm",
+                                     "s:name", name,
+                                     NULL);
     if (!cmd)
         return -1;
 

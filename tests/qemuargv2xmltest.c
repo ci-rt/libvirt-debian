@@ -10,17 +10,17 @@
 
 #ifdef WITH_QEMU
 
-#include "internal.h"
-#include "testutils.h"
-#include "qemu/qemu_conf.h"
+# include "internal.h"
+# include "testutils.h"
+# include "qemu/qemu_conf.h"
 
-#include "testutilsqemu.h"
+# include "testutilsqemu.h"
 
 static char *progname;
 static char *abs_srcdir;
 static struct qemud_driver driver;
 
-#define MAX_FILE 4096
+# define MAX_FILE 4096
 
 static int blankProblemElements(char *data)
 {
@@ -114,7 +114,7 @@ mymain(int argc, char **argv)
     if((driver.stateDir = strdup("/nowhere")) == NULL)
         return EXIT_FAILURE;
 
-#define DO_TEST_FULL(name, extraFlags, migrateFrom)                     \
+# define DO_TEST_FULL(name, extraFlags, migrateFrom)                     \
     do {                                                                \
         const struct testInfo info = { name, extraFlags, migrateFrom }; \
         if (virtTestRun("QEMU ARGV-2-XML " name,                        \
@@ -122,7 +122,7 @@ mymain(int argc, char **argv)
             ret = -1;                                                   \
     } while (0)
 
-#define DO_TEST(name, extraFlags)                       \
+# define DO_TEST(name, extraFlags)                       \
         DO_TEST_FULL(name, extraFlags, NULL)
 
     setenv("PATH", "/bin", 1);
@@ -162,6 +162,12 @@ mymain(int argc, char **argv)
     /*DO_TEST("disk-drive-cache-v1-wt", QEMUD_CMD_FLAG_DRIVE);*/
     DO_TEST("disk-drive-cache-v1-wb", QEMUD_CMD_FLAG_DRIVE);
     DO_TEST("disk-drive-cache-v1-none", QEMUD_CMD_FLAG_DRIVE);
+    DO_TEST("disk-drive-error-policy-stop", QEMUD_CMD_FLAG_DRIVE |
+            QEMUD_CMD_FLAG_MONITOR_JSON |
+            QEMUD_CMD_FLAG_DRIVE_FORMAT);
+    DO_TEST("disk-drive-error-policy-enospace", QEMUD_CMD_FLAG_DRIVE |
+            QEMUD_CMD_FLAG_MONITOR_JSON |
+            QEMUD_CMD_FLAG_DRIVE_FORMAT);
     DO_TEST("disk-drive-cache-v2-wt", QEMUD_CMD_FLAG_DRIVE |
             QEMUD_CMD_FLAG_DRIVE_CACHE_V2);
     DO_TEST("disk-drive-cache-v2-wb", QEMUD_CMD_FLAG_DRIVE |

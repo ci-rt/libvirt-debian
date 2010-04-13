@@ -2,7 +2,7 @@
 /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* accept.c --- wrappers for Windows accept function
 
-   Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
+   Copyright (C) 2008-2010 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@
 #undef accept
 
 int
-rpl_accept (int fd, struct sockaddr *addr, int *addrlen)
+rpl_accept (int fd, struct sockaddr *addr, socklen_t *addrlen)
 {
   SOCKET fh = accept (FD_TO_SOCKET (fd), addr, addrlen);
   if (fh == INVALID_SOCKET)

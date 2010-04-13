@@ -1,7 +1,8 @@
 
 /*
- * esx_secret_driver.c: secret driver methods for VMware ESX secret manipulation
+ * esx_secret_driver.c: secret driver functions for VMware ESX secret manipulation
  *
+ * Copyright (C) 2010 Red Hat, Inc.
  * Copyright (C) 2010 Matthias Bolte <matthias.bolte@googlemail.com>
  *
  * This library is free software; you can redistribute it and/or
@@ -23,7 +24,6 @@
 #include <config.h>
 
 #include "internal.h"
-#include "virterror_internal.h"
 #include "util.h"
 #include "memory.h"
 #include "logging.h"
@@ -35,10 +35,6 @@
 #include "esx_util.h"
 
 #define VIR_FROM_THIS VIR_FROM_ESX
-
-#define ESX_ERROR(conn, code, fmt...)                                         \
-    virReportErrorHelper(conn, VIR_FROM_ESX, code, __FILE__, __FUNCTION__,    \
-                         __LINE__, fmt)
 
 
 

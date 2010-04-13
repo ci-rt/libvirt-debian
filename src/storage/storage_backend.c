@@ -26,11 +26,11 @@
 #include <string.h>
 #include <stdio.h>
 #if HAVE_REGEX_H
-#include <regex.h>
+# include <regex.h>
 #endif
 #include <sys/types.h>
 #if HAVE_SYS_WAIT_H
-#include <sys/wait.h>
+# include <sys/wait.h>
 #endif
 #include <unistd.h>
 #include <fcntl.h>
@@ -40,7 +40,7 @@
 #include <dirent.h>
 
 #if HAVE_SELINUX
-#include <selinux/selinux.h>
+# include <selinux/selinux.h>
 #endif
 
 #include "datatypes.h"
@@ -55,26 +55,26 @@
 #include "logging.h"
 
 #if WITH_STORAGE_LVM
-#include "storage_backend_logical.h"
+# include "storage_backend_logical.h"
 #endif
 #if WITH_STORAGE_ISCSI
-#include "storage_backend_iscsi.h"
+# include "storage_backend_iscsi.h"
 #endif
 #if WITH_STORAGE_SCSI
-#include "storage_backend_scsi.h"
+# include "storage_backend_scsi.h"
 #endif
 #if WITH_STORAGE_MPATH
-#include "storage_backend_mpath.h"
+# include "storage_backend_mpath.h"
 #endif
 #if WITH_STORAGE_DISK
-#include "storage_backend_disk.h"
+# include "storage_backend_disk.h"
 #endif
 #if WITH_STORAGE_DIR
-#include "storage_backend_fs.h"
+# include "storage_backend_fs.h"
 #endif
 
 #ifndef DEV_BSIZE
-#define DEV_BSIZE 512
+# define DEV_BSIZE 512
 #endif
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
@@ -308,12 +308,11 @@ static int createRawFileOpHook(int fd, void *data) {
                  * update every 9s is a fair-enough trade-off
                  */
                 unsigned long long bytes = 512 * 1024 * 1024;
-                int r;
 
                 if (bytes > remain)
                     bytes = remain;
-                if ((r = safezero(fd, 0, hdata->vol->allocation - remain,
-                                  bytes)) != 0) {
+                if (safezero(fd, 0, hdata->vol->allocation - remain,
+                             bytes) != 0) {
                     ret = errno;
                     virReportSystemError(errno, _("cannot fill file '%s'"),
                                          hdata->vol->target.path);
@@ -322,14 +321,19 @@ static int createRawFileOpHook(int fd, void *data) {
                 remain -= bytes;
             }
         } else { /* No progress bars to be shown */
-            int r;
-
-            if ((r = safezero(fd, 0, 0, remain)) != 0) {
+            if (safezero(fd, 0, 0, remain) != 0) {
                 ret = errno;
                 virReportSystemError(errno, _("cannot fill file '%s'"),
                                      hdata->vol->target.path);
                 goto cleanup;
             }
+        }
+
+        if (fsync(fd) < 0) {
+            ret = errno;
+            virReportSystemError(errno, _("cannot sync data to file '%s'"),
+                                 hdata->vol->target.path);
+            goto cleanup;
         }
     }
 
@@ -359,7 +363,7 @@ virStorageBackendCreateRaw(virConnectPtr conn ATTRIBUTE_UNUSED,
     gid_t gid = (vol->target.perms.gid == -1) ? getgid() : vol->target.perms.gid;
 
     if ((createstat = virFileOperation(vol->target.path,
-                                       O_RDWR | O_CREAT | O_EXCL | O_DSYNC,
+                                       O_RDWR | O_CREAT | O_EXCL,
                                        vol->target.perms.mode, uid, gid,
                                        createRawFileOpHook, &hdata,
                                        VIR_FILE_OP_FORCE_PERMS |

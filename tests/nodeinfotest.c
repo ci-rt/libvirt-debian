@@ -23,9 +23,9 @@ mymain(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 static char *progname;
 static char *abs_srcdir;
 
-#define MAX_FILE 4096
+# define MAX_FILE 4096
 
-extern int linuxNodeInfoCPUPopulate(virConnectPtr conn, FILE *cpuinfo, virNodeInfoPtr nodeinfo);
+extern int linuxNodeInfoCPUPopulate(FILE *cpuinfo, virNodeInfoPtr nodeinfo);
 
 static int linuxTestCompareFiles(const char *cpuinfofile, const char *outputfile) {
     char actualData[MAX_FILE];
@@ -40,16 +40,15 @@ static int linuxTestCompareFiles(const char *cpuinfofile, const char *outputfile
     cpuinfo = fopen(cpuinfofile, "r");
     if (!cpuinfo)
         return -1;
-    if (linuxNodeInfoCPUPopulate(NULL, cpuinfo, &nodeinfo) < 0) {
+    if (linuxNodeInfoCPUPopulate(cpuinfo, &nodeinfo) < 0) {
         fclose(cpuinfo);
         return -1;
     }
     fclose(cpuinfo);
 
     snprintf(actualData, MAX_FILE,
-             "CPUs: %u, MHz: %u, Nodes: %u, Sockets: %u, Cores: %u, Threads: %u\n",
-             nodeinfo.cpus, nodeinfo.mhz, nodeinfo.nodes, nodeinfo.sockets,
-             nodeinfo.cores, nodeinfo.threads);
+             "CPUs: %u, MHz: %u, Nodes: %u, Cores: %u\n",
+             nodeinfo.cpus, nodeinfo.mhz, nodeinfo.nodes, nodeinfo.cores);
 
     if (STRNEQ(actualData, expectData)) {
         if (getenv("DEBUG_TESTS")) {

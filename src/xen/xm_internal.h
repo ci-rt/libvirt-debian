@@ -1,7 +1,7 @@
 /*
  * xm_internal.h: helper routines for dealing with inactive domains
  *
- * Copyright (C) 2006-2007 Red Hat
+ * Copyright (C) 2006-2007, 2010 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -23,12 +23,12 @@
  */
 
 #ifndef _LIBVIRT_XM_INTERNAL_H_
-#define _LIBVIRT_XM_INTERNAL_H_
+# define _LIBVIRT_XM_INTERNAL_H_
 
-#include "internal.h"
-#include "driver.h"
-#include "conf.h"
-#include "domain_conf.h"
+# include "internal.h"
+# include "driver.h"
+# include "conf.h"
+# include "domain_conf.h"
 
 extern struct xenUnifiedDriver xenXMDriver;
 

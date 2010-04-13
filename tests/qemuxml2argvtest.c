@@ -10,18 +10,18 @@
 
 #ifdef WITH_QEMU
 
-#include "internal.h"
-#include "testutils.h"
-#include "qemu/qemu_conf.h"
-#include "datatypes.h"
+# include "internal.h"
+# include "testutils.h"
+# include "qemu/qemu_conf.h"
+# include "datatypes.h"
 
-#include "testutilsqemu.h"
+# include "testutilsqemu.h"
 
 static char *progname;
 static char *abs_srcdir;
 static struct qemud_driver driver;
 
-#define MAX_FILE 4096
+# define MAX_FILE 4096
 
 static int testCompareXMLToArgvFiles(const char *xml,
                                      const char *cmd,
@@ -83,7 +83,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
     if (qemudBuildCommandLine(conn, &driver,
                               vmdef, &monitor_chr, 0, flags,
                               &argv, &qenv,
-                              NULL, NULL, migrateFrom) < 0)
+                              NULL, NULL, migrateFrom, NULL) < 0)
         goto fail;
 
     len = 1; /* for trailing newline */
@@ -193,7 +193,7 @@ mymain(int argc, char **argv)
     if ((driver.hugepage_path = strdup("/dev/hugepages/libvirt/qemu")) == NULL)
         return EXIT_FAILURE;
 
-#define DO_TEST_FULL(name, extraFlags, migrateFrom)                     \
+# define DO_TEST_FULL(name, extraFlags, migrateFrom)                     \
     do {                                                                \
         const struct testInfo info = { name, extraFlags, migrateFrom }; \
         if (virtTestRun("QEMU XML-2-ARGV " name,                        \
@@ -201,7 +201,7 @@ mymain(int argc, char **argv)
             ret = -1;                                                   \
     } while (0)
 
-#define DO_TEST(name, extraFlags)                       \
+# define DO_TEST(name, extraFlags)                       \
         DO_TEST_FULL(name, extraFlags, NULL)
 
     /* Unset or set all envvars here that are copied in qemudBuildCommandLine
@@ -249,6 +249,8 @@ mymain(int argc, char **argv)
             QEMUD_CMD_FLAG_DRIVE_BOOT | QEMUD_CMD_FLAG_DRIVE_FORMAT);
     DO_TEST("disk-drive-fat", QEMUD_CMD_FLAG_DRIVE |
             QEMUD_CMD_FLAG_DRIVE_BOOT | QEMUD_CMD_FLAG_DRIVE_FORMAT);
+    DO_TEST("disk-drive-readonly-disk", QEMUD_CMD_FLAG_DRIVE |
+            QEMUD_CMD_FLAG_DEVICE);
     DO_TEST("disk-drive-fmt-qcow", QEMUD_CMD_FLAG_DRIVE |
             QEMUD_CMD_FLAG_DRIVE_BOOT | QEMUD_CMD_FLAG_DRIVE_FORMAT);
     DO_TEST("disk-drive-shared", QEMUD_CMD_FLAG_DRIVE |
@@ -258,6 +260,9 @@ mymain(int argc, char **argv)
     DO_TEST("disk-drive-cache-v1-wb", QEMUD_CMD_FLAG_DRIVE |
             QEMUD_CMD_FLAG_DRIVE_FORMAT);
     DO_TEST("disk-drive-cache-v1-none", QEMUD_CMD_FLAG_DRIVE |
+            QEMUD_CMD_FLAG_DRIVE_FORMAT);
+    DO_TEST("disk-drive-error-policy-stop", QEMUD_CMD_FLAG_DRIVE |
+            QEMUD_CMD_FLAG_MONITOR_JSON |
             QEMUD_CMD_FLAG_DRIVE_FORMAT);
     DO_TEST("disk-drive-cache-v2-wt", QEMUD_CMD_FLAG_DRIVE |
             QEMUD_CMD_FLAG_DRIVE_CACHE_V2 | QEMUD_CMD_FLAG_DRIVE_FORMAT);

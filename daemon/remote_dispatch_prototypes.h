@@ -178,6 +178,14 @@ static int remoteDispatchDomainEventsDeregister(
     remote_error *err,
     void *args,
     remote_domain_events_deregister_ret *ret);
+static int remoteDispatchDomainEventsDeregisterAny(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_domain_events_deregister_any_args *args,
+    void *ret);
 static int remoteDispatchDomainEventsRegister(
     struct qemud_server *server,
     struct qemud_client *client,
@@ -186,6 +194,14 @@ static int remoteDispatchDomainEventsRegister(
     remote_error *err,
     void *args,
     remote_domain_events_register_ret *ret);
+static int remoteDispatchDomainEventsRegisterAny(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_domain_events_register_any_args *args,
+    void *ret);
 static int remoteDispatchDomainGetAutostart(
     struct qemud_server *server,
     struct qemud_client *client,
@@ -266,6 +282,14 @@ static int remoteDispatchDomainGetVcpus(
     remote_error *err,
     remote_domain_get_vcpus_args *args,
     remote_domain_get_vcpus_ret *ret);
+static int remoteDispatchDomainHasManagedSaveImage(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_domain_has_managed_save_image_args *args,
+    remote_domain_has_managed_save_image_ret *ret);
 static int remoteDispatchDomainInterfaceStats(
     struct qemud_server *server,
     struct qemud_client *client,
@@ -314,6 +338,22 @@ static int remoteDispatchDomainLookupByUuid(
     remote_error *err,
     remote_domain_lookup_by_uuid_args *args,
     remote_domain_lookup_by_uuid_ret *ret);
+static int remoteDispatchDomainManagedSave(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_domain_managed_save_args *args,
+    void *ret);
+static int remoteDispatchDomainManagedSaveRemove(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_domain_managed_save_remove_args *args,
+    void *ret);
 static int remoteDispatchDomainMemoryPeek(
     struct qemud_server *server,
     struct qemud_client *client,
@@ -377,6 +417,14 @@ static int remoteDispatchDomainMigratePrepareTunnel(
     remote_message_header *hdr,
     remote_error *err,
     remote_domain_migrate_prepare_tunnel_args *args,
+    void *ret);
+static int remoteDispatchDomainMigrateSetMaxDowntime(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_domain_migrate_set_max_downtime_args *args,
     void *ret);
 static int remoteDispatchDomainPinVcpu(
     struct qemud_server *server,
@@ -466,6 +514,78 @@ static int remoteDispatchDomainShutdown(
     remote_error *err,
     remote_domain_shutdown_args *args,
     void *ret);
+static int remoteDispatchDomainSnapshotCreateXml(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_domain_snapshot_create_xml_args *args,
+    remote_domain_snapshot_create_xml_ret *ret);
+static int remoteDispatchDomainSnapshotDumpXml(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_domain_snapshot_dump_xml_args *args,
+    remote_domain_snapshot_dump_xml_ret *ret);
+static int remoteDispatchDomainSnapshotNum(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_domain_snapshot_num_args *args,
+    remote_domain_snapshot_num_ret *ret);
+static int remoteDispatchDomainSnapshotListNames(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_domain_snapshot_list_names_args *args,
+    remote_domain_snapshot_list_names_ret *ret);
+static int remoteDispatchDomainSnapshotLookupByName(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_domain_snapshot_lookup_by_name_args *args,
+    remote_domain_snapshot_lookup_by_name_ret *ret);
+static int remoteDispatchDomainHasCurrentSnapshot(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_domain_has_current_snapshot_args *args,
+    remote_domain_has_current_snapshot_ret *ret);
+static int remoteDispatchDomainSnapshotCurrent(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_domain_snapshot_current_args *args,
+    remote_domain_snapshot_current_ret *ret);
+static int remoteDispatchDomainRevertToSnapshot(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_domain_revert_to_snapshot_args *args,
+    void *ret);
+static int remoteDispatchDomainSnapshotDelete(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_domain_snapshot_delete_args *args,
+    void *ret);
 static int remoteDispatchDomainSuspend(
     struct qemud_server *server,
     struct qemud_client *client,
@@ -481,6 +601,14 @@ static int remoteDispatchDomainUndefine(
     remote_message_header *hdr,
     remote_error *err,
     remote_domain_undefine_args *args,
+    void *ret);
+static int remoteDispatchDomainUpdateDeviceFlags(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_domain_update_device_flags_args *args,
     void *ret);
 static int remoteDispatchDomainXmlFromNative(
     struct qemud_server *server,
@@ -690,6 +818,14 @@ static int remoteDispatchListNetworks(
     remote_error *err,
     remote_list_networks_args *args,
     remote_list_networks_ret *ret);
+static int remoteDispatchListNwfilters(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_list_nwfilters_args *args,
+    remote_list_nwfilters_ret *ret);
 static int remoteDispatchListSecrets(
     struct qemud_server *server,
     struct qemud_client *client,
@@ -994,6 +1130,14 @@ static int remoteDispatchNumOfNetworks(
     remote_error *err,
     void *args,
     remote_num_of_networks_ret *ret);
+static int remoteDispatchNumOfNwfilters(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    void *args,
+    remote_num_of_nwfilters_ret *ret);
 static int remoteDispatchNumOfSecrets(
     struct qemud_server *server,
     struct qemud_client *client,
@@ -1010,6 +1154,46 @@ static int remoteDispatchNumOfStoragePools(
     remote_error *err,
     void *args,
     remote_num_of_storage_pools_ret *ret);
+static int remoteDispatchNwfilterDefineXml(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_nwfilter_define_xml_args *args,
+    remote_nwfilter_define_xml_ret *ret);
+static int remoteDispatchNwfilterGetXmlDesc(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_nwfilter_get_xml_desc_args *args,
+    remote_nwfilter_get_xml_desc_ret *ret);
+static int remoteDispatchNwfilterLookupByName(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_nwfilter_lookup_by_name_args *args,
+    remote_nwfilter_lookup_by_name_ret *ret);
+static int remoteDispatchNwfilterLookupByUuid(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_nwfilter_lookup_by_uuid_args *args,
+    remote_nwfilter_lookup_by_uuid_ret *ret);
+static int remoteDispatchNwfilterUndefine(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_nwfilter_undefine_args *args,
+    void *ret);
 static int remoteDispatchOpen(
     struct qemud_server *server,
     struct qemud_client *client,
@@ -1298,6 +1482,14 @@ static int remoteDispatchStorageVolLookupByPath(
     remote_error *err,
     remote_storage_vol_lookup_by_path_args *args,
     remote_storage_vol_lookup_by_path_ret *ret);
+static int remoteDispatchStorageVolWipe(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_storage_vol_wipe_args *args,
+    void *ret);
 static int remoteDispatchSupportsFeature(
     struct qemud_server *server,
     struct qemud_client *client,

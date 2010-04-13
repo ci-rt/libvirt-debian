@@ -1,7 +1,7 @@
 /*
  * node_device_udev.c: node device enumeration - libudev implementation
  *
- * Copyright (C) 2009-2010 Red Hat
+ * Copyright (C) 2009-2010 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -131,7 +131,7 @@ static int udevGetDeviceProperty(struct udev_device *udev_device,
     }
 
     VIR_DEBUG("Found property key '%s' value '%s' "
-              "for device with sysname '%s'\n",
+              "for device with sysname '%s'",
               property_key, *property_value,
               udev_device_get_sysname(udev_device));
 
@@ -220,7 +220,7 @@ static int udevGetDeviceSysfsAttr(struct udev_device *udev_device,
     }
 
     VIR_DEBUG("Found sysfs attribute '%s' value '%s' "
-              "for device with sysname '%s'\n",
+              "for device with sysname '%s'",
               attr_name, *attr_value,
               udev_device_get_sysname(udev_device));
 
@@ -330,7 +330,7 @@ static int udevGenerateDeviceName(struct udev_device *device,
     if (virBufferError(&buf)) {
         virBufferFreeAndReset(&buf);
         VIR_ERROR("Buffer error when generating device name for device "
-                  "with sysname '%s'\n", udev_device_get_sysname(device));
+                  "with sysname '%s'", udev_device_get_sysname(device));
         ret = -1;
     }
 
@@ -642,7 +642,7 @@ static int udevProcessSCSIHost(struct udev_device *device ATTRIBUTE_UNUSED,
 
     if (!STRPREFIX(filename, "host")) {
         VIR_ERROR("SCSI host found, but its udev name '%s' does "
-                  "not begin with 'host'\n", filename);
+                  "not begin with 'host'", filename);
         goto out;
     }
 
@@ -949,7 +949,7 @@ static int udevKludgeStorageType(virNodeDeviceDefPtr def)
     int ret = -1;
 
     VIR_INFO("Could not find definitive storage type for device "
-             "with sysfs path '%s', trying to guess it\n",
+             "with sysfs path '%s', trying to guess it",
              def->sysfs_path);
 
     if (STRPREFIX(def->caps->data.storage.block, "/dev/vd")) {
@@ -962,10 +962,10 @@ static int udevKludgeStorageType(virNodeDeviceDefPtr def)
 
     if (ret != 0) {
         VIR_INFO("Could not determine storage type for device "
-                 "with sysfs path '%s'\n", def->sysfs_path);
+                 "with sysfs path '%s'", def->sysfs_path);
     } else {
         VIR_DEBUG("Found storage type '%s' for device "
-                  "with sysfs path '%s'\n",
+                  "with sysfs path '%s'",
                   def->caps->data.storage.drive_type,
                   def->sysfs_path);
     }
@@ -1131,7 +1131,7 @@ static int udevGetDeviceType(struct udev_device *device,
     }
 
     VIR_INFO("Could not determine device type for device "
-             "with sysfs path '%s'\n",
+             "with sysfs path '%s'",
              udev_device_get_sysname(device));
     ret = -1;
 
@@ -1220,14 +1220,13 @@ static int udevSetParent(struct udev_device *device,
     if (parent_device == NULL) {
         VIR_INFO("Could not find udev parent for device with sysfs path '%s'",
                  udev_device_get_syspath(device));
-        goto out;
     }
 
     parent_sysfs_path = udev_device_get_syspath(parent_device);
     if (parent_sysfs_path == NULL) {
         VIR_INFO("Could not get syspath for parent of '%s'",
                  udev_device_get_syspath(device));
-        goto out;
+        parent_sysfs_path = "";
     }
 
     def->parent_sysfs_path = strdup(parent_sysfs_path);
@@ -1440,33 +1439,15 @@ out:
 }
 
 
-static int udevSetupSystemDev(void)
+static void
+udevGetDMIData(union _virNodeDevCapData *data)
 {
-    virNodeDeviceDefPtr def = NULL;
-    virNodeDeviceObjPtr dev = NULL;
     struct udev *udev = NULL;
     struct udev_device *device = NULL;
-    union _virNodeDevCapData *data = NULL;
     char *tmp = NULL;
-    int ret = -1;
-
-    if (VIR_ALLOC(def) != 0) {
-        virReportOOMError();
-        goto out;
-    }
-
-    def->name = strdup("computer");
-    if (def->name == NULL) {
-        virReportOOMError();
-        goto out;
-    }
-
-    if (VIR_ALLOC(def->caps) != 0) {
-        virReportOOMError();
-        goto out;
-    }
 
     udev = udev_monitor_get_udev(DRV_STATE_UDEV_MONITOR(driverState));
+
     device = udev_device_new_from_syspath(udev, DMI_DEVPATH);
     if (device == NULL) {
         device = udev_device_new_from_syspath(udev, DMI_DEVPATH_FALLBACK);
@@ -1476,8 +1457,6 @@ static int udevSetupSystemDev(void)
             goto out;
         }
     }
-
-    data = &def->caps->data;
 
     if (udevGetStringSysfsAttr(device,
                                "product_name",
@@ -1508,8 +1487,7 @@ static int udevSetupSystemDev(void)
                                &tmp) == PROPERTY_ERROR) {
         goto out;
     }
-    virUUIDParse(tmp, def->caps->data.system.hardware.uuid);
-    VIR_FREE(tmp);
+    virUUIDParse(tmp, data->system.hardware.uuid);
 
     if (udevGetStringSysfsAttr(device,
                                "bios_vendor",
@@ -1530,12 +1508,42 @@ static int udevSetupSystemDev(void)
         goto out;
     }
 
-    udev_device_unref(device);
+out:
+    VIR_FREE(tmp);
+    if (device != NULL) {
+        udev_device_unref(device);
+    }
+    return;
+}
+
+
+static int udevSetupSystemDev(void)
+{
+    virNodeDeviceDefPtr def = NULL;
+    virNodeDeviceObjPtr dev = NULL;
+    int ret = -1;
+
+    if (VIR_ALLOC(def) != 0) {
+        virReportOOMError();
+        goto out;
+    }
+
+    def->name = strdup("computer");
+    if (def->name == NULL) {
+        virReportOOMError();
+        goto out;
+    }
+
+    if (VIR_ALLOC(def->caps) != 0) {
+        virReportOOMError();
+        goto out;
+    }
+
+    udevGetDMIData(&def->caps->data);
 
     dev = virNodeDeviceAssignDef(&driverState->devs, def);
     if (dev == NULL) {
         VIR_ERROR("Failed to create device for '%s'", def->name);
-        virNodeDeviceDefFree(def);
         goto out;
     }
 
@@ -1544,6 +1552,10 @@ static int udevSetupSystemDev(void)
     ret = 0;
 
 out:
+    if (ret == -1) {
+        virNodeDeviceDefFree(def);
+    }
+
     return ret;
 }
 

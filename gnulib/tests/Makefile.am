@@ -33,6 +33,7 @@ DISTCLEANFILES =
 MAINTAINERCLEANFILES =
 
 AM_CPPFLAGS = \
+  -D@gltests_WITNESS@=1 \
   -I. -I$(srcdir) \
   -I../.. -I$(srcdir)/../.. \
   -I../../gnulib/lib -I$(srcdir)/../../gnulib/lib
@@ -131,6 +132,30 @@ EXTRA_libtests_a_SOURCES += bind.c
 
 ## end   gnulib module bind
 
+## begin gnulib module c++defs
+
+# The BUILT_SOURCES created by this Makefile snippet are not used via #include
+# statements but through direct file reference. Therefore this snippet must be
+# present in all Makefile.am that need it. This is ensured by the applicability
+# 'all' defined above.
+
+BUILT_SOURCES += c++defs.h
+# The c++defs.h that gets inserted into generated .h files is the same as
+# build-aux/c++defs.h, except that it has the copyright header cut off.
+c++defs.h: $(top_srcdir)/build-aux/c++defs.h
+	$(AM_V_GEN)rm -f $@-t $@ && \
+	sed -n -e '/_GL_CXXDEFS/,$$p' \
+	  < $(top_srcdir)/build-aux/c++defs.h \
+	  > $@-t && \
+	mv $@-t $@
+MOSTLYCLEANFILES += c++defs.h c++defs.h-t
+
+CXXDEFS_H=c++defs.h
+
+EXTRA_DIST += $(top_srcdir)/build-aux/c++defs.h
+
+## end   gnulib module c++defs
+
 ## begin gnulib module c-ctype-tests
 
 TESTS += test-c-ctype
@@ -147,6 +172,14 @@ check_PROGRAMS += test-canonicalize-lgpl
 EXTRA_DIST += test-canonicalize-lgpl.c signature.h macros.h
 
 ## end   gnulib module canonicalize-lgpl-tests
+
+## begin gnulib module count-one-bits-tests
+
+TESTS += test-count-one-bits
+check_PROGRAMS += test-count-one-bits
+EXTRA_DIST += test-count-one-bits.c macros.h
+
+## end   gnulib module count-one-bits-tests
 
 ## begin gnulib module errno-tests
 
@@ -435,6 +468,14 @@ check_PROGRAMS += test-string
 EXTRA_DIST += test-string.c
 
 ## end   gnulib module string-tests
+
+## begin gnulib module strings-tests
+
+TESTS += test-strings
+check_PROGRAMS += test-strings
+EXTRA_DIST += test-strings.c
+
+## end   gnulib module strings-tests
 
 ## begin gnulib module symlink
 

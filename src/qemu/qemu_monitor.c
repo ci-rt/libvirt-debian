@@ -39,7 +39,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
-#define QEMU_DEBUG_RAW_IO 0
+#define DEBUG_IO 0
+#define DEBUG_RAW_IO 0
 
 struct _qemuMonitor {
     virMutex lock;
@@ -166,7 +167,7 @@ char *qemuMonitorEscapeShell(const char *in)
 
 
 #if QEMU_DEBUG_RAW_IO
-#include <c-ctype.h>
+# include <c-ctype.h>
 static char * qemuMonitorEscapeNonPrintable(const char *text)
 {
     int i;
@@ -302,15 +303,18 @@ qemuMonitorIOProcess(qemuMonitorPtr mon)
     if (mon->msg && mon->msg->txOffset == mon->msg->txLength)
         msg = mon->msg;
 
-#if QEMU_DEBUG_RAW_IO
+#if DEBUG_IO
+# if DEBUG_RAW_IO
     char *str1 = qemuMonitorEscapeNonPrintable(msg ? msg->txBuffer : "");
     char *str2 = qemuMonitorEscapeNonPrintable(mon->buffer);
     VIR_ERROR("Process %d %p %p [[[[%s]]][[[%s]]]", (int)mon->bufferOffset, mon->msg, msg, str1, str2);
     VIR_FREE(str1);
     VIR_FREE(str2);
-#else
+# else
     VIR_DEBUG("Process %d", (int)mon->bufferOffset);
+# endif
 #endif
+
     if (mon->json)
         len = qemuMonitorJSONIOProcess(mon,
                                        mon->buffer, mon->bufferOffset,
@@ -332,7 +336,9 @@ qemuMonitorIOProcess(qemuMonitorPtr mon)
         VIR_FREE(mon->buffer);
         mon->bufferOffset = mon->bufferLength = 0;
     }
+#if DEBUG_IO
     VIR_DEBUG("Process done %d used %d", (int)mon->bufferOffset, len);
+#endif
     if (msg && msg->finished)
         virCondBroadcast(&mon->notify);
     return len;
@@ -455,7 +461,9 @@ qemuMonitorIORead(qemuMonitorPtr mon)
         mon->buffer[mon->bufferOffset] = '\0';
     }
 
+#if DEBUG_IO
     VIR_DEBUG("Now read %d bytes of data", (int)mon->bufferOffset);
+#endif
 
     return ret;
 }
@@ -485,7 +493,9 @@ qemuMonitorIO(int watch, int fd, int events, void *opaque) {
 
     qemuMonitorLock(mon);
     qemuMonitorRef(mon);
+#if DEBUG_IO
     VIR_DEBUG("Monitor %p I/O on watch %d fd %d events %d", mon, watch, fd, events);
+#endif
 
     if (mon->fd != fd || mon->watch != watch) {
         VIR_ERROR("event from unexpected fd %d!=%d / watch %d!=%d", mon->fd, fd, mon->watch, watch);
@@ -791,6 +801,83 @@ int qemuMonitorEmitStop(qemuMonitorPtr mon)
 }
 
 
+int qemuMonitorEmitRTCChange(qemuMonitorPtr mon, long long offset)
+{
+    int ret = -1;
+    VIR_DEBUG("mon=%p", mon);
+
+    qemuMonitorRef(mon);
+    qemuMonitorUnlock(mon);
+    if (mon->cb && mon->cb->domainRTCChange)
+        ret = mon->cb->domainRTCChange(mon, mon->vm, offset);
+    qemuMonitorLock(mon);
+    qemuMonitorUnref(mon);
+    return ret;
+}
+
+
+int qemuMonitorEmitWatchdog(qemuMonitorPtr mon, int action)
+{
+    int ret = -1;
+    VIR_DEBUG("mon=%p", mon);
+
+    qemuMonitorRef(mon);
+    qemuMonitorUnlock(mon);
+    if (mon->cb && mon->cb->domainWatchdog)
+        ret = mon->cb->domainWatchdog(mon, mon->vm, action);
+    qemuMonitorLock(mon);
+    qemuMonitorUnref(mon);
+    return ret;
+}
+
+
+int qemuMonitorEmitIOError(qemuMonitorPtr mon,
+                           const char *diskAlias,
+                           int action)
+{
+    int ret = -1;
+    VIR_DEBUG("mon=%p", mon);
+
+    qemuMonitorRef(mon);
+    qemuMonitorUnlock(mon);
+    if (mon->cb && mon->cb->domainIOError)
+        ret = mon->cb->domainIOError(mon, mon->vm, diskAlias, action);
+    qemuMonitorLock(mon);
+    qemuMonitorUnref(mon);
+    return ret;
+}
+
+
+int qemuMonitorEmitGraphics(qemuMonitorPtr mon,
+                            int phase,
+                            int localFamily,
+                            const char *localNode,
+                            const char *localService,
+                            int remoteFamily,
+                            const char *remoteNode,
+                            const char *remoteService,
+                            const char *authScheme,
+                            const char *x509dname,
+                            const char *saslUsername)
+{
+    int ret = -1;
+    VIR_DEBUG("mon=%p", mon);
+
+    qemuMonitorRef(mon);
+    qemuMonitorUnlock(mon);
+    if (mon->cb && mon->cb->domainGraphics)
+        ret = mon->cb->domainGraphics(mon, mon->vm,
+                                      phase,
+                                      localFamily, localNode, localService,
+                                      remoteFamily, remoteNode, remoteService,
+                                      authScheme, x509dname, saslUsername);
+    qemuMonitorLock(mon);
+    qemuMonitorUnref(mon);
+    return ret;
+}
+
+
+
 int qemuMonitorSetCapabilities(qemuMonitorPtr mon)
 {
     int ret;
@@ -904,6 +991,9 @@ int qemuMonitorSetVNCPassword(qemuMonitorPtr mon,
     int ret;
     DEBUG("mon=%p, fd=%d", mon, mon->fd);
 
+    if (!password)
+        password = "";
+
     if (mon->json)
         ret = qemuMonitorJSONSetVNCPassword(mon, password);
     else
@@ -1015,6 +1105,21 @@ int qemuMonitorSetMigrationSpeed(qemuMonitorPtr mon,
         ret = qemuMonitorTextSetMigrationSpeed(mon, bandwidth);
     return ret;
 }
+
+
+int qemuMonitorSetMigrationDowntime(qemuMonitorPtr mon,
+                                    unsigned long long downtime)
+{
+    int ret;
+    DEBUG("mon=%p, fd=%d downtime=%llu", mon, mon->fd, downtime);
+
+    if (mon->json)
+        ret = qemuMonitorJSONSetMigrationDowntime(mon, downtime);
+    else
+        ret = qemuMonitorTextSetMigrationDowntime(mon, downtime);
+    return ret;
+}
+
 
 int qemuMonitorGetMigrationStatus(qemuMonitorPtr mon,
                                   int *status,
@@ -1384,5 +1489,44 @@ int qemuMonitorSetDrivePassphrase(qemuMonitorPtr mon,
         ret = qemuMonitorJSONSetDrivePassphrase(mon, alias, passphrase);
     else
         ret = qemuMonitorTextSetDrivePassphrase(mon, alias, passphrase);
+    return ret;
+}
+
+int qemuMonitorCreateSnapshot(qemuMonitorPtr mon, const char *name)
+{
+    int ret;
+
+    DEBUG("mon=%p, name=%s",mon,name);
+
+    if (mon->json)
+        ret = qemuMonitorJSONCreateSnapshot(mon, name);
+    else
+        ret = qemuMonitorTextCreateSnapshot(mon, name);
+    return ret;
+}
+
+int qemuMonitorLoadSnapshot(qemuMonitorPtr mon, const char *name)
+{
+    int ret;
+
+    DEBUG("mon=%p, name=%s",mon,name);
+
+    if (mon->json)
+        ret = qemuMonitorJSONLoadSnapshot(mon, name);
+    else
+        ret = qemuMonitorTextLoadSnapshot(mon, name);
+    return ret;
+}
+
+int qemuMonitorDeleteSnapshot(qemuMonitorPtr mon, const char *name)
+{
+    int ret;
+
+    DEBUG("mon=%p, name=%s",mon,name);
+
+    if (mon->json)
+        ret = qemuMonitorJSONDeleteSnapshot(mon, name);
+    else
+        ret = qemuMonitorTextDeleteSnapshot(mon, name);
     return ret;
 }

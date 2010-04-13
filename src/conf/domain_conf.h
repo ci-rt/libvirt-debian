@@ -1,7 +1,7 @@
 /*
  * domain_conf.h: domain XML processing
  *
- * Copyright (C) 2006-2008 Red Hat, Inc.
+ * Copyright (C) 2006-2008, 2010 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -22,20 +22,22 @@
  */
 
 #ifndef __DOMAIN_CONF_H
-#define __DOMAIN_CONF_H
+# define __DOMAIN_CONF_H
 
-#include <libxml/parser.h>
-#include <libxml/tree.h>
-#include <libxml/xpath.h>
+# include <libxml/parser.h>
+# include <libxml/tree.h>
+# include <libxml/xpath.h>
 
-#include "internal.h"
-#include "capabilities.h"
-#include "storage_encryption_conf.h"
-#include "cpu_conf.h"
-#include "util.h"
-#include "threads.h"
-#include "hash.h"
-#include "network.h"
+# include "internal.h"
+# include "capabilities.h"
+# include "storage_encryption_conf.h"
+# include "cpu_conf.h"
+# include "util.h"
+# include "threads.h"
+# include "hash.h"
+# include "network.h"
+# include "nwfilter_params.h"
+# include "nwfilter_conf.h"
 
 /* Private component of virDomainXMLFlags */
 typedef enum {
@@ -150,6 +152,15 @@ enum  virDomainDiskCache {
     VIR_DOMAIN_DISK_CACHE_LAST
 };
 
+enum  virDomainDiskErrorPolicy {
+    VIR_DOMAIN_DISK_ERROR_POLICY_DEFAULT,
+    VIR_DOMAIN_DISK_ERROR_POLICY_STOP,
+    VIR_DOMAIN_DISK_ERROR_POLICY_IGNORE,
+    VIR_DOMAIN_DISK_ERROR_POLICY_ENOSPACE,
+
+    VIR_DOMAIN_DISK_ERROR_POLICY_LAST
+};
+
 /* Stores the virtual disk configuration */
 typedef struct _virDomainDiskDef virDomainDiskDef;
 typedef virDomainDiskDef *virDomainDiskDefPtr;
@@ -163,6 +174,7 @@ struct _virDomainDiskDef {
     char *driverType;
     char *serial;
     int cachemode;
+    int error_policy;
     unsigned int readonly : 1;
     unsigned int shared : 1;
     virDomainDeviceInfo info;
@@ -251,7 +263,7 @@ enum virDomainNetdevMacvtapType {
 typedef struct _virDomainNetDef virDomainNetDef;
 typedef virDomainNetDef *virDomainNetDefPtr;
 struct _virDomainNetDef {
-    int type;
+    enum virDomainNetType type;
     unsigned char mac[VIR_MAC_BUFLEN];
     char *model;
     union {
@@ -282,7 +294,12 @@ struct _virDomainNetDef {
     } data;
     char *ifname;
     virDomainDeviceInfo info;
+    char *filter;
+    virNWFilterHashTablePtr filterparams;
 };
+
+# define VALID_IFNAME_CHARS \
+ "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_/"
 
 enum virDomainChrTargetType {
     VIR_DOMAIN_CHR_TARGET_TYPE_NULL = 0,
@@ -544,6 +561,7 @@ enum virDomainDeviceType {
     VIR_DOMAIN_DEVICE_HOSTDEV,
     VIR_DOMAIN_DEVICE_WATCHDOG,
     VIR_DOMAIN_DEVICE_CONTROLLER,
+    VIR_DOMAIN_DEVICE_GRAPHICS,
 
     VIR_DOMAIN_DEVICE_LAST,
 };
@@ -562,11 +580,12 @@ struct _virDomainDeviceDef {
         virDomainVideoDefPtr video;
         virDomainHostdevDefPtr hostdev;
         virDomainWatchdogDefPtr watchdog;
+        virDomainGraphicsDefPtr graphics;
     } data;
 };
 
 
-#define VIR_DOMAIN_MAX_BOOT_DEVS 4
+# define VIR_DOMAIN_MAX_BOOT_DEVS 4
 
 /* 3 possible boot devices */
 enum virDomainBootOrder {
@@ -631,6 +650,68 @@ struct _virSecurityLabelDef {
     int type;
 };
 
+enum virDomainTimerNameType {
+    VIR_DOMAIN_TIMER_NAME_PLATFORM = 0,
+    VIR_DOMAIN_TIMER_NAME_PIT,
+    VIR_DOMAIN_TIMER_NAME_RTC,
+    VIR_DOMAIN_TIMER_NAME_HPET,
+    VIR_DOMAIN_TIMER_NAME_TSC,
+
+    VIR_DOMAIN_TIMER_NAME_LAST,
+};
+
+enum virDomainTimerTrackType {
+    VIR_DOMAIN_TIMER_TRACK_BOOT = 0,
+    VIR_DOMAIN_TIMER_TRACK_GUEST,
+    VIR_DOMAIN_TIMER_TRACK_WALL,
+
+    VIR_DOMAIN_TIMER_TRACK_LAST,
+};
+
+enum virDomainTimerTickpolicyType {
+    VIR_DOMAIN_TIMER_TICKPOLICY_DELAY = 0,
+    VIR_DOMAIN_TIMER_TICKPOLICY_CATCHUP,
+    VIR_DOMAIN_TIMER_TICKPOLICY_MERGE,
+    VIR_DOMAIN_TIMER_TICKPOLICY_DISCARD,
+
+    VIR_DOMAIN_TIMER_TICKPOLICY_LAST,
+};
+
+enum virDomainTimerModeType {
+    VIR_DOMAIN_TIMER_MODE_AUTO = 0,
+    VIR_DOMAIN_TIMER_MODE_NATIVE,
+    VIR_DOMAIN_TIMER_MODE_EMULATE,
+    VIR_DOMAIN_TIMER_MODE_PARAVIRT,
+    VIR_DOMAIN_TIMER_MODE_SMPSAFE,
+
+    VIR_DOMAIN_TIMER_MODE_LAST,
+};
+
+typedef struct _virDomainTimerCatchupDef virDomainTimerCatchupDef;
+typedef virDomainTimerCatchupDef *virDomainTimerCatchupDefPtr;
+struct _virDomainTimerCatchupDef {
+    unsigned long threshold;
+    unsigned long slew;
+    unsigned long limit;
+};
+
+typedef struct _virDomainTimerDef virDomainTimerDef;
+typedef virDomainTimerDef *virDomainTimerDefPtr;
+struct _virDomainTimerDef {
+    int name;
+    int present;    /* unspecified = -1, no = 0, yes = 1 */
+    int tickpolicy; /* none|catchup|merge|discard */
+
+    virDomainTimerCatchupDef catchup;
+
+    /* track is only valid for name='platform|rtc' */
+    int track;  /* host|guest */
+
+    /* frequency & mode are only valid for name='tsc' */
+    unsigned long frequency; /* in Hz, unspecified = 0 */
+    int mode;       /* auto|native|emulate|paravirt */
+};
+
 enum virDomainClockOffsetType {
     VIR_DOMAIN_CLOCK_OFFSET_UTC = 0,
     VIR_DOMAIN_CLOCK_OFFSET_LOCALTIME = 1,
@@ -654,9 +735,64 @@ struct _virDomainClockDef {
          * offset == VIR_DOMAIN_CLOCK_OFFSET_LOCALTIME */
         char *timezone;
     } data;
+
+    int ntimers;
+    virDomainTimerDefPtr *timers;
 };
 
-#define VIR_DOMAIN_CPUMASK_LEN 1024
+# define VIR_DOMAIN_CPUMASK_LEN 1024
+
+
+/* Snapshot state */
+typedef struct _virDomainSnapshotDef virDomainSnapshotDef;
+typedef virDomainSnapshotDef *virDomainSnapshotDefPtr;
+struct _virDomainSnapshotDef {
+    char *name;
+    char *description;
+    char *parent;
+    time_t creationTime;
+    int state;
+
+    long active;
+};
+
+typedef struct _virDomainSnapshotObj virDomainSnapshotObj;
+typedef virDomainSnapshotObj *virDomainSnapshotObjPtr;
+struct _virDomainSnapshotObj {
+    int refs;
+
+    virDomainSnapshotDefPtr def;
+};
+
+typedef struct _virDomainSnapshotObjList virDomainSnapshotObjList;
+typedef virDomainSnapshotObjList *virDomainSnapshotObjListPtr;
+struct _virDomainSnapshotObjList {
+    /* name string -> virDomainSnapshotObj  mapping
+     * for O(1), lockless lookup-by-name */
+    virHashTable *objs;
+};
+
+virDomainSnapshotDefPtr virDomainSnapshotDefParseString(const char *xmlStr,
+                                                        int newSnapshot);
+void virDomainSnapshotDefFree(virDomainSnapshotDefPtr def);
+char *virDomainSnapshotDefFormat(char *domain_uuid,
+                                 virDomainSnapshotDefPtr def,
+                                 int internal);
+virDomainSnapshotObjPtr virDomainSnapshotAssignDef(virDomainSnapshotObjListPtr snapshots,
+                                                   const virDomainSnapshotDefPtr def);
+
+int virDomainSnapshotObjListInit(virDomainSnapshotObjListPtr objs);
+void virDomainSnapshotObjListDeinit(virDomainSnapshotObjListPtr objs);
+int virDomainSnapshotObjListGetNames(virDomainSnapshotObjListPtr snapshots,
+                                     char **const names, int maxnames);
+int virDomainSnapshotObjListNum(virDomainSnapshotObjListPtr snapshots);
+virDomainSnapshotObjPtr virDomainSnapshotFindByName(const virDomainSnapshotObjListPtr snapshots,
+                                                    const char *name);
+void virDomainSnapshotObjListRemove(virDomainSnapshotObjListPtr snapshots,
+                                    virDomainSnapshotObjPtr snapshot);
+int virDomainSnapshotObjUnref(virDomainSnapshotObjPtr snapshot);
+int virDomainSnapshotHasChildren(virDomainSnapshotObjPtr snap,
+                                virDomainSnapshotObjListPtr snapshots);
 
 /* Guest VM main configuration */
 typedef struct _virDomainDef virDomainDef;
@@ -745,6 +881,9 @@ struct _virDomainObj {
     virDomainDefPtr def; /* The current definition */
     virDomainDefPtr newDef; /* New definition to activate at shutdown */
 
+    virDomainSnapshotObjList snapshots;
+    virDomainSnapshotObjPtr current_snapshot;
+
     void *privateData;
     void (*privateDataFreeFunc)(void *);
 };
@@ -810,13 +949,16 @@ void virDomainObjRef(virDomainObjPtr vm);
 /* Returns 1 if the object was freed, 0 if more refs exist */
 int virDomainObjUnref(virDomainObjPtr vm);
 
+/* live == true means def describes an active domain (being migrated or
+ * restored) as opposed to a new persistent configuration of the domain */
 virDomainObjPtr virDomainAssignDef(virCapsPtr caps,
                                    virDomainObjListPtr doms,
-                                   const virDomainDefPtr def);
+                                   const virDomainDefPtr def,
+                                   bool live);
 void virDomainRemoveInactive(virDomainObjListPtr doms,
                              virDomainObjPtr dom);
 
-#ifndef PROXY
+# ifndef PROXY
 virDomainDeviceDefPtr virDomainDeviceDefParse(virCapsPtr caps,
                                               const virDomainDefPtr def,
                                               const char *xmlStr,
@@ -840,7 +982,7 @@ virDomainObjPtr virDomainObjParseNode(virCapsPtr caps,
 
 int virDomainDefAddImplicitControllers(virDomainDefPtr def);
 
-#endif
+# endif
 char *virDomainDefFormat(virDomainDefPtr def,
                          int flags);
 
@@ -855,7 +997,7 @@ int virDomainDiskInsert(virDomainDefPtr def,
                         virDomainDiskDefPtr disk);
 void virDomainDiskInsertPreAlloced(virDomainDefPtr def,
                                    virDomainDiskDefPtr disk);
-void virDomainDiskDefAssignAddress(virDomainDiskDefPtr def);
+int virDomainDiskDefAssignAddress(virDomainDiskDefPtr def);
 
 int virDomainControllerInsert(virDomainDefPtr def,
                               virDomainControllerDefPtr controller);
@@ -875,14 +1017,6 @@ int virDomainSaveStatus(virCapsPtr caps,
 typedef void (*virDomainLoadConfigNotify)(virDomainObjPtr dom,
                                           int newDomain,
                                           void *opaque);
-
-virDomainObjPtr virDomainLoadConfig(virCapsPtr caps,
-                                    virDomainObjListPtr doms,
-                                    const char *configDir,
-                                    const char *autostartDir,
-                                    const char *name,
-                                    virDomainLoadConfigNotify notify,
-                                    void *opaque);
 
 int virDomainLoadAllConfigs(virCapsPtr caps,
                             virDomainObjListPtr doms,
@@ -935,6 +1069,7 @@ VIR_ENUM_DECL(virDomainDisk)
 VIR_ENUM_DECL(virDomainDiskDevice)
 VIR_ENUM_DECL(virDomainDiskBus)
 VIR_ENUM_DECL(virDomainDiskCache)
+VIR_ENUM_DECL(virDomainDiskErrorPolicy)
 VIR_ENUM_DECL(virDomainController)
 VIR_ENUM_DECL(virDomainFS)
 VIR_ENUM_DECL(virDomainNet)
@@ -955,5 +1090,10 @@ VIR_ENUM_DECL(virDomainSeclabel)
 VIR_ENUM_DECL(virDomainClockOffset)
 
 VIR_ENUM_DECL(virDomainNetdevMacvtap)
+
+VIR_ENUM_DECL(virDomainTimerName)
+VIR_ENUM_DECL(virDomainTimerTrack)
+VIR_ENUM_DECL(virDomainTimerTickpolicy)
+VIR_ENUM_DECL(virDomainTimerMode)
 
 #endif /* __DOMAIN_CONF_H */

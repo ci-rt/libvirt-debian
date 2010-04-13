@@ -1,6 +1,6 @@
 
 /*
- * esx_secret_driver.h: secret driver methods for VMware ESX secret manipulation
+ * esx_secret_driver.h: secret driver functions for VMware ESX secret manipulation
  *
  * Copyright (C) 2010 Matthias Bolte <matthias.bolte@googlemail.com>
  *
@@ -21,7 +21,7 @@
  */
 
 #ifndef __ESX_SECRET_DRIVER_H__
-#define __ESX_SECRET_DRIVER_H__
+# define __ESX_SECRET_DRIVER_H__
 
 int esxSecretRegister(void);
 

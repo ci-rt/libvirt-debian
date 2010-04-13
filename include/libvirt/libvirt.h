@@ -29,6 +29,20 @@ extern "C" {
 # endif
 #endif /* VIR_DEPRECATED */
 
+#ifdef WIN32
+# ifdef LIBVIRT_STATIC
+#  define VIR_EXPORT_VAR extern
+# else
+#  ifdef IN_LIBVIRT
+#   define VIR_EXPORT_VAR __declspec(dllexport)
+#  else
+#   define VIR_EXPORT_VAR __declspec(dllimport) extern
+#  endif
+# endif
+#else
+# define VIR_EXPORT_VAR extern
+#endif
+
 /**
  * virConnect:
  *
@@ -408,6 +422,10 @@ int virDomainMigrateToURI (virDomainPtr domain, const char *duri,
                            unsigned long flags, const char *dname,
                            unsigned long bandwidth);
 
+int virDomainMigrateSetMaxDowntime (virDomainPtr domain,
+                                    unsigned long long downtime,
+                                    unsigned int flags);
+
 /**
  * VIR_NODEINFO_MAXCPUS:
  * @nodeinfo: virNodeInfo instance
@@ -495,7 +513,7 @@ struct _virConnectAuth {
 typedef struct _virConnectAuth virConnectAuth;
 typedef virConnectAuth *virConnectAuthPtr;
 
-extern virConnectAuthPtr virConnectAuthPtrDefault;
+VIR_EXPORT_VAR virConnectAuthPtr virConnectAuthPtrDefault;
 
 /**
  * VIR_UUID_BUFLEN:
@@ -524,7 +542,7 @@ extern virConnectAuthPtr virConnectAuthPtrDefault;
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-#define LIBVIR_VERSION_NUMBER 7007
+#define LIBVIR_VERSION_NUMBER 8000
 
 int                     virGetVersion           (unsigned long *libVer,
                                                  const char *type,
@@ -621,6 +639,16 @@ int                     virDomainRestore        (virConnectPtr conn,
                                                  const char *from);
 
 /*
+ * Managed domain save
+ */
+int                    virDomainManagedSave     (virDomainPtr dom,
+                                                 unsigned int flags);
+int                    virDomainHasManagedSaveImage(virDomainPtr dom,
+                                                 unsigned int flags);
+int                    virDomainManagedSaveRemove(virDomainPtr dom,
+                                                 unsigned int flags);
+
+/*
  * Domain core dump
  */
 int                     virDomainCoreDump       (virDomainPtr domain,
@@ -668,8 +696,9 @@ int                     virDomainGetSecurityLabel (virDomainPtr domain,
  */
 
 typedef enum {
-    VIR_DOMAIN_XML_SECURE = 1, /* dump security sensitive information too */
-    VIR_DOMAIN_XML_INACTIVE = 2/* dump inactive domain information */
+    VIR_DOMAIN_XML_SECURE       = (1 << 0), /* dump security sensitive information too */
+    VIR_DOMAIN_XML_INACTIVE     = (1 << 1), /* dump inactive domain information */
+    VIR_DOMAIN_XML_UPDATE_CPU   = (1 << 2), /* update guest CPU requirements according to host CPU */
 } virDomainXMLFlags;
 
 char *                  virDomainGetXMLDesc     (virDomainPtr domain,
@@ -859,6 +888,8 @@ int virDomainDetachDevice(virDomainPtr domain, const char *xml);
 int virDomainAttachDeviceFlags(virDomainPtr domain,
                                const char *xml, unsigned int flags);
 int virDomainDetachDeviceFlags(virDomainPtr domain,
+                               const char *xml, unsigned int flags);
+int virDomainUpdateDeviceFlags(virDomainPtr domain,
                                const char *xml, unsigned int flags);
 
 /*
@@ -1224,6 +1255,8 @@ virStorageVolPtr        virStorageVolCreateXMLFrom      (virStoragePoolPtr pool,
                                                          unsigned int flags);
 int                     virStorageVolDelete             (virStorageVolPtr vol,
                                                          unsigned int flags);
+int                     virStorageVolWipe               (virStorageVolPtr vol,
+                                                         unsigned int flags);
 int                     virStorageVolRef                (virStorageVolPtr vol);
 int                     virStorageVolFree               (virStorageVolPtr vol);
 
@@ -1351,6 +1384,7 @@ typedef enum {
     VIR_DOMAIN_EVENT_STARTED_BOOTED = 0,   /* Normal startup from boot */
     VIR_DOMAIN_EVENT_STARTED_MIGRATED = 1, /* Incoming migration from another host */
     VIR_DOMAIN_EVENT_STARTED_RESTORED = 2, /* Restored from a state file */
+    VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT = 3, /* Restored from snapshot */
 } virDomainEventStartedDetailType;
 
 /**
@@ -1361,6 +1395,8 @@ typedef enum {
 typedef enum {
     VIR_DOMAIN_EVENT_SUSPENDED_PAUSED = 0,   /* Normal suspend due to admin pause */
     VIR_DOMAIN_EVENT_SUSPENDED_MIGRATED = 1, /* Suspended for offline migration */
+    VIR_DOMAIN_EVENT_SUSPENDED_IOERROR = 2,  /* Suspended due to a disk I/O error */
+    VIR_DOMAIN_EVENT_SUSPENDED_WATCHDOG = 3,  /* Suspended due to a watchdog firing */
 } virDomainEventSuspendedDetailType;
 
 /**
@@ -1385,6 +1421,7 @@ typedef enum {
     VIR_DOMAIN_EVENT_STOPPED_MIGRATED = 3,  /* Migrated off to another host */
     VIR_DOMAIN_EVENT_STOPPED_SAVED = 4,     /* Saved to a state file */
     VIR_DOMAIN_EVENT_STOPPED_FAILED = 5,    /* Host emulator/mgmt failed */
+    VIR_DOMAIN_EVENT_STOPPED_FROM_SNAPSHOT = 6, /* offline snapshot loaded */
 } virDomainEventStoppedDetailType;
 
 
@@ -1836,9 +1873,344 @@ int virDomainGetJobInfo(virDomainPtr dom,
                         virDomainJobInfoPtr info);
 int virDomainAbortJob(virDomainPtr dom);
 
+/**
+ * virDomainSnapshot:
+ *
+ * a virDomainSnapshot is a private structure representing a snapshot of
+ * a domain.
+ */
+typedef struct _virDomainSnapshot virDomainSnapshot;
+
+/**
+ * virDomainSnapshotPtr:
+ *
+ * a virDomainSnapshotPtr is pointer to a virDomainSnapshot private structure,
+ * and is the type used to reference a domain snapshot in the API.
+ */
+typedef virDomainSnapshot *virDomainSnapshotPtr;
+
+/* Take a snapshot of the current VM state */
+virDomainSnapshotPtr virDomainSnapshotCreateXML(virDomainPtr domain,
+                                                const char *xmlDesc,
+                                                unsigned int flags);
+
+/* Dump the XML of a snapshot */
+char *virDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
+                                  unsigned int flags);
+
+/* Return the number of snapshots for this domain */
+int virDomainSnapshotNum(virDomainPtr domain, unsigned int flags);
+
+/* Get the names of all snapshots for this domain */
+int virDomainSnapshotListNames(virDomainPtr domain, char **names, int nameslen,
+                               unsigned int flags);
+
+/* Get a handle to a named snapshot */
+virDomainSnapshotPtr virDomainSnapshotLookupByName(virDomainPtr domain,
+                                                   const char *name,
+                                                   unsigned int flags);
+
+/* Check whether a domain has a snapshot which is currently used */
+int virDomainHasCurrentSnapshot(virDomainPtr domain, unsigned flags);
+
+/* Get a handle to the current snapshot */
+virDomainSnapshotPtr virDomainSnapshotCurrent(virDomainPtr domain,
+                                              unsigned int flags);
+
+/* Revert the domain to a point-in-time snapshot.  The
+ * state of the guest after this call will be the state
+ * of the guest when the snapshot in question was taken
+ */
+int virDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
+                              unsigned int flags);
+
+/* Delete a snapshot */
+typedef enum {
+    VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN = (1 << 0),
+} virDomainSnapshotDeleteFlags;
+
+int virDomainSnapshotDelete(virDomainSnapshotPtr snapshot,
+                            unsigned int flags);
+
+int virDomainSnapshotFree(virDomainSnapshotPtr snapshot);
+
+/* A generic callback definition. Specific events usually have a customization
+ * with extra parameters */
+typedef void (*virConnectDomainEventGenericCallback)(virConnectPtr conn,
+                                                     virDomainPtr dom,
+                                                     void *opaque);
+
+/**
+ * virConnectDomainEventRTCChangeCallback:
+ * @conn: connection object
+ * @dom: domain on which the event occurred
+ * @utcoffset: the new RTC offset from UTC, measured in seconds
+ * @opaque: application specified data
+ *
+ * The callback signature to use when registering for an event of type
+ * VIR_DOMAIN_EVENT_ID_RTC_CHANGE with virConnectDomainEventRegisterAny()
+ */
+typedef void (*virConnectDomainEventRTCChangeCallback)(virConnectPtr conn,
+                                                       virDomainPtr dom,
+                                                       long long utcoffset,
+                                                       void *opaque);
+
+/**
+ * virDomainEventWatchdogAction:
+ *
+ * The action that is to be taken due to the watchdog device firing
+ */
+typedef enum {
+    VIR_DOMAIN_EVENT_WATCHDOG_NONE = 0, /* No action, watchdog ignored */
+    VIR_DOMAIN_EVENT_WATCHDOG_PAUSE,    /* Guest CPUs are paused */
+    VIR_DOMAIN_EVENT_WATCHDOG_RESET,    /* Guest CPUs are reset */
+    VIR_DOMAIN_EVENT_WATCHDOG_POWEROFF, /* Guest is forcably powered off */
+    VIR_DOMAIN_EVENT_WATCHDOG_SHUTDOWN, /* Guest is requested to gracefully shutdown */
+    VIR_DOMAIN_EVENT_WATCHDOG_DEBUG,    /* No action, a debug message logged */
+} virDomainEventWatchdogAction;
+
+/**
+ * virConnectDomainEventWatchdogCallback:
+ * @conn: connection object
+ * @dom: domain on which the event occurred
+ * @action: action that is to be taken due to watchdog firing
+ * @opaque: application specified data
+ *
+ * The callback signature to use when registering for an event of type
+ * VIR_DOMAIN_EVENT_ID_WATCHDOG with virConnectDomainEventRegisterAny()
+ *
+ */
+typedef void (*virConnectDomainEventWatchdogCallback)(virConnectPtr conn,
+                                                      virDomainPtr dom,
+                                                      int action,
+                                                      void *opaque);
+
+/**
+ * virDomainEventIOErrorAction:
+ *
+ * The action that is to be taken due to an IO error occuring
+ */
+typedef enum {
+    VIR_DOMAIN_EVENT_IO_ERROR_NONE = 0,  /* No action, IO error ignored */
+    VIR_DOMAIN_EVENT_IO_ERROR_PAUSE,     /* Guest CPUs are pausde */
+    VIR_DOMAIN_EVENT_IO_ERROR_REPORT,    /* IO error reported to guest OS */
+} virDomainEventIOErrorAction;
+
+
+/**
+ * virConnectDomainEventWatchdogCallback:
+ * @conn: connection object
+ * @dom: domain on which the event occurred
+ * @srcPath: The host file on which the IO error occurred
+ * @devAlias: The guest device alias associated with the path
+ * @action: action that is to be taken due to the IO error
+ * @opaque: application specified data
+ *
+ * The callback signature to use when registering for an event of type
+ * VIR_DOMAIN_EVENT_ID_IO_ERROR with virConnectDomainEventRegisterAny()
+ *
+ */
+typedef void (*virConnectDomainEventIOErrorCallback)(virConnectPtr conn,
+                                                     virDomainPtr dom,
+                                                     const char *srcPath,
+                                                     const char *devAlias,
+                                                     int action,
+                                                     void *opaque);
+
+/**
+ * virDomainEventGraphicsPhase:
+ *
+ * The phase of the graphics client connection
+ */
+typedef enum {
+    VIR_DOMAIN_EVENT_GRAPHICS_CONNECT = 0,  /* Initial socket connection established */
+    VIR_DOMAIN_EVENT_GRAPHICS_INITIALIZE,   /* Authentication & setup completed */
+    VIR_DOMAIN_EVENT_GRAPHICS_DISCONNECT,   /* Final socket disconnection */
+} virDomainEventGraphicsPhase;
+
+/**
+ * virDomainEventGraphicsAddressType:
+ *
+ * The type of address for the connection
+ */
+typedef enum {
+    VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV4,  /* IPv4 address */
+    VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV6,  /* IPv6 address */
+} virDomainEventGraphicsAddressType;
+
+
+/**
+ * virDomainEventGraphicsAddress:
+ *
+ * The data structure containing connection address details
+ *
+ */
+struct _virDomainEventGraphicsAddress {
+    int family;               /* Address family, virDomainEventGraphicsAddressType */
+    const char *node;         /* Address of node (eg IP address) */
+    const char *service;      /* Service name/number (eg TCP port) */
+};
+typedef struct _virDomainEventGraphicsAddress virDomainEventGraphicsAddress;
+typedef virDomainEventGraphicsAddress *virDomainEventGraphicsAddressPtr;
+
+
+/**
+ * virDomainEventGraphicsSubjectIdentity:
+ *
+ * The data structure representing a single identity
+ *
+ * The types of identity differ according to the authentication scheme,
+ * some examples are 'x509dname' and 'saslUsername'.
+ */
+struct _virDomainEventGraphicsSubjectIdentity {
+    const char *type;     /* Type of identity */
+    const char *name;     /* Identity value */
+};
+typedef struct _virDomainEventGraphicsSubjectIdentity virDomainEventGraphicsSubjectIdentity;
+typedef virDomainEventGraphicsSubjectIdentity *virDomainEventGraphicsSubjectIdentityPtr;
+
+
+/**
+ * virDomainEventGraphicsSubject:
+ *
+ * The data structure representing an authenticated subject
+ *
+ * A subject will have zero or more identities. The types of
+ * identity differ according to the authentication scheme
+ */
+struct _virDomainEventGraphicsSubject {
+    int nidentity;                                /* Number of identities in array*/
+    virDomainEventGraphicsSubjectIdentityPtr identities; /* Array of identities for subject */
+};
+typedef struct _virDomainEventGraphicsSubject virDomainEventGraphicsSubject;
+typedef virDomainEventGraphicsSubject *virDomainEventGraphicsSubjectPtr;
+
+
+/**
+ * virConnectDomainEventGraphicsCallback:
+ * @conn: connection object
+ * @dom: domain on which the event occurred
+ * @phase: the phase of the connection
+ * @local: the local server address
+ * @remote: the remote client address
+ * @authScheme: the authentication scheme activated
+ * @subject: the authenticated subject (user)
+ * @opaque: application specified data
+ *
+ * The callback signature to use when registering for an event of type
+ * VIR_DOMAIN_EVENT_ID_GRAPHICS with virConnectDomainEventRegisterAny()
+ */
+typedef void (*virConnectDomainEventGraphicsCallback)(virConnectPtr conn,
+                                                      virDomainPtr dom,
+                                                      int phase,
+                                                      virDomainEventGraphicsAddressPtr local,
+                                                      virDomainEventGraphicsAddressPtr remote,
+                                                      const char *authScheme,
+                                                      virDomainEventGraphicsSubjectPtr subject,
+                                                      void *opaque);
+
+/**
+ * VIR_DOMAIN_EVENT_CALLBACK:
+ *
+ * Used to cast the event specific callback into the generic one
+ * for use for virDomainEventRegister
+ */
+#define VIR_DOMAIN_EVENT_CALLBACK(cb) ((virConnectDomainEventGenericCallback)(cb))
+
+
+typedef enum {
+    VIR_DOMAIN_EVENT_ID_LIFECYCLE = 0,       /* virConnectDomainEventCallback */
+    VIR_DOMAIN_EVENT_ID_REBOOT = 1,          /* virConnectDomainEventGenericCallback */
+    VIR_DOMAIN_EVENT_ID_RTC_CHANGE = 2,      /* virConnectDomainEventRTCChangeCallback */
+    VIR_DOMAIN_EVENT_ID_WATCHDOG = 3,        /* virConnectDomainEventWatchdogCallback */
+    VIR_DOMAIN_EVENT_ID_IO_ERROR = 4,        /* virConnectDomainEventIOErrorCallback */
+    VIR_DOMAIN_EVENT_ID_GRAPHICS = 5,        /* virConnectDomainEventGraphicsCallback */
+
+    /*
+     * NB: this enum value will increase over time as new events are
+     * added to the libvirt API. It reflects the last event ID supported
+     * by this version of the libvirt API.
+     */
+    VIR_DOMAIN_EVENT_ID_LAST
+} virDomainEventID;
+
+
+/* Use VIR_DOMAIN_EVENT_CALLBACK() to cast the 'cb' parameter  */
+int virConnectDomainEventRegisterAny(virConnectPtr conn,
+                                     virDomainPtr dom, /* Optional, to filter */
+                                     int eventID,
+                                     virConnectDomainEventGenericCallback cb,
+                                     void *opaque,
+                                     virFreeCallback freecb);
+
+int virConnectDomainEventDeregisterAny(virConnectPtr conn,
+                                       int callbackID);
 
 #ifdef __cplusplus
 }
 #endif
+
+
+/**
+ * virNWFilter:
+ *
+ * a virNWFilter is a private structure representing a network filter
+ */
+typedef struct _virNWFilter virNWFilter;
+
+/**
+ * virNWFilterPtr:
+ *
+ * a virNWFilterPtr is pointer to a virNWFilter private structure,
+ * this is the type used to reference a network filter in the API.
+ */
+typedef virNWFilter *virNWFilterPtr;
+
+
+/*
+ * List NWFilters
+ */
+int                     virConnectNumOfNWFilters (virConnectPtr conn);
+int                     virConnectListNWFilters  (virConnectPtr conn,
+                                                  char **const names,
+                                                  int maxnames);
+
+/*
+ * Lookup nwfilter by name or uuid
+ */
+virNWFilterPtr          virNWFilterLookupByName       (virConnectPtr conn,
+                                                       const char *name);
+virNWFilterPtr          virNWFilterLookupByUUID       (virConnectPtr conn,
+                                                       const unsigned char *uuid);
+virNWFilterPtr          virNWFilterLookupByUUIDString (virConnectPtr conn,
+                                                       const char *uuid);
+
+/*
+ * Define persistent nwfilter
+ */
+virNWFilterPtr          virNWFilterDefineXML    (virConnectPtr conn,
+                                                 const char *xmlDesc);
+
+/*
+ * Delete persistent nwfilter
+ */
+int                     virNWFilterUndefine     (virNWFilterPtr nwfilter);
+
+/*
+ * NWFilter destroy/free
+ */
+int                     virNWFilterRef          (virNWFilterPtr nwfilter);
+int                     virNWFilterFree         (virNWFilterPtr nwfilter);
+
+/*
+ * NWFilter information
+ */
+const char*             virNWFilterGetName       (virNWFilterPtr nwfilter);
+int                     virNWFilterGetUUID       (virNWFilterPtr nwfilter,
+                                                  unsigned char *uuid);
+int                     virNWFilterGetUUIDString (virNWFilterPtr nwfilter,
+                                                  char *buf);
+char *                  virNWFilterGetXMLDesc    (virNWFilterPtr nwfilter,
+                                                  int flags);
 
 #endif /* __VIR_VIRLIB_H__ */
