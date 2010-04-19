@@ -1,0 +1,23 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Mon, 19 Apr 2010 18:08:19 +0200
+Subject: [PATCH] Ignore empty type statement in disk element
+
+Closes: #578347
+---
+ src/qemu/qemu_conf.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/src/qemu/qemu_conf.c b/src/qemu/qemu_conf.c
+index 48252a5..6749b1d 100644
+--- a/src/qemu/qemu_conf.c
++++ b/src/qemu/qemu_conf.c
+@@ -2459,7 +2459,7 @@ qemuBuildDriveStr(virDomainDiskDefPtr disk,
+     if (disk->readonly &&
+         qemuCmdFlags & QEMUD_CMD_FLAG_DEVICE)
+         virBufferAddLit(&opt, ",readonly=on");
+-    if (disk->driverType &&
++    if (disk->driverType && strlen(disk->driverType) &&
+         disk->type != VIR_DOMAIN_DISK_TYPE_DIR &&
+         qemuCmdFlags & QEMUD_CMD_FLAG_DRIVE_FORMAT)
+         virBufferVSprintf(&opt, ",format=%s", disk->driverType);
+-- 
