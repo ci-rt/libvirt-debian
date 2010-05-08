@@ -4,9 +4,18 @@
  * It was generated using rpcgen.
  */
 
-#include "./remote/remote_protocol.h"
+#include "remote_protocol.h"
 #include "internal.h"
 #include <arpa/inet.h>
+#ifdef HAVE_XDR_U_INT64_T
+# define xdr_uint64_t xdr_u_int64_t
+#endif
+#ifndef IXDR_PUT_INT32
+# define IXDR_PUT_INT32 IXDR_PUT_LONG
+#endif
+#ifndef IXDR_GET_INT32
+# define IXDR_GET_INT32 IXDR_GET_LONG
+#endif
 
 bool_t
 xdr_remote_nonnull_string (XDR *xdrs, remote_nonnull_string *objp)
@@ -712,6 +721,32 @@ xdr_remote_domain_memory_peek_ret (XDR *xdrs, remote_domain_memory_peek_ret *obj
         char **objp_cpp0 = (char **) (void *) &objp->buffer.buffer_val;
 
          if (!xdr_bytes (xdrs, objp_cpp0, (u_int *) &objp->buffer.buffer_len, REMOTE_DOMAIN_MEMORY_PEEK_BUFFER_MAX))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_get_block_info_args (XDR *xdrs, remote_domain_get_block_info_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_remote_nonnull_string (xdrs, &objp->path))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_get_block_info_ret (XDR *xdrs, remote_domain_get_block_info_ret *objp)
+{
+
+         if (!xdr_uint64_t (xdrs, &objp->allocation))
+                 return FALSE;
+         if (!xdr_uint64_t (xdrs, &objp->capacity))
+                 return FALSE;
+         if (!xdr_uint64_t (xdrs, &objp->physical))
                  return FALSE;
         return TRUE;
 }
@@ -3250,6 +3285,23 @@ xdr_remote_domain_event_io_error_msg (XDR *xdrs, remote_domain_event_io_error_ms
          if (!xdr_remote_nonnull_string (xdrs, &objp->devAlias))
                  return FALSE;
          if (!xdr_int (xdrs, &objp->action))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_event_io_error_reason_msg (XDR *xdrs, remote_domain_event_io_error_reason_msg *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_remote_nonnull_string (xdrs, &objp->srcPath))
+                 return FALSE;
+         if (!xdr_remote_nonnull_string (xdrs, &objp->devAlias))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->action))
+                 return FALSE;
+         if (!xdr_remote_nonnull_string (xdrs, &objp->reason))
                  return FALSE;
         return TRUE;
 }

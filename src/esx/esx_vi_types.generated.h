@@ -484,6 +484,7 @@ struct _esxVI_PerfEntityMetric {
 int esxVI_PerfEntityMetric_Alloc(esxVI_PerfEntityMetric **item);
 void esxVI_PerfEntityMetric_Free(esxVI_PerfEntityMetric **item);
 int esxVI_PerfEntityMetric_Validate(esxVI_PerfEntityMetric *item);
+esxVI_PerfEntityMetric *esxVI_PerfEntityMetric_DynamicCast(void *item);
 int esxVI_PerfEntityMetric_AppendToList(esxVI_PerfEntityMetric **list, esxVI_PerfEntityMetric *item);
 int esxVI_PerfEntityMetric_Serialize(esxVI_PerfEntityMetric *item, const char *element, virBufferPtr output);
 int esxVI_PerfEntityMetric_SerializeList(esxVI_PerfEntityMetric *list, const char *element, virBufferPtr output);
@@ -507,6 +508,7 @@ struct _esxVI_PerfEntityMetricBase {
 int esxVI_PerfEntityMetricBase_Alloc(esxVI_PerfEntityMetricBase **item);
 void esxVI_PerfEntityMetricBase_Free(esxVI_PerfEntityMetricBase **item);
 int esxVI_PerfEntityMetricBase_Validate(esxVI_PerfEntityMetricBase *item);
+esxVI_PerfEntityMetricBase *esxVI_PerfEntityMetricBase_DynamicCast(void *item);
 int esxVI_PerfEntityMetricBase_AppendToList(esxVI_PerfEntityMetricBase **list, esxVI_PerfEntityMetricBase *item);
 int esxVI_PerfEntityMetricBase_Serialize(esxVI_PerfEntityMetricBase *item, const char *element, virBufferPtr output);
 int esxVI_PerfEntityMetricBase_SerializeList(esxVI_PerfEntityMetricBase *list, const char *element, virBufferPtr output);

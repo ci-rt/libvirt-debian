@@ -548,8 +548,6 @@ out:
 }
 
 
-/* XXX Is 10 the correct base for the Number/Class/SubClass/Protocol
- * conversions?  */
 static int udevProcessUSBInterface(struct udev_device *device,
                                    virNodeDeviceDefPtr def)
 {
@@ -559,28 +557,28 @@ static int udevProcessUSBInterface(struct udev_device *device,
     if (udevGetUintSysfsAttr(device,
                              "bInterfaceNumber",
                              &data->usb_if.number,
-                             10) == PROPERTY_ERROR) {
+                             16) == PROPERTY_ERROR) {
         goto out;
     }
 
     if (udevGetUintSysfsAttr(device,
                              "bInterfaceClass",
                              &data->usb_if._class,
-                             10) == PROPERTY_ERROR) {
+                             16) == PROPERTY_ERROR) {
         goto out;
     }
 
     if (udevGetUintSysfsAttr(device,
                              "bInterfaceSubClass",
                              &data->usb_if.subclass,
-                             10) == PROPERTY_ERROR) {
+                             16) == PROPERTY_ERROR) {
         goto out;
     }
 
     if (udevGetUintSysfsAttr(device,
                              "bInterfaceProtocol",
                              &data->usb_if.protocol,
-                             10) == PROPERTY_ERROR) {
+                             16) == PROPERTY_ERROR) {
         goto out;
     }
 
@@ -816,13 +814,6 @@ static int udevProcessDisk(struct udev_device *device,
 {
     union _virNodeDevCapData *data = &def->caps->data;
     int ret = 0;
-
-    data->storage.drive_type = strdup("disk");
-    if (data->storage.drive_type == NULL) {
-        virReportOOMError();
-        ret = -1;
-        goto out;
-    }
 
     if (udevGetUint64SysfsAttr(device,
                                "size",

@@ -542,7 +542,7 @@ VIR_EXPORT_VAR virConnectAuthPtr virConnectAuthPtrDefault;
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-#define LIBVIR_VERSION_NUMBER 8000
+#define LIBVIR_VERSION_NUMBER 8001
 
 int                     virGetVersion           (unsigned long *libVer,
                                                  const char *type,
@@ -732,6 +732,42 @@ int                     virDomainBlockPeek (virDomainPtr dom,
                                             size_t size,
                                             void *buffer,
                                             unsigned int flags);
+
+
+/** virDomainBlockInfo:
+ *
+ * This struct provides information about the size of a block device backing store
+ *
+ * Examples:
+ *
+ *  - Fully allocated raw file in filesystem:
+ *       * capacity, allocation, physical: All the same
+ *
+ *  - Sparse raw file in filesystem:
+ *       * capacity: logical size of the file
+ *       * allocation, physical: number of blocks allocated to file
+ *
+ *  - qcow2 file in filesystem
+ *       * capacity: logical size from qcow2 header
+ *       * allocation, physical: logical size of the file / highest qcow extent (identical)
+ *
+ *  - qcow2 file in a block device
+ *       * capacity: logical size from qcow2 header
+ *       * allocation: highest qcow extent written
+ *       * physical: size of the block device container
+ */
+typedef struct _virDomainBlockInfo virDomainBlockInfo;
+typedef virDomainBlockInfo *virDomainBlockInfoPtr;
+struct _virDomainBlockInfo {
+    unsigned long long capacity;   /* logical size in bytes of the block device backing image */
+    unsigned long long allocation; /* highest allocated extent in bytes of the block device backing image */
+    unsigned long long physical;   /* physical size in bytes of the container of the backing image */
+};
+
+int                     virDomainGetBlockInfo(virDomainPtr dom,
+                                              const char *path,
+                                              virDomainBlockInfoPtr info,
+                                              unsigned int flags);
 
 /* Memory peeking flags. */
 typedef enum {
@@ -2018,6 +2054,28 @@ typedef void (*virConnectDomainEventIOErrorCallback)(virConnectPtr conn,
                                                      void *opaque);
 
 /**
+ * virConnectDomainEventWatchdogCallback:
+ * @conn: connection object
+ * @dom: domain on which the event occurred
+ * @srcPath: The host file on which the IO error occurred
+ * @devAlias: The guest device alias associated with the path
+ * @action: action that is to be taken due to the IO error
+ * @reason: the cause of the IO error
+ * @opaque: application specified data
+ *
+ * The callback signature to use when registering for an event of type
+ * VIR_DOMAIN_EVENT_ID_IO_ERROR with virConnectDomainEventRegisterAny()
+ *
+ */
+typedef void (*virConnectDomainEventIOErrorReasonCallback)(virConnectPtr conn,
+                                                           virDomainPtr dom,
+                                                           const char *srcPath,
+                                                           const char *devAlias,
+                                                           int action,
+                                                           const char *reason,
+                                                           void *opaque);
+
+/**
  * virDomainEventGraphicsPhase:
  *
  * The phase of the graphics client connection
@@ -2125,6 +2183,7 @@ typedef enum {
     VIR_DOMAIN_EVENT_ID_WATCHDOG = 3,        /* virConnectDomainEventWatchdogCallback */
     VIR_DOMAIN_EVENT_ID_IO_ERROR = 4,        /* virConnectDomainEventIOErrorCallback */
     VIR_DOMAIN_EVENT_ID_GRAPHICS = 5,        /* virConnectDomainEventGraphicsCallback */
+    VIR_DOMAIN_EVENT_ID_IO_ERROR_REASON = 6, /* virConnectDomainEventIOErrorReasonCallback */
 
     /*
      * NB: this enum value will increase over time as new events are

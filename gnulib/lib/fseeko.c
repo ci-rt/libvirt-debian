@@ -27,14 +27,13 @@
 
 #include "stdio-impl.h"
 
+int
+fseeko (FILE *fp, off_t offset, int whence)
 #undef fseeko
 #if !HAVE_FSEEKO
 # undef fseek
 # define fseeko fseek
 #endif
-
-int
-rpl_fseeko (FILE *fp, off_t offset, int whence)
 {
 #if LSEEK_PIPE_BROKEN
   /* mingw gives bogus answers rather than failure on non-seekable files.  */

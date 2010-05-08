@@ -265,6 +265,7 @@ def->disks[0]...
 
 def->nets[0]...
 ->model = <model>                 <=>   ethernet0.virtualDev = "<model>"        # default depends on guestOS value
+                                        ethernet0.features = "15"               # if present and virtualDev is "vmxnet" => vmxnet2 (enhanced)
 
 
                                         ethernet0.addressType = "generated"     # default to "generated"
@@ -570,11 +571,12 @@ esxVMX_GatherSCSIControllers(virDomainDefPtr def, char *virtualDev[4],
 
         if (virtualDev[controller] == NULL) {
             virtualDev[controller] = disk->driverName;
-        } else if (STRCASENEQ(virtualDev[controller], disk->driverName)) {
+        } else if (disk->driverName == NULL ||
+                   STRCASENEQ(virtualDev[controller], disk->driverName)) {
             ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                       _("Inconsistent driver usage ('%s' is not '%s') on SCSI "
                         "controller index %d"), virtualDev[controller],
-                      disk->driverName, controller);
+                      disk->driverName ? disk->driverName : "?", controller);
             return -1;
         }
     }
@@ -588,6 +590,9 @@ char *
 esxVMX_AbsolutePathToDatastoreRelatedPath(esxVI_Context *ctx,
                                           const char *absolutePath)
 {
+    char *copyOfAbsolutePath = NULL;
+    char *tmp = NULL;
+    char *saveptr = NULL;
     char *datastoreRelatedPath = NULL;
     char *preliminaryDatastoreName = NULL;
     char *directoryAndFileName = NULL;
@@ -595,8 +600,14 @@ esxVMX_AbsolutePathToDatastoreRelatedPath(esxVI_Context *ctx,
     esxVI_ObjectContent *datastore = NULL;
     const char *datastoreName = NULL;
 
-    if (sscanf(absolutePath, "/vmfs/volumes/%a[^/]/%a[^\n]",
-               &preliminaryDatastoreName, &directoryAndFileName) != 2) {
+    if (esxVI_String_DeepCopyValue(&copyOfAbsolutePath, absolutePath) < 0) {
+        goto failure;
+    }
+
+    /* Expected format: '/vmfs/volumes/<datastore>/<path>' */
+    if ((tmp = STRSKIP(copyOfAbsolutePath, "/vmfs/volumes/")) == NULL ||
+        (preliminaryDatastoreName = strtok_r(tmp, "/", &saveptr)) == NULL ||
+        (directoryAndFileName = strtok_r(NULL, "", &saveptr)) == NULL) {
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                   _("Absolute path '%s' doesn't have expected format "
                     "'/vmfs/volumes/<datastore>/<path>'"), absolutePath);
@@ -651,8 +662,7 @@ esxVMX_AbsolutePathToDatastoreRelatedPath(esxVI_Context *ctx,
     /* FIXME: Check if referenced path/file really exists */
 
   cleanup:
-    VIR_FREE(preliminaryDatastoreName);
-    VIR_FREE(directoryAndFileName);
+    VIR_FREE(copyOfAbsolutePath);
     esxVI_ObjectContent_Free(&datastore);
 
     return datastoreRelatedPath;
@@ -715,7 +725,7 @@ esxVMX_ParseFileName(esxVI_Context *ctx, const char *fileName,
 virDomainDefPtr
 esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
                    const char *datastoreName, const char *directoryName,
-                   esxVI_APIVersion apiVersion)
+                   esxVI_ProductVersion productVersion)
 {
     virConfPtr conf = NULL;
     virDomainDefPtr def = NULL;
@@ -765,34 +775,33 @@ esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
         goto failure;
     }
 
-    switch (apiVersion) {
-      case esxVI_APIVersion_25:
+    /*
+     * virtualHW.version compatibility matrix:
+     *
+     *              4 7    API
+     *   ESX 3.5    +      2.5
+     *   ESX 4.0    + +    4.0
+     *   GSX 2.0    + +    2.5
+     */
+    switch (productVersion) {
+      case esxVI_ProductVersion_ESX35:
         if (virtualHW_version != 4) {
             ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Expecting VMX entry 'virtualHW.version' to be 4 for "
-                        "VI API version 2.5 but found %lld"),
+                      _("Expecting VMX entry 'virtualHW.version' to be 4 "
+                        "but found %lld"),
                       virtualHW_version);
             goto failure;
         }
 
         break;
 
-      case esxVI_APIVersion_40:
+      case esxVI_ProductVersion_GSX20:
+      case esxVI_ProductVersion_ESX40:
         if (virtualHW_version != 4 && virtualHW_version != 7) {
             ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                       _("Expecting VMX entry 'virtualHW.version' to be 4 or 7 "
-                        "for VI API version 4.0 but found %lld"),
+                        "but found %lld"),
                       virtualHW_version);
-            goto failure;
-        }
-
-        break;
-
-      case esxVI_APIVersion_Unknown:
-        if (virtualHW_version != 4 && virtualHW_version != 7) {
-            ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Expecting VMX entry 'virtualHW.version' to be 4 or 7 "
-                        "but found %lld"), virtualHW_version);
             goto failure;
         }
 
@@ -800,7 +809,7 @@ esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
 
       default:
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
-                  _("Expecting VI API version 2.5 or 4.0"));
+                  _("Unexpected product version"));
         goto failure;
     }
 
@@ -1696,6 +1705,9 @@ esxVMX_ParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
     char virtualDev_name[48] = "";
     char *virtualDev = NULL;
 
+    char features_name[48] = "";
+    long long features = 0;
+
     char vnet_name[48] = "";
     char *vnet = NULL;
 
@@ -1728,6 +1740,7 @@ esxVMX_ParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
     ESX_BUILD_VMX_NAME(generatedAddress);
     ESX_BUILD_VMX_NAME(address);
     ESX_BUILD_VMX_NAME(virtualDev);
+    ESX_BUILD_VMX_NAME(features);
     ESX_BUILD_VMX_NAME(networkName);
     ESX_BUILD_VMX_NAME(vnet);
 
@@ -1788,21 +1801,34 @@ esxVMX_ParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
         goto failure;
     }
 
-    /* vmx:virtualDev -> def:model */
-    if (esxUtil_GetConfigString(conf, virtualDev_name, &virtualDev, 1) < 0) {
+    /* vmx:virtualDev, vmx:features -> def:model */
+    if (esxUtil_GetConfigString(conf, virtualDev_name, &virtualDev, 1) < 0 ||
+        esxUtil_GetConfigLong(conf, features_name, &features, 0, 1) < 0) {
         goto failure;
     }
 
-    if (virtualDev != NULL &&
-        STRCASENEQ(virtualDev, "vlance") &&
-        STRCASENEQ(virtualDev, "vmxnet") &&
-        STRCASENEQ(virtualDev, "vmxnet3") &&
-        STRCASENEQ(virtualDev, "e1000")) {
-        ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Expecting VMX entry '%s' to be 'vlance' or 'vmxnet' or "
-                    "'vmxnet3' or 'e1000' but found '%s'"), virtualDev_name,
-                  virtualDev);
-        goto failure;
+    if (virtualDev != NULL) {
+        if (STRCASENEQ(virtualDev, "vlance") &&
+            STRCASENEQ(virtualDev, "vmxnet") &&
+            STRCASENEQ(virtualDev, "vmxnet3") &&
+            STRCASENEQ(virtualDev, "e1000")) {
+            ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                      _("Expecting VMX entry '%s' to be 'vlance' or 'vmxnet' or "
+                        "'vmxnet3' or 'e1000' but found '%s'"), virtualDev_name,
+                      virtualDev);
+            goto failure;
+        }
+
+        if (STRCASEEQ(virtualDev, "vmxnet") && features == 15) {
+            VIR_FREE(virtualDev);
+
+            virtualDev = strdup("vmxnet2");
+
+            if (virtualDev == NULL) {
+                virReportOOMError();
+                goto failure;
+            }
+        }
     }
 
     /* vmx:networkName -> def:data.bridge.brname */
@@ -2180,7 +2206,7 @@ esxVMX_FormatFileName(esxVI_Context *ctx ATTRIBUTE_UNUSED, const char *src)
 
 char *
 esxVMX_FormatConfig(esxVI_Context *ctx, virDomainDefPtr def,
-                    esxVI_APIVersion apiVersion)
+                    esxVI_ProductVersion productVersion)
 {
     int i;
     int sched_cpu_affinity_length;
@@ -2201,18 +2227,19 @@ esxVMX_FormatConfig(esxVI_Context *ctx, virDomainDefPtr def,
     virBufferAddLit(&buffer, "config.version = \"8\"\n");
 
     /* vmx:virtualHW.version */
-    switch (apiVersion) {
-      case esxVI_APIVersion_25:
+    switch (productVersion) {
+      case esxVI_ProductVersion_ESX35:
         virBufferAddLit(&buffer, "virtualHW.version = \"4\"\n");
         break;
 
-      case esxVI_APIVersion_40:
+      case esxVI_ProductVersion_GSX20:
+      case esxVI_ProductVersion_ESX40:
         virBufferAddLit(&buffer, "virtualHW.version = \"7\"\n");
         break;
 
       default:
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
-                  _("Expecting VI API version 2.5 or 4.0"));
+                  _("Unexpected product version"));
         goto failure;
     }
 
@@ -2735,21 +2762,29 @@ esxVMX_FormatEthernet(virDomainNetDefPtr def, int controller,
 
     virBufferVSprintf(buffer, "ethernet%d.present = \"true\"\n", controller);
 
-    /* def:model -> vmx:virtualDev */
+    /* def:model -> vmx:virtualDev, vmx:features */
     if (def->model != NULL) {
         if (STRCASENEQ(def->model, "vlance") &&
             STRCASENEQ(def->model, "vmxnet") &&
+            STRCASENEQ(def->model, "vmxnet2") &&
             STRCASENEQ(def->model, "vmxnet3") &&
             STRCASENEQ(def->model, "e1000")) {
             ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                       _("Expecting domain XML entry 'devices/interfase/model' "
-                        "to be 'vlance' or 'vmxnet' or 'vmxnet3' or 'e1000' "
-                        "but found '%s'"), def->model);
+                        "to be 'vlance' or 'vmxnet' or 'vmxnet2' or 'vmxnet3' "
+                        "or 'e1000' but found '%s'"), def->model);
             return -1;
         }
 
-        virBufferVSprintf(buffer, "ethernet%d.virtualDev = \"%s\"\n",
-                          controller, def->model);
+        if (STRCASEEQ(def->model, "vmxnet2")) {
+            virBufferVSprintf(buffer, "ethernet%d.virtualDev = \"vmxnet\"\n",
+                              controller);
+            virBufferVSprintf(buffer, "ethernet%d.features = \"15\"\n",
+                              controller);
+        } else {
+            virBufferVSprintf(buffer, "ethernet%d.virtualDev = \"%s\"\n",
+                              controller, def->model);
+        }
     }
 
     /* def:type, def:ifname -> vmx:connectionType */

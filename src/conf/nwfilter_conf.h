@@ -35,6 +35,24 @@
 # include "xml.h"
 # include "network.h"
 
+/* XXX
+ * The config parser/structs should not be using platform specific
+ * constants. Win32 lacks these constants, breaking the parser,
+ * so temporarily define them until this can be re-written to use
+ * locally defined enums for all constants
+ */
+# ifndef ETHERTYPE_IP
+#  define ETHERTYPE_IP            0x0800
+# endif
+# ifndef ETHERTYPE_ARP
+#  define ETHERTYPE_ARP           0x0806
+# endif
+# ifndef ETHERTYPE_REVARP
+#  define ETHERTYPE_REVARP        0x8035
+# endif
+# ifndef ETHERTYPE_IPV6
+#  define ETHERTYPE_IPV6          0x86dd
+# endif
 
 /**
  * Chain suffix size is:
@@ -65,15 +83,17 @@ enum virNWFilterEntryItemFlags {
 enum attrDatatype {
     DATATYPE_UINT16           = (1 << 0),
     DATATYPE_UINT8            = (1 << 1),
-    DATATYPE_MACADDR          = (1 << 2),
-    DATATYPE_MACMASK          = (1 << 3),
-    DATATYPE_IPADDR           = (1 << 4),
-    DATATYPE_IPMASK           = (1 << 5),
-    DATATYPE_STRING           = (1 << 6),
-    DATATYPE_IPV6ADDR         = (1 << 7),
-    DATATYPE_IPV6MASK         = (1 << 8),
+    DATATYPE_UINT16_HEX       = (1 << 2),
+    DATATYPE_UINT8_HEX        = (1 << 3),
+    DATATYPE_MACADDR          = (1 << 4),
+    DATATYPE_MACMASK          = (1 << 5),
+    DATATYPE_IPADDR           = (1 << 6),
+    DATATYPE_IPMASK           = (1 << 7),
+    DATATYPE_STRING           = (1 << 8),
+    DATATYPE_IPV6ADDR         = (1 << 9),
+    DATATYPE_IPV6MASK         = (1 << 10),
 
-    DATATYPE_LAST             = (1 << 9),
+    DATATYPE_LAST             = (1 << 11),
 };
 
 
@@ -153,6 +173,7 @@ struct _ipHdrDataDef {
     nwItemDesc dataDstIPFrom;
     nwItemDesc dataDstIPTo;
     nwItemDesc dataDSCP;
+    nwItemDesc dataConnlimitAbove;
 };
 
 
@@ -289,6 +310,7 @@ enum virNWFilterRuleProtocolType {
     VIR_NWFILTER_RULE_PROTOCOL_NONE = 0,
     VIR_NWFILTER_RULE_PROTOCOL_MAC,
     VIR_NWFILTER_RULE_PROTOCOL_ARP,
+    VIR_NWFILTER_RULE_PROTOCOL_RARP,
     VIR_NWFILTER_RULE_PROTOCOL_IP,
     VIR_NWFILTER_RULE_PROTOCOL_IPV6,
     VIR_NWFILTER_RULE_PROTOCOL_TCP,
@@ -333,7 +355,7 @@ struct _virNWFilterRuleDef {
     enum virNWFilterRuleProtocolType prtclType;
     union {
         ethHdrFilterDef  ethHdrFilter;
-        arpHdrFilterDef  arpHdrFilter;
+        arpHdrFilterDef  arpHdrFilter; /* also used for rarp */
         ipHdrFilterDef   ipHdrFilter;
         ipv6HdrFilterDef ipv6HdrFilter;
         tcpHdrFilterDef  tcpHdrFilter;
@@ -370,6 +392,7 @@ struct _virNWFilterEntry {
 enum virNWFilterChainSuffixType {
     VIR_NWFILTER_CHAINSUFFIX_ROOT = 0,
     VIR_NWFILTER_CHAINSUFFIX_ARP,
+    VIR_NWFILTER_CHAINSUFFIX_RARP,
     VIR_NWFILTER_CHAINSUFFIX_IPv4,
     VIR_NWFILTER_CHAINSUFFIX_IPv6,
 
@@ -451,6 +474,9 @@ struct domUpdateCBStruct {
 };
 
 
+typedef int (*virNWFilterTechDrvInit)(void);
+typedef void (*virNWFilterTechDrvShutdown)(void);
+
 enum virDomainNetType;
 
 typedef int (*virNWFilterRuleCreateInstance)(virConnectPtr conn,
@@ -484,9 +510,29 @@ typedef int (*virNWFilterRuleFreeInstanceData)(void * _inst);
 typedef int (*virNWFilterRuleDisplayInstanceData)(virConnectPtr conn,
                                                   void *_inst);
 
+typedef int (*virNWFilterCanApplyBasicRules)(void);
+
+typedef int (*virNWFilterApplyBasicRules)(const char *ifname,
+                                          const unsigned char *macaddr);
+
+typedef int (*virNWFilterApplyDHCPOnlyRules)(const char *ifname,
+                                             const unsigned char *macaddr,
+                                             const char *dhcpserver);
+
+typedef int (*virNWFilterRemoveBasicRules)(const char *ifname);
+
+typedef int (*virNWFilterDropAllRules)(const char *ifname);
+
+enum techDrvFlags {
+    TECHDRV_FLAG_INITIALIZED = (1 << 0),
+};
 
 struct _virNWFilterTechDriver {
     const char *name;
+    enum techDrvFlags flags;
+
+    virNWFilterTechDrvInit init;
+    virNWFilterTechDrvShutdown shutdown;
 
     virNWFilterRuleCreateInstance createRuleInstance;
     virNWFilterRuleApplyNewRules applyNewRules;
@@ -496,6 +542,12 @@ struct _virNWFilterTechDriver {
     virNWFilterRuleAllTeardown allTeardown;
     virNWFilterRuleFreeInstanceData freeRuleInstance;
     virNWFilterRuleDisplayInstanceData displayRuleInstance;
+
+    virNWFilterCanApplyBasicRules canApplyBasicRules;
+    virNWFilterApplyBasicRules applyBasicRules;
+    virNWFilterApplyDHCPOnlyRules applyDHCPOnlyRules;
+    virNWFilterDropAllRules applyDropAllRules;
+    virNWFilterRemoveBasicRules removeBasicRules;
 };
 
 

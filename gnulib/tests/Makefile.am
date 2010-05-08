@@ -14,7 +14,7 @@
 
 AUTOMAKE_OPTIONS = 1.5 foreign
 
-SUBDIRS =
+SUBDIRS = .
 TESTS =
 XFAIL_TESTS =
 TESTS_ENVIRONMENT =
@@ -379,6 +379,14 @@ EXTRA_DIST += signature.h test-select.c test-select-fd.c test-select-in.sh test-
 
 ## end   gnulib module select-tests
 
+## begin gnulib module sleep-tests
+
+TESTS += test-sleep
+check_PROGRAMS += test-sleep
+EXTRA_DIST += test-sleep.c signature.h macros.h
+
+## end   gnulib module sleep-tests
+
 ## begin gnulib module snprintf-tests
 
 TESTS += test-snprintf
@@ -549,6 +557,14 @@ check_PROGRAMS += test-unistd
 EXTRA_DIST += test-unistd.c
 
 ## end   gnulib module unistd-tests
+
+## begin gnulib module usleep-tests
+
+TESTS += test-usleep
+check_PROGRAMS += test-usleep
+EXTRA_DIST += test-usleep.c signature.h macros.h
+
+## end   gnulib module usleep-tests
 
 ## begin gnulib module vasnprintf-tests
 

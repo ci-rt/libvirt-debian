@@ -61,7 +61,7 @@
 #if HAVE_CAPNG
 # include <cap-ng.h>
 #endif
-#ifdef HAVE_MNTENT_H
+#if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
 # include <mntent.h>
 #endif
 
@@ -77,10 +77,6 @@
 
 #ifndef NSIG
 # define NSIG 32
-#endif
-
-#ifndef MIN
-# define MIN(a, b) ((a) < (b) ? (a) : (b))
 #endif
 
 #define VIR_FROM_THIS VIR_FROM_NONE
@@ -1157,7 +1153,7 @@ int virFileHasSuffix(const char *str,
     if (len < suffixlen)
         return 0;
 
-    return STREQ(str + len - suffixlen, suffix);
+    return STRCASEEQ(str + len - suffixlen, suffix);
 }
 
 # define SAME_INODE(Stat_buf_1, Stat_buf_2) \
@@ -2394,6 +2390,9 @@ char *virGetHostnameLocalhost(int allow_localhost)
         return NULL;
     }
 
+    /* Tell static analyzers about getaddrinfo semantics.  */
+    sa_assert (info);
+
     /* if we aren't allowing localhost, then we iterate through the
      * list and make sure none of the IPv4 addresses are 127.0.0.1 and
      * that none of the IPv6 addresses are ::1
@@ -2717,7 +2716,7 @@ int virGetGroupID(const char *name ATTRIBUTE_UNUSED,
 #endif /* HAVE_GETPWUID_R */
 
 
-#ifdef HAVE_MNTENT_H
+#if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
 /* search /proc/mounts for mount point of *type; return pointer to
  * malloc'ed string of the path if found, otherwise return NULL
  * with errno set to an appropriate value.
@@ -2749,7 +2748,7 @@ cleanup:
     return ret;
 }
 
-#else /* HAVE_MNTENT_H */
+#else /* defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R */
 
 char *
 virFileFindMountPoint(const char *type ATTRIBUTE_UNUSED)
@@ -2759,7 +2758,7 @@ virFileFindMountPoint(const char *type ATTRIBUTE_UNUSED)
     return NULL;
 }
 
-#endif /* HAVE_MNTENT_H */
+#endif /* defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R */
 
 #ifndef PROXY
 # if defined(UDEVADM) || defined(UDEVSETTLE)

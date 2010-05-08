@@ -1284,6 +1284,7 @@ xend_parse_sexp_desc_char(virBufferPtr buf,
         virBufferVSprintf(buf, "      <source path='%s'/>\n",
                           value);
     } else if (STREQ(type, "tcp")) {
+        sa_assert (value);
         const char *offset = strchr(value, ':');
         const char *offset2;
         const char *mode, *protocol;
@@ -1325,6 +1326,7 @@ xend_parse_sexp_desc_char(virBufferPtr buf,
                           "      <protocol type='%s'/>\n",
                           protocol);
     } else if (STREQ(type, "udp")) {
+        sa_assert (value);
         const char *offset = strchr(value, ':');
         const char *offset2, *offset3;
 
@@ -1383,6 +1385,7 @@ xend_parse_sexp_desc_char(virBufferPtr buf,
         }
 
     } else if (STREQ(type, "unix")) {
+        sa_assert (value);
         const char *offset = strchr(value, ',');
         int dolisten = 0;
         if (offset)
@@ -4201,6 +4204,10 @@ xenDaemonUpdateDeviceFlags(virDomainPtr domain, const char *xml,
     virDomainDefPtr def = NULL;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     char class[8], ref[80];
+
+    virCheckFlags(VIR_DOMAIN_DEVICE_MODIFY_CURRENT |
+                  VIR_DOMAIN_DEVICE_MODIFY_LIVE |
+                  VIR_DOMAIN_DEVICE_MODIFY_CONFIG, -1);
 
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
         virXendError(VIR_ERR_INVALID_ARG, __FUNCTION__);

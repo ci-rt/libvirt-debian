@@ -70,7 +70,9 @@ static struct xenUnifiedDriver const * const drivers[XEN_UNIFIED_NR_DRIVERS] = {
 #endif
 };
 
+#if defined WITH_LIBVIRTD || defined __sun
 static int inside_daemon;
+#endif
 
 #define xenUnifiedError(code, ...)                                         \
         virReportErrorHelper(NULL, VIR_FROM_XEN, code, __FILE__,           \
@@ -1959,6 +1961,7 @@ static virDriver xenUnifiedDriver = {
     NULL, /* domainMemoryStats */
     xenUnifiedDomainBlockPeek, /* domainBlockPeek */
     NULL, /* domainMemoryPeek */
+    NULL, /* domainGetBlockInfo */
     xenUnifiedNodeGetCellsFreeMemory, /* nodeGetCellsFreeMemory */
     xenUnifiedNodeGetFreeMemory, /* getFreeMemory */
     xenUnifiedDomainEventRegister, /* domainEventRegister */

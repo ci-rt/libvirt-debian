@@ -151,6 +151,7 @@ static virStoragePoolTypeInfo poolTypeInfo[] = {
     { .poolType = VIR_STORAGE_POOL_FS,
       .poolOptions = {
             .flags = (VIR_STORAGE_POOL_SOURCE_DEVICE),
+            .defaultFormat = VIR_STORAGE_POOL_FS_AUTO,
             .formatFromString = virStoragePoolFormatFileSystemTypeFromString,
             .formatToString = virStoragePoolFormatFileSystemTypeToString,
         },
@@ -164,7 +165,7 @@ static virStoragePoolTypeInfo poolTypeInfo[] = {
       .poolOptions = {
             .flags = (VIR_STORAGE_POOL_SOURCE_HOST |
                       VIR_STORAGE_POOL_SOURCE_DIR),
-            .defaultFormat = VIR_STORAGE_POOL_FS_AUTO,
+            .defaultFormat = VIR_STORAGE_POOL_NETFS_AUTO,
             .formatFromString = virStoragePoolFormatFileSystemNetTypeFromString,
             .formatToString = virStoragePoolFormatFileSystemNetTypeToString,
         },
@@ -1168,7 +1169,7 @@ virStorageVolTargetDefFormat(virStorageVolOptionsPtr options,
     virBufferAddLit(buf,"    </permissions>\n");
 
     if (def->encryption != NULL &&
-        virStorageEncryptionFormat(buf, def->encryption) < 0)
+        virStorageEncryptionFormat(buf, def->encryption, 4) < 0)
         return -1;
 
     virBufferVSprintf(buf, "  </%s>\n", type);

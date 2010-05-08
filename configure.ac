@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([libvirt], [0.8.0])
+AC_INIT([libvirt], [0.8.1])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -73,9 +73,10 @@ AC_LIBTOOL_WIN32_DLL
 
 AM_PROG_LIBTOOL
 AM_PROG_CC_C_O
+AM_PROG_LD
 
 VERSION_SCRIPT_FLAGS=-Wl,--version-script=
-`/usr/bin/ld --help 2>&1 | grep -- --version-script >/dev/null` || \
+`$LD --help 2>&1 | grep -- --version-script >/dev/null` || \
     VERSION_SCRIPT_FLAGS="-Wl,-M -Wl,"
 AC_SUBST(VERSION_SCRIPT_FLAGS)
 
@@ -112,7 +113,8 @@ dnl Availability of various not common threadsafe functions
 AC_CHECK_FUNCS([strerror_r strtok_r getmntent_r getgrnam_r getpwuid_r])
 
 dnl Availability of various common headers (non-fatal if missing).
-AC_CHECK_HEADERS([pwd.h paths.h regex.h sys/syslimits.h sys/utsname.h sys/wait.h winsock2.h sched.h termios.h sys/poll.h syslog.h mntent.h net/ethernet.h])
+AC_CHECK_HEADERS([pwd.h paths.h regex.h sys/syslimits.h sys/utsname.h \
+  sys/wait.h sched.h termios.h sys/poll.h syslog.h mntent.h net/ethernet.h])
 
 dnl Where are the XDR functions?
 dnl If portablexdr is installed, prefer that.
@@ -122,6 +124,9 @@ AC_CHECK_LIB([portablexdr],[xdrmem_create],[],[
 	AC_SEARCH_LIBS([xdrmem_create],[rpc xdr nsl],[],
 		[AC_MSG_ERROR([Cannot find a XDR library])])
 	])
+
+dnl check for cygwin's variation in xdr function names
+AC_CHECK_FUNCS([xdr_u_int64_t],[],[],[#include <rpc/xdr.h>])
 
 AC_CHECK_LIB([intl],[gettext],[])
 
@@ -205,6 +210,18 @@ if test "$prefix" = "/usr" && test "$sysconfdir" = '${prefix}/etc' ; then
     sysconfdir='/etc'
 fi
 
+dnl lxc and qemu drivers require linux headers
+if test `uname -s` != "Linux"
+then
+    if test "x$with_lxc" != "xyes"
+    then
+        with_lxc=no
+    fi
+    if test "x$with_qemu" != "xyes"
+    then
+        with_qemu=no
+    fi
+fi
 
 dnl Allow to build without Xen, QEMU/KVM, test or remote driver
 AC_ARG_WITH([xen],
@@ -295,23 +312,11 @@ if test x"$with_rhel5_api" = x"yes"; then
    AC_DEFINE([WITH_RHEL5_API], [1], [whether building for the RHEL-5 API])
 fi
 
-AC_PATH_PROG([BASH_PATH], [bash], /bin/bash, [/bin:$PATH])
-AC_DEFINE_UNQUOTED([BASH_PATH], "$BASH_PATH", [path to bash binary])
-
 AC_PATH_PROG([IPTABLES_PATH], [iptables], /sbin/iptables, [/usr/sbin:$PATH])
 AC_DEFINE_UNQUOTED([IPTABLES_PATH], "$IPTABLES_PATH", [path to iptables binary])
 
-AC_PATH_PROG([IP6TABLES_PATH], [ip6tables], /sbin/ip6tables, [/usr/sbin:$PATH])
-AC_DEFINE_UNQUOTED([IP6TABLES_PATH], "$IP6TABLES_PATH", [path to ip6tables binary])
-
 AC_PATH_PROG([EBTABLES_PATH], [ebtables], /sbin/ebtables, [/usr/sbin:$PATH])
 AC_DEFINE_UNQUOTED([EBTABLES_PATH], "$EBTABLES_PATH", [path to ebtables binary])
-
-AC_PATH_PROG([GREP_PATH], [grep], /bin/grep, [/bin:$PATH])
-AC_DEFINE_UNQUOTED([GREP_PATH], "$GREP_PATH", [path to grep binary])
-
-AC_PATH_PROG([GAWK_PATH], [gawk], /bin/gawk, [/bin:$PATH])
-AC_DEFINE_UNQUOTED([GAWK_PATH], "$GAWK_PATH", [path to gawk binary])
 
 
 if test "$with_openvz" = "yes"; then
@@ -496,6 +501,9 @@ AC_CHECK_HEADERS([linux/kvm.h])
 dnl
 dnl check for sufficient headers for LXC
 dnl
+if test "$with_libvirtd" = "no" ; then
+  with_lxc=no
+fi
 if test "$with_lxc" = "yes" || test "$with_lxc" = "check"; then
     AC_CHECK_HEADER([sched.h],
     dnl Header is there, check for unshare()
@@ -526,9 +534,6 @@ if test "$with_lxc" = "yes" || test "$with_lxc" = "check"; then
 
     ])
 fi
-if test "$with_libvirtd" = "no" ; then
-  with_lxc=no
-fi
 if test "$with_lxc" = "yes" ; then
     AC_DEFINE_UNQUOTED([WITH_LXC], 1, [whether LXC driver is enabled])
 fi
@@ -540,7 +545,7 @@ dnl check for kernel headers required by src/bridge.c
 dnl
 if test "$with_qemu" = "yes" || test "$with_lxc" = "yes" ; then
   AC_CHECK_HEADERS([linux/param.h linux/sockios.h linux/if_bridge.h linux/if_tun.h],,
-                   AC_MSG_ERROR([You must install kernel-headers in order to compile libvirt]))
+                   AC_MSG_ERROR([You must install kernel-headers in order to compile libvirt with QEMU or LXC support]))
 fi
 
 
@@ -550,6 +555,9 @@ PKG_PROG_PKG_CONFIG
 dnl OpenNebula driver Compilation setting
 dnl
 
+if test "$with_libvirtd" = "no" ; then
+  with_one=no
+fi
 XMLRPC_CFLAGS=
 XMLRPC_LIBS=
 if test "x$with_one" = "xyes" || test "x$with_one" = "xcheck"; then
@@ -881,14 +889,14 @@ if test "$with_selinux" != "no"; then
     AC_CHECK_HEADER([selinux/selinux.h],[],[fail=1])
     AC_CHECK_LIB([selinux], [fgetfilecon],[],[fail=1])
     test $fail = 1 &&
-      AC_MSG_ERROR([You must install the SELinux development package in order to compile libvirt])
+      AC_MSG_ERROR([You must install the libselinux development package in order to compile libvirt with basic SELinux support])
   fi
   CFLAGS="$old_cflags"
   LIBS="$old_libs"
 fi
 if test "$with_selinux" = "yes"; then
   SELINUX_LIBS="-lselinux"
-  AC_DEFINE_UNQUOTED([HAVE_SELINUX], 1, [whether SELinux is available for security])
+  AC_DEFINE_UNQUOTED([HAVE_SELINUX], 1, [whether basic SELinux functionality is available])
 fi
 AM_CONDITIONAL([HAVE_SELINUX], [test "$with_selinux" != "no"])
 AC_SUBST([SELINUX_CFLAGS])
@@ -903,8 +911,8 @@ AC_ARG_WITH([secdriver-selinux],
 if test "$with_selinux" != "yes" ; then
   if test "$with_secdriver_selinux" = "check" ; then
     with_secdriver_selinux=no
-  else
-    AC_MSG_ERROR([You must install the SELinux development package in order to compile libvirt])
+  elif test "$with_secdriver_selinux" = "yes"; then
+        AC_MSG_ERROR([You must install the libselinux development package and enable SELinux with the --with-selinux=yes in order to compile libvirt --with-secdriver-selinux=yes])
   fi
 else
   old_cflags="$CFLAGS"
@@ -922,7 +930,7 @@ else
     if test "$with_secdriver_selinux" = "check" ; then
       with_secdriver_selinux=no
     else
-      AC_MSG_ERROR([You must install the SELinux development package in order to compile libvirt])
+      AC_MSG_ERROR([You must install libselinux development package >= 2.0.82 in order to compile libvirt --with-secdriver-selinux=yes])
     fi
   else
     with_secdriver_selinux=yes
@@ -1083,6 +1091,9 @@ dnl
 dnl Checks for the UML driver
 dnl
 
+if test "$with_libvirtd" = "no" ; then
+  with_uml=no
+fi
 if test "$with_uml" = "yes" || test "$with_uml" = "check"; then
     AC_CHECK_HEADER([sys/inotify.h], [
         with_uml=yes
@@ -1094,9 +1105,6 @@ if test "$with_uml" = "yes" || test "$with_uml" = "check"; then
             AC_MSG_ERROR([The <sys/inotify.h> is required for the UML driver. Upgrade your libc6.])
         fi
     ])
-fi
-if test "$with_libvirtd" = "no" ; then
-  with_uml=no
 fi
 if test "$with_uml" = "yes" ; then
     AC_DEFINE_UNQUOTED([WITH_UML], 1, [whether UML driver is enabled])
@@ -1809,9 +1817,17 @@ case "$host" in
     if test "x$enable_shared" = "xno"; then
       WIN32_EXTRA_CFLAGS="-DLIBVIRT_STATIC"
     fi
+esac
+case "$host" in
+  *-*-mingw* | *-*-msvc* )
     # Also set the symbol file to .def, so src/Makefile generates libvirt.def
     # from libvirt.syms and passes libvirt.def instead of libvirt.syms to the linker
     LIBVIRT_SYMBOL_FILE=libvirt.def
+    # mingw's ld has the --version-script parameter, but it requires a .def file
+    # instead to work properly, therefore clear --version-script here
+    # cygwin's ld has the --version-script parameter too, but for some reason
+    # it's working there as expected
+    VERSION_SCRIPT_FLAGS=
     ;;
 esac
 AC_SUBST([CYGWIN_EXTRA_LDFLAGS])
@@ -2011,6 +2027,12 @@ AM_CONDITIONAL([WITH_MACVTAP], [test "$with_macvtap" = "yes"])
 # You are unlikely to be doing distribution-related things in a non-srcdir build
 test "x$srcdir" = x. && ! test -f COPYING &&
 cp -f COPYING.LIB COPYING
+
+# Detect when running under the clang static analyzer's scan-build driver
+# or Coverity-prevent's cov-build.  Define STATIC_ANALYSIS accordingly.
+test -n "$CCC_ANALYZER_ANALYSIS$COVERITY_BUILD_COMMAND" && t=1 || t=0
+AC_DEFINE_UNQUOTED([STATIC_ANALYSIS], [$t],
+  [Define to 1 when performing static analysis.])
 
 AC_OUTPUT(Makefile src/Makefile include/Makefile docs/Makefile \
 	  docs/schemas/Makefile \

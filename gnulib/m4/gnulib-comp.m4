@@ -128,6 +128,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module servent:
   # Code from module setsockopt:
   # Code from module size_max:
+  # Code from module sleep:
+  # Code from module sleep-tests:
   # Code from module snprintf:
   # Code from module snprintf-tests:
   # Code from module socket:
@@ -162,6 +164,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module strnlen:
   # Code from module strptime:
   # Code from module strsep:
+  # Code from module strtok_r:
   # Code from module symlink:
   # Code from module symlink-tests:
   # Code from module sys_ioctl:
@@ -182,6 +185,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module unistd:
   # Code from module unistd-tests:
   # Code from module useless-if-before-free:
+  # Code from module usleep:
+  # Code from module usleep-tests:
   # Code from module vasnprintf:
   # Code from module vasnprintf-tests:
   # Code from module vasprintf:
@@ -416,6 +421,9 @@ AC_SUBST([LTALLOCA])
   gl_SYS_SOCKET_MODULE_INDICATOR([setsockopt])
   # Code from module size_max:
   gl_SIZE_MAX
+  # Code from module sleep:
+  gl_FUNC_SLEEP
+  gl_UNISTD_MODULE_INDICATOR([sleep])
   # Code from module snprintf:
   gl_FUNC_SNPRINTF
   gl_STDIO_MODULE_INDICATOR([snprintf])
@@ -483,6 +491,9 @@ AC_SUBST([LTALLOCA])
   # Code from module strsep:
   gl_FUNC_STRSEP
   gl_STRING_MODULE_INDICATOR([strsep])
+  # Code from module strtok_r:
+  gl_FUNC_STRTOK_R
+  gl_STRING_MODULE_INDICATOR([strtok_r])
   # Code from module sys_ioctl:
   gl_SYS_IOCTL_H
   AC_PROG_MKDIR_P
@@ -511,6 +522,9 @@ AC_SUBST([LTALLOCA])
   # Code from module unistd:
   gl_UNISTD_H
   # Code from module useless-if-before-free:
+  # Code from module usleep:
+  gl_FUNC_USLEEP
+  gl_UNISTD_MODULE_INDICATOR([usleep])
   # Code from module vasnprintf:
   gl_FUNC_VASNPRINTF
   # Code from module vasprintf:
@@ -592,6 +606,7 @@ changequote([, ])dnl
   gl_SYS_SOCKET_MODULE_INDICATOR([listen])
   AC_CHECK_HEADERS_ONCE([unistd.h sys/wait.h])
   AC_CHECK_HEADERS_ONCE([unistd.h sys/wait.h])
+  AC_CHECK_DECLS_ONCE([alarm])
   gt_TYPE_WCHAR_T
   gt_TYPE_WINT_T
   gl_FUNC_SYMLINK
@@ -772,6 +787,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/send.c
   lib/setsockopt.c
   lib/size_max.h
+  lib/sleep.c
   lib/snprintf.c
   lib/socket.c
   lib/sockets.c
@@ -798,6 +814,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/strnlen.c
   lib/strptime.c
   lib/strsep.c
+  lib/strtok_r.c
   lib/sys_ioctl.in.h
   lib/sys_select.in.h
   lib/sys_socket.in.h
@@ -809,6 +826,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/time_r.c
   lib/timegm.c
   lib/unistd.in.h
+  lib/usleep.c
   lib/vasnprintf.c
   lib/vasnprintf.h
   lib/vasprintf.c
@@ -891,6 +909,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/select.m4
   m4/servent.m4
   m4/size_max.m4
+  m4/sleep.m4
   m4/snprintf.m4
   m4/sockets.m4
   m4/socklen.m4
@@ -914,6 +933,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/strnlen.m4
   m4/strptime.m4
   m4/strsep.m4
+  m4/strtok_r.m4
   m4/symlink.m4
   m4/sys_ioctl_h.m4
   m4/sys_select_h.m4
@@ -929,6 +949,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/uintmax_t.m4
   m4/ungetc.m4
   m4/unistd_h.m4
+  m4/usleep.m4
   m4/vasnprintf.m4
   m4/vasprintf.m4
   m4/visibility.m4
@@ -979,6 +1000,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-select-out.sh
   tests/test-select-stdin.c
   tests/test-select.c
+  tests/test-sleep.c
   tests/test-snprintf.c
   tests/test-sockets.c
   tests/test-stat.c
@@ -1001,6 +1023,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-sys_time.c
   tests/test-time.c
   tests/test-unistd.c
+  tests/test-usleep.c
   tests/test-vasnprintf.c
   tests/test-vasprintf.c
   tests/test-vc-list-files-cvs.sh

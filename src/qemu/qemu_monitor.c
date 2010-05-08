@@ -166,7 +166,7 @@ char *qemuMonitorEscapeShell(const char *in)
 }
 
 
-#if QEMU_DEBUG_RAW_IO
+#if DEBUG_RAW_IO
 # include <c-ctype.h>
 static char * qemuMonitorEscapeNonPrintable(const char *text)
 {
@@ -833,7 +833,8 @@ int qemuMonitorEmitWatchdog(qemuMonitorPtr mon, int action)
 
 int qemuMonitorEmitIOError(qemuMonitorPtr mon,
                            const char *diskAlias,
-                           int action)
+                           int action,
+                           const char *reason)
 {
     int ret = -1;
     VIR_DEBUG("mon=%p", mon);
@@ -841,7 +842,7 @@ int qemuMonitorEmitIOError(qemuMonitorPtr mon,
     qemuMonitorRef(mon);
     qemuMonitorUnlock(mon);
     if (mon->cb && mon->cb->domainIOError)
-        ret = mon->cb->domainIOError(mon, mon->vm, diskAlias, action);
+        ret = mon->cb->domainIOError(mon, mon->vm, diskAlias, action, reason);
     qemuMonitorLock(mon);
     qemuMonitorUnref(mon);
     return ret;
@@ -956,6 +957,21 @@ int qemuMonitorGetBalloonInfo(qemuMonitorPtr mon,
         ret = qemuMonitorJSONGetBalloonInfo(mon, currmem);
     else
         ret = qemuMonitorTextGetBalloonInfo(mon, currmem);
+    return ret;
+}
+
+
+int qemuMonitorGetMemoryStats(qemuMonitorPtr mon,
+                              virDomainMemoryStatPtr stats,
+                              unsigned int nr_stats)
+{
+    int ret;
+    DEBUG("mon=%p, fd=%d stats=%p nstats=%u", mon, mon->fd, stats, nr_stats);
+
+    if (mon->json)
+        ret = qemuMonitorJSONGetMemoryStats(mon, stats, nr_stats);
+    else
+        ret = qemuMonitorTextGetMemoryStats(mon, stats, nr_stats);
     return ret;
 }
 
@@ -1163,17 +1179,40 @@ int qemuMonitorMigrateToHost(qemuMonitorPtr mon,
 
 int qemuMonitorMigrateToCommand(qemuMonitorPtr mon,
                                 int background,
-                                const char * const *argv,
-                                const char *target)
+                                const char * const *argv)
 {
     int ret;
-    DEBUG("mon=%p, fd=%d argv=%p target=%s",
-          mon, mon->fd, argv, target);
+    DEBUG("mon=%p, fd=%d argv=%p",
+          mon, mon->fd, argv);
 
     if (mon->json)
-        ret = qemuMonitorJSONMigrateToCommand(mon, background, argv, target);
+        ret = qemuMonitorJSONMigrateToCommand(mon, background, argv);
     else
-        ret = qemuMonitorTextMigrateToCommand(mon, background, argv, target);
+        ret = qemuMonitorTextMigrateToCommand(mon, background, argv);
+    return ret;
+}
+
+int qemuMonitorMigrateToFile(qemuMonitorPtr mon,
+                             int background,
+                             const char * const *argv,
+                             const char *target,
+                             unsigned long long offset)
+{
+    int ret;
+    DEBUG("mon=%p, fd=%d argv=%p target=%s offset=%llu",
+          mon, mon->fd, argv, target, offset);
+
+    if (offset % QEMU_MONITOR_MIGRATE_TO_FILE_BS) {
+        qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                        _("file offset must be a multiple of %llu"),
+                        QEMU_MONITOR_MIGRATE_TO_FILE_BS);
+        return -1;
+    }
+
+    if (mon->json)
+        ret = qemuMonitorJSONMigrateToFile(mon, background, argv, target, offset);
+    else
+        ret = qemuMonitorTextMigrateToFile(mon, background, argv, target, offset);
     return ret;
 }
 
@@ -1438,15 +1477,15 @@ int qemuMonitorGetAllPCIAddresses(qemuMonitorPtr mon,
 }
 
 int qemuMonitorDelDevice(qemuMonitorPtr mon,
-                         const char *devicestr)
+                         const char *devalias)
 {
-    DEBUG("mon=%p, fd=%d device(del)=%s", mon, mon->fd, devicestr);
+    DEBUG("mon=%p, fd=%d devalias=%s", mon, mon->fd, devalias);
     int ret;
 
     if (mon->json)
-        ret = qemuMonitorJSONDelDevice(mon, devicestr);
+        ret = qemuMonitorJSONDelDevice(mon, devalias);
     else
-        ret = qemuMonitorTextDelDevice(mon, devicestr);
+        ret = qemuMonitorTextDelDevice(mon, devalias);
     return ret;
 }
 

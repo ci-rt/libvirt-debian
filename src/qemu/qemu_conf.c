@@ -114,7 +114,7 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
         return -1;
     }
 
-#ifdef HAVE_MNTENT_H
+#if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
     /* For privileged driver, try and find hugepage mount automatically.
      * Non-privileged driver requires admin to create a dir for the
      * user, chown it, and then let user configure it manually */
@@ -628,7 +628,9 @@ typedef int
                        const char ***retcpus);
 
 /* Format:
- * <arch> <model>
+ *      <arch> <model>
+ * qemu-0.13 encloses some model names in []:
+ *      <arch> [<model>]
  */
 static int
 qemudParseX86Models(const char *output,
@@ -661,15 +663,22 @@ qemudParseX86Models(const char *output,
             continue;
 
         if (retcpus) {
+            unsigned int len;
+
             if (VIR_REALLOC_N(cpus, count + 1) < 0)
                 goto error;
 
             if (next)
-                cpus[count] = strndup(p, next - p - 1);
+                len = next - p - 1;
             else
-                cpus[count] = strdup(p);
+                len = strlen(p);
 
-            if (!cpus[count])
+            if (len > 2 && *p == '[' && p[len - 1] == ']') {
+                p++;
+                len -= 2;
+            }
+
+            if (!(cpus[count] = strndup(p, len)))
                 goto error;
         }
         count++;
@@ -1020,7 +1029,7 @@ qemudCapsInitCPU(virCapsPtr caps,
     cpu->threads = nodeinfo.threads;
 
     if (!(data = cpuNodeData(arch))
-        || cpuDecode(cpu, data, NULL, 0) < 0)
+        || cpuDecode(cpu, data, NULL, 0, NULL) < 0)
         goto error;
 
     caps->host.cpu = cpu;
@@ -1699,6 +1708,26 @@ static int qemuAssignDeviceDiskAliasLegacy(virDomainDiskDefPtr disk)
 }
 
 
+char *qemuDeviceDriveHostAlias(virDomainDiskDefPtr disk,
+                               unsigned long long qemudCmdFlags)
+{
+    char *ret;
+
+    if (qemudCmdFlags & QEMUD_CMD_FLAG_DEVICE) {
+        if (virAsprintf(&ret, "%s%s", QEMU_DRIVE_HOST_PREFIX, disk->info.alias) < 0) {
+            virReportOOMError();
+            return NULL;
+        }
+    } else {
+        if (!(ret = strdup(disk->info.alias))) {
+            virReportOOMError();
+            return NULL;
+        }
+    }
+    return ret;
+}
+
+
 /* Names used before -drive supported the id= option */
 static int qemuAssignDeviceDiskAliasFixed(virDomainDiskDefPtr disk)
 {
@@ -2081,7 +2110,7 @@ void qemuDomainPCIAddressSetFree(qemuDomainPCIAddressSetPtr addrs)
         return;
 
     virHashFree(addrs->used, qemuDomainPCIAddressSetFreeEntry);
-    addrs->used = NULL;
+    VIR_FREE(addrs);
 }
 
 
@@ -2459,7 +2488,7 @@ qemuBuildDriveStr(virDomainDiskDefPtr disk,
     if (disk->readonly &&
         qemuCmdFlags & QEMUD_CMD_FLAG_DEVICE)
         virBufferAddLit(&opt, ",readonly=on");
-    if (disk->driverType &&
+    if (disk->driverType && *disk->driverType != '\0' &&
         disk->type != VIR_DOMAIN_DISK_TYPE_DIR &&
         qemuCmdFlags & QEMUD_CMD_FLAG_DRIVE_FORMAT)
         virBufferVSprintf(&opt, ",format=%s", disk->driverType);
@@ -3263,6 +3292,7 @@ qemuBuildCpuArgStr(const struct qemud_driver *driver,
 
     if (ncpus > 0 && host) {
         virCPUCompareResult cmp;
+        const char *preferred;
 
         cmp = cpuGuestData(host, def->cpu, &data);
         switch (cmp) {
@@ -3280,12 +3310,25 @@ qemuBuildCpuArgStr(const struct qemud_driver *driver,
         if (VIR_ALLOC(guest) < 0 || !(guest->arch = strdup(ut->machine)))
             goto no_memory;
 
-        if (cpuDecode(guest, data, cpus, ncpus) < 0)
+        if (def->cpu->match == VIR_CPU_MATCH_MINIMUM)
+            preferred = host->model;
+        else
+            preferred = def->cpu->model;
+
+        guest->type = VIR_CPU_TYPE_GUEST;
+        if (cpuDecode(guest, data, cpus, ncpus, preferred) < 0)
             goto cleanup;
 
         virBufferVSprintf(&buf, "%s", guest->model);
-        for (i = 0; i < guest->nfeatures; i++)
-            virBufferVSprintf(&buf, ",+%s", guest->features[i].name);
+        for (i = 0; i < guest->nfeatures; i++) {
+            char sign;
+            if (guest->features[i].policy == VIR_CPU_FEATURE_DISABLE)
+                sign = '-';
+            else
+                sign = '+';
+
+            virBufferVSprintf(&buf, ",%c%s", sign, guest->features[i].name);
+        }
     }
     else {
         /*
@@ -4074,9 +4117,12 @@ int qemudBuildCommandLine(virConnectPtr conn,
                     goto error;
 
                 if (VIR_REALLOC_N(*tapfds, (*ntapfds)+1) < 0) {
+                    virNWFilterTearNWFilter(net);
                     close(tapfd);
                     goto no_memory;
                 }
+
+                last_good_net = i;
 
                 (*tapfds)[(*ntapfds)++] = tapfd;
 
@@ -4091,9 +4137,12 @@ int qemudBuildCommandLine(virConnectPtr conn,
                     goto error;
 
                 if (VIR_REALLOC_N(*tapfds, (*ntapfds)+1) < 0) {
+                    virNWFilterTearNWFilter(net);
                     close(tapfd);
                     goto no_memory;
                 }
+
+                last_good_net = i;
 
                 (*tapfds)[(*ntapfds)++] = tapfd;
 
@@ -4154,7 +4203,6 @@ int qemudBuildCommandLine(virConnectPtr conn,
                     goto error;
                 ADD_ARG(host);
             }
-            last_good_net = i;
         }
     }
 
@@ -4402,7 +4450,7 @@ int qemudBuildCommandLine(virConnectPtr conn,
             } else {
                 const char *vgastr = qemuVideoTypeToString(def->videos[0]->type);
                 if (!vgastr || STREQ(vgastr, "")) {
-                    qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                    qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                     _("video type %s is not supported with QEMU"),
                                     virDomainVideoTypeToString(def->videos[0]->type));
                     goto error;
@@ -4428,8 +4476,8 @@ int qemudBuildCommandLine(virConnectPtr conn,
                 break;
 
             default:
-                qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                                _("video type %s is not supported with QEMU"),
+                qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                _("video type %s is not supported with this QEMU"),
                                 virDomainVideoTypeToString(def->videos[0]->type));
                 goto error;
             }
@@ -4603,6 +4651,8 @@ int qemudBuildCommandLine(virConnectPtr conn,
  no_memory:
     virReportOOMError();
  error:
+    for (i = 0; i <= last_good_net; i++)
+        virNWFilterTearNWFilter(def->nets[i]);
     if (tapfds &&
         *tapfds) {
         for (i = 0; i < *ntapfds; i++)
@@ -4619,11 +4669,6 @@ int qemudBuildCommandLine(virConnectPtr conn,
         for (i = 0 ; i < qenvc ; i++)
             VIR_FREE((qenv)[i]);
         VIR_FREE(qenv);
-    }
-    for (i = 0; i <= last_good_net; i++) {
-        virDomainNetDefPtr net = def->nets[i];
-        if ((net->filter) && (net->ifname))
-            virNWFilterTeardownFilter(net);
     }
     return -1;
 
@@ -4769,11 +4814,11 @@ static const char *qemuFindEnv(const char **progenv,
  * the "=value" part is optional and if a key with no value is found,
  * NULL is be placed into corresponding place in retvalues.
  */
-static int
-qemuParseCommandLineKeywords(const char *str,
-                             char ***retkeywords,
-                             char ***retvalues,
-                             int allowEmptyValue)
+int
+qemuParseKeywords(const char *str,
+                  char ***retkeywords,
+                  char ***retvalues,
+                  int allowEmptyValue)
 {
     int keywordCount = 0;
     int keywordAlloc = 0;
@@ -4872,9 +4917,9 @@ qemuParseCommandLineDisk(const char *val,
     int busid = -1;
     int unitid = -1;
 
-    if ((nkeywords = qemuParseCommandLineKeywords(val,
-                                                  &keywords,
-                                                  &values, 0)) < 0)
+    if ((nkeywords = qemuParseKeywords(val,
+                                       &keywords,
+                                       &values, 0)) < 0)
         return NULL;
 
     if (VIR_ALLOC(def) < 0) {
@@ -5112,9 +5157,9 @@ qemuParseCommandLineNet(virCapsPtr caps,
     tmp = strchr(val, ',');
 
     if (tmp) {
-        if ((nkeywords = qemuParseCommandLineKeywords(tmp+1,
-                                                      &keywords,
-                                                      &values, 0)) < 0)
+        if ((nkeywords = qemuParseKeywords(tmp+1,
+                                           &keywords,
+                                           &values, 0)) < 0)
             return NULL;
     } else {
         nkeywords = 0;
@@ -5184,9 +5229,9 @@ qemuParseCommandLineNet(virCapsPtr caps,
     VIR_FREE(values);
 
     if (STRPREFIX(nic, "nic,")) {
-        if ((nkeywords = qemuParseCommandLineKeywords(nic + strlen("nic,"),
-                                                      &keywords,
-                                                      &values, 0)) < 0) {
+        if ((nkeywords = qemuParseKeywords(nic + strlen("nic,"),
+                                           &keywords,
+                                           &values, 0)) < 0) {
             virDomainNetDefFree(def);
             def = NULL;
             goto cleanup;
@@ -5594,7 +5639,7 @@ qemuParseCommandLineSmp(virDomainDefPtr dom,
     char *end;
     int ret;
 
-    nkws = qemuParseCommandLineKeywords(val, &kws, &vals, 1);
+    nkws = qemuParseKeywords(val, &kws, &vals, 1);
     if (nkws < 0)
         return -1;
 

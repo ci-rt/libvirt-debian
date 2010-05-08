@@ -33,6 +33,7 @@
 #if HAVE_NET_ETHERNET_H
 # include <net/ethernet.h>
 #endif
+#include <unistd.h>
 
 #include "internal.h"
 
@@ -44,22 +45,6 @@
 #include "nwfilter_conf.h"
 #include "domain_conf.h"
 
-
-/* XXX
- * The config parser/structs should not be using platform specific
- * constants. Win32 lacks these constants, breaking the parser,
- * so temporarily define them until this can be re-written to use
- * locally defined enums for all constants
- */
-#ifndef ETHERTYPE_IP
-# define ETHERTYPE_IP            0x0800
-#endif
-#ifndef ETHERTYPE_ARP
-# define ETHERTYPE_ARP           0x0806
-#endif
-#ifndef ETHERTYPE_IPV6
-# define ETHERTYPE_IPV6          0x86dd
-#endif
 
 #define VIR_FROM_THIS VIR_FROM_NWFILTER
 
@@ -89,6 +74,7 @@ VIR_ENUM_IMPL(virNWFilterEbtablesTable, VIR_NWFILTER_EBTABLES_TABLE_LAST,
 VIR_ENUM_IMPL(virNWFilterChainSuffix, VIR_NWFILTER_CHAINSUFFIX_LAST,
               "root",
               "arp",
+              "rarp",
               "ipv4",
               "ipv6");
 
@@ -96,6 +82,7 @@ VIR_ENUM_IMPL(virNWFilterRuleProtocol, VIR_NWFILTER_RULE_PROTOCOL_LAST,
               "none",
               "mac",
               "arp",
+              "rarp",
               "ip",
               "ipv6",
               "tcp",
@@ -411,11 +398,10 @@ struct _virXMLAttr2Struct
 
 
 static const struct int_map macProtoMap[] = {
-    INTMAP_ENTRY(ETHERTYPE_ARP , "arp"),
-    INTMAP_ENTRY(ETHERTYPE_IP  , "ipv4"),
-#ifdef ETHERTYPE_IPV6
-    INTMAP_ENTRY(ETHERTYPE_IPV6, "ipv6"),
-#endif
+    INTMAP_ENTRY(ETHERTYPE_ARP   , "arp"),
+    INTMAP_ENTRY(ETHERTYPE_REVARP, "rarp"),
+    INTMAP_ENTRY(ETHERTYPE_IP    , "ipv4"),
+    INTMAP_ENTRY(ETHERTYPE_IPV6  , "ipv6"),
     INTMAP_ENTRY_LAST
 };
 
@@ -429,7 +415,9 @@ checkMacProtocolID(enum attrDatatype datatype, void *value,
     if (datatype == DATATYPE_STRING) {
         if (intMapGetByString(macProtoMap, (char *)value, 1, &res) == 0)
             res = -1;
-    } else if (datatype == DATATYPE_UINT16) {
+        datatype = DATATYPE_UINT16;
+    } else if (datatype == DATATYPE_UINT16 ||
+               datatype == DATATYPE_UINT16_HEX) {
         res = (uint32_t)*(uint16_t *)value;
         if (res < 0x600)
             res = -1;
@@ -437,7 +425,7 @@ checkMacProtocolID(enum attrDatatype datatype, void *value,
 
     if (res != -1) {
         nwf->p.ethHdrFilter.dataProtocolID.u.u16 = res;
-        nwf->p.ethHdrFilter.dataProtocolID.datatype = DATATYPE_UINT16;
+        nwf->p.ethHdrFilter.dataProtocolID.datatype = datatype;
         return 1;
     }
 
@@ -450,13 +438,17 @@ macProtocolIDFormatter(virBufferPtr buf,
                        virNWFilterRuleDefPtr nwf)
 {
     const char *str = NULL;
+    bool asHex = true;
 
     if (intMapGetByInt(macProtoMap,
                        nwf->p.ethHdrFilter.dataProtocolID.u.u16,
                        &str)) {
         virBufferVSprintf(buf, "%s", str);
     } else {
-        virBufferVSprintf(buf, "%d", nwf->p.ethHdrFilter.dataProtocolID.u.u16);
+        if (nwf->p.ethHdrFilter.dataProtocolID.datatype == DATATYPE_UINT16)
+            asHex = false;
+        virBufferVSprintf(buf, asHex ? "0x%x" : "%d",
+                          nwf->p.ethHdrFilter.dataProtocolID.u.u16);
     }
     return 1;
 }
@@ -527,13 +519,15 @@ arpOpcodeValidator(enum attrDatatype datatype,
     if (datatype == DATATYPE_STRING) {
         if (intMapGetByString(arpOpcodeMap, (char *)value, 1, &res) == 0)
             res = -1;
-    } else if (datatype == DATATYPE_UINT16) {
+        datatype = DATATYPE_UINT16;
+    } else if (datatype == DATATYPE_UINT16 ||
+               datatype == DATATYPE_UINT16_HEX) {
         res = (uint32_t)*(uint16_t *)value;
     }
 
     if (res != -1) {
         nwf->p.arpHdrFilter.dataOpcode.u.u16 = res;
-        nwf->p.arpHdrFilter.dataOpcode.datatype = DATATYPE_UINT16;
+        nwf->p.arpHdrFilter.dataOpcode.datatype = datatype;
         return 1;
     }
     return 0;
@@ -584,13 +578,15 @@ static bool checkIPProtocolID(enum attrDatatype datatype,
     if (datatype == DATATYPE_STRING) {
         if (intMapGetByString(ipProtoMap, (char *)value, 1, &res) == 0)
             res = -1;
-    } else if (datatype == DATATYPE_UINT8) {
+        datatype = DATATYPE_UINT8_HEX;
+    } else if (datatype == DATATYPE_UINT8 ||
+               datatype == DATATYPE_UINT8_HEX) {
         res = (uint32_t)*(uint16_t *)value;
     }
 
     if (res != -1) {
         nwf->p.ipHdrFilter.ipHdr.dataProtocolID.u.u8 = res;
-        nwf->p.ipHdrFilter.ipHdr.dataProtocolID.datatype = DATATYPE_UINT8;
+        nwf->p.ipHdrFilter.ipHdr.dataProtocolID.datatype = datatype;
         return 1;
     }
     return 0;
@@ -602,13 +598,16 @@ formatIPProtocolID(virBufferPtr buf,
                    virNWFilterRuleDefPtr nwf)
 {
     const char *str = NULL;
+    bool asHex = true;
 
     if (intMapGetByInt(ipProtoMap,
                        nwf->p.ipHdrFilter.ipHdr.dataProtocolID.u.u8,
                        &str)) {
         virBufferVSprintf(buf, "%s", str);
     } else {
-        virBufferVSprintf(buf, "%d",
+        if (nwf->p.ipHdrFilter.ipHdr.dataProtocolID.datatype == DATATYPE_UINT8)
+            asHex = false;
+        virBufferVSprintf(buf, asHex ? "0x%x" : "%d",
                           nwf->p.ipHdrFilter.ipHdr.dataProtocolID.u.u8);
     }
     return 1;
@@ -616,15 +615,14 @@ formatIPProtocolID(virBufferPtr buf,
 
 
 static bool
-dscpValidator(enum attrDatatype datatype ATTRIBUTE_UNUSED, void *val,
+dscpValidator(enum attrDatatype datatype, void *val,
               virNWFilterRuleDefPtr nwf)
 {
     uint8_t dscp = *(uint16_t *)val;
     if (dscp > 63)
         return 0;
 
-    nwf->p.ipHdrFilter.ipHdr.dataDSCP.u.u8 = dscp;
-    nwf->p.ipHdrFilter.ipHdr.dataDSCP.datatype = DATATYPE_UINT8;
+    nwf->p.ipHdrFilter.ipHdr.dataDSCP.datatype = datatype;
 
     return 1;
 }
@@ -656,7 +654,7 @@ static const virXMLAttr2Struct macAttributes[] = {
     COMMON_MAC_PROPS(ethHdrFilter),
     {
         .name = "protocolid",
-        .datatype = DATATYPE_UINT16 | DATATYPE_STRING,
+        .datatype = DATATYPE_UINT16 | DATATYPE_UINT16_HEX | DATATYPE_STRING,
         .dataIdx = offsetof(virNWFilterRuleDef, p.ethHdrFilter.dataProtocolID),
         .validator= checkMacProtocolID,
         .formatter= macProtocolIDFormatter,
@@ -670,15 +668,15 @@ static const virXMLAttr2Struct arpAttributes[] = {
     COMMON_MAC_PROPS(arpHdrFilter),
     {
         .name = "hwtype",
-        .datatype = DATATYPE_UINT16,
+        .datatype = DATATYPE_UINT16 | DATATYPE_UINT16_HEX,
         .dataIdx = offsetof(virNWFilterRuleDef, p.arpHdrFilter.dataHWType),
     }, {
         .name = "protocoltype",
-        .datatype = DATATYPE_UINT16,
+        .datatype = DATATYPE_UINT16 | DATATYPE_UINT16_HEX,
         .dataIdx = offsetof(virNWFilterRuleDef, p.arpHdrFilter.dataProtocolType),
     }, {
         .name = "opcode",
-        .datatype = DATATYPE_UINT16 | DATATYPE_STRING,
+        .datatype = DATATYPE_UINT16 | DATATYPE_UINT16_HEX | DATATYPE_STRING,
         .dataIdx = offsetof(virNWFilterRuleDef, p.arpHdrFilter.dataOpcode),
         .validator= arpOpcodeValidator,
         .formatter= arpOpcodeFormatter,
@@ -728,34 +726,34 @@ static const virXMLAttr2Struct ipAttributes[] = {
     },
     {
         .name = "protocol",
-        .datatype = DATATYPE_STRING | DATATYPE_UINT8,
+        .datatype = DATATYPE_STRING | DATATYPE_UINT8 | DATATYPE_UINT8_HEX,
         .dataIdx = offsetof(virNWFilterRuleDef, p.ipHdrFilter.ipHdr.dataProtocolID),
         .validator= checkIPProtocolID,
         .formatter= formatIPProtocolID,
     },
     {
         .name = SRCPORTSTART,
-        .datatype = DATATYPE_UINT16,
+        .datatype = DATATYPE_UINT16 | DATATYPE_UINT16_HEX,
         .dataIdx = offsetof(virNWFilterRuleDef, p.ipHdrFilter.portData.dataSrcPortStart),
     },
     {
         .name = SRCPORTEND,
-        .datatype = DATATYPE_UINT16,
+        .datatype = DATATYPE_UINT16 | DATATYPE_UINT16_HEX,
         .dataIdx = offsetof(virNWFilterRuleDef, p.ipHdrFilter.portData.dataSrcPortEnd),
     },
     {
         .name = DSTPORTSTART,
-        .datatype = DATATYPE_UINT16,
+        .datatype = DATATYPE_UINT16 | DATATYPE_UINT16_HEX,
         .dataIdx = offsetof(virNWFilterRuleDef, p.ipHdrFilter.portData.dataDstPortStart),
     },
     {
         .name = DSTPORTEND,
-        .datatype = DATATYPE_UINT16,
+        .datatype = DATATYPE_UINT16 | DATATYPE_UINT16_HEX,
         .dataIdx = offsetof(virNWFilterRuleDef, p.ipHdrFilter.portData.dataDstPortEnd),
     },
     {
         .name = DSCP,
-        .datatype = DATATYPE_UINT8,
+        .datatype = DATATYPE_UINT8 | DATATYPE_UINT8_HEX,
         .dataIdx = offsetof(virNWFilterRuleDef, p.ipHdrFilter.ipHdr.dataDSCP),
         .validator = dscpValidator,
     },
@@ -789,29 +787,29 @@ static const virXMLAttr2Struct ipv6Attributes[] = {
     },
     {
         .name = "protocol",
-        .datatype = DATATYPE_STRING | DATATYPE_UINT8,
+        .datatype = DATATYPE_STRING | DATATYPE_UINT8 | DATATYPE_UINT8_HEX,
         .dataIdx = offsetof(virNWFilterRuleDef, p.ipv6HdrFilter.ipHdr.dataProtocolID),
         .validator= checkIPProtocolID,
         .formatter= formatIPProtocolID,
     },
     {
         .name = SRCPORTSTART,
-        .datatype = DATATYPE_UINT16,
+        .datatype = DATATYPE_UINT16 | DATATYPE_UINT16_HEX,
         .dataIdx = offsetof(virNWFilterRuleDef, p.ipv6HdrFilter.portData.dataSrcPortStart),
     },
     {
         .name = SRCPORTEND,
-        .datatype = DATATYPE_UINT16,
+        .datatype = DATATYPE_UINT16 | DATATYPE_UINT16_HEX,
         .dataIdx = offsetof(virNWFilterRuleDef, p.ipv6HdrFilter.portData.dataSrcPortEnd),
     },
     {
         .name = DSTPORTSTART,
-        .datatype = DATATYPE_UINT16,
+        .datatype = DATATYPE_UINT16 | DATATYPE_UINT16_HEX,
         .dataIdx = offsetof(virNWFilterRuleDef, p.ipv6HdrFilter.portData.dataDstPortStart),
     },
     {
         .name = DSTPORTEND,
-        .datatype = DATATYPE_UINT16,
+        .datatype = DATATYPE_UINT16 | DATATYPE_UINT16_HEX,
         .dataIdx = offsetof(virNWFilterRuleDef, p.ipv6HdrFilter.portData.dataDstPortEnd),
     },
     {
@@ -871,30 +869,35 @@ static const virXMLAttr2Struct ipv6Attributes[] = {
     },\
     {\
         .name = DSCP,\
-        .datatype = DATATYPE_UINT8,\
+        .datatype = DATATYPE_UINT8 | DATATYPE_UINT8_HEX,\
         .dataIdx = offsetof(virNWFilterRuleDef, p.STRUCT.ipHdr.dataDSCP),\
-        /*.validator = dscpValidator,*/\
+        .validator = dscpValidator,\
+    },\
+    {\
+        .name = "connlimit-above",\
+        .datatype = DATATYPE_UINT16,\
+        .dataIdx = offsetof(virNWFilterRuleDef, p.STRUCT.ipHdr.dataConnlimitAbove),\
     }
 
 #define COMMON_PORT_PROPS(STRUCT) \
     {\
         .name = SRCPORTSTART,\
-        .datatype = DATATYPE_UINT16,\
+        .datatype = DATATYPE_UINT16 | DATATYPE_UINT16_HEX,\
         .dataIdx = offsetof(virNWFilterRuleDef, p.STRUCT.portData.dataSrcPortStart),\
     },\
     {\
         .name = SRCPORTEND,\
-        .datatype = DATATYPE_UINT16,\
+        .datatype = DATATYPE_UINT16 | DATATYPE_UINT16_HEX,\
         .dataIdx = offsetof(virNWFilterRuleDef, p.STRUCT.portData.dataSrcPortEnd),\
     },\
     {\
         .name = DSTPORTSTART,\
-        .datatype = DATATYPE_UINT16,\
+        .datatype = DATATYPE_UINT16 | DATATYPE_UINT16_HEX,\
         .dataIdx = offsetof(virNWFilterRuleDef, p.STRUCT.portData.dataDstPortStart),\
     },\
     {\
         .name = DSTPORTEND,\
-        .datatype = DATATYPE_UINT16,\
+        .datatype = DATATYPE_UINT16 | DATATYPE_UINT16_HEX,\
         .dataIdx = offsetof(virNWFilterRuleDef, p.STRUCT.portData.dataDstPortEnd),\
     }
 
@@ -903,7 +906,7 @@ static const virXMLAttr2Struct tcpAttributes[] = {
     COMMON_PORT_PROPS(tcpHdrFilter),
     {
         .name = "option",
-        .datatype = DATATYPE_UINT8,
+        .datatype = DATATYPE_UINT8 | DATATYPE_UINT8_HEX,
         .dataIdx = offsetof(virNWFilterRuleDef, p.tcpHdrFilter.dataTCPOption),
     },
     {
@@ -953,12 +956,12 @@ static const virXMLAttr2Struct icmpAttributes[] = {
     COMMON_IP_PROPS(icmpHdrFilter, DATATYPE_IPADDR, DATATYPE_IPMASK),
     {
         .name = "type",
-        .datatype = DATATYPE_UINT8,
+        .datatype = DATATYPE_UINT8 | DATATYPE_UINT8_HEX,
         .dataIdx = offsetof(virNWFilterRuleDef, p.icmpHdrFilter.dataICMPType),
     },
     {
         .name = "code",
-        .datatype = DATATYPE_UINT8,
+        .datatype = DATATYPE_UINT8 | DATATYPE_UINT8_HEX,
         .dataIdx = offsetof(virNWFilterRuleDef, p.icmpHdrFilter.dataICMPCode),
     },
     {
@@ -988,7 +991,7 @@ static const virXMLAttr2Struct tcpipv6Attributes[] = {
     COMMON_PORT_PROPS(tcpHdrFilter),
     {
         .name = "option",
-        .datatype = DATATYPE_UINT8,
+        .datatype = DATATYPE_UINT8 | DATATYPE_UINT8_HEX,
         .dataIdx = offsetof(virNWFilterRuleDef, p.tcpHdrFilter.dataTCPOption),
     },
     {
@@ -1042,12 +1045,12 @@ static const virXMLAttr2Struct icmpv6Attributes[] = {
     COMMON_IP_PROPS(icmpHdrFilter, DATATYPE_IPV6ADDR, DATATYPE_IPV6MASK),
     {
         .name = "type",
-        .datatype = DATATYPE_UINT8,
+        .datatype = DATATYPE_UINT8 | DATATYPE_UINT8_HEX,
         .dataIdx = offsetof(virNWFilterRuleDef, p.icmpHdrFilter.dataICMPType),
     },
     {
         .name = "code",
-        .datatype = DATATYPE_UINT8,
+        .datatype = DATATYPE_UINT8 | DATATYPE_UINT8_HEX,
         .dataIdx = offsetof(virNWFilterRuleDef, p.icmpHdrFilter.dataICMPCode),
     },
     {
@@ -1078,6 +1081,7 @@ struct _virAttributes {
 
 static const virAttributes virAttr[] = {
     PROTOCOL_ENTRY("arp"    , arpAttributes    , VIR_NWFILTER_RULE_PROTOCOL_ARP),
+    PROTOCOL_ENTRY("rarp"   , arpAttributes    , VIR_NWFILTER_RULE_PROTOCOL_RARP),
     PROTOCOL_ENTRY("mac"    , macAttributes    , VIR_NWFILTER_RULE_PROTOCOL_MAC),
     PROTOCOL_ENTRY("ip"     , ipAttributes     , VIR_NWFILTER_RULE_PROTOCOL_IP),
     PROTOCOL_ENTRY("ipv6"   , ipv6Attributes   , VIR_NWFILTER_RULE_PROTOCOL_IPV6),
@@ -1150,6 +1154,7 @@ virNWFilterRuleDetailsParse(xmlNodePtr node,
     valueValidator validator;
     char *match = virXMLPropString(node, "match");
     nwIPAddress ipaddr;
+    int base;
 
     if (match && STREQ(match, "no"))
         match_flag = NWFILTER_ENTRY_ITEM_FLAG_IS_NEG;
@@ -1190,14 +1195,16 @@ virNWFilterRuleDetailsParse(xmlNodePtr node,
 
                     validator = att[idx].validator;
 
-                    switch (datatype) {
+                    base = 10;
 
+                    switch (datatype) {
+                        case DATATYPE_UINT8_HEX:
+                            base = 16;
                         case DATATYPE_UINT8:
                             storage_ptr = &item->u.u8;
-                            if (virStrToLong_ui(prop, NULL, 10, &uint_val) >= 0) {
+                            if (virStrToLong_ui(prop, NULL, base, &uint_val) >= 0) {
                                 if (uint_val <= 0xff) {
-                                    if (!validator)
-                                        *(uint8_t *)storage_ptr = uint_val;
+                                    *(uint8_t *)storage_ptr = uint_val;
                                     found = 1;
                                     data_ptr = &uint_val;
                                 } else
@@ -1206,12 +1213,13 @@ virNWFilterRuleDetailsParse(xmlNodePtr node,
                                 rc = -1;
                         break;
 
+                        case DATATYPE_UINT16_HEX:
+                            base = 16;
                         case DATATYPE_UINT16:
                             storage_ptr = &item->u.u16;
-                            if (virStrToLong_ui(prop, NULL, 10, &uint_val) >= 0) {
+                            if (virStrToLong_ui(prop, NULL, base, &uint_val) >= 0) {
                                 if (uint_val <= 0xffff) {
-                                    if (!validator)
-                                        *(uint16_t *)storage_ptr = uint_val;
+                                    *(uint16_t *)storage_ptr = uint_val;
                                     found = 1;
                                     data_ptr = &uint_val;
                                 } else
@@ -1428,6 +1436,7 @@ virNWFilterRuleDefFixup(virNWFilterRuleDefPtr rule)
     break;
 
     case VIR_NWFILTER_RULE_PROTOCOL_ARP:
+    case VIR_NWFILTER_RULE_PROTOCOL_RARP:
     case VIR_NWFILTER_RULE_PROTOCOL_NONE:
     break;
 
@@ -2387,6 +2396,7 @@ virNWFilterRuleDefDetailsFormat(virBufferPtr buf,
     int i = 0, j;
     bool typeShown = 0;
     bool neverShown = 1;
+    bool asHex;
     enum match {
         MATCH_NONE = 0,
         MATCH_YES,
@@ -2438,19 +2448,27 @@ virNWFilterRuleDefDetailsFormat(virBufferPtr buf,
             } else if ((flags & NWFILTER_ENTRY_ITEM_FLAG_HAS_VAR)) {
                 virBufferVSprintf(buf, "$%s", item->var);
             } else {
-               switch (att[i].datatype) {
+               asHex = false;
 
+               switch (item->datatype) {
+
+               case DATATYPE_UINT8_HEX:
+                   asHex = true;
                case DATATYPE_IPMASK:
                case DATATYPE_IPV6MASK:
                    // display all masks in CIDR format
                case DATATYPE_UINT8:
                    storage_ptr = &item->u.u8;
-                   virBufferVSprintf(buf, "%d", *(uint8_t *)storage_ptr);
+                   virBufferVSprintf(buf, asHex ? "0x%x" : "%d",
+                                     *(uint8_t *)storage_ptr);
                break;
 
+               case DATATYPE_UINT16_HEX:
+                   asHex = true;
                case DATATYPE_UINT16:
                    storage_ptr = &item->u.u16;
-                   virBufferVSprintf(buf, "%d", *(uint16_t *)storage_ptr);
+                   virBufferVSprintf(buf, asHex ? "0x%x" : "%d",
+                                     *(uint16_t *)storage_ptr);
                break;
 
                case DATATYPE_IPADDR:

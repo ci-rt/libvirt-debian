@@ -246,6 +246,8 @@ virDomainEventWatchdogNewFromDom;
 virDomainEventWatchdogNewFromObj;
 virDomainEventIOErrorNewFromDom;
 virDomainEventIOErrorNewFromObj;
+virDomainEventIOErrorReasonNewFromDom;
+virDomainEventIOErrorReasonNewFromObj;
 virDomainEventGraphicsNewFromDom;
 virDomainEventGraphicsNewFromObj;
 virDomainEventFree;
@@ -324,6 +326,15 @@ iptablesRemoveForwardRejectIn;
 iptablesRemoveForwardRejectOut;
 iptablesRemoveTcpInput;
 iptablesRemoveUdpInput;
+
+
+# dnsmasq.h
+dnsmasqContextNew;
+dnsmasqContextFree;
+dnsmasqAddDhcpHost;
+dnsmasqSave;
+dnsmasqDelete;
+dnsmasqReload;
 
 
 # libvirt_internal.h
@@ -502,23 +513,12 @@ virNWFilterLockFilterUpdates;
 virNWFilterUnlockFilterUpdates;
 
 
-#nwfilter_params.h
+# nwfilter_params.h
 virNWFilterHashTableCreate;
 virNWFilterHashTableFree;
 virNWFilterHashTablePut;
 virNWFilterHashTablePutAll;
 virNWFilterHashTableRemoveEntry;
-
-
-# nwfilter_gentech_driver.h
-virNWFilterInstantiateFilter;
-virNWFilterTeardownFilter;
-
-
-# nwfilter_learnipaddr.h
-virNWFilterGetIpAddrForIfname;
-virNWFilterDelIpAddrForIfname;
-virNWFilterLookupLearnReq;
 
 
 # pci.h
@@ -681,6 +681,10 @@ virFileWaitForDevices;
 virFileMatchesNameSuffix;
 virArgvToString;
 
+# interface.h
+ifaceCtrl;
+ifaceCheck;
+ifaceGetIndex;
 
 # usb.h
 usbGetDevice;

@@ -95,7 +95,8 @@ struct _qemuMonitorCallbacks {
     int (*domainIOError)(qemuMonitorPtr mon,
                          virDomainObjPtr vm,
                          const char *diskAlias,
-                         int action);
+                         int action,
+                         const char *reason);
     int (*domainGraphics)(qemuMonitorPtr mon,
                           virDomainObjPtr vm,
                           int phase,
@@ -148,7 +149,8 @@ int qemuMonitorEmitRTCChange(qemuMonitorPtr mon, long long offset);
 int qemuMonitorEmitWatchdog(qemuMonitorPtr mon, int action);
 int qemuMonitorEmitIOError(qemuMonitorPtr mon,
                            const char *diskAlias,
-                           int action);
+                           int action,
+                           const char *reason);
 int qemuMonitorEmitGraphics(qemuMonitorPtr mon,
                             int phase,
                             int localFamily,
@@ -172,6 +174,9 @@ int qemuMonitorGetCPUInfo(qemuMonitorPtr mon,
                           int **pids);
 int qemuMonitorGetBalloonInfo(qemuMonitorPtr mon,
                               unsigned long *currmem);
+int qemuMonitorGetMemoryStats(qemuMonitorPtr mon,
+                              virDomainMemoryStatPtr stats,
+                              unsigned int nr_stats);
 int qemuMonitorGetBlockStatsInfo(qemuMonitorPtr mon,
                                  const char *devname,
                                  long long *rd_req,
@@ -243,8 +248,15 @@ int qemuMonitorMigrateToHost(qemuMonitorPtr mon,
 
 int qemuMonitorMigrateToCommand(qemuMonitorPtr mon,
                                 int background,
-                                const char * const *argv,
-                                const char *target);
+                                const char * const *argv);
+
+# define QEMU_MONITOR_MIGRATE_TO_FILE_BS 512llu
+
+int qemuMonitorMigrateToFile(qemuMonitorPtr mon,
+                             int background,
+                             const char * const *argv,
+                             const char *target,
+                             unsigned long long offset);
 
 int qemuMonitorMigrateToUnix(qemuMonitorPtr mon,
                              int background,
@@ -335,7 +347,7 @@ int qemuMonitorAddDevice(qemuMonitorPtr mon,
                          const char *devicestr);
 
 int qemuMonitorDelDevice(qemuMonitorPtr mon,
-                         const char *devicestr);
+                         const char *devalias);
 
 int qemuMonitorAddDrive(qemuMonitorPtr mon,
                         const char *drivestr);

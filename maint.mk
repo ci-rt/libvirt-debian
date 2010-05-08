@@ -129,8 +129,23 @@ sc_m_rules_ = $(patsubst %, %.m, $(syntax-check-rules))
 .PHONY: $(sc_m_rules_)
 $(sc_m_rules_):
 	@echo $(patsubst sc_%.m, %, $@)
+	@date +%s.%N > .sc-start-$(basename $@)
 
-local-check := $(filter-out $(local-checks-to-skip), $(local-checks-available))
+# Compute and print the elapsed time for each syntax-check rule.
+sc_z_rules_ = $(patsubst %, %.z, $(syntax-check-rules))
+.PHONY: $(sc_z_rules_)
+$(sc_z_rules_): %.z: %
+	@end=$$(date +%s.%N);						\
+	start=$$(cat .sc-start-$*);					\
+	rm -f .sc-start-$*;						\
+	awk -v s=$$start -v e=$$end					\
+	  'END {printf "%.2f $(patsubst sc_%,%,$*)\n", e - s}' < /dev/null
+
+# The patsubst here is to replace each sc_% rule with its sc_%.z wrapper
+# that computes and prints elapsed time.
+local-check :=								\
+  $(patsubst sc_%, sc_%.z,						\
+    $(filter-out $(local-checks-to-skip), $(local-checks-available)))
 
 syntax-check: $(local-check)
 #	@grep -nE '#  *include <(limits|std(def|arg|bool))\.h>'		\
@@ -188,6 +203,15 @@ define _sc_say_and_exit
    dummy=; : so we do not need a semicolon before each use;		\
    { echo -e "$(ME): $$msg" 1>&2; exit 1; };
 endef
+
+# _sc_search_regexp used to be named _prohibit_regexp.  However,
+# upgrading to the new definition and leaving the old name undefined
+# would usually convert each custom rule using $(_prohibit_regexp)
+# (usually defined in cfg.mk) into a no-op.  This definition ensures
+# that people know right away if they're still using the old name.
+# FIXME: remove in 2012.
+_prohibit_regexp = \
+  $(error '*** you need to s/_prohibit_regexp/_sc_search_regexp/, and adapt')
 
 define _sc_search_regexp
    dummy=; : so we do not need a semicolon before each use;		\
@@ -363,7 +387,7 @@ sc_require_config_h_first:
 
 sc_prohibit_HAVE_MBRTOWC:
 	@prohibit='\bHAVE_MBRTOWC\b'					\
-	halt="do not use $$re; it is always defined"			\
+	halt="do not use $$prohibit; it is always defined"		\
 	  $(_sc_search_regexp)
 
 # To use this "command" macro, you must first define two shell variables:
@@ -650,6 +674,40 @@ sc_prohibit_cvs_keyword:
 	halt='do not use CVS keyword expansion'				\
 	  $(_sc_search_regexp)
 
+# This Perl code is slightly obfuscated.  Not only is each "$" doubled
+# because it's in a Makefile, but the $$c's are comments;  we cannot
+# use "#" due to the way the script ends up concatenated onto one line.
+# It would be much more concise, and would produce better output (including
+# counts) if written as:
+#   perl -ln -0777 -e '/\n(\n+)$/ and print "$ARGV: ".length $1' ...
+# but that would be far less efficient, reading the entire contents
+# of each file, rather than just the last two bytes of each.
+#
+# This is a perl script that is expected to be the single-quoted argument
+# to a command-line "-le".  The remaining arguments are file names.
+# Print the name of each file that ends in two or more newline bytes.
+# Exit nonzero if at least one such file is found, otherwise, exit 0.
+# Warn about, but otherwise ignore open failure.  Ignore seek/read failure.
+#
+# Use this if you want to remove trailing empty lines from selected files:
+#   perl -pi -0777 -e 's/\n\n+$/\n/' files...
+#
+detect_empty_lines_at_EOF_ =						\
+  foreach my $$f (@ARGV) {						\
+    open F, "<", $$f or (warn "failed to open $$f: $$!\n"), next;	\
+    my $$p = sysseek (F, -2, 2);					\
+    my $$c = "seek failure probably means file has < 2 bytes; ignore";	\
+    my $$two;								\
+    defined $$p and $$p = sysread F, $$two, 2;				\
+    close F;								\
+    $$c = "ignore read failure";					\
+    $$p && $$two eq "\n\n" and (print $$f), $$fail=1;			\
+    } END { exit defined $$fail }
+sc_prohibit_empty_lines_at_EOF:
+	@perl -le '$(detect_empty_lines_at_EOF_)' $$($(VC_LIST_EXCEPT))	\
+          || { echo '$(ME): the above files end with empty line(s)'     \
+		1>&2; exit 1; } || :;					\
+
 # Make sure we don't use st_blocks.  Use ST_NBLOCKS instead.
 # This is a bit of a kludge, since it prevents use of the string
 # even in comments, but for now it does the job with no false positives.
@@ -839,6 +897,30 @@ sc_copyright_check:
 	in_vc_files=$(texi)						\
 	halt='out of date copyright in $(texi); update it'		\
 	  $(_sc_search_regexp)
+
+# If tests/help-version exists and seems to be new enough, assume that its
+# use of init.sh and path_prepend_ is correct, and ensure that every other
+# use of init.sh is identical.
+# This is useful because help-version cross-checks prog --version
+# with $(VERSION), which verifies that its path_prepend_ invocation
+# sets PATH correctly.  This is an inexpensive way to ensure that
+# the other init.sh-using tests also get it right.
+_hv_file ?= $(srcdir)/tests/help-version
+_hv_regex ?= ^ *\. [^ ]*/init\.sh
+sc_cross_check_PATH_usage_in_tests:
+	@if test -f $(_hv_file); then					\
+	  if grep -l 'VERSION mismatch' $(_hv_file) >/dev/null		\
+	      && grep -lE '$(_hv_regex)' $(_hv_file) >/dev/null; then	\
+	    good=$$(grep -E '$(_hv_regex)' < $(_hv_file));		\
+	    grep -LFx "$$good"						\
+		  $$(grep -lE '$(_hv_regex)' $$($(VC_LIST_EXCEPT)))	\
+		| grep . &&						\
+	      { echo "$(ME): the above files use path_prepend_ inconsistently" \
+		  1>&2; exit 1; } || :;					\
+	  fi;								\
+	else								\
+	  echo "$@: skipped: no such file: $(_hv_file)";		\
+	fi
 
 # #if HAVE_... will evaluate to false for any non numeric string.
 # That would be flagged by using -Wundef, however gnulib currently

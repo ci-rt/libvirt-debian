@@ -11,7 +11,10 @@ FILTERS = \
 	no-ip-spoofing.xml \
 	no-mac-broadcast.xml \
 	no-mac-spoofing.xml \
-	no-other-l2-traffic.xml
+	no-other-l2-traffic.xml \
+	no-other-rarp-traffic.xml \
+	qemu-announce-self.xml \
+	qemu-announce-self-rarp.xml
 
 EXTRA_DIST=$(FILTERS)
 
@@ -22,7 +25,7 @@ NWFILTER_DIR = "$(DESTDIR)$(sysconfdir)/libvirt/nwfilter"
 install-data-local:
 	$(MKDIR_P) "$(NWFILTER_DIR)"
 	for f in $(FILTERS); do \
-		$(INSTALL_DATA) $$f "$(NWFILTER_DIR)"; \
+		$(INSTALL_DATA) $(srcdir)/$$f "$(NWFILTER_DIR)"; \
 	done
 
 uninstall-local::
