@@ -8,10 +8,10 @@ Closes: #565767
  1 files changed, 1 insertions(+), 1 deletions(-)
 
 diff --git a/src/qemu/qemu_driver.c b/src/qemu/qemu_driver.c
-index df1d435..ce1c3cf 100644
+index 08cff00..ef9adee 100644
 --- a/src/qemu/qemu_driver.c
 +++ b/src/qemu/qemu_driver.c
-@@ -3363,7 +3363,7 @@ static int qemudStartVMDaemon(virConnectPtr conn,
+@@ -3360,7 +3360,7 @@ static int qemudStartVMDaemon(virConnectPtr conn,
  
      ret = virExecDaemonize(argv, progenv, &keepfd, &child,
                             stdin_fd, &logfile, &logfile,
