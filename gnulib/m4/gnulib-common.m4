@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# gnulib-common.m4 serial 18
+# gnulib-common.m4 serial 19
 dnl Copyright (C) 2007-2010 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -134,6 +134,7 @@ m4_ifdef([AC_PROG_MKDIR_P], [
 # so that mixed use of GNU C and GNU C++ and mixed use of Sun C and Sun C++
 # works.
 # This definition can be removed once autoconf >= 2.62 can be assumed.
+m4_if(m4_version_compare(m4_defn([m4_PACKAGE_VERSION]),[2.62]),[-1],[
 AC_DEFUN([AC_C_RESTRICT],
 [AC_CACHE_CHECK([for C/C++ restrict keyword], [ac_cv_c_restrict],
   [ac_cv_c_restrict=no
@@ -170,6 +171,7 @@ AC_DEFUN([AC_C_RESTRICT],
    no) AC_DEFINE([restrict], []) ;;
    *)  AC_DEFINE_UNQUOTED([restrict], [$ac_cv_c_restrict]) ;;
  esac
+])
 ])
 
 # gl_BIGENDIAN

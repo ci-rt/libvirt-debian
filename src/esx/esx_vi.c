@@ -38,38 +38,13 @@
 
 #define VIR_FROM_THIS VIR_FROM_ESX
 
-#define ESX_VI__SOAP__REQUEST_HEADER                                          \
-    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"                            \
-    "<soapenv:Envelope "                                                      \
-      "xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" "          \
-      "xmlns:soapenc=\"http://schemas.xmlsoap.org/soap/encoding/\" "          \
-      "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "              \
-      "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">"                       \
-    "<soapenv:Body>"
 
-#define ESX_VI__SOAP__REQUEST_FOOTER                                          \
-    "</soapenv:Body>"                                                         \
-    "</soapenv:Envelope>"
 
 #define ESX_VI__SOAP__RESPONSE_XPATH(_type)                                   \
     ((char *)"/soapenv:Envelope/soapenv:Body/"                                \
                "vim:"_type"Response/vim:returnval")
 
-#define ESV_VI__XML_TAG__OPEN(_buffer, _element, _type)                       \
-    do {                                                                      \
-        virBufferAddLit(_buffer, "<");                                        \
-        virBufferAdd(_buffer, _element, -1);                                  \
-        virBufferAddLit(_buffer, " xmlns=\"urn:vim25\" xsi:type=\"");         \
-        virBufferAdd(_buffer, _type, -1);                                     \
-        virBufferAddLit(_buffer, "\">");                                      \
-    } while (0)
 
-#define ESV_VI__XML_TAG__CLOSE(_buffer, _element)                             \
-    do {                                                                      \
-        virBufferAddLit(_buffer, "</");                                       \
-        virBufferAdd(_buffer, _element, -1);                                  \
-        virBufferAddLit(_buffer, ">");                                        \
-    } while (0)
 
 #define ESX_VI__TEMPLATE__ALLOC(_type)                                        \
     int                                                                       \
@@ -77,6 +52,8 @@
     {                                                                         \
         return esxVI_Alloc((void **)ptrptr, sizeof(esxVI_##_type));           \
     }
+
+
 
 #define ESX_VI__TEMPLATE__FREE(_type, _body)                                  \
     void                                                                      \
@@ -444,7 +421,7 @@ esxVI_Context_Connect(esxVI_Context *ctx, const char *url,
         goto failure;
     }
 
-    if (esxVI_Login(ctx, username, password, &ctx->session) < 0) {
+    if (esxVI_Login(ctx, username, password, NULL, &ctx->session) < 0) {
         goto failure;
     }
 
@@ -1344,7 +1321,7 @@ esxVI_EnsureSession(esxVI_Context *ctx)
     if (active != esxVI_Boolean_True) {
         esxVI_UserSession_Free(&ctx->session);
 
-        if (esxVI_Login(ctx, ctx->username, ctx->password,
+        if (esxVI_Login(ctx, ctx->username, ctx->password, NULL,
                         &ctx->session) < 0) {
             return -1;
         }
@@ -1378,7 +1355,8 @@ esxVI_EnsureSession(esxVI_Context *ctx)
     if (currentSession == NULL) {
         esxVI_UserSession_Free(&ctx->session);
 
-        if (esxVI_Login(ctx, ctx->username, ctx->password, &ctx->session) < 0) {
+        if (esxVI_Login(ctx, ctx->username, ctx->password, NULL,
+                        &ctx->session) < 0) {
             goto failure;
         }
     } else if (STRNEQ(ctx->session->key, currentSession->key)) {
@@ -1967,6 +1945,13 @@ esxVI_LookupHostSystemByIp(esxVI_Context *ctx, const char *ipAddress,
         goto failure;
     }
 
+    if (managedObjectReference == NULL) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
+                     _("Could not find host system with IP address '%s'"),
+                     ipAddress);
+        goto failure;
+    }
+
     if (esxVI_LookupObjectContentByType(ctx, managedObjectReference,
                                         "HostSystem", propertyNameList,
                                         esxVI_Boolean_False, hostSystem) < 0) {
@@ -2518,12 +2503,6 @@ esxVI_LookupRootSnapshotTreeList
         }
     }
 
-    if (*rootSnapshotTreeList == NULL) {
-        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
-                     _("Could not lookup root snapshot list"));
-        goto failure;
-    }
-
   cleanup:
     esxVI_String_Free(&propertyNameList);
     esxVI_ObjectContent_Free(&virtualMachine);
@@ -2884,4 +2863,54 @@ esxVI_WaitForTaskCompletion(esxVI_Context *ctx,
     result = -1;
 
     goto cleanup;
+}
+
+
+
+int
+esxVI_ParseHostCpuIdInfo(esxVI_ParsedHostCpuIdInfo *parsedHostCpuIdInfo,
+                         esxVI_HostCpuIdInfo *hostCpuIdInfo)
+{
+    int expectedLength = 39; /* = strlen("----:----:----:----:----:----:----:----"); */
+    char *input[4] = { hostCpuIdInfo->eax, hostCpuIdInfo->ebx,
+                       hostCpuIdInfo->ecx, hostCpuIdInfo->edx };
+    char *output[4] = { parsedHostCpuIdInfo->eax, parsedHostCpuIdInfo->ebx,
+                        parsedHostCpuIdInfo->ecx, parsedHostCpuIdInfo->edx };
+    const char *name[4] = { "eax", "ebx", "ecx", "edx" };
+    int r, i, o;
+
+    memset(parsedHostCpuIdInfo, 0, sizeof (*parsedHostCpuIdInfo));
+
+    parsedHostCpuIdInfo->level = hostCpuIdInfo->level->value;
+
+    for (r = 0; r < 4; ++r) {
+        if (strlen(input[r]) != expectedLength) {
+            ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
+                         _("HostCpuIdInfo register '%s' has an unexpected length"),
+                         name[r]);
+            goto failure;
+        }
+
+        /* Strip the ':' and invert the "bit" order from 31..0 to 0..31 */
+        for (i = 0, o = 31; i < expectedLength; i += 5, o -= 4) {
+            output[r][o] = input[r][i];
+            output[r][o - 1] = input[r][i + 1];
+            output[r][o - 2] = input[r][i + 2];
+            output[r][o - 3] = input[r][i + 3];
+
+            if (i + 4 < expectedLength && input[r][i + 4] != ':') {
+                ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
+                             _("HostCpuIdInfo register '%s' has an unexpected format"),
+                             name[r]);
+                goto failure;
+            }
+        }
+    }
+
+    return 0;
+
+  failure:
+    memset(parsedHostCpuIdInfo, 0, sizeof (*parsedHostCpuIdInfo));
+
+    return -1;
 }

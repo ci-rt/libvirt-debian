@@ -6,6 +6,7 @@
 # include "testutilsqemu.h"
 # include "testutils.h"
 # include "memory.h"
+# include "cpu_conf.h"
 
 static virCapsGuestMachinePtr *testQemuAllocMachines(int *nmachines)
 {
@@ -57,10 +58,36 @@ virCapsPtr testQemuCapsInit(void) {
     struct utsname utsname;
     virCapsPtr caps;
     virCapsGuestPtr guest;
-    virCapsGuestMachinePtr *machines;
-    int nmachines;
+    virCapsGuestMachinePtr *machines = NULL;
+    int nmachines = 0;
     static const char *const xen_machines[] = {
         "xenner"
+    };
+    static virCPUFeatureDef host_cpu_features[] = {
+        { (char *) "lahf_lm",   -1 },
+        { (char *) "xtpr",      -1 },
+        { (char *) "cx16",      -1 },
+        { (char *) "tm2",       -1 },
+        { (char *) "est",       -1 },
+        { (char *) "vmx",       -1 },
+        { (char *) "ds_cpl",    -1 },
+        { (char *) "pbe",       -1 },
+        { (char *) "tm",        -1 },
+        { (char *) "ht",        -1 },
+        { (char *) "ss",        -1 },
+        { (char *) "acpi",      -1 },
+        { (char *) "ds",        -1 }
+    };
+    static virCPUDef host_cpu = {
+        VIR_CPU_TYPE_HOST,      /* type */
+        0,                      /* match */
+        (char *) "x86_64",      /* arch */
+        (char *) "core2duo",    /* model */
+        1,                      /* sockets */
+        2,                      /* cores */
+        1,                      /* threads */
+        ARRAY_CARDINALITY(host_cpu_features), /* nfeatures */
+        host_cpu_features       /* features */
     };
 
     uname (&utsname);
@@ -68,7 +95,8 @@ virCapsPtr testQemuCapsInit(void) {
                                    0, 0)) == NULL)
         return NULL;
 
-    if ((machines = testQemuAllocMachines(&nmachines)) == NULL)
+    if ((caps->host.cpu = virCPUDefCopy(&host_cpu)) == NULL ||
+        (machines = testQemuAllocMachines(&nmachines)) == NULL)
         goto cleanup;
 
     if ((guest = virCapabilitiesAddGuest(caps, "hvm", "i686", 32,

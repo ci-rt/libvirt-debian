@@ -28,6 +28,8 @@ virNWFilterTechDriverPtr virNWFilterTechDriverForName(const char *name);
 int virNWFilterRuleInstAddData(virNWFilterRuleInstPtr res,
                                void *data);
 
+void virNWFilterTechDriversInit(void);
+void virNWFilterTechDriversShutdown(void);
 
 enum instCase {
     INSTANTIATE_ALWAYS,
@@ -47,6 +49,7 @@ int virNWFilterTearOldFilter(virConnectPtr conn,
 
 int virNWFilterInstantiateFilterLate(virConnectPtr conn,
                                      const char *ifname,
+                                     int ifindex,
                                      const char *linkdev,
                                      enum virDomainNetType nettype,
                                      const unsigned char *macaddr,
@@ -63,6 +66,21 @@ void virNWFilterDomainFWUpdateCB(void *payload,
                                  const char *name ATTRIBUTE_UNUSED,
                                  void *data);
 
-int checkIf(const char *ifname, const unsigned char *macaddr);
+
+/* tear down an interface's filter before tearing down the interface */
+static inline void
+virNWFilterTearNWFilter(virDomainNetDefPtr net) {
+    if ((net->filter) && (net->ifname))
+        virNWFilterTeardownFilter(net);
+}
+
+
+static inline void
+virNWFilterTearVMNWFilters(virDomainObjPtr vm) {
+    int i;
+
+    for (i = 0; i < vm->def->nnets; i++)
+        virNWFilterTearNWFilter(vm->def->nets[i]);
+}
 
 #endif

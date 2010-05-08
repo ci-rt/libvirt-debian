@@ -39,6 +39,19 @@
 %#include "internal.h"
 %#include <arpa/inet.h>
 
+/* cygwin's xdr implementation defines xdr_u_int64_t instead of xdr_uint64_t
+ * and lacks IXDR_PUT_INT32 and IXDR_GET_INT32
+ */
+%#ifdef HAVE_XDR_U_INT64_T
+%# define xdr_uint64_t xdr_u_int64_t
+%#endif
+%#ifndef IXDR_PUT_INT32
+%# define IXDR_PUT_INT32 IXDR_PUT_LONG
+%#endif
+%#ifndef IXDR_GET_INT32
+%# define IXDR_GET_INT32 IXDR_GET_LONG
+%#endif
+
 /*----- Data types. -----*/
 
 /* Maximum total message size (serialised). */
@@ -469,6 +482,18 @@ struct remote_domain_memory_peek_args {
 
 struct remote_domain_memory_peek_ret {
     opaque buffer<REMOTE_DOMAIN_MEMORY_PEEK_BUFFER_MAX>;
+};
+
+struct remote_domain_get_block_info_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string path;
+    unsigned flags;
+};
+
+struct remote_domain_get_block_info_ret {
+    unsigned hyper allocation;
+    unsigned hyper capacity;
+    unsigned hyper physical;
 };
 
 struct remote_list_domains_args {
@@ -1634,6 +1659,14 @@ struct remote_domain_event_io_error_msg {
     int action;
 };
 
+struct remote_domain_event_io_error_reason_msg {
+    remote_nonnull_domain dom;
+    remote_nonnull_string srcPath;
+    remote_nonnull_string devAlias;
+    int action;
+    remote_nonnull_string reason;
+};
+
 struct remote_domain_event_graphics_address {
     int family;
     remote_nonnull_string node;
@@ -1967,9 +2000,12 @@ enum remote_procedure {
     REMOTE_PROC_DOMAIN_SNAPSHOT_LIST_NAMES = 188,
     REMOTE_PROC_DOMAIN_SNAPSHOT_LOOKUP_BY_NAME = 189,
     REMOTE_PROC_DOMAIN_HAS_CURRENT_SNAPSHOT = 190,
+
     REMOTE_PROC_DOMAIN_SNAPSHOT_CURRENT = 191,
     REMOTE_PROC_DOMAIN_REVERT_TO_SNAPSHOT = 192,
-    REMOTE_PROC_DOMAIN_SNAPSHOT_DELETE = 193
+    REMOTE_PROC_DOMAIN_SNAPSHOT_DELETE = 193,
+    REMOTE_PROC_DOMAIN_GET_BLOCK_INFO = 194,
+    REMOTE_PROC_DOMAIN_EVENT_IO_ERROR_REASON = 195
 
     /*
      * Notice how the entries are grouped in sets of 10 ?

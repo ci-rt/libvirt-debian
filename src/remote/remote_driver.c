@@ -32,6 +32,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <arpa/inet.h>
 
 /* Windows socket compatibility functions. */
 #include <errno.h>
@@ -3621,6 +3622,40 @@ done:
 }
 
 static int
+remoteDomainGetBlockInfo (virDomainPtr domain,
+                          const char *path,
+                          virDomainBlockInfoPtr info,
+                          unsigned int flags)
+{
+    int rv = -1;
+    remote_domain_get_block_info_args args;
+    remote_domain_get_block_info_ret ret;
+    struct private_data *priv = domain->conn->privateData;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain (&args.dom, domain);
+    args.path = (char*)path;
+    args.flags = flags;
+
+    memset (&ret, 0, sizeof ret);
+    if (call (domain->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_BLOCK_INFO,
+              (xdrproc_t) xdr_remote_domain_get_block_info_args, (char *) &args,
+              (xdrproc_t) xdr_remote_domain_get_block_info_ret, (char *) &ret) == -1)
+        goto done;
+
+    info->allocation = ret.allocation;
+    info->capacity = ret.capacity;
+    info->physical = ret.physical;
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
 remoteDomainManagedSave (virDomainPtr domain, unsigned int flags)
 {
     int rv = -1;
@@ -6475,12 +6510,9 @@ done:
 /*----------------------------------------------------------------------*/
 
 static int
-remoteAuthenticate (virConnectPtr conn, struct private_data *priv, int in_open,
-                    virConnectAuthPtr auth
-#if !HAVE_SASL && !HAVE_POLKIT
-                    ATTRIBUTE_UNUSED
-#endif
-                    ,
+remoteAuthenticate (virConnectPtr conn, struct private_data *priv,
+                    int in_open ATTRIBUTE_UNUSED,
+                    virConnectAuthPtr auth ATTRIBUTE_UNUSED,
                     const char *authtype)
 {
     struct remote_auth_list_ret ret;
@@ -6573,21 +6605,36 @@ remoteAuthenticate (virConnectPtr conn, struct private_data *priv, int in_open,
 
 #if HAVE_SASL
 /*
- * NB, keep in sync with similar method in remote/remote.c
+ * NB, keep in sync with similar method in daemon/remote.c
  */
-static char *addrToString(struct sockaddr_storage *sa, socklen_t salen)
+static char *addrToString(struct sockaddr_storage *ss, socklen_t salen)
 {
     char host[NI_MAXHOST], port[NI_MAXSERV];
     char *addr;
     int err;
+    struct sockaddr *sa = (struct sockaddr *)ss;
 
-    if ((err = getnameinfo((struct sockaddr *)sa, salen,
+    if ((err = getnameinfo(sa, salen,
                            host, sizeof(host),
                            port, sizeof(port),
                            NI_NUMERICHOST | NI_NUMERICSERV)) != 0) {
-        remoteError(VIR_ERR_UNKNOWN_HOST,
-                    _("Cannot resolve address %d: %s"),
-                    err, gai_strerror(err));
+        char ip[INET6_ADDRSTRLEN];
+        void *rawaddr;
+
+        if (sa->sa_family == AF_INET)
+            rawaddr = &((struct sockaddr_in *)sa)->sin_addr;
+        else
+            rawaddr = &((struct sockaddr_in6 *)sa)->sin6_addr;
+
+        if (inet_ntop(sa->sa_family, rawaddr, ip, sizeof ip)) {
+            remoteError(VIR_ERR_UNKNOWN_HOST,
+                        _("Cannot resolve address %s: %s"),
+                        ip, gai_strerror(err));
+        } else {
+            remoteError(VIR_ERR_UNKNOWN_HOST,
+                        _("Cannot resolve address: %s"),
+                        gai_strerror(err));
+        }
         return NULL;
     }
 
@@ -7383,6 +7430,37 @@ remoteDomainReadEventIOError(virConnectPtr conn, XDR *xdr)
 
 
 static virDomainEventPtr
+remoteDomainReadEventIOErrorReason(virConnectPtr conn, XDR *xdr)
+{
+    remote_domain_event_io_error_reason_msg msg;
+    virDomainPtr dom;
+    virDomainEventPtr event = NULL;
+    memset (&msg, 0, sizeof msg);
+
+    /* unmarshall parameters, and process it*/
+    if (! xdr_remote_domain_event_io_error_reason_msg(xdr, &msg) ) {
+        remoteError(VIR_ERR_RPC, "%s",
+                    _("unable to demarshall reboot event"));
+        return NULL;
+    }
+
+    dom = get_nonnull_domain(conn,msg.dom);
+    if (!dom)
+        return NULL;
+
+    event = virDomainEventIOErrorReasonNewFromDom(dom,
+                                                  msg.srcPath,
+                                                  msg.devAlias,
+                                                  msg.action,
+                                                  msg.reason);
+    xdr_free ((xdrproc_t) &xdr_remote_domain_event_io_error_reason_msg, (char *) &msg);
+
+    virDomainFree(dom);
+    return event;
+}
+
+
+static virDomainEventPtr
 remoteDomainReadEventGraphics(virConnectPtr conn, XDR *xdr)
 {
     remote_domain_event_graphics_msg msg;
@@ -7420,15 +7498,12 @@ remoteDomainReadEventGraphics(virConnectPtr conn, XDR *xdr)
         !(remoteAddr->node = strdup(msg.remote.node)))
         goto no_memory;
 
-    fprintf(stderr, "Got %d\n", msg.subject.subject_len);
     if (VIR_ALLOC(subject) < 0)
         goto no_memory;
     if (VIR_ALLOC_N(subject->identities, msg.subject.subject_len) < 0)
         goto no_memory;
     subject->nidentity = msg.subject.subject_len;
     for (i = 0 ; i < subject->nidentity ; i++) {
-        fprintf(stderr, "  %s=%s\n", msg.subject.subject_val[i].type,
-                msg.subject.subject_val[i].name);
         if (!(subject->identities[i].type = strdup(msg.subject.subject_val[i].type)) ||
             !(subject->identities[i].name = strdup(msg.subject.subject_val[i].name)))
             goto no_memory;
@@ -8880,7 +8955,11 @@ remoteIOReadBuffer(struct private_data *priv,
 
                 char errout[1024] = "\0";
                 if (priv->errfd != -1) {
-                    saferead(priv->errfd, errout, sizeof(errout));
+                    if (saferead(priv->errfd, errout, sizeof(errout)) < 0) {
+                        virReportSystemError(errno, "%s",
+                                             _("cannot recv data"));
+                        return -1;
+                    }
                 }
 
                 virReportSystemError(errno,
@@ -8889,7 +8968,12 @@ remoteIOReadBuffer(struct private_data *priv,
             } else {
                 char errout[1024] = "\0";
                 if (priv->errfd != -1) {
-                    saferead(priv->errfd, errout, sizeof(errout));
+                    if (saferead(priv->errfd, errout, sizeof(errout)) < 0) {
+                        remoteError(VIR_ERR_SYSTEM_ERROR,
+                                    _("server closed connection: %s"),
+                                    virStrerror(errno, errout, sizeof errout));
+                        return -1;
+                    }
                 }
 
                 remoteError(VIR_ERR_SYSTEM_ERROR,
@@ -9274,6 +9358,10 @@ processCallDispatchMessage(virConnectPtr conn, struct private_data *priv,
         event = remoteDomainReadEventIOError(conn, xdr);
         break;
 
+    case REMOTE_PROC_DOMAIN_EVENT_IO_ERROR_REASON:
+        event = remoteDomainReadEventIOErrorReason(conn, xdr);
+        break;
+
     case REMOTE_PROC_DOMAIN_EVENT_GRAPHICS:
         event = remoteDomainReadEventGraphics(conn, xdr);
         break;
@@ -9502,7 +9590,7 @@ remoteIOEventLoop(virConnectPtr conn,
         sigaddset (&blockedsigs, SIGWINCH);
         sigaddset (&blockedsigs, SIGCHLD);
         sigaddset (&blockedsigs, SIGPIPE);
-        ignore_value (pthread_sigmask(SIG_BLOCK, &blockedsigs, &oldmask));
+        ignore_value(pthread_sigmask(SIG_BLOCK, &blockedsigs, &oldmask));
 #endif
 
     repoll:
@@ -9511,14 +9599,24 @@ remoteIOEventLoop(virConnectPtr conn,
             goto repoll;
 
 #ifdef HAVE_PTHREAD_H
-        ignore_value (pthread_sigmask(SIG_SETMASK, &oldmask, NULL));
+        ignore_value(pthread_sigmask(SIG_SETMASK, &oldmask, NULL));
 #endif
 
         remoteDriverLock(priv);
 
         if (fds[1].revents) {
+            ssize_t s;
             DEBUG0("Woken up from poll by other thread");
-            saferead(priv->wakeupReadFD, &ignore, sizeof(ignore));
+            s = saferead(priv->wakeupReadFD, &ignore, sizeof(ignore));
+            if (s < 0) {
+                virReportSystemError(errno, "%s",
+                                     _("read on wakeup fd failed"));
+                goto error;
+            } else if (s != sizeof(ignore)) {
+                remoteError(VIR_ERR_INTERNAL_ERROR, "%s",
+                            _("read on wakeup fd failed"));
+                goto error;
+            }
         }
 
         if (ret < 0) {
@@ -9654,6 +9752,7 @@ remoteIO(virConnectPtr conn,
         /* Stick ourselves on the end of the wait queue */
         struct remote_thread_call *tmp = priv->waitDispatch;
         char ignore = 1;
+        ssize_t s;
         while (tmp && tmp->next)
             tmp = tmp->next;
         if (tmp)
@@ -9661,8 +9760,21 @@ remoteIO(virConnectPtr conn,
         else
             priv->waitDispatch = thiscall;
 
-        /* Force other thread to wakup from poll */
-        safewrite(priv->wakeupSendFD, &ignore, sizeof(ignore));
+        /* Force other thread to wakeup from poll */
+        s = safewrite(priv->wakeupSendFD, &ignore, sizeof(ignore));
+        if (s < 0) {
+            char errout[1024];
+            remoteError(VIR_ERR_INTERNAL_ERROR,
+                        _("failed to wake up polling thread: %s"),
+                        virStrerror(errno, errout, sizeof errout));
+            VIR_FREE(thiscall);
+            return -1;
+        } else if (s != sizeof(ignore)) {
+            remoteError(VIR_ERR_INTERNAL_ERROR, "%s",
+                        _("failed to wake up polling thread"));
+            VIR_FREE(thiscall);
+            return -1;
+        }
 
         DEBUG("Going to sleep %d %p %p", thiscall->proc_nr, priv->waitDispatch, thiscall);
         /* Go to sleep while other thread is working... */
@@ -10101,6 +10213,7 @@ static virDriver remote_driver = {
     remoteDomainMemoryStats, /* domainMemoryStats */
     remoteDomainBlockPeek, /* domainBlockPeek */
     remoteDomainMemoryPeek, /* domainMemoryPeek */
+    remoteDomainGetBlockInfo, /* domainGetBlockInfo */
     remoteNodeGetCellsFreeMemory, /* nodeGetCellsFreeMemory */
     remoteNodeGetFreeMemory, /* getFreeMemory */
     remoteDomainEventRegister, /* domainEventRegister */

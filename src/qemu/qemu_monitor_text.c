@@ -787,7 +787,7 @@ int qemuMonitorTextSetBalloon(qemuMonitorPtr mon,
 
     /* If the command failed qemu prints: 'unknown command'
      * No message is printed on success it seems */
-    if (strstr(reply, "\nunknown command:")) {
+    if (strstr(reply, "unknown command:")) {
         /* Don't set error - it is expected memory balloon fails on many qemu */
         ret = 0;
     } else {
@@ -800,7 +800,7 @@ int qemuMonitorTextSetBalloon(qemuMonitorPtr mon,
 
 
 /*
- * Returns: 0 if balloon not supported, +1 if balloon adjust worked
+ * Returns: 0 if CPU hotplug not supported, +1 if CPU hotplug worked
  * or -1 on failure
  */
 int qemuMonitorTextSetCPU(qemuMonitorPtr mon, int cpu, int online)
@@ -809,14 +809,14 @@ int qemuMonitorTextSetCPU(qemuMonitorPtr mon, int cpu, int online)
     char *reply = NULL;
     int ret = -1;
 
-    if (virAsprintf(&cmd, "set_cpu %d %s", cpu, online ? "online" : "offline") < 0) {
+    if (virAsprintf(&cmd, "cpu_set %d %s", cpu, online ? "online" : "offline") < 0) {
         virReportOOMError();
         return -1;
     }
 
     if (qemuMonitorCommand(mon, cmd, &reply) < 0) {
         qemuReportError(VIR_ERR_OPERATION_FAILED,
-                        "%s", _("could nt change CPU online status"));
+                        "%s", _("could not change CPU online status"));
         VIR_FREE(cmd);
         return -1;
     }
@@ -824,7 +824,7 @@ int qemuMonitorTextSetCPU(qemuMonitorPtr mon, int cpu, int online)
 
     /* If the command failed qemu prints: 'unknown command'
      * No message is printed on success it seems */
-    if (strstr(reply, "\nunknown command:")) {
+    if (strstr(reply, "unknown command:")) {
         /* Don't set error - it is expected CPU onlining fails on many qemu - caller will handle */
         ret = 0;
     } else {
@@ -857,7 +857,7 @@ int qemuMonitorTextEjectMedia(qemuMonitorPtr mon,
     /* If the command failed qemu prints:
      * device not found, device is locked ...
      * No message is printed on success it seems */
-    if (strstr(reply, "\ndevice ")) {
+    if (strstr(reply, "device ")) {
         qemuReportError(VIR_ERR_OPERATION_FAILED,
                         _("could not eject media on %s: %s"), devname, reply);
         goto cleanup;
@@ -901,14 +901,14 @@ int qemuMonitorTextChangeMedia(qemuMonitorPtr mon,
     /* If the command failed qemu prints:
      * device not found, device is locked ...
      * No message is printed on success it seems */
-    if (strstr(reply, "\ndevice ")) {
+    if (strstr(reply, "device ")) {
         qemuReportError(VIR_ERR_OPERATION_FAILED,
                         _("could not eject media on %s: %s"), devname, reply);
         goto cleanup;
     }
 
     /* Could not open message indicates bad filename */
-    if (strstr(reply, "\nCould not open ")) {
+    if (strstr(reply, "Could not open ")) {
         qemuReportError(VIR_ERR_OPERATION_FAILED,
                         _("could not change media on %s: %s"), devname, reply);
         goto cleanup;
@@ -1202,8 +1202,36 @@ int qemuMonitorTextMigrateToHost(qemuMonitorPtr mon,
 
 int qemuMonitorTextMigrateToCommand(qemuMonitorPtr mon,
                                     int background,
-                                    const char * const *argv,
-                                    const char *target)
+                                    const char * const *argv)
+{
+    char *argstr;
+    char *dest = NULL;
+    int ret = -1;
+
+    argstr = virArgvToString(argv);
+    if (!argstr) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if (virAsprintf(&dest, "exec:%s", argstr) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    ret = qemuMonitorTextMigrate(mon, background, dest);
+
+cleanup:
+    VIR_FREE(argstr);
+    VIR_FREE(dest);
+    return ret;
+}
+
+int qemuMonitorTextMigrateToFile(qemuMonitorPtr mon,
+                                 int background,
+                                 const char * const *argv,
+                                 const char *target,
+                                 unsigned long long offset)
 {
     char *argstr;
     char *dest = NULL;
@@ -1223,7 +1251,10 @@ int qemuMonitorTextMigrateToCommand(qemuMonitorPtr mon,
         goto cleanup;
     }
 
-    if (virAsprintf(&dest, "exec:%s >>%s 2>/dev/null", argstr, safe_target) < 0) {
+    if (virAsprintf(&dest, "exec:%s | dd of=%s bs=%llu seek=%llu",
+                    argstr, safe_target,
+                    QEMU_MONITOR_MIGRATE_TO_FILE_BS,
+                    offset / QEMU_MONITOR_MIGRATE_TO_FILE_BS) < 0) {
         virReportOOMError();
         goto cleanup;
     }
@@ -1666,6 +1697,13 @@ int qemuMonitorTextSendFileHandle(qemuMonitorPtr mon,
         goto cleanup;
     }
 
+    if (STRNEQ(reply, "")) {
+        qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                        _("unable to send TAP file handle: %s"),
+                        reply);
+        goto cleanup;
+    }
+
     ret = 0;
 
 cleanup:
@@ -1725,11 +1763,16 @@ int qemuMonitorTextAddHostNetwork(qemuMonitorPtr mon,
 
     if (qemuMonitorCommand(mon, cmd, &reply) < 0) {
         qemuReportError(VIR_ERR_OPERATION_FAILED,
-                        _("failed to close fd in qemu with '%s'"), cmd);
+                        _("failed to add host net with '%s'"), cmd);
         goto cleanup;
     }
 
-    /* XXX error messages here ? */
+    if (STRNEQ(reply, "")) {
+        qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                        _("unable to add host net: %s"),
+                        reply);
+        goto cleanup;
+    }
 
     ret = 0;
 
@@ -2133,14 +2176,14 @@ error:
 
 
 int qemuMonitorTextDelDevice(qemuMonitorPtr mon,
-                             const char *devicestr)
+                             const char *devalias)
 {
     char *cmd = NULL;
     char *reply = NULL;
     char *safedev;
     int ret = -1;
 
-    if (!(safedev = qemuMonitorEscapeArg(devicestr))) {
+    if (!(safedev = qemuMonitorEscapeArg(devalias))) {
         virReportOOMError();
         goto cleanup;
     }
@@ -2152,13 +2195,13 @@ int qemuMonitorTextDelDevice(qemuMonitorPtr mon,
 
     if (qemuMonitorCommand(mon, cmd, &reply) < 0) {
         qemuReportError(VIR_ERR_OPERATION_FAILED,
-                        _("cannot detach %s device"), devicestr);
+                        _("cannot detach %s device"), devalias);
         goto cleanup;
     }
 
     if (STRNEQ(reply, "")) {
         qemuReportError(VIR_ERR_OPERATION_FAILED,
-                        _("detaching %s device failed: %s"), devicestr, reply);
+                        _("detaching %s device failed: %s"), devalias, reply);
         goto cleanup;
     }
 
@@ -2279,7 +2322,7 @@ int qemuMonitorTextSetDrivePassphrase(qemuMonitorPtr mon,
         goto cleanup;
     }
 
-    if (strstr(reply, "\nunknown command:")) {
+    if (strstr(reply, "unknown command:")) {
         qemuReportError(VIR_ERR_OPERATION_FAILED, "%s",
                         _("setting disk password is not supported"));
         goto cleanup;

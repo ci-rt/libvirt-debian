@@ -1045,6 +1045,53 @@ cmdDomMemStat(vshControl *ctl, const vshCmd *cmd)
 }
 
 /*
+ * "domblkinfo" command
+ */
+static const vshCmdInfo info_domblkinfo[] = {
+    {"help", N_("domain block device size information")},
+    {"desc", N_("Get block device size info for a domain.")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_domblkinfo[] = {
+    {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
+    {"device", VSH_OT_DATA, VSH_OFLAG_REQ, N_("block device")},
+    {NULL, 0, 0, NULL}
+};
+
+static int
+cmdDomblkinfo(vshControl *ctl, const vshCmd *cmd)
+{
+    virDomainBlockInfo info;
+    virDomainPtr dom;
+    int ret = TRUE;
+    const char *device;
+
+    if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
+        return FALSE;
+
+    if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
+        return FALSE;
+
+    if (!(device = vshCommandOptString (cmd, "device", NULL))) {
+        virDomainFree(dom);
+        return FALSE;
+    }
+
+    if (virDomainGetBlockInfo(dom, device, &info, 0) < 0) {
+        virDomainFree(dom);
+        return FALSE;
+    }
+
+    vshPrint(ctl, "%-15s %llu\n", _("Capacity:"), info.capacity);
+    vshPrint(ctl, "%-15s %llu\n", _("Allocation:"), info.allocation);
+    vshPrint(ctl, "%-15s %llu\n", _("Physical:"), info.physical);
+
+    virDomainFree(dom);
+    return ret;
+}
+
+/*
  * "suspend" command
  */
 static const vshCmdInfo info_suspend[] = {
@@ -8081,9 +8128,6 @@ cmdEdit (vshControl *ctl, const vshCmd *cmd)
     doc_edited = editReadBackFile (ctl, tmp);
     if (!doc_edited) goto cleanup;
 
-    unlink (tmp);
-    tmp = NULL;
-
     /* Compare original XML with edited.  Has it changed at all? */
     if (STREQ (doc, doc_edited)) {
         vshPrint (ctl, _("Domain %s XML configuration not changed.\n"),
@@ -8360,7 +8404,7 @@ cmdSnapshotList(vshControl *ctl, const vshCmd *cmd)
     int ret = FALSE;
     int numsnaps;
     char **names = NULL;
-    int actual;
+    int actual = 0;
     int i;
     xmlDocPtr xml = NULL;
     xmlXPathContextPtr ctxt = NULL;
@@ -8447,6 +8491,8 @@ cleanup:
     if (xml)
         xmlFreeDoc(xml);
     VIR_FREE(doc);
+    for (i = 0; i < actual; i++)
+        VIR_FREE(names[i]);
     VIR_FREE(names);
     if (dom)
         virDomainFree(dom);
@@ -8662,6 +8708,7 @@ static const vshCmdDef commands[] = {
     {"domblkstat", cmdDomblkstat, opts_domblkstat, info_domblkstat},
     {"domifstat", cmdDomIfstat, opts_domifstat, info_domifstat},
     {"dommemstat", cmdDomMemStat, opts_dommemstat, info_dommemstat},
+    {"domblkinfo", cmdDomblkinfo, opts_domblkinfo, info_domblkinfo},
     {"domxml-from-native", cmdDomXMLFromNative, opts_domxmlfromnative, info_domxmlfromnative},
     {"domxml-to-native", cmdDomXMLToNative, opts_domxmltonative, info_domxmltonative},
     {"dumpxml", cmdDumpXML, opts_dumpxml, info_dumpxml},
@@ -9411,16 +9458,17 @@ vshCommandRun(vshControl *ctl, const vshCmd *cmd)
 
     while (cmd) {
         struct timeval before, after;
+        bool enable_timing = ctl->timing;
 
         if ((ctl->conn == NULL) || (disconnected != 0))
             vshReconnect(ctl);
 
-        if (ctl->timing)
+        if (enable_timing)
             GETTIMEOFDAY(&before);
 
         ret = cmd->def->handler(ctl, cmd);
 
-        if (ctl->timing)
+        if (enable_timing)
             GETTIMEOFDAY(&after);
 
         if (ret == FALSE)
@@ -9440,7 +9488,7 @@ vshCommandRun(vshControl *ctl, const vshCmd *cmd)
         if (STREQ(cmd->def->name, "quit"))        /* hack ... */
             return ret;
 
-        if (ctl->timing)
+        if (enable_timing)
             vshPrint(ctl, _("\n(Time: %.3f ms)\n\n"),
                      DIFF_MSEC(&after, &before));
         else

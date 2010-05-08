@@ -15,6 +15,15 @@ extern "C" {
 
 #include "internal.h"
 #include <arpa/inet.h>
+#ifdef HAVE_XDR_U_INT64_T
+# define xdr_uint64_t xdr_u_int64_t
+#endif
+#ifndef IXDR_PUT_INT32
+# define IXDR_PUT_INT32 IXDR_PUT_LONG
+#endif
+#ifndef IXDR_GET_INT32
+# define IXDR_GET_INT32 IXDR_GET_LONG
+#endif
 #define REMOTE_MESSAGE_MAX 262144
 #define REMOTE_MESSAGE_HEADER_MAX 24
 #define REMOTE_MESSAGE_PAYLOAD_MAX 262120
@@ -379,6 +388,20 @@ struct remote_domain_memory_peek_ret {
         } buffer;
 };
 typedef struct remote_domain_memory_peek_ret remote_domain_memory_peek_ret;
+
+struct remote_domain_get_block_info_args {
+        remote_nonnull_domain dom;
+        remote_nonnull_string path;
+        u_int flags;
+};
+typedef struct remote_domain_get_block_info_args remote_domain_get_block_info_args;
+
+struct remote_domain_get_block_info_ret {
+        uint64_t allocation;
+        uint64_t capacity;
+        uint64_t physical;
+};
+typedef struct remote_domain_get_block_info_ret remote_domain_get_block_info_ret;
 
 struct remote_list_domains_args {
         int maxids;
@@ -1841,6 +1864,15 @@ struct remote_domain_event_io_error_msg {
 };
 typedef struct remote_domain_event_io_error_msg remote_domain_event_io_error_msg;
 
+struct remote_domain_event_io_error_reason_msg {
+        remote_nonnull_domain dom;
+        remote_nonnull_string srcPath;
+        remote_nonnull_string devAlias;
+        int action;
+        remote_nonnull_string reason;
+};
+typedef struct remote_domain_event_io_error_reason_msg remote_domain_event_io_error_reason_msg;
+
 struct remote_domain_event_graphics_address {
         int family;
         remote_nonnull_string node;
@@ -2182,6 +2214,8 @@ enum remote_procedure {
         REMOTE_PROC_DOMAIN_SNAPSHOT_CURRENT = 191,
         REMOTE_PROC_DOMAIN_REVERT_TO_SNAPSHOT = 192,
         REMOTE_PROC_DOMAIN_SNAPSHOT_DELETE = 193,
+        REMOTE_PROC_DOMAIN_GET_BLOCK_INFO = 194,
+        REMOTE_PROC_DOMAIN_EVENT_IO_ERROR_REASON = 195,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -2268,6 +2302,8 @@ extern  bool_t xdr_remote_domain_block_peek_args (XDR *, remote_domain_block_pee
 extern  bool_t xdr_remote_domain_block_peek_ret (XDR *, remote_domain_block_peek_ret*);
 extern  bool_t xdr_remote_domain_memory_peek_args (XDR *, remote_domain_memory_peek_args*);
 extern  bool_t xdr_remote_domain_memory_peek_ret (XDR *, remote_domain_memory_peek_ret*);
+extern  bool_t xdr_remote_domain_get_block_info_args (XDR *, remote_domain_get_block_info_args*);
+extern  bool_t xdr_remote_domain_get_block_info_ret (XDR *, remote_domain_get_block_info_ret*);
 extern  bool_t xdr_remote_list_domains_args (XDR *, remote_list_domains_args*);
 extern  bool_t xdr_remote_list_domains_ret (XDR *, remote_list_domains_ret*);
 extern  bool_t xdr_remote_num_of_domains_ret (XDR *, remote_num_of_domains_ret*);
@@ -2515,6 +2551,7 @@ extern  bool_t xdr_remote_domain_event_reboot_msg (XDR *, remote_domain_event_re
 extern  bool_t xdr_remote_domain_event_rtc_change_msg (XDR *, remote_domain_event_rtc_change_msg*);
 extern  bool_t xdr_remote_domain_event_watchdog_msg (XDR *, remote_domain_event_watchdog_msg*);
 extern  bool_t xdr_remote_domain_event_io_error_msg (XDR *, remote_domain_event_io_error_msg*);
+extern  bool_t xdr_remote_domain_event_io_error_reason_msg (XDR *, remote_domain_event_io_error_reason_msg*);
 extern  bool_t xdr_remote_domain_event_graphics_address (XDR *, remote_domain_event_graphics_address*);
 extern  bool_t xdr_remote_domain_event_graphics_identity (XDR *, remote_domain_event_graphics_identity*);
 extern  bool_t xdr_remote_domain_event_graphics_msg (XDR *, remote_domain_event_graphics_msg*);
@@ -2598,6 +2635,8 @@ extern bool_t xdr_remote_domain_block_peek_args ();
 extern bool_t xdr_remote_domain_block_peek_ret ();
 extern bool_t xdr_remote_domain_memory_peek_args ();
 extern bool_t xdr_remote_domain_memory_peek_ret ();
+extern bool_t xdr_remote_domain_get_block_info_args ();
+extern bool_t xdr_remote_domain_get_block_info_ret ();
 extern bool_t xdr_remote_list_domains_args ();
 extern bool_t xdr_remote_list_domains_ret ();
 extern bool_t xdr_remote_num_of_domains_ret ();
@@ -2845,6 +2884,7 @@ extern bool_t xdr_remote_domain_event_reboot_msg ();
 extern bool_t xdr_remote_domain_event_rtc_change_msg ();
 extern bool_t xdr_remote_domain_event_watchdog_msg ();
 extern bool_t xdr_remote_domain_event_io_error_msg ();
+extern bool_t xdr_remote_domain_event_io_error_reason_msg ();
 extern bool_t xdr_remote_domain_event_graphics_address ();
 extern bool_t xdr_remote_domain_event_graphics_identity ();
 extern bool_t xdr_remote_domain_event_graphics_msg ();

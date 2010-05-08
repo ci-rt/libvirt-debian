@@ -99,8 +99,13 @@ int qemuMonitorTextMigrateToHost(qemuMonitorPtr mon,
 
 int qemuMonitorTextMigrateToCommand(qemuMonitorPtr mon,
                                     int background,
-                                    const char * const *argv,
-                                    const char *target);
+                                    const char * const *argv);
+
+int qemuMonitorTextMigrateToFile(qemuMonitorPtr mon,
+                                 int background,
+                                 const char * const *argv,
+                                 const char *target,
+                                 unsigned long long offset);
 
 int qemuMonitorTextMigrateToUnix(qemuMonitorPtr mon,
                                  int background,
@@ -168,7 +173,7 @@ int qemuMonitorTextAddDevice(qemuMonitorPtr mon,
                              const char *devicestr);
 
 int qemuMonitorTextDelDevice(qemuMonitorPtr mon,
-                             const char *devicestr);
+                             const char *devalias);
 
 int qemuMonitorTextAddDrive(qemuMonitorPtr mon,
                              const char *drivestr);

@@ -90,6 +90,7 @@ mymain(int argc, char **argv)
 
     DO_TEST("mac-test");
     DO_TEST("arp-test");
+    DO_TEST("rarp-test");
     DO_TEST("ip-test");
     DO_TEST("ipv6-test");
 
@@ -118,6 +119,10 @@ mymain(int argc, char **argv)
     DO_TEST("icmp-direction-test");
     DO_TEST("icmp-direction2-test");
     DO_TEST("icmp-direction3-test");
+
+    DO_TEST("conntrack-test");
+
+    DO_TEST("hex-data-test");
 
     return (ret==0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }

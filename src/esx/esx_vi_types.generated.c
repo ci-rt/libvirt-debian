@@ -919,6 +919,11 @@ ESX_VI__TEMPLATE__VALIDATE(PerfEntityMetric,
     /* no required properties */
 })
 
+/* esxVI_PerfEntityMetric_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(PerfEntityMetric,
+{
+})
+
 /* esxVI_PerfEntityMetric_AppendToList */
 ESX_VI__TEMPLATE__LIST__APPEND(PerfEntityMetric)
 
@@ -975,6 +980,13 @@ ESX_VI__TEMPLATE__DYNAMIC_FREE(PerfEntityMetricBase,
 ESX_VI__TEMPLATE__VALIDATE(PerfEntityMetricBase,
 {
     ESX_VI__TEMPLATE__PROPERTY__REQUIRE(entity)
+})
+
+/* esxVI_PerfEntityMetricBase_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(PerfEntityMetricBase,
+{
+    /* PerfEntityMetricBase */
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(PerfEntityMetric)
 })
 
 /* esxVI_PerfEntityMetricBase_AppendToList */

@@ -287,7 +287,7 @@ virStorageBackendFileSystemIsMounted(virStoragePoolObjPtr pool) {
 static int
 virStorageBackendFileSystemMount(virStoragePoolObjPtr pool) {
     char *src;
-    char *options;
+    char *options = NULL;
     const char **mntargv;
 
     /* 'mount -t auto' doesn't seem to auto determine nfs (or cifs),
@@ -376,7 +376,7 @@ virStorageBackendFileSystemMount(virStoragePoolObjPtr pool) {
 
     if (pool->def->type == VIR_STORAGE_POOL_NETFS) {
         if (pool->def->source.format == VIR_STORAGE_POOL_NETFS_GLUSTERFS) {
-            if (virAsprintf(&options, "direct-io-mode=1") == -1) {
+            if ((options = strdup("direct-io-mode=1")) == NULL) {
                 virReportOOMError();
                 return -1;
             }

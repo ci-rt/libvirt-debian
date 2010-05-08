@@ -23,16 +23,11 @@
 
 #include <config.h>
 
-#include <stdint.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <linux/if.h>
-
 #include "internal.h"
 
 #include "memory.h"
 #include "logging.h"
-#include "datatypes.h"
+#include "interface.h"
 #include "domain_conf.h"
 #include "virterror_internal.h"
 #include "nwfilter_gentech_driver.h"
@@ -55,12 +50,35 @@ static virNWFilterTechDriverPtr filter_tech_drivers[] = {
 };
 
 
+void virNWFilterTechDriversInit() {
+    int i = 0;
+    while (filter_tech_drivers[i]) {
+        if (!(filter_tech_drivers[i]->flags & TECHDRV_FLAG_INITIALIZED))
+            filter_tech_drivers[i]->init();
+        i++;
+    }
+}
+
+
+void virNWFilterTechDriversShutdown() {
+    int i = 0;
+    while (filter_tech_drivers[i]) {
+        if ((filter_tech_drivers[i]->flags & TECHDRV_FLAG_INITIALIZED))
+            filter_tech_drivers[i]->shutdown();
+        i++;
+    }
+}
+
+
 virNWFilterTechDriverPtr
 virNWFilterTechDriverForName(const char *name) {
     int i = 0;
     while (filter_tech_drivers[i]) {
-       if (STREQ(filter_tech_drivers[i]->name, name))
+       if (STREQ(filter_tech_drivers[i]->name, name)) {
+           if ((filter_tech_drivers[i]->flags & TECHDRV_FLAG_INITIALIZED) == 0)
+               break;
            return filter_tech_drivers[i];
+       }
        i++;
     }
     return NULL;
@@ -539,6 +557,7 @@ virNWFilterInstantiate(virConnectPtr conn,
                        enum virDomainNetType nettype,
                        virNWFilterDefPtr filter,
                        const char *ifname,
+                       int ifindex,
                        const char *linkdev,
                        virNWFilterHashTablePtr vars,
                        enum instCase useNewFilter, int *foundNewFilter,
@@ -574,8 +593,10 @@ virNWFilterInstantiate(virConnectPtr conn,
     if (virHashSize(missing_vars->hashTable) == 1) {
         if (virHashLookup(missing_vars->hashTable,
                           NWFILTER_STD_VAR_IP) != NULL) {
-            if (virNWFilterLookupLearnReq(ifname) == NULL) {
-                rc = virNWFilterLearnIPAddress(ifname,
+            if (virNWFilterLookupLearnReq(ifindex) == NULL) {
+                rc = virNWFilterLearnIPAddress(techdriver,
+                                               ifname,
+                                               ifindex,
                                                linkdev,
                                                nettype, macaddr,
                                                filter->name,
@@ -588,6 +609,8 @@ virNWFilterInstantiate(virConnectPtr conn,
         goto err_exit;
     } else if (virHashSize(missing_vars->hashTable) > 1) {
         rc = 1;
+        goto err_exit;
+    } else if (virNWFilterLookupLearnReq(ifindex) == NULL) {
         goto err_exit;
     }
 
@@ -620,10 +643,21 @@ virNWFilterInstantiate(virConnectPtr conn,
         if (rc)
             goto err_exit;
 
+        if (virNWFilterLockIface(ifname))
+            goto err_exit;
+
         rc = techdriver->applyNewRules(conn, ifname, nptrs, ptrs);
 
         if (teardownOld && rc == 0)
             techdriver->tearOldRules(conn, ifname);
+
+        if (rc == 0 && ifaceCheck(false, ifname, NULL, ifindex)) {
+            /* interface changed/disppeared */
+            techdriver->allTeardown(ifname);
+            rc = 1;
+        }
+
+        virNWFilterUnlockIface(ifname);
 
         VIR_FREE(ptrs);
     }
@@ -647,6 +681,7 @@ static int
 __virNWFilterInstantiateFilter(virConnectPtr conn,
                                bool teardownOld,
                                const char *ifname,
+                               int ifindex,
                                const char *linkdev,
                                enum virDomainNetType nettype,
                                const unsigned char *macaddr,
@@ -748,6 +783,7 @@ __virNWFilterInstantiateFilter(virConnectPtr conn,
                                 nettype,
                                 filter,
                                 ifname,
+                                ifindex,
                                 linkdev,
                                 vars,
                                 useNewFilter, &foundNewFilter,
@@ -779,9 +815,15 @@ _virNWFilterInstantiateFilter(virConnectPtr conn,
     const char *linkdev = (net->type == VIR_DOMAIN_NET_TYPE_DIRECT)
                           ? net->data.direct.linkdev
                           : NULL;
+    int ifindex;
+
+    if (ifaceGetIndex(true, net->ifname, &ifindex))
+        return 1;
+
     return __virNWFilterInstantiateFilter(conn,
                                           teardownOld,
                                           net->ifname,
+                                          ifindex,
                                           linkdev,
                                           net->type,
                                           net->mac,
@@ -792,120 +834,10 @@ _virNWFilterInstantiateFilter(virConnectPtr conn,
 }
 
 
-// FIXME: move chgIfFlags, ifUp, checkIf into common file & share w/ macvtap.c
-
-/*
- * chgIfFlags: Change flags on an interface
- * @ifname : name of the interface
- * @flagclear : the flags to clear
- * @flagset : the flags to set
- *
- * The new flags of the interface will be calculated as
- * flagmask = (~0 ^ flagclear)
- * newflags = (curflags & flagmask) | flagset;
- *
- * Returns 0 on success, errno on failure.
- */
-static int chgIfFlags(const char *ifname, short flagclear, short flagset) {
-    struct ifreq ifr;
-    int rc = 0;
-    int flags;
-    short flagmask = (~0 ^ flagclear);
-    int fd = socket(PF_PACKET, SOCK_DGRAM, 0);
-
-    if (fd < 0)
-        return errno;
-
-    if (virStrncpy(ifr.ifr_name,
-                   ifname, strlen(ifname), sizeof(ifr.ifr_name)) == NULL) {
-        rc = ENODEV;
-        goto err_exit;
-    }
-
-    if (ioctl(fd, SIOCGIFFLAGS, &ifr) < 0) {
-        rc = errno;
-        goto err_exit;
-    }
-
-    flags = (ifr.ifr_flags & flagmask) | flagset;
-
-    if (ifr.ifr_flags != flags) {
-        ifr.ifr_flags = flags;
-
-        if (ioctl(fd, SIOCSIFFLAGS, &ifr) < 0)
-            rc = errno;
-    }
-
-err_exit:
-    close(fd);
-    return rc;
-}
-
-/*
- * ifUp
- * @name: name of the interface
- * @up: 1 for up, 0 for down
- *
- * Function to control if an interface is activated (up, 1) or not (down, 0)
- *
- * Returns 0 in case of success or an errno code in case of failure.
- */
-static int
-ifUp(const char *name, int up)
-{
-    return chgIfFlags(name,
-                      (up) ? 0      : IFF_UP,
-                      (up) ? IFF_UP : 0);
-}
-
-
-/**
- * checkIf
- *
- * @ifname: Name of the interface
- * @macaddr: expected MAC address of the interface
- *
- * FIXME: the interface's index is another good parameter to check
- *
- * Determine whether a given interface is still available. If so,
- * it must have the given MAC address.
- *
- * Returns an error code ENODEV in case the interface does not exist
- * anymore or its MAC address is different, 0 otherwise.
- */
-int
-checkIf(const char *ifname, const unsigned char *macaddr)
-{
-    struct ifreq ifr;
-    int fd = socket(PF_PACKET, SOCK_DGRAM, 0);
-    int rc = 0;
-
-    if (fd < 0)
-        return errno;
-
-    if (virStrncpy(ifr.ifr_name,
-                   ifname, strlen(ifname), sizeof(ifr.ifr_name)) == NULL) {
-        rc = ENODEV;
-        goto err_exit;
-    }
-
-    if (ioctl(fd, SIOCGIFHWADDR, &ifr) < 0) {
-        rc = errno;
-        goto err_exit;
-    }
-
-    if (memcmp(&ifr.ifr_hwaddr.sa_data, macaddr, 6) != 0)
-        rc = ENODEV;
-
- err_exit:
-    close(fd);
-    return rc;
-}
-
-
 int
 virNWFilterInstantiateFilterLate(virConnectPtr conn,
                                  const char *ifname,
+                                 int ifindex,
                                  const char *linkdev,
                                  enum virDomainNetType nettype,
                                  const unsigned char *macaddr,
@@ -917,6 +849,7 @@ virNWFilterInstantiateFilterLate(virConnectPtr conn,
     rc = __virNWFilterInstantiateFilter(conn,
                                         1,
                                         ifname,
+                                        ifindex,
                                         linkdev,
                                         nettype,
                                         macaddr,
@@ -926,7 +859,8 @@ virNWFilterInstantiateFilterLate(virConnectPtr conn,
                                         driver);
     if (rc) {
         //something went wrong... 'DOWN' the interface
-        if (ifUp(ifname ,0)) {
+        if (ifaceCheck(false, ifname, NULL, ifindex) != 0 ||
+            ifaceDown(ifname)) {
             // assuming interface disappeared...
             _virNWFilterTeardownFilter(ifname);
         }
@@ -958,7 +892,9 @@ int virNWFilterRollbackUpdateFilter(virConnectPtr conn,
                                     const virDomainNetDefPtr net)
 {
     const char *drvname = EBIPTABLES_DRIVER_ID;
+    int ifindex;
     virNWFilterTechDriverPtr techdriver;
+
     techdriver = virNWFilterTechDriverForName(drvname);
     if (!techdriver) {
         virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
@@ -967,6 +903,11 @@ int virNWFilterRollbackUpdateFilter(virConnectPtr conn,
                                drvname);
         return 1;
     }
+
+    /* don't tear anything while the address is being learned */
+    if (ifaceGetIndex(true, net->ifname, &ifindex) == 0 &&
+        virNWFilterLookupLearnReq(ifindex) != NULL)
+        return 0;
 
     return techdriver->tearNewRules(conn, net->ifname);
 }
@@ -977,7 +918,9 @@ virNWFilterTearOldFilter(virConnectPtr conn,
                          virDomainNetDefPtr net)
 {
     const char *drvname = EBIPTABLES_DRIVER_ID;
+    int ifindex;
     virNWFilterTechDriverPtr techdriver;
+
     techdriver = virNWFilterTechDriverForName(drvname);
     if (!techdriver) {
         virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
@@ -986,6 +929,11 @@ virNWFilterTearOldFilter(virConnectPtr conn,
                                drvname);
         return 1;
     }
+
+    /* don't tear anything while the address is being learned */
+    if (ifaceGetIndex(true, net->ifname, &ifindex) == 0 &&
+        virNWFilterLookupLearnReq(ifindex) != NULL)
+        return 0;
 
     return techdriver->tearOldRules(conn, net->ifname);
 }
@@ -1005,9 +953,17 @@ _virNWFilterTeardownFilter(const char *ifname)
                                drvname);
         return 1;
     }
+
+    virNWFilterTerminateLearnReq(ifname);
+
+    if (virNWFilterLockIface(ifname))
+       return 1;
+
     techdriver->allTeardown(ifname);
 
     virNWFilterDelIpAddrForIfname(ifname);
+
+    virNWFilterUnlockIface(ifname);
 
     return 0;
 }

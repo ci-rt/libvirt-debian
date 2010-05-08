@@ -220,6 +220,9 @@ char * qemuBuildNicStr(virDomainNetDefPtr net,
 char * qemuBuildNicDevStr(virDomainNetDefPtr net,
                           int vlan);
 
+char *qemuDeviceDriveHostAlias(virDomainDiskDefPtr disk,
+                               unsigned long long qemudCmdFlags);
+
 /* Both legacy & current support */
 char *qemuBuildDriveStr(virDomainDiskDefPtr disk,
                         int bootable,
@@ -310,6 +313,12 @@ int qemuAssignDeviceNetAlias(virDomainDefPtr def, virDomainNetDefPtr net, int id
 int qemuAssignDeviceDiskAlias(virDomainDiskDefPtr def, unsigned long long qemuCmdFlags);
 int qemuAssignDeviceHostdevAlias(virDomainDefPtr def, virDomainHostdevDefPtr net, int idx);
 int qemuAssignDeviceControllerAlias(virDomainControllerDefPtr controller);
+
+int
+qemuParseKeywords(const char *str,
+                  char ***retkeywords,
+                  char ***retvalues,
+                  int allowEmptyValue);
 
 
 #endif /* __QEMUD_CONF_H */

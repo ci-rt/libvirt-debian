@@ -13,9 +13,6 @@
 /* path to kernel profiles */
 #undef APPARMOR_PROFILES_PATH
 
-/* path to bash binary */
-#undef BASH_PATH
-
 /* Define to the number of bits in type 'ptrdiff_t'. */
 #undef BITSIZEOF_PTRDIFF_T
 
@@ -77,9 +74,6 @@
 
 /* Define to 1 if ungetc is broken when used on arbitrary bytes. */
 #undef FUNC_UNGETC_BROKEN
-
-/* path to gawk binary */
-#undef GAWK_PATH
 
 /* Define if gettimeofday clobbers the localtime buffer. */
 #undef GETTIMEOFDAY_CLOBBERS_LOCALTIME
@@ -180,6 +174,9 @@
 /* Define to 1 when the gnulib module setsockopt should be tested. */
 #undef GNULIB_TEST_SETSOCKOPT
 
+/* Define to 1 when the gnulib module sleep should be tested. */
+#undef GNULIB_TEST_SLEEP
+
 /* Define to 1 when the gnulib module snprintf should be tested. */
 #undef GNULIB_TEST_SNPRINTF
 
@@ -213,6 +210,9 @@
 /* Define to 1 when the gnulib module strsep should be tested. */
 #undef GNULIB_TEST_STRSEP
 
+/* Define to 1 when the gnulib module strtok_r should be tested. */
+#undef GNULIB_TEST_STRTOK_R
+
 /* Define to 1 when the gnulib module symlink should be tested. */
 #undef GNULIB_TEST_SYMLINK
 
@@ -222,14 +222,14 @@
 /* Define to 1 when the gnulib module time_r should be tested. */
 #undef GNULIB_TEST_TIME_R
 
+/* Define to 1 when the gnulib module usleep should be tested. */
+#undef GNULIB_TEST_USLEEP
+
 /* Define to 1 when the gnulib module vasprintf should be tested. */
 #undef GNULIB_TEST_VASPRINTF
 
 /* enable GnuTLS 1.0 compatibility macros */
 #undef GNUTLS_1_0_COMPAT
-
-/* path to grep binary */
-#undef GREP_PATH
 
 /* Define to 1 if you have the `alarm' function. */
 #undef HAVE_ALARM
@@ -272,6 +272,10 @@
 /* Define if the GNU dcgettext() function is already present or preinstalled.
    */
 #undef HAVE_DCGETTEXT
+
+/* Define to 1 if you have the declaration of `alarm', and to 0 if you don't.
+   */
+#undef HAVE_DECL_ALARM
 
 /* Define to 1 if you have the declaration of `fflush_unlocked', and to 0 if
    you don't. */
@@ -333,6 +337,10 @@
    don't. */
 #undef HAVE_DECL_PUTC_UNLOCKED
 
+/* Define to 1 if you have the declaration of `sleep', and to 0 if you don't.
+   */
+#undef HAVE_DECL_SLEEP
+
 /* Define to 1 if you have the declaration of `snprintf', and to 0 if you
    don't. */
 #undef HAVE_DECL_SNPRINTF
@@ -357,9 +365,9 @@
    don't. */
 #undef HAVE_DECL_STRNLEN
 
-/* Define to 1 if you have the declaration of `timegm', and to 0 if you don't.
-   */
-#undef HAVE_DECL_TIMEGM
+/* Define to 1 if you have the declaration of `strtok_r', and to 0 if you
+   don't. */
+#undef HAVE_DECL_STRTOK_R
 
 /* Define to 1 if you have the declaration of `_snprintf', and to 0 if you
    don't. */
@@ -517,6 +525,9 @@
 /* Define to 1 if you have the <linux/sockios.h> header file. */
 #undef HAVE_LINUX_SOCKIOS_H
 
+/* Define to 1 if you have the `localtime_r' function. */
+#undef HAVE_LOCALTIME_R
+
 /* Define to 1 if the system has the type `long long int'. */
 #undef HAVE_LONG_LONG_INT
 
@@ -541,6 +552,9 @@
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
+
+/* Define to 1 if you have the `mkstemp' function. */
+#undef HAVE_MKSTEMP
 
 /* Define to 1 if you have the `mmap' function. */
 #undef HAVE_MMAP
@@ -931,6 +945,9 @@
 /* Define to 1 if strncasecmp is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_STRNCASECMP
 
+/* Define to 1 if strncat is declared even after undefining macros. */
+#undef HAVE_RAW_DECL_STRNCAT
+
 /* Define to 1 if strndup is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_STRNDUP
 
@@ -966,6 +983,9 @@
 
 /* Define to 1 if symlinkat is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_SYMLINKAT
+
+/* Define to 1 if tmpfile is declared even after undefining macros. */
+#undef HAVE_RAW_DECL_TMPFILE
 
 /* Define to 1 if ttyname_r is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_TTYNAME_R
@@ -1039,7 +1059,7 @@
 /* Define to 1 if you have the <sched.h> header file. */
 #undef HAVE_SCHED_H
 
-/* whether SELinux is available for security */
+/* whether basic SELinux functionality is available */
 #undef HAVE_SELINUX
 
 /* Define to 1 if you have the `shutdown' function. */
@@ -1054,8 +1074,16 @@
 /* Define to 1 if 'wint_t' is a signed integer type. */
 #undef HAVE_SIGNED_WINT_T
 
+/* Define to 1 if you have the `sleep' function. */
+#undef HAVE_SLEEP
+
 /* Define to 1 if you have the `snprintf' function. */
 #undef HAVE_SNPRINTF
+
+/* Define if the return value of the snprintf function is the number of of
+   bytes (excluding the terminating NUL) that would have been produced if the
+   buffer had been large enough. */
+#undef HAVE_SNPRINTF_RETVAL_C99
 
 /* Define to 1 if stdbool.h conforms to C99. */
 #undef HAVE_STDBOOL_H
@@ -1241,6 +1269,9 @@
 /* Define to 1 if the system has the type `unsigned long long int'. */
 #undef HAVE_UNSIGNED_LONG_LONG_INT
 
+/* Define to 1 if you have the `usleep' function. */
+#undef HAVE_USLEEP
+
 /* Define to 1 if you have the `vasnprintf' function. */
 #undef HAVE_VASNPRINTF
 
@@ -1270,6 +1301,9 @@
 
 /* Define to 1 if you have the <ws2tcpip.h> header file. */
 #undef HAVE_WS2TCPIP_H
+
+/* Define to 1 if you have the `xdr_u_int64_t' function. */
+#undef HAVE_XDR_U_INT64_T
 
 /* Define to 1 if you have the <xen/dom0_ops.h> header file. */
 #undef HAVE_XEN_DOM0_OPS_H
@@ -1310,9 +1344,6 @@
 
 /* Define HOST_NAME_MAX when <limits.h> does not define it. */
 #undef HOST_NAME_MAX
-
-/* path to ip6tables binary */
-#undef IP6TABLES_PATH
 
 /* path to iptables binary */
 #undef IPTABLES_PATH
@@ -1449,6 +1480,9 @@
 	STACK_DIRECTION < 0 => grows toward lower addresses
 	STACK_DIRECTION = 0 => direction of growth unknown */
 #undef STACK_DIRECTION
+
+/* Define to 1 when performing static analysis. */
+#undef STATIC_ANALYSIS
 
 /* Define to 1 if the `S_IS*' macros in <sys/stat.h> do not work properly. */
 #undef STAT_MACROS_BROKEN
@@ -1728,9 +1762,6 @@
 /* Define as a signed type of the same size as size_t. */
 #undef ssize_t
 
-/* Define to rpl_strnlen if the replacement function should be used. */
-#undef strnlen
-
 /* Define to `int' if <sys/types.h> doesn't define. */
 #undef uid_t
 
@@ -1746,3 +1777,6 @@
    is a misnomer outside of parameter lists.  */
 #define _UNUSED_PARAMETER_ _GL_UNUSED
 
+
+/* Define to an unsigned 32-bit type if <sys/types.h> lacks this type. */
+#undef useconds_t

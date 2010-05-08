@@ -59,6 +59,7 @@ UTIL_SOURCES =							\
 		util/hooks.c util/hooks.h			\
 		util/iptables.c util/iptables.h			\
 		util/ebtables.c util/ebtables.h			\
+		util/dnsmasq.c util/dnsmasq.h                   \
 		util/json.c util/json.h				\
 		util/logging.c util/logging.h			\
 		util/macvtap.c util/macvtap.h			\
@@ -67,6 +68,7 @@ UTIL_SOURCES =							\
 		util/processinfo.c util/processinfo.h		\
 		util/hostusb.c util/hostusb.h			\
 		util/network.c util/network.h			\
+		util/interface.c util/interface.h		\
 		util/qparams.c util/qparams.h			\
 		util/stats_linux.c util/stats_linux.h		\
 		util/storage_file.c util/storage_file.h		\
@@ -246,6 +248,7 @@ ESX_DRIVER_SOURCES =						\
 		esx/esx_storage_driver.c esx/esx_storage_driver.h		\
 		esx/esx_device_monitor.c esx/esx_device_monitor.h		\
 		esx/esx_secret_driver.c esx/esx_secret_driver.h		\
+		esx/esx_nwfilter_driver.c esx/esx_nwfilter_driver.h		\
 		esx/esx_util.c esx/esx_util.h			\
 		esx/esx_vi.c esx/esx_vi.h			\
 		esx/esx_vi_methods.c esx/esx_vi_methods.h	\
@@ -253,6 +256,8 @@ ESX_DRIVER_SOURCES =						\
 		esx/esx_vmx.c esx/esx_vmx.h
 
 ESX_DRIVER_GENERATED =							\
+		esx/esx_vi_methods.generated.c				\
+		esx/esx_vi_methods.generated.h				\
 		esx/esx_vi_types.generated.c				\
 		esx/esx_vi_types.generated.h				\
 		esx/esx_vi_types.generated.typedef			\
@@ -882,6 +887,10 @@ if WITH_LIBVIRTD
 USED_SYM_FILES += libvirt_daemon.syms
 endif
 
+if WITH_NWFILTER
+USED_SYM_FILES += libvirt_nwfilter.syms
+endif
+
 EXTRA_DIST += \
   libvirt_public.syms		\
   libvirt_private.syms		\
@@ -889,7 +898,8 @@ EXTRA_DIST += \
   libvirt_bridge.syms		\
   libvirt_linux.syms		\
   libvirt_macvtap.syms		\
-  libvirt_daemon.syms
+  libvirt_daemon.syms		\
+  libvirt_nwfilter.syms
 
 BUILT_SOURCES += libvirt.syms libvirt.def
 
@@ -995,9 +1005,9 @@ virt_aa_helper_LDFLAGS = $(WARN_CFLAGS)
 virt_aa_helper_LDADD =						\
 		$(WARN_CFLAGS)					\
 		$(LIBXML_LIBS)					\
-		@top_srcdir@/src/libvirt_conf.la		\
-		@top_srcdir@/src/libvirt_util.la		\
-		@top_srcdir@/gnulib/lib/libgnu.la
+		libvirt_conf.la					\
+		libvirt_util.la					\
+		../gnulib/lib/libgnu.la
 virt_aa_helper_CFLAGS =						\
 		-I@top_srcdir@/src/conf				\
 		-I@top_srcdir@/src/security
@@ -1025,6 +1035,7 @@ if WITH_UML
 endif
 if WITH_NETWORK
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/network"
+	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/dnsmasq"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/run/libvirt/network"
 	$(MKDIR_P) "$(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart"
 	$(INSTALL_DATA) $(srcdir)/network/default.xml \

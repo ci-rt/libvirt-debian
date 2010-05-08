@@ -733,6 +733,7 @@ void virDomainDefFree(virDomainDefPtr def)
 
 #ifndef PROXY
 
+static void virDomainSnapshotObjListDeinit(virDomainSnapshotObjListPtr snapshots);
 static void virDomainObjFree(virDomainObjPtr dom)
 {
     if (!dom)
@@ -1078,28 +1079,28 @@ virDomainDevicePCIAddressParseXML(xmlNodePtr node,
     function = virXMLPropString(node, "function");
 
     if (domain &&
-        virStrToLong_ui(domain, NULL, 16, &addr->domain) < 0) {
+        virStrToLong_ui(domain, NULL, 0, &addr->domain) < 0) {
         virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                              _("Cannot parse <address> 'domain' attribute"));
         goto cleanup;
     }
 
     if (bus &&
-        virStrToLong_ui(bus, NULL, 16, &addr->bus) < 0) {
+        virStrToLong_ui(bus, NULL, 0, &addr->bus) < 0) {
         virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                              _("Cannot parse <address> 'bus' attribute"));
         goto cleanup;
     }
 
     if (slot &&
-        virStrToLong_ui(slot, NULL, 16, &addr->slot) < 0) {
+        virStrToLong_ui(slot, NULL, 0, &addr->slot) < 0) {
         virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                              _("Cannot parse <address> 'slot' attribute"));
         goto cleanup;
     }
 
     if (function &&
-        virStrToLong_ui(function, NULL, 16, &addr->function) < 0) {
+        virStrToLong_ui(function, NULL, 0, &addr->function) < 0) {
         virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                              _("Cannot parse <address> 'function' attribute"));
         goto cleanup;
@@ -4957,7 +4958,7 @@ virDomainDiskDefFormat(virBufferPtr buf,
         virBufferEscapeString(buf, "      <serial>%s</serial>\n",
                               def->serial);
     if (def->encryption != NULL &&
-        virStorageEncryptionFormat(buf, def->encryption) < 0)
+        virStorageEncryptionFormat(buf, def->encryption, 6) < 0)
         return -1;
 
     if (virDomainDeviceInfoFormat(buf, &def->info, flags) < 0)
@@ -6605,8 +6606,7 @@ virDomainSnapshotDefPtr virDomainSnapshotDefParseString(const char *xmlStr,
     }
 
     if (!xmlStrEqual(root->name, BAD_CAST "domainsnapshot")) {
-        virDomainReportError(VIR_ERR_INTERNAL_ERROR,
-                              "%s", _("incorrect root element"));
+        virDomainReportError(VIR_ERR_XML_ERROR, "%s", _("domainsnapshot"));
         goto cleanup;
     }
 
@@ -6746,6 +6746,7 @@ static void virDomainSnapshotObjFree(virDomainSnapshotObjPtr snapshot)
     VIR_DEBUG("obj=%p", snapshot);
 
     virDomainSnapshotDefFree(snapshot->def);
+    VIR_FREE(snapshot);
 }
 
 int virDomainSnapshotObjUnref(virDomainSnapshotObjPtr snapshot)
@@ -6803,7 +6804,7 @@ static void virDomainSnapshotObjListDeallocator(void *payload,
     virDomainSnapshotObjUnref(obj);
 }
 
-void virDomainSnapshotObjListDeinit(virDomainSnapshotObjListPtr snapshots)
+static void virDomainSnapshotObjListDeinit(virDomainSnapshotObjListPtr snapshots)
 {
     if (snapshots->objs)
         virHashFree(snapshots->objs, virDomainSnapshotObjListDeallocator);

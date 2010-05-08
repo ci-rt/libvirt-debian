@@ -46,6 +46,9 @@ int qemuMonitorJSONGetCPUInfo(qemuMonitorPtr mon,
                               int **pids);
 int qemuMonitorJSONGetBalloonInfo(qemuMonitorPtr mon,
                                   unsigned long *currmem);
+int qemuMonitorJSONGetMemoryStats(qemuMonitorPtr mon,
+                                  virDomainMemoryStatPtr stats,
+                                  unsigned int nr_stats);
 int qemuMonitorJSONGetBlockStatsInfo(qemuMonitorPtr mon,
                                      const char *devname,
                                      long long *rd_req,
@@ -97,8 +100,13 @@ int qemuMonitorJSONMigrateToHost(qemuMonitorPtr mon,
 
 int qemuMonitorJSONMigrateToCommand(qemuMonitorPtr mon,
                                     int background,
-                                    const char * const *argv,
-                                    const char *target);
+                                    const char * const *argv);
+
+int qemuMonitorJSONMigrateToFile(qemuMonitorPtr mon,
+                                 int background,
+                                 const char * const *argv,
+                                 const char *target,
+                                 unsigned long long offset);
 
 int qemuMonitorJSONMigrateToUnix(qemuMonitorPtr mon,
                                  int background,
@@ -166,7 +174,7 @@ int qemuMonitorJSONAddDevice(qemuMonitorPtr mon,
                              const char *devicestr);
 
 int qemuMonitorJSONDelDevice(qemuMonitorPtr mon,
-                             const char *devicestr);
+                             const char *devalias);
 
 int qemuMonitorJSONAddDrive(qemuMonitorPtr mon,
                             const char *drivestr);
