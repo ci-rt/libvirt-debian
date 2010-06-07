@@ -1,3 +1,16 @@
+libvirt (0.8.1-2) unstable; urgency=low
+
+  * [41aea79] Drop patchsys-quilt since this package is 3.0 (quilt) now.
+    (Closes: #577919)
+  * [978e3c9] libvirt-bin.init: export PATH. (Closes: #584333)
+  * [e4f0869] virt-xml-validate needs xmllint from libxml2-utils.
+    (Closes: #584869)
+  * [bba6d72] New patch 0008-Fix-leaks-in-udev-device-add-remove.patch:
+    Fix leaks in udev device add/remove. (Closes: #582965) - thanks to
+    Nigel Jones for forwarding this
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 07 Jun 2010 18:23:47 +0200
+
 libvirt (0.8.1-1) unstable; urgency=low
 
   * [647cbd6] Imported Upstream version 0.8.1
