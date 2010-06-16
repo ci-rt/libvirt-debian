@@ -9,7 +9,8 @@ Build-Depends: cdbs (>= 0.4.43), debhelper (>= 5.0.38), libxml2-dev, libncurses5
  libpciaccess-dev,
  module-init-tools,
  libpolkit-dbus-dev,
- libselinux1-dev
+ libselinux1-dev,
+ libcap-ng-dev
 XS-Python-Version: current
 Vcs-Git: git://git.debian.org/git/pkg-libvirt/libvirt.git
 Vcs-Browser: http://git.debian.org/?p=pkg-libvirt/libvirt.git
