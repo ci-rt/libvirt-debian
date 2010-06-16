@@ -1,3 +1,110 @@
+libvirt (0.8.1-2) unstable; urgency=low
+
+  * [41aea79] Drop patchsys-quilt since this package is 3.0 (quilt) now.
+    (Closes: #577919)
+  * [978e3c9] libvirt-bin.init: export PATH. (Closes: #584333)
+  * [e4f0869] virt-xml-validate needs xmllint from libxml2-utils.
+    (Closes: #584869)
+  * [bba6d72] New patch 0008-Fix-leaks-in-udev-device-add-remove.patch:
+    Fix leaks in udev device add/remove. (Closes: #582965) - thanks to
+    Nigel Jones for forwarding this
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 07 Jun 2010 18:23:47 +0200
+
+libvirt (0.8.1-1) unstable; urgency=low
+
+  * [647cbd6] Imported Upstream version 0.8.1
+        * fixes spurious syslog messages (Closes: #565275)
+        * sysfs USB class parsing (Closes: #579208)
+        * virsh honors $VISUAL (Closes: #574415)
+  * [fecd1b9] Update libvirt symbols to 0.8.1
+  * [3e58e0b] Drop patches merged upstream:
+        * 0007-nwfilter-Don-t-crash-if-driverState-NULL.patch
+        * 0008-Ignore-empty-type-statement-in-disk-element.patch
+  * [561ab2e] New patch:
+        * 0007-patch-qemuMonitorTextGetMigrationStatus-to-intercept.patch:
+          make qemuMonitorTextGetMigrationStatus to intercept unknown
+          command 'info migrate' (Closes: #574272) - thanks to Andreas Bießmann
+  * [aeda8ea] Enanble macvtap support
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 09 May 2010 14:25:00 +0200
+
+libvirt (0.8.0-2) unstable; urgency=low
+
+  * [70fbcb6] New patch 0007-nwfilter-Don-t-crash-if-driverState- NULL.patch
+    nwfilter: Don't crash if driverState == NULL (Closes: #577728)
+  * [d7d1abd] New patch 0008-Ignore-empty-type-statement-in-disk-
+    element.patch Ignore empty type statement in disk element
+    (Closes: #578347)
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 19 Apr 2010 18:11:57 +0200
+
+libvirt (0.8.0-1) unstable; urgency=low
+
+  * Imported Upstream version 0.8.0
+  * Drop patches.
+  * Update libvirt0 symbols.
+  * Switch to new source format 3.0 (quilt).
+
+ -- Laurent Léonard <laurent@open-minds.org>  Tue, 13 Apr 2010 20:50:29 +0200
+
+libvirt (0.7.7-4) unstable; urgency=low
+
+  [ Guido Günther ]
+  * [cf4919c] Recommend either qemu-kvm or qemu
+
+  [ Laurent Léonard ]
+  * [1b12f02] Change libparted1.8-dev build dependency to libparted0- dev.
+    (Closes: #574906)
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 22 Mar 2010 20:50:30 +0100
+
+libvirt (0.7.7-3) unstable; urgency=low
+
+  * The "fix all those crashes" release
+  * [f74e13a] Explicitly disable hal (Closes: #574177)
+  * [21ef92b] New patch 0009-security-Set-permissions-for-kernel- initrd.patch
+    security: Set permissions for kernel/initrd (Closes: #574241) - thanks to
+    Cole Robinson
+  * [b69d3cc] Revert "Enable NUMA support" since it breaks the python
+    bindings.
+  * [5f2ca4a] New patch 0010-Don-t-crash-without-a-security-driver.patch Don't
+    crash without a security driver (Closes: #574359)
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 17 Mar 2010 21:05:35 +0100
+
+libvirt (0.7.7-2) unstable; urgency=low
+
+  [ Guido Günther ]
+  * [b350683] Enable parallel build
+  * [b2a6aab] Enable NUMA support
+  * [13274cf] New patch 0007-Work-around-broken-linux-socket.h.patch
+    Work around broken linux/socket.h
+
+  [ Laurent Léonard ]
+  * [3c12caf] qemu: Fix USB by product with security enabled.
+
+ -- Laurent Léonard <laurent@open-minds.org>  Tue, 16 Mar 2010 00:47:34 +0100
+
+libvirt (0.7.7-1) unstable; urgency=low
+
+  * [f944460] Imported Upstream version 0.7.7
+  * [bd457cc] Redo patches.
+  * [098d1d3] Update libvirt0 symbols.
+
+ -- Laurent Léonard <laurent@open-minds.org>  Fri, 05 Mar 2010 17:49:17 +0100
+
+libvirt (0.7.6-2) unstable; urgency=low
+
+  * [72790fc] Drop hal dependency We're using udev for device enumeration.
+  * [ce225c4][11cc6e9] New patch
+    0006-Don-t-drop-caps-when-exec-ing-qemu.patch: Don't drop caps when
+    exec'ing qemu. Instead of disabling libcap-ng better exclude this one exec
+    so we get the additional security for the rest of the calls. Makes
+    interface type="network" work again. (Closes: #565767)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 14 Feb 2010 18:22:30 +0100
+
 libvirt (0.7.6-1~bpo50+1) lenny-backports; urgency=low
 
   * Rebuild for lenny-backports.

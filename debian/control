@@ -3,7 +3,8 @@ Section: libs
 Priority: optional
 Maintainer: Debian Libvirt Maintainers <pkg-libvirt-maintainers@lists.alioth.debian.org>
 Uploaders: Guido Günther <agx@sigxcpu.org>, Laurent Léonard <laurent@open-minds.org>
-Build-Depends: cdbs (>= 0.4.43), debhelper (>= 5.0.38), libxml2-dev, libncurses5-dev, libreadline5-dev, zlib1g-dev, libgnutls-dev, python-dev (>= 2.3.5-11), python-central (>= 0.5.6), quilt, libavahi-client-dev, libsasl2-dev, libxen-dev [i386 amd64], lvm2, qemu [amd64 i386 powerpc sparc], open-iscsi, libparted1.8-dev, libdevmapper-dev, uuid-dev,
+Build-Depends: cdbs (>= 0.4.43), debhelper (>= 5.0.38), libxml2-dev, libncurses5-dev, libreadline5-dev, zlib1g-dev, libgnutls-dev, python-dev (>= 2.3.5-11), python-central (>= 0.5.6),
+ libavahi-client-dev, libsasl2-dev, libxen-dev [i386 amd64], lvm2, qemu [amd64 i386 powerpc sparc], open-iscsi, libparted1.8-dev, libdevmapper-dev, uuid-dev,
  libhal-dev, 
  libpciaccess-dev,
  module-init-tools,
@@ -18,11 +19,11 @@ DM-Upload-Allowed: yes
 
 Package: libvirt-bin
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, adduser, libvirt0 (= ${binary:Version}), logrotate,
- hal
-Enhances: qemu, kvm, xen
+Depends: ${shlibs:Depends}, ${misc:Depends}, adduser, libvirt0 (= ${binary:Version}), logrotate
+Enhances: qemu, qemu-kvm, xen
 Section: admin
-Recommends: netcat-openbsd, bridge-utils, dnsmasq-base (>= 2.46-1), iptables, qemu (>= 0.9.1)
+Recommends: netcat-openbsd, bridge-utils, dnsmasq-base (>= 2.46-1), iptables, qemu-kvm | qemu (>= 0.9.1),
+ libxml2-utils
 Suggests: policykit-1
 Description: the programs for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities

@@ -12,9 +12,8 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include <inttypes.h>
-#ifdef HAVE_MNTENT_H
-#include <mntent.h>
+#if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
+# include <mntent.h>
 #endif
 #include <fcntl.h>
 #include <string.h>
@@ -70,7 +69,7 @@ void virCgroupFree(virCgroupPtr *group)
     VIR_FREE(*group);
 }
 
-#ifdef HAVE_MNTENT_H
+#if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
 /*
  * Process /proc/mounts figuring out what controllers are
  * mounted and where
@@ -183,6 +182,7 @@ static int virCgroupDetectPlacement(virCgroupPtr group)
     return 0;
 
 no_memory:
+    fclose(mapping);
     return -ENOMEM;
 
 }
@@ -373,7 +373,7 @@ static int virCgroupGetValueI64(virCgroupPtr group,
     if (rc != 0)
         goto out;
 
-    if (sscanf(strval, "%" SCNi64, value) != 1)
+    if (virStrToLong_ll(strval, NULL, 10, value) < 0)
         rc = -EINVAL;
 out:
     VIR_FREE(strval);
@@ -403,7 +403,7 @@ out:
 }
 
 
-#ifdef HAVE_MNTENT_H
+#if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
 static int virCgroupCpuSetInherit(virCgroupPtr parent, virCgroupPtr group)
 {
     int i;
@@ -432,6 +432,7 @@ static int virCgroupCpuSetInherit(virCgroupPtr parent, virCgroupPtr group)
                                   VIR_CGROUP_CONTROLLER_CPUSET,
                                   inherit_values[i],
                                   value);
+        VIR_FREE(value);
 
         if (rc != 0) {
             VIR_ERROR("Failed to set %s %d", inherit_values[i], rc);
@@ -517,7 +518,8 @@ err:
 }
 
 static int virCgroupAppRoot(int privileged,
-                            virCgroupPtr *group)
+                            virCgroupPtr *group,
+                            int create)
 {
     virCgroupPtr rootgrp = NULL;
     int rc;
@@ -531,7 +533,7 @@ static int virCgroupAppRoot(int privileged,
     } else {
         char *rootname;
         char *username;
-        username = virGetUserName(NULL, getuid());
+        username = virGetUserName(getuid());
         if (!username) {
             rc = -ENOMEM;
             goto cleanup;
@@ -549,7 +551,7 @@ static int virCgroupAppRoot(int privileged,
     if (rc != 0)
         goto cleanup;
 
-    rc = virCgroupMakeGroup(rootgrp, *group, 1);
+    rc = virCgroupMakeGroup(rootgrp, *group, create);
 
 cleanup:
     virCgroupFree(&rootgrp);
@@ -626,7 +628,7 @@ int virCgroupAddTask(virCgroupPtr group, pid_t pid)
  *
  * Returns 0 on success
  */
-#ifdef HAVE_MNTENT_H
+#if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
 int virCgroupForDriver(const char *name,
                        virCgroupPtr *group,
                        int privileged,
@@ -636,7 +638,7 @@ int virCgroupForDriver(const char *name,
     char *path = NULL;
     virCgroupPtr rootgrp = NULL;
 
-    rc = virCgroupAppRoot(privileged, &rootgrp);
+    rc = virCgroupAppRoot(privileged, &rootgrp, create);
     if (rc != 0)
         goto out;
 
@@ -680,7 +682,7 @@ int virCgroupForDriver(const char *name ATTRIBUTE_UNUSED,
  *
  * Returns 0 on success
  */
-#ifdef HAVE_MNTENT_H
+#if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
 int virCgroupForDomain(virCgroupPtr driver,
                        const char *name,
                        virCgroupPtr *group,
@@ -688,6 +690,9 @@ int virCgroupForDomain(virCgroupPtr driver,
 {
     int rc;
     char *path;
+
+    if (driver == NULL)
+        return -EINVAL;
 
     if (virAsprintf(&path, "%s/%s", driver->path, name) < 0)
         return -ENOMEM;

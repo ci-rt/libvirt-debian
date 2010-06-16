@@ -1,3 +1,5 @@
+# -*- buffer-read-only: t -*- vi: set ro:
+# DO NOT EDIT! GENERATED AUTOMATICALLY!
 # intmax_t.m4 serial 7
 dnl Copyright (C) 1997-2004, 2006-2007, 2009-2010 Free Software Foundation,
 dnl Inc.

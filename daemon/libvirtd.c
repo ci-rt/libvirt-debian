@@ -62,61 +62,65 @@
 #include "event.h"
 #include "memory.h"
 #include "stream.h"
+#include "hooks.h"
 #ifdef HAVE_AVAHI
-#include "mdns.h"
+# include "mdns.h"
 #endif
 
 #ifdef WITH_DRIVER_MODULES
-#include "driver.h"
+# include "driver.h"
 #else
-#ifdef WITH_QEMU
-#include "qemu/qemu_driver.h"
-#endif
-#ifdef WITH_LXC
-#include "lxc/lxc_driver.h"
-#endif
-#ifdef WITH_UML
-#include "uml/uml_driver.h"
-#endif
-#ifdef WITH_ONE
-#include "opennebula/one_driver.h"
-#endif
-#ifdef WITH_NETWORK
-#include "network/bridge_driver.h"
-#endif
-#ifdef WITH_NETCF
-#include "interface/netcf_driver.h"
-#endif
-#ifdef WITH_STORAGE_DIR
-#include "storage/storage_driver.h"
-#endif
-#ifdef WITH_NODE_DEVICES
-#include "node_device/node_device_driver.h"
-#endif
-#ifdef WITH_SECRETS
-#include "secret/secret_driver.h"
-#endif
+# ifdef WITH_QEMU
+#  include "qemu/qemu_driver.h"
+# endif
+# ifdef WITH_LXC
+#  include "lxc/lxc_driver.h"
+# endif
+# ifdef WITH_UML
+#  include "uml/uml_driver.h"
+# endif
+# ifdef WITH_ONE
+#  include "opennebula/one_driver.h"
+# endif
+# ifdef WITH_NETWORK
+#  include "network/bridge_driver.h"
+# endif
+# ifdef WITH_NETCF
+#  include "interface/netcf_driver.h"
+# endif
+# ifdef WITH_STORAGE_DIR
+#  include "storage/storage_driver.h"
+# endif
+# ifdef WITH_NODE_DEVICES
+#  include "node_device/node_device_driver.h"
+# endif
+# ifdef WITH_SECRETS
+#  include "secret/secret_driver.h"
+# endif
+# ifdef WITH_NWFILTER
+#  include "nwfilter/nwfilter_driver.h"
+# endif
 #endif
 
 
 #ifdef __sun
-#include <ucred.h>
-#include <priv.h>
+# include <ucred.h>
+# include <priv.h>
 
-#ifndef PRIV_VIRT_MANAGE
-#define PRIV_VIRT_MANAGE ((const char *)"virt_manage")
-#endif
+# ifndef PRIV_VIRT_MANAGE
+#  define PRIV_VIRT_MANAGE ((const char *)"virt_manage")
+# endif
 
-#ifndef PRIV_XVM_CONTROL
-#define PRIV_XVM_CONTROL ((const char *)"xvm_control")
-#endif
+# ifndef PRIV_XVM_CONTROL
+#  define PRIV_XVM_CONTROL ((const char *)"xvm_control")
+# endif
 
-#define PU_RESETGROUPS          0x0001  /* Remove supplemental groups */
-#define PU_CLEARLIMITSET        0x0008  /* L=0 */
+# define PU_RESETGROUPS          0x0001  /* Remove supplemental groups */
+# define PU_CLEARLIMITSET        0x0008  /* L=0 */
 
 extern int __init_daemon_priv(int, uid_t, gid_t, ...);
 
-#define SYSTEM_UID 60
+# define SYSTEM_UID 60
 
 static gid_t unix_sock_gid = 60; /* Not used */
 static int unix_sock_rw_mask = 0666;
@@ -196,6 +200,7 @@ enum {
     VIR_DAEMON_ERR_PRIVS,
     VIR_DAEMON_ERR_NETWORK,
     VIR_DAEMON_ERR_CONFIG,
+    VIR_DAEMON_ERR_HOOKS,
 
     VIR_DAEMON_ERR_LAST
 };
@@ -209,7 +214,8 @@ VIR_ENUM_IMPL(virDaemonErr, VIR_DAEMON_ERR_LAST,
               "Unable to setup signal handlers",
               "Unable to drop privileges",
               "Unable to initialize network sockets",
-              "Unable to load configuration file")
+              "Unable to load configuration file",
+              "Unable to look for hook scripts")
 
 static void sig_handler(int sig, siginfo_t * siginfo,
                         void* context ATTRIBUTE_UNUSED) {
@@ -375,8 +381,11 @@ qemudDispatchSignalEvent(int watch ATTRIBUTE_UNUSED,
     switch (siginfo.si_signo) {
     case SIGHUP:
         VIR_INFO0(_("Reloading configuration on SIGHUP"));
+        virHookCall(VIR_HOOK_DRIVER_DAEMON, "-",
+                    VIR_HOOK_DAEMON_OP_RELOAD, SIGHUP, "SIGHUP", NULL);
         if (virStateReload() < 0)
             VIR_WARN0(_("Error while reloading drivers"));
+
         break;
 
     case SIGINT:
@@ -474,7 +483,10 @@ static int daemonForkIntoBackground(void) {
                 goto again;
 
             if (ret == 1 && status != 0) {
-                fprintf(stderr, "error: %s\n", virDaemonErrTypeToString(status));
+                fprintf(stderr,
+                        "error: %s. Check /var/log/messages or run without "
+                        "--daemon for more info.\n",
+                        virDaemonErrTypeToString(status));
             }
             _exit(ret == 1 && status == 0 ? 0 : 1);
         }
@@ -557,8 +569,10 @@ static int qemudListenUnix(struct qemud_server *server,
 
     oldgrp = getgid();
     oldmask = umask(readonly ? ~unix_sock_ro_mask : ~unix_sock_rw_mask);
-    if (server->privileged)
-        setgid(unix_sock_gid);
+    if (server->privileged && setgid(unix_sock_gid)) {
+        VIR_ERROR(_("Failed to set group ID to %d"), unix_sock_gid);
+        goto cleanup;
+    }
 
     if (bind(sock->fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
         VIR_ERROR(_("Failed to bind socket to '%s': %s"),
@@ -566,8 +580,10 @@ static int qemudListenUnix(struct qemud_server *server,
         goto cleanup;
     }
     umask(oldmask);
-    if (server->privileged)
-        setgid(oldgrp);
+    if (server->privileged && setgid(oldgrp)) {
+        VIR_ERROR(_("Failed to restore group ID to %d"), oldgrp);
+        goto cleanup;
+    }
 
     if (listen(sock->fd, 30) < 0) {
         VIR_ERROR(_("Failed to listen for connections on '%s': %s"),
@@ -747,7 +763,7 @@ static int qemudInitPaths(struct qemud_server *server,
         if (server->privileged) {
             dir_prefix = strdup (LOCAL_STATE_DIR);
             if (dir_prefix == NULL) {
-                virReportOOMError(NULL);
+                virReportOOMError();
                 goto cleanup;
             }
             if (snprintf (sock_dir, maxlen, "%s/run/libvirt",
@@ -755,7 +771,7 @@ static int qemudInitPaths(struct qemud_server *server,
                 goto snprintf_error;
         } else {
             uid_t uid = geteuid();
-            dir_prefix = virGetUserDirectory(NULL, uid);
+            dir_prefix = virGetUserDirectory(uid);
             if (dir_prefix == NULL) {
                 /* Do not diagnose here; virGetUserDirectory does that.  */
                 goto snprintf_error;
@@ -768,7 +784,7 @@ static int qemudInitPaths(struct qemud_server *server,
 
     sock_dir_prefix = strdup (sock_dir);
     if (!sock_dir_prefix) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         goto cleanup;
     }
 
@@ -788,10 +804,10 @@ static int qemudInitPaths(struct qemud_server *server,
 
     if (server->privileged) {
         if (!(server->logDir = strdup (LOCAL_STATE_DIR "/log/libvirt")))
-            virReportOOMError(NULL);
+            virReportOOMError();
     } else {
         if (virAsprintf(&server->logDir, "%s/.libvirt/log", dir_prefix) < 0)
-            virReportOOMError(NULL);
+            virReportOOMError();
     }
 
     if (server->logDir == NULL)
@@ -869,34 +885,38 @@ static struct qemud_server *qemudInitialize(void) {
     virDriverLoadModule("lxc");
     virDriverLoadModule("uml");
     virDriverLoadModule("one");
+    virDriverLoadModule("nwfilter");
 #else
-#ifdef WITH_NETWORK
+# ifdef WITH_NETWORK
     networkRegister();
-#endif
-#ifdef WITH_NETCF
+# endif
+# ifdef WITH_NETCF
     interfaceRegister();
-#endif
-#ifdef WITH_STORAGE_DIR
+# endif
+# ifdef WITH_STORAGE_DIR
     storageRegister();
-#endif
-#if defined(WITH_NODE_DEVICES)
+# endif
+# if defined(WITH_NODE_DEVICES)
     nodedevRegister();
-#endif
-#ifdef WITH_SECRETS
+# endif
+# ifdef WITH_SECRETS
     secretRegister();
-#endif
-#ifdef WITH_QEMU
+# endif
+# ifdef WITH_NWFILTER
+    nwfilterRegister();
+# endif
+# ifdef WITH_QEMU
     qemuRegister();
-#endif
-#ifdef WITH_LXC
+# endif
+# ifdef WITH_LXC
     lxcRegister();
-#endif
-#ifdef WITH_UML
+# endif
+# ifdef WITH_UML
     umlRegister();
-#endif
-#ifdef WITH_ONE
+# endif
+# ifdef WITH_ONE
     oneRegister();
-#endif
+# endif
 #endif
 
     virEventRegisterImpl(virEventAddHandleImpl,
@@ -978,22 +998,34 @@ static int qemudNetworkInit(struct qemud_server *server) {
         struct libvirtd_mdns_group *group;
         struct qemud_socket *sock;
         int port = 0;
+        int ret;
 
         server->mdns = libvirtd_mdns_new();
 
         if (!mdns_name) {
-            char groupname[64], *localhost, *tmp;
-            /* Extract the host part of the potentially FQDN */
+            char *groupname, *localhost, *tmp;
+
             localhost = virGetHostname(NULL);
             if (localhost == NULL)
-                goto cleanup;
-
-            if ((tmp = strchr(localhost, '.')))
-                *tmp = '\0';
-            snprintf(groupname, sizeof(groupname)-1, "Virtualization Host %s", localhost);
-            groupname[sizeof(groupname)-1] = '\0';
-            group = libvirtd_mdns_add_group(server->mdns, groupname);
+                /* we couldn't resolve the hostname; assume that we are
+                 * running in disconnected operation, and report a less
+                 * useful Avahi string
+                 */
+                ret = virAsprintf(&groupname, "Virtualization Host");
+            else {
+                /* Extract the host part of the potentially FQDN */
+                if ((tmp = strchr(localhost, '.')))
+                    *tmp = '\0';
+                ret = virAsprintf(&groupname, "Virtualization Host %s",
+                                  localhost);
+            }
             VIR_FREE(localhost);
+            if (ret < 0) {
+                virReportOOMError();
+                goto cleanup;
+            }
+            group = libvirtd_mdns_add_group(server->mdns, groupname);
+            VIR_FREE(groupname);
         } else {
             group = libvirtd_mdns_add_group(server->mdns, mdns_name);
         }
@@ -1240,7 +1272,7 @@ remoteCheckAccess (struct qemud_client *client)
 
 #if HAVE_POLKIT
 int qemudGetSocketIdentity(int fd, uid_t *uid, pid_t *pid) {
-#ifdef SO_PEERCRED
+# ifdef SO_PEERCRED
     struct ucred cr;
     unsigned int cr_len = sizeof (cr);
 
@@ -1253,10 +1285,10 @@ int qemudGetSocketIdentity(int fd, uid_t *uid, pid_t *pid) {
 
     *pid = cr.pid;
     *uid = cr.uid;
-#else
+# else
     /* XXX Many more OS support UNIX socket credentials we could port to. See dbus ....*/
-#error "UNIX socket credentials not supported/implemented on this platform yet..."
-#endif
+#  error "UNIX socket credentials not supported/implemented on this platform yet..."
+# endif
     return 0;
 }
 #endif
@@ -1268,6 +1300,7 @@ static int qemudDispatchServer(struct qemud_server *server, struct qemud_socket 
     socklen_t addrlen = (socklen_t) (sizeof addr);
     struct qemud_client *client;
     int no_slow_start = 1;
+    int i;
 
     if ((fd = accept(sock->fd, (struct sockaddr *)&addr, &addrlen)) < 0) {
         char ebuf[1024];
@@ -1339,6 +1372,10 @@ static int qemudDispatchServer(struct qemud_server *server, struct qemud_socket 
     memcpy (&client->addr, &addr, sizeof addr);
     client->addrlen = addrlen;
 
+    for (i = 0 ; i < VIR_DOMAIN_EVENT_ID_LAST ; i++) {
+        client->domainEventCallbackID[i] = -1;
+    }
+
     /* Prepare one for packet receive */
     if (VIR_ALLOC(client->rx) < 0)
         goto cleanup;
@@ -1408,7 +1445,6 @@ static int qemudDispatchServer(struct qemud_server *server, struct qemud_socket 
 
     if (server->nclients > server->nactiveworkers &&
         server->nactiveworkers < server->nworkers) {
-        int i;
         for (i = 0 ; i < server->nworkers ; i++) {
             if (!server->workers[i].hasThread) {
                 if (qemudStartWorker(server, &server->workers[i]) < 0)
@@ -1447,9 +1483,17 @@ void qemudDispatchClientFailure(struct qemud_client *client) {
     }
 
     /* Deregister event delivery callback */
-    if (client->conn && client->domain_events_registered) {
-        DEBUG0("Deregistering to relay remote events");
-        virConnectDomainEventDeregister(client->conn, remoteRelayDomainEvent);
+    if (client->conn) {
+        int i;
+
+        for (i = 0 ; i < VIR_DOMAIN_EVENT_ID_LAST ; i++) {
+            if (client->domainEventCallbackID[i] != -1) {
+                DEBUG("Deregistering to relay remote events %d", i);
+                virConnectDomainEventDeregisterAny(client->conn,
+                                                   client->domainEventCallbackID[i]);
+            }
+            client->domainEventCallbackID[i] = -1;
+        }
     }
 
 #if HAVE_SASL
@@ -1495,16 +1539,15 @@ static void *qemudWorker(void *data)
         struct qemud_client_message *msg;
 
         virMutexLock(&server->lock);
-        while (((client = qemudPendingJob(server)) == NULL) &&
-               !worker->quitRequest) {
-            if (virCondWait(&server->job, &server->lock) < 0) {
+        while ((client = qemudPendingJob(server)) == NULL) {
+            if (worker->quitRequest ||
+                virCondWait(&server->job, &server->lock) < 0) {
                 virMutexUnlock(&server->lock);
                 return NULL;
             }
         }
         if (worker->quitRequest) {
-            if (client)
-                virMutexUnlock(&client->lock);
+            virMutexUnlock(&client->lock);
             virMutexUnlock(&server->lock);
             return NULL;
         }
@@ -2277,7 +2320,7 @@ static void *qemudRunLoop(void *opaque) {
         virMutexUnlock(&server->lock);
         if (qemudOneLoop() < 0) {
             virMutexLock(&server->lock);
-            DEBUG0("Loop iteration error, exiting\n");
+            DEBUG0("Loop iteration error, exiting");
             break;
         }
         virMutexLock(&server->lock);
@@ -2451,7 +2494,7 @@ remoteConfigGetStringList(virConfPtr conf, const char *key, char ***list_arg,
         for (i = 0, pp = p->list; pp; ++i, pp = pp->next) {
             if (pp->type != VIR_CONF_STRING) {
                 VIR_ERROR(_("remoteReadConfigFile: %s: %s:"
-                            " must be a string or list of strings\n"),
+                            " must be a string or list of strings"),
                           filename, key);
                 VIR_FREE(list);
                 return -1;
@@ -2474,7 +2517,7 @@ remoteConfigGetStringList(virConfPtr conf, const char *key, char ***list_arg,
 
     default:
         VIR_ERROR(_("remoteReadConfigFile: %s: %s:"
-                    " must be a string or list of strings\n"),
+                    " must be a string or list of strings"),
                   filename, key);
         return -1;
     }
@@ -2490,7 +2533,7 @@ checkType (virConfValuePtr p, const char *filename,
 {
     if (p->type != required_type) {
         VIR_ERROR(_("remoteReadConfigFile: %s: %s: invalid type:"
-                    " got %s; expected %s\n"), filename, key,
+                    " got %s; expected %s"), filename, key,
                   virConfTypeName (p->type),
                   virConfTypeName (required_type));
         return -1;
@@ -2852,7 +2895,7 @@ qemudSetupPrivs (void)
     return 0;
 }
 #else
-#define qemudSetupPrivs() 0
+# define qemudSetupPrivs() 0
 #endif
 
 
@@ -3118,8 +3161,22 @@ int main(int argc, char **argv) {
         goto error;
     }
 
+    /* setup the hooks if any */
+    if (virHookInitialize() < 0) {
+        ret = VIR_DAEMON_ERR_HOOKS;
+        goto error;
+    }
+
     /* Disable error func, now logging is setup */
     virSetErrorFunc(NULL, virshErrorHandler);
+
+    /*
+     * Call the daemon startup hook
+     * TODO: should we abort the daemon startup if the script returned
+     *       an error ?
+     */
+    virHookCall(VIR_HOOK_DRIVER_DAEMON, "-", VIR_HOOK_DAEMON_OP_START,
+                0, "start", NULL);
 
     if (qemudNetworkInit(server) < 0) {
         ret = VIR_DAEMON_ERR_NETWORK;
@@ -3180,6 +3237,9 @@ shutdown:
         virMutexUnlock(&server->lock);
     }
     pthread_join(server->eventThread, NULL);
+
+    virHookCall(VIR_HOOK_DRIVER_DAEMON, "-", VIR_HOOK_DAEMON_OP_SHUTDOWN,
+                0, "shutdown", NULL);
 
 error:
     if (statuswrite != -1) {

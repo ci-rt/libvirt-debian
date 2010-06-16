@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Print a message describing error code.
    Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
    Written by Bruno Haible and Simon Josefsson.

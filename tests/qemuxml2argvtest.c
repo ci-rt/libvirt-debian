@@ -10,21 +10,22 @@
 
 #ifdef WITH_QEMU
 
-#include "internal.h"
-#include "testutils.h"
-#include "qemu/qemu_conf.h"
+# include "internal.h"
+# include "testutils.h"
+# include "qemu/qemu_conf.h"
+# include "datatypes.h"
 
-#include "testutilsqemu.h"
+# include "testutilsqemu.h"
 
 static char *progname;
 static char *abs_srcdir;
 static struct qemud_driver driver;
 
-#define MAX_FILE 4096
+# define MAX_FILE 4096
 
 static int testCompareXMLToArgvFiles(const char *xml,
                                      const char *cmd,
-                                     int extraFlags,
+                                     unsigned long long extraFlags,
                                      const char *migrateFrom) {
     char argvData[MAX_FILE];
     char *expectargv = &(argvData[0]);
@@ -32,14 +33,19 @@ static int testCompareXMLToArgvFiles(const char *xml,
     const char **argv = NULL;
     const char **qenv = NULL;
     const char **tmp = NULL;
-    int ret = -1, len, flags;
+    int ret = -1, len;
+    unsigned long long flags;
     virDomainDefPtr vmdef = NULL;
     virDomainChrDef monitor_chr;
+    virConnectPtr conn;
+
+    if (!(conn = virGetConnect()))
+        goto fail;
 
     if (virtTestLoadFile(cmd, &expectargv, MAX_FILE) < 0)
         goto fail;
 
-    if (!(vmdef = virDomainDefParseFile(NULL, driver.caps, xml,
+    if (!(vmdef = virDomainDefParseFile(driver.caps, xml,
                                         VIR_DOMAIN_XML_INACTIVE)))
         goto fail;
 
@@ -74,10 +80,10 @@ static int testCompareXMLToArgvFiles(const char *xml,
     }
 
 
-    if (qemudBuildCommandLine(NULL, &driver,
+    if (qemudBuildCommandLine(conn, &driver,
                               vmdef, &monitor_chr, 0, flags,
                               &argv, &qenv,
-                              NULL, NULL, migrateFrom) < 0)
+                              NULL, NULL, migrateFrom, NULL) < 0)
         goto fail;
 
     len = 1; /* for trailing newline */
@@ -92,7 +98,8 @@ static int testCompareXMLToArgvFiles(const char *xml,
         len += strlen(*tmp) + 1;
         tmp++;
     }
-    actualargv = malloc(sizeof(*actualargv)*len);
+    if ((actualargv = malloc(sizeof(*actualargv)*len)) == NULL)
+        goto fail;
     actualargv[0] = '\0';
     tmp = qenv;
     while (*tmp) {
@@ -136,13 +143,14 @@ static int testCompareXMLToArgvFiles(const char *xml,
         free(qenv);
     }
     virDomainDefFree(vmdef);
+    virUnrefConnect(conn);
     return ret;
 }
 
 
 struct testInfo {
     const char *name;
-    int extraFlags;
+    unsigned long long extraFlags;
     const char *migrateFrom;
 };
 
@@ -185,7 +193,7 @@ mymain(int argc, char **argv)
     if ((driver.hugepage_path = strdup("/dev/hugepages/libvirt/qemu")) == NULL)
         return EXIT_FAILURE;
 
-#define DO_TEST_FULL(name, extraFlags, migrateFrom)                     \
+# define DO_TEST_FULL(name, extraFlags, migrateFrom)                     \
     do {                                                                \
         const struct testInfo info = { name, extraFlags, migrateFrom }; \
         if (virtTestRun("QEMU XML-2-ARGV " name,                        \
@@ -193,7 +201,7 @@ mymain(int argc, char **argv)
             ret = -1;                                                   \
     } while (0)
 
-#define DO_TEST(name, extraFlags)                       \
+# define DO_TEST(name, extraFlags)                       \
         DO_TEST_FULL(name, extraFlags, NULL)
 
     /* Unset or set all envvars here that are copied in qemudBuildCommandLine
@@ -218,6 +226,12 @@ mymain(int argc, char **argv)
     DO_TEST("bootloader", QEMUD_CMD_FLAG_DOMID);
     DO_TEST("clock-utc", 0);
     DO_TEST("clock-localtime", 0);
+    /*
+     * Can't be enabled since the absolute timestamp changes every time
+    DO_TEST("clock-variable", QEMUD_CMD_FLAG_RTC);
+    */
+    DO_TEST("clock-france", QEMUD_CMD_FLAG_RTC);
+
     DO_TEST("hugepages", QEMUD_CMD_FLAG_MEM_PATH);
     DO_TEST("disk-cdrom", 0);
     DO_TEST("disk-cdrom-empty", QEMUD_CMD_FLAG_DRIVE);
@@ -235,6 +249,8 @@ mymain(int argc, char **argv)
             QEMUD_CMD_FLAG_DRIVE_BOOT | QEMUD_CMD_FLAG_DRIVE_FORMAT);
     DO_TEST("disk-drive-fat", QEMUD_CMD_FLAG_DRIVE |
             QEMUD_CMD_FLAG_DRIVE_BOOT | QEMUD_CMD_FLAG_DRIVE_FORMAT);
+    DO_TEST("disk-drive-readonly-disk", QEMUD_CMD_FLAG_DRIVE |
+            QEMUD_CMD_FLAG_DEVICE);
     DO_TEST("disk-drive-fmt-qcow", QEMUD_CMD_FLAG_DRIVE |
             QEMUD_CMD_FLAG_DRIVE_BOOT | QEMUD_CMD_FLAG_DRIVE_FORMAT);
     DO_TEST("disk-drive-shared", QEMUD_CMD_FLAG_DRIVE |
@@ -244,6 +260,9 @@ mymain(int argc, char **argv)
     DO_TEST("disk-drive-cache-v1-wb", QEMUD_CMD_FLAG_DRIVE |
             QEMUD_CMD_FLAG_DRIVE_FORMAT);
     DO_TEST("disk-drive-cache-v1-none", QEMUD_CMD_FLAG_DRIVE |
+            QEMUD_CMD_FLAG_DRIVE_FORMAT);
+    DO_TEST("disk-drive-error-policy-stop", QEMUD_CMD_FLAG_DRIVE |
+            QEMUD_CMD_FLAG_MONITOR_JSON |
             QEMUD_CMD_FLAG_DRIVE_FORMAT);
     DO_TEST("disk-drive-cache-v2-wt", QEMUD_CMD_FLAG_DRIVE |
             QEMUD_CMD_FLAG_DRIVE_CACHE_V2 | QEMUD_CMD_FLAG_DRIVE_FORMAT);
@@ -310,6 +329,7 @@ mymain(int argc, char **argv)
     DO_TEST("console-compat-chardev", QEMUD_CMD_FLAG_CHARDEV|QEMUD_CMD_FLAG_DEVICE);
 
     DO_TEST("channel-guestfwd", QEMUD_CMD_FLAG_CHARDEV|QEMUD_CMD_FLAG_DEVICE);
+    DO_TEST("channel-virtio", QEMUD_CMD_FLAG_DEVICE);
 
     DO_TEST("watchdog", 0);
     DO_TEST("watchdog-device", QEMUD_CMD_FLAG_DEVICE);

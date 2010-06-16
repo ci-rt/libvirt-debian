@@ -1,6 +1,6 @@
 
 /*
- * esx_vmx.c: VMX related methods for the VMware ESX driver
+ * esx_vmx.h: VMX related functions for the VMware ESX driver
  *
  * Copyright (C) 2009 Matthias Bolte <matthias.bolte@googlemail.com>
  *
@@ -21,12 +21,12 @@
  */
 
 #ifndef __ESX_VMX_H__
-#define __ESX_VMX_H__
+# define __ESX_VMX_H__
 
-#include "internal.h"
-#include "conf.h"
-#include "domain_conf.h"
-#include "esx_vi.h"
+# include "internal.h"
+# include "conf.h"
+# include "domain_conf.h"
+# include "esx_vi.h"
 
 int
 esxVMX_SCSIDiskNameToControllerAndID(const char *name, int *controller, int *id);
@@ -58,7 +58,7 @@ esxVMX_ParseFileName(esxVI_Context *ctx, const char *fileName,
 virDomainDefPtr
 esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
                    const char *datastoreName, const char *directoryName,
-                   esxVI_APIVersion apiVersion);
+                   esxVI_ProductVersion productVersion);
 
 int
 esxVMX_ParseVNC(virConfPtr conf, virDomainGraphicsDefPtr *def);
@@ -96,7 +96,7 @@ esxVMX_FormatFileName(esxVI_Context *ctx, const char *src);
 
 char *
 esxVMX_FormatConfig(esxVI_Context *ctx, virDomainDefPtr def,
-                    esxVI_APIVersion apiVersion);
+                    esxVI_ProductVersion productVersion);
 
 int
 esxVMX_FormatVNC(virDomainGraphicsDefPtr def, virBufferPtr buffer);

@@ -35,9 +35,9 @@ void qemuSecurityDACSetDriver(struct qemud_driver *newdriver)
 
 
 static int
-qemuSecurityDACSetOwnership(virConnectPtr conn, const char *path, int uid, int gid)
+qemuSecurityDACSetOwnership(const char *path, int uid, int gid)
 {
-    VIR_INFO("Setting DAC context on '%s' to '%d:%d'", path, uid, gid);
+    VIR_INFO("Setting DAC user and group on '%s' to '%d:%d'", path, uid, gid);
 
     if (chown(path, uid, gid) < 0) {
         struct stat sb;
@@ -51,24 +51,18 @@ qemuSecurityDACSetOwnership(virConnectPtr conn, const char *path, int uid, int g
             }
         }
 
-        /* if the error complaint is related to an image hosted on
-         * an nfs mount, or a usbfs/sysfs filesystem not supporting
-         * labelling, then just ignore it & hope for the best.
-         * The user hopefully set one of the necessary qemuSecurityDAC
-         * virt_use_{nfs,usb,pci}  boolean tunables to allow it...
-         */
         if (chown_errno == EOPNOTSUPP) {
-            VIR_INFO("Setting security context '%d:%d' on '%s' not supported by filesystem",
+            VIR_INFO("Setting user and group to '%d:%d' on '%s' not supported by filesystem",
                      uid, gid, path);
         } else if (chown_errno == EPERM) {
-            VIR_INFO("Setting security context '%d:%d' on '%s' not permitted",
+            VIR_INFO("Setting user and group to '%d:%d' on '%s' not permitted",
                      uid, gid, path);
         } else if (chown_errno == EROFS) {
-            VIR_INFO("Setting security context '%d:%d' on '%s' not possible on readonly filesystem",
+            VIR_INFO("Setting user and group to '%d:%d' on '%s' not possible on readonly filesystem",
                      uid, gid, path);
         } else {
-            virReportSystemError(conn, chown_errno,
-                                 _("unable to set security context '%d:%d' on '%s'"),
+            virReportSystemError(chown_errno,
+                                 _("unable to set user and group to '%d:%d' on '%s'"),
                                  uid, gid, path);
             return -1;
         }
@@ -77,18 +71,17 @@ qemuSecurityDACSetOwnership(virConnectPtr conn, const char *path, int uid, int g
 }
 
 static int
-qemuSecurityDACRestoreSecurityFileLabel(virConnectPtr conn,
-                                        const char *path)
+qemuSecurityDACRestoreSecurityFileLabel(const char *path)
 {
     struct stat buf;
     int rc = -1;
     int err;
     char *newpath = NULL;
 
-    VIR_INFO("Restoring DAC context on '%s'", path);
+    VIR_INFO("Restoring DAC user and group on '%s'", path);
 
     if ((err = virFileResolveLink(path, &newpath)) < 0) {
-        virReportSystemError(conn, err,
+        virReportSystemError(err,
                              _("cannot resolve symlink %s"), path);
         goto err;
     }
@@ -97,7 +90,7 @@ qemuSecurityDACRestoreSecurityFileLabel(virConnectPtr conn,
         goto err;
 
     /* XXX record previous ownership */
-    rc = qemuSecurityDACSetOwnership(conn, newpath, 0, 0);
+    rc = qemuSecurityDACSetOwnership(newpath, 0, 0);
 
 err:
     VIR_FREE(newpath);
@@ -106,8 +99,7 @@ err:
 
 
 static int
-qemuSecurityDACSetSecurityImageLabel(virConnectPtr conn,
-                                     virDomainObjPtr vm ATTRIBUTE_UNUSED,
+qemuSecurityDACSetSecurityImageLabel(virDomainObjPtr vm ATTRIBUTE_UNUSED,
                                      virDomainDiskDefPtr disk)
 
 {
@@ -126,7 +118,7 @@ qemuSecurityDACSetSecurityImageLabel(virConnectPtr conn,
 
         memset(&meta, 0, sizeof(meta));
 
-        ret = virStorageFileGetMetadata(conn, path, &meta);
+        ret = virStorageFileGetMetadata(path, &meta);
 
         if (path != disk->src)
             VIR_FREE(path);
@@ -136,8 +128,8 @@ qemuSecurityDACSetSecurityImageLabel(virConnectPtr conn,
             return -1;
 
         if (meta.backingStore != NULL &&
-            qemuSecurityDACSetOwnership(conn, meta.backingStore,
-                                      driver->user, driver->group) < 0) {
+            qemuSecurityDACSetOwnership(meta.backingStore,
+                                        driver->user, driver->group) < 0) {
             VIR_FREE(meta.backingStore);
             return -1;
         }
@@ -145,13 +137,12 @@ qemuSecurityDACSetSecurityImageLabel(virConnectPtr conn,
         path = meta.backingStore;
     } while (path != NULL);
 
-    return qemuSecurityDACSetOwnership(conn, disk->src, driver->user, driver->group);
+    return qemuSecurityDACSetOwnership(disk->src, driver->user, driver->group);
 }
 
 
 static int
-qemuSecurityDACRestoreSecurityImageLabel(virConnectPtr conn,
-                                         virDomainObjPtr vm ATTRIBUTE_UNUSED,
+qemuSecurityDACRestoreSecurityImageLabel(virDomainObjPtr vm ATTRIBUTE_UNUSED,
                                          virDomainDiskDefPtr disk)
 {
     if (!driver->privileged || !driver->dynamicOwnership)
@@ -171,33 +162,30 @@ qemuSecurityDACRestoreSecurityImageLabel(virConnectPtr conn,
     if (!disk->src)
         return 0;
 
-    return qemuSecurityDACRestoreSecurityFileLabel(conn, disk->src);
+    return qemuSecurityDACRestoreSecurityFileLabel(disk->src);
 }
 
 
 static int
-qemuSecurityDACSetSecurityPCILabel(virConnectPtr conn,
-                                   pciDevice *dev ATTRIBUTE_UNUSED,
+qemuSecurityDACSetSecurityPCILabel(pciDevice *dev ATTRIBUTE_UNUSED,
                                    const char *file,
                                    void *opaque ATTRIBUTE_UNUSED)
 {
-    return qemuSecurityDACSetOwnership(conn, file, driver->user, driver->group);
+    return qemuSecurityDACSetOwnership(file, driver->user, driver->group);
 }
 
 
 static int
-qemuSecurityDACSetSecurityUSBLabel(virConnectPtr conn,
-                                   usbDevice *dev ATTRIBUTE_UNUSED,
+qemuSecurityDACSetSecurityUSBLabel(usbDevice *dev ATTRIBUTE_UNUSED,
                                    const char *file,
                                    void *opaque ATTRIBUTE_UNUSED)
 {
-    return qemuSecurityDACSetOwnership(conn, file, driver->user, driver->group);
+    return qemuSecurityDACSetOwnership(file, driver->user, driver->group);
 }
 
 
 static int
-qemuSecurityDACSetSecurityHostdevLabel(virConnectPtr conn,
-                                       virDomainObjPtr vm,
+qemuSecurityDACSetSecurityHostdevLabel(virDomainObjPtr vm,
                                        virDomainHostdevDefPtr dev)
 
 {
@@ -211,23 +199,19 @@ qemuSecurityDACSetSecurityHostdevLabel(virConnectPtr conn,
 
     switch (dev->source.subsys.type) {
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB: {
-        usbDevice *usb = usbGetDevice(conn,
-                                      dev->source.subsys.u.usb.bus,
-                                      dev->source.subsys.u.usb.device,
-                                      dev->source.subsys.u.usb.vendor,
-                                      dev->source.subsys.u.usb.product);
+        usbDevice *usb = usbGetDevice(dev->source.subsys.u.usb.bus,
+                                      dev->source.subsys.u.usb.device);
 
         if (!usb)
             goto done;
 
-        ret = usbDeviceFileIterate(conn, usb, qemuSecurityDACSetSecurityUSBLabel, vm);
-        usbFreeDevice(conn, usb);
+        ret = usbDeviceFileIterate(usb, qemuSecurityDACSetSecurityUSBLabel, vm);
+        usbFreeDevice(usb);
         break;
     }
 
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI: {
-        pciDevice *pci = pciGetDevice(conn,
-                                      dev->source.subsys.u.pci.domain,
+        pciDevice *pci = pciGetDevice(dev->source.subsys.u.pci.domain,
                                       dev->source.subsys.u.pci.bus,
                                       dev->source.subsys.u.pci.slot,
                                       dev->source.subsys.u.pci.function);
@@ -235,8 +219,8 @@ qemuSecurityDACSetSecurityHostdevLabel(virConnectPtr conn,
         if (!pci)
             goto done;
 
-        ret = pciDeviceFileIterate(conn, pci, qemuSecurityDACSetSecurityPCILabel, vm);
-        pciFreeDevice(conn, pci);
+        ret = pciDeviceFileIterate(pci, qemuSecurityDACSetSecurityPCILabel, vm);
+        pciFreeDevice(pci);
 
         break;
     }
@@ -252,28 +236,25 @@ done:
 
 
 static int
-qemuSecurityDACRestoreSecurityPCILabel(virConnectPtr conn,
-                                       pciDevice *dev ATTRIBUTE_UNUSED,
+qemuSecurityDACRestoreSecurityPCILabel(pciDevice *dev ATTRIBUTE_UNUSED,
                                        const char *file,
                                        void *opaque ATTRIBUTE_UNUSED)
 {
-    return qemuSecurityDACRestoreSecurityFileLabel(conn, file);
+    return qemuSecurityDACRestoreSecurityFileLabel(file);
 }
 
 
 static int
-qemuSecurityDACRestoreSecurityUSBLabel(virConnectPtr conn,
-                                       usbDevice *dev ATTRIBUTE_UNUSED,
+qemuSecurityDACRestoreSecurityUSBLabel(usbDevice *dev ATTRIBUTE_UNUSED,
                                        const char *file,
                                        void *opaque ATTRIBUTE_UNUSED)
 {
-    return qemuSecurityDACRestoreSecurityFileLabel(conn, file);
+    return qemuSecurityDACRestoreSecurityFileLabel(file);
 }
 
 
 static int
-qemuSecurityDACRestoreSecurityHostdevLabel(virConnectPtr conn,
-                                           virDomainObjPtr vm ATTRIBUTE_UNUSED,
+qemuSecurityDACRestoreSecurityHostdevLabel(virDomainObjPtr vm ATTRIBUTE_UNUSED,
                                            virDomainHostdevDefPtr dev)
 
 {
@@ -287,24 +268,20 @@ qemuSecurityDACRestoreSecurityHostdevLabel(virConnectPtr conn,
 
     switch (dev->source.subsys.type) {
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB: {
-        usbDevice *usb = usbGetDevice(conn,
-                                      dev->source.subsys.u.usb.bus,
-                                      dev->source.subsys.u.usb.device,
-                                      dev->source.subsys.u.usb.vendor,
-                                      dev->source.subsys.u.usb.product);
+        usbDevice *usb = usbGetDevice(dev->source.subsys.u.usb.bus,
+                                      dev->source.subsys.u.usb.device);
 
         if (!usb)
             goto done;
 
-        ret = usbDeviceFileIterate(conn, usb, qemuSecurityDACRestoreSecurityUSBLabel, NULL);
-        usbFreeDevice(conn, usb);
+        ret = usbDeviceFileIterate(usb, qemuSecurityDACRestoreSecurityUSBLabel, NULL);
+        usbFreeDevice(usb);
 
         break;
     }
 
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI: {
-        pciDevice *pci = pciGetDevice(conn,
-                                      dev->source.subsys.u.pci.domain,
+        pciDevice *pci = pciGetDevice(dev->source.subsys.u.pci.domain,
                                       dev->source.subsys.u.pci.bus,
                                       dev->source.subsys.u.pci.slot,
                                       dev->source.subsys.u.pci.function);
@@ -312,8 +289,8 @@ qemuSecurityDACRestoreSecurityHostdevLabel(virConnectPtr conn,
         if (!pci)
             goto done;
 
-        ret = pciDeviceFileIterate(conn, pci, qemuSecurityDACRestoreSecurityPCILabel, NULL);
-        pciFreeDevice(conn, pci);
+        ret = pciDeviceFileIterate(pci, qemuSecurityDACRestoreSecurityPCILabel, NULL);
+        pciFreeDevice(pci);
 
         break;
     }
@@ -329,8 +306,7 @@ done:
 
 
 static int
-qemuSecurityDACRestoreSecurityAllLabel(virConnectPtr conn,
-                                       virDomainObjPtr vm)
+qemuSecurityDACRestoreSecurityAllLabel(virDomainObjPtr vm)
 {
     int i;
     int rc = 0;
@@ -341,22 +317,30 @@ qemuSecurityDACRestoreSecurityAllLabel(virConnectPtr conn,
     VIR_DEBUG("Restoring security label on %s", vm->def->name);
 
     for (i = 0 ; i < vm->def->nhostdevs ; i++) {
-        if (qemuSecurityDACRestoreSecurityHostdevLabel(conn, vm,
+        if (qemuSecurityDACRestoreSecurityHostdevLabel(vm,
                                                        vm->def->hostdevs[i]) < 0)
             rc = -1;
     }
     for (i = 0 ; i < vm->def->ndisks ; i++) {
-        if (qemuSecurityDACRestoreSecurityImageLabel(conn, vm,
+        if (qemuSecurityDACRestoreSecurityImageLabel(vm,
                                                      vm->def->disks[i]) < 0)
             rc = -1;
     }
+
+    if (vm->def->os.kernel &&
+        qemuSecurityDACRestoreSecurityFileLabel(vm->def->os.kernel) < 0)
+        rc = -1;
+
+    if (vm->def->os.initrd &&
+        qemuSecurityDACRestoreSecurityFileLabel(vm->def->os.initrd) < 0)
+        rc = -1;
+
     return rc;
 }
 
 
 static int
-qemuSecurityDACSetSecurityAllLabel(virConnectPtr conn,
-                                   virDomainObjPtr vm)
+qemuSecurityDACSetSecurityAllLabel(virDomainObjPtr vm)
 {
     int i;
 
@@ -367,45 +351,54 @@ qemuSecurityDACSetSecurityAllLabel(virConnectPtr conn,
         /* XXX fixme - we need to recursively label the entriy tree :-( */
         if (vm->def->disks[i]->type == VIR_DOMAIN_DISK_TYPE_DIR)
             continue;
-        if (qemuSecurityDACSetSecurityImageLabel(conn, vm, vm->def->disks[i]) < 0)
+        if (qemuSecurityDACSetSecurityImageLabel(vm, vm->def->disks[i]) < 0)
             return -1;
     }
     for (i = 0 ; i < vm->def->nhostdevs ; i++) {
-        if (qemuSecurityDACSetSecurityHostdevLabel(conn, vm, vm->def->hostdevs[i]) < 0)
+        if (qemuSecurityDACSetSecurityHostdevLabel(vm, vm->def->hostdevs[i]) < 0)
             return -1;
     }
+
+    if (vm->def->os.kernel &&
+        qemuSecurityDACSetOwnership(vm->def->os.kernel,
+                                    driver->user,
+                                    driver->group) < 0)
+        return -1;
+
+    if (vm->def->os.initrd &&
+        qemuSecurityDACSetOwnership(vm->def->os.initrd,
+                                    driver->user,
+                                    driver->group) < 0)
+        return -1;
 
     return 0;
 }
 
 
 static int
-qemuSecurityDACSetSavedStateLabel(virConnectPtr conn,
-                                  virDomainObjPtr vm ATTRIBUTE_UNUSED,
+qemuSecurityDACSetSavedStateLabel(virDomainObjPtr vm ATTRIBUTE_UNUSED,
                                   const char *savefile)
 {
     if (!driver->privileged || !driver->dynamicOwnership)
         return 0;
 
-    return qemuSecurityDACSetOwnership(conn, savefile, driver->user, driver->group);
+    return qemuSecurityDACSetOwnership(savefile, driver->user, driver->group);
 }
 
 
 static int
-qemuSecurityDACRestoreSavedStateLabel(virConnectPtr conn,
-                                      virDomainObjPtr vm ATTRIBUTE_UNUSED,
+qemuSecurityDACRestoreSavedStateLabel(virDomainObjPtr vm ATTRIBUTE_UNUSED,
                                       const char *savefile)
 {
     if (!driver->privileged || !driver->dynamicOwnership)
         return 0;
 
-    return qemuSecurityDACRestoreSecurityFileLabel(conn, savefile);
+    return qemuSecurityDACRestoreSecurityFileLabel(savefile);
 }
 
 
 static int
-qemuSecurityDACSetProcessLabel(virConnectPtr conn ATTRIBUTE_UNUSED,
-                               virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+qemuSecurityDACSetProcessLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
                                virDomainObjPtr vm ATTRIBUTE_UNUSED)
 {
     DEBUG("Dropping privileges of VM to %d:%d", driver->user, driver->group);
@@ -415,7 +408,7 @@ qemuSecurityDACSetProcessLabel(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     if (driver->group) {
         if (setregid(driver->group, driver->group) < 0) {
-            virReportSystemError(NULL, errno,
+            virReportSystemError(errno,
                                  _("cannot change to '%d' group"),
                                  driver->group);
             return -1;
@@ -423,7 +416,7 @@ qemuSecurityDACSetProcessLabel(virConnectPtr conn ATTRIBUTE_UNUSED,
     }
     if (driver->user) {
         if (setreuid(driver->user, driver->user) < 0) {
-            virReportSystemError(NULL, errno,
+            virReportSystemError(errno,
                                  _("cannot change to '%d' user"),
                                  driver->user);
             return -1;

@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* inet_pton.c -- convert IPv4 and IPv6 addresses from text to binary form
 
    Copyright (C) 2006, 2008, 2009, 2010 Free Software Foundation, Inc.

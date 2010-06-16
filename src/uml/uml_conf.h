@@ -1,7 +1,7 @@
 /*
  * config.h: VM configuration management
  *
- * Copyright (C) 2006, 2007 Red Hat, Inc.
+ * Copyright (C) 2006, 2007, 2010 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -22,21 +22,21 @@
  */
 
 #ifndef __UML_CONF_H
-#define __UML_CONF_H
+# define __UML_CONF_H
 
-#include "internal.h"
-#include "bridge.h"
-#include "capabilities.h"
-#include "network_conf.h"
-#include "domain_conf.h"
-#include "virterror_internal.h"
-#include "threads.h"
+# include "internal.h"
+# include "bridge.h"
+# include "capabilities.h"
+# include "network_conf.h"
+# include "domain_conf.h"
+# include "virterror_internal.h"
+# include "threads.h"
 
-#define umlDebug(fmt, ...) do {} while(0)
+# define umlDebug(fmt, ...) do {} while(0)
 
-#define UML_CPUMASK_LEN CPU_SETSIZE
+# define UML_CPUMASK_LEN CPU_SETSIZE
 
-#define UML_MAX_CHAR_DEVICE 16
+# define UML_MAX_CHAR_DEVICE 16
 
 /* Main driver state */
 struct uml_driver {
@@ -44,7 +44,7 @@ struct uml_driver {
 
     int privileged;
 
-    unsigned int umlVersion;
+    unsigned long umlVersion;
     int nextvmid;
 
     virDomainObjList domains;
@@ -62,9 +62,9 @@ struct uml_driver {
 };
 
 
-#define umlReportError(conn, dom, net, code, fmt...)                    \
-    virReportErrorHelper(conn, VIR_FROM_UML, code, __FILE__,            \
-                         __FUNCTION__, __LINE__, fmt)
+# define umlReportError(code, ...)                                      \
+    virReportErrorHelper(NULL, VIR_FROM_UML, code, __FILE__,            \
+                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 virCapsPtr  umlCapsInit               (void);
 

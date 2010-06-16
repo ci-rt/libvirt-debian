@@ -141,7 +141,7 @@ index b84729f..4f73baf 100644
 +                    parent_host,
 +                    operation_file) < 0) {
 +
-+        virReportOOMError(conn);
++        virReportOOMError();
 +        retval = -1;
 +        goto cleanup;
 +    }
@@ -151,7 +151,7 @@ index b84729f..4f73baf 100644
 +    fd = open(operation_path, O_WRONLY);
 +
 +    if (fd < 0) {
-+        virReportSystemError(conn, errno,
++        virReportSystemError(errno,
 +                             _("Could not open '%s' for vport operation"),
 +                             operation_path);
 +        retval = -1;
@@ -163,7 +163,7 @@ index b84729f..4f73baf 100644
 +                    wwpn,
 +                    wwnn) < 0) {
 +
-+        virReportOOMError(conn);
++        virReportOOMError();
 +        retval = -1;
 +        goto cleanup;
 +    }
@@ -171,7 +171,7 @@ index b84729f..4f73baf 100644
 +    towrite = strlen(vport_name);
 +    written = safewrite(fd, vport_name, towrite);
 +    if (written != towrite) {
-+        virReportSystemError(conn, errno,
++        virReportSystemError(errno,
 +                             _("Write of '%s' to '%s' during "
 +                               "vport create/delete failed "
 +                               "(towrite: %lu written: %d)"),
@@ -223,7 +223,7 @@ index b84729f..4f73baf 100644
 +        VIR_FREE(wwnn);
 +        VIR_FREE(wwpn);
 +        ret = -1;
-+        virReportOOMError(conn);
++        virReportOOMError();
 +    }
 +
 +    return ret;
@@ -431,7 +431,7 @@ index b84729f..4f73baf 100644
 +    obj = NULL;
 +
 +    if (parent_name == NULL) {
-+        virReportOOMError(dev->conn);
++        virReportOOMError();
 +        goto out;
 +    }
 +
@@ -478,7 +478,7 @@ index b84729f..4f73baf 100644
 +     * If this fails for any reason, we still have the backup of polling for
 +     * 5 seconds for device nodes.
 +     */
-+    virRun(conn, settleprog, &exitstatus);
++    virRun(settleprog, &exitstatus);
 +}
 +#else
 +void virNodeDeviceWaitForDevices(virConnectPtr conn ATTRIBUTE_UNUSED) {}
@@ -550,7 +550,7 @@ index 6e04112..5b35b60 100644
 +{
 +    char *s;
 +
-+    s = virXPathString(conn, xpath, ctxt);
++    s = virXPathString(xpath, ctxt);
 +    if (s == NULL) {
 +        virNodeDeviceReportError(conn, VIR_ERR_INTERNAL_ERROR,
 +                                 missing_error_fmt,
@@ -611,7 +611,7 @@ index 6e04112..5b35b60 100644
          goto out;
 +    }
 +
-+    if ((n = virXPathNodeSet(conn, "./capability", ctxt, &nodes)) < 0) {
++    if ((n = virXPathNodeSet("./capability", ctxt, &nodes)) < 0) {
 +        virNodeDeviceReportError(conn, VIR_ERR_INTERNAL_ERROR,
 +                                 _("error parsing SCSI host capabilities for '%s'"),
 +                                 def->name);
@@ -713,9 +713,9 @@ index 6e04112..5b35b60 100644
      }
  
      /* Extract device name */
--    def->name = virXPathString(conn, "string(./name[1])", ctxt);
+-    def->name = virXPathString("string(./name[1])", ctxt);
 +    if (create == EXISTING_DEVICE) {
-+        def->name = virXPathString(conn, "string(./name[1])", ctxt);
++        def->name = virXPathString("string(./name[1])", ctxt);
 +    } else {
 +        def->name = strdup("new device");
 +    }
@@ -964,7 +964,7 @@ index 0000000..1deb6d2
 +    if (virAsprintf(&sysfs_path, "%s/host%d",
 +                    LINUX_SYSFS_FC_HOST_PREFIX,
 +                    d->scsi_host.host) < 0) {
-+        virReportOOMError(NULL);
++        virReportOOMError();
 +        goto out;
 +    }
 +
@@ -977,7 +977,7 @@ index 0000000..1deb6d2
 +
 +    if (virAsprintf(&wwnn_path, "%s/node_name",
 +                    sysfs_path) < 0) {
-+        virReportOOMError(NULL);
++        virReportOOMError();
 +        goto out;
 +    }
 +
@@ -1002,7 +1002,7 @@ index 0000000..1deb6d2
 +
 +    d->scsi_host.wwnn = strndup(p, sizeof(buf));
 +    if (d->scsi_host.wwnn == NULL) {
-+        virReportOOMError(NULL);
++        virReportOOMError();
 +        goto out;
 +    }
 +
@@ -1013,7 +1013,7 @@ index 0000000..1deb6d2
 +
 +    if (virAsprintf(&wwpn_path, "%s/port_name",
 +                    sysfs_path) < 0) {
-+        virReportOOMError(NULL);
++        virReportOOMError();
 +        goto out;
 +    }
 +
@@ -1038,7 +1038,7 @@ index 0000000..1deb6d2
 +
 +    d->scsi_host.wwpn = strndup(p, sizeof(buf));
 +    if (d->scsi_host.wwpn == NULL) {
-+        virReportOOMError(NULL);
++        virReportOOMError();
 +        goto out;
 +    }
 +
@@ -1066,7 +1066,7 @@ index 0000000..1deb6d2
 +    if (virAsprintf(&sysfs_path, "%s/host%d/vport_create",
 +                    LINUX_SYSFS_FC_HOST_PREFIX,
 +                    d->scsi_host.host) < 0) {
-+        virReportOOMError(NULL);
++        virReportOOMError();
 +        goto out;
 +    }
 +
@@ -1131,7 +1131,7 @@ index b154140..74759cf 100644
 -     * If this fails for any reason, we still have the backup of polling for
 -     * 5 seconds for device nodes.
 -     */
--    virRun(conn, settleprog, &exitstatus);
+-    virRun(settleprog, &exitstatus);
 +    virNodeDeviceWaitForDevices(conn);
 +    return;
  }

@@ -22,13 +22,13 @@
  */
 
 #ifndef __VIR_CPU_CONF_H__
-#define __VIR_CPU_CONF_H__
+# define __VIR_CPU_CONF_H__
 
-#include "util.h"
-#include "buf.h"
-#ifndef PROXY
-#include "xml.h"
-#endif
+# include "util.h"
+# include "buf.h"
+# ifndef PROXY
+#  include "xml.h"
+# endif
 
 enum virCPUType {
     VIR_CPU_TYPE_HOST,
@@ -83,13 +83,15 @@ struct _virCPUDef {
 void
 virCPUDefFree(virCPUDefPtr def);
 
-#ifndef PROXY
 virCPUDefPtr
-virCPUDefParseXML(virConnectPtr conn,
-                  const xmlNodePtr node,
+virCPUDefCopy(const virCPUDefPtr cpu);
+
+# ifndef PROXY
+virCPUDefPtr
+virCPUDefParseXML(const xmlNodePtr node,
                   xmlXPathContextPtr ctxt,
                   enum virCPUType mode);
-#endif
+# endif
 
 enum virCPUFormatFlags {
     VIR_CPU_FORMAT_EMBEDED  = (1 << 0)  /* embed into existing <cpu/> element
@@ -98,21 +100,18 @@ enum virCPUFormatFlags {
 
 
 char *
-virCPUDefFormat(virConnectPtr conn,
-                virCPUDefPtr def,
+virCPUDefFormat(virCPUDefPtr def,
                 const char *indent,
                 int flags);
 
 int
-virCPUDefFormatBuf(virConnectPtr conn,
-                   virBufferPtr buf,
+virCPUDefFormatBuf(virBufferPtr buf,
                    virCPUDefPtr def,
                    const char *indent,
                    int flags);
 
 int
-virCPUDefAddFeature(virConnectPtr conn,
-                    virCPUDefPtr cpu,
+virCPUDefAddFeature(virCPUDefPtr cpu,
                     const char *name,
                     int policy);
 

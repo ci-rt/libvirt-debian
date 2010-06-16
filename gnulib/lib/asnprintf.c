@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Formatted output to strings.
    Copyright (C) 1999, 2002, 2006, 2009, 2010 Free Software Foundation, Inc.
 

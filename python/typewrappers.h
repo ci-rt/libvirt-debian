@@ -11,14 +11,14 @@
 #include "libvirt/virterror.h"
 
 #ifdef __GNUC__
-#ifdef ATTRIBUTE_UNUSED
-#undef ATTRIBUTE_UNUSED
-#endif
-#ifndef ATTRIBUTE_UNUSED
-#define ATTRIBUTE_UNUSED __attribute__ ((__unused__))
-#endif /* ATTRIBUTE_UNUSED */
+# ifdef ATTRIBUTE_UNUSED
+#  undef ATTRIBUTE_UNUSED
+# endif
+# ifndef ATTRIBUTE_UNUSED
+#  define ATTRIBUTE_UNUSED __attribute__ ((__unused__))
+# endif /* ATTRIBUTE_UNUSED */
 #else
-#define ATTRIBUTE_UNUSED
+# define ATTRIBUTE_UNUSED
 #endif
 
 #define PyvirConnect_Get(v) (((v) == Py_None) ? NULL : \
@@ -91,6 +91,14 @@ typedef struct {
     virSecretPtr obj;
 } PyvirSecret_Object;
 
+#define PyvirNWFilter_Get(v) (((v) == Py_None) ? NULL : \
+        (((PyvirNWFilter_Object *)(v))->obj))
+
+typedef struct {
+    PyObject_HEAD
+    virNWFilterPtr obj;
+} PyvirNWFilter_Object;
+
 
 #define PyvirStream_Get(v) (((v) == Py_None) ? NULL : \
         (((PyvirStream_Object *)(v))->obj))
@@ -99,6 +107,15 @@ typedef struct {
     PyObject_HEAD
     virStreamPtr obj;
 } PyvirStream_Object;
+
+
+#define PyvirDomainSnapshot_Get(v) (((v) == Py_None) ? NULL : \
+        (((PyvirDomainSnapshot_Object *)(v))->obj))
+
+typedef struct {
+    PyObject_HEAD
+    virDomainSnapshotPtr obj;
+} PyvirDomainSnapshot_Object;
 
 
 #define PyvirEventHandleCallback_Get(v) (((v) == Py_None) ? NULL : \
@@ -138,6 +155,7 @@ PyObject * libvirt_intWrap(int val);
 PyObject * libvirt_longWrap(long val);
 PyObject * libvirt_ulongWrap(unsigned long val);
 PyObject * libvirt_longlongWrap(long long val);
+PyObject * libvirt_ulonglongWrap(unsigned long long val);
 PyObject * libvirt_charPtrWrap(char *str);
 PyObject * libvirt_constcharPtrWrap(const char *str);
 PyObject * libvirt_charPtrConstWrap(const char *str);
@@ -153,7 +171,9 @@ PyObject * libvirt_virFreeCallbackWrap(virFreeCallback node);
 PyObject * libvirt_virVoidPtrWrap(void* node);
 PyObject * libvirt_virNodeDevicePtrWrap(virNodeDevicePtr node);
 PyObject * libvirt_virSecretPtrWrap(virSecretPtr node);
+PyObject * libvirt_virNWFilterPtrWrap(virNWFilterPtr node);
 PyObject * libvirt_virStreamPtrWrap(virStreamPtr node);
+PyObject * libvirt_virDomainSnapshotPtrWrap(virDomainSnapshotPtr node);
 
 
 /* Provide simple macro statement wrappers (adapted from GLib, in turn from Perl):

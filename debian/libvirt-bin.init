@@ -19,6 +19,7 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 DAEMON=/usr/sbin/libvirtd
 NAME=libvirtd
 DESC="libvirt management daemon"
+export PATH
 
 test -x $DAEMON || exit 0
 . /lib/lsb/init-functions

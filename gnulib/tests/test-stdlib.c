@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Test of <stdlib.h> substitute.
    Copyright (C) 2007, 2009, 2010 Free Software Foundation, Inc.
 

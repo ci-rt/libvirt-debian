@@ -14,30 +14,30 @@
 
 #ifdef WITH_XEN
 
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/poll.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <locale.h>
+# include <stdlib.h>
+# include <unistd.h>
+# include <errno.h>
+# include <sys/types.h>
+# include <sys/poll.h>
+# include <sys/socket.h>
+# include <sys/un.h>
+# include <locale.h>
 
-#include "internal.h"
-#include "datatypes.h"
-#include "proxy_internal.h"
-#include "util.h"
-#include "xen_hypervisor.h"
-#include "xend_internal.h"
-#include "xs_internal.h"
-#include "xen_driver.h"
+# include "internal.h"
+# include "datatypes.h"
+# include "proxy_internal.h"
+# include "util.h"
+# include "xen_hypervisor.h"
+# include "xend_internal.h"
+# include "xs_internal.h"
+# include "xen_driver.h"
 
 static int fdServer = -1;
 static int debug = 0;
 static int persist = 0;
 static int done = 0;
 
-#define MAX_CLIENT 64
+# define MAX_CLIENT 64
 
 static int nbClients = 0; /* client 0 is the unix listen socket */
 static struct pollfd pollInfos[MAX_CLIENT + 1];
@@ -628,7 +628,7 @@ retry2:
                 req->data.arg = -1;
                 req->len = sizeof(virProxyPacket);
             } else {
-                xml = virDomainDefFormat(conn, def, 0);
+                xml = virDomainDefFormat(def, 0);
                 if (!xml) {
                     req->data.arg = -1;
                     req->len = sizeof(virProxyPacket);

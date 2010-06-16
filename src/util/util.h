@@ -2,6 +2,7 @@
 /*
  * utils.h: common, generic utility functions
  *
+ * Copyright (C) 2010 Red Hat, Inc.
  * Copyright (C) 2006, 2007 Binary Karma
  * Copyright (C) 2006 Shuveb Hussain
  *
@@ -23,17 +24,23 @@
  */
 
 #ifndef __VIR_UTIL_H__
-#define __VIR_UTIL_H__
+# define __VIR_UTIL_H__
 
-#include "verify.h"
-#include "internal.h"
-#include <unistd.h>
-#include <sys/select.h>
-#include <sys/types.h>
+# include "verify.h"
+# include "internal.h"
+# include <unistd.h>
+# include <sys/select.h>
+# include <sys/types.h>
 
-int saferead(int fd, void *buf, size_t count);
-ssize_t safewrite(int fd, const void *buf, size_t count);
-int safezero(int fd, int flags, off_t offset, off_t len);
+# ifndef MIN
+#  define MIN(a, b) ((a) < (b) ? (a) : (b))
+# endif
+
+int saferead(int fd, void *buf, size_t count) ATTRIBUTE_RETURN_CHECK;
+ssize_t safewrite(int fd, const void *buf, size_t count)
+    ATTRIBUTE_RETURN_CHECK;
+int safezero(int fd, int flags, off_t offset, off_t len)
+    ATTRIBUTE_RETURN_CHECK;
 
 enum {
     VIR_EXEC_NONE   = 0,
@@ -49,8 +56,7 @@ int virSetCloseExec(int fd) ATTRIBUTE_RETURN_CHECK;
  * after fork() but before execve() */
 typedef int (*virExecHook)(void *data);
 
-int virExecDaemonize(virConnectPtr conn,
-                     const char *const*argv,
+int virExecDaemonize(const char *const*argv,
                      const char *const*envp,
                      const fd_set *keepfd,
                      pid_t *retpid,
@@ -59,8 +65,7 @@ int virExecDaemonize(virConnectPtr conn,
                      virExecHook hook,
                      void *data,
                      char *pidfile) ATTRIBUTE_RETURN_CHECK;
-int virExecWithHook(virConnectPtr conn,
-                    const char *const*argv,
+int virExecWithHook(const char *const*argv,
                     const char *const*envp,
                     const fd_set *keepfd,
                     int *retpid,
@@ -71,8 +76,7 @@ int virExecWithHook(virConnectPtr conn,
                     virExecHook hook,
                     void *data,
                     char *pidfile) ATTRIBUTE_RETURN_CHECK;
-int virExec(virConnectPtr conn,
-            const char *const*argv,
+int virExec(const char *const*argv,
             const char *const*envp,
             const fd_set *keepfd,
             pid_t *retpid,
@@ -80,10 +84,13 @@ int virExec(virConnectPtr conn,
             int *outfd,
             int *errfd,
             int flags) ATTRIBUTE_RETURN_CHECK;
-int virRun(virConnectPtr conn, const char *const*argv, int *status) ATTRIBUTE_RETURN_CHECK;
-int virRunWithHook(virConnectPtr conn, const char *const*argv,
+int virRun(const char *const*argv, int *status) ATTRIBUTE_RETURN_CHECK;
+int virRunWithHook(const char *const*argv,
                    virExecHook hook, void *data,
                    int *status) ATTRIBUTE_RETURN_CHECK;
+int virPipeReadUntilEOF(int outfd, int errfd,
+                        char **outbuf, char **errbuf);
+int virFork(pid_t *pid);
 
 int virFileReadLimFD(int fd, int maxlen, char **buf) ATTRIBUTE_RETURN_CHECK;
 
@@ -112,13 +119,22 @@ char *virFindFileInPath(const char *file);
 int virFileExists(const char *path);
 
 enum {
-    VIR_FILE_CREATE_NONE        = 0,
-    VIR_FILE_CREATE_AS_UID      = (1 << 0),
-    VIR_FILE_CREATE_ALLOW_EXIST = (1 << 1),
+    VIR_FILE_OP_NONE        = 0,
+    VIR_FILE_OP_AS_UID      = (1 << 0),
+    VIR_FILE_OP_FORCE_PERMS = (1 << 1),
 };
+typedef int (*virFileOperationHook)(int fd, void *data);
+int virFileOperation(const char *path, int openflags, mode_t mode,
+                     uid_t uid, gid_t gid,
+                     virFileOperationHook hook, void *hookdata,
+                     unsigned int flags) ATTRIBUTE_RETURN_CHECK;
 
-int virFileCreate(const char *path, mode_t mode, uid_t uid, gid_t gid,
-                  unsigned int flags) ATTRIBUTE_RETURN_CHECK;
+enum {
+    VIR_DIR_CREATE_NONE        = 0,
+    VIR_DIR_CREATE_AS_UID      = (1 << 0),
+    VIR_DIR_CREATE_FORCE_PERMS = (1 << 1),
+    VIR_DIR_CREATE_ALLOW_EXIST = (1 << 2),
+};
 int virDirCreate(const char *path, mode_t mode, uid_t uid, gid_t gid,
                  unsigned int flags) ATTRIBUTE_RETURN_CHECK;
 int virFileMakePath(const char *path) ATTRIBUTE_RETURN_CHECK;
@@ -180,17 +196,17 @@ int virMacAddrCompare (const char *mac1, const char *mac2);
 
 void virSkipSpaces(const char **str);
 int virParseNumber(const char **str);
-int virAsprintf(char **strp, const char *fmt, ...)
-    ATTRIBUTE_FMT_PRINTF(2, 3) ATTRIBUTE_RETURN_CHECK;
+int virParseVersionString(const char *str, unsigned long *version);
+int virAsprintf(char **strp, const char *fmt, ...) ATTRIBUTE_FMT_PRINTF(2, 3);
 char *virStrncpy(char *dest, const char *src, size_t n, size_t destbytes)
     ATTRIBUTE_RETURN_CHECK;
 char *virStrcpy(char *dest, const char *src, size_t destbytes)
     ATTRIBUTE_RETURN_CHECK;
-#define virStrcpyStatic(dest, src) virStrcpy((dest), (src), sizeof(dest))
+# define virStrcpyStatic(dest, src) virStrcpy((dest), (src), sizeof(dest))
 
-#define VIR_MAC_BUFLEN 6
-#define VIR_MAC_PREFIX_BUFLEN 3
-#define VIR_MAC_STRING_BUFLEN VIR_MAC_BUFLEN * 3
+# define VIR_MAC_BUFLEN 6
+# define VIR_MAC_PREFIX_BUFLEN 3
+# define VIR_MAC_STRING_BUFLEN VIR_MAC_BUFLEN * 3
 
 int virParseMacAddr(const char* str,
                     unsigned char *addr) ATTRIBUTE_RETURN_CHECK;
@@ -210,7 +226,7 @@ const char *virEnumToString(const char *const*types,
                             unsigned int ntypes,
                             int type);
 
-#define VIR_ENUM_IMPL(name, lastVal, ...)                               \
+# define VIR_ENUM_IMPL(name, lastVal, ...)                               \
     static const char *const name ## TypeList[] = { __VA_ARGS__ };      \
     extern int (* name ## Verify (void)) [verify_true (ARRAY_CARDINALITY(name ## TypeList) == lastVal)]; \
     const char *name ## TypeToString(int type) {                        \
@@ -224,45 +240,38 @@ const char *virEnumToString(const char *const*types,
                                  type);                                 \
     }
 
-#define VIR_ENUM_DECL(name)                             \
+# define VIR_ENUM_DECL(name)                             \
     const char *name ## TypeToString(int type);         \
     int name ## TypeFromString(const char*type);
 
-#ifndef HAVE_GETUID
+# ifndef HAVE_GETUID
 static inline int getuid (void) { return 0; }
-#endif
+# endif
 
-#ifndef HAVE_GETGID
+# ifndef HAVE_GETGID
 static inline int getgid (void) { return 0; }
-#endif
+# endif
 
+char *virGetHostnameLocalhost(int allow_localhost);
 char *virGetHostname(virConnectPtr conn);
 
 int virKillProcess(pid_t pid, int sig);
 
-#ifdef HAVE_GETPWUID_R
-char *virGetUserDirectory(virConnectPtr conn,
-                          uid_t uid);
-char *virGetUserName(virConnectPtr conn,
-                     uid_t uid);
-int virGetUserID(virConnectPtr conn,
-                 const char *name,
+char *virGetUserDirectory(uid_t uid);
+char *virGetUserName(uid_t uid);
+int virGetUserID(const char *name,
                  uid_t *uid) ATTRIBUTE_RETURN_CHECK;
-int virGetGroupID(virConnectPtr conn,
-                  const char *name,
+int virGetGroupID(const char *name,
                   gid_t *gid) ATTRIBUTE_RETURN_CHECK;
-#endif
 
 int virRandomInitialize(unsigned int seed) ATTRIBUTE_RETURN_CHECK;
 int virRandom(int max);
 
-#ifdef HAVE_MNTENT_H
 char *virFileFindMountPoint(const char *type);
-#endif
 
-void virFileWaitForDevices(virConnectPtr conn);
+void virFileWaitForDevices(void);
 
-#define virBuildPath(path, ...) virBuildPathInternal(path, __VA_ARGS__, NULL)
+# define virBuildPath(path, ...) virBuildPathInternal(path, __VA_ARGS__, NULL)
 int virBuildPathInternal(char **path, ...) ATTRIBUTE_SENTINEL;
 
 #endif /* __VIR_UTIL_H__ */

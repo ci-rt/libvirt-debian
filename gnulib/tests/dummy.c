@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A dummy file, to prevent empty libraries from breaking builds.
    Copyright (C) 2004, 2007, 2009, 2010 Free Software Foundation, Inc.
 

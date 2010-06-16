@@ -39,6 +39,19 @@
 %#include "internal.h"
 %#include <arpa/inet.h>
 
+/* cygwin's xdr implementation defines xdr_u_int64_t instead of xdr_uint64_t
+ * and lacks IXDR_PUT_INT32 and IXDR_GET_INT32
+ */
+%#ifdef HAVE_XDR_U_INT64_T
+%# define xdr_uint64_t xdr_u_int64_t
+%#endif
+%#ifndef IXDR_PUT_INT32
+%# define IXDR_PUT_INT32 IXDR_PUT_LONG
+%#endif
+%#ifndef IXDR_GET_INT32
+%# define IXDR_GET_INT32 IXDR_GET_LONG
+%#endif
+
 /*----- Data types. -----*/
 
 /* Maximum total message size (serialised). */
@@ -103,6 +116,9 @@ const REMOTE_NODE_DEVICE_NAME_LIST_MAX = 16384;
 /* Upper limit on lists of node device capabilities. */
 const REMOTE_NODE_DEVICE_CAPS_LIST_MAX = 16384;
 
+/* Upper limit on lists of network filter names. */
+const REMOTE_NWFILTER_NAME_LIST_MAX = 1024;
+
 /* Upper limit on list of scheduler parameters. */
 const REMOTE_DOMAIN_SCHEDULER_PARAMETERS_MAX = 16;
 
@@ -117,6 +133,9 @@ const REMOTE_AUTH_TYPE_LIST_MAX = 20;
 
 /* Upper limit on list of memory stats */
 const REMOTE_DOMAIN_MEMORY_STATS_MAX = 1024;
+
+/* Upper limit on lists of domain snapshots. */
+const REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX = 1024;
 
 /* Maximum length of a block peek buffer message.
  * Note applications need to be aware of this limit and issue multiple
@@ -155,6 +174,11 @@ const REMOTE_SECRET_VALUE_MAX = 65536;
  */
 const REMOTE_SECRET_UUID_LIST_MAX = 16384;
 
+/*
+ * Upper limit on list of CPUs accepted when computing a baseline CPU.
+ */
+const REMOTE_CPU_BASELINE_MAX = 256;
+
 /* UUID.  VIR_UUID_BUFLEN definition comes from libvirt.h */
 typedef opaque remote_uuid[VIR_UUID_BUFLEN];
 
@@ -167,6 +191,12 @@ struct remote_nonnull_domain {
 
 /* A network which may not be NULL. */
 struct remote_nonnull_network {
+    remote_nonnull_string name;
+    remote_uuid uuid;
+};
+
+/* A network filter which may not be NULL. */
+struct remote_nonnull_nwfilter {
     remote_nonnull_string name;
     remote_uuid uuid;
 };
@@ -202,9 +232,16 @@ struct remote_nonnull_secret {
     remote_nonnull_string usageID;
 };
 
+/* A snapshot which may not be NULL. */
+struct remote_nonnull_domain_snapshot {
+    remote_nonnull_string name;
+    remote_nonnull_domain domain;
+};
+
 /* A domain or network which may be NULL. */
 typedef remote_nonnull_domain *remote_domain;
 typedef remote_nonnull_network *remote_network;
+typedef remote_nonnull_nwfilter *remote_nwfilter;
 typedef remote_nonnull_storage_pool *remote_storage_pool;
 typedef remote_nonnull_storage_vol *remote_storage_vol;
 typedef remote_nonnull_node_device *remote_node_device;
@@ -229,6 +266,7 @@ struct remote_error {
     int int1;
     int int2;
     remote_network net;
+    remote_nwfilter nwfilter;
 };
 
 /* Authentication types available thus far.... */
@@ -444,6 +482,18 @@ struct remote_domain_memory_peek_args {
 
 struct remote_domain_memory_peek_ret {
     opaque buffer<REMOTE_DOMAIN_MEMORY_PEEK_BUFFER_MAX>;
+};
+
+struct remote_domain_get_block_info_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string path;
+    unsigned flags;
+};
+
+struct remote_domain_get_block_info_ret {
+    unsigned hyper allocation;
+    unsigned hyper capacity;
+    unsigned hyper physical;
 };
 
 struct remote_list_domains_args {
@@ -708,9 +758,27 @@ struct remote_domain_attach_device_args {
     remote_nonnull_string xml;
 };
 
+struct remote_domain_attach_device_flags_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string xml;
+    unsigned int flags;
+};
+
 struct remote_domain_detach_device_args {
     remote_nonnull_domain dom;
     remote_nonnull_string xml;
+};
+
+struct remote_domain_detach_device_flags_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string xml;
+    unsigned int flags;
+};
+
+struct remote_domain_update_device_flags_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string xml;
+    unsigned int flags;
 };
 
 struct remote_domain_get_autostart_args {
@@ -824,6 +892,57 @@ struct remote_network_get_autostart_ret {
 struct remote_network_set_autostart_args {
     remote_nonnull_network net;
     int autostart;
+};
+
+/* network filter calls */
+
+struct remote_num_of_nwfilters_ret {
+    int num;
+};
+
+struct remote_list_nwfilters_args {
+    int maxnames;
+};
+
+struct remote_list_nwfilters_ret {
+    remote_nonnull_string names<REMOTE_NWFILTER_NAME_LIST_MAX>;
+};
+
+struct remote_nwfilter_lookup_by_uuid_args {
+    remote_uuid uuid;
+};
+
+struct remote_nwfilter_lookup_by_uuid_ret {
+    remote_nonnull_nwfilter nwfilter;
+};
+
+struct remote_nwfilter_lookup_by_name_args {
+    remote_nonnull_string name;
+};
+
+struct remote_nwfilter_lookup_by_name_ret {
+    remote_nonnull_nwfilter nwfilter;
+};
+
+struct remote_nwfilter_define_xml_args {
+    remote_nonnull_string xml;
+};
+
+struct remote_nwfilter_define_xml_ret {
+    remote_nonnull_nwfilter nwfilter;
+};
+
+struct remote_nwfilter_undefine_args {
+    remote_nonnull_nwfilter nwfilter;
+};
+
+struct remote_nwfilter_get_xml_desc_args {
+    remote_nonnull_nwfilter nwfilter;
+    int flags;
+};
+
+struct remote_nwfilter_get_xml_desc_ret {
+    remote_nonnull_string xml;
 };
 
 
@@ -1152,6 +1271,11 @@ struct remote_storage_vol_delete_args {
     unsigned flags;
 };
 
+struct remote_storage_vol_wipe_args {
+    remote_nonnull_storage_vol vol;
+    unsigned flags;
+};
+
 struct remote_storage_vol_dump_xml_args {
     remote_nonnull_storage_vol vol;
     unsigned flags;
@@ -1282,7 +1406,7 @@ struct remote_domain_events_deregister_ret {
     int cb_registered;
 };
 
-struct remote_domain_event_msg {
+struct remote_domain_event_lifecycle_msg {
     remote_nonnull_domain dom;
     int event;
     int detail;
@@ -1461,6 +1585,206 @@ struct remote_cpu_compare_ret {
 };
 
 
+struct remote_cpu_baseline_args {
+    remote_nonnull_string xmlCPUs<REMOTE_CPU_BASELINE_MAX>;
+    unsigned flags;
+};
+
+struct remote_cpu_baseline_ret {
+    remote_nonnull_string cpu;
+};
+
+
+struct remote_domain_get_job_info_args {
+    remote_nonnull_domain dom;
+};
+
+struct remote_domain_get_job_info_ret {
+    int type;
+
+    unsigned hyper timeElapsed;
+    unsigned hyper timeRemaining;
+
+    unsigned hyper dataTotal;
+    unsigned hyper dataProcessed;
+    unsigned hyper dataRemaining;
+
+    unsigned hyper memTotal;
+    unsigned hyper memProcessed;
+    unsigned hyper memRemaining;
+
+    unsigned hyper fileTotal;
+    unsigned hyper fileProcessed;
+    unsigned hyper fileRemaining;
+};
+
+
+struct remote_domain_abort_job_args {
+    remote_nonnull_domain dom;
+};
+
+
+struct remote_domain_migrate_set_max_downtime_args {
+    remote_nonnull_domain dom;
+    unsigned hyper downtime;
+    unsigned flags;
+};
+
+struct remote_domain_events_register_any_args {
+    int eventID;
+};
+
+struct remote_domain_events_deregister_any_args {
+    int eventID;
+};
+
+struct remote_domain_event_reboot_msg {
+    remote_nonnull_domain dom;
+};
+
+struct remote_domain_event_rtc_change_msg {
+    remote_nonnull_domain dom;
+    hyper offset;
+};
+
+struct remote_domain_event_watchdog_msg {
+    remote_nonnull_domain dom;
+    int action;
+};
+
+struct remote_domain_event_io_error_msg {
+    remote_nonnull_domain dom;
+    remote_nonnull_string srcPath;
+    remote_nonnull_string devAlias;
+    int action;
+};
+
+struct remote_domain_event_io_error_reason_msg {
+    remote_nonnull_domain dom;
+    remote_nonnull_string srcPath;
+    remote_nonnull_string devAlias;
+    int action;
+    remote_nonnull_string reason;
+};
+
+struct remote_domain_event_graphics_address {
+    int family;
+    remote_nonnull_string node;
+    remote_nonnull_string service;
+};
+
+const REMOTE_DOMAIN_EVENT_GRAPHICS_IDENTITY_MAX = 20;
+
+struct remote_domain_event_graphics_identity {
+    remote_nonnull_string type;
+    remote_nonnull_string name;
+};
+
+struct remote_domain_event_graphics_msg {
+    remote_nonnull_domain dom;
+    int phase;
+    remote_domain_event_graphics_address local;
+    remote_domain_event_graphics_address remote;
+    remote_nonnull_string authScheme;
+    remote_domain_event_graphics_identity subject<REMOTE_DOMAIN_EVENT_GRAPHICS_IDENTITY_MAX>;
+};
+
+struct remote_domain_managed_save_args {
+    remote_nonnull_domain dom;
+    unsigned flags;
+};
+
+struct remote_domain_has_managed_save_image_args {
+    remote_nonnull_domain dom;
+    unsigned flags;
+};
+
+struct remote_domain_has_managed_save_image_ret {
+    int ret;
+};
+
+struct remote_domain_managed_save_remove_args {
+    remote_nonnull_domain dom;
+    unsigned flags;
+};
+
+struct remote_domain_snapshot_create_xml_args {
+    remote_nonnull_domain domain;
+    remote_nonnull_string xml_desc;
+    int flags;
+};
+
+struct remote_domain_snapshot_create_xml_ret {
+    remote_nonnull_domain_snapshot snap;
+};
+
+struct remote_domain_snapshot_dump_xml_args {
+    remote_nonnull_domain_snapshot snap;
+    int flags;
+};
+
+struct remote_domain_snapshot_dump_xml_ret {
+    remote_nonnull_string xml;
+};
+
+struct remote_domain_snapshot_num_args {
+    remote_nonnull_domain domain;
+    int flags;
+};
+
+struct remote_domain_snapshot_num_ret {
+    int num;
+};
+
+struct remote_domain_snapshot_list_names_args {
+    remote_nonnull_domain domain;
+    int nameslen;
+    int flags;
+};
+
+struct remote_domain_snapshot_list_names_ret {
+    remote_nonnull_string names<REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX>;
+};
+
+struct remote_domain_snapshot_lookup_by_name_args {
+    remote_nonnull_domain domain;
+    remote_nonnull_string name;
+    int flags;
+};
+
+struct remote_domain_snapshot_lookup_by_name_ret {
+    remote_nonnull_domain_snapshot snap;
+};
+
+struct remote_domain_has_current_snapshot_args {
+    remote_nonnull_domain domain;
+    int flags;
+};
+
+struct remote_domain_has_current_snapshot_ret {
+    int result;
+};
+
+struct remote_domain_snapshot_current_args {
+    remote_nonnull_domain domain;
+    int flags;
+};
+
+struct remote_domain_snapshot_current_ret {
+    remote_nonnull_domain_snapshot snap;
+};
+
+struct remote_domain_revert_to_snapshot_args {
+    remote_nonnull_domain_snapshot snap;
+    int flags;
+};
+
+struct remote_domain_snapshot_delete_args {
+    remote_nonnull_domain_snapshot snap;
+    int flags;
+};
+
+
 /*----- Protocol. -----*/
 
 /* Define the program number, protocol version and procedure numbers here. */
@@ -1584,7 +1908,7 @@ enum remote_procedure {
     REMOTE_PROC_DOMAIN_MEMORY_PEEK = 104,
     REMOTE_PROC_DOMAIN_EVENTS_REGISTER = 105,
     REMOTE_PROC_DOMAIN_EVENTS_DEREGISTER = 106,
-    REMOTE_PROC_DOMAIN_EVENT = 107,
+    REMOTE_PROC_DOMAIN_EVENT_LIFECYCLE = 107,
     REMOTE_PROC_DOMAIN_MIGRATE_PREPARE2 = 108,
     REMOTE_PROC_DOMAIN_MIGRATE_FINISH2 = 109,
     REMOTE_PROC_GET_URI = 110,
@@ -1641,7 +1965,47 @@ enum remote_procedure {
     REMOTE_PROC_INTERFACE_IS_ACTIVE = 156,
     REMOTE_PROC_GET_LIB_VERSION = 157,
     REMOTE_PROC_CPU_COMPARE = 158,
-    REMOTE_PROC_DOMAIN_MEMORY_STATS = 159
+    REMOTE_PROC_DOMAIN_MEMORY_STATS = 159,
+    REMOTE_PROC_DOMAIN_ATTACH_DEVICE_FLAGS = 160,
+
+    REMOTE_PROC_DOMAIN_DETACH_DEVICE_FLAGS = 161,
+    REMOTE_PROC_CPU_BASELINE = 162,
+    REMOTE_PROC_DOMAIN_GET_JOB_INFO = 163,
+    REMOTE_PROC_DOMAIN_ABORT_JOB = 164,
+    REMOTE_PROC_STORAGE_VOL_WIPE = 165,
+    REMOTE_PROC_DOMAIN_MIGRATE_SET_MAX_DOWNTIME = 166,
+    REMOTE_PROC_DOMAIN_EVENTS_REGISTER_ANY = 167,
+    REMOTE_PROC_DOMAIN_EVENTS_DEREGISTER_ANY = 168,
+    REMOTE_PROC_DOMAIN_EVENT_REBOOT = 169,
+    REMOTE_PROC_DOMAIN_EVENT_RTC_CHANGE = 170,
+
+    REMOTE_PROC_DOMAIN_EVENT_WATCHDOG = 171,
+    REMOTE_PROC_DOMAIN_EVENT_IO_ERROR = 172,
+    REMOTE_PROC_DOMAIN_EVENT_GRAPHICS = 173,
+    REMOTE_PROC_DOMAIN_UPDATE_DEVICE_FLAGS = 174,
+    REMOTE_PROC_NWFILTER_LOOKUP_BY_NAME = 175,
+    REMOTE_PROC_NWFILTER_LOOKUP_BY_UUID = 176,
+    REMOTE_PROC_NWFILTER_GET_XML_DESC = 177,
+    REMOTE_PROC_NUM_OF_NWFILTERS = 178,
+    REMOTE_PROC_LIST_NWFILTERS = 179,
+    REMOTE_PROC_NWFILTER_DEFINE_XML = 180,
+
+    REMOTE_PROC_NWFILTER_UNDEFINE = 181,
+    REMOTE_PROC_DOMAIN_MANAGED_SAVE = 182,
+    REMOTE_PROC_DOMAIN_HAS_MANAGED_SAVE_IMAGE = 183,
+    REMOTE_PROC_DOMAIN_MANAGED_SAVE_REMOVE = 184,
+    REMOTE_PROC_DOMAIN_SNAPSHOT_CREATE_XML = 185,
+    REMOTE_PROC_DOMAIN_SNAPSHOT_DUMP_XML = 186,
+    REMOTE_PROC_DOMAIN_SNAPSHOT_NUM = 187,
+    REMOTE_PROC_DOMAIN_SNAPSHOT_LIST_NAMES = 188,
+    REMOTE_PROC_DOMAIN_SNAPSHOT_LOOKUP_BY_NAME = 189,
+    REMOTE_PROC_DOMAIN_HAS_CURRENT_SNAPSHOT = 190,
+
+    REMOTE_PROC_DOMAIN_SNAPSHOT_CURRENT = 191,
+    REMOTE_PROC_DOMAIN_REVERT_TO_SNAPSHOT = 192,
+    REMOTE_PROC_DOMAIN_SNAPSHOT_DELETE = 193,
+    REMOTE_PROC_DOMAIN_GET_BLOCK_INFO = 194,
+    REMOTE_PROC_DOMAIN_EVENT_IO_ERROR_REASON = 195
 
     /*
      * Notice how the entries are grouped in sets of 10 ?

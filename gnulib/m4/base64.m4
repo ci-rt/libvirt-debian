@@ -1,3 +1,5 @@
+# -*- buffer-read-only: t -*- vi: set ro:
+# DO NOT EDIT! GENERATED AUTOMATICALLY!
 # base64.m4 serial 3
 dnl Copyright (C) 2004, 2006, 2009, 2010 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation

@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Get address information (partial implementation).
    Copyright (C) 1997, 2001-2002, 2004-2010 Free Software Foundation, Inc.
    Contributed by Simon Josefsson <simon@josefsson.org>.
@@ -351,10 +353,11 @@ freeaddrinfo (struct addrinfo *ai)
     }
 }
 
-int getnameinfo(const struct sockaddr *restrict sa, socklen_t salen,
-                char *restrict node, socklen_t nodelen,
-                char *restrict service, socklen_t servicelen,
-                int flags)
+int
+getnameinfo (const struct sockaddr *restrict sa, socklen_t salen,
+             char *restrict node, socklen_t nodelen,
+             char *restrict service, socklen_t servicelen,
+             int flags)
 {
 #ifdef WIN32_NATIVE
   if (use_win32_p ())

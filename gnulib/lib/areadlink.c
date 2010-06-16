@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* areadlink.c -- readlink wrapper to return the link name in malloc'd storage
    Unlike xreadlink and xreadlink_with_size, don't ever call exit.
 

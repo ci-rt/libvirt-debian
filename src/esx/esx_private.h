@@ -2,7 +2,7 @@
 /*
  * esx_private.h: private driver struct for the VMware ESX driver
  *
- * Copyright (C) 2009, 2010 Matthias Bolte <matthias.bolte@googlemail.com>
+ * Copyright (C) 2009-2010 Matthias Bolte <matthias.bolte@googlemail.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -21,11 +21,16 @@
  */
 
 #ifndef __ESX_PRIVATE_H__
-#define __ESX_PRIVATE_H__
+# define __ESX_PRIVATE_H__
 
-#include "internal.h"
-#include "capabilities.h"
-#include "esx_vi.h"
+# include "internal.h"
+# include "virterror_internal.h"
+# include "capabilities.h"
+# include "esx_vi.h"
+
+# define ESX_ERROR(code, ...)                                                 \
+    virReportErrorHelper(NULL, VIR_FROM_ESX, code, __FILE__, __FUNCTION__,    \
+                         __LINE__, __VA_ARGS__)
 
 typedef struct _esxPrivate {
     esxVI_Context *host;

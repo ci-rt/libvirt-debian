@@ -1,8 +1,8 @@
 /*
  * json.c: JSON object parsing/formatting
  *
- * Copyright (C) 2009 Daniel P. Berrange
  * Copyright (C) 2009-2010 Red Hat, Inc.
+ * Copyright (C) 2009 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -30,15 +30,15 @@
 #include "util.h"
 
 #if HAVE_YAJL
-#include <yajl/yajl_gen.h>
-#include <yajl/yajl_parse.h>
+# include <yajl/yajl_gen.h>
+# include <yajl/yajl_parse.h>
 #endif
 
 /* XXX fixme */
 #define VIR_FROM_THIS VIR_FROM_NONE
-#define ReportError(conn, code, fmt...)                                 \
-    virReportErrorHelper(conn, VIR_FROM_NONE, code, __FILE__,           \
-                         __FUNCTION__, __LINE__, fmt)
+#define virJSONError(code, ...)                                         \
+    virReportErrorHelper(NULL, VIR_FROM_NONE, code, __FILE__,           \
+                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 
 typedef struct _virJSONParserState virJSONParserState;
@@ -909,9 +909,9 @@ virJSONValuePtr virJSONValueFromString(const char *jsonstring)
                                                (const unsigned char*)jsonstring,
                                                strlen(jsonstring));
 
-        ReportError(NULL, VIR_ERR_INTERNAL_ERROR,
-                    _("cannot parse json %s: %s"),
-                    jsonstring, (const char*) errstr);
+        virJSONError(VIR_ERR_INTERNAL_ERROR,
+                     _("cannot parse json %s: %s"),
+                     jsonstring, (const char*) errstr);
         VIR_FREE(errstr);
         virJSONValueFree(parser.head);
         goto cleanup;
@@ -1010,17 +1010,17 @@ char *virJSONValueToString(virJSONValuePtr object)
     g = yajl_gen_alloc(&conf, NULL);
 
     if (virJSONValueToStringOne(object, g) < 0) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         goto cleanup;
     }
 
     if (yajl_gen_get_buf(g, &str, &len) != yajl_gen_status_ok) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         goto cleanup;
     }
 
     if (!(ret = strdup((const char *)str)))
-        virReportOOMError(NULL);
+        virReportOOMError();
 
 cleanup:
     yajl_gen_free(g);
@@ -1034,14 +1034,14 @@ cleanup:
 #else
 virJSONValuePtr virJSONValueFromString(const char *jsonstring ATTRIBUTE_UNUSED)
 {
-    ReportError(NULL, VIR_ERR_INTERNAL_ERROR, "%s",
-                _("No JSON parser implementation is available"));
+    virJSONError(VIR_ERR_INTERNAL_ERROR, "%s",
+                 _("No JSON parser implementation is available"));
     return NULL;
 }
 char *virJSONValueToString(virJSONValuePtr object ATTRIBUTE_UNUSED)
 {
-    ReportError(NULL, VIR_ERR_INTERNAL_ERROR, "%s",
-                _("No JSON parser implementation is available"));
+    virJSONError(VIR_ERR_INTERNAL_ERROR, "%s",
+                 _("No JSON parser implementation is available"));
     return NULL;
 }
 #endif

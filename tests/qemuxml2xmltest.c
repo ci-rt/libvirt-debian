@@ -10,16 +10,16 @@
 
 #ifdef WITH_QEMU
 
-#include "internal.h"
-#include "testutils.h"
-#include "qemu/qemu_conf.h"
-#include "testutilsqemu.h"
+# include "internal.h"
+# include "testutils.h"
+# include "qemu/qemu_conf.h"
+# include "testutilsqemu.h"
 
 static char *progname;
 static char *abs_srcdir;
 static struct qemud_driver driver;
 
-#define MAX_FILE 4096
+# define MAX_FILE 4096
 
 
 static int testCompareXMLToXMLFiles(const char *xml) {
@@ -32,11 +32,11 @@ static int testCompareXMLToXMLFiles(const char *xml) {
     if (virtTestLoadFile(xml, &xmlPtr, MAX_FILE) < 0)
         goto fail;
 
-    if (!(vmdef = virDomainDefParseString(NULL, driver.caps, xmlData,
+    if (!(vmdef = virDomainDefParseString(driver.caps, xmlData,
                                           VIR_DOMAIN_XML_INACTIVE)))
         goto fail;
 
-    if (!(actual = virDomainDefFormat(NULL, vmdef, 0)))
+    if (!(actual = virDomainDefFormat(vmdef, 0)))
         goto fail;
 
     if (STRNEQ(xmlData, actual)) {
@@ -80,7 +80,7 @@ mymain(int argc, char **argv)
     if ((driver.caps = testQemuCapsInit()) == NULL)
         return (EXIT_FAILURE);
 
-#define DO_TEST(name) \
+# define DO_TEST(name) \
     if (virtTestRun("QEMU XML-2-XML " name, \
                     1, testCompareXMLToXMLHelper, (name)) < 0) \
         ret = -1
@@ -133,9 +133,12 @@ mymain(int argc, char **argv)
     DO_TEST("parallel-tcp");
     DO_TEST("console-compat");
     DO_TEST("channel-guestfwd");
+    DO_TEST("channel-virtio");
 
     DO_TEST("hostdev-usb-address");
     DO_TEST("hostdev-pci-address");
+
+    DO_TEST("encrypted-disk");
 
     virCapabilitiesFree(driver.caps);
 

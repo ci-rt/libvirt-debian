@@ -1,7 +1,7 @@
 /*
  * secret_conf.h: internal <secret> XML handling API
  *
- * Copyright (C) 2009 Red Hat, Inc.
+ * Copyright (C) 2009-2010 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -21,14 +21,14 @@
  */
 
 #ifndef __VIR_SECRET_CONF_H__
-#define __VIR_SECRET_CONF_H__
+# define __VIR_SECRET_CONF_H__
 
-#include "internal.h"
-#include "util.h"
+# include "internal.h"
+# include "util.h"
 
-#define virSecretReportError(conn, code, fmt...)                \
-    virReportErrorHelper(conn, VIR_FROM_SECRET, code, __FILE__, \
-                         __FUNCTION__, __LINE__, fmt)
+# define virSecretReportError(code, ...)                         \
+    virReportErrorHelper(NULL, VIR_FROM_SECRET, code, __FILE__, \
+                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 VIR_ENUM_DECL(virSecretUsageType)
 
@@ -46,8 +46,8 @@ struct _virSecretDef {
 };
 
 void virSecretDefFree(virSecretDefPtr def);
-virSecretDefPtr virSecretDefParseString(virConnectPtr conn, const char *xml);
-virSecretDefPtr virSecretDefParseFile(virConnectPtr conn, const char *filename);
-char *virSecretDefFormat(virConnectPtr conn, const virSecretDefPtr def);
+virSecretDefPtr virSecretDefParseString(const char *xml);
+virSecretDefPtr virSecretDefParseFile(const char *filename);
+char *virSecretDefFormat(const virSecretDefPtr def);
 
 #endif

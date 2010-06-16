@@ -1,9 +1,8 @@
 /*
  * sexpr.c : S-Expression routines to communicate with the Xen Daemon
  *
- * Copyright (C) 2005
- *
- *      Anthony Liguori <aliguori@us.ibm.com>
+ * Copyright (C) 2010 Red Hat, Inc.
+ * Copyright (C) 2005 Anthony Liguori <aliguori@us.ibm.com>
  *
  *  This file is subject to the terms and conditions of the GNU Lesser General
  *  Public License. See the file COPYING.LIB in the main directory of this
@@ -25,9 +24,9 @@
 
 #define VIR_FROM_THIS VIR_FROM_SEXPR
 
-#define virSexprError(code, fmt...)                                          \
+#define virSexprError(code, ...)                                           \
         virReportErrorHelper(NULL, VIR_FROM_SEXPR, code, __FILE__,         \
-                               __FUNCTION__, __LINE__, fmt)
+                               __FUNCTION__, __LINE__, __VA_ARGS__)
 
 /**
  * sexpr_new:
@@ -42,7 +41,7 @@ sexpr_new(void)
     struct sexpr *ret;
 
     if (VIR_ALLOC(ret) < 0) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         return (NULL);
     }
     ret->kind = SEXPR_NIL;
@@ -119,6 +118,7 @@ sexpr_string(const char *str, ssize_t len)
     }
 
     if (ret->u.value == NULL) {
+        VIR_FREE(ret);
         return NULL;
     }
 
@@ -349,7 +349,7 @@ _string2sexpr(const char *buffer, size_t * end)
 
             ret->u.value = strndup(start, ptr - start);
             if (ret->u.value == NULL) {
-                virReportOOMError(NULL);
+                virReportOOMError();
                 goto error;
             }
 
@@ -365,7 +365,7 @@ _string2sexpr(const char *buffer, size_t * end)
 
             ret->u.value = strndup(start, ptr - start);
             if (ret->u.value == NULL) {
-                virReportOOMError(NULL);
+                virReportOOMError();
                 goto error;
             }
         }

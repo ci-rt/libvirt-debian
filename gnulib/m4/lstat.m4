@@ -1,3 +1,5 @@
+# -*- buffer-read-only: t -*- vi: set ro:
+# DO NOT EDIT! GENERATED AUTOMATICALLY!
 # serial 20
 
 # Copyright (C) 1997-2001, 2003-2010 Free Software Foundation, Inc.

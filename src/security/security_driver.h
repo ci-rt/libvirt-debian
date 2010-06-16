@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 Red Hat, Inc.
+ * Copyright (C) 2008, 2010 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -11,10 +11,10 @@
  *
  */
 #ifndef __VIR_SECURITY_H__
-#define __VIR_SECURITY_H__
+# define __VIR_SECURITY_H__
 
-#include "internal.h"
-#include "domain_conf.h"
+# include "internal.h"
+# include "domain_conf.h"
 
 /*
  * Return values for security driver probing: the driver will determine
@@ -29,44 +29,29 @@ typedef enum {
 typedef struct _virSecurityDriver virSecurityDriver;
 typedef virSecurityDriver *virSecurityDriverPtr;
 typedef virSecurityDriverStatus (*virSecurityDriverProbe) (void);
-typedef int (*virSecurityDriverOpen) (virConnectPtr conn,
-                                      virSecurityDriverPtr drv);
-typedef int (*virSecurityDomainRestoreImageLabel) (virConnectPtr conn,
-                                                   virDomainObjPtr vm,
+typedef int (*virSecurityDriverOpen) (virSecurityDriverPtr drv);
+typedef int (*virSecurityDomainRestoreImageLabel) (virDomainObjPtr vm,
                                                    virDomainDiskDefPtr disk);
-typedef int (*virSecurityDomainSetImageLabel) (virConnectPtr conn,
-                                               virDomainObjPtr vm,
+typedef int (*virSecurityDomainSetImageLabel) (virDomainObjPtr vm,
                                                virDomainDiskDefPtr disk);
-typedef int (*virSecurityDomainRestoreHostdevLabel) (virConnectPtr conn,
-                                                     virDomainObjPtr vm,
+typedef int (*virSecurityDomainRestoreHostdevLabel) (virDomainObjPtr vm,
                                                      virDomainHostdevDefPtr dev);
-typedef int (*virSecurityDomainSetHostdevLabel) (virConnectPtr conn,
-                                                 virDomainObjPtr vm,
+typedef int (*virSecurityDomainSetHostdevLabel) (virDomainObjPtr vm,
                                                  virDomainHostdevDefPtr dev);
-typedef int (*virSecurityDomainSetSavedStateLabel) (virConnectPtr conn,
-                                                    virDomainObjPtr vm,
+typedef int (*virSecurityDomainSetSavedStateLabel) (virDomainObjPtr vm,
                                                     const char *savefile);
-typedef int (*virSecurityDomainRestoreSavedStateLabel) (virConnectPtr conn,
-                                                        virDomainObjPtr vm,
+typedef int (*virSecurityDomainRestoreSavedStateLabel) (virDomainObjPtr vm,
                                                         const char *savefile);
-typedef int (*virSecurityDomainGenLabel) (virConnectPtr conn,
-                                          virDomainObjPtr sec);
-typedef int (*virSecurityDomainReserveLabel) (virConnectPtr conn,
-                                              virDomainObjPtr sec);
-typedef int (*virSecurityDomainReleaseLabel) (virConnectPtr conn,
-                                              virDomainObjPtr sec);
-typedef int (*virSecurityDomainSetAllLabel) (virConnectPtr conn,
-                                             virDomainObjPtr sec);
-typedef int (*virSecurityDomainRestoreAllLabel) (virConnectPtr conn,
-                                                 virDomainObjPtr vm);
-typedef int (*virSecurityDomainGetProcessLabel) (virConnectPtr conn,
-                                                 virDomainObjPtr vm,
+typedef int (*virSecurityDomainGenLabel) (virDomainObjPtr sec);
+typedef int (*virSecurityDomainReserveLabel) (virDomainObjPtr sec);
+typedef int (*virSecurityDomainReleaseLabel) (virDomainObjPtr sec);
+typedef int (*virSecurityDomainSetAllLabel) (virDomainObjPtr sec);
+typedef int (*virSecurityDomainRestoreAllLabel) (virDomainObjPtr vm);
+typedef int (*virSecurityDomainGetProcessLabel) (virDomainObjPtr vm,
                                                  virSecurityLabelPtr sec);
-typedef int (*virSecurityDomainSetProcessLabel) (virConnectPtr conn,
-                                                 virSecurityDriverPtr drv,
+typedef int (*virSecurityDomainSetProcessLabel) (virSecurityDriverPtr drv,
                                                  virDomainObjPtr vm);
-typedef int (*virSecurityDomainSecurityVerify) (virConnectPtr conn,
-                                                virDomainDefPtr def);
+typedef int (*virSecurityDomainSecurityVerify) (virDomainDefPtr def);
 
 struct _virSecurityDriver {
     const char *name;
@@ -101,16 +86,15 @@ int virSecurityDriverStartup(virSecurityDriverPtr *drv,
                              const char *name);
 
 int
-virSecurityDriverVerify(virConnectPtr conn, virDomainDefPtr def);
+virSecurityDriverVerify(virDomainDefPtr def);
 
-void
-virSecurityReportError(virConnectPtr conn, int code, const char *fmt, ...)
-    ATTRIBUTE_FMT_PRINTF(3, 4);
+# define virSecurityReportError(code, ...)                           \
+    virReportErrorHelper(NULL, VIR_FROM_SECURITY, code, __FILE__,   \
+                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 /* Helpers */
 void virSecurityDriverInit(virSecurityDriverPtr drv);
-int virSecurityDriverSetDOI(virConnectPtr conn,
-                            virSecurityDriverPtr drv,
+int virSecurityDriverSetDOI(virSecurityDriverPtr drv,
                             const char *doi);
 const char *virSecurityDriverGetDOI(virSecurityDriverPtr drv);
 const char *virSecurityDriverGetModel(virSecurityDriverPtr drv);

@@ -9,13 +9,13 @@
  */
 
 #ifndef __VIR_NETWORK_H__
-#define __VIR_NETWORK_H__
+# define __VIR_NETWORK_H__
 
-#include "internal.h"
+# include "internal.h"
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
+# include <sys/types.h>
+# include <sys/socket.h>
+# include <netdb.h>
 
 typedef union {
     struct sockaddr_storage stor;
@@ -48,4 +48,7 @@ int virSocketAddrIsNetmask(virSocketAddrPtr netmask);
 int virSocketCheckNetmask (virSocketAddrPtr addr1,
                            virSocketAddrPtr addr2,
                            virSocketAddrPtr netmask);
+
+int virSocketGetNumNetmaskBits(const virSocketAddrPtr netmask);
+
 #endif /* __VIR_NETWORK_H__ */

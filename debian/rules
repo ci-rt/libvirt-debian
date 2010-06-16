@@ -1,6 +1,7 @@
 #!/usr/bin/make -f
 
 DEB_PYTHON_SYSTEM = pycentral
+DEB_BUILD_PARALLEL = yes
 
 ifneq (,$(findstring $(DEB_HOST_ARCH), i386 amd64))
   BUILD_XEN = --with-xen
@@ -19,7 +20,6 @@ endif
 include /usr/share/cdbs/1/rules/debhelper.mk
 include /usr/share/cdbs/1/class/autotools.mk
 include /usr/share/cdbs/1/class/python-distutils.mk
-include /usr/share/cdbs/1/rules/patchsys-quilt.mk
 
 DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	--disable-rpath          \
@@ -40,6 +40,8 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	--without-selinux        \
 	--without-esx		 \
 	--without-libssh2	 \
+	--with-capng		 \
+	--with-macvtap		 \
 	--enable-debug		 \
 	$(BUILD_XEN)		 \
 	$(BUILD_VBOX)		 \

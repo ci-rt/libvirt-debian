@@ -72,6 +72,9 @@ EXTRA_DIST =		\
 	nodedevschemadata \
 	vmx2xmldata \
 	xml2vmxdata \
+	nwfilterxml2xmlout \
+	nwfilterxml2xmlin \
+	nwfilterschematest \
 	$(patsubst %,qemuhelpdata/%,$(qemuhelpdata))
 
 noinst_PROGRAMS = virshtest conftest \
@@ -103,6 +106,8 @@ endif
 
 noinst_PROGRAMS += networkxml2xmltest
 
+noinst_PROGRAMS += nwfilterxml2xmltest
+
 noinst_PROGRAMS += storagevolxml2xmltest storagepoolxml2xmltest
 
 noinst_PROGRAMS += nodedevxml2xmltest
@@ -116,7 +121,8 @@ test_scripts = \
 	storagepoolschematest \
 	storagevolschematest \
 	domainschematest \
-	nodedevschematest
+	nodedevschematest \
+	nwfilterschematest
 
 if WITH_LIBVIRTD
 test_scripts +=				\
@@ -162,6 +168,7 @@ endif
 
 if WITH_QEMU
 TESTS += qemuxml2argvtest qemuxml2xmltest qemuargv2xmltest qemuhelptest
+TESTS += nwfilterxml2xmltest
 endif
 
 if WITH_ESX
@@ -285,6 +292,11 @@ networkxml2xmltest_SOURCES = \
 	networkxml2xmltest.c \
 	testutils.c testutils.h
 networkxml2xmltest_LDADD = $(LDADDS)
+
+nwfilterxml2xmltest_SOURCES = \
+	nwfilterxml2xmltest.c \
+	testutils.c testutils.h
+nwfilterxml2xmltest_LDADD = $(LDADDS)
 
 storagevolxml2xmltest_SOURCES = \
 	storagevolxml2xmltest.c \

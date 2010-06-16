@@ -4,7 +4,7 @@
  *           entry points where an automatically generated stub is
  *           unpractical
  *
- * Copyright (C) 2005, 2007-2009 Red Hat, Inc.
+ * Copyright (C) 2005, 2007-2010 Red Hat, Inc.
  *
  * Daniel Veillard <veillard@redhat.com>
  */
@@ -943,6 +943,51 @@ libvirt_virConnectListDefinedDomains(PyObject *self ATTRIBUTE_UNUSED,
 }
 
 static PyObject *
+libvirt_virDomainSnapshotListNames(PyObject *self ATTRIBUTE_UNUSED,
+                                   PyObject *args) {
+    PyObject *py_retval;
+    char **names = NULL;
+    int c_retval, i;
+    virDomainPtr dom;
+    PyObject *pyobj_dom;
+    int flags;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oi:virDomainSnapshotListNames", &pyobj_dom, &flags))
+        return(NULL);
+    dom = (virDomainPtr) PyvirDomain_Get(pyobj_dom);
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    c_retval = virDomainSnapshotNum(dom, flags);
+    LIBVIRT_END_ALLOW_THREADS;
+    if (c_retval < 0)
+        return VIR_PY_NONE;
+
+    if (c_retval) {
+        names = malloc(sizeof(*names) * c_retval);
+        if (!names)
+            return VIR_PY_NONE;
+        LIBVIRT_BEGIN_ALLOW_THREADS;
+        c_retval = virDomainSnapshotListNames(dom, names, c_retval, flags);
+        LIBVIRT_END_ALLOW_THREADS;
+        if (c_retval < 0) {
+            free(names);
+            return VIR_PY_NONE;
+        }
+    }
+    py_retval = PyList_New(c_retval);
+
+    if (names) {
+        for (i = 0;i < c_retval;i++) {
+            PyList_SetItem(py_retval, i, libvirt_constcharPtrWrap(names[i]));
+            free(names[i]);
+        }
+        free(names);
+    }
+
+    return(py_retval);
+}
+
+static PyObject *
 libvirt_virDomainGetInfo(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     int c_retval;
@@ -966,6 +1011,32 @@ libvirt_virDomainGetInfo(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyList_SetItem(py_retval, 3, libvirt_intWrap((int) info.nrVirtCpu));
     PyList_SetItem(py_retval, 4,
                    libvirt_longlongWrap((unsigned long long) info.cpuTime));
+    return(py_retval);
+}
+
+static PyObject *
+libvirt_virDomainGetBlockInfo(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virDomainPtr domain;
+    PyObject *pyobj_domain;
+    virDomainBlockInfo info;
+    const char *path;
+    unsigned int flags;
+
+    if (!PyArg_ParseTuple(args, (char *)"Ozi:virDomainGetInfo", &pyobj_domain, &path, &flags))
+        return(NULL);
+    domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    c_retval = virDomainGetBlockInfo(domain, path, &info, flags);
+    LIBVIRT_END_ALLOW_THREADS;
+    if (c_retval < 0)
+        return VIR_PY_NONE;
+    py_retval = PyList_New(3);
+    PyList_SetItem(py_retval, 0, libvirt_ulonglongWrap(info.capacity));
+    PyList_SetItem(py_retval, 1, libvirt_ulonglongWrap(info.allocation));
+    PyList_SetItem(py_retval, 2, libvirt_ulonglongWrap(info.physical));
     return(py_retval);
 }
 
@@ -1912,6 +1983,126 @@ libvirt_virSecretSetValue(PyObject *self ATTRIBUTE_UNUSED,
 }
 
 static PyObject *
+libvirt_virNWFilterGetUUID(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    unsigned char uuid[VIR_UUID_BUFLEN];
+    virNWFilterPtr nwfilter;
+    PyObject *pyobj_nwfilter;
+    int c_retval;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virNWFilterGetUUID", &pyobj_nwfilter))
+        return(NULL);
+    nwfilter = (virNWFilterPtr) PyvirNWFilter_Get(pyobj_nwfilter);
+
+    if (nwfilter == NULL)
+        return VIR_PY_NONE;
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    c_retval = virNWFilterGetUUID(nwfilter, &uuid[0]);
+    LIBVIRT_END_ALLOW_THREADS;
+
+    if (c_retval < 0)
+        return VIR_PY_NONE;
+    py_retval = PyString_FromStringAndSize((char *) &uuid[0], VIR_UUID_BUFLEN);
+
+    return(py_retval);
+}
+
+static PyObject *
+libvirt_virNWFilterGetUUIDString(PyObject *self ATTRIBUTE_UNUSED,
+                                 PyObject *args) {
+    PyObject *py_retval;
+    char uuidstr[VIR_UUID_STRING_BUFLEN];
+    virNWFilterPtr nwfilter;
+    PyObject *pyobj_nwfilter;
+    int c_retval;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virNWFilterGetUUIDString",
+                          &pyobj_nwfilter))
+        return(NULL);
+    nwfilter = (virNWFilterPtr) PyvirNWFilter_Get(pyobj_nwfilter);
+
+    if (nwfilter == NULL)
+        return VIR_PY_NONE;
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    c_retval = virNWFilterGetUUIDString(nwfilter, &uuidstr[0]);
+    LIBVIRT_END_ALLOW_THREADS;
+
+    if (c_retval < 0)
+        return VIR_PY_NONE;
+
+    py_retval = PyString_FromString((char *) &uuidstr[0]);
+    return(py_retval);
+}
+
+static PyObject *
+libvirt_virNWFilterLookupByUUID(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    virNWFilterPtr c_retval;
+    virConnectPtr conn;
+    PyObject *pyobj_conn;
+    unsigned char * uuid;
+    int len;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oz#:virNWFilterLookupByUUID", &pyobj_conn, &uuid, &len))
+        return(NULL);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+
+    if ((uuid == NULL) || (len != VIR_UUID_BUFLEN))
+        return VIR_PY_NONE;
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    c_retval = virNWFilterLookupByUUID(conn, uuid);
+    LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_virNWFilterPtrWrap((virNWFilterPtr) c_retval);
+    return(py_retval);
+}
+
+
+static PyObject *
+libvirt_virConnectListNWFilters(PyObject *self ATTRIBUTE_UNUSED,
+                                PyObject *args) {
+    PyObject *py_retval;
+    char **uuids = NULL;
+    virConnectPtr conn;
+    int c_retval, i;
+    PyObject *pyobj_conn;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virConnectListNWFilters", &pyobj_conn))
+        return NULL;
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    c_retval = virConnectNumOfNWFilters(conn);
+    LIBVIRT_END_ALLOW_THREADS;
+    if (c_retval < 0)
+        return VIR_PY_NONE;
+
+    if (c_retval) {
+        uuids = malloc(sizeof(*uuids) * c_retval);
+        if (!uuids)
+            return VIR_PY_NONE;
+        LIBVIRT_BEGIN_ALLOW_THREADS;
+        c_retval = virConnectListNWFilters(conn, uuids, c_retval);
+        LIBVIRT_END_ALLOW_THREADS;
+        if (c_retval < 0) {
+            free(uuids);
+            return VIR_PY_NONE;
+        }
+    }
+    py_retval = PyList_New(c_retval);
+
+    if (uuids) {
+        for (i = 0;i < c_retval;i++) {
+            PyList_SetItem(py_retval, i, libvirt_constcharPtrWrap(uuids[i]));
+            free(uuids[i]);
+        }
+        free(uuids);
+    }
+
+    return py_retval;
+}
+
+static PyObject *
 libvirt_virConnectListInterfaces(PyObject *self ATTRIBUTE_UNUSED,
                                  PyObject *args) {
     PyObject *py_retval;
@@ -2018,6 +2209,94 @@ libvirt_virConnectListDefinedInterfaces(PyObject *self ATTRIBUTE_UNUSED,
 
     return(py_retval);
 }
+
+
+static PyObject *
+libvirt_virConnectBaselineCPU(PyObject *self ATTRIBUTE_UNUSED,
+                              PyObject *args) {
+    PyObject *pyobj_conn;
+    PyObject *list;
+    virConnectPtr conn;
+    unsigned int flags;
+    const char **xmlcpus = NULL;
+    int ncpus = 0;
+    char *base_cpu;
+    PyObject *pybase_cpu;
+
+    if (!PyArg_ParseTuple(args, (char *)"OOi:virConnectBaselineCPU",
+                          &pyobj_conn, &list, &flags))
+        return(NULL);
+    conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+
+    if (PyList_Check(list)) {
+        int i;
+
+        ncpus = PyList_Size(list);
+        if ((xmlcpus = malloc(ncpus * sizeof(*xmlcpus))) == NULL)
+            return VIR_PY_INT_FAIL;
+
+        for (i = 0; i < ncpus; i++) {
+            xmlcpus[i] = PyString_AsString(PyList_GetItem(list, i));
+            if (xmlcpus[i] == NULL) {
+                free(xmlcpus);
+                return VIR_PY_INT_FAIL;
+            }
+        }
+    }
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    base_cpu = virConnectBaselineCPU(conn, xmlcpus, ncpus, flags);
+    LIBVIRT_END_ALLOW_THREADS;
+
+    free(xmlcpus);
+
+    if (base_cpu == NULL)
+        return VIR_PY_INT_FAIL;
+
+    pybase_cpu = PyString_FromString(base_cpu);
+    free(base_cpu);
+
+    if (pybase_cpu == NULL)
+        return VIR_PY_INT_FAIL;
+
+    return pybase_cpu;
+}
+
+
+static PyObject *
+libvirt_virDomainGetJobInfo(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
+    PyObject *py_retval;
+    int c_retval;
+    virDomainPtr domain;
+    PyObject *pyobj_domain;
+    virDomainJobInfo info;
+
+    if (!PyArg_ParseTuple(args, (char *)"O:virDomainGetJobInfo", &pyobj_domain))
+        return(NULL);
+    domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    c_retval = virDomainGetJobInfo(domain, &info);
+    LIBVIRT_END_ALLOW_THREADS;
+    if (c_retval < 0)
+        return VIR_PY_NONE;
+    py_retval = PyList_New(12);
+    PyList_SetItem(py_retval, 0, libvirt_intWrap((int) info.type));
+    PyList_SetItem(py_retval, 1, libvirt_ulonglongWrap(info.timeElapsed));
+    PyList_SetItem(py_retval, 2, libvirt_ulonglongWrap(info.timeRemaining));
+    PyList_SetItem(py_retval, 3, libvirt_ulonglongWrap(info.dataTotal));
+    PyList_SetItem(py_retval, 4, libvirt_ulonglongWrap(info.dataProcessed));
+    PyList_SetItem(py_retval, 5, libvirt_ulonglongWrap(info.dataRemaining));
+    PyList_SetItem(py_retval, 6, libvirt_ulonglongWrap(info.memTotal));
+    PyList_SetItem(py_retval, 7, libvirt_ulonglongWrap(info.memProcessed));
+    PyList_SetItem(py_retval, 8, libvirt_ulonglongWrap(info.memRemaining));
+    PyList_SetItem(py_retval, 9, libvirt_ulonglongWrap(info.fileTotal));
+    PyList_SetItem(py_retval, 10, libvirt_ulonglongWrap(info.fileProcessed));
+    PyList_SetItem(py_retval, 11, libvirt_ulonglongWrap(info.fileRemaining));
+
+    return(py_retval);
+}
+
 
 /*******************************************
  * Helper functions to avoid importing modules
@@ -2673,6 +2952,510 @@ libvirt_virEventInvokeTimeoutCallback(PyObject *self ATTRIBUTE_UNUSED,
     return VIR_PY_INT_SUCCESS;
 }
 
+
+static void
+libvirt_virConnectDomainEventFreeFunc(void *opaque)
+{
+    PyObject *pyobj_conn = (PyObject*)opaque;
+    LIBVIRT_ENSURE_THREAD_STATE;
+    Py_DECREF(pyobj_conn);
+    LIBVIRT_RELEASE_THREAD_STATE;
+}
+
+static int
+libvirt_virConnectDomainEventLifecycleCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                               virDomainPtr dom,
+                                               int event,
+                                               int detail,
+                                               void *opaque)
+{
+    PyObject *pyobj_cbData = (PyObject*)opaque;
+    PyObject *pyobj_dom;
+    PyObject *pyobj_ret;
+    PyObject *pyobj_conn;
+    PyObject *dictKey;
+    int ret = -1;
+
+    LIBVIRT_ENSURE_THREAD_STATE;
+
+    /* Create a python instance of this virDomainPtr */
+    virDomainRef(dom);
+    pyobj_dom = libvirt_virDomainPtrWrap(dom);
+    Py_INCREF(pyobj_cbData);
+
+    dictKey = libvirt_constcharPtrWrap("conn");
+    pyobj_conn = PyDict_GetItem(pyobj_cbData, dictKey);
+    Py_DECREF(dictKey);
+
+    /* Call the Callback Dispatcher */
+    pyobj_ret = PyObject_CallMethod(pyobj_conn,
+                                    (char*)"dispatchDomainEventLifecycleCallback",
+                                    (char*)"OiiO",
+                                    pyobj_dom,
+                                    event, detail,
+                                    pyobj_cbData);
+
+    Py_DECREF(pyobj_cbData);
+    Py_DECREF(pyobj_dom);
+
+    if(!pyobj_ret) {
+#if DEBUG_ERROR
+        printf("%s - ret:%p\n", __FUNCTION__, pyobj_ret);
+#endif
+        PyErr_Print();
+    } else {
+        Py_DECREF(pyobj_ret);
+        ret = 0;
+    }
+
+    LIBVIRT_RELEASE_THREAD_STATE;
+    return ret;
+}
+
+static int
+libvirt_virConnectDomainEventGenericCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                             virDomainPtr dom,
+                                             void *opaque)
+{
+    PyObject *pyobj_cbData = (PyObject*)opaque;
+    PyObject *pyobj_dom;
+    PyObject *pyobj_ret;
+    PyObject *pyobj_conn;
+    PyObject *dictKey;
+    int ret = -1;
+
+    LIBVIRT_ENSURE_THREAD_STATE;
+
+    /* Create a python instance of this virDomainPtr */
+    virDomainRef(dom);
+    pyobj_dom = libvirt_virDomainPtrWrap(dom);
+    Py_INCREF(pyobj_cbData);
+
+    dictKey = libvirt_constcharPtrWrap("conn");
+    pyobj_conn = PyDict_GetItem(pyobj_cbData, dictKey);
+    Py_DECREF(dictKey);
+
+    /* Call the Callback Dispatcher */
+    pyobj_ret = PyObject_CallMethod(pyobj_conn,
+                                    (char*)"dispatchDomainEventGenericCallback",
+                                    (char*)"OO",
+                                    pyobj_dom, pyobj_cbData);
+
+    Py_DECREF(pyobj_cbData);
+    Py_DECREF(pyobj_dom);
+
+    if(!pyobj_ret) {
+#if DEBUG_ERROR
+        printf("%s - ret:%p\n", __FUNCTION__, pyobj_ret);
+#endif
+        PyErr_Print();
+    } else {
+        Py_DECREF(pyobj_ret);
+        ret = 0;
+    }
+
+    LIBVIRT_RELEASE_THREAD_STATE;
+    return ret;
+}
+
+static int
+libvirt_virConnectDomainEventRTCChangeCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                               virDomainPtr dom,
+                                               long long utcoffset,
+                                               void *opaque)
+{
+    PyObject *pyobj_cbData = (PyObject*)opaque;
+    PyObject *pyobj_dom;
+    PyObject *pyobj_ret;
+    PyObject *pyobj_conn;
+    PyObject *dictKey;
+    int ret = -1;
+
+    LIBVIRT_ENSURE_THREAD_STATE;
+
+    /* Create a python instance of this virDomainPtr */
+    virDomainRef(dom);
+    pyobj_dom = libvirt_virDomainPtrWrap(dom);
+    Py_INCREF(pyobj_cbData);
+
+    dictKey = libvirt_constcharPtrWrap("conn");
+    pyobj_conn = PyDict_GetItem(pyobj_cbData, dictKey);
+    Py_DECREF(dictKey);
+
+    /* Call the Callback Dispatcher */
+    pyobj_ret = PyObject_CallMethod(pyobj_conn,
+                                    (char*)"dispatchDomainEventRTCChangeCallback",
+                                    (char*)"OLO",
+                                    pyobj_dom,
+                                    (PY_LONG_LONG)utcoffset,
+                                    pyobj_cbData);
+
+    Py_DECREF(pyobj_cbData);
+    Py_DECREF(pyobj_dom);
+
+    if(!pyobj_ret) {
+#if DEBUG_ERROR
+        printf("%s - ret:%p\n", __FUNCTION__, pyobj_ret);
+#endif
+        PyErr_Print();
+    } else {
+        Py_DECREF(pyobj_ret);
+        ret = 0;
+    }
+
+    LIBVIRT_RELEASE_THREAD_STATE;
+    return ret;
+}
+
+static int
+libvirt_virConnectDomainEventWatchdogCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                              virDomainPtr dom,
+                                              int action,
+                                              void *opaque)
+{
+    PyObject *pyobj_cbData = (PyObject*)opaque;
+    PyObject *pyobj_dom;
+    PyObject *pyobj_ret;
+    PyObject *pyobj_conn;
+    PyObject *dictKey;
+    int ret = -1;
+
+    LIBVIRT_ENSURE_THREAD_STATE;
+
+    /* Create a python instance of this virDomainPtr */
+    virDomainRef(dom);
+    pyobj_dom = libvirt_virDomainPtrWrap(dom);
+    Py_INCREF(pyobj_cbData);
+
+    dictKey = libvirt_constcharPtrWrap("conn");
+    pyobj_conn = PyDict_GetItem(pyobj_cbData, dictKey);
+    Py_DECREF(dictKey);
+
+    /* Call the Callback Dispatcher */
+    pyobj_ret = PyObject_CallMethod(pyobj_conn,
+                                    (char*)"dispatchDomainEventWatchdogCallback",
+                                    (char*)"OiO",
+                                    pyobj_dom,
+                                    action,
+                                    pyobj_cbData);
+
+    Py_DECREF(pyobj_cbData);
+    Py_DECREF(pyobj_dom);
+
+    if(!pyobj_ret) {
+#if DEBUG_ERROR
+        printf("%s - ret:%p\n", __FUNCTION__, pyobj_ret);
+#endif
+        PyErr_Print();
+    } else {
+        Py_DECREF(pyobj_ret);
+        ret = 0;
+    }
+
+    LIBVIRT_RELEASE_THREAD_STATE;
+    return ret;
+}
+
+static int
+libvirt_virConnectDomainEventIOErrorCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                             virDomainPtr dom,
+                                             const char *srcPath,
+                                             const char *devAlias,
+                                             int action,
+                                             void *opaque)
+{
+    PyObject *pyobj_cbData = (PyObject*)opaque;
+    PyObject *pyobj_dom;
+    PyObject *pyobj_ret;
+    PyObject *pyobj_conn;
+    PyObject *dictKey;
+    int ret = -1;
+
+    LIBVIRT_ENSURE_THREAD_STATE;
+
+    /* Create a python instance of this virDomainPtr */
+    virDomainRef(dom);
+    pyobj_dom = libvirt_virDomainPtrWrap(dom);
+    Py_INCREF(pyobj_cbData);
+
+    dictKey = libvirt_constcharPtrWrap("conn");
+    pyobj_conn = PyDict_GetItem(pyobj_cbData, dictKey);
+    Py_DECREF(dictKey);
+
+    /* Call the Callback Dispatcher */
+    pyobj_ret = PyObject_CallMethod(pyobj_conn,
+                                    (char*)"dispatchDomainEventIOErrorCallback",
+                                    (char*)"OssiO",
+                                    pyobj_dom,
+                                    srcPath, devAlias, action,
+                                    pyobj_cbData);
+
+    Py_DECREF(pyobj_cbData);
+    Py_DECREF(pyobj_dom);
+
+    if(!pyobj_ret) {
+#if DEBUG_ERROR
+        printf("%s - ret:%p\n", __FUNCTION__, pyobj_ret);
+#endif
+        PyErr_Print();
+    } else {
+        Py_DECREF(pyobj_ret);
+        ret = 0;
+    }
+
+    LIBVIRT_RELEASE_THREAD_STATE;
+    return ret;
+}
+
+static int
+libvirt_virConnectDomainEventIOErrorReasonCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                                   virDomainPtr dom,
+                                                   const char *srcPath,
+                                                   const char *devAlias,
+                                                   int action,
+                                                   const char *reason,
+                                                   void *opaque)
+{
+    PyObject *pyobj_cbData = (PyObject*)opaque;
+    PyObject *pyobj_dom;
+    PyObject *pyobj_ret;
+    PyObject *pyobj_conn;
+    PyObject *dictKey;
+    int ret = -1;
+
+    LIBVIRT_ENSURE_THREAD_STATE;
+
+    /* Create a python instance of this virDomainPtr */
+    virDomainRef(dom);
+    pyobj_dom = libvirt_virDomainPtrWrap(dom);
+    Py_INCREF(pyobj_cbData);
+
+    dictKey = libvirt_constcharPtrWrap("conn");
+    pyobj_conn = PyDict_GetItem(pyobj_cbData, dictKey);
+    Py_DECREF(dictKey);
+
+    /* Call the Callback Dispatcher */
+    pyobj_ret = PyObject_CallMethod(pyobj_conn,
+                                    (char*)"dispatchDomainEventIOErrorCallback",
+                                    (char*)"OssisO",
+                                    pyobj_dom,
+                                    srcPath, devAlias, action, reason,
+                                    pyobj_cbData);
+
+    Py_DECREF(pyobj_cbData);
+    Py_DECREF(pyobj_dom);
+
+    if(!pyobj_ret) {
+#if DEBUG_ERROR
+        printf("%s - ret:%p\n", __FUNCTION__, pyobj_ret);
+#endif
+        PyErr_Print();
+    } else {
+        Py_DECREF(pyobj_ret);
+        ret = 0;
+    }
+
+    LIBVIRT_RELEASE_THREAD_STATE;
+    return ret;
+}
+
+static int
+libvirt_virConnectDomainEventGraphicsCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                              virDomainPtr dom,
+                                              int phase,
+                                              virDomainEventGraphicsAddressPtr local,
+                                              virDomainEventGraphicsAddressPtr remote,
+                                              const char *authScheme,
+                                              virDomainEventGraphicsSubjectPtr subject,
+                                              void *opaque)
+{
+    PyObject *pyobj_cbData = (PyObject*)opaque;
+    PyObject *pyobj_dom;
+    PyObject *pyobj_ret;
+    PyObject *pyobj_conn;
+    PyObject *dictKey;
+    PyObject *pyobj_local;
+    PyObject *pyobj_remote;
+    PyObject *pyobj_subject;
+    int ret = -1;
+    int i;
+
+    LIBVIRT_ENSURE_THREAD_STATE;
+
+    /* Create a python instance of this virDomainPtr */
+    virDomainRef(dom);
+    pyobj_dom = libvirt_virDomainPtrWrap(dom);
+    Py_INCREF(pyobj_cbData);
+
+    dictKey = libvirt_constcharPtrWrap("conn");
+    pyobj_conn = PyDict_GetItem(pyobj_cbData, dictKey);
+    Py_DECREF(dictKey);
+
+    pyobj_local = PyDict_New();
+    PyDict_SetItem(pyobj_local,
+                   libvirt_constcharPtrWrap("family"),
+                   libvirt_intWrap(local->family));
+    PyDict_SetItem(pyobj_local,
+                   libvirt_constcharPtrWrap("node"),
+                   libvirt_constcharPtrWrap(local->node));
+    PyDict_SetItem(pyobj_local,
+                   libvirt_constcharPtrWrap("service"),
+                   libvirt_constcharPtrWrap(local->service));
+
+    pyobj_remote = PyDict_New();
+    PyDict_SetItem(pyobj_remote,
+                   libvirt_constcharPtrWrap("family"),
+                   libvirt_intWrap(remote->family));
+    PyDict_SetItem(pyobj_remote,
+                   libvirt_constcharPtrWrap("node"),
+                   libvirt_constcharPtrWrap(remote->node));
+    PyDict_SetItem(pyobj_remote,
+                   libvirt_constcharPtrWrap("service"),
+                   libvirt_constcharPtrWrap(remote->service));
+
+    pyobj_subject = PyList_New(subject->nidentity);
+    for (i = 0 ; i < subject->nidentity ; i++) {
+        PyObject *pair = PyTuple_New(2);
+        PyTuple_SetItem(pair, 0, libvirt_constcharPtrWrap(subject->identities[i].type));
+        PyTuple_SetItem(pair, 1, libvirt_constcharPtrWrap(subject->identities[i].name));
+
+        PyList_SetItem(pyobj_subject, i, pair);
+    }
+
+    /* Call the Callback Dispatcher */
+    pyobj_ret = PyObject_CallMethod(pyobj_conn,
+                                    (char*)"dispatchDomainEventGraphicsCallback",
+                                    (char*)"OiOOsOO",
+                                    pyobj_dom,
+                                    phase, pyobj_local, pyobj_remote,
+                                    authScheme, pyobj_subject,
+                                    pyobj_cbData);
+
+    Py_DECREF(pyobj_cbData);
+    Py_DECREF(pyobj_dom);
+
+    if(!pyobj_ret) {
+#if DEBUG_ERROR
+        printf("%s - ret:%p\n", __FUNCTION__, pyobj_ret);
+#endif
+        PyErr_Print();
+    } else {
+        Py_DECREF(pyobj_ret);
+        ret = 0;
+    }
+
+    LIBVIRT_RELEASE_THREAD_STATE;
+    return ret;
+}
+
+static PyObject *
+libvirt_virConnectDomainEventRegisterAny(ATTRIBUTE_UNUSED PyObject * self,
+                                         PyObject * args)
+{
+    PyObject *py_retval;        /* return value */
+    PyObject *pyobj_conn;       /* virConnectPtr */
+    PyObject *pyobj_dom;
+    PyObject *pyobj_cbData;     /* hash of callback data */
+    int eventID;
+    virConnectPtr conn;
+    int ret = 0;
+    virConnectDomainEventGenericCallback cb = NULL;
+    virDomainPtr dom;
+
+    if (!PyArg_ParseTuple
+        (args, (char *) "OOiO:virConnectDomainEventRegisterAny",
+         &pyobj_conn, &pyobj_dom, &eventID, &pyobj_cbData)) {
+#if DEBUG_ERROR
+        printf("%s failed parsing tuple\n", __FUNCTION__);
+#endif
+        return VIR_PY_INT_FAIL;
+    }
+
+#ifdef DEBUG_ERROR
+    printf("libvirt_virConnectDomainEventRegister(%p %p %d %p) called\n",
+           pyobj_conn, pyobj_dom, eventID, pyobj_cbData);
+#endif
+    conn = PyvirConnect_Get(pyobj_conn);
+    if (pyobj_dom == Py_None)
+        dom = NULL;
+    else
+        dom = PyvirDomain_Get(pyobj_dom);
+
+    switch (eventID) {
+    case VIR_DOMAIN_EVENT_ID_LIFECYCLE:
+        cb = VIR_DOMAIN_EVENT_CALLBACK(libvirt_virConnectDomainEventLifecycleCallback);
+        break;
+    case VIR_DOMAIN_EVENT_ID_REBOOT:
+        cb = VIR_DOMAIN_EVENT_CALLBACK(libvirt_virConnectDomainEventGenericCallback);
+        break;
+    case VIR_DOMAIN_EVENT_ID_RTC_CHANGE:
+        cb = VIR_DOMAIN_EVENT_CALLBACK(libvirt_virConnectDomainEventRTCChangeCallback);
+        break;
+    case VIR_DOMAIN_EVENT_ID_WATCHDOG:
+        cb = VIR_DOMAIN_EVENT_CALLBACK(libvirt_virConnectDomainEventWatchdogCallback);
+        break;
+    case VIR_DOMAIN_EVENT_ID_IO_ERROR:
+        cb = VIR_DOMAIN_EVENT_CALLBACK(libvirt_virConnectDomainEventIOErrorCallback);
+        break;
+    case VIR_DOMAIN_EVENT_ID_IO_ERROR_REASON:
+        cb = VIR_DOMAIN_EVENT_CALLBACK(libvirt_virConnectDomainEventIOErrorReasonCallback);
+        break;
+    case VIR_DOMAIN_EVENT_ID_GRAPHICS:
+        cb = VIR_DOMAIN_EVENT_CALLBACK(libvirt_virConnectDomainEventGraphicsCallback);
+        break;
+    }
+
+    if (!cb) {
+        return VIR_PY_INT_FAIL;
+    }
+
+    Py_INCREF(pyobj_cbData);
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    ret = virConnectDomainEventRegisterAny(conn, dom, eventID,
+                                           cb, pyobj_cbData,
+                                           libvirt_virConnectDomainEventFreeFunc);
+    LIBVIRT_END_ALLOW_THREADS;
+
+    if (ret < 0) {
+        Py_DECREF(pyobj_cbData);
+    }
+
+    py_retval = libvirt_intWrap(ret);
+    return (py_retval);
+}
+
+static PyObject *
+libvirt_virConnectDomainEventDeregisterAny(ATTRIBUTE_UNUSED PyObject * self,
+                                           PyObject * args)
+{
+    PyObject *py_retval;
+    PyObject *pyobj_conn;
+    int callbackID;
+    virConnectPtr conn;
+    int ret = 0;
+
+    if (!PyArg_ParseTuple
+        (args, (char *) "Oi:virConnectDomainEventDeregister",
+         &pyobj_conn, &callbackID))
+        return (NULL);
+
+#ifdef DEBUG_ERROR
+    printf("libvirt_virConnectDomainEventDeregister(%p) called\n", pyobj_conn);
+#endif
+
+    conn   = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+
+    ret = virConnectDomainEventDeregisterAny(conn, callbackID);
+
+    LIBVIRT_END_ALLOW_THREADS;
+    py_retval = libvirt_intWrap(ret);
+    return (py_retval);
+}
+
+
 /************************************************************************
  *									*
  *			The registration stuff				*
@@ -2688,7 +3471,10 @@ static PyMethodDef libvirtMethods[] = {
     {(char *) "virConnectListDefinedDomains", libvirt_virConnectListDefinedDomains, METH_VARARGS, NULL},
     {(char *) "virConnectDomainEventRegister", libvirt_virConnectDomainEventRegister, METH_VARARGS, NULL},
     {(char *) "virConnectDomainEventDeregister", libvirt_virConnectDomainEventDeregister, METH_VARARGS, NULL},
+    {(char *) "virConnectDomainEventRegisterAny", libvirt_virConnectDomainEventRegisterAny, METH_VARARGS, NULL},
+    {(char *) "virConnectDomainEventDeregisterAny", libvirt_virConnectDomainEventDeregisterAny, METH_VARARGS, NULL},
     {(char *) "virDomainGetInfo", libvirt_virDomainGetInfo, METH_VARARGS, NULL},
+    {(char *) "virDomainGetBlockInfo", libvirt_virDomainGetBlockInfo, METH_VARARGS, NULL},
     {(char *) "virNodeGetInfo", libvirt_virNodeGetInfo, METH_VARARGS, NULL},
     {(char *) "virDomainGetUUID", libvirt_virDomainGetUUID, METH_VARARGS, NULL},
     {(char *) "virDomainGetUUIDString", libvirt_virDomainGetUUIDString, METH_VARARGS, NULL},
@@ -2732,8 +3518,15 @@ static PyMethodDef libvirtMethods[] = {
     {(char *) "virConnectListSecrets", libvirt_virConnectListSecrets, METH_VARARGS, NULL},
     {(char *) "virSecretGetValue", libvirt_virSecretGetValue, METH_VARARGS, NULL},
     {(char *) "virSecretSetValue", libvirt_virSecretSetValue, METH_VARARGS, NULL},
+    {(char *) "virNWFilterGetUUID", libvirt_virNWFilterGetUUID, METH_VARARGS, NULL},
+    {(char *) "virNWFilterGetUUIDString", libvirt_virNWFilterGetUUIDString, METH_VARARGS, NULL},
+    {(char *) "virNWFilterLookupByUUID", libvirt_virNWFilterLookupByUUID, METH_VARARGS, NULL},
+    {(char *) "virConnectListNWFilters", libvirt_virConnectListNWFilters, METH_VARARGS, NULL},
     {(char *) "virConnectListInterfaces", libvirt_virConnectListInterfaces, METH_VARARGS, NULL},
     {(char *) "virConnectListDefinedInterfaces", libvirt_virConnectListDefinedInterfaces, METH_VARARGS, NULL},
+    {(char *) "virConnectBaselineCPU", libvirt_virConnectBaselineCPU, METH_VARARGS, NULL},
+    {(char *) "virDomainGetJobInfo", libvirt_virDomainGetJobInfo, METH_VARARGS, NULL},
+    {(char *) "virDomainSnapshotListNames", libvirt_virDomainSnapshotListNames, METH_VARARGS, NULL},
     {NULL, NULL, 0, NULL}
 };
 

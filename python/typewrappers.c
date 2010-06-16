@@ -49,6 +49,14 @@ libvirt_longlongWrap(long long val)
 }
 
 PyObject *
+libvirt_ulonglongWrap(unsigned long long val)
+{
+    PyObject *ret;
+    ret = PyLong_FromUnsignedLongLong(val);
+    return (ret);
+}
+
+PyObject *
 libvirt_charPtrWrap(char *str)
 {
     PyObject *ret;
@@ -207,6 +215,19 @@ libvirt_virSecretPtrWrap(virSecretPtr node)
 }
 
 PyObject *
+libvirt_virNWFilterPtrWrap(virNWFilterPtr node)
+{
+    PyObject *ret;
+
+    if (node == NULL) {
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
+    ret = PyCObject_FromVoidPtrAndDesc(node, (char *) "virNWFilterPtr", NULL);
+    return (ret);
+}
+
+PyObject *
 libvirt_virStreamPtrWrap(virStreamPtr node)
 {
     PyObject *ret;
@@ -216,6 +237,21 @@ libvirt_virStreamPtrWrap(virStreamPtr node)
         return Py_None;
     }
     ret = PyCObject_FromVoidPtrAndDesc(node, (char *) "virStreamPtr", NULL);
+    return (ret);
+}
+
+PyObject *
+libvirt_virDomainSnapshotPtrWrap(virDomainSnapshotPtr node)
+{
+    PyObject *ret;
+
+    if (node == NULL) {
+        Py_INCREF(Py_None);
+        return (Py_None);
+    }
+    ret =
+        PyCObject_FromVoidPtrAndDesc((void *) node, (char *) "virDomainSnapshotPtr",
+                                     NULL);
     return (ret);
 }
 

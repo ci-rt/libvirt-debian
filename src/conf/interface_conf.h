@@ -22,15 +22,15 @@
  */
 
 #ifndef __INTERFACE_CONF_H__
-#define __INTERFACE_CONF_H__
+# define __INTERFACE_CONF_H__
 
-#include <libxml/parser.h>
-#include <libxml/tree.h>
-#include <libxml/xpath.h>
+# include <libxml/parser.h>
+# include <libxml/tree.h>
+# include <libxml/xpath.h>
 
-#include "internal.h"
-#include "util.h"
-#include "threads.h"
+# include "internal.h"
+# include "util.h"
+# include "threads.h"
 
 /* There is currently 3 types of interfaces */
 
@@ -193,22 +193,17 @@ void virInterfaceDefFree(virInterfaceDefPtr def);
 void virInterfaceObjFree(virInterfaceObjPtr iface);
 void virInterfaceObjListFree(virInterfaceObjListPtr vms);
 
-virInterfaceObjPtr virInterfaceAssignDef(virConnectPtr conn,
-                                         virInterfaceObjListPtr interfaces,
+virInterfaceObjPtr virInterfaceAssignDef(virInterfaceObjListPtr interfaces,
                                          const virInterfaceDefPtr def);
 void virInterfaceRemove(virInterfaceObjListPtr interfaces,
                         const virInterfaceObjPtr iface);
 
-virInterfaceDefPtr virInterfaceDefParseString(virConnectPtr conn,
-                                              const char *xmlStr);
-virInterfaceDefPtr virInterfaceDefParseFile(virConnectPtr conn,
-                                            const char *filename);
-virInterfaceDefPtr virInterfaceDefParseNode(virConnectPtr conn,
-                                            xmlDocPtr xml,
+virInterfaceDefPtr virInterfaceDefParseString(const char *xmlStr);
+virInterfaceDefPtr virInterfaceDefParseFile(const char *filename);
+virInterfaceDefPtr virInterfaceDefParseNode(xmlDocPtr xml,
                                             xmlNodePtr root);
 
-char *virInterfaceDefFormat(virConnectPtr conn,
-                            const virInterfaceDefPtr def);
+char *virInterfaceDefFormat(const virInterfaceDefPtr def);
 
 void virInterfaceObjLock(virInterfaceObjPtr obj);
 void virInterfaceObjUnlock(virInterfaceObjPtr obj);

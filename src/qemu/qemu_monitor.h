@@ -23,12 +23,12 @@
 
 
 #ifndef QEMU_MONITOR_H
-#define QEMU_MONITOR_H
+# define QEMU_MONITOR_H
 
-#include "internal.h"
+# include "internal.h"
 
-#include "domain_conf.h"
-#include "hash.h"
+# include "domain_conf.h"
+# include "hash.h"
 
 typedef struct _qemuMonitor qemuMonitor;
 typedef qemuMonitor *qemuMonitorPtr;
@@ -86,6 +86,29 @@ struct _qemuMonitorCallbacks {
                            virDomainObjPtr vm);
     int (*domainStop)(qemuMonitorPtr mon,
                       virDomainObjPtr vm);
+    int (*domainRTCChange)(qemuMonitorPtr mon,
+                           virDomainObjPtr vm,
+                           long long offset);
+    int (*domainWatchdog)(qemuMonitorPtr mon,
+                          virDomainObjPtr vm,
+                          int action);
+    int (*domainIOError)(qemuMonitorPtr mon,
+                         virDomainObjPtr vm,
+                         const char *diskAlias,
+                         int action,
+                         const char *reason);
+    int (*domainGraphics)(qemuMonitorPtr mon,
+                          virDomainObjPtr vm,
+                          int phase,
+                          int localFamily,
+                          const char *localNode,
+                          const char *localService,
+                          int remoteFamily,
+                          const char *remoteNode,
+                          const char *remoteService,
+                          const char *authScheme,
+                          const char *x509dname,
+                          const char *saslUsername);
 };
 
 
@@ -98,6 +121,8 @@ qemuMonitorPtr qemuMonitorOpen(virDomainObjPtr vm,
                                qemuMonitorCallbacksPtr cb);
 
 int qemuMonitorClose(qemuMonitorPtr mon);
+
+int qemuMonitorSetCapabilities(qemuMonitorPtr mon);
 
 void qemuMonitorLock(qemuMonitorPtr mon);
 void qemuMonitorUnlock(qemuMonitorPtr mon);
@@ -120,6 +145,24 @@ int qemuMonitorEmitShutdown(qemuMonitorPtr mon);
 int qemuMonitorEmitReset(qemuMonitorPtr mon);
 int qemuMonitorEmitPowerdown(qemuMonitorPtr mon);
 int qemuMonitorEmitStop(qemuMonitorPtr mon);
+int qemuMonitorEmitRTCChange(qemuMonitorPtr mon, long long offset);
+int qemuMonitorEmitWatchdog(qemuMonitorPtr mon, int action);
+int qemuMonitorEmitIOError(qemuMonitorPtr mon,
+                           const char *diskAlias,
+                           int action,
+                           const char *reason);
+int qemuMonitorEmitGraphics(qemuMonitorPtr mon,
+                            int phase,
+                            int localFamily,
+                            const char *localNode,
+                            const char *localService,
+                            int remoteFamily,
+                            const char *remoteNode,
+                            const char *remoteService,
+                            const char *authScheme,
+                            const char *x509dname,
+                            const char *saslUsername);
+
 
 int qemuMonitorStartCPUs(qemuMonitorPtr mon,
                          virConnectPtr conn);
@@ -131,6 +174,9 @@ int qemuMonitorGetCPUInfo(qemuMonitorPtr mon,
                           int **pids);
 int qemuMonitorGetBalloonInfo(qemuMonitorPtr mon,
                               unsigned long *currmem);
+int qemuMonitorGetMemoryStats(qemuMonitorPtr mon,
+                              virDomainMemoryStatPtr stats,
+                              unsigned int nr_stats);
 int qemuMonitorGetBlockStatsInfo(qemuMonitorPtr mon,
                                  const char *devname,
                                  long long *rd_req,
@@ -144,6 +190,8 @@ int qemuMonitorSetVNCPassword(qemuMonitorPtr mon,
                               const char *password);
 int qemuMonitorSetBalloon(qemuMonitorPtr mon,
                           unsigned long newmem);
+int qemuMonitorSetCPU(qemuMonitorPtr mon, int cpu, int online);
+
 
 /* XXX should we pass the virDomainDiskDefPtr instead
  * and hide devname details inside monitor. Reconsider
@@ -172,6 +220,9 @@ int qemuMonitorSavePhysicalMemory(qemuMonitorPtr mon,
 int qemuMonitorSetMigrationSpeed(qemuMonitorPtr mon,
                                  unsigned long bandwidth);
 
+int qemuMonitorSetMigrationDowntime(qemuMonitorPtr mon,
+                                    unsigned long long downtime);
+
 enum {
     QEMU_MONITOR_MIGRATION_STATUS_INACTIVE,
     QEMU_MONITOR_MIGRATION_STATUS_ACTIVE,
@@ -197,8 +248,15 @@ int qemuMonitorMigrateToHost(qemuMonitorPtr mon,
 
 int qemuMonitorMigrateToCommand(qemuMonitorPtr mon,
                                 int background,
-                                const char * const *argv,
-                                const char *target);
+                                const char * const *argv);
+
+# define QEMU_MONITOR_MIGRATE_TO_FILE_BS 512llu
+
+int qemuMonitorMigrateToFile(qemuMonitorPtr mon,
+                             int background,
+                             const char * const *argv,
+                             const char *target,
+                             unsigned long long offset);
 
 int qemuMonitorMigrateToUnix(qemuMonitorPtr mon,
                              int background,
@@ -288,7 +346,18 @@ int qemuMonitorGetAllPCIAddresses(qemuMonitorPtr mon,
 int qemuMonitorAddDevice(qemuMonitorPtr mon,
                          const char *devicestr);
 
+int qemuMonitorDelDevice(qemuMonitorPtr mon,
+                         const char *devalias);
+
 int qemuMonitorAddDrive(qemuMonitorPtr mon,
                         const char *drivestr);
+
+int qemuMonitorSetDrivePassphrase(qemuMonitorPtr mon,
+                                  const char *alias,
+                                  const char *passphrase);
+
+int qemuMonitorCreateSnapshot(qemuMonitorPtr mon, const char *name);
+int qemuMonitorLoadSnapshot(qemuMonitorPtr mon, const char *name);
+int qemuMonitorDeleteSnapshot(qemuMonitorPtr mon, const char *name);
 
 #endif /* QEMU_MONITOR_H */

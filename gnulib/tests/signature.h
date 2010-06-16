@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Macro for checking that a function declaration is compliant.
    Copyright (C) 2009, 2010 Free Software Foundation, Inc.
 

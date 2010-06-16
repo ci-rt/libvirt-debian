@@ -2,7 +2,7 @@
 /*
  * esx_vi.h: client for the VMware VI API 2.5 to manage ESX hosts
  *
- * Copyright (C) 2009 Matthias Bolte <matthias.bolte@googlemail.com>
+ * Copyright (C) 2009-2010 Matthias Bolte <matthias.bolte@googlemail.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -21,19 +21,66 @@
  */
 
 #ifndef __ESX_VI_H__
-#define __ESX_VI_H__
+# define __ESX_VI_H__
 
-#include <libxml/tree.h>
-#include <libxml/xpath.h>
-#include <curl/curl.h>
+# include <libxml/tree.h>
+# include <libxml/xpath.h>
+# include <curl/curl.h>
 
-#include "internal.h"
-#include "datatypes.h"
-#include "esx_vi_types.h"
+# include "internal.h"
+# include "virterror_internal.h"
+# include "datatypes.h"
+# include "esx_vi_types.h"
+
+
+
+# define ESX_VI_ERROR(code, ...)                                              \
+    virReportErrorHelper(NULL, VIR_FROM_ESX, code, __FILE__, __FUNCTION__,    \
+                         __LINE__, __VA_ARGS__)
+
+
+
+# define ESX_VI__SOAP__REQUEST_HEADER                                         \
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"                            \
+    "<soapenv:Envelope\n"                                                     \
+    " xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\"\n"          \
+    " xmlns:soapenc=\"http://schemas.xmlsoap.org/soap/encoding/\"\n"          \
+    " xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"              \
+    " xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">\n"                      \
+    "<soapenv:Body>\n"
+
+
+
+# define ESX_VI__SOAP__REQUEST_FOOTER                                         \
+    "</soapenv:Body>\n"                                                       \
+    "</soapenv:Envelope>"
+
+
+
+# define ESV_VI__XML_TAG__OPEN(_buffer, _element, _type)                      \
+    do {                                                                      \
+        virBufferAddLit(_buffer, "<");                                        \
+        virBufferAdd(_buffer, _element, -1);                                  \
+        virBufferAddLit(_buffer, " xmlns=\"urn:vim25\" xsi:type=\"");         \
+        virBufferAdd(_buffer, _type, -1);                                     \
+        virBufferAddLit(_buffer, "\">");                                      \
+    } while (0)
+
+
+
+# define ESV_VI__XML_TAG__CLOSE(_buffer, _element)                            \
+    do {                                                                      \
+        virBufferAddLit(_buffer, "</");                                       \
+        virBufferAdd(_buffer, _element, -1);                                  \
+        virBufferAddLit(_buffer, ">");                                        \
+    } while (0)
+
+
 
 typedef enum _esxVI_APIVersion esxVI_APIVersion;
 typedef enum _esxVI_ProductVersion esxVI_ProductVersion;
 typedef enum _esxVI_Occurrence esxVI_Occurrence;
+typedef struct _esxVI_ParsedHostCpuIdInfo esxVI_ParsedHostCpuIdInfo;
 typedef struct _esxVI_Context esxVI_Context;
 typedef struct _esxVI_Response esxVI_Response;
 typedef struct _esxVI_Enumeration esxVI_Enumeration;
@@ -61,9 +108,18 @@ enum _esxVI_ProductVersion {
 enum _esxVI_Occurrence {
     esxVI_Occurrence_Undefined = 0,
     esxVI_Occurrence_RequiredItem,
+    esxVI_Occurrence_RequiredList,
     esxVI_Occurrence_OptionalItem,
-    esxVI_Occurrence_List,
+    esxVI_Occurrence_OptionalList,
     esxVI_Occurrence_None
+};
+
+struct _esxVI_ParsedHostCpuIdInfo {
+    int level;
+    char eax[32];
+    char ebx[32];
+    char ecx[32];
+    char edx[32];
 };
 
 
@@ -132,7 +188,7 @@ struct _esxVI_EnumerationValue {
 };
 
 struct _esxVI_Enumeration {
-    const char *type;
+    esxVI_Type type;
     esxVI_EnumerationValue values[10];
 };
 
@@ -140,7 +196,7 @@ int esxVI_Enumeration_CastFromAnyType(const esxVI_Enumeration *enumeration,
                                       esxVI_AnyType *anyType, int *value);
 int esxVI_Enumeration_Serialize(const esxVI_Enumeration *enumeration,
                                 int value, const char *element,
-                                virBufferPtr output, esxVI_Boolean required);
+                                virBufferPtr output);
 int esxVI_Enumeration_Deserialize(const esxVI_Enumeration *enumeration,
                                   xmlNodePtr node, int *value);
 
@@ -159,8 +215,7 @@ typedef int (*esxVI_List_DeepCopyFunc) (esxVI_List **dest, esxVI_List *src);
 typedef int (*esxVI_List_CastFromAnyTypeFunc) (esxVI_AnyType *anyType,
                                                esxVI_List **item);
 typedef int (*esxVI_List_SerializeFunc) (esxVI_List *item, const char *element,
-                                         virBufferPtr output,
-                                         esxVI_Boolean required);
+                                         virBufferPtr output);
 typedef int (*esxVI_List_DeserializeFunc) (xmlNodePtr node, esxVI_List **item);
 
 int esxVI_List_Append(esxVI_List **list, esxVI_List *item);
@@ -171,7 +226,7 @@ int esxVI_List_CastFromAnyType(esxVI_AnyType *anyType, esxVI_List **list,
                                esxVI_List_CastFromAnyTypeFunc castFromAnyTypeFunc,
                                esxVI_List_FreeFunc freeFunc);
 int esxVI_List_Serialize(esxVI_List *list, const char *element,
-                         virBufferPtr output, esxVI_Boolean required,
+                         virBufferPtr output,
                          esxVI_List_SerializeFunc serializeFunc);
 int esxVI_List_Deserialize(xmlNodePtr node, esxVI_List **list,
                            esxVI_List_DeserializeFunc deserializeFunc,
@@ -188,9 +243,6 @@ int esxVI_List_Deserialize(xmlNodePtr node, esxVI_List **list,
  */
 
 int esxVI_Alloc(void **ptrptr, size_t size);
-
-int esxVI_CheckSerializationNecessity(const char *element,
-                                      esxVI_Boolean required);
 
 int esxVI_BuildFullTraversalSpecItem
       (esxVI_SelectionSpec **fullTraversalSpecList, const char *name,
@@ -227,6 +279,24 @@ int esxVI_LookupNumberOfDomainsByPowerState
 int esxVI_GetVirtualMachineIdentity(esxVI_ObjectContent *virtualMachine,
                                     int *id, char **name, unsigned char *uuid);
 
+int esxVI_GetNumberOfSnapshotTrees
+      (esxVI_VirtualMachineSnapshotTree *snapshotTreeList);
+
+int esxVI_GetSnapshotTreeNames
+      (esxVI_VirtualMachineSnapshotTree *snapshotTreeList, char **names,
+       int nameslen);
+
+int esxVI_GetSnapshotTreeByName
+      (esxVI_VirtualMachineSnapshotTree *snapshotTreeList, const char *name,
+       esxVI_VirtualMachineSnapshotTree **snapshotTree,
+       esxVI_VirtualMachineSnapshotTree **snapshotTreeParent,
+       esxVI_Occurrence occurrence);
+
+int esxVI_GetSnapshotTreeBySnapshot
+      (esxVI_VirtualMachineSnapshotTree *snapshotTreeList,
+       esxVI_ManagedObjectReference *snapshot,
+       esxVI_VirtualMachineSnapshotTree **snapshotTree);
+
 int esxVI_LookupResourcePoolByHostSystem
       (esxVI_Context *ctx, esxVI_ObjectContent *hostSystem,
        esxVI_ManagedObjectReference **resourcePool);
@@ -237,6 +307,11 @@ int esxVI_LookupHostSystemByIp(esxVI_Context *ctx, const char *ipAddress,
 
 int esxVI_LookupVirtualMachineByUuid(esxVI_Context *ctx,
                                      const unsigned char *uuid,
+                                     esxVI_String *propertyNameList,
+                                     esxVI_ObjectContent **virtualMachine,
+                                     esxVI_Occurrence occurrence);
+
+int esxVI_LookupVirtualMachineByName(esxVI_Context *ctx, const char *name,
                                      esxVI_String *propertyNameList,
                                      esxVI_ObjectContent **virtualMachine,
                                      esxVI_Occurrence occurrence);
@@ -263,18 +338,14 @@ int esxVI_LookupAndHandleVirtualMachineQuestion(esxVI_Context *ctx,
                                                 const unsigned char *uuid,
                                                 esxVI_Boolean autoAnswer);
 
-int esxVI_StartVirtualMachineTask(esxVI_Context *ctx, const char *name,
-                                  const char *request,
-                                  esxVI_ManagedObjectReference **task);
+int esxVI_LookupRootSnapshotTreeList
+      (esxVI_Context *ctx, const unsigned char *virtualMachineUuid,
+       esxVI_VirtualMachineSnapshotTree **rootSnapshotTreeList);
 
-int esxVI_StartSimpleVirtualMachineTask
-      (esxVI_Context *ctx, const char *name,
-       esxVI_ManagedObjectReference *virtualMachine,
-       esxVI_ManagedObjectReference **task);
-
-int esxVI_SimpleVirtualMachineMethod
-      (esxVI_Context *ctx, const char *name,
-       esxVI_ManagedObjectReference *virtualMachine);
+int esxVI_LookupCurrentSnapshotTree
+      (esxVI_Context *ctx, const unsigned char *virtualMachineUuid,
+       esxVI_VirtualMachineSnapshotTree **currentSnapshotTree,
+       esxVI_Occurrence occurrence);
 
 int esxVI_HandleVirtualMachineQuestion
       (esxVI_Context *ctx,
@@ -287,5 +358,8 @@ int esxVI_WaitForTaskCompletion(esxVI_Context *ctx,
                                 const unsigned char *virtualMachineUuid,
                                 esxVI_Boolean autoAnswer,
                                 esxVI_TaskInfoState *finalState);
+
+int esxVI_ParseHostCpuIdInfo(esxVI_ParsedHostCpuIdInfo *parsedHostCpuIdInfo,
+                             esxVI_HostCpuIdInfo *hostCpuIdInfo);
 
 #endif /* __ESX_VI_H__ */

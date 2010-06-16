@@ -1,7 +1,7 @@
 /**
  * conf.c: parser for a subset of the Python encoded Xen configuration files
  *
- * Copyright (C) 2006, 2007, 2008, 2009 Red Hat, Inc.
+ * Copyright (C) 2006, 2007, 2008, 2009, 2010 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -164,7 +164,7 @@ virConfNew(void)
     virConfPtr ret;
 
     if (VIR_ALLOC(ret) < 0) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         return(NULL);
     }
     ret->filename = NULL;
@@ -216,7 +216,7 @@ virConfAddEntry(virConfPtr conf, char *name, virConfValuePtr value, char *comm)
         return(NULL);
 
     if (VIR_ALLOC(ret) < 0) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         return(NULL);
     }
 
@@ -389,7 +389,7 @@ virConfParseString(virConfParserCtxtPtr ctxt)
         }
         ret = strndup(base, ctxt->cur - base);
         if (ret == NULL) {
-            virReportOOMError(NULL);
+            virReportOOMError();
             return NULL;
         }
         NEXT;
@@ -409,7 +409,7 @@ virConfParseString(virConfParserCtxtPtr ctxt)
         }
         ret = strndup(base, ctxt->cur - base);
         if (ret == NULL) {
-            virReportOOMError(NULL);
+            virReportOOMError();
             return NULL;
         }
         ctxt->cur += 3;
@@ -424,7 +424,7 @@ virConfParseString(virConfParserCtxtPtr ctxt)
         }
         ret = strndup(base, ctxt->cur - base);
         if (ret == NULL) {
-            virReportOOMError(NULL);
+            virReportOOMError();
             return NULL;
         }
         NEXT;
@@ -473,6 +473,13 @@ virConfParseValue(virConfParserCtxtPtr ctxt)
             SKIP_BLANKS_AND_EOL;
         }
         while ((ctxt->cur < ctxt->end) && (CUR != ']')) {
+
+            /* Tell Clang that when execution reaches this point
+               "lst" is guaranteed to be non-NULL.  This stops it
+               from issuing an invalid NULL-dereference warning about
+               "prev = lst; while (prev->next..." below.  */
+            sa_assert (lst);
+
             if (CUR != ',') {
                 virConfError(ctxt, VIR_ERR_CONF_SYNTAX,
                              _("expecting a separator in list"));
@@ -517,7 +524,7 @@ virConfParseValue(virConfParserCtxtPtr ctxt)
         return(NULL);
     }
     if (VIR_ALLOC(ret) < 0) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         virConfFreeList(lst);
         VIR_FREE(str);
         return(NULL);
@@ -558,7 +565,7 @@ virConfParseName(virConfParserCtxtPtr ctxt)
         NEXT;
     ret = strndup(base, ctxt->cur - base);
     if (ret == NULL) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         return(NULL);
     }
     return(ret);
@@ -585,7 +592,7 @@ virConfParseComment(virConfParserCtxtPtr ctxt)
     while ((ctxt->cur < ctxt->end) && (!IS_EOL(CUR))) NEXT;
     comm = strndup(base, ctxt->cur - base);
     if (comm == NULL) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         return(-1);
     }
     virConfAddEntry(ctxt->conf, NULL, NULL, comm);
@@ -660,7 +667,7 @@ virConfParseStatement(virConfParserCtxtPtr ctxt)
         while ((ctxt->cur < ctxt->end) && (!IS_EOL(CUR))) NEXT;
         comm = strndup(base, ctxt->cur - base);
         if (comm == NULL) {
-            virReportOOMError(NULL);
+            virReportOOMError();
             VIR_FREE(name);
             virConfFreeValue(value);
             return(-1);
@@ -831,7 +838,10 @@ virConfGetValue(virConfPtr conf, const char *setting)
 
     cur = conf->entries;
     while (cur != NULL) {
-        if ((cur->name != NULL) && (STREQ(cur->name, setting)))
+        if ((cur->name != NULL) &&
+            ((conf->flags & VIR_CONF_FLAG_VMX_FORMAT &&
+              STRCASEEQ(cur->name, setting)) ||
+             STREQ(cur->name, setting)))
             return(cur->value);
         cur = cur->next;
     }
@@ -872,13 +882,13 @@ virConfSetValue (virConfPtr conf,
 
     if (!cur) {
         if (VIR_ALLOC(cur) < 0) {
-            virReportOOMError(NULL);
+            virReportOOMError();
             virConfFreeValue(value);
             return (-1);
         }
         cur->comment = NULL;
         if (!(cur->name = strdup(setting))) {
-            virReportOOMError(NULL);
+            virReportOOMError();
             virConfFreeValue(value);
             VIR_FREE(cur);
             return (-1);
@@ -931,7 +941,7 @@ virConfWriteFile(const char *filename, virConfPtr conf)
 
     if (virBufferError(&buf)) {
         virBufferFreeAndReset(&buf);
-        virReportOOMError(NULL);
+        virReportOOMError();
         return -1;
     }
 
@@ -987,7 +997,7 @@ virConfWriteMem(char *memory, int *len, virConfPtr conf)
 
     if (virBufferError(&buf)) {
         virBufferFreeAndReset(&buf);
-        virReportOOMError(NULL);
+        virReportOOMError();
         return -1;
     }
 

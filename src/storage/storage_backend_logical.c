@@ -44,8 +44,7 @@
 
 
 static int
-virStorageBackendLogicalSetActive(virConnectPtr conn,
-                                  virStoragePoolObjPtr pool,
+virStorageBackendLogicalSetActive(virStoragePoolObjPtr pool,
                                   int on)
 {
     const char *cmdargv[4];
@@ -55,7 +54,7 @@ virStorageBackendLogicalSetActive(virConnectPtr conn,
     cmdargv[2] = pool->def->source.name;
     cmdargv[3] = NULL;
 
-    if (virRun(conn, cmdargv, NULL) < 0)
+    if (virRun(cmdargv, NULL) < 0)
         return -1;
 
     return 0;
@@ -63,8 +62,7 @@ virStorageBackendLogicalSetActive(virConnectPtr conn,
 
 
 static int
-virStorageBackendLogicalMakeVol(virConnectPtr conn,
-                                virStoragePoolObjPtr pool,
+virStorageBackendLogicalMakeVol(virStoragePoolObjPtr pool,
                                 char **const groups,
                                 void *data)
 {
@@ -85,21 +83,21 @@ virStorageBackendLogicalMakeVol(virConnectPtr conn,
     /* Or a completely new volume */
     if (vol == NULL) {
         if (VIR_ALLOC(vol) < 0) {
-            virReportOOMError(conn);
+            virReportOOMError();
             return -1;
         }
 
         vol->type = VIR_STORAGE_VOL_BLOCK;
 
         if ((vol->name = strdup(groups[0])) == NULL) {
-            virReportOOMError(conn);
+            virReportOOMError();
             virStorageVolDefFree(vol);
             return -1;
         }
 
         if (VIR_REALLOC_N(pool->volumes.objs,
                           pool->volumes.count + 1)) {
-            virReportOOMError(conn);
+            virReportOOMError();
             virStorageVolDefFree(vol);
             return -1;
         }
@@ -109,7 +107,7 @@ virStorageBackendLogicalMakeVol(virConnectPtr conn,
     if (vol->target.path == NULL) {
         if (virAsprintf(&vol->target.path, "%s/%s",
                         pool->def->target.path, vol->name) < 0) {
-            virReportOOMError(conn);
+            virReportOOMError();
             virStorageVolDefFree(vol);
             return -1;
         }
@@ -118,7 +116,7 @@ virStorageBackendLogicalMakeVol(virConnectPtr conn,
     if (groups[1] && !STREQ(groups[1], "")) {
         if (virAsprintf(&vol->backingStore.path, "%s/%s",
                         pool->def->target.path, groups[1]) < 0) {
-            virReportOOMError(conn);
+            virReportOOMError();
             virStorageVolDefFree(vol);
             return -1;
         }
@@ -128,39 +126,39 @@ virStorageBackendLogicalMakeVol(virConnectPtr conn,
 
     if (vol->key == NULL &&
         (vol->key = strdup(groups[2])) == NULL) {
-        virReportOOMError(conn);
+        virReportOOMError();
         return -1;
     }
 
-    if (virStorageBackendUpdateVolInfo(conn, vol, 1) < 0)
+    if (virStorageBackendUpdateVolInfo(vol, 1) < 0)
         return -1;
 
 
     /* Finally fill in extents information */
     if (VIR_REALLOC_N(vol->source.extents,
                       vol->source.nextent + 1) < 0) {
-        virReportOOMError(conn);
+        virReportOOMError();
         return -1;
     }
 
     if ((vol->source.extents[vol->source.nextent].path =
          strdup(groups[3])) == NULL) {
-        virReportOOMError(conn);
+        virReportOOMError();
         return -1;
     }
 
     if (virStrToLong_ull(groups[4], NULL, 10, &offset) < 0) {
-        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
+        virStorageReportError(VIR_ERR_INTERNAL_ERROR,
                               "%s", _("malformed volume extent offset value"));
         return -1;
     }
     if (virStrToLong_ull(groups[5], NULL, 10, &length) < 0) {
-        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
+        virStorageReportError(VIR_ERR_INTERNAL_ERROR,
                               "%s", _("malformed volume extent length value"));
         return -1;
     }
     if (virStrToLong_ull(groups[6], NULL, 10, &size) < 0) {
-        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
+        virStorageReportError(VIR_ERR_INTERNAL_ERROR,
                               "%s", _("malformed volume extent size value"));
         return -1;
     }
@@ -173,8 +171,7 @@ virStorageBackendLogicalMakeVol(virConnectPtr conn,
 }
 
 static int
-virStorageBackendLogicalFindLVs(virConnectPtr conn,
-                                virStoragePoolObjPtr pool,
+virStorageBackendLogicalFindLVs(virStoragePoolObjPtr pool,
                                 virStorageVolDefPtr vol)
 {
     /*
@@ -209,8 +206,7 @@ virStorageBackendLogicalFindLVs(virConnectPtr conn,
 
     int exitstatus;
 
-    if (virStorageBackendRunProgRegex(conn,
-                                      pool,
+    if (virStorageBackendRunProgRegex(pool,
                                       prog,
                                       1,
                                       regexes,
@@ -218,13 +214,13 @@ virStorageBackendLogicalFindLVs(virConnectPtr conn,
                                       virStorageBackendLogicalMakeVol,
                                       vol,
                                       &exitstatus) < 0) {
-        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
+        virStorageReportError(VIR_ERR_INTERNAL_ERROR,
                               "%s", _("lvs command failed"));
                               return -1;
     }
 
     if (exitstatus != 0) {
-        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR,
+        virStorageReportError(VIR_ERR_INTERNAL_ERROR,
                               _("lvs command failed with exitstatus %d"),
                               exitstatus);
         return -1;
@@ -234,8 +230,7 @@ virStorageBackendLogicalFindLVs(virConnectPtr conn,
 }
 
 static int
-virStorageBackendLogicalRefreshPoolFunc(virConnectPtr conn ATTRIBUTE_UNUSED,
-                                        virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
+virStorageBackendLogicalRefreshPoolFunc(virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
                                         char **const groups,
                                         void *data ATTRIBUTE_UNUSED)
 {
@@ -250,8 +245,7 @@ virStorageBackendLogicalRefreshPoolFunc(virConnectPtr conn ATTRIBUTE_UNUSED,
 
 
 static int
-virStorageBackendLogicalFindPoolSourcesFunc(virConnectPtr conn,
-                                            virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
+virStorageBackendLogicalFindPoolSourcesFunc(virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
                                             char **const groups,
                                             void *data)
 {
@@ -266,7 +260,7 @@ virStorageBackendLogicalFindPoolSourcesFunc(virConnectPtr conn,
     vgname = strdup(groups[1]);
 
     if (pvname == NULL || vgname == NULL) {
-        virReportOOMError(conn);
+        virReportOOMError();
         goto err_no_memory;
     }
 
@@ -279,8 +273,7 @@ virStorageBackendLogicalFindPoolSourcesFunc(virConnectPtr conn,
     }
 
     if (thisSource == NULL) {
-        if (!(thisSource = virStoragePoolSourceListNewSource(conn,
-                                                             sourceList)))
+        if (!(thisSource = virStoragePoolSourceListNewSource(sourceList)))
             goto err_no_memory;
 
         thisSource->name = vgname;
@@ -289,7 +282,7 @@ virStorageBackendLogicalFindPoolSourcesFunc(virConnectPtr conn,
         VIR_FREE(vgname);
 
     if (VIR_REALLOC_N(thisSource->devices, thisSource->ndevice + 1) != 0) {
-        virReportOOMError(conn);
+        virReportOOMError();
         goto err_no_memory;
     }
 
@@ -310,7 +303,7 @@ virStorageBackendLogicalFindPoolSourcesFunc(virConnectPtr conn,
 }
 
 static char *
-virStorageBackendLogicalFindPoolSources(virConnectPtr conn,
+virStorageBackendLogicalFindPoolSources(virConnectPtr conn ATTRIBUTE_UNUSED,
                                         const char *srcSpec ATTRIBUTE_UNUSED,
                                         unsigned int flags ATTRIBUTE_UNUSED)
 {
@@ -337,21 +330,21 @@ virStorageBackendLogicalFindPoolSources(virConnectPtr conn,
      * that might be hanging around, so if this fails for some reason, the
      * worst that happens is that scanning doesn't pick everything up
      */
-    if (virRun(conn, scanprog, &exitstatus) < 0) {
+    if (virRun(scanprog, &exitstatus) < 0) {
         VIR_WARN0("Failure when running vgscan to refresh physical volumes");
     }
 
     memset(&sourceList, 0, sizeof(sourceList));
     sourceList.type = VIR_STORAGE_POOL_LOGICAL;
 
-    if (virStorageBackendRunProgRegex(conn, NULL, prog, 1, regexes, vars,
+    if (virStorageBackendRunProgRegex(NULL, prog, 1, regexes, vars,
                                       virStorageBackendLogicalFindPoolSourcesFunc,
                                       &sourceList, &exitstatus) < 0)
         return NULL;
 
-    retval = virStoragePoolSourceListFormat(conn, &sourceList);
+    retval = virStoragePoolSourceListFormat(&sourceList);
     if (retval == NULL) {
-        virStorageReportError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
+        virStorageReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                               _("failed to get source from sourceList"));
         goto cleanup;
     }
@@ -367,10 +360,10 @@ virStorageBackendLogicalFindPoolSources(virConnectPtr conn,
 
 
 static int
-virStorageBackendLogicalStartPool(virConnectPtr conn,
+virStorageBackendLogicalStartPool(virConnectPtr conn ATTRIBUTE_UNUSED,
                                   virStoragePoolObjPtr pool)
 {
-    if (virStorageBackendLogicalSetActive(conn, pool, 1) < 0)
+    if (virStorageBackendLogicalSetActive(pool, 1) < 0)
         return -1;
 
     return 0;
@@ -378,7 +371,7 @@ virStorageBackendLogicalStartPool(virConnectPtr conn,
 
 
 static int
-virStorageBackendLogicalBuildPool(virConnectPtr conn,
+virStorageBackendLogicalBuildPool(virConnectPtr conn ATTRIBUTE_UNUSED,
                                   virStoragePoolObjPtr pool,
                                   unsigned int flags ATTRIBUTE_UNUSED)
 {
@@ -390,7 +383,7 @@ virStorageBackendLogicalBuildPool(virConnectPtr conn,
     memset(zeros, 0, sizeof(zeros));
 
     if (VIR_ALLOC_N(vgargv, 3 + pool->def->source.ndevice) < 0) {
-        virReportOOMError(conn);
+        virReportOOMError();
         return -1;
     }
 
@@ -406,20 +399,20 @@ virStorageBackendLogicalBuildPool(virConnectPtr conn,
          * rather than trying to figure out if we're a disk or partition
          */
         if ((fd = open(pool->def->source.devices[i].path, O_WRONLY)) < 0) {
-            virReportSystemError(conn, errno,
+            virReportSystemError(errno,
                                  _("cannot open device '%s'"),
                                  pool->def->source.devices[i].path);
             goto cleanup;
         }
         if (safewrite(fd, zeros, sizeof(zeros)) < 0) {
-            virReportSystemError(conn, errno,
+            virReportSystemError(errno,
                                  _("cannot clear device header of '%s'"),
                                  pool->def->source.devices[i].path);
             close(fd);
             goto cleanup;
         }
         if (close(fd) < 0) {
-            virReportSystemError(conn, errno,
+            virReportSystemError(errno,
                                  _("cannot close device '%s'"),
                                  pool->def->source.devices[i].path);
             goto cleanup;
@@ -431,14 +424,14 @@ virStorageBackendLogicalBuildPool(virConnectPtr conn,
          */
         vgargv[n++] = pool->def->source.devices[i].path;
         pvargv[1] = pool->def->source.devices[i].path;
-        if (virRun(conn, pvargv, NULL) < 0)
+        if (virRun(pvargv, NULL) < 0)
             goto cleanup;
     }
 
     vgargv[n] = NULL;
 
     /* Now create the volume group itself */
-    if (virRun(conn, vgargv, NULL) < 0)
+    if (virRun(vgargv, NULL) < 0)
         goto cleanup;
 
     VIR_FREE(vgargv);
@@ -452,7 +445,7 @@ virStorageBackendLogicalBuildPool(virConnectPtr conn,
 
 
 static int
-virStorageBackendLogicalRefreshPool(virConnectPtr conn,
+virStorageBackendLogicalRefreshPool(virConnectPtr conn ATTRIBUTE_UNUSED,
                                     virStoragePoolObjPtr pool)
 {
     /*
@@ -476,17 +469,16 @@ virStorageBackendLogicalRefreshPool(virConnectPtr conn,
     };
     int exitstatus;
 
-    virFileWaitForDevices(conn);
+    virFileWaitForDevices();
 
     /* Get list of all logical volumes */
-    if (virStorageBackendLogicalFindLVs(conn, pool, NULL) < 0) {
+    if (virStorageBackendLogicalFindLVs(pool, NULL) < 0) {
         virStoragePoolObjClearVols(pool);
         return -1;
     }
 
     /* Now get basic volgrp metadata */
-    if (virStorageBackendRunProgRegex(conn,
-                                      pool,
+    if (virStorageBackendRunProgRegex(pool,
                                       prog,
                                       1,
                                       regexes,
@@ -512,17 +504,17 @@ virStorageBackendLogicalRefreshPool(virConnectPtr conn,
  * "Can't deactivate volume group "VolGroup00" with 3 open logical volume(s)"
  */
 static int
-virStorageBackendLogicalStopPool(virConnectPtr conn,
+virStorageBackendLogicalStopPool(virConnectPtr conn ATTRIBUTE_UNUSED,
                                  virStoragePoolObjPtr pool)
 {
-    if (virStorageBackendLogicalSetActive(conn, pool, 0) < 0)
+    if (virStorageBackendLogicalSetActive(pool, 0) < 0)
         return -1;
 
     return 0;
 }
 
 static int
-virStorageBackendLogicalDeletePool(virConnectPtr conn,
+virStorageBackendLogicalDeletePool(virConnectPtr conn ATTRIBUTE_UNUSED,
                                    virStoragePoolObjPtr pool,
                                    unsigned int flags ATTRIBUTE_UNUSED)
 {
@@ -533,7 +525,7 @@ virStorageBackendLogicalDeletePool(virConnectPtr conn,
     int i, error;
 
     /* first remove the volume group */
-    if (virRun(conn, cmdargv, NULL) < 0)
+    if (virRun(cmdargv, NULL) < 0)
         return -1;
 
     /* now remove the pv devices and clear them out */
@@ -542,9 +534,9 @@ virStorageBackendLogicalDeletePool(virConnectPtr conn,
     pvargv[2] = NULL;
     for (i = 0 ; i < pool->def->source.ndevice ; i++) {
         pvargv[1] = pool->def->source.devices[i].path;
-        if (virRun(conn, pvargv, NULL) < 0) {
+        if (virRun(pvargv, NULL) < 0) {
             error = -1;
-            virReportSystemError(conn, errno,
+            virReportSystemError(errno,
                                  _("cannot remove PV device '%s'"),
                                  pool->def->source.devices[i].path);
             break;
@@ -580,7 +572,7 @@ virStorageBackendLogicalCreateVol(virConnectPtr conn,
     const char **cmdargv = cmdargvnew;
 
     if (vol->target.encryption != NULL) {
-        virStorageReportError(conn, VIR_ERR_NO_SUPPORT,
+        virStorageReportError(VIR_ERR_NO_SUPPORT,
                               "%s", _("storage pool does not support encrypted "
                                       "volumes"));
         return -1;
@@ -603,15 +595,15 @@ virStorageBackendLogicalCreateVol(virConnectPtr conn,
     if (virAsprintf(&vol->target.path, "%s/%s",
                     pool->def->target.path,
                     vol->name) == -1) {
-        virReportOOMError(conn);
+        virReportOOMError();
         return -1;
     }
 
-    if (virRun(conn, cmdargv, NULL) < 0)
+    if (virRun(cmdargv, NULL) < 0)
         return -1;
 
     if ((fd = open(vol->target.path, O_RDONLY)) < 0) {
-        virReportSystemError(conn, errno,
+        virReportSystemError(errno,
                              _("cannot read path '%s'"),
                              vol->target.path);
         goto cleanup;
@@ -620,21 +612,21 @@ virStorageBackendLogicalCreateVol(virConnectPtr conn,
     /* We can only chown/grp if root */
     if (getuid() == 0) {
         if (fchown(fd, vol->target.perms.uid, vol->target.perms.gid) < 0) {
-            virReportSystemError(conn, errno,
+            virReportSystemError(errno,
                                  _("cannot set file owner '%s'"),
                                  vol->target.path);
             goto cleanup;
         }
     }
     if (fchmod(fd, vol->target.perms.mode) < 0) {
-        virReportSystemError(conn, errno,
+        virReportSystemError(errno,
                              _("cannot set file mode '%s'"),
                              vol->target.path);
         goto cleanup;
     }
 
     if (close(fd) < 0) {
-        virReportSystemError(conn, errno,
+        virReportSystemError(errno,
                              _("cannot close file '%s'"),
                              vol->target.path);
         goto cleanup;
@@ -642,8 +634,8 @@ virStorageBackendLogicalCreateVol(virConnectPtr conn,
     fd = -1;
 
     /* Fill in data about this new vol */
-    if (virStorageBackendLogicalFindLVs(conn, pool, vol) < 0) {
-        virReportSystemError(conn, errno,
+    if (virStorageBackendLogicalFindLVs(pool, vol) < 0) {
+        virReportSystemError(errno,
                              _("cannot find newly created volume '%s'"),
                              vol->target.path);
         goto cleanup;
@@ -667,7 +659,7 @@ virStorageBackendLogicalBuildVolFrom(virConnectPtr conn,
 {
     virStorageBackendBuildVolFrom build_func;
 
-    build_func = virStorageBackendGetBuildVolFromFunction(conn, vol, inputvol);
+    build_func = virStorageBackendGetBuildVolFromFunction(vol, inputvol);
     if (!build_func)
         return -1;
 
@@ -675,7 +667,7 @@ virStorageBackendLogicalBuildVolFrom(virConnectPtr conn,
 }
 
 static int
-virStorageBackendLogicalDeleteVol(virConnectPtr conn,
+virStorageBackendLogicalDeleteVol(virConnectPtr conn ATTRIBUTE_UNUSED,
                                   virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
                                   virStorageVolDefPtr vol,
                                   unsigned int flags ATTRIBUTE_UNUSED)
@@ -684,7 +676,7 @@ virStorageBackendLogicalDeleteVol(virConnectPtr conn,
         LVREMOVE, "-f", vol->target.path, NULL
     };
 
-    if (virRun(conn, cmdargv, NULL) < 0)
+    if (virRun(cmdargv, NULL) < 0)
         return -1;
 
     return 0;

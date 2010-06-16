@@ -20,9 +20,9 @@
  */
 
 #ifndef __VIRT_ERROR_H_
-#define __VIRT_ERROR_H_
+# define __VIRT_ERROR_H_
 
-#include "internal.h"
+# include "internal.h"
 
 extern virErrorFunc virErrorHandler;
 extern void *virUserData;
@@ -49,7 +49,7 @@ void virRaiseErrorFull(virConnectPtr conn,
     ATTRIBUTE_FMT_PRINTF(13, 14);
 
 /* Includes 'dom' and 'net' for compatbility, but they're ignored */
-#define virRaiseError(conn, dom, net, domain, code, level,              \
+# define virRaiseError(conn, dom, net, domain, code, level,              \
                       str1, str2, str3, int1, int2, msg, ...)           \
     virRaiseErrorFull(conn, __FILE__, __FUNCTION__, __LINE__,           \
                       domain, code, level, str1, str2, str3, int1, int2, \
@@ -63,31 +63,27 @@ void virReportErrorHelper(virConnectPtr conn, int domcode, int errcode,
                           const char *fmt, ...)
   ATTRIBUTE_FMT_PRINTF(7, 8);
 
-void virReportSystemErrorFull(virConnectPtr conn,
-                              int domcode,
+void virReportSystemErrorFull(int domcode,
                               int theerrno,
                               const char *filename,
                               const char *funcname,
                               size_t linenr,
                               const char *fmt, ...)
-    ATTRIBUTE_FMT_PRINTF(7, 8);
+    ATTRIBUTE_FMT_PRINTF(6, 7);
 
-#define virReportSystemError(conn, theerrno, fmt,...)             \
-    virReportSystemErrorFull((conn),                              \
-                             VIR_FROM_THIS,                       \
+# define virReportSystemError(theerrno, fmt,...)                   \
+    virReportSystemErrorFull(VIR_FROM_THIS,                       \
                              (theerrno),                          \
                              __FILE__, __FUNCTION__, __LINE__,    \
                              (fmt), __VA_ARGS__)
 
-void virReportOOMErrorFull(virConnectPtr conn,
-                           int domcode,
+void virReportOOMErrorFull(int domcode,
                            const char *filename,
                            const char *funcname,
                            size_t linenr);
 
-#define virReportOOMError(conn)                         \
-    virReportOOMErrorFull((conn), VIR_FROM_THIS,        \
-                     __FILE__, __FUNCTION__, __LINE__)
+# define virReportOOMError() \
+    virReportOOMErrorFull(VIR_FROM_THIS, __FILE__, __FUNCTION__, __LINE__)
 
 
 int virSetError(virErrorPtr newerr);

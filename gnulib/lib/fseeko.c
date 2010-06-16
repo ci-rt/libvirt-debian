@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* An fseeko() function that, together with fflush(), is POSIX compliant.
    Copyright (C) 2007-2010 Free Software Foundation, Inc.
 
@@ -25,14 +27,13 @@
 
 #include "stdio-impl.h"
 
+int
+fseeko (FILE *fp, off_t offset, int whence)
 #undef fseeko
 #if !HAVE_FSEEKO
 # undef fseek
 # define fseeko fseek
 #endif
-
-int
-rpl_fseeko (FILE *fp, off_t offset, int whence)
 {
 #if LSEEK_PIPE_BROKEN
   /* mingw gives bogus answers rather than failure on non-seekable files.  */

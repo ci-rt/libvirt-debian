@@ -17,7 +17,7 @@ apipng =	\
   html/home.png	\
   html/right.png
 
-devhelphtml = 			\
+devhelphtml =			\
   devhelp/libvirt.devhelp	\
   devhelp/index.html		\
   devhelp/general.html		\
@@ -76,9 +76,10 @@ EXTRA_DIST=					\
   $(devhelphtml) $(devhelppng) $(devhelpcss) $(devhelpxsl) \
   $(xml) $(fig) $(png) \
   $(patches) \
+  sitemap.html.in \
   ChangeLog.awk
 
-CLEANFILES = $(dot_html) $(apihtml) $(devhelphtml)
+MAINTAINERCLEANFILES = $(dot_html) $(apihtml) $(devhelphtml)
 
 all: web
 
@@ -105,7 +106,7 @@ ChangeLog.html.in: ChangeLog.xml ChangeLog.xsl
 	  $(XSLTPROC) --stringparam pagename $$name --nonet --html $(top_srcdir)/docs/site.xsl $< > $@ || (rm $@ && exit 1) ; fi )
 
 %.html: %.html.tmp
-	@(if [ -x $(XMLLINT) -a -x $(XMLCATALOG) ] ; then \
+	@(if test -x $(XMLLINT) && test -x $(XMLCATALOG) ; then \
 	  if $(XMLCATALOG) /etc/xml/catalog "-//W3C//DTD XHTML 1.0 Strict//EN" > /dev/null ; then \
 	  echo "Validating $@" ; \
 	  $(XMLLINT) --nonet --format --valid $< > $@ || (rm $@ && exit 1) ; \
@@ -116,22 +117,26 @@ html/index.html: libvirt-api.xml newapi.xsl page.xsl sitemap.html.in
 	-@(if [ -x $(XSLTPROC) ] ; then \
 	  echo "Rebuilding the HTML pages from the XML API" ; \
 	  $(XSLTPROC) --nonet $(srcdir)/newapi.xsl libvirt-api.xml ; fi )
-	-@(if [ -x $(XMLLINT) -a -x $(XMLCATALOG) ] ; then \
-	  if $(XMLCATALOG) /etc/xml/catalog "-//W3C//DTD XHTML 1.0 Strict//EN" > /dev/null ; then \
+	-@(if test -x $(XMLLINT) && test -x $(XMLCATALOG) ; then \
+	  if $(XMLCATALOG) /etc/xml/catalog "-//W3C//DTD XHTML 1.0 Strict//EN" \
+	    > /dev/null ; then \
 	  echo "Validating the resulting XHTML pages" ; \
 	  $(XMLLINT) --nonet --valid --noout html/*.html ; \
 	  else echo "missing XHTML1 DTD" ; fi ; fi );
 
-devhelp/index.html devhelp/libvirt.devhelp: libvirt-api.xml $(devhelpxsl)
+$(devhelphtml): libvirt-api.xml $(devhelpxsl)
 	-@(echo Rebuilding devhelp files)
 	-@(if [ -x $(XSLTPROC) ] ; then \
-	  $(XSLTPROC) --nonet -o devhelp/libvirt.devhelp $(top_srcdir)/docs/devhelp/devhelp.xsl $(top_srcdir)/docs/libvirt-api.xml ; fi );
+	  $(XSLTPROC) --nonet -o devhelp/libvirt.devhelp \
+          $(top_srcdir)/docs/devhelp/devhelp.xsl libvirt-api.xml ; fi );
 
+html/%-%.html html/%-virterror.html %-api.xml %-refs.xml: $(srcdir)/apibuild.py
+	-srcdir=$(srcdir) $(srcdir)/apibuild.py
 
-libvirt-api.xml libvirt-refs.xml: apibuild.py \
-		$(srcdir)/../include/libvirt/*.h \
-		$(srcdir)/../src/libvirt.c $(srcdir)/../src/util/virterror.c
-	-(./apibuild.py)
+html/%-%.html html/%-virterror.html %-api.xml %-refs.xml: \
+		$(srcdir)/../include/%/*.h \
+		$(srcdir)/../src/%.c \
+		$(srcdir)/../src/util/virterror.c
 
 clean-local:
 	rm -f *~ *.bak *.hierarchy *.signals *-unused.txt

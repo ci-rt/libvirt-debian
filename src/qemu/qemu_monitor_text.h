@@ -23,12 +23,12 @@
 
 
 #ifndef QEMU_MONITOR_TEXT_H
-#define QEMU_MONITOR_TEXT_H
+# define QEMU_MONITOR_TEXT_H
 
-#include "internal.h"
+# include "internal.h"
 
-#include "qemu_monitor.h"
-#include "hash.h"
+# include "qemu_monitor.h"
+# include "hash.h"
 
 int qemuMonitorTextIOProcess(qemuMonitorPtr mon,
                              const char *data,
@@ -61,6 +61,7 @@ int qemuMonitorTextSetVNCPassword(qemuMonitorPtr mon,
                                   const char *password);
 int qemuMonitorTextSetBalloon(qemuMonitorPtr mon,
                               unsigned long newmem);
+int qemuMonitorTextSetCPU(qemuMonitorPtr mon, int cpu, int online);
 
 int qemuMonitorTextEjectMedia(qemuMonitorPtr mon,
                               const char *devname);
@@ -82,6 +83,9 @@ int qemuMonitorTextSavePhysicalMemory(qemuMonitorPtr mon,
 int qemuMonitorTextSetMigrationSpeed(qemuMonitorPtr mon,
                                      unsigned long bandwidth);
 
+int qemuMonitorTextSetMigrationDowntime(qemuMonitorPtr mon,
+                                        unsigned long long downtime);
+
 int qemuMonitorTextGetMigrationStatus(qemuMonitorPtr mon,
                                       int *status,
                                       unsigned long long *transferred,
@@ -95,8 +99,13 @@ int qemuMonitorTextMigrateToHost(qemuMonitorPtr mon,
 
 int qemuMonitorTextMigrateToCommand(qemuMonitorPtr mon,
                                     int background,
-                                    const char * const *argv,
-                                    const char *target);
+                                    const char * const *argv);
+
+int qemuMonitorTextMigrateToFile(qemuMonitorPtr mon,
+                                 int background,
+                                 const char * const *argv,
+                                 const char *target,
+                                 unsigned long long offset);
 
 int qemuMonitorTextMigrateToUnix(qemuMonitorPtr mon,
                                  int background,
@@ -163,7 +172,18 @@ int qemuMonitorTextGetAllPCIAddresses(qemuMonitorPtr mon,
 int qemuMonitorTextAddDevice(qemuMonitorPtr mon,
                              const char *devicestr);
 
+int qemuMonitorTextDelDevice(qemuMonitorPtr mon,
+                             const char *devalias);
+
 int qemuMonitorTextAddDrive(qemuMonitorPtr mon,
                              const char *drivestr);
+
+int qemuMonitorTextSetDrivePassphrase(qemuMonitorPtr mon,
+                                      const char *alias,
+                                      const char *passphrase);
+
+int qemuMonitorTextCreateSnapshot(qemuMonitorPtr mon, const char *name);
+int qemuMonitorTextLoadSnapshot(qemuMonitorPtr mon, const char *name);
+int qemuMonitorTextDeleteSnapshot(qemuMonitorPtr mon, const char *name);
 
 #endif /* QEMU_MONITOR_TEXT_H */

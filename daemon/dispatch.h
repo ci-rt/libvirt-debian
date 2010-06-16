@@ -22,10 +22,10 @@
  */
 
 #ifndef __LIBVIRTD_DISPATCH_H__
-#define __LIBVIRTD_DISPATCH_H__
+# define __LIBVIRTD_DISPATCH_H__
 
 
-#include "libvirtd.h"
+# include "libvirtd.h"
 
 
 int
@@ -59,16 +59,6 @@ remoteSerializeStreamError(struct qemud_client *client,
                            remote_error *rerr,
                            int proc,
                            int serial);
-
-/* Having this here is dubious. It should be in remote.h
- * but qemud.c shouldn't depend on that header directly.
- * Refactor this later to deal with this properly.
- */
-int remoteRelayDomainEvent (virConnectPtr conn ATTRIBUTE_UNUSED,
-                            virDomainPtr dom,
-                            int event,
-                            int detail,
-                            void *opaque);
 
 
 int

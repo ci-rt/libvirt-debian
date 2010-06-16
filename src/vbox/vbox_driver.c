@@ -3,6 +3,7 @@
  */
 
 /*
+ * Copyright (C) 2010 Red Hat, Inc.
  * Copyright (C) 2008-2009 Sun Microsystems, Inc.
  *
  * This file is part of a free software library; you can redistribute
@@ -57,9 +58,9 @@ static virDriver vboxDriverDummy;
 
 #define VIR_FROM_THIS VIR_FROM_VBOX
 
-#define vboxError(conn, code, fmt...) \
-        virReportErrorHelper(conn, VIR_FROM_VBOX, code, __FILE__, \
-                            __FUNCTION__, __LINE__, fmt)
+#define vboxError(code, ...) \
+        virReportErrorHelper(NULL, VIR_FROM_VBOX, code, __FILE__, \
+                             __FUNCTION__, __LINE__, __VA_ARGS__)
 
 int vboxRegister(void) {
     virDriverPtr        driver;
@@ -135,27 +136,27 @@ static virDrvOpenStatus vboxOpenDummy(virConnectPtr conn,
         return VIR_DRV_OPEN_DECLINED;
 
     if (conn->uri->path == NULL || STREQ(conn->uri->path, "")) {
-        vboxError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
+        vboxError(VIR_ERR_INTERNAL_ERROR, "%s",
                   _("no VirtualBox driver path specified (try vbox:///session)"));
         return VIR_DRV_OPEN_ERROR;
     }
 
     if (uid != 0) {
         if (STRNEQ (conn->uri->path, "/session")) {
-            vboxError(conn, VIR_ERR_INTERNAL_ERROR,
+            vboxError(VIR_ERR_INTERNAL_ERROR,
                       _("unknown driver path '%s' specified (try vbox:///session)"), conn->uri->path);
             return VIR_DRV_OPEN_ERROR;
         }
     } else { /* root */
         if (STRNEQ (conn->uri->path, "/system") &&
             STRNEQ (conn->uri->path, "/session")) {
-            vboxError(conn, VIR_ERR_INTERNAL_ERROR,
+            vboxError(VIR_ERR_INTERNAL_ERROR,
                       _("unknown driver path '%s' specified (try vbox:///system)"), conn->uri->path);
             return VIR_DRV_OPEN_ERROR;
         }
     }
 
-    vboxError(conn, VIR_ERR_INTERNAL_ERROR, "%s",
+    vboxError(VIR_ERR_INTERNAL_ERROR, "%s",
               _("unable to initialize VirtualBox driver API"));
     return VIR_DRV_OPEN_ERROR;
 }

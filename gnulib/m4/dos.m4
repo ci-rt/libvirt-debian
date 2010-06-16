@@ -1,3 +1,5 @@
+# -*- buffer-read-only: t -*- vi: set ro:
+# DO NOT EDIT! GENERATED AUTOMATICALLY!
 #serial 11   -*- autoconf -*-
 
 # Define some macros required for proper operation of code in lib/*.c

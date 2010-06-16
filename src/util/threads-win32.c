@@ -69,6 +69,11 @@ void virThreadOnExit(void)
 
 int virMutexInit(virMutexPtr m)
 {
+    return virMutexInitRecursive(m);
+}
+
+int virMutexInitRecursive(virMutexPtr m)
+{
     if (!(m->lock = CreateMutex(NULL, FALSE, NULL))) {
         errno = ESRCH;
         return -1;

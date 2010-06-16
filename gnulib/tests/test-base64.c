@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Self tests for base64.
    Copyright (C) 2004, 2008, 2009, 2010 Free Software Foundation, Inc.
    Written by Simon Josefsson.
@@ -39,7 +41,7 @@ main (void)
 
   memset (out, 0x42, sizeof (out));
   base64_encode (in, 0, out, 0);
-  ASSERT(out[0] == '\x42');
+  ASSERT (out[0] == '\x42');
 
   memset (out, 0x42, sizeof (out));
   base64_encode (in, 1, out, 1);

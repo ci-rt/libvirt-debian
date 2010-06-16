@@ -1,7 +1,7 @@
 /*
  * virterror.c: implements error handling and reporting code for libvirt
  *
- * Copy:  Copyright (C) 2006, 2008, 2009 Red Hat, Inc.
+ * Copy:  Copyright (C) 2006, 2008-2010 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -84,6 +84,9 @@ static const char *virErrorDomainName(virErrorDomain domain) {
             break;
         case VIR_FROM_XEN:
             dom = "Xen ";
+            break;
+        case VIR_FROM_XENAPI:
+            dom = "XenAPI ";
             break;
         case VIR_FROM_XML:
             dom = "XML ";
@@ -174,6 +177,15 @@ static const char *virErrorDomainName(virErrorDomain domain) {
             break;
         case VIR_FROM_CPU:
             dom = "CPU ";
+            break;
+        case VIR_FROM_NWFILTER:
+            dom = "Network Filter";
+            break;
+        case VIR_FROM_HOOK:
+            dom = "Sync Hook ";
+            break;
+        case VIR_FROM_DOMAIN_SNAPSHOT:
+            dom = "Domain Snapshot ";
             break;
     }
     return(dom);
@@ -304,7 +316,7 @@ int
 virSetError(virErrorPtr newerr)
 {
     virErrorPtr err;
-    err = virGetLastError();
+    err = virLastErrorObject();
     if (!err)
         return -1;
 
@@ -1097,6 +1109,30 @@ virErrorMsg(virErrorNumber error, const char *info)
             else
                 errmsg = _("Secret not found: %s");
             break;
+        case VIR_WAR_NO_NWFILTER:
+            if (info == NULL)
+                errmsg = _("Failed to start the nwfilter driver");
+            else
+                errmsg = _("Failed to start the nwfilter driver: %s");
+            break;
+        case VIR_ERR_INVALID_NWFILTER:
+            if (info == NULL)
+                    errmsg = _("Invalid network filter");
+            else
+                    errmsg = _("Invalid network filter: %s");
+            break;
+        case VIR_ERR_NO_NWFILTER:
+            if (info == NULL)
+                    errmsg = _("Network filter not found");
+            else
+                    errmsg = _("Network filter not found: %s");
+            break;
+        case VIR_ERR_BUILD_FIREWALL:
+            if (info == NULL)
+                    errmsg = _("Error while building firewall");
+            else
+                    errmsg = _("Error while building firewall: %s");
+            break;
         case VIR_ERR_CONFIG_UNSUPPORTED:
             if (info == NULL)
                 errmsg = _("unsupported configuration");
@@ -1114,6 +1150,24 @@ virErrorMsg(virErrorNumber error, const char *info)
                 errmsg = _("Failed to make domain persistent after migration");
             else
                 errmsg = _("Failed to make domain persistent after migration: %s");
+            break;
+        case VIR_ERR_HOOK_SCRIPT_FAILED:
+            if (info == NULL)
+                errmsg = _("Hook script execution failed");
+            else
+                errmsg = _("Hook script execution failed: %s");
+            break;
+        case VIR_ERR_INVALID_DOMAIN_SNAPSHOT:
+            if (info == NULL)
+                errmsg = _("Invalid snapshot");
+            else
+                errmsg = _("Invalid snapshot: %s");
+            break;
+        case VIR_ERR_NO_DOMAIN_SNAPSHOT:
+            if (info == NULL)
+                errmsg = _("Domain snapshot not found");
+            else
+                errmsg = _("Domain snapshot not found: %s");
             break;
     }
     return (errmsg);
@@ -1197,7 +1251,6 @@ const char *virStrerror(int theerrno, char *errBuf, size_t errBufLen)
 
 /**
  * virReportSystemErrorFull:
- * @conn: the hyperisor connection
  * @domcode: the virErrorDomain indicating where it's coming from
  * @theerrno: an errno number
  * @filename: filename where error was raised
@@ -1208,8 +1261,7 @@ const char *virStrerror(int theerrno, char *errBuf, size_t errBufLen)
  *
  * Convenience internal routine called when a system error is detected.
  */
-void virReportSystemErrorFull(virConnectPtr conn,
-                              int domcode,
+void virReportSystemErrorFull(int domcode,
                               int theerrno,
                               const char *filename,
                               const char *funcname,
@@ -1243,14 +1295,13 @@ void virReportSystemErrorFull(virConnectPtr conn,
     if (!msgDetail)
         msgDetail = errnoDetail;
 
-    virRaiseErrorFull(conn, filename, funcname, linenr,
+    virRaiseErrorFull(NULL, filename, funcname, linenr,
                       domcode, VIR_ERR_SYSTEM_ERROR, VIR_ERR_ERROR,
                       msg, msgDetail, NULL, -1, -1, msg, msgDetail);
 }
 
 /**
  * virReportOOMErrorFull:
- * @conn: the hyperisor connection
  * @domcode: the virErrorDomain indicating where it's coming from
  * @filename: filename where error was raised
  * @funcname: function name where error was raised
@@ -1259,8 +1310,7 @@ void virReportSystemErrorFull(virConnectPtr conn,
  * Convenience internal routine called when an out of memory error is
  * detected
  */
-void virReportOOMErrorFull(virConnectPtr conn,
-                           int domcode,
+void virReportOOMErrorFull(int domcode,
                            const char *filename,
                            const char *funcname,
                            size_t linenr)
@@ -1268,7 +1318,7 @@ void virReportOOMErrorFull(virConnectPtr conn,
     const char *virerr;
 
     virerr = virErrorMsg(VIR_ERR_NO_MEMORY, NULL);
-    virRaiseErrorFull(conn, filename, funcname, linenr,
+    virRaiseErrorFull(NULL, filename, funcname, linenr,
                       domcode, VIR_ERR_NO_MEMORY, VIR_ERR_ERROR,
                       virerr, NULL, NULL, -1, -1, virerr, NULL);
 }

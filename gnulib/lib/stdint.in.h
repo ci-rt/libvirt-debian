@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Copyright (C) 2001-2002, 2004-2010 Free Software Foundation, Inc.
    Written by Paul Eggert, Bruno Haible, Sam Steingold, Peter Burwood.
    This file is part of gnulib.
@@ -22,6 +24,10 @@
  */
 
 #ifndef _GL_STDINT_H
+
+#if __GNUC__ >= 3
+@PRAGMA_SYSTEM_HEADER@
+#endif
 
 /* When including a system file that in turn includes <inttypes.h>,
    use the system <inttypes.h>, not our substitute.  This avoids
@@ -49,9 +55,6 @@
      in <inttypes.h> would reinclude us, skipping our contents because
      _GL_STDINT_H is defined.
      The include_next requires a split double-inclusion guard.  */
-# if __GNUC__ >= 3
-@PRAGMA_SYSTEM_HEADER@
-# endif
 # @INCLUDE_NEXT@ @NEXT_STDINT_H@
 #endif
 

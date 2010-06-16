@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Character handling in C locale.
 
    Copyright 2000-2003, 2006, 2009-2010 Free Software Foundation, Inc.

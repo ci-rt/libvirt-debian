@@ -7,15 +7,15 @@ Subject: [PATCH] remove-RHism.diff
  1 files changed, 1 insertions(+), 1 deletions(-)
 
 diff --git a/tools/virsh.pod b/tools/virsh.pod
-index 10f622f..f76b8e5 100644
+index cf7585d..7631339 100644
 --- a/tools/virsh.pod
 +++ b/tools/virsh.pod
-@@ -34,7 +34,7 @@ the program.
+@@ -42,7 +42,7 @@ the program.
  
- All B<virsh> operations rely upon the libvirt library.
- For any virsh commands to run xend/qemu, or what ever virtual library that libvirt supports.  For this reason you should start xend/qemu as a service when your system first boots using xen/qemu. This can usually be done using the command
--B<service libvirtd start> .
-+B<invoke-rc.d libvirt-bin start> .
+ Most B<virsh> operations rely upon the libvirt library being able to
+ connect to an already running libvirtd service.  This can usually be
+-done using the command B<service libvirtd start>.
++done using the command B<invoke-rc.d libvirt-bin start>.
  
  Most B<virsh> commands require root privileges to run due to the
  communications channels used to talk to the hypervisor.  Running as

@@ -20,9 +20,9 @@
  */
 
 #ifndef __THREADS_H_
-#define __THREADS_H_
+# define __THREADS_H_
 
-#include "internal.h"
+# include "internal.h"
 
 typedef struct virMutex virMutex;
 typedef virMutex *virMutexPtr;
@@ -38,6 +38,7 @@ int virThreadInitialize(void) ATTRIBUTE_RETURN_CHECK;
 void virThreadOnExit(void);
 
 int virMutexInit(virMutexPtr m) ATTRIBUTE_RETURN_CHECK;
+int virMutexInitRecursive(virMutexPtr m) ATTRIBUTE_RETURN_CHECK;
 void virMutexDestroy(virMutexPtr m);
 
 void virMutexLock(virMutexPtr m);
@@ -60,14 +61,14 @@ int virThreadLocalInit(virThreadLocalPtr l,
 void *virThreadLocalGet(virThreadLocalPtr l);
 void virThreadLocalSet(virThreadLocalPtr l, void*);
 
-#ifdef HAVE_PTHREAD_H
-#include "threads-pthread.h"
-#else
-#ifdef WIN32
-#include "threads-win32.h"
-#else
-#error "Either pthreads or Win32 threads are required"
-#endif
-#endif
+# ifdef HAVE_PTHREAD_H
+#  include "threads-pthread.h"
+# else
+#  ifdef WIN32
+#   include "threads-win32.h"
+#  else
+#   error "Either pthreads or Win32 threads are required"
+#  endif
+# endif
 
 #endif

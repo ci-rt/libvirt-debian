@@ -135,19 +135,18 @@ no_memory:
  * @return the OpenNebula ID for the new VM or -1 in case of error
  */
 
-int oneSubmitVM(virConnectPtr    conn,
-                one_driver_t*    driver ATTRIBUTE_UNUSED,
+int oneSubmitVM(one_driver_t*    driver ATTRIBUTE_UNUSED,
                 virDomainObjPtr  vm)
 {
     char* templ;
     int   oneid;
 
-    if ((templ = xmlOneTemplate(conn,vm->def)) == NULL)
+    if ((templ = xmlOneTemplate(vm->def)) == NULL)
         return -1;
 
     if ((oneid = c_oneAllocateTemplate(templ)) < 0) {
-        oneError(conn, NULL, VIR_ERR_OPERATION_FAILED,
-                 "%s", _("Error submitting virtual machine to OpenNebula"));
+        oneError(VIR_ERR_OPERATION_FAILED, "%s",
+                 _("Error submitting virtual machine to OpenNebula"));
         VIR_FREE(templ);
         return -1;
     }
@@ -166,7 +165,7 @@ int oneSubmitVM(virConnectPtr    conn,
  * @return OpenNebula VM template.
  */
 
-char* xmlOneTemplate(virConnectPtr conn,virDomainDefPtr def)
+char* xmlOneTemplate(virDomainDefPtr def)
 {
     int i;
     virBuffer buf= VIR_BUFFER_INITIALIZER;
@@ -277,7 +276,7 @@ char* xmlOneTemplate(virConnectPtr conn,virDomainDefPtr def)
     return virBufferContentAndReset(&buf);
 
 no_memory:
-    virReportOOMError(conn);
+    virReportOOMError();
     virBufferFreeAndReset(&buf);
     return NULL;
 };

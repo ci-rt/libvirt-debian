@@ -22,7 +22,7 @@
 #include <config.h>
 
 #if HAVE_SCHED_H
-#include <sched.h>
+# include <sched.h>
 #endif
 
 #include "processinfo.h"
@@ -38,7 +38,7 @@ int virProcessInfoSetAffinity(pid_t pid,
                               int maxcpu)
 {
     int i;
-#ifdef CPU_ALLOC
+# ifdef CPU_ALLOC
     /* New method dynamically allocates cpu mask, allowing unlimted cpus */
     int numcpus = 1024;
     size_t masklen;
@@ -56,7 +56,7 @@ realloc:
     mask = CPU_ALLOC(numcpus);
 
     if (!mask) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         return -1;
     }
 
@@ -73,12 +73,12 @@ realloc:
             numcpus = numcpus << 2;
             goto realloc;
         }
-        virReportSystemError(NULL, errno,
+        virReportSystemError(errno,
                              _("cannot set CPU affinity on process %d"), pid);
         return -1;
     }
     CPU_FREE(mask);
-#else
+# else
     /* Legacy method uses a fixed size cpu mask, only allows upto 1024 cpus */
     cpu_set_t mask;
 
@@ -89,11 +89,11 @@ realloc:
     }
 
     if (sched_setaffinity(pid, sizeof(mask), &mask) < 0) {
-        virReportSystemError(NULL, errno,
+        virReportSystemError(errno,
                              _("cannot set CPU affinity on process %d"), pid);
         return -1;
     }
-#endif
+# endif
 
     return 0;
 }
@@ -104,7 +104,7 @@ int virProcessInfoGetAffinity(pid_t pid,
                               int maxcpu)
 {
     int i;
-#ifdef CPU_ALLOC
+# ifdef CPU_ALLOC
     /* New method dynamically allocates cpu mask, allowing unlimted cpus */
     int numcpus = 1024;
     size_t masklen;
@@ -122,7 +122,7 @@ realloc:
     mask = CPU_ALLOC(numcpus);
 
     if (!mask) {
-        virReportOOMError(NULL);
+        virReportOOMError();
         return -1;
     }
 
@@ -134,29 +134,29 @@ realloc:
             numcpus = numcpus << 2;
             goto realloc;
         }
-        virReportSystemError(NULL, errno,
-                             _("cannot set CPU affinity on process %d"), pid);
+        virReportSystemError(errno,
+                             _("cannot get CPU affinity of process %d"), pid);
         return -1;
     }
 
     for (i = 0 ; i < maxcpu ; i++)
         if (CPU_ISSET_S(i, masklen, mask))
             VIR_USE_CPU(map, i);
-#else
+# else
     /* Legacy method uses a fixed size cpu mask, only allows upto 1024 cpus */
     cpu_set_t mask;
 
     CPU_ZERO(&mask);
     if (sched_getaffinity(pid, sizeof(mask), &mask) < 0) {
-        virReportSystemError(NULL, errno,
-                             _("cannot set CPU affinity on process %d"), pid);
+        virReportSystemError(errno,
+                             _("cannot get CPU affinity of process %d"), pid);
         return -1;
     }
 
     for (i = 0 ; i < maxcpu ; i++)
         if (CPU_ISSET(i, &mask))
             VIR_USE_CPU(map, i);
-#endif
+# endif
 
     return 0;
 }
@@ -168,7 +168,7 @@ int virProcessInfoSetAffinity(pid_t pid ATTRIBUTE_UNUSED,
                               size_t maplen ATTRIBUTE_UNUSED,
                               int maxcpu ATTRIBUTE_UNUSED)
 {
-    virReportSystemError(NULL, ENOSYS, "%s",
+    virReportSystemError(ENOSYS, "%s",
                          _("Process CPU affinity is not supported on this platform"));
     return -1;
 }
@@ -178,7 +178,7 @@ int virProcessInfoGetAffinity(pid_t pid ATTRIBUTE_UNUSED,
                               size_t maplen ATTRIBUTE_UNUSED,
                               int maxcpu ATTRIBUTE_UNUSED)
 {
-    virReportSystemError(NULL, ENOSYS, "%s",
+    virReportSystemError(ENOSYS, "%s",
                          _("Process CPU affinity is not supported on this platform"));
     return -1;
 }

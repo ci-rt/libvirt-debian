@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Emulation for poll(2)
    Contributed by Paolo Bonzini.
 
@@ -70,7 +72,7 @@
 #define IsConsoleHandle(h) (((long) (h) & 3) == 3)
 
 static BOOL
-IsSocketHandle(HANDLE h)
+IsSocketHandle (HANDLE h)
 {
   WSANETWORKEVENTS ev;
 

@@ -1,3 +1,5 @@
+/* -*- buffer-read-only: t -*- vi: set ro: */
+/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <arpa/inet.h>.
 
    Copyright (C) 2005-2006, 2008-2010 Free Software Foundation, Inc.
@@ -18,6 +20,10 @@
 
 #ifndef _GL_ARPA_INET_H
 
+#if __GNUC__ >= 3
+@PRAGMA_SYSTEM_HEADER@
+#endif
+
 /* Gnulib's sys/socket.h is responsible for pulling in winsock2.h etc
    under MinGW.
    But avoid namespace pollution on glibc systems.  */
@@ -27,10 +33,6 @@
 
 #if @HAVE_ARPA_INET_H@
 
-# if __GNUC__ >= 3
-@PRAGMA_SYSTEM_HEADER@
-# endif
-
 /* The include_next requires a split double-inclusion guard.  */
 # @INCLUDE_NEXT@ @NEXT_ARPA_INET_H@
 
@@ -39,9 +41,9 @@
 #ifndef _GL_ARPA_INET_H
 #define _GL_ARPA_INET_H
 
-/* The definition of GL_LINK_WARNING is copied here.  */
-
 /* The definition of _GL_ARG_NONNULL is copied here.  */
+
+/* The definition of _GL_WARN_ON_USE is copied here.  */
 
 #ifdef __cplusplus
 extern "C" {
@@ -70,10 +72,10 @@ extern const char *inet_ntop (int af, const void *restrict src,
 # endif
 #elif defined GNULIB_POSIXCHECK
 # undef inet_ntop
-# define inet_ntop(af,src,dst,cnt) \
-    (GL_LINK_WARNING ("inet_ntop is unportable - " \
-                      "use gnulib module inet_ntop for portability"), \
-     inet_ntop (af, src, dst, cnt))
+# if HAVE_RAW_DECL_INET_NTOP
+_GL_WARN_ON_USE (inet_ntop, "inet_ntop is unportable - "
+                 "use gnulib module inet_ntop for portability");
+# endif
 #endif
 
 #if @GNULIB_INET_PTON@
@@ -83,10 +85,10 @@ extern int inet_pton (int af, const char *restrict src, void *restrict dst)
 # endif
 #elif defined GNULIB_POSIXCHECK
 # undef inet_pton
-# define inet_pton(af,src,dst) \
-  (GL_LINK_WARNING ("inet_pton is unportable - " \
-                    "use gnulib module inet_pton for portability"), \
-   inet_pton (af, src, dst))
+# if HAVE_RAW_DECL_INET_PTON
+_GL_WARN_ON_USE (inet_pton, "inet_pton is unportable - "
+                 "use gnulib module inet_pton for portability");
+# endif
 #endif
 
 #ifdef __cplusplus

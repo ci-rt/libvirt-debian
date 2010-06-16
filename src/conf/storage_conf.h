@@ -1,7 +1,7 @@
 /*
  * storage_conf.h: config handling for storage driver
  *
- * Copyright (C) 2006-2008 Red Hat, Inc.
+ * Copyright (C) 2006-2008, 2010 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -22,14 +22,14 @@
  */
 
 #ifndef __VIR_STORAGE_CONF_H__
-#define __VIR_STORAGE_CONF_H__
+# define __VIR_STORAGE_CONF_H__
 
-#include "internal.h"
-#include "util.h"
-#include "storage_encryption_conf.h"
-#include "threads.h"
+# include "internal.h"
+# include "util.h"
+# include "storage_encryption_conf.h"
+# include "threads.h"
 
-#include <libxml/tree.h>
+# include <libxml/tree.h>
 
 /* Shared structs */
 
@@ -318,12 +318,11 @@ static inline int virStoragePoolObjIsActive(virStoragePoolObjPtr pool) {
     return pool->active;
 }
 
-#define virStorageReportError(conn, code, fmt...)                            \
-        virReportErrorHelper(conn, VIR_FROM_STORAGE, code, __FILE__,       \
-                               __FUNCTION__, __LINE__, fmt)
+# define virStorageReportError(code, ...)                                \
+    virReportErrorHelper(NULL, VIR_FROM_STORAGE, code, __FILE__,        \
+                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
-int virStoragePoolLoadAllConfigs(virConnectPtr conn,
-                                 virStoragePoolObjListPtr pools,
+int virStoragePoolLoadAllConfigs(virStoragePoolObjListPtr pools,
                                  const char *configDir,
                                  const char *autostartDir);
 
@@ -341,40 +340,29 @@ virStorageVolDefPtr virStorageVolDefFindByName(virStoragePoolObjPtr pool,
 
 void virStoragePoolObjClearVols(virStoragePoolObjPtr pool);
 
-virStoragePoolDefPtr virStoragePoolDefParseString(virConnectPtr conn,
-                                                  const char *xml);
-virStoragePoolDefPtr virStoragePoolDefParseFile(virConnectPtr conn,
-                                                const char *filename);
-virStoragePoolDefPtr virStoragePoolDefParseNode(virConnectPtr conn,
-                                                xmlDocPtr xml,
+virStoragePoolDefPtr virStoragePoolDefParseString(const char *xml);
+virStoragePoolDefPtr virStoragePoolDefParseFile(const char *filename);
+virStoragePoolDefPtr virStoragePoolDefParseNode(xmlDocPtr xml,
                                                 xmlNodePtr root);
-char *virStoragePoolDefFormat(virConnectPtr conn,
-                              virStoragePoolDefPtr def);
+char *virStoragePoolDefFormat(virStoragePoolDefPtr def);
 
-virStorageVolDefPtr virStorageVolDefParseString(virConnectPtr conn,
-                                                virStoragePoolDefPtr pool,
+virStorageVolDefPtr virStorageVolDefParseString(virStoragePoolDefPtr pool,
                                                 const char *xml);
-virStorageVolDefPtr virStorageVolDefParseFile(virConnectPtr conn,
-                                              virStoragePoolDefPtr pool,
+virStorageVolDefPtr virStorageVolDefParseFile(virStoragePoolDefPtr pool,
                                               const char *filename);
-virStorageVolDefPtr virStorageVolDefParseNode(virConnectPtr conn,
-                                              virStoragePoolDefPtr pool,
+virStorageVolDefPtr virStorageVolDefParseNode(virStoragePoolDefPtr pool,
                                               xmlDocPtr xml,
                                               xmlNodePtr root);
-char *virStorageVolDefFormat(virConnectPtr conn,
-                             virStoragePoolDefPtr pool,
+char *virStorageVolDefFormat(virStoragePoolDefPtr pool,
                              virStorageVolDefPtr def);
 
-virStoragePoolObjPtr virStoragePoolObjAssignDef(virConnectPtr conn,
-                                                virStoragePoolObjListPtr pools,
+virStoragePoolObjPtr virStoragePoolObjAssignDef(virStoragePoolObjListPtr pools,
                                                 virStoragePoolDefPtr def);
 
-int virStoragePoolObjSaveDef(virConnectPtr conn,
-                             virStorageDriverStatePtr driver,
+int virStoragePoolObjSaveDef(virStorageDriverStatePtr driver,
                              virStoragePoolObjPtr pool,
                              virStoragePoolDefPtr def);
-int virStoragePoolObjDeleteDef(virConnectPtr conn,
-                               virStoragePoolObjPtr pool);
+int virStoragePoolObjDeleteDef(virStoragePoolObjPtr pool);
 
 void virStorageVolDefFree(virStorageVolDefPtr def);
 void virStoragePoolSourceFree(virStoragePoolSourcePtr source);
@@ -385,14 +373,11 @@ void virStoragePoolObjRemove(virStoragePoolObjListPtr pools,
                              virStoragePoolObjPtr pool);
 
 virStoragePoolSourcePtr
-virStoragePoolDefParseSourceString(virConnectPtr conn,
-                                   const char *srcSpec,
+virStoragePoolDefParseSourceString(const char *srcSpec,
                                    int pool_type);
 virStoragePoolSourcePtr
-virStoragePoolSourceListNewSource(virConnectPtr conn,
-                                  virStoragePoolSourceListPtr list);
-char *virStoragePoolSourceListFormat(virConnectPtr conn,
-                                     virStoragePoolSourceListPtr def);
+virStoragePoolSourceListNewSource(virStoragePoolSourceListPtr list);
+char *virStoragePoolSourceListFormat(virStoragePoolSourceListPtr def);
 
 void virStoragePoolObjLock(virStoragePoolObjPtr obj);
 void virStoragePoolObjUnlock(virStoragePoolObjPtr obj);

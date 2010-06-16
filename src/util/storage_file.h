@@ -22,10 +22,10 @@
  */
 
 #ifndef __VIR_STORAGE_FILE_H__
-#define __VIR_STORAGE_FILE_H__
+# define __VIR_STORAGE_FILE_H__
 
-#include "util.h"
-#include <stdbool.h>
+# include "util.h"
+# include <stdbool.h>
 
 enum virStorageFileFormat {
     VIR_STORAGE_FILE_RAW = 0,
@@ -51,11 +51,13 @@ typedef struct _virStorageFileMetadata {
     bool encrypted;
 } virStorageFileMetadata;
 
-int virStorageFileGetMetadata(virConnectPtr conn,
-                              const char *path,
+# ifndef DEV_BSIZE
+#  define DEV_BSIZE 512
+# endif
+
+int virStorageFileGetMetadata(const char *path,
                               virStorageFileMetadata *meta);
-int virStorageFileGetMetadataFromFD(virConnectPtr conn,
-                                    const char *path,
+int virStorageFileGetMetadataFromFD(const char *path,
                                     int fd,
                                     virStorageFileMetadata *meta);
 

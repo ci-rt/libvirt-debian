@@ -23,16 +23,18 @@
 
 
 #ifndef QEMU_MONITOR_JSON_H
-#define QEMU_MONITOR_JSON_H
+# define QEMU_MONITOR_JSON_H
 
-#include "internal.h"
+# include "internal.h"
 
-#include "qemu_monitor.h"
+# include "qemu_monitor.h"
 
 int qemuMonitorJSONIOProcess(qemuMonitorPtr mon,
                              const char *data,
                              size_t len,
                              qemuMonitorMessagePtr msg);
+
+int qemuMonitorJSONSetCapabilities(qemuMonitorPtr mon);
 
 int qemuMonitorJSONStartCPUs(qemuMonitorPtr mon,
                              virConnectPtr conn);
@@ -44,6 +46,9 @@ int qemuMonitorJSONGetCPUInfo(qemuMonitorPtr mon,
                               int **pids);
 int qemuMonitorJSONGetBalloonInfo(qemuMonitorPtr mon,
                                   unsigned long *currmem);
+int qemuMonitorJSONGetMemoryStats(qemuMonitorPtr mon,
+                                  virDomainMemoryStatPtr stats,
+                                  unsigned int nr_stats);
 int qemuMonitorJSONGetBlockStatsInfo(qemuMonitorPtr mon,
                                      const char *devname,
                                      long long *rd_req,
@@ -57,6 +62,7 @@ int qemuMonitorJSONSetVNCPassword(qemuMonitorPtr mon,
                                   const char *password);
 int qemuMonitorJSONSetBalloon(qemuMonitorPtr mon,
                               unsigned long newmem);
+int qemuMonitorJSONSetCPU(qemuMonitorPtr mon, int cpu, int online);
 
 int qemuMonitorJSONEjectMedia(qemuMonitorPtr mon,
                               const char *devname);
@@ -78,6 +84,9 @@ int qemuMonitorJSONSavePhysicalMemory(qemuMonitorPtr mon,
 int qemuMonitorJSONSetMigrationSpeed(qemuMonitorPtr mon,
                                      unsigned long bandwidth);
 
+int qemuMonitorJSONSetMigrationDowntime(qemuMonitorPtr mon,
+                                        unsigned long long downtime);
+
 int qemuMonitorJSONGetMigrationStatus(qemuMonitorPtr mon,
                                       int *status,
                                       unsigned long long *transferred,
@@ -91,8 +100,13 @@ int qemuMonitorJSONMigrateToHost(qemuMonitorPtr mon,
 
 int qemuMonitorJSONMigrateToCommand(qemuMonitorPtr mon,
                                     int background,
-                                    const char * const *argv,
-                                    const char *target);
+                                    const char * const *argv);
+
+int qemuMonitorJSONMigrateToFile(qemuMonitorPtr mon,
+                                 int background,
+                                 const char * const *argv,
+                                 const char *target,
+                                 unsigned long long offset);
 
 int qemuMonitorJSONMigrateToUnix(qemuMonitorPtr mon,
                                  int background,
@@ -159,7 +173,18 @@ int qemuMonitorJSONGetAllPCIAddresses(qemuMonitorPtr mon,
 int qemuMonitorJSONAddDevice(qemuMonitorPtr mon,
                              const char *devicestr);
 
+int qemuMonitorJSONDelDevice(qemuMonitorPtr mon,
+                             const char *devalias);
+
 int qemuMonitorJSONAddDrive(qemuMonitorPtr mon,
                             const char *drivestr);
+
+int qemuMonitorJSONSetDrivePassphrase(qemuMonitorPtr mon,
+                                      const char *alias,
+                                      const char *passphrase);
+
+int qemuMonitorJSONCreateSnapshot(qemuMonitorPtr mon, const char *name);
+int qemuMonitorJSONLoadSnapshot(qemuMonitorPtr mon, const char *name);
+int qemuMonitorJSONDeleteSnapshot(qemuMonitorPtr mon, const char *name);
 
 #endif /* QEMU_MONITOR_JSON_H */
