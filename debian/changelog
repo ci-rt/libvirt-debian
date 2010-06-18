@@ -1,3 +1,13 @@
+libvirt (0.8.1-2~bpo50+1) lenny-backports; urgency=low
+
+  * Rebuild for lenny-backports.
+  * [bbe36a6] Build-dep on libcap-ng-dev
+  * [02fafb0] Disable macvtap support since we're lacking the apropriate
+    kernel headers
+  * [f138943] Use 1.0 source format since bpo doesn't support 3.0 (quilt)
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 18 Jun 2010 17:20:01 +0200
+
 libvirt (0.8.1-2) unstable; urgency=low
 
   * [41aea79] Drop patchsys-quilt since this package is 3.0 (quilt) now.
