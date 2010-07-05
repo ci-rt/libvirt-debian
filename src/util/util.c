@@ -37,9 +37,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
-#if HAVE_SYS_WAIT_H
-# include <sys/wait.h>
-#endif
+#include <sys/wait.h>
 #if HAVE_MMAP
 # include <sys/mman.h>
 #endif
@@ -65,7 +63,7 @@
 # include <mntent.h>
 #endif
 
-#include "areadlink.h"
+#include "dirname.h"
 #include "virterror_internal.h"
 #include "logging.h"
 #include "event.h"
@@ -74,10 +72,14 @@
 #include "util.h"
 #include "memory.h"
 #include "threads.h"
+#include "verify.h"
 
 #ifndef NSIG
 # define NSIG 32
 #endif
+
+verify(sizeof(gid_t) <= sizeof (unsigned int) &&
+       sizeof(uid_t) <= sizeof (unsigned int));
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -281,7 +283,8 @@ static int virClearCapabilities(void)
     capng_clear(CAPNG_SELECT_BOTH);
 
     if ((ret = capng_apply(CAPNG_SELECT_BOTH)) < 0) {
-        VIR_ERROR("cannot clear process capabilities %d", ret);
+        virUtilError(VIR_ERR_INTERNAL_ERROR,
+                     _("cannot clear process capabilities %d"), ret);
         return -1;
     }
 
@@ -308,11 +311,11 @@ static int virClearCapabilities(void)
    Even if *pid >= 0, if the return value from virFork() is < 0, it
    indicates a failure that occurred in the parent or child process
    after the fork. In this case, the child process should call
-   _exit(1) after doing any additional error reporting.
+   _exit(EXIT_FAILURE) after doing any additional error reporting.
 
  */
 int virFork(pid_t *pid) {
-#  ifdef HAVE_PTHREAD_H
+#  ifdef HAVE_PTHREAD_SIGMASK
     sigset_t oldmask, newmask;
 #  endif
     struct sigaction sig_action;
@@ -324,7 +327,7 @@ int virFork(pid_t *pid) {
      * Need to block signals now, so that child process can safely
      * kill off caller's signal handlers without a race.
      */
-#  ifdef HAVE_PTHREAD_H
+#  ifdef HAVE_PTHREAD_SIGMASK
     sigfillset(&newmask);
     if (pthread_sigmask(SIG_SETMASK, &newmask, &oldmask) != 0) {
         saved_errno = errno;
@@ -345,7 +348,7 @@ int virFork(pid_t *pid) {
     virLogUnlock();
 
     if (*pid < 0) {
-#  ifdef HAVE_PTHREAD_H
+#  ifdef HAVE_PTHREAD_SIGMASK
         /* attempt to restore signal mask, but ignore failure, to
            avoid obscuring the fork failure */
         ignore_value (pthread_sigmask(SIG_SETMASK, &oldmask, NULL));
@@ -359,7 +362,7 @@ int virFork(pid_t *pid) {
 
         /* parent process */
 
-#  ifdef HAVE_PTHREAD_H
+#  ifdef HAVE_PTHREAD_SIGMASK
         /* Restore our original signal mask now that the child is
            safely running */
         if (pthread_sigmask(SIG_SETMASK, &oldmask, NULL) != 0) {
@@ -403,7 +406,7 @@ int virFork(pid_t *pid) {
             sigaction(i, &sig_action, NULL);
         }
 
-#  ifdef HAVE_PTHREAD_H
+#  ifdef HAVE_PTHREAD_SIGMASK
         /* Unmask all signals in child, since we've no idea
            what the caller's done with their signal mask
            and don't want to propagate that to children */
@@ -557,7 +560,7 @@ __virExec(const char *const*argv,
         /* The fork was sucessful, but after that there was an error
          * in the child (which was already logged).
         */
-        _exit(1);
+        goto fork_error;
     }
 
     openmax = sysconf (_SC_OPEN_MAX);
@@ -573,19 +576,19 @@ __virExec(const char *const*argv,
     if (dup2(infd >= 0 ? infd : null, STDIN_FILENO) < 0) {
         virReportSystemError(errno,
                              "%s", _("failed to setup stdin file handle"));
-        _exit(1);
+        goto fork_error;
     }
     if (childout > 0 &&
         dup2(childout, STDOUT_FILENO) < 0) {
         virReportSystemError(errno,
                              "%s", _("failed to setup stdout file handle"));
-        _exit(1);
+        goto fork_error;
     }
     if (childerr > 0 &&
         dup2(childerr, STDERR_FILENO) < 0) {
         virReportSystemError(errno,
                              "%s", _("failed to setup stderr file handle"));
-        _exit(1);
+        goto fork_error;
     }
 
     if (infd > 0)
@@ -603,20 +606,20 @@ __virExec(const char *const*argv,
         if (setsid() < 0) {
             virReportSystemError(errno,
                                  "%s", _("cannot become session leader"));
-            _exit(1);
+            goto fork_error;
         }
 
         if (chdir("/") < 0) {
             virReportSystemError(errno,
                                  "%s", _("cannot change to root directory: %s"));
-            _exit(1);
+            goto fork_error;
         }
 
         pid = fork();
         if (pid < 0) {
             virReportSystemError(errno,
                                  "%s", _("cannot fork child process"));
-            _exit(1);
+            goto fork_error;
         }
 
         if (pid > 0) {
@@ -627,7 +630,7 @@ __virExec(const char *const*argv,
                 virReportSystemError(errno,
                                      _("could not write pidfile %s for %d"),
                                      pidfile, pid);
-                _exit(1);
+                goto fork_error;
             }
             _exit(0);
         }
@@ -636,15 +639,14 @@ __virExec(const char *const*argv,
     if (hook)
         if ((hook)(data) != 0) {
             VIR_DEBUG0("Hook function failed.");
-            virDispatchError(NULL);
-            _exit(1);
+            goto fork_error;
         }
 
     /* The steps above may need todo something privileged, so
      * we delay clearing capabilities until the last minute */
     if ((flags & VIR_EXEC_CLEAR_CAPS) &&
         virClearCapabilities() < 0)
-        _exit(1);
+        goto fork_error;
 
     if (envp)
         execve(argv[0], (char **) argv, (char**)envp);
@@ -655,7 +657,9 @@ __virExec(const char *const*argv,
                          _("cannot execute binary %s"),
                          argv[0]);
 
-    _exit(1);
+ fork_error:
+    virDispatchError(NULL);
+    _exit(EXIT_FAILURE);
 
  cleanup:
     /* This is cleanup of parent process only - child
@@ -780,86 +784,6 @@ int virExecDaemonize(const char *const*argv,
     }
 
     return ret;
-}
-
-int
-virPipeReadUntilEOF(int outfd, int errfd,
-                    char **outbuf, char **errbuf) {
-
-    struct pollfd fds[2];
-    int i;
-    int finished[2];
-
-    fds[0].fd = outfd;
-    fds[0].events = POLLIN;
-    finished[0] = 0;
-    fds[1].fd = errfd;
-    fds[1].events = POLLIN;
-    finished[1] = 0;
-
-    while(!(finished[0] && finished[1])) {
-
-        if (poll(fds, ARRAY_CARDINALITY(fds), -1) < 0) {
-            if ((errno == EAGAIN) || (errno == EINTR))
-                continue;
-            goto pollerr;
-        }
-
-        for (i = 0; i < ARRAY_CARDINALITY(fds); ++i) {
-            char data[1024], **buf;
-            int got, size;
-
-            if (!(fds[i].revents))
-                continue;
-            else if (fds[i].revents & POLLHUP)
-                finished[i] = 1;
-
-            if (!(fds[i].revents & POLLIN)) {
-                if (fds[i].revents & POLLHUP)
-                    continue;
-
-                virUtilError(VIR_ERR_INTERNAL_ERROR,
-                             "%s", _("Unknown poll response."));
-                goto error;
-            }
-
-            got = read(fds[i].fd, data, sizeof(data));
-
-            if (got == 0) {
-                finished[i] = 1;
-                continue;
-            }
-            if (got < 0) {
-                if (errno == EINTR)
-                    continue;
-                if (errno == EAGAIN)
-                    break;
-                goto pollerr;
-            }
-
-            buf = ((fds[i].fd == outfd) ? outbuf : errbuf);
-            size = (*buf ? strlen(*buf) : 0);
-            if (VIR_REALLOC_N(*buf, size+got+1) < 0) {
-                virReportOOMError();
-                goto error;
-            }
-            memmove(*buf+size, data, got);
-            (*buf)[size+got] = '\0';
-        }
-        continue;
-
-    pollerr:
-        virReportSystemError(errno,
-                             "%s", _("poll error"));
-        goto error;
-    }
-
-    return 0;
-
-error:
-    VIR_FREE(*outbuf);
-    VIR_FREE(*errbuf);
-    return -1;
 }
 
 /**
@@ -1006,6 +930,86 @@ virExecDaemonize(const char *const*argv ATTRIBUTE_UNUSED,
 }
 
 # endif /* WIN32 */
+
+int
+virPipeReadUntilEOF(int outfd, int errfd,
+                    char **outbuf, char **errbuf) {
+
+    struct pollfd fds[2];
+    int i;
+    int finished[2];
+
+    fds[0].fd = outfd;
+    fds[0].events = POLLIN;
+    finished[0] = 0;
+    fds[1].fd = errfd;
+    fds[1].events = POLLIN;
+    finished[1] = 0;
+
+    while(!(finished[0] && finished[1])) {
+
+        if (poll(fds, ARRAY_CARDINALITY(fds), -1) < 0) {
+            if ((errno == EAGAIN) || (errno == EINTR))
+                continue;
+            goto pollerr;
+        }
+
+        for (i = 0; i < ARRAY_CARDINALITY(fds); ++i) {
+            char data[1024], **buf;
+            int got, size;
+
+            if (!(fds[i].revents))
+                continue;
+            else if (fds[i].revents & POLLHUP)
+                finished[i] = 1;
+
+            if (!(fds[i].revents & POLLIN)) {
+                if (fds[i].revents & POLLHUP)
+                    continue;
+
+                virUtilError(VIR_ERR_INTERNAL_ERROR,
+                             "%s", _("Unknown poll response."));
+                goto error;
+            }
+
+            got = read(fds[i].fd, data, sizeof(data));
+
+            if (got == 0) {
+                finished[i] = 1;
+                continue;
+            }
+            if (got < 0) {
+                if (errno == EINTR)
+                    continue;
+                if (errno == EAGAIN)
+                    break;
+                goto pollerr;
+            }
+
+            buf = ((fds[i].fd == outfd) ? outbuf : errbuf);
+            size = (*buf ? strlen(*buf) : 0);
+            if (VIR_REALLOC_N(*buf, size+got+1) < 0) {
+                virReportOOMError();
+                goto error;
+            }
+            memmove(*buf+size, data, got);
+            (*buf)[size+got] = '\0';
+        }
+        continue;
+
+    pollerr:
+        virReportSystemError(errno,
+                             "%s", _("poll error"));
+        goto error;
+    }
+
+    return 0;
+
+error:
+    VIR_FREE(*outbuf);
+    VIR_FREE(*errbuf);
+    return -1;
+}
 
 int
 virRun(const char *const*argv,
@@ -1176,11 +1180,12 @@ int virFileLinkPointsTo(const char *checkLink,
 
 
 /*
- * Attempt to resolve a symbolic link, returning the
- * real path
+ * Attempt to resolve a symbolic link, returning an
+ * absolute path where only the last component is guaranteed
+ * not to be a symlink.
  *
  * Return 0 if path was not a symbolic, or the link was
- * resolved. Return -1 upon error
+ * resolved. Return -1 with errno set upon error
  */
 int virFileResolveLink(const char *linkpath,
                        char **resultpath)
@@ -1189,16 +1194,21 @@ int virFileResolveLink(const char *linkpath,
 
     *resultpath = NULL;
 
-    if (lstat(linkpath, &st) < 0)
-        return errno;
+    /* We don't need the full canonicalization of intermediate
+     * directories, if linkpath is absolute and the basename is
+     * already a non-symlink.  */
+    if (IS_ABSOLUTE_FILE_NAME(linkpath)) {
+        if (lstat(linkpath, &st) < 0)
+            return -1;
 
-    if (!S_ISLNK(st.st_mode)) {
-        if (!(*resultpath = strdup(linkpath)))
-            return -ENOMEM;
-        return 0;
+        if (!S_ISLNK(st.st_mode)) {
+            if (!(*resultpath = strdup(linkpath)))
+                return -1;
+            return 0;
+        }
     }
 
-    *resultpath = areadlink (linkpath);
+    *resultpath = canonicalize_file_name(linkpath);
 
     return *resultpath == NULL ? -1 : 0;
 }
@@ -1211,6 +1221,7 @@ int virFileResolveLink(const char *linkpath,
  */
 char *virFindFileInPath(const char *file)
 {
+    char *path;
     char pathenv[PATH_MAX];
     char *penv = pathenv;
     char *pathseg;
@@ -1230,7 +1241,9 @@ char *virFindFileInPath(const char *file)
     }
 
     /* copy PATH env so we can tweak it */
-    if (virStrcpyStatic(pathenv, getenv("PATH")) == NULL)
+    path = getenv("PATH");
+
+    if (path == NULL || virStrcpyStatic(pathenv, path) == NULL)
         return NULL;
 
     /* for each path segment, append the file to search for and test for
@@ -1277,7 +1290,7 @@ static int virFileOperationNoFork(const char *path, int openflags, mode_t mode,
         && (fchown(fd, uid, gid) < 0)) {
         ret = errno;
         virReportSystemError(errno, _("cannot chown '%s' to (%u, %u)"),
-                             path, uid, gid);
+                             path, (unsigned int) uid, (unsigned int) gid);
         goto error;
     }
     if ((flags & VIR_FILE_OP_FORCE_PERMS)
@@ -1328,7 +1341,7 @@ static int virDirCreateNoFork(const char *path, mode_t mode, uid_t uid, gid_t gi
         && (chown(path, uid, gid) < 0)) {
         ret = errno;
         virReportSystemError(errno, _("cannot chown '%s' to (%u, %u)"),
-                             path, uid, gid);
+                             path, (unsigned int) uid, (unsigned int) gid);
         goto error;
     }
     if ((flags & VIR_DIR_CREATE_FORCE_PERMS)
@@ -1407,14 +1420,14 @@ parenterror:
         ret = errno;
         virReportSystemError(errno,
                              _("cannot set gid %u creating '%s'"),
-                             gid, path);
+                             (unsigned int) gid, path);
         goto childerror;
     }
     if  ((uid != 0) && (setuid(uid) != 0)) {
         ret = errno;
         virReportSystemError(errno,
                              _("cannot set uid %u creating '%s'"),
-                             uid, path);
+                             (unsigned int) uid, path);
         goto childerror;
     }
     if ((fd = open(path, openflags, mode)) < 0) {
@@ -1436,7 +1449,7 @@ parenterror:
         && (fchown(fd, -1, gid) < 0)) {
         ret = errno;
         virReportSystemError(errno, _("cannot chown '%s' to (%u, %u)"),
-                             path, uid, gid);
+                             path, (unsigned int) uid, (unsigned int) gid);
         goto childerror;
     }
     if ((flags & VIR_FILE_OP_FORCE_PERMS)
@@ -1517,13 +1530,13 @@ parenterror:
     if ((gid != 0) && (setgid(gid) != 0)) {
         ret = errno;
         virReportSystemError(errno, _("cannot set gid %u creating '%s'"),
-                             gid, path);
+                             (unsigned int) gid, path);
         goto childerror;
     }
     if  ((uid != 0) && (setuid(uid) != 0)) {
         ret = errno;
         virReportSystemError(errno, _("cannot set uid %u creating '%s'"),
-                             uid, path);
+                             (unsigned int) uid, path);
         goto childerror;
     }
     if (mkdir(path, mode) < 0) {
@@ -1547,7 +1560,7 @@ parenterror:
         ret = errno;
         virReportSystemError(errno,
                              _("cannot chown '%s' to group %u"),
-                             path, gid);
+                             path, (unsigned int) gid);
         goto childerror;
     }
     if ((flags & VIR_DIR_CREATE_FORCE_PERMS)
@@ -1917,6 +1930,55 @@ int virFileAbsPath(const char *path, char **abspath)
 
     *abspath = buf;
     return 0;
+}
+
+/* Remove spurious / characters from a path. The result must be freed */
+char *
+virFileSanitizePath(const char *path)
+{
+    const char *cur = path;
+    char *cleanpath;
+    int idx = 0;
+
+    cleanpath = strdup(path);
+    if (!cleanpath) {
+        virReportOOMError();
+        return NULL;
+    }
+
+    /* Need to sanitize:
+     * //           -> //
+     * ///          -> /
+     * /../foo      -> /../foo
+     * /foo///bar/  -> /foo/bar
+     */
+
+    /* Starting with // is valid posix, but ///foo == /foo */
+    if (cur[0] == '/' && cur[1] == '/' && cur[2] != '/') {
+        idx = 2;
+        cur += 2;
+    }
+
+    /* Sanitize path in place */
+    while (*cur != '\0') {
+        if (*cur != '/') {
+            cleanpath[idx++] = *cur++;
+            continue;
+        }
+
+        /* Skip all extra / */
+        while (*++cur == '/')
+            continue;
+
+        /* Don't add a trailing / */
+        if (idx != 0 && *cur == '\0')
+            break;
+
+        cleanpath[idx++] = '/';
+    }
+    cleanpath[idx] = '\0';
+
+    return cleanpath;
 }
 
 /* Like strtol, but produce an "int" result, and check more carefully.
@@ -2365,11 +2427,31 @@ char *virIndexToDiskName(int idx, const char *prefix)
 # define AI_CANONIDN 0
 #endif
 
-char *virGetHostnameLocalhost(int allow_localhost)
+/* Who knew getting a hostname could be so delicate.  In Linux (and Unices
+ * in general), many things depend on "hostname" returning a value that will
+ * resolve one way or another.  In the modern world where networks frequently
+ * come and go this is often being hard-coded to resolve to "localhost".  If
+ * it *doesn't* resolve to localhost, then we would prefer to have the FQDN.
+ * That leads us to 3 possibilities:
+ *
+ * 1)  gethostname() returns an FQDN (not localhost) - we return the string
+ *     as-is, it's all of the information we want
+ * 2)  gethostname() returns "localhost" - we return localhost; doing further
+ *     work to try to resolve it is pointless
+ * 3)  gethostname() returns a shortened hostname - in this case, we want to
+ *     try to resolve this to a fully-qualified name.  Therefore we pass it
+ *     to getaddrinfo().  There are two possible responses:
+ *     a)  getaddrinfo() resolves to a FQDN - return the FQDN
+ *     b)  getaddrinfo() resolves to localhost - in this case, the data we got
+ *         from gethostname() is actually more useful than what we got from
+ *         getaddrinfo().  Return the value from gethostname() and hope for
+ *         the best.
+ */
+char *virGetHostname(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
     int r;
     char hostname[HOST_NAME_MAX+1], *result;
-    struct addrinfo hints, *info, *res;
+    struct addrinfo hints, *info;
 
     r = gethostname (hostname, sizeof(hostname));
     if (r == -1) {
@@ -2378,6 +2460,21 @@ char *virGetHostnameLocalhost(int allow_localhost)
         return NULL;
     }
     NUL_TERMINATE(hostname);
+
+    if (STRPREFIX(hostname, "localhost") || strchr(hostname, '.')) {
+        /* in this case, gethostname returned localhost (meaning we can't
+         * do any further canonicalization), or it returned an FQDN (and
+         * we don't need to do any further canonicalization).  Return the
+         * string as-is; it's up to callers to check whether "localhost"
+         * is allowed.
+         */
+        result = strdup(hostname);
+        goto check_and_return;
+    }
+
+    /* otherwise, it's a shortened, non-localhost, hostname.  Attempt to
+     * canonicalize the hostname by running it through getaddrinfo
+     */
 
     memset(&hints, 0, sizeof(hints));
     hints.ai_flags = AI_CANONNAME|AI_CANONIDN;
@@ -2393,52 +2490,23 @@ char *virGetHostnameLocalhost(int allow_localhost)
     /* Tell static analyzers about getaddrinfo semantics.  */
     sa_assert (info);
 
-    /* if we aren't allowing localhost, then we iterate through the
-     * list and make sure none of the IPv4 addresses are 127.0.0.1 and
-     * that none of the IPv6 addresses are ::1
-     */
-    if (!allow_localhost) {
-        res = info;
-        while (res) {
-            if (res->ai_family == AF_INET) {
-                if (htonl(((struct sockaddr_in *)res->ai_addr)->sin_addr.s_addr) == INADDR_LOOPBACK) {
-                    virUtilError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                 _("canonical hostname pointed to localhost, but this is not allowed"));
-                    freeaddrinfo(info);
-                    return NULL;
-                }
-            }
-            else if (res->ai_family == AF_INET6) {
-                if (IN6_IS_ADDR_LOOPBACK(&((struct sockaddr_in6 *)res->ai_addr)->sin6_addr)) {
-                    virUtilError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                 _("canonical hostname pointed to localhost, but this is not allowed"));
-                    freeaddrinfo(info);
-                    return NULL;
-                }
-            }
-            res = res->ai_next;
-        }
-    }
-
-    if (info->ai_canonname == NULL) {
-        virUtilError(VIR_ERR_INTERNAL_ERROR,
-                     "%s", _("could not determine canonical host name"));
-        freeaddrinfo(info);
-        return NULL;
-    }
-
-    /* Caller frees this string. */
-    result = strdup (info->ai_canonname);
-    if (!result)
-        virReportOOMError();
+    if (info->ai_canonname == NULL ||
+        STRPREFIX(info->ai_canonname, "localhost"))
+        /* in this case, we tried to canonicalize and we ended up back with
+         * localhost.  Ignore the canonicalized name and just return the
+         * original hostname
+         */
+        result = strdup(hostname);
+    else
+        /* Caller frees this string. */
+        result = strdup (info->ai_canonname);
 
     freeaddrinfo(info);
-    return result;
-}
 
-char *virGetHostname(virConnectPtr conn ATTRIBUTE_UNUSED)
-{
-    return virGetHostnameLocalhost(1);
+check_and_return:
+    if (result == NULL)
+        virReportOOMError();
+    return result;
 }
 
 /* send signal to a single process */
@@ -2563,8 +2631,8 @@ static char *virGetUserEnt(uid_t uid,
      */
     if (getpwuid_r(uid, &pwbuf, strbuf, strbuflen, &pw) != 0 || pw == NULL) {
         virReportSystemError(errno,
-                             _("Failed to find user record for uid '%d'"),
-                             uid);
+                             _("Failed to find user record for uid '%u'"),
+                             (unsigned int) uid);
         VIR_FREE(strbuf);
         return NULL;
     }
@@ -2795,7 +2863,7 @@ int virBuildPathInternal(char **path, ...)
     va_list ap;
     int ret = 0;
 
-    va_start(ap, *path);
+    va_start(ap, path);
 
     path_component = va_arg(ap, char *);
     virBufferAdd(&buf, path_component, -1);

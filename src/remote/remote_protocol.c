@@ -227,8 +227,6 @@ xdr_remote_error (XDR *xdrs, remote_error *objp)
                  return FALSE;
          if (!xdr_remote_network (xdrs, &objp->net))
                  return FALSE;
-         if (!xdr_remote_nwfilter (xdrs, &objp->nwfilter))
-                 return FALSE;
         return TRUE;
 }
 
@@ -1197,6 +1195,26 @@ xdr_remote_num_of_defined_domains_ret (XDR *xdrs, remote_num_of_defined_domains_
 
 bool_t
 xdr_remote_domain_create_args (XDR *xdrs, remote_domain_create_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_create_with_flags_args (XDR *xdrs, remote_domain_create_with_flags_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_create_with_flags_ret (XDR *xdrs, remote_domain_create_with_flags_ret *objp)
 {
 
          if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))

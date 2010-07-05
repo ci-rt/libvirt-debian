@@ -32,6 +32,10 @@ typedef virSecurityDriverStatus (*virSecurityDriverProbe) (void);
 typedef int (*virSecurityDriverOpen) (virSecurityDriverPtr drv);
 typedef int (*virSecurityDomainRestoreImageLabel) (virDomainObjPtr vm,
                                                    virDomainDiskDefPtr disk);
+typedef int (*virSecurityDomainSetSocketLabel) (virSecurityDriverPtr drv,
+                                                virDomainObjPtr vm);
+typedef int (*virSecurityDomainClearSocketLabel)(virSecurityDriverPtr drv,
+                                                virDomainObjPtr vm);
 typedef int (*virSecurityDomainSetImageLabel) (virDomainObjPtr vm,
                                                virDomainDiskDefPtr disk);
 typedef int (*virSecurityDomainRestoreHostdevLabel) (virDomainObjPtr vm,
@@ -45,8 +49,10 @@ typedef int (*virSecurityDomainRestoreSavedStateLabel) (virDomainObjPtr vm,
 typedef int (*virSecurityDomainGenLabel) (virDomainObjPtr sec);
 typedef int (*virSecurityDomainReserveLabel) (virDomainObjPtr sec);
 typedef int (*virSecurityDomainReleaseLabel) (virDomainObjPtr sec);
-typedef int (*virSecurityDomainSetAllLabel) (virDomainObjPtr sec);
-typedef int (*virSecurityDomainRestoreAllLabel) (virDomainObjPtr vm);
+typedef int (*virSecurityDomainSetAllLabel) (virDomainObjPtr sec,
+                                             const char *stdin_path);
+typedef int (*virSecurityDomainRestoreAllLabel) (virDomainObjPtr vm,
+                                                 int migrated);
 typedef int (*virSecurityDomainGetProcessLabel) (virDomainObjPtr vm,
                                                  virSecurityLabelPtr sec);
 typedef int (*virSecurityDomainSetProcessLabel) (virSecurityDriverPtr drv,
@@ -59,6 +65,8 @@ struct _virSecurityDriver {
     virSecurityDriverOpen open;
     virSecurityDomainSecurityVerify domainSecurityVerify;
     virSecurityDomainRestoreImageLabel domainRestoreSecurityImageLabel;
+    virSecurityDomainSetSocketLabel domainSetSecuritySocketLabel;
+    virSecurityDomainClearSocketLabel domainClearSecuritySocketLabel;
     virSecurityDomainSetImageLabel domainSetSecurityImageLabel;
     virSecurityDomainGenLabel domainGenSecurityLabel;
     virSecurityDomainReserveLabel domainReserveSecurityLabel;

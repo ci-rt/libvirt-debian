@@ -61,7 +61,9 @@
 %define with_udev          0%{!?_without_udev:0}
 %define with_hal           0%{!?_without_hal:0}
 %define with_yajl          0%{!?_without_yajl:0}
+%define with_nwfilter      0%{!?_without_nwfilter:0}
 %define with_libpcap       0%{!?_without_libpcap:0}
+%define with_macvtap       0%{!?_without_macvtap:0}
 
 # Non-server/HV driver defaults which are always enabled
 %define with_python        0%{!?_without_python:1}
@@ -150,7 +152,13 @@
 
 # Enable libpcap library
 %if %{with_qemu}
+%define with_nwfilter 0%{!?_without_nwfilter:%{server_drivers}}
 %define with_libpcap  0%{!?_without_libpcap:%{server_drivers}}
+%define with_macvtap  0%{!?_without_macvtap:%{server_drivers}}
+%endif
+
+%if %{with_macvtap}
+%define with_libnl 1
 %endif
 
 # Force QEMU to run as non-root
@@ -184,7 +192,7 @@ URL: http://libvirt.org/
 BuildRequires: python-devel
 
 # The client side, i.e. shared libs and virsh are in a subpackage
-Requires: libvirt-client = %{version}-%{release}
+Requires: %{name}-client = %{version}-%{release}
 
 # Used by many of the drivers, so turn it on whenever the
 # daemon is present
@@ -194,6 +202,11 @@ Requires: bridge-utils
 %if %{with_network}
 Requires: dnsmasq
 Requires: iptables
+%endif
+%if %{with_nwfilter}
+Requires: ebtables
+Requires: iptables
+Requires: iptables-ipv6
 %endif
 # needed for device enumeration
 %if %{with_hal}
@@ -275,6 +288,9 @@ BuildRequires: yajl-devel
 %if %{with_libpcap}
 BuildRequires: libpcap-devel
 %endif
+%if %{with_libnl}
+BuildRequires: libnl-devel
+%endif
 %if %{with_avahi}
 BuildRequires: avahi-devel
 %endif
@@ -347,6 +363,9 @@ BuildRequires: libssh2-devel
 %if %{with_netcf}
 BuildRequires: netcf-devel >= 0.1.4
 %endif
+%if %{with_esx}
+BuildRequires: libcurl-devel
+%endif
 
 # Fedora build root suckage
 BuildRequires: gawk
@@ -378,7 +397,7 @@ virtualization capabilities of recent versions of Linux (and other OSes).
 %package devel
 Summary: Libraries, includes, etc. to compile with the libvirt library
 Group: Development/Libraries
-Requires: libvirt-client = %{version}-%{release}
+Requires: %{name}-client = %{version}-%{release}
 Requires: pkgconfig
 %if %{with_xen}
 Requires: xen-devel
@@ -392,7 +411,7 @@ the virtualization capabilities of recent versions of Linux (and other OSes).
 %package python
 Summary: Python bindings for the libvirt library
 Group: Development/Libraries
-Requires: libvirt-client = %{version}-%{release}
+Requires: %{name}-client = %{version}-%{release}
 
 %description python
 The libvirt-python package contains a module that permits applications
@@ -517,6 +536,14 @@ of recent versions of Linux (and other OSes).
 %define _without_yajl --without-yajl
 %endif
 
+%if ! %{with_libpcap}
+%define _without_libpcap --without-libpcap
+%endif
+
+%if ! %{with_macvtap}
+%define _without_macvtap --without-macvtap
+%endif
+
 %configure %{?_without_xen} \
            %{?_without_qemu} \
            %{?_without_openvz} \
@@ -545,6 +572,8 @@ of recent versions of Linux (and other OSes).
            %{?_without_hal} \
            %{?_without_udev} \
            %{?_without_yajl} \
+           %{?_without_libpcap} \
+           %{?_without_macvtap} \
            --with-qemu-user=%{qemu_user} \
            --with-qemu-group=%{qemu_group} \
            --with-init-script=redhat \
@@ -556,7 +585,7 @@ gzip -9 ChangeLog
 rm -fr %{buildroot}
 
 %makeinstall
-for i in domain-events/events-c dominfo domsuspend hellolibvirt python
+for i in domain-events/events-c dominfo domsuspend hellolibvirt python xml/nwfilter
 do
   (cd examples/$i ; make clean ; rm -rf .deps .libs Makefile Makefile.in)
 done
@@ -600,6 +629,10 @@ rm -rf $RPM_BUILD_ROOT%{_datadir}/doc/libvirt-python-%{version}
 rm -rf $RPM_BUILD_ROOT%{_datadir}/doc/libvirt-%{version}
 %endif
 
+%if ! %{with_libvirtd}
+rm -rf $RPM_BUILD_ROOT%{_sysconfdir}/libvirt/nwfilter
+%endif
+
 %if ! %{with_qemu}
 rm -rf $RPM_BUILD_ROOT%{_sysconfdir}/libvirt/qemu.conf
 rm -rf $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/libvirtd.qemu
@@ -625,7 +658,7 @@ cd tests
 for i in nodeinfotest daemon-conf seclabeltest
 do
   rm -f $i
-  echo -e "#!/bin/sh\nexit 0" > $i
+  printf "#!/bin/sh\nexit 0\n" > $i
   chmod +x $i
 done
 make check
@@ -674,7 +707,22 @@ if [ $1 = 0 ]; then
 fi
 %endif
 
-%post client -p /sbin/ldconfig
+%preun client
+
+if [ $1 = 0 ]; then
+    /sbin/chkconfig --del libvirt-guests
+    rm -f /var/lib/libvirt/libvirt-guests
+fi
+
+%post client
+
+/sbin/ldconfig
+/sbin/chkconfig --add libvirt-guests
+if [ $1 -ge 1 ]; then
+    # this doesn't do anything but allowing for libvirt-guests to be
+    # stopped on the first shutdown
+    /sbin/service libvirt-guests start > /dev/null 2>&1 || true
+fi
 
 %postun client -p /sbin/ldconfig
 
@@ -799,6 +847,7 @@ fi
 %dir %{_datadir}/libvirt/schemas/
 
 %{_datadir}/libvirt/schemas/domain.rng
+%{_datadir}/libvirt/schemas/domainsnapshot.rng
 %{_datadir}/libvirt/schemas/network.rng
 %{_datadir}/libvirt/schemas/storagepool.rng
 %{_datadir}/libvirt/schemas/storagevol.rng
@@ -810,6 +859,10 @@ fi
 %{_datadir}/libvirt/schemas/nwfilter.rng
 
 %{_datadir}/libvirt/cpu_map.xml
+
+%{_sysconfdir}/rc.d/init.d/libvirt-guests
+%config(noreplace) %{_sysconfdir}/sysconfig/libvirt-guests
+%dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt
 
 %if %{with_sasl}
 %config(noreplace) %{_sysconfdir}/sasl2/libvirt.conf
@@ -850,6 +903,14 @@ fi
 %endif
 
 %changelog
+* Mon Jul  5 2010 Daniel Veillard <veillard@redhat.com> - 0.8.2-1
+- phyp: adding support for IVM
+- libvirt: introduce domainCreateWithFlags API
+- add 802.1Qbh and 802.1Qbg switches handling
+- Support for VirtualBox version 3.2
+- Init script for handling guests on shutdown/boot
+- qemu: live migration with non-shared storage for kvm
+
 * Fri Apr 30 2010 Daniel Veillard <veillard@redhat.com> - 0.8.1-1
 - Starts dnsmasq from libvirtd with --dhcp-hostsfile
 - Add virDomainGetBlockInfo API to query disk sizing

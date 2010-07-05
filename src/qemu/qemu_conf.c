@@ -54,7 +54,7 @@
 #include "network.h"
 #include "macvtap.h"
 #include "cpu/cpu.h"
-#include "nwfilter/nwfilter_gentech_driver.h"
+#include "domain_nwfilter.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -104,6 +104,7 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
 
     /* Setup critical defaults */
     driver->dynamicOwnership = 1;
+    driver->clearEmulatorCapabilities = 1;
 
     if (!(driver->vncListen = strdup("127.0.0.1"))) {
         virReportOOMError();
@@ -132,16 +133,21 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
     /* Just check the file is readable before opening it, otherwise
      * libvirt emits an error.
      */
-    if (access (filename, R_OK) == -1) return 0;
+    if (access (filename, R_OK) == -1) {
+        VIR_INFO("Could not read qemu config file %s", filename);
+        return 0;
+    }
 
     conf = virConfReadFile (filename, 0);
-    if (!conf) return 0;
+    if (!conf) {
+        return -1;
+    }
 
 
 #define CHECK_TYPE(name,typ) if (p && p->type != (typ)) {               \
         qemuReportError(VIR_ERR_INTERNAL_ERROR,                         \
-                         "remoteReadConfigFile: %s: %s: expected type " #typ, \
-                         filename, (name));                             \
+                        "%s: %s: expected type " #typ,                  \
+                        filename, (name));                              \
         virConfFree(conf);                                              \
         return -1;                                                      \
     }
@@ -254,13 +260,13 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
         for (i = 0, pp = p->list; pp; ++i, pp = pp->next) {
             int ctl;
             if (pp->type != VIR_CONF_STRING) {
-                VIR_ERROR("%s", _("cgroup_controllers must be a list of strings"));
+                VIR_ERROR0(_("cgroup_controllers must be a list of strings"));
                 virConfFree(conf);
                 return -1;
             }
             ctl = virCgroupControllerTypeFromString(pp->str);
             if (ctl < 0) {
-                VIR_ERROR("Unknown cgroup controller '%s'", pp->str);
+                VIR_ERROR(_("Unknown cgroup controller '%s'"), pp->str);
                 virConfFree(conf);
                 return -1;
             }
@@ -292,7 +298,7 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
         }
         for (i = 0, pp = p->list; pp; ++i, pp = pp->next) {
             if (pp->type != VIR_CONF_STRING) {
-                VIR_ERROR("%s", _("cgroup_device_acl must be a list of strings"));
+                VIR_ERROR0(_("cgroup_device_acl must be a list of strings"));
                 virConfFree(conf);
                 return -1;
             }
@@ -350,6 +356,14 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
     p = virConfGetValue (conf, "relaxed_acs_check");
     CHECK_TYPE ("relaxed_acs_check", VIR_CONF_LONG);
     if (p) driver->relaxedACS = p->l;
+
+    p = virConfGetValue (conf, "vnc_allow_host_audio");
+    CHECK_TYPE ("vnc_allow_host_audio", VIR_CONF_LONG);
+    if (p) driver->vncAllowHostAudio = p->l;
+
+    p = virConfGetValue (conf, "clear_emulator_capabilities");
+    CHECK_TYPE ("clear_emulator_capabilities", VIR_CONF_LONG);
+    if (p) driver->clearEmulatorCapabilities = p->l;
 
     virConfFree (conf);
     return 0;
@@ -523,7 +537,7 @@ rewait:
      * as there's really no need to throw an error if we did
      * actually read a valid version number above */
     if (WEXITSTATUS(status) != 0) {
-        VIR_WARN(_("Unexpected exit status '%d', qemu probably failed"),
+        VIR_WARN("Unexpected exit status '%d', qemu probably failed",
                  WEXITSTATUS(status));
     }
 
@@ -727,7 +741,7 @@ qemudProbeCPUModels(const char *qemu,
     if (STREQ(arch, "i686") || STREQ(arch, "x86_64"))
         parse = qemudParseX86Models;
     else {
-        VIR_DEBUG(_("don't know how to parse %s CPU models"), arch);
+        VIR_DEBUG("don't know how to parse %s CPU models", arch);
         return 0;
     }
 
@@ -767,7 +781,7 @@ rewait:
      * as there's really no need to throw an error if we did
      * actually read a valid version number above */
     if (WEXITSTATUS(status) != 0) {
-        VIR_WARN(_("Unexpected exit status '%d', qemu probably failed"),
+        VIR_WARN("Unexpected exit status '%d', qemu probably failed",
                  WEXITSTATUS(status));
     }
 
@@ -847,7 +861,7 @@ qemudCapsInitGuest(virCapsPtr caps,
         binary_mtime = st.st_mtime;
     } else {
         char ebuf[1024];
-        VIR_WARN(_("Failed to stat %s, most peculiar : %s"),
+        VIR_WARN("Failed to stat %s, most peculiar : %s",
                  binary, virStrerror(errno, ebuf, sizeof(ebuf)));
         binary_mtime = 0;
     }
@@ -932,7 +946,7 @@ qemudCapsInitGuest(virCapsPtr caps,
                 binary_mtime = st.st_mtime;
             } else {
                 char ebuf[1024];
-                VIR_WARN(_("Failed to stat %s, most peculiar : %s"),
+                VIR_WARN("Failed to stat %s, most peculiar : %s",
                          binary, virStrerror(errno, ebuf, sizeof(ebuf)));
                 binary_mtime = 0;
             }
@@ -1167,6 +1181,8 @@ static unsigned long long qemudComputeCmdFlags(const char *help,
         flags |= QEMUD_CMD_FLAG_BALLOON;
     if (strstr(help, "-device"))
         flags |= QEMUD_CMD_FLAG_DEVICE;
+    if (strstr(help, "-nodefconfig"))
+        flags |= QEMUD_CMD_FLAG_NODEFCONFIG;
     /* The trailing ' ' is important to avoid a bogus match */
     if (strstr(help, "-rtc "))
         flags |= QEMUD_CMD_FLAG_RTC;
@@ -1246,7 +1262,9 @@ static unsigned long long qemudComputeCmdFlags(const char *help,
 
 /* We parse the output of 'qemu -help' to get the QEMU
  * version number. The first bit is easy, just parse
- * 'QEMU PC emulator version x.y.z'.
+ * 'QEMU PC emulator version x.y.z'
+ * or
+ * 'QEMU emulator version x.y.z'.
  *
  * With qemu-kvm, however, that is followed by a string
  * in parenthesis as follows:
@@ -1259,7 +1277,8 @@ static unsigned long long qemudComputeCmdFlags(const char *help,
  * and later, we just need the QEMU version number and
  * whether it is KVM QEMU or mainline QEMU.
  */
-#define QEMU_VERSION_STR    "QEMU PC emulator version"
+#define QEMU_VERSION_STR_1  "QEMU emulator version"
+#define QEMU_VERSION_STR_2  "QEMU PC emulator version"
 #define QEMU_KVM_VER_PREFIX "(qemu-kvm-"
 #define KVM_VER_PREFIX      "(kvm-"
 
@@ -1277,10 +1296,12 @@ int qemudParseHelpStr(const char *qemu,
 
     *flags = *version = *is_kvm = *kvm_version = 0;
 
-    if (!STRPREFIX(p, QEMU_VERSION_STR))
+    if (STRPREFIX(p, QEMU_VERSION_STR_1))
+        p += strlen(QEMU_VERSION_STR_1);
+    else if (STRPREFIX(p, QEMU_VERSION_STR_2))
+        p += strlen(QEMU_VERSION_STR_2);
+    else
         goto fail;
-
-    p += strlen(QEMU_VERSION_STR);
 
     SKIP_BLANKS(p);
 
@@ -1291,13 +1312,13 @@ int qemudParseHelpStr(const char *qemu,
     ++p;
 
     minor = virParseNumber(&p);
-    if (major == -1 || *p != '.')
+    if (minor == -1 || *p != '.')
         goto fail;
 
     ++p;
 
     micro = virParseNumber(&p);
-    if (major == -1)
+    if (micro == -1)
         goto fail;
 
     SKIP_BLANKS(p);
@@ -1345,6 +1366,48 @@ fail:
     return -1;
 }
 
+static void qemudParsePCIDeviceStrs(const char *qemu, unsigned long long *flags)
+{
+    const char *const qemuarg[] = { qemu, "-device", "pci-assign,?", NULL };
+    const char *const qemuenv[] = { "LC_ALL=C", NULL };
+    pid_t child;
+    int status;
+    int newstderr = -1;
+
+    if (virExec(qemuarg, qemuenv, NULL,
+                &child, -1, NULL, &newstderr, VIR_EXEC_CLEAR_CAPS) < 0)
+        return;
+
+    char *pciassign = NULL;
+    enum { MAX_PCI_OUTPUT_SIZE = 1024*4 };
+    int len = virFileReadLimFD(newstderr, MAX_PCI_OUTPUT_SIZE, &pciassign);
+    if (len < 0) {
+        virReportSystemError(errno,
+                             _("Unable to read %s pci-assign device output"),
+                             qemu);
+        goto cleanup;
+    }
+
+    if (strstr(pciassign, "pci-assign.configfd"))
+        *flags |= QEMUD_CMD_FLAG_PCI_CONFIGFD;
+
+cleanup:
+    VIR_FREE(pciassign);
+    close(newstderr);
+rewait:
+    if (waitpid(child, &status, 0) != child) {
+        if (errno == EINTR)
+            goto rewait;
+
+        VIR_ERROR(_("Unexpected exit status from qemu %d pid %lu"),
+                  WEXITSTATUS(status), (unsigned long)child);
+    }
+    if (WEXITSTATUS(status) != 0) {
+        VIR_WARN("Unexpected exit status '%d', qemu probably failed",
+                 WEXITSTATUS(status));
+    }
+}
+
 int qemudExtractVersionInfo(const char *qemu,
                             unsigned int *retversion,
                             unsigned long long *retflags) {
@@ -1378,6 +1441,9 @@ int qemudExtractVersionInfo(const char *qemu,
                           &version, &is_kvm, &kvm_version) == -1)
         goto cleanup2;
 
+    if (flags & QEMUD_CMD_FLAG_DEVICE)
+        qemudParsePCIDeviceStrs(qemu, &flags);
+
     if (retversion)
         *retversion = version;
     if (retflags)
@@ -1403,7 +1469,7 @@ rewait:
      * as there's really no need to throw an error if we did
      * actually read a valid version number above */
     if (WEXITSTATUS(status) != 0) {
-        VIR_WARN(_("Unexpected exit status '%d', qemu probably failed"),
+        VIR_WARN("Unexpected exit status '%d', qemu probably failed",
                  WEXITSTATUS(status));
     }
 
@@ -1455,9 +1521,10 @@ int qemudExtractVersion(struct qemud_driver *driver) {
 /**
  * qemudPhysIfaceConnect:
  * @conn: pointer to virConnect object
+ * @driver: pointer to the qemud_driver
  * @net: pointer to he VM's interface description with direct device type
- * @linkdev: The name of the physical interface to link the macvtap to
- * @brmode: The mode to put the macvtap device into
+ * @qemuCmdFlags: flags for qemu
+ * @vmuuid: The UUID of the VM (needed by 802.1Qbh)
  *
  * Returns a filedescriptor on success or -1 in case of error.
  */
@@ -1465,9 +1532,8 @@ int
 qemudPhysIfaceConnect(virConnectPtr conn,
                       struct qemud_driver *driver,
                       virDomainNetDefPtr net,
-                      char *linkdev,
-                      int brmode,
-                      unsigned long long qemuCmdFlags)
+                      unsigned long long qemuCmdFlags,
+                      const unsigned char *vmuuid)
 {
     int rc;
 #if WITH_MACVTAP
@@ -1479,8 +1545,9 @@ qemudPhysIfaceConnect(virConnectPtr conn,
         net->model && STREQ(net->model, "virtio"))
         vnet_hdr = 1;
 
-    rc = openMacvtapTap(net->ifname, net->mac, linkdev, brmode,
-                        &res_ifname, vnet_hdr);
+    rc = openMacvtapTap(net->ifname, net->mac, net->data.direct.linkdev,
+                        net->data.direct.mode, vnet_hdr, vmuuid,
+                        &net->data.direct.virtPortProfile, &res_ifname);
     if (rc >= 0) {
         VIR_FREE(net->ifname);
         net->ifname = res_ifname;
@@ -1496,21 +1563,22 @@ qemudPhysIfaceConnect(virConnectPtr conn,
 
     if (rc >= 0) {
         if ((net->filter) && (net->ifname)) {
-            err = virNWFilterInstantiateFilter(conn, net);
+            err = virDomainConfNWFilterInstantiate(conn, net);
             if (err) {
                 close(rc);
                 rc = -1;
-                delMacvtap(net->ifname);
+                delMacvtap(net->ifname, net->mac, net->data.direct.linkdev,
+                           &net->data.direct.virtPortProfile);
+                VIR_FREE(net->ifname);
             }
         }
     }
 #else
     (void)conn;
     (void)net;
-    (void)linkdev;
-    (void)brmode;
     (void)qemuCmdFlags;
     (void)driver;
+    (void)vmuuid;
     qemuReportError(VIR_ERR_INTERNAL_ERROR,
                     "%s", _("No support for macvtap device"));
     rc = -1;
@@ -1628,7 +1696,7 @@ qemudNetworkIfaceConnect(virConnectPtr conn,
 
     if (tapfd >= 0) {
         if ((net->filter) && (net->ifname)) {
-            err = virNWFilterInstantiateFilter(conn, net);
+            err = virDomainConfNWFilterInstantiate(conn, net);
             if (err) {
                 close(tapfd);
                 tapfd = -1;
@@ -2887,8 +2955,33 @@ error:
 }
 
 
+int
+qemudOpenPCIConfig(virDomainHostdevDefPtr dev)
+{
+    char *path = NULL;
+    int configfd = -1;
+
+    if (virAsprintf(&path, "/sys/bus/pci/devices/%04x:%02x:%02x.%01x/config",
+                    dev->source.subsys.u.pci.domain,
+                    dev->source.subsys.u.pci.bus,
+                    dev->source.subsys.u.pci.slot,
+                    dev->source.subsys.u.pci.function) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    configfd = open(path, O_RDWR, 0);
+
+    if (configfd < 0)
+        virReportSystemError(errno, _("Failed opening %s"), path);
+
+    VIR_FREE(path);
+
+    return configfd;
+}
+
 char *
-qemuBuildPCIHostdevDevStr(virDomainHostdevDefPtr dev)
+qemuBuildPCIHostdevDevStr(virDomainHostdevDefPtr dev, const char *configfd)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
@@ -2898,6 +2991,8 @@ qemuBuildPCIHostdevDevStr(virDomainHostdevDefPtr dev)
                       dev->source.subsys.u.pci.slot,
                       dev->source.subsys.u.pci.function);
     virBufferVSprintf(&buf, ",id=%s", dev->info.alias);
+    if (configfd && *configfd)
+        virBufferVSprintf(&buf, ",configfd=%s", configfd);
     if (qemuBuildDeviceAddressStr(&buf, &dev->info) < 0)
         goto error;
 
@@ -3152,6 +3247,9 @@ qemuBuildVirtioSerialPortDevStr(virDomainChrDefPtr dev)
                           ",bus=" QEMU_VIRTIO_SERIAL_PREFIX "%d.%d",
                           dev->info.addr.vioserial.controller,
                           dev->info.addr.vioserial.bus);
+        virBufferVSprintf(&buf,
+                          ",nr=%d",
+                          dev->info.addr.vioserial.port);
     }
 
     virBufferVSprintf(&buf, ",chardev=%s", dev->info.alias);
@@ -3422,8 +3520,8 @@ int qemudBuildCommandLine(virConnectPtr conn,
                           unsigned long long qemuCmdFlags,
                           const char ***retargv,
                           const char ***retenv,
-                          int **tapfds,
-                          int *ntapfds,
+                          int **vmfds,
+                          int *nvmfds,
                           const char *migrateFrom,
                           virDomainSnapshotObjPtr current_snapshot)
 {
@@ -3688,8 +3786,11 @@ int qemudBuildCommandLine(virConnectPtr conn,
     if (!def->graphics)
         ADD_ARG_LIT("-nographic");
 
-    if (qemuCmdFlags & QEMUD_CMD_FLAG_DEVICE)
-        ADD_ARG_LIT("-nodefaults");
+    if (qemuCmdFlags & QEMUD_CMD_FLAG_DEVICE) {
+        if (qemuCmdFlags & QEMUD_CMD_FLAG_NODEFCONFIG)
+            ADD_ARG_LIT("-nodefconfig"); /* Disabling global config files */
+        ADD_ARG_LIT("-nodefaults");  /* Disabling default guest devices */
+    }
 
     if (monitor_chr) {
         char *chrdev;
@@ -4116,35 +4217,34 @@ int qemudBuildCommandLine(virConnectPtr conn,
                 if (tapfd < 0)
                     goto error;
 
-                if (VIR_REALLOC_N(*tapfds, (*ntapfds)+1) < 0) {
-                    virNWFilterTearNWFilter(net);
+                if (VIR_REALLOC_N(*vmfds, (*nvmfds)+1) < 0) {
+                    virDomainConfNWFilterTeardown(net);
                     close(tapfd);
                     goto no_memory;
                 }
 
                 last_good_net = i;
 
-                (*tapfds)[(*ntapfds)++] = tapfd;
+                (*vmfds)[(*nvmfds)++] = tapfd;
 
                 if (snprintf(tapfd_name, sizeof(tapfd_name), "%d", tapfd) >= sizeof(tapfd_name))
                     goto no_memory;
             } else if (net->type == VIR_DOMAIN_NET_TYPE_DIRECT) {
                 int tapfd = qemudPhysIfaceConnect(conn, driver, net,
-                                                  net->data.direct.linkdev,
-                                                  net->data.direct.mode,
-                                                  qemuCmdFlags);
+                                                  qemuCmdFlags,
+                                                  def->uuid);
                 if (tapfd < 0)
                     goto error;
 
-                if (VIR_REALLOC_N(*tapfds, (*ntapfds)+1) < 0) {
-                    virNWFilterTearNWFilter(net);
+                if (VIR_REALLOC_N(*vmfds, (*nvmfds)+1) < 0) {
+                    virDomainConfNWFilterTeardown(net);
                     close(tapfd);
                     goto no_memory;
                 }
 
                 last_good_net = i;
 
-                (*tapfds)[(*ntapfds)++] = tapfd;
+                (*vmfds)[(*nvmfds)++] = tapfd;
 
                 if (snprintf(tapfd_name, sizeof(tapfd_name), "%d", tapfd) >= sizeof(tapfd_name))
                     goto no_memory;
@@ -4157,12 +4257,12 @@ int qemudBuildCommandLine(virConnectPtr conn,
                    network device */
                 int vhostfd = qemudOpenVhostNet(net, qemuCmdFlags);
                 if (vhostfd >= 0) {
-                    if (VIR_REALLOC_N(*tapfds, (*ntapfds)+1) < 0) {
+                    if (VIR_REALLOC_N(*vmfds, (*nvmfds)+1) < 0) {
                         close(vhostfd);
                         goto no_memory;
                     }
 
-                    (*tapfds)[(*ntapfds)++] = vhostfd;
+                    (*vmfds)[(*nvmfds)++] = vhostfd;
                     if (snprintf(vhostfd_name, sizeof(vhostfd_name), "%d", vhostfd)
                         >= sizeof(vhostfd_name))
                         goto no_memory;
@@ -4394,12 +4494,15 @@ int qemudBuildCommandLine(virConnectPtr conn,
             ADD_ARG_LIT(def->graphics[0]->data.vnc.keymap);
         }
 
-        /* QEMU implements a VNC extension for providing audio, so we
-         * set the audio backend to none, to prevent it opening the
-         * host OS audio devices since that causes security issues
-         * and is non-sensical when using VNC.
+        /* Unless user requested it, set the audio backend to none, to
+         * prevent it opening the host OS audio devices, since that causes
+         * security issues and might not work when using VNC.
          */
-        ADD_ENV_LIT("QEMU_AUDIO_DRV=none");
+        if (driver->vncAllowHostAudio) {
+            ADD_ENV_COPY("QEMU_AUDIO_DRV");
+        } else {
+            ADD_ENV_LIT("QEMU_AUDIO_DRV=none");
+        }
     } else if ((def->ngraphics == 1) &&
                def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_SDL) {
         char *xauth = NULL;
@@ -4600,8 +4703,30 @@ int qemudBuildCommandLine(virConnectPtr conn,
         if (hostdev->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
             hostdev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI) {
             if (qemuCmdFlags & QEMUD_CMD_FLAG_DEVICE) {
+                char *configfd_name = NULL;
+                if (qemuCmdFlags & QEMUD_CMD_FLAG_PCI_CONFIGFD) {
+                    int configfd = qemudOpenPCIConfig(hostdev);
+
+                    if (configfd >= 0) {
+                        if (virAsprintf(&configfd_name, "%d", configfd) < 0) {
+                            close(configfd);
+                            virReportOOMError();
+                            goto no_memory;
+                        }
+
+                        if (VIR_REALLOC_N(*vmfds, (*nvmfds)+1) < 0) {
+                            VIR_FREE(configfd_name);
+                            close(configfd);
+                            goto no_memory;
+                        }
+
+                        (*vmfds)[(*nvmfds)++] = configfd;
+                    }
+                }
                 ADD_ARG_LIT("-device");
-                if (!(devstr = qemuBuildPCIHostdevDevStr(hostdev)))
+                devstr = qemuBuildPCIHostdevDevStr(hostdev, configfd_name);
+                VIR_FREE(configfd_name);
+                if (!devstr)
                     goto error;
                 ADD_ARG(devstr);
             } else if (qemuCmdFlags & QEMUD_CMD_FLAG_PCIDEVICE) {
@@ -4652,13 +4777,13 @@ int qemudBuildCommandLine(virConnectPtr conn,
     virReportOOMError();
  error:
     for (i = 0; i <= last_good_net; i++)
-        virNWFilterTearNWFilter(def->nets[i]);
-    if (tapfds &&
-        *tapfds) {
-        for (i = 0; i < *ntapfds; i++)
-            close((*tapfds)[i]);
-        VIR_FREE(*tapfds);
-        *ntapfds = 0;
+        virDomainConfNWFilterTeardown(def->nets[i]);
+    if (vmfds &&
+        *vmfds) {
+        for (i = 0; i < *nvmfds; i++)
+            close((*vmfds)[i]);
+        VIR_FREE(*vmfds);
+        *nvmfds = 0;
     }
     if (qargv) {
         for (i = 0 ; i < qargc ; i++)
@@ -4905,7 +5030,8 @@ error:
  * Will fail if not using the 'index' keyword
  */
 static virDomainDiskDefPtr
-qemuParseCommandLineDisk(const char *val,
+qemuParseCommandLineDisk(virCapsPtr caps,
+                         const char *val,
                          int nvirtiodisk)
 {
     virDomainDiskDefPtr def = NULL;
@@ -5078,7 +5204,7 @@ qemuParseCommandLineDisk(const char *val,
     else
         def->dst[2] = 'a' + idx;
 
-    if (virDomainDiskDefAssignAddress(def) < 0) {
+    if (virDomainDiskDefAssignAddress(caps, def) < 0) {
         qemuReportError(VIR_ERR_INTERNAL_ERROR,
                         _("invalid device name '%s'"), def->dst);
         virDomainDiskDefFree(def);
@@ -5890,7 +6016,7 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr caps,
                 goto no_memory;
             }
 
-            if (virDomainDiskDefAssignAddress(disk) < 0)
+            if (virDomainDiskDefAssignAddress(caps, disk) < 0)
                 goto error;
 
             if (VIR_REALLOC_N(def->disks, def->ndisks+1) < 0) {
@@ -6038,7 +6164,7 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr caps,
         } else if (STREQ(arg, "-drive")) {
             virDomainDiskDefPtr disk;
             WANT_VALUE();
-            if (!(disk = qemuParseCommandLineDisk(val, nvirtiodisk)))
+            if (!(disk = qemuParseCommandLineDisk(caps, val, nvirtiodisk)))
                 goto error;
             if (VIR_REALLOC_N(def->disks, def->ndisks+1) < 0) {
                 virDomainDiskDefFree(disk);
@@ -6147,7 +6273,7 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr caps,
         } else if (STREQ(arg, "-S")) {
             /* ignore, always added by libvirt */
         } else {
-            VIR_WARN(_("unknown QEMU argument '%s' during conversion"), arg);
+            VIR_WARN("unknown QEMU argument '%s' during conversion", arg);
 #if 0
             qemuReportError(VIR_ERR_INTERNAL_ERROR,
                             _("unknown argument '%s'"), arg);

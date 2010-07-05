@@ -453,6 +453,65 @@ error:
 }
 
 
+static void
+qemuFreeKeywords(int nkeywords, char **keywords, char **values)
+{
+    int i;
+    for (i = 0 ; i < nkeywords ; i++) {
+        VIR_FREE(keywords[i]);
+        VIR_FREE(values[i]);
+    }
+    VIR_FREE(keywords);
+    VIR_FREE(values);
+}
+
+static virJSONValuePtr
+qemuMonitorJSONKeywordStringToJSON(const char *str, const char *firstkeyword)
+{
+    virJSONValuePtr ret = NULL;
+    char **keywords = NULL;
+    char **values = NULL;
+    int nkeywords = 0;
+    int i;
+
+    if (!(ret = virJSONValueNewObject()))
+        goto no_memory;
+
+    nkeywords = qemuParseKeywords(str, &keywords, &values, 1);
+
+    if (nkeywords < 0)
+        goto error;
+
+    for (i = 0 ; i < nkeywords ; i++) {
+        if (values[i] == NULL) {
+            if (i != 0) {
+                qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                                _("unexpected empty keyword in %s"), str);
+                goto error;
+            } else {
+                /* This 3rd arg isn't a typo - the way the parser works is
+                 * that the value ended up in the keyword field */
+                if (virJSONValueObjectAppendString(ret, firstkeyword, keywords[i]) < 0)
+                    goto no_memory;
+            }
+        } else {
+            if (virJSONValueObjectAppendString(ret, keywords[i], values[i]) < 0)
+                goto no_memory;
+        }
+    }
+
+    qemuFreeKeywords(nkeywords, keywords, values);
+    return ret;
+
+no_memory:
+    virReportOOMError();
+error:
+    qemuFreeKeywords(nkeywords, keywords, values);
+    virJSONValueFree(ret);
+    return NULL;
+}
+
+
 static void qemuMonitorJSONHandleShutdown(qemuMonitorPtr mon, virJSONValuePtr data ATTRIBUTE_UNUSED)
 {
     qemuMonitorEmitShutdown(mon);
@@ -530,10 +589,14 @@ static void qemuMonitorJSONHandleIOError(qemuMonitorPtr mon, virJSONValuePtr dat
         VIR_WARN0("missing device in disk io error event");
     }
 
+#if 0
     if ((reason = virJSONValueObjectGetString(data, "reason")) == NULL) {
         VIR_WARN0("missing reason in disk io error event");
         reason = "";
     }
+#else
+    reason = "";
+#endif
 
     if ((actionID = qemuMonitorIOErrorActionTypeFromString(action)) < 0) {
         VIR_WARN("unknown disk io error action '%s'", action);
@@ -1084,6 +1147,100 @@ cleanup:
 }
 
 
+int qemuMonitorJSONGetBlockExtent(qemuMonitorPtr mon,
+                                  const char *devname,
+                                  unsigned long long *extent)
+{
+    int ret = -1;
+    int i;
+    int found = 0;
+    virJSONValuePtr cmd = qemuMonitorJSONMakeCommand("query-blockstats",
+                                                     NULL);
+    virJSONValuePtr reply = NULL;
+    virJSONValuePtr devices;
+
+    *extent = 0;
+
+    if (!cmd)
+        return -1;
+
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        goto cleanup;
+
+    if (qemuMonitorJSONCheckError(cmd, reply) < 0)
+        goto cleanup;
+
+    devices = virJSONValueObjectGet(reply, "return");
+    if (!devices || devices->type != VIR_JSON_TYPE_ARRAY) {
+        qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                        _("blockstats reply was missing device list"));
+        goto cleanup;
+    }
+
+    for (i = 0 ; i < virJSONValueArraySize(devices) ; i++) {
+        virJSONValuePtr dev = virJSONValueArrayGet(devices, i);
+        virJSONValuePtr stats;
+        virJSONValuePtr parent;
+        const char *thisdev;
+        if (!dev || dev->type != VIR_JSON_TYPE_OBJECT) {
+            qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                            _("blockstats device entry was not in expected format"));
+            goto cleanup;
+        }
+
+        if ((thisdev = virJSONValueObjectGetString(dev, "device")) == NULL) {
+            qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                            _("blockstats device entry was not in expected format"));
+            goto cleanup;
+        }
+
+        /* New QEMU has separate names for host & guest side of the disk
+         * and libvirt gives the host side a 'drive-' prefix. The passed
+         * in devname is the guest side though
+         */
+        if (STRPREFIX(thisdev, QEMU_DRIVE_HOST_PREFIX))
+            thisdev += strlen(QEMU_DRIVE_HOST_PREFIX);
+
+        if (STRNEQ(thisdev, devname))
+            continue;
+
+        found = 1;
+        if ((parent = virJSONValueObjectGet(dev, "parent")) == NULL ||
+            parent->type != VIR_JSON_TYPE_OBJECT) {
+            qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                            _("blockstats parent entry was not in expected format"));
+            goto cleanup;
+        }
+
+        if ((stats = virJSONValueObjectGet(parent, "stats")) == NULL ||
+            stats->type != VIR_JSON_TYPE_OBJECT) {
+            qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                            _("blockstats stats entry was not in expected format"));
+            goto cleanup;
+        }
+
+        if (virJSONValueObjectGetNumberUlong(stats, "wr_highest_offset", extent) < 0) {
+            qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                            _("cannot read %s statistic"),
+                            "wr_highest_offset");
+            goto cleanup;
+        }
+    }
+
+    if (!found) {
+        qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                        _("cannot find statistics for device '%s'"), devname);
+        goto cleanup;
+    }
+    ret = 0;
+
+cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+
 int qemuMonitorJSONSetVNCPassword(qemuMonitorPtr mon,
                                   const char *password)
 {
@@ -1442,14 +1599,17 @@ int qemuMonitorJSONGetMigrationStatus(qemuMonitorPtr mon,
 
 
 static int qemuMonitorJSONMigrate(qemuMonitorPtr mon,
-                                  int background,
+                                  unsigned int flags,
                                   const char *uri)
 {
     int ret;
-    virJSONValuePtr cmd = qemuMonitorJSONMakeCommand("migrate",
-                                                     "i:detach", background ? 1 : 0,
-                                                     "s:uri", uri,
-                                                     NULL);
+    virJSONValuePtr cmd =
+      qemuMonitorJSONMakeCommand("migrate",
+                                 "i:detach", flags & QEMU_MONITOR_MIGRATE_BACKGROUND ? 1 : 0,
+                                 "i:blk", flags & QEMU_MONITOR_MIGRATE_NON_SHARED_DISK ? 1 : 0,
+                                 "i:inc", flags & QEMU_MONITOR_MIGRATE_NON_SHARED_INC ? 1 : 0,
+                                 "s:uri", uri,
+                                 NULL);
     virJSONValuePtr reply = NULL;
 
     if (!cmd)
@@ -1467,7 +1627,7 @@ static int qemuMonitorJSONMigrate(qemuMonitorPtr mon,
 
 
 int qemuMonitorJSONMigrateToHost(qemuMonitorPtr mon,
-                                 int background,
+                                 unsigned int flags,
                                  const char *hostname,
                                  int port)
 {
@@ -1479,7 +1639,7 @@ int qemuMonitorJSONMigrateToHost(qemuMonitorPtr mon,
         return -1;
     }
 
-    ret = qemuMonitorJSONMigrate(mon, background, uri);
+    ret = qemuMonitorJSONMigrate(mon, flags, uri);
 
     VIR_FREE(uri);
 
@@ -1488,7 +1648,7 @@ int qemuMonitorJSONMigrateToHost(qemuMonitorPtr mon,
 
 
 int qemuMonitorJSONMigrateToCommand(qemuMonitorPtr mon,
-                                    int background,
+                                    unsigned int flags,
                                     const char * const *argv)
 {
     char *argstr;
@@ -1506,7 +1666,7 @@ int qemuMonitorJSONMigrateToCommand(qemuMonitorPtr mon,
         goto cleanup;
     }
 
-    ret = qemuMonitorJSONMigrate(mon, background, dest);
+    ret = qemuMonitorJSONMigrate(mon, flags, dest);
 
 cleanup:
     VIR_FREE(argstr);
@@ -1515,7 +1675,7 @@ cleanup:
 }
 
 int qemuMonitorJSONMigrateToFile(qemuMonitorPtr mon,
-                                 int background,
+                                 unsigned int flags,
                                  const char * const *argv,
                                  const char *target,
                                  unsigned long long offset)
@@ -1538,15 +1698,21 @@ int qemuMonitorJSONMigrateToFile(qemuMonitorPtr mon,
         goto cleanup;
     }
 
-    if (virAsprintf(&dest, "exec:%s | dd of=%s bs=%llu seek=%llu",
-                    argstr, safe_target,
-                    QEMU_MONITOR_MIGRATE_TO_FILE_BS,
-                    offset / QEMU_MONITOR_MIGRATE_TO_FILE_BS) < 0) {
+    /* Two dd processes, sharing the same stdout, are necessary to
+     * allow starting at an alignment of 512, but without wasting
+     * padding to get to the larger alignment useful for speed.  Use
+     * <> redirection to avoid truncating a regular file.  */
+    if (virAsprintf(&dest, "exec:%s | { dd bs=%llu seek=%llu if=/dev/null && "
+                    "dd bs=%llu; } 1<>%s",
+                    argstr, QEMU_MONITOR_MIGRATE_TO_FILE_BS,
+                    offset / QEMU_MONITOR_MIGRATE_TO_FILE_BS,
+                    QEMU_MONITOR_MIGRATE_TO_FILE_TRANSFER_SIZE,
+                    safe_target) < 0) {
         virReportOOMError();
         goto cleanup;
     }
 
-    ret = qemuMonitorJSONMigrate(mon, background, dest);
+    ret = qemuMonitorJSONMigrate(mon, flags, dest);
 
 cleanup:
     VIR_FREE(safe_target);
@@ -1556,7 +1722,7 @@ cleanup:
 }
 
 int qemuMonitorJSONMigrateToUnix(qemuMonitorPtr mon,
-                                 int background,
+                                 unsigned int flags,
                                  const char *unixfile)
 {
     char *dest = NULL;
@@ -1567,7 +1733,7 @@ int qemuMonitorJSONMigrateToUnix(qemuMonitorPtr mon,
         return -1;
     }
 
-    ret = qemuMonitorJSONMigrate(mon, background, dest);
+    ret = qemuMonitorJSONMigrate(mon, flags, dest);
 
     VIR_FREE(dest);
 
@@ -1738,6 +1904,63 @@ int qemuMonitorJSONRemoveHostNetwork(qemuMonitorPtr mon,
     virJSONValuePtr cmd = qemuMonitorJSONMakeCommand("host_net_remove",
                                                      "i:vlan", vlan,
                                                      "s:device", netname,
+                                                     NULL);
+    virJSONValuePtr reply = NULL;
+    if (!cmd)
+        return -1;
+
+    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+
+    if (ret == 0)
+        ret = qemuMonitorJSONCheckError(cmd, reply);
+
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+
+int qemuMonitorJSONAddNetdev(qemuMonitorPtr mon,
+                             const char *netdevstr)
+{
+    int ret = -1;
+    virJSONValuePtr cmd = NULL;
+    virJSONValuePtr reply = NULL;
+    virJSONValuePtr args = NULL;
+
+    cmd = qemuMonitorJSONMakeCommand("netdev_add", NULL);
+    if (!cmd)
+        return -1;
+
+    args = qemuMonitorJSONKeywordStringToJSON(netdevstr, "type");
+    if (!args)
+        goto cleanup;
+
+    if (virJSONValueObjectAppend(cmd, "arguments", args) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+    args = NULL; /* obj owns reference to args now */
+
+    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+
+    if (ret == 0)
+        ret = qemuMonitorJSONCheckError(cmd, reply);
+
+cleanup:
+    virJSONValueFree(args);
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+
+int qemuMonitorJSONRemoveNetdev(qemuMonitorPtr mon,
+                                const char *alias)
+{
+    int ret;
+    virJSONValuePtr cmd = qemuMonitorJSONMakeCommand("netdev_del",
+                                                     "s:id", alias,
                                                      NULL);
     virJSONValuePtr reply = NULL;
     if (!cmd)
@@ -1961,65 +2184,6 @@ int qemuMonitorJSONDelDevice(qemuMonitorPtr mon,
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
-}
-
-
-static void
-qemuFreeKeywords(int nkeywords, char **keywords, char **values)
-{
-    int i;
-    for (i = 0 ; i < nkeywords ; i++) {
-        VIR_FREE(keywords[i]);
-        VIR_FREE(values[i]);
-    }
-    VIR_FREE(keywords);
-    VIR_FREE(values);
-}
-
-static virJSONValuePtr
-qemuMonitorJSONKeywordStringToJSON(const char *str, const char *firstkeyword)
-{
-    virJSONValuePtr ret = NULL;
-    char **keywords = NULL;
-    char **values = NULL;
-    int nkeywords = 0;
-    int i;
-
-    if (!(ret = virJSONValueNewObject()))
-        goto no_memory;
-
-    nkeywords = qemuParseKeywords(str, &keywords, &values, 1);
-
-    if (nkeywords < 0)
-        goto error;
-
-    for (i = 0 ; i < nkeywords ; i++) {
-        if (values[i] == NULL) {
-            if (i != 0) {
-                qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                                _("unexpected empty keyword in %s"), str);
-                goto error;
-            } else {
-                /* This 3rd arg isn't a typo - the way the parser works is
-                 * that the value ended up in the keyword field */
-                if (virJSONValueObjectAppendString(ret, firstkeyword, keywords[i]) < 0)
-                    goto no_memory;
-            }
-        } else {
-            if (virJSONValueObjectAppendString(ret, keywords[i], values[i]) < 0)
-                goto no_memory;
-        }
-    }
-
-    qemuFreeKeywords(nkeywords, keywords, values);
-    return ret;
-
-no_memory:
-    virReportOOMError();
-error:
-    qemuFreeKeywords(nkeywords, keywords, values);
-    virJSONValueFree(ret);
-    return NULL;
 }
 
 

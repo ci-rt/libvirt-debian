@@ -320,6 +320,20 @@ ESX_VI__METHOD(ReconfigVM_Task, /* explicit _this */,
 
 
 
+/* esxVI_RefreshDatastore */
+ESX_VI__METHOD(RefreshDatastore, /* explicit _this */,
+               (esxVI_Context *ctx,
+                esxVI_ManagedObjectReference *_this),      /* required */
+               void, None,
+{
+    ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
+},
+{
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, _this)
+})
+
+
+
 /* esxVI_RegisterVM_Task */
 ESX_VI__METHOD(RegisterVM_Task, /* explicit _this */,
                (esxVI_Context *ctx,

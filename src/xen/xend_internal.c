@@ -68,6 +68,7 @@
 # define XEND_CONFIG_MIN_VERS_PVFB_NEWCONF 3
 #endif
 
+#define XEND_RCV_BUF_MAX_LEN 65536
 
 #ifndef PROXY
 static int
@@ -302,17 +303,19 @@ istartswith(const char *haystack, const char *needle)
  * xend_req:
  * @fd: the file descriptor
  * @content: the buffer to store the content
- * @n_content: the size of the buffer
  *
  * Read the HTTP response from a Xen Daemon request.
+ * If the response contains content, memory is allocated to
+ * hold the content.
  *
- * Returns the HTTP return code.
+ * Returns the HTTP return code and @content is set to the
+ * allocated memory containing HTTP content.
  */
-static int
-xend_req(int fd, char *content, size_t n_content)
+static int ATTRIBUTE_NONNULL (2)
+xend_req(int fd, char **content)
 {
     char buffer[4096];
-    int content_length = -1;
+    int content_length = 0;
     int retcode = 0;
 
     while (sreads(fd, buffer, sizeof(buffer)) > 0) {
@@ -325,19 +328,29 @@ xend_req(int fd, char *content, size_t n_content)
             retcode = atoi(buffer + 9);
     }
 
-    if (content_length > -1) {
+    if (content_length > 0) {
         ssize_t ret;
 
-        if ((unsigned int) content_length > (n_content + 1))
-            content_length = n_content - 1;
+        if (content_length > XEND_RCV_BUF_MAX_LEN) {
+            virXendError(VIR_ERR_INTERNAL_ERROR,
+                         _("Xend returned HTTP Content-Length of %d, "
+                           "which exceeds maximum of %d"),
+                         content_length,
+                         XEND_RCV_BUF_MAX_LEN);
+            return -1;
+        }
 
-        ret = sread(fd, content, content_length);
+        /* Allocate one byte beyond the end of the largest buffer we will read.
+           Combined with the fact that VIR_ALLOC_N zeros the returned buffer,
+           this guarantees that "content" will always be NUL-terminated. */
+        if (VIR_ALLOC_N(*content, content_length + 1) < 0 ) {
+            virReportOOMError();
+            return -1;
+        }
+
+        ret = sread(fd, *content, content_length);
         if (ret < 0)
             return -1;
-
-        content[ret] = 0;
-    } else {
-        content[0] = 0;
     }
 
     return retcode;
@@ -348,15 +361,14 @@ xend_req(int fd, char *content, size_t n_content)
  * @xend: pointer to the Xen Daemon structure
  * @path: the path used for the HTTP request
  * @content: the buffer to store the content
- * @n_content: the size of the buffer
  *
  * Do an HTTP GET RPC with the Xen Daemon
  *
  * Returns the HTTP return code or -1 in case or error.
  */
-static int
+static int ATTRIBUTE_NONNULL(3)
 xend_get(virConnectPtr xend, const char *path,
-         char *content, size_t n_content)
+         char **content)
 {
     int ret;
     int s = do_connect(xend);
@@ -373,14 +385,14 @@ xend_get(virConnectPtr xend, const char *path,
             "Accept-Encoding: identity\r\n"
             "Content-Type: application/x-www-form-urlencoded\r\n" "\r\n");
 
-    ret = xend_req(s, content, n_content);
+    ret = xend_req(s, content);
     close(s);
 
     if (((ret < 0) || (ret >= 300)) &&
         ((ret != 404) || (!STRPREFIX(path, "/xend/domain/")))) {
         virXendError(VIR_ERR_GET_FAILED,
                      _("%d status from xen daemon: %s:%s"),
-                     ret, path, content);
+                     ret, path, NULLSTR(*content));
     }
 
     return ret;
@@ -392,8 +404,6 @@ xend_get(virConnectPtr xend, const char *path,
  * @xend: pointer to the Xen Daemon structure
  * @path: the path used for the HTTP request
  * @ops: the information sent for the POST
- * @content: the buffer to store the content
- * @n_content: the size of the buffer
  *
  * Do an HTTP POST RPC with the Xen Daemon, this usually makes changes at the
  * Xen level.
@@ -401,10 +411,10 @@ xend_get(virConnectPtr xend, const char *path,
  * Returns the HTTP return code or -1 in case or error.
  */
 static int
-xend_post(virConnectPtr xend, const char *path, const char *ops,
-          char *content, size_t n_content)
+xend_post(virConnectPtr xend, const char *path, const char *ops)
 {
     char buffer[100];
+    char *err_buf = NULL;
     int ret;
     int s = do_connect(xend);
 
@@ -425,26 +435,28 @@ xend_post(virConnectPtr xend, const char *path, const char *ops,
     swrites(s, "\r\n\r\n");
     swrites(s, ops);
 
-    ret = xend_req(s, content, n_content);
+    ret = xend_req(s, &err_buf);
     close(s);
 
     if ((ret < 0) || (ret >= 300)) {
         virXendError(VIR_ERR_POST_FAILED,
-                     _("xend_post: error from xen daemon: %s"), content);
-    } else if ((ret == 202) && (strstr(content, "failed") != NULL)) {
+                     _("xend_post: error from xen daemon: %s"), err_buf);
+    } else if ((ret == 202) && err_buf && (strstr(err_buf, "failed") != NULL)) {
         virXendError(VIR_ERR_POST_FAILED,
-                     _("xend_post: error from xen daemon: %s"), content);
+                     _("xend_post: error from xen daemon: %s"), err_buf);
         ret = -1;
-    } else if (((ret >= 200) && (ret <= 202)) && (strstr(content, "xend.err") != NULL)) {
+    } else if (((ret >= 200) && (ret <= 202)) && err_buf &&
+               (strstr(err_buf, "xend.err") != NULL)) {
         /* This is to catch case of things like 'virsh dump Domain-0 foo'
          * which returns a success code, but the word 'xend.err'
          * in body to indicate error :-(
          */
         virXendError(VIR_ERR_POST_FAILED,
-                     _("xend_post: error from xen daemon: %s"), content);
+                     _("xend_post: error from xen daemon: %s"), err_buf);
         ret = -1;
     }
 
+    VIR_FREE(err_buf);
     return ret;
 }
 #endif /* ! PROXY */
@@ -487,8 +499,6 @@ http2unix(int ret)
  * xend_op_ext:
  * @xend: pointer to the Xen Daemon structure
  * @path: path for the object
- * @error: buffer for the error output
- * @n_error: size of @error
  * @key: the key for the operation
  * @ap: input values to pass to the operation
  *
@@ -497,8 +507,7 @@ http2unix(int ret)
  * Returns 0 in case of success, -1 in case of failure.
  */
 static int
-xend_op_ext(virConnectPtr xend, const char *path, char *error,
-            size_t n_error, const char *key, va_list ap)
+xend_op_ext(virConnectPtr xend, const char *path, const char *key, va_list ap)
 {
     const char *k = key, *v;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
@@ -524,7 +533,7 @@ xend_op_ext(virConnectPtr xend, const char *path, char *error,
     }
 
     content = virBufferContentAndReset(&buf);
-    ret = http2unix(xend_post(xend, path, content, error, n_error));
+    ret = http2unix(xend_post(xend, path, content));
     VIR_FREE(content);
 
     return ret;
@@ -535,8 +544,6 @@ xend_op_ext(virConnectPtr xend, const char *path, char *error,
  * xend_op:
  * @xend: pointer to the Xen Daemon structure
  * @name: the domain name target of this operation
- * @error: buffer for the error output
- * @n_error: size of @error
  * @key: the key for the operation
  * @ap: input values to pass to the operation
  * @...: input values to pass to the operation
@@ -550,14 +557,13 @@ static int ATTRIBUTE_SENTINEL
 xend_op(virConnectPtr xend, const char *name, const char *key, ...)
 {
     char buffer[1024];
-    char error[1024];
     va_list ap;
     int ret;
 
     snprintf(buffer, sizeof(buffer), "/xend/domain/%s", name);
 
     va_start(ap, key);
-    ret = xend_op_ext(xend, buffer, error, sizeof(error), key, ap);
+    ret = xend_op_ext(xend, buffer, key, ap);
     va_end(ap);
 
     return ret;
@@ -581,21 +587,29 @@ static struct sexpr *sexpr_get(virConnectPtr xend, const char *fmt, ...)
 static struct sexpr *
 sexpr_get(virConnectPtr xend, const char *fmt, ...)
 {
-    char buffer[4096];
+    char *buffer = NULL;
     char path[1024];
     va_list ap;
     int ret;
+    struct sexpr *res = NULL;
 
     va_start(ap, fmt);
     vsnprintf(path, sizeof(path), fmt, ap);
     va_end(ap);
 
-    ret = xend_get(xend, path, buffer, sizeof(buffer));
+    ret = xend_get(xend, path, &buffer);
     ret = http2unix(ret);
     if (ret == -1)
-        return NULL;
+        goto cleanup;
 
-    return string2sexpr(buffer);
+    if (buffer == NULL)
+        goto cleanup;
+
+    res = string2sexpr(buffer);
+
+cleanup:
+    VIR_FREE(buffer);
+    return res;
 }
 
 /**
@@ -1204,229 +1218,6 @@ no_memory:
     return -1;
 }
 
-
-int
-xend_parse_sexp_desc_char(virBufferPtr buf,
-                          const char *devtype,
-                          int portNum,
-                          const char *value,
-                          const char *tty)
-{
-    const char *type;
-    int telnet = 0;
-    char *bindPort = NULL;
-    char *bindHost = NULL;
-    char *connectPort = NULL;
-    char *connectHost = NULL;
-    char *path = NULL;
-    int ret = -1;
-
-    if (value[0] == '/') {
-        type = "dev";
-    } else if (STRPREFIX(value, "null")) {
-        type = "null";
-        value = NULL;
-    } else if (STRPREFIX(value, "vc")) {
-        type = "vc";
-        value = NULL;
-    } else if (STRPREFIX(value, "pty")) {
-        type = "pty";
-        value = NULL;
-    } else if (STRPREFIX(value, "stdio")) {
-        type = "stdio";
-        value = NULL;
-    } else if (STRPREFIX(value, "file:")) {
-        type = "file";
-        value += sizeof("file:")-1;
-    } else if (STRPREFIX(value, "pipe:")) {
-        type = "pipe";
-        value += sizeof("pipe:")-1;
-    } else if (STRPREFIX(value, "tcp:")) {
-        type = "tcp";
-        value += sizeof("tcp:")-1;
-    } else if (STRPREFIX(value, "telnet:")) {
-        type = "tcp";
-        value += sizeof("telnet:")-1;
-        telnet = 1;
-    } else if (STRPREFIX(value, "udp:")) {
-        type = "udp";
-        value += sizeof("udp:")-1;
-    } else if (STRPREFIX(value, "unix:")) {
-        type = "unix";
-        value += sizeof("unix:")-1;
-    } else {
-        virXendError(VIR_ERR_INTERNAL_ERROR,
-                     "%s", _("Unknown char device type"));
-        return -1;
-    }
-
-    /* Compat with legacy  <console tty='/dev/pts/5'/> syntax */
-    if (STREQ(devtype, "console") &&
-        STREQ(type, "pty") &&
-        tty != NULL) {
-        virBufferVSprintf(buf, "    <%s type='%s' tty='%s'>\n",
-                          devtype, type, tty);
-    } else {
-        virBufferVSprintf(buf, "    <%s type='%s'>\n",
-                          devtype, type);
-    }
-
-    if (STREQ(type, "null") ||
-        STREQ(type, "vc") ||
-        STREQ(type, "stdio")) {
-        /* no source needed */
-    } else if (STREQ(type, "pty")) {
-        if (tty)
-            virBufferVSprintf(buf, "      <source path='%s'/>\n",
-                              tty);
-    } else if (STREQ(type, "file") ||
-               STREQ(type, "pipe")) {
-        virBufferVSprintf(buf, "      <source path='%s'/>\n",
-                          value);
-    } else if (STREQ(type, "tcp")) {
-        sa_assert (value);
-        const char *offset = strchr(value, ':');
-        const char *offset2;
-        const char *mode, *protocol;
-
-        if (offset == NULL) {
-            virXendError(VIR_ERR_INTERNAL_ERROR,
-                         "%s", _("malformed char device string"));
-            goto error;
-        }
-
-        if (offset != value &&
-            (bindHost = strndup(value, offset - value)) == NULL)
-            goto no_memory;
-
-        offset2 = strchr(offset, ',');
-        if (offset2 == NULL)
-            bindPort = strdup(offset+1);
-        else
-            bindPort = strndup(offset+1, offset2-(offset+1));
-        if (bindPort == NULL)
-            goto no_memory;
-
-        if (offset2 && strstr(offset2, ",listen"))
-            mode = "bind";
-        else
-            mode = "connect";
-        protocol = telnet ? "telnet":"raw";
-
-        if (bindHost) {
-            virBufferVSprintf(buf,
-                              "      <source mode='%s' host='%s' service='%s'/>\n",
-                              mode, bindHost, bindPort);
-        } else {
-            virBufferVSprintf(buf,
-                              "      <source mode='%s' service='%s'/>\n",
-                              mode, bindPort);
-        }
-        virBufferVSprintf(buf,
-                          "      <protocol type='%s'/>\n",
-                          protocol);
-    } else if (STREQ(type, "udp")) {
-        sa_assert (value);
-        const char *offset = strchr(value, ':');
-        const char *offset2, *offset3;
-
-        if (offset == NULL) {
-            virXendError(VIR_ERR_INTERNAL_ERROR,
-                         "%s", _("malformed char device string"));
-            goto error;
-        }
-
-        if (offset != value &&
-            (connectHost = strndup(value, offset - value)) == NULL)
-            goto no_memory;
-
-        offset2 = strchr(offset, '@');
-        if (offset2 != NULL) {
-            if ((connectPort = strndup(offset + 1, offset2-(offset+1))) == NULL)
-                goto no_memory;
-
-            offset3 = strchr(offset2, ':');
-            if (offset3 == NULL) {
-                virXendError(VIR_ERR_INTERNAL_ERROR,
-                             "%s", _("malformed char device string"));
-                goto error;
-            }
-
-            if (offset3 > (offset2 + 1) &&
-                (bindHost = strndup(offset2 + 1, offset3 - (offset2+1))) == NULL)
-                goto no_memory;
-
-            if ((bindPort = strdup(offset3 + 1)) == NULL)
-                goto no_memory;
-        } else {
-            if ((connectPort = strdup(offset + 1)) == NULL)
-                goto no_memory;
-        }
-
-        if (connectHost) {
-            virBufferVSprintf(buf,
-                              "      <source mode='connect' host='%s' service='%s'/>\n",
-                              connectHost, connectPort);
-        } else {
-            virBufferVSprintf(buf,
-                              "      <source mode='connect' service='%s'/>\n",
-                              connectPort);
-        }
-        if (bindPort) {
-            if (bindHost) {
-                virBufferVSprintf(buf,
-                                  "      <source mode='bind' host='%s' service='%s'/>\n",
-                                  bindHost, bindPort);
-            } else {
-                virBufferVSprintf(buf,
-                                  "      <source mode='bind' service='%s'/>\n",
-                                  bindPort);
-            }
-        }
-
-    } else if (STREQ(type, "unix")) {
-        sa_assert (value);
-        const char *offset = strchr(value, ',');
-        int dolisten = 0;
-        if (offset)
-            path = strndup(value, (offset - value));
-        else
-            path = strdup(value);
-        if (path == NULL)
-            goto no_memory;
-
-        if (offset != NULL &&
-            strstr(offset, ",listen") != NULL)
-            dolisten = 1;
-
-        virBufferVSprintf(buf, "      <source mode='%s' path='%s'/>\n",
-                          dolisten ? "bind" : "connect", path);
-    }
-
-    virBufferVSprintf(buf, "      <target port='%d'/>\n",
-                      portNum);
-
-    virBufferVSprintf(buf, "    </%s>\n",
-                      devtype);
-
-    ret = 0;
-
-    if (ret == -1) {
-no_memory:
-        virReportOOMError();
-    }
-
-error:
-
-    VIR_FREE(path);
-    VIR_FREE(bindHost);
-    VIR_FREE(bindPort);
-    VIR_FREE(connectHost);
-    VIR_FREE(connectPort);
-
-    return ret;
-}
-
 virDomainChrDefPtr
 xenDaemonParseSxprChar(const char *value,
                        const char *tty)
@@ -1499,7 +1290,7 @@ xenDaemonParseSxprChar(const char *value,
         if (def->data.tcp.service == NULL)
             goto no_memory;
 
-        if (offset2 && strstr(offset2, ",listen"))
+        if (offset2 && strstr(offset2, ",server"))
             def->data.tcp.listen = 1;
     }
     break;
@@ -1555,7 +1346,7 @@ xenDaemonParseSxprChar(const char *value,
             goto no_memory;
 
         if (offset != NULL &&
-            strstr(offset, ",listen") != NULL)
+            strstr(offset, ",server") != NULL)
             def->data.nix.listen = 1;
     }
     break;
@@ -3997,13 +3788,15 @@ xenDaemonLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
  */
 static virDomainPtr
 xenDaemonCreateXML(virConnectPtr conn, const char *xmlDesc,
-                     unsigned int flags ATTRIBUTE_UNUSED)
+                     unsigned int flags)
 {
     int ret;
     char *sexpr;
     virDomainPtr dom = NULL;
     xenUnifiedPrivatePtr priv;
     virDomainDefPtr def;
+
+    virCheckFlags(0, NULL);
 
     priv = (xenUnifiedPrivatePtr) conn->privateData;
 
@@ -4731,7 +4524,7 @@ virDomainPtr xenDaemonDomainDefineXML(virConnectPtr conn, const char *xmlDesc) {
     VIR_FREE(sexpr);
     if (ret != 0) {
         virXendError(VIR_ERR_XEN_CALL,
-                     _("Failed to create inactive domain %s\n"), def->name);
+                     _("Failed to create inactive domain %s"), def->name);
         goto error;
     }
 
@@ -5432,7 +5225,7 @@ xenDaemonFormatSxprChr(virDomainChrDefPtr def,
                            "tcp" : "telnet"),
                           (def->data.tcp.host ? def->data.tcp.host : ""),
                           (def->data.tcp.service ? def->data.tcp.service : ""),
-                          (def->data.tcp.listen ? ",listen" : ""));
+                          (def->data.tcp.listen ? ",server,nowait" : ""));
         break;
 
     case VIR_DOMAIN_CHR_TYPE_UDP:
@@ -5446,7 +5239,7 @@ xenDaemonFormatSxprChr(virDomainChrDefPtr def,
     case VIR_DOMAIN_CHR_TYPE_UNIX:
         virBufferVSprintf(buf, "%s:%s%s", type,
                           def->data.nix.path,
-                          def->data.nix.listen ? ",listen" : "");
+                          def->data.nix.listen ? ",server,nowait" : "");
         break;
     }
 

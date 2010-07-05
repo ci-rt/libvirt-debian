@@ -2891,8 +2891,8 @@ VASNPRINTF (DCHAR_T *resultbuf, size_t *lengthp,
                       length += n;
                     }
                 }
-              }
 # endif
+              }
 #endif
 #if (NEED_PRINTF_DIRECTIVE_A || NEED_PRINTF_LONG_DOUBLE || NEED_PRINTF_DOUBLE) && !defined IN_LIBINTL
             else if ((dp->conversion == 'a' || dp->conversion == 'A')
@@ -4955,6 +4955,7 @@ VASNPRINTF (DCHAR_T *resultbuf, size_t *lengthp,
                       }
 #endif
 
+                    errno = 0;
                     switch (type)
                       {
                       case TYPE_SCHAR:
@@ -5149,15 +5150,21 @@ VASNPRINTF (DCHAR_T *resultbuf, size_t *lengthp,
                     /* Attempt to handle failure.  */
                     if (count < 0)
                       {
+                        /* SNPRINTF or sprintf failed.  Save and use the errno
+                           that it has set, if any.  */
+                        int saved_errno = errno;
+
                         if (!(result == resultbuf || result == NULL))
                           free (result);
                         if (buf_malloced != NULL)
                           free (buf_malloced);
                         CLEANUP ();
                         errno =
-                          (dp->conversion == 'c' || dp->conversion == 's'
-                           ? EILSEQ
-                           : EINVAL);
+                          (saved_errno != 0
+                           ? saved_errno
+                           : (dp->conversion == 'c' || dp->conversion == 's'
+                              ? EILSEQ
+                              : EINVAL));
                         return NULL;
                       }
 
@@ -5493,6 +5500,8 @@ VASNPRINTF (DCHAR_T *resultbuf, size_t *lengthp,
                     length += count;
                     break;
                   }
+#undef pad_ourselves
+#undef prec_ourselves
               }
           }
       }

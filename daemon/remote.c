@@ -979,9 +979,10 @@ remoteDispatchDomainMemoryStats (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     /* Allocate stats array for making dispatch call */
     if (VIR_ALLOC_N(stats, args->maxStats) < 0) {
+        virDomainFree (dom);
         remoteDispatchOOMError(rerr);
         return -1;
-     }
+    }
 
     nr_stats = virDomainMemoryStats (dom, stats, args->maxStats, 0);
     virDomainFree (dom);
@@ -1208,6 +1209,34 @@ remoteDispatchDomainCreate (struct qemud_server *server ATTRIBUTE_UNUSED,
         remoteDispatchConnError(rerr, conn);
         return -1;
     }
+    virDomainFree(dom);
+    return 0;
+}
+
+static int
+remoteDispatchDomainCreateWithFlags (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                     struct qemud_client *client ATTRIBUTE_UNUSED,
+                                     virConnectPtr conn,
+                                     remote_message_header *hdr ATTRIBUTE_UNUSED,
+                                     remote_error *rerr,
+                                     remote_domain_create_with_flags_args *args,
+                                     remote_domain_create_with_flags_ret *ret)
+{
+    virDomainPtr dom;
+
+    dom = get_nonnull_domain (conn, args->dom);
+    if (dom == NULL) {
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
+
+    if (virDomainCreateWithFlags (dom, args->flags) == -1) {
+        virDomainFree(dom);
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
+
+    make_nonnull_domain (&ret->dom, dom);
     virDomainFree(dom);
     return 0;
 }
@@ -1885,6 +1914,7 @@ remoteDispatchDomainMigrateFinish2 (struct qemud_server *server ATTRIBUTE_UNUSED
     }
 
     make_nonnull_domain (&ret->ddom, ddom);
+    virDomainFree (ddom);
 
     return 0;
 }
@@ -4982,11 +5012,13 @@ remoteDispatchNodeDeviceGetParent (struct qemud_server *server ATTRIBUTE_UNUSED,
         /* remoteDispatchClientRequest will free this. */
         char **parent_p;
         if (VIR_ALLOC(parent_p) < 0) {
+            virNodeDeviceFree(dev);
             remoteDispatchOOMError(rerr);
             return -1;
         }
         *parent_p = strdup(parent);
         if (*parent_p == NULL) {
+            virNodeDeviceFree(dev);
             remoteDispatchOOMError(rerr);
             return -1;
         }
@@ -5018,6 +5050,7 @@ remoteDispatchNodeDeviceNumOfCaps (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     ret->num = virNodeDeviceNumOfCaps(dev);
     if (ret->num < 0) {
+        virNodeDeviceFree(dev);
         remoteDispatchConnError(rerr, conn);
         return -1;
     }
@@ -5046,6 +5079,7 @@ remoteDispatchNodeDeviceListCaps (struct qemud_server *server ATTRIBUTE_UNUSED,
     }
 
     if (args->maxnames > REMOTE_NODE_DEVICE_NAME_LIST_MAX) {
+        virNodeDeviceFree(dev);
         remoteDispatchFormatError(rerr,
                                   "%s", _("maxnames > REMOTE_NODE_DEVICE_NAME_LIST_MAX"));
         return -1;
@@ -5053,6 +5087,7 @@ remoteDispatchNodeDeviceListCaps (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     /* Allocate return buffer. */
     if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
+        virNodeDeviceFree(dev);
         remoteDispatchOOMError(rerr);
         return -1;
     }
@@ -5061,11 +5096,13 @@ remoteDispatchNodeDeviceListCaps (struct qemud_server *server ATTRIBUTE_UNUSED,
         virNodeDeviceListCaps (dev, ret->names.names_val,
                                args->maxnames);
     if (ret->names.names_len == -1) {
+        virNodeDeviceFree(dev);
         remoteDispatchConnError(rerr, conn);
         VIR_FREE(ret->names.names_val);
         return -1;
     }
 
+    virNodeDeviceFree(dev);
     return 0;
 }
 
@@ -5089,10 +5126,12 @@ remoteDispatchNodeDeviceDettach (struct qemud_server *server ATTRIBUTE_UNUSED,
     }
 
     if (virNodeDeviceDettach(dev) == -1) {
+        virNodeDeviceFree(dev);
         remoteDispatchConnError(rerr, conn);
         return -1;
     }
 
+    virNodeDeviceFree(dev);
     return 0;
 }
 
@@ -5116,10 +5155,12 @@ remoteDispatchNodeDeviceReAttach (struct qemud_server *server ATTRIBUTE_UNUSED,
     }
 
     if (virNodeDeviceReAttach(dev) == -1) {
+        virNodeDeviceFree(dev);
         remoteDispatchConnError(rerr, conn);
         return -1;
     }
 
+    virNodeDeviceFree(dev);
     return 0;
 }
 
@@ -5143,10 +5184,12 @@ remoteDispatchNodeDeviceReset (struct qemud_server *server ATTRIBUTE_UNUSED,
     }
 
     if (virNodeDeviceReset(dev) == -1) {
+        virNodeDeviceFree(dev);
         remoteDispatchConnError(rerr, conn);
         return -1;
     }
 
+    virNodeDeviceFree(dev);
     return 0;
 }
 
@@ -5193,10 +5236,12 @@ remoteDispatchNodeDeviceDestroy(struct qemud_server *server ATTRIBUTE_UNUSED,
     }
 
     if (virNodeDeviceDestroy(dev) == -1) {
+        virNodeDeviceFree(dev);
         remoteDispatchConnError(rerr, conn);
         return -1;
     }
 
+    virNodeDeviceFree(dev);
     return 0;
 }
 
@@ -5570,10 +5615,12 @@ static int remoteDispatchDomainIsActive(struct qemud_server *server ATTRIBUTE_UN
     ret->active = virDomainIsActive(domain);
 
     if (ret->active < 0) {
+        virDomainFree(domain);
         remoteDispatchConnError(err, conn);
         return -1;
     }
 
+    virDomainFree(domain);
     return 0;
 }
 
@@ -5596,10 +5643,12 @@ static int remoteDispatchDomainIsPersistent(struct qemud_server *server ATTRIBUT
     ret->persistent = virDomainIsPersistent(domain);
 
     if (ret->persistent < 0) {
+        virDomainFree(domain);
         remoteDispatchConnError(err, conn);
         return -1;
     }
 
+    virDomainFree(domain);
     return 0;
 }
 
@@ -5622,10 +5671,12 @@ static int remoteDispatchInterfaceIsActive(struct qemud_server *server ATTRIBUTE
     ret->active = virInterfaceIsActive(iface);
 
     if (ret->active < 0) {
+        virInterfaceFree(iface);
         remoteDispatchConnError(err, conn);
         return -1;
     }
 
+    virInterfaceFree(iface);
     return 0;
 }
 
@@ -5648,10 +5699,12 @@ static int remoteDispatchNetworkIsActive(struct qemud_server *server ATTRIBUTE_U
     ret->active = virNetworkIsActive(network);
 
     if (ret->active < 0) {
+        virNetworkFree(network);
         remoteDispatchConnError(err, conn);
         return -1;
     }
 
+    virNetworkFree(network);
     return 0;
 }
 
@@ -5674,10 +5727,12 @@ static int remoteDispatchNetworkIsPersistent(struct qemud_server *server ATTRIBU
     ret->persistent = virNetworkIsPersistent(network);
 
     if (ret->persistent < 0) {
+        virNetworkFree(network);
         remoteDispatchConnError(err, conn);
         return -1;
     }
 
+    virNetworkFree(network);
     return 0;
 }
 
@@ -5700,10 +5755,12 @@ static int remoteDispatchStoragePoolIsActive(struct qemud_server *server ATTRIBU
     ret->active = virStoragePoolIsActive(pool);
 
     if (ret->active < 0) {
+        virStoragePoolFree(pool);
         remoteDispatchConnError(err, conn);
         return -1;
     }
 
+    virStoragePoolFree(pool);
     return 0;
 }
 
@@ -5726,10 +5783,12 @@ static int remoteDispatchStoragePoolIsPersistent(struct qemud_server *server ATT
     ret->persistent = virStoragePoolIsPersistent(pool);
 
     if (ret->persistent < 0) {
+        virStoragePoolFree(pool);
         remoteDispatchConnError(err, conn);
         return -1;
     }
 
+    virStoragePoolFree(pool);
     return 0;
 }
 

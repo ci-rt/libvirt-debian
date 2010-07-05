@@ -183,7 +183,7 @@
 
 
 
-#define ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(_type)                           \
+#define ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(_type, _dispatch)                \
     int                                                                       \
     esxVI_##_type##_CastFromAnyType(esxVI_AnyType *anyType,                   \
                                     esxVI_##_type **ptrptr)                   \
@@ -194,11 +194,16 @@
             return -1;                                                        \
         }                                                                     \
                                                                               \
-        if (anyType->type != esxVI_Type_##_type) {                            \
+        switch (anyType->type) {                                              \
+          _dispatch                                                           \
+                                                                              \
+          case esxVI_Type_##_type:                                            \
+            break;                                                            \
+                                                                              \
+          default:                                                            \
             ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,                              \
-                         "Expecting type '%s' but found '%s'",                \
-                         esxVI_Type_ToString(esxVI_Type_##_type),             \
-                         anyType->other);                                     \
+                         _("Call to %s for unexpected type '%s'"),            \
+                         __FUNCTION__, anyType->other);                       \
             return -1;                                                        \
         }                                                                     \
                                                                               \
@@ -292,7 +297,7 @@
     int                                                                       \
     esxVI_##_type##_Deserialize(xmlNodePtr node, esxVI_##_type **number)      \
     {                                                                         \
-        int result = 0;                                                       \
+        int result = -1;                                                      \
         char *string;                                                         \
         long long value;                                                      \
                                                                               \
@@ -312,35 +317,34 @@
             ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,                              \
                          "XML node doesn't contain text, expecting an "       \
                          _xsdType" value");                                   \
-            goto failure;                                                     \
+            goto cleanup;                                                     \
         }                                                                     \
                                                                               \
         if (virStrToLong_ll(string, NULL, 10, &value) < 0) {                  \
             ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,                              \
                          "Unknown value '%s' for "_xsdType, string);          \
-            goto failure;                                                     \
+            goto cleanup;                                                     \
         }                                                                     \
                                                                               \
         if (value < (_min) || value > (_max)) {                               \
             ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,                              \
                          "Value '%s' is not representable as "_xsdType,       \
                          (const char *)string);                               \
-            goto failure;                                                     \
+            goto cleanup;                                                     \
         }                                                                     \
                                                                               \
         (*number)->value = value;                                             \
                                                                               \
+        result = 0;                                                           \
+                                                                              \
       cleanup:                                                                \
+        if (result < 0) {                                                     \
+            esxVI_##_type##_Free(number);                                     \
+        }                                                                     \
+                                                                              \
         VIR_FREE(string);                                                     \
                                                                               \
         return result;                                                        \
-                                                                              \
-      failure:                                                                \
-        esxVI_##_type##_Free(number);                                         \
-                                                                              \
-        result = -1;                                                          \
-                                                                              \
-        goto cleanup;                                                         \
     }
 
 
@@ -505,7 +509,7 @@
                                                                               \
       default:                                                                \
         ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,                                  \
-                     "Call to %s for unexpected type '%s'", __FUNCTION__,     \
+                     _("Call to %s for unexpected type '%s'"), __FUNCTION__,  \
                      esxVI_Type_ToString(item->_type));                       \
         return _error_return;                                                 \
     }
@@ -526,6 +530,13 @@
 
 
 
+#define ESX_VI__TEMPLATE__DISPATCH__CAST_FROM_ANY_TYPE(_type)                 \
+    case esxVI_Type_##_type:                                                  \
+      return esxVI_##_type##_Deserialize(anyType->node,                       \
+                                         (esxVI_##_type **)ptrptr);
+
+
+
 #define ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(_type)                          \
     case esxVI_Type_##_type:                                                  \
       return esxVI_##_type##_Serialize((esxVI_##_type *)item, element,        \
@@ -540,6 +551,13 @@
 
 
 
+#define ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(__type)                        \
+    if (((esxVI_Object *)item)->_type == esxVI_Type_##__type) {               \
+        return item;                                                          \
+    }
+
+
+
 #define ESX_VI__TEMPLATE__DYNAMIC_CAST(__type, _accept)                       \
     esxVI_##__type *                                                          \
     esxVI_##__type##_DynamicCast(void *item)                                  \
@@ -550,16 +568,11 @@
             return NULL;                                                      \
         }                                                                     \
                                                                               \
+        ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(__type)                        \
+                                                                              \
         _accept                                                               \
                                                                               \
         return NULL;                                                          \
-    }
-
-
-
-#define ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(__type)                        \
-    if (((esxVI_Object *)item)->_type == esxVI_Type_##__type) {               \
-        return item;                                                          \
     }
 
 
@@ -916,7 +929,7 @@ esxVI_String_AppendValueToList(esxVI_String **stringList, const char *value)
     esxVI_String *string = NULL;
 
     if (esxVI_String_Alloc(&string) < 0) {
-        goto failure;
+        return -1;
     }
 
     string->value = strdup(value);
@@ -1357,7 +1370,9 @@ ESX_VI__TEMPLATE__DEEP_COPY(ManagedObjectReference,
 ESX_VI__TEMPLATE__LIST__APPEND(ManagedObjectReference)
 
 /* esxVI_ManagedObjectReference_CastFromAnyType */
-ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(ManagedObjectReference)
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(ManagedObjectReference,
+{
+})
 
 /* esxVI_ManagedObjectReference_CastListFromAnyType */
 ESX_VI__TEMPLATE__LIST__CAST_FROM_ANY_TYPE(ManagedObjectReference)

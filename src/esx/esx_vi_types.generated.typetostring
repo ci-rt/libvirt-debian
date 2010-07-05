@@ -34,6 +34,9 @@
           case esxVI_Type_ChoiceOption:
             return "ChoiceOption";
 
+          case esxVI_Type_DatastoreInfo:
+            return "DatastoreInfo";
+
           case esxVI_Type_Description:
             return "Description";
 
@@ -48,6 +51,24 @@
 
           case esxVI_Type_HostCpuIdInfo:
             return "HostCpuIdInfo";
+
+          case esxVI_Type_HostFileSystemVolume:
+            return "HostFileSystemVolume";
+
+          case esxVI_Type_HostNasVolume:
+            return "HostNasVolume";
+
+          case esxVI_Type_HostScsiDiskPartition:
+            return "HostScsiDiskPartition";
+
+          case esxVI_Type_HostVmfsVolume:
+            return "HostVmfsVolume";
+
+          case esxVI_Type_LocalDatastoreInfo:
+            return "LocalDatastoreInfo";
+
+          case esxVI_Type_NasDatastoreInfo:
+            return "NasDatastoreInfo";
 
           case esxVI_Type_ObjectContent:
             return "ObjectContent";
@@ -132,4 +153,7 @@
 
           case esxVI_Type_VirtualMachineSnapshotTree:
             return "VirtualMachineSnapshotTree";
+
+          case esxVI_Type_VmfsDatastoreInfo:
+            return "VmfsDatastoreInfo";
 

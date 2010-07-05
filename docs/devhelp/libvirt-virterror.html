@@ -114,7 +114,10 @@ void	<a href="#virSetErrorFunc">virSetErrorFunc</a>			(void * userData, <br/>			
     <a name="VIR_FROM_PHYP">VIR_FROM_PHYP</a> = 29 /* Error from IBM power hypervisor */
     <a name="VIR_FROM_SECRET">VIR_FROM_SECRET</a> = 30 /* Error from secret storage */
     <a name="VIR_FROM_CPU">VIR_FROM_CPU</a> = 31 /* Error from CPU driver */
-    <a name="VIR_FROM_XENAPI">VIR_FROM_XENAPI</a> = 32 /*  Error from XenAPI */
+    <a name="VIR_FROM_XENAPI">VIR_FROM_XENAPI</a> = 32 /* Error from XenAPI */
+    <a name="VIR_FROM_NWFILTER">VIR_FROM_NWFILTER</a> = 33 /* Error from network filter driver */
+    <a name="VIR_FROM_HOOK">VIR_FROM_HOOK</a> = 34 /* Error from Synchronous hooks */
+    <a name="VIR_FROM_DOMAIN_SNAPSHOT">VIR_FROM_DOMAIN_SNAPSHOT</a> = 35 /*  Error from domain snapshot */
 };
 </pre><p/>
 </div>
@@ -188,12 +191,19 @@ void	<a href="#virSetErrorFunc">virSetErrorFunc</a>			(void * userData, <br/>			
     <a name="VIR_ERR_NO_INTERFACE">VIR_ERR_NO_INTERFACE</a> = 57 /* interface driver not running */
     <a name="VIR_ERR_INVALID_INTERFACE">VIR_ERR_INVALID_INTERFACE</a> = 58 /* invalid interface object */
     <a name="VIR_ERR_MULTIPLE_INTERFACES">VIR_ERR_MULTIPLE_INTERFACES</a> = 59 /* more than one matching interface found */
-    <a name="VIR_WAR_NO_SECRET">VIR_WAR_NO_SECRET</a> = 60 /* failed to start secret storage */
-    <a name="VIR_ERR_INVALID_SECRET">VIR_ERR_INVALID_SECRET</a> = 61 /* invalid secret */
-    <a name="VIR_ERR_NO_SECRET">VIR_ERR_NO_SECRET</a> = 62 /* secret not found */
-    <a name="VIR_ERR_CONFIG_UNSUPPORTED">VIR_ERR_CONFIG_UNSUPPORTED</a> = 63 /* unsupported configuration construct */
-    <a name="VIR_ERR_OPERATION_TIMEOUT">VIR_ERR_OPERATION_TIMEOUT</a> = 64 /* timeout occurred during operation */
-    <a name="VIR_ERR_MIGRATE_PERSIST_FAILED">VIR_ERR_MIGRATE_PERSIST_FAILED</a> = 65 /*  a migration worked, but making the VM persist on the dest host failed */
+    <a name="VIR_WAR_NO_NWFILTER">VIR_WAR_NO_NWFILTER</a> = 60 /* failed to start nwfilter driver */
+    <a name="VIR_ERR_INVALID_NWFILTER">VIR_ERR_INVALID_NWFILTER</a> = 61 /* invalid nwfilter object */
+    <a name="VIR_ERR_NO_NWFILTER">VIR_ERR_NO_NWFILTER</a> = 62 /* nw filter pool not found */
+    <a name="VIR_ERR_BUILD_FIREWALL">VIR_ERR_BUILD_FIREWALL</a> = 63 /* nw filter pool not found */
+    <a name="VIR_WAR_NO_SECRET">VIR_WAR_NO_SECRET</a> = 64 /* failed to start secret storage */
+    <a name="VIR_ERR_INVALID_SECRET">VIR_ERR_INVALID_SECRET</a> = 65 /* invalid secret */
+    <a name="VIR_ERR_NO_SECRET">VIR_ERR_NO_SECRET</a> = 66 /* secret not found */
+    <a name="VIR_ERR_CONFIG_UNSUPPORTED">VIR_ERR_CONFIG_UNSUPPORTED</a> = 67 /* unsupported configuration construct */
+    <a name="VIR_ERR_OPERATION_TIMEOUT">VIR_ERR_OPERATION_TIMEOUT</a> = 68 /* timeout occurred during operation */
+    <a name="VIR_ERR_MIGRATE_PERSIST_FAILED">VIR_ERR_MIGRATE_PERSIST_FAILED</a> = 69 /* a migration worked, but making the VM persist on the dest host failed */
+    <a name="VIR_ERR_HOOK_SCRIPT_FAILED">VIR_ERR_HOOK_SCRIPT_FAILED</a> = 70 /* a synchronous hook script failed */
+    <a name="VIR_ERR_INVALID_DOMAIN_SNAPSHOT">VIR_ERR_INVALID_DOMAIN_SNAPSHOT</a> = 71 /* invalid domain snapshot */
+    <a name="VIR_ERR_NO_DOMAIN_SNAPSHOT">VIR_ERR_NO_DOMAIN_SNAPSHOT</a> = 72 /*  domain snapshot not found */
 };
 </pre><p/>
 </div>

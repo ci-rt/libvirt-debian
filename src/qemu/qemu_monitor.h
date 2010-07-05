@@ -1,7 +1,7 @@
 /*
  * qemu_monitor.h: interaction with QEMU monitor console
  *
- * Copyright (C) 2006-2009 Red Hat, Inc.
+ * Copyright (C) 2006-2010 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -63,6 +63,9 @@ struct _qemuMonitorMessage {
 typedef struct _qemuMonitorCallbacks qemuMonitorCallbacks;
 typedef qemuMonitorCallbacks *qemuMonitorCallbacksPtr;
 struct _qemuMonitorCallbacks {
+    void (*destroy)(qemuMonitorPtr mon,
+                    virDomainObjPtr vm);
+
     void (*eofNotify)(qemuMonitorPtr mon,
                       virDomainObjPtr vm,
                       int withError);
@@ -120,7 +123,7 @@ qemuMonitorPtr qemuMonitorOpen(virDomainObjPtr vm,
                                int json,
                                qemuMonitorCallbacksPtr cb);
 
-int qemuMonitorClose(qemuMonitorPtr mon);
+void qemuMonitorClose(qemuMonitorPtr mon);
 
 int qemuMonitorSetCapabilities(qemuMonitorPtr mon);
 
@@ -185,6 +188,10 @@ int qemuMonitorGetBlockStatsInfo(qemuMonitorPtr mon,
                                  long long *wr_bytes,
                                  long long *errs);
 
+int qemuMonitorGetBlockExtent(qemuMonitorPtr mon,
+                              const char *devname,
+                              unsigned long long *extent);
+
 
 int qemuMonitorSetVNCPassword(qemuMonitorPtr mon,
                               const char *password);
@@ -241,25 +248,41 @@ int qemuMonitorGetMigrationStatus(qemuMonitorPtr mon,
                                   unsigned long long *remaining,
                                   unsigned long long *total);
 
+typedef enum {
+  QEMU_MONITOR_MIGRATE_BACKGROUND 		= 1 << 0,
+  QEMU_MONITOR_MIGRATE_NON_SHARED_DISK  = 1 << 1, /* migration with non-shared storage with full disk copy */
+  QEMU_MONITOR_MIGRATE_NON_SHARED_INC   = 1 << 2, /* migration with non-shared storage with incremental copy */
+  QEMU_MONITOR_MIGRATION_FLAGS_LAST
+} QEMU_MONITOR_MIGRATE;
+
 int qemuMonitorMigrateToHost(qemuMonitorPtr mon,
-                             int background,
+                             unsigned int flags,
                              const char *hostname,
                              int port);
 
 int qemuMonitorMigrateToCommand(qemuMonitorPtr mon,
-                                int background,
+                                unsigned int flags,
                                 const char * const *argv);
 
-# define QEMU_MONITOR_MIGRATE_TO_FILE_BS 512llu
+/* In general, BS is the smallest fundamental block size we can use to
+ * access a block device; everything must be aligned to a multiple of
+ * this.  Linux generally supports a BS as small as 512, but with
+ * newer disks with 4k sectors, performance is better if we guarantee
+ * alignment to the sector size.  However, operating on BS-sized
+ * blocks is painfully slow, so we also have a transfer size that is
+ * larger but only aligned to the smaller block size.
+ */
+# define QEMU_MONITOR_MIGRATE_TO_FILE_BS (1024llu * 4)
+# define QEMU_MONITOR_MIGRATE_TO_FILE_TRANSFER_SIZE (1024llu * 1024)
 
 int qemuMonitorMigrateToFile(qemuMonitorPtr mon,
-                             int background,
+                             unsigned int flags,
                              const char * const *argv,
                              const char *target,
                              unsigned long long offset);
 
 int qemuMonitorMigrateToUnix(qemuMonitorPtr mon,
-                             int background,
+                             unsigned int flags,
                              const char *unixfile);
 
 int qemuMonitorMigrateCancel(qemuMonitorPtr mon);
@@ -319,6 +342,12 @@ int qemuMonitorAddHostNetwork(qemuMonitorPtr mon,
 int qemuMonitorRemoveHostNetwork(qemuMonitorPtr mon,
                                  int vlan,
                                  const char *netname);
+
+int qemuMonitorAddNetdev(qemuMonitorPtr mon,
+                         const char *netdevstr);
+
+int qemuMonitorRemoveNetdev(qemuMonitorPtr mon,
+                            const char *alias);
 
 int qemuMonitorGetPtyPaths(qemuMonitorPtr mon,
                            virHashTablePtr paths);

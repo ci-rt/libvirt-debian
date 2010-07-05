@@ -173,7 +173,7 @@ pciOpenConfig(pciDevice *dev)
     fd = open(dev->path, O_RDWR);
     if (fd < 0) {
         char ebuf[1024];
-        VIR_WARN(_("Failed to open config space file '%s': %s"),
+        VIR_WARN("Failed to open config space file '%s': %s",
                  dev->path, virStrerror(errno, ebuf, sizeof(ebuf)));
         return -1;
     }
@@ -193,7 +193,7 @@ pciRead(pciDevice *dev, unsigned pos, uint8_t *buf, unsigned buflen)
     if (lseek(dev->fd, pos, SEEK_SET) != pos ||
         saferead(dev->fd, buf, buflen) != buflen) {
         char ebuf[1024];
-        VIR_WARN(_("Failed to read from '%s' : %s"), dev->path,
+        VIR_WARN("Failed to read from '%s' : %s", dev->path,
                  virStrerror(errno, ebuf, sizeof(ebuf)));
         return -1;
     }
@@ -233,7 +233,7 @@ pciWrite(pciDevice *dev, unsigned pos, uint8_t *buf, unsigned buflen)
     if (lseek(dev->fd, pos, SEEK_SET) != pos ||
         safewrite(dev->fd, buf, buflen) != buflen) {
         char ebuf[1024];
-        VIR_WARN(_("Failed to write to '%s' : %s"), dev->path,
+        VIR_WARN("Failed to write to '%s' : %s", dev->path,
                  virStrerror(errno, ebuf, sizeof(ebuf)));
         return -1;
     }
@@ -730,7 +730,7 @@ recheck:
         if (virRun(backprobe, NULL) < 0 &&
             virRun(stubprobe, NULL) < 0) {
             char ebuf[1024];
-            VIR_WARN(_("failed to load pci-stub or pciback drivers: %s"),
+            VIR_WARN("failed to load pci-stub or pciback drivers: %s",
                      virStrerror(errno, ebuf, sizeof ebuf));
             return 0;
         }
@@ -814,12 +814,18 @@ pciBindDeviceToStub(pciDevice *dev, const char *driver)
 }
 
 int
-pciDettachDevice(pciDevice *dev)
+pciDettachDevice(pciDevice *dev, pciDeviceList *activeDevs)
 {
     const char *driver = pciFindStubDriver();
     if (!driver) {
         pciReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("cannot find any PCI stub module"));
+        return -1;
+    }
+
+    if (activeDevs && pciDeviceListFind(activeDevs, dev)) {
+        pciReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Not detaching active device %s"), dev->name);
         return -1;
     }
 
@@ -875,12 +881,18 @@ pciUnBindDeviceFromStub(pciDevice *dev, const char *driver)
 }
 
 int
-pciReAttachDevice(pciDevice *dev)
+pciReAttachDevice(pciDevice *dev, pciDeviceList *activeDevs)
 {
     const char *driver = pciFindStubDriver();
     if (!driver) {
         pciReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("cannot find any PCI stub module"));
+        return -1;
+    }
+
+    if (activeDevs && pciDeviceListFind(activeDevs, dev)) {
+        pciReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Not reattaching active device %s"), dev->name);
         return -1;
     }
 
@@ -1045,6 +1057,14 @@ pciGetDevice(unsigned domain,
              dev->domain, dev->bus, dev->slot, dev->function);
     snprintf(dev->path, sizeof(dev->path),
              PCI_SYSFS "devices/%s/config", dev->name);
+
+    if (access(dev->path, F_OK) != 0) {
+        virReportSystemError(errno,
+                             _("Device %s not found: could not access %s"),
+                             dev->name, dev->path);
+        pciFreeDevice(dev);
+        return NULL;
+    }
 
     vendor  = pciReadDeviceID(dev, "vendor");
     product = pciReadDeviceID(dev, "device");

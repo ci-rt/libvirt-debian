@@ -1,3 +1,3511 @@
+2010-07-05  Daniel Veillard  <veillard@redhat.com>
+
+	Release of libvirt-0.8.2
+	- configure.ac docs/news.html.in libvirt.spec.in: updated
+	- po/*/o* : updated or.po and regenerated
+
+2010-07-03  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	vbox: Let configure detect/set the XPCOMC directory
+	This allows the user to give an explicit path to configure
+
+	  ./configure --with-vbox=/path/to/virtualbox
+
+	instead of having the VirtualBox driver probe a set of possible
+	paths at runtime. If no explicit path is specified then configure
+	probes the set of "known" paths.
+
+	https://bugzilla.redhat.com/show_bug.cgi?id=609185
+
+2010-07-02  Cole Robinson  <crobinso@redhat.com>
+
+	udev: Parse PCI devices even if libpciaccess fails
+	We only use libpciaccess for resolving device product/vendor. If
+	initializing the library fails (say if using qemu:///session), don't
+	warn so loudly, and carry on as usual.
+
+	qemu: Improve some qemu.conf error reporting
+	Log some info if we can't find a config file. Make parse failures
+	fatal, and actually raise an error message.
+
+	util: virExec: Dispatch all errors raised after fork
+	Any error message raised after the process has forked needs
+	to be followed by virDispatchError, otherwise we have no chance of
+	ever seeing it. This was selectively done for hook functions in the past,
+	but really applies to all post-fork errors.
+
+2010-06-30  Ryota Ozaki  <ozaki.ryota@gmail.com>
+
+	cgroup: Fix compilation broken on MinGW due to dirent->d_type
+	As pointed out by Eric Blake, using dirent->d_type breaks
+	compilation on MinGW. This patch addresses this by using
+	'#if defined' as same as doing for virCgroupForDriver.
+
+2010-06-30  Justin Clift  <justin@salasaga.org>
+
+	html docs: add link to PHP bindings by Radek Hladik
+
+2010-06-30  Eric Blake  <eblake@redhat.com>
+
+	virsh: tweak help output for VSH_OT_DATA
+	https://bugzilla.redhat.com/show_bug.cgi?id=609044 complained
+	that 'virsh help pool-create-as' didn't document the shortcut
+	that you can do 'virsh pool-create-as $name $type --target $target'
+	rather than having to supply the four optional source- arguments
+	in order to fill out the necessary positional arguments.
+
+	This one-liner changes the help output to hopefully make this more obvious:
+
+	  NAME
+	    pool-create-as - create a pool from a set of args
+
+	  SYNOPSIS
+	    pool-create-as <name> [--print-xml] <type> [<source-host>] [<source-path>] [<source-dev>] [<source-name>] [<target>] [--source-format <string>]
+
+	  DESCRIPTION
+	    Create a pool.
+
+	  OPTIONS
+	    [--name] <string>  name of the pool
+	    --print-xml      print XML document, but don't define/create
+	    [--type] <string>  type of the pool
+	    [--source-host] <string>  source-host for underlying storage
+	    [--source-path] <string>  source path for underlying storage
+	    [--source-dev] <string>  source device for underlying storage
+	    [--source-name] <string>  source name for underlying storage
+	    [--target] <string>  target for underlying storage
+	    --source-format <string>  format for underlying storage
+
+	* tools/virsh.c (vshCmddefHelp): Make it more obvious that data
+	arguments may, but not must, be specified by option leaders.
+
+2010-06-30  Daniel P. Berrange  <berrange@redhat.com>
+
+	Avoid invoking the qemu monitor destroy callback if the constructor fails
+	Some, but not all, codepaths in the qemuMonitorOpen() method
+	would trigger the destroy callback. The caller does not expect
+	this to be invoked if construction fails, only during normal
+	release of the monitor. This resulted in a possible double-unref
+	of the virDomainObjPtr, because the caller explicitly unrefs
+	the virDomainObjPtr  if qemuMonitorOpen() fails
+
+	* src/qemu/qemu_monitor.c: Don't invoke destroy callback from
+	  qemuMonitorOpen() failure paths
+
+2010-06-29  Ryota Ozaki  <ozaki.ryota@gmail.com>
+
+	cgroup: Add missing errno == ENOENT check in virCgroupRemoveRecursively
+	ENOENT happens normally when a subsystem is enabled with any other
+	subsystems and the directory of the target group has already removed
+	in a prior loop. In that case, the function should just return without
+	leaving an error message.
+
+	NB this is the same behavior as before introducing virCgroupRemoveRecursively.
+
+2010-06-29  Chris Lalancette  <clalance@redhat.com>
+
+	Fix crash when detaching devices from qemu domains.
+	Make sure to *not* call qemuDomainPCIAddressReleaseAddr if
+	QEMUD_CMD_FLAG_DEVICE is *not* set (for older qemu).  This
+	prevents a crash when trying to do device detachment from
+	a qemu guest.
+
+	Check for active PCI devices when doing nodedevice operations.
+	In the current libvirt PCI code, there is no checking whether
+	a PCI device is in use by a guest when doing node device
+	detach or reattach.  This causes problems when a device is
+	assigned to a guest, and the administrator starts issuing
+	nodedevice commands.  Make it so that we check the list
+	of active devices when trying to detach/reattach, and only
+	allow the operation if the device is not assigned to a guest.
+
+2010-06-29  Justin Clift  <justin@salasaga.org>
+
+	virsh: add new --details option to pool-list
+	This patch adds a new --details option to the virsh pool-list
+	command, making its output more useful to people who use virsh
+	for significant lengths of time.
+
+	Addresses BZ # 605543
+
+	  https://bugzilla.redhat.com/show_bug.cgi?id=605543
+
+2010-06-29  Eric Blake  <eblake@redhat.com>
+
+	virFileResolveLink: guarantee an absolute path
+	https://bugzilla.redhat.com/show_bug.cgi?id=608092
+
+	* src/util/util.c (virFileResolveLink): Use
+	canonicalize_file_name, rather than areadlink.
+
+	phyp: don't steal storage management from other drivers
+	Fix regression introduced in commit a4a287242 - basically, the
+	phyp storage driver should only accept the same URIs that the
+	main phyp driver is willing to accept.  Blindly accepting all
+	URIs meant that the phyp storage driver was being consulted for
+	'virsh -c qemu:///session pool-list --all', rather than the
+	qemu storage driver, then since the URI was not for phyp, attempts
+	to then use the phyp driver crashed because it was not initialized.
+
+	* src/phyp/phyp_driver.c (phypStorageOpen): Only accept connections
+	already open to a phyp driver.
+
+2010-06-29  Laine Stump  <laine@redhat.com>
+
+	Avoid calling virStorageFileIsSharedFS with NULL
+	This code was just recently added (by me) and didn't account for the
+	fact that stdin_path is sometimes NULL. If it's NULL, and
+	SetSecurityAllLabel fails, a segfault would result.
+
+2010-06-28  Ryota Ozaki  <ozaki.ryota@gmail.com>
+
+	lxc: Fix virsh console doesn't work after restarting libvirtd
+	Because tty path is unexpectedly not saved in the live configuration
+	file of a domain, libvirtd cannot get the console of the domain back
+	after restarting.
+
+	The reason why the tty path isn't saved is that, to save the tty path,
+	the save function, virDomainSaveConfig, requires that the target domain
+	is running (pid != -1), however, lxc driver calls the function before
+	starting the domain to pass the configuration to controller.
+
+	To ensure to save the tty path, the patch lets lxc driver call the save
+	function again after starting the domain.
+
+	lxc: Fix error handlings in lxcContainerRenameAndEnableInterfaces
+	The function is expected to return negative value on failure,
+	however, it returns positive value when either setInterfaceName
+	or vethInterfaceUpOrDown fails. Because the function returns
+	the return value of either as is, however, the two functions
+	may return positive value on failure.
+
+	The patch fixes the defects and add error messages.
+
+	lxc: Change VIR_ERROR to VIR_DEBUG for just a debugging message
+	The message is actually not of error but of debugging.
+	02:22:56.091: error : lxcControllerMain:316 : monitor=3 client=4 appPty=19 contPty=7
+
+2010-06-28  Laine Stump  <laine@laine.org>
+
+	Selectively ignore domainSetSecurityAllLabel failure in domain restore
+	When the saved domain image is on an NFS share, at least some part of
+	domainSetSecurityAllLabel will fail (for example, selinux labels can't
+	be modified). To allow domain restore to still work in this case, just
+	ignore the errors.
+
+	use virStorageFileIsSharedFS utility function in qemudDomainSaveFlag
+	Previously, this function had it's own bit of code performing the same
+	function. Since there's now an equivalent utility function, let's use it.
+
+	Enhance virStorageFileIsSharedFS
+	virStorageFileIsSharedFS would previously only work if the entire path
+	in question was stat'able by the uid of the libvirtd process. This
+	patch changes it to crawl backwards up the path retrying the statfs
+	call until it gets to a partial path that *can* be stat'ed.
+
+	This is necessary to use the function to learn the fstype for files
+	stored as a different user (and readable only by that user) on a
+	root-squashed remote filesystem.
+
+	Set proper selinux label on image file during qemu domain restore
+	Also restore the label to its original value after qemu is finished
+	with the file.
+
+	Prior to this patch, qemu domain restore did not function properly if
+	selinux was set to enforce.
+
+2010-06-26  Eric Blake  <eblake@redhat.com>
+
+	build: fix regression with libvirt-api.xml generation
+	(EXTRA_DIST): Remove redundant listing of xml files.
+	(html/%-%.html, html/%-virterror.html, %-api.xml, %-refs.xml):
+	Rewrite with...
+	(python_generated_files): ...new macro, since make didn't see
+	through the dependency chain correctly otherwise.
+
+2010-06-26  Chris Lalancette  <clalance@redhat.com>
+
+	Fix a reference leak for node devices.
+	There were some major, and some minor bugs having to do with
+	the reference counting of node devices in daemon/remote.c.
+
+	Some functions were completely failing to unreference node devices;
+	this would lead to many open file descriptors, which would eventually
+	fail.
+
+	The minor bugs were along the same lines, but were in rarely
+	used error paths.
+
+2010-06-25  Daniel P. Berrange  <berrange@redhat.com>
+
+	Don't squash file permissions when migration fails
+	If an active migration operation fails, or is cancelled by the
+	admin, the QEMU on the destination is shutdown and the one on
+	the source continues running. It is important in shutting down
+	the QEMU on the destination, the security drivers don't reset
+	the file labelling/permissions.
+
+	* src/qemu/qemu_driver.c: Don't reset labelling/permissions
+	  on migration abort
+
+2010-06-25  Eric Blake  <eblake@redhat.com>
+
+	phyp: optimize use of sed
+	Minor speedups by using the full power of sed.
+
+	* src/phyp/phyp_driver.c (phypGetVIOSFreeSCSIAdapter)
+	(phypDiskType, phypListDefinedDomains): Use fewer processes, by
+	folding other work into sed.
+	(phypGetVIOSPartitionID): Likewise.  Also avoid non-portable use
+	of 'sed -s'.
+
+2010-06-25  Eduardo Otubo  <otubo@linux.vnet.ibm.com>
+
+	phyp: add storage management driver
+	Add the storage management driver to the Power Hypervisor driver.
+	This is a big but simple patch, it's just a new set of functions.
+
+	This patch includes:
+	 * Storage driver: The set of pool-* and vol-* functions.
+	 * attach-disk function.
+	 * Support for IVM on the new functions.
+
+	phyp: add rudimentary storage driver
+	* src/phyp/phyp_driver.c (phypStorageDriver): New driver.
+	(phypStorageOpen, phypStorageClose): New functions.
+	(phypRegister): Register it.
+
+2010-06-25  Eric Blake  <eblake@redhat.com>
+
+	phyp: reduce scope of driver functions
+	Several phyp functions are not namespace clean, and had no reason
+	to be exported since no one outside the phyp driver needed to use
+	them.  Rather than do lots of forward declarations, I was able
+	to topologically sort the file.  So, this patch looks huge, but
+	is really just a matter of marking things static and dealing with
+	the compiler fallout.
+
+	* src/phyp/phyp_driver.h (PHYP_DRIVER_H): Add include guard.
+	(phypCheckSPFreeSapce): Delete unused declaration.
+	(phypGetSystemType, phypGetVIOSPartitionID, phypCapsInit)
+	(phypBuildLpar, phypUUIDTable_WriteFile, phypUUIDTable_ReadFile)
+	(phypUUIDTable_AddLpar, phypUUIDTable_RemLpar, phypUUIDTable_Pull)
+	(phypUUIDTable_Push, phypUUIDTable_Init, phypUUIDTable_Free)
+	(escape_specialcharacters, waitsocket, phypGetLparUUID)
+	(phypGetLparMem, phypGetLparCPU, phypGetLparCPUGeneric)
+	(phypGetRemoteSlot, phypGetBackingDevice, phypDiskType)
+	(openSSHSession): Move declarations to phyp_driver.c and make static.
+	* src/phyp/phyp_driver.c: Rearrange file contents to provide
+	topological sorting of newly-static funtions (no semantic changes
+	other than reduced scope).
+	(phypGetBackingDevice, phypDiskType): Mark unused, for now.
+
+	maint: add gnulib gettimeofday module
+	* bootstrap.conf (gnulib_modules): Add gettimeofday.
+
+2010-06-25  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix test case failure due to missing -nodefconfig
+	The previous change which split -nodefconfig probing off
+	from -device broke the test case because it missed adding
+	the QEMUD_CMD_FLAG_NODEFCONFIG to the test
+
+	* src/util/bridge.c: Set QEMUD_CMD_FLAG_NODEFCONFIG for all
+	  configs with QEMUD_CMD_FLAG_DEVICE set
+
+	Fix migration in text mode and shared storage migration in json mode
+	The patches for shared storage migration were not correctly written
+	for json mode. Thus the 'blk' and 'inc' parameters were never being
+	set. In addition they didn't set the QEMU_MONITOR_MIGRATE_BACKGROUND
+	so migration was synchronous. Due to multiple bugs in QEMU's JSON
+	impl this wasn't noticed because it treated the sync migration requst
+	as asynchronous anyway. Finally 'background' parameter was converted
+	to take arbitrary flags but not renamed, and not all uses were changed
+	to unsigned int.
+
+	* src/qemu/qemu_driver.c: Set QEMU_MONITOR_MIGRATE_BACKGROUND in
+	  doNativeMigrate
+	* src/qemu/qemu_monitor_json.c: Process QEMU_MONITOR_MIGRATE_NON_SHARED_DISK
+	  and QEMU_MONITOR_MIGRATE_NON_SHARED_INC flags
+	* src/qemu/qemu_monitor.c, src/qemu/qemu_monitor.h,
+	  src/qemu/qemu_monitor_json.h, src/qemu/qemu_monitor_text.c,
+	  src/qemu/qemu_monitor_text.h: change 'int background' to
+	  'unsigned int flags' in migration APIs. Add logging of flags
+	  parameter
+
+	Avoid blocking all APIs during incoming migration
+	During incoming migration the QEMU monitor is not able to be
+	used. The incoming migration code did not keep hold of the
+	job lock because migration is split across multiple API calls.
+	This meant that further monitor commands on the guest would
+	hang until migration finished with no timeout.
+
+	In this change the qemuDomainMigratePrepare method sets the
+	job flag just before it returns. The qemuDomainMigrateFinish
+	method checks for this job flag & clears it once done. This
+	prevents any use of the monitor between prepare+finish steps.
+
+	The qemuDomainGetJobInfo method is also updated to refresh
+	the job elapsed time. This means that virsh domjobinfo can
+	return time data during incoming migration
+
+	* src/qemu/qemu_driver.c: Keep a job active during incoming
+	  migration. Refresh job elapsed time when returning job info
+
+	Set labelling for character devices in security drivers
+	When configuring serial, parallel, console or channel devices
+	with a file, dev or pipe backend type, it is necessary to label
+	the file path in the security drivers. For char devices of type
+	file, it is neccessary to pre-create (touch) the file if it does
+	not already exist since QEMU won't be allowed todo so itself.
+	dev/pipe configs already require the admin to pre-create before
+	starting the guest.
+
+	* src/qemu/qemu_security_dac.c: set file ownership for character
+	  devices
+	* src/security/security_selinux.c: Set file labeling for character
+	  devices
+	* src/qemu/qemu_driver.c: Add character devices to cgroup ACL
+
+	Add API for iterating over all character devices
+	The parallel, serial, console and channel devices are all just
+	character devices. A lot of code needs todo the same thing to
+	all these devices. This provides an convenient API for iterating
+	over all of them.
+
+	* src/conf/domain_conf.c, src/conf/domain_conf.c,
+	  src/libvirt_private.syms: Add virDomainChrDefForeach
+
+	Add missing parameter in python Disk IO error callback
+	The IO error callback was forgetting to pass the action
+	parameter, causing a stack trace when IO errors arrive
+
+	* python/libvirt-override-virConnect.py: Add missing action
+	  parameter in IO error callback
+
+2010-06-25  Laine Stump  <laine@laine.org>
+
+	Check for presence of qemu -nodefconfig option before using it
+	We previously assumed that if the -device option existed in qemu, that
+	-nodefconfig would also exist. It turns out that isn't the case, as
+	demonstrated by qemu-kvm-0.12.3 in Fedora 13.
+
+	*/src/qemu/qemu_conf.[hc] - add a new QEMUD_CMD_FLAG, set it via the
+	                            help output, and check it before adding
+	                            -nodefconfig to the qemu commandline.
+
+2010-06-24  Eduardo Otubo  <otubo@linux.vnet.ibm.com>
+
+	Adding Storage Management driver (style and indentation)
+	This is just the indentation, style  and cleanup patch.
+
+2010-06-24  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	esx: Use bool instead of int where appropriated
+
+	esx: Add support for the controller element
+	Also don't abuse the disk driver name to specify the SCSI controller
+	model anymore:
+
+	  <driver name='buslogic'/>
+
+	Use the newly added model attribute of the controller element for this:
+
+	  <controller type='scsi' index='0' model='buslogic'/>
+
+	The disk driver name approach is deprecated now, but still works for
+	backward compatibility reasons.
+
+	Update the documentation and tests accordingly.
+
+	Fix usage of the words controller and id in the VMX handling code. Use
+	controller, bus and unit properly.
+
+	Add optional model attribute to the controller element
+	This is a step towards controller support for the ESX driver.
+
+	Add wide SCSI bus disk address generation support
+	The domain XML parsing code autogenerates disk address and
+	controller elements when they are not explicitly specified.
+	The code assumes a narrow SCSI bus (7 units per bus). ESX
+	uses a wide SCSI bus (16 units per bus).
+
+	This is a step towards controller support for the ESX driver.
+
+	Cleanup some LIBADD and CFLAGS
+	Move libnl to libvirt_util.la, because macvtap.c requires it.
+
+	Add GnuTLS to libvirt_driver.la, because libvirt.c calls gcrypt functions.
+	When built without loadable driver modules, then the remote driver pulls
+	in GnuTLS.
+
+	Move libgnu.la from libvirt_parthelper_CFLAGS to libvirt_parthelper_LDADD.
+
+2010-06-23  Ryota Ozaki  <ozaki.ryota@gmail.com>
+
+	cgroup: Enable memory.use_hierarchy of cgroup for domain
+	Through conversation with Kumar L Srikanth-B22348, I found
+	that the function of getting memory usage (e.g., virsh dominfo)
+	doesn't work for lxc with ns subsystem of cgroup enabled.
+
+	This is because of features of ns and memory subsystems.
+	Ns creates child cgroup on every process fork and as a result
+	processes in a container are not assigned in a cgroup for
+	domain (e.g., libvirt/lxc/test1/). For example, libvirt_lxc
+	and init (or somewhat specified in XML) are assigned into
+	libvirt/lxc/test1/8839/ and libvirt/lxc/test1/8839/8849/,
+	respectively. On the other hand, memory subsystem accounts
+	memory usage within a group of processes by default, i.e.,
+	it does not take any child (and descendant) groups into
+	account. With the two features, virsh dominfo which just
+	checks memory usage of a cgroup for domain always returns
+	zero because the cgroup has no process.
+
+	Setting memory.use_hierarchy of a group allows to account
+	(and limit) memory usage of every descendant groups of the group.
+	By setting it of a cgroup for domain, we can get proper memory
+	usage of lxc with ns subsystem enabled. (To be exact, the
+	setting is required only when memory and ns subsystems are
+	enabled at the same time, e.g., mount -t cgroup none /cgroup.)
+
+	cgroup: Change virCgroupRemove to remove all descendant groups at first
+	As same as normal directories, a cgroup cannot be removed if it
+	contains sub groups. This patch changes virCgroupRemove to remove
+	all descendant groups (subdirectories) of a target group before
+	removing the target group.
+
+	The handling is required when we run lxc with ns subsystem of cgroup.
+	Ns subsystem automatically creates child cgroups on every process
+	forks, but unfortunately the groups are not removed on process exits,
+	so we have to remove them by ourselves.
+
+	With this patch, such child (and descendant) groups are surely removed
+	at lxc shutdown, i.e., lxcVmCleanup which calls virCgroupRemove.
+
+2010-06-23  Eric Blake  <eblake@redhat.com>
+
+	virsh: document attach-disk better
+	http://bugzilla.redhat.com/601143, part 1 - document existing
+	behavior.  Ever since Mar 2010 (commit ced154cb), the use of
+	'attach-disk' or 'attach-device' to change cdrom/floppy media has been
+	documented but deprecated, but the replacement to use 'update-device'
+	was not documented.
+
+	* tools/virsh.c (cmdAttachInterface, cmdAttachDisk): Fix bad error
+	message.
+	* tools/virsh.pod (attach-device, attach-disk): Refer to
+	update-device for cdrom and floppy behavior.
+	(update-device): Add documentation.
+
+2010-06-23  Alan Pevec  <apevec@redhat.com>
+
+	network: allow tftp port if tftp is defined
+	add iptables rules to allow TFTP from the virtual network if <tftp>
+	element is defined in the network definition.
+
+	Fedora bz#580215
+
+	* src/network/bridge_driver.c: open UDP port 69 for TFTP traffic if
+	  tftproot is defined
+
+	bridge_driver.c: fix file description
+
+2010-06-23  Daniel P. Berrange  <berrange@redhat.com>
+
+	Add '-nodefconfig' command line arg to QEMU
+	We already use the '-nodefaults' command line arg with QEMU to stop
+	it adding any default devices to guests. Unfortunately, QEMU will
+	load global config files from /etc/qemu that may also add default
+	devices. These aren't blocked by '-nodefaults', so we need to also
+	add the '-nodefconfig' arg to prevent that.
+
+	Unfortunately these global config files are also used to define
+	custom CPU models. So in blocking global hardware device addition
+	we also block definitions of new CPU models. Libvirt doesn't know
+	about these custom CPU models though, so it would never make use
+	of them anyway. Thus blocking them via -nodefconfig isn't a show
+	stopping problem. We would need to expand libvirt's own CPU model
+	XML database to support these instead.
+
+	* src/qemu/qemu_conf.c: Add '-nodefconfig' if available
+	* tests/qemuxml2argvdata/: Add '-nodefconfig' to all data files which
+	  have '-nodefaults' present
+
+	Fix reference handling leak on qemuMonitor
+	The current code pattern requires that callers of qemuMonitorClose
+	check for the return value == 0, and if so, set priv->mon = NULL
+	and release the reference held on the associated virDomainObjPtr
+
+	The change d84bb6d6a3bd2fdd530184cc9743249ebddbee71 violated that
+	requirement, meaning that priv->mon never gets set to NULL, and
+	a reference count is leaked on virDomainObjPtr.
+
+	This design was a bad one, so remove the need to check the return
+	valueof qemuMonitorClose(). Instead allow registration of a
+	callback that's invoked just when the last reference on qemuMonitorPtr
+	is released.
+
+	Finally there was a potential reference leak in qemuConnectMonitor
+	in the failure path.
+
+	* src/qemu/qemu_monitor.c, src/qemu/qemu_monitor.h: Add a destroy
+	  callback invoked from qemuMonitorFree
+	* src/qemu/qemu_driver.c: Use the destroy callback to release the
+	  reference on virDomainObjPtr when the monitor is freed. Fix other
+	  potential reference count leak in connecting to monitor
+
+	Make checks for inactive QEMU guest more robust
+	Before issuing monitor commands it is neccessary to check whether
+	the guest is still running. Most places use virDomainIsActive()
+	correctly, but a few relied on 'priv->mon != NULL'. In theory
+	these should be equivalent, but the release of the last reference
+	count on priv->mon can be delayed a small amount of time until
+	the event handler is finally deregistered. A further ref counting
+	bug also means that priv->mon might be never released. In such a
+	case, code could mistakenly issue a monitor command and wait for
+	a response that will never arrive, effectively leaving the QEMU
+	driver waiting on virCondWait() forever..
+
+	To protect against these possibilities, make sure all code uses
+	virDomainIsActive(), not 'priv->mon != NULL'
+
+	* src/qemu/qemu_driver.c: Replace 'priv->mon != NULL' with
+	  calls to 'priv->mon != NULL'()
+
+	Improve some error messages about unsupported APIs/URIs
+	If there is no driver for a URI we report
+
+	  "no hypervisor driver available"
+
+	This is bad because not all virt drivers are hypervisors (ie container
+	based virt).
+
+	If there is no driver support for an API we report
+
+	  "this function is not supported by the hypervisor"
+
+	This is bad for the same reason, and additionally because it is
+	also used for the network, interface & storage drivers.
+
+	* src/util/virterror.c: Improve error messages
+
+2010-06-22  Jiri Denemark  <jdenemar@redhat.com>
+
+	Don't leak open fd to virsh in libvirt-guests init script
+	Running virsh while having /var/lib/libvirt/libvirt-guests file open
+	makes SELinux emit messages about preventing virsh from reading that
+	file. Since virsh doesn't really want to read anything, it's better to
+	run it with /dev/null on stdin to prevent those messages.
+
+2010-06-21  Stefan Berger  <stefanb@us.ibm.com>
+
+	nwfilter: fix loadable module support
+	Following Daniel Berrange's multiple helpful suggestions for improving
+	this patch and introducing another driver interface, I now wrote the
+	below patch where the nwfilter driver registers the functions to
+	instantiate and teardown the nwfilters with a function in
+	conf/domain_nwfilter.c called virDomainConfNWFilterRegister. Previous
+	helper functions that were called from qemu_driver.c and qemu_conf.c
+	were move into conf/domain_nwfilter.h with slight renaming done for
+	consistency. Those functions now call the function expored by
+	domain_nwfilter.c, which in turn call the functions of the new driver
+	interface, if available.
+
+2010-06-21  Justin Clift  <justin@salasaga.org>
+
+	virsh: remove a doubled up include for errno.h
+
+2010-06-21  Jiri Denemark  <jdenemar@redhat.com>
+
+	Misc cleanups
+	- Fix documentation for virGetStorageVol: it has 'key' argument instead
+	  of 'uuid'.
+	- Remove TODO comment from virReleaseStorageVol: we use volume key as an
+	  identifier instead of UUID.
+	- Print human-readable UUID string in debug message in virReleaseSecret.
+
+	Do not free static buffer with UUID
+	As anywhere else, uuid is defined as a fixed size array inside
+	_virSecret structure; we shouldn't try to free it.
+
+	Remove unnecessary check for non-NULL uuid
+	The first thing we do in all these functions is to check uuid != NULL
+	and fail if it isn't.
+
+	Index hashes by UUID instead of name
+	Per-connection hashes for domains, networks, storage pools and network
+	filter pools were indexed by names which was not the best choice. UUIDs
+	are better identifiers, so lets use them.
+
+2010-06-21  Philipp Hahn  <hahn@univention.de>
+
+	Allow one-or-more <boot dev="..."/> entries
+	According to docs/formatdomain.html.in, "The boot element can be
+	repeated multiple times to setup a priority list of boot devices to try
+	in turn." The Relax-NG schema required / allowed exactly one entry.
+
+2010-06-18  Stefan Berger  <stefanb@us.ibm.com>
+
+	nwfilter: extensions of docs with
+	As requested, here a couple of paragraphs about the recently added statematch attribute and some advanced (and tricky) traffic filtering topics.
+
+2010-06-18  Cole Robinson  <crobinso@redhat.com>
+
+	Add ACK'd v2 changes for previous commit
+
+	qemu: Fix crash on failed VM startup
+	If VM startup fails early enough (can't find a referenced USB device),
+	libvirtd will crash trying to clear the VNC port bit, since port = 0,
+	which overflows us out of the bitmap bounds.
+
+	Fix this by being more defensive in the bitmap operations, and only
+	clearing a previously set VNC port.
+
+2010-06-18  Philipp Hahn  <hahn@univention.de>
+
+	Fix description of virStorageVolGetInfo()
+	Probably a copy-paste-bug in python/libvirt-override-api.xml:
+	virStorageVolGetInfo() extracts information about a "storage volume",
+	not the "storage pool" as virStoragePoolGetInfo() does.
+
+2010-06-17  Justin Clift  <justin@salasaga.org>
+
+	virsh: add --uuid option to vol-pool
+	Adds an optional switch, --uuid, for telling the virsh vol-pool command
+	to return the pool UUID rather than pool name.
+
+2010-06-17  Eric Blake  <eblake@redhat.com>
+
+	qemu: reduce file padding requirements
+	Followup to https://bugzilla.redhat.com/show_bug.cgi?id=599091,
+	commit 20206a4b, to reduce disk waste in padding.
+
+	* src/qemu/qemu_monitor.h (QEMU_MONITOR_MIGRATE_TO_FILE_BS): Drop
+	back to 4k.
+	(QEMU_MONITOR_MIGRATE_TO_FILE_TRANSFER_SIZE): New macro.
+	* src/qemu/qemu_driver.c (qemudDomainSaveFlag): Update comment.
+	* src/qemu/qemu_monitor_text.c (qemuMonitorTextMigrateToFile): Use
+	two invocations of dd to output non-aligned large blocks.
+	* src/qemu/qemu_monitor_json.c (qemuMonitorJSONMigrateToFile):
+	Likewise.
+
+2010-06-17  Stefan Berger  <stefanb@us.ibm.com>
+
+	nwfilter: add XML attribute to control iptables state match
+	This patch adds an optional XML attribute to a nwfilter rule to give the user control over whether the rule is supposed to be using the iptables state match or not. A rule may now look like shown in the XML below with the statematch attribute either having value '0' or 'false' (case-insensitive).
+
+	[...]
+	<rule action='accept' direction='in' statematch='false'>
+	<tcp srcmacaddr='1:2:3:4:5:6'
+	           srcipaddr='10.1.2.3' srcipmask='32'
+	           dscp='33'
+	           srcportstart='20' srcportend='21'
+	           dstportstart='100' dstportend='1111'/>
+	</rule>
+	[...]
+
+	I am also extending the nwfilter schema and add this attribute to a test case.
+
+2010-06-17  Justin Clift  <justin@salasaga.org>
+
+	virsh: ensure persistence and autostart are shown for dominfo and pool-info
+	This patch adds the persistence status (yes/no) to the output of the virsh
+	dominfo and pool-info commands.  This patch also adds the autostart status
+	to the output of the virsh pool-info command.
+
+	Red Hat BZ for this:
+
+	  https://bugzilla.redhat.com/show_bug.cgi?id=603696
+
+2010-06-17  Eduardo Otubo  <otubo@linux.vnet.ibm.com>
+
+	phyp: adding support for IVM
+	Use virBuffer* API to conditionally keep the portion of the command
+	line specific to HMC, so that IVM can work.
+
+2010-06-17  Stefan Berger  <stefanb@us.ibm.com>
+
+	nwfilter: use match target on incoming traffic
+	The following patch enables the iptables match target to be used by
+	default for incoming traffic. So far it has only be used for outgoing
+	traffic.
+
+	macvtap: work-around for 2.6.32 and older kernels
+	This patch works around a recent extension of the netlink driver I had made use of when building the netlink messages. Unfortunately older kernels don't accept IFLA_IFNAME + name of interface as a replacement for the interface's index, so this patch now gets the interface index ifindex if it's not provided (ifindex <= 0).
+
+2010-06-17  Justin Clift  <justin@salasaga.org>
+
+	virsh: change printf() calls to vshPrint()
+	Trivial fix changing printf() calls to vshPrint() where the ctl
+	variable is available.
+
+	virsh: improve help text for vol query commands
+	Improves the help text for vol-path, vol-name, and vol-key, which
+	previously referred to volume UUIDs.
+
+	Addresses BZ # 598365.
+
+	virsh: add pool support to vol-key command
+	Presently the vol-key command only supports being provided with
+	a volume path.
+
+	This patch adds support for providing it with a pool and volume
+	identifier pair as well.
+
+	    virsh # vol-key --pool <pool-name-or-uuid> <vol-name-or-path>
+
+2010-06-16  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	Add several missing vir*Free calls in libvirtd's remote code
+	Justin Clift reported a problem with adding virStoragePoolIsPersistent
+	to virsh's pool-info command, resulting in a strange problem. Here's
+	an example:
+
+	    virsh # pool-create-as images_dir3 dir - - - - "/home/images2"
+	    Pool images_dir3 created
+
+	    virsh # pool-info images_dir3
+	    Name:           images_dir3
+	    UUID:           90301885-94eb-4ca7-14c2-f30b25a29a36
+	    State:          running
+	    Capacity:       395.20 GB
+	    Allocation:     30.88 GB
+	    Available:      364.33 GB
+
+	    virsh # pool-destroy images_dir3
+	    Pool images_dir3 destroyed
+
+	At this point the images_dir3 pool should be gone (because it was
+	transient) and we should be able to create a new pool with the same name:
+
+	    virsh # pool-create-as images_dir3 dir - - - - "/home/images2"
+	    Pool images_dir3 created
+
+	    virsh # pool-info images_dir3
+	    Name:           images_dir3
+	    UUID:           90301885-94eb-4ca7-14c2-f30b25a29a36
+	    error: Storage pool not found
+
+	The new pool got the same UUID as the first one, but we didn't specify
+	one. libvirt should have picked a random UUID, but it didn't.
+
+	It turned out that virStoragePoolIsPersistent leaks a reference to the
+	storage pool object (actually remoteDispatchStoragePoolIsPersistent does).
+	As a result, pool-destroy doesn't remove the virStoragePool for the
+	"images_dir3" pool from the virConnectPtr's storagePools hash on libvirtd's
+	side. Then the second pool-create-as get's the stale virStoragePool object
+	associated with the "images_dir3" name. But this object has the old UUID.
+
+	This commit ensures that all get_nonnull_* and make_nonnull_* calls for
+	libvirt objects are matched properly with vir*Free calls. This fixes the
+	reference leaks and the reported problem.
+
+	All remoteDispatch*IsActive and remoteDispatch*IsPersistent functions were
+	affected. But also remoteDispatchDomainMigrateFinish2 was affected in the
+	success path. I wonder why that didn't surface earlier. Probably because
+	domainMigrateFinish2 is executed on the destination host and in the common
+	case this connection is opened especially for the migration and gets closed
+	after the migration is done. So there was no chance to run into a problem
+	because of the leaked reference.
+
+	esx: Update case insensitive .vmx tests
+	Commit b9efc7dc3b97ef667ab99cee884b8485ebcb2f91 made virFileHasSuffix
+	case insensitive. Honor this in the tests by switching vmdk to VMDK.
+
+	esx: Accept 'disk' as harddisk device type in .vmx files
+
+2010-06-16  Eric Blake  <eblake@redhat.com>
+
+	phyp: sed cleanups
+	* src/phyp/phyp_driver.c (phypNumDomainsGeneric): Avoid glob
+	collision by quoting sed argument.
+	(phypDomainSetCPU): Avoid non-portable \+ in sed.
+	(phypGetVIOSPartitionID, phypDiskType, phypListDomainsGeneric)
+	(phypListDefinedDomains): Micro-optimize anchored substitutions.
+
+2010-06-15  Justin Clift  <justin@salasaga.org>
+
+	virsh: mark autostart answers for translation
+	This is a trivial fix for several autostart yes/no strings that
+	weren't correctly marked for translation.
+
+2010-06-15  Eric Blake  <eblake@redhat.com>
+
+	virsh: add start --paused support
+	Make 'start --paused' mirror 'create --paused'.
+
+	* tools/virsh.c (cmdStart): Use new virDomainCreateWithFlags API
+	when needed.
+	* tools/virsh.pod (start): Document --paused.
+
+	qemu: support starting persistent domain paused
+	Match earlier change for qemu pause support with virDomainCreateXML.
+
+	* src/qemu/qemu_driver.c (qemudDomainObjStart): Add parameter; all
+	callers changed.
+	(qemudDomainStartWithFlags): Implement flag support.
+
+	drivers: add virDomainCreateWithFlags if virDomainCreate exists
+	* src/esx/esx_driver.c (esxDomainCreate): Move guts...
+	(esxDomainCreateWithFlags): ...to new function.
+	(esxDriver): Trivially support the new API.
+	* src/lxc/lxc_driver.c (lxcDomainStart, lxcDomainStartWithFlags)
+	(lxcDriver): Likewise.
+	* src/opennebula/one_driver.c (oneDomainStart)
+	(oneDomainStartWithFlags, oneDriver): Likewise.
+	* src/openvz/openvz_driver.c (openvzDomainCreate)
+	(openvzDomainCreateWithFlags, openvzDriver): Likewise.
+	* src/qemu/qemu_driver.c (qemudDomainStart)
+	(qemudDomainStartWithFlags, qemuDriver): Likewise.
+	* src/test/test_driver.c (testDomainCreate)
+	(testDomainCreateWithFlags, testDriver): Likewise.
+	* src/uml/uml_driver.c (umlDomainStart, umlDomainStartWithFlags)
+	(umlDriver): Likewise.
+	* src/vbox/vbox_tmpl.c (vboxDomainCreate)
+	(vboxDomainCreateWithFlags, Driver): Likewise.
+	* src/xen/xen_driver.c (xenUnifiedDomainCreate)
+	(xenUnifiedDomainCreateWithFlags, xenUnifiedDriver): Likewise.
+	* src/xenapi/xenapi_driver.c (xenapiDomainCreate)
+	(xenapiDomainCreateWithFlags, xenapiDriver): Likewise.
+
+	remote: protocol implementation for virDomainCreateWithFlags
+	Define the wire format for the new virDomainCreateWithFlags
+	API, and implement client and server side of marshaling code.
+
+	* daemon/remote.c (remoteDispatchDomainCreateWithFlags): Add
+	server side dispatch for virDomainCreateWithFlags.
+	* src/remote/remote_driver.c (remoteDomainCreateWithFlags)
+	(remote_driver): Client side serialization.
+	* src/remote/remote_protocol.x
+	(remote_domain_create_with_flags_args)
+	(remote_domain_create_with_flags_ret)
+	(REMOTE_PROC_DOMAIN_CREATE_WITH_FLAGS): Define wire format.
+	* daemon/remote_dispatch_args.h: Regenerate.
+	* daemon/remote_dispatch_prototypes.h: Likewise.
+	* daemon/remote_dispatch_table.h: Likewise.
+	* src/remote/remote_protocol.c: Likewise.
+	* src/remote/remote_protocol.h: Likewise.
+	* src/remote_protocol-structs: Likewise.
+
+	libvirt: introduce domainCreateWithFlags API
+	Persistent domain creation needs the same features as transient
+	domains, but virDomainCreate lacks the flags argument present in
+	virDomainCreateXML.  virDomainCreateFlags is already claimed as
+	a public enum, so we have to break convention and expose
+	virDomainCreateWithFlags.
+
+	* include/libvirt/libvirt.h.in (virDomainCreateWithFlags): Add.
+	* src/driver.h (virDrvDomainCreateWithFlags): Internal API.
+	* src/libvirt.c (virDomainCreateWithFlags): Glue public API to
+	driver API.
+	* src/libvirt_public.syms (LIBVIRT_0.8.2): Expose public API.
+	* src/esx/esx_driver.c (esxDriver): Add stub for driver.
+	* src/lxc/lxc_driver.c (lxcDriver): Likewise.
+	* src/opennebula/one_driver.c (oneDriver): Likewise.
+	* src/openvz/openvz_driver.c (openvzDriver): Likewise.
+	* src/phyp/phyp_driver.c (phypDriver): Likewise.
+	* src/qemu/qemu_driver.c (qemuDriver): Likewise.
+	* src/remote/remote_driver.c (remote_driver): Likewise.
+	* src/test/test_driver.c (testDriver): Likewise.
+	* src/uml/uml_driver.c (umlDriver): Likewise.
+	* src/vbox/vbox_tmpl.c (Driver): Likewise.
+	* src/xen/xen_driver.c (xenUnifiedDriver): Likewise.
+	* src/xenapi/xenapi_driver.c (xenapiDriver): Likewise.
+
+	maint: simplify some ignore files
+	* .hgignore: Delete, no longer used.
+	* examples/python/.gitignore: Delete, covered globally.
+	* include/.gitignore: Likewise.
+	* python/tests/.gitignore: Likewise.
+	* docs/schemas/.gitignore: Likewise.
+	* tests/xml2sexprdata/.gitignore: Likewise.
+	* tests/sexpr2xmldata/.gitignore: Likewise.
+	* tests/confdata/.gitignore: Likewise.
+	* tests/xencapsdata/.gitignore: Likewise.
+	* tests/xmconfigdata/.gitignore: Likewise.
+	* tests/xml2sexprdata/.gitignore: Likewise.
+
+2010-06-14  Eric Blake  <eblake@redhat.com>
+
+	parthelper: fix compilation without optimization
+	Daniel's patch works with gcc and CFLAGS containing -O (the
+	autoconf default), but fails with non-gcc or with other
+	CFLAGS (such as -g), since c-ctype.h declares c_isdigit as
+	a macro only for certain compilation settings.
+
+	* src/Makefile.am (libvirt_parthelper_LDFLAGS): Add gnulib
+	library, for when c_isdigit is not a macro.
+	* src/storage/parthelper.c (main): Avoid out-of-bounds
+	dereference, noticed by Jim Meyering.
+
+2010-06-14  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix enumeration of partitions in disks with a trailing digit in path
+	Disks with a trailing digit in their path (eg /dev/loop0 or
+	/dev/dm0) have an extra 'p' appended before the partition
+	number (eg, to form /dev/loop0p1 not /dev/loop01). Fix the
+	partition lookup to append this extra 'p' when required
+
+	* src/storage/parthelper.c: Add a 'p' before partition
+	  number if required
+
+2010-06-11  Eric Blake  <eblake@redhat.com>
+
+	uml: sanity check external data before using it
+	Otherwise, a malicious packet could cause a DoS via spurious
+	out-of-memory failure.
+
+	* src/uml/uml_driver.c (umlMonitorCommand): Validate that incoming
+	data is reliable before using it to allocate/dereference memory.
+	Don't report bogus errno on short read.
+	Reported by Jim Meyering.
+
+2010-06-11  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	Improve error message for disabled client-side drivers
+	Report that libvirt was built without that driver instead of
+	trying to connect to a libvirtd, when we know that this is
+	going to fail.
+
+2010-06-10  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	vbox: check getenv("DISPLAY") for NULL in vboxDomainDumpXML
+	Otherwise this will segfault if DISPLAY is not defined.
+
+	Check getenv("PATH") for NULL in virFindFileInPath
+	Otherwise this will segfault if PATH is not defined.
+
+	Reported by Emre Erenoglu
+
+2010-06-10  Justin Clift  <justin@salasaga.org>
+
+	virsh: add snapshot backing store support to vol-create-as
+	This patch adds two new parameters to the vol-create-as command:
+
+	 --backing-vol <volume-name-or-key-or-path>
+	 --backing-vol-format <format-of-backing-vol>
+
+	  virsh # vol-create-as guest_images_lvm snapvol1 5G --backing-vol \
+	              rhel6vm1lun1
+	  Vol snapvol1 created
+
+	  virsh # vol-create-as image_dir qcow2snap2 5G --format qcow2 \
+	              --backing-vol imagevol1.qcow2 \
+	              --backing-vol-format qcow2
+	  Vol qcow2snap2 created
+
+	Additionally, the virsh man page update fixes incorrect snapshot
+	parameters that were included in my prior bulk volume command patch.
+
+2010-06-10  Eric Blake  <eblake@redhat.com>
+
+	build: fix some mingw issues
+	On Fedora 13 with sufficient mingw32-* packages installed, running
+	./autobuild.sh failed to cross-compile to mingw because
+	mingw32-pthreads installed a broken <pthread.h>.  With that
+	issue fixed, the build still failed due to use of O_SYNC.
+	Meanwhile, recent .spec.in changes got out of sync.
+
+	* bootstrap.conf (gnulib_modules): Add fcntl-h, for O_SYNC.
+	* .gnulib: Update to latest, to work around buggy pthreads-win32
+	library.
+	* bootstrap: Import latest from gnulib.
+	* mingw32-libvirt.spec.in: Distribute new file.
+
+	build: avoid pthreads-win32 on mingw
+	* src/util/threads.c (includes) [WIN32]: On mingw, favor native
+	threading over pthreads-win32 library.
+	* src/util/thread.h [WIN32] Likewise.
+	Suggested by Daniel P. Berrange.
+
+2010-06-09  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix cgroup setup code to cope with root squashing NFS
+	When a disk is on a root squashed NFS server, it may not be
+	possible to stat() the disk file in virCgroupAllowDevice.
+	The virStorageFileGetMeta method may also fail to extract
+	the parent backing store. Both of these errors have to be
+	ignored to avoid breaking NFS deployments
+
+	* src/qemu/qemu_driver.c: Ignore errors in cgroup setup to
+	   keep root squash NFS happy
+
+2010-06-09  Justin Clift  <justin@salasaga.org>
+
+	virsh: fixed trivial comment and debug message in vshCommandOptVolBy function
+
+	virsh: remove xen reference in header comment
+	With libvirt and virsh now being used for much more than Xen, this
+	patch removes the outdated reference to Xen in the file header.
+
+2010-06-09  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	esx: Add proxy query parameter
+	Allow to specify a proxy to be used by libcurl.
+
+	esx: Refactor esxUtil_ParseQuery's parameter handling
+	Pass a struct containing the parameters instead of passing each
+	one individually. This make future extensions a bit simpler.
+
+2010-06-09  Justin Clift  <justin@salasaga.org>
+
+	virsh: add the volume commands to the virsh man page
+	This patch also includes the new vol-pool command.
+
+	virsh: add new vol-pool command
+	This patch adds a new "vol-pool" command to virsh, to round out the
+	identifier conversion functions for volumes in virsh.  Now it is
+	possible to work with volumes when starting from just a volume key
+	or volume path.
+
+2010-06-08  Eric Blake  <eblake@redhat.com>
+
+	virsh: add --paused option to create
+	* tools/virsh.c (opts_create): Add --paused option.
+	(cmdCreate): Pass appropriate flag.
+	* tools/virsh.pod: Document it.
+
+	qemu: allow creation of a paused domain
+	https://bugzilla.redhat.com/show_bug.cgi?id=589465
+
+	Some guests (eg with badly configured grub, or Windows' installation cd)
+	require quick response from the console user. That's why we have a
+	"launchPaused" option in vdsm.
+
+	To implement it via libvirt, we need to ask libvirt not to call
+	qemuMonitorStartCPUs() after starting qemu.  Calling virDomainStop
+	immediately after the domain is up is inherently raceful.
+
+	* src/qemu/qemu_driver.c (qemudStartVMDaemon): Add new parameter;
+	all callers adjusted.
+	(qemudDomainCreate): Implement support for new flag.
+
+	virDomainCreateXML: support new flag
+	* include/libvirt/libvirt.h.in (virDomainCreateFlags): Add
+	VIR_DOMAIN_START_PAUSED.
+	* src/libvirt.c (virDomainCreateXML): Update documentation.
+	* src/lxc/lxc_driver.c (lxcDomainCreateAndStart): Reject new flag
+	as unimplemented.
+	* src/opennebula/one_driver.c (oneDomainCreateAndStart):
+	Likewise.
+	* src/openvz/openvz_driver.c (openvzDomainCreateXML): Likewise.
+	* src/phyp/phyp_driver.c (phypDomainCreateAndStart): Likewise.
+	* src/qemu/qemu_driver.c (qemudDomainCreate): Likewise.
+	* src/test/test_driver.c (testDomainCreateXML): Likewise.
+	* src/uml/uml_driver.c (umlDomainCreate): Likewise.
+	* src/vbox/vbox_tmpl.c (vboxDomainCreateXML): Likewise.
+	* src/xen/xend_internal.c (xenDaemonCreateXML): Likewise.
+	* src/xenapi/xenapi_driver.c (xenapiDomainCreateXML): Likewise.
+
+2010-06-08  David Allan  <dallan@redhat.com>
+
+	Fix leaks in udev device add/remove v3
+	* This patch is a modification of a patch submitted by Nigel Jones.
+	  It fixes several memory leaks on device addition/removal:
+
+	1. Free the virNodeDeviceDefPtr in udevAddOneDevice if the return
+	   value is non-zero
+
+	2. Always release the node device reference after the device has been
+	   processed.
+
+	* Refactored for better readability per the suggestion of clalance
+
+	Add multiIQN tests
+	* Fix broken rng schema
+	* Add test input & output files
+
+	Add multiiqn XML dump
+	* Use virBufferEscapeString() per Dan B.
+
+2010-06-08  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix test breakage from virtio serial changes
+	The virtio serial changes broke the test suite because they forgot
+	to add the new address attribute to the domain XML schema. The
+	xml2xml test also broke because the XML no longer roundtrips. This
+	is due to testing of auto-addition of <controller> elements. Split
+	that test case off into a separate XML file to avoid breakage
+
+	* docs/schemas/domain.rng: Allow port number for virtio serial addresses
+	* tests/qemuxml2argvdata/qemuxml2argv-channel-virtio.args,
+	  tests/qemuxml2argvdata/qemuxml2argv-channel-virtio.xml: Revert to
+	  a simple config to avoid breaking xml2xml test
+	* tests/qemuxml2argvdata/qemuxml2argv-channel-virtio-auto.xml,
+	  tests/qemuxml2argvdata/qemuxml2argv-channel-virtio-auto.args: Add
+	  complex test case for auto-controller addition for xml2argv test
+	* tests/qemuxml2argvtest.c: Add channel-virtio-auto test
+
+	Enable probing of VPC disk format type
+	A look at the QEMU source revealed the missing bits of info about
+	the VPC file format, so we can enable this now
+
+	* src/util/storage_file.c: Enable VPC format, providing version
+	  and disk size offset fields
+
+	Ensure that PCI device is reattached to host if hotadd fails
+	When an attempt to hotplug a PCI device to a guest fails,
+	the device was left attached to pci-stub. It is neccessary
+	to reset the device and then attach it to the host driver
+	again.
+
+	* src/qemu/qemu_driver.c: Reattach PCI device to host if
+	  hotadd fails
+
+	Don't raise errors in the selinux restore code
+	The restore code is done in places where errors cannot be
+	raised, since they will overwrite over pre-existing errors.
+
+	* src/security/security_selinux.c: Only warn about failures
+	  in label restore, don't report errors
+
+	Fix check for errors in device_add command in QEMU text monitor
+	Any output at all from device_add indicates an error in the
+	command execution. Thus it needs to check for reply != ""
+
+	* src/qemu/qemu_monitor_text.c: Fix reply check for errors
+	  to treat any output as an error
+
+	Prefer UDEV to HAL drivers if both a compiled
+	HAL is deprecated and UDEV is the future. Thus if both
+	options are compiled, we should prefer use of UDEV over
+	HAL
+
+	* src/node_device/node_device_driver.c: Switch init
+	  order to try UDEV first, then HAL
+
+2010-06-08  Daniel J Walsh  <dwalsh@redhat.com>
+
+	Add support for setting socket MLS level in SELinux driver
+	When SELinux is running in MLS mode, libvirtd will have a
+	different security level to the VMs. For libvirtd to be
+	able to connect to the monitor console, the client end of
+	the UNIX domain socket needs a different label. This adds
+	infrastructure to set the socket label via the security
+	driver framework
+
+	* src/qemu/qemu_driver.c: Call out to socket label APIs in
+	  security driver
+	* src/qemu/qemu_security_stacked.c: Wire up socket label
+	  drivers
+	* src/security/security_driver.h: Define security driver
+	  entry points for socket labelling
+	* src/security/security_selinux.c: Set socket label based on
+	  VM label
+
+2010-06-08  Daniel P. Berrange  <berrange@redhat.com>
+
+	Network duplicate UUID/name checking
+	The network driver is not doing correct checking for
+	duplicate UUID/name values. This introduces a new method
+	virNetworkObjIsDuplicate, based on the previously
+	written virDomainObjIsDuplicate.
+
+	* src/conf/network_conf.c, src/conf/network_conf.c,
+	  src/libvirt_private.syms: Add virNetworkObjIsDuplicate,
+	* src/network/bridge_driver.c: Call virNetworkObjIsDuplicate
+	  for checking uniqueness of uuid/names
+
+	Fix error codes for missing storage pools
+	The storage pool driver is mistakenly using the error code
+	VIR_ERR_INVALID_STORAGE_POOL which is for diagnosing invalid
+	pointers. This patch switches it to use VIR_ERR_NO_STORAGE_POOL
+	which is the correct code for cases where the storage pool does
+	not exist
+
+	* src/storage/storage_driver.c: Replace VIR_ERR_INVALID_STORAGE_POOL
+	  with VIR_ERR_NO_STORAGE_POOL
+
+	Storage pool duplicate UUID/name checking
+	The storage pool driver is not doing correct checking for
+	duplicate UUID/name values. This introduces a new method
+	virStoragePoolObjIsDuplicate, based on the previously
+	written virDomainObjIsDuplicate.
+
+	* src/conf/storage_conf.c, src/conf/storage_conf.c,
+	  src/libvirt_private.syms: Add virStoragePoolObjIsDuplicate,
+	* src/storage/storage_driver.c: Call virStoragePoolObjIsDuplicate
+	  for checking uniqueness of uuid/names
+
+	Fix auto-adding of virtio serial controllers
+	The domain parsing code would auto-add a virtio serial controller
+	if it saw any virtio serial channel defined. Unfortunately it
+	always added a controller with index=0, even if the channel address
+	specified an index != 0. It only added one controller, even if
+	multiple controllers were referenced by channels. Finally, it let
+	the ports+vectors parameters initialize to zero instead of -1, which
+	prevented the controllers accepting any ports.
+
+	* src/conf/domain_conf.c: Initialize ports+vectors when adding
+	  virtio serial controllers. Add all neccessary virtio serial
+	  controllers, instead of hardcoding controller 0
+	* qemuxml2argvdata/qemuxml2argv-channel-virtio.args,
+	  qemuxml2argvdata/qemuxml2argv-channel-virtio.xml: Expand to
+	  test controller auto-add behaviour
+
+	Include port number with virtio serial devices
+	To ensure that the device addressing scheme is stable across
+	hotplug/unplug, all virtio serial channels needs to have an
+	associated port number in their address. This is then specified
+	to QEMU using the nr=NNN parameter
+
+	* src/conf/domain_conf.c, src/conf/domain_conf.h: Parsing
+	  for port number in vioserial address types.
+	* src/qemu/qemu_conf.c: Set 'nr=NNN' parameter with virtio
+	  serial port number
+	* tests/qemuxml2argvdata/qemuxml2argv-channel-virtio.args,
+	  tests/qemuxml2argvdata/qemuxml2argv-channel-virtio.xml: Expand
+	  data set to ensure coverage of port addressing
+
+	Disable use of 'reason' field in block IO event in QEMU
+	QEMU upstream decided against adding a 'reason' field to
+	the block IO event in QMP. Disable this code to remove a
+	annoying warning message. It will be renabled when the
+	error string reason is re-introduced in QEMU
+
+	Ensure UNIX domain sockets are removed on daemon shutdown
+	When libvirtd exits it is leaving UNIX domain sockets on
+	the filesystem. These need to be removed.
+
+	The qemudInitPaths() method has signficant code churn to
+	switch from using a pre-allocated buffer on the stack, to
+	dynamically allocating on the heap.
+
+	* daemon/libvirtd.c, daemon/libvirtd.h: Store a reference
+	  to the UNIX domain socket path and unlink it on shutdown
+
+2010-06-08  Justin Clift  <justin@salasaga.org>
+
+	virsh: fix minor virsh man page typos and formatting problems
+
+2010-06-07  Jamie Strandboge  <jamie@ubuntu.com>
+
+	Fix AppArmor save/restore.Add stdin_path to qemudStartVMDaemon() args.
+	Refactor to update AppArmor security driver to adjust profile for
+	save/restore. This addresses the following bugs:
+
+	 https://bugzilla.redhat.com/show_bug.cgi?id=529363
+	 https://bugs.launchpad.net/ubuntu/+source/libvirt/+bug/457716
+
+	Add stdin_path to qemudStartVMDaemon() args.
+	Adjust args to qemudStartVMDaemon() to also specify path to stdin_fd,
+	so this can be passed to the AppArmor driver via SetSecurityAllLabel().
+
+	This updates all calls to qemudStartVMDaemon() as well as setting up
+	the non-AppArmor security driver *SetSecurityAllLabel() declarations
+	for the above. This is required for the following
+	"apparmor-fix-save-restore" patch since AppArmor resolves the passed
+	file descriptor to the pathname given to open().
+
+2010-06-06  Jim Meyering  <meyering@redhat.com>
+
+	avoid syntax-check failure
+	* .mailmap: Map a stray commit-author email address to the canonical one.
+	Reported by Justin Clift.
+
+2010-06-04  Laine Stump  <laine@laine.org>
+
+	Adjust block size used by dd to speed QEMU domain save operations.
+	See https://bugzilla.redhat.com/show_bug.cgi?id=599091
+
+	Saving a paused 512MB domain took 3m47s with the old block size of 512
+	bytes. Changing the block size to 1024*1024 decreased the time to 56
+	seconds. (Doubling again to 2048*1024 yielded 0 improvement; lowering
+	to 512k increased the save time to 1m10s, about 20%)
+
+	Fix dereference of potentially freed pointer in qemudDomainSaveFlags
+	The pointer to the xml describing the domain is saved into an object
+	prior to calling VIR_REALLOC_N() to make the size of the memory it
+	points to a multiple of QEMU_MONITOR_MIGRATE_TO_FILE_BS. If that
+	operation needs to allocate new memory, the pointer that was saved is
+	no longer valid.
+
+	To avoid this situation, adjust the size *before* saving the pointer.
+
+	(This showed up when experimenting with very large values of
+	QEMU_MONITOR_MIGRATE_TO_FILE_BS).
+
+2010-06-04  Jim Fehlig  <jfehlig@linux-ypgk.site>
+
+	Fixes for commit 211dd1e9
+	Fixes for issues in commit 211dd1e9 noted by by Jim Meyering.
+
+	1. Allocate content buffer of size content_length + 1 to ensure
+	   NUL-termination.
+	2. Limit content buffer size to 64k
+	3. Fix whitespace issue
+
+	V2:
+	  - Add comment to clarify allocation of content buffer
+	  - Add ATTRIBUTE_NONNULL where appropriate
+	  - User NULLSTR macro
+
+2010-06-04  Eric Blake  <eblake@redhat.com>
+
+	autobuild.sh: avoid bashism
+	* autobuild.sh: Replace 'set -o pipefail' with POSIX alternative.
+	Reported by Matthias Bolte.
+
+2010-06-03  Jim Fehlig  <jfehlig@novell.com>
+
+	Allocate buffer to hold xend response
+	There are cases when a response from xend can exceed 4096 bytes, in
+	which case anything beyond 4096 is ignored. This patch changes the
+	current fixed-size, stack-allocated buffer to a dynamically allocated
+	buffer based on Content-Length in HTTP header.
+
+2010-06-03  David Allan  <dallan@redhat.com>
+
+	Update nodedev scsi_host data before use
+	* It appears that the udev event for HBA creation arrives before the
+	  associated sysfs data is fully populated, resulting in bogus data
+	  for the nodedev entry until the entry is refreshed.  This problem is
+	  particularly troublesome when creating NPIV vHBAs because it results
+	  in libvirt failing to find the newly created adapter and waiting for
+	  the full timeout period before erroneously failing the create
+	  operation.  This patch forces an update before any attempt to use
+	  any scsi_host nodedev entry.
+
+	Fix device destroy return value
+	* Set return value in error cases
+	* Clarify error message when parent device is not vport capable
+
+2010-06-03  Eduardo Otubo  <otubo@linux.vnet.ibm.com>
+
+	phyp: Strict check when listing domains
+
+2010-06-03  Stefan Berger  <stefanb@us.ibm.com>
+
+	add 802.1Qbh and 802.1Qbg handling
+	This patch that adds support for configuring 802.1Qbg and 802.1Qbh
+	switches. The 802.1Qbh part has been successfully tested with real
+	hardware. The 802.1Qbg part has only been tested with a (dummy)
+	server that 'behaves' similarly to how we expect lldpad to 'behave'.
+
+	The following changes were made during the development of this patch:
+
+	 - Merging Scott's v13-pre1 patch
+	 - Fixing endptr related bug while using virStrToLong_ui() pointed out
+	   by Jim Meyering
+	 - Addressing Jim Meyering's comments to v11
+	 - requiring mac address to the vpDisassociateProfileId() function to
+	   pass it further to the 802.1Qbg disassociate part (802.1Qbh untouched)
+	 - determining pid of lldpad daemon by reading it from /var/run/libvirt.pid
+	   (hardcode as is hardcode alson in lldpad sources)
+	 - merging netlink send code for kernel target and user space target
+	   (lldpad) using one function nlComm() to send the messages
+	 - adding a select() after the sending and before the reading of the
+	   netlink response in case lldpad doesn't respond and so we don't hang
+	 - when reading the port status, in case of 802.1Qbg, no status may be
+	   received while things are 'in progress' and only at the end a status
+	   will be there.
+	 - when reading the port status, use the given instanceId and vf to pick
+	   the right IFLA_VF_PORT among those nested under IFLA_VF_PORTS.
+	 - never sending nor parsing IFLA_PORT_SELF type of messages in the
+	   802.1Qbg case
+	 - iterating over the elements in a IFLA_VF_PORTS to pick the right
+	   IFLA_VF_PORT by either IFLA_PORT_PROFILE and given profileId
+	   (802.1Qbh) or IFLA_PORT_INSTANCE_UUID and given instanceId (802.1Qbg)
+	   and reading the current status in IFLA_PORT_RESPONSE.
+	 - recycling a previous patch that adds functionality to interface.c to
+	   - get the vlan identifier on an interface
+	   - get the flags of an interface and some convenience function to
+	     check whether an interface is 'up' or not (not currently used here)
+	 - adding function to determine the root physical interface of an
+	   interface. For example if a macvtap is linked to eth0.100, it will
+	   find eth0. Also adding a function that finds the vlan on the 'way to
+	   the root physical interface'
+	 - conveying the root physical interface name and index in case of 802.1Qbg
+	 - conveying mac address of macvlan device and vlan identifier in
+	   IFLA_VFINFO_LIST[ IFLA_VF_INFO[ IFLA_VF_MAC(mac), IFLA_VF_VLAN(vlan) ] ]
+	   to (future) lldpad via netlink
+	  - To enable build with --without-macvtap rename the
+	    [dis|]associatePortProfileId functions, prepend 'vp' before their
+	    name and make them non-static functions.
+	  - Renaming variable multicast to nltarget_kernel and inverting
+	    the logic
+	  - Addressing Jim Meyering's comments; this also touches existing
+	    code for example for correcting indentation of break statements or
+	    simplification of switch statements.
+	  - Renamed occurrencvirVirtualPortProfileDef to virVirtualPortProfileParamses
+	  - 802.1Qbg part prepared for sending a RTM_SETLINK and getting
+	    processing status back plus a subsequent RTM_GETLINK to
+	    get IFLA_PORT_RESPONSE.
+	    Note: This interface for 802.1Qbg may still change
+	  - [David Allan] move getPhysfn inside IFLA_VF_PORT_MAX to avoid
+	compiler
+	    warning when latest if_link.h isn't available
+	  - move from Stefan's 802.1Qb{g|h} XML v8 to v9
+	  - move hostuuid and vf index calcs to inside doPortProfileOp8021Qbh
+	  - remove debug fprintfs
+	  - use virGetHostUUID (thanks Stefan!)
+	  - fix compile issue when latest if_link.h isn't available
+	  - change poll timeout to 10s, at 1/8 intervals
+	     - if polling times out, log msg and return -ETIMEDOUT
+	  - Add Stefan's code for getPortProfileStatus
+	  - Poll for up to 2 secs for port-profile status, at 1/8 sec intervals:
+	     - if status indicates error, abort openMacvtapTap
+	     - if status indicates success, exit polling
+	     - if status is "in-progress" after 2 secs of polling, exit
+	       polling loop silently, without error
+
+	My patch finishes out the 802.1Qbh parts, which Stefan had mostly complete.
+	I've tested using the recent kernel updates for VF_PORT netlink msgs and
+	enic for Cisco's 10G Ethernet NIC.  I tested many VMs, each with several
+	direct interfaces, each configured with a port-profile per the XML.  VM-to-VM,
+	and VM-to-external work as expected.  VM-to-VM on same host (using same NIC)
+	works same as VM-to-VM where VMs are on diff hosts.  I'm able to change
+	settings on the port-profile while the VM is running to change the virtual
+	port behaviour.  For example, adjusting a QoS setting like rate limit.  All
+	VMs with interfaces using that port-profile immediatly see the effect of the
+	change to the port-profile.
+
+	I don't have a SR-IOV device to test so source dev is a non-SR-IOV device,
+	but most of the code paths include support for specifing the source dev and
+	VF index.  We'll need to complete this by discovering the PF given the VF
+	linkdev.  Once we have the PF, we'll also have the VF index.  All this info-
+	mation is available from sysfs.
+
+2010-06-02  Eric Blake  <eblake@redhat.com>
+
+	bitmap: reject zero-size bitmap
+	* src/util/bitmap.c (virBitmapAlloc): Tighten sanity check.
+
+2010-06-02  Cole Robinson  <crobinso@redhat.com>
+
+	hostusb: Properly handle 'usbX' sysfs files
+	Fedora bug https://bugzilla.redhat.com/show_bug.cgi?id=598272
+
+	Some files under /sys/bus/usb/devices/ have the format 'usbX', where
+	X is the USB bus number. Use STRPREFIX to correctly parse the bus numbers.
+
+2010-06-02  Justin Clift  <justin@salasaga.org>
+
+	Add --source-format argument to virsh pool-define-as and pool-create-as
+	This is the corresponding patch for the virsh man page (virsh.pod).
+
+	Add --source-format argument to virsh pool-define-as and pool-create-as
+	When creating pools from dedicated disks, the existing pool-define-as
+	and pool-create-as commands are a bit non-optimal.
+
+	Ideally, a person would be able to specify all of the required options
+	directly on the command line instead of having to edit the XML.
+
+	At the moment, there is no way to specify the format type (ie gpt) so it
+	gets included in the XML the pool is constructed with.
+
+	Please find attached a simple (tested) patch to add an optional
+	"--source-format 'type'" to virsh.  This is patched against current git
+	master and will apply cleanly.
+
+	Also created a Red Hat BZ ticket for this (#597790) for tracking.
+
+	Trivial virsh.pod additions --all for "list" command and similar
+	This is just a trivial patch to virsh.pod (from git master). It adds the
+	following pieces to the virsh man page:
+
+	  + Shows the --inactive and --all optional parameters for the list
+	    command.
+
+	    Closes Bugzilla #575512, reported by Renich Bon Ciric
+	    https://bugzilla.redhat.com/show_bug.cgi?id=575512
+
+	  + Corrects the existing description of the list command, to now say
+	    that only running domains are listed if no domains are specified.
+
+	    The man page up until this point has said all domains are listed if
+	    no domains are specified, which is incorrect.
+
+	  + Adds the "shut off" state to the list of states for the list
+	    command.
+
+	  + Adds a missing =back around line 755, that pod2man was complaining
+	    was missing.
+
+2010-06-02  Eric Blake  <eblake@redhat.com>
+
+	build: fix VPATH 'make syntax-check'
+	* cfg.mk (sc_check_author_list): Look in correct location.
+
+2010-06-01  Eric Blake  <eblake@redhat.com>
+
+	build: depend on correct file
+	Otherwise, VPATH builds fail with:
+
+	make[1]: *** No rule to make target `libvirt-guests.init', needed by `all'.
+
+	Regression introduced in commit 482e08a9.
+
+	* daemon/Makefile.am (%.init): Look in correct place for
+	config.status.
+
+2010-06-01  Cole Robinson  <crobinso@redhat.com>
+
+	qemu: Add a qemu.conf option for clearing capabilities
+	Currently there is no way to opt out of libvirt dropping POSIX
+	capabilities for qemu. This at least is a useful debugging tool, but
+	is also wanted by users (and distributors):
+
+	https://bugzilla.redhat.com/show_bug.cgi?id=559154
+	https://bugzilla.redhat.com/show_bug.cgi?id=573850
+
+	v2: Clarify qemu.conf comment, warn about security implications
+
+	v3: Add .aug changes
+
+2010-05-29  Jim Meyering  <meyering@redhat.com>
+
+	build: make cpp indentation conform
+	* src/storage/storage_backend.h (VIR_STORAGE_VOL_OPEN_DEFAULT):
+	Adjust s/#define/# define/, and align continued lines.
+
+2010-05-28  Cole Robinson  <crobinso@redhat.com>
+
+	storage: Check for invalid storage mode before opening
+	If a directory pool contains pipes or sockets, a pool start can fail or hang:
+
+	https://bugzilla.redhat.com/show_bug.cgi?id=589577
+
+	We already try to avoid these special files, but only attempt after
+	opening the path, which is where the problems lie. Unify volume opening
+	into helper functions, which use the proper open() flags to avoid error,
+	followed by fstat to validate storage mode.
+
+	Previously, virStorageBackendUpdateVolTargetInfoFD attempted to enforce the
+	storage mode check, but allowed callers to detect this case and silently
+	continue. In practice, only the FS backend was using this feature, the rest
+	were treating unknown mode as an error condition. Unfortunately the InfoFD
+	function wasn't raising an error message here, so error reporting was
+	busted.
+
+	This patch adds 2 functions: virStorageBackendVolOpen, and
+	virStorageBackendVolOpenModeSkip. The latter retains the original opt out
+	semantics, the former now throws an explicit error.
+
+	This patch maintains the previous volume mode checks: allowing specific
+	modes for specific pool types requires a bit of surgery, since VolOpen
+	is called through several different helper functions.
+
+	v2: Use ATTRIBUTE_NONNULL. Drop stat check, just open with
+	    O_NONBLOCK|O_NOCTTY.
+
+	v3: Move mode check logic back to VolOpen. Use 2 VolOpen functions with
+	    different error semantics.
+
+	v4: Make second VolOpen function more extensible. Didn't opt to change
+	    FS backend defaults, this can just be to fix the original bug.
+
+	v5: Prefix default flags with VIR_, use ATTRIBUTE_RETURN_CHECK
+
+2010-05-28  Stefan Berger  <stefanb@us.ibm.com>
+
+	macvtap: cannot support target device name
+	Since the macvtap device needs active tear-down and the teardown logic
+	is based on the interface name, it can happen that if for example 1 out
+	of 3 interfaces was successfully created, that during the failure path
+	the macvtap's target device name is used to tear down an interface that
+	is doesn't own (owned by another VM).
+
+	So, in this patch, the target interface name is reset so that there is
+	no target interface name and the interface name is always cleared after
+	a tear down.
+
+2010-05-28  David Allan  <dallan@redhat.com>
+
+	Improve nodedev parent/child relationships
+	* If a nodedev has a parent that we don't want to display, we should
+	  continue walking up the udev device tree to see if any of its
+	  earlier ancestors are devices that we display.  It makes the tree
+	  much nicer looking than having a whole lot of devices hanging off
+	  the root node.
+
+2010-05-28  Jiri Denemark  <jdenemar@redhat.com>
+
+	Fix libvirt-guests init script
+	Firstly, the init script has to touch its file under /var/lock/subsys
+	when started, otherwise the system would think it's not running and
+	won't stop it during shutdown.
+
+	Secondly, for some reason there is a policy to automatically enable
+	init scripts when they are installed, so let the specfile do this. We
+	also need to start the init script to ensure it will be stopped during
+	the first shutdown after installing the package.
+
+	Also $LISTFILE should be enclosed by quotes everywhere as suggested by
+	Eric.
+
+2010-05-28  Jim Meyering  <meyering@redhat.com>
+
+	maint: new syntax-check rule to ensure that AUTHORS stays in sync
+	* cfg.mk (sc_check_AUTHOR_list): New rule.
+	* .mailmap: New file, to tell git log how to map email addresses.
+
+2010-05-28  Paolo Smiraglia  <paolo.smiraglia@gmail.com>
+
+	hooks: fix typo
+	* src/util/hooks.c (virHookLxcOp): Use correct bound.
+
+2010-05-28  Eric Blake  <eblake@redhat.com>
+
+	build: silence cppi warning, clarify vbox headers
+	These files are borrowed from upstream release versions, and should
+	not need further edits in the context of libvirt (instead, a new
+	upstream vbox release would entail adding a new header file).  We do
+	not re-generate these files as part of libvirt, nor do we want to lose
+	our minor edits (such as cppi cleanups).
+
+	* src/vbox/vbox_CAPI_v2_2.h: Clarify file origins.
+	* src/vbox/vbox_CAPI_v3_0.h: Likewise.
+	* src/vbox/vbox_CAPI_v3_1.h: Likewise.
+	* src/vbox/vbox_CAPI_v3_2.h: Likewise.  Reindent with cppi.
+
+2010-05-28  Cole Robinson  <crobinso@redhat.com>
+
+	network: bridge: Don't start network if it collides with host routing
+	Fedora bug https://bugzilla.redhat.com/show_bug.cgi?id=235961
+
+	If using the default virtual network, an easy way to lose guest network
+	connectivity is to install libvirt inside the VM. The autostarted
+	default network inside the guest collides with host virtual network
+	routing. This is a long standing issue that has caused users quite a
+	bit of pain and confusion.
+
+	On network startup, parse /proc/net/route and compare the requested
+	IP+netmask against host routing destinations: if any matches are found,
+	refuse to start the network.
+
+	v2: Drop sscanf, fix a comment typo, comment that function could use
+	    libnl instead of /proc
+
+	v3: Consider route netmask. Compare binary data rather than convert to
+	    string.
+
+	v4: Return to using sscanf, drop inet functions in favor of virSocket,
+	    parsing safety checks. Don't make parse failures fatal, in case
+	    expected format changes.
+
+	v5: Try and continue if we receive unexpected. Delimit parsed lines to
+	    prevent scanning past newline
+
+2010-05-27  Eric Blake  <eblake@redhat.com>
+
+	maint: update AUTHORS with recent contributors
+	git shortlog $(git log -1 --format=%H AUTHORS).. | grep -v "^ "
+
+	then add missing entries to AUTHORS.
+
+	* AUTHORS: Update.
+
+2010-05-27  Cole Robinson  <crobinso@redhat.com>
+
+	xen: Fix chardev listen sexpr formatting
+	'listen' isn't a valid qemu-dm option, as reported a long time ago here:
+
+	https://bugzilla.redhat.com/show_bug.cgi?id=492958
+
+	Matches the near identical logic in qemu_conf.c
+
+	v2: When parsing sexpr, only match on ",server", rather than
+	    full ',server,nowait'.
+
+	xen: Remove unused function
+
+2010-05-27  David Allan  <dallan@redhat.com>
+
+	v2 of Cole's wlan support
+	* Incorporated Jim's feedback (v1 & v2)
+
+	* Moved case of DEVTYPE == "wlan" up as it's definitive that we have a network interface.
+
+	* Made comment more detailed about the wired case to explain better
+	  how it differentiates between wired network interfaces and USB
+	  devices.
+
+2010-05-27  Марк Коренберг  <socketpair gmail com>
+
+	Add docs on drive <serial> element
+	* docs/formatdomain.html.in: Document <serial> element within
+	  <disk> and fix typo on <driver/> element
+
+2010-05-27  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	esx: Simplify goto usage
+	Eliminate almost all backward jumps by replacing this common pattern:
+
+	int
+	some_random_function(void)
+	{
+	    int result = 0;
+	    ...
+
+	  cleanup:
+	    <unconditional cleanup code>
+	    return result;
+
+	  failure:
+	    <cleanup code in case of an error>
+	    result = -1;
+	    goto cleanup
+	}
+
+	with this simpler pattern:
+
+	int
+	some_random_function(void)
+	{
+	    int result = -1;
+	    ...
+	    result = 0;
+
+	  cleanup:
+	    if (result < 0) {
+	        <cleanup code in case of an error>
+	    }
+
+	    <unconditional cleanup code>
+	    return result;
+	}
+
+	Add a bool success variable in functions that don't have a int result
+	that can be used for the new pattern.
+
+	Also remove some unnecessary memsets in error paths.
+
+2010-05-27  Jean-Baptiste Rouault  <jean-baptiste.rouault@diateam.net>
+
+	Support for VirtualBox version 3.2
+
+2010-05-27  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	Use printf instead of echo -e in libvirt.spec.in
+	make rpm created dummy tests containing '-e #!/bin/sh' for me.
+
+	Install, distribute and package domainsnapshot.rng
+
+2010-05-27  Eric Blake  <eblake@redhat.com>
+
+	build: support 'make check' in pristine tree
+	Otherwise, 'make check' in the python dir tries to reference a file in
+	docs that is built by 'make' but not by 'make check'.
+
+	* docs/Makefile.am (check-local): New rule.
+	Reported by Matthias Bolte.
+
+2010-05-27  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	esx: Expose host UUID in the capabilities XML
+	Parse the BIOS UUID. This information may not be available, in that
+	case no host UUID is exposed in the capabilities XML.
+
+2010-05-26  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix integer overflow in hotplug methods
+	The hotplug methods still had the qemuCmdFlags variable declared
+	as an int, instead of unsigned long long. This caused flag checks
+	to be incorrect for flags > 31
+
+	* src/qemu/qemu_driver.c: Fix integer overflow in hotplug
+
+2010-05-26  Alex Williamson  <alex.williamson@redhat.com>
+
+	Pass pre-opened PCI device sysfs config file to QEMU
+	This allows libvirt to open the PCI device sysfs config file prior
+	to dropping privileges so qemu can access the full config space.
+	Without this, a de-privileged qemu can only access the first 64
+	bytes of config space.
+
+	* src/qemu/qemu_conf.c, src/qemu/qemu_conf.h: Detect support
+	  for pci-assign.configfd option. Use this option when formatting
+	  PCI device string if possible
+	* src/qemu/qemu_driver.c: Pre-open PCI sysfs config file and pass
+	  to QEMU
+
+2010-05-26  Cole Robinson  <crobinso@redhat.com>
+
+	daemon: sysconf: Update comment about VNC audio
+
+2010-05-26  Chris Lalancette  <clalance@redhat.com>
+
+	Fix failing virGetHostname.
+	We've been running into a lot of situations where
+	virGetHostname() is returning "localhost", where a plain
+	gethostname() would have returned the correct thing.  This
+	is because virGetHostname() is *always* trying to canonicalize
+	the name returned from gethostname(), even when it doesn't
+	have to.
+
+	This patch changes virGetHostname so that if the value returned
+	from gethostname() is already FQDN or localhost, it returns
+	that string directly.  If the value returned from gethostname()
+	is a shortened hostname, then we try to canonicalize it.  If
+	that succeeds, we returned the canonicalized hostname.  If
+	that fails, and/or returns "localhost", then we just return
+	the original string we got from gethostname() and hope for
+	the best.
+
+	Note that after this patch it is up to clients to check whether
+	"localhost" is an allowed return value.  The only place
+	where it's currently not is in qemu migration.
+
+2010-05-26  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	xen-proxy build broken
+	The virVirtualPortProfileFormat just went below the
+	virVirtualPortProfileParamsParseXML function and got inside the
+
+	The attached patch moves virVirtualPortProfileFormat below the #ifndef
+	PROXY block.
+
+	esx: Add read-only storage pool access
+	Allows listing existing pools and requesting information about them.
+
+	Alter the esxVI_ProductVersion enum in a way that allows to check for
+	product type by masking.
+
+2010-05-26  Eric Blake  <eblake@redhat.com>
+
+	build: fix HTML errors in nwfilter docs
+	A build on Ubuntu reported:
+
+	|| Generating formatnwfilter.html.tmp
+	/dados/develop/libvirt/docs/formatnwfilter.html.in|390| HTML parser error : Unexpected end tag : p
+	||     </p>
+	||         ^
+	/dados/develop/libvirt/docs/formatnwfilter.html.in|705| HTML parser error : Unexpected end tag : code
+	||          <td>End of range of valid source ports</code></td>
+	||                                                       ^
+	/dados/develop/libvirt/docs/formatnwfilter.html.in|710| HTML parser error : Unexpected end tag : code
+	||          <td>Start of range of valid destination ports</code></td>
+	||                                                              ^
+
+	* docs/formatnwfilter.html.in: Fix invalid HTML constructs.
+	Reported by Eduardo Otubo.
+
+	build: fix compilation without macvtap
+	* src/util/macvtap.c: (associatePortProfileId)
+	(disassociatePortProfileId): Move inside HAVE_MACVTAP
+	conditional.
+	Reported by Eduardo Otubo.
+
+2010-05-25  Jim Meyering  <jim@meyering.net>
+
+	tests: avoid new failure of the daemon-conf test
+	* tests/daemon-conf: Accommodate the fact that out template,
+	daemon/libvirtd.conf now contains an invalid host_uuid.
+	Convert it to a valid one before the final libvirtd-running
+	test that must terminate normally.
+
+	libvirtd: diagnose invalid host UUID
+	* daemon/libvirtd.c (remoteReadConfigFile): Diagnose an invalid
+	host UUID rather than silently exiting with status 7.
+
+2010-05-25  Stefan Berger  <stefanb@us.ibm.com>
+
+	vepa: parsing for 802.1Qb{g|h} XML
+	This patch parses the following two XML descriptions, one for
+	802.1Qbg and one for 802.1Qbh, and stores the data internally.
+	The actual triggering of the switch setup protocol has not been
+	implemented here but the relevant code to do that should go into
+	the functions associatePortProfileId() and disassociatePortProfileId().
+
+	   <interface type='direct'>
+	      <source dev='eth0.100' mode='vepa'/>
+	      <model type='virtio'/>
+	      <virtualport type='802.1Qbg'>
+	        <parameters managerid='12' typeid='0x123456' typeidversion='1'
+	         instanceid='fa9b7fff-b0a0-4893-8e0e-beef4ff18f8f'/>
+	      </virtualport>
+	      <filterref filter='clean-traffic'/>
+	    </interface>
+
+	    <interface type='direct'>
+	      <source dev='eth0.100' mode='vepa'/>
+	      <model type='virtio'/>
+	      <virtualport type='802.1Qbh'>
+	        <parameters profileid='my_profile'/>
+	      </virtualport>
+	    </interface>
+
+	I'd suggest to use this patch as a base for triggering the setup
+	protocol with the 802.1Qb{g|h} switch.
+
+	Several rounds of changes were made to this patch. The
+	following is a list of these changes.
+	- Renamed structure virVirtualPortProfileDef to virVirtualPortProfileParams
+	  as per Daniel Berrange's request
+	- Addressing Daniel Berrange's comments:
+	 - removing macvtap.h's dependency on domain_conf.h by
+	   moving the virVirtualPortProfileDef structure into macvtap.h
+	   and not passing virtDomainNetDefPtr to any functions in
+	   macvtap.c
+	- Addressed most of Chris Wright's comments:
+	  - indicating error in case virtualport XML node cannot be parsed
+	    properly
+	  - parsing hex and decimal numbers using virStrToLong_ui() with
+	    parameter '0' for base
+	  - tgifname (target interface name) variable wasn't necessary
+	    to pass to openMacvtapTap function anymore
+	- assigning the virtual port data structure to the virDomainNetDef
+	  only if it was previously parsed
+	- make sure that the error code returned by openMacvtapTap() is a negative n
+	  in case the associatePortProfileId() function failed.
+	- renaming vsi in the XML to virtualport
+	- replace all occurrences of vsi in the source as well
+	- removing mode and MAC address parameters from the functions that
+	  will communicate with the hareware diretctly or indirectly
+	- moving the associate and disassociate functions to the end of the
+	  file for subsequent patches to easier make them generally available
+	  for export
+	- passing the macvtap interface name rather than the link device since
+	  this otherwise gives funny side effects when using netlink messages
+	  where IFLA_IFNAME and IFLA_ADDRESS are specified and the link dev
+	  all of a sudden gets the MAC address of the macvtap interface.
+	- Removing rc = -1 error indications in the case of 802.1Qbg|h setup in case
+	  we wanted to use hook scripts for the setup and so the setup doesn't fail
+	  here.
+	- if instance ID UUID is not supplied it will automatically be generated
+	  - adapted schema to make instance ID UUID optional
+	  - added test case
+	- parser and XML generator have been separated into their own
+	  functions so they can be re-used elsewhere (passthrough case
+	  for example)
+	- Adapted XML parser and generator support the above shown type
+	  (802.1Qbg, 802.1Qbh).
+	- Adapted schema to above XML
+	- Adapted test XML to above XML
+	- Passing through the VM's UUID which seems to be necessary for
+	  802.1Qbh -- sorry no host UUID
+	- adding virtual function ID to association function, in case it's
+	  necessary to use (for SR-IOV)
+
+	vepa+vsi: Introduce dependency on libnl
+	This patch introduces a dependency on libnl, which subsequent patches
+	will then use.
+
+	Changes from V1 to V2:
+	- added diffstats
+	- following changes in tree
+
+2010-05-25  Cole Robinson  <crobinso@redhat.com>
+
+	storage: Sanitize pool target paths
+	Spurious / in a pool target path makes life difficult for apps using the
+	GetVolByPath, and doing other path based comparisons with pools. This
+	has caused a few issues for virt-manager users:
+
+	https://bugzilla.redhat.com/show_bug.cgi?id=494005
+	https://bugzilla.redhat.com/show_bug.cgi?id=593565
+
+	Add a new util API which removes spurious /, virFileSanitizePath. Sanitize
+	target paths when parsing pool XML, and for paths passed to GetVolByPath.
+
+	v2: Leading // must be preserved, properly sanitize path=/, sanitize
+	    away /./ -> /
+
+	v3: Properly handle starting ./ and ending /.
+
+	v4: Drop all '.' handling, just sanitize / for now.
+
+2010-05-25  Daniel P. Berrange  <berrange@redhat.com>
+
+	Expose a host UUID in the capabilities XML
+	Allow for a host UUID in the capabilities XML. Local drivers
+	will initialize this from the SMBIOS data. If a sanity check
+	shows SMBIOS uuid is invalid, allow an override from the
+	libvirtd.conf configuration file
+
+	* daemon/libvirtd.c, daemon/libvirtd.conf: Support a host_uuid
+	  configuration option
+	* docs/schemas/capability.rng: Add optional host uuid field
+	* src/conf/capabilities.c, src/conf/capabilities.h: Include
+	  host UUID in XML
+	* src/libvirt_private.syms: Export new uuid.h functions
+	* src/lxc/lxc_conf.c, src/qemu/qemu_driver.c,
+	  src/uml/uml_conf.c: Set host UUID in capabilities
+	* src/util/uuid.c, src/util/uuid.h: Support for host UUIDs
+	* src/node_device/node_device_udev.c: Use the host UUID functions
+	* tests/confdata/libvirtd.conf, tests/confdata/libvirtd.out: Add
+	  new host_uuid config option to test
+
+	Fix handling of disk backing stores with cgroups
+	The cgroups ACL code was only allowing the primary disk image.
+	It is possible to chain images together, so we need to search
+	for backing stores and add them to the ACL too. Since the ACL
+	only handles block devices, we ignore the EINVAL we get from
+	plain files. In addition it was missing code to teardown the
+	cgroup when hot-unplugging a disk
+
+	* src/qemu/qemu_driver.c: Allow backing stores in cgroup ACLs
+	  and add missing teardown code in unplug path
+
+2010-05-25  Chris Lalancette  <clalance@redhat.com>
+
+	Fix up basic migration.
+	Basic live migration was broken by the commit that added
+	non-shared block support in two ways:
+
+	1)  It added a virCheckFlags() to doNativeMigrate().  Besides
+	the fact that typical usage of virCheckFlags() is in driver
+	entry points, and doNativeMigrate() is not an entry point,
+	it was missing important flags like VIR_MIGRATE_LIVE.  Move
+	the virCheckFlags to the top-level qemuDomainMigratePrepare2
+	and friends.
+
+	2)  It also added a memory leak in qemuMonitorTextMigrate()
+	by not freeing the memory used by virBufferContentAndReset().
+	This is fixed by storing the pointer in a temporary variable
+	and freeing it at the end.
+
+	With this patch in place, normal live migration works again.
+
+	v3: Instead of the churn for virCheckFlagsUI and UL, instead
+	always promote flags to an unsigned long and always use %lx
+	for the fprintf.
+	v2: Add back flags check, which required adding virCheckFlagsUI
+	and virCheckFlagsUL
+
+2010-05-25  Cole Robinson  <crobinso@redhat.com>
+
+	qemu: Allow using regular audio backends with VNC
+	Currently all host audio backends are disabled if a VM is using VNC, in
+	favor of the QEMU VNC audio extension. Unfortunately no released VNC
+	client supports this extension, so users have no way of getting audio
+	to work if using VNC.
+
+	Add a new config option in qemu.conf which allows changing libvirt's
+	behavior, but keep the default intact.
+
+	v2: Fix doc typos, change name to vnc_allow_host_audio
+
+	storage: mpath: Fix incorrect VIR_ERROR use
+
+2010-05-25  Chris Lalancette  <clalance@redhat.com>
+
+	Allow nwfilter functions to be compiled with C++
+	Unfortunately the NWFilter functions were outside of the
+	"extern C { ... }" declaration in include/libvirt/libvirt.h.in,
+	which means that they couldn't be properly used with C++.  Move
+	them inside of the braces, which should fix the problem.
+
+2010-05-25  Stefan Berger  <stefanb@us.ibm.com>
+
+	nwfilter: documentation
+	This patch adds documentation of the nwfilter subsystem of libvirt to
+	the existing (web) docs.
+
+2010-05-25  Eric Blake  <eblake@redhat.com>
+
+	maint: update AUTHORS with recent contributors
+	git shortlog $(git log -1 --format=%H AUTHORS).. | grep -v "^ "
+
+	then add missing entries to AUTHORS.
+
+	* AUTHORS: Update.
+
+2010-05-25  Alex Williamson  <alex.williamson@redhat.com>
+
+	qemu: Release bus address on PCI host device remove
+
+	qemu: avoid corrupting guest info struct on host device PCI hot add
+	The device path doesn't make use of guestAddr, so the memcpy corrupts
+	the guest info struct.
+
+2010-05-24  Daniel P. Berrange  <berrange@redhat.com>
+
+	Query block allocation extent from QEMU monitor
+	The virDomainGetBlockInfo API allows query physical block
+	extent and allocated block extent. These are normally the
+	same value unless storing a special format like qcow2
+	inside a block device. In this scenario we can query QEMU
+	to get the actual allocated extent.
+
+	Since last time:
+
+	 - Return fatal error in text monitor
+	 - Only invoke monitor command for block devices
+	 - Fix error handling JSON code
+
+	* src/qemu/qemu_driver.c: Fill in block aloction extent when VM
+	  is running
+	* src/qemu/qemu_monitor.c, src/qemu/qemu_monitor.h,
+	  src/qemu/qemu_monitor_json.c, src/qemu/qemu_monitor_json.h,
+	  src/qemu/qemu_monitor_text.c, src/qemu/qemu_monitor_text.h: Add
+	  API to query the highest block extent via info blockstats
+
+2010-05-24  Jim Meyering  <jim@meyering.net>
+
+	lxcSetSchedulerParameters: reverse order of tests; diagnose a failure
+	* src/lxc/lxc_driver.c (lxcSetSchedulerParameters): Ensure that
+	"->field" is "cpu_shares" before possibly giving a diagnostic about
+	a type for a "cpu_shares" value.
+	Also, virCgroupSetCpuShares could fail without evoking a diagnostic.
+	Add one.
+
+2010-05-24  Chris Lalancette  <clalance@redhat.com>
+
+	Don't overwrite virDomainAssignDef errors.
+
+2010-05-24  Cole Robinson  <crobinso@redhat.com>
+
+	storage: Combine some duplicate code
+	Volume detection in the scsi backend was duplicating code already
+	present in storage_backend.c. Let's drop the duplicate code.
+
+	Also, change the shared function name to be less generic, and remove
+	some error squashing in the other call site.
+
+	storage: mpath: Clean up some error handling
+	We were squashing error messages in a few cases. Recode to follow common
+	ret = -1 convention.
+
+	v2: Handle more error squashing issues further up in MakeNewVol and
+	    CreateVols. Use ret = -1 convention in MakeVols.
+
+2010-05-24  Jiri Denemark  <jdenemar@redhat.com>
+
+	Remove dead code after refactoring qemudDomainStart
+	The event is already generated and sent by qemudDomainObjStart, no need
+	to do anything about here.
+
+2010-05-22  Jim Meyering  <meyering@redhat.com>
+
+	libvirtd: start each diagnostic with "argv0: "
+	Some diagnostics had a hard-coded "libvirtd: " prefix, some used
+	"error: " and some used "argv[0]: ".  Always use "argv[0]: ".
+	* daemon/libvirtd.c (argv0): New global.
+	(main): Set it.
+	(version, usage): Remove argv0 parameter.  Use global; update callers.
+	(daemonForkIntoBackground): Use argv0:, not error:.
+	(qemudWritePidFile): Start each diagnostic with argv0:.
+	Suggested by Eric Blake.
+
+	libvirtd: mark strings for translation, including --help output
+	* daemon/libvirtd.c (daemonForkIntoBackground, main): Mark strings
+	for translation.
+	(usage): Rework --help so that it is translatable, replacing
+	each embedded, configuration-dependent, macro with an `%s'.
+
+	libvirtd: don't ignore virInitialize failure
+	* daemon/libvirtd.c (main): Diagnose virInitialize failure
+	and exit nonzero.
+
+2010-05-22  Eric Blake  <eblake@redhat.com>
+
+	build: fix cppi warnings
+	* src/util/bitmap.h (includes): Placate cppi.
+
+2010-05-21  Eric Blake  <eblake@redhat.com>
+
+	build: force init scripts to rebuild on changed --prefix
+	Otherwise, './configure --prefix=/foo && make &&
+	 ./configure --prefix=/bar && make' leaves the wrong files
+	in libvirtd.init (/foo instead of /bar).
+
+	* daemon/Makefile.am (libvirtd.init): Add dependency on
+	config.status.  Reported by Cole Robinson.
+
+2010-05-21  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	build: Distribute the whole tests/qemuhelpdata directory
+	Instead of distributing the individual files.
+
+	Now it's less error prone and consistent with the rest of
+	the data directories in the tests directory.
+
+2010-05-21  Cole Robinson  <crobinso@redhat.com>
+
+	.gitignore: Add libvirt-guests.init
+
+2010-05-21  Jim Fehlig  <jfehlig@novell.com>
+
+	Fix race in finding available vnc port
+	The qemu driver contains a subtle race in the logic to find next
+	available vnc port.  Currently it iterates through all available ports
+	and returns the first for which bind(2) succeeds.  However it is possible
+	that a previously issued port has not yet been bound by qemu, resulting
+	in the same port used for a subsequent domain.
+
+	This patch addresses the race by using a simple bitmap to "reserve" the
+	ports allocated by libvirt.
+
+	V2:
+	  - Put port bitmap in struct qemud_driver
+	  - Initialize bitmap in qemudStartup
+
+	V3:
+	  - Check for failure of virBitmapGetBit
+	  - Additional check for port != -1 before calling virbitmapClearBit
+
+	V4:
+	  - Check for failure of virBitmap{Set,Clear}Bit
+
+	Add defines for QEMU_VNC_PORT_{MIN,MAX} and use them
+
+	Add simple bitmap operations to utils
+	V2:
+	  - Move bitmap impl to src/util/bitmap.[ch]
+	  - Use CHAR_BIT instead of explicit '8'
+	  - Use size_t instead of unsigned int
+	  - Fix calculation of bitmap size in virBitmapAlloc
+	  - Ensure bit is within range of map in the set, clear, and get
+	    operations
+	  - Use bool in virBitmapGetBit
+	  - Add virBitmapFree to free-like funcs in cfg.mk
+
+	V3:
+	  - Check for overflow in virBitmapAlloc
+	  - Fix copy and paste bug in virBitmapAlloc
+	  - Use size_t in prototypes
+	  - Add ATTRIBUTE_NONNULL in prototypes where appropriate
+	    and remove NULL check from impl
+
+	V4:
+	  - Add ATTRIBUTE_RETURN_CHECK in prototypes where appropriate.
+
+2010-05-21  Cole Robinson  <crobinso@redhat.com>
+
+	daemon: Export SDL audio environment variables
+	/etc/sysconfig/libvirtd has a few environment variables for configuring
+	libvirt SDL audio. The libvirtd process doesn't see these, however, because
+	they are never exported. Let's export the variables after sourcing the
+	sysconfig script.
+
+	There is another problem here that the commented out values in the
+	sysconfig script are not neccessarily the actual defaults, we are qemus
+	mercy here. Not sure how to solve that.
+
+2010-05-21  Chris Lalancette  <clalance@redhat.com>
+
+	Remove isValidIfname.
+	We shouldn't be checking validity in domain_conf, since
+	it can be used by multiple different hosts and hypervisors.
+	Remove the check completely.
+
+2010-05-21  Jiri Denemark  <jdenemar@redhat.com>
+
+	Init script for handling guests on shutdown/boot
+	Example output during shutdown:
+
+	Running guests on default URI: console, rhel6-1, rhel5-64
+	Running guests on lxc:/// URI: lxc-shell
+	Running guests on xen:/// URI: error: no hypervisor driver available for xen:///
+	error: failed to connect to the hypervisor
+	Running guests on vbox+tcp://orkuz/system URI: no running guests.
+	Suspending guests on default URI...
+	Suspending console: done
+	Suspending rhel6-1: done
+	Suspending rhel5-64: done
+	Suspending guests on lxc:/// URI...
+	Suspending lxc-shell: error: Failed to save domain 9cba8bfb-56f4-6589-2d12-8a58c886dd3b state
+	error: this function is not supported by the hypervisor: virDomainManagedSave
+
+	Note, the "Suspending $guest: " shows progress during the suspend phase
+	if domjobinfo gives meaningful output.
+
+	Example output during boot:
+
+	Resuming guests on default URI...
+	Resuming guest rhel6-1: done
+	Resuming guest rhel5-64: done
+	Resuming guest console: done
+	Resuming guests on lxc:/// URI...
+	Resuming guest lxc-shell: already active
+
+	Configuration used for generating the examples above:
+	URIS='default lxc:/// xen:/// vbox+tcp://orkuz/system'
+
+	The script uses /var/lib/libvirt/libvirt-guests files to note all active
+	guest it should try to resume on next boot. It's content looks like:
+
+	default 7f8b9d93-30e1-f0b9-47a7-cb408482654b 085b4c95-5da2-e8e1-712f-6ea6a4156af2 fb4d8360-5305-df3a-2da1-07d682891b8c
+	lxc:/// 9cba8bfb-56f4-6589-2d12-8a58c886dd3b
+
+	Autostart domains using virDomainObjStart
+
+	Refactor qemudDomainStart
+	We need a common internal function for starting managed domains to be
+	used during autostart. This patch factors out relevant code from
+	qemudDomainStart into qemudDomainObjStart and makes it use the
+	refactored code for domain restore instead of calling qemudDomainRestore
+	API directly.
+
+	Factor out def assignment to existing domain from virDomainAssignDef
+	We need to be able to assign new def to an existing virDomainObj which
+	is already locked. This patch factors out the relevant code from
+	virDomainAssignDef into virDomainObjAssignDef.
+
+	Refactor qemudDomainRestore
+	We need to be able to restore a domain which we already locked and
+	started a job for it without undoing these steps. This patch factors
+	out internals of qemudDomainRestore into separate functions which work
+	for locked objects.
+
+2010-05-20  Jim Meyering  <meyering@redhat.com>
+
+	maint: update po/POTFILES.in
+	* po/POTFILES.in: Add 3 files.
+
+	maint: enforce policy wrt VIR_DEBUG and VIR_DEBUG0
+	* cfg.mk (sc_prohibit_gettext_markup): Just like VIR_WARN*.
+
+	maint: don't mark VIR_DEBUG or VIR_DEBUG0 diagnostics for translation
+	Run this command:
+	  git grep -l VIR_DEBUG|xargs perl -pi -e \
+	    's/(VIR_DEBUG0?)\s*\(_\((".*?")\)/$1($2/'
+
+	maint: enforce policy wrt VIR_ERROR and VIR_ERROR0
+	* cfg.mk (msg_gen_function): Add VIR_ERROR and VIR_ERROR0,
+	so that sc_libvirt_unmarked_diagnostics will check them, too.
+
+	maint: change "" in err ? err->message : "" to _("unknown error"), ...
+	These changes avoid false-positive syntax-check failure,
+	and also make the resulting diagnostics more comprehensible.
+
+	maint: more of same, but manual: convert VIR_ERROR("%s" to VIR_ERROR0(
+
+	maint: VIR_ERROR/VIR_ERROR0: mark up the remaining ones manually
+	Handle concatenated strings manually.
+
+	maint: mark translatable string args of VIR_ERROR
+	Run this:
+	  git grep -l 'VIR_ERROR\s*("'|xargs perl -pi -e \
+	    's/(VIR_ERROR)\s*\((".*?"),/$1(_($2),/'
+
+	maint: mark translatable string args of VIR_ERROR0
+	Run this:
+	  git grep -l 'VIR_ERROR0\s*("'|xargs perl -pi -e \
+	    's/(VIR_ERROR0)\s*\((".*?")\)/$1(_($2))/'
+
+	maint: use VIR_ERROR0 rather than VIR_ERROR with a bare "%s"
+	Change VIR_ERROR("%s", "..."
+	to     VIR_ERROR0("..."
+
+	and
+
+	Change VIR_ERROR("%s", _("...")
+	to     VIR_ERROR0(_("...")
+
+	Use this command:
+	  git grep -E -l 'VIR_ERROR\("%s", (_\()?"'|xargs perl -pi -e \
+	  's/VIR_ERROR\("%s", (_\()?"/VIR_ERROR0($1"/'
+
+2010-05-20  Chris Wright  <chrisw@redhat.com>
+
+	qemu driver: fix version check typos
+	* src/qemu/qemu_conf.c (qemudParseHelpStr): Fix errors that made
+	it impossible to diagnose invalid minor and micro version number
+	components.
+
+2010-05-20  Cole Robinson  <crobinso@redhat.com>
+
+	daemon: A few initscript corrections
+	Fedora bug https://bugzilla.redhat.com/show_bug.cgi?id=565238
+
+	- Avahi service is called 'avahi-daemon'
+	- chkconfig descriptions must use \ for line continuations
+
+	qemu: Use ShutdownVMDaemon for all startup cleanup paths
+	The current cleanup: in StartVMDaemon path is a poor duplication.
+	qemuShutdownVMDaemon can handle teardown for inactive VMs, so let's use it.
+
+	v2: Remove old abort: label, only use cleanup:
+
+2010-05-20  Chris Lalancette  <clalance@redhat.com>
+
+	Domain snapshot RNG and tests.
+
+	Fix up the python bindings for snapshotting.
+	This involved a few fixes.  To start with,
+	an virDomainSnapshot object is really tied to a
+	domain, not a connection, so we have to generate
+	a slightly different object so that we can get
+	at self._dom for the object.
+
+	Next, we had to "dummy" up an override piece of
+	XML with a bogus argument that the function doesn't
+	actually take.  That's so that the generator places
+	virDomainRevertToSnapshot underneath the correct
+	class (namely, the virDomain class).
+
+	Finally, we had to hand-implement the
+	virDomainRevertToSnapshot implementation, ignoring the
+	bogus pointer we are being passed.
+
+	With all of this in place, I was able to successfully
+	take a snapshot and revert to it using only the
+	Python bindings.
+
+2010-05-20  Jim Meyering  <meyering@redhat.com>
+
+	qemu_conf.c: also recognize new first line of qemu -help output
+	* src/qemu/qemu_conf.c (QEMU_VERSION_STR_1, QEMU_VERSION_STR_2):
+	Define these instead of...
+	(QEMU_VERSION_STR): ... this.  Remove definition.
+	(qemudParseHelpStr): Check first for the new, shorter prefix,
+	"QEMU emulator version", and then for the old one,
+	"QEMU PC emulator version" when trying to parse the version number.
+	Based on a patch by Chris Wright.
+
+	lxc_controller.c: don't ignore failed "accept"
+	* src/lxc/lxc_controller.c (ignorable_epoll_accept_errno): New function.
+	(lxcControllerMain): Handle a failed accept carefully:
+	most errno values indicate legitimate failure and must be fatal.
+	However, ignore a special case: that in which an incoming client quits
+	between the poll() indicating its presence, and our accept() which
+	is trying to process it.
+
+2010-05-20  Cole Robinson  <crobinso@redhat.com>
+
+	qemu: Don't deny ShutdownVMDaemon for non-running VMs
+	Clients that require this already seem to do so. Calling this function
+	with pid < 1 also should not cause problems.
+
+	qemu: Remove explicit VNC XML cleanup
+	This only exists for a certain cleanup path in StartVMDaemon, but is
+	unneeded since domain_conf.c handles this for us automatically.
+
+	qemu: Properly cleanup in security startup error path
+	Everything after hostdev setup needs to jump to cleanup on error.
+
+2010-05-20  Jim Meyering  <meyering@redhat.com>
+
+	libvirtd: don't ignore virInitialize failure
+	* daemon/libvirtd.c (main): Diagnose virInitialize failure
+	and exit nonzero.
+
+2010-05-20  Alex Williamson  <alex.williamson@redhat.com>
+
+	Rename qemuBuildCommandLine tapfds -> vmfds.
+	There doesn't seem to be anything specific to tap devices for this
+	array of file descriptors which need to stay open of the guest to use.
+	Rename then for others to make use of.
+
+2010-05-20  Jim Meyering  <meyering@redhat.com>
+
+	maint: prohibit newline at end of diagnostic
+	* cfg.mk (sc_prohibit_newline_at_end_of_diagnostic): New rule.
+	Idea proposed by Jiri Denemark.
+
+	maint: remove unwanted newline at end of diagnostic
+	* src/xen/xend_internal.c (xenDaemonDomainDefineXML): Remove \n.
+	* src/network/bridge_driver.c (networkAddMasqueradingIptablesRules):
+	Likewise.
+
+	qemudDomainMigrateFinish2: handle a case of virDomainSaveStatus failure
+	* src/qemu/qemu_driver.c (qemudDomainMigrateFinish2): Don't ignore
+	virDomainSaveStatus failure.
+	* src/conf/domain_conf.h (virDomainSaveStatus): Use
+	ATTRIBUTE_RETURN_CHECK, so this doesn't happen again.
+
+2010-05-20  Eric Blake  <eblake@redhat.com>
+
+	docs: distribute more coding convention documentation
+	These files may be useful for anyone making modifications to
+	source files in a tarball distribution.
+
+	* src/Makefile.am (EXTRA_DIST): Add THREADS.txt.
+	* daemon/Makefile.am (EXTRA_DIST): Add THREADING.txt.
+
+	build: distribute missing file
+	Commit f30ccb2458829 was incomplete.
+
+	* .gitignore: Ignore intermediate directory during failed 'make
+	distcheck'.
+	* tests/Makefile.am (qemuhelpdata): Distribute new file.
+
+2010-05-20  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	esx: Make esxVI_*_CastFromAnyType dynamically dispatched
+	This will be used in the ESX storage driver in order to handle
+	the DatastoreInfo type and inheriting types properly.
+
+	esx: Allow esxVI_X_DynamicCast to be called successfully on X objects
+	This semantic will be used in the ESX storage driver.
+
+2010-05-19  Jim Meyering  <meyering@redhat.com>
+
+	tests: the remote_protocol check also accommodates older pdwtags
+	This test was failing on systems using pdwtags from dwarves-1.3.
+	Reported by Matthias Bolte.
+	Two-pronged fix:
+	  - use --verbose to work also with dwarves-1.3; adapt regular
+	    expressions to handle now-varying separators
+	  - require a minimum number of post-split clauses, in order to
+	    skip upon any future format change.
+	    Currently there are 318; if there are 300 or fewer,
+	    give a warning similar to when pdwtags is missing.
+	* src/Makefile.am (remote_protocol-structs): Use pdwtags' --verbose
+	option to make 1.3 emit member sizes and offsets.
+	Consistently output WARNING messages to stderr.
+
+	initialize "meta" in virStorageFileGetMetadata, not in each caller
+	Do not require each caller of virStorageFileGetMetadata and
+	virStorageFileGetMetadataFromFD to first clear the storage of the
+	"meta" buffer.  Instead, initialize that storage in
+	virStorageFileGetMetadataFromFD.
+	* src/util/storage_file.c (virStorageFileGetMetadataFromFD): Clear
+	"meta" here, not before each of the following callers.
+	* src/qemu/qemu_driver.c (qemuSetupDiskCgroup): Don't clear "meta" here.
+	(qemuTeardownDiskCgroup): Likewise.
+	* src/qemu/qemu_security_dac.c (qemuSecurityDACSetSecurityImageLabel):
+	Likewise.
+	* src/security/security_selinux.c (SELinuxSetSecurityImageLabel):
+	Likewise.
+	* src/security/virt-aa-helper.c (get_files): Likewise.
+
+	(qemu*DiskCgroup): avoid dead code
+	* src/qemu/qemu_driver.c (qemuTeardownDiskCgroup): Remove
+	bogus empty-body while-loop.
+	(qemuSetupDiskCgroup): Likewise.
+
+	maint: more VIR_WARN corrections: now manually
+	* po/POTFILES.in: Remove src/util/logging.c and src/util/uuid.c.
+	* src/phyp/phyp_driver.c (phypUUIDTable_ReadFile): Correct more
+	VIR_WARN uses, now manually.
+	(phypUUIDTable_Init, phypUUIDTable_Pull): Likewise.
+
+	maint: use VIR_WARN0("...") rather than VIR_WARN("%s", "...")
+	Run this command:
+	  git grep -l 'VIR_WARN("%s", "'|xargs perl -pi -e \
+	    's/VIR_WARN\("%s", "/VIR_WARN0("/'
+	* src/phyp/phyp_driver.c (phypDomainGetInfo): Perform the above.
+	(phypDomainCreateAndStart, phypUUIDTable_ReadFile): Likewise.
+
+	maint: enforce no-markup policy wrt VIR_WARN-like macros
+	* cfg.mk (sc_prohibit_gettext_markup): New rule, to enforce
+	this policy.  Contrary to most diagnostic-emitting functions,
+	where we require _(...) markup, here, we require that _() *not*
+	be used for certain functions (or function-like macros).
+
+	maint: remove _(...) from VIR_WARN arg manually
+	* src/util/uuid.c (virUUIDGenerate): Remove _(...) manually.
+
+	maint: don't mark VIR_WARN or VIR_WARN0 diagnostics for translation
+	Approximately 60 messages were marked.  Since these diagnostics are
+	intended solely for developers and maintainers, encouraging translation
+	is deemed to be counterproductive:
+	http://thread.gmane.org/gmane.comp.emulators.libvirt/25050/focus=25052
+
+	Run this command:
+	  git grep -l VIR_WARN|xargs perl -pi -e \
+	    's/(VIR_WARN0?)\s*\(_\((".*?")\)/$1($2/'
+
+	note a typo: VIR_MIGRATE_TUNNELLED should be VIR_MIGRATE_TUNNELED,
+	so that searches for properly spelled "TUNNELED" turn up
+	the surprising spelling of this public symbol.
+	* include/libvirt/libvirt.h.in: Add a comment.
+
+2010-05-18  Jiri Denemark  <jdenemar@redhat.com>
+
+	Add support for SSE4.1 and SSE4.2 CPU features
+
+	Fix potential NULL dereference in remoteDomainMigratePrepare2
+
+2010-05-18  Jim Meyering  <meyering@redhat.com>
+
+	do not ignore qemuMonitorAddDrive failure; make uses identical
+	There were three very similar uses of qemuMonitorAddDrive.
+	This change makes the three 17-line sequences identical.
+	* src/qemu/qemu_driver.c (qemudDomainAttachPciDiskDevice): Detect
+	failure.  Add VIR_WARN and braces.
+	(qemudDomainAttachSCSIDisk): Add VIR_WARN and braces.
+	(qemudDomainAttachUsbMassstorageDevice): Likewise.
+
+	ebtablesAddRemoveRule, iptablesAddRemoveRule: don't skip va_end
+	* src/util/ebtables.c (ebtablesAddRemoveRule): Don't skip
+	va_end(args) on an error path.
+	* src/util/iptables.c (iptablesAddRemoveRule): Identical change.
+
+	qemudDomainRestore: handle a case of virDomainSaveStatus failure
+	* src/qemu/qemu_driver.c (qemudDomainRestore): Don't ignore
+	virDomainSaveStatus failure.
+
+	python: don't ignore virInitialize failure in module initialization
+	* python/libvirt-override.c (initlibvirtmod): Upon virInitialize
+	failure, skip the Py_InitModule call.
+
+	tests: do not ignore virInitialize failure
+	* tests/nodeinfotest.c (mymain): Do not ignore virInitialize failure.
+	Most other callers of virInitialize test for failure.
+
+	qemuMonitorTextMigrate: avoid leak on OOM-error path
+	* src/qemu/qemu_monitor_text.c (qemuMonitorTextMigrate): Also
+	free "safedest" buffer when failing.
+
+	virNWFilterDefParseXML: avoid leak on error paths
+	* src/conf/nwfilter_conf.c (virNWFilterDefParseXML): Also free "ret"
+	via cleanup.
+
+	linuxNodeInfoCPUPopulate: avoid used-uninitialized via a test
+	* tests/nodeinfotest.c (linuxTestCompareFiles): Don't use
+	nodeinfo->member uninitialized.  linuxNodeInfoCPUPopulate requires
+	that some of its nodeinfo members (including threads) be initialized
+	upon input.  The nodeinfotest.c program lacked the initialization,
+	while the only other use (nodeGetInfo) did perform it.
+	It's not trivial to move the initialization into the function,
+	since nodeGetInfo sets at least one member after clearing the
+	buffer but before calling linuxNodeInfoCPUPopulate.
+
+	virDomainNetDefParseXML: avoid leak upon multiple "filterref"
+	* src/conf/domain_conf.c (virDomainNetDefParseXML): Don't leak
+	memory when parsing two or more "filterref" elements.
+
+	ebiptablesWriteToTempFile: don't close a negative file descriptor
+	* src/nwfilter/nwfilter_ebiptables_driver.c (ebiptablesWriteToTempFile):
+	Skip the close if "fd" is negative.
+
+2010-05-18  Daniel P. Berrange  <berrange@redhat.com>
+
+	Protect against NULL pointer flaws in monitor usage
+	History has shown that there are frequent bugs in the QEMU driver
+	code leading to the monitor being invoked with a NULL pointer.
+	Although the QEMU driver code should always report an error in
+	this case before invoking the monitor, as a safety net put in a
+	generic check in the monitor code entry points.
+
+	* src/qemu/qemu_monitor.c: Safety net to check for NULL monitor
+	  object
+
+	Fix multiple potential NULL pointer references in monitor usage
+	Any method which intends to invoke a monitor command must have
+	a check for virDomainObjIsActive() before using the monitor to
+	ensure that priv->mon != NULL.
+
+	There is one subtle edge case in this though. If a method invokes
+	multiple monitor commands, and calls qemuDomainObjExitMonitor()
+	in between two of these commands then there is no guarentee that
+	priv->mon != NULL anymore. This is because the QEMU process may
+	exit or die at any time, and because qemuDomainObjEnterMonitor()
+	releases the lock on virDomainObj, it is possible for the background
+	thread to close the monitor handle and thus qemuDomainObjExitMonitor
+	will release the last reference allowing priv->mon to become NULL.
+
+	This affects several methods, most notably migration but also some
+	hotplug methods. This patch takes a variety of approaches to solve
+	the problem, depending on the particular usage scenario. Generally
+	though it suffices to add an extra virDomainObjIsActive() check
+	if qemuDomainObjExitMonitor() was called during the method.
+
+	* src/qemu/qemu_driver.c: Fix multiple potential NULL pointer flaws
+	  in usage of the monitor
+
+2010-05-18  Jim Meyering  <meyering@redhat.com>
+
+	maint: add more free-like functions to the list and deal with fallout
+	* cfg.mk (useless_free_options): Add many vir*Free* function names,
+	and then remove the useless if-before-free tests exposed by running
+	make syntax-check.
+	* src/conf/interface_conf.c (virInterfaceDefFree): Remove useless "if".
+	(virInterfaceAssignDef): Likewise.
+	* src/conf/network_conf.c (virNetworkAssignDef): Likewise.
+	* src/conf/storage_conf.c (virStoragePoolObjAssignDef): Likewise.
+	* src/node_device/node_device_hal.c (dev_create): Likewise.
+	* src/security/virt-aa-helper.c (vahDeinit): Likewise.
+	* src/test/test_driver.c (testNodeDeviceCreateXML): Likewise.
+	* src/util/conf.c (virConfSetValue): Likewise.
+
+	maint: add virCgroupFree to the list of free-like functions
+	This makes the useless-if-before-free test in maint.mk spot
+	uses of virCgroupFree just like it does for free and the other
+	listed functions.
+	* cfg.mk (useless_free_options): Add virCgroupFree.
+	Prompted by suggestion from Eric Blake.
+
+	qemudDomainSetVcpus: avoid NULL-deref on failed uuid look-up
+	* src/qemu/qemu_driver.c (qemudDomainSetVcpus): Upon look-up failure,
+	i.e., vm==NULL, goto cleanup, rather than to "endjob", superficially
+	since the latter would dereference vm, but more fundamentally because
+	we certainly don't want to call qemuDomainObjEndJob before we've
+	even attempted qemuDomainObjBeginJob.
+
+	lxcFreezeContainer: avoid test-after-deref of never-NULL pointer
+	* src/lxc/lxc_driver.c (lxcFreezeContainer): Remove test-after-deref.
+	Correct indentation in expression.
+
+2010-05-18  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	Add CIFS to the list of network file systems
+	ESX supports NFS and CIFS. The ESX storage driver will reflect this.
+
+	Add VIR_STORAGE_POOL_INACCESSIBLE to denote inaccessible storage pools
+	This status will be used by the ESX storage driver.
+
+	For example a running NFS pool is inaccessible when the NFS server is
+	currently unreachable.
+
+2010-05-18  Eric Blake  <eblake@redhat.com>
+
+	qemu_conf: fix flag value
+	(gdb) p/x QEMUD_CMD_FLAG_VNET_HOST
+	$7 = 0xffffffff80000000
+
+	Oops - that meant we were incorrectly setting QEMU_CMD_FLAG_RTC_TD_HACK
+	for qemu-kvm-0.12.3 (and probably botching a few other settings as well).
+
+	Fixes Red Hat BZ#592070
+
+	* src/qemu/qemu_conf.h (QEMUD_CMD_FLAG_VNET_HOST): Avoid sign
+	extension.
+	* tests/qemuhelpdata/qemu-kvm-0.12.3: New file.
+	* tests/qemuhelptest.c (mymain): Add another case.
+
+2010-05-17  Cole Robinson  <crobinso@redhat.com>
+
+	qemu: Clarify a couple error messages
+	A fedora translator filed:
+
+	https://bugzilla.redhat.com/show_bug.cgi?id=580816
+
+	Pointing out these two error messages as unclear: "write save" sounds
+	like a typo without context, and lack of a colon made the second message
+	difficult to parse.
+
+2010-05-17  Eric Blake  <eblake@redhat.com>
+
+	virFileResolveLink: fix return value
+	virFileResolveLink was returning a positive value on error,
+	thus confusing callers that assumed failure was < 0.  The
+	confusion is further evidenced by callers that would have
+	ended up calling virReportSystemError with a negative value
+	instead of a valid errno.
+
+	Fixes Red Hat BZ #591363.
+
+	* src/util/util.c (virFileResolveLink): Live up to documentation.
+	* src/qemu/qemu_security_dac.c
+	(qemuSecurityDACRestoreSecurityFileLabel): Adjust callers.
+	* src/security/security_selinux.c
+	(SELinuxRestoreSecurityFileLabel): Likewise.
+	* src/storage/storage_backend_disk.c
+	(virStorageBackendDiskDeleteVol): Likewise.
+
+2010-05-17  Cole Robinson  <crobinso@redhat.com>
+
+	tests: Skip daemon-conf test if dir exceeds UNIX_PATH_MAX
+	The max path length for unix sockets is pretty small (108, see man 7 unix).
+	If 'make check' is run from a directory that exceeds this, one of the tests
+	will fail, and in such a way that requires manually editting the test to
+	determine why.
+
+	There are certainly other ways to handle this, but I've chosen just to skip
+	the offending test if we will exceed the length limitation.
+
+	v2: Drop bashism, use test infrastructure to warn and skip
+
+	pci: Give an explicit error if device not found
+	v2: Use intended F_OK. Drop devdir param, just check dev->path for device
+	existence.
+
+	v3: Use virReportSystemError, include dev->path in error message.
+
+2010-05-17  Eric Blake  <eblake@redhat.com>
+
+	build: fix cygwin build, correctly this time
+	Fix the cygwin regression introduced in commit 48445ccff, but
+	without repeating the fresh build regression of commit
+	2d550542e.
+
+	* src/Makefile.am (libvirt_test_la_LIBADD): Split out subset of
+	locally-built libraries...
+	(libvirt_test_la_BUILT_LIBADD): ...into new variable.
+	(libvirt_test_la_DEPENDENCIES): Depend only on the subset that
+	automake would have given us for free if we didn't have to add our
+	own extra file.
+
+2010-05-17  Jim Meyering  <meyering@redhat.com>
+
+	umlAutostartDomain: avoid NULL-deref upon virGetLastError failure
+	* src/uml/uml_driver.c (umlAutostartDomain): Handle a NULL return
+	from virGetLastError.
+
+2010-05-17  Eric Blake  <eblake@redhat.com>
+
+	build: fix up some compiler flags
+	Matthias noted that the line:
+	virt_aa_helper_LDFLAGS = $(WARN_CFLAGS)
+	looks inconsistent, so I did an audit.
+
+	Currently, the set of compiler warning flags passed to gcc as $CC are
+	equally permitted as the set of linker flags passed to gcc as $LD, so
+	there was no problem with that usage.  But if we ever get in a
+	situation where $CC and $LD treat particular flags differently, using
+	the right variable form will make it easier.
+
+	In the process, I spotted a couple of typos that were omitting useful
+	flags, as well as specifying a -l under the wrong variable.
+
+	* acinclude.m4 (LIBVIRT_COMPILE_WARNINGS): Define WARN_LDFLAGS as
+	an alias for WARN_CFLAGS.
+	* tools/Makefile.am (virsh_LDFLAGS): Use more canonical spelling.
+	* proxy/Makefile.am (libvirt_proxy_LDFLAGS): Likewise. Move
+	library...
+	(libvirt_proxy_LDADD): ...here.
+	* src/Makefile.am (virt_aa_helper_LDFLAGS): Use more canonical
+	spelling of WARN_LDFLAGS.
+	(libvirt_parthelper_LDFLAGS, libvirt_lxc_LDFLAGS): Likewise.  Use
+	correct spelling of COVERAGE_LDFLAGS.
+	Reported by Matthias Bolte.
+
+2010-05-17  Jim Meyering  <meyering@redhat.com>
+
+	build: avoid compile failure on linux kernels older than 2.6.19
+	* configure.ac: Check for <linux/magic.h>.
+	* src/util/storage_file.c: Include <linux/magic.h> only if present.
+	Linux kernels prior to 2.6.19 lacked it.
+	[__linux__] (NFS_SUPER_MAGIC): Define if not already defined.
+
+	x86ModelHasFeature: avoid NULL-dereference for unmatched CPU "feature"
+	* src/cpu/cpu_x86.c (x86ModelHasFeature): Do not dereference the pointer
+	returned by x86cpuidFind without first ensuring it is non-NULL.
+
+2010-05-17  Cole Robinson  <crobinso@redhat.com>
+
+	qemu: Report cmdline output if VM dies early
+	qemuReadLogOutput early VM death detection is racy and won't always work.
+	Startup then errors when connecting to the VM monitor. This won't report
+	the emulator cmdline output which is typically the most useful diagnostic.
+
+	Check if the VM has died at the very end of the monitor connection step,
+	and if so, report the cmdline output.
+
+	See also: https://bugzilla.redhat.com/show_bug.cgi?id=581381
+
+	qemu: Fix previous commit, use comparision in if()
+
+2010-05-17  Jim Meyering  <meyering@redhat.com>
+
+	qemu_driver: avoid NULL dereference
+	* src/qemu/qemu_driver.c (qemudDomainStart): After setting vm to NULL,
+	goto cleanup, rather than dereferencing the NULL pointer.
+
+2010-05-17  Daniel P. Berrange  <berrange@redhat.com>
+
+	Remove debugging fprintf() calls
+	* src/qemu/qemu_driver.c: Remove debugging fprintf() calls
+	  accidentally left in code
+
+2010-05-15  Jim Meyering  <meyering@redhat.com>
+
+	qemudDomainSetVcpus: avoid NULL-deref
+	* src/qemu/qemu_driver.c (qemudDomainSetVcpus): Avoid NULL-deref
+	upon unknown UUID.  Call qemuDomainObjBeginJob(vm) only after
+	ensuring that vm != NULL, not before.  This potential NULL-deref
+	was introduced by commit 2c555d87b0041e0d1ec4742386d2161d1b2f0600.
+
+2010-05-15  Eric Blake  <eblake@redhat.com>
+
+	Revert "build: fix cygwin build"
+	This reverts commit 2d550542ee729c1d9a4d92de344892650817b213.
+
+	The patch worked for incremental builds, but broke fresh
+	builds, because it interfered with automake's automatic
+	dependency generation.  Until I figure out how to make
+	automake do what we want, I'd rather leave cygwin broken
+	but fresh Linux builds working.
+
+	build: fix cygwin build
+	make[3]: *** No rule to make target `-lxml2', needed by `libvirt.la'.  Stop.
+
+	Due to treating the wrong string as a dependency.
+
+	* src/Makefile.am (libvirt_la_DEPENDENCIES): Depend only on
+	locally-built file, not on strings that might resolve as '-lxml2'.
+
+2010-05-14  Stefan Berger  <stefanb@us.ibm.com>
+
+	nwfilter: Add missing driver lock in qemu driver
+	This adds a missing driver lock in the qemu driver to protect
+	the list of domains.
+
+2010-05-14  Ryota Ozaki  <ozaki.ryota@gmail.com>
+
+	Fix a misuse of virAsprintf in qemudDomainMemoryPeek
+	The code specifies driver->cacheDir as the format string,
+	but it usually doesn't contain '%s', so the subsequent
+	argument, "/qemu.mem.XXXXXX", is always ignored.
+
+	The patch fixes the misuse.
+
+2010-05-14  Daniel P. Berrange  <berrange@redhat.com>
+
+	Make domain save work when dynamic_ownership=0
+	Setting dynamic_ownership=0 in /etc/libvirt/qemu.conf prevents
+	libvirt's DAC security driver from setting uid/gid on disk
+	files when starting/stopping QEMU, allowing the admin to manage
+	this manually. As a side effect it also stopped setting of
+	uid/gid when saving guests to a file, which completely breaks
+	save when QEMU is running non-root. Thus saved state labelling
+	code must ignore the dynamic_ownership parameter
+
+	* src/qemu/qemu_security_dac.c: Ignore dynamic_ownership=0 when
+	  doing save/restore image labelling
+
+	Don't reset user/group/security label on shared filesystems during migrate
+	When QEMU runs with its disk on NFS, and as a non-root user, the
+	disk is chownd to that non-root user. When migration completes
+	the last step is shutting down the QEMU on the source host. THis
+	normally resets user/group/security label. This is bad when the
+	VM was just migrated because the file is still in use on the dest
+	host. It is thus neccessary to skip the reset step for any files
+	found to be on a shared filesystem
+
+	* src/libvirt_private.syms: Export virStorageFileIsSharedFS
+	* src/util/storage_file.c, src/util/storage_file.h: Add a new
+	  method virStorageFileIsSharedFS() to determine if a file is
+	  on a shared filesystem (NFS, GFS, OCFS2, etc)
+	* src/qemu/qemu_driver.c: Tell security driver not to reset
+	  disk labels on migration completion
+	* src/qemu/qemu_security_dac.c, src/qemu/qemu_security_stacked.c,
+	  src/security/security_selinux.c, src/security/security_driver.h,
+	  src/security/security_apparmor.c: Add ability to skip disk
+	  restore step for files on shared filesystems.
+
+	Fix handling of disk backing stores with cgroups
+	The cgroups ACL code was only allowing the primary disk image.
+	It is possible to chain images together, so we need to search
+	for backing stores and add them to the ACL too. Since the ACL
+	only handles block devices, we ignore the EINVAL we get from
+	plain files. In addition it was missing code to teardown the
+	cgroup when hot-unplugging a disk
+
+	* src/qemu/qemu_driver.c: Allow backing stores in cgroup ACLs
+	  and add missing teardown code in unplug path
+
+	Fix possible crash in handling IO Error event
+	If the IO error event does not include a reason, then there
+	is a possible crash dispatching the event
+
+	* src/conf/domain_event.c: Missing check for a NULL reason before
+	  strduping allows for a crash
+
+	Add support for NIC hotplug using netdev_add in QEMU
+	QEMU is gaining a new monitor command netdev_add for hotplugging
+	NICs using the netdev backend code. We already support this on
+	the command this, though it is disabled. This adds support for
+	hotplug too, also to remain disabled until 0.13 QEMU is released
+
+	* src/qemu/qemu_driver.c: Support netdev hotplug for NICs
+	* src/qemu/qemu_monitor.c, src/qemu/qemu_monitor.h,
+	  src/qemu/qemu_monitor_json.c, src/qemu/qemu_monitor_json.h,
+	  src/qemu/qemu_monitor_text.c, src/qemu/qemu_monitor_text.h: Add
+	  support for netdev_add and netdev_remove commands
+
+2010-05-12  Eric Blake  <eblake@redhat.com>
+
+	datatypes: fix comment typo
+	* src/datatypes.c: Use correct word.
+
+2010-05-12  Jiri Denemark  <jdenemar@redhat.com>
+
+	Fix monitor ref counting when adding event handle
+	When closing a monitor using qemuMonitorClose(), we are aware of
+	the possibility the monitor is still being used somewhere:
+
+	    /* NB: ordinarily one might immediately set mon->watch to -1
+	     * and mon->fd to -1, but there may be a callback active
+	     * that is still relying on these fields being valid. So
+	     * we merely close them, but not clear their values and
+	     * use this explicit 'closed' flag to track this state */
+
+	but since we call virEventAddHandle() on that monitor without increasing
+	its ref counter, the monitor is still freed which makes possible users
+	of it quite unhappy. The unhappiness can lead to a hang if qemuMonitorIO
+	tries to lock mutex which no longer exists.
+
+	Remove watches before calling REMOTE_PROC_CLOSE
+	First calling REMOTE_PROC_CLOSE and then removing watches might lead to
+	a hang as HANGUP event can be triggered before the watches are actually
+	removed but after virConnectPtr is already freed. As a result of that
+	remoteDomainEventFired() would try to lock uninitialized mutex, which
+	would hang for ever.
+
+2010-05-12  Jim Meyering  <meyering@redhat.com>
+
+	tests: use GPLv2+, not GPLv3
+	* tests/cpuset: Change from GPLv3 to GPLv2+
+	* tests/read-bufsiz: Likewise.
+	* tests/read-non-seekable: Likewise.
+	* tests/start: Likewise.
+	* tests/undefine: Likewise.
+	* tests/vcpupin: Likewise.
+	* tests/virsh-all: Likewise.
+	* tests/virsh-schedinfo: Likewise.
+	* tests/virsh-synopsis: Likewise.
+
+2010-05-12  Eric Blake  <eblake@redhat.com>
+
+	libvirt_proxy: link with -lpthread if needed
+	Continuation of earlier patches to fix LIB_PTHREAD, only
+	triggered by ./configure --with-xen-proxy (a la autobuild.sh).
+
+	* proxy/Makefile.am (libvirt_proxy_LDADD): Add LIB_PTHREAD.
+
+2010-05-11  Cole Robinson  <crobinso@redhat.com>
+
+	node_device: udev: Fix PCI product/vendor swappage
+	Product and vendor values were swapped in the XML, which made virt-manager
+	PCI device listing kinda useless.
+
+2010-05-11  Eric Blake  <eblake@redhat.com>
+
+	build: update gnulib
+	* .gnulib: Update to latest.
+	* bootstrap.conf (gnulib_modules): Import netdb.
+	* src/esx/esx_util.c (AI_ADDRCONFIG): Rely on gnulib.
+	* src/remote/remote_driver.c (AI_ADDRCONFIG): Likewise.
+	* tools/virsh.c (WEXITSTATUS, O_SYNC): Likewise.
+
+	build: allow older gettext
+	* bootstrap.conf (gnulib_modules): Use gettext-h, not gettext,
+	since the latter drags in a depedency on gettext 0.18.
+	Suggested by Bruno Haible.
+
+2010-05-11  Jim Meyering  <meyering@redhat.com>
+
+	tests: correct PATH in new test, for when running manually
+	* tests/virsh-schedinfo: This test sets PATH internally, just in
+	case you're running it manually.  Normally, the PATH setting from
+	tests/Makefile.am's TESTS_ENVIRONMENT is sufficient.  Prepend the
+	correct directory, and take advantage of the PATH setting in one
+	more case.
+
+2010-05-11  Daniel P. Berrange  <berrange@redhat.com>
+
+	Add env variable for debugging gnutls usage
+	Allow debugging of GNUTLS interactions by setting
+
+	  LIBVIRT_GNUTLS_DEBUG=10 LIBVIRT_DEBUG=1 virsh
+
+	* src/remote/remote_driver.c: Use LIBVIRT_GNUTLS_DEBUG to
+	  enable gnutls debugging
+
+2010-05-11  Jim Meyering  <meyering@redhat.com>
+
+	tests: adjust copyrights on scripts: s/FSF/Red Hat/
+	* tests/cpuset: Change copyright holder from FSF to Red Hat, Inc.
+	* tests/read-bufsiz: Likewise.
+	* tests/read-non-seekable: Likewise.
+	* tests/start: Likewise.
+	* tests/undefine: Likewise.
+	* tests/vcpupin: Likewise.
+	* tests/virsh-all: Likewise.
+	* tests/virsh-synopsis: Likewise.
+
+	virsh: schedinfo --set invalid=value would simply ignore the option
+	For example, virsh -c test:///default schedinfo 1 --set P=k would
+	mistakenly exit successfully, giving no indication that it had failed
+	to set the scheduling parameter "P".
+	* tools/virsh.c (cmdSchedinfo): Diagnose an invalid --set j=k option,
+	rather than silently ignoring it.
+	* tests/virsh-schedinfo: New test for the above.
+	* tests/Makefile.am (test_scripts): Add it.
+	Reported by Jintao Yang in http://bugzilla.redhat.com/586632
+
+	virsh: fix a typo in a diagnostic
+	* tools/virsh.c (cmdSchedInfoUpdate): Fix typo in a diagnostic:
+	s/an long long/a long long/.  One in a comment, too.
+
+2010-05-11  Eric Blake  <eblake@redhat.com>
+
+	delMacvtap: typo fix
+	* src/util/macvtap.c (delMacvtap): Fix documentation.
+
+2010-05-10  Eric Blake  <eblake@redhat.com>
+
+	maint: allow VPATH use of remote_protocol-structs
+	* src/Makefile.am (remote_protocol-structs): Ensure file lives in srcdir.
+
+	docs/Makefile.am: remove unnecessary subshells
+	* docs/Makefile.am (ChangeLog.html.in, %.html.tmp, %.html)
+	(html/index.html, $(devhelphtml)): Avoid spurious subshells.
+
+	maint: avoid spurious output if program not present
+	Some shells warn about missing programs before redirection;
+	the idiomatic way to silence them is to run the program check
+	inside a subshell, with the redirections outside the subshell.
+	But a subshell is only needed in places where it is reasonable
+	to expect the use of such a noisy shell in the first place.
+
+	* src/Makefile.am (remote_protocol-structs): Use subshell, for
+	FreeBSD 8.0 /bin/sh.
+	* cfg.mk (sc_preprocessor_indentation): Avoid subshell, since the
+	only users running cfg.mk can be assumed to have decent tools.
+
+	storage_encryption: silence clang warning
+	For printf("%*s",foo,bar), clang complains if foo is not int:
+
+	warning: field width should have type 'int', but argument has
+	type 'unsigned int' [-Wformat]
+
+	* src/conf/storage_encryption_conf.c
+	(virStorageEncryptionSecretFormat, virStorageEncryptionFormat):
+	Use correct type.
+	* src/conf/storage_encryption_conf.h (virStorageEncryptionFormat):
+	Likewise.
+
+2010-05-08  Jim Meyering  <meyering@redhat.com>
+
+	help avoid accidental remote_protocol.x changes
+	Now, if you update remote_protocol.x without also updating
+	remote_protocol-structs to match, then "make check" will fail.
+	* src/Makefile.am (remote_protocol-structs): Extract list of
+	structs and member names from remote_protocol.o.
+	(check-local): Depend on it.
+	* src/remote_protocol-structs: New file.
+
+2010-05-07  Eric Blake  <eblake@redhat.com>
+
+	mingw32-libvirt.spec: bring up to date
+	Right now, mingw32-portablexdr is not available in Fedora, but is
+	present in fedora-mingw.git.  With that package, plus
+	redhat-rpm-config and this patch, it is once again possible to build
+	mingw32-libvirt from a Fedora 12 host.
+
+	* mingw32-libvirt.spec.in (__debug_install_post): Override.
+	(%files): Mention recent additions.
+
+2010-05-07  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	Manually revert "Fix pthread related link error for virt-aa-helper"
+	This reverts commit b5b8a6db69ba16a8225962bf7659b6ff6756bc18.
+
+	That commit was not necessary. The problem is fixed by commit
+	0e9b3a269be9ce821615aba4aece87c4451d43ac, but I didn't rebuild
+	it properly after pulling in the commit and didn't notice it.
+
+2010-05-07  Ersek Laszlo  <lacos@caesar.elte.hu>
+
+	Fix a typo in docs
+
+2010-05-07  Eric Blake  <eblake@redhat.com>
+
+	build: use LIBADD, not LDFLAGS, for adding libraries
+	Per automake, LDFLAGS is used early in the line, and LIBADD
+	(libraries) or LDADD (programs) is used late.  On platforms like
+	cygwin, without lazy linking, this order matters.  Therefore, libtool
+	commands, -L, and similar should be in LDFLAGS, but -l should be in
+	L*ADD.
+
+	* src/Makefile.am (*_LDFLAGS): Move libraries...
+	(*_LIBADD): ...to their LIBADD counterpart.
+
+	maint: whitespace cleanups
+	* src/Makefile.am: Fix some space-tab issues.
+
+2010-05-07  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	Fix pthread related link error for virt-aa-helper
+	Link virt-aa-helper explicitly with pthread. This is at least
+	required on Ubuntu 10.04.
+
+	qemu: Fix warning about a non-literal format string
+
+2010-05-07  Jim Meyering  <meyering@redhat.com>
+
+	avoid link error in tests using libvirt_util; due to pthread_sigmask
+	* src/Makefile.am (libvirt_util_la_LDFLAGS): Add $(LIB_PTHREAD),
+	required, now that we're using gnulib's pthread module.
+
+2010-05-07  Matthew Booth  <mbooth@redhat.com>
+
+	Remove unused nwfilter field from struct remote_error
+	Change 965466c1 added a new field to struct remote_error, which broke
+	the RPC protocol. Fortunately the new field is unused, so this change
+	simply removes it again.
+
+	* src/remote/remote_protocol.(c|h|x): Remove remote_nwfilter from struct
+	  remote_error
+
+2010-05-06  Wolfgang Mauerer  <wolfgang.mauerer@siemens.com>
+
+	Implement SCSI disk unplugging
+	With the introduction of the generic qemu device model, unplugging
+	SCSI disks works like a charm, so support it in libvirt.
+
+	* src/qemu/qemu_driver.c: Add qemudDomainDetachSCSIDiskDevice() to do the
+	  unplugging, extend qemudDomainDetachDeviceAdd().
+
+2010-05-06  Eric Blake  <eblake@redhat.com>
+
+	qemu: use better types
+	* src/qemu/qemu_driver.c (qemudFindDisk): Mark parameter const.
+	(qemudShrinkDisks): Mark parameter unsigned.
+
+2010-05-06  Wolfgang Mauerer  <wolfgang.mauerer@siemens.com>
+
+	Refactor disk unplugging
+	We can reuse some of the code for other purposes.
+
+2010-05-06  Eric Blake  <eblake@redhat.com>
+
+	build: simplify checks for sched.h
+	* configure.ac: Remove redundant checks.
+
+	build: update gnulib
+	81 patches to gnulib, picks up several new syntax checks.
+
+	* .gnulib: Update to latest.
+	* .x-sc_prohibit_always_true_header_tests: New file.
+	* bootstrap.conf (gnulib_modules): Add sched.
+	* src/util/processinfo.c (includes): <sched.h> is now guaranteed.
+	* src/network/bridge_driver.c (includes): Drop useless
+	<strings.h>.
+	* src/openvz/openvz_conf.c (includes): Likewise.
+	* src/openvz/openvz_driver.c (includes): Likewise.
+	* src/phyp/phyp_driver.c (includes): Likewise.
+	* src/qemu/qemu_driver.c (includes): Likewise.
+	* src/uml/uml_driver.c (includes): Likewise.
+
+	build: drop more redundant configure checks
+	* configure.ac (AC_CHECK_FUNCS_ONCE, AC_SYS_LARGEFILE): Rely on
+	gnulib for strtok_r and large file support.
+	(AC_OBJEXT): Drop call now done by AC_PROG_CC.
+	(m4_foreach_w): Drop macro guaranteed by gnulib.
+	(AC_C_CONST): Drop call declared obsolete by autoconf.
+
+	build: use gnulib's sys/wait.h
+	* configure.ac: Drop sys/wait.h check.
+	* src/libvirt.c (includes): Use header unconditionally.
+	* src/remote/remote_driver.c (includes): Likewise.
+	* src/storage/storage_backend.c (includes): Likewise.
+	* src/util/ebtables.c (includes): Likewise.
+	* src/util/hooks.c (includes): Likewise.
+	* src/util/iptables.c (includes): Likewise.
+	* src/util/util.c (includes): Likewise.
+
+	build: use gnulib's uname
+	* bootstrap.conf (gnulib_modules): Add uname.
+	* configure.ac: Drop uname and sys/utsname.h checks.
+	* src/nodeinfo.c (nodeGetInfo): Use uname unconditionally.
+
+	build: rely on gnulib's pthread module
+	Gnulib can guarantee that pthread.h exists, but for now, it is a dummy
+	header with no support for most pthread_* functions.  Modify our
+	use of pthread to use function checks, rather than header checks,
+	to determine how much pthread support is present.
+
+	* bootstrap.conf (gnulib_modules): Add pthread.
+	* configure.ac: Drop all pthread.h checks.  Optimize function
+	checks.  Add check for pthread functions.
+	* src/Makefile.am (libvirt_lxc_LDADD): Ensure proper link.
+	* src/remote/remote_driver.c (remoteIOEventLoop): Depend on
+	pthread_sigmask, now that gnulib guarantees pthread.h.
+	* src/util/util.c (virFork): Likewise.
+	* src/util/threads.c (threads-pthread.c): Depend on
+	pthread_mutexattr_init, as a witness of full pthread support.
+	* src/util/threads.h (threads-pthread.h): Likewise.
+
+2010-05-05  Eric Blake  <eblake@redhat.com>
+
+	build: silence a clang false positive
+	* src/qemu/qemu_monitor.c (qemuMonitorIOWriteWithFD): Work around
+	recent clang shortcoming in analysis.
+
+2010-05-05  Stefan Berger  <stefanb@us.ibm.com>
+
+	rpmbuild: add ebtables & ip(6)tables dependency for rpm
+	Add ebtables,iptables & iptables-ipv6 dependency to rpm.
+
+	Changes from V1 to V2:
+	  -passing --without-libpcap to configure script, if libpcap is not to be used
+
+2010-05-05  Eric Blake  <eblake@redhat.com>
+
+	util: fix va_start usage bug
+	Detected by clang.  POSIX requires that the second argument to
+	va_start be the name of the last variable; and in some implementations,
+	passing *path instead of path would dereference bogus memory instead
+	of pulling arguments off the stack.
+
+	* src/util/util.c (virBuildPathInternal): Use correct argument to
+	va_start.
+
+2010-05-05  Kenneth Nagin  <NAGIN@il.ibm.com>
+
+	qemu: live migration with non-shared storage for kvm
+	Support for live migration between hosts that do not share storage was
+	added to qemu-kvm release 0.12.1.
+	It supports two flags:
+	-b migration without shared storage with full disk copy
+	-i migration without shared storage with incremental copy (same base image
+	shared between source and destination).
+
+	I tested the live migration without shared storage (both flags) for native
+	and p2p with and without tunnelling.  I also verified that the fix doesn't
+	affect normal migration with shared storage.
+
+2010-05-04  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	configure.ac: Avoid uname, which breaks cross-compilation
+	When cross-compiling on Linux, configure will misdetect the target as
+	Linux because it uses uname instead of relying on the $host variable.
+	This results in including libvirt_linux.syms into libvirt.syms and
+	therefore trying to export undefined symbols.
+
+	Replace uname checks with $host checks to fix this.
+
+2010-05-04  Jiri Denemark  <jdenemar@redhat.com>
+
+	Don't wipe generated iface target in active domains
+	Wipe generated interface target only when reading configuration of
+	inactive domains.
+
+2010-05-04  Daniel Veillard  <veillard@redhat.com>
+
+	Various fixes for the spec file
+	This includes various things:
+	 - fix the Requires: libvirt-client to use %{name} to allow easy
+	   renaming
+	 - when building ESX support one need libcurl-devel
+	 - remove Makefile[.in] from xml/nwfilter in the docs, as this breaks
+	   parallel install ation of i686 and x86_64 packages
+	 - don't include nwfilter config files if not building with the daemon
+	all relatively trivial which is why I packed them together
+	* libvirt.spec.in: fix various small bugs
+
+2010-05-04  Jim Meyering  <meyering@redhat.com>
+
+	docs: hacking: explain why using curly braces well is important
+	* docs/hacking.html.in: Use the "curly braces" section from coreutils'
+	HACKING, adapting for libvirt's different formatting style.
+	* HACKING: Sync from the above, still mostly manually.
+
+2010-05-04  Jiri Denemark  <jdenemar@redhat.com>
+
+	lxc: Check domain is active/inactive as required by operation
+	Report VIR_ERR_OPERATION_INVALID when operation which requires running
+	domain is called on inactive domain and vice versa.
+
+	lxc: Make SetMemory work for active domains only
+
+	lxc: Use virDomainFindByUUID for domain lookup
+	Consistently use virDomainFindByUUID instead of virDomainFindByID and
+	virDomainFindByName and report VIR_ERR_NO_DOMAIN when domain cannot be
+	found.
+
+2010-05-04  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	mingw: Fix two undefined symbols
+	Add an empty body for virCondWaitUntil and move virPipeReadUntilEOF
+	out of the '#ifndef WIN32' block, because it compiles fine with MinGW
+	in combination with gnulib.
+
+2010-05-04  Eric Blake  <eblake@redhat.com>
+
+	build: avoid compiler warning
+	Necessary on cygwin, where uid_t and gid_t are 4-byte long rather
+	than int, causing gcc -Wformat warnings.
+
+	* src/util/util.c (virFileOperationNoFork, virDirCreateNoFork)
+	(virFileOperation, virDirCreate, virGetUserEnt): Cast uid_t and
+	gid_t before passing to printf.
+	* .gitignore: Ignore Windows executables.
+
+2010-05-04  Stefan Berger  <stefanb@us.ibm.com>
+
+	nwfilter: skip some interfaces on filter update
+	When a filter is updated, only those interfaces must have their old
+	rules cleared that either reference the filter directly or indirectly
+	through another filter. Remember between the different steps of the
+	instantiation of the filters which interfaces must be skipped. I am
+	using a hash map to remember the names of the interfaces and store a
+	bogus pointer to ~0 into it that need not be freed.
+
+	pass info where request stems from to have rules applied
+	For the decision on whether to instantiate the rules, the check for a
+	pending IP address learn request is not sufficient since then only the
+	thread could instantiate the rules. So, a boolean needs to be passed
+	when the thread instantiates the filter rules late and the IP address
+	learn request is still pending in order to override the check for the
+	pending learn request. If the rules are to be updated while the thread
+	is active, this will not be done immediately but the thread will do that
+	later on.
+
+2010-05-04  Eric Blake  <eblake@redhat.com>
+
+	build: prefer WIN32 over __MINGW32__ checks
+	WIN32 is always defined when __MINGW32__ is defined, but the
+	converse is not true.  WIN32 is more generic, if someone were
+	to ever attempt porting to a microsoft compiler.  This does
+	not affect Cygwin, which intentionally does not define WIN32.
+
+	* src/qemu/qemu_driver.c (qemuDomainGetBlockInfo): Use more
+	generic flag macro.
+	* src/storage/storage_backend.c
+	(virStorageBackendUpdateVolTargetInfoFD)
+	(virStorageBackendRunProgRegex): Likewise.
+	* tools/console.h (vshRunConsole): Likewise.
+
+2010-05-03  Ryota Ozaki  <ozaki.ryota@gmail.com>
+
+	cgroup: Fix possible memory leak in virCgroupMakeGroup
+	* src/util/cgroup.c: free temporal path string before breaking loop
+
+2010-05-03  Eric Blake  <eblake@redhat.com>
+
+	dnsmasqReload: avoid mingw link failure
+	* src/util/dnsmasq.c (dnsmasqReload): Mingw lacks kill, but is not
+	running a dnsmasq daemon either.
+
+2010-05-03  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	mingw: Fix symbol export
+	In commit 98fb83ce25f46e0236706fa6e0943032d921935f I changed the
+	version script handling. But it seems that I didn't test this properly
+	and broke it. The .def file is passed to the compiler directly, but it
+	should get passed to the linker instead.
+
+	Set VERSION_SCRIPT_FLAGS to -Wl, to pass the .def file correctly to
+	the linker.
+
+	This fixes the undefined symbol errors while linking virsh.
+
+	dnsmasq.c: Fix OOM error reporting
+	Also do some indentation clean up.
+
+2010-05-03  Laine Stump  <laine@laine.org>
+
+	Fix memory leaks in cmdInterfaceEdit and cmdNWFilterEdit.
+	This applies a fix to thos functions similar to that made to cmdEdit
+	in 270895063d1cf86ab42fa220a8d090c24d58dbc0, thus fnixing a memory
+	leak - if tmp is unlinked and NULLed early in the function, the memory
+	used by tmp is never freed. Since we will always unlink tmp prior to
+	freeing its memory at the end of the function, just remove the earlier
+	code and let cleanup: do the cleanup.
+
+2010-05-03  Ryota Ozaki  <ozaki.ryota@gmail.com>
+
+	lxc: Fix failure on starting a domain with multiple interfaces
+	[Error message]
+	error: Failed to start domain lxc_test1
+	error: internal error Failed to create veth device pair: 512
+
+	The reason of the failure is that lxc driver unexpectedly re-uses
+	an auto-assigned veth name and tries to create the created veth
+	again. The failure will happen when a domain has multiple network
+	interfaces and the names of those are not specified in XML.
+
+	The patch fixes the problem by resetting buffers of veth names
+	in every iteration of creating veth.
+
+	* src/lxc/lxc_driver.c: prevent re-using auto-assigned veth name
+	  Reported by Kumar L Srikanth-B22348.
+
+2010-04-30  Eric Blake  <eblake@redhat.com>
+
+	autobuild.sh: provide default prefix
+	Without this patch and with a clean environment, ./autobuild.sh
+	tried to use ./configure --prefix=/, and fails.
+
+	* autobuild.sh (AUTOBUILD_INSTALL_ROOT): Provide sensible
+	default.  Suggested by Daniel P. Berrange.
+
+2010-04-30  Daniel Veillard  <veillard@redhat.com>
+
+	Release of libvirt-0.8.1
+	* configure.ac docs/news.html.in libvirt.spec.in: updates for release
+	* po/*.po*: updated localizations and regenerated
+
 2010-04-30  Cole Robinson  <crobinso@redhat.com>
 
 	domain: Fix PCI address decimal parsing regression

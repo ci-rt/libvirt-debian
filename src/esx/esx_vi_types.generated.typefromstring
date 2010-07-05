@@ -34,6 +34,9 @@
            else if (STREQ(type, "ChoiceOption")) {
                return esxVI_Type_ChoiceOption;
            }
+           else if (STREQ(type, "DatastoreInfo")) {
+               return esxVI_Type_DatastoreInfo;
+           }
            else if (STREQ(type, "Description")) {
                return esxVI_Type_Description;
            }
@@ -48,6 +51,24 @@
            }
            else if (STREQ(type, "HostCpuIdInfo")) {
                return esxVI_Type_HostCpuIdInfo;
+           }
+           else if (STREQ(type, "HostFileSystemVolume")) {
+               return esxVI_Type_HostFileSystemVolume;
+           }
+           else if (STREQ(type, "HostNasVolume")) {
+               return esxVI_Type_HostNasVolume;
+           }
+           else if (STREQ(type, "HostScsiDiskPartition")) {
+               return esxVI_Type_HostScsiDiskPartition;
+           }
+           else if (STREQ(type, "HostVmfsVolume")) {
+               return esxVI_Type_HostVmfsVolume;
+           }
+           else if (STREQ(type, "LocalDatastoreInfo")) {
+               return esxVI_Type_LocalDatastoreInfo;
+           }
+           else if (STREQ(type, "NasDatastoreInfo")) {
+               return esxVI_Type_NasDatastoreInfo;
            }
            else if (STREQ(type, "ObjectContent")) {
                return esxVI_Type_ObjectContent;
@@ -132,4 +153,7 @@
            }
            else if (STREQ(type, "VirtualMachineSnapshotTree")) {
                return esxVI_Type_VirtualMachineSnapshotTree;
+           }
+           else if (STREQ(type, "VmfsDatastoreInfo")) {
+               return esxVI_Type_VmfsDatastoreInfo;
            }

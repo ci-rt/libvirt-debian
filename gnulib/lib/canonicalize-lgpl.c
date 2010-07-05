@@ -45,7 +45,7 @@
 # include <shlib-compat.h>
 #else
 # define SHLIB_COMPAT(lib, introduced, obsoleted) 0
-# define versioned_symbol(lib, local, symbol, version)
+# define versioned_symbol(lib, local, symbol, version) extern int dummy
 # define compat_symbol(lib, local, symbol, version)
 # define weak_alias(local, symbol)
 # define __canonicalize_file_name canonicalize_file_name
@@ -64,6 +64,8 @@
 # endif
 # define __readlink readlink
 # define __set_errno(e) errno = (e)
+/* Use the system functions, not the gnulib overrides in this file.  */
+# undef malloc
 # ifndef MAXSYMLINKS
 #  ifdef SYMLOOP_MAX
 #   define MAXSYMLINKS SYMLOOP_MAX

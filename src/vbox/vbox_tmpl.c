@@ -61,6 +61,8 @@
 # include "vbox_CAPI_v3_0.h"
 #elif VBOX_API_VERSION == 3001
 # include "vbox_CAPI_v3_1.h"
+#elif VBOX_API_VERSION == 3002
+# include "vbox_CAPI_v3_2.h"
 #else
 # error "Unsupport VBOX_API_VERSION"
 #endif
@@ -989,7 +991,7 @@ cleanup:
 }
 
 static virDomainPtr vboxDomainCreateXML(virConnectPtr conn, const char *xml,
-                                        unsigned int flags ATTRIBUTE_UNUSED) {
+                                        unsigned int flags) {
     /* VirtualBox currently doesn't have support for running
      * virtual machines without actually defining them and thus
      * for time being just define new machine and start it.
@@ -998,7 +1000,11 @@ static virDomainPtr vboxDomainCreateXML(virConnectPtr conn, const char *xml,
      * change this behaviour to the expected one.
      */
 
-    virDomainPtr dom = vboxDomainDefineXML(conn, xml);
+    virDomainPtr dom;
+
+    virCheckFlags(0, NULL);
+
+    dom = vboxDomainDefineXML(conn, xml);
     if (dom == NULL)
         return NULL;
 
@@ -1909,6 +1915,7 @@ static char *vboxDomainDumpXML(virDomainPtr dom, int flags) {
     vboxIID  *iid        = NULL;
     int gotAllABoutDef   = -1;
     nsresult rc;
+    char *tmp;
 
 #if VBOX_API_VERSION == 2002
     if (VIR_ALLOC(iid) < 0) {
@@ -2029,9 +2036,11 @@ static char *vboxDomainDumpXML(virDomainPtr dom, int flags) {
             def->features = 0;
 #if VBOX_API_VERSION < 3001
             machine->vtbl->GetPAEEnabled(machine, &PAEEnabled);
-#else  /* VBOX_API_VERSION >= 3001 */
+#elif VBOX_API_VERSION == 3001
             machine->vtbl->GetCpuProperty(machine, CpuPropertyType_PAE, &PAEEnabled);
-#endif /* VBOX_API_VERSION >= 3001 */
+#elif VBOX_API_VERSION >= 3002
+            machine->vtbl->GetCPUProperty(machine, CPUPropertyType_PAE, &PAEEnabled);
+#endif
             if (PAEEnabled) {
                 def->features = def->features | (1 << VIR_DOMAIN_FEATURE_PAE);
             }
@@ -2183,12 +2192,15 @@ static char *vboxDomainDumpXML(virDomainPtr dom, int flags) {
                 } else if ((vrdpPresent != 1) && (totalPresent == 0) && (VIR_ALLOC_N(def->graphics, 1) >= 0)) {
                     if (VIR_ALLOC(def->graphics[def->ngraphics]) >= 0) {
                         def->graphics[def->ngraphics]->type = VIR_DOMAIN_GRAPHICS_TYPE_DESKTOP;
-                        def->graphics[def->ngraphics]->data.desktop.display = strdup(getenv("DISPLAY"));
-                        if (def->graphics[def->ngraphics]->data.desktop.display == NULL) {
-                            virReportOOMError();
-                            /* just don't go to cleanup yet as it is ok to have
-                             * display as NULL
-                             */
+                        tmp = getenv("DISPLAY");
+                        if (tmp != NULL) {
+                            def->graphics[def->ngraphics]->data.desktop.display = strdup(tmp);
+                            if (def->graphics[def->ngraphics]->data.desktop.display == NULL) {
+                                virReportOOMError();
+                                /* just don't go to cleanup yet as it is ok to have
+                                 * display as NULL
+                                 */
+                            }
                         }
                         totalPresent++;
                         def->ngraphics++;
@@ -3131,7 +3143,7 @@ cleanup:
     return ret;
 }
 
-static int vboxDomainCreate(virDomainPtr dom) {
+static int vboxDomainCreateWithFlags(virDomainPtr dom, unsigned int flags) {
     VBOX_OBJECT_CHECK(dom->conn, int, -1);
     IMachine **machines    = NULL;
     IProgress *progress    = NULL;
@@ -3142,6 +3154,8 @@ static int vboxDomainCreate(virDomainPtr dom) {
     unsigned char iidl[VIR_UUID_BUFLEN] = {0};
     nsresult rc;
     int i = 0;
+
+    virCheckFlags(0, -1);
 
     if (!dom->name) {
         vboxError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -3349,6 +3363,10 @@ cleanup:
     return ret;
 }
 
+static int vboxDomainCreate(virDomainPtr dom) {
+    return vboxDomainCreateWithFlags(dom, 0);
+}
+
 static virDomainPtr vboxDomainDefineXML(virConnectPtr conn, const char *xml) {
     VBOX_OBJECT_CHECK(conn, virDomainPtr, NULL);
     IMachine       *machine     = NULL;
@@ -3357,6 +3375,9 @@ static virDomainPtr vboxDomainDefineXML(virConnectPtr conn, const char *xml) {
     vboxIID        *mchiid      = NULL;
     virDomainDefPtr def         = NULL;
     PRUnichar *machineNameUtf16 = NULL;
+#if VBOX_API_VERSION >= 3002
+    PRBool override             = PR_FALSE;
+#endif
     nsresult rc;
 
     if (!(def = virDomainDefParseString(data->caps, xml,
@@ -3373,12 +3394,22 @@ static virDomainPtr vboxDomainDefineXML(virConnectPtr conn, const char *xml) {
 
     VBOX_UTF8_TO_UTF16(def->name, &machineNameUtf16);
     vboxIIDFromUUID(def->uuid, iid);
+#if VBOX_API_VERSION < 3002
     rc = data->vboxObj->vtbl->CreateMachine(data->vboxObj,
                                             machineNameUtf16,
                                             NULL,
                                             NULL,
                                             iid,
                                             &machine);
+#else /* VBOX_API_VERSION >= 3002 */
+    rc = data->vboxObj->vtbl->CreateMachine(data->vboxObj,
+                                            machineNameUtf16,
+                                            NULL,
+                                            NULL,
+                                            iid,
+                                            override,
+                                            &machine);
+#endif /* VBOX_API_VERSION >= 3002 */
     VBOX_UTF16_FREE(machineNameUtf16);
 
     if (NS_FAILED(rc)) {
@@ -3405,11 +3436,15 @@ static virDomainPtr vboxDomainDefineXML(virConnectPtr conn, const char *xml) {
 #if VBOX_API_VERSION < 3001
     rc = machine->vtbl->SetPAEEnabled(machine, (def->features) &
                                       (1 << VIR_DOMAIN_FEATURE_PAE));
-#else  /* VBOX_API_VERSION >= 3001 */
+#elif VBOX_API_VERSION == 3001
     rc = machine->vtbl->SetCpuProperty(machine, CpuPropertyType_PAE,
                                        (def->features) &
                                        (1 << VIR_DOMAIN_FEATURE_PAE));
-#endif /* VBOX_API_VERSION >= 3001 */
+#elif VBOX_API_VERSION >= 3002
+    rc = machine->vtbl->SetCPUProperty(machine, CPUPropertyType_PAE,
+                                       (def->features) &
+                                       (1 << VIR_DOMAIN_FEATURE_PAE));
+#endif
     if (NS_FAILED(rc)) {
         vboxError(VIR_ERR_INTERNAL_ERROR,
                   _("could not change PAE status to: %s, rc=%08x"),
@@ -6334,7 +6369,11 @@ static IVirtualBoxCallback *vboxAllocCallbackObj(void) {
         vboxCallback->vtbl->OnMachineRegistered         = &vboxCallbackOnMachineRegistered;
         vboxCallback->vtbl->OnSessionStateChange        = &vboxCallbackOnSessionStateChange;
         vboxCallback->vtbl->OnSnapshotTaken             = &vboxCallbackOnSnapshotTaken;
+# if VBOX_API_VERSION < 3002
         vboxCallback->vtbl->OnSnapshotDiscarded         = &vboxCallbackOnSnapshotDiscarded;
+# else /* VBOX_API_VERSION >= 3002 */
+        vboxCallback->vtbl->OnSnapshotDeleted           = &vboxCallbackOnSnapshotDiscarded;
+# endif /* VBOX_API_VERSION >= 3002 */
         vboxCallback->vtbl->OnSnapshotChange            = &vboxCallbackOnSnapshotChange;
         vboxCallback->vtbl->OnGuestPropertyChange       = &vboxCallbackOnGuestPropertyChange;
         g_pVBoxGlobalData->vboxCallBackRefCount = 1;
@@ -8144,6 +8183,7 @@ virDriver NAME(Driver) = {
     vboxListDefinedDomains, /* listDefinedDomains */
     vboxNumOfDefinedDomains, /* numOfDefinedDomains */
     vboxDomainCreate, /* domainCreate */
+    vboxDomainCreateWithFlags, /* domainCreateWithFlags */
     vboxDomainDefineXML, /* domainDefineXML */
     vboxDomainUndefine, /* domainUndefine */
     vboxDomainAttachDevice, /* domainAttachDevice */

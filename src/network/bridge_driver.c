@@ -1,5 +1,5 @@
 /*
- * driver.c: core driver methods for managing qemu guests
+ * bridge_driver.c: core driver methods for managing network
  *
  * Copyright (C) 2006-2010 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
@@ -29,7 +29,6 @@
 #include <limits.h>
 #include <string.h>
 #include <stdio.h>
-#include <strings.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -58,6 +57,7 @@
 #include "bridge.h"
 #include "logging.h"
 #include "dnsmasq.h"
+#include "util/network.h"
 
 #define NETWORK_PID_DIR LOCAL_STATE_DIR "/run/libvirt/network"
 #define NETWORK_STATE_DIR LOCAL_STATE_DIR "/lib/libvirt/network"
@@ -643,7 +643,7 @@ networkAddMasqueradingIptablesRules(struct network_driver *driver,
                                             network->def->network,
                                             network->def->forwardDev))) {
         virReportSystemError(err,
-                             _("failed to add iptables rule to enable masquerading to '%s'\n"),
+                             _("failed to add iptables rule to enable masquerading to '%s'"),
                              network->def->forwardDev ? network->def->forwardDev : NULL);
         goto masqerr3;
     }
@@ -737,6 +737,15 @@ networkAddIptablesRules(struct network_driver *driver,
         goto err4;
     }
 
+    /* allow TFTP requests through to dnsmasq */
+    if (network->def->tftproot &&
+        (err = iptablesAddUdpInput(driver->iptables, network->def->bridge, 69))) {
+        virReportSystemError(err,
+                             _("failed to add iptables rule to allow TFTP requests from '%s'"),
+                             network->def->bridge);
+        goto err4tftp;
+    }
+
 
     /* Catch all rules to block forwarding to/from bridges */
 
@@ -784,6 +793,10 @@ networkAddIptablesRules(struct network_driver *driver,
     iptablesRemoveForwardRejectOut(driver->iptables,
                                    network->def->bridge);
  err5:
+    if (network->def->tftproot) {
+        iptablesRemoveUdpInput(driver->iptables, network->def->bridge, 69);
+    }
+ err4tftp:
     iptablesRemoveUdpInput(driver->iptables, network->def->bridge, 53);
  err4:
     iptablesRemoveTcpInput(driver->iptables, network->def->bridge, 53);
@@ -821,6 +834,7 @@ networkRemoveIptablesRules(struct network_driver *driver,
     iptablesRemoveForwardAllowCross(driver->iptables, network->def->bridge);
     iptablesRemoveForwardRejectIn(driver->iptables, network->def->bridge);
     iptablesRemoveForwardRejectOut(driver->iptables, network->def->bridge);
+    iptablesRemoveUdpInput(driver->iptables, network->def->bridge, 69);
     iptablesRemoveUdpInput(driver->iptables, network->def->bridge, 53);
     iptablesRemoveTcpInput(driver->iptables, network->def->bridge, 53);
     iptablesRemoveUdpInput(driver->iptables, network->def->bridge, 67);
@@ -909,6 +923,114 @@ cleanup:
     return ret;
 }
 
+#define PROC_NET_ROUTE "/proc/net/route"
+
+/* XXX: This function can be a lot more exhaustive, there are certainly
+ *      other scenarios where we can ruin host network connectivity.
+ * XXX: Using a proper library is preferred over parsing /proc
+ */
+static int networkCheckRouteCollision(virNetworkObjPtr network)
+{
+    int ret = -1, len;
+    unsigned int net_dest;
+    char *cur, *buf = NULL;
+    enum {MAX_ROUTE_SIZE = 1024*64};
+    virSocketAddr inaddress, innetmask;
+
+    if (!network->def->ipAddress || !network->def->netmask)
+        return 0;
+
+    if (virSocketParseAddr(network->def->ipAddress, &inaddress, 0) < 0) {
+        networkReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("cannot parse IP address '%s'"),
+                           network->def->ipAddress);
+        goto error;
+    }
+
+    if (virSocketParseAddr(network->def->netmask, &innetmask, 0) < 0) {
+        networkReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("cannot parse netmask '%s'"),
+                           network->def->netmask);
+        goto error;
+    }
+
+    if (inaddress.stor.ss_family != AF_INET ||
+        innetmask.stor.ss_family != AF_INET) {
+        /* Only support collision check for IPv4 */
+        goto out;
+    }
+
+    net_dest = (inaddress.inet4.sin_addr.s_addr &
+                innetmask.inet4.sin_addr.s_addr);
+
+    /* Read whole routing table into memory */
+    if ((len = virFileReadAll(PROC_NET_ROUTE, MAX_ROUTE_SIZE, &buf)) < 0)
+        goto error;
+
+    /* Dropping the last character shouldn't hurt */
+    if (len > 0)
+        buf[len-1] = '\0';
+
+    VIR_DEBUG("%s output:\n%s", PROC_NET_ROUTE, buf);
+
+    if (!STRPREFIX (buf, "Iface"))
+        goto out;
+
+    /* First line is just headings, skip it */
+    cur = strchr(buf, '\n');
+    if (cur)
+        cur++;
+
+    while (cur) {
+        char iface[17], dest[128], mask[128];
+        unsigned int addr_val, mask_val;
+        int num;
+
+        /* NUL-terminate the line, so sscanf doesn't go beyond a newline.  */
+        char *nl = strchr(cur, '\n');
+        if (nl) {
+            *nl++ = '\0';
+        }
+
+        num = sscanf(cur, "%16s %127s %*s %*s %*s %*s %*s %127s",
+                     iface, dest, mask);
+        cur = nl;
+
+        if (num != 3) {
+            VIR_DEBUG("Failed to parse %s", PROC_NET_ROUTE);
+            continue;
+        }
+
+        if (virStrToLong_ui(dest, NULL, 16, &addr_val) < 0) {
+            VIR_DEBUG("Failed to convert network address %s to uint", dest);
+            continue;
+        }
+
+        if (virStrToLong_ui(mask, NULL, 16, &mask_val) < 0) {
+            VIR_DEBUG("Failed to convert network mask %s to uint", mask);
+            continue;
+        }
+
+        addr_val &= mask_val;
+
+        if ((net_dest == addr_val) &&
+            (innetmask.inet4.sin_addr.s_addr == mask_val)) {
+            networkReportError(VIR_ERR_INTERNAL_ERROR,
+                              _("Network %s/%s is already in use by "
+                                "interface %s"),
+                                network->def->ipAddress,
+                                network->def->netmask, iface);
+            goto error;
+        }
+    }
+
+out:
+    ret = 0;
+error:
+    VIR_FREE(buf);
+    return ret;
+}
+
 static int networkStartNetworkDaemon(struct network_driver *driver,
                                      virNetworkObjPtr network)
 {
@@ -919,6 +1041,10 @@ static int networkStartNetworkDaemon(struct network_driver *driver,
                            "%s", _("network is already active"));
         return -1;
     }
+
+    /* Check to see if network collides with an existing route */
+    if (networkCheckRouteCollision(network) < 0)
+        return -1;
 
     if ((err = brAddBridge(driver->brctl, network->def->bridge))) {
         virReportSystemError(err,
@@ -996,14 +1122,14 @@ static int networkStartNetworkDaemon(struct network_driver *driver,
  err_delbr1:
     if ((err = brSetInterfaceUp(driver->brctl, network->def->bridge, 0))) {
         char ebuf[1024];
-        VIR_WARN(_("Failed to bring down bridge '%s' : %s"),
+        VIR_WARN("Failed to bring down bridge '%s' : %s",
                  network->def->bridge, virStrerror(err, ebuf, sizeof ebuf));
     }
 
  err_delbr:
     if ((err = brDeleteBridge(driver->brctl, network->def->bridge))) {
         char ebuf[1024];
-        VIR_WARN(_("Failed to delete bridge '%s' : %s"),
+        VIR_WARN("Failed to delete bridge '%s' : %s",
                  network->def->bridge, virStrerror(err, ebuf, sizeof ebuf));
     }
 
@@ -1036,12 +1162,12 @@ static int networkShutdownNetworkDaemon(struct network_driver *driver,
 
     char ebuf[1024];
     if ((err = brSetInterfaceUp(driver->brctl, network->def->bridge, 0))) {
-        VIR_WARN(_("Failed to bring down bridge '%s' : %s"),
+        VIR_WARN("Failed to bring down bridge '%s' : %s",
                  network->def->bridge, virStrerror(err, ebuf, sizeof ebuf));
     }
 
     if ((err = brDeleteBridge(driver->brctl, network->def->bridge))) {
-        VIR_WARN(_("Failed to delete bridge '%s' : %s"),
+        VIR_WARN("Failed to delete bridge '%s' : %s",
                  network->def->bridge, virStrerror(err, ebuf, sizeof ebuf));
     }
 
@@ -1266,6 +1392,9 @@ static virNetworkPtr networkCreate(virConnectPtr conn, const char *xml) {
     if (!(def = virNetworkDefParseString(xml)))
         goto cleanup;
 
+    if (virNetworkObjIsDuplicate(&driver->networks, def, 1) < 0)
+        goto cleanup;
+
     if (virNetworkSetBridgeName(&driver->networks, def, 1))
         goto cleanup;
 
@@ -1296,10 +1425,14 @@ static virNetworkPtr networkDefine(virConnectPtr conn, const char *xml) {
     virNetworkDefPtr def;
     virNetworkObjPtr network = NULL;
     virNetworkPtr ret = NULL;
+    int dupNet;
 
     networkDriverLock(driver);
 
     if (!(def = virNetworkDefParseString(xml)))
+        goto cleanup;
+
+    if ((dupNet = virNetworkObjIsDuplicate(&driver->networks, def, 0)) < 0)
         goto cleanup;
 
     if (virNetworkSetBridgeName(&driver->networks, def, 1))

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008,2009 Red Hat, Inc.
+ * Copyright (C) 2008-2010 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -347,35 +347,37 @@ SELinuxSetFilecon(const char *path, char *tcon)
     return 0;
 }
 
+
+/* This method shouldn't raise errors, since they'll overwrite
+ * errors that the caller(s) are already dealing with */
 static int
 SELinuxRestoreSecurityFileLabel(const char *path)
 {
     struct stat buf;
     security_context_t fcon = NULL;
     int rc = -1;
-    int err;
     char *newpath = NULL;
+    char ebuf[1024];
 
     VIR_INFO("Restoring SELinux context on '%s'", path);
 
-    if ((err = virFileResolveLink(path, &newpath)) < 0) {
-        virReportSystemError(err,
-                             _("cannot resolve symlink %s"), path);
+    if (virFileResolveLink(path, &newpath) < 0) {
+        VIR_WARN("cannot resolve symlink %s: %s", path,
+                 virStrerror(errno, ebuf, sizeof(ebuf)));
         goto err;
     }
 
     if (stat(newpath, &buf) != 0) {
-        virReportSystemError(errno,
-                             _("cannot stat %s"), newpath);
+        VIR_WARN("cannot stat %s: %s", newpath,
+                 virStrerror(errno, ebuf, sizeof(ebuf)));
         goto err;
     }
 
     if (matchpathcon(newpath, buf.st_mode, &fcon) == 0)  {
         rc = SELinuxSetFilecon(newpath, fcon);
     } else {
-        virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("cannot restore selinux file label for %s"),
-                               newpath);
+        VIR_WARN("cannot lookup default selinux label for %s",
+                 newpath);
     }
 
 err:
@@ -385,8 +387,9 @@ err:
 }
 
 static int
-SELinuxRestoreSecurityImageLabel(virDomainObjPtr vm,
-                                 virDomainDiskDefPtr disk)
+SELinuxRestoreSecurityImageLabelInt(virDomainObjPtr vm,
+                                    virDomainDiskDefPtr disk,
+                                    int migrated)
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
 
@@ -407,8 +410,33 @@ SELinuxRestoreSecurityImageLabel(virDomainObjPtr vm,
     if (!disk->src)
         return 0;
 
+    /* If we have a shared FS & doing migrated, we must not
+     * change ownership, because that kills access on the
+     * destination host which is sub-optimal for the guest
+     * VM's I/O attempts :-)
+     */
+    if (migrated) {
+        int rc = virStorageFileIsSharedFS(disk->src);
+        if (rc < 0)
+            return -1;
+        if (rc == 1) {
+            VIR_DEBUG("Skipping image label restore on %s because FS is shared",
+                      disk->src);
+            return 0;
+        }
+    }
+
     return SELinuxRestoreSecurityFileLabel(disk->src);
 }
+
+
+static int
+SELinuxRestoreSecurityImageLabel(virDomainObjPtr vm,
+                                 virDomainDiskDefPtr disk)
+{
+    return SELinuxRestoreSecurityImageLabelInt(vm, disk, 0);
+}
+
 
 static int
 SELinuxSetSecurityImageLabel(virDomainObjPtr vm,
@@ -428,8 +456,6 @@ SELinuxSetSecurityImageLabel(virDomainObjPtr vm,
     do {
         virStorageFileMetadata meta;
         int ret;
-
-        memset(&meta, 0, sizeof(meta));
 
         ret = virStorageFileGetMetadata(path, &meta);
 
@@ -602,8 +628,104 @@ done:
     return ret;
 }
 
+
 static int
-SELinuxRestoreSecurityAllLabel(virDomainObjPtr vm)
+SELinuxSetSecurityChardevLabel(virDomainObjPtr vm,
+                               virDomainChrDefPtr dev)
+
+{
+    const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
+    char *in = NULL, *out = NULL;
+    int ret = -1;
+
+    if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
+        return 0;
+
+    switch (dev->type) {
+    case VIR_DOMAIN_CHR_TYPE_DEV:
+    case VIR_DOMAIN_CHR_TYPE_FILE:
+        ret = SELinuxSetFilecon(dev->data.file.path, secdef->imagelabel);
+        break;
+
+    case VIR_DOMAIN_CHR_TYPE_PIPE:
+        if ((virAsprintf(&in, "%s.in", dev->data.file.path) < 0) ||
+            (virAsprintf(&out, "%s.out", dev->data.file.path) < 0)) {
+            virReportOOMError();
+            goto done;
+        }
+        if ((SELinuxSetFilecon(in, secdef->imagelabel) < 0) ||
+            (SELinuxSetFilecon(out, secdef->imagelabel) < 0))
+            goto done;
+        ret = 0;
+        break;
+
+    default:
+        ret = 0;
+        break;
+    }
+
+done:
+    VIR_FREE(in);
+    VIR_FREE(out);
+    return ret;
+}
+
+static int
+SELinuxRestoreSecurityChardevLabel(virDomainObjPtr vm,
+                                   virDomainChrDefPtr dev)
+
+{
+    const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
+    char *in = NULL, *out = NULL;
+    int ret = -1;
+
+    if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
+        return 0;
+
+    switch (dev->type) {
+    case VIR_DOMAIN_CHR_TYPE_DEV:
+    case VIR_DOMAIN_CHR_TYPE_FILE:
+        ret = SELinuxSetFilecon(dev->data.file.path, secdef->imagelabel);
+        break;
+
+    case VIR_DOMAIN_CHR_TYPE_PIPE:
+        if ((virAsprintf(&out, "%s.out", dev->data.file.path) < 0) ||
+            (virAsprintf(&in, "%s.in", dev->data.file.path) < 0)) {
+            virReportOOMError();
+            goto done;
+        }
+        if ((SELinuxRestoreSecurityFileLabel(out) < 0) ||
+            (SELinuxRestoreSecurityFileLabel(in) < 0))
+            goto done;
+        ret = 0;
+        break;
+
+    default:
+        ret = 0;
+        break;
+    }
+
+done:
+    VIR_FREE(in);
+    VIR_FREE(out);
+    return ret;
+}
+
+
+static int
+SELinuxRestoreSecurityChardevCallback(virDomainDefPtr def ATTRIBUTE_UNUSED,
+                                      virDomainChrDefPtr dev,
+                                      void *opaque)
+{
+    virDomainObjPtr vm = opaque;
+
+    return SELinuxRestoreSecurityChardevLabel(vm, dev);
+}
+
+
+static int
+SELinuxRestoreSecurityAllLabel(virDomainObjPtr vm,
+                               int migrated ATTRIBUTE_UNUSED)
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
     int i;
@@ -619,10 +741,17 @@ SELinuxRestoreSecurityAllLabel(virDomainObjPtr vm)
             rc = -1;
     }
     for (i = 0 ; i < vm->def->ndisks ; i++) {
-        if (SELinuxRestoreSecurityImageLabel(vm,
-                                             vm->def->disks[i]) < 0)
+        if (SELinuxRestoreSecurityImageLabelInt(vm,
+                                                vm->def->disks[i],
+                                                migrated) < 0)
             rc = -1;
     }
+
+    if (virDomainChrDefForeach(vm->def,
+                               false,
+                               SELinuxRestoreSecurityChardevCallback,
+                               vm) < 0)
+        rc = -1;
 
     if (vm->def->os.kernel &&
         SELinuxRestoreSecurityFileLabel(vm->def->os.kernel) < 0)
@@ -730,7 +859,120 @@ SELinuxSetSecurityProcessLabel(virSecurityDriverPtr drv,
 }
 
 static int
-SELinuxSetSecurityAllLabel(virDomainObjPtr vm)
+SELinuxSetSecuritySocketLabel(virSecurityDriverPtr drv,
+                               virDomainObjPtr vm)
+{
+    /* TODO: verify DOI */
+    const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
+    context_t execcon = NULL;
+    context_t proccon = NULL;
+    security_context_t scon = NULL;
+    int rc = -1;
+
+    if (vm->def->seclabel.label == NULL)
+        return 0;
+
+    if (!STREQ(drv->name, secdef->model)) {
+        virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("security label driver mismatch: "
+                                 "'%s' model configured for domain, but "
+                                 "hypervisor driver is '%s'."),
+                               secdef->model, drv->name);
+        goto done;
+    }
+
+    if ( !(execcon = context_new(secdef->label)) ) {
+        virReportSystemError(errno,
+                             _("unable to allocate socket security context '%s'"),
+                             secdef->label);
+        goto done;
+    }
+
+    if (getcon(&scon) == -1) {
+        virReportSystemError(errno,
+                             _("unable to get current process context '%s'"),
+                             secdef->label);
+        goto done;
+    }
+
+    if ( !(proccon = context_new(scon)) ) {
+        virReportSystemError(errno,
+                             _("unable to set socket security context '%s'"),
+                             secdef->label);
+        goto done;
+    }
+
+    if (context_range_set(proccon, context_range_get(execcon)) == -1) {
+        virReportSystemError(errno,
+                             _("unable to set socket security context range '%s'"),
+                             secdef->label);
+        goto done;
+    }
+
+    VIR_DEBUG("Setting VM %s socket context %s",
+              vm->def->name, context_str(proccon));
+    if (setsockcreatecon(context_str(proccon)) == -1) {
+        virReportSystemError(errno,
+                             _("unable to set socket security context '%s'"),
+                             context_str(proccon));
+        goto done;
+    }
+
+    rc = 0;
+done:
+
+    if (security_getenforce() != 1)
+        rc = 0;
+    if (execcon) context_free(execcon);
+    if (proccon) context_free(proccon);
+    freecon(scon);
+    return rc;
+}
+
+static int
+SELinuxClearSecuritySocketLabel(virSecurityDriverPtr drv,
+                                virDomainObjPtr vm)
+{
+    /* TODO: verify DOI */
+    const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
+
+    if (vm->def->seclabel.label == NULL)
+        return 0;
+
+    if (!STREQ(drv->name, secdef->model)) {
+        virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("security label driver mismatch: "
+                                 "'%s' model configured for domain, but "
+                                 "hypervisor driver is '%s'."),
+                               secdef->model, drv->name);
+        if (security_getenforce() == 1)
+            return -1;
+    }
+
+    if (setsockcreatecon(NULL) == -1) {
+        virReportSystemError(errno,
+                             _("unable to clear socket security context '%s'"),
+                             secdef->label);
+        if (security_getenforce() == 1)
+            return -1;
+    }
+    return 0;
+}
+
+
+static int
+SELinuxSetSecurityChardevCallback(virDomainDefPtr def ATTRIBUTE_UNUSED,
+                                  virDomainChrDefPtr dev,
+                                  void *opaque)
+{
+    virDomainObjPtr vm = opaque;
+
+    return SELinuxSetSecurityChardevLabel(vm, dev);
+}
+
+
+static int
+SELinuxSetSecurityAllLabel(virDomainObjPtr vm, const char *stdin_path)
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
     int i;
@@ -753,12 +995,22 @@ SELinuxSetSecurityAllLabel(virDomainObjPtr vm)
             return -1;
     }
 
+    if (virDomainChrDefForeach(vm->def,
+                               true,
+                               SELinuxSetSecurityChardevCallback,
+                               vm) < 0)
+        return -1;
+
     if (vm->def->os.kernel &&
         SELinuxSetFilecon(vm->def->os.kernel, default_content_context) < 0)
         return -1;
 
     if (vm->def->os.initrd &&
         SELinuxSetFilecon(vm->def->os.initrd, default_content_context) < 0)
+        return -1;
+
+    if (stdin_path &&
+        SELinuxSetFilecon(stdin_path, default_content_context) < 0)
         return -1;
 
     return 0;
@@ -770,6 +1022,8 @@ virSecurityDriver virSELinuxSecurityDriver = {
     .open                       = SELinuxSecurityDriverOpen,
     .domainSecurityVerify       = SELinuxSecurityVerify,
     .domainSetSecurityImageLabel = SELinuxSetSecurityImageLabel,
+    .domainSetSecuritySocketLabel     = SELinuxSetSecuritySocketLabel,
+    .domainClearSecuritySocketLabel     = SELinuxClearSecuritySocketLabel,
     .domainRestoreSecurityImageLabel = SELinuxRestoreSecurityImageLabel,
     .domainGenSecurityLabel     = SELinuxGenSecurityLabel,
     .domainReserveSecurityLabel     = SELinuxReserveSecurityLabel,

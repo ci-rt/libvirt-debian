@@ -18,9 +18,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <assert.h>
-#ifdef HAVE_SYS_WAIT_H
-# include <sys/wait.h>
-#endif
+#include <sys/wait.h>
 #include <time.h>
 #include <gcrypt.h>
 
@@ -978,7 +976,7 @@ int virStateInitialize(int privileged) {
     for (i = 0 ; i < virStateDriverTabCount ; i++) {
         if (virStateDriverTab[i]->initialize &&
             virStateDriverTab[i]->initialize(privileged) < 0) {
-            VIR_ERROR("Initialization of %s state driver failed",
+            VIR_ERROR(_("Initialization of %s state driver failed"),
                       virStateDriverTab[i]->name);
             ret = -1;
         }
@@ -1212,6 +1210,34 @@ do_open (const char *name,
     ret->flags = flags & VIR_CONNECT_RO;
 
     for (i = 0; i < virDriverTabCount; i++) {
+        /* We're going to probe the remote driver next. So we have already
+         * probed all other client-side-only driver before, but none of them
+         * accepted the URI.
+         * If the scheme corresponds to a known but disabled client-side-only
+         * driver then report a useful error, instead of a cryptic one about
+         * not being able to connect to libvirtd or not being able to find
+         * certificates. */
+        if (virDriverTab[i]->no == VIR_DRV_REMOTE &&
+            ret->uri != NULL && ret->uri->scheme != NULL &&
+            (
+#ifndef WITH_PHYP
+             STRCASEEQ(ret->uri->scheme, "phyp") ||
+#endif
+#ifndef WITH_ESX
+             STRCASEEQ(ret->uri->scheme, "esx") ||
+             STRCASEEQ(ret->uri->scheme, "gsx") ||
+#endif
+#ifndef WITH_XENAPI
+             STRCASEEQ(ret->uri->scheme, "xenapi") ||
+#endif
+             false)) {
+            virReportErrorHelper(NULL, VIR_FROM_NONE, VIR_ERR_INVALID_ARG,
+                                 __FILE__, __FUNCTION__, __LINE__,
+                                 _("libvirt was built without the '%s' driver"),
+                                 ret->uri->scheme);
+            goto failed;
+        }
+
         DEBUG("trying driver %d (%s) ...",
               i, virDriverTab[i]->name);
         res = virDriverTab[i]->open (ret, auth, flags);
@@ -1919,7 +1945,7 @@ virDomainGetConnect (virDomainPtr dom)
  * virDomainCreateXML:
  * @conn: pointer to the hypervisor connection
  * @xmlDesc: string containing an XML description of the domain
- * @flags: callers should always pass 0
+ * @flags: bitwise-or of supported virDomainCreateFlags
  *
  * Launch a new guest domain, based on an XML description similar
  * to the one returned by virDomainGetXMLDesc()
@@ -4852,7 +4878,7 @@ error:
  * virDomainCreate:
  * @domain: pointer to a defined domain
  *
- * launch a defined domain. If the call succeed the domain moves from the
+ * Launch a defined domain. If the call succeeds the domain moves from the
  * defined to the running domains pools.
  *
  * Returns 0 in case of success, -1 in case of error
@@ -4878,6 +4904,49 @@ virDomainCreate(virDomainPtr domain) {
     if (conn->driver->domainCreate) {
         int ret;
         ret = conn->driver->domainCreate (domain);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(domain->conn);
+    return -1;
+}
+
+/**
+ * virDomainCreateWithFlags:
+ * @domain: pointer to a defined domain
+ * @flags: bitwise-or of supported virDomainCreateFlags
+ *
+ * Launch a defined domain. If the call succeeds the domain moves from the
+ * defined to the running domains pools.
+ *
+ * Returns 0 in case of success, -1 in case of error
+ */
+int
+virDomainCreateWithFlags(virDomainPtr domain, unsigned int flags) {
+    virConnectPtr conn;
+    DEBUG("domain=%p, flags=%d", domain, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return (-1);
+    }
+    conn = domain->conn;
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(domain, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->driver->domainCreateWithFlags) {
+        int ret;
+        ret = conn->driver->domainCreateWithFlags (domain, flags);
         if (ret < 0)
             goto error;
         return ret;

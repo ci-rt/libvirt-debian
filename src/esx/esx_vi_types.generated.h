@@ -211,6 +211,33 @@ int esxVI_ChoiceOption_Deserialize(xmlNodePtr node, esxVI_ChoiceOption **item);
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: DatastoreInfo
+ *          extended by LocalDatastoreInfo
+ *                      NasDatastoreInfo
+ *                      VmfsDatastoreInfo
+ */
+
+struct _esxVI_DatastoreInfo {
+    esxVI_DatastoreInfo *_unused;                          /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    char *name;                                            /* required */
+    char *url;                                             /* required */
+    esxVI_Long *freeSpace;                                 /* required */
+    esxVI_Long *maxFileSize;                               /* required */
+};
+
+int esxVI_DatastoreInfo_Alloc(esxVI_DatastoreInfo **item);
+void esxVI_DatastoreInfo_Free(esxVI_DatastoreInfo **item);
+int esxVI_DatastoreInfo_Validate(esxVI_DatastoreInfo *item);
+esxVI_DatastoreInfo *esxVI_DatastoreInfo_DynamicCast(void *item);
+int esxVI_DatastoreInfo_CastFromAnyType(esxVI_AnyType *anyType, esxVI_DatastoreInfo **item);
+int esxVI_DatastoreInfo_Serialize(esxVI_DatastoreInfo *item, const char *element, virBufferPtr output);
+int esxVI_DatastoreInfo_Deserialize(xmlNodePtr node, esxVI_DatastoreInfo **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Type: Description
  *          extended by ElementDescription
  */
@@ -341,6 +368,170 @@ int esxVI_HostCpuIdInfo_Serialize(esxVI_HostCpuIdInfo *item, const char *element
 int esxVI_HostCpuIdInfo_SerializeList(esxVI_HostCpuIdInfo *list, const char *element, virBufferPtr output);
 int esxVI_HostCpuIdInfo_Deserialize(xmlNodePtr node, esxVI_HostCpuIdInfo **item);
 int esxVI_HostCpuIdInfo_DeserializeList(xmlNodePtr node, esxVI_HostCpuIdInfo **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: HostFileSystemVolume
+ *          extended by HostNasVolume
+ *                      HostVmfsVolume
+ */
+
+struct _esxVI_HostFileSystemVolume {
+    esxVI_HostFileSystemVolume *_unused;                   /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    char *type;                                            /* required */
+    char *name;                                            /* required */
+    esxVI_Long *capacity;                                  /* required */
+};
+
+int esxVI_HostFileSystemVolume_Alloc(esxVI_HostFileSystemVolume **item);
+void esxVI_HostFileSystemVolume_Free(esxVI_HostFileSystemVolume **item);
+int esxVI_HostFileSystemVolume_Validate(esxVI_HostFileSystemVolume *item);
+int esxVI_HostFileSystemVolume_Serialize(esxVI_HostFileSystemVolume *item, const char *element, virBufferPtr output);
+int esxVI_HostFileSystemVolume_Deserialize(xmlNodePtr node, esxVI_HostFileSystemVolume **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: HostNasVolume
+ *          extends HostFileSystemVolume
+ */
+
+struct _esxVI_HostNasVolume {
+    esxVI_HostNasVolume *_unused;                          /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* HostFileSystemVolume */
+    char *type;                                            /* required */
+    char *name;                                            /* required */
+    esxVI_Long *capacity;                                  /* required */
+
+    /* HostNasVolume */
+    char *remoteHost;                                      /* required */
+    char *remotePath;                                      /* required */
+    char *userName;                                        /* optional */
+};
+
+int esxVI_HostNasVolume_Alloc(esxVI_HostNasVolume **item);
+void esxVI_HostNasVolume_Free(esxVI_HostNasVolume **item);
+int esxVI_HostNasVolume_Validate(esxVI_HostNasVolume *item);
+int esxVI_HostNasVolume_Serialize(esxVI_HostNasVolume *item, const char *element, virBufferPtr output);
+int esxVI_HostNasVolume_Deserialize(xmlNodePtr node, esxVI_HostNasVolume **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: HostScsiDiskPartition
+ */
+
+struct _esxVI_HostScsiDiskPartition {
+    esxVI_HostScsiDiskPartition *_next;                    /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    char *diskName;                                        /* required */
+    esxVI_Int *partition;                                  /* required */
+};
+
+int esxVI_HostScsiDiskPartition_Alloc(esxVI_HostScsiDiskPartition **item);
+void esxVI_HostScsiDiskPartition_Free(esxVI_HostScsiDiskPartition **item);
+int esxVI_HostScsiDiskPartition_Validate(esxVI_HostScsiDiskPartition *item);
+int esxVI_HostScsiDiskPartition_AppendToList(esxVI_HostScsiDiskPartition **list, esxVI_HostScsiDiskPartition *item);
+int esxVI_HostScsiDiskPartition_Serialize(esxVI_HostScsiDiskPartition *item, const char *element, virBufferPtr output);
+int esxVI_HostScsiDiskPartition_SerializeList(esxVI_HostScsiDiskPartition *list, const char *element, virBufferPtr output);
+int esxVI_HostScsiDiskPartition_Deserialize(xmlNodePtr node, esxVI_HostScsiDiskPartition **item);
+int esxVI_HostScsiDiskPartition_DeserializeList(xmlNodePtr node, esxVI_HostScsiDiskPartition **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: HostVmfsVolume
+ *          extends HostFileSystemVolume
+ */
+
+struct _esxVI_HostVmfsVolume {
+    esxVI_HostVmfsVolume *_unused;                         /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* HostFileSystemVolume */
+    char *type;                                            /* required */
+    char *name;                                            /* required */
+    esxVI_Long *capacity;                                  /* required */
+
+    /* HostVmfsVolume */
+    esxVI_Int *blockSizeMb;                                /* required */
+    esxVI_Int *maxBlocks;                                  /* required */
+    esxVI_Int *majorVersion;                               /* required */
+    char *version;                                         /* required */
+    char *uuid;                                            /* required */
+    esxVI_HostScsiDiskPartition *extent;                   /* required, list */
+    esxVI_Boolean vmfsUpgradable;                          /* required */
+};
+
+int esxVI_HostVmfsVolume_Alloc(esxVI_HostVmfsVolume **item);
+void esxVI_HostVmfsVolume_Free(esxVI_HostVmfsVolume **item);
+int esxVI_HostVmfsVolume_Validate(esxVI_HostVmfsVolume *item);
+int esxVI_HostVmfsVolume_Serialize(esxVI_HostVmfsVolume *item, const char *element, virBufferPtr output);
+int esxVI_HostVmfsVolume_Deserialize(xmlNodePtr node, esxVI_HostVmfsVolume **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: LocalDatastoreInfo
+ *          extends DatastoreInfo
+ */
+
+struct _esxVI_LocalDatastoreInfo {
+    esxVI_LocalDatastoreInfo *_unused;                     /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* DatastoreInfo */
+    char *name;                                            /* required */
+    char *url;                                             /* required */
+    esxVI_Long *freeSpace;                                 /* required */
+    esxVI_Long *maxFileSize;                               /* required */
+
+    /* LocalDatastoreInfo */
+    char *path;                                            /* optional */
+};
+
+int esxVI_LocalDatastoreInfo_Alloc(esxVI_LocalDatastoreInfo **item);
+void esxVI_LocalDatastoreInfo_Free(esxVI_LocalDatastoreInfo **item);
+int esxVI_LocalDatastoreInfo_Validate(esxVI_LocalDatastoreInfo *item);
+esxVI_LocalDatastoreInfo *esxVI_LocalDatastoreInfo_DynamicCast(void *item);
+int esxVI_LocalDatastoreInfo_CastFromAnyType(esxVI_AnyType *anyType, esxVI_LocalDatastoreInfo **item);
+int esxVI_LocalDatastoreInfo_Serialize(esxVI_LocalDatastoreInfo *item, const char *element, virBufferPtr output);
+int esxVI_LocalDatastoreInfo_Deserialize(xmlNodePtr node, esxVI_LocalDatastoreInfo **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: NasDatastoreInfo
+ *          extends DatastoreInfo
+ */
+
+struct _esxVI_NasDatastoreInfo {
+    esxVI_NasDatastoreInfo *_unused;                       /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* DatastoreInfo */
+    char *name;                                            /* required */
+    char *url;                                             /* required */
+    esxVI_Long *freeSpace;                                 /* required */
+    esxVI_Long *maxFileSize;                               /* required */
+
+    /* NasDatastoreInfo */
+    esxVI_HostNasVolume *nas;                              /* optional */
+};
+
+int esxVI_NasDatastoreInfo_Alloc(esxVI_NasDatastoreInfo **item);
+void esxVI_NasDatastoreInfo_Free(esxVI_NasDatastoreInfo **item);
+int esxVI_NasDatastoreInfo_Validate(esxVI_NasDatastoreInfo *item);
+esxVI_NasDatastoreInfo *esxVI_NasDatastoreInfo_DynamicCast(void *item);
+int esxVI_NasDatastoreInfo_CastFromAnyType(esxVI_AnyType *anyType, esxVI_NasDatastoreInfo **item);
+int esxVI_NasDatastoreInfo_Serialize(esxVI_NasDatastoreInfo *item, const char *element, virBufferPtr output);
+int esxVI_NasDatastoreInfo_Deserialize(xmlNodePtr node, esxVI_NasDatastoreInfo **item);
 
 
 
@@ -1081,6 +1272,35 @@ int esxVI_VirtualMachineSnapshotTree_CastFromAnyType(esxVI_AnyType *anyType, esx
 int esxVI_VirtualMachineSnapshotTree_CastListFromAnyType(esxVI_AnyType *anyType, esxVI_VirtualMachineSnapshotTree **list);
 int esxVI_VirtualMachineSnapshotTree_Deserialize(xmlNodePtr node, esxVI_VirtualMachineSnapshotTree **item);
 int esxVI_VirtualMachineSnapshotTree_DeserializeList(xmlNodePtr node, esxVI_VirtualMachineSnapshotTree **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmfsDatastoreInfo
+ *          extends DatastoreInfo
+ */
+
+struct _esxVI_VmfsDatastoreInfo {
+    esxVI_VmfsDatastoreInfo *_unused;                      /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* DatastoreInfo */
+    char *name;                                            /* required */
+    char *url;                                             /* required */
+    esxVI_Long *freeSpace;                                 /* required */
+    esxVI_Long *maxFileSize;                               /* required */
+
+    /* VmfsDatastoreInfo */
+    esxVI_HostVmfsVolume *vmfs;                            /* optional */
+};
+
+int esxVI_VmfsDatastoreInfo_Alloc(esxVI_VmfsDatastoreInfo **item);
+void esxVI_VmfsDatastoreInfo_Free(esxVI_VmfsDatastoreInfo **item);
+int esxVI_VmfsDatastoreInfo_Validate(esxVI_VmfsDatastoreInfo *item);
+esxVI_VmfsDatastoreInfo *esxVI_VmfsDatastoreInfo_DynamicCast(void *item);
+int esxVI_VmfsDatastoreInfo_CastFromAnyType(esxVI_AnyType *anyType, esxVI_VmfsDatastoreInfo **item);
+int esxVI_VmfsDatastoreInfo_Serialize(esxVI_VmfsDatastoreInfo *item, const char *element, virBufferPtr output);
+int esxVI_VmfsDatastoreInfo_Deserialize(xmlNodePtr node, esxVI_VmfsDatastoreInfo **item);
 
 
 

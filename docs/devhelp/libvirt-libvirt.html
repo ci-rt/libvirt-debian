@@ -63,6 +63,8 @@ typedef enum <a href="#virConnectCredentialType">virConnectCredentialType</a>;
 typedef enum <a href="#virConnectFlags">virConnectFlags</a>;
 typedef <a href="libvirt-libvirt.html#virConnect">virConnect</a> * <a href="#virConnectPtr">virConnectPtr</a>;
 typedef struct _virDomain <a href="#virDomain">virDomain</a>;
+typedef struct _virDomainBlockInfo <a href="#virDomainBlockInfo">virDomainBlockInfo</a>;
+typedef <a href="libvirt-libvirt.html#virDomainBlockInfo">virDomainBlockInfo</a> * <a href="#virDomainBlockInfoPtr">virDomainBlockInfoPtr</a>;
 typedef <a href="libvirt-libvirt.html#virDomainBlockStatsStruct">virDomainBlockStatsStruct</a> * <a href="#virDomainBlockStatsPtr">virDomainBlockStatsPtr</a>;
 typedef struct _virDomainBlockStats <a href="#virDomainBlockStatsStruct">virDomainBlockStatsStruct</a>;
 typedef enum <a href="#virDomainCoreDumpFlags">virDomainCoreDumpFlags</a>;
@@ -99,12 +101,17 @@ typedef struct _virDomainMemoryStat <a href="#virDomainMemoryStatStruct">virDoma
 typedef enum <a href="#virDomainMemoryStatTags">virDomainMemoryStatTags</a>;
 typedef enum <a href="#virDomainMigrateFlags">virDomainMigrateFlags</a>;
 typedef <a href="libvirt-libvirt.html#virDomain">virDomain</a> * <a href="#virDomainPtr">virDomainPtr</a>;
+typedef struct _virDomainSnapshot <a href="#virDomainSnapshot">virDomainSnapshot</a>;
+typedef enum <a href="#virDomainSnapshotDeleteFlags">virDomainSnapshotDeleteFlags</a>;
+typedef <a href="libvirt-libvirt.html#virDomainSnapshot">virDomainSnapshot</a> * <a href="#virDomainSnapshotPtr">virDomainSnapshotPtr</a>;
 typedef enum <a href="#virDomainState">virDomainState</a>;
 typedef enum <a href="#virDomainXMLFlags">virDomainXMLFlags</a>;
 typedef enum <a href="#virEventHandleType">virEventHandleType</a>;
 typedef struct _virInterface <a href="#virInterface">virInterface</a>;
 typedef <a href="libvirt-libvirt.html#virInterface">virInterface</a> * <a href="#virInterfacePtr">virInterfacePtr</a>;
 typedef enum <a href="#virInterfaceXMLFlags">virInterfaceXMLFlags</a>;
+typedef struct _virNWFilter <a href="#virNWFilter">virNWFilter</a>;
+typedef <a href="libvirt-libvirt.html#virNWFilter">virNWFilter</a> * <a href="#virNWFilterPtr">virNWFilterPtr</a>;
 typedef struct _virNetwork <a href="#virNetwork">virNetwork</a>;
 typedef <a href="libvirt-libvirt.html#virNetwork">virNetwork</a> * <a href="#virNetworkPtr">virNetworkPtr</a>;
 typedef struct _virNodeDevice <a href="#virNodeDevice">virNodeDevice</a>;
@@ -151,6 +158,7 @@ int	<a href="#virConnectDomainEventDeregisterAny">virConnectDomainEventDeregiste
 typedef void <a href="#virConnectDomainEventGenericCallback">virConnectDomainEventGenericCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 void * opaque);
 typedef void <a href="#virConnectDomainEventGraphicsCallback">virConnectDomainEventGraphicsCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int phase, <br/>						 <a href="libvirt-libvirt.html#virDomainEventGraphicsAddressPtr">virDomainEventGraphicsAddressPtr</a> local, <br/>						 <a href="libvirt-libvirt.html#virDomainEventGraphicsAddressPtr">virDomainEventGraphicsAddressPtr</a> remote, <br/>						 const char * authScheme, <br/>						 <a href="libvirt-libvirt.html#virDomainEventGraphicsSubjectPtr">virDomainEventGraphicsSubjectPtr</a> subject, <br/>						 void * opaque);
 typedef void <a href="#virConnectDomainEventIOErrorCallback">virConnectDomainEventIOErrorCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 const char * srcPath, <br/>						 const char * devAlias, <br/>						 int action, <br/>						 void * opaque);
+typedef void <a href="#virConnectDomainEventIOErrorReasonCallback">virConnectDomainEventIOErrorReasonCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>							 const char * srcPath, <br/>							 const char * devAlias, <br/>							 int action, <br/>							 const char * reason, <br/>							 void * opaque);
 typedef void <a href="#virConnectDomainEventRTCChangeCallback">virConnectDomainEventRTCChangeCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 long long utcoffset, <br/>						 void * opaque);
 int	<a href="#virConnectDomainEventRegister">virConnectDomainEventRegister</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virConnectDomainEventCallback">virConnectDomainEventCallback</a> cb, <br/>					 void * opaque, <br/>					 <a href="libvirt-libvirt.html#virFreeCallback">virFreeCallback</a> freecb);
 int	<a href="#virConnectDomainEventRegisterAny">virConnectDomainEventRegisterAny</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int eventID, <br/>						 <a href="libvirt-libvirt.html#virConnectDomainEventGenericCallback">virConnectDomainEventGenericCallback</a> cb, <br/>						 void * opaque, <br/>						 <a href="libvirt-libvirt.html#virFreeCallback">virFreeCallback</a> freecb);
@@ -173,6 +181,7 @@ int	<a href="#virConnectListDefinedNetworks">virConnectListDefinedNetworks</a>	(
 int	<a href="#virConnectListDefinedStoragePools">virConnectListDefinedStoragePools</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 char ** const names, <br/>						 int maxnames);
 int	<a href="#virConnectListDomains">virConnectListDomains</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 int * ids, <br/>					 int maxids);
 int	<a href="#virConnectListInterfaces">virConnectListInterfaces</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** const names, <br/>					 int maxnames);
+int	<a href="#virConnectListNWFilters">virConnectListNWFilters</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** const names, <br/>					 int maxnames);
 int	<a href="#virConnectListNetworks">virConnectListNetworks</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** const names, <br/>					 int maxnames);
 int	<a href="#virConnectListSecrets">virConnectListSecrets</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** uuids, <br/>					 int maxuuids);
 int	<a href="#virConnectListStoragePools">virConnectListStoragePools</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** const names, <br/>					 int maxnames);
@@ -182,6 +191,7 @@ int	<a href="#virConnectNumOfDefinedNetworks">virConnectNumOfDefinedNetworks</a>
 int	<a href="#virConnectNumOfDefinedStoragePools">virConnectNumOfDefinedStoragePools</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
 int	<a href="#virConnectNumOfDomains">virConnectNumOfDomains</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
 int	<a href="#virConnectNumOfInterfaces">virConnectNumOfInterfaces</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
+int	<a href="#virConnectNumOfNWFilters">virConnectNumOfNWFilters</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
 int	<a href="#virConnectNumOfNetworks">virConnectNumOfNetworks</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
 int	<a href="#virConnectNumOfSecrets">virConnectNumOfSecrets</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
 int	<a href="#virConnectNumOfStoragePools">virConnectNumOfStoragePools</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
@@ -197,6 +207,7 @@ int	<a href="#virDomainBlockStats">virDomainBlockStats</a>		(<a href="libvirt-li
 int	<a href="#virDomainCoreDump">virDomainCoreDump</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * to, <br/>					 int flags);
 int	<a href="#virDomainCreate">virDomainCreate</a>			(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	<a href="#virDomainCreateLinux">virDomainCreateLinux</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xmlDesc, <br/>					 unsigned int flags);
+int	<a href="#virDomainCreateWithFlags">virDomainCreateWithFlags</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int flags);
 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	<a href="#virDomainCreateXML">virDomainCreateXML</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xmlDesc, <br/>					 unsigned int flags);
 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	<a href="#virDomainDefineXML">virDomainDefineXML</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xml);
 int	<a href="#virDomainDestroy">virDomainDestroy</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
@@ -204,6 +215,7 @@ int	<a href="#virDomainDetachDevice">virDomainDetachDevice</a>		(<a href="libvir
 int	<a href="#virDomainDetachDeviceFlags">virDomainDetachDeviceFlags</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * xml, <br/>					 unsigned int flags);
 int	<a href="#virDomainFree">virDomainFree</a>			(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
 int	<a href="#virDomainGetAutostart">virDomainGetAutostart</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 int * autostart);
+int	<a href="#virDomainGetBlockInfo">virDomainGetBlockInfo</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * path, <br/>					 <a href="libvirt-libvirt.html#virDomainBlockInfoPtr">virDomainBlockInfoPtr</a> info, <br/>					 unsigned int flags);
 <a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a>	<a href="#virDomainGetConnect">virDomainGetConnect</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom);
 unsigned int	<a href="#virDomainGetID">virDomainGetID</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
 int	<a href="#virDomainGetInfo">virDomainGetInfo</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virDomainInfoPtr">virDomainInfoPtr</a> info);
@@ -219,6 +231,8 @@ int	<a href="#virDomainGetUUID">virDomainGetUUID</a>		(<a href="libvirt-libvirt.
 int	<a href="#virDomainGetUUIDString">virDomainGetUUIDString</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 char * buf);
 int	<a href="#virDomainGetVcpus">virDomainGetVcpus</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virVcpuInfoPtr">virVcpuInfoPtr</a> info, <br/>					 int maxinfo, <br/>					 unsigned char * cpumaps, <br/>					 int maplen);
 char *	<a href="#virDomainGetXMLDesc">virDomainGetXMLDesc</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 int flags);
+int	<a href="#virDomainHasCurrentSnapshot">virDomainHasCurrentSnapshot</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int flags);
+int	<a href="#virDomainHasManagedSaveImage">virDomainHasManagedSaveImage</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 unsigned int flags);
 int	<a href="#virDomainInterfaceStats">virDomainInterfaceStats</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * path, <br/>					 <a href="libvirt-libvirt.html#virDomainInterfaceStatsPtr">virDomainInterfaceStatsPtr</a> stats, <br/>					 size_t size);
 int	<a href="#virDomainIsActive">virDomainIsActive</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom);
 int	<a href="#virDomainIsPersistent">virDomainIsPersistent</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom);
@@ -226,6 +240,8 @@ int	<a href="#virDomainIsPersistent">virDomainIsPersistent</a>		(<a href="libvir
 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	<a href="#virDomainLookupByName">virDomainLookupByName</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * name);
 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	<a href="#virDomainLookupByUUID">virDomainLookupByUUID</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const unsigned char * uuid);
 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	<a href="#virDomainLookupByUUIDString">virDomainLookupByUUIDString</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * uuidstr);
+int	<a href="#virDomainManagedSave">virDomainManagedSave</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 unsigned int flags);
+int	<a href="#virDomainManagedSaveRemove">virDomainManagedSaveRemove</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 unsigned int flags);
 int	<a href="#virDomainMemoryPeek">virDomainMemoryPeek</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 unsigned long long start, <br/>					 size_t size, <br/>					 void * buffer, <br/>					 unsigned int flags);
 int	<a href="#virDomainMemoryStats">virDomainMemoryStats</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 <a href="libvirt-libvirt.html#virDomainMemoryStatPtr">virDomainMemoryStatPtr</a> stats, <br/>					 unsigned int nr_stats, <br/>					 unsigned int flags);
 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	<a href="#virDomainMigrate">virDomainMigrate</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> dconn, <br/>					 unsigned long flags, <br/>					 const char * dname, <br/>					 const char * uri, <br/>					 unsigned long bandwidth);
@@ -236,6 +252,7 @@ int	<a href="#virDomainReboot">virDomainReboot</a>			(<a href="libvirt-libvirt.h
 int	<a href="#virDomainRef">virDomainRef</a>			(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
 int	<a href="#virDomainRestore">virDomainRestore</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * from);
 int	<a href="#virDomainResume">virDomainResume</a>			(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
+int	<a href="#virDomainRevertToSnapshot">virDomainRevertToSnapshot</a>	(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot, <br/>					 unsigned int flags);
 int	<a href="#virDomainSave">virDomainSave</a>			(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * to);
 int	<a href="#virDomainSetAutostart">virDomainSetAutostart</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 int autostart);
 int	<a href="#virDomainSetMaxMemory">virDomainSetMaxMemory</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned long memory);
@@ -243,6 +260,14 @@ int	<a href="#virDomainSetMemory">virDomainSetMemory</a>		(<a href="libvirt-libv
 int	<a href="#virDomainSetSchedulerParameters">virDomainSetSchedulerParameters</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virSchedParameterPtr">virSchedParameterPtr</a> params, <br/>					 int nparams);
 int	<a href="#virDomainSetVcpus">virDomainSetVcpus</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int nvcpus);
 int	<a href="#virDomainShutdown">virDomainShutdown</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
+<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a>	<a href="#virDomainSnapshotCreateXML">virDomainSnapshotCreateXML</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>							 const char * xmlDesc, <br/>							 unsigned int flags);
+<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a>	<a href="#virDomainSnapshotCurrent">virDomainSnapshotCurrent</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>							 unsigned int flags);
+int	<a href="#virDomainSnapshotDelete">virDomainSnapshotDelete</a>		(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot, <br/>					 unsigned int flags);
+int	<a href="#virDomainSnapshotFree">virDomainSnapshotFree</a>		(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot);
+char *	<a href="#virDomainSnapshotGetXMLDesc">virDomainSnapshotGetXMLDesc</a>	(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot, <br/>					 unsigned int flags);
+int	<a href="#virDomainSnapshotListNames">virDomainSnapshotListNames</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 char ** names, <br/>					 int nameslen, <br/>					 unsigned int flags);
+<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a>	<a href="#virDomainSnapshotLookupByName">virDomainSnapshotLookupByName</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>							 const char * name, <br/>							 unsigned int flags);
+int	<a href="#virDomainSnapshotNum">virDomainSnapshotNum</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int flags);
 int	<a href="#virDomainSuspend">virDomainSuspend</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
 int	<a href="#virDomainUndefine">virDomainUndefine</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
 int	<a href="#virDomainUpdateDeviceFlags">virDomainUpdateDeviceFlags</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * xml, <br/>					 unsigned int flags);
@@ -271,6 +296,17 @@ int	<a href="#virInterfaceIsActive">virInterfaceIsActive</a>		(<a href="libvirt-
 <a href="libvirt-libvirt.html#virInterfacePtr">virInterfacePtr</a>	<a href="#virInterfaceLookupByName">virInterfaceLookupByName</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * name);
 int	<a href="#virInterfaceRef">virInterfaceRef</a>			(<a href="libvirt-libvirt.html#virInterfacePtr">virInterfacePtr</a> iface);
 int	<a href="#virInterfaceUndefine">virInterfaceUndefine</a>		(<a href="libvirt-libvirt.html#virInterfacePtr">virInterfacePtr</a> iface);
+<a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a>	<a href="#virNWFilterDefineXML">virNWFilterDefineXML</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xmlDesc);
+int	<a href="#virNWFilterFree">virNWFilterFree</a>			(<a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter);
+const char *	<a href="#virNWFilterGetName">virNWFilterGetName</a>	(<a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter);
+int	<a href="#virNWFilterGetUUID">virNWFilterGetUUID</a>		(<a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter, <br/>					 unsigned char * uuid);
+int	<a href="#virNWFilterGetUUIDString">virNWFilterGetUUIDString</a>	(<a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter, <br/>					 char * buf);
+char *	<a href="#virNWFilterGetXMLDesc">virNWFilterGetXMLDesc</a>		(<a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter, <br/>					 int flags);
+<a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a>	<a href="#virNWFilterLookupByName">virNWFilterLookupByName</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * name);
+<a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a>	<a href="#virNWFilterLookupByUUID">virNWFilterLookupByUUID</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const unsigned char * uuid);
+<a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a>	<a href="#virNWFilterLookupByUUIDString">virNWFilterLookupByUUIDString</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * uuidstr);
+int	<a href="#virNWFilterRef">virNWFilterRef</a>			(<a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter);
+int	<a href="#virNWFilterUndefine">virNWFilterUndefine</a>		(<a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter);
 int	<a href="#virNetworkCreate">virNetworkCreate</a>		(<a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a> network);
 <a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a>	<a href="#virNetworkCreateXML">virNetworkCreateXML</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xmlDesc);
 <a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a>	<a href="#virNetworkDefineXML">virNetworkDefineXML</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xml);
@@ -522,6 +558,18 @@ The content of this structure is not made public by the API.
 </pre><p/>
 </div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainBlockInfo">Structure </a>virDomainBlockInfo</h3><pre class="programlisting">struct _virDomainBlockInfo {
+    unsigned long long	capacity	: logical size in bytes of the block device backing image
+    unsigned long long	allocation	: highest allocated extent in bytes of the block device backing image
+    unsigned long long	physical	: physical size in bytes of the container of the backing image
+} virDomainBlockInfo;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainBlockInfoPtr">Typedef </a>virDomainBlockInfoPtr</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainBlockInfo">virDomainBlockInfo</a> * virDomainBlockInfoPtr;
+</pre><p/>
+</div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainBlockStatsPtr">Typedef </a>virDomainBlockStatsPtr</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainBlockStatsStruct">virDomainBlockStatsStruct</a> * virDomainBlockStatsPtr;
 </pre><p>A pointer to a <a href="libvirt-libvirt.html#virDomainBlockStats">virDomainBlockStats</a> structure</p>
 </div>
@@ -544,7 +592,8 @@ The content of this structure is not made public by the API.
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainCreateFlags">Enum </a>virDomainCreateFlags</h3><pre class="programlisting">enum <a href="#virDomainCreateFlags">virDomainCreateFlags</a> {
-    <a name="VIR_DOMAIN_NONE">VIR_DOMAIN_NONE</a> = 0
+    <a name="VIR_DOMAIN_NONE">VIR_DOMAIN_NONE</a> = 0 /* Default behavior */
+    <a name="VIR_DOMAIN_START_PAUSED">VIR_DOMAIN_START_PAUSED</a> = 1 /*  Launch guest in paused state */
 };
 </pre><p/>
 </div>
@@ -619,8 +668,9 @@ The content of this structure is not made public by the API.
     <a name="VIR_DOMAIN_EVENT_ID_RTC_CHANGE">VIR_DOMAIN_EVENT_ID_RTC_CHANGE</a> = 2 /* virConnectDomainEventRTCChangeCallback */
     <a name="VIR_DOMAIN_EVENT_ID_WATCHDOG">VIR_DOMAIN_EVENT_ID_WATCHDOG</a> = 3 /* virConnectDomainEventWatchdogCallback */
     <a name="VIR_DOMAIN_EVENT_ID_IO_ERROR">VIR_DOMAIN_EVENT_ID_IO_ERROR</a> = 4 /* virConnectDomainEventIOErrorCallback */
-    <a name="VIR_DOMAIN_EVENT_ID_GRAPHICS">VIR_DOMAIN_EVENT_ID_GRAPHICS</a> = 5 /* * NB: this enum value will increase over time as new events are * added to the libvirt API. It reflects the last event ID supported * by this version of the libvirt API. * */
-    <a name="VIR_DOMAIN_EVENT_ID_LAST">VIR_DOMAIN_EVENT_ID_LAST</a> = 6
+    <a name="VIR_DOMAIN_EVENT_ID_GRAPHICS">VIR_DOMAIN_EVENT_ID_GRAPHICS</a> = 5 /* virConnectDomainEventGraphicsCallback */
+    <a name="VIR_DOMAIN_EVENT_ID_IO_ERROR_REASON">VIR_DOMAIN_EVENT_ID_IO_ERROR_REASON</a> = 6 /* * NB: this enum value will increase over time as new events are * added to the libvirt API. It reflects the last event ID supported * by this version of the libvirt API. * */
+    <a name="VIR_DOMAIN_EVENT_ID_LAST">VIR_DOMAIN_EVENT_ID_LAST</a> = 7
 };
 </pre><p/>
 </div>
@@ -643,7 +693,8 @@ The content of this structure is not made public by the API.
         <div class="refsect2" lang="en"><h3><a name="virDomainEventStartedDetailType">Enum </a>virDomainEventStartedDetailType</h3><pre class="programlisting">enum <a href="#virDomainEventStartedDetailType">virDomainEventStartedDetailType</a> {
     <a name="VIR_DOMAIN_EVENT_STARTED_BOOTED">VIR_DOMAIN_EVENT_STARTED_BOOTED</a> = 0 /* Normal startup from boot */
     <a name="VIR_DOMAIN_EVENT_STARTED_MIGRATED">VIR_DOMAIN_EVENT_STARTED_MIGRATED</a> = 1 /* Incoming migration from another host */
-    <a name="VIR_DOMAIN_EVENT_STARTED_RESTORED">VIR_DOMAIN_EVENT_STARTED_RESTORED</a> = 2 /*  Restored from a state file */
+    <a name="VIR_DOMAIN_EVENT_STARTED_RESTORED">VIR_DOMAIN_EVENT_STARTED_RESTORED</a> = 2 /* Restored from a state file */
+    <a name="VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT">VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT</a> = 3 /*  Restored from snapshot */
 };
 </pre><p/>
 </div>
@@ -654,14 +705,17 @@ The content of this structure is not made public by the API.
     <a name="VIR_DOMAIN_EVENT_STOPPED_CRASHED">VIR_DOMAIN_EVENT_STOPPED_CRASHED</a> = 2 /* Guest crashed */
     <a name="VIR_DOMAIN_EVENT_STOPPED_MIGRATED">VIR_DOMAIN_EVENT_STOPPED_MIGRATED</a> = 3 /* Migrated off to another host */
     <a name="VIR_DOMAIN_EVENT_STOPPED_SAVED">VIR_DOMAIN_EVENT_STOPPED_SAVED</a> = 4 /* Saved to a state file */
-    <a name="VIR_DOMAIN_EVENT_STOPPED_FAILED">VIR_DOMAIN_EVENT_STOPPED_FAILED</a> = 5 /*  Host emulator/mgmt failed */
+    <a name="VIR_DOMAIN_EVENT_STOPPED_FAILED">VIR_DOMAIN_EVENT_STOPPED_FAILED</a> = 5 /* Host emulator/mgmt failed */
+    <a name="VIR_DOMAIN_EVENT_STOPPED_FROM_SNAPSHOT">VIR_DOMAIN_EVENT_STOPPED_FROM_SNAPSHOT</a> = 6 /*  offline snapshot loaded */
 };
 </pre><p/>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainEventSuspendedDetailType">Enum </a>virDomainEventSuspendedDetailType</h3><pre class="programlisting">enum <a href="#virDomainEventSuspendedDetailType">virDomainEventSuspendedDetailType</a> {
     <a name="VIR_DOMAIN_EVENT_SUSPENDED_PAUSED">VIR_DOMAIN_EVENT_SUSPENDED_PAUSED</a> = 0 /* Normal suspend due to admin pause */
-    <a name="VIR_DOMAIN_EVENT_SUSPENDED_MIGRATED">VIR_DOMAIN_EVENT_SUSPENDED_MIGRATED</a> = 1 /*  Suspended for offline migration */
+    <a name="VIR_DOMAIN_EVENT_SUSPENDED_MIGRATED">VIR_DOMAIN_EVENT_SUSPENDED_MIGRATED</a> = 1 /* Suspended for offline migration */
+    <a name="VIR_DOMAIN_EVENT_SUSPENDED_IOERROR">VIR_DOMAIN_EVENT_SUSPENDED_IOERROR</a> = 2 /* Suspended due to a disk I/O error */
+    <a name="VIR_DOMAIN_EVENT_SUSPENDED_WATCHDOG">VIR_DOMAIN_EVENT_SUSPENDED_WATCHDOG</a> = 3 /*  Suspended due to a watchdog firing */
 };
 </pre><p/>
 </div>
@@ -789,17 +843,35 @@ The content of this structure is not made public by the API.
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainMigrateFlags">Enum </a>virDomainMigrateFlags</h3><pre class="programlisting">enum <a href="#virDomainMigrateFlags">virDomainMigrateFlags</a> {
     <a name="VIR_MIGRATE_LIVE">VIR_MIGRATE_LIVE</a> = 1 /* live migration */
-    <a name="VIR_MIGRATE_PEER2PEER">VIR_MIGRATE_PEER2PEER</a> = 2 /* direct source -&gt; dest host control channel */
+    <a name="VIR_MIGRATE_PEER2PEER">VIR_MIGRATE_PEER2PEER</a> = 2 /* direct source -&gt; dest host control channel Note the less-common spelling that we're stuck with: VIR_MIGRATE_TUNNELLED should be VIR_MIGRATE_TUNNELED */
     <a name="VIR_MIGRATE_TUNNELLED">VIR_MIGRATE_TUNNELLED</a> = 4 /* tunnel migration data over libvirtd connection */
     <a name="VIR_MIGRATE_PERSIST_DEST">VIR_MIGRATE_PERSIST_DEST</a> = 8 /* persist the VM on the destination */
     <a name="VIR_MIGRATE_UNDEFINE_SOURCE">VIR_MIGRATE_UNDEFINE_SOURCE</a> = 16 /* undefine the VM on the source */
-    <a name="VIR_MIGRATE_PAUSED">VIR_MIGRATE_PAUSED</a> = 32 /*  pause on remote side */
+    <a name="VIR_MIGRATE_PAUSED">VIR_MIGRATE_PAUSED</a> = 32 /* pause on remote side */
+    <a name="VIR_MIGRATE_NON_SHARED_DISK">VIR_MIGRATE_NON_SHARED_DISK</a> = 64 /* migration with non-shared storage with full disk copy */
+    <a name="VIR_MIGRATE_NON_SHARED_INC">VIR_MIGRATE_NON_SHARED_INC</a> = 128 /*  migration with non-shared storage with incremental copy (same base image shared between source and destination) */
 };
 </pre><p/>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainPtr">Typedef </a>virDomainPtr</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomain">virDomain</a> * virDomainPtr;
 </pre><p>a <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> is pointer to a <a href="libvirt-libvirt.html#virDomain">virDomain</a> private structure, this is the type used to reference a domain in the API.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainSnapshot">Structure </a>virDomainSnapshot</h3><pre class="programlisting">struct _virDomainSnapshot {
+The content of this structure is not made public by the API.
+} virDomainSnapshot;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotDeleteFlags">Enum </a>virDomainSnapshotDeleteFlags</h3><pre class="programlisting">enum <a href="#virDomainSnapshotDeleteFlags">virDomainSnapshotDeleteFlags</a> {
+    <a name="VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN">VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN</a> = 1
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotPtr">Typedef </a>virDomainSnapshotPtr</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainSnapshot">virDomainSnapshot</a> * virDomainSnapshotPtr;
+</pre><p>a <a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> is pointer to a <a href="libvirt-libvirt.html#virDomainSnapshot">virDomainSnapshot</a> private structure, and is the type used to reference a domain snapshot in the API.</p>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainState">Enum </a>virDomainState</h3><pre class="programlisting">enum <a href="#virDomainState">virDomainState</a> {
@@ -816,7 +888,8 @@ The content of this structure is not made public by the API.
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainXMLFlags">Enum </a>virDomainXMLFlags</h3><pre class="programlisting">enum <a href="#virDomainXMLFlags">virDomainXMLFlags</a> {
     <a name="VIR_DOMAIN_XML_SECURE">VIR_DOMAIN_XML_SECURE</a> = 1 /* dump security sensitive information too */
-    <a name="VIR_DOMAIN_XML_INACTIVE">VIR_DOMAIN_XML_INACTIVE</a> = 2 /*  dump inactive domain information */
+    <a name="VIR_DOMAIN_XML_INACTIVE">VIR_DOMAIN_XML_INACTIVE</a> = 2 /* dump inactive domain information */
+    <a name="VIR_DOMAIN_XML_UPDATE_CPU">VIR_DOMAIN_XML_UPDATE_CPU</a> = 4 /*  update guest CPU requirements according to host CPU */
 };
 </pre><p/>
 </div>
@@ -844,6 +917,16 @@ The content of this structure is not made public by the API.
     <a name="VIR_INTERFACE_XML_INACTIVE">VIR_INTERFACE_XML_INACTIVE</a> = 1 /*  dump inactive interface information */
 };
 </pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilter">Structure </a>virNWFilter</h3><pre class="programlisting">struct _virNWFilter {
+The content of this structure is not made public by the API.
+} virNWFilter;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterPtr">Typedef </a>virNWFilterPtr</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virNWFilter">virNWFilter</a> * virNWFilterPtr;
+</pre><p>a <a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a> is pointer to a <a href="libvirt-libvirt.html#virNWFilter">virNWFilter</a> private structure, this is the type used to reference a network filter in the API.</p>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNetwork">Structure </a>virNetwork</h3><pre class="programlisting">struct _virNetwork {
@@ -984,7 +1067,8 @@ The content of this structure is not made public by the API.
     <a name="VIR_STORAGE_POOL_INACTIVE">VIR_STORAGE_POOL_INACTIVE</a> = 0 /* Not running */
     <a name="VIR_STORAGE_POOL_BUILDING">VIR_STORAGE_POOL_BUILDING</a> = 1 /* Initializing pool, not available */
     <a name="VIR_STORAGE_POOL_RUNNING">VIR_STORAGE_POOL_RUNNING</a> = 2 /* Running normally */
-    <a name="VIR_STORAGE_POOL_DEGRADED">VIR_STORAGE_POOL_DEGRADED</a> = 3 /*  Running degraded */
+    <a name="VIR_STORAGE_POOL_DEGRADED">VIR_STORAGE_POOL_DEGRADED</a> = 3 /* Running degraded */
+    <a name="VIR_STORAGE_POOL_INACCESSIBLE">VIR_STORAGE_POOL_INACCESSIBLE</a> = 4 /*  Running, but not accessible */
 };
 </pre><p/>
 </div>
@@ -1091,6 +1175,10 @@ VIR_DOMAIN_EVENT_ID_GRAPHICS with virConnectDomainEventRegisterAny()</p>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventIOErrorCallback"/>Function type virConnectDomainEventIOErrorCallback</h3><pre class="programlisting">void	virConnectDomainEventIOErrorCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 const char * srcPath, <br/>						 const char * devAlias, <br/>						 int action, <br/>						 void * opaque)<br/>
 </pre><p/>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>srcPath</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>devAlias</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>action</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td/></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventIOErrorReasonCallback"/>Function type virConnectDomainEventIOErrorReasonCallback</h3><pre class="programlisting">void	virConnectDomainEventIOErrorReasonCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>							 const char * srcPath, <br/>							 const char * devAlias, <br/>							 int action, <br/>							 const char * reason, <br/>							 void * opaque)<br/>
+</pre><p/>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>srcPath</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>devAlias</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>action</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>reason</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td/></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventRTCChangeCallback"/>Function type virConnectDomainEventRTCChangeCallback</h3><pre class="programlisting">void	virConnectDomainEventRTCChangeCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 long long utcoffset, <br/>						 void * opaque)<br/>
 </pre><p>The callback signature to use when registering for an event of type
@@ -1367,6 +1455,10 @@ remaining names will be silently ignored.</p>
 and store their names in @names</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array to collect the list of names of interfaces</td></tr><tr><td><span class="term"><i><tt>maxnames</tt></i>:</span></td><td>size of @names</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of interfaces found or -1 in case of error</td></tr></tbody></table></div></div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectListNWFilters"/>virConnectListNWFilters ()</h3><pre class="programlisting">int	virConnectListNWFilters		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** const names, <br/>					 int maxnames)<br/>
+</pre><p>Collect the list of network filters, and store their names in @names</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array to collect the list of names of network filters</td></tr><tr><td><span class="term"><i><tt>maxnames</tt></i>:</span></td><td>size of @names</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of network filters found or -1 in case of error</td></tr></tbody></table></div></div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectListNetworks"/>virConnectListNetworks ()</h3><pre class="programlisting">int	virConnectListNetworks		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** const names, <br/>					 int maxnames)<br/>
 </pre><p>Collect the list of active networks, and store their names in @names</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array to collect the list of names of active networks</td></tr><tr><td><span class="term"><i><tt>maxnames</tt></i>:</span></td><td>size of @names</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of networks found or -1 in case of error</td></tr></tbody></table></div></div>
@@ -1404,6 +1496,10 @@ remaining names will be silently ignored.</p>
         <div class="refsect2" lang="en"><h3><a name="virConnectNumOfInterfaces"/>virConnectNumOfInterfaces ()</h3><pre class="programlisting">int	virConnectNumOfInterfaces	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn)<br/>
 </pre><p>Provides the number of active interfaces on the physical host.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of active interfaces found or -1 in case of error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectNumOfNWFilters"/>virConnectNumOfNWFilters ()</h3><pre class="programlisting">int	virConnectNumOfNWFilters	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn)<br/>
+</pre><p>Provides the number of nwfilters.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of nwfilters found or -1 in case of error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectNumOfNetworks"/>virConnectNumOfNetworks ()</h3><pre class="programlisting">int	virConnectNumOfNetworks		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn)<br/>
 </pre><p>Provides the number of active networks.</p>
@@ -1539,7 +1635,7 @@ the remote host.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>to</tt></i>:</span></td><td>path for the core file</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags, currently unused</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainCreate"/>virDomainCreate ()</h3><pre class="programlisting">int	virDomainCreate			(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain)<br/>
-</pre><p>launch a defined domain. If the call succeed the domain moves from the
+</pre><p>Launch a defined domain. If the call succeeds the domain moves from the
 defined to the running domains pools.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to a defined domain</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of error</td></tr></tbody></table></div></div>
         <hr/>
@@ -1549,6 +1645,11 @@ Renamed to virDomainCreateXML() providing identical functionality.
 This existing name will left indefinitely for API compatibility.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>string containing an XML description of the domain</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new domain object or NULL in case of failure</td></tr></tbody></table></div></div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainCreateWithFlags"/>virDomainCreateWithFlags ()</h3><pre class="programlisting">int	virDomainCreateWithFlags	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int flags)<br/>
+</pre><p>Launch a defined domain. If the call succeeds the domain moves from the
+defined to the running domains pools.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to a defined domain</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-or of supported <a href="libvirt-libvirt.html#virDomainCreateFlags">virDomainCreateFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of error</td></tr></tbody></table></div></div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainCreateXML"/>virDomainCreateXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	virDomainCreateXML	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xmlDesc, <br/>					 unsigned int flags)<br/>
 </pre><p>Launch a new guest domain, based on an XML description similar
 to the one returned by virDomainGetXMLDesc()
@@ -1556,7 +1657,7 @@ This function may requires privileged access to the hypervisor.
 The domain is not persistent, so its definition will disappear when it
 is destroyed, or if the host is restarted (see virDomainDefineXML() to
 define persistent domains).</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>string containing an XML description of the domain</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new domain object or NULL in case of failure</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>string containing an XML description of the domain</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-or of supported <a href="libvirt-libvirt.html#virDomainCreateFlags">virDomainCreateFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new domain object or NULL in case of failure</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainDefineXML"/>virDomainDefineXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	virDomainDefineXML	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xml)<br/>
 </pre><p>Define a domain, but does not start it.
@@ -1601,6 +1702,10 @@ The data structure is freed and should not be used thereafter.</p>
 configured to be automatically started when the host
 machine boots.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>autostart</tt></i>:</span></td><td>the value returned</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainGetBlockInfo"/>virDomainGetBlockInfo ()</h3><pre class="programlisting">int	virDomainGetBlockInfo		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * path, <br/>					 <a href="libvirt-libvirt.html#virDomainBlockInfoPtr">virDomainBlockInfoPtr</a> info, <br/>					 unsigned int flags)<br/>
+</pre><p>Extract information about a domain's block device.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>path</tt></i>:</span></td><td>path to the block device or file</td></tr><tr><td><span class="term"><i><tt>info</tt></i>:</span></td><td>pointer to a <a href="libvirt-libvirt.html#virDomainBlockInfo">virDomainBlockInfo</a> structure allocated by the user</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>currently unused, pass zero</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainGetConnect"/>virDomainGetConnect ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a>	virDomainGetConnect	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom)<br/>
 </pre><p>Provides the connection pointer associated with a domain. The
@@ -1683,6 +1788,16 @@ and also in cpumaps if this pointer isn't NULL.</p>
 later to relaunch the domain with virDomainCreateXML().</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>an OR'ed set of <a href="libvirt-libvirt.html#virDomainXMLFlags">virDomainXMLFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a 0 terminated UTF-8 encoded XML instance, or NULL in case of error. the caller must free() the returned value.</td></tr></tbody></table></div></div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainHasCurrentSnapshot"/>virDomainHasCurrentSnapshot ()</h3><pre class="programlisting">int	virDomainHasCurrentSnapshot	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int flags)<br/>
+</pre><p>Determine if the domain has a current snapshot.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to the domain object</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>unused flag parameters; callers should pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>1 if such snapshot exists, 0 if it doesn't, -1 on error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainHasManagedSaveImage"/>virDomainHasManagedSaveImage ()</h3><pre class="programlisting">int	virDomainHasManagedSaveImage	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 unsigned int flags)<br/>
+</pre><p>Check if a domain has a managed save image as created by
+virDomainManagedSave(). Note that any running domain should not have
+such an image, as it should have been removed on restart.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to the domain</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>optional flags currently unused</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if no image is present, 1 if an image is present, and -1 in case of error</td></tr></tbody></table></div></div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainInterfaceStats"/>virDomainInterfaceStats ()</h3><pre class="programlisting">int	virDomainInterfaceStats		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * path, <br/>					 <a href="libvirt-libvirt.html#virDomainInterfaceStatsPtr">virDomainInterfaceStatsPtr</a> stats, <br/>					 size_t size)<br/>
 </pre><p>This function returns network interface stats for interfaces
 attached to the domain.
@@ -1723,6 +1838,20 @@ in that case a lookup based on the Name or UUId need to be done instead.</p>
         <div class="refsect2" lang="en"><h3><a name="virDomainLookupByUUIDString"/>virDomainLookupByUUIDString ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	virDomainLookupByUUIDString	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * uuidstr)<br/>
 </pre><p>Try to lookup a domain on the given hypervisor based on its UUID.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>uuidstr</tt></i>:</span></td><td>the string UUID for the domain</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new domain object or NULL in case of failure. If the domain cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_DOMAIN">VIR_ERR_NO_DOMAIN</a> error is raised.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainManagedSave"/>virDomainManagedSave ()</h3><pre class="programlisting">int	virDomainManagedSave		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 unsigned int flags)<br/>
+</pre><p>This method will suspend a domain and save its memory contents to
+a file on disk. After the call, if successful, the domain is not
+listed as running anymore.
+The difference from virDomainSave() is that libvirt is keeping track of
+the saved state itself, and will reuse it once the domain is being
+restarted (automatically or via an explicit libvirt call).
+As a result any running domain is sure to not have a managed saved image.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to the domain</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>optional flags currently unused</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success or -1 in case of failure</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainManagedSaveRemove"/>virDomainManagedSaveRemove ()</h3><pre class="programlisting">int	virDomainManagedSaveRemove	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 unsigned int flags)<br/>
+</pre><p>Remove any managed save image for this domain.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to the domain</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>optional flags currently unused</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, and -1 in case of error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainMemoryPeek"/>virDomainMemoryPeek ()</h3><pre class="programlisting">int	virDomainMemoryPeek		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 unsigned long long start, <br/>					 size_t size, <br/>					 void * buffer, <br/>					 unsigned int flags)<br/>
 </pre><p>This function allows you to read the contents of a domain's
@@ -1916,6 +2045,10 @@ it was frozen by calling virSuspendDomain().
 This function may requires privileged access</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainRevertToSnapshot"/>virDomainRevertToSnapshot ()</h3><pre class="programlisting">int	virDomainRevertToSnapshot	(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot, <br/>					 unsigned int flags)<br/>
+</pre><p>Revert the domain to a given snapshot.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>snapshot</tt></i>:</span></td><td>a domain snapshot object</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>unused flag parameters; callers should pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if the creation is successful, -1 on error.</td></tr></tbody></table></div></div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSave"/>virDomainSave ()</h3><pre class="programlisting">int	virDomainSave			(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * to)<br/>
 </pre><p>This method will suspend a domain and save its memory contents to
 a file on disk. After the call, if successful, the domain is not
@@ -1970,6 +2103,47 @@ request.
 TODO: should we add an option for reboot, knowing it may not be doable
  in the general case ?</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotCreateXML"/>virDomainSnapshotCreateXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a>	virDomainSnapshotCreateXML	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>							 const char * xmlDesc, <br/>							 unsigned int flags)<br/>
+</pre><p>Creates a new snapshot of a domain based on the snapshot xml
+contained in xmlDesc.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>string containing an XML description of the domain</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>unused flag parameters; callers should pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>an (opaque) <a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> on success, NULL on failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotCurrent"/>virDomainSnapshotCurrent ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a>	virDomainSnapshotCurrent	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>							 unsigned int flags)<br/>
+</pre><p>Get the current snapshot for a domain, if any.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>unused flag parameters; callers should pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a domain snapshot object or NULL in case of failure. If the current domain snapshot cannot be found, then the <a href="libvirt-virterror.html#VIR_ERR_NO_DOMAIN_SNAPSHOT">VIR_ERR_NO_DOMAIN_SNAPSHOT</a> error is raised.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotDelete"/>virDomainSnapshotDelete ()</h3><pre class="programlisting">int	virDomainSnapshotDelete		(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot, <br/>					 unsigned int flags)<br/>
+</pre><p>Delete the snapshot.
+
+If @flags is 0, then just this snapshot is deleted, and changes from
+this snapshot are automatically merged into children snapshots. If
+flags is VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN, then this snapshot
+and any children snapshots are deleted.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>snapshot</tt></i>:</span></td><td>a domain snapshot object</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>flag parameters</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if the snapshot was successfully deleted, -1 on error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotFree"/>virDomainSnapshotFree ()</h3><pre class="programlisting">int	virDomainSnapshotFree		(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot)<br/>
+</pre><p>Free the domain snapshot object. The snapshot itself is not modified.
+The data structure is freed and should not be used thereafter.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>snapshot</tt></i>:</span></td><td>a domain snapshot object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotGetXMLDesc"/>virDomainSnapshotGetXMLDesc ()</h3><pre class="programlisting">char *	virDomainSnapshotGetXMLDesc	(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot, <br/>					 unsigned int flags)<br/>
+</pre><p>Provide an XML description of the domain snapshot.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>snapshot</tt></i>:</span></td><td>a domain snapshot object</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>unused flag parameters; callers should pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a 0 terminated UTF-8 encoded XML instance, or NULL in case of error. the caller must free() the returned value.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotListNames"/>virDomainSnapshotListNames ()</h3><pre class="programlisting">int	virDomainSnapshotListNames	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 char ** names, <br/>					 int nameslen, <br/>					 unsigned int flags)<br/>
+</pre><p>Collect the list of domain snapshots for the given domain, and store
+their names in @names. Caller is responsible for freeing each member
+of the array.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array to collect the list of names of snapshots</td></tr><tr><td><span class="term"><i><tt>nameslen</tt></i>:</span></td><td>size of @names</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>unused flag parameters; callers should pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of domain snapshots found or -1 in case of error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotLookupByName"/>virDomainSnapshotLookupByName ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a>	virDomainSnapshotLookupByName	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>							 const char * name, <br/>							 unsigned int flags)<br/>
+</pre><p>Try to lookup a domain snapshot based on its name.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name for the domain snapshot</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>unused flag parameters; callers should pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a domain snapshot object or NULL in case of failure. If the domain snapshot cannot be found, then the <a href="libvirt-virterror.html#VIR_ERR_NO_DOMAIN_SNAPSHOT">VIR_ERR_NO_DOMAIN_SNAPSHOT</a> error is raised.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotNum"/>virDomainSnapshotNum ()</h3><pre class="programlisting">int	virDomainSnapshotNum		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int flags)<br/>
+</pre><p>Provides the number of domain snapshots for this domain..</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>unused flag parameters; callers should pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of domain snapshost found or -1 in case of error.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSuspend"/>virDomainSuspend ()</h3><pre class="programlisting">int	virDomainSuspend		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain)<br/>
 </pre><p>Suspends an active domain, the process is frozen without further access
@@ -2098,6 +2272,65 @@ the reference count.</p>
 </pre><p>Undefine an interface, ie remove it from the config.
 This does not free the associated <a href="libvirt-libvirt.html#virInterfacePtr">virInterfacePtr</a> object.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>iface</tt></i>:</span></td><td>pointer to a defined interface</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterDefineXML"/>virNWFilterDefineXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a>	virNWFilterDefineXML	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xmlDesc)<br/>
+</pre><p>Define a new network filter, based on an XML description
+similar to the one returned by virNWFilterGetXMLDesc()</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>an XML description of the nwfilter</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new nwfilter object or NULL in case of failure</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterFree"/>virNWFilterFree ()</h3><pre class="programlisting">int	virNWFilterFree			(<a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter)<br/>
+</pre><p>Free the nwfilter object. The running instance is kept alive.
+The data structure is freed and should not be used thereafter.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>nwfilter</tt></i>:</span></td><td>a nwfilter object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterGetName"/>virNWFilterGetName ()</h3><pre class="programlisting">const char *	virNWFilterGetName	(<a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter)<br/>
+</pre><p>Get the public name for the network filter</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>nwfilter</tt></i>:</span></td><td>a nwfilter object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the name or NULL, the string need not be deallocated its lifetime will be the same as the nwfilter object.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterGetUUID"/>virNWFilterGetUUID ()</h3><pre class="programlisting">int	virNWFilterGetUUID		(<a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter, <br/>					 unsigned char * uuid)<br/>
+</pre><p>Get the UUID for a network filter</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>nwfilter</tt></i>:</span></td><td>a nwfilter object</td></tr><tr><td><span class="term"><i><tt>uuid</tt></i>:</span></td><td>pointer to a <a href="libvirt-libvirt.html#VIR_UUID_BUFLEN">VIR_UUID_BUFLEN</a> bytes array</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterGetUUIDString"/>virNWFilterGetUUIDString ()</h3><pre class="programlisting">int	virNWFilterGetUUIDString	(<a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter, <br/>					 char * buf)<br/>
+</pre><p>Get the UUID for a network filter as string. For more information about
+UUID see RFC4122.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>nwfilter</tt></i>:</span></td><td>a nwfilter object</td></tr><tr><td><span class="term"><i><tt>buf</tt></i>:</span></td><td>pointer to a <a href="libvirt-libvirt.html#VIR_UUID_STRING_BUFLEN">VIR_UUID_STRING_BUFLEN</a> bytes array</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterGetXMLDesc"/>virNWFilterGetXMLDesc ()</h3><pre class="programlisting">char *	virNWFilterGetXMLDesc		(<a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter, <br/>					 int flags)<br/>
+</pre><p>Provide an XML description of the network filter. The description may be
+reused later to redefine the network filter with virNWFilterCreateXML().</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>nwfilter</tt></i>:</span></td><td>a nwfilter object</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>an OR'ed set of extraction flags, not used yet</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a 0 terminated UTF-8 encoded XML instance, or NULL in case of error. the caller must free() the returned value.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterLookupByName"/>virNWFilterLookupByName ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a>	virNWFilterLookupByName	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * name)<br/>
+</pre><p>Try to lookup a network filter on the given hypervisor based on its name.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name for the network filter</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new nwfilter object or NULL in case of failure. If the network filter cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_NWFILTER">VIR_ERR_NO_NWFILTER</a> error is raised.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterLookupByUUID"/>virNWFilterLookupByUUID ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a>	virNWFilterLookupByUUID	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const unsigned char * uuid)<br/>
+</pre><p>Try to lookup a network filter on the given hypervisor based on its UUID.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>uuid</tt></i>:</span></td><td>the raw UUID for the network filter</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new nwfilter object or NULL in case of failure. If the nwfdilter cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_NWFILTER">VIR_ERR_NO_NWFILTER</a> error is raised.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterLookupByUUIDString"/>virNWFilterLookupByUUIDString ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a>	virNWFilterLookupByUUIDString	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * uuidstr)<br/>
+</pre><p>Try to lookup an nwfilter on the given hypervisor based on its UUID.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>uuidstr</tt></i>:</span></td><td>the string UUID for the nwfilter</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new nwfilter object or NULL in case of failure. If the nwfilter cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_NWFILTER">VIR_ERR_NO_NWFILTER</a> error is raised.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterRef"/>virNWFilterRef ()</h3><pre class="programlisting">int	virNWFilterRef			(<a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter)<br/>
+</pre><p>Increment the reference count on the nwfilter. For each
+additional call to this method, there shall be a corresponding
+call to <a href="libvirt-libvirt.html#virNWFilterFree">virNWFilterFree</a> to release the reference count, once
+the caller no longer needs the reference to this object.
+
+This method is typically useful for applications where multiple
+threads are using a connection, and it is required that the
+connection remain open until all threads have finished using
+it. ie, each new thread using an nwfilter would increment
+the reference count.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>nwfilter</tt></i>:</span></td><td>the nwfilter to hold a reference on</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterUndefine"/>virNWFilterUndefine ()</h3><pre class="programlisting">int	virNWFilterUndefine		(<a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter)<br/>
+</pre><p>Undefine the nwfilter object. This call will not succeed if
+a running VM is referencing the filter. This does not free the
+associated <a href="libvirt-libvirt.html#virNWFilterPtr">virNWFilterPtr</a> object.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>nwfilter</tt></i>:</span></td><td>a nwfilter object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNetworkCreate"/>virNetworkCreate ()</h3><pre class="programlisting">int	virNetworkCreate		(<a href="libvirt-libvirt.html#virNetworkPtr">virNetworkPtr</a> network)<br/>
 </pre><p>Create and start a defined network. If the call succeed the network

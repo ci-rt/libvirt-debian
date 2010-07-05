@@ -38,6 +38,7 @@
 # include "network.h"
 # include "nwfilter_params.h"
 # include "nwfilter_conf.h"
+# include "macvtap.h"
 
 /* Private component of virDomainXMLFlags */
 typedef enum {
@@ -97,6 +98,7 @@ typedef virDomainDeviceVirtioSerialAddress *virDomainDeviceVirtioSerialAddressPt
 struct _virDomainDeviceVirtioSerialAddress {
     unsigned int controller;
     unsigned int bus;
+    unsigned int port;
 };
 
 typedef struct _virDomainDeviceInfo virDomainDeviceInfo;
@@ -192,6 +194,15 @@ enum virDomainControllerType {
     VIR_DOMAIN_CONTROLLER_TYPE_LAST
 };
 
+
+enum virDomainControllerModel {
+    VIR_DOMAIN_CONTROLLER_MODEL_BUSLOGIC,
+    VIR_DOMAIN_CONTROLLER_MODEL_LSILOGIC,
+    VIR_DOMAIN_CONTROLLER_MODEL_LSISAS1068,
+
+    VIR_DOMAIN_CONTROLLER_MODEL_LAST
+};
+
 typedef struct _virDomainVirtioSerialOpts virDomainVirtioSerialOpts;
 typedef virDomainVirtioSerialOpts *virDomainVirtioSerialOptsPtr;
 struct _virDomainVirtioSerialOpts {
@@ -205,6 +216,7 @@ typedef virDomainControllerDef *virDomainControllerDefPtr;
 struct _virDomainControllerDef {
     int type;
     int idx;
+    int model; /* -1 == undef */
     union {
         virDomainVirtioSerialOpts vioserial;
     } opts;
@@ -290,6 +302,7 @@ struct _virDomainNetDef {
         struct {
             char *linkdev;
             int mode;
+            virVirtualPortProfileParams virtPortProfile;
         } direct;
     } data;
     char *ifname;
@@ -297,9 +310,6 @@ struct _virDomainNetDef {
     char *filter;
     virNWFilterHashTablePtr filterparams;
 };
-
-# define VALID_IFNAME_CHARS \
- "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_/"
 
 enum virDomainChrTargetType {
     VIR_DOMAIN_CHR_TARGET_TYPE_NULL = 0,
@@ -954,6 +964,9 @@ virDomainObjPtr virDomainAssignDef(virCapsPtr caps,
                                    virDomainObjListPtr doms,
                                    const virDomainDefPtr def,
                                    bool live);
+void virDomainObjAssignDef(virDomainObjPtr domain,
+                           const virDomainDefPtr def,
+                           bool live);
 void virDomainRemoveInactive(virDomainObjListPtr doms,
                              virDomainObjPtr dom);
 
@@ -996,7 +1009,7 @@ int virDomainDiskInsert(virDomainDefPtr def,
                         virDomainDiskDefPtr disk);
 void virDomainDiskInsertPreAlloced(virDomainDefPtr def,
                                    virDomainDiskDefPtr disk);
-int virDomainDiskDefAssignAddress(virDomainDiskDefPtr def);
+int virDomainDiskDefAssignAddress(virCapsPtr caps, virDomainDiskDefPtr def);
 
 int virDomainControllerInsert(virDomainDefPtr def,
                               virDomainControllerDefPtr controller);
@@ -1011,7 +1024,7 @@ int virDomainSaveConfig(const char *configDir,
                         virDomainDefPtr def);
 int virDomainSaveStatus(virCapsPtr caps,
                         const char *statusDir,
-                        virDomainObjPtr obj);
+                        virDomainObjPtr obj) ATTRIBUTE_RETURN_CHECK;
 
 typedef void (*virDomainLoadConfigNotify)(virDomainObjPtr dom,
                                           int newDomain,
@@ -1056,6 +1069,15 @@ int virDomainObjListGetInactiveNames(virDomainObjListPtr doms,
                                      char **const names,
                                      int maxnames);
 
+typedef int (*virDomainChrDefIterator)(virDomainDefPtr def,
+                                       virDomainChrDefPtr dev,
+                                       void *opaque);
+
+int virDomainChrDefForeach(virDomainDefPtr def,
+                           bool abortOnError,
+                           virDomainChrDefIterator iter,
+                           void *opaque);
+
 
 VIR_ENUM_DECL(virDomainVirt)
 VIR_ENUM_DECL(virDomainBoot)
@@ -1070,6 +1092,7 @@ VIR_ENUM_DECL(virDomainDiskBus)
 VIR_ENUM_DECL(virDomainDiskCache)
 VIR_ENUM_DECL(virDomainDiskErrorPolicy)
 VIR_ENUM_DECL(virDomainController)
+VIR_ENUM_DECL(virDomainControllerModel)
 VIR_ENUM_DECL(virDomainFS)
 VIR_ENUM_DECL(virDomainNet)
 VIR_ENUM_DECL(virDomainChrTarget)

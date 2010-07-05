@@ -103,6 +103,10 @@ int esxVI_ReconfigVM_Task
        esxVI_VirtualMachineConfigSpec *spec,               /* required */
        esxVI_ManagedObjectReference **output);             /* required */
 
+int esxVI_RefreshDatastore
+      (esxVI_Context *ctx,
+       esxVI_ManagedObjectReference *_this);               /* required */
+
 int esxVI_RegisterVM_Task
       (esxVI_Context *ctx,
        esxVI_ManagedObjectReference *_this,                /* required */

@@ -89,7 +89,7 @@ Running hypervisor: Xen 3.0.0
 
 =back
 
-=item B<cd> I<directory> optional
+=item B<cd> optional I<directory>
 
 Will change current directory to I<directory>.  The default directory
 for the B<cd> command is the home directory or, if there is no I<HOME>
@@ -156,10 +156,10 @@ description see:
   L<http://libvirt.org/formatcaps.html>
 The XML also show the NUMA topology information if available.
 
-=item B<list>
+=item B<list> optional I<--inactive> I<--all>
 
 Prints information about one or more domains.  If no domains are
-specified it prints out information about all domains.
+specified it prints out information about running domains.
 
 An example format for the list is as follows:
 
@@ -177,7 +177,7 @@ State is the run state (see below).
 
 B<STATES>
 
-The State field lists 6 states for a domain, and which ones the
+The State field lists 7 states for a domain, and which ones the
 current domain is in.
 
 =over 4
@@ -204,6 +204,11 @@ scheduling by the hypervisor.
 The domain is in the process of shutting down, i.e. the guest operating system
 has been notified and should be in the process of stopping its operations
 gracefully.
+
+=item B<shut off>
+
+The domain is not running.  Usually this indicates the domain has been
+shut down completely, or has not been started.
 
 =item B<crashed>
 
@@ -260,21 +265,23 @@ The option I<--disable> disables autostarting.
 
 Connect the virtual serial console for the guest.
 
-=item B<create> I<FILE>
+=item B<create> I<FILE> optional I<--console> I<--paused>
 
 Create a domain from an XML <file>. An easy way to create the XML
 <file> is to use the B<dumpxml> command to obtain the definition of a
-pre-existing guest.
+pre-existing guest.  The domain will be paused if the I<--paused> option
+is used and supported by the driver; otherwise it will be running.
+If I<--console> is requested, attach to the console after creation.
 
 B<Example>
 
-virsh dumpxml <domain-id> > domain.xml
-edit domain.xml
-virsh create < domain.xml
+ virsh dumpxml <domain-id> > domain.xml
+ edit domain.xml
+ virsh create < domain.xml
 
 =item B<define> I<FILE>
 
-Define a domain from an XML <file>. The domain definitions is registered
+Define a domain from an XML <file>. The domain definition is registered
 but not started.
 
 =item B<destroy> I<domain-id>
@@ -462,9 +469,12 @@ services must be shutdown in the domain.
 The exact behavior of a domain when it shuts down is set by the
 I<on_shutdown> parameter in the domain's XML definition.
 
-=item B<start> I<domain-name>
+=item B<start> I<domain-name> optional I<--console> I<--paused>
 
-Start a (previously defined) inactive domain.
+Start a (previously defined) inactive domain.  The domain will be paused
+if the I<--paused> option is used and supported by the driver; otherwise
+it will be running.
+If I<--console> is requested, attach to the console after creation.
 
 =item B<suspend> I<domain-id>
 
@@ -485,7 +495,7 @@ is not available the processes will provide an exit code of 1.
 =item B<undefine> I<domain-id>
 
 Undefine the configuration for an inactive domain. Since it's not running
-the domain name or UUId must be used as the I<domain-id>.
+the domain name or UUID must be used as the I<domain-id>.
 
 =item B<vcpuinfo> I<domain-id>
 
@@ -518,13 +528,17 @@ format of the device sections to get the most accurate set of accepted values.
 
 Attach a device to the domain, using a device definition in an XML file.
 See the documentation to learn about libvirt XML format for a device.
+For cdrom and floppy devices, this command only replaces the media within
+the single existing device; consider using B<update-device> for this usage.
 
 =item B<attach-disk> I<domain-id> I<source> I<target> optional I<--driver driver> I<--subdriver subdriver> I<--type type> I<--mode mode>
 
 Attach a new disk device to the domain.
 I<source> and I<target> are paths for the files and devices.
 I<driver> can be I<file>, I<tap> or I<phy> depending on the kind of access.
-I<type> can indicate I<cdrom> or I<floppy> as alternative to the disk default.
+I<type> can indicate I<cdrom> or I<floppy> as alternative to the disk default,
+although this use only replaces the media within the existing virtual cdrom or
+floppy device; consider using B<update-device> for this usage instead.
 I<mode> can specify the two specific mode I<readonly> or I<shareable>.
 
 =item B<attach-interface> I<domain-id> I<type> I<source> optional I<--target target> I<--mac mac> I<--script script>
@@ -553,6 +567,13 @@ Detach a network interface from a domain.
 I<type> can be either I<network> to indicate a physical network device or I<bridge> to indicate a bridge to a device.
 It is recommended to use the I<mac> option to distinguish between the interfaces
 if more than one are present on the domain.
+
+=item B<update-device> I<domain-id> I<file> optional I<--persistent>
+
+Update the characteristics of a device associated with I<domain-id>,
+based on the device definition in an XML I<file>.  If the I<--persistent>
+option is used, the changes will affect the next boot of the domain.
+See the documentation to learn about libvirt XML format for a device.
 
 =back
 
@@ -667,7 +688,7 @@ Build a given pool.
 Create and start a pool object from the XML I<file>.
 
 =item B<pool-create-as> I<name> I<--print-xml> I<type> optional I<source-host>
-I<source-path> I<source-dev> I<source-name> <target>
+I<source-path> I<source-dev> I<source-name> <target> I<--source-format format>
 
 Create and start a pool object I<name> from the raw parameters.  If
 I<--print-xml> is specified, then print the XML of the pool object
@@ -679,7 +700,7 @@ I<type>.
 Create, but do not start, a pool object from the XML I<file>.
 
 =item B<pool-define-as> I<name> I<--print-xml> I<type> optional I<source-host>
-I<source-path> I<source-dev> I<source-name> <target>
+I<source-path> I<source-dev> I<source-name> <target> I<--source-format format>
 
 Create, but do not start, a pool object I<name> from the raw parameters.  If
 I<--print-xml> is specified, then print the XML of the pool object
@@ -722,11 +743,13 @@ variables, and defaults to C<vi>.
 
 Returns basic information about the I<pool> object.
 
-=item B<pool-list> optional I<--inactive> I<--all>
+=item B<pool-list> optional I<--inactive> I<--all> I<--details>
 
 List pool objects known to libvirt.  By default, only pools in use by
 active domains are listed; I<--inactive> lists just the inactive
-pools, and I<--all> lists all pools.
+pools, and I<--all> lists all pools. The I<--details> option instructs
+virsh to additionally display pool persistence and capacity related
+information where available.
 
 =item B<pool-name> I<uuid>
 
@@ -747,6 +770,116 @@ Undefine the configuration for an inactive I<pool>.
 =item B<pool-uuid> I<pool>
 
 Returns the UUID of the named I<pool>.
+
+=back
+
+=head1 VOLUME COMMANDS
+
+=item B<vol-create> I<pool-or-uuid> I<FILE>
+
+Create a volume from an XML <file>.
+I<pool-or-uuid> is the name or UUID of the storage pool to create the volume in.
+I<FILE> is the XML <file> with the volume definition. An easy way to create the
+XML <file> is to use the B<vol-dumpxml> command to obtain the definition of a
+pre-existing volume.
+
+B<Example>
+
+ virsh vol-dumpxml --pool storagepool1 appvolume1 > newvolume.xml
+ edit newvolume.xml
+ virsh vol-create differentstoragepool newvolume.xml
+
+=item B<vol-create-from> I<pool-or-uuid> I<FILE> [optional I<--inputpool>
+I<pool-or-uuid>] I<vol-name-or-key-or-path>
+
+Create a volume, using another volume as input.
+I<pool-or-uuid> is the name or UUID of the storage pool to create the volume in.
+I<FILE> is the XML <file> with the volume definition.
+I<--inputpool> I<pool-or-uuid> is the name or uuid of the storage pool the
+source volume is in.
+I<vol-name-or-key-or-path> is the name or key or path of the source volume.
+
+=item B<vol-create-as> I<pool-or-uuid> I<name> I<capacity> optional
+I<--allocation> I<size> I<--format> I<string> I<--backing-vol>
+I<vol-name-or-key-or-path> I<--backing-vol-format> I<string>
+
+Create a volume from a set of arguments.
+I<pool-or-uuid> is the name or UUID of the storage pool to create the volume
+in.
+I<name> is the name of the new volume.
+I<capacity> is the size of the volume to be created, with optional k, M, G, or
+T suffix.
+I<--allocation> I<size> is the initial size to be allocated in the volume, with
+optional k, M, G, or T suffix.
+I<--format> I<string> is used in file based storage pools to specify the volume
+file format to use; raw, bochs, qcow, qcow2, vmdk.
+I<--backing-vol> I<vol-name-or-key-or-path> is the source backing
+volume to be used if taking a snapshot of an existing volume.
+I<--backing-vol-format> I<string> is the format of the snapshot backing volume;
+raw, bochs, qcow, qcow2, vmdk, host_device.
+
+=item B<vol-clone> [optional I<--pool> I<pool-or-uuid>] I<vol-name-or-key-or-path> I<name>
+
+Clone an existing volume.  Less powerful, but easier to type, version of
+B<vol-create-from>.
+I<--pool> I<pool-or-uuid> is the name or UUID of the storage pool to create the volume in.
+I<vol-name-or-key-or-path> is the name or key or path of the source volume.
+I<name> is the name of the new volume.
+
+=item B<vol-delete> [optional I<--pool> I<pool-or-uuid>] I<vol-name-or-key-or-path>
+
+Delete a given volume.
+I<--pool> I<pool-or-uuid> is the name or UUID of the storage pool the volume is in.
+I<vol-name-or-key-or-path> is the name or key or path of the volume to delete.
+
+=item B<vol-wipe> [optional I<--pool> I<pool-or-uuid>] I<vol-name-or-key-or-path>
+
+Wipe a volume, ensure data previously on the volume is not accessible to future reads.
+I<--pool> I<pool-or-uuid> is the name or UUID of the storage pool the volume is in.
+I<vol-name-or-key-or-path> is the name or key or path of the volume to wipe.
+
+=item B<vol-dumpxml> [optional I<--pool> I<pool-or-uuid>] I<vol-name-or-key-or-path>
+
+Output the volume information as an XML dump to stdout.
+I<--pool> I<pool-or-uuid> is the name or UUID of the storage pool the volume is in.
+I<vol-name-or-key-or-path> is the name or key or path of the volume to output the XML of.
+
+=item B<vol-info> [optional I<--pool> I<pool-or-uuid>] I<vol-name-or-key-or-path>
+
+Returns basic information about the given storage volume.
+I<--pool> I<pool-or-uuid> is the name or UUID of the storage pool the volume is in.
+I<vol-name-or-key-or-path> is the name or key or path of the volume to return information for.
+
+=item B<vol-list> I<--pool> I<pool-or-uuid>
+
+Return the list of volumes in the given storage pool.
+I<--pool> I<pool-or-uuid> is the name or UUID of the storage pool.
+
+=item B<vol-pool> [optional I<--uuid>] I<vol-key-or-path>
+
+Return the pool name or UUID for a given volume. By default, the pool name is
+returned. If the I<--uuid> option is given, the pool UUID is returned instead.
+I<vol-key-or-path> is the key or path of the volume to return the pool
+information for.
+
+=item B<vol-path> [optional I<--pool> I<pool-or-uuid>] I<vol-name-or-key>
+
+Return the path for a given volume.
+I<--pool> I<pool-or-uuid> is the name or UUID of the storage pool the volume is in.
+I<vol-name-or-key> is the name or key of the volume to return the path for.
+
+=item B<vol-name> I<vol-key-or-path>
+
+Return the name for a given volume.
+I<vol-key-or-path> is the key or path of the volume to return the name for.
+
+=item B<vol-key> [optional I<--pool> I<pool-or-uuid>] I<vol-name-or-path>
+
+Return the volume key for a given volume.
+I<--pool> I<pool-or-uuid> is the name or UUID of the storage pool the volume is in.
+I<vol-name-or-path> is the name or path of the volume to return the volume key for.
+
+=back
 
 =head1 SECRET COMMMANDS
 

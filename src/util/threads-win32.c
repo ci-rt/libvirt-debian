@@ -1,7 +1,7 @@
 /*
  * threads-win32.c: basic thread synchronization primitives
  *
- * Copyright (C) 2009 Red Hat, Inc.
+ * Copyright (C) 2009-2010 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -155,6 +155,16 @@ int virCondWait(virCondPtr c, virMutexPtr m)
 
     virMutexLock(m);
     return 0;
+}
+
+int virCondWaitUntil(virCondPtr c ATTRIBUTE_UNUSED,
+                     virMutexPtr m ATTRIBUTE_UNUSED,
+                     unsigned long long whenms ATTRIBUTE_UNUSED)
+{
+    /* FIXME: this function is currently only used by the QEMU driver that
+     *        is not compiled on Windows, so it's okay for now to just
+     *        miss an implementation */
+    return -1;
 }
 
 void virCondSignal(virCondPtr c)
