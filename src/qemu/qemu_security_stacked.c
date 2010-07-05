@@ -196,18 +196,18 @@ qemuSecurityStackedRestoreSecurityHostdevLabel(virDomainObjPtr vm,
 
 
 static int
-qemuSecurityStackedSetSecurityAllLabel(virDomainObjPtr vm)
+qemuSecurityStackedSetSecurityAllLabel(virDomainObjPtr vm, const char *stdin_path)
 {
     int rc = 0;
 
     if (driver->securitySecondaryDriver &&
         driver->securitySecondaryDriver->domainSetSecurityAllLabel &&
-        driver->securitySecondaryDriver->domainSetSecurityAllLabel(vm) < 0)
+        driver->securitySecondaryDriver->domainSetSecurityAllLabel(vm, stdin_path) < 0)
         rc = -1;
 
     if (driver->securityPrimaryDriver &&
         driver->securityPrimaryDriver->domainSetSecurityAllLabel &&
-        driver->securityPrimaryDriver->domainSetSecurityAllLabel(vm) < 0)
+        driver->securityPrimaryDriver->domainSetSecurityAllLabel(vm, stdin_path) < 0)
         rc = -1;
 
     return rc;
@@ -215,18 +215,19 @@ qemuSecurityStackedSetSecurityAllLabel(virDomainObjPtr vm)
 
 
 static int
-qemuSecurityStackedRestoreSecurityAllLabel(virDomainObjPtr vm)
+qemuSecurityStackedRestoreSecurityAllLabel(virDomainObjPtr vm,
+                                           int migrated)
 {
     int rc = 0;
 
     if (driver->securitySecondaryDriver &&
         driver->securitySecondaryDriver->domainRestoreSecurityAllLabel &&
-        driver->securitySecondaryDriver->domainRestoreSecurityAllLabel(vm) < 0)
+        driver->securitySecondaryDriver->domainRestoreSecurityAllLabel(vm, migrated) < 0)
         rc = -1;
 
     if (driver->securityPrimaryDriver &&
         driver->securityPrimaryDriver->domainRestoreSecurityAllLabel &&
-        driver->securityPrimaryDriver->domainRestoreSecurityAllLabel(vm) < 0)
+        driver->securityPrimaryDriver->domainRestoreSecurityAllLabel(vm, migrated) < 0)
         rc = -1;
 
     return rc;
@@ -309,6 +310,51 @@ qemuSecurityStackedGetProcessLabel(virDomainObjPtr vm,
     return rc;
 }
 
+
+static int
+qemuSecurityStackedSetSocketLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+                                  virDomainObjPtr vm)
+{
+    int rc = 0;
+
+    if (driver->securityPrimaryDriver &&
+        driver->securityPrimaryDriver->domainSetSecuritySocketLabel &&
+        driver->securityPrimaryDriver->domainSetSecuritySocketLabel(driver->securityPrimaryDriver,
+                                                                    vm) < 0)
+        rc = -1;
+
+    if (driver->securitySecondaryDriver &&
+        driver->securitySecondaryDriver->domainSetSecuritySocketLabel &&
+        driver->securitySecondaryDriver->domainSetSecuritySocketLabel(driver->securitySecondaryDriver,
+                                                                      vm) < 0)
+        rc = -1;
+
+    return rc;
+}
+
+
+static int
+qemuSecurityStackedClearSocketLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+                                    virDomainObjPtr vm)
+{
+    int rc = 0;
+
+    if (driver->securitySecondaryDriver &&
+        driver->securitySecondaryDriver->domainClearSecuritySocketLabel &&
+        driver->securitySecondaryDriver->domainClearSecuritySocketLabel(driver->securitySecondaryDriver,
+                                                                        vm) < 0)
+        rc = -1;
+
+    if (driver->securityPrimaryDriver &&
+        driver->securityPrimaryDriver->domainClearSecuritySocketLabel &&
+        driver->securityPrimaryDriver->domainClearSecuritySocketLabel(driver->securityPrimaryDriver,
+                                                                      vm) < 0)
+        rc = -1;
+
+    return rc;
+}
+
+
 virSecurityDriver qemuStackedSecurityDriver = {
     .name                       = "qemuStacked",
     .domainSecurityVerify = qemuSecurityStackedVerify,
@@ -331,4 +377,7 @@ virSecurityDriver qemuStackedSecurityDriver = {
 
     .domainSetSavedStateLabel = qemuSecurityStackedSetSavedStateLabel,
     .domainRestoreSavedStateLabel = qemuSecurityStackedRestoreSavedStateLabel,
+
+    .domainClearSecuritySocketLabel = qemuSecurityStackedClearSocketLabel,
+    .domainSetSecuritySocketLabel = qemuSecurityStackedSetSocketLabel,
 };

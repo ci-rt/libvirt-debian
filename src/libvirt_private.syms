@@ -4,6 +4,14 @@
 #
 
 
+# bitmap.h
+virBitmapAlloc;
+virBitmapFree;
+virBitmapSetBit;
+virBitmapClearBit;
+virBitmapGetBit;
+
+
 # buf.h
 virBufferVSprintf;
 virBufferEscapeString;
@@ -215,6 +223,8 @@ virDomainSnapshotObjUnref;
 virDomainSnapshotDefParseString;
 virDomainSnapshotDefFormat;
 virDomainSnapshotAssignDef;
+virDomainObjAssignDef;
+virDomainChrDefForeach;
 
 
 # domain_event.h
@@ -255,6 +265,11 @@ virDomainEventDispatchDefaultFunc;
 virDomainEventDispatch;
 virDomainEventQueueDispatch;
 
+# domain_nwfilter.h
+virDomainConfNWFilterRegister;
+virDomainConfNWFilterInstantiate;
+virDomainConfNWFilterTeardown;
+virDomainConfVMNWFilterTeardown;
 
 # ebtables.h
 ebtablesAddForwardAllowIn;
@@ -460,6 +475,7 @@ virNetworkSaveConfig;
 virNetworkSetBridgeName;
 virNetworkObjLock;
 virNetworkObjUnlock;
+virNetworkObjIsDuplicate;
 
 
 # nodeinfo.h
@@ -601,6 +617,7 @@ virStoragePoolTypeFromString;
 virStoragePartedFsTypeTypeToString;
 virStoragePoolObjLock;
 virStoragePoolObjUnlock;
+virStoragePoolObjIsDuplicate;
 
 # storage_encryption_conf.h
 virStorageEncryptionFree;
@@ -613,6 +630,7 @@ virStorageFileFormatTypeToString;
 virStorageFileFormatTypeFromString;
 virStorageFileGetMetadata;
 virStorageFileGetMetadataFromFD;
+virStorageFileIsSharedFS;
 
 # threads.h
 virMutexInit;
@@ -650,7 +668,6 @@ virExecDaemonize;
 virSetCloseExec;
 virSetNonBlock;
 virFormatMacAddr;
-virGetHostnameLocalhost;
 virGetHostname;
 virParseMacAddr;
 virFileDeletePid;
@@ -665,6 +682,7 @@ virFileReadLimFD;
 virFilePid;
 virFileReadPid;
 virFileLinkPointsTo;
+virFileSanitizePath;
 virParseNumber;
 virParseVersionString;
 virPipeReadUntilEOF;
@@ -685,6 +703,9 @@ virArgvToString;
 ifaceCtrl;
 ifaceCheck;
 ifaceGetIndex;
+ifaceGetFlags;
+ifaceIsUp;
+ifaceGetVlanID;
 
 # usb.h
 usbGetDevice;
@@ -698,6 +719,8 @@ usbDeviceFileIterate;
 virUUIDFormat;
 virUUIDGenerate;
 virUUIDParse;
+virSetHostUUIDStr;
+virGetHostUUID;
 
 
 # virterror_internal.h

@@ -383,6 +383,9 @@
 /* Define to 1 if you have the <errno.h> header file. */
 #undef HAVE_ERRNO_H
 
+/* Define to 1 if you have the <fcntl.h> header file. */
+#undef HAVE_FCNTL_H
+
 /* Define to 1 if you have the <float.h> header file. */
 #undef HAVE_FLOAT_H
 
@@ -498,9 +501,6 @@
 /* Define to 1 if you have the `portablexdr' library (-lportablexdr). */
 #undef HAVE_LIBPORTABLEXDR
 
-/* Define if pthread (-lpthread) */
-#undef HAVE_LIBPTHREAD
-
 /* Define to 1 if you have the `selinux' library (-lselinux). */
 #undef HAVE_LIBSELINUX
 
@@ -518,6 +518,9 @@
 
 /* Define to 1 if you have the <linux/kvm.h> header file. */
 #undef HAVE_LINUX_KVM_H
+
+/* Define to 1 if you have the <linux/magic.h> header file. */
+#undef HAVE_LINUX_MAGIC_H
 
 /* Define to 1 if you have the <linux/param.h> header file. */
 #undef HAVE_LINUX_PARAM_H
@@ -611,8 +614,14 @@
 /* Define to 1 if you have the `pstat_getstatic' function. */
 #undef HAVE_PSTAT_GETSTATIC
 
-/* Define if <pthread.h> */
+/* Define to 1 if you have the <pthread.h> header file. */
 #undef HAVE_PTHREAD_H
+
+/* Define to 1 if you have the `pthread_mutexattr_init' function. */
+#undef HAVE_PTHREAD_MUTEXATTR_INIT
+
+/* Define to 1 if you have the `pthread_sigmask' function. */
+#undef HAVE_PTHREAD_SIGMASK
 
 /* Define to 1 if you have the <pwd.h> header file. */
 #undef HAVE_PWD_H
@@ -681,8 +690,14 @@
 /* Define to 1 if fchownat is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_FCHOWNAT
 
+/* Define to 1 if fcntl is declared even after undefining macros. */
+#undef HAVE_RAW_DECL_FCNTL
+
 /* Define to 1 if fpurge is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_FPURGE
+
+/* Define to 1 if freeaddrinfo is declared even after undefining macros. */
+#undef HAVE_RAW_DECL_FREEADDRINFO
 
 /* Define to 1 if fseeko is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_FSEEKO
@@ -701,6 +716,12 @@
 
 /* Define to 1 if futimens is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_FUTIMENS
+
+/* Define to 1 if gai_strerror is declared even after undefining macros. */
+#undef HAVE_RAW_DECL_GAI_STRERROR
+
+/* Define to 1 if getaddrinfo is declared even after undefining macros. */
+#undef HAVE_RAW_DECL_GETADDRINFO
 
 /* Define to 1 if getcwd is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_GETCWD
@@ -731,6 +752,9 @@
 
 /* Define to 1 if getlogin_r is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_GETLOGIN_R
+
+/* Define to 1 if getnameinfo is declared even after undefining macros. */
+#undef HAVE_RAW_DECL_GETNAMEINFO
 
 /* Define to 1 if getpagesize is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_GETPAGESIZE
@@ -843,6 +867,9 @@
 /* Define to 1 if mkstemps is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_MKSTEMPS
 
+/* Define to 1 if openat is declared even after undefining macros. */
+#undef HAVE_RAW_DECL_OPENAT
+
 /* Define to 1 if pipe2 is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_PIPE2
 
@@ -854,6 +881,9 @@
 
 /* Define to 1 if ptsname is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_PTSNAME
+
+/* Define to 1 if pwrite is declared even after undefining macros. */
+#undef HAVE_RAW_DECL_PWRITE
 
 /* Define to 1 if random_r is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_RANDOM_R
@@ -989,6 +1019,9 @@
 
 /* Define to 1 if ttyname_r is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_TTYNAME_R
+
+/* Define to 1 if uname is declared even after undefining macros. */
+#undef HAVE_RAW_DECL_UNAME
 
 /* Define to 1 if unlink is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_UNLINK
@@ -1158,6 +1191,9 @@
 /* Define to 1 if the system has the type `struct sockaddr_storage'. */
 #undef HAVE_STRUCT_SOCKADDR_STORAGE
 
+/* Define to 1 if the system has the type `struct utsname'. */
+#undef HAVE_STRUCT_UTSNAME
+
 /* Define to 1 if you have the `symlink' function. */
 #undef HAVE_SYMLINK
 
@@ -1298,6 +1334,12 @@
 
 /* Define if you have the 'wint_t' type. */
 #undef HAVE_WINT_T
+
+/* Define to 1 if O_NOATIME works. */
+#undef HAVE_WORKING_O_NOATIME
+
+/* Define to 1 if O_NOFOLLOW works. */
+#undef HAVE_WORKING_O_NOFOLLOW
 
 /* Define to 1 if you have the <ws2tcpip.h> header file. */
 #undef HAVE_WS2TCPIP_H
@@ -1505,8 +1547,15 @@
 /* Location or name of the mount program */
 #undef UMOUNT
 
+/* Define to the prefix of C symbols at the assembler and linker level, either
+   an underscore or empty. */
+#undef USER_LABEL_PREFIX
+
 /* whether virsh can use readline */
 #undef USE_READLINE
+
+/* Location of directory containing VirtualBox XPCOMC library */
+#undef VBOX_XPCOMC_DIR
 
 /* Version number of package */
 #undef VERSION
@@ -1628,6 +1677,9 @@
 /* whether VirtualBox driver is enabled */
 #undef WITH_VBOX
 
+/* whether vsi vepa support is enabled */
+#undef WITH_VIRTUALPORT
+
 /* whether Xen driver is enabled */
 #undef WITH_XEN
 
@@ -1695,9 +1747,6 @@
 
 /* Define like PROTOTYPES; this can be used by system headers. */
 #undef __PROTOTYPES
-
-/* Define to empty if `const' does not conform to ANSI C. */
-#undef const
 
 /* Define to `int' if <sys/types.h> doesn't define. */
 #undef gid_t

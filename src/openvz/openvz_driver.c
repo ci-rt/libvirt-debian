@@ -1,6 +1,7 @@
 /*
  * openvz_driver.c: core driver methods for managing OpenVZ VEs
  *
+ * Copyright (C) 2010 Red Hat, Inc.
  * Copyright (C) 2006, 2007 Binary Karma
  * Copyright (C) 2006 Shuveb Hussain
  * Copyright (C) 2007 Anoop Joe Cyriac
@@ -33,7 +34,6 @@
 #include <limits.h>
 #include <string.h>
 #include <stdio.h>
-#include <strings.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -873,13 +873,15 @@ cleanup:
 
 static virDomainPtr
 openvzDomainCreateXML(virConnectPtr conn, const char *xml,
-                      unsigned int flags ATTRIBUTE_UNUSED)
+                      unsigned int flags)
 {
     struct openvz_driver *driver =  conn->privateData;
     virDomainDefPtr vmdef = NULL;
     virDomainObjPtr vm = NULL;
     virDomainPtr dom = NULL;
     const char *progstart[] = {VZCTL, "--quiet", "start", PROGRAM_SENTINAL, NULL};
+
+    virCheckFlags(0, NULL);
 
     openvzDriverLock(driver);
     if ((vmdef = virDomainDefParseString(driver->caps, xml,
@@ -956,12 +958,14 @@ cleanup:
 }
 
 static int
-openvzDomainCreate(virDomainPtr dom)
+openvzDomainCreateWithFlags(virDomainPtr dom, unsigned int flags)
 {
     struct openvz_driver *driver = dom->conn->privateData;
     virDomainObjPtr vm;
     const char *prog[] = {VZCTL, "--quiet", "start", PROGRAM_SENTINAL, NULL };
     int ret = -1;
+
+    virCheckFlags(0, -1);
 
     openvzDriverLock(driver);
     vm = virDomainFindByName(&driver->domains, dom->name);
@@ -995,6 +999,12 @@ cleanup:
     if (vm)
         virDomainObjUnlock(vm);
     return ret;
+}
+
+static int
+openvzDomainCreate(virDomainPtr dom)
+{
+    return openvzDomainCreateWithFlags(dom, 0);
 }
 
 static int
@@ -1505,6 +1515,7 @@ static virDriver openvzDriver = {
     openvzListDefinedDomains, /* listDefinedDomains */
     openvzNumDefinedDomains, /* numOfDefinedDomains */
     openvzDomainCreate, /* domainCreate */
+    openvzDomainCreateWithFlags, /* domainCreateWithFlags */
     openvzDomainDefineXML, /* domainDefineXML */
     openvzDomainUndefine, /* domainUndefine */
     NULL, /* domainAttachDevice */

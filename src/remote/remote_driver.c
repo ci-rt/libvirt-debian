@@ -33,6 +33,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <arpa/inet.h>
+#include <sys/wait.h>
 
 /* Windows socket compatibility functions. */
 #include <errno.h>
@@ -43,10 +44,6 @@
 # include <net/if.h>
 # include <netinet/in.h>
 # include <netinet/tcp.h>
-#endif
-
-#ifdef HAVE_SYS_WAIT_H
-# include <sys/wait.h>
 #endif
 
 #ifdef HAVE_PWD_H
@@ -70,11 +67,6 @@
 #include <netdb.h>
 
 #include <poll.h>
-
-/* AI_ADDRCONFIG is missing on some systems. */
-#ifndef AI_ADDRCONFIG
-# define AI_ADDRCONFIG 0
-#endif
 
 #include "virterror_internal.h"
 #include "logging.h"
@@ -1141,15 +1133,28 @@ check_cert_file(const char *type, const char *file)
 }
 
 
+static void remote_debug_gnutls_log(int level, const char* str) {
+    DEBUG("%d %s", level, str);
+}
+
 static int
 initialize_gnutls(void)
 {
     static int initialized = 0;
     int err;
+    char *gnutlsdebug;
 
     if (initialized) return 0;
 
     gnutls_global_init ();
+
+    if ((gnutlsdebug = getenv("LIBVIRT_GNUTLS_DEBUG")) != NULL) {
+        int val;
+        if (virStrToLong_i(gnutlsdebug, NULL, 10, &val) < 0)
+            val = 10;
+        gnutls_global_set_log_level(val);
+        gnutls_global_set_log_function(remote_debug_gnutls_log);
+    }
 
     /* X509 stuff */
     err = gnutls_certificate_allocate_credentials (&x509_cred);
@@ -1413,11 +1418,6 @@ verify_certificate (virConnectPtr conn ATTRIBUTE_UNUSED,
 static int
 doRemoteClose (virConnectPtr conn, struct private_data *priv)
 {
-    if (call (conn, priv, 0, REMOTE_PROC_CLOSE,
-              (xdrproc_t) xdr_void, (char *) NULL,
-              (xdrproc_t) xdr_void, (char *) NULL) == -1)
-        return -1;
-
     if (priv->eventFlushTimer >= 0) {
         /* Remove timeout */
         virEventRemoveTimeout(priv->eventFlushTimer);
@@ -1425,6 +1425,11 @@ doRemoteClose (virConnectPtr conn, struct private_data *priv)
         virEventRemoveHandle(priv->watch);
         priv->watch = -1;
     }
+
+    if (call (conn, priv, 0, REMOTE_PROC_CLOSE,
+              (xdrproc_t) xdr_void, (char *) NULL,
+              (xdrproc_t) xdr_void, (char *) NULL) == -1)
+        return -1;
 
     /* Close socket. */
     if (priv->uses_tls && priv->session) {
@@ -2844,17 +2849,34 @@ remoteDomainMigratePrepare2 (virConnectPtr dconn,
         goto done;
 
     if (ret.cookie.cookie_len > 0) {
+        if (!cookie || !cookielen) {
+            remoteError(VIR_ERR_INTERNAL_ERROR, "%s",
+                        _("caller ignores cookie or cookielen"));
+            goto error;
+        }
         *cookie = ret.cookie.cookie_val; /* Caller frees. */
         *cookielen = ret.cookie.cookie_len;
     }
-    if (ret.uri_out)
+    if (ret.uri_out) {
+        if (!uri_out) {
+            remoteError(VIR_ERR_INTERNAL_ERROR, "%s",
+                        _("caller ignores uri_out"));
+            goto error;
+        }
         *uri_out = *ret.uri_out; /* Caller frees. */
+    }
 
     rv = 0;
 
 done:
     remoteDriverUnlock(priv);
     return rv;
+error:
+    if (ret.cookie.cookie_len)
+        VIR_FREE(ret.cookie.cookie_val);
+    if (ret.uri_out)
+        VIR_FREE(*ret.uri_out);
+    goto done;
 }
 
 static virDomainPtr
@@ -3006,6 +3028,38 @@ remoteDomainCreate (virDomainPtr domain)
 
     domain->id = ret2.dom.id;
     xdr_free ((xdrproc_t) &xdr_remote_domain_lookup_by_uuid_ret, (char *) &ret2);
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainCreateWithFlags (virDomainPtr domain, unsigned int flags)
+{
+    int rv = -1;
+    remote_domain_create_with_flags_args args;
+    remote_domain_create_with_flags_ret ret;
+    struct private_data *priv = domain->conn->privateData;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain (&args.dom, domain);
+    args.flags = flags;
+
+    memset (&ret, 0, sizeof ret);
+    if (call (domain->conn, priv, 0, REMOTE_PROC_DOMAIN_CREATE_WITH_FLAGS,
+              (xdrproc_t) xdr_remote_domain_create_with_flags_args,
+              (char *) &args,
+              (xdrproc_t) xdr_remote_domain_create_with_flags_ret,
+              (char *) &ret) == -1)
+        goto done;
+
+    domain->id = ret.dom.id;
+    xdr_free ((xdrproc_t) &xdr_remote_domain_create_with_flags_ret,
+              (char *) &ret);
 
     rv = 0;
 
@@ -9556,7 +9610,7 @@ remoteIOEventLoop(virConnectPtr conn,
         struct remote_thread_call *tmp = priv->waitDispatch;
         struct remote_thread_call *prev;
         char ignore;
-#ifdef HAVE_PTHREAD_H
+#ifdef HAVE_PTHREAD_SIGMASK
         sigset_t oldmask, blockedsigs;
 #endif
 
@@ -9585,7 +9639,7 @@ remoteIOEventLoop(virConnectPtr conn,
          * after the call (RHBZ#567931).  Same for SIGCHLD and SIGPIPE
          * at the suggestion of Paolo Bonzini and Daniel Berrange.
          */
-#ifdef HAVE_PTHREAD_H
+#ifdef HAVE_PTHREAD_SIGMASK
         sigemptyset (&blockedsigs);
         sigaddset (&blockedsigs, SIGWINCH);
         sigaddset (&blockedsigs, SIGCHLD);
@@ -9598,7 +9652,7 @@ remoteIOEventLoop(virConnectPtr conn,
         if (ret < 0 && errno == EAGAIN)
             goto repoll;
 
-#ifdef HAVE_PTHREAD_H
+#ifdef HAVE_PTHREAD_SIGMASK
         ignore_value(pthread_sigmask(SIG_SETMASK, &oldmask, NULL));
 #endif
 
@@ -10193,6 +10247,7 @@ static virDriver remote_driver = {
     remoteListDefinedDomains, /* listDefinedDomains */
     remoteNumOfDefinedDomains, /* numOfDefinedDomains */
     remoteDomainCreate, /* domainCreate */
+    remoteDomainCreateWithFlags, /* domainCreateWithFlags */
     remoteDomainDefineXML, /* domainDefineXML */
     remoteDomainUndefine, /* domainUndefine */
     remoteDomainAttachDevice, /* domainAttachDevice */

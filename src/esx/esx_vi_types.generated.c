@@ -332,6 +332,81 @@ ESX_VI__TEMPLATE__DESERIALIZE(ChoiceOption,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: DatastoreInfo
+ *          extended by LocalDatastoreInfo
+ *                      NasDatastoreInfo
+ *                      VmfsDatastoreInfo
+ */
+
+/* esxVI_DatastoreInfo_Alloc */
+ESX_VI__TEMPLATE__ALLOC(DatastoreInfo)
+
+/* esxVI_DatastoreInfo_Free */
+ESX_VI__TEMPLATE__DYNAMIC_FREE(DatastoreInfo,
+{
+    ESX_VI__TEMPLATE__DISPATCH__FREE(LocalDatastoreInfo)
+    ESX_VI__TEMPLATE__DISPATCH__FREE(NasDatastoreInfo)
+    ESX_VI__TEMPLATE__DISPATCH__FREE(VmfsDatastoreInfo)
+},
+{
+    VIR_FREE(item->name);
+    VIR_FREE(item->url);
+    esxVI_Long_Free(&item->freeSpace);
+    esxVI_Long_Free(&item->maxFileSize);
+})
+
+/* esxVI_DatastoreInfo_Validate */
+ESX_VI__TEMPLATE__VALIDATE(DatastoreInfo,
+{
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(name)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(url)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(freeSpace)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(maxFileSize)
+})
+
+/* esxVI_DatastoreInfo_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(DatastoreInfo,
+{
+    /* DatastoreInfo */
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(LocalDatastoreInfo)
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(NasDatastoreInfo)
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(VmfsDatastoreInfo)
+})
+
+/* esxVI_DatastoreInfo_CastFromAnyType */
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(DatastoreInfo,
+{
+    ESX_VI__TEMPLATE__DISPATCH__CAST_FROM_ANY_TYPE(LocalDatastoreInfo)
+    ESX_VI__TEMPLATE__DISPATCH__CAST_FROM_ANY_TYPE(NasDatastoreInfo)
+    ESX_VI__TEMPLATE__DISPATCH__CAST_FROM_ANY_TYPE(VmfsDatastoreInfo)
+})
+
+/* esxVI_DatastoreInfo_Serialize */
+ESX_VI__TEMPLATE__DYNAMIC_SERIALIZE(DatastoreInfo,
+{
+    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(LocalDatastoreInfo)
+    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(NasDatastoreInfo)
+    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(VmfsDatastoreInfo)
+},
+{
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, name)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, url)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Long, freeSpace)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Long, maxFileSize)
+})
+
+/* esxVI_DatastoreInfo_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(DatastoreInfo,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, name)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, url)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, freeSpace)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, maxFileSize)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Type: Description
  *          extended by ElementDescription
  */
@@ -604,7 +679,10 @@ ESX_VI__TEMPLATE__VALIDATE(HostCpuIdInfo,
 ESX_VI__TEMPLATE__LIST__APPEND(HostCpuIdInfo)
 
 /* esxVI_HostCpuIdInfo_CastFromAnyType */
-ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(HostCpuIdInfo)
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(HostCpuIdInfo,
+{
+})
+
 /* esxVI_HostCpuIdInfo_CastListFromAnyType */
 ESX_VI__TEMPLATE__LIST__CAST_FROM_ANY_TYPE(HostCpuIdInfo)
 
@@ -635,6 +713,395 @@ ESX_VI__TEMPLATE__DESERIALIZE(HostCpuIdInfo,
 
 /* esxVI_HostCpuIdInfo_DeserializeList */
 ESX_VI__TEMPLATE__LIST__DESERIALIZE(HostCpuIdInfo)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: HostFileSystemVolume
+ *          extended by HostNasVolume
+ *                      HostVmfsVolume
+ */
+
+/* esxVI_HostFileSystemVolume_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostFileSystemVolume)
+
+/* esxVI_HostFileSystemVolume_Free */
+ESX_VI__TEMPLATE__DYNAMIC_FREE(HostFileSystemVolume,
+{
+    ESX_VI__TEMPLATE__DISPATCH__FREE(HostNasVolume)
+    ESX_VI__TEMPLATE__DISPATCH__FREE(HostVmfsVolume)
+},
+{
+    VIR_FREE(item->type);
+    VIR_FREE(item->name);
+    esxVI_Long_Free(&item->capacity);
+})
+
+/* esxVI_HostFileSystemVolume_Validate */
+ESX_VI__TEMPLATE__VALIDATE(HostFileSystemVolume,
+{
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(type)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(name)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(capacity)
+})
+
+/* esxVI_HostFileSystemVolume_Serialize */
+ESX_VI__TEMPLATE__DYNAMIC_SERIALIZE(HostFileSystemVolume,
+{
+    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(HostNasVolume)
+    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(HostVmfsVolume)
+},
+{
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, type)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, name)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Long, capacity)
+})
+
+/* esxVI_HostFileSystemVolume_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(HostFileSystemVolume,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, type)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, name)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, capacity)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: HostNasVolume
+ *          extends HostFileSystemVolume
+ */
+
+/* esxVI_HostNasVolume_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostNasVolume)
+
+/* esxVI_HostNasVolume_Free */
+ESX_VI__TEMPLATE__FREE(HostNasVolume,
+{
+    /* HostFileSystemVolume */
+    VIR_FREE(item->type);
+    VIR_FREE(item->name);
+    esxVI_Long_Free(&item->capacity);
+
+    /* HostNasVolume */
+    VIR_FREE(item->remoteHost);
+    VIR_FREE(item->remotePath);
+    VIR_FREE(item->userName);
+})
+
+/* esxVI_HostNasVolume_Validate */
+ESX_VI__TEMPLATE__VALIDATE(HostNasVolume,
+{
+    /* HostFileSystemVolume */
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(type)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(name)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(capacity)
+
+    /* HostNasVolume */
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(remoteHost)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(remotePath)
+})
+
+/* esxVI_HostNasVolume_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(HostNasVolume,
+{
+    /* HostFileSystemVolume */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, type)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, name)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Long, capacity)
+
+    /* HostNasVolume */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, remoteHost)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, remotePath)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, userName)
+})
+
+/* esxVI_HostNasVolume_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(HostNasVolume,
+{
+    /* HostFileSystemVolume */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, type)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, name)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, capacity)
+
+    /* HostNasVolume */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, remoteHost)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, remotePath)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, userName)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: HostScsiDiskPartition
+ */
+
+/* esxVI_HostScsiDiskPartition_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostScsiDiskPartition)
+
+/* esxVI_HostScsiDiskPartition_Free */
+ESX_VI__TEMPLATE__FREE(HostScsiDiskPartition,
+{
+    esxVI_HostScsiDiskPartition_Free(&item->_next);
+
+    VIR_FREE(item->diskName);
+    esxVI_Int_Free(&item->partition);
+})
+
+/* esxVI_HostScsiDiskPartition_Validate */
+ESX_VI__TEMPLATE__VALIDATE(HostScsiDiskPartition,
+{
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(diskName)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(partition)
+})
+
+/* esxVI_HostScsiDiskPartition_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(HostScsiDiskPartition)
+
+/* esxVI_HostScsiDiskPartition_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(HostScsiDiskPartition,
+{
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, diskName)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Int, partition)
+})
+
+/* esxVI_HostScsiDiskPartition_SerializeList */
+ESX_VI__TEMPLATE__LIST__SERIALIZE(HostScsiDiskPartition)
+
+/* esxVI_HostScsiDiskPartition_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(HostScsiDiskPartition,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, diskName)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Int, partition)
+})
+
+/* esxVI_HostScsiDiskPartition_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(HostScsiDiskPartition)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: HostVmfsVolume
+ *          extends HostFileSystemVolume
+ */
+
+/* esxVI_HostVmfsVolume_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostVmfsVolume)
+
+/* esxVI_HostVmfsVolume_Free */
+ESX_VI__TEMPLATE__FREE(HostVmfsVolume,
+{
+    /* HostFileSystemVolume */
+    VIR_FREE(item->type);
+    VIR_FREE(item->name);
+    esxVI_Long_Free(&item->capacity);
+
+    /* HostVmfsVolume */
+    esxVI_Int_Free(&item->blockSizeMb);
+    esxVI_Int_Free(&item->maxBlocks);
+    esxVI_Int_Free(&item->majorVersion);
+    VIR_FREE(item->version);
+    VIR_FREE(item->uuid);
+    esxVI_HostScsiDiskPartition_Free(&item->extent);
+})
+
+/* esxVI_HostVmfsVolume_Validate */
+ESX_VI__TEMPLATE__VALIDATE(HostVmfsVolume,
+{
+    /* HostFileSystemVolume */
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(type)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(name)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(capacity)
+
+    /* HostVmfsVolume */
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(blockSizeMb)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(maxBlocks)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(majorVersion)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(version)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(uuid)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(extent)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(vmfsUpgradable)
+})
+
+/* esxVI_HostVmfsVolume_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(HostVmfsVolume,
+{
+    /* HostFileSystemVolume */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, type)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, name)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Long, capacity)
+
+    /* HostVmfsVolume */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Int, blockSizeMb)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Int, maxBlocks)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Int, majorVersion)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, version)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, uuid)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_LIST(HostScsiDiskPartition, extent)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, vmfsUpgradable)
+})
+
+/* esxVI_HostVmfsVolume_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(HostVmfsVolume,
+{
+    /* HostFileSystemVolume */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, type)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, name)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, capacity)
+
+    /* HostVmfsVolume */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Int, blockSizeMb)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Int, maxBlocks)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Int, majorVersion)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, version)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, uuid)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_LIST(HostScsiDiskPartition, extent)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, vmfsUpgradable)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: LocalDatastoreInfo
+ *          extends DatastoreInfo
+ */
+
+/* esxVI_LocalDatastoreInfo_Alloc */
+ESX_VI__TEMPLATE__ALLOC(LocalDatastoreInfo)
+
+/* esxVI_LocalDatastoreInfo_Free */
+ESX_VI__TEMPLATE__FREE(LocalDatastoreInfo,
+{
+    /* DatastoreInfo */
+    VIR_FREE(item->name);
+    VIR_FREE(item->url);
+    esxVI_Long_Free(&item->freeSpace);
+    esxVI_Long_Free(&item->maxFileSize);
+
+    /* LocalDatastoreInfo */
+    VIR_FREE(item->path);
+})
+
+/* esxVI_LocalDatastoreInfo_Validate */
+ESX_VI__TEMPLATE__VALIDATE(LocalDatastoreInfo,
+{
+    /* DatastoreInfo */
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(name)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(url)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(freeSpace)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(maxFileSize)
+
+    /* LocalDatastoreInfo */
+    /* no required properties */
+})
+
+/* esxVI_LocalDatastoreInfo_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(LocalDatastoreInfo,
+{
+})
+
+/* esxVI_LocalDatastoreInfo_CastFromAnyType */
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(LocalDatastoreInfo,
+{
+})
+
+/* esxVI_LocalDatastoreInfo_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(LocalDatastoreInfo,
+{
+    /* DatastoreInfo */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, name)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, url)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Long, freeSpace)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Long, maxFileSize)
+
+    /* LocalDatastoreInfo */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, path)
+})
+
+/* esxVI_LocalDatastoreInfo_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(LocalDatastoreInfo,
+{
+    /* DatastoreInfo */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, name)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, url)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, freeSpace)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, maxFileSize)
+
+    /* LocalDatastoreInfo */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, path)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: NasDatastoreInfo
+ *          extends DatastoreInfo
+ */
+
+/* esxVI_NasDatastoreInfo_Alloc */
+ESX_VI__TEMPLATE__ALLOC(NasDatastoreInfo)
+
+/* esxVI_NasDatastoreInfo_Free */
+ESX_VI__TEMPLATE__FREE(NasDatastoreInfo,
+{
+    /* DatastoreInfo */
+    VIR_FREE(item->name);
+    VIR_FREE(item->url);
+    esxVI_Long_Free(&item->freeSpace);
+    esxVI_Long_Free(&item->maxFileSize);
+
+    /* NasDatastoreInfo */
+    esxVI_HostNasVolume_Free(&item->nas);
+})
+
+/* esxVI_NasDatastoreInfo_Validate */
+ESX_VI__TEMPLATE__VALIDATE(NasDatastoreInfo,
+{
+    /* DatastoreInfo */
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(name)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(url)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(freeSpace)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(maxFileSize)
+
+    /* NasDatastoreInfo */
+    /* no required properties */
+})
+
+/* esxVI_NasDatastoreInfo_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(NasDatastoreInfo,
+{
+})
+
+/* esxVI_NasDatastoreInfo_CastFromAnyType */
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(NasDatastoreInfo,
+{
+})
+
+/* esxVI_NasDatastoreInfo_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(NasDatastoreInfo,
+{
+    /* DatastoreInfo */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, name)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, url)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Long, freeSpace)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Long, maxFileSize)
+
+    /* NasDatastoreInfo */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(HostNasVolume, nas)
+})
+
+/* esxVI_NasDatastoreInfo_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(NasDatastoreInfo,
+{
+    /* DatastoreInfo */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, name)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, url)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, freeSpace)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, maxFileSize)
+
+    /* NasDatastoreInfo */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(HostNasVolume, nas)
+})
 
 
 
@@ -1547,7 +2014,10 @@ ESX_VI__TEMPLATE__VALIDATE(ResourcePoolResourceUsage,
 })
 
 /* esxVI_ResourcePoolResourceUsage_CastFromAnyType */
-ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(ResourcePoolResourceUsage)
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(ResourcePoolResourceUsage,
+{
+})
+
 /* esxVI_ResourcePoolResourceUsage_Serialize */
 ESX_VI__TEMPLATE__SERIALIZE(ResourcePoolResourceUsage,
 {
@@ -1752,7 +2222,10 @@ ESX_VI__TEMPLATE__VALIDATE(SharesInfo,
 })
 
 /* esxVI_SharesInfo_CastFromAnyType */
-ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(SharesInfo)
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(SharesInfo,
+{
+})
+
 /* esxVI_SharesInfo_Serialize */
 ESX_VI__TEMPLATE__SERIALIZE(SharesInfo,
 {
@@ -1817,7 +2290,10 @@ ESX_VI__TEMPLATE__VALIDATE(TaskInfo,
 ESX_VI__TEMPLATE__LIST__APPEND(TaskInfo)
 
 /* esxVI_TaskInfo_CastFromAnyType */
-ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(TaskInfo)
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(TaskInfo,
+{
+})
+
 /* esxVI_TaskInfo_CastListFromAnyType */
 ESX_VI__TEMPLATE__LIST__CAST_FROM_ANY_TYPE(TaskInfo)
 
@@ -1985,7 +2461,10 @@ ESX_VI__TEMPLATE__VALIDATE(UserSession,
 })
 
 /* esxVI_UserSession_CastFromAnyType */
-ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(UserSession)
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(UserSession,
+{
+})
+
 /* esxVI_UserSession_Serialize */
 ESX_VI__TEMPLATE__SERIALIZE(UserSession,
 {
@@ -2166,7 +2645,10 @@ ESX_VI__TEMPLATE__VALIDATE(VirtualMachineQuestionInfo,
 })
 
 /* esxVI_VirtualMachineQuestionInfo_CastFromAnyType */
-ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(VirtualMachineQuestionInfo)
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(VirtualMachineQuestionInfo,
+{
+})
+
 /* esxVI_VirtualMachineQuestionInfo_Serialize */
 ESX_VI__TEMPLATE__SERIALIZE(VirtualMachineQuestionInfo,
 {
@@ -2239,7 +2721,10 @@ ESX_VI__TEMPLATE__DEEP_COPY(VirtualMachineSnapshotTree,
 ESX_VI__TEMPLATE__LIST__DEEP_COPY(VirtualMachineSnapshotTree)
 
 /* esxVI_VirtualMachineSnapshotTree_CastFromAnyType */
-ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(VirtualMachineSnapshotTree)
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(VirtualMachineSnapshotTree,
+{
+})
+
 /* esxVI_VirtualMachineSnapshotTree_CastListFromAnyType */
 ESX_VI__TEMPLATE__LIST__CAST_FROM_ANY_TYPE(VirtualMachineSnapshotTree)
 
@@ -2258,6 +2743,78 @@ ESX_VI__TEMPLATE__DESERIALIZE(VirtualMachineSnapshotTree,
 
 /* esxVI_VirtualMachineSnapshotTree_DeserializeList */
 ESX_VI__TEMPLATE__LIST__DESERIALIZE(VirtualMachineSnapshotTree)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmfsDatastoreInfo
+ *          extends DatastoreInfo
+ */
+
+/* esxVI_VmfsDatastoreInfo_Alloc */
+ESX_VI__TEMPLATE__ALLOC(VmfsDatastoreInfo)
+
+/* esxVI_VmfsDatastoreInfo_Free */
+ESX_VI__TEMPLATE__FREE(VmfsDatastoreInfo,
+{
+    /* DatastoreInfo */
+    VIR_FREE(item->name);
+    VIR_FREE(item->url);
+    esxVI_Long_Free(&item->freeSpace);
+    esxVI_Long_Free(&item->maxFileSize);
+
+    /* VmfsDatastoreInfo */
+    esxVI_HostVmfsVolume_Free(&item->vmfs);
+})
+
+/* esxVI_VmfsDatastoreInfo_Validate */
+ESX_VI__TEMPLATE__VALIDATE(VmfsDatastoreInfo,
+{
+    /* DatastoreInfo */
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(name)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(url)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(freeSpace)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(maxFileSize)
+
+    /* VmfsDatastoreInfo */
+    /* no required properties */
+})
+
+/* esxVI_VmfsDatastoreInfo_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(VmfsDatastoreInfo,
+{
+})
+
+/* esxVI_VmfsDatastoreInfo_CastFromAnyType */
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(VmfsDatastoreInfo,
+{
+})
+
+/* esxVI_VmfsDatastoreInfo_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(VmfsDatastoreInfo,
+{
+    /* DatastoreInfo */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, name)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, url)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Long, freeSpace)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Long, maxFileSize)
+
+    /* VmfsDatastoreInfo */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(HostVmfsVolume, vmfs)
+})
+
+/* esxVI_VmfsDatastoreInfo_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(VmfsDatastoreInfo,
+{
+    /* DatastoreInfo */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, name)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, url)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, freeSpace)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, maxFileSize)
+
+    /* VmfsDatastoreInfo */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(HostVmfsVolume, vmfs)
+})
 
 
 

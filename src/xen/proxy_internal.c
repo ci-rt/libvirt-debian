@@ -159,7 +159,7 @@ virProxyForkServer(void)
     if (virExecDaemonize(proxyarg, NULL, NULL,
                          &pid, -1, NULL, NULL, 0,
                          NULL, NULL, NULL) < 0)
-        VIR_ERROR0("Failed to fork libvirt_proxy");
+        VIR_ERROR0(_("Failed to fork libvirt_proxy"));
 
     return (0);
 }
@@ -240,7 +240,7 @@ virProxyCloseSocket(xenUnifiedPrivatePtr priv) {
 
     ret = close(priv->proxy);
     if (ret != 0)
-        VIR_WARN(_("Failed to close socket %d"), priv->proxy);
+        VIR_WARN("Failed to close socket %d", priv->proxy);
     else
         VIR_DEBUG("Closed socket %d", priv->proxy);
     priv->proxy = -1;
@@ -297,7 +297,7 @@ virProxyWriteClientSocket(int fd, const char *data, int len) {
 
     ret = safewrite(fd, data, len);
     if (ret < 0) {
-        VIR_WARN(_("Failed to write to socket %d"), fd);
+        VIR_WARN("Failed to write to socket %d", fd);
         return(-1);
     }
     VIR_DEBUG("wrote %d bytes to socket %d",
@@ -452,7 +452,7 @@ retry:
         goto error;
     }
     if (res->serial != serial) {
-        VIR_WARN(_("got asynchronous packet number %d"), res->serial);
+        VIR_WARN("got asynchronous packet number %d", res->serial);
         goto retry;
     }
 

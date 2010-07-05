@@ -55,7 +55,9 @@ int qemuMonitorTextGetBlockStatsInfo(qemuMonitorPtr mon,
                                      long long *wr_req,
                                      long long *wr_bytes,
                                      long long *errs);
-
+int qemuMonitorTextGetBlockExtent(qemuMonitorPtr mon,
+                                  const char *devname,
+                                  unsigned long long *extent);
 
 int qemuMonitorTextSetVNCPassword(qemuMonitorPtr mon,
                                   const char *password);
@@ -93,22 +95,22 @@ int qemuMonitorTextGetMigrationStatus(qemuMonitorPtr mon,
                                       unsigned long long *total);
 
 int qemuMonitorTextMigrateToHost(qemuMonitorPtr mon,
-                                 int background,
+                                 unsigned int flags,
                                  const char *hostname,
                                  int port);
 
 int qemuMonitorTextMigrateToCommand(qemuMonitorPtr mon,
-                                    int background,
+                                    unsigned int flags,
                                     const char * const *argv);
 
 int qemuMonitorTextMigrateToFile(qemuMonitorPtr mon,
-                                 int background,
+                                 unsigned int flags,
                                  const char * const *argv,
                                  const char *target,
                                  unsigned long long offset);
 
 int qemuMonitorTextMigrateToUnix(qemuMonitorPtr mon,
-                                 int background,
+                                 unsigned int flags,
                                  const char *unixfile);
 
 int qemuMonitorTextMigrateCancel(qemuMonitorPtr mon);
@@ -153,6 +155,12 @@ int qemuMonitorTextAddHostNetwork(qemuMonitorPtr mon,
 int qemuMonitorTextRemoveHostNetwork(qemuMonitorPtr mon,
                                      int vlan,
                                      const char *netname);
+
+int qemuMonitorTextAddNetdev(qemuMonitorPtr mon,
+                             const char *netdevstr);
+
+int qemuMonitorTextRemoveNetdev(qemuMonitorPtr mon,
+                                const char *alias);
 
 int qemuMonitorTextGetPtyPaths(qemuMonitorPtr mon,
                                virHashTablePtr paths);

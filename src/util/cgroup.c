@@ -1,6 +1,7 @@
 /*
  * cgroup.c: Tools for managing cgroups
  *
+ * Copyright (C) 2010 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
  * See COPYING.LIB for the License of this software
@@ -23,6 +24,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <libgen.h>
+#include <dirent.h>
 
 #include "internal.h"
 #include "util.h"
@@ -83,7 +85,7 @@ static int virCgroupDetectMounts(virCgroupPtr group)
 
     mounts = fopen("/proc/mounts", "r");
     if (mounts == NULL) {
-        VIR_ERROR0("Unable to open /proc/mounts");
+        VIR_ERROR0(_("Unable to open /proc/mounts"));
         return -ENOENT;
     }
 
@@ -136,7 +138,7 @@ static int virCgroupDetectPlacement(virCgroupPtr group)
 
     mapping = fopen("/proc/self/cgroup", "r");
     if (mapping == NULL) {
-        VIR_ERROR0("Unable to open /proc/self/cgroup");
+        VIR_ERROR0(_("Unable to open /proc/self/cgroup"));
         return -ENOENT;
     }
 
@@ -195,7 +197,7 @@ static int virCgroupDetect(virCgroupPtr group)
 
     rc = virCgroupDetectMounts(group);
     if (rc < 0) {
-        VIR_ERROR("Failed to detect mounts for %s", group->path);
+        VIR_ERROR(_("Failed to detect mounts for %s"), group->path);
         return rc;
     }
 
@@ -217,7 +219,7 @@ static int virCgroupDetect(virCgroupPtr group)
                 continue;
 
             if (!group->controllers[i].placement) {
-                VIR_ERROR("Could not find placement for controller %s at %s",
+                VIR_ERROR(_("Could not find placement for controller %s at %s"),
                           virCgroupControllerTypeToString(i),
                           group->controllers[i].placement);
                 rc = -ENOENT;
@@ -230,7 +232,7 @@ static int virCgroupDetect(virCgroupPtr group)
                       group->controllers[i].placement);
         }
     } else {
-        VIR_ERROR("Failed to detect mapping for %s", group->path);
+        VIR_ERROR(_("Failed to detect mapping for %s"), group->path);
     }
 
     return rc;
@@ -272,7 +274,7 @@ static int virCgroupSetValueStr(virCgroupPtr group,
     if (rc != 0)
         return rc;
 
-    VIR_DEBUG("Set value %s", keypath);
+    VIR_DEBUG("Set value '%s' to '%s'", keypath, value);
     rc = virFileWriteStr(keypath, value);
     if (rc < 0) {
         DEBUG("Failed to write value '%s': %m", value);
@@ -422,7 +424,7 @@ static int virCgroupCpuSetInherit(virCgroupPtr parent, virCgroupPtr group)
                                   inherit_values[i],
                                   &value);
         if (rc != 0) {
-            VIR_ERROR("Failed to get %s %d", inherit_values[i], rc);
+            VIR_ERROR(_("Failed to get %s %d"), inherit_values[i], rc);
             break;
         }
 
@@ -435,7 +437,7 @@ static int virCgroupCpuSetInherit(virCgroupPtr parent, virCgroupPtr group)
         VIR_FREE(value);
 
         if (rc != 0) {
-            VIR_ERROR("Failed to set %s %d", inherit_values[i], rc);
+            VIR_ERROR(_("Failed to set %s %d"), inherit_values[i], rc);
             break;
         }
     }
@@ -443,7 +445,38 @@ static int virCgroupCpuSetInherit(virCgroupPtr parent, virCgroupPtr group)
     return rc;
 }
 
-static int virCgroupMakeGroup(virCgroupPtr parent, virCgroupPtr group, int create)
+static int virCgroupSetMemoryUseHierarchy(virCgroupPtr group)
+{
+    int rc = 0;
+    unsigned long long value;
+    const char *filename = "memory.use_hierarchy";
+
+    rc = virCgroupGetValueU64(group,
+                              VIR_CGROUP_CONTROLLER_MEMORY,
+                              filename, &value);
+    if (rc != 0) {
+        VIR_ERROR(_("Failed to read %s/%s (%d)"), group->path, filename, rc);
+        return rc;
+    }
+
+    /* Setting twice causes error, so if already enabled, skip setting */
+    if (value == 1)
+        return 0;
+
+    VIR_DEBUG("Setting up %s/%s", group->path, filename);
+    rc = virCgroupSetValueU64(group,
+                              VIR_CGROUP_CONTROLLER_MEMORY,
+                              filename, 1);
+
+    if (rc != 0) {
+        VIR_ERROR(_("Failed to set %s/%s (%d)"), group->path, filename, rc);
+    }
+
+    return rc;
+}
+
+static int virCgroupMakeGroup(virCgroupPtr parent, virCgroupPtr group,
+                              int create, bool memory_hierarchy)
 {
     int i;
     int rc = 0;
@@ -472,8 +505,24 @@ static int virCgroupMakeGroup(virCgroupPtr parent, virCgroupPtr group, int creat
                 (i == VIR_CGROUP_CONTROLLER_CPUSET ||
                  STREQ(group->controllers[i].mountPoint, group->controllers[VIR_CGROUP_CONTROLLER_CPUSET].mountPoint))) {
                 rc = virCgroupCpuSetInherit(parent, group);
-                if (rc != 0)
+                if (rc != 0) {
+                    VIR_FREE(path);
                     break;
+                }
+            }
+            /*
+             * Note that virCgroupSetMemoryUseHierarchy should always be
+             * called prior to creating subcgroups and attaching tasks.
+             */
+            if (memory_hierarchy &&
+                group->controllers[VIR_CGROUP_CONTROLLER_MEMORY].mountPoint != NULL &&
+                (i == VIR_CGROUP_CONTROLLER_MEMORY ||
+                 STREQ(group->controllers[i].mountPoint, group->controllers[VIR_CGROUP_CONTROLLER_MEMORY].mountPoint))) {
+                rc = virCgroupSetMemoryUseHierarchy(group);
+                if (rc != 0) {
+                    VIR_FREE(path);
+                    break;
+                }
             }
         }
 
@@ -551,7 +600,7 @@ static int virCgroupAppRoot(int privileged,
     if (rc != 0)
         goto cleanup;
 
-    rc = virCgroupMakeGroup(rootgrp, *group, create);
+    rc = virCgroupMakeGroup(rootgrp, *group, create, false);
 
 cleanup:
     virCgroupFree(&rootgrp);
@@ -559,10 +608,72 @@ cleanup:
 }
 #endif
 
+#if defined _DIRENT_HAVE_D_TYPE
+static int virCgroupRemoveRecursively(char *grppath)
+{
+    DIR *grpdir;
+    struct dirent *ent;
+    int rc = 0;
+
+    grpdir = opendir(grppath);
+    if (grpdir == NULL) {
+        if (errno == ENOENT)
+            return 0;
+        VIR_ERROR(_("Unable to open %s (%d)"), grppath, errno);
+        rc = -errno;
+        return rc;
+    }
+
+    for (;;) {
+        char *path;
+
+        errno = 0;
+        ent = readdir(grpdir);
+        if (ent == NULL) {
+            if ((rc = -errno))
+                VIR_ERROR(_("Failed to readdir for %s (%d)"), grppath, errno);
+            break;
+        }
+
+        if (ent->d_name[0] == '.') continue;
+        if (ent->d_type != DT_DIR) continue;
+
+        if (virAsprintf(&path, "%s/%s", grppath, ent->d_name) == -1) {
+            rc = -ENOMEM;
+            break;
+        }
+        rc = virCgroupRemoveRecursively(path);
+        VIR_FREE(path);
+        if (rc != 0)
+            break;
+    }
+    closedir(grpdir);
+
+    DEBUG("Removing cgroup %s", grppath);
+    if (rmdir(grppath) != 0 && errno != ENOENT) {
+        rc = -errno;
+        VIR_ERROR(_("Unable to remove %s (%d)"), grppath, errno);
+    }
+
+    return rc;
+}
+#else
+static int virCgroupRemoveRecursively(char *grppath ATTRIBUTE_UNUSED)
+{
+    /* Claim no support */
+    return -ENXIO;
+}
+#endif
+
 /**
  * virCgroupRemove:
  *
  * @group: The group to be removed
+ *
+ * It first removes all child groups recursively
+ * in depth first order and then removes @group
+ * because the presence of the child groups
+ * prevents removing @group.
  *
  * Returns: 0 on success
  */
@@ -583,10 +694,8 @@ int virCgroupRemove(virCgroupPtr group)
                                       &grppath) != 0)
             continue;
 
-        DEBUG("Removing cgroup %s", grppath);
-        if (rmdir(grppath) != 0 && errno != ENOENT) {
-            rc = -errno;
-        }
+        DEBUG("Removing cgroup %s and all child cgroups", grppath);
+        rc = virCgroupRemoveRecursively(grppath);
         VIR_FREE(grppath);
     }
 
@@ -651,7 +760,7 @@ int virCgroupForDriver(const char *name,
     VIR_FREE(path);
 
     if (rc == 0) {
-        rc = virCgroupMakeGroup(rootgrp, *group, create);
+        rc = virCgroupMakeGroup(rootgrp, *group, create, false);
         if (rc != 0)
             virCgroupFree(group);
     }
@@ -701,7 +810,17 @@ int virCgroupForDomain(virCgroupPtr driver,
     VIR_FREE(path);
 
     if (rc == 0) {
-        rc = virCgroupMakeGroup(driver, *group, create);
+        /*
+         * Create a cgroup with memory.use_hierarchy enabled to
+         * surely account memory usage of lxc with ns subsystem
+         * enabled. (To be exact, memory and ns subsystems are
+         * enabled at the same time.)
+         *
+         * The reason why doing it here, not a upper group, say
+         * a group for driver, is to avoid overhead to track
+         * cumulative usage that we don't need.
+         */
+        rc = virCgroupMakeGroup(driver, *group, create, true);
         if (rc != 0)
             virCgroupFree(group);
     }

@@ -63,8 +63,7 @@ vahDeinit(vahControl * ctl)
         return -1;
 
     VIR_FREE(ctl->def);
-    if (ctl->caps)
-        virCapabilitiesFree(ctl->caps);
+    virCapabilitiesFree(ctl->caps);
     VIR_FREE(ctl->files);
     VIR_FREE(ctl->hvm);
     VIR_FREE(ctl->arch);
@@ -830,8 +829,6 @@ get_files(vahControl * ctl)
             path = ctl->def->disks[i]->src;
             do {
                 virStorageFileMetadata meta;
-
-                memset(&meta, 0, sizeof(meta));
 
                 ret = virStorageFileGetMetadata(path, &meta);
 

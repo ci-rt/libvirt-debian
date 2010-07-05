@@ -57,6 +57,7 @@
 #include "dispatch.h"
 
 #include "util.h"
+#include "uuid.h"
 #include "remote_driver.h"
 #include "conf.h"
 #include "event.h"
@@ -190,6 +191,7 @@ static int max_client_requests = 5;
 
 static sig_atomic_t sig_errors = 0;
 static int sig_lasterrno = 0;
+static const char *argv0;
 
 enum {
     VIR_DAEMON_ERR_NONE = 0,
@@ -384,14 +386,14 @@ qemudDispatchSignalEvent(int watch ATTRIBUTE_UNUSED,
         virHookCall(VIR_HOOK_DRIVER_DAEMON, "-",
                     VIR_HOOK_DAEMON_OP_RELOAD, SIGHUP, "SIGHUP", NULL);
         if (virStateReload() < 0)
-            VIR_WARN0(_("Error while reloading drivers"));
+            VIR_WARN0("Error while reloading drivers");
 
         break;
 
     case SIGINT:
     case SIGQUIT:
     case SIGTERM:
-        VIR_WARN(_("Shutting down on signal %d"), siginfo.si_signo);
+        VIR_WARN("Shutting down on signal %d", siginfo.si_signo);
         server->quitEventThread = 1;
         break;
 
@@ -484,8 +486,8 @@ static int daemonForkIntoBackground(void) {
 
             if (ret == 1 && status != 0) {
                 fprintf(stderr,
-                        "error: %s. Check /var/log/messages or run without "
-                        "--daemon for more info.\n",
+                        _("%s: error: %s. Check /var/log/messages or run without "
+                          "--daemon for more info.\n"), argv0,
                         virDaemonErrTypeToString(status));
             }
             _exit(ret == 1 && status == 0 ? 0 : 1);
@@ -515,15 +517,15 @@ static int qemudWritePidFile(const char *pidFile) {
     }
 
     if (fprintf(fh, "%lu\n", (unsigned long)getpid()) < 0) {
-        VIR_ERROR(_("Failed to write to pid file '%s' : %s"),
-                  pidFile, virStrerror(errno, ebuf, sizeof ebuf));
+        VIR_ERROR(_("%s: Failed to write to pid file '%s' : %s"),
+                  argv0, pidFile, virStrerror(errno, ebuf, sizeof ebuf));
         fclose(fh);
         return -1;
     }
 
     if (fclose(fh) == EOF) {
-        VIR_ERROR(_("Failed to close pid file '%s' : %s"),
-                  pidFile, virStrerror(errno, ebuf, sizeof ebuf));
+        VIR_ERROR(_("%s: Failed to close pid file '%s' : %s"),
+                  argv0, pidFile, virStrerror(errno, ebuf, sizeof ebuf));
         return -1;
     }
 
@@ -531,7 +533,7 @@ static int qemudWritePidFile(const char *pidFile) {
 }
 
 static int qemudListenUnix(struct qemud_server *server,
-                           const char *path, int readonly, int auth) {
+                           char *path, int readonly, int auth) {
     struct qemud_socket *sock;
     struct sockaddr_un addr;
     mode_t oldmask;
@@ -539,7 +541,7 @@ static int qemudListenUnix(struct qemud_server *server,
     char ebuf[1024];
 
     if (VIR_ALLOC(sock) < 0) {
-        VIR_ERROR("%s", _("Failed to allocate memory for struct qemud_socket"));
+        VIR_ERROR0(_("Failed to allocate memory for struct qemud_socket"));
         return -1;
     }
 
@@ -547,6 +549,7 @@ static int qemudListenUnix(struct qemud_server *server,
     sock->port = -1;
     sock->type = QEMUD_SOCK_TYPE_UNIX;
     sock->auth = auth;
+    sock->path = path;
 
     if ((sock->fd = socket(PF_UNIX, SOCK_STREAM, 0)) < 0) {
         VIR_ERROR(_("Failed to create socket: %s"),
@@ -741,17 +744,30 @@ cleanup:
 }
 
 static int qemudInitPaths(struct qemud_server *server,
-                          char *sockname,
-                          char *roSockname,
-                          int maxlen)
+                          char **sockname,
+                          char **roSockname)
 {
-    char *sock_dir;
-    char *dir_prefix = NULL;
-    int ret = -1;
+    char *base_dir_prefix = NULL;
     char *sock_dir_prefix = NULL;
+    int ret = -1;
 
+    /* The base_dir_prefix is the base under which all libvirtd
+     * files live */
+    if (server->privileged) {
+        if (!(base_dir_prefix = strdup (LOCAL_STATE_DIR)))
+            goto no_memory;
+    } else {
+        uid_t uid = geteuid();
+        if (!(base_dir_prefix = virGetUserDirectory(uid)))
+            goto cleanup;
+    }
+
+    /* The unix_sock_dir is the location under which all
+     * unix domain sockets live */
     if (unix_sock_dir) {
-        sock_dir = unix_sock_dir;
+        if (!(sock_dir_prefix = strdup(unix_sock_dir)))
+            goto no_memory;
+
         /* Change the group ownership of /var/run/libvirt to unix_sock_gid */
         if (server->privileged) {
             if (chown(unix_sock_dir, -1, unix_sock_gid) < 0)
@@ -759,69 +775,53 @@ static int qemudInitPaths(struct qemud_server *server,
                           unix_sock_dir);
         }
     } else {
-        sock_dir = sockname;
         if (server->privileged) {
-            dir_prefix = strdup (LOCAL_STATE_DIR);
-            if (dir_prefix == NULL) {
-                virReportOOMError();
-                goto cleanup;
-            }
-            if (snprintf (sock_dir, maxlen, "%s/run/libvirt",
-                          dir_prefix) >= maxlen)
-                goto snprintf_error;
+            if (virAsprintf(&sock_dir_prefix, "%s/run/libvirt",
+                            base_dir_prefix) < 0)
+                goto no_memory;
         } else {
-            uid_t uid = geteuid();
-            dir_prefix = virGetUserDirectory(uid);
-            if (dir_prefix == NULL) {
-                /* Do not diagnose here; virGetUserDirectory does that.  */
-                goto snprintf_error;
-            }
-
-            if (snprintf(sock_dir, maxlen, "%s/.libvirt", dir_prefix) >= maxlen)
-                goto snprintf_error;
+            if (virAsprintf(&sock_dir_prefix, "%s/.libvirt",
+                            base_dir_prefix) < 0)
+                goto no_memory;
         }
     }
 
-    sock_dir_prefix = strdup (sock_dir);
-    if (!sock_dir_prefix) {
-        virReportOOMError();
-        goto cleanup;
+    if (server->privileged) {
+        if (virAsprintf(sockname, "%s/libvirt-sock",
+                        sock_dir_prefix) < 0)
+            goto no_memory;
+        if (virAsprintf(roSockname, "%s/libvirt-sock-ro",
+                        sock_dir_prefix) < 0)
+            goto no_memory;
+        unlink(*sockname);
+        unlink(*roSockname);
+    } else {
+        if (virAsprintf(sockname, "@%s/libvirt-sock",
+                        sock_dir_prefix) < 0)
+            goto no_memory;
+        /* There is no RO socket in unprivileged mode,
+         * since the user always has full RW access
+         * to their private instance */
     }
 
     if (server->privileged) {
-        if (snprintf (sockname, maxlen, "%s/libvirt-sock",
-                      sock_dir_prefix) >= maxlen
-            || (snprintf (roSockname, maxlen, "%s/libvirt-sock-ro",
-                          sock_dir_prefix) >= maxlen))
-            goto snprintf_error;
-        unlink(sockname);
-        unlink(roSockname);
+        if (virAsprintf(&server->logDir, "%s/log/libvirt",
+                        base_dir_prefix) < 0)
+            goto no_memory;
     } else {
-        if (snprintf(sockname, maxlen, "@%s/libvirt-sock",
-                     sock_dir_prefix) >= maxlen)
-            goto snprintf_error;
+        if (virAsprintf(&server->logDir, "%s/.libvirt/log",
+                        base_dir_prefix) < 0)
+            goto no_memory;
     }
-
-    if (server->privileged) {
-        if (!(server->logDir = strdup (LOCAL_STATE_DIR "/log/libvirt")))
-            virReportOOMError();
-    } else {
-        if (virAsprintf(&server->logDir, "%s/.libvirt/log", dir_prefix) < 0)
-            virReportOOMError();
-    }
-
-    if (server->logDir == NULL)
-        goto cleanup;
 
     ret = 0;
 
- snprintf_error:
-    if (ret)
-        VIR_ERROR("%s",
-                  _("Resulting path too long for buffer in qemudInitPaths()"));
+no_memory:
+    if (ret != 0)
+        virReportOOMError();
 
  cleanup:
-    VIR_FREE(dir_prefix);
+    VIR_FREE(base_dir_prefix);
     VIR_FREE(sock_dir_prefix);
     return ret;
 }
@@ -844,12 +844,12 @@ static struct qemud_server *qemudInitialize(void) {
     server->sigread = server->sigwrite = -1;
 
     if (virMutexInit(&server->lock) < 0) {
-        VIR_ERROR("%s", _("cannot initialize mutex"));
+        VIR_ERROR0(_("cannot initialize mutex"));
         VIR_FREE(server);
         return NULL;
     }
     if (virCondInit(&server->job) < 0) {
-        VIR_ERROR("%s", _("cannot initialize condition variable"));
+        VIR_ERROR0(_("cannot initialize condition variable"));
         virMutexDestroy(&server->lock);
         VIR_FREE(server);
         return NULL;
@@ -930,22 +930,22 @@ static struct qemud_server *qemudInitialize(void) {
 }
 
 static int qemudNetworkInit(struct qemud_server *server) {
-    char sockname[PATH_MAX];
-    char roSockname[PATH_MAX];
+    char *sockname = NULL;
+    char *roSockname = NULL;
 #if HAVE_SASL
     int err;
 #endif /* HAVE_SASL */
 
-    roSockname[0] = '\0';
-
-    if (qemudInitPaths(server, sockname, roSockname, PATH_MAX) < 0)
+    if (qemudInitPaths(server, &sockname, &roSockname) < 0)
         goto cleanup;
 
     if (qemudListenUnix(server, sockname, 0, auth_unix_rw) < 0)
         goto cleanup;
+    sockname = NULL;
 
-    if (roSockname[0] != '\0' && qemudListenUnix(server, roSockname, 1, auth_unix_ro) < 0)
+    if (roSockname != NULL && qemudListenUnix(server, roSockname, 1, auth_unix_ro) < 0)
         goto cleanup;
+    roSockname = NULL;
 
 #if HAVE_SASL
     if (auth_unix_rw == REMOTE_AUTH_SASL ||
@@ -1056,6 +1056,8 @@ static int qemudNetworkInit(struct qemud_server *server) {
     return 0;
 
  cleanup:
+    VIR_FREE(sockname);
+    VIR_FREE(roSockname);
     return -1;
 }
 
@@ -1078,6 +1080,7 @@ static int qemudNetworkEnable(struct qemud_server *server) {
     }
     return 0;
 }
+
 
 static gnutls_session_t
 remoteInitializeTLSSession (void)
@@ -1359,7 +1362,7 @@ static int qemudDispatchServer(struct qemud_server *server, struct qemud_socket 
     if (VIR_ALLOC(client) < 0)
         goto cleanup;
     if (virMutexInit(&client->lock) < 0) {
-        VIR_ERROR("%s", _("cannot initialize mutex"));
+        VIR_ERROR0(_("cannot initialize mutex"));
         VIR_FREE(client);
         goto cleanup;
     }
@@ -2421,6 +2424,14 @@ static void qemudCleanup(struct qemud_server *server) {
         if (sock->watch)
             virEventRemoveHandleImpl(sock->watch);
         close(sock->fd);
+
+        /* Unlink unix domain sockets which are not in
+         * the abstract namespace */
+        if (sock->path &&
+            sock->path[0] != '@')
+            unlink(sock->path);
+        VIR_FREE(sock->path);
+
         VIR_FREE(sock);
         sock = next;
     }
@@ -2718,6 +2729,7 @@ remoteReadConfigFile (struct qemud_server *server, const char *filename)
     char *unix_sock_rw_perms = NULL;
     char *unix_sock_group = NULL;
     char *buf = NULL;
+    char *host_uuid = NULL;
 
 #if HAVE_POLKIT
     /* Change the default back to no auth for non-root */
@@ -2761,7 +2773,7 @@ remoteReadConfigFile (struct qemud_server *server, const char *filename)
     GET_CONF_STR (conf, filename, unix_sock_group);
     if (unix_sock_group) {
         if (!server->privileged) {
-            VIR_WARN0(_("Cannot set group when not running as root"));
+            VIR_WARN0("Cannot set group when not running as root");
         } else {
             int ret;
             struct group grpdata, *grp;
@@ -2771,7 +2783,7 @@ remoteReadConfigFile (struct qemud_server *server, const char *filename)
                 maxbuf = 1024;
 
             if (VIR_ALLOC_N(buf, maxbuf) < 0) {
-                VIR_ERROR("%s", _("Failed to allocate memory for buffer"));
+                VIR_ERROR0(_("Failed to allocate memory for buffer"));
                 goto free_and_fail;
             }
 
@@ -2780,7 +2792,7 @@ remoteReadConfigFile (struct qemud_server *server, const char *filename)
                                      &grp)) == ERANGE) {
                     maxbuf *= 2;
                     if (maxbuf > 65536 || VIR_REALLOC_N(buf, maxbuf) < 0) {
-                        VIR_ERROR("%s", _("Failed to reallocate enough memory for buffer"));
+                        VIR_ERROR0(_("Failed to reallocate enough memory for buffer"));
                         goto free_and_fail;
                     }
             }
@@ -2840,11 +2852,20 @@ remoteReadConfigFile (struct qemud_server *server, const char *filename)
     GET_CONF_INT (conf, filename, max_requests);
     GET_CONF_INT (conf, filename, max_client_requests);
 
+    GET_CONF_STR (conf, filename, host_uuid);
+    if (virSetHostUUIDStr(host_uuid)) {
+        VIR_ERROR(_("invalid host UUID: %s"), host_uuid);
+        goto free_and_fail;
+    }
+
+    VIR_FREE(host_uuid);
+
     virConfFree (conf);
     return 0;
 
  free_and_fail:
     virConfFree (conf);
+    VIR_FREE(host_uuid);
     VIR_FREE(mdns_name);
     VIR_FREE(unix_sock_ro_perms);
     VIR_FREE(unix_sock_rw_perms);
@@ -2869,7 +2890,7 @@ remoteReadConfigFile (struct qemud_server *server, const char *filename)
 
 /* Display version information. */
 static void
-version (const char *argv0)
+version (void)
 {
     printf ("%s (%s) %s\n", argv0, PACKAGE_NAME, PACKAGE_VERSION);
 }
@@ -2961,10 +2982,10 @@ error:
 
 /* Print command-line usage. */
 static void
-usage (const char *argv0)
+usage (void)
 {
     fprintf (stderr,
-             "\n\
+             _("\n\
 Usage:\n\
   %s [options]\n\
 \n\
@@ -2982,27 +3003,33 @@ libvirt management daemon:\n\
   Default paths:\n\
 \n\
     Configuration file (unless overridden by -f):\n\
-      " SYSCONF_DIR "/libvirt/libvirtd.conf\n\
+      %s/libvirt/libvirtd.conf\n\
 \n\
     Sockets (as root):\n\
-      " LOCAL_STATE_DIR "/run/libvirt/libvirt-sock\n\
-      " LOCAL_STATE_DIR "/run/libvirt/libvirt-sock-ro\n\
+      %s/run/libvirt/libvirt-sock\n\
+      %s/run/libvirt/libvirt-sock-ro\n\
 \n\
     Sockets (as non-root):\n\
       $HOME/.libvirt/libvirt-sock (in UNIX abstract namespace)\n\
 \n\
     TLS:\n\
-      CA certificate:     " LIBVIRT_CACERT "\n\
-      Server certificate: " LIBVIRT_SERVERCERT "\n\
-      Server private key: " LIBVIRT_SERVERKEY "\n\
+      CA certificate:     %s\n\
+      Server certificate: %s\n\
+      Server private key: %s\n\
 \n\
     PID file (unless overridden by --pid-file):\n\
       %s\n\
-\n",
-             argv0,
-             REMOTE_PID_FILE[0] != '\0'
-               ? REMOTE_PID_FILE
-               : "(disabled in ./configure)");
+\n"),
+               argv0,
+               SYSCONF_DIR,
+               LOCAL_STATE_DIR,
+               LOCAL_STATE_DIR,
+               LIBVIRT_CACERT,
+               LIBVIRT_SERVERCERT,
+               LIBVIRT_SERVERKEY,
+               (REMOTE_PID_FILE[0] != '\0'
+                ? REMOTE_PID_FILE
+                : _("(disabled in ./configure)")));
 }
 
 enum {
@@ -3016,6 +3043,7 @@ int main(int argc, char **argv) {
     const char *remote_config_file = NULL;
     int statuswrite = -1;
     int ret = 1;
+    argv0 = argv[0];
 
     struct option opts[] = {
         { "verbose", no_argument, &verbose, 1},
@@ -3029,7 +3057,10 @@ int main(int argc, char **argv) {
         {0, 0, 0, 0}
     };
 
-    virInitialize();
+    if (virInitialize() < 0) {
+        fprintf (stderr, _("%s: initialization failed\n"), argv0);
+        exit (EXIT_FAILURE);
+    }
 
     while (1) {
         int optidx = 0;
@@ -3073,16 +3104,16 @@ int main(int argc, char **argv) {
             break;
 
         case OPT_VERSION:
-            version (argv[0]);
+            version ();
             return 0;
 
         case '?':
-            usage (argv[0]);
+            usage ();
             return 2;
 
         default:
-            fprintf (stderr, "libvirtd: internal error: unknown flag: %c\n",
-                     c);
+            fprintf (stderr, _("%s: internal error: unknown flag: %c\n"),
+                     argv0, c);
             exit (EXIT_FAILURE);
         }
     }
@@ -3199,7 +3230,7 @@ int main(int argc, char **argv) {
     /* Start the event loop in a background thread, since
      * state initialization needs events to be being processed */
     if (qemudStartEventLoop(server) < 0) {
-        VIR_ERROR0("Event thread startup failed");
+        VIR_ERROR0(_("Event thread startup failed"));
         goto error;
     }
 
@@ -3208,14 +3239,14 @@ int main(int argc, char **argv) {
      * we're ready, since it can take a long time and this will
      * seriously delay OS bootup process */
     if (virStateInitialize(server->privileged) < 0) {
-        VIR_ERROR0("Driver state initialization failed");
+        VIR_ERROR0(_("Driver state initialization failed"));
         goto shutdown;
     }
 
     /* Start accepting new clients from network */
     virMutexLock(&server->lock);
     if (qemudNetworkEnable(server) < 0) {
-        VIR_ERROR0("Network event loop enablement failed");
+        VIR_ERROR0(_("Network event loop enablement failed"));
         goto shutdown;
     }
     virMutexUnlock(&server->lock);

@@ -26,9 +26,16 @@
 
 #include <unistd.h>
 #include <fcntl.h>
+#ifdef __linux__
+# if HAVE_LINUX_MAGIC_H
+#  include <linux/magic.h>
+# endif
+# include <sys/statfs.h>
+#endif
 #include "dirname.h"
 #include "memory.h"
 #include "virterror_internal.h"
+#include "logging.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
@@ -128,11 +135,9 @@ static struct FileTypeInfo const fileTypeInfo[] = {
       LV_LITTLE_ENDIAN, 4, 1,
       4+4+4, 8, 512, -1, vmdk4GetBackingStore },
     /* Connectix / VirtualPC */
-    /* XXX Untested
     { VIR_STORAGE_FILE_VPC, "conectix", NULL,
-      LV_BIG_ENDIAN, -1, 0,
-      -1, 0, 0, -1, NULL},
-    */
+      LV_BIG_ENDIAN, 12, 0x10000,
+      8 + 4 + 4 + 8 + 4 + 4 + 2 + 2 + 4, 8, 1, -1, NULL},
 };
 
 static int
@@ -267,6 +272,8 @@ virStorageFileGetMetadataFromFD(const char *path,
 {
     unsigned char head[20*512]; /* vmdk4GetBackingStore needs this much. */
     int len, i;
+
+    memset(meta, 0, sizeof (*meta));
 
     /* If all else fails, call it a raw file */
     meta->format = VIR_STORAGE_FILE_RAW;
@@ -407,3 +414,86 @@ virStorageFileGetMetadata(const char *path,
 
     return ret;
 }
+
+
+#ifdef __linux__
+
+# ifndef NFS_SUPER_MAGIC
+#  define NFS_SUPER_MAGIC 0x6969
+# endif
+# ifndef OCFS2_SUPER_MAGIC
+#  define OCFS2_SUPER_MAGIC 0x7461636f
+# endif
+# ifndef GFS2_MAGIC
+#  define GFS2_MAGIC 0x01161970
+# endif
+# ifndef AFS_FS_MAGIC
+#  define AFS_FS_MAGIC 0x6B414653
+# endif
+
+
+int virStorageFileIsSharedFS(const char *path)
+{
+    char *dirpath, *p;
+    struct statfs sb;
+    int statfs_ret;
+
+    if ((dirpath = strdup(path)) == NULL) {
+        virReportOOMError();
+        return -1;
+    }
+
+    do {
+
+        /* Try less and less of the path until we get to a
+         * directory we can stat. Even if we don't have 'x'
+         * permission on any directory in the path on the NFS
+         * server (assuming it's NFS), we will be able to stat the
+         * mount point, and that will properly tell us if the
+         * fstype is NFS.
+         */
+
+        if ((p = strrchr(dirpath, '/')) == NULL) {
+            virReportSystemError(EINVAL,
+                         _("Invalid relative path '%s'"), path);
+            VIR_FREE(dirpath);
+            return -1;
+        }
+
+        if (p == dirpath)
+            *(p+1) = '\0';
+        else
+            *p = '\0';
+
+        statfs_ret = statfs(dirpath, &sb);
+
+    } while ((statfs_ret < 0) && (p != dirpath));
+
+    VIR_FREE(dirpath);
+
+    if (statfs_ret < 0) {
+        virReportSystemError(errno,
+                             _("cannot determine filesystem for '%s'"),
+                             path);
+        return -1;
+    }
+
+    VIR_DEBUG("Check if path %s with FS magic %lld is shared",
+              path, (long long int)sb.f_type);
+
+    if (sb.f_type == NFS_SUPER_MAGIC ||
+        sb.f_type == GFS2_MAGIC ||
+        sb.f_type == OCFS2_SUPER_MAGIC ||
+        sb.f_type == AFS_FS_MAGIC) {
+        return 1;
+    }
+
+    return 0;
+}
+#else
+int virStorageFileIsSharedFS(const char *path ATTRIBUTE_UNUSED)
+{
+    /* XXX implement me :-) */
+    return 0;
+}
+#endif

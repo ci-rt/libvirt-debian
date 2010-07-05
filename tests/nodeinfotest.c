@@ -40,6 +40,8 @@ static int linuxTestCompareFiles(const char *cpuinfofile, const char *outputfile
     cpuinfo = fopen(cpuinfofile, "r");
     if (!cpuinfo)
         return -1;
+
+    memset(&nodeinfo, 0, sizeof(nodeinfo));
     if (linuxNodeInfoCPUPopulate(cpuinfo, &nodeinfo) < 0) {
         fclose(cpuinfo);
         return -1;
@@ -104,7 +106,8 @@ mymain(int argc, char **argv)
         return(EXIT_FAILURE);
     }
 
-    virInitialize();
+    if (virInitialize() < 0)
+        return EXIT_FAILURE;
 
     for (i = 0 ; i < ARRAY_CARDINALITY(nodeData); i++)
       if (virtTestRun(nodeData[i], 1, linuxTestNodeInfo, nodeData[i]) != 0)

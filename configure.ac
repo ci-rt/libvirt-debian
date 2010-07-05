@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([libvirt], [0.8.1])
+AC_INIT([libvirt], [0.8.2])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -42,26 +42,17 @@ HAL_REQUIRED=0.5.0
 DEVMAPPER_REQUIRED=1.0.0
 LIBCURL_REQUIRED="7.18.0"
 LIBPCAP_REQUIRED="1.0.0"
+LIBNL_REQUIRED="1.1"
 
 dnl Checks for C compiler.
 AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_CPP
 
-AC_OBJEXT
-
-dnl gl_INIT uses m4_foreach_w, yet that is not defined in autoconf-2.59.
-dnl In order to accommodate developers with such old tools, here's a
-dnl replacement definition.
-m4_ifndef([m4_foreach_w],
-  [m4_define([m4_foreach_w],
-    [m4_foreach([$1], m4_split(m4_normalize([$2]), [ ]), [$3])])])
-
 gl_EARLY
 gl_INIT
 
 AM_PROG_CC_STDC
-AC_C_CONST
 AC_TYPE_UID_T
 
 dnl Make sure we have an ANSI compiler
@@ -78,7 +69,6 @@ AM_PROG_LD
 VERSION_SCRIPT_FLAGS=-Wl,--version-script=
 `$LD --help 2>&1 | grep -- --version-script >/dev/null` || \
     VERSION_SCRIPT_FLAGS="-Wl,-M -Wl,"
-AC_SUBST(VERSION_SCRIPT_FLAGS)
 
 LIBVIRT_COMPILE_WARNINGS([maximum])
 
@@ -102,19 +92,24 @@ fi
 AC_MSG_RESULT([$have_cpuid])
 
 
-dnl Support large files / 64 bit seek offsets.
-dnl Use --disable-largefile if you don't want this.
-AC_SYS_LARGEFILE
-
 dnl Availability of various common functions (non-fatal if missing).
-AC_CHECK_FUNCS([cfmakeraw regexec uname sched_getaffinity getuid getgid posix_fallocate mmap])
+AC_CHECK_FUNCS_ONCE([cfmakeraw regexec sched_getaffinity getuid getgid \
+ posix_fallocate mmap])
 
 dnl Availability of various not common threadsafe functions
-AC_CHECK_FUNCS([strerror_r strtok_r getmntent_r getgrnam_r getpwuid_r])
+AC_CHECK_FUNCS_ONCE([strerror_r getmntent_r getgrnam_r getpwuid_r])
+
+dnl Availability of pthread functions (if missing, win32 threading is
+dnl assumed).  Because of $LIB_PTHREAD, we cannot use AC_CHECK_FUNCS_ONCE.
+dnl LIB_PTHREAD was set during gl_INIT by gnulib.
+old_LIBS=$LIBS
+LIBS="$LIBS $LIB_PTHREAD"
+AC_CHECK_FUNCS([pthread_sigmask pthread_mutexattr_init])
+LIBS=$old_libs
 
 dnl Availability of various common headers (non-fatal if missing).
-AC_CHECK_HEADERS([pwd.h paths.h regex.h sys/syslimits.h sys/utsname.h \
-  sys/wait.h sched.h termios.h sys/poll.h syslog.h mntent.h net/ethernet.h])
+AC_CHECK_HEADERS([pwd.h paths.h regex.h sys/syslimits.h \
+  termios.h sys/poll.h syslog.h mntent.h net/ethernet.h linux/magic.h])
 
 dnl Where are the XDR functions?
 dnl If portablexdr is installed, prefer that.
@@ -137,14 +132,6 @@ dnl Is this GLIBC's buggy rpcgen?
 AM_CONDITIONAL([HAVE_GLIBC_RPCGEN],
 	       [test "x$ac_cv_path_RPCGEN" != "xno" &&
 	        $ac_cv_path_RPCGEN -t </dev/null >/dev/null 2>&1])
-
-dnl pthread?
-AC_CHECK_HEADER([pthread.h],
-	[AC_CHECK_LIB([pthread],[pthread_join],[
-		AC_DEFINE([HAVE_LIBPTHREAD],[],[Define if pthread (-lpthread)])
-		AC_DEFINE([HAVE_PTHREAD_H],[],[Define if <pthread.h>])
-		LIBS="-lpthread $LIBS"
-	])])
 
 dnl Miscellaneous external programs.
 AC_PATH_PROG([RM], [rm], [/bin/rm])
@@ -211,8 +198,11 @@ if test "$prefix" = "/usr" && test "$sysconfdir" = '${prefix}/etc' ; then
 fi
 
 dnl lxc and qemu drivers require linux headers
-if test `uname -s` != "Linux"
-then
+case "$host" in
+  *-*-linux*)
+    # match linux here so the *) case will match anything non-linux
+    ;;
+  *)
     if test "x$with_lxc" != "xyes"
     then
         with_lxc=no
@@ -221,7 +211,8 @@ then
     then
         with_qemu=no
     fi
-fi
+    ;;
+esac
 
 dnl Allow to build without Xen, QEMU/KVM, test or remote driver
 AC_ARG_WITH([xen],
@@ -241,7 +232,9 @@ AC_ARG_WITH([phyp],
 AC_ARG_WITH([xenapi],
   AC_HELP_STRING([--with-xenapi], [add XenAPI support @<:@default=check@:>@]),[],[with_xenapi=check])
 AC_ARG_WITH([vbox],
-  AC_HELP_STRING([--with-vbox], [add VirtualBox support @<:@default=yes@:>@]),[],[with_vbox=yes])
+  AC_HELP_STRING([--with-vbox=@<:@PFX@:>@],
+                 [VirtualBox XPCOMC location @<:@default=check@:>@]),[],
+                 [with_vbox=check])
 AC_ARG_WITH([lxc],
   AC_HELP_STRING([--with-lxc], [add Linux Container support @<:@default=check@:>@]),[],[with_lxc=check])
 AC_ARG_WITH([one],
@@ -323,6 +316,62 @@ if test "$with_openvz" = "yes"; then
     AC_DEFINE_UNQUOTED([WITH_OPENVZ], 1, [whether OpenVZ driver is enabled])
 fi
 AM_CONDITIONAL([WITH_OPENVZ], [test "$with_openvz" = "yes"])
+
+
+dnl
+dnl check for VirtualBox XPCOMC location
+dnl
+
+vbox_xpcomc_dir=
+
+if test "x$with_vbox" = "xyes" || test "x$with_vbox" = "xcheck"; then
+    AC_MSG_CHECKING([for VirtualBox XPCOMC location])
+
+    for vbox in \
+        /usr/lib/virtualbox/VBoxXPCOMC.so \
+        /usr/lib/VirtualBox/VBoxXPCOMC.so \
+        /opt/virtualbox/VBoxXPCOMC.so \
+        /opt/VirtualBox/VBoxXPCOMC.so \
+        /opt/virtualbox/i386/VBoxXPCOMC.so \
+        /opt/VirtualBox/i386/VBoxXPCOMC.so \
+        /opt/virtualbox/amd64/VBoxXPCOMC.so \
+        /opt/VirtualBox/amd64/VBoxXPCOMC.so \
+        /usr/local/lib/virtualbox/VBoxXPCOMC.so \
+        /usr/local/lib/VirtualBox/VBoxXPCOMC.so \
+        /Application/VirtualBox.app/Contents/MacOS/VBoxXPCOMC.dylib \
+        ; do
+        if test -f "$vbox"; then
+            vbox_xpcomc_dir=`AS_DIRNAME(["$vbox"])`
+            break
+        fi
+    done
+
+    if test -n "$vbox_xpcomc_dir"; then
+        AC_MSG_RESULT([$vbox_xpcomc_dir])
+        with_vbox=yes
+    else
+        if test "x$with_vbox" = "xcheck"; then
+            AC_MSG_RESULT([not found, disabling VirtualBox driver])
+            with_vbox=no
+        else
+            AC_MSG_RESULT([not found])
+            AC_MSG_ERROR([VirtualBox XPCOMC is required for the VirtualBox driver])
+        fi
+    fi
+else
+    if test "x$with_vbox" != "xno"; then
+        if test -f ${with_vbox}/VBoxXPCOMC.so || \
+           test -f ${with_vbox}/VBoxXPCOMC.dylib; then
+            vbox_xpcomc_dir=$with_vbox
+            with_vbox=yes
+        else
+            AC_MSG_ERROR([$with_vbox does not contain VirtualBox XPCOMC])
+        fi
+    fi
+fi
+
+AC_DEFINE_UNQUOTED([VBOX_XPCOMC_DIR], ["$vbox_xpcomc_dir"],
+                   [Location of directory containing VirtualBox XPCOMC library])
 
 if test "x$with_vbox" = "xyes"; then
     AC_SEARCH_LIBS([dlopen], [dl], [], [AC_MSG_ERROR([Unable to find dlopen()])])
@@ -505,33 +554,19 @@ if test "$with_libvirtd" = "no" ; then
   with_lxc=no
 fi
 if test "$with_lxc" = "yes" || test "$with_lxc" = "check"; then
-    AC_CHECK_HEADER([sched.h],
-    dnl Header is there, check for unshare()
-    [
-        AC_TRY_LINK([#define _GNU_SOURCE
-            #include <sched.h>], [
-            unshare (1);
-	], [
-            with_lxc=yes
-	], [
-            if test "$with_lxc" = "check"; then
-	        with_lxc=no
-		AC_MSG_NOTICE([Function unshare() not present in <sched.h> header but required for LXC driver, disabling it])
-            else
-	        AC_MSG_ERROR([Function unshare() not present in <sched.h> header, but required for LXC driver])
-            fi
-
-        ])
-
-    dnl Header is not there
-    ],[
+    AC_TRY_LINK([#define _GNU_SOURCE
+        #include <sched.h>
+    ], [
+        unshare (1);
+    ], [
+        with_lxc=yes
+    ], [
         if test "$with_lxc" = "check"; then
             with_lxc=no
-            AC_MSG_NOTICE([Header <sched.h> not found but required for LXC driver, disabling it])
+            AC_MSG_NOTICE([Function unshare() not present in <sched.h> header but required for LXC driver, disabling it])
         else
-            AC_MSG_ERROR([Header <sched.h> not found but required for LXC driver])
+            AC_MSG_ERROR([Function unshare() not present in <sched.h> header, but required for LXC driver])
         fi
-
     ])
 fi
 if test "$with_lxc" = "yes" ; then
@@ -1824,10 +1859,11 @@ case "$host" in
     # from libvirt.syms and passes libvirt.def instead of libvirt.syms to the linker
     LIBVIRT_SYMBOL_FILE=libvirt.def
     # mingw's ld has the --version-script parameter, but it requires a .def file
-    # instead to work properly, therefore clear --version-script here
+    # instead to work properly, therefore clear --version-script here and use
+    # -Wl, to pass the .def file to the linker
     # cygwin's ld has the --version-script parameter too, but for some reason
     # it's working there as expected
-    VERSION_SCRIPT_FLAGS=
+    VERSION_SCRIPT_FLAGS="-Wl,"
     ;;
 esac
 AC_SUBST([CYGWIN_EXTRA_LDFLAGS])
@@ -1836,6 +1872,7 @@ AC_SUBST([CYGWIN_EXTRA_PYTHON_LIBADD])
 AC_SUBST([MINGW_EXTRA_LDFLAGS])
 AC_SUBST([WIN32_EXTRA_CFLAGS])
 AC_SUBST([LIBVIRT_SYMBOL_FILE])
+AC_SUBST([VERSION_SCRIPT_FLAGS])
 
 
 dnl Look for windres to build a Windows icon resource.
@@ -1982,7 +2019,13 @@ then
 fi
 AM_CONDITIONAL([WITH_NODE_DEVICES], [test "$with_nodedev" = "yes"])
 
-AM_CONDITIONAL([WITH_LINUX], [test `uname -s` = "Linux"])
+with_linux=no
+case "$host" in
+  *-*-linux*)
+    with_linux=yes
+    ;;
+esac
+AM_CONDITIONAL([WITH_LINUX], [test "$with_linux" = "yes"])
 
 
 AC_ARG_WITH([qemu-user],
@@ -2019,6 +2062,38 @@ if test "$with_macvtap" != "no" ; then
     AC_DEFINE_UNQUOTED([WITH_MACVTAP], $val, [whether macvtap support is enabled])
 fi
 AM_CONDITIONAL([WITH_MACVTAP], [test "$with_macvtap" = "yes"])
+
+AC_TRY_COMPILE([ #include <sys/socket.h>
+                 #include <linux/rtnetlink.h> ],
+                 [ int x = IFLA_PORT_MAX; ],
+                 [ with_virtualport=yes ],
+                 [ with_virtualport=no ])
+if test "$with_virtualport" = "yes"; then
+    val=1
+else
+    val=0
+fi
+AC_DEFINE_UNQUOTED([WITH_VIRTUALPORT], $val,
+                   [whether vsi vepa support is enabled])
+AM_CONDITIONAL([WITH_VIRTUALPORT], [test "$with_virtualport" = "yes"])
+
+
+dnl netlink library
+
+LIBNL_CFLAGS=""
+LIBNL_LIBS=""
+
+if test "$with_macvtap" = "yes" || test "$with_virtualport" = "yes"; then
+    PKG_CHECK_MODULES([LIBNL], [libnl-1 >= $LIBNL_REQUIRED], [
+    ], [
+        AC_MSG_ERROR([libnl >= $LIBNL_REQUIRED is required for macvtap support])
+    ])
+fi
+
+AC_SUBST([LIBNL_CFLAGS])
+AC_SUBST([LIBNL_LIBS])
+
+
 
 
 # Only COPYING.LIB is under version control, yet COPYING
@@ -2081,6 +2156,7 @@ AC_MSG_NOTICE([ Network: $with_network])
 AC_MSG_NOTICE([Libvirtd: $with_libvirtd])
 AC_MSG_NOTICE([   netcf: $with_netcf])
 AC_MSG_NOTICE([ macvtap: $with_macvtap])
+AC_MSG_NOTICE([virtport: $with_virtualport])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Storage Drivers])
 AC_MSG_NOTICE([])
@@ -2198,6 +2274,11 @@ if test "$with_qemu" = "yes" ; then
 AC_MSG_NOTICE([    pcap: $LIBPCAP_CFLAGS $LIBPCAP_LIBS])
 else
 AC_MSG_NOTICE([    pcap: no])
+fi
+if test "$with_macvtap" = "yes" ; then
+AC_MSG_NOTICE([      nl: $LIBNL_CFLAGS $LIBNL_LIBS])
+else
+AC_MSG_NOTICE([      nl: no])
 fi
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Test suite])

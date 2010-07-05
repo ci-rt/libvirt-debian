@@ -23,6 +23,8 @@
 
 #include <config.h>
 
+#include <c-ctype.h>
+
 #include "internal.h"
 #include "virterror_internal.h"
 #include "memory.h"
@@ -78,9 +80,9 @@ def->os
 ################################################################################
 ## disks #######################################################################
 
-                                        scsi[0..3]:[0..6,8..15] -> <controller>:<id>
-                                        ide[0..1]:[0..1]        -> <controller>:<id>
-                                        floppy[0..1]            -> <controller>
+                                        scsi[0..3]:[0..6,8..15] -> <controller>:<unit> with 1 bus per controller
+                                        ide[0..1]:[0..1]        -> <bus>:<unit> with 1 controller
+                                        floppy[0..1]            -> <unit> with 1 controller and 1 bus per controller
 
 def->disks[0]...
 
@@ -100,7 +102,7 @@ def->disks[0]...
 ->device = _DISK_DEVICE_DISK      <=>   scsi0:0.deviceType = "scsi-hardDisk"    # defaults to ?
 ->bus = _DISK_BUS_SCSI
 ->src = <value>.vmdk              <=>   scsi0:0.fileName = "<value>.vmdk"
-->dst = sd[<controller> * 15 + <id> mapped to [a-z]+]
+->dst = sd[<controller> * 15 + <unit> mapped to [a-z]+]
 ->driverName = <driver>           <=>   scsi0.virtualDev = "<driver>"           # default depends on guestOS value
 ->driverType
 ->cachemode                       <=>   scsi0:0.writeThrough = "<value>"        # defaults to false, true -> _DISK_CACHE_WRITETHRU, false _DISK_CACHE_DEFAULT
@@ -124,7 +126,7 @@ def->disks[0]...
 ->device = _DISK_DEVICE_DISK      <=>   ide0:0.deviceType = "ata-hardDisk"      # defaults to ?
 ->bus = _DISK_BUS_IDE
 ->src = <value>.vmdk              <=>   ide0:0.fileName = "<value>.vmdk"
-->dst = hd[<controller> * 2 + <id> mapped to [a-z]+]
+->dst = hd[<bus> * 2 + <unit> mapped to [a-z]+]
 ->driverName
 ->driverType
 ->cachemode                       <=>   ide0:0.writeThrough = "<value>"         # defaults to false, true -> _DISK_CACHE_WRITETHRU, false _DISK_CACHE_DEFAULT
@@ -144,7 +146,7 @@ def->disks[0]...
 ->device = _DISK_DEVICE_CDROM     <=>   scsi0:0.deviceType = "cdrom-image"      # defaults to ?
 ->bus = _DISK_BUS_SCSI
 ->src = <value>.iso               <=>   scsi0:0.fileName = "<value>.iso"
-->dst = sd[<controller> * 15 + <id> mapped to [a-z]+]
+->dst = sd[<controller> * 15 + <unit> mapped to [a-z]+]
 ->driverName = <driver>           <=>   scsi0.virtualDev = "<driver>"           # default depends on guestOS value
 ->driverType
 ->cachemode
@@ -163,7 +165,7 @@ def->disks[0]...
 ->device = _DISK_DEVICE_CDROM     <=>   ide0:0.deviceType = "cdrom-image"       # defaults to ?
 ->bus = _DISK_BUS_IDE
 ->src = <value>.iso               <=>   ide0:0.fileName = "<value>.iso"
-->dst = hd[<controller> * 2 + <id> mapped to [a-z]+]
+->dst = hd[<bus> * 2 + <unit> mapped to [a-z]+]
 ->driverName
 ->driverType
 ->cachemode
@@ -183,7 +185,7 @@ def->disks[0]...
 ->device = _DISK_DEVICE_CDROM     <=>   scsi0:0.deviceType = "atapi-cdrom"      # defaults to ?
 ->bus = _DISK_BUS_SCSI
 ->src = <value>                   <=>   scsi0:0.fileName = "<value>"            # e.g. "/dev/scd0" ?
-->dst = sd[<controller> * 16 + <id> mapped to [a-z]+]
+->dst = sd[<controller> * 15 + <unit> mapped to [a-z]+]
 ->driverName = <driver>           <=>   scsi0.virtualDev = "<driver>"           # default depends on guestOS value
 ->driverType
 ->cachemode
@@ -203,7 +205,7 @@ def->disks[0]...
 ->device = _DISK_DEVICE_CDROM     <=>   ide0:0.deviceType = "atapi-cdrom"       # defaults to ?
 ->bus = _DISK_BUS_IDE
 ->src = <value>                   <=>   ide0:0.fileName = "<value>"             # e.g. "/dev/scd0"
-->dst = hd[<controller> * 2 + <id> mapped to [a-z]+]
+->dst = hd[<bus> * 2 + <unit> mapped to [a-z]+]
 ->driverName
 ->driverType
 ->cachemode
@@ -223,7 +225,7 @@ def->disks[0]...
 ->device = _DISK_DEVICE_FLOPPY
 ->bus = _DISK_BUS_FDC
 ->src = <value>.flp               <=>   floppy0.fileName = "<value>.flp"
-->dst = fd[<controller> mapped to [a-z]+]
+->dst = fd[<unit> mapped to [a-z]+]
 ->driverName
 ->driverType
 ->cachemode
@@ -243,7 +245,7 @@ def->disks[0]...
 ->device = _DISK_DEVICE_FLOPPY
 ->bus = _DISK_BUS_FDC
 ->src = <value>                   <=>   floppy0.fileName = "<value>"            # e.g. "/dev/fd0"
-->dst = fd[<controller> mapped to [a-z]+]
+->dst = fd[<unit> mapped to [a-z]+]
 ->driverName
 ->driverType
 ->cachemode
@@ -429,7 +431,7 @@ def->parallels[0]...
 
 
 int
-esxVMX_SCSIDiskNameToControllerAndID(const char *name, int *controller, int *id)
+esxVMX_SCSIDiskNameToControllerAndUnit(const char *name, int *controller, int *unit)
 {
     int idx;
 
@@ -448,7 +450,7 @@ esxVMX_SCSIDiskNameToControllerAndID(const char *name, int *controller, int *id)
         return -1;
     }
 
-    /* Each of the 4 SCSI controllers offers 15 IDs for devices */
+    /* Each of the 4 SCSI controllers has 1 bus with 15 units each for devices */
     if (idx >= (4 * 15)) {
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                   _("SCSI disk index (parsed from '%s') is too large"), name);
@@ -456,11 +458,11 @@ esxVMX_SCSIDiskNameToControllerAndID(const char *name, int *controller, int *id)
     }
 
     *controller = idx / 15;
-    *id = idx % 15;
+    *unit = idx % 15;
 
-    /* Skip the controller ifself with ID 7 */
-    if (*id >= 7) {
-        ++(*id);
+    /* Skip the controller ifself at unit 7 */
+    if (*unit >= 7) {
+        ++(*unit);
     }
 
     return 0;
@@ -469,7 +471,7 @@ esxVMX_SCSIDiskNameToControllerAndID(const char *name, int *controller, int *id)
 
 
 int
-esxVMX_IDEDiskNameToControllerAndID(const char *name, int *controller, int *id)
+esxVMX_IDEDiskNameToBusAndUnit(const char *name, int *bus, int *unit)
 {
     int idx;
 
@@ -488,15 +490,15 @@ esxVMX_IDEDiskNameToControllerAndID(const char *name, int *controller, int *id)
         return -1;
     }
 
-    /* Each of the 2 IDE controllers offers 2 IDs for devices */
+    /* The IDE controller has 2 buses with 2 units each for devices */
     if (idx >= (2 * 2)) {
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                   _("IDE disk index (parsed from '%s') is too large"), name);
         return -1;
     }
 
-    *controller = idx / 2;
-    *id = idx % 2;
+    *bus = idx / 2;
+    *unit = idx % 2;
 
     return 0;
 }
@@ -504,7 +506,7 @@ esxVMX_IDEDiskNameToControllerAndID(const char *name, int *controller, int *id)
 
 
 int
-esxVMX_FloppyDiskNameToController(const char *name, int *controller)
+esxVMX_FloppyDiskNameToUnit(const char *name, int *unit)
 {
     int idx;
 
@@ -523,13 +525,14 @@ esxVMX_FloppyDiskNameToController(const char *name, int *controller)
         return -1;
     }
 
+    /* The FDC controller has 1 bus with 2 units for devices */
     if (idx >= 2) {
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                   _("Floppy disk index (parsed from '%s') is too large"), name);
         return -1;
     }
 
-    *controller = idx;
+    *unit = idx;
 
     return 0;
 }
@@ -537,13 +540,180 @@ esxVMX_FloppyDiskNameToController(const char *name, int *controller)
 
 
 int
-esxVMX_GatherSCSIControllers(virDomainDefPtr def, char *virtualDev[4],
-                             int present[4])
+esxVMX_VerifyDiskAddress(virCapsPtr caps, virDomainDiskDefPtr disk)
 {
-    virDomainDiskDefPtr disk;
-    int i, controller, id;
+    virDomainDiskDef def;
+    virDomainDeviceDriveAddressPtr drive;
 
-    /* Check for continuous use of the same virtualDev per SCSI controller */
+    memset(&def, 0, sizeof(def));
+
+    if (disk->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE) {
+        ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                  _("Unsupported disk address type '%s'"),
+                  virDomainDeviceAddressTypeToString(disk->info.type));
+        return -1;
+    }
+
+    drive = &disk->info.addr.drive;
+
+    def.dst = disk->dst;
+    def.bus = disk->bus;
+
+    if (virDomainDiskDefAssignAddress(caps, &def) < 0) {
+        ESX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
+                  _("Could not verify disk address"));
+        return -1;
+    }
+
+    if (def.info.addr.drive.controller != drive->controller ||
+        def.info.addr.drive.bus != drive->bus ||
+        def.info.addr.drive.unit != drive->unit) {
+        ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                  _("Disk address %d:%d:%d doesn't match target device '%s'"),
+                  drive->controller, drive->bus, drive->unit, disk->dst);
+        return -1;
+    }
+
+    /* drive->{controller|bus|unit} is unsigned, no >= 0 checks are necessary */
+    if (disk->bus == VIR_DOMAIN_DISK_BUS_SCSI) {
+        if (drive->controller > 3) {
+            ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                      _("SCSI controller index %d out of [0..3] range"),
+                      drive->controller);
+            return -1;
+        }
+
+        if (drive->bus != 0) {
+            ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                      _("SCSI bus index %d out of [0] range"),
+                      drive->bus);
+            return -1;
+        }
+
+        if (drive->unit > 15 || drive->unit == 7) {
+            ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                      _("SCSI unit index %d out of [0..6,8..15] range"),
+                      drive->unit);
+            return -1;
+        }
+    } else if (disk->bus == VIR_DOMAIN_DISK_BUS_IDE) {
+        if (drive->controller != 0) {
+            ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                      _("IDE controller index %d out of [0] range"),
+                      drive->controller);
+            return -1;
+        }
+
+        if (drive->bus > 1) {
+            ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                      _("IDE bus index %d out of [0..1] range"),
+                      drive->bus);
+            return -1;
+        }
+
+        if (drive->unit > 1) {
+            ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                      _("IDE unit index %d out of [0..1] range"),
+                      drive->unit);
+            return -1;
+        }
+    } else if (disk->bus == VIR_DOMAIN_DISK_BUS_FDC) {
+        if (drive->controller != 0) {
+            ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                      _("FDC controller index %d out of [0] range"),
+                      drive->controller);
+            return -1;
+        }
+
+        if (drive->bus != 0) {
+            ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                      _("FDC bus index %d out of [0] range"),
+                      drive->bus);
+            return -1;
+        }
+
+        if (drive->unit > 1) {
+            ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                      _("FDC unit index %d out of [0..1] range"),
+                      drive->unit);
+            return -1;
+        }
+    } else {
+        ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                  _("Unsupported bus type '%s'"),
+                  virDomainDiskBusTypeToString(disk->bus));
+        return -1;
+    }
+
+    return 0;
+}
+
+
+
+int
+esxVMX_HandleLegacySCSIDiskDriverName(virDomainDefPtr def,
+                                      virDomainDiskDefPtr disk)
+{
+    char *tmp;
+    int model, i;
+    virDomainControllerDefPtr controller = NULL;
+
+    if (disk->bus != VIR_DOMAIN_DISK_BUS_SCSI || disk->driverName == NULL) {
+        return 0;
+    }
+
+    tmp = disk->driverName;
+
+    for (; *tmp != '\0'; ++tmp) {
+        *tmp = c_tolower(*tmp);
+    }
+
+    model = virDomainControllerModelTypeFromString(disk->driverName);
+
+    if (model < 0) {
+        ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                  _("Unknown driver name '%s'"), disk->driverName);
+        return -1;
+    }
+
+    for (i = 0; i < def->ncontrollers; ++i) {
+        if (def->controllers[i]->idx == disk->info.addr.drive.controller) {
+            controller = def->controllers[i];
+            break;
+        }
+    }
+
+    if (controller == NULL) {
+        ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                  _("Missing SCSI controller for index %d"),
+                  disk->info.addr.drive.controller);
+        return -1;
+    }
+
+    if (controller->model == -1) {
+        controller->model = model;
+    } else if (controller->model != model) {
+        ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                  _("Inconsistent SCSI controller model ('%s' is not '%s') "
+                    "for SCSI controller index %d"), disk->driverName,
+                  virDomainControllerModelTypeToString(controller->model),
+                  controller->idx);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+
+int
+esxVMX_GatherSCSIControllers(virDomainDefPtr def, int virtualDev[4],
+                             bool present[4])
+{
+    int i;
+    virDomainDiskDefPtr disk;
+    virDomainControllerDefPtr controller = NULL;
+
     for (i = 0; i < def->ndisks; ++i) {
         disk = def->disks[i];
 
@@ -551,34 +721,36 @@ esxVMX_GatherSCSIControllers(virDomainDefPtr def, char *virtualDev[4],
             continue;
         }
 
-        if (disk->driverName != NULL &&
-            STRCASENEQ(disk->driverName, "buslogic") &&
-            STRCASENEQ(disk->driverName, "lsilogic") &&
-            STRCASENEQ(disk->driverName, "lsisas1068")) {
+        controller = NULL;
+
+        for (i = 0; i < def->ncontrollers; ++i) {
+            if (def->controllers[i]->idx == disk->info.addr.drive.controller) {
+                controller = def->controllers[i];
+                break;
+            }
+        }
+
+        if (controller == NULL) {
             ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Expecting domain XML entry 'devices/disk/target' to "
-                        "be 'buslogic' or 'lsilogic' or 'lsisas1068' but found '%s'"),
-                      disk->driverName);
+                      _("Missing SCSI controller for index %d"),
+                      disk->info.addr.drive.controller);
             return -1;
         }
 
-        if (esxVMX_SCSIDiskNameToControllerAndID(disk->dst, &controller,
-                                                 &id) < 0) {
-            return -1;
-        }
-
-        present[controller] = 1;
-
-        if (virtualDev[controller] == NULL) {
-            virtualDev[controller] = disk->driverName;
-        } else if (disk->driverName == NULL ||
-                   STRCASENEQ(virtualDev[controller], disk->driverName)) {
+        if (controller->model != -1 &&
+            controller->model != VIR_DOMAIN_CONTROLLER_MODEL_BUSLOGIC &&
+            controller->model != VIR_DOMAIN_CONTROLLER_MODEL_LSILOGIC &&
+            controller->model != VIR_DOMAIN_CONTROLLER_MODEL_LSISAS1068) {
             ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Inconsistent driver usage ('%s' is not '%s') on SCSI "
-                        "controller index %d"), virtualDev[controller],
-                      disk->driverName ? disk->driverName : "?", controller);
+                      _("Expecting domain XML attribute 'model' of entry "
+                        "'controller' to be 'buslogic' or 'lsilogic' or "
+                        "'lsisas1068' but found '%s'"),
+                      virDomainControllerModelTypeToString(controller->model));
             return -1;
         }
+
+        present[controller->idx] = true;
+        virtualDev[controller->idx] = controller->model;
     }
 
     return 0;
@@ -590,6 +762,7 @@ char *
 esxVMX_AbsolutePathToDatastoreRelatedPath(esxVI_Context *ctx,
                                           const char *absolutePath)
 {
+    bool success = false;
     char *copyOfAbsolutePath = NULL;
     char *tmp = NULL;
     char *saveptr = NULL;
@@ -601,7 +774,7 @@ esxVMX_AbsolutePathToDatastoreRelatedPath(esxVI_Context *ctx,
     const char *datastoreName = NULL;
 
     if (esxVI_String_DeepCopyValue(&copyOfAbsolutePath, absolutePath) < 0) {
-        goto failure;
+        return NULL;
     }
 
     /* Expected format: '/vmfs/volumes/<datastore>/<path>' */
@@ -611,14 +784,14 @@ esxVMX_AbsolutePathToDatastoreRelatedPath(esxVI_Context *ctx,
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                   _("Absolute path '%s' doesn't have expected format "
                     "'/vmfs/volumes/<datastore>/<path>'"), absolutePath);
-        goto failure;
+        goto cleanup;
     }
 
     if (ctx != NULL) {
         if (esxVI_LookupDatastoreByName(ctx, preliminaryDatastoreName,
                                         NULL, &datastore,
                                         esxVI_Occurrence_OptionalItem) < 0) {
-            goto failure;
+            goto cleanup;
         }
 
         if (datastore != NULL) {
@@ -629,7 +802,7 @@ esxVMX_AbsolutePathToDatastoreRelatedPath(esxVI_Context *ctx,
                 } else if (STREQ(dynamicProperty->name, "summary.name")) {
                     if (esxVI_AnyType_ExpectType(dynamicProperty->val,
                                                  esxVI_Type_String) < 0) {
-                        goto failure;
+                        goto cleanup;
                     }
 
                     datastoreName = dynamicProperty->val->string;
@@ -656,21 +829,22 @@ esxVMX_AbsolutePathToDatastoreRelatedPath(esxVI_Context *ctx,
     if (virAsprintf(&datastoreRelatedPath, "[%s] %s", datastoreName,
                     directoryAndFileName) < 0) {
         virReportOOMError();
-        goto failure;
+        goto cleanup;
     }
 
     /* FIXME: Check if referenced path/file really exists */
 
+    success = true;
+
   cleanup:
+    if (! success) {
+        VIR_FREE(datastoreRelatedPath);
+    }
+
     VIR_FREE(copyOfAbsolutePath);
     esxVI_ObjectContent_Free(&datastore);
 
     return datastoreRelatedPath;
-
-  failure:
-    VIR_FREE(datastoreRelatedPath);
-
-    goto cleanup;
 }
 
 
@@ -723,10 +897,11 @@ esxVMX_ParseFileName(esxVI_Context *ctx, const char *fileName,
 
 
 virDomainDefPtr
-esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
+esxVMX_ParseConfig(esxVI_Context *ctx, virCapsPtr caps, const char *vmx,
                    const char *datastoreName, const char *directoryName,
                    esxVI_ProductVersion productVersion)
 {
+    bool success = false;
     virConfPtr conf = NULL;
     virDomainDefPtr def = NULL;
     long long config_version = 0;
@@ -737,10 +912,11 @@ esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
     char *sched_cpu_affinity = NULL;
     char *guestOS = NULL;
     int controller;
+    int bus;
     int port;
-    int present; // boolean
-    char *scsi_virtualDev = NULL;
-    int id;
+    bool present;
+    int scsi_virtualDev[4] = { -1, -1, -1, -1 };
+    int unit;
 
     conf = virConfReadMem(vmx, strlen(vmx), VIR_CONF_FLAG_VMX_FORMAT);
 
@@ -750,7 +926,7 @@ esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
 
     if (VIR_ALLOC(def) < 0) {
         virReportOOMError();
-        goto failure;
+        return NULL;
     }
 
     def->virtType = VIR_DOMAIN_VIRT_VMWARE; /* FIXME: maybe add VIR_DOMAIN_VIRT_ESX ? */
@@ -758,21 +934,21 @@ esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
 
     /* vmx:config.version */
     if (esxUtil_GetConfigLong(conf, "config.version", &config_version, 0,
-                              0) < 0) {
-        goto failure;
+                              false) < 0) {
+        goto cleanup;
     }
 
     if (config_version != 8) {
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                   _("Expecting VMX entry 'config.version' to be 8 but found "
                     "%lld"), config_version);
-        goto failure;
+        goto cleanup;
     }
 
     /* vmx:virtualHW.version */
     if (esxUtil_GetConfigLong(conf, "virtualHW.version", &virtualHW_version, 0,
-                              0) < 0) {
-        goto failure;
+                              false) < 0) {
+        goto cleanup;
     }
 
     /*
@@ -790,7 +966,7 @@ esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
                       _("Expecting VMX entry 'virtualHW.version' to be 4 "
                         "but found %lld"),
                       virtualHW_version);
-            goto failure;
+            goto cleanup;
         }
 
         break;
@@ -802,7 +978,7 @@ esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
                       _("Expecting VMX entry 'virtualHW.version' to be 4 or 7 "
                         "but found %lld"),
                       virtualHW_version);
-            goto failure;
+            goto cleanup;
         }
 
         break;
@@ -810,37 +986,38 @@ esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
       default:
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
                   _("Unexpected product version"));
-        goto failure;
+        goto cleanup;
     }
 
     /* vmx:uuid.bios -> def:uuid */
     /* FIXME: Need to handle 'uuid.action = "create"' */
-    if (esxUtil_GetConfigUUID(conf, "uuid.bios", def->uuid, 1) < 0) {
-        goto failure;
+    if (esxUtil_GetConfigUUID(conf, "uuid.bios", def->uuid, true) < 0) {
+        goto cleanup;
     }
 
     /* vmx:displayName -> def:name */
-    if (esxUtil_GetConfigString(conf, "displayName", &def->name, 1) < 0) {
-        goto failure;
+    if (esxUtil_GetConfigString(conf, "displayName", &def->name, true) < 0) {
+        goto cleanup;
     }
 
     /* vmx:memsize -> def:maxmem */
-    if (esxUtil_GetConfigLong(conf, "memsize", &memsize, 32, 1) < 0) {
-        goto failure;
+    if (esxUtil_GetConfigLong(conf, "memsize", &memsize, 32, true) < 0) {
+        goto cleanup;
     }
 
     if (memsize <= 0 || memsize % 4 != 0) {
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                   _("Expecting VMX entry 'memsize' to be an unsigned "
                     "integer (multiple of 4) but found %lld"), memsize);
-        goto failure;
+        goto cleanup;
     }
 
     def->maxmem = memsize * 1024; /* Scale from megabytes to kilobytes */
 
     /* vmx:sched.mem.max -> def:memory */
-    if (esxUtil_GetConfigLong(conf, "sched.mem.max", &memory, memsize, 1) < 0) {
-        goto failure;
+    if (esxUtil_GetConfigLong(conf, "sched.mem.max", &memory, memsize,
+                              true) < 0) {
+        goto cleanup;
     }
 
     if (memory < 0) {
@@ -854,15 +1031,15 @@ esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
     }
 
     /* vmx:numvcpus -> def:vcpus */
-    if (esxUtil_GetConfigLong(conf, "numvcpus", &numvcpus, 1, 1) < 0) {
-        goto failure;
+    if (esxUtil_GetConfigLong(conf, "numvcpus", &numvcpus, 1, true) < 0) {
+        goto cleanup;
     }
 
     if (numvcpus <= 0 || (numvcpus % 2 != 0 && numvcpus != 1)) {
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                   _("Expecting VMX entry 'numvcpus' to be an unsigned "
                     "integer (1 or a multiple of 2) but found %lld"), numvcpus);
-        goto failure;
+        goto cleanup;
     }
 
     def->vcpus = numvcpus;
@@ -870,8 +1047,8 @@ esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
     /* vmx:sched.cpu.affinity -> def:cpumask */
     // VirtualMachine:config.cpuAffinity.affinitySet
     if (esxUtil_GetConfigString(conf, "sched.cpu.affinity", &sched_cpu_affinity,
-                                1) < 0) {
-        goto failure;
+                                true) < 0) {
+        goto cleanup;
     }
 
     if (sched_cpu_affinity != NULL && STRNEQ(sched_cpu_affinity, "all")) {
@@ -882,7 +1059,7 @@ esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
 
         if (VIR_ALLOC_N(def->cpumask, VIR_DOMAIN_CPUMASK_LEN) < 0) {
             virReportOOMError();
-            goto failure;
+            goto cleanup;
         }
 
         while (*current != '\0') {
@@ -895,14 +1072,14 @@ esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
                           _("Expecting VMX entry 'sched.cpu.affinity' to be "
                             "a comma separated list of unsigned integers but "
                             "found '%s'"), sched_cpu_affinity);
-                goto failure;
+                goto cleanup;
             }
 
             if (number >= VIR_DOMAIN_CPUMASK_LEN) {
                 ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                           _("VMX entry 'sched.cpu.affinity' contains a %d, "
                             "this value is too large"), number);
-                goto failure;
+                goto cleanup;
             }
 
             if (number + 1 > def->cpumasklen) {
@@ -923,7 +1100,7 @@ esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
                           _("Expecting VMX entry 'sched.cpu.affinity' to be "
                             "a comma separated list of unsigned integers but "
                             "found '%s'"), sched_cpu_affinity);
-                goto failure;
+                goto cleanup;
             }
 
             virSkipSpaces(&current);
@@ -934,7 +1111,7 @@ esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
                       _("Expecting VMX entry 'sched.cpu.affinity' to contain "
                         "at least as many values as 'numvcpus' (%lld) but "
                         "found only %d value(s)"), numvcpus, count);
-            goto failure;
+            goto cleanup;
         }
     }
 
@@ -948,12 +1125,12 @@ esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
 
     if (def->os.type == NULL) {
         virReportOOMError();
-        goto failure;
+        goto cleanup;
     }
 
     /* vmx:guestOS -> def:os.arch */
-    if (esxUtil_GetConfigString(conf, "guestOS", &guestOS, 1) < 0) {
-        goto failure;
+    if (esxUtil_GetConfigString(conf, "guestOS", &guestOS, true) < 0) {
+        goto cleanup;
     }
 
     if (guestOS != NULL && virFileHasSuffix(guestOS, "-64")) {
@@ -964,26 +1141,25 @@ esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
 
     if (def->os.arch == NULL) {
         virReportOOMError();
-        goto failure;
+        goto cleanup;
     }
 
-/*
-    def->emulator
-    def->features*/
+    /* def:features */
+    /* FIXME */
 
-/*
-    def->localtime*/
+    /* def:clock */
+    /* FIXME */
 
     /* def:graphics */
     if (VIR_ALLOC_N(def->graphics, 1) < 0) {
         virReportOOMError();
-        goto failure;
+        goto cleanup;
     }
 
     def->ngraphics = 0;
 
     if (esxVMX_ParseVNC(conf, &def->graphics[def->ngraphics]) < 0) {
-        goto failure;
+        goto cleanup;
     }
 
     if (def->graphics[def->ngraphics] != NULL) {
@@ -993,38 +1169,36 @@ esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
     /* def:disks: 4 * 15 scsi + 2 * 2 ide + 2 floppy = 66 */
     if (VIR_ALLOC_N(def->disks, 66) < 0) {
         virReportOOMError();
-        goto failure;
+        goto cleanup;
     }
 
     def->ndisks = 0;
 
     /* def:disks (scsi) */
     for (controller = 0; controller < 4; ++controller) {
-        VIR_FREE(scsi_virtualDev);
-
         if (esxVMX_ParseSCSIController(conf, controller, &present,
-                                       &scsi_virtualDev) < 0) {
-            goto failure;
+                                       &scsi_virtualDev[controller]) < 0) {
+            goto cleanup;
         }
 
         if (! present) {
             continue;
         }
 
-        for (id = 0; id < 16; ++id) {
-            if (id == 7) {
+        for (unit = 0; unit < 16; ++unit) {
+            if (unit == 7) {
                 /*
-                 * SCSI ID 7 is assigned to the SCSI controller and cannot be
+                 * SCSI unit 7 is assigned to the SCSI controller and cannot be
                  * used for disk devices.
                  */
                 continue;
             }
 
-            if (esxVMX_ParseDisk(ctx, conf, VIR_DOMAIN_DISK_DEVICE_DISK,
-                                 VIR_DOMAIN_DISK_BUS_SCSI, controller, id,
-                                 scsi_virtualDev, datastoreName, directoryName,
+            if (esxVMX_ParseDisk(ctx, caps, conf, VIR_DOMAIN_DISK_DEVICE_DISK,
+                                 VIR_DOMAIN_DISK_BUS_SCSI, controller, unit,
+                                 datastoreName, directoryName,
                                  &def->disks[def->ndisks]) < 0) {
-                goto failure;
+                goto cleanup;
             }
 
             if (def->disks[def->ndisks] != NULL) {
@@ -1032,11 +1206,11 @@ esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
                 continue;
             }
 
-            if (esxVMX_ParseDisk(ctx, conf, VIR_DOMAIN_DISK_DEVICE_CDROM,
-                                 VIR_DOMAIN_DISK_BUS_SCSI, controller, id,
-                                 scsi_virtualDev, datastoreName, directoryName,
+            if (esxVMX_ParseDisk(ctx, caps, conf, VIR_DOMAIN_DISK_DEVICE_CDROM,
+                                 VIR_DOMAIN_DISK_BUS_SCSI, controller, unit,
+                                 datastoreName, directoryName,
                                  &def->disks[def->ndisks]) < 0) {
-                goto failure;
+                goto cleanup;
             }
 
             if (def->disks[def->ndisks] != NULL) {
@@ -1046,13 +1220,13 @@ esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
     }
 
     /* def:disks (ide) */
-    for (controller = 0; controller < 2; ++controller) {
-        for (id = 0; id < 2; ++id) {
-            if (esxVMX_ParseDisk(ctx, conf, VIR_DOMAIN_DISK_DEVICE_DISK,
-                                 VIR_DOMAIN_DISK_BUS_IDE, controller, id,
-                                 NULL, datastoreName, directoryName,
+    for (bus = 0; bus < 2; ++bus) {
+        for (unit = 0; unit < 2; ++unit) {
+            if (esxVMX_ParseDisk(ctx, caps, conf, VIR_DOMAIN_DISK_DEVICE_DISK,
+                                 VIR_DOMAIN_DISK_BUS_IDE, bus, unit,
+                                 datastoreName, directoryName,
                                  &def->disks[def->ndisks]) < 0) {
-                goto failure;
+                goto cleanup;
             }
 
             if (def->disks[def->ndisks] != NULL) {
@@ -1060,11 +1234,11 @@ esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
                 continue;
             }
 
-            if (esxVMX_ParseDisk(ctx, conf, VIR_DOMAIN_DISK_DEVICE_CDROM,
-                                 VIR_DOMAIN_DISK_BUS_IDE, controller, id,
-                                 NULL, datastoreName, directoryName,
+            if (esxVMX_ParseDisk(ctx, caps, conf, VIR_DOMAIN_DISK_DEVICE_CDROM,
+                                 VIR_DOMAIN_DISK_BUS_IDE, bus, unit,
+                                 datastoreName, directoryName,
                                  &def->disks[def->ndisks]) < 0) {
-                goto failure;
+                goto cleanup;
             }
 
             if (def->disks[def->ndisks] != NULL) {
@@ -1074,16 +1248,37 @@ esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
     }
 
     /* def:disks (floppy) */
-    for (controller = 0; controller < 2; ++controller) {
-        if (esxVMX_ParseDisk(ctx, conf, VIR_DOMAIN_DISK_DEVICE_FLOPPY,
-                             VIR_DOMAIN_DISK_BUS_FDC, controller, -1, NULL,
+    for (unit = 0; unit < 2; ++unit) {
+        if (esxVMX_ParseDisk(ctx, caps, conf, VIR_DOMAIN_DISK_DEVICE_FLOPPY,
+                             VIR_DOMAIN_DISK_BUS_FDC, 0, unit,
                              datastoreName, directoryName,
                              &def->disks[def->ndisks]) < 0) {
-            goto failure;
+            goto cleanup;
         }
 
         if (def->disks[def->ndisks] != NULL) {
             ++def->ndisks;
+        }
+    }
+
+    /* def:controllers */
+    if (virDomainDefAddImplicitControllers(def) < 0) {
+        ESX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Could not add controllers"));
+        goto cleanup;
+    }
+
+    for (controller = 0; controller < def->ncontrollers; ++controller) {
+        if (def->controllers[controller]->type == VIR_DOMAIN_CONTROLLER_TYPE_SCSI) {
+            if (def->controllers[controller]->idx < 0 ||
+                def->controllers[controller]->idx > 3) {
+                ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                          _("SCSI controller index %d out of [0..3] range"),
+                          def->controllers[controller]->idx);
+                goto cleanup;
+            }
+
+            def->controllers[controller]->model =
+              scsi_virtualDev[def->controllers[controller]->idx];
         }
     }
 
@@ -1093,7 +1288,7 @@ esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
     /* def:nets */
     if (VIR_ALLOC_N(def->nets, 4) < 0) {
         virReportOOMError();
-        goto failure;
+        goto cleanup;
     }
 
     def->nnets = 0;
@@ -1101,7 +1296,7 @@ esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
     for (controller = 0; controller < 4; ++controller) {
         if (esxVMX_ParseEthernet(conf, controller,
                                  &def->nets[def->nnets]) < 0) {
-            goto failure;
+            goto cleanup;
         }
 
         if (def->nets[def->nnets] != NULL) {
@@ -1121,16 +1316,15 @@ esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
     /* def:serials */
     if (VIR_ALLOC_N(def->serials, 4) < 0) {
         virReportOOMError();
-        goto failure;
+        goto cleanup;
     }
 
     def->nserials = 0;
 
     for (port = 0; port < 4; ++port) {
-        if (esxVMX_ParseSerial(ctx, conf, port, datastoreName,
-                               directoryName,
+        if (esxVMX_ParseSerial(ctx, conf, port, datastoreName, directoryName,
                                &def->serials[def->nserials]) < 0) {
-            goto failure;
+            goto cleanup;
         }
 
         if (def->serials[def->nserials] != NULL) {
@@ -1141,16 +1335,15 @@ esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
     /* def:parallels */
     if (VIR_ALLOC_N(def->parallels, 3) < 0) {
         virReportOOMError();
-        goto failure;
+        goto cleanup;
     }
 
     def->nparallels = 0;
 
     for (port = 0; port < 3; ++port) {
-        if (esxVMX_ParseParallel(ctx, conf, port, datastoreName,
-                                 directoryName,
+        if (esxVMX_ParseParallel(ctx, conf, port, datastoreName, directoryName,
                                  &def->parallels[def->nparallels]) < 0) {
-            goto failure;
+            goto cleanup;
         }
 
         if (def->parallels[def->nparallels] != NULL) {
@@ -1158,19 +1351,19 @@ esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
         }
     }
 
+    success = true;
+
   cleanup:
+    if (! success) {
+        virDomainDefFree(def);
+        def = NULL;
+    }
+
     virConfFree(conf);
     VIR_FREE(sched_cpu_affinity);
     VIR_FREE(guestOS);
-    VIR_FREE(scsi_virtualDev);
 
     return def;
-
-  failure:
-    virDomainDefFree(def);
-    def = NULL;
-
-    goto cleanup;
 }
 
 
@@ -1178,7 +1371,7 @@ esxVMX_ParseConfig(esxVI_Context *ctx, const char *vmx,
 int
 esxVMX_ParseVNC(virConfPtr conf, virDomainGraphicsDefPtr *def)
 {
-    int enabled = 0; // boolean
+    bool enabled = false;
     long long port = 0;
 
     if (def == NULL || *def != NULL) {
@@ -1187,7 +1380,7 @@ esxVMX_ParseVNC(virConfPtr conf, virDomainGraphicsDefPtr *def)
     }
 
     if (esxUtil_GetConfigBoolean(conf, "RemoteDisplay.vnc.enabled", &enabled,
-                                 0, 1) < 0) {
+                                 false, true) < 0) {
         return -1;
     }
 
@@ -1203,13 +1396,13 @@ esxVMX_ParseVNC(virConfPtr conf, virDomainGraphicsDefPtr *def)
     (*def)->type = VIR_DOMAIN_GRAPHICS_TYPE_VNC;
 
     if (esxUtil_GetConfigLong(conf, "RemoteDisplay.vnc.port", &port, -1,
-                               1) < 0 ||
+                              true) < 0 ||
         esxUtil_GetConfigString(conf, "RemoteDisplay.vnc.ip",
-                                &(*def)->data.vnc.listenAddr, 1) < 0 ||
+                                &(*def)->data.vnc.listenAddr, true) < 0 ||
         esxUtil_GetConfigString(conf, "RemoteDisplay.vnc.keymap",
-                                &(*def)->data.vnc.keymap, 1) < 0 ||
+                                &(*def)->data.vnc.keymap, true) < 0 ||
         esxUtil_GetConfigString(conf, "RemoteDisplay.vnc.password",
-                                &(*def)->data.vnc.passwd, 1) < 0) {
+                                &(*def)->data.vnc.passwd, true) < 0) {
         goto failure;
     }
 
@@ -1240,13 +1433,15 @@ esxVMX_ParseVNC(virConfPtr conf, virDomainGraphicsDefPtr *def)
 
 
 int
-esxVMX_ParseSCSIController(virConfPtr conf, int controller, int *present,
-                           char **virtualDev)
+esxVMX_ParseSCSIController(virConfPtr conf, int controller, bool *present,
+                           int *virtualDev)
 {
     char present_name[32];
     char virtualDev_name[32];
+    char *virtualDev_string = NULL;
+    char *tmp;
 
-    if (virtualDev == NULL || *virtualDev != NULL) {
+    if (virtualDev == NULL || *virtualDev != -1) {
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
         return -1;
     }
@@ -1262,7 +1457,8 @@ esxVMX_ParseSCSIController(virConfPtr conf, int controller, int *present,
     snprintf(virtualDev_name, sizeof(virtualDev_name), "scsi%d.virtualDev",
              controller);
 
-    if (esxUtil_GetConfigBoolean(conf, present_name, present, 0, 1) < 0) {
+    if (esxUtil_GetConfigBoolean(conf, present_name, present, false,
+                                 true) < 0) {
         goto failure;
     }
 
@@ -1270,24 +1466,36 @@ esxVMX_ParseSCSIController(virConfPtr conf, int controller, int *present,
         return 0;
     }
 
-    if (esxUtil_GetConfigString(conf, virtualDev_name, virtualDev, 1) < 0) {
+    if (esxUtil_GetConfigString(conf, virtualDev_name, &virtualDev_string,
+                                true) < 0) {
         goto failure;
     }
 
-    if (*virtualDev != NULL &&
-        STRCASENEQ(*virtualDev, "buslogic") &&
-        STRCASENEQ(*virtualDev, "lsilogic") &&
-        STRCASENEQ(*virtualDev, "lsisas1068")) {
-        ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Expecting VMX entry '%s' to be 'buslogic' or 'lsilogic' or "
-                    "'lsisas1068' but found '%s'"), virtualDev_name, *virtualDev);
-        goto failure;
+    if (virtualDev_string != NULL) {
+        tmp = virtualDev_string;
+
+        for (; *tmp != '\0'; ++tmp) {
+            *tmp = c_tolower(*tmp);
+        }
+
+        *virtualDev = virDomainControllerModelTypeFromString(virtualDev_string);
+
+        if (*virtualDev == -1 ||
+            (*virtualDev != VIR_DOMAIN_CONTROLLER_MODEL_BUSLOGIC &&
+             *virtualDev != VIR_DOMAIN_CONTROLLER_MODEL_LSILOGIC &&
+             *virtualDev != VIR_DOMAIN_CONTROLLER_MODEL_LSISAS1068)) {
+            ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                      _("Expecting VMX entry '%s' to be 'buslogic' or 'lsilogic' "
+                        "or 'lsisas1068' but found '%s'"), virtualDev_name,
+                        virtualDev_string);
+            goto failure;
+        }
     }
 
     return 0;
 
   failure:
-    VIR_FREE(*virtualDev);
+    VIR_FREE(virtualDev_string);
 
     return -1;
 }
@@ -1310,45 +1518,42 @@ struct _virDomainDiskDef {
 };*/
 
 int
-esxVMX_ParseDisk(esxVI_Context *ctx, virConfPtr conf, int device, int bus,
-                 int controller, int id, const char *virtualDev,
+esxVMX_ParseDisk(esxVI_Context *ctx, virCapsPtr caps, virConfPtr conf,
+                 int device, int busType, int controllerOrBus, int unit,
                  const char *datastoreName, const char *directoryName,
                  virDomainDiskDefPtr *def)
 {
     /*
-     *     device = {VIR_DOMAIN_DISK_DEVICE_DISK, VIR_DOMAIN_DISK_DEVICE_CDROM}
-     *        bus = VIR_DOMAIN_DISK_BUS_SCSI
-     * controller = [0..3]
-     *         id = [0..6,8..15]
-     * virtualDev = {'buslogic', 'lsilogic', 'lsisas1068'}
+     *          device = {VIR_DOMAIN_DISK_DEVICE_DISK, VIR_DOMAIN_DISK_DEVICE_CDROM}
+     *         busType = VIR_DOMAIN_DISK_BUS_SCSI
+     * controllerOrBus = [0..3] -> controller
+     *            unit = [0..6,8..15]
      *
-     *     device = {VIR_DOMAIN_DISK_DEVICE_DISK, VIR_DOMAIN_DISK_DEVICE_CDROM}
-     *        bus = VIR_DOMAIN_DISK_BUS_IDE
-     * controller = [0..1]
-     *         id = [0..1]
-     * virtualDev = NULL
+     *          device = {VIR_DOMAIN_DISK_DEVICE_DISK, VIR_DOMAIN_DISK_DEVICE_CDROM}
+     *         busType = VIR_DOMAIN_DISK_BUS_IDE
+     * controllerOrBus = [0..1] -> bus
+     *            unit = [0..1]
      *
-     *     device = VIR_DOMAIN_DISK_DEVICE_FLOPPY
-     *        bus = VIR_DOMAIN_DISK_BUS_FDC
-     * controller = [0..1]
-     *         id = -1
-     * virtualDev = NULL
+     *          device = VIR_DOMAIN_DISK_DEVICE_FLOPPY
+     *         busType = VIR_DOMAIN_DISK_BUS_FDC
+     * controllerOrBus = [0]
+     *            unit = [0..1]
      */
 
-    int result = 0;
+    int result = -1;
     char *prefix = NULL;
 
     char present_name[32] = "";
-    int present = 0;
+    bool present = false;
 
     char startConnected_name[32] = "";
-    int startConnected = 0;
+    bool startConnected = false;
 
     char deviceType_name[32] = "";
     char *deviceType = NULL;
 
     char clientDevice_name[32] = "";
-    int clientDevice = 0;
+    bool clientDevice = false;
 
     char fileType_name[32] = "";
     char *fileType = NULL;
@@ -1357,7 +1562,7 @@ esxVMX_ParseDisk(esxVI_Context *ctx, virConfPtr conf, int device, int bus,
     char *fileName = NULL;
 
     char writeThrough_name[32] = "";
-    int writeThrough = 0;
+    bool writeThrough = false;
 
     if (def == NULL || *def != NULL) {
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
@@ -1366,112 +1571,111 @@ esxVMX_ParseDisk(esxVI_Context *ctx, virConfPtr conf, int device, int bus,
 
     if (VIR_ALLOC(*def) < 0) {
         virReportOOMError();
-        goto failure;
+        return -1;
     }
 
     (*def)->device = device;
-    (*def)->bus = bus;
+    (*def)->bus = busType;
 
     /* def:dst, def:driverName */
     if (device == VIR_DOMAIN_DISK_DEVICE_DISK ||
         device == VIR_DOMAIN_DISK_DEVICE_CDROM) {
-        if (bus == VIR_DOMAIN_DISK_BUS_SCSI) {
-            if (controller < 0 || controller > 3) {
+        if (busType == VIR_DOMAIN_DISK_BUS_SCSI) {
+            if (controllerOrBus < 0 || controllerOrBus > 3) {
                 ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                           _("SCSI controller index %d out of [0..3] range"),
-                          controller);
-                goto failure;
+                          controllerOrBus);
+                goto cleanup;
             }
 
-            if (id < 0 || id > 15 || id == 7) {
+            if (unit < 0 || unit > 15 || unit == 7) {
                 ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                          _("SCSI ID %d out of [0..6,8..15] range"), id);
-                goto failure;
+                          _("SCSI unit index %d out of [0..6,8..15] range"),
+                          unit);
+                goto cleanup;
             }
 
-            if (virAsprintf(&prefix, "scsi%d:%d", controller, id) < 0) {
+            if (virAsprintf(&prefix, "scsi%d:%d", controllerOrBus, unit) < 0) {
                 virReportOOMError();
-                goto failure;
+                goto cleanup;
             }
 
             (*def)->dst =
                virIndexToDiskName
-                 (controller * 15 + (id < 7 ? id : id - 1), "sd");
+                 (controllerOrBus * 15 + (unit < 7 ? unit : unit - 1), "sd");
 
             if ((*def)->dst == NULL) {
-                goto failure;
+                goto cleanup;
             }
-
-            if (virtualDev != NULL) {
-                (*def)->driverName = strdup(virtualDev);
-
-                if ((*def)->driverName == NULL) {
-                    virReportOOMError();
-                    goto failure;
-                }
-            }
-        } else if (bus == VIR_DOMAIN_DISK_BUS_IDE) {
-            if (controller < 0 || controller > 1) {
+        } else if (busType == VIR_DOMAIN_DISK_BUS_IDE) {
+            if (controllerOrBus < 0 || controllerOrBus > 1) {
                 ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                          _("IDE controller index %d out of [0..1] range"),
-                          controller);
-                goto failure;
+                          _("IDE bus index %d out of [0..1] range"),
+                          controllerOrBus);
+                goto cleanup;
             }
 
-            if (id < 0 || id > 1) {
+            if (unit < 0 || unit > 1) {
                 ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                          _("IDE ID %d out of [0..1] range"), id);
-                goto failure;
+                          _("IDE unit index %d out of [0..1] range"), unit);
+                goto cleanup;
             }
 
-            if (virAsprintf(&prefix, "ide%d:%d", controller, id) < 0) {
+            if (virAsprintf(&prefix, "ide%d:%d", controllerOrBus, unit) < 0) {
                 virReportOOMError();
-                goto failure;
+                goto cleanup;
             }
 
-            (*def)->dst = virIndexToDiskName(controller * 2 + id, "hd");
+            (*def)->dst = virIndexToDiskName(controllerOrBus * 2 + unit, "hd");
 
             if ((*def)->dst == NULL) {
-                goto failure;
+                goto cleanup;
             }
         } else {
             ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                       _("Unsupported bus type '%s' for device type '%s'"),
-                      virDomainDiskBusTypeToString(bus),
+                      virDomainDiskBusTypeToString(busType),
                       virDomainDiskDeviceTypeToString(device));
-            goto failure;
+            goto cleanup;
         }
     } else if (device == VIR_DOMAIN_DISK_DEVICE_FLOPPY) {
-        if (bus == VIR_DOMAIN_DISK_BUS_FDC) {
-            if (controller < 0 || controller > 1) {
+        if (busType == VIR_DOMAIN_DISK_BUS_FDC) {
+            if (controllerOrBus != 0) {
                 ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                          _("Floppy controller index %d out of [0..1] range"),
-                          controller);
-                goto failure;
+                          _("FDC controller index %d out of [0] range"),
+                          controllerOrBus);
+                goto cleanup;
             }
 
-            if (virAsprintf(&prefix, "floppy%d", controller) < 0) {
+            if (unit < 0 || unit > 1) {
+                ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                          _("FDC unit index %d out of [0..1] range"),
+                          unit);
+                goto cleanup;
+            }
+
+            if (virAsprintf(&prefix, "floppy%d", unit) < 0) {
                 virReportOOMError();
-                goto failure;
+                goto cleanup;
             }
 
-            (*def)->dst = virIndexToDiskName(controller, "fd");
+            (*def)->dst = virIndexToDiskName(unit, "fd");
 
             if ((*def)->dst == NULL) {
-                goto failure;
+                goto cleanup;
             }
         } else {
             ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                       _("Unsupported bus type '%s' for device type '%s'"),
-                      virDomainDiskBusTypeToString(bus),
+                      virDomainDiskBusTypeToString(busType),
                       virDomainDiskDeviceTypeToString(device));
-            goto failure;
+            goto cleanup;
         }
     } else {
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                   _("Unsupported device type '%s'"),
                   virDomainDiskDeviceTypeToString(device));
-        goto failure;
+        goto cleanup;
     }
 
     ESX_BUILD_VMX_NAME(present);
@@ -1483,14 +1687,15 @@ esxVMX_ParseDisk(esxVI_Context *ctx, virConfPtr conf, int device, int bus,
     ESX_BUILD_VMX_NAME(writeThrough);
 
     /* vmx:present */
-    if (esxUtil_GetConfigBoolean(conf, present_name, &present, 0, 1) < 0) {
-        goto failure;
+    if (esxUtil_GetConfigBoolean(conf, present_name, &present, false,
+                                 true) < 0) {
+        goto cleanup;
     }
 
     /* vmx:startConnected */
     if (esxUtil_GetConfigBoolean(conf, startConnected_name, &startConnected,
-                                 1, 1) < 0) {
-        goto failure;
+                                 true, true) < 0) {
+        goto cleanup;
     }
 
     /* FIXME: Need to distiguish between active and inactive domains here */
@@ -1499,14 +1704,14 @@ esxVMX_ParseDisk(esxVI_Context *ctx, virConfPtr conf, int device, int bus,
     }
 
     /* vmx:deviceType -> def:type */
-    if (esxUtil_GetConfigString(conf, deviceType_name, &deviceType, 1) < 0) {
-        goto failure;
+    if (esxUtil_GetConfigString(conf, deviceType_name, &deviceType, true) < 0) {
+        goto cleanup;
     }
 
     /* vmx:clientDevice */
-    if (esxUtil_GetConfigBoolean(conf, clientDevice_name, &clientDevice, 0,
-                                 1) < 0) {
-        goto failure;
+    if (esxUtil_GetConfigBoolean(conf, clientDevice_name, &clientDevice, false,
+                                 true) < 0) {
+        goto cleanup;
     }
 
     if (clientDevice) {
@@ -1518,48 +1723,42 @@ esxVMX_ParseDisk(esxVI_Context *ctx, virConfPtr conf, int device, int bus,
     }
 
     /* vmx:fileType -> def:type */
-    if (esxUtil_GetConfigString(conf, fileType_name, &fileType, 1) < 0) {
-        goto failure;
+    if (esxUtil_GetConfigString(conf, fileType_name, &fileType, true) < 0) {
+        goto cleanup;
     }
 
     /* vmx:fileName -> def:src, def:type */
-    if (esxUtil_GetConfigString(conf, fileName_name, &fileName, 0) < 0) {
-        goto failure;
+    if (esxUtil_GetConfigString(conf, fileName_name, &fileName, false) < 0) {
+        goto cleanup;
     }
 
     /* vmx:writeThrough -> def:cachemode */
-    if (esxUtil_GetConfigBoolean(conf, writeThrough_name, &writeThrough, 0,
-                                 1) < 0) {
-        goto failure;
+    if (esxUtil_GetConfigBoolean(conf, writeThrough_name, &writeThrough, false,
+                                 true) < 0) {
+        goto cleanup;
     }
 
     /* Setup virDomainDiskDef */
     if (device == VIR_DOMAIN_DISK_DEVICE_DISK) {
         if (virFileHasSuffix(fileName, ".vmdk")) {
             if (deviceType != NULL) {
-                if (bus == VIR_DOMAIN_DISK_BUS_SCSI &&
-                    STRCASENEQ(deviceType, "scsi-hardDisk")) {
+                if (busType == VIR_DOMAIN_DISK_BUS_SCSI &&
+                    STRCASENEQ(deviceType, "scsi-hardDisk") &&
+                    STRCASENEQ(deviceType, "disk")) {
                     ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                               _("Expecting VMX entry '%s' to be 'scsi-hardDisk' "
-                                "but found '%s'"), deviceType_name, deviceType);
-                    goto failure;
-                } else if (bus == VIR_DOMAIN_DISK_BUS_IDE &&
-                           STRCASENEQ(deviceType, "ata-hardDisk")) {
+                                "or 'disk' but found '%s'"), deviceType_name,
+                              deviceType);
+                    goto cleanup;
+                } else if (busType == VIR_DOMAIN_DISK_BUS_IDE &&
+                           STRCASENEQ(deviceType, "ata-hardDisk") &&
+                           STRCASENEQ(deviceType, "disk")) {
                     ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                               _("Expecting VMX entry '%s' to be 'ata-hardDisk' "
-                                "but found '%s'"), deviceType_name, deviceType);
-                    goto failure;
+                                "or 'disk' but found '%s'"), deviceType_name,
+                              deviceType);
+                    goto cleanup;
                 }
-            }
-
-            if (writeThrough && virtualDev == NULL) {
-                /*
-                 * FIXME: If no virtualDev is explicit specified need to get
-                 *        the default based on the guestOS. The mechanism to
-                 *        obtain the default is currently missing
-                 */
-                VIR_WARN0("No explicit SCSI driver specified in VMX config, "
-                          "cannot represent explicit specified cachemode");
             }
 
             (*def)->type = VIR_DOMAIN_DISK_TYPE_FILE;
@@ -1569,7 +1768,7 @@ esxVMX_ParseDisk(esxVI_Context *ctx, virConfPtr conf, int device, int bus,
                                              : VIR_DOMAIN_DISK_CACHE_DEFAULT;
 
             if ((*def)->src == NULL) {
-                goto failure;
+                goto cleanup;
             }
         } else if (virFileHasSuffix(fileName, ".iso") ||
                    STREQ(deviceType, "atapi-cdrom")) {
@@ -1584,7 +1783,7 @@ esxVMX_ParseDisk(esxVI_Context *ctx, virConfPtr conf, int device, int bus,
             ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                       _("Invalid or not yet handled value '%s' for VMX entry "
                         "'%s'"), fileName, fileName_name);
-            goto failure;
+            goto cleanup;
         }
     } else if (device == VIR_DOMAIN_DISK_DEVICE_CDROM) {
         if (virFileHasSuffix(fileName, ".iso")) {
@@ -1593,7 +1792,7 @@ esxVMX_ParseDisk(esxVI_Context *ctx, virConfPtr conf, int device, int bus,
                     ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                               _("Expecting VMX entry '%s' to be 'cdrom-image' "
                                 "but found '%s'"), deviceType_name, deviceType);
-                    goto failure;
+                    goto cleanup;
                 }
             }
 
@@ -1602,7 +1801,7 @@ esxVMX_ParseDisk(esxVI_Context *ctx, virConfPtr conf, int device, int bus,
                                                directoryName);
 
             if ((*def)->src == NULL) {
-                goto failure;
+                goto cleanup;
             }
         } else if (virFileHasSuffix(fileName, ".vmdk")) {
             /*
@@ -1621,7 +1820,7 @@ esxVMX_ParseDisk(esxVI_Context *ctx, virConfPtr conf, int device, int bus,
             ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                       _("Invalid or not yet handled value '%s' for VMX entry "
                         "'%s'"), fileName, fileName_name);
-            goto failure;
+            goto cleanup;
         }
     } else if (device == VIR_DOMAIN_DISK_DEVICE_FLOPPY) {
         if (virFileHasSuffix(fileName, ".flp")) {
@@ -1630,7 +1829,7 @@ esxVMX_ParseDisk(esxVI_Context *ctx, virConfPtr conf, int device, int bus,
                     ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                               _("Expecting VMX entry '%s' to be 'file' but "
                                 "found '%s'"), fileType_name, fileType);
-                    goto failure;
+                    goto cleanup;
                 }
             }
 
@@ -1639,7 +1838,7 @@ esxVMX_ParseDisk(esxVI_Context *ctx, virConfPtr conf, int device, int bus,
                                                directoryName);
 
             if ((*def)->src == NULL) {
-                goto failure;
+                goto cleanup;
             }
         } else if (fileType != NULL && STREQ(fileType, "device")) {
             (*def)->type = VIR_DOMAIN_DISK_TYPE_BLOCK;
@@ -1650,15 +1849,28 @@ esxVMX_ParseDisk(esxVI_Context *ctx, virConfPtr conf, int device, int bus,
             ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                       _("Invalid or not yet handled value '%s' for VMX entry "
                         "'%s'"), fileName, fileName_name);
-            goto failure;
+            goto cleanup;
         }
     } else {
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR, _("Unsupported device type '%s'"),
                   virDomainDiskDeviceTypeToString(device));
-        goto failure;
+        goto cleanup;
     }
 
+    if (virDomainDiskDefAssignAddress(caps, *def) < 0) {
+        ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                  _("Could not assign address to disk '%s'"), (*def)->src);
+        goto cleanup;
+    }
+
+    result = 0;
+
   cleanup:
+    if (result < 0) {
+        virDomainDiskDefFree(*def);
+        *def = NULL;
+    }
+
     VIR_FREE(prefix);
     VIR_FREE(deviceType);
     VIR_FREE(fileType);
@@ -1666,12 +1878,11 @@ esxVMX_ParseDisk(esxVI_Context *ctx, virConfPtr conf, int device, int bus,
 
     return result;
 
-  failure:
-    result = -1;
-
   ignore:
     virDomainDiskDefFree(*def);
     *def = NULL;
+
+    result = 0;
 
     goto cleanup;
 }
@@ -1681,14 +1892,14 @@ esxVMX_ParseDisk(esxVI_Context *ctx, virConfPtr conf, int device, int bus,
 int
 esxVMX_ParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
 {
-    int result = 0;
+    int result = -1;
     char prefix[48] = "";
 
     char present_name[48] = "";
-    int present = 0;
+    bool present = false;
 
     char startConnected_name[48] = "";
-    int startConnected = 0;
+    bool startConnected = false;
 
     char connectionType_name[48] = "";
     char *connectionType = NULL;
@@ -1728,7 +1939,7 @@ esxVMX_ParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
 
     if (VIR_ALLOC(*def) < 0) {
         virReportOOMError();
-        goto failure;
+        return -1;
     }
 
     snprintf(prefix, sizeof(prefix), "ethernet%d", controller);
@@ -1745,14 +1956,15 @@ esxVMX_ParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
     ESX_BUILD_VMX_NAME(vnet);
 
     /* vmx:present */
-    if (esxUtil_GetConfigBoolean(conf, present_name, &present, 0, 1) < 0) {
-        goto failure;
+    if (esxUtil_GetConfigBoolean(conf, present_name, &present, false,
+                                 true) < 0) {
+        goto cleanup;
     }
 
     /* vmx:startConnected */
-    if (esxUtil_GetConfigBoolean(conf, startConnected_name, &startConnected, 1,
-                                 1) < 0) {
-        goto failure;
+    if (esxUtil_GetConfigBoolean(conf, startConnected_name, &startConnected,
+                                 true, true) < 0) {
+        goto cleanup;
     }
 
     /* FIXME: Need to distiguish between active and inactive domains here */
@@ -1762,16 +1974,17 @@ esxVMX_ParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
 
     /* vmx:connectionType -> def:type */
     if (esxUtil_GetConfigString(conf, connectionType_name, &connectionType,
-                                1) < 0) {
-        goto failure;
+                                true) < 0) {
+        goto cleanup;
     }
 
     /* vmx:addressType, vmx:generatedAddress, vmx:address -> def:mac */
-    if (esxUtil_GetConfigString(conf, addressType_name, &addressType, 1) < 0 ||
+    if (esxUtil_GetConfigString(conf, addressType_name, &addressType,
+                                true) < 0 ||
         esxUtil_GetConfigString(conf, generatedAddress_name, &generatedAddress,
-                                1) < 0 ||
-        esxUtil_GetConfigString(conf, address_name, &address, 1) < 0) {
-        goto failure;
+                                true) < 0 ||
+        esxUtil_GetConfigString(conf, address_name, &address, true) < 0) {
+        goto cleanup;
     }
 
     if (addressType == NULL || STRCASEEQ(addressType, "generated") ||
@@ -1782,7 +1995,7 @@ esxVMX_ParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
                           _("Expecting VMX entry '%s' to be MAC address but "
                             "found '%s'"), generatedAddress_name,
                           generatedAddress);
-                goto failure;
+                goto cleanup;
             }
         }
     } else if (STRCASEEQ(addressType, "static")) {
@@ -1791,20 +2004,20 @@ esxVMX_ParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
                 ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                           _("Expecting VMX entry '%s' to be MAC address but "
                             "found '%s'"), address_name, address);
-                goto failure;
+                goto cleanup;
             }
         }
     } else {
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                   _("Expecting VMX entry '%s' to be 'generated' or 'static' or "
                     "'vpx' but found '%s'"), addressType_name, addressType);
-        goto failure;
+        goto cleanup;
     }
 
     /* vmx:virtualDev, vmx:features -> def:model */
-    if (esxUtil_GetConfigString(conf, virtualDev_name, &virtualDev, 1) < 0 ||
-        esxUtil_GetConfigLong(conf, features_name, &features, 0, 1) < 0) {
-        goto failure;
+    if (esxUtil_GetConfigString(conf, virtualDev_name, &virtualDev, true) < 0 ||
+        esxUtil_GetConfigLong(conf, features_name, &features, 0, true) < 0) {
+        goto cleanup;
     }
 
     if (virtualDev != NULL) {
@@ -1816,7 +2029,7 @@ esxVMX_ParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
                       _("Expecting VMX entry '%s' to be 'vlance' or 'vmxnet' or "
                         "'vmxnet3' or 'e1000' but found '%s'"), virtualDev_name,
                       virtualDev);
-            goto failure;
+            goto cleanup;
         }
 
         if (STRCASEEQ(virtualDev, "vmxnet") && features == 15) {
@@ -1826,7 +2039,7 @@ esxVMX_ParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
 
             if (virtualDev == NULL) {
                 virReportOOMError();
-                goto failure;
+                goto cleanup;
             }
         }
     }
@@ -1835,14 +2048,15 @@ esxVMX_ParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
     if ((connectionType == NULL ||
          STRCASEEQ(connectionType, "bridged") ||
          STRCASEEQ(connectionType, "custom")) &&
-        esxUtil_GetConfigString(conf, networkName_name, &networkName, 0) < 0) {
-        goto failure;
+        esxUtil_GetConfigString(conf, networkName_name, &networkName,
+                                false) < 0) {
+        goto cleanup;
     }
 
     /* vmx:vnet -> def:data.ifname */
     if (connectionType != NULL && STRCASEEQ(connectionType, "custom") &&
-        esxUtil_GetConfigString(conf, vnet_name, &vnet, 0) < 0) {
-        goto failure;
+        esxUtil_GetConfigString(conf, vnet_name, &vnet, false) < 0) {
+        goto cleanup;
     }
 
     /* Setup virDomainNetDef */
@@ -1858,13 +2072,13 @@ esxVMX_ParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                   _("No yet handled value '%s' for VMX entry '%s'"),
                   connectionType, connectionType_name);
-        goto failure;
+        goto cleanup;
     } else if (STRCASEEQ(connectionType, "nat")) {
         /* FIXME */
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                   _("No yet handled value '%s' for VMX entry '%s'"),
                   connectionType, connectionType_name);
-        goto failure;
+        goto cleanup;
     } else if (STRCASEEQ(connectionType, "custom")) {
         (*def)->type = VIR_DOMAIN_NET_TYPE_BRIDGE;
         (*def)->model = virtualDev;
@@ -1878,10 +2092,17 @@ esxVMX_ParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                   _("Invalid value '%s' for VMX entry '%s'"), connectionType,
                   connectionType_name);
-        goto failure;
+        goto cleanup;
     }
 
+    result = 0;
+
   cleanup:
+    if (result < 0) {
+        virDomainNetDefFree(*def);
+        *def = NULL;
+    }
+
     VIR_FREE(connectionType);
     VIR_FREE(addressType);
     VIR_FREE(generatedAddress);
@@ -1891,12 +2112,11 @@ esxVMX_ParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
 
     return result;
 
-  failure:
-    result = -1;
-
   ignore:
     virDomainNetDefFree(*def);
     *def = NULL;
+
+    result = 0;
 
     goto cleanup;
 }
@@ -1908,14 +2128,14 @@ esxVMX_ParseSerial(esxVI_Context *ctx, virConfPtr conf, int port,
                    const char *datastoreName, const char *directoryName,
                    virDomainChrDefPtr *def)
 {
-    int result = 0;
+    int result = -1;
     char prefix[48] = "";
 
     char present_name[48] = "";
-    int present = 0;
+    bool present = false;
 
     char startConnected_name[48] = "";
-    int startConnected = 0;
+    bool startConnected = false;
 
     char fileType_name[48] = "";
     char *fileType = NULL;
@@ -1936,7 +2156,7 @@ esxVMX_ParseSerial(esxVI_Context *ctx, virConfPtr conf, int port,
 
     if (VIR_ALLOC(*def) < 0) {
         virReportOOMError();
-        goto failure;
+        return -1;
     }
 
     (*def)->targetType = VIR_DOMAIN_CHR_TARGET_TYPE_SERIAL;
@@ -1949,14 +2169,15 @@ esxVMX_ParseSerial(esxVI_Context *ctx, virConfPtr conf, int port,
     ESX_BUILD_VMX_NAME(fileName);
 
     /* vmx:present */
-    if (esxUtil_GetConfigBoolean(conf, present_name, &present, 0, 1) < 0) {
-        goto failure;
+    if (esxUtil_GetConfigBoolean(conf, present_name, &present, false,
+                                 true) < 0) {
+        goto cleanup;
     }
 
     /* vmx:startConnected */
-    if (esxUtil_GetConfigBoolean(conf, startConnected_name, &startConnected, 1,
-                                 1) < 0) {
-        goto failure;
+    if (esxUtil_GetConfigBoolean(conf, startConnected_name, &startConnected,
+                                 true, true) < 0) {
+        goto cleanup;
     }
 
     /* FIXME: Need to distiguish between active and inactive domains here */
@@ -1965,13 +2186,13 @@ esxVMX_ParseSerial(esxVI_Context *ctx, virConfPtr conf, int port,
     }
 
     /* vmx:fileType -> def:type */
-    if (esxUtil_GetConfigString(conf, fileType_name, &fileType, 0) < 0) {
-        goto failure;
+    if (esxUtil_GetConfigString(conf, fileType_name, &fileType, false) < 0) {
+        goto cleanup;
     }
 
     /* vmx:fileName -> def:data.file.path */
-    if (esxUtil_GetConfigString(conf, fileName_name, &fileName, 0) < 0) {
-        goto failure;
+    if (esxUtil_GetConfigString(conf, fileName_name, &fileName, false) < 0) {
+        goto cleanup;
     }
 
     /* Setup virDomainChrDef */
@@ -1989,7 +2210,7 @@ esxVMX_ParseSerial(esxVI_Context *ctx, virConfPtr conf, int port,
                                                       directoryName);
 
         if ((*def)->data.file.path == NULL) {
-            goto failure;
+            goto cleanup;
         }
     } else if (STRCASEEQ(fileType, "pipe")) {
         /*
@@ -2005,21 +2226,27 @@ esxVMX_ParseSerial(esxVI_Context *ctx, virConfPtr conf, int port,
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                   _("Expecting VMX entry '%s' to be 'device', 'file' or 'pipe' "
                     "but found '%s'"), fileType_name, fileType);
-        goto failure;
+        goto cleanup;
     }
 
+    result = 0;
+
   cleanup:
+    if (result < 0) {
+        virDomainChrDefFree(*def);
+        *def = NULL;
+    }
+
     VIR_FREE(fileType);
     VIR_FREE(fileName);
 
     return result;
 
-  failure:
-    result = -1;
-
   ignore:
     virDomainChrDefFree(*def);
     *def = NULL;
+
+    result = 0;
 
     goto cleanup;
 }
@@ -2031,14 +2258,14 @@ esxVMX_ParseParallel(esxVI_Context *ctx, virConfPtr conf, int port,
                      const char *datastoreName, const char *directoryName,
                      virDomainChrDefPtr *def)
 {
-    int result = 0;
+    int result = -1;
     char prefix[48] = "";
 
     char present_name[48] = "";
-    int present = 0;
+    bool present = false;
 
     char startConnected_name[48] = "";
-    int startConnected = 0;
+    bool startConnected = false;
 
     char fileType_name[48] = "";
     char *fileType = NULL;
@@ -2059,7 +2286,7 @@ esxVMX_ParseParallel(esxVI_Context *ctx, virConfPtr conf, int port,
 
     if (VIR_ALLOC(*def) < 0) {
         virReportOOMError();
-        goto failure;
+        return -1;
     }
 
     (*def)->targetType = VIR_DOMAIN_CHR_TARGET_TYPE_PARALLEL;
@@ -2072,14 +2299,15 @@ esxVMX_ParseParallel(esxVI_Context *ctx, virConfPtr conf, int port,
     ESX_BUILD_VMX_NAME(fileName);
 
     /* vmx:present */
-    if (esxUtil_GetConfigBoolean(conf, present_name, &present, 0, 1) < 0) {
-        goto failure;
+    if (esxUtil_GetConfigBoolean(conf, present_name, &present, false,
+                                 true) < 0) {
+        goto cleanup;
     }
 
     /* vmx:startConnected */
-    if (esxUtil_GetConfigBoolean(conf, startConnected_name, &startConnected, 1,
-                                 1) < 0) {
-        goto failure;
+    if (esxUtil_GetConfigBoolean(conf, startConnected_name, &startConnected,
+                                 true, true) < 0) {
+        goto cleanup;
     }
 
     /* FIXME: Need to distiguish between active and inactive domains here */
@@ -2088,13 +2316,13 @@ esxVMX_ParseParallel(esxVI_Context *ctx, virConfPtr conf, int port,
     }
 
     /* vmx:fileType -> def:type */
-    if (esxUtil_GetConfigString(conf, fileType_name, &fileType, 0) < 0) {
-        goto failure;
+    if (esxUtil_GetConfigString(conf, fileType_name, &fileType, false) < 0) {
+        goto cleanup;
     }
 
     /* vmx:fileName -> def:data.file.path */
-    if (esxUtil_GetConfigString(conf, fileName_name, &fileName, 0) < 0) {
-        goto failure;
+    if (esxUtil_GetConfigString(conf, fileName_name, &fileName, false) < 0) {
+        goto cleanup;
     }
 
     /* Setup virDomainChrDef */
@@ -2112,27 +2340,33 @@ esxVMX_ParseParallel(esxVI_Context *ctx, virConfPtr conf, int port,
                                                       directoryName);
 
         if ((*def)->data.file.path == NULL) {
-            goto failure;
+            goto cleanup;
         }
     } else {
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                   _("Expecting VMX entry '%s' to be 'device' or 'file' but "
                     "found '%s'"), fileType_name, fileType);
-        goto failure;
+        goto cleanup;
     }
 
+    result = 0;
+
   cleanup:
+    if (result < 0) {
+        virDomainChrDefFree(*def);
+        *def = NULL;
+    }
+
     VIR_FREE(fileType);
     VIR_FREE(fileName);
 
     return result;
 
-  failure:
-    result = -1;
-
   ignore:
     virDomainChrDefFree(*def);
     *def = NULL;
+
+    result = 0;
 
     goto cleanup;
 }
@@ -2146,6 +2380,7 @@ esxVMX_ParseParallel(esxVI_Context *ctx, virConfPtr conf, int port,
 char *
 esxVMX_FormatFileName(esxVI_Context *ctx ATTRIBUTE_UNUSED, const char *src)
 {
+    bool success = false;
     char *datastoreName = NULL;
     char *directoryName = NULL;
     char *fileName = NULL;
@@ -2155,20 +2390,20 @@ esxVMX_FormatFileName(esxVI_Context *ctx ATTRIBUTE_UNUSED, const char *src)
         /* Found potential datastore related path */
         if (esxUtil_ParseDatastoreRelatedPath(src, &datastoreName,
                                               &directoryName, &fileName) < 0) {
-            goto failure;
+            goto cleanup;
         }
 
         if (directoryName == NULL) {
             if (virAsprintf(&absolutePath, "/vmfs/volumes/%s/%s",
                             datastoreName, fileName) < 0) {
                 virReportOOMError();
-                goto failure;
+                goto cleanup;
             }
         } else {
             if (virAsprintf(&absolutePath, "/vmfs/volumes/%s/%s/%s",
                             datastoreName, directoryName, fileName) < 0) {
                 virReportOOMError();
-                goto failure;
+                goto cleanup;
             }
         }
     } else if (STRPREFIX(src, "/")) {
@@ -2177,41 +2412,44 @@ esxVMX_FormatFileName(esxVI_Context *ctx ATTRIBUTE_UNUSED, const char *src)
 
         if (absolutePath == NULL) {
             virReportOOMError();
-            goto failure;
+            goto cleanup;
         }
     } else {
         /* Found relative path, this is not supported */
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                   _("Found relative path '%s' in domain XML, this is not "
                     "supported"), src);
-        goto failure;
+        goto cleanup;
     }
 
     /* FIXME: Check if referenced path/file really exists */
 
+    success = true;
+
   cleanup:
+    if (! success) {
+        VIR_FREE(absolutePath);
+    }
+
     VIR_FREE(datastoreName);
     VIR_FREE(directoryName);
     VIR_FREE(fileName);
 
     return absolutePath;
-
-  failure:
-    VIR_FREE(absolutePath);
-
-    goto cleanup;
 }
 
 
 
 char *
-esxVMX_FormatConfig(esxVI_Context *ctx, virDomainDefPtr def,
+esxVMX_FormatConfig(esxVI_Context *ctx, virCapsPtr caps, virDomainDefPtr def,
                     esxVI_ProductVersion productVersion)
 {
     int i;
     int sched_cpu_affinity_length;
     unsigned char zero[VIR_UUID_BUFLEN];
     virBuffer buffer = VIR_BUFFER_INITIALIZER;
+    bool scsi_present[4] = { false, false, false, false };
+    int scsi_virtualDev[4] = { -1, -1, -1, -1 };
 
     memset(zero, 0, VIR_UUID_BUFLEN);
 
@@ -2364,8 +2602,12 @@ esxVMX_FormatConfig(esxVI_Context *ctx, virDomainDefPtr def,
     }
 
     /* def:disks */
-    int scsi_present[4] = { 0, 0, 0, 0 };
-    char *scsi_virtualDev[4] = { NULL, NULL, NULL, NULL };
+    for (i = 0; i < def->ndisks; ++i) {
+        if (esxVMX_VerifyDiskAddress(caps, def->disks[i]) < 0 ||
+            esxVMX_HandleLegacySCSIDiskDriverName(def, def->disks[i]) < 0) {
+            goto failure;
+        }
+    }
 
     if (esxVMX_GatherSCSIControllers(def, scsi_virtualDev, scsi_present) < 0) {
         goto failure;
@@ -2375,9 +2617,10 @@ esxVMX_FormatConfig(esxVI_Context *ctx, virDomainDefPtr def,
         if (scsi_present[i]) {
             virBufferVSprintf(&buffer, "scsi%d.present = \"true\"\n", i);
 
-            if (scsi_virtualDev[i] != NULL) {
+            if (scsi_virtualDev[i] != -1) {
                 virBufferVSprintf(&buffer, "scsi%d.virtualDev = \"%s\"\n", i,
-                                  scsi_virtualDev[i]);
+                                  virDomainControllerModelTypeToString
+                                    (scsi_virtualDev[i]));
             }
         }
     }
@@ -2509,7 +2752,7 @@ int
 esxVMX_FormatHardDisk(esxVI_Context *ctx, virDomainDiskDefPtr def,
                       virBufferPtr buffer)
 {
-    int controller, id;
+    int controllerOrBus, unit;
     const char *busName = NULL;
     const char *entryPrefix = NULL;
     const char *deviceTypePrefix = NULL;
@@ -2525,8 +2768,8 @@ esxVMX_FormatHardDisk(esxVI_Context *ctx, virDomainDiskDefPtr def,
         entryPrefix = "scsi";
         deviceTypePrefix = "scsi";
 
-        if (esxVMX_SCSIDiskNameToControllerAndID(def->dst, &controller,
-                                                 &id) < 0) {
+        if (esxVMX_SCSIDiskNameToControllerAndUnit(def->dst, &controllerOrBus,
+                                                   &unit) < 0) {
             return -1;
         }
     } else if (def->bus == VIR_DOMAIN_DISK_BUS_IDE) {
@@ -2534,8 +2777,8 @@ esxVMX_FormatHardDisk(esxVI_Context *ctx, virDomainDiskDefPtr def,
         entryPrefix = "ide";
         deviceTypePrefix = "ata";
 
-        if (esxVMX_IDEDiskNameToControllerAndID(def->dst, &controller,
-                                                &id) < 0) {
+        if (esxVMX_IDEDiskNameToBusAndUnit(def->dst, &controllerOrBus,
+                                           &unit) < 0) {
             return -1;
         }
     } else {
@@ -2554,9 +2797,9 @@ esxVMX_FormatHardDisk(esxVI_Context *ctx, virDomainDiskDefPtr def,
     }
 
     virBufferVSprintf(buffer, "%s%d:%d.present = \"true\"\n",
-                      entryPrefix, controller, id);
+                      entryPrefix, controllerOrBus, unit);
     virBufferVSprintf(buffer, "%s%d:%d.deviceType = \"%s-hardDisk\"\n",
-                      entryPrefix, controller, id, deviceTypePrefix);
+                      entryPrefix, controllerOrBus, unit, deviceTypePrefix);
 
     if (def->src != NULL) {
         if (! virFileHasSuffix(def->src, ".vmdk")) {
@@ -2573,7 +2816,7 @@ esxVMX_FormatHardDisk(esxVI_Context *ctx, virDomainDiskDefPtr def,
         }
 
         virBufferVSprintf(buffer, "%s%d:%d.fileName = \"%s\"\n",
-                          entryPrefix, controller, id, fileName);
+                          entryPrefix, controllerOrBus, unit, fileName);
 
         VIR_FREE(fileName);
     }
@@ -2581,7 +2824,7 @@ esxVMX_FormatHardDisk(esxVI_Context *ctx, virDomainDiskDefPtr def,
     if (def->bus == VIR_DOMAIN_DISK_BUS_SCSI) {
         if (def->cachemode == VIR_DOMAIN_DISK_CACHE_WRITETHRU) {
             virBufferVSprintf(buffer, "%s%d:%d.writeThrough = \"true\"\n",
-                              entryPrefix, controller, id);
+                              entryPrefix, controllerOrBus, unit);
         } else if (def->cachemode != VIR_DOMAIN_DISK_CACHE_DEFAULT) {
             ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                       _("%s harddisk '%s' has unsupported cache mode '%s'"),
@@ -2600,7 +2843,7 @@ int
 esxVMX_FormatCDROM(esxVI_Context *ctx, virDomainDiskDefPtr def,
                    virBufferPtr buffer)
 {
-    int controller, id;
+    int controllerOrBus, unit;
     const char *busName = NULL;
     const char *entryPrefix = NULL;
     char *fileName = NULL;
@@ -2614,16 +2857,16 @@ esxVMX_FormatCDROM(esxVI_Context *ctx, virDomainDiskDefPtr def,
         busName = "SCSI";
         entryPrefix = "scsi";
 
-        if (esxVMX_SCSIDiskNameToControllerAndID(def->dst, &controller,
-                                                 &id) < 0) {
+        if (esxVMX_SCSIDiskNameToControllerAndUnit(def->dst, &controllerOrBus,
+                                                   &unit) < 0) {
             return -1;
         }
     } else if (def->bus == VIR_DOMAIN_DISK_BUS_IDE) {
         busName = "IDE";
         entryPrefix = "ide";
 
-        if (esxVMX_IDEDiskNameToControllerAndID(def->dst, &controller,
-                                                &id) < 0) {
+        if (esxVMX_IDEDiskNameToBusAndUnit(def->dst, &controllerOrBus,
+                                           &unit) < 0) {
             return -1;
         }
     } else {
@@ -2634,11 +2877,11 @@ esxVMX_FormatCDROM(esxVI_Context *ctx, virDomainDiskDefPtr def,
     }
 
     virBufferVSprintf(buffer, "%s%d:%d.present = \"true\"\n",
-                      entryPrefix, controller, id);
+                      entryPrefix, controllerOrBus, unit);
 
     if (def->type == VIR_DOMAIN_DISK_TYPE_FILE) {
         virBufferVSprintf(buffer, "%s%d:%d.deviceType = \"cdrom-image\"\n",
-                          entryPrefix, controller, id);
+                          entryPrefix, controllerOrBus, unit);
 
         if (def->src != NULL) {
             if (! virFileHasSuffix(def->src, ".iso")) {
@@ -2655,17 +2898,17 @@ esxVMX_FormatCDROM(esxVI_Context *ctx, virDomainDiskDefPtr def,
             }
 
             virBufferVSprintf(buffer, "%s%d:%d.fileName = \"%s\"\n",
-                              entryPrefix, controller, id, fileName);
+                              entryPrefix, controllerOrBus, unit, fileName);
 
             VIR_FREE(fileName);
         }
     } else if (def->type == VIR_DOMAIN_DISK_TYPE_BLOCK) {
         virBufferVSprintf(buffer, "%s%d:%d.deviceType = \"atapi-cdrom\"\n",
-                          entryPrefix, controller, id);
+                          entryPrefix, controllerOrBus, unit);
 
         if (def->src != NULL) {
             virBufferVSprintf(buffer, "%s%d:%d.fileName = \"%s\"\n",
-                              entryPrefix, controller, id, def->src);
+                              entryPrefix, controllerOrBus, unit, def->src);
         }
     } else {
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
@@ -2686,7 +2929,7 @@ int
 esxVMX_FormatFloppy(esxVI_Context *ctx, virDomainDiskDefPtr def,
                     virBufferPtr buffer)
 {
-    int controller;
+    int unit;
     char *fileName = NULL;
 
     if (def->device != VIR_DOMAIN_DISK_DEVICE_FLOPPY) {
@@ -2694,15 +2937,14 @@ esxVMX_FormatFloppy(esxVI_Context *ctx, virDomainDiskDefPtr def,
         return -1;
     }
 
-    if (esxVMX_FloppyDiskNameToController(def->dst, &controller) < 0) {
+    if (esxVMX_FloppyDiskNameToUnit(def->dst, &unit) < 0) {
         return -1;
     }
 
-    virBufferVSprintf(buffer, "floppy%d.present = \"true\"\n", controller);
+    virBufferVSprintf(buffer, "floppy%d.present = \"true\"\n", unit);
 
     if (def->type == VIR_DOMAIN_DISK_TYPE_FILE) {
-        virBufferVSprintf(buffer, "floppy%d.fileType = \"file\"\n",
-                          controller);
+        virBufferVSprintf(buffer, "floppy%d.fileType = \"file\"\n", unit);
 
         if (def->src != NULL) {
             if (! virFileHasSuffix(def->src, ".flp")) {
@@ -2719,17 +2961,16 @@ esxVMX_FormatFloppy(esxVI_Context *ctx, virDomainDiskDefPtr def,
             }
 
             virBufferVSprintf(buffer, "floppy%d.fileName = \"%s\"\n",
-                              controller, fileName);
+                              unit, fileName);
 
             VIR_FREE(fileName);
         }
     } else if (def->type == VIR_DOMAIN_DISK_TYPE_BLOCK) {
-        virBufferVSprintf(buffer, "floppy%d.fileType = \"device\"\n",
-                          controller);
+        virBufferVSprintf(buffer, "floppy%d.fileType = \"device\"\n", unit);
 
         if (def->src != NULL) {
             virBufferVSprintf(buffer, "floppy%d.fileName = \"%s\"\n",
-                              controller, def->src);
+                              unit, def->src);
         }
     } else {
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR,

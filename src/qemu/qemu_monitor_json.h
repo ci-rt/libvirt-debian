@@ -56,6 +56,9 @@ int qemuMonitorJSONGetBlockStatsInfo(qemuMonitorPtr mon,
                                      long long *wr_req,
                                      long long *wr_bytes,
                                      long long *errs);
+int qemuMonitorJSONGetBlockExtent(qemuMonitorPtr mon,
+                                  const char *devname,
+                                  unsigned long long *extent);
 
 
 int qemuMonitorJSONSetVNCPassword(qemuMonitorPtr mon,
@@ -94,22 +97,22 @@ int qemuMonitorJSONGetMigrationStatus(qemuMonitorPtr mon,
                                       unsigned long long *total);
 
 int qemuMonitorJSONMigrateToHost(qemuMonitorPtr mon,
-                                 int background,
+                                 unsigned int flags,
                                  const char *hostname,
                                  int port);
 
 int qemuMonitorJSONMigrateToCommand(qemuMonitorPtr mon,
-                                    int background,
+                                    unsigned int flags,
                                     const char * const *argv);
 
 int qemuMonitorJSONMigrateToFile(qemuMonitorPtr mon,
-                                 int background,
+                                 unsigned int flags,
                                  const char * const *argv,
                                  const char *target,
                                  unsigned long long offset);
 
 int qemuMonitorJSONMigrateToUnix(qemuMonitorPtr mon,
-                                 int background,
+                                 unsigned int flags,
                                  const char *unixfile);
 
 int qemuMonitorJSONMigrateCancel(qemuMonitorPtr mon);
@@ -154,6 +157,12 @@ int qemuMonitorJSONAddHostNetwork(qemuMonitorPtr mon,
 int qemuMonitorJSONRemoveHostNetwork(qemuMonitorPtr mon,
                                      int vlan,
                                      const char *netname);
+
+int qemuMonitorJSONAddNetdev(qemuMonitorPtr mon,
+                             const char *netdevstr);
+
+int qemuMonitorJSONRemoveNetdev(qemuMonitorPtr mon,
+                                const char *alias);
 
 int qemuMonitorJSONGetPtyPaths(qemuMonitorPtr mon,
                                virHashTablePtr paths);

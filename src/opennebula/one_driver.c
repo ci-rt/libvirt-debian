@@ -1,5 +1,7 @@
 /*---------------------------------------------------------------------------*/
-/* Copyright 2002-2009, Distributed Systems Architecture Group, Universidad
+/*
+ * Copyright (C) 2010 Red Hat, Inc.
+ * Copyright 2002-2009, Distributed Systems Architecture Group, Universidad
  * Complutense de Madrid (dsa-research.org)
  *
  * This library is free software; you can redistribute it and/or
@@ -400,13 +402,15 @@ cleanup:
     return ret;
 }
 
-static int oneDomainStart(virDomainPtr dom)
+static int oneDomainStartWithFlags(virDomainPtr dom, unsigned int flags)
 {
     virConnectPtr conn = dom->conn;
     one_driver_t *driver = conn->privateData;
     virDomainObjPtr vm;
     int ret = -1;
     int oneid;
+
+    virCheckFlags(0, -1);
 
     oneDriverLock(driver);
     vm = virDomainFindByName(&driver->domains, dom->name);
@@ -432,15 +436,22 @@ return_point:
     return ret;
 }
 
+static int oneDomainStart(virDomainPtr dom)
+{
+    return oneDomainStartWithFlags(dom, 0);
+}
+
 static virDomainPtr
 oneDomainCreateAndStart(virConnectPtr conn,
                         const char *xml,
-                        unsigned int flags ATTRIBUTE_UNUSED) {
+                        unsigned int flags) {
     one_driver_t *driver = conn->privateData;
     virDomainObjPtr vm = NULL;
     virDomainDefPtr def;
     virDomainPtr dom = NULL;
     int oneid;
+
+    virCheckFlags(0, NULL);
 
     oneDriverLock(driver);
     if (!(def = virDomainDefParseString(driver->caps, xml,
@@ -751,6 +762,7 @@ static virDriver oneDriver = {
     oneListDefinedDomains, /* listDefinedDomains */
     oneNumDefinedDomains, /* numOfDefinedDomains */
     oneDomainStart, /* domainCreate */
+    oneDomainStartWithFlags, /* domainCreateWithFlags */
     oneDomainDefine, /* domainDefineXML */
     oneDomainUndefine, /* domainUndefine */
     NULL, /* domainAttachDevice */

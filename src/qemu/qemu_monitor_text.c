@@ -38,6 +38,7 @@
 #include "driver.h"
 #include "datatypes.h"
 #include "virterror_internal.h"
+#include "buf.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -711,6 +712,16 @@ int qemuMonitorTextGetBlockStatsInfo(qemuMonitorPtr mon,
 }
 
 
+int qemuMonitorTextGetBlockExtent(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
+                                  const char *devname ATTRIBUTE_UNUSED,
+                                  unsigned long long *extent ATTRIBUTE_UNUSED)
+{
+    qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                    _("unable to query block extent with this QEMU"));
+    return -1;
+}
+
+
 static int
 qemuMonitorSendVNCPassphrase(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
                              qemuMonitorMessagePtr msg,
@@ -1125,26 +1136,36 @@ cleanup:
 
 
 static int qemuMonitorTextMigrate(qemuMonitorPtr mon,
-                                  int background,
+                                  unsigned int flags,
                                   const char *dest)
 {
     char *cmd = NULL;
     char *info = NULL;
     int ret = -1;
     char *safedest = qemuMonitorEscapeArg(dest);
-    const char *extra;
+    virBuffer extra = VIR_BUFFER_INITIALIZER;
+    char *extrastr = NULL;
 
     if (!safedest) {
         virReportOOMError();
         return -1;
     }
 
-    if (background)
-        extra = "-d ";
-    else
-        extra = " ";
+    if (flags & QEMU_MONITOR_MIGRATE_BACKGROUND)
+        virBufferAddLit(&extra, " -d");
+    if (flags & QEMU_MONITOR_MIGRATE_NON_SHARED_DISK)
+        virBufferAddLit(&extra, " -b");
+    if (flags & QEMU_MONITOR_MIGRATE_NON_SHARED_INC)
+        virBufferAddLit(&extra, " -i");
+    if (virBufferError(&extra)) {
+        virBufferFreeAndReset(&extra);
+        virReportOOMError();
+        goto cleanup;
+    }
 
-    if (virAsprintf(&cmd, "migrate %s\"%s\"", extra, safedest) < 0) {
+    extrastr = virBufferContentAndReset(&extra);
+    if (virAsprintf(&cmd, "migrate %s\"%s\"", extrastr ? extrastr : "",
+                    safedest) < 0) {
         virReportOOMError();
         goto cleanup;
     }
@@ -1173,6 +1194,7 @@ static int qemuMonitorTextMigrate(qemuMonitorPtr mon,
     ret = 0;
 
 cleanup:
+    VIR_FREE(extrastr);
     VIR_FREE(safedest);
     VIR_FREE(info);
     VIR_FREE(cmd);
@@ -1180,7 +1202,7 @@ cleanup:
 }
 
 int qemuMonitorTextMigrateToHost(qemuMonitorPtr mon,
-                                 int background,
+                                 unsigned int flags,
                                  const char *hostname,
                                  int port)
 {
@@ -1192,7 +1214,7 @@ int qemuMonitorTextMigrateToHost(qemuMonitorPtr mon,
         return -1;
     }
 
-    ret = qemuMonitorTextMigrate(mon, background, uri);
+    ret = qemuMonitorTextMigrate(mon, flags, uri);
 
     VIR_FREE(uri);
 
@@ -1201,7 +1223,7 @@ int qemuMonitorTextMigrateToHost(qemuMonitorPtr mon,
 
 
 int qemuMonitorTextMigrateToCommand(qemuMonitorPtr mon,
-                                    int background,
+                                    unsigned int flags,
                                     const char * const *argv)
 {
     char *argstr;
@@ -1219,7 +1241,7 @@ int qemuMonitorTextMigrateToCommand(qemuMonitorPtr mon,
         goto cleanup;
     }
 
-    ret = qemuMonitorTextMigrate(mon, background, dest);
+    ret = qemuMonitorTextMigrate(mon, flags, dest);
 
 cleanup:
     VIR_FREE(argstr);
@@ -1228,7 +1250,7 @@ cleanup:
 }
 
 int qemuMonitorTextMigrateToFile(qemuMonitorPtr mon,
-                                 int background,
+                                 unsigned int flags,
                                  const char * const *argv,
                                  const char *target,
                                  unsigned long long offset)
@@ -1251,15 +1273,21 @@ int qemuMonitorTextMigrateToFile(qemuMonitorPtr mon,
         goto cleanup;
     }
 
-    if (virAsprintf(&dest, "exec:%s | dd of=%s bs=%llu seek=%llu",
-                    argstr, safe_target,
-                    QEMU_MONITOR_MIGRATE_TO_FILE_BS,
-                    offset / QEMU_MONITOR_MIGRATE_TO_FILE_BS) < 0) {
+    /* Two dd processes, sharing the same stdout, are necessary to
+     * allow starting at an alignment of 512, but without wasting
+     * padding to get to the larger alignment useful for speed.  Use
+     * <> redirection to avoid truncating a regular file.  */
+    if (virAsprintf(&dest, "exec:%s | { dd bs=%llu seek=%llu if=/dev/null && "
+                    "dd bs=%llu; } 1<>%s",
+                    argstr, QEMU_MONITOR_MIGRATE_TO_FILE_BS,
+                    offset / QEMU_MONITOR_MIGRATE_TO_FILE_BS,
+                    QEMU_MONITOR_MIGRATE_TO_FILE_TRANSFER_SIZE,
+                    safe_target) < 0) {
         virReportOOMError();
         goto cleanup;
     }
 
-    ret = qemuMonitorTextMigrate(mon, background, dest);
+    ret = qemuMonitorTextMigrate(mon, flags, dest);
 
 cleanup:
     VIR_FREE(safe_target);
@@ -1269,7 +1297,7 @@ cleanup:
 }
 
 int qemuMonitorTextMigrateToUnix(qemuMonitorPtr mon,
-                                 int background,
+                                 unsigned int flags,
                                  const char *unixfile)
 {
     char *dest = NULL;
@@ -1280,7 +1308,7 @@ int qemuMonitorTextMigrateToUnix(qemuMonitorPtr mon,
         return -1;
     }
 
-    ret = qemuMonitorTextMigrate(mon, background, dest);
+    ret = qemuMonitorTextMigrate(mon, flags, dest);
 
     VIR_FREE(dest);
 
@@ -1437,42 +1465,42 @@ qemuMonitorTextParsePciAddReply(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
         s += strlen("domain ");
 
         if (virStrToLong_ui(s, &e, 10, &addr->domain) == -1) {
-            VIR_WARN(_("Unable to parse domain number '%s'"), s);
+            VIR_WARN("Unable to parse domain number '%s'", s);
             return -1;
         }
 
         if (!STRPREFIX(e, ", ")) {
-            VIR_WARN(_("Expected ', ' parsing pci_add reply '%s'"), s);
+            VIR_WARN("Expected ', ' parsing pci_add reply '%s'", s);
             return -1;
         }
         s = e + 2;
     }
 
     if (!STRPREFIX(s, "bus ")) {
-        VIR_WARN(_("Expected 'bus ' parsing pci_add reply '%s'"), s);
+        VIR_WARN("Expected 'bus ' parsing pci_add reply '%s'", s);
         return -1;
     }
     s += strlen("bus ");
 
     if (virStrToLong_ui(s, &e, 10, &addr->bus) == -1) {
-        VIR_WARN(_("Unable to parse bus number '%s'"), s);
+        VIR_WARN("Unable to parse bus number '%s'", s);
         return -1;
     }
 
     if (!STRPREFIX(e, ", ")) {
-        VIR_WARN(_("Expected ', ' parsing pci_add reply '%s'"), s);
+        VIR_WARN("Expected ', ' parsing pci_add reply '%s'", s);
         return -1;
     }
     s = e + 2;
 
     if (!STRPREFIX(s, "slot ")) {
-        VIR_WARN(_("Expected 'slot ' parsing pci_add reply '%s'"), s);
+        VIR_WARN("Expected 'slot ' parsing pci_add reply '%s'", s);
         return -1;
     }
     s += strlen("slot ");
 
     if (virStrToLong_ui(s, &e, 10, &addr->slot) == -1) {
-        VIR_WARN(_("Unable to parse slot number '%s'"), s);
+        VIR_WARN("Unable to parse slot number '%s'", s);
         return -1;
     }
 
@@ -1813,6 +1841,64 @@ cleanup:
 }
 
 
+int qemuMonitorTextAddNetdev(qemuMonitorPtr mon,
+                             const char *netdevstr)
+{
+    char *cmd;
+    char *reply = NULL;
+    int ret = -1;
+
+    if (virAsprintf(&cmd, "netdev_add %s", netdevstr) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    if (qemuMonitorCommand(mon, cmd, &reply) < 0) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED,
+                        _("failed to add netdev with '%s'"), cmd);
+        goto cleanup;
+    }
+
+    /* XXX error messages here ? */
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(cmd);
+    VIR_FREE(reply);
+    return ret;
+}
+
+
+int qemuMonitorTextRemoveNetdev(qemuMonitorPtr mon,
+                                const char *alias)
+{
+    char *cmd;
+    char *reply = NULL;
+    int ret = -1;
+
+    if (virAsprintf(&cmd, "netdev_del %s", alias) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    if (qemuMonitorCommand(mon, cmd, &reply) < 0) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED,
+                        _("failed to remove netdev in qemu with '%s'"), cmd);
+        goto cleanup;
+    }
+
+    /* XXX error messages here ? */
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(cmd);
+    VIR_FREE(reply);
+    return ret;
+}
+
+
 /* Parse the output of "info chardev" and return a hash of pty paths.
  *
  * Output is:
@@ -1963,25 +2049,25 @@ qemudParseDriveAddReply(const char *reply,
         s += strlen("bus ");
 
         if (virStrToLong_ui(s, &e, 10, &addr->bus) == -1) {
-            VIR_WARN(_("Unable to parse bus '%s'"), s);
+            VIR_WARN("Unable to parse bus '%s'", s);
             return -1;
         }
 
         if (!STRPREFIX(e, ", ")) {
-            VIR_WARN(_("Expected ', ' parsing drive_add reply '%s'"), s);
+            VIR_WARN("Expected ', ' parsing drive_add reply '%s'", s);
             return -1;
         }
         s = e + 2;
     }
 
     if (!STRPREFIX(s, "unit ")) {
-        VIR_WARN(_("Expected 'unit ' parsing drive_add reply '%s'"), s);
+        VIR_WARN("Expected 'unit ' parsing drive_add reply '%s'", s);
         return -1;
     }
     s += strlen("bus ");
 
     if (virStrToLong_ui(s, &e, 10, &addr->unit) == -1) {
-        VIR_WARN(_("Unable to parse unit number '%s'"), s);
+        VIR_WARN("Unable to parse unit number '%s'", s);
         return -1;
     }
 
@@ -2239,11 +2325,11 @@ int qemuMonitorTextAddDevice(qemuMonitorPtr mon,
         goto cleanup;
     }
 
-    /* If the command failed qemu prints:
-     * Could not add ... */
-    if (strstr(reply, "Could not add ")) {
+    /* If the command succeeds, no output is sent. So
+     * any non-empty string shows an error */
+    if (STRNEQ(reply, "")) {
         qemuReportError(VIR_ERR_OPERATION_FAILED,
-                        _("adding %s device failed"), devicestr);
+                        _("adding %s device failed: %s"), devicestr, reply);
         goto cleanup;
     }
 

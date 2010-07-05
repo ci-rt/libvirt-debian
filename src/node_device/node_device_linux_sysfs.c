@@ -53,7 +53,7 @@ static int open_wwn_file(const char *prefix,
 
     /* fd will be closed by caller */
     if ((*fd = open(wwn_path, O_RDONLY)) != -1) {
-        VIR_DEBUG(_("Opened WWN path '%s' for reading"),
+        VIR_DEBUG("Opened WWN path '%s' for reading",
                   wwn_path);
     } else {
         VIR_ERROR(_("Failed to open WWN path '%s' for reading"),
@@ -79,7 +79,7 @@ int read_wwn_linux(int host, const char *file, char **wwn)
     memset(buf, 0, sizeof(buf));
     if (saferead(fd, buf, sizeof(buf)) < 0) {
         retval = -1;
-        VIR_DEBUG(_("Failed to read WWN for host%d '%s'"),
+        VIR_DEBUG("Failed to read WWN for host%d '%s'",
                   host, file);
         goto out;
     }
@@ -117,7 +117,7 @@ int check_fc_host_linux(union _virNodeDevCapData *d)
     int retval = 0;
     struct stat st;
 
-    VIR_DEBUG(_("Checking if host%d is an FC HBA"), d->scsi_host.host);
+    VIR_DEBUG("Checking if host%d is an FC HBA", d->scsi_host.host);
 
     if (virAsprintf(&sysfs_path, "%s/host%d",
                     LINUX_SYSFS_FC_HOST_PREFIX,
@@ -197,7 +197,7 @@ static int logStrToLong_ui(char const *s,
 
     ret = virStrToLong_ui(s, end_ptr, base, result);
     if (ret != 0) {
-        VIR_ERROR("Failed to convert '%s' to unsigned int", s);
+        VIR_ERROR(_("Failed to convert '%s' to unsigned int"), s);
     } else {
         VIR_DEBUG("Converted '%s' to unsigned int %u", s, *result);
     }
@@ -264,7 +264,7 @@ static int get_sriov_function(const char *device_link,
     device_path = canonicalize_file_name (device_link);
     if (device_path == NULL) {
         memset(errbuf, '\0', sizeof(errbuf));
-        VIR_ERROR("Failed to resolve device link '%s': '%s'", device_link,
+        VIR_ERROR(_("Failed to resolve device link '%s': '%s'"), device_link,
                   virStrerror(errno, errbuf, sizeof(errbuf)));
         goto out;
     }
@@ -272,12 +272,12 @@ static int get_sriov_function(const char *device_link,
     VIR_DEBUG("SR IOV device path is '%s'", device_path);
     config_address = basename(device_path);
     if (VIR_ALLOC(*bdf) != 0) {
-        VIR_ERROR0("Failed to allocate memory for PCI device name");
+        VIR_ERROR0(_("Failed to allocate memory for PCI device name"));
         goto out;
     }
 
     if (parse_pci_config_address(config_address, *bdf) != 0) {
-        VIR_ERROR("Failed to parse PCI config address '%s'", config_address);
+        VIR_ERROR(_("Failed to parse PCI config address '%s'"), config_address);
         goto out;
     }
 
@@ -357,7 +357,7 @@ int get_virtual_functions_linux(const char *sysfs_path,
 
                 /* We should not get back SRIOV_NOT_FOUND in this
                  * case, so if we do, it's an error. */
-                VIR_ERROR("Failed to get SR IOV function from device link '%s'",
+                VIR_ERROR(_("Failed to get SR IOV function from device link '%s'"),
                           device_link);
                 goto out;
             } else {

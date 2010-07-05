@@ -1,7 +1,7 @@
 /*
  * qemu_conf.h: QEMU configuration management
  *
- * Copyright (C) 2006, 2007, 2009, 2010 Red Hat, Inc.
+ * Copyright (C) 2006-2007, 2009-2010 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -39,6 +39,7 @@
 # include "pci.h"
 # include "cpu_conf.h"
 # include "driver.h"
+# include "bitmap.h"
 
 # define qemudDebug(fmt, ...) do {} while(0)
 
@@ -64,7 +65,7 @@ enum qemud_cmd_flags {
     QEMUD_CMD_FLAG_DRIVE_FORMAT      = (1 << 14), /* Is -drive format= avail */
     QEMUD_CMD_FLAG_VGA               = (1 << 15), /* Is -vga avail */
 
-    /* features added in qemu-0.10.0 */
+    /* features added in qemu-0.10.0 or later */
     QEMUD_CMD_FLAG_0_10         = (1 << 16),
     QEMUD_CMD_FLAG_NET_NAME     = QEMUD_CMD_FLAG_0_10, /* -net ...,name=str */
     QEMUD_CMD_FLAG_HOST_NET_ADD = QEMUD_CMD_FLAG_0_10, /* host_net_add monitor command */
@@ -83,11 +84,13 @@ enum qemud_cmd_flags {
     QEMUD_CMD_FLAG_SMP_TOPOLOGY  = (1 << 28), /* Is sockets=s,cores=c,threads=t available for -smp? */
     QEMUD_CMD_FLAG_NETDEV        = (1 << 29), /* The -netdev flag & netdev_add/remove monitor commands */
     QEMUD_CMD_FLAG_RTC           = (1 << 30), /* The -rtc flag for clock options */
-    QEMUD_CMD_FLAG_VNET_HOST     = (1 << 31), /* vnet-host support is available in qemu */
-    QEMUD_CMD_FLAG_RTC_TD_HACK   = (1LL << 32), /* -rtd-td-hack available */
+    QEMUD_CMD_FLAG_VNET_HOST     = (1LL << 31), /* vnet-host support is available in qemu */
+    QEMUD_CMD_FLAG_RTC_TD_HACK   = (1LL << 32), /* -rtc-td-hack available */
     QEMUD_CMD_FLAG_NO_HPET       = (1LL << 33), /* -no-hpet flag is supported */
     QEMUD_CMD_FLAG_NO_KVM_PIT    = (1LL << 34), /* -no-kvm-pit-reinjection supported */
     QEMUD_CMD_FLAG_TDF           = (1LL << 35), /* -tdf flag (user-mode pit catchup) */
+    QEMUD_CMD_FLAG_PCI_CONFIGFD  = (1LL << 36), /* pci-assign.configfd */
+    QEMUD_CMD_FLAG_NODEFCONFIG   = (1LL << 37), /* -nodefconfig */
 };
 
 /* Main driver state */
@@ -136,6 +139,8 @@ struct qemud_driver {
     ebtablesContext *ebtables;
 
     unsigned int relaxedACS : 1;
+    unsigned int vncAllowHostAudio : 1;
+    unsigned int clearEmulatorCapabilities : 1;
 
     virCapsPtr caps;
 
@@ -153,6 +158,8 @@ struct qemud_driver {
     char *saveImageFormat;
 
     pciDeviceList *activePciHostdevs;
+
+    virBitmapPtr reservedVNCPorts;
 };
 
 typedef struct _qemuDomainPCIAddressSet qemuDomainPCIAddressSet;
@@ -198,8 +205,8 @@ int         qemudBuildCommandLine       (virConnectPtr conn,
                                          unsigned long long qemuCmdFlags,
                                          const char ***retargv,
                                          const char ***retenv,
-                                         int **tapfds,
-                                         int *ntapfds,
+                                         int **vmfds,
+                                         int *nvmfds,
                                          const char *migrateFrom,
                                          virDomainSnapshotObjPtr current_snapshot)
     ATTRIBUTE_NONNULL(1);
@@ -242,7 +249,10 @@ char * qemuBuildSoundDevStr(virDomainSoundDefPtr sound);
 /* Legacy, pre device support */
 char * qemuBuildPCIHostdevPCIDevStr(virDomainHostdevDefPtr dev);
 /* Current, best practice */
-char * qemuBuildPCIHostdevDevStr(virDomainHostdevDefPtr dev);
+char * qemuBuildPCIHostdevDevStr(virDomainHostdevDefPtr dev,
+                                 const char *configfd);
+
+int qemudOpenPCIConfig(virDomainHostdevDefPtr dev);
 
 /* Current, best practice */
 char * qemuBuildChrChardevStr(virDomainChrDefPtr dev);
@@ -271,9 +281,8 @@ qemudOpenVhostNet(virDomainNetDefPtr net,
 int qemudPhysIfaceConnect(virConnectPtr conn,
                           struct qemud_driver *driver,
                           virDomainNetDefPtr net,
-                          char *linkdev,
-                          int brmode,
-                          unsigned long long qemuCmdFlags);
+                          unsigned long long qemuCmdFlags,
+                          const unsigned char *vmuuid);
 
 int         qemudProbeMachineTypes      (const char *binary,
                                          virCapsGuestMachinePtr **machines,

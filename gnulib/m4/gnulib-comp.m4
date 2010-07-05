@@ -58,6 +58,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module extensions:
   AC_REQUIRE([gl_USE_SYSTEM_EXTENSIONS])
   # Code from module fclose:
+  # Code from module fcntl-h:
+  # Code from module fcntl-h-tests:
   # Code from module float:
   # Code from module fseeko:
   AC_REQUIRE([AC_FUNC_FSEEKO])
@@ -71,13 +73,11 @@ AC_DEFUN([gl_EARLY],
   # Code from module getline:
   # Code from module getline-tests:
   # Code from module getpass:
-  # Code from module gettext:
   # Code from module gettext-h:
   # Code from module gettimeofday:
   # Code from module gettimeofday-tests:
   # Code from module gitlog-to-changelog:
   # Code from module gnumakefile:
-  # Code from module havelib:
   # Code from module hostent:
   # Code from module ignore-value:
   # Code from module include_next:
@@ -113,6 +113,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module poll:
   # Code from module poll-tests:
   # Code from module posix-shell:
+  # Code from module pthread:
   # Code from module random_r:
   # Code from module random_r-tests:
   # Code from module rawmemchr:
@@ -122,6 +123,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module realloc-posix:
   # Code from module recv:
   # Code from module same-inode:
+  # Code from module sched:
+  # Code from module sched-tests:
   # Code from module select:
   # Code from module select-tests:
   # Code from module send:
@@ -177,11 +180,17 @@ AC_DEFUN([gl_EARLY],
   # Code from module sys_stat-tests:
   # Code from module sys_time:
   # Code from module sys_time-tests:
+  # Code from module sys_utsname:
+  # Code from module sys_utsname-tests:
+  # Code from module sys_wait:
+  # Code from module sys_wait-tests:
   # Code from module tempname:
   # Code from module time:
   # Code from module time-tests:
   # Code from module time_r:
   # Code from module timegm:
+  # Code from module uname:
+  # Code from module uname-tests:
   # Code from module unistd:
   # Code from module unistd-tests:
   # Code from module useless-if-before-free:
@@ -194,6 +203,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module vc-list-files:
   # Code from module vc-list-files-tests:
   # Code from module verify:
+  # Code from module verify-tests:
   # Code from module warn-on-use:
   # Code from module wchar:
   # Code from module wchar-tests:
@@ -258,6 +268,8 @@ AC_SUBST([LTALLOCA])
   # Code from module fclose:
   gl_FUNC_FCLOSE
   gl_STDIO_MODULE_INDICATOR([fclose])
+  # Code from module fcntl-h:
+  gl_FCNTL_H
   # Code from module float:
   gl_FLOAT_H
   # Code from module fseeko:
@@ -277,9 +289,6 @@ AC_SUBST([LTALLOCA])
   gl_STDIO_MODULE_INDICATOR([getline])
   # Code from module getpass:
   gl_FUNC_GETPASS
-  # Code from module gettext:
-  dnl you must add AM_GNU_GETTEXT([external]) or similar to configure.ac.
-  AM_GNU_GETTEXT_VERSION([0.17])
   # Code from module gettext-h:
   AC_SUBST([LIBINTL])
   AC_SUBST([LTLIBINTL])
@@ -298,7 +307,6 @@ AC_SUBST([LTALLOCA])
   	m4_defn([m4_PACKAGE_VERSION])), [1], [],
         [AC_CONFIG_LINKS([$GNUmakefile:$GNUmakefile], [],
   	[GNUmakefile=$GNUmakefile])])
-  # Code from module havelib:
   # Code from module hostent:
   gl_HOSTENT
   # Code from module ignore-value:
@@ -312,35 +320,7 @@ AC_SUBST([LTALLOCA])
   gl_ARPA_INET_MODULE_INDICATOR([inet_pton])
   # Code from module intprops:
   # Code from module ioctl:
-  AC_REQUIRE([gl_SYS_IOCTL_H_DEFAULTS])
-  AC_REQUIRE([gl_HEADER_SYS_SOCKET])
-  if test "$ac_cv_header_winsock2_h" = yes; then
-    dnl Even if the 'socket' module is not used here, another part of the
-    dnl application may use it and pass file descriptors that refer to
-    dnl sockets to the ioctl() function. So enable the support for sockets.
-    AC_LIBOBJ([ioctl])
-    gl_REPLACE_SYS_IOCTL_H
-  else
-    AC_CHECK_FUNCS([ioctl])
-    dnl On glibc systems, the second parameter is 'unsigned long int request',
-    dnl not 'int request'. We cannot simply cast the function pointer, but
-    dnl instead need a wrapper.
-    AC_CACHE_CHECK([for ioctl with POSIX signature],
-      [gl_cv_func_ioctl_posix_signature],
-      [AC_COMPILE_IFELSE(
-         [AC_LANG_PROGRAM(
-            [[#include <sys/ioctl.h>]],
-            [[extern int ioctl (int, int, ...);]])
-         ],
-         [gl_cv_func_ioctl_posix_signature=yes],
-         [gl_cv_func_ioctl_posix_signature=no])
-      ])
-    if test $gl_cv_func_ioctl_posix_signature != yes; then
-      REPLACE_IOCTL=1
-      AC_LIBOBJ([ioctl])
-      gl_REPLACE_SYS_IOCTL_H
-    fi
-  fi
+  gl_FUNC_IOCTL
   gl_SYS_IOCTL_MODULE_INDICATOR([ioctl])
   # Code from module lseek:
   gl_FUNC_LSEEK
@@ -384,6 +364,8 @@ AC_SUBST([LTALLOCA])
   gl_FUNC_POLL
   # Code from module posix-shell:
   gl_POSIX_SHELL
+  # Code from module pthread:
+  gl_PTHREAD_CHECK
   # Code from module random_r:
   gl_FUNC_RANDOM_R
   gl_STDLIB_MODULE_INDICATOR([random_r])
@@ -402,6 +384,8 @@ AC_SUBST([LTALLOCA])
     AC_LIBOBJ([recv])
   fi
   gl_SYS_SOCKET_MODULE_INDICATOR([recv])
+  # Code from module sched:
+  gl_SCHED_H
   # Code from module select:
   gl_FUNC_SELECT
   gl_SYS_SELECT_MODULE_INDICATOR([select])
@@ -509,6 +493,12 @@ AC_SUBST([LTALLOCA])
   # Code from module sys_time:
   gl_HEADER_SYS_TIME_H
   AC_PROG_MKDIR_P
+  # Code from module sys_utsname:
+  gl_SYS_UTSNAME_H
+  AC_PROG_MKDIR_P
+  # Code from module sys_wait:
+  gl_SYS_WAIT_H
+  AC_PROG_MKDIR_P
   # Code from module tempname:
   gl_FUNC_GEN_TEMPNAME
   # Code from module time:
@@ -519,6 +509,9 @@ AC_SUBST([LTALLOCA])
   # Code from module timegm:
   gl_FUNC_TIMEGM
   gl_TIME_MODULE_INDICATOR([timegm])
+  # Code from module uname:
+  gl_FUNC_UNAME
+  gl_SYS_UTSNAME_MODULE_INDICATOR([uname])
   # Code from module unistd:
   gl_UNISTD_H
   # Code from module useless-if-before-free:
@@ -708,7 +701,6 @@ AC_DEFUN([gltests_LIBSOURCES], [
 AC_DEFUN([gl_FILE_LIST], [
   build-aux/arg-nonnull.h
   build-aux/c++defs.h
-  build-aux/config.rpath
   build-aux/gitlog-to-changelog
   build-aux/mktempd
   build-aux/useless-if-before-free
@@ -737,6 +729,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/dirname.h
   lib/errno.in.h
   lib/fclose.c
+  lib/fcntl.in.h
   lib/float+.h
   lib/float.in.h
   lib/fseeko.c
@@ -777,12 +770,14 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/printf-args.h
   lib/printf-parse.c
   lib/printf-parse.h
+  lib/pthread.in.h
   lib/random_r.c
   lib/rawmemchr.c
   lib/rawmemchr.valgrind
   lib/readlink.c
   lib/realloc.c
   lib/recv.c
+  lib/sched.in.h
   lib/select.c
   lib/send.c
   lib/setsockopt.c
@@ -820,11 +815,14 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/sys_socket.in.h
   lib/sys_stat.in.h
   lib/sys_time.in.h
+  lib/sys_utsname.in.h
+  lib/sys_wait.in.h
   lib/tempname.c
   lib/tempname.h
   lib/time.in.h
   lib/time_r.c
   lib/timegm.c
+  lib/uname.c
   lib/unistd.in.h
   lib/usleep.c
   lib/vasnprintf.c
@@ -837,10 +835,10 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/00gnulib.m4
   m4/alloca.m4
   m4/arpa_inet_h.m4
+  m4/asm-underscore.m4
   m4/base64.m4
   m4/canonicalize.m4
   m4/close.m4
-  m4/codeset.m4
   m4/count-one-bits.m4
   m4/dirname.m4
   m4/dos.m4
@@ -849,6 +847,8 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/errno_h.m4
   m4/extensions.m4
   m4/fclose.m4
+  m4/fcntl-o.m4
+  m4/fcntl_h.m4
   m4/float_h.m4
   m4/fseeko.m4
   m4/getaddrinfo.m4
@@ -856,29 +856,15 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/gethostname.m4
   m4/getline.m4
   m4/getpass.m4
-  m4/gettext.m4
   m4/gettimeofday.m4
-  m4/glibc2.m4
-  m4/glibc21.m4
   m4/gnulib-common.m4
   m4/hostent.m4
-  m4/iconv.m4
   m4/include_next.m4
   m4/inet_ntop.m4
   m4/inet_pton.m4
-  m4/intdiv0.m4
-  m4/intl.m4
-  m4/intldir.m4
-  m4/intlmacosx.m4
-  m4/intmax.m4
   m4/intmax_t.m4
-  m4/inttypes-pri.m4
   m4/inttypes_h.m4
-  m4/lcmessage.m4
-  m4/lib-ld.m4
-  m4/lib-link.m4
-  m4/lib-prefix.m4
-  m4/lock.m4
+  m4/ioctl.m4
   m4/longlong.m4
   m4/lseek.m4
   m4/lstat.m4
@@ -891,21 +877,19 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/multiarch.m4
   m4/netdb_h.m4
   m4/netinet_in_h.m4
-  m4/nls.m4
   m4/onceonly.m4
   m4/pathmax.m4
   m4/perror.m4
   m4/physmem.m4
-  m4/po.m4
   m4/poll.m4
   m4/posix-shell.m4
-  m4/printf-posix.m4
   m4/printf.m4
-  m4/progtest.m4
+  m4/pthread.m4
   m4/random_r.m4
   m4/rawmemchr.m4
   m4/readlink.m4
   m4/realloc.m4
+  m4/sched_h.m4
   m4/select.m4
   m4/servent.m4
   m4/size_max.m4
@@ -940,24 +924,25 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/sys_socket_h.m4
   m4/sys_stat_h.m4
   m4/sys_time_h.m4
+  m4/sys_utsname_h.m4
+  m4/sys_wait_h.m4
   m4/tempname.m4
-  m4/threadlib.m4
   m4/time_h.m4
   m4/time_r.m4
   m4/timegm.m4
   m4/tm_gmtoff.m4
-  m4/uintmax_t.m4
+  m4/uname.m4
   m4/ungetc.m4
   m4/unistd_h.m4
   m4/usleep.m4
   m4/vasnprintf.m4
   m4/vasprintf.m4
-  m4/visibility.m4
   m4/warn-on-use.m4
   m4/wchar_h.m4
   m4/wchar_t.m4
   m4/wint_t.m4
   m4/xsize.m4
+  tests/init.sh
   tests/macros.h
   tests/signature.h
   tests/test-alignof.c
@@ -970,6 +955,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-canonicalize-lgpl.c
   tests/test-count-one-bits.c
   tests/test-errno.c
+  tests/test-fcntl-h.c
   tests/test-fseeko.c
   tests/test-fseeko.sh
   tests/test-fseeko2.sh
@@ -995,6 +981,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-rawmemchr.c
   tests/test-readlink.c
   tests/test-readlink.h
+  tests/test-sched.c
   tests/test-select-fd.c
   tests/test-select-in.sh
   tests/test-select-out.sh
@@ -1021,13 +1008,18 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-sys_socket.c
   tests/test-sys_stat.c
   tests/test-sys_time.c
+  tests/test-sys_utsname.c
+  tests/test-sys_wait.c
   tests/test-time.c
+  tests/test-uname.c
   tests/test-unistd.c
   tests/test-usleep.c
   tests/test-vasnprintf.c
   tests/test-vasprintf.c
   tests/test-vc-list-files-cvs.sh
   tests/test-vc-list-files-git.sh
+  tests/test-verify.c
+  tests/test-verify.sh
   tests/test-wchar.c
   tests/zerosize-ptr.h
   tests=lib/accept.c

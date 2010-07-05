@@ -1287,13 +1287,15 @@ cleanup:
 
 static virDomainPtr
 testDomainCreateXML(virConnectPtr conn, const char *xml,
-                      unsigned int flags ATTRIBUTE_UNUSED)
+                      unsigned int flags)
 {
     testConnPtr privconn = conn->privateData;
     virDomainPtr ret = NULL;
     virDomainDefPtr def;
     virDomainObjPtr dom = NULL;
     virDomainEventPtr event = NULL;
+
+    virCheckFlags(0, NULL);
 
     testDriverLock(privconn);
     if ((def = virDomainDefParseString(privconn->caps, xml,
@@ -2348,11 +2350,13 @@ cleanup:
 }
 
 
-static int testDomainCreate(virDomainPtr domain) {
+static int testDomainCreateWithFlags(virDomainPtr domain, unsigned int flags) {
     testConnPtr privconn = domain->conn->privateData;
     virDomainObjPtr privdom;
     virDomainEventPtr event = NULL;
     int ret = -1;
+
+    virCheckFlags(0, -1);
 
     testDriverLock(privconn);
     privdom = virDomainFindByName(&privconn->domains,
@@ -2385,6 +2389,10 @@ cleanup:
         testDomainEventQueue(privconn, event);
     testDriverUnlock(privconn);
     return ret;
+}
+
+static int testDomainCreate(virDomainPtr domain) {
+    return testDomainCreateWithFlags(domain, 0);
 }
 
 static int testDomainUndefine(virDomainPtr domain) {
@@ -4983,8 +4991,7 @@ testNodeDeviceCreateXML(virConnectPtr conn,
     def = NULL;
 cleanup:
     testDriverUnlock(driver);
-    if (def)
-        virNodeDeviceDefFree(def);
+    virNodeDeviceDefFree(def);
     VIR_FREE(wwnn);
     VIR_FREE(wwpn);
     return dev;
@@ -5260,6 +5267,7 @@ static virDriver testDriver = {
     testListDefinedDomains, /* listDefinedDomains */
     testNumOfDefinedDomains, /* numOfDefinedDomains */
     testDomainCreate, /* domainCreate */
+    testDomainCreateWithFlags, /* domainCreateWithFlags */
     testDomainDefineXML, /* domainDefineXML */
     testDomainUndefine, /* domainUndefine */
     NULL, /* domainAttachDevice */

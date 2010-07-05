@@ -61,7 +61,7 @@ VIR_ENUM_IMPL(virStoragePoolFormatFileSystem,
 
 VIR_ENUM_IMPL(virStoragePoolFormatFileSystemNet,
               VIR_STORAGE_POOL_NETFS_LAST,
-              "auto", "nfs", "glusterfs")
+              "auto", "nfs", "glusterfs", "cifs")
 
 VIR_ENUM_IMPL(virStoragePoolFormatDisk,
               VIR_STORAGE_POOL_DISK_LAST,
@@ -602,6 +602,7 @@ virStoragePoolDefParseXML(xmlXPathContextPtr ctxt) {
     xmlNodePtr source_node;
     char *type = NULL;
     char *uuid = NULL;
+    char *tmppath;
 
     if (VIR_ALLOC(ret) < 0) {
         virReportOOMError();
@@ -699,11 +700,16 @@ virStoragePoolDefParseXML(xmlXPathContextPtr ctxt) {
         }
     }
 
-    if ((ret->target.path = virXPathString("string(./target/path)", ctxt)) == NULL) {
+    if ((tmppath = virXPathString("string(./target/path)", ctxt)) == NULL) {
         virStorageReportError(VIR_ERR_XML_ERROR,
                               "%s", _("missing storage pool target path"));
         goto cleanup;
     }
+    ret->target.path = virFileSanitizePath(tmppath);
+    VIR_FREE(tmppath);
+    if (!ret->target.path)
+        goto cleanup;
+
 
     if (virStorageDefParsePerms(ctxt, &ret->target.perms,
                                 "./target/permissions", 0700) < 0)
@@ -808,6 +814,13 @@ virStoragePoolSourceFormat(virBufferPtr buf,
     if ((options->flags & VIR_STORAGE_POOL_SOURCE_NAME) &&
         src->name)
         virBufferVSprintf(buf,"    <name>%s</name>\n", src->name);
+
+    if ((options->flags & VIR_STORAGE_POOL_SOURCE_INITIATOR_IQN) &&
+        src->initiator.iqn) {
+        virBufferAddLit(buf,"    <initiator>\n");
+        virBufferEscapeString(buf,"      <iqn name='%s'/>\n", src->initiator.iqn);
+        virBufferAddLit(buf,"    </initiator>\n");
+    }
 
     if (options->formatToString) {
         const char *format = (options->formatToString)(src->format);
@@ -1332,8 +1345,7 @@ virStoragePoolObjAssignDef(virStoragePoolObjListPtr pools,
             virStoragePoolDefFree(pool->def);
             pool->def = def;
         } else {
-            if (pool->newDef)
-                virStoragePoolDefFree(pool->newDef);
+            virStoragePoolDefFree(pool->newDef);
             pool->newDef = def;
         }
         return pool;
@@ -1620,6 +1632,69 @@ char *virStoragePoolSourceListFormat(virStoragePoolSourceListPtr def)
  cleanup:
     virBufferFreeAndReset(&buf);
     return NULL;
+}
+
+
+/*
+ * virStoragePoolObjIsDuplicate:
+ * @doms : virStoragePoolObjListPtr to search
+ * @def  : virStoragePoolDefPtr definition of pool to lookup
+ * @check_active: If true, ensure that pool is not active
+ *
+ * Returns: -1 on error
+ *          0 if pool is new
+ *          1 if pool is a duplicate
+ */
+int virStoragePoolObjIsDuplicate(virStoragePoolObjListPtr pools,
+                                 virStoragePoolDefPtr def,
+                                 unsigned int check_active)
+{
+    int ret = -1;
+    int dupPool = 0;
+    virStoragePoolObjPtr pool = NULL;
+
+    /* See if a Pool with matching UUID already exists */
+    pool = virStoragePoolObjFindByUUID(pools, def->uuid);
+    if (pool) {
+        /* UUID matches, but if names don't match, refuse it */
+        if (STRNEQ(pool->def->name, def->name)) {
+            char uuidstr[VIR_UUID_STRING_BUFLEN];
+            virUUIDFormat(pool->def->uuid, uuidstr);
+            virStorageReportError(VIR_ERR_OPERATION_FAILED,
+                                  _("pool '%s' is already defined with uuid %s"),
+                                  pool->def->name, uuidstr);
+            goto cleanup;
+        }
+
+        if (check_active) {
+            /* UUID & name match, but if Pool is already active, refuse it */
+            if (virStoragePoolObjIsActive(pool)) {
+                virStorageReportError(VIR_ERR_OPERATION_INVALID,
+                                      _("pool is already active as '%s'"),
+                                      pool->def->name);
+                goto cleanup;
+            }
+        }
+
+        dupPool = 1;
+    } else {
+        /* UUID does not match, but if a name matches, refuse it */
+        pool = virStoragePoolObjFindByName(pools, def->name);
+        if (pool) {
+            char uuidstr[VIR_UUID_STRING_BUFLEN];
+            virUUIDFormat(pool->def->uuid, uuidstr);
+            virStorageReportError(VIR_ERR_OPERATION_FAILED,
+                                  _("pool '%s' already exists with uuid %s"),
+                                  def->name, uuidstr);
+            goto cleanup;
+        }
+    }
+
+    ret = dupPool;
+cleanup:
+    if (pool)
+        virStoragePoolObjUnlock(pool);
+    return ret;
 }
 
 

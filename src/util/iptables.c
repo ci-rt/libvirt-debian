@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007-2009 Red Hat, Inc.
+ * Copyright (C) 2007-2010 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -31,10 +31,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-
-#ifdef HAVE_SYS_WAIT_H
-# include <sys/wait.h>
-#endif
+#include <sys/wait.h>
 
 #ifdef HAVE_PATHS_H
 # include <paths.h>
@@ -140,9 +137,12 @@ iptablesAddRemoveRule(iptRules *rules, int action, const char *arg, ...)
 
     va_start(args, arg);
 
-    while ((s = va_arg(args, const char *)))
-        if (!(argv[n++] = strdup(s)))
+    while ((s = va_arg(args, const char *))) {
+        if (!(argv[n++] = strdup(s))) {
+            va_end(args);
             goto error;
+        }
+    }
 
     va_end(args);
 

@@ -1,7 +1,7 @@
 /*
  * threads.c: basic thread synchronization primitives
  *
- * Copyright (C) 2009 Red Hat, Inc.
+ * Copyright (C) 2009-2010 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -23,12 +23,12 @@
 
 #include "threads.h"
 
-#ifdef HAVE_PTHREAD_H
+/* On mingw, we prefer native threading over the sometimes-broken
+ * pthreads-win32 library wrapper.  */
+#ifdef WIN32
+# include "threads-win32.c"
+#elif defined HAVE_PTHREAD_MUTEXATTR_INIT
 # include "threads-pthread.c"
 #else
-# ifdef WIN32
-#  include "threads-win32.c"
-# else
-#  error "Either pthreads or Win32 threads are required"
-# endif
+# error "Either pthreads or Win32 threads are required"
 #endif

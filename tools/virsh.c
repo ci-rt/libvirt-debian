@@ -1,5 +1,5 @@
 /*
- * virsh.c: a Xen shell used to exercise the libvirt API
+ * virsh.c: a shell to exercise the libvirt API
  *
  * Copyright (C) 2005, 2007-2010 Red Hat, Inc.
  *
@@ -21,13 +21,13 @@
 #include <getopt.h>
 #include <sys/types.h>
 #include <sys/time.h>
+#include <sys/wait.h>
 #include "c-ctype.h"
 #include <fcntl.h>
 #include <locale.h>
 #include <time.h>
 #include <limits.h>
 #include <assert.h>
-#include <errno.h>
 #include <sys/stat.h>
 #include <inttypes.h>
 #include <signal.h>
@@ -82,13 +82,10 @@ static char *progname;
 #define LVL_WARNING   "WARNING"
 #define LVL_ERROR     "ERROR"
 
-#ifndef WEXITSTATUS
-# define WEXITSTATUS(x) ((x) & 0xff)
-#endif
 /**
  * vshErrorLevel:
  *
- * Indicates the level of an log message
+ * Indicates the level of a log message
  */
 typedef enum {
     VSH_ERR_DEBUG = 0,
@@ -1143,6 +1140,7 @@ static const vshCmdOptDef opts_create[] = {
 #ifndef WIN32
     {"console", VSH_OT_BOOL, 0, N_("attach to console after creation")},
 #endif
+    {"paused", VSH_OT_BOOL, 0, N_("leave the guest paused after creation")},
     {NULL, 0, 0, NULL}
 };
 
@@ -1157,6 +1155,7 @@ cmdCreate(vshControl *ctl, const vshCmd *cmd)
 #ifndef WIN32
     int console = vshCommandOptBool(cmd, "console");
 #endif
+    unsigned int flags = VIR_DOMAIN_NONE;
 
     if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
         return FALSE;
@@ -1168,7 +1167,10 @@ cmdCreate(vshControl *ctl, const vshCmd *cmd)
     if (virFileReadAll(from, VIRSH_MAX_XML_FILE, &buffer) < 0)
         return FALSE;
 
-    dom = virDomainCreateXML(ctl->conn, buffer, 0);
+    if (vshCommandOptBool(cmd, "paused"))
+        flags |= VIR_DOMAIN_START_PAUSED;
+
+    dom = virDomainCreateXML(ctl->conn, buffer, flags);
     VIR_FREE(buffer);
 
     if (dom != NULL) {
@@ -1303,6 +1305,7 @@ static const vshCmdOptDef opts_start[] = {
 #ifndef WIN32
     {"console", VSH_OT_BOOL, 0, N_("attach to console after creation")},
 #endif
+    {"paused", VSH_OT_BOOL, 0, N_("leave the guest paused after creation")},
     {NULL, 0, 0, NULL}
 };
 
@@ -1314,6 +1317,7 @@ cmdStart(vshControl *ctl, const vshCmd *cmd)
 #ifndef WIN32
     int console = vshCommandOptBool(cmd, "console");
 #endif
+    unsigned int flags = VIR_DOMAIN_NONE;
 
     if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
         return FALSE;
@@ -1327,7 +1331,12 @@ cmdStart(vshControl *ctl, const vshCmd *cmd)
         return FALSE;
     }
 
-    if (virDomainCreate(dom) == 0) {
+    if (vshCommandOptBool(cmd, "paused"))
+        flags |= VIR_DOMAIN_START_PAUSED;
+
+    /* Prefer older API unless we have to pass a flag.  */
+    if ((flags ? virDomainCreateWithFlags(dom, flags)
+         : virDomainCreate(dom)) == 0) {
         vshPrint(ctl, _("Domain %s started\n"),
                  virDomainGetName(dom));
 #ifndef WIN32
@@ -1510,7 +1519,7 @@ cmdSchedInfoUpdate(vshControl *ctl, const vshCmd *cmd,
         case VIR_DOMAIN_SCHED_FIELD_LLONG:
             if (virStrToLong_ll(val, NULL, 10, &param->value.l) < 0) {
                 vshError(ctl, "%s",
-                         _("Invalid value for parameter, expecting an long long"));
+                         _("Invalid value for parameter, expecting a long long"));
                 return -1;
             }
             break;
@@ -1594,31 +1603,41 @@ cmdSchedinfo(vshControl *ctl, const vshCmd *cmd)
             ret = virDomainGetSchedulerParameters(dom, params, &nparams);
             if (ret == -1)
                 goto cleanup;
+        } else {
+            /* See if we've tried to --set var=val.  If so, the fact that
+               we reach this point (with update == 0) means that "var" did
+               not match any of the settable parameters.  Report the error.  */
+            char *var_value_pair = vshCommandOptString(cmd, "set", NULL);
+            if (var_value_pair) {
+                vshError(ctl, _("invalid scheduler option: %s"),
+                         var_value_pair);
+                goto cleanup;
+            }
         }
 
         ret_val = TRUE;
         for (i = 0; i < nparams; i++){
             switch (params[i].type) {
             case VIR_DOMAIN_SCHED_FIELD_INT:
-                 printf("%-15s: %d\n",  params[i].field, params[i].value.i);
+                 vshPrint(ctl, "%-15s: %d\n",  params[i].field, params[i].value.i);
                  break;
             case VIR_DOMAIN_SCHED_FIELD_UINT:
-                 printf("%-15s: %u\n",  params[i].field, params[i].value.ui);
+                 vshPrint(ctl, "%-15s: %u\n",  params[i].field, params[i].value.ui);
                  break;
             case VIR_DOMAIN_SCHED_FIELD_LLONG:
-                 printf("%-15s: %lld\n",  params[i].field, params[i].value.l);
+                 vshPrint(ctl, "%-15s: %lld\n",  params[i].field, params[i].value.l);
                  break;
             case VIR_DOMAIN_SCHED_FIELD_ULLONG:
-                 printf("%-15s: %llu\n",  params[i].field, params[i].value.ul);
+                 vshPrint(ctl, "%-15s: %llu\n",  params[i].field, params[i].value.ul);
                  break;
             case VIR_DOMAIN_SCHED_FIELD_DOUBLE:
-                 printf("%-15s: %f\n",  params[i].field, params[i].value.d);
+                 vshPrint(ctl, "%-15s: %f\n",  params[i].field, params[i].value.d);
                  break;
             case VIR_DOMAIN_SCHED_FIELD_BOOLEAN:
-                 printf("%-15s: %d\n",  params[i].field, params[i].value.b);
+                 vshPrint(ctl, "%-15s: %d\n",  params[i].field, params[i].value.b);
                  break;
             default:
-                 printf("not implemented scheduler parameter type\n");
+                 vshPrint(ctl, "not implemented scheduler parameter type\n");
             }
         }
     }
@@ -1890,6 +1909,7 @@ cmdDominfo(vshControl *ctl, const vshCmd *cmd)
     virDomainPtr dom;
     virSecurityModel secmodel;
     virSecurityLabel seclabel;
+    int persistent = 0;
     int ret = TRUE, autostart;
     unsigned int id;
     char *str, uuid[VIR_UUID_STRING_BUFLEN];
@@ -1943,6 +1963,15 @@ cmdDominfo(vshControl *ctl, const vshCmd *cmd)
         ret = FALSE;
     }
 
+    /* Check and display whether the domain is persistent or not */
+    persistent = virDomainIsPersistent(dom);
+    vshDebug(ctl, 5, "Domain persistent flag value: %d\n", persistent);
+    if (persistent < 0)
+        vshPrint(ctl, "%-15s %s\n", _("Persistent:"), _("unknown"));
+    else
+        vshPrint(ctl, "%-15s %s\n", _("Persistent:"), persistent ? _("yes") : _("no"));
+
+    /* Check and display whether the domain autostarts or not */
     if (!virDomainGetAutostart(dom, &autostart)) {
         vshPrint(ctl, "%-15s %s\n", _("Autostart:"),
                  autostart ? _("enable") : _("disable") );
@@ -2634,7 +2663,7 @@ cmdDumpXML(vshControl *ctl, const vshCmd *cmd)
 
     dump = virDomainGetXMLDesc(dom, flags);
     if (dump != NULL) {
-        printf("%s", dump);
+        vshPrint(ctl, "%s", dump);
         VIR_FREE(dump);
     } else {
         ret = FALSE;
@@ -2680,7 +2709,7 @@ cmdDomXMLFromNative(vshControl *ctl, const vshCmd *cmd)
 
     xmlData = virConnectDomainXMLFromNative(ctl->conn, format, configData, flags);
     if (xmlData != NULL) {
-        printf("%s", xmlData);
+        vshPrint(ctl, "%s", xmlData);
         VIR_FREE(xmlData);
     } else {
         ret = FALSE;
@@ -2725,7 +2754,7 @@ cmdDomXMLToNative(vshControl *ctl, const vshCmd *cmd)
 
     configData = virConnectDomainXMLToNative(ctl->conn, format, xmlData, flags);
     if (configData != NULL) {
-        printf("%s", configData);
+        vshPrint(ctl, "%s", configData);
         VIR_FREE(configData);
     } else {
         ret = FALSE;
@@ -2851,6 +2880,8 @@ static const vshCmdOptDef opts_migrate[] = {
     {"persistent", VSH_OT_BOOL, 0, N_("persist VM on destination")},
     {"undefinesource", VSH_OT_BOOL, 0, N_("undefine VM on source")},
     {"suspend", VSH_OT_BOOL, 0, N_("do not restart the domain on the destination host")},
+    {"copy-storage-all", VSH_OT_BOOL, 0, N_("migration with non-shared storage with full disk copy")},
+    {"copy-storage-inc", VSH_OT_BOOL, 0, N_("migration with non-shared storage with incremental copy (same base image shared between source and destination)")},
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
     {"desturi", VSH_OT_DATA, VSH_OFLAG_REQ, N_("connection URI of the destination host")},
     {"migrateuri", VSH_OT_DATA, 0, N_("migration URI, usually can be omitted")},
@@ -2897,6 +2928,12 @@ cmdMigrate (vshControl *ctl, const vshCmd *cmd)
 
     if (vshCommandOptBool (cmd, "suspend"))
         flags |= VIR_MIGRATE_PAUSED;
+
+    if (vshCommandOptBool (cmd, "copy-storage-all"))
+        flags |= VIR_MIGRATE_NON_SHARED_DISK;
+
+    if (vshCommandOptBool (cmd, "copy-storage-inc"))
+        flags |= VIR_MIGRATE_NON_SHARED_INC;
 
     if ((flags & VIR_MIGRATE_PEER2PEER) ||
         vshCommandOptBool (cmd, "direct")) {
@@ -3189,7 +3226,7 @@ cmdNetworkDumpXML(vshControl *ctl, const vshCmd *cmd)
 
     dump = virNetworkGetXMLDesc(network, 0);
     if (dump != NULL) {
-        printf("%s", dump);
+        vshPrint(ctl, "%s", dump);
         VIR_FREE(dump);
     } else {
         ret = FALSE;
@@ -3247,9 +3284,6 @@ cmdInterfaceEdit (vshControl *ctl, const vshCmd *cmd)
     /* Read back the edited file. */
     doc_edited = editReadBackFile (ctl, tmp);
     if (!doc_edited) goto cleanup;
-
-    unlink (tmp);
-    tmp = NULL;
 
     /* Compare original XML with edited.  Has it changed at all? */
     if (STREQ (doc, doc_edited)) {
@@ -3388,7 +3422,7 @@ cmdNetworkList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
         if (virNetworkGetAutostart(network, &autostart) < 0)
             autostartStr = _("no autostart");
         else
-            autostartStr = autostart ? "yes" : "no";
+            autostartStr = autostart ? _("yes") : _("no");
 
         vshPrint(ctl, "%-20s %-10s %-10s\n",
                  virNetworkGetName(network),
@@ -3411,7 +3445,7 @@ cmdNetworkList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
         if (virNetworkGetAutostart(network, &autostart) < 0)
             autostartStr = _("no autostart");
         else
-            autostartStr = autostart ? "yes" : "no";
+            autostartStr = autostart ? _("yes") : _("no");
 
         vshPrint(ctl, "%-20s %-10s %-10s\n",
                  inactiveNames[i],
@@ -3781,7 +3815,7 @@ cmdInterfaceDumpXML(vshControl *ctl, const vshCmd *cmd)
 
     dump = virInterfaceGetXMLDesc(iface, flags);
     if (dump != NULL) {
-        printf("%s", dump);
+        vshPrint(ctl, "%s", dump);
         VIR_FREE(dump);
     } else {
         ret = FALSE;
@@ -4069,7 +4103,7 @@ cmdNWFilterDumpXML(vshControl *ctl, const vshCmd *cmd)
 
     dump = virNWFilterGetXMLDesc(nwfilter, 0);
     if (dump != NULL) {
-        printf("%s", dump);
+        vshPrint(ctl, "%s", dump);
         VIR_FREE(dump);
     } else {
         ret = FALSE;
@@ -4192,9 +4226,6 @@ cmdNWFilterEdit (vshControl *ctl, const vshCmd *cmd)
     /* Read back the edited file. */
     doc_edited = editReadBackFile (ctl, tmp);
     if (!doc_edited) goto cleanup;
-
-    unlink (tmp);
-    tmp = NULL;
 
     /* Compare original XML with edited.  Has it changed at all? */
     if (STREQ (doc, doc_edited)) {
@@ -4458,13 +4489,14 @@ static const vshCmdOptDef opts_pool_X_as[] = {
     {"source-dev", VSH_OT_DATA, 0, N_("source device for underlying storage")},
     {"source-name", VSH_OT_DATA, 0, N_("source name for underlying storage")},
     {"target", VSH_OT_DATA, 0, N_("target for underlying storage")},
+    {"source-format", VSH_OT_STRING, 0, N_("format for underlying storage")},
     {NULL, 0, 0, NULL}
 };
 
 static int buildPoolXML(const vshCmd *cmd, char **retname, char **xml) {
 
     int found;
-    char *name, *type, *srcHost, *srcPath, *srcDev, *srcName, *target;
+    char *name, *type, *srcHost, *srcPath, *srcDev, *srcName, *srcFormat, *target;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
     name = vshCommandOptString(cmd, "name", &found);
@@ -4478,6 +4510,7 @@ static int buildPoolXML(const vshCmd *cmd, char **retname, char **xml) {
     srcPath = vshCommandOptString(cmd, "source-path", &found);
     srcDev = vshCommandOptString(cmd, "source-dev", &found);
     srcName = vshCommandOptString(cmd, "source-name", &found);
+    srcFormat = vshCommandOptString(cmd, "source-format", &found);
     target = vshCommandOptString(cmd, "target", &found);
 
     virBufferVSprintf(&buf, "<pool type='%s'>\n", type);
@@ -4491,6 +4524,8 @@ static int buildPoolXML(const vshCmd *cmd, char **retname, char **xml) {
             virBufferVSprintf(&buf, "    <dir path='%s'/>\n", srcPath);
         if (srcDev)
             virBufferVSprintf(&buf, "    <device path='%s'/>\n", srcDev);
+        if (srcFormat)
+            virBufferVSprintf(&buf, "    <format type='%s'/>\n", srcFormat);
         if (srcName)
             virBufferVSprintf(&buf, "    <name>%s</name>\n", srcName);
 
@@ -4540,7 +4575,7 @@ cmdPoolCreateAs(vshControl *ctl, const vshCmd *cmd)
         return FALSE;
 
     if (printXML) {
-        printf("%s", xml);
+        vshPrint(ctl, "%s", xml);
         VIR_FREE(xml);
     } else {
         pool = virStoragePoolCreateXML(ctl->conn, xml, 0);
@@ -4629,7 +4664,7 @@ cmdPoolDefineAs(vshControl *ctl, const vshCmd *cmd)
         return FALSE;
 
     if (printXML) {
-        printf("%s", xml);
+        vshPrint(ctl, "%s", xml);
         VIR_FREE(xml);
     } else {
         pool = virStoragePoolDefineXML(ctl->conn, xml, 0);
@@ -4833,7 +4868,7 @@ cmdPoolDumpXML(vshControl *ctl, const vshCmd *cmd)
 
     dump = virStoragePoolGetXMLDesc(pool, 0);
     if (dump != NULL) {
-        printf("%s", dump);
+        vshPrint(ctl, "%s", dump);
         VIR_FREE(dump);
     } else {
         ret = FALSE;
@@ -4856,114 +4891,400 @@ static const vshCmdInfo info_pool_list[] = {
 static const vshCmdOptDef opts_pool_list[] = {
     {"inactive", VSH_OT_BOOL, 0, N_("list inactive pools")},
     {"all", VSH_OT_BOOL, 0, N_("list inactive & active pools")},
+    {"details", VSH_OT_BOOL, 0, N_("display extended details for pools")},
     {NULL, 0, 0, NULL}
 };
 
 static int
 cmdPoolList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
 {
-    int inactive = vshCommandOptBool(cmd, "inactive");
+    virStoragePoolInfo info;
+    char **poolNames = NULL;
+    int i, functionReturn, ret;
+    int numActivePools = 0, numInactivePools = 0, numAllPools = 0;
+    size_t stringLength = 0, nameStrLength = 0;
+    size_t autostartStrLength = 0, persistStrLength = 0;
+    size_t stateStrLength = 0, capStrLength = 0;
+    size_t allocStrLength = 0, availStrLength = 0;
+    struct poolInfoText {
+        char *state;
+        char *autostart;
+        char *persistent;
+        char *capacity;
+        char *allocation;
+        char *available;
+    };
+    struct poolInfoText *poolInfoTexts = NULL;
+
+    /* Determine the options passed by the user */
     int all = vshCommandOptBool(cmd, "all");
+    int details = vshCommandOptBool(cmd, "details");
+    int inactive = vshCommandOptBool(cmd, "inactive");
     int active = !inactive || all ? 1 : 0;
-    int maxactive = 0, maxinactive = 0, i;
-    char **activeNames = NULL, **inactiveNames = NULL;
     inactive |= all;
 
+    /* Check the connection to libvirtd daemon is still working */
     if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
         return FALSE;
 
+    /* Retrieve the number of active storage pools */
     if (active) {
-        maxactive = virConnectNumOfStoragePools(ctl->conn);
-        if (maxactive < 0) {
+        numActivePools = virConnectNumOfStoragePools(ctl->conn);
+        if (numActivePools < 0) {
             vshError(ctl, "%s", _("Failed to list active pools"));
             return FALSE;
         }
-        if (maxactive) {
-            activeNames = vshMalloc(ctl, sizeof(char *) * maxactive);
-
-            if ((maxactive = virConnectListStoragePools(ctl->conn, activeNames,
-                                                        maxactive)) < 0) {
-                vshError(ctl, "%s", _("Failed to list active pools"));
-                VIR_FREE(activeNames);
-                return FALSE;
-            }
-
-            qsort(&activeNames[0], maxactive, sizeof(char *), namesorter);
-        }
     }
+
+    /* Retrieve the number of inactive storage pools */
     if (inactive) {
-        maxinactive = virConnectNumOfDefinedStoragePools(ctl->conn);
-        if (maxinactive < 0) {
+        numInactivePools = virConnectNumOfDefinedStoragePools(ctl->conn);
+        if (numInactivePools < 0) {
             vshError(ctl, "%s", _("Failed to list inactive pools"));
-            VIR_FREE(activeNames);
             return FALSE;
         }
-        if (maxinactive) {
-            inactiveNames = vshMalloc(ctl, sizeof(char *) * maxinactive);
+    }
 
-            if ((maxinactive = virConnectListDefinedStoragePools(ctl->conn, inactiveNames, maxinactive)) < 0) {
-                vshError(ctl, "%s", _("Failed to list inactive pools"));
-                VIR_FREE(activeNames);
-                VIR_FREE(inactiveNames);
-                return FALSE;
+    /* Determine the total number of pools to list */
+    numAllPools = numActivePools + numInactivePools;
+
+    /* Allocate memory for arrays of storage pool names and info */
+    poolNames = vshCalloc(ctl, numAllPools, sizeof(*poolNames));
+    poolInfoTexts =
+        vshCalloc(ctl, numAllPools, sizeof(*poolInfoTexts));
+
+    /* Retrieve a list of active storage pool names */
+    if (active) {
+        if ((virConnectListStoragePools(ctl->conn,
+                                        poolNames, numActivePools)) < 0) {
+            vshError(ctl, "%s", _("Failed to list active pools"));
+            VIR_FREE(poolInfoTexts);
+            VIR_FREE(poolNames);
+            return FALSE;
+        }
+    }
+
+    /* Add the inactive storage pools to the end of the name list */
+    if (inactive) {
+        if ((virConnectListDefinedStoragePools(ctl->conn,
+                                               &poolNames[numActivePools],
+                                               numInactivePools)) < 0) {
+            vshError(ctl, "%s", _("Failed to list inactive pools"));
+            VIR_FREE(poolInfoTexts);
+            VIR_FREE(poolNames);
+            return FALSE;
+        }
+    }
+
+    /* Sort the storage pool names */
+    qsort(poolNames, numAllPools, sizeof(*poolNames), namesorter);
+
+    /* Collect the storage pool information for display */
+    for (i = 0; i < numAllPools; i++) {
+        int autostart = 0, persistent = 0;
+
+        /* Retrieve a pool object, looking it up by name */
+        virStoragePoolPtr pool = virStoragePoolLookupByName(ctl->conn,
+                                                            poolNames[i]);
+        if (!pool) {
+            VIR_FREE(poolNames[i]);
+            continue;
+        }
+
+        /* Retrieve the autostart status of the pool */
+        if (virStoragePoolGetAutostart(pool, &autostart) < 0)
+            poolInfoTexts[i].autostart = vshStrdup(ctl, _("no autostart"));
+        else
+            poolInfoTexts[i].autostart = vshStrdup(ctl, autostart ?
+                                                    _("yes") : _("no"));
+
+        /* Retrieve the persistence status of the pool */
+        if (details) {
+            persistent = virStoragePoolIsPersistent(pool);
+            vshDebug(ctl, 5, "Persistent flag value: %d\n", persistent);
+            if (persistent < 0)
+                poolInfoTexts[i].persistent = vshStrdup(ctl, _("unknown"));
+            else
+                poolInfoTexts[i].persistent = vshStrdup(ctl, persistent ?
+                                                         _("yes") : _("no"));
+
+            /* Keep the length of persistent string if longest so far */
+            stringLength = strlen(poolInfoTexts[i].persistent);
+            if (stringLength > persistStrLength)
+                persistStrLength = stringLength;
+        }
+
+        /* Collect further extended information about the pool */
+        if (virStoragePoolGetInfo(pool, &info) != 0) {
+            /* Something went wrong retrieving pool info, cope with it */
+            vshError(ctl, "%s", _("Could not retrieve pool information"));
+            poolInfoTexts[i].state = vshStrdup(ctl, _("unknown"));
+            if (details) {
+                poolInfoTexts[i].capacity = vshStrdup(ctl, _("unknown"));
+                poolInfoTexts[i].allocation = vshStrdup(ctl, _("unknown"));
+                poolInfoTexts[i].available = vshStrdup(ctl, _("unknown"));
             }
+        } else {
+            /* Decide which state string to display */
+            if (details) {
+                /* --details option was specified, we're using detailed state
+                 * strings */
+                switch (info.state) {
+                case VIR_STORAGE_POOL_INACTIVE:
+                    poolInfoTexts[i].state = vshStrdup(ctl, _("inactive"));
+                    break;
+                case VIR_STORAGE_POOL_BUILDING:
+                    poolInfoTexts[i].state = vshStrdup(ctl, _("building"));
+                    break;
+                case VIR_STORAGE_POOL_RUNNING:
+                    poolInfoTexts[i].state = vshStrdup(ctl, _("running"));
+                    break;
+                case VIR_STORAGE_POOL_DEGRADED:
+                    poolInfoTexts[i].state = vshStrdup(ctl, _("degraded"));
+                    break;
+                case VIR_STORAGE_POOL_INACCESSIBLE:
+                    poolInfoTexts[i].state = vshStrdup(ctl, _("inaccessible"));
+                    break;
+                }
 
-            qsort(&inactiveNames[0], maxinactive, sizeof(char*), namesorter);
+                /* Create the pool size related strings */
+                if (info.state == VIR_STORAGE_POOL_RUNNING ||
+                    info.state == VIR_STORAGE_POOL_DEGRADED) {
+                    double val;
+                    const char *unit;
+
+                    /* Create the capacity output string */
+                    val = prettyCapacity(info.capacity, &unit);
+                    ret = virAsprintf(&poolInfoTexts[i].capacity,
+                                      "%.2lf %s", val, unit);
+                    if (ret < 0) {
+                        /* An error occurred creating the string, return */
+                        goto asprintf_failure;
+                    }
+
+                    /* Create the allocation output string */
+                    val = prettyCapacity(info.allocation, &unit);
+                    ret = virAsprintf(&poolInfoTexts[i].allocation,
+                                      "%.2lf %s", val, unit);
+                    if (ret < 0) {
+                        /* An error occurred creating the string, return */
+                        goto asprintf_failure;
+                    }
+
+                    /* Create the available space output string */
+                    val = prettyCapacity(info.available, &unit);
+                    ret = virAsprintf(&poolInfoTexts[i].available,
+                                      "%.2lf %s", val, unit);
+                    if (ret < 0) {
+                        /* An error occurred creating the string, return */
+                        goto asprintf_failure;
+                    }
+                } else {
+                    /* Capacity related information isn't available */
+                    poolInfoTexts[i].capacity = vshStrdup(ctl, _("-"));
+                    poolInfoTexts[i].allocation = vshStrdup(ctl, _("-"));
+                    poolInfoTexts[i].available = vshStrdup(ctl, _("-"));
+                }
+
+                /* Keep the length of capacity string if longest so far */
+                stringLength = strlen(poolInfoTexts[i].capacity);
+                if (stringLength > capStrLength)
+                    capStrLength = stringLength;
+
+                /* Keep the length of allocation string if longest so far */
+                stringLength = strlen(poolInfoTexts[i].allocation);
+                if (stringLength > allocStrLength)
+                    allocStrLength = stringLength;
+
+                /* Keep the length of available string if longest so far */
+                stringLength = strlen(poolInfoTexts[i].available);
+                if (stringLength > availStrLength)
+                    availStrLength = stringLength;
+            } else {
+                /* --details option was not specified, only active/inactive
+                * state strings are used */
+                if (info.state == VIR_STORAGE_POOL_INACTIVE)
+                    poolInfoTexts[i].state = vshStrdup(ctl, _("inactive"));
+                else
+                    poolInfoTexts[i].state = vshStrdup(ctl, _("active"));
+            }
         }
-    }
-    vshPrintExtra(ctl, "%-20s %-10s %-10s\n", _("Name"), _("State"), _("Autostart"));
-    vshPrintExtra(ctl, "-----------------------------------------\n");
 
-    for (i = 0; i < maxactive; i++) {
-        virStoragePoolPtr pool = virStoragePoolLookupByName(ctl->conn, activeNames[i]);
-        const char *autostartStr;
-        int autostart = 0;
+        /* Keep the length of name string if longest so far */
+        stringLength = strlen(poolNames[i]);
+        if (stringLength > nameStrLength)
+            nameStrLength = stringLength;
 
-        /* this kind of work with pools is not atomic operation */
-        if (!pool) {
-            VIR_FREE(activeNames[i]);
-            continue;
-        }
+        /* Keep the length of state string if longest so far */
+        stringLength = strlen(poolInfoTexts[i].state);
+        if (stringLength > stateStrLength)
+            stateStrLength = stringLength;
 
-        if (virStoragePoolGetAutostart(pool, &autostart) < 0)
-            autostartStr = _("no autostart");
-        else
-            autostartStr = autostart ? "yes" : "no";
+        /* Keep the length of autostart string if longest so far */
+        stringLength = strlen(poolInfoTexts[i].autostart);
+        if (stringLength > autostartStrLength)
+            autostartStrLength = stringLength;
 
-        vshPrint(ctl, "%-20s %-10s %-10s\n",
-                 virStoragePoolGetName(pool),
-                 _("active"),
-                 autostartStr);
+        /* Free the pool object */
         virStoragePoolFree(pool);
-        VIR_FREE(activeNames[i]);
     }
-    for (i = 0; i < maxinactive; i++) {
-        virStoragePoolPtr pool = virStoragePoolLookupByName(ctl->conn, inactiveNames[i]);
-        const char *autostartStr;
-        int autostart = 0;
 
-        /* this kind of work with pools is not atomic operation */
-        if (!pool) {
-            VIR_FREE(inactiveNames[i]);
-            continue;
+    /* If the --details option wasn't selected, we output the pool
+     * info using the fixed string format from previous versions to
+     * maintain backward compatibility.
+     */
+
+    /* Output basic info then return if --details option not selected */
+    if (!details) {
+        /* Output old style header */
+        vshPrintExtra(ctl, "%-20s %-10s %-10s\n", _("Name"), _("State"),
+                      _("Autostart"));
+        vshPrintExtra(ctl, "-----------------------------------------\n");
+
+        /* Output old style pool info */
+        for (i = 0; i < numAllPools; i++) {
+            vshPrint(ctl, "%-20s %-10s %-10s\n",
+                 poolNames[i],
+                 poolInfoTexts[i].state,
+                 poolInfoTexts[i].autostart);
         }
 
-        if (virStoragePoolGetAutostart(pool, &autostart) < 0)
-            autostartStr = _("no autostart");
-        else
-            autostartStr = autostart ? "yes" : "no";
-
-        vshPrint(ctl, "%-20s %-10s %-10s\n",
-                 inactiveNames[i],
-                 _("inactive"),
-                 autostartStr);
-
-        virStoragePoolFree(pool);
-        VIR_FREE(inactiveNames[i]);
+        /* Cleanup and return */
+        functionReturn = TRUE;
+        goto cleanup;
     }
-    VIR_FREE(activeNames);
-    VIR_FREE(inactiveNames);
-    return TRUE;
+
+    /* We only get here if the --details option was selected. */
+
+    /* Use the length of name header string if it's longest */
+    stringLength = strlen(_("Name"));
+    if (stringLength > nameStrLength)
+        nameStrLength = stringLength;
+
+    /* Use the length of state header string if it's longest */
+    stringLength = strlen(_("State"));
+    if (stringLength > stateStrLength)
+        stateStrLength = stringLength;
+
+    /* Use the length of autostart header string if it's longest */
+    stringLength = strlen(_("Autostart"));
+    if (stringLength > autostartStrLength)
+        autostartStrLength = stringLength;
+
+    /* Use the length of persistent header string if it's longest */
+    stringLength = strlen(_("Persistent"));
+    if (stringLength > persistStrLength)
+        persistStrLength = stringLength;
+
+    /* Use the length of capacity header string if it's longest */
+    stringLength = strlen(_("Capacity"));
+    if (stringLength > capStrLength)
+        capStrLength = stringLength;
+
+    /* Use the length of allocation header string if it's longest */
+    stringLength = strlen(_("Allocation"));
+    if (stringLength > allocStrLength)
+        allocStrLength = stringLength;
+
+    /* Use the length of available header string if it's longest */
+    stringLength = strlen(_("Available"));
+    if (stringLength > availStrLength)
+        availStrLength = stringLength;
+
+    /* Display the string lengths for debugging. */
+    vshDebug(ctl, 5, "Longest name string = %lu chars\n",
+             (unsigned long) nameStrLength);
+    vshDebug(ctl, 5, "Longest state string = %lu chars\n",
+             (unsigned long) stateStrLength);
+    vshDebug(ctl, 5, "Longest autostart string = %lu chars\n",
+             (unsigned long) autostartStrLength);
+    vshDebug(ctl, 5, "Longest persistent string = %lu chars\n",
+             (unsigned long) persistStrLength);
+    vshDebug(ctl, 5, "Longest capacity string = %lu chars\n",
+             (unsigned long) capStrLength);
+    vshDebug(ctl, 5, "Longest allocation string = %lu chars\n",
+             (unsigned long) allocStrLength);
+    vshDebug(ctl, 5, "Longest available string = %lu chars\n",
+             (unsigned long) availStrLength);
+
+    /* Create the output template.  Each column is sized according to
+     * the longest string.
+     */
+    char *outputStr;
+    ret = virAsprintf(&outputStr,
+              "%%-%lus  %%-%lus  %%-%lus  %%-%lus  %%%lus  %%%lus  %%%lus\n",
+              (unsigned long) nameStrLength,
+              (unsigned long) stateStrLength,
+              (unsigned long) autostartStrLength,
+              (unsigned long) persistStrLength,
+              (unsigned long) capStrLength,
+              (unsigned long) allocStrLength,
+              (unsigned long) availStrLength);
+    if (ret < 0) {
+        /* An error occurred creating the string, return */
+        goto asprintf_failure;
+    }
+
+    /* Display the header */
+    vshPrint(ctl, outputStr, _("Name"), _("State"), _("Autostart"),
+             _("Persistent"), _("Capacity"), _("Allocation"), _("Available"));
+    for (i = nameStrLength + stateStrLength + autostartStrLength
+                           + persistStrLength + capStrLength
+                           + allocStrLength + availStrLength
+                           + 12; i > 0; i--)
+        vshPrintExtra(ctl, "-");
+    vshPrintExtra(ctl, "\n");
+
+    /* Display the pool info rows */
+    for (i = 0; i < numAllPools; i++) {
+        vshPrint(ctl, outputStr,
+                 poolNames[i],
+                 poolInfoTexts[i].state,
+                 poolInfoTexts[i].autostart,
+                 poolInfoTexts[i].persistent,
+                 poolInfoTexts[i].capacity,
+                 poolInfoTexts[i].allocation,
+                 poolInfoTexts[i].available);
+    }
+
+    /* Cleanup and return */
+    functionReturn = TRUE;
+    goto cleanup;
+
+asprintf_failure:
+
+    /* Display an appropriate error message then cleanup and return */
+    switch (errno) {
+    case ENOMEM:
+        /* Couldn't allocate memory */
+        vshError(ctl, "%s", _("Out of memory"));
+        break;
+    default:
+        /* Some other error */
+        vshError(ctl, _("virAsprintf failed (errno %d)"), errno);
+    }
+    functionReturn = FALSE;
+
+cleanup:
+
+    /* Safely free the memory allocated in this function */
+    for (i = 0; i < numAllPools; i++) {
+        /* Cleanup the memory for one pool info structure */
+        VIR_FREE(poolInfoTexts[i].state);
+        VIR_FREE(poolInfoTexts[i].autostart);
+        VIR_FREE(poolInfoTexts[i].persistent);
+        VIR_FREE(poolInfoTexts[i].capacity);
+        VIR_FREE(poolInfoTexts[i].allocation);
+        VIR_FREE(poolInfoTexts[i].available);
+        VIR_FREE(poolNames[i]);
+    }
+
+    /* Cleanup the memory for the initial arrays*/
+    VIR_FREE(poolInfoTexts);
+    VIR_FREE(poolNames);
+
+    /* Return the desired value */
+    return functionReturn;
 }
 
 /*
@@ -5115,6 +5436,8 @@ cmdPoolInfo(vshControl *ctl, const vshCmd *cmd)
 {
     virStoragePoolInfo info;
     virStoragePoolPtr pool;
+    int autostart = 0;
+    int persistent = 0;
     int ret = TRUE;
     char uuid[VIR_UUID_STRING_BUFLEN];
 
@@ -5149,7 +5472,27 @@ cmdPoolInfo(vshControl *ctl, const vshCmd *cmd)
             vshPrint(ctl, "%-15s %s\n", _("State:"),
                      _("degraded"));
             break;
+        case VIR_STORAGE_POOL_INACCESSIBLE:
+            vshPrint(ctl, "%-15s %s\n", _("State:"),
+                     _("inaccessible"));
+            break;
         }
+
+        /* Check and display whether the pool is persistent or not */
+        persistent = virStoragePoolIsPersistent(pool);
+        vshDebug(ctl, 5, "Pool persistent flag value: %d\n", persistent);
+        if (persistent < 0)
+            vshPrint(ctl, "%-15s %s\n", _("Persistent:"),  _("unknown"));
+        else
+            vshPrint(ctl, "%-15s %s\n", _("Persistent:"), persistent ? _("yes") : _("no"));
+
+        /* Check and display whether the pool is autostarted or not */
+        virStoragePoolGetAutostart(pool, &autostart);
+        vshDebug(ctl, 5, "Pool autostart flag value: %d\n", autostart);
+        if (autostart < 0)
+            vshPrint(ctl, "%-15s %s\n", _("Autostart:"), _("no autostart"));
+        else
+            vshPrint(ctl, "%-15s %s\n", _("Autostart:"), autostart ? _("yes") : _("no"));
 
         if (info.state == VIR_STORAGE_POOL_RUNNING ||
             info.state == VIR_STORAGE_POOL_DEGRADED) {
@@ -5256,6 +5599,8 @@ static const vshCmdOptDef opts_vol_create_as[] = {
     {"capacity", VSH_OT_DATA, VSH_OFLAG_REQ, N_("size of the vol with optional k,M,G,T suffix")},
     {"allocation", VSH_OT_STRING, 0, N_("initial allocation size with optional k,M,G,T suffix")},
     {"format", VSH_OT_STRING, 0, N_("file format type raw,bochs,qcow,qcow2,vmdk")},
+    {"backing-vol", VSH_OT_STRING, 0, N_("the backing volume if taking a snapshot")},
+    {"backing-vol-format", VSH_OT_STRING, 0, N_("format of backing volume if taking a snapshot")},
     {NULL, 0, 0, NULL}
 };
 
@@ -5295,6 +5640,7 @@ cmdVolCreateAs(vshControl *ctl, const vshCmd *cmd)
     int found;
     char *xml;
     char *name, *capacityStr, *allocationStr, *format;
+    char *snapshotStrVol, *snapshotStrFormat;
     unsigned long long capacity, allocation = 0;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
@@ -5321,6 +5667,8 @@ cmdVolCreateAs(vshControl *ctl, const vshCmd *cmd)
         vshError(ctl, _("Malformed size %s"), allocationStr);
 
     format = vshCommandOptString(cmd, "format", &found);
+    snapshotStrVol = vshCommandOptString(cmd, "backing-vol", &found);
+    snapshotStrFormat = vshCommandOptString(cmd, "backing-vol-format", &found);
 
     virBufferAddLit(&buf, "<volume>\n");
     virBufferVSprintf(&buf, "  <name>%s</name>\n", name);
@@ -5333,8 +5681,62 @@ cmdVolCreateAs(vshControl *ctl, const vshCmd *cmd)
         virBufferVSprintf(&buf, "    <format type='%s'/>\n",format);
         virBufferAddLit(&buf, "  </target>\n");
     }
-    virBufferAddLit(&buf, "</volume>\n");
 
+    /* Convert the snapshot parameters into backingStore XML */
+    if (snapshotStrVol) {
+        /* Lookup snapshot backing volume.  Try the backing-vol
+         *  parameter as a name */
+        vshDebug(ctl, 5, "%s: Look up backing store volume '%s' as name\n",
+                 cmd->def->name, snapshotStrVol);
+        virStorageVolPtr snapVol = virStorageVolLookupByName(pool, snapshotStrVol);
+        if (snapVol)
+                vshDebug(ctl, 5, "%s: Backing store volume found using '%s' as name\n",
+                         cmd->def->name, snapshotStrVol);
+
+        if (snapVol == NULL) {
+            /* Snapshot backing volume not found by name.  Try the
+             *  backing-vol parameter as a key */
+            vshDebug(ctl, 5, "%s: Look up backing store volume '%s' as key\n",
+                     cmd->def->name, snapshotStrVol);
+            snapVol = virStorageVolLookupByKey(ctl->conn, snapshotStrVol);
+            if (snapVol)
+                vshDebug(ctl, 5, "%s: Backing store volume found using '%s' as key\n",
+                         cmd->def->name, snapshotStrVol);
+        }
+        if (snapVol == NULL) {
+            /* Snapshot backing volume not found by key.  Try the
+             *  backing-vol parameter as a path */
+            vshDebug(ctl, 5, "%s: Look up backing store volume '%s' as path\n",
+                     cmd->def->name, snapshotStrVol);
+            snapVol = virStorageVolLookupByPath(ctl->conn, snapshotStrVol);
+            if (snapVol)
+                vshDebug(ctl, 5, "%s: Backing store volume found using '%s' as path\n",
+                         cmd->def->name, snapshotStrVol);
+        }
+        if (snapVol == NULL) {
+            vshError(ctl, _("failed to get vol '%s'"), snapshotStrVol);
+            return FALSE;
+        }
+
+        char *snapshotStrVolPath;
+        if ((snapshotStrVolPath = virStorageVolGetPath(snapVol)) == NULL) {
+            virStorageVolFree(snapVol);
+            return FALSE;
+        }
+
+        /* Create XML for the backing store */
+        virBufferAddLit(&buf, "  <backingStore>\n");
+        virBufferVSprintf(&buf, "    <path>%s</path>\n",snapshotStrVolPath);
+        if (snapshotStrFormat)
+            virBufferVSprintf(&buf, "    <format type='%s'/>\n",snapshotStrFormat);
+        virBufferAddLit(&buf, "  </backingStore>\n");
+
+        /* Cleanup snapshot allocations */
+        VIR_FREE(snapshotStrVolPath);
+        virStorageVolFree(snapVol);
+    }
+
+    virBufferAddLit(&buf, "</volume>\n");
 
     if (virBufferError(&buf)) {
         vshPrint(ctl, "%s", _("Failed to allocate XML buffer"));
@@ -5836,7 +6238,7 @@ cmdVolDumpXML(vshControl *ctl, const vshCmd *cmd)
 
     dump = virStorageVolGetXMLDesc(vol, 0);
     if (dump != NULL) {
-        printf("%s", dump);
+        vshPrint(ctl, "%s", dump);
         VIR_FREE(dump);
     } else {
         ret = FALSE;
@@ -5929,13 +6331,13 @@ cmdVolList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
  * "vol-name" command
  */
 static const vshCmdInfo info_vol_name[] = {
-    {"help", N_("convert a vol UUID to vol name")},
+    {"help", N_("returns the volume name for a given volume key or path")},
     {"desc", ""},
     {NULL, NULL}
 };
 
 static const vshCmdOptDef opts_vol_name[] = {
-    {"vol", VSH_OT_DATA, VSH_OFLAG_REQ, N_("vol key or path")},
+    {"vol", VSH_OT_DATA, VSH_OFLAG_REQ, N_("volume key or path")},
     {NULL, 0, 0, NULL}
 };
 
@@ -5957,18 +6359,75 @@ cmdVolName(vshControl *ctl, const vshCmd *cmd)
 }
 
 
+/*
+ * "vol-pool" command
+ */
+static const vshCmdInfo info_vol_pool[] = {
+    {"help", N_("returns the storage pool for a given volume key or path")},
+    {"desc", ""},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_vol_pool[] = {
+    {"uuid", VSH_OT_BOOL, 0, N_("return the pool uuid rather than pool name")},
+    {"vol", VSH_OT_DATA, VSH_OFLAG_REQ, N_("volume key or path")},
+    {NULL, 0, 0, NULL}
+};
+
+static int
+cmdVolPool(vshControl *ctl, const vshCmd *cmd)
+{
+    virStoragePoolPtr pool;
+    virStorageVolPtr vol;
+    char uuid[VIR_UUID_STRING_BUFLEN];
+
+    /* Check the connection to libvirtd daemon is still working */
+    if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
+        return FALSE;
+
+    /* Use the supplied string to locate the volume */
+    if (!(vol = vshCommandOptVolBy(ctl, cmd, "vol", "pool", NULL,
+                                   VSH_BYUUID))) {
+        return FALSE;
+    }
+
+    /* Look up the parent storage pool for the volume */
+    pool = virStoragePoolLookupByVolume(vol);
+    if (pool == NULL) {
+        vshError(ctl, "%s", _("failed to get parent pool"));
+        virStorageVolFree(vol);
+        return FALSE;
+    }
+
+    /* Return the requested details of the parent storage pool */
+    if (vshCommandOptBool(cmd, "uuid")) {
+        /* Retrieve and return pool UUID string */
+        if (virStoragePoolGetUUIDString(pool, &uuid[0]) == 0)
+            vshPrint(ctl, "%s\n", uuid);
+    } else {
+        /* Return the storage pool name */
+        vshPrint(ctl, "%s\n", virStoragePoolGetName(pool));
+    }
+
+    /* Cleanup */
+    virStorageVolFree(vol);
+    virStoragePoolFree(pool);
+    return TRUE;
+}
+
 
 /*
  * "vol-key" command
  */
 static const vshCmdInfo info_vol_key[] = {
-    {"help", N_("convert a vol UUID to vol key")},
+    {"help", N_("returns the volume key for a given volume name or path")},
     {"desc", ""},
     {NULL, NULL}
 };
 
 static const vshCmdOptDef opts_vol_key[] = {
-    {"vol", VSH_OT_DATA, VSH_OFLAG_REQ, N_("vol uuid")},
+    {"pool", VSH_OT_STRING, 0, N_("pool name or uuid")},
+    {"vol", VSH_OT_DATA, VSH_OFLAG_REQ, N_("volume name or path")},
     {NULL, 0, 0, NULL}
 };
 
@@ -5980,8 +6439,7 @@ cmdVolKey(vshControl *ctl, const vshCmd *cmd)
     if (!vshConnectionUsability(ctl, ctl->conn, TRUE))
         return FALSE;
 
-    if (!(vol = vshCommandOptVolBy(ctl, cmd, "vol", "pool", NULL,
-                                   VSH_BYUUID)))
+    if (!(vol = vshCommandOptVol(ctl, cmd, "vol", "pool", NULL)))
         return FALSE;
 
     vshPrint(ctl, "%s\n", virStorageVolGetKey(vol));
@@ -5995,14 +6453,14 @@ cmdVolKey(vshControl *ctl, const vshCmd *cmd)
  * "vol-path" command
  */
 static const vshCmdInfo info_vol_path[] = {
-    {"help", N_("convert a vol UUID to vol path")},
+    {"help", N_("returns the volume path for a given volume name or key")},
     {"desc", ""},
     {NULL, NULL}
 };
 
 static const vshCmdOptDef opts_vol_path[] = {
     {"pool", VSH_OT_STRING, 0, N_("pool name or uuid")},
-    {"vol", VSH_OT_DATA, VSH_OFLAG_REQ, N_("vol name or key")},
+    {"vol", VSH_OT_DATA, VSH_OFLAG_REQ, N_("volume name or key")},
     {NULL, 0, 0, NULL}
 };
 
@@ -6104,7 +6562,7 @@ cmdSecretDumpXML(vshControl *ctl, const vshCmd *cmd)
     xml = virSecretGetXMLDesc(secret, 0);
     if (xml == NULL)
         goto cleanup;
-    printf("%s", xml);
+    vshPrint(ctl, "%s", xml);
     VIR_FREE(xml);
     ret = TRUE;
 
@@ -6214,7 +6672,7 @@ cmdSecretGetValue(vshControl *ctl, const vshCmd *cmd)
         vshError(ctl, "%s", _("Failed to allocate memory"));
         goto cleanup;
     }
-    printf("%s", base64);
+    vshPrint(ctl, "%s", base64);
     memset(base64, 0, strlen(base64));
     VIR_FREE(base64);
     ret = TRUE;
@@ -7192,7 +7650,8 @@ cmdAttachInterface(vshControl *ctl, const vshCmd *cmd)
     } else if (STREQ(type, "bridge")) {
         typ = 2;
     } else {
-        vshError(ctl, _("No support %s in command 'attach-interface'"), type);
+        vshError(ctl, _("No support for %s in command 'attach-interface'"),
+                 type);
         goto cleanup;
     }
 
@@ -7454,14 +7913,16 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
         if (STREQ(driver, "file") || STREQ(driver, "tap")) {
             isFile = 1;
         } else if (STRNEQ(driver, "phy")) {
-            vshError(ctl, _("No support %s in command 'attach-disk'"), driver);
+            vshError(ctl, _("No support for %s in command 'attach-disk'"),
+                     driver);
             goto cleanup;
         }
     }
 
     if (mode) {
         if (STRNEQ(mode, "readonly") && STRNEQ(mode, "shareable")) {
-            vshError(ctl, _("No support %s in command 'attach-disk'"), mode);
+            vshError(ctl, _("No support for %s in command 'attach-disk'"),
+                     mode);
             goto cleanup;
         }
     }
@@ -8545,7 +9006,7 @@ cmdSnapshotDumpXML(vshControl *ctl, const vshCmd *cmd)
     if (!xml)
         goto cleanup;
 
-    printf("%s", xml);
+    vshPrint(ctl, "%s", xml);
 
     ret = TRUE;
 
@@ -8819,6 +9280,7 @@ static const vshCmdDef commands[] = {
     {"vol-dumpxml", cmdVolDumpXML, opts_vol_dumpxml, info_vol_dumpxml},
     {"vol-info", cmdVolInfo, opts_vol_info, info_vol_info},
     {"vol-list", cmdVolList, opts_vol_list, info_vol_list},
+    {"vol-pool", cmdVolPool, opts_vol_pool, info_vol_pool},
     {"vol-path", cmdVolPath, opts_vol_path, info_vol_path},
     {"vol-name", cmdVolName, opts_vol_name, info_vol_name},
     {"vol-key", cmdVolKey, opts_vol_key, info_vol_key},
@@ -8983,7 +9445,8 @@ vshCmddefHelp(vshControl *ctl, const char *cmdname)
                 else if (opt->type == VSH_OT_STRING)
                     snprintf(buf, sizeof(buf), _("--%s <string>"), opt->name);
                 else if (opt->type == VSH_OT_DATA)
-                    snprintf(buf, sizeof(buf), "<%s>", opt->name);
+                    snprintf(buf, sizeof(buf), _("[--%s] <string>"),
+                             opt->name);
 
                 fprintf(stdout, "    %-15s  %s\n", buf, _(opt->help));
             }
@@ -9393,17 +9856,19 @@ vshCommandOptVolBy(vshControl *ctl, const vshCmd *cmd,
     if (name)
         *name = n;
 
-    /* try it by PATH */
+    /* try it by name */
     if (pool && (flag & VSH_BYNAME)) {
-        vshDebug(ctl, 5, "%s: <%s> trying as vol UUID\n",
+        vshDebug(ctl, 5, "%s: <%s> trying as vol name\n",
                  cmd->def->name, optname);
         vol = virStorageVolLookupByName(pool, n);
     }
+    /* try it by key */
     if (vol == NULL && (flag & VSH_BYUUID)) {
         vshDebug(ctl, 5, "%s: <%s> trying as vol key\n",
                  cmd->def->name, optname);
         vol = virStorageVolLookupByKey(ctl->conn, n);
     }
+    /* try it by path */
     if (vol == NULL && (flag & VSH_BYUUID)) {
         vshDebug(ctl, 5, "%s: <%s> trying as vol path\n",
                  cmd->def->name, optname);
@@ -9918,9 +10383,6 @@ vshInit(vshControl *ctl)
     return TRUE;
 }
 
-#ifndef O_SYNC
-# define O_SYNC 0
-#endif
 #define LOGFILE_FLAGS (O_WRONLY | O_APPEND | O_CREAT | O_SYNC)
 
 /**

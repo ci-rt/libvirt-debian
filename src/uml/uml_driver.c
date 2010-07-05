@@ -29,7 +29,6 @@
 #include <limits.h>
 #include <string.h>
 #include <stdio.h>
-#include <strings.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -158,7 +157,7 @@ umlAutostartDomain(void *payload, const char *name ATTRIBUTE_UNUSED, void *opaqu
         if (umlStartVMDaemon(data->conn, data->driver, vm) < 0) {
             virErrorPtr err = virGetLastError();
             VIR_ERROR(_("Failed to autostart VM '%s': %s"),
-                      vm->def->name, err->message);
+                      vm->def->name, err ? err->message : _("unknown error"));
         }
     }
     virDomainObjUnlock(vm);
@@ -735,15 +734,15 @@ static int umlMonitorCommand(const struct uml_driver *driver,
         if (nbytes < 0) {
             if (errno == EAGAIN || errno == EINTR)
                 continue;
-            virReportSystemError(errno,
-                                 _("cannot read reply %s"),
-                                 cmd);
+            virReportSystemError(errno, _("cannot read reply %s"), cmd);
             goto error;
         }
         if (nbytes < sizeof res) {
-            virReportSystemError(errno,
-                                 _("incomplete reply %s"),
-                                 cmd);
+            virReportSystemError(0, _("incomplete reply %s"), cmd);
+            goto error;
+        }
+        if (sizeof res.data < res.length) {
+            virReportSystemError(0, _("invalid length in reply %s"), cmd);
             goto error;
         }
 
@@ -781,7 +780,7 @@ static int umlCleanupTapDevices(virConnectPtr conn ATTRIBUTE_UNUSED,
     int err;
     int ret = 0;
     brControl *brctl = NULL;
-    VIR_ERROR0("Cleanup tap");
+    VIR_ERROR0(_("Cleanup tap"));
     if (brInit(&brctl) < 0)
         return -1;
 
@@ -792,14 +791,14 @@ static int umlCleanupTapDevices(virConnectPtr conn ATTRIBUTE_UNUSED,
             def->type != VIR_DOMAIN_NET_TYPE_NETWORK)
             continue;
 
-        VIR_ERROR("Cleanup '%s'", def->ifname);
+        VIR_ERROR(_("Cleanup '%s'"), def->ifname);
         err = brDeleteTap(brctl, def->ifname);
         if (err) {
-            VIR_ERROR("Cleanup failed %d", err);
+            VIR_ERROR(_("Cleanup failed %d"), err);
             ret = -1;
         }
     }
-    VIR_ERROR0("Cleanup tap done");
+    VIR_ERROR0(_("Cleanup tap done"));
     brShutdown(brctl);
     return ret;
 }
@@ -882,25 +881,25 @@ static int umlStartVMDaemon(virConnectPtr conn,
     tmp = progenv;
     while (*tmp) {
         if (safewrite(logfd, *tmp, strlen(*tmp)) < 0)
-            VIR_WARN(_("Unable to write envv to logfile: %s"),
+            VIR_WARN("Unable to write envv to logfile: %s",
                    virStrerror(errno, ebuf, sizeof ebuf));
         if (safewrite(logfd, " ", 1) < 0)
-            VIR_WARN(_("Unable to write envv to logfile: %s"),
+            VIR_WARN("Unable to write envv to logfile: %s",
                    virStrerror(errno, ebuf, sizeof ebuf));
         tmp++;
     }
     tmp = argv;
     while (*tmp) {
         if (safewrite(logfd, *tmp, strlen(*tmp)) < 0)
-            VIR_WARN(_("Unable to write argv to logfile: %s"),
+            VIR_WARN("Unable to write argv to logfile: %s",
                    virStrerror(errno, ebuf, sizeof ebuf));
         if (safewrite(logfd, " ", 1) < 0)
-            VIR_WARN(_("Unable to write argv to logfile: %s"),
+            VIR_WARN("Unable to write argv to logfile: %s",
                    virStrerror(errno, ebuf, sizeof ebuf));
         tmp++;
     }
     if (safewrite(logfd, "\n", 1) < 0)
-        VIR_WARN(_("Unable to write argv to logfile: %s"),
+        VIR_WARN("Unable to write argv to logfile: %s",
                  virStrerror(errno, ebuf, sizeof ebuf));
 
     priv->monitor = -1;
@@ -948,7 +947,7 @@ static void umlShutdownVMDaemon(virConnectPtr conn ATTRIBUTE_UNUSED,
     priv->monitor = -1;
 
     if ((ret = waitpid(vm->pid, NULL, 0)) != vm->pid) {
-        VIR_WARN(_("Got unexpected pid %d != %d"),
+        VIR_WARN("Got unexpected pid %d != %d",
                ret, vm->pid);
     }
 
@@ -1263,11 +1262,13 @@ static int umlNumDomains(virConnectPtr conn) {
     return n;
 }
 static virDomainPtr umlDomainCreate(virConnectPtr conn, const char *xml,
-                                      unsigned int flags ATTRIBUTE_UNUSED) {
+                                      unsigned int flags) {
     struct uml_driver *driver = conn->privateData;
     virDomainDefPtr def;
     virDomainObjPtr vm = NULL;
     virDomainPtr dom = NULL;
+
+    virCheckFlags(0, NULL);
 
     umlDriverLock(driver);
     if (!(def = virDomainDefParseString(driver->caps, xml,
@@ -1575,10 +1576,12 @@ static int umlNumDefinedDomains(virConnectPtr conn) {
 }
 
 
-static int umlDomainStart(virDomainPtr dom) {
+static int umlDomainStartWithFlags(virDomainPtr dom, unsigned int flags) {
     struct uml_driver *driver = dom->conn->privateData;
     virDomainObjPtr vm;
     int ret = -1;
+
+    virCheckFlags(0, -1);
 
     umlDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
@@ -1598,6 +1601,9 @@ cleanup:
     return ret;
 }
 
+static int umlDomainStart(virDomainPtr dom) {
+    return umlDomainStartWithFlags(dom, 0);
+}
 
 static virDomainPtr umlDomainDefine(virConnectPtr conn, const char *xml) {
     struct uml_driver *driver = conn->privateData;
@@ -1891,6 +1897,7 @@ static virDriver umlDriver = {
     umlListDefinedDomains, /* listDefinedDomains */
     umlNumDefinedDomains, /* numOfDefinedDomains */
     umlDomainStart, /* domainCreate */
+    umlDomainStartWithFlags, /* domainCreateWithFlags */
     umlDomainDefine, /* domainDefineXML */
     umlDomainUndefine, /* domainUndefine */
     NULL, /* domainAttachDevice */
