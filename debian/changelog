@@ -1,3 +1,13 @@
+libvirt (0.8.2-1) unstable; urgency=low
+
+  * Imported Upstream version 0.8.2
+  * Drop patches.
+  * Update libvirt0 symbols.
+  * Bump Standards-Version to 3.9.0.
+  * Add virtualbox-ose and libnl-dev build dependencies.
+
+ -- Laurent Léonard <laurent@open-minds.org>  Tue, 06 Jul 2010 12:14:33 +0200
+
 libvirt (0.8.1-2) unstable; urgency=low
 
   * [41aea79] Drop patchsys-quilt since this package is 3.0 (quilt) now.
