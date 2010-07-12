@@ -1,0 +1,9 @@
+libvirt (0.8.1-2) unstable; urgency=low
+
+ If you're using a script such as /etc/qemu-ifup to set up QEMU network
+ interfaces, have a look at README.Debian about the new config option
+ clear_emulator_capabilities in /etc/libvirt/qemu.conf.
+ When using NAT via libvirt's default network you don't have to change
+ anything.
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 12 Jul 2010 19:58:35 +0200
