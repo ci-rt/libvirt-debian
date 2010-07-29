@@ -1,3 +1,11 @@
+libvirt (0.4.6-10+lenny1) stable; urgency=low
+
+  * [dcdab94] CVE-2010-2242: Apply a source port mapping to virtual network
+    masquerading
+  * [ce08070] Fix path to hvmloader. (Closes: #573808)
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 29 Jul 2010 15:38:03 +0200
+
 libvirt (0.4.6-10) unstable; urgency=low
 
   * [5878698] cherry-pick patch for CVE-2008-5086 from experimental
