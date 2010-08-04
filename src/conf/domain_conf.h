@@ -196,9 +196,11 @@ enum virDomainControllerType {
 
 
 enum virDomainControllerModel {
+    VIR_DOMAIN_CONTROLLER_MODEL_AUTO,
     VIR_DOMAIN_CONTROLLER_MODEL_BUSLOGIC,
     VIR_DOMAIN_CONTROLLER_MODEL_LSILOGIC,
     VIR_DOMAIN_CONTROLLER_MODEL_LSISAS1068,
+    VIR_DOMAIN_CONTROLLER_MODEL_VMPVSCSI,
 
     VIR_DOMAIN_CONTROLLER_MODEL_LAST
 };
@@ -311,16 +313,30 @@ struct _virDomainNetDef {
     virNWFilterHashTablePtr filterparams;
 };
 
-enum virDomainChrTargetType {
-    VIR_DOMAIN_CHR_TARGET_TYPE_NULL = 0,
-    VIR_DOMAIN_CHR_TARGET_TYPE_MONITOR,
-    VIR_DOMAIN_CHR_TARGET_TYPE_PARALLEL,
-    VIR_DOMAIN_CHR_TARGET_TYPE_SERIAL,
-    VIR_DOMAIN_CHR_TARGET_TYPE_CONSOLE,
-    VIR_DOMAIN_CHR_TARGET_TYPE_GUESTFWD,
-    VIR_DOMAIN_CHR_TARGET_TYPE_VIRTIO,
+enum virDomainChrDeviceType {
+    VIR_DOMAIN_CHR_DEVICE_TYPE_MONITOR = 0,
+    VIR_DOMAIN_CHR_DEVICE_TYPE_PARALLEL,
+    VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL,
+    VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE,
+    VIR_DOMAIN_CHR_DEVICE_TYPE_CHANNEL,
 
-    VIR_DOMAIN_CHR_TARGET_TYPE_LAST
+    VIR_DOMAIN_CHR_DEVICE_TYPE_LAST,
+};
+
+enum virDomainChrChannelTargetType {
+    VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_GUESTFWD = 0,
+    VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_VIRTIO,
+
+    VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_LAST,
+};
+
+enum virDomainChrConsoleTargetType {
+    VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL = 0,
+    VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_XEN,
+    VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_UML,
+    VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_VIRTIO,
+
+    VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_LAST,
 };
 
 enum virDomainChrType {
@@ -348,6 +364,7 @@ enum virDomainChrTcpProtocol {
 typedef struct _virDomainChrDef virDomainChrDef;
 typedef virDomainChrDef *virDomainChrDefPtr;
 struct _virDomainChrDef {
+    int deviceType;
     int targetType;
     union {
         int port; /* parallel, serial, console */
@@ -560,6 +577,22 @@ struct _virDomainHostdevDef {
     virDomainDeviceInfo info; /* Guest address */
 };
 
+
+enum {
+    VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO,
+    VIR_DOMAIN_MEMBALLOON_MODEL_XEN,
+
+    VIR_DOMAIN_MEMBALLOON_MODEL_LAST
+};
+
+typedef struct _virDomainMemballoonDef virDomainMemballoonDef;
+typedef virDomainMemballoonDef *virDomainMemballoonDefPtr;
+struct _virDomainMemballoonDef {
+    int model;
+    virDomainDeviceInfo info;
+};
+
+
 /* Flags for the 'type' field in next struct */
 enum virDomainDeviceType {
     VIR_DOMAIN_DEVICE_DISK,
@@ -597,7 +630,6 @@ struct _virDomainDeviceDef {
 
 # define VIR_DOMAIN_MAX_BOOT_DEVS 4
 
-/* 3 possible boot devices */
 enum virDomainBootOrder {
     VIR_DOMAIN_BOOT_FLOPPY,
     VIR_DOMAIN_BOOT_CDROM,
@@ -605,6 +637,12 @@ enum virDomainBootOrder {
     VIR_DOMAIN_BOOT_NET,
 
     VIR_DOMAIN_BOOT_LAST,
+};
+
+enum virDomainBootMenu {
+    VIR_DOMAIN_BOOT_MENU_DEFAULT = 0,
+    VIR_DOMAIN_BOOT_MENU_ENABLED,
+    VIR_DOMAIN_BOOT_MENU_DISABLED,
 };
 
 enum virDomainFeature {
@@ -633,6 +671,7 @@ struct _virDomainOSDef {
     char *machine;
     int nBootDevs;
     int bootDevs[VIR_DOMAIN_BOOT_LAST];
+    int bootmenu;
     char *init;
     char *kernel;
     char *initrd;
@@ -871,7 +910,11 @@ struct _virDomainDef {
     virDomainChrDefPtr console;
     virSecurityLabelDef seclabel;
     virDomainWatchdogDefPtr watchdog;
+    virDomainMemballoonDefPtr memballoon;
     virCPUDefPtr cpu;
+
+    void *namespaceData;
+    virDomainXMLNamespace ns;
 };
 
 /* Guest VM runtime state */
@@ -931,6 +974,7 @@ void virDomainFSDefFree(virDomainFSDefPtr def);
 void virDomainNetDefFree(virDomainNetDefPtr def);
 void virDomainChrDefFree(virDomainChrDefPtr def);
 void virDomainSoundDefFree(virDomainSoundDefPtr def);
+void virDomainMemballoonDefFree(virDomainMemballoonDefPtr def);
 void virDomainWatchdogDefFree(virDomainWatchdogDefPtr def);
 void virDomainVideoDefFree(virDomainVideoDefPtr def);
 void virDomainHostdevDefFree(virDomainHostdevDefPtr def);
@@ -1079,6 +1123,17 @@ int virDomainChrDefForeach(virDomainDefPtr def,
                            void *opaque);
 
 
+typedef int (*virDomainDiskDefPathIterator)(virDomainDiskDefPtr disk,
+                                            const char *path,
+                                            size_t depth,
+                                            void *opaque);
+
+int virDomainDiskDefForeachPath(virDomainDiskDefPtr disk,
+                                bool allowProbing,
+                                bool ignoreOpenFailure,
+                                virDomainDiskDefPathIterator iter,
+                                void *opaque);
+
 VIR_ENUM_DECL(virDomainVirt)
 VIR_ENUM_DECL(virDomainBoot)
 VIR_ENUM_DECL(virDomainFeature)
@@ -1095,9 +1150,12 @@ VIR_ENUM_DECL(virDomainController)
 VIR_ENUM_DECL(virDomainControllerModel)
 VIR_ENUM_DECL(virDomainFS)
 VIR_ENUM_DECL(virDomainNet)
-VIR_ENUM_DECL(virDomainChrTarget)
+VIR_ENUM_DECL(virDomainChrDevice)
+VIR_ENUM_DECL(virDomainChrChannelTarget)
+VIR_ENUM_DECL(virDomainChrConsoleTarget)
 VIR_ENUM_DECL(virDomainChr)
 VIR_ENUM_DECL(virDomainSoundModel)
+VIR_ENUM_DECL(virDomainMemballoonModel)
 VIR_ENUM_DECL(virDomainWatchdogModel)
 VIR_ENUM_DECL(virDomainWatchdogAction)
 VIR_ENUM_DECL(virDomainVideo)

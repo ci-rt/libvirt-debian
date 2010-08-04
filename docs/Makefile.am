@@ -53,7 +53,7 @@ gif = \
   architecture.gif \
   node.gif
 
-dot_html_in = $(wildcard *.html.in)
+dot_html_in = $(notdir $(wildcard $(srcdir)/*.html.in))
 dot_html = $(dot_html_in:%.html.in=%.html)
 
 patches = $(wildcard api_extension/*.patch)
@@ -150,7 +150,7 @@ $(python_generated_files): $(srcdir)/apibuild.py \
 check-local: all
 
 clean-local:
-	rm -f *~ *.bak *.hierarchy *.signals *-unused.txt
+	rm -f *~ *.bak *.hierarchy *.signals *-unused.txt *.html
 
 maintainer-clean-local: clean-local
 	rm -rf libvirt-api.xml libvirt-refs.xml
@@ -159,8 +159,7 @@ rebuild: api all
 
 install-data-local:
 	$(mkinstalldirs) $(DESTDIR)$(HTML_DIR)
-	-$(INSTALL) -m 0644 $(srcdir)/FAQ.html \
-	    $(srcdir)/Libxml2-Logo-90x34.gif $(DESTDIR)$(HTML_DIR)
+	-$(INSTALL) -m 0644 $(srcdir)/Libxml2-Logo-90x34.gif $(DESTDIR)$(HTML_DIR)
 	$(mkinstalldirs) $(DESTDIR)$(HTML_DIR)/html
 	for h in $(apihtml); do \
 	  $(INSTALL) -m 0644 $(srcdir)/$$h $(DESTDIR)$(HTML_DIR)/html; done

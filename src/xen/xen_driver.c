@@ -1892,7 +1892,7 @@ xenUnifiedNodeDeviceReset (virNodeDevicePtr dev)
     if (!pci)
         return -1;
 
-    if (pciResetDevice(pci, NULL) < 0)
+    if (pciResetDevice(pci, NULL, NULL) < 0)
         goto out;
 
     ret = 0;
@@ -2004,6 +2004,7 @@ static virDriver xenUnifiedDriver = {
     NULL, /* domainSnapshotCurrent */
     NULL, /* domainRevertToSnapshot */
     NULL, /* domainSnapshotDelete */
+    NULL, /* qemuDomainMonitorCommand */
 };
 
 /**
@@ -2043,6 +2044,7 @@ xenUnifiedDomainInfoListFree(xenUnifiedDomainInfoListPtr list)
         VIR_FREE(list->doms[i]->name);
         VIR_FREE(list->doms[i]);
     }
+    VIR_FREE(list->doms);
     VIR_FREE(list);
 }
 

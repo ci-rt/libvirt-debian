@@ -477,12 +477,8 @@ static int lxcControllerMoveInterfaces(unsigned int nveths,
 {
     unsigned int i;
     for (i = 0 ; i < nveths ; i++)
-        if (moveInterfaceToNetNs(veths[i], container) < 0) {
-            lxcError(VIR_ERR_INTERNAL_ERROR,
-                     _("Failed to move interface %s to ns %d"),
-                     veths[i], container);
+        if (moveInterfaceToNetNs(veths[i], container) < 0)
             return -1;
-        }
 
     return 0;
 }
@@ -502,10 +498,7 @@ static int lxcControllerCleanupInterfaces(unsigned int nveths,
 {
     unsigned int i;
     for (i = 0 ; i < nveths ; i++)
-        if (vethDelete(veths[i]) < 0)
-            lxcError(VIR_ERR_INTERNAL_ERROR,
-                     _("Failed to delete veth: %s"), veths[i]);
-            /* will continue to try to cleanup any other interfaces */
+        vethDelete(veths[i]);
 
     return 0;
 }
@@ -663,7 +656,11 @@ cleanup:
         close(containerPty);
 
     if (container > 1) {
+        int status;
         kill(container, SIGTERM);
+        if (!(waitpid(container, &status, WNOHANG) == 0 &&
+            WIFEXITED(status)))
+            kill(container, SIGKILL);
         waitpid(container, NULL, 0);
     }
     return rc;

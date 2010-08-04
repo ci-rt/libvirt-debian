@@ -48,12 +48,15 @@ esxVMX_HandleLegacySCSIDiskDriverName(virDomainDefPtr def,
                                       virDomainDiskDefPtr disk);
 
 int
-esxVMX_GatherSCSIControllers(virDomainDefPtr def, int virtualDev[4],
-                             bool present[4]);
+esxVMX_AutodetectSCSIControllerModel(esxVI_Context *ctx,
+                                     virDomainDiskDefPtr def, int *model);
+
+int
+esxVMX_GatherSCSIControllers(esxVI_Context *ctx, virDomainDefPtr def,
+                             int virtualDev[4], bool present[4]);
 
 char *
-esxVMX_AbsolutePathToDatastoreRelatedPath(esxVI_Context *ctx,
-                                          const char *absolutePath);
+esxVMX_AbsolutePathToDatastorePath(esxVI_Context *ctx, const char *absolutePath);
 
 
 

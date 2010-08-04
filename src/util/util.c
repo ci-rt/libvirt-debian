@@ -1267,6 +1267,7 @@ int virFileExists(const char *path)
 }
 
 # ifndef WIN32
+/* return -errno on failure, or 0 on success */
 static int virFileOperationNoFork(const char *path, int openflags, mode_t mode,
                                   uid_t uid, gid_t gid,
                                   virFileOperationHook hook, void *hookdata,
@@ -1276,26 +1277,26 @@ static int virFileOperationNoFork(const char *path, int openflags, mode_t mode,
     struct stat st;
 
     if ((fd = open(path, openflags, mode)) < 0) {
-        ret = errno;
+        ret = -errno;
         virReportSystemError(errno, _("failed to create file '%s'"),
                              path);
         goto error;
     }
     if (fstat(fd, &st) == -1) {
-        ret = errno;
+        ret = -errno;
         virReportSystemError(errno, _("stat of '%s' failed"), path);
         goto error;
     }
     if (((st.st_uid != uid) || (st.st_gid != gid))
         && (fchown(fd, uid, gid) < 0)) {
-        ret = errno;
+        ret = -errno;
         virReportSystemError(errno, _("cannot chown '%s' to (%u, %u)"),
                              path, (unsigned int) uid, (unsigned int) gid);
         goto error;
     }
     if ((flags & VIR_FILE_OP_FORCE_PERMS)
         && (fchmod(fd, mode) < 0)) {
-        ret = errno;
+        ret = -errno;
         virReportSystemError(errno,
                              _("cannot set mode of '%s' to %04o"),
                              path, mode);
@@ -1305,7 +1306,7 @@ static int virFileOperationNoFork(const char *path, int openflags, mode_t mode,
         goto error;
     }
     if (close(fd) < 0) {
-        ret = errno;
+        ret = -errno;
         virReportSystemError(errno, _("failed to close new file '%s'"),
                              path);
         fd = -1;
@@ -1318,6 +1319,7 @@ error:
     return ret;
 }
 
+/* return -errno on failure, or 0 on success */
 static int virDirCreateNoFork(const char *path, mode_t mode, uid_t uid, gid_t gid,
                               unsigned int flags) {
     int ret = 0;
@@ -1326,27 +1328,27 @@ static int virDirCreateNoFork(const char *path, mode_t mode, uid_t uid, gid_t gi
     if ((mkdir(path, mode) < 0)
         && !((errno == EEXIST) && (flags & VIR_DIR_CREATE_ALLOW_EXIST)))
        {
-        ret = errno;
+        ret = -errno;
         virReportSystemError(errno, _("failed to create directory '%s'"),
                              path);
         goto error;
     }
 
     if (stat(path, &st) == -1) {
-        ret = errno;
+        ret = -errno;
         virReportSystemError(errno, _("stat of '%s' failed"), path);
         goto error;
     }
     if (((st.st_uid != uid) || (st.st_gid != gid))
         && (chown(path, uid, gid) < 0)) {
-        ret = errno;
+        ret = -errno;
         virReportSystemError(errno, _("cannot chown '%s' to (%u, %u)"),
                              path, (unsigned int) uid, (unsigned int) gid);
         goto error;
     }
     if ((flags & VIR_DIR_CREATE_FORCE_PERMS)
         && (chmod(path, mode) < 0)) {
-        ret = errno;
+        ret = -errno;
         virReportSystemError(errno,
                              _("cannot set mode of '%s' to %04o"),
                              path, mode);
@@ -1356,6 +1358,7 @@ error:
     return ret;
 }
 
+/* return -errno on failure, or 0 on success */
 int virFileOperation(const char *path, int openflags, mode_t mode,
                      uid_t uid, gid_t gid,
                      virFileOperationHook hook, void *hookdata,
@@ -1380,7 +1383,7 @@ int virFileOperation(const char *path, int openflags, mode_t mode,
     int forkRet = virFork(&pid);
 
     if (pid < 0) {
-        ret = errno;
+        ret = -errno;
         return ret;
     }
 
@@ -1389,14 +1392,14 @@ int virFileOperation(const char *path, int openflags, mode_t mode,
         while ((waitret = waitpid(pid, &status, 0) == -1)
                && (errno == EINTR));
         if (waitret == -1) {
-            ret = errno;
+            ret = -errno;
             virReportSystemError(errno,
                                  _("failed to wait for child creating '%s'"),
                                  path);
             goto parenterror;
         }
-        ret = WEXITSTATUS(status);
-        if (!WIFEXITED(status) || (ret == EACCES)) {
+        ret = -WEXITSTATUS(status);
+        if (!WIFEXITED(status) || (ret == -EACCES)) {
             /* fall back to the simpler method, which works better in
              * some cases */
             return virFileOperationNoFork(path, openflags, mode, uid, gid,
@@ -1417,22 +1420,22 @@ parenterror:
     /* set desired uid/gid, then attempt to create the file */
 
     if ((gid != 0) && (setgid(gid) != 0)) {
-        ret = errno;
+        ret = -errno;
         virReportSystemError(errno,
                              _("cannot set gid %u creating '%s'"),
                              (unsigned int) gid, path);
         goto childerror;
     }
     if  ((uid != 0) && (setuid(uid) != 0)) {
-        ret = errno;
+        ret = -errno;
         virReportSystemError(errno,
                              _("cannot set uid %u creating '%s'"),
                              (unsigned int) uid, path);
         goto childerror;
     }
     if ((fd = open(path, openflags, mode)) < 0) {
-        ret = errno;
-        if (ret != EACCES) {
+        ret = -errno;
+        if (ret != -EACCES) {
             /* in case of EACCES, the parent will retry */
             virReportSystemError(errno,
                                  _("child failed to create file '%s'"),
@@ -1441,20 +1444,20 @@ parenterror:
         goto childerror;
     }
     if (fstat(fd, &st) == -1) {
-        ret = errno;
+        ret = -errno;
         virReportSystemError(errno, _("stat of '%s' failed"), path);
         goto childerror;
     }
     if ((st.st_gid != gid)
         && (fchown(fd, -1, gid) < 0)) {
-        ret = errno;
+        ret = -errno;
         virReportSystemError(errno, _("cannot chown '%s' to (%u, %u)"),
                              path, (unsigned int) uid, (unsigned int) gid);
         goto childerror;
     }
     if ((flags & VIR_FILE_OP_FORCE_PERMS)
         && (fchmod(fd, mode) < 0)) {
-        ret = errno;
+        ret = -errno;
         virReportSystemError(errno,
                              _("cannot set mode of '%s' to %04o"),
                              path, mode);
@@ -1464,7 +1467,7 @@ parenterror:
         goto childerror;
     }
     if (close(fd) < 0) {
-        ret = errno;
+        ret = -errno;
         virReportSystemError(errno, _("child failed to close new file '%s'"),
                              path);
         goto childerror;
@@ -1474,6 +1477,7 @@ childerror:
 
 }
 
+/* return -errno on failure, or 0 on success */
 int virDirCreate(const char *path, mode_t mode,
                  uid_t uid, gid_t gid, unsigned int flags) {
     struct stat st;
@@ -1491,7 +1495,7 @@ int virDirCreate(const char *path, mode_t mode,
     int forkRet = virFork(&pid);
 
     if (pid < 0) {
-        ret = errno;
+        ret = -errno;
         return ret;
     }
 
@@ -1499,19 +1503,19 @@ int virDirCreate(const char *path, mode_t mode,
         /* wait for child to complete, and retrieve its exit code */
         while ((waitret = waitpid(pid, &status, 0) == -1)  && (errno == EINTR));
         if (waitret == -1) {
-            ret = errno;
+            ret = -errno;
             virReportSystemError(errno,
                                  _("failed to wait for child creating '%s'"),
                                  path);
             goto parenterror;
         }
-        ret = WEXITSTATUS(status);
-        if (!WIFEXITED(status) || (ret == EACCES)) {
+        ret = -WEXITSTATUS(status);
+        if (!WIFEXITED(status) || (ret == -EACCES)) {
             /* fall back to the simpler method, which works better in
              * some cases */
             return virDirCreateNoFork(path, mode, uid, gid, flags);
         }
-        if (ret != 0) {
+        if (ret < 0) {
             goto parenterror;
         }
 parenterror:
@@ -1528,20 +1532,20 @@ parenterror:
     /* set desired uid/gid, then attempt to create the directory */
 
     if ((gid != 0) && (setgid(gid) != 0)) {
-        ret = errno;
+        ret = -errno;
         virReportSystemError(errno, _("cannot set gid %u creating '%s'"),
                              (unsigned int) gid, path);
         goto childerror;
     }
     if  ((uid != 0) && (setuid(uid) != 0)) {
-        ret = errno;
+        ret = -errno;
         virReportSystemError(errno, _("cannot set uid %u creating '%s'"),
                              (unsigned int) uid, path);
         goto childerror;
     }
     if (mkdir(path, mode) < 0) {
-        ret = errno;
-        if (ret != EACCES) {
+        ret = -errno;
+        if (ret != -EACCES) {
             /* in case of EACCES, the parent will retry */
             virReportSystemError(errno, _("child failed to create directory '%s'"),
                                  path);
@@ -1551,13 +1555,13 @@ parenterror:
     /* check if group was set properly by creating after
      * setgid. If not, try doing it with chown */
     if (stat(path, &st) == -1) {
-        ret = errno;
+        ret = -errno;
         virReportSystemError(errno,
                              _("stat of '%s' failed"), path);
         goto childerror;
     }
     if ((st.st_gid != gid) && (chown(path, -1, gid) < 0)) {
-        ret = errno;
+        ret = -errno;
         virReportSystemError(errno,
                              _("cannot chown '%s' to group %u"),
                              path, (unsigned int) gid);
@@ -1576,6 +1580,7 @@ childerror:
 
 # else /* WIN32 */
 
+/* return -errno on failure, or 0 on success */
 int virFileOperation(const char *path ATTRIBUTE_UNUSED,
                      int openflags ATTRIBUTE_UNUSED,
                      mode_t mode ATTRIBUTE_UNUSED,

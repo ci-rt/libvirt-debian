@@ -223,6 +223,8 @@ mymain(int argc, char **argv)
     DO_TEST("boot-cdrom", 0);
     DO_TEST("boot-network", 0);
     DO_TEST("boot-floppy", 0);
+    DO_TEST("boot-multi", QEMUD_CMD_FLAG_BOOT_MENU);
+    DO_TEST("boot-menu-disable", QEMUD_CMD_FLAG_BOOT_MENU);
     DO_TEST("bootloader", QEMUD_CMD_FLAG_DOMID);
     DO_TEST("clock-utc", 0);
     DO_TEST("clock-localtime", 0);
@@ -273,6 +275,10 @@ mymain(int argc, char **argv)
     DO_TEST("disk-usb", 0);
     DO_TEST("disk-usb-device", QEMUD_CMD_FLAG_DRIVE |
             QEMUD_CMD_FLAG_DEVICE | QEMUD_CMD_FLAG_NODEFCONFIG);
+    DO_TEST("disk-scsi-device", QEMUD_CMD_FLAG_DRIVE |
+            QEMUD_CMD_FLAG_DEVICE | QEMUD_CMD_FLAG_NODEFCONFIG);
+    DO_TEST("disk-scsi-device-auto", QEMUD_CMD_FLAG_DRIVE |
+            QEMUD_CMD_FLAG_DEVICE | QEMUD_CMD_FLAG_NODEFCONFIG);
     DO_TEST("graphics-vnc", 0);
 
     driver.vncSASL = 1;
@@ -318,6 +324,7 @@ mymain(int argc, char **argv)
     DO_TEST("serial-many", 0);
     DO_TEST("parallel-tcp", 0);
     DO_TEST("console-compat", 0);
+    DO_TEST("console-compat-auto", 0);
 
     DO_TEST("serial-vc-chardev", QEMUD_CMD_FLAG_CHARDEV|QEMUD_CMD_FLAG_DEVICE |
             QEMUD_CMD_FLAG_NODEFCONFIG);
@@ -348,9 +355,15 @@ mymain(int argc, char **argv)
             QEMUD_CMD_FLAG_NODEFCONFIG);
     DO_TEST("channel-virtio-auto", QEMUD_CMD_FLAG_DEVICE |
             QEMUD_CMD_FLAG_NODEFCONFIG);
+    DO_TEST("console-virtio", QEMUD_CMD_FLAG_DEVICE |
+            QEMUD_CMD_FLAG_NODEFCONFIG);
 
     DO_TEST("watchdog", 0);
     DO_TEST("watchdog-device", QEMUD_CMD_FLAG_DEVICE |
+            QEMUD_CMD_FLAG_NODEFCONFIG);
+    DO_TEST("balloon-device", QEMUD_CMD_FLAG_DEVICE |
+            QEMUD_CMD_FLAG_NODEFCONFIG);
+    DO_TEST("balloon-device-auto", QEMUD_CMD_FLAG_DEVICE |
             QEMUD_CMD_FLAG_NODEFCONFIG);
     DO_TEST("sound", 0);
     DO_TEST("sound-device", QEMUD_CMD_FLAG_DEVICE |
@@ -367,6 +380,8 @@ mymain(int argc, char **argv)
     DO_TEST_FULL("restore-v2", QEMUD_CMD_FLAG_MIGRATE_QEMU_EXEC, "stdio");
     DO_TEST_FULL("restore-v2", QEMUD_CMD_FLAG_MIGRATE_QEMU_EXEC, "exec:cat");
     DO_TEST_FULL("migrate", QEMUD_CMD_FLAG_MIGRATE_QEMU_TCP, "tcp:10.0.0.1:5000");
+
+    DO_TEST("qemu-ns", 0);
 
     free(driver.stateDir);
     virCapabilitiesFree(driver.caps);

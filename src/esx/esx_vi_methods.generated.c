@@ -413,6 +413,26 @@ ESX_VI__METHOD(RevertToSnapshot_Task, /* explicit _this */,
 
 
 
+/* esxVI_SearchDatastore_Task */
+ESX_VI__METHOD(SearchDatastore_Task, /* explicit _this */,
+               (esxVI_Context *ctx,
+                esxVI_ManagedObjectReference *_this,       /* required */
+                const char *datastorePath,                 /* required */
+                esxVI_HostDatastoreBrowserSearchSpec *searchSpec, /* optional */
+                esxVI_ManagedObjectReference **output),    /* required */
+               ManagedObjectReference, RequiredItem,
+{
+    ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
+    ESX_VI__METHOD__PARAMETER__REQUIRE(datastorePath)
+},
+{
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, _this)
+    ESX_VI__METHOD__PARAMETER__SERIALIZE_VALUE(String, datastorePath)
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(HostDatastoreBrowserSearchSpec, searchSpec)
+})
+
+
+
 /* esxVI_SessionIsActive */
 ESX_VI__METHOD(SessionIsActive, sessionManager,
                (esxVI_Context *ctx,

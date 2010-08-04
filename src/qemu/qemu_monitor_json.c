@@ -1059,11 +1059,10 @@ int qemuMonitorJSONGetBlockStatsInfo(qemuMonitorPtr mon,
 
     ret = qemuMonitorJSONCommand(mon, cmd, &reply);
 
-    if (ret == 0) {
+    if (ret == 0)
         ret = qemuMonitorJSONCheckError(cmd, reply);
-        if (ret < 0)
-            goto cleanup;
-    }
+    if (ret < 0)
+        goto cleanup;
     ret = -1;
 
     devices = virJSONValueObjectGet(reply, "return");
@@ -1164,11 +1163,13 @@ int qemuMonitorJSONGetBlockExtent(qemuMonitorPtr mon,
     if (!cmd)
         return -1;
 
-    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
-        goto cleanup;
+    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
 
-    if (qemuMonitorJSONCheckError(cmd, reply) < 0)
+    if (ret == 0)
+        ret = qemuMonitorJSONCheckError(cmd, reply);
+    if (ret < 0)
         goto cleanup;
+    ret = -1;
 
     devices = virJSONValueObjectGet(reply, "return");
     if (!devices || devices->type != VIR_JSON_TYPE_ARRAY) {
@@ -2342,5 +2343,33 @@ int qemuMonitorJSONDeleteSnapshot(qemuMonitorPtr mon, const char *name)
 
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
+    return ret;
+}
+
+int qemuMonitorJSONArbitraryCommand(qemuMonitorPtr mon,
+                                    const char *cmd_str,
+                                    char **reply_str)
+{
+    virJSONValuePtr cmd = NULL;
+    virJSONValuePtr reply = NULL;
+    int ret = -1;
+
+    cmd = virJSONValueFromString(cmd_str);
+    if (!cmd)
+        return -1;
+
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        goto cleanup;
+
+    *reply_str = virJSONValueToString(reply);
+    if (!(*reply_str))
+        goto cleanup;
+
+    ret = 0;
+
+cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+
     return ret;
 }

@@ -1587,6 +1587,7 @@ static int vboxDomainDestroy(virDomainPtr dom) {
             }
 #endif
             VBOX_RELEASE(console);
+            dom->id = -1;
             ret = 0;
         }
         data->vboxSession->vtbl->Close(data->vboxSession);
@@ -2839,7 +2840,7 @@ static char *vboxDomainDumpXML(virDomainPtr dom, int flags) {
                             def->serials[serialPortIncCount]->type = VIR_DOMAIN_CHR_TYPE_NULL;
                         }
 
-                        def->serials[serialPortIncCount]->targetType = VIR_DOMAIN_CHR_TARGET_TYPE_SERIAL;
+                        def->serials[serialPortIncCount]->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL;
 
                         serialPort->vtbl->GetIRQ(serialPort, &IRQ);
                         serialPort->vtbl->GetIOBase(serialPort, &IOBase);
@@ -2918,7 +2919,7 @@ static char *vboxDomainDumpXML(virDomainPtr dom, int flags) {
                         }
 
                         def->parallels[parallelPortIncCount]->type = VIR_DOMAIN_CHR_TYPE_FILE;
-                        def->parallels[parallelPortIncCount]->targetType = VIR_DOMAIN_CHR_TARGET_TYPE_PARALLEL;
+                        def->parallels[parallelPortIncCount]->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_PARALLEL;
 
                         parallelPort->vtbl->GetPath(parallelPort, &pathUtf16);
 
@@ -8248,6 +8249,7 @@ virDriver NAME(Driver) = {
     vboxDomainSnapshotCurrent, /* domainSnapshotCurrent */
     vboxDomainRevertToSnapshot, /* domainRevertToSnapshot */
     vboxDomainSnapshotDelete, /* domainSnapshotDelete */
+    NULL, /* qemuDomainMonitorCommand */
 };
 
 virNetworkDriver NAME(NetworkDriver) = {

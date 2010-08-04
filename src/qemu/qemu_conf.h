@@ -91,6 +91,7 @@ enum qemud_cmd_flags {
     QEMUD_CMD_FLAG_TDF           = (1LL << 35), /* -tdf flag (user-mode pit catchup) */
     QEMUD_CMD_FLAG_PCI_CONFIGFD  = (1LL << 36), /* pci-assign.configfd */
     QEMUD_CMD_FLAG_NODEFCONFIG   = (1LL << 37), /* -nodefconfig */
+    QEMUD_CMD_FLAG_BOOT_MENU     = (1LL << 38), /* -boot menu=on support */
 };
 
 /* Main driver state */
@@ -141,6 +142,7 @@ struct qemud_driver {
     unsigned int relaxedACS : 1;
     unsigned int vncAllowHostAudio : 1;
     unsigned int clearEmulatorCapabilities : 1;
+    unsigned int allowDiskFormatProbing : 1;
 
     virCapsPtr caps;
 
@@ -164,6 +166,17 @@ struct qemud_driver {
 
 typedef struct _qemuDomainPCIAddressSet qemuDomainPCIAddressSet;
 typedef qemuDomainPCIAddressSet *qemuDomainPCIAddressSetPtr;
+
+typedef struct _qemuDomainCmdlineDef qemuDomainCmdlineDef;
+typedef qemuDomainCmdlineDef *qemuDomainCmdlineDefPtr;
+struct _qemuDomainCmdlineDef {
+    unsigned int num_args;
+    char **args;
+
+    unsigned int num_env;
+    char **env_name;
+    char **env_value;
+};
 
 /* Port numbers used for KVM migration. */
 # define QEMUD_MIGRATION_FIRST_PORT 49152
@@ -242,6 +255,8 @@ char * qemuBuildControllerDevStr(virDomainControllerDefPtr def);
 
 char * qemuBuildWatchdogDevStr(virDomainWatchdogDefPtr dev);
 
+char * qemuBuildMemballoonDevStr(virDomainMemballoonDefPtr dev);
+
 char * qemuBuildUSBInputDevStr(virDomainInputDefPtr dev);
 
 char * qemuBuildSoundDevStr(virDomainSoundDefPtr sound);
@@ -289,6 +304,7 @@ int         qemudProbeMachineTypes      (const char *binary,
                                          int *nmachines);
 
 int         qemudProbeCPUModels         (const char *qemu,
+                                         unsigned long long qemuCmdFlags,
                                          const char *arch,
                                          unsigned int *count,
                                          const char ***cpus);

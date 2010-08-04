@@ -170,6 +170,8 @@ virDomainSaveStatus;
 virDomainSoundDefFree;
 virDomainSoundModelTypeFromString;
 virDomainSoundModelTypeToString;
+virDomainMemballoonModelTypeFromString;
+virDomainMemballoonModelTypeToString;
 virDomainWatchdogModelTypeFromString;
 virDomainWatchdogModelTypeToString;
 virDomainWatchdogActionTypeFromString;
@@ -225,6 +227,8 @@ virDomainSnapshotDefFormat;
 virDomainSnapshotAssignDef;
 virDomainObjAssignDef;
 virDomainChrDefForeach;
+virDomainDiskDefForeachPath;
+virDomainChrConsoleTargetTypeToString;
 
 
 # domain_event.h
@@ -328,6 +332,7 @@ iptablesAddForwardAllowRelatedIn;
 iptablesAddForwardMasquerade;
 iptablesAddForwardRejectIn;
 iptablesAddForwardRejectOut;
+iptablesAddOutputFixUdpChecksum;
 iptablesAddTcpInput;
 iptablesAddUdpInput;
 iptablesContextFree;
@@ -339,6 +344,7 @@ iptablesRemoveForwardAllowRelatedIn;
 iptablesRemoveForwardMasquerade;
 iptablesRemoveForwardRejectIn;
 iptablesRemoveForwardRejectOut;
+iptablesRemoveOutputFixUdpChecksum;
 iptablesRemoveTcpInput;
 iptablesRemoveUdpInput;
 
@@ -628,6 +634,8 @@ virStorageGenerateQcowPassphrase;
 # storage_file.h
 virStorageFileFormatTypeToString;
 virStorageFileFormatTypeFromString;
+virStorageFileProbeFormat;
+virStorageFileProbeFormatFromFD;
 virStorageFileGetMetadata;
 virStorageFileGetMetadataFromFD;
 virStorageFileIsSharedFS;
@@ -731,6 +739,7 @@ virReportSystemErrorFull;
 virReportOOMErrorFull;
 virStrerror;
 virSetError;
+virDispatchError;
 
 
 # xml.h

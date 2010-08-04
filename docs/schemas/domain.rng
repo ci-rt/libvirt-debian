@@ -41,6 +41,9 @@
         <optional>
           <ref name="seclabel"/>
         </optional>
+        <optional>
+          <ref name='qemucmdline'/>
+        </optional>
       </interleave>
     </element>
   </define>
@@ -119,6 +122,16 @@
             <ref name="osbootdev"/>
           </oneOrMore>
         </choice>
+        <optional>
+          <element name="bootmenu">
+            <attribute name="enable">
+              <choice>
+                <value>yes</value>
+                <value>no</value>
+              </choice>
+            </attribute>
+          </element>
+        </optional>
       </interleave>
     </element>
   </define>
@@ -673,9 +686,11 @@
       <optional>
         <attribute name="model">
           <choice>
+            <value>auto</value>
             <value>buslogic</value>
             <value>lsilogic</value>
             <value>lsisas1068</value>
+            <value>vmpvscsi</value>
           </choice>
         </attribute>
       </optional>
@@ -1197,17 +1212,38 @@
     <interleave>
       <ref name="qemucdevSrcDef"/>
       <optional>
-        <element name="target">
-          <optional>
-            <attribute name="port"/>
-          </optional>
-        </element>
+        <ref name="qemucdevTgtDef"/>
       </optional>
       <optional>
         <ref name="address"/>
       </optional>
     </interleave>
   </define>
+
+  <define name="qemucdevConsoleTgtType">
+    <attribute name="type">
+      <choice>
+        <value>xen</value>
+        <value>serial</value>
+        <value>uml</value>
+        <value>virtio</value>
+      </choice>
+    </attribute>
+  </define>
+
+  <define  name="qemucdevTgtDef">
+    <element name="target">
+      <interleave>
+        <optional>
+          <ref name="qemucdevConsoleTgtType"/>
+        </optional>
+        <optional>
+          <attribute name="port"/>
+        </optional>
+      </interleave>
+    </element>
+  </define>
+
   <define name="qemucdevSrcType">
     <attribute name="type">
       <choice>
@@ -1267,7 +1303,9 @@
           </optional>
           <empty/>
         </group>
-        <ref name="qemucdev"/>
+        <choice>
+          <ref name="qemucdev"/>
+        </choice>
       </choice>
     </element>
   </define>
@@ -1305,6 +1343,19 @@
           </choice>
         </attribute>
       </optional>
+      <optional>
+        <ref name="address"/>
+      </optional>
+    </element>
+  </define>
+  <define name="memballoon">
+    <element name="memballoon">
+      <attribute name="model">
+        <choice>
+          <value>virtio</value>
+          <value>xen</value>
+        </choice>
+      </attribute>
       <optional>
         <ref name="address"/>
       </optional>
@@ -1516,6 +1567,9 @@
         <optional>
           <ref name="watchdog"/>
         </optional>
+        <optional>
+          <ref name="memballoon"/>
+        </optional>
       </interleave>
     </element>
   </define>
@@ -1557,6 +1611,7 @@
           <interleave>
             <ref name="cpuModel"/>
             <optional>
+              <ref name="cpuVendor"/>
               <ref name="cpuTopology"/>
             </optional>
             <zeroOrMore>
@@ -1580,6 +1635,12 @@
 
   <define name="cpuModel">
     <element name="model">
+      <text/>
+    </element>
+  </define>
+
+  <define name="cpuVendor">
+    <element name="vendor">
       <text/>
     </element>
   </define>
@@ -1655,6 +1716,31 @@
         </attribute>
       </element>
     </optional>
+  </define>
+
+  <!--
+       Optional hypervisor extensions in their own namespace:
+         QEmu
+    -->
+  <define name="qemucmdline">
+    <element name="commandline" ns="http://libvirt.org/schemas/domain/qemu/1.0">
+      <zeroOrMore>
+        <element name="arg">
+          <attribute name='value'/>
+        </element>
+      </zeroOrMore>
+      <zeroOrMore>
+        <element name="env">
+          <attribute name='name'>
+            <ref name="filter-param-name"/>
+          </attribute>
+          <optional>
+            <attribute name='value'/>
+          </optional>
+          <empty/>
+        </element>
+      </zeroOrMore>
+    </element>
   </define>
 
   <!--

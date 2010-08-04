@@ -332,6 +332,72 @@ ESX_VI__TEMPLATE__DESERIALIZE(ChoiceOption,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: DatastoreHostMount
+ */
+
+/* esxVI_DatastoreHostMount_Alloc */
+ESX_VI__TEMPLATE__ALLOC(DatastoreHostMount)
+
+/* esxVI_DatastoreHostMount_Free */
+ESX_VI__TEMPLATE__FREE(DatastoreHostMount,
+{
+    esxVI_DatastoreHostMount_Free(&item->_next);
+
+    esxVI_ManagedObjectReference_Free(&item->key);
+    esxVI_HostMountInfo_Free(&item->mountInfo);
+})
+
+/* esxVI_DatastoreHostMount_Validate */
+ESX_VI__TEMPLATE__VALIDATE(DatastoreHostMount,
+{
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(key)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(mountInfo)
+})
+
+/* esxVI_DatastoreHostMount_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(DatastoreHostMount)
+
+/* esxVI_DatastoreHostMount_DeepCopy */
+ESX_VI__TEMPLATE__DEEP_COPY(DatastoreHostMount,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY(ManagedObjectReference, key)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY(HostMountInfo, mountInfo)
+})
+
+/* esxVI_DatastoreHostMount_DeepCopyList */
+ESX_VI__TEMPLATE__LIST__DEEP_COPY(DatastoreHostMount)
+
+/* esxVI_DatastoreHostMount_CastFromAnyType */
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(DatastoreHostMount,
+{
+})
+
+/* esxVI_DatastoreHostMount_CastListFromAnyType */
+ESX_VI__TEMPLATE__LIST__CAST_FROM_ANY_TYPE(DatastoreHostMount)
+
+/* esxVI_DatastoreHostMount_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(DatastoreHostMount,
+{
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(ManagedObjectReference, key)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(HostMountInfo, mountInfo)
+})
+
+/* esxVI_DatastoreHostMount_SerializeList */
+ESX_VI__TEMPLATE__LIST__SERIALIZE(DatastoreHostMount)
+
+/* esxVI_DatastoreHostMount_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(DatastoreHostMount,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(ManagedObjectReference, key)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(HostMountInfo, mountInfo)
+})
+
+/* esxVI_DatastoreHostMount_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(DatastoreHostMount)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Type: DatastoreInfo
  *          extended by LocalDatastoreInfo
  *                      NasDatastoreInfo
@@ -396,7 +462,12 @@ ESX_VI__TEMPLATE__DYNAMIC_SERIALIZE(DatastoreInfo,
 })
 
 /* esxVI_DatastoreInfo_Deserialize */
-ESX_VI__TEMPLATE__DESERIALIZE(DatastoreInfo,
+ESX_VI__TEMPLATE__DYNAMIC_DESERIALIZE(DatastoreInfo,
+{
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(LocalDatastoreInfo)
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(NasDatastoreInfo)
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(VmfsDatastoreInfo)
+},
 {
     ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, name)
     ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, url)
@@ -450,7 +521,10 @@ ESX_VI__TEMPLATE__DYNAMIC_SERIALIZE(Description,
 ESX_VI__TEMPLATE__LIST__SERIALIZE(Description)
 
 /* esxVI_Description_Deserialize */
-ESX_VI__TEMPLATE__DESERIALIZE(Description,
+ESX_VI__TEMPLATE__DYNAMIC_DESERIALIZE(Description,
+{
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(ElementDescription)
+},
 {
     ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, label)
     ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, summary)
@@ -520,7 +594,7 @@ ESX_VI__TEMPLATE__ALLOC(ElementDescription)
 /* esxVI_ElementDescription_Free */
 ESX_VI__TEMPLATE__FREE(ElementDescription,
 {
-    esxVI_ElementDescription_Free(&item->_next);
+    esxVI_Description_Free((esxVI_Description **)&item->_next);
 
     /* Description */
     VIR_FREE(item->label);
@@ -650,6 +724,525 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(Event)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: FileInfo
+ *          extended by FloppyImageFileInfo
+ *                      FolderFileInfo
+ *                      IsoImageFileInfo
+ *                      VmConfigFileInfo
+ *                      VmDiskFileInfo
+ *                      VmLogFileInfo
+ *                      VmNvramFileInfo
+ *                      VmSnapshotFileInfo
+ */
+
+/* esxVI_FileInfo_Alloc */
+ESX_VI__TEMPLATE__ALLOC(FileInfo)
+
+/* esxVI_FileInfo_Free */
+ESX_VI__TEMPLATE__DYNAMIC_FREE(FileInfo,
+{
+    ESX_VI__TEMPLATE__DISPATCH__FREE(FloppyImageFileInfo)
+    ESX_VI__TEMPLATE__DISPATCH__FREE(FolderFileInfo)
+    ESX_VI__TEMPLATE__DISPATCH__FREE(IsoImageFileInfo)
+    ESX_VI__TEMPLATE__DISPATCH__FREE(VmConfigFileInfo)
+    ESX_VI__TEMPLATE__DISPATCH__FREE(VmDiskFileInfo)
+    ESX_VI__TEMPLATE__DISPATCH__FREE(VmLogFileInfo)
+    ESX_VI__TEMPLATE__DISPATCH__FREE(VmNvramFileInfo)
+    ESX_VI__TEMPLATE__DISPATCH__FREE(VmSnapshotFileInfo)
+},
+{
+    esxVI_FileInfo_Free(&item->_next);
+
+    VIR_FREE(item->path);
+    esxVI_Long_Free(&item->fileSize);
+    esxVI_DateTime_Free(&item->modification);
+})
+
+/* esxVI_FileInfo_Validate */
+ESX_VI__TEMPLATE__VALIDATE(FileInfo,
+{
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(path)
+})
+
+/* esxVI_FileInfo_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(FileInfo,
+{
+    /* FileInfo */
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(FloppyImageFileInfo)
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(FolderFileInfo)
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(IsoImageFileInfo)
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(VmConfigFileInfo)
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(VmDiskFileInfo)
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(VmLogFileInfo)
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(VmNvramFileInfo)
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(VmSnapshotFileInfo)
+
+    /* VmConfigFileInfo */
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(TemplateConfigFileInfo)
+})
+
+/* esxVI_FileInfo_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(FileInfo)
+
+/* esxVI_FileInfo_Serialize */
+ESX_VI__TEMPLATE__DYNAMIC_SERIALIZE(FileInfo,
+{
+    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(FloppyImageFileInfo)
+    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(FolderFileInfo)
+    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(IsoImageFileInfo)
+    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(VmConfigFileInfo)
+    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(VmDiskFileInfo)
+    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(VmLogFileInfo)
+    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(VmNvramFileInfo)
+    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(VmSnapshotFileInfo)
+},
+{
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, path)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Long, fileSize)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(DateTime, modification)
+})
+
+/* esxVI_FileInfo_SerializeList */
+ESX_VI__TEMPLATE__LIST__SERIALIZE(FileInfo)
+
+/* esxVI_FileInfo_Deserialize */
+ESX_VI__TEMPLATE__DYNAMIC_DESERIALIZE(FileInfo,
+{
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(FloppyImageFileInfo)
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(FolderFileInfo)
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(IsoImageFileInfo)
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(VmConfigFileInfo)
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(VmDiskFileInfo)
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(VmLogFileInfo)
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(VmNvramFileInfo)
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(VmSnapshotFileInfo)
+},
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, path)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, fileSize)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(DateTime, modification)
+})
+
+/* esxVI_FileInfo_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(FileInfo)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: FileQuery
+ *          extended by FloppyImageFileQuery
+ *                      FolderFileQuery
+ *                      IsoImageFileQuery
+ *                      VmConfigFileQuery
+ *                      VmDiskFileQuery
+ *                      VmLogFileQuery
+ *                      VmNvramFileQuery
+ *                      VmSnapshotFileQuery
+ */
+
+/* esxVI_FileQuery_Alloc */
+ESX_VI__TEMPLATE__ALLOC(FileQuery)
+
+/* esxVI_FileQuery_Free */
+ESX_VI__TEMPLATE__DYNAMIC_FREE(FileQuery,
+{
+    ESX_VI__TEMPLATE__DISPATCH__FREE(FloppyImageFileQuery)
+    ESX_VI__TEMPLATE__DISPATCH__FREE(FolderFileQuery)
+    ESX_VI__TEMPLATE__DISPATCH__FREE(IsoImageFileQuery)
+    ESX_VI__TEMPLATE__DISPATCH__FREE(VmConfigFileQuery)
+    ESX_VI__TEMPLATE__DISPATCH__FREE(VmDiskFileQuery)
+    ESX_VI__TEMPLATE__DISPATCH__FREE(VmLogFileQuery)
+    ESX_VI__TEMPLATE__DISPATCH__FREE(VmNvramFileQuery)
+    ESX_VI__TEMPLATE__DISPATCH__FREE(VmSnapshotFileQuery)
+},
+{
+    esxVI_FileQuery_Free(&item->_next);
+
+    /* no properties */
+})
+
+/* esxVI_FileQuery_Validate */
+ESX_VI__TEMPLATE__VALIDATE(FileQuery,
+{
+    /* no properties */
+})
+
+/* esxVI_FileQuery_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(FileQuery,
+{
+    /* FileQuery */
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(FloppyImageFileQuery)
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(FolderFileQuery)
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(IsoImageFileQuery)
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(VmConfigFileQuery)
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(VmDiskFileQuery)
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(VmLogFileQuery)
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(VmNvramFileQuery)
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(VmSnapshotFileQuery)
+
+    /* VmConfigFileQuery */
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(TemplateConfigFileQuery)
+})
+
+/* esxVI_FileQuery_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(FileQuery)
+
+/* esxVI_FileQuery_Serialize */
+ESX_VI__TEMPLATE__DYNAMIC_SERIALIZE(FileQuery,
+{
+    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(FloppyImageFileQuery)
+    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(FolderFileQuery)
+    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(IsoImageFileQuery)
+    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(VmConfigFileQuery)
+    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(VmDiskFileQuery)
+    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(VmLogFileQuery)
+    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(VmNvramFileQuery)
+    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(VmSnapshotFileQuery)
+},
+{
+    /* no properties */
+})
+
+/* esxVI_FileQuery_SerializeList */
+ESX_VI__TEMPLATE__LIST__SERIALIZE(FileQuery)
+
+/* esxVI_FileQuery_Deserialize */
+ESX_VI__TEMPLATE__DYNAMIC_DESERIALIZE(FileQuery,
+{
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(FloppyImageFileQuery)
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(FolderFileQuery)
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(IsoImageFileQuery)
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(VmConfigFileQuery)
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(VmDiskFileQuery)
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(VmLogFileQuery)
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(VmNvramFileQuery)
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(VmSnapshotFileQuery)
+},
+{
+    /* no properties */
+})
+
+/* esxVI_FileQuery_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(FileQuery)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: FileQueryFlags
+ */
+
+/* esxVI_FileQueryFlags_Alloc */
+ESX_VI__TEMPLATE__ALLOC(FileQueryFlags)
+
+/* esxVI_FileQueryFlags_Free */
+ESX_VI__TEMPLATE__FREE(FileQueryFlags,
+{
+    /* no properties to be freed */
+})
+
+/* esxVI_FileQueryFlags_Validate */
+ESX_VI__TEMPLATE__VALIDATE(FileQueryFlags,
+{
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(fileType)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(fileSize)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(modification)
+})
+
+/* esxVI_FileQueryFlags_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(FileQueryFlags,
+{
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, fileType)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, fileSize)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, modification)
+})
+
+/* esxVI_FileQueryFlags_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(FileQueryFlags,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, fileType)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, fileSize)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, modification)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: FloppyImageFileInfo
+ *          extends FileInfo
+ */
+
+/* esxVI_FloppyImageFileInfo_Alloc */
+ESX_VI__TEMPLATE__ALLOC(FloppyImageFileInfo)
+
+/* esxVI_FloppyImageFileInfo_Free */
+ESX_VI__TEMPLATE__FREE(FloppyImageFileInfo,
+{
+    esxVI_FileInfo_Free((esxVI_FileInfo **)&item->_next);
+
+    /* FileInfo */
+    VIR_FREE(item->path);
+    esxVI_Long_Free(&item->fileSize);
+    esxVI_DateTime_Free(&item->modification);
+
+    /* FloppyImageFileInfo */
+    /* no properties */
+})
+
+/* esxVI_FloppyImageFileInfo_Validate */
+ESX_VI__TEMPLATE__VALIDATE(FloppyImageFileInfo,
+{
+    /* FileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(path)
+
+    /* FloppyImageFileInfo */
+    /* no properties */
+})
+
+/* esxVI_FloppyImageFileInfo_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(FloppyImageFileInfo,
+{
+})
+
+/* esxVI_FloppyImageFileInfo_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(FloppyImageFileInfo)
+
+/* esxVI_FloppyImageFileInfo_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(FloppyImageFileInfo,
+{
+    /* FileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, path)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Long, fileSize)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(DateTime, modification)
+
+    /* FloppyImageFileInfo */
+    /* no properties */
+})
+
+/* esxVI_FloppyImageFileInfo_SerializeList */
+ESX_VI__TEMPLATE__LIST__SERIALIZE(FloppyImageFileInfo)
+
+/* esxVI_FloppyImageFileInfo_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(FloppyImageFileInfo,
+{
+    /* FileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, path)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, fileSize)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(DateTime, modification)
+
+    /* FloppyImageFileInfo */
+    /* no properties */
+})
+
+/* esxVI_FloppyImageFileInfo_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(FloppyImageFileInfo)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: FloppyImageFileQuery
+ *          extends FileQuery
+ */
+
+/* esxVI_FloppyImageFileQuery_Alloc */
+ESX_VI__TEMPLATE__ALLOC(FloppyImageFileQuery)
+
+/* esxVI_FloppyImageFileQuery_Free */
+ESX_VI__TEMPLATE__FREE(FloppyImageFileQuery,
+{
+    esxVI_FileQuery_Free((esxVI_FileQuery **)&item->_next);
+
+    /* FileQuery */
+    /* no properties */
+
+    /* FloppyImageFileQuery */
+    /* no properties */
+})
+
+/* esxVI_FloppyImageFileQuery_Validate */
+ESX_VI__TEMPLATE__VALIDATE(FloppyImageFileQuery,
+{
+    /* FileQuery */
+    /* no properties */
+
+    /* FloppyImageFileQuery */
+    /* no properties */
+})
+
+/* esxVI_FloppyImageFileQuery_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(FloppyImageFileQuery,
+{
+})
+
+/* esxVI_FloppyImageFileQuery_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(FloppyImageFileQuery)
+
+/* esxVI_FloppyImageFileQuery_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(FloppyImageFileQuery,
+{
+    /* FileQuery */
+    /* no properties */
+
+    /* FloppyImageFileQuery */
+    /* no properties */
+})
+
+/* esxVI_FloppyImageFileQuery_SerializeList */
+ESX_VI__TEMPLATE__LIST__SERIALIZE(FloppyImageFileQuery)
+
+/* esxVI_FloppyImageFileQuery_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(FloppyImageFileQuery,
+{
+    /* FileQuery */
+    /* no properties */
+
+    /* FloppyImageFileQuery */
+    /* no properties */
+})
+
+/* esxVI_FloppyImageFileQuery_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(FloppyImageFileQuery)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: FolderFileInfo
+ *          extends FileInfo
+ */
+
+/* esxVI_FolderFileInfo_Alloc */
+ESX_VI__TEMPLATE__ALLOC(FolderFileInfo)
+
+/* esxVI_FolderFileInfo_Free */
+ESX_VI__TEMPLATE__FREE(FolderFileInfo,
+{
+    esxVI_FileInfo_Free((esxVI_FileInfo **)&item->_next);
+
+    /* FileInfo */
+    VIR_FREE(item->path);
+    esxVI_Long_Free(&item->fileSize);
+    esxVI_DateTime_Free(&item->modification);
+
+    /* FolderFileInfo */
+    /* no properties */
+})
+
+/* esxVI_FolderFileInfo_Validate */
+ESX_VI__TEMPLATE__VALIDATE(FolderFileInfo,
+{
+    /* FileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(path)
+
+    /* FolderFileInfo */
+    /* no properties */
+})
+
+/* esxVI_FolderFileInfo_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(FolderFileInfo,
+{
+})
+
+/* esxVI_FolderFileInfo_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(FolderFileInfo)
+
+/* esxVI_FolderFileInfo_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(FolderFileInfo,
+{
+    /* FileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, path)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Long, fileSize)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(DateTime, modification)
+
+    /* FolderFileInfo */
+    /* no properties */
+})
+
+/* esxVI_FolderFileInfo_SerializeList */
+ESX_VI__TEMPLATE__LIST__SERIALIZE(FolderFileInfo)
+
+/* esxVI_FolderFileInfo_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(FolderFileInfo,
+{
+    /* FileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, path)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, fileSize)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(DateTime, modification)
+
+    /* FolderFileInfo */
+    /* no properties */
+})
+
+/* esxVI_FolderFileInfo_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(FolderFileInfo)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: FolderFileQuery
+ *          extends FileQuery
+ */
+
+/* esxVI_FolderFileQuery_Alloc */
+ESX_VI__TEMPLATE__ALLOC(FolderFileQuery)
+
+/* esxVI_FolderFileQuery_Free */
+ESX_VI__TEMPLATE__FREE(FolderFileQuery,
+{
+    esxVI_FileQuery_Free((esxVI_FileQuery **)&item->_next);
+
+    /* FileQuery */
+    /* no properties */
+
+    /* FolderFileQuery */
+    /* no properties */
+})
+
+/* esxVI_FolderFileQuery_Validate */
+ESX_VI__TEMPLATE__VALIDATE(FolderFileQuery,
+{
+    /* FileQuery */
+    /* no properties */
+
+    /* FolderFileQuery */
+    /* no properties */
+})
+
+/* esxVI_FolderFileQuery_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(FolderFileQuery,
+{
+})
+
+/* esxVI_FolderFileQuery_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(FolderFileQuery)
+
+/* esxVI_FolderFileQuery_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(FolderFileQuery,
+{
+    /* FileQuery */
+    /* no properties */
+
+    /* FolderFileQuery */
+    /* no properties */
+})
+
+/* esxVI_FolderFileQuery_SerializeList */
+ESX_VI__TEMPLATE__LIST__SERIALIZE(FolderFileQuery)
+
+/* esxVI_FolderFileQuery_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(FolderFileQuery,
+{
+    /* FileQuery */
+    /* no properties */
+
+    /* FolderFileQuery */
+    /* no properties */
+})
+
+/* esxVI_FolderFileQuery_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(FolderFileQuery)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Type: HostCpuIdInfo
  */
 
@@ -717,6 +1310,107 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(HostCpuIdInfo)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: HostDatastoreBrowserSearchResults
+ */
+
+/* esxVI_HostDatastoreBrowserSearchResults_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostDatastoreBrowserSearchResults)
+
+/* esxVI_HostDatastoreBrowserSearchResults_Free */
+ESX_VI__TEMPLATE__FREE(HostDatastoreBrowserSearchResults,
+{
+    esxVI_HostDatastoreBrowserSearchResults_Free(&item->_next);
+
+    esxVI_ManagedObjectReference_Free(&item->datastore);
+    VIR_FREE(item->folderPath);
+    esxVI_FileInfo_Free(&item->file);
+})
+
+/* esxVI_HostDatastoreBrowserSearchResults_Validate */
+ESX_VI__TEMPLATE__VALIDATE(HostDatastoreBrowserSearchResults,
+{
+    /* no required properties */
+})
+
+/* esxVI_HostDatastoreBrowserSearchResults_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(HostDatastoreBrowserSearchResults)
+
+/* esxVI_HostDatastoreBrowserSearchResults_CastFromAnyType */
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(HostDatastoreBrowserSearchResults,
+{
+})
+
+/* esxVI_HostDatastoreBrowserSearchResults_CastListFromAnyType */
+ESX_VI__TEMPLATE__LIST__CAST_FROM_ANY_TYPE(HostDatastoreBrowserSearchResults)
+
+/* esxVI_HostDatastoreBrowserSearchResults_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(HostDatastoreBrowserSearchResults,
+{
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(ManagedObjectReference, datastore)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, folderPath)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_LIST(FileInfo, file)
+})
+
+/* esxVI_HostDatastoreBrowserSearchResults_SerializeList */
+ESX_VI__TEMPLATE__LIST__SERIALIZE(HostDatastoreBrowserSearchResults)
+
+/* esxVI_HostDatastoreBrowserSearchResults_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(HostDatastoreBrowserSearchResults,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(ManagedObjectReference, datastore)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, folderPath)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_LIST(FileInfo, file)
+})
+
+/* esxVI_HostDatastoreBrowserSearchResults_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(HostDatastoreBrowserSearchResults)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: HostDatastoreBrowserSearchSpec
+ */
+
+/* esxVI_HostDatastoreBrowserSearchSpec_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostDatastoreBrowserSearchSpec)
+
+/* esxVI_HostDatastoreBrowserSearchSpec_Free */
+ESX_VI__TEMPLATE__FREE(HostDatastoreBrowserSearchSpec,
+{
+    esxVI_FileQuery_Free(&item->query);
+    esxVI_FileQueryFlags_Free(&item->details);
+    esxVI_String_Free(&item->matchPattern);
+})
+
+/* esxVI_HostDatastoreBrowserSearchSpec_Validate */
+ESX_VI__TEMPLATE__VALIDATE(HostDatastoreBrowserSearchSpec,
+{
+    /* no required properties */
+})
+
+/* esxVI_HostDatastoreBrowserSearchSpec_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(HostDatastoreBrowserSearchSpec,
+{
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_LIST(FileQuery, query)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(FileQueryFlags, details)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, searchCaseInsensitive)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_LIST(String, matchPattern)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, sortFoldersFirst)
+})
+
+/* esxVI_HostDatastoreBrowserSearchSpec_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(HostDatastoreBrowserSearchSpec,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_LIST(FileQuery, query)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(FileQueryFlags, details)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, searchCaseInsensitive)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_LIST(String, matchPattern)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, sortFoldersFirst)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Type: HostFileSystemVolume
  *          extended by HostNasVolume
  *                      HostVmfsVolume
@@ -758,11 +1452,61 @@ ESX_VI__TEMPLATE__DYNAMIC_SERIALIZE(HostFileSystemVolume,
 })
 
 /* esxVI_HostFileSystemVolume_Deserialize */
-ESX_VI__TEMPLATE__DESERIALIZE(HostFileSystemVolume,
+ESX_VI__TEMPLATE__DYNAMIC_DESERIALIZE(HostFileSystemVolume,
+{
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(HostNasVolume)
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(HostVmfsVolume)
+},
 {
     ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, type)
     ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, name)
     ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, capacity)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: HostMountInfo
+ */
+
+/* esxVI_HostMountInfo_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostMountInfo)
+
+/* esxVI_HostMountInfo_Free */
+ESX_VI__TEMPLATE__FREE(HostMountInfo,
+{
+    VIR_FREE(item->path);
+    VIR_FREE(item->accessMode);
+})
+
+/* esxVI_HostMountInfo_Validate */
+ESX_VI__TEMPLATE__VALIDATE(HostMountInfo,
+{
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(accessMode)
+})
+
+/* esxVI_HostMountInfo_DeepCopy */
+ESX_VI__TEMPLATE__DEEP_COPY(HostMountInfo,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY_VALUE(String, path)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY_VALUE(String, accessMode)
+    (*dest)->accessible = src->accessible;
+})
+
+/* esxVI_HostMountInfo_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(HostMountInfo,
+{
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, path)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, accessMode)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, accessible)
+})
+
+/* esxVI_HostMountInfo_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(HostMountInfo,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, path)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, accessMode)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, accessible)
 })
 
 
@@ -958,6 +1702,144 @@ ESX_VI__TEMPLATE__DESERIALIZE(HostVmfsVolume,
     ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_LIST(HostScsiDiskPartition, extent)
     ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, vmfsUpgradable)
 })
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: IsoImageFileInfo
+ *          extends FileInfo
+ */
+
+/* esxVI_IsoImageFileInfo_Alloc */
+ESX_VI__TEMPLATE__ALLOC(IsoImageFileInfo)
+
+/* esxVI_IsoImageFileInfo_Free */
+ESX_VI__TEMPLATE__FREE(IsoImageFileInfo,
+{
+    esxVI_FileInfo_Free((esxVI_FileInfo **)&item->_next);
+
+    /* FileInfo */
+    VIR_FREE(item->path);
+    esxVI_Long_Free(&item->fileSize);
+    esxVI_DateTime_Free(&item->modification);
+
+    /* IsoImageFileInfo */
+    /* no properties */
+})
+
+/* esxVI_IsoImageFileInfo_Validate */
+ESX_VI__TEMPLATE__VALIDATE(IsoImageFileInfo,
+{
+    /* FileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(path)
+
+    /* IsoImageFileInfo */
+    /* no properties */
+})
+
+/* esxVI_IsoImageFileInfo_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(IsoImageFileInfo,
+{
+})
+
+/* esxVI_IsoImageFileInfo_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(IsoImageFileInfo)
+
+/* esxVI_IsoImageFileInfo_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(IsoImageFileInfo,
+{
+    /* FileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, path)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Long, fileSize)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(DateTime, modification)
+
+    /* IsoImageFileInfo */
+    /* no properties */
+})
+
+/* esxVI_IsoImageFileInfo_SerializeList */
+ESX_VI__TEMPLATE__LIST__SERIALIZE(IsoImageFileInfo)
+
+/* esxVI_IsoImageFileInfo_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(IsoImageFileInfo,
+{
+    /* FileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, path)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, fileSize)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(DateTime, modification)
+
+    /* IsoImageFileInfo */
+    /* no properties */
+})
+
+/* esxVI_IsoImageFileInfo_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(IsoImageFileInfo)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: IsoImageFileQuery
+ *          extends FileQuery
+ */
+
+/* esxVI_IsoImageFileQuery_Alloc */
+ESX_VI__TEMPLATE__ALLOC(IsoImageFileQuery)
+
+/* esxVI_IsoImageFileQuery_Free */
+ESX_VI__TEMPLATE__FREE(IsoImageFileQuery,
+{
+    esxVI_FileQuery_Free((esxVI_FileQuery **)&item->_next);
+
+    /* FileQuery */
+    /* no properties */
+
+    /* IsoImageFileQuery */
+    /* no properties */
+})
+
+/* esxVI_IsoImageFileQuery_Validate */
+ESX_VI__TEMPLATE__VALIDATE(IsoImageFileQuery,
+{
+    /* FileQuery */
+    /* no properties */
+
+    /* IsoImageFileQuery */
+    /* no properties */
+})
+
+/* esxVI_IsoImageFileQuery_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(IsoImageFileQuery,
+{
+})
+
+/* esxVI_IsoImageFileQuery_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(IsoImageFileQuery)
+
+/* esxVI_IsoImageFileQuery_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(IsoImageFileQuery,
+{
+    /* FileQuery */
+    /* no properties */
+
+    /* IsoImageFileQuery */
+    /* no properties */
+})
+
+/* esxVI_IsoImageFileQuery_SerializeList */
+ESX_VI__TEMPLATE__LIST__SERIALIZE(IsoImageFileQuery)
+
+/* esxVI_IsoImageFileQuery_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(IsoImageFileQuery,
+{
+    /* FileQuery */
+    /* no properties */
+
+    /* IsoImageFileQuery */
+    /* no properties */
+})
+
+/* esxVI_IsoImageFileQuery_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(IsoImageFileQuery)
 
 
 
@@ -1280,7 +2162,10 @@ ESX_VI__TEMPLATE__DYNAMIC_SERIALIZE(OptionType,
 })
 
 /* esxVI_OptionType_Deserialize */
-ESX_VI__TEMPLATE__DESERIALIZE(OptionType,
+ESX_VI__TEMPLATE__DYNAMIC_DESERIALIZE(OptionType,
+{
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(ChoiceOption)
+},
 {
     ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, valueIsReadonly)
 })
@@ -1366,7 +2251,7 @@ ESX_VI__TEMPLATE__ALLOC(PerfEntityMetric)
 /* esxVI_PerfEntityMetric_Free */
 ESX_VI__TEMPLATE__FREE(PerfEntityMetric,
 {
-    esxVI_PerfEntityMetric_Free(&item->_next);
+    esxVI_PerfEntityMetricBase_Free((esxVI_PerfEntityMetricBase **)&item->_next);
 
     /* PerfEntityMetricBase */
     esxVI_ManagedObjectReference_Free(&item->entity);
@@ -1472,7 +2357,10 @@ ESX_VI__TEMPLATE__DYNAMIC_SERIALIZE(PerfEntityMetricBase,
 ESX_VI__TEMPLATE__LIST__SERIALIZE(PerfEntityMetricBase)
 
 /* esxVI_PerfEntityMetricBase_Deserialize */
-ESX_VI__TEMPLATE__DESERIALIZE(PerfEntityMetricBase,
+ESX_VI__TEMPLATE__DYNAMIC_DESERIALIZE(PerfEntityMetricBase,
+{
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(PerfEntityMetric)
+},
 {
     ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(ManagedObjectReference, entity)
 })
@@ -1541,7 +2429,7 @@ ESX_VI__TEMPLATE__ALLOC(PerfMetricIntSeries)
 /* esxVI_PerfMetricIntSeries_Free */
 ESX_VI__TEMPLATE__FREE(PerfMetricIntSeries,
 {
-    esxVI_PerfMetricIntSeries_Free(&item->_next);
+    esxVI_PerfMetricSeries_Free((esxVI_PerfMetricSeries **)&item->_next);
 
     /* PerfMetricSeries */
     esxVI_PerfMetricId_Free(&item->id);
@@ -1644,7 +2532,10 @@ ESX_VI__TEMPLATE__DYNAMIC_SERIALIZE(PerfMetricSeries,
 ESX_VI__TEMPLATE__LIST__SERIALIZE(PerfMetricSeries)
 
 /* esxVI_PerfMetricSeries_Deserialize */
-ESX_VI__TEMPLATE__DESERIALIZE(PerfMetricSeries,
+ESX_VI__TEMPLATE__DYNAMIC_DESERIALIZE(PerfMetricSeries,
+{
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(PerfMetricIntSeries)
+},
 {
     ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(PerfMetricId, id)
 })
@@ -2090,7 +2981,10 @@ ESX_VI__TEMPLATE__DYNAMIC_SERIALIZE(SelectionSpec,
 ESX_VI__TEMPLATE__LIST__SERIALIZE(SelectionSpec)
 
 /* esxVI_SelectionSpec_Deserialize */
-ESX_VI__TEMPLATE__DESERIALIZE(SelectionSpec,
+ESX_VI__TEMPLATE__DYNAMIC_DESERIALIZE(SelectionSpec,
+{
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(TraversalSpec)
+},
 {
     ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, name)
 })
@@ -2326,6 +3220,171 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(TaskInfo)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: TemplateConfigFileInfo
+ *          extends VmConfigFileInfo
+ */
+
+/* esxVI_TemplateConfigFileInfo_Alloc */
+ESX_VI__TEMPLATE__ALLOC(TemplateConfigFileInfo)
+
+/* esxVI_TemplateConfigFileInfo_Free */
+ESX_VI__TEMPLATE__FREE(TemplateConfigFileInfo,
+{
+    esxVI_VmConfigFileInfo_Free((esxVI_VmConfigFileInfo **)&item->_next);
+
+    /* FileInfo */
+    VIR_FREE(item->path);
+    esxVI_Long_Free(&item->fileSize);
+    esxVI_DateTime_Free(&item->modification);
+
+    /* VmConfigFileInfo */
+    esxVI_Int_Free(&item->configVersion);
+
+    /* TemplateConfigFileInfo */
+    /* no properties */
+})
+
+/* esxVI_TemplateConfigFileInfo_Validate */
+ESX_VI__TEMPLATE__VALIDATE(TemplateConfigFileInfo,
+{
+    /* FileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(path)
+
+    /* VmConfigFileInfo */
+    /* no required properties */
+
+    /* TemplateConfigFileInfo */
+    /* no properties */
+})
+
+/* esxVI_TemplateConfigFileInfo_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(TemplateConfigFileInfo,
+{
+})
+
+/* esxVI_TemplateConfigFileInfo_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(TemplateConfigFileInfo)
+
+/* esxVI_TemplateConfigFileInfo_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(TemplateConfigFileInfo,
+{
+    /* FileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, path)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Long, fileSize)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(DateTime, modification)
+
+    /* VmConfigFileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Int, configVersion)
+
+    /* TemplateConfigFileInfo */
+    /* no properties */
+})
+
+/* esxVI_TemplateConfigFileInfo_SerializeList */
+ESX_VI__TEMPLATE__LIST__SERIALIZE(TemplateConfigFileInfo)
+
+/* esxVI_TemplateConfigFileInfo_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(TemplateConfigFileInfo,
+{
+    /* FileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, path)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, fileSize)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(DateTime, modification)
+
+    /* VmConfigFileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Int, configVersion)
+
+    /* TemplateConfigFileInfo */
+    /* no properties */
+})
+
+/* esxVI_TemplateConfigFileInfo_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(TemplateConfigFileInfo)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: TemplateConfigFileQuery
+ *          extends VmConfigFileQuery
+ */
+
+/* esxVI_TemplateConfigFileQuery_Alloc */
+ESX_VI__TEMPLATE__ALLOC(TemplateConfigFileQuery)
+
+/* esxVI_TemplateConfigFileQuery_Free */
+ESX_VI__TEMPLATE__FREE(TemplateConfigFileQuery,
+{
+    esxVI_VmConfigFileQuery_Free((esxVI_VmConfigFileQuery **)&item->_next);
+
+    /* FileQuery */
+    /* no properties */
+
+    /* VmConfigFileQuery */
+    esxVI_VmConfigFileQueryFilter_Free(&item->filter);
+    esxVI_VmConfigFileQueryFlags_Free(&item->details);
+
+    /* TemplateConfigFileQuery */
+    /* no properties */
+})
+
+/* esxVI_TemplateConfigFileQuery_Validate */
+ESX_VI__TEMPLATE__VALIDATE(TemplateConfigFileQuery,
+{
+    /* FileQuery */
+    /* no properties */
+
+    /* VmConfigFileQuery */
+    /* no required properties */
+
+    /* TemplateConfigFileQuery */
+    /* no properties */
+})
+
+/* esxVI_TemplateConfigFileQuery_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(TemplateConfigFileQuery,
+{
+})
+
+/* esxVI_TemplateConfigFileQuery_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(TemplateConfigFileQuery)
+
+/* esxVI_TemplateConfigFileQuery_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(TemplateConfigFileQuery,
+{
+    /* FileQuery */
+    /* no properties */
+
+    /* VmConfigFileQuery */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(VmConfigFileQueryFilter, filter)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(VmConfigFileQueryFlags, details)
+
+    /* TemplateConfigFileQuery */
+    /* no properties */
+})
+
+/* esxVI_TemplateConfigFileQuery_SerializeList */
+ESX_VI__TEMPLATE__LIST__SERIALIZE(TemplateConfigFileQuery)
+
+/* esxVI_TemplateConfigFileQuery_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(TemplateConfigFileQuery,
+{
+    /* FileQuery */
+    /* no properties */
+
+    /* VmConfigFileQuery */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(VmConfigFileQueryFilter, filter)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(VmConfigFileQueryFlags, details)
+
+    /* TemplateConfigFileQuery */
+    /* no properties */
+})
+
+/* esxVI_TemplateConfigFileQuery_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(TemplateConfigFileQuery)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Type: TraversalSpec
  *          extends SelectionSpec
  */
@@ -2336,7 +3395,7 @@ ESX_VI__TEMPLATE__ALLOC(TraversalSpec)
 /* esxVI_TraversalSpec_Free */
 ESX_VI__TEMPLATE__FREE(TraversalSpec,
 {
-    esxVI_TraversalSpec_Free(&item->_next);
+    esxVI_SelectionSpec_Free((esxVI_SelectionSpec **)&item->_next);
 
     /* SelectionSpec */
     VIR_FREE(item->name);
@@ -2743,6 +3802,886 @@ ESX_VI__TEMPLATE__DESERIALIZE(VirtualMachineSnapshotTree,
 
 /* esxVI_VirtualMachineSnapshotTree_DeserializeList */
 ESX_VI__TEMPLATE__LIST__DESERIALIZE(VirtualMachineSnapshotTree)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmConfigFileInfo
+ *          extends FileInfo
+ *          extended by TemplateConfigFileInfo
+ */
+
+/* esxVI_VmConfigFileInfo_Alloc */
+ESX_VI__TEMPLATE__ALLOC(VmConfigFileInfo)
+
+/* esxVI_VmConfigFileInfo_Free */
+ESX_VI__TEMPLATE__DYNAMIC_FREE(VmConfigFileInfo,
+{
+    ESX_VI__TEMPLATE__DISPATCH__FREE(TemplateConfigFileInfo)
+},
+{
+    esxVI_FileInfo_Free((esxVI_FileInfo **)&item->_next);
+
+    /* FileInfo */
+    VIR_FREE(item->path);
+    esxVI_Long_Free(&item->fileSize);
+    esxVI_DateTime_Free(&item->modification);
+
+    /* VmConfigFileInfo */
+    esxVI_Int_Free(&item->configVersion);
+})
+
+/* esxVI_VmConfigFileInfo_Validate */
+ESX_VI__TEMPLATE__VALIDATE(VmConfigFileInfo,
+{
+    /* FileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(path)
+
+    /* VmConfigFileInfo */
+    /* no required properties */
+})
+
+/* esxVI_VmConfigFileInfo_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(VmConfigFileInfo,
+{
+    /* VmConfigFileInfo */
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(TemplateConfigFileInfo)
+})
+
+/* esxVI_VmConfigFileInfo_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(VmConfigFileInfo)
+
+/* esxVI_VmConfigFileInfo_Serialize */
+ESX_VI__TEMPLATE__DYNAMIC_SERIALIZE(VmConfigFileInfo,
+{
+    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(TemplateConfigFileInfo)
+},
+{
+    /* FileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, path)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Long, fileSize)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(DateTime, modification)
+
+    /* VmConfigFileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Int, configVersion)
+})
+
+/* esxVI_VmConfigFileInfo_SerializeList */
+ESX_VI__TEMPLATE__LIST__SERIALIZE(VmConfigFileInfo)
+
+/* esxVI_VmConfigFileInfo_Deserialize */
+ESX_VI__TEMPLATE__DYNAMIC_DESERIALIZE(VmConfigFileInfo,
+{
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(TemplateConfigFileInfo)
+},
+{
+    /* FileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, path)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, fileSize)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(DateTime, modification)
+
+    /* VmConfigFileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Int, configVersion)
+})
+
+/* esxVI_VmConfigFileInfo_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(VmConfigFileInfo)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmConfigFileQuery
+ *          extends FileQuery
+ *          extended by TemplateConfigFileQuery
+ */
+
+/* esxVI_VmConfigFileQuery_Alloc */
+ESX_VI__TEMPLATE__ALLOC(VmConfigFileQuery)
+
+/* esxVI_VmConfigFileQuery_Free */
+ESX_VI__TEMPLATE__DYNAMIC_FREE(VmConfigFileQuery,
+{
+    ESX_VI__TEMPLATE__DISPATCH__FREE(TemplateConfigFileQuery)
+},
+{
+    esxVI_FileQuery_Free((esxVI_FileQuery **)&item->_next);
+
+    /* FileQuery */
+    /* no properties */
+
+    /* VmConfigFileQuery */
+    esxVI_VmConfigFileQueryFilter_Free(&item->filter);
+    esxVI_VmConfigFileQueryFlags_Free(&item->details);
+})
+
+/* esxVI_VmConfigFileQuery_Validate */
+ESX_VI__TEMPLATE__VALIDATE(VmConfigFileQuery,
+{
+    /* FileQuery */
+    /* no properties */
+
+    /* VmConfigFileQuery */
+    /* no required properties */
+})
+
+/* esxVI_VmConfigFileQuery_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(VmConfigFileQuery,
+{
+    /* VmConfigFileQuery */
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(TemplateConfigFileQuery)
+})
+
+/* esxVI_VmConfigFileQuery_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(VmConfigFileQuery)
+
+/* esxVI_VmConfigFileQuery_Serialize */
+ESX_VI__TEMPLATE__DYNAMIC_SERIALIZE(VmConfigFileQuery,
+{
+    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(TemplateConfigFileQuery)
+},
+{
+    /* FileQuery */
+    /* no properties */
+
+    /* VmConfigFileQuery */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(VmConfigFileQueryFilter, filter)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(VmConfigFileQueryFlags, details)
+})
+
+/* esxVI_VmConfigFileQuery_SerializeList */
+ESX_VI__TEMPLATE__LIST__SERIALIZE(VmConfigFileQuery)
+
+/* esxVI_VmConfigFileQuery_Deserialize */
+ESX_VI__TEMPLATE__DYNAMIC_DESERIALIZE(VmConfigFileQuery,
+{
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(TemplateConfigFileQuery)
+},
+{
+    /* FileQuery */
+    /* no properties */
+
+    /* VmConfigFileQuery */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(VmConfigFileQueryFilter, filter)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(VmConfigFileQueryFlags, details)
+})
+
+/* esxVI_VmConfigFileQuery_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(VmConfigFileQuery)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmConfigFileQueryFilter
+ */
+
+/* esxVI_VmConfigFileQueryFilter_Alloc */
+ESX_VI__TEMPLATE__ALLOC(VmConfigFileQueryFilter)
+
+/* esxVI_VmConfigFileQueryFilter_Free */
+ESX_VI__TEMPLATE__FREE(VmConfigFileQueryFilter,
+{
+    esxVI_Int_Free(&item->matchConfigVersion);
+})
+
+/* esxVI_VmConfigFileQueryFilter_Validate */
+ESX_VI__TEMPLATE__VALIDATE(VmConfigFileQueryFilter,
+{
+    /* no required properties */
+})
+
+/* esxVI_VmConfigFileQueryFilter_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(VmConfigFileQueryFilter,
+{
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_LIST(Int, matchConfigVersion)
+})
+
+/* esxVI_VmConfigFileQueryFilter_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(VmConfigFileQueryFilter,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_LIST(Int, matchConfigVersion)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmConfigFileQueryFlags
+ */
+
+/* esxVI_VmConfigFileQueryFlags_Alloc */
+ESX_VI__TEMPLATE__ALLOC(VmConfigFileQueryFlags)
+
+/* esxVI_VmConfigFileQueryFlags_Free */
+ESX_VI__TEMPLATE__FREE(VmConfigFileQueryFlags,
+{
+    /* no properties to be freed */
+})
+
+/* esxVI_VmConfigFileQueryFlags_Validate */
+ESX_VI__TEMPLATE__VALIDATE(VmConfigFileQueryFlags,
+{
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(configVersion)
+})
+
+/* esxVI_VmConfigFileQueryFlags_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(VmConfigFileQueryFlags,
+{
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, configVersion)
+})
+
+/* esxVI_VmConfigFileQueryFlags_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(VmConfigFileQueryFlags,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, configVersion)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmDiskFileInfo
+ *          extends FileInfo
+ */
+
+/* esxVI_VmDiskFileInfo_Alloc */
+ESX_VI__TEMPLATE__ALLOC(VmDiskFileInfo)
+
+/* esxVI_VmDiskFileInfo_Free */
+ESX_VI__TEMPLATE__FREE(VmDiskFileInfo,
+{
+    esxVI_FileInfo_Free((esxVI_FileInfo **)&item->_next);
+
+    /* FileInfo */
+    VIR_FREE(item->path);
+    esxVI_Long_Free(&item->fileSize);
+    esxVI_DateTime_Free(&item->modification);
+
+    /* VmDiskFileInfo */
+    VIR_FREE(item->diskType);
+    esxVI_Long_Free(&item->capacityKb);
+    esxVI_Int_Free(&item->hardwareVersion);
+    VIR_FREE(item->controllerType);
+    esxVI_String_Free(&item->diskExtents);
+})
+
+/* esxVI_VmDiskFileInfo_Validate */
+ESX_VI__TEMPLATE__VALIDATE(VmDiskFileInfo,
+{
+    /* FileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(path)
+
+    /* VmDiskFileInfo */
+    /* no required properties */
+})
+
+/* esxVI_VmDiskFileInfo_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(VmDiskFileInfo,
+{
+})
+
+/* esxVI_VmDiskFileInfo_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(VmDiskFileInfo)
+
+/* esxVI_VmDiskFileInfo_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(VmDiskFileInfo,
+{
+    /* FileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, path)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Long, fileSize)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(DateTime, modification)
+
+    /* VmDiskFileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, diskType)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Long, capacityKb)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Int, hardwareVersion)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, controllerType)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_LIST(String, diskExtents)
+})
+
+/* esxVI_VmDiskFileInfo_SerializeList */
+ESX_VI__TEMPLATE__LIST__SERIALIZE(VmDiskFileInfo)
+
+/* esxVI_VmDiskFileInfo_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(VmDiskFileInfo,
+{
+    /* FileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, path)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, fileSize)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(DateTime, modification)
+
+    /* VmDiskFileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, diskType)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, capacityKb)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Int, hardwareVersion)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, controllerType)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_LIST(String, diskExtents)
+})
+
+/* esxVI_VmDiskFileInfo_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(VmDiskFileInfo)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmDiskFileQuery
+ *          extends FileQuery
+ */
+
+/* esxVI_VmDiskFileQuery_Alloc */
+ESX_VI__TEMPLATE__ALLOC(VmDiskFileQuery)
+
+/* esxVI_VmDiskFileQuery_Free */
+ESX_VI__TEMPLATE__FREE(VmDiskFileQuery,
+{
+    esxVI_FileQuery_Free((esxVI_FileQuery **)&item->_next);
+
+    /* FileQuery */
+    /* no properties */
+
+    /* VmDiskFileQuery */
+    esxVI_VmDiskFileQueryFilter_Free(&item->filter);
+    esxVI_VmDiskFileQueryFlags_Free(&item->details);
+})
+
+/* esxVI_VmDiskFileQuery_Validate */
+ESX_VI__TEMPLATE__VALIDATE(VmDiskFileQuery,
+{
+    /* FileQuery */
+    /* no properties */
+
+    /* VmDiskFileQuery */
+    /* no required properties */
+})
+
+/* esxVI_VmDiskFileQuery_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(VmDiskFileQuery,
+{
+})
+
+/* esxVI_VmDiskFileQuery_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(VmDiskFileQuery)
+
+/* esxVI_VmDiskFileQuery_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(VmDiskFileQuery,
+{
+    /* FileQuery */
+    /* no properties */
+
+    /* VmDiskFileQuery */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(VmDiskFileQueryFilter, filter)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(VmDiskFileQueryFlags, details)
+})
+
+/* esxVI_VmDiskFileQuery_SerializeList */
+ESX_VI__TEMPLATE__LIST__SERIALIZE(VmDiskFileQuery)
+
+/* esxVI_VmDiskFileQuery_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(VmDiskFileQuery,
+{
+    /* FileQuery */
+    /* no properties */
+
+    /* VmDiskFileQuery */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(VmDiskFileQueryFilter, filter)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(VmDiskFileQueryFlags, details)
+})
+
+/* esxVI_VmDiskFileQuery_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(VmDiskFileQuery)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmDiskFileQueryFilter
+ */
+
+/* esxVI_VmDiskFileQueryFilter_Alloc */
+ESX_VI__TEMPLATE__ALLOC(VmDiskFileQueryFilter)
+
+/* esxVI_VmDiskFileQueryFilter_Free */
+ESX_VI__TEMPLATE__FREE(VmDiskFileQueryFilter,
+{
+    esxVI_String_Free(&item->diskType);
+    esxVI_Int_Free(&item->matchHardwareVersion);
+    esxVI_String_Free(&item->controllerType);
+})
+
+/* esxVI_VmDiskFileQueryFilter_Validate */
+ESX_VI__TEMPLATE__VALIDATE(VmDiskFileQueryFilter,
+{
+    /* no required properties */
+})
+
+/* esxVI_VmDiskFileQueryFilter_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(VmDiskFileQueryFilter,
+{
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_LIST(String, diskType)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_LIST(Int, matchHardwareVersion)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_LIST(String, controllerType)
+})
+
+/* esxVI_VmDiskFileQueryFilter_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(VmDiskFileQueryFilter,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_LIST(String, diskType)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_LIST(Int, matchHardwareVersion)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_LIST(String, controllerType)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmDiskFileQueryFlags
+ */
+
+/* esxVI_VmDiskFileQueryFlags_Alloc */
+ESX_VI__TEMPLATE__ALLOC(VmDiskFileQueryFlags)
+
+/* esxVI_VmDiskFileQueryFlags_Free */
+ESX_VI__TEMPLATE__FREE(VmDiskFileQueryFlags,
+{
+    /* no properties to be freed */
+})
+
+/* esxVI_VmDiskFileQueryFlags_Validate */
+ESX_VI__TEMPLATE__VALIDATE(VmDiskFileQueryFlags,
+{
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(diskType)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(capacityKb)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(hardwareVersion)
+})
+
+/* esxVI_VmDiskFileQueryFlags_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(VmDiskFileQueryFlags,
+{
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, diskType)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, capacityKb)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, hardwareVersion)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, controllerType)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, diskExtents)
+})
+
+/* esxVI_VmDiskFileQueryFlags_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(VmDiskFileQueryFlags,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, diskType)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, capacityKb)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, hardwareVersion)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, controllerType)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, diskExtents)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmLogFileInfo
+ *          extends FileInfo
+ */
+
+/* esxVI_VmLogFileInfo_Alloc */
+ESX_VI__TEMPLATE__ALLOC(VmLogFileInfo)
+
+/* esxVI_VmLogFileInfo_Free */
+ESX_VI__TEMPLATE__FREE(VmLogFileInfo,
+{
+    esxVI_FileInfo_Free((esxVI_FileInfo **)&item->_next);
+
+    /* FileInfo */
+    VIR_FREE(item->path);
+    esxVI_Long_Free(&item->fileSize);
+    esxVI_DateTime_Free(&item->modification);
+
+    /* VmLogFileInfo */
+    /* no properties */
+})
+
+/* esxVI_VmLogFileInfo_Validate */
+ESX_VI__TEMPLATE__VALIDATE(VmLogFileInfo,
+{
+    /* FileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(path)
+
+    /* VmLogFileInfo */
+    /* no properties */
+})
+
+/* esxVI_VmLogFileInfo_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(VmLogFileInfo,
+{
+})
+
+/* esxVI_VmLogFileInfo_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(VmLogFileInfo)
+
+/* esxVI_VmLogFileInfo_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(VmLogFileInfo,
+{
+    /* FileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, path)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Long, fileSize)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(DateTime, modification)
+
+    /* VmLogFileInfo */
+    /* no properties */
+})
+
+/* esxVI_VmLogFileInfo_SerializeList */
+ESX_VI__TEMPLATE__LIST__SERIALIZE(VmLogFileInfo)
+
+/* esxVI_VmLogFileInfo_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(VmLogFileInfo,
+{
+    /* FileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, path)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, fileSize)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(DateTime, modification)
+
+    /* VmLogFileInfo */
+    /* no properties */
+})
+
+/* esxVI_VmLogFileInfo_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(VmLogFileInfo)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmLogFileQuery
+ *          extends FileQuery
+ */
+
+/* esxVI_VmLogFileQuery_Alloc */
+ESX_VI__TEMPLATE__ALLOC(VmLogFileQuery)
+
+/* esxVI_VmLogFileQuery_Free */
+ESX_VI__TEMPLATE__FREE(VmLogFileQuery,
+{
+    esxVI_FileQuery_Free((esxVI_FileQuery **)&item->_next);
+
+    /* FileQuery */
+    /* no properties */
+
+    /* VmLogFileQuery */
+    /* no properties */
+})
+
+/* esxVI_VmLogFileQuery_Validate */
+ESX_VI__TEMPLATE__VALIDATE(VmLogFileQuery,
+{
+    /* FileQuery */
+    /* no properties */
+
+    /* VmLogFileQuery */
+    /* no properties */
+})
+
+/* esxVI_VmLogFileQuery_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(VmLogFileQuery,
+{
+})
+
+/* esxVI_VmLogFileQuery_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(VmLogFileQuery)
+
+/* esxVI_VmLogFileQuery_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(VmLogFileQuery,
+{
+    /* FileQuery */
+    /* no properties */
+
+    /* VmLogFileQuery */
+    /* no properties */
+})
+
+/* esxVI_VmLogFileQuery_SerializeList */
+ESX_VI__TEMPLATE__LIST__SERIALIZE(VmLogFileQuery)
+
+/* esxVI_VmLogFileQuery_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(VmLogFileQuery,
+{
+    /* FileQuery */
+    /* no properties */
+
+    /* VmLogFileQuery */
+    /* no properties */
+})
+
+/* esxVI_VmLogFileQuery_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(VmLogFileQuery)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmNvramFileInfo
+ *          extends FileInfo
+ */
+
+/* esxVI_VmNvramFileInfo_Alloc */
+ESX_VI__TEMPLATE__ALLOC(VmNvramFileInfo)
+
+/* esxVI_VmNvramFileInfo_Free */
+ESX_VI__TEMPLATE__FREE(VmNvramFileInfo,
+{
+    esxVI_FileInfo_Free((esxVI_FileInfo **)&item->_next);
+
+    /* FileInfo */
+    VIR_FREE(item->path);
+    esxVI_Long_Free(&item->fileSize);
+    esxVI_DateTime_Free(&item->modification);
+
+    /* VmNvramFileInfo */
+    /* no properties */
+})
+
+/* esxVI_VmNvramFileInfo_Validate */
+ESX_VI__TEMPLATE__VALIDATE(VmNvramFileInfo,
+{
+    /* FileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(path)
+
+    /* VmNvramFileInfo */
+    /* no properties */
+})
+
+/* esxVI_VmNvramFileInfo_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(VmNvramFileInfo,
+{
+})
+
+/* esxVI_VmNvramFileInfo_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(VmNvramFileInfo)
+
+/* esxVI_VmNvramFileInfo_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(VmNvramFileInfo,
+{
+    /* FileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, path)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Long, fileSize)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(DateTime, modification)
+
+    /* VmNvramFileInfo */
+    /* no properties */
+})
+
+/* esxVI_VmNvramFileInfo_SerializeList */
+ESX_VI__TEMPLATE__LIST__SERIALIZE(VmNvramFileInfo)
+
+/* esxVI_VmNvramFileInfo_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(VmNvramFileInfo,
+{
+    /* FileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, path)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, fileSize)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(DateTime, modification)
+
+    /* VmNvramFileInfo */
+    /* no properties */
+})
+
+/* esxVI_VmNvramFileInfo_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(VmNvramFileInfo)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmNvramFileQuery
+ *          extends FileQuery
+ */
+
+/* esxVI_VmNvramFileQuery_Alloc */
+ESX_VI__TEMPLATE__ALLOC(VmNvramFileQuery)
+
+/* esxVI_VmNvramFileQuery_Free */
+ESX_VI__TEMPLATE__FREE(VmNvramFileQuery,
+{
+    esxVI_FileQuery_Free((esxVI_FileQuery **)&item->_next);
+
+    /* FileQuery */
+    /* no properties */
+
+    /* VmNvramFileQuery */
+    /* no properties */
+})
+
+/* esxVI_VmNvramFileQuery_Validate */
+ESX_VI__TEMPLATE__VALIDATE(VmNvramFileQuery,
+{
+    /* FileQuery */
+    /* no properties */
+
+    /* VmNvramFileQuery */
+    /* no properties */
+})
+
+/* esxVI_VmNvramFileQuery_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(VmNvramFileQuery,
+{
+})
+
+/* esxVI_VmNvramFileQuery_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(VmNvramFileQuery)
+
+/* esxVI_VmNvramFileQuery_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(VmNvramFileQuery,
+{
+    /* FileQuery */
+    /* no properties */
+
+    /* VmNvramFileQuery */
+    /* no properties */
+})
+
+/* esxVI_VmNvramFileQuery_SerializeList */
+ESX_VI__TEMPLATE__LIST__SERIALIZE(VmNvramFileQuery)
+
+/* esxVI_VmNvramFileQuery_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(VmNvramFileQuery,
+{
+    /* FileQuery */
+    /* no properties */
+
+    /* VmNvramFileQuery */
+    /* no properties */
+})
+
+/* esxVI_VmNvramFileQuery_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(VmNvramFileQuery)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmSnapshotFileInfo
+ *          extends FileInfo
+ */
+
+/* esxVI_VmSnapshotFileInfo_Alloc */
+ESX_VI__TEMPLATE__ALLOC(VmSnapshotFileInfo)
+
+/* esxVI_VmSnapshotFileInfo_Free */
+ESX_VI__TEMPLATE__FREE(VmSnapshotFileInfo,
+{
+    esxVI_FileInfo_Free((esxVI_FileInfo **)&item->_next);
+
+    /* FileInfo */
+    VIR_FREE(item->path);
+    esxVI_Long_Free(&item->fileSize);
+    esxVI_DateTime_Free(&item->modification);
+
+    /* VmSnapshotFileInfo */
+    /* no properties */
+})
+
+/* esxVI_VmSnapshotFileInfo_Validate */
+ESX_VI__TEMPLATE__VALIDATE(VmSnapshotFileInfo,
+{
+    /* FileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(path)
+
+    /* VmSnapshotFileInfo */
+    /* no properties */
+})
+
+/* esxVI_VmSnapshotFileInfo_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(VmSnapshotFileInfo,
+{
+})
+
+/* esxVI_VmSnapshotFileInfo_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(VmSnapshotFileInfo)
+
+/* esxVI_VmSnapshotFileInfo_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(VmSnapshotFileInfo,
+{
+    /* FileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, path)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Long, fileSize)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(DateTime, modification)
+
+    /* VmSnapshotFileInfo */
+    /* no properties */
+})
+
+/* esxVI_VmSnapshotFileInfo_SerializeList */
+ESX_VI__TEMPLATE__LIST__SERIALIZE(VmSnapshotFileInfo)
+
+/* esxVI_VmSnapshotFileInfo_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(VmSnapshotFileInfo,
+{
+    /* FileInfo */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, path)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, fileSize)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(DateTime, modification)
+
+    /* VmSnapshotFileInfo */
+    /* no properties */
+})
+
+/* esxVI_VmSnapshotFileInfo_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(VmSnapshotFileInfo)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmSnapshotFileQuery
+ *          extends FileQuery
+ */
+
+/* esxVI_VmSnapshotFileQuery_Alloc */
+ESX_VI__TEMPLATE__ALLOC(VmSnapshotFileQuery)
+
+/* esxVI_VmSnapshotFileQuery_Free */
+ESX_VI__TEMPLATE__FREE(VmSnapshotFileQuery,
+{
+    esxVI_FileQuery_Free((esxVI_FileQuery **)&item->_next);
+
+    /* FileQuery */
+    /* no properties */
+
+    /* VmSnapshotFileQuery */
+    /* no properties */
+})
+
+/* esxVI_VmSnapshotFileQuery_Validate */
+ESX_VI__TEMPLATE__VALIDATE(VmSnapshotFileQuery,
+{
+    /* FileQuery */
+    /* no properties */
+
+    /* VmSnapshotFileQuery */
+    /* no properties */
+})
+
+/* esxVI_VmSnapshotFileQuery_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(VmSnapshotFileQuery,
+{
+})
+
+/* esxVI_VmSnapshotFileQuery_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(VmSnapshotFileQuery)
+
+/* esxVI_VmSnapshotFileQuery_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(VmSnapshotFileQuery,
+{
+    /* FileQuery */
+    /* no properties */
+
+    /* VmSnapshotFileQuery */
+    /* no properties */
+})
+
+/* esxVI_VmSnapshotFileQuery_SerializeList */
+ESX_VI__TEMPLATE__LIST__SERIALIZE(VmSnapshotFileQuery)
+
+/* esxVI_VmSnapshotFileQuery_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(VmSnapshotFileQuery,
+{
+    /* FileQuery */
+    /* no properties */
+
+    /* VmSnapshotFileQuery */
+    /* no properties */
+})
+
+/* esxVI_VmSnapshotFileQuery_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(VmSnapshotFileQuery)
 
 
 

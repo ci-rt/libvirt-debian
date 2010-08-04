@@ -156,7 +156,8 @@ SELinuxInitialize(void)
 }
 
 static int
-SELinuxGenSecurityLabel(virDomainObjPtr vm)
+SELinuxGenSecurityLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+                        virDomainObjPtr vm)
 {
     int rc = -1;
     char mcs[1024];
@@ -220,7 +221,8 @@ done:
 }
 
 static int
-SELinuxReserveSecurityLabel(virDomainObjPtr vm)
+SELinuxReserveSecurityLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+                            virDomainObjPtr vm)
 {
     security_context_t pctx;
     context_t ctx = NULL;
@@ -264,18 +266,21 @@ SELinuxSecurityDriverProbe(void)
 }
 
 static int
-SELinuxSecurityDriverOpen(virSecurityDriverPtr drv)
+SELinuxSecurityDriverOpen(virSecurityDriverPtr drv,
+                          bool allowDiskFormatProbing)
 {
     /*
      * Where will the DOI come from?  SELinux configuration, or qemu
      * configuration? For the moment, we'll just set it to "0".
      */
     virSecurityDriverSetDOI(drv, SECURITY_SELINUX_VOID_DOI);
+    virSecurityDriverSetAllowDiskFormatProbing(drv, allowDiskFormatProbing);
     return SELinuxInitialize();
 }
 
 static int
-SELinuxGetSecurityProcessLabel(virDomainObjPtr vm,
+SELinuxGetSecurityProcessLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+                               virDomainObjPtr vm,
                                virSecurityLabelPtr sec)
 {
     security_context_t ctx;
@@ -387,7 +392,8 @@ err:
 }
 
 static int
-SELinuxRestoreSecurityImageLabelInt(virDomainObjPtr vm,
+SELinuxRestoreSecurityImageLabelInt(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+                                    virDomainObjPtr vm,
                                     virDomainDiskDefPtr disk,
                                     int migrated)
 {
@@ -431,60 +437,54 @@ SELinuxRestoreSecurityImageLabelInt(virDomainObjPtr vm,
 
 
 static int
-SELinuxRestoreSecurityImageLabel(virDomainObjPtr vm,
+SELinuxRestoreSecurityImageLabel(virSecurityDriverPtr drv,
+                                 virDomainObjPtr vm,
                                  virDomainDiskDefPtr disk)
 {
-    return SELinuxRestoreSecurityImageLabelInt(vm, disk, 0);
+    return SELinuxRestoreSecurityImageLabelInt(drv, vm, disk, 0);
 }
 
 
 static int
-SELinuxSetSecurityImageLabel(virDomainObjPtr vm,
+SELinuxSetSecurityFileLabel(virDomainDiskDefPtr disk,
+                            const char *path,
+                            size_t depth,
+                            void *opaque)
+{
+    const virSecurityLabelDefPtr secdef = opaque;
+
+    if (depth == 0) {
+        if (disk->shared) {
+            return SELinuxSetFilecon(path, default_image_context);
+        } else if (disk->readonly) {
+            return SELinuxSetFilecon(path, default_content_context);
+        } else if (secdef->imagelabel) {
+            return SELinuxSetFilecon(path, secdef->imagelabel);
+        } else {
+            return 0;
+        }
+    } else {
+        return SELinuxSetFilecon(path, default_content_context);
+    }
+}
+
+static int
+SELinuxSetSecurityImageLabel(virSecurityDriverPtr drv,
+                             virDomainObjPtr vm,
                              virDomainDiskDefPtr disk)
 
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
-    const char *path;
+    bool allowDiskFormatProbing = virSecurityDriverGetAllowDiskFormatProbing(drv);
 
     if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
         return 0;
 
-    if (!disk->src)
-        return 0;
-
-    path = disk->src;
-    do {
-        virStorageFileMetadata meta;
-        int ret;
-
-        ret = virStorageFileGetMetadata(path, &meta);
-
-        if (path != disk->src)
-            VIR_FREE(path);
-        path = NULL;
-
-        if (ret < 0)
-           break;
-
-        if (meta.backingStore != NULL &&
-            SELinuxSetFilecon(meta.backingStore,
-                              default_content_context) < 0) {
-            VIR_FREE(meta.backingStore);
-            return -1;
-        }
-
-        path = meta.backingStore;
-    } while (path != NULL);
-
-    if (disk->shared) {
-        return SELinuxSetFilecon(disk->src, default_image_context);
-    } else if (disk->readonly) {
-        return SELinuxSetFilecon(disk->src, default_content_context);
-    } else if (secdef->imagelabel) {
-        return SELinuxSetFilecon(disk->src, secdef->imagelabel);
-    }
-
-    return 0;
+    return virDomainDiskDefForeachPath(disk,
+                                       allowDiskFormatProbing,
+                                       false,
+                                       SELinuxSetSecurityFileLabel,
+                                       secdef);
 }
 
 
@@ -509,7 +509,8 @@ SELinuxSetSecurityUSBLabel(usbDevice *dev ATTRIBUTE_UNUSED,
 }
 
 static int
-SELinuxSetSecurityHostdevLabel(virDomainObjPtr vm,
+SELinuxSetSecurityHostdevLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+                               virDomainObjPtr vm,
                                virDomainHostdevDefPtr dev)
 
 {
@@ -577,7 +578,8 @@ SELinuxRestoreSecurityUSBLabel(usbDevice *dev ATTRIBUTE_UNUSED,
 }
 
 static int
-SELinuxRestoreSecurityHostdevLabel(virDomainObjPtr vm,
+SELinuxRestoreSecurityHostdevLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+                                   virDomainObjPtr vm,
                                    virDomainHostdevDefPtr dev)
 
 {
@@ -724,7 +726,8 @@ SELinuxRestoreSecurityChardevCallback(virDomainDefPtr def ATTRIBUTE_UNUSED,
 
 
 static int
-SELinuxRestoreSecurityAllLabel(virDomainObjPtr vm,
+SELinuxRestoreSecurityAllLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+                               virDomainObjPtr vm,
                                int migrated ATTRIBUTE_UNUSED)
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
@@ -737,11 +740,14 @@ SELinuxRestoreSecurityAllLabel(virDomainObjPtr vm,
         return 0;
 
     for (i = 0 ; i < vm->def->nhostdevs ; i++) {
-        if (SELinuxRestoreSecurityHostdevLabel(vm, vm->def->hostdevs[i]) < 0)
+        if (SELinuxRestoreSecurityHostdevLabel(drv,
+                                               vm,
+                                               vm->def->hostdevs[i]) < 0)
             rc = -1;
     }
     for (i = 0 ; i < vm->def->ndisks ; i++) {
-        if (SELinuxRestoreSecurityImageLabelInt(vm,
+        if (SELinuxRestoreSecurityImageLabelInt(drv,
+                                                vm,
                                                 vm->def->disks[i],
                                                 migrated) < 0)
             rc = -1;
@@ -765,7 +771,8 @@ SELinuxRestoreSecurityAllLabel(virDomainObjPtr vm,
 }
 
 static int
-SELinuxReleaseSecurityLabel(virDomainObjPtr vm)
+SELinuxReleaseSecurityLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+                            virDomainObjPtr vm)
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
 
@@ -788,7 +795,8 @@ SELinuxReleaseSecurityLabel(virDomainObjPtr vm)
 
 
 static int
-SELinuxSetSavedStateLabel(virDomainObjPtr vm,
+SELinuxSetSavedStateLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+                          virDomainObjPtr vm,
                           const char *savefile)
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
@@ -801,7 +809,8 @@ SELinuxSetSavedStateLabel(virDomainObjPtr vm,
 
 
 static int
-SELinuxRestoreSavedStateLabel(virDomainObjPtr vm,
+SELinuxRestoreSavedStateLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+                              virDomainObjPtr vm,
                               const char *savefile)
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
@@ -972,7 +981,9 @@ SELinuxSetSecurityChardevCallback(virDomainDefPtr def ATTRIBUTE_UNUSED,
 
 
 static int
-SELinuxSetSecurityAllLabel(virDomainObjPtr vm, const char *stdin_path)
+SELinuxSetSecurityAllLabel(virSecurityDriverPtr drv,
+                           virDomainObjPtr vm,
+                           const char *stdin_path)
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
     int i;
@@ -987,11 +998,14 @@ SELinuxSetSecurityAllLabel(virDomainObjPtr vm, const char *stdin_path)
                      vm->def->disks[i]->src, vm->def->disks[i]->dst);
             continue;
         }
-        if (SELinuxSetSecurityImageLabel(vm, vm->def->disks[i]) < 0)
+        if (SELinuxSetSecurityImageLabel(drv,
+                                         vm, vm->def->disks[i]) < 0)
             return -1;
     }
     for (i = 0 ; i < vm->def->nhostdevs ; i++) {
-        if (SELinuxSetSecurityHostdevLabel(vm, vm->def->hostdevs[i]) < 0)
+        if (SELinuxSetSecurityHostdevLabel(drv,
+                                           vm,
+                                           vm->def->hostdevs[i]) < 0)
             return -1;
     }
 

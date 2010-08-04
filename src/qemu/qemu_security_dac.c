@@ -98,48 +98,35 @@ err:
 
 
 static int
-qemuSecurityDACSetSecurityImageLabel(virDomainObjPtr vm ATTRIBUTE_UNUSED,
-                                     virDomainDiskDefPtr disk)
-
+qemuSecurityDACSetSecurityFileLabel(virDomainDiskDefPtr disk ATTRIBUTE_UNUSED,
+                                    const char *path,
+                                    size_t depth ATTRIBUTE_UNUSED,
+                                    void *opaque ATTRIBUTE_UNUSED)
 {
-    const char *path;
-
-    if (!driver->privileged || !driver->dynamicOwnership)
-        return 0;
-
-    if (!disk->src)
-        return 0;
-
-    path = disk->src;
-    do {
-        virStorageFileMetadata meta;
-        int ret;
-
-        ret = virStorageFileGetMetadata(path, &meta);
-
-        if (path != disk->src)
-            VIR_FREE(path);
-        path = NULL;
-
-        if (ret < 0)
-            return -1;
-
-        if (meta.backingStore != NULL &&
-            qemuSecurityDACSetOwnership(meta.backingStore,
-                                        driver->user, driver->group) < 0) {
-            VIR_FREE(meta.backingStore);
-            return -1;
-        }
-
-        path = meta.backingStore;
-    } while (path != NULL);
-
-    return qemuSecurityDACSetOwnership(disk->src, driver->user, driver->group);
+    return qemuSecurityDACSetOwnership(path, driver->user, driver->group);
 }
 
 
 static int
-qemuSecurityDACRestoreSecurityImageLabelInt(virDomainObjPtr vm ATTRIBUTE_UNUSED,
+qemuSecurityDACSetSecurityImageLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+                                     virDomainObjPtr vm ATTRIBUTE_UNUSED,
+                                     virDomainDiskDefPtr disk)
+
+{
+    if (!driver->privileged || !driver->dynamicOwnership)
+        return 0;
+
+    return virDomainDiskDefForeachPath(disk,
+                                       driver->allowDiskFormatProbing,
+                                       false,
+                                       qemuSecurityDACSetSecurityFileLabel,
+                                       NULL);
+}
+
+
+static int
+qemuSecurityDACRestoreSecurityImageLabelInt(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+                                            virDomainObjPtr vm ATTRIBUTE_UNUSED,
                                             virDomainDiskDefPtr disk,
                                             int migrated)
 {
@@ -181,10 +168,11 @@ qemuSecurityDACRestoreSecurityImageLabelInt(virDomainObjPtr vm ATTRIBUTE_UNUSED,
 
 
 static int
-qemuSecurityDACRestoreSecurityImageLabel(virDomainObjPtr vm,
+qemuSecurityDACRestoreSecurityImageLabel(virSecurityDriverPtr drv,
+                                         virDomainObjPtr vm,
                                          virDomainDiskDefPtr disk)
 {
-    return qemuSecurityDACRestoreSecurityImageLabelInt(vm, disk, 0);
+    return qemuSecurityDACRestoreSecurityImageLabelInt(drv, vm, disk, 0);
 }
 
 
@@ -207,7 +195,8 @@ qemuSecurityDACSetSecurityUSBLabel(usbDevice *dev ATTRIBUTE_UNUSED,
 
 
 static int
-qemuSecurityDACSetSecurityHostdevLabel(virDomainObjPtr vm,
+qemuSecurityDACSetSecurityHostdevLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+                                       virDomainObjPtr vm,
                                        virDomainHostdevDefPtr dev)
 
 {
@@ -276,7 +265,8 @@ qemuSecurityDACRestoreSecurityUSBLabel(usbDevice *dev ATTRIBUTE_UNUSED,
 
 
 static int
-qemuSecurityDACRestoreSecurityHostdevLabel(virDomainObjPtr vm ATTRIBUTE_UNUSED,
+qemuSecurityDACRestoreSecurityHostdevLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+                                           virDomainObjPtr vm ATTRIBUTE_UNUSED,
                                            virDomainHostdevDefPtr dev)
 
 {
@@ -422,7 +412,8 @@ qemuSecurityDACRestoreChardevCallback(virDomainDefPtr def ATTRIBUTE_UNUSED,
 
 
 static int
-qemuSecurityDACRestoreSecurityAllLabel(virDomainObjPtr vm,
+qemuSecurityDACRestoreSecurityAllLabel(virSecurityDriverPtr drv,
+                                       virDomainObjPtr vm,
                                        int migrated)
 {
     int i;
@@ -435,12 +426,14 @@ qemuSecurityDACRestoreSecurityAllLabel(virDomainObjPtr vm,
               vm->def->name, migrated);
 
     for (i = 0 ; i < vm->def->nhostdevs ; i++) {
-        if (qemuSecurityDACRestoreSecurityHostdevLabel(vm,
+        if (qemuSecurityDACRestoreSecurityHostdevLabel(drv,
+                                                       vm,
                                                        vm->def->hostdevs[i]) < 0)
             rc = -1;
     }
     for (i = 0 ; i < vm->def->ndisks ; i++) {
-        if (qemuSecurityDACRestoreSecurityImageLabelInt(vm,
+        if (qemuSecurityDACRestoreSecurityImageLabelInt(drv,
+                                                        vm,
                                                         vm->def->disks[i],
                                                         migrated) < 0)
             rc = -1;
@@ -476,7 +469,9 @@ qemuSecurityDACSetChardevCallback(virDomainDefPtr def ATTRIBUTE_UNUSED,
 
 
 static int
-qemuSecurityDACSetSecurityAllLabel(virDomainObjPtr vm, const char *stdin_path ATTRIBUTE_UNUSED)
+qemuSecurityDACSetSecurityAllLabel(virSecurityDriverPtr drv,
+                                   virDomainObjPtr vm,
+                                   const char *stdin_path ATTRIBUTE_UNUSED)
 {
     int i;
 
@@ -487,11 +482,15 @@ qemuSecurityDACSetSecurityAllLabel(virDomainObjPtr vm, const char *stdin_path AT
         /* XXX fixme - we need to recursively label the entriy tree :-( */
         if (vm->def->disks[i]->type == VIR_DOMAIN_DISK_TYPE_DIR)
             continue;
-        if (qemuSecurityDACSetSecurityImageLabel(vm, vm->def->disks[i]) < 0)
+        if (qemuSecurityDACSetSecurityImageLabel(drv,
+                                                 vm,
+                                                 vm->def->disks[i]) < 0)
             return -1;
     }
     for (i = 0 ; i < vm->def->nhostdevs ; i++) {
-        if (qemuSecurityDACSetSecurityHostdevLabel(vm, vm->def->hostdevs[i]) < 0)
+        if (qemuSecurityDACSetSecurityHostdevLabel(drv,
+                                                   vm,
+                                                   vm->def->hostdevs[i]) < 0)
             return -1;
     }
 
@@ -518,7 +517,8 @@ qemuSecurityDACSetSecurityAllLabel(virDomainObjPtr vm, const char *stdin_path AT
 
 
 static int
-qemuSecurityDACSetSavedStateLabel(virDomainObjPtr vm ATTRIBUTE_UNUSED,
+qemuSecurityDACSetSavedStateLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+                                  virDomainObjPtr vm ATTRIBUTE_UNUSED,
                                   const char *savefile)
 {
     if (!driver->privileged)
@@ -529,7 +529,8 @@ qemuSecurityDACSetSavedStateLabel(virDomainObjPtr vm ATTRIBUTE_UNUSED,
 
 
 static int
-qemuSecurityDACRestoreSavedStateLabel(virDomainObjPtr vm ATTRIBUTE_UNUSED,
+qemuSecurityDACRestoreSavedStateLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+                                      virDomainObjPtr vm ATTRIBUTE_UNUSED,
                                       const char *savefile)
 {
     if (!driver->privileged)

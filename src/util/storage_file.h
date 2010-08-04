@@ -28,6 +28,7 @@
 # include <stdbool.h>
 
 enum virStorageFileFormat {
+    VIR_STORAGE_FILE_AUTO = -1,
     VIR_STORAGE_FILE_RAW = 0,
     VIR_STORAGE_FILE_DIR,
     VIR_STORAGE_FILE_BOCHS,
@@ -45,8 +46,8 @@ enum virStorageFileFormat {
 VIR_ENUM_DECL(virStorageFileFormat);
 
 typedef struct _virStorageFileMetadata {
-    int format;
     char *backingStore;
+    int backingStoreFormat;
     unsigned long long capacity;
     bool encrypted;
 } virStorageFileMetadata;
@@ -55,10 +56,16 @@ typedef struct _virStorageFileMetadata {
 #  define DEV_BSIZE 512
 # endif
 
+int virStorageFileProbeFormat(const char *path);
+int virStorageFileProbeFormatFromFD(const char *path,
+                                    int fd);
+
 int virStorageFileGetMetadata(const char *path,
+                              int format,
                               virStorageFileMetadata *meta);
 int virStorageFileGetMetadataFromFD(const char *path,
                                     int fd,
+                                    int format,
                                     virStorageFileMetadata *meta);
 
 int virStorageFileIsSharedFS(const char *path);

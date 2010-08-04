@@ -211,6 +211,33 @@ int esxVI_ChoiceOption_Deserialize(xmlNodePtr node, esxVI_ChoiceOption **item);
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: DatastoreHostMount
+ */
+
+struct _esxVI_DatastoreHostMount {
+    esxVI_DatastoreHostMount *_next;                       /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    esxVI_ManagedObjectReference *key;                     /* required */
+    esxVI_HostMountInfo *mountInfo;                        /* required */
+};
+
+int esxVI_DatastoreHostMount_Alloc(esxVI_DatastoreHostMount **item);
+void esxVI_DatastoreHostMount_Free(esxVI_DatastoreHostMount **item);
+int esxVI_DatastoreHostMount_Validate(esxVI_DatastoreHostMount *item);
+int esxVI_DatastoreHostMount_AppendToList(esxVI_DatastoreHostMount **list, esxVI_DatastoreHostMount *item);
+int esxVI_DatastoreHostMount_DeepCopy(esxVI_DatastoreHostMount **dst, esxVI_DatastoreHostMount *src);
+int esxVI_DatastoreHostMount_DeepCopyList(esxVI_DatastoreHostMount **dstList, esxVI_DatastoreHostMount *srcList);
+int esxVI_DatastoreHostMount_CastFromAnyType(esxVI_AnyType *anyType, esxVI_DatastoreHostMount **item);
+int esxVI_DatastoreHostMount_CastListFromAnyType(esxVI_AnyType *anyType, esxVI_DatastoreHostMount **list);
+int esxVI_DatastoreHostMount_Serialize(esxVI_DatastoreHostMount *item, const char *element, virBufferPtr output);
+int esxVI_DatastoreHostMount_SerializeList(esxVI_DatastoreHostMount *list, const char *element, virBufferPtr output);
+int esxVI_DatastoreHostMount_Deserialize(xmlNodePtr node, esxVI_DatastoreHostMount **item);
+int esxVI_DatastoreHostMount_DeserializeList(xmlNodePtr node, esxVI_DatastoreHostMount **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Type: DatastoreInfo
  *          extended by LocalDatastoreInfo
  *                      NasDatastoreInfo
@@ -343,6 +370,207 @@ int esxVI_Event_DeserializeList(xmlNodePtr node, esxVI_Event **list);
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: FileInfo
+ *          extended by FloppyImageFileInfo
+ *                      FolderFileInfo
+ *                      IsoImageFileInfo
+ *                      VmConfigFileInfo
+ *                      VmDiskFileInfo
+ *                      VmLogFileInfo
+ *                      VmNvramFileInfo
+ *                      VmSnapshotFileInfo
+ */
+
+struct _esxVI_FileInfo {
+    esxVI_FileInfo *_next;                                 /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    char *path;                                            /* required */
+    esxVI_Long *fileSize;                                  /* optional */
+    esxVI_DateTime *modification;                          /* optional */
+};
+
+int esxVI_FileInfo_Alloc(esxVI_FileInfo **item);
+void esxVI_FileInfo_Free(esxVI_FileInfo **item);
+int esxVI_FileInfo_Validate(esxVI_FileInfo *item);
+esxVI_FileInfo *esxVI_FileInfo_DynamicCast(void *item);
+int esxVI_FileInfo_AppendToList(esxVI_FileInfo **list, esxVI_FileInfo *item);
+int esxVI_FileInfo_Serialize(esxVI_FileInfo *item, const char *element, virBufferPtr output);
+int esxVI_FileInfo_SerializeList(esxVI_FileInfo *list, const char *element, virBufferPtr output);
+int esxVI_FileInfo_Deserialize(xmlNodePtr node, esxVI_FileInfo **item);
+int esxVI_FileInfo_DeserializeList(xmlNodePtr node, esxVI_FileInfo **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: FileQuery
+ *          extended by FloppyImageFileQuery
+ *                      FolderFileQuery
+ *                      IsoImageFileQuery
+ *                      VmConfigFileQuery
+ *                      VmDiskFileQuery
+ *                      VmLogFileQuery
+ *                      VmNvramFileQuery
+ *                      VmSnapshotFileQuery
+ */
+
+struct _esxVI_FileQuery {
+    esxVI_FileQuery *_next;                                /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* no properties */
+};
+
+int esxVI_FileQuery_Alloc(esxVI_FileQuery **item);
+void esxVI_FileQuery_Free(esxVI_FileQuery **item);
+int esxVI_FileQuery_Validate(esxVI_FileQuery *item);
+esxVI_FileQuery *esxVI_FileQuery_DynamicCast(void *item);
+int esxVI_FileQuery_AppendToList(esxVI_FileQuery **list, esxVI_FileQuery *item);
+int esxVI_FileQuery_Serialize(esxVI_FileQuery *item, const char *element, virBufferPtr output);
+int esxVI_FileQuery_SerializeList(esxVI_FileQuery *list, const char *element, virBufferPtr output);
+int esxVI_FileQuery_Deserialize(xmlNodePtr node, esxVI_FileQuery **item);
+int esxVI_FileQuery_DeserializeList(xmlNodePtr node, esxVI_FileQuery **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: FileQueryFlags
+ */
+
+struct _esxVI_FileQueryFlags {
+    esxVI_FileQueryFlags *_unused;                         /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    esxVI_Boolean fileType;                                /* required */
+    esxVI_Boolean fileSize;                                /* required */
+    esxVI_Boolean modification;                            /* required */
+};
+
+int esxVI_FileQueryFlags_Alloc(esxVI_FileQueryFlags **item);
+void esxVI_FileQueryFlags_Free(esxVI_FileQueryFlags **item);
+int esxVI_FileQueryFlags_Validate(esxVI_FileQueryFlags *item);
+int esxVI_FileQueryFlags_Serialize(esxVI_FileQueryFlags *item, const char *element, virBufferPtr output);
+int esxVI_FileQueryFlags_Deserialize(xmlNodePtr node, esxVI_FileQueryFlags **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: FloppyImageFileInfo
+ *          extends FileInfo
+ */
+
+struct _esxVI_FloppyImageFileInfo {
+    esxVI_FloppyImageFileInfo *_next;                      /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* FileInfo */
+    char *path;                                            /* required */
+    esxVI_Long *fileSize;                                  /* optional */
+    esxVI_DateTime *modification;                          /* optional */
+
+    /* FloppyImageFileInfo */
+    /* no properties */
+};
+
+int esxVI_FloppyImageFileInfo_Alloc(esxVI_FloppyImageFileInfo **item);
+void esxVI_FloppyImageFileInfo_Free(esxVI_FloppyImageFileInfo **item);
+int esxVI_FloppyImageFileInfo_Validate(esxVI_FloppyImageFileInfo *item);
+esxVI_FloppyImageFileInfo *esxVI_FloppyImageFileInfo_DynamicCast(void *item);
+int esxVI_FloppyImageFileInfo_AppendToList(esxVI_FloppyImageFileInfo **list, esxVI_FloppyImageFileInfo *item);
+int esxVI_FloppyImageFileInfo_Serialize(esxVI_FloppyImageFileInfo *item, const char *element, virBufferPtr output);
+int esxVI_FloppyImageFileInfo_SerializeList(esxVI_FloppyImageFileInfo *list, const char *element, virBufferPtr output);
+int esxVI_FloppyImageFileInfo_Deserialize(xmlNodePtr node, esxVI_FloppyImageFileInfo **item);
+int esxVI_FloppyImageFileInfo_DeserializeList(xmlNodePtr node, esxVI_FloppyImageFileInfo **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: FloppyImageFileQuery
+ *          extends FileQuery
+ */
+
+struct _esxVI_FloppyImageFileQuery {
+    esxVI_FloppyImageFileQuery *_next;                     /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* FileQuery */
+    /* no properties */
+
+    /* FloppyImageFileQuery */
+    /* no properties */
+};
+
+int esxVI_FloppyImageFileQuery_Alloc(esxVI_FloppyImageFileQuery **item);
+void esxVI_FloppyImageFileQuery_Free(esxVI_FloppyImageFileQuery **item);
+int esxVI_FloppyImageFileQuery_Validate(esxVI_FloppyImageFileQuery *item);
+esxVI_FloppyImageFileQuery *esxVI_FloppyImageFileQuery_DynamicCast(void *item);
+int esxVI_FloppyImageFileQuery_AppendToList(esxVI_FloppyImageFileQuery **list, esxVI_FloppyImageFileQuery *item);
+int esxVI_FloppyImageFileQuery_Serialize(esxVI_FloppyImageFileQuery *item, const char *element, virBufferPtr output);
+int esxVI_FloppyImageFileQuery_SerializeList(esxVI_FloppyImageFileQuery *list, const char *element, virBufferPtr output);
+int esxVI_FloppyImageFileQuery_Deserialize(xmlNodePtr node, esxVI_FloppyImageFileQuery **item);
+int esxVI_FloppyImageFileQuery_DeserializeList(xmlNodePtr node, esxVI_FloppyImageFileQuery **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: FolderFileInfo
+ *          extends FileInfo
+ */
+
+struct _esxVI_FolderFileInfo {
+    esxVI_FolderFileInfo *_next;                           /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* FileInfo */
+    char *path;                                            /* required */
+    esxVI_Long *fileSize;                                  /* optional */
+    esxVI_DateTime *modification;                          /* optional */
+
+    /* FolderFileInfo */
+    /* no properties */
+};
+
+int esxVI_FolderFileInfo_Alloc(esxVI_FolderFileInfo **item);
+void esxVI_FolderFileInfo_Free(esxVI_FolderFileInfo **item);
+int esxVI_FolderFileInfo_Validate(esxVI_FolderFileInfo *item);
+esxVI_FolderFileInfo *esxVI_FolderFileInfo_DynamicCast(void *item);
+int esxVI_FolderFileInfo_AppendToList(esxVI_FolderFileInfo **list, esxVI_FolderFileInfo *item);
+int esxVI_FolderFileInfo_Serialize(esxVI_FolderFileInfo *item, const char *element, virBufferPtr output);
+int esxVI_FolderFileInfo_SerializeList(esxVI_FolderFileInfo *list, const char *element, virBufferPtr output);
+int esxVI_FolderFileInfo_Deserialize(xmlNodePtr node, esxVI_FolderFileInfo **item);
+int esxVI_FolderFileInfo_DeserializeList(xmlNodePtr node, esxVI_FolderFileInfo **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: FolderFileQuery
+ *          extends FileQuery
+ */
+
+struct _esxVI_FolderFileQuery {
+    esxVI_FolderFileQuery *_next;                          /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* FileQuery */
+    /* no properties */
+
+    /* FolderFileQuery */
+    /* no properties */
+};
+
+int esxVI_FolderFileQuery_Alloc(esxVI_FolderFileQuery **item);
+void esxVI_FolderFileQuery_Free(esxVI_FolderFileQuery **item);
+int esxVI_FolderFileQuery_Validate(esxVI_FolderFileQuery *item);
+esxVI_FolderFileQuery *esxVI_FolderFileQuery_DynamicCast(void *item);
+int esxVI_FolderFileQuery_AppendToList(esxVI_FolderFileQuery **list, esxVI_FolderFileQuery *item);
+int esxVI_FolderFileQuery_Serialize(esxVI_FolderFileQuery *item, const char *element, virBufferPtr output);
+int esxVI_FolderFileQuery_SerializeList(esxVI_FolderFileQuery *list, const char *element, virBufferPtr output);
+int esxVI_FolderFileQuery_Deserialize(xmlNodePtr node, esxVI_FolderFileQuery **item);
+int esxVI_FolderFileQuery_DeserializeList(xmlNodePtr node, esxVI_FolderFileQuery **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Type: HostCpuIdInfo
  */
 
@@ -372,6 +600,55 @@ int esxVI_HostCpuIdInfo_DeserializeList(xmlNodePtr node, esxVI_HostCpuIdInfo **l
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: HostDatastoreBrowserSearchResults
+ */
+
+struct _esxVI_HostDatastoreBrowserSearchResults {
+    esxVI_HostDatastoreBrowserSearchResults *_next;        /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    esxVI_ManagedObjectReference *datastore;               /* optional */
+    char *folderPath;                                      /* optional */
+    esxVI_FileInfo *file;                                  /* optional, list */
+};
+
+int esxVI_HostDatastoreBrowserSearchResults_Alloc(esxVI_HostDatastoreBrowserSearchResults **item);
+void esxVI_HostDatastoreBrowserSearchResults_Free(esxVI_HostDatastoreBrowserSearchResults **item);
+int esxVI_HostDatastoreBrowserSearchResults_Validate(esxVI_HostDatastoreBrowserSearchResults *item);
+int esxVI_HostDatastoreBrowserSearchResults_AppendToList(esxVI_HostDatastoreBrowserSearchResults **list, esxVI_HostDatastoreBrowserSearchResults *item);
+int esxVI_HostDatastoreBrowserSearchResults_CastFromAnyType(esxVI_AnyType *anyType, esxVI_HostDatastoreBrowserSearchResults **item);
+int esxVI_HostDatastoreBrowserSearchResults_CastListFromAnyType(esxVI_AnyType *anyType, esxVI_HostDatastoreBrowserSearchResults **list);
+int esxVI_HostDatastoreBrowserSearchResults_Serialize(esxVI_HostDatastoreBrowserSearchResults *item, const char *element, virBufferPtr output);
+int esxVI_HostDatastoreBrowserSearchResults_SerializeList(esxVI_HostDatastoreBrowserSearchResults *list, const char *element, virBufferPtr output);
+int esxVI_HostDatastoreBrowserSearchResults_Deserialize(xmlNodePtr node, esxVI_HostDatastoreBrowserSearchResults **item);
+int esxVI_HostDatastoreBrowserSearchResults_DeserializeList(xmlNodePtr node, esxVI_HostDatastoreBrowserSearchResults **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: HostDatastoreBrowserSearchSpec
+ */
+
+struct _esxVI_HostDatastoreBrowserSearchSpec {
+    esxVI_HostDatastoreBrowserSearchSpec *_unused;         /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    esxVI_FileQuery *query;                                /* optional, list */
+    esxVI_FileQueryFlags *details;                         /* optional */
+    esxVI_Boolean searchCaseInsensitive;                   /* optional */
+    esxVI_String *matchPattern;                            /* optional, list */
+    esxVI_Boolean sortFoldersFirst;                        /* optional */
+};
+
+int esxVI_HostDatastoreBrowserSearchSpec_Alloc(esxVI_HostDatastoreBrowserSearchSpec **item);
+void esxVI_HostDatastoreBrowserSearchSpec_Free(esxVI_HostDatastoreBrowserSearchSpec **item);
+int esxVI_HostDatastoreBrowserSearchSpec_Validate(esxVI_HostDatastoreBrowserSearchSpec *item);
+int esxVI_HostDatastoreBrowserSearchSpec_Serialize(esxVI_HostDatastoreBrowserSearchSpec *item, const char *element, virBufferPtr output);
+int esxVI_HostDatastoreBrowserSearchSpec_Deserialize(xmlNodePtr node, esxVI_HostDatastoreBrowserSearchSpec **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Type: HostFileSystemVolume
  *          extended by HostNasVolume
  *                      HostVmfsVolume
@@ -391,6 +668,28 @@ void esxVI_HostFileSystemVolume_Free(esxVI_HostFileSystemVolume **item);
 int esxVI_HostFileSystemVolume_Validate(esxVI_HostFileSystemVolume *item);
 int esxVI_HostFileSystemVolume_Serialize(esxVI_HostFileSystemVolume *item, const char *element, virBufferPtr output);
 int esxVI_HostFileSystemVolume_Deserialize(xmlNodePtr node, esxVI_HostFileSystemVolume **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: HostMountInfo
+ */
+
+struct _esxVI_HostMountInfo {
+    esxVI_HostMountInfo *_unused;                          /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    char *path;                                            /* optional */
+    char *accessMode;                                      /* required */
+    esxVI_Boolean accessible;                              /* optional */
+};
+
+int esxVI_HostMountInfo_Alloc(esxVI_HostMountInfo **item);
+void esxVI_HostMountInfo_Free(esxVI_HostMountInfo **item);
+int esxVI_HostMountInfo_Validate(esxVI_HostMountInfo *item);
+int esxVI_HostMountInfo_DeepCopy(esxVI_HostMountInfo **dst, esxVI_HostMountInfo *src);
+int esxVI_HostMountInfo_Serialize(esxVI_HostMountInfo *item, const char *element, virBufferPtr output);
+int esxVI_HostMountInfo_Deserialize(xmlNodePtr node, esxVI_HostMountInfo **item);
 
 
 
@@ -474,6 +773,64 @@ void esxVI_HostVmfsVolume_Free(esxVI_HostVmfsVolume **item);
 int esxVI_HostVmfsVolume_Validate(esxVI_HostVmfsVolume *item);
 int esxVI_HostVmfsVolume_Serialize(esxVI_HostVmfsVolume *item, const char *element, virBufferPtr output);
 int esxVI_HostVmfsVolume_Deserialize(xmlNodePtr node, esxVI_HostVmfsVolume **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: IsoImageFileInfo
+ *          extends FileInfo
+ */
+
+struct _esxVI_IsoImageFileInfo {
+    esxVI_IsoImageFileInfo *_next;                         /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* FileInfo */
+    char *path;                                            /* required */
+    esxVI_Long *fileSize;                                  /* optional */
+    esxVI_DateTime *modification;                          /* optional */
+
+    /* IsoImageFileInfo */
+    /* no properties */
+};
+
+int esxVI_IsoImageFileInfo_Alloc(esxVI_IsoImageFileInfo **item);
+void esxVI_IsoImageFileInfo_Free(esxVI_IsoImageFileInfo **item);
+int esxVI_IsoImageFileInfo_Validate(esxVI_IsoImageFileInfo *item);
+esxVI_IsoImageFileInfo *esxVI_IsoImageFileInfo_DynamicCast(void *item);
+int esxVI_IsoImageFileInfo_AppendToList(esxVI_IsoImageFileInfo **list, esxVI_IsoImageFileInfo *item);
+int esxVI_IsoImageFileInfo_Serialize(esxVI_IsoImageFileInfo *item, const char *element, virBufferPtr output);
+int esxVI_IsoImageFileInfo_SerializeList(esxVI_IsoImageFileInfo *list, const char *element, virBufferPtr output);
+int esxVI_IsoImageFileInfo_Deserialize(xmlNodePtr node, esxVI_IsoImageFileInfo **item);
+int esxVI_IsoImageFileInfo_DeserializeList(xmlNodePtr node, esxVI_IsoImageFileInfo **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: IsoImageFileQuery
+ *          extends FileQuery
+ */
+
+struct _esxVI_IsoImageFileQuery {
+    esxVI_IsoImageFileQuery *_next;                        /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* FileQuery */
+    /* no properties */
+
+    /* IsoImageFileQuery */
+    /* no properties */
+};
+
+int esxVI_IsoImageFileQuery_Alloc(esxVI_IsoImageFileQuery **item);
+void esxVI_IsoImageFileQuery_Free(esxVI_IsoImageFileQuery **item);
+int esxVI_IsoImageFileQuery_Validate(esxVI_IsoImageFileQuery *item);
+esxVI_IsoImageFileQuery *esxVI_IsoImageFileQuery_DynamicCast(void *item);
+int esxVI_IsoImageFileQuery_AppendToList(esxVI_IsoImageFileQuery **list, esxVI_IsoImageFileQuery *item);
+int esxVI_IsoImageFileQuery_Serialize(esxVI_IsoImageFileQuery *item, const char *element, virBufferPtr output);
+int esxVI_IsoImageFileQuery_SerializeList(esxVI_IsoImageFileQuery *list, const char *element, virBufferPtr output);
+int esxVI_IsoImageFileQuery_Deserialize(xmlNodePtr node, esxVI_IsoImageFileQuery **item);
+int esxVI_IsoImageFileQuery_DeserializeList(xmlNodePtr node, esxVI_IsoImageFileQuery **list);
 
 
 
@@ -1099,6 +1456,71 @@ int esxVI_TaskInfo_DeserializeList(xmlNodePtr node, esxVI_TaskInfo **list);
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: TemplateConfigFileInfo
+ *          extends VmConfigFileInfo
+ */
+
+struct _esxVI_TemplateConfigFileInfo {
+    esxVI_TemplateConfigFileInfo *_next;                   /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* FileInfo */
+    char *path;                                            /* required */
+    esxVI_Long *fileSize;                                  /* optional */
+    esxVI_DateTime *modification;                          /* optional */
+
+    /* VmConfigFileInfo */
+    esxVI_Int *configVersion;                              /* optional */
+
+    /* TemplateConfigFileInfo */
+    /* no properties */
+};
+
+int esxVI_TemplateConfigFileInfo_Alloc(esxVI_TemplateConfigFileInfo **item);
+void esxVI_TemplateConfigFileInfo_Free(esxVI_TemplateConfigFileInfo **item);
+int esxVI_TemplateConfigFileInfo_Validate(esxVI_TemplateConfigFileInfo *item);
+esxVI_TemplateConfigFileInfo *esxVI_TemplateConfigFileInfo_DynamicCast(void *item);
+int esxVI_TemplateConfigFileInfo_AppendToList(esxVI_TemplateConfigFileInfo **list, esxVI_TemplateConfigFileInfo *item);
+int esxVI_TemplateConfigFileInfo_Serialize(esxVI_TemplateConfigFileInfo *item, const char *element, virBufferPtr output);
+int esxVI_TemplateConfigFileInfo_SerializeList(esxVI_TemplateConfigFileInfo *list, const char *element, virBufferPtr output);
+int esxVI_TemplateConfigFileInfo_Deserialize(xmlNodePtr node, esxVI_TemplateConfigFileInfo **item);
+int esxVI_TemplateConfigFileInfo_DeserializeList(xmlNodePtr node, esxVI_TemplateConfigFileInfo **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: TemplateConfigFileQuery
+ *          extends VmConfigFileQuery
+ */
+
+struct _esxVI_TemplateConfigFileQuery {
+    esxVI_TemplateConfigFileQuery *_next;                  /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* FileQuery */
+    /* no properties */
+
+    /* VmConfigFileQuery */
+    esxVI_VmConfigFileQueryFilter *filter;                 /* optional */
+    esxVI_VmConfigFileQueryFlags *details;                 /* optional */
+
+    /* TemplateConfigFileQuery */
+    /* no properties */
+};
+
+int esxVI_TemplateConfigFileQuery_Alloc(esxVI_TemplateConfigFileQuery **item);
+void esxVI_TemplateConfigFileQuery_Free(esxVI_TemplateConfigFileQuery **item);
+int esxVI_TemplateConfigFileQuery_Validate(esxVI_TemplateConfigFileQuery *item);
+esxVI_TemplateConfigFileQuery *esxVI_TemplateConfigFileQuery_DynamicCast(void *item);
+int esxVI_TemplateConfigFileQuery_AppendToList(esxVI_TemplateConfigFileQuery **list, esxVI_TemplateConfigFileQuery *item);
+int esxVI_TemplateConfigFileQuery_Serialize(esxVI_TemplateConfigFileQuery *item, const char *element, virBufferPtr output);
+int esxVI_TemplateConfigFileQuery_SerializeList(esxVI_TemplateConfigFileQuery *list, const char *element, virBufferPtr output);
+int esxVI_TemplateConfigFileQuery_Deserialize(xmlNodePtr node, esxVI_TemplateConfigFileQuery **item);
+int esxVI_TemplateConfigFileQuery_DeserializeList(xmlNodePtr node, esxVI_TemplateConfigFileQuery **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Type: TraversalSpec
  *          extends SelectionSpec
  */
@@ -1272,6 +1694,386 @@ int esxVI_VirtualMachineSnapshotTree_CastFromAnyType(esxVI_AnyType *anyType, esx
 int esxVI_VirtualMachineSnapshotTree_CastListFromAnyType(esxVI_AnyType *anyType, esxVI_VirtualMachineSnapshotTree **list);
 int esxVI_VirtualMachineSnapshotTree_Deserialize(xmlNodePtr node, esxVI_VirtualMachineSnapshotTree **item);
 int esxVI_VirtualMachineSnapshotTree_DeserializeList(xmlNodePtr node, esxVI_VirtualMachineSnapshotTree **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmConfigFileInfo
+ *          extends FileInfo
+ *          extended by TemplateConfigFileInfo
+ */
+
+struct _esxVI_VmConfigFileInfo {
+    esxVI_VmConfigFileInfo *_next;                         /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* FileInfo */
+    char *path;                                            /* required */
+    esxVI_Long *fileSize;                                  /* optional */
+    esxVI_DateTime *modification;                          /* optional */
+
+    /* VmConfigFileInfo */
+    esxVI_Int *configVersion;                              /* optional */
+};
+
+int esxVI_VmConfigFileInfo_Alloc(esxVI_VmConfigFileInfo **item);
+void esxVI_VmConfigFileInfo_Free(esxVI_VmConfigFileInfo **item);
+int esxVI_VmConfigFileInfo_Validate(esxVI_VmConfigFileInfo *item);
+esxVI_VmConfigFileInfo *esxVI_VmConfigFileInfo_DynamicCast(void *item);
+int esxVI_VmConfigFileInfo_AppendToList(esxVI_VmConfigFileInfo **list, esxVI_VmConfigFileInfo *item);
+int esxVI_VmConfigFileInfo_Serialize(esxVI_VmConfigFileInfo *item, const char *element, virBufferPtr output);
+int esxVI_VmConfigFileInfo_SerializeList(esxVI_VmConfigFileInfo *list, const char *element, virBufferPtr output);
+int esxVI_VmConfigFileInfo_Deserialize(xmlNodePtr node, esxVI_VmConfigFileInfo **item);
+int esxVI_VmConfigFileInfo_DeserializeList(xmlNodePtr node, esxVI_VmConfigFileInfo **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmConfigFileQuery
+ *          extends FileQuery
+ *          extended by TemplateConfigFileQuery
+ */
+
+struct _esxVI_VmConfigFileQuery {
+    esxVI_VmConfigFileQuery *_next;                        /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* FileQuery */
+    /* no properties */
+
+    /* VmConfigFileQuery */
+    esxVI_VmConfigFileQueryFilter *filter;                 /* optional */
+    esxVI_VmConfigFileQueryFlags *details;                 /* optional */
+};
+
+int esxVI_VmConfigFileQuery_Alloc(esxVI_VmConfigFileQuery **item);
+void esxVI_VmConfigFileQuery_Free(esxVI_VmConfigFileQuery **item);
+int esxVI_VmConfigFileQuery_Validate(esxVI_VmConfigFileQuery *item);
+esxVI_VmConfigFileQuery *esxVI_VmConfigFileQuery_DynamicCast(void *item);
+int esxVI_VmConfigFileQuery_AppendToList(esxVI_VmConfigFileQuery **list, esxVI_VmConfigFileQuery *item);
+int esxVI_VmConfigFileQuery_Serialize(esxVI_VmConfigFileQuery *item, const char *element, virBufferPtr output);
+int esxVI_VmConfigFileQuery_SerializeList(esxVI_VmConfigFileQuery *list, const char *element, virBufferPtr output);
+int esxVI_VmConfigFileQuery_Deserialize(xmlNodePtr node, esxVI_VmConfigFileQuery **item);
+int esxVI_VmConfigFileQuery_DeserializeList(xmlNodePtr node, esxVI_VmConfigFileQuery **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmConfigFileQueryFilter
+ */
+
+struct _esxVI_VmConfigFileQueryFilter {
+    esxVI_VmConfigFileQueryFilter *_unused;                /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    esxVI_Int *matchConfigVersion;                         /* optional, list */
+};
+
+int esxVI_VmConfigFileQueryFilter_Alloc(esxVI_VmConfigFileQueryFilter **item);
+void esxVI_VmConfigFileQueryFilter_Free(esxVI_VmConfigFileQueryFilter **item);
+int esxVI_VmConfigFileQueryFilter_Validate(esxVI_VmConfigFileQueryFilter *item);
+int esxVI_VmConfigFileQueryFilter_Serialize(esxVI_VmConfigFileQueryFilter *item, const char *element, virBufferPtr output);
+int esxVI_VmConfigFileQueryFilter_Deserialize(xmlNodePtr node, esxVI_VmConfigFileQueryFilter **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmConfigFileQueryFlags
+ */
+
+struct _esxVI_VmConfigFileQueryFlags {
+    esxVI_VmConfigFileQueryFlags *_unused;                 /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    esxVI_Boolean configVersion;                           /* required */
+};
+
+int esxVI_VmConfigFileQueryFlags_Alloc(esxVI_VmConfigFileQueryFlags **item);
+void esxVI_VmConfigFileQueryFlags_Free(esxVI_VmConfigFileQueryFlags **item);
+int esxVI_VmConfigFileQueryFlags_Validate(esxVI_VmConfigFileQueryFlags *item);
+int esxVI_VmConfigFileQueryFlags_Serialize(esxVI_VmConfigFileQueryFlags *item, const char *element, virBufferPtr output);
+int esxVI_VmConfigFileQueryFlags_Deserialize(xmlNodePtr node, esxVI_VmConfigFileQueryFlags **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmDiskFileInfo
+ *          extends FileInfo
+ */
+
+struct _esxVI_VmDiskFileInfo {
+    esxVI_VmDiskFileInfo *_next;                           /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* FileInfo */
+    char *path;                                            /* required */
+    esxVI_Long *fileSize;                                  /* optional */
+    esxVI_DateTime *modification;                          /* optional */
+
+    /* VmDiskFileInfo */
+    char *diskType;                                        /* optional */
+    esxVI_Long *capacityKb;                                /* optional */
+    esxVI_Int *hardwareVersion;                            /* optional */
+    char *controllerType;                                  /* optional */
+    esxVI_String *diskExtents;                             /* optional, list */
+};
+
+int esxVI_VmDiskFileInfo_Alloc(esxVI_VmDiskFileInfo **item);
+void esxVI_VmDiskFileInfo_Free(esxVI_VmDiskFileInfo **item);
+int esxVI_VmDiskFileInfo_Validate(esxVI_VmDiskFileInfo *item);
+esxVI_VmDiskFileInfo *esxVI_VmDiskFileInfo_DynamicCast(void *item);
+int esxVI_VmDiskFileInfo_AppendToList(esxVI_VmDiskFileInfo **list, esxVI_VmDiskFileInfo *item);
+int esxVI_VmDiskFileInfo_Serialize(esxVI_VmDiskFileInfo *item, const char *element, virBufferPtr output);
+int esxVI_VmDiskFileInfo_SerializeList(esxVI_VmDiskFileInfo *list, const char *element, virBufferPtr output);
+int esxVI_VmDiskFileInfo_Deserialize(xmlNodePtr node, esxVI_VmDiskFileInfo **item);
+int esxVI_VmDiskFileInfo_DeserializeList(xmlNodePtr node, esxVI_VmDiskFileInfo **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmDiskFileQuery
+ *          extends FileQuery
+ */
+
+struct _esxVI_VmDiskFileQuery {
+    esxVI_VmDiskFileQuery *_next;                          /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* FileQuery */
+    /* no properties */
+
+    /* VmDiskFileQuery */
+    esxVI_VmDiskFileQueryFilter *filter;                   /* optional */
+    esxVI_VmDiskFileQueryFlags *details;                   /* optional */
+};
+
+int esxVI_VmDiskFileQuery_Alloc(esxVI_VmDiskFileQuery **item);
+void esxVI_VmDiskFileQuery_Free(esxVI_VmDiskFileQuery **item);
+int esxVI_VmDiskFileQuery_Validate(esxVI_VmDiskFileQuery *item);
+esxVI_VmDiskFileQuery *esxVI_VmDiskFileQuery_DynamicCast(void *item);
+int esxVI_VmDiskFileQuery_AppendToList(esxVI_VmDiskFileQuery **list, esxVI_VmDiskFileQuery *item);
+int esxVI_VmDiskFileQuery_Serialize(esxVI_VmDiskFileQuery *item, const char *element, virBufferPtr output);
+int esxVI_VmDiskFileQuery_SerializeList(esxVI_VmDiskFileQuery *list, const char *element, virBufferPtr output);
+int esxVI_VmDiskFileQuery_Deserialize(xmlNodePtr node, esxVI_VmDiskFileQuery **item);
+int esxVI_VmDiskFileQuery_DeserializeList(xmlNodePtr node, esxVI_VmDiskFileQuery **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmDiskFileQueryFilter
+ */
+
+struct _esxVI_VmDiskFileQueryFilter {
+    esxVI_VmDiskFileQueryFilter *_unused;                  /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    esxVI_String *diskType;                                /* optional, list */
+    esxVI_Int *matchHardwareVersion;                       /* optional, list */
+    esxVI_String *controllerType;                          /* optional, list */
+};
+
+int esxVI_VmDiskFileQueryFilter_Alloc(esxVI_VmDiskFileQueryFilter **item);
+void esxVI_VmDiskFileQueryFilter_Free(esxVI_VmDiskFileQueryFilter **item);
+int esxVI_VmDiskFileQueryFilter_Validate(esxVI_VmDiskFileQueryFilter *item);
+int esxVI_VmDiskFileQueryFilter_Serialize(esxVI_VmDiskFileQueryFilter *item, const char *element, virBufferPtr output);
+int esxVI_VmDiskFileQueryFilter_Deserialize(xmlNodePtr node, esxVI_VmDiskFileQueryFilter **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmDiskFileQueryFlags
+ */
+
+struct _esxVI_VmDiskFileQueryFlags {
+    esxVI_VmDiskFileQueryFlags *_unused;                   /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    esxVI_Boolean diskType;                                /* required */
+    esxVI_Boolean capacityKb;                              /* required */
+    esxVI_Boolean hardwareVersion;                         /* required */
+    esxVI_Boolean controllerType;                          /* optional */
+    esxVI_Boolean diskExtents;                             /* optional */
+};
+
+int esxVI_VmDiskFileQueryFlags_Alloc(esxVI_VmDiskFileQueryFlags **item);
+void esxVI_VmDiskFileQueryFlags_Free(esxVI_VmDiskFileQueryFlags **item);
+int esxVI_VmDiskFileQueryFlags_Validate(esxVI_VmDiskFileQueryFlags *item);
+int esxVI_VmDiskFileQueryFlags_Serialize(esxVI_VmDiskFileQueryFlags *item, const char *element, virBufferPtr output);
+int esxVI_VmDiskFileQueryFlags_Deserialize(xmlNodePtr node, esxVI_VmDiskFileQueryFlags **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmLogFileInfo
+ *          extends FileInfo
+ */
+
+struct _esxVI_VmLogFileInfo {
+    esxVI_VmLogFileInfo *_next;                            /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* FileInfo */
+    char *path;                                            /* required */
+    esxVI_Long *fileSize;                                  /* optional */
+    esxVI_DateTime *modification;                          /* optional */
+
+    /* VmLogFileInfo */
+    /* no properties */
+};
+
+int esxVI_VmLogFileInfo_Alloc(esxVI_VmLogFileInfo **item);
+void esxVI_VmLogFileInfo_Free(esxVI_VmLogFileInfo **item);
+int esxVI_VmLogFileInfo_Validate(esxVI_VmLogFileInfo *item);
+esxVI_VmLogFileInfo *esxVI_VmLogFileInfo_DynamicCast(void *item);
+int esxVI_VmLogFileInfo_AppendToList(esxVI_VmLogFileInfo **list, esxVI_VmLogFileInfo *item);
+int esxVI_VmLogFileInfo_Serialize(esxVI_VmLogFileInfo *item, const char *element, virBufferPtr output);
+int esxVI_VmLogFileInfo_SerializeList(esxVI_VmLogFileInfo *list, const char *element, virBufferPtr output);
+int esxVI_VmLogFileInfo_Deserialize(xmlNodePtr node, esxVI_VmLogFileInfo **item);
+int esxVI_VmLogFileInfo_DeserializeList(xmlNodePtr node, esxVI_VmLogFileInfo **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmLogFileQuery
+ *          extends FileQuery
+ */
+
+struct _esxVI_VmLogFileQuery {
+    esxVI_VmLogFileQuery *_next;                           /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* FileQuery */
+    /* no properties */
+
+    /* VmLogFileQuery */
+    /* no properties */
+};
+
+int esxVI_VmLogFileQuery_Alloc(esxVI_VmLogFileQuery **item);
+void esxVI_VmLogFileQuery_Free(esxVI_VmLogFileQuery **item);
+int esxVI_VmLogFileQuery_Validate(esxVI_VmLogFileQuery *item);
+esxVI_VmLogFileQuery *esxVI_VmLogFileQuery_DynamicCast(void *item);
+int esxVI_VmLogFileQuery_AppendToList(esxVI_VmLogFileQuery **list, esxVI_VmLogFileQuery *item);
+int esxVI_VmLogFileQuery_Serialize(esxVI_VmLogFileQuery *item, const char *element, virBufferPtr output);
+int esxVI_VmLogFileQuery_SerializeList(esxVI_VmLogFileQuery *list, const char *element, virBufferPtr output);
+int esxVI_VmLogFileQuery_Deserialize(xmlNodePtr node, esxVI_VmLogFileQuery **item);
+int esxVI_VmLogFileQuery_DeserializeList(xmlNodePtr node, esxVI_VmLogFileQuery **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmNvramFileInfo
+ *          extends FileInfo
+ */
+
+struct _esxVI_VmNvramFileInfo {
+    esxVI_VmNvramFileInfo *_next;                          /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* FileInfo */
+    char *path;                                            /* required */
+    esxVI_Long *fileSize;                                  /* optional */
+    esxVI_DateTime *modification;                          /* optional */
+
+    /* VmNvramFileInfo */
+    /* no properties */
+};
+
+int esxVI_VmNvramFileInfo_Alloc(esxVI_VmNvramFileInfo **item);
+void esxVI_VmNvramFileInfo_Free(esxVI_VmNvramFileInfo **item);
+int esxVI_VmNvramFileInfo_Validate(esxVI_VmNvramFileInfo *item);
+esxVI_VmNvramFileInfo *esxVI_VmNvramFileInfo_DynamicCast(void *item);
+int esxVI_VmNvramFileInfo_AppendToList(esxVI_VmNvramFileInfo **list, esxVI_VmNvramFileInfo *item);
+int esxVI_VmNvramFileInfo_Serialize(esxVI_VmNvramFileInfo *item, const char *element, virBufferPtr output);
+int esxVI_VmNvramFileInfo_SerializeList(esxVI_VmNvramFileInfo *list, const char *element, virBufferPtr output);
+int esxVI_VmNvramFileInfo_Deserialize(xmlNodePtr node, esxVI_VmNvramFileInfo **item);
+int esxVI_VmNvramFileInfo_DeserializeList(xmlNodePtr node, esxVI_VmNvramFileInfo **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmNvramFileQuery
+ *          extends FileQuery
+ */
+
+struct _esxVI_VmNvramFileQuery {
+    esxVI_VmNvramFileQuery *_next;                         /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* FileQuery */
+    /* no properties */
+
+    /* VmNvramFileQuery */
+    /* no properties */
+};
+
+int esxVI_VmNvramFileQuery_Alloc(esxVI_VmNvramFileQuery **item);
+void esxVI_VmNvramFileQuery_Free(esxVI_VmNvramFileQuery **item);
+int esxVI_VmNvramFileQuery_Validate(esxVI_VmNvramFileQuery *item);
+esxVI_VmNvramFileQuery *esxVI_VmNvramFileQuery_DynamicCast(void *item);
+int esxVI_VmNvramFileQuery_AppendToList(esxVI_VmNvramFileQuery **list, esxVI_VmNvramFileQuery *item);
+int esxVI_VmNvramFileQuery_Serialize(esxVI_VmNvramFileQuery *item, const char *element, virBufferPtr output);
+int esxVI_VmNvramFileQuery_SerializeList(esxVI_VmNvramFileQuery *list, const char *element, virBufferPtr output);
+int esxVI_VmNvramFileQuery_Deserialize(xmlNodePtr node, esxVI_VmNvramFileQuery **item);
+int esxVI_VmNvramFileQuery_DeserializeList(xmlNodePtr node, esxVI_VmNvramFileQuery **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmSnapshotFileInfo
+ *          extends FileInfo
+ */
+
+struct _esxVI_VmSnapshotFileInfo {
+    esxVI_VmSnapshotFileInfo *_next;                       /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* FileInfo */
+    char *path;                                            /* required */
+    esxVI_Long *fileSize;                                  /* optional */
+    esxVI_DateTime *modification;                          /* optional */
+
+    /* VmSnapshotFileInfo */
+    /* no properties */
+};
+
+int esxVI_VmSnapshotFileInfo_Alloc(esxVI_VmSnapshotFileInfo **item);
+void esxVI_VmSnapshotFileInfo_Free(esxVI_VmSnapshotFileInfo **item);
+int esxVI_VmSnapshotFileInfo_Validate(esxVI_VmSnapshotFileInfo *item);
+esxVI_VmSnapshotFileInfo *esxVI_VmSnapshotFileInfo_DynamicCast(void *item);
+int esxVI_VmSnapshotFileInfo_AppendToList(esxVI_VmSnapshotFileInfo **list, esxVI_VmSnapshotFileInfo *item);
+int esxVI_VmSnapshotFileInfo_Serialize(esxVI_VmSnapshotFileInfo *item, const char *element, virBufferPtr output);
+int esxVI_VmSnapshotFileInfo_SerializeList(esxVI_VmSnapshotFileInfo *list, const char *element, virBufferPtr output);
+int esxVI_VmSnapshotFileInfo_Deserialize(xmlNodePtr node, esxVI_VmSnapshotFileInfo **item);
+int esxVI_VmSnapshotFileInfo_DeserializeList(xmlNodePtr node, esxVI_VmSnapshotFileInfo **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VmSnapshotFileQuery
+ *          extends FileQuery
+ */
+
+struct _esxVI_VmSnapshotFileQuery {
+    esxVI_VmSnapshotFileQuery *_next;                      /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* FileQuery */
+    /* no properties */
+
+    /* VmSnapshotFileQuery */
+    /* no properties */
+};
+
+int esxVI_VmSnapshotFileQuery_Alloc(esxVI_VmSnapshotFileQuery **item);
+void esxVI_VmSnapshotFileQuery_Free(esxVI_VmSnapshotFileQuery **item);
+int esxVI_VmSnapshotFileQuery_Validate(esxVI_VmSnapshotFileQuery *item);
+esxVI_VmSnapshotFileQuery *esxVI_VmSnapshotFileQuery_DynamicCast(void *item);
+int esxVI_VmSnapshotFileQuery_AppendToList(esxVI_VmSnapshotFileQuery **list, esxVI_VmSnapshotFileQuery *item);
+int esxVI_VmSnapshotFileQuery_Serialize(esxVI_VmSnapshotFileQuery *item, const char *element, virBufferPtr output);
+int esxVI_VmSnapshotFileQuery_SerializeList(esxVI_VmSnapshotFileQuery *list, const char *element, virBufferPtr output);
+int esxVI_VmSnapshotFileQuery_Deserialize(xmlNodePtr node, esxVI_VmSnapshotFileQuery **item);
+int esxVI_VmSnapshotFileQuery_DeserializeList(xmlNodePtr node, esxVI_VmSnapshotFileQuery **list);
 
 
 

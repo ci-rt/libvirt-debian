@@ -638,18 +638,74 @@ networkAddMasqueradingIptablesRules(struct network_driver *driver,
         goto masqerr2;
     }
 
-    /* enable masquerading */
+    /*
+     * Enable masquerading.
+     *
+     * We need to end up with 3 rules in the table in this order
+     *
+     *  1. protocol=tcp with sport mapping restriction
+     *  2. protocol=udp with sport mapping restriction
+     *  3. generic any protocol
+     *
+     * The sport mappings are required, because default IPtables
+     * MASQUERADE maintain port numbers unchanged where possible.
+     *
+     * NFS can be configured to only "trust" port numbers < 1023.
+     *
+     * Guests using NAT thus need to be prevented from having port
+     * numbers < 1023, otherwise they can bypass the NFS "security"
+     * check on the source port number.
+     *
+     * Since we use '--insert' to add rules to the header of the
+     * chain, we actually need to add them in the reverse of the
+     * order just mentioned !
+     */
+
+    /* First the generic masquerade rule for other protocols */
     if ((err = iptablesAddForwardMasquerade(driver->iptables,
                                             network->def->network,
-                                            network->def->forwardDev))) {
+                                            network->def->forwardDev,
+                                            NULL))) {
         virReportSystemError(err,
                              _("failed to add iptables rule to enable masquerading to '%s'"),
                              network->def->forwardDev ? network->def->forwardDev : NULL);
         goto masqerr3;
     }
 
+    /* UDP with a source port restriction */
+    if ((err = iptablesAddForwardMasquerade(driver->iptables,
+                                            network->def->network,
+                                            network->def->forwardDev,
+                                            "udp"))) {
+        virReportSystemError(err,
+                             _("failed to add iptables rule to enable UDP masquerading to '%s'"),
+                             network->def->forwardDev ? network->def->forwardDev : NULL);
+        goto masqerr4;
+    }
+
+    /* TCP with a source port restriction */
+    if ((err = iptablesAddForwardMasquerade(driver->iptables,
+                                            network->def->network,
+                                            network->def->forwardDev,
+                                            "tcp"))) {
+        virReportSystemError(err,
+                             _("failed to add iptables rule to enable TCP masquerading to '%s'"),
+                             network->def->forwardDev ? network->def->forwardDev : NULL);
+        goto masqerr5;
+    }
+
     return 1;
 
+ masqerr5:
+    iptablesRemoveForwardMasquerade(driver->iptables,
+                                    network->def->network,
+                                    network->def->forwardDev,
+                                    "udp");
+ masqerr4:
+    iptablesRemoveForwardMasquerade(driver->iptables,
+                                    network->def->network,
+                                    network->def->forwardDev,
+                                    NULL);
  masqerr3:
     iptablesRemoveForwardAllowRelatedIn(driver->iptables,
                                  network->def->network,
@@ -781,6 +837,20 @@ networkAddIptablesRules(struct network_driver *driver,
              !networkAddRoutingIptablesRules(driver, network))
         goto err8;
 
+    /* If we are doing local DHCP service on this network, attempt to
+     * add a rule that will fixup the checksum of DHCP response
+     * packets back to the guests (but report failure without
+     * aborting, since not all iptables implementations support it).
+     */
+
+    if ((network->def->ipAddress || network->def->nranges) &&
+        (iptablesAddOutputFixUdpChecksum(driver->iptables,
+                                         network->def->bridge, 68) != 0)) {
+        VIR_WARN("Could not add rule to fixup DHCP response checksums "
+                 "on network '%s'.", network->def->name);
+        VIR_WARN0("May need to update iptables package & kernel to support CHECKSUM rule.");
+    }
+
     return 1;
 
  err8:
@@ -811,11 +881,24 @@ networkAddIptablesRules(struct network_driver *driver,
 static void
 networkRemoveIptablesRules(struct network_driver *driver,
                          virNetworkObjPtr network) {
+    if (network->def->ipAddress || network->def->nranges) {
+        iptablesRemoveOutputFixUdpChecksum(driver->iptables,
+                                           network->def->bridge, 68);
+    }
     if (network->def->forwardType != VIR_NETWORK_FORWARD_NONE) {
         if (network->def->forwardType == VIR_NETWORK_FORWARD_NAT) {
             iptablesRemoveForwardMasquerade(driver->iptables,
-                                                network->def->network,
-                                                network->def->forwardDev);
+                                            network->def->network,
+                                            network->def->forwardDev,
+                                            "tcp");
+            iptablesRemoveForwardMasquerade(driver->iptables,
+                                            network->def->network,
+                                            network->def->forwardDev,
+                                            "udp");
+            iptablesRemoveForwardMasquerade(driver->iptables,
+                                            network->def->network,
+                                            network->def->forwardDev,
+                                            NULL);
             iptablesRemoveForwardAllowRelatedIn(driver->iptables,
                                                 network->def->network,
                                                 network->def->bridge,
@@ -1425,14 +1508,13 @@ static virNetworkPtr networkDefine(virConnectPtr conn, const char *xml) {
     virNetworkDefPtr def;
     virNetworkObjPtr network = NULL;
     virNetworkPtr ret = NULL;
-    int dupNet;
 
     networkDriverLock(driver);
 
     if (!(def = virNetworkDefParseString(xml)))
         goto cleanup;
 
-    if ((dupNet = virNetworkObjIsDuplicate(&driver->networks, def, 0)) < 0)
+    if (virNetworkObjIsDuplicate(&driver->networks, def, 0) < 0)
         goto cleanup;
 
     if (virNetworkSetBridgeName(&driver->networks, def, 1))
