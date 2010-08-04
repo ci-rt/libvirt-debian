@@ -36,11 +36,11 @@
 #include "uuid.h"
 #include "hostusb.h"
 #include "pci.h"
-#include "storage_file.h"
 
 static char *progname;
 
 typedef struct {
+    bool allowDiskFormatProbing;
     char uuid[PROFILE_NAME_SIZE];       /* UUID of vm */
     bool dryrun;                /* dry run */
     char cmd;                   /* 'c'   create
@@ -801,6 +801,31 @@ file_iterate_pci_cb(pciDevice *dev ATTRIBUTE_UNUSED,
 }
 
 static int
+add_file_path(virDomainDiskDefPtr disk,
+              const char *path,
+              size_t depth,
+              void *opaque)
+{
+    virBufferPtr buf = opaque;
+    int ret;
+
+    if (depth == 0) {
+        if (disk->readonly)
+            ret = vah_add_file(buf, path, "r");
+        else
+            ret = vah_add_file(buf, path, "rw");
+    } else {
+        ret = vah_add_file(buf, path, "r");
+    }
+
+    if (ret != 0)
+        ret = -1;
+
+    return ret;
+}
+
+
+static int
 get_files(vahControl * ctl)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
@@ -821,43 +846,19 @@ get_files(vahControl * ctl)
         goto clean;
     }
 
-    for (i = 0; i < ctl->def->ndisks; i++)
-        if (ctl->def->disks[i] && ctl->def->disks[i]->src) {
-            int ret;
-            const char *path;
-
-            path = ctl->def->disks[i]->src;
-            do {
-                virStorageFileMetadata meta;
-
-                ret = virStorageFileGetMetadata(path, &meta);
-
-                if (path != ctl->def->disks[i]->src)
-                    VIR_FREE(path);
-                path = NULL;
-
-                if (ret < 0) {
-                    vah_warning("could not open path, skipping");
-                    continue;
-                }
-
-                if (meta.backingStore != NULL &&
-                    (ret = vah_add_file(&buf, meta.backingStore, "rw")) != 0) {
-                    VIR_FREE(meta.backingStore);
-                    goto clean;
-                }
-
-                path = meta.backingStore;
-            } while (path != NULL);
-
-            if (ctl->def->disks[i]->readonly)
-                ret = vah_add_file(&buf, ctl->def->disks[i]->src, "r");
-            else
-                ret = vah_add_file(&buf, ctl->def->disks[i]->src, "rw");
-
-            if (ret != 0)
-                goto clean;
-        }
+    for (i = 0; i < ctl->def->ndisks; i++) {
+        /* XXX passing ignoreOpenFailure = true to get back to the behavior
+         * from before using virDomainDiskDefForeachPath. actually we should
+         * be passing ignoreOpenFailure = false and handle open errors more
+         * careful than just ignoring them */
+        int ret = virDomainDiskDefForeachPath(ctl->def->disks[i],
+                                              ctl->allowDiskFormatProbing,
+                                              true,
+                                              add_file_path,
+                                              &buf);
+        if (ret != 0)
+            goto clean;
+    }
 
     for (i = 0; i < ctl->def->nserials; i++)
         if (ctl->def->serials[i] && ctl->def->serials[i]->data.file.path)
@@ -950,6 +951,7 @@ vahParseArgv(vahControl * ctl, int argc, char **argv)
 {
     int arg, idx = 0;
     struct option opt[] = {
+        {"probing", 1, 0, 'p' },
         {"add", 0, 0, 'a'},
         {"create", 0, 0, 'c'},
         {"dryrun", 0, 0, 'd'},
@@ -962,7 +964,7 @@ vahParseArgv(vahControl * ctl, int argc, char **argv)
         {0, 0, 0, 0}
     };
 
-    while ((arg = getopt_long(argc, argv, "acdDhrRH:b:u:f:", opt,
+    while ((arg = getopt_long(argc, argv, "acdDhrRH:b:u:p:f:", opt,
             &idx)) != -1) {
         switch (arg) {
             case 'a':
@@ -997,6 +999,12 @@ vahParseArgv(vahControl * ctl, int argc, char **argv)
                 if (virStrcpy((char *) ctl->uuid, optarg,
                     PROFILE_NAME_SIZE) == NULL)
                     vah_error(ctl, 1, "error copying UUID");
+                break;
+            case 'p':
+                if (STREQ(optarg, "1"))
+                    ctl->allowDiskFormatProbing = true;
+                else
+                    ctl->allowDiskFormatProbing = false;
                 break;
             default:
                 vah_error(ctl, 1, "unsupported option");

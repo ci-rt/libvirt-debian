@@ -29,9 +29,9 @@
 # include "internal.h"
 # include "conf.h"
 
-typedef struct _esxUtil_ParsedQuery esxUtil_ParsedQuery;
+typedef struct _esxUtil_ParsedUri esxUtil_ParsedUri;
 
-struct _esxUtil_ParsedQuery {
+struct _esxUtil_ParsedUri {
     char *transport;
     char *vCenter;
     bool noVerify;
@@ -40,17 +40,19 @@ struct _esxUtil_ParsedQuery {
     int proxy_type;
     char *proxy_hostname;
     int proxy_port;
+    char *path_datacenter;
+    char *path_computeResource;
+    char *path_hostSystem;
 };
 
-int esxUtil_ParseQuery(esxUtil_ParsedQuery **parsedQuery, xmlURIPtr uri);
+int esxUtil_ParseUri(esxUtil_ParsedUri **parsedUri, xmlURIPtr uri);
 
-void esxUtil_FreeParsedQuery(esxUtil_ParsedQuery **parsedQuery);
+void esxUtil_FreeParsedUri(esxUtil_ParsedUri **parsedUri);
 
 int esxUtil_ParseVirtualMachineIDString(const char *id_string, int *id);
 
-int esxUtil_ParseDatastoreRelatedPath(const char *datastoreRelatedPath,
-                                      char **datastoreName,
-                                      char **directoryName, char **fileName);
+int esxUtil_ParseDatastorePath(const char *datastorePath, char **datastoreName,
+                               char **directoryName, char **fileName);
 
 int esxUtil_ResolveHostname(const char *hostname,
                             char *ipAddress, size_t ipAddress_length);

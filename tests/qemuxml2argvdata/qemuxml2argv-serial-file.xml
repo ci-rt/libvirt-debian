@@ -26,7 +26,8 @@
     </serial>
     <console type='file'>
       <source path='/tmp/serial.log'/>
-      <target port='0'/>
+      <target type='serial' port='0'/>
     </console>
+    <memballoon model='virtio'/>
   </devices>
 </domain>

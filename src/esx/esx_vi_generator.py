@@ -469,18 +469,21 @@ class Object:
         return source
 
 
-    def generate_dynamic_cast_code(self):
+    def generate_dynamic_cast_code(self, is_first = True):
         global objects_by_name
         source = ""
 
         if self.extended_by is not None:
+            if not is_first:
+                source += "\n"
+
             source += "    /* %s */\n" % self.name
 
             for extended_by in self.extended_by:
                 source += "    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(%s)\n" % extended_by
 
             for extended_by in self.extended_by:
-                source += objects_by_name[extended_by].generate_dynamic_cast_code()
+                source += objects_by_name[extended_by].generate_dynamic_cast_code(False)
 
         return source
 
@@ -681,7 +684,10 @@ class Object:
             source += "{\n"
 
             if self.features & Object.FEATURE__LIST:
-                source += "    esxVI_%s_Free(&item->_next);\n\n" % self.name
+                if self.extends is not None:
+                    source += "    esxVI_%s_Free((esxVI_%s **)&item->_next);\n\n" % (self.extends, self.extends)
+                else:
+                    source += "    esxVI_%s_Free(&item->_next);\n\n" % self.name
 
             source += self.generate_free_code()
 
@@ -698,7 +704,10 @@ class Object:
             source += "{\n"
 
             if self.features & Object.FEATURE__LIST:
-                source += "    esxVI_%s_Free(&item->_next);\n\n" % self.name
+                if self.extends is not None:
+                    source += "    esxVI_%s_Free((esxVI_%s **)&item->_next);\n\n" % (self.extends, self.extends)
+                else:
+                    source += "    esxVI_%s_Free(&item->_next);\n\n" % self.name
 
             source += self.generate_free_code()
 
@@ -820,18 +829,38 @@ class Object:
                     source += "ESX_VI__TEMPLATE__LIST__SERIALIZE(%s)\n\n" % self.name
 
         # deserilaize
-        if self.features & Object.FEATURE__DESERIALIZE:
-            source += "/* esxVI_%s_Deserialize */\n" % self.name
-            source += "ESX_VI__TEMPLATE__DESERIALIZE(%s,\n" % self.name
-            source += "{\n"
+        if self.extended_by is None:
+            if self.features & Object.FEATURE__DESERIALIZE:
+                source += "/* esxVI_%s_Deserialize */\n" % self.name
+                source += "ESX_VI__TEMPLATE__DESERIALIZE(%s,\n" % self.name
+                source += "{\n"
 
-            source += self.generate_deserialize_code()
+                source += self.generate_deserialize_code()
 
-            source += "})\n\n"
+                source += "})\n\n"
 
-            if self.features & Object.FEATURE__LIST:
-                source += "/* esxVI_%s_DeserializeList */\n" % self.name
-                source += "ESX_VI__TEMPLATE__LIST__DESERIALIZE(%s)\n\n" % self.name
+                if self.features & Object.FEATURE__LIST:
+                    source += "/* esxVI_%s_DeserializeList */\n" % self.name
+                    source += "ESX_VI__TEMPLATE__LIST__DESERIALIZE(%s)\n\n" % self.name
+        else:
+            if self.features & Object.FEATURE__DESERIALIZE:
+                source += "/* esxVI_%s_Deserialize */\n" % self.name
+                source += "ESX_VI__TEMPLATE__DYNAMIC_DESERIALIZE(%s,\n" % self.name
+                source += "{\n"
+
+                for extended_by in self.extended_by:
+                    source += "    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(%s)\n" % extended_by
+
+                source += "},\n"
+                source += "{\n"
+
+                source += self.generate_deserialize_code()
+
+                source += "})\n\n"
+
+                if self.features & Object.FEATURE__LIST:
+                    source += "/* esxVI_%s_DeserializeList */\n" % self.name
+                    source += "ESX_VI__TEMPLATE__LIST__DESERIALIZE(%s)\n\n" % self.name
 
         source += "\n\n"
 
@@ -1098,13 +1127,17 @@ additional_enum_features = { "ManagedEntityStatus"      : Enum.FEATURE__ANY_TYPE
                              "VirtualMachinePowerState" : Enum.FEATURE__ANY_TYPE }
 
 
-additional_object_features = { "DatastoreInfo"              : Object.FEATURE__ANY_TYPE | Object.FEATURE__DYNAMIC_CAST,
+additional_object_features = { "DatastoreHostMount"         : Object.FEATURE__DEEP_COPY | Object.FEATURE__LIST | Object.FEATURE__ANY_TYPE,
+                               "DatastoreInfo"              : Object.FEATURE__ANY_TYPE | Object.FEATURE__DYNAMIC_CAST,
                                "Event"                      : Object.FEATURE__LIST,
+                               "FileInfo"                   : Object.FEATURE__DYNAMIC_CAST,
+                               "FileQuery"                  : Object.FEATURE__DYNAMIC_CAST,
                                "HostCpuIdInfo"              : Object.FEATURE__ANY_TYPE | Object.FEATURE__LIST,
+                               "HostDatastoreBrowserSearchResults" : Object.FEATURE__LIST | Object.FEATURE__ANY_TYPE,
                                "ManagedObjectReference"     : Object.FEATURE__ANY_TYPE,
                                "ObjectContent"              : Object.FEATURE__DEEP_COPY | Object.FEATURE__LIST,
                                "PerfCounterInfo"            : Object.FEATURE__LIST,
-                               "PerfEntityMetric"           : Object.FEATURE__LIST |  Object.FEATURE__DYNAMIC_CAST,
+                               "PerfEntityMetric"           : Object.FEATURE__LIST | Object.FEATURE__DYNAMIC_CAST,
                                "PerfQuerySpec"              : Object.FEATURE__LIST,
                                "PerfMetricIntSeries"        : Object.FEATURE__DYNAMIC_CAST,
                                "PropertyFilterSpec"         : Object.FEATURE__LIST,

@@ -182,6 +182,18 @@ pciOpenConfig(pciDevice *dev)
     return 0;
 }
 
+static void
+pciCloseConfig(pciDevice *dev)
+{
+    if (!dev)
+        return;
+
+    if (dev->fd >= 0) {
+        close(dev->fd);
+        dev->fd = -1;
+    }
+}
+
 static int
 pciRead(pciDevice *dev, unsigned pos, uint8_t *buf, unsigned buflen)
 {
@@ -270,6 +282,7 @@ pciIterDevices(pciIterPredicate predicate,
     DIR *dir;
     struct dirent *entry;
     int ret = 0;
+    int rc;
 
     *matched = NULL;
 
@@ -309,11 +322,20 @@ pciIterDevices(pciIterPredicate predicate,
             break;
         }
 
-        if (predicate(dev, check, data)) {
-            VIR_DEBUG("%s %s: iter matched on %s", dev->id, dev->name, check->name);
-            *matched = check;
+        rc = predicate(dev, check, data);
+        if (rc < 0) {
+            /* the predicate returned an error, bail */
+            pciFreeDevice(check);
+            ret = -1;
             break;
         }
+        else if (rc == 1) {
+            VIR_DEBUG("%s %s: iter matched on %s", dev->id, dev->name, check->name);
+            *matched = check;
+            ret = 1;
+            break;
+        }
+
         pciFreeDevice(check);
     }
     closedir(dir);
@@ -379,11 +401,16 @@ pciFindExtendedCapabilityOffset(pciDevice *dev, unsigned capability)
     return 0;
 }
 
-static unsigned
+/* detects whether this device has FLR.  Returns 0 if the device does
+ * not have FLR, 1 if it does, and -1 on error
+ */
+static int
 pciDetectFunctionLevelReset(pciDevice *dev)
 {
     uint32_t caps;
     uint8_t pos;
+    char *path;
+    int found;
 
     /* The PCIe Function Level Reset capability allows
      * individual device functions to be reset without
@@ -410,6 +437,25 @@ pciDetectFunctionLevelReset(pciDevice *dev)
             VIR_DEBUG("%s %s: detected PCI FLR capability", dev->id, dev->name);
             return 1;
         }
+    }
+
+    /* there are some buggy devices that do support FLR, but forget to
+     * advertise that fact in their capabilities.  However, FLR is *required*
+     * to be present for virtual functions (VFs), so if we see that this
+     * device is a VF, we just assume FLR works
+     */
+
+    if (virAsprintf(&path, PCI_SYSFS "devices/%s/physfn", dev->name) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    found = virFileExists(path);
+    VIR_FREE(path);
+    if (found) {
+        VIR_DEBUG("%s %s: buggy device didn't advertise FLR, but is a VF; forcing flr on",
+                  dev->id, dev->name);
+        return 1;
     }
 
     VIR_DEBUG("%s %s: no FLR capability found", dev->id, dev->name);
@@ -440,19 +486,21 @@ pciDetectPowerManagementReset(pciDevice *dev)
     return 0;
 }
 
-/* Any active devices other than the one supplied on the same domain/bus ? */
+/* Any active devices on the same domain/bus ? */
 static int
 pciSharesBusWithActive(pciDevice *dev, pciDevice *check, void *data)
 {
-    pciDeviceList *activeDevs = data;
+    pciDeviceList *inactiveDevs = data;
 
+    /* Different domain, different bus, or simply identical device */
     if (dev->domain != check->domain ||
         dev->bus != check->bus ||
-        (check->slot == check->slot &&
-         check->function == check->function))
+        (dev->slot == check->slot &&
+         dev->function == check->function))
         return 0;
 
-    if (activeDevs && !pciDeviceListFind(activeDevs, check))
+    /* same bus, but inactive, i.e. about to be assigned to guest */
+    if (inactiveDevs && pciDeviceListFind(inactiveDevs, check))
         return 0;
 
     return 1;
@@ -460,21 +508,22 @@ pciSharesBusWithActive(pciDevice *dev, pciDevice *check, void *data)
 
 static pciDevice *
 pciBusContainsActiveDevices(pciDevice *dev,
-                            pciDeviceList *activeDevs)
+                            pciDeviceList *inactiveDevs)
 {
     pciDevice *active = NULL;
     if (pciIterDevices(pciSharesBusWithActive,
-                       dev, &active, activeDevs) < 0)
+                       dev, &active, inactiveDevs) < 0)
         return NULL;
     return active;
 }
 
 /* Is @check the parent of @dev ? */
 static int
-pciIsParent(pciDevice *dev, pciDevice *check, void *data ATTRIBUTE_UNUSED)
+pciIsParent(pciDevice *dev, pciDevice *check, void *data)
 {
     uint16_t device_class;
     uint8_t header_type, secondary, subordinate;
+    pciDevice **best = data;
 
     if (dev->domain != check->domain)
         return 0;
@@ -494,16 +543,54 @@ pciIsParent(pciDevice *dev, pciDevice *check, void *data ATTRIBUTE_UNUSED)
 
     VIR_DEBUG("%s %s: found parent device %s", dev->id, dev->name, check->name);
 
-    /* No, it's superman! */
-    return (dev->bus >= secondary && dev->bus <= subordinate);
+    /* if the secondary bus exactly equals the device's bus, then we found
+     * the direct parent.  No further work is necessary
+     */
+    if (dev->bus == secondary)
+        return 1;
+
+    /* otherwise, SRIOV allows VFs to be on different busses then their PFs.
+     * In this case, what we need to do is look for the "best" match; i.e.
+     * the most restrictive match that still satisfies all of the conditions.
+     */
+    if (dev->bus > secondary && dev->bus <= subordinate) {
+        if (*best == NULL) {
+            *best = pciGetDevice(check->domain, check->bus, check->slot,
+                                 check->function);
+            if (*best == NULL)
+                return -1;
+        }
+        else {
+            /* OK, we had already recorded a previous "best" match for the
+             * parent.  See if the current device is more restrictive than the
+             * best, and if so, make it the new best
+             */
+            if (secondary > pciRead8(*best, PCI_SECONDARY_BUS)) {
+                pciFreeDevice(*best);
+                *best = pciGetDevice(check->domain, check->bus, check->slot,
+                                     check->function);
+                if (*best == NULL)
+                    return -1;
+            }
+        }
+    }
+
+    return 0;
 }
 
-static pciDevice *
-pciGetParentDevice(pciDevice *dev)
+static int
+pciGetParentDevice(pciDevice *dev, pciDevice **parent)
 {
-    pciDevice *parent = NULL;
-    pciIterDevices(pciIsParent, dev, &parent, NULL);
-    return parent;
+    pciDevice *best = NULL;
+    int ret;
+
+    *parent = NULL;
+    ret = pciIterDevices(pciIsParent, dev, parent, &best);
+    if (ret == 1)
+        pciFreeDevice(best);
+    else if (ret == 0)
+        *parent = best;
+    return ret;
 }
 
 /* Secondary Bus Reset is our sledgehammer - it resets all
@@ -511,7 +598,7 @@ pciGetParentDevice(pciDevice *dev)
  */
 static int
 pciTrySecondaryBusReset(pciDevice *dev,
-                        pciDeviceList *activeDevs)
+                        pciDeviceList *inactiveDevs)
 {
     pciDevice *parent, *conflict;
     uint8_t config_space[PCI_CONF_LEN];
@@ -523,7 +610,7 @@ pciTrySecondaryBusReset(pciDevice *dev,
      * In future, we could allow it so long as those devices
      * are not in use by the host or other guests.
      */
-    if ((conflict = pciBusContainsActiveDevices(dev, activeDevs))) {
+    if ((conflict = pciBusContainsActiveDevices(dev, inactiveDevs))) {
         pciReportError(VIR_ERR_NO_SUPPORT,
                        _("Active %s devices on bus with %s, not doing bus reset"),
                        conflict->name, dev->name);
@@ -531,7 +618,8 @@ pciTrySecondaryBusReset(pciDevice *dev,
     }
 
     /* Find the parent bus */
-    parent = pciGetParentDevice(dev);
+    if (pciGetParentDevice(dev, &parent) < 0)
+        return -1;
     if (!parent) {
         pciReportError(VIR_ERR_NO_SUPPORT,
                        _("Failed to find parent device for %s"),
@@ -624,6 +712,8 @@ pciTryPowerManagementReset(pciDevice *dev)
 static int
 pciInitDevice(pciDevice *dev)
 {
+    int flr;
+
     if (pciOpenConfig(dev) < 0) {
         virReportSystemError(errno,
                              _("Failed to open config space file '%s'"),
@@ -633,7 +723,10 @@ pciInitDevice(pciDevice *dev)
 
     dev->pcie_cap_pos   = pciFindCapabilityOffset(dev, PCI_CAP_ID_EXP);
     dev->pci_pm_cap_pos = pciFindCapabilityOffset(dev, PCI_CAP_ID_PM);
-    dev->has_flr        = pciDetectFunctionLevelReset(dev);
+    flr = pciDetectFunctionLevelReset(dev);
+    if (flr < 0)
+        return flr;
+    dev->has_flr        = flr;
     dev->has_pm_reset   = pciDetectPowerManagementReset(dev);
     dev->initted        = 1;
     return 0;
@@ -641,7 +734,8 @@ pciInitDevice(pciDevice *dev)
 
 int
 pciResetDevice(pciDevice *dev,
-               pciDeviceList *activeDevs)
+               pciDeviceList *activeDevs,
+               pciDeviceList *inactiveDevs)
 {
     int ret = -1;
 
@@ -669,7 +763,7 @@ pciResetDevice(pciDevice *dev,
 
     /* Bus reset is not an option with the root bus */
     if (ret < 0 && dev->bus != 0)
-        ret = pciTrySecondaryBusReset(dev, activeDevs);
+        ret = pciTrySecondaryBusReset(dev, inactiveDevs);
 
     if (ret < 0) {
         virErrorPtr err = virGetLastError();
@@ -1096,8 +1190,7 @@ pciFreeDevice(pciDevice *dev)
     if (!dev)
         return;
     VIR_DEBUG("%s %s: freeing", dev->id, dev->name);
-    if (dev->fd >= 0)
-        close(dev->fd);
+    pciCloseConfig(dev);
     VIR_FREE(dev);
 }
 
@@ -1323,7 +1416,8 @@ pciDeviceIsBehindSwitchLackingACS(pciDevice *dev)
 {
     pciDevice *parent;
 
-    parent = pciGetParentDevice(dev);
+    if (pciGetParentDevice(dev, &parent) < 0)
+        return -1;
     if (!parent) {
         /* if we have no parent, and this is the root bus, ACS doesn't come
          * into play since devices on the root bus can't P2P without going
@@ -1346,6 +1440,7 @@ pciDeviceIsBehindSwitchLackingACS(pciDevice *dev)
     do {
         pciDevice *tmp;
         int acs;
+        int ret;
 
         acs = pciDeviceDownstreamLacksACS(parent);
 
@@ -1358,8 +1453,10 @@ pciDeviceIsBehindSwitchLackingACS(pciDevice *dev)
         }
 
         tmp = parent;
-        parent = pciGetParentDevice(parent);
+        ret = pciGetParentDevice(parent, &parent);
         pciFreeDevice(tmp);
+        if (ret < 0)
+            return -1;
     } while (parent);
 
     return 0;

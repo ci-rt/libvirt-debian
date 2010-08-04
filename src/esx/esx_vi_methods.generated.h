@@ -134,6 +134,13 @@ int esxVI_RevertToSnapshot_Task
        esxVI_ManagedObjectReference *host,                 /* optional */
        esxVI_ManagedObjectReference **output);             /* required */
 
+int esxVI_SearchDatastore_Task
+      (esxVI_Context *ctx,
+       esxVI_ManagedObjectReference *_this,                /* required */
+       const char *datastorePath,                          /* required */
+       esxVI_HostDatastoreBrowserSearchSpec *searchSpec,   /* optional */
+       esxVI_ManagedObjectReference **output);             /* required */
+
 int esxVI_SessionIsActive
       (esxVI_Context *ctx,
        const char *sessionID,                              /* required */

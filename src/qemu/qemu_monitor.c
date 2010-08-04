@@ -685,8 +685,6 @@ cleanup:
 
 void qemuMonitorClose(qemuMonitorPtr mon)
 {
-    int refs;
-
     if (!mon)
         return;
 
@@ -706,7 +704,7 @@ void qemuMonitorClose(qemuMonitorPtr mon)
         mon->closed = 1;
     }
 
-    if ((refs = qemuMonitorUnref(mon)) > 0)
+    if (qemuMonitorUnref(mon) > 0)
         qemuMonitorUnlock(mon);
 }
 
@@ -1916,5 +1914,18 @@ int qemuMonitorDeleteSnapshot(qemuMonitorPtr mon, const char *name)
         ret = qemuMonitorJSONDeleteSnapshot(mon, name);
     else
         ret = qemuMonitorTextDeleteSnapshot(mon, name);
+    return ret;
+}
+
+int qemuMonitorArbitraryCommand(qemuMonitorPtr mon, const char *cmd, char **reply)
+{
+    int ret;
+
+    DEBUG("mon=%p, cmd=%s, reply=%p", mon, cmd, reply);
+
+    if (mon->json)
+        ret = qemuMonitorJSONArbitraryCommand(mon, cmd, reply);
+    else
+        ret = qemuMonitorTextArbitraryCommand(mon, cmd, reply);
     return ret;
 }

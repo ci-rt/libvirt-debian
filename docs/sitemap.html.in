@@ -51,6 +51,10 @@
                 <span>The library and the daemon logging support</span>
               </li>
               <li>
+                <a href="firewall.html">Firewall</a>
+                <span>Firewall and network filter configuration</span>
+              </li>
+              <li>
                 <a href="hooks.html">Hooks</a>
                 <span>Hooks for system specific management</span>
               </li>
@@ -261,7 +265,7 @@
         <span>User contributed content</span>
       </li>
       <li>
-        <a href="FAQ.html">FAQ</a>
+        <a href="http://wiki.libvirt.org/page/FAQ">FAQ</a>
         <span>Frequently asked questions</span>
       </li>
       <li>

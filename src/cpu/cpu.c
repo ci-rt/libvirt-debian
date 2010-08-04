@@ -90,6 +90,12 @@ cpuCompareXML(virCPUDefPtr host,
     if (cpu == NULL)
         goto cleanup;
 
+    if (!cpu->model) {
+        virCPUReportError(VIR_ERR_OPERATION_INVALID,
+                "%s", _("no CPU model specified"));
+        goto cleanup;
+    }
+
     ret = cpuCompare(host, cpu);
 
 cleanup:
@@ -173,14 +179,15 @@ cpuEncode(const char *arch,
           union cpuData **required,
           union cpuData **optional,
           union cpuData **disabled,
-          union cpuData **forbidden)
+          union cpuData **forbidden,
+          union cpuData **vendor)
 {
     struct cpuArchDriver *driver;
 
     VIR_DEBUG("arch=%s, cpu=%p, forced=%p, required=%p, "
-              "optional=%p, disabled=%p, forbidden=%p",
+              "optional=%p, disabled=%p, forbidden=%p, vendor=%p",
               NULLSTR(arch), cpu, forced, required,
-              optional, disabled, forbidden);
+              optional, disabled, forbidden, vendor);
 
     if ((driver = cpuGetSubDriver(arch)) == NULL)
         return -1;
@@ -193,7 +200,7 @@ cpuEncode(const char *arch,
     }
 
     return driver->encode(cpu, forced, required,
-                          optional, disabled, forbidden);
+                          optional, disabled, forbidden, vendor);
 }
 
 
@@ -354,7 +361,6 @@ cpuBaseline(virCPUDefPtr *cpus,
             unsigned int nmodels)
 {
     struct cpuArchDriver *driver;
-    virCPUDefPtr cpu;
     unsigned int i;
 
     VIR_DEBUG("ncpus=%u, nmodels=%u", ncpus, nmodels);
@@ -394,16 +400,7 @@ cpuBaseline(virCPUDefPtr *cpus,
         return NULL;
     }
 
-    if ((cpu = driver->baseline(cpus, ncpus, models, nmodels))) {
-        cpu->type = VIR_CPU_TYPE_GUEST;
-        cpu->match = VIR_CPU_MATCH_EXACT;
-        VIR_FREE(cpu->arch);
-
-        for (i = 0; i < cpu->nfeatures; i++)
-            cpu->features[i].policy = VIR_CPU_FEATURE_REQUIRE;
-    }
-
-    return cpu;
+    return driver->baseline(cpus, ncpus, models, nmodels);
 }
 
 

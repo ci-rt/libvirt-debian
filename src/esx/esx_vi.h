@@ -94,7 +94,9 @@ enum _esxVI_APIVersion {
     esxVI_APIVersion_Undefined = 0,
     esxVI_APIVersion_Unknown,
     esxVI_APIVersion_25,
-    esxVI_APIVersion_40
+    esxVI_APIVersion_40,
+    esxVI_APIVersion_41,
+    esxVI_APIVersion_4x /* > 4.1 */
 };
 
 /*
@@ -110,10 +112,14 @@ enum _esxVI_ProductVersion {
     esxVI_ProductVersion_ESX   = (1 << 1) << 16,
     esxVI_ProductVersion_ESX35 = esxVI_ProductVersion_ESX | 1,
     esxVI_ProductVersion_ESX40 = esxVI_ProductVersion_ESX | 2,
+    esxVI_ProductVersion_ESX41 = esxVI_ProductVersion_ESX | 3,
+    esxVI_ProductVersion_ESX4x = esxVI_ProductVersion_ESX | 4, /* > 4.1 */
 
     esxVI_ProductVersion_VPX   = (1 << 2) << 16,
     esxVI_ProductVersion_VPX25 = esxVI_ProductVersion_VPX | 1,
-    esxVI_ProductVersion_VPX40 = esxVI_ProductVersion_VPX | 2
+    esxVI_ProductVersion_VPX40 = esxVI_ProductVersion_VPX | 2,
+    esxVI_ProductVersion_VPX41 = esxVI_ProductVersion_VPX | 3,
+    esxVI_ProductVersion_VPX4x = esxVI_ProductVersion_VPX | 4  /* > 4.1 */
 };
 
 enum _esxVI_Occurrence {
@@ -152,18 +158,22 @@ struct _esxVI_Context {
     esxVI_APIVersion apiVersion;
     esxVI_ProductVersion productVersion;
     esxVI_UserSession *session;
-    esxVI_ManagedObjectReference *datacenter;
-    esxVI_ManagedObjectReference *vmFolder;
-    esxVI_ManagedObjectReference *hostFolder;
+    esxVI_Datacenter *datacenter;
+    esxVI_ComputeResource *computeResource;
+    esxVI_HostSystem *hostSystem;
     esxVI_SelectionSpec *fullTraversalSpecList;
+    esxVI_SelectionSpec *fullTraversalSpecList2;
 };
 
 int esxVI_Context_Alloc(esxVI_Context **ctx);
 void esxVI_Context_Free(esxVI_Context **ctx);
 int esxVI_Context_Connect(esxVI_Context *ctx, const char *ipAddress,
                           const char *url, const char *username,
-                          const char *password,
-                          esxUtil_ParsedQuery *parsedQuery);
+                          const char *password, esxUtil_ParsedUri *parsedUri);
+int esxVI_Context_LookupObjectsByPath(esxVI_Context *ctx,
+                                      esxUtil_ParsedUri *parsedUri);
+int esxVI_Context_LookupObjectsByHostSystemIp(esxVI_Context *ctx,
+                                              const char *hostSystemIpAddress);
 int esxVI_Context_DownloadFile(esxVI_Context *ctx, const char *url,
                                char **content);
 int esxVI_Context_UploadFile(esxVI_Context *ctx, const char *url,
@@ -322,13 +332,13 @@ int esxVI_GetSnapshotTreeBySnapshot
        esxVI_ManagedObjectReference *snapshot,
        esxVI_VirtualMachineSnapshotTree **snapshotTree);
 
-int esxVI_LookupResourcePoolByHostSystem
-      (esxVI_Context *ctx, esxVI_ObjectContent *hostSystem,
-       esxVI_ManagedObjectReference **resourcePool);
+int esxVI_LookupHostSystemProperties(esxVI_Context *ctx,
+                                     esxVI_String *propertyNameList,
+                                     esxVI_ObjectContent **hostSystem);
 
-int esxVI_LookupHostSystemByIp(esxVI_Context *ctx, const char *ipAddress,
-                               esxVI_String *propertyNameList,
-                               esxVI_ObjectContent **hostSystem);
+int esxVI_LookupVirtualMachineList(esxVI_Context *ctx,
+                                   esxVI_String *propertyNameList,
+                                   esxVI_ObjectContent **virtualMachineList);
 
 int esxVI_LookupVirtualMachineByUuid(esxVI_Context *ctx,
                                      const unsigned char *uuid,
@@ -346,10 +356,23 @@ int esxVI_LookupVirtualMachineByUuidAndPrepareForTask
        esxVI_String *propertyNameList, esxVI_ObjectContent **virtualMachine,
        esxVI_Boolean autoAnswer);
 
+int esxVI_LookupDatastoreList(esxVI_Context *ctx, esxVI_String *propertyNameList,
+                              esxVI_ObjectContent **datastoreList);
+
 int esxVI_LookupDatastoreByName(esxVI_Context *ctx, const char *name,
                                 esxVI_String *propertyNameList,
                                 esxVI_ObjectContent **datastore,
                                 esxVI_Occurrence occurrence);
+
+int esxVI_LookupDatastoreByAbsolutePath(esxVI_Context *ctx,
+                                        const char *absolutePath,
+                                        esxVI_String *propertyNameList,
+                                        esxVI_ObjectContent **datastore,
+                                        esxVI_Occurrence occurrence);
+
+int esxVI_LookupDatastoreHostMount(esxVI_Context *ctx,
+                                   esxVI_ManagedObjectReference *datastore,
+                                   esxVI_DatastoreHostMount **hostMount);
 
 int esxVI_LookupTaskInfoByTask(esxVI_Context *ctx,
                                esxVI_ManagedObjectReference *task,
@@ -361,7 +384,9 @@ int esxVI_LookupPendingTaskInfoListByVirtualMachine
 
 int esxVI_LookupAndHandleVirtualMachineQuestion(esxVI_Context *ctx,
                                                 const unsigned char *uuid,
-                                                esxVI_Boolean autoAnswer);
+                                                esxVI_Occurrence occurrence,
+                                                esxVI_Boolean autoAnswer,
+                                                esxVI_Boolean *blocked);
 
 int esxVI_LookupRootSnapshotTreeList
       (esxVI_Context *ctx, const unsigned char *virtualMachineUuid,
@@ -376,11 +401,12 @@ int esxVI_HandleVirtualMachineQuestion
       (esxVI_Context *ctx,
        esxVI_ManagedObjectReference *virtualMachine,
        esxVI_VirtualMachineQuestionInfo *questionInfo,
-       esxVI_Boolean autoAnswer);
+       esxVI_Boolean autoAnswer, esxVI_Boolean *blocked);
 
 int esxVI_WaitForTaskCompletion(esxVI_Context *ctx,
                                 esxVI_ManagedObjectReference *task,
                                 const unsigned char *virtualMachineUuid,
+                                esxVI_Occurrence virtualMachineOccurrence,
                                 esxVI_Boolean autoAnswer,
                                 esxVI_TaskInfoState *finalState);
 

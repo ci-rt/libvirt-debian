@@ -45,7 +45,7 @@ esxStorageOpen(virConnectPtr conn,
                virConnectAuthPtr auth ATTRIBUTE_UNUSED,
                int flags ATTRIBUTE_UNUSED)
 {
-    if (STRNEQ(conn->driver->name, "ESX")) {
+    if (conn->driver->no != VIR_DRV_ESX) {
         return VIR_DRV_OPEN_DECLINED;
     }
 
@@ -74,13 +74,11 @@ esxNumberOfStoragePools(virConnectPtr conn)
     esxVI_ObjectContent *datastoreList = NULL;
     esxVI_ObjectContent *datastore = NULL;
 
-    if (esxVI_EnsureSession(priv->host) < 0) {
+    if (esxVI_EnsureSession(priv->primary) < 0) {
         return -1;
     }
 
-    if (esxVI_LookupObjectContentByType(priv->host, priv->host->datacenter,
-                                        "Datastore", NULL, esxVI_Boolean_True,
-                                        &datastoreList) < 0) {
+    if (esxVI_LookupDatastoreList(priv->primary, NULL, &datastoreList) < 0) {
         return -1;
     }
 
@@ -117,16 +115,14 @@ esxListStoragePools(virConnectPtr conn, char **const names, int maxnames)
         return 0;
     }
 
-    if (esxVI_EnsureSession(priv->host) < 0) {
+    if (esxVI_EnsureSession(priv->primary) < 0) {
         return -1;
     }
 
     if (esxVI_String_AppendValueToList(&propertyNameList,
                                        "summary.name") < 0 ||
-        esxVI_LookupObjectContentByType(priv->host, priv->host->datacenter,
-                                        "Datastore", propertyNameList,
-                                        esxVI_Boolean_True,
-                                        &datastoreList) < 0) {
+        esxVI_LookupDatastoreList(priv->primary, propertyNameList,
+                                  &datastoreList) < 0) {
         goto cleanup;
     }
 
@@ -198,64 +194,45 @@ static virStoragePoolPtr
 esxStoragePoolLookupByName(virConnectPtr conn, const char *name)
 {
     esxPrivate *priv = conn->storagePrivateData;
-    esxVI_String *propertyNameList = NULL;
     esxVI_ObjectContent *datastore = NULL;
-    esxVI_Boolean accessible = esxVI_Boolean_Undefined;
-    char *summaryUrl = NULL;
+    esxVI_DatastoreHostMount *hostMount = NULL;
     char *suffix = NULL;
     int suffixLength;
     char uuid_string[VIR_UUID_STRING_BUFLEN] = "00000000-00000000-0000-000000000000";
     unsigned char uuid[VIR_UUID_BUFLEN];
-    char *realName = NULL;
     virStoragePoolPtr pool = NULL;
 
-    if (esxVI_EnsureSession(priv->host) < 0) {
+    if (esxVI_EnsureSession(priv->primary) < 0) {
         return NULL;
     }
 
-    if (esxVI_String_AppendValueListToList(&propertyNameList,
-                                           "summary.accessible\0"
-                                           "summary.name\0"
-                                           "summary.url\0") < 0 ||
-        esxVI_LookupDatastoreByName(priv->host, name,
-                                    propertyNameList, &datastore,
-                                    esxVI_Occurrence_RequiredItem) < 0 ||
-        esxVI_GetBoolean(datastore, "summary.accessible",
-                         &accessible, esxVI_Occurrence_RequiredItem) < 0) {
+    if (esxVI_LookupDatastoreByName(priv->primary, name, NULL, &datastore,
+                                    esxVI_Occurrence_RequiredItem) < 0) {
         goto cleanup;
     }
 
     /*
-     * Datastores don't have a UUID. We can use the 'summary.url' property as
-     * source for a "UUID" on ESX, because the property value has this format:
+     * Datastores don't have a UUID. We can use the 'host.mountInfo.path'
+     * property as source for a "UUID" on ESX, because the property value has
+     * this format:
      *
-     *   summary.url = /vmfs/volumes/4b0beca7-7fd401f3-1d7f-000ae484a6a3
-     *   summary.url = /vmfs/volumes/b24b7a78-9d82b4f5    (short format)
+     *   host.mountInfo.path = /vmfs/volumes/4b0beca7-7fd401f3-1d7f-000ae484a6a3
+     *   host.mountInfo.path = /vmfs/volumes/b24b7a78-9d82b4f5    (short format)
      *
-     * The 'summary.url' property comes in two forms, with a complete "UUID"
-     * and a short "UUID".
+     * The 'host.mountInfo.path' property comes in two forms, with a complete
+     * "UUID" and a short "UUID".
      *
      * But this trailing "UUID" is not guaranteed to be there. On the other
      * hand we already rely on another implementation detail of the ESX server:
      * The object name of virtual machine contains an integer, we use that as
      * domain ID.
-     *
-     * The 'summary.url' property of an inaccessible datastore is invalid.
      */
-    if (accessible == esxVI_Boolean_True &&
-        priv->host->productVersion & esxVI_ProductVersion_ESX) {
-        if (esxVI_GetStringValue(datastore, "summary.url", &summaryUrl,
-                                 esxVI_Occurrence_RequiredItem) < 0) {
-            goto cleanup;
-        }
+    if (esxVI_LookupDatastoreHostMount(priv->primary, datastore->obj,
+                                       &hostMount) < 0) {
+        goto cleanup;
+    }
 
-        if ((suffix = STRSKIP(summaryUrl, "/vmfs/volumes/")) == NULL) {
-            ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
-                         _("Datastore URL '%s' has unexpected prefix, "
-                           "expecting '/vmfs/volumes/' prefix"), summaryUrl);
-            goto cleanup;
-        }
-
+    if ((suffix = STRSKIP(hostMount->mountInfo->path, "/vmfs/volumes/")) != NULL) {
         suffixLength = strlen(suffix);
 
         if ((suffixLength == 35 && /* = strlen("4b0beca7-7fd401f3-1d7f-000ae484a6a3") */
@@ -269,8 +246,8 @@ esxStoragePoolLookupByName(virConnectPtr conn, const char *name)
              */
             memcpy(uuid_string, suffix, suffixLength);
         } else {
-            VIR_WARN("Datastore URL suffix '%s' has unexpected format, "
-                     "cannot deduce a UUID from it", suffix);
+            VIR_WARN("Datastore host mount path suffix '%s' has unexpected "
+                     "format, cannot deduce a UUID from it", suffix);
         }
     }
 
@@ -281,16 +258,11 @@ esxStoragePoolLookupByName(virConnectPtr conn, const char *name)
         goto cleanup;
     }
 
-    if (esxVI_GetStringValue(datastore, "summary.name", &realName,
-                             esxVI_Occurrence_RequiredItem) < 0) {
-        goto cleanup;
-    }
-
-    pool = virGetStoragePool(conn, realName, uuid);
+    pool = virGetStoragePool(conn, name, uuid);
 
   cleanup:
-    esxVI_String_Free(&propertyNameList);
     esxVI_ObjectContent_Free(&datastore);
+    esxVI_DatastoreHostMount_Free(&hostMount);
 
     return pool;
 }
@@ -304,21 +276,16 @@ esxStoragePoolLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
     esxVI_String *propertyNameList = NULL;
     esxVI_ObjectContent *datastore = NULL;
     char uuid_string[VIR_UUID_STRING_BUFLEN] = "";
+    char *absolutePath = NULL;
     char *name = NULL;
     virStoragePoolPtr pool = NULL;
 
-    if (! (priv->host->productVersion & esxVI_ProductVersion_ESX)) {
-        ESX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
-                  _("Lookup by UUID is supported on ESX only"));
-        return NULL;
-    }
-
-    if (esxVI_EnsureSession(priv->host) < 0) {
+    if (esxVI_EnsureSession(priv->primary) < 0) {
         return NULL;
     }
 
     /*
-     * Convert from UUID to datastore URL form by stripping the second '-':
+     * Convert UUID to 'host.mountInfo.path' form by stripping the second '-':
      *
      * <---- 14 ----><-------- 22 -------->    <---- 13 ---><-------- 22 -------->
      * 4b0beca7-7fd4-01f3-1d7f-000ae484a6a3 -> 4b0beca7-7fd401f3-1d7f-000ae484a6a3
@@ -326,14 +293,15 @@ esxStoragePoolLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
     virUUIDFormat(uuid, uuid_string);
     memmove(uuid_string + 13, uuid_string + 14, 22 + 1);
 
-    /*
-     * Use esxVI_LookupDatastoreByName because it also does try to match "UUID"
-     * part of the 'summary.url' property if there is no name match.
-     */
+    if (virAsprintf(&absolutePath, "/vmfs/volumes/%s", uuid_string) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
     if (esxVI_String_AppendValueToList(&propertyNameList, "summary.name") < 0 ||
-        esxVI_LookupDatastoreByName(priv->host, uuid_string,
-                                    propertyNameList, &datastore,
-                                    esxVI_Occurrence_OptionalItem) < 0) {
+        esxVI_LookupDatastoreByAbsolutePath(priv->primary, absolutePath,
+                                            propertyNameList, &datastore,
+                                            esxVI_Occurrence_OptionalItem) < 0) {
         goto cleanup;
     }
 
@@ -347,9 +315,16 @@ esxStoragePoolLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
     if (datastore == NULL && STREQ(uuid_string + 17, "-0000-000000000000")) {
         uuid_string[17] = '\0';
 
-        if (esxVI_LookupDatastoreByName(priv->host, uuid_string,
-                                        propertyNameList, &datastore,
-                                        esxVI_Occurrence_RequiredItem) < 0) {
+        VIR_FREE(absolutePath);
+
+        if (virAsprintf(&absolutePath, "/vmfs/volumes/%s", uuid_string) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+        if (esxVI_LookupDatastoreByAbsolutePath(priv->primary, absolutePath,
+                                                propertyNameList, &datastore,
+                                                esxVI_Occurrence_RequiredItem) < 0) {
             goto cleanup;
         }
     }
@@ -357,7 +332,7 @@ esxStoragePoolLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
     if (datastore == NULL) {
         virUUIDFormat(uuid, uuid_string);
 
-        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
+        ESX_VI_ERROR(VIR_ERR_NO_STORAGE_POOL,
                      _("Could not find datastore with UUID '%s'"),
                      uuid_string);
 
@@ -372,6 +347,7 @@ esxStoragePoolLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
     pool = virGetStoragePool(conn, name, uuid);
 
   cleanup:
+    VIR_FREE(absolutePath);
     esxVI_String_Free(&propertyNameList);
     esxVI_ObjectContent_Free(&datastore);
 
@@ -389,13 +365,13 @@ esxStoragePoolRefresh(virStoragePoolPtr pool, unsigned int flags)
 
     virCheckFlags(0, -1);
 
-    if (esxVI_EnsureSession(priv->host) < 0) {
+    if (esxVI_EnsureSession(priv->primary) < 0) {
         return -1;
     }
 
-    if (esxVI_LookupDatastoreByName(priv->host, pool->name, NULL, &datastore,
+    if (esxVI_LookupDatastoreByName(priv->primary, pool->name, NULL, &datastore,
                                     esxVI_Occurrence_RequiredItem) < 0 ||
-        esxVI_RefreshDatastore(priv->host, datastore->obj) < 0) {
+        esxVI_RefreshDatastore(priv->primary, datastore->obj) < 0) {
         goto cleanup;
     }
 
@@ -421,7 +397,7 @@ esxStoragePoolGetInfo(virStoragePoolPtr pool, virStoragePoolInfoPtr info)
 
     memset(info, 0, sizeof (*info));
 
-    if (esxVI_EnsureSession(priv->host) < 0) {
+    if (esxVI_EnsureSession(priv->primary) < 0) {
         return -1;
     }
 
@@ -429,7 +405,7 @@ esxStoragePoolGetInfo(virStoragePoolPtr pool, virStoragePoolInfoPtr info)
                                            "summary.accessible\0"
                                            "summary.capacity\0"
                                            "summary.freeSpace\0") < 0 ||
-        esxVI_LookupDatastoreByName(priv->host, pool->name,
+        esxVI_LookupDatastoreByName(priv->primary, pool->name,
                                     propertyNameList, &datastore,
                                     esxVI_Occurrence_RequiredItem) < 0 ||
         esxVI_GetBoolean(datastore, "summary.accessible",
@@ -481,20 +457,19 @@ esxStoragePoolGetXMLDesc(virStoragePoolPtr pool, unsigned int flags)
     esxPrivate *priv = pool->conn->storagePrivateData;
     esxVI_String *propertyNameList = NULL;
     esxVI_ObjectContent *datastore = NULL;
+    esxVI_DatastoreHostMount *hostMount = NULL;
     esxVI_DynamicProperty *dynamicProperty = NULL;
     esxVI_Boolean accessible = esxVI_Boolean_Undefined;
     virStoragePoolDef def;
     esxVI_DatastoreInfo *info = NULL;
-    esxVI_LocalDatastoreInfo *localInfo = NULL;
     esxVI_NasDatastoreInfo *nasInfo = NULL;
-    esxVI_VmfsDatastoreInfo *vmfsInfo = NULL;
     char *xml = NULL;
 
     virCheckFlags(0, NULL);
 
     memset(&def, 0, sizeof (def));
 
-    if (esxVI_EnsureSession(priv->host) < 0) {
+    if (esxVI_EnsureSession(priv->primary) < 0) {
         return NULL;
     }
 
@@ -503,16 +478,20 @@ esxStoragePoolGetXMLDesc(virStoragePoolPtr pool, unsigned int flags)
                                            "summary.capacity\0"
                                            "summary.freeSpace\0"
                                            "info\0") < 0 ||
-        esxVI_LookupDatastoreByName(priv->host, pool->name,
+        esxVI_LookupDatastoreByName(priv->primary, pool->name,
                                     propertyNameList, &datastore,
                                     esxVI_Occurrence_RequiredItem) < 0 ||
         esxVI_GetBoolean(datastore, "summary.accessible",
-                         &accessible, esxVI_Occurrence_RequiredItem) < 0) {
+                         &accessible, esxVI_Occurrence_RequiredItem) < 0 ||
+        esxVI_LookupDatastoreHostMount(priv->primary, datastore->obj,
+                                       &hostMount) < 0) {
         goto cleanup;
     }
 
     def.name = pool->name;
     memcpy(def.uuid, pool->uuid, VIR_UUID_BUFLEN);
+
+    def.target.path = hostMount->mountInfo->path;
 
     if (accessible == esxVI_Boolean_True) {
         for (dynamicProperty = datastore->propSet; dynamicProperty != NULL;
@@ -531,46 +510,52 @@ esxStoragePoolGetXMLDesc(virStoragePoolPtr pool, unsigned int flags)
                 }
 
                 def.available = dynamicProperty->val->int64;
-            } else if (STREQ(dynamicProperty->name, "info")) {
-                if (esxVI_DatastoreInfo_CastFromAnyType(dynamicProperty->val,
-                                                        &info) < 0) {
-                    goto cleanup;
-                }
             }
         }
 
         def.allocation = def.capacity - def.available;
+    }
 
-        /* See vSphere API documentation about HostDatastoreSystem for details */
-        if ((localInfo = esxVI_LocalDatastoreInfo_DynamicCast(info)) != NULL) {
-            def.type = VIR_STORAGE_POOL_DIR;
-            def.target.path = localInfo->path;
-        } else if ((nasInfo = esxVI_NasDatastoreInfo_DynamicCast(info)) != NULL) {
-            def.type = VIR_STORAGE_POOL_NETFS;
-            def.source.host.name = nasInfo->nas->remoteHost;
-            def.source.dir = nasInfo->nas->remotePath;
-
-            if (STRCASEEQ(nasInfo->nas->type, "NFS")) {
-                def.source.format = VIR_STORAGE_POOL_NETFS_NFS;
-            } else  if (STRCASEEQ(nasInfo->nas->type, "CIFS")) {
-                def.source.format = VIR_STORAGE_POOL_NETFS_CIFS;
-            } else {
-                ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                          _("Datastore has unexpected type '%s'"),
-                          nasInfo->nas->type);
+    for (dynamicProperty = datastore->propSet; dynamicProperty != NULL;
+         dynamicProperty = dynamicProperty->_next) {
+        if (STREQ(dynamicProperty->name, "info")) {
+            if (esxVI_DatastoreInfo_CastFromAnyType(dynamicProperty->val,
+                                                    &info) < 0) {
                 goto cleanup;
             }
-        } else if ((vmfsInfo = esxVI_VmfsDatastoreInfo_DynamicCast(info)) != NULL) {
-            def.type = VIR_STORAGE_POOL_FS;
-            /*
-             * FIXME: I'm not sure how to represent the source and target of a
-             * VMFS based datastore in libvirt terms
-             */
+
+            break;
+        }
+    }
+
+    /* See vSphere API documentation about HostDatastoreSystem for details */
+    if (esxVI_LocalDatastoreInfo_DynamicCast(info) != NULL) {
+        def.type = VIR_STORAGE_POOL_DIR;
+    } else if ((nasInfo = esxVI_NasDatastoreInfo_DynamicCast(info)) != NULL) {
+        def.type = VIR_STORAGE_POOL_NETFS;
+        def.source.host.name = nasInfo->nas->remoteHost;
+        def.source.dir = nasInfo->nas->remotePath;
+
+        if (STRCASEEQ(nasInfo->nas->type, "NFS")) {
+            def.source.format = VIR_STORAGE_POOL_NETFS_NFS;
+        } else  if (STRCASEEQ(nasInfo->nas->type, "CIFS")) {
+            def.source.format = VIR_STORAGE_POOL_NETFS_CIFS;
         } else {
-            ESX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
-                      _("DatastoreInfo has unexpected type"));
+            ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                      _("Datastore has unexpected type '%s'"),
+                      nasInfo->nas->type);
             goto cleanup;
         }
+    } else if (esxVI_VmfsDatastoreInfo_DynamicCast(info) != NULL) {
+        def.type = VIR_STORAGE_POOL_FS;
+        /*
+         * FIXME: I'm not sure how to represent the source and target of a
+         * VMFS based datastore in libvirt terms
+         */
+    } else {
+        ESX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
+                  _("DatastoreInfo has unexpected type"));
+        goto cleanup;
     }
 
     xml = virStoragePoolDefFormat(&def);
@@ -578,6 +563,7 @@ esxStoragePoolGetXMLDesc(virStoragePoolPtr pool, unsigned int flags)
   cleanup:
     esxVI_String_Free(&propertyNameList);
     esxVI_ObjectContent_Free(&datastore);
+    esxVI_DatastoreHostMount_Free(&hostMount);
     esxVI_DatastoreInfo_Free(&info);
 
     return xml;

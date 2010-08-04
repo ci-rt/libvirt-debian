@@ -97,6 +97,8 @@ virCapsPtr umlCapsInit(void) {
                                       NULL) == NULL)
         goto error;
 
+    caps->defaultConsoleTargetType = VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_UML;
+
     return caps;
 
  error:
@@ -113,6 +115,7 @@ umlConnectTapDevice(virDomainNetDefPtr net,
     int tapfd = -1;
     int template_ifname = 0;
     int err;
+    unsigned char tapmac[VIR_MAC_BUFLEN];
 
     if ((err = brInit(&brctl))) {
         virReportSystemError(err, "%s",
@@ -130,8 +133,14 @@ umlConnectTapDevice(virDomainNetDefPtr net,
         template_ifname = 1;
     }
 
-    if ((err = brAddTap(brctl, bridge,
-                        &net->ifname, BR_TAP_PERSIST, &tapfd))) {
+    memcpy(tapmac, net->mac, VIR_MAC_BUFLEN);
+    tapmac[0] = 0xFE; /* Discourage bridge from using TAP dev MAC */
+    if ((err = brAddTap(brctl,
+                        bridge,
+                        &net->ifname,
+                        tapmac,
+                        0,
+                        &tapfd))) {
         if (errno == ENOTSUP) {
             /* In this particular case, give a better diagnostic. */
             umlReportError(VIR_ERR_INTERNAL_ERROR,

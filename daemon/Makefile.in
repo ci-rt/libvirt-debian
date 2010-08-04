@@ -178,17 +178,22 @@ mkinstalldirs = $(SHELL) $(top_srcdir)/build-aux/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am__installdirs = "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(augeasdir)" \
-	"$(DESTDIR)$(augeastestsdir)" "$(DESTDIR)$(confdir)"
+am__installdirs = "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(man8dir)" \
+	"$(DESTDIR)$(augeasdir)" "$(DESTDIR)$(augeastestsdir)" \
+	"$(DESTDIR)$(confdir)"
 PROGRAMS = $(sbin_PROGRAMS)
 am__libvirtd_SOURCES_DIST = event.c event.h libvirtd.c libvirtd.h \
 	remote.c remote.h dispatch.c dispatch.h stream.c stream.h \
 	remote_dispatch_prototypes.h remote_dispatch_table.h \
 	remote_dispatch_args.h remote_dispatch_ret.h \
-	../src/remote/remote_protocol.c mdns.c mdns.h
+	qemu_dispatch_prototypes.h qemu_dispatch_table.h \
+	qemu_dispatch_args.h qemu_dispatch_ret.h \
+	../src/remote/remote_protocol.c ../src/remote/qemu_protocol.c \
+	mdns.c mdns.h
 am__objects_1 = libvirtd-event.$(OBJEXT) libvirtd-libvirtd.$(OBJEXT) \
 	libvirtd-remote.$(OBJEXT) libvirtd-dispatch.$(OBJEXT) \
-	libvirtd-stream.$(OBJEXT) libvirtd-remote_protocol.$(OBJEXT)
+	libvirtd-stream.$(OBJEXT) libvirtd-remote_protocol.$(OBJEXT) \
+	libvirtd-qemu_protocol.$(OBJEXT)
 am__objects_2 = libvirtd-mdns.$(OBJEXT)
 @HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__objects_3 = $(am__objects_2)
 @WITH_LIBVIRTD_TRUE@am_libvirtd_OBJECTS = $(am__objects_1) \
@@ -201,7 +206,8 @@ am__DEPENDENCIES_1 =
 @WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1) \
 @WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1) \
 @WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1) \
-@WITH_LIBVIRTD_TRUE@	../src/libvirt_util.la $(am__append_1) \
+@WITH_LIBVIRTD_TRUE@	../src/libvirt_util.la \
+@WITH_LIBVIRTD_TRUE@	../src/libvirt-qemu.la $(am__append_1) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_2) $(am__append_3) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_4) $(am__append_5) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_6) $(am__append_7) \
@@ -265,6 +271,9 @@ am__nobase_list = $(am__nobase_strip_setup); \
 am__base_list = \
   sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
   sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
+man8dir = $(mandir)/man8
+NROFF = nroff
+MANS = $(man_MANS)
 DATA = $(augeas_DATA) $(augeastests_DATA) $(conf_DATA)
 ETAGS = etags
 CTAGS = ctags
@@ -298,7 +307,6 @@ CAPNG_LIBS = @CAPNG_LIBS@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
-COMPILER_FLAGS = @COMPILER_FLAGS@
 CONFIG_INCLUDE = @CONFIG_INCLUDE@
 COVERAGE_CFLAGS = @COVERAGE_CFLAGS@
 COVERAGE_LDFLAGS = @COVERAGE_LDFLAGS@
@@ -732,6 +740,7 @@ LIBTOOL = @LIBTOOL@
 LIBVIRT_MAJOR_VERSION = @LIBVIRT_MAJOR_VERSION@
 LIBVIRT_MICRO_VERSION = @LIBVIRT_MICRO_VERSION@
 LIBVIRT_MINOR_VERSION = @LIBVIRT_MINOR_VERSION@
+LIBVIRT_QEMU_SYMBOL_FILE = @LIBVIRT_QEMU_SYMBOL_FILE@
 LIBVIRT_SYMBOL_FILE = @LIBVIRT_SYMBOL_FILE@
 LIBVIRT_VERSION = @LIBVIRT_VERSION@
 LIBVIRT_VERSION_INFO = @LIBVIRT_VERSION_INFO@
@@ -1088,7 +1097,12 @@ DAEMON_SOURCES = \
 		remote_dispatch_table.h			\
 		remote_dispatch_args.h			\
 		remote_dispatch_ret.h			\
-		../src/remote/remote_protocol.c
+		qemu_dispatch_prototypes.h		\
+		qemu_dispatch_table.h			\
+		qemu_dispatch_args.h			\
+		qemu_dispatch_ret.h			\
+		../src/remote/remote_protocol.c		\
+		../src/remote/qemu_protocol.c
 
 AVAHI_SOURCES = \
 		mdns.c mdns.h
@@ -1110,9 +1124,11 @@ EXTRA_DIST = \
 	THREADING.txt					\
 	libvirt-guests.init.in				\
 	libvirt-guests.sysconf				\
+	libvirtd.pod.in					\
 	$(AVAHI_SOURCES)				\
 	$(DAEMON_SOURCES)
 
+man_MANS = libvirtd.8
 BUILT_SOURCES = $(am__append_15) $(am__append_16)
 @WITH_LIBVIRTD_TRUE@confdir = $(sysconfdir)/libvirt/
 @WITH_LIBVIRTD_TRUE@conf_DATA = libvirtd.conf
@@ -1120,6 +1136,9 @@ BUILT_SOURCES = $(am__append_15) $(am__append_16)
 @WITH_LIBVIRTD_TRUE@augeas_DATA = libvirtd.aug
 @WITH_LIBVIRTD_TRUE@augeastestsdir = $(datadir)/augeas/lenses/tests
 @WITH_LIBVIRTD_TRUE@augeastests_DATA = test_libvirtd.aug
+@WITH_LIBVIRTD_TRUE@POD2MAN = pod2man -c "Virtualization Support" \
+@WITH_LIBVIRTD_TRUE@			-r "$(PACKAGE)-$(VERSION)" -s 8
+
 @WITH_LIBVIRTD_TRUE@libvirtd_SOURCES = $(DAEMON_SOURCES) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_12)
 
@@ -1150,7 +1169,8 @@ BUILT_SOURCES = $(am__append_15) $(am__append_16)
 # are used by nearly every other library.
 @WITH_LIBVIRTD_TRUE@libvirtd_LDADD = $(LIBXML_LIBS) $(GNUTLS_LIBS) \
 @WITH_LIBVIRTD_TRUE@	$(SASL_LIBS) $(POLKIT_LIBS) \
-@WITH_LIBVIRTD_TRUE@	../src/libvirt_util.la $(am__append_1) \
+@WITH_LIBVIRTD_TRUE@	../src/libvirt_util.la \
+@WITH_LIBVIRTD_TRUE@	../src/libvirt-qemu.la $(am__append_1) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_2) $(am__append_3) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_4) $(am__append_5) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_6) $(am__append_7) \
@@ -1163,11 +1183,12 @@ BUILT_SOURCES = $(am__append_15) $(am__append_16)
 @HAVE_POLKIT0_FALSE@@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policyfile = libvirtd.policy-1
 @HAVE_POLKIT0_TRUE@@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policyfile = libvirtd.policy-0
 @WITH_LIBVIRTD_TRUE@REMOTE_PROTOCOL = $(top_srcdir)/src/remote/remote_protocol.x
+@WITH_LIBVIRTD_TRUE@QEMU_PROTOCOL = $(top_srcdir)/src/remote/qemu_protocol.x
 @WITH_LIBVIRTD_TRUE@LOGROTATE_CONFS = libvirtd.qemu.logrotate libvirtd.lxc.logrotate \
 @WITH_LIBVIRTD_TRUE@                  libvirtd.uml.logrotate
 
-CLEANFILES = $(BUILT_SOURCES) *.cov *.gcov .libs/*.gcda .libs/*.gcno \
-	*.gcno *.gcda
+CLEANFILES = $(BUILT_SOURCES) $(man_MANS) libvirtd.pod *.cov *.gcov \
+	.libs/*.gcda .libs/*.gcno *.gcno *.gcda
 all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -1260,6 +1281,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-event.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-libvirtd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-mdns.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-qemu_protocol.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-remote.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-remote_protocol.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-stream.Po@am__quote@
@@ -1384,6 +1406,22 @@ libvirtd-remote_protocol.obj: ../src/remote/remote_protocol.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-remote_protocol.obj `if test -f '../src/remote/remote_protocol.c'; then $(CYGPATH_W) '../src/remote/remote_protocol.c'; else $(CYGPATH_W) '$(srcdir)/../src/remote/remote_protocol.c'; fi`
 
+libvirtd-qemu_protocol.o: ../src/remote/qemu_protocol.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-qemu_protocol.o -MD -MP -MF $(DEPDIR)/libvirtd-qemu_protocol.Tpo -c -o libvirtd-qemu_protocol.o `test -f '../src/remote/qemu_protocol.c' || echo '$(srcdir)/'`../src/remote/qemu_protocol.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-qemu_protocol.Tpo $(DEPDIR)/libvirtd-qemu_protocol.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../src/remote/qemu_protocol.c' object='libvirtd-qemu_protocol.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-qemu_protocol.o `test -f '../src/remote/qemu_protocol.c' || echo '$(srcdir)/'`../src/remote/qemu_protocol.c
+
+libvirtd-qemu_protocol.obj: ../src/remote/qemu_protocol.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-qemu_protocol.obj -MD -MP -MF $(DEPDIR)/libvirtd-qemu_protocol.Tpo -c -o libvirtd-qemu_protocol.obj `if test -f '../src/remote/qemu_protocol.c'; then $(CYGPATH_W) '../src/remote/qemu_protocol.c'; else $(CYGPATH_W) '$(srcdir)/../src/remote/qemu_protocol.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-qemu_protocol.Tpo $(DEPDIR)/libvirtd-qemu_protocol.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../src/remote/qemu_protocol.c' object='libvirtd-qemu_protocol.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-qemu_protocol.obj `if test -f '../src/remote/qemu_protocol.c'; then $(CYGPATH_W) '../src/remote/qemu_protocol.c'; else $(CYGPATH_W) '$(srcdir)/../src/remote/qemu_protocol.c'; fi`
+
 libvirtd-mdns.o: mdns.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-mdns.o -MD -MP -MF $(DEPDIR)/libvirtd-mdns.Tpo -c -o libvirtd-mdns.o `test -f 'mdns.c' || echo '$(srcdir)/'`mdns.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-mdns.Tpo $(DEPDIR)/libvirtd-mdns.Po
@@ -1405,6 +1443,44 @@ mostlyclean-libtool:
 
 clean-libtool:
 	-rm -rf .libs _libs
+install-man8: $(man_MANS)
+	@$(NORMAL_INSTALL)
+	test -z "$(man8dir)" || $(MKDIR_P) "$(DESTDIR)$(man8dir)"
+	@list=''; test -n "$(man8dir)" || exit 0; \
+	{ for i in $$list; do echo "$$i"; done; \
+	l2='$(man_MANS)'; for i in $$l2; do echo "$$i"; done | \
+	  sed -n '/\.8[a-z]*$$/p'; \
+	} | while read p; do \
+	  if test -f $$p; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; echo "$$p"; \
+	done | \
+	sed -e 'n;s,.*/,,;p;h;s,.*\.,,;s,^[^8][0-9a-z]*$$,8,;x' \
+	      -e 's,\.[0-9a-z]*$$,,;$(transform);G;s,\n,.,' | \
+	sed 'N;N;s,\n, ,g' | { \
+	list=; while read file base inst; do \
+	  if test "$$base" = "$$inst"; then list="$$list $$file"; else \
+	    echo " $(INSTALL_DATA) '$$file' '$(DESTDIR)$(man8dir)/$$inst'"; \
+	    $(INSTALL_DATA) "$$file" "$(DESTDIR)$(man8dir)/$$inst" || exit $$?; \
+	  fi; \
+	done; \
+	for i in $$list; do echo "$$i"; done | $(am__base_list) | \
+	while read files; do \
+	  test -z "$$files" || { \
+	    echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(man8dir)'"; \
+	    $(INSTALL_DATA) $$files "$(DESTDIR)$(man8dir)" || exit $$?; }; \
+	done; }
+
+uninstall-man8:
+	@$(NORMAL_UNINSTALL)
+	@list=''; test -n "$(man8dir)" || exit 0; \
+	files=`{ for i in $$list; do echo "$$i"; done; \
+	l2='$(man_MANS)'; for i in $$l2; do echo "$$i"; done | \
+	  sed -n '/\.8[a-z]*$$/p'; \
+	} | sed -e 's,.*/,,;h;s,.*\.,,;s,^[^8][0-9a-z]*$$,8,;x' \
+	      -e 's,\.[0-9a-z]*$$,,;$(transform);G;s,\n,.,'`; \
+	test -z "$$files" || { \
+	  echo " ( cd '$(DESTDIR)$(man8dir)' && rm -f" $$files ")"; \
+	  cd "$(DESTDIR)$(man8dir)" && rm -f $$files; }
 install-augeasDATA: $(augeas_DATA)
 	@$(NORMAL_INSTALL)
 	test -z "$(augeasdir)" || $(MKDIR_P) "$(DESTDIR)$(augeasdir)"
@@ -1519,6 +1595,19 @@ distclean-tags:
 	-rm -f TAGS ID GTAGS GRTAGS GSYMS GPATH tags
 
 distdir: $(DISTFILES)
+	@list='$(MANS)'; if test -n "$$list"; then \
+	  list=`for p in $$list; do \
+	    if test -f $$p; then d=; else d="$(srcdir)/"; fi; \
+	    if test -f "$$d$$p"; then echo "$$d$$p"; else :; fi; done`; \
+	  if test -n "$$list" && \
+	    grep 'ab help2man is required to generate this page' $$list >/dev/null; then \
+	    echo "error: found man pages containing the \`missing help2man' replacement text:" >&2; \
+	    grep -l 'ab help2man is required to generate this page' $$list | sed 's/^/         /' >&2; \
+	    echo "       to fix them, install help2man, remove and regenerate the man pages;" >&2; \
+	    echo "       typically \`make maintainer-clean' will remove them" >&2; \
+	    exit 1; \
+	  else :; fi; \
+	else :; fi
 	@srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*]/\\\\&/g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's/[].[^$$\\*]/\\\\&/g'`; \
 	list='$(DISTFILES)'; \
@@ -1554,9 +1643,9 @@ check-am: all-am
 	$(MAKE) $(AM_MAKEFLAGS) check-local
 check: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) check-am
-all-am: Makefile $(PROGRAMS) $(DATA)
+all-am: Makefile $(PROGRAMS) $(MANS) $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(augeasdir)" "$(DESTDIR)$(augeastestsdir)" "$(DESTDIR)$(confdir)"; do \
+	for dir in "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(man8dir)" "$(DESTDIR)$(augeasdir)" "$(DESTDIR)$(augeastestsdir)" "$(DESTDIR)$(confdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: $(BUILT_SOURCES)
@@ -1612,7 +1701,7 @@ info: info-am
 info-am:
 
 install-data-am: install-augeasDATA install-augeastestsDATA \
-	install-confDATA install-data-local
+	install-confDATA install-data-local install-man
 
 install-dvi: install-dvi-am
 
@@ -1628,7 +1717,7 @@ install-info: install-info-am
 
 install-info-am:
 
-install-man:
+install-man: install-man8
 
 install-pdf: install-pdf-am
 
@@ -1659,7 +1748,10 @@ ps: ps-am
 ps-am:
 
 uninstall-am: uninstall-augeasDATA uninstall-augeastestsDATA \
-	uninstall-confDATA uninstall-local uninstall-sbinPROGRAMS
+	uninstall-confDATA uninstall-local uninstall-man \
+	uninstall-sbinPROGRAMS
+
+uninstall-man: uninstall-man8
 
 .MAKE: all check check-am install install-am install-strip
 
@@ -1671,15 +1763,27 @@ uninstall-am: uninstall-augeasDATA uninstall-augeastestsDATA \
 	install-confDATA install-data install-data-am \
 	install-data-local install-dvi install-dvi-am install-exec \
 	install-exec-am install-html install-html-am install-info \
-	install-info-am install-man install-pdf install-pdf-am \
-	install-ps install-ps-am install-sbinPROGRAMS install-strip \
-	installcheck installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags uninstall uninstall-am uninstall-augeasDATA \
-	uninstall-augeastestsDATA uninstall-confDATA uninstall-local \
-	uninstall-sbinPROGRAMS
+	install-info-am install-man install-man8 install-pdf \
+	install-pdf-am install-ps install-ps-am install-sbinPROGRAMS \
+	install-strip installcheck installcheck-am installdirs \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
+	pdf pdf-am ps ps-am tags uninstall uninstall-am \
+	uninstall-augeasDATA uninstall-augeastestsDATA \
+	uninstall-confDATA uninstall-local uninstall-man \
+	uninstall-man8 uninstall-sbinPROGRAMS
 
+
+@WITH_LIBVIRTD_TRUE@libvirtd.pod: libvirtd.pod.in
+@WITH_LIBVIRTD_TRUE@	sed \
+@WITH_LIBVIRTD_TRUE@	    -e 's![@]sysconfdir[@]!$(sysconfdir)!g' \
+@WITH_LIBVIRTD_TRUE@	    -e 's![@]localstatedir[@]!$(localstatedir)!g' \
+@WITH_LIBVIRTD_TRUE@	    -e 's![@]remote_pid_file[@]!$(REMOTE_PID_FILE)!g' \
+@WITH_LIBVIRTD_TRUE@	    < $< > $@-t
+@WITH_LIBVIRTD_TRUE@	mv $@-t $@
+
+@WITH_LIBVIRTD_TRUE@libvirtd.8: libvirtd.pod
+@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)$(POD2MAN) $< $@
 
 @WITH_LIBVIRTD_TRUE@install-data-local: install-init install-data-sasl install-data-polkit \
 @WITH_LIBVIRTD_TRUE@                    install-logrotate
@@ -1703,19 +1807,35 @@ uninstall-am: uninstall-augeasDATA uninstall-augeastestsDATA \
 @WITH_LIBVIRTD_TRUE@remote.c: remote_dispatch_prototypes.h \
 @WITH_LIBVIRTD_TRUE@	  remote_dispatch_table.h \
 @WITH_LIBVIRTD_TRUE@	  remote_dispatch_args.h \
-@WITH_LIBVIRTD_TRUE@	  remote_dispatch_ret.h
+@WITH_LIBVIRTD_TRUE@	  remote_dispatch_ret.h \
+@WITH_LIBVIRTD_TRUE@	  qemu_dispatch_prototypes.h \
+@WITH_LIBVIRTD_TRUE@	  qemu_dispatch_table.h \
+@WITH_LIBVIRTD_TRUE@	  qemu_dispatch_args.h \
+@WITH_LIBVIRTD_TRUE@	  qemu_dispatch_ret.h
 
 @WITH_LIBVIRTD_TRUE@remote_dispatch_prototypes.h: $(srcdir)/remote_generate_stubs.pl $(REMOTE_PROTOCOL)
-@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -p $(REMOTE_PROTOCOL) > $@
+@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -c -p remote $(REMOTE_PROTOCOL) > $@
 
 @WITH_LIBVIRTD_TRUE@remote_dispatch_table.h: $(srcdir)/remote_generate_stubs.pl $(REMOTE_PROTOCOL)
-@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -t $(REMOTE_PROTOCOL) > $@
+@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -c -t remote $(REMOTE_PROTOCOL) > $@
 
 @WITH_LIBVIRTD_TRUE@remote_dispatch_args.h: $(srcdir)/remote_generate_stubs.pl $(REMOTE_PROTOCOL)
-@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -a $(REMOTE_PROTOCOL) > $@
+@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -c -a remote $(REMOTE_PROTOCOL) > $@
 
 @WITH_LIBVIRTD_TRUE@remote_dispatch_ret.h: $(srcdir)/remote_generate_stubs.pl $(REMOTE_PROTOCOL)
-@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -r $(REMOTE_PROTOCOL) > $@
+@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -c -r remote $(REMOTE_PROTOCOL) > $@
+
+@WITH_LIBVIRTD_TRUE@qemu_dispatch_prototypes.h: $(srcdir)/remote_generate_stubs.pl $(QEMU_PROTOCOL)
+@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -p qemu $(QEMU_PROTOCOL) > $@
+
+@WITH_LIBVIRTD_TRUE@qemu_dispatch_table.h: $(srcdir)/remote_generate_stubs.pl $(QEMU_PROTOCOL)
+@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -t qemu $(QEMU_PROTOCOL) > $@
+
+@WITH_LIBVIRTD_TRUE@qemu_dispatch_args.h: $(srcdir)/remote_generate_stubs.pl $(QEMU_PROTOCOL)
+@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -a qemu $(QEMU_PROTOCOL) > $@
+
+@WITH_LIBVIRTD_TRUE@qemu_dispatch_ret.h: $(srcdir)/remote_generate_stubs.pl $(QEMU_PROTOCOL)
+@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -r qemu $(QEMU_PROTOCOL) > $@
 
 @WITH_LIBVIRTD_TRUE@libvirtd.qemu.logrotate: libvirtd.qemu.logrotate.in
 @WITH_LIBVIRTD_TRUE@	sed							\

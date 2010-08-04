@@ -116,13 +116,14 @@ virStorageBackendCopyToFD(virStorageVolDefPtr vol,
 {
     int inputfd = -1;
     int amtread = -1;
-    int ret = -1;
+    int ret = 0;
     unsigned long long remain;
     size_t bytes = 1024 * 1024;
     char zerobuf[512];
     char *buf = NULL;
 
     if ((inputfd = open(inputvol->target.path, O_RDONLY)) < 0) {
+        ret = -errno;
         virReportSystemError(errno,
                              _("could not open input path '%s'"),
                              inputvol->target.path);
@@ -132,6 +133,7 @@ virStorageBackendCopyToFD(virStorageVolDefPtr vol,
     bzero(&zerobuf, sizeof(zerobuf));
 
     if (VIR_ALLOC_N(buf, bytes) < 0) {
+        ret = -errno;
         virReportOOMError();
         goto cleanup;
     }
@@ -145,6 +147,7 @@ virStorageBackendCopyToFD(virStorageVolDefPtr vol,
             bytes = remain;
 
         if ((amtread = saferead(inputfd, buf, bytes)) < 0) {
+            ret = -errno;
             virReportSystemError(errno,
                                  _("failed reading from file '%s'"),
                                  inputvol->target.path);
@@ -161,12 +164,14 @@ virStorageBackendCopyToFD(virStorageVolDefPtr vol,
 
             if (is_dest_file && memcmp(buf+offset, zerobuf, interval) == 0) {
                 if (lseek(fd, interval, SEEK_CUR) < 0) {
+                    ret = -errno;
                     virReportSystemError(errno,
                                          _("cannot extend file '%s'"),
                                          vol->target.path);
                     goto cleanup;
                 }
             } else if (safewrite(fd, buf+offset, interval) < 0) {
+                ret = -errno;
                 virReportSystemError(errno,
                                      _("failed writing to file '%s'"),
                                      vol->target.path);
@@ -177,6 +182,7 @@ virStorageBackendCopyToFD(virStorageVolDefPtr vol,
     }
 
     if (inputfd != -1 && close(inputfd) < 0) {
+        ret = -errno;
         virReportSystemError(errno,
                              _("cannot close file '%s'"),
                              inputvol->target.path);
@@ -185,7 +191,6 @@ virStorageBackendCopyToFD(virStorageVolDefPtr vol,
     inputfd = -1;
 
     *total -= remain;
-    ret = 0;
 
 cleanup:
     if (inputfd != -1)
@@ -227,7 +232,6 @@ virStorageBackendCreateBlockFrom(virConnectPtr conn ATTRIBUTE_UNUSED,
     }
 
     if (fstat(fd, &st) == -1) {
-        ret = errno;
         virReportSystemError(errno, _("stat of '%s' failed"),
                              vol->target.path);
         goto cleanup;
@@ -276,7 +280,7 @@ static int createRawFileOpHook(int fd, void *data) {
     /* Seek to the final size, so the capacity is available upfront
      * for progress reporting */
     if (ftruncate(fd, hdata->vol->capacity) < 0) {
-        ret = errno;
+        ret = -errno;
         virReportSystemError(errno,
                              _("cannot extend file '%s'"),
                              hdata->vol->target.path);
@@ -286,11 +290,11 @@ static int createRawFileOpHook(int fd, void *data) {
     remain = hdata->vol->allocation;
 
     if (hdata->inputvol) {
-        int res = virStorageBackendCopyToFD(hdata->vol, hdata->inputvol,
-                                            fd, &remain, 1);
-        if (res < 0)
-            ret = -res;
+        ret = virStorageBackendCopyToFD(hdata->vol, hdata->inputvol,
+                                        fd, &remain, 1);
+        if (ret < 0) {
             goto cleanup;
+        }
     }
 
     if (remain) {
@@ -307,7 +311,7 @@ static int createRawFileOpHook(int fd, void *data) {
                     bytes = remain;
                 if (safezero(fd, 0, hdata->vol->allocation - remain,
                              bytes) != 0) {
-                    ret = errno;
+                    ret = -errno;
                     virReportSystemError(errno, _("cannot fill file '%s'"),
                                          hdata->vol->target.path);
                     goto cleanup;
@@ -316,19 +320,20 @@ static int createRawFileOpHook(int fd, void *data) {
             }
         } else { /* No progress bars to be shown */
             if (safezero(fd, 0, 0, remain) != 0) {
-                ret = errno;
+                ret = -errno;
                 virReportSystemError(errno, _("cannot fill file '%s'"),
                                      hdata->vol->target.path);
                 goto cleanup;
             }
         }
 
-        if (fsync(fd) < 0) {
-            ret = errno;
-            virReportSystemError(errno, _("cannot sync data to file '%s'"),
-                                 hdata->vol->target.path);
-            goto cleanup;
-        }
+    }
+
+    if (fsync(fd) < 0) {
+        ret = -errno;
+        virReportSystemError(errno, _("cannot sync data to file '%s'"),
+                             hdata->vol->target.path);
+        goto cleanup;
     }
 
 cleanup:
@@ -363,7 +368,7 @@ virStorageBackendCreateRaw(virConnectPtr conn ATTRIBUTE_UNUSED,
                                        VIR_FILE_OP_FORCE_PERMS |
                                        (pool->def->type == VIR_STORAGE_POOL_NETFS
                                         ? VIR_FILE_OP_AS_UID : 0))) < 0) {
-    virReportSystemError(createstat,
+    virReportSystemError(-createstat,
                          _("cannot create path '%s'"),
                          vol->target.path);
     goto cleanup;
@@ -561,6 +566,68 @@ static int virStorageBackendCreateExecCommand(virStoragePoolObjPtr pool,
     return 0;
 }
 
+enum {
+    QEMU_IMG_BACKING_FORMAT_NONE = 0,
+    QEMU_IMG_BACKING_FORMAT_FLAG,
+    QEMU_IMG_BACKING_FORMAT_OPTIONS,
+};
+
+static int virStorageBackendQEMUImgBackingFormat(const char *qemuimg)
+{
+    const char *const qemuarg[] = { qemuimg, "-h", NULL };
+    const char *const qemuenv[] = { "LC_ALL=C", NULL };
+    pid_t child = 0;
+    int status;
+    int newstdout = -1;
+    char *help = NULL;
+    enum { MAX_HELP_OUTPUT_SIZE = 1024*8 };
+    char *start;
+    char *end;
+    char *tmp;
+    int ret = -1;
+
+    if (virExec(qemuarg, qemuenv, NULL,
+                &child, -1, &newstdout, NULL, VIR_EXEC_CLEAR_CAPS) < 0)
+        goto cleanup;
+
+    if (virFileReadLimFD(newstdout, MAX_HELP_OUTPUT_SIZE, &help) < 0) {
+        virReportSystemError(errno,
+                             _("Unable to read '%s -h' output"),
+                             qemuimg);
+        goto cleanup;
+    }
+
+    start = strstr(help, " create ");
+    end = strstr(start, "\n");
+    if ((tmp = strstr(start, "-F fmt")) && tmp < end)
+        ret = QEMU_IMG_BACKING_FORMAT_FLAG;
+    else if ((tmp = strstr(start, "[-o options]")) && tmp < end)
+        ret = QEMU_IMG_BACKING_FORMAT_OPTIONS;
+    else
+        ret = QEMU_IMG_BACKING_FORMAT_NONE;
+
+cleanup:
+    VIR_FREE(help);
+    close(newstdout);
+rewait:
+    if (child) {
+        if (waitpid(child, &status, 0) != child) {
+            if (errno == EINTR)
+                goto rewait;
+
+            VIR_ERROR(_("Unexpected exit status from qemu %d pid %lu"),
+                      WEXITSTATUS(status), (unsigned long)child);
+        }
+        if (WEXITSTATUS(status) != 0) {
+            VIR_WARN("Unexpected exit status '%d', qemu probably failed",
+                     WEXITSTATUS(status));
+        }
+    }
+
+    return ret;
+}
+
+
 static int
 virStorageBackendCreateQemuImg(virConnectPtr conn,
                                virStoragePoolObjPtr pool,
@@ -568,10 +635,9 @@ virStorageBackendCreateQemuImg(virConnectPtr conn,
                                virStorageVolDefPtr inputvol,
                                unsigned int flags ATTRIBUTE_UNUSED)
 {
-    int ret;
+    int ret = -1;
     char size[100];
     char *create_tool;
-    short use_kvmimg;
 
     const char *type = virStorageFileFormatTypeToString(vol->target.format);
     const char *backingType = vol->backingStore.path ?
@@ -582,41 +648,10 @@ virStorageBackendCreateQemuImg(virConnectPtr conn,
     const char *inputPath = inputvol ? inputvol->target.path : NULL;
     /* Treat input block devices as 'raw' format */
     const char *inputType = inputPath ?
-                            virStorageFileFormatTypeToString(inputvol->type == VIR_STORAGE_VOL_BLOCK ? VIR_STORAGE_FILE_RAW : inputvol->target.format) :
-                            NULL;
-
-    const char **imgargv;
-    /* The extra NULL field is for indicating encryption (-e). */
-    const char *imgargvnormal[] = {
-        NULL, "create",
-        "-f", type,
-        vol->target.path,
-        size,
-        NULL,
-        NULL
-    };
-    /* Extra NULL fields are for including "backingType" when using
-     * kvm-img (-F backingType), and for indicating encryption (-e).
-     */
-    const char *imgargvbacking[] = {
-        NULL, "create",
-        "-f", type,
-        "-b", vol->backingStore.path,
-        vol->target.path,
-        size,
-        NULL,
-        NULL,
-        NULL,
-        NULL
-    };
-    const char *convargv[] = {
-        NULL, "convert",
-        "-f", inputType,
-        "-O", type,
-        inputPath,
-        vol->target.path,
-        NULL,
-    };
+        virStorageFileFormatTypeToString(inputvol->type == VIR_STORAGE_VOL_BLOCK ?
+                                         VIR_STORAGE_FILE_RAW :
+                                         inputvol->target.format) :
+        NULL;
 
     if (type == NULL) {
         virStorageReportError(VIR_ERR_INTERNAL_ERROR,
@@ -690,44 +725,103 @@ virStorageBackendCreateQemuImg(virConnectPtr conn,
         }
     }
 
-    if ((create_tool = virFindFileInPath("kvm-img")) != NULL)
-        use_kvmimg = 1;
-    else if ((create_tool = virFindFileInPath("qemu-img")) != NULL)
-        use_kvmimg = 0;
-    else {
+    /* Size in KB */
+    snprintf(size, sizeof(size), "%lluK", vol->capacity/1024);
+
+    /* KVM is usually ahead of qemu on features, so try that first */
+    create_tool = virFindFileInPath("kvm-img");
+    if (!create_tool)
+        create_tool = virFindFileInPath("qemu-img");
+
+    if (!create_tool) {
         virStorageReportError(VIR_ERR_INTERNAL_ERROR,
                               "%s", _("unable to find kvm-img or qemu-img"));
         return -1;
     }
 
     if (inputvol) {
-        convargv[0] = create_tool;
-        imgargv = convargv;
+        const char *imgargv[] = {
+            create_tool,
+            "convert",
+            "-f", inputType,
+            "-O", type,
+            inputPath,
+            vol->target.path,
+            NULL,
+        };
+
+        ret = virStorageBackendCreateExecCommand(pool, vol, imgargv);
     } else if (vol->backingStore.path) {
-        imgargvbacking[0] = create_tool;
-        if (use_kvmimg) {
-            imgargvbacking[6] = "-F";
-            imgargvbacking[7] = backingType;
-            imgargvbacking[8] = vol->target.path;
-            imgargvbacking[9] = size;
+        const char *imgargv[] = {
+            create_tool,
+            "create",
+            "-f", type,
+            "-b", vol->backingStore.path,
+            NULL,
+            NULL,
+            NULL,
+            NULL,
+            NULL,
+            NULL
+        };
+        int imgformat = virStorageBackendQEMUImgBackingFormat(create_tool);
+        char *optflag = NULL;
+        if (imgformat < 0)
+            goto cleanup;
+
+        switch (imgformat) {
+        case QEMU_IMG_BACKING_FORMAT_FLAG:
+            imgargv[6] = "-F";
+            imgargv[7] = backingType;
+            imgargv[8] = vol->target.path;
+            imgargv[9] = size;
             if (vol->target.encryption != NULL)
-                imgargvbacking[10] = "-e";
-        } else if (vol->target.encryption != NULL)
-            imgargvbacking[8] = "-e";
-        imgargv = imgargvbacking;
+                imgargv[10] = "-e";
+            break;
+
+        case QEMU_IMG_BACKING_FORMAT_OPTIONS:
+            if (virAsprintf(&optflag, "backing_fmt=%s", backingType) < 0) {
+                virReportOOMError();
+                goto cleanup;
+            }
+            imgargv[6] = "-o";
+            imgargv[7] = optflag;
+            imgargv[8] = vol->target.path;
+            imgargv[9] = size;
+            if (vol->target.encryption != NULL)
+                imgargv[10] = "-e";
+            break;
+
+        default:
+            VIR_INFO("Unable to set backing store format for %s with %s",
+                     vol->target.path, create_tool);
+            imgargv[6] = vol->target.path;
+            imgargv[7] = size;
+            if (vol->target.encryption != NULL)
+                imgargv[8] = "-e";
+        }
+
+        ret = virStorageBackendCreateExecCommand(pool, vol, imgargv);
+        VIR_FREE(optflag);
     } else {
-        imgargvnormal[0] = create_tool;
-        imgargv = imgargvnormal;
+        /* The extra NULL field is for indicating encryption (-e). */
+        const char *imgargv[] = {
+            create_tool,
+            "create",
+            "-f", type,
+            vol->target.path,
+            size,
+            NULL,
+            NULL
+        };
         if (vol->target.encryption != NULL)
             imgargv[6] = "-e";
+
+        ret = virStorageBackendCreateExecCommand(pool, vol, imgargv);
     }
 
-
-    /* Size in KB */
-    snprintf(size, sizeof(size), "%lluK", vol->capacity/1024);
-
-    ret = virStorageBackendCreateExecCommand(pool, vol, imgargv);
-    VIR_FREE(imgargv[0]);
+    cleanup:
+    VIR_FREE(create_tool);
 
     return ret;
 }

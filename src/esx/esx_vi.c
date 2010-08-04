@@ -101,10 +101,11 @@ ESX_VI__TEMPLATE__FREE(Context,
     VIR_FREE(item->password);
     esxVI_ServiceContent_Free(&item->service);
     esxVI_UserSession_Free(&item->session);
-    esxVI_ManagedObjectReference_Free(&item->datacenter);
-    esxVI_ManagedObjectReference_Free(&item->vmFolder);
-    esxVI_ManagedObjectReference_Free(&item->hostFolder);
+    esxVI_Datacenter_Free(&item->datacenter);
+    esxVI_ComputeResource_Free(&item->computeResource);
+    esxVI_HostSystem_Free(&item->hostSystem);
     esxVI_SelectionSpec_Free(&item->fullTraversalSpecList);
+    esxVI_SelectionSpec_Free(&item->fullTraversalSpecList2);
 });
 
 static size_t
@@ -277,13 +278,8 @@ esxVI_CURL_Perform(esxVI_Context *ctx, const char *url)
 int
 esxVI_Context_Connect(esxVI_Context *ctx, const char *url,
                       const char *ipAddress, const char *username,
-                      const char *password, esxUtil_ParsedQuery *parsedQuery)
+                      const char *password, esxUtil_ParsedUri *parsedUri)
 {
-    int result = -1;
-    esxVI_String *propertyNameList = NULL;
-    esxVI_ObjectContent *datacenterList = NULL;
-    esxVI_DynamicProperty *dynamicProperty = NULL;
-
     if (ctx == NULL || url == NULL || ipAddress == NULL || username == NULL ||
         password == NULL || ctx->url != NULL || ctx->service != NULL ||
         ctx->curl_handle != NULL || ctx->curl_headers != NULL) {
@@ -293,7 +289,7 @@ esxVI_Context_Connect(esxVI_Context *ctx, const char *url,
 
     if (esxVI_String_DeepCopyValue(&ctx->url, url) < 0 ||
         esxVI_String_DeepCopyValue(&ctx->ipAddress, ipAddress) < 0) {
-        goto cleanup;
+        return -1;
     }
 
     ctx->curl_handle = curl_easy_init();
@@ -301,7 +297,7 @@ esxVI_Context_Connect(esxVI_Context *ctx, const char *url,
     if (ctx->curl_handle == NULL) {
         ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
                      _("Could not initialize CURL"));
-        goto cleanup;
+        return -1;
     }
 
     ctx->curl_headers = curl_slist_append(ctx->curl_headers, "Content-Type: "
@@ -321,7 +317,7 @@ esxVI_Context_Connect(esxVI_Context *ctx, const char *url,
     if (ctx->curl_headers == NULL) {
         ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
                      _("Could not build CURL header list"));
-        goto cleanup;
+        return -1;
     }
 
     curl_easy_setopt(ctx->curl_handle, CURLOPT_URL, ctx->url);
@@ -329,9 +325,9 @@ esxVI_Context_Connect(esxVI_Context *ctx, const char *url,
     curl_easy_setopt(ctx->curl_handle, CURLOPT_HEADER, 0);
     curl_easy_setopt(ctx->curl_handle, CURLOPT_FOLLOWLOCATION, 0);
     curl_easy_setopt(ctx->curl_handle, CURLOPT_SSL_VERIFYPEER,
-                     parsedQuery->noVerify ? 0 : 1);
+                     parsedUri->noVerify ? 0 : 1);
     curl_easy_setopt(ctx->curl_handle, CURLOPT_SSL_VERIFYHOST,
-                     parsedQuery->noVerify ? 0 : 2);
+                     parsedUri->noVerify ? 0 : 2);
     curl_easy_setopt(ctx->curl_handle, CURLOPT_COOKIEFILE, "");
     curl_easy_setopt(ctx->curl_handle, CURLOPT_HTTPHEADER, ctx->curl_headers);
     curl_easy_setopt(ctx->curl_handle, CURLOPT_READFUNCTION,
@@ -345,19 +341,19 @@ esxVI_Context_Connect(esxVI_Context *ctx, const char *url,
     curl_easy_setopt(ctx->curl_handle, CURLOPT_VERBOSE, 1);
 #endif
 
-    if (parsedQuery->proxy) {
+    if (parsedUri->proxy) {
         curl_easy_setopt(ctx->curl_handle, CURLOPT_PROXY,
-                         parsedQuery->proxy_hostname);
+                         parsedUri->proxy_hostname);
         curl_easy_setopt(ctx->curl_handle, CURLOPT_PROXYTYPE,
-                         parsedQuery->proxy_type);
+                         parsedUri->proxy_type);
         curl_easy_setopt(ctx->curl_handle, CURLOPT_PROXYPORT,
-                         parsedQuery->proxy_port);
+                         parsedUri->proxy_port);
     }
 
     if (virMutexInit(&ctx->curl_lock) < 0) {
         ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
                      _("Could not initialize CURL mutex"));
-        goto cleanup;
+        return -1;
     }
 
     ctx->username = strdup(username);
@@ -365,11 +361,11 @@ esxVI_Context_Connect(esxVI_Context *ctx, const char *url,
 
     if (ctx->username == NULL || ctx->password == NULL) {
         virReportOOMError();
-        goto cleanup;
+        return -1;
     }
 
     if (esxVI_RetrieveServiceContent(ctx, &ctx->service) < 0) {
-        goto cleanup;
+        return -1;
     }
 
     if (STREQ(ctx->service->about->apiType, "HostAgent") ||
@@ -378,11 +374,18 @@ esxVI_Context_Connect(esxVI_Context *ctx, const char *url,
             ctx->apiVersion = esxVI_APIVersion_25;
         } else if (STRPREFIX(ctx->service->about->apiVersion, "4.0")) {
             ctx->apiVersion = esxVI_APIVersion_40;
+        } else if (STRPREFIX(ctx->service->about->apiVersion, "4.1")) {
+            ctx->apiVersion = esxVI_APIVersion_41;
+        } else if (STRPREFIX(ctx->service->about->apiVersion, "4.")) {
+            ctx->apiVersion = esxVI_APIVersion_4x;
+
+            VIR_WARN("Found untested VI API major/minor version '%s'",
+                     ctx->service->about->apiVersion);
         } else {
             ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
-                         _("Expecting VI API major/minor version '2.5' or '4.0' "
+                         _("Expecting VI API major/minor version '2.5' or '4.x' "
                            "but found '%s'"), ctx->service->about->apiVersion);
-            goto cleanup;
+            return -1;
         }
 
         if (STREQ(ctx->service->about->productLineId, "gsx")) {
@@ -392,7 +395,7 @@ esxVI_Context_Connect(esxVI_Context *ctx, const char *url,
                 ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
                              _("Expecting GSX major/minor version '2.0' but "
                                "found '%s'"), ctx->service->about->version);
-                goto cleanup;
+                return -1;
             }
         } else if (STREQ(ctx->service->about->productLineId, "esx") ||
                    STREQ(ctx->service->about->productLineId, "embeddedEsx")) {
@@ -400,52 +403,97 @@ esxVI_Context_Connect(esxVI_Context *ctx, const char *url,
                 ctx->productVersion = esxVI_ProductVersion_ESX35;
             } else if (STRPREFIX(ctx->service->about->version, "4.0")) {
                 ctx->productVersion = esxVI_ProductVersion_ESX40;
+            } else if (STRPREFIX(ctx->service->about->version, "4.1")) {
+                ctx->productVersion = esxVI_ProductVersion_ESX41;
+            } else if (STRPREFIX(ctx->service->about->version, "4.")) {
+                ctx->productVersion = esxVI_ProductVersion_ESX4x;
+
+                VIR_WARN("Found untested ESX major/minor version '%s'",
+                         ctx->service->about->version);
             } else {
                 ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
                              _("Expecting ESX major/minor version '3.5' or "
-                               "'4.0' but found '%s'"),
+                               "'4.x' but found '%s'"),
                              ctx->service->about->version);
-                goto cleanup;
+                return -1;
             }
         } else if (STREQ(ctx->service->about->productLineId, "vpx")) {
             if (STRPREFIX(ctx->service->about->version, "2.5")) {
                 ctx->productVersion = esxVI_ProductVersion_VPX25;
             } else if (STRPREFIX(ctx->service->about->version, "4.0")) {
                 ctx->productVersion = esxVI_ProductVersion_VPX40;
+            } else if (STRPREFIX(ctx->service->about->version, "4.1")) {
+                ctx->productVersion = esxVI_ProductVersion_VPX41;
+            } else if (STRPREFIX(ctx->service->about->version, "4.")) {
+                ctx->productVersion = esxVI_ProductVersion_VPX4x;
+
+                VIR_WARN("Found untested VPX major/minor version '%s'",
+                         ctx->service->about->version);
             } else {
                 ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
-                             _("Expecting VPX major/minor version '2.5' or '4.0' "
+                             _("Expecting VPX major/minor version '2.5' or '4.x' "
                                "but found '%s'"), ctx->service->about->version);
-                goto cleanup;
+                return -1;
             }
         } else {
             ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
                          _("Expecting product 'gsx' or 'esx' or 'embeddedEsx' "
                            "or 'vpx' but found '%s'"),
                          ctx->service->about->productLineId);
-            goto cleanup;
+            return -1;
         }
     } else {
         ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
                      _("Expecting VI API type 'HostAgent' or 'VirtualCenter' "
                        "but found '%s'"), ctx->service->about->apiType);
-        goto cleanup;
+        return -1;
     }
 
-    if (esxVI_Login(ctx, username, password, NULL, &ctx->session) < 0) {
-        goto cleanup;
+    if (esxVI_Login(ctx, username, password, NULL, &ctx->session) < 0 ||
+        esxVI_BuildFullTraversalSpecList(&ctx->fullTraversalSpecList) < 0) {
+        return -1;
     }
 
-    esxVI_BuildFullTraversalSpecList(&ctx->fullTraversalSpecList);
+    /* Folder -> parent (Folder, Datacenter) */
+    if (esxVI_BuildFullTraversalSpecItem(&ctx->fullTraversalSpecList2,
+                                         "managedEntityToParent",
+                                         "ManagedEntity", "parent",
+                                         NULL) < 0) {
+        return -1;
+    }
 
+    /* ComputeResource -> parent (Folder) */
+    if (esxVI_BuildFullTraversalSpecItem(&ctx->fullTraversalSpecList2,
+                                         "computeResourceToParent",
+                                         "ComputeResource", "parent",
+                                         "managedEntityToParent\0") < 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
+int
+esxVI_Context_LookupObjectsByPath(esxVI_Context *ctx,
+                                  esxUtil_ParsedUri *parsedUri)
+{
+    int result = -1;
+    esxVI_String *propertyNameList = NULL;
+    char *name = NULL;
+    esxVI_ObjectContent *datacenterList = NULL;
+    esxVI_ObjectContent *datacenter = NULL;
+    esxVI_ObjectContent *computeResourceList = NULL;
+    esxVI_ObjectContent *computeResource = NULL;
+    char *hostSystemName = NULL;
+    esxVI_ObjectContent *hostSystemList = NULL;
+    esxVI_ObjectContent *hostSystem = NULL;
+
+    /* Lookup Datacenter */
     if (esxVI_String_AppendValueListToList(&propertyNameList,
+                                           "name\0"
                                            "vmFolder\0"
-                                           "hostFolder\0") < 0) {
-        goto cleanup;
-    }
-
-    /* Get pointer to Datacenter for later use */
-    if (esxVI_LookupObjectContentByType(ctx, ctx->service->rootFolder,
+                                           "hostFolder\0") < 0 ||
+        esxVI_LookupObjectContentByType(ctx, ctx->service->rootFolder,
                                         "Datacenter", propertyNameList,
                                         esxVI_Boolean_True,
                                         &datacenterList) < 0) {
@@ -454,36 +502,156 @@ esxVI_Context_Connect(esxVI_Context *ctx, const char *url,
 
     if (datacenterList == NULL) {
         ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
-                     _("Could not retrieve the 'datacenter' object from the "
-                       "VI host/center"));
+                     _("Could not retrieve datacenter list"));
         goto cleanup;
     }
 
-    ctx->datacenter = datacenterList->obj;
-    datacenterList->obj = NULL;
+    if (parsedUri->path_datacenter != NULL) {
+        for (datacenter = datacenterList; datacenter != NULL;
+             datacenter = datacenter->_next) {
+            name = NULL;
 
-    /* Get pointer to vmFolder and hostFolder for later use */
-    for (dynamicProperty = datacenterList->propSet; dynamicProperty != NULL;
-         dynamicProperty = dynamicProperty->_next) {
-        if (STREQ(dynamicProperty->name, "vmFolder")) {
-            if (esxVI_ManagedObjectReference_CastFromAnyType
-                  (dynamicProperty->val, &ctx->vmFolder)) {
+            if (esxVI_GetStringValue(datacenter, "name", &name,
+                                     esxVI_Occurrence_RequiredItem) < 0) {
                 goto cleanup;
             }
-        } else if (STREQ(dynamicProperty->name, "hostFolder")) {
-            if (esxVI_ManagedObjectReference_CastFromAnyType
-                  (dynamicProperty->val, &ctx->hostFolder)) {
-                goto cleanup;
+
+            if (STREQ(name, parsedUri->path_datacenter)) {
+                break;
             }
-        } else {
-            VIR_WARN("Unexpected '%s' property", dynamicProperty->name);
         }
+
+        if (datacenter == NULL) {
+            ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
+                         _("Could not find datacenter '%s'"),
+                         parsedUri->path_datacenter);
+            goto cleanup;
+        }
+    } else {
+        datacenter = datacenterList;
     }
 
-    if (ctx->vmFolder == NULL || ctx->hostFolder == NULL) {
+    if (esxVI_Datacenter_CastFromObjectContent(datacenter,
+                                               &ctx->datacenter) < 0) {
+        goto cleanup;
+    }
+
+    /* Lookup ComputeResource */
+    esxVI_String_Free(&propertyNameList);
+
+    if (esxVI_String_AppendValueListToList(&propertyNameList,
+                                           "name\0"
+                                           "host\0"
+                                           "resourcePool\0") < 0 ||
+        esxVI_LookupObjectContentByType(ctx, ctx->datacenter->hostFolder,
+                                        "ComputeResource", propertyNameList,
+                                        esxVI_Boolean_True,
+                                        &computeResourceList) < 0) {
+        goto cleanup;
+    }
+
+    if (computeResourceList == NULL) {
         ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
-                     _("The 'datacenter' object is missing the "
-                       "'vmFolder'/'hostFolder' property"));
+                     _("Could not retrieve compute resource list"));
+        goto cleanup;
+    }
+
+    if (parsedUri->path_computeResource != NULL) {
+        for (computeResource = computeResourceList; computeResource != NULL;
+             computeResource = computeResource->_next) {
+            name = NULL;
+
+            if (esxVI_GetStringValue(computeResource, "name", &name,
+                                     esxVI_Occurrence_RequiredItem) < 0) {
+                goto cleanup;
+            }
+
+            if (STREQ(name, parsedUri->path_computeResource)) {
+                break;
+            }
+        }
+
+        if (computeResource == NULL) {
+            ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
+                         _("Could not find compute resource '%s'"),
+                         parsedUri->path_computeResource);
+            goto cleanup;
+        }
+    } else {
+        computeResource = computeResourceList;
+    }
+
+    if (esxVI_ComputeResource_CastFromObjectContent(computeResource,
+                                                    &ctx->computeResource) < 0) {
+        goto cleanup;
+    }
+
+    if (ctx->computeResource->resourcePool == NULL) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
+                     _("Could not retrieve resource pool"));
+        goto cleanup;
+    }
+
+    /* Lookup HostSystem */
+    if (parsedUri->path_hostSystem == NULL &&
+        STREQ(ctx->computeResource->_reference->type,
+              "ClusterComputeResource")) {
+        ESX_VI_ERROR(VIR_ERR_INVALID_ARG, "%s",
+                     _("Path has to specify the host system"));
+        goto cleanup;
+    }
+
+    esxVI_String_Free(&propertyNameList);
+
+    if (esxVI_String_AppendValueListToList(&propertyNameList,
+                                           "name\0") < 0 ||
+        esxVI_LookupObjectContentByType(ctx, ctx->computeResource->_reference,
+                                        "HostSystem", propertyNameList,
+                                        esxVI_Boolean_True,
+                                        &hostSystemList) < 0) {
+        goto cleanup;
+    }
+
+    if (hostSystemList == NULL) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
+                     _("Could not retrieve host system list"));
+        goto cleanup;
+    }
+
+    if (parsedUri->path_hostSystem != NULL ||
+        (parsedUri->path_computeResource != NULL &&
+         parsedUri->path_hostSystem == NULL)) {
+        if (parsedUri->path_hostSystem != NULL) {
+            hostSystemName = parsedUri->path_hostSystem;
+        } else {
+            hostSystemName = parsedUri->path_computeResource;
+        }
+
+        for (hostSystem = hostSystemList; hostSystem != NULL;
+             hostSystem = hostSystem->_next) {
+            name = NULL;
+
+            if (esxVI_GetStringValue(hostSystem, "name", &name,
+                                     esxVI_Occurrence_RequiredItem) < 0) {
+                goto cleanup;
+            }
+
+            if (STREQ(name, hostSystemName)) {
+                break;
+            }
+        }
+
+        if (hostSystem == NULL) {
+            ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
+                         _("Could not find host system '%s'"), hostSystemName);
+            goto cleanup;
+        }
+    } else {
+        hostSystem = hostSystemList;
+    }
+
+    if (esxVI_HostSystem_CastFromObjectContent(hostSystem,
+                                               &ctx->hostSystem) < 0) {
         goto cleanup;
     }
 
@@ -492,6 +660,110 @@ esxVI_Context_Connect(esxVI_Context *ctx, const char *url,
   cleanup:
     esxVI_String_Free(&propertyNameList);
     esxVI_ObjectContent_Free(&datacenterList);
+    esxVI_ObjectContent_Free(&computeResourceList);
+    esxVI_ObjectContent_Free(&hostSystemList);
+
+    return result;
+}
+
+int
+esxVI_Context_LookupObjectsByHostSystemIp(esxVI_Context *ctx,
+                                          const char *hostSystemIpAddress)
+{
+    int result = -1;
+    esxVI_String *propertyNameList = NULL;
+    esxVI_ManagedObjectReference *managedObjectReference = NULL;
+    esxVI_ObjectContent *hostSystem = NULL;
+    esxVI_ObjectContent *computeResource = NULL;
+    esxVI_ObjectContent *datacenter = NULL;
+
+    /* Lookup HostSystem */
+    if (esxVI_String_AppendValueListToList(&propertyNameList,
+                                           "name\0") < 0 ||
+        esxVI_FindByIp(ctx, NULL, hostSystemIpAddress, esxVI_Boolean_False,
+                       &managedObjectReference) < 0 ||
+        esxVI_LookupObjectContentByType(ctx, managedObjectReference,
+                                        "HostSystem", propertyNameList,
+                                        esxVI_Boolean_False, &hostSystem) < 0) {
+        goto cleanup;
+    }
+
+    if (hostSystem == NULL) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
+                     _("Could not retrieve host system"));
+        goto cleanup;
+    }
+
+    if (esxVI_HostSystem_CastFromObjectContent(hostSystem,
+                                               &ctx->hostSystem) < 0) {
+        goto cleanup;
+    }
+
+    /* Lookup ComputeResource */
+    esxVI_String_Free(&propertyNameList);
+
+    if (esxVI_String_AppendValueListToList(&propertyNameList,
+                                           "name\0"
+                                           "host\0"
+                                           "resourcePool\0") < 0 ||
+        esxVI_LookupObjectContentByType(ctx, hostSystem->obj,
+                                        "ComputeResource", propertyNameList,
+                                        esxVI_Boolean_True,
+                                        &computeResource) < 0) {
+        goto cleanup;
+    }
+
+    if (computeResource == NULL) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
+                     _("Could not retrieve compute resource of host system"));
+        goto cleanup;
+    }
+
+    if (esxVI_ComputeResource_CastFromObjectContent(computeResource,
+                                                    &ctx->computeResource) < 0) {
+        goto cleanup;
+    }
+
+    /* Lookup Datacenter */
+    esxVI_String_Free(&propertyNameList);
+
+    if (esxVI_String_AppendValueListToList(&propertyNameList,
+                                           "name\0"
+                                           "vmFolder\0"
+                                           "hostFolder\0") < 0 ||
+        esxVI_LookupObjectContentByType(ctx, computeResource->obj,
+                                        "Datacenter", propertyNameList,
+                                        /* FIXME: Passing Undefined here is a hack until
+                                         * esxVI_LookupObjectContentByType supports more
+                                         * fine grained traversal configuration. Looking
+                                         * up the Datacenter from the ComputeResource
+                                         * requiers an upward search. Putting this in the
+                                         * list with the other downward traversal rules
+                                         * would result in cyclic searching */
+                                        esxVI_Boolean_Undefined,
+                                        &datacenter) < 0) {
+        goto cleanup;
+    }
+
+    if (datacenter == NULL) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
+                     _("Could not retrieve datacenter of compute resource"));
+        goto cleanup;
+    }
+
+    if (esxVI_Datacenter_CastFromObjectContent(datacenter,
+                                               &ctx->datacenter) < 0) {
+        goto cleanup;
+    }
+
+    result = 0;
+
+  cleanup:
+    esxVI_String_Free(&propertyNameList);
+    esxVI_ManagedObjectReference_Free(&managedObjectReference);
+    esxVI_ObjectContent_Free(&hostSystem);
+    esxVI_ObjectContent_Free(&computeResource);
+    esxVI_ObjectContent_Free(&datacenter);
 
     return result;
 }
@@ -1198,45 +1470,15 @@ esxVI_BuildFullTraversalSpecList(esxVI_SelectionSpec **fullTraversalSpecList)
         return -1;
     }
 
+    /* Folder -> childEntity (ManagedEntity) */
     if (esxVI_BuildFullTraversalSpecItem(fullTraversalSpecList,
-                                         "visitFolders",
+                                         "folderToChildEntity",
                                          "Folder", "childEntity",
-                                         "visitFolders\0"
-                                         "datacenterToDatastore\0"
-                                         "datacenterToVmFolder\0"
-                                         "datacenterToHostFolder\0"
-                                         "computeResourceToHost\0"
-                                         "computeResourceToResourcePool\0"
-                                         "hostSystemToVm\0"
-                                         "resourcePoolToVm\0") < 0) {
+                                         "folderToChildEntity\0") < 0) {
         goto failure;
     }
 
-    /* Traversal through datastore branch */
-    if (esxVI_BuildFullTraversalSpecItem(fullTraversalSpecList,
-                                         "datacenterToDatastore",
-                                         "Datacenter", "datastore",
-                                         NULL) < 0) {
-        goto failure;
-    }
-
-    /* Traversal through vmFolder branch */
-    if (esxVI_BuildFullTraversalSpecItem(fullTraversalSpecList,
-                                         "datacenterToVmFolder",
-                                         "Datacenter", "vmFolder",
-                                         "visitFolders\0") < 0) {
-        goto failure;
-    }
-
-    /* Traversal through hostFolder branch  */
-    if (esxVI_BuildFullTraversalSpecItem(fullTraversalSpecList,
-                                         "datacenterToHostFolder",
-                                         "Datacenter", "hostFolder",
-                                         "visitFolders\0") < 0) {
-        goto failure;
-    }
-
-    /* Traversal through host branch  */
+    /* ComputeResource -> host (HostSystem) */
     if (esxVI_BuildFullTraversalSpecItem(fullTraversalSpecList,
                                          "computeResourceToHost",
                                          "ComputeResource", "host",
@@ -1244,16 +1486,15 @@ esxVI_BuildFullTraversalSpecList(esxVI_SelectionSpec **fullTraversalSpecList)
         goto failure;
     }
 
-    /* Traversal through resourcePool branch */
+    /* ComputeResource -> datastore (Datastore) */
     if (esxVI_BuildFullTraversalSpecItem(fullTraversalSpecList,
-                                         "computeResourceToResourcePool",
-                                         "ComputeResource", "resourcePool",
-                                         "resourcePoolToResourcePool\0"
-                                         "resourcePoolToVm\0") < 0) {
+                                         "computeResourceToDatastore",
+                                         "ComputeResource", "datastore",
+                                         NULL) < 0) {
         goto failure;
     }
 
-    /* Recurse through all resource pools */
+    /* ResourcePool -> resourcePool (ResourcePool) */
     if (esxVI_BuildFullTraversalSpecItem(fullTraversalSpecList,
                                          "resourcePoolToResourcePool",
                                          "ResourcePool", "resourcePool",
@@ -1262,18 +1503,31 @@ esxVI_BuildFullTraversalSpecList(esxVI_SelectionSpec **fullTraversalSpecList)
         goto failure;
     }
 
-    /* Recurse through all hosts */
-    if (esxVI_BuildFullTraversalSpecItem(fullTraversalSpecList,
-                                         "hostSystemToVm",
-                                         "HostSystem", "vm",
-                                         "visitFolders\0") < 0) {
-        goto failure;
-    }
-
-    /* Recurse through all resource pools */
+    /* ResourcePool -> vm (VirtualMachine) */
     if (esxVI_BuildFullTraversalSpecItem(fullTraversalSpecList,
                                          "resourcePoolToVm",
                                          "ResourcePool", "vm", NULL) < 0) {
+        goto failure;
+    }
+
+    /* HostSystem -> parent (ComputeResource) */
+    if (esxVI_BuildFullTraversalSpecItem(fullTraversalSpecList,
+                                         "hostSystemToParent",
+                                         "HostSystem", "parent", NULL) < 0) {
+        goto failure;
+    }
+
+    /* HostSystem -> vm (VirtualMachine) */
+    if (esxVI_BuildFullTraversalSpecItem(fullTraversalSpecList,
+                                         "hostSystemToVm",
+                                         "HostSystem", "vm", NULL) < 0) {
+        goto failure;
+    }
+
+    /* HostSystem -> datastore (Datastore) */
+    if (esxVI_BuildFullTraversalSpecItem(fullTraversalSpecList,
+                                         "hostSystemToDatastore",
+                                         "HostSystem", "datastore", NULL) < 0) {
         goto failure;
     }
 
@@ -1401,6 +1655,11 @@ esxVI_LookupObjectContentByType(esxVI_Context *ctx,
         return -1;
     }
 
+    if (objectContentList == NULL || *objectContentList != NULL) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
+        return -1;
+    }
+
     if (esxVI_ObjectSpec_Alloc(&objectSpec) < 0) {
         return -1;
     }
@@ -1410,6 +1669,8 @@ esxVI_LookupObjectContentByType(esxVI_Context *ctx,
 
     if (recurse == esxVI_Boolean_True) {
         objectSpec->selectSet = ctx->fullTraversalSpecList;
+    } else if (recurse == esxVI_Boolean_Undefined) {
+        objectSpec->selectSet = ctx->fullTraversalSpecList2;
     }
 
     if (esxVI_PropertySpec_Alloc(&propertySpec) < 0) {
@@ -1648,9 +1909,8 @@ esxVI_LookupNumberOfDomainsByPowerState(esxVI_Context *ctx,
 
     if (esxVI_String_AppendValueToList(&propertyNameList,
                                        "runtime.powerState") < 0 ||
-        esxVI_LookupObjectContentByType(ctx, ctx->vmFolder, "VirtualMachine",
-                                        propertyNameList, esxVI_Boolean_True,
-                                        &virtualMachineList) < 0) {
+        esxVI_LookupVirtualMachineList(ctx, propertyNameList,
+                                       &virtualMachineList) < 0) {
         goto cleanup;
     }
 
@@ -1944,125 +2204,28 @@ esxVI_GetSnapshotTreeBySnapshot
 
 
 
-int
-esxVI_LookupResourcePoolByHostSystem
-  (esxVI_Context *ctx, esxVI_ObjectContent *hostSystem,
-   esxVI_ManagedObjectReference **resourcePool)
+int esxVI_LookupHostSystemProperties(esxVI_Context *ctx,
+                                     esxVI_String *propertyNameList,
+                                     esxVI_ObjectContent **hostSystem)
 {
-    int result = -1;
-    esxVI_String *propertyNameList = NULL;
-    esxVI_DynamicProperty *dynamicProperty = NULL;
-    esxVI_ManagedObjectReference *managedObjectReference = NULL;
-    esxVI_ObjectContent *computeResource = NULL;
-
-    if (resourcePool == NULL || *resourcePool != NULL) {
-        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
-        return -1;
-    }
-
-    for (dynamicProperty = hostSystem->propSet; dynamicProperty != NULL;
-         dynamicProperty = dynamicProperty->_next) {
-        if (STREQ(dynamicProperty->name, "parent")) {
-            if (esxVI_ManagedObjectReference_CastFromAnyType
-                  (dynamicProperty->val, &managedObjectReference) < 0) {
-                goto cleanup;
-            }
-
-            break;
-        } else {
-            VIR_WARN("Unexpected '%s' property", dynamicProperty->name);
-        }
-    }
-
-    if (managedObjectReference == NULL) {
-        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
-                     _("Could not retrieve compute resource of host system"));
-        goto cleanup;
-    }
-
-    if (esxVI_String_AppendValueToList(&propertyNameList, "resourcePool") < 0 ||
-        esxVI_LookupObjectContentByType(ctx, managedObjectReference,
-                                        "ComputeResource", propertyNameList,
-                                        esxVI_Boolean_False,
-                                        &computeResource) < 0) {
-        goto cleanup;
-    }
-
-    if (computeResource == NULL) {
-        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
-                     _("Could not retrieve compute resource of host system"));
-        goto cleanup;
-    }
-
-    for (dynamicProperty = computeResource->propSet; dynamicProperty != NULL;
-         dynamicProperty = dynamicProperty->_next) {
-        if (STREQ(dynamicProperty->name, "resourcePool")) {
-            if (esxVI_ManagedObjectReference_CastFromAnyType
-                  (dynamicProperty->val, resourcePool) < 0) {
-                goto cleanup;
-            }
-
-            break;
-        } else {
-            VIR_WARN("Unexpected '%s' property", dynamicProperty->name);
-        }
-    }
-
-    if ((*resourcePool) == NULL) {
-        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
-                     _("Could not retrieve resource pool of compute resource"));
-        goto cleanup;
-    }
-
-    result = 0;
-
-  cleanup:
-    esxVI_String_Free(&propertyNameList);
-    esxVI_ManagedObjectReference_Free(&managedObjectReference);
-    esxVI_ObjectContent_Free(&computeResource);
-
-    return result;
+    return esxVI_LookupObjectContentByType(ctx, ctx->hostSystem->_reference,
+                                           "HostSystem", propertyNameList,
+                                           esxVI_Boolean_False, hostSystem);
 }
 
 
 
 int
-esxVI_LookupHostSystemByIp(esxVI_Context *ctx, const char *ipAddress,
-                           esxVI_String *propertyNameList,
-                           esxVI_ObjectContent **hostSystem)
+esxVI_LookupVirtualMachineList(esxVI_Context *ctx,
+                               esxVI_String *propertyNameList,
+                               esxVI_ObjectContent **virtualMachineList)
 {
-    int result = -1;
-    esxVI_ManagedObjectReference *managedObjectReference = NULL;
-
-    if (hostSystem == NULL || *hostSystem != NULL) {
-        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
-        return -1;
-    }
-
-    if (esxVI_FindByIp(ctx, ctx->datacenter, ipAddress, esxVI_Boolean_False,
-                       &managedObjectReference) < 0) {
-        return -1;
-    }
-
-    if (managedObjectReference == NULL) {
-        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
-                     _("Could not find host system with IP address '%s'"),
-                     ipAddress);
-        goto cleanup;
-    }
-
-    if (esxVI_LookupObjectContentByType(ctx, managedObjectReference,
-                                        "HostSystem", propertyNameList,
-                                        esxVI_Boolean_False, hostSystem) < 0) {
-        goto cleanup;
-    }
-
-    result = 0;
-
-  cleanup:
-    esxVI_ManagedObjectReference_Free(&managedObjectReference);
-
-    return result;
+    /* FIXME: Switch from ctx->hostSystem to ctx->computeResource->resourcePool
+     *        for cluster support */
+    return esxVI_LookupObjectContentByType(ctx, ctx->hostSystem->_reference,
+                                           "VirtualMachine", propertyNameList,
+                                           esxVI_Boolean_True,
+                                           virtualMachineList);
 }
 
 
@@ -2084,8 +2247,8 @@ esxVI_LookupVirtualMachineByUuid(esxVI_Context *ctx, const unsigned char *uuid,
 
     virUUIDFormat(uuid, uuid_string);
 
-    if (esxVI_FindByUuid(ctx, ctx->datacenter, uuid_string, esxVI_Boolean_True,
-                         &managedObjectReference) < 0) {
+    if (esxVI_FindByUuid(ctx, ctx->datacenter->_reference, uuid_string,
+                         esxVI_Boolean_True, &managedObjectReference) < 0) {
         return -1;
     }
 
@@ -2137,10 +2300,8 @@ esxVI_LookupVirtualMachineByName(esxVI_Context *ctx, const char *name,
     if (esxVI_String_DeepCopyList(&completePropertyNameList,
                                   propertyNameList) < 0 ||
         esxVI_String_AppendValueToList(&completePropertyNameList, "name") < 0 ||
-        esxVI_LookupObjectContentByType(ctx, ctx->vmFolder, "VirtualMachine",
-                                        completePropertyNameList,
-                                        esxVI_Boolean_True,
-                                        &virtualMachineList) < 0) {
+        esxVI_LookupVirtualMachineList(ctx, completePropertyNameList,
+                                       &virtualMachineList) < 0) {
         goto cleanup;
     }
 
@@ -2196,6 +2357,7 @@ esxVI_LookupVirtualMachineByUuidAndPrepareForTask
     esxVI_String *completePropertyNameList = NULL;
     esxVI_VirtualMachineQuestionInfo *questionInfo = NULL;
     esxVI_TaskInfo *pendingTaskInfoList = NULL;
+    esxVI_Boolean blocked = esxVI_Boolean_Undefined;
 
     if (esxVI_String_DeepCopyList(&completePropertyNameList,
                                   propertyNameList) < 0 ||
@@ -2214,7 +2376,8 @@ esxVI_LookupVirtualMachineByUuidAndPrepareForTask
 
     if (questionInfo != NULL &&
         esxVI_HandleVirtualMachineQuestion(ctx, (*virtualMachine)->obj,
-                                           questionInfo, autoAnswer) < 0) {
+                                           questionInfo, autoAnswer,
+                                           &blocked) < 0) {
         goto cleanup;
     }
 
@@ -2237,6 +2400,19 @@ esxVI_LookupVirtualMachineByUuidAndPrepareForTask
 
 
 int
+esxVI_LookupDatastoreList(esxVI_Context *ctx, esxVI_String *propertyNameList,
+                          esxVI_ObjectContent **datastoreList)
+{
+    /* FIXME: Switch from ctx->hostSystem to ctx->computeResource for cluster
+     *        support */
+    return esxVI_LookupObjectContentByType(ctx, ctx->hostSystem->_reference,
+                                           "Datastore", propertyNameList,
+                                           esxVI_Boolean_True, datastoreList);
+}
+
+
+
+int
 esxVI_LookupDatastoreByName(esxVI_Context *ctx, const char *name,
                             esxVI_String *propertyNameList,
                             esxVI_ObjectContent **datastore,
@@ -2246,10 +2422,7 @@ esxVI_LookupDatastoreByName(esxVI_Context *ctx, const char *name,
     esxVI_String *completePropertyNameList = NULL;
     esxVI_ObjectContent *datastoreList = NULL;
     esxVI_ObjectContent *candidate = NULL;
-    esxVI_DynamicProperty *dynamicProperty = NULL;
-    esxVI_Boolean accessible = esxVI_Boolean_Undefined;
-    size_t offset = 14; /* = strlen("/vmfs/volumes/") */
-    int numInaccessibleDatastores = 0;
+    char *name_candidate;
 
     if (datastore == NULL || *datastore != NULL) {
         ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
@@ -2259,123 +2432,36 @@ esxVI_LookupDatastoreByName(esxVI_Context *ctx, const char *name,
     /* Get all datastores */
     if (esxVI_String_DeepCopyList(&completePropertyNameList,
                                   propertyNameList) < 0 ||
-        esxVI_String_AppendValueListToList(&completePropertyNameList,
-                                           "summary.accessible\0"
-                                           "summary.name\0"
-                                           "summary.url\0") < 0) {
+        esxVI_String_AppendValueToList(&completePropertyNameList,
+                                       "summary.name") < 0 ||
+        esxVI_LookupDatastoreList(ctx, completePropertyNameList,
+                                  &datastoreList) < 0) {
         goto cleanup;
-    }
-
-    if (esxVI_LookupObjectContentByType(ctx, ctx->datacenter, "Datastore",
-                                        completePropertyNameList,
-                                        esxVI_Boolean_True,
-                                        &datastoreList) < 0) {
-        goto cleanup;
-    }
-
-    if (datastoreList == NULL) {
-        if (occurrence == esxVI_Occurrence_OptionalItem) {
-            goto success;
-        } else {
-            ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
-                         _("No datastores available"));
-            goto cleanup;
-        }
     }
 
     /* Search for a matching datastore */
     for (candidate = datastoreList; candidate != NULL;
          candidate = candidate->_next) {
-        accessible = esxVI_Boolean_Undefined;
+        name_candidate = NULL;
 
-        for (dynamicProperty = candidate->propSet; dynamicProperty != NULL;
-             dynamicProperty = dynamicProperty->_next) {
-            if (STREQ(dynamicProperty->name, "summary.accessible")) {
-                if (esxVI_AnyType_ExpectType(dynamicProperty->val,
-                                             esxVI_Type_Boolean) < 0) {
-                    goto cleanup;
-                }
-
-                accessible = dynamicProperty->val->boolean;
-                break;
-            }
-        }
-
-        if (accessible == esxVI_Boolean_Undefined) {
-            ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
-                         _("Got incomplete response while querying for the "
-                           "datastore 'summary.accessible' property"));
+        if (esxVI_GetStringValue(candidate, "summary.name", &name_candidate,
+                                 esxVI_Occurrence_RequiredItem) < 0) {
             goto cleanup;
         }
 
-        if (accessible == esxVI_Boolean_False) {
-            ++numInaccessibleDatastores;
-        }
-
-        for (dynamicProperty = candidate->propSet; dynamicProperty != NULL;
-             dynamicProperty = dynamicProperty->_next) {
-            if (STREQ(dynamicProperty->name, "summary.name")) {
-                if (esxVI_AnyType_ExpectType(dynamicProperty->val,
-                                             esxVI_Type_String) < 0) {
-                    goto cleanup;
-                }
-
-                if (STREQ(dynamicProperty->val->string, name)) {
-                    if (esxVI_ObjectContent_DeepCopy(datastore,
-                                                     candidate) < 0) {
-                        goto cleanup;
-                    }
-
-                    /* Found datastore with matching name */
-                    goto success;
-                }
-            } else if (STREQ(dynamicProperty->name, "summary.url") &&
-                       ctx->productVersion & esxVI_ProductVersion_ESX) {
-                if (accessible == esxVI_Boolean_False) {
-                    /*
-                     * The 'summary.url' property of an inaccessible datastore
-                     * is invalid and cannot be used to identify the datastore.
-                     */
-                    continue;
-                }
-
-                if (esxVI_AnyType_ExpectType(dynamicProperty->val,
-                                             esxVI_Type_String) < 0) {
-                    goto cleanup;
-                }
-
-                if (! STRPREFIX(dynamicProperty->val->string,
-                                "/vmfs/volumes/")) {
-                    ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
-                                 _("Datastore URL '%s' has unexpected prefix, "
-                                   "expecting '/vmfs/volumes/' prefix"),
-                                 dynamicProperty->val->string);
-                    goto cleanup;
-                }
-
-                if (STREQ(dynamicProperty->val->string + offset, name)) {
-                    if (esxVI_ObjectContent_DeepCopy(datastore,
-                                                     candidate) < 0) {
-                        goto cleanup;
-                    }
-
-                    /* Found datastore with matching URL suffix */
-                    goto success;
-                }
+        if (STREQ(name_candidate, name)) {
+            if (esxVI_ObjectContent_DeepCopy(datastore, candidate) < 0) {
+                goto cleanup;
             }
+
+            // Found datastore with matching name
+            goto success;
         }
     }
 
-    if (occurrence != esxVI_Occurrence_OptionalItem) {
-        if (numInaccessibleDatastores > 0) {
-            ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
-                         _("Could not find datastore '%s', maybe it's "
-                           "inaccessible"), name);
-        } else {
-            ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
-                         _("Could not find datastore '%s'"), name);
-        }
-
+    if (*datastore == NULL && occurrence != esxVI_Occurrence_OptionalItem) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
+                     _("Could not find datastore with name '%s'"), name);
         goto cleanup;
     }
 
@@ -2389,6 +2475,162 @@ esxVI_LookupDatastoreByName(esxVI_Context *ctx, const char *name,
     return result;
 }
 
+
+int
+esxVI_LookupDatastoreByAbsolutePath(esxVI_Context *ctx,
+                                    const char *absolutePath,
+                                    esxVI_String *propertyNameList,
+                                    esxVI_ObjectContent **datastore,
+                                    esxVI_Occurrence occurrence)
+{
+    int result = -1;
+    esxVI_String *completePropertyNameList = NULL;
+    esxVI_ObjectContent *datastoreList = NULL;
+    esxVI_ObjectContent *candidate = NULL;
+    esxVI_DynamicProperty *dynamicProperty = NULL;
+    esxVI_DatastoreHostMount *datastoreHostMountList = NULL;
+    esxVI_DatastoreHostMount *datastoreHostMount = NULL;
+
+    if (datastore == NULL || *datastore != NULL) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
+        return -1;
+    }
+
+    /* Get all datastores */
+    if (esxVI_String_DeepCopyList(&completePropertyNameList,
+                                  propertyNameList) < 0 ||
+        esxVI_String_AppendValueToList(&completePropertyNameList, "host") < 0 ||
+        esxVI_LookupDatastoreList(ctx, completePropertyNameList,
+                                  &datastoreList) < 0) {
+        goto cleanup;
+    }
+
+    /* Search for a matching datastore */
+    for (candidate = datastoreList; candidate != NULL;
+         candidate = candidate->_next) {
+        esxVI_DatastoreHostMount_Free(&datastoreHostMountList);
+
+        for (dynamicProperty = candidate->propSet; dynamicProperty != NULL;
+             dynamicProperty = dynamicProperty->_next) {
+            if (STREQ(dynamicProperty->name, "host")) {
+                if (esxVI_DatastoreHostMount_CastListFromAnyType
+                      (dynamicProperty->val, &datastoreHostMountList) < 0) {
+                    goto cleanup;
+                }
+
+                break;
+            }
+        }
+
+        if (datastoreHostMountList == NULL) {
+            continue;
+        }
+
+        for (datastoreHostMount = datastoreHostMountList;
+             datastoreHostMount != NULL;
+             datastoreHostMount = datastoreHostMount->_next) {
+            if (STRNEQ(ctx->hostSystem->_reference->value,
+                       datastoreHostMount->key->value)) {
+                continue;
+            }
+
+            if (STRPREFIX(absolutePath, datastoreHostMount->mountInfo->path)) {
+                if (esxVI_ObjectContent_DeepCopy(datastore, candidate) < 0) {
+                    goto cleanup;
+                }
+
+                /* Found datastore with matching mount path */
+                goto success;
+            }
+        }
+    }
+
+    if (*datastore == NULL && occurrence != esxVI_Occurrence_OptionalItem) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
+                     _("Could not find datastore containing absolute path '%s'"),
+                     absolutePath);
+        goto cleanup;
+    }
+
+  success:
+    result = 0;
+
+  cleanup:
+    esxVI_String_Free(&completePropertyNameList);
+    esxVI_ObjectContent_Free(&datastoreList);
+    esxVI_DatastoreHostMount_Free(&datastoreHostMountList);
+
+    return result;
+}
+
+
+
+int
+esxVI_LookupDatastoreHostMount(esxVI_Context *ctx,
+                               esxVI_ManagedObjectReference *datastore,
+                               esxVI_DatastoreHostMount **hostMount)
+{
+    int result = -1;
+    esxVI_String *propertyNameList = NULL;
+    esxVI_ObjectContent *objectContent = NULL;
+    esxVI_DynamicProperty *dynamicProperty = NULL;
+    esxVI_DatastoreHostMount *hostMountList = NULL;
+    esxVI_DatastoreHostMount *candidate = NULL;
+
+    if (hostMount == NULL || *hostMount != NULL) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
+        return -1;
+    }
+
+    if (esxVI_String_AppendValueToList(&propertyNameList, "host") < 0 ||
+        esxVI_LookupObjectContentByType(ctx, datastore, "Datastore",
+                                        propertyNameList, esxVI_Boolean_False,
+                                        &objectContent) < 0) {
+        goto cleanup;
+    }
+
+    for (dynamicProperty = objectContent->propSet; dynamicProperty != NULL;
+         dynamicProperty = dynamicProperty->_next) {
+        if (STREQ(dynamicProperty->name, "host")) {
+            if (esxVI_DatastoreHostMount_CastListFromAnyType
+                  (dynamicProperty->val, &hostMountList) < 0) {
+                goto cleanup;
+            }
+
+            break;
+        } else {
+            VIR_WARN("Unexpected '%s' property", dynamicProperty->name);
+        }
+    }
+
+    for (candidate = hostMountList; candidate != NULL;
+         candidate = candidate->_next) {
+        if (STRNEQ(ctx->hostSystem->_reference->value, candidate->key->value)) {
+            continue;
+        }
+
+        if (esxVI_DatastoreHostMount_DeepCopy(hostMount, candidate) < 0) {
+            goto cleanup;
+        }
+
+        break;
+    }
+
+    if (*hostMount == NULL) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
+                     _("Could not lookup datastore host mount"));
+        goto cleanup;
+    }
+
+    result = 0;
+
+  cleanup:
+    esxVI_String_Free(&propertyNameList);
+    esxVI_ObjectContent_Free(&objectContent);
+    esxVI_DatastoreHostMount_Free(&hostMountList);
+
+    return result;
+}
 
 
 int
@@ -2507,7 +2749,9 @@ esxVI_LookupPendingTaskInfoListByVirtualMachine
 int
 esxVI_LookupAndHandleVirtualMachineQuestion(esxVI_Context *ctx,
                                             const unsigned char *uuid,
-                                            esxVI_Boolean autoAnswer)
+                                            esxVI_Occurrence occurrence,
+                                            esxVI_Boolean autoAnswer,
+                                            esxVI_Boolean *blocked)
 {
     int result = -1;
     esxVI_ObjectContent *virtualMachine = NULL;
@@ -2517,17 +2761,22 @@ esxVI_LookupAndHandleVirtualMachineQuestion(esxVI_Context *ctx,
     if (esxVI_String_AppendValueToList(&propertyNameList,
                                        "runtime.question") < 0 ||
         esxVI_LookupVirtualMachineByUuid(ctx, uuid, propertyNameList,
-                                         &virtualMachine,
-                                         esxVI_Occurrence_RequiredItem) < 0 ||
-        esxVI_GetVirtualMachineQuestionInfo(virtualMachine,
-                                            &questionInfo) < 0) {
+                                         &virtualMachine, occurrence) < 0) {
         goto cleanup;
     }
 
-    if (questionInfo != NULL &&
-        esxVI_HandleVirtualMachineQuestion(ctx, virtualMachine->obj,
-                                           questionInfo, autoAnswer) < 0) {
-        goto cleanup;
+    if (virtualMachine != NULL) {
+        if (esxVI_GetVirtualMachineQuestionInfo(virtualMachine,
+                                                &questionInfo) < 0) {
+            goto cleanup;
+        }
+
+        if (questionInfo != NULL &&
+            esxVI_HandleVirtualMachineQuestion(ctx, virtualMachine->obj,
+                                               questionInfo, autoAnswer,
+                                               blocked) < 0) {
+            goto cleanup;
+        }
     }
 
     result = 0;
@@ -2679,7 +2928,7 @@ int
 esxVI_HandleVirtualMachineQuestion
   (esxVI_Context *ctx, esxVI_ManagedObjectReference *virtualMachine,
    esxVI_VirtualMachineQuestionInfo *questionInfo,
-   esxVI_Boolean autoAnswer)
+   esxVI_Boolean autoAnswer, esxVI_Boolean *blocked)
 {
     int result = -1;
     esxVI_ElementDescription *elementDescription = NULL;
@@ -2687,6 +2936,13 @@ esxVI_HandleVirtualMachineQuestion
     esxVI_ElementDescription *answerChoice = NULL;
     int answerIndex = 0;
     char *possibleAnswers = NULL;
+
+    if (blocked == NULL || *blocked != esxVI_Boolean_Undefined) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
+        return -1;
+    }
+
+    *blocked = esxVI_Boolean_False;
 
     if (questionInfo->choice->choiceInfo != NULL) {
         for (elementDescription = questionInfo->choice->choiceInfo;
@@ -2721,6 +2977,8 @@ esxVI_HandleVirtualMachineQuestion
                          _("Pending question blocks virtual machine execution, "
                            "question is '%s', no possible answers"),
                          questionInfo->text);
+
+            *blocked = esxVI_Boolean_True;
             goto cleanup;
         } else if (answerChoice == NULL) {
             ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
@@ -2728,6 +2986,8 @@ esxVI_HandleVirtualMachineQuestion
                            "question is '%s', possible answers are %s, but no "
                            "default answer is specified"), questionInfo->text,
                          possibleAnswers);
+
+            *blocked = esxVI_Boolean_True;
             goto cleanup;
         }
 
@@ -2753,6 +3013,7 @@ esxVI_HandleVirtualMachineQuestion
                          questionInfo->text);
         }
 
+        *blocked = esxVI_Boolean_True;
         goto cleanup;
     }
 
@@ -2774,6 +3035,7 @@ int
 esxVI_WaitForTaskCompletion(esxVI_Context *ctx,
                             esxVI_ManagedObjectReference *task,
                             const unsigned char *virtualMachineUuid,
+                            esxVI_Occurrence virtualMachineOccurrence,
                             esxVI_Boolean autoAnswer,
                             esxVI_TaskInfoState *finalState)
 {
@@ -2789,6 +3051,7 @@ esxVI_WaitForTaskCompletion(esxVI_Context *ctx,
     esxVI_PropertyChange *propertyChange = NULL;
     esxVI_AnyType *propertyValue = NULL;
     esxVI_TaskInfoState state = esxVI_TaskInfoState_Undefined;
+    esxVI_Boolean blocked = esxVI_Boolean_Undefined;
     esxVI_TaskInfo *taskInfo = NULL;
 
     version = strdup("");
@@ -2829,7 +3092,8 @@ esxVI_WaitForTaskCompletion(esxVI_Context *ctx,
 
         if (virtualMachineUuid != NULL) {
             if (esxVI_LookupAndHandleVirtualMachineQuestion
-                  (ctx, virtualMachineUuid, autoAnswer) < 0) {
+                  (ctx, virtualMachineUuid, virtualMachineOccurrence,
+                   autoAnswer, &blocked) < 0) {
                 /*
                  * FIXME: Disable error reporting here, so possible errors from
                  *        esxVI_LookupTaskInfoByTask() and esxVI_CancelTask()
@@ -2840,12 +3104,13 @@ esxVI_WaitForTaskCompletion(esxVI_Context *ctx,
                 }
 
                 if (taskInfo->cancelable == esxVI_Boolean_True) {
-                    if (esxVI_CancelTask(ctx, task) < 0) {
+                    if (esxVI_CancelTask(ctx, task) < 0 &&
+                        blocked == esxVI_Boolean_True) {
                         VIR_ERROR0(_("Cancelable task is blocked by an "
                                      "unanswered question but cancelation "
                                      "failed"));
                     }
-                } else {
+                } else if (blocked == esxVI_Boolean_True) {
                     VIR_ERROR0(_("Non-cancelable task is blocked by an "
                                  "unanswered question"));
                 }

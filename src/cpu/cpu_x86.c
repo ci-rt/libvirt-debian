@@ -35,7 +35,17 @@
 
 #define VIR_FROM_THIS VIR_FROM_CPU
 
+#define VENDOR_STRING_LENGTH    12
+
+
 static const char *archs[] = { "i686", "x86_64" };
+
+struct x86_vendor {
+    char *name;
+    struct cpuX86cpuid cpuid;
+
+    struct x86_vendor *next;
+};
 
 struct x86_feature {
     char *name;
@@ -47,6 +57,7 @@ struct x86_feature {
 
 struct x86_model {
     char *name;
+    const struct x86_vendor *vendor;
     unsigned int ncpuid;
     struct cpuX86cpuid *cpuid;
 
@@ -54,6 +65,7 @@ struct x86_model {
 };
 
 struct x86_map {
+    struct x86_vendor *vendors;
     struct x86_feature *features;
     struct x86_model *models;
 };
@@ -212,6 +224,44 @@ x86DataCopy(const union cpuData *data)
 }
 
 
+static int
+x86DataAddCpuid(union cpuData *data,
+                const struct cpuX86cpuid *cpuid)
+{
+    struct cpuX86cpuid **cpuids;
+    int *len;
+    unsigned int pos;
+    unsigned int ext;
+
+    if (cpuid->function < CPUX86_EXTENDED) {
+        pos = cpuid->function;
+        ext = 0;
+        len = &data->x86.basic_len;
+        cpuids = &data->x86.basic;
+    } else {
+        pos = cpuid->function - CPUX86_EXTENDED;
+        ext = CPUX86_EXTENDED;
+        len = &data->x86.extended_len;
+        cpuids = &data->x86.extended;
+    }
+
+    if (pos >= *len) {
+        unsigned int i;
+
+        if (VIR_ALLOC_N(*cpuids, pos + 1) < 0)
+            return -1;
+
+        for (i = *len; i <= pos; i++)
+            (*cpuids)[i].function = i + ext;
+        *len = pos + 1;
+    }
+
+    x86cpuidSetBits((*cpuids) + pos, cpuid);
+
+    return 0;
+}
+
+
 static void
 x86DataSubtract(union cpuData *data1,
                 const union cpuData *data2)
@@ -230,6 +280,26 @@ x86DataSubtract(union cpuData *data1,
         x86cpuidClearBits(data1->x86.extended + i,
                           data2->x86.extended + i);
     }
+}
+
+
+static bool
+x86DataIsEmpty(union cpuData *data)
+{
+    struct cpuX86cpuid zero = { 0, 0, 0, 0, 0 };
+    unsigned int i;
+
+    for (i = 0; i < data->x86.basic_len; i++) {
+        if (!x86cpuidMatch(data->x86.basic + i, &zero))
+            return false;
+    }
+
+    for (i = 0; i < data->x86.extended_len; i++) {
+        if (!x86cpuidMatch(data->x86.extended + i, &zero))
+            return false;
+    }
+
+    return true;
 }
 
 
@@ -298,6 +368,27 @@ x86DataToCPUFeatures(virCPUDefPtr cpu,
 }
 
 
+/* also removes bits corresponding to vendor string from data */
+static const struct x86_vendor *
+x86DataToVendor(union cpuData *data,
+                const struct x86_map *map)
+{
+    const struct x86_vendor *vendor = map->vendors;
+    struct cpuX86cpuid *cpuid;
+
+    while (vendor) {
+        if ((cpuid = x86DataCpuid(data, vendor->cpuid.function)) &&
+            x86cpuidMatchMasked(cpuid, &vendor->cpuid)) {
+            x86cpuidClearBits(cpuid, &vendor->cpuid);
+            return vendor;
+        }
+        vendor = vendor->next;
+    }
+
+    return NULL;
+}
+
+
 static virCPUDefPtr
 x86DataToCPU(const union cpuData *data,
              const struct x86_model *model,
@@ -306,11 +397,16 @@ x86DataToCPU(const union cpuData *data,
     virCPUDefPtr cpu;
     union cpuData *copy = NULL;
     union cpuData *modelData = NULL;
+    const struct x86_vendor *vendor;
 
     if (VIR_ALLOC(cpu) < 0 ||
         !(cpu->model = strdup(model->name)) ||
         !(copy = x86DataCopy(data)) ||
         !(modelData = x86DataFromModel(model)))
+        goto no_memory;
+
+    if ((vendor = x86DataToVendor(copy, map)) &&
+        !(cpu->vendor = strdup(vendor->name)))
         goto no_memory;
 
     x86DataSubtract(copy, modelData);
@@ -334,6 +430,106 @@ error:
     virCPUDefFree(cpu);
     cpu = NULL;
     goto cleanup;
+}
+
+
+static void
+x86VendorFree(struct x86_vendor *vendor)
+{
+    if (!vendor)
+        return;
+
+    VIR_FREE(vendor->name);
+    VIR_FREE(vendor);
+};
+
+
+static struct x86_vendor *
+x86VendorFind(const struct x86_map *map,
+              const char *name)
+{
+    struct x86_vendor *vendor;
+
+    vendor = map->vendors;
+    while (vendor) {
+        if (STREQ(vendor->name, name))
+            return vendor;
+
+        vendor = vendor->next;
+    }
+
+    return NULL;
+}
+
+
+static int
+x86VendorLoad(xmlXPathContextPtr ctxt,
+              struct x86_map *map)
+{
+    struct x86_vendor *vendor = NULL;
+    char *string = NULL;
+    int ret = 0;
+
+    if (VIR_ALLOC(vendor) < 0)
+        goto no_memory;
+
+    vendor->name = virXPathString("string(@name)", ctxt);
+    if (!vendor->name) {
+        virCPUReportError(VIR_ERR_INTERNAL_ERROR,
+                "%s", _("Missing CPU vendor name"));
+        goto ignore;
+    }
+
+    if (x86VendorFind(map, vendor->name)) {
+        virCPUReportError(VIR_ERR_INTERNAL_ERROR,
+                _("CPU vendor %s already defined"), vendor->name);
+        goto ignore;
+    }
+
+    string = virXPathString("string(@string)", ctxt);
+    if (!string) {
+        virCPUReportError(VIR_ERR_INTERNAL_ERROR,
+                _("Missing vendor string for CPU vendor %s"), vendor->name);
+        goto ignore;
+    }
+    if (strlen(string) != VENDOR_STRING_LENGTH) {
+        virCPUReportError(VIR_ERR_INTERNAL_ERROR,
+                _("Invalid CPU vendor string '%s'"), string);
+        goto ignore;
+    }
+
+    vendor->cpuid.function = 0;
+    vendor->cpuid.ebx = (string[0]       ) |
+                        (string[1]  <<  8) |
+                        (string[2]  << 16) |
+                        (string[3]  << 24);
+    vendor->cpuid.edx = (string[4]       ) |
+                        (string[5]  <<  8) |
+                        (string[6]  << 16) |
+                        (string[7]  << 24);
+    vendor->cpuid.ecx = (string[8]       ) |
+                        (string[9]  <<  8) |
+                        (string[10] << 16) |
+                        (string[11] << 24);
+
+    if (!map->vendors)
+        map->vendors = vendor;
+    else {
+        vendor->next = map->vendors;
+        map->vendors = vendor;
+    }
+
+out:
+    VIR_FREE(string);
+
+    return ret;
+
+no_memory:
+    virReportOOMError();
+    ret = -1;
+ignore:
+    x86VendorFree(vendor);
+    goto out;
 }
 
 
@@ -369,9 +565,8 @@ x86FeatureFind(const struct x86_map *map,
 
 static int
 x86FeatureLoad(xmlXPathContextPtr ctxt,
-               void *data)
+               struct x86_map *map)
 {
-    struct x86_map *map = data;
     xmlNodePtr *nodes = NULL;
     xmlNodePtr ctxt_node = ctxt->node;
     struct x86_feature *feature = NULL;
@@ -480,6 +675,7 @@ x86ModelCopy(const struct x86_model *model)
         return NULL;
     }
 
+    copy->vendor = model->vendor;
     copy->ncpuid = model->ncpuid;
     for (i = 0; i < model->ncpuid; i++)
         copy->cpuid[i] = model->cpuid[i];
@@ -630,8 +826,7 @@ x86ModelFromCPU(const virCPUDefPtr cpu,
     struct x86_model *model = NULL;
     int i;
 
-    if (cpu->type == VIR_CPU_TYPE_HOST
-        || policy == VIR_CPU_FEATURE_REQUIRE) {
+    if (policy == VIR_CPU_FEATURE_REQUIRE) {
         if ((model = x86ModelFind(map, cpu->model)) == NULL) {
             virCPUReportError(VIR_ERR_INTERNAL_ERROR,
                     _("Unknown CPU model %s"), cpu->model);
@@ -643,6 +838,8 @@ x86ModelFromCPU(const virCPUDefPtr cpu,
     }
     else if (VIR_ALLOC(model) < 0)
         goto no_memory;
+    else if (cpu->type == VIR_CPU_TYPE_HOST)
+        return model;
 
     for (i = 0; i < cpu->nfeatures; i++) {
         const struct x86_feature *feature;
@@ -768,11 +965,11 @@ x86ModelCompare(const struct x86_model *model1,
 
 static int
 x86ModelLoad(xmlXPathContextPtr ctxt,
-             void *data)
+             struct x86_map *map)
 {
-    struct x86_map *map = data;
     xmlNodePtr *nodes = NULL;
     struct x86_model *model = NULL;
+    char *vendor = NULL;
     int ret = 0;
     int i;
     int n;
@@ -812,9 +1009,20 @@ x86ModelLoad(xmlXPathContextPtr ctxt,
         if (VIR_ALLOC_N(model->cpuid, ancestor->ncpuid) < 0)
             goto no_memory;
 
+        model->vendor = ancestor->vendor;
         model->ncpuid = ancestor->ncpuid;
         memcpy(model->cpuid, ancestor->cpuid,
                sizeof(*model->cpuid) * model->ncpuid);
+    }
+
+    vendor = virXPathString("string(./vendor/@name)", ctxt);
+    if (vendor) {
+        if (!(model->vendor = x86VendorFind(map, vendor))) {
+            virCPUReportError(VIR_ERR_INTERNAL_ERROR,
+                    _("Unknown vendor %s referenced by CPU model %s"),
+                    vendor, model->name);
+            goto ignore;
+        }
     }
 
     n = virXPathNodeSet("./feature", ctxt, &nodes);
@@ -852,6 +1060,7 @@ x86ModelLoad(xmlXPathContextPtr ctxt,
     }
 
 out:
+    VIR_FREE(vendor);
     VIR_FREE(nodes);
     return ret;
 
@@ -887,6 +1096,28 @@ x86MapFree(struct x86_map *map)
 }
 
 
+static int
+x86MapLoadCallback(enum cpuMapElement element,
+                   xmlXPathContextPtr ctxt,
+                   void *data)
+{
+    struct x86_map *map = data;
+
+    switch (element) {
+    case CPU_MAP_ELEMENT_VENDOR:
+        return x86VendorLoad(ctxt, map);
+    case CPU_MAP_ELEMENT_FEATURE:
+        return x86FeatureLoad(ctxt, map);
+    case CPU_MAP_ELEMENT_MODEL:
+        return x86ModelLoad(ctxt, map);
+    case CPU_MAP_ELEMENT_LAST:
+        break;
+    }
+
+    return 0;
+}
+
+
 static struct x86_map *
 x86LoadMap(void)
 {
@@ -897,9 +1128,7 @@ x86LoadMap(void)
         return NULL;
     }
 
-    if (cpuMapLoad("x86",
-                   x86FeatureLoad, map,
-                   x86ModelLoad, map) < 0)
+    if (cpuMapLoad("x86", x86MapLoadCallback, map) < 0)
         goto error;
 
     return map;
@@ -945,8 +1174,15 @@ x86Compute(virCPUDefPtr host,
         }
     }
 
+    if (cpu->vendor &&
+        (!host->vendor || STRNEQ(cpu->vendor, host->vendor))) {
+        VIR_DEBUG("host CPU vendor does not match required CPU vendor %s",
+                  cpu->vendor);
+        return VIR_CPU_COMPARE_INCOMPATIBLE;
+    }
+
     if (!(map = x86LoadMap()) ||
-        !(host_model = x86ModelFromCPU(host, map, 0)) ||
+        !(host_model = x86ModelFromCPU(host, map, VIR_CPU_FEATURE_REQUIRE)) ||
         !(cpu_force = x86ModelFromCPU(cpu, map, VIR_CPU_FEATURE_FORCE)) ||
         !(cpu_require = x86ModelFromCPU(cpu, map, VIR_CPU_FEATURE_REQUIRE)) ||
         !(cpu_optional = x86ModelFromCPU(cpu, map, VIR_CPU_FEATURE_OPTIONAL)) ||
@@ -1097,6 +1333,15 @@ x86Decode(virCPUDefPtr cpu,
         if (!(cpuCandidate = x86DataToCPU(data, candidate, map)))
             goto out;
 
+        if (candidate->vendor && cpuCandidate->vendor &&
+            STRNEQ(candidate->vendor->name, cpuCandidate->vendor)) {
+            VIR_DEBUG("CPU vendor %s of model %s differs from %s; ignoring",
+                      candidate->vendor->name, candidate->name,
+                      cpuCandidate->vendor);
+            virCPUDefFree(cpuCandidate);
+            goto next;
+        }
+
         if (cpu->type == VIR_CPU_TYPE_HOST) {
             cpuCandidate->type = VIR_CPU_TYPE_HOST;
             for (i = 0; i < cpuCandidate->nfeatures; i++) {
@@ -1134,6 +1379,7 @@ x86Decode(virCPUDefPtr cpu,
     }
 
     cpu->model = cpuModel->model;
+    cpu->vendor = cpuModel->vendor;
     cpu->nfeatures = cpuModel->nfeatures;
     cpu->features = cpuModel->features;
     VIR_FREE(cpuModel);
@@ -1174,7 +1420,8 @@ x86Encode(const virCPUDefPtr cpu,
           union cpuData **required,
           union cpuData **optional,
           union cpuData **disabled,
-          union cpuData **forbidden)
+          union cpuData **forbidden,
+          union cpuData **vendor)
 {
     struct x86_map *map = NULL;
     union cpuData *data_forced = NULL;
@@ -1182,6 +1429,7 @@ x86Encode(const virCPUDefPtr cpu,
     union cpuData *data_optional = NULL;
     union cpuData *data_disabled = NULL;
     union cpuData *data_forbidden = NULL;
+    union cpuData *data_vendor = NULL;
     int ret = -1;
 
     if ((map = x86LoadMap()) == NULL)
@@ -1217,6 +1465,23 @@ x86Encode(const virCPUDefPtr cpu,
             goto error;
     }
 
+    if (vendor) {
+        const struct x86_vendor *v = NULL;
+
+        if (cpu->vendor && !(v = x86VendorFind(map, cpu->vendor))) {
+            virCPUReportError(VIR_ERR_OPERATION_FAILED,
+                    _("CPU vendor %s not found"), cpu->vendor);
+            goto error;
+        }
+
+        if (v &&
+            (VIR_ALLOC(data_vendor) < 0 ||
+             x86DataAddCpuid(data_vendor, &v->cpuid) < 0)) {
+            virReportOOMError();
+            goto error;
+        }
+    }
+
     if (forced)
         *forced = data_forced;
     if (required)
@@ -1227,6 +1492,8 @@ x86Encode(const virCPUDefPtr cpu,
         *disabled = data_disabled;
     if (forbidden)
         *forbidden = data_forbidden;
+    if (vendor)
+        *vendor = data_vendor;
 
     ret = 0;
 
@@ -1241,6 +1508,7 @@ error:
     x86DataFree(data_optional);
     x86DataFree(data_disabled);
     x86DataFree(data_forbidden);
+    x86DataFree(data_vendor);
     goto cleanup;
 }
 
@@ -1338,11 +1606,13 @@ x86Baseline(virCPUDefPtr *cpus,
     union cpuData *data = NULL;
     virCPUDefPtr cpu = NULL;
     unsigned int i;
+    const struct x86_vendor *vendor = NULL;
+    struct x86_model *model = NULL;
 
     if (!(map = x86LoadMap()))
         goto error;
 
-    if (!(base_model = x86ModelFromCPU(cpus[0], map, 0)))
+    if (!(base_model = x86ModelFromCPU(cpus[0], map, VIR_CPU_FEATURE_REQUIRE)))
         goto error;
 
     if (VIR_ALLOC(cpu) < 0 ||
@@ -1351,20 +1621,67 @@ x86Baseline(virCPUDefPtr *cpus,
     cpu->type = VIR_CPU_TYPE_GUEST;
     cpu->match = VIR_CPU_MATCH_EXACT;
 
+    if (cpus[0]->vendor &&
+        !(vendor = x86VendorFind(map, cpus[0]->vendor))) {
+        virCPUReportError(VIR_ERR_OPERATION_FAILED,
+                _("Unknown CPU vendor %s"), cpus[0]->vendor);
+        goto error;
+    }
+
     for (i = 1; i < ncpus; i++) {
-        struct x86_model *model;
-        if (!(model = x86ModelFromCPU(cpus[i], map, 0)))
+        const char *vn = NULL;
+
+        if (!(model = x86ModelFromCPU(cpus[i], map, VIR_CPU_FEATURE_REQUIRE)))
             goto error;
+
+        if (cpus[i]->vendor && model->vendor &&
+            STRNEQ(cpus[i]->vendor, model->vendor->name)) {
+            virCPUReportError(VIR_ERR_OPERATION_FAILED,
+                    _("CPU vendor %s of model %s differs from vendor %s"),
+                    model->vendor->name, model->name, cpus[i]->vendor);
+            goto error;
+        }
+
+        if (cpus[i]->vendor)
+            vn = cpus[i]->vendor;
+        else if (model->vendor)
+            vn = model->vendor->name;
+
+        if (vn) {
+            if (!vendor) {
+                if (!(vendor = x86VendorFind(map, vn))) {
+                    virCPUReportError(VIR_ERR_OPERATION_FAILED,
+                            _("Unknown CPU vendor %s"), vn);
+                    goto error;
+                }
+            } else if (STRNEQ(vendor->name, vn)) {
+                virCPUReportError(VIR_ERR_OPERATION_FAILED,
+                        "%s", _("CPU vendors do not match"));
+                goto error;
+            }
+        }
 
         x86ModelIntersect(base_model, model);
         x86ModelFree(model);
+        model = NULL;
     }
 
     if (!(data = x86DataFromModel(base_model)))
         goto no_memory;
 
+    if (x86DataIsEmpty(data)) {
+        virCPUReportError(VIR_ERR_OPERATION_FAILED,
+                "%s", _("CPUs are incompatible"));
+        goto error;
+    }
+
+    if (vendor && x86DataAddCpuid(data, &vendor->cpuid) < 0)
+        goto no_memory;
+
     if (x86Decode(cpu, data, models, nmodels, NULL) < 0)
         goto error;
+
+    VIR_FREE(cpu->arch);
 
 cleanup:
     x86DataFree(data);
@@ -1376,6 +1693,7 @@ cleanup:
 no_memory:
     virReportOOMError();
 error:
+    x86ModelFree(model);
     virCPUDefFree(cpu);
     cpu = NULL;
     goto cleanup;
@@ -1393,7 +1711,7 @@ x86Update(virCPUDefPtr guest,
     union cpuData *data = NULL;
 
     if (!(map = x86LoadMap()) ||
-        !(host_model = x86ModelFromCPU(host, map, 0)))
+        !(host_model = x86ModelFromCPU(host, map, VIR_CPU_FEATURE_REQUIRE)))
         goto cleanup;
 
     for (i = 0; i < guest->nfeatures; i++) {

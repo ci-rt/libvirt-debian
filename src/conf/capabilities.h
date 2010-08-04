@@ -115,6 +115,21 @@ struct _virCapsHost {
     unsigned char host_uuid[VIR_UUID_BUFLEN];
 };
 
+typedef int (*virDomainDefNamespaceParse)(xmlDocPtr, xmlNodePtr,
+                                          xmlXPathContextPtr, void **);
+typedef void (*virDomainDefNamespaceFree)(void *);
+typedef int (*virDomainDefNamespaceXMLFormat)(virBufferPtr, void *);
+typedef const char *(*virDomainDefNamespaceHref)(void);
+
+typedef struct _virDomainXMLNamespace virDomainXMLNamespace;
+typedef virDomainXMLNamespace *virDomainXMLNamespacePtr;
+struct _virDomainXMLNamespace {
+    virDomainDefNamespaceParse parse;
+    virDomainDefNamespaceFree free;
+    virDomainDefNamespaceXMLFormat format;
+    virDomainDefNamespaceHref href;
+};
+
 typedef struct _virCaps virCaps;
 typedef virCaps* virCapsPtr;
 struct _virCaps {
@@ -123,11 +138,16 @@ struct _virCaps {
     virCapsGuestPtr *guests;
     unsigned char macPrefix[VIR_MAC_PREFIX_BUFLEN];
     unsigned int emulatorRequired : 1;
+    const char *defaultDiskDriverName;
+    const char *defaultDiskDriverType;
+    int defaultConsoleTargetType;
     void *(*privateDataAllocFunc)(void);
     void (*privateDataFreeFunc)(void *);
     int (*privateDataXMLFormat)(virBufferPtr, void *);
     int (*privateDataXMLParse)(xmlXPathContextPtr, void *);
     bool hasWideScsiBus;
+
+    virDomainXMLNamespace ns;
 };
 
 

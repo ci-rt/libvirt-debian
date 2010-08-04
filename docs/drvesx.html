@@ -120,7 +120,7 @@
             </div>
           </li><li>
             <div>
-              <a title="Frequently asked questions" class="inactive" href="FAQ.html">FAQ</a>
+              <a title="Frequently asked questions" class="inactive" href="http://wiki.libvirt.org/page/FAQ">FAQ</a>
             </div>
           </li><li>
             <div>
@@ -183,15 +183,16 @@
             <a href="#links">Links</a>
           </li></ul>
         <p>
-        The libvirt VMware ESX driver can manage VMware ESX/ESXi 3.5/4.0 and
+        The libvirt VMware ESX driver can manage VMware ESX/ESXi 3.5/4.x and
         VMware GSX 2.0, also called VMware Server 2.0, and possibly later
-        versions.
+        versions. <span class="since">Since 0.8.3</span> the driver can also
+        connect to a VMware vCenter 2.5/4.x (VPX).
     </p>
         <h2>
           <a name="prereq" id="prereq">Deployment pre-requisites</a>
         </h2>
         <p>
-        None. Any out-of-the-box installation of ESX/GSX should work. No
+        None. Any out-of-the-box installation of VPX/ESX(i)/GSX should work. No
         preparations are required on the server side, no libvirtd must be
         installed on the ESX server. The driver uses version 2.5 of the remote,
         SOAP based
@@ -209,10 +210,11 @@
         Some example remote connection URIs for the driver are:
     </p>
         <pre>
-esx://example.com                  (ESX over HTTPS)
-gsx://example.com                  (GSX over HTTPS)
-esx://example.com/?transport=http  (ESX over HTTP)
-esx://example.com/?no_verify=1     (ESX over HTTPS, but doesn't verify the server's SSL certificate)
+vpx://example-vcenter.com/dc1/srv1     (VPX over HTTPS, select ESX server 'srv1' in datacenter 'dc1')
+esx://example-esx.com                  (ESX over HTTPS)
+gsx://example-gsx.com                  (GSX over HTTPS)
+esx://example-esx.com/?transport=http  (ESX over HTTP)
+esx://example-esx.com/?no_verify=1     (ESX over HTTPS, but doesn't verify the server's SSL certificate)
 </pre>
         <p>
         <strong>Note</strong>: In contrast to other drivers, the ESX driver is
@@ -225,30 +227,54 @@ esx://example.com/?no_verify=1     (ESX over HTTPS, but doesn't verify the serve
           <a name="uriformat" id="uriformat">URI Format</a>
         </h3>
         <p>
-        URIs have this general form ('[...]' marks an optional part).
+        URIs have this general form (<code>[...]</code> marks an optional part).
     </p>
         <pre>
-type://[username@]hostname[:port]/[?extraparameters]
+type://[username@]hostname[:port]/[datacenter[/cluster]/server][?extraparameters]
 </pre>
         <p>
         The <code>type://</code> is either <code>esx://</code> or
-        <code>gsx://</code> and the driver selects the default port depending
-        on it. For ESX the default HTTPS port is 443, for GSX it is 8333. If
-        the port parameter is given, it overrides the default port.
+        <code>gsx://</code> or <code>vpx://</code> <span class="since">since 0.8.3</span>.
+        The driver selects the default port depending on the <code>type://</code>.
+        For <code>esx://</code> and <code>vpx://</code> the default HTTPS port
+        is 443, for <code>gsx://</code> it is 8333.
+        If the port parameter is given, it overrides the default port.
     </p>
+        <p>
+        A <code>vpx://</code> connection is currently restricted to a single
+        ESX server. This might be relaxed in the future. The path part of the
+        URI is used to specify the datacenter and the ESX server in it. If the
+        ESX server is part of a cluster then the cluster has to be specified too.
+    </p>
+        <p>
+        An example: ESX server <code>example-esx.com</code> is managed by
+        vCenter <code>example-vcenter.com</code> and part of cluster
+        <code>cluster1</code>. This cluster is part of datacenter <code>dc1</code>.
+    </p>
+        <pre>
+vpx://example-vcenter.com/dc1/cluster1/example-esx.com
+</pre>
         <h4>Extra parameters</h4>
         <p>
         Extra parameters can be added to a URI as part of the query string
-        (the part following '?'). The driver understands the extra parameters
-        shown below.
+        (the part following <code>?</code>). A single parameter is formed by a
+        <code>name=value</code> pair. Multiple parameters are separated by
+        <code>&amp;</code>.
+    </p>
+        <pre>
+?<span style="color: #E50000">no_verify=1</span>&amp;<span style="color: #00B200">auto_answer=1</span>&amp;<span style="color: #0000E5">proxy=socks://example-proxy.com:23456</span>
+</pre>
+        <p>
+        The driver understands the extra parameters shown below.
     </p>
         <table class="top_table"><tr><th>Name</th><th>Values</th><th>Meaning</th></tr><tr><td>
                 <code>transport</code>
             </td><td>
                 <code>http</code> or <code>https</code>
             </td><td>
-                Overrides the default HTTPS transport. For ESX the default
-                HTTP port is 80, for GSX it is 8222.
+                Overrides the default HTTPS transport. For <code>esx://</code>
+                and <code>vpx://</code> the default HTTP port is 80, for
+                <code>gsx://</code> it is 8222.
             </td></tr><tr><td>
                 <code>vcenter</code>
             </td><td>
@@ -257,6 +283,7 @@ type://[username@]hostname[:port]/[?extraparameters]
                 In order to perform a migration the driver needs to know the
                 VMware vCenter for the ESX server. If set to <code>*</code>,
                 the driver connects to the vCenter known to the ESX server.
+                This paramater in useful when connecting to an ESX server only.
             </td></tr><tr><td>
                 <code>no_verify</code>
             </td><td>
@@ -363,7 +390,7 @@ type://[username@]hostname[:port]/[?extraparameters]
         To define a new domain the driver converts the domain XML into a
         VMware VMX file and uploads it to a datastore known to the ESX server.
         Because multiple datastores may be known to an ESX server the driver
-        needs to decide to which datastores the VMX file should be uploaded.
+        needs to decide to which datastore the VMX file should be uploaded.
         The driver deduces this information from the path of the source of the
         first file-based harddisk listed in the domain XML.
     </p>
@@ -419,12 +446,23 @@ ethernet0.checkMACAddress = "false"
         cards.
     </p>
         <h4>SCSI controller models</h4>
-        <dl><dt><code>buslogic</code></dt><dd>
+        <dl><dt><code>auto</code></dt><dd>
+            This isn't a actual controller model. If specified the ESX driver
+            tries to detect the SCSI controller model referenced in the
+            <code>.vmdk</code> file and use it. Autodetection fails when a
+            SCSI controller has multiple disks attached and the SCSI controller
+            models referenced in the <code>.vmdk</code> files are inconsistent.
+            <span class="since">Since 0.8.3</span>
+        </dd><dt><code>buslogic</code></dt><dd>
             BusLogic SCSI controller for older guests.
         </dd><dt><code>lsilogic</code></dt><dd>
             LSI Logic SCSI controller for recent guests.
         </dd><dt><code>lsisas1068</code></dt><dd>
-            LSI Logic SAS 1068 controller.
+            LSI Logic SAS 1068 controller. <span class="since">Since 0.8.0</span>
+        </dd><dt><code>vmpvscsi</code></dt><dd>
+            Special VMware Paravirtual SCSI controller, requires VMware tools inside
+            the guest. See <a href="http://kb.vmware.com/kb/1010398">VMware KB1010398</a>
+            for details. <span class="since">Since 0.8.3</span>
         </dd></dl>
         <p>
         Here a domain XML snippet:
@@ -671,7 +709,7 @@ ethernet0.address = "00:50:56:25:48:C7"
 esx://example.com/?vcenter=example-vcenter.com
 </pre>
         <p>
-        Here an example how to migrate the domain <code>Fedora11</code> from
+        Here's an example how to migrate the domain <code>Fedora11</code> from
         ESX server <code>example-src.com</code> to ESX server
         <code>example-dst.com</code> implicitly involving vCenter
         <code>example-vcenter.com</code> using <code>virsh</code>.
@@ -684,6 +722,19 @@ Enter username for example-vcenter.com [administrator]:
 Enter administrator password for example-vcenter.com:
 Enter username for example-dst.com [root]:
 Enter root password for example-dst.com:
+Enter username for example-vcenter.com [administrator]:
+Enter administrator password for example-vcenter.com:
+</pre>
+        <p>
+        <span class="since">Since 0.8.3</span> you can directly connect to a vCenter.
+        This simplifies migration a bit. Here's the same migration as above but
+        using <code>vpx://</code> connections and assuming both ESX server are in
+        datacenter <code>dc1</code> and aren't part of a cluster.
+    </p>
+        <pre>
+$ virsh -c vpx://example-vcenter.com/dc1/example-src.com migrate Fedora11 vpx://example-vcenter.com/dc1/example-dst.com
+Enter username for example-vcenter.com [administrator]:
+Enter administrator password for example-vcenter.com:
 Enter username for example-vcenter.com [administrator]:
 Enter administrator password for example-vcenter.com:
 </pre>
@@ -738,6 +789,10 @@ Enter administrator password for example-vcenter.com:
         </li><li>
             <a href="http://www.sanbarrow.com/vmx.html">
                 VMware VMX config parameters
+            </a>
+        </li><li>
+            <a href="http://www.vmware.com/pdf/vsp_4_pvscsi_perf.pdf">
+                VMware ESX 4.0 PVSCSI Storage Performance
             </a>
         </li></ul>
       </div>

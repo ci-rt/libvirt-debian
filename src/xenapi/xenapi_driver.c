@@ -830,6 +830,7 @@ xenapiDomainDestroy (virDomainPtr dom)
             return -1;
         }
         xen_vm_set_free(vms);
+        dom->id = -1;
         return 0;
     }
     if (vms) xen_vm_set_free(vms);
@@ -1459,6 +1460,7 @@ xenapiDomainCreateWithFlags (virDomainPtr dom, unsigned int flags)
     xen_vm_set *vms;
     xen_vm vm;
     xen_session *session = ((struct _xenapiPrivate *)(dom->conn->privateData))->session;
+    int64_t domid = -1;
 
     virCheckFlags(0, -1);
 
@@ -1475,6 +1477,10 @@ xenapiDomainCreateWithFlags (virDomainPtr dom, unsigned int flags)
             xen_vm_set_free(vms);
             return -1;
         }
+
+        xen_vm_get_domid(session, &domid, vm);
+        dom->id = domid;
+
         xen_vm_set_free(vms);
     } else {
         if (vms) xen_vm_set_free(vms);
@@ -1814,6 +1820,7 @@ static virDriver xenapiDriver = {
     NULL, /* domainSnapshotCurrent */
     NULL, /* domainRevertToSnapshot */
     NULL, /* domainSnapshotDelete */
+    NULL, /* qemuDomainMonitorCommand */
 };
 
 /**

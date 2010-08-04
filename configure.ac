@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([libvirt], [0.8.2])
+AC_INIT([libvirt], [0.8.3])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -1631,6 +1631,12 @@ if test "$with_xenapi" = "yes" ; then
 fi
 AM_CONDITIONAL([WITH_XENAPI], [test "$with_xenapi" = "yes"])
 
+# XXX as of libcurl-devel-7.20.1-3.fc13.x86_64, curl ships a version
+# of <curl/curl.h> that #defines several wrapper macros around underlying
+# functions to add type safety for gcc only.  However, these macros
+# spuriously trip gcc's -Wlogical-op warning.  Avoid the warning by
+# disabling the wrappers; even if it removes some type-check safety.
+LIBCURL_CFLAGS="-DCURL_DISABLE_TYPECHECK $LIBCURL_CFLAGS"
 
 AC_SUBST([LIBCURL_CFLAGS])
 AC_SUBST([LIBCURL_LIBS])
@@ -1746,6 +1752,7 @@ AC_ARG_ENABLE([test-coverage],
 enable_coverage=$enableval
 
 if test "${enable_coverage}" = yes; then
+  COMPILER_FLAGS=
   gl_COMPILER_FLAGS(-fprofile-arcs)
   gl_COMPILER_FLAGS(-ftest-coverage)
   AC_SUBST([COVERAGE_CFLAGS], [$COMPILER_FLAGS])
@@ -1833,6 +1840,7 @@ CYGWIN_EXTRA_PYTHON_LIBADD=
 MINGW_EXTRA_LDFLAGS=
 WIN32_EXTRA_CFLAGS=
 LIBVIRT_SYMBOL_FILE=libvirt.syms
+LIBVIRT_QEMU_SYMBOL_FILE='$(srcdir)/libvirt_qemu.syms'
 case "$host" in
   *-*-cygwin*)
     CYGWIN_EXTRA_LDFLAGS="-no-undefined"
@@ -1872,6 +1880,7 @@ AC_SUBST([CYGWIN_EXTRA_PYTHON_LIBADD])
 AC_SUBST([MINGW_EXTRA_LDFLAGS])
 AC_SUBST([WIN32_EXTRA_CFLAGS])
 AC_SUBST([LIBVIRT_SYMBOL_FILE])
+AC_SUBST([LIBVIRT_QEMU_SYMBOL_FILE])
 AC_SUBST([VERSION_SCRIPT_FLAGS])
 
 
@@ -2129,6 +2138,7 @@ AC_OUTPUT(Makefile src/Makefile include/Makefile docs/Makefile \
           examples/domain-events/events-c/Makefile \
           examples/domsuspend/Makefile \
           examples/dominfo/Makefile \
+          examples/openauth/Makefile \
           examples/python/Makefile \
           examples/hellolibvirt/Makefile \
           examples/xml/nwfilter/Makefile)

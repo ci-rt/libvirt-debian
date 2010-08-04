@@ -544,7 +544,6 @@ CAPNG_LIBS = @CAPNG_LIBS@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
-COMPILER_FLAGS = @COMPILER_FLAGS@
 CONFIG_INCLUDE = @CONFIG_INCLUDE@
 COVERAGE_CFLAGS = @COVERAGE_CFLAGS@
 COVERAGE_LDFLAGS = @COVERAGE_LDFLAGS@
@@ -978,6 +977,7 @@ LIBTOOL = @LIBTOOL@
 LIBVIRT_MAJOR_VERSION = @LIBVIRT_MAJOR_VERSION@
 LIBVIRT_MICRO_VERSION = @LIBVIRT_MICRO_VERSION@
 LIBVIRT_MINOR_VERSION = @LIBVIRT_MINOR_VERSION@
+LIBVIRT_QEMU_SYMBOL_FILE = @LIBVIRT_QEMU_SYMBOL_FILE@
 LIBVIRT_SYMBOL_FILE = @LIBVIRT_SYMBOL_FILE@
 LIBVIRT_VERSION = @LIBVIRT_VERSION@
 LIBVIRT_VERSION_INFO = @LIBVIRT_VERSION_INFO@
@@ -1347,19 +1347,20 @@ LDADDS = \
 	$(LIBSOCKET) \
         $(COVERAGE_LDFLAGS)
 
-EXTRA_DIST = oomtrace.pl test-lib.sh qemuxml2argvdata nodeinfodata \
-	schematestutils.sh capabilityschematest capabilityschemadata \
-	networkschematest networkxml2xmlout networkxml2xmlin \
-	domainschematest domainschemadata interfaceschemadata \
-	storagepoolschematest storagepoolxml2xmlout \
-	storagepoolxml2xmlin storagevolschematest storagevolxml2xmlout \
-	storagevolxml2xmlin nodedevschematest nodedevschemadata \
-	vmx2xmldata xml2vmxdata nwfilterxml2xmlout nwfilterxml2xmlin \
-	nwfilterschematest domainsnapshotschematest \
-	domainsnapshotxml2xmlout domainsnapshotxml2xmlin qemuhelpdata \
-	$(am__append_10) $(test_scripts) $(am__append_19) \
-	$(am__append_20) $(am__append_21) $(am__append_22) \
-	$(am__append_23) $(am__append_24)
+EXTRA_DIST = oomtrace.pl test-lib.sh qemuxml2argvdata \
+	qemuxml2xmloutdata nodeinfodata schematestutils.sh \
+	capabilityschematest capabilityschemadata networkschematest \
+	networkxml2xmlout networkxml2xmlin domainschematest \
+	domainschemadata interfaceschemadata storagepoolschematest \
+	storagepoolxml2xmlout storagepoolxml2xmlin \
+	storagevolschematest storagevolxml2xmlout storagevolxml2xmlin \
+	nodedevschematest nodedevschemadata vmx2xmldata xml2vmxdata \
+	nwfilterxml2xmlout nwfilterxml2xmlin nwfilterschematest \
+	domainsnapshotschematest domainsnapshotxml2xmlout \
+	domainsnapshotxml2xmlin qemuhelpdata $(am__append_10) \
+	$(test_scripts) $(am__append_19) $(am__append_20) \
+	$(am__append_21) $(am__append_22) $(am__append_23) \
+	$(am__append_24)
 test_scripts = capabilityschematest interfaceschematest \
 	networkschematest storagepoolschematest storagevolschematest \
 	domainschematest nodedevschematest nwfilterschematest \
