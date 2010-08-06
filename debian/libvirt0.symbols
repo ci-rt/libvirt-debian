@@ -35,3 +35,5 @@ libvirt.so.0 libvirt0 #MINVER#
  *@LIBVIRT_0.8.2 0.8.2
  *@LIBVIRT_0.8.3 0.8.3
  *@LIBVIRT_PRIVATE_0.8.3 0.8.3
+libvirt-qemu.so.0 libvirt0 #MINVER#
+ *@LIBVIRT_QEMU_0.8.3 0.8.3
