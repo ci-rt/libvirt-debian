@@ -1,3 +1,25 @@
+libvirt (0.8.3-1) unstable; urgency=low
+
+  [ Guido Günther ]
+  * Mention clear_emulator_capabilities
+  * Recommend iptables and gawk
+
+  [ Laurent Léonard ]
+  * Imported Upstream version 0.8.3
+    - Fixes: CVE-2010-2237, CVE-2010-2238, CVE-2010-2239, CVE-2010-2242
+  * Redo patches
+  * Update libvirt0 symbols
+  * Bump Standards-Version to 3.9.1
+
+  [ Guido Günther ]
+  * Install libvirt-qemu library
+  * Add libvirt-qemu.so symbols
+
+  [ Laurent Léonard ]
+  * Fix debian/NEWS syntax
+
+ -- Laurent Léonard <laurent@open-minds.org>  Fri, 06 Aug 2010 17:18:55 +0200
+
 libvirt (0.8.2-1) unstable; urgency=low
 
   * Imported Upstream version 0.8.2
