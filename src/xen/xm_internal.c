@@ -803,7 +803,7 @@ xenXMDomainConfigParse(virConnectPtr conn, virConfPtr conf) {
 
     if (xenXMConfigGetString(conf, "on_crash", &str, "restart") < 0)
         goto cleanup;
-    if ((def->onCrash = virDomainLifecycleTypeFromString(str)) < 0) {
+    if ((def->onCrash = virDomainLifecycleCrashTypeFromString(str)) < 0) {
         xenXMError(VIR_ERR_INTERNAL_ERROR,
                    _("unexpected value %s for on_crash"), str);
         goto cleanup;
@@ -2346,7 +2346,7 @@ virConfPtr xenXMDomainConfigFormat(virConnectPtr conn,
             xenXMConfigSetString(conf, "bootloader", def->os.bootloader) < 0)
             goto no_memory;
         if (def->os.bootloaderArgs &&
-            xenXMConfigSetString(conf, "bootloader_args", def->os.bootloaderArgs) < 0)
+            xenXMConfigSetString(conf, "bootargs", def->os.bootloaderArgs) < 0)
             goto no_memory;
         if (def->os.kernel &&
             xenXMConfigSetString(conf, "kernel", def->os.kernel) < 0)
@@ -2378,7 +2378,7 @@ virConfPtr xenXMDomainConfigFormat(virConnectPtr conn,
         goto no_memory;
 
 
-    if (!(lifecycle = virDomainLifecycleTypeToString(def->onCrash))) {
+    if (!(lifecycle = virDomainLifecycleCrashTypeToString(def->onCrash))) {
         xenXMError(VIR_ERR_INTERNAL_ERROR,
                    _("unexpected lifecycle action %d"), def->onCrash);
         goto cleanup;
@@ -3056,6 +3056,7 @@ xenXMDomainDetachDeviceFlags(virDomainPtr domain, const char *xml,
                             def->disks + i + 1,
                             sizeof(*def->disks) *
                             (def->ndisks - (i + 1)));
+                def->ndisks--;
                 break;
             }
         }
@@ -3074,6 +3075,7 @@ xenXMDomainDetachDeviceFlags(virDomainPtr domain, const char *xml,
                             def->nets + i + 1,
                             sizeof(*def->nets) *
                             (def->nnets - (i + 1)));
+                def->nnets--;
                 break;
             }
         }

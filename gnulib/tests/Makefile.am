@@ -181,6 +181,14 @@ EXTRA_DIST += test-count-one-bits.c macros.h
 
 ## end   gnulib module count-one-bits-tests
 
+## begin gnulib module crypto/md5-tests
+
+TESTS += test-md5
+check_PROGRAMS += test-md5
+EXTRA_DIST += test-md5.c
+
+## end   gnulib module crypto/md5-tests
+
 ## begin gnulib module errno-tests
 
 TESTS += test-errno
@@ -205,6 +213,14 @@ check_PROGRAMS += test-fseeko
 EXTRA_DIST += test-fseeko.c test-fseeko.sh test-fseeko2.sh signature.h macros.h
 
 ## end   gnulib module fseeko-tests
+
+## begin gnulib module func-tests
+
+TESTS += test-func
+check_PROGRAMS += test-func
+EXTRA_DIST += test-func.c macros.h
+
+## end   gnulib module func-tests
 
 ## begin gnulib module getaddrinfo-tests
 

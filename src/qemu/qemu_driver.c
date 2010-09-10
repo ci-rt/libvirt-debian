@@ -170,6 +170,9 @@ static int qemuDetectVcpuPIDs(struct qemud_driver *driver,
 static int qemuUpdateActivePciHostdevs(struct qemud_driver *driver,
                                        virDomainDefPtr def);
 
+static int qemudVMFiltersInstantiate(virConnectPtr conn,
+                                     virDomainDefPtr def);
+
 static struct qemud_driver *qemu_driver = NULL;
 
 
@@ -1423,6 +1426,10 @@ error:
     return ret;
 }
 
+struct virReconnectDomainData {
+    virConnectPtr conn;
+    struct qemud_driver *driver;
+};
 /*
  * Open an existing VM's monitor, re-detect VCPU threads
  * and re-reserve the security labels in use
@@ -1431,9 +1438,11 @@ static void
 qemuReconnectDomain(void *payload, const char *name ATTRIBUTE_UNUSED, void *opaque)
 {
     virDomainObjPtr obj = payload;
-    struct qemud_driver *driver = opaque;
+    struct virReconnectDomainData *data = opaque;
+    struct qemud_driver *driver = data->driver;
     qemuDomainObjPrivatePtr priv;
     unsigned long long qemuCmdFlags;
+    virConnectPtr conn = data->conn;
 
     virDomainObjLock(obj);
 
@@ -1455,16 +1464,21 @@ qemuReconnectDomain(void *payload, const char *name ATTRIBUTE_UNUSED, void *opaq
     if (qemudExtractVersionInfo(obj->def->emulator,
                                 NULL,
                                 &qemuCmdFlags) >= 0 &&
-        (qemuCmdFlags & QEMUD_CMD_FLAG_DEVICE))
+        (qemuCmdFlags & QEMUD_CMD_FLAG_DEVICE)) {
         priv->persistentAddrs = 1;
 
-    if (!(priv->pciaddrs = qemuDomainPCIAddressSetCreate(obj->def)))
-        goto error;
+        if (!(priv->pciaddrs = qemuDomainPCIAddressSetCreate(obj->def)) ||
+            qemuAssignDevicePCISlots(obj->def, priv->pciaddrs) < 0)
+            goto error;
+    }
 
     if (driver->securityDriver &&
         driver->securityDriver->domainReserveSecurityLabel &&
         driver->securityDriver->domainReserveSecurityLabel(driver->securityDriver,
                                                            obj) < 0)
+        goto error;
+
+    if (qemudVMFiltersInstantiate(conn, obj->def))
         goto error;
 
     if (obj->def->id >= driver->nextvmid)
@@ -1491,9 +1505,10 @@ error:
  * about.
  */
 static void
-qemuReconnectDomains(struct qemud_driver *driver)
+qemuReconnectDomains(virConnectPtr conn, struct qemud_driver *driver)
 {
-    virHashForEach(driver->domains.objs, qemuReconnectDomain, driver);
+    struct virReconnectDomainData data = {conn, driver};
+    virHashForEach(driver->domains.objs, qemuReconnectDomain, &data);
 }
 
 
@@ -1691,6 +1706,7 @@ qemudStartup(int privileged) {
     char *base = NULL;
     char driverConf[PATH_MAX];
     int rc;
+    virConnectPtr conn = NULL;
 
     if (VIR_ALLOC(qemu_driver) < 0)
         return -1;
@@ -1912,7 +1928,11 @@ qemudStartup(int privileged) {
                                 1, NULL, NULL) < 0)
         goto error;
 
-    qemuReconnectDomains(qemu_driver);
+    conn = virConnectOpen(qemu_driver->privileged ?
+                          "qemu:///system" :
+                          "qemu:///session");
+
+    qemuReconnectDomains(conn, qemu_driver);
 
     /* Then inactive persistent configs */
     if (virDomainLoadAllConfigs(qemu_driver->caps,
@@ -1930,6 +1950,8 @@ qemudStartup(int privileged) {
 
     qemudAutostartConfigs(qemu_driver);
 
+    if (conn)
+        virConnectClose(conn);
 
     return 0;
 
@@ -1938,6 +1960,8 @@ out_of_memory:
 error:
     if (qemu_driver)
         qemuDriverUnlock(qemu_driver);
+    if (conn)
+        virConnectClose(conn);
     VIR_FREE(base);
     qemudShutdown();
     return -1;
@@ -3209,16 +3233,17 @@ qemuPrepareChardevDevice(virDomainDefPtr def ATTRIBUTE_UNUSED,
 
 
 static void
-qemudReattachManagedDevice(pciDevice *dev, struct qemud_driver *driver)
+qemudReattachPciDevice(pciDevice *dev, struct qemud_driver *driver)
 {
     int retries = 100;
 
+    while (pciWaitForDeviceCleanup(dev, "kvm_assigned_device")
+           && retries) {
+        usleep(100*1000);
+        retries--;
+    }
+
     if (pciDeviceGetManaged(dev)) {
-        while (pciWaitForDeviceCleanup(dev, "kvm_assigned_device")
-               && retries) {
-            usleep(100*1000);
-            retries--;
-        }
         if (pciReAttachDevice(dev, driver->activePciHostdevs) < 0) {
             virErrorPtr err = virGetLastError();
             VIR_ERROR(_("Failed to re-attach PCI device: %s"),
@@ -3264,7 +3289,7 @@ qemuDomainReAttachHostdevDevices(struct qemud_driver *driver,
 
     for (i = 0; i < pciDeviceListCount(pcidevs); i++) {
         pciDevice *dev = pciDeviceListGet(pcidevs, i);
-        qemudReattachManagedDevice(dev, driver);
+        qemudReattachPciDevice(dev, driver);
     }
 
     pciDeviceListFree(pcidevs);
@@ -4291,7 +4316,6 @@ static int qemudGetProcessInfo(unsigned long long *cpuTime, int *lastCpu, int pi
     }
 
     if (!(pidinfo = fopen(proc, "r"))) {
-        /*printf("cannot read pid info");*/
         /* VM probably shut down, so fake 0 */
         if (cpuTime)
             *cpuTime = 0;
@@ -4937,7 +4961,11 @@ static int qemudDomainGetInfo(virDomainPtr dom,
 
     if (virDomainObjIsActive(vm)) {
         qemuDomainObjPrivatePtr priv = vm->privateData;
-        if (!priv->jobActive) {
+
+        if ((vm->def->memballoon != NULL) &&
+            (vm->def->memballoon->model == VIR_DOMAIN_MEMBALLOON_MODEL_NONE)) {
+            info->memory = vm->def->maxmem;
+        } else if (!priv->jobActive) {
             if (qemuDomainObjBeginJob(vm) < 0)
                 goto cleanup;
 
@@ -5207,12 +5235,11 @@ endjob:
     return ret;
 }
 
-
-static int qemudDomainSaveFlag(virDomainPtr dom, const char *path,
+/* this internal function expects the driver lock to already be held on entry */
+static int qemudDomainSaveFlag(struct qemud_driver *driver, virDomainPtr dom,
+                               virDomainObjPtr vm, const char *path,
                                int compressed)
 {
-    struct qemud_driver *driver = dom->conn->privateData;
-    virDomainObjPtr vm = NULL;
     char *xml = NULL;
     struct qemud_save_header header;
     struct fileOpHookData hdata;
@@ -5230,19 +5257,8 @@ static int qemudDomainSaveFlag(virDomainPtr dom, const char *path,
     memcpy(header.magic, QEMUD_SAVE_MAGIC, sizeof(header.magic));
     header.version = QEMUD_SAVE_VERSION;
 
-    qemuDriverLock(driver);
-
     header.compressed = compressed;
 
-    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
-
-    if (!vm) {
-        char uuidstr[VIR_UUID_STRING_BUFLEN];
-        virUUIDFormat(dom->uuid, uuidstr);
-        qemuReportError(VIR_ERR_NO_DOMAIN,
-                        _("no domain with matching uuid '%s'"), uuidstr);
-        goto cleanup;
-    }
     priv = vm->privateData;
 
     if (qemuDomainObjBeginJobWithDriver(driver, vm) < 0)
@@ -5527,12 +5543,9 @@ cleanup:
     VIR_FREE(xml);
     if (ret != 0 && is_reg)
         unlink(path);
-    if (vm)
-        virDomainObjUnlock(vm);
     if (event)
         qemuDomainEventQueue(driver, event);
     virCgroupFree(&cgroup);
-    qemuDriverUnlock(driver);
     return ret;
 }
 
@@ -5540,8 +5553,11 @@ static int qemudDomainSave(virDomainPtr dom, const char *path)
 {
     struct qemud_driver *driver = dom->conn->privateData;
     int compressed;
+    int ret = -1;
+    virDomainObjPtr vm = NULL;
 
-    /* Hm, is this safe against qemudReload? */
+    qemuDriverLock(driver);
+
     if (driver->saveImageFormat == NULL)
         compressed = QEMUD_SAVE_FORMAT_RAW;
     else {
@@ -5554,7 +5570,23 @@ static int qemudDomainSave(virDomainPtr dom, const char *path)
         }
     }
 
-    return qemudDomainSaveFlag(dom, path, compressed);
+    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+    if (!vm) {
+        char uuidstr[VIR_UUID_STRING_BUFLEN];
+        virUUIDFormat(dom->uuid, uuidstr);
+        qemuReportError(VIR_ERR_NO_DOMAIN,
+                        _("no domain with matching uuid '%s'"), uuidstr);
+        goto cleanup;
+    }
+
+    ret = qemudDomainSaveFlag(driver, dom, vm, path, compressed);
+
+cleanup:
+    if (vm)
+        virDomainObjUnlock(vm);
+    qemuDriverUnlock(driver);
+
+    return ret;
 }
 
 static char *
@@ -5587,48 +5619,25 @@ qemuDomainManagedSave(virDomainPtr dom, unsigned int flags)
         virUUIDFormat(dom->uuid, uuidstr);
         qemuReportError(VIR_ERR_NO_DOMAIN,
                         _("no domain with matching uuid '%s'"), uuidstr);
-        goto error;
-    }
-
-    if (!virDomainObjIsActive(vm)) {
-        qemuReportError(VIR_ERR_OPERATION_INVALID,
-                        "%s", _("domain is not running"));
-        goto error;
+        goto cleanup;
     }
 
     name = qemuDomainManagedSavePath(driver, vm);
     if (name == NULL)
-        goto error;
+        goto cleanup;
 
     VIR_DEBUG("Saving state to %s", name);
 
-    /* FIXME: we should take the flags parameter, and use bits out
-     * of there to control whether we are compressing or not
-     */
     compressed = QEMUD_SAVE_FORMAT_RAW;
-
-    /* we have to drop our locks here because qemudDomainSaveFlag is
-     * going to pick them back up.  Unfortunately it opens a race window
-     * between us dropping and qemudDomainSaveFlag picking it back up, but
-     * if we want to allow other operations to be able to happen while
-     * qemuDomainSaveFlag is running (possibly for a long time), I'm not
-     * sure if there is a better solution
-     */
-    virDomainObjUnlock(vm);
-    qemuDriverUnlock(driver);
-
-    ret = qemudDomainSaveFlag(dom, name, compressed);
+    ret = qemudDomainSaveFlag(driver, dom, vm, name, compressed);
 
 cleanup:
-    VIR_FREE(name);
-
-    return ret;
-
-error:
     if (vm)
         virDomainObjUnlock(vm);
     qemuDriverUnlock(driver);
-    goto cleanup;
+    VIR_FREE(name);
+
+    return ret;
 }
 
 static int
@@ -6744,8 +6753,10 @@ static char *qemudDomainDumpXML(virDomainPtr dom,
         goto cleanup;
     }
 
-    /* Refresh current memory based on balloon info */
-    if (virDomainObjIsActive(vm)) {
+    /* Refresh current memory based on balloon info if supported */
+    if ((vm->def->memballoon != NULL) &&
+        (vm->def->memballoon->model != VIR_DOMAIN_MEMBALLOON_MODEL_NONE) &&
+        (virDomainObjIsActive(vm))) {
         qemuDomainObjPrivatePtr priv = vm->privateData;
         /* Don't delay if someone's using the monitor, just use
          * existing most recent data instead */
@@ -8572,22 +8583,6 @@ static inline int qemudFindDisk(virDomainDefPtr def, const char *dst)
     return -1;
 }
 
-static inline void qemudShrinkDisks(virDomainDefPtr def, size_t i)
-{
-    if (def->ndisks > 1) {
-        memmove(def->disks + i,
-                def->disks + i + 1,
-                sizeof(*def->disks) *
-                (def->ndisks - (i + 1)));
-        def->ndisks--;
-        if (VIR_REALLOC_N(def->disks, def->ndisks) < 0) {
-            /* ignore, harmless */
-        }
-    } else {
-        VIR_FREE(def->disks);
-        def->ndisks = 0;
-    }
-}
 
 static int qemudDomainDetachPciDiskDevice(struct qemud_driver *driver,
                                           virDomainObjPtr vm,
@@ -8640,7 +8635,11 @@ static int qemudDomainDetachPciDiskDevice(struct qemud_driver *driver,
     }
     qemuDomainObjExitMonitorWithDriver(driver, vm);
 
-    qemudShrinkDisks(vm->def, i);
+    if ((qemuCmdFlags & QEMUD_CMD_FLAG_DEVICE) &&
+        qemuDomainPCIAddressReleaseAddr(priv->pciaddrs, &detach->info) < 0)
+        VIR_WARN("Unable to release PCI address on %s", dev->data.disk->src);
+
+    virDomainDiskRemove(vm->def, i);
 
     virDomainDiskDefFree(detach);
 
@@ -8704,7 +8703,7 @@ static int qemudDomainDetachSCSIDiskDevice(struct qemud_driver *driver,
     }
     qemuDomainObjExitMonitorWithDriver(driver, vm);
 
-    qemudShrinkDisks(vm->def, i);
+    virDomainDiskRemove(vm->def, i);
 
     virDomainDiskDefFree(detach);
 
@@ -8881,6 +8880,10 @@ qemudDomainDetachNetDevice(struct qemud_driver *driver,
     }
     qemuDomainObjExitMonitorWithDriver(driver, vm);
 
+    if ((qemuCmdFlags & QEMUD_CMD_FLAG_DEVICE) &&
+        qemuDomainPCIAddressReleaseAddr(priv->pciaddrs, &detach->info) < 0)
+        VIR_WARN0("Unable to release PCI address on NIC");
+
     virDomainConfNWFilterTeardown(detach);
 
 #if WITH_MACVTAP
@@ -8997,13 +9000,13 @@ static int qemudDomainDetachHostPciDevice(struct qemud_driver *driver,
         pciDeviceListDel(driver->activePciHostdevs, pci);
         if (pciResetDevice(pci, driver->activePciHostdevs, NULL) < 0)
             ret = -1;
-        qemudReattachManagedDevice(pci, driver);
+        qemudReattachPciDevice(pci, driver);
         pciFreeDevice(pci);
     }
 
     if ((qemuCmdFlags & QEMUD_CMD_FLAG_DEVICE) &&
         qemuDomainPCIAddressReleaseAddr(priv->pciaddrs, &detach->info) < 0)
-        VIR_WARN0("Unable to release PCI address on controller");
+        VIR_WARN0("Unable to release PCI address on host device");
 
     if (vm->def->nhostdevs > 1) {
         memmove(vm->def->hostdevs + i,
@@ -10475,7 +10478,7 @@ qemudDomainMigratePrepareTunnel(virConnectPtr dconn,
     vm->def->id = -1;
 
     if (virAsprintf(&unixfile, "%s/qemu.tunnelmigrate.dest.%s",
-                    driver->stateDir, vm->def->name) < 0) {
+                    driver->libDir, vm->def->name) < 0) {
         virReportOOMError();
         goto endjob;
     }
@@ -10944,7 +10947,7 @@ static int doTunnelMigrate(virDomainPtr dom,
     /* Stage 1. setup local support infrastructure */
 
     if (virAsprintf(&unixfile, "%s/qemu.tunnelmigrate.src.%s",
-                    driver->stateDir, vm->def->name) < 0) {
+                    driver->libDir, vm->def->name) < 0) {
         virReportOOMError();
         goto cleanup;
     }
@@ -10974,6 +10977,13 @@ static int doTunnelMigrate(virDomainPtr dom,
     if (listen(qemu_sock, 1) < 0) {
         virReportSystemError(errno,
                              _("Cannot listen on unix socket '%s' for tunnelled migration"),
+                             unixfile);
+        goto cleanup;
+    }
+
+    if (chown(unixfile, qemu_driver->user, qemu_driver->group) < 0) {
+        virReportSystemError(errno,
+                             _("Cannot change unix socket '%s' owner"),
                              unixfile);
         goto cleanup;
     }
@@ -12724,6 +12734,28 @@ qemudVMFilterRebuild(virConnectPtr conn ATTRIBUTE_UNUSED,
     return 0;
 }
 
+static int
+qemudVMFiltersInstantiate(virConnectPtr conn,
+                          virDomainDefPtr def)
+{
+    int err = 0;
+    int i;
+
+    if (!conn)
+        return 1;
+
+    for (i = 0 ; i < def->nnets ; i++) {
+        virDomainNetDefPtr net = def->nets[i];
+        if ((net->filter) && (net->ifname)) {
+           if (virDomainConfNWFilterInstantiate(conn, net)) {
+                err = 1;
+                break;
+            }
+        }
+    }
+
+    return err;
+}
 
 static virNWFilterCallbackDriver qemuCallbackDriver = {
     .name = "QEMU",

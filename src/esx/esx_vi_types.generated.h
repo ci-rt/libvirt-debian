@@ -289,6 +289,32 @@ int esxVI_Description_DeserializeList(xmlNodePtr node, esxVI_Description **list)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: DeviceBackedVirtualDiskSpec
+ *          extends VirtualDiskSpec
+ */
+
+struct _esxVI_DeviceBackedVirtualDiskSpec {
+    esxVI_DeviceBackedVirtualDiskSpec *_unused;            /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* VirtualDiskSpec */
+    char *diskType;                                        /* required */
+    char *adapterType;                                     /* required */
+
+    /* DeviceBackedVirtualDiskSpec */
+    char *device;                                          /* required */
+};
+
+int esxVI_DeviceBackedVirtualDiskSpec_Alloc(esxVI_DeviceBackedVirtualDiskSpec **item);
+void esxVI_DeviceBackedVirtualDiskSpec_Free(esxVI_DeviceBackedVirtualDiskSpec **item);
+int esxVI_DeviceBackedVirtualDiskSpec_Validate(esxVI_DeviceBackedVirtualDiskSpec *item);
+esxVI_DeviceBackedVirtualDiskSpec *esxVI_DeviceBackedVirtualDiskSpec_DynamicCast(void *item);
+int esxVI_DeviceBackedVirtualDiskSpec_Serialize(esxVI_DeviceBackedVirtualDiskSpec *item, const char *element, virBufferPtr output);
+int esxVI_DeviceBackedVirtualDiskSpec_Deserialize(xmlNodePtr node, esxVI_DeviceBackedVirtualDiskSpec **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Type: DynamicProperty
  */
 
@@ -366,6 +392,32 @@ int esxVI_Event_Serialize(esxVI_Event *item, const char *element, virBufferPtr o
 int esxVI_Event_SerializeList(esxVI_Event *list, const char *element, virBufferPtr output);
 int esxVI_Event_Deserialize(xmlNodePtr node, esxVI_Event **item);
 int esxVI_Event_DeserializeList(xmlNodePtr node, esxVI_Event **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: FileBackedVirtualDiskSpec
+ *          extends VirtualDiskSpec
+ */
+
+struct _esxVI_FileBackedVirtualDiskSpec {
+    esxVI_FileBackedVirtualDiskSpec *_unused;              /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    /* VirtualDiskSpec */
+    char *diskType;                                        /* required */
+    char *adapterType;                                     /* required */
+
+    /* FileBackedVirtualDiskSpec */
+    esxVI_Long *capacityKb;                                /* required */
+};
+
+int esxVI_FileBackedVirtualDiskSpec_Alloc(esxVI_FileBackedVirtualDiskSpec **item);
+void esxVI_FileBackedVirtualDiskSpec_Free(esxVI_FileBackedVirtualDiskSpec **item);
+int esxVI_FileBackedVirtualDiskSpec_Validate(esxVI_FileBackedVirtualDiskSpec *item);
+esxVI_FileBackedVirtualDiskSpec *esxVI_FileBackedVirtualDiskSpec_DynamicCast(void *item);
+int esxVI_FileBackedVirtualDiskSpec_Serialize(esxVI_FileBackedVirtualDiskSpec *item, const char *element, virBufferPtr output);
+int esxVI_FileBackedVirtualDiskSpec_Deserialize(xmlNodePtr node, esxVI_FileBackedVirtualDiskSpec **item);
 
 
 
@@ -1593,6 +1645,29 @@ int esxVI_UserSession_Validate(esxVI_UserSession *item);
 int esxVI_UserSession_CastFromAnyType(esxVI_AnyType *anyType, esxVI_UserSession **item);
 int esxVI_UserSession_Serialize(esxVI_UserSession *item, const char *element, virBufferPtr output);
 int esxVI_UserSession_Deserialize(xmlNodePtr node, esxVI_UserSession **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VirtualDiskSpec
+ *          extended by DeviceBackedVirtualDiskSpec
+ *                      FileBackedVirtualDiskSpec
+ */
+
+struct _esxVI_VirtualDiskSpec {
+    esxVI_VirtualDiskSpec *_unused;                        /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    char *diskType;                                        /* required */
+    char *adapterType;                                     /* required */
+};
+
+int esxVI_VirtualDiskSpec_Alloc(esxVI_VirtualDiskSpec **item);
+void esxVI_VirtualDiskSpec_Free(esxVI_VirtualDiskSpec **item);
+int esxVI_VirtualDiskSpec_Validate(esxVI_VirtualDiskSpec *item);
+esxVI_VirtualDiskSpec *esxVI_VirtualDiskSpec_DynamicCast(void *item);
+int esxVI_VirtualDiskSpec_Serialize(esxVI_VirtualDiskSpec *item, const char *element, virBufferPtr output);
+int esxVI_VirtualDiskSpec_Deserialize(xmlNodePtr node, esxVI_VirtualDiskSpec **item);
 
 
 

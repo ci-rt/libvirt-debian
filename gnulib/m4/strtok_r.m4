@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# strtok_r.m4 serial 10
+# strtok_r.m4 serial 11
 dnl Copyright (C) 2002-2004, 2006-2007, 2009-2010 Free Software Foundation,
 dnl Inc.
 dnl This file is free software; the Free Software Foundation
@@ -32,8 +32,9 @@ AC_DEFUN([gl_FUNC_STRTOK_R],
               #include <stdlib.h>
               #include <string.h>
             ]],
-            [[char delimiters[] = "xxxxxxxx";
-              char *save_ptr = (char *) 0xd0d0;
+            [[static const char dummy[] = "\177\01a";
+              char delimiters[] = "xxxxxxxx";
+              char *save_ptr = (char *) dummy;
               strtok_r (delimiters, "x", &save_ptr);
               strtok_r (NULL, "x", &save_ptr);
               return 0;

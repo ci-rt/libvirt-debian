@@ -623,6 +623,9 @@
 /* Define to 1 if you have the `pthread_sigmask' function. */
 #undef HAVE_PTHREAD_SIGMASK
 
+/* Define to 1 if the system has the type `pthread_t'. */
+#undef HAVE_PTHREAD_T
+
 /* Define to 1 if you have the <pwd.h> header file. */
 #undef HAVE_PWD_H
 
@@ -1061,6 +1064,9 @@
 
 /* Define to 1 if wcwidth is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_WCWIDTH
+
+/* Define to 1 if _Exit is declared even after undefining macros. */
+#undef HAVE_RAW_DECL__EXIT
 
 /* Define to 1 if you have the <readline/readline.h> header file. */
 #undef HAVE_READLINE_READLINE_H
@@ -1747,6 +1753,9 @@
 
 /* Define like PROTOTYPES; this can be used by system headers. */
 #undef __PROTOTYPES
+
+/* Define as a replacement for the ISO C99 __func__ variable. */
+#undef __func__
 
 /* Define to `int' if <sys/types.h> doesn't define. */
 #undef gid_t

@@ -380,12 +380,10 @@ phypListDomainsGeneric(virConnectPtr conn, int *ids, int nids,
     int system_type = phyp_driver->system_type;
     char *managed_system = phyp_driver->managed_system;
     int exit_status = 0;
-    int got = 0;
-    char *char_ptr;
-    unsigned int i = 0, j = 0;
-    char id_c[10];
+    int got = -1;
     char *cmd = NULL;
     char *ret = NULL;
+    char *line, *next_line;
     const char *state;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
@@ -393,8 +391,6 @@ phypListDomainsGeneric(virConnectPtr conn, int *ids, int nids,
         state = "|grep Running";
     else
         state = " ";
-
-    memset(id_c, 0, 10);
 
     virBufferAddLit(&buf, "lssyscfg -r lpar");
     if (system_type == HMC)
@@ -410,37 +406,28 @@ phypListDomainsGeneric(virConnectPtr conn, int *ids, int nids,
 
     ret = phypExec(session, cmd, &exit_status, conn);
 
-    /* I need to parse the textual return in order to get the ret */
     if (exit_status < 0 || ret == NULL)
         goto err;
-    else {
-        while (got < nids) {
-            if (ret[i] == '\0')
-                break;
-            else if (ret[i] == '\n') {
-                if (virStrToLong_i(id_c, &char_ptr, 10, &ids[got]) == -1) {
-                    VIR_ERROR(_("Cannot parse number from '%s'"), id_c);
-                    goto err;
-                }
-                memset(id_c, 0, 10);
-                j = 0;
-                got++;
-            } else {
-                id_c[j] = ret[i];
-                j++;
-            }
-            i++;
-        }
-    }
 
-    VIR_FREE(cmd);
-    VIR_FREE(ret);
-    return got;
+    /* I need to parse the textual return in order to get the ids */
+    line = ret;
+    got = 0;
+    while (*line && got < nids) {
+        if (virStrToLong_i(line, &next_line, 10, &ids[got]) == -1) {
+            VIR_ERROR(_("Cannot parse number from '%s'"), line);
+            got = -1;
+            goto err;
+        }
+        got++;
+        line = next_line;
+        while (*line == '\n')
+            line++; /* skip \n */
+    }
 
   err:
     VIR_FREE(cmd);
     VIR_FREE(ret);
-    return -1;
+    return got;
 }
 
 static int
@@ -3772,7 +3759,7 @@ phypDomainCreateAndStart(virConnectPtr conn,
         goto err;
 
     /* checking if this name already exists on this system */
-    if (phypGetLparID(session, managed_system, def->name, conn) == -1) {
+    if (phypGetLparID(session, managed_system, def->name, conn) != -1) {
         VIR_WARN0("LPAR name already exists.");
         goto err;
     }
@@ -3877,9 +3864,9 @@ phypDomainSetCPU(virDomainPtr dom, unsigned int nvcpus)
 }
 
 static virDrvOpenStatus
-phypStorageOpen(virConnectPtr conn,
-                virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-                int flags)
+phypVIOSDriverOpen(virConnectPtr conn,
+                   virConnectAuthPtr auth ATTRIBUTE_UNUSED,
+                   int flags)
 {
     virCheckFlags(0, VIR_DRV_OPEN_ERROR);
 
@@ -3890,7 +3877,7 @@ phypStorageOpen(virConnectPtr conn,
 }
 
 static int
-phypStorageClose(virConnectPtr conn ATTRIBUTE_UNUSED)
+phypVIOSDriverClose(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
     return 0;
 }
@@ -3997,8 +3984,8 @@ static virDriver phypDriver = {
 
 static virStorageDriver phypStorageDriver = {
     .name = "PHYP",
-    .open = phypStorageOpen,
-    .close = phypStorageClose,
+    .open = phypVIOSDriverOpen,
+    .close = phypVIOSDriverClose,
 
     .numOfPools = phypNumOfStoragePools,
     .listPools = phypListStoragePools,
@@ -4036,12 +4023,37 @@ static virStorageDriver phypStorageDriver = {
     .poolIsPersistent = NULL
 };
 
+static virNetworkDriver phypNetworkDriver = {
+    .name = "PHYP",
+    .open = phypVIOSDriverOpen,
+    .close = phypVIOSDriverClose,
+    .numOfNetworks = NULL,
+    .listNetworks = NULL,
+    .numOfDefinedNetworks = NULL,
+    .listDefinedNetworks = NULL,
+    .networkLookupByUUID = NULL,
+    .networkLookupByName = NULL,
+    .networkCreateXML = NULL,
+    .networkDefineXML = NULL,
+    .networkUndefine = NULL,
+    .networkCreate = NULL,
+    .networkDestroy = NULL,
+    .networkDumpXML = NULL,
+    .networkGetBridgeName = NULL,
+    .networkGetAutostart = NULL,
+    .networkSetAutostart = NULL,
+    .networkIsActive = NULL,
+    .networkIsPersistent = NULL
+};
+
 int
 phypRegister(void)
 {
     if (virRegisterDriver(&phypDriver) < 0)
         return -1;
     if (virRegisterStorageDriver(&phypStorageDriver) < 0)
+        return -1;
+    if (virRegisterNetworkDriver(&phypNetworkDriver) < 0)
         return -1;
 
     return 0;

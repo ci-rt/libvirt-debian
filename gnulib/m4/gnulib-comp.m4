@@ -51,6 +51,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module connect:
   # Code from module count-one-bits:
   # Code from module count-one-bits-tests:
+  # Code from module crypto/md5:
+  # Code from module crypto/md5-tests:
   # Code from module dirname-lgpl:
   # Code from module double-slash-root:
   # Code from module errno:
@@ -64,6 +66,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module fseeko:
   AC_REQUIRE([AC_FUNC_FSEEKO])
   # Code from module fseeko-tests:
+  # Code from module func:
+  # Code from module func-tests:
   # Code from module getaddrinfo:
   # Code from module getaddrinfo-tests:
   # Code from module getdelim:
@@ -258,6 +262,8 @@ AC_SUBST([LTALLOCA])
   gl_SYS_SOCKET_MODULE_INDICATOR([connect])
   # Code from module count-one-bits:
   gl_COUNT_ONE_BITS
+  # Code from module crypto/md5:
+  gl_MD5
   # Code from module dirname-lgpl:
   gl_DIRNAME_LGPL
   # Code from module double-slash-root:
@@ -275,6 +281,8 @@ AC_SUBST([LTALLOCA])
   # Code from module fseeko:
   gl_FUNC_FSEEKO
   gl_STDIO_MODULE_INDICATOR([fseeko])
+  # Code from module func:
+  gl_FUNC
   # Code from module getaddrinfo:
   gl_GETADDRINFO
   gl_NETDB_MODULE_INDICATOR([getaddrinfo])
@@ -753,6 +761,8 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/malloca.c
   lib/malloca.h
   lib/malloca.valgrind
+  lib/md5.c
+  lib/md5.h
   lib/memchr.c
   lib/memchr.valgrind
   lib/mkstemp.c
@@ -851,6 +861,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/fcntl_h.m4
   m4/float_h.m4
   m4/fseeko.m4
+  m4/func.m4
   m4/getaddrinfo.m4
   m4/getdelim.m4
   m4/gethostname.m4
@@ -870,6 +881,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/lstat.m4
   m4/malloc.m4
   m4/malloca.m4
+  m4/md5.m4
   m4/memchr.m4
   m4/mkstemp.m4
   m4/mktime.m4
@@ -959,6 +971,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-fseeko.c
   tests/test-fseeko.sh
   tests/test-fseeko2.sh
+  tests/test-func.c
   tests/test-getaddrinfo.c
   tests/test-getdelim.c
   tests/test-gethostname.c
@@ -971,6 +984,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-lstat.c
   tests/test-lstat.h
   tests/test-malloca.c
+  tests/test-md5.c
   tests/test-memchr.c
   tests/test-netdb.c
   tests/test-netinet_in.c

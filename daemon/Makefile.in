@@ -51,7 +51,7 @@ host_triplet = @host@
 @HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_13 = $(AVAHI_CFLAGS)
 @HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_14 = $(AVAHI_LIBS)
 @WITH_LIBVIRTD_TRUE@am__append_15 = $(LOGROTATE_CONFS)
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@am__append_16 = libvirtd.init libvirt-guests.init
+@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@am__append_16 = libvirtd.init
 subdir = daemon
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -74,6 +74,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/fcntl_h.m4 \
 	$(top_srcdir)/gnulib/m4/float_h.m4 \
 	$(top_srcdir)/gnulib/m4/fseeko.m4 \
+	$(top_srcdir)/gnulib/m4/func.m4 \
 	$(top_srcdir)/gnulib/m4/getaddrinfo.m4 \
 	$(top_srcdir)/gnulib/m4/getdelim.m4 \
 	$(top_srcdir)/gnulib/m4/gethostname.m4 \
@@ -94,6 +95,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/lstat.m4 \
 	$(top_srcdir)/gnulib/m4/malloc.m4 \
 	$(top_srcdir)/gnulib/m4/malloca.m4 \
+	$(top_srcdir)/gnulib/m4/md5.m4 \
 	$(top_srcdir)/gnulib/m4/memchr.m4 \
 	$(top_srcdir)/gnulib/m4/mkstemp.m4 \
 	$(top_srcdir)/gnulib/m4/mktime.m4 \
@@ -537,6 +539,7 @@ GNULIB_WCSRTOMBS = @GNULIB_WCSRTOMBS@
 GNULIB_WCTOB = @GNULIB_WCTOB@
 GNULIB_WCWIDTH = @GNULIB_WCWIDTH@
 GNULIB_WRITE = @GNULIB_WRITE@
+GNULIB__EXIT = @GNULIB__EXIT@
 GNUTLS_CFLAGS = @GNUTLS_CFLAGS@
 GNUTLS_LIBS = @GNUTLS_LIBS@
 GREP = @GREP@
@@ -546,7 +549,6 @@ HAVE_ACCEPT4 = @HAVE_ACCEPT4@
 HAVE_ARPA_INET_H = @HAVE_ARPA_INET_H@
 HAVE_ATOLL = @HAVE_ATOLL@
 HAVE_BTOWC = @HAVE_BTOWC@
-HAVE_CALLOC_POSIX = @HAVE_CALLOC_POSIX@
 HAVE_CANONICALIZE_FILE_NAME = @HAVE_CANONICALIZE_FILE_NAME@
 HAVE_CHOWN = @HAVE_CHOWN@
 HAVE_DECL_ENVIRON = @HAVE_DECL_ENVIRON@
@@ -608,7 +610,6 @@ HAVE_LINKAT = @HAVE_LINKAT@
 HAVE_LOCALTIME_R = @HAVE_LOCALTIME_R@
 HAVE_LONG_LONG_INT = @HAVE_LONG_LONG_INT@
 HAVE_LSTAT = @HAVE_LSTAT@
-HAVE_MALLOC_POSIX = @HAVE_MALLOC_POSIX@
 HAVE_MBRLEN = @HAVE_MBRLEN@
 HAVE_MBRTOWC = @HAVE_MBRTOWC@
 HAVE_MBSINIT = @HAVE_MBSINIT@
@@ -641,7 +642,6 @@ HAVE_RANDOM_R = @HAVE_RANDOM_R@
 HAVE_RAWMEMCHR = @HAVE_RAWMEMCHR@
 HAVE_READLINK = @HAVE_READLINK@
 HAVE_READLINKAT = @HAVE_READLINKAT@
-HAVE_REALLOC_POSIX = @HAVE_REALLOC_POSIX@
 HAVE_REALPATH = @HAVE_REALPATH@
 HAVE_RENAMEAT = @HAVE_RENAMEAT@
 HAVE_RPMATCH = @HAVE_RPMATCH@
@@ -704,6 +704,7 @@ HAVE_WINSOCK2_H = @HAVE_WINSOCK2_H@
 HAVE_WINT_T = @HAVE_WINT_T@
 HAVE_WS2TCPIP_H = @HAVE_WS2TCPIP_H@
 HAVE__BOOL = @HAVE__BOOL@
+HAVE__EXIT = @HAVE__EXIT@
 HOSTENT_LIB = @HOSTENT_LIB@
 HTML_DIR = @HTML_DIR@
 INCLUDE_NEXT = @INCLUDE_NEXT@
@@ -863,6 +864,7 @@ RANLIB = @RANLIB@
 READLINE_CFLAGS = @READLINE_CFLAGS@
 REMOTE_PID_FILE = @REMOTE_PID_FILE@
 REPLACE_BTOWC = @REPLACE_BTOWC@
+REPLACE_CALLOC = @REPLACE_CALLOC@
 REPLACE_CANONICALIZE_FILE_NAME = @REPLACE_CANONICALIZE_FILE_NAME@
 REPLACE_CHOWN = @REPLACE_CHOWN@
 REPLACE_CLOSE = @REPLACE_CLOSE@
@@ -897,6 +899,7 @@ REPLACE_LINKAT = @REPLACE_LINKAT@
 REPLACE_LOCALTIME_R = @REPLACE_LOCALTIME_R@
 REPLACE_LSEEK = @REPLACE_LSEEK@
 REPLACE_LSTAT = @REPLACE_LSTAT@
+REPLACE_MALLOC = @REPLACE_MALLOC@
 REPLACE_MBRLEN = @REPLACE_MBRLEN@
 REPLACE_MBRTOWC = @REPLACE_MBRTOWC@
 REPLACE_MBSINIT = @REPLACE_MBSINIT@
@@ -922,6 +925,7 @@ REPLACE_PRINTF = @REPLACE_PRINTF@
 REPLACE_PUTENV = @REPLACE_PUTENV@
 REPLACE_PWRITE = @REPLACE_PWRITE@
 REPLACE_READLINK = @REPLACE_READLINK@
+REPLACE_REALLOC = @REPLACE_REALLOC@
 REPLACE_REALPATH = @REPLACE_REALPATH@
 REPLACE_REMOVE = @REPLACE_REMOVE@
 REPLACE_RENAME = @REPLACE_RENAME@
@@ -1122,14 +1126,12 @@ EXTRA_DIST = \
 	libvirtd.uml.logrotate.in                       \
 	test_libvirtd.aug                               \
 	THREADING.txt					\
-	libvirt-guests.init.in				\
-	libvirt-guests.sysconf				\
 	libvirtd.pod.in					\
 	$(AVAHI_SOURCES)				\
 	$(DAEMON_SOURCES)
 
-man_MANS = libvirtd.8
 BUILT_SOURCES = $(am__append_15) $(am__append_16)
+@WITH_LIBVIRTD_TRUE@man_MANS = libvirtd.8
 @WITH_LIBVIRTD_TRUE@confdir = $(sysconfdir)/libvirt/
 @WITH_LIBVIRTD_TRUE@conf_DATA = libvirtd.conf
 @WITH_LIBVIRTD_TRUE@augeasdir = $(datadir)/augeas/lenses
@@ -1804,14 +1806,17 @@ uninstall-man: uninstall-man8
 @HAVE_POLKIT_FALSE@@WITH_LIBVIRTD_TRUE@install-data-polkit::
 @HAVE_POLKIT_FALSE@@WITH_LIBVIRTD_TRUE@uninstall-data-polkit::
 
-@WITH_LIBVIRTD_TRUE@remote.c: remote_dispatch_prototypes.h \
-@WITH_LIBVIRTD_TRUE@	  remote_dispatch_table.h \
-@WITH_LIBVIRTD_TRUE@	  remote_dispatch_args.h \
-@WITH_LIBVIRTD_TRUE@	  remote_dispatch_ret.h \
-@WITH_LIBVIRTD_TRUE@	  qemu_dispatch_prototypes.h \
-@WITH_LIBVIRTD_TRUE@	  qemu_dispatch_table.h \
-@WITH_LIBVIRTD_TRUE@	  qemu_dispatch_args.h \
-@WITH_LIBVIRTD_TRUE@	  qemu_dispatch_ret.h
+@WITH_LIBVIRTD_TRUE@remote.c: \
+@WITH_LIBVIRTD_TRUE@	remote_dispatch_prototypes.h \
+@WITH_LIBVIRTD_TRUE@	remote_dispatch_table.h \
+@WITH_LIBVIRTD_TRUE@	qemu_dispatch_prototypes.h \
+@WITH_LIBVIRTD_TRUE@	qemu_dispatch_table.h
+
+@WITH_LIBVIRTD_TRUE@remote.h: \
+@WITH_LIBVIRTD_TRUE@	remote_dispatch_args.h \
+@WITH_LIBVIRTD_TRUE@	remote_dispatch_ret.h \
+@WITH_LIBVIRTD_TRUE@	qemu_dispatch_args.h \
+@WITH_LIBVIRTD_TRUE@	qemu_dispatch_ret.h
 
 @WITH_LIBVIRTD_TRUE@remote_dispatch_prototypes.h: $(srcdir)/remote_generate_stubs.pl $(REMOTE_PROTOCOL)
 @WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -c -p remote $(REMOTE_PROTOCOL) > $@
@@ -1864,25 +1869,19 @@ uninstall-man: uninstall-man8
 @WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) libvirtd.lxc.logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.lxc
 @WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) libvirtd.uml.logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.uml
 
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@install-init: libvirtd.init libvirt-guests.init
+@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@install-init: libvirtd.init
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(sysconfdir)/rc.d/init.d
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	$(INSTALL_SCRIPT) libvirtd.init \
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	  $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirtd
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	$(INSTALL_SCRIPT) libvirt-guests.init \
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	  $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirt-guests
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(sysconfdir)/sysconfig
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	$(INSTALL_SCRIPT) $(srcdir)/libvirtd.sysconf \
+@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) $(srcdir)/libvirtd.sysconf \
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	  $(DESTDIR)$(sysconfdir)/sysconfig/libvirtd
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	$(INSTALL_SCRIPT) $(srcdir)/libvirt-guests.sysconf \
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	  $(DESTDIR)$(sysconfdir)/sysconfig/libvirt-guests
 
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@uninstall-init:
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	rm -f $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirtd \
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@		$(DESTDIR)$(sysconfdir)/sysconfig/libvirtd \
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@		$(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirt-guests \
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@		$(DESTDIR)$(sysconfdir)/sysconfig/libvirt-guests
+@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@		$(DESTDIR)$(sysconfdir)/sysconfig/libvirtd
 
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@%.init: %.init.in $(top_builddir)/config.status
+@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@libvirtd.init: libvirtd.init.in $(top_builddir)/config.status
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed					\
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	    -e s!\@localstatedir\@!@localstatedir@!g	\
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	    -e s!\@sbindir\@!@sbindir@!g		\

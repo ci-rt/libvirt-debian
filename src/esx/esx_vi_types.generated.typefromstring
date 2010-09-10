@@ -43,6 +43,9 @@
            else if (STREQ(type, "Description")) {
                return esxVI_Type_Description;
            }
+           else if (STREQ(type, "DeviceBackedVirtualDiskSpec")) {
+               return esxVI_Type_DeviceBackedVirtualDiskSpec;
+           }
            else if (STREQ(type, "DynamicProperty")) {
                return esxVI_Type_DynamicProperty;
            }
@@ -51,6 +54,9 @@
            }
            else if (STREQ(type, "Event")) {
                return esxVI_Type_Event;
+           }
+           else if (STREQ(type, "FileBackedVirtualDiskSpec")) {
+               return esxVI_Type_FileBackedVirtualDiskSpec;
            }
            else if (STREQ(type, "FileInfo")) {
                return esxVI_Type_FileInfo;
@@ -189,6 +195,9 @@
            }
            else if (STREQ(type, "UserSession")) {
                return esxVI_Type_UserSession;
+           }
+           else if (STREQ(type, "VirtualDiskSpec")) {
+               return esxVI_Type_VirtualDiskSpec;
            }
            else if (STREQ(type, "VirtualMachineConfigSpec")) {
                return esxVI_Type_VirtualMachineConfigSpec;

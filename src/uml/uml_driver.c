@@ -58,6 +58,7 @@
 #include "domain_conf.h"
 #include "datatypes.h"
 #include "logging.h"
+#include "domain_nwfilter.h"
 
 #define VIR_FROM_THIS VIR_FROM_UML
 
@@ -373,6 +374,10 @@ umlStartup(int privileged) {
 
         if ((base = strdup (SYSCONF_DIR "/libvirt")) == NULL)
             goto out_of_memory;
+
+        if (virAsprintf(&uml_driver->monitorDir,
+                        "%s/run/libvirt/uml-guest", LOCAL_STATE_DIR) == -1)
+            goto out_of_memory;
     } else {
 
         if (virAsprintf(&uml_driver->logDir,
@@ -381,11 +386,11 @@ umlStartup(int privileged) {
 
         if (virAsprintf(&base, "%s/.libvirt", userdir) == -1)
             goto out_of_memory;
-    }
 
-    if (virAsprintf(&uml_driver->monitorDir,
-                    "%s/.uml", userdir) == -1)
-        goto out_of_memory;
+        if (virAsprintf(&uml_driver->monitorDir,
+                        "%s/.uml", userdir) == -1)
+            goto out_of_memory;
+    }
 
     /* Configuration paths are either ~/.libvirt/uml/... (session) or
      * /etc/libvirt/uml/... (system).
@@ -737,12 +742,10 @@ static int umlMonitorCommand(const struct uml_driver *driver,
             virReportSystemError(errno, _("cannot read reply %s"), cmd);
             goto error;
         }
-        if (nbytes < sizeof res) {
+        /* Ensure res.length is safe to read before validating its value.  */
+        if (nbytes < offsetof(struct monitor_request, data) ||
+            nbytes < offsetof(struct monitor_request, data) + res.length) {
             virReportSystemError(0, _("incomplete reply %s"), cmd);
-            goto error;
-        }
-        if (sizeof res.data < res.length) {
-            virReportSystemError(0, _("invalid length in reply %s"), cmd);
             goto error;
         }
 
@@ -871,9 +874,10 @@ static int umlStartVMDaemon(virConnectPtr conn,
         return -1;
     }
 
-    if (umlBuildCommandLine(conn, driver, vm,
+    if (umlBuildCommandLine(conn, driver, vm, &keepfd,
                             &argv, &progenv) < 0) {
         close(logfd);
+        virDomainConfVMNWFilterTeardown(vm);
         umlCleanupTapDevices(conn, vm);
         return -1;
     }
@@ -910,6 +914,14 @@ static int umlStartVMDaemon(virConnectPtr conn,
                            NULL, NULL, NULL);
     close(logfd);
 
+    /*
+     * At the moment, the only thing that populates keepfd is
+     * umlBuildCommandLineChr. We want to close every fd it opens.
+     */
+    for (i = 0; i < FD_SETSIZE; i++)
+        if (FD_ISSET(i, &keepfd))
+            close(i);
+
     for (i = 0 ; argv[i] ; i++)
         VIR_FREE(argv[i]);
     VIR_FREE(argv);
@@ -918,8 +930,11 @@ static int umlStartVMDaemon(virConnectPtr conn,
         VIR_FREE(progenv[i]);
     VIR_FREE(progenv);
 
-    if (ret < 0)
+    if (ret < 0) {
+        virDomainConfVMNWFilterTeardown(vm);
         umlCleanupTapDevices(conn, vm);
+    }
+
 
     /* NB we don't mark it running here - we do that async
        with inotify */
@@ -955,6 +970,7 @@ static void umlShutdownVMDaemon(virConnectPtr conn ATTRIBUTE_UNUSED,
     vm->def->id = -1;
     vm->state = VIR_DOMAIN_SHUTOFF;
 
+    virDomainConfVMNWFilterTeardown(vm);
     umlCleanupTapDevices(conn, vm);
 
     if (vm->newDef) {
@@ -1072,7 +1088,6 @@ static int umlGetProcessInfo(unsigned long long *cpuTime, int pid) {
     }
 
     if (!(pidinfo = fopen(proc, "r"))) {
-        /*printf("cannot read pid info");*/
         /* VM probably shut down, so fake 0 */
         *cpuTime = 0;
         return 0;
@@ -1686,6 +1701,234 @@ cleanup:
 }
 
 
+static int umlDomainAttachUmlDisk(struct uml_driver *driver,
+                                  virDomainObjPtr vm,
+                                  virDomainDiskDefPtr disk)
+{
+    int i;
+    char *cmd = NULL;
+    char *reply = NULL;
+
+    for (i = 0 ; i < vm->def->ndisks ; i++) {
+        if (STREQ(vm->def->disks[i]->dst, disk->dst)) {
+            umlReportError(VIR_ERR_OPERATION_FAILED,
+                           _("target %s already exists"), disk->dst);
+            return -1;
+        }
+    }
+
+    if (!disk->src) {
+        umlReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("disk source path is missing"));
+        goto error;
+    }
+
+    if (virAsprintf(&cmd, "config %s=%s", disk->dst, disk->src) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    if (umlMonitorCommand(driver, vm, cmd, &reply) < 0)
+        goto error;
+
+    if (VIR_REALLOC_N(vm->def->disks, vm->def->ndisks+1) < 0) {
+        virReportOOMError();
+        goto error;
+    }
+
+    virDomainDiskInsertPreAlloced(vm->def, disk);
+
+    VIR_FREE(reply);
+    VIR_FREE(cmd);
+
+    return 0;
+
+error:
+
+    VIR_FREE(reply);
+    VIR_FREE(cmd);
+
+    return -1;
+}
+
+
+static int umlDomainAttachDevice(virDomainPtr dom, const char *xml)
+{
+    struct uml_driver *driver = dom->conn->privateData;
+    virDomainObjPtr vm;
+    virDomainDeviceDefPtr dev = NULL;
+    int ret = -1;
+
+    umlDriverLock(driver);
+
+    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+    if (!vm) {
+        char uuidstr[VIR_UUID_STRING_BUFLEN];
+        virUUIDFormat(dom->uuid, uuidstr);
+        umlReportError(VIR_ERR_NO_DOMAIN,
+                       _("no domain with matching uuid '%s'"), uuidstr);
+        goto cleanup;
+    }
+
+    if (!virDomainObjIsActive(vm)) {
+        umlReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("cannot attach device on inactive domain"));
+        goto cleanup;
+    }
+
+    dev = virDomainDeviceDefParse(driver->caps, vm->def, xml,
+                                  VIR_DOMAIN_XML_INACTIVE);
+
+    if (dev == NULL)
+        goto cleanup;
+
+    if (dev->type == VIR_DOMAIN_DEVICE_DISK) {
+        if (dev->data.disk->bus == VIR_DOMAIN_DISK_BUS_UML) {
+            ret = umlDomainAttachUmlDisk(driver, vm, dev->data.disk);
+            if (ret == 0)
+                dev->data.disk = NULL;
+        } else {
+            umlReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("disk bus '%s' cannot be hotplugged."),
+                           virDomainDiskBusTypeToString(dev->data.disk->bus));
+        }
+    } else {
+        umlReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("device type '%s' cannot be attached"),
+                       virDomainDeviceTypeToString(dev->type));
+        goto cleanup;
+    }
+
+cleanup:
+
+    virDomainDeviceDefFree(dev);
+    if (vm)
+        virDomainObjUnlock(vm);
+    umlDriverUnlock(driver);
+    return ret;
+}
+
+
+static int umlDomainAttachDeviceFlags(virDomainPtr dom,
+                                      const char *xml,
+                                      unsigned int flags) {
+    if (flags & VIR_DOMAIN_DEVICE_MODIFY_CONFIG) {
+        umlReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("cannot modify the persistent configuration of a domain"));
+        return -1;
+    }
+
+    return umlDomainAttachDevice(dom, xml);
+}
+
+
+static int umlDomainDetachUmlDisk(struct uml_driver *driver,
+                                  virDomainObjPtr vm,
+                                  virDomainDeviceDefPtr dev)
+{
+    int i, ret = -1;
+    virDomainDiskDefPtr detach = NULL;
+    char *cmd;
+    char *reply;
+
+    for (i = 0 ; i < vm->def->ndisks ; i++) {
+        if (STREQ(vm->def->disks[i]->dst, dev->data.disk->dst)) {
+            break;
+        }
+    }
+
+    if (i == vm->def->ndisks) {
+        umlReportError(VIR_ERR_OPERATION_FAILED,
+                       _("disk %s not found"), dev->data.disk->dst);
+        return -1;
+    }
+
+    detach = vm->def->disks[i];
+
+    if (virAsprintf(&cmd, "remove %s", detach->dst) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    if (umlMonitorCommand(driver, vm, cmd, &reply) < 0)
+        goto cleanup;
+
+    virDomainDiskRemove(vm->def, i);
+
+    virDomainDiskDefFree(detach);
+
+    ret = 0;
+
+    VIR_FREE(reply);
+
+cleanup:
+    VIR_FREE(cmd);
+
+    return ret;
+}
+
+
+static int umlDomainDetachDevice(virDomainPtr dom, const char *xml) {
+    struct uml_driver *driver = dom->conn->privateData;
+    virDomainObjPtr vm;
+    virDomainDeviceDefPtr dev = NULL;
+    int ret = -1;
+
+    umlDriverLock(driver);
+    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+    if (!vm) {
+        char uuidstr[VIR_UUID_STRING_BUFLEN];
+        virUUIDFormat(dom->uuid, uuidstr);
+        umlReportError(VIR_ERR_NO_DOMAIN,
+                       _("no domain with matching uuid '%s'"), uuidstr);
+        goto cleanup;
+    }
+
+    if (!virDomainObjIsActive(vm)) {
+        umlReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("cannot detach device on inactive domain"));
+        goto cleanup;
+    }
+
+    dev = virDomainDeviceDefParse(driver->caps, vm->def, xml,
+                                  VIR_DOMAIN_XML_INACTIVE);
+    if (dev == NULL)
+        goto cleanup;
+
+    if (dev->type == VIR_DOMAIN_DEVICE_DISK &&
+        dev->data.disk->device == VIR_DOMAIN_DISK_DEVICE_DISK) {
+        if (dev->data.disk->bus == VIR_DOMAIN_DISK_BUS_UML)
+            ret = umlDomainDetachUmlDisk(driver, vm, dev);
+        else {
+            umlReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("This type of disk cannot be hot unplugged"));
+        }
+    } else {
+        umlReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       "%s", _("This type of device cannot be hot unplugged"));
+    }
+
+cleanup:
+    virDomainDeviceDefFree(dev);
+    if (vm)
+        virDomainObjUnlock(vm);
+    umlDriverUnlock(driver);
+    return ret;
+}
+
+
+static int umlDomainDetachDeviceFlags(virDomainPtr dom,
+                                      const char *xml,
+                                      unsigned int flags) {
+    if (flags & VIR_DOMAIN_DEVICE_MODIFY_CONFIG) {
+        umlReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("cannot modify the persistent configuration of a domain"));
+        return -1;
+    }
+
+    return umlDomainDetachDevice(dom, xml);
+}
+
 
 static int umlDomainGetAutostart(virDomainPtr dom,
                             int *autostart) {
@@ -1900,10 +2143,10 @@ static virDriver umlDriver = {
     umlDomainStartWithFlags, /* domainCreateWithFlags */
     umlDomainDefine, /* domainDefineXML */
     umlDomainUndefine, /* domainUndefine */
-    NULL, /* domainAttachDevice */
-    NULL, /* domainAttachDeviceFlags */
-    NULL, /* domainDetachDevice */
-    NULL, /* domainDetachDeviceFlags */
+    umlDomainAttachDevice, /* domainAttachDevice */
+    umlDomainAttachDeviceFlags, /* domainAttachDeviceFlags */
+    umlDomainDetachDevice, /* domainDetachDevice */
+    umlDomainDetachDeviceFlags, /* domainDetachDeviceFlags */
     NULL, /* domainUpdateDeviceFlags */
     umlDomainGetAutostart, /* domainGetAutostart */
     umlDomainSetAutostart, /* domainSetAutostart */

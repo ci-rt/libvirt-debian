@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([libvirt], [0.8.3])
+AC_INIT([libvirt], [0.8.4])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -110,18 +110,6 @@ LIBS=$old_libs
 dnl Availability of various common headers (non-fatal if missing).
 AC_CHECK_HEADERS([pwd.h paths.h regex.h sys/syslimits.h \
   termios.h sys/poll.h syslog.h mntent.h net/ethernet.h linux/magic.h])
-
-dnl Where are the XDR functions?
-dnl If portablexdr is installed, prefer that.
-dnl Otherwise try -lrpc (Cygwin) -lxdr (some MinGW), -lnsl (Solaris)
-dnl or none (most Unix)
-AC_CHECK_LIB([portablexdr],[xdrmem_create],[],[
-	AC_SEARCH_LIBS([xdrmem_create],[rpc xdr nsl],[],
-		[AC_MSG_ERROR([Cannot find a XDR library])])
-	])
-
-dnl check for cygwin's variation in xdr function names
-AC_CHECK_FUNCS([xdr_u_int64_t],[],[],[#include <rpc/xdr.h>])
 
 AC_CHECK_LIB([intl],[gettext],[])
 
@@ -249,13 +237,10 @@ AC_ARG_WITH([libvirtd],
   AC_HELP_STRING([--with-libvirtd], [add libvirtd support @<:@default=yes@:>@]),[],[with_libvirtd=yes])
 
 dnl
-dnl specific tests to setup DV devel environments with debug etc ...
+dnl in case someone want to build static binaries
+dnl STATIC_BINARIES="-static"
 dnl
-if test "${LOGNAME}" = "veillard" && test "`pwd`" = "/u/veillard/libvirt" ; then
-    STATIC_BINARIES="-static"
-else
-    STATIC_BINARIES=
-fi
+STATIC_BINARIES=
 AC_SUBST([STATIC_BINARIES])
 
 dnl --enable-debug=(yes|no)
@@ -288,10 +273,10 @@ AC_ARG_WITH([init-script],
             [AC_HELP_STRING([--with-init-script=@<:@redhat|auto|none@:>@],
 		     [Style of init script to install @<:@default=auto@:>@])])
 if test "x$with_init_script" = "x" || test "x$with_init_script" = "xauto"; then
-    if test -f /etc/redhat-release ; then
-        with_init_script=redhat
-    else
+    if test "$cross_compiling" = yes || test ! -f /etc/redhat-release; then
         with_init_script=none
+    else
+        with_init_script=redhat
     fi
 fi
 AM_CONDITIONAL([LIBVIRT_INIT_SCRIPT_RED_HAT], test x$with_init_script = xredhat)
@@ -319,6 +304,25 @@ AM_CONDITIONAL([WITH_OPENVZ], [test "$with_openvz" = "yes"])
 
 
 dnl
+dnl check for XDR
+dnl
+
+if test x"$with_remote" = x"yes" || test x"$with_libvirtd" = x"yes"; then
+    dnl Where are the XDR functions?
+    dnl If portablexdr is installed, prefer that.
+    dnl Otherwise try -lrpc (Cygwin) -lxdr (some MinGW), -lnsl (Solaris)
+    dnl or none (most Unix)
+    AC_CHECK_LIB([portablexdr],[xdrmem_create],[],[
+        AC_SEARCH_LIBS([xdrmem_create],[rpc xdr nsl],[],
+            [AC_MSG_ERROR([Cannot find a XDR library])])
+        ])
+
+    dnl check for cygwin's variation in xdr function names
+    AC_CHECK_FUNCS([xdr_u_int64_t],[],[],[#include <rpc/xdr.h>])
+fi
+
+
+dnl
 dnl check for VirtualBox XPCOMC location
 dnl
 
@@ -329,6 +333,7 @@ if test "x$with_vbox" = "xyes" || test "x$with_vbox" = "xcheck"; then
 
     for vbox in \
         /usr/lib/virtualbox/VBoxXPCOMC.so \
+        /usr/lib64/virtualbox/VBoxXPCOMC.so \
         /usr/lib/VirtualBox/VBoxXPCOMC.so \
         /opt/virtualbox/VBoxXPCOMC.so \
         /opt/VirtualBox/VBoxXPCOMC.so \
@@ -1866,6 +1871,7 @@ case "$host" in
     # Also set the symbol file to .def, so src/Makefile generates libvirt.def
     # from libvirt.syms and passes libvirt.def instead of libvirt.syms to the linker
     LIBVIRT_SYMBOL_FILE=libvirt.def
+    LIBVIRT_QEMU_SYMBOL_FILE=libvirt_qemu.def
     # mingw's ld has the --version-script parameter, but it requires a .def file
     # instead to work properly, therefore clear --version-script here and use
     # -Wl, to pass the .def file to the linker
