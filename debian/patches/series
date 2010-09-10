@@ -4,3 +4,4 @@
 0004-fix-Debian-specific-path-to-hvm-loader.patch
 0005-Terminate-nc-on-EOF.patch
 0006-patch-qemuMonitorTextGetMigrationStatus-to-intercept.patch
+0007-Fix-block-statistics-with-newer-versions-of-Xen.patch
