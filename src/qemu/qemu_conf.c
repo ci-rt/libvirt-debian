@@ -1156,6 +1156,8 @@ static unsigned long long qemudComputeCmdFlags(const char *help,
 
     if (strstr(help, "-no-kqemu"))
         flags |= QEMUD_CMD_FLAG_KQEMU;
+    if (strstr(help, "-enable-kqemu"))
+        flags |= QEMUD_CMD_FLAG_ENABLE_KQEMU;
     if (strstr(help, "-no-kvm"))
         flags |= QEMUD_CMD_FLAG_KVM;
     if (strstr(help, "-enable-kvm"))
@@ -1689,11 +1691,18 @@ qemudNetworkIfaceConnect(virConnectPtr conn,
                         tapmac,
                         vnet_hdr,
                         &tapfd))) {
-        if (errno == ENOTSUP) {
+        if (err == ENOTSUP) {
             /* In this particular case, give a better diagnostic. */
             qemuReportError(VIR_ERR_INTERNAL_ERROR,
                             _("Failed to add tap interface to bridge. "
                               "%s is not a bridge device"), brname);
+        } else if (err == ENOENT) {
+            /* When the tun drive is missing, give a better message. */
+            qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                            _("Failed to add tap interface to bridge. "
+                              "Your kernel is missing the 'tun' module or "
+                              "CONFIG_TUN, or you need to add the "
+                              "/dev/net/tun device node."));
         } else if (template_ifname) {
             virReportSystemError(err,
                                  _("Failed to add tap interface to bridge '%s'"),
@@ -2089,6 +2098,8 @@ static int qemuCollectPCIAddress(virDomainDefPtr def ATTRIBUTE_UNUSED,
 
     if (dev->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
         char *addr = qemuPCIAddressAsString(dev);
+        if (!addr)
+            return -1;
 
         VIR_DEBUG("Remembering PCI addr %s", addr);
 
@@ -2232,7 +2243,8 @@ int qemuDomainPCIAddressSetNextAddr(qemuDomainPCIAddressSetPtr addrs,
         maybe.addr.pci.bus = 0;
         maybe.addr.pci.slot = i;
 
-        addr = qemuPCIAddressAsString(&maybe);
+        if (!(addr = qemuPCIAddressAsString(&maybe)))
+            return -1;
 
         if (virHashLookup(addrs->used, addr)) {
             VIR_DEBUG("PCI addr %s already in use", addr);
@@ -2248,9 +2260,7 @@ int qemuDomainPCIAddressSetNextAddr(qemuDomainPCIAddressSetPtr addrs,
         }
 
         dev->type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI;
-        dev->addr.pci.domain = 0;
-        dev->addr.pci.bus = 0;
-        dev->addr.pci.slot = i;
+        dev->addr.pci = maybe.addr.pci;
 
         addrs->nextslot = i + 1;
         if (QEMU_PCI_ADDRESS_LAST_SLOT < addrs->nextslot)
@@ -2647,7 +2657,8 @@ qemuBuildDriveStr(virDomainDiskDefPtr disk,
         }
     }
     if (bootable &&
-        disk->device == VIR_DOMAIN_DISK_DEVICE_DISK)
+        disk->device == VIR_DOMAIN_DISK_DEVICE_DISK &&
+        disk->bus != VIR_DOMAIN_DISK_BUS_IDE)
         virBufferAddLit(&opt, ",boot=on");
     if (disk->readonly &&
         qemuCmdFlags & QEMUD_CMD_FLAG_DEVICE)
@@ -3651,9 +3662,10 @@ int qemudBuildCommandLine(virConnectPtr conn,
 {
     int i;
     char memory[50];
-    char boot[VIR_DOMAIN_BOOT_LAST];
+    char boot[VIR_DOMAIN_BOOT_LAST+1];
     struct utsname ut;
     int disableKQEMU = 0;
+    int enableKQEMU = 0;
     int disableKVM = 0;
     int enableKVM = 0;
     int qargc = 0, qarga = 0;
@@ -3703,38 +3715,59 @@ int qemudBuildCommandLine(virConnectPtr conn,
 
     emulator = def->emulator;
 
-    /* Need to explicitly disable KQEMU if
-     * 1. Guest domain is 'qemu'
-     * 2. The qemu binary has the -no-kqemu flag
-     */
-    if ((qemuCmdFlags & QEMUD_CMD_FLAG_KQEMU) &&
-        def->virtType == VIR_DOMAIN_VIRT_QEMU)
-        disableKQEMU = 1;
-
-    /* Need to explicitly disable KVM if
-     * 1. Guest domain is 'qemu'
-     * 2. The qemu binary has the -no-kvm flag
+    /*
+     * do not use boot=on for drives when not using KVM since this
+     * is not supported at all in upstream QEmu.
      */
     if ((qemuCmdFlags & QEMUD_CMD_FLAG_KVM) &&
-        def->virtType == VIR_DOMAIN_VIRT_QEMU) {
-        disableKVM = 1;
+        (def->virtType == VIR_DOMAIN_VIRT_QEMU) &&
+        (qemuCmdFlags & QEMUD_CMD_FLAG_DRIVE_BOOT))
+        qemuCmdFlags -= QEMUD_CMD_FLAG_DRIVE_BOOT;
 
-        /*
-         * do not use boot=on for drives when not using KVM since this
-         * is not supported at all in upstream QEmu.
-         */
-        if (qemuCmdFlags & QEMUD_CMD_FLAG_DRIVE_BOOT)
-            qemuCmdFlags -= QEMUD_CMD_FLAG_DRIVE_BOOT;
+    switch (def->virtType) {
+    case VIR_DOMAIN_VIRT_QEMU:
+        if (qemuCmdFlags & QEMUD_CMD_FLAG_KQEMU)
+            disableKQEMU = 1;
+        if (qemuCmdFlags & QEMUD_CMD_FLAG_KVM)
+            disableKVM = 1;
+        break;
+
+    case VIR_DOMAIN_VIRT_KQEMU:
+        if (qemuCmdFlags & QEMUD_CMD_FLAG_KVM)
+            disableKVM = 1;
+
+        if (qemuCmdFlags & QEMUD_CMD_FLAG_ENABLE_KQEMU) {
+            enableKQEMU = 1;
+        } else if (!(qemuCmdFlags & QEMUD_CMD_FLAG_KQEMU)) {
+            qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                            _("the QEMU binary %s does not support kqemu"),
+                            emulator);
+        }
+        break;
+
+    case VIR_DOMAIN_VIRT_KVM:
+        if (qemuCmdFlags & QEMUD_CMD_FLAG_KQEMU)
+            disableKQEMU = 1;
+
+        if (qemuCmdFlags & QEMUD_CMD_FLAG_ENABLE_KVM) {
+            enableKVM = 1;
+        } else if (!(qemuCmdFlags & QEMUD_CMD_FLAG_KVM)) {
+            qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                            _("the QEMU binary %s does not support kvm"),
+                            emulator);
+        }
+        break;
+
+    case VIR_DOMAIN_VIRT_XEN:
+        /* XXX better check for xenner */
+        break;
+
+    default:
+        qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                        _("the QEMU binary %s does not support %s"),
+                        emulator, virDomainVirtTypeToString(def->virtType));
+        break;
     }
-
-    /* Should explicitly enable KVM if
-     * 1. Guest domain is 'kvm'
-     * 2. The qemu binary has the -enable-kvm flag
-     * NOTE: user must be responsible for loading the kvm modules
-     */
-    if ((qemuCmdFlags & QEMUD_CMD_FLAG_ENABLE_KVM) &&
-        def->virtType == VIR_DOMAIN_VIRT_KVM)
-        enableKVM = 1;
 
 #define ADD_ARG_SPACE                                                   \
     do { \
@@ -3849,6 +3882,10 @@ int qemudBuildCommandLine(virConnectPtr conn,
 
     if (disableKQEMU)
         ADD_ARG_LIT("-no-kqemu");
+    else if (enableKQEMU) {
+        ADD_ARG_LIT("-enable-kqemu");
+        ADD_ARG_LIT("-kernel-kqemu");
+    }
     if (disableKVM)
         ADD_ARG_LIT("-no-kvm");
     if (enableKVM)
@@ -4950,7 +4987,8 @@ int qemudBuildCommandLine(virConnectPtr conn,
      * NB: Earlier we declared that VirtIO balloon will always be in
      * slot 0x3 on bus 0x0
      */
-    if (def->memballoon) {
+    if ((def->memballoon) &&
+        (def->memballoon->model != VIR_DOMAIN_MEMBALLOON_MODEL_NONE)) {
         if (def->memballoon->model != VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO) {
             qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                             _("Memory balloon device type '%s' is not supported by this version of qemu"),
@@ -6567,6 +6605,9 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr caps,
         def->videos[def->nvideos++] = vid;
     }
 
+    /*
+     * having a balloon is the default, define one with type="none" to avoid it
+     */
     if (!def->memballoon) {
         virDomainMemballoonDefPtr memballoon;
         if (VIR_ALLOC(memballoon) < 0)

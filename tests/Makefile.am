@@ -72,42 +72,42 @@ EXTRA_DIST =		\
 	domainsnapshotxml2xmlin \
 	qemuhelpdata
 
-noinst_PROGRAMS = virshtest conftest \
-        nodeinfotest statstest qparamtest
+check_PROGRAMS = virshtest conftest \
+        nodeinfotest statstest qparamtest virbuftest
 
 if WITH_XEN
-noinst_PROGRAMS += xml2sexprtest sexpr2xmltest \
+check_PROGRAMS += xml2sexprtest sexpr2xmltest \
 	reconnect xmconfigtest xencapstest
 endif
 if WITH_QEMU
-noinst_PROGRAMS += qemuxml2argvtest qemuxml2xmltest qemuargv2xmltest qemuhelptest
+check_PROGRAMS += qemuxml2argvtest qemuxml2xmltest qemuargv2xmltest qemuhelptest
 endif
 
 if WITH_ESX
-noinst_PROGRAMS += esxutilstest vmx2xmltest xml2vmxtest
+check_PROGRAMS += esxutilstest vmx2xmltest xml2vmxtest
 endif
 
 if WITH_SECDRIVER_SELINUX
-noinst_PROGRAMS += seclabeltest
+check_PROGRAMS += seclabeltest
 endif
 
 if WITH_SECDRIVER_APPARMOR
-noinst_PROGRAMS += secaatest
+check_PROGRAMS += secaatest
 endif
 
 if WITH_CIL
-noinst_PROGRAMS += object-locking
+check_PROGRAMS += object-locking
 endif
 
-noinst_PROGRAMS += networkxml2xmltest
+check_PROGRAMS += networkxml2xmltest
 
-noinst_PROGRAMS += nwfilterxml2xmltest
+check_PROGRAMS += nwfilterxml2xmltest
 
-noinst_PROGRAMS += storagevolxml2xmltest storagepoolxml2xmltest
+check_PROGRAMS += storagevolxml2xmltest storagepoolxml2xmltest
 
-noinst_PROGRAMS += nodedevxml2xmltest
+check_PROGRAMS += nodedevxml2xmltest
 
-noinst_PROGRAMS += interfacexml2xmltest
+check_PROGRAMS += interfacexml2xmltest
 
 test_scripts = \
 	capabilityschematest \
@@ -151,6 +151,7 @@ TESTS = virshtest \
         nodeinfotest \
 	statstest \
 	qparamtest \
+	virbuftest \
 	$(test_scripts)
 
 if WITH_XEN
@@ -181,7 +182,7 @@ TESTS += secaatest
 endif
 
 if WITH_LIBVIRTD
-noinst_PROGRAMS += eventtest
+check_PROGRAMS += eventtest
 TESTS += eventtest
 endif
 
@@ -351,6 +352,10 @@ endif
 qparamtest_SOURCES = \
 	qparamtest.c testutils.h testutils.c
 qparamtest_LDADD = $(LDADDS)
+
+virbuftest_SOURCES = \
+	virbuftest.c testutils.h testutils.c
+virbuftest_LDADD = $(LDADDS)
 
 if WITH_LIBVIRTD
 eventtest_SOURCES = \

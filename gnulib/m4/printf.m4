@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# printf.m4 serial 33
+# printf.m4 serial 35
 dnl Copyright (C) 2003, 2007-2010 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -1103,7 +1103,7 @@ dnl     }
 dnl     ---------------------------------------------------------------------
 dnl Result is gl_cv_func_snprintf_retval_c99.
 
-AC_DEFUN([gl_SNPRINTF_RETVAL_C99],
+AC_DEFUN_ONCE([gl_SNPRINTF_RETVAL_C99],
 [
   AC_REQUIRE([AC_PROG_CC])
   AC_REQUIRE([AC_CANONICAL_HOST]) dnl for cross-compiles
@@ -1403,7 +1403,7 @@ dnl   Cygwin 1.5.19 (2006)           #  .  .  #  #  #  .  #  .  #  .  #  #  #  .
 dnl   Solaris 10                     .  .  #  #  #  .  .  #  .  .  .  #  .  .  .  .  .  .  .  .
 dnl   Solaris 2.6 ... 9              #  .  #  #  #  #  .  #  .  .  .  #  .  .  .  .  .  .  .  .
 dnl   Solaris 2.5.1                  #  .  #  #  #  #  .  #  .  .  .  #  .  .  #  #  #  #  #  #
-dnl   AIX 5.2                        .  .  #  #  #  .  .  .  .  .  .  #  .  .  .  .  .  .  .  .
+dnl   AIX 5.2, 7.1                   .  .  #  #  #  .  .  .  .  .  .  #  .  .  .  .  .  .  .  .
 dnl   AIX 4.3.2, 5.1                 #  .  #  #  #  #  .  .  .  .  .  #  .  .  .  .  .  .  .  .
 dnl   HP-UX 11.31                    .  .  .  .  #  .  .  .  .  .  .  #  .  .  .  .  #  #  .  .
 dnl   HP-UX 11.{00,11,23}            #  .  .  .  #  #  .  .  .  .  .  #  .  .  .  .  #  #  .  #

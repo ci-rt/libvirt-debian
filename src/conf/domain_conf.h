@@ -581,6 +581,7 @@ struct _virDomainHostdevDef {
 enum {
     VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO,
     VIR_DOMAIN_MEMBALLOON_MODEL_XEN,
+    VIR_DOMAIN_MEMBALLOON_MODEL_NONE,
 
     VIR_DOMAIN_MEMBALLOON_MODEL_LAST
 };
@@ -660,6 +661,17 @@ enum virDomainLifecycleAction {
     VIR_DOMAIN_LIFECYCLE_PRESERVE,
 
     VIR_DOMAIN_LIFECYCLE_LAST
+};
+
+enum virDomainLifecycleCrashAction {
+    VIR_DOMAIN_LIFECYCLE_CRASH_DESTROY,
+    VIR_DOMAIN_LIFECYCLE_CRASH_RESTART,
+    VIR_DOMAIN_LIFECYCLE_CRASH_RESTART_RENAME,
+    VIR_DOMAIN_LIFECYCLE_CRASH_PRESERVE,
+    VIR_DOMAIN_LIFECYCLE_CRASH_COREDUMP_DESTROY,
+    VIR_DOMAIN_LIFECYCLE_CRASH_COREDUMP_RESTART,
+
+    VIR_DOMAIN_LIFECYCLE_CRASH_LAST
 };
 
 /* Operating system configuration data & machine / arch */
@@ -1055,6 +1067,8 @@ void virDomainDiskInsertPreAlloced(virDomainDefPtr def,
                                    virDomainDiskDefPtr disk);
 int virDomainDiskDefAssignAddress(virCapsPtr caps, virDomainDiskDefPtr def);
 
+void virDomainDiskRemove(virDomainDefPtr def, size_t i);
+
 int virDomainControllerInsert(virDomainDefPtr def,
                               virDomainControllerDefPtr controller);
 void virDomainControllerInsertPreAlloced(virDomainDefPtr def,
@@ -1134,10 +1148,14 @@ int virDomainDiskDefForeachPath(virDomainDiskDefPtr disk,
                                 virDomainDiskDefPathIterator iter,
                                 void *opaque);
 
+typedef const char* (*virLifecycleToStringFunc)(int type);
+typedef int (*virLifecycleFromStringFunc)(const char *type);
+
 VIR_ENUM_DECL(virDomainVirt)
 VIR_ENUM_DECL(virDomainBoot)
 VIR_ENUM_DECL(virDomainFeature)
 VIR_ENUM_DECL(virDomainLifecycle)
+VIR_ENUM_DECL(virDomainLifecycleCrash)
 VIR_ENUM_DECL(virDomainDevice)
 VIR_ENUM_DECL(virDomainDeviceAddress)
 VIR_ENUM_DECL(virDomainDeviceAddressMode)

@@ -52,7 +52,7 @@ void esxUtil_FreeParsedUri(esxUtil_ParsedUri **parsedUri);
 int esxUtil_ParseVirtualMachineIDString(const char *id_string, int *id);
 
 int esxUtil_ParseDatastorePath(const char *datastorePath, char **datastoreName,
-                               char **directoryName, char **fileName);
+                               char **directoryName, char **directoryAndFileName);
 
 int esxUtil_ResolveHostname(const char *hostname,
                             char *ipAddress, size_t ipAddress_length);
@@ -68,5 +68,7 @@ int esxUtil_GetConfigLong(virConfPtr conf, const char *name, long long *number,
 
 int esxUtil_GetConfigBoolean(virConfPtr conf, const char *name, bool *boolean_,
                              bool default_, bool optional);
+
+int esxUtil_ReformatUuid(const char *input, char *output);
 
 #endif /* __ESX_UTIL_H__ */

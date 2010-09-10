@@ -27,6 +27,13 @@ int esxVI_CreateSnapshot_Task
        esxVI_Boolean quiesce,                              /* required */
        esxVI_ManagedObjectReference **output);             /* required */
 
+int esxVI_CreateVirtualDisk_Task
+      (esxVI_Context *ctx,
+       const char *name,                                   /* required */
+       esxVI_ManagedObjectReference *datacenter,           /* optional */
+       esxVI_VirtualDiskSpec *spec,                        /* required */
+       esxVI_ManagedObjectReference **output);             /* required */
+
 int esxVI_DestroyPropertyFilter
       (esxVI_Context *ctx,
        esxVI_ManagedObjectReference *_this);               /* required */
@@ -54,6 +61,12 @@ int esxVI_Login
 
 int esxVI_Logout
       (esxVI_Context *ctx);
+
+int esxVI_MakeDirectory
+      (esxVI_Context *ctx,
+       const char *name,                                   /* required */
+       esxVI_ManagedObjectReference *datacenter,           /* optional */
+       esxVI_Boolean createParentDirectories);             /* optional */
 
 int esxVI_MigrateVM_Task
       (esxVI_Context *ctx,
@@ -92,6 +105,12 @@ int esxVI_QueryPerfCounter
       (esxVI_Context *ctx,
        esxVI_Int *counterId,                               /* required, list */
        esxVI_PerfCounterInfo **output);                    /* optional, list */
+
+int esxVI_QueryVirtualDiskUuid
+      (esxVI_Context *ctx,
+       const char *name,                                   /* required */
+       esxVI_ManagedObjectReference *datacenter,           /* optional */
+       char **output);                                     /* required */
 
 int esxVI_RebootGuest
       (esxVI_Context *ctx,
@@ -132,6 +151,13 @@ int esxVI_RevertToSnapshot_Task
       (esxVI_Context *ctx,
        esxVI_ManagedObjectReference *_this,                /* required */
        esxVI_ManagedObjectReference *host,                 /* optional */
+       esxVI_ManagedObjectReference **output);             /* required */
+
+int esxVI_SearchDatastoreSubFolders_Task
+      (esxVI_Context *ctx,
+       esxVI_ManagedObjectReference *_this,                /* required */
+       const char *datastorePath,                          /* required */
+       esxVI_HostDatastoreBrowserSearchSpec *searchSpec,   /* optional */
        esxVI_ManagedObjectReference **output);             /* required */
 
 int esxVI_SearchDatastore_Task

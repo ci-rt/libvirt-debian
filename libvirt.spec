@@ -64,6 +64,7 @@
 %define with_nwfilter      0%{!?_without_nwfilter:0}
 %define with_libpcap       0%{!?_without_libpcap:0}
 %define with_macvtap       0%{!?_without_macvtap:0}
+%define with_libnl         0%{!?_without_libnl:0}
 
 # Non-server/HV driver defaults which are always enabled
 %define with_python        0%{!?_without_python:1}
@@ -182,7 +183,7 @@
 
 Summary: Library providing a simple API virtualization
 Name: libvirt
-Version: 0.8.3
+Version: 0.8.4
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
@@ -200,7 +201,7 @@ Requires: %{name}-client = %{version}-%{release}
 Requires: bridge-utils
 %endif
 %if %{with_network}
-Requires: dnsmasq
+Requires: dnsmasq >= 2.41
 Requires: iptables
 %endif
 %if %{with_nwfilter}
@@ -298,7 +299,7 @@ BuildRequires: avahi-devel
 BuildRequires: libselinux-devel
 %endif
 %if %{with_network}
-BuildRequires: dnsmasq
+BuildRequires: dnsmasq >= 2.41
 %endif
 BuildRequires: bridge-utils
 %if %{with_sasl}
@@ -645,10 +646,6 @@ rm -rf $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/libvirtd.lxc
 rm -rf $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/libvirtd.uml
 %endif
 
-%if %{with_libvirtd}
-chmod 0644 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/libvirtd
-%endif
-
 %clean
 rm -fr %{buildroot}
 
@@ -906,7 +903,16 @@ fi
 %endif
 
 %changelog
+* Fri Sep 10 2010 Daniel Veillard <veillard@redhat.com> - 0.8.4-1
+- big improvements to UML driver
+- various improvements and bug fixes
+
 * Wed Aug  4 2010 Daniel Veillard <veillard@redhat.com> - 0.8.3-1
+- esx: Support vSphere 4.1
+- Qemu arbitrary monitor commands
+- Qemu Monitor API entry point
+- various improvements and bug fixes
+
 * Mon Jul  5 2010 Daniel Veillard <veillard@redhat.com> - 0.8.2-1
 - phyp: adding support for IVM
 - libvirt: introduce domainCreateWithFlags API

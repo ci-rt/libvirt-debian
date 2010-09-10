@@ -1,7 +1,7 @@
 /*
  * uml_conf.c: UML driver configuration
  *
- * Copyright (C) 2006-2009 Red Hat, Inc.
+ * Copyright (C) 2006-2010 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -46,6 +46,7 @@
 #include "verify.h"
 #include "bridge.h"
 #include "logging.h"
+#include "domain_nwfilter.h"
 
 #define VIR_FROM_THIS VIR_FROM_UML
 
@@ -108,11 +109,11 @@ virCapsPtr umlCapsInit(void) {
 
 
 static int
-umlConnectTapDevice(virDomainNetDefPtr net,
+umlConnectTapDevice(virConnectPtr conn,
+                    virDomainNetDefPtr net,
                     const char *bridge)
 {
     brControl *brctl = NULL;
-    int tapfd = -1;
     int template_ifname = 0;
     int err;
     unsigned char tapmac[VIR_MAC_BUFLEN];
@@ -140,12 +141,17 @@ umlConnectTapDevice(virDomainNetDefPtr net,
                         &net->ifname,
                         tapmac,
                         0,
-                        &tapfd))) {
-        if (errno == ENOTSUP) {
+                        NULL))) {
+        if (err == ENOTSUP) {
             /* In this particular case, give a better diagnostic. */
             umlReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Failed to add tap interface to bridge. "
                              "%s is not a bridge device"), bridge);
+        } else if (err == ENOENT) {
+            virReportSystemError(err, "%s",
+                    _("Failed to add tap interface to bridge. Your kernel "
+                      "is missing the 'tun' module or CONFIG_TUN, or you need "
+                      "to add the /dev/net/tun device node."));
         } else if (template_ifname) {
             virReportSystemError(err,
                                  _("Failed to add tap interface to bridge '%s'"),
@@ -159,7 +165,14 @@ umlConnectTapDevice(virDomainNetDefPtr net,
             VIR_FREE(net->ifname);
         goto error;
     }
-    close(tapfd);
+
+    if (net->filter) {
+        if (virDomainConfNWFilterInstantiate(conn, net)) {
+            if (template_ifname)
+                VIR_FREE(net->ifname);
+            goto error;
+        }
+    }
 
     brShutdown(brctl);
 
@@ -236,7 +249,7 @@ umlBuildCommandLineNet(virConnectPtr conn,
             goto error;
         }
 
-        if (umlConnectTapDevice(def, bridge) < 0) {
+        if (umlConnectTapDevice(conn, def, bridge) < 0) {
             VIR_FREE(bridge);
             goto error;
         }
@@ -247,7 +260,7 @@ umlBuildCommandLineNet(virConnectPtr conn,
     }
 
     case VIR_DOMAIN_NET_TYPE_BRIDGE:
-        if (umlConnectTapDevice(def, def->data.bridge.brname) < 0)
+        if (umlConnectTapDevice(conn, def, def->data.bridge.brname) < 0)
             goto error;
 
         /* ethNNN=tuntap,tapname,macaddr,gateway */
@@ -292,7 +305,8 @@ error:
 
 static char *
 umlBuildCommandLineChr(virDomainChrDefPtr def,
-                       const char *dev)
+                       const char *dev,
+                       fd_set *keepfd)
 {
     char *ret = NULL;
 
@@ -341,8 +355,27 @@ umlBuildCommandLineChr(virDomainChrDefPtr def,
         break;
 
     case VIR_DOMAIN_CHR_TYPE_FILE:
-    case VIR_DOMAIN_CHR_TYPE_PIPE:
-        /* XXX could open the file/pipe & just pass the FDs */
+         {
+            int fd_out;
+
+            if ((fd_out = open(def->data.file.path,
+                               O_WRONLY | O_APPEND | O_CREAT, 0660)) < 0) {
+                virReportSystemError(errno,
+                                     _("failed to open chardev file: %s"),
+                                     def->data.file.path);
+                return NULL;
+            }
+            if (virAsprintf(&ret, "%s%d=null,fd:%d", dev, def->target.port, fd_out) < 0) {
+                virReportOOMError();
+                close(fd_out);
+                return NULL;
+            }
+            FD_SET(fd_out, keepfd);
+        }
+        break;
+   case VIR_DOMAIN_CHR_TYPE_PIPE:
+        /* XXX could open the pipe & just pass the FDs. Be wary of
+         * the effects of blocking I/O, though. */
 
     case VIR_DOMAIN_CHR_TYPE_VC:
     case VIR_DOMAIN_CHR_TYPE_UDP:
@@ -386,8 +419,9 @@ static char *umlNextArg(char *args)
  * for a given virtual machine.
  */
 int umlBuildCommandLine(virConnectPtr conn,
-                        struct uml_driver *driver ATTRIBUTE_UNUSED,
+                        struct uml_driver *driver,
                         virDomainObjPtr vm,
+                        fd_set *keepfd,
                         const char ***retargv,
                         const char ***retenv)
 {
@@ -475,7 +509,6 @@ int umlBuildCommandLine(virConnectPtr conn,
     ADD_ENV_COPY("LD_PRELOAD");
     ADD_ENV_COPY("LD_LIBRARY_PATH");
     ADD_ENV_COPY("PATH");
-    ADD_ENV_COPY("HOME");
     ADD_ENV_COPY("USER");
     ADD_ENV_COPY("LOGNAME");
     ADD_ENV_COPY("TMPDIR");
@@ -484,6 +517,7 @@ int umlBuildCommandLine(virConnectPtr conn,
     //ADD_ARG_PAIR("con0", "fd:0,fd:1");
     ADD_ARG_PAIR("mem", memory);
     ADD_ARG_PAIR("umid", vm->def->name);
+    ADD_ARG_PAIR("uml_dir", driver->monitorDir);
 
     if (vm->def->os.root)
         ADD_ARG_PAIR("root", vm->def->os.root);
@@ -508,10 +542,10 @@ int umlBuildCommandLine(virConnectPtr conn,
     }
 
     for (i = 0 ; i < UML_MAX_CHAR_DEVICE ; i++) {
-        char *ret;
+        char *ret = NULL;
         if (i == 0 && vm->def->console)
-            ret = umlBuildCommandLineChr(vm->def->console, "con");
-        else
+            ret = umlBuildCommandLineChr(vm->def->console, "con", keepfd);
+        if (!ret)
             if (virAsprintf(&ret, "con%d=none", i) < 0)
                 goto no_memory;
         ADD_ARG(ret);
@@ -519,13 +553,13 @@ int umlBuildCommandLine(virConnectPtr conn,
 
     for (i = 0 ; i < UML_MAX_CHAR_DEVICE ; i++) {
         virDomainChrDefPtr chr = NULL;
-        char *ret;
+        char *ret = NULL;
         for (j = 0 ; j < vm->def->nserials ; j++)
             if (vm->def->serials[j]->target.port == i)
                 chr = vm->def->serials[j];
         if (chr)
-            ret = umlBuildCommandLineChr(chr, "ssl");
-        else
+            ret = umlBuildCommandLineChr(chr, "ssl", keepfd);
+        if (!ret)
             if (virAsprintf(&ret, "ssl%d=none", i) < 0)
                 goto no_memory;
         ADD_ARG(ret);

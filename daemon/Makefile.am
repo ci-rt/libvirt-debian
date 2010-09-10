@@ -35,17 +35,15 @@ EXTRA_DIST =						\
 	libvirtd.uml.logrotate.in                       \
 	test_libvirtd.aug                               \
 	THREADING.txt					\
-	libvirt-guests.init.in				\
-	libvirt-guests.sysconf				\
 	libvirtd.pod.in					\
 	$(AVAHI_SOURCES)				\
 	$(DAEMON_SOURCES)
 
-man_MANS = libvirtd.8
-
 BUILT_SOURCES =
 
 if WITH_LIBVIRTD
+
+man_MANS = libvirtd.8
 
 sbin_PROGRAMS = libvirtd
 
@@ -189,14 +187,17 @@ uninstall-data-polkit::
 endif
 
 
-remote.c: remote_dispatch_prototypes.h \
-	  remote_dispatch_table.h \
-	  remote_dispatch_args.h \
-	  remote_dispatch_ret.h \
-	  qemu_dispatch_prototypes.h \
-	  qemu_dispatch_table.h \
-	  qemu_dispatch_args.h \
-	  qemu_dispatch_ret.h
+remote.c: \
+	remote_dispatch_prototypes.h \
+	remote_dispatch_table.h \
+	qemu_dispatch_prototypes.h \
+	qemu_dispatch_table.h
+
+remote.h: \
+	remote_dispatch_args.h \
+	remote_dispatch_ret.h \
+	qemu_dispatch_args.h \
+	qemu_dispatch_ret.h
 
 REMOTE_PROTOCOL = $(top_srcdir)/src/remote/remote_protocol.x
 QEMU_PROTOCOL = $(top_srcdir)/src/remote/qemu_protocol.x
@@ -258,27 +259,21 @@ install-logrotate: $(LOGROTATE_CONFS)
 	$(INSTALL_DATA) libvirtd.uml.logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.uml
 
 if LIBVIRT_INIT_SCRIPT_RED_HAT
-install-init: libvirtd.init libvirt-guests.init
+install-init: libvirtd.init
 	mkdir -p $(DESTDIR)$(sysconfdir)/rc.d/init.d
 	$(INSTALL_SCRIPT) libvirtd.init \
 	  $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirtd
-	$(INSTALL_SCRIPT) libvirt-guests.init \
-	  $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirt-guests
 	mkdir -p $(DESTDIR)$(sysconfdir)/sysconfig
-	$(INSTALL_SCRIPT) $(srcdir)/libvirtd.sysconf \
+	$(INSTALL_DATA) $(srcdir)/libvirtd.sysconf \
 	  $(DESTDIR)$(sysconfdir)/sysconfig/libvirtd
-	$(INSTALL_SCRIPT) $(srcdir)/libvirt-guests.sysconf \
-	  $(DESTDIR)$(sysconfdir)/sysconfig/libvirt-guests
 
 uninstall-init:
 	rm -f $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirtd \
-		$(DESTDIR)$(sysconfdir)/sysconfig/libvirtd \
-		$(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirt-guests \
-		$(DESTDIR)$(sysconfdir)/sysconfig/libvirt-guests
+		$(DESTDIR)$(sysconfdir)/sysconfig/libvirtd
 
-BUILT_SOURCES += libvirtd.init libvirt-guests.init
+BUILT_SOURCES += libvirtd.init
 
-%.init: %.init.in $(top_builddir)/config.status
+libvirtd.init: libvirtd.init.in $(top_builddir)/config.status
 	$(AM_V_GEN)sed					\
 	    -e s!\@localstatedir\@!@localstatedir@!g	\
 	    -e s!\@sbindir\@!@sbindir@!g		\

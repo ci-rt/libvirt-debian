@@ -83,6 +83,14 @@ VIR_ENUM_IMPL(virDomainLifecycle, VIR_DOMAIN_LIFECYCLE_LAST,
               "rename-restart",
               "preserve")
 
+VIR_ENUM_IMPL(virDomainLifecycleCrash, VIR_DOMAIN_LIFECYCLE_CRASH_LAST,
+              "destroy",
+              "restart",
+              "rename-restart",
+              "preserve",
+              "coredump-destroy",
+              "coredump-restart")
+
 VIR_ENUM_IMPL(virDomainDevice, VIR_DOMAIN_DEVICE_LAST,
               "disk",
               "filesystem",
@@ -203,7 +211,8 @@ VIR_ENUM_IMPL(virDomainSoundModel, VIR_DOMAIN_SOUND_MODEL_LAST,
 
 VIR_ENUM_IMPL(virDomainMemballoonModel, VIR_DOMAIN_MEMBALLOON_MODEL_LAST,
               "virtio",
-              "xen");
+              "xen",
+              "none");
 
 VIR_ENUM_IMPL(virDomainWatchdogModel, VIR_DOMAIN_WATCHDOG_MODEL_LAST,
               "i6300esb",
@@ -3762,13 +3771,14 @@ error:
 static int virDomainLifecycleParseXML(xmlXPathContextPtr ctxt,
                                       const char *xpath,
                                       int *val,
-                                      int defaultVal)
+                                      int defaultVal,
+                                      virLifecycleFromStringFunc convFunc)
 {
     char *tmp = virXPathString(xpath, ctxt);
     if (tmp == NULL) {
         *val = defaultVal;
     } else {
-        *val = virDomainLifecycleTypeFromString(tmp);
+        *val = convFunc(tmp);
         if (*val < 0) {
             virDomainReportError(VIR_ERR_INTERNAL_ERROR,
                                  _("unknown lifecycle action %s"), tmp);
@@ -4054,6 +4064,24 @@ void virDomainDiskInsertPreAlloced(virDomainDefPtr def,
 }
 
 
+void virDomainDiskRemove(virDomainDefPtr def, size_t i)
+{
+    if (def->ndisks > 1) {
+        memmove(def->disks + i,
+                def->disks + i + 1,
+                sizeof(*def->disks) *
+                (def->ndisks - (i + 1)));
+        def->ndisks--;
+        if (VIR_REALLOC_N(def->disks, def->ndisks) < 0) {
+            /* ignore, harmless */
+        }
+    } else {
+        VIR_FREE(def->disks);
+        def->ndisks = 0;
+    }
+}
+
+
 int virDomainControllerInsert(virDomainDefPtr def,
                               virDomainControllerDefPtr controller)
 {
@@ -4252,15 +4280,19 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
     }
 
     if (virDomainLifecycleParseXML(ctxt, "string(./on_reboot[1])",
-                                   &def->onReboot, VIR_DOMAIN_LIFECYCLE_RESTART) < 0)
+                                   &def->onReboot, VIR_DOMAIN_LIFECYCLE_RESTART,
+                                   virDomainLifecycleTypeFromString) < 0)
         goto error;
 
     if (virDomainLifecycleParseXML(ctxt, "string(./on_poweroff[1])",
-                                   &def->onPoweroff, VIR_DOMAIN_LIFECYCLE_DESTROY) < 0)
+                                   &def->onPoweroff, VIR_DOMAIN_LIFECYCLE_DESTROY,
+                                   virDomainLifecycleTypeFromString) < 0)
         goto error;
 
     if (virDomainLifecycleParseXML(ctxt, "string(./on_crash[1])",
-                                   &def->onCrash, VIR_DOMAIN_LIFECYCLE_DESTROY) < 0)
+                                        &def->onCrash,
+                                   VIR_DOMAIN_LIFECYCLE_CRASH_DESTROY,
+                                   virDomainLifecycleCrashTypeFromString) < 0)
         goto error;
 
     tmp = virXPathString("string(./clock/@offset)", ctxt);
@@ -5395,9 +5427,10 @@ virDomainCpuSetParse(const char **str, char sep,
 static int
 virDomainLifecycleDefFormat(virBufferPtr buf,
                             int type,
-                            const char *name)
+                            const char *name,
+                            virLifecycleToStringFunc convFunc)
 {
-    const char *typeStr = virDomainLifecycleTypeToString(type);
+    const char *typeStr = convFunc(type);
     if (!typeStr) {
         virDomainReportError(VIR_ERR_INTERNAL_ERROR,
                              _("unexpected lifecycle type %d"), type);
@@ -6482,13 +6515,16 @@ char *virDomainDefFormat(virDomainDefPtr def,
     }
 
     if (virDomainLifecycleDefFormat(&buf, def->onPoweroff,
-                                    "on_poweroff") < 0)
+                                    "on_poweroff",
+                                    virDomainLifecycleTypeToString) < 0)
         goto cleanup;
     if (virDomainLifecycleDefFormat(&buf, def->onReboot,
-                                    "on_reboot") < 0)
+                                    "on_reboot",
+                                    virDomainLifecycleTypeToString) < 0)
         goto cleanup;
     if (virDomainLifecycleDefFormat(&buf, def->onCrash,
-                                    "on_crash") < 0)
+                                    "on_crash",
+                                    virDomainLifecycleCrashTypeToString) < 0)
         goto cleanup;
 
     virBufferAddLit(&buf, "  <devices>\n");

@@ -67,34 +67,34 @@
 
 
 
-#define ESX_VI__METHOD__DESERIALIZE_OUTPUT__None(_type)                       \
+#define ESX_VI__METHOD__DESERIALIZE_OUTPUT__None(_type, _suffix)              \
     /* nothing */
 
 
 
-#define ESX_VI__METHOD__DESERIALIZE_OUTPUT__RequiredItem(_type)               \
-    if (esxVI_##_type##_Deserialize(response->node, output) < 0) {            \
+#define ESX_VI__METHOD__DESERIALIZE_OUTPUT__RequiredItem(_type, _suffix)      \
+    if (esxVI_##_type##_Deserialize##_suffix(response->node, output) < 0) {   \
         goto cleanup;                                                         \
     }
 
 
 
-#define ESX_VI__METHOD__DESERIALIZE_OUTPUT__RequiredList(_type)               \
+#define ESX_VI__METHOD__DESERIALIZE_OUTPUT__RequiredList(_type, _suffix)      \
     if (esxVI_##_type##_DeserializeList(response->node, output) < 0) {        \
         goto cleanup;                                                         \
     }
 
 
 
-#define ESX_VI__METHOD__DESERIALIZE_OUTPUT__OptionalItem(_type)               \
+#define ESX_VI__METHOD__DESERIALIZE_OUTPUT__OptionalItem(_type, _suffix)      \
     if (response->node != NULL &&                                             \
-        esxVI_##_type##_Deserialize(response->node, output) < 0) {            \
+        esxVI_##_type##_Deserialize##_suffix(response->node, output) < 0) {   \
         goto cleanup;                                                         \
     }
 
 
 
-#define ESX_VI__METHOD__DESERIALIZE_OUTPUT__OptionalList(_type)               \
+#define ESX_VI__METHOD__DESERIALIZE_OUTPUT__OptionalList(_type, _suffix)      \
     if (response->node != NULL &&                                             \
         esxVI_##_type##_DeserializeList(response->node, output) < 0) {        \
         goto cleanup;                                                         \
@@ -103,7 +103,8 @@
 
 
 #define ESX_VI__METHOD(_name, _this_from_service, _parameters, _output_type,  \
-                       _occurrence, _validate, _serialize)                    \
+                       _deserialize_suffix, _occurrence, _validate,           \
+                       _serialize)                                            \
     int                                                                       \
     esxVI_##_name _parameters                                                 \
     {                                                                         \
@@ -139,7 +140,8 @@
             goto cleanup;                                                     \
         }                                                                     \
                                                                               \
-        ESX_VI__METHOD__DESERIALIZE_OUTPUT__##_occurrence(_output_type)       \
+        ESX_VI__METHOD__DESERIALIZE_OUTPUT__##_occurrence                     \
+          (_output_type, _deserialize_suffix)                                 \
                                                                               \
         result = 0;                                                           \
                                                                               \
@@ -173,6 +175,12 @@
 
 
 
+#define ESX_VI__METHOD__PARAMETER__THIS__fileManager                          \
+    ESX_VI__METHOD__PARAMETER__THIS_FROM_SERVICE(ManagedObjectReference,      \
+                                                 fileManager)
+
+
+
 #define ESX_VI__METHOD__PARAMETER__THIS__perfManager                          \
     ESX_VI__METHOD__PARAMETER__THIS_FROM_SERVICE(ManagedObjectReference,      \
                                                  perfManager)
@@ -194,6 +202,12 @@
 #define ESX_VI__METHOD__PARAMETER__THIS__sessionManager                       \
     ESX_VI__METHOD__PARAMETER__THIS_FROM_SERVICE(ManagedObjectReference,      \
                                                  sessionManager)
+
+
+
+#define ESX_VI__METHOD__PARAMETER__THIS__virtualDiskManager                   \
+    ESX_VI__METHOD__PARAMETER__THIS_FROM_SERVICE(ManagedObjectReference,      \
+                                                 virtualDiskManager)
 
 
 
@@ -284,7 +298,7 @@ ESX_VI__METHOD(ValidateMigration, /* special _this */,
                 esxVI_ManagedObjectReference *pool,        /* optional */
                 esxVI_ManagedObjectReference *host,        /* optional */
                 esxVI_Event **output),                     /* optional, list */
-               Event, OptionalList,
+               Event, /* nothing */, OptionalList,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(vm)
 },

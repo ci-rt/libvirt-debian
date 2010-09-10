@@ -153,17 +153,21 @@ actionShutdownLibvirt2XenapiEnum(enum virDomainLifecycleAction action)
 
 
 enum xen_on_crash_behaviour
-actionCrashLibvirt2XenapiEnum(enum virDomainLifecycleAction action)
+actionCrashLibvirt2XenapiEnum(enum virDomainLifecycleCrashAction action)
 {
     enum xen_on_crash_behaviour num = XEN_ON_CRASH_BEHAVIOUR_RESTART;
-    if (action == VIR_DOMAIN_LIFECYCLE_DESTROY)
+    if (action == VIR_DOMAIN_LIFECYCLE_CRASH_DESTROY)
         num = XEN_ON_CRASH_BEHAVIOUR_DESTROY;
-    else if (action == VIR_DOMAIN_LIFECYCLE_RESTART)
+    else if (action == VIR_DOMAIN_LIFECYCLE_CRASH_RESTART)
         num = XEN_ON_CRASH_BEHAVIOUR_RESTART;
-    else if (action == VIR_DOMAIN_LIFECYCLE_PRESERVE)
+    else if (action == VIR_DOMAIN_LIFECYCLE_CRASH_PRESERVE)
         num = XEN_ON_CRASH_BEHAVIOUR_PRESERVE;
-    else if (action == VIR_DOMAIN_LIFECYCLE_RESTART_RENAME)
+    else if (action == VIR_DOMAIN_LIFECYCLE_CRASH_RESTART_RENAME)
         num = XEN_ON_CRASH_BEHAVIOUR_RENAME_RESTART;
+    else if (action == VIR_DOMAIN_LIFECYCLE_CRASH_COREDUMP_DESTROY)
+        num = XEN_ON_CRASH_BEHAVIOUR_COREDUMP_AND_DESTROY;
+    else if (action == VIR_DOMAIN_LIFECYCLE_CRASH_COREDUMP_RESTART)
+        num = XEN_ON_CRASH_BEHAVIOUR_COREDUMP_AND_RESTART;
     return num;
 }
 
@@ -218,18 +222,22 @@ xenapiNormalExitEnum2virDomainLifecycle(enum xen_on_normal_exit action)
 }
 
 
-enum virDomainLifecycleAction
+enum virDomainLifecycleCrashAction
 xenapiCrashExitEnum2virDomainLifecycle(enum xen_on_crash_behaviour action)
 {
-    enum virDomainLifecycleAction num = VIR_DOMAIN_LIFECYCLE_RESTART;
+    enum virDomainLifecycleCrashAction num = VIR_DOMAIN_LIFECYCLE_CRASH_RESTART;
     if (action == XEN_ON_CRASH_BEHAVIOUR_DESTROY)
-        num = VIR_DOMAIN_LIFECYCLE_DESTROY;
+        num = VIR_DOMAIN_LIFECYCLE_CRASH_DESTROY;
     else if (action == XEN_ON_CRASH_BEHAVIOUR_RESTART)
-        num = VIR_DOMAIN_LIFECYCLE_RESTART;
+        num = VIR_DOMAIN_LIFECYCLE_CRASH_RESTART;
     else if (action == XEN_ON_CRASH_BEHAVIOUR_PRESERVE)
-        num = VIR_DOMAIN_LIFECYCLE_PRESERVE;
+        num = VIR_DOMAIN_LIFECYCLE_CRASH_PRESERVE;
     else if (action == XEN_ON_CRASH_BEHAVIOUR_RENAME_RESTART)
-        num = VIR_DOMAIN_LIFECYCLE_RESTART_RENAME;
+        num = VIR_DOMAIN_LIFECYCLE_CRASH_RESTART_RENAME;
+    else if (action == XEN_ON_CRASH_BEHAVIOUR_COREDUMP_AND_DESTROY)
+        num = VIR_DOMAIN_LIFECYCLE_CRASH_COREDUMP_DESTROY;
+    else if (action == XEN_ON_CRASH_BEHAVIOUR_COREDUMP_AND_RESTART)
+        num = VIR_DOMAIN_LIFECYCLE_CRASH_COREDUMP_RESTART;
     return num;
 }
 
@@ -336,11 +344,10 @@ mapPowerState(enum xen_vm_power_state state)
     case XEN_VM_POWER_STATE_RUNNING:
         virState = VIR_DOMAIN_RUNNING;
         break;
-    case XEN_VM_POWER_STATE_UNKNOWN:
     case XEN_VM_POWER_STATE_UNDEFINED:
-        virState = VIR_DOMAIN_NOSTATE;
-        break;
     default:
+        /* Includes XEN_VM_POWER_STATE_UNKNOWN from libxenserver
+         * 5.5.0, which is gone in 5.6.0.  */
         virState = VIR_DOMAIN_NOSTATE;
         break;
     }
@@ -387,8 +394,8 @@ xenapiSessionErrorHandle(virConnectPtr conn, virErrorNumber errNum,
 }
 
 /* creates network intereface for VM */
-int
-createVifNetwork (virConnectPtr conn, xen_vm vm, char *device,
+static int
+createVifNetwork (virConnectPtr conn, xen_vm vm, int device,
                   char *bridge, char *mac)
 {
     xen_session *session = ((struct _xenapiPrivate *)(conn->privateData))->session;
@@ -432,7 +439,8 @@ createVifNetwork (virConnectPtr conn, xen_vm vm, char *device,
         vif_record->other_config = xen_string_string_map_alloc(0);
         vif_record->runtime_properties = xen_string_string_map_alloc(0);
         vif_record->qos_algorithm_params = xen_string_string_map_alloc(0);
-        vif_record->device = strdup(device);
+        if (virAsprintf(&vif_record->device, "%d", device) < 0)
+            return -1;
         xen_vif_create(session, &vif, vif_record);
         if (!vif) {
             xen_vif_free(vif);
@@ -553,9 +561,11 @@ createVMRecordFromXml (virConnectPtr conn, virDomainDefPtr def,
                 }
             }
             if (mac != NULL && bridge != NULL) {
-                char device[NETWORK_DEVID_SIZE] = "\0";
-                sprintf(device, "%d", device_number);
-                createVifNetwork(conn, *vm, device, bridge, mac);
+                if (createVifNetwork(conn, *vm, device_number, bridge,
+                                     mac) < 0) {
+                    VIR_FREE(bridge);
+                    goto error_cleanup;
+                }
                 VIR_FREE(bridge);
                 device_number++;
             }

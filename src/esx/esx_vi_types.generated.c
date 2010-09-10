@@ -536,6 +536,65 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(Description)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: DeviceBackedVirtualDiskSpec
+ *          extends VirtualDiskSpec
+ */
+
+/* esxVI_DeviceBackedVirtualDiskSpec_Alloc */
+ESX_VI__TEMPLATE__ALLOC(DeviceBackedVirtualDiskSpec)
+
+/* esxVI_DeviceBackedVirtualDiskSpec_Free */
+ESX_VI__TEMPLATE__FREE(DeviceBackedVirtualDiskSpec,
+{
+    /* VirtualDiskSpec */
+    VIR_FREE(item->diskType);
+    VIR_FREE(item->adapterType);
+
+    /* DeviceBackedVirtualDiskSpec */
+    VIR_FREE(item->device);
+})
+
+/* esxVI_DeviceBackedVirtualDiskSpec_Validate */
+ESX_VI__TEMPLATE__VALIDATE(DeviceBackedVirtualDiskSpec,
+{
+    /* VirtualDiskSpec */
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(diskType)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(adapterType)
+
+    /* DeviceBackedVirtualDiskSpec */
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(device)
+})
+
+/* esxVI_DeviceBackedVirtualDiskSpec_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(DeviceBackedVirtualDiskSpec,
+{
+})
+
+/* esxVI_DeviceBackedVirtualDiskSpec_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(DeviceBackedVirtualDiskSpec,
+{
+    /* VirtualDiskSpec */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, diskType)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, adapterType)
+
+    /* DeviceBackedVirtualDiskSpec */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, device)
+})
+
+/* esxVI_DeviceBackedVirtualDiskSpec_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(DeviceBackedVirtualDiskSpec,
+{
+    /* VirtualDiskSpec */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, diskType)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, adapterType)
+
+    /* DeviceBackedVirtualDiskSpec */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, device)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Type: DynamicProperty
  */
 
@@ -720,6 +779,65 @@ ESX_VI__TEMPLATE__DESERIALIZE(Event,
 
 /* esxVI_Event_DeserializeList */
 ESX_VI__TEMPLATE__LIST__DESERIALIZE(Event)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: FileBackedVirtualDiskSpec
+ *          extends VirtualDiskSpec
+ */
+
+/* esxVI_FileBackedVirtualDiskSpec_Alloc */
+ESX_VI__TEMPLATE__ALLOC(FileBackedVirtualDiskSpec)
+
+/* esxVI_FileBackedVirtualDiskSpec_Free */
+ESX_VI__TEMPLATE__FREE(FileBackedVirtualDiskSpec,
+{
+    /* VirtualDiskSpec */
+    VIR_FREE(item->diskType);
+    VIR_FREE(item->adapterType);
+
+    /* FileBackedVirtualDiskSpec */
+    esxVI_Long_Free(&item->capacityKb);
+})
+
+/* esxVI_FileBackedVirtualDiskSpec_Validate */
+ESX_VI__TEMPLATE__VALIDATE(FileBackedVirtualDiskSpec,
+{
+    /* VirtualDiskSpec */
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(diskType)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(adapterType)
+
+    /* FileBackedVirtualDiskSpec */
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(capacityKb)
+})
+
+/* esxVI_FileBackedVirtualDiskSpec_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(FileBackedVirtualDiskSpec,
+{
+})
+
+/* esxVI_FileBackedVirtualDiskSpec_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(FileBackedVirtualDiskSpec,
+{
+    /* VirtualDiskSpec */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, diskType)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, adapterType)
+
+    /* FileBackedVirtualDiskSpec */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Long, capacityKb)
+})
+
+/* esxVI_FileBackedVirtualDiskSpec_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(FileBackedVirtualDiskSpec,
+{
+    /* VirtualDiskSpec */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, diskType)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, adapterType)
+
+    /* FileBackedVirtualDiskSpec */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, capacityKb)
+})
 
 
 
@@ -3546,6 +3664,65 @@ ESX_VI__TEMPLATE__DESERIALIZE(UserSession,
     ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(DateTime, lastActiveTime)
     ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, locale)
     ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, messageLocale)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: VirtualDiskSpec
+ *          extended by DeviceBackedVirtualDiskSpec
+ *                      FileBackedVirtualDiskSpec
+ */
+
+/* esxVI_VirtualDiskSpec_Alloc */
+ESX_VI__TEMPLATE__ALLOC(VirtualDiskSpec)
+
+/* esxVI_VirtualDiskSpec_Free */
+ESX_VI__TEMPLATE__DYNAMIC_FREE(VirtualDiskSpec,
+{
+    ESX_VI__TEMPLATE__DISPATCH__FREE(DeviceBackedVirtualDiskSpec)
+    ESX_VI__TEMPLATE__DISPATCH__FREE(FileBackedVirtualDiskSpec)
+},
+{
+    VIR_FREE(item->diskType);
+    VIR_FREE(item->adapterType);
+})
+
+/* esxVI_VirtualDiskSpec_Validate */
+ESX_VI__TEMPLATE__VALIDATE(VirtualDiskSpec,
+{
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(diskType)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(adapterType)
+})
+
+/* esxVI_VirtualDiskSpec_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(VirtualDiskSpec,
+{
+    /* VirtualDiskSpec */
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(DeviceBackedVirtualDiskSpec)
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(FileBackedVirtualDiskSpec)
+})
+
+/* esxVI_VirtualDiskSpec_Serialize */
+ESX_VI__TEMPLATE__DYNAMIC_SERIALIZE(VirtualDiskSpec,
+{
+    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(DeviceBackedVirtualDiskSpec)
+    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(FileBackedVirtualDiskSpec)
+},
+{
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, diskType)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, adapterType)
+})
+
+/* esxVI_VirtualDiskSpec_Deserialize */
+ESX_VI__TEMPLATE__DYNAMIC_DESERIALIZE(VirtualDiskSpec,
+{
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(DeviceBackedVirtualDiskSpec)
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(FileBackedVirtualDiskSpec)
+},
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, diskType)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, adapterType)
 })
 
 

@@ -43,6 +43,9 @@
           case esxVI_Type_Description:
             return "Description";
 
+          case esxVI_Type_DeviceBackedVirtualDiskSpec:
+            return "DeviceBackedVirtualDiskSpec";
+
           case esxVI_Type_DynamicProperty:
             return "DynamicProperty";
 
@@ -51,6 +54,9 @@
 
           case esxVI_Type_Event:
             return "Event";
+
+          case esxVI_Type_FileBackedVirtualDiskSpec:
+            return "FileBackedVirtualDiskSpec";
 
           case esxVI_Type_FileInfo:
             return "FileInfo";
@@ -189,6 +195,9 @@
 
           case esxVI_Type_UserSession:
             return "UserSession";
+
+          case esxVI_Type_VirtualDiskSpec:
+            return "VirtualDiskSpec";
 
           case esxVI_Type_VirtualMachineConfigSpec:
             return "VirtualMachineConfigSpec";

@@ -8,7 +8,7 @@ ESX_VI__METHOD(AnswerVM, /* explicit _this */,
                 esxVI_ManagedObjectReference *_this,       /* required */
                 const char *questionId,                    /* required */
                 const char *answerChoice),                 /* required */
-               void, None,
+               void, /* nothing */, None,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
     ESX_VI__METHOD__PARAMETER__REQUIRE(questionId)
@@ -26,7 +26,7 @@ ESX_VI__METHOD(AnswerVM, /* explicit _this */,
 ESX_VI__METHOD(CancelTask, /* explicit _this */,
                (esxVI_Context *ctx,
                 esxVI_ManagedObjectReference *_this),      /* required */
-               void, None,
+               void, /* nothing */, None,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
 },
@@ -42,7 +42,7 @@ ESX_VI__METHOD(CreateFilter, propertyCollector,
                 esxVI_PropertyFilterSpec *spec,            /* required */
                 esxVI_Boolean partialUpdates,              /* required */
                 esxVI_ManagedObjectReference **output),    /* required */
-               ManagedObjectReference, RequiredItem,
+               ManagedObjectReference, /* nothing */, RequiredItem,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
     ESX_VI__METHOD__PARAMETER__REQUIRE(spec)
@@ -65,7 +65,7 @@ ESX_VI__METHOD(CreateSnapshot_Task, /* explicit _this */,
                 esxVI_Boolean memory,                      /* required */
                 esxVI_Boolean quiesce,                     /* required */
                 esxVI_ManagedObjectReference **output),    /* required */
-               ManagedObjectReference, RequiredItem,
+               ManagedObjectReference, /* nothing */, RequiredItem,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
     ESX_VI__METHOD__PARAMETER__REQUIRE(name)
@@ -82,11 +82,33 @@ ESX_VI__METHOD(CreateSnapshot_Task, /* explicit _this */,
 
 
 
+/* esxVI_CreateVirtualDisk_Task */
+ESX_VI__METHOD(CreateVirtualDisk_Task, virtualDiskManager,
+               (esxVI_Context *ctx,
+                const char *name,                          /* required */
+                esxVI_ManagedObjectReference *datacenter,  /* optional */
+                esxVI_VirtualDiskSpec *spec,               /* required */
+                esxVI_ManagedObjectReference **output),    /* required */
+               ManagedObjectReference, /* nothing */, RequiredItem,
+{
+    ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
+    ESX_VI__METHOD__PARAMETER__REQUIRE(name)
+    ESX_VI__METHOD__PARAMETER__REQUIRE(spec)
+},
+{
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, _this)
+    ESX_VI__METHOD__PARAMETER__SERIALIZE_VALUE(String, name)
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, datacenter)
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(VirtualDiskSpec, spec)
+})
+
+
+
 /* esxVI_DestroyPropertyFilter */
 ESX_VI__METHOD(DestroyPropertyFilter, /* explicit _this */,
                (esxVI_Context *ctx,
                 esxVI_ManagedObjectReference *_this),      /* required */
-               void, None,
+               void, /* nothing */, None,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
 },
@@ -103,7 +125,7 @@ ESX_VI__METHOD(FindByIp, searchIndex,
                 const char *ip,                            /* required */
                 esxVI_Boolean vmSearch,                    /* required */
                 esxVI_ManagedObjectReference **output),    /* optional */
-               ManagedObjectReference, OptionalItem,
+               ManagedObjectReference, /* nothing */, OptionalItem,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
     ESX_VI__METHOD__PARAMETER__REQUIRE(ip)
@@ -125,7 +147,7 @@ ESX_VI__METHOD(FindByUuid, searchIndex,
                 const char *uuid,                          /* required */
                 esxVI_Boolean vmSearch,                    /* required */
                 esxVI_ManagedObjectReference **output),    /* optional */
-               ManagedObjectReference, OptionalItem,
+               ManagedObjectReference, /* nothing */, OptionalItem,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
     ESX_VI__METHOD__PARAMETER__REQUIRE(uuid)
@@ -147,7 +169,7 @@ ESX_VI__METHOD(Login, sessionManager,
                 const char *password,                      /* required */
                 const char *locale,                        /* optional */
                 esxVI_UserSession **output),               /* required */
-               UserSession, RequiredItem,
+               UserSession, /* nothing */, RequiredItem,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
     ESX_VI__METHOD__PARAMETER__REQUIRE(userName)
@@ -165,12 +187,32 @@ ESX_VI__METHOD(Login, sessionManager,
 /* esxVI_Logout */
 ESX_VI__METHOD(Logout, sessionManager,
                (esxVI_Context *ctx),
-               void, None,
+               void, /* nothing */, None,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
 },
 {
     ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, _this)
+})
+
+
+
+/* esxVI_MakeDirectory */
+ESX_VI__METHOD(MakeDirectory, fileManager,
+               (esxVI_Context *ctx,
+                const char *name,                          /* required */
+                esxVI_ManagedObjectReference *datacenter,  /* optional */
+                esxVI_Boolean createParentDirectories),    /* optional */
+               void, /* nothing */, None,
+{
+    ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
+    ESX_VI__METHOD__PARAMETER__REQUIRE(name)
+},
+{
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, _this)
+    ESX_VI__METHOD__PARAMETER__SERIALIZE_VALUE(String, name)
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, datacenter)
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(Boolean, createParentDirectories)
 })
 
 
@@ -184,7 +226,7 @@ ESX_VI__METHOD(MigrateVM_Task, /* explicit _this */,
                 esxVI_VirtualMachineMovePriority priority, /* required */
                 esxVI_VirtualMachinePowerState state,      /* optional */
                 esxVI_ManagedObjectReference **output),    /* required */
-               ManagedObjectReference, RequiredItem,
+               ManagedObjectReference, /* nothing */, RequiredItem,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
     ESX_VI__METHOD__PARAMETER__REQUIRE(priority)
@@ -204,7 +246,7 @@ ESX_VI__METHOD(PowerOffVM_Task, /* explicit _this */,
                (esxVI_Context *ctx,
                 esxVI_ManagedObjectReference *_this,       /* required */
                 esxVI_ManagedObjectReference **output),    /* required */
-               ManagedObjectReference, RequiredItem,
+               ManagedObjectReference, /* nothing */, RequiredItem,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
 },
@@ -220,7 +262,7 @@ ESX_VI__METHOD(PowerOnVM_Task, /* explicit _this */,
                 esxVI_ManagedObjectReference *_this,       /* required */
                 esxVI_ManagedObjectReference *host,        /* optional */
                 esxVI_ManagedObjectReference **output),    /* required */
-               ManagedObjectReference, RequiredItem,
+               ManagedObjectReference, /* nothing */, RequiredItem,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
 },
@@ -239,7 +281,7 @@ ESX_VI__METHOD(QueryAvailablePerfMetric, perfManager,
                 esxVI_DateTime *endTime,                   /* optional */
                 esxVI_Int *intervalId,                     /* optional */
                 esxVI_PerfMetricId **output),              /* optional, list */
-               PerfMetricId, OptionalList,
+               PerfMetricId, /* nothing */, OptionalList,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
     ESX_VI__METHOD__PARAMETER__REQUIRE(entity)
@@ -259,7 +301,7 @@ ESX_VI__METHOD(QueryPerf, perfManager,
                (esxVI_Context *ctx,
                 esxVI_PerfQuerySpec *querySpec,            /* required, list */
                 esxVI_PerfEntityMetricBase **output),      /* optional, list */
-               PerfEntityMetricBase, OptionalList,
+               PerfEntityMetricBase, /* nothing */, OptionalList,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
     ESX_VI__METHOD__PARAMETER__REQUIRE(querySpec)
@@ -276,7 +318,7 @@ ESX_VI__METHOD(QueryPerfCounter, perfManager,
                (esxVI_Context *ctx,
                 esxVI_Int *counterId,                      /* required, list */
                 esxVI_PerfCounterInfo **output),           /* optional, list */
-               PerfCounterInfo, OptionalList,
+               PerfCounterInfo, /* nothing */, OptionalList,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
     ESX_VI__METHOD__PARAMETER__REQUIRE(counterId)
@@ -288,11 +330,30 @@ ESX_VI__METHOD(QueryPerfCounter, perfManager,
 
 
 
+/* esxVI_QueryVirtualDiskUuid */
+ESX_VI__METHOD(QueryVirtualDiskUuid, virtualDiskManager,
+               (esxVI_Context *ctx,
+                const char *name,                          /* required */
+                esxVI_ManagedObjectReference *datacenter,  /* optional */
+                char **output),                            /* required */
+               String, Value, RequiredItem,
+{
+    ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
+    ESX_VI__METHOD__PARAMETER__REQUIRE(name)
+},
+{
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, _this)
+    ESX_VI__METHOD__PARAMETER__SERIALIZE_VALUE(String, name)
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, datacenter)
+})
+
+
+
 /* esxVI_RebootGuest */
 ESX_VI__METHOD(RebootGuest, /* explicit _this */,
                (esxVI_Context *ctx,
                 esxVI_ManagedObjectReference *_this),      /* required */
-               void, None,
+               void, /* nothing */, None,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
 },
@@ -308,7 +369,7 @@ ESX_VI__METHOD(ReconfigVM_Task, /* explicit _this */,
                 esxVI_ManagedObjectReference *_this,       /* required */
                 esxVI_VirtualMachineConfigSpec *spec,      /* required */
                 esxVI_ManagedObjectReference **output),    /* required */
-               ManagedObjectReference, RequiredItem,
+               ManagedObjectReference, /* nothing */, RequiredItem,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
     ESX_VI__METHOD__PARAMETER__REQUIRE(spec)
@@ -324,7 +385,7 @@ ESX_VI__METHOD(ReconfigVM_Task, /* explicit _this */,
 ESX_VI__METHOD(RefreshDatastore, /* explicit _this */,
                (esxVI_Context *ctx,
                 esxVI_ManagedObjectReference *_this),      /* required */
-               void, None,
+               void, /* nothing */, None,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
 },
@@ -344,7 +405,7 @@ ESX_VI__METHOD(RegisterVM_Task, /* explicit _this */,
                 esxVI_ManagedObjectReference *pool,        /* optional */
                 esxVI_ManagedObjectReference *host,        /* optional */
                 esxVI_ManagedObjectReference **output),    /* required */
-               ManagedObjectReference, RequiredItem,
+               ManagedObjectReference, /* nothing */, RequiredItem,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
     ESX_VI__METHOD__PARAMETER__REQUIRE(path)
@@ -367,7 +428,7 @@ ESX_VI__METHOD(RemoveSnapshot_Task, /* explicit _this */,
                 esxVI_ManagedObjectReference *_this,       /* required */
                 esxVI_Boolean removeChildren,              /* required */
                 esxVI_ManagedObjectReference **output),    /* required */
-               ManagedObjectReference, RequiredItem,
+               ManagedObjectReference, /* nothing */, RequiredItem,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
     ESX_VI__METHOD__PARAMETER__REQUIRE(removeChildren)
@@ -384,7 +445,7 @@ ESX_VI__METHOD(RetrieveProperties, propertyCollector,
                (esxVI_Context *ctx,
                 esxVI_PropertyFilterSpec *specSet,         /* required, list */
                 esxVI_ObjectContent **output),             /* optional, list */
-               ObjectContent, OptionalList,
+               ObjectContent, /* nothing */, OptionalList,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
     ESX_VI__METHOD__PARAMETER__REQUIRE(specSet)
@@ -402,13 +463,33 @@ ESX_VI__METHOD(RevertToSnapshot_Task, /* explicit _this */,
                 esxVI_ManagedObjectReference *_this,       /* required */
                 esxVI_ManagedObjectReference *host,        /* optional */
                 esxVI_ManagedObjectReference **output),    /* required */
-               ManagedObjectReference, RequiredItem,
+               ManagedObjectReference, /* nothing */, RequiredItem,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
 },
 {
     ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, _this)
     ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, host)
+})
+
+
+
+/* esxVI_SearchDatastoreSubFolders_Task */
+ESX_VI__METHOD(SearchDatastoreSubFolders_Task, /* explicit _this */,
+               (esxVI_Context *ctx,
+                esxVI_ManagedObjectReference *_this,       /* required */
+                const char *datastorePath,                 /* required */
+                esxVI_HostDatastoreBrowserSearchSpec *searchSpec, /* optional */
+                esxVI_ManagedObjectReference **output),    /* required */
+               ManagedObjectReference, /* nothing */, RequiredItem,
+{
+    ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
+    ESX_VI__METHOD__PARAMETER__REQUIRE(datastorePath)
+},
+{
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, _this)
+    ESX_VI__METHOD__PARAMETER__SERIALIZE_VALUE(String, datastorePath)
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(HostDatastoreBrowserSearchSpec, searchSpec)
 })
 
 
@@ -420,7 +501,7 @@ ESX_VI__METHOD(SearchDatastore_Task, /* explicit _this */,
                 const char *datastorePath,                 /* required */
                 esxVI_HostDatastoreBrowserSearchSpec *searchSpec, /* optional */
                 esxVI_ManagedObjectReference **output),    /* required */
-               ManagedObjectReference, RequiredItem,
+               ManagedObjectReference, /* nothing */, RequiredItem,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
     ESX_VI__METHOD__PARAMETER__REQUIRE(datastorePath)
@@ -439,7 +520,7 @@ ESX_VI__METHOD(SessionIsActive, sessionManager,
                 const char *sessionID,                     /* required */
                 const char *userName,                      /* required */
                 esxVI_Boolean *output),                    /* required */
-               Boolean, RequiredItem,
+               Boolean, /* nothing */, RequiredItem,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
     ESX_VI__METHOD__PARAMETER__REQUIRE(sessionID)
@@ -457,7 +538,7 @@ ESX_VI__METHOD(SessionIsActive, sessionManager,
 ESX_VI__METHOD(ShutdownGuest, /* explicit _this */,
                (esxVI_Context *ctx,
                 esxVI_ManagedObjectReference *_this),      /* required */
-               void, None,
+               void, /* nothing */, None,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
 },
@@ -472,7 +553,7 @@ ESX_VI__METHOD(SuspendVM_Task, /* explicit _this */,
                (esxVI_Context *ctx,
                 esxVI_ManagedObjectReference *_this,       /* required */
                 esxVI_ManagedObjectReference **output),    /* required */
-               ManagedObjectReference, RequiredItem,
+               ManagedObjectReference, /* nothing */, RequiredItem,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
 },
@@ -486,7 +567,7 @@ ESX_VI__METHOD(SuspendVM_Task, /* explicit _this */,
 ESX_VI__METHOD(UnregisterVM, /* explicit _this */,
                (esxVI_Context *ctx,
                 esxVI_ManagedObjectReference *_this),      /* required */
-               void, None,
+               void, /* nothing */, None,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
 },
@@ -501,7 +582,7 @@ ESX_VI__METHOD(WaitForUpdates, propertyCollector,
                (esxVI_Context *ctx,
                 const char *version,                       /* optional */
                 esxVI_UpdateSet **output),                 /* required */
-               UpdateSet, RequiredItem,
+               UpdateSet, /* nothing */, RequiredItem,
 {
     ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
 },

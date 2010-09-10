@@ -1,3 +1,1035 @@
+2010-09-10  Daniel Veillard  <veillard@redhat.com>
+
+	Libvirt release 0.8.4
+	update news, spec and french localizaton
+
+2010-09-10  Cole Robinson  <crobinso@redhat.com>
+
+	buf: Fix possible infinite loop in EscapeString, VSnprintf
+	The current code will go into an infinite loop if the printf generated
+	string is >= 1000, AND exactly 1 character smaller than the amount of free
+	space in the buffer. When this happens, we are dropped into the loop body,
+	but nothing will actually change, because count == (buf->size - buf->use - 1),
+	and virBufferGrow returns unchanged if count < (buf->size - buf->use)
+
+	Fix this by removing the '- 1' bit from 'size'. The *nprintf functions handle
+	the NULL byte for us anyways, so we shouldn't need to manually accommodate
+	for it.
+
+	Here's a bug where we are actually hitting this issue:
+	https://bugzilla.redhat.com/show_bug.cgi?id=602772
+
+	v2: Eric's improvements: while -> if (), remove extra va_list variable,
+	    make sure we report buffer error if snprintf fails
+
+	v3: Add tests/virbuftest which reproduces the infinite loop before this
+	    patch, works correctly after
+
+2010-09-10  Guido Günther  <agx@sigxcpu.org>
+
+	Fix block statistics with newer versions of Xen
+	Apparently the xen block device statistics moved from
+	"/sys/devices/xen-backend/vbd-%d-%d/statistics/%s"
+	to
+	"/sys/bus/xen-backend/devices/vbd-%d-%d/statistics/%s"
+
+	* src/xen/block_stats.c: try the extra path in case of failure to
+	  find the statistics in /sys
+
+2010-09-10  Jiri Denemark  <jdenemar@redhat.com>
+
+	virsh: Option for overriding disk type in attach-disk
+	Unless --driver tap|file option was given to attach-disk, virsh would
+	generate <disk type='block'> XML which might be fine for Xen but not for
+	other hypervisors. This patch introduces a new option --sourcetype which
+	can be used to explicitly set the type of disk source. The option
+	accepts either "file" or "block" types.
+
+2010-09-10  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix dependancies for remote generated files
+	Very occasionally during a parallel make, dispatch.c would
+	be compiled before the generated remote headers had been
+	fully written. This would cause it to compile an empty
+	union, and result in really wierd runtime bugs that are
+	near impossible to diagnose.
+
+	* daemon/Makefile.am: Fix remote build deps
+
+	Ensure remote daemon unions are always non-zero length
+	If the remote daemon args/ret unions ever become zero length
+	(due to a build / Makefile bug) then bad stuff happens at
+	runtime. Add a compile time assertion to check for this kind
+	of problem
+
+	* daemon/remote.h: Ensure non-zero length unions
+
+	Fix off-by-1 in QEMU boot arg array handling
+	A QEMU guest can have upto VIR_DOMAIN_BOOT_LAST boot entries
+	defined. When building the QEMU arg, each entry takes a
+	single byte. This means the array must be declared to be
+	VIR_DOMAIN_BOOT_LAST+1 bytes in length to allow for the
+	trailing null
+
+	* src/qemu/qemu_conf.c: Fix off-by-1 boot arg array size
+
+2010-09-10  Jiri Denemark  <jdenemar@redhat.com>
+
+	bridge: Fix static-only DHCP configuration
+	For static-only DHCP, i.e. with no <range> but at least one <host>
+	element within <dhcp> element, we have to add "--dhcp-range IP,static"
+	option to dnsmasq to actually enable the service. Without this option,
+	dnsmasq will not respond to DHCP requests.
+
+2010-09-10  Luiz Capitulino  <lcapitulino@redhat.com>
+
+	qemu: qemuMonitorJSONEjectMedia(): Fix arguments' type
+	QMP in QEMU 0.13 has been fixed to enforce type correctness,
+	this means that boolean types must be true or false, not
+	integers.
+
+	qemu: qemuMonitorJSONMigrate(): Fix arguments' type
+	QMP in QEMU 0.13 has been fixed to enforce type correctness,
+	this means that boolean types must be true or false, not
+	integers.
+
+2010-09-09  Soren Hansen  <soren@linux2go.dk>
+
+	Add nwfilter support to UML driver
+	Extend user-mode-linux driver to support nwfilter.
+
+2010-09-09  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	test: Don't overwrite storage volume target path and key
+	Only generate target path and key when they are not defined
+	in the XML config.
+
+2010-09-09  Daniel Veillard  <veillard@redhat.com>
+
+	Remove hack to get static binaries in DV environment
+
+2010-09-08  Justin Clift  <jclift@redhat.com>
+
+	Moved my name up to the primary list, as I have commit rights now.
+	As recommended by Eric. :)
+
+2010-09-08  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	esx: Use SessionIsActive when available
+	Before this commit SessionIsActive was not used because ESX(i)
+	doesn't implement it. vCenter supports SessionIsActive, so use
+	it here, but keep the fall back mechanism for ESX(i) and GSX.
+
+2010-09-07  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	esx: Fall back to path as key when QueryVirtualDiskUuid isn't available
+	QueryVirtualDiskUuid is only available on an ESX(i) server. vCenter
+	returns an NotImplemented fault and a GSX server is missing the
+	VirtualDiskManager completely. Therefore only use QueryVirtualDiskUuid
+	with an ESX(i) server and fall back to path as storage volume key for
+	vCenter and GSX server.
+
+2010-09-07  Eric Blake  <eblake@redhat.com>
+
+	mingw: match recent changes in spec file
+	* libvirt.spec.in (%file): List new installed files.
+	* configure.ac (with_init_script): Assume default of none when
+	cross-compiling.
+
+2010-09-07  Jiri Denemark  <jdenemar@redhat.com>
+
+	build: Fix permissions of sysconfig files
+
+2010-09-04  Daniel Veillard  <veillard@redhat.com>
+
+	Update of localization files
+	- Updated dutch, spanish and russian, regenerated the po/pot files
+
+2010-09-04  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	esx: Use the VirtualDisk UUID as storage volume key
+	VirtualDisks are .vmdk file based. Other files in a datastore
+	like .iso or .flp files don't have a UUID attached, fall back
+	to the path as key for them.
+
+2010-09-03  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	esx: Add .vmdk storage volume creation
+
+2010-09-03  Jean-Baptiste Rouault  <jean-baptiste.rouault@diateam.net>
+
+	OpenVZ: add ethernet interface type support
+	This patch adds support for ethernet interface type to OpenVZ domains
+	as stated in this previous message: http://www.redhat.com/archives/libvir-
+	list/2010-July/msg00658.html
+
+2010-09-03  Eric Blake  <eblake@redhat.com>
+
+	build: avoid uninitialized variable warning
+	* src/vbox/vbox_tmpl.c (vboxAttachDrives): Capture return value.
+
+2010-09-03  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	esx: Rework datastore path parsing and handling
+	Instead of splitting the path part of a datastore path into
+	directory and file name, keep this in one piece. An example:
+
+	  "[datastore] directory/file"
+
+	was split into this before:
+
+	  datastoreName = "datastore"
+	  directoryName = "directory"
+	  fileName = "file"
+
+	Now it's split into this:
+
+	  datastoreName = "datastore"
+	  directoryName = "directory"
+	  directoryAndFileName = "directory/file"
+
+	This simplifies code using esxUtil_ParseDatastorePath, because
+	directoryAndFileName is used more often than fileName. Also the
+	old approach expected the datastore path to reference an actual
+	file, but this isn't always correct, especially when listing
+	volumes. In that case esxUtil_ParseDatastorePath is used to parse
+	a path that references a directory. This fails for a vpx://
+	connection because the vCenter returns directory paths with a
+	trailing '/'. The new approach is robust against this and the
+	actual decision if the datastore path should reference a file or
+	a directory is up to the caller of esxUtil_ParseDatastorePath.
+
+	Update the tests accordingly.
+
+2010-09-02  Eric Blake  <eblake@redhat.com>
+
+	vbox: factor a large function
+	* src/vbox/vbox_tmpl.c (vboxDomainDefineXML): Split...
+	(vboxSetBootDeviceOrder, vboxAttachDrives, vboxAttachSound)
+	(vboxAttachNetwork, vboxAttachSerial, vboxAttachParallel)
+	(vboxAttachVideo, vboxAttachDisplay, vboxAttachUSB): ...into new
+	helper functions.
+
+	lxc: avoid large stacks with veth creation
+	* src/lxc/veth.h (vethCreate): Change prototype.
+	* src/lxc/veth.c (vethCreate): Always malloc veth2, and allocate
+	veth1 if needed.
+	(getFreeVethName): Adjust signature, and use virAsprintf.
+	* src/lxc/lxc_driver.c (lxcSetupInterfaces): Adjust caller.
+
+2010-09-02  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	esx: Fix generator for string return values
+	Distinguish between strings as parameters (const char *)
+	and strings as return values (char **).
+
+2010-09-02  Eric Blake  <eblake@redhat.com>
+
+	openvz: use virAsprintf to avoid large stacks
+	* src/openvz/openvz_conf.c (openvzLocateConfFile): Alter
+	signature.
+	(openvzGetVPSUUID, openvzSetDefinedUUID)
+	(openvzWriteVPSConfigParam, openvzReadVPSConfigParam)
+	(openvzCopyDefaultConfig): Adjust callers.
+
+	openvz: formatting cleanups
+	* src/openvz/openvz_conf.c: Whitespace fixes.
+	* src/openvz/openvz_driver.c: Likewise.
+
+2010-09-01  Eric Blake  <eblake@redhat.com>
+
+	network: use virAsprintf when appropriate
+	* src/conf/network_conf.c (virNetworkAllocateBridge): Avoid
+	limited buffer from snprintf.
+
+	build: add some modules
+	snprintf is currently implicitly picked up by getaddrinfo, but we
+	might as well make it explicit so that mingw doesn't break if
+	getaddrinfo changes to drop the dependency.
+
+	func doesn't matter for gcc compilation, but may help other compilers
+	cope with our use of __func__.
+
+	* bootstrap.conf (gnulib_modules): Add snprintf and func.
+
+2010-09-01  Ryan Harper  <ryanh@us.ibm.com>
+
+	virsh: remove driver check from attach-disk command
+	Virsh shouldn't check for driver support but rather let the backend handled this.
+	After removing the check, I can successfully attach file-based images to a qemu
+	VM with attach-disk.
+
+	% virsh attach-disk vm2 /images/test02.img vdc --driver qemu --type disk --subdriver raw
+	Disk attached successfully
+
+	This command generates the following XML:
+
+	<disk type='block' device='disk'>
+	      <driver name='qemu' type='raw'/>
+	      <source dev='/images/test02.img'/>
+	      <target dev='vdc' bus='virtio'/>
+	      <alias name='virtio-disk2'/>
+	      <address type='pci' domain='0x0000' bus='0x00' slot='0x09' function='0x0'/>
+	</disk>
+
+2010-08-31  Soren Hansen  <soren@linux2go.dk>
+
+	Use global directory as UML's monitorDir for privileged connections
+	For privileged UML connections (uml:///system), we shouldn't use root's
+	home dir, but rather somewhere in /var/run/libvirt/uml-guest.
+
+	https://bugzilla.redhat.com/show_bug.cgi?id=499536
+
+	Explicitly pass uml_dir argument to user-mode-linux
+	uml_dir overrides user-mode-linux's default of ~/.uml. This is needed
+	for a couple of different reasons:
+
+	libvirt expects this to default to virGetUserDirectory(geteuid()) +
+	'/.uml'. However, user-mode-linux actually uses the HOME environment
+	variable to determine where to look for the uml sockets, but if running
+	libvirtd under sudo (which I routinely do during development), $HOME is
+	pointing at my user's homedir, while my euid is 0, so libvirt looks in
+	/root.
+
+	Also (and this was my actual motivation for this patch), if HOME isn't
+	set at all, user-mode-linux utterly fails. Looking at the code, it seems
+	it's meant to emit a warning, but alas, it doesn't for some reason.
+	If running libvirtd from upstart, HOME is not set, so any system using
+	upstart will need this change.
+
+2010-08-31  Eric Blake  <eblake@redhat.com>
+
+	maint: track moved file
+	* daemon/.gitignore: Move libvirt-guests.init...
+	* tools/.gitignore: ...to its new location.
+
+2010-08-31  Jim Fehlig  <jfehlig@novell.com>
+
+	Add tests for Xen's blktap2 implementation
+	xml2sexpr and sexpr2xml tests for blktap2
+
+	Add blktap2 support to xend driver
+	Xen4.0 includes a new blktap2 implementation, which is specified
+	with 'tap2' prefix.  AFAICT it's configuration syntax is identical
+	to blktap, with exception of 'tap2' vs 'tap' prefix.  This patch
+	takes the simple approach of accepting and generating sexp
+	containing 'tap2' prefix.
+
+2010-08-30  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	esx: Map the .vmx annotation to the domain XML description
+	Take care of escaping '"' and '|' (the escape character).
+
+	Add tests for this.
+
+	Move hextobin as virHexToBin to util.c
+	virHexToBin will be used in the .vmx handling code.
+
+2010-08-27  Eduardo Otubo  <otubo@linux.vnet.ibm.com>
+
+	PHYP: Bad comparison when checking for existing domain name
+	When creating a new domain from XML, the check for an existing
+	domain name should compare the return of the function to a valid
+	LPAR ID (!= -1) and not to error (== -1).
+
+2010-08-27  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	esx: Fix esxVI_BuildSelectSet's invalid argument check
+	The check was altered in 8c48743b9737ad4d246ab6043fd299316f9a2091
+	and got too strict, I've no clue how that snuck in. This check
+	makes every try to open a connection using the ESX driver fail
+	with an invalid argument error.
+
+	Revert the change to the check and add a comment to prevent future
+	mistakes with this check.
+
+2010-08-26  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	esx: Add read-only storage volume access
+	This allows to list existing volumes and to retrieve information
+	about them.
+
+2010-08-25  Jiri Denemark  <jdenemar@redhat.com>
+
+	Move libvirt-guests init script and config to tools
+	Since libvirt-guests init script and its configuration do not require
+	libvirtd to be running/installed, it was a bad idea to put them into
+	daemon directory. libvirt.spec even includes these files in
+	libvirt-client subpackage, which may result in build failure for
+	client-only builds when the whole daemon directory is just skipped.
+
+	spec: Fix undefined with_libnl
+	When building libvirt RPM without macvtap, with_libnl would be
+	undefined.
+
+2010-08-24  Soren Hansen  <soren@linux2go.dk>
+
+	Support virDomainAttachDevice and virDomainDetachDevice for disks in UML
+	UML supports hot plugging and unplugging of various devices. This patch
+	exposes this functionality for disks.
+
+	Rename qemudShrinkDisks to virDomainDiskRemove and move to domain_conf.c
+	Other drivers will need this same functionality, so move it to up to
+	conf/domain_conf.c and give it a more general name.
+
+2010-08-24  Serge Hallyn  <serge.hallyn@canonical.com>
+
+	docs: fix lxc examples
+	* docs/drvlxc.html.in: Use correct VM name, and mention that
+	libvirt_lxc might be in an alternate location.
+
+2010-08-24  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix handling of sparse NUMA topologies
+	When finding a sparse NUMA topology, libnuma will return ENOENT
+	the first time it is invoked. On subsequent invocations it
+	will return success, but with an all-1's CPU mask. Check for
+	this, to avoid polluting the capabilities XML with 4096 bogus
+	CPUs
+
+	* src/nodeinfo.c: Check for all-1s CPU mask
+
+	Log return value for virConnectGetCapabilities
+	Enabling debug doesn't show the capabilities XML for a connection.
+	Add an extra debug statement for the return value
+
+	* src/libvirt.c: Enable debug logging of capabilities XML
+
+	Try harder to send RPC error message back to client
+	When failing to serialize the normal RPC reply, try harder to
+	send a error message back to the client, instead of immediately
+	closing the connection.
+
+	* daemon/dispatch.c: Improve error messages when RPC reply
+	  can not be sent
+
+	Add explicit warning messages when failing to serialize to XDR
+	When libvirtd fails to serialize a message to XDR the client
+	connection is terminated immediately. To enable this to be
+	diagnosed, log the message which caused the problem on the
+	server
+
+	* daemon/dispatch.c: Log XDR serialization failures
+
+2010-08-24  Soren Hansen  <soren@linux2go.dk>
+
+	Allow chardev of type 'file' for UML domains.
+	Like the comment suggested, we just open the file and pass the file
+	descriptor to uml. The input "stream" is set to "null", since I couldn't
+	find any useful way to actually use a file for input for a chardev and
+	this also mimics what e.g. QEmu does internally.
+
+2010-08-24  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	esx: Improve object-by-type lookup performance
+	Instead of using one big traversal spec for lookup use a set of
+	more fine grained traversal specs that are selected based on the
+	actual needs of the lookup.
+
+	This gives up to 20% speedup for certain operations like domain
+	listing due to less HTTP(S) traffic.
+
+2010-08-24  Jiri Denemark  <jdenemar@redhat.com>
+
+	xen tests: Fix PV-VFB tests with RHEL-5 API
+	RHEL-5 Xen doesn't support the old style vnc configuration. In sexpr, we
+	can't really check it with rhel5-api turned on. However, for XM
+	configuration files it's sufficient to use cfg version 1 instead of 2.
+
+	xml2sexprtest: Remove graphics from unrelated tests
+	This caused unnecessary make check failures when libvirt is configured
+	--with-rhel5-api
+
+	xen tests: Fix missing "type ioemu" with rhel5-api
+	The most common cause of errors with rhel5-api turn on was missing
+	"(type ioemu)" in sexpr or its equivalent in XM configuration file. This
+	happens because the presence of that part in sexpr (or cfg) depends on
+	xen version the host is running. Let's avoid it by explicitly specifying
+	interface model which ensures "type ioemu" will always be emitted.
+
+	This patch adds
+
+	    <model type='e1000'/>
+
+	withing the interface element in all affected xml files. And
+
+	    (model 'e1000')
+
+	to all corresponding sexpr files with similar fix to cfg files. Such
+	configuration works regardless on Xen version.
+
+	nodeinfotest: Print libvirt error on failure
+	If linuxNodeInfoCPUPopulate() fails, the test would just print "FAILED"
+	which is not very informative. It's better to print the real error.
+
+2010-08-23  Eric Blake  <eblake@redhat.com>
+
+	xenapi: support xenapi 5.6.0 headers
+	* src/xenapi/xenapi_driver.c (xenapiDomainGetInfo): Avoid using
+	XEN_VM_POWER_STATE_UNKNOWN, which disappeared in newer xenapi.
+	* src/xenapi/xenapi_utils.c (mapPowerState): Likewise.
+
+2010-08-23  Daniel P. Berrange  <berrange@redhat.com>
+
+	Add support for -enable-kqemu flag
+	Previously QEMU enabled KQEMU by default and had -no-kqemu.
+	0.11.x switched to requiring -enable-kqemu. 0.12.x dropped
+	kqemu entirely. This patch adds support for -enable-kqemu
+	so 0.11.x works. It replaces a huge set of if() with a
+	switch() to make the code a bit more readable.
+
+	* src/qemu/qemu_conf.c, src/qemu/qemu_conf.h: Support
+	  -enable-kqemu
+
+2010-08-21  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	esx: Use MD5 sum of mount path as storage pool UUID
+	With the previous storage pool UUID source not all storage pools
+	had a proper UUID, especially GSX storage pools. The mount path
+	is unique per host and cannot change during the lifetime of the
+	datastore. Therefore, it's MD5 sum can be used as UUID.
+
+	Use gnulib's crypto/md5 module to generate the MD5 sum.
+
+	esx: Make sure dumpxml outputs proper ID for active domains
+
+2010-08-20  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	xenapi: Fix compile error in previous commit
+
+2010-08-20  Jim Fehlig  <jfehlig@novell.com>
+
+	Add actions to virDomainLifecycle enum
+	Xen supports on_crash actions coredump-{destroy,restart}.  libvirt
+	cannot parse config returned by xend that contains either of these
+	actions
+
+	xen52 # xm li -l test | grep on_crash
+	    (on_crash coredump-restart)
+	xen52 # virsh dumpxml test
+	error: internal error unknown lifecycle type coredump-restart
+
+	This patch adds a new virDomainLifecycleCrash enum and appends
+	the new options to existing destroy, restart, preserve, and
+	rename-restart options.
+
+2010-08-20  Jiri Denemark  <jdenemar@redhat.com>
+
+	qemu: Remove code duplication
+	We already filled the PCI address structure when we checked whether it's
+	free or not, so let's just use the structure here instead of filling it
+	again.
+
+	qemu: Check for errors when converting PCI address to string
+
+	qemu: Fix JSON migrate_set_downtime command
+
+2010-08-20  Eric Blake  <eblake@redhat.com>
+
+	vbox: factor a large function
+	* src/vbox/vbox_tmpl.c (vboxDomainCreateWithFlags): Split...
+	(vboxStartMachine): ...into new helper.
+
+	vbox: add location used in rpmfusion release
+	* configure.ac (vbox_xpcomc_dir): Add another potential dir.
+
+	xenapi: avoid sprintf
+	* src/xenapi/xenapi_utils.h (createVifNetwork): Delete prototype.
+	* src/xenapi/xenapi_utils.c (createVifNetwork): Change signature,
+	and use virAsprintf.  Detect allocation failure.
+	(createVMRecordFromXml): Adjust caller.
+
+	storage: avoid s[n]printf
+	* src/storage/storage_backend.c (virStorageBackendCreateQemuImg)
+	(virStorageBackendCreateQcowCreate): Use virAsprintf instead.
+	* src/storage/storage_backend_disk.c
+	(virStorageBackendDiskCreateVol, virStorageBackendDiskPartFormat):
+	Likewise.
+
+	maint: whitespace cleanups
+	* src/storage/storage_backend_disk.c
+	(virStorageBackendDiskPartFormat): Fix spacing.
+
+	build: delete dead comments
+	* src/qemu/qemu_driver.c (qemudGetProcessInfo): Clean up.
+	* src/uml/uml_driver.c (umlGetProcessInfo): Likewise.
+	* src/xen/sexpr.c (_string2sexpr): Likewise.
+
+2010-08-19  Patrick Dignan  <pat_dignan@dell.com>
+
+	storage: add support for Vendor and Model in XML
+	I wrote a patch to add support for listing the Vendor and Model of a
+	storage pool in the storage pool XML.  This would allow vendor
+	extensions of specific devices.  The patch includes a test for the new
+	attributes as well.
+
+	Patrick Dignan
+
+2010-08-19  Eric Blake  <eblake@redhat.com>
+
+	uml: fix logic bug in checking reply length
+	* src/uml/uml_driver.c (umlMonitorCommand): Validate that enough
+	bytes were read to dereference both res.length, and that many
+	bytes from res.data.
+	Reported by Soren Hansen.
+
+	nwfilter: use consistent OOM reporting
+	* src/nwfilter/nwfilter_driver.c (nwfilterLog): Delete.
+	(nwfilterDriverStartup): Use virReportOOMError instead.
+
+2010-08-18  Eric Blake  <eblake@redhat.com>
+
+	build: fix compiler warning
+	node_device/node_device_driver.c: In function 'nodeDeviceVportCreateDelete':
+	node_device/node_device_driver.c:423: error: implicit declaration of function 'stat' [-Wimplicit-function-declaration]
+
+	* src/node_device/node_device_driver.c (includes): Add <sys/stat.h>.
+
+2010-08-18  Daniel Veillard  <veillard@redhat.com>
+
+	xen: Fix scheduler setting problems
+	Doing `virsh schedinfo rhel5u3 --cap 65535' the hypervisor does the
+	call, but does not change the value nor raise an error. Best is just to
+	consider it's not in the allowed values. The problem is that the error
+	won't be output since the xend driver will then be called and raise an
+	error
+
+	    error: this function is not supported by the hypervisor: unsupported
+	    in xendConfigVersion < 4
+
+	which will override the useful information from
+	xenUnifiedDomainSetSchedulerParameters(). So best is to also invert the
+	order in which the xen sub-drivers are called.
+
+	* src/xen/xen_hypervisor.c: mark 65535 cap value as out of bound
+	* src/xen/xen_hypervisor.c: reverse the order of the calls to the xen
+	  sub drivers to get the error message if needed
+
+2010-08-18  Jiri Denemark  <jdenemar@redhat.com>
+
+	nodedev: Free the right pointers when getting WWNs fails
+
+2010-08-18  Dave Allan  <dallan@redhat.com>
+
+	nodedev: Fix sysfs paths for vport operations
+	Some kernels, such as the one used in RHEL-5, have vport_create and
+	vport_delete operation files in /sys/class/scsi_host/hostN directory
+	instead of /sys/class/fc_host/hostN. Let's check both paths for
+	compatibility reasons.
+
+	This also removes unnecessary '/' characters from sysfs paths containing
+	LINUX_SYSFS_FC_HOST_PREFIX.
+
+2010-08-18  Daniel Berrange  <berrange@redhat.com>
+
+	xen: Fix device count on detach
+
+	remote: Fix incorrect use of private data field
+	NodeDeviceCreateXML and NodeDeviceDestroy methods added for NPIV were
+	using the wrong privateData field for the remote driver. This doesn't
+	impact KVM, since the remote driver handles everything, thus
+	privateData == devMonPrivateData. It does impact Xen though, because
+	the remote driver only handles a subset of methods and thus
+	privateData != devMonPrivateData.
+
+2010-08-17  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	esx: Fix memory leak when looking up an non-existing domain by name
+	In case an optional object cannot be found the lookup function is
+	left early and the cleanup code is not executed.
+
+	This pattern occurs in some other functions too.
+
+2010-08-17  Chris Lalancette  <clalance@redhat.com>
+
+	Fix up qemu domain save/managed save locking.
+	The current version of the qemu managed save implementation
+	is subject to a race where the domain shuts down between
+	the time that we start the command and the time that we
+	actually try to do the save.  Close this race by making
+	qemuDomainSaveFlags() expect both the driver and the passed-in
+	vm object to be locked before executing.
+
+2010-08-17  Eric Blake  <eblake@redhat.com>
+
+	docs: mention domain <clock> improvements
+	Add documentation for features added a while ago.
+
+	* docs/formatdomain.html.in (Time keeping): Update documentation
+	of <clock> element to match 0.8.0 addition.
+
+2010-08-17  Stefan Berger  <stefanb@us.ibm.com>
+
+	cygwin: build fix
+	Fixing a problem in the build on cygwin due to missing #define's.
+
+2010-08-16  Jiri Denemark  <jdenemar@redhat.com>
+
+	qemu: Fix copy&paste error in warning message
+	This also makes the message consistent with the message used in error
+	path of qemudDomainAttachHostPciDevice.
+
+	qemu: Release PCI slot when detaching disk and net devices
+
+	qemu: Re-reserve all PCI addresses on libvirtd restart
+	When reconnecting to existing VMs, we re-reserved only those PCI
+	addresses which were explicitly mentioned in domain XML. Since some
+	addresses are always reserved (e.g., 0:0:0 and 0:0:1), we need to handle
+	those too.
+
+	Also all this should only be done if device flag is supported by qemu.
+
+2010-08-16  Jamie Strandboge  <jamie@canonical.com>
+
+	build: fix AppArmor compilation
+	* src/security/virt-aa-helper.c: Add missing include.
+
+2010-08-16  Stefan Berger  <stefanb@us.ibm.com>
+
+	nwfilter: extend nwfilter reload support
+	In this patch I am extending and fixing the nwfilter module's reload support to stop all ongoing threads (for learning IP addresses of interfaces) and rebuild the filtering rules of all interfaces of all VMs when libvirt is started. Now libvirtd rebuilds the filters upon the SIGHUP signal and libvirtd restart.
+
+	About the patch: The nwfilter functions require a virConnectPtr. Therefore I am opening a connection in qemudStartup, which later on needs to be closed outside where the driver lock is held since otherwise it ends up in a deadlock due to virConnectClose() trying to lock the driver as well.
+
+	I have tested this now for a while with several machines running and needing the IP address learner thread(s). The rebuilding of the firewall rules seems to work fine following libvirtd restart or a SIGHUP. Also the termination of libvirtd worked fine.
+
+2010-08-14  Eric Blake  <eblake@redhat.com>
+
+	build: allow mingw VPATH build
+	* .gnulib: Update to latest.
+	Reported by Matthias Bolte.
+
+2010-08-14  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	esx: Explicitly disable unused floppy devices
+	floppy0.present defaults to true. Therefore, it needs to be
+	explicitly set to false when the XML config doesn't specify the
+	corresponding floppy device.
+
+	Also update tests accordingly.
+
+	Generate libvirt_qemu.def from libvirt_qemu.syms for MinGW builds
+
+2010-08-14  Eduardo Otubo  <otubo@linux.vnet.ibm.com>
+
+	PHYP: Add rudimentary network driver
+	I changed virStorage[Open|Close] to virVIOSDriver[Open|Close] so
+	the network driver can use it - since the network driver deals
+	with Open/Close in the same way.
+
+2010-08-14  Soren Hansen  <soren@linux2go.dk>
+
+	Make umlConnectTapDevice ask brAddTap for a persistent tap device.
+	This patch does two things:
+
+	 * It makes umlConnectTapDevice ask brAddTap for a persistent tap by
+	   passing it a NULL tapfd argument.
+	 * Stops umlConnectTapDevice from immediately dismantling the bridge
+	   it just set up.
+
+	Close fd's of persistent tap devices
+	When passing a NULL tapfd argument to brAddTap, we need to close the fd
+	of the tap device. If we don't, libvirt will keep the fd open
+	indefinitely and renders the the guest unable to configure its side of
+	the tap device.
+
+	Make sure all command line arguments get passed to UML
+	If umlBuildCommandLineChr fails (e.g. due to an unsupported chardev
+	type), it returns NULL. umlBuildCommandLine does not check for this and
+	sets this as an argument on the comand line, effectively ending the
+	argument list. This patch checks for this case and sets the chardev to
+	"none".
+
+2010-08-13  Stefan Berger  <stefanb@us.ibm.com>
+
+	nwfilter: Discard class D,E IP addresses when sniffing pkts
+	When sniffing the network traffic, discard class D and E IP addresses when sniffing traffic. This was a reason why filters were not correctly rebuilt on VMs on the local 192.* network when libvirt was restarted and those VMs did not use a DHCP request to get its IP address.
+
+	nwfilter: serialize execution of scripts with ebtables cmds
+	While testing the SIGHUP handling and reloading of the nwfilter driver, I found that when the filters are rebuilt and mutlipe threads handled the individual interfaces, concurrently running multiple external bash scripts causes strange failures even though the executed ebtables commands are working on different tables for different interfaces. I cannot say for sure where the concurrency problems are caused, but introducing this lock definitely helps.
+
+2010-08-13  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	Only require XDR when building libvirtd or the remote driver
+
+2010-08-13  Chris Lalancette  <clalance@redhat.com>
+
+	Move the tunnelled migration unix socket to /var/lib/libvirt/qemu
+	Since the qemu process is running as qemu:qemu, it can't actually
+	look at the unix socket in /var/run/libvirt/qemu which is owned by
+	root and has permission 700.  Move the unix socket to
+	/var/lib/libvirt/qemu, which is already owned by qemu:qemu.
+
+	Thanks to Justin Clift for test this out for me.
+
+	Fix tunnelled migration with qemu running as qemu:qemu.
+	The problem is that on the source of the migration, libvirtd
+	is responsible for creating the unix socket over which the data
+	will flow.  Since libvirtd is running as root, this file will
+	be created as root.  When the qemu process running as qemu:qemu
+	goes to access the unix file to write data to it, it will get
+	permission denied and fail.  Make sure to change the owner
+	of the unix file to qemu:qemu.
+
+	Thanks to Justin Clift for testing this patch out for me.
+
+2010-08-12  Stefan Berger  <stefanb@us.ibm.com>
+
+	Fix valgrind complaints when using kill -SIGHUP on libvirtd
+	This patch fixes a couple of complaints from valgrind when tickling libvirtd with SIGHUP.
+
+	The first two files contain fixes for memory leaks. The 3rd one initializes an uninitialized variable. The 4th one is another memory leak.
+
+2010-08-12  Daniel Veillard  <veillard@redhat.com>
+
+	qemu: avoid calling the balloon info command if disabled
+	 Basically a followup of the previous patch about balloon desactivation
+	if desactivated, to not ask for balloon information to qemu as we will
+	just get an error back.
+	 This can make a huge difference in the time needed for domain
+	information or list when a machine is loaded, and balloon has been
+	desactivated in the guests.
+
+	* src/qemu/qemu_driver.c: do not get the balloon info if the balloon
+	  suppor is disabled
+
+2010-08-12  Jiri Denemark  <jdenemar@redhat.com>
+
+	bridge: Add --dhcp-no-override option to dnsmasq
+	--dhcp-no-override description from dnsmasq man page:
+
+	      Disable  re-use  of  the  DHCP servername and filename fields as
+	      extra option space. If it can, dnsmasq moves the boot server and
+	      filename  information  (from  dhcp-boot)  out of their dedicated
+	      fields into DHCP options. This make extra space available in the
+	      DHCP  packet  for options but can, rarely, confuse old or broken
+	      clients. This flag forces "simple and safe" behaviour  to  avoid
+	      problems in such a case.
+
+	It seems some virtual network card ROMs are this old/buggy so let's add
+	--dhcp-no-override as a workaround for them. We don't use extra DHCP
+	options so this should be safe. The option was added in dnsmasq-2.41,
+	which becomes the minimum required version.
+
+2010-08-12  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	esx: Improve VMX file name parsing and formatting
+	For parsing try to match by datastore mount path first, if that
+	fails fallback to /vmfs/volumes/<datastore>/<path> parsing. This
+	also fixes problems with GSX on Windows. Because GSX on Windows
+	doesn't use /vmfs/volumes/ style file names.
+
+	For formatting use the datastore mount path too, instead of using
+	/vmfs/volumes/<datastore>/<path> as fixed format.
+
+2010-08-11  Jiri Denemark  <jdenemar@redhat.com>
+
+	bridge: Fix potential segfault when preparing dnsmasq arguments
+	We add --dhcp-lease-max=xxx argument when network->def->nranges > 0 but
+	we only allocate space for in the opposite case :-) I guess we are lucky
+	enough to miscount somewhere else so that we actually allocate more
+	space than we need since no-one has hit this bug so far.
+
+2010-08-11  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	esx: Split VMX code into a general and an ESX specific part
+	Introduce esxVMX_Context containing functions pointers to
+	glue both parts together in a generic way.
+
+	Move the ESX specific part to esx_driver.c.
+
+	This is a step towards making the VMX code reusable in a
+	potential VMware Workstation and VMware Player driver.
+
+2010-08-11  Daniel Veillard  <veillard@redhat.com>
+
+	allow memballoon type of none to desactivate it
+	  The balloon device is automatically added to qemu guests if supported,
+	but it may be useful to desactivate it. The simplest to not change the
+	existing behaviour is to allow
+	  <memballoon type="none"/>
+	as an extra option to desactivate it (it is automatically added if the
+	memballoon construct is missing for the domain).
+	The following simple patch just adds the extra option and does not
+	change the default behaviour but avoid creating a balloon device if
+	type="none" is used.
+
+	* docs/schemas/domain.rng: add the extra type attribute value
+	* src/conf/domain_conf.c src/conf/domain_conf.h: add the extra enum
+	  value
+	* src/qemu/qemu_conf.c: if enum is NONE, don't activate the device,
+	  i.e. don't pass the args to qemu/kvm
+
+2010-08-11  Jiri Denemark  <jdenemar@redhat.com>
+
+	Avoid unnecessary bootstrap runs in VPATH builds
+
+2010-08-11  Doug Goldstein  <cardoe@gentoo.org>
+
+	Add a detailed message when tap device add fails
+	Added a more detailed error message when adding a tap devices fails and
+	the kernel is missing tun support.
+
+	Fix return value usage
+	Fix the error checking to use the return value from brAddTap() instead
+	of checking the current errno value which might have been changed by
+	clean up calls inside of brAddTap().
+
+2010-08-11  Eric Blake  <eblake@redhat.com>
+
+	nodeinfo: skip offline CPUs
+	https://bugzilla.redhat.com/622515 - When hot-unplugging CPUs,
+	libvirt failed to start a guest that had been pinned to CPUs that
+	were still online.
+
+	Tested on a dual-core laptop, where I also discovered that, per
+	http://www.cyberciti.biz/files/linux-kernel/Documentation/cpu-hotplug.txt,
+	/sys/devices/system/cpu/cpu0/online does not exist on systems where it
+	cannot be hot-unplugged.
+
+	* src/nodeinfo.c (linuxNodeInfoCPUPopulate): Ignore CPUs that are
+	currently offline.  Detect readdir failure.
+	(parse_socket): Move guts...
+	(get_cpu_value): ...to new function, shared with...
+	(cpu_online): New function.
+
+2010-08-10  Jiri Denemark  <jdenemar@redhat.com>
+
+	qemu: Hack around asynchronous device_del
+	device_del command is not synchronous for PCI devices, it merely asks
+	the guest to release the device and returns. If the host wants to use
+	that device before the guest actually releases it, we are in big
+	trouble. To avoid this, we already added a loop which waits up to 10
+	seconds until the device is actually released before we do anything else
+	with that device. But we only added this loop for managed PCI devices
+	before we try reattach them back to the host.
+
+	However, we need to wait even for non-managed devices. We don't reattach
+	them automatically, but we still want to prevent the host from using it.
+	This was revealed thanks to sVirt: when we relabel sysfs files
+	corresponding to the PCI device before the guest finished releasing the
+	device, qemu is no longer allowed to access those files and if it wants
+	(as a result of guest's request) to write anything to them, it just
+	exits, which kills the guest.
+
+	This is not a proper fix and needs some further work both on libvirt and
+	qemu side in the future.
+
+2010-08-10  Eric Blake  <eblake@redhat.com>
+
+	maint: update an email address preference
+	* AUTHORS (Soren Hansen): Update address.
+	* .mailmap: Alias other addresses to new preference.
+
+2010-08-10  Diego Elio Pettenò  <flameeyes@gmail.com>
+
+	build-sys: only build the test programs during the check phase.
+	This avoids building the tests when testing libvirt is not the aim.
+
+2010-08-10  Soren Hansen  <soren@linux2go.dk>
+
+	Add "ubd" to the list of disk prefixes
+	virDiskNameToIndex has a list of disk name prefixes that it uses in the
+	process of finding the disk's index. This list is missing "ubd" which
+	is the disk prefix used for UML domains.
+
+2010-08-10  Daniel Veillard  <veillard@redhat.com>
+
+	Extend virSocketParseAddr() to allow a NULL result pointer
+	That way it can be used to verify a numeric address without storing
+	the details
+	* src/util/network.c: change virSocketParseAddr to allow a null @addr
+	  parameter
+
+2010-08-10  Philipp Hahn  <hahn@univention.de>
+
+	bootloader_args is named bootargs in xen-xm
+	According to <xen-3.4.3/tools/python/xen/xm/create.py:158>
+		gopts.var('bootargs', val='NAME',
+				  fn=set_value, default=None,
+				  use="Arguments to pass to boot loader")
+	the "bootloader_args" parameter needs to be translated into "bootargs"
+	when using "virsh domxml-to-native xen-xm".
+	The reverse direction (domxml-from-native) is already okay.
+
+	This patch fixes domxml-to-native and adds two test files to catch this
+	problem.
+
+2010-08-06  Eduardo Otubo  <otubo@linux.vnet.ibm.com>
+
+	phyp: refactor phypListDomainsGeneric to eliminate buffer overflow
+	src/phyp/phyp_driver.c:phypListDomainsGeneric was crashing due to a buffer
+	overflow if any line returned from virRun wasn't <=10 characters.
+
+	Since virStrToLong_i recognizes any non-numeric as a terminator (not
+	just NULL), there actually is no need to copy the number into a
+	separate string anyway, so this patch eliminates that copy, the fixed
+	length buffer, and therefore the potential to overflow.
+
+	This change also provided the oppurtunity to eliminate the character
+	counting loop, instead using the return from virStrToLong_i to point
+	past the end of the number, then simply skip the \n to get to the
+	next.
+
+2010-08-06  Justin Clift  <jclift@redhat.com>
+
+	docs: fix an incorrect keyword in updated hooks page
+
+2010-08-06  Diego Elio Pettenò  <flameeyes@gmail.com>
+
+	build-sys: fix build when daemon is disabled by not installing libvirtd.8
+	Since the rule to build libvirtd.8 is within the WITH_LIBVIRTD conditional,
+	so declare the man page in there as well. Without this change, build
+	without daemon will fail.
+
+2010-08-06  Justin Clift  <jclift@redhat.com>
+
+	docs: significant expansion of custom hook script information
+
+2010-08-06  Doug Goldstein  <cardoe@gentoo.org>
+
+	Fix return value usage
+	Fix the error checking to use the return value from brAddTap() instead
+	of checking the current errno value which might have been changed by
+	clean up calls inside of brAddTap().
+
+	qemu: improve error if tun device is missing
+	Added a more detailed error message when adding a tap devices fails and
+	the kernel is missing tun support.
+
+2010-08-04  Eric Blake  <eblake@redhat.com>
+
+	build: rerun bootstrap if po/Makevars got nuked
+	There has been a frequent complaint of:
+
+	make[2]: Entering directory `/home/remote/eblake/libvirt/po'
+	make[2]: *** No rule to make target `/config.status', needed by `Makefile'.  Stop.
+
+	It happens after nuking and regenerating the po directory,
+	which is a common action after running anything like
+	'make dist' or 'make rpm' that dirties all the .po files.
+
+	Teach autogen.sh that it must regenerate po/Makevars to avoid
+	the missing variable declaration, and teach cfg.mk to recognize
+	that a nuked po directory is cause to rerun autogen.sh.
+
+	* cfg.mk (_update_required): Check for po/Makevars.
+	* autogen.sh (bootstrap): Run bootstrap if it got lost.
+	Diagnosed by Justin Clift.
+
+2010-08-04  Daniel Veillard  <veillard@redhat.com>
+
+	Do not use boot=on on IDE device
+	the followup on the boot=on problem, basically it's not needed to
+	specify it when booting out of IDE devices when using KVM
+	* src/qemu/qemu_conf.c: do not use boot=on for IDE devices
+	* tests/qemuxml2argvdata/qemuxml2argv*.args: this changes the output
+	  for 5 of the tests
+
+	Release of libvirt-0.8.3
+	* configure.ac docs/news.html.in libvirt.spec.in: updates
+	* po/*.po*: update and regenerated
+
 2010-08-04  Jiri Denemark  <jdenemar@redhat.com>
 
 	qemu: Fix PCI address allocation
