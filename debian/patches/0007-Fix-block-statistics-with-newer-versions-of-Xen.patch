@@ -1,0 +1,42 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Fri, 10 Sep 2010 15:57:35 +0200
+Subject: [PATCH] Fix block statistics with newer versions of Xen
+
+Apparently the xen block device statistics moved from
+"/sys/devices/xen-backend/vbd-%d-%d/statistics/%s"
+to
+"/sys/bus/xen-backend/devices/vbd-%d-%d/statistics/%s"
+
+* src/xen/block_stats.c: try the extra path in case of failure to
+  find the statistics in /sys
+
+Origin: upstream, http://libvirt.org/git/?p=libvirt.git;a=commit;h=8a70113a9949fd482151f2962dd760364525a996
+Closes: #596004
+---
+ src/xen/block_stats.c |   12 ++++++++++++
+ 1 files changed, 12 insertions(+), 0 deletions(-)
+
+diff --git a/src/xen/block_stats.c b/src/xen/block_stats.c
+index 6e7a5c3..1d875f2 100644
+--- a/src/xen/block_stats.c
++++ b/src/xen/block_stats.c
+@@ -118,6 +118,18 @@ read_bd_stat (int device, int domid, const char *str)
+     int64_t r;
+ 
+     snprintf (path, sizeof path,
++              "/sys/bus/xen-backend/devices/vbd-%d-%d/statistics/%s",
++              domid, device, str);
++    r = read_stat (path);
++    if (r >= 0) return r;
++
++    snprintf (path, sizeof path,
++              "/sys/bus/xen-backend/devices/tap-%d-%d/statistics/%s",
++              domid, device, str);
++    r = read_stat (path);
++    if (r >= 0) return r;
++
++    snprintf (path, sizeof path,
+               "/sys/devices/xen-backend/vbd-%d-%d/statistics/%s",
+               domid, device, str);
+     r = read_stat (path);
+-- 
