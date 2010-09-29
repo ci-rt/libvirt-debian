@@ -1,3 +1,16 @@
+libvirt (0.8.4-1) experimental; urgency=low
+
+  [ Laurent Léonard ]
+  * [49a581b] Imported Upstream version 0.8.4
+  * [e1dc0c7] Redo patches
+  * [cce7327] Update libvirt0 symbols
+
+  [ Guido Günther ]
+  * [bd91614] Drop 0007-Fix-block-statistics-with-newer-versions-of-
+    Xen.patch fixed upstream.
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 29 Sep 2010 15:29:48 +0200
+
 libvirt (0.8.3-2) unstable; urgency=low
 
   * [4097bbd] New patch 0007-Fix-block-statistics-with-newer-versions-
