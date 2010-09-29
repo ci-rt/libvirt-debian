@@ -1,3 +1,12 @@
+libvirt (0.8.3-2) unstable; urgency=low
+
+  * [4097bbd] New patch 0007-Fix-block-statistics-with-newer-versions-
+    of-Xen.patch. Fix block statistics with newer versions of Xen 
+    (Closes: #596004) - thanks to Gerald Turner for the patch
+  * [d554da3] Explain disk image probing changes (Closes: #594962)
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 29 Sep 2010 14:00:38 +0200
+
 libvirt (0.8.3-1) unstable; urgency=low
 
   [ Guido Günther ]
