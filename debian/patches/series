@@ -5,3 +5,4 @@
 0005-Autodetect-if-the-remote-nc-command-supports-the-q-o.patch
 0006-patch-qemuMonitorTextGetMigrationStatus-to-intercept.patch
 0007-Fix-block-statistics-with-newer-versions-of-Xen.patch
+0008-Disable-CHECKSUM-rule.patch
