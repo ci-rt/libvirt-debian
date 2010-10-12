@@ -1,3 +1,11 @@
+libvirt (0.8.1-2~bpo50+2) lenny-backports; urgency=low
+
+  * [7bbb4e2] New patch 0009-Don-t-fail-if-D-Bus-isn-t-running.patch. Don't
+    fail if D-Bus isn't running
+  * [c1fd828] Suggest hal
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 12 Oct 2010 17:46:38 +0200
+
 libvirt (0.8.1-2~bpo50+1) lenny-backports; urgency=low
 
   * Rebuild for lenny-backports.
