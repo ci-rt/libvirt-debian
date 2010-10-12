@@ -6,3 +6,4 @@
 0006-Don-t-drop-caps-when-exec-ing-qemu.patch
 0007-patch-qemuMonitorTextGetMigrationStatus-to-intercept.patch
 0008-Fix-leaks-in-udev-device-add-remove.patch
+0009-Don-t-fail-if-D-Bus-isn-t-running.patch

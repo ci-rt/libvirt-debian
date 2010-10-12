@@ -1,0 +1,25 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Tue, 12 Oct 2010 17:26:22 +0200
+Subject: [PATCH] Don't fail if D-Bus isn't running
+
+we don't fail on hal, so we shouldn't fail on D-Bus either
+---
+ src/node_device/node_device_hal.c |    4 ++++
+ 1 files changed, 4 insertions(+), 0 deletions(-)
+
+diff --git a/src/node_device/node_device_hal.c b/src/node_device/node_device_hal.c
+index 0174794..a6a6e25 100644
+--- a/src/node_device/node_device_hal.c
++++ b/src/node_device/node_device_hal.c
+@@ -725,6 +725,10 @@ static int halDeviceMonitorStartup(int privileged ATTRIBUTE_UNUSED)
+     dbus_conn = dbus_bus_get(DBUS_BUS_SYSTEM, &err);
+     if (dbus_conn == NULL) {
+         VIR_ERROR0("dbus_bus_get failed");
++        /* We don't want to show a fatal error here,
++           otherwise entire libvirtd shuts down when
++           D-Bus isn't running */
++        ret = 0;
+         goto failure;
+     }
+     dbus_connection_set_exit_on_disconnect(dbus_conn, FALSE);
+-- 
