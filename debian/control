@@ -25,7 +25,7 @@ Enhances: qemu, qemu-kvm, xen
 Section: admin
 Recommends: netcat-openbsd, bridge-utils, dnsmasq-base (>= 2.46-1), iptables, qemu-kvm | qemu (>= 0.9.1),
  libxml2-utils
-Suggests: policykit-1
+Suggests: policykit-1, hal
 Description: the programs for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
