@@ -6,3 +6,4 @@
 0006-patch-qemuMonitorTextGetMigrationStatus-to-intercept.patch
 0007-Fix-block-statistics-with-newer-versions-of-Xen.patch
 0008-Disable-CHECKSUM-rule.patch
+0009-Don-t-fail-lxc-domain-start-when-memory-controller-s.patch
