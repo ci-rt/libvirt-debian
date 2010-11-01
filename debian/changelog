@@ -1,3 +1,13 @@
+libvirt (0.8.3-4) unstable; urgency=low
+
+  * [29e8714] Recommend ebtables used by nwfilter
+  * [e9eb650] New patch
+    0009-Don-t-fail-lxc-domain-start-when-memory-controller-s.patch - Don't
+    fail lxc domain start when memory controller support is missing (Closes:
+    #566180)
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 01 Nov 2010 14:22:09 +0100
+
 libvirt (0.8.3-3) unstable; urgency=low
 
   * [178670a] Add $syslog to the list of Required-{Start,Stop} services also
