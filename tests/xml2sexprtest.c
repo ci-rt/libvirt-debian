@@ -118,6 +118,7 @@ mymain(int argc, char **argv)
     DO_TEST("pv-vfb-new", "pv-vfb-new", "pvtest", 3);
     DO_TEST("pv-vfb-new-auto", "pv-vfb-new-auto", "pvtest", 3);
     DO_TEST("pv-bootloader", "pv-bootloader", "pvtest", 1);
+    DO_TEST("pv-vcpus", "pv-vcpus", "pvtest", 1);
 
     DO_TEST("disk-file", "disk-file", "pvtest", 2);
     DO_TEST("disk-block", "disk-block", "pvtest", 2);
@@ -160,6 +161,8 @@ mymain(int argc, char **argv)
 
     DO_TEST("fv-net-ioemu", "fv-net-ioemu", "fvtest", 1);
     DO_TEST("fv-net-netfront", "fv-net-netfront", "fvtest", 1);
+
+    DO_TEST("boot-grub", "boot-grub", "fvtest", 1);
 
     virCapabilitiesFree(caps);
 

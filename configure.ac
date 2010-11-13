@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([libvirt], [0.8.4])
+AC_INIT([libvirt], [0.8.5], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -108,8 +108,8 @@ AC_CHECK_FUNCS([pthread_sigmask pthread_mutexattr_init])
 LIBS=$old_libs
 
 dnl Availability of various common headers (non-fatal if missing).
-AC_CHECK_HEADERS([pwd.h paths.h regex.h sys/syslimits.h \
-  termios.h sys/poll.h syslog.h mntent.h net/ethernet.h linux/magic.h])
+AC_CHECK_HEADERS([pwd.h paths.h regex.h sys/syslimits.h sys/un.h \
+  sys/poll.h syslog.h mntent.h net/ethernet.h linux/magic.h])
 
 AC_CHECK_LIB([intl],[gettext],[])
 
@@ -122,9 +122,6 @@ AM_CONDITIONAL([HAVE_GLIBC_RPCGEN],
 	        $ac_cv_path_RPCGEN -t </dev/null >/dev/null 2>&1])
 
 dnl Miscellaneous external programs.
-AC_PATH_PROG([RM], [rm], [/bin/rm])
-AC_PATH_PROG([MV], [mv], [/bin/mv])
-AC_PATH_PROG([TAR], [tar], [/bin/tar])
 AC_PATH_PROG([XMLLINT], [xmllint], [/usr/bin/xmllint])
 AC_PATH_PROG([XMLCATALOG], [xmlcatalog], [/usr/bin/xmlcatalog])
 AC_PATH_PROG([XSLTPROC], [xsltproc], [/usr/bin/xsltproc])
@@ -174,6 +171,15 @@ AC_ARG_WITH([html-subdir], [AC_HELP_STRING([--with-html-subdir=path],
             [HTML_DIR="$HTML_DIR/\$(PACKAGE)-\$(VERSION)/html"])
 AC_SUBST([HTML_DIR])
 
+dnl Specific XML catalog file for validation of generated html
+AC_ARG_WITH([xml-catalog-file],
+            [AC_HELP_STRING([--with-xml-catalog-file=path],
+                [path to XML catalog file for validating
+                 generated html, default /etc/xml/catalog])],
+            [XML_CATALOG_FILE=$withval],
+            [XML_CATALOG_FILE='/etc/xml/catalog'])
+AC_SUBST([XML_CATALOG_FILE])
+
 dnl if --prefix is /usr, don't use /usr/var for localstatedir
 dnl or /usr/etc for sysconfdir
 dnl as this makes a lot of things break in testing situations
@@ -185,22 +191,29 @@ if test "$prefix" = "/usr" && test "$sysconfdir" = '${prefix}/etc' ; then
     sysconfdir='/etc'
 fi
 
-dnl lxc and qemu drivers require linux headers
-case "$host" in
-  *-*-linux*)
-    # match linux here so the *) case will match anything non-linux
-    ;;
-  *)
-    if test "x$with_lxc" != "xyes"
+dnl Make some notes about which OS we're compiling for, as the lxc and qemu
+dnl drivers require linux headers, while storage_mpath and nwfilter are also
+dnl linux specific.  The "network" and storage_fs drivers are known to not
+dnl work on MacOS X presently, so we also make a note if compiling for that
+
+with_linux=no with_osx=no
+case $host in
+  *-*-linux*) with_linux=yes ;;
+  *-*-darwin*) with_osx=yes ;;
+esac
+
+if test $with_linux = no; then
+    if test "x$with_lxc" != xyes
     then
         with_lxc=no
     fi
-    if test "x$with_qemu" != "xyes"
+    if test "x$with_qemu" != xyes
     then
         with_qemu=no
     fi
-    ;;
-esac
+fi
+
+AM_CONDITIONAL([WITH_LINUX], [test "$with_linux" = "yes"])
 
 dnl Allow to build without Xen, QEMU/KVM, test or remote driver
 AC_ARG_WITH([xen],
@@ -221,8 +234,8 @@ AC_ARG_WITH([xenapi],
   AC_HELP_STRING([--with-xenapi], [add XenAPI support @<:@default=check@:>@]),[],[with_xenapi=check])
 AC_ARG_WITH([vbox],
   AC_HELP_STRING([--with-vbox=@<:@PFX@:>@],
-                 [VirtualBox XPCOMC location @<:@default=check@:>@]),[],
-                 [with_vbox=check])
+                 [VirtualBox XPCOMC location @<:@default=yes@:>@]),[],
+                 [with_vbox=yes])
 AC_ARG_WITH([lxc],
   AC_HELP_STRING([--with-lxc], [add Linux Container support @<:@default=check@:>@]),[],[with_lxc=check])
 AC_ARG_WITH([one],
@@ -328,51 +341,10 @@ dnl
 
 vbox_xpcomc_dir=
 
-if test "x$with_vbox" = "xyes" || test "x$with_vbox" = "xcheck"; then
-    AC_MSG_CHECKING([for VirtualBox XPCOMC location])
-
-    for vbox in \
-        /usr/lib/virtualbox/VBoxXPCOMC.so \
-        /usr/lib64/virtualbox/VBoxXPCOMC.so \
-        /usr/lib/VirtualBox/VBoxXPCOMC.so \
-        /opt/virtualbox/VBoxXPCOMC.so \
-        /opt/VirtualBox/VBoxXPCOMC.so \
-        /opt/virtualbox/i386/VBoxXPCOMC.so \
-        /opt/VirtualBox/i386/VBoxXPCOMC.so \
-        /opt/virtualbox/amd64/VBoxXPCOMC.so \
-        /opt/VirtualBox/amd64/VBoxXPCOMC.so \
-        /usr/local/lib/virtualbox/VBoxXPCOMC.so \
-        /usr/local/lib/VirtualBox/VBoxXPCOMC.so \
-        /Application/VirtualBox.app/Contents/MacOS/VBoxXPCOMC.dylib \
-        ; do
-        if test -f "$vbox"; then
-            vbox_xpcomc_dir=`AS_DIRNAME(["$vbox"])`
-            break
-        fi
-    done
-
-    if test -n "$vbox_xpcomc_dir"; then
-        AC_MSG_RESULT([$vbox_xpcomc_dir])
-        with_vbox=yes
-    else
-        if test "x$with_vbox" = "xcheck"; then
-            AC_MSG_RESULT([not found, disabling VirtualBox driver])
-            with_vbox=no
-        else
-            AC_MSG_RESULT([not found])
-            AC_MSG_ERROR([VirtualBox XPCOMC is required for the VirtualBox driver])
-        fi
-    fi
-else
-    if test "x$with_vbox" != "xno"; then
-        if test -f ${with_vbox}/VBoxXPCOMC.so || \
-           test -f ${with_vbox}/VBoxXPCOMC.dylib; then
-            vbox_xpcomc_dir=$with_vbox
-            with_vbox=yes
-        else
-            AC_MSG_ERROR([$with_vbox does not contain VirtualBox XPCOMC])
-        fi
-    fi
+if test "x$with_vbox" != "xyes" && test "x$with_vbox" != "xno"; then
+    # intentionally don't do any further checks here on the provided path
+    vbox_xpcomc_dir=$with_vbox
+    with_vbox=yes
 fi
 
 AC_DEFINE_UNQUOTED([VBOX_XPCOMC_DIR], ["$vbox_xpcomc_dir"],
@@ -578,6 +550,56 @@ if test "$with_lxc" = "yes" ; then
     AC_DEFINE_UNQUOTED([WITH_LXC], 1, [whether LXC driver is enabled])
 fi
 AM_CONDITIONAL([WITH_LXC], [test "$with_lxc" = "yes"])
+
+dnl
+dnl check for shell that understands <> redirection without truncation,
+dnl needed by src/qemu/qemu_monitor_{text,json}.c.
+dnl
+if test "$with_qemu" = yes; then
+  lv_wrapper_shell=
+  AC_CACHE_CHECK([for shell that supports <> redirection],
+    [lv_cv_wrapper_shell],
+    [
+    # If cross-compiling, guess that /bin/sh is good enough except for
+    # Linux, where it might be dash 0.5.5 which is known broken; and on
+    # Linux, we have a good chance that /bin/bash will exist.
+    # If we guess wrong, a user can override the cache variable.
+    # Going through /bin/bash is a slight slowdown if /bin/sh works.
+    if test "$cross_compiling" = yes; then
+      case $host_os in
+        linux*) lv_cv_wrapper_shell=/bin/bash ;;
+        *) lv_cv_wrapper_shell=/bin/sh ;;
+      esac
+    else
+      for lv_cv_wrapper_shell in /bin/sh bash ksh zsh none; do
+        test $lv_cv_wrapper_shell = none &&
+          AC_MSG_ERROR([could not find decent shell])
+        echo a > conftest.a
+        ($lv_cv_wrapper_shell -c ': 1<>conftest.a') 2>/dev/null &&
+        case `cat conftest.a`.$lv_cv_wrapper_shell in
+          a./*) break;; dnl /bin/sh is good enough
+          a.*) dnl bash, ksh, and zsh all understand 'command', use that
+               dnl to determine the absolute path of the shell
+            lv_cv_wrapper_shell=`$lv_cv_wrapper_shell -c \
+              "command -v $lv_cv_wrapper_shell"`
+            case $lv_cv_wrapper_shell in
+              /*) break;;
+            esac
+            ;;
+        esac
+      done
+      rm -f conftest.a
+    fi
+  ])
+  if test "x$lv_cv_wrapper_shell" != x/bin/sh; then
+    lv_wrapper_shell=$lv_cv_wrapper_shell
+  fi
+  if test "x$lv_wrapper_shell" != x; then
+    AC_DEFINE_UNQUOTED([VIR_WRAPPER_SHELL], ["$lv_wrapper_shell"],
+      [Define to the absolute path of a shell that does not truncate on
+       <> redirection, if /bin/sh does not fit the bill])
+  fi
+fi
 
 
 dnl
@@ -907,6 +929,52 @@ AM_CONDITIONAL([HAVE_AVAHI], [test "x$with_avahi" = "xyes"])
 AC_SUBST([AVAHI_CFLAGS])
 AC_SUBST([AVAHI_LIBS])
 
+dnl Audit library
+AC_ARG_WITH([audit],
+  AC_HELP_STRING([--with-audit], [use audit library @<:@default=check@:>@]),
+  [],
+  [with_audit=check])
+
+AUDIT_CFLAGS=
+AUDIT_LIBS=
+if test "$with_audit" != "no" ; then
+  old_cflags="$CFLAGS"
+  old_libs="$LIBS"
+  if test "$with_audit" != "check" && "$with_audit" != "yes" ; then
+    AUDIT_CFLAGS="-I$with_audit/include"
+    AUDIT_LIBS="-L$with_audit/lib"
+  fi
+  CFLAGS="$CFLAGS $AUDIT_CFLAGS"
+  LIBS="$LIBS $AUDIT_LIBS"
+  fail=0
+  AC_CHECK_HEADER([libaudit.h], [], [fail=1])
+  AC_CHECK_LIB([audit], [audit_is_enabled], [], [fail=1])
+
+  if test $fail = 1 ; then
+    if test "$with_audit" = "yes" ; then
+      AC_MSG_ERROR([You must install the Audit library in order to compile and run libvirt])
+    else
+      with_audit=no
+      AUDIT_CFLAGS=
+      AUDIT_LIBS=
+    fi
+  else
+    with_audit=yes
+  fi
+
+  if test "$with_audit" = "yes" ; then
+    AUDIT_LIBS="$AUDIT_LIBS -laudit"
+    AC_DEFINE_UNQUOTED([HAVE_AUDIT], 1, [whether libaudit is available])
+  fi
+
+  CFLAGS="$old_cflags"
+  LIBS="$old_libs"
+fi
+AM_CONDITIONAL([HAVE_AUDIT], [test "$with_audit" = "yes"])
+AC_SUBST([AUDIT_CFLAGS])
+AC_SUBST([AUDIT_LIBS])
+
+
 dnl SELinux
 AC_ARG_WITH([selinux],
   AC_HELP_STRING([--with-selinux], [use SELinux to manage security @<:@default=check@:>@]),
@@ -1056,6 +1124,29 @@ else
 fi
 AM_CONDITIONAL([WITH_SECDRIVER_APPARMOR], [test "$with_secdriver_apparmor" != "no"])
 
+
+dnl DTrace static probes
+AC_ARG_WITH([dtrace],
+  AC_HELP_STRING([--with-dtrace], [use dtrace for static probing @<:@default=check@:>@]),
+  [],
+  [with_dtrace=check])
+
+if test "$with_dtrace" != "no" ; then
+  AC_PATH_PROG([DTRACE], [dtrace], [], [/bin:/usr/bin])
+  if test -z "$DTRACE" ; then
+    if test "$with_dtrace" = "check"; then
+      with_dtrace=no
+    else
+      AC_MSG_ERROR([You must install the 'dtrace' binary to enable libvirt static probes])
+    fi
+  else
+    with_dtrace=yes
+  fi
+  if test "$with_dtrace" = "yes"; then
+    AC_DEFINE_UNQUOTED([WITH_DTRACE], 1, [whether DTrace static probes are available])
+  fi
+fi
+AM_CONDITIONAL([WITH_DTRACE], [test "$with_dtrace" != "no"])
 
 
 dnl NUMA lib
@@ -1309,12 +1400,18 @@ fi
 AC_SUBST([READLINE_CFLAGS])
 AC_SUBST([VIRSH_LIBS])
 
+dnl check if the network driver should be compiled
 
 AC_ARG_WITH([network],
   AC_HELP_STRING([--with-network], [with virtual network driver @<:@default=yes@:>@]),[],[with_network=yes])
-if test "$with_libvirtd" = "no" ; then
+
+dnl there's no use compiling the network driver without the libvirt
+dnl daemon, nor compiling it for MacOS X, where it breaks the compile
+
+if test "$with_libvirtd" = "no" || test "$with_osx" = "yes"; then
   with_network=no
 fi
+
 if test "$with_network" = "yes" ; then
   AC_DEFINE_UNQUOTED([WITH_NETWORK], 1, [whether network driver is enabled])
 fi
@@ -1363,15 +1460,6 @@ if test "$with_secrets" = "yes" ; then
 fi
 AM_CONDITIONAL([WITH_SECRETS], [test "$with_secrets" = "yes"])
 
-with_nwfilter=yes
-if test "$with_libvirtd" = "no"; then
-  with_nwfilter=no
-fi
-if test "$with_nwfilter" = "yes" ; then
-  AC_DEFINE([WITH_NWFILTER], 1, [whether local network filter management driver is available])
-fi
-AM_CONDITIONAL([WITH_NWFILTER], [test "$with_nwfilter" = "yes"])
-
 
 AC_ARG_WITH([storage-fs],
   AC_HELP_STRING([--with-storage-fs], [with FileSystem backend for the storage driver @<:@default=check@:>@]),[],[with_storage_fs=check])
@@ -1401,6 +1489,11 @@ if test "$with_storage_dir" = "yes" ; then
 fi
 AM_CONDITIONAL([WITH_STORAGE_DIR], [test "$with_storage_dir" = "yes"])
 
+dnl storage-fs does not work on MacOS X
+
+if test "$with_osx" = "yes"; then
+  with_storage_fs=no
+fi
 
 if test "$with_storage_fs" = "yes" || test "$with_storage_fs" = "check"; then
   AC_PATH_PROG([MOUNT], [mount], [], [$PATH:/sbin:/usr/sbin])
@@ -1515,7 +1608,7 @@ if test "$with_storage_scsi" = "check"; then
 fi
 AM_CONDITIONAL([WITH_STORAGE_SCSI], [test "$with_storage_scsi" = "yes"])
 
-if test "$with_storage_mpath" = "check"; then
+if test "$with_storage_mpath" = "check" && test "$with_linux" = "yes"; then
    with_storage_mpath=yes
 
    AC_DEFINE_UNQUOTED([WITH_STORAGE_MPATH], 1,
@@ -2034,14 +2127,17 @@ then
 fi
 AM_CONDITIONAL([WITH_NODE_DEVICES], [test "$with_nodedev" = "yes"])
 
-with_linux=no
-case "$host" in
-  *-*-linux*)
-    with_linux=yes
-    ;;
-esac
-AM_CONDITIONAL([WITH_LINUX], [test "$with_linux" = "yes"])
+dnl nwfilter should only be compiled for linux, and only if the
+dnl libvirt daemon is also being compiled
 
+with_nwfilter=yes
+if test "$with_libvirtd" = "no" || test "$with_linux" != "yes"; then
+  with_nwfilter=no
+fi
+if test "$with_nwfilter" = "yes" ; then
+  AC_DEFINE([WITH_NWFILTER], 1, [whether local network filter management driver is available])
+fi
+AM_CONDITIONAL([WITH_NWFILTER], [test "$with_nwfilter" = "yes"])
 
 AC_ARG_WITH([qemu-user],
   AC_HELP_STRING([--with-qemu-user], [username to run QEMU system instance as @<:@default=root@:>@]),
@@ -2060,6 +2156,7 @@ AC_ARG_WITH([macvtap],
   [with_macvtap=${withval}],
   [with_macvtap=check])
 
+AC_MSG_CHECKING([whether to compile with macvtap support])
 if test "$with_macvtap" != "no" ; then
     AC_TRY_COMPILE([ #include <sys/socket.h>
                      #include <linux/rtnetlink.h> ],
@@ -2077,19 +2174,46 @@ if test "$with_macvtap" != "no" ; then
     AC_DEFINE_UNQUOTED([WITH_MACVTAP], $val, [whether macvtap support is enabled])
 fi
 AM_CONDITIONAL([WITH_MACVTAP], [test "$with_macvtap" = "yes"])
+AC_MSG_RESULT([$with_macvtap])
 
-AC_TRY_COMPILE([ #include <sys/socket.h>
-                 #include <linux/rtnetlink.h> ],
-                 [ int x = IFLA_PORT_MAX; ],
-                 [ with_virtualport=yes ],
-                 [ with_virtualport=no ])
+AC_ARG_WITH([virtualport],
+  AC_HELP_STRING([--with-virtualport],[enable virtual port support @<:@default=check@:>@]),
+  [with_virtualport=${withval}],
+  [with_virtualport=check])
+
+dnl Warn the user and error out if they requested virtualport support with configure
+dnl options, but the required macvtap support isn't available
+
 if test "$with_virtualport" = "yes"; then
-    val=1
-else
-    val=0
+    if test "$with_macvtap" = "no"; then
+        AC_MSG_ERROR([--with-virtualport requires --with-macvtap])
+    fi
 fi
-AC_DEFINE_UNQUOTED([WITH_VIRTUALPORT], $val,
-                   [whether vsi vepa support is enabled])
+
+dnl virtualport checks
+
+if test "$with_macvtap" != "yes"; then
+    with_virtualport=no
+fi
+if test "$with_virtualport" != "no"; then
+    AC_MSG_CHECKING([whether to compile with virtual port support])
+    AC_TRY_COMPILE([ #include <sys/socket.h>
+                     #include <linux/rtnetlink.h> ],
+                     [ int x = IFLA_PORT_MAX; ],
+                     [ with_virtualport=yes ],
+                     [ if test "$with_virtualport" = "yes" ; then
+                         AC_MSG_ERROR([Installed linux headers don't show support for virtual port support.])
+                       fi
+                       with_virtualport=no ])
+    if test "$with_virtualport" = "yes"; then
+        val=1
+    else
+        val=0
+    fi
+    AC_DEFINE_UNQUOTED([WITH_VIRTUALPORT], $val,
+                       [whether vsi vepa support is enabled])
+    AC_MSG_RESULT([$with_virtualport])
+fi
 AM_CONDITIONAL([WITH_VIRTUALPORT], [test "$with_virtualport" = "yes"])
 
 
@@ -2098,7 +2222,7 @@ dnl netlink library
 LIBNL_CFLAGS=""
 LIBNL_LIBS=""
 
-if test "$with_macvtap" = "yes" || test "$with_virtualport" = "yes"; then
+if test "$with_macvtap" = "yes"; then
     PKG_CHECK_MODULES([LIBNL], [libnl-1 >= $LIBNL_REQUIRED], [
     ], [
         AC_MSG_ERROR([libnl >= $LIBNL_REQUIRED is required for macvtap support])
@@ -2147,6 +2271,7 @@ AC_OUTPUT(Makefile src/Makefile include/Makefile docs/Makefile \
           examples/openauth/Makefile \
           examples/python/Makefile \
           examples/hellolibvirt/Makefile \
+          examples/systemtap/Makefile \
           examples/xml/nwfilter/Makefile)
 
 AC_MSG_NOTICE([])
@@ -2236,6 +2361,11 @@ fi
 else
 AC_MSG_NOTICE([  polkit: no])
 fi
+if test "$with_audit" = "yes" ; then
+AC_MSG_NOTICE([   audit: $AUDIT_CFLAGS $AUDIT_LIBS])
+else
+AC_MSG_NOTICE([   audit: no])
+fi
 if test "$with_selinux" = "yes" ; then
 AC_MSG_NOTICE([ selinux: $SELINUX_CFLAGS $SELINUX_LIBS])
 else
@@ -2304,10 +2434,12 @@ AC_MSG_NOTICE([  Alloc OOM: $enable_oom])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Miscellaneous])
 AC_MSG_NOTICE([])
-AC_MSG_NOTICE([     Debug: $enable_debug])
-AC_MSG_NOTICE([  Warnings: $enable_compile_warnings])
-AC_MSG_NOTICE([  Readline: $lv_use_readline])
-AC_MSG_NOTICE([    Python: $with_python])
+AC_MSG_NOTICE([        Debug: $enable_debug])
+AC_MSG_NOTICE([     Warnings: $enable_compile_warnings])
+AC_MSG_NOTICE([     Readline: $lv_use_readline])
+AC_MSG_NOTICE([       Python: $with_python])
+AC_MSG_NOTICE([       DTrace: $with_dtrace])
+AC_MSG_NOTICE([  XML Catalog: $XML_CATALOG_FILE])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Privileges])
 AC_MSG_NOTICE([])

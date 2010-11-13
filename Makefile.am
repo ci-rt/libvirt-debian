@@ -6,7 +6,7 @@ GENHTML = genhtml
 SUBDIRS = gnulib/lib include src daemon tools proxy docs gnulib/tests \
   python tests po examples/domain-events/events-c examples/hellolibvirt \
   examples/dominfo examples/domsuspend examples/python examples/apparmor \
-  examples/xml/nwfilter examples/openauth
+  examples/xml/nwfilter examples/openauth examples/systemtap
 
 ACLOCAL_AMFLAGS = -I m4 -I gnulib/m4
 
@@ -25,6 +25,7 @@ EXTRA_DIST = \
   .x-sc_avoid_write \
   .x-sc_m4_quote_check \
   .x-sc_prohibit_asprintf \
+  .x-sc_prohibit_empty_lines_at_EOF \
   .x-sc_prohibit_gethostby \
   .x-sc_prohibit_gethostname \
   .x-sc_prohibit_gettext_noop \

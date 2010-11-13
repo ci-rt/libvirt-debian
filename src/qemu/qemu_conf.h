@@ -93,6 +93,10 @@ enum qemud_cmd_flags {
     QEMUD_CMD_FLAG_NODEFCONFIG   = (1LL << 37), /* -nodefconfig */
     QEMUD_CMD_FLAG_BOOT_MENU     = (1LL << 38), /* -boot menu=on support */
     QEMUD_CMD_FLAG_ENABLE_KQEMU  = (1LL << 39), /* -enable-kqemu flag */
+    QEMUD_CMD_FLAG_FSDEV         = (1LL << 40), /* -fstype filesystem passthrough */
+    QEMUD_CMD_FLAG_NESTING       = (1LL << 41), /* -enable-nesting (SVM/VMX) */
+    QEMUD_CMD_FLAG_NAME_PROCESS  = (1LL << 42), /* Is -name process= available */
+    QEMUD_CMD_FLAG_DRIVE_READONLY    = (1LL << 43), /* -drive readonly=on|off */
 };
 
 /* Main driver state */
@@ -144,6 +148,7 @@ struct qemud_driver {
     unsigned int vncAllowHostAudio : 1;
     unsigned int clearEmulatorCapabilities : 1;
     unsigned int allowDiskFormatProbing : 1;
+    unsigned int setProcessName : 1;
 
     virCapsPtr caps;
 
@@ -188,6 +193,7 @@ struct _qemuDomainCmdlineDef {
 
 # define QEMU_DRIVE_HOST_PREFIX "drive-"
 # define QEMU_VIRTIO_SERIAL_PREFIX "virtio-serial"
+# define QEMU_FSDEV_HOST_PREFIX "fsdev-"
 
 # define qemuReportError(code, ...)                                      \
     virReportErrorHelper(NULL, VIR_FROM_QEMU, code, __FILE__,           \
@@ -248,9 +254,12 @@ char *qemuDeviceDriveHostAlias(virDomainDiskDefPtr disk,
 char *qemuBuildDriveStr(virDomainDiskDefPtr disk,
                         int bootable,
                         unsigned long long qemuCmdFlags);
+char *qemuBuildFSStr(virDomainFSDefPtr fs,
+                     unsigned long long qemuCmdFlags);
 
 /* Current, best practice */
 char * qemuBuildDriveDevStr(virDomainDiskDefPtr disk);
+char * qemuBuildFSDevStr(virDomainFSDefPtr fs);
 /* Current, best practice */
 char * qemuBuildControllerDevStr(virDomainControllerDefPtr def);
 

@@ -57,6 +57,8 @@
 #include "memory.h"
 #include "util.h"
 #include "stream.h"
+#include "uuid.h"
+#include "network.h"
 #include "libvirt/libvirt-qemu.h"
 
 #define VIR_FROM_THIS VIR_FROM_REMOTE
@@ -1751,6 +1753,33 @@ oom:
 }
 
 static int
+remoteDispatchDomainGetVcpusFlags (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                   struct qemud_client *client ATTRIBUTE_UNUSED,
+                                   virConnectPtr conn,
+                                   remote_message_header *hdr ATTRIBUTE_UNUSED,
+                                   remote_error *rerr,
+                                   remote_domain_get_vcpus_flags_args *args,
+                                   remote_domain_get_vcpus_flags_ret *ret)
+{
+    virDomainPtr dom;
+
+    dom = get_nonnull_domain (conn, args->dom);
+    if (dom == NULL) {
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
+
+    ret->num = virDomainGetVcpusFlags (dom, args->flags);
+    if (ret->num == -1) {
+        virDomainFree(dom);
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
+    virDomainFree(dom);
+    return 0;
+}
+
+static int
 remoteDispatchDomainMigratePrepare (struct qemud_server *server ATTRIBUTE_UNUSED,
                                     struct qemud_client *client ATTRIBUTE_UNUSED,
                                     virConnectPtr conn,
@@ -2332,6 +2361,216 @@ remoteDispatchDomainSetMemory (struct qemud_server *server ATTRIBUTE_UNUSED,
 }
 
 static int
+remoteDispatchDomainSetMemoryParameters(struct qemud_server *server
+                                        ATTRIBUTE_UNUSED,
+                                        struct qemud_client *client
+                                        ATTRIBUTE_UNUSED,
+                                        virConnectPtr conn,
+                                        remote_message_header *
+                                        hdr ATTRIBUTE_UNUSED,
+                                        remote_error * rerr,
+                                        remote_domain_set_memory_parameters_args
+                                        * args, void *ret ATTRIBUTE_UNUSED)
+{
+    virDomainPtr dom;
+    int i, r, nparams;
+    virMemoryParameterPtr params;
+    unsigned int flags;
+
+    nparams = args->params.params_len;
+    flags = args->flags;
+
+    if (nparams > REMOTE_DOMAIN_MEMORY_PARAMETERS_MAX) {
+        remoteDispatchFormatError(rerr, "%s", _("nparams too large"));
+        return -1;
+    }
+    if (VIR_ALLOC_N(params, nparams) < 0) {
+        remoteDispatchOOMError(rerr);
+        return -1;
+    }
+
+    /* Deserialise parameters. */
+    for (i = 0; i < nparams; ++i) {
+        if (virStrcpyStatic
+            (params[i].field, args->params.params_val[i].field) == NULL) {
+            remoteDispatchFormatError(rerr,
+                                      _
+                                      ("Field %s too big for destination"),
+                                      args->params.params_val[i].field);
+            return -1;
+        }
+        params[i].type = args->params.params_val[i].value.type;
+        switch (params[i].type) {
+            case VIR_DOMAIN_MEMORY_PARAM_INT:
+                params[i].value.i =
+                    args->params.params_val[i].value.
+                    remote_memory_param_value_u.i;
+                break;
+            case VIR_DOMAIN_MEMORY_PARAM_UINT:
+                params[i].value.ui =
+                    args->params.params_val[i].value.
+                    remote_memory_param_value_u.ui;
+                break;
+            case VIR_DOMAIN_MEMORY_PARAM_LLONG:
+                params[i].value.l =
+                    args->params.params_val[i].value.
+                    remote_memory_param_value_u.l;
+                break;
+            case VIR_DOMAIN_MEMORY_PARAM_ULLONG:
+                params[i].value.ul =
+                    args->params.params_val[i].value.
+                    remote_memory_param_value_u.ul;
+                break;
+            case VIR_DOMAIN_MEMORY_PARAM_DOUBLE:
+                params[i].value.d =
+                    args->params.params_val[i].value.
+                    remote_memory_param_value_u.d;
+                break;
+            case VIR_DOMAIN_MEMORY_PARAM_BOOLEAN:
+                params[i].value.b =
+                    args->params.params_val[i].value.
+                    remote_memory_param_value_u.b;
+                break;
+        }
+    }
+
+    dom = get_nonnull_domain(conn, args->dom);
+    if (dom == NULL) {
+        VIR_FREE(params);
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
+
+    r = virDomainSetMemoryParameters(dom, params, nparams, flags);
+    virDomainFree(dom);
+    VIR_FREE(params);
+    if (r == -1) {
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
+
+    return 0;
+}
+
+static int
+remoteDispatchDomainGetMemoryParameters(struct qemud_server *server
+                                        ATTRIBUTE_UNUSED,
+                                        struct qemud_client *client
+                                        ATTRIBUTE_UNUSED,
+                                        virConnectPtr conn,
+                                        remote_message_header *
+                                        hdr ATTRIBUTE_UNUSED,
+                                        remote_error * rerr,
+                                        remote_domain_get_memory_parameters_args
+                                        * args,
+                                        remote_domain_get_memory_parameters_ret
+                                        * ret)
+{
+    virDomainPtr dom;
+    virMemoryParameterPtr params;
+    int i, r, nparams;
+    unsigned int flags;
+
+    nparams = args->nparams;
+    flags = args->flags;
+
+    if (nparams > REMOTE_DOMAIN_MEMORY_PARAMETERS_MAX) {
+        remoteDispatchFormatError(rerr, "%s", _("nparams too large"));
+        return -1;
+    }
+    if (VIR_ALLOC_N(params, nparams) < 0) {
+        remoteDispatchOOMError(rerr);
+        return -1;
+    }
+
+    dom = get_nonnull_domain(conn, args->dom);
+    if (dom == NULL) {
+        VIR_FREE(params);
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
+
+    r = virDomainGetMemoryParameters(dom, params, &nparams, flags);
+    if (r == -1) {
+        virDomainFree(dom);
+        VIR_FREE(params);
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
+    /* In this case, we need to send back the number of parameters
+     * supported
+     */
+    if (args->nparams == 0) {
+        ret->nparams = nparams;
+        goto success;
+    }
+
+    /* Serialise the memory parameters. */
+    ret->params.params_len = nparams;
+    if (VIR_ALLOC_N(ret->params.params_val, nparams) < 0)
+        goto oom;
+
+    for (i = 0; i < nparams; ++i) {
+        // remoteDispatchClientRequest will free this:
+        ret->params.params_val[i].field = strdup(params[i].field);
+        if (ret->params.params_val[i].field == NULL)
+            goto oom;
+
+        ret->params.params_val[i].value.type = params[i].type;
+        switch (params[i].type) {
+            case VIR_DOMAIN_MEMORY_PARAM_INT:
+                ret->params.params_val[i].
+                    value.remote_memory_param_value_u.i =
+                    params[i].value.i;
+                break;
+            case VIR_DOMAIN_MEMORY_PARAM_UINT:
+                ret->params.params_val[i].
+                    value.remote_memory_param_value_u.ui =
+                    params[i].value.ui;
+                break;
+            case VIR_DOMAIN_MEMORY_PARAM_LLONG:
+                ret->params.params_val[i].
+                    value.remote_memory_param_value_u.l =
+                    params[i].value.l;
+                break;
+            case VIR_DOMAIN_MEMORY_PARAM_ULLONG:
+                ret->params.params_val[i].
+                    value.remote_memory_param_value_u.ul =
+                    params[i].value.ul;
+                break;
+            case VIR_DOMAIN_MEMORY_PARAM_DOUBLE:
+                ret->params.params_val[i].
+                    value.remote_memory_param_value_u.d =
+                    params[i].value.d;
+                break;
+            case VIR_DOMAIN_MEMORY_PARAM_BOOLEAN:
+                ret->params.params_val[i].
+                    value.remote_memory_param_value_u.b =
+                    params[i].value.b;
+                break;
+            default:
+                remoteDispatchFormatError(rerr, "%s", _("unknown type"));
+                goto cleanup;
+        }
+    }
+
+  success:
+    virDomainFree(dom);
+    VIR_FREE(params);
+
+    return 0;
+
+  oom:
+    remoteDispatchOOMError(rerr);
+  cleanup:
+    virDomainFree(dom);
+    for (i = 0; i < nparams; i++)
+        VIR_FREE(ret->params.params_val[i].field);
+    VIR_FREE(params);
+    return -1;
+}
+
+static int
 remoteDispatchDomainSetVcpus (struct qemud_server *server ATTRIBUTE_UNUSED,
                               struct qemud_client *client ATTRIBUTE_UNUSED,
                               virConnectPtr conn,
@@ -2349,6 +2588,32 @@ remoteDispatchDomainSetVcpus (struct qemud_server *server ATTRIBUTE_UNUSED,
     }
 
     if (virDomainSetVcpus (dom, args->nvcpus) == -1) {
+        virDomainFree(dom);
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
+    virDomainFree(dom);
+    return 0;
+}
+
+static int
+remoteDispatchDomainSetVcpusFlags (struct qemud_server *server ATTRIBUTE_UNUSED,
+                                   struct qemud_client *client ATTRIBUTE_UNUSED,
+                                   virConnectPtr conn,
+                                   remote_message_header *hdr ATTRIBUTE_UNUSED,
+                                   remote_error *rerr,
+                                   remote_domain_set_vcpus_flags_args *args,
+                                   void *ret ATTRIBUTE_UNUSED)
+{
+    virDomainPtr dom;
+
+    dom = get_nonnull_domain (conn, args->dom);
+    if (dom == NULL) {
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
+
+    if (virDomainSetVcpusFlags (dom, args->nvcpus, args->flags) == -1) {
         virDomainFree(dom);
         remoteDispatchConnError(rerr, conn);
         return -1;
@@ -3254,49 +3519,6 @@ remoteDispatchAuthList (struct qemud_server *server,
 
 #if HAVE_SASL
 /*
- * NB, keep in sync with similar method in src/remote/remote_driver.c
- */
-static char *addrToString(remote_error *rerr,
-                          struct sockaddr_storage *ss, socklen_t salen) {
-    char host[NI_MAXHOST], port[NI_MAXSERV];
-    char *addr;
-    int err;
-    struct sockaddr *sa = (struct sockaddr *)ss;
-
-    if ((err = getnameinfo(sa, salen,
-                           host, sizeof(host),
-                           port, sizeof(port),
-                           NI_NUMERICHOST | NI_NUMERICSERV)) != 0) {
-        char ip[INET6_ADDRSTRLEN];
-        void *rawaddr;
-
-        if (sa->sa_family == AF_INET)
-            rawaddr = &((struct sockaddr_in *)sa)->sin_addr;
-        else
-            rawaddr = &((struct sockaddr_in6 *)sa)->sin6_addr;
-
-        if (inet_ntop(sa->sa_family, rawaddr, ip, sizeof ip)) {
-            remoteDispatchFormatError(rerr,
-                                      _("Cannot resolve address %s: %s"),
-                                      ip, gai_strerror(err));
-        } else {
-            remoteDispatchFormatError(rerr,
-                                      _("Cannot resolve address: %s"),
-                                      gai_strerror(err));
-        }
-        return NULL;
-    }
-
-    if (virAsprintf(&addr, "%s;%s", host, port) == -1) {
-        virReportOOMError();
-        return NULL;
-    }
-
-    return addr;
-}
-
-
-/*
  * Initializes the SASL session in prepare for authentication
  * and gives the client a list of allowed mechanisms to choose
  *
@@ -3305,7 +3527,7 @@ static char *addrToString(remote_error *rerr,
 static int
 remoteDispatchAuthSaslInit (struct qemud_server *server,
                             struct qemud_client *client,
-                            virConnectPtr conn ATTRIBUTE_UNUSED,
+                            virConnectPtr conn,
                             remote_message_header *hdr ATTRIBUTE_UNUSED,
                             remote_error *rerr,
                             void *args ATTRIBUTE_UNUSED,
@@ -3314,8 +3536,7 @@ remoteDispatchAuthSaslInit (struct qemud_server *server,
     const char *mechlist = NULL;
     sasl_security_properties_t secprops;
     int err;
-    struct sockaddr_storage sa;
-    socklen_t salen;
+    virSocketAddr sa;
     char *localAddr, *remoteAddr;
 
     virMutexLock(&server->lock);
@@ -3330,29 +3551,31 @@ remoteDispatchAuthSaslInit (struct qemud_server *server,
     }
 
     /* Get local address in form  IPADDR:PORT */
-    salen = sizeof(sa);
-    if (getsockname(client->fd, (struct sockaddr*)&sa, &salen) < 0) {
+    sa.len = sizeof(sa.data.stor);
+    if (getsockname(client->fd, &sa.data.sa, &sa.len) < 0) {
         char ebuf[1024];
         remoteDispatchFormatError(rerr,
                                   _("failed to get sock address: %s"),
                                   virStrerror(errno, ebuf, sizeof ebuf));
         goto error;
     }
-    if ((localAddr = addrToString(rerr, &sa, salen)) == NULL) {
+    if ((localAddr = virSocketFormatAddrFull(&sa, true, ";")) == NULL) {
+        remoteDispatchConnError(rerr, conn);
         goto error;
     }
 
     /* Get remote address in form  IPADDR:PORT */
-    salen = sizeof(sa);
-    if (getpeername(client->fd, (struct sockaddr*)&sa, &salen) < 0) {
+    sa.len = sizeof(sa.data.stor);
+    if (getpeername(client->fd, &sa.data.sa, &sa.len) < 0) {
         char ebuf[1024];
         remoteDispatchFormatError(rerr, _("failed to get peer address: %s"),
                                   virStrerror(errno, ebuf, sizeof ebuf));
         VIR_FREE(localAddr);
         goto error;
     }
-    if ((remoteAddr = addrToString(rerr, &sa, salen)) == NULL) {
+    if ((remoteAddr = virSocketFormatAddrFull(&sa, true, ";")) == NULL) {
         VIR_FREE(localAddr);
+        remoteDispatchConnError(rerr, conn);
         goto error;
     }
 
@@ -3454,13 +3677,16 @@ remoteDispatchAuthSaslInit (struct qemud_server *server,
 authfail:
     remoteDispatchAuthError(rerr);
 error:
+    PROBE(CLIENT_AUTH_FAIL, "fd=%d, auth=%d", client->fd, REMOTE_AUTH_SASL);
     virMutexUnlock(&client->lock);
     return -1;
 }
 
 
 /* We asked for an SSF layer, so sanity check that we actually
- * got what we asked for */
+ * got what we asked for
+ * Returns 0 if ok, -1 on error, -2 if rejected
+ */
 static int
 remoteSASLCheckSSF (struct qemud_client *client,
                     remote_error *rerr) {
@@ -3487,7 +3713,7 @@ remoteSASLCheckSSF (struct qemud_client *client,
         remoteDispatchAuthError(rerr);
         sasl_dispose(&client->saslconn);
         client->saslconn = NULL;
-        return -1;
+        return -2;
     }
 
     /* Only setup for read initially, because we're about to send an RPC
@@ -3502,6 +3728,9 @@ remoteSASLCheckSSF (struct qemud_client *client,
     return 0;
 }
 
+/*
+ * Returns 0 if ok, -1 on error, -2 if rejected
+ */
 static int
 remoteSASLCheckAccess (struct qemud_server *server,
                        struct qemud_client *client,
@@ -3553,7 +3782,7 @@ remoteSASLCheckAccess (struct qemud_server *server,
     remoteDispatchAuthError(rerr);
     sasl_dispose(&client->saslconn);
     client->saslconn = NULL;
-    return -1;
+    return -2;
 }
 
 
@@ -3625,14 +3854,18 @@ remoteDispatchAuthSaslStart (struct qemud_server *server,
     if (err == SASL_CONTINUE) {
         ret->complete = 0;
     } else {
-        if (remoteSASLCheckSSF(client, rerr) < 0)
-            goto error;
-
         /* Check username whitelist ACL */
-        if (remoteSASLCheckAccess(server, client, rerr) < 0)
-            goto error;
+        if ((err = remoteSASLCheckAccess(server, client, rerr)) < 0 ||
+            (err = remoteSASLCheckSSF(client, rerr)) < 0) {
+            if (err == -2)
+                goto authdeny;
+            else
+                goto authfail;
+        }
 
         REMOTE_DEBUG("Authentication successful %d", client->fd);
+        PROBE(CLIENT_AUTH_ALLOW, "fd=%d, auth=%d, username=%s",
+              client->fd, REMOTE_AUTH_SASL, client->saslUsername);
         ret->complete = 1;
         client->auth = REMOTE_AUTH_NONE;
     }
@@ -3641,7 +3874,15 @@ remoteDispatchAuthSaslStart (struct qemud_server *server,
     return 0;
 
 authfail:
+    PROBE(CLIENT_AUTH_FAIL, "fd=%d, auth=%d", client->fd, REMOTE_AUTH_SASL);
     remoteDispatchAuthError(rerr);
+    goto error;
+
+authdeny:
+    PROBE(CLIENT_AUTH_DENY, "fd=%d, auth=%d, username=%s",
+          client->fd, REMOTE_AUTH_SASL, client->saslUsername);
+    goto error;
+
 error:
     virMutexUnlock(&client->lock);
     return -1;
@@ -3714,14 +3955,18 @@ remoteDispatchAuthSaslStep (struct qemud_server *server,
     if (err == SASL_CONTINUE) {
         ret->complete = 0;
     } else {
-        if (remoteSASLCheckSSF(client, rerr) < 0)
-            goto error;
-
         /* Check username whitelist ACL */
-        if (remoteSASLCheckAccess(server, client, rerr) < 0)
-            goto error;
+        if ((err = remoteSASLCheckAccess(server, client, rerr)) < 0 ||
+            (err = remoteSASLCheckSSF(client, rerr)) < 0) {
+            if (err == -2)
+                goto authdeny;
+            else
+                goto authfail;
+        }
 
         REMOTE_DEBUG("Authentication successful %d", client->fd);
+        PROBE(CLIENT_AUTH_ALLOW, "fd=%d, auth=%d, username=%s",
+              client->fd, REMOTE_AUTH_SASL, client->saslUsername);
         ret->complete = 1;
         client->auth = REMOTE_AUTH_NONE;
     }
@@ -3730,7 +3975,15 @@ remoteDispatchAuthSaslStep (struct qemud_server *server,
     return 0;
 
 authfail:
+    PROBE(CLIENT_AUTH_FAIL, "fd=%d, auth=%d", client->fd, REMOTE_AUTH_SASL);
     remoteDispatchAuthError(rerr);
+    goto error;
+
+authdeny:
+    PROBE(CLIENT_AUTH_DENY, "fd=%d, auth=%d, username=%s",
+          client->fd, REMOTE_AUTH_SASL, client->saslUsername);
+    goto error;
+
 error:
     virMutexUnlock(&client->lock);
     return -1;
@@ -3748,6 +4001,7 @@ remoteDispatchAuthSaslInit (struct qemud_server *server ATTRIBUTE_UNUSED,
                             remote_auth_sasl_init_ret *ret ATTRIBUTE_UNUSED)
 {
     VIR_ERROR0(_("client tried unsupported SASL init request"));
+    PROBE(CLIENT_AUTH_FAIL, "fd=%d, auth=%d", client->fd, REMOTE_AUTH_SASL);
     remoteDispatchAuthError(rerr);
     return -1;
 }
@@ -3762,6 +4016,7 @@ remoteDispatchAuthSaslStart (struct qemud_server *server ATTRIBUTE_UNUSED,
                              remote_auth_sasl_start_ret *ret ATTRIBUTE_UNUSED)
 {
     VIR_ERROR0(_("client tried unsupported SASL start request"));
+    PROBE(CLIENT_AUTH_FAIL, "fd=%d, auth=%d", client->fd, REMOTE_AUTH_SASL);
     remoteDispatchAuthError(rerr);
     return -1;
 }
@@ -3776,6 +4031,7 @@ remoteDispatchAuthSaslStep (struct qemud_server *server ATTRIBUTE_UNUSED,
                             remote_auth_sasl_step_ret *ret ATTRIBUTE_UNUSED)
 {
     VIR_ERROR0(_("client tried unsupported SASL step request"));
+    PROBE(CLIENT_AUTH_FAIL, "fd=%d, auth=%d", client->fd, REMOTE_AUTH_SASL);
     remoteDispatchAuthError(rerr);
     return -1;
 }
@@ -3792,12 +4048,15 @@ remoteDispatchAuthPolkit (struct qemud_server *server,
                           void *args ATTRIBUTE_UNUSED,
                           remote_auth_polkit_ret *ret)
 {
-    pid_t callerPid;
-    uid_t callerUid;
+    pid_t callerPid = -1;
+    uid_t callerUid = -1;
     const char *action;
     int status = -1;
     char pidbuf[50];
+    char ident[100];
     int rv;
+
+    memset(ident, 0, sizeof ident);
 
     virMutexLock(&server->lock);
     virMutexLock(&client->lock);
@@ -3834,6 +4093,12 @@ remoteDispatchAuthPolkit (struct qemud_server *server,
         goto authfail;
     }
 
+    rv = snprintf(ident, sizeof ident, "pid:%d,uid:%d", callerPid, callerUid);
+    if (rv < 0 || rv >= sizeof ident) {
+        VIR_ERROR(_("Caller identity was too large %d:%d"), callerPid, callerUid);
+        goto authfail;
+    }
+
     if (virRun(pkcheck, &status) < 0) {
         VIR_ERROR(_("Cannot invoke %s"), PKCHECK_PATH);
         goto authfail;
@@ -3841,8 +4106,10 @@ remoteDispatchAuthPolkit (struct qemud_server *server,
     if (status != 0) {
         VIR_ERROR(_("Policy kit denied action %s from pid %d, uid %d, result: %d"),
                   action, callerPid, callerUid, status);
-        goto authfail;
+        goto authdeny;
     }
+    PROBE(CLIENT_AUTH_ALLOW, "fd=%d, auth=%d, username=%s",
+          client->fd, REMOTE_AUTH_POLKIT, (char *)ident);
     VIR_INFO(_("Policy allowed action %s from pid %d, uid %d"),
              action, callerPid, callerUid);
     ret->complete = 1;
@@ -3852,6 +4119,15 @@ remoteDispatchAuthPolkit (struct qemud_server *server,
     return 0;
 
 authfail:
+    PROBE(CLIENT_AUTH_FAIL, "fd=%d, auth=%d", client->fd, REMOTE_AUTH_POLKIT);
+    goto error;
+
+authdeny:
+    PROBE(CLIENT_AUTH_DENY, "fd=%d, auth=%d, username=%s",
+          client->fd, REMOTE_AUTH_POLKIT, (char *)ident);
+    goto error;
+
+error:
     remoteDispatchAuthError(rerr);
     virMutexUnlock(&client->lock);
     return -1;
@@ -3875,6 +4151,9 @@ remoteDispatchAuthPolkit (struct qemud_server *server,
     PolKitResult pkresult;
     DBusError err;
     const char *action;
+    char ident[100];
+
+    memset(ident, 0, sizeof ident);
 
     virMutexLock(&server->lock);
     virMutexLock(&client->lock);
@@ -3892,6 +4171,12 @@ remoteDispatchAuthPolkit (struct qemud_server *server,
 
     if (qemudGetSocketIdentity(client->fd, &callerUid, &callerPid) < 0) {
         VIR_ERROR0(_("cannot get peer socket identity"));
+        goto authfail;
+    }
+
+    rv = snprintf(ident, sizeof ident, "pid:%d,uid:%d", callerPid, callerUid);
+    if (rv < 0 || rv >= sizeof ident) {
+        VIR_ERROR(_("Caller identity was too large %d:%d"), callerPid, callerUid);
         goto authfail;
     }
 
@@ -3951,8 +4236,10 @@ remoteDispatchAuthPolkit (struct qemud_server *server,
         VIR_ERROR(_("Policy kit denied action %s from pid %d, uid %d, result: %s"),
                   action, callerPid, callerUid,
                   polkit_result_to_string_representation(pkresult));
-        goto authfail;
+        goto authdeny;
     }
+    PROBE(CLIENT_AUTH_ALLOW, "fd=%d, auth=%d, username=%s",
+          client->fd, REMOTE_AUTH_POLKIT, ident);
     VIR_INFO(_("Policy allowed action %s from pid %d, uid %d, result %s"),
              action, callerPid, callerUid,
              polkit_result_to_string_representation(pkresult));
@@ -3963,6 +4250,15 @@ remoteDispatchAuthPolkit (struct qemud_server *server,
     return 0;
 
 authfail:
+    PROBE(CLIENT_AUTH_FAIL, "fd=%d, auth=%d", client->fd, REMOTE_AUTH_POLKIT);
+    goto error;
+
+authdeny:
+    PROBE(CLIENT_AUTH_DENY, "fd=%d, auth=%d, username=%s",
+          client->fd, REMOTE_AUTH_POLKIT, ident);
+    goto error;
+
+error:
     remoteDispatchAuthError(rerr);
     virMutexUnlock(&client->lock);
     return -1;

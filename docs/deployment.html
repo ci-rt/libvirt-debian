@@ -96,6 +96,10 @@
                   <div>
                     <a title="Working on the internals of libvirt API, driver and daemon code" class="inactive" href="internals.html">Internals</a>
                   </div>
+                </li><li>
+                  <div>
+                    <a title="A guide and reference for developing with libvirt" class="inactive" href="devguide.html">Development Guide</a>
+                  </div>
                 </li></ul>
             </div>
           </li><li>
@@ -126,14 +130,25 @@
       </div>
       <div id="content">
         <h1>Deployment</h1>
-        <h2>Pre-packaged releases</h2>
+        <ul><li>
+            <a href="#packages">Pre-packaged releases</a>
+          </li><li>
+            <a href="#tarball">Self-built releases</a>
+          </li><li>
+            <a href="#git">Built from GIT</a>
+          </li></ul>
+        <h2>
+          <a name="packages" id="packages">Pre-packaged releases</a>
+        </h2>
         <p>
-      The libvirt API is now available in all major Linux distributions
+      The libvirt API is now available in all major Linux distributions,
       so the simplest deployment approach is to use your distributions'
       package management software to install the <code>libvirt</code>
       module.
     </p>
-        <h2>Self-built releases</h2>
+        <h2>
+          <a name="tarball" id="tarball">Self-built releases</a>
+        </h2>
         <p>
       libvirt uses GNU autotools for its build system, so deployment
       follows the usual process of <code>configure; make ; make install</code>
@@ -144,7 +159,9 @@
       # make
       # make install
     </pre>
-        <h2>Built from GIT</h2>
+        <h2>
+          <a name="git" id="git">Built from GIT</a>
+        </h2>
         <p>
       When building from GIT it is necessary to generate the autotools
       support files. This requires having <code>autoconf</code>,

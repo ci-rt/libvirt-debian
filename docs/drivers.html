@@ -112,6 +112,10 @@
                   <div>
                     <a title="Working on the internals of libvirt API, driver and daemon code" class="inactive" href="internals.html">Internals</a>
                   </div>
+                </li><li>
+                  <div>
+                    <a title="A guide and reference for developing with libvirt" class="inactive" href="devguide.html">Development Guide</a>
+                  </div>
                 </li></ul>
             </div>
           </li><li>
@@ -142,6 +146,11 @@
       </div>
       <div id="content">
         <h1>Internal drivers</h1>
+        <ul><li>
+            <a href="#hypervisor">Hypervisor drivers</a>
+          </li><li>
+            <a href="#stroage">Storage drivers</a>
+          </li></ul>
         <p>
       The libvirt public API delegates its implementation to one or
       more internal drivers, depending on the <a href="uri.html">connection URI</a>
@@ -149,11 +158,17 @@
       active, and if the libvirt daemon is available there will usually be a
       network and storage driver active.
     </p>
-        <h2>Hypervisor drivers</h2>
+        <h2>
+          <a name="hypervisor" id="hypervisor">Hypervisor drivers</a>
+        </h2>
         <p>
       The hypervisor drivers currently supported by libvirt are:
     </p>
-        <ul><li><strong><a href="drvxen.html">Xen</a></strong></li><li><strong><a href="drvqemu.html">QEMU</a></strong></li><li><strong><a href="drvlxc.html">LXC</a></strong></li><li><strong><a href="drvtest.html">Test</a></strong></li><li><strong><a href="drvopenvz.html">OpenVZ</a></strong></li><li><strong><a href="drvvbox.html">VirtualBox</a></strong></li><li><strong><a href="drvone.html">OpenNebula</a></strong></li><li><strong><a href="drvesx.html">VMware ESX</a></strong></li></ul>
+        <ul><li><strong><a href="drvlxc.html">LXC</a></strong> - Linux Containers</li><li><strong><a href="drvone.html">OpenNebula</a></strong></li><li><strong><a href="drvopenvz.html">OpenVZ</a></strong></li><li><strong><a href="drvqemu.html">QEMU</a></strong></li><li><strong><a href="drvtest.html">Test</a></strong> - Used for testing</li><li><strong><a href="drvuml.html">UML</a></strong> - User Mode Linux</li><li><strong><a href="drvvbox.html">VirtualBox</a></strong></li><li><strong><a href="drvesx.html">VMware ESX</a></strong></li><li><strong><a href="drvxen.html">Xen</a></strong></li></ul>
+        <h2>
+          <a name="stroage" id="stroage">Storage drivers</a>
+        </h2>
+        <ul><li><strong><a href="storage.html#StorageBackendDir">Directory backend</a></strong></li><li><strong><a href="storage.html#StorageBackendFS">Local filesystem backend</a></strong></li><li><strong><a href="storage.html#StorageBackendNetFS">Network filesystem backend</a></strong></li><li><strong><a href="storage.html#StorageBackendLogical">Logical Volume Manager (LVM) backend</a></strong></li><li><strong><a href="storage.html#StorageBackendDisk">Disk backend</a></strong></li><li><strong><a href="storage.html#StorageBackendISCSI">iSCSI backend</a></strong></li><li><strong><a href="storage.html#StorageBackendSCSI">SCSI backend</a></strong></li><li><strong><a href="storage.html#StorageBackendMultipath">Multipath backend</a></strong></li></ul>
       </div>
     </div>
     <div id="footer">

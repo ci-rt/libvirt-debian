@@ -37,6 +37,7 @@
 %define with_lxc           0%{!?_without_lxc:%{server_drivers}}
 %define with_vbox          0%{!?_without_vbox:%{server_drivers}}
 %define with_uml           0%{!?_without_uml:%{server_drivers}}
+%define with_xenapi        0%{!?_without_xenapi:%{server_drivers}}
 # XXX this shouldn't be here, but it mistakenly links into libvirtd
 %define with_one           0%{!?_without_one:%{server_drivers}}
 
@@ -65,6 +66,8 @@
 %define with_libpcap       0%{!?_without_libpcap:0}
 %define with_macvtap       0%{!?_without_macvtap:0}
 %define with_libnl         0%{!?_without_libnl:0}
+%define with_audit         0%{!?_without_audit:0}
+%define with_dtrace        0%{!?_without_dtrace:0}
 
 # Non-server/HV driver defaults which are always enabled
 %define with_python        0%{!?_without_python:1}
@@ -83,7 +86,8 @@
 %define with_numactl 0
 %endif
 
-# RHEL doesn't ship OpenVZ, VBox, UML, OpenNebula, PowerHypervisor or ESX
+# RHEL doesn't ship OpenVZ, VBox, UML, OpenNebula, PowerHypervisor, ESX,
+# or libxenserver (xenapi)
 %if 0%{?rhel}
 %define with_openvz 0
 %define with_vbox 0
@@ -91,6 +95,7 @@
 %define with_one 0
 %define with_phyp 0
 %define with_esx 0
+%define with_xenapi 0
 %endif
 
 # RHEL-5 has restricted QEMU to x86_64 only and is too old for LXC
@@ -160,6 +165,14 @@
 
 %if %{with_macvtap}
 %define with_libnl 1
+%endif
+
+%if 0%{?fedora} >= 11 || 0%{?rhel} >= 5
+%define with_audit    0%{!?_without_audit:1}
+%endif
+
+%if 0%{?fedora} >= 13 || 0%{?rhel} >= 6
+%define with_dtrace 1
 %endif
 
 # Force QEMU to run as non-root
@@ -367,6 +380,9 @@ BuildRequires: netcf-devel >= 0.1.4
 %if %{with_esx}
 BuildRequires: libcurl-devel
 %endif
+%if %{with_audit}
+BuildRequires: audit-libs-devel
+%endif
 
 # Fedora build root suckage
 BuildRequires: gawk
@@ -443,6 +459,10 @@ of recent versions of Linux (and other OSes).
 
 %if ! %{with_vbox}
 %define _without_vbox --without-vbox
+%endif
+
+%if ! %{with_xenapi}
+%define _without_xenapi --without-xenapi
 %endif
 
 %if ! %{with_sasl}
@@ -545,11 +565,20 @@ of recent versions of Linux (and other OSes).
 %define _without_macvtap --without-macvtap
 %endif
 
+%if ! %{with_audit}
+%define _without_audit --without-audit
+%endif
+
+%if ! %{with_dtrace}
+%define _without_dtrace --without-dtrace
+%endif
+
 %configure %{?_without_xen} \
            %{?_without_qemu} \
            %{?_without_openvz} \
            %{?_without_lxc} \
            %{?_without_vbox} \
+           %{?_without_xenapi} \
            %{?_without_sasl} \
            %{?_without_avahi} \
            %{?_without_polkit} \
@@ -575,6 +604,8 @@ of recent versions of Linux (and other OSes).
            %{?_without_yajl} \
            %{?_without_libpcap} \
            %{?_without_macvtap} \
+           %{?_without_audit} \
+           %{?_without_dtrace} \
            --with-qemu-user=%{qemu_user} \
            --with-qemu-group=%{qemu_group} \
            --with-init-script=redhat \
@@ -586,7 +617,7 @@ gzip -9 ChangeLog
 rm -fr %{buildroot}
 
 %makeinstall
-for i in domain-events/events-c dominfo domsuspend hellolibvirt openauth python xml/nwfilter
+for i in domain-events/events-c dominfo domsuspend hellolibvirt openauth python xml/nwfilter systemtap
 do
   (cd examples/$i ; make clean ; rm -rf .deps .libs Makefile Makefile.in)
 done
@@ -742,6 +773,9 @@ fi
 %{_sysconfdir}/rc.d/init.d/libvirtd
 %config(noreplace) %{_sysconfdir}/sysconfig/libvirtd
 %config(noreplace) %{_sysconfdir}/libvirt/libvirtd.conf
+%if %{with_dtrace}
+%{_datadir}/systemtap/tapsets/libvirtd.stp
+%endif
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/qemu/
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/lxc/
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/uml/
@@ -774,8 +808,8 @@ fi
 
 %if %{with_qemu}
 %dir %attr(0700, root, root) %{_localstatedir}/run/libvirt/qemu/
-%dir %attr(0700, %{qemu_user}, %{qemu_group}) %{_localstatedir}/lib/libvirt/qemu/
-%dir %attr(0700, %{qemu_user}, %{qemu_group}) %{_localstatedir}/cache/libvirt/qemu/
+%dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/lib/libvirt/qemu/
+%dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/cache/libvirt/qemu/
 %endif
 %if %{with_lxc}
 %dir %{_localstatedir}/run/libvirt/lxc/
@@ -888,6 +922,7 @@ fi
 %doc examples/domsuspend
 %doc examples/openauth
 %doc examples/xml
+%doc examples/systemtap
 
 %if %{with_python}
 %files python
@@ -903,6 +938,16 @@ fi
 %endif
 
 %changelog
+* Fri Oct 29 2010 Daniel Veillard <veillard@redhat.com> - 0.8.5-1
+- Enable JSON and netdev features in QEMU >= 0.13
+- framework for auditing integration
+- framework DTrace/SystemTap integration
+- Setting the number of vcpu at boot
+- Enable support for nested SVM
+- Virtio plan9fs filesystem QEMU
+- Memory parameter controls
+- various improvements and bug fixes
+
 * Fri Sep 10 2010 Daniel Veillard <veillard@redhat.com> - 0.8.4-1
 - big improvements to UML driver
 - various improvements and bug fixes

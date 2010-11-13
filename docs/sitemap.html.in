@@ -13,7 +13,7 @@
         <span>Details of new features and bugs fixed in each release</span>
         <ul>
           <li>
-            <a href="ChangeLog.html">Changelog</a>
+            <a href="http://libvirt.org/git/?p=libvirt.git;a=log">Git log</a>
             <span>Latest commit messages from the source repository </span>
           </li>
         </ul>
@@ -242,6 +242,10 @@
                 <a href="java.html">Java</a>
                 <span>overview of the Java API bindings</span>
               </li>
+              <li>
+                <a href="csharp.html">C#</a>
+                <span>overview of the C# API bindings</span>
+              </li>
             </ul>
           </li>
           <li>
@@ -258,6 +262,10 @@
               </li>
             </ul>
           </li>
+          <li>
+            <a href="devguide.html">Development Guide</a>
+            <span>A guide and reference for developing with libvirt</span>
+          </li>
         </ul>
       </li>
       <li>
@@ -271,6 +279,12 @@
       <li>
         <a href="bugs.html">Bug reports</a>
         <span>How and where to report bugs and request features</span>
+        <ul>
+          <li>
+            <a href="todo.html">Todo list</a>
+            <span>Main feature request list</span>
+          </li>
+        </ul>
       </li>
       <li>
         <a href="contact.html">Contact</a>

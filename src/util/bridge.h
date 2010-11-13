@@ -28,6 +28,7 @@
 
 #  include <net/if.h>
 #  include <netinet/in.h>
+#  include "network.h"
 
 /**
  * BR_IFNAME_MAXLEN:
@@ -84,18 +85,10 @@ int     brGetInterfaceUp        (brControl *ctl,
 
 int     brSetInetAddress        (brControl *ctl,
                                  const char *ifname,
-                                 const char *addr);
-int     brGetInetAddress        (brControl *ctl,
-                                 const char *ifname,
-                                 char *addr,
-                                 int maxlen);
+                                 virSocketAddr *addr);
 int     brSetInetNetmask        (brControl *ctl,
                                  const char *ifname,
-                                 const char *netmask);
-int     brGetInetNetmask        (brControl *ctl,
-                                 const char *ifname,
-                                 char *netmask,
-                                 int maxlen);
+                                 virSocketAddr *addr);
 
 int     brSetForwardDelay       (brControl *ctl,
                                  const char *bridge,

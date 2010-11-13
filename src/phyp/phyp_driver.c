@@ -1497,12 +1497,24 @@ phypGetLparCPU(virConnectPtr conn, const char *managed_system, int lpar_id)
 }
 
 static int
-phypGetLparCPUMAX(virDomainPtr dom)
+phypDomainGetVcpusFlags(virDomainPtr dom, unsigned int flags)
 {
     phyp_driverPtr phyp_driver = dom->conn->privateData;
     char *managed_system = phyp_driver->managed_system;
 
+    if (flags != (VIR_DOMAIN_VCPU_LIVE | VIR_DOMAIN_VCPU_MAXIMUM)) {
+        PHYP_ERROR(VIR_ERR_INVALID_ARG, _("unsupported flags: (0x%x)"), flags);
+        return -1;
+    }
+
     return phypGetLparCPUGeneric(dom->conn, managed_system, dom->id, 1);
+}
+
+static int
+phypGetLparCPUMAX(virDomainPtr dom)
+{
+    return phypDomainGetVcpusFlags(dom, (VIR_DOMAIN_VCPU_LIVE |
+                                         VIR_DOMAIN_VCPU_MAXIMUM));
 }
 
 static int
@@ -3516,19 +3528,19 @@ phypDomainDumpXML(virDomainPtr dom, int flags)
         goto err;
     }
 
-    if ((def.maxmem =
+    if ((def.mem.max_balloon =
          phypGetLparMem(dom->conn, managed_system, dom->id, 0)) == 0) {
         VIR_ERROR0(_("Unable to determine domain's max memory."));
         goto err;
     }
 
-    if ((def.memory =
+    if ((def.mem.cur_balloon =
          phypGetLparMem(dom->conn, managed_system, dom->id, 1)) == 0) {
         VIR_ERROR0(_("Unable to determine domain's memory."));
         goto err;
     }
 
-    if ((def.vcpus =
+    if ((def.maxvcpus = def.vcpus =
          phypGetLparCPU(dom->conn, managed_system, dom->id)) == 0) {
         VIR_ERROR0(_("Unable to determine domain's CPU."));
         goto err;
@@ -3701,13 +3713,41 @@ phypBuildLpar(virConnectPtr conn, virDomainDefPtr def)
     int exit_status = 0;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
+    if (!def->mem.cur_balloon) {
+        PHYP_ERROR(VIR_ERR_XML_ERROR,"%s",
+                _("Field \"<memory>\" on the domain XML file is missing or has "
+                    "invalid value."));
+        goto err;
+    }
+
+    if (!def->mem.max_balloon) {
+        PHYP_ERROR(VIR_ERR_XML_ERROR,"%s",
+                _("Field \"<currentMemory>\" on the domain XML file is missing or"
+                    " has invalid value."));
+        goto err;
+    }
+
+    if (def->ndisks < 1) {
+        PHYP_ERROR(VIR_ERR_XML_ERROR, "%s",
+                   _("Domain XML must contain at least one \"<disk>\" element."));
+        goto err;
+    }
+
+    if (!def->disks[0]->src) {
+        PHYP_ERROR(VIR_ERR_XML_ERROR,"%s",
+                   _("Field \"<src>\" under \"<disk>\" on the domain XML file is "
+                     "missing."));
+        goto err;
+    }
+
     virBufferAddLit(&buf, "mksyscfg");
     if (system_type == HMC)
         virBufferVSprintf(&buf, " -m %s", managed_system);
     virBufferVSprintf(&buf, " -r lpar -p %s -i min_mem=%d,desired_mem=%d,"
                       "max_mem=%d,desired_procs=%d,virtual_scsi_adapters=%s",
-                      def->name, (int) def->memory, (int) def->memory,
-                      (int) def->maxmem, (int) def->vcpus, def->disks[0]->src);
+                      def->name, (int) def->mem.cur_balloon,
+                      (int) def->mem.cur_balloon, (int) def->mem.max_balloon,
+                      (int) def->vcpus, def->disks[0]->src);
     if (virBufferError(&buf)) {
         virBufferFreeAndReset(&buf);
         virReportOOMError();
@@ -3803,7 +3843,8 @@ phypConnectGetCapabilities(virConnectPtr conn)
 }
 
 static int
-phypDomainSetCPU(virDomainPtr dom, unsigned int nvcpus)
+phypDomainSetVcpusFlags(virDomainPtr dom, unsigned int nvcpus,
+                        unsigned int flags)
 {
     ConnectionData *connection_data = dom->conn->networkPrivateData;
     phyp_driverPtr phyp_driver = dom->conn->privateData;
@@ -3817,6 +3858,11 @@ phypDomainSetCPU(virDomainPtr dom, unsigned int nvcpus)
     unsigned long ncpus = 0;
     unsigned int amount = 0;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
+
+    if (flags != VIR_DOMAIN_VCPU_LIVE) {
+        PHYP_ERROR(VIR_ERR_INVALID_ARG, _("unsupported flags: (0x%x)"), flags);
+        return -1;
+    }
 
     if ((ncpus = phypGetLparCPU(dom->conn, managed_system, dom->id)) == 0)
         return 0;
@@ -3861,6 +3907,12 @@ phypDomainSetCPU(virDomainPtr dom, unsigned int nvcpus)
     VIR_FREE(ret);
     return 0;
 
+}
+
+static int
+phypDomainSetCPU(virDomainPtr dom, unsigned int nvcpus)
+{
+    return phypDomainSetVcpusFlags(dom, nvcpus, VIR_DOMAIN_VCPU_LIVE);
 }
 
 static virDrvOpenStatus
@@ -3913,6 +3965,8 @@ static virDriver phypDriver = {
     NULL,                       /* domainRestore */
     NULL,                       /* domainCoreDump */
     phypDomainSetCPU,           /* domainSetVcpus */
+    phypDomainSetVcpusFlags,    /* domainSetVcpusFlags */
+    phypDomainGetVcpusFlags,    /* domainGetVcpusFlags */
     NULL,                       /* domainPinVcpu */
     NULL,                       /* domainGetVcpus */
     phypGetLparCPUMAX,          /* domainGetMaxVcpus */
@@ -3980,6 +4034,8 @@ static virDriver phypDriver = {
     NULL,                       /* domainRevertToSnapshot */
     NULL,                       /* domainSnapshotDelete */
     NULL,                       /* qemuMonitorCommand */
+    NULL,                       /* domainSetMemoryParameters */
+    NULL,                       /* domainGetMemoryParameters */
 };
 
 static virStorageDriver phypStorageDriver = {

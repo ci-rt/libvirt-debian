@@ -43,9 +43,7 @@
 #endif
 #include <string.h>
 #include <signal.h>
-#if HAVE_TERMIOS_H
-# include <termios.h>
-#endif
+#include <termios.h>
 #include "c-ctype.h"
 
 #ifdef HAVE_PATHS_H
@@ -925,6 +923,15 @@ virExecDaemonize(const char *const*argv ATTRIBUTE_UNUSED,
 {
     virUtilError(VIR_ERR_INTERNAL_ERROR,
                  "%s", _("virExecDaemonize is not implemented for WIN32"));
+
+    return -1;
+}
+
+int
+virFork(pid_t *pid)
+{
+    *pid = -1;
+    errno = ENOTSUP;
 
     return -1;
 }

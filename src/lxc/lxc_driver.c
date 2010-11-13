@@ -55,6 +55,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
+#define LXC_NB_MEM_PARAM  3
+
 typedef struct _lxcDomainObjPrivate lxcDomainObjPrivate;
 typedef lxcDomainObjPrivate *lxcDomainObjPrivatePtr;
 struct _lxcDomainObjPrivate {
@@ -483,7 +485,7 @@ static int lxcDomainGetInfo(virDomainPtr dom,
     lxc_driver_t *driver = dom->conn->privateData;
     virDomainObjPtr vm;
     virCgroupPtr cgroup = NULL;
-    int ret = -1;
+    int ret = -1, rc;
 
     lxcDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
@@ -500,7 +502,7 @@ static int lxcDomainGetInfo(virDomainPtr dom,
 
     if (!virDomainObjIsActive(vm) || driver->cgroup == NULL) {
         info->cpuTime = 0;
-        info->memory = vm->def->memory;
+        info->memory = vm->def->mem.cur_balloon;
     } else {
         if (virCgroupForDomain(driver->cgroup, vm->def->name, &cgroup, 0) != 0) {
             lxcError(VIR_ERR_INTERNAL_ERROR,
@@ -513,14 +515,19 @@ static int lxcDomainGetInfo(virDomainPtr dom,
                      "%s", _("Cannot read cputime for domain"));
             goto cleanup;
         }
-        if (virCgroupGetMemoryUsage(cgroup, &(info->memory)) < 0) {
+        if ((rc = virCgroupGetMemoryUsage(cgroup, &(info->memory))) < 0) {
             lxcError(VIR_ERR_OPERATION_FAILED,
                      "%s", _("Cannot read memory usage for domain"));
-            goto cleanup;
+            if (rc == -ENOENT) {
+                /* Don't fail if we can't read memory usage due to a lack of
+                 * kernel support */
+                info->memory = 0;
+            } else
+                goto cleanup;
         }
     }
 
-    info->maxMem = vm->def->maxmem;
+    info->maxMem = vm->def->mem.max_balloon;
     info->nrVirtCpu = 1;
     ret = 0;
 
@@ -580,7 +587,7 @@ static unsigned long lxcDomainGetMaxMemory(virDomainPtr dom) {
         goto cleanup;
     }
 
-    ret = vm->def->maxmem;
+    ret = vm->def->mem.max_balloon;
 
 cleanup:
     if (vm)
@@ -605,13 +612,13 @@ static int lxcDomainSetMaxMemory(virDomainPtr dom, unsigned long newmax) {
         goto cleanup;
     }
 
-    if (newmax < vm->def->memory) {
+    if (newmax < vm->def->mem.cur_balloon) {
         lxcError(VIR_ERR_INVALID_ARG,
                          "%s", _("Cannot set max memory lower than current memory"));
         goto cleanup;
     }
 
-    vm->def->maxmem = newmax;
+    vm->def->mem.max_balloon = newmax;
     ret = 0;
 
 cleanup:
@@ -637,7 +644,7 @@ static int lxcDomainSetMemory(virDomainPtr dom, unsigned long newmem) {
         goto cleanup;
     }
 
-    if (newmem > vm->def->maxmem) {
+    if (newmem > vm->def->mem.max_balloon) {
         lxcError(VIR_ERR_INVALID_ARG,
                  "%s", _("Cannot set memory higher than max memory"));
         goto cleanup;
@@ -674,6 +681,219 @@ cleanup:
         virDomainObjUnlock(vm);
     if (cgroup)
         virCgroupFree(&cgroup);
+    return ret;
+}
+
+static int lxcDomainSetMemoryParameters(virDomainPtr dom,
+                                        virMemoryParameterPtr params,
+                                        int nparams,
+                                        unsigned int flags ATTRIBUTE_UNUSED)
+{
+    lxc_driver_t *driver = dom->conn->privateData;
+    int i;
+    virCgroupPtr cgroup = NULL;
+    virDomainObjPtr vm = NULL;
+    int ret = -1;
+
+    lxcDriverLock(driver);
+    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+
+    if (vm == NULL) {
+        char uuidstr[VIR_UUID_STRING_BUFLEN];
+        virUUIDFormat(dom->uuid, uuidstr);
+        lxcError(VIR_ERR_NO_DOMAIN,
+                 _("No domain with matching uuid '%s'"), uuidstr);
+        goto cleanup;
+    }
+
+    if (virCgroupForDomain(driver->cgroup, vm->def->name, &cgroup, 0) != 0) {
+        lxcError(VIR_ERR_INTERNAL_ERROR,
+                 _("cannot find cgroup for domain %s"), vm->def->name);
+        goto cleanup;
+    }
+
+    ret = 0;
+    for (i = 0; i < nparams; i++) {
+        virMemoryParameterPtr param = &params[i];
+
+        if (STREQ(param->field, VIR_DOMAIN_MEMORY_HARD_LIMIT)) {
+            int rc;
+            if (param->type != VIR_DOMAIN_MEMORY_PARAM_ULLONG) {
+                lxcError(VIR_ERR_INVALID_ARG, "%s",
+                         _("invalid type for memory hard_limit tunable, expected a 'ullong'"));
+                ret = -1;
+                continue;
+            }
+
+            rc = virCgroupSetMemoryHardLimit(cgroup, params[i].value.ul);
+            if (rc != 0) {
+                virReportSystemError(-rc, "%s",
+                                     _("unable to set memory hard_limit tunable"));
+                ret = -1;
+            }
+        } else if (STREQ(param->field, VIR_DOMAIN_MEMORY_SOFT_LIMIT)) {
+            int rc;
+            if (param->type != VIR_DOMAIN_MEMORY_PARAM_ULLONG) {
+                lxcError(VIR_ERR_INVALID_ARG, "%s",
+                         _("invalid type for memory soft_limit tunable, expected a 'ullong'"));
+                ret = -1;
+                continue;
+            }
+
+            rc = virCgroupSetMemorySoftLimit(cgroup, params[i].value.ul);
+            if (rc != 0) {
+                virReportSystemError(-rc, "%s",
+                                     _("unable to set memory soft_limit tunable"));
+                ret = -1;
+            }
+        } else if (STREQ(param->field, VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT)) {
+            int rc;
+            if (param->type != VIR_DOMAIN_MEMORY_PARAM_ULLONG) {
+                lxcError(VIR_ERR_INVALID_ARG, "%s",
+                         _("invalid type for swap_hard_limit tunable, expected a 'ullong'"));
+                ret = -1;
+                continue;
+            }
+
+            rc = virCgroupSetSwapHardLimit(cgroup, params[i].value.ul);
+            if (rc != 0) {
+                virReportSystemError(-rc, "%s",
+                                     _("unable to set swap_hard_limit tunable"));
+                ret = -1;
+            }
+        } else if (STREQ(param->field, VIR_DOMAIN_MEMORY_MIN_GUARANTEE)) {
+            lxcError(VIR_ERR_INVALID_ARG,
+                     _("Memory tunable `%s' not implemented"), param->field);
+            ret = -1;
+        } else {
+            lxcError(VIR_ERR_INVALID_ARG,
+                     _("Parameter `%s' not supported"), param->field);
+            ret = -1;
+        }
+    }
+
+cleanup:
+    if (cgroup)
+        virCgroupFree(&cgroup);
+    if (vm)
+        virDomainObjUnlock(vm);
+    lxcDriverUnlock(driver);
+    return ret;
+}
+
+static int lxcDomainGetMemoryParameters(virDomainPtr dom,
+                                        virMemoryParameterPtr params,
+                                        int *nparams,
+                                        unsigned int flags ATTRIBUTE_UNUSED)
+{
+    lxc_driver_t *driver = dom->conn->privateData;
+    int i;
+    virCgroupPtr cgroup = NULL;
+    virDomainObjPtr vm = NULL;
+    unsigned long val;
+    int ret = -1;
+    int rc;
+
+    lxcDriverLock(driver);
+    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+
+    if (vm == NULL) {
+        char uuidstr[VIR_UUID_STRING_BUFLEN];
+        virUUIDFormat(dom->uuid, uuidstr);
+        lxcError(VIR_ERR_NO_DOMAIN,
+                 _("No domain with matching uuid '%s'"), uuidstr);
+        goto cleanup;
+    }
+
+    if ((*nparams) == 0) {
+        /* Current number of memory parameters supported by cgroups */
+        *nparams = LXC_NB_MEM_PARAM;
+        ret = 0;
+        goto cleanup;
+    }
+    if ((*nparams) != LXC_NB_MEM_PARAM) {
+        lxcError(VIR_ERR_INVALID_ARG,
+                 "%s", _("Invalid parameter count"));
+        goto cleanup;
+    }
+
+    if (virCgroupForDomain(driver->cgroup, vm->def->name, &cgroup, 0) != 0) {
+        lxcError(VIR_ERR_INTERNAL_ERROR,
+                 _("Unable to get cgroup for %s"), vm->def->name);
+        goto cleanup;
+    }
+
+    ret = 0;
+    for (i = 0; i < *nparams; i++) {
+        virMemoryParameterPtr param = &params[i];
+        val = 0;
+        param->value.ul = 0;
+        param->type = VIR_DOMAIN_MEMORY_PARAM_ULLONG;
+
+        switch(i) {
+        case 0: /* fill memory hard limit here */
+            rc = virCgroupGetMemoryHardLimit(cgroup, &val);
+            if (rc != 0) {
+                virReportSystemError(-rc, "%s",
+                                     _("unable to get memory hard limit"));
+                ret = -1;
+                continue;
+            }
+            if (virStrcpyStatic(param->field, VIR_DOMAIN_MEMORY_HARD_LIMIT) == NULL) {
+                lxcError(VIR_ERR_INTERNAL_ERROR,
+                         "%s", _("Field memory hard limit too long for destination"));
+                ret = -1;
+                continue;
+            }
+            param->value.ul = val;
+            break;
+
+        case 1: /* fill memory soft limit here */
+            rc = virCgroupGetMemorySoftLimit(cgroup, &val);
+            if (rc != 0) {
+                virReportSystemError(-rc, "%s",
+                                     _("unable to get memory soft limit"));
+                ret = -1;
+                continue;
+            }
+            if (virStrcpyStatic(param->field, VIR_DOMAIN_MEMORY_SOFT_LIMIT) == NULL) {
+                lxcError(VIR_ERR_INTERNAL_ERROR,
+                         "%s", _("Field memory soft limit too long for destination"));
+                ret = -1;
+                continue;
+            }
+            param->value.ul = val;
+            break;
+
+        case 2: /* fill swap hard limit here */
+            rc = virCgroupGetSwapHardLimit(cgroup, &val);
+            if (rc != 0) {
+                virReportSystemError(-rc, "%s",
+                                     _("unable to get swap hard limit"));
+                ret = -1;
+                continue;
+            }
+            if (virStrcpyStatic(param->field, VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT) == NULL) {
+                lxcError(VIR_ERR_INTERNAL_ERROR,
+                         "%s", _("Field swap hard limit too long for destination"));
+                ret = -1;
+                continue;
+            }
+            param->value.ul = val;
+            break;
+
+        default:
+            break;
+            /* should not hit here */
+        }
+    }
+
+cleanup:
+    if (cgroup)
+        virCgroupFree(&cgroup);
+    if (vm)
+        virDomainObjUnlock(vm);
+    lxcDriverUnlock(driver);
     return ret;
 }
 
@@ -2553,6 +2773,8 @@ static virDriver lxcDriver = {
     NULL, /* domainRestore */
     NULL, /* domainCoreDump */
     NULL, /* domainSetVcpus */
+    NULL, /* domainSetVcpusFlags */
+    NULL, /* domainGetVcpusFlags */
     NULL, /* domainPinVcpu */
     NULL, /* domainGetVcpus */
     NULL, /* domainGetMaxVcpus */
@@ -2620,6 +2842,8 @@ static virDriver lxcDriver = {
     NULL, /* domainRevertToSnapshot */
     NULL, /* domainSnapshotDelete */
     NULL, /* qemuDomainMonitorCommand */
+    lxcDomainSetMemoryParameters, /* domainSetMemoryParameters */
+    lxcDomainGetMemoryParameters, /* domainGetMemoryParameters */
 };
 
 static virStateDriver lxcStateDriver = {

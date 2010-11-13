@@ -48,9 +48,9 @@ domain-xml                        <=>   vmx
 def->id = <value>                 <=>   ???                                     # not representable
 def->uuid = <value>               <=>   uuid.bios = "<value>"
 def->name = <value>               <=>   displayName = "<value>"
-def->maxmem = <value kilobyte>    <=>   memsize = "<value megabyte>"            # must be a multiple of 4, defaults to 32
-def->memory = <value kilobyte>    <=>   sched.mem.max = "<value megabyte>"      # defaults to "unlimited" -> def->memory = def->maxmem
-def->vcpus = <value>              <=>   numvcpus = "<value>"                    # must be 1 or a multiple of 2, defaults to 1
+def->mem.max_balloon = <value kilobyte>    <=>   memsize = "<value megabyte>"            # must be a multiple of 4, defaults to 32
+def->mem.cur_balloon = <value kilobyte>    <=>   sched.mem.max = "<value megabyte>"      # defaults to "unlimited" -> def->mem.cur_balloon = def->mem.max_balloon
+def->maxvcpus = <value>           <=>   numvcpus = "<value>"                    # must be 1 or a multiple of 2, defaults to 1
 def->cpumask = <uint list>        <=>   sched.cpu.affinity = "<uint list>"
 
 
@@ -379,6 +379,36 @@ def->serials[0]...
 ???                               <=>   serial0.yieldOnMsrRead = "true"         # defaults to "false", FIXME: not representable
 
 
+## serials: network, server (since vSphere 4.1) ################################
+
+->type = _CHR_TYPE_TCP            <=>   serial0.fileType = "network"
+
+->data.tcp.host = <host>          <=>   serial0.fileName = "<protocol>://<host>:<service>"
+->data.tcp.service = <service>                                                  # e.g. "telnet://0.0.0.0:42001"
+->data.tcp.protocol = <protocol>
+
+->data.tcp.listen = 1             <=>   serial0.network.endPoint = "server"     # defaults to "server"
+
+???                               <=>   serial0.vspc = "foobar"                 # defaults to <not present>, FIXME: not representable
+???                               <=>   serial0.tryNoRxLoss = "false"           # defaults to "false", FIXME: not representable
+???                               <=>   serial0.yieldOnMsrRead = "true"         # defaults to "false", FIXME: not representable
+
+
+## serials: network, client (since vSphere 4.1) ################################
+
+->type = _CHR_TYPE_TCP            <=>   serial0.fileType = "network"
+
+->data.tcp.host = <host>          <=>   serial0.fileName = "<protocol>://<host>:<service>"
+->data.tcp.service = <service>                                                  # e.g. "telnet://192.168.0.17:42001"
+->data.tcp.protocol = <protocol>
+
+->data.tcp.listen = 0             <=>   serial0.network.endPoint = "client"     # defaults to "server"
+
+???                               <=>   serial0.vspc = "foobar"                 # defaults to <not present>, FIXME: not representable
+???                               <=>   serial0.tryNoRxLoss = "false"           # defaults to "false", FIXME: not representable
+???                               <=>   serial0.yieldOnMsrRead = "true"         # defaults to "false", FIXME: not representable
+
+
 
 ################################################################################
 ## parallels ###################################################################
@@ -424,8 +454,11 @@ def->parallels[0]...
 
 #define VIR_FROM_THIS VIR_FROM_ESX
 
+#define ESX_BUILD_VMX_NAME_EXTRA(_suffix, _extra)                             \
+    snprintf(_suffix##_name, sizeof(_suffix##_name), "%s."_extra, prefix);
+
 #define ESX_BUILD_VMX_NAME(_suffix)                                           \
-    snprintf(_suffix##_name, sizeof(_suffix##_name), "%s."#_suffix, prefix);
+    ESX_BUILD_VMX_NAME_EXTRA(_suffix, #_suffix)
 
 /* directly map the virDomainControllerModel to esxVMX_SCSIControllerModel,
  * this is good enough for now because all virDomainControllerModel values
@@ -835,6 +868,8 @@ esxVMX_ParseConfig(esxVMX_Context *ctx, virCapsPtr caps, const char *vmx,
 {
     bool success = false;
     virConfPtr conf = NULL;
+    char *encoding = NULL;
+    char *utf8;
     virDomainDefPtr def = NULL;
     long long config_version = 0;
     long long virtualHW_version = 0;
@@ -843,8 +878,6 @@ esxVMX_ParseConfig(esxVMX_Context *ctx, virCapsPtr caps, const char *vmx,
     long long numvcpus = 0;
     char *sched_cpu_affinity = NULL;
     char *guestOS = NULL;
-    char *tmp1;
-    char *tmp2;
     int controller;
     int bus;
     int port;
@@ -864,6 +897,33 @@ esxVMX_ParseConfig(esxVMX_Context *ctx, virCapsPtr caps, const char *vmx,
         return NULL;
     }
 
+    /* vmx:.encoding */
+    if (esxUtil_GetConfigString(conf, ".encoding", &encoding, true) < 0) {
+        goto cleanup;
+    }
+
+    if (encoding == NULL || STRCASEEQ(encoding, "UTF-8")) {
+        /* nothing */
+    } else {
+        virConfFree(conf);
+        conf = NULL;
+
+        utf8 = esxUtil_ConvertToUTF8(encoding, vmx);
+
+        if (utf8 == NULL) {
+            goto cleanup;
+        }
+
+        conf = virConfReadMem(utf8, strlen(utf8), VIR_CONF_FLAG_VMX_FORMAT);
+
+        VIR_FREE(utf8);
+
+        if (conf == NULL) {
+            goto cleanup;
+        }
+    }
+
+    /* Allocate domain def */
     if (VIR_ALLOC(def) < 0) {
         virReportOOMError();
         return NULL;
@@ -949,37 +1009,31 @@ esxVMX_ParseConfig(esxVMX_Context *ctx, virCapsPtr caps, const char *vmx,
         goto cleanup;
     }
 
+    if (def->name != NULL) {
+        if (esxUtil_UnescapeHexPercent(def->name) < 0 ||
+            esxUtil_UnescapeHexPipe(def->name) < 0) {
+            ESX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
+                      _("VMX entry 'name' contains invalid escape sequence"));
+            goto cleanup;
+        }
+    }
+
     /* vmx:annotation -> def:description */
     if (esxUtil_GetConfigString(conf, "annotation", &def->description,
                                 true) < 0) {
         goto cleanup;
     }
 
-    /* Unescape '|XX' where X is a hex digit */
     if (def->description != NULL) {
-        tmp1 = def->description; /* reading from this one */
-        tmp2 = def->description; /* writing to this one */
-
-        while (*tmp1 != '\0') {
-            if (*tmp1 == '|') {
-                if (!c_isxdigit(tmp1[1]) || !c_isxdigit(tmp1[2])) {
-                    ESX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
-                              _("VMX entry 'annotation' contains invalid "
-                                "escape sequence"));
-                    goto cleanup;
-                }
-
-                *tmp2++ = virHexToBin(tmp1[1]) * 16 + virHexToBin(tmp1[2]);
-                tmp1 += 3;
-            } else {
-                *tmp2++ = *tmp1++;
-            }
+        if (esxUtil_UnescapeHexPipe(def->description) < 0) {
+            ESX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
+                      _("VMX entry 'annotation' contains invalid escape "
+                        "sequence"));
+            goto cleanup;
         }
-
-        *tmp2 = '\0';
     }
 
-    /* vmx:memsize -> def:maxmem */
+    /* vmx:memsize -> def:mem.max_balloon */
     if (esxUtil_GetConfigLong(conf, "memsize", &memsize, 32, true) < 0) {
         goto cleanup;
     }
@@ -991,7 +1045,7 @@ esxVMX_ParseConfig(esxVMX_Context *ctx, virCapsPtr caps, const char *vmx,
         goto cleanup;
     }
 
-    def->maxmem = memsize * 1024; /* Scale from megabytes to kilobytes */
+    def->mem.max_balloon = memsize * 1024; /* Scale from megabytes to kilobytes */
 
     /* vmx:sched.mem.max -> def:memory */
     if (esxUtil_GetConfigLong(conf, "sched.mem.max", &memory, memsize,
@@ -1003,10 +1057,10 @@ esxVMX_ParseConfig(esxVMX_Context *ctx, virCapsPtr caps, const char *vmx,
         memory = memsize;
     }
 
-    def->memory = memory * 1024; /* Scale from megabytes to kilobytes */
+    def->mem.cur_balloon = memory * 1024; /* Scale from megabytes to kilobytes */
 
-    if (def->memory > def->maxmem) {
-        def->memory = def->maxmem;
+    if (def->mem.cur_balloon > def->mem.max_balloon) {
+        def->mem.cur_balloon = def->mem.max_balloon;
     }
 
     /* vmx:numvcpus -> def:vcpus */
@@ -1021,7 +1075,7 @@ esxVMX_ParseConfig(esxVMX_Context *ctx, virCapsPtr caps, const char *vmx,
         goto cleanup;
     }
 
-    def->vcpus = numvcpus;
+    def->maxvcpus = def->vcpus = numvcpus;
 
     /* vmx:sched.cpu.affinity -> def:cpumask */
     // VirtualMachine:config.cpuAffinity.affinitySet
@@ -1334,6 +1388,7 @@ esxVMX_ParseConfig(esxVMX_Context *ctx, virCapsPtr caps, const char *vmx,
     }
 
     virConfFree(conf);
+    VIR_FREE(encoding);
     VIR_FREE(sched_cpu_affinity);
     VIR_FREE(guestOS);
 
@@ -2113,6 +2168,11 @@ esxVMX_ParseSerial(esxVMX_Context *ctx, virConfPtr conf, int port,
     char fileName_name[48] = "";
     char *fileName = NULL;
 
+    char network_endPoint_name[48] = "";
+    char *network_endPoint = NULL;
+
+    xmlURIPtr parsedUri = NULL;
+
     if (def == NULL || *def != NULL) {
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
         return -1;
@@ -2137,6 +2197,7 @@ esxVMX_ParseSerial(esxVMX_Context *ctx, virConfPtr conf, int port,
     ESX_BUILD_VMX_NAME(startConnected);
     ESX_BUILD_VMX_NAME(fileType);
     ESX_BUILD_VMX_NAME(fileName);
+    ESX_BUILD_VMX_NAME_EXTRA(network_endPoint, "network.endPoint");
 
     /* vmx:present */
     if (esxUtil_GetConfigBoolean(conf, present_name, &present, false,
@@ -2165,6 +2226,12 @@ esxVMX_ParseSerial(esxVMX_Context *ctx, virConfPtr conf, int port,
         goto cleanup;
     }
 
+    /* vmx:network.endPoint -> def:data.tcp.listen */
+    if (esxUtil_GetConfigString(conf, network_endPoint_name, &network_endPoint,
+                                true) < 0) {
+        goto cleanup;
+    }
+
     /* Setup virDomainChrDef */
     if (STRCASEEQ(fileType, "device")) {
         (*def)->target.port = port;
@@ -2190,10 +2257,72 @@ esxVMX_ParseSerial(esxVMX_Context *ctx, virConfPtr conf, int port,
         (*def)->data.file.path = fileName;
 
         fileName = NULL;
+    } else if (STRCASEEQ(fileType, "network")) {
+        (*def)->target.port = port;
+        (*def)->type = VIR_DOMAIN_CHR_TYPE_TCP;
+
+        parsedUri = xmlParseURI(fileName);
+
+        if (parsedUri == NULL) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+        if (parsedUri->port == 0) {
+            ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                      _("VMX entry '%s' doesn't contain a port part"),
+                      fileName_name);
+            goto cleanup;
+        }
+
+        (*def)->data.tcp.host = strdup(parsedUri->server);
+
+        if ((*def)->data.tcp.host == NULL) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+        if (virAsprintf(&(*def)->data.tcp.service, "%d", parsedUri->port) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+        /* See vSphere API documentation about VirtualSerialPortURIBackingInfo */
+        if (parsedUri->scheme == NULL ||
+            STRCASEEQ(parsedUri->scheme, "tcp") ||
+            STRCASEEQ(parsedUri->scheme, "tcp4") ||
+            STRCASEEQ(parsedUri->scheme, "tcp6")) {
+            (*def)->data.tcp.protocol = VIR_DOMAIN_CHR_TCP_PROTOCOL_RAW;
+        } else if (STRCASEEQ(parsedUri->scheme, "telnet")) {
+            (*def)->data.tcp.protocol = VIR_DOMAIN_CHR_TCP_PROTOCOL_TELNET;
+        } else if (STRCASEEQ(parsedUri->scheme, "telnets")) {
+            (*def)->data.tcp.protocol = VIR_DOMAIN_CHR_TCP_PROTOCOL_TELNETS;
+        } else if (STRCASEEQ(parsedUri->scheme, "ssl") ||
+                   STRCASEEQ(parsedUri->scheme, "tcp+ssl") ||
+                   STRCASEEQ(parsedUri->scheme, "tcp4+ssl") ||
+                   STRCASEEQ(parsedUri->scheme, "tcp6+ssl")) {
+            (*def)->data.tcp.protocol = VIR_DOMAIN_CHR_TCP_PROTOCOL_TLS;
+        } else {
+            ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                      _("VMX entry '%s' contains unsupported scheme '%s'"),
+                      fileName_name, parsedUri->scheme);
+            goto cleanup;
+        }
+
+        if (network_endPoint == NULL || STRCASEEQ(network_endPoint, "server")) {
+            (*def)->data.tcp.listen = 1;
+        } else if (STRCASEEQ(network_endPoint, "client")) {
+            (*def)->data.tcp.listen = 0;
+        } else {
+            ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                      _("Expecting VMX entry '%s' to be 'server' or 'client' "
+                        "but found '%s'"), network_endPoint_name, network_endPoint);
+            goto cleanup;
+        }
     } else {
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                   _("Expecting VMX entry '%s' to be 'device', 'file' or 'pipe' "
-                    "but found '%s'"), fileType_name, fileType);
+                    "or 'network' but found '%s'"), fileType_name, fileType);
         goto cleanup;
     }
 
@@ -2207,6 +2336,8 @@ esxVMX_ParseSerial(esxVMX_Context *ctx, virConfPtr conf, int port,
 
     VIR_FREE(fileType);
     VIR_FREE(fileName);
+    VIR_FREE(network_endPoint);
+    xmlFreeURI(parsedUri);
 
     return result;
 
@@ -2351,9 +2482,8 @@ esxVMX_FormatConfig(esxVMX_Context *ctx, virCapsPtr caps, virDomainDefPtr def,
     int sched_cpu_affinity_length;
     unsigned char zero[VIR_UUID_BUFLEN];
     virBuffer buffer = VIR_BUFFER_INITIALIZER;
-    size_t length;
-    char *tmp1;
-    char *tmp2;
+    char *preliminaryDisplayName = NULL;
+    char *displayName = NULL;
     char *annotation = NULL;
     bool scsi_present[4] = { false, false, false, false };
     int scsi_virtualDev[4] = { -1, -1, -1, -1 };
@@ -2374,6 +2504,9 @@ esxVMX_FormatConfig(esxVMX_Context *ctx, virCapsPtr caps, virDomainDefPtr def,
                   virDomainVirtTypeToString(def->virtType));
         return NULL;
     }
+
+    /* vmx:.encoding */
+    virBufferAddLit(&buffer, ".encoding = \"UTF-8\"\n");
 
     /* vmx:config.version */
     virBufferAddLit(&buffer, "config.version = \"8\"\n");
@@ -2427,86 +2560,71 @@ esxVMX_FormatConfig(esxVMX_Context *ctx, virCapsPtr caps, virDomainDefPtr def,
     }
 
     /* def:name -> vmx:displayName */
-    virBufferVSprintf(&buffer, "displayName = \"%s\"\n", def->name);
+    preliminaryDisplayName = esxUtil_EscapeHexPipe(def->name);
+
+    if (preliminaryDisplayName == NULL) {
+        goto cleanup;
+    }
+
+    displayName = esxUtil_EscapeHexPercent(preliminaryDisplayName);
+
+    if (displayName == NULL) {
+        goto cleanup;
+    }
+
+    virBufferVSprintf(&buffer, "displayName = \"%s\"\n", displayName);
 
     /* def:description -> vmx:annotation */
     if (def->description != NULL) {
-        /* Escape '"' as '|22' and '|' as '|7C' */
-        length = 1; /* 1 byte for termination */
-        tmp1 = def->description;
-
-        while (*tmp1 != '\0') {
-            if (*tmp1 == '"' || *tmp1 == '|') {
-                length += 2;
-            }
-
-            ++tmp1;
-            ++length;
-        }
-
-        if (VIR_ALLOC_N(annotation, length) < 0) {
-            virReportOOMError();
-            goto cleanup;
-        }
-
-        tmp1 = def->description; /* reading from this one */
-        tmp2 = annotation; /* writing to this one */
-
-        while (*tmp1 != '\0') {
-            if (*tmp1 == '"') {
-                *tmp2++ = '|'; *tmp2++ = '2'; *tmp2++ = '2';
-            } else if (*tmp1 == '|') {
-                *tmp2++ = '|'; *tmp2++ = '7'; *tmp2++ = 'C';
-            } else {
-                *tmp2++ = *tmp1;
-            }
-
-            ++tmp1;
-        }
-
-        *tmp2 = '\0';
+        annotation = esxUtil_EscapeHexPipe(def->description);
 
         virBufferVSprintf(&buffer, "annotation = \"%s\"\n", annotation);
     }
 
-    /* def:maxmem -> vmx:memsize */
-    if (def->maxmem <= 0 || def->maxmem % 4096 != 0) {
+    /* def:mem.max_balloon -> vmx:memsize */
+    if (def->mem.max_balloon <= 0 || def->mem.max_balloon % 4096 != 0) {
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                   _("Expecting domain XML entry 'memory' to be an unsigned "
                     "integer (multiple of 4096) but found %lld"),
-                  (unsigned long long)def->maxmem);
+                  (unsigned long long)def->mem.max_balloon);
         goto cleanup;
     }
 
     /* Scale from kilobytes to megabytes */
     virBufferVSprintf(&buffer, "memsize = \"%d\"\n",
-                      (int)(def->maxmem / 1024));
+                      (int)(def->mem.max_balloon / 1024));
 
     /* def:memory -> vmx:sched.mem.max */
-    if (def->memory < def->maxmem) {
-        if (def->memory <= 0 || def->memory % 1024 != 0) {
+    if (def->mem.cur_balloon < def->mem.max_balloon) {
+        if (def->mem.cur_balloon <= 0 || def->mem.cur_balloon % 1024 != 0) {
             ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                       _("Expecting domain XML entry 'currentMemory' to be an "
                         "unsigned integer (multiple of 1024) but found %lld"),
-                      (unsigned long long)def->memory);
+                      (unsigned long long)def->mem.cur_balloon);
             goto cleanup;
         }
 
         /* Scale from kilobytes to megabytes */
         virBufferVSprintf(&buffer, "sched.mem.max = \"%d\"\n",
-                          (int)(def->memory / 1024));
+                          (int)(def->mem.cur_balloon / 1024));
     }
 
-    /* def:vcpus -> vmx:numvcpus */
-    if (def->vcpus <= 0 || (def->vcpus % 2 != 0 && def->vcpus != 1)) {
+    /* def:maxvcpus -> vmx:numvcpus */
+    if (def->vcpus != def->maxvcpus) {
+        ESX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
+                  _("No support for domain XML entry 'vcpu' attribute "
+                    "'current'"));
+        goto cleanup;
+    }
+    if (def->maxvcpus <= 0 || (def->maxvcpus % 2 != 0 && def->maxvcpus != 1)) {
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                   _("Expecting domain XML entry 'vcpu' to be an unsigned "
                     "integer (1 or a multiple of 2) but found %d"),
-                  (int)def->vcpus);
+                  def->maxvcpus);
         goto cleanup;
     }
 
-    virBufferVSprintf(&buffer, "numvcpus = \"%d\"\n", (int)def->vcpus);
+    virBufferVSprintf(&buffer, "numvcpus = \"%d\"\n", def->maxvcpus);
 
     /* def:cpumask -> vmx:sched.cpu.affinity */
     if (def->cpumasklen > 0) {
@@ -2520,11 +2638,11 @@ esxVMX_FormatConfig(esxVMX_Context *ctx, virCapsPtr caps, virDomainDefPtr def,
             }
         }
 
-        if (sched_cpu_affinity_length < def->vcpus) {
+        if (sched_cpu_affinity_length < def->maxvcpus) {
             ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                       _("Expecting domain XML attribute 'cpuset' of entry "
-                        "'vcpu' to contains at least %d CPU(s)"),
-                      (int)def->vcpus);
+                        "'vcpu' to contain at least %d CPU(s)"),
+                      def->maxvcpus);
             goto cleanup;
         }
 
@@ -2671,6 +2789,8 @@ esxVMX_FormatConfig(esxVMX_Context *ctx, virCapsPtr caps, virDomainDefPtr def,
         virBufferFreeAndReset(&buffer);
     }
 
+    VIR_FREE(preliminaryDisplayName);
+    VIR_FREE(displayName);
     VIR_FREE(annotation);
 
     return vmx;
@@ -3069,18 +3189,12 @@ esxVMX_FormatSerial(esxVMX_Context *ctx, virDomainChrDefPtr def,
                     virBufferPtr buffer)
 {
     char *fileName = NULL;
+    const char *protocol;
 
     if (def->target.port < 0 || def->target.port > 3) {
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                   _("Serial port index %d out of [0..3] range"),
                   def->target.port);
-        return -1;
-    }
-
-    if (def->data.file.path == NULL) {
-        ESX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
-                  _("Expecting domain XML attribute 'path' of entry "
-                    "'devices/serial/source' to be present"));
         return -1;
     }
 
@@ -3124,6 +3238,41 @@ esxVMX_FormatSerial(esxVMX_Context *ctx, virDomainChrDefPtr def,
                           def->target.port, def->data.file.path);
         break;
 
+      case VIR_DOMAIN_CHR_TYPE_TCP:
+        switch (def->data.tcp.protocol) {
+          case VIR_DOMAIN_CHR_TCP_PROTOCOL_RAW:
+            protocol = "tcp";
+            break;
+
+          case VIR_DOMAIN_CHR_TCP_PROTOCOL_TELNET:
+            protocol = "telnet";
+            break;
+
+          case VIR_DOMAIN_CHR_TCP_PROTOCOL_TELNETS:
+            protocol = "telnets";
+            break;
+
+          case VIR_DOMAIN_CHR_TCP_PROTOCOL_TLS:
+            protocol = "ssl";
+            break;
+
+          default:
+            ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                      _("Unsupported character device TCP protocol '%s'"),
+                      virDomainChrTcpProtocolTypeToString(def->data.tcp.protocol));
+            return -1;
+        }
+
+        virBufferVSprintf(buffer, "serial%d.fileType = \"network\"\n",
+                          def->target.port);
+        virBufferVSprintf(buffer, "serial%d.fileName = \"%s://%s:%s\"\n",
+                          def->target.port, protocol, def->data.tcp.host,
+                          def->data.tcp.service);
+        virBufferVSprintf(buffer, "serial%d.network.endPoint = \"%s\"\n",
+                          def->target.port,
+                          def->data.tcp.listen ? "server" : "client");
+        break;
+
       default:
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                   _("Unsupported character device type '%s'"),
@@ -3151,13 +3300,6 @@ esxVMX_FormatParallel(esxVMX_Context *ctx, virDomainChrDefPtr def,
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                   _("Parallel port index %d out of [0..2] range"),
                   def->target.port);
-        return -1;
-    }
-
-    if (def->data.file.path == NULL) {
-        ESX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
-                  _("Expecting domain XML attribute 'path' of entry "
-                    "'devices/parallel/source' to be present"));
         return -1;
     }
 

@@ -2284,6 +2284,175 @@ done:
 }
 
 static int
+remoteDomainSetMemoryParameters (virDomainPtr domain,
+                                 virMemoryParameterPtr params,
+                                 int nparams,
+                                 unsigned int flags)
+{
+    int rv = -1;
+    remote_domain_set_memory_parameters_args args;
+    int i, do_error;
+    struct private_data *priv = domain->conn->privateData;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain (&args.dom, domain);
+
+    /* Serialise the memory parameters. */
+    args.params.params_len = nparams;
+    args.flags = flags;
+    if (VIR_ALLOC_N(args.params.params_val, nparams) < 0) {
+        virReportOOMError();
+        goto done;
+    }
+
+    do_error = 0;
+    for (i = 0; i < nparams; ++i) {
+        // call() will free this:
+        args.params.params_val[i].field = strdup (params[i].field);
+        if (args.params.params_val[i].field == NULL) {
+            virReportOOMError();
+            do_error = 1;
+        }
+        args.params.params_val[i].value.type = params[i].type;
+        switch (params[i].type) {
+        case VIR_DOMAIN_MEMORY_PARAM_INT:
+            args.params.params_val[i].value.remote_memory_param_value_u.i =
+                params[i].value.i; break;
+        case VIR_DOMAIN_MEMORY_PARAM_UINT:
+            args.params.params_val[i].value.remote_memory_param_value_u.ui =
+                params[i].value.ui; break;
+        case VIR_DOMAIN_MEMORY_PARAM_LLONG:
+            args.params.params_val[i].value.remote_memory_param_value_u.l =
+                params[i].value.l; break;
+        case VIR_DOMAIN_MEMORY_PARAM_ULLONG:
+            args.params.params_val[i].value.remote_memory_param_value_u.ul =
+                params[i].value.ul; break;
+        case VIR_DOMAIN_MEMORY_PARAM_DOUBLE:
+            args.params.params_val[i].value.remote_memory_param_value_u.d =
+                params[i].value.d; break;
+        case VIR_DOMAIN_MEMORY_PARAM_BOOLEAN:
+            args.params.params_val[i].value.remote_memory_param_value_u.b =
+                params[i].value.b; break;
+        default:
+            remoteError(VIR_ERR_RPC, "%s", _("unknown parameter type"));
+            do_error = 1;
+        }
+    }
+
+    if (do_error) {
+        xdr_free ((xdrproc_t) xdr_remote_domain_set_memory_parameters_args,
+                  (char *) &args);
+        goto done;
+    }
+
+    if (call (domain->conn, priv, 0, REMOTE_PROC_DOMAIN_SET_MEMORY_PARAMETERS,
+              (xdrproc_t) xdr_remote_domain_set_memory_parameters_args,
+              (char *) &args, (xdrproc_t) xdr_void, (char *) NULL) == -1)
+        goto done;
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainGetMemoryParameters (virDomainPtr domain,
+                                 virMemoryParameterPtr params, int *nparams,
+                                 unsigned int flags)
+{
+    int rv = -1;
+    remote_domain_get_memory_parameters_args args;
+    remote_domain_get_memory_parameters_ret ret;
+    int i = -1;
+    struct private_data *priv = domain->conn->privateData;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain (&args.dom, domain);
+    args.nparams = *nparams;
+    args.flags = flags;
+
+    memset (&ret, 0, sizeof ret);
+    if (call (domain->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_MEMORY_PARAMETERS,
+              (xdrproc_t) xdr_remote_domain_get_memory_parameters_args, (char *) &args,
+              (xdrproc_t) xdr_remote_domain_get_memory_parameters_ret, (char *) &ret) == -1)
+        goto done;
+
+    /* Check the length of the returned list carefully. */
+    if (ret.params.params_len > REMOTE_DOMAIN_MEMORY_PARAMETERS_MAX ||
+        ret.params.params_len > *nparams) {
+        remoteError(VIR_ERR_RPC, "%s",
+                    _("remoteDomainGetMemoryParameters: "
+                      "returned number of parameters exceeds limit"));
+        goto cleanup;
+    }
+    /* Handle the case when the caller does not know the number of parameters
+     * and is asking for the number of parameters supported
+     */
+    if (*nparams == 0) {
+        *nparams = ret.nparams;
+        rv = 0;
+        goto cleanup;
+    }
+
+    *nparams = ret.params.params_len;
+
+    /* Deserialise the result. */
+    for (i = 0; i < *nparams; ++i) {
+        if (virStrcpyStatic(params[i].field, ret.params.params_val[i].field) == NULL) {
+            remoteError(VIR_ERR_INTERNAL_ERROR,
+                        _("Parameter %s too big for destination"),
+                        ret.params.params_val[i].field);
+            goto cleanup;
+        }
+        params[i].type = ret.params.params_val[i].value.type;
+        switch (params[i].type) {
+        case VIR_DOMAIN_MEMORY_PARAM_INT:
+            params[i].value.i =
+                ret.params.params_val[i].value.remote_memory_param_value_u.i;
+            break;
+        case VIR_DOMAIN_MEMORY_PARAM_UINT:
+            params[i].value.ui =
+                ret.params.params_val[i].value.remote_memory_param_value_u.ui;
+            break;
+        case VIR_DOMAIN_MEMORY_PARAM_LLONG:
+            params[i].value.l =
+                ret.params.params_val[i].value.remote_memory_param_value_u.l;
+            break;
+        case VIR_DOMAIN_MEMORY_PARAM_ULLONG:
+            params[i].value.ul =
+                ret.params.params_val[i].value.remote_memory_param_value_u.ul;
+            break;
+        case VIR_DOMAIN_MEMORY_PARAM_DOUBLE:
+            params[i].value.d =
+                ret.params.params_val[i].value.remote_memory_param_value_u.d;
+            break;
+        case VIR_DOMAIN_MEMORY_PARAM_BOOLEAN:
+            params[i].value.b =
+                ret.params.params_val[i].value.remote_memory_param_value_u.b;
+            break;
+        default:
+            remoteError(VIR_ERR_RPC, "%s",
+                        _("remoteDomainGetMemoryParameters: "
+                          "unknown parameter type"));
+            goto cleanup;
+        }
+    }
+
+    rv = 0;
+
+cleanup:
+    xdr_free ((xdrproc_t) xdr_remote_domain_get_memory_parameters_ret,
+              (char *) &ret);
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
 remoteDomainGetInfo (virDomainPtr domain, virDomainInfoPtr info)
 {
     int rv = -1;
@@ -2404,6 +2573,59 @@ remoteDomainSetVcpus (virDomainPtr domain, unsigned int nvcpus)
         goto done;
 
     rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainSetVcpusFlags (virDomainPtr domain, unsigned int nvcpus,
+                           unsigned int flags)
+{
+    int rv = -1;
+    remote_domain_set_vcpus_flags_args args;
+    struct private_data *priv = domain->conn->privateData;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain (&args.dom, domain);
+    args.nvcpus = nvcpus;
+    args.flags = flags;
+
+    if (call (domain->conn, priv, 0, REMOTE_PROC_DOMAIN_SET_VCPUS_FLAGS,
+              (xdrproc_t) xdr_remote_domain_set_vcpus_flags_args,
+              (char *) &args,
+              (xdrproc_t) xdr_void, (char *) NULL) == -1)
+        goto done;
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainGetVcpusFlags (virDomainPtr domain, unsigned int flags)
+{
+    int rv = -1;
+    remote_domain_get_vcpus_flags_args args;
+    remote_domain_get_vcpus_flags_ret ret;
+    struct private_data *priv = domain->conn->privateData;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain (&args.dom, domain);
+    args.flags = flags;
+
+    memset (&ret, 0, sizeof ret);
+    if (call (domain->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_VCPUS_FLAGS,
+              (xdrproc_t) xdr_remote_domain_get_vcpus_flags_args, (char *) &args,
+              (xdrproc_t) xdr_remote_domain_get_vcpus_flags_ret, (char *) &ret) == -1)
+        goto done;
+
+    rv = ret.num;
 
 done:
     remoteDriverUnlock(priv);
@@ -6666,49 +6888,6 @@ remoteAuthenticate (virConnectPtr conn, struct private_data *priv,
 
 
 #if HAVE_SASL
-/*
- * NB, keep in sync with similar method in daemon/remote.c
- */
-static char *addrToString(struct sockaddr_storage *ss, socklen_t salen)
-{
-    char host[NI_MAXHOST], port[NI_MAXSERV];
-    char *addr;
-    int err;
-    struct sockaddr *sa = (struct sockaddr *)ss;
-
-    if ((err = getnameinfo(sa, salen,
-                           host, sizeof(host),
-                           port, sizeof(port),
-                           NI_NUMERICHOST | NI_NUMERICSERV)) != 0) {
-        char ip[INET6_ADDRSTRLEN];
-        void *rawaddr;
-
-        if (sa->sa_family == AF_INET)
-            rawaddr = &((struct sockaddr_in *)sa)->sin_addr;
-        else
-            rawaddr = &((struct sockaddr_in6 *)sa)->sin6_addr;
-
-        if (inet_ntop(sa->sa_family, rawaddr, ip, sizeof ip)) {
-            remoteError(VIR_ERR_UNKNOWN_HOST,
-                        _("Cannot resolve address %s: %s"),
-                        ip, gai_strerror(err));
-        } else {
-            remoteError(VIR_ERR_UNKNOWN_HOST,
-                        _("Cannot resolve address: %s"),
-                        gai_strerror(err));
-        }
-        return NULL;
-    }
-
-    if (virAsprintf(&addr, "%s;%s", host, port) == -1) {
-        virReportOOMError();
-        return NULL;
-    }
-
-    return addr;
-}
-
-
 static int remoteAuthCredVir2SASL(int vircred)
 {
     switch (vircred) {
@@ -6889,8 +7068,7 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
     unsigned int clientoutlen, serverinlen;
     const char *mech;
     int err, complete;
-    struct sockaddr_storage sa;
-    socklen_t salen;
+    virSocketAddr sa;
     char *localAddr = NULL, *remoteAddr = NULL;
     const void *val;
     sasl_ssf_t ssf;
@@ -6912,23 +7090,23 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
     }
 
     /* Get local address in form  IPADDR:PORT */
-    salen = sizeof(sa);
-    if (getsockname(priv->sock, (struct sockaddr*)&sa, &salen) < 0) {
+    sa.len = sizeof(sa.data.stor);
+    if (getsockname(priv->sock, &sa.data.sa, &sa.len) < 0) {
         virReportSystemError(errno, "%s",
                              _("failed to get sock address"));
         goto cleanup;
     }
-    if ((localAddr = addrToString(&sa, salen)) == NULL)
+    if ((localAddr = virSocketFormatAddrFull(&sa, true, ";")) == NULL)
         goto cleanup;
 
     /* Get remote address in form  IPADDR:PORT */
-    salen = sizeof(sa);
-    if (getpeername(priv->sock, (struct sockaddr*)&sa, &salen) < 0) {
+    sa.len = sizeof(sa.data.stor);
+    if (getpeername(priv->sock, &sa.data.sa, &sa.len) < 0) {
         virReportSystemError(errno, "%s",
                              _("failed to get peer address"));
         goto cleanup;
     }
-    if ((remoteAddr = addrToString(&sa, salen)) == NULL)
+    if ((remoteAddr = virSocketFormatAddrFull(&sa, true, ";")) == NULL)
         goto cleanup;
 
     if (auth) {
@@ -6977,12 +7155,12 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
     }
 
     memset (&secprops, 0, sizeof secprops);
-    /* If we've got TLS, we don't care about SSF */
-    secprops.min_ssf = priv->uses_tls ? 0 : 56; /* Equiv to DES supported by all Kerberos */
-    secprops.max_ssf = priv->uses_tls ? 0 : 100000; /* Very strong ! AES == 256 */
+    /* If we've got a secure channel (TLS or UNIX sock), we don't care about SSF */
+    secprops.min_ssf = priv->is_secure ? 0 : 56; /* Equiv to DES supported by all Kerberos */
+    secprops.max_ssf = priv->is_secure ? 0 : 100000; /* Very strong ! AES == 256 */
     secprops.maxbufsize = 100000;
-    /* If we're not TLS, then forbid any anonymous or trivially crackable auth */
-    secprops.security_flags = priv->uses_tls ? 0 :
+    /* If we're not secure, then forbid any anonymous or trivially crackable auth */
+    secprops.security_flags = priv->is_secure ? 0 :
         SASL_SEC_NOANONYMOUS | SASL_SEC_NOPLAINTEXT;
 
     err = sasl_setprop(saslconn, SASL_SEC_PROPS, &secprops);
@@ -7164,8 +7342,8 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv, int in_open,
         }
     }
 
-    /* Check for suitable SSF if non-TLS */
-    if (!priv->uses_tls) {
+    /* Check for suitable SSF if not already secure (TLS or UNIX sock) */
+    if (!priv->is_secure) {
         err = sasl_getprop(saslconn, SASL_SSF, &val);
         if (err != SASL_OK) {
             remoteError(VIR_ERR_AUTH_FAILED,
@@ -10291,6 +10469,8 @@ static virDriver remote_driver = {
     remoteDomainRestore, /* domainRestore */
     remoteDomainCoreDump, /* domainCoreDump */
     remoteDomainSetVcpus, /* domainSetVcpus */
+    remoteDomainSetVcpusFlags, /* domainSetVcpusFlags */
+    remoteDomainGetVcpusFlags, /* domainGetVcpusFlags */
     remoteDomainPinVcpu, /* domainPinVcpu */
     remoteDomainGetVcpus, /* domainGetVcpus */
     remoteDomainGetMaxVcpus, /* domainGetMaxVcpus */
@@ -10358,6 +10538,8 @@ static virDriver remote_driver = {
     remoteDomainRevertToSnapshot, /* domainRevertToSnapshot */
     remoteDomainSnapshotDelete, /* domainSnapshotDelete */
     remoteQemuDomainMonitorCommand, /* qemuDomainMonitorCommand */
+    remoteDomainSetMemoryParameters, /* domainSetMemoryParameters */
+    remoteDomainGetMemoryParameters, /* domainGetMemoryParameters */
 };
 
 static virNetworkDriver network_driver = {

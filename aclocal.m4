@@ -13,8 +13,8 @@
 
 m4_ifndef([AC_AUTOCONF_VERSION],
   [m4_copy([m4_PACKAGE_VERSION], [AC_AUTOCONF_VERSION])])dnl
-m4_if(m4_defn([AC_AUTOCONF_VERSION]), [2.63],,
-[m4_warning([this file was generated for autoconf 2.63.
+m4_if(m4_defn([AC_AUTOCONF_VERSION]), [2.66],,
+[m4_warning([this file was generated for autoconf 2.66.
 You have another version of autoconf.  It may work, but is not guaranteed to.
 If you have problems, you may need to regenerate the build system entirely.
 To do so, use the procedure documented by the package, typically `autoreconf'.])])
@@ -1445,6 +1445,7 @@ m4_include([gnulib/m4/getaddrinfo.m4])
 m4_include([gnulib/m4/getdelim.m4])
 m4_include([gnulib/m4/gethostname.m4])
 m4_include([gnulib/m4/getline.m4])
+m4_include([gnulib/m4/getpagesize.m4])
 m4_include([gnulib/m4/getpass.m4])
 m4_include([gnulib/m4/gettimeofday.m4])
 m4_include([gnulib/m4/gnulib-common.m4])
@@ -1475,6 +1476,7 @@ m4_include([gnulib/m4/perror.m4])
 m4_include([gnulib/m4/physmem.m4])
 m4_include([gnulib/m4/po.m4])
 m4_include([gnulib/m4/poll.m4])
+m4_include([gnulib/m4/poll_h.m4])
 m4_include([gnulib/m4/posix-shell.m4])
 m4_include([gnulib/m4/printf.m4])
 m4_include([gnulib/m4/pthread.m4])
@@ -1487,6 +1489,7 @@ m4_include([gnulib/m4/select.m4])
 m4_include([gnulib/m4/servent.m4])
 m4_include([gnulib/m4/sleep.m4])
 m4_include([gnulib/m4/snprintf.m4])
+m4_include([gnulib/m4/socketlib.m4])
 m4_include([gnulib/m4/sockets.m4])
 m4_include([gnulib/m4/socklen.m4])
 m4_include([gnulib/m4/sockpfaf.m4])
@@ -1519,6 +1522,7 @@ m4_include([gnulib/m4/sys_time_h.m4])
 m4_include([gnulib/m4/sys_utsname_h.m4])
 m4_include([gnulib/m4/sys_wait_h.m4])
 m4_include([gnulib/m4/tempname.m4])
+m4_include([gnulib/m4/termios_h.m4])
 m4_include([gnulib/m4/time_h.m4])
 m4_include([gnulib/m4/time_r.m4])
 m4_include([gnulib/m4/timegm.m4])

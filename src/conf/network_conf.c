@@ -21,8 +21,6 @@
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
 
-
-
 #include <config.h>
 
 #include <unistd.h>
@@ -43,6 +41,7 @@
 #include "util.h"
 #include "buf.h"
 #include "c-ctype.h"
+#include "files.h"
 
 #define MAX_BRIDGE_ID 256
 #define VIR_FROM_THIS VIR_FROM_NETWORK
@@ -98,27 +97,18 @@ void virNetworkDefFree(virNetworkDefPtr def)
     VIR_FREE(def->name);
     VIR_FREE(def->bridge);
     VIR_FREE(def->forwardDev);
-    VIR_FREE(def->ipAddress);
-    VIR_FREE(def->network);
-    VIR_FREE(def->netmask);
     VIR_FREE(def->domain);
 
-    for (i = 0 ; i < def->nranges && def->ranges ; i++) {
-        VIR_FREE(def->ranges[i].start);
-        VIR_FREE(def->ranges[i].end);
-    }
     VIR_FREE(def->ranges);
 
     for (i = 0 ; i < def->nhosts && def->hosts ; i++) {
         VIR_FREE(def->hosts[i].mac);
-        VIR_FREE(def->hosts[i].ip);
         VIR_FREE(def->hosts[i].name);
     }
     VIR_FREE(def->hosts);
 
     VIR_FREE(def->tftproot);
     VIR_FREE(def->bootfile);
-    VIR_FREE(def->bootserver);
 
     VIR_FREE(def);
 }
@@ -242,23 +232,15 @@ virNetworkDHCPRangeDefParseXML(virNetworkDefPtr def,
                 continue;
             }
 
-            if (virSocketParseAddr(start, &saddr, 0) < 0) {
-                virNetworkReportError(VIR_ERR_XML_ERROR,
-                                      _("cannot parse dhcp start address '%s'"),
-                                      start);
+            if (virSocketParseAddr(start, &saddr, AF_UNSPEC) < 0) {
                 xmlFree(start);
                 xmlFree(end);
-                cur = cur->next;
-                continue;
+                return -1;
             }
-            if (virSocketParseAddr(end, &eaddr, 0) < 0) {
-                virNetworkReportError(VIR_ERR_XML_ERROR,
-                                      _("cannot parse dhcp end address '%s'"),
-                                      end);
+            if (virSocketParseAddr(end, &eaddr, AF_UNSPEC) < 0) {
                 xmlFree(start);
                 xmlFree(end);
-                cur = cur->next;
-                continue;
+                return -1;
             }
 
             range = virSocketGetRange(&saddr, &eaddr);
@@ -268,8 +250,7 @@ virNetworkDHCPRangeDefParseXML(virNetworkDefPtr def,
                                       start, end);
                 xmlFree(start);
                 xmlFree(end);
-                cur = cur->next;
-                continue;
+                return -1;
             }
 
             if (VIR_REALLOC_N(def->ranges, def->nranges + 1) < 0) {
@@ -278,15 +259,14 @@ virNetworkDHCPRangeDefParseXML(virNetworkDefPtr def,
                 virReportOOMError();
                 return -1;
             }
-            def->ranges[def->nranges].start = (char *)start;
-            def->ranges[def->nranges].end = (char *)end;
-            def->ranges[def->nranges].size = range;
+            def->ranges[def->nranges].start = saddr;
+            def->ranges[def->nranges].end = eaddr;
             def->nranges++;
         } else if (cur->type == XML_ELEMENT_NODE &&
             xmlStrEqual(cur->name, BAD_CAST "host")) {
             xmlChar *mac, *name, *ip;
             unsigned char addr[6];
-            struct in_addr inaddress;
+            virSocketAddr inaddr;
 
             mac = xmlGetProp(cur, BAD_CAST "mac");
             if ((mac != NULL) &&
@@ -313,10 +293,7 @@ virNetworkDHCPRangeDefParseXML(virNetworkDefPtr def,
                 continue;
             }
             ip = xmlGetProp(cur, BAD_CAST "ip");
-            if (inet_pton(AF_INET, (const char *) ip, &inaddress) <= 0) {
-                virNetworkReportError(VIR_ERR_INTERNAL_ERROR,
-                                      _("cannot parse IP address '%s'"),
-                                      ip);
+            if (virSocketParseAddr((const char *)ip, &inaddr, AF_UNSPEC) < 0) {
                 VIR_FREE(ip);
                 VIR_FREE(mac);
                 VIR_FREE(name);
@@ -332,20 +309,28 @@ virNetworkDHCPRangeDefParseXML(virNetworkDefPtr def,
             }
             def->hosts[def->nhosts].mac = (char *)mac;
             def->hosts[def->nhosts].name = (char *)name;
-            def->hosts[def->nhosts].ip = (char *)ip;
+            def->hosts[def->nhosts].ip = inaddr;
             def->nhosts++;
 
         } else if (cur->type == XML_ELEMENT_NODE &&
             xmlStrEqual(cur->name, BAD_CAST "bootp")) {
             xmlChar *file;
+            xmlChar *server;
+            virSocketAddr inaddr;
+            memset(&inaddr, 0, sizeof(inaddr));
 
             if (!(file = xmlGetProp(cur, BAD_CAST "file"))) {
                 cur = cur->next;
                 continue;
             }
+            server = xmlGetProp(cur, BAD_CAST "server");
+
+            if (server &&
+                virSocketParseAddr((const char *)server, &inaddr, AF_UNSPEC) < 0)
+                return -1;
 
             def->bootfile = (char *)file;
-            def->bootserver = (char *) xmlGetProp(cur, BAD_CAST "server");
+            def->bootserver = inaddr;
         }
 
         cur = cur->next;
@@ -389,6 +374,8 @@ virNetworkDefParseXML(xmlXPathContextPtr ctxt)
 {
     virNetworkDefPtr def;
     char *tmp;
+    char *ipAddress;
+    char *netmask;
 
     if (VIR_ALLOC(def) < 0) {
         virReportOOMError();
@@ -432,33 +419,22 @@ virNetworkDefParseXML(xmlXPathContextPtr ctxt)
     if (virXPathULong("string(./bridge[1]/@delay)", ctxt, &def->delay) < 0)
         def->delay = 0;
 
-    def->ipAddress = virXPathString("string(./ip[1]/@address)", ctxt);
-    def->netmask = virXPathString("string(./ip[1]/@netmask)", ctxt);
-    if (def->ipAddress &&
-        def->netmask) {
-        /* XXX someday we want IPv6 too, so inet_aton won't work there */
-        struct in_addr inaddress, innetmask;
-        char *netaddr;
+    ipAddress = virXPathString("string(./ip[1]/@address)", ctxt);
+    netmask = virXPathString("string(./ip[1]/@netmask)", ctxt);
+    if (ipAddress &&
+        netmask) {
         xmlNodePtr ip;
 
-        if (inet_pton(AF_INET, def->ipAddress, &inaddress) <= 0) {
-            virNetworkReportError(VIR_ERR_INTERNAL_ERROR,
-                                  _("cannot parse IP address '%s'"),
-                                  def->ipAddress);
+        if (virSocketParseAddr(ipAddress, &def->ipAddress, AF_UNSPEC) < 0)
             goto error;
-        }
-        if (inet_pton(AF_INET, def->netmask, &innetmask) <= 0) {
-            virNetworkReportError(VIR_ERR_INTERNAL_ERROR,
-                                  _("cannot parse netmask '%s'"),
-                                  def->netmask);
+        if (virSocketParseAddr(netmask, &def->netmask, AF_UNSPEC) < 0)
             goto error;
-        }
 
-        inaddress.s_addr &= innetmask.s_addr;
-        netaddr = inet_ntoa(inaddress);
-
-        if (virAsprintf(&def->network, "%s/%s", netaddr, def->netmask) < 0) {
-            virReportOOMError();
+        /* XXX someday we want IPv6, so will need to relax this */
+        if (!VIR_SOCKET_IS_FAMILY(&def->ipAddress, AF_INET) ||
+            !VIR_SOCKET_IS_FAMILY(&def->netmask, AF_INET)) {
+            virNetworkReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                  "%s", _("Only IPv4 addresses are supported"));
             goto error;
         }
 
@@ -466,12 +442,14 @@ virNetworkDefParseXML(xmlXPathContextPtr ctxt)
             virNetworkIPParseXML(def, ip) < 0)
             goto error;
     }
+    VIR_FREE(ipAddress);
+    VIR_FREE(netmask);
 
 
     /* IPv4 forwarding setup */
     if (virXPathBoolean("count(./forward) > 0", ctxt)) {
-        if (!def->ipAddress ||
-            !def->netmask) {
+        if (def->ipAddress.data.sa.sa_family != AF_INET ||
+            def->netmask.data.sa.sa_family != AF_INET) {
             virNetworkReportError(VIR_ERR_INTERNAL_ERROR,
                                   "%s", _("Forwarding requested, but no IPv4 address/netmask provided"));
             goto error;
@@ -591,14 +569,25 @@ char *virNetworkDefFormat(const virNetworkDefPtr def)
     if (def->domain)
         virBufferVSprintf(&buf, "  <domain name='%s'/>\n", def->domain);
 
-    if (def->ipAddress || def->netmask) {
+    if (VIR_SOCKET_HAS_ADDR(&def->ipAddress) ||
+        VIR_SOCKET_HAS_ADDR(&def->netmask)) {
         virBufferAddLit(&buf, "  <ip");
 
-        if (def->ipAddress)
-            virBufferVSprintf(&buf, " address='%s'", def->ipAddress);
+        if (VIR_SOCKET_HAS_ADDR(&def->ipAddress)) {
+            char *addr = virSocketFormatAddr(&def->ipAddress);
+            if (!addr)
+                goto error;
+            virBufferVSprintf(&buf, " address='%s'", addr);
+            VIR_FREE(addr);
+        }
 
-        if (def->netmask)
-            virBufferVSprintf(&buf, " netmask='%s'", def->netmask);
+        if (VIR_SOCKET_HAS_ADDR(&def->netmask)) {
+            char *addr = virSocketFormatAddr(&def->netmask);
+            if (!addr)
+                goto error;
+            virBufferVSprintf(&buf, " netmask='%s'", addr);
+            VIR_FREE(addr);
+        }
 
         virBufferAddLit(&buf, ">\n");
 
@@ -609,25 +598,44 @@ char *virNetworkDefFormat(const virNetworkDefPtr def)
         if ((def->nranges || def->nhosts)) {
             int i;
             virBufferAddLit(&buf, "    <dhcp>\n");
-            for (i = 0 ; i < def->nranges ; i++)
+            for (i = 0 ; i < def->nranges ; i++) {
+                char *saddr = virSocketFormatAddr(&def->ranges[i].start);
+                if (!saddr)
+                    goto error;
+                char *eaddr = virSocketFormatAddr(&def->ranges[i].end);
+                if (!eaddr) {
+                    VIR_FREE(saddr);
+                    goto error;
+                }
                 virBufferVSprintf(&buf, "      <range start='%s' end='%s' />\n",
-                                  def->ranges[i].start, def->ranges[i].end);
+                                  saddr, eaddr);
+                VIR_FREE(saddr);
+                VIR_FREE(eaddr);
+            }
             for (i = 0 ; i < def->nhosts ; i++) {
                 virBufferAddLit(&buf, "      <host ");
                 if (def->hosts[i].mac)
                     virBufferVSprintf(&buf, "mac='%s' ", def->hosts[i].mac);
                 if (def->hosts[i].name)
                     virBufferVSprintf(&buf, "name='%s' ", def->hosts[i].name);
-                if (def->hosts[i].ip)
-                    virBufferVSprintf(&buf, "ip='%s' ", def->hosts[i].ip);
+                if (VIR_SOCKET_HAS_ADDR(&def->hosts[i].ip)) {
+                    char *ipaddr = virSocketFormatAddr(&def->hosts[i].ip);
+                    if (!ipaddr)
+                        goto error;
+                    virBufferVSprintf(&buf, "ip='%s' ", ipaddr);
+                    VIR_FREE(ipaddr);
+                }
                 virBufferAddLit(&buf, "/>\n");
             }
             if (def->bootfile) {
                 virBufferEscapeString(&buf, "      <bootp file='%s' ",
                                       def->bootfile);
-                if (def->bootserver) {
-                    virBufferEscapeString(&buf, "server='%s' ",
-                                          def->bootserver);
+                if (VIR_SOCKET_HAS_ADDR(&def->bootserver)) {
+                    char *ipaddr = virSocketFormatAddr(&def->bootserver);
+                    if (!ipaddr)
+                        goto error;
+                    virBufferEscapeString(&buf, "server='%s' ", ipaddr);
+                    VIR_FREE(ipaddr);
                 }
                 virBufferAddLit(&buf, "/>\n");
             }
@@ -647,6 +655,7 @@ char *virNetworkDefFormat(const virNetworkDefPtr def)
 
  no_memory:
     virReportOOMError();
+  error:
     virBufferFreeAndReset(&buf);
     return NULL;
 }
@@ -687,7 +696,7 @@ int virNetworkSaveXML(const char *configDir,
         goto cleanup;
     }
 
-    if (close(fd) < 0) {
+    if (VIR_CLOSE(fd) < 0) {
         virReportSystemError(errno,
                              _("cannot save config file '%s'"),
                              configFile);
@@ -697,8 +706,7 @@ int virNetworkSaveXML(const char *configDir,
     ret = 0;
 
  cleanup:
-    if (fd != -1)
-        close(fd);
+    VIR_FORCE_CLOSE(fd);
 
     VIR_FREE(configFile);
 

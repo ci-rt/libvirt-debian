@@ -450,6 +450,7 @@ testDomainUpdateVCPUs(virConnectPtr conn,
                 goto cleanup;
     }
 
+    dom->def->vcpus = nvcpus;
     ret = 0;
 cleanup:
     return ret;
@@ -1681,8 +1682,8 @@ static int testGetDomainInfo (virDomainPtr domain,
     }
 
     info->state = privdom->state;
-    info->memory = privdom->def->memory;
-    info->maxMem = privdom->def->maxmem;
+    info->memory = privdom->def->mem.cur_balloon;
+    info->maxMem = privdom->def->mem.max_balloon;
     info->nrVirtCpu = privdom->def->vcpus;
     info->cpuTime = ((tv.tv_sec * 1000ll * 1000ll  * 1000ll) + (tv.tv_usec * 1000ll));
     ret = 0;
@@ -1963,7 +1964,7 @@ static unsigned long testGetMaxMemory(virDomainPtr domain) {
         goto cleanup;
     }
 
-    ret = privdom->def->maxmem;
+    ret = privdom->def->mem.max_balloon;
 
 cleanup:
     if (privdom)
@@ -1989,7 +1990,7 @@ static int testSetMaxMemory(virDomainPtr domain,
     }
 
     /* XXX validate not over host memory wrt to other domains */
-    privdom->def->maxmem = memory;
+    privdom->def->mem.max_balloon = memory;
     ret = 0;
 
 cleanup:
@@ -2015,12 +2016,12 @@ static int testSetMemory(virDomainPtr domain,
         goto cleanup;
     }
 
-    if (memory > privdom->def->maxmem) {
+    if (memory > privdom->def->mem.max_balloon) {
         testError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         goto cleanup;
     }
 
-    privdom->def->memory = memory;
+    privdom->def->mem.cur_balloon = memory;
     ret = 0;
 
 cleanup:
@@ -2029,25 +2030,93 @@ cleanup:
     return ret;
 }
 
-static int testDomainGetMaxVcpus(virDomainPtr domain)
+static int
+testDomainGetVcpusFlags(virDomainPtr domain, unsigned int flags)
 {
-    return testGetMaxVCPUs(domain->conn, "test");
-}
-
-static int testSetVcpus(virDomainPtr domain,
-                        unsigned int nrCpus) {
     testConnPtr privconn = domain->conn->privateData;
-    virDomainObjPtr privdom = NULL;
-    int ret = -1, maxvcpus;
+    virDomainObjPtr vm;
+    virDomainDefPtr def;
+    int ret = -1;
 
-    /* Do this first before locking */
-    maxvcpus = testDomainGetMaxVcpus(domain);
-    if (maxvcpus < 0)
-        goto cleanup;
+    virCheckFlags(VIR_DOMAIN_VCPU_LIVE |
+                  VIR_DOMAIN_VCPU_CONFIG |
+                  VIR_DOMAIN_VCPU_MAXIMUM, -1);
+
+    /* Exactly one of LIVE or CONFIG must be set.  */
+    if (!(flags & VIR_DOMAIN_VCPU_LIVE) == !(flags & VIR_DOMAIN_VCPU_CONFIG)) {
+        testError(VIR_ERR_INVALID_ARG,
+                  _("invalid flag combination: (0x%x)"), flags);
+        return -1;
+    }
 
     testDriverLock(privconn);
-    privdom = virDomainFindByName(&privconn->domains,
-                                  domain->name);
+    vm = virDomainFindByUUID(&privconn->domains, domain->uuid);
+    testDriverUnlock(privconn);
+
+    if (!vm) {
+        char uuidstr[VIR_UUID_STRING_BUFLEN];
+        virUUIDFormat(domain->uuid, uuidstr);
+        testError(VIR_ERR_NO_DOMAIN,
+                  _("no domain with matching uuid '%s'"), uuidstr);
+        goto cleanup;
+    }
+
+    if (flags & VIR_DOMAIN_VCPU_LIVE) {
+        if (!virDomainObjIsActive(vm)) {
+            testError(VIR_ERR_OPERATION_INVALID, "%s",
+                      _("domain not active"));
+            goto cleanup;
+        }
+        def = vm->def;
+    } else {
+        def = vm->newDef ? vm->newDef : vm->def;
+    }
+
+    ret = (flags & VIR_DOMAIN_VCPU_MAXIMUM) ? def->maxvcpus : def->vcpus;
+
+cleanup:
+    if (vm)
+        virDomainObjUnlock(vm);
+    return ret;
+}
+
+static int
+testDomainGetMaxVcpus(virDomainPtr domain)
+{
+    return testDomainGetVcpusFlags(domain, (VIR_DOMAIN_VCPU_LIVE |
+                                            VIR_DOMAIN_VCPU_MAXIMUM));
+}
+
+static int
+testDomainSetVcpusFlags(virDomainPtr domain, unsigned int nrCpus,
+                        unsigned int flags)
+{
+    testConnPtr privconn = domain->conn->privateData;
+    virDomainObjPtr privdom = NULL;
+    virDomainDefPtr def;
+    int ret = -1, maxvcpus;
+
+    virCheckFlags(VIR_DOMAIN_VCPU_LIVE |
+                  VIR_DOMAIN_VCPU_CONFIG |
+                  VIR_DOMAIN_VCPU_MAXIMUM, -1);
+
+    /* At least one of LIVE or CONFIG must be set.  MAXIMUM cannot be
+     * mixed with LIVE.  */
+    if ((flags & (VIR_DOMAIN_VCPU_LIVE | VIR_DOMAIN_VCPU_CONFIG)) == 0 ||
+        (flags & (VIR_DOMAIN_VCPU_MAXIMUM | VIR_DOMAIN_VCPU_LIVE)) ==
+         (VIR_DOMAIN_VCPU_MAXIMUM | VIR_DOMAIN_VCPU_LIVE)) {
+        testError(VIR_ERR_INVALID_ARG,
+                  _("invalid flag combination: (0x%x)"), flags);
+        return -1;
+    }
+    if (!nrCpus || (maxvcpus = testGetMaxVCPUs(domain->conn, NULL)) < nrCpus) {
+        testError(VIR_ERR_INVALID_ARG,
+                  _("argument out of range: %d"), nrCpus);
+        return -1;
+    }
+
+    testDriverLock(privconn);
+    privdom = virDomainFindByUUID(&privconn->domains, domain->uuid);
     testDriverUnlock(privconn);
 
     if (privdom == NULL) {
@@ -2055,13 +2124,17 @@ static int testSetVcpus(virDomainPtr domain,
         goto cleanup;
     }
 
-    if (!virDomainObjIsActive(privdom)) {
+    if (!virDomainObjIsActive(privdom) && (flags & VIR_DOMAIN_VCPU_LIVE)) {
         testError(VIR_ERR_OPERATION_INVALID,
                   "%s", _("cannot hotplug vcpus for an inactive domain"));
         goto cleanup;
     }
 
-    /* We allow more cpus in guest than host */
+    /* We allow more cpus in guest than host, but not more than the
+     * domain's starting limit.  */
+    if ((flags & (VIR_DOMAIN_VCPU_MAXIMUM | VIR_DOMAIN_VCPU_LIVE)) ==
+        VIR_DOMAIN_VCPU_LIVE && privdom->def->maxvcpus < maxvcpus)
+        maxvcpus = privdom->def->maxvcpus;
     if (nrCpus > maxvcpus) {
         testError(VIR_ERR_INVALID_ARG,
                   "requested cpu amount exceeds maximum (%d > %d)",
@@ -2069,17 +2142,60 @@ static int testSetVcpus(virDomainPtr domain,
         goto cleanup;
     }
 
-    /* Update VCPU state for the running domain */
-    if (testDomainUpdateVCPUs(domain->conn, privdom, nrCpus, 0) < 0)
-        goto cleanup;
+    switch (flags) {
+    case VIR_DOMAIN_VCPU_MAXIMUM | VIR_DOMAIN_VCPU_CONFIG:
+        def = privdom->def;
+        if (virDomainObjIsActive(privdom)) {
+            if (privdom->newDef)
+                def = privdom->newDef;
+            else {
+                testError(VIR_ERR_OPERATION_INVALID, "%s",
+                          _("no persistent state"));
+                goto cleanup;
+            }
+        }
+        def->maxvcpus = nrCpus;
+        if (nrCpus < def->vcpus)
+            def->vcpus = nrCpus;
+        ret = 0;
+        break;
 
-    privdom->def->vcpus = nrCpus;
-    ret = 0;
+    case VIR_DOMAIN_VCPU_CONFIG:
+        def = privdom->def;
+        if (virDomainObjIsActive(privdom)) {
+            if (privdom->newDef)
+                def = privdom->newDef;
+            else {
+                testError(VIR_ERR_OPERATION_INVALID, "%s",
+                          _("no persistent state"));
+                goto cleanup;
+            }
+        }
+        def->vcpus = nrCpus;
+        ret = 0;
+        break;
+
+    case VIR_DOMAIN_VCPU_LIVE:
+        ret = testDomainUpdateVCPUs(domain->conn, privdom, nrCpus, 0);
+        break;
+
+    case VIR_DOMAIN_VCPU_LIVE | VIR_DOMAIN_VCPU_CONFIG:
+        ret = testDomainUpdateVCPUs(domain->conn, privdom, nrCpus, 0);
+        if (ret == 0 && privdom->newDef)
+            privdom->newDef->vcpus = nrCpus;
+        break;
+    }
 
 cleanup:
     if (privdom)
         virDomainObjUnlock(privdom);
     return ret;
+}
+
+static int
+testSetVcpus(virDomainPtr domain, unsigned int nrCpus)
+{
+    return testDomainSetVcpusFlags(domain, nrCpus, VIR_DOMAIN_VCPU_LIVE);
 }
 
 static int testDomainGetVcpus(virDomainPtr domain,
@@ -5260,6 +5376,8 @@ static virDriver testDriver = {
     testDomainRestore, /* domainRestore */
     testDomainCoreDump, /* domainCoreDump */
     testSetVcpus, /* domainSetVcpus */
+    testDomainSetVcpusFlags, /* domainSetVcpusFlags */
+    testDomainGetVcpusFlags, /* domainGetVcpusFlags */
     testDomainPinVcpu, /* domainPinVcpu */
     testDomainGetVcpus, /* domainGetVcpus */
     testDomainGetMaxVcpus, /* domainGetMaxVcpus */
@@ -5327,6 +5445,8 @@ static virDriver testDriver = {
     NULL, /* domainRevertToSnapshot */
     NULL, /* domainSnapshotDelete */
     NULL, /* qemuDomainMonitorCommand */
+    NULL, /* domainSetMemoryParameters */
+    NULL, /* domainGetMemoryParameters */
 };
 
 static virNetworkDriver testNetworkDriver = {

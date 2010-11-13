@@ -26,6 +26,8 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+#include "macros.h"
+
 int
 main (void)
 {
@@ -69,14 +71,15 @@ main (void)
               exit (1);
             }
           /* Timeout */
-          printf ("."); fflush (stdout);
+          printf (".");
+          ASSERT (fflush (stdout) == 0);
         }
       else
         {
           char c;
 
           printf ("Input available! Trying to read 1 byte...\n");
-          read (0, &c, 1);
+          ASSERT (read (0, &c, 1) == 1);
         }
     }
 }

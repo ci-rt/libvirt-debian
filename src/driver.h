@@ -128,6 +128,18 @@ typedef int
         (*virDrvDomainSetMemory)	(virDomainPtr domain,
                                          unsigned long memory);
 typedef int
+        (*virDrvDomainSetMemoryParameters)
+                                        (virDomainPtr domain,
+                                         virMemoryParameterPtr params,
+                                         int nparams,
+                                         unsigned int flags);
+typedef int
+        (*virDrvDomainGetMemoryParameters)
+                                        (virDomainPtr domain,
+                                         virMemoryParameterPtr params,
+                                         int *nparams,
+                                         unsigned int flags);
+typedef int
         (*virDrvDomainGetInfo)		(virDomainPtr domain,
                                          virDomainInfoPtr info);
 typedef int
@@ -172,6 +184,13 @@ typedef int
 typedef int
         (*virDrvDomainSetVcpus)		(virDomainPtr domain,
                                          unsigned int nvcpus);
+typedef int
+        (*virDrvDomainSetVcpusFlags)	(virDomainPtr domain,
+                                         unsigned int nvcpus,
+                                         unsigned int flags);
+typedef int
+        (*virDrvDomainGetVcpusFlags)	(virDomainPtr domain,
+                                         unsigned int flags);
 typedef int
         (*virDrvDomainPinVcpu)		(virDomainPtr domain,
                                          unsigned int vcpu,
@@ -508,6 +527,8 @@ struct _virDriver {
     virDrvDomainRestore		domainRestore;
     virDrvDomainCoreDump		domainCoreDump;
     virDrvDomainSetVcpus		domainSetVcpus;
+    virDrvDomainSetVcpusFlags		domainSetVcpusFlags;
+    virDrvDomainGetVcpusFlags		domainGetVcpusFlags;
     virDrvDomainPinVcpu		domainPinVcpu;
     virDrvDomainGetVcpus		domainGetVcpus;
     virDrvDomainGetMaxVcpus		domainGetMaxVcpus;
@@ -575,6 +596,8 @@ struct _virDriver {
     virDrvDomainRevertToSnapshot domainRevertToSnapshot;
     virDrvDomainSnapshotDelete domainSnapshotDelete;
     virDrvQemuDomainMonitorCommand qemuDomainMonitorCommand;
+    virDrvDomainSetMemoryParameters domainSetMemoryParameters;
+    virDrvDomainGetMemoryParameters domainGetMemoryParameters;
 };
 
 typedef int

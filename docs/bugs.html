@@ -51,6 +51,11 @@
           </li><li>
             <div>
               <span class="active">Bug reports</span>
+              <ul class="l1"><li>
+                  <div>
+                    <a title="Main feature request list" class="inactive" href="todo.html">Todo list</a>
+                  </div>
+                </li></ul>
             </div>
           </li><li>
             <div>
@@ -68,13 +73,27 @@
       </div>
       <div id="content">
         <h1>Bug reporting</h1>
+        <ul><li>
+            <a href="#bugzilla">Bug Tracking</a>
+          </li><li>
+            <a href="#general">General libvirt bug reports</a>
+          </li><li>
+            <a href="#distribution">Linux Distribution specific bug reports</a>
+          </li><li>
+            <a href="#quality">How to file high quality bug reports</a>
+          </li></ul>
+        <h2>
+          <a name="bugzilla" id="bugzilla">Bug Tracking</a>
+        </h2>
         <p>
       The <a href="http://bugzilla.redhat.com">Red Hat Bugzilla Server</a>
-      should be used to report bugs and request features against libvirt.
+      should be used to report bugs and request features in libvirt.
       Before submitting a ticket, check the existing tickets to see if
       the bug/feature is already tracked.
     </p>
-        <h2>General libvirt bug reports</h2>
+        <h2>
+          <a name="general" id="general">General libvirt bug reports</a>
+        </h2>
         <p>
       If you are using official libvirt binaries from a Linux distribution
       check below for distribution specific bug reporting policies first.
@@ -84,7 +103,9 @@
       component.
     </p>
         <ul><li><a href="http://bugzilla.redhat.com/buglist.cgi?component=libvirt&amp;product=Virtualization%20Tools">View libvirt tickets</a></li><li><a href="http://bugzilla.redhat.com/bugzilla/enter_bug.cgi?product=Virtualization%20Tools&amp;component=libvirt">New libvirt ticket</a></li></ul>
-        <h2>Linux Distribution specific bug reports</h2>
+        <h2>
+          <a name="distribution" id="distribution">Linux Distribution specific bug reports</a>
+        </h2>
         <ul><li>
         If you are using official binaries from a <strong>Fedora distribution</strong>, enter
         tickets against the <code>Fedora</code> product and the <code>libvirt</code>
@@ -97,7 +118,9 @@
         If you are using official binaries from another Linux distribution first
         follow their own bug reporting guidelines.
       </li></ul>
-        <h2>How to file high quality bug reports</h2>
+        <h2>
+          <a name="quality" id="quality">How to file high quality bug reports</a>
+        </h2>
         <p>
       To increase the likelihood of your bug report being addressed it is
       important to provide as much information as possible. When filing
