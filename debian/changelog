@@ -11,6 +11,28 @@ libvirt (0.8.4-1) experimental; urgency=low
 
  -- Guido Günther <agx@sigxcpu.org>  Wed, 29 Sep 2010 15:29:48 +0200
 
+libvirt (0.8.3-4) unstable; urgency=low
+
+  * [29e8714] Recommend ebtables used by nwfilter
+  * [e9eb650] New patch
+    0009-Don-t-fail-lxc-domain-start-when-memory-controller-s.patch - Don't
+    fail lxc domain start when memory controller support is missing (Closes:
+    #566180)
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 01 Nov 2010 14:22:09 +0100
+
+libvirt (0.8.3-3) unstable; urgency=low
+
+  * [178670a] Add $syslog to the list of Required-{Start,Stop} services also
+    drop $local_fs since we already have $remote_fs
+  * [4db7451] Don't hardcode netcat's -q option. (Closes: #573172) - thanks to
+    Marc Deslauriers for the patch
+  * [d4c46ee] Disable CHECKSUM rules not supported by Squeeze's iptables
+    (Closes: #598330)
+  * [dbc2609] Move new NEWS items to the top
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 06 Oct 2010 19:47:46 +0200
+
 libvirt (0.8.3-2) unstable; urgency=low
 
   * [4097bbd] New patch 0007-Fix-block-statistics-with-newer-versions-
