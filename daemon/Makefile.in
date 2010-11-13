@@ -36,22 +36,25 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 @WITH_LIBVIRTD_TRUE@sbin_PROGRAMS = libvirtd$(EXEEXT)
-@WITH_DRIVER_MODULES_TRUE@@WITH_LIBVIRTD_TRUE@am__append_1 = ../src/libvirt_driver.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_QEMU_TRUE@am__append_2 = ../src/libvirt_driver_qemu.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@am__append_3 = ../src/libvirt_driver_lxc.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_UML_TRUE@am__append_4 = ../src/libvirt_driver_uml.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_ONE_TRUE@am__append_5 = ../src/libvirt_driver_one.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DIR_TRUE@am__append_6 = ../src/libvirt_driver_storage.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NETWORK_TRUE@am__append_7 = ../src/libvirt_driver_network.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NETCF_TRUE@am__append_8 = ../src/libvirt_driver_interface.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NODE_DEVICES_TRUE@am__append_9 = ../src/libvirt_driver_nodedev.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_SECRETS_TRUE@am__append_10 = ../src/libvirt_driver_secret.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NWFILTER_TRUE@am__append_11 = ../src/libvirt_driver_nwfilter.la
-@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_12 = $(AVAHI_SOURCES)
-@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_13 = $(AVAHI_CFLAGS)
-@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_14 = $(AVAHI_LIBS)
-@WITH_LIBVIRTD_TRUE@am__append_15 = $(LOGROTATE_CONFS)
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@am__append_16 = libvirtd.init
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_QEMU_TRUE@am__append_1 = ../src/libvirt_driver_qemu.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@am__append_2 = ../src/libvirt_driver_lxc.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_UML_TRUE@am__append_3 = ../src/libvirt_driver_uml.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_ONE_TRUE@am__append_4 = ../src/libvirt_driver_one.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DIR_TRUE@am__append_5 = ../src/libvirt_driver_storage.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NETWORK_TRUE@am__append_6 = ../src/libvirt_driver_network.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NETCF_TRUE@am__append_7 = ../src/libvirt_driver_interface.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NODE_DEVICES_TRUE@am__append_8 = ../src/libvirt_driver_nodedev.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_SECRETS_TRUE@am__append_9 = ../src/libvirt_driver_secret.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NWFILTER_TRUE@am__append_10 = ../src/libvirt_driver_nwfilter.la
+@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_11 = $(AVAHI_SOURCES)
+@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_12 = $(AVAHI_CFLAGS)
+@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_13 = $(AVAHI_LIBS)
+@WITH_LIBVIRTD_TRUE@am__append_14 = probes.d libvirtd.stp
+@WITH_DTRACE_TRUE@@WITH_LIBVIRTD_TRUE@am__append_15 = probes.o
+@WITH_DTRACE_TRUE@@WITH_LIBVIRTD_TRUE@am__append_16 = probes.h
+@WITH_DTRACE_TRUE@@WITH_LIBVIRTD_TRUE@am__append_17 = probes.h probes.o
+@WITH_LIBVIRTD_TRUE@am__append_18 = $(LOGROTATE_CONFS)
+@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@am__append_19 = libvirtd.init
 subdir = daemon
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -79,6 +82,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/getdelim.m4 \
 	$(top_srcdir)/gnulib/m4/gethostname.m4 \
 	$(top_srcdir)/gnulib/m4/getline.m4 \
+	$(top_srcdir)/gnulib/m4/getpagesize.m4 \
 	$(top_srcdir)/gnulib/m4/getpass.m4 \
 	$(top_srcdir)/gnulib/m4/gettimeofday.m4 \
 	$(top_srcdir)/gnulib/m4/gnulib-common.m4 \
@@ -108,6 +112,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/perror.m4 \
 	$(top_srcdir)/gnulib/m4/physmem.m4 \
 	$(top_srcdir)/gnulib/m4/po.m4 $(top_srcdir)/gnulib/m4/poll.m4 \
+	$(top_srcdir)/gnulib/m4/poll_h.m4 \
 	$(top_srcdir)/gnulib/m4/posix-shell.m4 \
 	$(top_srcdir)/gnulib/m4/printf.m4 \
 	$(top_srcdir)/gnulib/m4/pthread.m4 \
@@ -120,6 +125,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/servent.m4 \
 	$(top_srcdir)/gnulib/m4/sleep.m4 \
 	$(top_srcdir)/gnulib/m4/snprintf.m4 \
+	$(top_srcdir)/gnulib/m4/socketlib.m4 \
 	$(top_srcdir)/gnulib/m4/sockets.m4 \
 	$(top_srcdir)/gnulib/m4/socklen.m4 \
 	$(top_srcdir)/gnulib/m4/sockpfaf.m4 \
@@ -152,6 +158,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/sys_utsname_h.m4 \
 	$(top_srcdir)/gnulib/m4/sys_wait_h.m4 \
 	$(top_srcdir)/gnulib/m4/tempname.m4 \
+	$(top_srcdir)/gnulib/m4/termios_h.m4 \
 	$(top_srcdir)/gnulib/m4/time_h.m4 \
 	$(top_srcdir)/gnulib/m4/time_r.m4 \
 	$(top_srcdir)/gnulib/m4/timegm.m4 \
@@ -182,7 +189,7 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(man8dir)" \
 	"$(DESTDIR)$(augeasdir)" "$(DESTDIR)$(augeastestsdir)" \
-	"$(DESTDIR)$(confdir)"
+	"$(DESTDIR)$(confdir)" "$(DESTDIR)$(tapsetdir)"
 PROGRAMS = $(sbin_PROGRAMS)
 am__libvirtd_SOURCES_DIST = event.c event.h libvirtd.c libvirtd.h \
 	remote.c remote.h dispatch.c dispatch.h stream.c stream.h \
@@ -200,7 +207,8 @@ am__objects_2 = libvirtd-mdns.$(OBJEXT)
 @HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__objects_3 = $(am__objects_2)
 @WITH_LIBVIRTD_TRUE@am_libvirtd_OBJECTS = $(am__objects_1) \
 @WITH_LIBVIRTD_TRUE@	$(am__objects_3)
-libvirtd_OBJECTS = $(am_libvirtd_OBJECTS)
+nodist_libvirtd_OBJECTS =
+libvirtd_OBJECTS = $(am_libvirtd_OBJECTS) $(nodist_libvirtd_OBJECTS)
 am__DEPENDENCIES_1 =
 @HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__DEPENDENCIES_2 =  \
 @HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1)
@@ -208,14 +216,13 @@ am__DEPENDENCIES_1 =
 @WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1) \
 @WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1) \
 @WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1) \
-@WITH_LIBVIRTD_TRUE@	../src/libvirt_util.la \
 @WITH_LIBVIRTD_TRUE@	../src/libvirt-qemu.la $(am__append_1) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_2) $(am__append_3) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_4) $(am__append_5) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_6) $(am__append_7) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_8) $(am__append_9) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_10) $(am__append_11) \
-@WITH_LIBVIRTD_TRUE@	../src/libvirt.la $(am__DEPENDENCIES_2) \
+@WITH_LIBVIRTD_TRUE@	$(am__append_10) ../src/libvirt.la \
+@WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_2) $(am__append_15) \
 @WITH_LIBVIRTD_TRUE@	../gnulib/lib/libgnu.la \
 @WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1)
 AM_V_lt = $(am__v_lt_$(V))
@@ -250,7 +257,7 @@ am__v_CCLD_0 = @echo "  CCLD  " $@;
 AM_V_GEN = $(am__v_GEN_$(V))
 am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
 am__v_GEN_0 = @echo "  GEN   " $@;
-SOURCES = $(libvirtd_SOURCES)
+SOURCES = $(libvirtd_SOURCES) $(nodist_libvirtd_SOURCES)
 DIST_SOURCES = $(am__libvirtd_SOURCES_DIST)
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
@@ -276,7 +283,7 @@ am__base_list = \
 man8dir = $(mandir)/man8
 NROFF = nroff
 MANS = $(man_MANS)
-DATA = $(augeas_DATA) $(augeastests_DATA) $(conf_DATA)
+DATA = $(augeas_DATA) $(augeastests_DATA) $(conf_DATA) $(tapset_DATA)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -291,6 +298,8 @@ APPLE_UNIVERSAL_BUILD = @APPLE_UNIVERSAL_BUILD@
 AR = @AR@
 AS = @AS@
 ASM_SYMBOL_PREFIX = @ASM_SYMBOL_PREFIX@
+AUDIT_CFLAGS = @AUDIT_CFLAGS@
+AUDIT_LIBS = @AUDIT_LIBS@
 AUGPARSE = @AUGPARSE@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
@@ -328,6 +337,7 @@ DNSMASQ = @DNSMASQ@
 DRIVER_MODULE_CFLAGS = @DRIVER_MODULE_CFLAGS@
 DRIVER_MODULE_LIBS = @DRIVER_MODULE_LIBS@
 DSYMUTIL = @DSYMUTIL@
+DTRACE = @DTRACE@
 DUMPBIN = @DUMPBIN@
 EBTABLES_PATH = @EBTABLES_PATH@
 ECHO_C = @ECHO_C@
@@ -456,6 +466,7 @@ GNULIB_OPEN = @GNULIB_OPEN@
 GNULIB_OPENAT = @GNULIB_OPENAT@
 GNULIB_PERROR = @GNULIB_PERROR@
 GNULIB_PIPE2 = @GNULIB_PIPE2@
+GNULIB_POLL = @GNULIB_POLL@
 GNULIB_POPEN = @GNULIB_POPEN@
 GNULIB_PREAD = @GNULIB_PREAD@
 GNULIB_PRINTF = @GNULIB_PRINTF@
@@ -512,6 +523,8 @@ GNULIB_STRTOULL = @GNULIB_STRTOULL@
 GNULIB_STRVERSCMP = @GNULIB_STRVERSCMP@
 GNULIB_SYMLINK = @GNULIB_SYMLINK@
 GNULIB_SYMLINKAT = @GNULIB_SYMLINKAT@
+GNULIB_SYSTEM_POSIX = @GNULIB_SYSTEM_POSIX@
+GNULIB_TCGETSID = @GNULIB_TCGETSID@
 GNULIB_TIMEGM = @GNULIB_TIMEGM@
 GNULIB_TIME_R = @GNULIB_TIME_R@
 GNULIB_TMPFILE = @GNULIB_TMPFILE@
@@ -533,6 +546,7 @@ GNULIB_VPRINTF = @GNULIB_VPRINTF@
 GNULIB_VPRINTF_POSIX = @GNULIB_VPRINTF_POSIX@
 GNULIB_VSNPRINTF = @GNULIB_VSNPRINTF@
 GNULIB_VSPRINTF_POSIX = @GNULIB_VSPRINTF_POSIX@
+GNULIB_WAITPID = @GNULIB_WAITPID@
 GNULIB_WCRTOMB = @GNULIB_WCRTOMB@
 GNULIB_WCSNRTOMBS = @GNULIB_WCSNRTOMBS@
 GNULIB_WCSRTOMBS = @GNULIB_WCSRTOMBS@
@@ -634,7 +648,12 @@ HAVE_NETINET_IN_H = @HAVE_NETINET_IN_H@
 HAVE_OPENAT = @HAVE_OPENAT@
 HAVE_OS_H = @HAVE_OS_H@
 HAVE_PIPE2 = @HAVE_PIPE2@
+HAVE_POLL = @HAVE_POLL@
+HAVE_POLL_H = @HAVE_POLL_H@
 HAVE_PREAD = @HAVE_PREAD@
+HAVE_PTHREAD_H = @HAVE_PTHREAD_H@
+HAVE_PTHREAD_SPINLOCK_T = @HAVE_PTHREAD_SPINLOCK_T@
+HAVE_PTHREAD_T = @HAVE_PTHREAD_T@
 HAVE_PTSNAME = @HAVE_PTSNAME@
 HAVE_PWRITE = @HAVE_PWRITE@
 HAVE_RANDOM_H = @HAVE_RANDOM_H@
@@ -683,6 +702,8 @@ HAVE_SYS_SOCKET_H = @HAVE_SYS_SOCKET_H@
 HAVE_SYS_TIME_H = @HAVE_SYS_TIME_H@
 HAVE_SYS_TYPES_H = @HAVE_SYS_TYPES_H@
 HAVE_SYS_UTSNAME_H = @HAVE_SYS_UTSNAME_H@
+HAVE_TCGETSID = @HAVE_TCGETSID@
+HAVE_TERMIOS_H = @HAVE_TERMIOS_H@
 HAVE_TIMEGM = @HAVE_TIMEGM@
 HAVE_TTYNAME_R = @HAVE_TTYNAME_R@
 HAVE_UNAME = @HAVE_UNAME@
@@ -770,7 +791,6 @@ MODPROBE = @MODPROBE@
 MOUNT = @MOUNT@
 MSGFMT = @MSGFMT@
 MSGMERGE = @MSGMERGE@
-MV = @MV@
 NETCF_CFLAGS = @NETCF_CFLAGS@
 NETCF_LIBS = @NETCF_LIBS@
 NETINET_IN_H = @NETINET_IN_H@
@@ -781,6 +801,8 @@ NEXT_AS_FIRST_DIRECTIVE_FCNTL_H = @NEXT_AS_FIRST_DIRECTIVE_FCNTL_H@
 NEXT_AS_FIRST_DIRECTIVE_FLOAT_H = @NEXT_AS_FIRST_DIRECTIVE_FLOAT_H@
 NEXT_AS_FIRST_DIRECTIVE_NETDB_H = @NEXT_AS_FIRST_DIRECTIVE_NETDB_H@
 NEXT_AS_FIRST_DIRECTIVE_NETINET_IN_H = @NEXT_AS_FIRST_DIRECTIVE_NETINET_IN_H@
+NEXT_AS_FIRST_DIRECTIVE_POLL_H = @NEXT_AS_FIRST_DIRECTIVE_POLL_H@
+NEXT_AS_FIRST_DIRECTIVE_PTHREAD_H = @NEXT_AS_FIRST_DIRECTIVE_PTHREAD_H@
 NEXT_AS_FIRST_DIRECTIVE_SCHED_H = @NEXT_AS_FIRST_DIRECTIVE_SCHED_H@
 NEXT_AS_FIRST_DIRECTIVE_STDDEF_H = @NEXT_AS_FIRST_DIRECTIVE_STDDEF_H@
 NEXT_AS_FIRST_DIRECTIVE_STDINT_H = @NEXT_AS_FIRST_DIRECTIVE_STDINT_H@
@@ -795,6 +817,7 @@ NEXT_AS_FIRST_DIRECTIVE_SYS_STAT_H = @NEXT_AS_FIRST_DIRECTIVE_SYS_STAT_H@
 NEXT_AS_FIRST_DIRECTIVE_SYS_TIME_H = @NEXT_AS_FIRST_DIRECTIVE_SYS_TIME_H@
 NEXT_AS_FIRST_DIRECTIVE_SYS_UTSNAME_H = @NEXT_AS_FIRST_DIRECTIVE_SYS_UTSNAME_H@
 NEXT_AS_FIRST_DIRECTIVE_SYS_WAIT_H = @NEXT_AS_FIRST_DIRECTIVE_SYS_WAIT_H@
+NEXT_AS_FIRST_DIRECTIVE_TERMIOS_H = @NEXT_AS_FIRST_DIRECTIVE_TERMIOS_H@
 NEXT_AS_FIRST_DIRECTIVE_TIME_H = @NEXT_AS_FIRST_DIRECTIVE_TIME_H@
 NEXT_AS_FIRST_DIRECTIVE_UNISTD_H = @NEXT_AS_FIRST_DIRECTIVE_UNISTD_H@
 NEXT_AS_FIRST_DIRECTIVE_WCHAR_H = @NEXT_AS_FIRST_DIRECTIVE_WCHAR_H@
@@ -803,6 +826,8 @@ NEXT_FCNTL_H = @NEXT_FCNTL_H@
 NEXT_FLOAT_H = @NEXT_FLOAT_H@
 NEXT_NETDB_H = @NEXT_NETDB_H@
 NEXT_NETINET_IN_H = @NEXT_NETINET_IN_H@
+NEXT_POLL_H = @NEXT_POLL_H@
+NEXT_PTHREAD_H = @NEXT_PTHREAD_H@
 NEXT_SCHED_H = @NEXT_SCHED_H@
 NEXT_STDDEF_H = @NEXT_STDDEF_H@
 NEXT_STDINT_H = @NEXT_STDINT_H@
@@ -817,6 +842,7 @@ NEXT_SYS_STAT_H = @NEXT_SYS_STAT_H@
 NEXT_SYS_TIME_H = @NEXT_SYS_TIME_H@
 NEXT_SYS_UTSNAME_H = @NEXT_SYS_UTSNAME_H@
 NEXT_SYS_WAIT_H = @NEXT_SYS_WAIT_H@
+NEXT_TERMIOS_H = @NEXT_TERMIOS_H@
 NEXT_TIME_H = @NEXT_TIME_H@
 NEXT_UNISTD_H = @NEXT_UNISTD_H@
 NEXT_WCHAR_H = @NEXT_WCHAR_H@
@@ -833,6 +859,7 @@ PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 PACKAGE_NAME = @PACKAGE_NAME@
 PACKAGE_STRING = @PACKAGE_STRING@
 PACKAGE_TARNAME = @PACKAGE_TARNAME@
+PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PARTED = @PARTED@
 PATH_SEPARATOR = @PATH_SEPARATOR@
@@ -843,9 +870,9 @@ PKG_CONFIG = @PKG_CONFIG@
 POLKIT_AUTH = @POLKIT_AUTH@
 POLKIT_CFLAGS = @POLKIT_CFLAGS@
 POLKIT_LIBS = @POLKIT_LIBS@
-POLL_H = @POLL_H@
 POSIX_SHELL = @POSIX_SHELL@
 POSUB = @POSUB@
+PRAGMA_COLUMNS = @PRAGMA_COLUMNS@
 PRAGMA_SYSTEM_HEADER = @PRAGMA_SYSTEM_HEADER@
 PREFERABLY_POSIX_SHELL = @PREFERABLY_POSIX_SHELL@
 PTHREAD_H = @PTHREAD_H@
@@ -919,6 +946,7 @@ REPLACE_OBSTACK_PRINTF = @REPLACE_OBSTACK_PRINTF@
 REPLACE_OPEN = @REPLACE_OPEN@
 REPLACE_OPENAT = @REPLACE_OPENAT@
 REPLACE_PERROR = @REPLACE_PERROR@
+REPLACE_POLL = @REPLACE_POLL@
 REPLACE_POPEN = @REPLACE_POPEN@
 REPLACE_PREAD = @REPLACE_PREAD@
 REPLACE_PRINTF = @REPLACE_PRINTF@
@@ -970,7 +998,6 @@ REPLACE_WCSRTOMBS = @REPLACE_WCSRTOMBS@
 REPLACE_WCTOB = @REPLACE_WCTOB@
 REPLACE_WCWIDTH = @REPLACE_WCWIDTH@
 REPLACE_WRITE = @REPLACE_WRITE@
-RM = @RM@
 RPCGEN = @RPCGEN@
 SASL_CFLAGS = @SASL_CFLAGS@
 SASL_LIBS = @SASL_LIBS@
@@ -992,7 +1019,6 @@ STRIP = @STRIP@
 SYS_IOCTL_H_HAVE_WINSOCK2_H = @SYS_IOCTL_H_HAVE_WINSOCK2_H@
 SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS = @SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS@
 SYS_TIME_H_DEFINES_STRUCT_TIMESPEC = @SYS_TIME_H_DEFINES_STRUCT_TIMESPEC@
-TAR = @TAR@
 TIME_H_DEFINES_STRUCT_TIMESPEC = @TIME_H_DEFINES_STRUCT_TIMESPEC@
 U = @U@
 UDEVADM = @UDEVADM@
@@ -1026,6 +1052,7 @@ XMLCATALOG = @XMLCATALOG@
 XMLLINT = @XMLLINT@
 XMLRPC_CFLAGS = @XMLRPC_CFLAGS@
 XMLRPC_LIBS = @XMLRPC_LIBS@
+XML_CATALOG_FILE = @XML_CATALOG_FILE@
 XSLTPROC = @XSLTPROC@
 YAJL_CFLAGS = @YAJL_CFLAGS@
 YAJL_LIBS = @YAJL_LIBS@
@@ -1071,7 +1098,6 @@ libdir = @libdir@
 libexecdir = @libexecdir@
 localedir = @localedir@
 localstatedir = @localstatedir@
-lt_ECHO = @lt_ECHO@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
 oldincludedir = @oldincludedir@
@@ -1091,6 +1117,9 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
+CLEANFILES = $(am__append_17) $(BUILT_SOURCES) $(man_MANS) \
+	libvirtd.pod *.cov *.gcov .libs/*.gcda .libs/*.gcno *.gcno \
+	*.gcda
 DAEMON_SOURCES = \
 		event.c event.h				\
 		libvirtd.c libvirtd.h			\
@@ -1112,25 +1141,13 @@ AVAHI_SOURCES = \
 		mdns.c mdns.h
 
 DISTCLEANFILES = 
-EXTRA_DIST = \
-	remote_generate_stubs.pl			\
-	libvirtd.conf					\
-	libvirtd.init.in				\
-	libvirtd.policy-0				\
-	libvirtd.policy-1				\
-	libvirtd.sasl					\
-	libvirtd.sysconf				\
-	libvirtd.aug                                    \
-	libvirtd.qemu.logrotate.in                      \
-	libvirtd.lxc.logrotate.in                       \
-	libvirtd.uml.logrotate.in                       \
-	test_libvirtd.aug                               \
-	THREADING.txt					\
-	libvirtd.pod.in					\
-	$(AVAHI_SOURCES)				\
-	$(DAEMON_SOURCES)
-
-BUILT_SOURCES = $(am__append_15) $(am__append_16)
+EXTRA_DIST = remote_generate_stubs.pl libvirtd.conf libvirtd.init.in \
+	libvirtd.policy-0 libvirtd.policy-1 libvirtd.sasl \
+	libvirtd.sysconf libvirtd.aug libvirtd.qemu.logrotate.in \
+	libvirtd.lxc.logrotate.in libvirtd.uml.logrotate.in \
+	test_libvirtd.aug THREADING.txt libvirtd.pod.in libvirtd.stp \
+	$(AVAHI_SOURCES) $(DAEMON_SOURCES) $(am__append_14)
+BUILT_SOURCES = $(am__append_16) $(am__append_18) $(am__append_19)
 @WITH_LIBVIRTD_TRUE@man_MANS = libvirtd.8
 @WITH_LIBVIRTD_TRUE@confdir = $(sysconfdir)/libvirt/
 @WITH_LIBVIRTD_TRUE@conf_DATA = libvirtd.conf
@@ -1142,7 +1159,7 @@ BUILT_SOURCES = $(am__append_15) $(am__append_16)
 @WITH_LIBVIRTD_TRUE@			-r "$(PACKAGE)-$(VERSION)" -s 8
 
 @WITH_LIBVIRTD_TRUE@libvirtd_SOURCES = $(DAEMON_SOURCES) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_12)
+@WITH_LIBVIRTD_TRUE@	$(am__append_11)
 
 #-D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED=1 -D_POSIX_C_SOURCE=199506L
 @WITH_LIBVIRTD_TRUE@libvirtd_CFLAGS = -I$(top_srcdir)/gnulib/lib \
@@ -1161,7 +1178,7 @@ BUILT_SOURCES = $(am__append_15) $(am__append_16)
 @WITH_LIBVIRTD_TRUE@	-DQEMUD_PID_FILE="\"$(QEMUD_PID_FILE)\"" \
 @WITH_LIBVIRTD_TRUE@	-DREMOTE_PID_FILE="\"$(REMOTE_PID_FILE)\"" \
 @WITH_LIBVIRTD_TRUE@	-DGETTEXT_PACKAGE=\"$(PACKAGE)\" \
-@WITH_LIBVIRTD_TRUE@	$(am__append_13)
+@WITH_LIBVIRTD_TRUE@	$(am__append_12)
 @WITH_LIBVIRTD_TRUE@libvirtd_LDFLAGS = \
 @WITH_LIBVIRTD_TRUE@	$(WARN_CFLAGS) 					\
 @WITH_LIBVIRTD_TRUE@	$(COVERAGE_LDFLAGS)
@@ -1171,26 +1188,26 @@ BUILT_SOURCES = $(am__append_15) $(am__append_16)
 # are used by nearly every other library.
 @WITH_LIBVIRTD_TRUE@libvirtd_LDADD = $(LIBXML_LIBS) $(GNUTLS_LIBS) \
 @WITH_LIBVIRTD_TRUE@	$(SASL_LIBS) $(POLKIT_LIBS) \
-@WITH_LIBVIRTD_TRUE@	../src/libvirt_util.la \
 @WITH_LIBVIRTD_TRUE@	../src/libvirt-qemu.la $(am__append_1) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_2) $(am__append_3) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_4) $(am__append_5) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_6) $(am__append_7) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_8) $(am__append_9) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_10) $(am__append_11) \
-@WITH_LIBVIRTD_TRUE@	../src/libvirt.la $(am__append_14) \
+@WITH_LIBVIRTD_TRUE@	$(am__append_10) ../src/libvirt.la \
+@WITH_LIBVIRTD_TRUE@	$(am__append_13) $(am__append_15) \
 @WITH_LIBVIRTD_TRUE@	../gnulib/lib/libgnu.la $(LIBSOCKET)
 @HAVE_POLKIT0_FALSE@@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policydir = $(datadir)/polkit-1/actions
 @HAVE_POLKIT0_TRUE@@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policydir = $(datadir)/PolicyKit/policy
 @HAVE_POLKIT0_FALSE@@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policyfile = libvirtd.policy-1
 @HAVE_POLKIT0_TRUE@@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policyfile = libvirtd.policy-0
+@WITH_DTRACE_TRUE@@WITH_LIBVIRTD_TRUE@nodist_libvirtd_SOURCES = probes.h
+@WITH_DTRACE_TRUE@@WITH_LIBVIRTD_TRUE@tapsetdir = $(datadir)/systemtap/tapsets
+@WITH_DTRACE_TRUE@@WITH_LIBVIRTD_TRUE@tapset_DATA = libvirtd.stp
 @WITH_LIBVIRTD_TRUE@REMOTE_PROTOCOL = $(top_srcdir)/src/remote/remote_protocol.x
 @WITH_LIBVIRTD_TRUE@QEMU_PROTOCOL = $(top_srcdir)/src/remote/qemu_protocol.x
 @WITH_LIBVIRTD_TRUE@LOGROTATE_CONFS = libvirtd.qemu.logrotate libvirtd.lxc.logrotate \
 @WITH_LIBVIRTD_TRUE@                  libvirtd.uml.logrotate
 
-CLEANFILES = $(BUILT_SOURCES) $(man_MANS) libvirtd.pod *.cov *.gcov \
-	.libs/*.gcda .libs/*.gcno *.gcno *.gcda
 all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -1543,6 +1560,26 @@ uninstall-confDATA:
 	test -n "$$files" || exit 0; \
 	echo " ( cd '$(DESTDIR)$(confdir)' && rm -f" $$files ")"; \
 	cd "$(DESTDIR)$(confdir)" && rm -f $$files
+install-tapsetDATA: $(tapset_DATA)
+	@$(NORMAL_INSTALL)
+	test -z "$(tapsetdir)" || $(MKDIR_P) "$(DESTDIR)$(tapsetdir)"
+	@list='$(tapset_DATA)'; test -n "$(tapsetdir)" || list=; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(tapsetdir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(tapsetdir)" || exit $$?; \
+	done
+
+uninstall-tapsetDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(tapset_DATA)'; test -n "$(tapsetdir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	test -n "$$files" || exit 0; \
+	echo " ( cd '$(DESTDIR)$(tapsetdir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(tapsetdir)" && rm -f $$files
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
@@ -1647,7 +1684,7 @@ check: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) check-am
 all-am: Makefile $(PROGRAMS) $(MANS) $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(man8dir)" "$(DESTDIR)$(augeasdir)" "$(DESTDIR)$(augeastestsdir)" "$(DESTDIR)$(confdir)"; do \
+	for dir in "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(man8dir)" "$(DESTDIR)$(augeasdir)" "$(DESTDIR)$(augeastestsdir)" "$(DESTDIR)$(confdir)" "$(DESTDIR)$(tapsetdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: $(BUILT_SOURCES)
@@ -1703,7 +1740,8 @@ info: info-am
 info-am:
 
 install-data-am: install-augeasDATA install-augeastestsDATA \
-	install-confDATA install-data-local install-man
+	install-confDATA install-data-local install-man \
+	install-tapsetDATA
 
 install-dvi: install-dvi-am
 
@@ -1751,7 +1789,7 @@ ps-am:
 
 uninstall-am: uninstall-augeasDATA uninstall-augeastestsDATA \
 	uninstall-confDATA uninstall-local uninstall-man \
-	uninstall-sbinPROGRAMS
+	uninstall-sbinPROGRAMS uninstall-tapsetDATA
 
 uninstall-man: uninstall-man8
 
@@ -1767,13 +1805,13 @@ uninstall-man: uninstall-man8
 	install-exec-am install-html install-html-am install-info \
 	install-info-am install-man install-man8 install-pdf \
 	install-pdf-am install-ps install-ps-am install-sbinPROGRAMS \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
-	pdf pdf-am ps ps-am tags uninstall uninstall-am \
-	uninstall-augeasDATA uninstall-augeastestsDATA \
+	install-strip install-tapsetDATA installcheck installcheck-am \
+	installdirs maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-compile mostlyclean-generic \
+	mostlyclean-libtool pdf pdf-am ps ps-am tags uninstall \
+	uninstall-am uninstall-augeasDATA uninstall-augeastestsDATA \
 	uninstall-confDATA uninstall-local uninstall-man \
-	uninstall-man8 uninstall-sbinPROGRAMS
+	uninstall-man8 uninstall-sbinPROGRAMS uninstall-tapsetDATA
 
 
 @WITH_LIBVIRTD_TRUE@libvirtd.pod: libvirtd.pod.in
@@ -1786,6 +1824,12 @@ uninstall-man: uninstall-man8
 
 @WITH_LIBVIRTD_TRUE@libvirtd.8: libvirtd.pod
 @WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)$(POD2MAN) $< $@
+
+@WITH_DTRACE_TRUE@@WITH_LIBVIRTD_TRUE@probes.h: probes.d
+@WITH_DTRACE_TRUE@@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)$(DTRACE) -o $@ -h -s $<
+
+@WITH_DTRACE_TRUE@@WITH_LIBVIRTD_TRUE@probes.o: probes.d
+@WITH_DTRACE_TRUE@@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)$(DTRACE) -o $@ -G -s $<
 
 @WITH_LIBVIRTD_TRUE@install-data-local: install-init install-data-sasl install-data-polkit \
 @WITH_LIBVIRTD_TRUE@                    install-logrotate

@@ -1,5 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
+CLEANFILES =
+
 DAEMON_SOURCES =					\
 		event.c event.h				\
 		libvirtd.c libvirtd.h			\
@@ -36,6 +38,7 @@ EXTRA_DIST =						\
 	test_libvirtd.aug                               \
 	THREADING.txt					\
 	libvirtd.pod.in					\
+	libvirtd.stp					\
 	$(AVAHI_SOURCES)				\
 	$(DAEMON_SOURCES)
 
@@ -99,11 +102,9 @@ libvirtd_LDADD =					\
 	$(SASL_LIBS)					\
 	$(POLKIT_LIBS)
 
-libvirtd_LDADD += ../src/libvirt_util.la ../src/libvirt-qemu.la
+libvirtd_LDADD += ../src/libvirt-qemu.la
 
-if WITH_DRIVER_MODULES
-  libvirtd_LDADD += ../src/libvirt_driver.la
-else
+if ! WITH_DRIVER_MODULES
 if WITH_QEMU
     libvirtd_LDADD += ../src/libvirt_driver_qemu.la
 endif
@@ -163,6 +164,25 @@ libvirtd_CFLAGS += $(AVAHI_CFLAGS)
 libvirtd_LDADD += $(AVAHI_LIBS)
 endif
 
+EXTRA_DIST += probes.d libvirtd.stp
+
+if WITH_DTRACE
+libvirtd_LDADD += probes.o
+nodist_libvirtd_SOURCES = probes.h
+
+BUILT_SOURCES += probes.h
+
+tapsetdir = $(datadir)/systemtap/tapsets
+tapset_DATA = libvirtd.stp
+
+probes.h: probes.d
+	$(AM_V_GEN)$(DTRACE) -o $@ -h -s $<
+
+probes.o: probes.d
+	$(AM_V_GEN)$(DTRACE) -o $@ -G -s $<
+
+CLEANFILES += probes.h probes.o
+endif
 
 install-data-local: install-init install-data-sasl install-data-polkit \
                     install-logrotate
@@ -319,5 +339,5 @@ uninstall-data-sasl:
 endif
 
 
-CLEANFILES = $(BUILT_SOURCES) $(man_MANS) libvirtd.pod
+CLEANFILES += $(BUILT_SOURCES) $(man_MANS) libvirtd.pod
 CLEANFILES += *.cov *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda

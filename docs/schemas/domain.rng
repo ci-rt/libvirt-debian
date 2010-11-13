@@ -299,10 +299,48 @@
           </optional>
         </element>
       </optional>
+
+      <!-- All the memory/swap related tunables would go in the memtune -->
+      <optional>
+        <element name="memtune">
+          <!-- Maximum memory the VM can use -->
+          <optional>
+            <element name="hard_limit">
+              <ref name="memoryKB"/>
+            </element>
+          </optional>
+          <!-- Minimum memory ascertained for the VM during contention -->
+          <optional>
+            <element name="soft_limit">
+              <ref name="memoryKB"/>
+            </element>
+          </optional>
+          <!-- Minimum amount of memory required to start the VM -->
+          <optional>
+            <element name="min_guarantee">
+              <ref name="memoryKB"/>
+            </element>
+          </optional>
+          <!-- Maximum swap area the VM can use -->
+          <optional>
+            <element name="swap_hard_limit">
+              <ref name="memoryKB"/>
+            </element>
+          </optional>
+        </element>
+      </optional>
+
       <optional>
         <element name="vcpu">
           <optional>
-            <attribute name="cpuset"/>
+            <attribute name="cpuset">
+              <ref name="cpuset"/>
+            </attribute>
+          </optional>
+          <optional>
+            <attribute name="current">
+              <ref name="countCPU"/>
+            </attribute>
           </optional>
           <ref name="countCPU"/>
         </element>
@@ -761,6 +799,13 @@
       </choice>
       <optional>
         <ref name="address"/>
+        <attribute name="accessmode">
+        <choice>
+          <value>passthrough</value>
+          <value>mapped</value>
+          <value>squash</value>
+        </choice>
+        </attribute>
       </optional>
     </element>
   </define>
@@ -1783,6 +1828,11 @@
   <define name='positiveInteger'>
     <data type='positiveInteger'>
       <param name="pattern">[0-9]+</param>
+    </data>
+  </define>
+  <define name="cpuset">
+    <data type="string">
+      <param name="pattern">([0-9]+(-[0-9]+)?|\^[0-9]+)(,([0-9]+(-[0-9]+)?|\^[0-9]+))*</param>
     </data>
   </define>
   <define name="countCPU">

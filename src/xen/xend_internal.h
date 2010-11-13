@@ -151,10 +151,15 @@ int xenDaemonDomainUndefine(virDomainPtr domain);
 
 int	xenDaemonDomainSetVcpus		(virDomainPtr domain,
                                          unsigned int vcpus);
+int	xenDaemonDomainSetVcpusFlags	(virDomainPtr domain,
+                                         unsigned int vcpus,
+                                         unsigned int flags);
 int	xenDaemonDomainPinVcpu		(virDomainPtr domain,
                                          unsigned int vcpu,
                                          unsigned char *cpumap,
                                          int maplen);
+int     xenDaemonDomainGetVcpusFlags    (virDomainPtr domain,
+                                         unsigned int flags);
 int	xenDaemonDomainGetVcpus		(virDomainPtr domain,
                                          virVcpuInfoPtr info,
                                          int maxinfo,

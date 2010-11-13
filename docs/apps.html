@@ -75,16 +75,36 @@
         <h1>Applications using <strong>libvirt</strong></h1>
         <p>
       This page provides an illustration of the wide variety of
-      applications using the libvirt management API. If you know
-      of interesting applications not listed on this page, send
-      a message to the <a href="contact.html">mailing list</a>
-      to request that it be added here. If your application uses
-      libvirt as its API, the following graphic is available for
-      your website to advertise support for libvirt:
+      applications using the libvirt management API.
+    </p>
+        <ul><li>
+            <a href="#add">Add an application</a>
+          </li><li>
+            <a href="#command">Command line tools</a>
+          </li><li>
+            <a href="#desktop">Desktop applications</a>
+          </li><li>
+            <a href="#web">Web applications</a>
+          </li><li>
+            <a href="#livecd">LiveCD / Appliances</a>
+          </li><li>
+            <a href="#monitoring">Monitoring plugins</a>
+          </li></ul>
+        <h2>
+          <a name="add" id="add">Add an application</a>
+        </h2>
+        <p>
+      To add an application not listed on this page, send a message
+      to the <a href="contact.html">mailing list</a>, requesting it
+      be added here. If your application uses libvirt as its API,
+      the following graphic is available for your website to advertise
+      support for libvirt:
     </p>
         <p class="image">
       <img src="madeWith.png" alt="Made with libvirt" /></p>
-        <h2>Command line tools</h2>
+        <h2>
+          <a name="command" id="command">Command line tools</a>
+        </h2>
         <dl><dt>virsh</dt><dd>
         An interactive shell, and batch scriptable tool for performing
         management tasks on all libvirt managed domains, networks and
@@ -113,7 +133,9 @@
         Watch the CPU, memory, network and disk utilization of all
         virtual machines running on a host.
       </dd></dl>
-        <h2>Desktop applications</h2>
+        <h2>
+          <a name="desktop" id="desktop">Desktop applications</a>
+        </h2>
         <dl><dt><a href="http://virt-manager.org/">virt-manager</a></dt><dd>
         A general purpose desktop management tool, able to manage
         virtual machines across both local and remotely accessed
@@ -125,7 +147,9 @@
         to remote consoles supporting the VNC protocol. Also provides
         an optional mozilla browser plugin.
       </dd></dl>
-        <h2>Web applications</h2>
+        <h2>
+          <a name="web" id="web">Web applications</a>
+        </h2>
         <dl><dt><a href="http://ovirt.org/">oVirt</a></dt><dd>
         oVirt provides the ability to manage large numbers of virtual
         machines across an entire data center of hosts. It integrates
@@ -138,14 +162,18 @@
         infrastructure. You can deploy a new service just dragging and
         dropping a VM.
       </dd></dl>
-        <h2>LiveCD / Appliances</h2>
+        <h2>
+          <a name="livecd" id="livecd">LiveCD / Appliances</a>
+        </h2>
         <dl><dt><a href="http://et.redhat.com/~rjones/virt-p2v/">virt-p2v</a></dt><dd>
         A tool for converting a physical machine into a virtual machine. It
         is a LiveCD which is booted on the machine to be converted. It collects
         a little information from the user and then copies the disks over to
         a remote machine and defines the XML for a domain to run the guest.
       </dd></dl>
-        <h2>Monitoring plugins</h2>
+        <h2>
+          <a name="monitoring" id="monitoring">Monitoring plugins</a>
+        </h2>
         <dl><dt><a href="http://honk.sigxcpu.org/projects/libvirt/#munin">for munin</a></dt><dd>
         The plugins provided by Guido GÃ¼nther allow to monitor various things
         like network and block I/O with

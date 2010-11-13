@@ -67,7 +67,6 @@
 static int openvzGetProcessInfo(unsigned long long *cpuTime, int vpsid);
 static int openvzGetMaxVCPUs(virConnectPtr conn, const char *type);
 static int openvzDomainGetMaxVcpus(virDomainPtr dom);
-static int openvzDomainSetVcpus(virDomainPtr dom, unsigned int nvcpus);
 static int openvzDomainSetVcpusInternal(virDomainObjPtr vm,
                                         unsigned int nvcpus);
 static int openvzDomainSetMemoryInternal(virDomainObjPtr vm,
@@ -403,8 +402,8 @@ static int openvzDomainGetInfo(virDomainPtr dom,
         }
     }
 
-    info->maxMem = vm->def->maxmem;
-    info->memory = vm->def->memory;
+    info->maxMem = vm->def->mem.max_balloon;
+    info->memory = vm->def->mem.cur_balloon;
     info->nrVirtCpu = vm->def->vcpus;
     ret = 0;
 
@@ -926,16 +925,21 @@ openvzDomainDefineXML(virConnectPtr conn, const char *xml)
     if (openvzDomainSetNetworkConfig(conn, vm->def) < 0)
         goto cleanup;
 
-    if (vm->def->vcpus > 0) {
-        if (openvzDomainSetVcpusInternal(vm, vm->def->vcpus) < 0) {
+    if (vm->def->vcpus != vm->def->maxvcpus) {
+        openvzError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                    _("current vcpu count must equal maximum"));
+        goto cleanup;
+    }
+    if (vm->def->maxvcpus > 0) {
+        if (openvzDomainSetVcpusInternal(vm, vm->def->maxvcpus) < 0) {
             openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
                         _("Could not set number of virtual cpu"));
              goto cleanup;
         }
     }
 
-    if (vm->def->memory > 0) {
-        if (openvzDomainSetMemoryInternal(vm, vm->def->memory) < 0) {
+    if (vm->def->mem.cur_balloon > 0) {
+        if (openvzDomainSetMemoryInternal(vm, vm->def->mem.cur_balloon) < 0) {
             openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
                         _("Could not set memory size"));
              goto cleanup;
@@ -1020,8 +1024,8 @@ openvzDomainCreateXML(virConnectPtr conn, const char *xml,
     vm->def->id = vm->pid;
     vm->state = VIR_DOMAIN_RUNNING;
 
-    if (vm->def->vcpus > 0) {
-        if (openvzDomainSetVcpusInternal(vm, vm->def->vcpus) < 0) {
+    if (vm->def->maxvcpus > 0) {
+        if (openvzDomainSetVcpusInternal(vm, vm->def->maxvcpus) < 0) {
             openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
                         _("Could not set number of virtual cpu"));
             goto cleanup;
@@ -1211,9 +1215,22 @@ static int openvzGetMaxVCPUs(virConnectPtr conn ATTRIBUTE_UNUSED,
     return -1;
 }
 
+static int
+openvzDomainGetVcpusFlags(virDomainPtr dom ATTRIBUTE_UNUSED,
+                          unsigned int flags)
+{
+    if (flags != (VIR_DOMAIN_VCPU_LIVE | VIR_DOMAIN_VCPU_MAXIMUM)) {
+        openvzError(VIR_ERR_INVALID_ARG, _("unsupported flags (0x%x)"), flags);
+        return -1;
+    }
 
-static int openvzDomainGetMaxVcpus(virDomainPtr dom ATTRIBUTE_UNUSED) {
     return openvzGetMaxVCPUs(NULL, "openvz");
+}
+
+static int openvzDomainGetMaxVcpus(virDomainPtr dom)
+{
+    return openvzDomainGetVcpusFlags(dom, (VIR_DOMAIN_VCPU_LIVE |
+                                           VIR_DOMAIN_VCPU_MAXIMUM));
 }
 
 static int openvzDomainSetVcpusInternal(virDomainObjPtr vm,
@@ -1237,15 +1254,21 @@ static int openvzDomainSetVcpusInternal(virDomainObjPtr vm,
         return -1;
     }
 
-    vm->def->vcpus = nvcpus;
+    vm->def->maxvcpus = vm->def->vcpus = nvcpus;
     return 0;
 }
 
-static int openvzDomainSetVcpus(virDomainPtr dom, unsigned int nvcpus)
+static int openvzDomainSetVcpusFlags(virDomainPtr dom, unsigned int nvcpus,
+                                     unsigned int flags)
 {
     virDomainObjPtr         vm;
     struct openvz_driver   *driver = dom->conn->privateData;
     int                     ret = -1;
+
+    if (flags != VIR_DOMAIN_VCPU_LIVE) {
+        openvzError(VIR_ERR_INVALID_ARG, _("unsupported flags (0x%x)"), flags);
+        return -1;
+    }
 
     openvzDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
@@ -1270,6 +1293,12 @@ cleanup:
     if (vm)
         virDomainObjUnlock(vm);
     return ret;
+}
+
+static int
+openvzDomainSetVcpus(virDomainPtr dom, unsigned int nvcpus)
+{
+    return openvzDomainSetVcpusFlags(dom, nvcpus, VIR_DOMAIN_VCPU_LIVE);
 }
 
 static virDrvOpenStatus openvzOpen(virConnectPtr conn,
@@ -1590,6 +1619,8 @@ static virDriver openvzDriver = {
     NULL, /* domainRestore */
     NULL, /* domainCoreDump */
     openvzDomainSetVcpus, /* domainSetVcpus */
+    openvzDomainSetVcpusFlags, /* domainSetVcpusFlags */
+    openvzDomainGetVcpusFlags, /* domainGetVcpusFlags */
     NULL, /* domainPinVcpu */
     NULL, /* domainGetVcpus */
     openvzDomainGetMaxVcpus, /* domainGetMaxVcpus */
@@ -1657,6 +1688,8 @@ static virDriver openvzDriver = {
     NULL, /* domainRevertToSnapshot */
     NULL, /* domainSnapshotDelete */
     NULL, /* qemuDomainMonitorCommand */
+    NULL, /* domainSetMemoryParameters */
+    NULL, /* domainGetMemoryParameters */
 };
 
 int openvzRegister(void) {

@@ -626,6 +626,45 @@ static PRUnichar *PRUnicharFromInt(int n) {
 
 #endif /* !(VBOX_API_VERSION == 2002) */
 
+static PRUnichar *
+vboxSocketFormatAddrUtf16(vboxGlobalData *data, virSocketAddrPtr addr)
+{
+    char *utf8 = NULL;
+    PRUnichar *utf16 = NULL;
+
+    utf8 = virSocketFormatAddr(addr);
+
+    if (utf8 == NULL) {
+        return NULL;
+    }
+
+    VBOX_UTF8_TO_UTF16(utf8, &utf16);
+    VIR_FREE(utf8);
+
+    return utf16;
+}
+
+static int
+vboxSocketParseAddrUtf16(vboxGlobalData *data, const PRUnichar *utf16,
+                         virSocketAddrPtr addr)
+{
+    int result = -1;
+    char *utf8 = NULL;
+
+    VBOX_UTF16_TO_UTF8(utf16, &utf8);
+
+    if (virSocketParseAddr(utf8, addr, AF_UNSPEC) < 0) {
+        goto cleanup;
+    }
+
+    result = 0;
+
+cleanup:
+    VBOX_UTF8_FREE(utf8);
+
+    return result;
+}
+
 static virCapsPtr vboxCapsInit(void) {
     struct utsname utsname;
     virCapsPtr caps;
@@ -1708,7 +1747,7 @@ static int vboxDomainGetInfo(virDomainPtr dom, virDomainInfoPtr info) {
             if (STREQ(dom->name, machineName)) {
                 /* Get the Machine State (also match it with
                 * virDomainState). Get the Machine memory and
-                * for time being set maxmem and memory to same
+                * for time being set max_balloon and cur_balloon to same
                 * Also since there is no direct way of checking
                 * the cputime required (one condition being the
                 * VM is remote), return zero for cputime. Get the
@@ -1839,12 +1878,20 @@ cleanup:
     return ret;
 }
 
-static int vboxDomainSetVcpus(virDomainPtr dom, unsigned int nvcpus) {
+static int
+vboxDomainSetVcpusFlags(virDomainPtr dom, unsigned int nvcpus,
+                        unsigned int flags)
+{
     VBOX_OBJECT_CHECK(dom->conn, int, -1);
     IMachine *machine    = NULL;
     vboxIID  *iid        = NULL;
     PRUint32  CPUCount   = nvcpus;
     nsresult rc;
+
+    if (flags != VIR_DOMAIN_VCPU_LIVE) {
+        vboxError(VIR_ERR_INVALID_ARG, _("unsupported flags: (0x%x)"), flags);
+        return -1;
+    }
 
 #if VBOX_API_VERSION == 2002
     if (VIR_ALLOC(iid) < 0) {
@@ -1887,10 +1934,23 @@ cleanup:
     return ret;
 }
 
-static int vboxDomainGetMaxVcpus(virDomainPtr dom) {
+static int
+vboxDomainSetVcpus(virDomainPtr dom, unsigned int nvcpus)
+{
+    return vboxDomainSetVcpusFlags(dom, nvcpus, VIR_DOMAIN_VCPU_LIVE);
+}
+
+static int
+vboxDomainGetVcpusFlags(virDomainPtr dom, unsigned int flags)
+{
     VBOX_OBJECT_CHECK(dom->conn, int, -1);
     ISystemProperties *systemProperties = NULL;
     PRUint32 maxCPUCount = 0;
+
+    if (flags != (VIR_DOMAIN_VCPU_LIVE | VIR_DOMAIN_VCPU_MAXIMUM)) {
+        vboxError(VIR_ERR_INVALID_ARG, _("unsupported flags: (0x%x)"), flags);
+        return -1;
+    }
 
     /* Currently every domain supports the same number of max cpus
      * as that supported by vbox and thus take it directly from
@@ -1907,6 +1967,13 @@ static int vboxDomainGetMaxVcpus(virDomainPtr dom) {
         ret = maxCPUCount;
 
     return ret;
+}
+
+static int
+vboxDomainGetMaxVcpus(virDomainPtr dom)
+{
+    return vboxDomainGetVcpusFlags(dom, (VIR_DOMAIN_VCPU_LIVE |
+                                         VIR_DOMAIN_VCPU_MAXIMUM));
 }
 
 static char *vboxDomainDumpXML(virDomainPtr dom, int flags) {
@@ -1980,7 +2047,7 @@ static char *vboxDomainDumpXML(virDomainPtr dom, int flags) {
             def->name = strdup(dom->name);
 
             machine->vtbl->GetMemorySize(machine, &memorySize);
-            def->memory = memorySize * 1024;
+            def->mem.cur_balloon = memorySize * 1024;
 
             data->vboxObj->vtbl->GetSystemProperties(data->vboxObj, &systemProperties);
             if (systemProperties) {
@@ -1996,11 +2063,11 @@ static char *vboxDomainDumpXML(virDomainPtr dom, int flags) {
              * the notation here seems to be inconsistent while
              * reading and while dumping xml
              */
-            /* def->maxmem = maxMemorySize * 1024; */
-            def->maxmem = memorySize * 1024;
+            /* def->mem.max_balloon = maxMemorySize * 1024; */
+            def->mem.max_balloon = memorySize * 1024;
 
             machine->vtbl->GetCPUCount(machine, &CPUCount);
-            def->vcpus = CPUCount;
+            def->maxvcpus = def->vcpus = CPUCount;
 
             /* Skip cpumasklen, cpumask, onReboot, onPoweroff, onCrash */
 
@@ -4562,19 +4629,23 @@ static virDomainPtr vboxDomainDefineXML(virConnectPtr conn, const char *xml) {
         goto cleanup;
     }
 
-    rc = machine->vtbl->SetMemorySize(machine, def->memory / 1024);
+    rc = machine->vtbl->SetMemorySize(machine, def->mem.cur_balloon / 1024);
     if (NS_FAILED(rc)) {
         vboxError(VIR_ERR_INTERNAL_ERROR,
                   _("could not set the memory size of the domain to: %lu Kb, "
                     "rc=%08x"),
-                  def->memory, (unsigned)rc);
+                  def->mem.cur_balloon, (unsigned)rc);
     }
 
-    rc = machine->vtbl->SetCPUCount(machine, def->vcpus);
+    if (def->vcpus != def->maxvcpus) {
+        vboxError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                    _("current vcpu count must equal maximum"));
+    }
+    rc = machine->vtbl->SetCPUCount(machine, def->maxvcpus);
     if (NS_FAILED(rc)) {
         vboxError(VIR_ERR_INTERNAL_ERROR,
-                  _("could not set the number of virtual CPUs to: %lu, rc=%08x"),
-                  def->vcpus, (unsigned)rc);
+                  _("could not set the number of virtual CPUs to: %u, rc=%08x"),
+                  def->maxvcpus, (unsigned)rc);
     }
 
 #if VBOX_API_VERSION < 3001
@@ -7041,8 +7112,8 @@ static virNetworkPtr vboxNetworkDefineCreateXML(virConnectPtr conn, const char *
          * with contigious address space from start to end
          */
         if ((def->nranges >= 1) &&
-            (def->ranges[0].start) &&
-            (def->ranges[0].end)) {
+            VIR_SOCKET_HAS_ADDR(&def->ranges[0].start) &&
+            VIR_SOCKET_HAS_ADDR(&def->ranges[0].end)) {
             IDHCPServer *dhcpServer = NULL;
 
             data->vboxObj->vtbl->FindDHCPServerByNetworkName(data->vboxObj,
@@ -7062,11 +7133,21 @@ static virNetworkPtr vboxNetworkDefineCreateXML(virConnectPtr conn, const char *
                 PRUnichar *toIPAddressUtf16   = NULL;
                 PRUnichar *trunkTypeUtf16     = NULL;
 
+                ipAddressUtf16 = vboxSocketFormatAddrUtf16(data, &def->ipAddress);
+                networkMaskUtf16 = vboxSocketFormatAddrUtf16(data, &def->netmask);
+                fromIPAddressUtf16 = vboxSocketFormatAddrUtf16(data, &def->ranges[0].start);
+                toIPAddressUtf16 = vboxSocketFormatAddrUtf16(data, &def->ranges[0].end);
 
-                VBOX_UTF8_TO_UTF16(def->ipAddress, &ipAddressUtf16);
-                VBOX_UTF8_TO_UTF16(def->netmask, &networkMaskUtf16);
-                VBOX_UTF8_TO_UTF16(def->ranges[0].start, &fromIPAddressUtf16);
-                VBOX_UTF8_TO_UTF16(def->ranges[0].end, &toIPAddressUtf16);
+                if (ipAddressUtf16 == NULL || networkMaskUtf16 == NULL ||
+                    fromIPAddressUtf16 == NULL || toIPAddressUtf16 == NULL) {
+                    VBOX_UTF16_FREE(ipAddressUtf16);
+                    VBOX_UTF16_FREE(networkMaskUtf16);
+                    VBOX_UTF16_FREE(fromIPAddressUtf16);
+                    VBOX_UTF16_FREE(toIPAddressUtf16);
+                    VBOX_RELEASE(dhcpServer);
+                    goto cleanup;
+                }
+
                 VBOX_UTF8_TO_UTF16("netflt", &trunkTypeUtf16);
 
                 dhcpServer->vtbl->SetEnabled(dhcpServer, PR_TRUE);
@@ -7093,12 +7174,18 @@ static virNetworkPtr vboxNetworkDefineCreateXML(virConnectPtr conn, const char *
         }
 
         if ((def->nhosts >= 1) &&
-            (def->hosts[0].ip)) {
+            VIR_SOCKET_HAS_ADDR(&def->hosts[0].ip)) {
             PRUnichar *ipAddressUtf16   = NULL;
             PRUnichar *networkMaskUtf16 = NULL;
 
-            VBOX_UTF8_TO_UTF16(def->netmask, &networkMaskUtf16);
-            VBOX_UTF8_TO_UTF16(def->hosts[0].ip, &ipAddressUtf16);
+            ipAddressUtf16 = vboxSocketFormatAddrUtf16(data, &def->hosts[0].ip);
+            networkMaskUtf16 = vboxSocketFormatAddrUtf16(data, &def->netmask);
+
+            if (ipAddressUtf16 == NULL || networkMaskUtf16 == NULL) {
+                VBOX_UTF16_FREE(ipAddressUtf16);
+                VBOX_UTF16_FREE(networkMaskUtf16);
+                goto cleanup;
+            }
 
             /* Current drawback is that since EnableStaticIpConfig() sets
              * IP and enables the interface so even if the dhcpserver is not
@@ -7361,6 +7448,7 @@ static char *vboxNetworkDumpXML(virNetworkPtr network, int flags ATTRIBUTE_UNUSE
                         PRUnichar *networkMaskUtf16   = NULL;
                         PRUnichar *fromIPAddressUtf16 = NULL;
                         PRUnichar *toIPAddressUtf16   = NULL;
+                        bool errorOccurred = false;
 
                         dhcpServer->vtbl->GetIPAddress(dhcpServer, &ipAddressUtf16);
                         dhcpServer->vtbl->GetNetworkMask(dhcpServer, &networkMaskUtf16);
@@ -7369,15 +7457,25 @@ static char *vboxNetworkDumpXML(virNetworkPtr network, int flags ATTRIBUTE_UNUSE
                         /* Currently virtualbox supports only one dhcp server per network
                          * with contigious address space from start to end
                          */
-                        VBOX_UTF16_TO_UTF8(ipAddressUtf16, &def->ipAddress);
-                        VBOX_UTF16_TO_UTF8(networkMaskUtf16, &def->netmask);
-                        VBOX_UTF16_TO_UTF8(fromIPAddressUtf16, &def->ranges[0].start);
-                        VBOX_UTF16_TO_UTF8(toIPAddressUtf16, &def->ranges[0].end);
+                        if (vboxSocketParseAddrUtf16(data, ipAddressUtf16,
+                                                     &def->ipAddress) < 0 ||
+                            vboxSocketParseAddrUtf16(data, networkMaskUtf16,
+                                                     &def->netmask) < 0 ||
+                            vboxSocketParseAddrUtf16(data, fromIPAddressUtf16,
+                                                     &def->ranges[0].start) < 0 ||
+                            vboxSocketParseAddrUtf16(data, toIPAddressUtf16,
+                                                     &def->ranges[0].end) < 0) {
+                            errorOccurred = true;
+                        }
 
                         VBOX_UTF16_FREE(ipAddressUtf16);
                         VBOX_UTF16_FREE(networkMaskUtf16);
                         VBOX_UTF16_FREE(fromIPAddressUtf16);
                         VBOX_UTF16_FREE(toIPAddressUtf16);
+
+                        if (errorOccurred) {
+                            goto cleanup;
+                        }
                     } else {
                         def->nranges = 0;
                         virReportOOMError();
@@ -7393,15 +7491,24 @@ static char *vboxNetworkDumpXML(virNetworkPtr network, int flags ATTRIBUTE_UNUSE
                         } else {
                             PRUnichar *macAddressUtf16 = NULL;
                             PRUnichar *ipAddressUtf16  = NULL;
+                            bool errorOccurred = false;
 
                             networkInterface->vtbl->GetHardwareAddress(networkInterface, &macAddressUtf16);
                             networkInterface->vtbl->GetIPAddress(networkInterface, &ipAddressUtf16);
 
                             VBOX_UTF16_TO_UTF8(macAddressUtf16, &def->hosts[0].mac);
-                            VBOX_UTF16_TO_UTF8(ipAddressUtf16, &def->hosts[0].ip);
+
+                            if (vboxSocketParseAddrUtf16(data, ipAddressUtf16,
+                                                         &def->hosts[0].ip) < 0) {
+                                errorOccurred = true;
+                            }
 
                             VBOX_UTF16_FREE(macAddressUtf16);
                             VBOX_UTF16_FREE(ipAddressUtf16);
+
+                            if (errorOccurred) {
+                                goto cleanup;
+                            }
                         }
                     } else {
                         def->nhosts = 0;
@@ -7411,15 +7518,24 @@ static char *vboxNetworkDumpXML(virNetworkPtr network, int flags ATTRIBUTE_UNUSE
                 } else {
                     PRUnichar *networkMaskUtf16 = NULL;
                     PRUnichar *ipAddressUtf16   = NULL;
+                    bool errorOccurred = false;
 
                     networkInterface->vtbl->GetNetworkMask(networkInterface, &networkMaskUtf16);
                     networkInterface->vtbl->GetIPAddress(networkInterface, &ipAddressUtf16);
 
-                    VBOX_UTF16_TO_UTF8(networkMaskUtf16, &def->netmask);
-                    VBOX_UTF16_TO_UTF8(ipAddressUtf16, &def->ipAddress);
+                    if (vboxSocketParseAddrUtf16(data, networkMaskUtf16,
+                                                 &def->netmask) < 0 ||
+                        vboxSocketParseAddrUtf16(data, ipAddressUtf16,
+                                                 &def->ipAddress) < 0) {
+                        errorOccurred = true;
+                    }
 
                     VBOX_UTF16_FREE(networkMaskUtf16);
                     VBOX_UTF16_FREE(ipAddressUtf16);
+
+                    if (errorOccurred) {
+                        goto cleanup;
+                    }
                 }
 
                 DEBUGIID("Network UUID", vboxnet0IID);
@@ -8267,6 +8383,8 @@ virDriver NAME(Driver) = {
     NULL, /* domainRestore */
     NULL, /* domainCoreDump */
     vboxDomainSetVcpus, /* domainSetVcpus */
+    vboxDomainSetVcpusFlags, /* domainSetVcpusFlags */
+    vboxDomainGetVcpusFlags, /* domainGetVcpusFlags */
     NULL, /* domainPinVcpu */
     NULL, /* domainGetVcpus */
     vboxDomainGetMaxVcpus, /* domainGetMaxVcpus */
@@ -8344,6 +8462,8 @@ virDriver NAME(Driver) = {
     vboxDomainRevertToSnapshot, /* domainRevertToSnapshot */
     vboxDomainSnapshotDelete, /* domainSnapshotDelete */
     NULL, /* qemuDomainMonitorCommand */
+    NULL, /* domainSetMemoryParameters */
+    NULL, /* domainGetMemoryParameters */
 };
 
 virNetworkDriver NAME(NetworkDriver) = {

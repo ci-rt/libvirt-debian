@@ -100,6 +100,10 @@
                   <div>
                     <a title="Working on the internals of libvirt API, driver and daemon code" class="inactive" href="internals.html">Internals</a>
                   </div>
+                </li><li>
+                  <div>
+                    <a title="A guide and reference for developing with libvirt" class="inactive" href="devguide.html">Development Guide</a>
+                  </div>
                 </li></ul>
             </div>
           </li><li>
@@ -381,7 +385,13 @@
   &lt;memoryBacking&gt;
     &lt;hugepages/&gt;
   &lt;/memoryBacking&gt;
-  &lt;vcpu&gt;1&lt;/vcpu&gt;
+  &lt;memtune&gt;
+    &lt;hard_limit&gt;1048576&lt;/hard_limit&gt;
+    &lt;soft_limit&gt;131072&lt;/soft_limit&gt;
+    &lt;swap_hard_limit&gt;2097152&lt;/swap_hard_limit&gt;
+    &lt;min_guarantee&gt;65536&lt;/min_guarantee&gt;
+  &lt;/memtune&gt;
+  &lt;vcpu cpuset="1-4,^3,6" current="1"&gt;2&lt;/vcpu&gt;
   ...</pre>
         <dl><dt><code>memory</code></dt><dd>The maximum allocation of memory for the guest at boot time.
         The units for this value are kilobytes (i.e. blocks of 1024 bytes)</dd><dt><code>currentMemory</code></dt><dd>The actual allocation of memory for the guest. This value
@@ -390,8 +400,29 @@
         to the same value as the <code>memory<code> element</code></code></dd><dt><code>memoryBacking</code></dt><dd>The optional <code>memoryBacking</code> element, may have an
         <code>hugepages</code> element set within it. This tells the
         hypervisor that the guest should have its memory allocated using
-        hugepages instead of the normal native page size.</dd><dt><code>vcpu</code></dt><dd>The content of this element defines the number of virtual
-        CPUs allocated for the guest OS.</dd></dl>
+        hugepages instead of the normal native page size.</dd><dt><code>memtune</code></dt><dd> The optional <code>memtune</code> element provides details
+      regarding the memory tuneable parameters for the domain. If this is
+      omitted, it defaults to the OS provided defaults.</dd><dt><code>hard_limit</code></dt><dd> The optional <code>hard_limit</code> element is the maximum memory
+	the guest can use. The units for this value are kilobytes (i.e. blocks
+	of 1024 bytes)</dd><dt><code>soft_limit</code></dt><dd> The optional <code>soft_limit</code> element is the memory limit to
+	enforce during memory contention. The units for this value are
+	kilobytes (i.e. blocks of 1024 bytes)</dd><dt><code>swap_hard_limit</code></dt><dd> The optional <code>swap_hard_limit</code> element is the maximum
+	swap the guest can use. The units for this value are kilobytes
+	(i.e. blocks of 1024 bytes)</dd><dt><code>min_guarantee</code></dt><dd> The optional <code>min_guarantee</code> element is the guaranteed
+	minimum memory allocation for the guest. The units for this value are
+	kilobytes (i.e. blocks of 1024 bytes)</dd><dt><code>vcpu</code></dt><dd>The content of this element defines the maximum number of virtual
+        CPUs allocated for the guest OS, which must be between 1 and
+        the maximum supported by the hypervisor.  <span class="since">Since
+        0.4.4</span>, this element can contain an optional
+        <code>cpuset</code> attribute, which is a comma-separated
+        list of physical CPU numbers that virtual CPUs can be pinned
+        to.  Each element in that list is either a single CPU number,
+        a range of CPU numbers, or a caret followed by a CPU number to
+        be excluded from a previous range.  <span class="since">Since
+        0.8.5</span>, the optional attribute <code>current</code> can
+        be used to specify whether fewer than the maximum number of
+        virtual CPUs should be enabled.
+      </dd></dl>
         <h3>
           <a name="elementsCPU" id="elementsCPU">CPU model and topology</a>
         </h3>
@@ -431,7 +462,9 @@
         <dl><dt><code>minimum</code></dt><dd>The specified CPU model and features describes the minimum
             requested CPU.</dd><dt><code>exact</code></dt><dd>The virtual CPU provided to the guest will exactly match the
             specification</dd><dt><code>strict</code></dt><dd>The guest will not be created unless the host CPU does exactly
-            match the specification.</dd></dl></dd><dt><code>model</code></dt><dd>The content of the <code>model</code> element specifies CPU model
+            match the specification.</dd></dl><span class="since">Since 0.8.5</span> the <code>match</code>
+	attribute can be omitted and will default to <code>exact</code>.
+      </dd><dt><code>model</code></dt><dd>The content of the <code>model</code> element specifies CPU model
         requested by the guest. The list of available CPU models and their
         definition can be found in <code>cpu_map.xml</code> file installed
         in libvirt's data directory.</dd><dt><code>vendor</code></dt><dd><span class="since">Since 0.8.3</span> the content of the
@@ -453,7 +486,9 @@
             of it being supported by host CPU.</dd><dt><code>require</code></dt><dd>Guest creation will fail unless the feature is supported by host
             CPU.</dd><dt><code>optional</code></dt><dd>The feature will be supported by virtual CPU if and only if it
             is supported by host CPU.</dd><dt><code>disable</code></dt><dd>The feature will not be supported by virtual CPU.</dd><dt><code>forbid</code></dt><dd>Guest creation will fail if the feature is supported by host
-            CPU.</dd></dl></dd></dl>
+            CPU.</dd></dl><span class="since">Since 0.8.5</span> the <code>policy</code>
+	attribute can be omitted and will default to <code>require</code>.
+      </dd></dl>
         <h3>
           <a name="elementsLifecycle" id="elementsLifecycle">Lifecycle control</a>
         </h3>
@@ -1411,7 +1446,9 @@ qemu-kvm -net nic,model=? /dev/null
   &lt;/devices&gt;
   ...</pre>
         <p>
-      Alternatively you can use telnet instead of raw TCP.
+      Alternatively you can use <code>telnet</code> instead of <code>raw</code> TCP.
+      <span class="since">Since 0.8.5</span> you can also use <code>telnets</code>
+      (secure telnet) and <code>tls</code>.
     </p>
         <p>
 
@@ -1553,6 +1590,9 @@ qemu-kvm -net nic,model=? /dev/null
       need to explicitly add this element in the guest XML unless a
       specific PCI slot needs to be assigned.
       <span class="since">Since 0.8.3, Xen, QEMU and KVM only</span>
+      Additionally, <span class="since">since 0.8.4</span>, if the
+      memballoon device needs to be explicitly disabled,
+      <code>model='none'</code> may be used.
     </p>
         <p>
       Example automatically added device with KVM

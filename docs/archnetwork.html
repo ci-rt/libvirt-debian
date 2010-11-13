@@ -92,6 +92,10 @@
                   <div>
                     <a title="Working on the internals of libvirt API, driver and daemon code" class="inactive" href="internals.html">Internals</a>
                   </div>
+                </li><li>
+                  <div>
+                    <a title="A guide and reference for developing with libvirt" class="inactive" href="devguide.html">Development Guide</a>
+                  </div>
                 </li></ul>
             </div>
           </li><li>
@@ -122,7 +126,17 @@
       </div>
       <div id="content">
         <h1>Network management architecture</h1>
-        <h2>Architecture illustration</h2>
+        <ul><li>
+            <a href="#architecture">Architecture illustration</a>
+            <ul><li>
+                <a href="#logical">Logical diagram</a>
+              </li><li>
+                <a href="#physical">Physical diagram</a>
+              </li></ul>
+          </li></ul>
+        <h2>
+          <a name="architecture" id="architecture">Architecture illustration</a>
+        </h2>
         <p>
       The diagrams below illustrate some of the network configurations
       enabled by the libvirt networking APIs
@@ -145,10 +159,14 @@
         to a physical LAN, relying on <code>Guest B</code> to route traffic
         on its behalf.
       </li></ul>
-        <h3>Logical diagram</h3>
+        <h3>
+          <a name="logical" id="logical">Logical diagram</a>
+        </h3>
         <p class="image">
       <img src="libvirt-net-logical.png" alt="Logical network architecture" /></p>
-        <h3>Physical diagram</h3>
+        <h3>
+          <a name="physical" id="physical">Physical diagram</a>
+        </h3>
         <p class="image">
       <img src="libvirt-net-physical.png" alt="Physical network architecture" /></p>
       </div>

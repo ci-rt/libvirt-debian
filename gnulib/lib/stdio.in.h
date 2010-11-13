@@ -21,6 +21,7 @@
 #if __GNUC__ >= 3
 @PRAGMA_SYSTEM_HEADER@
 #endif
+@PRAGMA_COLUMNS@
 
 #if defined __need_FILE || defined __need___FILE
 /* Special invocation convention inside glibc header files.  */
@@ -267,7 +268,8 @@ _GL_CXXALIASWARN (freopen);
 #elif defined GNULIB_POSIXCHECK
 # undef freopen
 /* Assume freopen is always declared.  */
-_GL_WARN_ON_USE (freopen, "freopen on Win32 platforms is not POSIX compatible - "
+_GL_WARN_ON_USE (freopen,
+                 "freopen on Win32 platforms is not POSIX compatible - "
                  "use gnulib module freopen for portability");
 #endif
 

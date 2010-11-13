@@ -43,6 +43,11 @@
 #define <a href="#VIR_CPU_MAPLEN">VIR_CPU_MAPLEN</a>(cpu);
 #define <a href="#VIR_CPU_USABLE">VIR_CPU_USABLE</a>(cpumaps, maplen, vcpu, cpu);
 #define <a href="#VIR_DOMAIN_EVENT_CALLBACK">VIR_DOMAIN_EVENT_CALLBACK</a>;
+#define <a href="#VIR_DOMAIN_MEMORY_FIELD_LENGTH">VIR_DOMAIN_MEMORY_FIELD_LENGTH</a>;
+#define <a href="#VIR_DOMAIN_MEMORY_HARD_LIMIT">VIR_DOMAIN_MEMORY_HARD_LIMIT</a>;
+#define <a href="#VIR_DOMAIN_MEMORY_MIN_GUARANTEE">VIR_DOMAIN_MEMORY_MIN_GUARANTEE</a>;
+#define <a href="#VIR_DOMAIN_MEMORY_SOFT_LIMIT">VIR_DOMAIN_MEMORY_SOFT_LIMIT</a>;
+#define <a href="#VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT">VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT</a>;
 #define <a href="#VIR_DOMAIN_SCHED_FIELD_LENGTH">VIR_DOMAIN_SCHED_FIELD_LENGTH</a>;
 #define <a href="#VIR_GET_CPUMAP">VIR_GET_CPUMAP</a>(cpumaps, maplen, vcpu);
 #define <a href="#VIR_NODEINFO_MAXCPUS">VIR_NODEINFO_MAXCPUS</a>(nodeinfo);
@@ -105,11 +110,15 @@ typedef struct _virDomainSnapshot <a href="#virDomainSnapshot">virDomainSnapshot
 typedef enum <a href="#virDomainSnapshotDeleteFlags">virDomainSnapshotDeleteFlags</a>;
 typedef <a href="libvirt-libvirt.html#virDomainSnapshot">virDomainSnapshot</a> * <a href="#virDomainSnapshotPtr">virDomainSnapshotPtr</a>;
 typedef enum <a href="#virDomainState">virDomainState</a>;
+typedef enum <a href="#virDomainVcpuFlags">virDomainVcpuFlags</a>;
 typedef enum <a href="#virDomainXMLFlags">virDomainXMLFlags</a>;
 typedef enum <a href="#virEventHandleType">virEventHandleType</a>;
 typedef struct _virInterface <a href="#virInterface">virInterface</a>;
 typedef <a href="libvirt-libvirt.html#virInterface">virInterface</a> * <a href="#virInterfacePtr">virInterfacePtr</a>;
 typedef enum <a href="#virInterfaceXMLFlags">virInterfaceXMLFlags</a>;
+typedef struct _virMemoryParameter <a href="#virMemoryParameter">virMemoryParameter</a>;
+typedef <a href="libvirt-libvirt.html#virMemoryParameter">virMemoryParameter</a> * <a href="#virMemoryParameterPtr">virMemoryParameterPtr</a>;
+typedef enum <a href="#virMemoryParameterType">virMemoryParameterType</a>;
 typedef struct _virNWFilter <a href="#virNWFilter">virNWFilter</a>;
 typedef <a href="libvirt-libvirt.html#virNWFilter">virNWFilter</a> * <a href="#virNWFilterPtr">virNWFilterPtr</a>;
 typedef struct _virNetwork <a href="#virNetwork">virNetwork</a>;
@@ -222,6 +231,7 @@ int	<a href="#virDomainGetInfo">virDomainGetInfo</a>		(<a href="libvirt-libvirt.
 int	<a href="#virDomainGetJobInfo">virDomainGetJobInfo</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virDomainJobInfoPtr">virDomainJobInfoPtr</a> info);
 unsigned long	<a href="#virDomainGetMaxMemory">virDomainGetMaxMemory</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
 int	<a href="#virDomainGetMaxVcpus">virDomainGetMaxVcpus</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
+int	<a href="#virDomainGetMemoryParameters">virDomainGetMemoryParameters</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virMemoryParameterPtr">virMemoryParameterPtr</a> params, <br/>					 int * nparams, <br/>					 unsigned int flags);
 const char *	<a href="#virDomainGetName">virDomainGetName</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
 char *	<a href="#virDomainGetOSType">virDomainGetOSType</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
 int	<a href="#virDomainGetSchedulerParameters">virDomainGetSchedulerParameters</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virSchedParameterPtr">virSchedParameterPtr</a> params, <br/>					 int * nparams);
@@ -230,6 +240,7 @@ int	<a href="#virDomainGetSecurityLabel">virDomainGetSecurityLabel</a>	(<a href=
 int	<a href="#virDomainGetUUID">virDomainGetUUID</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned char * uuid);
 int	<a href="#virDomainGetUUIDString">virDomainGetUUIDString</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 char * buf);
 int	<a href="#virDomainGetVcpus">virDomainGetVcpus</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virVcpuInfoPtr">virVcpuInfoPtr</a> info, <br/>					 int maxinfo, <br/>					 unsigned char * cpumaps, <br/>					 int maplen);
+int	<a href="#virDomainGetVcpusFlags">virDomainGetVcpusFlags</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int flags);
 char *	<a href="#virDomainGetXMLDesc">virDomainGetXMLDesc</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 int flags);
 int	<a href="#virDomainHasCurrentSnapshot">virDomainHasCurrentSnapshot</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int flags);
 int	<a href="#virDomainHasManagedSaveImage">virDomainHasManagedSaveImage</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 unsigned int flags);
@@ -257,8 +268,10 @@ int	<a href="#virDomainSave">virDomainSave</a>			(<a href="libvirt-libvirt.html#
 int	<a href="#virDomainSetAutostart">virDomainSetAutostart</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 int autostart);
 int	<a href="#virDomainSetMaxMemory">virDomainSetMaxMemory</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned long memory);
 int	<a href="#virDomainSetMemory">virDomainSetMemory</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned long memory);
+int	<a href="#virDomainSetMemoryParameters">virDomainSetMemoryParameters</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virMemoryParameterPtr">virMemoryParameterPtr</a> params, <br/>					 int nparams, <br/>					 unsigned int flags);
 int	<a href="#virDomainSetSchedulerParameters">virDomainSetSchedulerParameters</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virSchedParameterPtr">virSchedParameterPtr</a> params, <br/>					 int nparams);
 int	<a href="#virDomainSetVcpus">virDomainSetVcpus</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int nvcpus);
+int	<a href="#virDomainSetVcpusFlags">virDomainSetVcpusFlags</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int nvcpus, <br/>					 unsigned int flags);
 int	<a href="#virDomainShutdown">virDomainShutdown</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
 <a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a>	<a href="#virDomainSnapshotCreateXML">virDomainSnapshotCreateXML</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>							 const char * xmlDesc, <br/>							 unsigned int flags);
 <a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a>	<a href="#virDomainSnapshotCurrent">virDomainSnapshotCurrent</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>							 unsigned int flags);
@@ -443,6 +456,26 @@ typedef int <a href="#virStreamSourceFunc">virStreamSourceFunc</a>		(<a href="li
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_EVENT_CALLBACK">Macro </a>VIR_DOMAIN_EVENT_CALLBACK</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_EVENT_CALLBACK">VIR_DOMAIN_EVENT_CALLBACK</a>;
 </pre><p>Used to cast the event specific callback into the generic one for use for virDomainEventRegister</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_MEMORY_FIELD_LENGTH">Macro </a>VIR_DOMAIN_MEMORY_FIELD_LENGTH</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_MEMORY_FIELD_LENGTH">VIR_DOMAIN_MEMORY_FIELD_LENGTH</a>;
+</pre><p>Macro providing the field length of <a href="libvirt-libvirt.html#virMemoryParameter">virMemoryParameter</a></p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_MEMORY_HARD_LIMIT">Macro </a>VIR_DOMAIN_MEMORY_HARD_LIMIT</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_MEMORY_HARD_LIMIT">VIR_DOMAIN_MEMORY_HARD_LIMIT</a>;
+</pre><p>Macro for the memory tunable hard_limit: it represents the maximum memory the guest can use.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_MEMORY_MIN_GUARANTEE">Macro </a>VIR_DOMAIN_MEMORY_MIN_GUARANTEE</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_MEMORY_MIN_GUARANTEE">VIR_DOMAIN_MEMORY_MIN_GUARANTEE</a>;
+</pre><p>Macro for the memory tunable min_guarantee: it represents the minimum memory guaranteed to be reserved for the guest.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_MEMORY_SOFT_LIMIT">Macro </a>VIR_DOMAIN_MEMORY_SOFT_LIMIT</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_MEMORY_SOFT_LIMIT">VIR_DOMAIN_MEMORY_SOFT_LIMIT</a>;
+</pre><p>Macro for the memory tunable soft_limit: it represents the memory upper limit enforced during memory contention.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT">Macro </a>VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT">VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT</a>;
+</pre><p>Macro for the swap tunable swap_hard_limit: it represents the maximum swap the guest can use.</p>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_SCHED_FIELD_LENGTH">Macro </a>VIR_DOMAIN_SCHED_FIELD_LENGTH</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_SCHED_FIELD_LENGTH">VIR_DOMAIN_SCHED_FIELD_LENGTH</a>;
@@ -886,6 +919,14 @@ The content of this structure is not made public by the API.
 </pre><p/>
 </div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainVcpuFlags">Enum </a>virDomainVcpuFlags</h3><pre class="programlisting">enum <a href="#virDomainVcpuFlags">virDomainVcpuFlags</a> {
+    <a name="VIR_DOMAIN_VCPU_LIVE">VIR_DOMAIN_VCPU_LIVE</a> = 1 /* Affect active domain */
+    <a name="VIR_DOMAIN_VCPU_CONFIG">VIR_DOMAIN_VCPU_CONFIG</a> = 2 /* Affect next boot Additional flags to be bit-wise OR'd in */
+    <a name="VIR_DOMAIN_VCPU_MAXIMUM">VIR_DOMAIN_VCPU_MAXIMUM</a> = 4 /*  Max rather than current count */
+};
+</pre><p/>
+</div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainXMLFlags">Enum </a>virDomainXMLFlags</h3><pre class="programlisting">enum <a href="#virDomainXMLFlags">virDomainXMLFlags</a> {
     <a name="VIR_DOMAIN_XML_SECURE">VIR_DOMAIN_XML_SECURE</a> = 1 /* dump security sensitive information too */
     <a name="VIR_DOMAIN_XML_INACTIVE">VIR_DOMAIN_XML_INACTIVE</a> = 2 /* dump inactive domain information */
@@ -915,6 +956,28 @@ The content of this structure is not made public by the API.
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virInterfaceXMLFlags">Enum </a>virInterfaceXMLFlags</h3><pre class="programlisting">enum <a href="#virInterfaceXMLFlags">virInterfaceXMLFlags</a> {
     <a name="VIR_INTERFACE_XML_INACTIVE">VIR_INTERFACE_XML_INACTIVE</a> = 1 /*  dump inactive interface information */
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virMemoryParameter">Structure </a>virMemoryParameter</h3><pre class="programlisting">struct _virMemoryParameter {
+    charfield[VIR_DOMAIN_MEMORY_FIELD_LENGTH]	field	: parameter name
+    int	type	: parameter type
+} virMemoryParameter;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virMemoryParameterPtr">Typedef </a>virMemoryParameterPtr</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virMemoryParameter">virMemoryParameter</a> * virMemoryParameterPtr;
+</pre><p>a <a href="libvirt-libvirt.html#virMemoryParameterPtr">virMemoryParameterPtr</a> is a pointer to a <a href="libvirt-libvirt.html#virMemoryParameter">virMemoryParameter</a> structure.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virMemoryParameterType">Enum </a>virMemoryParameterType</h3><pre class="programlisting">enum <a href="#virMemoryParameterType">virMemoryParameterType</a> {
+    <a name="VIR_DOMAIN_MEMORY_PARAM_INT">VIR_DOMAIN_MEMORY_PARAM_INT</a> = 1 /* integer case */
+    <a name="VIR_DOMAIN_MEMORY_PARAM_UINT">VIR_DOMAIN_MEMORY_PARAM_UINT</a> = 2 /* unsigned integer case */
+    <a name="VIR_DOMAIN_MEMORY_PARAM_LLONG">VIR_DOMAIN_MEMORY_PARAM_LLONG</a> = 3 /* long long case */
+    <a name="VIR_DOMAIN_MEMORY_PARAM_ULLONG">VIR_DOMAIN_MEMORY_PARAM_ULLONG</a> = 4 /* unsigned long long case */
+    <a name="VIR_DOMAIN_MEMORY_PARAM_DOUBLE">VIR_DOMAIN_MEMORY_PARAM_DOUBLE</a> = 5 /* double case */
+    <a name="VIR_DOMAIN_MEMORY_PARAM_BOOLEAN">VIR_DOMAIN_MEMORY_PARAM_BOOLEAN</a> = 6 /*  boolean(character) case */
 };
 </pre><p/>
 </div>
@@ -1156,16 +1219,20 @@ The content of this structure is not made public by the API.
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectAuthCallbackPtr"/>Function type virConnectAuthCallbackPtr</h3><pre class="programlisting">int	virConnectAuthCallbackPtr	(<a href="libvirt-libvirt.html#virConnectCredentialPtr">virConnectCredentialPtr</a> cred, <br/>					 unsigned int ncred, <br/>					 void * cbdata)<br/>
-</pre><p/>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>cred</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>ncred</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>cbdata</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td/></tr></tbody></table></div></div>
+</pre><p>When authentication requires one or more interactions, this callback
+is invoked. For each interaction supplied, data must be gathered
+from the user and filled in to the 'result' and 'resultlen' fields.
+If an interaction can not be filled, fill in NULL and 0.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>cred</tt></i>:</span></td><td>list of <a href="libvirt-libvirt.html#virConnectCredential">virConnectCredential</a> object to fetch from user</td></tr><tr><td><span class="term"><i><tt>ncred</tt></i>:</span></td><td>size of cred list</td></tr><tr><td><span class="term"><i><tt>cbdata</tt></i>:</span></td><td>opaque data passed to <a href="libvirt-libvirt.html#virConnectOpenAuth">virConnectOpenAuth</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if all interactions were filled, or -1 upon error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventCallback"/>Function type virConnectDomainEventCallback</h3><pre class="programlisting">int	virConnectDomainEventCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 int event, <br/>					 int detail, <br/>					 void * opaque)<br/>
 </pre><p>A callback function to be registered, and called when a domain event occurs</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td><a href="libvirt-libvirt.html#virConnect">virConnect</a> connection</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>The domain on which the event occured</td></tr><tr><td><span class="term"><i><tt>event</tt></i>:</span></td><td>The specfic <a href="libvirt-libvirt.html#virDomainEventType">virDomainEventType</a> which occured</td></tr><tr><td><span class="term"><i><tt>detail</tt></i>:</span></td><td>event specific detail information</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>opaque user data</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td/></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventGenericCallback"/>Function type virConnectDomainEventGenericCallback</h3><pre class="programlisting">void	virConnectDomainEventGenericCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 void * opaque)<br/>
-</pre><p/>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td/></tr></tbody></table></div></div>
+</pre><p>A generic domain event callback handler. Specific events usually
+have a customization with extra parameters</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>the connection pointer</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>the domain pointer</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventGraphicsCallback"/>Function type virConnectDomainEventGraphicsCallback</h3><pre class="programlisting">void	virConnectDomainEventGraphicsCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int phase, <br/>						 <a href="libvirt-libvirt.html#virDomainEventGraphicsAddressPtr">virDomainEventGraphicsAddressPtr</a> local, <br/>						 <a href="libvirt-libvirt.html#virDomainEventGraphicsAddressPtr">virDomainEventGraphicsAddressPtr</a> remote, <br/>						 const char * authScheme, <br/>						 <a href="libvirt-libvirt.html#virDomainEventGraphicsSubjectPtr">virDomainEventGraphicsSubjectPtr</a> subject, <br/>						 void * opaque)<br/>
 </pre><p>The callback signature to use when registering for an event of type
@@ -1173,12 +1240,14 @@ VIR_DOMAIN_EVENT_ID_GRAPHICS with virConnectDomainEventRegisterAny()</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>connection object</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>domain on which the event occurred</td></tr><tr><td><span class="term"><i><tt>phase</tt></i>:</span></td><td>the phase of the connection</td></tr><tr><td><span class="term"><i><tt>local</tt></i>:</span></td><td>the local server address</td></tr><tr><td><span class="term"><i><tt>remote</tt></i>:</span></td><td>the remote client address</td></tr><tr><td><span class="term"><i><tt>authScheme</tt></i>:</span></td><td>the authentication scheme activated</td></tr><tr><td><span class="term"><i><tt>subject</tt></i>:</span></td><td>the authenticated subject (user)</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventIOErrorCallback"/>Function type virConnectDomainEventIOErrorCallback</h3><pre class="programlisting">void	virConnectDomainEventIOErrorCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 const char * srcPath, <br/>						 const char * devAlias, <br/>						 int action, <br/>						 void * opaque)<br/>
-</pre><p/>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>srcPath</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>devAlias</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>action</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td/></tr></tbody></table></div></div>
+</pre><p>The callback signature to use when registering for an event of type
+VIR_DOMAIN_EVENT_ID_IO_ERROR with virConnectDomainEventRegisterAny()</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>connection object</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>domain on which the event occurred</td></tr><tr><td><span class="term"><i><tt>srcPath</tt></i>:</span></td><td>The host file on which the IO error occurred</td></tr><tr><td><span class="term"><i><tt>devAlias</tt></i>:</span></td><td>The guest device alias associated with the path</td></tr><tr><td><span class="term"><i><tt>action</tt></i>:</span></td><td>action that is to be taken due to the IO error</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventIOErrorReasonCallback"/>Function type virConnectDomainEventIOErrorReasonCallback</h3><pre class="programlisting">void	virConnectDomainEventIOErrorReasonCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>							 const char * srcPath, <br/>							 const char * devAlias, <br/>							 int action, <br/>							 const char * reason, <br/>							 void * opaque)<br/>
-</pre><p/>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>srcPath</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>devAlias</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>action</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>reason</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td/></tr></tbody></table></div></div>
+</pre><p>The callback signature to use when registering for an event of type
+VIR_DOMAIN_EVENT_ID_IO_ERROR with virConnectDomainEventRegisterAny()</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>connection object</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>domain on which the event occurred</td></tr><tr><td><span class="term"><i><tt>srcPath</tt></i>:</span></td><td>The host file on which the IO error occurred</td></tr><tr><td><span class="term"><i><tt>devAlias</tt></i>:</span></td><td>The guest device alias associated with the path</td></tr><tr><td><span class="term"><i><tt>action</tt></i>:</span></td><td>action that is to be taken due to the IO error</td></tr><tr><td><span class="term"><i><tt>reason</tt></i>:</span></td><td>the cause of the IO error</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventRTCChangeCallback"/>Function type virConnectDomainEventRTCChangeCallback</h3><pre class="programlisting">void	virConnectDomainEventRTCChangeCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 long long utcoffset, <br/>						 void * opaque)<br/>
 </pre><p>The callback signature to use when registering for an event of type
@@ -1246,8 +1315,10 @@ event timeout.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>timer</tt></i>:</span></td><td>the timer to modify</td></tr><tr><td><span class="term"><i><tt>timeout</tt></i>:</span></td><td>the new timeout value</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virFreeCallback"/>Function type virFreeCallback</h3><pre class="programlisting">void	virFreeCallback			(void * opaque)<br/>
-</pre><p/>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td/></tr></tbody></table></div></div>
+</pre><p>Type for a domain event callback when the event is deregistered and
+need to be freed, @opaque is provided along with the callback at
+registration time</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>opaque user data provided at registration</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virStreamEventCallback"/>Function type virStreamEventCallback</h3><pre class="programlisting">void	virStreamEventCallback		(<a href="libvirt-libvirt.html#virStreamPtr">virStreamPtr</a> stream, <br/>					 int events, <br/>					 void * opaque)<br/>
 </pre><p>Callback for receiving stream events. The callback will
@@ -1741,10 +1812,36 @@ to Domain0 i.e. the domain where the application runs.</p>
         <div class="refsect2" lang="en"><h3><a name="virDomainGetMaxVcpus"/>virDomainGetMaxVcpus ()</h3><pre class="programlisting">int	virDomainGetMaxVcpus		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain)<br/>
 </pre><p>Provides the maximum number of virtual CPUs supported for
 the guest VM. If the guest is inactive, this is basically
-the same as virConnectGetMaxVcpus. If the guest is running
+the same as virConnectGetMaxVcpus(). If the guest is running
 this will reflect the maximum number of virtual CPUs the
-guest was booted with.</p>
+guest was booted with. For more details, see virDomainGetVcpusFlags().</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the maximum of virtual CPU or -1 in case of error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainGetMemoryParameters"/>virDomainGetMemoryParameters ()</h3><pre class="programlisting">int	virDomainGetMemoryParameters	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virMemoryParameterPtr">virMemoryParameterPtr</a> params, <br/>					 int * nparams, <br/>					 unsigned int flags)<br/>
+</pre><p>Get the memory parameters, the @params array will be filled with the values
+equal to the number of parameters suggested by @nparams
+
+As the value of @nparams is dynamic, call the API setting @nparams to 0 and
+@params as NULL, the API returns the number of parameters supported by the
+HV by updating @nparams on SUCCESS. The caller should then allocate @params
+array, i.e. (sizeof(@virMemoryParameter) * @nparams) bytes and call the API
+again.
+
+Here is the sample code snippet:
+
+if ((virDomainGetMemoryParameters(dom, NULL, &amp;nparams, 0) == 0) &amp;&amp;
+ (nparams != 0)) {
+ params = vshMalloc(ctl, sizeof(virMemoryParameter) * nparams);
+ memset(params, 0, sizeof(virMemoryParameter) * nparams);
+ if (virDomainGetMemoryParameters(dom, params, &amp;nparams, 0)) {
+ vshError(ctl, "%s", _("Unable to get memory parameters"));
+ goto error;
+ }
+}
+
+This function requires privileged access to the hypervisor. This function
+expects the caller to allocate the @param</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to memory parameter object (return value, allocated by the caller)</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>pointer to number of memory parameters</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>currently unused, for future extension</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainGetName"/>virDomainGetName ()</h3><pre class="programlisting">const char *	virDomainGetName	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain)<br/>
 </pre><p>Get the public name for that domain</p>
@@ -1782,6 +1879,22 @@ UUID see RFC4122.</p>
 </pre><p>Extract information about virtual CPUs of domain, store it in info array
 and also in cpumaps if this pointer isn't NULL.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object, or NULL for Domain0</td></tr><tr><td><span class="term"><i><tt>info</tt></i>:</span></td><td>pointer to an array of <a href="libvirt-libvirt.html#virVcpuInfo">virVcpuInfo</a> structures (OUT)</td></tr><tr><td><span class="term"><i><tt>maxinfo</tt></i>:</span></td><td>number of structures in info array</td></tr><tr><td><span class="term"><i><tt>cpumaps</tt></i>:</span></td><td>pointer to a bit map of real CPUs for all vcpus of this domain (in 8-bit bytes) (OUT) If cpumaps is NULL, then no cpumap information is returned by the API. It's assumed there is &lt;maxinfo&gt; cpumap in cpumaps array. The memory allocated to cpumaps must be (maxinfo * maplen) bytes (ie: calloc(maxinfo, maplen)). One cpumap inside cpumaps has the format described in virDomainPinVcpu() API.</td></tr><tr><td><span class="term"><i><tt>maplen</tt></i>:</span></td><td>number of bytes in one cpumap, from 1 up to size of CPU map in underlying virtualization system (Xen...). Must be zero when cpumaps is NULL and positive when it is non-NULL.</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of info filled in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainGetVcpusFlags"/>virDomainGetVcpusFlags ()</h3><pre class="programlisting">int	virDomainGetVcpusFlags		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int flags)<br/>
+</pre><p>Query the number of virtual CPUs used by the domain. Note that
+this call may fail if the underlying virtualization hypervisor does
+not support it. This function requires privileged access to the
+hypervisor.
+
+@flags must include either VIR_DOMAIN_VCPU_ACTIVE to query a
+running domain (which will fail if domain is not active), or
+VIR_DOMAIN_VCPU_PERSISTENT to query the XML description of the
+domain. It is an error to set both flags.
+
+If @flags includes VIR_DOMAIN_VCPU_MAXIMUM, then the maximum
+virtual CPU limit is queried. Otherwise, this call queries the
+current virtual CPU limit.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object, or NULL for Domain0</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>an OR'ed set of <a href="libvirt-libvirt.html#virDomainVcpuFlags">virDomainVcpuFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainGetXMLDesc"/>virDomainGetXMLDesc ()</h3><pre class="programlisting">char *	virDomainGetXMLDesc		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 int flags)<br/>
 </pre><p>Provide an XML description of the domain. The description may be reused
@@ -2081,6 +2194,11 @@ This command only changes the runtime configuration of the domain,
 so can only be called on an active domain.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object or NULL</td></tr><tr><td><span class="term"><i><tt>memory</tt></i>:</span></td><td>the memory size in kilobytes</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainSetMemoryParameters"/>virDomainSetMemoryParameters ()</h3><pre class="programlisting">int	virDomainSetMemoryParameters	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virMemoryParameterPtr">virMemoryParameterPtr</a> params, <br/>					 int nparams, <br/>					 unsigned int flags)<br/>
+</pre><p>Change the memory tunables
+This function requires privileged access to the hypervisor.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to memory parameter objects</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of memory parameter (this value should be same or less than the number of parameters supported)</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>currently unused, for future extension</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSetSchedulerParameters"/>virDomainSetSchedulerParameters ()</h3><pre class="programlisting">int	virDomainSetSchedulerParameters	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virSchedParameterPtr">virSchedParameterPtr</a> params, <br/>					 int nparams)<br/>
 </pre><p>Change the scheduler parameters</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to scheduler parameter objects</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of scheduler parameter (this value should be same or less than the returned value nparams of virDomainGetSchedulerType)</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
@@ -2092,8 +2210,29 @@ does not support it or if growing the number is arbitrary limited.
 This function requires privileged access to the hypervisor.
 
 This command only changes the runtime configuration of the domain,
-so can only be called on an active domain.</p>
+so can only be called on an active domain. It is hypervisor-dependent
+whether it also affects persistent configuration; for more control,
+use virDomainSetVcpusFlags().</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object, or NULL for Domain0</td></tr><tr><td><span class="term"><i><tt>nvcpus</tt></i>:</span></td><td>the new number of virtual CPUs for this domain</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainSetVcpusFlags"/>virDomainSetVcpusFlags ()</h3><pre class="programlisting">int	virDomainSetVcpusFlags		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int nvcpus, <br/>					 unsigned int flags)<br/>
+</pre><p>Dynamically change the number of virtual CPUs used by the domain.
+Note that this call may fail if the underlying virtualization hypervisor
+does not support it or if growing the number is arbitrary limited.
+This function requires privileged access to the hypervisor.
+
+@flags must include <a href="libvirt-libvirt.html#VIR_DOMAIN_VCPU_LIVE">VIR_DOMAIN_VCPU_LIVE</a> to affect a running
+domain (which may fail if domain is not active), or
+VIR_DOMAIN_VCPU_CONFIG to affect the next boot via the XML
+description of the domain. Both flags may be set.
+
+If @flags includes VIR_DOMAIN_VCPU_MAXIMUM, then
+VIR_DOMAIN_VCPU_LIVE must be clear, and only the maximum virtual
+CPU limit is altered; generally, this value must be less than or
+equal to virConnectGetMaxVcpus(). Otherwise, this call affects the
+current virtual CPU limit, which must be less than or equal to the
+maximum limit.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object, or NULL for Domain0</td></tr><tr><td><span class="term"><i><tt>nvcpus</tt></i>:</span></td><td>the new number of virtual CPUs for this domain, must be at least 1</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>an OR'ed set of <a href="libvirt-libvirt.html#virDomainVcpuFlags">virDomainVcpuFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainShutdown"/>virDomainShutdown ()</h3><pre class="programlisting">int	virDomainShutdown		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain)<br/>
 </pre><p>Shutdown a domain, the domain object is still usable there after but
@@ -2176,8 +2315,8 @@ reconfiguring the NIC device backend connectivity, etc.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>xml</tt></i>:</span></td><td>pointer to XML description of one device</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>an OR'ed set of <a href="libvirt-libvirt.html#virDomainDeviceModifyFlags">virDomainDeviceModifyFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virEventRegisterImpl"/>virEventRegisterImpl ()</h3><pre class="programlisting">void	virEventRegisterImpl		(<a href="libvirt-libvirt.html#virEventAddHandleFunc">virEventAddHandleFunc</a> addHandle, <br/>					 <a href="libvirt-libvirt.html#virEventUpdateHandleFunc">virEventUpdateHandleFunc</a> updateHandle, <br/>					 <a href="libvirt-libvirt.html#virEventRemoveHandleFunc">virEventRemoveHandleFunc</a> removeHandle, <br/>					 <a href="libvirt-libvirt.html#virEventAddTimeoutFunc">virEventAddTimeoutFunc</a> addTimeout, <br/>					 <a href="libvirt-libvirt.html#virEventUpdateTimeoutFunc">virEventUpdateTimeoutFunc</a> updateTimeout, <br/>					 <a href="libvirt-libvirt.html#virEventRemoveTimeoutFunc">virEventRemoveTimeoutFunc</a> removeTimeout)<br/>
-</pre><p/>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>addHandle</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>updateHandle</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>removeHandle</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>addTimeout</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>updateTimeout</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>removeTimeout</tt></i>:</span></td><td/></tr></tbody></table></div></div>
+</pre><p>Registers an event implementation</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>addHandle</tt></i>:</span></td><td>the callback to add fd handles</td></tr><tr><td><span class="term"><i><tt>updateHandle</tt></i>:</span></td><td>the callback to update fd handles</td></tr><tr><td><span class="term"><i><tt>removeHandle</tt></i>:</span></td><td>the callback to remove fd handles</td></tr><tr><td><span class="term"><i><tt>addTimeout</tt></i>:</span></td><td>the callback to add a timeout</td></tr><tr><td><span class="term"><i><tt>updateTimeout</tt></i>:</span></td><td>the callback to update a timeout</td></tr><tr><td><span class="term"><i><tt>removeTimeout</tt></i>:</span></td><td>the callback to remove a timeout</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virGetVersion"/>virGetVersion ()</h3><pre class="programlisting">int	virGetVersion			(unsigned long * libVer, <br/>					 const char * type, <br/>					 unsigned long * typeVer)<br/>
 </pre><p>Provides two information back, @libVer is the version of the library

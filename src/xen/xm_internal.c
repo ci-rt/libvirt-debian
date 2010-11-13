@@ -46,6 +46,7 @@
 #include "util.h"
 #include "memory.h"
 #include "logging.h"
+#include "count-one-bits.h"
 
 #define VIR_FROM_THIS VIR_FROM_XENXM
 
@@ -102,10 +103,8 @@ struct xenUnifiedDriver xenXMDriver = {
     NULL, /* domainSave */
     NULL, /* domainRestore */
     NULL, /* domainCoreDump */
-    xenXMDomainSetVcpus, /* domainSetVcpus */
     xenXMDomainPinVcpu, /* domainPinVcpu */
     NULL, /* domainGetVcpus */
-    NULL, /* domainGetMaxVcpus */
     xenXMListDefinedDomains, /* listDefinedDomains */
     xenXMNumOfDefinedDomains, /* numOfDefinedDomains */
     xenXMDomainCreate, /* domainCreate */
@@ -644,8 +643,8 @@ int xenXMDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info) {
         goto error;
 
     memset(info, 0, sizeof(virDomainInfo));
-    info->maxMem = entry->def->maxmem;
-    info->memory = entry->def->memory;
+    info->maxMem = entry->def->mem.max_balloon;
+    info->memory = entry->def->mem.cur_balloon;
     info->nrVirtCpu = entry->def->vcpus;
     info->state = VIR_DOMAIN_SHUTOFF;
     info->cpuTime = 0;
@@ -678,6 +677,7 @@ xenXMDomainConfigParse(virConnectPtr conn, virConfPtr conf) {
     int i;
     const char *defaultArch, *defaultMachine;
     int vmlocaltime = 0;
+    unsigned long count;
 
     if (VIR_ALLOC(def) < 0) {
         virReportOOMError();
@@ -759,18 +759,24 @@ xenXMDomainConfigParse(virConnectPtr conn, virConfPtr conf) {
             goto cleanup;
     }
 
-    if (xenXMConfigGetULong(conf, "memory", &def->memory, MIN_XEN_GUEST_SIZE * 2) < 0)
+    if (xenXMConfigGetULong(conf, "memory", &def->mem.cur_balloon,
+                            MIN_XEN_GUEST_SIZE * 2) < 0)
         goto cleanup;
 
-    if (xenXMConfigGetULong(conf, "maxmem", &def->maxmem, def->memory) < 0)
+    if (xenXMConfigGetULong(conf, "maxmem", &def->mem.max_balloon,
+                            def->mem.cur_balloon) < 0)
         goto cleanup;
 
-    def->memory *= 1024;
-    def->maxmem *= 1024;
+    def->mem.cur_balloon *= 1024;
+    def->mem.max_balloon *= 1024;
 
-
-    if (xenXMConfigGetULong(conf, "vcpus", &def->vcpus, 1) < 0)
+    if (xenXMConfigGetULong(conf, "vcpus", &count, 1) < 0 ||
+        MAX_VIRT_CPUS < count)
         goto cleanup;
+    def->maxvcpus = count;
+    if (xenXMConfigGetULong(conf, "vcpu_avail", &count, -1) < 0)
+        goto cleanup;
+    def->vcpus = MIN(count_one_bits(count), def->maxvcpus);
 
     if (xenXMConfigGetString(conf, "cpus", &str, NULL) < 0)
         goto cleanup;
@@ -1530,9 +1536,9 @@ int xenXMDomainSetMemory(virDomainPtr domain, unsigned long memory) {
     if (!(entry = virHashLookup(priv->configCache, filename)))
         goto cleanup;
 
-    entry->def->memory = memory;
-    if (entry->def->memory > entry->def->maxmem)
-        entry->def->memory = entry->def->maxmem;
+    entry->def->mem.cur_balloon = memory;
+    if (entry->def->mem.cur_balloon > entry->def->mem.max_balloon)
+        entry->def->mem.cur_balloon = entry->def->mem.max_balloon;
 
     /* If this fails, should we try to undo our changes to the
      * in-memory representation of the config file. I say not!
@@ -1573,9 +1579,9 @@ int xenXMDomainSetMaxMemory(virDomainPtr domain, unsigned long memory) {
     if (!(entry = virHashLookup(priv->configCache, filename)))
         goto cleanup;
 
-    entry->def->maxmem = memory;
-    if (entry->def->memory > entry->def->maxmem)
-        entry->def->memory = entry->def->maxmem;
+    entry->def->mem.max_balloon = memory;
+    if (entry->def->mem.cur_balloon > entry->def->mem.max_balloon)
+        entry->def->mem.cur_balloon = entry->def->mem.max_balloon;
 
     /* If this fails, should we try to undo our changes to the
      * in-memory representation of the config file. I say not!
@@ -1614,7 +1620,7 @@ unsigned long xenXMDomainGetMaxMemory(virDomainPtr domain) {
     if (!(entry = virHashLookup(priv->configCache, filename)))
         goto cleanup;
 
-    ret = entry->def->maxmem;
+    ret = entry->def->mem.max_balloon;
 
 cleanup:
     xenUnifiedUnlock(priv);
@@ -1622,22 +1628,41 @@ cleanup:
 }
 
 /*
- * Set the VCPU count in config
+ * xenXMDomainSetVcpusFlags:
+ * @domain: pointer to domain object
+ * @nvcpus: number of vcpus
+ * @flags: bitwise-ORd from virDomainVcpuFlags
+ *
+ * Change virtual CPUs allocation of domain according to flags.
+ *
+ * Returns 0 on success, -1 if an error message was issued, and -2 if
+ * the unified driver should keep trying.
  */
-int xenXMDomainSetVcpus(virDomainPtr domain, unsigned int vcpus) {
+int
+xenXMDomainSetVcpusFlags(virDomainPtr domain, unsigned int vcpus,
+                         unsigned int flags)
+{
     xenUnifiedPrivatePtr priv;
     const char *filename;
     xenXMConfCachePtr entry;
     int ret = -1;
+    int max;
 
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
         xenXMError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        return (-1);
+        return -1;
     }
-    if (domain->conn->flags & VIR_CONNECT_RO)
-        return (-1);
+    if (domain->conn->flags & VIR_CONNECT_RO) {
+        xenXMError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        return -1;
+    }
     if (domain->id != -1)
-        return (-1);
+        return -2;
+    if (flags & VIR_DOMAIN_VCPU_LIVE) {
+        xenXMError(VIR_ERR_OPERATION_INVALID, "%s",
+                   _("domain is not running"));
+        return -1;
+    }
 
     priv = domain->conn->privateData;
     xenUnifiedLock(priv);
@@ -1648,7 +1673,30 @@ int xenXMDomainSetVcpus(virDomainPtr domain, unsigned int vcpus) {
     if (!(entry = virHashLookup(priv->configCache, filename)))
         goto cleanup;
 
-    entry->def->vcpus = vcpus;
+    /* Hypervisor maximum. */
+    if ((max = xenUnifiedGetMaxVcpus(domain->conn, NULL)) < 0) {
+        xenXMError(VIR_ERR_INTERNAL_ERROR, "%s",
+                   _("could not determin max vcpus for the domain"));
+        goto cleanup;
+    }
+    /* Can't specify a current larger than stored maximum; but
+     * reducing maximum can silently reduce current.  */
+    if (!(flags & VIR_DOMAIN_VCPU_MAXIMUM))
+        max = entry->def->maxvcpus;
+    if (vcpus > max) {
+        xenXMError(VIR_ERR_INVALID_ARG,
+                   _("requested vcpus is greater than max allowable"
+                     " vcpus for the domain: %d > %d"), vcpus, max);
+        goto cleanup;
+    }
+
+    if (flags & VIR_DOMAIN_VCPU_MAXIMUM) {
+        entry->def->maxvcpus = vcpus;
+        if (entry->def->vcpus > vcpus)
+            entry->def->vcpus = vcpus;
+    } else {
+        entry->def->vcpus = vcpus;
+    }
 
     /* If this fails, should we try to undo our changes to the
      * in-memory representation of the config file. I say not!
@@ -1656,6 +1704,53 @@ int xenXMDomainSetVcpus(virDomainPtr domain, unsigned int vcpus) {
     if (xenXMConfigSaveFile(domain->conn, entry->filename, entry->def) < 0)
         goto cleanup;
     ret = 0;
+
+cleanup:
+    xenUnifiedUnlock(priv);
+    return ret;
+}
+
+/**
+ * xenXMDomainGetVcpusFlags:
+ * @domain: pointer to domain object
+ * @flags: bitwise-ORd from virDomainVcpuFlags
+ *
+ * Extract information about virtual CPUs of domain according to flags.
+ *
+ * Returns the number of vcpus on success, -1 if an error message was
+ * issued, and -2 if the unified driver should keep trying.
+ */
+int
+xenXMDomainGetVcpusFlags(virDomainPtr domain, unsigned int flags)
+{
+    xenUnifiedPrivatePtr priv;
+    const char *filename;
+    xenXMConfCachePtr entry;
+    int ret = -2;
+
+    if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
+        xenXMError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        return -1;
+    }
+
+    if (domain->id != -1)
+        return -2;
+    if (flags & VIR_DOMAIN_VCPU_LIVE) {
+        xenXMError(VIR_ERR_OPERATION_FAILED, "%s", _("domain not active"));
+        return -1;
+    }
+
+    priv = domain->conn->privateData;
+    xenUnifiedLock(priv);
+
+    if (!(filename = virHashLookup(priv->nameConfigMap, domain->name)))
+        goto cleanup;
+
+    if (!(entry = virHashLookup(priv->configCache, filename)))
+        goto cleanup;
+
+    ret = ((flags & VIR_DOMAIN_VCPU_MAXIMUM) ? entry->def->maxvcpus
+           : entry->def->vcpus);
 
 cleanup:
     xenUnifiedUnlock(priv);
@@ -2233,13 +2328,16 @@ virConfPtr xenXMDomainConfigFormat(virConnectPtr conn,
     if (xenXMConfigSetString(conf, "uuid", uuid) < 0)
         goto no_memory;
 
-    if (xenXMConfigSetInt(conf, "maxmem", def->maxmem / 1024) < 0)
+    if (xenXMConfigSetInt(conf, "maxmem", def->mem.max_balloon / 1024) < 0)
         goto no_memory;
 
-    if (xenXMConfigSetInt(conf, "memory", def->memory / 1024) < 0)
+    if (xenXMConfigSetInt(conf, "memory", def->mem.cur_balloon / 1024) < 0)
         goto no_memory;
 
-    if (xenXMConfigSetInt(conf, "vcpus", def->vcpus) < 0)
+    if (xenXMConfigSetInt(conf, "vcpus", def->maxvcpus) < 0)
+        goto no_memory;
+    if (def->vcpus < def->maxvcpus &&
+        xenXMConfigSetInt(conf, "vcpu_avail", (1U << def->vcpus) - 1) < 0)
         goto no_memory;
 
     if ((def->cpumask != NULL) &&
@@ -2935,8 +3033,13 @@ xenXMDomainAttachDeviceFlags(virDomainPtr domain, const char *xml,
 
     if (domain->conn->flags & VIR_CONNECT_RO)
         return -1;
-    if (domain->id != -1 && !(flags & VIR_DOMAIN_DEVICE_MODIFY_CONFIG))
+
+    if ((flags & VIR_DOMAIN_DEVICE_MODIFY_LIVE) ||
+        (domain->id != -1 && (flags & VIR_DOMAIN_DEVICE_MODIFY_CURRENT))) {
+        xenXMError(VIR_ERR_OPERATION_INVALID, "%s",
+                   _("Xm driver only supports modifying persistent config"));
         return -1;
+    }
 
     priv = (xenUnifiedPrivatePtr) domain->conn->privateData;
     xenUnifiedLock(priv);
@@ -2975,8 +3078,8 @@ xenXMDomainAttachDeviceFlags(virDomainPtr domain, const char *xml,
     }
 
     default:
-        xenXMError(VIR_ERR_XML_ERROR,
-                   "%s", _("unknown device"));
+        xenXMError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                   _("Xm driver only supports adding disk or network devices"));
         goto cleanup;
     }
 
@@ -3026,8 +3129,13 @@ xenXMDomainDetachDeviceFlags(virDomainPtr domain, const char *xml,
 
     if (domain->conn->flags & VIR_CONNECT_RO)
         return -1;
-    if (domain->id != -1 && !(flags & VIR_DOMAIN_DEVICE_MODIFY_CONFIG))
+
+    if ((flags & VIR_DOMAIN_DEVICE_MODIFY_LIVE) ||
+        (domain->id != -1 && (flags & VIR_DOMAIN_DEVICE_MODIFY_CURRENT))) {
+        xenXMError(VIR_ERR_OPERATION_INVALID, "%s",
+                   _("Xm driver only supports modifying persistent config"));
         return -1;
+    }
 
     priv = (xenUnifiedPrivatePtr) domain->conn->privateData;
     xenUnifiedLock(priv);

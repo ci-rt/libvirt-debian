@@ -21,6 +21,7 @@
 
 #include <config.h>
 
+/* Specification.  */
 #include <poll.h>
 
 #include "signature.h"

@@ -275,7 +275,8 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
     } else {
         driver->cgroupControllers =
             (1 << VIR_CGROUP_CONTROLLER_CPU) |
-            (1 << VIR_CGROUP_CONTROLLER_DEVICES);
+            (1 << VIR_CGROUP_CONTROLLER_DEVICES) |
+            (1 << VIR_CGROUP_CONTROLLER_MEMORY);
     }
     for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
         if (driver->cgroupControllers & (1 << i)) {
@@ -368,6 +369,10 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
     p = virConfGetValue (conf, "allow_disk_format_probing");
     CHECK_TYPE ("allow_disk_format_probing", VIR_CONF_LONG);
     if (p) driver->allowDiskFormatProbing = p->l;
+
+    p = virConfGetValue (conf, "set_process_name");
+    CHECK_TYPE ("set_process_name", VIR_CONF_LONG);
+    if (p) driver->setProcessName = p->l;
 
     virConfFree (conf);
     return 0;
@@ -1164,8 +1169,11 @@ static unsigned long long qemudComputeCmdFlags(const char *help,
         flags |= QEMUD_CMD_FLAG_ENABLE_KVM;
     if (strstr(help, "-no-reboot"))
         flags |= QEMUD_CMD_FLAG_NO_REBOOT;
-    if (strstr(help, "-name"))
+    if (strstr(help, "-name")) {
         flags |= QEMUD_CMD_FLAG_NAME;
+        if (strstr(help, ",process="))
+            flags |= QEMUD_CMD_FLAG_NAME_PROCESS;
+    }
     if (strstr(help, "-uuid"))
         flags |= QEMUD_CMD_FLAG_UUID;
     if (strstr(help, "-xen-domid"))
@@ -1179,6 +1187,8 @@ static unsigned long long qemudComputeCmdFlags(const char *help,
             flags |= QEMUD_CMD_FLAG_DRIVE_CACHE_V2;
         if (strstr(help, "format="))
             flags |= QEMUD_CMD_FLAG_DRIVE_FORMAT;
+        if (strstr(help, "readonly="))
+            flags |= QEMUD_CMD_FLAG_DRIVE_READONLY;
     }
     if (strstr(help, "-vga") && !strstr(help, "-std-vga"))
         flags |= QEMUD_CMD_FLAG_VGA;
@@ -1194,8 +1204,14 @@ static unsigned long long qemudComputeCmdFlags(const char *help,
         flags |= QEMUD_CMD_FLAG_CHARDEV;
     if (strstr(help, "-balloon"))
         flags |= QEMUD_CMD_FLAG_BALLOON;
-    if (strstr(help, "-device"))
+    if (strstr(help, "-device")) {
         flags |= QEMUD_CMD_FLAG_DEVICE;
+        /*
+         * When -device was introduced, qemu already supported drive's
+         * readonly option but didn't advertise that.
+         */
+        flags |= QEMUD_CMD_FLAG_DRIVE_READONLY;
+    }
     if (strstr(help, "-nodefconfig"))
         flags |= QEMUD_CMD_FLAG_NODEFCONFIG;
     /* The trailing ' ' is important to avoid a bogus match */
@@ -1210,12 +1226,13 @@ static unsigned long long qemudComputeCmdFlags(const char *help,
         flags |= QEMUD_CMD_FLAG_NO_KVM_PIT;
     if (strstr(help, "-tdf"))
         flags |= QEMUD_CMD_FLAG_TDF;
+    if (strstr(help, "-enable-nesting"))
+        flags |= QEMUD_CMD_FLAG_NESTING;
     if (strstr(help, ",menu=on"))
         flags |= QEMUD_CMD_FLAG_BOOT_MENU;
+    if (strstr(help, "-fsdev"))
+        flags |= QEMUD_CMD_FLAG_FSDEV;
 
-    /* Keep disabled till we're actually ready to turn on netdev mode
-     * The plan is todo it in 0.13.0 QEMU, but lets wait & see... */
-#if 0
     if (strstr(help, "-netdev")) {
         /* Disable -netdev on 0.12 since although it exists,
          * the corresponding netdev_add/remove monitor commands
@@ -1223,7 +1240,7 @@ static unsigned long long qemudComputeCmdFlags(const char *help,
         if (version >= 13000)
             flags |= QEMUD_CMD_FLAG_NETDEV;
     }
-#endif
+
     if (strstr(help, "-sdl"))
         flags |= QEMUD_CMD_FLAG_SDL;
     if (strstr(help, "cores=") &&
@@ -1267,12 +1284,14 @@ static unsigned long long qemudComputeCmdFlags(const char *help,
     if (version >= 10000)
         flags |= QEMUD_CMD_FLAG_0_10;
 
-    /* Keep disabled till we're actually ready to turn on JSON mode
-     * The plan is todo it in 0.13.0 QEMU, but lets wait & see... */
-#if 0
-    if (version >= 13000)
+    /* While JSON mode was available in 0.12.0, it was too
+     * incomplete to contemplate using. The 0.13.0 release
+     * is good enough to use, even though it lacks one or
+     * two features. The benefits of JSON mode now outweigh
+     * the downside.
+     */
+     if (version >= 13000)
         flags |= QEMUD_CMD_FLAG_MONITOR_JSON;
-#endif
 
     return flags;
 }
@@ -1519,8 +1538,11 @@ int qemudExtractVersion(struct qemud_driver *driver) {
     if ((binary = virCapabilitiesDefaultGuestEmulator(driver->caps,
                                                       "hvm",
                                                       ut.machine,
-                                                      "qemu")) == NULL)
+                                                      "qemu")) == NULL) {
+        qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                        _("Cannot find suitable emulator for %s"), ut.machine);
         return -1;
+    }
 
     if (stat(binary, &sb) < 0) {
         virReportSystemError(errno,
@@ -2008,6 +2030,10 @@ qemuAssignDeviceAliases(virDomainDefPtr def, unsigned long long qemuCmdFlags)
     if (!(qemuCmdFlags & QEMUD_CMD_FLAG_DEVICE))
         return 0;
 
+    for (i = 0; i < def->nfss ; i++) {
+        if (virAsprintf(&def->fss[i]->info.alias, "fs%d", i) < 0)
+            goto no_memory;
+    }
     for (i = 0; i < def->nsounds ; i++) {
         if (virAsprintf(&def->sounds[i]->info.alias, "sound%d", i) < 0)
             goto no_memory;
@@ -2371,6 +2397,15 @@ qemuAssignDevicePCISlots(virDomainDefPtr def, qemuDomainPCIAddressSetPtr addrs)
                 goto error;
         }
     }
+    for (i = 0; i < def->nfss ; i++) {
+        if (def->fss[i]->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
+            continue;
+
+        /* Only support VirtIO-9p-pci so far. If that changes,
+         * we might need to skip devices here */
+        if (qemuDomainPCIAddressSetNextAddr(addrs, &def->fss[i]->info) < 0)
+            goto error;
+    }
 
     /* Network interfaces */
     for (i = 0; i < def->nnets ; i++) {
@@ -2661,7 +2696,7 @@ qemuBuildDriveStr(virDomainDiskDefPtr disk,
         disk->bus != VIR_DOMAIN_DISK_BUS_IDE)
         virBufferAddLit(&opt, ",boot=on");
     if (disk->readonly &&
-        qemuCmdFlags & QEMUD_CMD_FLAG_DEVICE)
+        qemuCmdFlags & QEMUD_CMD_FLAG_DRIVE_READONLY)
         virBufferAddLit(&opt, ",readonly=on");
     if (disk->driverType && *disk->driverType != '\0' &&
         disk->type != VIR_DOMAIN_DISK_TYPE_DIR &&
@@ -2747,6 +2782,71 @@ qemuBuildDriveDevStr(virDomainDiskDefPtr disk)
     }
     virBufferVSprintf(&opt, ",drive=%s%s", QEMU_DRIVE_HOST_PREFIX, disk->info.alias);
     virBufferVSprintf(&opt, ",id=%s", disk->info.alias);
+
+    if (virBufferError(&opt)) {
+        virReportOOMError();
+        goto error;
+    }
+
+    return virBufferContentAndReset(&opt);
+
+error:
+    virBufferFreeAndReset(&opt);
+    return NULL;
+}
+
+
+char *qemuBuildFSStr(virDomainFSDefPtr fs,
+                     unsigned long long qemuCmdFlags ATTRIBUTE_UNUSED)
+{
+    virBuffer opt = VIR_BUFFER_INITIALIZER;
+
+    if (fs->type != VIR_DOMAIN_FS_TYPE_MOUNT) {
+        qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                        _("only supports mount filesystem type"));
+        goto error;
+    }
+
+    virBufferAddLit(&opt, "local");
+    if (fs->accessmode == VIR_DOMAIN_FS_ACCESSMODE_MAPPED) {
+        virBufferAddLit(&opt, ",security_model=mapped");
+    } else if(fs->accessmode == VIR_DOMAIN_FS_ACCESSMODE_PASSTHROUGH) {
+        virBufferAddLit(&opt, ",security_model=passthrough");
+    } else if(fs->accessmode == VIR_DOMAIN_FS_ACCESSMODE_SQUASH) {
+        virBufferAddLit(&opt, ",security_model=none");
+    }
+    virBufferVSprintf(&opt, ",id=%s%s", QEMU_FSDEV_HOST_PREFIX, fs->info.alias);
+    virBufferVSprintf(&opt, ",path=%s", fs->src);
+
+    if (virBufferError(&opt)) {
+        virReportOOMError();
+        goto error;
+    }
+
+    return virBufferContentAndReset(&opt);
+
+error:
+    virBufferFreeAndReset(&opt);
+    return NULL;
+}
+
+
+char *
+qemuBuildFSDevStr(virDomainFSDefPtr fs)
+{
+    virBuffer opt = VIR_BUFFER_INITIALIZER;
+
+    if (fs->type != VIR_DOMAIN_FS_TYPE_MOUNT) {
+        qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                        _("can only passthrough directories"));
+        goto error;
+    }
+
+    virBufferAddLit(&opt, "virtio-9p-pci");
+    virBufferVSprintf(&opt, ",id=%s", fs->info.alias);
+    virBufferVSprintf(&opt, ",fsdev=%s%s", QEMU_FSDEV_HOST_PREFIX, fs->info.alias);
+    virBufferVSprintf(&opt, ",mount_tag=%s", fs->dst);
+    qemuBuildDeviceAddressStr(&opt, &fs->info);
 
     if (virBufferError(&opt)) {
         virReportOOMError();
@@ -3166,7 +3266,7 @@ qemuBuildUSBHostdevDevStr(virDomainHostdevDefPtr dev)
         return NULL;
     }
 
-    if (virAsprintf(&ret, "usb-host,hostbus=%.3d,hostaddr=%.3d,id=%s",
+    if (virAsprintf(&ret, "usb-host,hostbus=%d,hostaddr=%d,id=%s",
                     dev->source.subsys.u.usb.bus,
                     dev->source.subsys.u.usb.device,
                     dev->info.alias) < 0)
@@ -3188,7 +3288,7 @@ qemuBuildUSBHostdevUsbDevStr(virDomainHostdevDefPtr dev)
         return NULL;
     }
 
-    if (virAsprintf(&ret, "host:%.3d.%.3d",
+    if (virAsprintf(&ret, "host:%d.%d",
                     dev->source.subsys.u.usb.bus,
                     dev->source.subsys.u.usb.device) < 0)
         virReportOOMError();
@@ -3500,7 +3600,8 @@ qemuBuildCpuArgStr(const struct qemud_driver *driver,
                    const char *emulator,
                    unsigned long long qemuCmdFlags,
                    const struct utsname *ut,
-                   char **opt)
+                   char **opt,
+                   bool *hasHwVirt)
 {
     const virCPUDefPtr host = driver->caps->host.cpu;
     virCPUDefPtr guest = NULL;
@@ -3510,6 +3611,8 @@ qemuBuildCpuArgStr(const struct qemud_driver *driver,
     int ret = -1;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     int i;
+
+    *hasHwVirt = false;
 
     if (def->cpu && def->cpu->model) {
         if (qemudProbeCPUModels(emulator, qemuCmdFlags, ut->machine,
@@ -3526,6 +3629,7 @@ qemuBuildCpuArgStr(const struct qemud_driver *driver,
     if (ncpus > 0 && host) {
         virCPUCompareResult cmp;
         const char *preferred;
+        int hasSVM;
 
         cmp = cpuGuestData(host, def->cpu, &data);
         switch (cmp) {
@@ -3551,6 +3655,14 @@ qemuBuildCpuArgStr(const struct qemud_driver *driver,
         guest->type = VIR_CPU_TYPE_GUEST;
         if (cpuDecode(guest, data, cpus, ncpus, preferred) < 0)
             goto cleanup;
+
+        /* Only 'svm' requires --enable-nesting. The nested
+         * 'vmx' patches now simply hook off the CPU features
+         */
+        hasSVM = cpuHasFeature(guest->arch, data, "svm");
+        if (hasSVM < 0)
+            goto cleanup;
+        *hasHwVirt = hasSVM > 0 ? true : false;
 
         virBufferVSprintf(&buf, "%s", guest->model);
         for (i = 0; i < guest->nfeatures; i++) {
@@ -3613,9 +3725,11 @@ qemuBuildSmpArgStr(const virDomainDefPtr def,
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
-    virBufferVSprintf(&buf, "%lu", def->vcpus);
+    virBufferVSprintf(&buf, "%u", def->vcpus);
 
     if ((qemuCmdFlags & QEMUD_CMD_FLAG_SMP_TOPOLOGY)) {
+        if (def->vcpus != def->maxvcpus)
+            virBufferVSprintf(&buf, ",maxcpus=%u", def->maxvcpus);
         /* sockets, cores, and threads are either all zero
          * or all non-zero, thus checking one of them is enough */
         if (def->cpu && def->cpu->sockets) {
@@ -3624,10 +3738,17 @@ qemuBuildSmpArgStr(const virDomainDefPtr def,
             virBufferVSprintf(&buf, ",threads=%u", def->cpu->threads);
         }
         else {
-            virBufferVSprintf(&buf, ",sockets=%lu", def->vcpus);
+            virBufferVSprintf(&buf, ",sockets=%u", def->maxvcpus);
             virBufferVSprintf(&buf, ",cores=%u", 1);
             virBufferVSprintf(&buf, ",threads=%u", 1);
         }
+    } else if (def->vcpus != def->maxvcpus) {
+        virBufferFreeAndReset(&buf);
+        /* FIXME - consider hot-unplugging cpus after boot for older qemu */
+        qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                        _("setting current vcpu count less than maximum is "
+                          "not supported with this QEMU binary"));
+        return NULL;
     }
 
     if (virBufferError(&buf)) {
@@ -3678,6 +3799,7 @@ int qemudBuildCommandLine(virConnectPtr conn,
     char *cpu;
     char *smp;
     int last_good_net = -1;
+    bool hasHwVirt = false;
 
     uname_normalize(&ut);
 
@@ -3846,7 +3968,7 @@ int qemudBuildCommandLine(virConnectPtr conn,
      * is set post-startup using the balloon driver. If balloon driver
      * is not supported, then they're out of luck anyway
      */
-    snprintf(memory, sizeof(memory), "%lu", def->maxmem/1024);
+    snprintf(memory, sizeof(memory), "%lu", def->mem.max_balloon/1024);
     snprintf(domid, sizeof(domid), "%d", def->id);
 
     ADD_ENV_LIT("LC_ALL=C");
@@ -3871,13 +3993,18 @@ int qemudBuildCommandLine(virConnectPtr conn,
         ADD_ARG_LIT(def->os.machine);
     }
 
-    if (qemuBuildCpuArgStr(driver, def, emulator, qemuCmdFlags, &ut, &cpu) < 0)
+    if (qemuBuildCpuArgStr(driver, def, emulator, qemuCmdFlags,
+                           &ut, &cpu, &hasHwVirt) < 0)
         goto error;
 
     if (cpu) {
         ADD_ARG_LIT("-cpu");
         ADD_ARG_LIT(cpu);
         VIR_FREE(cpu);
+
+        if ((qemuCmdFlags & QEMUD_CMD_FLAG_NESTING) &&
+            hasHwVirt)
+            ADD_ARG_LIT("-enable-nesting");
     }
 
     if (disableKQEMU)
@@ -3892,7 +4019,7 @@ int qemudBuildCommandLine(virConnectPtr conn,
         ADD_ARG_LIT("-enable-kvm");
     ADD_ARG_LIT("-m");
     ADD_ARG_LIT(memory);
-    if (def->hugepage_backed) {
+    if (def->mem.hugepage_backed) {
         if (!driver->hugetlbfs_mount) {
             qemuReportError(VIR_ERR_INTERNAL_ERROR,
                             "%s", _("hugetlbfs filesystem is not mounted"));
@@ -3921,7 +4048,16 @@ int qemudBuildCommandLine(virConnectPtr conn,
 
     if (qemuCmdFlags & QEMUD_CMD_FLAG_NAME) {
         ADD_ARG_LIT("-name");
-        ADD_ARG_LIT(def->name);
+        if (driver->setProcessName &&
+            (qemuCmdFlags & QEMUD_CMD_FLAG_NAME_PROCESS)) {
+            char *name;
+            if (virAsprintf(&name, "%s,process=\"qemu:%s\"",
+                            def->name, def->name) < 0)
+                goto no_memory;
+            ADD_ARG_LIT(name);
+        } else {
+            ADD_ARG_LIT(def->name);
+        }
     }
     if (qemuCmdFlags & QEMUD_CMD_FLAG_UUID) {
         ADD_ARG_LIT("-uuid");
@@ -4377,6 +4513,29 @@ int qemudBuildCommandLine(virConnectPtr conn,
         }
     }
 
+    if (qemuCmdFlags & QEMUD_CMD_FLAG_FSDEV) {
+        for (i = 0 ; i < def->nfss ; i++) {
+            char *optstr;
+            virDomainFSDefPtr fs = def->fss[i];
+
+            ADD_ARG_LIT("-fsdev");
+            if (!(optstr = qemuBuildFSStr(fs, qemuCmdFlags)))
+                goto error;
+            ADD_ARG(optstr);
+
+            ADD_ARG_LIT("-device");
+            if (!(optstr = qemuBuildFSDevStr(fs)))
+                goto error;
+            ADD_ARG(optstr);
+        }
+    } else {
+        if (def->nfss) {
+            qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                            _("filesystem passthrough not supported by this QEMU"));
+            goto error;
+        }
+    }
+
     if (!def->nnets) {
         /* If we have -device, then we set -nodefault already */
         if (!(qemuCmdFlags & QEMUD_CMD_FLAG_DEVICE)) {
@@ -4576,6 +4735,8 @@ int qemudBuildCommandLine(virConnectPtr conn,
             ADD_ARG(devstr);
 
             char *addr = virSocketFormatAddr(channel->target.addr);
+            if (!addr)
+                goto error;
             int port = virSocketGetPort(channel->target.addr);
 
             ADD_ARG_LIT("-netdev");
@@ -6019,6 +6180,7 @@ qemuParseCommandLineSmp(virDomainDefPtr dom,
     unsigned int sockets = 0;
     unsigned int cores = 0;
     unsigned int threads = 0;
+    unsigned int maxcpus = 0;
     int i;
     int nkws;
     char **kws;
@@ -6046,10 +6208,14 @@ qemuParseCommandLineSmp(virDomainDefPtr dom,
                 cores = n;
             else if (STREQ(kws[i], "threads"))
                 threads = n;
+            else if (STREQ(kws[i], "maxcpus"))
+                maxcpus = n;
             else
                 goto syntax;
         }
     }
+
+    dom->maxvcpus = maxcpus ? maxcpus : dom->vcpus;
 
     if (sockets && cores && threads) {
         virCPUDefPtr cpu;
@@ -6119,7 +6285,8 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr caps,
     virUUIDGenerate(def->uuid);
 
     def->id = -1;
-    def->memory = def->maxmem = 64 * 1024;
+    def->mem.cur_balloon = def->mem.max_balloon = 64 * 1024;
+    def->maxvcpus = 1;
     def->vcpus = 1;
     def->clock.offset = VIR_DOMAIN_CLOCK_OFFSET_UTC;
     def->features = (1 << VIR_DOMAIN_FEATURE_ACPI)
@@ -6234,7 +6401,7 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr caps,
                                 _("cannot parse memory level '%s'"), val);
                 goto error;
             }
-            def->memory = def->maxmem = mem * 1024;
+            def->mem.cur_balloon = def->mem.max_balloon = mem * 1024;
         } else if (STREQ(arg, "-smp")) {
             WANT_VALUE();
             if (qemuParseCommandLineSmp(def, val) < 0)
@@ -6335,9 +6502,16 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr caps,
             if (strstr(val, "menu=on"))
                 def->os.bootmenu = 1;
         } else if (STREQ(arg, "-name")) {
+            char *process;
             WANT_VALUE();
-            if (!(def->name = strdup(val)))
-                goto no_memory;
+            process = strstr(val, ",process=");
+            if (process == NULL) {
+                if (!(def->name = strdup(val)))
+                    goto no_memory;
+            } else {
+                if (!(def->name = strndup(val, process - val)))
+                    goto no_memory;
+            }
         } else if (STREQ(arg, "-M")) {
             WANT_VALUE();
             if (!(def->os.machine = strdup(val)))

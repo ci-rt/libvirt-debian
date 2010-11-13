@@ -46,6 +46,7 @@
 #include "nwfilter_conf.h"
 #include "ignore-value.h"
 #include "storage_file.h"
+#include "files.h"
 
 #define VIR_FROM_THIS VIR_FROM_DOMAIN
 
@@ -161,6 +162,12 @@ VIR_ENUM_IMPL(virDomainFS, VIR_DOMAIN_FS_TYPE_LAST,
               "file",
               "template")
 
+VIR_ENUM_IMPL(virDomainFSAccessMode, VIR_DOMAIN_FS_ACCESSMODE_LAST,
+              "passthrough",
+              "mapped",
+              "squash")
+
+
 VIR_ENUM_IMPL(virDomainNet, VIR_DOMAIN_NET_TYPE_LAST,
               "user",
               "ethernet",
@@ -202,6 +209,12 @@ VIR_ENUM_IMPL(virDomainChr, VIR_DOMAIN_CHR_TYPE_LAST,
               "udp",
               "tcp",
               "unix")
+
+VIR_ENUM_IMPL(virDomainChrTcpProtocol, VIR_DOMAIN_CHR_TCP_PROTOCOL_LAST,
+              "raw",
+              "telnet",
+              "telnets",
+              "tls")
 
 VIR_ENUM_IMPL(virDomainSoundModel, VIR_DOMAIN_SOUND_MODEL_LAST,
               "sb16",
@@ -1847,6 +1860,7 @@ virDomainFSDefParseXML(xmlNodePtr node,
     char *type = NULL;
     char *source = NULL;
     char *target = NULL;
+    char *accessmode = NULL;
 
     if (VIR_ALLOC(def) < 0) {
         virReportOOMError();
@@ -1862,6 +1876,17 @@ virDomainFSDefParseXML(xmlNodePtr node,
         }
     } else {
         def->type = VIR_DOMAIN_FS_TYPE_MOUNT;
+    }
+
+    accessmode = virXMLPropString(node, "accessmode");
+    if (accessmode) {
+        if ((def->accessmode = virDomainFSAccessModeTypeFromString(accessmode)) < 0) {
+            virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                                 _("unknown accessmode '%s'"), accessmode);
+            goto error;
+        }
+    } else {
+        def->accessmode = VIR_DOMAIN_FS_ACCESSMODE_PASSTHROUGH;
     }
 
     cur = node->children;
@@ -1912,6 +1937,7 @@ cleanup:
     VIR_FREE(type);
     VIR_FREE(target);
     VIR_FREE(source);
+    VIR_FREE(accessmode);
 
     return def;
 
@@ -2489,14 +2515,10 @@ virDomainChrDefParseTargetXML(virCapsPtr caps,
                 goto error;
             }
 
-            if (virSocketParseAddr(addrStr, def->target.addr, 0) < 0) {
-                virDomainReportError(VIR_ERR_XML_ERROR,
-                                     _("%s is not a valid address"),
-                                     addrStr);
+            if (virSocketParseAddr(addrStr, def->target.addr, AF_UNSPEC) < 0)
                 goto error;
-            }
 
-            if (def->target.addr->stor.ss_family != AF_INET) {
+            if (def->target.addr->data.stor.ss_family != AF_INET) {
                 virDomainReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                      "%s", _("guestfwd channel only supports "
                                              "IPv4 addresses"));
@@ -2748,12 +2770,10 @@ virDomainChrDefParseXML(virCapsPtr caps,
             def->data.tcp.listen = 1;
         }
 
-        if (protocol == NULL ||
-            STREQ(protocol, "raw"))
+        if (protocol == NULL)
             def->data.tcp.protocol = VIR_DOMAIN_CHR_TCP_PROTOCOL_RAW;
-        else if (STREQ(protocol, "telnet"))
-            def->data.tcp.protocol = VIR_DOMAIN_CHR_TCP_PROTOCOL_TELNET;
-        else {
+        else if ((def->data.tcp.protocol =
+                  virDomainChrTcpProtocolTypeFromString(protocol)) < 0) {
             virDomainReportError(VIR_ERR_INTERNAL_ERROR,
                                  _("Unknown protocol '%s'"), protocol);
             goto error;
@@ -4179,6 +4199,7 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
     int i, n;
     long id = -1;
     virDomainDefPtr def;
+    unsigned long count;
 
     if (VIR_ALLOC(def) < 0) {
         virReportOOMError();
@@ -4231,21 +4252,69 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
     def->description = virXPathString("string(./description[1])", ctxt);
 
     /* Extract domain memory */
-    if (virXPathULong("string(./memory[1])", ctxt, &def->maxmem) < 0) {
+    if (virXPathULong("string(./memory[1])", ctxt,
+                      &def->mem.max_balloon) < 0) {
         virDomainReportError(VIR_ERR_INTERNAL_ERROR,
                              "%s", _("missing memory element"));
         goto error;
     }
 
-    if (virXPathULong("string(./currentMemory[1])", ctxt, &def->memory) < 0)
-        def->memory = def->maxmem;
+    if (virXPathULong("string(./currentMemory[1])", ctxt,
+                      &def->mem.cur_balloon) < 0)
+        def->mem.cur_balloon = def->mem.max_balloon;
 
     node = virXPathNode("./memoryBacking/hugepages", ctxt);
     if (node)
-        def->hugepage_backed = 1;
+        def->mem.hugepage_backed = 1;
 
-    if (virXPathULong("string(./vcpu[1])", ctxt, &def->vcpus) < 0)
-        def->vcpus = 1;
+    /* Extract other memory tunables */
+    if (virXPathULong("string(./memtune/hard_limit)", ctxt,
+                      &def->mem.hard_limit) < 0)
+        def->mem.hard_limit = 0;
+
+    if (virXPathULong("string(./memtune/soft_limit[1])", ctxt,
+                      &def->mem.soft_limit) < 0)
+        def->mem.soft_limit = 0;
+
+    if (virXPathULong("string(./memtune/min_guarantee[1])", ctxt,
+                      &def->mem.min_guarantee) < 0)
+        def->mem.min_guarantee = 0;
+
+    if (virXPathULong("string(./memtune/swap_hard_limit[1])", ctxt,
+                      &def->mem.swap_hard_limit) < 0)
+        def->mem.swap_hard_limit = 0;
+
+    n = virXPathULong("string(./vcpu[1])", ctxt, &count);
+    if (n == -2) {
+        virDomainReportError(VIR_ERR_XML_ERROR, "%s",
+                             _("maximum vcpus must be an integer"));
+        goto error;
+    } else if (n < 0) {
+        def->maxvcpus = 1;
+    } else {
+        def->maxvcpus = count;
+        if (def->maxvcpus != count || count == 0) {
+            virDomainReportError(VIR_ERR_XML_ERROR,
+                                 _("invalid maxvcpus %lu"), count);
+            goto error;
+        }
+    }
+
+    n = virXPathULong("string(./vcpu[1]/@current)", ctxt, &count);
+    if (n == -2) {
+        virDomainReportError(VIR_ERR_XML_ERROR, "%s",
+                             _("current vcpus must be an integer"));
+        goto error;
+    } else if (n < 0) {
+        def->vcpus = def->maxvcpus;
+    } else {
+        def->vcpus = count;
+        if (def->vcpus != count || count == 0 || def->maxvcpus < count) {
+            virDomainReportError(VIR_ERR_XML_ERROR,
+                                 _("invalid current vcpus %lu"), count);
+            goto error;
+        }
+    }
 
     tmp = virXPathString("string(./vcpu[1]/@cpuset)", ctxt);
     if (tmp) {
@@ -5270,7 +5339,7 @@ virDomainCpuNumberParse(const char **str, int maxcpu)
  *
  * Serialize the cpuset to a string
  *
- * Returns the new string NULL in case of error. The string need to be
+ * Returns the new string NULL in case of error. The string needs to be
  *         freed by the caller.
  */
 char *
@@ -5329,8 +5398,8 @@ virDomainCpuSetFormat(char *cpuset, int maxcpu)
  * @maxcpu: number of elements available in @cpuset
  *
  * Parse the cpu set, it will set the value for enabled CPUs in the @cpuset
- * to 1, and 0 otherwise. The syntax allows coma separated entries each
- * can be either a CPU number, ^N to unset that CPU or N-M for ranges.
+ * to 1, and 0 otherwise. The syntax allows comma separated entries; each
+ * can be either a CPU number, ^N to unset that CPU, or N-M for ranges.
  *
  * Returns the number of CPU found in that set, or -1 in case of error.
  *         @cpuset is modified accordingly to the value parsed.
@@ -5602,6 +5671,7 @@ virDomainFSDefFormat(virBufferPtr buf,
                      int flags)
 {
     const char *type = virDomainFSTypeToString(def->type);
+    const char *accessmode = virDomainFSAccessModeTypeToString(def->accessmode);
 
     if (!type) {
         virDomainReportError(VIR_ERR_INTERNAL_ERROR,
@@ -5609,9 +5679,16 @@ virDomainFSDefFormat(virBufferPtr buf,
         return -1;
     }
 
+   if (!accessmode) {
+        virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                             _("unexpected accessmode %d"), def->accessmode);
+        return -1;
+    }
+
+
     virBufferVSprintf(buf,
-                      "    <filesystem type='%s'>\n",
-                      type);
+                      "    <filesystem type='%s' accessmode='%s'>\n",
+                      type, accessmode);
 
     if (def->src) {
         switch (def->type) {
@@ -5848,9 +5925,7 @@ virDomainChrDefFormat(virBufferPtr buf,
                           def->data.tcp.host,
                           def->data.tcp.service);
         virBufferVSprintf(buf, "      <protocol type='%s'/>\n",
-                          def->data.tcp.protocol ==
-                          VIR_DOMAIN_CHR_TCP_PROTOCOL_TELNET
-                          ? "telnet" : "raw");
+                          virDomainChrTcpProtocolTypeToString(def->data.tcp.protocol));
         break;
 
     case VIR_DOMAIN_CHR_TYPE_UNIX:
@@ -5881,11 +5956,8 @@ virDomainChrDefFormat(virBufferPtr buf,
             }
 
             const char *addr = virSocketFormatAddr(def->target.addr);
-            if (addr == NULL) {
-                virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                     _("Unable to format guestfwd address"));
+            if (addr == NULL)
                 return -1;
-            }
 
             virBufferVSprintf(buf, " address='%s' port='%d'",
                               addr, port);
@@ -6382,10 +6454,35 @@ char *virDomainDefFormat(virDomainDefPtr def,
         virBufferEscapeString(&buf, "  <description>%s</description>\n",
                               def->description);
 
-    virBufferVSprintf(&buf, "  <memory>%lu</memory>\n", def->maxmem);
+    virBufferVSprintf(&buf, "  <memory>%lu</memory>\n", def->mem.max_balloon);
     virBufferVSprintf(&buf, "  <currentMemory>%lu</currentMemory>\n",
-                      def->memory);
-    if (def->hugepage_backed) {
+                      def->mem.cur_balloon);
+
+    /* add memtune only if there are any */
+    if (def->mem.hard_limit || def->mem.soft_limit || def->mem.min_guarantee ||
+        def->mem.swap_hard_limit)
+        virBufferVSprintf(&buf, "  <memtune>\n");
+    if (def->mem.hard_limit) {
+        virBufferVSprintf(&buf, "    <hard_limit>%lu</hard_limit>\n",
+                          def->mem.hard_limit);
+    }
+    if (def->mem.soft_limit) {
+        virBufferVSprintf(&buf, "    <soft_limit>%lu</soft_limit>\n",
+                          def->mem.soft_limit);
+    }
+    if (def->mem.min_guarantee) {
+        virBufferVSprintf(&buf, "    <min_guarantee>%lu</min_guarantee>\n",
+                          def->mem.min_guarantee);
+    }
+    if (def->mem.swap_hard_limit) {
+        virBufferVSprintf(&buf, "    <swap_hard_limit>%lu</swap_hard_limit>\n",
+                          def->mem.swap_hard_limit);
+    }
+    if (def->mem.hard_limit || def->mem.soft_limit || def->mem.min_guarantee ||
+        def->mem.swap_hard_limit)
+        virBufferVSprintf(&buf, "  </memtune>\n");
+
+    if (def->mem.hugepage_backed) {
         virBufferAddLit(&buf, "  <memoryBacking>\n");
         virBufferAddLit(&buf, "    <hugepages/>\n");
         virBufferAddLit(&buf, "  </memoryBacking>\n");
@@ -6394,17 +6491,18 @@ char *virDomainDefFormat(virDomainDefPtr def,
         if (def->cpumask[n] != 1)
             allones = 0;
 
-    if (allones) {
-        virBufferVSprintf(&buf, "  <vcpu>%lu</vcpu>\n", def->vcpus);
-    } else {
+    virBufferAddLit(&buf, "  <vcpu");
+    if (!allones) {
         char *cpumask = NULL;
         if ((cpumask =
              virDomainCpuSetFormat(def->cpumask, def->cpumasklen)) == NULL)
             goto cleanup;
-        virBufferVSprintf(&buf, "  <vcpu cpuset='%s'>%lu</vcpu>\n",
-                          cpumask, def->vcpus);
+        virBufferVSprintf(&buf, " cpuset='%s'", cpumask);
         VIR_FREE(cpumask);
     }
+    if (def->vcpus != def->maxvcpus)
+        virBufferVSprintf(&buf, " current='%u'", def->vcpus);
+    virBufferVSprintf(&buf, ">%u</vcpu>\n", def->maxvcpus);
 
     if (def->os.bootloader) {
         virBufferEscapeString(&buf, "  <bootloader>%s</bootloader>\n",
@@ -6731,7 +6829,7 @@ int virDomainSaveXML(const char *configDir,
         goto cleanup;
     }
 
-    if (close(fd) < 0) {
+    if (VIR_CLOSE(fd) < 0) {
         virReportSystemError(errno,
                              _("cannot save config file '%s'"),
                              configFile);
@@ -6740,8 +6838,8 @@ int virDomainSaveXML(const char *configDir,
 
     ret = 0;
  cleanup:
-    if (fd != -1)
-        close(fd);
+    VIR_FORCE_CLOSE(fd);
+
     VIR_FREE(configFile);
     return ret;
 }
@@ -7698,10 +7796,14 @@ int virDomainDiskDefForeachPath(virDomainDiskDefPtr disk,
         }
 
         if (virStorageFileGetMetadataFromFD(path, fd, format, &meta) < 0) {
-            close(fd);
+            VIR_FORCE_CLOSE(fd);
             goto cleanup;
         }
-        close(fd);
+
+        if (VIR_CLOSE(fd) < 0)
+            virReportSystemError(errno,
+                                 _("could not close file %s"),
+                                 path);
 
         if (virHashAddEntry(paths, path, (void*)0x1) < 0) {
             virReportOOMError();

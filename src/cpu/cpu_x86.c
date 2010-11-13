@@ -1015,8 +1015,15 @@ x86ModelLoad(xmlXPathContextPtr ctxt,
                sizeof(*model->cpuid) * model->ncpuid);
     }
 
-    vendor = virXPathString("string(./vendor/@name)", ctxt);
-    if (vendor) {
+    if (virXPathBoolean("boolean(./vendor)", ctxt)) {
+        vendor = virXPathString("string(./vendor/@name)", ctxt);
+        if (!vendor) {
+            virCPUReportError(VIR_ERR_INTERNAL_ERROR,
+                    _("Invalid vendor element in CPU model %s"),
+                    model->name);
+            goto ignore;
+        }
+
         if (!(model->vendor = x86VendorFind(map, vendor))) {
             virCPUReportError(VIR_ERR_INTERNAL_ERROR,
                     _("Unknown vendor %s referenced by CPU model %s"),
@@ -1614,6 +1621,7 @@ x86Baseline(virCPUDefPtr *cpus,
     unsigned int i;
     const struct x86_vendor *vendor = NULL;
     struct x86_model *model = NULL;
+    bool outputVendor = true;
 
     if (!(map = x86LoadMap()))
         goto error;
@@ -1627,8 +1635,9 @@ x86Baseline(virCPUDefPtr *cpus,
     cpu->type = VIR_CPU_TYPE_GUEST;
     cpu->match = VIR_CPU_MATCH_EXACT;
 
-    if (cpus[0]->vendor &&
-        !(vendor = x86VendorFind(map, cpus[0]->vendor))) {
+    if (!cpus[0]->vendor)
+        outputVendor = false;
+    else if (!(vendor = x86VendorFind(map, cpus[0]->vendor))) {
         virCPUReportError(VIR_ERR_OPERATION_FAILED,
                 _("Unknown CPU vendor %s"), cpus[0]->vendor);
         goto error;
@@ -1650,8 +1659,11 @@ x86Baseline(virCPUDefPtr *cpus,
 
         if (cpus[i]->vendor)
             vn = cpus[i]->vendor;
-        else if (model->vendor)
-            vn = model->vendor->name;
+        else {
+            outputVendor = false;
+            if (model->vendor)
+                vn = model->vendor->name;
+        }
 
         if (vn) {
             if (!vendor) {
@@ -1686,6 +1698,9 @@ x86Baseline(virCPUDefPtr *cpus,
 
     if (x86Decode(cpu, data, models, nmodels, NULL) < 0)
         goto error;
+
+    if (!outputVendor)
+        VIR_FREE(cpu->vendor);
 
     VIR_FREE(cpu->arch);
 
@@ -1754,6 +1769,35 @@ cleanup:
     return ret;
 }
 
+static int x86HasFeature(const union cpuData *data,
+                         const char *name)
+{
+    struct x86_map *map;
+    struct x86_feature *feature;
+    int ret = -1;
+    int i;
+
+    if (!(map = x86LoadMap()))
+        return -1;
+
+    if (!(feature = x86FeatureFind(map, name)))
+        goto cleanup;
+
+    for (i = 0 ; i < feature->ncpuid ; i++) {
+        struct cpuX86cpuid *cpuid;
+
+        cpuid = x86DataCpuid(data, feature->cpuid[i].function);
+        if (cpuid && x86cpuidMatchMasked(cpuid, feature->cpuid + i)) {
+            ret = 1;
+            goto cleanup;
+        }
+    }
+    ret = 0;
+
+cleanup:
+    x86MapFree(map);
+    return ret;
+}
 
 struct cpuArchDriver cpuDriverX86 = {
     .name = "x86",
@@ -1771,4 +1815,5 @@ struct cpuArchDriver cpuDriverX86 = {
     .guestData  = x86GuestData,
     .baseline   = x86Baseline,
     .update     = x86Update,
+    .hasFeature = x86HasFeature,
 };

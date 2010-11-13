@@ -236,10 +236,20 @@ enum virDomainFSType {
     VIR_DOMAIN_FS_TYPE_LAST
 };
 
+/* Filesystem mount access mode  */
+enum virDomainFSAccessMode {
+    VIR_DOMAIN_FS_ACCESSMODE_PASSTHROUGH,
+    VIR_DOMAIN_FS_ACCESSMODE_MAPPED,
+    VIR_DOMAIN_FS_ACCESSMODE_SQUASH,
+
+    VIR_DOMAIN_FS_ACCESSMODE_LAST
+};
+
 typedef struct _virDomainFSDef virDomainFSDef;
 typedef virDomainFSDef *virDomainFSDefPtr;
 struct _virDomainFSDef {
     int type;
+    int accessmode;
     char *src;
     char *dst;
     unsigned int readonly : 1;
@@ -357,6 +367,8 @@ enum virDomainChrType {
 enum virDomainChrTcpProtocol {
     VIR_DOMAIN_CHR_TCP_PROTOCOL_RAW,
     VIR_DOMAIN_CHR_TCP_PROTOCOL_TELNET,
+    VIR_DOMAIN_CHR_TCP_PROTOCOL_TELNETS, /* secure telnet */
+    VIR_DOMAIN_CHR_TCP_PROTOCOL_TLS,
 
     VIR_DOMAIN_CHR_TCP_PROTOCOL_LAST,
 };
@@ -864,10 +876,17 @@ struct _virDomainDef {
     char *name;
     char *description;
 
-    unsigned long memory;
-    unsigned long maxmem;
-    unsigned char hugepage_backed;
-    unsigned long vcpus;
+    struct {
+        unsigned long max_balloon;
+        unsigned long cur_balloon;
+        unsigned long hugepage_backed;
+        unsigned long hard_limit;
+        unsigned long soft_limit;
+        unsigned long min_guarantee;
+        unsigned long swap_hard_limit;
+    } mem;
+    unsigned short vcpus;
+    unsigned short maxvcpus;
     int cpumasklen;
     char *cpumask;
 
@@ -1167,11 +1186,13 @@ VIR_ENUM_DECL(virDomainDiskErrorPolicy)
 VIR_ENUM_DECL(virDomainController)
 VIR_ENUM_DECL(virDomainControllerModel)
 VIR_ENUM_DECL(virDomainFS)
+VIR_ENUM_DECL(virDomainFSAccessMode)
 VIR_ENUM_DECL(virDomainNet)
 VIR_ENUM_DECL(virDomainChrDevice)
 VIR_ENUM_DECL(virDomainChrChannelTarget)
 VIR_ENUM_DECL(virDomainChrConsoleTarget)
 VIR_ENUM_DECL(virDomainChr)
+VIR_ENUM_DECL(virDomainChrTcpProtocol)
 VIR_ENUM_DECL(virDomainSoundModel)
 VIR_ENUM_DECL(virDomainMemballoonModel)
 VIR_ENUM_DECL(virDomainWatchdogModel)

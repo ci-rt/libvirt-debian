@@ -266,6 +266,8 @@ mymain(int argc, char **argv)
     DO_TEST("serial-pipe-server-vm", "serial-pipe", esxVI_ProductVersion_ESX35);
     DO_TEST("serial-pipe-client-app", "serial-pipe", esxVI_ProductVersion_ESX35);
     DO_TEST("serial-pipe-server-vm", "serial-pipe", esxVI_ProductVersion_ESX35);
+    DO_TEST("serial-network-server", "serial-network-server", esxVI_ProductVersion_ESX41);
+    DO_TEST("serial-network-client", "serial-network-client", esxVI_ProductVersion_ESX41);
 
     DO_TEST("parallel-file", "parallel-file", esxVI_ProductVersion_ESX35);
     DO_TEST("parallel-device", "parallel-device", esxVI_ProductVersion_ESX35);
@@ -274,6 +276,7 @@ mymain(int argc, char **argv)
     DO_TEST("esx-in-the-wild-2", "esx-in-the-wild-2", esxVI_ProductVersion_ESX35);
     DO_TEST("esx-in-the-wild-3", "esx-in-the-wild-3", esxVI_ProductVersion_ESX35);
     DO_TEST("esx-in-the-wild-4", "esx-in-the-wild-4", esxVI_ProductVersion_ESX35);
+    DO_TEST("esx-in-the-wild-5", "esx-in-the-wild-5", esxVI_ProductVersion_ESX40);
 
     DO_TEST("gsx-in-the-wild-1", "gsx-in-the-wild-1", esxVI_ProductVersion_ESX35);
     DO_TEST("gsx-in-the-wild-2", "gsx-in-the-wild-2", esxVI_ProductVersion_ESX35);

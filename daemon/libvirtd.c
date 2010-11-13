@@ -64,6 +64,7 @@
 #include "memory.h"
 #include "stream.h"
 #include "hooks.h"
+#include "virtaudit.h"
 #ifdef HAVE_AVAHI
 # include "mdns.h"
 #endif
@@ -187,6 +188,9 @@ static int max_requests = 20;
 /* Total number of 'in-process' RPC calls allowed by a single client*/
 static int max_client_requests = 5;
 
+static int audit_level = 1;
+static int audit_logging = 0;
+
 #define DH_BITS 1024
 
 static sig_atomic_t sig_errors = 0;
@@ -203,6 +207,7 @@ enum {
     VIR_DAEMON_ERR_NETWORK,
     VIR_DAEMON_ERR_CONFIG,
     VIR_DAEMON_ERR_HOOKS,
+    VIR_DAEMON_ERR_AUDIT,
 
     VIR_DAEMON_ERR_LAST
 };
@@ -217,7 +222,8 @@ VIR_ENUM_IMPL(virDaemonErr, VIR_DAEMON_ERR_LAST,
               "Unable to drop privileges",
               "Unable to initialize network sockets",
               "Unable to load configuration file",
-              "Unable to look for hook scripts")
+              "Unable to look for hook scripts",
+              "Unable to initialize audit system")
 
 static void sig_handler(int sig, siginfo_t * siginfo,
                         void* context ATTRIBUTE_UNUSED) {
@@ -535,7 +541,6 @@ static int qemudWritePidFile(const char *pidFile) {
 static int qemudListenUnix(struct qemud_server *server,
                            char *path, int readonly, int auth) {
     struct qemud_socket *sock;
-    struct sockaddr_un addr;
     mode_t oldmask;
     gid_t oldgrp;
     char ebuf[1024];
@@ -546,10 +551,15 @@ static int qemudListenUnix(struct qemud_server *server,
     }
 
     sock->readonly = readonly;
-    sock->port = -1;
     sock->type = QEMUD_SOCK_TYPE_UNIX;
     sock->auth = auth;
     sock->path = path;
+    sock->addr.len = sizeof(sock->addr.data.un);
+    if (!(sock->addrstr = strdup(path))) {
+        VIR_ERROR(_("Failed to copy socket address: %s"),
+                  virStrerror(errno, ebuf, sizeof ebuf));
+        goto cleanup;
+    }
 
     if ((sock->fd = socket(PF_UNIX, SOCK_STREAM, 0)) < 0) {
         VIR_ERROR(_("Failed to create socket: %s"),
@@ -561,14 +571,13 @@ static int qemudListenUnix(struct qemud_server *server,
         virSetNonBlock(sock->fd) < 0)
         goto cleanup;
 
-    memset(&addr, 0, sizeof(addr));
-    addr.sun_family = AF_UNIX;
-    if (virStrcpyStatic(addr.sun_path, path) == NULL) {
+    sock->addr.data.un.sun_family = AF_UNIX;
+    if (virStrcpyStatic(sock->addr.data.un.sun_path, path) == NULL) {
         VIR_ERROR(_("Path %s too long for unix socket"), path);
         goto cleanup;
     }
-    if (addr.sun_path[0] == '@')
-        addr.sun_path[0] = '\0';
+    if (sock->addr.data.un.sun_path[0] == '@')
+        sock->addr.data.un.sun_path[0] = '\0';
 
     oldgrp = getgid();
     oldmask = umask(readonly ? ~unix_sock_ro_mask : ~unix_sock_rw_mask);
@@ -577,7 +586,7 @@ static int qemudListenUnix(struct qemud_server *server,
         goto cleanup;
     }
 
-    if (bind(sock->fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+    if (bind(sock->fd, &sock->addr.data.sa, sock->addr.len) < 0) {
         VIR_ERROR(_("Failed to bind socket to '%s': %s"),
                   path, virStrerror(errno, ebuf, sizeof ebuf));
         goto cleanup;
@@ -686,16 +695,7 @@ remoteListenTCP (struct qemud_server *server,
         return -1;
 
     for (i = 0; i < nfds; ++i) {
-        union {
-            struct sockaddr_storage sa_stor;
-            struct sockaddr sa;
-            struct sockaddr_in sa_in;
-#ifdef AF_INET6
-            struct sockaddr_in6 sa_in6;
-#endif
-        } s;
         char ebuf[1024];
-        socklen_t salen = sizeof(s);
 
         if (VIR_ALLOC(sock) < 0) {
             VIR_ERROR(_("remoteListenTCP: calloc: %s"),
@@ -703,6 +703,7 @@ remoteListenTCP (struct qemud_server *server,
             goto cleanup;
         }
 
+        sock->addr.len = sizeof(sock->addr.data.stor);
         sock->readonly = 0;
         sock->next = server->sockets;
         server->sockets = sock;
@@ -712,17 +713,11 @@ remoteListenTCP (struct qemud_server *server,
         sock->type = type;
         sock->auth = auth;
 
-        if (getsockname(sock->fd, &s.sa, &salen) < 0)
+        if (getsockname(sock->fd, &sock->addr.data.sa, &sock->addr.len) < 0)
             goto cleanup;
 
-        if (s.sa.sa_family == AF_INET) {
-            sock->port = htons(s.sa_in.sin_port);
-#ifdef AF_INET6
-        } else if (s.sa.sa_family == AF_INET6)
-            sock->port = htons(s.sa_in6.sin6_port);
-#endif
-        else
-            sock->port = -1;
+        if (!(sock->addrstr = virSocketFormatAddrFull(&sock->addr, true, ";")))
+            goto cleanup;
 
         if (virSetCloseExec(sock->fd) < 0 ||
             virSetNonBlock(sock->fd) < 0)
@@ -1037,8 +1032,9 @@ static int qemudNetworkInit(struct qemud_server *server) {
          */
         sock = server->sockets;
         while (sock) {
-            if (sock->port != -1 && sock->type == QEMUD_SOCK_TYPE_TLS) {
-                port = sock->port;
+            if (virSocketGetPort(&sock->addr) != -1 &&
+                sock->type == QEMUD_SOCK_TYPE_TLS) {
+                port = virSocketGetPort(&sock->addr);
                 break;
             }
             sock = sock->next;
@@ -1116,19 +1112,9 @@ remoteInitializeTLSSession (void)
 
 /* Check DN is on tls_allowed_dn_list. */
 static int
-remoteCheckDN (gnutls_x509_crt_t cert)
+remoteCheckDN (const char *dname)
 {
-    char name[256];
-    size_t namesize = sizeof name;
     char **wildcards;
-    int err;
-
-    err = gnutls_x509_crt_get_dn (cert, name, &namesize);
-    if (err != 0) {
-        VIR_ERROR(_("remoteCheckDN: gnutls_x509_cert_get_dn: %s"),
-                  gnutls_strerror (err));
-        return 0;
-    }
 
     /* If the list is not set, allow any DN. */
     wildcards = tls_allowed_dn_list;
@@ -1136,62 +1122,62 @@ remoteCheckDN (gnutls_x509_crt_t cert)
         return 1;
 
     while (*wildcards) {
-        if (fnmatch (*wildcards, name, 0) == 0)
+        if (fnmatch (*wildcards, dname, 0) == 0)
             return 1;
         wildcards++;
     }
 
     /* Print the client's DN. */
-    DEBUG(_("remoteCheckDN: failed: client DN is %s"), name);
+    DEBUG(_("remoteCheckDN: failed: client DN is %s"), dname);
 
     return 0; // Not found.
 }
 
 static int
-remoteCheckCertificate (gnutls_session_t session)
+remoteCheckCertificate(struct qemud_client *client)
 {
     int ret;
     unsigned int status;
     const gnutls_datum_t *certs;
     unsigned int nCerts, i;
     time_t now;
+    char name[256];
+    size_t namesize = sizeof name;
 
-    if ((ret = gnutls_certificate_verify_peers2 (session, &status)) < 0){
-        VIR_ERROR(_("remoteCheckCertificate: verify failed: %s"),
+    memset(name, 0, namesize);
+
+    if ((ret = gnutls_certificate_verify_peers2 (client->tlssession, &status)) < 0){
+        VIR_ERROR(_("Failed to verify certificate peers: %s"),
                   gnutls_strerror (ret));
-        return -1;
+        goto authdeny;
     }
 
     if (status != 0) {
         if (status & GNUTLS_CERT_INVALID)
-            VIR_ERROR0(_("remoteCheckCertificate: "
-                         "the client certificate is not trusted."));
+            VIR_ERROR0(_("The client certificate is not trusted."));
 
         if (status & GNUTLS_CERT_SIGNER_NOT_FOUND)
-            VIR_ERROR0(_("remoteCheckCertificate: the client "
-                         "certificate has unknown issuer."));
+            VIR_ERROR0(_("The client certificate has unknown issuer."));
 
         if (status & GNUTLS_CERT_REVOKED)
-            VIR_ERROR0(_("remoteCheckCertificate: "
-                         "the client certificate has been revoked."));
+            VIR_ERROR0(_("The client certificate has been revoked."));
 
 #ifndef GNUTLS_1_0_COMPAT
         if (status & GNUTLS_CERT_INSECURE_ALGORITHM)
-            VIR_ERROR0(_("remoteCheckCertificate: the client certificate"
-                         " uses an insecure algorithm."));
+            VIR_ERROR0(_("The client certificate uses an insecure algorithm."));
 #endif
 
-        return -1;
+        goto authdeny;
     }
 
-    if (gnutls_certificate_type_get (session) != GNUTLS_CRT_X509) {
-        VIR_ERROR0(_("remoteCheckCertificate: certificate is not X.509"));
-        return -1;
+    if (gnutls_certificate_type_get(client->tlssession) != GNUTLS_CRT_X509) {
+        VIR_ERROR0(_("Only x509 certificates are supported"));
+        goto authdeny;
     }
 
-    if (!(certs = gnutls_certificate_get_peers(session, &nCerts))) {
-        VIR_ERROR0(_("remoteCheckCertificate: no peers"));
-        return -1;
+    if (!(certs = gnutls_certificate_get_peers(client->tlssession, &nCerts))) {
+        VIR_ERROR0(_("The certificate has no peers"));
+        goto authdeny;
     }
 
     now = time (NULL);
@@ -1200,40 +1186,60 @@ remoteCheckCertificate (gnutls_session_t session)
         gnutls_x509_crt_t cert;
 
         if (gnutls_x509_crt_init (&cert) < 0) {
-            VIR_ERROR0(_("remoteCheckCertificate: gnutls_x509_crt_init failed"));
-            return -1;
+            VIR_ERROR0(_("Unable to initialize certificate"));
+            goto authfail;
         }
 
         if (gnutls_x509_crt_import(cert, &certs[i], GNUTLS_X509_FMT_DER) < 0) {
+            VIR_ERROR0(_("Unable to load certificate"));
             gnutls_x509_crt_deinit (cert);
-            return -1;
-        }
-
-        if (gnutls_x509_crt_get_expiration_time (cert) < now) {
-            VIR_ERROR0(_("remoteCheckCertificate: "
-                         "the client certificate has expired"));
-            gnutls_x509_crt_deinit (cert);
-            return -1;
-        }
-
-        if (gnutls_x509_crt_get_activation_time (cert) > now) {
-            VIR_ERROR0(_("remoteCheckCertificate: the client "
-                         "certificate is not yet activated"));
-            gnutls_x509_crt_deinit (cert);
-            return -1;
+            goto authfail;
         }
 
         if (i == 0) {
-            if (!remoteCheckDN (cert)) {
-                /* This is the most common error: make it informative. */
-                VIR_ERROR0(_("remoteCheckCertificate: client's Distinguished Name is not on the list of allowed clients (tls_allowed_dn_list).  Use 'openssl x509 -in clientcert.pem -text' to view the Distinguished Name field in the client certificate, or run this daemon with --verbose option."));
+            ret = gnutls_x509_crt_get_dn (cert, name, &namesize);
+            if (ret != 0) {
+                VIR_ERROR(_("Failed to get certificate distinguished name: %s"),
+                          gnutls_strerror(ret));
                 gnutls_x509_crt_deinit (cert);
-                return -1;
+                goto authfail;
             }
+
+            if (!remoteCheckDN (name)) {
+                /* This is the most common error: make it informative. */
+                VIR_ERROR0(_("Client's Distinguished Name is not on the list "
+                             "of allowed clients (tls_allowed_dn_list).  Use "
+                             "'certtool -i --infile clientcert.pem' to view the"
+                             "Distinguished Name field in the client certificate,"
+                             "or run this daemon with --verbose option."));
+                gnutls_x509_crt_deinit (cert);
+                goto authdeny;
+            }
+        }
+
+        if (gnutls_x509_crt_get_expiration_time (cert) < now) {
+            VIR_ERROR0(_("The client certificate has expired"));
+            gnutls_x509_crt_deinit (cert);
+            goto authdeny;
+        }
+
+        if (gnutls_x509_crt_get_activation_time (cert) > now) {
+            VIR_ERROR0(_("The client certificate is not yet active"));
+            gnutls_x509_crt_deinit (cert);
+            goto authdeny;
         }
     }
 
+    PROBE(CLIENT_TLS_ALLOW, "fd=%d, name=%s", client->fd, (char *)name);
     return 0;
+
+authdeny:
+    PROBE(CLIENT_TLS_DENY, "fd=%d, name=%s", client->fd, (char *)name);
+    return -1;
+
+authfail:
+    PROBE(CLIENT_TLS_FAIL, "fd=%d", client->fd);
+    return -1;
 }
 
 /* Check the client's access. */
@@ -1243,7 +1249,7 @@ remoteCheckAccess (struct qemud_client *client)
     struct qemud_client_message *confirm;
 
     /* Verify client certificate. */
-    if (remoteCheckCertificate (client->tlssession) == -1) {
+    if (remoteCheckCertificate (client) == -1) {
         VIR_ERROR0(_("remoteCheckCertificate: "
                      "failed to verify client's certificate"));
         if (!tls_no_verify_certificate) return -1;
@@ -1299,13 +1305,14 @@ int qemudGetSocketIdentity(int fd, uid_t *uid, pid_t *pid) {
 
 static int qemudDispatchServer(struct qemud_server *server, struct qemud_socket *sock) {
     int fd;
-    struct sockaddr_storage addr;
-    socklen_t addrlen = (socklen_t) (sizeof addr);
-    struct qemud_client *client;
+    virSocketAddr addr;
+    char *addrstr = NULL;
+    struct qemud_client *client = NULL;
     int no_slow_start = 1;
     int i;
 
-    if ((fd = accept(sock->fd, (struct sockaddr *)&addr, &addrlen)) < 0) {
+    addr.len = sizeof(addr.data.stor);
+    if ((fd = accept(sock->fd, &addr.data.sa, &addr.len)) < 0) {
         char ebuf[1024];
         if (errno == EAGAIN)
             return 0;
@@ -1313,17 +1320,23 @@ static int qemudDispatchServer(struct qemud_server *server, struct qemud_socket 
                   virStrerror(errno, ebuf, sizeof ebuf));
         return -1;
     }
+    if (!(addrstr = virSocketFormatAddrFull(&addr, true, ";"))) {
+        VIR_ERROR0(_("Failed to format addresss: out of memory"));
+        goto error;
+    }
+
+    PROBE(CLIENT_CONNECT, "fd=%d, readonly=%d localAddr=%s remoteAddr=%s",
+          fd, sock->readonly, sock->addrstr, addrstr);
 
     if (server->nclients >= max_clients) {
-        VIR_ERROR(_("Too many active clients (%d), dropping connection"), max_clients);
-        close(fd);
-        return -1;
+        VIR_ERROR(_("Too many active clients (%d), dropping connection from %s"),
+                  max_clients, addrstr);
+        goto error;
     }
 
     if (VIR_REALLOC_N(server->clients, server->nclients+1) < 0) {
         VIR_ERROR0(_("Out of memory allocating clients"));
-        close(fd);
-        return -1;
+        goto error;
     }
 
 #ifdef __sun
@@ -1335,14 +1348,12 @@ static int qemudDispatchServer(struct qemud_server *server, struct qemud_socket 
             (privs = ucred_getprivset (ucred, PRIV_EFFECTIVE)) == NULL) {
             if (ucred != NULL)
                 ucred_free (ucred);
-            close (fd);
-            return -1;
+            goto error;
         }
 
         if (!priv_ismember (privs, PRIV_VIRT_MANAGE)) {
             ucred_free (ucred);
-            close (fd);
-            return -1;
+            goto error;
         }
 
         ucred_free (ucred);
@@ -1355,16 +1366,14 @@ static int qemudDispatchServer(struct qemud_server *server, struct qemud_socket 
 
     if (virSetCloseExec(fd) < 0 ||
         virSetNonBlock(fd) < 0) {
-        close(fd);
-        return -1;
+        goto error;
     }
 
     if (VIR_ALLOC(client) < 0)
-        goto cleanup;
+        goto error;
     if (virMutexInit(&client->lock) < 0) {
         VIR_ERROR0(_("cannot initialize mutex"));
-        VIR_FREE(client);
-        goto cleanup;
+        goto error;
     }
 
     client->magic = QEMUD_CLIENT_MAGIC;
@@ -1372,8 +1381,9 @@ static int qemudDispatchServer(struct qemud_server *server, struct qemud_socket 
     client->readonly = sock->readonly;
     client->type = sock->type;
     client->auth = sock->auth;
-    memcpy (&client->addr, &addr, sizeof addr);
-    client->addrlen = addrlen;
+    client->addr = addr;
+    client->addrstr = addrstr;
+    addrstr = NULL;
 
     for (i = 0 ; i < VIR_DOMAIN_EVENT_ID_LAST ; i++) {
         client->domainEventCallbackID[i] = -1;
@@ -1381,7 +1391,7 @@ static int qemudDispatchServer(struct qemud_server *server, struct qemud_socket 
 
     /* Prepare one for packet receive */
     if (VIR_ALLOC(client->rx) < 0)
-        goto cleanup;
+        goto error;
     client->rx->bufferLength = REMOTE_MESSAGE_HEADER_XDR_LEN;
 
 
@@ -1395,11 +1405,12 @@ static int qemudDispatchServer(struct qemud_server *server, struct qemud_socket 
         pid_t pid;
 
         if (qemudGetSocketIdentity(client->fd, &uid, &pid) < 0)
-            goto cleanup;
+            goto error;
 
         /* Client is running as root, so disable auth */
         if (uid == 0) {
-            VIR_INFO(_("Turn off polkit auth for privileged client %d"), pid);
+            VIR_INFO(_("Turn off polkit auth for privileged client pid %d from %s"),
+                     pid, addrstr);
             client->auth = REMOTE_AUTH_NONE;
         }
     }
@@ -1408,13 +1419,13 @@ static int qemudDispatchServer(struct qemud_server *server, struct qemud_socket 
     if (client->type != QEMUD_SOCK_TYPE_TLS) {
         /* Plain socket, so prepare to read first message */
         if (qemudRegisterClientEvent (server, client) < 0)
-            goto cleanup;
+            goto error;
     } else {
         int ret;
 
         client->tlssession = remoteInitializeTLSSession ();
         if (client->tlssession == NULL)
-            goto cleanup;
+            goto error;
 
         gnutls_transport_set_ptr (client->tlssession,
                                   (gnutls_transport_ptr_t) (long) fd);
@@ -1426,21 +1437,22 @@ static int qemudDispatchServer(struct qemud_server *server, struct qemud_socket 
 
             /* Unlikely, but ...  Next step is to check the certificate. */
             if (remoteCheckAccess (client) == -1)
-                goto cleanup;
+                goto error;
 
             /* Handshake & cert check OK,  so prepare to read first message */
             if (qemudRegisterClientEvent(server, client) < 0)
-                goto cleanup;
+                goto error;
         } else if (ret == GNUTLS_E_INTERRUPTED || ret == GNUTLS_E_AGAIN) {
             /* Most likely, need to do more handshake data */
             client->handshake = 1;
 
             if (qemudRegisterClientEvent (server, client) < 0)
-                goto cleanup;
+                goto error;
         } else {
-            VIR_ERROR(_("TLS handshake failed: %s"),
-                      gnutls_strerror (ret));
-            goto cleanup;
+            PROBE(CLIENT_TLS_FAIL, "fd=%d", client->fd);
+            VIR_ERROR(_("TLS handshake failed for client %s: %s"),
+                      addrstr, gnutls_strerror (ret));
+            goto error;
         }
     }
 
@@ -1461,13 +1473,18 @@ static int qemudDispatchServer(struct qemud_server *server, struct qemud_socket 
 
     return 0;
 
- cleanup:
-    if (client &&
-        client->tlssession) gnutls_deinit (client->tlssession);
+error:
+    if (client) {
+        if (client->tlssession) gnutls_deinit (client->tlssession);
+        if (client) {
+            VIR_FREE(client->addrstr);
+            VIR_FREE(client->rx);
+        }
+        VIR_FREE(client);
+    }
+    VIR_FREE(addrstr);
     close (fd);
-    if (client)
-        VIR_FREE(client->rx);
-    VIR_FREE(client);
+    PROBE(CLIENT_DISCONNECT, "fd=%d", fd);
     return -1;
 }
 
@@ -1511,9 +1528,11 @@ void qemudDispatchClientFailure(struct qemud_client *client) {
         client->tlssession = NULL;
     }
     if (client->fd != -1) {
+        PROBE(CLIENT_DISCONNECT, "fd=%d", client->fd);
         close(client->fd);
         client->fd = -1;
     }
+    VIR_FREE(client->addrstr);
 }
 
 
@@ -2071,6 +2090,7 @@ qemudDispatchClientHandshake(struct qemud_client *client) {
            direction has changed */
         qemudUpdateClientEvent (client);
     } else {
+        PROBE(CLIENT_TLS_FAIL, "fd=%d", client->fd);
         /* Fatal error in handshake */
         VIR_ERROR(_("TLS handshake failed: %s"),
                   gnutls_strerror (ret));
@@ -2431,6 +2451,7 @@ static void qemudCleanup(struct qemud_server *server) {
             sock->path[0] != '@')
             unlink(sock->path);
         VIR_FREE(sock->path);
+        VIR_FREE(sock->addrstr);
 
         VIR_FREE(sock);
         sock = next;
@@ -2852,6 +2873,9 @@ remoteReadConfigFile (struct qemud_server *server, const char *filename)
     GET_CONF_INT (conf, filename, max_requests);
     GET_CONF_INT (conf, filename, max_client_requests);
 
+    GET_CONF_INT (conf, filename, audit_level);
+    GET_CONF_INT (conf, filename, audit_logging);
+
     GET_CONF_STR (conf, filename, host_uuid);
     if (virSetHostUUIDStr(host_uuid)) {
         VIR_ERROR(_("invalid host UUID: %s"), host_uuid);
@@ -3191,6 +3215,16 @@ int main(int argc, char **argv) {
         ret = VIR_DAEMON_ERR_CONFIG;
         goto error;
     }
+
+    if (audit_level) {
+        if (virAuditOpen() < 0) {
+            if (audit_level > 1) {
+                ret = VIR_DAEMON_ERR_AUDIT;
+                goto error;
+            }
+        }
+    }
+    virAuditLog(audit_logging);
 
     /* setup the hooks if any */
     if (virHookInitialize() < 0) {

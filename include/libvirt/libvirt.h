@@ -490,19 +490,17 @@ typedef virConnectCredential *virConnectCredentialPtr;
 
 
 /**
- * virConnectCredCallbackPtr
- *
- * @param authtype type of authentication being performed
- * @param cred list of virConnectCredential object to fetch from user
- * @param ncred size of cred list
- * @param cbdata opaque data passed to virConnectOpenAuth
+ * virConnectAuthCallbackPtr:
+ * @cred: list of virConnectCredential object to fetch from user
+ * @ncred: size of cred list
+ * @cbdata: opaque data passed to virConnectOpenAuth
  *
  * When authentication requires one or more interactions, this callback
  * is invoked. For each interaction supplied, data must be gathered
  * from the user and filled in to the 'result' and 'resultlen' fields.
  * If an interaction can not be filled, fill in NULL and 0.
  *
- * Return 0 if all interactions were filled, or -1 upon error
+ * Returns 0 if all interactions were filled, or -1 upon error
  */
 typedef int (*virConnectAuthCallbackPtr)(virConnectCredentialPtr cred,
                                          unsigned int ncred,
@@ -549,7 +547,7 @@ VIR_EXPORT_VAR virConnectAuthPtr virConnectAuthPtrDefault;
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-#define LIBVIR_VERSION_NUMBER 8004
+#define LIBVIR_VERSION_NUMBER 8005
 
 int                     virGetVersion           (unsigned long *libVer,
                                                  const char *type,
@@ -673,6 +671,101 @@ int                     virDomainGetInfo        (virDomainPtr domain,
  */
 char *                  virDomainGetSchedulerType(virDomainPtr domain,
                                                  int *nparams);
+
+/**
+ * virDomainMemoryParameterType:
+ *
+ * A memory parameter field type
+ */
+typedef enum {
+    VIR_DOMAIN_MEMORY_PARAM_INT     = 1, /* integer case */
+    VIR_DOMAIN_MEMORY_PARAM_UINT    = 2, /* unsigned integer case */
+    VIR_DOMAIN_MEMORY_PARAM_LLONG   = 3, /* long long case */
+    VIR_DOMAIN_MEMORY_PARAM_ULLONG  = 4, /* unsigned long long case */
+    VIR_DOMAIN_MEMORY_PARAM_DOUBLE  = 5, /* double case */
+    VIR_DOMAIN_MEMORY_PARAM_BOOLEAN = 6  /* boolean(character) case */
+} virMemoryParameterType;
+
+/**
+ * VIR_DOMAIN_MEMORY_FIELD_LENGTH:
+ *
+ * Macro providing the field length of virMemoryParameter
+ */
+
+#define VIR_DOMAIN_MEMORY_FIELD_LENGTH 80
+
+/**
+ * VIR_DOMAIN_MEMORY_HARD_LIMIT:
+ *
+ * Macro for the memory tunable hard_limit: it represents the maximum memory
+ * the guest can use.
+ */
+
+#define VIR_DOMAIN_MEMORY_HARD_LIMIT "hard_limit"
+
+/**
+ * VIR_DOMAIN_MEMORY_SOFT_LIMIT:
+ *
+ * Macro for the memory tunable soft_limit: it represents the memory upper
+ * limit enforced during memory contention.
+ */
+
+#define VIR_DOMAIN_MEMORY_SOFT_LIMIT "soft_limit"
+
+/**
+ * VIR_DOMAIN_MEMORY_MIN_GUARANTEE:
+ *
+ * Macro for the memory tunable min_guarantee: it represents the minimum
+ * memory guaranteed to be reserved for the guest.
+ */
+
+#define VIR_DOMAIN_MEMORY_MIN_GUARANTEE "min_guarantee"
+
+/**
+ * VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT:
+ *
+ * Macro for the swap tunable swap_hard_limit: it represents the maximum swap
+ * the guest can use.
+ */
+
+#define VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT "swap_hard_limit"
+
+/**
+ * virDomainMemoryParameter:
+ *
+ * a virDomainMemoryParameter is the set of scheduler parameters
+ */
+
+typedef struct _virMemoryParameter virMemoryParameter;
+
+struct _virMemoryParameter {
+    char field[VIR_DOMAIN_MEMORY_FIELD_LENGTH];  /* parameter name */
+    int type;   /* parameter type */
+    union {
+        int i;                          /* data for integer case */
+        unsigned int ui;        /* data for unsigned integer case */
+        long long int l;        /* data for long long integer case */
+        unsigned long long int ul;      /* data for unsigned long long integer case */
+        double d;       /* data for double case */
+        char b;         /* data for char case */
+    } value; /* parameter value */
+};
+
+/**
+ * virMemoryParameterPtr:
+ *
+ * a virMemoryParameterPtr is a pointer to a virMemoryParameter structure.
+ */
+
+typedef virMemoryParameter *virMemoryParameterPtr;
+
+/* Set memory tunables for the domain*/
+int     virDomainSetMemoryParameters(virDomainPtr domain,
+                                     virMemoryParameterPtr params,
+                                     int nparams, unsigned int flags);
+int     virDomainGetMemoryParameters(virDomainPtr domain,
+                                     virMemoryParameterPtr params,
+                                     int *nparams, unsigned int flags);
 
 /*
  * Dynamic control of domains
@@ -826,8 +919,23 @@ struct _virVcpuInfo {
 };
 typedef virVcpuInfo *virVcpuInfoPtr;
 
+/* Flags for controlling virtual CPU hot-plugging.  */
+typedef enum {
+    /* Must choose at least one of these two bits; SetVcpus can choose both */
+    VIR_DOMAIN_VCPU_LIVE    = (1 << 0), /* Affect active domain */
+    VIR_DOMAIN_VCPU_CONFIG  = (1 << 1), /* Affect next boot */
+
+    /* Additional flags to be bit-wise OR'd in */
+    VIR_DOMAIN_VCPU_MAXIMUM = (1 << 2), /* Max rather than current count */
+} virDomainVcpuFlags;
+
 int                     virDomainSetVcpus       (virDomainPtr domain,
                                                  unsigned int nvcpus);
+int                     virDomainSetVcpusFlags  (virDomainPtr domain,
+                                                 unsigned int nvcpus,
+                                                 unsigned int flags);
+int                     virDomainGetVcpusFlags  (virDomainPtr domain,
+                                                 unsigned int flags);
 
 int                     virDomainPinVcpu        (virDomainPtr domain,
                                                  unsigned int vcpu,
@@ -1487,6 +1595,14 @@ typedef int (*virConnectDomainEventCallback)(virConnectPtr conn,
                                              int detail,
                                              void *opaque);
 
+/*
+ * virFreeCallback:
+ * @opaque: opaque user data provided at registration
+ *
+ * Type for a domain event callback when the event is deregistered and
+ * need to be freed, @opaque is provided along with the callback at
+ * registration time
+ */
 typedef void (*virFreeCallback)(void *opaque);
 
 int virConnectDomainEventRegister(virConnectPtr conn,
@@ -1980,8 +2096,15 @@ int virDomainSnapshotDelete(virDomainSnapshotPtr snapshot,
 
 int virDomainSnapshotFree(virDomainSnapshotPtr snapshot);
 
-/* A generic callback definition. Specific events usually have a customization
- * with extra parameters */
+/*
+ * virConnectDomainEventGenericCallback:
+ * @conn: the connection pointer
+ * @dom: the domain pointer
+ * @opaque: application specified data
+ *
+ * A generic domain event callback handler. Specific events usually
+ * have a customization with extra parameters
+ */
 typedef void (*virConnectDomainEventGenericCallback)(virConnectPtr conn,
                                                      virDomainPtr dom,
                                                      void *opaque);
@@ -2044,7 +2167,7 @@ typedef enum {
 
 
 /**
- * virConnectDomainEventWatchdogCallback:
+ * virConnectDomainEventIOErrorCallback:
  * @conn: connection object
  * @dom: domain on which the event occurred
  * @srcPath: The host file on which the IO error occurred
@@ -2054,7 +2177,6 @@ typedef enum {
  *
  * The callback signature to use when registering for an event of type
  * VIR_DOMAIN_EVENT_ID_IO_ERROR with virConnectDomainEventRegisterAny()
- *
  */
 typedef void (*virConnectDomainEventIOErrorCallback)(virConnectPtr conn,
                                                      virDomainPtr dom,
@@ -2064,7 +2186,7 @@ typedef void (*virConnectDomainEventIOErrorCallback)(virConnectPtr conn,
                                                      void *opaque);
 
 /**
- * virConnectDomainEventWatchdogCallback:
+ * virConnectDomainEventIOErrorReasonCallback:
  * @conn: connection object
  * @dom: domain on which the event occurred
  * @srcPath: The host file on which the IO error occurred

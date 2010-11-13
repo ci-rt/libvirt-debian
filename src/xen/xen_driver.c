@@ -508,7 +508,7 @@ xenUnifiedIsSecure(virConnectPtr conn)
     return ret;
 }
 
-static int
+int
 xenUnifiedGetMaxVcpus (virConnectPtr conn, const char *type)
 {
     GET_PRIVATE(conn);
@@ -1069,27 +1069,66 @@ xenUnifiedDomainCoreDump (virDomainPtr dom, const char *to, int flags)
 }
 
 static int
-xenUnifiedDomainSetVcpus (virDomainPtr dom, unsigned int nvcpus)
+xenUnifiedDomainSetVcpusFlags (virDomainPtr dom, unsigned int nvcpus,
+                               unsigned int flags)
 {
     GET_PRIVATE(dom->conn);
-    int i;
+    int ret;
+
+    virCheckFlags(VIR_DOMAIN_VCPU_LIVE |
+                  VIR_DOMAIN_VCPU_CONFIG |
+                  VIR_DOMAIN_VCPU_MAXIMUM, -1);
+
+    /* At least one of LIVE or CONFIG must be set.  MAXIMUM cannot be
+     * mixed with LIVE.  */
+    if ((flags & (VIR_DOMAIN_VCPU_LIVE | VIR_DOMAIN_VCPU_CONFIG)) == 0 ||
+        (flags & (VIR_DOMAIN_VCPU_MAXIMUM | VIR_DOMAIN_VCPU_LIVE)) ==
+         (VIR_DOMAIN_VCPU_MAXIMUM | VIR_DOMAIN_VCPU_LIVE)) {
+        xenUnifiedError(VIR_ERR_INVALID_ARG,
+                        _("invalid flag combination: (0x%x)"), flags);
+        return -1;
+    }
+    if (!nvcpus || (unsigned short) nvcpus != nvcpus) {
+        xenUnifiedError(VIR_ERR_INVALID_ARG,
+                        _("argument out of range: %d"), nvcpus);
+        return -1;
+    }
 
     /* Try non-hypervisor methods first, then hypervisor direct method
      * as a last resort.
      */
-    for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
-        if (i != XEN_UNIFIED_HYPERVISOR_OFFSET &&
-            priv->opened[i] &&
-            drivers[i]->domainSetVcpus &&
-            drivers[i]->domainSetVcpus (dom, nvcpus) == 0)
-            return 0;
+    if (priv->opened[XEN_UNIFIED_XEND_OFFSET]) {
+        ret = xenDaemonDomainSetVcpusFlags(dom, nvcpus, flags);
+        if (ret != -2)
+            return ret;
+    }
+    if (priv->opened[XEN_UNIFIED_XM_OFFSET]) {
+        ret = xenXMDomainSetVcpusFlags(dom, nvcpus, flags);
+        if (ret != -2)
+            return ret;
+    }
+    if (flags == VIR_DOMAIN_VCPU_LIVE)
+        return xenHypervisorSetVcpus(dom, nvcpus);
 
-    if (priv->opened[XEN_UNIFIED_HYPERVISOR_OFFSET] &&
-        drivers[XEN_UNIFIED_HYPERVISOR_OFFSET]->domainSetVcpus &&
-        drivers[XEN_UNIFIED_HYPERVISOR_OFFSET]->domainSetVcpus (dom, nvcpus) == 0)
-        return 0;
-
+    xenUnifiedError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return -1;
+}
+
+static int
+xenUnifiedDomainSetVcpus (virDomainPtr dom, unsigned int nvcpus)
+{
+    unsigned int flags = VIR_DOMAIN_VCPU_LIVE;
+    xenUnifiedPrivatePtr priv;
+
+    /* Per the documented API, it is hypervisor-dependent whether this
+     * affects just _LIVE or _LIVE|_CONFIG; in xen's case, that
+     * depends on xendConfigVersion.  */
+    if (dom) {
+        priv = dom->conn->privateData;
+        if (priv->xendConfigVersion >= 3)
+            flags |= VIR_DOMAIN_VCPU_CONFIG;
+    }
+    return xenUnifiedDomainSetVcpusFlags(dom, nvcpus, flags);
 }
 
 static int
@@ -1126,18 +1165,44 @@ xenUnifiedDomainGetVcpus (virDomainPtr dom,
 }
 
 static int
-xenUnifiedDomainGetMaxVcpus (virDomainPtr dom)
+xenUnifiedDomainGetVcpusFlags (virDomainPtr dom, unsigned int flags)
 {
     GET_PRIVATE(dom->conn);
-    int i, ret;
+    int ret;
 
-    for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
-        if (priv->opened[i] && drivers[i]->domainGetMaxVcpus) {
-            ret = drivers[i]->domainGetMaxVcpus (dom);
-            if (ret != 0) return ret;
-        }
+    virCheckFlags(VIR_DOMAIN_VCPU_LIVE |
+                  VIR_DOMAIN_VCPU_CONFIG |
+                  VIR_DOMAIN_VCPU_MAXIMUM, -1);
 
+    /* Exactly one of LIVE or CONFIG must be set.  */
+    if (!(flags & VIR_DOMAIN_VCPU_LIVE) == !(flags & VIR_DOMAIN_VCPU_CONFIG)) {
+        xenUnifiedError(VIR_ERR_INVALID_ARG,
+                        _("invalid flag combination: (0x%x)"), flags);
+        return -1;
+    }
+
+    if (priv->opened[XEN_UNIFIED_XEND_OFFSET]) {
+        ret = xenDaemonDomainGetVcpusFlags(dom, flags);
+        if (ret != -2)
+            return ret;
+    }
+    if (priv->opened[XEN_UNIFIED_XM_OFFSET]) {
+        ret = xenXMDomainGetVcpusFlags(dom, flags);
+        if (ret != -2)
+            return ret;
+    }
+    if (flags == (VIR_DOMAIN_VCPU_CONFIG | VIR_DOMAIN_VCPU_MAXIMUM))
+        return xenHypervisorGetVcpuMax(dom);
+
+    xenUnifiedError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return -1;
+}
+
+static int
+xenUnifiedDomainGetMaxVcpus (virDomainPtr dom)
+{
+    return xenUnifiedDomainGetVcpusFlags(dom, (VIR_DOMAIN_VCPU_LIVE |
+                                               VIR_DOMAIN_VCPU_MAXIMUM));
 }
 
 static char *
@@ -1437,10 +1502,16 @@ xenUnifiedDomainAttachDevice (virDomainPtr dom, const char *xml)
 {
     GET_PRIVATE(dom->conn);
     int i;
-    unsigned int flags = VIR_DOMAIN_DEVICE_MODIFY_CONFIG;
+    unsigned int flags = VIR_DOMAIN_DEVICE_MODIFY_LIVE;
 
-    if (dom->id >= 0)
-        flags |= VIR_DOMAIN_DEVICE_MODIFY_LIVE;
+    /*
+     * HACK: xend with xendConfigVersion >= 3 does not support changing live
+     * config without touching persistent config, we add the extra flag here
+     * to make this API work
+     */
+    if (priv->opened[XEN_UNIFIED_XEND_OFFSET] &&
+        priv->xendConfigVersion >= 3)
+        flags |= VIR_DOMAIN_DEVICE_MODIFY_CONFIG;
 
     for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
         if (priv->opened[i] && drivers[i]->domainAttachDeviceFlags &&
@@ -1470,10 +1541,16 @@ xenUnifiedDomainDetachDevice (virDomainPtr dom, const char *xml)
 {
     GET_PRIVATE(dom->conn);
     int i;
-    unsigned int flags = VIR_DOMAIN_DEVICE_MODIFY_CONFIG;
+    unsigned int flags = VIR_DOMAIN_DEVICE_MODIFY_LIVE;
 
-    if (dom->id >= 0)
-        flags |= VIR_DOMAIN_DEVICE_MODIFY_LIVE;
+    /*
+     * HACK: xend with xendConfigVersion >= 3 does not support changing live
+     * config without touching persistent config, we add the extra flag here
+     * to make this API work
+     */
+    if (priv->opened[XEN_UNIFIED_XEND_OFFSET] &&
+        priv->xendConfigVersion >= 3)
+        flags |= VIR_DOMAIN_DEVICE_MODIFY_CONFIG;
 
     for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
         if (priv->opened[i] && drivers[i]->domainDetachDeviceFlags &&
@@ -1939,6 +2016,8 @@ static virDriver xenUnifiedDriver = {
     xenUnifiedDomainRestore, /* domainRestore */
     xenUnifiedDomainCoreDump, /* domainCoreDump */
     xenUnifiedDomainSetVcpus, /* domainSetVcpus */
+    xenUnifiedDomainSetVcpusFlags, /* domainSetVcpusFlags */
+    xenUnifiedDomainGetVcpusFlags, /* domainGetVcpusFlags */
     xenUnifiedDomainPinVcpu, /* domainPinVcpu */
     xenUnifiedDomainGetVcpus, /* domainGetVcpus */
     xenUnifiedDomainGetMaxVcpus, /* domainGetMaxVcpus */
@@ -2006,6 +2085,8 @@ static virDriver xenUnifiedDriver = {
     NULL, /* domainRevertToSnapshot */
     NULL, /* domainSnapshotDelete */
     NULL, /* qemuDomainMonitorCommand */
+    NULL, /* domainSetMemoryParameters */
+    NULL, /* domainGetMemoryParameters */
 };
 
 /**

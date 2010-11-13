@@ -19,7 +19,8 @@ AC_DEFUN([gl_PRINTF_SIZES_C99],
   AC_CACHE_CHECK([whether printf supports size specifiers as in C99],
     [gl_cv_func_printf_sizes_c99],
     [
-      AC_TRY_RUN([
+      AC_RUN_IFELSE(
+        [AC_LANG_SOURCE([[
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
@@ -52,34 +53,36 @@ int main ()
       || strcmp (buf, "1.5 33") != 0)
     return 1;
   return 0;
-}], [gl_cv_func_printf_sizes_c99=yes], [gl_cv_func_printf_sizes_c99=no],
-      [
+}]])],
+        [gl_cv_func_printf_sizes_c99=yes],
+        [gl_cv_func_printf_sizes_c99=no],
+        [
 changequote(,)dnl
-       case "$host_os" in
-                               # Guess yes on glibc systems.
-         *-gnu*)               gl_cv_func_printf_sizes_c99="guessing yes";;
-                               # Guess yes on FreeBSD >= 5.
-         freebsd[1-4]*)        gl_cv_func_printf_sizes_c99="guessing no";;
-         freebsd* | kfreebsd*) gl_cv_func_printf_sizes_c99="guessing yes";;
-                               # Guess yes on MacOS X >= 10.3.
-         darwin[1-6].*)        gl_cv_func_printf_sizes_c99="guessing no";;
-         darwin*)              gl_cv_func_printf_sizes_c99="guessing yes";;
-                               # Guess yes on OpenBSD >= 3.9.
-         openbsd[1-2].* | openbsd3.[0-8] | openbsd3.[0-8].*)
-                               gl_cv_func_printf_sizes_c99="guessing no";;
-         openbsd*)             gl_cv_func_printf_sizes_c99="guessing yes";;
-                               # Guess yes on Solaris >= 2.10.
-         solaris2.[0-9]*)      gl_cv_func_printf_sizes_c99="guessing no";;
-         solaris*)             gl_cv_func_printf_sizes_c99="guessing yes";;
-                               # Guess yes on NetBSD >= 3.
-         netbsd[1-2]* | netbsdelf[1-2]* | netbsdaout[1-2]* | netbsdcoff[1-2]*)
-                               gl_cv_func_printf_sizes_c99="guessing no";;
-         netbsd*)              gl_cv_func_printf_sizes_c99="guessing yes";;
-                               # If we don't know, assume the worst.
-         *)                    gl_cv_func_printf_sizes_c99="guessing no";;
-       esac
+         case "$host_os" in
+                                 # Guess yes on glibc systems.
+           *-gnu*)               gl_cv_func_printf_sizes_c99="guessing yes";;
+                                 # Guess yes on FreeBSD >= 5.
+           freebsd[1-4]*)        gl_cv_func_printf_sizes_c99="guessing no";;
+           freebsd* | kfreebsd*) gl_cv_func_printf_sizes_c99="guessing yes";;
+                                 # Guess yes on MacOS X >= 10.3.
+           darwin[1-6].*)        gl_cv_func_printf_sizes_c99="guessing no";;
+           darwin*)              gl_cv_func_printf_sizes_c99="guessing yes";;
+                                 # Guess yes on OpenBSD >= 3.9.
+           openbsd[1-2].* | openbsd3.[0-8] | openbsd3.[0-8].*)
+                                 gl_cv_func_printf_sizes_c99="guessing no";;
+           openbsd*)             gl_cv_func_printf_sizes_c99="guessing yes";;
+                                 # Guess yes on Solaris >= 2.10.
+           solaris2.[0-9]*)      gl_cv_func_printf_sizes_c99="guessing no";;
+           solaris*)             gl_cv_func_printf_sizes_c99="guessing yes";;
+                                 # Guess yes on NetBSD >= 3.
+           netbsd[1-2]* | netbsdelf[1-2]* | netbsdaout[1-2]* | netbsdcoff[1-2]*)
+                                 gl_cv_func_printf_sizes_c99="guessing no";;
+           netbsd*)              gl_cv_func_printf_sizes_c99="guessing yes";;
+                                 # If we don't know, assume the worst.
+           *)                    gl_cv_func_printf_sizes_c99="guessing no";;
+         esac
 changequote([,])dnl
-      ])
+        ])
     ])
 ])
 
@@ -94,7 +97,8 @@ AC_DEFUN([gl_PRINTF_LONG_DOUBLE],
   AC_CACHE_CHECK([whether printf supports 'long double' arguments],
     [gl_cv_func_printf_long_double],
     [
-      AC_TRY_RUN([
+      AC_RUN_IFELSE(
+        [AC_LANG_SOURCE([[
 #include <stdio.h>
 #include <string.h>
 static char buf[10000];
@@ -113,16 +117,18 @@ int main ()
       || strcmp (buf, "1.75 33") != 0)
     return 1;
   return 0;
-}], [gl_cv_func_printf_long_double=yes], [gl_cv_func_printf_long_double=no],
-      [
+}]])],
+        [gl_cv_func_printf_long_double=yes],
+        [gl_cv_func_printf_long_double=no],
+        [
 changequote(,)dnl
-       case "$host_os" in
-         beos*)        gl_cv_func_printf_long_double="guessing no";;
-         mingw* | pw*) gl_cv_func_printf_long_double="guessing no";;
-         *)            gl_cv_func_printf_long_double="guessing yes";;
-       esac
+         case "$host_os" in
+           beos*)        gl_cv_func_printf_long_double="guessing no";;
+           mingw* | pw*) gl_cv_func_printf_long_double="guessing no";;
+           *)            gl_cv_func_printf_long_double="guessing yes";;
+         esac
 changequote([,])dnl
-      ])
+        ])
     ])
 ])
 
@@ -138,7 +144,8 @@ AC_DEFUN([gl_PRINTF_INFINITE],
   AC_CACHE_CHECK([whether printf supports infinite 'double' arguments],
     [gl_cv_func_printf_infinite],
     [
-      AC_TRY_RUN([
+      AC_RUN_IFELSE(
+        [AC_LANG_SOURCE([[
 #include <stdio.h>
 #include <string.h>
 static int
@@ -203,32 +210,34 @@ int main ()
         || strcmp (buf, "-0") != 0)
     return 1;
   return 0;
-}], [gl_cv_func_printf_infinite=yes], [gl_cv_func_printf_infinite=no],
-      [
+}]])],
+        [gl_cv_func_printf_infinite=yes],
+        [gl_cv_func_printf_infinite=no],
+        [
 changequote(,)dnl
-       case "$host_os" in
-                               # Guess yes on glibc systems.
-         *-gnu*)               gl_cv_func_printf_infinite="guessing yes";;
-                               # Guess yes on FreeBSD >= 6.
-         freebsd[1-5]*)        gl_cv_func_printf_infinite="guessing no";;
-         freebsd* | kfreebsd*) gl_cv_func_printf_infinite="guessing yes";;
-                               # Guess yes on MacOS X >= 10.3.
-         darwin[1-6].*)        gl_cv_func_printf_infinite="guessing no";;
-         darwin*)              gl_cv_func_printf_infinite="guessing yes";;
-                               # Guess yes on HP-UX >= 11.
-         hpux[7-9]* | hpux10*) gl_cv_func_printf_infinite="guessing no";;
-         hpux*)                gl_cv_func_printf_infinite="guessing yes";;
-                               # Guess yes on NetBSD >= 3.
-         netbsd[1-2]* | netbsdelf[1-2]* | netbsdaout[1-2]* | netbsdcoff[1-2]*)
-                               gl_cv_func_printf_infinite="guessing no";;
-         netbsd*)              gl_cv_func_printf_infinite="guessing yes";;
-                               # Guess yes on BeOS.
-         beos*)                gl_cv_func_printf_infinite="guessing yes";;
-                               # If we don't know, assume the worst.
-         *)                    gl_cv_func_printf_infinite="guessing no";;
-       esac
+         case "$host_os" in
+                                 # Guess yes on glibc systems.
+           *-gnu*)               gl_cv_func_printf_infinite="guessing yes";;
+                                 # Guess yes on FreeBSD >= 6.
+           freebsd[1-5]*)        gl_cv_func_printf_infinite="guessing no";;
+           freebsd* | kfreebsd*) gl_cv_func_printf_infinite="guessing yes";;
+                                 # Guess yes on MacOS X >= 10.3.
+           darwin[1-6].*)        gl_cv_func_printf_infinite="guessing no";;
+           darwin*)              gl_cv_func_printf_infinite="guessing yes";;
+                                 # Guess yes on HP-UX >= 11.
+           hpux[7-9]* | hpux10*) gl_cv_func_printf_infinite="guessing no";;
+           hpux*)                gl_cv_func_printf_infinite="guessing yes";;
+                                 # Guess yes on NetBSD >= 3.
+           netbsd[1-2]* | netbsdelf[1-2]* | netbsdaout[1-2]* | netbsdcoff[1-2]*)
+                                 gl_cv_func_printf_infinite="guessing no";;
+           netbsd*)              gl_cv_func_printf_infinite="guessing yes";;
+                                 # Guess yes on BeOS.
+           beos*)                gl_cv_func_printf_infinite="guessing yes";;
+                                 # If we don't know, assume the worst.
+           *)                    gl_cv_func_printf_infinite="guessing no";;
+         esac
 changequote([,])dnl
-      ])
+        ])
     ])
 ])
 
@@ -254,7 +263,8 @@ AC_DEFUN([gl_PRINTF_INFINITE_LONG_DOUBLE],
       AC_CACHE_CHECK([whether printf supports infinite 'long double' arguments],
         [gl_cv_func_printf_infinite_long_double],
         [
-          AC_TRY_RUN([
+          AC_RUN_IFELSE(
+            [AC_LANG_SOURCE([[
 ]GL_NOCRASH[
 #include <float.h>
 #include <stdio.h>
@@ -416,38 +426,38 @@ int main ()
   }
 #endif
   return 0;
-}],
-          [gl_cv_func_printf_infinite_long_double=yes],
-          [gl_cv_func_printf_infinite_long_double=no],
-          [
+}]])],
+            [gl_cv_func_printf_infinite_long_double=yes],
+            [gl_cv_func_printf_infinite_long_double=no],
+            [
 changequote(,)dnl
-           case "$host_cpu" in
-                                   # Guess no on ia64, x86_64, i386.
-             ia64 | x86_64 | i*86) gl_cv_func_printf_infinite_long_double="guessing no";;
-             *)
-               case "$host_os" in
-                                       # Guess yes on glibc systems.
-                 *-gnu*)               gl_cv_func_printf_infinite_long_double="guessing yes";;
-                                       # Guess yes on FreeBSD >= 6.
-                 freebsd[1-5]*)        gl_cv_func_printf_infinite_long_double="guessing no";;
-                 freebsd* | kfreebsd*) gl_cv_func_printf_infinite_long_double="guessing yes";;
-                                       # Guess yes on MacOS X >= 10.3.
-                 darwin[1-6].*)        gl_cv_func_printf_infinite_long_double="guessing no";;
-                 darwin*)              gl_cv_func_printf_infinite_long_double="guessing yes";;
-                                       # Guess yes on HP-UX >= 11.
-                 hpux[7-9]* | hpux10*) gl_cv_func_printf_infinite_long_double="guessing no";;
-                 hpux*)                gl_cv_func_printf_infinite_long_double="guessing yes";;
-                                       # Guess yes on NetBSD >= 3.
-                 netbsd[1-2]* | netbsdelf[1-2]* | netbsdaout[1-2]* | netbsdcoff[1-2]*)
-                                       gl_cv_func_printf_infinite_long_double="guessing no";;
-                 netbsd*)              gl_cv_func_printf_infinite_long_double="guessing yes";;
-                                       # If we don't know, assume the worst.
-                 *)                    gl_cv_func_printf_infinite_long_double="guessing no";;
-               esac
-               ;;
-           esac
+             case "$host_cpu" in
+                                     # Guess no on ia64, x86_64, i386.
+               ia64 | x86_64 | i*86) gl_cv_func_printf_infinite_long_double="guessing no";;
+               *)
+                 case "$host_os" in
+                                         # Guess yes on glibc systems.
+                   *-gnu*)               gl_cv_func_printf_infinite_long_double="guessing yes";;
+                                         # Guess yes on FreeBSD >= 6.
+                   freebsd[1-5]*)        gl_cv_func_printf_infinite_long_double="guessing no";;
+                   freebsd* | kfreebsd*) gl_cv_func_printf_infinite_long_double="guessing yes";;
+                                         # Guess yes on MacOS X >= 10.3.
+                   darwin[1-6].*)        gl_cv_func_printf_infinite_long_double="guessing no";;
+                   darwin*)              gl_cv_func_printf_infinite_long_double="guessing yes";;
+                                         # Guess yes on HP-UX >= 11.
+                   hpux[7-9]* | hpux10*) gl_cv_func_printf_infinite_long_double="guessing no";;
+                   hpux*)                gl_cv_func_printf_infinite_long_double="guessing yes";;
+                                         # Guess yes on NetBSD >= 3.
+                   netbsd[1-2]* | netbsdelf[1-2]* | netbsdaout[1-2]* | netbsdcoff[1-2]*)
+                                         gl_cv_func_printf_infinite_long_double="guessing no";;
+                   netbsd*)              gl_cv_func_printf_infinite_long_double="guessing yes";;
+                                         # If we don't know, assume the worst.
+                   *)                    gl_cv_func_printf_infinite_long_double="guessing no";;
+                 esac
+                 ;;
+             esac
 changequote([,])dnl
-          ])
+            ])
         ])
       ;;
     *)
@@ -468,7 +478,8 @@ AC_DEFUN([gl_PRINTF_DIRECTIVE_A],
   AC_CACHE_CHECK([whether printf supports the 'a' and 'A' directives],
     [gl_cv_func_printf_directive_a],
     [
-      AC_TRY_RUN([
+      AC_RUN_IFELSE(
+        [AC_LANG_SOURCE([[
 #include <stdio.h>
 #include <string.h>
 static char buf[100];
@@ -514,26 +525,28 @@ int main ()
           && strcmp (buf, "0x8.0p-2") != 0))
     return 1;
   return 0;
-}], [gl_cv_func_printf_directive_a=yes], [gl_cv_func_printf_directive_a=no],
-      [
-       case "$host_os" in
-                               # Guess yes on glibc >= 2.5 systems.
-         *-gnu*)
-           AC_EGREP_CPP([BZ2908], [
-             #include <features.h>
-             #ifdef __GNU_LIBRARY__
-              #if (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 5) || (__GLIBC__ > 2)
-               BZ2908
-              #endif
-             #endif
-             ],
-             [gl_cv_func_printf_directive_a="guessing yes"],
-             [gl_cv_func_printf_directive_a="guessing no"])
-           ;;
-                               # If we don't know, assume the worst.
-         *)                    gl_cv_func_printf_directive_a="guessing no";;
-       esac
-      ])
+}]])],
+        [gl_cv_func_printf_directive_a=yes],
+        [gl_cv_func_printf_directive_a=no],
+        [
+         case "$host_os" in
+                                 # Guess yes on glibc >= 2.5 systems.
+           *-gnu*)
+             AC_EGREP_CPP([BZ2908], [
+               #include <features.h>
+               #ifdef __GNU_LIBRARY__
+                #if (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 5) || (__GLIBC__ > 2)
+                 BZ2908
+                #endif
+               #endif
+               ],
+               [gl_cv_func_printf_directive_a="guessing yes"],
+               [gl_cv_func_printf_directive_a="guessing no"])
+             ;;
+                                 # If we don't know, assume the worst.
+           *)                    gl_cv_func_printf_directive_a="guessing no";;
+         esac
+        ])
     ])
 ])
 
@@ -548,7 +561,8 @@ AC_DEFUN([gl_PRINTF_DIRECTIVE_F],
   AC_CACHE_CHECK([whether printf supports the 'F' directive],
     [gl_cv_func_printf_directive_f],
     [
-      AC_TRY_RUN([
+      AC_RUN_IFELSE(
+        [AC_LANG_SOURCE([[
 #include <stdio.h>
 #include <string.h>
 static char buf[100];
@@ -565,26 +579,28 @@ int main ()
       || strcmp (buf, "1234") != 0)
     return 1;
   return 0;
-}], [gl_cv_func_printf_directive_f=yes], [gl_cv_func_printf_directive_f=no],
-      [
+}]])],
+        [gl_cv_func_printf_directive_f=yes],
+        [gl_cv_func_printf_directive_f=no],
+        [
 changequote(,)dnl
-       case "$host_os" in
-                               # Guess yes on glibc systems.
-         *-gnu*)               gl_cv_func_printf_directive_f="guessing yes";;
-                               # Guess yes on FreeBSD >= 6.
-         freebsd[1-5]*)        gl_cv_func_printf_directive_f="guessing no";;
-         freebsd* | kfreebsd*) gl_cv_func_printf_directive_f="guessing yes";;
-                               # Guess yes on MacOS X >= 10.3.
-         darwin[1-6].*)        gl_cv_func_printf_directive_f="guessing no";;
-         darwin*)              gl_cv_func_printf_directive_f="guessing yes";;
-                               # Guess yes on Solaris >= 2.10.
-         solaris2.[0-9]*)      gl_cv_func_printf_directive_f="guessing no";;
-         solaris*)             gl_cv_func_printf_directive_f="guessing yes";;
-                               # If we don't know, assume the worst.
-         *)                    gl_cv_func_printf_directive_f="guessing no";;
-       esac
+         case "$host_os" in
+                                 # Guess yes on glibc systems.
+           *-gnu*)               gl_cv_func_printf_directive_f="guessing yes";;
+                                 # Guess yes on FreeBSD >= 6.
+           freebsd[1-5]*)        gl_cv_func_printf_directive_f="guessing no";;
+           freebsd* | kfreebsd*) gl_cv_func_printf_directive_f="guessing yes";;
+                                 # Guess yes on MacOS X >= 10.3.
+           darwin[1-6].*)        gl_cv_func_printf_directive_f="guessing no";;
+           darwin*)              gl_cv_func_printf_directive_f="guessing yes";;
+                                 # Guess yes on Solaris >= 2.10.
+           solaris2.[0-9]*)      gl_cv_func_printf_directive_f="guessing no";;
+           solaris*)             gl_cv_func_printf_directive_f="guessing yes";;
+                                 # If we don't know, assume the worst.
+           *)                    gl_cv_func_printf_directive_f="guessing no";;
+         esac
 changequote([,])dnl
-      ])
+        ])
     ])
 ])
 
@@ -599,7 +615,8 @@ AC_DEFUN([gl_PRINTF_DIRECTIVE_N],
   AC_CACHE_CHECK([whether printf supports the 'n' directive],
     [gl_cv_func_printf_directive_n],
     [
-      AC_TRY_RUN([
+      AC_RUN_IFELSE(
+        [AC_LANG_SOURCE([[
 #include <stdio.h>
 #include <string.h>
 static char fmtstring[10];
@@ -616,14 +633,16 @@ int main ()
       || count != 4)
     return 1;
   return 0;
-}], [gl_cv_func_printf_directive_n=yes], [gl_cv_func_printf_directive_n=no],
-      [
+}]])],
+        [gl_cv_func_printf_directive_n=yes],
+        [gl_cv_func_printf_directive_n=no],
+        [
 changequote(,)dnl
-       case "$host_os" in
-         *)     gl_cv_func_printf_directive_n="guessing yes";;
-       esac
+         case "$host_os" in
+           *)     gl_cv_func_printf_directive_n="guessing yes";;
+         esac
 changequote([,])dnl
-      ])
+        ])
     ])
 ])
 
@@ -641,7 +660,8 @@ AC_DEFUN([gl_PRINTF_DIRECTIVE_LS],
   AC_CACHE_CHECK([whether printf supports the 'ls' directive],
     [gl_cv_func_printf_directive_ls],
     [
-      AC_TRY_RUN([
+      AC_RUN_IFELSE(
+        [AC_LANG_SOURCE([[
 /* Tru64 with Desktop Toolkit C has a bug: <stdio.h> must be included before
    <wchar.h>.
    BSD/OS 4.0.1 has a bug: <stddef.h>, <stdio.h> and <time.h> must be
@@ -689,19 +709,21 @@ int main ()
       return 1;
   }
   return 0;
-}], [gl_cv_func_printf_directive_ls=yes], [gl_cv_func_printf_directive_ls=no],
-      [
+}]])],
+        [gl_cv_func_printf_directive_ls=yes],
+        [gl_cv_func_printf_directive_ls=no],
+        [
 changequote(,)dnl
-       case "$host_os" in
-         openbsd*)        gl_cv_func_printf_directive_ls="guessing no";;
-         irix*)           gl_cv_func_printf_directive_ls="guessing no";;
-         solaris*)        gl_cv_func_printf_directive_ls="guessing no";;
-         cygwin*)         gl_cv_func_printf_directive_ls="guessing no";;
-         beos* | haiku*)  gl_cv_func_printf_directive_ls="guessing no";;
-         *)               gl_cv_func_printf_directive_ls="guessing yes";;
-       esac
+         case "$host_os" in
+           openbsd*)        gl_cv_func_printf_directive_ls="guessing no";;
+           irix*)           gl_cv_func_printf_directive_ls="guessing no";;
+           solaris*)        gl_cv_func_printf_directive_ls="guessing no";;
+           cygwin*)         gl_cv_func_printf_directive_ls="guessing no";;
+           beos* | haiku*)  gl_cv_func_printf_directive_ls="guessing no";;
+           *)               gl_cv_func_printf_directive_ls="guessing yes";;
+         esac
 changequote([,])dnl
-      ])
+        ])
     ])
 ])
 
@@ -716,7 +738,8 @@ AC_DEFUN([gl_PRINTF_POSITIONS],
   AC_CACHE_CHECK([whether printf supports POSIX/XSI format strings with positions],
     [gl_cv_func_printf_positions],
     [
-      AC_TRY_RUN([
+      AC_RUN_IFELSE(
+        [AC_LANG_SOURCE([[
 #include <stdio.h>
 #include <string.h>
 /* The string "%2$d %1$d", with dollar characters protected from the shell's
@@ -727,18 +750,20 @@ int main ()
 {
   sprintf (buf, format, 33, 55);
   return (strcmp (buf, "55 33") != 0);
-}], [gl_cv_func_printf_positions=yes], [gl_cv_func_printf_positions=no],
-      [
+}]])],
+        [gl_cv_func_printf_positions=yes],
+        [gl_cv_func_printf_positions=no],
+        [
 changequote(,)dnl
-       case "$host_os" in
-         netbsd[1-3]* | netbsdelf[1-3]* | netbsdaout[1-3]* | netbsdcoff[1-3]*)
-                       gl_cv_func_printf_positions="guessing no";;
-         beos*)        gl_cv_func_printf_positions="guessing no";;
-         mingw* | pw*) gl_cv_func_printf_positions="guessing no";;
-         *)            gl_cv_func_printf_positions="guessing yes";;
-       esac
+         case "$host_os" in
+           netbsd[1-3]* | netbsdelf[1-3]* | netbsdaout[1-3]* | netbsdcoff[1-3]*)
+                         gl_cv_func_printf_positions="guessing no";;
+           beos*)        gl_cv_func_printf_positions="guessing no";;
+           mingw* | pw*) gl_cv_func_printf_positions="guessing no";;
+           *)            gl_cv_func_printf_positions="guessing yes";;
+         esac
 changequote([,])dnl
-      ])
+        ])
     ])
 ])
 
@@ -753,7 +778,8 @@ AC_DEFUN([gl_PRINTF_FLAG_GROUPING],
   AC_CACHE_CHECK([whether printf supports the grouping flag],
     [gl_cv_func_printf_flag_grouping],
     [
-      AC_TRY_RUN([
+      AC_RUN_IFELSE(
+        [AC_LANG_SOURCE([[
 #include <stdio.h>
 #include <string.h>
 static char buf[100];
@@ -763,17 +789,19 @@ int main ()
       || buf[strlen (buf) - 1] != '9')
     return 1;
   return 0;
-}], [gl_cv_func_printf_flag_grouping=yes], [gl_cv_func_printf_flag_grouping=no],
-      [
+}]])],
+        [gl_cv_func_printf_flag_grouping=yes],
+        [gl_cv_func_printf_flag_grouping=no],
+        [
 changequote(,)dnl
-       case "$host_os" in
-         cygwin*)      gl_cv_func_printf_flag_grouping="guessing no";;
-         netbsd*)      gl_cv_func_printf_flag_grouping="guessing no";;
-         mingw* | pw*) gl_cv_func_printf_flag_grouping="guessing no";;
-         *)            gl_cv_func_printf_flag_grouping="guessing yes";;
-       esac
+         case "$host_os" in
+           cygwin*)      gl_cv_func_printf_flag_grouping="guessing no";;
+           netbsd*)      gl_cv_func_printf_flag_grouping="guessing no";;
+           mingw* | pw*) gl_cv_func_printf_flag_grouping="guessing no";;
+           *)            gl_cv_func_printf_flag_grouping="guessing yes";;
+         esac
 changequote([,])dnl
-      ])
+        ])
     ])
 ])
 
@@ -789,7 +817,8 @@ AC_DEFUN([gl_PRINTF_FLAG_LEFTADJUST],
   AC_CACHE_CHECK([whether printf supports the left-adjust flag correctly],
     [gl_cv_func_printf_flag_leftadjust],
     [
-      AC_TRY_RUN([
+      AC_RUN_IFELSE(
+        [AC_LANG_SOURCE([[
 #include <stdio.h>
 #include <string.h>
 static char buf[100];
@@ -800,7 +829,7 @@ int main ()
       || strcmp (buf, "ab  c") != 0)
     return 1;
   return 0;
-}],
+}]])],
         [gl_cv_func_printf_flag_leftadjust=yes],
         [gl_cv_func_printf_flag_leftadjust=no],
         [
@@ -830,7 +859,8 @@ AC_DEFUN([gl_PRINTF_FLAG_ZERO],
   AC_CACHE_CHECK([whether printf supports the zero flag correctly],
     [gl_cv_func_printf_flag_zero],
     [
-      AC_TRY_RUN([
+      AC_RUN_IFELSE(
+        [AC_LANG_SOURCE([[
 #include <stdio.h>
 #include <string.h>
 static char buf[100];
@@ -841,19 +871,21 @@ int main ()
           && strcmp (buf, "  infinity") != 0))
     return 1;
   return 0;
-}], [gl_cv_func_printf_flag_zero=yes], [gl_cv_func_printf_flag_zero=no],
-      [
+}]])],
+        [gl_cv_func_printf_flag_zero=yes],
+        [gl_cv_func_printf_flag_zero=no],
+        [
 changequote(,)dnl
-       case "$host_os" in
-                 # Guess yes on glibc systems.
-         *-gnu*) gl_cv_func_printf_flag_zero="guessing yes";;
-                 # Guess yes on BeOS.
-         beos*)  gl_cv_func_printf_flag_zero="guessing yes";;
-                 # If we don't know, assume the worst.
-         *)      gl_cv_func_printf_flag_zero="guessing no";;
-       esac
+         case "$host_os" in
+                   # Guess yes on glibc systems.
+           *-gnu*) gl_cv_func_printf_flag_zero="guessing yes";;
+                   # Guess yes on BeOS.
+           beos*)  gl_cv_func_printf_flag_zero="guessing yes";;
+                   # If we don't know, assume the worst.
+           *)      gl_cv_func_printf_flag_zero="guessing no";;
+         esac
 changequote([,])dnl
-      ])
+        ])
     ])
 ])
 
@@ -870,7 +902,8 @@ AC_DEFUN([gl_PRINTF_PRECISION],
   AC_CACHE_CHECK([whether printf supports large precisions],
     [gl_cv_func_printf_precision],
     [
-      AC_TRY_RUN([
+      AC_RUN_IFELSE(
+        [AC_LANG_SOURCE([[
 #include <stdio.h>
 #include <string.h>
 static char buf[5000];
@@ -883,17 +916,19 @@ int main ()
   if (sprintf (buf, "%.4000d %d", 1, 33, 44) < 4000 + 3)
     return 1;
   return 0;
-}], [gl_cv_func_printf_precision=yes], [gl_cv_func_printf_precision=no],
-      [
+}]])],
+        [gl_cv_func_printf_precision=yes],
+        [gl_cv_func_printf_precision=no],
+        [
 changequote(,)dnl
-       case "$host_os" in
-         # Guess no only on native Win32 and BeOS systems.
-         mingw* | pw*) gl_cv_func_printf_precision="guessing no" ;;
-         beos*)        gl_cv_func_printf_precision="guessing no" ;;
-         *)            gl_cv_func_printf_precision="guessing yes" ;;
-       esac
+         case "$host_os" in
+           # Guess no only on native Win32 and BeOS systems.
+           mingw* | pw*) gl_cv_func_printf_precision="guessing no" ;;
+           beos*)        gl_cv_func_printf_precision="guessing no" ;;
+           *)            gl_cv_func_printf_precision="guessing yes" ;;
+         esac
 changequote([,])dnl
-      ])
+        ])
     ])
 ])
 
@@ -1033,7 +1068,8 @@ AC_DEFUN([gl_SNPRINTF_TRUNCATION_C99],
   AC_CACHE_CHECK([whether snprintf truncates the result as in C99],
     [gl_cv_func_snprintf_truncation_c99],
     [
-      AC_TRY_RUN([
+      AC_RUN_IFELSE(
+        [AC_LANG_SOURCE([[
 #include <stdio.h>
 #include <string.h>
 static char buf[100];
@@ -1044,47 +1080,49 @@ int main ()
   if (memcmp (buf, "45\0DEF", 6) != 0)
     return 1;
   return 0;
-}], [gl_cv_func_snprintf_truncation_c99=yes], [gl_cv_func_snprintf_truncation_c99=no],
-      [
+}]])],
+        [gl_cv_func_snprintf_truncation_c99=yes],
+        [gl_cv_func_snprintf_truncation_c99=no],
+        [
 changequote(,)dnl
-       case "$host_os" in
-                               # Guess yes on glibc systems.
-         *-gnu*)               gl_cv_func_snprintf_truncation_c99="guessing yes";;
-                               # Guess yes on FreeBSD >= 5.
-         freebsd[1-4]*)        gl_cv_func_snprintf_truncation_c99="guessing no";;
-         freebsd* | kfreebsd*) gl_cv_func_snprintf_truncation_c99="guessing yes";;
-                               # Guess yes on MacOS X >= 10.3.
-         darwin[1-6].*)        gl_cv_func_snprintf_truncation_c99="guessing no";;
-         darwin*)              gl_cv_func_snprintf_truncation_c99="guessing yes";;
-                               # Guess yes on OpenBSD >= 3.9.
-         openbsd[1-2].* | openbsd3.[0-8] | openbsd3.[0-8].*)
-                               gl_cv_func_snprintf_truncation_c99="guessing no";;
-         openbsd*)             gl_cv_func_snprintf_truncation_c99="guessing yes";;
-                               # Guess yes on Solaris >= 2.6.
-         solaris2.[0-5]*)      gl_cv_func_snprintf_truncation_c99="guessing no";;
-         solaris*)             gl_cv_func_snprintf_truncation_c99="guessing yes";;
-                               # Guess yes on AIX >= 4.
-         aix[1-3]*)            gl_cv_func_snprintf_truncation_c99="guessing no";;
-         aix*)                 gl_cv_func_snprintf_truncation_c99="guessing yes";;
-                               # Guess yes on HP-UX >= 11.
-         hpux[7-9]* | hpux10*) gl_cv_func_snprintf_truncation_c99="guessing no";;
-         hpux*)                gl_cv_func_snprintf_truncation_c99="guessing yes";;
-                               # Guess yes on IRIX >= 6.5.
-         irix6.5)              gl_cv_func_snprintf_truncation_c99="guessing yes";;
-                               # Guess yes on OSF/1 >= 5.
-         osf[3-4]*)            gl_cv_func_snprintf_truncation_c99="guessing no";;
-         osf*)                 gl_cv_func_snprintf_truncation_c99="guessing yes";;
-                               # Guess yes on NetBSD >= 3.
-         netbsd[1-2]* | netbsdelf[1-2]* | netbsdaout[1-2]* | netbsdcoff[1-2]*)
-                               gl_cv_func_snprintf_truncation_c99="guessing no";;
-         netbsd*)              gl_cv_func_snprintf_truncation_c99="guessing yes";;
-                               # Guess yes on BeOS.
-         beos*)                gl_cv_func_snprintf_truncation_c99="guessing yes";;
-                               # If we don't know, assume the worst.
-         *)                    gl_cv_func_snprintf_truncation_c99="guessing no";;
-       esac
+         case "$host_os" in
+                                 # Guess yes on glibc systems.
+           *-gnu*)               gl_cv_func_snprintf_truncation_c99="guessing yes";;
+                                 # Guess yes on FreeBSD >= 5.
+           freebsd[1-4]*)        gl_cv_func_snprintf_truncation_c99="guessing no";;
+           freebsd* | kfreebsd*) gl_cv_func_snprintf_truncation_c99="guessing yes";;
+                                 # Guess yes on MacOS X >= 10.3.
+           darwin[1-6].*)        gl_cv_func_snprintf_truncation_c99="guessing no";;
+           darwin*)              gl_cv_func_snprintf_truncation_c99="guessing yes";;
+                                 # Guess yes on OpenBSD >= 3.9.
+           openbsd[1-2].* | openbsd3.[0-8] | openbsd3.[0-8].*)
+                                 gl_cv_func_snprintf_truncation_c99="guessing no";;
+           openbsd*)             gl_cv_func_snprintf_truncation_c99="guessing yes";;
+                                 # Guess yes on Solaris >= 2.6.
+           solaris2.[0-5]*)      gl_cv_func_snprintf_truncation_c99="guessing no";;
+           solaris*)             gl_cv_func_snprintf_truncation_c99="guessing yes";;
+                                 # Guess yes on AIX >= 4.
+           aix[1-3]*)            gl_cv_func_snprintf_truncation_c99="guessing no";;
+           aix*)                 gl_cv_func_snprintf_truncation_c99="guessing yes";;
+                                 # Guess yes on HP-UX >= 11.
+           hpux[7-9]* | hpux10*) gl_cv_func_snprintf_truncation_c99="guessing no";;
+           hpux*)                gl_cv_func_snprintf_truncation_c99="guessing yes";;
+                                 # Guess yes on IRIX >= 6.5.
+           irix6.5)              gl_cv_func_snprintf_truncation_c99="guessing yes";;
+                                 # Guess yes on OSF/1 >= 5.
+           osf[3-4]*)            gl_cv_func_snprintf_truncation_c99="guessing no";;
+           osf*)                 gl_cv_func_snprintf_truncation_c99="guessing yes";;
+                                 # Guess yes on NetBSD >= 3.
+           netbsd[1-2]* | netbsdelf[1-2]* | netbsdaout[1-2]* | netbsdcoff[1-2]*)
+                                 gl_cv_func_snprintf_truncation_c99="guessing no";;
+           netbsd*)              gl_cv_func_snprintf_truncation_c99="guessing yes";;
+                                 # Guess yes on BeOS.
+           beos*)                gl_cv_func_snprintf_truncation_c99="guessing yes";;
+                                 # If we don't know, assume the worst.
+           *)                    gl_cv_func_snprintf_truncation_c99="guessing no";;
+         esac
 changequote([,])dnl
-      ])
+        ])
     ])
 ])
 
@@ -1110,7 +1148,8 @@ AC_DEFUN_ONCE([gl_SNPRINTF_RETVAL_C99],
   AC_CACHE_CHECK([whether snprintf returns a byte count as in C99],
     [gl_cv_func_snprintf_retval_c99],
     [
-      AC_TRY_RUN([
+      AC_RUN_IFELSE(
+        [AC_LANG_SOURCE([[
 #include <stdio.h>
 #include <string.h>
 static char buf[100];
@@ -1120,39 +1159,41 @@ int main ()
   if (snprintf (buf, 3, "%d %d", 4567, 89) != 7)
     return 1;
   return 0;
-}], [gl_cv_func_snprintf_retval_c99=yes], [gl_cv_func_snprintf_retval_c99=no],
-      [
+}]])],
+        [gl_cv_func_snprintf_retval_c99=yes],
+        [gl_cv_func_snprintf_retval_c99=no],
+        [
 changequote(,)dnl
-       case "$host_os" in
-                               # Guess yes on glibc systems.
-         *-gnu*)               gl_cv_func_snprintf_retval_c99="guessing yes";;
-                               # Guess yes on FreeBSD >= 5.
-         freebsd[1-4]*)        gl_cv_func_snprintf_retval_c99="guessing no";;
-         freebsd* | kfreebsd*) gl_cv_func_snprintf_retval_c99="guessing yes";;
-                               # Guess yes on MacOS X >= 10.3.
-         darwin[1-6].*)        gl_cv_func_snprintf_retval_c99="guessing no";;
-         darwin*)              gl_cv_func_snprintf_retval_c99="guessing yes";;
-                               # Guess yes on OpenBSD >= 3.9.
-         openbsd[1-2].* | openbsd3.[0-8] | openbsd3.[0-8].*)
-                               gl_cv_func_snprintf_retval_c99="guessing no";;
-         openbsd*)             gl_cv_func_snprintf_retval_c99="guessing yes";;
-                               # Guess yes on Solaris >= 2.6.
-         solaris2.[0-5]*)      gl_cv_func_snprintf_retval_c99="guessing no";;
-         solaris*)             gl_cv_func_snprintf_retval_c99="guessing yes";;
-                               # Guess yes on AIX >= 4.
-         aix[1-3]*)            gl_cv_func_snprintf_retval_c99="guessing no";;
-         aix*)                 gl_cv_func_snprintf_retval_c99="guessing yes";;
-                               # Guess yes on NetBSD >= 3.
-         netbsd[1-2]* | netbsdelf[1-2]* | netbsdaout[1-2]* | netbsdcoff[1-2]*)
-                               gl_cv_func_snprintf_retval_c99="guessing no";;
-         netbsd*)              gl_cv_func_snprintf_retval_c99="guessing yes";;
-                               # Guess yes on BeOS.
-         beos*)                gl_cv_func_snprintf_retval_c99="guessing yes";;
-                               # If we don't know, assume the worst.
-         *)                    gl_cv_func_snprintf_retval_c99="guessing no";;
-       esac
+         case "$host_os" in
+                                 # Guess yes on glibc systems.
+           *-gnu*)               gl_cv_func_snprintf_retval_c99="guessing yes";;
+                                 # Guess yes on FreeBSD >= 5.
+           freebsd[1-4]*)        gl_cv_func_snprintf_retval_c99="guessing no";;
+           freebsd* | kfreebsd*) gl_cv_func_snprintf_retval_c99="guessing yes";;
+                                 # Guess yes on MacOS X >= 10.3.
+           darwin[1-6].*)        gl_cv_func_snprintf_retval_c99="guessing no";;
+           darwin*)              gl_cv_func_snprintf_retval_c99="guessing yes";;
+                                 # Guess yes on OpenBSD >= 3.9.
+           openbsd[1-2].* | openbsd3.[0-8] | openbsd3.[0-8].*)
+                                 gl_cv_func_snprintf_retval_c99="guessing no";;
+           openbsd*)             gl_cv_func_snprintf_retval_c99="guessing yes";;
+                                 # Guess yes on Solaris >= 2.6.
+           solaris2.[0-5]*)      gl_cv_func_snprintf_retval_c99="guessing no";;
+           solaris*)             gl_cv_func_snprintf_retval_c99="guessing yes";;
+                                 # Guess yes on AIX >= 4.
+           aix[1-3]*)            gl_cv_func_snprintf_retval_c99="guessing no";;
+           aix*)                 gl_cv_func_snprintf_retval_c99="guessing yes";;
+                                 # Guess yes on NetBSD >= 3.
+           netbsd[1-2]* | netbsdelf[1-2]* | netbsdaout[1-2]* | netbsdcoff[1-2]*)
+                                 gl_cv_func_snprintf_retval_c99="guessing no";;
+           netbsd*)              gl_cv_func_snprintf_retval_c99="guessing yes";;
+                                 # Guess yes on BeOS.
+           beos*)                gl_cv_func_snprintf_retval_c99="guessing yes";;
+                                 # If we don't know, assume the worst.
+           *)                    gl_cv_func_snprintf_retval_c99="guessing no";;
+         esac
 changequote([,])dnl
-      ])
+        ])
     ])
 ])
 
@@ -1167,7 +1208,8 @@ AC_DEFUN([gl_SNPRINTF_DIRECTIVE_N],
   AC_CACHE_CHECK([whether snprintf fully supports the 'n' directive],
     [gl_cv_func_snprintf_directive_n],
     [
-      AC_TRY_RUN([
+      AC_RUN_IFELSE(
+        [AC_LANG_SOURCE([[
 #include <stdio.h>
 #include <string.h>
 static char fmtstring[10];
@@ -1183,40 +1225,42 @@ int main ()
   if (count != 6)
     return 1;
   return 0;
-}], [gl_cv_func_snprintf_directive_n=yes], [gl_cv_func_snprintf_directive_n=no],
-      [
+}]])],
+        [gl_cv_func_snprintf_directive_n=yes],
+        [gl_cv_func_snprintf_directive_n=no],
+        [
 changequote(,)dnl
-       case "$host_os" in
-                               # Guess yes on glibc systems.
-         *-gnu*)               gl_cv_func_snprintf_directive_n="guessing yes";;
-                               # Guess yes on FreeBSD >= 5.
-         freebsd[1-4]*)        gl_cv_func_snprintf_directive_n="guessing no";;
-         freebsd* | kfreebsd*) gl_cv_func_snprintf_directive_n="guessing yes";;
-                               # Guess yes on MacOS X >= 10.3.
-         darwin[1-6].*)        gl_cv_func_snprintf_directive_n="guessing no";;
-         darwin*)              gl_cv_func_snprintf_directive_n="guessing yes";;
-                               # Guess yes on Solaris >= 2.6.
-         solaris2.[0-5]*)      gl_cv_func_snprintf_directive_n="guessing no";;
-         solaris*)             gl_cv_func_snprintf_directive_n="guessing yes";;
-                               # Guess yes on AIX >= 4.
-         aix[1-3]*)            gl_cv_func_snprintf_directive_n="guessing no";;
-         aix*)                 gl_cv_func_snprintf_directive_n="guessing yes";;
-                               # Guess yes on IRIX >= 6.5.
-         irix6.5)              gl_cv_func_snprintf_directive_n="guessing yes";;
-                               # Guess yes on OSF/1 >= 5.
-         osf[3-4]*)            gl_cv_func_snprintf_directive_n="guessing no";;
-         osf*)                 gl_cv_func_snprintf_directive_n="guessing yes";;
-                               # Guess yes on NetBSD >= 3.
-         netbsd[1-2]* | netbsdelf[1-2]* | netbsdaout[1-2]* | netbsdcoff[1-2]*)
-                               gl_cv_func_snprintf_directive_n="guessing no";;
-         netbsd*)              gl_cv_func_snprintf_directive_n="guessing yes";;
-                               # Guess yes on BeOS.
-         beos*)                gl_cv_func_snprintf_directive_n="guessing yes";;
-                               # If we don't know, assume the worst.
-         *)                    gl_cv_func_snprintf_directive_n="guessing no";;
-       esac
+         case "$host_os" in
+                                 # Guess yes on glibc systems.
+           *-gnu*)               gl_cv_func_snprintf_directive_n="guessing yes";;
+                                 # Guess yes on FreeBSD >= 5.
+           freebsd[1-4]*)        gl_cv_func_snprintf_directive_n="guessing no";;
+           freebsd* | kfreebsd*) gl_cv_func_snprintf_directive_n="guessing yes";;
+                                 # Guess yes on MacOS X >= 10.3.
+           darwin[1-6].*)        gl_cv_func_snprintf_directive_n="guessing no";;
+           darwin*)              gl_cv_func_snprintf_directive_n="guessing yes";;
+                                 # Guess yes on Solaris >= 2.6.
+           solaris2.[0-5]*)      gl_cv_func_snprintf_directive_n="guessing no";;
+           solaris*)             gl_cv_func_snprintf_directive_n="guessing yes";;
+                                 # Guess yes on AIX >= 4.
+           aix[1-3]*)            gl_cv_func_snprintf_directive_n="guessing no";;
+           aix*)                 gl_cv_func_snprintf_directive_n="guessing yes";;
+                                 # Guess yes on IRIX >= 6.5.
+           irix6.5)              gl_cv_func_snprintf_directive_n="guessing yes";;
+                                 # Guess yes on OSF/1 >= 5.
+           osf[3-4]*)            gl_cv_func_snprintf_directive_n="guessing no";;
+           osf*)                 gl_cv_func_snprintf_directive_n="guessing yes";;
+                                 # Guess yes on NetBSD >= 3.
+           netbsd[1-2]* | netbsdelf[1-2]* | netbsdaout[1-2]* | netbsdcoff[1-2]*)
+                                 gl_cv_func_snprintf_directive_n="guessing no";;
+           netbsd*)              gl_cv_func_snprintf_directive_n="guessing yes";;
+                                 # Guess yes on BeOS.
+           beos*)                gl_cv_func_snprintf_directive_n="guessing yes";;
+                                 # If we don't know, assume the worst.
+           *)                    gl_cv_func_snprintf_directive_n="guessing no";;
+         esac
 changequote([,])dnl
-      ])
+        ])
     ])
 ])
 
@@ -1231,17 +1275,18 @@ AC_DEFUN([gl_SNPRINTF_SIZE1],
   AC_CACHE_CHECK([whether snprintf respects a size of 1],
     [gl_cv_func_snprintf_size1],
     [
-      AC_TRY_RUN([
+      AC_RUN_IFELSE(
+        [AC_LANG_SOURCE([[
 #include <stdio.h>
 int main()
 {
   static char buf[8] = { 'D', 'E', 'A', 'D', 'B', 'E', 'E', 'F' };
   snprintf (buf, 1, "%d", 12345);
   return buf[1] != 'E';
-}],
-      [gl_cv_func_snprintf_size1=yes],
-      [gl_cv_func_snprintf_size1=no],
-      [gl_cv_func_snprintf_size1="guessing yes"])
+}]])],
+        [gl_cv_func_snprintf_size1=yes],
+        [gl_cv_func_snprintf_size1=no],
+        [gl_cv_func_snprintf_size1="guessing yes"])
     ])
 ])
 
@@ -1288,7 +1333,8 @@ AC_DEFUN([gl_VSNPRINTF_ZEROSIZE_C99],
   AC_CACHE_CHECK([whether vsnprintf respects a zero size as in C99],
     [gl_cv_func_vsnprintf_zerosize_c99],
     [
-      AC_TRY_RUN([
+      AC_RUN_IFELSE(
+        [AC_LANG_SOURCE([[
 #include <stdarg.h>
 #include <stdio.h>
 static int my_snprintf (char *buf, int size, const char *format, ...)
@@ -1305,43 +1351,43 @@ int main()
   static char buf[8] = { 'D', 'E', 'A', 'D', 'B', 'E', 'E', 'F' };
   my_snprintf (buf, 0, "%d", 12345);
   return buf[0] != 'D';
-}],
-      [gl_cv_func_vsnprintf_zerosize_c99=yes],
-      [gl_cv_func_vsnprintf_zerosize_c99=no],
-      [
+}]])],
+        [gl_cv_func_vsnprintf_zerosize_c99=yes],
+        [gl_cv_func_vsnprintf_zerosize_c99=no],
+        [
 changequote(,)dnl
-       case "$host_os" in
-                               # Guess yes on glibc systems.
-         *-gnu*)               gl_cv_func_vsnprintf_zerosize_c99="guessing yes";;
-                               # Guess yes on FreeBSD >= 5.
-         freebsd[1-4]*)        gl_cv_func_vsnprintf_zerosize_c99="guessing no";;
-         freebsd* | kfreebsd*) gl_cv_func_vsnprintf_zerosize_c99="guessing yes";;
-                               # Guess yes on MacOS X >= 10.3.
-         darwin[1-6].*)        gl_cv_func_vsnprintf_zerosize_c99="guessing no";;
-         darwin*)              gl_cv_func_vsnprintf_zerosize_c99="guessing yes";;
-                               # Guess yes on Cygwin.
-         cygwin*)              gl_cv_func_vsnprintf_zerosize_c99="guessing yes";;
-                               # Guess yes on Solaris >= 2.6.
-         solaris2.[0-5]*)      gl_cv_func_vsnprintf_zerosize_c99="guessing no";;
-         solaris*)             gl_cv_func_vsnprintf_zerosize_c99="guessing yes";;
-                               # Guess yes on AIX >= 4.
-         aix[1-3]*)            gl_cv_func_vsnprintf_zerosize_c99="guessing no";;
-         aix*)                 gl_cv_func_vsnprintf_zerosize_c99="guessing yes";;
-                               # Guess yes on IRIX >= 6.5.
-         irix6.5)              gl_cv_func_vsnprintf_zerosize_c99="guessing yes";;
-                               # Guess yes on NetBSD >= 3.
-         netbsd[1-2]* | netbsdelf[1-2]* | netbsdaout[1-2]* | netbsdcoff[1-2]*)
-                               gl_cv_func_vsnprintf_zerosize_c99="guessing no";;
-         netbsd*)              gl_cv_func_vsnprintf_zerosize_c99="guessing yes";;
-                               # Guess yes on BeOS.
-         beos*)                gl_cv_func_vsnprintf_zerosize_c99="guessing yes";;
-                               # Guess yes on mingw.
-         mingw* | pw*)         gl_cv_func_vsnprintf_zerosize_c99="guessing yes";;
-                               # If we don't know, assume the worst.
-         *)                    gl_cv_func_vsnprintf_zerosize_c99="guessing no";;
-       esac
+         case "$host_os" in
+                                 # Guess yes on glibc systems.
+           *-gnu*)               gl_cv_func_vsnprintf_zerosize_c99="guessing yes";;
+                                 # Guess yes on FreeBSD >= 5.
+           freebsd[1-4]*)        gl_cv_func_vsnprintf_zerosize_c99="guessing no";;
+           freebsd* | kfreebsd*) gl_cv_func_vsnprintf_zerosize_c99="guessing yes";;
+                                 # Guess yes on MacOS X >= 10.3.
+           darwin[1-6].*)        gl_cv_func_vsnprintf_zerosize_c99="guessing no";;
+           darwin*)              gl_cv_func_vsnprintf_zerosize_c99="guessing yes";;
+                                 # Guess yes on Cygwin.
+           cygwin*)              gl_cv_func_vsnprintf_zerosize_c99="guessing yes";;
+                                 # Guess yes on Solaris >= 2.6.
+           solaris2.[0-5]*)      gl_cv_func_vsnprintf_zerosize_c99="guessing no";;
+           solaris*)             gl_cv_func_vsnprintf_zerosize_c99="guessing yes";;
+                                 # Guess yes on AIX >= 4.
+           aix[1-3]*)            gl_cv_func_vsnprintf_zerosize_c99="guessing no";;
+           aix*)                 gl_cv_func_vsnprintf_zerosize_c99="guessing yes";;
+                                 # Guess yes on IRIX >= 6.5.
+           irix6.5)              gl_cv_func_vsnprintf_zerosize_c99="guessing yes";;
+                                 # Guess yes on NetBSD >= 3.
+           netbsd[1-2]* | netbsdelf[1-2]* | netbsdaout[1-2]* | netbsdcoff[1-2]*)
+                                 gl_cv_func_vsnprintf_zerosize_c99="guessing no";;
+           netbsd*)              gl_cv_func_vsnprintf_zerosize_c99="guessing yes";;
+                                 # Guess yes on BeOS.
+           beos*)                gl_cv_func_vsnprintf_zerosize_c99="guessing yes";;
+                                 # Guess yes on mingw.
+           mingw* | pw*)         gl_cv_func_vsnprintf_zerosize_c99="guessing yes";;
+                                 # If we don't know, assume the worst.
+           *)                    gl_cv_func_vsnprintf_zerosize_c99="guessing no";;
+         esac
 changequote([,])dnl
-      ])
+        ])
     ])
 ])
 

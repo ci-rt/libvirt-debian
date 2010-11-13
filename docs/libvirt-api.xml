@@ -10,6 +10,11 @@
      <exports symbol='VIR_CPU_MAPLEN' type='macro'/>
      <exports symbol='VIR_CPU_USABLE' type='macro'/>
      <exports symbol='VIR_DOMAIN_EVENT_CALLBACK' type='macro'/>
+     <exports symbol='VIR_DOMAIN_MEMORY_FIELD_LENGTH' type='macro'/>
+     <exports symbol='VIR_DOMAIN_MEMORY_HARD_LIMIT' type='macro'/>
+     <exports symbol='VIR_DOMAIN_MEMORY_MIN_GUARANTEE' type='macro'/>
+     <exports symbol='VIR_DOMAIN_MEMORY_SOFT_LIMIT' type='macro'/>
+     <exports symbol='VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT' type='macro'/>
      <exports symbol='VIR_DOMAIN_SCHED_FIELD_LENGTH' type='macro'/>
      <exports symbol='VIR_GET_CPUMAP' type='macro'/>
      <exports symbol='VIR_NODEINFO_MAXCPUS' type='macro'/>
@@ -93,6 +98,12 @@
      <exports symbol='VIR_DOMAIN_JOB_FAILED' type='enum'/>
      <exports symbol='VIR_DOMAIN_JOB_NONE' type='enum'/>
      <exports symbol='VIR_DOMAIN_JOB_UNBOUNDED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_MEMORY_PARAM_BOOLEAN' type='enum'/>
+     <exports symbol='VIR_DOMAIN_MEMORY_PARAM_DOUBLE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_MEMORY_PARAM_INT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_MEMORY_PARAM_LLONG' type='enum'/>
+     <exports symbol='VIR_DOMAIN_MEMORY_PARAM_UINT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_MEMORY_PARAM_ULLONG' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_AVAILABLE' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT' type='enum'/>
@@ -114,6 +125,9 @@
      <exports symbol='VIR_DOMAIN_SHUTOFF' type='enum'/>
      <exports symbol='VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN' type='enum'/>
      <exports symbol='VIR_DOMAIN_START_PAUSED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_VCPU_CONFIG' type='enum'/>
+     <exports symbol='VIR_DOMAIN_VCPU_LIVE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_VCPU_MAXIMUM' type='enum'/>
      <exports symbol='VIR_DOMAIN_XML_INACTIVE' type='enum'/>
      <exports symbol='VIR_DOMAIN_XML_SECURE' type='enum'/>
      <exports symbol='VIR_DOMAIN_XML_UPDATE_CPU' type='enum'/>
@@ -210,11 +224,15 @@
      <exports symbol='virDomainSnapshotDeleteFlags' type='typedef'/>
      <exports symbol='virDomainSnapshotPtr' type='typedef'/>
      <exports symbol='virDomainState' type='typedef'/>
+     <exports symbol='virDomainVcpuFlags' type='typedef'/>
      <exports symbol='virDomainXMLFlags' type='typedef'/>
      <exports symbol='virEventHandleType' type='typedef'/>
      <exports symbol='virInterface' type='typedef'/>
      <exports symbol='virInterfacePtr' type='typedef'/>
      <exports symbol='virInterfaceXMLFlags' type='typedef'/>
+     <exports symbol='virMemoryParameter' type='typedef'/>
+     <exports symbol='virMemoryParameterPtr' type='typedef'/>
+     <exports symbol='virMemoryParameterType' type='typedef'/>
      <exports symbol='virNWFilter' type='typedef'/>
      <exports symbol='virNWFilterPtr' type='typedef'/>
      <exports symbol='virNetwork' type='typedef'/>
@@ -264,6 +282,7 @@
      <exports symbol='_virDomainInterfaceStats' type='struct'/>
      <exports symbol='_virDomainJobInfo' type='struct'/>
      <exports symbol='_virDomainMemoryStat' type='struct'/>
+     <exports symbol='_virMemoryParameter' type='struct'/>
      <exports symbol='_virNodeInfo' type='struct'/>
      <exports symbol='_virSchedParameter' type='struct'/>
      <exports symbol='_virSecurityLabel' type='struct'/>
@@ -346,6 +365,7 @@
      <exports symbol='virDomainGetJobInfo' type='function'/>
      <exports symbol='virDomainGetMaxMemory' type='function'/>
      <exports symbol='virDomainGetMaxVcpus' type='function'/>
+     <exports symbol='virDomainGetMemoryParameters' type='function'/>
      <exports symbol='virDomainGetName' type='function'/>
      <exports symbol='virDomainGetOSType' type='function'/>
      <exports symbol='virDomainGetSchedulerParameters' type='function'/>
@@ -354,6 +374,7 @@
      <exports symbol='virDomainGetUUID' type='function'/>
      <exports symbol='virDomainGetUUIDString' type='function'/>
      <exports symbol='virDomainGetVcpus' type='function'/>
+     <exports symbol='virDomainGetVcpusFlags' type='function'/>
      <exports symbol='virDomainGetXMLDesc' type='function'/>
      <exports symbol='virDomainHasCurrentSnapshot' type='function'/>
      <exports symbol='virDomainHasManagedSaveImage' type='function'/>
@@ -381,8 +402,10 @@
      <exports symbol='virDomainSetAutostart' type='function'/>
      <exports symbol='virDomainSetMaxMemory' type='function'/>
      <exports symbol='virDomainSetMemory' type='function'/>
+     <exports symbol='virDomainSetMemoryParameters' type='function'/>
      <exports symbol='virDomainSetSchedulerParameters' type='function'/>
      <exports symbol='virDomainSetVcpus' type='function'/>
+     <exports symbol='virDomainSetVcpusFlags' type='function'/>
      <exports symbol='virDomainShutdown' type='function'/>
      <exports symbol='virDomainSnapshotCreateXML' type='function'/>
      <exports symbol='virDomainSnapshotCurrent' type='function'/>
@@ -616,6 +639,7 @@
      <exports symbol='VIR_ERR_XEN_CALL' type='enum'/>
      <exports symbol='VIR_ERR_XML_DETAIL' type='enum'/>
      <exports symbol='VIR_ERR_XML_ERROR' type='enum'/>
+     <exports symbol='VIR_FROM_AUDIT' type='enum'/>
      <exports symbol='VIR_FROM_CONF' type='enum'/>
      <exports symbol='VIR_FROM_CPU' type='enum'/>
      <exports symbol='VIR_FROM_DOM' type='enum'/>
@@ -703,6 +727,21 @@
     </macro>
     <macro name='VIR_DOMAIN_EVENT_CALLBACK' file='libvirt'>
       <info><![CDATA[Used to cast the event specific callback into the generic one for use for virDomainEventRegister]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_MEMORY_FIELD_LENGTH' file='libvirt'>
+      <info><![CDATA[Macro providing the field length of virMemoryParameter]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_MEMORY_HARD_LIMIT' file='libvirt'>
+      <info><![CDATA[Macro for the memory tunable hard_limit: it represents the maximum memory the guest can use.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_MEMORY_MIN_GUARANTEE' file='libvirt'>
+      <info><![CDATA[Macro for the memory tunable min_guarantee: it represents the minimum memory guaranteed to be reserved for the guest.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_MEMORY_SOFT_LIMIT' file='libvirt'>
+      <info><![CDATA[Macro for the memory tunable soft_limit: it represents the memory upper limit enforced during memory contention.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT' file='libvirt'>
+      <info><![CDATA[Macro for the swap tunable swap_hard_limit: it represents the maximum swap the guest can use.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_SCHED_FIELD_LENGTH' file='libvirt'>
       <info><![CDATA[Macro providing the field length of virSchedParameter]]></info>
@@ -818,6 +857,12 @@
     <enum name='VIR_DOMAIN_JOB_FAILED' file='libvirt' value='4' type='virDomainJobType' info='Job hit error, but isn&apos;t cleaned up'/>
     <enum name='VIR_DOMAIN_JOB_NONE' file='libvirt' value='0' type='virDomainJobType' info='No job is active'/>
     <enum name='VIR_DOMAIN_JOB_UNBOUNDED' file='libvirt' value='2' type='virDomainJobType' info='Job without a finite completion time'/>
+    <enum name='VIR_DOMAIN_MEMORY_PARAM_BOOLEAN' file='libvirt' value='6' type='virMemoryParameterType' info=' boolean(character) case'/>
+    <enum name='VIR_DOMAIN_MEMORY_PARAM_DOUBLE' file='libvirt' value='5' type='virMemoryParameterType' info='double case'/>
+    <enum name='VIR_DOMAIN_MEMORY_PARAM_INT' file='libvirt' value='1' type='virMemoryParameterType' info='integer case'/>
+    <enum name='VIR_DOMAIN_MEMORY_PARAM_LLONG' file='libvirt' value='3' type='virMemoryParameterType' info='long long case'/>
+    <enum name='VIR_DOMAIN_MEMORY_PARAM_UINT' file='libvirt' value='2' type='virMemoryParameterType' info='unsigned integer case'/>
+    <enum name='VIR_DOMAIN_MEMORY_PARAM_ULLONG' file='libvirt' value='4' type='virMemoryParameterType' info='unsigned long long case'/>
     <enum name='VIR_DOMAIN_MEMORY_STAT_AVAILABLE' file='libvirt' value='5' type='virDomainMemoryStatTags' info='* The number of statistics supported by this version of the interface.
 * To add new statistics, add them to the enum and increase this value.
 *'/>
@@ -852,6 +897,9 @@
     <enum name='VIR_DOMAIN_SHUTOFF' file='libvirt' value='5' type='virDomainState' info='the domain is shut off'/>
     <enum name='VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN' file='libvirt' value='1' type='virDomainSnapshotDeleteFlags'/>
     <enum name='VIR_DOMAIN_START_PAUSED' file='libvirt' value='1' type='virDomainCreateFlags' info=' Launch guest in paused state'/>
+    <enum name='VIR_DOMAIN_VCPU_CONFIG' file='libvirt' value='2' type='virDomainVcpuFlags' info='Affect next boot Additional flags to be bit-wise OR&apos;d in'/>
+    <enum name='VIR_DOMAIN_VCPU_LIVE' file='libvirt' value='1' type='virDomainVcpuFlags' info='Affect active domain'/>
+    <enum name='VIR_DOMAIN_VCPU_MAXIMUM' file='libvirt' value='4' type='virDomainVcpuFlags' info=' Max rather than current count'/>
     <enum name='VIR_DOMAIN_XML_INACTIVE' file='libvirt' value='2' type='virDomainXMLFlags' info='dump inactive domain information'/>
     <enum name='VIR_DOMAIN_XML_SECURE' file='libvirt' value='1' type='virDomainXMLFlags' info='dump security sensitive information too'/>
     <enum name='VIR_DOMAIN_XML_UPDATE_CPU' file='libvirt' value='4' type='virDomainXMLFlags' info=' update guest CPU requirements according to host CPU'/>
@@ -932,11 +980,12 @@ VM persist on the dest host failed'/>
     <enum name='VIR_EVENT_HANDLE_HANGUP' file='libvirt' value='8' type='virEventHandleType'/>
     <enum name='VIR_EVENT_HANDLE_READABLE' file='libvirt' value='1' type='virEventHandleType'/>
     <enum name='VIR_EVENT_HANDLE_WRITABLE' file='libvirt' value='2' type='virEventHandleType'/>
+    <enum name='VIR_FROM_AUDIT' file='virterror' value='36' type='virErrorDomain' info=' Error from auditing subsystem'/>
     <enum name='VIR_FROM_CONF' file='virterror' value='9' type='virErrorDomain' info='Error in the configuration file handling'/>
     <enum name='VIR_FROM_CPU' file='virterror' value='31' type='virErrorDomain' info='Error from CPU driver'/>
     <enum name='VIR_FROM_DOM' file='virterror' value='6' type='virErrorDomain' info='Error when operating on a domain'/>
     <enum name='VIR_FROM_DOMAIN' file='virterror' value='20' type='virErrorDomain' info='Error from domain config'/>
-    <enum name='VIR_FROM_DOMAIN_SNAPSHOT' file='virterror' value='35' type='virErrorDomain' info=' Error from domain snapshot'/>
+    <enum name='VIR_FROM_DOMAIN_SNAPSHOT' file='virterror' value='35' type='virErrorDomain' info='Error from domain snapshot'/>
     <enum name='VIR_FROM_ESX' file='virterror' value='28' type='virErrorDomain' info='Error from ESX driver'/>
     <enum name='VIR_FROM_HOOK' file='virterror' value='34' type='virErrorDomain' info='Error from Synchronous hooks'/>
     <enum name='VIR_FROM_INTERFACE' file='virterror' value='26' type='virErrorDomain' info='Error when operating on an interface'/>
@@ -1147,6 +1196,7 @@ VIR_MIGRATE_TUNNELLED should be VIR_MIGRATE_TUNNELED'/>
       <info><![CDATA[a virDomainSnapshotPtr is pointer to a virDomainSnapshot private structure, and is the type used to reference a domain snapshot in the API.]]></info>
     </typedef>
     <typedef name='virDomainState' file='libvirt' type='enum'/>
+    <typedef name='virDomainVcpuFlags' file='libvirt' type='enum'/>
     <typedef name='virDomainXMLFlags' file='libvirt' type='enum'/>
     <struct name='virError' file='virterror' type='struct _virError'>
       <field name='code' type='int' info=' The error code, a virErrorNumber'/>
@@ -1175,6 +1225,14 @@ see note above'/>
       <info><![CDATA[a virInterfacePtr is pointer to a virInterface private structure, this is the type used to reference a virtual interface in the API.]]></info>
     </typedef>
     <typedef name='virInterfaceXMLFlags' file='libvirt' type='enum'/>
+    <struct name='virMemoryParameter' file='libvirt' type='struct _virMemoryParameter'>
+      <field name='field' type='charfield[VIR_DOMAIN_MEMORY_FIELD_LENGTH]' info=' parameter name'/>
+      <field name='type' type='int' info=' parameter type'/>
+    </struct>
+    <typedef name='virMemoryParameterPtr' file='libvirt' type='virMemoryParameter *'>
+      <info><![CDATA[a virMemoryParameterPtr is a pointer to a virMemoryParameter structure.]]></info>
+    </typedef>
+    <typedef name='virMemoryParameterType' file='libvirt' type='enum'/>
     <struct name='virNWFilter' file='libvirt' type='struct _virNWFilter'/>
     <typedef name='virNWFilterPtr' file='libvirt' type='virNWFilter *'>
       <info><![CDATA[a virNWFilterPtr is pointer to a virNWFilter private structure, this is the type used to reference a network filter in the API.]]></info>
@@ -1319,11 +1377,14 @@ library handler.]]></info>
       <arg name='handler' type='virErrorFunc' info='the function to get called in case of error or NULL'/>
     </function>
     <functype name='virConnectAuthCallbackPtr' file='libvirt' module='libvirt'>
-      <info><![CDATA[]]></info>
-      <return type='int' info=''/>
-      <arg name='cred' type='virConnectCredentialPtr' info=''/>
-      <arg name='ncred' type='unsigned int' info=''/>
-      <arg name='cbdata' type='void *' info=''/>
+      <info><![CDATA[When authentication requires one or more interactions, this callback
+is invoked. For each interaction supplied, data must be gathered
+from the user and filled in to the 'result' and 'resultlen' fields.
+If an interaction can not be filled, fill in NULL and 0.]]></info>
+      <return type='int' info='0 if all interactions were filled, or -1 upon error'/>
+      <arg name='cred' type='virConnectCredentialPtr' info='list of virConnectCredential object to fetch from user'/>
+      <arg name='ncred' type='unsigned int' info='size of cred list'/>
+      <arg name='cbdata' type='void *' info='opaque data passed to virConnectOpenAuth'/>
     </functype>
     <function name='virConnectBaselineCPU' file='libvirt' module='libvirt'>
       <info><![CDATA[Computes the most feature-rich CPU which is compatible with all given
@@ -1377,11 +1438,12 @@ vaule obtained from a previous virDomainEventRegisterAny method.]]></info>
       <arg name='callbackID' type='int' info='the callback identifier'/>
     </function>
     <functype name='virConnectDomainEventGenericCallback' file='libvirt' module='libvirt'>
-      <info><![CDATA[]]></info>
+      <info><![CDATA[A generic domain event callback handler. Specific events usually
+have a customization with extra parameters]]></info>
       <return type='void'/>
-      <arg name='conn' type='virConnectPtr' info=''/>
-      <arg name='dom' type='virDomainPtr' info=''/>
-      <arg name='opaque' type='void *' info=''/>
+      <arg name='conn' type='virConnectPtr' info='the connection pointer'/>
+      <arg name='dom' type='virDomainPtr' info='the domain pointer'/>
+      <arg name='opaque' type='void *' info='application specified data'/>
     </functype>
     <functype name='virConnectDomainEventGraphicsCallback' file='libvirt' module='libvirt'>
       <info><![CDATA[The callback signature to use when registering for an event of type
@@ -1397,25 +1459,27 @@ VIR_DOMAIN_EVENT_ID_GRAPHICS with virConnectDomainEventRegisterAny()]]></info>
       <arg name='opaque' type='void *' info='application specified data'/>
     </functype>
     <functype name='virConnectDomainEventIOErrorCallback' file='libvirt' module='libvirt'>
-      <info><![CDATA[]]></info>
+      <info><![CDATA[The callback signature to use when registering for an event of type
+VIR_DOMAIN_EVENT_ID_IO_ERROR with virConnectDomainEventRegisterAny()]]></info>
       <return type='void'/>
-      <arg name='conn' type='virConnectPtr' info=''/>
-      <arg name='dom' type='virDomainPtr' info=''/>
-      <arg name='srcPath' type='const char *' info=''/>
-      <arg name='devAlias' type='const char *' info=''/>
-      <arg name='action' type='int' info=''/>
-      <arg name='opaque' type='void *' info=''/>
+      <arg name='conn' type='virConnectPtr' info='connection object'/>
+      <arg name='dom' type='virDomainPtr' info='domain on which the event occurred'/>
+      <arg name='srcPath' type='const char *' info='The host file on which the IO error occurred'/>
+      <arg name='devAlias' type='const char *' info='The guest device alias associated with the path'/>
+      <arg name='action' type='int' info='action that is to be taken due to the IO error'/>
+      <arg name='opaque' type='void *' info='application specified data'/>
     </functype>
     <functype name='virConnectDomainEventIOErrorReasonCallback' file='libvirt' module='libvirt'>
-      <info><![CDATA[]]></info>
+      <info><![CDATA[The callback signature to use when registering for an event of type
+VIR_DOMAIN_EVENT_ID_IO_ERROR with virConnectDomainEventRegisterAny()]]></info>
       <return type='void'/>
-      <arg name='conn' type='virConnectPtr' info=''/>
-      <arg name='dom' type='virDomainPtr' info=''/>
-      <arg name='srcPath' type='const char *' info=''/>
-      <arg name='devAlias' type='const char *' info=''/>
-      <arg name='action' type='int' info=''/>
-      <arg name='reason' type='const char *' info=''/>
-      <arg name='opaque' type='void *' info=''/>
+      <arg name='conn' type='virConnectPtr' info='connection object'/>
+      <arg name='dom' type='virDomainPtr' info='domain on which the event occurred'/>
+      <arg name='srcPath' type='const char *' info='The host file on which the IO error occurred'/>
+      <arg name='devAlias' type='const char *' info='The guest device alias associated with the path'/>
+      <arg name='action' type='int' info='action that is to be taken due to the IO error'/>
+      <arg name='reason' type='const char *' info='the cause of the IO error'/>
+      <arg name='opaque' type='void *' info='application specified data'/>
     </functype>
     <functype name='virConnectDomainEventRTCChangeCallback' file='libvirt' module='libvirt'>
       <info><![CDATA[The callback signature to use when registering for an event of type
@@ -2003,11 +2067,41 @@ to Domain0 i.e. the domain where the application runs.]]></info>
     <function name='virDomainGetMaxVcpus' file='libvirt' module='libvirt'>
       <info><![CDATA[Provides the maximum number of virtual CPUs supported for
 the guest VM. If the guest is inactive, this is basically
-the same as virConnectGetMaxVcpus. If the guest is running
+the same as virConnectGetMaxVcpus(). If the guest is running
 this will reflect the maximum number of virtual CPUs the
-guest was booted with.]]></info>
+guest was booted with.  For more details, see virDomainGetVcpusFlags().]]></info>
       <return type='int' info='the maximum of virtual CPU or -1 in case of error.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
+    </function>
+    <function name='virDomainGetMemoryParameters' file='libvirt' module='libvirt'>
+      <info><![CDATA[Get the memory parameters, the @params array will be filled with the values
+equal to the number of parameters suggested by @nparams
+
+As the value of @nparams is dynamic, call the API setting @nparams to 0 and
+@params as NULL, the API returns the number of parameters supported by the
+HV by updating @nparams on SUCCESS. The caller should then allocate @params
+array, i.e. (sizeof(@virMemoryParameter) * @nparams) bytes and call the API
+again.
+
+Here is the sample code snippet:
+
+if ((virDomainGetMemoryParameters(dom, NULL, &nparams, 0) == 0) &&
+    (nparams != 0)) {
+    params = vshMalloc(ctl, sizeof(virMemoryParameter) * nparams);
+    memset(params, 0, sizeof(virMemoryParameter) * nparams);
+    if (virDomainGetMemoryParameters(dom, params, &nparams, 0)) {
+        vshError(ctl, "%s", _("Unable to get memory parameters"));
+        goto error;
+    }
+}
+
+This function requires privileged access to the hypervisor. This function
+expects the caller to allocate the @param]]></info>
+      <return type='int' info='-1 in case of error, 0 in case of success.'/>
+      <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
+      <arg name='params' type='virMemoryParameterPtr' info='pointer to memory parameter object (return value, allocated by the caller)'/>
+      <arg name='nparams' type='int *' info='pointer to number of memory parameters'/>
+      <arg name='flags' type='unsigned int' info='currently unused, for future extension'/>
     </function>
     <function name='virDomainGetName' file='libvirt' module='libvirt'>
       <info><![CDATA[Get the public name for that domain]]></info>
@@ -2063,6 +2157,24 @@ and also in cpumaps if this pointer isn't NULL.]]></info>
       <arg name='maxinfo' type='int' info='number of structures in info array'/>
       <arg name='cpumaps' type='unsigned char *' info='pointer to a bit map of real CPUs for all vcpus of this domain (in 8-bit bytes) (OUT) If cpumaps is NULL, then no cpumap information is returned by the API. It&apos;s assumed there is &lt;maxinfo&gt; cpumap in cpumaps array. The memory allocated to cpumaps must be (maxinfo * maplen) bytes (ie: calloc(maxinfo, maplen)). One cpumap inside cpumaps has the format described in virDomainPinVcpu() API.'/>
       <arg name='maplen' type='int' info='number of bytes in one cpumap, from 1 up to size of CPU map in underlying virtualization system (Xen...). Must be zero when cpumaps is NULL and positive when it is non-NULL.'/>
+    </function>
+    <function name='virDomainGetVcpusFlags' file='libvirt' module='libvirt'>
+      <info><![CDATA[Query the number of virtual CPUs used by the domain.  Note that
+this call may fail if the underlying virtualization hypervisor does
+not support it.  This function requires privileged access to the
+hypervisor.
+
+@flags must include either VIR_DOMAIN_VCPU_ACTIVE to query a
+running domain (which will fail if domain is not active), or
+VIR_DOMAIN_VCPU_PERSISTENT to query the XML description of the
+domain.  It is an error to set both flags.
+
+If @flags includes VIR_DOMAIN_VCPU_MAXIMUM, then the maximum
+virtual CPU limit is queried.  Otherwise, this call queries the
+current virtual CPU limit.]]></info>
+      <return type='int' info='0 in case of success, -1 in case of failure.'/>
+      <arg name='domain' type='virDomainPtr' info='pointer to domain object, or NULL for Domain0'/>
+      <arg name='flags' type='unsigned int' info='an OR&apos;ed set of virDomainVcpuFlags'/>
     </function>
     <function name='virDomainGetXMLDesc' file='libvirt' module='libvirt'>
       <info><![CDATA[Provide an XML description of the domain. The description may be reused
@@ -2429,6 +2541,15 @@ so can only be called on an active domain.]]></info>
       <arg name='domain' type='virDomainPtr' info='a domain object or NULL'/>
       <arg name='memory' type='unsigned long' info='the memory size in kilobytes'/>
     </function>
+    <function name='virDomainSetMemoryParameters' file='libvirt' module='libvirt'>
+      <info><![CDATA[Change the memory tunables
+This function requires privileged access to the hypervisor.]]></info>
+      <return type='int' info='-1 in case of error, 0 in case of success.'/>
+      <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
+      <arg name='params' type='virMemoryParameterPtr' info='pointer to memory parameter objects'/>
+      <arg name='nparams' type='int' info='number of memory parameter (this value should be same or less than the number of parameters supported)'/>
+      <arg name='flags' type='unsigned int' info='currently unused, for future extension'/>
+    </function>
     <function name='virDomainSetSchedulerParameters' file='libvirt' module='libvirt'>
       <info><![CDATA[Change the scheduler parameters]]></info>
       <return type='int' info='-1 in case of error, 0 in case of success.'/>
@@ -2443,10 +2564,34 @@ does not support it or if growing the number is arbitrary limited.
 This function requires privileged access to the hypervisor.
 
 This command only changes the runtime configuration of the domain,
-so can only be called on an active domain.]]></info>
+so can only be called on an active domain.  It is hypervisor-dependent
+whether it also affects persistent configuration; for more control,
+use virDomainSetVcpusFlags().]]></info>
       <return type='int' info='0 in case of success, -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object, or NULL for Domain0'/>
       <arg name='nvcpus' type='unsigned int' info='the new number of virtual CPUs for this domain'/>
+    </function>
+    <function name='virDomainSetVcpusFlags' file='libvirt' module='libvirt'>
+      <info><![CDATA[Dynamically change the number of virtual CPUs used by the domain.
+Note that this call may fail if the underlying virtualization hypervisor
+does not support it or if growing the number is arbitrary limited.
+This function requires privileged access to the hypervisor.
+
+@flags must include VIR_DOMAIN_VCPU_LIVE to affect a running
+domain (which may fail if domain is not active), or
+VIR_DOMAIN_VCPU_CONFIG to affect the next boot via the XML
+description of the domain.  Both flags may be set.
+
+If @flags includes VIR_DOMAIN_VCPU_MAXIMUM, then
+VIR_DOMAIN_VCPU_LIVE must be clear, and only the maximum virtual
+CPU limit is altered; generally, this value must be less than or
+equal to virConnectGetMaxVcpus().  Otherwise, this call affects the
+current virtual CPU limit, which must be less than or equal to the
+maximum limit.]]></info>
+      <return type='int' info='0 in case of success, -1 in case of failure.'/>
+      <arg name='domain' type='virDomainPtr' info='pointer to domain object, or NULL for Domain0'/>
+      <arg name='nvcpus' type='unsigned int' info='the new number of virtual CPUs for this domain, must be at least 1'/>
+      <arg name='flags' type='unsigned int' info='an OR&apos;ed set of virDomainVcpuFlags'/>
     </function>
     <function name='virDomainShutdown' file='libvirt' module='libvirt'>
       <info><![CDATA[Shutdown a domain, the domain object is still usable there after but
@@ -2596,15 +2741,15 @@ be invoked once for each event which is pending.]]></info>
       <arg name='events' type='int' info='bitset of events from virEventHandleType constants'/>
       <arg name='opaque' type='void *' info='user data registered with handle'/>
     </functype>
-    <function name='virEventRegisterImpl' file='libvirt' module='libvirt'>
-      <info><![CDATA[]]></info>
+    <function name='virEventRegisterImpl' file='libvirt' module='event'>
+      <info><![CDATA[Registers an event implementation]]></info>
       <return type='void'/>
-      <arg name='addHandle' type='virEventAddHandleFunc' info=''/>
-      <arg name='updateHandle' type='virEventUpdateHandleFunc' info=''/>
-      <arg name='removeHandle' type='virEventRemoveHandleFunc' info=''/>
-      <arg name='addTimeout' type='virEventAddTimeoutFunc' info=''/>
-      <arg name='updateTimeout' type='virEventUpdateTimeoutFunc' info=''/>
-      <arg name='removeTimeout' type='virEventRemoveTimeoutFunc' info=''/>
+      <arg name='addHandle' type='virEventAddHandleFunc' info='the callback to add fd handles'/>
+      <arg name='updateHandle' type='virEventUpdateHandleFunc' info='the callback to update fd handles'/>
+      <arg name='removeHandle' type='virEventRemoveHandleFunc' info='the callback to remove fd handles'/>
+      <arg name='addTimeout' type='virEventAddTimeoutFunc' info='the callback to add a timeout'/>
+      <arg name='updateTimeout' type='virEventUpdateTimeoutFunc' info='the callback to update a timeout'/>
+      <arg name='removeTimeout' type='virEventRemoveTimeoutFunc' info='the callback to remove a timeout'/>
     </function>
     <functype name='virEventRemoveHandleFunc' file='libvirt' module='libvirt'>
       <info><![CDATA[Part of the EventImpl, this user-provided callback is notified when
@@ -2646,9 +2791,11 @@ event timeout.]]></info>
       <arg name='timeout' type='int' info='the new timeout value'/>
     </functype>
     <functype name='virFreeCallback' file='libvirt' module='libvirt'>
-      <info><![CDATA[]]></info>
+      <info><![CDATA[Type for a domain event callback when the event is deregistered and
+need to be freed, @opaque is provided along with the callback at
+registration time]]></info>
       <return type='void'/>
-      <arg name='opaque' type='void *' info=''/>
+      <arg name='opaque' type='void *' info='opaque user data provided at registration'/>
     </functype>
     <function name='virFreeError' file='virterror' module='virterror'>
       <info><![CDATA[Resets and frees the given error.]]></info>

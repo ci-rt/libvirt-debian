@@ -40,6 +40,11 @@
 #include "xenapi_driver_private.h"
 #include "xenapi_utils.h"
 
+#define VIR_FROM_THIS VIR_FROM_XENAPI
+
+#define xenapiError(code, ...)                                    \
+        virReportErrorHelper(NULL, VIR_FROM_THIS, code, __FILE__, \
+                             __FUNCTION__, __LINE__, __VA_ARGS__)
 
 /*
  * getCapsObject
@@ -987,19 +992,26 @@ xenapiDomainGetInfo (virDomainPtr dom, virDomainInfoPtr info)
 
 
 /*
- * xenapiDomainSetVcpus
+ * xenapiDomainSetVcpusFlags
  *
  * Sets the VCPUs on the domain
  * Return 0 on success or -1 in case of error
  */
 static int
-xenapiDomainSetVcpus (virDomainPtr dom, unsigned int nvcpus)
+xenapiDomainSetVcpusFlags (virDomainPtr dom, unsigned int nvcpus,
+                           unsigned int flags)
 {
-
     /* vm.set_vcpus_max */
     xen_vm vm;
     xen_vm_set *vms;
     xen_session *session = ((struct _xenapiPrivate *)(dom->conn->privateData))->session;
+
+    if (flags != VIR_DOMAIN_VCPU_LIVE) {
+        xenapiError(VIR_ERR_INVALID_ARG, _("unsupported flags: (0x%x)"),
+                    flags);
+        return -1;
+    }
+
     if (xen_vm_get_by_name_label(session, &vms, dom->name) && vms->size > 0) {
         if (vms->size != 1) {
             xenapiSessionErrorHandler(dom->conn, VIR_ERR_INTERNAL_ERROR,
@@ -1016,6 +1028,18 @@ xenapiDomainSetVcpus (virDomainPtr dom, unsigned int nvcpus)
     if (vms) xen_vm_set_free(vms);
     xenapiSessionErrorHandler(dom->conn, VIR_ERR_NO_DOMAIN, NULL);
     return -1;
+}
+
+/*
+ * xenapiDomainSetVcpus
+ *
+ * Sets the VCPUs on the domain
+ * Return 0 on success or -1 in case of error
+ */
+static int
+xenapiDomainSetVcpus (virDomainPtr dom, unsigned int nvcpus)
+{
+    return xenapiDomainSetVcpusFlags(dom, nvcpus, VIR_DOMAIN_VCPU_LIVE);
 }
 
 /*
@@ -1140,19 +1164,26 @@ xenapiDomainGetVcpus (virDomainPtr dom,
 }
 
 /*
- * xenapiDomainGetMaxVcpus
+ * xenapiDomainGetVcpusFlags
  *
  *
- * Returns maximum number of Vcpus on success or -1 in case of error
+ * Returns Vcpus count on success or -1 in case of error
  */
 static int
-xenapiDomainGetMaxVcpus (virDomainPtr dom)
+xenapiDomainGetVcpusFlags (virDomainPtr dom, unsigned int flags)
 {
     xen_vm vm;
     xen_vm_set *vms;
     int64_t maxvcpu = 0;
     enum xen_vm_power_state state;
     xen_session *session = ((struct _xenapiPrivate *)(dom->conn->privateData))->session;
+
+    if (flags != (VIR_DOMAIN_VCPU_LIVE | VIR_DOMAIN_VCPU_MAXIMUM)) {
+        xenapiError(VIR_ERR_INVALID_ARG, _("unsupported flags: (0x%x)"),
+                    flags);
+        return -1;
+    }
+
     if (xen_vm_get_by_name_label(session, &vms, dom->name) && vms->size > 0) {
         if (vms->size != 1) {
             xenapiSessionErrorHandler(dom->conn, VIR_ERR_INTERNAL_ERROR,
@@ -1173,6 +1204,19 @@ xenapiDomainGetMaxVcpus (virDomainPtr dom)
     if (vms) xen_vm_set_free(vms);
     xenapiSessionErrorHandler(dom->conn, VIR_ERR_INTERNAL_ERROR, NULL);
     return -1;
+}
+
+/*
+ * xenapiDomainGetMaxVcpus
+ *
+ *
+ * Returns maximum number of Vcpus on success or -1 in case of error
+ */
+static int
+xenapiDomainGetMaxVcpus (virDomainPtr dom)
+{
+    return xenapiDomainGetVcpusFlags(dom, (VIR_DOMAIN_VCPU_LIVE |
+                                           VIR_DOMAIN_VCPU_MAXIMUM));
 }
 
 /*
@@ -1284,14 +1328,14 @@ xenapiDomainDumpXML (virDomainPtr dom, int flags ATTRIBUTE_UNUSED)
     }
     unsigned long memory=0;
     memory = xenapiDomainGetMaxMemory(dom);
-    defPtr->maxmem = memory;
+    defPtr->mem.max_balloon = memory;
     int64_t dynamic_mem=0;
     if (xen_vm_get_memory_dynamic_max(session, &dynamic_mem, vm)) {
-        defPtr->memory = (unsigned long) (dynamic_mem / 1024);
+        defPtr->mem.cur_balloon = (unsigned long) (dynamic_mem / 1024);
     } else {
-        defPtr->memory = memory;
+        defPtr->mem.cur_balloon = memory;
     }
-    defPtr->vcpus = xenapiDomainGetMaxVcpus(dom);
+    defPtr->maxvcpus = defPtr->vcpus = xenapiDomainGetMaxVcpus(dom);
     enum xen_on_normal_exit action;
     if (xen_vm_get_actions_after_shutdown(session, &action, vm)) {
         defPtr->onPoweroff = xenapiNormalExitEnum2virDomainLifecycle(action);
@@ -1754,6 +1798,8 @@ static virDriver xenapiDriver = {
     NULL, /* domainRestore */
     NULL, /* domainCoreDump */
     xenapiDomainSetVcpus, /* domainSetVcpus */
+    xenapiDomainSetVcpusFlags, /* domainSetVcpusFlags */
+    xenapiDomainGetVcpusFlags, /* domainGetVcpusFlags */
     xenapiDomainPinVcpu, /* domainPinVcpu */
     xenapiDomainGetVcpus, /* domainGetVcpus */
     xenapiDomainGetMaxVcpus, /* domainGetMaxVcpus */
@@ -1821,6 +1867,8 @@ static virDriver xenapiDriver = {
     NULL, /* domainRevertToSnapshot */
     NULL, /* domainSnapshotDelete */
     NULL, /* qemuDomainMonitorCommand */
+    NULL, /* domainSetMemoryParameters */
+    NULL, /* domainGetMemoryParameters */
 };
 
 /**
