@@ -7,7 +7,7 @@ Subject: [PATCH] allow libvirt group to access the socket
  1 files changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/daemon/libvirtd.conf b/daemon/libvirtd.conf
-index d11c0fb..8de5c82 100644
+index 163a80f..93b010d 100644
 --- a/daemon/libvirtd.conf
 +++ b/daemon/libvirtd.conf
 @@ -78,7 +78,7 @@
