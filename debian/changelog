@@ -1,3 +1,20 @@
+libvirt (0.8.5-1) experimental; urgency=low
+
+  [ Laurent Léonard ]
+  * [6e46f0e] Fix wrong regular expression in debian/watch
+  * [802e658] Imported Upstream version 0.8.5
+  * [c8e4517] Update patch 0002-qemu-disable-network.diff.patch
+  * [5549d65] Drop patch
+    - 0009-Don-t-fail-lxc-domain-start-when-memory-controller-s.patch - fixed
+      upstream
+  * [1af66c1] Update libvirt0 symbols
+
+  [ Guido Günther ]
+  * [fc234c4] New patch 0008-Move-MAX_VIRT_CPUS-so-all-xen-code-can-see-
+    it.patch. Move MAX_VIRT_CPUS so all xen code can see it
+
+ -- Laurent Léonard <laurent@open-minds.org>  Mon, 15 Nov 2010 14:09:53 +0100
+
 libvirt (0.8.4-1) experimental; urgency=low
 
   [ Laurent Léonard ]
