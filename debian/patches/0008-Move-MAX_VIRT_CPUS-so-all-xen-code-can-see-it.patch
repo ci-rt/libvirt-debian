@@ -1,0 +1,48 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Mon, 15 Nov 2010 11:33:26 +0100
+Subject: [PATCH] Move MAX_VIRT_CPUS so all xen code can see it
+
+---
+ src/xen/xen_driver.h     |    8 ++++++++
+ src/xen/xen_hypervisor.c |    8 --------
+ 2 files changed, 8 insertions(+), 8 deletions(-)
+
+diff --git a/src/xen/xen_driver.h b/src/xen/xen_driver.h
+index 53f97d4..16d22f1 100644
+--- a/src/xen/xen_driver.h
++++ b/src/xen/xen_driver.h
+@@ -29,6 +29,14 @@
+ #  include <winsock2.h>
+ # endif
+ 
++/* xen-unstable changeset 19788 removed MAX_VIRT_CPUS from public
++ * headers.  Its semantic was retained with XEN_LEGACY_MAX_VCPUS.
++ * Ensure MAX_VIRT_CPUS is defined accordingly.
++ */
++# if !defined(MAX_VIRT_CPUS) && defined(XEN_LEGACY_MAX_VCPUS)
++#  define MAX_VIRT_CPUS XEN_LEGACY_MAX_VCPUS
++# endif
++
+ extern int xenRegister (void);
+ 
+ # define XEN_UNIFIED_HYPERVISOR_OFFSET 0
+diff --git a/src/xen/xen_hypervisor.c b/src/xen/xen_hypervisor.c
+index 3933c08..02c6b6f 100644
+--- a/src/xen/xen_hypervisor.c
++++ b/src/xen/xen_hypervisor.c
+@@ -109,14 +109,6 @@ typedef privcmd_hypercall_t hypercall_t;
+ # define SYS_IFACE_MIN_VERS_NUMA 4
+ #endif
+ 
+-/* xen-unstable changeset 19788 removed MAX_VIRT_CPUS from public
+- * headers.  Its semanitc was retained with XEN_LEGACY_MAX_VCPUS.
+- * Ensure MAX_VIRT_CPUS is defined accordingly.
+- */
+-#if !defined(MAX_VIRT_CPUS) && defined(XEN_LEGACY_MAX_VCPUS)
+-# define MAX_VIRT_CPUS XEN_LEGACY_MAX_VCPUS
+-#endif
+-
+ static int xen_ioctl_hypercall_cmd = 0;
+ static int initialized = 0;
+ static int in_init = 0;
+-- 
