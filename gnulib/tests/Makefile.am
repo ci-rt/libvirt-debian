@@ -190,6 +190,14 @@ EXTRA_DIST += test-errno.c
 
 ## end   gnulib module errno-tests
 
+## begin gnulib module fcntl-h-tests
+
+TESTS += test-fcntl-h
+check_PROGRAMS += test-fcntl-h
+EXTRA_DIST += test-fcntl-h.c
+
+## end   gnulib module fcntl-h-tests
+
 ## begin gnulib module fseeko-tests
 
 TESTS += test-fseeko.sh test-fseeko2.sh
@@ -367,6 +375,14 @@ EXTRA_DIST += same-inode.h
 
 ## end   gnulib module same-inode
 
+## begin gnulib module sched-tests
+
+TESTS += test-sched
+check_PROGRAMS += test-sched
+EXTRA_DIST += test-sched.c
+
+## end   gnulib module sched-tests
+
 ## begin gnulib module select-tests
 
 TESTS += test-select test-select-in.sh test-select-out.sh
@@ -542,6 +558,22 @@ EXTRA_DIST += test-sys_time.c
 
 ## end   gnulib module sys_time-tests
 
+## begin gnulib module sys_utsname-tests
+
+TESTS += test-sys_utsname
+check_PROGRAMS += test-sys_utsname
+EXTRA_DIST += test-sys_utsname.c
+
+## end   gnulib module sys_utsname-tests
+
+## begin gnulib module sys_wait-tests
+
+TESTS += test-sys_wait
+check_PROGRAMS += test-sys_wait
+EXTRA_DIST += test-sys_wait.c
+
+## end   gnulib module sys_wait-tests
+
 ## begin gnulib module time-tests
 
 TESTS += test-time
@@ -549,6 +581,15 @@ check_PROGRAMS += test-time
 EXTRA_DIST += test-time.c
 
 ## end   gnulib module time-tests
+
+## begin gnulib module uname-tests
+
+TESTS += test-uname
+check_PROGRAMS += test-uname
+test_uname_LDADD = $(LDADD) @GETHOSTNAME_LIB@
+EXTRA_DIST += test-uname.c signature.h macros.h
+
+## end   gnulib module uname-tests
 
 ## begin gnulib module unistd-tests
 
@@ -589,9 +630,18 @@ EXTRA_DIST += test-vasprintf.c signature.h macros.h
 TESTS += test-vc-list-files-git.sh
 TESTS += test-vc-list-files-cvs.sh
 TESTS_ENVIRONMENT += PATH='$(abs_aux_dir)'$(PATH_SEPARATOR)"$$PATH"
-EXTRA_DIST += test-vc-list-files-git.sh test-vc-list-files-cvs.sh
+EXTRA_DIST += test-vc-list-files-git.sh test-vc-list-files-cvs.sh init.sh
 
 ## end   gnulib module vc-list-files-tests
+
+## begin gnulib module verify-tests
+
+TESTS_ENVIRONMENT += MAKE='$(MAKE)'
+TESTS += test-verify test-verify.sh
+check_PROGRAMS += test-verify
+EXTRA_DIST += test-verify.c test-verify.sh init.sh
+
+## end   gnulib module verify-tests
 
 ## begin gnulib module warn-on-use
 

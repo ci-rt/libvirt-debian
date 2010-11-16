@@ -23,6 +23,9 @@
 /* Specification.  */
 #include "malloca.h"
 
+/* Use the system functions, not the gnulib overrides in this file.  */
+#undef malloc
+
 /* The speed critical point in this file is freea() applied to an alloca()
    result: it must be fast, to match the speed of alloca().  The speed of
    mmalloca() and freea() in the other case are not critical, because they

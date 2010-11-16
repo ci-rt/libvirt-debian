@@ -24,7 +24,8 @@
       <target port='0'/>
     </serial>
     <console type='vc'>
-      <target port='0'/>
+      <target type='serial' port='0'/>
     </console>
+    <memballoon model='virtio'/>
   </devices>
 </domain>

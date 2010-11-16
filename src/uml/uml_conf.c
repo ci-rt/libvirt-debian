@@ -62,7 +62,7 @@ virCapsPtr umlCapsInit(void) {
 
     if ((caps = virCapabilitiesNew(utsname.machine,
                                    0, 0)) == NULL)
-        goto no_memory;
+        goto error;
 
     /* Some machines have problematic NUMA toplogy causing
      * unexpected failures. We don't want to break the QEMU
@@ -73,6 +73,12 @@ virCapsPtr umlCapsInit(void) {
         VIR_WARN0("Failed to query host NUMA topology, disabling NUMA capabilities");
     }
 
+    if (virGetHostUUID(caps->host.host_uuid)) {
+        umlReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("cannot get the host uuid"));
+        goto error;
+    }
+
     if ((guest = virCapabilitiesAddGuest(caps,
                                          "uml",
                                          utsname.machine,
@@ -81,7 +87,7 @@ virCapsPtr umlCapsInit(void) {
                                          NULL,
                                          0,
                                          NULL)) == NULL)
-        goto no_memory;
+        goto error;
 
     if (virCapabilitiesAddGuestDomain(guest,
                                       "uml",
@@ -89,11 +95,13 @@ virCapsPtr umlCapsInit(void) {
                                       NULL,
                                       0,
                                       NULL) == NULL)
-        goto no_memory;
+        goto error;
+
+    caps->defaultConsoleTargetType = VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_UML;
 
     return caps;
 
- no_memory:
+ error:
     virCapabilitiesFree(caps);
     return NULL;
 }
@@ -107,6 +115,7 @@ umlConnectTapDevice(virDomainNetDefPtr net,
     int tapfd = -1;
     int template_ifname = 0;
     int err;
+    unsigned char tapmac[VIR_MAC_BUFLEN];
 
     if ((err = brInit(&brctl))) {
         virReportSystemError(err, "%s",
@@ -124,8 +133,14 @@ umlConnectTapDevice(virDomainNetDefPtr net,
         template_ifname = 1;
     }
 
-    if ((err = brAddTap(brctl, bridge,
-                        &net->ifname, BR_TAP_PERSIST, &tapfd))) {
+    memcpy(tapmac, net->mac, VIR_MAC_BUFLEN);
+    tapmac[0] = 0xFE; /* Discourage bridge from using TAP dev MAC */
+    if ((err = brAddTap(brctl,
+                        bridge,
+                        &net->ifname,
+                        tapmac,
+                        0,
+                        &tapfd))) {
         if (errno == ENOTSUP) {
             /* In this particular case, give a better diagnostic. */
             umlReportError(VIR_ERR_INTERNAL_ERROR,

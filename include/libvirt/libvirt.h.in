@@ -4,7 +4,7 @@
  * Description: Provides the interfaces of the libvirt library to handle
  *              virtualized domains
  *
- * Copy:  Copyright (C) 2005,2006 Red Hat, Inc.
+ * Copy:  Copyright (C) 2005,2006,2010 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -121,7 +121,8 @@ typedef virDomainInfo *virDomainInfoPtr;
  * Domain.
  */
 typedef enum {
-     VIR_DOMAIN_NONE = 0
+    VIR_DOMAIN_NONE         = 0,      /* Default behavior */
+    VIR_DOMAIN_START_PAUSED = 1 << 0, /* Launch guest in paused state */
 } virDomainCreateFlags;
 
 
@@ -407,10 +408,16 @@ typedef enum {
 typedef enum {
     VIR_MIGRATE_LIVE              = (1 << 0), /* live migration */
     VIR_MIGRATE_PEER2PEER         = (1 << 1), /* direct source -> dest host control channel */
+    /* Note the less-common spelling that we're stuck with:
+       VIR_MIGRATE_TUNNELLED should be VIR_MIGRATE_TUNNELED */
     VIR_MIGRATE_TUNNELLED         = (1 << 2), /* tunnel migration data over libvirtd connection */
     VIR_MIGRATE_PERSIST_DEST      = (1 << 3), /* persist the VM on the destination */
     VIR_MIGRATE_UNDEFINE_SOURCE   = (1 << 4), /* undefine the VM on the source */
     VIR_MIGRATE_PAUSED            = (1 << 5), /* pause on remote side */
+    VIR_MIGRATE_NON_SHARED_DISK   = (1 << 6), /* migration with non-shared storage with full disk copy */
+    VIR_MIGRATE_NON_SHARED_INC    = (1 << 7), /* migration with non-shared storage with incremental copy */
+                                              /* (same base image shared between source and destination) */
+
 } virDomainMigrateFlags;
 
 /* Domain migration. */
@@ -792,6 +799,8 @@ int                     virConnectListDefinedDomains (virConnectPtr conn,
                                                  char **const names,
                                                  int maxnames);
 int                     virDomainCreate         (virDomainPtr domain);
+int                     virDomainCreateWithFlags (virDomainPtr domain,
+                                                 unsigned int flags);
 
 int                     virDomainGetAutostart   (virDomainPtr domain,
                                                  int *autostart);
@@ -1114,6 +1123,7 @@ typedef enum {
   VIR_STORAGE_POOL_BUILDING = 1, /* Initializing pool, not available */
   VIR_STORAGE_POOL_RUNNING = 2,  /* Running normally */
   VIR_STORAGE_POOL_DEGRADED = 3, /* Running degraded */
+  VIR_STORAGE_POOL_INACCESSIBLE = 4, /* Running, but not accessible */
 } virStoragePoolState;
 
 
@@ -2205,10 +2215,6 @@ int virConnectDomainEventRegisterAny(virConnectPtr conn,
 int virConnectDomainEventDeregisterAny(virConnectPtr conn,
                                        int callbackID);
 
-#ifdef __cplusplus
-}
-#endif
-
 
 /**
  * virNWFilter:
@@ -2271,5 +2277,9 @@ int                     virNWFilterGetUUIDString (virNWFilterPtr nwfilter,
                                                   char *buf);
 char *                  virNWFilterGetXMLDesc    (virNWFilterPtr nwfilter,
                                                   int flags);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __VIR_VIRLIB_H__ */

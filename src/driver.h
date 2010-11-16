@@ -161,6 +161,9 @@ typedef int
         (*virDrvNumOfDefinedDomains)	(virConnectPtr conn);
 typedef int
         (*virDrvDomainCreate)		(virDomainPtr dom);
+typedef int
+        (*virDrvDomainCreateWithFlags)	(virDomainPtr dom,
+                                         unsigned int flags);
 typedef virDomainPtr
         (*virDrvDomainDefineXML)	(virConnectPtr conn,
                                          const char *xml);
@@ -454,6 +457,11 @@ typedef int
     (*virDrvDomainSnapshotDelete)(virDomainSnapshotPtr snapshot,
                                   unsigned int flags);
 
+typedef int
+    (*virDrvQemuDomainMonitorCommand)(virDomainPtr domain, const char *cmd,
+                                      char **result, unsigned int flags);
+
+
 
 /**
  * _virDriver:
@@ -468,7 +476,7 @@ typedef int
  *  - close
  */
 struct _virDriver {
-    int	       no;	/* the number virDrvNo */
+    int        no;	/* the number virDrvNo */
     const char * name;	/* the name of the driver */
     virDrvOpen			open;
     virDrvClose			close;
@@ -511,6 +519,7 @@ struct _virDriver {
     virDrvListDefinedDomains	listDefinedDomains;
     virDrvNumOfDefinedDomains	numOfDefinedDomains;
     virDrvDomainCreate		domainCreate;
+    virDrvDomainCreateWithFlags	domainCreateWithFlags;
     virDrvDomainDefineXML           domainDefineXML;
     virDrvDomainUndefine            domainUndefine;
     virDrvDomainAttachDevice	domainAttachDevice;
@@ -565,6 +574,7 @@ struct _virDriver {
     virDrvDomainSnapshotCurrent domainSnapshotCurrent;
     virDrvDomainRevertToSnapshot domainRevertToSnapshot;
     virDrvDomainSnapshotDelete domainSnapshotDelete;
+    virDrvQemuDomainMonitorCommand qemuDomainMonitorCommand;
 };
 
 typedef int

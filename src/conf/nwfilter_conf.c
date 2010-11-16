@@ -1580,6 +1580,7 @@ virNWFilterRuleParse(xmlNodePtr node)
     char *action;
     char *direction;
     char *prio;
+    char *statematch;
     int found;
     int found_i = 0;
     unsigned int priority;
@@ -1595,6 +1596,7 @@ virNWFilterRuleParse(xmlNodePtr node)
     action    = virXMLPropString(node, "action");
     direction = virXMLPropString(node, "direction");
     prio      = virXMLPropString(node, "priority");
+    statematch= virXMLPropString(node, "statematch");
 
     if (!action) {
         virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
@@ -1632,6 +1634,10 @@ virNWFilterRuleParse(xmlNodePtr node)
                 ret->priority = priority;
         }
     }
+
+    if (statematch &&
+        (STREQ(statematch, "0") || STRCASEEQ(statematch, "false")))
+        ret->flags |= RULE_FLAG_NO_STATEMATCH;
 
     cur = node->children;
 
@@ -1677,6 +1683,7 @@ cleanup:
     VIR_FREE(prio);
     VIR_FREE(action);
     VIR_FREE(direction);
+    VIR_FREE(statematch);
 
     return ret;
 
@@ -1767,6 +1774,7 @@ virNWFilterDefParseXML(xmlXPathContextPtr ctxt) {
     return ret;
 
  cleanup:
+    virNWFilterDefFree(ret);
     VIR_FREE(chain);
     VIR_FREE(uuid);
     return NULL;
@@ -2088,7 +2096,13 @@ virNWFilterTriggerVMFilterRebuild(virConnectPtr conn)
         .conn = conn,
         .err = 0,
         .step = STEP_APPLY_NEW,
+        .skipInterfaces = virHashCreate(0),
     };
+
+    if (!cb.skipInterfaces) {
+        virReportOOMError();
+        return 1;
+    }
 
     for (i = 0; i < nCallbackDriver; i++) {
         callbackDrvArray[i]->vmFilterRebuild(conn,
@@ -2114,6 +2128,8 @@ virNWFilterTriggerVMFilterRebuild(virConnectPtr conn)
                                                  virNWFilterDomainFWUpdateCB,
                                                  &cb);
     }
+
+    virHashFree(cb.skipInterfaces, NULL);
 
     return err;
 }
@@ -2522,6 +2538,9 @@ virNWFilterRuleDefFormat(virNWFilterRuleDefPtr def)
                       virNWFilterRuleActionTypeToString(def->action),
                       virNWFilterRuleDirectionTypeToString(def->tt),
                       def->priority);
+
+    if ((def->flags & RULE_FLAG_NO_STATEMATCH))
+        virBufferAddLit(&buf, " statematch='false'");
 
     i = 0;
     while (virAttr[i].id) {

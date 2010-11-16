@@ -320,6 +320,20 @@ ESX_VI__METHOD(ReconfigVM_Task, /* explicit _this */,
 
 
 
+/* esxVI_RefreshDatastore */
+ESX_VI__METHOD(RefreshDatastore, /* explicit _this */,
+               (esxVI_Context *ctx,
+                esxVI_ManagedObjectReference *_this),      /* required */
+               void, None,
+{
+    ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
+},
+{
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, _this)
+})
+
+
+
 /* esxVI_RegisterVM_Task */
 ESX_VI__METHOD(RegisterVM_Task, /* explicit _this */,
                (esxVI_Context *ctx,
@@ -395,6 +409,26 @@ ESX_VI__METHOD(RevertToSnapshot_Task, /* explicit _this */,
 {
     ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, _this)
     ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, host)
+})
+
+
+
+/* esxVI_SearchDatastore_Task */
+ESX_VI__METHOD(SearchDatastore_Task, /* explicit _this */,
+               (esxVI_Context *ctx,
+                esxVI_ManagedObjectReference *_this,       /* required */
+                const char *datastorePath,                 /* required */
+                esxVI_HostDatastoreBrowserSearchSpec *searchSpec, /* optional */
+                esxVI_ManagedObjectReference **output),    /* required */
+               ManagedObjectReference, RequiredItem,
+{
+    ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
+    ESX_VI__METHOD__PARAMETER__REQUIRE(datastorePath)
+},
+{
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, _this)
+    ESX_VI__METHOD__PARAMETER__SERIALIZE_VALUE(String, datastorePath)
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(HostDatastoreBrowserSearchSpec, searchSpec)
 })
 
 

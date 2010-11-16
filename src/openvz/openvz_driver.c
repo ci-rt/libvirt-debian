@@ -1,6 +1,7 @@
 /*
  * openvz_driver.c: core driver methods for managing OpenVZ VEs
  *
+ * Copyright (C) 2010 Red Hat, Inc.
  * Copyright (C) 2006, 2007 Binary Karma
  * Copyright (C) 2006 Shuveb Hussain
  * Copyright (C) 2007 Anoop Joe Cyriac
@@ -33,7 +34,6 @@
 #include <limits.h>
 #include <string.h>
 #include <stdio.h>
-#include <strings.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -503,6 +503,86 @@ static void openvzSetProgramSentinal(const char **prog, const char *key)
     }
 }
 
+static int openvzDomainSuspend(virDomainPtr dom) {
+    struct openvz_driver *driver = dom->conn->privateData;
+    virDomainObjPtr vm;
+    const char *prog[] = {VZCTL, "--quiet", "chkpnt", PROGRAM_SENTINAL, "--suspend", NULL};
+    int ret = -1;
+
+    openvzDriverLock(driver);
+    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+    openvzDriverUnlock(driver);
+
+    if (!vm) {
+        openvzError(VIR_ERR_INVALID_DOMAIN, "%s",
+                    _("no domain with matching uuid"));
+        goto cleanup;
+    }
+
+    if (!virDomainObjIsActive(vm)) {
+        openvzError(VIR_ERR_OPERATION_INVALID, "%s",
+                    _("Domain is not running"));
+        goto cleanup;
+    }
+
+    if (vm->state != VIR_DOMAIN_PAUSED) {
+        openvzSetProgramSentinal(prog, vm->def->name);
+        if (virRun(prog, NULL) < 0) {
+            openvzError(VIR_ERR_OPERATION_FAILED, "%s",
+                        _("Suspend operation failed"));
+            goto cleanup;
+        }
+        vm->state = VIR_DOMAIN_PAUSED;
+    }
+
+    ret = 0;
+
+cleanup:
+    if (vm)
+        virDomainObjUnlock(vm);
+    return ret;
+}
+
+static int openvzDomainResume(virDomainPtr dom) {
+  struct openvz_driver *driver = dom->conn->privateData;
+  virDomainObjPtr vm;
+  const char *prog[] = {VZCTL, "--quiet", "chkpnt", PROGRAM_SENTINAL, "--resume", NULL};
+  int ret = -1;
+
+  openvzDriverLock(driver);
+  vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+  openvzDriverUnlock(driver);
+
+  if (!vm) {
+      openvzError(VIR_ERR_INVALID_DOMAIN, "%s",
+                  _("no domain with matching uuid"));
+      goto cleanup;
+  }
+
+  if (!virDomainObjIsActive(vm)) {
+      openvzError(VIR_ERR_OPERATION_INVALID, "%s",
+                  _("Domain is not running"));
+      goto cleanup;
+  }
+
+  if (vm->state == VIR_DOMAIN_PAUSED) {
+      openvzSetProgramSentinal(prog, vm->def->name);
+      if (virRun(prog, NULL) < 0) {
+          openvzError(VIR_ERR_OPERATION_FAILED, "%s",
+                      _("Resume operation failed"));
+          goto cleanup;
+      }
+      vm->state = VIR_DOMAIN_RUNNING;
+  }
+
+  ret = 0;
+
+cleanup:
+  if (vm)
+      virDomainObjUnlock(vm);
+  return ret;
+}
+
 static int openvzDomainShutdown(virDomainPtr dom) {
     struct openvz_driver *driver = dom->conn->privateData;
     virDomainObjPtr vm;
@@ -531,6 +611,7 @@ static int openvzDomainShutdown(virDomainPtr dom) {
 
     vm->def->id = -1;
     vm->state = VIR_DOMAIN_SHUTOFF;
+    dom->id = -1;
     ret = 0;
 
 cleanup:
@@ -873,13 +954,15 @@ cleanup:
 
 static virDomainPtr
 openvzDomainCreateXML(virConnectPtr conn, const char *xml,
-                      unsigned int flags ATTRIBUTE_UNUSED)
+                      unsigned int flags)
 {
     struct openvz_driver *driver =  conn->privateData;
     virDomainDefPtr vmdef = NULL;
     virDomainObjPtr vm = NULL;
     virDomainPtr dom = NULL;
     const char *progstart[] = {VZCTL, "--quiet", "start", PROGRAM_SENTINAL, NULL};
+
+    virCheckFlags(0, NULL);
 
     openvzDriverLock(driver);
     if ((vmdef = virDomainDefParseString(driver->caps, xml,
@@ -956,12 +1039,14 @@ cleanup:
 }
 
 static int
-openvzDomainCreate(virDomainPtr dom)
+openvzDomainCreateWithFlags(virDomainPtr dom, unsigned int flags)
 {
     struct openvz_driver *driver = dom->conn->privateData;
     virDomainObjPtr vm;
     const char *prog[] = {VZCTL, "--quiet", "start", PROGRAM_SENTINAL, NULL };
     int ret = -1;
+
+    virCheckFlags(0, -1);
 
     openvzDriverLock(driver);
     vm = virDomainFindByName(&driver->domains, dom->name);
@@ -988,6 +1073,7 @@ openvzDomainCreate(virDomainPtr dom)
 
     vm->pid = strtoI(vm->def->name);
     vm->def->id = vm->pid;
+    dom->id = vm->pid;
     vm->state = VIR_DOMAIN_RUNNING;
     ret = 0;
 
@@ -995,6 +1081,12 @@ cleanup:
     if (vm)
         virDomainObjUnlock(vm);
     return ret;
+}
+
+static int
+openvzDomainCreate(virDomainPtr dom)
+{
+    return openvzDomainCreateWithFlags(dom, 0);
 }
 
 static int
@@ -1480,8 +1572,8 @@ static virDriver openvzDriver = {
     openvzDomainLookupByID, /* domainLookupByID */
     openvzDomainLookupByUUID, /* domainLookupByUUID */
     openvzDomainLookupByName, /* domainLookupByName */
-    NULL, /* domainSuspend */
-    NULL, /* domainResume */
+    openvzDomainSuspend, /* domainSuspend */
+    openvzDomainResume, /* domainResume */
     openvzDomainShutdown, /* domainShutdown */
     openvzDomainReboot, /* domainReboot */
     openvzDomainShutdown, /* domainDestroy */
@@ -1505,6 +1597,7 @@ static virDriver openvzDriver = {
     openvzListDefinedDomains, /* listDefinedDomains */
     openvzNumDefinedDomains, /* numOfDefinedDomains */
     openvzDomainCreate, /* domainCreate */
+    openvzDomainCreateWithFlags, /* domainCreateWithFlags */
     openvzDomainDefineXML, /* domainDefineXML */
     openvzDomainUndefine, /* domainUndefine */
     NULL, /* domainAttachDevice */
@@ -1559,6 +1652,7 @@ static virDriver openvzDriver = {
     NULL, /* domainSnapshotCurrent */
     NULL, /* domainRevertToSnapshot */
     NULL, /* domainSnapshotDelete */
+    NULL, /* qemuDomainMonitorCommand */
 };
 
 int openvzRegister(void) {

@@ -227,8 +227,6 @@ xdr_remote_error (XDR *xdrs, remote_error *objp)
                  return FALSE;
          if (!xdr_remote_network (xdrs, &objp->net))
                  return FALSE;
-         if (!xdr_remote_nwfilter (xdrs, &objp->nwfilter))
-                 return FALSE;
         return TRUE;
 }
 
@@ -1197,6 +1195,26 @@ xdr_remote_num_of_defined_domains_ret (XDR *xdrs, remote_num_of_defined_domains_
 
 bool_t
 xdr_remote_domain_create_args (XDR *xdrs, remote_domain_create_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_create_with_flags_args (XDR *xdrs, remote_domain_create_with_flags_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_create_with_flags_ret (XDR *xdrs, remote_domain_create_with_flags_ret *objp)
 {
 
          if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
@@ -3593,12 +3611,60 @@ xdr_remote_message_status (XDR *xdrs, remote_message_status *objp)
 bool_t
 xdr_remote_message_header (XDR *xdrs, remote_message_header *objp)
 {
+        register int32_t *buf;
+
+
+        if (xdrs->x_op == XDR_ENCODE) {
+                buf = (int32_t*)XDR_INLINE (xdrs, 3 * BYTES_PER_XDR_UNIT);
+                if (buf == NULL) {
+                         if (!xdr_u_int (xdrs, &objp->prog))
+                                 return FALSE;
+                         if (!xdr_u_int (xdrs, &objp->vers))
+                                 return FALSE;
+                         if (!xdr_int (xdrs, &objp->proc))
+                                 return FALSE;
+
+                } else {
+                (void)IXDR_PUT_U_INT32(buf, objp->prog);
+                (void)IXDR_PUT_U_INT32(buf, objp->vers);
+                (void)IXDR_PUT_INT32(buf, objp->proc);
+                }
+                 if (!xdr_remote_message_type (xdrs, &objp->type))
+                         return FALSE;
+                 if (!xdr_u_int (xdrs, &objp->serial))
+                         return FALSE;
+                 if (!xdr_remote_message_status (xdrs, &objp->status))
+                         return FALSE;
+                return TRUE;
+        } else if (xdrs->x_op == XDR_DECODE) {
+                buf = (int32_t*)XDR_INLINE (xdrs, 3 * BYTES_PER_XDR_UNIT);
+                if (buf == NULL) {
+                         if (!xdr_u_int (xdrs, &objp->prog))
+                                 return FALSE;
+                         if (!xdr_u_int (xdrs, &objp->vers))
+                                 return FALSE;
+                         if (!xdr_int (xdrs, &objp->proc))
+                                 return FALSE;
+
+                } else {
+                objp->prog = IXDR_GET_U_LONG(buf);
+                objp->vers = IXDR_GET_U_LONG(buf);
+                objp->proc = IXDR_GET_INT32(buf);
+                }
+                 if (!xdr_remote_message_type (xdrs, &objp->type))
+                         return FALSE;
+                 if (!xdr_u_int (xdrs, &objp->serial))
+                         return FALSE;
+                 if (!xdr_remote_message_status (xdrs, &objp->status))
+                         return FALSE;
+         return TRUE;
+        }
 
          if (!xdr_u_int (xdrs, &objp->prog))
                  return FALSE;
          if (!xdr_u_int (xdrs, &objp->vers))
                  return FALSE;
-         if (!xdr_remote_procedure (xdrs, &objp->proc))
+         if (!xdr_int (xdrs, &objp->proc))
                  return FALSE;
          if (!xdr_remote_message_type (xdrs, &objp->type))
                  return FALSE;

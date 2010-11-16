@@ -33,6 +33,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <arpa/inet.h>
+#include <sys/wait.h>
 
 /* Windows socket compatibility functions. */
 #include <errno.h>
@@ -43,10 +44,6 @@
 # include <net/if.h>
 # include <netinet/in.h>
 # include <netinet/tcp.h>
-#endif
-
-#ifdef HAVE_SYS_WAIT_H
-# include <sys/wait.h>
 #endif
 
 #ifdef HAVE_PWD_H
@@ -71,11 +68,6 @@
 
 #include <poll.h>
 
-/* AI_ADDRCONFIG is missing on some systems. */
-#ifndef AI_ADDRCONFIG
-# define AI_ADDRCONFIG 0
-#endif
-
 #include "virterror_internal.h"
 #include "logging.h"
 #include "datatypes.h"
@@ -85,6 +77,7 @@
 #include "qparams.h"
 #include "remote_driver.h"
 #include "remote_protocol.h"
+#include "qemu_protocol.h"
 #include "memory.h"
 #include "util.h"
 #include "event.h"
@@ -207,8 +200,9 @@ struct private_data {
 };
 
 enum {
-    REMOTE_CALL_IN_OPEN = 1,
-    REMOTE_CALL_QUIET_MISSING_RPC = 2,
+    REMOTE_CALL_IN_OPEN = (1 << 0),
+    REMOTE_CALL_QUIET_MISSING_RPC = (1 << 1),
+    REMOTE_QEMU_CALL = (1 << 2),
 };
 
 
@@ -1141,15 +1135,28 @@ check_cert_file(const char *type, const char *file)
 }
 
 
+static void remote_debug_gnutls_log(int level, const char* str) {
+    DEBUG("%d %s", level, str);
+}
+
 static int
 initialize_gnutls(void)
 {
     static int initialized = 0;
     int err;
+    char *gnutlsdebug;
 
     if (initialized) return 0;
 
     gnutls_global_init ();
+
+    if ((gnutlsdebug = getenv("LIBVIRT_GNUTLS_DEBUG")) != NULL) {
+        int val;
+        if (virStrToLong_i(gnutlsdebug, NULL, 10, &val) < 0)
+            val = 10;
+        gnutls_global_set_log_level(val);
+        gnutls_global_set_log_function(remote_debug_gnutls_log);
+    }
 
     /* X509 stuff */
     err = gnutls_certificate_allocate_credentials (&x509_cred);
@@ -1413,11 +1420,6 @@ verify_certificate (virConnectPtr conn ATTRIBUTE_UNUSED,
 static int
 doRemoteClose (virConnectPtr conn, struct private_data *priv)
 {
-    if (call (conn, priv, 0, REMOTE_PROC_CLOSE,
-              (xdrproc_t) xdr_void, (char *) NULL,
-              (xdrproc_t) xdr_void, (char *) NULL) == -1)
-        return -1;
-
     if (priv->eventFlushTimer >= 0) {
         /* Remove timeout */
         virEventRemoveTimeout(priv->eventFlushTimer);
@@ -1425,6 +1427,11 @@ doRemoteClose (virConnectPtr conn, struct private_data *priv)
         virEventRemoveHandle(priv->watch);
         priv->watch = -1;
     }
+
+    if (call (conn, priv, 0, REMOTE_PROC_CLOSE,
+              (xdrproc_t) xdr_void, (char *) NULL,
+              (xdrproc_t) xdr_void, (char *) NULL) == -1)
+        return -1;
 
     /* Close socket. */
     if (priv->uses_tls && priv->session) {
@@ -2844,17 +2851,34 @@ remoteDomainMigratePrepare2 (virConnectPtr dconn,
         goto done;
 
     if (ret.cookie.cookie_len > 0) {
+        if (!cookie || !cookielen) {
+            remoteError(VIR_ERR_INTERNAL_ERROR, "%s",
+                        _("caller ignores cookie or cookielen"));
+            goto error;
+        }
         *cookie = ret.cookie.cookie_val; /* Caller frees. */
         *cookielen = ret.cookie.cookie_len;
     }
-    if (ret.uri_out)
+    if (ret.uri_out) {
+        if (!uri_out) {
+            remoteError(VIR_ERR_INTERNAL_ERROR, "%s",
+                        _("caller ignores uri_out"));
+            goto error;
+        }
         *uri_out = *ret.uri_out; /* Caller frees. */
+    }
 
     rv = 0;
 
 done:
     remoteDriverUnlock(priv);
     return rv;
+error:
+    if (ret.cookie.cookie_len)
+        VIR_FREE(ret.cookie.cookie_val);
+    if (ret.uri_out)
+        VIR_FREE(*ret.uri_out);
+    goto done;
 }
 
 static virDomainPtr
@@ -3006,6 +3030,38 @@ remoteDomainCreate (virDomainPtr domain)
 
     domain->id = ret2.dom.id;
     xdr_free ((xdrproc_t) &xdr_remote_domain_lookup_by_uuid_ret, (char *) &ret2);
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainCreateWithFlags (virDomainPtr domain, unsigned int flags)
+{
+    int rv = -1;
+    remote_domain_create_with_flags_args args;
+    remote_domain_create_with_flags_ret ret;
+    struct private_data *priv = domain->conn->privateData;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain (&args.dom, domain);
+    args.flags = flags;
+
+    memset (&ret, 0, sizeof ret);
+    if (call (domain->conn, priv, 0, REMOTE_PROC_DOMAIN_CREATE_WITH_FLAGS,
+              (xdrproc_t) xdr_remote_domain_create_with_flags_args,
+              (char *) &args,
+              (xdrproc_t) xdr_remote_domain_create_with_flags_ret,
+              (char *) &ret) == -1)
+        goto done;
+
+    domain->id = ret.dom.id;
+    xdr_free ((xdrproc_t) &xdr_remote_domain_create_with_flags_ret,
+              (char *) &ret);
 
     rv = 0;
 
@@ -4013,7 +4069,7 @@ remoteNetworkIsActive(virNetworkPtr network)
     int rv = -1;
     remote_network_is_active_args args;
     remote_network_is_active_ret ret;
-    struct private_data *priv = network->conn->privateData;
+    struct private_data *priv = network->conn->networkPrivateData;
 
     remoteDriverLock(priv);
 
@@ -4037,7 +4093,7 @@ remoteNetworkIsPersistent(virNetworkPtr network)
     int rv = -1;
     remote_network_is_persistent_args args;
     remote_network_is_persistent_ret ret;
-    struct private_data *priv = network->conn->privateData;
+    struct private_data *priv = network->conn->networkPrivateData;
 
     remoteDriverLock(priv);
 
@@ -4568,7 +4624,7 @@ remoteInterfaceIsActive(virInterfacePtr iface)
     int rv = -1;
     remote_interface_is_active_args args;
     remote_interface_is_active_ret ret;
-    struct private_data *priv = iface->conn->privateData;
+    struct private_data *priv = iface->conn->interfacePrivateData;
 
     remoteDriverLock(priv);
 
@@ -5073,7 +5129,7 @@ remoteStoragePoolIsActive(virStoragePoolPtr pool)
     int rv = -1;
     remote_storage_pool_is_active_args args;
     remote_storage_pool_is_active_ret ret;
-    struct private_data *priv = pool->conn->privateData;
+    struct private_data *priv = pool->conn->storagePrivateData;
 
     remoteDriverLock(priv);
 
@@ -5097,7 +5153,7 @@ remoteStoragePoolIsPersistent(virStoragePoolPtr pool)
     int rv = -1;
     remote_storage_pool_is_persistent_args args;
     remote_storage_pool_is_persistent_ret ret;
-    struct private_data *priv = pool->conn->privateData;
+    struct private_data *priv = pool->conn->storagePrivateData;
 
     remoteDriverLock(priv);
 
@@ -8805,9 +8861,49 @@ done:
 
 /*----------------------------------------------------------------------*/
 
+static int
+remoteQemuDomainMonitorCommand (virDomainPtr domain, const char *cmd,
+                                char **result, unsigned int flags)
+{
+    int rv = -1;
+    qemu_monitor_command_args args;
+    qemu_monitor_command_ret ret;
+    struct private_data *priv = domain->conn->privateData;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.domain, domain);
+    args.cmd = (char *)cmd;
+    args.flags = flags;
+
+    memset (&ret, 0, sizeof ret);
+    if (call (domain->conn, priv, REMOTE_QEMU_CALL, QEMU_PROC_MONITOR_COMMAND,
+              (xdrproc_t) xdr_qemu_monitor_command_args, (char *) &args,
+              (xdrproc_t) xdr_qemu_monitor_command_ret, (char *) &ret) == -1)
+        goto done;
+
+    *result = strdup(ret.result);
+    if (*result == NULL) {
+
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    rv = 0;
+
+cleanup:
+    xdr_free ((xdrproc_t) xdr_qemu_monitor_command_ret, (char *) &ret);
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+/*----------------------------------------------------------------------*/
 
 static struct remote_thread_call *
 prepareCall(struct private_data *priv,
+            int flags,
             int proc_nr,
             xdrproc_t args_filter, char *args,
             xdrproc_t ret_filter, char *ret)
@@ -8835,8 +8931,14 @@ prepareCall(struct private_data *priv,
     rv->ret = ret;
     rv->want_reply = 1;
 
-    hdr.prog = REMOTE_PROGRAM;
-    hdr.vers = REMOTE_PROTOCOL_VERSION;
+    if (flags & REMOTE_QEMU_CALL) {
+        hdr.prog = QEMU_PROGRAM;
+        hdr.vers = QEMU_PROTOCOL_VERSION;
+    }
+    else {
+        hdr.prog = REMOTE_PROGRAM;
+        hdr.vers = REMOTE_PROTOCOL_VERSION;
+    }
     hdr.proc = proc_nr;
     hdr.type = REMOTE_CALL;
     hdr.serial = rv->serial;
@@ -9183,7 +9285,6 @@ remoteIODecodeMessageLength(struct private_data *priv) {
 
 static int
 processCallDispatchReply(virConnectPtr conn, struct private_data *priv,
-                         int in_open,
                          remote_message_header *hdr,
                          XDR *xdr);
 
@@ -9195,18 +9296,19 @@ processCallDispatchMessage(virConnectPtr conn, struct private_data *priv,
 
 static int
 processCallDispatchStream(virConnectPtr conn, struct private_data *priv,
-                          int in_open,
                           remote_message_header *hdr,
                           XDR *xdr);
 
 
 static int
 processCallDispatch(virConnectPtr conn, struct private_data *priv,
-                    int in_open) {
+                    int flags) {
     XDR xdr;
     struct remote_message_header hdr;
     int len = priv->bufferLength - 4;
     int rv = -1;
+    int expectedprog;
+    int expectedvers;
 
     /* Length word has already been read */
     priv->bufferOffset = 4;
@@ -9220,35 +9322,40 @@ processCallDispatch(virConnectPtr conn, struct private_data *priv,
 
     priv->bufferOffset += xdr_getpos(&xdr);
 
+    expectedprog = REMOTE_PROGRAM;
+    expectedvers = REMOTE_PROTOCOL_VERSION;
+    if (flags & REMOTE_QEMU_CALL) {
+        expectedprog = QEMU_PROGRAM;
+        expectedvers = QEMU_PROTOCOL_VERSION;
+    }
+
     /* Check program, version, etc. are what we expect. */
-    if (hdr.prog != REMOTE_PROGRAM) {
+    if (hdr.prog != expectedprog) {
         remoteError(VIR_ERR_RPC,
                     _("unknown program (received %x, expected %x)"),
-                    hdr.prog, REMOTE_PROGRAM);
+                    hdr.prog, expectedprog);
         return -1;
     }
-    if (hdr.vers != REMOTE_PROTOCOL_VERSION) {
+    if (hdr.vers != expectedvers) {
         remoteError(VIR_ERR_RPC,
                     _("unknown protocol version (received %x, expected %x)"),
-                    hdr.vers, REMOTE_PROTOCOL_VERSION);
+                    hdr.vers, expectedvers);
         return -1;
     }
 
 
     switch (hdr.type) {
     case REMOTE_REPLY: /* Normal RPC replies */
-        rv = processCallDispatchReply(conn, priv, in_open,
-                                      &hdr, &xdr);
+        rv = processCallDispatchReply(conn, priv, &hdr, &xdr);
         break;
 
     case REMOTE_MESSAGE: /* Async notifications */
-        rv = processCallDispatchMessage(conn, priv, in_open,
+        rv = processCallDispatchMessage(conn, priv, flags & REMOTE_CALL_IN_OPEN,
                                         &hdr, &xdr);
         break;
 
     case REMOTE_STREAM: /* Stream protocol */
-        rv = processCallDispatchStream(conn, priv, in_open,
-                                       &hdr, &xdr);
+        rv = processCallDispatchStream(conn, priv, &hdr, &xdr);
         break;
 
     default:
@@ -9267,7 +9374,6 @@ processCallDispatch(virConnectPtr conn, struct private_data *priv,
 static int
 processCallDispatchReply(virConnectPtr conn ATTRIBUTE_UNUSED,
                          struct private_data *priv,
-                         int in_open ATTRIBUTE_UNUSED,
                          remote_message_header *hdr,
                          XDR *xdr) {
     struct remote_thread_call *thecall;
@@ -9387,7 +9493,6 @@ processCallDispatchMessage(virConnectPtr conn, struct private_data *priv,
 static int
 processCallDispatchStream(virConnectPtr conn ATTRIBUTE_UNUSED,
                           struct private_data *priv,
-                          int in_open ATTRIBUTE_UNUSED,
                           remote_message_header *hdr,
                           XDR *xdr) {
     struct private_stream_data *privst;
@@ -9493,7 +9598,7 @@ processCallDispatchStream(virConnectPtr conn ATTRIBUTE_UNUSED,
 
 static int
 remoteIOHandleInput(virConnectPtr conn, struct private_data *priv,
-                    int in_open)
+                    int flags)
 {
     /* Read as much data as is available, until we get
      * EAGAIN
@@ -9520,7 +9625,7 @@ remoteIOHandleInput(virConnectPtr conn, struct private_data *priv,
                  * next iteration.
                  */
             } else {
-                ret = processCallDispatch(conn, priv, in_open);
+                ret = processCallDispatch(conn, priv, flags);
                 priv->bufferOffset = priv->bufferLength = 0;
                 /*
                  * We've completed one call, so return even
@@ -9543,7 +9648,7 @@ remoteIOHandleInput(virConnectPtr conn, struct private_data *priv,
 static int
 remoteIOEventLoop(virConnectPtr conn,
                   struct private_data *priv,
-                  int in_open,
+                  int flags,
                   struct remote_thread_call *thiscall)
 {
     struct pollfd fds[2];
@@ -9556,7 +9661,7 @@ remoteIOEventLoop(virConnectPtr conn,
         struct remote_thread_call *tmp = priv->waitDispatch;
         struct remote_thread_call *prev;
         char ignore;
-#ifdef HAVE_PTHREAD_H
+#ifdef HAVE_PTHREAD_SIGMASK
         sigset_t oldmask, blockedsigs;
 #endif
 
@@ -9585,7 +9690,7 @@ remoteIOEventLoop(virConnectPtr conn,
          * after the call (RHBZ#567931).  Same for SIGCHLD and SIGPIPE
          * at the suggestion of Paolo Bonzini and Daniel Berrange.
          */
-#ifdef HAVE_PTHREAD_H
+#ifdef HAVE_PTHREAD_SIGMASK
         sigemptyset (&blockedsigs);
         sigaddset (&blockedsigs, SIGWINCH);
         sigaddset (&blockedsigs, SIGCHLD);
@@ -9598,7 +9703,7 @@ remoteIOEventLoop(virConnectPtr conn,
         if (ret < 0 && errno == EAGAIN)
             goto repoll;
 
-#ifdef HAVE_PTHREAD_H
+#ifdef HAVE_PTHREAD_SIGMASK
         ignore_value(pthread_sigmask(SIG_SETMASK, &oldmask, NULL));
 #endif
 
@@ -9633,7 +9738,7 @@ remoteIOEventLoop(virConnectPtr conn,
         }
 
         if (fds[0].revents & POLLIN) {
-            if (remoteIOHandleInput(conn, priv, in_open) < 0)
+            if (remoteIOHandleInput(conn, priv, flags) < 0)
                 goto error;
         }
 
@@ -9838,9 +9943,7 @@ remoteIO(virConnectPtr conn,
     if (priv->watch >= 0)
         virEventUpdateHandle(priv->watch, 0);
 
-    rv = remoteIOEventLoop(conn, priv,
-                           flags & REMOTE_CALL_IN_OPEN ? 1 : 0,
-                           thiscall);
+    rv = remoteIOEventLoop(conn, priv, flags, thiscall);
 
     if (priv->watch >= 0)
         virEventUpdateHandle(priv->watch, VIR_EVENT_HANDLE_READABLE);
@@ -9912,14 +10015,14 @@ cleanup:
  */
 static int
 call (virConnectPtr conn, struct private_data *priv,
-      int flags /* if we are in virConnectOpen */,
+      int flags,
       int proc_nr,
       xdrproc_t args_filter, char *args,
       xdrproc_t ret_filter, char *ret)
 {
     struct remote_thread_call *thiscall;
 
-    thiscall = prepareCall(priv, proc_nr, args_filter, args,
+    thiscall = prepareCall(priv, flags, proc_nr, args_filter, args,
                            ret_filter, ret);
 
     if (!thiscall) {
@@ -10193,6 +10296,7 @@ static virDriver remote_driver = {
     remoteListDefinedDomains, /* listDefinedDomains */
     remoteNumOfDefinedDomains, /* numOfDefinedDomains */
     remoteDomainCreate, /* domainCreate */
+    remoteDomainCreateWithFlags, /* domainCreateWithFlags */
     remoteDomainDefineXML, /* domainDefineXML */
     remoteDomainUndefine, /* domainUndefine */
     remoteDomainAttachDevice, /* domainAttachDevice */
@@ -10247,6 +10351,7 @@ static virDriver remote_driver = {
     remoteDomainSnapshotCurrent, /* domainSnapshotCurrent */
     remoteDomainRevertToSnapshot, /* domainRevertToSnapshot */
     remoteDomainSnapshotDelete, /* domainSnapshotDelete */
+    remoteQemuDomainMonitorCommand, /* qemuDomainMonitorCommand */
 };
 
 static virNetworkDriver network_driver = {

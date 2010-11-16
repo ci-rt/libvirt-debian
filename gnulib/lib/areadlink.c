@@ -37,6 +37,10 @@
 # define SSIZE_MAX ((ssize_t) (SIZE_MAX / 2))
 #endif
 
+/* Use the system functions, not the gnulib overrides in this file.  */
+#undef malloc
+#undef realloc
+
 /* The initial buffer size for the link value.  A power of 2
    detects arithmetic overflow earlier, but is not required.  */
 enum {
@@ -87,8 +91,12 @@ areadlink (char const *filename)
             {
               buffer = (char *) malloc (link_length);
               if (buffer == NULL)
-                /* errno is ENOMEM.  */
-                return NULL;
+                {
+                  /* It's easier to set errno to ENOMEM than to rely on the
+                     'malloc-posix' gnulib module.  */
+                  errno = ENOMEM;
+                  return NULL;
+                }
               memcpy (buffer, initial_buf, link_length);
             }
           else
@@ -115,7 +123,11 @@ areadlink (char const *filename)
         }
       buffer = (char *) malloc (buf_size);
       if (buffer == NULL)
-        /* errno is ENOMEM.  */
-        return NULL;
+        {
+          /* It's easier to set errno to ENOMEM than to rely on the
+             'malloc-posix' gnulib module.  */
+          errno = ENOMEM;
+          return NULL;
+        }
     }
 }

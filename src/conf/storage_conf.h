@@ -379,6 +379,10 @@ virStoragePoolSourcePtr
 virStoragePoolSourceListNewSource(virStoragePoolSourceListPtr list);
 char *virStoragePoolSourceListFormat(virStoragePoolSourceListPtr def);
 
+int virStoragePoolObjIsDuplicate(virStoragePoolObjListPtr pools,
+                                 virStoragePoolDefPtr def,
+                                 unsigned int check_active);
+
 void virStoragePoolObjLock(virStoragePoolObjPtr obj);
 void virStoragePoolObjUnlock(virStoragePoolObjPtr obj);
 
@@ -405,6 +409,7 @@ enum virStoragePoolFormatFileSystemNet {
     VIR_STORAGE_POOL_NETFS_AUTO = 0,
     VIR_STORAGE_POOL_NETFS_NFS,
     VIR_STORAGE_POOL_NETFS_GLUSTERFS,
+    VIR_STORAGE_POOL_NETFS_CIFS,
     VIR_STORAGE_POOL_NETFS_LAST,
 };
 VIR_ENUM_DECL(virStoragePoolFormatFileSystemNet)

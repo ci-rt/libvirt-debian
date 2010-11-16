@@ -35,6 +35,13 @@
 #include <parted/parted.h>
 #include <stdio.h>
 #include <string.h>
+#include <libdevmapper.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include "util.h"
+#include "c-ctype.h"
 
 /* we don't need to include the full internal.h just for this */
 #define STREQ(a,b) (strcmp(a,b) == 0)
@@ -50,12 +57,27 @@ enum diskCommand {
     DISK_GEOMETRY
 };
 
+static int
+is_dm_device(const char *devname)
+{
+    struct stat buf;
+
+    if (devname && !stat(devname, &buf) && dm_is_dm_major(major(buf.st_rdev))) {
+        return 1;
+    }
+
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     PedDevice *dev;
     PedDisk *disk;
     PedPartition *part;
     int cmd = DISK_LAYOUT;
+    const char *path;
+    char *canonical_path;
+    const char *partsep;
 
     if (argc == 3 && STREQ(argv[2], "-g")) {
         cmd = DISK_GEOMETRY;
@@ -64,8 +86,24 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    if ((dev = ped_device_get(argv[1])) == NULL) {
-        fprintf(stderr, "unable to access device %s\n", argv[1]);
+    path = argv[1];
+    if (is_dm_device(path)) {
+        partsep = "p";
+        canonical_path = strdup(path);
+        if (canonical_path == NULL) {
+            return 2;
+        }
+    } else {
+        if (virFileResolveLink(path, &canonical_path) != 0) {
+            return 2;
+        }
+
+        partsep = *canonical_path &&
+            c_isdigit(canonical_path[strlen(canonical_path)-1]) ? "p" : "";
+    }
+
+    if ((dev = ped_device_get(path)) == NULL) {
+        fprintf(stderr, "unable to access device %s\n", path);
         return 2;
     }
 
@@ -117,8 +155,8 @@ int main(int argc, char **argv)
          * in bytes, not the last sector number
          */
         if (part->num != -1) {
-            printf("%s%d%c%s%c%s%c%llu%c%llu%c%llu%c",
-                   part->geom.dev->path,
+            printf("%s%s%d%c%s%c%s%c%llu%c%llu%c%llu%c",
+                   canonical_path, partsep,
                    part->num, '\0',
                    type, '\0',
                    content, '\0',

@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# stdint.m4 serial 34
+# stdint.m4 serial 35
 dnl Copyright (C) 2001-2010 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -311,7 +311,7 @@ AC_DEFUN([gl_STDINT_BITSIZEOF],
   dnl   config.h.in,
   dnl - extra AC_SUBST calls, so that the right substitutions are made.
   m4_foreach_w([gltype], [$1],
-    [AH_TEMPLATE([BITSIZEOF_]translit(gltype,[abcdefghijklmnopqrstuvwxyz ],[ABCDEFGHIJKLMNOPQRSTUVWXYZ_]),
+    [AH_TEMPLATE([BITSIZEOF_]m4_translit(gltype,[abcdefghijklmnopqrstuvwxyz ],[ABCDEFGHIJKLMNOPQRSTUVWXYZ_]),
        [Define to the number of bits in type ']gltype['.])])
   for gltype in $1 ; do
     AC_CACHE_CHECK([for bit size of $gltype], [gl_cv_bitsizeof_${gltype}],
@@ -336,7 +336,7 @@ AC_DEFUN([gl_STDINT_BITSIZEOF],
     eval BITSIZEOF_${GLTYPE}=\$result
   done
   m4_foreach_w([gltype], [$1],
-    [AC_SUBST([BITSIZEOF_]translit(gltype,[abcdefghijklmnopqrstuvwxyz ],[ABCDEFGHIJKLMNOPQRSTUVWXYZ_]))])
+    [AC_SUBST([BITSIZEOF_]m4_translit(gltype,[abcdefghijklmnopqrstuvwxyz ],[ABCDEFGHIJKLMNOPQRSTUVWXYZ_]))])
 ])
 
 dnl gl_CHECK_TYPES_SIGNED(TYPES, INCLUDES)
@@ -349,7 +349,7 @@ AC_DEFUN([gl_CHECK_TYPES_SIGNED],
   dnl   config.h.in,
   dnl - extra AC_SUBST calls, so that the right substitutions are made.
   m4_foreach_w([gltype], [$1],
-    [AH_TEMPLATE([HAVE_SIGNED_]translit(gltype,[abcdefghijklmnopqrstuvwxyz ],[ABCDEFGHIJKLMNOPQRSTUVWXYZ_]),
+    [AH_TEMPLATE([HAVE_SIGNED_]m4_translit(gltype,[abcdefghijklmnopqrstuvwxyz ],[ABCDEFGHIJKLMNOPQRSTUVWXYZ_]),
        [Define to 1 if ']gltype[' is a signed integer type.])])
   for gltype in $1 ; do
     AC_CACHE_CHECK([whether $gltype is signed], [gl_cv_type_${gltype}_signed],
@@ -369,7 +369,7 @@ AC_DEFUN([gl_CHECK_TYPES_SIGNED],
     fi
   done
   m4_foreach_w([gltype], [$1],
-    [AC_SUBST([HAVE_SIGNED_]translit(gltype,[abcdefghijklmnopqrstuvwxyz ],[ABCDEFGHIJKLMNOPQRSTUVWXYZ_]))])
+    [AC_SUBST([HAVE_SIGNED_]m4_translit(gltype,[abcdefghijklmnopqrstuvwxyz ],[ABCDEFGHIJKLMNOPQRSTUVWXYZ_]))])
 ])
 
 dnl gl_INTEGER_TYPE_SUFFIX(TYPES, INCLUDES)
@@ -382,7 +382,7 @@ AC_DEFUN([gl_INTEGER_TYPE_SUFFIX],
   dnl   config.h.in,
   dnl - extra AC_SUBST calls, so that the right substitutions are made.
   m4_foreach_w([gltype], [$1],
-    [AH_TEMPLATE(translit(gltype,[abcdefghijklmnopqrstuvwxyz ],[ABCDEFGHIJKLMNOPQRSTUVWXYZ_])[_SUFFIX],
+    [AH_TEMPLATE(m4_translit(gltype,[abcdefghijklmnopqrstuvwxyz ],[ABCDEFGHIJKLMNOPQRSTUVWXYZ_])[_SUFFIX],
        [Define to l, ll, u, ul, ull, etc., as suitable for
         constants of type ']gltype['.])])
   for gltype in $1 ; do
@@ -421,7 +421,7 @@ AC_DEFUN([gl_INTEGER_TYPE_SUFFIX],
     AC_DEFINE_UNQUOTED([${GLTYPE}_SUFFIX], [$result])
   done
   m4_foreach_w([gltype], [$1],
-    [AC_SUBST(translit(gltype,[abcdefghijklmnopqrstuvwxyz ],[ABCDEFGHIJKLMNOPQRSTUVWXYZ_])[_SUFFIX])])
+    [AC_SUBST(m4_translit(gltype,[abcdefghijklmnopqrstuvwxyz ],[ABCDEFGHIJKLMNOPQRSTUVWXYZ_])[_SUFFIX])])
 ])
 
 dnl gl_STDINT_INCLUDES

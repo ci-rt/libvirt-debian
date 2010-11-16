@@ -345,11 +345,16 @@ enum virNWFilterEbtablesTableType {
 
 # define MAX_RULE_PRIORITY  1000
 
+enum virNWFilterRuleFlags {
+    RULE_FLAG_NO_STATEMATCH = (1 << 0),
+};
+
 
 typedef struct _virNWFilterRuleDef  virNWFilterRuleDef;
 typedef virNWFilterRuleDef *virNWFilterRuleDefPtr;
 struct _virNWFilterRuleDef {
     unsigned int priority;
+    enum virNWFilterRuleFlags flags;
     int action; /*enum virNWFilterRuleActionType*/
     int tt; /*enum virNWFilterRuleDirectionType*/
     enum virNWFilterRuleProtocolType prtclType;
@@ -471,6 +476,7 @@ struct domUpdateCBStruct {
     virConnectPtr conn;
     enum UpdateStep step;
     int err;
+    virHashTablePtr skipInterfaces;
 };
 
 

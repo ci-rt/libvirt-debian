@@ -45,23 +45,9 @@ static int update_caps(virNodeDeviceObjPtr dev)
     virNodeDevCapsDefPtr cap = dev->def->caps;
 
     while (cap) {
-        /* The only cap that currently needs updating is the WWN of FC HBAs. */
+        /* The only caps that currently need updating are FC related. */
         if (cap->type == VIR_NODE_DEV_CAP_SCSI_HOST) {
-            if (cap->data.scsi_host.flags & VIR_NODE_DEV_CAP_FLAG_HBA_FC_HOST) {
-                if (read_wwn(cap->data.scsi_host.host,
-                            "port_name",
-                            &cap->data.scsi_host.wwpn) == -1) {
-                    VIR_ERROR(_("Failed to refresh WWPN for host%d"),
-                              cap->data.scsi_host.host);
-                }
-
-                if (read_wwn(cap->data.scsi_host.host,
-                            "node_name",
-                            &cap->data.scsi_host.wwnn) == -1) {
-                    VIR_ERROR(_("Failed to refresh WWNN for host%d"),
-                              cap->data.scsi_host.host);
-                }
-            }
+            check_fc_host(&dev->def->caps->data);
         }
         cap = cap->next;
     }
@@ -239,6 +225,7 @@ nodeDeviceLookupByWWN(virConnectPtr conn,
         while (cap) {
 
             if (cap->type == VIR_NODE_DEV_CAP_SCSI_HOST) {
+                check_fc_host(&cap->data);
                 if (cap->data.scsi_host.flags &
                     VIR_NODE_DEV_CAP_FLAG_HBA_FC_HOST) {
 
@@ -432,7 +419,7 @@ nodeDeviceVportCreateDelete(const int parent_host,
         goto cleanup;
     }
 
-    VIR_DEBUG(_("Vport operation path is '%s'"), operation_path);
+    VIR_DEBUG("Vport operation path is '%s'", operation_path);
 
     if (virAsprintf(&vport_name,
                     "%s:%s",
@@ -584,7 +571,7 @@ cleanup:
 static int
 nodeDeviceDestroy(virNodeDevicePtr dev)
 {
-    int ret = 0;
+    int ret = -1;
     virDeviceMonitorStatePtr driver = dev->conn->devMonPrivateData;
     virNodeDeviceObjPtr obj = NULL;
     char *parent_name = NULL, *wwnn = NULL, *wwpn = NULL;
@@ -631,6 +618,7 @@ nodeDeviceDestroy(virNodeDevicePtr dev)
         goto out;
     }
 
+    ret = 0;
 out:
     if (obj)
         virNodeDeviceObjUnlock(obj);
@@ -658,8 +646,8 @@ void registerCommonNodeFuncs(virDeviceMonitorPtr driver)
 int nodedevRegister(void) {
 #if defined(HAVE_HAL) && defined(HAVE_UDEV)
     /* Register only one of these two - they conflict */
-    if (halNodeRegister() == -1)
-        return udevNodeRegister();
+    if (udevNodeRegister() == -1)
+        return halNodeRegister();
     return 0;
 #else
 # ifdef HAVE_HAL

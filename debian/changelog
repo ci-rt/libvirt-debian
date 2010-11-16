@@ -1,3 +1,66 @@
+libvirt (0.8.3-4) unstable; urgency=low
+
+  * [29e8714] Recommend ebtables used by nwfilter
+  * [e9eb650] New patch
+    0009-Don-t-fail-lxc-domain-start-when-memory-controller-s.patch - Don't
+    fail lxc domain start when memory controller support is missing (Closes:
+    #566180)
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 01 Nov 2010 14:22:09 +0100
+
+libvirt (0.8.3-3) unstable; urgency=low
+
+  * [178670a] Add $syslog to the list of Required-{Start,Stop} services also
+    drop $local_fs since we already have $remote_fs
+  * [4db7451] Don't hardcode netcat's -q option. (Closes: #573172) - thanks to
+    Marc Deslauriers for the patch
+  * [d4c46ee] Disable CHECKSUM rules not supported by Squeeze's iptables
+    (Closes: #598330)
+  * [dbc2609] Move new NEWS items to the top
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 06 Oct 2010 19:47:46 +0200
+
+libvirt (0.8.3-2) unstable; urgency=low
+
+  * [4097bbd] New patch 0007-Fix-block-statistics-with-newer-versions-
+    of-Xen.patch. Fix block statistics with newer versions of Xen 
+    (Closes: #596004) - thanks to Gerald Turner for the patch
+  * [d554da3] Explain disk image probing changes (Closes: #594962)
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 29 Sep 2010 14:00:38 +0200
+
+libvirt (0.8.3-1) unstable; urgency=low
+
+  [ Guido Günther ]
+  * Mention clear_emulator_capabilities
+  * Recommend iptables and gawk
+
+  [ Laurent Léonard ]
+  * Imported Upstream version 0.8.3
+    - Fixes: CVE-2010-2237, CVE-2010-2238, CVE-2010-2239, CVE-2010-2242
+  * Redo patches
+  * Update libvirt0 symbols
+  * Bump Standards-Version to 3.9.1
+
+  [ Guido Günther ]
+  * Install libvirt-qemu library
+  * Add libvirt-qemu.so symbols
+
+  [ Laurent Léonard ]
+  * Fix debian/NEWS syntax
+
+ -- Laurent Léonard <laurent@open-minds.org>  Fri, 06 Aug 2010 17:18:55 +0200
+
+libvirt (0.8.2-1) unstable; urgency=low
+
+  * Imported Upstream version 0.8.2
+  * Drop patches.
+  * Update libvirt0 symbols.
+  * Bump Standards-Version to 3.9.0.
+  * Add virtualbox-ose and libnl-dev build dependencies.
+
+ -- Laurent Léonard <laurent@open-minds.org>  Tue, 06 Jul 2010 12:14:33 +0200
+
 libvirt (0.8.1-2~bpo50+2) lenny-backports; urgency=low
 
   * [7bbb4e2] New patch 0009-Don-t-fail-if-D-Bus-isn-t-running.patch. Don't

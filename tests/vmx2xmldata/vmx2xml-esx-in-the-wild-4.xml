@@ -13,10 +13,11 @@
   <on_crash>destroy</on_crash>
   <devices>
     <disk type='file' device='disk'>
-      <driver name='lsilogic'/>
       <source file='[datastore] directory/virtMonServ1.vmdk'/>
       <target dev='sda' bus='scsi'/>
+      <address type='drive' controller='0' bus='0' unit='0'/>
     </disk>
+    <controller type='scsi' index='0' model='lsilogic'/>
     <interface type='bridge'>
       <mac address='00:50:56:91:66:d4'/>
       <source bridge='VM Network'/>
@@ -35,7 +36,7 @@
     </parallel>
     <console type='file'>
       <source path='[498076b2-02796c1a-ef5b-000ae484a6a3] virtMonServ1/serial1.file'/>
-      <target port='0'/>
+      <target type='serial' port='0'/>
     </console>
   </devices>
 </domain>

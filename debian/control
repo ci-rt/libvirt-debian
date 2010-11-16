@@ -11,11 +11,15 @@ Build-Depends: cdbs (>= 0.4.43), debhelper (>= 5.0.38), quilt, libxml2-dev, libn
  libpolkit-dbus-dev,
  libselinux1-dev,
  libcap-ng-dev
+ polkit-1-dev
+ dpkg-dev (<< 1.15.3) | dpkg-dev (>> 1.15.3),
+ virtualbox-ose [amd64 i386],
+ libnl-dev
 XS-Python-Version: current
 Vcs-Git: git://git.debian.org/git/pkg-libvirt/libvirt.git
 Vcs-Browser: http://git.debian.org/?p=pkg-libvirt/libvirt.git
 Homepage: http://libvirt.org
-Standards-Version: 3.8.4
+Standards-Version: 3.9.1
 DM-Upload-Allowed: yes
 
 Package: libvirt-bin
@@ -24,7 +28,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, adduser, libvirt0 (= ${binary:Versi
 Enhances: qemu, qemu-kvm, xen
 Section: admin
 Recommends: netcat-openbsd, bridge-utils, dnsmasq-base (>= 2.46-1), iptables, qemu-kvm | qemu (>= 0.9.1),
- libxml2-utils
+ libxml2-utils, iptables, gawk, ebtables
 Suggests: policykit-1, hal
 Description: the programs for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities

@@ -1381,10 +1381,12 @@ xenUnifiedNumOfDefinedDomains (virConnectPtr conn)
 }
 
 static int
-xenUnifiedDomainCreate (virDomainPtr dom)
+xenUnifiedDomainCreateWithFlags (virDomainPtr dom, unsigned int flags)
 {
     GET_PRIVATE(dom->conn);
     int i;
+
+    virCheckFlags(0, -1);
 
     for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
         if (priv->opened[i] && drivers[i]->domainCreate &&
@@ -1392,6 +1394,12 @@ xenUnifiedDomainCreate (virDomainPtr dom)
             return 0;
 
     return -1;
+}
+
+static int
+xenUnifiedDomainCreate (virDomainPtr dom)
+{
+    return xenUnifiedDomainCreateWithFlags(dom, 0);
 }
 
 static virDomainPtr
@@ -1838,7 +1846,7 @@ xenUnifiedNodeDeviceDettach (virNodeDevicePtr dev)
     if (!pci)
         return -1;
 
-    if (pciDettachDevice(pci) < 0)
+    if (pciDettachDevice(pci, NULL) < 0)
         goto out;
 
     ret = 0;
@@ -1861,7 +1869,7 @@ xenUnifiedNodeDeviceReAttach (virNodeDevicePtr dev)
     if (!pci)
         return -1;
 
-    if (pciReAttachDevice(pci) < 0)
+    if (pciReAttachDevice(pci, NULL) < 0)
         goto out;
 
     ret = 0;
@@ -1884,7 +1892,7 @@ xenUnifiedNodeDeviceReset (virNodeDevicePtr dev)
     if (!pci)
         return -1;
 
-    if (pciResetDevice(pci, NULL) < 0)
+    if (pciResetDevice(pci, NULL, NULL) < 0)
         goto out;
 
     ret = 0;
@@ -1941,6 +1949,7 @@ static virDriver xenUnifiedDriver = {
     xenUnifiedListDefinedDomains, /* listDefinedDomains */
     xenUnifiedNumOfDefinedDomains, /* numOfDefinedDomains */
     xenUnifiedDomainCreate, /* domainCreate */
+    xenUnifiedDomainCreateWithFlags, /* domainCreateWithFlags */
     xenUnifiedDomainDefineXML, /* domainDefineXML */
     xenUnifiedDomainUndefine, /* domainUndefine */
     xenUnifiedDomainAttachDevice, /* domainAttachDevice */
@@ -1995,6 +2004,7 @@ static virDriver xenUnifiedDriver = {
     NULL, /* domainSnapshotCurrent */
     NULL, /* domainRevertToSnapshot */
     NULL, /* domainSnapshotDelete */
+    NULL, /* qemuDomainMonitorCommand */
 };
 
 /**
@@ -2034,6 +2044,7 @@ xenUnifiedDomainInfoListFree(xenUnifiedDomainInfoListPtr list)
         VIR_FREE(list->doms[i]->name);
         VIR_FREE(list->doms[i]);
     }
+    VIR_FREE(list->doms);
     VIR_FREE(list);
 }
 

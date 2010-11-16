@@ -24,9 +24,7 @@
 #include <config.h>
 
 #include <sys/types.h>
-#if HAVE_SYS_WAIT_H
-# include <sys/wait.h>
-#endif
+#include <sys/wait.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -73,7 +71,7 @@ VIR_ENUM_IMPL(virHookQemuOp, VIR_HOOK_QEMU_OP_LAST,
               "start",
               "stopped")
 
-VIR_ENUM_IMPL(virHookLxcOp, VIR_HOOK_QEMU_OP_LAST,
+VIR_ENUM_IMPL(virHookLxcOp, VIR_HOOK_LXC_OP_LAST,
               "start",
               "stopped")
 

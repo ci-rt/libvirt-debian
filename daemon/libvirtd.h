@@ -45,6 +45,7 @@
 # include <rpc/types.h>
 # include <rpc/xdr.h>
 # include "remote_protocol.h"
+# include "qemu_protocol.h"
 # include "logging.h"
 # include "threads.h"
 
@@ -233,6 +234,7 @@ struct qemud_client {
 
 
 struct qemud_socket {
+    char *path;
     int fd;
     int watch;
     int readonly;

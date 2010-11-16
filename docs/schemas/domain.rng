@@ -41,6 +41,9 @@
         <optional>
           <ref name="seclabel"/>
         </optional>
+        <optional>
+          <ref name='qemucmdline'/>
+        </optional>
       </interleave>
     </element>
   </define>
@@ -115,8 +118,20 @@
         </optional>
         <choice>
           <ref name="osbootkernel"/>
-          <ref name="osbootdev"/>
+          <oneOrMore>
+            <ref name="osbootdev"/>
+          </oneOrMore>
         </choice>
+        <optional>
+          <element name="bootmenu">
+            <attribute name="enable">
+              <choice>
+                <value>yes</value>
+                <value>no</value>
+              </choice>
+            </attribute>
+          </element>
+        </optional>
       </interleave>
     </element>
   </define>
@@ -669,6 +684,17 @@
         <ref name="unsignedInt"/>
       </attribute>
       <optional>
+        <attribute name="model">
+          <choice>
+            <value>auto</value>
+            <value>buslogic</value>
+            <value>lsilogic</value>
+            <value>lsisas1068</value>
+            <value>vmpvscsi</value>
+          </choice>
+        </attribute>
+      </optional>
+      <optional>
         <ref name="address"/>
       </optional>
     </element>
@@ -817,6 +843,9 @@
               </optional>
               <empty/>
             </element>
+            <optional>
+              <ref name="virtualPortProfile"/>
+            </optional>
             <ref name="interface-options"/>
           </interleave>
         </group>
@@ -901,6 +930,45 @@
         </element>
       </optional>
     </interleave>
+  </define>
+  <define name="virtualPortProfile">
+    <choice>
+      <group>
+        <element name="virtualport">
+          <attribute name="type">
+            <value>802.1Qbg</value>
+          </attribute>
+          <element name="parameters">
+            <attribute name="managerid">
+              <ref name="uint8range"/>
+            </attribute>
+            <attribute name="typeid">
+              <ref name="uint24range"/>
+            </attribute>
+            <attribute name="typeidversion">
+              <ref name="uint8range"/>
+            </attribute>
+            <optional>
+              <attribute name="instanceid">
+                <ref name="UUID"/>
+              </attribute>
+            </optional>
+          </element>
+        </element>
+      </group>
+      <group>
+        <element name="virtualport">
+          <attribute name="type">
+            <value>802.1Qbh</value>
+          </attribute>
+          <element name="parameters">
+            <attribute name="profileid">
+              <ref name="virtualPortProfileID"/>
+            </attribute>
+          </element>
+        </element>
+      </group>
+    </choice>
   </define>
   <!--
       An emulator description is just a path to the binary used for the task
@@ -1144,17 +1212,38 @@
     <interleave>
       <ref name="qemucdevSrcDef"/>
       <optional>
-        <element name="target">
-          <optional>
-            <attribute name="port"/>
-          </optional>
-        </element>
+        <ref name="qemucdevTgtDef"/>
       </optional>
       <optional>
         <ref name="address"/>
       </optional>
     </interleave>
   </define>
+
+  <define name="qemucdevConsoleTgtType">
+    <attribute name="type">
+      <choice>
+        <value>xen</value>
+        <value>serial</value>
+        <value>uml</value>
+        <value>virtio</value>
+      </choice>
+    </attribute>
+  </define>
+
+  <define  name="qemucdevTgtDef">
+    <element name="target">
+      <interleave>
+        <optional>
+          <ref name="qemucdevConsoleTgtType"/>
+        </optional>
+        <optional>
+          <attribute name="port"/>
+        </optional>
+      </interleave>
+    </element>
+  </define>
+
   <define name="qemucdevSrcType">
     <attribute name="type">
       <choice>
@@ -1214,7 +1303,9 @@
           </optional>
           <empty/>
         </group>
-        <ref name="qemucdev"/>
+        <choice>
+          <ref name="qemucdev"/>
+        </choice>
       </choice>
     </element>
   </define>
@@ -1252,6 +1343,19 @@
           </choice>
         </attribute>
       </optional>
+      <optional>
+        <ref name="address"/>
+      </optional>
+    </element>
+  </define>
+  <define name="memballoon">
+    <element name="memballoon">
+      <attribute name="model">
+        <choice>
+          <value>virtio</value>
+          <value>xen</value>
+        </choice>
+      </attribute>
       <optional>
         <ref name="address"/>
       </optional>
@@ -1428,6 +1532,11 @@
         <ref name="driveBus"/>
       </attribute>
     </optional>
+    <optional>
+      <attribute name="port">
+        <ref name="driveUnit"/>
+      </attribute>
+    </optional>
   </define>
   <!--
       Devices attached to a domain.
@@ -1457,6 +1566,9 @@
         </zeroOrMore>
         <optional>
           <ref name="watchdog"/>
+        </optional>
+        <optional>
+          <ref name="memballoon"/>
         </optional>
       </interleave>
     </element>
@@ -1499,6 +1611,7 @@
           <interleave>
             <ref name="cpuModel"/>
             <optional>
+              <ref name="cpuVendor"/>
               <ref name="cpuTopology"/>
             </optional>
             <zeroOrMore>
@@ -1522,6 +1635,12 @@
 
   <define name="cpuModel">
     <element name="model">
+      <text/>
+    </element>
+  </define>
+
+  <define name="cpuVendor">
+    <element name="vendor">
       <text/>
     </element>
   </define>
@@ -1597,6 +1716,31 @@
         </attribute>
       </element>
     </optional>
+  </define>
+
+  <!--
+       Optional hypervisor extensions in their own namespace:
+         QEmu
+    -->
+  <define name="qemucmdline">
+    <element name="commandline" ns="http://libvirt.org/schemas/domain/qemu/1.0">
+      <zeroOrMore>
+        <element name="arg">
+          <attribute name='value'/>
+        </element>
+      </zeroOrMore>
+      <zeroOrMore>
+        <element name="env">
+          <attribute name='name'>
+            <ref name="filter-param-name"/>
+          </attribute>
+          <optional>
+            <attribute name='value'/>
+          </optional>
+          <empty/>
+        </element>
+      </zeroOrMore>
+    </element>
   </define>
 
   <!--
@@ -1767,6 +1911,33 @@
   <define name="filter-param-value">
     <data type="string">
       <param name="pattern">[a-zA-Z0-9_\.:]+</param>
+    </data>
+  </define>
+  <define name="uint8range">
+    <choice>
+      <data type="string">
+        <param name="pattern">0x[0-9a-fA-F]{1,2}</param>
+      </data>
+      <data type="int">
+        <param name="minInclusive">0</param>
+        <param name="maxInclusive">255</param>
+      </data>
+    </choice>
+  </define>
+  <define name="uint24range">
+    <choice>
+      <data type="string">
+        <param name="pattern">0x[0-9a-fA-F]{1,6}</param>
+      </data>
+      <data type="int">
+        <param name="minInclusive">0</param>
+        <param name="maxInclusive">16777215</param>
+      </data>
+    </choice>
+  </define>
+  <define name="virtualPortProfileID">
+    <data type="string">
+      <param name="maxLength">39</param>
     </data>
   </define>
 </grammar>

@@ -27,7 +27,8 @@ build_aux ?= $(srcdir)/build-aux
 # Do not save the original name or timestamp in the .tar.gz file.
 # Use --rsyncable if available.
 gzip_rsyncable := \
-  $(shell gzip --help 2>/dev/null|grep rsyncable >/dev/null && echo --rsyncable)
+  $(shell gzip --help 2>/dev/null|grep rsyncable >/dev/null \
+    && printf %s --rsyncable)
 GZIP_ENV = '--no-name --best $(gzip_rsyncable)'
 
 GIT = git
@@ -102,6 +103,12 @@ endif
 # Override this in cfg.mk if you are using a different format in your
 # NEWS file.
 today = $(shell date +%Y-%m-%d)
+
+# Select which lines of NEWS are searched for $(news-check-regexp).
+# This is a sed line number spec.  The default says that we search
+# lines 1..10 of NEWS for $(news-check-regexp).
+# If you want to search only line 3 or only lines 20-22, use "3" or "20,22".
+news-check-lines-spec ?= 1,10
 news-check-regexp ?= '^\*.* $(VERSION_REGEXP) \($(today)\)'
 
 # Prevent programs like 'sort' from considering distinct strings to be equal.
@@ -148,16 +155,6 @@ local-check :=								\
     $(filter-out $(local-checks-to-skip), $(local-checks-available)))
 
 syntax-check: $(local-check)
-#	@grep -nE '#  *include <(limits|std(def|arg|bool))\.h>'		\
-#	    $$(find -type f -name '*.[chly]') &&			\
-#	  { echo '$(ME): found conditional include' 1>&2;		\
-#	    exit 1; } || :
-
-#	grep -nE '^#  *include <(string|stdlib)\.h>'			\
-#	    $(srcdir)/{lib,src}/*.[chy] &&				\
-#	  { echo '$(ME): FIXME' 1>&2;					\
-#	    exit 1; } || :
-# FIXME: don't allow `#include .strings\.h' anywhere
 
 # _sc_search_regexp
 #
@@ -197,11 +194,11 @@ syntax-check: $(local-check)
 
 # By default, _sc_search_regexp does not ignore case.
 export ignore_case =
-_ignore_case = $$(test -n "$$ignore_case" && echo -i || :)
+_ignore_case = $$(test -n "$$ignore_case" && printf %s -i || :)
 
 define _sc_say_and_exit
    dummy=; : so we do not need a semicolon before each use;		\
-   { echo -e "$(ME): $$msg" 1>&2; exit 1; };
+   { printf '%s\n' "$(ME): $$msg" 1>&2; exit 1; };
 endef
 
 # _sc_search_regexp used to be named _prohibit_regexp.  However,
@@ -554,6 +551,13 @@ sc_prohibit_signal_without_use:
 	re='\<($(_sig_function_re)) *\(|\<($(_sig_syms_re))\>'		\
 	  $(_sc_header_without_use)
 
+# Prohibit the inclusion of strings.h without a sensible use.
+# Using the likes of bcmp, bcopy, bzero, index or rindex is not sensible.
+sc_prohibit_strings_without_use:
+	@h='<strings.h>'						\
+	re='\<(strn?casecmp|ffs(ll)?)\>'				\
+	  $(_sc_header_without_use)
+
 # Get the list of symbol names with this:
 # perl -lne '/^# *define (\w+)\(/ and print $1' lib/intprops.h|grep -v '^s'|fmt
 _intprops_names =							\
@@ -645,6 +649,74 @@ sc_useless_cpp_parens:
 	halt='found useless parentheses in cpp directive'		\
 	  $(_sc_search_regexp)
 
+# List headers for which HAVE_HEADER_H is always true, assuming you are
+# using the appropriate gnulib module.  CAUTION: for each "unnecessary"
+# #if HAVE_HEADER_H that you remove, be sure that your project explicitly
+# requires the gnulib module that guarantees the usability of that header.
+gl_assured_headers_ = \
+  cd $(gnulib_dir)/lib && echo *.in.h|sed 's/\.in\.h//g'
+
+# Convert the list of names to upper case, and replace each space with "|".
+az_ = abcdefghijklmnopqrstuvwxyz
+AZ_ = ABCDEFGHIJKLMNOPQRSTUVWXYZ
+gl_header_upper_case_or_ =						\
+  $$($(gl_assured_headers_)						\
+    | tr $(az_)/.- $(AZ_)___						\
+    | tr -s ' ' '|'							\
+    )
+sc_prohibit_always_true_header_tests:
+	@or=$(gl_header_upper_case_or_);				\
+	re="HAVE_($$or)_H";						\
+	prohibit='\<'"$$re"'\>'						\
+	halt='do not test the above HAVE_<header>_H symbol(s);\n'\
+'  with the corresponding gnulib module, they are always true'		\
+	  $(_sc_search_regexp)
+
+# ==================================================================
+gl_other_headers_ ?= \
+  intprops.h	\
+  openat.h	\
+  stat-macros.h
+
+# Perl -lne code to extract "significant" cpp-defined symbols from a
+# gnulib header file, eliminating a few common false-positives.
+gl_extract_significant_defines_ = \
+  /^\# *define ([^_ (][^ (]*)(\s*\(|\s+\w+)/\
+    && $$2 !~ /(?:rpl_|_used_without_)/\
+    && $$1 !~ /^(?:NSIG|ATTRIBUTE_NORETURN)$$/\
+    and print $$1
+
+# Create a list of regular expressions matching the names
+# of macros that are guaranteed to be defined by parts of gnulib.
+define def_sym_regex
+	gen_h=$(gl_generated_headers_);					\
+	(cd $(gnulib_dir)/lib;						\
+	  for f in *.in.h $(gl_other_headers_); do			\
+	    perl -lne '$(gl_extract_significant_defines_)' $$f;		\
+	  done;								\
+	) | sort -u							\
+	  | grep -Ev '^ATTRIBUTE_NORETURN'				\
+	  | sed 's/^/^ *# *(define|undef)  */;s/$$/\\>/'
+endef
+
+# Don't define macros that we already get from gnulib header files.
+sc_prohibit_always-defined_macros:
+	@if test -d $(gnulib_dir); then					\
+	  case $$(echo all: | grep -l -f - Makefile) in Makefile);; *)	\
+	    echo '$(ME): skipping $@: you lack GNU grep' 1>&2; exit 0;;	\
+	  esac;								\
+	  $(def_sym_regex) | grep -E -f - $$($(VC_LIST_EXCEPT))		\
+	    && { echo '$(ME): define the above via some gnulib .h file'	\
+		  1>&2;  exit 1; } || :;				\
+	fi
+# ==================================================================
+
+# Prohibit checked in backup files.
+sc_prohibit_backup_files:
+	@$(VC_LIST) | grep '~$$' &&				\
+	  { echo '$(ME): found version controlled backup file' 1>&2;	\
+	    exit 1; } || :
+
 # Require the latest GPL.
 sc_GPL_version:
 	@prohibit='either ''version [^3]'				\
@@ -660,9 +732,10 @@ sc_GFDL_version:
 	  $(_sc_search_regexp)
 
 # Don't use Texinfo @acronym{} as it is not a good idea.
+texinfo_suffix_re_ ?= \.(txi|texi(nfo)?)$$
 sc_texinfo_acronym:
-	@prohibit='@acronym{'						\
-	in_vc_files='\.texi$$'						\
+	@prohibit='@acronym\{'						\
+	in_vc_files='$(texinfo_suffix_re_)'				\
 	halt='found use of Texinfo @acronym{}'				\
 	  $(_sc_search_regexp)
 
@@ -693,16 +766,18 @@ sc_prohibit_cvs_keyword:
 #   perl -pi -0777 -e 's/\n\n+$/\n/' files...
 #
 detect_empty_lines_at_EOF_ =						\
-  foreach my $$f (@ARGV) {						\
-    open F, "<", $$f or (warn "failed to open $$f: $$!\n"), next;	\
-    my $$p = sysseek (F, -2, 2);					\
-    my $$c = "seek failure probably means file has < 2 bytes; ignore";	\
-    my $$two;								\
-    defined $$p and $$p = sysread F, $$two, 2;				\
-    close F;								\
-    $$c = "ignore read failure";					\
-    $$p && $$two eq "\n\n" and (print $$f), $$fail=1;			\
-    } END { exit defined $$fail }
+  foreach my $$f (@ARGV)						\
+    {									\
+      open F, "<", $$f or (warn "failed to open $$f: $$!\n"), next;	\
+      my $$p = sysseek (F, -2, 2);					\
+      my $$c = "seek failure probably means file has < 2 bytes; ignore"; \
+      my $$last_two_bytes;						\
+      defined $$p and $$p = sysread F, $$last_two_bytes, 2;		\
+      close F;								\
+      $$c = "ignore read failure";					\
+      $$p && $$last_two_bytes eq "\n\n" and (print $$f), $$fail=1;	\
+    }									\
+  END { exit defined $$fail }
 sc_prohibit_empty_lines_at_EOF:
 	@perl -le '$(detect_empty_lines_at_EOF_)' $$($(VC_LIST_EXCEPT))	\
           || { echo '$(ME): the above files end with empty line(s)'     \
@@ -805,8 +880,8 @@ sc_makefile_at_at_check:
 	  && { echo '$(ME): use $$(...), not @...@' 1>&2; exit 1; } || :
 
 news-check: NEWS
-	if head $(srcdir)/NEWS | grep -E $(news-check-regexp)		\
-	    >/dev/null; then						\
+	if sed -n $(news-check-lines-spec)p $(srcdir)/NEWS		\
+	    | grep -E $(news-check-regexp) >/dev/null; then		\
 	  :;								\
 	else								\
 	  echo 'NEWS: $$(news-check-regexp) failed to match' 1>&2;	\
@@ -906,20 +981,22 @@ sc_copyright_check:
 # sets PATH correctly.  This is an inexpensive way to ensure that
 # the other init.sh-using tests also get it right.
 _hv_file ?= $(srcdir)/tests/help-version
-_hv_regex ?= ^ *\. [^ ]*/init\.sh
+_hv_regex_weak ?= ^ *\. .*/init\.sh"
+_hv_regex_strong ?= ^ *\. "\$${srcdir=\.}/init\.sh"
 sc_cross_check_PATH_usage_in_tests:
 	@if test -f $(_hv_file); then					\
-	  if grep -l 'VERSION mismatch' $(_hv_file) >/dev/null		\
-	      && grep -lE '$(_hv_regex)' $(_hv_file) >/dev/null; then	\
-	    good=$$(grep -E '$(_hv_regex)' < $(_hv_file));		\
-	    grep -LFx "$$good"						\
-		  $$(grep -lE '$(_hv_regex)' $$($(VC_LIST_EXCEPT)))	\
-		| grep . &&						\
-	      { echo "$(ME): the above files use path_prepend_ inconsistently" \
-		  1>&2; exit 1; } || :;					\
-	  fi;								\
-	else								\
-	  echo "$@: skipped: no such file: $(_hv_file)";		\
+	  grep -l 'VERSION mismatch' $(_hv_file) >/dev/null		\
+	    || { echo "$@: skipped: no such file: $(_hv_file)" 1>&2;	\
+		 exit 0; };						\
+	  grep -lE '$(_hv_regex_strong)' $(_hv_file) >/dev/null		\
+	    || { echo "$@: $(_hv_file) lacks conforming use of init.sh" 1>&2; \
+		 exit 1; };						\
+	  good=$$(grep -E '$(_hv_regex_strong)' $(_hv_file));		\
+	  grep -LFx "$$good"						\
+		$$(grep -lE '$(_hv_regex_weak)' $$($(VC_LIST_EXCEPT)))	\
+	      | grep . &&						\
+	    { echo "$(ME): the above files use path_prepend_ inconsistently" \
+		1>&2; exit 1; } || :;					\
 	fi
 
 # #if HAVE_... will evaluate to false for any non numeric string.
@@ -963,8 +1040,16 @@ gpg_key_ID ?= \
      && gpgv .ann-sig - < /dev/null 2>&1 \
 	  | sed -n '/.*key ID \([0-9A-F]*\)/s//\1/p'; rm -f .ann-sig)
 
+translation_project_ ?= coordinator@translationproject.org
+announcement_Cc_ ?= $(translation_project_), $(PACKAGE_BUGREPORT)
+announcement_mail_headers_ ?=						\
+To: info-gnu@gnu.org							\
+Cc: $(announcement_Cc_)							\
+Mail-Followup-To: $(PACKAGE_BUGREPORT)
+
 announcement: NEWS ChangeLog $(rel-files)
 	@$(build_aux)/announce-gen					\
+	    --mail-headers='$(announcement_mail_headers_)'		\
 	    --release-type=$(RELEASE_TYPE)				\
 	    --package=$(PACKAGE)					\
 	    --prev=$(PREV_VERSION)					\
@@ -1048,12 +1133,17 @@ release-prep:
 	$(VC) commit -F .ci-msg -a
 	rm .ci-msg
 
+# Override this with e.g., -s $(srcdir)/some_other_name.texi
+# if the default $(PACKAGE)-derived name doesn't apply.
+gendocs_options_ ?=
+
 .PHONY: web-manual
 web-manual:
 	@test -z "$(manual_title)" \
 	  && { echo define manual_title in cfg.mk 1>&2; exit 1; } || :
 	@cd '$(srcdir)/doc'; \
-	  $(SHELL) ../build-aux/gendocs.sh -o '$(abs_builddir)/doc/manual' \
+	  $(SHELL) ../build-aux/gendocs.sh $(gendocs_options_) \
+	     -o '$(abs_builddir)/doc/manual' \
 	     --email $(PACKAGE_BUGREPORT) $(PACKAGE) \
 	    "$(PACKAGE_NAME) - $(manual_title)"
 	@echo " *** Upload the doc/manual directory to web-cvs."
@@ -1095,9 +1185,11 @@ refresh-po:
 	echo 'en@quot' >> $(PODIR)/LINGUAS && \
 	ls $(PODIR)/*.po | sed 's/\.po//' | sed 's,$(PODIR)/,,' | sort >> $(PODIR)/LINGUAS
 
+ # Running indent once is not idempotent, but running it twice is.
 INDENT_SOURCES ?= $(C_SOURCES)
 .PHONY: indent
 indent:
+	indent $(INDENT_SOURCES)
 	indent $(INDENT_SOURCES)
 
 # If you want to set UPDATE_COPYRIGHT_* environment variables,

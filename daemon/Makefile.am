@@ -10,7 +10,12 @@ DAEMON_SOURCES =					\
 		remote_dispatch_table.h			\
 		remote_dispatch_args.h			\
 		remote_dispatch_ret.h			\
-		../src/remote/remote_protocol.c
+		qemu_dispatch_prototypes.h		\
+		qemu_dispatch_table.h			\
+		qemu_dispatch_args.h			\
+		qemu_dispatch_ret.h			\
+		../src/remote/remote_protocol.c		\
+		../src/remote/qemu_protocol.c
 
 AVAHI_SOURCES =						\
 		mdns.c mdns.h
@@ -29,8 +34,14 @@ EXTRA_DIST =						\
 	libvirtd.lxc.logrotate.in                       \
 	libvirtd.uml.logrotate.in                       \
 	test_libvirtd.aug                               \
+	THREADING.txt					\
+	libvirt-guests.init.in				\
+	libvirt-guests.sysconf				\
+	libvirtd.pod.in					\
 	$(AVAHI_SOURCES)				\
 	$(DAEMON_SOURCES)
+
+man_MANS = libvirtd.8
 
 BUILT_SOURCES =
 
@@ -46,6 +57,20 @@ augeas_DATA = libvirtd.aug
 
 augeastestsdir = $(datadir)/augeas/lenses/tests
 augeastests_DATA = test_libvirtd.aug
+
+POD2MAN = pod2man -c "Virtualization Support" \
+			-r "$(PACKAGE)-$(VERSION)" -s 8
+
+libvirtd.pod: libvirtd.pod.in
+	sed \
+	    -e 's![@]sysconfdir[@]!$(sysconfdir)!g' \
+	    -e 's![@]localstatedir[@]!$(localstatedir)!g' \
+	    -e 's![@]remote_pid_file[@]!$(REMOTE_PID_FILE)!g' \
+	    < $< > $@-t
+	mv $@-t $@
+
+libvirtd.8: libvirtd.pod
+	$(AM_V_GEN)$(POD2MAN) $< $@
 
 libvirtd_SOURCES = $(DAEMON_SOURCES)
 
@@ -76,7 +101,7 @@ libvirtd_LDADD =					\
 	$(SASL_LIBS)					\
 	$(POLKIT_LIBS)
 
-libvirtd_LDADD += ../src/libvirt_util.la
+libvirtd_LDADD += ../src/libvirt_util.la ../src/libvirt-qemu.la
 
 if WITH_DRIVER_MODULES
   libvirtd_LDADD += ../src/libvirt_driver.la
@@ -167,21 +192,38 @@ endif
 remote.c: remote_dispatch_prototypes.h \
 	  remote_dispatch_table.h \
 	  remote_dispatch_args.h \
-	  remote_dispatch_ret.h
+	  remote_dispatch_ret.h \
+	  qemu_dispatch_prototypes.h \
+	  qemu_dispatch_table.h \
+	  qemu_dispatch_args.h \
+	  qemu_dispatch_ret.h
 
 REMOTE_PROTOCOL = $(top_srcdir)/src/remote/remote_protocol.x
+QEMU_PROTOCOL = $(top_srcdir)/src/remote/qemu_protocol.x
 
 remote_dispatch_prototypes.h: $(srcdir)/remote_generate_stubs.pl $(REMOTE_PROTOCOL)
-	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -p $(REMOTE_PROTOCOL) > $@
+	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -c -p remote $(REMOTE_PROTOCOL) > $@
 
 remote_dispatch_table.h: $(srcdir)/remote_generate_stubs.pl $(REMOTE_PROTOCOL)
-	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -t $(REMOTE_PROTOCOL) > $@
+	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -c -t remote $(REMOTE_PROTOCOL) > $@
 
 remote_dispatch_args.h: $(srcdir)/remote_generate_stubs.pl $(REMOTE_PROTOCOL)
-	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -a $(REMOTE_PROTOCOL) > $@
+	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -c -a remote $(REMOTE_PROTOCOL) > $@
 
 remote_dispatch_ret.h: $(srcdir)/remote_generate_stubs.pl $(REMOTE_PROTOCOL)
-	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -r $(REMOTE_PROTOCOL) > $@
+	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -c -r remote $(REMOTE_PROTOCOL) > $@
+
+qemu_dispatch_prototypes.h: $(srcdir)/remote_generate_stubs.pl $(QEMU_PROTOCOL)
+	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -p qemu $(QEMU_PROTOCOL) > $@
+
+qemu_dispatch_table.h: $(srcdir)/remote_generate_stubs.pl $(QEMU_PROTOCOL)
+	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -t qemu $(QEMU_PROTOCOL) > $@
+
+qemu_dispatch_args.h: $(srcdir)/remote_generate_stubs.pl $(QEMU_PROTOCOL)
+	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -a qemu $(QEMU_PROTOCOL) > $@
+
+qemu_dispatch_ret.h: $(srcdir)/remote_generate_stubs.pl $(QEMU_PROTOCOL)
+	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -r qemu $(QEMU_PROTOCOL) > $@
 
 LOGROTATE_CONFS = libvirtd.qemu.logrotate libvirtd.lxc.logrotate \
                   libvirtd.uml.logrotate
@@ -216,21 +258,27 @@ install-logrotate: $(LOGROTATE_CONFS)
 	$(INSTALL_DATA) libvirtd.uml.logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.uml
 
 if LIBVIRT_INIT_SCRIPT_RED_HAT
-install-init: libvirtd.init
+install-init: libvirtd.init libvirt-guests.init
 	mkdir -p $(DESTDIR)$(sysconfdir)/rc.d/init.d
 	$(INSTALL_SCRIPT) libvirtd.init \
 	  $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirtd
+	$(INSTALL_SCRIPT) libvirt-guests.init \
+	  $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirt-guests
 	mkdir -p $(DESTDIR)$(sysconfdir)/sysconfig
 	$(INSTALL_SCRIPT) $(srcdir)/libvirtd.sysconf \
 	  $(DESTDIR)$(sysconfdir)/sysconfig/libvirtd
+	$(INSTALL_SCRIPT) $(srcdir)/libvirt-guests.sysconf \
+	  $(DESTDIR)$(sysconfdir)/sysconfig/libvirt-guests
 
 uninstall-init:
 	rm -f $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirtd \
-		$(DESTDIR)$(sysconfdir)/sysconfig/libvirtd
+		$(DESTDIR)$(sysconfdir)/sysconfig/libvirtd \
+		$(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirt-guests \
+		$(DESTDIR)$(sysconfdir)/sysconfig/libvirt-guests
 
-BUILT_SOURCES += libvirtd.init
+BUILT_SOURCES += libvirtd.init libvirt-guests.init
 
-libvirtd.init: libvirtd.init.in
+%.init: %.init.in $(top_builddir)/config.status
 	$(AM_V_GEN)sed					\
 	    -e s!\@localstatedir\@!@localstatedir@!g	\
 	    -e s!\@sbindir\@!@sbindir@!g		\
@@ -276,5 +324,5 @@ uninstall-data-sasl:
 endif
 
 
-CLEANFILES = $(BUILT_SOURCES)
+CLEANFILES = $(BUILT_SOURCES) $(man_MANS) libvirtd.pod
 CLEANFILES += *.cov *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda

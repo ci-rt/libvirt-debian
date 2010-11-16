@@ -56,4 +56,12 @@ Access Control
 Access to the libvirt socket is controlled by membership in the "libvirt" group.
 If you want to manage VMs as non root you need to add a user to that group.
 
- -- Guido Guenther <agx@sigxcpu.org>  Thu, 15 May 2008 14:13:03 +0100
+QEMU/KVM: Dropping Capabilties
+==============================
+Network interfaces of type "ethernet" use a script like /etc/qemu-ifup to set up
+the network device. In order to make this work you need to set
+"clear_emulator_capabilities" to "0" in /etc/libvirt/qemu.conf since you need
+CAP_NET_ADMIN.
+This used to be the default prior to 0.8.1 in the Debian package.
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 12 Jul 2010 19:58:35 +0200
