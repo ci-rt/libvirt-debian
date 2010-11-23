@@ -1,3 +1,15 @@
+libvirt (0.8.3-4~bpo50+1) lenny-backports; urgency=low
+
+  * Rebuild for lenny-backports.
+  * [f23ec0c] Drop 0009-Don-t-fail-if-D-Bus-isn-t-running.patch - applied
+    upstream.
+  * [6e61dbd] Update dependencies for lenny backports
+  * [0349e22] Revert "Use 1.0 source format" since 3.0 (quilt) is now
+    supported by bpo.
+  * Thanks to Jhon Masschelein for testing.
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 23 Nov 2010 09:24:42 +0100
+
 libvirt (0.8.3-4) unstable; urgency=low
 
   * [29e8714] Recommend ebtables used by nwfilter
