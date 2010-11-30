@@ -1,3 +1,12 @@
+libvirt (0.8.6-1) experimental; urgency=low
+
+  * [3b7b682] Imported Upstream version 0.8.6
+  * [5b081c3] Drop patch
+    - 0008-Move-MAX_VIRT_CPUS-so-all-xen-code-can-see-it.patch - fixed upstream
+  * [38589e6] Update libvirt0 symbols
+
+ -- Laurent Léonard <laurent@open-minds.org>  Tue, 30 Nov 2010 23:31:59 +0100
+
 libvirt (0.8.5-1) experimental; urgency=low
 
   [ Laurent Léonard ]
