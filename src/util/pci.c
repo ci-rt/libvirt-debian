@@ -37,6 +37,7 @@
 #include "memory.h"
 #include "util.h"
 #include "virterror_internal.h"
+#include "files.h"
 
 /* avoid compilation breakage on some systems */
 #ifndef MODPROBE
@@ -188,10 +189,7 @@ pciCloseConfig(pciDevice *dev)
     if (!dev)
         return;
 
-    if (dev->fd >= 0) {
-        close(dev->fd);
-        dev->fd = -1;
-    }
+    VIR_FORCE_CLOSE(dev->fd);
 }
 
 static int
@@ -1097,7 +1095,7 @@ pciWaitForDeviceCleanup(pciDevice *dev, const char *matcher)
         }
     }
 
-    fclose(fp);
+    VIR_FORCE_FCLOSE(fp);
 
     return ret;
 }

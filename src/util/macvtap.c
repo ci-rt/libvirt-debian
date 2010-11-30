@@ -52,6 +52,7 @@
 # include "conf/domain_conf.h"
 # include "virterror_internal.h"
 # include "uuid.h"
+# include "files.h"
 
 # define VIR_FROM_THIS VIR_FROM_NET
 
@@ -76,26 +77,22 @@
 # define LLDPAD_PID_FILE  "/var/run/lldpad.pid"
 
 
+VIR_ENUM_IMPL(virVMOperation, VIR_VM_OP_LAST,
+    "create",
+    "save",
+    "restore",
+    "destroy",
+    "migrate out",
+    "migrate in start",
+    "migrate in finish",
+    "no-op")
+
+
 enum virVirtualPortOp {
     ASSOCIATE = 0x1,
     DISASSOCIATE = 0x2,
+    PREASSOCIATE = 0x3,
 };
-
-
-static int nlOpen(void)
-{
-    int fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
-    if (fd < 0)
-        virReportSystemError(errno,
-                             "%s",_("cannot open netlink socket"));
-    return fd;
-}
-
-
-static void nlClose(int fd)
-{
-    close(fd);
-}
 
 
 /**
@@ -111,8 +108,8 @@ static void nlClose(int fd)
  * buffer will be returned.
  */
 static
-int nlComm(struct nlmsghdr *nlmsg,
-           char **respbuf, unsigned int *respbuflen,
+int nlComm(struct nl_msg *nl_msg,
+           unsigned char **respbuf, unsigned int *respbuflen,
            int nl_pid)
 {
     int rc = 0;
@@ -121,30 +118,37 @@ int nlComm(struct nlmsghdr *nlmsg,
             .nl_pid    = nl_pid,
             .nl_groups = 0,
     };
-    int rcvChunkSize = 1024; // expecting less than that
-    int rcvoffset = 0;
     ssize_t nbytes;
     struct timeval tv = {
         .tv_sec = NETLINK_ACK_TIMEOUT_S,
     };
     fd_set readfds;
-    int fd = nlOpen();
+    int fd;
     int n;
+    struct nl_handle *nlhandle = nl_handle_alloc();
+    struct nlmsghdr *nlmsg = nlmsg_hdr(nl_msg);
 
-    if (fd < 0)
+    if (!nlhandle)
         return -1;
 
-    nlmsg->nlmsg_pid = getpid();
-    nlmsg->nlmsg_flags |= NLM_F_ACK;
+    if (nl_connect(nlhandle, NETLINK_ROUTE) < 0) {
+        rc = -1;
+        goto err_exit;
+    }
 
-    nbytes = sendto(fd, (void *)nlmsg, nlmsg->nlmsg_len, 0,
-                    (struct sockaddr *)&nladdr, sizeof(nladdr));
+    nlmsg_set_dst(nl_msg, &nladdr);
+
+    nlmsg->nlmsg_pid = getpid();
+
+    nbytes = nl_send_auto_complete(nlhandle, nl_msg);
     if (nbytes < 0) {
         virReportSystemError(errno,
                              "%s", _("cannot send to netlink socket"));
         rc = -1;
         goto err_exit;
     }
+
+    fd = nl_socket_get_fd(nlhandle);
 
     FD_ZERO(&readfds);
     FD_SET(fd, &readfds);
@@ -161,28 +165,9 @@ int nlComm(struct nlmsghdr *nlmsg,
         goto err_exit;
     }
 
-    while (1) {
-        if (VIR_REALLOC_N(*respbuf, rcvoffset+rcvChunkSize) < 0) {
-            virReportOOMError();
-            rc = -1;
-            goto err_exit;
-        }
-
-        socklen_t addrlen = sizeof(nladdr);
-        nbytes = recvfrom(fd, &((*respbuf)[rcvoffset]), rcvChunkSize, 0,
-                          (struct sockaddr *)&nladdr, &addrlen);
-        if (nbytes < 0) {
-            if (errno == EAGAIN || errno == EINTR)
-                continue;
-            virReportSystemError(errno, "%s",
-                                 _("error receiving from netlink socket"));
-            rc = -1;
-            goto err_exit;
-        }
-        rcvoffset += nbytes;
-        break;
-    }
-    *respbuflen = rcvoffset;
+    *respbuflen = nl_recv(nlhandle, &nladdr, respbuf, NULL);
+    if (*respbuflen <= 0)
+        rc = -1;
 
 err_exit:
     if (rc == -1) {
@@ -191,53 +176,8 @@ err_exit:
         *respbuflen = 0;
     }
 
-    nlClose(fd);
+    nl_handle_destroy(nlhandle);
     return rc;
-}
-
-
-static struct rtattr *
-rtattrCreate(char *buffer, int bufsize, int type,
-             const void *data, int datalen)
-{
-    struct rtattr *r = (struct rtattr *)buffer;
-    r->rta_type = type;
-    r->rta_len  = RTA_LENGTH(datalen);
-    if (r->rta_len > bufsize)
-        return NULL;
-    memcpy(RTA_DATA(r), data, datalen);
-    return r;
-}
-
-
-static void
-nlInit(struct nlmsghdr *nlm, int flags, int type)
-{
-    nlm->nlmsg_len = NLMSG_LENGTH(0);
-    nlm->nlmsg_flags = flags;
-    nlm->nlmsg_type = type;
-}
-
-
-static void
-nlAlign(struct nlmsghdr *nlm)
-{
-    nlm->nlmsg_len = NLMSG_ALIGN(nlm->nlmsg_len);
-}
-
-
-static void *
-nlAppend(struct nlmsghdr *nlm, int totlen, const void *data, int datalen)
-{
-    char *pos;
-    nlAlign(nlm);
-    if (nlm->nlmsg_len + NLMSG_ALIGN(datalen) > totlen)
-        return NULL;
-    pos = (char *)nlm + nlm->nlmsg_len;
-    memcpy(pos, data, datalen);
-    nlm->nlmsg_len += datalen;
-    nlAlign(nlm);
-    return pos;
 }
 
 
@@ -252,74 +192,63 @@ link_add(const char *type,
          int *retry)
 {
     int rc = 0;
-    char nlmsgbuf[NLMSGBUF_SIZE];
-    struct nlmsghdr *nlm = (struct nlmsghdr *)nlmsgbuf, *resp;
+    struct nlmsghdr *resp;
     struct nlmsgerr *err;
-    char rtattbuf[RATTBUF_SIZE];
-    struct rtattr *rta, *rta1, *li;
     struct ifinfomsg ifinfo = { .ifi_family = AF_UNSPEC };
     int ifindex;
-    char *recvbuf = NULL;
+    unsigned char *recvbuf = NULL;
     unsigned int recvbuflen;
+    struct nl_msg *nl_msg;
+    struct nlattr *linkinfo, *info_data;
 
     if (ifaceGetIndex(true, srcdev, &ifindex) != 0)
         return -1;
 
     *retry = 0;
 
-    memset(&nlmsgbuf, 0, sizeof(nlmsgbuf));
-
-    nlInit(nlm, NLM_F_REQUEST | NLM_F_CREATE | NLM_F_EXCL, RTM_NEWLINK);
-
-    if (!nlAppend(nlm, sizeof(nlmsgbuf), &ifinfo, sizeof(ifinfo)))
-        goto buffer_too_small;
-
-    rta = rtattrCreate(rtattbuf, sizeof(rtattbuf), IFLA_LINK,
-                       &ifindex, sizeof(ifindex));
-    if (!rta || !nlAppend(nlm, sizeof(nlmsgbuf), rtattbuf, rta->rta_len))
-        goto buffer_too_small;
-
-    rta = rtattrCreate(rtattbuf, sizeof(rtattbuf), IFLA_ADDRESS,
-                       macaddress, macaddrsize);
-    if (!rta || !nlAppend(nlm, sizeof(nlmsgbuf), rtattbuf, rta->rta_len))
-        goto buffer_too_small;
-
-    if (ifname) {
-        rta = rtattrCreate(rtattbuf, sizeof(rtattbuf), IFLA_IFNAME,
-                           ifname, strlen(ifname) + 1);
-        if (!rta || !nlAppend(nlm, sizeof(nlmsgbuf), rtattbuf, rta->rta_len))
-            goto buffer_too_small;
+    nl_msg = nlmsg_alloc_simple(RTM_NEWLINK,
+                                NLM_F_REQUEST | NLM_F_CREATE | NLM_F_EXCL);
+    if (!nl_msg) {
+        virReportOOMError();
+        return -1;
     }
 
-    rta = rtattrCreate(rtattbuf, sizeof(rtattbuf), IFLA_LINKINFO, NULL, 0);
-    if (!rta ||
-        !(li = nlAppend(nlm, sizeof(nlmsgbuf), rtattbuf, rta->rta_len)))
+    if (nlmsg_append(nl_msg,  &ifinfo, sizeof(ifinfo), NLMSG_ALIGNTO) < 0)
         goto buffer_too_small;
 
-    rta = rtattrCreate(rtattbuf, sizeof(rtattbuf), IFLA_INFO_KIND,
-                       type, strlen(type));
-    if (!rta || !nlAppend(nlm, sizeof(nlmsgbuf), rtattbuf, rta->rta_len))
+    if (nla_put_u32(nl_msg, IFLA_LINK, ifindex) < 0)
+        goto buffer_too_small;
+
+    if (nla_put(nl_msg, IFLA_ADDRESS, macaddrsize, macaddress) < 0)
+        goto buffer_too_small;
+
+    if (ifname &&
+        nla_put(nl_msg, IFLA_IFNAME, strlen(ifname)+1, ifname) < 0)
+        goto buffer_too_small;
+
+    if (!(linkinfo = nla_nest_start(nl_msg, IFLA_LINKINFO)))
+        goto buffer_too_small;
+
+    if (nla_put(nl_msg, IFLA_INFO_KIND, strlen(type), type) < 0)
         goto buffer_too_small;
 
     if (macvlan_mode > 0) {
-        rta = rtattrCreate(rtattbuf, sizeof(rtattbuf), IFLA_INFO_DATA,
-                           NULL, 0);
-        if (!rta ||
-            !(rta1 = nlAppend(nlm, sizeof(nlmsgbuf), rtattbuf, rta->rta_len)))
+        if (!(info_data = nla_nest_start(nl_msg, IFLA_INFO_DATA)))
             goto buffer_too_small;
 
-        rta = rtattrCreate(rtattbuf, sizeof(rtattbuf), IFLA_MACVLAN_MODE,
-                           &macvlan_mode, sizeof(macvlan_mode));
-        if (!rta || !nlAppend(nlm, sizeof(nlmsgbuf), rtattbuf, rta->rta_len))
+        if (nla_put(nl_msg, IFLA_MACVLAN_MODE, sizeof(macvlan_mode),
+                    &macvlan_mode) < 0)
             goto buffer_too_small;
 
-        rta1->rta_len = (char *)nlm + nlm->nlmsg_len - (char *)rta1;
+        nla_nest_end(nl_msg, info_data);
     }
 
-    li->rta_len = (char *)nlm + nlm->nlmsg_len - (char *)li;
+    nla_nest_end(nl_msg, linkinfo);
 
-    if (nlComm(nlm, &recvbuf, &recvbuflen, 0) < 0)
-        return -1;
+    if (nlComm(nl_msg, &recvbuf, &recvbuflen, 0) < 0) {
+        rc = -1;
+        goto err_exit;
+    }
 
     if (recvbuflen < NLMSG_LENGTH(0) || recvbuf == NULL)
         goto malformed_resp;
@@ -357,50 +286,58 @@ link_add(const char *type,
         goto malformed_resp;
     }
 
+err_exit:
+    nlmsg_free(nl_msg);
+
     VIR_FREE(recvbuf);
 
     return rc;
 
 malformed_resp:
+    nlmsg_free(nl_msg);
+
     macvtapError(VIR_ERR_INTERNAL_ERROR, "%s",
                  _("malformed netlink response message"));
     VIR_FREE(recvbuf);
     return -1;
 
 buffer_too_small:
+    nlmsg_free(nl_msg);
+
     macvtapError(VIR_ERR_INTERNAL_ERROR, "%s",
-                 _("internal buffer is too small"));
+                 _("allocated netlink buffer is too small"));
     return -1;
 }
 
 
 static int
-link_del(const char *name)
+link_del(const char *ifname)
 {
     int rc = 0;
-    char nlmsgbuf[NLMSGBUF_SIZE];
-    struct nlmsghdr *nlm = (struct nlmsghdr *)nlmsgbuf, *resp;
+    struct nlmsghdr *resp;
     struct nlmsgerr *err;
-    char rtattbuf[RATTBUF_SIZE];
-    struct rtattr *rta;
     struct ifinfomsg ifinfo = { .ifi_family = AF_UNSPEC };
-    char *recvbuf = NULL;
+    unsigned char *recvbuf = NULL;
     unsigned int recvbuflen;
+    struct nl_msg *nl_msg;
 
-    memset(&nlmsgbuf, 0, sizeof(nlmsgbuf));
-
-    nlInit(nlm, NLM_F_REQUEST | NLM_F_CREATE | NLM_F_EXCL, RTM_DELLINK);
-
-    if (!nlAppend(nlm, sizeof(nlmsgbuf), &ifinfo, sizeof(ifinfo)))
-        goto buffer_too_small;
-
-    rta = rtattrCreate(rtattbuf, sizeof(rtattbuf), IFLA_IFNAME,
-                       name, strlen(name)+1);
-    if (!rta || !nlAppend(nlm, sizeof(nlmsgbuf), rtattbuf, rta->rta_len))
-        goto buffer_too_small;
-
-    if (nlComm(nlm, &recvbuf, &recvbuflen, 0) < 0)
+    nl_msg = nlmsg_alloc_simple(RTM_DELLINK,
+                                NLM_F_REQUEST | NLM_F_CREATE | NLM_F_EXCL);
+    if (!nl_msg) {
+        virReportOOMError();
         return -1;
+    }
+
+    if (nlmsg_append(nl_msg,  &ifinfo, sizeof(ifinfo), NLMSG_ALIGNTO) < 0)
+        goto buffer_too_small;
+
+    if (nla_put(nl_msg, IFLA_IFNAME, strlen(ifname)+1, ifname) < 0)
+        goto buffer_too_small;
+
+    if (nlComm(nl_msg, &recvbuf, &recvbuflen, 0) < 0) {
+        rc = -1;
+        goto err_exit;
+    }
 
     if (recvbuflen < NLMSG_LENGTH(0) || recvbuf == NULL)
         goto malformed_resp;
@@ -416,7 +353,7 @@ link_del(const char *name)
         if (err->error) {
             virReportSystemError(-err->error,
                                  _("error destroying %s interface"),
-                                 name);
+                                 ifname);
             rc = -1;
         }
         break;
@@ -428,19 +365,26 @@ link_del(const char *name)
         goto malformed_resp;
     }
 
+err_exit:
+    nlmsg_free(nl_msg);
+
     VIR_FREE(recvbuf);
 
     return rc;
 
 malformed_resp:
+    nlmsg_free(nl_msg);
+
     macvtapError(VIR_ERR_INTERNAL_ERROR, "%s",
                  _("malformed netlink response message"));
     VIR_FREE(recvbuf);
     return -1;
 
 buffer_too_small:
+    nlmsg_free(nl_msg);
+
     macvtapError(VIR_ERR_INTERNAL_ERROR, "%s",
-                 _("internal buffer is too small"));
+                 _("allocated netlink buffer is too small"));
     return -1;
 }
 
@@ -482,11 +426,11 @@ int openTap(const char *ifname,
         virReportSystemError(errno,
                              "%s",_("cannot determine macvtap's tap device "
                              "interface index"));
-        fclose(file);
+        VIR_FORCE_FCLOSE(file);
         return -1;
     }
 
-    fclose(file);
+    VIR_FORCE_FCLOSE(file);
 
     if (snprintf(tapname, sizeof(tapname),
                  "/dev/tap%d", ifindex) >= sizeof(tapname)) {
@@ -619,7 +563,8 @@ openMacvtapTap(const char *tgifname,
                int vnet_hdr,
                const unsigned char *vmuuid,
                virVirtualPortProfileParamsPtr virtPortProfile,
-               char **res_ifname)
+               char **res_ifname,
+               enum virVMOperationType vmOp)
 {
     const char *type = "macvtap";
     int c, rc;
@@ -630,6 +575,8 @@ openMacvtapTap(const char *tgifname,
     int ifindex;
 
     *res_ifname = NULL;
+
+    VIR_DEBUG("%s: VM OPERATION: %s", __FUNCTION__, virVMOperationTypeToString(vmOp));
 
     if (tgifname) {
         if(ifaceGetIndex(false, tgifname, &ifindex) == 0) {
@@ -669,7 +616,7 @@ create_name:
                                  macaddress,
                                  linkdev,
                                  virtPortProfile,
-                                 vmuuid) != 0) {
+                                 vmuuid, vmOp) != 0) {
         rc = -1;
         goto link_del_exit;
     }
@@ -689,8 +636,7 @@ create_name:
 
     if (rc >= 0) {
         if (configMacvtapTap(rc, vnet_hdr) < 0) {
-            close(rc);
-            rc = -1;
+            VIR_FORCE_CLOSE(rc); /* sets rc to -1 */
             goto disassociate_exit;
         }
         *res_ifname = strdup(cr_ifname);
@@ -703,7 +649,8 @@ disassociate_exit:
     vpDisassociatePortProfileId(cr_ifname,
                                 macaddress,
                                 linkdev,
-                                virtPortProfile);
+                                virtPortProfile,
+                                vmOp);
 
 link_del_exit:
     link_del(cr_ifname);
@@ -731,7 +678,8 @@ delMacvtap(const char *ifname,
     if (ifname) {
         vpDisassociatePortProfileId(ifname, macaddr,
                                     linkdev,
-                                    virtPortProfile);
+                                    virtPortProfile,
+                                    VIR_VM_OP_DESTROY);
         link_del(ifname);
     }
 }
@@ -778,8 +726,7 @@ getLldpadPid(void) {
                              _("Error opening file %s"), LLDPAD_PID_FILE);
     }
 
-    if (fd >= 0)
-        close(fd);
+    VIR_FORCE_CLOSE(fd);
 
     return pid;
 }
@@ -787,43 +734,47 @@ getLldpadPid(void) {
 
 static int
 link_dump(bool nltarget_kernel, const char *ifname, int ifindex,
-          struct nlattr **tb, char **recvbuf)
+          struct nlattr **tb, unsigned char **recvbuf)
 {
     int rc = 0;
-    char nlmsgbuf[NLMSGBUF_SIZE] = { 0, };
-    struct nlmsghdr *nlm = (struct nlmsghdr *)nlmsgbuf, *resp;
+    struct nlmsghdr *resp;
     struct nlmsgerr *err;
-    char rtattbuf[RATTBUF_SIZE];
-    struct rtattr *rta;
     struct ifinfomsg ifinfo = {
         .ifi_family = AF_UNSPEC,
         .ifi_index  = ifindex
     };
     unsigned int recvbuflen;
     uint32_t pid = 0;
+    struct nl_msg *nl_msg;
 
     *recvbuf = NULL;
 
-    nlInit(nlm, NLM_F_REQUEST, RTM_GETLINK);
+    nl_msg = nlmsg_alloc_simple(RTM_GETLINK, NLM_F_REQUEST);
+    if (!nl_msg) {
+        virReportOOMError();
+        return -1;
+    }
 
-    if (!nlAppend(nlm, sizeof(nlmsgbuf), &ifinfo, sizeof(ifinfo)))
+    if (nlmsg_append(nl_msg,  &ifinfo, sizeof(ifinfo), NLMSG_ALIGNTO) < 0)
         goto buffer_too_small;
 
     if (ifindex < 0 && ifname) {
-        rta = rtattrCreate(rtattbuf, sizeof(rtattbuf), IFLA_IFNAME,
-                           ifname, strlen(ifname) + 1);
-        if (!rta || !nlAppend(nlm, sizeof(nlmsgbuf), rtattbuf, rta->rta_len))
+        if (nla_put(nl_msg, IFLA_IFNAME, strlen(ifname)+1, ifname) < 0)
             goto buffer_too_small;
     }
 
     if (!nltarget_kernel) {
         pid = getLldpadPid();
-        if (pid == 0)
-            return -1;
+        if (pid == 0) {
+            rc = -1;
+            goto err_exit;
+        }
     }
 
-    if (nlComm(nlm, recvbuf, &recvbuflen, pid) < 0)
-        return -1;
+    if (nlComm(nl_msg, recvbuf, &recvbuflen, pid) < 0) {
+        rc = -1;
+        goto err_exit;
+    }
 
     if (recvbuflen < NLMSG_LENGTH(0) || *recvbuf == NULL)
         goto malformed_resp;
@@ -859,17 +810,24 @@ link_dump(bool nltarget_kernel, const char *ifname, int ifindex,
     if (rc != 0)
         VIR_FREE(*recvbuf);
 
+err_exit:
+    nlmsg_free(nl_msg);
+
     return rc;
 
 malformed_resp:
+    nlmsg_free(nl_msg);
+
     macvtapError(VIR_ERR_INTERNAL_ERROR, "%s",
                  _("malformed netlink response message"));
     VIR_FREE(*recvbuf);
     return -1;
 
 buffer_too_small:
+    nlmsg_free(nl_msg);
+
     macvtapError(VIR_ERR_INTERNAL_ERROR, "%s",
-                 _("internal buffer is too small"));
+                 _("allocated netlink buffer is too small"));
     return -1;
 }
 
@@ -899,7 +857,7 @@ ifaceGetNthParent(int ifindex, const char *ifname, unsigned int nthParent,
 {
     int rc;
     struct nlattr *tb[IFLA_MAX + 1] = { NULL, };
-    char *recvbuf = NULL;
+    unsigned char *recvbuf = NULL;
     bool end = false;
     unsigned int i = 0;
 
@@ -1053,35 +1011,33 @@ doPortProfileOpSetLink(bool nltarget_kernel,
                        uint8_t op)
 {
     int rc = 0;
-    char nlmsgbuf[NLMSGBUF_SIZE];
-    struct nlmsghdr *nlm = (struct nlmsghdr *)nlmsgbuf, *resp;
+    struct nlmsghdr *resp;
     struct nlmsgerr *err;
-    char rtattbuf[RATTBUF_SIZE];
-    struct rtattr *rta, *vfports = NULL, *vfport;
     struct ifinfomsg ifinfo = {
         .ifi_family = AF_UNSPEC,
         .ifi_index  = ifindex,
     };
-    char *recvbuf = NULL;
+    unsigned char *recvbuf = NULL;
     unsigned int recvbuflen = 0;
     uint32_t pid = 0;
+    struct nl_msg *nl_msg;
+    struct nlattr *vfports = NULL, *vfport;
 
-    memset(&nlmsgbuf, 0, sizeof(nlmsgbuf));
-
-    nlInit(nlm, NLM_F_REQUEST, RTM_SETLINK);
-
-    if (!nlAppend(nlm, sizeof(nlmsgbuf), &ifinfo, sizeof(ifinfo)))
-        goto buffer_too_small;
-
-    if (ifname) {
-        rta = rtattrCreate(rtattbuf, sizeof(rtattbuf), IFLA_IFNAME,
-                           ifname, strlen(ifname) + 1);
-        if (!rta || !nlAppend(nlm, sizeof(nlmsgbuf), rtattbuf, rta->rta_len))
-            goto buffer_too_small;
+    nl_msg = nlmsg_alloc_simple(RTM_SETLINK, NLM_F_REQUEST);
+    if (!nl_msg) {
+        virReportOOMError();
+        return -1;
     }
 
+    if (nlmsg_append(nl_msg,  &ifinfo, sizeof(ifinfo), NLMSG_ALIGNTO) < 0)
+        goto buffer_too_small;
+
+    if (ifname &&
+        nla_put(nl_msg, IFLA_IFNAME, strlen(ifname)+1, ifname) < 0)
+        goto buffer_too_small;
+
     if (macaddr && vlanid >= 0) {
-        struct rtattr *vfinfolist, *vfinfo;
+        struct nlattr *vfinfolist, *vfinfo;
         struct ifla_vf_mac ifla_vf_mac = {
             .vf = vf,
             .mac = { 0, },
@@ -1094,110 +1050,88 @@ doPortProfileOpSetLink(bool nltarget_kernel,
 
         memcpy(ifla_vf_mac.mac, macaddr, 6);
 
-        rta = rtattrCreate(rtattbuf, sizeof(rtattbuf), IFLA_VFINFO_LIST,
-                           NULL, 0);
-        if (!rta ||
-            !(vfinfolist = nlAppend(nlm, sizeof(nlmsgbuf),
-                                    rtattbuf, rta->rta_len)))
+        if (!(vfinfolist = nla_nest_start(nl_msg, IFLA_VFINFO_LIST)))
             goto buffer_too_small;
 
-        rta = rtattrCreate(rtattbuf, sizeof(rtattbuf), IFLA_VF_INFO,
-                           NULL, 0);
-        if (!rta ||
-            !(vfinfo = nlAppend(nlm, sizeof(nlmsgbuf),
-                                rtattbuf, rta->rta_len)))
+        if (!(vfinfo = nla_nest_start(nl_msg, IFLA_VF_INFO)))
             goto buffer_too_small;
 
-        rta = rtattrCreate(rtattbuf, sizeof(rtattbuf), IFLA_VF_MAC,
-                           &ifla_vf_mac, sizeof(ifla_vf_mac));
-        if (!rta || !nlAppend(nlm, sizeof(nlmsgbuf), rtattbuf, rta->rta_len))
+        if (!nla_put(nl_msg, IFLA_VF_MAC, sizeof(ifla_vf_mac),
+                     &ifla_vf_mac) < 0)
             goto buffer_too_small;
 
-        rta = rtattrCreate(rtattbuf, sizeof(rtattbuf), IFLA_VF_VLAN,
-                           &ifla_vf_vlan, sizeof(ifla_vf_vlan));
-
-        if (!rta || !nlAppend(nlm, sizeof(nlmsgbuf), rtattbuf, rta->rta_len))
+        if (!nla_put(nl_msg, IFLA_VF_VLAN, sizeof(ifla_vf_vlan),
+                     &ifla_vf_vlan) < 0)
             goto buffer_too_small;
 
-        vfinfo->rta_len = (char *)nlm + nlm->nlmsg_len - (char *)vfinfo;
-
-        vfinfolist->rta_len = (char *)nlm + nlm->nlmsg_len -
-                              (char *)vfinfolist;
+        nla_nest_end(nl_msg, vfinfo);
+        nla_nest_end(nl_msg, vfinfolist);
     }
 
     if (vf == PORT_SELF_VF && nltarget_kernel) {
-        rta = rtattrCreate(rtattbuf, sizeof(rtattbuf), IFLA_PORT_SELF, NULL, 0);
+        if (!(vfport = nla_nest_start(nl_msg, IFLA_PORT_SELF)))
+            goto buffer_too_small;
     } else {
-        rta = rtattrCreate(rtattbuf, sizeof(rtattbuf), IFLA_VF_PORTS, NULL, 0);
-        if (!rta ||
-            !(vfports = nlAppend(nlm, sizeof(nlmsgbuf),
-                                 rtattbuf, rta->rta_len)))
+        if (!(vfports = nla_nest_start(nl_msg, IFLA_VF_PORTS)))
             goto buffer_too_small;
 
         /* begin nesting vfports */
-        rta = rtattrCreate(rtattbuf, sizeof(rtattbuf), IFLA_VF_PORT, NULL, 0);
+        if (!(vfport = nla_nest_start(nl_msg, IFLA_VF_PORT)))
+            goto buffer_too_small;
     }
 
-    if (!rta ||
-        !(vfport = nlAppend(nlm, sizeof(nlmsgbuf), rtattbuf, rta->rta_len)))
-        goto buffer_too_small;
-
     if (profileId) {
-        rta = rtattrCreate(rtattbuf, sizeof(rtattbuf), IFLA_PORT_PROFILE,
-                           profileId, strlen(profileId) + 1);
-        if (!rta || !nlAppend(nlm, sizeof(nlmsgbuf), rtattbuf, rta->rta_len))
+        if (nla_put(nl_msg, IFLA_PORT_PROFILE, strlen(profileId) + 1,
+                    profileId) < 0)
             goto buffer_too_small;
     }
 
     if (portVsi) {
-        rta = rtattrCreate(rtattbuf, sizeof(rtattbuf), IFLA_PORT_VSI_TYPE,
-                           portVsi, sizeof(*portVsi));
-        if (!rta || !nlAppend(nlm, sizeof(nlmsgbuf), rtattbuf, rta->rta_len))
+        if (nla_put(nl_msg, IFLA_PORT_VSI_TYPE, sizeof(*portVsi),
+                    portVsi) < 0)
             goto buffer_too_small;
     }
 
     if (instanceId) {
-        rta = rtattrCreate(rtattbuf, sizeof(rtattbuf), IFLA_PORT_INSTANCE_UUID,
-                           instanceId, VIR_UUID_BUFLEN);
-        if (!rta || !nlAppend(nlm, sizeof(nlmsgbuf), rtattbuf, rta->rta_len))
+        if (nla_put(nl_msg, IFLA_PORT_INSTANCE_UUID, VIR_UUID_BUFLEN,
+                    instanceId) < 0)
             goto buffer_too_small;
     }
 
     if (hostUUID) {
-        rta = rtattrCreate(rtattbuf, sizeof(rtattbuf), IFLA_PORT_HOST_UUID,
-                           hostUUID, VIR_UUID_BUFLEN);
-        if (!rta || !nlAppend(nlm, sizeof(nlmsgbuf), rtattbuf, rta->rta_len))
+        if (nla_put(nl_msg, IFLA_PORT_HOST_UUID, VIR_UUID_BUFLEN,
+                    hostUUID) < 0)
             goto buffer_too_small;
     }
 
     if (vf != PORT_SELF_VF) {
-        rta = rtattrCreate(rtattbuf, sizeof(rtattbuf), IFLA_PORT_VF,
-                           &vf, sizeof(vf));
-        if (!rta || !nlAppend(nlm, sizeof(nlmsgbuf), rtattbuf, rta->rta_len))
+        if (nla_put(nl_msg, IFLA_PORT_VF, sizeof(vf), &vf) < 0)
             goto buffer_too_small;
     }
 
-    rta = rtattrCreate(rtattbuf, sizeof(rtattbuf), IFLA_PORT_REQUEST,
-                       &op, sizeof(op));
-    if (!rta || !nlAppend(nlm, sizeof(nlmsgbuf), rtattbuf, rta->rta_len))
+    if (nla_put(nl_msg, IFLA_PORT_REQUEST, sizeof(op), &op) < 0)
         goto buffer_too_small;
 
     /* end nesting of vport */
-    vfport->rta_len  = (char *)nlm + nlm->nlmsg_len - (char *)vfport;
+    nla_nest_end(nl_msg, vfport);
 
     if (vfports) {
         /* end nesting of vfports */
-        vfports->rta_len = (char *)nlm + nlm->nlmsg_len - (char *)vfports;
+        nla_nest_end(nl_msg, vfports);
     }
 
     if (!nltarget_kernel) {
         pid = getLldpadPid();
-        if (pid == 0)
-            return -1;
+        if (pid == 0) {
+            rc = -1;
+            goto err_exit;
+        }
     }
 
-    if (nlComm(nlm, &recvbuf, &recvbuflen, pid) < 0)
-        return -1;
+    if (nlComm(nl_msg, &recvbuf, &recvbuflen, pid) < 0) {
+        rc = -1;
+        goto err_exit;
+    }
 
     if (recvbuflen < NLMSG_LENGTH(0) || recvbuf == NULL)
         goto malformed_resp;
@@ -1225,19 +1159,26 @@ doPortProfileOpSetLink(bool nltarget_kernel,
         goto malformed_resp;
     }
 
+err_exit:
+    nlmsg_free(nl_msg);
+
     VIR_FREE(recvbuf);
 
     return rc;
 
 malformed_resp:
+    nlmsg_free(nl_msg);
+
     macvtapError(VIR_ERR_INTERNAL_ERROR, "%s",
                  _("malformed netlink response message"));
     VIR_FREE(recvbuf);
     return -1;
 
 buffer_too_small:
+    nlmsg_free(nl_msg);
+
     macvtapError(VIR_ERR_INTERNAL_ERROR, "%s",
-                 _("internal buffer is too small"));
+                 _("allocated netlink buffer is too small"));
     return -1;
 }
 
@@ -1255,7 +1196,7 @@ doPortProfileOpCommon(bool nltarget_kernel,
                       uint8_t op)
 {
     int rc;
-    char *recvbuf = NULL;
+    unsigned char *recvbuf = NULL;
     struct nlattr *tb[IFLA_MAX + 1] = { NULL , };
     int repeats = STATUS_POLL_TIMEOUT_USEC / STATUS_POLL_INTERVL_USEC;
     uint16_t status = 0;
@@ -1396,6 +1337,9 @@ doPortProfileOp8021Qbg(const char *ifname,
     portVsi.vsi_type_id[0] = virtPort->u.virtPort8021Qbg.typeID;
 
     switch (virtPortOp) {
+    case PREASSOCIATE:
+        op = PORT_REQUEST_PREASSOCIATE;
+        break;
     case ASSOCIATE:
         op = PORT_REQUEST_ASSOCIATE;
         break;
@@ -1560,6 +1504,7 @@ err_exit:
  * @macvtap_ifname: The name of the macvtap device
  * @virtPort: pointer to the object holding port profile parameters
  * @vmuuid : the UUID of the virtual machine
+ * @vmOp : The VM operation (i.e., create, no-op)
  *
  * Associate a port on a swtich with a profile. This function
  * may notify a kernel driver or an external daemon to run
@@ -1575,12 +1520,18 @@ vpAssociatePortProfileId(const char *macvtap_ifname,
                          const unsigned char *macvtap_macaddr,
                          const char *linkdev,
                          const virVirtualPortProfileParamsPtr virtPort,
-                         const unsigned char *vmuuid)
+                         const unsigned char *vmuuid,
+                         enum virVMOperationType vmOp)
 {
     int rc = 0;
 
     VIR_DEBUG("Associating port profile '%p' on link device '%s'",
               virtPort, macvtap_ifname);
+
+    VIR_DEBUG("%s: VM OPERATION: %s", __FUNCTION__, virVMOperationTypeToString(vmOp));
+
+    if (vmOp == VIR_VM_OP_NO_OP)
+        return 0;
 
     switch (virtPort->virtPortType) {
     case VIR_VIRTUALPORT_NONE:
@@ -1589,10 +1540,16 @@ vpAssociatePortProfileId(const char *macvtap_ifname,
 
     case VIR_VIRTUALPORT_8021QBG:
         rc = doPortProfileOp8021Qbg(macvtap_ifname, macvtap_macaddr,
-                                    virtPort, ASSOCIATE);
+                                    virtPort,
+                                    (vmOp == VIR_VM_OP_MIGRATE_IN_START)
+                                      ? PREASSOCIATE
+                                      : ASSOCIATE);
         break;
 
     case VIR_VIRTUALPORT_8021QBH:
+        /* avoid associating twice */
+        if (vmOp == VIR_VM_OP_MIGRATE_IN_FINISH)
+            break;
         rc = doPortProfileOp8021Qbh(linkdev, virtPort,
                                     vmuuid,
                                     ASSOCIATE);
@@ -1618,12 +1575,15 @@ int
 vpDisassociatePortProfileId(const char *macvtap_ifname,
                             const unsigned char *macvtap_macaddr,
                             const char *linkdev,
-                            const virVirtualPortProfileParamsPtr virtPort)
+                            const virVirtualPortProfileParamsPtr virtPort,
+                            enum virVMOperationType vmOp)
 {
     int rc = 0;
 
     VIR_DEBUG("Disassociating port profile id '%p' on link device '%s' ",
               virtPort, macvtap_ifname);
+
+    VIR_DEBUG("%s: VM OPERATION: %s", __FUNCTION__, virVMOperationTypeToString(vmOp));
 
     switch (virtPort->virtPortType) {
     case VIR_VIRTUALPORT_NONE:
@@ -1636,6 +1596,9 @@ vpDisassociatePortProfileId(const char *macvtap_ifname,
         break;
 
     case VIR_VIRTUALPORT_8021QBH:
+        /* avoid disassociating twice */
+        if (vmOp == VIR_VM_OP_MIGRATE_IN_FINISH)
+            break;
         rc = doPortProfileOp8021Qbh(linkdev, virtPort,
                                     NULL,
                                     DISASSOCIATE);

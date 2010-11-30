@@ -38,6 +38,7 @@ virt-pki-validate.1: virt-pki-validate
 
 virsh_SOURCES =							\
 		console.c console.h				\
+		../daemon/event.c ../daemon/event.h		\
 		virsh.c
 
 virsh_LDFLAGS = $(WARN_LDFLAGS) $(COVERAGE_LDFLAGS)
@@ -45,6 +46,7 @@ virsh_LDADD =							\
 		$(STATIC_BINARIES)				\
 		$(WARN_CFLAGS)					\
 		../src/libvirt.la				\
+		../src/libvirt-qemu.la				\
 		../gnulib/lib/libgnu.la				\
 		$(VIRSH_LIBS)
 virsh_CFLAGS =							\
@@ -52,8 +54,7 @@ virsh_CFLAGS =							\
 		-I../include -I$(top_srcdir)/include		\
 		-I$(top_srcdir)/src				\
 		-I$(top_srcdir)/src/util			\
-		-DGETTEXT_PACKAGE=\"$(PACKAGE)\"		\
-		-DLOCALEBASEDIR=\""$(datadir)/locale"\"		\
+		-I$(top_srcdir)					\
 		$(WARN_CFLAGS)					\
 		$(COVERAGE_CFLAGS)				\
 		$(LIBXML_CFLAGS)				\
@@ -159,5 +160,6 @@ endif # LIBVIRT_INIT_SCRIPT_RED_HAT
 
 
 CLEANFILES = $(bin_SCRIPTS) $(man1_MANS)
+CLEANFILES += *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda *.i *.s
 
 DISTCLEANFILES = $(BUILT_SOURCES)

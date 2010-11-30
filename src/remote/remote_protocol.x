@@ -1600,6 +1600,13 @@ struct remote_domain_is_persistent_ret {
     int persistent;
 };
 
+struct remote_domain_is_updated_args {
+    remote_nonnull_domain dom;
+};
+
+struct remote_domain_is_updated_ret {
+    int updated;
+};
 
 struct remote_network_is_active_args {
     remote_nonnull_network net;
@@ -1853,6 +1860,11 @@ struct remote_domain_snapshot_delete_args {
     int flags;
 };
 
+struct remote_domain_open_console_args {
+    remote_nonnull_domain domain;
+    remote_string devname;
+    unsigned int flags;
+};
 
 /*----- Protocol. -----*/
 
@@ -2079,7 +2091,10 @@ enum remote_procedure {
     REMOTE_PROC_DOMAIN_SET_MEMORY_PARAMETERS = 197,
     REMOTE_PROC_DOMAIN_GET_MEMORY_PARAMETERS = 198,
     REMOTE_PROC_DOMAIN_SET_VCPUS_FLAGS = 199,
-    REMOTE_PROC_DOMAIN_GET_VCPUS_FLAGS = 200
+    REMOTE_PROC_DOMAIN_GET_VCPUS_FLAGS = 200,
+
+    REMOTE_PROC_DOMAIN_OPEN_CONSOLE = 201,
+    REMOTE_PROC_DOMAIN_IS_UPDATED = 202
 
     /*
      * Notice how the entries are grouped in sets of 10 ?

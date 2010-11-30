@@ -84,18 +84,17 @@ static int testCompareXMLToArgvFiles(const char *xml,
 
 
     free(virtTestLogContentAndReset());
+    virResetLastError();
 
     if (qemudBuildCommandLine(conn, &driver,
                               vmdef, &monitor_chr, 0, flags,
                               &argv, &qenv,
-                              NULL, NULL, migrateFrom, NULL) < 0)
+                              NULL, NULL, migrateFrom, NULL,
+                              VIR_VM_OP_CREATE) < 0)
         goto fail;
 
-    if ((log = virtTestLogContentAndReset()) == NULL)
-        goto fail;
-
-    if (!!strstr(log, ": error :") != expectError) {
-        if (virTestGetDebug())
+    if (!!virGetLastError() != expectError) {
+        if (virTestGetDebug() && (log = virtTestLogContentAndReset()))
             fprintf(stderr, "\n%s", log);
         goto fail;
     }
@@ -214,6 +213,11 @@ mymain(int argc, char **argv)
         return EXIT_FAILURE;
     if ((driver.hugepage_path = strdup("/dev/hugepages/libvirt/qemu")) == NULL)
         return EXIT_FAILURE;
+    driver.spiceTLS = 1;
+    if (!(driver.spiceTLSx509certdir = strdup("/etc/pki/libvirt-spice")))
+        return EXIT_FAILURE;
+    if (!(driver.spicePassword = strdup("123456")))
+        return EXIT_FAILURE;
 
 # define DO_TEST_FULL(name, extraFlags, migrateFrom, expectError)       \
     do {                                                                \
@@ -323,6 +327,10 @@ mymain(int argc, char **argv)
     DO_TEST("graphics-sdl", 0, false);
     DO_TEST("graphics-sdl-fullscreen", 0, false);
     DO_TEST("nographics-vga", QEMUD_CMD_FLAG_VGA, false);
+    DO_TEST("graphics-spice",
+            QEMUD_CMD_FLAG_VGA | QEMUD_CMD_FLAG_VGA_QXL |
+            QEMUD_CMD_FLAG_DEVICE | QEMUD_CMD_FLAG_SPICE, false);
+
     DO_TEST("input-usbmouse", 0, false);
     DO_TEST("input-usbtablet", 0, false);
     DO_TEST("input-xen", QEMUD_CMD_FLAG_DOMID, true);
@@ -384,6 +392,8 @@ mymain(int argc, char **argv)
             QEMUD_CMD_FLAG_NODEFCONFIG, false);
     DO_TEST("console-virtio", QEMUD_CMD_FLAG_DEVICE |
             QEMUD_CMD_FLAG_NODEFCONFIG, false);
+
+    DO_TEST("smbios", QEMUD_CMD_FLAG_SMBIOS_TYPE, false);
 
     DO_TEST("watchdog", 0, false);
     DO_TEST("watchdog-device", QEMUD_CMD_FLAG_DEVICE |

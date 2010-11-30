@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([libvirt], [0.8.5], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [0.8.6], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -109,7 +109,8 @@ LIBS=$old_libs
 
 dnl Availability of various common headers (non-fatal if missing).
 AC_CHECK_HEADERS([pwd.h paths.h regex.h sys/syslimits.h sys/un.h \
-  sys/poll.h syslog.h mntent.h net/ethernet.h linux/magic.h])
+  sys/poll.h syslog.h mntent.h net/ethernet.h linux/magic.h \
+  sys/un.h sys/syscall.h])
 
 AC_CHECK_LIB([intl],[gettext],[])
 
@@ -268,9 +269,9 @@ fi
 
 AC_MSG_CHECKING([where to write libvirtd PID file])
 AC_ARG_WITH([remote-pid-file], [AC_HELP_STRING([--with-remote-pid-file=@<:@pidfile|none@:>@], [PID file for libvirtd])])
-if test "x$with_remote_pid_file" == "x" ; then
+if test "x$with_remote_pid_file" = "x" ; then
    REMOTE_PID_FILE="$localstatedir/run/libvirtd.pid"
-elif test "x$with_remote_pid_file" == "xnone" ; then
+elif test "x$with_remote_pid_file" = "xnone" ; then
    REMOTE_PID_FILE=""
 else
    REMOTE_PID_FILE="$with_remote_pid_file"
@@ -1496,6 +1497,18 @@ if test "$with_osx" = "yes"; then
 fi
 
 if test "$with_storage_fs" = "yes" || test "$with_storage_fs" = "check"; then
+    AC_CHECK_HEADER([mntent.h],,
+    [
+        if test "$with_storage_fs" = "check"; then
+            with_storage_fs=no
+            AC_MSG_NOTICE([<mntent.h> is required for the FS storage driver, disabling it])
+        else
+            AC_MSG_ERROR([<mntent.h> is required for the FS storage driver])
+        fi
+    ])
+fi
+
+if test "$with_storage_fs" = "yes" || test "$with_storage_fs" = "check"; then
   AC_PATH_PROG([MOUNT], [mount], [], [$PATH:/sbin:/usr/sbin])
   AC_PATH_PROG([UMOUNT], [umount], [], [$PATH:/sbin:/usr/sbin])
   if test "$with_storage_fs" = "yes" ; then
@@ -1775,7 +1788,7 @@ if test "$with_python" != "no" ; then
         fi
     fi
 
-    if test "$with_python" == "yes" ; then
+    if test "$with_python" = "yes" ; then
         AM_PATH_PYTHON(,, [:])
 
         if test "$PYTHON" != : ; then
@@ -1892,29 +1905,6 @@ if test "$enable_locking" = "yes"; then
   AC_SUBST([LOCK_CHECKING_CFLAGS])
 fi
 AM_CONDITIONAL([WITH_CIL],[test "$enable_locking" = "yes"])
-
-dnl Enable building the proxy?
-
-AC_ARG_WITH([xen-proxy],
-  AC_HELP_STRING([--with-xen-proxy], [add XEN setuid proxy support @<:@default=auto@:>@]),[],[with_xen_proxy=auto])
-
-AC_MSG_CHECKING([if Xen setuid proxy is needed])
-if test "$with_xen_proxy" = "auto"; then
-  if test "$with_polkit" = "yes"; then
-    with_xen_proxy="no"
-  else
-    with_xen_proxy="yes"
-  fi
-fi
-if test "$with_xen" != "yes"; then
-  with_xen_proxy="no"
-fi
-AC_MSG_RESULT([$with_xen_proxy])
-
-AM_CONDITIONAL([WITH_PROXY],[test "$with_xen_proxy" = "yes"])
-if test "$with_xen_proxy" = "yes"; then
-  AC_DEFINE([WITH_PROXY], 1, [Whether Xen proxy is enabled])
-fi
 
 dnl Enable building libvirtd?
 AM_CONDITIONAL([WITH_LIBVIRTD],[test "x$with_libvirtd" = "xyes"])
@@ -2258,7 +2248,7 @@ AC_OUTPUT(Makefile src/Makefile include/Makefile docs/Makefile \
 	  python/Makefile python/tests/Makefile \
           daemon/Makefile \
           tools/Makefile \
-          tests/Makefile proxy/Makefile \
+          tests/Makefile \
           tests/xml2sexprdata/Makefile \
           tests/sexpr2xmldata/Makefile \
           tests/xmconfigdata/Makefile \
@@ -2281,7 +2271,6 @@ AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Drivers])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([     Xen: $with_xen])
-AC_MSG_NOTICE([   Proxy: $with_xen_proxy])
 AC_MSG_NOTICE([    QEMU: $with_qemu])
 AC_MSG_NOTICE([     UML: $with_uml])
 AC_MSG_NOTICE([  OpenVZ: $with_openvz])

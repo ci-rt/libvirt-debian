@@ -1745,6 +1745,12 @@ xenapiNodeGetFreeMemory (virConnectPtr conn)
     return freeMem;
 }
 
+static int
+xenapiDomainIsUpdated(virDomainPtr dom ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+
 /*
  * xenapiNodeGetCellsFreeMemory
  *
@@ -1847,6 +1853,7 @@ static virDriver xenapiDriver = {
     NULL, /* isSecure */
     NULL, /* domainIsActive */
     NULL, /* domainIsPersistent */
+    xenapiDomainIsUpdated, /* domainIsUpdated */
     NULL, /* cpuCompare */
     NULL, /* cpuBaseline */
     NULL, /* domainGetJobInfo */
@@ -1869,6 +1876,7 @@ static virDriver xenapiDriver = {
     NULL, /* qemuDomainMonitorCommand */
     NULL, /* domainSetMemoryParameters */
     NULL, /* domainGetMemoryParameters */
+    NULL, /* domainOpenConsole */
 };
 
 /**

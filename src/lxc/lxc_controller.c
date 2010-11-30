@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2010 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
  * lxc_controller.c: linux container process controller
@@ -34,6 +35,7 @@
 #include <signal.h>
 #include <getopt.h>
 #include <sys/mount.h>
+#include <locale.h>
 
 #if HAVE_CAPNG
 # include <cap-ng.h>
@@ -48,6 +50,7 @@
 #include "veth.h"
 #include "memory.h"
 #include "util.h"
+#include "files.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
@@ -79,7 +82,6 @@ static int lxcSetContainerResources(virDomainDefPtr def)
         {'c', LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_RANDOM},
         {'c', LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_URANDOM},
         {'c', LXC_DEV_MAJ_TTY, LXC_DEV_MIN_TTY},
-        {'c', LXC_DEV_MAJ_TTY, LXC_DEV_MIN_CONSOLE},
         {'c', LXC_DEV_MAJ_TTY, LXC_DEV_MIN_PTMX},
         {0,   0, 0}};
 
@@ -233,8 +235,7 @@ static int lxcMonitorServer(const char *sockpath)
     return fd;
 
 error:
-    if (fd != -1)
-        close(fd);
+    VIR_FORCE_CLOSE(fd);
     return -1;
 }
 
@@ -409,7 +410,7 @@ static int lxcControllerMain(int monitor,
                     goto cleanup;
                 }
                 if (client != -1) { /* Already connected, so kick new one out */
-                    close(fd);
+                    VIR_FORCE_CLOSE(fd);
                     continue;
                 }
                 client = fd;
@@ -426,8 +427,7 @@ static int lxcControllerMain(int monitor,
                                          _("epoll_ctl(client) failed"));
                     goto cleanup;
                 }
-                close(client);
-                client = -1;
+                VIR_FORCE_CLOSE(client);
             } else {
                 if (epollEvent.events & EPOLLIN) {
                     curFdOff = epollEvent.data.fd == appPty ? 0 : 1;
@@ -485,9 +485,9 @@ static int lxcControllerMain(int monitor,
     rc = 0;
 
 cleanup:
-    close(appPty);
-    close(contPty);
-    close(epollFd);
+    VIR_FORCE_CLOSE(appPty);
+    VIR_FORCE_CLOSE(contPty);
+    VIR_FORCE_CLOSE(epollFd);
     return rc;
 }
 
@@ -660,8 +660,7 @@ lxcControllerRun(virDomainDefPtr def,
                                        control[1],
                                        containerPtyPath)) < 0)
         goto cleanup;
-    close(control[1]);
-    control[1] = -1;
+    VIR_FORCE_CLOSE(control[1]);
 
     if (lxcControllerMoveInterfaces(nveths, veths, container) < 0)
         goto cleanup;
@@ -679,13 +678,10 @@ lxcControllerRun(virDomainDefPtr def,
 cleanup:
     VIR_FREE(devptmx);
     VIR_FREE(devpts);
-    if (control[0] != -1)
-        close(control[0]);
-    if (control[1] != -1)
-        close(control[1]);
+    VIR_FORCE_CLOSE(control[0]);
+    VIR_FORCE_CLOSE(control[1]);
     VIR_FREE(containerPtyPath);
-    if (containerPty != -1)
-        close(containerPty);
+    VIR_FORCE_CLOSE(containerPty);
 
     if (container > 1) {
         int status;
@@ -722,6 +718,13 @@ int main(int argc, char *argv[])
         { "help", 0, NULL, 'h' },
         { 0, 0, 0, 0 },
     };
+
+    if (setlocale(LC_ALL, "") == NULL ||
+        bindtextdomain(PACKAGE, LOCALEDIR) == NULL ||
+        textdomain(PACKAGE) == NULL) {
+        fprintf(stderr, _("%s: initialization failed\n"), argv[0]);
+        exit(EXIT_FAILURE);
+    }
 
     while (1) {
         int c;

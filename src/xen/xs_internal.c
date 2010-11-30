@@ -22,7 +22,6 @@
 
 #include <xen/dom0_ops.h>
 #include <xen/version.h>
-#include <xen/xen.h>
 
 #include <xs.h>
 
@@ -39,7 +38,6 @@
 
 #define VIR_FROM_THIS VIR_FROM_XEN
 
-#ifndef PROXY
 static char *xenStoreDomainGetOSType(virDomainPtr domain);
 static void xenStoreWatchEvent(int watch, int fd, int events, void *data);
 static void xenStoreWatchListFree(xenStoreWatchListPtr list);
@@ -84,8 +82,6 @@ struct xenUnifiedDriver xenStoreDriver = {
     NULL, /* domainSetSchedulerParameters */
 };
 
-#endif /* ! PROXY */
-
 #define virXenStoreError(code, ...)                                  \
         virReportErrorHelper(NULL, VIR_FROM_XENSTORE, code, __FILE__,      \
                              __FUNCTION__, __LINE__, __VA_ARGS__)
@@ -95,7 +91,6 @@ struct xenUnifiedDriver xenStoreDriver = {
  *		Helper internal APIs					*
  *									*
  ************************************************************************/
-#ifndef PROXY
 /**
  * virConnectDoStoreList:
  * @conn: pointer to the hypervisor connection
@@ -121,7 +116,6 @@ virConnectDoStoreList(virConnectPtr conn, const char *path,
 
     return xs_directory (priv->xshandle, 0, path, nb);
 }
-#endif /* ! PROXY */
 
 /**
  * virDomainDoStoreQuery:
@@ -153,7 +147,6 @@ virDomainDoStoreQuery(virConnectPtr conn, int domid, const char *path)
     return xs_read(priv->xshandle, 0, &s[0], &len);
 }
 
-#ifndef PROXY
 /**
  * virDomainDoStoreWrite:
  * @domain: a domain object
@@ -255,7 +248,6 @@ virDomainGetVMInfo(virDomainPtr domain, const char *vm, const char *name)
     return (ret);
 }
 
-#endif /* ! PROXY */
 
 /************************************************************************
  *									*
@@ -279,14 +271,10 @@ xenStoreOpen(virConnectPtr conn,
 {
     xenUnifiedPrivatePtr priv = (xenUnifiedPrivatePtr) conn->privateData;
 
-#ifdef PROXY
-    priv->xshandle = xs_daemon_open_readonly();
-#else
     if (flags & VIR_CONNECT_RO)
         priv->xshandle = xs_daemon_open_readonly();
     else
         priv->xshandle = xs_daemon_open();
-#endif /* ! PROXY */
 
     if (priv->xshandle == NULL) {
         /*
@@ -301,7 +289,6 @@ xenStoreOpen(virConnectPtr conn,
         return (-1);
     }
 
-#ifndef PROXY
     /* Init activeDomainList */
     if (VIR_ALLOC(priv->activeDomainList) < 0) {
         virReportOOMError();
@@ -342,7 +329,6 @@ xenStoreOpen(virConnectPtr conn,
                                            NULL)) < 0)
         DEBUG0("Failed to add event handle, disabling events");
 
-#endif //PROXY
     return 0;
 }
 
@@ -366,7 +352,6 @@ xenStoreClose(virConnectPtr conn)
 
     priv = (xenUnifiedPrivatePtr) conn->privateData;
 
-#ifndef PROXY
     if (xenStoreRemoveWatch(conn, "@introduceDomain", "introduceDomain") < 0) {
         DEBUG0("Warning, could not remove @introduceDomain watch");
         /* not fatal */
@@ -381,21 +366,19 @@ xenStoreClose(virConnectPtr conn)
     priv->xsWatchList = NULL;
     xenUnifiedDomainInfoListFree(priv->activeDomainList);
     priv->activeDomainList = NULL;
-#endif
+
     if (priv->xshandle == NULL)
         return(-1);
 
-#ifndef PROXY
     if (priv->xsWatch != -1)
         virEventRemoveHandle(priv->xsWatch);
-#endif
+
     xs_daemon_close(priv->xshandle);
     priv->xshandle = NULL;
 
     return (0);
 }
 
-#ifndef PROXY
 /**
  * xenStoreGetDomainInfo:
  * @domain: pointer to the domain block
@@ -445,7 +428,7 @@ xenStoreGetDomainInfo(virDomainPtr domain, virDomainInfoPtr info)
         info->memory = 0;
         info->maxMem = 0;
     }
-# if 0
+#if 0
     /* doesn't seems to work */
     tmp = virDomainDoStoreQuery(domain->conn, domain->id, "cpu_time");
     if (tmp != NULL) {
@@ -454,7 +437,7 @@ xenStoreGetDomainInfo(virDomainPtr domain, virDomainInfoPtr info)
     } else {
         info->cpuTime = 0;
     }
-# endif
+#endif
     snprintf(request, 199, "/local/domain/%d/cpu", domain->id);
     request[199] = 0;
     tmp2 = virConnectDoStoreList(domain->conn, request, &nb_vcpus);
@@ -686,10 +669,10 @@ xenStoreLookupByName(virConnectPtr conn, const char *name)
         if ((endptr == idlist[i]) || (*endptr != 0)) {
             goto done;
         }
-# if 0
+#if 0
         if (virConnectCheckStoreID(conn, (int) id) < 0)
             continue;
-# endif
+#endif
         snprintf(prop, 199, "/local/domain/%s/name", idlist[i]);
         prop[199] = 0;
         tmp = xs_read(priv->xshandle, 0, prop, &len);
@@ -812,7 +795,6 @@ xenStoreDomainGetOSType(virDomainPtr domain) {
 
     return (str);
 }
-#endif /* ! PROXY */
 
 /**
  * xenStoreDomainGetVNCPort:
@@ -861,52 +843,6 @@ char *          xenStoreDomainGetConsolePath(virConnectPtr conn, int domid) {
   return virDomainDoStoreQuery(conn, domid, "console/tty");
 }
 
-#ifdef PROXY
-/*
- * xenStoreDomainGetOSTypeID:
- * @conn: pointer to the connection.
- * @id: the domain id
- *
- * Get the type of domain operation system.
- *
- * The caller must hold the lock on the privateData
- * associated with the 'conn' parameter.
- *
- * Returns the new string or NULL in case of error, the string must be
- *         freed by the caller.
- */
-char *
-xenStoreDomainGetOSTypeID(virConnectPtr conn, int id) {
-    char *vm, *str = NULL;
-    char query[200];
-    unsigned int len;
-    xenUnifiedPrivatePtr priv;
-
-    if (id < 0)
-        return(NULL);
-
-    priv = (xenUnifiedPrivatePtr) conn->privateData;
-    if (priv->xshandle == NULL)
-        return (NULL);
-
-    snprintf(query, 199, "/local/domain/%d/vm", id);
-    query[199] = 0;
-
-    vm = xs_read(priv->xshandle, 0, &query[0], &len);
-
-    if (vm) {
-        snprintf(query, 199, "%s/image/ostype", vm);
-        str = xs_read(priv->xshandle, 0, &query[0], &len);
-        VIR_FREE(vm);
-    }
-    if (str == NULL)
-        str = strdup("linux");
-    if (str == NULL)
-        virReportOOMError();
-
-    return (str);
-}
-#endif /* PROXY */
 
 /*
  * xenStoreDomainGetNetworkID:
@@ -1123,7 +1059,6 @@ char *xenStoreDomainGetName(virConnectPtr conn,
     return xs_read(priv->xshandle, 0, prop, &len);
 }
 
-#ifndef PROXY
 /*
  * The caller must hold the lock on the privateData
  * associated with the 'conn' parameter.
@@ -1497,5 +1432,3 @@ retry:
     }
     return 0;
 }
-
-#endif //PROXY

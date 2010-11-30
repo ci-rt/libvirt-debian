@@ -45,6 +45,7 @@
     <function name="VIR_DOMAIN_CRASHED" link="libvirt-libvirt.html#VIR_DOMAIN_CRASHED"/>
     <function name="VIR_DOMAIN_DEVICE_MODIFY_CONFIG" link="libvirt-libvirt.html#VIR_DOMAIN_DEVICE_MODIFY_CONFIG"/>
     <function name="VIR_DOMAIN_DEVICE_MODIFY_CURRENT" link="libvirt-libvirt.html#VIR_DOMAIN_DEVICE_MODIFY_CURRENT"/>
+    <function name="VIR_DOMAIN_DEVICE_MODIFY_FORCE" link="libvirt-libvirt.html#VIR_DOMAIN_DEVICE_MODIFY_FORCE"/>
     <function name="VIR_DOMAIN_DEVICE_MODIFY_LIVE" link="libvirt-libvirt.html#VIR_DOMAIN_DEVICE_MODIFY_LIVE"/>
     <function name="VIR_DOMAIN_EVENT_DEFINED" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_DEFINED"/>
     <function name="VIR_DOMAIN_EVENT_DEFINED_ADDED" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_DEFINED_ADDED"/>
@@ -236,6 +237,8 @@
     <function name="VIR_FROM_SEXPR" link="libvirt-virterror.html#VIR_FROM_SEXPR"/>
     <function name="VIR_FROM_STATS_LINUX" link="libvirt-virterror.html#VIR_FROM_STATS_LINUX"/>
     <function name="VIR_FROM_STORAGE" link="libvirt-virterror.html#VIR_FROM_STORAGE"/>
+    <function name="VIR_FROM_STREAMS" link="libvirt-virterror.html#VIR_FROM_STREAMS"/>
+    <function name="VIR_FROM_SYSINFO" link="libvirt-virterror.html#VIR_FROM_SYSINFO"/>
     <function name="VIR_FROM_TEST" link="libvirt-virterror.html#VIR_FROM_TEST"/>
     <function name="VIR_FROM_UML" link="libvirt-virterror.html#VIR_FROM_UML"/>
     <function name="VIR_FROM_VBOX" link="libvirt-virterror.html#VIR_FROM_VBOX"/>
@@ -501,6 +504,7 @@
     <function name="virDomainInterfaceStats ()" link="libvirt-libvirt.html#virDomainInterfaceStats"/>
     <function name="virDomainIsActive ()" link="libvirt-libvirt.html#virDomainIsActive"/>
     <function name="virDomainIsPersistent ()" link="libvirt-libvirt.html#virDomainIsPersistent"/>
+    <function name="virDomainIsUpdated ()" link="libvirt-libvirt.html#virDomainIsUpdated"/>
     <function name="virDomainLookupByID ()" link="libvirt-libvirt.html#virDomainLookupByID"/>
     <function name="virDomainLookupByName ()" link="libvirt-libvirt.html#virDomainLookupByName"/>
     <function name="virDomainLookupByUUID ()" link="libvirt-libvirt.html#virDomainLookupByUUID"/>
@@ -512,6 +516,7 @@
     <function name="virDomainMigrate ()" link="libvirt-libvirt.html#virDomainMigrate"/>
     <function name="virDomainMigrateSetMaxDowntime ()" link="libvirt-libvirt.html#virDomainMigrateSetMaxDowntime"/>
     <function name="virDomainMigrateToURI ()" link="libvirt-libvirt.html#virDomainMigrateToURI"/>
+    <function name="virDomainOpenConsole ()" link="libvirt-libvirt.html#virDomainOpenConsole"/>
     <function name="virDomainPinVcpu ()" link="libvirt-libvirt.html#virDomainPinVcpu"/>
     <function name="virDomainReboot ()" link="libvirt-libvirt.html#virDomainReboot"/>
     <function name="virDomainRef ()" link="libvirt-libvirt.html#virDomainRef"/>

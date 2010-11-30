@@ -848,13 +848,14 @@ int qemuMonitorTextSetCPU(qemuMonitorPtr mon, int cpu, int online)
 
 
 int qemuMonitorTextEjectMedia(qemuMonitorPtr mon,
-                              const char *devname)
+                              const char *devname,
+                              bool force)
 {
     char *cmd = NULL;
     char *reply = NULL;
     int ret = -1;
 
-    if (virAsprintf(&cmd, "eject %s", devname) < 0) {
+    if (virAsprintf(&cmd, "eject %s%s", force ? "-f " : "", devname) < 0) {
         virReportOOMError();
         goto cleanup;
     }
@@ -905,7 +906,7 @@ int qemuMonitorTextChangeMedia(qemuMonitorPtr mon,
 
     if (qemuMonitorCommand(mon, cmd, &reply) < 0) {
         qemuReportError(VIR_ERR_OPERATION_FAILED,
-                        _("could not eject media on %s"), devname);
+                        _("could not change media on %s"), devname);
         goto cleanup;
     }
 
@@ -914,7 +915,7 @@ int qemuMonitorTextChangeMedia(qemuMonitorPtr mon,
      * No message is printed on success it seems */
     if (strstr(reply, "device ")) {
         qemuReportError(VIR_ERR_OPERATION_FAILED,
-                        _("could not eject media on %s: %s"), devname, reply);
+                        _("could not change media on %s: %s"), devname, reply);
         goto cleanup;
     }
 
@@ -2094,11 +2095,10 @@ int qemuMonitorTextAttachDrive(qemuMonitorPtr mon,
     }
 
 try_command:
-    ret = virAsprintf(&cmd, "drive_add %s%.2x:%.2x:%.2x %s",
-                      (tryOldSyntax ? "" : "pci_addr="),
-                      controllerAddr->domain, controllerAddr->bus,
-                      controllerAddr->slot, safe_str);
-    if (ret == -1) {
+    if (virAsprintf(&cmd, "drive_add %s%.2x:%.2x:%.2x %s",
+                    (tryOldSyntax ? "" : "pci_addr="),
+                    controllerAddr->domain, controllerAddr->bus,
+                    controllerAddr->slot, safe_str) < 0) {
         virReportOOMError();
         goto cleanup;
     }
@@ -2106,6 +2106,12 @@ try_command:
     if (qemuMonitorCommand(mon, cmd, &reply) < 0) {
         qemuReportError(VIR_ERR_OPERATION_FAILED,
                         _("failed to close fd in qemu with '%s'"), cmd);
+        goto cleanup;
+    }
+
+    if (strstr(reply, "unknown command:")) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                        _("drive hotplug is not supported"));
         goto cleanup;
     }
 
@@ -2360,8 +2366,7 @@ int qemuMonitorTextAddDrive(qemuMonitorPtr mon,
 
     /* 'dummy' here is just a placeholder since there is no PCI
      * address required when attaching drives to a controller */
-    ret = virAsprintf(&cmd, "drive_add dummy %s", safe_str);
-    if (ret == -1) {
+    if (virAsprintf(&cmd, "drive_add dummy %s", safe_str) < 0) {
         virReportOOMError();
         goto cleanup;
     }
@@ -2369,6 +2374,12 @@ int qemuMonitorTextAddDrive(qemuMonitorPtr mon,
     if (qemuMonitorCommand(mon, cmd, &reply) < 0) {
         qemuReportError(VIR_ERR_OPERATION_FAILED,
                         _("failed to close fd in qemu with '%s'"), cmd);
+        goto cleanup;
+    }
+
+    if (strstr(reply, "unknown command:")) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                        _("drive hotplug is not supported"));
         goto cleanup;
     }
 
@@ -2397,8 +2408,8 @@ int qemuMonitorTextSetDrivePassphrase(qemuMonitorPtr mon,
         return -1;
     }
 
-    ret = virAsprintf(&cmd, "block_passwd %s%s \"%s\"", QEMU_DRIVE_HOST_PREFIX, alias, safe_str);
-    if (ret == -1) {
+    if (virAsprintf(&cmd, "block_passwd %s%s \"%s\"",
+                    QEMU_DRIVE_HOST_PREFIX, alias, safe_str) < 0) {
         virReportOOMError();
         goto cleanup;
     }

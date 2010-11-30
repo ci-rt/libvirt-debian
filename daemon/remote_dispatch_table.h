@@ -1007,3 +1007,13 @@
     .args_filter = (xdrproc_t) xdr_remote_domain_get_vcpus_flags_args,
     .ret_filter = (xdrproc_t) xdr_remote_domain_get_vcpus_flags_ret,
 },
+{   /* DomainOpenConsole => 201 */
+    .fn = (dispatch_fn) remoteDispatchDomainOpenConsole,
+    .args_filter = (xdrproc_t) xdr_remote_domain_open_console_args,
+    .ret_filter = (xdrproc_t) xdr_void,
+},
+{   /* DomainIsUpdated => 202 */
+    .fn = (dispatch_fn) remoteDispatchDomainIsUpdated,
+    .args_filter = (xdrproc_t) xdr_remote_domain_is_updated_args,
+    .ret_filter = (xdrproc_t) xdr_remote_domain_is_updated_ret,
+},

@@ -395,6 +395,8 @@ typedef int
     (*virDrvDomainIsActive)(virDomainPtr dom);
 typedef int
     (*virDrvDomainIsPersistent)(virDomainPtr dom);
+typedef int
+    (*virDrvDomainIsUpdated)(virDomainPtr dom);
 
 typedef int
     (*virDrvCPUCompare)(virConnectPtr conn,
@@ -480,6 +482,11 @@ typedef int
     (*virDrvQemuDomainMonitorCommand)(virDomainPtr domain, const char *cmd,
                                       char **result, unsigned int flags);
 
+typedef int
+    (*virDrvDomainOpenConsole)(virDomainPtr dom,
+                               const char *devname,
+                               virStreamPtr st,
+                               unsigned int flags);
 
 
 /**
@@ -576,6 +583,7 @@ struct _virDriver {
     virDrvConnectIsSecure      isSecure;
     virDrvDomainIsActive       domainIsActive;
     virDrvDomainIsPersistent   domainIsPersistent;
+    virDrvDomainIsUpdated      domainIsUpdated;
     virDrvCPUCompare            cpuCompare;
     virDrvCPUBaseline           cpuBaseline;
     virDrvDomainGetJobInfo     domainGetJobInfo;
@@ -598,6 +606,7 @@ struct _virDriver {
     virDrvQemuDomainMonitorCommand qemuDomainMonitorCommand;
     virDrvDomainSetMemoryParameters domainSetMemoryParameters;
     virDrvDomainGetMemoryParameters domainGetMemoryParameters;
+    virDrvDomainOpenConsole domainOpenConsole;
 };
 
 typedef int

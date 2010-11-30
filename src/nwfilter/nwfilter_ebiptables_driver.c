@@ -37,6 +37,7 @@
 #include "nwfilter_conf.h"
 #include "nwfilter_gentech_driver.h"
 #include "nwfilter_ebiptables_driver.h"
+#include "files.h"
 
 
 #define VIR_FROM_THIS VIR_FROM_NWFILTER
@@ -51,12 +52,16 @@
 #define CHAINPREFIX_HOST_IN_TEMP  'J'
 #define CHAINPREFIX_HOST_OUT_TEMP 'P'
 
+/* This file generates a temporary shell script.  Since ebiptables is
+   Linux-specific, we can be reasonably certain that /bin/sh is more
+   or less POSIX-compliant, so we can use $() and $(()).  However, we
+   cannot assume that /bin/sh is bash, so stick to POSIX syntax.  */
 
 #define CMD_SEPARATOR "\n"
 #define CMD_DEF_PRE  "cmd='"
 #define CMD_DEF_POST "'"
 #define CMD_DEF(X) CMD_DEF_PRE X CMD_DEF_POST
-#define CMD_EXEC   "eval res=\\`\"${cmd}\"\\`" CMD_SEPARATOR
+#define CMD_EXEC   "eval res=\\$\\(\"${cmd}\"\\)" CMD_SEPARATOR
 #define CMD_STOPONERR(X) \
     X ? "if [ $? -ne 0 ]; then" \
         "  echo \"Failure to execute command '${cmd}'.\";" \
@@ -75,7 +80,6 @@
 static char *ebtables_cmd_path;
 static char *iptables_cmd_path;
 static char *ip6tables_cmd_path;
-static char *bash_cmd_path;
 static char *grep_cmd_path;
 static char *gawk_cmd_path;
 
@@ -113,6 +117,7 @@ static int ebtablesRemoveBasicRules(const char *ifname);
 static int ebiptablesDriverInit(void);
 static void ebiptablesDriverShutdown(void);
 static int ebtablesCleanAll(const char *ifname);
+static int ebiptablesAllTeardown(const char *ifname);
 
 static virMutex execCLIMutex;
 
@@ -426,7 +431,7 @@ static int iptablesLinkIPTablesBaseChain(const char *iptables_cmd,
                       "    " CMD_DEF("%s -I %s %d -j %s") CMD_SEPARATOR
                       "    " CMD_EXEC
                       "    %s"
-                      "    let r=r+1\n"
+                      "    r=$(( $r + 1 ))\n"
                       "    " CMD_DEF("%s -D %s ${r}") CMD_SEPARATOR
                       "    " CMD_EXEC
                       "    %s"
@@ -649,7 +654,7 @@ iptablesSetupVirtInPost(const char *iptables_cmd,
     virBufferVSprintf(buf,
                       "res=$(%s -n -L " VIRT_IN_POST_CHAIN
                       " | grep \"\\%s %s\")\n"
-                      "if [ \"${res}\" == \"\" ]; then "
+                      "if [ \"${res}\" = \"\" ]; then "
                         CMD_DEF("%s"
                         " -A " VIRT_IN_POST_CHAIN
                         " %s %s -j ACCEPT") CMD_SEPARATOR
@@ -2430,7 +2435,7 @@ ebiptablesDisplayRuleInstance(virConnectPtr conn ATTRIBUTE_UNUSED,
  *
  * Write the string into a temporary file and return the name of
  * the temporary file. The string is assumed to contain executable
- * commands. A line '#!/bin/bash' will automatically be written
+ * commands. A line '#!/bin/sh' will automatically be written
  * as the first line in the file. The permissions of the file are
  * set so that the file can be run as an executable script.
  */
@@ -2443,7 +2448,7 @@ ebiptablesWriteToTempFile(const char *string) {
     char *header;
     size_t written;
 
-    virBufferVSprintf(&buf, "#!%s\n", bash_cmd_path);
+    virBufferAddLit(&buf, "#!/bin/sh\n");
 
     if (virBufferError(&buf)) {
         virBufferFreeAndReset(&buf);
@@ -2493,13 +2498,12 @@ ebiptablesWriteToTempFile(const char *string) {
     }
 
     VIR_FREE(header);
-    close(fd);
+    VIR_FORCE_CLOSE(fd);
     return filnam;
 
 err_exit:
     VIR_FREE(header);
-    if (fd >= 0)
-        close(fd);
+    VIR_FORCE_CLOSE(fd);
     unlink(filename);
     return NULL;
 }
@@ -2513,10 +2517,10 @@ err_exit:
  *        commands executed via the script the was run.
  *
  * Returns 0 in case of success, != 0 in case of an error. The returned
- * value is NOT the result of running the commands inside the bash
+ * value is NOT the result of running the commands inside the shell
  * script.
  *
- * Execute a sequence of commands (held in the given buffer) as a bash
+ * Execute a sequence of commands (held in the given buffer) as a /bin/sh
  * script and return the status of the execution.
  */
 static int
@@ -2939,7 +2943,7 @@ ebtablesApplyBasicRules(const char *ifname,
 
     virFormatMacAddr(macaddr, macaddr_str);
 
-    ebtablesCleanAll(ifname);
+    ebiptablesAllTeardown(ifname);
 
     ebtablesCreateTmpRootChain(&buf, 1, ifname, 1);
 
@@ -3038,7 +3042,7 @@ ebtablesApplyDHCPOnlyRules(const char *ifname,
 
     virFormatMacAddr(macaddr, macaddr_str);
 
-    ebtablesCleanAll(ifname);
+    ebiptablesAllTeardown(ifname);
 
     ebtablesCreateTmpRootChain(&buf, 1, ifname, 1);
     ebtablesCreateTmpRootChain(&buf, 0, ifname, 1);
@@ -3140,7 +3144,7 @@ ebtablesApplyDropAllRules(const char *ifname)
         return 1;
     }
 
-    ebtablesCleanAll(ifname);
+    ebiptablesAllTeardown(ifname);
 
     ebtablesCreateTmpRootChain(&buf, 1, ifname, 1);
     ebtablesCreateTmpRootChain(&buf, 0, ifname, 1);
@@ -3259,7 +3263,7 @@ iptablesCheckBridgeNFCallEnabled(bool isIPv6)
                         lastReport = now;
                 }
             }
-            close(fd);
+            VIR_FORCE_CLOSE(fd);
         }
     }
 }
@@ -3657,7 +3661,6 @@ ebiptablesDriverInit(void)
     if (virMutexInit(&execCLIMutex))
         return EINVAL;
 
-    bash_cmd_path = virFindFileInPath("bash");
     gawk_cmd_path = virFindFileInPath("gawk");
     grep_cmd_path = virFindFileInPath("grep");
 
@@ -3701,9 +3704,9 @@ ebiptablesDriverInit(void)
              VIR_FREE(ip6tables_cmd_path);
     }
 
-    /* ip(6)tables support needs bash, gawk & grep, ebtables doesn't */
+    /* ip(6)tables support needs gawk & grep, ebtables doesn't */
     if ((iptables_cmd_path != NULL || ip6tables_cmd_path != NULL) &&
-        (!grep_cmd_path || !bash_cmd_path || !gawk_cmd_path)) {
+        (!grep_cmd_path || !gawk_cmd_path)) {
         virNWFilterReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                _("essential tools to support ip(6)tables "
                                  "firewalls could not be located"));
@@ -3730,7 +3733,6 @@ static void
 ebiptablesDriverShutdown()
 {
     VIR_FREE(gawk_cmd_path);
-    VIR_FREE(bash_cmd_path);
     VIR_FREE(grep_cmd_path);
     VIR_FREE(ebtables_cmd_path);
     VIR_FREE(iptables_cmd_path);

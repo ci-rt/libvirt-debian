@@ -247,6 +247,7 @@ int	<a href="#virDomainHasManagedSaveImage">virDomainHasManagedSaveImage</a>	(<a
 int	<a href="#virDomainInterfaceStats">virDomainInterfaceStats</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * path, <br/>					 <a href="libvirt-libvirt.html#virDomainInterfaceStatsPtr">virDomainInterfaceStatsPtr</a> stats, <br/>					 size_t size);
 int	<a href="#virDomainIsActive">virDomainIsActive</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom);
 int	<a href="#virDomainIsPersistent">virDomainIsPersistent</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom);
+int	<a href="#virDomainIsUpdated">virDomainIsUpdated</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom);
 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	<a href="#virDomainLookupByID">virDomainLookupByID</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 int id);
 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	<a href="#virDomainLookupByName">virDomainLookupByName</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * name);
 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	<a href="#virDomainLookupByUUID">virDomainLookupByUUID</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const unsigned char * uuid);
@@ -258,6 +259,7 @@ int	<a href="#virDomainMemoryStats">virDomainMemoryStats</a>		(<a href="libvirt-
 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	<a href="#virDomainMigrate">virDomainMigrate</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> dconn, <br/>					 unsigned long flags, <br/>					 const char * dname, <br/>					 const char * uri, <br/>					 unsigned long bandwidth);
 int	<a href="#virDomainMigrateSetMaxDowntime">virDomainMigrateSetMaxDowntime</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned long long downtime, <br/>					 unsigned int flags);
 int	<a href="#virDomainMigrateToURI">virDomainMigrateToURI</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * duri, <br/>					 unsigned long flags, <br/>					 const char * dname, <br/>					 unsigned long bandwidth);
+int	<a href="#virDomainOpenConsole">virDomainOpenConsole</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * devname, <br/>					 <a href="libvirt-libvirt.html#virStreamPtr">virStreamPtr</a> st, <br/>					 unsigned int flags);
 int	<a href="#virDomainPinVcpu">virDomainPinVcpu</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int vcpu, <br/>					 unsigned char * cpumap, <br/>					 int maplen);
 int	<a href="#virDomainReboot">virDomainReboot</a>			(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int flags);
 int	<a href="#virDomainRef">virDomainRef</a>			(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
@@ -634,7 +636,8 @@ The content of this structure is not made public by the API.
         <div class="refsect2" lang="en"><h3><a name="virDomainDeviceModifyFlags">Enum </a>virDomainDeviceModifyFlags</h3><pre class="programlisting">enum <a href="#virDomainDeviceModifyFlags">virDomainDeviceModifyFlags</a> {
     <a name="VIR_DOMAIN_DEVICE_MODIFY_CURRENT">VIR_DOMAIN_DEVICE_MODIFY_CURRENT</a> = 0 /* Modify device allocation based on current domain state */
     <a name="VIR_DOMAIN_DEVICE_MODIFY_LIVE">VIR_DOMAIN_DEVICE_MODIFY_LIVE</a> = 1 /* Modify live device allocation */
-    <a name="VIR_DOMAIN_DEVICE_MODIFY_CONFIG">VIR_DOMAIN_DEVICE_MODIFY_CONFIG</a> = 2 /*  Modify persisted device allocation */
+    <a name="VIR_DOMAIN_DEVICE_MODIFY_CONFIG">VIR_DOMAIN_DEVICE_MODIFY_CONFIG</a> = 2 /* Modify persisted device allocation */
+    <a name="VIR_DOMAIN_DEVICE_MODIFY_FORCE">VIR_DOMAIN_DEVICE_MODIFY_FORCE</a> = 4 /*  Forcibly modify device (ex. force eject a cdrom) */
 };
 </pre><p/>
 </div>
@@ -1017,9 +1020,9 @@ The content of this structure is not made public by the API.
     unsigned long	memory	: memory size in kilobytes
     unsigned int	cpus	: the number of active CPUs
     unsigned int	mhz	: expected CPU frequency
-    unsigned int	nodes	: the number of NUMA cell, 1 for uniform mem access
-    unsigned int	sockets	: number of CPU socket per node
-    unsigned int	cores	: number of core per socket
+    unsigned int	nodes	: the number of NUMA cell, 1 for unusual NUMA topologies or uniform mem
+    unsigned int	sockets	: number of CPU sockets per node if nodes &gt; 1, total number of CPU sock
+    unsigned int	cores	: number of cores per socket
     unsigned int	threads	: number of threads per core
 } virNodeInfo;
 </pre><p/>
@@ -1840,7 +1843,7 @@ if ((virDomainGetMemoryParameters(dom, NULL, &amp;nparams, 0) == 0) &amp;&amp;
 }
 
 This function requires privileged access to the hypervisor. This function
-expects the caller to allocate the @param</p>
+expects the caller to allocate the @params.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to memory parameter object (return value, allocated by the caller)</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>pointer to number of memory parameters</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>currently unused, for future extension</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainGetName"/>virDomainGetName ()</h3><pre class="programlisting">const char *	virDomainGetName	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain)<br/>
@@ -1933,6 +1936,10 @@ that particular statistic.</p>
 </pre><p>Determine if the domain has a persistent configuration
 which means it will still exist after shutting down</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to the domain object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>1 if persistent, 0 if transient, -1 on error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainIsUpdated"/>virDomainIsUpdated ()</h3><pre class="programlisting">int	virDomainIsUpdated		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom)<br/>
+</pre><p>Determine if the domain has been updated.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to the domain object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>1 if updated, 0 if not, -1 on error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainLookupByID"/>virDomainLookupByID ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	virDomainLookupByID	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 int id)<br/>
 </pre><p>Try to find a domain based on the hypervisor ID number
@@ -2120,6 +2127,15 @@ technology - for example it may not be possible to migrate between
 different processors even with the same architecture, or between
 different types of hypervisor.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>duri</tt></i>:</span></td><td>mandatory URI for the destination host</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>flags</td></tr><tr><td><span class="term"><i><tt>dname</tt></i>:</span></td><td>(optional) rename domain to this at destination</td></tr><tr><td><span class="term"><i><tt>bandwidth</tt></i>:</span></td><td>(optional) specify migration bandwidth limit in Mbps</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if the migration succeeded, -1 upon error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainOpenConsole"/>virDomainOpenConsole ()</h3><pre class="programlisting">int	virDomainOpenConsole		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * devname, <br/>					 <a href="libvirt-libvirt.html#virStreamPtr">virStreamPtr</a> st, <br/>					 unsigned int flags)<br/>
+</pre><p>This opens the backend associated with a console, serial or
+parallel port device on a guest, if the backend is supported.
+If the @devname is omitted, then the first console or serial
+device is opened. The console is associated with the passed
+in @st stream, which should have been opened in non-blocking
+mode for bi-directional I/O.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>devname</tt></i>:</span></td><td>the console, serial or parallel port device alias, or NULL</td></tr><tr><td><span class="term"><i><tt>st</tt></i>:</span></td><td>a stream to associate with the console</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>unused, pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if the console was opened, -1 on error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainPinVcpu"/>virDomainPinVcpu ()</h3><pre class="programlisting">int	virDomainPinVcpu		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int vcpu, <br/>					 unsigned char * cpumap, <br/>					 int maplen)<br/>
 </pre><p>Dynamically change the real CPUs which can be allocated to a virtual CPU.

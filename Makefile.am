@@ -3,7 +3,7 @@
 LCOV = lcov
 GENHTML = genhtml
 
-SUBDIRS = gnulib/lib include src daemon tools proxy docs gnulib/tests \
+SUBDIRS = gnulib/lib include src daemon tools docs gnulib/tests \
   python tests po examples/domain-events/events-c examples/hellolibvirt \
   examples/dominfo examples/domsuspend examples/python examples/apparmor \
   examples/xml/nwfilter examples/openauth examples/systemtap
@@ -14,17 +14,16 @@ XML_EXAMPLES = \
   $(patsubst $(srcdir)/%,%,$(wildcard $(addprefix $(srcdir)/examples/xml/, \
 					test/*.xml storage/*.xml)))
 
-EXTRA_DIST = \
-  ChangeLog-old \
-  libvirt.spec libvirt.spec.in \
-  mingw32-libvirt.spec.in \
-  libvirt.pc libvirt.pc.in \
-  autobuild.sh \
+syntax_check_exceptions = \
   .x-sc_avoid_ctype_macros \
   .x-sc_avoid_if_before_free \
   .x-sc_avoid_write \
+  .x-sc_bindtextdomain \
   .x-sc_m4_quote_check \
+  .x-sc_po_check \
+  .x-sc_prohibit_always_true_header_tests \
   .x-sc_prohibit_asprintf \
+  .x-sc_prohibit_close \
   .x-sc_prohibit_empty_lines_at_EOF \
   .x-sc_prohibit_gethostby \
   .x-sc_prohibit_gethostname \
@@ -32,17 +31,29 @@ EXTRA_DIST = \
   .x-sc_prohibit_have_config_h \
   .x-sc_prohibit_HAVE_MBRTOWC \
   .x-sc_prohibit_nonreentrant \
+  .x-sc_prohibit_readlink \
+  .x-sc_prohibit_sprintf \
   .x-sc_prohibit_strcmp \
-  .x-sc_prohibit_strcmp_and_strncmp \
+  .x-sc_prohibit_strncmp \
   .x-sc_prohibit_strncpy \
   .x-sc_prohibit_test_minus_ao \
   .x-sc_prohibit_VIR_ERR_NO_MEMORY \
+  .x-sc_prohibit_xmlGetProp \
   .x-sc_require_config_h \
   .x-sc_require_config_h_first \
   .x-sc_trailing_blank \
+  .x-sc_unmarked_diagnostics
+
+EXTRA_DIST = \
+  ChangeLog-old \
+  libvirt.spec libvirt.spec.in \
+  mingw32-libvirt.spec.in \
+  libvirt.pc libvirt.pc.in \
+  autobuild.sh \
   Makefile.nonreentrant \
   autogen.sh \
   examples/domain-events/events-python \
+  $(syntax_check_exceptions) \
   $(XML_EXAMPLES)
 
 pkgconfigdir = $(libdir)/pkgconfig
@@ -56,6 +67,13 @@ NEWS: $(top_srcdir)/docs/news.xsl $(top_srcdir)/docs/news.html.in
 	   | perl -pe 's/[ \t]+$$//'				\
 	   > $@-t && mv $@-t $@ ; fi );
 
+$(top_srcdir)/HACKING: $(top_srcdir)/docs/hacking1.xsl $(top_srcdir)/docs/hacking2.xsl \
+                       $(top_srcdir)/docs/wrapstring.xsl $(top_srcdir)/docs/hacking.html.in
+	-@(if [ -x $(XSLTPROC) ] ; then \
+	   $(XSLTPROC) --nonet $(top_srcdir)/docs/hacking1.xsl $(top_srcdir)/docs/hacking.html.in | \
+	   $(XSLTPROC) --nonet $(top_srcdir)/docs/hacking2.xsl - \
+	   | perl -0777 -pe 's/\n\n+$$/\n/' \
+	   > $@-t && mv $@-t $@ ; fi );
 
 rpm: clean
 	@(unset CDPATH ; $(MAKE) dist && rpmbuild -ta $(distdir).tar.gz)

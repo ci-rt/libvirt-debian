@@ -39,6 +39,7 @@
 # include "nwfilter_params.h"
 # include "nwfilter_conf.h"
 # include "macvtap.h"
+# include "sysinfo.h"
 
 /* Private component of virDomainXMLFlags */
 typedef enum {
@@ -481,6 +482,7 @@ enum virDomainVideoType {
     VIR_DOMAIN_VIDEO_TYPE_VMVGA,
     VIR_DOMAIN_VIDEO_TYPE_XEN,
     VIR_DOMAIN_VIDEO_TYPE_VBOX,
+    VIR_DOMAIN_VIDEO_TYPE_QXL,
 
     VIR_DOMAIN_VIDEO_TYPE_LAST
 };
@@ -510,8 +512,36 @@ enum virDomainGraphicsType {
     VIR_DOMAIN_GRAPHICS_TYPE_VNC,
     VIR_DOMAIN_GRAPHICS_TYPE_RDP,
     VIR_DOMAIN_GRAPHICS_TYPE_DESKTOP,
+    VIR_DOMAIN_GRAPHICS_TYPE_SPICE,
 
     VIR_DOMAIN_GRAPHICS_TYPE_LAST,
+};
+
+typedef struct _virDomainGraphicsAuthDef virDomainGraphicsAuthDef;
+typedef virDomainGraphicsAuthDef *virDomainGraphicsAuthDefPtr;
+struct _virDomainGraphicsAuthDef {
+    char *passwd;
+    unsigned int expires: 1; /* Whether there is an expiry time set */
+    time_t validTo;  /* seconds since epoch */
+};
+
+enum virDomainGraphicsSpiceChannelName {
+    VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MAIN,
+    VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_DISPLAY,
+    VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_INPUT,
+    VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_CURSOR,
+    VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_PLAYBACK,
+    VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_RECORD,
+
+    VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_LAST
+};
+
+enum virDomainGraphicsSpiceChannelMode {
+    VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_ANY,
+    VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_SECURE,
+    VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_INSECURE,
+
+    VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_LAST
 };
 
 typedef struct _virDomainGraphicsDef virDomainGraphicsDef;
@@ -524,7 +554,7 @@ struct _virDomainGraphicsDef {
             unsigned int autoport :1;
             char *listenAddr;
             char *keymap;
-            char *passwd;
+            virDomainGraphicsAuthDef auth;
         } vnc;
         struct {
             char *display;
@@ -542,6 +572,15 @@ struct _virDomainGraphicsDef {
             char *display;
             unsigned int fullscreen :1;
         } desktop;
+        struct {
+            int port;
+            int tlsPort;
+            char *listenAddr;
+            char *keymap;
+            virDomainGraphicsAuthDef auth;
+            unsigned int autoport :1;
+            int channels[VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_LAST];
+        } spice;
     } data;
 };
 
@@ -605,6 +644,15 @@ struct _virDomainMemballoonDef {
     virDomainDeviceInfo info;
 };
 
+
+enum virDomainSmbiosMode {
+    VIR_DOMAIN_SMBIOS_NONE,
+    VIR_DOMAIN_SMBIOS_EMULATE,
+    VIR_DOMAIN_SMBIOS_HOST,
+    VIR_DOMAIN_SMBIOS_SYSINFO,
+
+    VIR_DOMAIN_SMBIOS_LAST
+};
 
 /* Flags for the 'type' field in next struct */
 enum virDomainDeviceType {
@@ -704,6 +752,7 @@ struct _virDomainOSDef {
     char *loader;
     char *bootloader;
     char *bootloaderArgs;
+    int smbios_mode;
 };
 
 enum virDomainSeclabelType {
@@ -943,6 +992,7 @@ struct _virDomainDef {
     virDomainWatchdogDefPtr watchdog;
     virDomainMemballoonDefPtr memballoon;
     virCPUDefPtr cpu;
+    virSysinfoDefPtr sysinfo;
 
     void *namespaceData;
     virDomainXMLNamespace ns;
@@ -960,6 +1010,7 @@ struct _virDomainObj {
 
     unsigned int autostart : 1;
     unsigned int persistent : 1;
+    unsigned int updated : 1;
 
     virDomainDefPtr def; /* The current definition */
     virDomainDefPtr newDef; /* New definition to activate at shutdown */
@@ -1042,10 +1093,14 @@ virDomainObjPtr virDomainAssignDef(virCapsPtr caps,
 void virDomainObjAssignDef(virDomainObjPtr domain,
                            const virDomainDefPtr def,
                            bool live);
+int virDomainObjSetDefTransient(virCapsPtr caps,
+                                virDomainObjPtr domain);
+virDomainDefPtr
+virDomainObjGetPersistentDef(virCapsPtr caps,
+                             virDomainObjPtr domain);
 void virDomainRemoveInactive(virDomainObjListPtr doms,
                              virDomainObjPtr dom);
 
-# ifndef PROXY
 virDomainDeviceDefPtr virDomainDeviceDefParse(virCapsPtr caps,
                                               const virDomainDefPtr def,
                                               const char *xmlStr,
@@ -1069,7 +1124,6 @@ virDomainObjPtr virDomainObjParseNode(virCapsPtr caps,
 
 int virDomainDefAddImplicitControllers(virDomainDefPtr def);
 
-# endif
 char *virDomainDefFormat(virDomainDefPtr def,
                          int flags);
 
@@ -1195,6 +1249,8 @@ VIR_ENUM_DECL(virDomainChr)
 VIR_ENUM_DECL(virDomainChrTcpProtocol)
 VIR_ENUM_DECL(virDomainSoundModel)
 VIR_ENUM_DECL(virDomainMemballoonModel)
+VIR_ENUM_DECL(virDomainSysinfo)
+VIR_ENUM_DECL(virDomainSmbiosMode)
 VIR_ENUM_DECL(virDomainWatchdogModel)
 VIR_ENUM_DECL(virDomainWatchdogAction)
 VIR_ENUM_DECL(virDomainVideo)
@@ -1203,6 +1259,8 @@ VIR_ENUM_DECL(virDomainHostdevSubsys)
 VIR_ENUM_DECL(virDomainInput)
 VIR_ENUM_DECL(virDomainInputBus)
 VIR_ENUM_DECL(virDomainGraphics)
+VIR_ENUM_DECL(virDomainGraphicsSpiceChannelName)
+VIR_ENUM_DECL(virDomainGraphicsSpiceChannelMode)
 /* from libvirt.h */
 VIR_ENUM_DECL(virDomainState)
 VIR_ENUM_DECL(virDomainSeclabel)

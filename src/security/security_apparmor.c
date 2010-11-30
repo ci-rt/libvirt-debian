@@ -37,11 +37,13 @@
 #include "uuid.h"
 #include "pci.h"
 #include "hostusb.h"
+#include "files.h"
+#include "configmake.h"
 
 #define VIR_FROM_THIS VIR_FROM_SECURITY
 #define SECURITY_APPARMOR_VOID_DOI      "0"
 #define SECURITY_APPARMOR_NAME          "apparmor"
-#define VIRT_AA_HELPER BINDIR "/virt-aa-helper"
+#define VIRT_AA_HELPER LIBEXECDIR "/virt-aa-helper"
 
 /* Data structure to pass to *FileIterate so we have everything we need */
 struct SDPDOP {
@@ -215,7 +217,7 @@ load_profile(virSecurityDriverPtr drv,
         virReportSystemError(errno, "%s", _("unable to write to pipe"));
         goto clean;
     }
-    close(pipefd[1]);
+    VIR_FORCE_CLOSE(pipefd[1]);
     rc = 0;
 
   rewait:
@@ -233,10 +235,8 @@ load_profile(virSecurityDriverPtr drv,
   clean:
     VIR_FREE(xml);
 
-    if (pipefd[0] > 0)
-        close(pipefd[0]);
-    if (pipefd[1] > 0)
-        close(pipefd[1]);
+    VIR_FORCE_CLOSE(pipefd[0]);
+    VIR_FORCE_CLOSE(pipefd[1]);
 
     return rc;
 }
@@ -562,7 +562,7 @@ AppArmorRestoreSecurityAllLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
 }
 
 /* Called via virExecWithHook. Output goes to
- * LOCAL_STATE_DIR/log/libvirt/qemu/<vm name>.log
+ * LOCALSTATEDIR/log/libvirt/qemu/<vm name>.log
  */
 static int
 AppArmorSetSecurityProcessLabel(virSecurityDriverPtr drv, virDomainObjPtr vm)

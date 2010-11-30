@@ -653,7 +653,10 @@ ESX_VI__TEMPLATE__ALLOC(ElementDescription)
 /* esxVI_ElementDescription_Free */
 ESX_VI__TEMPLATE__FREE(ElementDescription,
 {
-    esxVI_Description_Free((esxVI_Description **)&item->_next);
+    esxVI_Description *next = (esxVI_Description *)item->_next;
+
+    esxVI_Description_Free(&next);
+    item->_next = (esxVI_ElementDescription *)next;
 
     /* Description */
     VIR_FREE(item->label);
@@ -1095,7 +1098,10 @@ ESX_VI__TEMPLATE__ALLOC(FloppyImageFileInfo)
 /* esxVI_FloppyImageFileInfo_Free */
 ESX_VI__TEMPLATE__FREE(FloppyImageFileInfo,
 {
-    esxVI_FileInfo_Free((esxVI_FileInfo **)&item->_next);
+    esxVI_FileInfo *next = (esxVI_FileInfo *)item->_next;
+
+    esxVI_FileInfo_Free(&next);
+    item->_next = (esxVI_FloppyImageFileInfo *)next;
 
     /* FileInfo */
     VIR_FREE(item->path);
@@ -1167,7 +1173,10 @@ ESX_VI__TEMPLATE__ALLOC(FloppyImageFileQuery)
 /* esxVI_FloppyImageFileQuery_Free */
 ESX_VI__TEMPLATE__FREE(FloppyImageFileQuery,
 {
-    esxVI_FileQuery_Free((esxVI_FileQuery **)&item->_next);
+    esxVI_FileQuery *next = (esxVI_FileQuery *)item->_next;
+
+    esxVI_FileQuery_Free(&next);
+    item->_next = (esxVI_FloppyImageFileQuery *)next;
 
     /* FileQuery */
     /* no properties */
@@ -1233,7 +1242,10 @@ ESX_VI__TEMPLATE__ALLOC(FolderFileInfo)
 /* esxVI_FolderFileInfo_Free */
 ESX_VI__TEMPLATE__FREE(FolderFileInfo,
 {
-    esxVI_FileInfo_Free((esxVI_FileInfo **)&item->_next);
+    esxVI_FileInfo *next = (esxVI_FileInfo *)item->_next;
+
+    esxVI_FileInfo_Free(&next);
+    item->_next = (esxVI_FolderFileInfo *)next;
 
     /* FileInfo */
     VIR_FREE(item->path);
@@ -1305,7 +1317,10 @@ ESX_VI__TEMPLATE__ALLOC(FolderFileQuery)
 /* esxVI_FolderFileQuery_Free */
 ESX_VI__TEMPLATE__FREE(FolderFileQuery,
 {
-    esxVI_FileQuery_Free((esxVI_FileQuery **)&item->_next);
+    esxVI_FileQuery *next = (esxVI_FileQuery *)item->_next;
+
+    esxVI_FileQuery_Free(&next);
+    item->_next = (esxVI_FolderFileQuery *)next;
 
     /* FileQuery */
     /* no properties */
@@ -1834,7 +1849,10 @@ ESX_VI__TEMPLATE__ALLOC(IsoImageFileInfo)
 /* esxVI_IsoImageFileInfo_Free */
 ESX_VI__TEMPLATE__FREE(IsoImageFileInfo,
 {
-    esxVI_FileInfo_Free((esxVI_FileInfo **)&item->_next);
+    esxVI_FileInfo *next = (esxVI_FileInfo *)item->_next;
+
+    esxVI_FileInfo_Free(&next);
+    item->_next = (esxVI_IsoImageFileInfo *)next;
 
     /* FileInfo */
     VIR_FREE(item->path);
@@ -1906,7 +1924,10 @@ ESX_VI__TEMPLATE__ALLOC(IsoImageFileQuery)
 /* esxVI_IsoImageFileQuery_Free */
 ESX_VI__TEMPLATE__FREE(IsoImageFileQuery,
 {
-    esxVI_FileQuery_Free((esxVI_FileQuery **)&item->_next);
+    esxVI_FileQuery *next = (esxVI_FileQuery *)item->_next;
+
+    esxVI_FileQuery_Free(&next);
+    item->_next = (esxVI_IsoImageFileQuery *)next;
 
     /* FileQuery */
     /* no properties */
@@ -2369,7 +2390,10 @@ ESX_VI__TEMPLATE__ALLOC(PerfEntityMetric)
 /* esxVI_PerfEntityMetric_Free */
 ESX_VI__TEMPLATE__FREE(PerfEntityMetric,
 {
-    esxVI_PerfEntityMetricBase_Free((esxVI_PerfEntityMetricBase **)&item->_next);
+    esxVI_PerfEntityMetricBase *next = (esxVI_PerfEntityMetricBase *)item->_next;
+
+    esxVI_PerfEntityMetricBase_Free(&next);
+    item->_next = (esxVI_PerfEntityMetric *)next;
 
     /* PerfEntityMetricBase */
     esxVI_ManagedObjectReference_Free(&item->entity);
@@ -2547,7 +2571,10 @@ ESX_VI__TEMPLATE__ALLOC(PerfMetricIntSeries)
 /* esxVI_PerfMetricIntSeries_Free */
 ESX_VI__TEMPLATE__FREE(PerfMetricIntSeries,
 {
-    esxVI_PerfMetricSeries_Free((esxVI_PerfMetricSeries **)&item->_next);
+    esxVI_PerfMetricSeries *next = (esxVI_PerfMetricSeries *)item->_next;
+
+    esxVI_PerfMetricSeries_Free(&next);
+    item->_next = (esxVI_PerfMetricIntSeries *)next;
 
     /* PerfMetricSeries */
     esxVI_PerfMetricId_Free(&item->id);
@@ -3348,7 +3375,10 @@ ESX_VI__TEMPLATE__ALLOC(TemplateConfigFileInfo)
 /* esxVI_TemplateConfigFileInfo_Free */
 ESX_VI__TEMPLATE__FREE(TemplateConfigFileInfo,
 {
-    esxVI_VmConfigFileInfo_Free((esxVI_VmConfigFileInfo **)&item->_next);
+    esxVI_VmConfigFileInfo *next = (esxVI_VmConfigFileInfo *)item->_next;
+
+    esxVI_VmConfigFileInfo_Free(&next);
+    item->_next = (esxVI_TemplateConfigFileInfo *)next;
 
     /* FileInfo */
     VIR_FREE(item->path);
@@ -3432,7 +3462,10 @@ ESX_VI__TEMPLATE__ALLOC(TemplateConfigFileQuery)
 /* esxVI_TemplateConfigFileQuery_Free */
 ESX_VI__TEMPLATE__FREE(TemplateConfigFileQuery,
 {
-    esxVI_VmConfigFileQuery_Free((esxVI_VmConfigFileQuery **)&item->_next);
+    esxVI_VmConfigFileQuery *next = (esxVI_VmConfigFileQuery *)item->_next;
+
+    esxVI_VmConfigFileQuery_Free(&next);
+    item->_next = (esxVI_TemplateConfigFileQuery *)next;
 
     /* FileQuery */
     /* no properties */
@@ -3513,7 +3546,10 @@ ESX_VI__TEMPLATE__ALLOC(TraversalSpec)
 /* esxVI_TraversalSpec_Free */
 ESX_VI__TEMPLATE__FREE(TraversalSpec,
 {
-    esxVI_SelectionSpec_Free((esxVI_SelectionSpec **)&item->_next);
+    esxVI_SelectionSpec *next = (esxVI_SelectionSpec *)item->_next;
+
+    esxVI_SelectionSpec_Free(&next);
+    item->_next = (esxVI_TraversalSpec *)next;
 
     /* SelectionSpec */
     VIR_FREE(item->name);
@@ -3997,7 +4033,10 @@ ESX_VI__TEMPLATE__DYNAMIC_FREE(VmConfigFileInfo,
     ESX_VI__TEMPLATE__DISPATCH__FREE(TemplateConfigFileInfo)
 },
 {
-    esxVI_FileInfo_Free((esxVI_FileInfo **)&item->_next);
+    esxVI_FileInfo *next = (esxVI_FileInfo *)item->_next;
+
+    esxVI_FileInfo_Free(&next);
+    item->_next = (esxVI_VmConfigFileInfo *)next;
 
     /* FileInfo */
     VIR_FREE(item->path);
@@ -4081,7 +4120,10 @@ ESX_VI__TEMPLATE__DYNAMIC_FREE(VmConfigFileQuery,
     ESX_VI__TEMPLATE__DISPATCH__FREE(TemplateConfigFileQuery)
 },
 {
-    esxVI_FileQuery_Free((esxVI_FileQuery **)&item->_next);
+    esxVI_FileQuery *next = (esxVI_FileQuery *)item->_next;
+
+    esxVI_FileQuery_Free(&next);
+    item->_next = (esxVI_VmConfigFileQuery *)next;
 
     /* FileQuery */
     /* no properties */
@@ -4224,7 +4266,10 @@ ESX_VI__TEMPLATE__ALLOC(VmDiskFileInfo)
 /* esxVI_VmDiskFileInfo_Free */
 ESX_VI__TEMPLATE__FREE(VmDiskFileInfo,
 {
-    esxVI_FileInfo_Free((esxVI_FileInfo **)&item->_next);
+    esxVI_FileInfo *next = (esxVI_FileInfo *)item->_next;
+
+    esxVI_FileInfo_Free(&next);
+    item->_next = (esxVI_VmDiskFileInfo *)next;
 
     /* FileInfo */
     VIR_FREE(item->path);
@@ -4308,7 +4353,10 @@ ESX_VI__TEMPLATE__ALLOC(VmDiskFileQuery)
 /* esxVI_VmDiskFileQuery_Free */
 ESX_VI__TEMPLATE__FREE(VmDiskFileQuery,
 {
-    esxVI_FileQuery_Free((esxVI_FileQuery **)&item->_next);
+    esxVI_FileQuery *next = (esxVI_FileQuery *)item->_next;
+
+    esxVI_FileQuery_Free(&next);
+    item->_next = (esxVI_VmDiskFileQuery *)next;
 
     /* FileQuery */
     /* no properties */
@@ -4459,7 +4507,10 @@ ESX_VI__TEMPLATE__ALLOC(VmLogFileInfo)
 /* esxVI_VmLogFileInfo_Free */
 ESX_VI__TEMPLATE__FREE(VmLogFileInfo,
 {
-    esxVI_FileInfo_Free((esxVI_FileInfo **)&item->_next);
+    esxVI_FileInfo *next = (esxVI_FileInfo *)item->_next;
+
+    esxVI_FileInfo_Free(&next);
+    item->_next = (esxVI_VmLogFileInfo *)next;
 
     /* FileInfo */
     VIR_FREE(item->path);
@@ -4531,7 +4582,10 @@ ESX_VI__TEMPLATE__ALLOC(VmLogFileQuery)
 /* esxVI_VmLogFileQuery_Free */
 ESX_VI__TEMPLATE__FREE(VmLogFileQuery,
 {
-    esxVI_FileQuery_Free((esxVI_FileQuery **)&item->_next);
+    esxVI_FileQuery *next = (esxVI_FileQuery *)item->_next;
+
+    esxVI_FileQuery_Free(&next);
+    item->_next = (esxVI_VmLogFileQuery *)next;
 
     /* FileQuery */
     /* no properties */
@@ -4597,7 +4651,10 @@ ESX_VI__TEMPLATE__ALLOC(VmNvramFileInfo)
 /* esxVI_VmNvramFileInfo_Free */
 ESX_VI__TEMPLATE__FREE(VmNvramFileInfo,
 {
-    esxVI_FileInfo_Free((esxVI_FileInfo **)&item->_next);
+    esxVI_FileInfo *next = (esxVI_FileInfo *)item->_next;
+
+    esxVI_FileInfo_Free(&next);
+    item->_next = (esxVI_VmNvramFileInfo *)next;
 
     /* FileInfo */
     VIR_FREE(item->path);
@@ -4669,7 +4726,10 @@ ESX_VI__TEMPLATE__ALLOC(VmNvramFileQuery)
 /* esxVI_VmNvramFileQuery_Free */
 ESX_VI__TEMPLATE__FREE(VmNvramFileQuery,
 {
-    esxVI_FileQuery_Free((esxVI_FileQuery **)&item->_next);
+    esxVI_FileQuery *next = (esxVI_FileQuery *)item->_next;
+
+    esxVI_FileQuery_Free(&next);
+    item->_next = (esxVI_VmNvramFileQuery *)next;
 
     /* FileQuery */
     /* no properties */
@@ -4735,7 +4795,10 @@ ESX_VI__TEMPLATE__ALLOC(VmSnapshotFileInfo)
 /* esxVI_VmSnapshotFileInfo_Free */
 ESX_VI__TEMPLATE__FREE(VmSnapshotFileInfo,
 {
-    esxVI_FileInfo_Free((esxVI_FileInfo **)&item->_next);
+    esxVI_FileInfo *next = (esxVI_FileInfo *)item->_next;
+
+    esxVI_FileInfo_Free(&next);
+    item->_next = (esxVI_VmSnapshotFileInfo *)next;
 
     /* FileInfo */
     VIR_FREE(item->path);
@@ -4807,7 +4870,10 @@ ESX_VI__TEMPLATE__ALLOC(VmSnapshotFileQuery)
 /* esxVI_VmSnapshotFileQuery_Free */
 ESX_VI__TEMPLATE__FREE(VmSnapshotFileQuery,
 {
-    esxVI_FileQuery_Free((esxVI_FileQuery **)&item->_next);
+    esxVI_FileQuery *next = (esxVI_FileQuery *)item->_next;
+
+    esxVI_FileQuery_Free(&next);
+    item->_next = (esxVI_VmSnapshotFileQuery *)next;
 
     /* FileQuery */
     /* no properties */

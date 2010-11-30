@@ -26,6 +26,7 @@ virThreadLocal virLastErr;
 
 virErrorFunc virErrorHandler = NULL;     /* global error handler */
 void *virUserData = NULL;        /* associated data */
+static int virErrorLogPriority = -1;
 
 /*
  * Macro used to format the message as a string in virRaiseError
@@ -179,7 +180,7 @@ static const char *virErrorDomainName(virErrorDomain domain) {
             dom = "CPU ";
             break;
         case VIR_FROM_NWFILTER:
-            dom = "Network Filter";
+            dom = "Network Filter ";
             break;
         case VIR_FROM_HOOK:
             dom = "Sync Hook ";
@@ -188,7 +189,13 @@ static const char *virErrorDomainName(virErrorDomain domain) {
             dom = "Domain Snapshot ";
             break;
         case VIR_FROM_AUDIT:
-            dom = "Audit";
+            dom = "Audit ";
+            break;
+        case VIR_FROM_SYSINFO:
+            dom = "Sysinfo ";
+            break;
+        case VIR_FROM_STREAMS:
+            dom = "Streams ";
             break;
     }
     return(dom);
@@ -682,6 +689,7 @@ virRaiseErrorFull(virConnectPtr conn ATTRIBUTE_UNUSED,
 {
     virErrorPtr to;
     char *str;
+    int priority;
 
     /*
      * All errors are recorded in thread local storage
@@ -709,8 +717,14 @@ virRaiseErrorFull(virConnectPtr conn ATTRIBUTE_UNUSED,
     /*
      * Hook up the error or warning to the logging facility
      * XXXX should we include filename as 'category' instead of domain name ?
+     *
+     * When an explicit error log priority is set then use it, otherwise
+     * translate the error level to the log priority. This is used by libvirtd
+     * to log client errors at debug priority.
      */
-    virLogMessage(virErrorDomainName(domain), virErrorLevelPriority(level),
+    priority = virErrorLogPriority == -1 ? virErrorLevelPriority(level)
+                                         : virErrorLogPriority;
+    virLogMessage(virErrorDomainName(domain), priority,
                   funcname, linenr, 1, "%s", str);
 
     /*
@@ -1324,4 +1338,10 @@ void virReportOOMErrorFull(int domcode,
     virRaiseErrorFull(NULL, filename, funcname, linenr,
                       domcode, VIR_ERR_NO_MEMORY, VIR_ERR_ERROR,
                       virerr, NULL, NULL, -1, -1, virerr, NULL);
+}
+
+void
+virErrorSetLogPriority(int priority)
+{
+    virErrorLogPriority = priority;
 }

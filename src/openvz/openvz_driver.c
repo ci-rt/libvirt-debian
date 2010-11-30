@@ -57,6 +57,8 @@
 #include "nodeinfo.h"
 #include "memory.h"
 #include "bridge.h"
+#include "files.h"
+#include "logging.h"
 
 #define VIR_FROM_THIS VIR_FROM_OPENVZ
 
@@ -101,10 +103,6 @@ openvzDomainDefineCmd(const char *args[],
                       int maxarg, virDomainDefPtr vmdef)
 {
     int narg;
-    int veid;
-    int max_veid;
-    char str_id[10];
-    FILE *fp;
 
     for (narg = 0; narg < maxarg; narg++)
         args[narg] = NULL;
@@ -114,6 +112,7 @@ openvzDomainDefineCmd(const char *args[],
                     _("Container is not defined"));
         return -1;
     }
+
 #define ADD_ARG(thisarg)                                                \
     do {                                                                \
         if (narg >= maxarg)                                             \
@@ -134,36 +133,7 @@ openvzDomainDefineCmd(const char *args[],
     ADD_ARG_LIT("--quiet");
     ADD_ARG_LIT("create");
 
-    if ((fp = popen(VZLIST " -a -ovpsid -H 2>/dev/null", "r")) == NULL) {
-        openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
-                    _("popen  failed"));
-        return -1;
-    }
-    max_veid = 0;
-    while (!feof(fp)) {
-        if (fscanf(fp, "%d\n", &veid) != 1) {
-            if (feof(fp))
-                break;
-
-            openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("Failed to parse vzlist output"));
-            goto cleanup;
-        }
-        if (veid > max_veid) {
-            max_veid = veid;
-        }
-    }
-    fclose(fp);
-
-    if (max_veid == 0) {
-        max_veid = 100;
-    } else {
-        max_veid++;
-    }
-
-    sprintf(str_id, "%d", max_veid);
-    ADD_ARG_LIT(str_id);
-
+    ADD_ARG_LIT(vmdef->name);
     ADD_ARG_LIT("--name");
     ADD_ARG_LIT(vmdef->name);
 
@@ -185,10 +155,6 @@ openvzDomainDefineCmd(const char *args[],
 no_memory:
     openvzError(VIR_ERR_INTERNAL_ERROR,
                 _("Could not put argument to %s"), VZCTL);
-    return -1;
-
-cleanup:
-    fclose(fp);
     return -1;
 
 #undef ADD_ARG
@@ -245,8 +211,7 @@ static int openvzSetInitialConfig(virDomainDefPtr vmdef)
     else
     {
         if (openvzDomainDefineCmd(prog, OPENVZ_MAX_ARG, vmdef) < 0) {
-            openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("Error creating command for container"));
+            VIR_ERROR0(_("Error creating command for container"));
             goto cleanup;
         }
 
@@ -457,6 +422,10 @@ cleanup:
     return ret;
 }
 
+static int openvzDomainIsUpdated(virDomainPtr dom ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
 
 static char *openvzDomainDumpXML(virDomainPtr dom, int flags) {
     struct openvz_driver *driver = dom->conn->privateData;
@@ -909,8 +878,7 @@ openvzDomainDefineXML(virConnectPtr conn, const char *xml)
     vm->persistent = 1;
 
     if (openvzSetInitialConfig(vm->def) < 0) {
-        openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
-                    _("Error creating initial configuration"));
+        VIR_ERROR0(_("Error creating initial configuration"));
         goto cleanup;
     }
 
@@ -998,8 +966,7 @@ openvzDomainCreateXML(virConnectPtr conn, const char *xml,
     vm->persistent = 1;
 
     if (openvzSetInitialConfig(vm->def) < 0) {
-        openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
-                    _("Error creating initial configuration"));
+        VIR_ERROR0(_("Error creating initial configuration"));
         goto cleanup;
     }
 
@@ -1540,7 +1507,7 @@ Version: 2.2
         }
     }
 
-    close(fd);
+    VIR_FORCE_CLOSE(fd);
     if (ret < 0)
         return -1;
 
@@ -1668,6 +1635,7 @@ static virDriver openvzDriver = {
     openvzIsSecure,
     openvzDomainIsActive,
     openvzDomainIsPersistent,
+    openvzDomainIsUpdated, /* domainIsUpdated */
     NULL, /* cpuCompare */
     NULL, /* cpuBaseline */
     NULL, /* domainGetJobInfo */
@@ -1690,6 +1658,7 @@ static virDriver openvzDriver = {
     NULL, /* qemuDomainMonitorCommand */
     NULL, /* domainSetMemoryParameters */
     NULL, /* domainGetMemoryParameters */
+    NULL, /* domainOpenConsole */
 };
 
 int openvzRegister(void) {

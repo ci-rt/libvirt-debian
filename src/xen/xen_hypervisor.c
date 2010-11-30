@@ -65,6 +65,7 @@
 #include "buf.h"
 #include "capabilities.h"
 #include "memory.h"
+#include "files.h"
 
 #define VIR_FROM_THIS VIR_FROM_XEN
 
@@ -107,14 +108,6 @@ typedef privcmd_hypercall_t hypercall_t;
 # define SYS_IFACE_MIN_VERS_NUMA 3
 #else
 # define SYS_IFACE_MIN_VERS_NUMA 4
-#endif
-
-/* xen-unstable changeset 19788 removed MAX_VIRT_CPUS from public
- * headers.  Its semanitc was retained with XEN_LEGACY_MAX_VCPUS.
- * Ensure MAX_VIRT_CPUS is defined accordingly.
- */
-#if !defined(MAX_VIRT_CPUS) && defined(XEN_LEGACY_MAX_VCPUS)
-# define MAX_VIRT_CPUS XEN_LEGACY_MAX_VCPUS
 #endif
 
 static int xen_ioctl_hypercall_cmd = 0;
@@ -756,11 +749,8 @@ typedef struct xen_op_v2_dom xen_op_v2_dom;
 # error "unsupported platform"
 #endif
 
-#ifndef PROXY
 static unsigned long xenHypervisorGetMaxMemory(virDomainPtr domain);
-#endif
 
-#ifndef PROXY
 struct xenUnifiedDriver xenHypervisorDriver = {
     xenHypervisorOpen, /* open */
     xenHypervisorClose, /* close */
@@ -800,14 +790,11 @@ struct xenUnifiedDriver xenHypervisorDriver = {
     xenHypervisorGetSchedulerParameters, /* domainGetSchedulerParameters */
     xenHypervisorSetSchedulerParameters, /* domainSetSchedulerParameters */
 };
-#endif /* !PROXY */
 
 #define virXenError(code, ...)                                             \
         if (in_init == 0)                                                  \
             virReportErrorHelper(NULL, VIR_FROM_XEN, code, __FILE__,       \
                                  __FUNCTION__, __LINE__, __VA_ARGS__)
-
-#ifndef PROXY
 
 /**
  * virXenErrorFunc:
@@ -842,8 +829,6 @@ virXenErrorFunc(virErrorNumber error, const char *func, const char *info,
                         value);
     }
 }
-
-#endif /* PROXY */
 
 /**
  * xenHypervisorDoV0Op:
@@ -1111,7 +1096,6 @@ virXen_getdomaininfo(int handle, int first_domain,
 }
 
 
-#ifndef PROXY
 /**
  * xenHypervisorGetSchedulerType:
  * @domain: pointer to the Xen Hypervisor block
@@ -1427,7 +1411,7 @@ xenHypervisorDomainBlockStats (virDomainPtr dom,
                                const char *path,
                                struct _virDomainBlockStats *stats)
 {
-# ifdef __linux__
+#ifdef __linux__
     xenUnifiedPrivatePtr priv;
     int ret;
 
@@ -1437,12 +1421,12 @@ xenHypervisorDomainBlockStats (virDomainPtr dom,
     ret = xenLinuxDomainBlockStats (priv, dom, path, stats);
     xenUnifiedUnlock(priv);
     return ret;
-# else
+#else
     virXenErrorFunc(VIR_ERR_NO_SUPPORT, __FUNCTION__,
                     "block statistics not supported on this platform",
                     dom->id);
     return -1;
-# endif
+#endif
 }
 
 /* Paths have the form vif<domid>.<n> (this interface checks that
@@ -1457,7 +1441,7 @@ xenHypervisorDomainInterfaceStats (virDomainPtr dom,
                                    const char *path,
                                    struct _virDomainInterfaceStats *stats)
 {
-# ifdef __linux__
+#ifdef __linux__
     int rqdomid, device;
 
     /* Verify that the vif requested is one belonging to the current
@@ -1475,11 +1459,11 @@ xenHypervisorDomainInterfaceStats (virDomainPtr dom,
     }
 
     return linuxDomainInterfaceStats(path, stats);
-# else
+#else
     virXenErrorFunc(VIR_ERR_NO_SUPPORT, __FUNCTION__,
                     "/proc/net/dev: Interface not found", 0);
     return -1;
-# endif
+#endif
 }
 
 /**
@@ -1785,7 +1769,7 @@ virXen_setvcpumap(int handle, int id, unsigned int vcpu,
     }
     return(ret);
 }
-#endif /* !PROXY*/
+
 
 /**
  * virXen_getvcpusinfo:
@@ -2036,7 +2020,7 @@ xenHypervisorInit(void)
     hypervisor_version = -1;
     virXenError(VIR_ERR_XEN_CALL, " ioctl %lu",
                 (unsigned long) IOCTL_PRIVCMD_HYPERCALL);
-    close(fd);
+    VIR_FORCE_CLOSE(fd);
     in_init = 0;
     return(-1);
 
@@ -2122,13 +2106,13 @@ xenHypervisorInit(void)
     hypervisor_version = -1;
     virXenError(VIR_ERR_XEN_CALL, " ioctl %lu",
                 (unsigned long)IOCTL_PRIVCMD_HYPERCALL);
-    close(fd);
+    VIR_FORCE_CLOSE(fd);
     in_init = 0;
     VIR_FREE(ipt);
     return(-1);
 
  done:
-    close(fd);
+    VIR_FORCE_CLOSE(fd);
     in_init = 0;
     VIR_FREE(ipt);
     return(0);
@@ -2191,7 +2175,7 @@ xenHypervisorClose(virConnectPtr conn)
     if (priv->handle < 0)
         return -1;
 
-    ret = close(priv->handle);
+    ret = VIR_CLOSE(priv->handle);
     if (ret < 0)
         return (-1);
 
@@ -2262,7 +2246,7 @@ xenHypervisorBuildCapabilities(virConnectPtr conn,
         goto no_memory;
 
 
-    if (sys_interface_version >= SYS_IFACE_MIN_VERS_NUMA) {
+    if (sys_interface_version >= SYS_IFACE_MIN_VERS_NUMA && conn != NULL) {
         if (xenDaemonNodeGetTopology(conn, caps) != 0) {
             virCapabilitiesFree(caps);
             return NULL;
@@ -2396,8 +2380,7 @@ get_cpu_flags(virConnectPtr conn, const char **hvm, int *pae, int *longmode)
     ret = 1;
 
 out:
-    if (fd != -1)
-        close(fd);
+    VIR_FORCE_CLOSE(fd);
     return ret;
 }
 
@@ -2658,7 +2641,7 @@ xenHypervisorMakeCapabilities(virConnectPtr conn)
     capabilities = fopen ("/sys/hypervisor/properties/capabilities", "r");
     if (capabilities == NULL) {
         if (errno != ENOENT) {
-            fclose(cpuinfo);
+            VIR_FORCE_FCLOSE(cpuinfo);
             virReportSystemError(errno,
                                  _("cannot read file %s"),
                                  "/sys/hypervisor/properties/capabilities");
@@ -2671,10 +2654,8 @@ xenHypervisorMakeCapabilities(virConnectPtr conn)
                                                  cpuinfo,
                                                  capabilities);
 
-    if (cpuinfo)
-        fclose(cpuinfo);
-    if (capabilities)
-        fclose(capabilities);
+    VIR_FORCE_FCLOSE(cpuinfo);
+    VIR_FORCE_FCLOSE(capabilities);
 
     return caps;
 #endif /* __sun */
@@ -2818,7 +2799,6 @@ xenHypervisorListDomains(virConnectPtr conn, int *ids, int maxids)
 }
 
 
-#ifndef PROXY
 char *
 xenHypervisorDomainGetOSType (virDomainPtr dom)
 {
@@ -2990,7 +2970,6 @@ xenHypervisorLookupDomainByUUID(virConnectPtr conn,
     VIR_FREE(name);
     return ret;
 }
-#endif
 
 /**
  * xenHypervisorGetMaxVcpus:
@@ -3052,7 +3031,6 @@ xenHypervisorGetDomMaxMemory(virConnectPtr conn, int id)
     return((unsigned long) XEN_GETDOMAININFO_MAX_PAGES(dominfo) * kb_per_pages);
 }
 
-#ifndef PROXY
 /**
  * xenHypervisorGetMaxMemory:
  * @domain: a domain object or NULL
@@ -3077,7 +3055,6 @@ xenHypervisorGetMaxMemory(virDomainPtr domain)
 
     return(xenHypervisorGetDomMaxMemory(domain->conn, domain->id));
 }
-#endif
 
 /**
  * xenHypervisorGetDomInfo:
@@ -3189,7 +3166,6 @@ xenHypervisorGetDomainInfo(virDomainPtr domain, virDomainInfoPtr info)
 
 }
 
-#ifndef PROXY
 /**
  * xenHypervisorNodeGetCellsFreeMemory:
  * @conn: pointer to the hypervisor connection
@@ -3379,9 +3355,8 @@ xenHypervisorSetMaxMemory(virDomainPtr domain, unsigned long memory)
         return (-1);
     return (0);
 }
-#endif /* PROXY */
 
-#ifndef PROXY
+
 /**
  * xenHypervisorSetVcpus:
  * @domain: pointer to domain object
@@ -3444,7 +3419,6 @@ xenHypervisorPinVcpu(virDomainPtr domain, unsigned int vcpu,
         return (-1);
     return (0);
 }
-#endif
 
 /**
  * virDomainGetVcpus:
@@ -3465,7 +3439,6 @@ xenHypervisorPinVcpu(virDomainPtr domain, unsigned int vcpu,
  *
  * Returns the number of info filled in case of success, -1 in case of failure.
  */
-#ifndef PROXY
 int
 xenHypervisorGetVcpus(virDomainPtr domain, virVcpuInfoPtr info, int maxinfo,
                       unsigned char *cpumaps, int maplen)
@@ -3531,7 +3504,6 @@ xenHypervisorGetVcpus(virDomainPtr domain, virVcpuInfoPtr info, int maxinfo,
     }
     return nbinfo;
 }
-#endif /* PROXY */
 
 /**
  * xenHypervisorGetVcpuMax:

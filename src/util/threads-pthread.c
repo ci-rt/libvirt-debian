@@ -21,6 +21,11 @@
 
 #include <config.h>
 
+#include <unistd.h>
+#if HAVE_SYS_SYSCALL_H
+# include <sys/syscall.h>
+#endif
+
 
 /* Nothing special required for pthreads */
 int virThreadInitialize(void)
@@ -129,6 +134,62 @@ void virCondBroadcast(virCondPtr c)
     pthread_cond_broadcast(&c->cond);
 }
 
+struct virThreadArgs {
+    virThreadFunc func;
+    void *opaque;
+};
+
+static void *virThreadHelper(void *data)
+{
+    struct virThreadArgs *args = data;
+    args->func(args->opaque);
+    return NULL;
+}
+
+int virThreadCreate(virThreadPtr thread,
+                    bool joinable,
+                    virThreadFunc func,
+                    void *opaque)
+{
+    struct virThreadArgs args = { func, opaque };
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    if (!joinable)
+        pthread_attr_setdetachstate(&attr, 1);
+
+    int ret = pthread_create(&thread->thread, &attr, virThreadHelper, &args);
+    if (ret != 0) {
+        errno = ret;
+        return -1;
+    }
+    return 0;
+}
+
+void virThreadSelf(virThreadPtr thread)
+{
+    thread->thread = pthread_self();
+}
+
+bool virThreadIsSelf(virThreadPtr thread)
+{
+    return pthread_equal(pthread_self(), thread->thread) ? true : false;
+}
+
+int virThreadSelfID(void)
+{
+#if defined(HAVE_SYS_SYSCALL_H) && defined(SYS_gettid)
+    pid_t tid;
+    tid = syscall(SYS_gettid);
+    return (int)tid;
+#else
+    return (int)pthread_self();
+#endif
+}
+
+void virThreadJoin(virThreadPtr thread)
+{
+    pthread_join(thread->thread, NULL);
+}
 
 int virThreadLocalInit(virThreadLocalPtr l,
                        virThreadLocalCleanup c)

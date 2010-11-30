@@ -46,6 +46,7 @@
 #include "virterror_internal.h"
 #include "count-one-bits.h"
 #include "intprops.h"
+#include "files.h"
 
 
 #define VIR_FROM_THIS VIR_FROM_NONE
@@ -102,8 +103,7 @@ get_cpu_value(unsigned int cpu, const char *file, bool missing_ok)
     }
 
 cleanup:
-    if (pathfp)
-        fclose(pathfp);
+    VIR_FORCE_FCLOSE(pathfp);
     VIR_FREE(path);
 
     return value;
@@ -155,7 +155,7 @@ static unsigned long count_thread_siblings(unsigned int cpu)
     }
 
 cleanup:
-    fclose(pathfp);
+    VIR_FORCE_FCLOSE(pathfp);
     VIR_FREE(path);
 
     return ret;
@@ -305,6 +305,16 @@ int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
         return -1;
     }
 
+    /* nodeinfo->sockets is supposed to be a number of sockets per NUMA node,
+     * however if NUMA nodes are not composed of whole sockets, we just lie
+     * about the number of NUMA nodes and force apps to check capabilities XML
+     * for the actual NUMA topology.
+     */
+    if (nodeinfo->sockets % nodeinfo->nodes == 0)
+        nodeinfo->sockets /= nodeinfo->nodes;
+    else
+        nodeinfo->nodes = 1;
+
     return 0;
 }
 
@@ -329,7 +339,7 @@ int nodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED, virNodeInfoPtr nodeinfo) {
         return -1;
     }
     ret = linuxNodeInfoCPUPopulate(cpuinfo, nodeinfo);
-    fclose(cpuinfo);
+    VIR_FORCE_FCLOSE(cpuinfo);
     if (ret < 0)
         return -1;
 

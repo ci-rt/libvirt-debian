@@ -23,6 +23,7 @@ virBufferAdd;
 virBufferAddChar;
 virBufferContentAndReset;
 virBufferError;
+virBufferEscapeSexpr;
 virBufferEscapeString;
 virBufferFreeAndReset;
 virBufferStrcat;
@@ -72,6 +73,7 @@ virCgroupGetMemoryHardLimit;
 virCgroupGetMemorySoftLimit;
 virCgroupGetMemoryUsage;
 virCgroupGetSwapHardLimit;
+virCgroupMounted;
 virCgroupRemove;
 virCgroupSetCpuShares;
 virCgroupSetFreezerState;
@@ -203,6 +205,10 @@ virDomainFindByName;
 virDomainFindByUUID;
 virDomainGetRootFilesystem;
 virDomainGraphicsDefFree;
+virDomainGraphicsSpiceChannelModeTypeFromString;
+virDomainGraphicsSpiceChannelModeTypeToString;
+virDomainGraphicsSpiceChannelNameTypeFromString;
+virDomainGraphicsSpiceChannelNameTypeToString;
 virDomainGraphicsTypeFromString;
 virDomainGraphicsTypeToString;
 virDomainHostdevDefFree;
@@ -219,6 +225,8 @@ virDomainMemballoonModelTypeToString;
 virDomainNetDefFree;
 virDomainNetTypeToString;
 virDomainObjAssignDef;
+virDomainObjSetDefTransient;
+virDomainObjGetPersistentDef;
 virDomainObjIsDuplicate;
 virDomainObjListDeinit;
 virDomainObjListGetActiveIDs;
@@ -330,8 +338,17 @@ virEventUpdateHandle;
 virEventUpdateTimeout;
 
 
+# fdstream.h
+virFDStreamOpen;
+virFDStreamConnectUNIX;
+virFDStreamOpenFile;
+virFDStreamCreateFile;
+
+
 # files.h
 virClose;
+virFclose;
+virFdopen;
 
 
 # hash.h
@@ -489,8 +506,11 @@ virLogUnlock;
 # memory.h
 virAlloc;
 virAllocN;
+virExpandN;
 virFree;
 virReallocN;
+virResizeN;
+virShrinkN;
 
 
 # network.h
@@ -688,8 +708,14 @@ virStorageFileFormatTypeToString;
 virStorageFileGetMetadata;
 virStorageFileGetMetadataFromFD;
 virStorageFileIsSharedFS;
+virStorageFileIsSharedFSType;
 virStorageFileProbeFormat;
 virStorageFileProbeFormatFromFD;
+
+
+# sysinfo.h
+virSysinfoDefFree;
+virSysinfoRead;
 
 
 # threads.h
@@ -704,6 +730,11 @@ virMutexInit;
 virMutexInitRecursive;
 virMutexLock;
 virMutexUnlock;
+virThreadCreate;
+virThreadIsSelf;
+virThreadJoin;
+virThreadSelf;
+virThreadSelfID;
 
 
 # usb.h
@@ -778,6 +809,7 @@ virStrToLong_ui;
 virStrToLong_ull;
 virStrcpy;
 virStrncpy;
+virTimestamp;
 
 
 # uuid.h
@@ -799,6 +831,7 @@ virAuditSend;
 # virterror_internal.h
 virDispatchError;
 virErrorMsg;
+virErrorSetLogPriority;
 virRaiseErrorFull;
 virReportErrorHelper;
 virReportOOMErrorFull;
