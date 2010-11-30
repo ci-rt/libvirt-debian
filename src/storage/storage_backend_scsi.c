@@ -32,6 +32,7 @@
 #include "storage_backend_scsi.h"
 #include "memory.h"
 #include "logging.h"
+#include "files.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
@@ -69,7 +70,7 @@ getDeviceType(uint32_t host,
     }
 
     gottype = fgets(typestr, 3, typefile);
-    fclose(typefile);
+    VIR_FORCE_FCLOSE(typefile);
 
     if (gottype == NULL) {
         virReportSystemError(errno,
@@ -154,15 +155,14 @@ virStorageBackendSCSIUpdateVolTargetInfo(virStorageVolTargetPtr target,
     ret = 0;
 
 cleanup:
-    if (fd >= 0)
-        close(fd);
+    VIR_FORCE_CLOSE(fd);
 
     return ret;
 }
 
 static int
 virStorageBackendSCSINewLun(virStoragePoolObjPtr pool,
-                            uint32_t host,
+                            uint32_t host ATTRIBUTE_UNUSED,
                             uint32_t bus,
                             uint32_t target,
                             uint32_t lun,
@@ -180,7 +180,12 @@ virStorageBackendSCSINewLun(virStoragePoolObjPtr pool,
 
     vol->type = VIR_STORAGE_VOL_BLOCK;
 
-    if (virAsprintf(&(vol->name), "%u.%u.%u.%u", host, bus, target, lun) < 0) {
+    /* 'host' is dynamically allocated by the kernel, first come,
+     * first served, per HBA. As such it isn't suitable for use
+     * in the volume name. We only need uniqueness per-pool, so
+     * just leave 'host' out
+     */
+    if (virAsprintf(&(vol->name), "unit:%u:%u:%u", bus, target, lun) < 0) {
         virReportOOMError();
         retval = -1;
         goto free_vol;
@@ -572,14 +577,14 @@ virStorageBackendSCSITriggerRescan(uint32_t host)
     if (safewrite(fd,
                   LINUX_SYSFS_SCSI_HOST_SCAN_STRING,
                   sizeof(LINUX_SYSFS_SCSI_HOST_SCAN_STRING)) < 0) {
-
+        VIR_FORCE_CLOSE(fd);
         virReportSystemError(errno,
                              _("Write to '%s' to trigger host scan failed"),
                              path);
         retval = -1;
     }
 
-    close(fd);
+    VIR_FORCE_CLOSE(fd);
 free_path:
     VIR_FREE(path);
 out:
@@ -587,6 +592,26 @@ out:
     return retval;
 }
 
+static int
+virStorageBackendSCSICheckPool(virConnectPtr conn ATTRIBUTE_UNUSED,
+                               virStoragePoolObjPtr pool,
+                               bool *isActive)
+{
+    char *path;
+
+    *isActive = false;
+    if (virAsprintf(&path, "/sys/class/scsi_host/%s", pool->def->source.adapter) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    if (access(path, F_OK) == 0)
+        *isActive = true;
+
+    VIR_FREE(path);
+
+    return 0;
+}
 
 static int
 virStorageBackendSCSIRefreshPool(virConnectPtr conn ATTRIBUTE_UNUSED,
@@ -621,5 +646,6 @@ out:
 virStorageBackend virStorageBackendSCSI = {
     .type = VIR_STORAGE_POOL_SCSI,
 
+    .checkPool = virStorageBackendSCSICheckPool,
     .refreshPool = virStorageBackendSCSIRefreshPool,
 };

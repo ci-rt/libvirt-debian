@@ -47,9 +47,11 @@
 #include <grp.h>
 #include <signal.h>
 #include <netdb.h>
+#include <locale.h>
 
 #include "libvirt_internal.h"
 #include "virterror_internal.h"
+#include "files.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -135,6 +137,8 @@ static int unix_sock_rw_mask = 0700; /* Allow user only */
 static int unix_sock_ro_mask = 0777; /* Allow world */
 
 #endif /* __sun */
+
+#include "configmake.h"
 
 static int godaemon = 0;        /* -d: Be a daemon */
 static int verbose = 0;         /* -v: Verbose mode */
@@ -425,7 +429,7 @@ static int daemonForkIntoBackground(void) {
             int stdoutfd = -1;
             int nextpid;
 
-            close(statuspipe[0]);
+            VIR_FORCE_CLOSE(statuspipe[0]);
 
             if ((stdinfd = open("/dev/null", O_RDONLY)) < 0)
                 goto cleanup;
@@ -437,12 +441,10 @@ static int daemonForkIntoBackground(void) {
                 goto cleanup;
             if (dup2(stdoutfd, STDERR_FILENO) != STDERR_FILENO)
                 goto cleanup;
-            if (close(stdinfd) < 0)
+            if (VIR_CLOSE(stdinfd) < 0)
                 goto cleanup;
-            stdinfd = -1;
-            if (close(stdoutfd) < 0)
+            if (VIR_CLOSE(stdoutfd) < 0)
                 goto cleanup;
-            stdoutfd = -1;
 
             if (setsid() < 0)
                 goto cleanup;
@@ -458,10 +460,8 @@ static int daemonForkIntoBackground(void) {
             }
 
         cleanup:
-            if (stdoutfd != -1)
-                close(stdoutfd);
-            if (stdinfd != -1)
-                close(stdinfd);
+            VIR_FORCE_CLOSE(stdoutfd);
+            VIR_FORCE_CLOSE(stdinfd);
             return -1;
 
         }
@@ -475,7 +475,7 @@ static int daemonForkIntoBackground(void) {
             int ret;
             char status;
 
-            close(statuspipe[1]);
+            VIR_FORCE_CLOSE(statuspipe[1]);
 
             /* We wait to make sure the first child forked successfully */
             if ((got = waitpid(pid, &exitstatus, 0)) < 0 ||
@@ -515,21 +515,21 @@ static int qemudWritePidFile(const char *pidFile) {
         return -1;
     }
 
-    if (!(fh = fdopen(fd, "w"))) {
+    if (!(fh = VIR_FDOPEN(fd, "w"))) {
         VIR_ERROR(_("Failed to fdopen pid file '%s' : %s"),
                   pidFile, virStrerror(errno, ebuf, sizeof ebuf));
-        close(fd);
+        VIR_FORCE_CLOSE(fd);
         return -1;
     }
 
     if (fprintf(fh, "%lu\n", (unsigned long)getpid()) < 0) {
         VIR_ERROR(_("%s: Failed to write to pid file '%s' : %s"),
                   argv0, pidFile, virStrerror(errno, ebuf, sizeof ebuf));
-        fclose(fh);
+        VIR_FORCE_FCLOSE(fh);
         return -1;
     }
 
-    if (fclose(fh) == EOF) {
+    if (VIR_FCLOSE(fh) == EOF) {
         VIR_ERROR(_("%s: Failed to close pid file '%s' : %s"),
                   argv0, pidFile, virStrerror(errno, ebuf, sizeof ebuf));
         return -1;
@@ -610,8 +610,7 @@ static int qemudListenUnix(struct qemud_server *server,
     return 0;
 
  cleanup:
-    if (sock->fd >= 0)
-        close(sock->fd);
+    VIR_FORCE_CLOSE(sock->fd);
     VIR_FREE(sock);
     return -1;
 }
@@ -665,7 +664,7 @@ remoteMakeSockets (int *fds, int max_fds, int *nfds_r, const char *node, const c
                 VIR_ERROR(_("bind: %s"), virStrerror (errno, ebuf, sizeof ebuf));
                 return -1;
             }
-            close (fds[*nfds_r]);
+            VIR_FORCE_CLOSE(fds[*nfds_r]);
         } else {
             ++*nfds_r;
         }
@@ -734,7 +733,7 @@ remoteListenTCP (struct qemud_server *server,
 
 cleanup:
     for (i = 0; i < nfds; ++i)
-        close(fds[i]);
+        VIR_FORCE_CLOSE(fds[i]);
     return -1;
 }
 
@@ -749,7 +748,7 @@ static int qemudInitPaths(struct qemud_server *server,
     /* The base_dir_prefix is the base under which all libvirtd
      * files live */
     if (server->privileged) {
-        if (!(base_dir_prefix = strdup (LOCAL_STATE_DIR)))
+        if (!(base_dir_prefix = strdup (LOCALSTATEDIR)))
             goto no_memory;
     } else {
         uid_t uid = geteuid();
@@ -1081,33 +1080,33 @@ static int qemudNetworkEnable(struct qemud_server *server) {
 static gnutls_session_t
 remoteInitializeTLSSession (void)
 {
-  gnutls_session_t session;
-  int err;
+    gnutls_session_t session;
+    int err;
 
-  err = gnutls_init (&session, GNUTLS_SERVER);
-  if (err != 0) goto failed;
+    err = gnutls_init (&session, GNUTLS_SERVER);
+    if (err != 0) goto failed;
 
-  /* avoid calling all the priority functions, since the defaults
-   * are adequate.
-   */
-  err = gnutls_set_default_priority (session);
-  if (err != 0) goto failed;
+    /* avoid calling all the priority functions, since the defaults
+     * are adequate.
+     */
+    err = gnutls_set_default_priority (session);
+    if (err != 0) goto failed;
 
-  err = gnutls_credentials_set (session, GNUTLS_CRD_CERTIFICATE, x509_cred);
-  if (err != 0) goto failed;
+    err = gnutls_credentials_set (session, GNUTLS_CRD_CERTIFICATE, x509_cred);
+    if (err != 0) goto failed;
 
-  /* request client certificate if any.
-   */
-  gnutls_certificate_server_set_request (session, GNUTLS_CERT_REQUEST);
+    /* request client certificate if any.
+     */
+    gnutls_certificate_server_set_request (session, GNUTLS_CERT_REQUEST);
 
-  gnutls_dh_set_prime_bits (session, DH_BITS);
+    gnutls_dh_set_prime_bits (session, DH_BITS);
 
-  return session;
+    return session;
 
- failed:
-  VIR_ERROR(_("remoteInitializeTLSSession: %s"),
-            gnutls_strerror (err));
-  return NULL;
+failed:
+    VIR_ERROR(_("remoteInitializeTLSSession: %s"),
+              gnutls_strerror (err));
+    return NULL;
 }
 
 /* Check DN is on tls_allowed_dn_list. */
@@ -1334,7 +1333,8 @@ static int qemudDispatchServer(struct qemud_server *server, struct qemud_socket 
         goto error;
     }
 
-    if (VIR_REALLOC_N(server->clients, server->nclients+1) < 0) {
+    if (VIR_RESIZE_N(server->clients, server->nclients_max,
+                     server->nclients, 1) < 0) {
         VIR_ERROR0(_("Out of memory allocating clients"));
         goto error;
     }
@@ -1483,7 +1483,7 @@ error:
         VIR_FREE(client);
     }
     VIR_FREE(addrstr);
-    close (fd);
+    VIR_FORCE_CLOSE(fd);
     PROBE(CLIENT_DISCONNECT, "fd=%d", fd);
     return -1;
 }
@@ -1529,8 +1529,7 @@ void qemudDispatchClientFailure(struct qemud_client *client) {
     }
     if (client->fd != -1) {
         PROBE(CLIENT_DISCONNECT, "fd=%d", client->fd);
-        close(client->fd);
-        client->fd = -1;
+        VIR_FORCE_CLOSE(client->fd);
     }
     VIR_FREE(client->addrstr);
 }
@@ -2363,10 +2362,8 @@ static void *qemudRunLoop(void *opaque) {
                             server->clients + i + 1,
                             sizeof (*server->clients) * (server->nclients - i));
 
-                if (VIR_REALLOC_N(server->clients,
-                                  server->nclients) < 0) {
-                    ; /* ignore */
-                }
+                VIR_SHRINK_N(server->clients, server->nclients_max,
+                             server->nclients_max - server->nclients);
                 goto reprocess;
             }
         }
@@ -2433,17 +2430,15 @@ static int qemudStartEventLoop(struct qemud_server *server) {
 static void qemudCleanup(struct qemud_server *server) {
     struct qemud_socket *sock;
 
-    if (server->sigread != -1)
-        close(server->sigread);
-    if (server->sigwrite != -1)
-        close(server->sigwrite);
+    VIR_FORCE_CLOSE(server->sigread);
+    VIR_FORCE_CLOSE(server->sigwrite);
 
     sock = server->sockets;
     while (sock) {
         struct qemud_socket *next = sock->next;
         if (sock->watch)
             virEventRemoveHandleImpl(sock->watch);
-        close(sock->fd);
+        VIR_FORCE_CLOSE(sock->fd);
 
         /* Unlink unix domain sockets which are not in
          * the abstract namespace */
@@ -2979,7 +2974,6 @@ daemonSetupSignals(struct qemud_server *server)
     sigaction(SIGINT, &sig_action, NULL);
     sigaction(SIGQUIT, &sig_action, NULL);
     sigaction(SIGTERM, &sig_action, NULL);
-    sigaction(SIGCHLD, &sig_action, NULL);
 
     sig_action.sa_handler = SIG_IGN;
     sigaction(SIGPIPE, &sig_action, NULL);
@@ -2999,8 +2993,8 @@ daemonSetupSignals(struct qemud_server *server)
     return 0;
 
 error:
-    close(sigpipe[0]);
-    close(sigpipe[1]);
+    VIR_FORCE_CLOSE(sigpipe[0]);
+    VIR_FORCE_CLOSE(sigpipe[1]);
     return -1;
 }
 
@@ -3045,9 +3039,9 @@ libvirt management daemon:\n\
       %s\n\
 \n"),
                argv0,
-               SYSCONF_DIR,
-               LOCAL_STATE_DIR,
-               LOCAL_STATE_DIR,
+               SYSCONFDIR,
+               LOCALSTATEDIR,
+               LOCALSTATEDIR,
                LIBVIRT_CACERT,
                LIBVIRT_SERVERCERT,
                LIBVIRT_SERVERKEY,
@@ -3081,10 +3075,17 @@ int main(int argc, char **argv) {
         {0, 0, 0, 0}
     };
 
-    if (virInitialize() < 0) {
-        fprintf (stderr, _("%s: initialization failed\n"), argv0);
-        exit (EXIT_FAILURE);
+    if (setlocale (LC_ALL, "") == NULL ||
+        bindtextdomain (PACKAGE, LOCALEDIR) == NULL ||
+        textdomain(PACKAGE) == NULL ||
+        virInitialize() < 0) {
+        fprintf(stderr, _("%s: initialization failed\n"), argv0);
+        exit(EXIT_FAILURE);
     }
+
+    /* Set error logging priority to debug, so client errors don't
+     * show up as errors in the daemon log */
+    virErrorSetLogPriority(VIR_LOG_DEBUG);
 
     while (1) {
         int optidx = 0;
@@ -3144,7 +3145,7 @@ int main(int argc, char **argv) {
 
     if (remote_config_file == NULL) {
         static const char *default_config_file
-            = SYSCONF_DIR "/libvirt/libvirtd.conf";
+            = SYSCONFDIR "/libvirt/libvirtd.conf";
         remote_config_file =
             (access(default_config_file, R_OK) == 0
              ? default_config_file
@@ -3176,7 +3177,7 @@ int main(int argc, char **argv) {
 
     /* Ensure the rundir exists (on tmpfs on some systems) */
     if (geteuid() == 0) {
-        const char *rundir = LOCAL_STATE_DIR "/run/libvirt";
+        const char *rundir = LOCALSTATEDIR "/run/libvirt";
 
         if (mkdir (rundir, 0755)) {
             if (errno != EEXIST) {
@@ -3257,8 +3258,7 @@ int main(int argc, char **argv) {
         while (write(statuswrite, &status, 1) == -1 &&
                errno == EINTR)
             ;
-        close(statuswrite);
-        statuswrite = -1;
+        VIR_FORCE_CLOSE(statuswrite);
     }
 
     /* Start the event loop in a background thread, since
@@ -3315,7 +3315,7 @@ error:
                    errno == EINTR)
                 ;
         }
-        close(statuswrite);
+        VIR_FORCE_CLOSE(statuswrite);
     }
     if (server)
         qemudCleanup(server);

@@ -219,9 +219,12 @@ struct _virNodeInfo {
     unsigned long memory;/* memory size in kilobytes */
     unsigned int cpus;  /* the number of active CPUs */
     unsigned int mhz;   /* expected CPU frequency */
-    unsigned int nodes; /* the number of NUMA cell, 1 for uniform mem access */
-    unsigned int sockets;/* number of CPU socket per node */
-    unsigned int cores; /* number of core per socket */
+    unsigned int nodes; /* the number of NUMA cell, 1 for unusual NUMA
+                           topologies or uniform memory access; check
+                           capabilities XML for the actual NUMA topology */
+    unsigned int sockets;/* number of CPU sockets per node if nodes > 1,
+                            total number of CPU sockets otherwise */
+    unsigned int cores; /* number of cores per socket */
     unsigned int threads;/* number of threads per core */
 };
 
@@ -547,7 +550,7 @@ VIR_EXPORT_VAR virConnectAuthPtr virConnectAuthPtrDefault;
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-#define LIBVIR_VERSION_NUMBER 8005
+#define LIBVIR_VERSION_NUMBER 8006
 
 int                     virGetVersion           (unsigned long *libVer,
                                                  const char *type,
@@ -1033,6 +1036,8 @@ typedef enum {
    VIR_DOMAIN_DEVICE_MODIFY_CURRENT = 0, /* Modify device allocation based on current domain state */
    VIR_DOMAIN_DEVICE_MODIFY_LIVE = (1 << 0), /* Modify live device allocation */
    VIR_DOMAIN_DEVICE_MODIFY_CONFIG = (1 << 1), /* Modify persisted device allocation */
+   VIR_DOMAIN_DEVICE_MODIFY_FORCE = (1 << 2), /* Forcibly modify device
+                                                 (ex. force eject a cdrom) */
 } virDomainDeviceModifyFlags;
 
 int virDomainAttachDevice(virDomainPtr domain, const char *xml);
@@ -1929,6 +1934,7 @@ int virStreamFree(virStreamPtr st);
 
 int virDomainIsActive(virDomainPtr dom);
 int virDomainIsPersistent(virDomainPtr dom);
+int virDomainIsUpdated(virDomainPtr dom);
 
 int virNetworkIsActive(virNetworkPtr net);
 int virNetworkIsPersistent(virNetworkPtr net);
@@ -2399,6 +2405,12 @@ int                     virNWFilterGetUUIDString (virNWFilterPtr nwfilter,
                                                   char *buf);
 char *                  virNWFilterGetXMLDesc    (virNWFilterPtr nwfilter,
                                                   int flags);
+
+
+int virDomainOpenConsole(virDomainPtr dom,
+                         const char *devname,
+                         virStreamPtr st,
+                         unsigned int flags);
 
 #ifdef __cplusplus
 }

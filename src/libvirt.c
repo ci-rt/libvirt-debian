@@ -39,6 +39,7 @@
 #include "uuid.h"
 #include "util.h"
 #include "memory.h"
+#include "configmake.h"
 
 #ifndef WITH_DRIVER_MODULES
 # ifdef WITH_TEST
@@ -342,7 +343,7 @@ virInitialize(void)
     if (winsock_init () == -1) return -1;
 #endif
 
-    if (!bindtextdomain(GETTEXT_PACKAGE, LOCALEBASEDIR))
+    if (!bindtextdomain(PACKAGE, LOCALEDIR))
         return (-1);
 
     /*
@@ -3096,7 +3097,7 @@ error:
  * }
  *
  * This function requires privileged access to the hypervisor. This function
- * expects the caller to allocate the @param
+ * expects the caller to allocate the @params.
  *
  * Returns -1 in case of error, 0 in case of success.
  */
@@ -3114,10 +3115,6 @@ virDomainGetMemoryParameters(virDomainPtr domain,
         virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
         virDispatchError(NULL);
         return -1;
-    }
-    if (domain->conn->flags & VIR_CONNECT_RO) {
-        virLibDomainError(domain, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
-        goto error;
     }
     if ((nparams == NULL) || (*nparams < 0)) {
         virLibDomainError(domain, VIR_ERR_INVALID_ARG, __FUNCTION__);
@@ -11442,6 +11439,39 @@ error:
 }
 
 /**
+ * virDomainIsUpdated:
+ * @dom: pointer to the domain object
+ *
+ * Determine if the domain has been updated.
+ *
+ * Returns 1 if updated, 0 if not, -1 on error
+ */
+int virDomainIsUpdated(virDomainPtr dom)
+{
+    DEBUG("dom=%p", dom);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(dom)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        virDispatchError(NULL);
+        return (-1);
+    }
+    if (dom->conn->driver->domainIsUpdated) {
+        int ret;
+        ret = dom->conn->driver->domainIsUpdated(dom);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(dom->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(dom->conn);
+    return -1;
+}
+
+/**
  * virNetworkIsActive:
  * @net: pointer to the network object
  *
@@ -13117,4 +13147,57 @@ virDomainSnapshotFree(virDomainSnapshotPtr snapshot)
         return -1;
     }
     return 0;
+}
+
+/**
+ * virDomainOpenConsole:
+ * @dom: a domain object
+ * @devname: the console, serial or parallel port device alias, or NULL
+ * @st: a stream to associate with the console
+ * @flags: unused, pass 0
+ *
+ * This opens the backend associated with a console, serial or
+ * parallel port device on a guest, if the backend is supported.
+ * If the @devname is omitted, then the first console or serial
+ * device is opened. The console is associated with the passed
+ * in @st stream, which should have been opened in non-blocking
+ * mode for bi-directional I/O.
+ *
+ * returns 0 if the console was opened, -1 on error
+ */
+int virDomainOpenConsole(virDomainPtr dom,
+                         const char *devname,
+                         virStreamPtr st,
+                         unsigned int flags)
+{
+    virConnectPtr conn;
+    DEBUG("dom=%p devname=%s, st=%p flags=%u", dom, NULLSTR(devname), st, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_DOMAIN(dom)) {
+        virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = dom->conn;
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(dom, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->driver->domainOpenConsole) {
+        int ret;
+        ret = conn->driver->domainOpenConsole(dom, devname, st, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(conn);
+    return -1;
 }

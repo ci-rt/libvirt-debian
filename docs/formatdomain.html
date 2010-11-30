@@ -104,6 +104,10 @@
                   <div>
                     <a title="A guide and reference for developing with libvirt" class="inactive" href="devguide.html">Development Guide</a>
                   </div>
+                </li><li>
+                  <div>
+                    <a title="Command reference for virsh" class="inactive" href="virshcmdref.html">Virsh Commands</a>
+                  </div>
                 </li></ul>
             </div>
           </li><li>
@@ -1091,7 +1095,36 @@ qemu-kvm -net nic,model=? /dev/null
   The <code>listen</code> attribute is an IP address for the server to
   listen on. The <code>passwd</code> attribute provides a VNC password
   in clear text. The <code>keymap</code> attribute specifies the keymap
-  to use.
+  to use. It is possible to set a limit on the validity of the password
+  be giving an timestamp <code>passwdValidTo='2010-04-09T15:51:00'</code>
+  assumed to be in UTC. NB, this may not be supported by all hypervisors.
+          </dd><dt><code>"spice"</code></dt><dd>
+	    <p>
+  Starts a SPICE server. The <code>port</code> attribute specifies the TCP
+  port number (with -1 as legacy syntax indicating that it should be
+  auto-allocated), while <code>tlsPort</code> gives an alternative
+  secure port number. The <code>autoport</code> attribute is the new
+  preferred syntax for indicating autoallocation of both port numbers.
+  The <code>listen</code> attribute is an IP address for the server to
+  listen on. The <code>passwd</code> attribute provides a SPICE password
+  in clear text. The <code>keymap</code> attribute specifies the keymap
+  to use. It is possible to set a limit on the validity of the password
+  be giving an timestamp <code>passwdValidTo='2010-04-09T15:51:00'</code>
+  assumed to be in UTC. NB, this may not be supported by all hypervisors.
+	    </p>
+	    <p>
+  When SPICE has both a normal and TLS secured TCP port configured, it
+  can be desirable to restrict what channels can be run on each port.
+  This is achieved by adding one or more &lt;channel&gt; elements inside
+  the main &lt;graphics&gt; element. Valid channel names include
+  <code>main</code>,<code>display</code>,<code>inputs</code>,<code>cursor</code>,
+  <code>playback</code>,<code>record</code>.
+	    </p>
+	    <pre>
+  &lt;graphics type='spice' port='-1' tlsPort='-1' autoport='yes'&gt;
+    &lt;channel name='main' mode='secure'/&gt;
+    &lt;channel name='record' mode='insecure'/&gt;
+  &lt;/graphics&gt;</pre>
           </dd><dt><code>"rdp"</code></dt><dd>
   Starts a RDP server. The <code>port</code> attribute
   specifies the TCP port number (with -1 as legacy syntax indicating
@@ -1130,7 +1163,8 @@ qemu-kvm -net nic,model=? /dev/null
         video devices.
       </dd><dt><code>model</code></dt><dd>
         The <code>model</code> element has a mandatory <code>type</code>
-        attribute which takes the value "vga", "cirrus", "vmvga", "xen" or "vbox".
+        attribute which takes the value "vga", "cirrus", "vmvga", "qxl",
+	"xen" or "vbox", depending on the hypervisor features available.
         You can also provide the amount of video memory in kilobytes using
         <code>vram</code> and the number of screen with <code>heads</code>.
       </dd><dt><code>acceleration</code></dt><dd>

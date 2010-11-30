@@ -590,8 +590,17 @@ sc_changelog:
 sc_program_name:
 	@require='set_program_name *\(m?argv\[0\]\);'			\
 	in_vc_files='\.c$$'						\
-	containing='^main *('						\
+	containing='\<main *('						\
 	halt='the above files do not call set_program_name'		\
+	  $(_sc_search_regexp)
+
+# Ensure that each .c file containing a "main" function also
+# calls bindtextdomain.
+sc_bindtextdomain:
+	@require='bindtextdomain *\('					\
+	in_vc_files='\.c$$'						\
+	containing='\<main *('						\
+	halt='the above files do not call bindtextdomain'		\
 	  $(_sc_search_regexp)
 
 # Require that the final line of each test-lib.sh-using test be this one:
@@ -808,6 +817,13 @@ sc_prohibit_test_minus_ao:
 	halt='$(_ptm1); $(_ptm2)'					\
 	  $(_sc_search_regexp)
 
+# Avoid a test bashism.
+sc_prohibit_test_double_equal:
+	@prohibit='(\<test| \[+) .+ == '				\
+	containing='#! */bin/[a-z]*sh'					\
+	halt='use "test x = x", not "test x =''= x"'			\
+	  $(_sc_search_regexp)
+
 # Each program that uses proper_name_utf8 must link with one of the
 # ICONV libraries.  Otherwise, some ICONV library must appear in LDADD.
 # The perl -0777 invocation below extracts the possibly-multi-line
@@ -916,7 +932,6 @@ sc_po_check:
 	    test -r $$file || continue;					\
 	    case $$file in						\
 	      *.m4|*.mk) continue ;;					\
-	      *.html|*.html.in) continue ;;				\
 	      *.?|*.??) ;;						\
 	      *) continue;;						\
 	    esac;							\
@@ -1082,7 +1097,6 @@ emit_upload_commands:
 	@echo =====================================
 	@echo =====================================
 
-noteworthy = * Noteworthy changes in release ?.? (????-??-??) [?]
 define emit-commit-log
   printf '%s\n' 'post-release administrivia' '' \
     '* NEWS: Add header line for next release.' \
@@ -1120,6 +1134,7 @@ alpha beta stable: $(local-check) writable-files no-submodule-changes
 # Override this in cfg.mk if you follow different procedures.
 release-prep-hook ?= release-prep
 
+gl_noteworthy_news_ = * Noteworthy changes in release ?.? (????-??-??) [?]
 .PHONY: release-prep
 release-prep:
 	case $$RELEASE_TYPE in alpha|beta|stable) ;; \
@@ -1131,7 +1146,7 @@ release-prep:
 	fi
 	echo $(VERSION) > $(prev_version_file)
 	$(MAKE) update-NEWS-hash
-	perl -pi -e '$$. == 3 and print "$(noteworthy)\n\n\n"' NEWS
+	perl -pi -e '$$. == 3 and print "$(gl_noteworthy_news_)\n\n\n"' NEWS
 	$(emit-commit-log) > .ci-msg
 	$(VC) commit -F .ci-msg -a
 	rm .ci-msg

@@ -4152,6 +4152,7 @@ remoteDispatchAuthPolkit (struct qemud_server *server,
     DBusError err;
     const char *action;
     char ident[100];
+    int rv;
 
     memset(ident, 0, sizeof ident);
 
@@ -5964,6 +5965,34 @@ static int remoteDispatchDomainIsPersistent(struct qemud_server *server ATTRIBUT
     return 0;
 }
 
+static int remoteDispatchDomainIsUpdated(struct qemud_server *server ATTRIBUTE_UNUSED,
+                                            struct qemud_client *client ATTRIBUTE_UNUSED,
+                                            virConnectPtr conn,
+                                            remote_message_header *hdr ATTRIBUTE_UNUSED,
+                                            remote_error *err,
+                                            remote_domain_is_updated_args *args,
+                                            remote_domain_is_updated_ret *ret)
+{
+    virDomainPtr domain;
+
+    domain = get_nonnull_domain(conn, args->dom);
+    if (domain == NULL) {
+        remoteDispatchConnError(err, conn);
+        return -1;
+    }
+
+    ret->updated = virDomainIsUpdated(domain);
+
+    if (ret->updated < 0) {
+        virDomainFree(domain);
+        remoteDispatchConnError(err, conn);
+        return -1;
+    }
+
+    virDomainFree(domain);
+    return 0;
+}
+
 static int remoteDispatchInterfaceIsActive(struct qemud_server *server ATTRIBUTE_UNUSED,
                                            struct qemud_client *client ATTRIBUTE_UNUSED,
                                            virConnectPtr conn,
@@ -6902,6 +6931,58 @@ qemuDispatchMonitorCommand (struct qemud_server *server ATTRIBUTE_UNUSED,
 
     virDomainFree(domain);
 
+    return 0;
+}
+
+
+static int
+remoteDispatchDomainOpenConsole(struct qemud_server *server ATTRIBUTE_UNUSED,
+                                struct qemud_client *client,
+                                virConnectPtr conn,
+                                remote_message_header *hdr,
+                                remote_error *rerr,
+                                remote_domain_open_console_args *args,
+                                void *ret ATTRIBUTE_UNUSED)
+{
+    int r;
+    struct qemud_client_stream *stream;
+    virDomainPtr dom;
+
+    CHECK_CONN (client);
+
+    dom = get_nonnull_domain (conn, args->domain);
+    if (dom == NULL) {
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
+
+    stream = remoteCreateClientStream(conn, hdr);
+    if (!stream) {
+        virDomainFree(dom);
+        remoteDispatchOOMError(rerr);
+        return -1;
+    }
+
+    r = virDomainOpenConsole(dom,
+                             args->devname ? *args->devname : NULL,
+                             stream->st,
+                             args->flags);
+    if (r == -1) {
+        virDomainFree(dom);
+        remoteFreeClientStream(client, stream);
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
+
+    if (remoteAddClientStream(client, stream, 1) < 0) {
+        virDomainFree(dom);
+        remoteDispatchConnError(rerr, conn);
+        virStreamAbort(stream->st);
+        remoteFreeClientStream(client, stream);
+        return -1;
+    }
+
+    virDomainFree(dom);
     return 0;
 }
 

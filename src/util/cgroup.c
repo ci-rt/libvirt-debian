@@ -31,6 +31,7 @@
 #include "memory.h"
 #include "cgroup.h"
 #include "logging.h"
+#include "files.h"
 
 #define CGROUP_MAX_VAL 512
 
@@ -69,6 +70,19 @@ void virCgroupFree(virCgroupPtr *group)
 
     VIR_FREE((*group)->path);
     VIR_FREE(*group);
+}
+
+/**
+ * virCgroupMounted: query whether a cgroup subsystem is mounted or not
+ *
+ * @cgroup: The group structure to be queried
+ * @controller: cgroup subsystem id
+ *
+ * Returns true if a cgroup is subsystem is mounted.
+ */
+bool virCgroupMounted(virCgroupPtr cgroup, int controller)
+{
+    return cgroup->controllers[controller].mountPoint != NULL;
 }
 
 #if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
@@ -114,13 +128,12 @@ static int virCgroupDetectMounts(virCgroupPtr group)
         }
     }
 
-    fclose(mounts);
+    VIR_FORCE_FCLOSE(mounts);
 
     return 0;
 
 no_memory:
-    if (mounts)
-        fclose(mounts);
+    VIR_FORCE_FCLOSE(mounts);
     return -ENOMEM;
 }
 
@@ -179,12 +192,12 @@ static int virCgroupDetectPlacement(virCgroupPtr group)
         }
     }
 
-    fclose(mapping);
+    VIR_FORCE_FCLOSE(mapping);
 
     return 0;
 
 no_memory:
-    fclose(mapping);
+    VIR_FORCE_FCLOSE(mapping);
     return -ENOMEM;
 
 }

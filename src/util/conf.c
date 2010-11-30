@@ -24,6 +24,7 @@
 #include "util.h"
 #include "c-ctype.h"
 #include "memory.h"
+#include "files.h"
 
 #define VIR_FROM_THIS VIR_FROM_CONF
 
@@ -393,17 +394,21 @@ virConfParseString(virConfParserCtxtPtr ctxt)
             return NULL;
         }
         NEXT;
-    } else if ((ctxt->cur + 6 < ctxt->end) && (ctxt->cur[0] == '"') &&
-               (ctxt->cur[1] == '"') && (ctxt->cur[2] == '"')) {
+    } else if ((ctxt->cur + 6 < ctxt->end) &&
+               (STRPREFIX(ctxt->cur, "\"\"\""))) {
+        /* String starts with python-style triple quotes """ */
         ctxt->cur += 3;
         base = ctxt->cur;
-        while ((ctxt->cur + 2 < ctxt->end) && (ctxt->cur[0] == '"') &&
-               (ctxt->cur[1] == '"') && (ctxt->cur[2] == '"')) {
-               if (CUR == '\n') ctxt->line++;
-               NEXT;
+
+        /* Find the ending triple quotes */
+        while ((ctxt->cur + 2 < ctxt->end) &&
+               !(STRPREFIX(ctxt->cur, "\"\"\""))) {
+            if (CUR == '\n')
+                ctxt->line++;
+            NEXT;
         }
-        if ((ctxt->cur[0] != '"') || (ctxt->cur[1] != '"') ||
-            (ctxt->cur[2] != '"')) {
+
+        if (!STRPREFIX(ctxt->cur, "\"\"\"")) {
             virConfError(ctxt, VIR_ERR_CONF_SYNTAX, _("unterminated string"));
             return(NULL);
         }
@@ -954,7 +959,7 @@ virConfWriteFile(const char *filename, virConfPtr conf)
     content = virBufferContentAndReset(&buf);
     ret = safewrite(fd, content, use);
     VIR_FREE(content);
-    close(fd);
+    VIR_FORCE_CLOSE(fd);
     if (ret != (int)use) {
         virConfError(NULL, VIR_ERR_WRITE_FAILED, _("failed to save content"));
         return -1;

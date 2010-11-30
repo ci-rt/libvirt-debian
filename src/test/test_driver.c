@@ -50,6 +50,7 @@
 #include "xml.h"
 #include "threads.h"
 #include "logging.h"
+#include "files.h"
 
 #define VIR_FROM_THIS VIR_FROM_TEST
 
@@ -456,26 +457,6 @@ cleanup:
     return ret;
 }
 
-/* Set up domain runtime state */
-static int
-testDomainStartState(virConnectPtr conn,
-                     virDomainObjPtr dom)
-{
-    testConnPtr privconn = conn->privateData;
-    int ret = -1;
-
-    if (testDomainUpdateVCPUs(conn, dom, dom->def->vcpus, 1) < 0)
-        goto cleanup;
-
-    /* Set typical run state */
-    dom->state = VIR_DOMAIN_RUNNING;
-    dom->def->id = privconn->nextDomID++;
-
-    ret = 0;
-cleanup:
-    return ret;
-}
-
 static void
 testDomainShutdownState(virDomainPtr domain,
                         virDomainObjPtr privdom)
@@ -488,7 +469,33 @@ testDomainShutdownState(virDomainPtr domain,
 
     privdom->state = VIR_DOMAIN_SHUTOFF;
     privdom->def->id = -1;
-    domain->id = -1;
+    if (domain)
+        domain->id = -1;
+}
+
+/* Set up domain runtime state */
+static int
+testDomainStartState(virConnectPtr conn,
+                     virDomainObjPtr dom)
+{
+    testConnPtr privconn = conn->privateData;
+    int ret = -1;
+
+    if (testDomainUpdateVCPUs(conn, dom, dom->def->vcpus, 1) < 0)
+        goto cleanup;
+
+    dom->state = VIR_DOMAIN_RUNNING;
+    dom->def->id = privconn->nextDomID++;
+
+    if (virDomainObjSetDefTransient(privconn->caps, dom) < 0) {
+        goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
+    if (ret < 0)
+        testDomainShutdownState(NULL, dom);
+    return ret;
 }
 
 static int testOpenDefault(virConnectPtr conn) {
@@ -557,12 +564,12 @@ static int testOpenDefault(virConnectPtr conn) {
         goto error;
     domdef = NULL;
 
+    domobj->persistent = 1;
     if (testDomainStartState(conn, domobj) < 0) {
         virDomainObjUnlock(domobj);
         goto error;
     }
 
-    domobj->persistent = 1;
     virDomainObjUnlock(domobj);
 
     if (!(netdef = virNetworkDefParseString(defaultNetworkXML)))
@@ -788,8 +795,7 @@ static int testOpenFromFile(virConnectPtr conn,
                   _("Invalid XML in file '%s'"), file);
         goto error;
     }
-    close(fd);
-    fd = -1;
+    VIR_FORCE_CLOSE(fd);
 
     root = xmlDocGetRootElement(xml);
     if ((root == NULL) || (!xmlStrEqual(root->name, BAD_CAST "node"))) {
@@ -918,12 +924,12 @@ static int testOpenFromFile(virConnectPtr conn,
             goto error;
         }
 
+        dom->persistent = 1;
         if (testDomainStartState(conn, dom) < 0) {
             virDomainObjUnlock(dom);
             goto error;
         }
 
-        dom->persistent = 1;
         virDomainObjUnlock(dom);
     }
     VIR_FREE(domains);
@@ -1101,8 +1107,7 @@ static int testOpenFromFile(virConnectPtr conn,
     VIR_FREE(networks);
     VIR_FREE(ifaces);
     VIR_FREE(pools);
-    if (fd != -1)
-        close(fd);
+    VIR_FORCE_CLOSE(fd);
     virDomainObjListDeinit(&privconn->domains);
     virNetworkObjListFree(&privconn->networks);
     virInterfaceObjListFree(&privconn->ifaces);
@@ -1288,6 +1293,11 @@ cleanup:
     if (obj)
         virDomainObjUnlock(obj);
     return ret;
+}
+
+static int testDomainIsUpdated(virDomainPtr dom ATTRIBUTE_UNUSED)
+{
+    return 0;
 }
 
 static virDomainPtr
@@ -1752,7 +1762,7 @@ static int testDomainSave(virDomainPtr domain,
         goto cleanup;
     }
 
-    if (close(fd) < 0) {
+    if (VIR_CLOSE(fd) < 0) {
         virReportSystemError(errno,
                              _("saving domain '%s' to '%s': write failed"),
                              domain->name, path);
@@ -1779,8 +1789,7 @@ cleanup:
      * in either case we're already in a failure scenario
      * and have reported a earlier error */
     if (ret != 0) {
-        if (fd != -1)
-            close(fd);
+        VIR_FORCE_CLOSE(fd);
         unlink(path);
     }
     if (privdom)
@@ -1870,8 +1879,7 @@ static int testDomainRestore(virConnectPtr conn,
 cleanup:
     virDomainDefFree(def);
     VIR_FREE(xml);
-    if (fd != -1)
-        close(fd);
+    VIR_FORCE_CLOSE(fd);
     if (dom)
         virDomainObjUnlock(dom);
     if (event)
@@ -1911,7 +1919,7 @@ static int testDomainCoreDump(virDomainPtr domain,
                              domain->name, to);
         goto cleanup;
     }
-    if (close(fd) < 0) {
+    if (VIR_CLOSE(fd) < 0) {
         virReportSystemError(errno,
                              _("domain '%s' coredump: write failed: %s"),
                              domain->name, to);
@@ -1932,8 +1940,7 @@ static int testDomainCoreDump(virDomainPtr domain,
 
     ret = 0;
 cleanup:
-    if (fd != -1)
-        close(fd);
+    VIR_FORCE_CLOSE(fd);
     if (privdom)
         virDomainObjUnlock(privdom);
     if (event)
@@ -2093,7 +2100,7 @@ testDomainSetVcpusFlags(virDomainPtr domain, unsigned int nrCpus,
 {
     testConnPtr privconn = domain->conn->privateData;
     virDomainObjPtr privdom = NULL;
-    virDomainDefPtr def;
+    virDomainDefPtr persistentDef;
     int ret = -1, maxvcpus;
 
     virCheckFlags(VIR_DOMAIN_VCPU_LIVE |
@@ -2132,9 +2139,10 @@ testDomainSetVcpusFlags(virDomainPtr domain, unsigned int nrCpus,
 
     /* We allow more cpus in guest than host, but not more than the
      * domain's starting limit.  */
-    if ((flags & (VIR_DOMAIN_VCPU_MAXIMUM | VIR_DOMAIN_VCPU_LIVE)) ==
-        VIR_DOMAIN_VCPU_LIVE && privdom->def->maxvcpus < maxvcpus)
+    if (!(flags & (VIR_DOMAIN_VCPU_MAXIMUM)) &&
+        privdom->def->maxvcpus < maxvcpus)
         maxvcpus = privdom->def->maxvcpus;
+
     if (nrCpus > maxvcpus) {
         testError(VIR_ERR_INVALID_ARG,
                   "requested cpu amount exceeds maximum (%d > %d)",
@@ -2142,36 +2150,20 @@ testDomainSetVcpusFlags(virDomainPtr domain, unsigned int nrCpus,
         goto cleanup;
     }
 
+    if (!(persistentDef = virDomainObjGetPersistentDef(privconn->caps,
+                                                       privdom)))
+        goto cleanup;
+
     switch (flags) {
     case VIR_DOMAIN_VCPU_MAXIMUM | VIR_DOMAIN_VCPU_CONFIG:
-        def = privdom->def;
-        if (virDomainObjIsActive(privdom)) {
-            if (privdom->newDef)
-                def = privdom->newDef;
-            else {
-                testError(VIR_ERR_OPERATION_INVALID, "%s",
-                          _("no persistent state"));
-                goto cleanup;
-            }
-        }
-        def->maxvcpus = nrCpus;
-        if (nrCpus < def->vcpus)
-            def->vcpus = nrCpus;
+        persistentDef->maxvcpus = nrCpus;
+        if (nrCpus < persistentDef->vcpus)
+            persistentDef->vcpus = nrCpus;
         ret = 0;
         break;
 
     case VIR_DOMAIN_VCPU_CONFIG:
-        def = privdom->def;
-        if (virDomainObjIsActive(privdom)) {
-            if (privdom->newDef)
-                def = privdom->newDef;
-            else {
-                testError(VIR_ERR_OPERATION_INVALID, "%s",
-                          _("no persistent state"));
-                goto cleanup;
-            }
-        }
-        def->vcpus = nrCpus;
+        persistentDef->vcpus = nrCpus;
         ret = 0;
         break;
 
@@ -2181,8 +2173,9 @@ testDomainSetVcpusFlags(virDomainPtr domain, unsigned int nrCpus,
 
     case VIR_DOMAIN_VCPU_LIVE | VIR_DOMAIN_VCPU_CONFIG:
         ret = testDomainUpdateVCPUs(domain->conn, privdom, nrCpus, 0);
-        if (ret == 0 && privdom->newDef)
-            privdom->newDef->vcpus = nrCpus;
+        if (ret == 0) {
+            persistentDef->vcpus = nrCpus;
+        }
         break;
     }
 
@@ -5425,6 +5418,7 @@ static virDriver testDriver = {
     testIsSecure, /* isEncrypted */
     testDomainIsActive, /* domainIsActive */
     testDomainIsPersistent, /* domainIsPersistent */
+    testDomainIsUpdated, /* domainIsUpdated */
     NULL, /* cpuCompare */
     NULL, /* cpuBaseline */
     NULL, /* domainGetJobInfo */
@@ -5447,6 +5441,7 @@ static virDriver testDriver = {
     NULL, /* qemuDomainMonitorCommand */
     NULL, /* domainSetMemoryParameters */
     NULL, /* domainGetMemoryParameters */
+    NULL, /* domainOpenConsole */
 };
 
 static virNetworkDriver testNetworkDriver = {

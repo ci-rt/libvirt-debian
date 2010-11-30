@@ -45,6 +45,7 @@
 #include "util.h"
 #include "memory.h"
 #include "xml.h"
+#include "files.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
@@ -72,25 +73,25 @@ virStorageBackendProbeTarget(virStorageVolTargetPtr target,
     if ((ret = virStorageBackendUpdateVolTargetInfoFD(target, fd,
                                                       allocation,
                                                       capacity)) < 0) {
-        close(fd);
+        VIR_FORCE_CLOSE(fd);
         return ret;
     }
 
     memset(&meta, 0, sizeof(meta));
 
     if ((target->format = virStorageFileProbeFormatFromFD(target->path, fd)) < 0) {
-        close(fd);
+        VIR_FORCE_CLOSE(fd);
         return -1;
     }
 
     if (virStorageFileGetMetadataFromFD(target->path, fd,
                                         target->format,
                                         &meta) < 0) {
-        close(fd);
+        VIR_FORCE_CLOSE(fd);
         return -1;
     }
 
-    close(fd);
+    VIR_FORCE_CLOSE(fd);
 
     if (meta.backingStore) {
         *backingStore = meta.backingStore;
@@ -98,7 +99,7 @@ virStorageBackendProbeTarget(virStorageVolTargetPtr target,
         if (meta.backingStoreFormat == VIR_STORAGE_FILE_AUTO) {
             if ((*backingStoreFormat
                  = virStorageFileProbeFormat(*backingStore)) < 0) {
-                close(fd);
+                VIR_FORCE_CLOSE(fd);
                 goto cleanup;
             }
         } else {
@@ -283,12 +284,12 @@ virStorageBackendFileSystemIsMounted(virStoragePoolObjPtr pool) {
 
     while ((getmntent_r(mtab, &ent, buf, sizeof(buf))) != NULL) {
         if (STREQ(ent.mnt_dir, pool->def->target.path)) {
-            fclose(mtab);
+            VIR_FORCE_FCLOSE(mtab);
             return 1;
         }
     }
 
-    fclose(mtab);
+    VIR_FORCE_FCLOSE(mtab);
     return 0;
 }
 
@@ -478,6 +479,30 @@ virStorageBackendFileSystemUnmount(virStoragePoolObjPtr pool) {
 #endif /* WITH_STORAGE_FS */
 
 
+static int
+virStorageBackendFileSystemCheck(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                 virStoragePoolObjPtr pool,
+                                 bool *isActive)
+{
+    *isActive = false;
+    if (pool->def->type == VIR_STORAGE_POOL_DIR) {
+        if (access(pool->def->target.path, F_OK) == 0)
+            *isActive = true;
+#if WITH_STORAGE_FS
+    } else {
+        int ret;
+        if ((ret = virStorageBackendFileSystemIsMounted(pool)) != 0) {
+            if (ret < 0)
+                return -1;
+            *isActive = true;
+        }
+#endif /* WITH_STORAGE_FS */
+    }
+
+    return 0;
+}
+
+#if WITH_STORAGE_FS
 /**
  * @conn connection to report errors against
  * @pool storage pool to start
@@ -488,7 +513,6 @@ virStorageBackendFileSystemUnmount(virStoragePoolObjPtr pool) {
  *
  * Returns 0 on success, -1 on error
  */
-#if WITH_STORAGE_FS
 static int
 virStorageBackendFileSystemStart(virConnectPtr conn ATTRIBUTE_UNUSED,
                                  virStoragePoolObjPtr pool)
@@ -936,6 +960,7 @@ virStorageBackend virStorageBackendDirectory = {
     .type = VIR_STORAGE_POOL_DIR,
 
     .buildPool = virStorageBackendFileSystemBuild,
+    .checkPool = virStorageBackendFileSystemCheck,
     .refreshPool = virStorageBackendFileSystemRefresh,
     .deletePool = virStorageBackendFileSystemDelete,
     .buildVol = virStorageBackendFileSystemVolBuild,
@@ -950,6 +975,7 @@ virStorageBackend virStorageBackendFileSystem = {
     .type = VIR_STORAGE_POOL_FS,
 
     .buildPool = virStorageBackendFileSystemBuild,
+    .checkPool = virStorageBackendFileSystemCheck,
     .startPool = virStorageBackendFileSystemStart,
     .refreshPool = virStorageBackendFileSystemRefresh,
     .stopPool = virStorageBackendFileSystemStop,
@@ -964,6 +990,7 @@ virStorageBackend virStorageBackendNetFileSystem = {
     .type = VIR_STORAGE_POOL_NETFS,
 
     .buildPool = virStorageBackendFileSystemBuild,
+    .checkPool = virStorageBackendFileSystemCheck,
     .startPool = virStorageBackendFileSystemStart,
     .findPoolSources = virStorageBackendFileSystemNetFindPoolSources,
     .refreshPool = virStorageBackendFileSystemRefresh,

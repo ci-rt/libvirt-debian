@@ -49,6 +49,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module canonicalize-lgpl-tests:
   # Code from module close:
   # Code from module close-hook:
+  # Code from module configmake:
   # Code from module connect:
   # Code from module count-one-bits:
   # Code from module count-one-bits-tests:
@@ -105,6 +106,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module memchr:
   # Code from module memchr-tests:
   # Code from module mkstemp:
+  # Code from module mkstemps:
   # Code from module mktempd:
   # Code from module mktime:
   # Code from module multiarch:
@@ -262,6 +264,7 @@ AC_SUBST([LTALLOCA])
   gl_FUNC_CLOSE
   gl_UNISTD_MODULE_INDICATOR([close])
   # Code from module close-hook:
+  # Code from module configmake:
   # Code from module connect:
   AC_REQUIRE([gl_HEADER_SYS_SOCKET])
   if test "$ac_cv_header_winsock2_h" = yes; then
@@ -358,6 +361,10 @@ AC_SUBST([LTALLOCA])
   # Code from module mkstemp:
   gl_FUNC_MKSTEMP
   gl_STDLIB_MODULE_INDICATOR([mkstemp])
+  # Code from module mkstemps:
+  gl_FUNC_MKSTEMPS
+  gl_MODULE_INDICATOR([mkstemps])
+  gl_STDLIB_MODULE_INDICATOR([mkstemps])
   # Code from module mktempd:
   # Code from module mktime:
   gl_FUNC_MKTIME
@@ -795,6 +802,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/memchr.c
   lib/memchr.valgrind
   lib/mkstemp.c
+  lib/mkstemps.c
   lib/mktime-internal.h
   lib/mktime.c
   lib/netdb.in.h
@@ -915,6 +923,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/md5.m4
   m4/memchr.m4
   m4/mkstemp.m4
+  m4/mkstemps.m4
   m4/mktime.m4
   m4/mmap-anon.m4
   m4/multiarch.m4

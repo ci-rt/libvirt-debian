@@ -169,3 +169,5 @@
     remote_domain_get_memory_parameters_args val_remote_domain_get_memory_parameters_args;
     remote_domain_set_vcpus_flags_args val_remote_domain_set_vcpus_flags_args;
     remote_domain_get_vcpus_flags_args val_remote_domain_get_vcpus_flags_args;
+    remote_domain_open_console_args val_remote_domain_open_console_args;
+    remote_domain_is_updated_args val_remote_domain_is_updated_args;

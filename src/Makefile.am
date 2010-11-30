@@ -11,14 +11,6 @@ INCLUDES =							\
 		-I@top_srcdir@/include				\
 		$(DRIVER_MODULE_CFLAGS)				\
 		$(LIBXML_CFLAGS)				\
-		-DLIBDIR=\""$(libdir)"\"			\
-		-DBINDIR=\""$(libexecdir)"\"			\
-		-DSBINDIR=\""$(sbindir)"\"			\
-		-DSYSCONF_DIR="\"$(sysconfdir)\""		\
-		-DLOCALEBASEDIR=\""$(datadir)/locale"\"		\
-		-DPKGDATADIR=\""$(pkgdatadir)"\"		\
-		-DLOCAL_STATE_DIR=\""$(localstatedir)"\"	\
-		-DGETTEXT_PACKAGE=\"$(PACKAGE)\"		\
 		$(WARN_CFLAGS)					\
 		$(LOCK_CHECKING_CFLAGS)			\
 		-DIN_LIBVIRT				\
@@ -77,6 +69,7 @@ UTIL_SOURCES =							\
 		util/qparams.c util/qparams.h			\
 		util/stats_linux.c util/stats_linux.h		\
 		util/storage_file.c util/storage_file.h		\
+		util/sysinfo.c util/sysinfo.h			\
 		util/threads.c util/threads.h			\
 		util/threads-pthread.h				\
 		util/threads-win32.h				\
@@ -94,6 +87,7 @@ DRIVER_SOURCES =						\
 		driver.c driver.h				\
 		internal.h					\
 		datatypes.c datatypes.h				\
+		fdstream.c fdstream.h                 \
 		$(NODE_INFO_SOURCES)				\
 		libvirt.c libvirt_internal.h
 
@@ -227,7 +221,6 @@ TEST_DRIVER_SOURCES =						\
 
 # Now the Hypervisor specific drivers
 XEN_DRIVER_SOURCES =						\
-		xen/proxy_internal.c xen/proxy_internal.h	\
 		xen/sexpr.c xen/sexpr.h				\
 		xen/block_stats.c xen/block_stats.h		\
 		xen/xen_hypervisor.c xen/xen_hypervisor.h	\

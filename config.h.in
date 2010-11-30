@@ -86,6 +86,10 @@
    whether the gnulib module canonicalize-lgpl shall be considered present. */
 #undef GNULIB_CANONICALIZE_LGPL
 
+/* Define to a C preprocessor expression that evaluates to 1 or 0, depending
+   whether the gnulib module mkstemps shall be considered present. */
+#undef GNULIB_MKSTEMPS
+
 /* Define to 1 when the gnulib module accept should be tested. */
 #undef GNULIB_TEST_ACCEPT
 
@@ -143,6 +147,9 @@
 
 /* Define to 1 when the gnulib module mkstemp should be tested. */
 #undef GNULIB_TEST_MKSTEMP
+
+/* Define to 1 when the gnulib module mkstemps should be tested. */
+#undef GNULIB_TEST_MKSTEMPS
 
 /* Define to 1 when the gnulib module mktime should be tested. */
 #undef GNULIB_TEST_MKTIME
@@ -574,6 +581,9 @@
 /* Define to 1 if you have the `mkstemp' function. */
 #undef HAVE_MKSTEMP
 
+/* Define to 1 if you have the `mkstemps' function. */
+#undef HAVE_MKSTEMPS
+
 /* Define to 1 if you have the `mmap' function. */
 #undef HAVE_MMAP
 
@@ -999,6 +1009,9 @@
 /* Define to 1 if strdup is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_STRDUP
 
+/* Define to 1 if strerror_r is declared even after undefining macros. */
+#undef HAVE_RAW_DECL_STRERROR_R
+
 /* Define to 1 if strncasecmp is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_STRNCASECMP
 
@@ -1274,6 +1287,9 @@
 
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #undef HAVE_SYS_STAT_H
+
+/* Define to 1 if you have the <sys/syscall.h> header file. */
+#undef HAVE_SYS_SYSCALL_H
 
 /* Define to 1 if you have the <sys/sysctl.h> header file. */
 #undef HAVE_SYS_SYSCTL_H
@@ -1674,9 +1690,6 @@
 
 /* whether IBM HMC / IVM driver is enabled */
 #undef WITH_PHYP
-
-/* Whether Xen proxy is enabled */
-#undef WITH_PROXY
 
 /* whether QEMU driver is enabled */
 #undef WITH_QEMU

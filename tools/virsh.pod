@@ -54,10 +54,15 @@ The B<virsh> program understands the following I<OPTIONS>.
 Ignore all other arguments, and behave as if the B<help> command were
 given instead.
 
-=item B<-v>, B<--version>
+=item B<-v>, B<--version[=short]>
 
-Ignore all other arguments, and behave as if the B<version> command were
-given instead.
+Ignore all other arguments, and prints the version of the libvirt library
+virsh is coming from
+
+=item B<-V>, B<--version=long>
+
+Ignore all other arguments, and prints the version of the libvirt library
+virsh is coming from and which options and driver are compiled in.
 
 =item B<-c>, B<--connect> I<URI>
 
@@ -301,7 +306,7 @@ L<http://libvirt.org/formatdomain.html#elementsCPU>
 
 The following commands manipulate domains directly, as stated
 previously most commands take domain-id as the first parameter. The
-I<domain-id> can be specified as an short integer, a name or a full UUID.
+I<domain-id> can be specified as a short integer, a name or a full UUID.
 
 =over 4
 
@@ -311,9 +316,12 @@ Configure a domain to be automatically started at boot.
 
 The option I<--disable> disables autostarting.
 
-=item B<console> I<domain-id>
+=item B<console> I<domain-id> [I<devname>]
 
-Connect the virtual serial console for the guest.
+Connect the virtual serial console for the guest. The optional
+I<devname> parameter refers to the device alias of an alternate
+console, serial or parallel device configured for the guest.
+If omitted, the primary console will be opened.
 
 =item B<create> I<FILE> optional I<--console> I<--paused>
 
@@ -326,7 +334,7 @@ If I<--console> is requested, attach to the console after creation.
 B<Example>
 
  virsh dumpxml <domain-id> > domain.xml
- edit domain.xml
+ vi domain.xml (or make changes with your other text editor)
  virsh create < domain.xml
 
 =item B<define> I<FILE>
@@ -423,7 +431,7 @@ Edit the XML configuration file for a domain.
 This is equivalent to:
 
  virsh dumpxml domain > domain.xml
- edit domain.xml
+ vi domain.xml (or make changes with your other text editor)
  virsh define domain.xml
 
 except that it does some error checking.
@@ -448,13 +456,23 @@ Provide the maximum number of virtual CPUs supported for a guest VM on
 this connection.  If provided, the I<type> parameter must be a valid
 type attribute for the <domain> element of XML.
 
-=item B<migrate> optional I<--live> I<--suspend> I<domain-id> I<desturi>
-I<migrateuri>
+=item B<migrate> optional I<--live> I<--p2p> I<--direct> I<--tunnelled>
+I<--persistent> I<--undefinesource> I<--suspend> I<--copy-storage-all>
+I<--copy-storage-inc> I<domain-id> I<desturi> I<migrateuri> I<dname>
 
-Migrate domain to another host.  Add --live for live migration; --suspend
-leaves the domain paused on the destination host. The I<desturi> is the
-connection URI of the destination host, and I<migrateuri> is the
-migration URI, which usually can be omitted.
+Migrate domain to another host.  Add I<--live> for live migration; I<--p2p>
+for peer-2-peer migration; I<--direct> for direct migration; or I<--tunnelled>
+for tunnelled migration.  I<--persistent> leaves the domain persistent on
+destination host, I<--undefinesource> undefines the domain on the source host,
+and I<--suspend> leaves the domain paused on the destination host.
+I<--copy-storage-all> indicates migration with non-shared storage with full
+disk copy, I<--copy-storage-inc> indicates migration with non-shared storage
+with incremental copy (same base image shared between source and destination).
+
+The I<desturi> is the connection URI of the destination host, and
+I<migrateuri> is the migration URI, which usually can be omitted.
+I<dname> is used for renaming the domain to new name during migration, which
+also usually can be omitted.
 
 =item B<migrate-setmaxdowntime> I<domain-id> I<downtime>
 
@@ -623,7 +641,7 @@ is not available the processes will provide an exit code of 1.
 =head1 DEVICE COMMANDS
 
 The following commands manipulate devices associated to domains.
-The domain-id can be specified as an short integer, a name or a full UUID.
+The domain-id can be specified as a short integer, a name or a full UUID.
 To better understand the values allowed as options for the command
 reading the documentation at L<http://libvirt.org/formatdomain.html> on the
 format of the device sections to get the most accurate set of accepted values.
@@ -637,7 +655,9 @@ See the documentation to learn about libvirt XML format for a device.
 For cdrom and floppy devices, this command only replaces the media within
 the single existing device; consider using B<update-device> for this usage.
 
-=item B<attach-disk> I<domain-id> I<source> I<target> optional I<--driver driver> I<--subdriver subdriver> I<--type type> I<--mode mode>
+=item B<attach-disk> I<domain-id> I<source> I<target> optional
+I<--driver driver> I<--subdriver subdriver> I<--type type>
+I<--mode mode> I<--persistent> I<--sourcetype soucetype>
 
 Attach a new disk device to the domain.
 I<source> and I<target> are paths for the files and devices.
@@ -646,8 +666,12 @@ I<type> can indicate I<cdrom> or I<floppy> as alternative to the disk default,
 although this use only replaces the media within the existing virtual cdrom or
 floppy device; consider using B<update-device> for this usage instead.
 I<mode> can specify the two specific mode I<readonly> or I<shareable>.
+I<persistent> indicates the changes will affect the next boot of the domain.
+I<sourcetype> can indicate the type of source (block|file)
 
-=item B<attach-interface> I<domain-id> I<type> I<source> optional I<--target target> I<--mac mac> I<--script script> I<--model model> I<--persistent>
+=item B<attach-interface> I<domain-id> I<type> I<source> optional
+I<--target target> I<--mac mac> I<--script script> I<--model model>
+I<--persistent>
 
 Attach a new network interface to the domain.
 I<type> can be either I<network> to indicate a physical network device or I<bridge> to indicate a bridge to a device.
@@ -727,13 +751,17 @@ Edit the XML configuration file for a network.
 This is equivalent to:
 
  virsh net-dumpxml network > network.xml
- edit network.xml
+ vi network.xml (or make changes with your other text editor)
  virsh net-define network.xml
 
 except that it does some error checking.
 
 The editor used can be supplied by the C<$VISUAL> or C<$EDITOR> environment
 variables, and defaults to C<vi>.
+
+=item B<net-info> I<network>
+
+Returns basic information about the I<network> object.
 
 =item B<net-list> optional I<--inactive> or I<--all>
 
@@ -839,7 +867,7 @@ Edit the XML configuration file for a storage pool.
 This is equivalent to:
 
  virsh pool-dumpxml pool > pool.xml
- edit pool.xml
+ vi pool.xml (or make changes with your other text editor)
  virsh pool-define pool.xml
 
 except that it does some error checking.
@@ -896,7 +924,7 @@ pre-existing volume.
 B<Example>
 
  virsh vol-dumpxml --pool storagepool1 appvolume1 > newvolume.xml
- edit newvolume.xml
+ vi newvolume.xml (or make changes with your other text editor)
  virsh vol-create differentstoragepool newvolume.xml
 
 =item B<vol-create-from> I<pool-or-uuid> I<FILE> [optional I<--inputpool>
@@ -1126,7 +1154,7 @@ Edit the XML of a network filter.
 This is equivalent to:
 
  virsh nwfilter-dumpxml myfilter > myfilter.xml
- edit myfilter.xml
+ vi myfilter.xml (or make changes with your other text editor)
  virsh nwfilter-define myfilter.xml
 
 except that it does some error checking.
@@ -1135,6 +1163,22 @@ mentioned in I<nwfilter-define>.
 
 The editor used can be supplied by the C<$VISUAL> or C<$EDITOR> environment
 variables, and defaults to C<vi>.
+
+=back
+
+=head1 QEMU-SPECIFIC COMMANDS
+
+NOTE: Use of the following commands is B<strongly> discouraged.  They
+can cause libvirt to become confused and do the wrong thing on subsequent
+operations.  Once you have used this command, please do not report
+problems to the libvirt developers; the reports will be ignored.
+
+=over 4
+
+=item B<qemu-monitor-command> I<domain> I<command>
+
+Send an arbitrary monitor command I<command> to domain I<domain> through the
+qemu monitor.  The results of the command will be printed on stdout.
 
 =back
 
@@ -1215,6 +1259,7 @@ PURPOSE
 
 =head1 SEE ALSO
 
-L<virt-install(1)>, L<virt-xml-validate(1)>, L<virt-top(1)>, L<virt-mem(1)>, L<virt-df(1)>, L<http://www.libvirt.org/>
+L<virt-install(1)>, L<virt-xml-validate(1)>, L<virt-top(1)>, L<virt-df(1)>,
+L<http://www.libvirt.org/>
 
 =cut

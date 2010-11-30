@@ -36,6 +36,7 @@
 #include "virterror_internal.h"
 #include "memory.h"
 #include "logging.h"
+#include "files.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -43,7 +44,7 @@
 #define DEBUG_RAW_IO 0
 
 struct _qemuMonitor {
-    virMutex lock;
+    virMutex lock; /* also used to protect fd */
     virCond notify;
 
     int refs;
@@ -69,11 +70,6 @@ struct _qemuMonitor {
     /* If anything went wrong, this will be fed back
      * the next monitor msg */
     int lastErrno;
-
-    /* If the monitor EOF callback is currently active (stops more commands being run) */
-    unsigned eofcb: 1;
-    /* If the monitor is in process of shutting down */
-    unsigned closed: 1;
 
     unsigned json: 1;
 };
@@ -203,6 +199,7 @@ static void qemuMonitorFree(qemuMonitorPtr mon)
     if (virCondDestroy(&mon->notify) < 0)
     {}
     virMutexDestroy(&mon->lock);
+    VIR_FREE(mon->buffer);
     VIR_FREE(mon);
 }
 
@@ -283,7 +280,7 @@ qemuMonitorOpenUnix(const char *monitor)
     return monfd;
 
 error:
-    close(monfd);
+    VIR_FORCE_CLOSE(monfd);
     return -1;
 }
 
@@ -355,6 +352,7 @@ qemuMonitorIOProcess(qemuMonitorPtr mon)
 }
 
 
+/* Call this function while holding the monitor lock. */
 static int
 qemuMonitorIOWriteWithFD(qemuMonitorPtr mon,
                          const char *data,
@@ -399,7 +397,10 @@ qemuMonitorIOWriteWithFD(qemuMonitorPtr mon,
     return ret;
 }
 
-/* Called when the monitor is able to write data */
+/*
+ * Called when the monitor is able to write data
+ * Call this function while holding the monitor lock.
+ */
 static int
 qemuMonitorIOWrite(qemuMonitorPtr mon)
 {
@@ -432,6 +433,7 @@ qemuMonitorIOWrite(qemuMonitorPtr mon)
 
 /*
  * Called when the monitor has incoming data to read
+ * Call this function while holding the monitor lock.
  *
  * Returns -1 on error, or number of bytes read
  */
@@ -504,6 +506,7 @@ qemuMonitorIO(int watch, int fd, int events, void *opaque) {
     qemuMonitorPtr mon = opaque;
     int quit = 0, failed = 0;
 
+    /* lock access to the monitor and protect fd */
     qemuMonitorLock(mon);
     qemuMonitorRef(mon);
 #if DEBUG_IO
@@ -691,17 +694,11 @@ void qemuMonitorClose(qemuMonitorPtr mon)
     VIR_DEBUG("mon=%p", mon);
 
     qemuMonitorLock(mon);
-    if (!mon->closed) {
+
+    if (mon->fd >= 0) {
         if (mon->watch)
             virEventRemoveHandle(mon->watch);
-        if (mon->fd != -1)
-            close(mon->fd);
-        /* NB: ordinarily one might immediately set mon->watch to -1
-         * and mon->fd to -1, but there may be a callback active
-         * that is still relying on these fields being valid. So
-         * we merely close them, but not clear their values and
-         * use this explicit 'closed' flag to track this state */
-        mon->closed = 1;
+        VIR_FORCE_CLOSE(mon->fd);
     }
 
     if (qemuMonitorUnref(mon) > 0)
@@ -713,11 +710,6 @@ int qemuMonitorSend(qemuMonitorPtr mon,
                     qemuMonitorMessagePtr msg)
 {
     int ret = -1;
-
-    if (mon->eofcb) {
-        msg->lastErrno = EIO;
-        return -1;
-    }
 
     mon->msg = msg;
     qemuMonitorUpdateWatch(mon);
@@ -1146,10 +1138,11 @@ int qemuMonitorSetCPU(qemuMonitorPtr mon, int cpu, int online)
 
 
 int qemuMonitorEjectMedia(qemuMonitorPtr mon,
-                          const char *devname)
+                          const char *devname,
+                          bool force)
 {
     int ret;
-    DEBUG("mon=%p devname=%s", mon, devname);
+    DEBUG("mon=%p devname=%s force=%d", mon, devname, force);
 
     if (!mon) {
         qemuReportError(VIR_ERR_INVALID_ARG, "%s",
@@ -1158,9 +1151,9 @@ int qemuMonitorEjectMedia(qemuMonitorPtr mon,
     }
 
     if (mon->json)
-        ret = qemuMonitorJSONEjectMedia(mon, devname);
+        ret = qemuMonitorJSONEjectMedia(mon, devname, force);
     else
-        ret = qemuMonitorTextEjectMedia(mon, devname);
+        ret = qemuMonitorTextEjectMedia(mon, devname, force);
     return ret;
 }
 

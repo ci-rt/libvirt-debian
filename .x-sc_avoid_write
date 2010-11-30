@@ -1,7 +1,8 @@
 ^src/libvirt\.c$
-^src/qemu/qemu_driver\.c$
+^src/fdstream\.c$
 ^src/qemu/qemu_monitor\.c$
 ^src/util/util\.c$
 ^src/xen/xend_internal\.c$
 ^daemon/libvirtd.c$
 ^gnulib/
+^tools/console.c$

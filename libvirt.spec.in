@@ -31,7 +31,6 @@
 
 # Then the hypervisor drivers that run on local host
 %define with_xen           0%{!?_without_xen:%{server_drivers}}
-%define with_xen_proxy     0%{!?_without_xen_proxy:%{server_drivers}}
 %define with_qemu          0%{!?_without_qemu:%{server_drivers}}
 %define with_openvz        0%{!?_without_openvz:%{server_drivers}}
 %define with_lxc           0%{!?_without_lxc:%{server_drivers}}
@@ -115,11 +114,6 @@
 %define with_xen 0
 %endif
 
-# If Xen isn't turned on, we shouldn't build the xen proxy either
-%if ! %{with_xen}
-%define with_xen_proxy 0
-%endif
-
 # Fedora doesn't have any QEMU on ppc64 - only ppc
 %if 0%{?fedora}
 %ifarch ppc64
@@ -127,11 +121,9 @@
 %endif
 %endif
 
-# PolicyKit was introduced in Fedora 8 / RHEL-6 or newer, allowing
-# the setuid Xen proxy to be killed off
+# PolicyKit was introduced in Fedora 8 / RHEL-6 or newer
 %if 0%{?fedora} >= 8 || 0%{?rhel} >= 6
 %define with_polkit    0%{!?_without_polkit:1}
-%define with_xen_proxy 0
 %endif
 
 # libcapng is used to manage capabilities in Fedora 12 / RHEL-6 or newer
@@ -194,7 +186,7 @@
 %endif
 
 
-Summary: Library providing a simple API virtualization
+Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: @VERSION@
 Release: 1%{?dist}%{?extra_release}
@@ -383,6 +375,11 @@ BuildRequires: libcurl-devel
 %if %{with_audit}
 BuildRequires: audit-libs-devel
 %endif
+%if %{with_dtrace}
+# we need /usr/sbin/dtrace
+BuildRequires: systemtap-sdt-devel
+%endif
+
 
 # Fedora build root suckage
 BuildRequires: gawk
@@ -801,7 +798,6 @@ fi
 
 %dir %{_localstatedir}/run/libvirt/
 
-%dir %{_localstatedir}/lib/libvirt/
 %dir %attr(0711, root, root) %{_localstatedir}/lib/libvirt/images/
 %dir %attr(0711, root, root) %{_localstatedir}/lib/libvirt/boot/
 %dir %attr(0700, root, root) %{_localstatedir}/cache/libvirt/
@@ -848,10 +844,6 @@ fi
 
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/
 
-%if %{with_xen_proxy}
-%attr(4755, root, root) %{_libexecdir}/libvirt_proxy
-%endif
-
 %if %{with_lxc}
 %attr(0755, root, root) %{_libexecdir}/libvirt_lxc
 %endif
@@ -895,7 +887,7 @@ fi
 
 %{_sysconfdir}/rc.d/init.d/libvirt-guests
 %config(noreplace) %{_sysconfdir}/sysconfig/libvirt-guests
-%dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt
+%dir %attr(0755, root, root) %{_localstatedir}/lib/libvirt/
 
 %if %{with_sasl}
 %config(noreplace) %{_sysconfdir}/sasl2/libvirt.conf
@@ -938,6 +930,15 @@ fi
 %endif
 
 %changelog
+* Tue Nov 30 2010 Daniel Veillard <veillard@redhat.com> - 0.8.6-1
+- Add support for iSCSI target auto-discovery
+- QED: Basic support for QED images
+- remote console support
+- support for SPICE graphics
+- sysinfo and VMBIOS support
+- virsh qemu-monitor-command
+- various improvements and bug fixes
+
 * Fri Oct 29 2010 Daniel Veillard <veillard@redhat.com> - 0.8.5-1
 - Enable JSON and netdev features in QEMU >= 0.13
 - framework for auditing integration

@@ -40,6 +40,7 @@
 # include "cpu_conf.h"
 # include "driver.h"
 # include "bitmap.h"
+# include "macvtap.h"
 
 # define qemudDebug(fmt, ...) do {} while(0)
 
@@ -96,7 +97,10 @@ enum qemud_cmd_flags {
     QEMUD_CMD_FLAG_FSDEV         = (1LL << 40), /* -fstype filesystem passthrough */
     QEMUD_CMD_FLAG_NESTING       = (1LL << 41), /* -enable-nesting (SVM/VMX) */
     QEMUD_CMD_FLAG_NAME_PROCESS  = (1LL << 42), /* Is -name process= available */
-    QEMUD_CMD_FLAG_DRIVE_READONLY    = (1LL << 43), /* -drive readonly=on|off */
+    QEMUD_CMD_FLAG_DRIVE_READONLY= (1LL << 43), /* -drive readonly=on|off */
+    QEMUD_CMD_FLAG_SMBIOS_TYPE   = (1LL << 44), /* Is -smbios type= available */
+    QEMUD_CMD_FLAG_VGA_QXL       = (1LL << 45), /* The 'qxl' arg for '-vga' */
+    QEMUD_CMD_FLAG_SPICE         = (1LL << 46), /* Is -spice avail */
 };
 
 /* Main driver state */
@@ -138,6 +142,10 @@ struct qemud_driver {
     char *vncListen;
     char *vncPassword;
     char *vncSASLdir;
+    unsigned int spiceTLS : 1;
+    char *spiceTLSx509certdir;
+    char *spiceListen;
+    char *spicePassword;
     char *hugetlbfs_mount;
     char *hugepage_path;
 
@@ -164,10 +172,13 @@ struct qemud_driver {
     virSecurityDriverPtr securitySecondaryDriver;
 
     char *saveImageFormat;
+    char *dumpImageFormat;
 
     pciDeviceList *activePciHostdevs;
 
     virBitmapPtr reservedVNCPorts;
+
+    virSysinfoDefPtr hostsysinfo;
 };
 
 typedef struct _qemuDomainPCIAddressSet qemuDomainPCIAddressSet;
@@ -228,7 +239,8 @@ int         qemudBuildCommandLine       (virConnectPtr conn,
                                          int **vmfds,
                                          int *nvmfds,
                                          const char *migrateFrom,
-                                         virDomainSnapshotObjPtr current_snapshot)
+                                         virDomainSnapshotObjPtr current_snapshot,
+                                         enum virVMOperationType vmop)
     ATTRIBUTE_NONNULL(1);
 
 /* With vlan == -1, use netdev syntax, else old hostnet */
@@ -307,7 +319,8 @@ int qemudPhysIfaceConnect(virConnectPtr conn,
                           struct qemud_driver *driver,
                           virDomainNetDefPtr net,
                           unsigned long long qemuCmdFlags,
-                          const unsigned char *vmuuid);
+                          const unsigned char *vmuuid,
+                          enum virVMOperationType vmop);
 
 int         qemudProbeMachineTypes      (const char *binary,
                                          virCapsGuestMachinePtr **machines,

@@ -43,6 +43,7 @@
      <exports symbol='VIR_DOMAIN_CRASHED' type='enum'/>
      <exports symbol='VIR_DOMAIN_DEVICE_MODIFY_CONFIG' type='enum'/>
      <exports symbol='VIR_DOMAIN_DEVICE_MODIFY_CURRENT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_DEVICE_MODIFY_FORCE' type='enum'/>
      <exports symbol='VIR_DOMAIN_DEVICE_MODIFY_LIVE' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_DEFINED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_DEFINED_ADDED' type='enum'/>
@@ -381,6 +382,7 @@
      <exports symbol='virDomainInterfaceStats' type='function'/>
      <exports symbol='virDomainIsActive' type='function'/>
      <exports symbol='virDomainIsPersistent' type='function'/>
+     <exports symbol='virDomainIsUpdated' type='function'/>
      <exports symbol='virDomainLookupByID' type='function'/>
      <exports symbol='virDomainLookupByName' type='function'/>
      <exports symbol='virDomainLookupByUUID' type='function'/>
@@ -392,6 +394,7 @@
      <exports symbol='virDomainMigrate' type='function'/>
      <exports symbol='virDomainMigrateSetMaxDowntime' type='function'/>
      <exports symbol='virDomainMigrateToURI' type='function'/>
+     <exports symbol='virDomainOpenConsole' type='function'/>
      <exports symbol='virDomainPinVcpu' type='function'/>
      <exports symbol='virDomainReboot' type='function'/>
      <exports symbol='virDomainRef' type='function'/>
@@ -666,6 +669,8 @@
      <exports symbol='VIR_FROM_SEXPR' type='enum'/>
      <exports symbol='VIR_FROM_STATS_LINUX' type='enum'/>
      <exports symbol='VIR_FROM_STORAGE' type='enum'/>
+     <exports symbol='VIR_FROM_STREAMS' type='enum'/>
+     <exports symbol='VIR_FROM_SYSINFO' type='enum'/>
      <exports symbol='VIR_FROM_TEST' type='enum'/>
      <exports symbol='VIR_FROM_UML' type='enum'/>
      <exports symbol='VIR_FROM_VBOX' type='enum'/>
@@ -797,8 +802,10 @@
     <enum name='VIR_CRED_USERNAME' file='libvirt' value='1' type='virConnectCredentialType' info='Identity to act as'/>
     <enum name='VIR_DOMAIN_BLOCKED' file='libvirt' value='2' type='virDomainState' info='the domain is blocked on resource'/>
     <enum name='VIR_DOMAIN_CRASHED' file='libvirt' value='6' type='virDomainState' info=' the domain is crashed'/>
-    <enum name='VIR_DOMAIN_DEVICE_MODIFY_CONFIG' file='libvirt' value='2' type='virDomainDeviceModifyFlags' info=' Modify persisted device allocation'/>
+    <enum name='VIR_DOMAIN_DEVICE_MODIFY_CONFIG' file='libvirt' value='2' type='virDomainDeviceModifyFlags' info='Modify persisted device allocation'/>
     <enum name='VIR_DOMAIN_DEVICE_MODIFY_CURRENT' file='libvirt' value='0' type='virDomainDeviceModifyFlags' info='Modify device allocation based on current domain state'/>
+    <enum name='VIR_DOMAIN_DEVICE_MODIFY_FORCE' file='libvirt' value='4' type='virDomainDeviceModifyFlags' info=' Forcibly modify device
+(ex. force eject a cdrom)'/>
     <enum name='VIR_DOMAIN_DEVICE_MODIFY_LIVE' file='libvirt' value='1' type='virDomainDeviceModifyFlags' info='Modify live device allocation'/>
     <enum name='VIR_DOMAIN_EVENT_DEFINED' file='libvirt' value='0' type='virDomainEventType'/>
     <enum name='VIR_DOMAIN_EVENT_DEFINED_ADDED' file='libvirt' value='0' type='virDomainEventDefinedDetailType' info='Newly created config file'/>
@@ -980,7 +987,7 @@ VM persist on the dest host failed'/>
     <enum name='VIR_EVENT_HANDLE_HANGUP' file='libvirt' value='8' type='virEventHandleType'/>
     <enum name='VIR_EVENT_HANDLE_READABLE' file='libvirt' value='1' type='virEventHandleType'/>
     <enum name='VIR_EVENT_HANDLE_WRITABLE' file='libvirt' value='2' type='virEventHandleType'/>
-    <enum name='VIR_FROM_AUDIT' file='virterror' value='36' type='virErrorDomain' info=' Error from auditing subsystem'/>
+    <enum name='VIR_FROM_AUDIT' file='virterror' value='36' type='virErrorDomain' info='Error from auditing subsystem'/>
     <enum name='VIR_FROM_CONF' file='virterror' value='9' type='virErrorDomain' info='Error in the configuration file handling'/>
     <enum name='VIR_FROM_CPU' file='virterror' value='31' type='virErrorDomain' info='Error from CPU driver'/>
     <enum name='VIR_FROM_DOM' file='virterror' value='6' type='virErrorDomain' info='Error when operating on a domain'/>
@@ -998,7 +1005,7 @@ VM persist on the dest host failed'/>
     <enum name='VIR_FROM_ONE' file='virterror' value='27' type='virErrorDomain' info='Error from OpenNebula driver'/>
     <enum name='VIR_FROM_OPENVZ' file='virterror' value='14' type='virErrorDomain' info='Error from OpenVZ driver'/>
     <enum name='VIR_FROM_PHYP' file='virterror' value='29' type='virErrorDomain' info='Error from IBM power hypervisor'/>
-    <enum name='VIR_FROM_PROXY' file='virterror' value='8' type='virErrorDomain' info='Error in the proxy code'/>
+    <enum name='VIR_FROM_PROXY' file='virterror' value='8' type='virErrorDomain' info='Error in the proxy code unused since 0.8.6'/>
     <enum name='VIR_FROM_QEMU' file='virterror' value='10' type='virErrorDomain' info='Error at the QEMU daemon'/>
     <enum name='VIR_FROM_REMOTE' file='virterror' value='13' type='virErrorDomain' info='Error from remote driver'/>
     <enum name='VIR_FROM_RPC' file='virterror' value='7' type='virErrorDomain' info='Error in the XML-RPC code'/>
@@ -1007,6 +1014,8 @@ VM persist on the dest host failed'/>
     <enum name='VIR_FROM_SEXPR' file='virterror' value='4' type='virErrorDomain' info='Error in the S-Expression code'/>
     <enum name='VIR_FROM_STATS_LINUX' file='virterror' value='16' type='virErrorDomain' info='Error in the Linux Stats code'/>
     <enum name='VIR_FROM_STORAGE' file='virterror' value='18' type='virErrorDomain' info='Error from storage driver'/>
+    <enum name='VIR_FROM_STREAMS' file='virterror' value='38' type='virErrorDomain' info=' Error from I/O streams'/>
+    <enum name='VIR_FROM_SYSINFO' file='virterror' value='37' type='virErrorDomain' info='Error from sysinfo/SMBIOS'/>
     <enum name='VIR_FROM_TEST' file='virterror' value='12' type='virErrorDomain' info='Error from test driver'/>
     <enum name='VIR_FROM_UML' file='virterror' value='21' type='virErrorDomain' info='Error at the UML driver'/>
     <enum name='VIR_FROM_VBOX' file='virterror' value='25' type='virErrorDomain' info='Error from VirtualBox driver'/>
@@ -1250,9 +1259,12 @@ see note above'/>
       <field name='memory' type='unsigned long' info=' memory size in kilobytes'/>
       <field name='cpus' type='unsigned int' info=' the number of active CPUs'/>
       <field name='mhz' type='unsigned int' info=' expected CPU frequency'/>
-      <field name='nodes' type='unsigned int' info=' the number of NUMA cell, 1 for uniform mem access'/>
-      <field name='sockets' type='unsigned int' info=' number of CPU socket per node'/>
-      <field name='cores' type='unsigned int' info=' number of core per socket'/>
+      <field name='nodes' type='unsigned int' info=' the number of NUMA cell, 1 for unusual NUMA
+topologies or uniform memory access; check
+capabilities XML for the actual NUMA topology'/>
+      <field name='sockets' type='unsigned int' info=' number of CPU sockets per node if nodes &gt; 1,
+total number of CPU sockets otherwise'/>
+      <field name='cores' type='unsigned int' info=' number of cores per socket'/>
       <field name='threads' type='unsigned int' info=' number of threads per core'/>
     </struct>
     <typedef name='virNodeInfoPtr' file='libvirt' type='virNodeInfo *'>
@@ -2096,7 +2108,7 @@ if ((virDomainGetMemoryParameters(dom, NULL, &nparams, 0) == 0) &&
 }
 
 This function requires privileged access to the hypervisor. This function
-expects the caller to allocate the @param]]></info>
+expects the caller to allocate the @params.]]></info>
       <return type='int' info='-1 in case of error, 0 in case of success.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='params' type='virMemoryParameterPtr' info='pointer to memory parameter object (return value, allocated by the caller)'/>
@@ -2224,6 +2236,11 @@ that particular statistic.]]></info>
       <info><![CDATA[Determine if the domain has a persistent configuration
 which means it will still exist after shutting down]]></info>
       <return type='int' info='1 if persistent, 0 if transient, -1 on error'/>
+      <arg name='dom' type='virDomainPtr' info='pointer to the domain object'/>
+    </function>
+    <function name='virDomainIsUpdated' file='libvirt' module='libvirt'>
+      <info><![CDATA[Determine if the domain has been updated.]]></info>
+      <return type='int' info='1 if updated, 0 if not, -1 on error'/>
       <arg name='dom' type='virDomainPtr' info='pointer to the domain object'/>
     </function>
     <function name='virDomainLookupByID' file='libvirt' module='libvirt'>
@@ -2447,6 +2464,19 @@ different types of hypervisor.]]></info>
       <arg name='flags' type='unsigned long' info='flags'/>
       <arg name='dname' type='const char *' info='(optional) rename domain to this at destination'/>
       <arg name='bandwidth' type='unsigned long' info='(optional) specify migration bandwidth limit in Mbps'/>
+    </function>
+    <function name='virDomainOpenConsole' file='libvirt' module='libvirt'>
+      <info><![CDATA[This opens the backend associated with a console, serial or
+parallel port device on a guest, if the backend is supported.
+If the @devname is omitted, then the first console or serial
+device is opened. The console is associated with the passed
+in @st stream, which should have been opened in non-blocking
+mode for bi-directional I/O.]]></info>
+      <return type='int' info='0 if the console was opened, -1 on error'/>
+      <arg name='dom' type='virDomainPtr' info='a domain object'/>
+      <arg name='devname' type='const char *' info='the console, serial or parallel port device alias, or NULL'/>
+      <arg name='st' type='virStreamPtr' info='a stream to associate with the console'/>
+      <arg name='flags' type='unsigned int' info='unused, pass 0'/>
     </function>
     <function name='virDomainPinVcpu' file='libvirt' module='libvirt'>
       <info><![CDATA[Dynamically change the real CPUs which can be allocated to a virtual CPU.

@@ -47,6 +47,8 @@
     ((((int) ((T)->tv_sec - (U)->tv_sec)) * 1000000.0 +	\
       ((int) ((T)->tv_usec - (U)->tv_usec))) / 1000.0)
 
+#include "files.h"
+
 static unsigned int testDebug = -1;
 static unsigned int testVerbose = -1;
 
@@ -124,13 +126,20 @@ virtTestRun(const char *title, int nloops, int (*body)(const void *data), const 
 
         if (ts)
             GETTIMEOFDAY(&before);
+
         virResetLastError();
-        if ((ret = body(data)) != 0)
-            break;
+        ret = body(data);
         virErrorPtr err = virGetLastError();
-        if (err)
-            virDispatchError(NULL);
-        if (ts)	{
+        if (err) {
+            if (virTestGetVerbose() || virTestGetDebug())
+                virDispatchError(NULL);
+        }
+
+        if (ret != 0) {
+            break;
+        }
+
+        if (ts) {
             GETTIMEOFDAY(&after);
             ts[i] = DIFF_MSEC(&after, &before);
         }
@@ -178,26 +187,26 @@ int virtTestLoadFile(const char *file,
 
     if (fstat(fileno(fp), &st) < 0) {
         fprintf (stderr, "%s: failed to fstat: %s\n", file, strerror(errno));
-        fclose(fp);
+        VIR_FORCE_FCLOSE(fp);
         return -1;
     }
 
     if (st.st_size > (buflen-1)) {
         fprintf (stderr, "%s: larger than buffer (> %d)\n", file, buflen-1);
-        fclose(fp);
+        VIR_FORCE_FCLOSE(fp);
         return -1;
     }
 
     if (st.st_size) {
         if (fread(*buf, st.st_size, 1, fp) != 1) {
             fprintf (stderr, "%s: read failed: %s\n", file, strerror(errno));
-            fclose(fp);
+            VIR_FORCE_FCLOSE(fp);
             return -1;
         }
     }
     (*buf)[st.st_size] = '\0';
 
-    fclose(fp);
+    VIR_FORCE_FCLOSE(fp);
     return st.st_size;
 }
 
@@ -222,8 +231,10 @@ void virtTestCaptureProgramExecChild(const char *const argv[],
     open_max = sysconf (_SC_OPEN_MAX);
     for (i = 0; i < open_max; i++) {
         if (i != stdinfd &&
-            i != pipefd)
-            close(i);
+            i != pipefd) {
+            int tmpfd = i;
+            VIR_FORCE_CLOSE(tmpfd);
+        }
     }
 
     if (dup2(stdinfd, STDIN_FILENO) != STDIN_FILENO)
@@ -237,8 +248,7 @@ void virtTestCaptureProgramExecChild(const char *const argv[],
     execve(argv[0], (char *const*)argv, (char *const*)env);
 
  cleanup:
-    if (stdinfd != -1)
-        close(stdinfd);
+    VIR_FORCE_CLOSE(stdinfd);
 }
 
 int virtTestCaptureProgramOutput(const char *const argv[],
@@ -252,10 +262,10 @@ int virtTestCaptureProgramOutput(const char *const argv[],
     int pid = fork();
     switch (pid) {
     case 0:
-        close(pipefd[0]);
+        VIR_FORCE_CLOSE(pipefd[0]);
         virtTestCaptureProgramExecChild(argv, pipefd[1]);
 
-        close(pipefd[1]);
+        VIR_FORCE_CLOSE(pipefd[1]);
         _exit(1);
 
     case -1:
@@ -267,7 +277,7 @@ int virtTestCaptureProgramOutput(const char *const argv[],
             int ret = -1;
             int want = buflen-1;
 
-            close(pipefd[1]);
+            VIR_FORCE_CLOSE(pipefd[1]);
 
             while (want) {
                 if ((ret = read(pipefd[0], (*buf)+got, want)) <= 0)
@@ -275,7 +285,7 @@ int virtTestCaptureProgramOutput(const char *const argv[],
                 got += ret;
                 want -= ret;
             }
-            close(pipefd[0]);
+            VIR_FORCE_CLOSE(pipefd[0]);
 
             if (!ret)
                 (*buf)[got] = '\0';

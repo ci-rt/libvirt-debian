@@ -50,6 +50,10 @@
 #include "util.h"
 #include "memory.h"
 #include "xml.h"
+#include "libvirt/libvirt-qemu.h"
+#include "files.h"
+#include "../daemon/event.h"
+#include "configmake.h"
 
 static char *progname;
 
@@ -634,8 +638,9 @@ cmdConnect(vshControl *ctl, const vshCmd *cmd)
     char *name;
 
     if (ctl->conn) {
-        if (virConnectClose(ctl->conn) != 0) {
-            vshError(ctl, "%s", _("Failed to disconnect from the hypervisor"));
+        int ret;
+        if ((ret = virConnectClose(ctl->conn)) != 0) {
+            vshError(ctl, _("Failed to disconnect from the hypervisor, %d leaked reference(s)"), ret);
             return FALSE;
         }
         ctl->conn = NULL;
@@ -676,35 +681,15 @@ static const vshCmdInfo info_console[] = {
 
 static const vshCmdOptDef opts_console[] = {
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
+    {"devname", VSH_OT_STRING, 0, N_("character device name")},
     {NULL, 0, 0, NULL}
 };
 
 static int
-cmdRunConsole(vshControl *ctl, virDomainPtr dom)
+cmdRunConsole(vshControl *ctl, virDomainPtr dom, const char *devname)
 {
-    xmlDocPtr xml = NULL;
-    xmlXPathObjectPtr obj = NULL;
-    xmlXPathContextPtr ctxt = NULL;
     int ret = FALSE;
-    char *doc;
-    char *thatHost = NULL;
-    char *thisHost = NULL;
     virDomainInfo dominfo;
-
-    if (!(thisHost = virGetHostname(ctl->conn))) {
-        vshError(ctl, "%s", _("Failed to get local hostname"));
-        goto cleanup;
-    }
-
-    if (!(thatHost = virConnectGetHostname(ctl->conn))) {
-        vshError(ctl, "%s", _("Failed to get connection hostname"));
-        goto cleanup;
-    }
-
-    if (STRNEQ(thisHost, thatHost)) {
-        vshError(ctl, "%s", _("Cannot connect to a remote console device"));
-        goto cleanup;
-    }
 
     if (virDomainGetInfo(dom, &dominfo) < 0) {
         vshError(ctl, "%s", _("Unable to get domain status"));
@@ -716,38 +701,12 @@ cmdRunConsole(vshControl *ctl, virDomainPtr dom)
         goto cleanup;
     }
 
-    doc = virDomainGetXMLDesc(dom, 0);
-    if (!doc)
-        goto cleanup;
-
-    xml = xmlReadDoc((const xmlChar *) doc, "domain.xml", NULL,
-                     XML_PARSE_NOENT | XML_PARSE_NONET |
-                     XML_PARSE_NOWARNING);
-    VIR_FREE(doc);
-    if (!xml)
-        goto cleanup;
-    ctxt = xmlXPathNewContext(xml);
-    if (!ctxt)
-        goto cleanup;
-
-    obj = xmlXPathEval(BAD_CAST "string(/domain/devices/console/@tty)", ctxt);
-    if ((obj != NULL) && ((obj->type == XPATH_STRING) &&
-                          (obj->stringval != NULL) && (obj->stringval[0] != 0))) {
-        vshPrintExtra(ctl, _("Connected to domain %s\n"), virDomainGetName(dom));
-        vshPrintExtra(ctl, "%s", _("Escape character is ^]\n"));
-        if (vshRunConsole((const char *)obj->stringval) == 0)
-            ret = TRUE;
-    } else {
-        vshPrintExtra(ctl, "%s", _("No console available for domain\n"));
-    }
-    xmlXPathFreeObject(obj);
+    vshPrintExtra(ctl, _("Connected to domain %s\n"), virDomainGetName(dom));
+    vshPrintExtra(ctl, "%s", _("Escape character is ^]\n"));
+    if (vshRunConsole(dom, devname) == 0)
+        ret = TRUE;
 
  cleanup:
-    xmlXPathFreeContext(ctxt);
-    if (xml)
-        xmlFreeDoc(xml);
-    VIR_FREE(thisHost);
-    VIR_FREE(thatHost);
 
     return ret;
 }
@@ -757,6 +716,7 @@ cmdConsole(vshControl *ctl, const vshCmd *cmd)
 {
     virDomainPtr dom;
     int ret;
+    const char *devname;
 
     if (!vshConnectionUsability(ctl, ctl->conn))
         return FALSE;
@@ -764,7 +724,9 @@ cmdConsole(vshControl *ctl, const vshCmd *cmd)
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return FALSE;
 
-    ret = cmdRunConsole(ctl, dom);
+    devname = vshCommandOptString(cmd, "devname", NULL);
+
+    ret = cmdRunConsole(ctl, dom, devname);
 
     virDomainFree(dom);
     return ret;
@@ -1241,7 +1203,7 @@ cmdCreate(vshControl *ctl, const vshCmd *cmd)
                  virDomainGetName(dom), from);
 #ifndef WIN32
         if (console)
-            cmdRunConsole(ctl, dom);
+            cmdRunConsole(ctl, dom, NULL);
 #endif
         virDomainFree(dom);
     } else {
@@ -1406,7 +1368,7 @@ cmdStart(vshControl *ctl, const vshCmd *cmd)
                  virDomainGetName(dom));
 #ifndef WIN32
         if (console)
-            cmdRunConsole(ctl, dom);
+            cmdRunConsole(ctl, dom, NULL);
 #endif
     } else {
         vshError(ctl, _("Failed to start domain %s"), virDomainGetName(dom));
@@ -3649,7 +3611,7 @@ static const vshCmdInfo info_network_destroy[] = {
 };
 
 static const vshCmdOptDef opts_network_destroy[] = {
-    {"network", VSH_OT_DATA, VSH_OFLAG_REQ, N_("network name, id or uuid")},
+    {"network", VSH_OT_DATA, VSH_OFLAG_REQ, N_("network name or uuid")},
     {NULL, 0, 0, NULL}
 };
 
@@ -3688,7 +3650,7 @@ static const vshCmdInfo info_network_dumpxml[] = {
 };
 
 static const vshCmdOptDef opts_network_dumpxml[] = {
-    {"network", VSH_OT_DATA, VSH_OFLAG_REQ, N_("network name, id or uuid")},
+    {"network", VSH_OT_DATA, VSH_OFLAG_REQ, N_("network name or uuid")},
     {NULL, 0, 0, NULL}
 };
 
@@ -3717,6 +3679,64 @@ cmdNetworkDumpXML(vshControl *ctl, const vshCmd *cmd)
     return ret;
 }
 
+/*
+ * "net-info" command
+ */
+static const vshCmdInfo info_network_info[] = {
+    {"help", N_("network information")},
+    {"desc", "Returns basic information about the network"},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_network_info[] = {
+    {"network", VSH_OT_DATA, VSH_OFLAG_REQ, N_("network name")},
+    {NULL, 0, 0, NULL}
+};
+
+static int
+cmdNetworkInfo(vshControl *ctl, const vshCmd *cmd)
+{
+    virNetworkPtr network;
+    char uuid[VIR_UUID_STRING_BUFLEN];
+    int autostart;
+    int persistent = -1;
+    int active = -1;
+    char *bridge = NULL;
+
+    if (!vshConnectionUsability(ctl, ctl->conn))
+        return FALSE;
+
+    if (!(network = vshCommandOptNetworkBy(ctl, cmd, NULL,
+                                           VSH_BYNAME)))
+        return FALSE;
+
+    vshPrint(ctl, "%-15s %s\n", _("Name"), virNetworkGetName(network));
+
+    if (virNetworkGetUUIDString(network, uuid) == 0)
+        vshPrint(ctl, "%-15s %s\n", _("UUID"), uuid);
+
+    active = virNetworkIsActive(network);
+    if (active >= 0)
+        vshPrint(ctl, "%-15s %s\n", _("Active:"), active? _("yes") : _("no"));
+
+    persistent = virNetworkIsPersistent(network);
+    if (persistent < 0)
+        vshPrint(ctl, "%-15s %s\n", _("Persistent:"), _("unknown"));
+    else
+        vshPrint(ctl, "%-15s %s\n", _("Persistent:"), persistent ? _("yes") : _("no"));
+
+    if (virNetworkGetAutostart(network, &autostart) < 0)
+        vshPrint(ctl, "%-15s %s\n", _("Autostart:"), _("no autostart"));
+    else
+        vshPrint(ctl, "%-15s %s\n", _("Autostart:"), autostart ? _("yes") : _("no"));
+
+    bridge = virNetworkGetBridgeName(network);
+    if (bridge)
+        vshPrint(ctl, "%-15s %s\n", _("Bridge:"), bridge);
+
+    virNetworkFree(network);
+    return TRUE;
+}
 
 /*
  * "iface-edit" command
@@ -5782,6 +5802,7 @@ static const vshCmdOptDef opts_find_storage_pool_sources_as[] = {
      N_("type of storage pool sources to find")},
     {"host", VSH_OT_DATA, VSH_OFLAG_NONE, N_("optional host to query")},
     {"port", VSH_OT_DATA, VSH_OFLAG_NONE, N_("optional port to query")},
+    {"initiator", VSH_OT_DATA, VSH_OFLAG_NONE, N_("optional initiator IQN to use for query")},
     {NULL, 0, 0, NULL}
 };
 
@@ -5791,6 +5812,7 @@ cmdPoolDiscoverSourcesAs(vshControl * ctl, const vshCmd * cmd ATTRIBUTE_UNUSED)
     char *type, *host;
     char *srcSpec = NULL;
     char *srcList;
+    char *initiator;
     int found;
 
     type = vshCommandOptString(cmd, "type", &found);
@@ -5799,40 +5821,34 @@ cmdPoolDiscoverSourcesAs(vshControl * ctl, const vshCmd * cmd ATTRIBUTE_UNUSED)
     host = vshCommandOptString(cmd, "host", &found);
     if (!found)
         host = NULL;
+    initiator = vshCommandOptString(cmd, "initiator", &found);
+    if (!found)
+        initiator = NULL;
 
     if (!vshConnectionUsability(ctl, ctl->conn))
         return FALSE;
 
     if (host) {
-        size_t hostlen = strlen(host);
         char *port = vshCommandOptString(cmd, "port", &found);
-        int ret;
-        if (!found) {
-            port = strrchr(host, ':');
-            if (port) {
-                if (*(++port))
-                    hostlen = port - host - 1;
-                else
-                    port = NULL;
-            }
+        if (!found)
+            port = NULL;
+        virBuffer buf = VIR_BUFFER_INITIALIZER;
+        virBufferAddLit(&buf, "<source>\n");
+        virBufferVSprintf(&buf, "  <host name='%s'", host);
+        if (port)
+            virBufferVSprintf(&buf, " port='%s'", port);
+        virBufferAddLit(&buf, "/>\n");
+        if (initiator) {
+            virBufferAddLit(&buf, "  <initiator>\n");
+            virBufferVSprintf(&buf, "    <iqn name='%s'/>\n", initiator);
+            virBufferAddLit(&buf, "  </initiator>\n");
         }
-        ret = port ?
-            virAsprintf(&srcSpec,
-                        "<source><host name='%.*s' port='%s'/></source>",
-                        (int)hostlen, host, port) :
-            virAsprintf(&srcSpec,
-                        "<source><host name='%.*s'/></source>",
-                        (int)hostlen, host);
-        if (ret < 0) {
-            switch (errno) {
-            case ENOMEM:
-                vshError(ctl, "%s", _("Out of memory"));
-                break;
-            default:
-                vshError(ctl, _("virAsprintf failed (errno %d)"), errno);
-            }
+        virBufferAddLit(&buf, "</source>\n");
+        if (virBufferError(&buf)) {
+            vshError(ctl, "%s", _("Out of memory"));
             return FALSE;
         }
+        srcSpec = virBufferContentAndReset(&buf);
     }
 
     srcList = virConnectFindStoragePoolSources(ctl->conn, type, srcSpec, 0);
@@ -6779,6 +6795,12 @@ cmdVolList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
 
     /* Determine the number of volumes in the pool */
     numVolumes = virStoragePoolNumOfVolumes(pool);
+
+    if (numVolumes < 0) {
+        vshError(ctl, "%s", _("Failed to list storage volumes"));
+        virStoragePoolFree(pool);
+        return FALSE;
+    }
 
     /* Retrieve the list of volume names in the pool */
     if (numVolumes > 0) {
@@ -8412,7 +8434,6 @@ cmdDetachInterface(vshControl *ctl, const vshCmd *cmd)
     xmlXPathObjectPtr obj=NULL;
     xmlXPathContextPtr ctxt = NULL;
     xmlNodePtr cur = NULL;
-    xmlChar *tmp_mac = NULL;
     xmlBufferPtr xml_buf = NULL;
     char *doc, *mac =NULL, *type;
     char buf[64];
@@ -8448,7 +8469,7 @@ cmdDetachInterface(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
     }
 
-    sprintf(buf, "/domain/devices/interface[@type='%s']", type);
+    snprintf(buf, sizeof(buf), "/domain/devices/interface[@type='%s']", type);
     obj = xmlXPathEval(BAD_CAST buf, ctxt);
     if ((obj == NULL) || (obj->type != XPATH_NODESET) ||
         (obj->nodesetval == NULL) || (obj->nodesetval->nodeNr == 0)) {
@@ -8463,10 +8484,11 @@ cmdDetachInterface(vshControl *ctl, const vshCmd *cmd)
     for (; i < obj->nodesetval->nodeNr; i++) {
         cur = obj->nodesetval->nodeTab[i]->children;
         while (cur != NULL) {
-            if (cur->type == XML_ELEMENT_NODE && xmlStrEqual(cur->name, BAD_CAST "mac")) {
-                tmp_mac = xmlGetProp(cur, BAD_CAST "address");
-                diff_mac = virMacAddrCompare ((char *) tmp_mac, mac);
-                xmlFree(tmp_mac);
+            if (cur->type == XML_ELEMENT_NODE &&
+                xmlStrEqual(cur->name, BAD_CAST "mac")) {
+                char *tmp_mac = virXMLPropString(cur, "address");
+                diff_mac = virMacAddrCompare (tmp_mac, mac);
+                VIR_FREE(tmp_mac);
                 if (!diff_mac) {
                     goto hit;
                 }
@@ -8667,7 +8689,6 @@ cmdDetachDisk(vshControl *ctl, const vshCmd *cmd)
     xmlXPathObjectPtr obj=NULL;
     xmlXPathContextPtr ctxt = NULL;
     xmlNodePtr cur = NULL;
-    xmlChar *tmp_tgt = NULL;
     xmlBufferPtr xml_buf = NULL;
     virDomainPtr dom = NULL;
     char *doc, *target;
@@ -8712,10 +8733,11 @@ cmdDetachDisk(vshControl *ctl, const vshCmd *cmd)
     for (; i < obj->nodesetval->nodeNr; i++) {
         cur = obj->nodesetval->nodeTab[i]->children;
         while (cur != NULL) {
-            if (cur->type == XML_ELEMENT_NODE && xmlStrEqual(cur->name, BAD_CAST "target")) {
-                tmp_tgt = xmlGetProp(cur, BAD_CAST "dev");
-                diff_tgt = xmlStrEqual(tmp_tgt, BAD_CAST target);
-                xmlFree(tmp_tgt);
+            if (cur->type == XML_ELEMENT_NODE &&
+                xmlStrEqual(cur->name, BAD_CAST "target")) {
+                char *tmp_tgt = virXMLPropString(cur, "dev");
+                diff_tgt = STREQ(tmp_tgt, target);
+                VIR_FREE(tmp_tgt);
                 if (diff_tgt) {
                     goto hit;
                 }
@@ -8963,10 +8985,10 @@ editWriteToTempFile (vshControl *ctl, const char *doc)
 
     tmpdir = getenv ("TMPDIR");
     if (!tmpdir) tmpdir = "/tmp";
-    snprintf (ret, PATH_MAX, "%s/virshXXXXXX", tmpdir);
-    fd = mkstemp (ret);
+    snprintf (ret, PATH_MAX, "%s/virshXXXXXX.xml", tmpdir);
+    fd = mkstemps(ret, 4);
     if (fd == -1) {
-        vshError(ctl, _("mkstemp: failed to create temporary file: %s"),
+        vshError(ctl, _("mkstemps: failed to create temporary file: %s"),
                  strerror(errno));
         VIR_FREE(ret);
         return NULL;
@@ -8975,12 +8997,12 @@ editWriteToTempFile (vshControl *ctl, const char *doc)
     if (safewrite (fd, doc, strlen (doc)) == -1) {
         vshError(ctl, _("write: %s: failed to write to temporary file: %s"),
                  ret, strerror(errno));
-        close (fd);
+        VIR_FORCE_CLOSE(fd);
         unlink (ret);
         VIR_FREE(ret);
         return NULL;
     }
-    if (close (fd) == -1) {
+    if (VIR_CLOSE(fd) < 0) {
         vshError(ctl, _("close: %s: failed to write or close temporary file: %s"),
                  ret, strerror(errno));
         unlink (ret);
@@ -9328,7 +9350,7 @@ static const vshCmdInfo info_network_edit[] = {
 };
 
 static const vshCmdOptDef opts_network_edit[] = {
-    {"network", VSH_OT_DATA, VSH_OFLAG_REQ, N_("network name, id or uuid")},
+    {"network", VSH_OT_DATA, VSH_OFLAG_REQ, N_("network name or uuid")},
     {NULL, 0, 0, NULL}
 };
 
@@ -9808,6 +9830,58 @@ cleanup:
 }
 
 /*
+ * "qemu-monitor-command" command
+ */
+static const vshCmdInfo info_qemu_monitor_command[] = {
+    {"help", N_("Qemu Monitor Command")},
+    {"desc", N_("Qemu Monitor Command")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_qemu_monitor_command[] = {
+    {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
+    {"cmd", VSH_OT_DATA, VSH_OFLAG_REQ, N_("command")},
+    {NULL, 0, 0, NULL}
+};
+
+static int
+cmdQemuMonitorCommand(vshControl *ctl, const vshCmd *cmd)
+{
+    virDomainPtr dom = NULL;
+    int ret = FALSE;
+    char *monitor_cmd;
+    char *result = NULL;
+
+    if (!vshConnectionUsability(ctl, ctl->conn))
+        goto cleanup;
+
+    dom = vshCommandOptDomain(ctl, cmd, NULL);
+    if (dom == NULL)
+        goto cleanup;
+
+    monitor_cmd = vshCommandOptString(cmd, "cmd", NULL);
+    if (monitor_cmd == NULL) {
+        vshError(ctl, "%s", _("missing monitor command"));
+        goto cleanup;
+    }
+
+    if (virDomainQemuMonitorCommand(dom, monitor_cmd, &result, 0) < 0)
+        goto cleanup;
+
+    printf("%s\n", result);
+
+    ret = TRUE;
+
+cleanup:
+    VIR_FREE(result);
+    if (dom)
+        virDomainFree(dom);
+
+    return ret;
+}
+
+
+/*
  * Commands
  */
 static const vshCmdDef commands[] = {
@@ -9866,6 +9940,7 @@ static const vshCmdDef commands[] = {
     {"net-destroy", cmdNetworkDestroy, opts_network_destroy, info_network_destroy},
     {"net-dumpxml", cmdNetworkDumpXML, opts_network_dumpxml, info_network_dumpxml},
     {"net-edit", cmdNetworkEdit, opts_network_edit, info_network_edit},
+    {"net-info", cmdNetworkInfo, opts_network_info, info_network_info},
     {"net-list", cmdNetworkList, opts_network_list, info_network_list},
     {"net-name", cmdNetworkName, opts_network_name, info_network_name},
     {"net-start", cmdNetworkStart, opts_network_start, info_network_start},
@@ -9975,6 +10050,8 @@ static const vshCmdDef commands[] = {
     {"snapshot-dumpxml", cmdSnapshotDumpXML, opts_snapshot_dumpxml, info_snapshot_dumpxml},
     {"snapshot-list", cmdSnapshotList, opts_snapshot_list, info_snapshot_list},
     {"snapshot-revert", cmdDomainSnapshotRevert, opts_snapshot_revert, info_snapshot_revert},
+
+    {"qemu-monitor-command", cmdQemuMonitorCommand, opts_qemu_monitor_command, info_qemu_monitor_command},
 
     {NULL, NULL, NULL, NULL}
 };
@@ -11079,6 +11156,14 @@ vshInit(vshControl *ctl)
     /* set up the signals handlers to catch disconnections */
     vshSetupSignals();
 
+    virEventRegisterImpl(virEventAddHandleImpl,
+                         virEventUpdateHandleImpl,
+                         virEventRemoveHandleImpl,
+                         virEventAddTimeoutImpl,
+                         virEventUpdateTimeoutImpl,
+                         virEventRemoveTimeoutImpl);
+    virEventInit();
+
     ctl->conn = virConnectOpenAuth(ctl->name,
                                    virConnectAuthPtrDefault,
                                    ctl->readonly ? VIR_CONNECT_RO : 0);
@@ -11214,11 +11299,9 @@ static void
 vshCloseLogFile(vshControl *ctl)
 {
     /* log file close */
-    if (ctl->log_fd >= 0) {
-        if (close(ctl->log_fd) < 0)
-            vshError(ctl, _("%s: failed to write log file: %s"),
-                     ctl->logfile ? ctl->logfile : "?", strerror (errno));
-        ctl->log_fd = -1;
+    if (VIR_CLOSE(ctl->log_fd) < 0) {
+        vshError(ctl, _("%s: failed to write log file: %s"),
+                 ctl->logfile ? ctl->logfile : "?", strerror (errno));
     }
 
     if (ctl->logfile) {
@@ -11443,8 +11526,9 @@ vshDeinit(vshControl *ctl)
     vshCloseLogFile(ctl);
     VIR_FREE(ctl->name);
     if (ctl->conn) {
-        if (virConnectClose(ctl->conn) != 0) {
-            vshError(ctl, "%s", _("failed to disconnect from the hypervisor"));
+        int ret;
+        if ((ret = virConnectClose(ctl->conn)) != 0) {
+            vshError(ctl, _("Failed to disconnect from the hypervisor, %d leaked reference(s)"), ret);
         }
     }
     virResetLastError();
@@ -11469,7 +11553,8 @@ vshUsage(void)
                       "    -q | --quiet            quiet mode\n"
                       "    -t | --timing           print timing information\n"
                       "    -l | --log <file>       output logging to file\n"
-                      "    -v | --version          program version\n\n"
+                      "    -v | --version[=short]  program version\n\n"
+                      "    -V | --version=long     version and full options\n\n"
                       "  commands (non interactive mode):\n"), progname, progname);
 
     for (cmd = commands; cmd->name; cmd++)
@@ -11482,6 +11567,129 @@ vshUsage(void)
 }
 
 /*
+ * Show version and options compiled in
+ */
+static void
+vshShowVersion(vshControl *ctl ATTRIBUTE_UNUSED)
+{
+    /* FIXME - list a copyright blurb, as in GNU programs?  */
+    vshPrint(ctl, _("Virsh command line tool of libvirt %s\n"), VERSION);
+    vshPrint(ctl, _("See web site at %s\n\n"), "http://libvirt.org/");
+
+    vshPrint(ctl, "%s", _("Compiled with support for:\n"));
+    vshPrint(ctl, "%s", _(" Hypervisors:"));
+#ifdef WITH_XEN
+    vshPrint(ctl, " Xen");
+#endif
+#ifdef WITH_QEMU
+    vshPrint(ctl, " QEmu/KVM");
+#endif
+#ifdef WITH_UML
+    vshPrint(ctl, " UML");
+#endif
+#ifdef WITH_OPENVZ
+    vshPrint(ctl, " OpenVZ");
+#endif
+#ifdef WITH_VBOX
+    vshPrint(ctl, " VirtualBox");
+#endif
+#ifdef WITH_XENAPI
+    vshPrint(ctl, " XenAPI");
+#endif
+#ifdef WITH_LXC
+    vshPrint(ctl, " LXC");
+#endif
+#ifdef WITH_ESX
+    vshPrint(ctl, " ESX");
+#endif
+#ifdef WITH_PHYP
+    vshPrint(ctl, " PHYP");
+#endif
+#ifdef WITH_ONE
+    vshPrint(ctl, " ONE");
+#endif
+#ifdef WITH_TEST
+    vshPrint(ctl, " Test");
+#endif
+    vshPrint(ctl, "\n");
+
+    vshPrint(ctl, "%s", _(" Networking:"));
+#ifdef WITH_REMOTE
+    vshPrint(ctl, " Remote");
+#endif
+#ifdef WITH_PROXY
+    vshPrint(ctl, " Proxy");
+#endif
+#ifdef WITH_LIBVIRTD
+    vshPrint(ctl, " Daemon");
+#endif
+#ifdef WITH_NETWORK
+    vshPrint(ctl, " Network");
+#endif
+#ifdef WITH_BRIDGE
+    vshPrint(ctl, " Bridging");
+#endif
+#ifdef WITH_NETCF
+    vshPrint(ctl, " Netcf");
+#endif
+#ifdef WITH_NWFILTER
+    vshPrint(ctl, " Nwfilter");
+#endif
+#ifdef WITH_VIRTUALPORT
+    vshPrint(ctl, " VirtualPort");
+#endif
+    vshPrint(ctl, "\n");
+
+    vshPrint(ctl, "%s", _(" Storage:"));
+#ifdef WITH_STORAGE_DIR
+    vshPrint(ctl, " Dir");
+#endif
+#ifdef WITH_STORAGE_DISK
+    vshPrint(ctl, " Disk");
+#endif
+#ifdef WITH_STORAGE_FS
+    vshPrint(ctl, " Filesystem");
+#endif
+#ifdef WITH_STORAGE_SCSI
+    vshPrint(ctl, " SCSI");
+#endif
+#ifdef WITH_STORAGE_MPATH
+    vshPrint(ctl, " Multipath");
+#endif
+#ifdef WITH_STORAGE_ISCSI
+    vshPrint(ctl, " iSCSI");
+#endif
+#ifdef WITH_STORAGE_LVM
+    vshPrint(ctl, " LVM");
+#endif
+    vshPrint(ctl, "\n");
+
+    vshPrint(ctl, "%s", _(" Miscellaneous:"));
+#ifdef ENABLE_SECDRIVER_APPARMOR
+    vshPrint(ctl, " AppArmor");
+#endif
+#ifdef WITH_SECDRIVER_SELINUX
+    vshPrint(ctl, " SELinux");
+#endif
+#ifdef WITH_SECRETS
+    vshPrint(ctl, " Secrets");
+#endif
+#ifdef ENABLE_DEBUG
+    vshPrint(ctl, " Debug");
+#endif
+#ifdef WITH_DTRACE
+    vshPrint(ctl, " DTrace");
+#endif
+#ifdef USE_READLINE
+    vshPrint(ctl, " Readline");
+#endif
+#ifdef WITH_DRIVER_MODULES
+    vshPrint(ctl, " Modular");
+#endif
+    vshPrint(ctl, "\n");
+}
+
+/*
  * argv[]:  virsh [options] [command]
  *
  */
@@ -11491,21 +11699,21 @@ vshParseArgv(vshControl *ctl, int argc, char **argv)
     bool help = false;
     int arg;
     struct option opt[] = {
-        {"debug", 1, 0, 'd'},
-        {"help", 0, 0, 'h'},
-        {"quiet", 0, 0, 'q'},
-        {"timing", 0, 0, 't'},
-        {"version", 0, 0, 'v'},
-        {"connect", 1, 0, 'c'},
-        {"readonly", 0, 0, 'r'},
-        {"log", 1, 0, 'l'},
-        {0, 0, 0, 0}
+        {"debug", required_argument, NULL, 'd'},
+        {"help", no_argument, NULL, 'h'},
+        {"quiet", no_argument, NULL, 'q'},
+        {"timing", no_argument, NULL, 't'},
+        {"version", optional_argument, NULL, 'v'},
+        {"connect", required_argument, NULL, 'c'},
+        {"readonly", no_argument, NULL, 'r'},
+        {"log", required_argument, NULL, 'l'},
+        {NULL, 0, NULL, 0}
     };
 
     /* Standard (non-command) options. The leading + ensures that no
      * argument reordering takes place, so that command options are
      * not confused with top-level virsh options. */
-    while ((arg = getopt_long(argc, argv, "+d:hqtc:vrl:", opt, NULL)) != -1) {
+    while ((arg = getopt_long(argc, argv, "+d:hqtc:vVrl:", opt, NULL)) != -1) {
         switch (arg) {
         case 'd':
             if (virStrToLong_i(optarg, NULL, 10, &ctl->debug) < 0) {
@@ -11526,8 +11734,13 @@ vshParseArgv(vshControl *ctl, int argc, char **argv)
             ctl->name = vshStrdup(ctl, optarg);
             break;
         case 'v':
-            /* FIXME - list a copyright blurb, as in GNU programs?  */
-            puts(VERSION);
+            if (STRNEQ_NULLABLE(optarg, "long")) {
+                puts(VERSION);
+                exit(EXIT_SUCCESS);
+            }
+            /* fall through */
+        case 'V':
+            vshShowVersion(ctl);
             exit(EXIT_SUCCESS);
         case 'r':
             ctl->readonly = TRUE;
@@ -11576,13 +11789,13 @@ main(int argc, char **argv)
         perror("setlocale");
         /* failure to setup locale is not fatal */
     }
-    if (!bindtextdomain(GETTEXT_PACKAGE, LOCALEBASEDIR)) {
+    if (!bindtextdomain(PACKAGE, LOCALEDIR)) {
         perror("bindtextdomain");
-        return -1;
+        return EXIT_FAILURE;
     }
-    if (!textdomain(GETTEXT_PACKAGE)) {
+    if (!textdomain(PACKAGE)) {
         perror("textdomain");
-        return -1;
+        return EXIT_FAILURE;
     }
 
     if (!(progname = strrchr(argv[0], '/')))

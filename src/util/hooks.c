@@ -36,6 +36,8 @@
 #include "conf/domain_conf.h"
 #include "logging.h"
 #include "memory.h"
+#include "files.h"
+#include "configmake.h"
 
 #define VIR_FROM_THIS VIR_FROM_HOOK
 
@@ -43,7 +45,7 @@
     virReportErrorHelper(NULL, VIR_FROM_HOOK, code, __FILE__,      \
                          __FUNCTION__, __LINE__, __VA_ARGS__)
 
-#define LIBVIRT_HOOK_DIR SYSCONF_DIR "/libvirt/hooks"
+#define LIBVIRT_HOOK_DIR SYSCONFDIR "/libvirt/hooks"
 
 VIR_ENUM_DECL(virHookDriver)
 VIR_ENUM_DECL(virHookDaemonOp)
@@ -368,11 +370,10 @@ virHookCall(int driver, const char *id, int op, int sub_op, const char *extra,
         }
         ret = virExec(argv, env, NULL, &pid, pipefd[0], &outfd, &errfd,
                       VIR_EXEC_NONE | VIR_EXEC_NONBLOCK);
-        if (close(pipefd[1]) < 0) {
+        if (VIR_CLOSE(pipefd[1]) < 0) {
             virReportSystemError(errno, "%s",
                              _("unable to close pipe for hook input"));
         }
-        pipefd[1] = -1;
     } else {
         ret = virExec(argv, env, NULL, &pid, -1, &outfd, &errfd,
                       VIR_EXEC_NONE | VIR_EXEC_NONBLOCK);
@@ -418,17 +419,15 @@ virHookCall(int driver, const char *id, int op, int sub_op, const char *extra,
     }
 
 cleanup:
-    if (pipefd[0] >= 0) {
-        if (close(pipefd[0]) < 0) {
-            virReportSystemError(errno, "%s",
-                             _("unable to close pipe for hook input"));
-        }
+    if (VIR_CLOSE(pipefd[0]) < 0) {
+        virReportSystemError(errno, "%s",
+                         _("unable to close pipe for hook input"));
+        ret = 1;
     }
-    if (pipefd[1] >= 0) {
-        if (close(pipefd[1]) < 0) {
-            virReportSystemError(errno, "%s",
-                             _("unable to close pipe for hook input"));
-        }
+    if (VIR_CLOSE(pipefd[1]) < 0) {
+        virReportSystemError(errno, "%s",
+                         _("unable to close pipe for hook input"));
+        ret = 1;
     }
     if (argv) {
         for (i = 0 ; i < argc ; i++)

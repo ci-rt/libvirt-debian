@@ -45,21 +45,18 @@
 #include "xs_internal.h" /* To extract VNC port & Serial console TTY */
 #include "memory.h"
 #include "count-one-bits.h"
+#include "files.h"
 
 /* required for cpumap_t */
 #include <xen/dom0_ops.h>
 
 #define VIR_FROM_THIS VIR_FROM_XEND
 
-#ifndef PROXY
-
 /*
  * The number of Xen scheduler parameters
  */
-# define XEN_SCHED_SEDF_NPARAM   6
-# define XEN_SCHED_CRED_NPARAM   2
-
-#endif /* PROXY */
+#define XEN_SCHED_SEDF_NPARAM   6
+#define XEN_SCHED_CRED_NPARAM   2
 
 #ifdef WITH_RHEL5_API
 # define XEND_CONFIG_MAX_VERS_NET_TYPE_IOEMU 0
@@ -71,7 +68,6 @@
 
 #define XEND_RCV_BUF_MAX_LEN 65536
 
-#ifndef PROXY
 static int
 xenDaemonFormatSxprDisk(virConnectPtr conn ATTRIBUTE_UNUSED,
                         virDomainDiskDefPtr def,
@@ -97,7 +93,6 @@ virDomainXMLDevID(virDomainPtr domain,
                   char *class,
                   char *ref,
                   int ref_len);
-#endif
 
 #define virXendError(code, ...)                                            \
         virReportErrorHelper(NULL, VIR_FROM_XEND, code, __FILE__,          \
@@ -118,7 +113,6 @@ static int
 do_connect(virConnectPtr xend)
 {
     int s;
-    int serrno;
     int no_slow_start = 1;
     xenUnifiedPrivatePtr priv = (xenUnifiedPrivatePtr) xend->privateData;
 
@@ -137,10 +131,7 @@ do_connect(virConnectPtr xend)
 
 
     if (connect(s, (struct sockaddr *)&priv->addr, priv->addrlen) == -1) {
-        serrno = errno;
-        close(s);
-        errno = serrno;
-        s = -1;
+        VIR_FORCE_CLOSE(s); /* preserves errno */
 
         /*
          * Connecting to XenD when privileged is mandatory, so log this
@@ -387,7 +378,7 @@ xend_get(virConnectPtr xend, const char *path,
             "Content-Type: application/x-www-form-urlencoded\r\n" "\r\n");
 
     ret = xend_req(s, content);
-    close(s);
+    VIR_FORCE_CLOSE(s);
 
     if (((ret < 0) || (ret >= 300)) &&
         ((ret != 404) || (!STRPREFIX(path, "/xend/domain/")))) {
@@ -399,7 +390,6 @@ xend_get(virConnectPtr xend, const char *path,
     return ret;
 }
 
-#ifndef PROXY
 /**
  * xend_post:
  * @xend: pointer to the Xen Daemon structure
@@ -437,7 +427,7 @@ xend_post(virConnectPtr xend, const char *path, const char *ops)
     swrites(s, ops);
 
     ret = xend_req(s, &err_buf);
-    close(s);
+    VIR_FORCE_CLOSE(s);
 
     if ((ret < 0) || (ret >= 300)) {
         virXendError(VIR_ERR_POST_FAILED,
@@ -460,7 +450,6 @@ xend_post(virConnectPtr xend, const char *path, const char *ops)
     VIR_FREE(err_buf);
     return ret;
 }
-#endif /* ! PROXY */
 
 
 /**
@@ -495,7 +484,6 @@ http2unix(int ret)
     return -1;
 }
 
-#ifndef PROXY
 /**
  * xend_op_ext:
  * @xend: pointer to the Xen Daemon structure
@@ -534,6 +522,7 @@ xend_op_ext(virConnectPtr xend, const char *path, const char *key, va_list ap)
     }
 
     content = virBufferContentAndReset(&buf);
+    DEBUG("xend op: %s\n", content);
     ret = http2unix(xend_post(xend, path, content));
     VIR_FREE(content);
 
@@ -570,7 +559,6 @@ xend_op(virConnectPtr xend, const char *name, const char *key, ...)
     return ret;
 }
 
-#endif /* ! PROXY */
 
 /**
  * sexpr_get:
@@ -698,7 +686,6 @@ sexpr_uuid(unsigned char *ptr, const struct sexpr *node, const char *path)
 }
 
 
-#ifndef PROXY
 /**
  * urlencode:
  * @string: the input URL
@@ -724,6 +711,7 @@ urlencode(const char *string)
         switch (string[i]) {
             case ' ':
             case '\n':
+            case '&':
                 snprintf(ptr, 4, "%%%02x", string[i]);
                 ptr += 3;
                 break;
@@ -737,7 +725,6 @@ urlencode(const char *string)
 
     return buffer;
 }
-#endif /* ! PROXY */
 
 /* PUBLIC FUNCTIONS */
 
@@ -779,7 +766,7 @@ xenDaemonOpen_unix(virConnectPtr conn, const char *path)
     return (0);
 }
 
-#ifndef PROXY
+
 /**
  * xenDaemonOpen_tcp:
  * @conn: an existing virtual connection block
@@ -833,7 +820,7 @@ xenDaemonOpen_tcp(virConnectPtr conn, const char *host, const char *port)
 
         if (connect (sock, r->ai_addr, r->ai_addrlen) == -1) {
             saved_errno = errno;
-            close (sock);
+            VIR_FORCE_CLOSE(sock);
             continue;
         }
 
@@ -843,7 +830,7 @@ xenDaemonOpen_tcp(virConnectPtr conn, const char *host, const char *port)
         memcpy(&priv->addr,
                r->ai_addr,
                r->ai_addrlen);
-        close(sock);
+        VIR_FORCE_CLOSE(sock);
         break;
     }
 
@@ -877,9 +864,6 @@ xend_wait_for_devices(virConnectPtr xend, const char *name)
 {
     return xend_op(xend, name, "op", "wait_for_devices", NULL);
 }
-
-
-#endif /* PROXY */
 
 
 /**
@@ -946,7 +930,7 @@ xenDaemonListDomainsOld(virConnectPtr xend)
     return ret;
 }
 
-#ifndef PROXY
+
 /**
  * xenDaemonDomainCreateXML:
  * @xend: A xend instance
@@ -983,7 +967,7 @@ xenDaemonDomainCreateXML(virConnectPtr xend, const char *sexpr)
 
     return ret;
 }
-#endif /* ! PROXY */
+
 
 /**
  * xenDaemonDomainLookupByName_ids:
@@ -1090,7 +1074,6 @@ error:
 }
 
 
-#ifndef PROXY
 static int
 xend_detect_config_version(virConnectPtr conn) {
     struct sexpr *root;
@@ -1121,7 +1104,6 @@ xend_detect_config_version(virConnectPtr conn) {
     return (0);
 }
 
-#endif /* PROXY */
 
 /*****************************************************************
  ******
@@ -1767,9 +1749,7 @@ xenDaemonParseSxprGraphicsOld(virConnectPtr conn,
                               int hvm,
                               int xendConfigVersion)
 {
-#ifndef PROXY
     xenUnifiedPrivatePtr priv = conn->privateData;
-#endif
     const char *tmp;
     virDomainGraphicsDefPtr graphics = NULL;
 
@@ -1808,7 +1788,7 @@ xenDaemonParseSxprGraphicsOld(virConnectPtr conn,
             goto no_memory;
 
         if (vncPasswd &&
-            !(graphics->data.vnc.passwd = strdup(vncPasswd)))
+            !(graphics->data.vnc.auth.passwd = strdup(vncPasswd)))
             goto no_memory;
 
         if (keymap &&
@@ -1858,9 +1838,7 @@ xenDaemonParseSxprGraphicsNew(virConnectPtr conn,
                               virDomainDefPtr def,
                               const struct sexpr *root)
 {
-#ifndef PROXY
     xenUnifiedPrivatePtr priv = conn->privateData;
-#endif
     virDomainGraphicsDefPtr graphics = NULL;
     const struct sexpr *cur, *node;
     const char *tmp;
@@ -1930,7 +1908,7 @@ xenDaemonParseSxprGraphicsNew(virConnectPtr conn,
                     goto no_memory;
 
                 if (vncPasswd &&
-                    !(graphics->data.vnc.passwd = strdup(vncPasswd)))
+                    !(graphics->data.vnc.auth.passwd = strdup(vncPasswd)))
                     goto no_memory;
 
                 if (keymap &&
@@ -2099,9 +2077,7 @@ xenDaemonParseSxpr(virConnectPtr conn,
                    int xendConfigVersion,
                    const char *cpus)
 {
-#ifndef PROXY
     xenUnifiedPrivatePtr priv = conn->privateData;
-#endif
     const char *tmp;
     virDomainDefPtr def;
     int hvm = 0;
@@ -2192,7 +2168,7 @@ xenDaemonParseSxpr(virConnectPtr conn,
     }
 
     def->maxvcpus = sexpr_int(root, "domain/vcpus");
-    def->vcpus = count_one_bits(sexpr_int(root, "domain/vcpu_avail"));
+    def->vcpus = count_one_bits_l(sexpr_u64(root, "domain/vcpu_avail"));
     if (!def->vcpus || def->maxvcpus < def->vcpus)
         def->vcpus = def->maxvcpus;
 
@@ -2468,7 +2444,7 @@ sexpr_to_xend_domain_info(virDomainPtr domain, const struct sexpr *root,
     }
     info->cpuTime = sexpr_float(root, "domain/cpu_time") * 1000000000;
     vcpus = sexpr_int(root, "domain/vcpus");
-    info->nrVirtCpu = count_one_bits(sexpr_int(root, "domain/vcpu_avail"));
+    info->nrVirtCpu = count_one_bits_l(sexpr_u64(root, "domain/vcpu_avail"));
     if (!info->nrVirtCpu || vcpus < info->nrVirtCpu)
         info->nrVirtCpu = vcpus;
 
@@ -2521,12 +2497,21 @@ sexpr_to_xend_node_info(const struct sexpr *root, virNodeInfoPtr info)
         if (procs == 0) /* Sanity check in case of Xen bugs in futures..*/
             return (-1);
         info->sockets = nr_cpus / procs;
-        /* Should already be fine, but for further sanity make
-         * sure we have at least one socket
-         */
-        if (info->sockets == 0)
-            info->sockets = 1;
     }
+
+    /* On systems where NUMA nodes are not composed of whole sockets either Xen
+     * provided us wrong number of sockets per node or we computed the wrong
+     * number in the compatibility code above. In such case, we compute the
+     * correct number of sockets on the host, lie about the number of NUMA
+     * nodes, and force apps to check capabilities XML for the actual NUMA
+     * topology.
+     */
+    if (info->nodes * info->sockets * info->cores * info->threads
+        != info->cpus) {
+        info->nodes = 1;
+        info->sockets = info->cpus / (info->cores * info->threads);
+    }
+
     return (0);
 }
 
@@ -2624,7 +2609,6 @@ sexpr_to_xend_topology(const struct sexpr *root,
 }
 
 
-#ifndef PROXY
 /**
  * sexpr_to_domain:
  * @conn: an existing virtual connection block
@@ -2678,7 +2662,7 @@ error:
         virUnrefDomain(ret);
     return(NULL);
 }
-#endif /* !PROXY */
+
 
 /*****************************************************************
  ******
@@ -2691,7 +2675,6 @@ error:
  ******
  ******
  *****************************************************************/
-#ifndef PROXY
 /**
  * xenDaemonOpen:
  * @conn: an existing virtual connection block
@@ -3053,7 +3036,7 @@ xenDaemonDomainRestore(virConnectPtr conn, const char *filename)
     }
     return xend_op(conn, "", "op", "restore", "file", filename, NULL);
 }
-#endif /* !PROXY */
+
 
 /**
  * xenDaemonDomainGetMaxMemory:
@@ -3091,7 +3074,7 @@ xenDaemonDomainGetMaxMemory(virDomainPtr domain)
     return(ret);
 }
 
-#ifndef PROXY
+
 /**
  * xenDaemonDomainSetMaxMemory:
  * @domain: pointer to the Domain block
@@ -3161,7 +3144,6 @@ xenDaemonDomainSetMemory(virDomainPtr domain, unsigned long memory)
                    "target", buf, NULL);
 }
 
-#endif /* ! PROXY */
 
 virDomainDefPtr
 xenDaemonDomainFetch(virConnectPtr conn,
@@ -3199,7 +3181,6 @@ cleanup:
 }
 
 
-#ifndef PROXY
 /**
  * xenDaemonDomainDumpXML:
  * @domain: a domain object
@@ -3241,7 +3222,7 @@ xenDaemonDomainDumpXML(virDomainPtr domain, int flags, const char *cpus)
 
     return xml;
 }
-#endif /* !PROXY */
+
 
 /**
  * xenDaemonDomainGetInfo:
@@ -3280,7 +3261,7 @@ xenDaemonDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info)
     return (ret);
 }
 
-#ifndef PROXY
+
 /**
  * xenDaemonLookupByName:
  * @conn: A xend instance
@@ -3313,7 +3294,7 @@ error:
     sexpr_free(root);
     return(ret);
 }
-#endif /* ! PROXY */
+
 
 /**
  * xenDaemonNodeGetInfo:
@@ -3420,7 +3401,7 @@ xenDaemonGetVersion(virConnectPtr conn, unsigned long *hvVer)
     return(0);
 }
 
-#ifndef PROXY
+
 /**
  * xenDaemonListDomains:
  * @conn: pointer to the hypervisor connection
@@ -3500,9 +3481,8 @@ error:
     sexpr_free(root);
     return(ret);
 }
-#endif /* ! PROXY */
 
-#ifndef PROXY
+
 /**
  * xenDaemonLookupByID:
  * @conn: pointer to the hypervisor connection
@@ -3706,7 +3686,7 @@ xenDaemonDomainGetVcpusFlags(virDomainPtr domain, unsigned int flags)
 
     ret = sexpr_int(root, "domain/vcpus");
     if (!(flags & VIR_DOMAIN_VCPU_MAXIMUM)) {
-        int vcpus = count_one_bits(sexpr_int(root, "domain/vcpu_avail"));
+        int vcpus = count_one_bits_l(sexpr_u64(root, "domain/vcpu_avail"));
         if (vcpus)
             ret = MIN(vcpus, ret);
     }
@@ -4635,8 +4615,6 @@ virDomainPtr xenDaemonDomainDefineXML(virConnectPtr conn, const char *xmlDesc) {
         goto error;
     }
 
-    DEBUG("Defining w/ sexpr: \n%s", sexpr);
-
     ret = xend_op(conn, "", "op", "new", "config", sexpr, NULL);
     VIR_FREE(sexpr);
     if (ret != 0) {
@@ -5153,7 +5131,7 @@ xenDaemonDomainBlockPeek (virDomainPtr domain, const char *path,
 
     ret = 0;
  cleanup:
-    if (fd >= 0) close (fd);
+    VIR_FORCE_CLOSE(fd);
     sexpr_free(root);
     virDomainDefFree(def);
     return ret;
@@ -5251,8 +5229,8 @@ xenDaemonFormatSxprGraphicsNew(virDomainGraphicsDefPtr def,
 
         if (def->data.vnc.listenAddr)
             virBufferVSprintf(buf, "(vnclisten '%s')", def->data.vnc.listenAddr);
-        if (def->data.vnc.passwd)
-            virBufferVSprintf(buf, "(vncpasswd '%s')", def->data.vnc.passwd);
+        if (def->data.vnc.auth.passwd)
+            virBufferVSprintf(buf, "(vncpasswd '%s')", def->data.vnc.auth.passwd);
         if (def->data.vnc.keymap)
             virBufferVSprintf(buf, "(keymap '%s')", def->data.vnc.keymap);
     }
@@ -5294,8 +5272,8 @@ xenDaemonFormatSxprGraphicsOld(virDomainGraphicsDefPtr def,
 
             if (def->data.vnc.listenAddr)
                 virBufferVSprintf(buf, "(vnclisten '%s')", def->data.vnc.listenAddr);
-            if (def->data.vnc.passwd)
-                virBufferVSprintf(buf, "(vncpasswd '%s')", def->data.vnc.passwd);
+            if (def->data.vnc.auth.passwd)
+                virBufferVSprintf(buf, "(vncpasswd '%s')", def->data.vnc.auth.passwd);
             if (def->data.vnc.keymap)
                 virBufferVSprintf(buf, "(keymap '%s')", def->data.vnc.keymap);
 
@@ -5327,11 +5305,12 @@ xenDaemonFormatSxprChr(virDomainChrDefPtr def,
 
     case VIR_DOMAIN_CHR_TYPE_FILE:
     case VIR_DOMAIN_CHR_TYPE_PIPE:
-        virBufferVSprintf(buf, "%s:%s", type, def->data.file.path);
+        virBufferVSprintf(buf, "%s:", type);
+        virBufferEscapeSexpr(buf, "%s", def->data.file.path);
         break;
 
     case VIR_DOMAIN_CHR_TYPE_DEV:
-        virBufferVSprintf(buf, "%s", def->data.file.path);
+        virBufferEscapeSexpr(buf, "%s", def->data.file.path);
         break;
 
     case VIR_DOMAIN_CHR_TYPE_TCP:
@@ -5352,9 +5331,10 @@ xenDaemonFormatSxprChr(virDomainChrDefPtr def,
         break;
 
     case VIR_DOMAIN_CHR_TYPE_UNIX:
-        virBufferVSprintf(buf, "%s:%s%s", type,
-                          def->data.nix.path,
-                          def->data.nix.listen ? ",server,nowait" : "");
+        virBufferVSprintf(buf, "%s:", type);
+        virBufferEscapeSexpr(buf, "%s", def->data.nix.path);
+        if (def->data.nix.listen)
+            virBufferAddLit(buf, ",server,nowait");
         break;
     }
 
@@ -5430,39 +5410,42 @@ xenDaemonFormatSxprDisk(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     if (hvm) {
         /* Xend <= 3.0.2 wants a ioemu: prefix on devices for HVM */
-        if (xendConfigVersion == 1)
-            virBufferVSprintf(buf, "(dev 'ioemu:%s')", def->dst);
-        else                    /* But newer does not */
-            virBufferVSprintf(buf, "(dev '%s:%s')", def->dst,
+        if (xendConfigVersion == 1) {
+            virBufferEscapeSexpr(buf, "(dev 'ioemu:%s')", def->dst);
+        } else {
+            /* But newer does not */
+            virBufferEscapeSexpr(buf, "(dev '%s:", def->dst);
+            virBufferVSprintf(buf, "%s')",
                               def->device == VIR_DOMAIN_DISK_DEVICE_CDROM ?
                               "cdrom" : "disk");
+        }
     } else if (def->device == VIR_DOMAIN_DISK_DEVICE_CDROM) {
-        virBufferVSprintf(buf, "(dev '%s:cdrom')", def->dst);
+        virBufferEscapeSexpr(buf, "(dev '%s:cdrom')", def->dst);
     } else {
-        virBufferVSprintf(buf, "(dev '%s')", def->dst);
+        virBufferEscapeSexpr(buf, "(dev '%s')", def->dst);
     }
 
     if (def->src) {
         if (def->driverName) {
             if (STREQ(def->driverName, "tap") ||
                 STREQ(def->driverName, "tap2")) {
-                virBufferVSprintf(buf, "(uname '%s:%s:%s')",
-                                  def->driverName,
-                                  def->driverType ? def->driverType : "aio",
-                                  def->src);
+                virBufferEscapeSexpr(buf, "(uname '%s:", def->driverName);
+                virBufferEscapeSexpr(buf, "%s:",
+                                     def->driverType ? def->driverType : "aio");
+                virBufferEscapeSexpr(buf, "%s')", def->src);
             } else {
-                virBufferVSprintf(buf, "(uname '%s:%s')",
-                                  def->driverName,
-                                  def->src);
+                virBufferEscapeSexpr(buf, "(uname '%s:", def->driverName);
+                virBufferEscapeSexpr(buf, "%s')", def->src);
             }
         } else {
             if (def->type == VIR_DOMAIN_DISK_TYPE_FILE) {
-                virBufferVSprintf(buf, "(uname 'file:%s')", def->src);
+                virBufferEscapeSexpr(buf, "(uname 'file:%s')", def->src);
             } else if (def->type == VIR_DOMAIN_DISK_TYPE_BLOCK) {
                 if (def->src[0] == '/')
-                    virBufferVSprintf(buf, "(uname 'phy:%s')", def->src);
+                    virBufferEscapeSexpr(buf, "(uname 'phy:%s')", def->src);
                 else
-                    virBufferVSprintf(buf, "(uname 'phy:/dev/%s')", def->src);
+                    virBufferEscapeSexpr(buf, "(uname 'phy:/dev/%s')",
+                                         def->src);
             } else {
                 virXendError(VIR_ERR_CONFIG_UNSUPPORTED,
                              _("unsupported disk type %s"),
@@ -5531,13 +5514,13 @@ xenDaemonFormatSxprNet(virConnectPtr conn,
 
     switch (def->type) {
     case VIR_DOMAIN_NET_TYPE_BRIDGE:
-        virBufferVSprintf(buf, "(bridge '%s')", def->data.bridge.brname);
+        virBufferEscapeSexpr(buf, "(bridge '%s')", def->data.bridge.brname);
         if (def->data.bridge.script)
             script = def->data.bridge.script;
 
-        virBufferVSprintf(buf, "(script '%s')", script);
+        virBufferEscapeSexpr(buf, "(script '%s')", script);
         if (def->data.bridge.ipaddr != NULL)
-            virBufferVSprintf(buf, "(ip '%s')", def->data.bridge.ipaddr);
+            virBufferEscapeSexpr(buf, "(ip '%s')", def->data.bridge.ipaddr);
         break;
 
     case VIR_DOMAIN_NET_TYPE_NETWORK:
@@ -5560,17 +5543,18 @@ xenDaemonFormatSxprNet(virConnectPtr conn,
                          def->data.network.name);
             return -1;
         }
-        virBufferVSprintf(buf, "(bridge '%s')", bridge);
-        virBufferVSprintf(buf, "(script '%s')", script);
+        virBufferEscapeSexpr(buf, "(bridge '%s')", bridge);
+        virBufferEscapeSexpr(buf, "(script '%s')", script);
         VIR_FREE(bridge);
     }
     break;
 
     case VIR_DOMAIN_NET_TYPE_ETHERNET:
         if (def->data.ethernet.script)
-            virBufferVSprintf(buf, "(script '%s')", def->data.ethernet.script);
+            virBufferEscapeSexpr(buf, "(script '%s')",
+                                 def->data.ethernet.script);
         if (def->data.ethernet.ipaddr != NULL)
-            virBufferVSprintf(buf, "(ip '%s')", def->data.ethernet.ipaddr);
+            virBufferEscapeSexpr(buf, "(ip '%s')", def->data.ethernet.ipaddr);
         break;
 
     case VIR_DOMAIN_NET_TYPE_USER:
@@ -5585,11 +5569,11 @@ xenDaemonFormatSxprNet(virConnectPtr conn,
 
     if (def->ifname != NULL &&
         !STRPREFIX(def->ifname, "vif"))
-        virBufferVSprintf(buf, "(vifname '%s')", def->ifname);
+        virBufferEscapeSexpr(buf, "(vifname '%s')", def->ifname);
 
     if (!hvm) {
         if (def->model != NULL)
-            virBufferVSprintf(buf, "(model '%s')", def->model);
+            virBufferEscapeSexpr(buf, "(model '%s')", def->model);
     }
     else if (def->model == NULL) {
         /*
@@ -5603,7 +5587,7 @@ xenDaemonFormatSxprNet(virConnectPtr conn,
         virBufferAddLit(buf, "(type netfront)");
     }
     else {
-        virBufferVSprintf(buf, "(model '%s')", def->model);
+        virBufferEscapeSexpr(buf, "(model '%s')", def->model);
         virBufferAddLit(buf, "(type ioemu)");
     }
 
@@ -5710,7 +5694,9 @@ xenDaemonFormatSxprSound(virDomainDefPtr def,
                          def->sounds[i]->model);
             return -1;
         }
-        virBufferVSprintf(buf, "%s%s", i ? "," : "", str);
+        if (i)
+            virBufferAddChar(buf, ',');
+        virBufferEscapeSexpr(buf, "%s", str);
     }
 
     if (virBufferError(buf)) {
@@ -5744,6 +5730,10 @@ xenDaemonFormatSxprInput(virDomainInputDefPtr input,
 }
 
 
+/* Computing the vcpu_avail bitmask works because MAX_VIRT_CPUS is
+   either 32, or 64 on a platform where long is big enough.  */
+verify(MAX_VIRT_CPUS <= sizeof(1UL) * CHAR_BIT);
+
 /**
  * xenDaemonFormatSxpr:
  * @conn: pointer to the hypervisor connection
@@ -5763,22 +5753,26 @@ xenDaemonFormatSxpr(virConnectPtr conn,
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     const char *tmp;
+    char *bufout;
     int hvm = 0, i;
 
+    DEBUG0("Formatting domain sexpr");
+
     virBufferAddLit(&buf, "(vm ");
-    virBufferVSprintf(&buf, "(name '%s')", def->name);
+    virBufferEscapeSexpr(&buf, "(name '%s')", def->name);
     virBufferVSprintf(&buf, "(memory %lu)(maxmem %lu)",
                       def->mem.cur_balloon/1024, def->mem.max_balloon/1024);
     virBufferVSprintf(&buf, "(vcpus %u)", def->maxvcpus);
-    /* Computing the vcpu_avail bitmask works because MAX_VIRT_CPUS is 32.  */
+    /* Computing the vcpu_avail bitmask works because MAX_VIRT_CPUS is
+       either 32, or 64 on a platform where long is big enough.  */
     if (def->vcpus < def->maxvcpus)
-        virBufferVSprintf(&buf, "(vcpu_avail %u)", (1U << def->vcpus) - 1);
+        virBufferVSprintf(&buf, "(vcpu_avail %lu)", (1UL << def->vcpus) - 1);
 
     if (def->cpumask) {
         char *ranges = virDomainCpuSetFormat(def->cpumask, def->cpumasklen);
         if (ranges == NULL)
             goto error;
-        virBufferVSprintf(&buf, "(cpus '%s')", ranges);
+        virBufferEscapeSexpr(&buf, "(cpus '%s')", ranges);
         VIR_FREE(ranges);
     }
 
@@ -5786,16 +5780,16 @@ xenDaemonFormatSxpr(virConnectPtr conn,
     virBufferVSprintf(&buf, "(uuid '%s')", uuidstr);
 
     if (def->description)
-        virBufferVSprintf(&buf, "(description '%s')", def->description);
+        virBufferEscapeSexpr(&buf, "(description '%s')", def->description);
 
     if (def->os.bootloader) {
         if (def->os.bootloader[0])
-            virBufferVSprintf(&buf, "(bootloader '%s')", def->os.bootloader);
+            virBufferEscapeSexpr(&buf, "(bootloader '%s')", def->os.bootloader);
         else
             virBufferAddLit(&buf, "(bootloader)");
 
         if (def->os.bootloaderArgs)
-            virBufferVSprintf(&buf, "(bootloader_args '%s')", def->os.bootloaderArgs);
+            virBufferEscapeSexpr(&buf, "(bootloader_args '%s')", def->os.bootloaderArgs);
     }
 
     if (!(tmp = virDomainLifecycleTypeToString(def->onPoweroff))) {
@@ -5852,25 +5846,25 @@ xenDaemonFormatSxpr(virConnectPtr conn,
         }
 
         if (def->os.kernel)
-            virBufferVSprintf(&buf, "(kernel '%s')", def->os.kernel);
+            virBufferEscapeSexpr(&buf, "(kernel '%s')", def->os.kernel);
         if (def->os.initrd)
-            virBufferVSprintf(&buf, "(ramdisk '%s')", def->os.initrd);
+            virBufferEscapeSexpr(&buf, "(ramdisk '%s')", def->os.initrd);
         if (def->os.root)
-            virBufferVSprintf(&buf, "(root '%s')", def->os.root);
+            virBufferEscapeSexpr(&buf, "(root '%s')", def->os.root);
         if (def->os.cmdline)
-            virBufferVSprintf(&buf, "(args '%s')", def->os.cmdline);
+            virBufferEscapeSexpr(&buf, "(args '%s')", def->os.cmdline);
 
         if (hvm) {
             char bootorder[VIR_DOMAIN_BOOT_LAST+1];
             if (def->os.kernel)
-                virBufferVSprintf(&buf, "(loader '%s')", def->os.loader);
+                virBufferEscapeSexpr(&buf, "(loader '%s')", def->os.loader);
             else
-                virBufferVSprintf(&buf, "(kernel '%s')", def->os.loader);
+                virBufferEscapeSexpr(&buf, "(kernel '%s')", def->os.loader);
 
             virBufferVSprintf(&buf, "(vcpus %u)", def->maxvcpus);
             if (def->vcpus < def->maxvcpus)
-                virBufferVSprintf(&buf, "(vcpu_avail %u)",
-                                  (1U << def->vcpus) - 1);
+                virBufferVSprintf(&buf, "(vcpu_avail %lu)",
+                                  (1UL << def->vcpus) - 1);
 
             for (i = 0 ; i < def->os.nBootDevs ; i++) {
                 switch (def->os.bootDevs[i]) {
@@ -5908,14 +5902,14 @@ xenDaemonFormatSxpr(virConnectPtr conn,
                         def->disks[i]->src == NULL)
                         break;
 
-                    virBufferVSprintf(&buf, "(cdrom '%s')",
-                                      def->disks[i]->src);
+                    virBufferEscapeSexpr(&buf, "(cdrom '%s')",
+                                         def->disks[i]->src);
                     break;
 
                 case VIR_DOMAIN_DISK_DEVICE_FLOPPY:
                     /* all xend versions define floppies here */
-                    virBufferVSprintf(&buf, "(%s '%s')", def->disks[i]->dst,
-                        def->disks[i]->src);
+                    virBufferEscapeSexpr(&buf, "(%s ", def->disks[i]->dst);
+                    virBufferEscapeSexpr(&buf, "'%s')", def->disks[i]->src);
                     break;
 
                 default:
@@ -5967,7 +5961,7 @@ xenDaemonFormatSxpr(virConnectPtr conn,
 
         /* get the device emulation model */
         if (def->emulator && (hvm || xendConfigVersion >= 3))
-            virBufferVSprintf(&buf, "(device_model '%s')", def->emulator);
+            virBufferEscapeSexpr(&buf, "(device_model '%s')", def->emulator);
 
 
         /* PV graphics for xen <= 3.0.4, or HVM graphics for xen <= 3.1.0 */
@@ -6011,7 +6005,9 @@ xenDaemonFormatSxpr(virConnectPtr conn,
         goto error;
     }
 
-    return virBufferContentAndReset(&buf);
+    bufout = virBufferContentAndReset(&buf);
+    DEBUG("Formatted sexpr: \n%s", bufout);
+    return bufout;
 
 error:
     virBufferFreeAndReset(&buf);
@@ -6125,5 +6121,3 @@ virDomainXMLDevID(virDomainPtr domain,
 
     return 0;
 }
-
-#endif /* ! PROXY */

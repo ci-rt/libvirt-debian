@@ -40,6 +40,7 @@
 #include "util.h"
 #include "buf.h"
 #include "threads.h"
+#include "files.h"
 
 /*
  * Macro used to format the message as a string in virLogMessage
@@ -547,14 +548,16 @@ void virLogMessage(const char *category, int priority, const char *funcname,
     localtime_r(&cur_time.tv_sec, &time_info);
 
     if ((funcname != NULL)) {
-        ret = virAsprintf(&msg, "%02d:%02d:%02d.%03d: %s : %s:%lld : %s\n",
+        ret = virAsprintf(&msg, "%02d:%02d:%02d.%03d: %d: %s : %s:%lld : %s\n",
                           time_info.tm_hour, time_info.tm_min,
                           time_info.tm_sec, (int) cur_time.tv_usec / 1000,
+                          virThreadSelfID(),
                           virLogPriorityString(priority), funcname, linenr, str);
     } else {
-        ret = virAsprintf(&msg, "%02d:%02d:%02d.%03d: %s : %s\n",
+        ret = virAsprintf(&msg, "%02d:%02d:%02d.%03d: %d: %s : %s\n",
                           time_info.tm_hour, time_info.tm_min,
                           time_info.tm_sec, (int) cur_time.tv_usec / 1000,
+                          virThreadSelfID(),
                           virLogPriorityString(priority), str);
     }
     VIR_FREE(str);
@@ -603,8 +606,7 @@ static int virLogOutputToFd(const char *category ATTRIBUTE_UNUSED,
 static void virLogCloseFd(void *data) {
     int fd = (long) data;
 
-    if (fd >= 0)
-        close(fd);
+    VIR_FORCE_CLOSE(fd);
 }
 
 static int virLogAddOutputToStderr(int priority) {
@@ -622,7 +624,7 @@ static int virLogAddOutputToFile(int priority, const char *file) {
         return(-1);
     if (virLogDefineOutput(virLogOutputToFd, virLogCloseFd, (void *)(long)fd,
                            priority, VIR_LOG_TO_FILE, file, 0) < 0) {
-        close(fd);
+        VIR_FORCE_CLOSE(fd);
         return(-1);
     }
     return(0);

@@ -1348,12 +1348,13 @@ cleanup:
 
 
 int qemuMonitorJSONEjectMedia(qemuMonitorPtr mon,
-                              const char *devname)
+                              const char *devname,
+                              bool force)
 {
     int ret;
     virJSONValuePtr cmd = qemuMonitorJSONMakeCommand("eject",
                                                      "s:device", devname,
-                                                     "b:force", 0,
+                                                     "b:force", force ? 1 : 0,
                                                      NULL);
     virJSONValuePtr reply = NULL;
     if (!cmd)
@@ -1452,17 +1453,11 @@ int qemuMonitorJSONSetMigrationSpeed(qemuMonitorPtr mon,
                                      unsigned long bandwidth)
 {
     int ret;
-    char *bandwidthstr;
     virJSONValuePtr cmd;
     virJSONValuePtr reply = NULL;
-    if (virAsprintf(&bandwidthstr, "%lum", bandwidth) < 0) {
-        virReportOOMError();
-        return -1;
-    }
     cmd = qemuMonitorJSONMakeCommand("migrate_set_speed",
-                                     "s:value", bandwidthstr,
+                                     "U:value", bandwidth * 1024ULL * 1024ULL,
                                      NULL);
-    VIR_FREE(bandwidthstr);
     if (!cmd)
         return -1;
 

@@ -51,6 +51,8 @@
 #include "uuid.h"
 #include "stats_linux.h"
 #include "hooks.h"
+#include "files.h"
+#include "fdstream.h"
 
 
 #define VIR_FROM_THIS VIR_FROM_LXC
@@ -323,6 +325,29 @@ cleanup:
     return ret;
 }
 
+static int lxcDomainIsUpdated(virDomainPtr dom)
+{
+    lxc_driver_t *driver = dom->conn->privateData;
+    virDomainObjPtr obj;
+    int ret = -1;
+
+    lxcDriverLock(driver);
+    obj = virDomainFindByUUID(&driver->domains, dom->uuid);
+    lxcDriverUnlock(driver);
+    if (!obj) {
+        char uuidstr[VIR_UUID_STRING_BUFLEN];
+        virUUIDFormat(dom->uuid, uuidstr);
+        lxcError(VIR_ERR_NO_DOMAIN,
+                 _("No domain with matching uuid '%s'"), uuidstr);
+        goto cleanup;
+    }
+    ret = obj->updated;
+
+cleanup:
+    if (obj)
+        virDomainObjUnlock(obj);
+    return ret;
+}
 
 static int lxcListDomains(virConnectPtr conn, int *ids, int nids) {
     lxc_driver_t *driver = conn->privateData;
@@ -823,7 +848,6 @@ static int lxcDomainGetMemoryParameters(virDomainPtr dom,
         goto cleanup;
     }
 
-    ret = 0;
     for (i = 0; i < *nparams; i++) {
         virMemoryParameterPtr param = &params[i];
         val = 0;
@@ -836,14 +860,12 @@ static int lxcDomainGetMemoryParameters(virDomainPtr dom,
             if (rc != 0) {
                 virReportSystemError(-rc, "%s",
                                      _("unable to get memory hard limit"));
-                ret = -1;
-                continue;
+                goto cleanup;
             }
             if (virStrcpyStatic(param->field, VIR_DOMAIN_MEMORY_HARD_LIMIT) == NULL) {
                 lxcError(VIR_ERR_INTERNAL_ERROR,
                          "%s", _("Field memory hard limit too long for destination"));
-                ret = -1;
-                continue;
+                goto cleanup;
             }
             param->value.ul = val;
             break;
@@ -853,14 +875,12 @@ static int lxcDomainGetMemoryParameters(virDomainPtr dom,
             if (rc != 0) {
                 virReportSystemError(-rc, "%s",
                                      _("unable to get memory soft limit"));
-                ret = -1;
-                continue;
+                goto cleanup;
             }
             if (virStrcpyStatic(param->field, VIR_DOMAIN_MEMORY_SOFT_LIMIT) == NULL) {
                 lxcError(VIR_ERR_INTERNAL_ERROR,
                          "%s", _("Field memory soft limit too long for destination"));
-                ret = -1;
-                continue;
+                goto cleanup;
             }
             param->value.ul = val;
             break;
@@ -870,14 +890,12 @@ static int lxcDomainGetMemoryParameters(virDomainPtr dom,
             if (rc != 0) {
                 virReportSystemError(-rc, "%s",
                                      _("unable to get swap hard limit"));
-                ret = -1;
-                continue;
+                goto cleanup;
             }
             if (virStrcpyStatic(param->field, VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT) == NULL) {
                 lxcError(VIR_ERR_INTERNAL_ERROR,
                          "%s", _("Field swap hard limit too long for destination"));
-                ret = -1;
-                continue;
+                goto cleanup;
             }
             param->value.ul = val;
             break;
@@ -887,6 +905,8 @@ static int lxcDomainGetMemoryParameters(virDomainPtr dom,
             /* should not hit here */
         }
     }
+
+    ret = 0;
 
 cleanup:
     if (cgroup)
@@ -974,7 +994,7 @@ static int lxcVmCleanup(lxc_driver_t *driver,
     }
 
     virEventRemoveHandle(priv->monitorWatch);
-    close(priv->monitor);
+    VIR_FORCE_CLOSE(priv->monitor);
 
     virFileDeletePid(driver->stateDir, vm->def->name);
     virDomainDeleteConfig(driver->stateDir, NULL, vm);
@@ -1156,8 +1176,7 @@ static int lxcMonitorClient(lxc_driver_t * driver,
 
 error:
     VIR_FREE(sockpath);
-    if (fd != -1)
-        close(fd);
+    VIR_FORCE_CLOSE(fd);
     return -1;
 }
 
@@ -1536,22 +1555,24 @@ static int lxcVmStart(virConnectPtr conn,
     if (virDomainSaveConfig(driver->stateDir, vm->def) < 0)
         goto cleanup;
 
+    if (virDomainObjSetDefTransient(driver->caps, vm) < 0)
+        goto cleanup;
+
     rc = 0;
 
 cleanup:
+    if (VIR_CLOSE(logfd) < 0) {
+        virReportSystemError(errno, "%s", _("could not close logfile"));
+        rc = -1;
+    }
     for (i = 0 ; i < nveths ; i++) {
         if (rc != 0)
             vethDelete(veths[i]);
         VIR_FREE(veths[i]);
     }
-    if (rc != 0 && priv->monitor != -1) {
-        close(priv->monitor);
-        priv->monitor = -1;
-    }
-    if (parentTty != -1)
-        close(parentTty);
-    if (logfd != -1)
-        close(logfd);
+    if (rc != 0)
+        VIR_FORCE_CLOSE(priv->monitor);
+    VIR_FORCE_CLOSE(parentTty);
     VIR_FREE(logfile);
     return rc;
 }
@@ -2011,8 +2032,7 @@ lxcReconnectVM(void *payload, const char *name ATTRIBUTE_UNUSED, void *opaque)
 
     /* Read pid from controller */
     if ((virFileReadPid(lxc_driver->stateDir, vm->def->name, &vm->pid)) != 0) {
-        close(priv->monitor);
-        priv->monitor = -1;
+        VIR_FORCE_CLOSE(priv->monitor);
         goto cleanup;
     }
 
@@ -2042,8 +2062,7 @@ lxcReconnectVM(void *payload, const char *name ATTRIBUTE_UNUSED, void *opaque)
         }
     } else {
         vm->def->id = -1;
-        close(priv->monitor);
-        priv->monitor = -1;
+        VIR_FORCE_CLOSE(priv->monitor);
     }
 
 cleanup:
@@ -2738,6 +2757,70 @@ cleanup:
     return ret;
 }
 
+static int
+lxcDomainOpenConsole(virDomainPtr dom,
+                      const char *devname,
+                      virStreamPtr st,
+                      unsigned int flags)
+{
+    lxc_driver_t *driver = dom->conn->privateData;
+    virDomainObjPtr vm = NULL;
+    char uuidstr[VIR_UUID_STRING_BUFLEN];
+    int ret = -1;
+    virDomainChrDefPtr chr = NULL;
+
+    virCheckFlags(0, -1);
+
+    lxcDriverLock(driver);
+    virUUIDFormat(dom->uuid, uuidstr);
+    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+    if (!vm) {
+        lxcError(VIR_ERR_NO_DOMAIN,
+                 _("no domain with matching uuid '%s'"), uuidstr);
+        goto cleanup;
+    }
+
+    if (!virDomainObjIsActive(vm)) {
+        lxcError(VIR_ERR_OPERATION_INVALID,
+                 "%s", _("domain is not running"));
+        goto cleanup;
+    }
+
+    if (devname) {
+        /* XXX support device aliases in future */
+        lxcError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                 _("Named device aliases are not supported"));
+        goto cleanup;
+    } else {
+        if (vm->def->console)
+            chr = vm->def->console;
+        else if (vm->def->nserials)
+            chr = vm->def->serials[0];
+    }
+
+    if (!chr) {
+        lxcError(VIR_ERR_INTERNAL_ERROR, "%s",
+                 _("cannot find default console device"));
+        goto cleanup;
+    }
+
+    if (chr->type != VIR_DOMAIN_CHR_TYPE_PTY) {
+        lxcError(VIR_ERR_INTERNAL_ERROR,
+                 _("character device %s is not using a PTY"), devname);
+        goto cleanup;
+    }
+
+    if (virFDStreamOpenFile(st, chr->data.file.path, O_RDWR) < 0)
+        goto cleanup;
+
+    ret = 0;
+cleanup:
+    if (vm)
+        virDomainObjUnlock(vm);
+    lxcDriverUnlock(driver);
+    return ret;
+}
+
 
 /* Function Tables */
 static virDriver lxcDriver = {
@@ -2822,6 +2905,7 @@ static virDriver lxcDriver = {
     lxcIsSecure, /* isSecure */
     lxcDomainIsActive, /* domainIsActive */
     lxcDomainIsPersistent, /* domainIsPersistent */
+    lxcDomainIsUpdated, /* domainIsUpdated */
     NULL, /* cpuCompare */
     NULL, /* cpuBaseline */
     NULL, /* domainGetJobInfo */
@@ -2844,6 +2928,7 @@ static virDriver lxcDriver = {
     NULL, /* qemuDomainMonitorCommand */
     lxcDomainSetMemoryParameters, /* domainSetMemoryParameters */
     lxcDomainGetMemoryParameters, /* domainGetMemoryParameters */
+    lxcDomainOpenConsole, /* domainOpenConsole */
 };
 
 static virStateDriver lxcStateDriver = {

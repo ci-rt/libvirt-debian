@@ -354,6 +354,14 @@ static int remoteDispatchDomainIsPersistent(
     remote_error *err,
     remote_domain_is_persistent_args *args,
     remote_domain_is_persistent_ret *ret);
+static int remoteDispatchDomainIsUpdated(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_domain_is_updated_args *args,
+    remote_domain_is_updated_ret *ret);
 static int remoteDispatchDomainLookupById(
     struct qemud_server *server,
     struct qemud_client *client,
@@ -465,6 +473,14 @@ static int remoteDispatchDomainMigrateSetMaxDowntime(
     remote_message_header *hdr,
     remote_error *err,
     remote_domain_migrate_set_max_downtime_args *args,
+    void *ret);
+static int remoteDispatchDomainOpenConsole(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_domain_open_console_args *args,
     void *ret);
 static int remoteDispatchDomainPinVcpu(
     struct qemud_server *server,
