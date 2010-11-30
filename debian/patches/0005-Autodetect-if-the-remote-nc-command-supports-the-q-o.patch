@@ -16,10 +16,10 @@ Bug: https://bugzilla.redhat.com/show_bug.cgi?id=614420
  1 files changed, 40 insertions(+), 7 deletions(-)
 
 diff --git a/src/remote/remote_driver.c b/src/remote/remote_driver.c
-index c8d9a4d..8d91e45 100644
+index e6eb9b5..65bb6a0 100644
 --- a/src/remote/remote_driver.c
 +++ b/src/remote/remote_driver.c
-@@ -730,7 +730,8 @@ doRemoteOpen (virConnectPtr conn,
+@@ -737,7 +737,8 @@ doRemoteOpen (virConnectPtr conn,
      }
  
      case trans_ssh: {
@@ -29,7 +29,7 @@ index c8d9a4d..8d91e45 100644
  
          if (username) nr_args += 2; /* For -l username */
          if (no_tty) nr_args += 5;   /* For -T -o BatchMode=yes -e none */
-@@ -763,12 +764,44 @@ doRemoteOpen (virConnectPtr conn,
+@@ -770,12 +771,44 @@ doRemoteOpen (virConnectPtr conn,
              cmd_argv[j++] = strdup ("none");
          }
          cmd_argv[j++] = strdup (priv->hostname);

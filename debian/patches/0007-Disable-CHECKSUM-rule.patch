@@ -10,7 +10,7 @@ Closes: #598330
  1 files changed, 4 insertions(+), 0 deletions(-)
 
 diff --git a/src/util/iptables.c b/src/util/iptables.c
-index fc656b9..07c0c53 100644
+index fe78d1c..e47aeda 100644
 --- a/src/util/iptables.c
 +++ b/src/util/iptables.c
 @@ -878,6 +878,7 @@ iptablesOutputFixUdpChecksum(iptablesContext *ctx,
