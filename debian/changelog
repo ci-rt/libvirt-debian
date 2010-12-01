@@ -1,3 +1,20 @@
+libvirt (0.8.3-5) unstable; urgency=low
+
+  [ Laurent Léonard ]
+  * [6e46f0e] Fix wrong regular expression in debian/watch
+
+  [ Guido Günther ]
+  * [f561b2e] New patch 0010-nwfilter-resolve-deadlock-between-VM-
+    operations-and-.patch nwfilter: resolve deadlock between VM operations and
+    filter update (Closes: #602715)
+  * [239bbe5] New patch 0011-OpenVZ-take-veid-from-vmdef-name-when-
+    defining-new-d.patch: Fixes OpenVZ domain creation (Closes: #592817) -
+    thanks to Eric Litak.
+  * [c4a2a6b] New patch 0012-OpenVZ-Fix-some-overwritten-error-codes.patch:
+    Improve error reporting.
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 01 Dec 2010 15:12:48 +0100
+
 libvirt (0.8.3-4) unstable; urgency=low
 
   * [29e8714] Recommend ebtables used by nwfilter
