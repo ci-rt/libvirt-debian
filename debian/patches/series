@@ -8,3 +8,4 @@
 0008-Disable-CHECKSUM-rule.patch
 0009-Don-t-fail-lxc-domain-start-when-memory-controller-s.patch
 0010-nwfilter-resolve-deadlock-between-VM-operations-and-.patch
+0011-OpenVZ-take-veid-from-vmdef-name-when-defining-new-d.patch

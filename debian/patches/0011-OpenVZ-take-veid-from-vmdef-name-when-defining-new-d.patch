@@ -1,0 +1,76 @@
+From: Eric Litak <elitak@gmail.com>
+Date: Wed, 1 Dec 2010 15:03:11 +0100
+Subject: [PATCH] OpenVZ: take veid from vmdef->name when defining new domains
+
+to fix domain creation.
+Origin: upstream, http://libvirt.org/git/?p=libvirt.git;a=commit;h=50a7c59bb30b95fd56cda34510f319f48f97f90e
+---
+ src/openvz/openvz_driver.c |   40 +---------------------------------------
+ 1 files changed, 1 insertions(+), 39 deletions(-)
+
+diff --git a/src/openvz/openvz_driver.c b/src/openvz/openvz_driver.c
+index d2f91c6..556df52 100644
+--- a/src/openvz/openvz_driver.c
++++ b/src/openvz/openvz_driver.c
+@@ -103,10 +103,6 @@ openvzDomainDefineCmd(const char *args[],
+                       int maxarg, virDomainDefPtr vmdef)
+ {
+     int narg;
+-    int veid;
+-    int max_veid;
+-    char str_id[10];
+-    FILE *fp;
+
+     for (narg = 0; narg < maxarg; narg++)
+         args[narg] = NULL;
+@@ -135,36 +131,7 @@ openvzDomainDefineCmd(const char *args[],
+     ADD_ARG_LIT(VZCTL);
+     ADD_ARG_LIT("--quiet");
+     ADD_ARG_LIT("create");
+-
+-    if ((fp = popen(VZLIST " -a -ovpsid -H 2>/dev/null", "r")) == NULL) {
+-        openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
+-                    _("popen  failed"));
+-        return -1;
+-    }
+-    max_veid = 0;
+-    while (!feof(fp)) {
+-        if (fscanf(fp, "%d\n", &veid) != 1) {
+-            if (feof(fp))
+-                break;
+-
+-            openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
+-                        _("Failed to parse vzlist output"));
+-            goto cleanup;
+-        }
+-        if (veid > max_veid) {
+-            max_veid = veid;
+-        }
+-    }
+-    fclose(fp);
+-
+-    if (max_veid == 0) {
+-        max_veid = 100;
+-    } else {
+-        max_veid++;
+-    }
+-
+-    sprintf(str_id, "%d", max_veid);
+-    ADD_ARG_LIT(str_id);
++    ADD_ARG_LIT(vmdef->name);
+
+     ADD_ARG_LIT("--name");
+     ADD_ARG_LIT(vmdef->name);
+@@ -188,11 +155,6 @@ no_memory:
+     openvzError(VIR_ERR_INTERNAL_ERROR,
+                 _("Could not put argument to %s"), VZCTL);
+     return -1;
+-
+-cleanup:
+-    fclose(fp);
+-    return -1;
+-
+ #undef ADD_ARG
+ #undef ADD_ARG_LIT
+ }
+--
