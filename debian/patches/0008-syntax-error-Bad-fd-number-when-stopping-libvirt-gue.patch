@@ -1,0 +1,42 @@
+From: =?UTF-8?q?Laurent=20L=C3=A9onard?= <laurent@open-minds.org>
+Date: Sun, 5 Dec 2010 18:53:26 +0100
+Subject: [PATCH] syntax error "Bad fd number" when stopping libvirt-guests
+
+When libvirt-guests is being stopped, I get the following message:
+$Running guests on default URI: test-vm
+$Suspending guests on default URI...
+$Suspending test-vm: /etc/init.d/libvirt-guests: 340: Syntax error: Bad fd
+number
+
+Origin: upstream, http://libvirt.org/git/?p=libvirt.git;a=commit;h=68e5e4672a39e5aff135a898b692a7c0fc4874b2
+---
+ AUTHORS                      |    1 +
+ tools/libvirt-guests.init.in |    2 +-
+ 2 files changed, 2 insertions(+), 1 deletions(-)
+
+diff --git a/AUTHORS b/AUTHORS
+index 16c755d..3b5318a 100644
+--- a/AUTHORS
++++ b/AUTHORS
+@@ -136,6 +136,7 @@ Patches have also been contributed by:
+   Osier Yang           <jyang@redhat.com>
+   Kamezawa Hiroyuki    <kamezawa.hiroyu@jp.fujitsu.com>
+   Wen Congyang         <wency@cn.fujitsu.com>
++  Laurent Léonard      <laurent@open-minds.org>
+ 
+   [....send patches to get your name here....]
+ 
+diff --git a/tools/libvirt-guests.init.in b/tools/libvirt-guests.init.in
+index 4e0682d..76dc627 100644
+--- a/tools/libvirt-guests.init.in
++++ b/tools/libvirt-guests.init.in
+@@ -177,7 +177,7 @@ suspend_guest()
+     virsh_pid=$!
+     while true; do
+         sleep 1
+-        kill -0 $virsh_pid >&/dev/null || break
++        kill -0 $virsh_pid >/dev/null 2>&1 || break
+         progress=$(run_virsh_c $uri domjobinfo $guest 2>/dev/null | \
+                    awk '/^Data processed:/{print $3, $4}')
+         if [ -n "$progress" ]; then
+-- 

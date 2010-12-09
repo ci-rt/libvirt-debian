@@ -5,3 +5,4 @@
 0005-Autodetect-if-the-remote-nc-command-supports-the-q-o.patch
 0006-patch-qemuMonitorTextGetMigrationStatus-to-intercept.patch
 0007-Disable-CHECKSUM-rule.patch
+0008-syntax-error-Bad-fd-number-when-stopping-libvirt-gue.patch
