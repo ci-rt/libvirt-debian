@@ -6,3 +6,4 @@
 0006-patch-qemuMonitorTextGetMigrationStatus-to-intercept.patch
 0007-Disable-CHECKSUM-rule.patch
 0008-syntax-error-Bad-fd-number-when-stopping-libvirt-gue.patch
+0009-Missing-Default-Stop-field-in-LSB-comment-in-libvirt.patch

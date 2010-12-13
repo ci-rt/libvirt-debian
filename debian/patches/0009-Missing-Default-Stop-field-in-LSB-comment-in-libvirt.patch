@@ -1,0 +1,33 @@
+From: =?UTF-8?q?Laurent=20L=C3=A9onard?= <laurent@open-minds.org>
+Date: Sun, 5 Dec 2010 19:49:39 +0100
+Subject: [PATCH] Missing "Default-Stop" field in LSB comment in libvirt-guests
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The "Default-Stop" field in LSB comment in libvirt-guests is missing and should
+be added. I also suggests to add runlevel 2 to the "Default-Start" field.
+
+--
+Laurent Léonard
+
+Origin: upstream, http://libvirt.org/git/?p=libvirt.git;a=commit;h=84094af780adf629a792d9614d88963baaa9a753
+---
+ tools/libvirt-guests.init.in |    3 ++-
+ 1 files changed, 2 insertions(+), 1 deletions(-)
+
+diff --git a/tools/libvirt-guests.init.in b/tools/libvirt-guests.init.in
+index 76dc627..5dab36b 100644
+--- a/tools/libvirt-guests.init.in
++++ b/tools/libvirt-guests.init.in
+@@ -6,7 +6,8 @@
+ # Provides: libvirt-guests
+ # Required-Start: libvirtd
+ # Required-Stop: libvirtd
+-# Default-Start: 3 4 5
++# Default-Start: 2 3 4 5
++# Default-Stop: 0 1 6
+ # Short-Description: suspend/resume libvirt guests on shutdown/boot
+ # Description: This is a script for suspending active libvirt guests
+ #              on shutdown and resuming them on next boot
+-- 
