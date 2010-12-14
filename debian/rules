@@ -56,9 +56,18 @@ DEB_DH_INSTALLLOGROTATE_ARGS = --name=libvirtd
 
 EXAMPLES_DIR = $(CURDIR)/debian/libvirt-doc/usr/share/doc/libvirt-doc/examples/
 
+binary-install/libvirt-bin::
+	cp $(CURDIR)/tools/libvirt-guests.init.in $(CURDIR)/debian/libvirt-bin.libvirt-guests.init
+	cp $(CURDIR)/tools/libvirt-guests.sysconf $(CURDIR)/debian/libvirt-bin.libvirt-guests.default
+	dh_installinit --name=libvirt-guests --no-restart-on-upgrade
+
 binary-install/libvirt-doc::
 	find $(EXAMPLES_DIR) -name "*.o" -type f -delete -o -name .libs -type d -exec rm -rf {} \;
 	rm -f $(EXAMPLES_DIR)domain-events/events-c/event-test
 	rm -f $(EXAMPLES_DIR)dominfo/info1
 	rm -f $(EXAMPLES_DIR)domsuspend/suspend
 	rm -f $(EXAMPLES_DIR)hellolibvirt/hellolibvirt
+
+clean::
+	rm -f $(CURDIR)/debian/libvirt-bin.libvirt-guests.init
+	rm -f $(CURDIR)/debian/libvirt-bin.libvirt-guests.default
