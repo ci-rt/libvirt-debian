@@ -7,3 +7,4 @@
 0007-Disable-CHECKSUM-rule.patch
 0008-syntax-error-Bad-fd-number-when-stopping-libvirt-gue.patch
 0009-Missing-Default-Stop-field-in-LSB-comment-in-libvirt.patch
+0010-Debianize-libvirt-guests.patch
