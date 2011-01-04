@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# getpass.m4 serial 11
+# getpass.m4 serial 12
 dnl Copyright (C) 2002-2003, 2005-2006, 2009-2010 Free Software Foundation,
 dnl Inc.
 dnl This file is free software; the Free Software Foundation
@@ -10,6 +10,9 @@ dnl with or without modifications, as long as this notice is preserved.
 # Provide a getpass() function if the system doesn't have it.
 AC_DEFUN([gl_FUNC_GETPASS],
 [
+  dnl Persuade Solaris <unistd.h> and <stdlib.h> to declare getpass().
+  AC_REQUIRE([gl_USE_SYSTEM_EXTENSIONS])
+
   AC_REPLACE_FUNCS([getpass])
   AC_CHECK_DECLS_ONCE([getpass])
   if test $ac_cv_func_getpass = no; then
@@ -21,6 +24,9 @@ AC_DEFUN([gl_FUNC_GETPASS],
 # arbitrary length (not just 8 bytes as on HP-UX).
 AC_DEFUN([gl_FUNC_GETPASS_GNU],
 [
+  dnl Persuade Solaris <unistd.h> and <stdlib.h> to declare getpass().
+  AC_REQUIRE([gl_USE_SYSTEM_EXTENSIONS])
+
   AC_CHECK_DECLS_ONCE([getpass])
   dnl TODO: Detect when GNU getpass() is already found in glibc.
   AC_LIBOBJ([getpass])

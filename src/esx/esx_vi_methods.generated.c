@@ -36,6 +36,34 @@ ESX_VI__METHOD(CancelTask, /* explicit _this */,
 
 
 
+/* esxVI_CopyVirtualDisk_Task */
+ESX_VI__METHOD(CopyVirtualDisk_Task, virtualDiskManager,
+               (esxVI_Context *ctx,
+                const char *sourceName,                    /* required */
+                esxVI_ManagedObjectReference *sourceDatacenter, /* optional */
+                const char *destName,                      /* required */
+                esxVI_ManagedObjectReference *destDatacenter, /* optional */
+                esxVI_VirtualDiskSpec *destSpec,           /* optional */
+                esxVI_Boolean force,                       /* optional */
+                esxVI_ManagedObjectReference **output),    /* required */
+               ManagedObjectReference, /* nothing */, RequiredItem,
+{
+    ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
+    ESX_VI__METHOD__PARAMETER__REQUIRE(sourceName)
+    ESX_VI__METHOD__PARAMETER__REQUIRE(destName)
+},
+{
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, _this)
+    ESX_VI__METHOD__PARAMETER__SERIALIZE_VALUE(String, sourceName)
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, sourceDatacenter)
+    ESX_VI__METHOD__PARAMETER__SERIALIZE_VALUE(String, destName)
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, destDatacenter)
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(VirtualDiskSpec, destSpec)
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(Boolean, force)
+})
+
+
+
 /* esxVI_CreateFilter */
 ESX_VI__METHOD(CreateFilter, propertyCollector,
                (esxVI_Context *ctx,
@@ -100,6 +128,25 @@ ESX_VI__METHOD(CreateVirtualDisk_Task, virtualDiskManager,
     ESX_VI__METHOD__PARAMETER__SERIALIZE_VALUE(String, name)
     ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, datacenter)
     ESX_VI__METHOD__PARAMETER__SERIALIZE(VirtualDiskSpec, spec)
+})
+
+
+
+/* esxVI_DeleteVirtualDisk_Task */
+ESX_VI__METHOD(DeleteVirtualDisk_Task, virtualDiskManager,
+               (esxVI_Context *ctx,
+                const char *name,                          /* required */
+                esxVI_ManagedObjectReference *datacenter,  /* optional */
+                esxVI_ManagedObjectReference **output),    /* required */
+               ManagedObjectReference, /* nothing */, RequiredItem,
+{
+    ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
+    ESX_VI__METHOD__PARAMETER__REQUIRE(name)
+},
+{
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, _this)
+    ESX_VI__METHOD__PARAMETER__SERIALIZE_VALUE(String, name)
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, datacenter)
 })
 
 
@@ -589,6 +636,25 @@ ESX_VI__METHOD(WaitForUpdates, propertyCollector,
 {
     ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, _this)
     ESX_VI__METHOD__PARAMETER__SERIALIZE_VALUE(String, version)
+})
+
+
+
+/* esxVI_ZeroFillVirtualDisk_Task */
+ESX_VI__METHOD(ZeroFillVirtualDisk_Task, virtualDiskManager,
+               (esxVI_Context *ctx,
+                const char *name,                          /* required */
+                esxVI_ManagedObjectReference *datacenter,  /* optional */
+                esxVI_ManagedObjectReference **output),    /* required */
+               ManagedObjectReference, /* nothing */, RequiredItem,
+{
+    ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
+    ESX_VI__METHOD__PARAMETER__REQUIRE(name)
+},
+{
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, _this)
+    ESX_VI__METHOD__PARAMETER__SERIALIZE_VALUE(String, name)
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, datacenter)
 })
 
 

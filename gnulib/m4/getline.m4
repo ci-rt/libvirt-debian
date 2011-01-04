@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# getline.m4 serial 21
+# getline.m4 serial 23
 
 dnl Copyright (C) 1998-2003, 2005-2007, 2009-2010 Free Software Foundation,
 dnl Inc.
@@ -48,7 +48,7 @@ AC_DEFUN([gl_FUNC_GETLINE],
         size_t siz = 0;
         int len = getline (&line, &siz, in);
         if (!(len == 4 && line && strcmp (line, "foo\n") == 0))
-          return 1;
+          return 2;
       }
       {
         /* Test result for a NULL buffer and a non-zero size.
@@ -56,7 +56,7 @@ AC_DEFUN([gl_FUNC_GETLINE],
         char *line = NULL;
         size_t siz = (size_t)(~0) / 4;
         if (getline (&line, &siz, in) == -1)
-          return 1;
+          return 3;
       }
       return 0;
     }
@@ -67,7 +67,7 @@ AC_DEFUN([gl_FUNC_GETLINE],
          [
 #include <features.h>
 #ifdef __GNU_LIBRARY__
- #if (__GLIBC__ >= 2)
+ #if (__GLIBC__ >= 2) && !defined __UCLIBC__
   Lucky GNU user
  #endif
 #endif

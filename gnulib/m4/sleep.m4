@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# sleep.m4 serial 3
+# sleep.m4 serial 4
 dnl Copyright (C) 2007-2010 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -40,7 +40,12 @@ handle_alarm (int sig)
     signal (SIGALRM, handle_alarm);
     alarm (1);
     remaining = sleep (pentecost);
-    return !(pentecost - 10 < remaining && remaining <= pentecost);]])],
+    if (remaining > pentecost)
+      return 3;
+    if (remaining <= pentecost - 10)
+      return 4;
+    return 0;
+    ]])],
       [gl_cv_func_sleep_works=yes], [gl_cv_func_sleep_works=no],
       [gl_cv_func_sleep_works="guessing no"])])
     if test "$gl_cv_func_sleep_works" != yes; then

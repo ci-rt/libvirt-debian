@@ -550,7 +550,7 @@ VIR_EXPORT_VAR virConnectAuthPtr virConnectAuthPtrDefault;
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-#define LIBVIR_VERSION_NUMBER 8006
+#define LIBVIR_VERSION_NUMBER 8007
 
 int                     virGetVersion           (unsigned long *libVer,
                                                  const char *type,

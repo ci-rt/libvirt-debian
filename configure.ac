@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([libvirt], [0.8.6], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [0.8.7], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -73,7 +73,7 @@ VERSION_SCRIPT_FLAGS=-Wl,--version-script=
 LIBVIRT_COMPILE_WARNINGS([maximum])
 
 AC_MSG_CHECKING([for CPUID instruction])
-AC_COMPILE_IFELSE(AC_LANG_PROGRAM(
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
   [[
     #include <stdint.h>
   ]],
@@ -83,7 +83,7 @@ AC_COMPILE_IFELSE(AC_LANG_PROGRAM(
         "cpuid"
         : "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
         : "a" (eax));
-  ]]),
+  ]])],
   [have_cpuid=yes],
   [have_cpuid=no])
 if test "x$have_cpuid" = xyes; then
@@ -93,7 +93,7 @@ AC_MSG_RESULT([$have_cpuid])
 
 
 dnl Availability of various common functions (non-fatal if missing).
-AC_CHECK_FUNCS_ONCE([cfmakeraw regexec sched_getaffinity getuid getgid \
+AC_CHECK_FUNCS_ONCE([cfmakeraw regexec sched_getaffinity getuid getgid initgroups \
  posix_fallocate mmap])
 
 dnl Availability of various not common threadsafe functions
@@ -135,6 +135,8 @@ dnl detect them, in which case we'll search for the program
 dnl along the $PATH at runtime and fail if it's not there.
 AC_PATH_PROG([DNSMASQ], [dnsmasq], [dnsmasq],
 	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
+AC_PATH_PROG([RADVD], [radvd], [radvd],
+	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
 AC_PATH_PROG([BRCTL], [brctl], [brctl],
 	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
 AC_PATH_PROG([UDEVADM], [udevadm], [],
@@ -146,6 +148,8 @@ AC_PATH_PROG([MODPROBE], [modprobe], [],
 
 AC_DEFINE_UNQUOTED([DNSMASQ],["$DNSMASQ"],
         [Location or name of the dnsmasq program])
+AC_DEFINE_UNQUOTED([RADVD],["$RADVD"],
+        [Location or name of the radvd program])
 AC_DEFINE_UNQUOTED([BRCTL],["$BRCTL"],
         [Location or name of the brctl program (see bridge-utils)])
 if test -n "$UDEVADM"; then
@@ -227,6 +231,8 @@ AC_ARG_WITH([uml],
   AC_HELP_STRING([--with-uml], [add UML support @<:@default=check@:>@]),[],[with_uml=check])
 AC_ARG_WITH([openvz],
   AC_HELP_STRING([--with-openvz], [add OpenVZ support @<:@default=yes@:>@]),[],[with_openvz=yes])
+AC_ARG_WITH([vmware],
+  AC_HELP_STRING([--with-vmware], [add VMware support @<:@default=yes@:>@]),[],[with_vmware=yes])
 AC_ARG_WITH([libssh2],
   AC_HELP_STRING([--with-libssh2=@<:@PFX@:>@], [libssh2 location @<:@default=/usr/local/lib@:>@]),[],[with_libssh2=yes])
 AC_ARG_WITH([phyp],
@@ -304,8 +310,14 @@ if test x"$with_rhel5_api" = x"yes"; then
    AC_DEFINE([WITH_RHEL5_API], [1], [whether building for the RHEL-5 API])
 fi
 
+AC_PATH_PROG([IP_PATH], [ip], /sbin/ip, [/usr/sbin:$PATH])
+AC_DEFINE_UNQUOTED([IP_PATH], "$IP_PATH", [path to ip binary])
+
 AC_PATH_PROG([IPTABLES_PATH], [iptables], /sbin/iptables, [/usr/sbin:$PATH])
 AC_DEFINE_UNQUOTED([IPTABLES_PATH], "$IPTABLES_PATH", [path to iptables binary])
+
+AC_PATH_PROG([IP6TABLES_PATH], [ip6tables], /sbin/ip6tables, [/usr/sbin:$PATH])
+AC_DEFINE_UNQUOTED([IP6TABLES_PATH], "$IP6TABLES_PATH", [path to ip6tables binary])
 
 AC_PATH_PROG([EBTABLES_PATH], [ebtables], /sbin/ebtables, [/usr/sbin:$PATH])
 AC_DEFINE_UNQUOTED([EBTABLES_PATH], "$EBTABLES_PATH", [path to ebtables binary])
@@ -316,6 +328,10 @@ if test "$with_openvz" = "yes"; then
 fi
 AM_CONDITIONAL([WITH_OPENVZ], [test "$with_openvz" = "yes"])
 
+if test "$with_vmware" = "yes"; then
+    AC_DEFINE_UNQUOTED([WITH_VMWARE], 1, [whether VMware driver is enabled])
+fi
+AM_CONDITIONAL([WITH_VMWARE], [test "$with_vmware" = "yes"])
 
 dnl
 dnl check for XDR
@@ -333,6 +349,26 @@ if test x"$with_remote" = x"yes" || test x"$with_libvirtd" = x"yes"; then
 
     dnl check for cygwin's variation in xdr function names
     AC_CHECK_FUNCS([xdr_u_int64_t],[],[],[#include <rpc/xdr.h>])
+
+    dnl Cygwin requires -I/usr/include/tirpc for <rpc/rpc.h>
+    old_CFLAGS=$CFLAGS
+    AC_CACHE_CHECK([where to find <rpc/rpc.h>], [lv_cv_xdr_cflags], [
+      for add_CFLAGS in '' '-I/usr/include/tirpc' 'missing'; do
+        if test x"$add_CFLAGS" = xmissing; then
+          lv_cv_xdr_cflags=missing; break
+        fi
+        CFLAGS="$old_CFLAGS $add_CFLAGS"
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <rpc/rpc.h>
+        ]])], [lv_cv_xdr_cflags=${add_CFLAGS:-none}; break])
+      done
+    ])
+    CFLAGS=$old_CFLAGS
+    case $lv_cv_xdr_cflags in
+      none) XDR_CFLAGS= ;;
+      missing) AC_MSG_ERROR([Unable to find <rpc/rpc.h>]) ;;
+      *) XDR_CFLAGS=$lv_cv_xdr_cflags ;;
+    esac
+    AC_SUBST([XDR_CFLAGS])
 fi
 
 
@@ -352,12 +388,20 @@ AC_DEFINE_UNQUOTED([VBOX_XPCOMC_DIR], ["$vbox_xpcomc_dir"],
                    [Location of directory containing VirtualBox XPCOMC library])
 
 if test "x$with_vbox" = "xyes"; then
-    AC_SEARCH_LIBS([dlopen], [dl], [], [AC_MSG_ERROR([Unable to find dlopen()])])
-    case $ac_cv_search_dlopen in
-      no*) DLOPEN_LIBS= ;;
+    AC_SEARCH_LIBS([dlopen], [dl],,)
+    case $ac_cv_search_dlopen:$host_os in
+      'none required'* | *:mingw* | *:msvc*) DLOPEN_LIBS= ;;
+      no*) AC_MSG_ERROR([Unable to find dlopen()]) ;;
       *) DLOPEN_LIBS=$ac_cv_search_dlopen ;;
     esac
     AC_SUBST([DLOPEN_LIBS])
+
+    case "$host" in
+      *-*-mingw* | *-*-msvc*) MSCOM_LIBS="-lole32 -loleaut32" ;;
+      *) MSCOM_LIBS= ;;
+    esac
+    AC_SUBST([MSCOM_LIBS])
+
     AC_DEFINE_UNQUOTED([WITH_VBOX], 1, [whether VirtualBox driver is enabled])
 fi
 AM_CONDITIONAL([WITH_VBOX], [test "$with_vbox" = "yes"])
@@ -396,12 +440,12 @@ old_CFLAGS="$CFLAGS"
 LIBXENSERVER_LIBS=""
 LIBXENSERVER_CFLAGS=""
 dnl search for the XenServer library
+fail=0
 if test "$with_xenapi" != "no" ; then
     if test "$with_xenapi" != "yes" && test "$with_xenapi" != "check" ; then
         LIBXENSERVER_CFLAGS="-I$with_xenapi/include"
         LIBXENSERVER_LIBS="-L$with_xenapi"
     fi
-    fail=0
     CFLAGS="$CFLAGS $LIBXENSERVER_CFLAGS"
     LIBS="$LIBS $LIBXENSERVER_LIBS"
     AC_CHECK_LIB([xenserver], [xen_vm_start], [
@@ -1006,6 +1050,9 @@ fi
 if test "$with_selinux" = "yes"; then
   SELINUX_LIBS="-lselinux"
   AC_DEFINE_UNQUOTED([HAVE_SELINUX], 1, [whether basic SELinux functionality is available])
+  dnl We prefer to use <selinux/label.h> and selabel_open, but can fall
+  dnl back to matchpathcon for the sake of RHEL 5's version of libselinux.
+  AC_CHECK_HEADERS([selinux/label.h])
 fi
 AM_CONDITIONAL([HAVE_SELINUX], [test "$with_selinux" != "no"])
 AC_SUBST([SELINUX_CFLAGS])
@@ -1194,20 +1241,22 @@ LIBPCAP_FOUND="no"
 
 AC_ARG_WITH([libpcap], AC_HELP_STRING([--with-libpcap=@<:@PFX@:>@], [libpcap location]))
 if test "$with_qemu" = "yes"; then
-    if test "x$with_libpcap" != "xno" ; then
-        if test "x$with_libpcap" != "x" ; then
-            LIBPCAP_CONFIG=$with_libpcap/bin/$LIBPCAP_CONFIG
-        fi
-        AC_MSG_CHECKING(libpcap $LIBPCAP_CONFIG >= $LIBPCAP_REQUIRED )
-        if ! $LIBPCAP_CONFIG --libs > /dev/null 2>&1 ; then
-	    AC_MSG_RESULT(no)
-	else
-            LIBPCAP_LIBS="`$LIBPCAP_CONFIG --libs`"
-            LIBPCAP_CFLAGS="`$LIBPCAP_CONFIG --cflags`"
-            LIBPCAP_FOUND="yes"
-            AC_MSG_RESULT(yes)
-        fi
+  case $with_libpcap in
+    no)     LIBPCAP_CONFIG= ;;
+    ''|yes) LIBPCAP_CONFIG="pcap-config" ;;
+    *)      LIBPCAP_CONFIG="$with_libpcap/bin/pcap-config" ;;
+  esac
+  AS_IF([test "x$LIBPCAP_CONFIG" != "x"], [
+    AC_MSG_CHECKING(libpcap $LIBPCAP_CONFIG >= $LIBPCAP_REQUIRED )
+    if ! $LIBPCAP_CONFIG --libs > /dev/null 2>&1 ; then
+      AC_MSG_RESULT(no)
+    else
+      LIBPCAP_LIBS="`$LIBPCAP_CONFIG --libs`"
+      LIBPCAP_CFLAGS="`$LIBPCAP_CONFIG --cflags`"
+      LIBPCAP_FOUND="yes"
+      AC_MSG_RESULT(yes)
     fi
+  ])
 fi
 
 if test "x$LIBPCAP_FOUND" = "xyes"; then
@@ -1737,6 +1786,15 @@ if test "$with_esx" = "yes" ; then
 fi
 AM_CONDITIONAL([WITH_ESX], [test "$with_esx" = "yes"])
 
+with_vmx=yes
+if test "$with_esx" != "yes" && test "$with_vmware" != "yes"; then
+  with_vmx=no
+fi
+if test "$with_vmx" = "yes" ; then
+  AC_DEFINE_UNQUOTED([WITH_VMX], 1, [whether VMware VMX config handling is enabled])
+fi
+AM_CONDITIONAL([WITH_VMX], [test "$with_vmx" = "yes"])
+
 if test "$with_xenapi" = "yes" ; then
     AC_DEFINE_UNQUOTED([WITH_XENAPI], 1, [whether XenAPI driver is enabled])
 fi
@@ -2215,7 +2273,7 @@ LIBNL_LIBS=""
 if test "$with_macvtap" = "yes"; then
     PKG_CHECK_MODULES([LIBNL], [libnl-1 >= $LIBNL_REQUIRED], [
     ], [
-        AC_MSG_ERROR([libnl >= $LIBNL_REQUIRED is required for macvtap support])
+        AC_MSG_ERROR([libnl-devel >= $LIBNL_REQUIRED is required for macvtap support])
     ])
 fi
 
@@ -2249,11 +2307,6 @@ AC_OUTPUT(Makefile src/Makefile include/Makefile docs/Makefile \
           daemon/Makefile \
           tools/Makefile \
           tests/Makefile \
-          tests/xml2sexprdata/Makefile \
-          tests/sexpr2xmldata/Makefile \
-          tests/xmconfigdata/Makefile \
-          tests/xencapsdata/Makefile \
-          tests/confdata/Makefile \
           examples/apparmor/Makefile \
           examples/domain-events/events-c/Makefile \
           examples/domsuspend/Makefile \
@@ -2274,6 +2327,7 @@ AC_MSG_NOTICE([     Xen: $with_xen])
 AC_MSG_NOTICE([    QEMU: $with_qemu])
 AC_MSG_NOTICE([     UML: $with_uml])
 AC_MSG_NOTICE([  OpenVZ: $with_openvz])
+AC_MSG_NOTICE([  VMware: $with_vmware])
 AC_MSG_NOTICE([    VBox: $with_vbox])
 AC_MSG_NOTICE([  XenAPI: $with_xenapi])
 AC_MSG_NOTICE([     LXC: $with_lxc])
@@ -2405,7 +2459,7 @@ AC_MSG_NOTICE([  xmlrpc: $XMLRPC_CFLAGS $XMLRPC_LIBS])
 else
 AC_MSG_NOTICE([  xmlrpc: no])
 fi
-if test "$with_qemu" = "yes" ; then
+if test "$with_qemu" = "yes" && test "$LIBPCAP_FOUND" != "no"; then
 AC_MSG_NOTICE([    pcap: $LIBPCAP_CFLAGS $LIBPCAP_LIBS])
 else
 AC_MSG_NOTICE([    pcap: no])
@@ -2414,6 +2468,16 @@ if test "$with_macvtap" = "yes" ; then
 AC_MSG_NOTICE([      nl: $LIBNL_CFLAGS $LIBNL_LIBS])
 else
 AC_MSG_NOTICE([      nl: no])
+fi
+if test "$with_vbox" = "yes" && test -n "$MSCOM_LIBS" ; then
+AC_MSG_NOTICE([   mscom: $MSCOM_LIBS])
+else
+AC_MSG_NOTICE([   mscom: no])
+fi
+if test "$with_remote" = "yes" || test "$with_libvirtd" = "yes" ; then
+AC_MSG_NOTICE([     xdr: $XDR_CFLAGS])
+else
+AC_MSG_NOTICE([     xdr: no])
 fi
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Test suite])

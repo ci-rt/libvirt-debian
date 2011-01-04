@@ -41,6 +41,9 @@ typedef struct {
 # define VIR_SOCKET_IS_FAMILY(s, f)             \
     ((s)->data.sa.sa_family == f)
 
+# define VIR_SOCKET_FAMILY(s)                   \
+    ((s)->data.sa.sa_family)
+
 typedef virSocketAddr *virSocketAddrPtr;
 
 int virSocketParseAddr    (const char *val,
@@ -70,7 +73,22 @@ int virSocketAddrIsNetmask(virSocketAddrPtr netmask);
 int virSocketCheckNetmask (virSocketAddrPtr addr1,
                            virSocketAddrPtr addr2,
                            virSocketAddrPtr netmask);
+int virSocketAddrMask     (const virSocketAddrPtr addr,
+                           const virSocketAddrPtr netmask,
+                           virSocketAddrPtr       network);
+int virSocketAddrMaskByPrefix(const virSocketAddrPtr addr,
+                              unsigned int           prefix,
+                              virSocketAddrPtr       network);
+int virSocketAddrBroadcast(const virSocketAddrPtr addr,
+                           const virSocketAddrPtr netmask,
+                           virSocketAddrPtr       broadcast);
+int virSocketAddrBroadcastByPrefix(const virSocketAddrPtr addr,
+                                   unsigned int           prefix,
+                                   virSocketAddrPtr       broadcast);
 
 int virSocketGetNumNetmaskBits(const virSocketAddrPtr netmask);
+int virSocketAddrPrefixToNetmask(unsigned int prefix,
+                                 virSocketAddrPtr netmask,
+                                 int family);
 
 #endif /* __VIR_NETWORK_H__ */

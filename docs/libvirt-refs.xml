@@ -227,6 +227,7 @@
     <reference name='VIR_FROM_TEST' href='html/libvirt-virterror.html#VIR_FROM_TEST'/>
     <reference name='VIR_FROM_UML' href='html/libvirt-virterror.html#VIR_FROM_UML'/>
     <reference name='VIR_FROM_VBOX' href='html/libvirt-virterror.html#VIR_FROM_VBOX'/>
+    <reference name='VIR_FROM_VMWARE' href='html/libvirt-virterror.html#VIR_FROM_VMWARE'/>
     <reference name='VIR_FROM_XEN' href='html/libvirt-virterror.html#VIR_FROM_XEN'/>
     <reference name='VIR_FROM_XENAPI' href='html/libvirt-virterror.html#VIR_FROM_XENAPI'/>
     <reference name='VIR_FROM_XEND' href='html/libvirt-virterror.html#VIR_FROM_XEND'/>
@@ -928,6 +929,7 @@
       <ref name='VIR_FROM_TEST'/>
       <ref name='VIR_FROM_UML'/>
       <ref name='VIR_FROM_VBOX'/>
+      <ref name='VIR_FROM_VMWARE'/>
       <ref name='VIR_FROM_XEN'/>
       <ref name='VIR_FROM_XENAPI'/>
       <ref name='VIR_FROM_XEND'/>
@@ -2750,6 +2752,7 @@
       <ref name='VIR_FROM_TEST'/>
       <ref name='VIR_FROM_UML'/>
       <ref name='VIR_FROM_VBOX'/>
+      <ref name='VIR_FROM_VMWARE'/>
       <ref name='VIR_FROM_XEN'/>
       <ref name='VIR_FROM_XENAPI'/>
       <ref name='VIR_FROM_XEND'/>

@@ -112,6 +112,9 @@
            else if (STREQ(type, "LocalDatastoreInfo")) {
                return esxVI_Type_LocalDatastoreInfo;
            }
+           else if (STREQ(type, "LocalizedMethodFault")) {
+               return esxVI_Type_LocalizedMethodFault;
+           }
            else if (STREQ(type, "NasDatastoreInfo")) {
                return esxVI_Type_NasDatastoreInfo;
            }

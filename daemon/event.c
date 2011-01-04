@@ -576,13 +576,14 @@ int virEventRunOnce(void) {
  retry:
     EVENT_DEBUG("Poll on %d handles %p timeout %d", nfds, fds, timeout);
     ret = poll(fds, nfds, timeout);
-    EVENT_DEBUG("Poll got %d event", ret);
     if (ret < 0) {
+        EVENT_DEBUG("Poll got error event %d", errno);
         if (errno == EINTR) {
             goto retry;
         }
         goto error_unlocked;
     }
+    EVENT_DEBUG("Poll got %d event(s)", ret);
 
     virMutexLock(&eventLoop.lock);
     if (virEventDispatchTimeouts() < 0)
@@ -620,12 +621,6 @@ static void virEventHandleWakeup(int watch ATTRIBUTE_UNUSED,
     virMutexUnlock(&eventLoop.lock);
 }
 
-#ifdef WIN32
-static inline int pipe(int fd[2]) {
-    return _pipe(fd, 4096, 0);
-}
-#endif
-
 int virEventInit(void)
 {
     if (virMutexInit(&eventLoop.lock) < 0)
@@ -652,7 +647,8 @@ static int virEventInterruptLocked(void)
 
     if (!eventLoop.running ||
         virThreadIsSelf(&eventLoop.leader)) {
-        VIR_DEBUG("Skip interrupt, %d %d", eventLoop.running, (int)eventLoop.leader.thread);
+        VIR_DEBUG("Skip interrupt, %d %d", eventLoop.running,
+                  virThreadID(&eventLoop.leader));
         return 0;
     }
 

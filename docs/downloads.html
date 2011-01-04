@@ -35,6 +35,11 @@
           </li><li>
             <div>
               <span class="active">Downloads</span>
+              <ul class="l1"><li>
+                  <div>
+                    <a title="Downloads for Windows" class="inactive" href="windows.html">Windows</a>
+                  </div>
+                </li></ul>
             </div>
           </li><li>
             <div>
@@ -78,10 +83,6 @@
             <a href="#appdevpdf">Application Development Guide PDF</a>
           </li><li>
             <a href="#appdevgit">Application Development Guide source GIT repository</a>
-          </li><li>
-            <a href="#Compilatio">Compiling a release tarball</a>
-          </li><li>
-            <a href="#build">Building from a GIT checkout</a>
           </li></ul>
         <h2>
           <a name="releases" id="releases">Official Releases</a>
@@ -147,44 +148,10 @@
         <pre>
       <a href="http://libvirt.org/git/?p=libvirt-appdev-guide.git;a=summary">http://libvirt.org/git/?p=libvirt-appdev-guide.git;a=summary</a></pre>
         <br />
-        <h1>
-          <a name="installation" id="installation">libvirt Installation</a>
-        </h1>
-        <h2>
-          <a name="Compilatio" id="Compilatio">Compiling a release tarball</a>
-        </h2>
         <p>
-      libvirt uses the standard configure/make/install steps:
+      Once you've have obtained the libvirt source code, you can compile it
+      using the <a href="compiling.html">instructions here</a>.
     </p>
-        <pre>
-      gunzip -c libvirt-xxx.tar.gz | tar xvf -
-      cd libvirt-xxxx
-      ./configure --help</pre>
-        <p>
-      To see the options, then the compilation/installation proper:
-    </p>
-        <pre>
-      ./configure [possible options]
-      make
-      make install</pre>
-        <p>
-      At that point you may have to rerun ldconfig or a similar utility to
-      update your list of installed shared libs.
-    </p>
-        <h2>
-          <a name="build" id="build">Building from a GIT checkout</a>
-        </h2>
-        <p>
-      The libvirt build process uses GNU autotools, so after obtaining a
-      checkout it is necessary to generate the configure script and Makefile.in
-      templates using the <code>autogen.sh</code> command, passing the extra
-      arguments as for configure. As an example, to do a complete build and
-      install it into your home directory run:
-    </p>
-        <pre>
-      ./autogen.sh --prefix=$HOME/usr --enable-compile-warnings=error
-      make
-      make install</pre>
       </div>
     </div>
     <div id="footer">

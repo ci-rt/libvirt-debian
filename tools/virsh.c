@@ -131,6 +131,22 @@ typedef enum {
 } vshCmdOptType;
 
 /*
+ * Command group types
+ */
+#define VSH_CMD_GRP_DOM_MANAGEMENT   "Domain Management"
+#define VSH_CMD_GRP_DOM_MONITORING   "Domain Monitoring"
+#define VSH_CMD_GRP_STORAGE_POOL     "Storage Pool"
+#define VSH_CMD_GRP_STORAGE_VOL      "Storage Volume"
+#define VSH_CMD_GRP_NETWORK          "Networking"
+#define VSH_CMD_GRP_NODEDEV          "Node Device"
+#define VSH_CMD_GRP_IFACE            "Interface"
+#define VSH_CMD_GRP_NWFILTER         "Network Filter"
+#define VSH_CMD_GRP_SECRET           "Secret"
+#define VSH_CMD_GRP_SNAPSHOT         "Snapshot"
+#define VSH_CMD_GRP_HOST_AND_HV      "Host and Hypervisor"
+#define VSH_CMD_GRP_VIRSH            "Virsh itself"
+
+/*
  * Command Option Flags
  */
 #define VSH_OFLAG_NONE    0     /* without flags */
@@ -207,8 +223,13 @@ typedef struct __vshControl {
     char *historyfile;          /* readline history file name */
 } __vshControl;
 
+typedef struct vshCmdGrp {
+    const char *name;
+    const char *keyword; /* help keyword */
+    const vshCmdDef *commands;
+} vshCmdGrp;
 
-static const vshCmdDef commands[];
+static const vshCmdGrp cmdGroups[];
 
 static void vshError(vshControl *ctl, const char *format, ...)
     ATTRIBUTE_FMT_PRINTF(2, 3);
@@ -224,6 +245,8 @@ static int vshParseArgv(vshControl *ctl, int argc, char **argv);
 static const char *vshCmddefGetInfo(const vshCmdDef *cmd, const char *info);
 static const vshCmdDef *vshCmddefSearch(const char *cmdname);
 static int vshCmddefHelp(vshControl *ctl, const char *name);
+static const vshCmdGrp *vshCmdGrpSearch(const char *grpname);
+static int vshCmdGrpHelp(vshControl *ctl, const char *name);
 
 static vshCmdOpt *vshCommandOpt(const vshCmd *cmd, const char *name);
 static int vshCommandOptInt(const vshCmd *cmd, const char *name, int *found);
@@ -539,31 +562,54 @@ vshReconnect(vshControl *ctl) {
  */
 static const vshCmdInfo info_help[] = {
     {"help", N_("print help")},
-    {"desc", N_("Prints global help or command specific help.")},
+    {"desc", N_("Prints global help, command specific help, or help for a\n"
+                "    group of related commands")},
 
     {NULL, NULL}
 };
 
 static const vshCmdOptDef opts_help[] = {
-    {"command", VSH_OT_DATA, 0, N_("name of command")},
+    {"command", VSH_OT_DATA, 0, N_("Prints global help, command specific help, or help for a group of related commands")},
     {NULL, 0, 0, NULL}
 };
 
 static int
 cmdHelp(vshControl *ctl, const vshCmd *cmd)
-{
-    const char *cmdname = vshCommandOptString(cmd, "command", NULL);
+ {
+    const vshCmdDef *c;
+    const vshCmdGrp *g;
+    const char *name;
 
-    if (!cmdname) {
+    name = vshCommandOptString(cmd, "command", NULL);
+
+    if (!name) {
+        const vshCmdGrp *grp;
         const vshCmdDef *def;
 
-        vshPrint(ctl, "%s", _("Commands:\n\n"));
-        for (def = commands; def->name; def++)
-            vshPrint(ctl, "    %-15s %s\n", def->name,
-                     _(vshCmddefGetInfo(def, "help")));
+        vshPrint(ctl, "%s", _("Grouped commands:\n\n"));
+
+        for (grp = cmdGroups; grp->name; grp++) {
+            vshPrint(ctl, _(" %s (help keyword '%s'):\n"), grp->name,
+                     grp->keyword);
+
+            for (def = grp->commands; def->name; def++)
+                vshPrint(ctl, "    %-30s %s\n", def->name,
+                         _(vshCmddefGetInfo(def, "help")));
+
+            vshPrint(ctl, "\n");
+        }
+
         return TRUE;
     }
-    return vshCmddefHelp(ctl, cmdname);
+
+    if ((c = vshCmddefSearch(name))) {
+        return vshCmddefHelp(ctl, name);
+    } else if ((g = vshCmdGrpSearch(name))) {
+        return vshCmdGrpHelp(ctl, name);
+    } else {
+        vshError(ctl, _("command or command group '%s' doesn't exist"), name);
+        return FALSE;
+    }
 }
 
 /*
@@ -686,7 +732,7 @@ static const vshCmdOptDef opts_console[] = {
 };
 
 static int
-cmdRunConsole(vshControl *ctl, virDomainPtr dom, const char *devname)
+cmdRunConsole(vshControl *ctl, virDomainPtr dom, const char *name)
 {
     int ret = FALSE;
     virDomainInfo dominfo;
@@ -703,7 +749,7 @@ cmdRunConsole(vshControl *ctl, virDomainPtr dom, const char *devname)
 
     vshPrintExtra(ctl, _("Connected to domain %s\n"), virDomainGetName(dom));
     vshPrintExtra(ctl, "%s", _("Escape character is ^]\n"));
-    if (vshRunConsole(dom, devname) == 0)
+    if (vshRunConsole(dom, name) == 0)
         ret = TRUE;
 
  cleanup:
@@ -716,7 +762,7 @@ cmdConsole(vshControl *ctl, const vshCmd *cmd)
 {
     virDomainPtr dom;
     int ret;
-    const char *devname;
+    const char *name;
 
     if (!vshConnectionUsability(ctl, ctl->conn))
         return FALSE;
@@ -724,9 +770,9 @@ cmdConsole(vshControl *ctl, const vshCmd *cmd)
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return FALSE;
 
-    devname = vshCommandOptString(cmd, "devname", NULL);
+    name = vshCommandOptString(cmd, "devname", NULL);
 
-    ret = cmdRunConsole(ctl, dom, devname);
+    ret = cmdRunConsole(ctl, dom, name);
 
     virDomainFree(dom);
     return ret;
@@ -2848,8 +2894,9 @@ cmdSetmaxmem(vshControl *ctl, const vshCmd *cmd)
  * "memtune" command
  */
 static const vshCmdInfo info_memtune[] = {
-    {"help", N_("Get/Set memory paramters")},
-    {"desc", N_("Get/Set the current memory paramters for the guest domain.\n" \
+    {"help", N_("Get or set memory parameters")},
+    {"desc", N_("Get or set the current memory parameters for a guest" \
+                " domain.\n" \
                 "    To get the memory parameters use following command: \n\n" \
                 "    virsh # memtune <domain>")},
     {NULL, NULL}
@@ -8246,6 +8293,7 @@ static const vshCmdOptDef opts_update_device[] = {
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
     {"file",   VSH_OT_DATA, VSH_OFLAG_REQ, N_("XML file")},
     {"persistent", VSH_OT_BOOL, 0, N_("persist device update")},
+    {"force",  VSH_OT_BOOL, 0, N_("force device update")},
     {NULL, 0, 0, NULL}
 };
 
@@ -8284,6 +8332,10 @@ cmdUpdateDevice(vshControl *ctl, const vshCmd *cmd)
     } else {
         flags = VIR_DOMAIN_DEVICE_MODIFY_LIVE;
     }
+
+    if (vshCommandOptBool(cmd, "force"))
+        flags |= VIR_DOMAIN_DEVICE_MODIFY_FORCE;
+
     ret = virDomainUpdateDeviceFlags(dom, buffer, flags);
     VIR_FREE(buffer);
 
@@ -8618,11 +8670,16 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
         virBufferVSprintf(&buf, " device='%s'", type);
     virBufferAddLit(&buf, ">\n");
 
-    virBufferVSprintf(&buf, "  <driver name='%s'",
-                      (driver) ? driver : "phy");
+    if (driver || subdriver)
+        virBufferVSprintf(&buf, "  <driver");
+
+    if (driver)
+        virBufferVSprintf(&buf, " name='%s'", driver);
     if (subdriver)
         virBufferVSprintf(&buf, " type='%s'", subdriver);
-    virBufferAddLit(&buf, "/>\n");
+
+    if (driver || subdriver)
+        virBufferAddLit(&buf, "/>\n");
 
     virBufferVSprintf(&buf, "  <source %s='%s'/>\n",
                       (isFile) ? "file" : "dev",
@@ -9880,60 +9937,114 @@ cleanup:
     return ret;
 }
 
-
-/*
- * Commands
- */
-static const vshCmdDef commands[] = {
-    {"help", cmdHelp, opts_help, info_help},
+static const vshCmdDef domManagementCmds[] = {
     {"attach-device", cmdAttachDevice, opts_attach_device, info_attach_device},
     {"attach-disk", cmdAttachDisk, opts_attach_disk, info_attach_disk},
     {"attach-interface", cmdAttachInterface, opts_attach_interface, info_attach_interface},
     {"autostart", cmdAutostart, opts_autostart, info_autostart},
-    {"capabilities", cmdCapabilities, NULL, info_capabilities},
-#ifndef WIN32
-    {"cd", cmdCd, opts_cd, info_cd},
-#endif
-    {"connect", cmdConnect, opts_connect, info_connect},
 #ifndef WIN32
     {"console", cmdConsole, opts_console, info_console},
 #endif
     {"cpu-baseline", cmdCPUBaseline, opts_cpu_baseline, info_cpu_baseline},
     {"cpu-compare", cmdCPUCompare, opts_cpu_compare, info_cpu_compare},
     {"create", cmdCreate, opts_create, info_create},
-    {"start", cmdStart, opts_start, info_start},
+    {"define", cmdDefine, opts_define, info_define},
     {"destroy", cmdDestroy, opts_destroy, info_destroy},
     {"detach-device", cmdDetachDevice, opts_detach_device, info_detach_device},
     {"detach-disk", cmdDetachDisk, opts_detach_disk, info_detach_disk},
     {"detach-interface", cmdDetachInterface, opts_detach_interface, info_detach_interface},
-    {"define", cmdDefine, opts_define, info_define},
     {"domid", cmdDomid, opts_domid, info_domid},
-    {"domuuid", cmdDomuuid, opts_domuuid, info_domuuid},
-    {"dominfo", cmdDominfo, opts_dominfo, info_dominfo},
-    {"domjobinfo", cmdDomjobinfo, opts_domjobinfo, info_domjobinfo},
     {"domjobabort", cmdDomjobabort, opts_domjobabort, info_domjobabort},
+    {"domjobinfo", cmdDomjobinfo, opts_domjobinfo, info_domjobinfo},
     {"domname", cmdDomname, opts_domname, info_domname},
-    {"domstate", cmdDomstate, opts_domstate, info_domstate},
-    {"domblkstat", cmdDomblkstat, opts_domblkstat, info_domblkstat},
-    {"domifstat", cmdDomIfstat, opts_domifstat, info_domifstat},
-    {"dommemstat", cmdDomMemStat, opts_dommemstat, info_dommemstat},
-    {"domblkinfo", cmdDomblkinfo, opts_domblkinfo, info_domblkinfo},
+    {"domuuid", cmdDomuuid, opts_domuuid, info_domuuid},
     {"domxml-from-native", cmdDomXMLFromNative, opts_domxmlfromnative, info_domxmlfromnative},
     {"domxml-to-native", cmdDomXMLToNative, opts_domxmltonative, info_domxmltonative},
+    {"dump", cmdDump, opts_dump, info_dump},
     {"dumpxml", cmdDumpXML, opts_dumpxml, info_dumpxml},
-    {"echo", cmdEcho, opts_echo, info_echo},
     {"edit", cmdEdit, opts_edit, info_edit},
-    {"find-storage-pool-sources", cmdPoolDiscoverSources,
-     opts_find_storage_pool_sources, info_find_storage_pool_sources},
-    {"find-storage-pool-sources-as", cmdPoolDiscoverSourcesAs,
-     opts_find_storage_pool_sources_as, info_find_storage_pool_sources_as},
-    {"freecell", cmdFreecell, opts_freecell, info_freecell},
-    {"hostname", cmdHostname, NULL, info_hostname},
-    {"list", cmdList, opts_list, info_list},
+    {"managedsave", cmdManagedSave, opts_managedsave, info_managedsave},
+    {"managedsave-remove", cmdManagedSaveRemove, opts_managedsaveremove, info_managedsaveremove},
     {"maxvcpus", cmdMaxvcpus, opts_maxvcpus, info_maxvcpus},
+    {"memtune", cmdMemtune, opts_memtune, info_memtune},
     {"migrate", cmdMigrate, opts_migrate, info_migrate},
     {"migrate-setmaxdowntime", cmdMigrateSetMaxDowntime, opts_migrate_setmaxdowntime, info_migrate_setmaxdowntime},
+    {"reboot", cmdReboot, opts_reboot, info_reboot},
+    {"restore", cmdRestore, opts_restore, info_restore},
+    {"resume", cmdResume, opts_resume, info_resume},
+    {"save", cmdSave, opts_save, info_save},
+    {"schedinfo", cmdSchedinfo, opts_schedinfo, info_schedinfo},
+    {"setmaxmem", cmdSetmaxmem, opts_setmaxmem, info_setmaxmem},
+    {"setmem", cmdSetmem, opts_setmem, info_setmem},
+    {"setvcpus", cmdSetvcpus, opts_setvcpus, info_setvcpus},
+    {"shutdown", cmdShutdown, opts_shutdown, info_shutdown},
+    {"start", cmdStart, opts_start, info_start},
+    {"suspend", cmdSuspend, opts_suspend, info_suspend},
+    {"ttyconsole", cmdTTYConsole, opts_ttyconsole, info_ttyconsole},
+    {"undefine", cmdUndefine, opts_undefine, info_undefine},
+    {"update-device", cmdUpdateDevice, opts_update_device, info_update_device},
+    {"vcpucount", cmdVcpucount, opts_vcpucount, info_vcpucount},
+    {"vcpuinfo", cmdVcpuinfo, opts_vcpuinfo, info_vcpuinfo},
+    {"vcpupin", cmdVcpupin, opts_vcpupin, info_vcpupin},
+    {"version", cmdVersion, NULL, info_version},
+    {"vncdisplay", cmdVNCDisplay, opts_vncdisplay, info_vncdisplay},
+    {NULL, NULL, NULL, NULL}
+};
 
+static const vshCmdDef domMonitoringCmds[] = {
+    {"domblkinfo", cmdDomblkinfo, opts_domblkinfo, info_domblkinfo},
+    {"domblkstat", cmdDomblkstat, opts_domblkstat, info_domblkstat},
+    {"domifstat", cmdDomIfstat, opts_domifstat, info_domifstat},
+    {"dominfo", cmdDominfo, opts_dominfo, info_dominfo},
+    {"dommemstat", cmdDomMemStat, opts_dommemstat, info_dommemstat},
+    {"domstate", cmdDomstate, opts_domstate, info_domstate},
+    {"list", cmdList, opts_list, info_list},
+    {NULL, NULL, NULL, NULL}
+};
+
+static const vshCmdDef storagePoolCmds[] = {
+    {"find-storage-pool-sources-as", cmdPoolDiscoverSourcesAs,
+     opts_find_storage_pool_sources_as, info_find_storage_pool_sources_as},
+    {"find-storage-pool-sources", cmdPoolDiscoverSources,
+     opts_find_storage_pool_sources, info_find_storage_pool_sources},
+    {"pool-autostart", cmdPoolAutostart, opts_pool_autostart, info_pool_autostart},
+    {"pool-build", cmdPoolBuild, opts_pool_build, info_pool_build},
+    {"pool-create-as", cmdPoolCreateAs, opts_pool_X_as, info_pool_create_as},
+    {"pool-create", cmdPoolCreate, opts_pool_create, info_pool_create},
+    {"pool-define-as", cmdPoolDefineAs, opts_pool_X_as, info_pool_define_as},
+    {"pool-define", cmdPoolDefine, opts_pool_define, info_pool_define},
+    {"pool-delete", cmdPoolDelete, opts_pool_delete, info_pool_delete},
+    {"pool-destroy", cmdPoolDestroy, opts_pool_destroy, info_pool_destroy},
+    {"pool-dumpxml", cmdPoolDumpXML, opts_pool_dumpxml, info_pool_dumpxml},
+    {"pool-edit", cmdPoolEdit, opts_pool_edit, info_pool_edit},
+    {"pool-info", cmdPoolInfo, opts_pool_info, info_pool_info},
+    {"pool-list", cmdPoolList, opts_pool_list, info_pool_list},
+    {"pool-name", cmdPoolName, opts_pool_name, info_pool_name},
+    {"pool-refresh", cmdPoolRefresh, opts_pool_refresh, info_pool_refresh},
+    {"pool-start", cmdPoolStart, opts_pool_start, info_pool_start},
+    {"pool-undefine", cmdPoolUndefine, opts_pool_undefine, info_pool_undefine},
+    {"pool-uuid", cmdPoolUuid, opts_pool_uuid, info_pool_uuid},
+    {NULL, NULL, NULL, NULL}
+};
+
+static const vshCmdDef storageVolCmds[] = {
+    {"vol-clone", cmdVolClone, opts_vol_clone, info_vol_clone},
+    {"vol-create-as", cmdVolCreateAs, opts_vol_create_as, info_vol_create_as},
+    {"vol-create", cmdVolCreate, opts_vol_create, info_vol_create},
+    {"vol-create-from", cmdVolCreateFrom, opts_vol_create_from, info_vol_create_from},
+    {"vol-delete", cmdVolDelete, opts_vol_delete, info_vol_delete},
+    {"vol-dumpxml", cmdVolDumpXML, opts_vol_dumpxml, info_vol_dumpxml},
+    {"vol-info", cmdVolInfo, opts_vol_info, info_vol_info},
+    {"vol-key", cmdVolKey, opts_vol_key, info_vol_key},
+    {"vol-list", cmdVolList, opts_vol_list, info_vol_list},
+    {"vol-name", cmdVolName, opts_vol_name, info_vol_name},
+    {"vol-path", cmdVolPath, opts_vol_path, info_vol_path},
+    {"vol-pool", cmdVolPool, opts_vol_pool, info_vol_pool},
+    {"vol-wipe", cmdVolWipe, opts_vol_wipe, info_vol_wipe},
+    {NULL, NULL, NULL, NULL}
+};
+
+static const vshCmdDef networkCmds[] = {
     {"net-autostart", cmdNetworkAutostart, opts_network_autostart, info_network_autostart},
     {"net-create", cmdNetworkCreate, opts_network_create, info_network_create},
     {"net-define", cmdNetworkDefine, opts_network_define, info_network_define},
@@ -9946,115 +10057,103 @@ static const vshCmdDef commands[] = {
     {"net-start", cmdNetworkStart, opts_network_start, info_network_start},
     {"net-undefine", cmdNetworkUndefine, opts_network_undefine, info_network_undefine},
     {"net-uuid", cmdNetworkUuid, opts_network_uuid, info_network_uuid},
+    {NULL, NULL, NULL, NULL}
+};
 
-    {"iface-list", cmdInterfaceList, opts_interface_list, info_interface_list},
-    {"iface-name", cmdInterfaceName, opts_interface_name, info_interface_name},
-    {"iface-mac", cmdInterfaceMAC, opts_interface_mac, info_interface_mac},
-    {"iface-dumpxml", cmdInterfaceDumpXML, opts_interface_dumpxml, info_interface_dumpxml},
-    {"iface-define", cmdInterfaceDefine, opts_interface_define, info_interface_define},
-    {"iface-undefine", cmdInterfaceUndefine, opts_interface_undefine, info_interface_undefine},
-    {"iface-edit", cmdInterfaceEdit, opts_interface_edit, info_interface_edit},
-    {"iface-start", cmdInterfaceStart, opts_interface_start, info_interface_start},
-    {"iface-destroy", cmdInterfaceDestroy, opts_interface_destroy, info_interface_destroy},
-
-    {"managedsave", cmdManagedSave, opts_managedsave, info_managedsave},
-    {"managedsave-remove", cmdManagedSaveRemove, opts_managedsaveremove, info_managedsaveremove},
-
-    {"nodeinfo", cmdNodeinfo, NULL, info_nodeinfo},
-
-    {"nodedev-list", cmdNodeListDevices, opts_node_list_devices, info_node_list_devices},
-    {"nodedev-dumpxml", cmdNodeDeviceDumpXML, opts_node_device_dumpxml, info_node_device_dumpxml},
-    {"nodedev-dettach", cmdNodeDeviceDettach, opts_node_device_dettach, info_node_device_dettach},
-    {"nodedev-reattach", cmdNodeDeviceReAttach, opts_node_device_reattach, info_node_device_reattach},
-    {"nodedev-reset", cmdNodeDeviceReset, opts_node_device_reset, info_node_device_reset},
+static const vshCmdDef nodedevCmds[] = {
     {"nodedev-create", cmdNodeDeviceCreate, opts_node_device_create, info_node_device_create},
     {"nodedev-destroy", cmdNodeDeviceDestroy, opts_node_device_destroy, info_node_device_destroy},
+    {"nodedev-dettach", cmdNodeDeviceDettach, opts_node_device_dettach, info_node_device_dettach},
+    {"nodedev-dumpxml", cmdNodeDeviceDumpXML, opts_node_device_dumpxml, info_node_device_dumpxml},
+    {"nodedev-list", cmdNodeListDevices, opts_node_list_devices, info_node_list_devices},
+    {"nodedev-reattach", cmdNodeDeviceReAttach, opts_node_device_reattach, info_node_device_reattach},
+    {"nodedev-reset", cmdNodeDeviceReset, opts_node_device_reset, info_node_device_reset},
+    {NULL, NULL, NULL, NULL}
+};
 
+static const vshCmdDef ifaceCmds[] = {
+    {"iface-define", cmdInterfaceDefine, opts_interface_define, info_interface_define},
+    {"iface-destroy", cmdInterfaceDestroy, opts_interface_destroy, info_interface_destroy},
+    {"iface-dumpxml", cmdInterfaceDumpXML, opts_interface_dumpxml, info_interface_dumpxml},
+    {"iface-edit", cmdInterfaceEdit, opts_interface_edit, info_interface_edit},
+    {"iface-list", cmdInterfaceList, opts_interface_list, info_interface_list},
+    {"iface-mac", cmdInterfaceMAC, opts_interface_mac, info_interface_mac},
+    {"iface-name", cmdInterfaceName, opts_interface_name, info_interface_name},
+    {"iface-start", cmdInterfaceStart, opts_interface_start, info_interface_start},
+    {"iface-undefine", cmdInterfaceUndefine, opts_interface_undefine, info_interface_undefine},
+    {NULL, NULL, NULL, NULL}
+};
+
+static const vshCmdDef nwfilterCmds[] = {
     {"nwfilter-define", cmdNWFilterDefine, opts_nwfilter_define, info_nwfilter_define},
-    {"nwfilter-undefine", cmdNWFilterUndefine, opts_nwfilter_undefine, info_nwfilter_undefine},
     {"nwfilter-dumpxml", cmdNWFilterDumpXML, opts_nwfilter_dumpxml, info_nwfilter_dumpxml},
-    {"nwfilter-list", cmdNWFilterList, opts_nwfilter_list, info_nwfilter_list},
     {"nwfilter-edit", cmdNWFilterEdit, opts_nwfilter_edit, info_nwfilter_edit},
+    {"nwfilter-list", cmdNWFilterList, opts_nwfilter_list, info_nwfilter_list},
+    {"nwfilter-undefine", cmdNWFilterUndefine, opts_nwfilter_undefine, info_nwfilter_undefine},
+    {NULL, NULL, NULL, NULL}
+};
 
-    {"pool-autostart", cmdPoolAutostart, opts_pool_autostart, info_pool_autostart},
-    {"pool-build", cmdPoolBuild, opts_pool_build, info_pool_build},
-    {"pool-create", cmdPoolCreate, opts_pool_create, info_pool_create},
-    {"pool-create-as", cmdPoolCreateAs, opts_pool_X_as, info_pool_create_as},
-    {"pool-define", cmdPoolDefine, opts_pool_define, info_pool_define},
-    {"pool-define-as", cmdPoolDefineAs, opts_pool_X_as, info_pool_define_as},
-    {"pool-destroy", cmdPoolDestroy, opts_pool_destroy, info_pool_destroy},
-    {"pool-delete", cmdPoolDelete, opts_pool_delete, info_pool_delete},
-    {"pool-dumpxml", cmdPoolDumpXML, opts_pool_dumpxml, info_pool_dumpxml},
-    {"pool-edit", cmdPoolEdit, opts_pool_edit, info_pool_edit},
-    {"pool-info", cmdPoolInfo, opts_pool_info, info_pool_info},
-    {"pool-list", cmdPoolList, opts_pool_list, info_pool_list},
-    {"pool-name", cmdPoolName, opts_pool_name, info_pool_name},
-    {"pool-refresh", cmdPoolRefresh, opts_pool_refresh, info_pool_refresh},
-    {"pool-start", cmdPoolStart, opts_pool_start, info_pool_start},
-    {"pool-undefine", cmdPoolUndefine, opts_pool_undefine, info_pool_undefine},
-    {"pool-uuid", cmdPoolUuid, opts_pool_uuid, info_pool_uuid},
-
+static const vshCmdDef secretCmds[] = {
     {"secret-define", cmdSecretDefine, opts_secret_define, info_secret_define},
     {"secret-dumpxml", cmdSecretDumpXML, opts_secret_dumpxml, info_secret_dumpxml},
-    {"secret-set-value", cmdSecretSetValue, opts_secret_set_value, info_secret_set_value},
     {"secret-get-value", cmdSecretGetValue, opts_secret_get_value, info_secret_get_value},
-    {"secret-undefine", cmdSecretUndefine, opts_secret_undefine, info_secret_undefine},
     {"secret-list", cmdSecretList, NULL, info_secret_list},
+    {"secret-set-value", cmdSecretSetValue, opts_secret_set_value, info_secret_set_value},
+    {"secret-undefine", cmdSecretUndefine, opts_secret_undefine, info_secret_undefine},
+    {NULL, NULL, NULL, NULL}
+};
 
-
+static const vshCmdDef virshCmds[] = {
+#ifndef WIN32
+    {"cd", cmdCd, opts_cd, info_cd},
+#endif
+    {"echo", cmdEcho, opts_echo, info_echo},
+    {"exit", cmdQuit, NULL, info_quit},
+    {"help", cmdHelp, opts_help, info_help},
 #ifndef WIN32
     {"pwd", cmdPwd, NULL, info_pwd},
 #endif
     {"quit", cmdQuit, NULL, info_quit},
-    {"exit", cmdQuit, NULL, info_quit},
-    {"reboot", cmdReboot, opts_reboot, info_reboot},
-    {"restore", cmdRestore, opts_restore, info_restore},
-    {"resume", cmdResume, opts_resume, info_resume},
-    {"save", cmdSave, opts_save, info_save},
-    {"schedinfo", cmdSchedinfo, opts_schedinfo, info_schedinfo},
-    {"dump", cmdDump, opts_dump, info_dump},
-    {"shutdown", cmdShutdown, opts_shutdown, info_shutdown},
-    {"setmem", cmdSetmem, opts_setmem, info_setmem},
-    {"setmaxmem", cmdSetmaxmem, opts_setmaxmem, info_setmaxmem},
-    {"memtune", cmdMemtune, opts_memtune, info_memtune},
-    {"setvcpus", cmdSetvcpus, opts_setvcpus, info_setvcpus},
-    {"suspend", cmdSuspend, opts_suspend, info_suspend},
-    {"ttyconsole", cmdTTYConsole, opts_ttyconsole, info_ttyconsole},
-    {"undefine", cmdUndefine, opts_undefine, info_undefine},
-    {"update-device", cmdUpdateDevice, opts_update_device, info_update_device},
-    {"uri", cmdURI, NULL, info_uri},
+    {NULL, NULL, NULL, NULL}
+};
 
-    {"vol-create", cmdVolCreate, opts_vol_create, info_vol_create},
-    {"vol-create-from", cmdVolCreateFrom, opts_vol_create_from, info_vol_create_from},
-    {"vol-create-as", cmdVolCreateAs, opts_vol_create_as, info_vol_create_as},
-    {"vol-clone", cmdVolClone, opts_vol_clone, info_vol_clone},
-    {"vol-delete", cmdVolDelete, opts_vol_delete, info_vol_delete},
-    {"vol-wipe", cmdVolWipe, opts_vol_wipe, info_vol_wipe},
-    {"vol-dumpxml", cmdVolDumpXML, opts_vol_dumpxml, info_vol_dumpxml},
-    {"vol-info", cmdVolInfo, opts_vol_info, info_vol_info},
-    {"vol-list", cmdVolList, opts_vol_list, info_vol_list},
-    {"vol-pool", cmdVolPool, opts_vol_pool, info_vol_pool},
-    {"vol-path", cmdVolPath, opts_vol_path, info_vol_path},
-    {"vol-name", cmdVolName, opts_vol_name, info_vol_name},
-    {"vol-key", cmdVolKey, opts_vol_key, info_vol_key},
-
-    {"vcpucount", cmdVcpucount, opts_vcpucount, info_vcpucount},
-    {"vcpuinfo", cmdVcpuinfo, opts_vcpuinfo, info_vcpuinfo},
-    {"vcpupin", cmdVcpupin, opts_vcpupin, info_vcpupin},
-    {"version", cmdVersion, NULL, info_version},
-    {"vncdisplay", cmdVNCDisplay, opts_vncdisplay, info_vncdisplay},
-
+static const vshCmdDef snapshotCmds[] = {
     {"snapshot-create", cmdSnapshotCreate, opts_snapshot_create, info_snapshot_create},
     {"snapshot-current", cmdSnapshotCurrent, opts_snapshot_current, info_snapshot_current},
     {"snapshot-delete", cmdSnapshotDelete, opts_snapshot_delete, info_snapshot_delete},
     {"snapshot-dumpxml", cmdSnapshotDumpXML, opts_snapshot_dumpxml, info_snapshot_dumpxml},
     {"snapshot-list", cmdSnapshotList, opts_snapshot_list, info_snapshot_list},
     {"snapshot-revert", cmdDomainSnapshotRevert, opts_snapshot_revert, info_snapshot_revert},
-
-    {"qemu-monitor-command", cmdQemuMonitorCommand, opts_qemu_monitor_command, info_qemu_monitor_command},
-
     {NULL, NULL, NULL, NULL}
 };
+
+static const vshCmdDef hostAndHypervisorCmds[] = {
+    {"capabilities", cmdCapabilities, NULL, info_capabilities},
+    {"connect", cmdConnect, opts_connect, info_connect},
+    {"freecell", cmdFreecell, opts_freecell, info_freecell},
+    {"hostname", cmdHostname, NULL, info_hostname},
+    {"nodeinfo", cmdNodeinfo, NULL, info_nodeinfo},
+    {"qemu-monitor-command", cmdQemuMonitorCommand, opts_qemu_monitor_command, info_qemu_monitor_command},
+    {"uri", cmdURI, NULL, info_uri},
+    {NULL, NULL, NULL, NULL}
+};
+
+static const vshCmdGrp cmdGroups[] = {
+    {VSH_CMD_GRP_DOM_MANAGEMENT, "domain", domManagementCmds},
+    {VSH_CMD_GRP_DOM_MONITORING, "monitor", domMonitoringCmds},
+    {VSH_CMD_GRP_HOST_AND_HV, "host", hostAndHypervisorCmds},
+    {VSH_CMD_GRP_IFACE, "interface", ifaceCmds},
+    {VSH_CMD_GRP_NWFILTER, "filter", nwfilterCmds},
+    {VSH_CMD_GRP_NETWORK, "network", networkCmds},
+    {VSH_CMD_GRP_NODEDEV, "nodedev", nodedevCmds},
+    {VSH_CMD_GRP_SECRET, "secret", secretCmds},
+    {VSH_CMD_GRP_SNAPSHOT, "snapshot", snapshotCmds},
+    {VSH_CMD_GRP_STORAGE_POOL, "pool", storagePoolCmds},
+    {VSH_CMD_GRP_STORAGE_VOL, "volume", storageVolCmds},
+    {VSH_CMD_GRP_VIRSH, "virsh", virshCmds},
+    {NULL, NULL, NULL}
+};
+
 
 /* ---------------
  * Utils for work with command definition
@@ -10137,12 +10236,52 @@ vshCommandCheckOpts(vshControl *ctl, const vshCmd *cmd)
 static const vshCmdDef *
 vshCmddefSearch(const char *cmdname)
 {
+    const vshCmdGrp *g;
     const vshCmdDef *c;
 
-    for (c = commands; c->name; c++)
-        if (STREQ(c->name, cmdname))
-            return c;
+    for (g = cmdGroups; g->name; g++) {
+        for (c = g->commands; c->name; c++) {
+            if(STREQ(c->name, cmdname))
+                return c;
+        }
+    }
+
     return NULL;
+}
+
+static const vshCmdGrp *
+vshCmdGrpSearch(const char *grpname)
+{
+    const vshCmdGrp *g;
+
+    for (g = cmdGroups; g->name; g++) {
+        if(STREQ(g->name, grpname) || STREQ(g->keyword, grpname))
+            return g;
+    }
+
+    return NULL;
+}
+
+static int
+vshCmdGrpHelp(vshControl *ctl, const char *grpname)
+{
+    const vshCmdGrp *grp = vshCmdGrpSearch(grpname);
+    const vshCmdDef *cmd = NULL;
+
+    if (!grp) {
+        vshError(ctl, _("command group '%s' doesn't exist"), grpname);
+        return FALSE;
+    } else {
+        vshPrint(ctl, _(" %s (help keyword '%s'):\n"), grp->name,
+                 grp->keyword);
+
+        for (cmd = grp->commands; cmd->name; cmd++) {
+            vshPrint(ctl, "    %-30s %s\n", cmd->name,
+                     _(vshCmddefGetInfo(cmd, "help")));
+        }
+    }
+
+    return TRUE;
 }
 
 static int
@@ -10801,8 +10940,10 @@ vshCommandParse(vshControl *ctl, vshCommandParser *parser)
 
             if (tk == VSH_TK_ERROR)
                 goto syntaxError;
-            if (tk != VSH_TK_ARG)
+            if (tk != VSH_TK_ARG) {
+                VIR_FREE(tkdata);
                 break;
+            }
 
             if (cmd == NULL) {
                 /* first token must be command name */
@@ -11325,25 +11466,36 @@ vshCloseLogFile(vshControl *ctl)
 static char *
 vshReadlineCommandGenerator(const char *text, int state)
 {
-    static int list_index, len;
+    static int grp_list_index, cmd_list_index, len;
     const char *name;
+    const vshCmdGrp *grp;
+    const vshCmdDef *cmds;
 
-    /* If this is a new word to complete, initialize now.  This
-     * includes saving the length of TEXT for efficiency, and
-     * initializing the index variable to 0.
-     */
     if (!state) {
-        list_index = 0;
+        grp_list_index = 0;
+        cmd_list_index = 0;
         len = strlen(text);
     }
+
+    grp = cmdGroups;
 
     /* Return the next name which partially matches from the
      * command list.
      */
-    while ((name = commands[list_index].name)) {
-        list_index++;
-        if (STREQLEN(name, text, len))
-            return vshStrdup(NULL, name);
+    while (grp[grp_list_index].name) {
+        cmds = grp[grp_list_index].commands;
+
+        if (cmds[cmd_list_index].name) {
+            while ((name = cmds[cmd_list_index].name)) {
+                cmd_list_index++;
+
+                if (STREQLEN(name, text, len))
+                    return vshStrdup(NULL, name);
+            }
+        } else {
+            cmd_list_index = 0;
+            grp_list_index++;
+        }
     }
 
     /* If no names matched, then return NULL. */
@@ -11542,7 +11694,9 @@ vshDeinit(vshControl *ctl)
 static void
 vshUsage(void)
 {
+    const vshCmdGrp *grp;
     const vshCmdDef *cmd;
+
     fprintf(stdout, _("\n%s [options]... [<command_string>]"
                       "\n%s [options]... <command> [args...]\n\n"
                       "  options:\n"
@@ -11553,14 +11707,22 @@ vshUsage(void)
                       "    -q | --quiet            quiet mode\n"
                       "    -t | --timing           print timing information\n"
                       "    -l | --log <file>       output logging to file\n"
-                      "    -v | --version[=short]  program version\n\n"
+                      "    -v | --version[=short]  program version\n"
                       "    -V | --version=long     version and full options\n\n"
-                      "  commands (non interactive mode):\n"), progname, progname);
+                      "  commands (non interactive mode):\n\n"), progname, progname);
 
-    for (cmd = commands; cmd->name; cmd++)
-        fprintf(stdout,
-                "    %-15s %s\n", cmd->name, _(vshCmddefGetInfo(cmd, "help")));
+    for (grp = cmdGroups; grp->name; grp++) {
+        fprintf(stdout, _(" %s (help keyword '%s')\n"), grp->name, grp->keyword);
 
+        for (cmd = grp->commands; cmd->name; cmd++)
+            fprintf(stdout,
+                    "    %-30s %s\n", cmd->name, _(vshCmddefGetInfo(cmd, "help")));
+
+        fprintf(stdout, "\n");
+    }
+
+    fprintf(stdout, "%s",
+            _("\n  (specify help <group> for details about the commands in the group)\n"));
     fprintf(stdout, "%s",
             _("\n  (specify help <command> for details about the command)\n\n"));
     return;

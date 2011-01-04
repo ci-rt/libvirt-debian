@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# getdelim.m4 serial 6
+# getdelim.m4 serial 8
 
 dnl Copyright (C) 2005-2007, 2009-2010 Free Software Foundation, Inc.
 dnl
@@ -40,7 +40,7 @@ AC_DEFUN([gl_FUNC_GETDELIM],
         size_t siz = 0;
         int len = getdelim (&line, &siz, '\n', in);
         if (!(len == 4 && line && strcmp (line, "foo\n") == 0))
-          return 1;
+          return 2;
       }
       {
         /* Test result for a NULL buffer and a non-zero size.
@@ -48,7 +48,7 @@ AC_DEFUN([gl_FUNC_GETDELIM],
         char *line = NULL;
         size_t siz = (size_t)(~0) / 4;
         if (getdelim (&line, &siz, '\n', in) == -1)
-          return 1;
+          return 3;
       }
       return 0;
     }
@@ -59,7 +59,7 @@ AC_DEFUN([gl_FUNC_GETDELIM],
          [
 #include <features.h>
 #ifdef __GNU_LIBRARY__
- #if (__GLIBC__ >= 2)
+ #if (__GLIBC__ >= 2) && !defined __UCLIBC__
   Lucky GNU user
  #endif
 #endif

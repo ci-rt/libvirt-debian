@@ -2,9 +2,6 @@
 
 SHELL = $(PREFERABLY_POSIX_SHELL)
 
-SUBDIRS = confdata sexpr2xmldata \
-  xml2sexprdata xmconfigdata xencapsdata
-
 INCLUDES = \
 	-I$(top_srcdir)/gnulib/lib -I../gnulib/lib \
 	-I$(top_builddir)/include \
@@ -39,40 +36,48 @@ LDADDS = \
         $(COVERAGE_LDFLAGS)
 
 EXTRA_DIST =		\
-        oomtrace.pl     \
-	test-lib.sh	\
+	capabilityschemadata \
+	capabilityschematest \
+	commanddata \
+	confdata \
+	cputestdata \
+	domainschemadata \
+	domainschematest \
+	domainsnapshotschematest \
+	domainsnapshotxml2xmlin \
+	domainsnapshotxml2xmlout \
+	interfaceschemadata \
+	networkschematest \
+	networkxml2xmlin \
+	networkxml2xmlout \
+	nodedevschemadata \
+	nodedevschematest \
+	nodeinfodata     \
+	nwfilterschematest \
+	nwfilterxml2xmlin \
+	nwfilterxml2xmlout \
+	oomtrace.pl \
+	qemuhelpdata \
 	qemuxml2argvdata \
 	qemuxml2xmloutdata \
-	nodeinfodata     \
 	schematestutils.sh \
-	capabilityschematest \
-	capabilityschemadata \
-	networkschematest \
-	networkxml2xmlout \
-	networkxml2xmlin \
-	domainschematest \
-	domainschemadata \
-	interfaceschemadata \
+	sexpr2xmldata \
 	storagepoolschematest \
-	storagepoolxml2xmlout \
 	storagepoolxml2xmlin \
+	storagepoolxml2xmlout \
 	storagevolschematest \
-	storagevolxml2xmlout \
 	storagevolxml2xmlin \
-	nodedevschematest \
-	nodedevschemadata \
+	storagevolxml2xmlout \
+	test-lib.sh	\
 	vmx2xmldata \
-	xml2vmxdata \
-	nwfilterxml2xmlout \
-	nwfilterxml2xmlin \
-	nwfilterschematest \
-	domainsnapshotschematest \
-	domainsnapshotxml2xmlout \
-	domainsnapshotxml2xmlin \
-	qemuhelpdata
+	xencapsdata \
+	xmconfigdata \
+	xml2sexprdata \
+	xml2vmxdata
 
 check_PROGRAMS = virshtest conftest sockettest \
-        nodeinfotest qparamtest virbuftest
+	nodeinfotest qparamtest virbuftest \
+	commandtest commandhelper
 
 if WITH_XEN
 check_PROGRAMS += xml2sexprtest sexpr2xmltest \
@@ -86,7 +91,11 @@ check_PROGRAMS += qemuxml2argvtest qemuxml2xmltest qemuargv2xmltest qemuhelptest
 endif
 
 if WITH_ESX
-check_PROGRAMS += esxutilstest vmx2xmltest xml2vmxtest
+check_PROGRAMS += esxutilstest
+endif
+
+if WITH_VMX
+check_PROGRAMS += vmx2xmltest xml2vmxtest
 endif
 
 if WITH_SECDRIVER_SELINUX
@@ -110,6 +119,8 @@ check_PROGRAMS += storagevolxml2xmltest storagepoolxml2xmltest
 check_PROGRAMS += nodedevxml2xmltest
 
 check_PROGRAMS += interfacexml2xmltest
+
+check_PROGRAMS += cputest
 
 test_scripts = \
 	capabilityschematest \
@@ -154,6 +165,7 @@ TESTS = virshtest \
 	qparamtest \
 	virbuftest \
 	sockettest \
+	commandtest \
 	$(test_scripts)
 
 if WITH_XEN
@@ -172,7 +184,11 @@ TESTS += nwfilterxml2xmltest
 endif
 
 if WITH_ESX
-TESTS += esxutilstest vmx2xmltest xml2vmxtest
+TESTS += esxutilstest
+endif
+
+if WITH_VMX
+TESTS += vmx2xmltest xml2vmxtest
 endif
 
 if WITH_SECDRIVER_SELINUX
@@ -196,15 +212,17 @@ TESTS += nodedevxml2xmltest
 
 TESTS += interfacexml2xmltest
 
+TESTS += cputest
+
 path_add = $$abs_top_builddir/src$(PATH_SEPARATOR)$$abs_top_builddir/daemon$(PATH_SEPARATOR)$$abs_top_builddir/tools
 
 # NB, automake < 1.10 does not provide the real
-# abs_top_{src/build}dir variables, so don't rely
+# abs_top_{src/build}dir or builddir variables, so don't rely
 # on them here. Fake them with 'pwd'
 TESTS_ENVIRONMENT =				\
   abs_top_builddir=`cd '$(top_builddir)'; pwd`	\
   abs_top_srcdir=`cd '$(top_srcdir)'; pwd`	\
-  abs_builddir=`cd '$(builddir)'; pwd`		\
+  abs_builddir=`pwd`				\
   abs_srcdir=`cd '$(srcdir)'; pwd`		\
   CONFIG_HEADER="`cd '$(top_builddir)'; pwd`/config.h"	\
   PATH="$(path_add)$(PATH_SEPARATOR)$$PATH"	\
@@ -282,18 +300,22 @@ esxutilstest_SOURCES = \
 	esxutilstest.c \
 	testutils.c testutils.h
 esxutilstest_LDADD = ../src/libvirt_driver_esx.la $(LDADDS)
+else
+EXTRA_DIST += esxutilstest.c
+endif
 
+if WITH_VMX
 vmx2xmltest_SOURCES = \
 	vmx2xmltest.c \
 	testutils.c testutils.h
-vmx2xmltest_LDADD = ../src/libvirt_driver_esx.la $(LDADDS)
+vmx2xmltest_LDADD = ../src/libvirt_vmx.la $(LDADDS)
 
 xml2vmxtest_SOURCES = \
 	xml2vmxtest.c \
 	testutils.c testutils.h
-xml2vmxtest_LDADD = ../src/libvirt_driver_esx.la $(LDADDS)
+xml2vmxtest_LDADD = ../src/libvirt_vmx.la $(LDADDS)
 else
-EXTRA_DIST += esxutilstest.c vmx2xmltest.c xml2vmxtest.c
+EXTRA_DIST += vmx2xmltest.c xml2vmxtest.c
 endif
 
 networkxml2xmltest_SOURCES = \
@@ -326,6 +348,11 @@ interfacexml2xmltest_SOURCES = \
 	testutils.c testutils.h
 interfacexml2xmltest_LDADD = $(LDADDS)
 
+cputest_SOURCES = \
+	cputest.c \
+	testutils.c testutils.h
+cputest_LDADD = $(LDADDS)
+
 virshtest_SOURCES = \
 	virshtest.c \
 	testutils.c testutils.h
@@ -338,6 +365,16 @@ conftest_LDADD = $(LDADDS)
 nodeinfotest_SOURCES = \
 	nodeinfotest.c testutils.h testutils.c
 nodeinfotest_LDADD = $(LDADDS)
+
+commandtest_SOURCES = \
+	commandtest.c testutils.h testutils.c
+commandtest_CFLAGS = -Dabs_builddir="\"`pwd`\""
+commandtest_LDADD = $(LDADDS)
+
+commandhelper_SOURCES = \
+	commandhelper.c
+commandhelper_CFLAGS = -Dabs_builddir="\"`pwd`\""
+commandhelper_LDADD = $(LDADDS)
 
 if WITH_SECDRIVER_SELINUX
 seclabeltest_SOURCES = \

@@ -49,6 +49,58 @@ verify(MD5_DIGEST_SIZE == VIR_UUID_BUFLEN);
 
 
 
+static int
+esxStoragePoolLookupType(esxVI_Context *ctx, const char *poolName,
+                         int *poolType)
+{
+    int result = -1;
+    esxVI_String *propertyNameList = NULL;
+    esxVI_ObjectContent *datastore = NULL;
+    esxVI_DynamicProperty *dynamicProperty = NULL;
+    esxVI_DatastoreInfo *datastoreInfo = NULL;
+
+    if (esxVI_String_AppendValueToList(&propertyNameList, "info") < 0 ||
+        esxVI_LookupDatastoreByName(ctx, poolName, propertyNameList, &datastore,
+                                    esxVI_Occurrence_RequiredItem) < 0) {
+        goto cleanup;
+    }
+
+    for (dynamicProperty = datastore->propSet; dynamicProperty != NULL;
+         dynamicProperty = dynamicProperty->_next) {
+        if (STREQ(dynamicProperty->name, "info")) {
+            if (esxVI_DatastoreInfo_CastFromAnyType(dynamicProperty->val,
+                                                    &datastoreInfo) < 0) {
+                goto cleanup;
+            }
+
+            break;
+        }
+    }
+
+    if (esxVI_LocalDatastoreInfo_DynamicCast(datastoreInfo) != NULL) {
+        *poolType = VIR_STORAGE_POOL_DIR;
+    } else if (esxVI_NasDatastoreInfo_DynamicCast(datastoreInfo) != NULL) {
+        *poolType = VIR_STORAGE_POOL_NETFS;
+    } else if (esxVI_VmfsDatastoreInfo_DynamicCast(datastoreInfo) != NULL) {
+        *poolType = VIR_STORAGE_POOL_FS;
+    } else {
+        ESX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
+                  _("DatastoreInfo has unexpected type"));
+        goto cleanup;
+    }
+
+    result = 0;
+
+  cleanup:
+    esxVI_String_Free(&propertyNameList);
+    esxVI_ObjectContent_Free(&datastore);
+    esxVI_DatastoreInfo_Free(&datastoreInfo);
+
+    return result;
+}
+
+
+
 static virDrvOpenStatus
 esxStorageOpen(virConnectPtr conn,
                virConnectAuthPtr auth ATTRIBUTE_UNUSED,
@@ -908,10 +960,6 @@ esxStorageVolumeCreateXML(virStoragePoolPtr pool, const char *xmldesc,
 {
     virStorageVolPtr volume = NULL;
     esxPrivate *priv = pool->conn->storagePrivateData;
-    esxVI_String *propertyNameList = NULL;
-    esxVI_ObjectContent *datastore = NULL;
-    esxVI_DynamicProperty *dynamicProperty = NULL;
-    esxVI_DatastoreInfo *datastoreInfo = NULL;
     virStoragePoolDef poolDef;
     virStorageVolDefPtr def = NULL;
     char *tmp;
@@ -926,6 +974,7 @@ esxStorageVolumeCreateXML(virStoragePoolPtr pool, const char *xmldesc,
     esxVI_FileBackedVirtualDiskSpec *virtualDiskSpec = NULL;
     esxVI_ManagedObjectReference *task = NULL;
     esxVI_TaskInfoState taskInfoState;
+    char *taskInfoErrorMessage = NULL;
     char *uuid_string = NULL;
     char *key = NULL;
 
@@ -937,36 +986,8 @@ esxStorageVolumeCreateXML(virStoragePoolPtr pool, const char *xmldesc,
         return NULL;
     }
 
-    /* Lookup storage pool type */
-    if (esxVI_String_AppendValueToList(&propertyNameList, "info") < 0 ||
-        esxVI_LookupDatastoreByName(priv->primary, pool->name,
-                                    propertyNameList, &datastore,
-                                    esxVI_Occurrence_RequiredItem) < 0) {
-        goto cleanup;
-    }
-
-    for (dynamicProperty = datastore->propSet; dynamicProperty != NULL;
-         dynamicProperty = dynamicProperty->_next) {
-        if (STREQ(dynamicProperty->name, "info")) {
-            if (esxVI_DatastoreInfo_CastFromAnyType(dynamicProperty->val,
-                                                    &datastoreInfo) < 0) {
-                goto cleanup;
-            }
-
-            break;
-        }
-    }
-
-    if (esxVI_LocalDatastoreInfo_DynamicCast(datastoreInfo) != NULL) {
-        poolDef.type = VIR_STORAGE_POOL_DIR;
-    } else if (esxVI_NasDatastoreInfo_DynamicCast(datastoreInfo) != NULL) {
-        poolDef.type = VIR_STORAGE_POOL_NETFS;
-    } else if (esxVI_VmfsDatastoreInfo_DynamicCast(datastoreInfo) != NULL) {
-        poolDef.type = VIR_STORAGE_POOL_FS;
-    } else {
-        ESX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
-                  _("DatastoreInfo has unexpected type"));
-        goto cleanup;
+    if (esxStoragePoolLookupType(priv->primary, pool->name, &poolDef.type) < 0) {
+        return NULL;
     }
 
     /* Parse config */
@@ -1092,12 +1113,14 @@ esxStorageVolumeCreateXML(virStoragePoolPtr pool, const char *xmldesc,
                esxVI_VirtualDiskSpec_DynamicCast(virtualDiskSpec), &task) < 0 ||
             esxVI_WaitForTaskCompletion(priv->primary, task, NULL,
                                         esxVI_Occurrence_None,
-                                        priv->autoAnswer, &taskInfoState) < 0) {
+                                        priv->autoAnswer, &taskInfoState,
+                                        &taskInfoErrorMessage) < 0) {
             goto cleanup;
         }
 
         if (taskInfoState != esxVI_TaskInfoState_Success) {
-            ESX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Could not create volume"));
+            ESX_ERROR(VIR_ERR_INTERNAL_ERROR, _("Could not create volume: %s"),
+                      taskInfoErrorMessage);
             goto cleanup;
         }
 
@@ -1137,9 +1160,6 @@ esxStorageVolumeCreateXML(virStoragePoolPtr pool, const char *xmldesc,
         virtualDiskSpec->adapterType = NULL;
     }
 
-    esxVI_String_Free(&propertyNameList);
-    esxVI_ObjectContent_Free(&datastore);
-    esxVI_DatastoreInfo_Free(&datastoreInfo);
     virStorageVolDefFree(def);
     VIR_FREE(unescapedDatastorePath);
     VIR_FREE(unescapedDirectoryName);
@@ -1151,10 +1171,303 @@ esxStorageVolumeCreateXML(virStoragePoolPtr pool, const char *xmldesc,
     esxVI_FileInfo_Free(&fileInfo);
     esxVI_FileBackedVirtualDiskSpec_Free(&virtualDiskSpec);
     esxVI_ManagedObjectReference_Free(&task);
+    VIR_FREE(taskInfoErrorMessage);
     VIR_FREE(uuid_string);
     VIR_FREE(key);
 
     return volume;
+}
+
+
+
+static virStorageVolPtr
+esxStorageVolumeCreateXMLFrom(virStoragePoolPtr pool, const char *xmldesc,
+                              virStorageVolPtr sourceVolume, unsigned int flags)
+{
+    virStorageVolPtr volume = NULL;
+    esxPrivate *priv = pool->conn->storagePrivateData;
+    virStoragePoolDef poolDef;
+    char *sourceDatastorePath = NULL;
+    virStorageVolDefPtr def = NULL;
+    char *tmp;
+    char *unescapedDatastorePath = NULL;
+    char *unescapedDirectoryName = NULL;
+    char *unescapedDirectoryAndFileName = NULL;
+    char *directoryName = NULL;
+    char *fileName = NULL;
+    char *datastorePathWithoutFileName = NULL;
+    char *datastorePath = NULL;
+    esxVI_FileInfo *fileInfo = NULL;
+    esxVI_ManagedObjectReference *task = NULL;
+    esxVI_TaskInfoState taskInfoState;
+    char *taskInfoErrorMessage = NULL;
+    char *uuid_string = NULL;
+    char *key = NULL;
+
+    virCheckFlags(0, NULL);
+
+    memset(&poolDef, 0, sizeof (poolDef));
+
+    if (esxVI_EnsureSession(priv->primary) < 0) {
+        return NULL;
+    }
+
+    if (esxStoragePoolLookupType(priv->primary, pool->name, &poolDef.type) < 0) {
+        return NULL;
+    }
+
+    if (virAsprintf(&sourceDatastorePath, "[%s] %s", sourceVolume->pool,
+                    sourceVolume->name) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    /* Parse config */
+    def = virStorageVolDefParseString(&poolDef, xmldesc);
+
+    if (def == NULL) {
+        goto cleanup;
+    }
+
+    if (def->type != VIR_STORAGE_VOL_FILE) {
+        ESX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
+                  _("Creating non-file volumes is not supported"));
+        goto cleanup;
+    }
+
+    /* Validate config */
+    tmp = strrchr(def->name, '/');
+
+    if (tmp == NULL || *def->name == '/' || tmp[1] == '\0') {
+        ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                  _("Volume name '%s' doesn't have expected format "
+                    "'<directory>/<file>'"), def->name);
+        goto cleanup;
+    }
+
+    if (! virFileHasSuffix(def->name, ".vmdk")) {
+        ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                  _("Volume name '%s' has unsupported suffix, expecting '.vmdk'"),
+                  def->name);
+        goto cleanup;
+    }
+
+    if (virAsprintf(&unescapedDatastorePath, "[%s] %s", pool->name,
+                    def->name) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if (def->target.format == VIR_STORAGE_FILE_VMDK) {
+        /* Parse and escape datastore path */
+        if (esxUtil_ParseDatastorePath(unescapedDatastorePath, NULL,
+                                       &unescapedDirectoryName,
+                                       &unescapedDirectoryAndFileName) < 0) {
+            goto cleanup;
+        }
+
+        directoryName = esxUtil_EscapeDatastoreItem(unescapedDirectoryName);
+
+        if (directoryName == NULL) {
+            goto cleanup;
+        }
+
+        fileName = esxUtil_EscapeDatastoreItem(unescapedDirectoryAndFileName +
+                                               strlen(unescapedDirectoryName) + 1);
+
+        if (fileName == NULL) {
+            goto cleanup;
+        }
+
+        if (virAsprintf(&datastorePathWithoutFileName, "[%s] %s", pool->name,
+                        directoryName) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+        if (virAsprintf(&datastorePath, "[%s] %s/%s", pool->name, directoryName,
+                        fileName) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+        /* Create directory, if it doesn't exist yet */
+        if (esxVI_LookupFileInfoByDatastorePath
+              (priv->primary, datastorePathWithoutFileName, true, &fileInfo,
+               esxVI_Occurrence_OptionalItem) < 0) {
+            goto cleanup;
+        }
+
+        if (fileInfo == NULL) {
+            if (esxVI_MakeDirectory(priv->primary, datastorePathWithoutFileName,
+                                    priv->primary->datacenter->_reference,
+                                    esxVI_Boolean_True) < 0) {
+                goto cleanup;
+            }
+        }
+
+        /* Copy VirtualDisk */
+        if (esxVI_CopyVirtualDisk_Task(priv->primary, sourceDatastorePath,
+                                       priv->primary->datacenter->_reference,
+                                       datastorePath,
+                                       priv->primary->datacenter->_reference,
+                                       NULL, esxVI_Boolean_False, &task) < 0 ||
+            esxVI_WaitForTaskCompletion(priv->primary, task, NULL,
+                                        esxVI_Occurrence_None,
+                                        priv->autoAnswer, &taskInfoState,
+                                        &taskInfoErrorMessage) < 0) {
+            goto cleanup;
+        }
+
+        if (taskInfoState != esxVI_TaskInfoState_Success) {
+            ESX_ERROR(VIR_ERR_INTERNAL_ERROR, _("Could not copy volume: %s"),
+                      taskInfoErrorMessage);
+            goto cleanup;
+        }
+
+        if (priv->primary->hasQueryVirtualDiskUuid) {
+            if (VIR_ALLOC_N(key, VIR_UUID_STRING_BUFLEN) < 0) {
+                virReportOOMError();
+                goto cleanup;
+            }
+
+            if (esxVI_QueryVirtualDiskUuid(priv->primary, datastorePath,
+                                           priv->primary->datacenter->_reference,
+                                           &uuid_string) < 0) {
+                goto cleanup;
+            }
+
+            if (esxUtil_ReformatUuid(uuid_string, key) < 0) {
+                goto cleanup;
+            }
+        } else {
+            /* Fall back to the path as key */
+            if (esxVI_String_DeepCopyValue(&key, datastorePath) < 0) {
+                goto cleanup;
+            }
+        }
+    } else {
+        ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                  _("Creation of %s volumes is not supported"),
+                  virStorageFileFormatTypeToString(def->target.format));
+        goto cleanup;
+    }
+
+    volume = virGetStorageVol(pool->conn, pool->name, def->name, key);
+
+  cleanup:
+    VIR_FREE(sourceDatastorePath);
+    virStorageVolDefFree(def);
+    VIR_FREE(unescapedDatastorePath);
+    VIR_FREE(unescapedDirectoryName);
+    VIR_FREE(unescapedDirectoryAndFileName);
+    VIR_FREE(directoryName);
+    VIR_FREE(fileName);
+    VIR_FREE(datastorePathWithoutFileName);
+    VIR_FREE(datastorePath);
+    esxVI_FileInfo_Free(&fileInfo);
+    esxVI_ManagedObjectReference_Free(&task);
+    VIR_FREE(taskInfoErrorMessage);
+    VIR_FREE(uuid_string);
+    VIR_FREE(key);
+
+    return volume;
+}
+
+
+
+static int
+esxStorageVolumeDelete(virStorageVolPtr volume, unsigned int flags)
+{
+    int result = -1;
+    esxPrivate *priv = volume->conn->storagePrivateData;
+    char *datastorePath = NULL;
+    esxVI_ManagedObjectReference *task = NULL;
+    esxVI_TaskInfoState taskInfoState;
+    char *taskInfoErrorMessage = NULL;
+
+    virCheckFlags(0, -1);
+
+    if (esxVI_EnsureSession(priv->primary) < 0) {
+        return -1;
+    }
+
+    if (virAsprintf(&datastorePath, "[%s] %s", volume->pool, volume->name) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if (esxVI_DeleteVirtualDisk_Task(priv->primary, datastorePath,
+                                     priv->primary->datacenter->_reference,
+                                     &task) < 0 ||
+        esxVI_WaitForTaskCompletion(priv->primary, task, NULL,
+                                    esxVI_Occurrence_None, priv->autoAnswer,
+                                    &taskInfoState, &taskInfoErrorMessage) < 0) {
+        goto cleanup;
+    }
+
+    if (taskInfoState != esxVI_TaskInfoState_Success) {
+        ESX_ERROR(VIR_ERR_INTERNAL_ERROR, _("Could not delete volume: %s"),
+                  taskInfoErrorMessage);
+        goto cleanup;
+    }
+
+    result = 0;
+
+  cleanup:
+    VIR_FREE(datastorePath);
+    esxVI_ManagedObjectReference_Free(&task);
+    VIR_FREE(taskInfoErrorMessage);
+
+    return result;
+}
+
+
+
+static int
+esxStorageVolumeWipe(virStorageVolPtr volume, unsigned int flags)
+{
+    int result = -1;
+    esxPrivate *priv = volume->conn->storagePrivateData;
+    char *datastorePath = NULL;
+    esxVI_ManagedObjectReference *task = NULL;
+    esxVI_TaskInfoState taskInfoState;
+    char *taskInfoErrorMessage = NULL;
+
+    virCheckFlags(0, -1);
+
+    if (esxVI_EnsureSession(priv->primary) < 0) {
+        return -1;
+    }
+
+    if (virAsprintf(&datastorePath, "[%s] %s", volume->pool, volume->name) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if (esxVI_ZeroFillVirtualDisk_Task(priv->primary, datastorePath,
+                                       priv->primary->datacenter->_reference,
+                                       &task) < 0 ||
+        esxVI_WaitForTaskCompletion(priv->primary, task, NULL,
+                                    esxVI_Occurrence_None, priv->autoAnswer,
+                                    &taskInfoState, &taskInfoErrorMessage) < 0) {
+        goto cleanup;
+    }
+
+    if (taskInfoState != esxVI_TaskInfoState_Success) {
+        ESX_ERROR(VIR_ERR_INTERNAL_ERROR, _("Could not wipe volume: %s"),
+                  taskInfoErrorMessage);
+        goto cleanup;
+    }
+
+    result = 0;
+
+  cleanup:
+    VIR_FREE(datastorePath);
+    esxVI_ManagedObjectReference_Free(&task);
+    VIR_FREE(taskInfoErrorMessage);
+
+    return result;
 }
 
 
@@ -1212,10 +1525,6 @@ static char *
 esxStorageVolumeDumpXML(virStorageVolPtr volume, unsigned int flags)
 {
     esxPrivate *priv = volume->conn->storagePrivateData;
-    esxVI_String *propertyNameList = NULL;
-    esxVI_ObjectContent *datastore = NULL;
-    esxVI_DynamicProperty *dynamicProperty = NULL;
-    esxVI_DatastoreInfo *datastoreInfo = NULL;
     virStoragePoolDef pool;
     char *datastorePath = NULL;
     esxVI_FileInfo *fileInfo = NULL;
@@ -1234,36 +1543,8 @@ esxStorageVolumeDumpXML(virStorageVolPtr volume, unsigned int flags)
         return NULL;
     }
 
-    /* Lookup storage pool type */
-    if (esxVI_String_AppendValueToList(&propertyNameList, "info") < 0 ||
-        esxVI_LookupDatastoreByName(priv->primary, volume->pool,
-                                    propertyNameList, &datastore,
-                                    esxVI_Occurrence_RequiredItem) < 0) {
-        goto cleanup;
-    }
-
-    for (dynamicProperty = datastore->propSet; dynamicProperty != NULL;
-         dynamicProperty = dynamicProperty->_next) {
-        if (STREQ(dynamicProperty->name, "info")) {
-            if (esxVI_DatastoreInfo_CastFromAnyType(dynamicProperty->val,
-                                                    &datastoreInfo) < 0) {
-                goto cleanup;
-            }
-
-            break;
-        }
-    }
-
-    if (esxVI_LocalDatastoreInfo_DynamicCast(datastoreInfo) != NULL) {
-        pool.type = VIR_STORAGE_POOL_DIR;
-    } else if (esxVI_NasDatastoreInfo_DynamicCast(datastoreInfo) != NULL) {
-        pool.type = VIR_STORAGE_POOL_NETFS;
-    } else if (esxVI_VmfsDatastoreInfo_DynamicCast(datastoreInfo) != NULL) {
-        pool.type = VIR_STORAGE_POOL_FS;
-    } else {
-        ESX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
-                  _("DatastoreInfo has unexpected type"));
-        goto cleanup;
+    if (esxStoragePoolLookupType(priv->primary, volume->pool, &pool.type) < 0) {
+        return NULL;
     }
 
     /* Lookup file info */
@@ -1316,9 +1597,6 @@ esxStorageVolumeDumpXML(virStorageVolPtr volume, unsigned int flags)
     xml = virStorageVolDefFormat(&pool, &def);
 
   cleanup:
-    esxVI_String_Free(&propertyNameList);
-    esxVI_ObjectContent_Free(&datastore);
-    esxVI_DatastoreInfo_Free(&datastoreInfo);
     VIR_FREE(datastorePath);
     esxVI_FileInfo_Free(&fileInfo);
     VIR_FREE(def.key);
@@ -1391,9 +1669,9 @@ static virStorageDriver esxStorageDriver = {
     esxStorageVolumeLookupByKey,           /* volLookupByKey */
     esxStorageVolumeLookupByPath,          /* volLookupByPath */
     esxStorageVolumeCreateXML,             /* volCreateXML */
-    NULL,                                  /* volCreateXMLFrom */
-    NULL,                                  /* volDelete */
-    NULL,                                  /* volWipe */
+    esxStorageVolumeCreateXMLFrom,         /* volCreateXMLFrom */
+    esxStorageVolumeDelete,                /* volDelete */
+    esxStorageVolumeWipe,                  /* volWipe */
     esxStorageVolumeGetInfo,               /* volGetInfo */
     esxStorageVolumeDumpXML,               /* volGetXMLDesc */
     esxStorageVolumeGetPath,               /* volGetPath */

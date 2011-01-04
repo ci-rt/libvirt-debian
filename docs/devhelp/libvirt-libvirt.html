@@ -1430,7 +1430,7 @@ data is hypervisor dependant.</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainXMLToNative"/>virConnectDomainXMLToNative ()</h3><pre class="programlisting">char *	virConnectDomainXMLToNative	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * nativeFormat, <br/>					 const char * domainXml, <br/>					 unsigned int flags)<br/>
 </pre><p>Reads a domain XML configuration document, and generates
-generates a native configuration file describing the domain.
+a native configuration file describing the domain.
 The format of the native data is hypervisor dependant.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>a connection object</td></tr><tr><td><span class="term"><i><tt>nativeFormat</tt></i>:</span></td><td>configuration format exporting to</td></tr><tr><td><span class="term"><i><tt>domainXml</tt></i>:</span></td><td>the domain configuration to export</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>currently unused, pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a 0 terminated UTF-8 encoded native config datafile, or NULL in case of error. the caller must free() the returned value.</td></tr></tbody></table></div></div>
         <hr/>

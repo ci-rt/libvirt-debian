@@ -64,9 +64,9 @@
 *   Global Variables                                                           *
 *******************************************************************************/
 /** The dlopen handle for VBoxXPCOMC. */
-void *g_hVBoxXPCOMC = NULL;
+static void *hVBoxXPCOMC = NULL;
 /** Pointer to the VBoxXPCOMC function table. */
-PCVBOXXPCOM g_pVBoxFuncs = NULL;
+static PCVBOXXPCOM pVBoxFuncs_v2_2 = NULL;
 /** Pointer to VBoxGetXPCOMCFunctions for the loaded VBoxXPCOMC so/dylib/dll. */
 PFNVBOXGETXPCOMCFUNCTIONS g_pfnGetFunctions = NULL;
 
@@ -80,8 +80,11 @@ PFNVBOXGETXPCOMCFUNCTIONS g_pfnGetFunctions = NULL;
  *                        be NULL.
  * @param   setAppHome    Whether to set the VBOX_APP_HOME env.var. or not.
  * @param   ignoreMissing Whether to ignore missing library or not.
+ * @param   version       Version number of the loaded API.
  */
-static int tryLoadOne(const char *dir, bool setAppHome, bool ignoreMissing)
+static int
+tryLoadOne(const char *dir, bool setAppHome, bool ignoreMissing,
+           unsigned int *version)
 {
     int result = -1;
     char *name = NULL;
@@ -122,9 +125,9 @@ static int tryLoadOne(const char *dir, bool setAppHome, bool ignoreMissing)
         }
     }
 
-    g_hVBoxXPCOMC = dlopen(name, RTLD_NOW | RTLD_LOCAL);
+    hVBoxXPCOMC = dlopen(name, RTLD_NOW | RTLD_LOCAL);
 
-    if (g_hVBoxXPCOMC == NULL) {
+    if (hVBoxXPCOMC == NULL) {
         /*
          * FIXME: Don't warn in this case as it currently breaks make check
          *        on systems without VirtualBox.
@@ -137,7 +140,7 @@ static int tryLoadOne(const char *dir, bool setAppHome, bool ignoreMissing)
     }
 
     pfnGetFunctions = (PFNVBOXGETXPCOMCFUNCTIONS)
-        dlsym(g_hVBoxXPCOMC, VBOX_GET_XPCOMC_FUNCTIONS_SYMBOL_NAME);
+        dlsym(hVBoxXPCOMC, VBOX_GET_XPCOMC_FUNCTIONS_SYMBOL_NAME);
 
     if (pfnGetFunctions == NULL) {
         VIR_ERROR(_("Could not dlsym %s from '%s': %s"),
@@ -145,14 +148,15 @@ static int tryLoadOne(const char *dir, bool setAppHome, bool ignoreMissing)
         goto cleanup;
     }
 
-    g_pVBoxFuncs = pfnGetFunctions(VBOX_XPCOMC_VERSION);
+    pVBoxFuncs_v2_2 = pfnGetFunctions(VBOX_XPCOMC_VERSION);
 
-    if (g_pVBoxFuncs == NULL) {
+    if (pVBoxFuncs_v2_2 == NULL) {
         VIR_ERROR(_("Calling %s from '%s' failed"),
                   VBOX_GET_XPCOMC_FUNCTIONS_SYMBOL_NAME, name);
         goto cleanup;
     }
 
+    *version = pVBoxFuncs_v2_2->pfnGetVersion();
     g_pfnGetFunctions = pfnGetFunctions;
     result = 0;
 
@@ -163,9 +167,9 @@ static int tryLoadOne(const char *dir, bool setAppHome, bool ignoreMissing)
     }
 
 cleanup:
-    if (g_hVBoxXPCOMC != NULL && result < 0) {
-        dlclose(g_hVBoxXPCOMC);
-        g_hVBoxXPCOMC = NULL;
+    if (hVBoxXPCOMC != NULL && result < 0) {
+        dlclose(hVBoxXPCOMC);
+        hVBoxXPCOMC = NULL;
     }
 
     VIR_FREE(name);
@@ -180,7 +184,8 @@ cleanup:
  *
  * @returns 0 on success, -1 on failure.
  */
-int VBoxCGlueInit(void)
+int
+VBoxCGlueInit(unsigned int *version)
 {
     int i;
     static const char *knownDirs[] = {
@@ -203,27 +208,27 @@ int VBoxCGlueInit(void)
 
     /* If the user specifies the location, try only that. */
     if (home != NULL) {
-        if (tryLoadOne(home, false, false) < 0) {
+        if (tryLoadOne(home, false, false, version) < 0) {
             return -1;
         }
     }
 
     /* Try the additionally configured location. */
     if (VBOX_XPCOMC_DIR[0] != '\0') {
-        if (tryLoadOne(VBOX_XPCOMC_DIR, true, true) >= 0) {
+        if (tryLoadOne(VBOX_XPCOMC_DIR, true, true, version) >= 0) {
             return 0;
         }
     }
 
     /* Try the known locations. */
     for (i = 0; i < ARRAY_CARDINALITY(knownDirs); ++i) {
-        if (tryLoadOne(knownDirs[i], true, true) >= 0) {
+        if (tryLoadOne(knownDirs[i], true, true, version) >= 0) {
             return 0;
         }
     }
 
     /* Finally try the dynamic linker search path. */
-    if (tryLoadOne(NULL, false, true) >= 0) {
+    if (tryLoadOne(NULL, false, true, version) >= 0) {
         return 0;
     }
 
@@ -235,15 +240,147 @@ int VBoxCGlueInit(void)
 /**
  * Terminate the C glue library.
  */
-void VBoxCGlueTerm(void)
+void
+VBoxCGlueTerm(void)
 {
-    if (g_hVBoxXPCOMC != NULL) {
+    if (hVBoxXPCOMC != NULL) {
 #if 0 /* VBoxRT.so doesn't like being reloaded. See @bugref{3725}. */
         dlclose(g_hVBoxXPCOMC);
 #endif
-        g_hVBoxXPCOMC = NULL;
+        hVBoxXPCOMC = NULL;
     }
 
-    g_pVBoxFuncs = NULL;
+    pVBoxFuncs_v2_2 = NULL;
     g_pfnGetFunctions = NULL;
+}
+
+
+
+/*
+ * In XPCOM an array is represented by 1) a pointer to an array of pointers
+ * that point to the items and 2) an unsigned int representing the number of
+ * items in the array. When the items aren't needed anymore they are released
+ * or freed according to their type.
+ */
+
+typedef nsresult (*ArrayGetter)(void *self, PRUint32 *count, void ***items);
+typedef nsresult (*ArrayGetterWithPtrArg)(void *self, void *arg, PRUint32 *count, void ***items);
+typedef nsresult (*ArrayGetterWithUintArg)(void *self, PRUint32 arg, PRUint32 *count, void ***items);
+
+static nsresult
+vboxArrayGetHelper(vboxArray *array, nsresult nsrc, void **items, PRUint32 count)
+{
+    array->items = NULL;
+    array->count = 0;
+
+    if (NS_FAILED(nsrc)) {
+        return nsrc;
+    }
+
+    array->items = items;
+    array->count = count;
+
+    return nsrc;
+}
+
+/*
+ * Call the getter with self as first argument and fill the array with the
+ * returned items.
+ */
+nsresult
+vboxArrayGet(vboxArray *array, void *self, void *getter)
+{
+    nsresult nsrc;
+    void **items = NULL;
+    PRUint32 count = 0;
+
+    nsrc = ((ArrayGetter)getter)(self, &count, &items);
+
+    return vboxArrayGetHelper(array, nsrc, items, count);
+}
+
+/*
+ * Call the getter with self as first argument and arg as second argument
+ * and fill the array with the returned items.
+ */
+nsresult
+vboxArrayGetWithPtrArg(vboxArray *array, void *self, void *getter, void *arg)
+{
+    nsresult nsrc;
+    void **items = NULL;
+    PRUint32 count = 0;
+
+    nsrc = ((ArrayGetterWithPtrArg)getter)(self, arg, &count, &items);
+
+    return vboxArrayGetHelper(array, nsrc, items, count);
+}
+
+/*
+ * Call the getter with self as first argument and arg as second argument
+ * and fill the array with the returned items.
+ */
+nsresult
+vboxArrayGetWithUintArg(vboxArray *array, void *self, void *getter, PRUint32 arg)
+{
+    nsresult nsrc;
+    void **items = NULL;
+    PRUint32 count = 0;
+
+    nsrc = ((ArrayGetterWithUintArg)getter)(self, arg, &count, &items);
+
+    return vboxArrayGetHelper(array, nsrc, items, count);
+}
+
+/*
+ * Release all items in the array and reset it.
+ */
+void
+vboxArrayRelease(vboxArray *array)
+{
+    int i;
+    nsISupports *supports;
+
+    if (array->items == NULL) {
+        return;
+    }
+
+    for (i = 0; i < array->count; ++i) {
+        supports = array->items[i];
+
+        if (supports != NULL) {
+            supports->vtbl->Release(supports);
+        }
+    }
+
+    pVBoxFuncs_v2_2->pfnComUnallocMem(array->items);
+
+    array->items = NULL;
+    array->count = 0;
+}
+
+/*
+ * Unalloc all items in the array and reset it.
+ */
+void
+vboxArrayUnalloc(vboxArray *array)
+{
+    int i;
+    void *item;
+
+    if (array->items == NULL) {
+        return;
+    }
+
+    for (i = 0; i < array->count; ++i) {
+        item = array->items[i];
+
+        if (item != NULL) {
+            pVBoxFuncs_v2_2->pfnComUnallocMem(item);
+        }
+    }
+
+    pVBoxFuncs_v2_2->pfnComUnallocMem(array->items);
+
+    array->items = NULL;
+    array->count = 0;
 }

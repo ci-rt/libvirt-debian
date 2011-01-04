@@ -30,75 +30,85 @@ iptablesContext *iptablesContextNew              (void);
 void             iptablesContextFree             (iptablesContext *ctx);
 
 int              iptablesAddTcpInput             (iptablesContext *ctx,
+                                                  int family,
                                                   const char *iface,
                                                   int port);
 int              iptablesRemoveTcpInput          (iptablesContext *ctx,
+                                                  int family,
                                                   const char *iface,
                                                   int port);
 
 int              iptablesAddUdpInput             (iptablesContext *ctx,
+                                                  int family,
                                                   const char *iface,
                                                   int port);
 int              iptablesRemoveUdpInput          (iptablesContext *ctx,
+                                                  int family,
                                                   const char *iface,
                                                   int port);
 
 int              iptablesAddForwardAllowOut      (iptablesContext *ctx,
                                                   virSocketAddr *netaddr,
-                                                  virSocketAddr *netmask,
+                                                  unsigned int prefix,
                                                   const char *iface,
                                                   const char *physdev);
 int              iptablesRemoveForwardAllowOut   (iptablesContext *ctx,
                                                   virSocketAddr *netaddr,
-                                                  virSocketAddr *netmask,
+                                                  unsigned int prefix,
                                                   const char *iface,
                                                   const char *physdev);
 
 int              iptablesAddForwardAllowRelatedIn(iptablesContext *ctx,
                                                   virSocketAddr *netaddr,
-                                                  virSocketAddr *netmask,
+                                                  unsigned int prefix,
                                                   const char *iface,
                                                   const char *physdev);
 int              iptablesRemoveForwardAllowRelatedIn(iptablesContext *ctx,
                                                   virSocketAddr *netaddr,
-                                                  virSocketAddr *netmask,
+                                                  unsigned int prefix,
                                                   const char *iface,
                                                   const char *physdev);
 
 int              iptablesAddForwardAllowIn       (iptablesContext *ctx,
                                                   virSocketAddr *netaddr,
-                                                  virSocketAddr *netmask,
+                                                  unsigned int prefix,
                                                   const char *iface,
                                                   const char *physdev);
 int              iptablesRemoveForwardAllowIn    (iptablesContext *ctx,
                                                   virSocketAddr *netaddr,
-                                                  virSocketAddr *netmask,
+                                                  unsigned int prefix,
                                                   const char *iface,
                                                   const char *physdev);
 
 int              iptablesAddForwardAllowCross    (iptablesContext *ctx,
+                                                  int family,
                                                   const char *iface);
 int              iptablesRemoveForwardAllowCross (iptablesContext *ctx,
+                                                  int family,
                                                   const char *iface);
 
 int              iptablesAddForwardRejectOut     (iptablesContext *ctx,
+                                                  int family,
                                                   const char *iface);
 int              iptablesRemoveForwardRejectOut  (iptablesContext *ctx,
+                                                  int family,
                                                   const char *iface);
 
 int              iptablesAddForwardRejectIn      (iptablesContext *ctx,
+                                                  int family,
                                                   const char *iface);
 int              iptablesRemoveForwardRejectIn   (iptablesContext *ctx,
+                                                  int family,
                                                   const char *iface);
 
 int              iptablesAddForwardMasquerade    (iptablesContext *ctx,
                                                   virSocketAddr *netaddr,
-                                                  virSocketAddr *netmask,
+                                                  unsigned int prefix,
                                                   const char *physdev,
                                                   const char *protocol);
 int              iptablesRemoveForwardMasquerade (iptablesContext *ctx,
                                                   virSocketAddr *netaddr,
-                                                  virSocketAddr *netmask,
+                                                  unsigned int prefix,
                                                   const char *physdev,
                                                   const char *protocol);
 int              iptablesAddOutputFixUdpChecksum (iptablesContext *ctx,

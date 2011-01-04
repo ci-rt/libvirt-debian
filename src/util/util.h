@@ -31,12 +31,13 @@
 # include <unistd.h>
 # include <sys/select.h>
 # include <sys/types.h>
+# include <stdarg.h>
 
 # ifndef MIN
 #  define MIN(a, b) ((a) < (b) ? (a) : (b))
 # endif
 
-int saferead(int fd, void *buf, size_t count) ATTRIBUTE_RETURN_CHECK;
+ssize_t saferead(int fd, void *buf, size_t count) ATTRIBUTE_RETURN_CHECK;
 ssize_t safewrite(int fd, const void *buf, size_t count)
     ATTRIBUTE_RETURN_CHECK;
 int safezero(int fd, int flags, off_t offset, off_t len)
@@ -92,11 +93,14 @@ int virPipeReadUntilEOF(int outfd, int errfd,
                         char **outbuf, char **errbuf);
 int virFork(pid_t *pid);
 
+int virSetUIDGID(uid_t uid, gid_t gid);
+
 int virFileReadLimFD(int fd, int maxlen, char **buf) ATTRIBUTE_RETURN_CHECK;
 
 int virFileReadAll(const char *path, int maxlen, char **buf) ATTRIBUTE_RETURN_CHECK;
 
-int virFileWriteStr(const char *path, const char *str) ATTRIBUTE_RETURN_CHECK;
+int virFileWriteStr(const char *path, const char *str, mode_t mode)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
 
 int virFileMatchesNameSuffix(const char *file,
                              const char *name,
@@ -202,7 +206,10 @@ int virMacAddrCompare (const char *mac1, const char *mac2);
 void virSkipSpaces(const char **str);
 int virParseNumber(const char **str);
 int virParseVersionString(const char *str, unsigned long *version);
-int virAsprintf(char **strp, const char *fmt, ...) ATTRIBUTE_FMT_PRINTF(2, 3);
+int virAsprintf(char **strp, const char *fmt, ...)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_FMT_PRINTF(2, 3);
+int virVasprintf(char **strp, const char *fmt, va_list list)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_FMT_PRINTF(2, 0);
 char *virStrncpy(char *dest, const char *src, size_t n, size_t destbytes)
     ATTRIBUTE_RETURN_CHECK;
 char *virStrcpy(char *dest, const char *src, size_t destbytes)

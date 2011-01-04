@@ -247,7 +247,7 @@ int qemuMonitorGetMigrationStatus(qemuMonitorPtr mon,
                                   unsigned long long *total);
 
 typedef enum {
-  QEMU_MONITOR_MIGRATE_BACKGROUND 		= 1 << 0,
+  QEMU_MONITOR_MIGRATE_BACKGROUND	= 1 << 0,
   QEMU_MONITOR_MIGRATE_NON_SHARED_DISK  = 1 << 1, /* migration with non-shared storage with full disk copy */
   QEMU_MONITOR_MIGRATE_NON_SHARED_INC   = 1 << 2, /* migration with non-shared storage with incremental copy */
   QEMU_MONITOR_MIGRATION_FLAGS_LAST
@@ -377,6 +377,9 @@ int qemuMonitorDelDevice(qemuMonitorPtr mon,
                          const char *devalias);
 
 int qemuMonitorAddDrive(qemuMonitorPtr mon,
+                        const char *drivestr);
+
+int qemuMonitorDriveDel(qemuMonitorPtr mon,
                         const char *drivestr);
 
 int qemuMonitorSetDrivePassphrase(qemuMonitorPtr mon,

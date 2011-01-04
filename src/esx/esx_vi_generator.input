@@ -311,6 +311,12 @@ object LocalDatastoreInfo extends DatastoreInfo
 end
 
 
+object LocalizedMethodFault
+    MethodFault                              fault                          r
+    String                                   localizedMessage               o
+end
+
+
 object NasDatastoreInfo extends DatastoreInfo
     HostNasVolume                            nas                            o
 end
@@ -494,7 +500,7 @@ object TaskInfo
     TaskInfoState                            state                          r
     Boolean                                  cancelled                      r
     Boolean                                  cancelable                     r
-    LocalizedMethodFault                     error                          i
+    LocalizedMethodFault                     error                          o
     AnyType                                  result                         o
     Int                                      progress                       o
     TaskReason                               reason                         i
@@ -694,6 +700,17 @@ method CancelTask
 end
 
 
+method CopyVirtualDisk_Task returns ManagedObjectReference r
+    ManagedObjectReference                   _this:VirtualDiskManager       r
+    String                                   sourceName                     r
+    ManagedObjectReference                   sourceDatacenter               o
+    String                                   destName                       r
+    ManagedObjectReference                   destDatacenter                 o
+    VirtualDiskSpec                          destSpec                       o
+    Boolean                                  force                          o
+end
+
+
 method CreateFilter returns ManagedObjectReference r
     ManagedObjectReference                   _this:PropertyCollector        r
     PropertyFilterSpec                       spec                           r
@@ -715,6 +732,13 @@ method CreateVirtualDisk_Task returns ManagedObjectReference r
     String                                   name                           r
     ManagedObjectReference                   datacenter                     o
     VirtualDiskSpec                          spec                           r
+end
+
+
+method DeleteVirtualDisk_Task returns ManagedObjectReference r
+    ManagedObjectReference                   _this:VirtualDiskManager       r
+    String                                   name                           r
+    ManagedObjectReference                   datacenter                     o
 end
 
 
@@ -891,4 +915,11 @@ end
 method WaitForUpdates returns UpdateSet r
     ManagedObjectReference                   _this:PropertyCollector        r
     String                                   version                        o
+end
+
+
+method ZeroFillVirtualDisk_Task returns ManagedObjectReference r
+    ManagedObjectReference                   _this:VirtualDiskManager       r
+    String                                   name                           r
+    ManagedObjectReference                   datacenter                     o
 end

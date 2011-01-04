@@ -1774,6 +1774,25 @@ int qemuMonitorGetAllPCIAddresses(qemuMonitorPtr mon,
     return ret;
 }
 
+int qemuMonitorDriveDel(qemuMonitorPtr mon,
+                        const char *drivestr)
+{
+    DEBUG("mon=%p drivestr=%s", mon, drivestr);
+    int ret;
+
+    if (!mon) {
+        qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+                        _("monitor must not be NULL"));
+        return -1;
+    }
+
+    if (mon->json)
+        ret = qemuMonitorJSONDriveDel(mon, drivestr);
+    else
+        ret = qemuMonitorTextDriveDel(mon, drivestr);
+    return ret;
+}
+
 int qemuMonitorDelDevice(qemuMonitorPtr mon,
                          const char *devalias)
 {

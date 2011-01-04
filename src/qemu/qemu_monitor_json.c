@@ -32,7 +32,7 @@
 #include <sys/time.h>
 
 #include "qemu_monitor_json.h"
-#include "qemu_conf.h"
+#include "qemu_command.h"
 #include "memory.h"
 #include "logging.h"
 #include "driver.h"
@@ -2238,6 +2238,44 @@ int qemuMonitorJSONAddDrive(qemuMonitorPtr mon,
     return ret;
 }
 
+
+int qemuMonitorJSONDriveDel(qemuMonitorPtr mon,
+                            const char *drivestr)
+{
+    int ret;
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+
+    DEBUG("JSONDriveDel drivestr=%s", drivestr);
+    cmd = qemuMonitorJSONMakeCommand("drive_del",
+                                     "s:id", drivestr,
+                                     NULL);
+    if (!cmd)
+        return -1;
+
+    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+
+    if (ret == 0) {
+        /* See if drive_del isn't supported */
+        if (qemuMonitorJSONHasError(reply, "CommandNotFound")) {
+            VIR_ERROR0(_("deleting disk is not supported.  "
+                        "This may leak data if disk is reassigned"));
+            ret = 1;
+            goto cleanup;
+        } else if (qemuMonitorJSONHasError(reply, "DeviceNotFound")) {
+            /* NB: device not found errors mean the drive was
+             * auto-deleted and we ignore the error */
+            ret = 0;
+        } else {
+            ret = qemuMonitorJSONCheckError(cmd, reply);
+        }
+    }
+
+cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
 
 int qemuMonitorJSONSetDrivePassphrase(qemuMonitorPtr mon,
                                       const char *alias,
