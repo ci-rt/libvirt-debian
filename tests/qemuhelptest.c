@@ -6,7 +6,7 @@
 # include <stdlib.h>
 
 # include "testutils.h"
-# include "qemu/qemu_conf.h"
+# include "qemu/qemu_capabilities.h"
 
 # define MAX_HELP_OUTPUT_SIZE 1024*64
 
@@ -50,8 +50,8 @@ static int testHelpStrParsing(const void *data)
     if (virtTestLoadFile(path, &help, MAX_HELP_OUTPUT_SIZE) < 0)
         return -1;
 
-    if (qemudParseHelpStr("QEMU", help, &flags,
-                          &version, &is_kvm, &kvm_version) == -1)
+    if (qemuCapsParseHelpStr("QEMU", help, &flags,
+                             &version, &is_kvm, &kvm_version) == -1)
         return -1;
 
     if (flags != info->flags) {
@@ -173,7 +173,8 @@ mymain(int argc, char **argv)
             QEMUD_CMD_FLAG_ENABLE_KVM |
             QEMUD_CMD_FLAG_SDL |
             QEMUD_CMD_FLAG_RTC_TD_HACK |
-            QEMUD_CMD_FLAG_NO_HPET,
+            QEMUD_CMD_FLAG_NO_HPET |
+            QEMUD_CMD_FLAG_VGA_NONE,
             10005, 0,  0);
     DO_TEST("qemu-kvm-0.10.5",
             QEMUD_CMD_FLAG_VNC_COLON |
@@ -198,7 +199,8 @@ mymain(int argc, char **argv)
             QEMUD_CMD_FLAG_NO_HPET |
             QEMUD_CMD_FLAG_NO_KVM_PIT |
             QEMUD_CMD_FLAG_TDF |
-            QEMUD_CMD_FLAG_NESTING,
+            QEMUD_CMD_FLAG_NESTING |
+            QEMUD_CMD_FLAG_VGA_NONE,
             10005, 1,  0);
     DO_TEST("kvm-86",
             QEMUD_CMD_FLAG_VNC_COLON |
@@ -223,7 +225,8 @@ mymain(int argc, char **argv)
             QEMUD_CMD_FLAG_NO_KVM_PIT |
             QEMUD_CMD_FLAG_TDF |
             QEMUD_CMD_FLAG_NESTING |
-            QEMUD_CMD_FLAG_SMBIOS_TYPE,
+            QEMUD_CMD_FLAG_SMBIOS_TYPE |
+            QEMUD_CMD_FLAG_VGA_NONE,
             10050, 1,  0);
     DO_TEST("qemu-kvm-0.11.0-rc2",
             QEMUD_CMD_FLAG_VNC_COLON |
@@ -253,7 +256,8 @@ mymain(int argc, char **argv)
             QEMUD_CMD_FLAG_BOOT_MENU |
             QEMUD_CMD_FLAG_NESTING |
             QEMUD_CMD_FLAG_NAME_PROCESS |
-            QEMUD_CMD_FLAG_SMBIOS_TYPE,
+            QEMUD_CMD_FLAG_SMBIOS_TYPE |
+            QEMUD_CMD_FLAG_VGA_NONE,
             10092, 1,  0);
     DO_TEST("qemu-0.12.1",
             QEMUD_CMD_FLAG_VNC_COLON |
@@ -281,8 +285,49 @@ mymain(int argc, char **argv)
             QEMUD_CMD_FLAG_NO_HPET |
             QEMUD_CMD_FLAG_BOOT_MENU |
             QEMUD_CMD_FLAG_NAME_PROCESS |
-            QEMUD_CMD_FLAG_SMBIOS_TYPE,
+            QEMUD_CMD_FLAG_SMBIOS_TYPE |
+            QEMUD_CMD_FLAG_VGA_NONE |
+            QEMUD_CMD_FLAG_MIGRATE_QEMU_FD,
             12001, 0,  0);
+    DO_TEST("qemu-kvm-0.12.1.2-rhel60",
+            QEMUD_CMD_FLAG_VNC_COLON |
+            QEMUD_CMD_FLAG_NO_REBOOT |
+            QEMUD_CMD_FLAG_DRIVE |
+            QEMUD_CMD_FLAG_DRIVE_BOOT |
+            QEMUD_CMD_FLAG_NAME |
+            QEMUD_CMD_FLAG_UUID |
+            QEMUD_CMD_FLAG_VNET_HDR |
+            QEMUD_CMD_FLAG_MIGRATE_QEMU_TCP |
+            QEMUD_CMD_FLAG_MIGRATE_QEMU_EXEC |
+            QEMUD_CMD_FLAG_DRIVE_CACHE_V2 |
+            QEMUD_CMD_FLAG_KVM |
+            QEMUD_CMD_FLAG_DRIVE_FORMAT |
+            QEMUD_CMD_FLAG_DRIVE_SERIAL |
+            QEMUD_CMD_FLAG_DRIVE_READONLY |
+            QEMUD_CMD_FLAG_VGA |
+            QEMUD_CMD_FLAG_0_10 |
+            QEMUD_CMD_FLAG_PCIDEVICE |
+            QEMUD_CMD_FLAG_MEM_PATH |
+            QEMUD_CMD_FLAG_MIGRATE_QEMU_UNIX |
+            QEMUD_CMD_FLAG_CHARDEV |
+            QEMUD_CMD_FLAG_ENABLE_KVM |
+            QEMUD_CMD_FLAG_BALLOON |
+            QEMUD_CMD_FLAG_DEVICE |
+            QEMUD_CMD_FLAG_SMP_TOPOLOGY |
+            QEMUD_CMD_FLAG_RTC |
+            QEMUD_CMD_FLAG_VNET_HOST |
+            QEMUD_CMD_FLAG_NO_KVM_PIT |
+            QEMUD_CMD_FLAG_TDF |
+            QEMUD_CMD_FLAG_NODEFCONFIG |
+            QEMUD_CMD_FLAG_BOOT_MENU |
+            QEMUD_CMD_FLAG_NESTING |
+            QEMUD_CMD_FLAG_NAME_PROCESS |
+            QEMUD_CMD_FLAG_SMBIOS_TYPE |
+            QEMUD_CMD_FLAG_VGA_QXL |
+            QEMUD_CMD_FLAG_SPICE |
+            QEMUD_CMD_FLAG_VGA_NONE |
+            QEMUD_CMD_FLAG_MIGRATE_QEMU_FD,
+            12001, 1,  0);
     DO_TEST("qemu-kvm-0.12.3",
             QEMUD_CMD_FLAG_VNC_COLON |
             QEMUD_CMD_FLAG_NO_REBOOT |
@@ -316,8 +361,54 @@ mymain(int argc, char **argv)
             QEMUD_CMD_FLAG_BOOT_MENU |
             QEMUD_CMD_FLAG_NESTING |
             QEMUD_CMD_FLAG_NAME_PROCESS |
-            QEMUD_CMD_FLAG_SMBIOS_TYPE,
+            QEMUD_CMD_FLAG_SMBIOS_TYPE |
+            QEMUD_CMD_FLAG_VGA_NONE |
+            QEMUD_CMD_FLAG_MIGRATE_QEMU_FD,
             12003, 1,  0);
+    DO_TEST("qemu-kvm-0.13.0",
+            QEMUD_CMD_FLAG_VNC_COLON |
+            QEMUD_CMD_FLAG_NO_REBOOT |
+            QEMUD_CMD_FLAG_DRIVE |
+            QEMUD_CMD_FLAG_DRIVE_BOOT |
+            QEMUD_CMD_FLAG_NAME |
+            QEMUD_CMD_FLAG_UUID |
+            QEMUD_CMD_FLAG_VNET_HDR |
+            QEMUD_CMD_FLAG_MIGRATE_QEMU_TCP |
+            QEMUD_CMD_FLAG_MIGRATE_QEMU_EXEC |
+            QEMUD_CMD_FLAG_DRIVE_CACHE_V2 |
+            QEMUD_CMD_FLAG_KVM |
+            QEMUD_CMD_FLAG_DRIVE_FORMAT |
+            QEMUD_CMD_FLAG_DRIVE_SERIAL |
+            QEMUD_CMD_FLAG_XEN_DOMID |
+            QEMUD_CMD_FLAG_DRIVE_READONLY |
+            QEMUD_CMD_FLAG_VGA |
+            QEMUD_CMD_FLAG_0_10 |
+            QEMUD_CMD_FLAG_PCIDEVICE |
+            QEMUD_CMD_FLAG_MEM_PATH |
+            QEMUD_CMD_FLAG_SDL |
+            QEMUD_CMD_FLAG_MIGRATE_QEMU_UNIX |
+            QEMUD_CMD_FLAG_CHARDEV |
+            QEMUD_CMD_FLAG_ENABLE_KVM |
+            QEMUD_CMD_FLAG_MONITOR_JSON |
+            QEMUD_CMD_FLAG_BALLOON |
+            QEMUD_CMD_FLAG_DEVICE |
+            QEMUD_CMD_FLAG_SMP_TOPOLOGY |
+            QEMUD_CMD_FLAG_NETDEV |
+            QEMUD_CMD_FLAG_RTC |
+            QEMUD_CMD_FLAG_VNET_HOST |
+            QEMUD_CMD_FLAG_NO_HPET |
+            QEMUD_CMD_FLAG_NO_KVM_PIT |
+            QEMUD_CMD_FLAG_TDF |
+            QEMUD_CMD_FLAG_NODEFCONFIG |
+            QEMUD_CMD_FLAG_BOOT_MENU |
+            QEMUD_CMD_FLAG_FSDEV |
+            QEMUD_CMD_FLAG_NESTING |
+            QEMUD_CMD_FLAG_NAME_PROCESS |
+            QEMUD_CMD_FLAG_SMBIOS_TYPE |
+            QEMUD_CMD_FLAG_SPICE |
+            QEMUD_CMD_FLAG_VGA_NONE |
+            QEMUD_CMD_FLAG_MIGRATE_QEMU_FD,
+            13000, 1,  0);
 
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

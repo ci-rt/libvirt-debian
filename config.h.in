@@ -157,6 +157,9 @@
 /* Define to 1 when the gnulib module perror should be tested. */
 #undef GNULIB_TEST_PERROR
 
+/* Define to 1 when the gnulib module pipe should be tested. */
+#undef GNULIB_TEST_PIPE
+
 /* Define to 1 when the gnulib module poll should be tested. */
 #undef GNULIB_TEST_POLL
 
@@ -241,6 +244,9 @@
 /* Define to 1 when the gnulib module vasprintf should be tested. */
 #undef GNULIB_TEST_VASPRINTF
 
+/* Define to 1 when the gnulib module waitpid should be tested. */
+#undef GNULIB_TEST_WAITPID
+
 /* enable GnuTLS 1.0 compatibility macros */
 #undef GNUTLS_1_0_COMPAT
 
@@ -308,6 +314,10 @@
 /* Define to 1 if you have the declaration of `freeaddrinfo', and to 0 if you
    don't. */
 #undef HAVE_DECL_FREEADDRINFO
+
+/* Define to 1 if you have the declaration of `fseeko', and to 0 if you don't.
+   */
+#undef HAVE_DECL_FSEEKO
 
 /* Define to 1 if you have the declaration of `funlockfile', and to 0 if you
    don't. */
@@ -402,6 +412,9 @@
 /* Define to 1 if you have the <fcntl.h> header file. */
 #undef HAVE_FCNTL_H
 
+/* Define to 1 if you have the <features.h> header file. */
+#undef HAVE_FEATURES_H
+
 /* Define to 1 if you have the <float.h> header file. */
 #undef HAVE_FLOAT_H
 
@@ -470,6 +483,9 @@
 
 /* Define to 1 if you have the `inet_pton' function. */
 #undef HAVE_INET_PTON
+
+/* Define to 1 if you have the `initgroups' function. */
+#undef HAVE_INITGROUPS
 
 /* Define if you have the 'intmax_t' type in <stdint.h> or <inttypes.h>. */
 #undef HAVE_INTMAX_T
@@ -613,6 +629,9 @@
 
 /* Define to 1 if you have the <paths.h> header file. */
 #undef HAVE_PATHS_H
+
+/* Define to 1 if you have the `pipe' function. */
+#undef HAVE_PIPE
 
 /* use PolicyKit for UNIX socket access checks */
 #undef HAVE_POLKIT
@@ -904,6 +923,9 @@
 /* Define to 1 if openat is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_OPENAT
 
+/* Define to 1 if pipe is declared even after undefining macros. */
+#undef HAVE_RAW_DECL_PIPE
+
 /* Define to 1 if pipe2 is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_PIPE2
 
@@ -1144,6 +1166,9 @@
 /* whether basic SELinux functionality is available */
 #undef HAVE_SELINUX
 
+/* Define to 1 if you have the <selinux/label.h> header file. */
+#undef HAVE_SELINUX_LABEL_H
+
 /* Define to 1 if you have the `shutdown' function. */
 #undef HAVE_SHUTDOWN
 
@@ -1239,6 +1264,9 @@
 
 /* Define to 1 if the system has the type `struct sockaddr_storage'. */
 #undef HAVE_STRUCT_SOCKADDR_STORAGE
+
+/* Define to 1 if `ss_family' is a member of `struct sockaddr_storage'. */
+#undef HAVE_STRUCT_SOCKADDR_STORAGE_SS_FAMILY
 
 /* Define to 1 if the system has the type `struct utsname'. */
 #undef HAVE_STRUCT_UTSNAME
@@ -1442,8 +1470,14 @@
 /* Define HOST_NAME_MAX when <limits.h> does not define it. */
 #undef HOST_NAME_MAX
 
+/* path to ip6tables binary */
+#undef IP6TABLES_PATH
+
 /* path to iptables binary */
 #undef IPTABLES_PATH
+
+/* path to ip binary */
+#undef IP_PATH
 
 /* Location of iscsiadm program */
 #undef ISCSIADM
@@ -1540,6 +1574,9 @@
 
 /* QEMU user account */
 #undef QEMU_USER
+
+/* Location or name of the radvd program */
+#undef RADVD
 
 /* Define to 1 if readlink fails to recognize a trailing slash. */
 #undef READLINK_TRAILING_SLASH_BUG
@@ -1742,6 +1779,12 @@
 /* whether vsi vepa support is enabled */
 #undef WITH_VIRTUALPORT
 
+/* whether VMware driver is enabled */
+#undef WITH_VMWARE
+
+/* whether VMware VMX config handling is enabled */
+#undef WITH_VMX
+
 /* whether Xen driver is enabled */
 #undef WITH_XEN
 
@@ -1778,6 +1821,10 @@
 /* Define to 2 if the system does not provide POSIX.1 features except with
    this defined. */
 #undef _POSIX_1_SOURCE
+
+/* Define to 1 in order to get the POSIX compatible declarations of socket
+   functions. */
+#undef _POSIX_PII_SOCKET
 
 /* Define to 1 if you need to in order for `stat' and other things to work. */
 #undef _POSIX_SOURCE

@@ -31,7 +31,7 @@
 #include <string.h>
 
 #include "qemu_monitor_text.h"
-#include "qemu_conf.h"
+#include "qemu_command.h"
 #include "c-ctype.h"
 #include "memory.h"
 #include "logging.h"
@@ -2286,6 +2286,7 @@ int qemuMonitorTextDelDevice(qemuMonitorPtr mon,
         goto cleanup;
     }
 
+    DEBUG("TextDelDevice devalias=%s", devalias);
     if (qemuMonitorCommand(mon, cmd, &reply) < 0) {
         qemuReportError(VIR_ERR_OPERATION_FAILED,
                         _("cannot detach %s device"), devalias);
@@ -2392,6 +2393,59 @@ cleanup:
     return ret;
 }
 
+/* Attempts to remove a host drive.
+ * Returns 1 if unsupported, 0 if ok, and -1 on other failure */
+int qemuMonitorTextDriveDel(qemuMonitorPtr mon,
+                            const char *drivestr)
+{
+    char *cmd = NULL;
+    char *reply = NULL;
+    char *safedev;
+    int ret = -1;
+    DEBUG("TextDriveDel drivestr=%s", drivestr);
+
+    if (!(safedev = qemuMonitorEscapeArg(drivestr))) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if (virAsprintf(&cmd, "drive_del %s", safedev) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if (qemuMonitorCommand(mon, cmd, &reply) < 0) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED,
+                        _("cannot delete %s drive"), drivestr);
+        goto cleanup;
+    }
+
+    if (strstr(reply, "unknown command:")) {
+        VIR_ERROR0(_("deleting drive is not supported.  "
+                    "This may leak data if disk is reassigned"));
+        ret = 1;
+        goto cleanup;
+
+    /* (qemu) drive_del wark
+     * Device 'wark' not found */
+    } else if (STRPREFIX(reply, "Device '") && (strstr(reply, "not found"))) {
+        /* NB: device not found errors mean the drive was auto-deleted and we
+         * ignore the error */
+        ret = 0;
+    } else if (STRNEQ(reply, "")) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED,
+                        _("deleting %s drive failed: %s"), drivestr, reply);
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(cmd);
+    VIR_FREE(reply);
+    VIR_FREE(safedev);
+    return ret;
+}
 
 int qemuMonitorTextSetDrivePassphrase(qemuMonitorPtr mon,
                                       const char *alias,

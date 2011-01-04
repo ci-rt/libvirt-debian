@@ -38,6 +38,7 @@
     esxVI_Type_IsoImageFileInfo,
     esxVI_Type_IsoImageFileQuery,
     esxVI_Type_LocalDatastoreInfo,
+    esxVI_Type_LocalizedMethodFault,
     esxVI_Type_NasDatastoreInfo,
     esxVI_Type_ObjectContent,
     esxVI_Type_ObjectSpec,

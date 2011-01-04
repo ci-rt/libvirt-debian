@@ -612,6 +612,39 @@
             <ref name="diskspec"/>
           </interleave>
         </group>
+        <group>
+          <attribute name="type">
+            <value>network</value>
+          </attribute>
+          <interleave>
+            <optional>
+              <element name="source">
+                <attribute name="protocol">
+                  <choice>
+                    <value>nbd</value>
+                    <value>rbd</value>
+                    <value>sheepdog</value>
+                  </choice>
+                </attribute>
+                <optional>
+                  <attribute name="name"/>
+                </optional>
+                <zeroOrMore>
+                  <element name="host">
+                    <attribute name="name">
+                      <ref name="hostName"/>
+                    </attribute>
+                    <attribute name="port">
+                      <ref name="unsignedInt"/>
+                    </attribute>
+                  </element>
+                </zeroOrMore>
+                <empty/>
+              </element>
+            </optional>
+            <ref name="diskspec"/>
+          </interleave>
+        </group>
         <ref name="diskspec"/>
       </choice>
     </element>
@@ -1472,6 +1505,7 @@
             <value>poweroff</value>
             <value>pause</value>
             <value>none</value>
+            <value>dump</value>
           </choice>
         </attribute>
       </optional>
@@ -1745,6 +1779,8 @@
             <ref name="cpuModel"/>
             <optional>
               <ref name="cpuVendor"/>
+            </optional>
+            <optional>
               <ref name="cpuTopology"/>
             </optional>
             <zeroOrMore>
@@ -1873,12 +1909,13 @@
       <value>serial</value>
       <value>uuid</value>
       <value>sku</value>
+      <value>family</value>
     </choice>
   </define>
 
   <define name="sysinfo-value">
     <data type="string">
-      <param name='pattern'>[a-zA-Z0-9/\-_\. ]+</param>
+      <param name='pattern'>[a-zA-Z0-9/\-_\. \(\)]+</param>
     </data>
   </define>
 
@@ -1988,6 +2025,11 @@
     <data type="unsignedShort">
       <param name="pattern">[0-9]+</param>
       <param name="minInclusive">1</param>
+    </data>
+  </define>
+  <define name="hostName">
+    <data type="string">
+      <param name="pattern">[a-zA-Z0-9\.\-]+</param>
     </data>
   </define>
   <define name="PortNumber">

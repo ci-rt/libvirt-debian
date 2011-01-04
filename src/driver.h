@@ -27,7 +27,8 @@ typedef enum {
     VIR_DRV_ONE = 9,
     VIR_DRV_ESX = 10,
     VIR_DRV_PHYP = 11,
-    VIR_DRV_XENAPI = 12
+    VIR_DRV_XENAPI = 12,
+    VIR_DRV_VMWARE = 13
 } virDrvNo;
 
 
@@ -47,17 +48,20 @@ typedef enum {
 
 
 /* Internal feature-detection macro.  Don't call drv->supports_feature
- * directly, because it may be NULL, use this macro instead.
+ * directly if you don't have to, because it may be NULL, use this macro
+ * instead.
  *
- * Note that you must check for errors.
+ * Note that this treats a possible error returned by drv->supports_feature
+ * the same as not supported. If you care about the error, call
+ * drv->supports_feature directly.
  *
  * Returns:
- *   >= 1  Feature is supported.
+ *   != 0  Feature is supported.
  *   0     Feature is not supported.
- *   -1    Error.
  */
-# define VIR_DRV_SUPPORTS_FEATURE(drv,conn,feature)                      \
-    ((drv)->supports_feature ? (drv)->supports_feature((conn),(feature)) : 0)
+# define VIR_DRV_SUPPORTS_FEATURE(drv,conn,feature)                         \
+    ((drv)->supports_feature ?                                              \
+        (drv)->supports_feature((conn), (feature)) > 0 : 0)
 
 typedef virDrvOpenStatus
         (*virDrvOpen)			(virConnectPtr conn,

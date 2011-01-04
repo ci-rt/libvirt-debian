@@ -54,6 +54,9 @@
 # ifdef WITH_OPENVZ
 #  include "openvz/openvz_driver.h"
 # endif
+# ifdef WITH_VMWARE
+#  include "vmware/vmware_driver.h"
+# endif
 # ifdef WITH_PHYP
 #  include "phyp/phyp_driver.h"
 # endif
@@ -365,6 +368,9 @@ virInitialize(void)
 # ifdef WITH_OPENVZ
     virDriverLoadModule("openvz");
 # endif
+# ifdef WITH_VMWARE
+    virDriverLoadModule("vmware");
+# endif
 # ifdef WITH_VBOX
     virDriverLoadModule("vbox");
 # endif
@@ -386,6 +392,9 @@ virInitialize(void)
 # endif
 # ifdef WITH_OPENVZ
     if (openvzRegister() == -1) return -1;
+# endif
+# ifdef WITH_VMWARE
+    if (vmwareRegister() == -1) return -1;
 # endif
 # ifdef WITH_PHYP
     if (phypRegister() == -1) return -1;
@@ -1120,6 +1129,10 @@ virGetVersion(unsigned long *libVer, const char *type,
         if (STRCASEEQ(type, "OpenVZ"))
             *typeVer = LIBVIR_VERSION_NUMBER;
 # endif
+# if WITH_VMWARE
+        if (STRCASEEQ(type, "VMware"))
+            *typeVer = LIBVIR_VERSION_NUMBER;
+# endif
 # if WITH_VBOX
         if (STRCASEEQ(type, "VBox"))
             *typeVer = LIBVIR_VERSION_NUMBER;
@@ -1605,7 +1618,10 @@ virDrvSupportsFeature (virConnectPtr conn, int feature)
         return (-1);
     }
 
-    ret = VIR_DRV_SUPPORTS_FEATURE (conn->driver, conn, feature);
+    if (!conn->driver->supports_feature)
+        ret = 0;
+    else
+        ret = conn->driver->supports_feature(conn, feature);
 
     if (ret < 0)
         virDispatchError(conn);
@@ -3294,7 +3310,7 @@ error:
  * @flags: currently unused, pass 0
  *
  * Reads a domain XML configuration document, and generates
- * generates a native configuration file describing the domain.
+ * a native configuration file describing the domain.
  * The format of the native data is hypervisor dependant.
  *
  * Returns a 0 terminated UTF-8 encoded native config datafile, or NULL in case of error.

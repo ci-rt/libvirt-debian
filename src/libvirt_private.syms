@@ -83,6 +83,43 @@ virCgroupSetMemorySoftLimit;
 virCgroupSetSwapHardLimit;
 
 
+# command.h
+virCommandAddArg;
+virCommandAddArgBuffer;
+virCommandAddArgFormat;
+virCommandAddArgList;
+virCommandAddArgPair;
+virCommandAddArgSet;
+virCommandAddEnvBuffer;
+virCommandAddEnvPair;
+virCommandAddEnvPass;
+virCommandAddEnvPassCommon;
+virCommandAddEnvString;
+virCommandClearCaps;
+virCommandDaemonize;
+virCommandFree;
+virCommandNew;
+virCommandNewArgList;
+virCommandNewArgs;
+virCommandNonblockingFDs;
+virCommandPreserveFD;
+virCommandRun;
+virCommandRunAsync;
+virCommandSetErrorBuffer;
+virCommandSetErrorFD;
+virCommandSetInputBuffer;
+virCommandSetInputFD;
+virCommandSetOutputBuffer;
+virCommandSetOutputFD;
+virCommandSetPidFile;
+virCommandSetPreExecHook;
+virCommandSetWorkingDirectory;
+virCommandToString;
+virCommandTransferFD;
+virCommandWait;
+virCommandWriteArgLog;
+
+
 # conf.h
 virConfFree;
 virConfFreeValue;
@@ -105,6 +142,7 @@ cpuDecode;
 cpuEncode;
 cpuGuestData;
 cpuHasFeature;
+cpuMapOverride;
 cpuNodeData;
 cpuUpdate;
 
@@ -325,6 +363,7 @@ virDomainConfVMNWFilterTeardown;
 # ebtables.h
 ebtablesAddForwardAllowIn;
 ebtablesAddForwardPolicyReject;
+ebtablesContextFree;
 ebtablesContextNew;
 ebtablesRemoveForwardAllowIn;
 
@@ -503,6 +542,11 @@ virLogStartup;
 virLogUnlock;
 
 
+# macvtap.h
+virVMOperationTypeFromString;
+virVMOperationTypeToString;
+
+
 # memory.h
 virAlloc;
 virAllocN;
@@ -514,7 +558,12 @@ virShrinkN;
 
 
 # network.h
+virSocketAddrBroadcast;
+virSocketAddrBroadcastByPrefix;
 virSocketAddrIsNetmask;
+virSocketAddrMask;
+virSocketAddrMaskByPrefix;
+virSocketAddrPrefixToNetmask;
 virSocketCheckNetmask;
 virSocketFormatAddr;
 virSocketFormatAddrFull;
@@ -531,12 +580,15 @@ virNetworkAssignDef;
 virNetworkConfigFile;
 virNetworkDefFormat;
 virNetworkDefFree;
+virNetworkDefGetIpByIndex;
 virNetworkDefParseFile;
 virNetworkDefParseNode;
 virNetworkDefParseString;
 virNetworkDeleteConfig;
 virNetworkFindByName;
 virNetworkFindByUUID;
+virNetworkIpDefNetmask;
+virNetworkIpDefPrefix;
 virNetworkLoadAllConfigs;
 virNetworkObjIsDuplicate;
 virNetworkObjListFree;
@@ -718,6 +770,12 @@ virSysinfoDefFree;
 virSysinfoRead;
 
 
+# threadpool.h
+virThreadPoolFree;
+virThreadPoolNew;
+virThreadPoolSendJob;
+
+
 # threads.h
 virCondBroadcast;
 virCondDestroy;
@@ -731,6 +789,7 @@ virMutexInitRecursive;
 virMutexLock;
 virMutexUnlock;
 virThreadCreate;
+virThreadID;
 virThreadIsSelf;
 virThreadJoin;
 virThreadSelf;
@@ -760,6 +819,7 @@ virEventAddHandle;
 virEventRemoveHandle;
 virExec;
 virExecDaemonize;
+virExecWithHook;
 virFileAbsPath;
 virFileDeletePid;
 virFileExists;
@@ -801,6 +861,7 @@ virRun;
 virRunWithHook;
 virSetCloseExec;
 virSetNonBlock;
+virSetUIDGID;
 virSkipSpaces;
 virStrToDouble;
 virStrToLong_i;
@@ -810,6 +871,7 @@ virStrToLong_ull;
 virStrcpy;
 virStrncpy;
 virTimestamp;
+virVasprintf;
 
 
 # uuid.h

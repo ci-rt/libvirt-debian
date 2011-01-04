@@ -13,44 +13,70 @@
 
 # include "internal.h"
 # include "testutils.h"
-# include "qemu/qemu_conf.h"
+# include "qemu/qemu_capabilities.h"
+# include "qemu/qemu_command.h"
 # include "datatypes.h"
+# include "cpu/cpu_map.h"
 
 # include "testutilsqemu.h"
 
 static char *progname;
 static char *abs_srcdir;
+static const char *abs_top_srcdir;
 static struct qemud_driver driver;
 
 # define MAX_FILE 4096
 
 static int testCompareXMLToArgvFiles(const char *xml,
-                                     const char *cmd,
+                                     const char *cmdline,
                                      unsigned long long extraFlags,
                                      const char *migrateFrom,
                                      bool expectError) {
     char argvData[MAX_FILE];
     char *expectargv = &(argvData[0]);
+    int len;
     char *actualargv = NULL;
-    const char **argv = NULL;
-    const char **qenv = NULL;
-    const char **tmp = NULL;
-    int ret = -1, len;
+    int ret = -1;
     unsigned long long flags;
     virDomainDefPtr vmdef = NULL;
     virDomainChrDef monitor_chr;
     virConnectPtr conn;
     char *log = NULL;
+    char *emulator = NULL;
+    virCommandPtr cmd = NULL;
 
     if (!(conn = virGetConnect()))
         goto fail;
 
-    if (virtTestLoadFile(cmd, &expectargv, MAX_FILE) < 0)
+    len = virtTestLoadFile(cmdline, &expectargv, MAX_FILE);
+    if (len < 0)
         goto fail;
+    if (len && expectargv[len - 1] == '\n')
+        expectargv[len - 1] = '\0';
 
     if (!(vmdef = virDomainDefParseFile(driver.caps, xml,
                                         VIR_DOMAIN_XML_INACTIVE)))
         goto fail;
+
+    /*
+     * For test purposes, we may want to fake emulator's output by providing
+     * our own script instead of a real emulator. For this to work we need to
+     * specify a relative path in <emulator/> element, which, however, is not
+     * allowed by RelaxNG schema for domain XML. To work around it we add an
+     * extra '/' at the beginning of relative emulator path so that it looks
+     * like, e.g., "/./qemu.sh" or "/../emulator/qemu.sh" instead of
+     * "./qemu.sh" or "../emulator/qemu.sh" respectively. The following code
+     * detects such paths, strips the extra '/' and makes the path absolute.
+     */
+    if (vmdef->emulator && STRPREFIX(vmdef->emulator, "/.")) {
+        if (!(emulator = strdup(vmdef->emulator + 1)))
+            goto fail;
+        free(vmdef->emulator);
+        vmdef->emulator = NULL;
+        if (virAsprintf(&vmdef->emulator, "%s/qemuxml2argvdata/%s",
+                        abs_srcdir, emulator) < 0)
+            goto fail;
+    }
 
     if (extraFlags & QEMUD_CMD_FLAG_DOMID)
         vmdef->id = 6;
@@ -61,8 +87,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
     monitor_chr.type = VIR_DOMAIN_CHR_TYPE_UNIX;
     monitor_chr.data.nix.path = (char *)"/tmp/test-monitor";
     monitor_chr.data.nix.listen = 1;
-    if (!(monitor_chr.info.alias = strdup("monitor")))
-        goto fail;
+    monitor_chr.info.alias = (char *)"monitor";
 
     flags = QEMUD_CMD_FLAG_VNC_COLON |
         QEMUD_CMD_FLAG_NO_REBOOT |
@@ -86,11 +111,9 @@ static int testCompareXMLToArgvFiles(const char *xml,
     free(virtTestLogContentAndReset());
     virResetLastError();
 
-    if (qemudBuildCommandLine(conn, &driver,
-                              vmdef, &monitor_chr, 0, flags,
-                              &argv, &qenv,
-                              NULL, NULL, migrateFrom, NULL,
-                              VIR_VM_OP_CREATE) < 0)
+    if (!(cmd = qemuBuildCommandLine(conn, &driver,
+                                     vmdef, &monitor_chr, false, flags,
+                                     migrateFrom, NULL, VIR_VM_OP_CREATE)))
         goto fail;
 
     if (!!virGetLastError() != expectError) {
@@ -104,36 +127,17 @@ static int testCompareXMLToArgvFiles(const char *xml,
         virResetLastError();
     }
 
-    len = 1; /* for trailing newline */
-    tmp = qenv;
-    while (*tmp) {
-        len += strlen(*tmp) + 1;
-        tmp++;
-    }
-
-    tmp = argv;
-    while (*tmp) {
-        len += strlen(*tmp) + 1;
-        tmp++;
-    }
-    if ((actualargv = malloc(sizeof(*actualargv)*len)) == NULL)
+    if (!(actualargv = virCommandToString(cmd)))
         goto fail;
-    actualargv[0] = '\0';
-    tmp = qenv;
-    while (*tmp) {
-        if (actualargv[0])
-            strcat(actualargv, " ");
-        strcat(actualargv, *tmp);
-        tmp++;
+
+    if (emulator) {
+        /* Skip the abs_srcdir portion of replacement emulator.  */
+        char *start_skip = strstr(actualargv, abs_srcdir);
+        char *end_skip = strstr(actualargv, emulator);
+        if (!start_skip || !end_skip)
+            goto fail;
+        memmove(start_skip, end_skip, strlen(end_skip) + 1);
     }
-    tmp = argv;
-    while (*tmp) {
-        if (actualargv[0])
-            strcat(actualargv, " ");
-        strcat(actualargv, *tmp);
-        tmp++;
-    }
-    strcat(actualargv, "\n");
 
     if (STRNEQ(expectargv, actualargv)) {
         virtTestDifference(stderr, expectargv, actualargv);
@@ -144,23 +148,9 @@ static int testCompareXMLToArgvFiles(const char *xml,
 
  fail:
     free(log);
+    free(emulator);
     free(actualargv);
-    if (argv) {
-        tmp = argv;
-        while (*tmp) {
-            free(*(char**)tmp);
-            tmp++;
-        }
-        free(argv);
-    }
-    if (qenv) {
-        tmp = qenv;
-        while (*tmp) {
-            free(*(char**)tmp);
-            tmp++;
-        }
-        free(qenv);
-    }
+    virCommandFree(cmd);
     virDomainDefFree(vmdef);
     virUnrefConnect(conn);
     return ret;
@@ -193,6 +183,7 @@ mymain(int argc, char **argv)
 {
     int ret = 0;
     char cwd[PATH_MAX];
+    char map[PATH_MAX];
 
     progname = argv[0];
 
@@ -204,6 +195,10 @@ mymain(int argc, char **argv)
     abs_srcdir = getenv("abs_srcdir");
     if (!abs_srcdir)
         abs_srcdir = getcwd(cwd, sizeof(cwd));
+
+    abs_top_srcdir = getenv("abs_top_srcdir");
+    if (!abs_top_srcdir)
+        abs_top_srcdir = "..";
 
     if ((driver.caps = testQemuCapsInit()) == NULL)
         return EXIT_FAILURE;
@@ -217,6 +212,10 @@ mymain(int argc, char **argv)
     if (!(driver.spiceTLSx509certdir = strdup("/etc/pki/libvirt-spice")))
         return EXIT_FAILURE;
     if (!(driver.spicePassword = strdup("123456")))
+        return EXIT_FAILURE;
+
+    snprintf(map, PATH_MAX, "%s/src/cpu/cpu_map.xml", abs_top_srcdir);
+    if (cpuMapOverride(map) < 0)
         return EXIT_FAILURE;
 
 # define DO_TEST_FULL(name, extraFlags, migrateFrom, expectError)       \
@@ -303,6 +302,12 @@ mymain(int argc, char **argv)
             QEMUD_CMD_FLAG_DRIVE_CACHE_V2 | QEMUD_CMD_FLAG_DRIVE_FORMAT, false);
     DO_TEST("disk-drive-cache-v2-none", QEMUD_CMD_FLAG_DRIVE |
             QEMUD_CMD_FLAG_DRIVE_CACHE_V2 | QEMUD_CMD_FLAG_DRIVE_FORMAT, false);
+    DO_TEST("disk-drive-network-nbd", QEMUD_CMD_FLAG_DRIVE |
+            QEMUD_CMD_FLAG_DRIVE_FORMAT, false);
+    DO_TEST("disk-drive-network-rbd", QEMUD_CMD_FLAG_DRIVE |
+            QEMUD_CMD_FLAG_DRIVE_FORMAT, false);
+    DO_TEST("disk-drive-network-sheepdog", QEMUD_CMD_FLAG_DRIVE |
+            QEMUD_CMD_FLAG_DRIVE_FORMAT, false);
     DO_TEST("disk-usb", 0, false);
     DO_TEST("disk-usb-device", QEMUD_CMD_FLAG_DRIVE |
             QEMUD_CMD_FLAG_DEVICE | QEMUD_CMD_FLAG_NODEFCONFIG, false);
@@ -326,7 +331,9 @@ mymain(int argc, char **argv)
 
     DO_TEST("graphics-sdl", 0, false);
     DO_TEST("graphics-sdl-fullscreen", 0, false);
-    DO_TEST("nographics-vga", QEMUD_CMD_FLAG_VGA, false);
+    DO_TEST("nographics", QEMUD_CMD_FLAG_VGA, false);
+    DO_TEST("nographics-vga", QEMUD_CMD_FLAG_VGA |
+                              QEMUD_CMD_FLAG_VGA_NONE, false);
     DO_TEST("graphics-spice",
             QEMUD_CMD_FLAG_VGA | QEMUD_CMD_FLAG_VGA_QXL |
             QEMUD_CMD_FLAG_DEVICE | QEMUD_CMD_FLAG_SPICE, false);
@@ -398,6 +405,7 @@ mymain(int argc, char **argv)
     DO_TEST("watchdog", 0, false);
     DO_TEST("watchdog-device", QEMUD_CMD_FLAG_DEVICE |
             QEMUD_CMD_FLAG_NODEFCONFIG, false);
+    DO_TEST("watchdog-dump", 0, false);
     DO_TEST("balloon-device", QEMUD_CMD_FLAG_DEVICE |
             QEMUD_CMD_FLAG_NODEFCONFIG, false);
     DO_TEST("balloon-device-auto", QEMUD_CMD_FLAG_DEVICE |
@@ -423,6 +431,15 @@ mymain(int argc, char **argv)
     DO_TEST("qemu-ns", 0, false);
 
     DO_TEST("smp", QEMUD_CMD_FLAG_SMP_TOPOLOGY, false);
+
+    DO_TEST("cpu-topology1", QEMUD_CMD_FLAG_SMP_TOPOLOGY, false);
+    DO_TEST("cpu-topology2", QEMUD_CMD_FLAG_SMP_TOPOLOGY, false);
+    DO_TEST("cpu-topology3", 0, false);
+    DO_TEST("cpu-minimum1", 0, false);
+    DO_TEST("cpu-minimum2", 0, false);
+    DO_TEST("cpu-exact1", 0, false);
+    DO_TEST("cpu-exact2", 0, false);
+    DO_TEST("cpu-strict1", 0, false);
 
     free(driver.stateDir);
     virCapabilitiesFree(driver.caps);

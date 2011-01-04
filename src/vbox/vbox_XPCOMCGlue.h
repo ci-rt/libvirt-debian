@@ -32,12 +32,25 @@
 /* This has to be the oldest version we support. */
 # include "vbox_CAPI_v2_2.h"
 
-/** Pointer to the VBoxXPCOMC function table. */
-extern PCVBOXXPCOM g_pVBoxFuncs;
 /** Pointer to VBoxGetXPCOMCFunctions for the loaded VBoxXPCOMC so/dylib/dll. */
 extern PFNVBOXGETXPCOMCFUNCTIONS g_pfnGetFunctions;
 
-int VBoxCGlueInit(void);
+int VBoxCGlueInit(unsigned int *version);
 void VBoxCGlueTerm(void);
+
+typedef struct _vboxArray vboxArray;
+
+struct _vboxArray {
+    void **items;
+    size_t count;
+};
+
+# define VBOX_ARRAY_INITIALIZER { NULL, 0 }
+
+nsresult vboxArrayGet(vboxArray *array, void *self, void *getter);
+nsresult vboxArrayGetWithPtrArg(vboxArray *array, void *self, void *getter, void *arg);
+nsresult vboxArrayGetWithUintArg(vboxArray *array, void *self, void *getter, PRUint32 arg);
+void vboxArrayRelease(vboxArray *array);
+void vboxArrayUnalloc(vboxArray *array);
 
 #endif

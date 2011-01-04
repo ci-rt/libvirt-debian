@@ -25,7 +25,6 @@ src/esx/esx_util.c
 src/esx/esx_vi.c
 src/esx/esx_vi_methods.c
 src/esx/esx_vi_types.c
-src/esx/esx_vmx.c
 src/fdstream.c
 src/interface/netcf_driver.c
 src/internal.h
@@ -51,8 +50,14 @@ src/openvz/openvz_conf.c
 src/openvz/openvz_driver.c
 src/phyp/phyp_driver.c
 src/qemu/qemu_bridge_filter.c
+src/qemu/qemu_capabilities.c
+src/qemu/qemu_cgroup.c
+src/qemu/qemu_command.c
 src/qemu/qemu_conf.c
+src/qemu/qemu_domain.c
 src/qemu/qemu_driver.c
+src/qemu/qemu_hostdev.c
+src/qemu/qemu_hotplug.c
 src/qemu/qemu_monitor.c
 src/qemu/qemu_monitor_json.c
 src/qemu/qemu_monitor_text.c
@@ -78,6 +83,7 @@ src/uml/uml_driver.c
 src/util/authhelper.c
 src/util/bridge.c
 src/util/cgroup.c
+src/util/command.c
 src/util/conf.c
 src/util/dnsmasq.c
 src/util/hooks.c
@@ -96,9 +102,13 @@ src/util/util.c
 src/util/virtaudit.c
 src/util/virterror.c
 src/util/xml.c
+src/vbox/vbox_MSCOMGlue.c
 src/vbox/vbox_XPCOMCGlue.c
 src/vbox/vbox_driver.c
 src/vbox/vbox_tmpl.c
+src/vmware/vmware_conf.c
+src/vmware/vmware_driver.c
+src/vmx/vmx.c
 src/xen/xen_driver.c
 src/xen/xen_hypervisor.c
 src/xen/xen_inotify.c

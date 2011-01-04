@@ -50,6 +50,7 @@ typedef struct _esxVI_HostVmfsVolume esxVI_HostVmfsVolume;
 typedef struct _esxVI_IsoImageFileInfo esxVI_IsoImageFileInfo;
 typedef struct _esxVI_IsoImageFileQuery esxVI_IsoImageFileQuery;
 typedef struct _esxVI_LocalDatastoreInfo esxVI_LocalDatastoreInfo;
+typedef struct _esxVI_LocalizedMethodFault esxVI_LocalizedMethodFault;
 typedef struct _esxVI_NasDatastoreInfo esxVI_NasDatastoreInfo;
 typedef struct _esxVI_ObjectContent esxVI_ObjectContent;
 typedef struct _esxVI_ObjectSpec esxVI_ObjectSpec;

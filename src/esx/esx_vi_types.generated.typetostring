@@ -112,6 +112,9 @@
           case esxVI_Type_LocalDatastoreInfo:
             return "LocalDatastoreInfo";
 
+          case esxVI_Type_LocalizedMethodFault:
+            return "LocalizedMethodFault";
+
           case esxVI_Type_NasDatastoreInfo:
             return "NasDatastoreInfo";
 

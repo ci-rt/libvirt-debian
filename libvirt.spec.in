@@ -43,6 +43,7 @@
 # Then the hypervisor drivers that talk a native remote protocol
 %define with_phyp          0%{!?_without_phyp:1}
 %define with_esx           0%{!?_without_esx:1}
+%define with_vmware        0%{!?_without_vmware:1}
 
 # Then the secondary host drivers
 %define with_network       0%{!?_without_network:%{server_drivers}}
@@ -67,6 +68,7 @@
 %define with_libnl         0%{!?_without_libnl:0}
 %define with_audit         0%{!?_without_audit:0}
 %define with_dtrace        0%{!?_without_dtrace:0}
+%define with_cgconfig      0%{!?_without_cgconfig:0}
 
 # Non-server/HV driver defaults which are always enabled
 %define with_python        0%{!?_without_python:1}
@@ -85,15 +87,15 @@
 %define with_numactl 0
 %endif
 
-# RHEL doesn't ship OpenVZ, VBox, UML, OpenNebula, PowerHypervisor, ESX,
-# or libxenserver (xenapi)
+# RHEL doesn't ship OpenVZ, VBox, UML, OpenNebula, PowerHypervisor,
+# VMWare, or libxenserver (xenapi)
 %if 0%{?rhel}
 %define with_openvz 0
 %define with_vbox 0
 %define with_uml 0
 %define with_one 0
 %define with_phyp 0
-%define with_esx 0
+%define with_vmware 0
 %define with_xenapi 0
 %endif
 
@@ -167,6 +169,13 @@
 %define with_dtrace 1
 %endif
 
+# Pull in cgroups config system
+%if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
+%if %{with_qemu} || %{with_lxc}
+%define with_cgconfig 0%{!?_without_cgconfig:1}
+%endif
+%endif
+
 # Force QEMU to run as non-root
 %if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
 %define qemu_user  qemu
@@ -185,6 +194,12 @@
 %define with_rhel5  0
 %endif
 
+
+# there's no use compiling the network driver without
+# the libvirt daemon
+%if ! %{with_libvirtd}
+%define with_network 0
+%endif
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
@@ -268,6 +283,9 @@ Requires: parted
 %if %{with_storage_mpath}
 # For multipath support
 Requires: device-mapper
+%endif
+%if %{with_cgconfig}
+Requires: libcgroup
 %endif
 %if %{with_xen}
 BuildRequires: xen-devel
@@ -478,6 +496,10 @@ of recent versions of Linux (and other OSes).
 %define _without_esx --without-esx
 %endif
 
+%if ! %{with_vmware}
+%define _without_vmware --without-vmware
+%endif
+
 %if ! %{with_polkit}
 %define _without_polkit --without-polkit
 %endif
@@ -585,6 +607,7 @@ of recent versions of Linux (and other OSes).
            %{?_without_one} \
            %{?_without_phyp} \
            %{?_without_esx} \
+           %{?_without_vmware} \
            %{?_without_network} \
            %{?_with_rhel5_api} \
            %{?_without_storage_fs} \
@@ -660,6 +683,8 @@ rm -rf $RPM_BUILD_ROOT%{_datadir}/doc/libvirt-%{version}
 
 %if ! %{with_libvirtd}
 rm -rf $RPM_BUILD_ROOT%{_sysconfdir}/libvirt/nwfilter
+mv $RPM_BUILD_ROOT%{_datadir}/doc/libvirt-%{version}/html \
+   $RPM_BUILD_ROOT%{_datadir}/doc/libvirt-devel-%{version}/
 %endif
 
 %if ! %{with_qemu}
@@ -718,6 +743,12 @@ then
 fi
 %endif
 
+%if %{with_cgconfig}
+if [ "$1" -eq "1" ]; then
+/sbin/chkconfig cgconfig on
+fi
+%endif
+
 /sbin/chkconfig --add libvirtd
 if [ "$1" -ge "1" ]; then
 	/sbin/service libvirtd condrestart > /dev/null 2>&1
@@ -744,9 +775,11 @@ fi
 /sbin/ldconfig
 /sbin/chkconfig --add libvirt-guests
 if [ $1 -ge 1 ]; then
-    # this doesn't do anything but allowing for libvirt-guests to be
-    # stopped on the first shutdown
-    /sbin/service libvirt-guests start > /dev/null 2>&1 || true
+    if /sbin/chkconfig --list libvirt-guests | /bin/grep -q :on ; then
+        # this doesn't do anything but allowing for libvirt-guests to be
+        # stopped on the first shutdown
+        /sbin/service libvirt-guests start > /dev/null 2>&1 || true
+    fi
 fi
 
 %postun client -p /sbin/ldconfig
@@ -930,6 +963,13 @@ fi
 %endif
 
 %changelog
+* Tue Jan  4 2011 Daniel Veillard <veillard@redhat.com> - 0.8.7-1
+- Preliminary support for VirtualBox 4.0
+- IPv6 support
+- Add VMware Workstation and Player driver driver
+- Add network disk support
+- Various improvements and bug fixes
+
 * Tue Nov 30 2010 Daniel Veillard <veillard@redhat.com> - 0.8.6-1
 - Add support for iSCSI target auto-discovery
 - QED: Basic support for QED images

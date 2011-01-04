@@ -288,6 +288,130 @@ int virSocketAddrIsNetmask(virSocketAddrPtr netmask) {
 }
 
 /**
+ * virSocketAddrMask:
+ * @addr: address that needs to be masked
+ * @netmask: the netmask address
+ *
+ * Mask off the host bits of @addr according to @netmask, turning it
+ * into a network address.
+ *
+ * Returns 0 in case of success, or -1 on error.
+ */
+int
+virSocketAddrMask(const virSocketAddrPtr addr,
+                  const virSocketAddrPtr netmask,
+                  virSocketAddrPtr       network)
+{
+    if (addr->data.stor.ss_family != netmask->data.stor.ss_family) {
+        network->data.stor.ss_family = AF_UNSPEC;
+        return -1;
+    }
+
+    if (addr->data.stor.ss_family == AF_INET) {
+        network->data.inet4.sin_addr.s_addr
+            = (addr->data.inet4.sin_addr.s_addr
+               & netmask->data.inet4.sin_addr.s_addr);
+        network->data.stor.ss_family = AF_INET;
+        network->len = addr->len;
+        return 0;
+    }
+    if (addr->data.stor.ss_family == AF_INET6) {
+        int ii;
+        for (ii = 0; ii < 16; ii++) {
+            network->data.inet6.sin6_addr.s6_addr[ii]
+                = (addr->data.inet6.sin6_addr.s6_addr[ii]
+                   & netmask->data.inet6.sin6_addr.s6_addr[ii]);
+        }
+        network->data.stor.ss_family = AF_INET6;
+        network->len = addr->len;
+        return 0;
+    }
+    network->data.stor.ss_family = AF_UNSPEC;
+    return -1;
+}
+
+/**
+ * virSocketAddrMaskByPrefix:
+ * @addr: address that needs to be masked
+ * @prefix: prefix (# of 1 bits) of netmask to apply
+ *
+ * Mask off the host bits of @addr according to @prefix, turning it
+ * into a network address.
+ *
+ * Returns 0 in case of success, or -1 on error.
+ */
+int
+virSocketAddrMaskByPrefix(const virSocketAddrPtr addr,
+                          unsigned int           prefix,
+                          virSocketAddrPtr       network)
+{
+    virSocketAddr netmask;
+
+    if (virSocketAddrPrefixToNetmask(prefix, &netmask,
+                                     addr->data.stor.ss_family) < 0) {
+        network->data.stor.ss_family = AF_UNSPEC;
+        return -1;
+    }
+
+    return virSocketAddrMask(addr, &netmask, network);
+}
+
+/**
+ * virSocketAddrBroadcast:
+ * @addr: address that needs to be turned into broadcast address (IPv4 only)
+ * @netmask: the netmask address
+ * @broadcast: virSocketAddr to recieve the broadcast address
+ *
+ * Mask ON the host bits of @addr according to @netmask, turning it
+ * into a broadcast address.
+ *
+ * Returns 0 in case of success, or -1 on error.
+ */
+int
+virSocketAddrBroadcast(const virSocketAddrPtr addr,
+                       const virSocketAddrPtr netmask,
+                       virSocketAddrPtr       broadcast)
+{
+    if ((addr->data.stor.ss_family != AF_INET) ||
+        (netmask->data.stor.ss_family != AF_INET)) {
+        broadcast->data.stor.ss_family = AF_UNSPEC;
+        return -1;
+    }
+
+    broadcast->data.stor.ss_family = AF_INET;
+    broadcast->len = addr->len;
+    broadcast->data.inet4.sin_addr.s_addr
+        = (addr->data.inet4.sin_addr.s_addr
+           | ~netmask->data.inet4.sin_addr.s_addr);
+    return 0;
+}
+
+/**
+ * virSocketAddrBroadcastByPrefix:
+ * @addr: address that needs to be turned into broadcast address (IPv4 only)
+ * @prefix: prefix (# of 1 bits) of netmask to apply
+ * @broadcast: virSocketAddr to recieve the broadcast address
+ *
+ * Mask off the host bits of @addr according to @prefix, turning it
+ * into a network address.
+ *
+ * Returns 0 in case of success, or -1 on error.
+ */
+int
+virSocketAddrBroadcastByPrefix(const virSocketAddrPtr addr,
+                               unsigned int           prefix,
+                               virSocketAddrPtr       broadcast)
+{
+    virSocketAddr netmask;
+
+    if (virSocketAddrPrefixToNetmask(prefix, &netmask,
+                                     addr->data.stor.ss_family) < 0)
+        return -1;
+
+    return virSocketAddrBroadcast(addr, &netmask, broadcast);
+}
+
+/**
  * virSocketCheckNetmask:
  * @addr1: a first network address
  * @addr2: a second network address
@@ -485,4 +609,64 @@ int virSocketGetNumNetmaskBits(const virSocketAddrPtr netmask)
         return c;
     }
     return -1;
+}
+
+/**
+ * virSocketPrefixToNetmask:
+ * @prefix: number of 1 bits to put in the netmask
+ * @netmask: address to fill in with the desired netmask
+ * @family: family of the address (AF_INET or AF_INET6 only)
+ *
+ * given @prefix and @family, fill in @netmask with a netmask
+ * (eg 255.255.255.0).
+ *
+ * Returns 0 on success or -1 on error.
+ */
+
+int
+virSocketAddrPrefixToNetmask(unsigned int prefix,
+                             virSocketAddrPtr netmask,
+                             int family)
+{
+    int result = -1;
+
+    netmask->data.stor.ss_family = AF_UNSPEC; /* assume failure */
+
+    if (family == AF_INET) {
+        int ip;
+
+        if (prefix > 32)
+            goto error;
+
+        ip = prefix ? ~((1 << (32 - prefix)) - 1) : 0;
+        netmask->data.inet4.sin_addr.s_addr = htonl(ip);
+        netmask->data.stor.ss_family = AF_INET;
+        result = 0;
+
+    } else if (family == AF_INET6) {
+        int ii = 0;
+
+        if (prefix > 128)
+            goto error;
+
+        while (prefix >= 8) {
+            /* do as much as possible an entire byte at a time */
+            netmask->data.inet6.sin6_addr.s6_addr[ii++] = 0xff;
+            prefix -= 8;
+        }
+        if (prefix > 0) {
+            /* final partial byte */
+            netmask->data.inet6.sin6_addr.s6_addr[ii++]
+                = ~((1 << (8 - prefix)) -1);
+        }
+        while (ii < 16) {
+            /* zerofill remainder in case it wasn't initialized */
+            netmask->data.inet6.sin6_addr.s6_addr[ii++] = 0;
+        }
+        netmask->data.stor.ss_family = AF_INET6;
+        result = 0;
+    }
+
+error:
+    return result;
 }

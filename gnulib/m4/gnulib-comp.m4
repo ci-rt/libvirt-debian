@@ -41,6 +41,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module arpa_inet-tests:
   # Code from module base64:
   # Code from module base64-tests:
+  # Code from module binary-io:
+  # Code from module binary-io-tests:
   # Code from module bind:
   # Code from module c++defs:
   # Code from module c-ctype:
@@ -118,6 +120,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module perror:
   # Code from module perror-tests:
   # Code from module physmem:
+  # Code from module pipe-posix:
+  # Code from module pipe-posix-tests:
   # Code from module poll:
   # Code from module poll-h:
   # Code from module poll-h-tests:
@@ -218,6 +222,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module vc-list-files-tests:
   # Code from module verify:
   # Code from module verify-tests:
+  # Code from module waitpid:
   # Code from module warn-on-use:
   # Code from module wchar:
   # Code from module wchar-tests:
@@ -265,6 +270,7 @@ AC_SUBST([LTALLOCA])
   gl_UNISTD_MODULE_INDICATOR([close])
   # Code from module close-hook:
   # Code from module configmake:
+  gl_CONFIGMAKE_PREP
   # Code from module connect:
   AC_REQUIRE([gl_HEADER_SYS_SOCKET])
   if test "$ac_cv_header_winsock2_h" = yes; then
@@ -383,6 +389,9 @@ AC_SUBST([LTALLOCA])
   gl_STRING_MODULE_INDICATOR([perror])
   # Code from module physmem:
   gl_PHYSMEM
+  # Code from module pipe-posix:
+  gl_FUNC_PIPE
+  gl_UNISTD_MODULE_INDICATOR([pipe])
   # Code from module poll:
   gl_FUNC_POLL
   gl_POLL_MODULE_INDICATOR([poll])
@@ -558,6 +567,9 @@ AC_SUBST([LTALLOCA])
      AM_][XGETTEXT_OPTION([--flag=vasprintf:2:c-format])])
   # Code from module vc-list-files:
   # Code from module verify:
+  # Code from module waitpid:
+  gl_FUNC_WAITPID
+  gl_SYS_WAIT_MODULE_INDICATOR([waitpid])
   # Code from module warn-on-use:
   # Code from module wchar:
   gl_WCHAR_H
@@ -811,6 +823,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/perror.c
   lib/physmem.c
   lib/physmem.h
+  lib/pipe.c
   lib/poll.c
   lib/poll.in.h
   lib/printf-args.c
@@ -878,6 +891,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/vasprintf.c
   lib/verify.h
   lib/w32sock.h
+  lib/waitpid.c
   lib/wchar.in.h
   lib/xsize.h
   m4/00gnulib.m4
@@ -887,6 +901,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/base64.m4
   m4/canonicalize.m4
   m4/close.m4
+  m4/configmake.m4
   m4/count-one-bits.m4
   m4/dirname.m4
   m4/dos.m4
@@ -933,6 +948,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/pathmax.m4
   m4/perror.m4
   m4/physmem.m4
+  m4/pipe.m4
   m4/poll.m4
   m4/poll_h.m4
   m4/posix-shell.m4
@@ -992,6 +1008,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/usleep.m4
   m4/vasnprintf.m4
   m4/vasprintf.m4
+  m4/waitpid.m4
   m4/warn-on-use.m4
   m4/wchar_h.m4
   m4/wchar_t.m4
@@ -1006,6 +1023,8 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-areadlink.h
   tests/test-arpa_inet.c
   tests/test-base64.c
+  tests/test-binary-io.c
+  tests/test-binary-io.sh
   tests/test-c-ctype.c
   tests/test-canonicalize-lgpl.c
   tests/test-count-one-bits.c
@@ -1033,6 +1052,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-netinet_in.c
   tests/test-perror.c
   tests/test-perror.sh
+  tests/test-pipe.c
   tests/test-poll-h.c
   tests/test-poll.c
   tests/test-random_r.c
@@ -1084,6 +1104,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-wchar.c
   tests/zerosize-ptr.h
   tests=lib/accept.c
+  tests=lib/binary-io.h
   tests=lib/bind.c
   tests=lib/dummy.c
   tests=lib/getpagesize.c

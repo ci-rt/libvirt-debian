@@ -916,6 +916,25 @@ int esxVI_LocalDatastoreInfo_Deserialize(xmlNodePtr node, esxVI_LocalDatastoreIn
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: LocalizedMethodFault
+ */
+
+struct _esxVI_LocalizedMethodFault {
+    esxVI_LocalizedMethodFault *_unused;                   /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    esxVI_MethodFault *fault;                              /* required */
+    char *localizedMessage;                                /* optional */
+};
+
+int esxVI_LocalizedMethodFault_Alloc(esxVI_LocalizedMethodFault **item);
+void esxVI_LocalizedMethodFault_Free(esxVI_LocalizedMethodFault **item);
+int esxVI_LocalizedMethodFault_Validate(esxVI_LocalizedMethodFault *item);
+int esxVI_LocalizedMethodFault_Deserialize(xmlNodePtr node, esxVI_LocalizedMethodFault **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Type: NasDatastoreInfo
  *          extends DatastoreInfo
  */
@@ -1486,7 +1505,7 @@ struct _esxVI_TaskInfo {
     esxVI_TaskInfoState state;                             /* required */
     esxVI_Boolean cancelled;                               /* required */
     esxVI_Boolean cancelable;                              /* required */
-    /* FIXME: error is currently ignored */
+    esxVI_LocalizedMethodFault *error;                     /* optional */
     esxVI_AnyType *result;                                 /* optional */
     esxVI_Int *progress;                                   /* optional */
     /* FIXME: reason is currently ignored */

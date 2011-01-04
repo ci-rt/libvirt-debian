@@ -41,6 +41,10 @@
               <a title="Information for users, administrators and developers" class="active" href="docs.html">Documentation</a>
               <ul class="l1"><li>
                   <div>
+                    <a title="How to compile libvirt" class="inactive" href="compiling.html">Compiling</a>
+                  </div>
+                </li><li>
+                  <div>
                     <a title="Information about deploying and using libvirt" class="inactive" href="deployment.html">Deployment</a>
                   </div>
                 </li><li>
@@ -98,6 +102,10 @@
                         <div>
                           <a title="Driver for VMware ESX" class="inactive" href="drvesx.html">VMware ESX</a>
                         </div>
+                      </li><li>
+                        <div>
+                          <a title="Driver for VMware Workstation / Player" class="inactive" href="drvvmware.html">VMware Workstation / Player</a>
+                        </div>
                       </li></ul>
                   </div>
                 </li><li>
@@ -150,6 +158,18 @@
       </div>
       <div id="content">
         <h1>OpenVZ container driver</h1>
+        <ul><li>
+            <a href="#connections">Connections to OpenVZ driver</a>
+          </li><li>
+            <a href="#notes">Notes on bridged networking</a>
+            <ul><li>
+                <a href="#host">Host network devices</a>
+              </li><li>
+                <a href="#tools">OpenVZ tools configuration</a>
+              </li></ul>
+          </li><li>
+            <a href="#example">Example guest domain XML configuration</a>
+          </li></ul>
         <p>
     The OpenVZ driver for libvirt allows use and management of container
     based virtualization on a Linux host OS. Prior to using the OpenVZ
@@ -158,10 +178,12 @@
     with OpenVZ 3.0.22, but other 3.0.x versions should also work without
     undue trouble.
     </p>
-        <h2>Connections to OpenVZ driver</h2>
+        <h2>
+          <a name="connections" id="connections">Connections to OpenVZ driver</a>
+        </h2>
         <p>
     The libvirt OpenVZ driver is a single-instance privileged driver,
-    with a driver name of 'openvz'. Some example conection URIs for
+    with a driver name of 'openvz'. Some example connection URIs for
     the libvirt driver are:
     </p>
         <pre>
@@ -171,14 +193,18 @@ openvz://example.com/system          (remote access, TLS/x509)
 openvz+tcp://example.com/system      (remote access, SASl/Kerberos)
 openvz+ssh://root@example.com/system (remote access, SSH tunnelled)
 </pre>
-        <h2>Notes on bridged networking</h2>
+        <h2>
+          <a name="notes" id="notes">Notes on bridged networking</a>
+        </h2>
         <p>
     Bridged networking enables a guest domain (ie container) to have its
     network interface connected directly to the host's physical LAN. Before
     this can be used there are a couple of configuration pre-requisites for
     the host OS.
     </p>
-        <h3>Host network devices</h3>
+        <h3>
+          <a name="host" id="host">Host network devices</a>
+        </h3>
         <p>
     One or more of the physical devices must be attached to a bridge. The
     process for this varies according to the operating system in use, so
@@ -187,7 +213,9 @@ openvz+ssh://root@example.com/system (remote access, SSH tunnelled)
     that the host OS should end up with a bridge device "br0" containing a
     physical device "eth0", or a bonding device "bond0".
     </p>
-        <h3>OpenVZ tools configuration</h3>
+        <h3>
+          <a name="tools" id="tools">OpenVZ tools configuration</a>
+        </h3>
         <p>
     OpenVZ releases later than 3.0.23 ship with a standard network device
     setup script that is able to setup bridging, named
@@ -207,7 +235,9 @@ EXTERNAL_SCRIPT="/usr/sbin/vznetaddbr"
     will work whether the container is started with libvirt, or OpenVZ
     tools.
     </p>
-        <h2>Example guest domain XML configuration</h2>
+        <h2>
+          <a name="example" id="example">Example guest domain XML configuration</a>
+        </h2>
         <p>
     The current libvirt OpenVZ driver has a restriction that the
     domain names must match the OpenVZ container VEID, which by

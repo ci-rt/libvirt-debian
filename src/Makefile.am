@@ -48,6 +48,7 @@ UTIL_SOURCES =							\
 		util/bitmap.c util/bitmap.h			\
 		util/bridge.c util/bridge.h			\
 		util/buf.c util/buf.h				\
+		util/command.c util/command.h			\
 		util/conf.c util/conf.h				\
 		util/cgroup.c util/cgroup.h			\
 		util/event.c util/event.h			\
@@ -73,6 +74,7 @@ UTIL_SOURCES =							\
 		util/threads.c util/threads.h			\
 		util/threads-pthread.h				\
 		util/threads-win32.h				\
+		util/threadpool.c util/threadpool.h		\
 		util/uuid.c util/uuid.h				\
 		util/util.c util/util.h				\
 		util/xml.c util/xml.h				\
@@ -217,8 +219,6 @@ check-local: remote_protocol-structs
 TEST_DRIVER_SOURCES =						\
 		test/test_driver.c test/test_driver.h
 
-
-
 # Now the Hypervisor specific drivers
 XEN_DRIVER_SOURCES =						\
 		xen/sexpr.c xen/sexpr.h				\
@@ -254,17 +254,32 @@ OPENVZ_DRIVER_SOURCES =						\
 		openvz/openvz_conf.c openvz/openvz_conf.h	\
 		openvz/openvz_driver.c openvz/openvz_driver.h
 
+VMWARE_DRIVER_SOURCES =						\
+		vmware/vmware_driver.c vmware/vmware_driver.h	\
+		vmware/vmware_conf.c vmware/vmware_conf.h
+
 VBOX_DRIVER_SOURCES =						\
-        vbox/vbox_XPCOMCGlue.c vbox/vbox_XPCOMCGlue.h		\
+        vbox/vbox_glue.c vbox/vbox_glue.h			\
         vbox/vbox_driver.c vbox/vbox_driver.h			\
         vbox/vbox_V2_2.c vbox/vbox_CAPI_v2_2.h			\
         vbox/vbox_V3_0.c vbox/vbox_CAPI_v3_0.h			\
         vbox/vbox_V3_1.c vbox/vbox_CAPI_v3_1.h			\
-        vbox/vbox_V3_2.c vbox/vbox_CAPI_v3_2.h
+        vbox/vbox_V3_2.c vbox/vbox_CAPI_v3_2.h			\
+        vbox/vbox_V4_0.c vbox/vbox_CAPI_v4_0.h
 
-VBOX_DRIVER_EXTRA_DIST = vbox/vbox_tmpl.c vbox/README
+VBOX_DRIVER_EXTRA_DIST =					\
+		vbox/vbox_tmpl.c vbox/README			\
+		vbox/vbox_MSCOMGlue.c vbox/vbox_MSCOMGlue.h	\
+		vbox/vbox_XPCOMCGlue.c vbox/vbox_XPCOMCGlue.h
 
 QEMU_DRIVER_SOURCES =						\
+		qemu/qemu_capabilities.c qemu/qemu_capabilities.h\
+		qemu/qemu_command.c qemu/qemu_command.h		\
+		qemu/qemu_domain.c qemu/qemu_domain.h		\
+		qemu/qemu_audit.c qemu/qemu_audit.h		\
+		qemu/qemu_cgroup.c qemu/qemu_cgroup.h		\
+		qemu/qemu_hostdev.c qemu/qemu_hostdev.h		\
+		qemu/qemu_hotplug.c qemu/qemu_hotplug.h		\
 		qemu/qemu_conf.c qemu/qemu_conf.h		\
 		qemu/qemu_monitor.c qemu/qemu_monitor.h		\
 		qemu/qemu_monitor_text.c			\
@@ -308,8 +323,7 @@ ESX_DRIVER_SOURCES =						\
 		esx/esx_util.c esx/esx_util.h			\
 		esx/esx_vi.c esx/esx_vi.h			\
 		esx/esx_vi_methods.c esx/esx_vi_methods.h	\
-		esx/esx_vi_types.c esx/esx_vi_types.h		\
-		esx/esx_vmx.c esx/esx_vmx.h
+		esx/esx_vi_types.c esx/esx_vi_types.h
 
 ESX_DRIVER_GENERATED =							\
 		esx/esx_vi_methods.generated.c				\
@@ -404,6 +418,9 @@ CPU_SOURCES =							\
 		cpu/cpu_x86.h cpu/cpu_x86.c cpu/cpu_x86_data.h	\
 		cpu/cpu_map.h cpu/cpu_map.c
 
+VMX_SOURCES =							\
+		vmx/vmx.c vmx/vmx.h
+
 pkgdata_DATA =	cpu/cpu_map.xml
 
 EXTRA_DIST +=	$(pkgdata_DATA)
@@ -436,6 +453,14 @@ libvirt_la_BUILT_LIBADD += libvirt_cpu.la
 libvirt_cpu_la_CFLAGS = \
 		-I@top_srcdir@/src/conf $(AM_CFLAGS)
 libvirt_cpu_la_SOURCES = $(CPU_SOURCES)
+
+if WITH_VMX
+noinst_LTLIBRARIES += libvirt_vmx.la
+libvirt_la_BUILT_LIBADD += libvirt_vmx.la
+libvirt_vmx_la_CFLAGS = \
+		-I@top_srcdir@/src/conf $(AM_CFLAGS)
+libvirt_vmx_la_SOURCES = $(VMX_SOURCES)
+endif
 
 
 noinst_LTLIBRARIES += libvirt_driver.la
@@ -472,7 +497,7 @@ libvirt_la_BUILT_LIBADD += libvirt_driver_remote.la
 endif
 libvirt_driver_remote_la_CFLAGS =				\
 		$(GNUTLS_CFLAGS)				\
-		$(SASL_CFLAGS)					\
+		$(SASL_CFLAGS) $(XDR_CFLAGS)			\
 		-I@top_srcdir@/src/conf				\
 		$(AM_CFLAGS)
 libvirt_driver_remote_la_LDFLAGS = $(AM_LDFLAGS)
@@ -599,6 +624,22 @@ endif
 libvirt_driver_openvz_la_SOURCES = $(OPENVZ_DRIVER_SOURCES)
 endif
 
+if WITH_VMWARE
+if WITH_DRIVER_MODULES
+mod_LTLIBRARIES += libvirt_driver_vmware.la
+else
+noinst_LTLIBRARIES += libvirt_driver_vmware.la
+libvirt_la_BUILT_LIBADD += libvirt_driver_vmware.la
+endif
+libvirt_driver_vmware_la_CFLAGS = \
+		-I@top_srcdir@/src/conf -I@top_srcdir@/src/vmx
+if WITH_DRIVER_MODULES
+libvirt_driver_vmware_la_LIBADD = ../gnulib/lib/libgnu.la
+libvirt_driver_vmware_la_LDFLAGS = -module -avoid-version
+endif
+libvirt_driver_vmware_la_SOURCES = $(VMWARE_DRIVER_SOURCES)
+endif
+
 if WITH_VBOX
 if WITH_DRIVER_MODULES
 mod_LTLIBRARIES += libvirt_driver_vbox.la
@@ -608,7 +649,7 @@ libvirt_la_BUILT_LIBADD += libvirt_driver_vbox.la
 endif
 libvirt_driver_vbox_la_CFLAGS = \
 		-I@top_srcdir@/src/conf $(AM_CFLAGS)
-libvirt_driver_vbox_la_LIBADD = $(DLOPEN_LIBS)
+libvirt_driver_vbox_la_LIBADD = $(DLOPEN_LIBS) $(MSCOM_LIBS)
 if WITH_DRIVER_MODULES
 libvirt_driver_vbox_la_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_driver_vbox_la_LDFLAGS = -module -avoid-version $(AM_LDFLAGS)
@@ -739,7 +780,7 @@ noinst_LTLIBRARIES += libvirt_driver_esx.la
 libvirt_la_BUILT_LIBADD += libvirt_driver_esx.la
 endif
 libvirt_driver_esx_la_CFLAGS = $(LIBCURL_CFLAGS) \
-		-I@top_srcdir@/src/conf $(AM_CFLAGS)
+		-I@top_srcdir@/src/conf -I@top_srcdir@/src/vmx $(AM_CFLAGS)
 libvirt_driver_esx_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_esx_la_LIBADD = $(LIBCURL_LIBS)
 if WITH_DRIVER_MODULES
@@ -951,7 +992,8 @@ EXTRA_DIST +=							\
 		$(SECURITY_DRIVER_SELINUX_SOURCES)		\
 		$(SECURITY_DRIVER_APPARMOR_SOURCES)		\
 		$(SECRET_DRIVER_SOURCES)			\
-		$(VBOX_DRIVER_EXTRA_DIST)
+		$(VBOX_DRIVER_EXTRA_DIST)			\
+		$(VMWARE_DRIVER_SOURCES)
 
 check-local: augeas-check
 
@@ -1013,6 +1055,10 @@ if WITH_NWFILTER
 USED_SYM_FILES += libvirt_nwfilter.syms
 endif
 
+if WITH_VMX
+USED_SYM_FILES += libvirt_vmx.syms
+endif
+
 EXTRA_DIST += \
   libvirt_public.syms		\
   libvirt_private.syms		\
@@ -1021,7 +1067,8 @@ EXTRA_DIST += \
   libvirt_linux.syms		\
   libvirt_macvtap.syms		\
   libvirt_daemon.syms		\
-  libvirt_nwfilter.syms
+  libvirt_nwfilter.syms	\
+  libvirt_vmx.syms
 
 BUILT_SOURCES += libvirt.syms libvirt.def libvirt_qemu.def
 

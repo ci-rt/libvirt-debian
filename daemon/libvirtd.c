@@ -1410,7 +1410,7 @@ static int qemudDispatchServer(struct qemud_server *server, struct qemud_socket 
         /* Client is running as root, so disable auth */
         if (uid == 0) {
             VIR_INFO(_("Turn off polkit auth for privileged client pid %d from %s"),
-                     pid, addrstr);
+                     pid, client->addrstr);
             client->auth = REMOTE_AUTH_NONE;
         }
     }
@@ -1451,7 +1451,7 @@ static int qemudDispatchServer(struct qemud_server *server, struct qemud_socket 
         } else {
             PROBE(CLIENT_TLS_FAIL, "fd=%d", client->fd);
             VIR_ERROR(_("TLS handshake failed for client %s: %s"),
-                      addrstr, gnutls_strerror (ret));
+                      client->addrstr, gnutls_strerror (ret));
             goto error;
         }
     }
@@ -1600,15 +1600,20 @@ static void *qemudWorker(void *data)
     }
 }
 
-static int qemudStartWorker(struct qemud_server *server,
-                            struct qemud_worker *worker) {
+static int
+qemudStartWorker(struct qemud_server *server,
+                 struct qemud_worker *worker)
+{
     pthread_attr_t attr;
-    pthread_attr_init(&attr);
+    int ret = -1;
+
+    if (pthread_attr_init(&attr) != 0)
+        return -1;
     /* We want to join workers, so don't detach them */
     /*pthread_attr_setdetachstate(&attr, 1);*/
 
     if (worker->hasThread)
-        return -1;
+        goto cleanup;
 
     worker->server = server;
     worker->hasThread = 1;
@@ -1621,10 +1626,13 @@ static int qemudStartWorker(struct qemud_server *server,
                        worker) != 0) {
         worker->hasThread = 0;
         worker->server = NULL;
-        return -1;
+        goto cleanup;
     }
 
-    return 0;
+    ret = 0;
+cleanup:
+    pthread_attr_destroy(&attr);
+    return ret;
 }
 
 
@@ -2283,6 +2291,7 @@ static void qemudFreeClient(struct qemud_client *client) {
     if (client->conn)
         virConnectClose(client->conn);
     virMutexDestroy(&client->lock);
+    VIR_FREE(client->addrstr);
     VIR_FREE(client);
 }
 
@@ -2403,15 +2412,24 @@ cleanup:
         server->workers[i].hasThread = 0;
     }
     VIR_FREE(server->workers);
+    for (i = 0; i < server->nclients; i++)
+        qemudFreeClient(server->clients[i]);
+    server->nclients = 0;
+    VIR_SHRINK_N(server->clients, server->nclients_max, server->nclients_max);
 
     virMutexUnlock(&server->lock);
     return NULL;
 }
 
 
-static int qemudStartEventLoop(struct qemud_server *server) {
+static int
+qemudStartEventLoop(struct qemud_server *server)
+{
     pthread_attr_t attr;
-    pthread_attr_init(&attr);
+    int ret = -1;
+
+    if (pthread_attr_init(&attr) != 0)
+        return -1;
     /* We want to join the eventloop, so don't detach it */
     /*pthread_attr_setdetachstate(&attr, 1);*/
 
@@ -2419,11 +2437,14 @@ static int qemudStartEventLoop(struct qemud_server *server) {
                        &attr,
                        qemudRunLoop,
                        server) != 0)
-        return -1;
+        goto cleanup;
 
     server->hasEventThread = 1;
 
-    return 0;
+    ret = 0;
+cleanup:
+    pthread_attr_destroy(&attr);
+    return ret;
 }
 
 
@@ -3154,6 +3175,13 @@ int main(int argc, char **argv) {
 
     if (godaemon) {
         char ebuf[1024];
+
+        if (chdir("/") < 0) {
+            VIR_ERROR(_("cannot change to root directory: %s"),
+                      virStrerror(errno, ebuf, sizeof(ebuf)));
+            goto error;
+        }
+
         if ((statuswrite = daemonForkIntoBackground()) < 0) {
             VIR_ERROR(_("Failed to fork as daemon: %s"),
                       virStrerror(errno, ebuf, sizeof ebuf));

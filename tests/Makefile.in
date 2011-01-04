@@ -18,7 +18,6 @@ VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
 pkglibdir = $(libdir)/@PACKAGE@
-pkglibexecdir = $(libexecdir)/@PACKAGE@
 am__cd = CDPATH="$${ZSH_VERSION+.}$(PATH_SEPARATOR)" && cd
 install_sh_DATA = $(install_sh) -c -m 644
 install_sh_PROGRAM = $(install_sh) -c
@@ -38,22 +37,25 @@ host_triplet = @host@
 
 check_PROGRAMS = virshtest$(EXEEXT) conftest$(EXEEXT) \
 	sockettest$(EXEEXT) nodeinfotest$(EXEEXT) qparamtest$(EXEEXT) \
-	virbuftest$(EXEEXT) $(am__EXEEXT_1) $(am__EXEEXT_2) \
+	virbuftest$(EXEEXT) commandtest$(EXEEXT) \
+	commandhelper$(EXEEXT) $(am__EXEEXT_1) $(am__EXEEXT_2) \
 	$(am__EXEEXT_3) $(am__EXEEXT_4) $(am__EXEEXT_5) \
-	$(am__EXEEXT_6) $(am__EXEEXT_7) networkxml2xmltest$(EXEEXT) \
-	nwfilterxml2xmltest$(EXEEXT) storagevolxml2xmltest$(EXEEXT) \
-	storagepoolxml2xmltest$(EXEEXT) nodedevxml2xmltest$(EXEEXT) \
-	interfacexml2xmltest$(EXEEXT) $(am__EXEEXT_8)
+	$(am__EXEEXT_6) $(am__EXEEXT_7) $(am__EXEEXT_8) \
+	networkxml2xmltest$(EXEEXT) nwfilterxml2xmltest$(EXEEXT) \
+	storagevolxml2xmltest$(EXEEXT) storagepoolxml2xmltest$(EXEEXT) \
+	nodedevxml2xmltest$(EXEEXT) interfacexml2xmltest$(EXEEXT) \
+	cputest$(EXEEXT) $(am__EXEEXT_9)
 @WITH_XEN_TRUE@am__append_2 = xml2sexprtest sexpr2xmltest \
 @WITH_XEN_TRUE@	xmconfigtest xencapstest
 
 @ENABLE_XEN_TESTS_TRUE@@WITH_XEN_TRUE@am__append_3 = statstest reconnect
 @WITH_QEMU_TRUE@am__append_4 = qemuxml2argvtest qemuxml2xmltest qemuargv2xmltest qemuhelptest
-@WITH_ESX_TRUE@am__append_5 = esxutilstest vmx2xmltest xml2vmxtest
-@WITH_SECDRIVER_SELINUX_TRUE@am__append_6 = seclabeltest
-@WITH_SECDRIVER_APPARMOR_TRUE@am__append_7 = secaatest
-@WITH_CIL_TRUE@am__append_8 = object-locking
-@WITH_LIBVIRTD_TRUE@am__append_9 = \
+@WITH_ESX_TRUE@am__append_5 = esxutilstest
+@WITH_VMX_TRUE@am__append_6 = vmx2xmltest xml2vmxtest
+@WITH_SECDRIVER_SELINUX_TRUE@am__append_7 = seclabeltest
+@WITH_SECDRIVER_APPARMOR_TRUE@am__append_8 = secaatest
+@WITH_CIL_TRUE@am__append_9 = object-locking
+@WITH_LIBVIRTD_TRUE@am__append_10 = \
 @WITH_LIBVIRTD_TRUE@	test_conf.sh			\
 @WITH_LIBVIRTD_TRUE@	cpuset				\
 @WITH_LIBVIRTD_TRUE@	daemon-conf			\
@@ -70,38 +72,41 @@ check_PROGRAMS = virshtest$(EXEEXT) conftest$(EXEEXT) \
 @WITH_LIBVIRTD_TRUE@	virsh-schedinfo			\
 @WITH_LIBVIRTD_TRUE@	virsh-synopsis
 
-@WITH_SECDRIVER_APPARMOR_TRUE@am__append_10 = virt-aa-helper-test
-@WITH_SECDRIVER_APPARMOR_FALSE@am__append_11 = virt-aa-helper-test
+@WITH_SECDRIVER_APPARMOR_TRUE@am__append_11 = virt-aa-helper-test
+@WITH_SECDRIVER_APPARMOR_FALSE@am__append_12 = virt-aa-helper-test
 TESTS = virshtest$(EXEEXT) nodeinfotest$(EXEEXT) qparamtest$(EXEEXT) \
-	virbuftest$(EXEEXT) sockettest$(EXEEXT) $(test_scripts) \
-	$(am__EXEEXT_1) $(am__EXEEXT_9) $(am__EXEEXT_10) \
-	$(am__EXEEXT_4) $(am__EXEEXT_5) $(am__EXEEXT_6) \
-	$(am__EXEEXT_8) networkxml2xmltest$(EXEEXT) \
-	storagevolxml2xmltest$(EXEEXT) storagepoolxml2xmltest$(EXEEXT) \
-	nodedevxml2xmltest$(EXEEXT) interfacexml2xmltest$(EXEEXT)
-@WITH_XEN_TRUE@am__append_12 = xml2sexprtest \
+	virbuftest$(EXEEXT) sockettest$(EXEEXT) commandtest$(EXEEXT) \
+	$(test_scripts) $(am__EXEEXT_1) $(am__EXEEXT_10) \
+	$(am__EXEEXT_11) $(am__EXEEXT_4) $(am__EXEEXT_5) \
+	$(am__EXEEXT_6) $(am__EXEEXT_7) $(am__EXEEXT_9) \
+	networkxml2xmltest$(EXEEXT) storagevolxml2xmltest$(EXEEXT) \
+	storagepoolxml2xmltest$(EXEEXT) nodedevxml2xmltest$(EXEEXT) \
+	interfacexml2xmltest$(EXEEXT) cputest$(EXEEXT)
+@WITH_XEN_TRUE@am__append_13 = xml2sexprtest \
 @WITH_XEN_TRUE@	sexpr2xmltest \
 @WITH_XEN_TRUE@	xmconfigtest \
 @WITH_XEN_TRUE@	xencapstest
 
-@ENABLE_XEN_TESTS_TRUE@@WITH_XEN_TRUE@am__append_13 = reconnect statstest
-@WITH_QEMU_TRUE@am__append_14 = qemuxml2argvtest qemuxml2xmltest \
+@ENABLE_XEN_TESTS_TRUE@@WITH_XEN_TRUE@am__append_14 = reconnect statstest
+@WITH_QEMU_TRUE@am__append_15 = qemuxml2argvtest qemuxml2xmltest \
 @WITH_QEMU_TRUE@	qemuargv2xmltest qemuhelptest \
 @WITH_QEMU_TRUE@	nwfilterxml2xmltest
-@WITH_ESX_TRUE@am__append_15 = esxutilstest vmx2xmltest xml2vmxtest
-@WITH_SECDRIVER_SELINUX_TRUE@am__append_16 = seclabeltest
-@WITH_SECDRIVER_APPARMOR_TRUE@am__append_17 = secaatest
-@WITH_LIBVIRTD_TRUE@am__append_18 = eventtest
-@WITH_LIBVIRTD_TRUE@am__append_19 = eventtest
-@WITH_XEN_FALSE@am__append_20 = xml2sexprtest.c sexpr2xmltest.c xmconfigtest.c \
+@WITH_ESX_TRUE@am__append_16 = esxutilstest
+@WITH_VMX_TRUE@am__append_17 = vmx2xmltest xml2vmxtest
+@WITH_SECDRIVER_SELINUX_TRUE@am__append_18 = seclabeltest
+@WITH_SECDRIVER_APPARMOR_TRUE@am__append_19 = secaatest
+@WITH_LIBVIRTD_TRUE@am__append_20 = eventtest
+@WITH_LIBVIRTD_TRUE@am__append_21 = eventtest
+@WITH_XEN_FALSE@am__append_22 = xml2sexprtest.c sexpr2xmltest.c xmconfigtest.c \
 @WITH_XEN_FALSE@	xencapstest.c reconnect.c \
 @WITH_XEN_FALSE@	testutilsxen.c testutilsxen.h
 
-@WITH_QEMU_FALSE@am__append_21 = qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c qemuhelptest.c testutilsqemu.c testutilsqemu.h
-@WITH_ESX_FALSE@am__append_22 = esxutilstest.c vmx2xmltest.c xml2vmxtest.c
-@WITH_SECDRIVER_SELINUX_FALSE@am__append_23 = seclabeltest.c
-@WITH_SECDRIVER_APPARMOR_FALSE@am__append_24 = secaatest.c
-@WITH_CIL_FALSE@am__append_25 = object-locking.ml
+@WITH_QEMU_FALSE@am__append_23 = qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c qemuhelptest.c testutilsqemu.c testutilsqemu.h
+@WITH_ESX_FALSE@am__append_24 = esxutilstest.c
+@WITH_VMX_FALSE@am__append_25 = vmx2xmltest.c xml2vmxtest.c
+@WITH_SECDRIVER_SELINUX_FALSE@am__append_26 = seclabeltest.c
+@WITH_SECDRIVER_APPARMOR_FALSE@am__append_27 = secaatest.c
+@WITH_CIL_FALSE@am__append_28 = object-locking.ml
 subdir = tests
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -112,6 +117,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/base64.m4 \
 	$(top_srcdir)/gnulib/m4/canonicalize.m4 \
 	$(top_srcdir)/gnulib/m4/close.m4 \
+	$(top_srcdir)/gnulib/m4/configmake.m4 \
 	$(top_srcdir)/gnulib/m4/count-one-bits.m4 \
 	$(top_srcdir)/gnulib/m4/dirname.m4 \
 	$(top_srcdir)/gnulib/m4/dos.m4 \
@@ -159,7 +165,8 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/pathmax.m4 \
 	$(top_srcdir)/gnulib/m4/perror.m4 \
 	$(top_srcdir)/gnulib/m4/physmem.m4 \
-	$(top_srcdir)/gnulib/m4/po.m4 $(top_srcdir)/gnulib/m4/poll.m4 \
+	$(top_srcdir)/gnulib/m4/pipe.m4 $(top_srcdir)/gnulib/m4/po.m4 \
+	$(top_srcdir)/gnulib/m4/poll.m4 \
 	$(top_srcdir)/gnulib/m4/poll_h.m4 \
 	$(top_srcdir)/gnulib/m4/posix-shell.m4 \
 	$(top_srcdir)/gnulib/m4/printf.m4 \
@@ -217,6 +224,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/usleep.m4 \
 	$(top_srcdir)/gnulib/m4/vasnprintf.m4 \
 	$(top_srcdir)/gnulib/m4/vasprintf.m4 \
+	$(top_srcdir)/gnulib/m4/waitpid.m4 \
 	$(top_srcdir)/gnulib/m4/warn-on-use.m4 \
 	$(top_srcdir)/gnulib/m4/wchar_h.m4 \
 	$(top_srcdir)/m4/compiler-flags.m4 $(top_srcdir)/m4/gettext.m4 \
@@ -245,14 +253,15 @@ CONFIG_CLEAN_VPATH_FILES =
 @WITH_QEMU_TRUE@	qemuxml2xmltest$(EXEEXT) \
 @WITH_QEMU_TRUE@	qemuargv2xmltest$(EXEEXT) \
 @WITH_QEMU_TRUE@	qemuhelptest$(EXEEXT)
-@WITH_ESX_TRUE@am__EXEEXT_4 = esxutilstest$(EXEEXT) \
-@WITH_ESX_TRUE@	vmx2xmltest$(EXEEXT) xml2vmxtest$(EXEEXT)
-@WITH_SECDRIVER_SELINUX_TRUE@am__EXEEXT_5 = seclabeltest$(EXEEXT)
-@WITH_SECDRIVER_APPARMOR_TRUE@am__EXEEXT_6 = secaatest$(EXEEXT)
-@WITH_CIL_TRUE@am__EXEEXT_7 = object-locking$(EXEEXT)
-@WITH_LIBVIRTD_TRUE@am__EXEEXT_8 = eventtest$(EXEEXT)
-am_conftest_OBJECTS = conftest.$(OBJEXT)
-conftest_OBJECTS = $(am_conftest_OBJECTS)
+@WITH_ESX_TRUE@am__EXEEXT_4 = esxutilstest$(EXEEXT)
+@WITH_VMX_TRUE@am__EXEEXT_5 = vmx2xmltest$(EXEEXT) \
+@WITH_VMX_TRUE@	xml2vmxtest$(EXEEXT)
+@WITH_SECDRIVER_SELINUX_TRUE@am__EXEEXT_6 = seclabeltest$(EXEEXT)
+@WITH_SECDRIVER_APPARMOR_TRUE@am__EXEEXT_7 = secaatest$(EXEEXT)
+@WITH_CIL_TRUE@am__EXEEXT_8 = object-locking$(EXEEXT)
+@WITH_LIBVIRTD_TRUE@am__EXEEXT_9 = eventtest$(EXEEXT)
+am_commandhelper_OBJECTS = commandhelper-commandhelper.$(OBJEXT)
+commandhelper_OBJECTS = $(am_commandhelper_OBJECTS)
 am__DEPENDENCIES_1 =
 am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
@@ -260,10 +269,26 @@ am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) ../src/libvirt_test.la \
 	../gnulib/lib/libgnu.la $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1)
-conftest_DEPENDENCIES = $(am__DEPENDENCIES_2)
+commandhelper_DEPENDENCIES = $(am__DEPENDENCIES_2)
 AM_V_lt = $(am__v_lt_$(V))
 am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
 am__v_lt_0 = --silent
+commandhelper_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(commandhelper_CFLAGS) \
+	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+am_commandtest_OBJECTS = commandtest-commandtest.$(OBJEXT) \
+	commandtest-testutils.$(OBJEXT)
+commandtest_OBJECTS = $(am_commandtest_OBJECTS)
+commandtest_DEPENDENCIES = $(am__DEPENDENCIES_2)
+commandtest_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(commandtest_CFLAGS) \
+	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+am_conftest_OBJECTS = conftest.$(OBJEXT)
+conftest_OBJECTS = $(am_conftest_OBJECTS)
+conftest_DEPENDENCIES = $(am__DEPENDENCIES_2)
+am_cputest_OBJECTS = cputest.$(OBJEXT) testutils.$(OBJEXT)
+cputest_OBJECTS = $(am_cputest_OBJECTS)
+cputest_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am__esxutilstest_SOURCES_DIST = esxutilstest.c testutils.c testutils.h
 @WITH_ESX_TRUE@am_esxutilstest_OBJECTS = esxutilstest.$(OBJEXT) \
 @WITH_ESX_TRUE@	testutils.$(OBJEXT)
@@ -385,12 +410,11 @@ am_virshtest_OBJECTS = virshtest.$(OBJEXT) testutils.$(OBJEXT)
 virshtest_OBJECTS = $(am_virshtest_OBJECTS)
 virshtest_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am__vmx2xmltest_SOURCES_DIST = vmx2xmltest.c testutils.c testutils.h
-@WITH_ESX_TRUE@am_vmx2xmltest_OBJECTS = vmx2xmltest.$(OBJEXT) \
-@WITH_ESX_TRUE@	testutils.$(OBJEXT)
+@WITH_VMX_TRUE@am_vmx2xmltest_OBJECTS = vmx2xmltest.$(OBJEXT) \
+@WITH_VMX_TRUE@	testutils.$(OBJEXT)
 vmx2xmltest_OBJECTS = $(am_vmx2xmltest_OBJECTS)
-@WITH_ESX_TRUE@vmx2xmltest_DEPENDENCIES =  \
-@WITH_ESX_TRUE@	../src/libvirt_driver_esx.la \
-@WITH_ESX_TRUE@	$(am__DEPENDENCIES_2)
+@WITH_VMX_TRUE@vmx2xmltest_DEPENDENCIES = ../src/libvirt_vmx.la \
+@WITH_VMX_TRUE@	$(am__DEPENDENCIES_2)
 am__xencapstest_SOURCES_DIST = xencapstest.c testutils.h testutils.c
 @WITH_XEN_TRUE@am_xencapstest_OBJECTS = xencapstest.$(OBJEXT) \
 @WITH_XEN_TRUE@	testutils.$(OBJEXT)
@@ -415,12 +439,11 @@ xml2sexprtest_OBJECTS = $(am_xml2sexprtest_OBJECTS)
 @WITH_XEN_TRUE@	../src/libvirt_driver_xen.la \
 @WITH_XEN_TRUE@	$(am__DEPENDENCIES_2)
 am__xml2vmxtest_SOURCES_DIST = xml2vmxtest.c testutils.c testutils.h
-@WITH_ESX_TRUE@am_xml2vmxtest_OBJECTS = xml2vmxtest.$(OBJEXT) \
-@WITH_ESX_TRUE@	testutils.$(OBJEXT)
+@WITH_VMX_TRUE@am_xml2vmxtest_OBJECTS = xml2vmxtest.$(OBJEXT) \
+@WITH_VMX_TRUE@	testutils.$(OBJEXT)
 xml2vmxtest_OBJECTS = $(am_xml2vmxtest_OBJECTS)
-@WITH_ESX_TRUE@xml2vmxtest_DEPENDENCIES =  \
-@WITH_ESX_TRUE@	../src/libvirt_driver_esx.la \
-@WITH_ESX_TRUE@	$(am__DEPENDENCIES_2)
+@WITH_VMX_TRUE@xml2vmxtest_DEPENDENCIES = ../src/libvirt_vmx.la \
+@WITH_VMX_TRUE@	$(am__DEPENDENCIES_2)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
@@ -447,7 +470,8 @@ am__v_CCLD_0 = @echo "  CCLD  " $@;
 AM_V_GEN = $(am__v_GEN_$(V))
 am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
 am__v_GEN_0 = @echo "  GEN   " $@;
-SOURCES = $(conftest_SOURCES) $(esxutilstest_SOURCES) \
+SOURCES = $(commandhelper_SOURCES) $(commandtest_SOURCES) \
+	$(conftest_SOURCES) $(cputest_SOURCES) $(esxutilstest_SOURCES) \
 	$(eventtest_SOURCES) $(interfacexml2xmltest_SOURCES) \
 	$(networkxml2xmltest_SOURCES) $(nodedevxml2xmltest_SOURCES) \
 	$(nodeinfotest_SOURCES) $(nwfilterxml2xmltest_SOURCES) \
@@ -462,10 +486,12 @@ SOURCES = $(conftest_SOURCES) $(esxutilstest_SOURCES) \
 	$(virshtest_SOURCES) $(vmx2xmltest_SOURCES) \
 	$(xencapstest_SOURCES) $(xmconfigtest_SOURCES) \
 	$(xml2sexprtest_SOURCES) $(xml2vmxtest_SOURCES)
-DIST_SOURCES = $(conftest_SOURCES) $(am__esxutilstest_SOURCES_DIST) \
-	$(am__eventtest_SOURCES_DIST) $(interfacexml2xmltest_SOURCES) \
-	$(networkxml2xmltest_SOURCES) $(nodedevxml2xmltest_SOURCES) \
-	$(nodeinfotest_SOURCES) $(nwfilterxml2xmltest_SOURCES) \
+DIST_SOURCES = $(commandhelper_SOURCES) $(commandtest_SOURCES) \
+	$(conftest_SOURCES) $(cputest_SOURCES) \
+	$(am__esxutilstest_SOURCES_DIST) $(am__eventtest_SOURCES_DIST) \
+	$(interfacexml2xmltest_SOURCES) $(networkxml2xmltest_SOURCES) \
+	$(nodedevxml2xmltest_SOURCES) $(nodeinfotest_SOURCES) \
+	$(nwfilterxml2xmltest_SOURCES) \
 	$(am__object_locking_SOURCES_DIST) \
 	$(am__qemuargv2xmltest_SOURCES_DIST) \
 	$(am__qemuhelptest_SOURCES_DIST) \
@@ -482,57 +508,20 @@ DIST_SOURCES = $(conftest_SOURCES) $(am__esxutilstest_SOURCES_DIST) \
 	$(am__xmconfigtest_SOURCES_DIST) \
 	$(am__xml2sexprtest_SOURCES_DIST) \
 	$(am__xml2vmxtest_SOURCES_DIST)
-RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
-	html-recursive info-recursive install-data-recursive \
-	install-dvi-recursive install-exec-recursive \
-	install-html-recursive install-info-recursive \
-	install-pdf-recursive install-ps-recursive install-recursive \
-	installcheck-recursive installdirs-recursive pdf-recursive \
-	ps-recursive uninstall-recursive
-RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
-  distclean-recursive maintainer-clean-recursive
-AM_RECURSIVE_TARGETS = $(RECURSIVE_TARGETS:-recursive=) \
-	$(RECURSIVE_CLEAN_TARGETS:-recursive=) tags TAGS ctags CTAGS \
-	distdir
 ETAGS = etags
 CTAGS = ctags
 am__tty_colors = \
 red=; grn=; lgn=; blu=; std=
-@ENABLE_XEN_TESTS_TRUE@@WITH_XEN_TRUE@am__EXEEXT_9 =  \
+@ENABLE_XEN_TESTS_TRUE@@WITH_XEN_TRUE@am__EXEEXT_10 =  \
 @ENABLE_XEN_TESTS_TRUE@@WITH_XEN_TRUE@	reconnect$(EXEEXT) \
 @ENABLE_XEN_TESTS_TRUE@@WITH_XEN_TRUE@	statstest$(EXEEXT)
-@WITH_QEMU_TRUE@am__EXEEXT_10 = qemuxml2argvtest$(EXEEXT) \
+@WITH_QEMU_TRUE@am__EXEEXT_11 = qemuxml2argvtest$(EXEEXT) \
 @WITH_QEMU_TRUE@	qemuxml2xmltest$(EXEEXT) \
 @WITH_QEMU_TRUE@	qemuargv2xmltest$(EXEEXT) \
 @WITH_QEMU_TRUE@	qemuhelptest$(EXEEXT) \
 @WITH_QEMU_TRUE@	nwfilterxml2xmltest$(EXEEXT)
-DIST_SUBDIRS = $(SUBDIRS)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
-am__relativize = \
-  dir0=`pwd`; \
-  sed_first='s,^\([^/]*\)/.*$$,\1,'; \
-  sed_rest='s,^[^/]*/*,,'; \
-  sed_last='s,^.*/\([^/]*\)$$,\1,'; \
-  sed_butlast='s,/*[^/]*$$,,'; \
-  while test -n "$$dir1"; do \
-    first=`echo "$$dir1" | sed -e "$$sed_first"`; \
-    if test "$$first" != "."; then \
-      if test "$$first" = ".."; then \
-        dir2=`echo "$$dir0" | sed -e "$$sed_last"`/"$$dir2"; \
-        dir0=`echo "$$dir0" | sed -e "$$sed_butlast"`; \
-      else \
-        first2=`echo "$$dir2" | sed -e "$$sed_first"`; \
-        if test "$$first2" = "$$first"; then \
-          dir2=`echo "$$dir2" | sed -e "$$sed_rest"`; \
-        else \
-          dir2="../$$dir2"; \
-        fi; \
-        dir0="$$dir0"/"$$first"; \
-      fi; \
-    fi; \
-    dir1=`echo "$$dir1" | sed -e "$$sed_rest"`; \
-  done; \
-  reldir="$$dir2"
+pkglibexecdir = @pkglibexecdir@
 ACLOCAL = @ACLOCAL@
 ALLOCA = @ALLOCA@
 ALLOCA_H = @ALLOCA_H@
@@ -711,6 +700,7 @@ GNULIB_OBSTACK_PRINTF_POSIX = @GNULIB_OBSTACK_PRINTF_POSIX@
 GNULIB_OPEN = @GNULIB_OPEN@
 GNULIB_OPENAT = @GNULIB_OPENAT@
 GNULIB_PERROR = @GNULIB_PERROR@
+GNULIB_PIPE = @GNULIB_PIPE@
 GNULIB_PIPE2 = @GNULIB_PIPE2@
 GNULIB_POLL = @GNULIB_POLL@
 GNULIB_POPEN = @GNULIB_POPEN@
@@ -813,11 +803,15 @@ HAVE_BTOWC = @HAVE_BTOWC@
 HAVE_CANONICALIZE_FILE_NAME = @HAVE_CANONICALIZE_FILE_NAME@
 HAVE_CHOWN = @HAVE_CHOWN@
 HAVE_DECL_ENVIRON = @HAVE_DECL_ENVIRON@
+HAVE_DECL_FCHDIR = @HAVE_DECL_FCHDIR@
 HAVE_DECL_FPURGE = @HAVE_DECL_FPURGE@
 HAVE_DECL_FREEADDRINFO = @HAVE_DECL_FREEADDRINFO@
+HAVE_DECL_FSEEKO = @HAVE_DECL_FSEEKO@
+HAVE_DECL_FTELLO = @HAVE_DECL_FTELLO@
 HAVE_DECL_GAI_STRERROR = @HAVE_DECL_GAI_STRERROR@
 HAVE_DECL_GETADDRINFO = @HAVE_DECL_GETADDRINFO@
 HAVE_DECL_GETDELIM = @HAVE_DECL_GETDELIM@
+HAVE_DECL_GETDOMAINNAME = @HAVE_DECL_GETDOMAINNAME@
 HAVE_DECL_GETLINE = @HAVE_DECL_GETLINE@
 HAVE_DECL_GETLOADAVG = @HAVE_DECL_GETLOADAVG@
 HAVE_DECL_GETLOGIN_R = @HAVE_DECL_GETLOGIN_R@
@@ -829,6 +823,7 @@ HAVE_DECL_INET_PTON = @HAVE_DECL_INET_PTON@
 HAVE_DECL_MEMMEM = @HAVE_DECL_MEMMEM@
 HAVE_DECL_MEMRCHR = @HAVE_DECL_MEMRCHR@
 HAVE_DECL_OBSTACK_PRINTF = @HAVE_DECL_OBSTACK_PRINTF@
+HAVE_DECL_SETENV = @HAVE_DECL_SETENV@
 HAVE_DECL_SNPRINTF = @HAVE_DECL_SNPRINTF@
 HAVE_DECL_STRDUP = @HAVE_DECL_STRDUP@
 HAVE_DECL_STRERROR_R = @HAVE_DECL_STRERROR_R@
@@ -837,6 +832,9 @@ HAVE_DECL_STRNDUP = @HAVE_DECL_STRNDUP@
 HAVE_DECL_STRNLEN = @HAVE_DECL_STRNLEN@
 HAVE_DECL_STRSIGNAL = @HAVE_DECL_STRSIGNAL@
 HAVE_DECL_STRTOK_R = @HAVE_DECL_STRTOK_R@
+HAVE_DECL_TCGETSID = @HAVE_DECL_TCGETSID@
+HAVE_DECL_TTYNAME_R = @HAVE_DECL_TTYNAME_R@
+HAVE_DECL_UNSETENV = @HAVE_DECL_UNSETENV@
 HAVE_DECL_VSNPRINTF = @HAVE_DECL_VSNPRINTF@
 HAVE_DECL_WCTOB = @HAVE_DECL_WCTOB@
 HAVE_DECL_WCWIDTH = @HAVE_DECL_WCWIDTH@
@@ -849,13 +847,13 @@ HAVE_FCHDIR = @HAVE_FCHDIR@
 HAVE_FCHMODAT = @HAVE_FCHMODAT@
 HAVE_FCHOWNAT = @HAVE_FCHOWNAT@
 HAVE_FCNTL = @HAVE_FCNTL@
+HAVE_FEATURES_H = @HAVE_FEATURES_H@
 HAVE_FSEEKO = @HAVE_FSEEKO@
 HAVE_FSTATAT = @HAVE_FSTATAT@
 HAVE_FSYNC = @HAVE_FSYNC@
 HAVE_FTELLO = @HAVE_FTELLO@
 HAVE_FTRUNCATE = @HAVE_FTRUNCATE@
 HAVE_FUTIMENS = @HAVE_FUTIMENS@
-HAVE_GETDOMAINNAME = @HAVE_GETDOMAINNAME@
 HAVE_GETDTABLESIZE = @HAVE_GETDTABLESIZE@
 HAVE_GETGROUPS = @HAVE_GETGROUPS@
 HAVE_GETHOSTNAME = @HAVE_GETHOSTNAME@
@@ -895,6 +893,7 @@ HAVE_NETDB_H = @HAVE_NETDB_H@
 HAVE_NETINET_IN_H = @HAVE_NETINET_IN_H@
 HAVE_OPENAT = @HAVE_OPENAT@
 HAVE_OS_H = @HAVE_OS_H@
+HAVE_PIPE = @HAVE_PIPE@
 HAVE_PIPE2 = @HAVE_PIPE2@
 HAVE_POLL = @HAVE_POLL@
 HAVE_POLL_H = @HAVE_POLL_H@
@@ -935,6 +934,7 @@ HAVE_STRUCT_ADDRINFO = @HAVE_STRUCT_ADDRINFO@
 HAVE_STRUCT_RANDOM_DATA = @HAVE_STRUCT_RANDOM_DATA@
 HAVE_STRUCT_SCHED_PARAM = @HAVE_STRUCT_SCHED_PARAM@
 HAVE_STRUCT_SOCKADDR_STORAGE = @HAVE_STRUCT_SOCKADDR_STORAGE@
+HAVE_STRUCT_SOCKADDR_STORAGE_SS_FAMILY = @HAVE_STRUCT_SOCKADDR_STORAGE_SS_FAMILY@
 HAVE_STRUCT_TIMEVAL = @HAVE_STRUCT_TIMEVAL@
 HAVE_STRUCT_UTSNAME = @HAVE_STRUCT_UTSNAME@
 HAVE_STRVERSCMP = @HAVE_STRVERSCMP@
@@ -950,15 +950,12 @@ HAVE_SYS_SOCKET_H = @HAVE_SYS_SOCKET_H@
 HAVE_SYS_TIME_H = @HAVE_SYS_TIME_H@
 HAVE_SYS_TYPES_H = @HAVE_SYS_TYPES_H@
 HAVE_SYS_UTSNAME_H = @HAVE_SYS_UTSNAME_H@
-HAVE_TCGETSID = @HAVE_TCGETSID@
 HAVE_TERMIOS_H = @HAVE_TERMIOS_H@
 HAVE_TIMEGM = @HAVE_TIMEGM@
-HAVE_TTYNAME_R = @HAVE_TTYNAME_R@
 HAVE_UNAME = @HAVE_UNAME@
 HAVE_UNISTD_H = @HAVE_UNISTD_H@
 HAVE_UNLINKAT = @HAVE_UNLINKAT@
 HAVE_UNLOCKPT = @HAVE_UNLOCKPT@
-HAVE_UNSETENV = @HAVE_UNSETENV@
 HAVE_UNSIGNED_LONG_LONG_INT = @HAVE_UNSIGNED_LONG_LONG_INT@
 HAVE_USLEEP = @HAVE_USLEEP@
 HAVE_UTIMENSAT = @HAVE_UTIMENSAT@
@@ -986,7 +983,9 @@ INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 INTLLIBS = @INTLLIBS@
+IP6TABLES_PATH = @IP6TABLES_PATH@
 IPTABLES_PATH = @IPTABLES_PATH@
+IP_PATH = @IP_PATH@
 ISCSIADM = @ISCSIADM@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
@@ -1037,6 +1036,7 @@ MKDIR_P = @MKDIR_P@
 MKINSTALLDIRS = @MKINSTALLDIRS@
 MODPROBE = @MODPROBE@
 MOUNT = @MOUNT@
+MSCOM_LIBS = @MSCOM_LIBS@
 MSGFMT = @MSGFMT@
 MSGMERGE = @MSGMERGE@
 NETCF_CFLAGS = @NETCF_CFLAGS@
@@ -1137,6 +1137,7 @@ PYTHON_INCLUDES = @PYTHON_INCLUDES@
 PYTHON_PLATFORM = @PYTHON_PLATFORM@
 PYTHON_PREFIX = @PYTHON_PREFIX@
 PYTHON_VERSION = @PYTHON_VERSION@
+RADVD = @RADVD@
 RANLIB = @RANLIB@
 READLINE_CFLAGS = @READLINE_CFLAGS@
 REMOTE_PID_FILE = @REMOTE_PID_FILE@
@@ -1165,6 +1166,7 @@ REPLACE_FTELLO = @REPLACE_FTELLO@
 REPLACE_FUTIMENS = @REPLACE_FUTIMENS@
 REPLACE_GETCWD = @REPLACE_GETCWD@
 REPLACE_GETDELIM = @REPLACE_GETDELIM@
+REPLACE_GETDOMAINNAME = @REPLACE_GETDOMAINNAME@
 REPLACE_GETGROUPS = @REPLACE_GETGROUPS@
 REPLACE_GETLINE = @REPLACE_GETLINE@
 REPLACE_GETPAGESIZE = @REPLACE_GETPAGESIZE@
@@ -1296,6 +1298,7 @@ WCHAR_T_SUFFIX = @WCHAR_T_SUFFIX@
 WIN32_EXTRA_CFLAGS = @WIN32_EXTRA_CFLAGS@
 WINDRES = @WINDRES@
 WINT_T_SUFFIX = @WINT_T_SUFFIX@
+XDR_CFLAGS = @XDR_CFLAGS@
 XEN_CFLAGS = @XEN_CFLAGS@
 XEN_LIBS = @XEN_LIBS@
 XGETTEXT = @XGETTEXT@
@@ -1347,6 +1350,7 @@ infodir = @infodir@
 install_sh = @install_sh@
 libdir = @libdir@
 libexecdir = @libexecdir@
+lispdir = @lispdir@
 localedir = @localedir@
 localstatedir = @localstatedir@
 mandir = @mandir@
@@ -1368,9 +1372,6 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-SUBDIRS = confdata sexpr2xmldata \
-  xml2sexprdata xmconfigdata xencapsdata
-
 INCLUDES = -I$(top_srcdir)/gnulib/lib -I../gnulib/lib \
 	-I$(top_builddir)/include -I$(top_srcdir)/include \
 	-I$(top_srcdir)/src -I$(top_srcdir)/src/util \
@@ -1390,33 +1391,34 @@ LDADDS = \
 	$(LIBSOCKET) \
         $(COVERAGE_LDFLAGS)
 
-EXTRA_DIST = oomtrace.pl test-lib.sh qemuxml2argvdata \
-	qemuxml2xmloutdata nodeinfodata schematestutils.sh \
-	capabilityschematest capabilityschemadata networkschematest \
-	networkxml2xmlout networkxml2xmlin domainschematest \
-	domainschemadata interfaceschemadata storagepoolschematest \
-	storagepoolxml2xmlout storagepoolxml2xmlin \
-	storagevolschematest storagevolxml2xmlout storagevolxml2xmlin \
-	nodedevschematest nodedevschemadata vmx2xmldata xml2vmxdata \
-	nwfilterxml2xmlout nwfilterxml2xmlin nwfilterschematest \
-	domainsnapshotschematest domainsnapshotxml2xmlout \
-	domainsnapshotxml2xmlin qemuhelpdata $(am__append_11) \
-	$(test_scripts) $(am__append_20) $(am__append_21) \
-	$(am__append_22) $(am__append_23) $(am__append_24) \
-	$(am__append_25)
+EXTRA_DIST = capabilityschemadata capabilityschematest commanddata \
+	confdata cputestdata domainschemadata domainschematest \
+	domainsnapshotschematest domainsnapshotxml2xmlin \
+	domainsnapshotxml2xmlout interfaceschemadata networkschematest \
+	networkxml2xmlin networkxml2xmlout nodedevschemadata \
+	nodedevschematest nodeinfodata nwfilterschematest \
+	nwfilterxml2xmlin nwfilterxml2xmlout oomtrace.pl qemuhelpdata \
+	qemuxml2argvdata qemuxml2xmloutdata schematestutils.sh \
+	sexpr2xmldata storagepoolschematest storagepoolxml2xmlin \
+	storagepoolxml2xmlout storagevolschematest storagevolxml2xmlin \
+	storagevolxml2xmlout test-lib.sh vmx2xmldata xencapsdata \
+	xmconfigdata xml2sexprdata xml2vmxdata $(am__append_12) \
+	$(test_scripts) $(am__append_22) $(am__append_23) \
+	$(am__append_24) $(am__append_25) $(am__append_26) \
+	$(am__append_27) $(am__append_28)
 test_scripts = capabilityschematest interfaceschematest \
 	networkschematest storagepoolschematest storagevolschematest \
 	domainschematest nodedevschematest nwfilterschematest \
-	domainsnapshotschematest $(am__append_9) $(am__append_10)
+	domainsnapshotschematest $(am__append_10) $(am__append_11)
 path_add = $$abs_top_builddir/src$(PATH_SEPARATOR)$$abs_top_builddir/daemon$(PATH_SEPARATOR)$$abs_top_builddir/tools
 
 # NB, automake < 1.10 does not provide the real
-# abs_top_{src/build}dir variables, so don't rely
+# abs_top_{src/build}dir or builddir variables, so don't rely
 # on them here. Fake them with 'pwd'
 TESTS_ENVIRONMENT = \
   abs_top_builddir=`cd '$(top_builddir)'; pwd`	\
   abs_top_srcdir=`cd '$(top_srcdir)'; pwd`	\
-  abs_builddir=`cd '$(builddir)'; pwd`		\
+  abs_builddir=`pwd`				\
   abs_srcdir=`cd '$(srcdir)'; pwd`		\
   CONFIG_HEADER="`cd '$(top_builddir)'; pwd`/config.h"	\
   PATH="$(path_add)$(PATH_SEPARATOR)$$PATH"	\
@@ -1479,16 +1481,16 @@ sockettest_LDADD = ../src/libvirt_util.la $(LDADDS)
 @WITH_ESX_TRUE@	testutils.c testutils.h
 
 @WITH_ESX_TRUE@esxutilstest_LDADD = ../src/libvirt_driver_esx.la $(LDADDS)
-@WITH_ESX_TRUE@vmx2xmltest_SOURCES = \
-@WITH_ESX_TRUE@	vmx2xmltest.c \
-@WITH_ESX_TRUE@	testutils.c testutils.h
+@WITH_VMX_TRUE@vmx2xmltest_SOURCES = \
+@WITH_VMX_TRUE@	vmx2xmltest.c \
+@WITH_VMX_TRUE@	testutils.c testutils.h
 
-@WITH_ESX_TRUE@vmx2xmltest_LDADD = ../src/libvirt_driver_esx.la $(LDADDS)
-@WITH_ESX_TRUE@xml2vmxtest_SOURCES = \
-@WITH_ESX_TRUE@	xml2vmxtest.c \
-@WITH_ESX_TRUE@	testutils.c testutils.h
+@WITH_VMX_TRUE@vmx2xmltest_LDADD = ../src/libvirt_vmx.la $(LDADDS)
+@WITH_VMX_TRUE@xml2vmxtest_SOURCES = \
+@WITH_VMX_TRUE@	xml2vmxtest.c \
+@WITH_VMX_TRUE@	testutils.c testutils.h
 
-@WITH_ESX_TRUE@xml2vmxtest_LDADD = ../src/libvirt_driver_esx.la $(LDADDS)
+@WITH_VMX_TRUE@xml2vmxtest_LDADD = ../src/libvirt_vmx.la $(LDADDS)
 networkxml2xmltest_SOURCES = \
 	networkxml2xmltest.c \
 	testutils.c testutils.h
@@ -1519,6 +1521,11 @@ interfacexml2xmltest_SOURCES = \
 	testutils.c testutils.h
 
 interfacexml2xmltest_LDADD = $(LDADDS)
+cputest_SOURCES = \
+	cputest.c \
+	testutils.c testutils.h
+
+cputest_LDADD = $(LDADDS)
 virshtest_SOURCES = \
 	virshtest.c \
 	testutils.c testutils.h
@@ -1532,6 +1539,16 @@ nodeinfotest_SOURCES = \
 	nodeinfotest.c testutils.h testutils.c
 
 nodeinfotest_LDADD = $(LDADDS)
+commandtest_SOURCES = \
+	commandtest.c testutils.h testutils.c
+
+commandtest_CFLAGS = -Dabs_builddir="\"`pwd`\""
+commandtest_LDADD = $(LDADDS)
+commandhelper_SOURCES = \
+	commandhelper.c
+
+commandhelper_CFLAGS = -Dabs_builddir="\"`pwd`\""
+commandhelper_LDADD = $(LDADDS)
 @WITH_SECDRIVER_SELINUX_TRUE@seclabeltest_SOURCES = \
 @WITH_SECDRIVER_SELINUX_TRUE@	seclabeltest.c
 
@@ -1558,7 +1575,7 @@ virbuftest_LDADD = $(LDADDS)
 @WITH_CIL_TRUE@CILOPTLIBS = -linkpkg
 @WITH_CIL_TRUE@object_locking_SOURCES = object-locking.ml
 CLEANFILES = *.cov *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda *.cmi *.cmx object-locking-files.txt
-all: all-recursive
+all: all-am
 
 .SUFFIXES:
 .SUFFIXES: .c .lo .o .obj
@@ -1601,9 +1618,18 @@ clean-checkPROGRAMS:
 	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
 	echo " rm -f" $$list; \
 	rm -f $$list
+commandhelper$(EXEEXT): $(commandhelper_OBJECTS) $(commandhelper_DEPENDENCIES) 
+	@rm -f commandhelper$(EXEEXT)
+	$(AM_V_CCLD)$(commandhelper_LINK) $(commandhelper_OBJECTS) $(commandhelper_LDADD) $(LIBS)
+commandtest$(EXEEXT): $(commandtest_OBJECTS) $(commandtest_DEPENDENCIES) 
+	@rm -f commandtest$(EXEEXT)
+	$(AM_V_CCLD)$(commandtest_LINK) $(commandtest_OBJECTS) $(commandtest_LDADD) $(LIBS)
 conftest$(EXEEXT): $(conftest_OBJECTS) $(conftest_DEPENDENCIES) 
 	@rm -f conftest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(conftest_OBJECTS) $(conftest_LDADD) $(LIBS)
+cputest$(EXEEXT): $(cputest_OBJECTS) $(cputest_DEPENDENCIES) 
+	@rm -f cputest$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(cputest_OBJECTS) $(cputest_LDADD) $(LIBS)
 esxutilstest$(EXEEXT): $(esxutilstest_OBJECTS) $(esxutilstest_DEPENDENCIES) 
 	@rm -f esxutilstest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(esxutilstest_OBJECTS) $(esxutilstest_LDADD) $(LIBS)
@@ -1695,7 +1721,11 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/commandhelper-commandhelper.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/commandtest-commandtest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/commandtest-testutils.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/conftest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cputest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/esxutilstest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/event.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eventtest.Po@am__quote@
@@ -1752,6 +1782,54 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
 
+commandhelper-commandhelper.o: commandhelper.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(commandhelper_CFLAGS) $(CFLAGS) -MT commandhelper-commandhelper.o -MD -MP -MF $(DEPDIR)/commandhelper-commandhelper.Tpo -c -o commandhelper-commandhelper.o `test -f 'commandhelper.c' || echo '$(srcdir)/'`commandhelper.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/commandhelper-commandhelper.Tpo $(DEPDIR)/commandhelper-commandhelper.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='commandhelper.c' object='commandhelper-commandhelper.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(commandhelper_CFLAGS) $(CFLAGS) -c -o commandhelper-commandhelper.o `test -f 'commandhelper.c' || echo '$(srcdir)/'`commandhelper.c
+
+commandhelper-commandhelper.obj: commandhelper.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(commandhelper_CFLAGS) $(CFLAGS) -MT commandhelper-commandhelper.obj -MD -MP -MF $(DEPDIR)/commandhelper-commandhelper.Tpo -c -o commandhelper-commandhelper.obj `if test -f 'commandhelper.c'; then $(CYGPATH_W) 'commandhelper.c'; else $(CYGPATH_W) '$(srcdir)/commandhelper.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/commandhelper-commandhelper.Tpo $(DEPDIR)/commandhelper-commandhelper.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='commandhelper.c' object='commandhelper-commandhelper.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(commandhelper_CFLAGS) $(CFLAGS) -c -o commandhelper-commandhelper.obj `if test -f 'commandhelper.c'; then $(CYGPATH_W) 'commandhelper.c'; else $(CYGPATH_W) '$(srcdir)/commandhelper.c'; fi`
+
+commandtest-commandtest.o: commandtest.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(commandtest_CFLAGS) $(CFLAGS) -MT commandtest-commandtest.o -MD -MP -MF $(DEPDIR)/commandtest-commandtest.Tpo -c -o commandtest-commandtest.o `test -f 'commandtest.c' || echo '$(srcdir)/'`commandtest.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/commandtest-commandtest.Tpo $(DEPDIR)/commandtest-commandtest.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='commandtest.c' object='commandtest-commandtest.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(commandtest_CFLAGS) $(CFLAGS) -c -o commandtest-commandtest.o `test -f 'commandtest.c' || echo '$(srcdir)/'`commandtest.c
+
+commandtest-commandtest.obj: commandtest.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(commandtest_CFLAGS) $(CFLAGS) -MT commandtest-commandtest.obj -MD -MP -MF $(DEPDIR)/commandtest-commandtest.Tpo -c -o commandtest-commandtest.obj `if test -f 'commandtest.c'; then $(CYGPATH_W) 'commandtest.c'; else $(CYGPATH_W) '$(srcdir)/commandtest.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/commandtest-commandtest.Tpo $(DEPDIR)/commandtest-commandtest.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='commandtest.c' object='commandtest-commandtest.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(commandtest_CFLAGS) $(CFLAGS) -c -o commandtest-commandtest.obj `if test -f 'commandtest.c'; then $(CYGPATH_W) 'commandtest.c'; else $(CYGPATH_W) '$(srcdir)/commandtest.c'; fi`
+
+commandtest-testutils.o: testutils.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(commandtest_CFLAGS) $(CFLAGS) -MT commandtest-testutils.o -MD -MP -MF $(DEPDIR)/commandtest-testutils.Tpo -c -o commandtest-testutils.o `test -f 'testutils.c' || echo '$(srcdir)/'`testutils.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/commandtest-testutils.Tpo $(DEPDIR)/commandtest-testutils.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='testutils.c' object='commandtest-testutils.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(commandtest_CFLAGS) $(CFLAGS) -c -o commandtest-testutils.o `test -f 'testutils.c' || echo '$(srcdir)/'`testutils.c
+
+commandtest-testutils.obj: testutils.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(commandtest_CFLAGS) $(CFLAGS) -MT commandtest-testutils.obj -MD -MP -MF $(DEPDIR)/commandtest-testutils.Tpo -c -o commandtest-testutils.obj `if test -f 'testutils.c'; then $(CYGPATH_W) 'testutils.c'; else $(CYGPATH_W) '$(srcdir)/testutils.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/commandtest-testutils.Tpo $(DEPDIR)/commandtest-testutils.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='testutils.c' object='commandtest-testutils.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(commandtest_CFLAGS) $(CFLAGS) -c -o commandtest-testutils.obj `if test -f 'testutils.c'; then $(CYGPATH_W) 'testutils.c'; else $(CYGPATH_W) '$(srcdir)/testutils.c'; fi`
+
 event.o: ../daemon/event.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT event.o -MD -MP -MF $(DEPDIR)/event.Tpo -c -o event.o `test -f '../daemon/event.c' || echo '$(srcdir)/'`../daemon/event.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/event.Tpo $(DEPDIR)/event.Po
@@ -1774,76 +1852,6 @@ mostlyclean-libtool:
 clean-libtool:
 	-rm -rf .libs _libs
 
-# This directory's subdirectories are mostly independent; you can cd
-# into them and run `make' without going through this Makefile.
-# To change the values of `make' variables: instead of editing Makefiles,
-# (1) if the variable is set in `config.status', edit `config.status'
-#     (which will cause the Makefiles to be regenerated when you run `make');
-# (2) otherwise, pass the desired values on the `make' command line.
-$(RECURSIVE_TARGETS):
-	@fail= failcom='exit 1'; \
-	for f in x $$MAKEFLAGS; do \
-	  case $$f in \
-	    *=* | --[!k]*);; \
-	    *k*) failcom='fail=yes';; \
-	  esac; \
-	done; \
-	dot_seen=no; \
-	target=`echo $@ | sed s/-recursive//`; \
-	list='$(SUBDIRS)'; for subdir in $$list; do \
-	  echo "Making $$target in $$subdir"; \
-	  if test "$$subdir" = "."; then \
-	    dot_seen=yes; \
-	    local_target="$$target-am"; \
-	  else \
-	    local_target="$$target"; \
-	  fi; \
-	  ($(am__cd) $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$local_target) \
-	  || eval $$failcom; \
-	done; \
-	if test "$$dot_seen" = "no"; then \
-	  $(MAKE) $(AM_MAKEFLAGS) "$$target-am" || exit 1; \
-	fi; test -z "$$fail"
-
-$(RECURSIVE_CLEAN_TARGETS):
-	@fail= failcom='exit 1'; \
-	for f in x $$MAKEFLAGS; do \
-	  case $$f in \
-	    *=* | --[!k]*);; \
-	    *k*) failcom='fail=yes';; \
-	  esac; \
-	done; \
-	dot_seen=no; \
-	case "$@" in \
-	  distclean-* | maintainer-clean-*) list='$(DIST_SUBDIRS)' ;; \
-	  *) list='$(SUBDIRS)' ;; \
-	esac; \
-	rev=''; for subdir in $$list; do \
-	  if test "$$subdir" = "."; then :; else \
-	    rev="$$subdir $$rev"; \
-	  fi; \
-	done; \
-	rev="$$rev ."; \
-	target=`echo $@ | sed s/-recursive//`; \
-	for subdir in $$rev; do \
-	  echo "Making $$target in $$subdir"; \
-	  if test "$$subdir" = "."; then \
-	    local_target="$$target-am"; \
-	  else \
-	    local_target="$$target"; \
-	  fi; \
-	  ($(am__cd) $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$local_target) \
-	  || eval $$failcom; \
-	done && test -z "$$fail"
-tags-recursive:
-	list='$(SUBDIRS)'; for subdir in $$list; do \
-	  test "$$subdir" = . || ($(am__cd) $$subdir && $(MAKE) $(AM_MAKEFLAGS) tags); \
-	done
-ctags-recursive:
-	list='$(SUBDIRS)'; for subdir in $$list; do \
-	  test "$$subdir" = . || ($(am__cd) $$subdir && $(MAKE) $(AM_MAKEFLAGS) ctags); \
-	done
-
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
 	unique=`for i in $$list; do \
@@ -1854,23 +1862,10 @@ ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	mkid -fID $$unique
 tags: TAGS
 
-TAGS: tags-recursive $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
+TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
 		$(TAGS_FILES) $(LISP)
 	set x; \
 	here=`pwd`; \
-	if ($(ETAGS) --etags-include --version) >/dev/null 2>&1; then \
-	  include_option=--etags-include; \
-	  empty_fix=.; \
-	else \
-	  include_option=--include; \
-	  empty_fix=; \
-	fi; \
-	list='$(SUBDIRS)'; for subdir in $$list; do \
-	  if test "$$subdir" = .; then :; else \
-	    test ! -f $$subdir/TAGS || \
-	      set "$$@" "$$include_option=$$here/$$subdir/TAGS"; \
-	  fi; \
-	done; \
 	list='$(SOURCES) $(HEADERS)  $(LISP) $(TAGS_FILES)'; \
 	unique=`for i in $$list; do \
 	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
@@ -1889,7 +1884,7 @@ TAGS: tags-recursive $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
 	  fi; \
 	fi
 ctags: CTAGS
-CTAGS: ctags-recursive $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
+CTAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
 		$(TAGS_FILES) $(LISP)
 	list='$(SOURCES) $(HEADERS)  $(LISP) $(TAGS_FILES)'; \
 	unique=`for i in $$list; do \
@@ -2031,50 +2026,21 @@ distdir: $(DISTFILES)
 	    || exit 1; \
 	  fi; \
 	done
-	@list='$(DIST_SUBDIRS)'; for subdir in $$list; do \
-	  if test "$$subdir" = .; then :; else \
-	    test -d "$(distdir)/$$subdir" \
-	    || $(MKDIR_P) "$(distdir)/$$subdir" \
-	    || exit 1; \
-	  fi; \
-	done
-	@list='$(DIST_SUBDIRS)'; for subdir in $$list; do \
-	  if test "$$subdir" = .; then :; else \
-	    dir1=$$subdir; dir2="$(distdir)/$$subdir"; \
-	    $(am__relativize); \
-	    new_distdir=$$reldir; \
-	    dir1=$$subdir; dir2="$(top_distdir)"; \
-	    $(am__relativize); \
-	    new_top_distdir=$$reldir; \
-	    echo " (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) top_distdir="$$new_top_distdir" distdir="$$new_distdir" \\"; \
-	    echo "     am__remove_distdir=: am__skip_length_check=: am__skip_mode_fix=: distdir)"; \
-	    ($(am__cd) $$subdir && \
-	      $(MAKE) $(AM_MAKEFLAGS) \
-	        top_distdir="$$new_top_distdir" \
-	        distdir="$$new_distdir" \
-		am__remove_distdir=: \
-		am__skip_length_check=: \
-		am__skip_mode_fix=: \
-	        distdir) \
-	      || exit 1; \
-	  fi; \
-	done
 check-am: all-am
 	$(MAKE) $(AM_MAKEFLAGS) $(check_PROGRAMS)
 	$(MAKE) $(AM_MAKEFLAGS) check-TESTS
-check: check-recursive
+check: check-am
 all-am: Makefile
-installdirs: installdirs-recursive
-installdirs-am:
-install: install-recursive
-install-exec: install-exec-recursive
-install-data: install-data-recursive
-uninstall: uninstall-recursive
+installdirs:
+install: install-am
+install-exec: install-exec-am
+install-data: install-data-am
+uninstall: uninstall-am
 
 install-am: all-am
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
 
-installcheck: installcheck-recursive
+installcheck: installcheck-am
 install-strip:
 	$(MAKE) $(AM_MAKEFLAGS) INSTALL_PROGRAM="$(INSTALL_STRIP_PROGRAM)" \
 	  install_sh_PROGRAM="$(INSTALL_STRIP_PROGRAM)" INSTALL_STRIP_FLAG=-s \
@@ -2092,94 +2058,92 @@ distclean-generic:
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
-clean: clean-recursive
+clean: clean-am
 
 clean-am: clean-checkPROGRAMS clean-generic clean-libtool \
 	mostlyclean-am
 
-distclean: distclean-recursive
+distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
 
-dvi: dvi-recursive
+dvi: dvi-am
 
 dvi-am:
 
-html: html-recursive
+html: html-am
 
 html-am:
 
-info: info-recursive
+info: info-am
 
 info-am:
 
 install-data-am:
 
-install-dvi: install-dvi-recursive
+install-dvi: install-dvi-am
 
 install-dvi-am:
 
 install-exec-am:
 
-install-html: install-html-recursive
+install-html: install-html-am
 
 install-html-am:
 
-install-info: install-info-recursive
+install-info: install-info-am
 
 install-info-am:
 
 install-man:
 
-install-pdf: install-pdf-recursive
+install-pdf: install-pdf-am
 
 install-pdf-am:
 
-install-ps: install-ps-recursive
+install-ps: install-ps-am
 
 install-ps-am:
 
 installcheck-am:
 
-maintainer-clean: maintainer-clean-recursive
+maintainer-clean: maintainer-clean-am
 	-rm -rf ./$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
-mostlyclean: mostlyclean-recursive
+mostlyclean: mostlyclean-am
 
 mostlyclean-am: mostlyclean-compile mostlyclean-generic \
 	mostlyclean-libtool
 
-pdf: pdf-recursive
+pdf: pdf-am
 
 pdf-am:
 
-ps: ps-recursive
+ps: ps-am
 
 ps-am:
 
 uninstall-am:
 
-.MAKE: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) check-am \
-	ctags-recursive install-am install-strip tags-recursive
+.MAKE: check-am install-am install-strip
 
-.PHONY: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) CTAGS GTAGS \
-	all all-am check check-TESTS check-am clean \
+.PHONY: CTAGS GTAGS all all-am check check-TESTS check-am clean \
 	clean-checkPROGRAMS clean-generic clean-libtool ctags \
-	ctags-recursive distclean distclean-compile distclean-generic \
+	distclean distclean-compile distclean-generic \
 	distclean-libtool distclean-tags distdir dvi dvi-am html \
 	html-am info info-am install install-am install-data \
 	install-data-am install-dvi install-dvi-am install-exec \
 	install-exec-am install-html install-html-am install-info \
 	install-info-am install-man install-pdf install-pdf-am \
 	install-ps install-ps-am install-strip installcheck \
-	installcheck-am installdirs installdirs-am maintainer-clean \
+	installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
 	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags tags-recursive uninstall uninstall-am
+	tags uninstall uninstall-am
 
 
 valgrind:

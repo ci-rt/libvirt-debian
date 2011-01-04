@@ -674,6 +674,7 @@
      <exports symbol='VIR_FROM_TEST' type='enum'/>
      <exports symbol='VIR_FROM_UML' type='enum'/>
      <exports symbol='VIR_FROM_VBOX' type='enum'/>
+     <exports symbol='VIR_FROM_VMWARE' type='enum'/>
      <exports symbol='VIR_FROM_XEN' type='enum'/>
      <exports symbol='VIR_FROM_XENAPI' type='enum'/>
      <exports symbol='VIR_FROM_XEND' type='enum'/>
@@ -914,9 +915,12 @@
     <enum name='VIR_DUMP_LIVE' file='libvirt' value='2' type='virDomainCoreDumpFlags' info=' live dump'/>
     <enum name='VIR_ERR_AUTH_FAILED' file='virterror' value='45' type='virErrorNumber' info='authentication failed'/>
     <enum name='VIR_ERR_BUILD_FIREWALL' file='virterror' value='63' type='virErrorNumber' info='nw filter pool not found'/>
-    <enum name='VIR_ERR_CALL_FAILED' file='virterror' value='26' type='virErrorNumber' info='not supported by the drivers (DEPRECATED)'/>
-    <enum name='VIR_ERR_CONFIG_UNSUPPORTED' file='virterror' value='67' type='virErrorNumber' info='unsupported configuration construct'/>
-    <enum name='VIR_ERR_CONF_SYNTAX' file='virterror' value='33' type='virErrorNumber' info='failed to parse the syntax of a conf file'/>
+    <enum name='VIR_ERR_CALL_FAILED' file='virterror' value='26' type='virErrorNumber' info='not supported by the drivers
+(DEPRECATED)'/>
+    <enum name='VIR_ERR_CONFIG_UNSUPPORTED' file='virterror' value='67' type='virErrorNumber' info='unsupported configuration
+construct'/>
+    <enum name='VIR_ERR_CONF_SYNTAX' file='virterror' value='33' type='virErrorNumber' info='failed to parse the syntax of a
+conf file'/>
     <enum name='VIR_ERR_DOM_EXIST' file='virterror' value='28' type='virErrorNumber' info='the domain already exist'/>
     <enum name='VIR_ERR_DRIVER_FULL' file='virterror' value='25' type='virErrorNumber' info='too many drivers registered'/>
     <enum name='VIR_ERR_ERROR' file='virterror' value='2' type='virErrorLevel' info=' An error'/>
@@ -939,12 +943,14 @@
     <enum name='VIR_ERR_INVALID_STORAGE_VOL' file='virterror' value='47' type='virErrorNumber' info='invalid storage vol object'/>
     <enum name='VIR_ERR_MIGRATE_PERSIST_FAILED' file='virterror' value='69' type='virErrorNumber' info='a migration worked, but making the
 VM persist on the dest host failed'/>
-    <enum name='VIR_ERR_MULTIPLE_INTERFACES' file='virterror' value='59' type='virErrorNumber' info='more than one matching interface found'/>
+    <enum name='VIR_ERR_MULTIPLE_INTERFACES' file='virterror' value='59' type='virErrorNumber' info='more than one matching interface
+found'/>
     <enum name='VIR_ERR_NETWORK_EXIST' file='virterror' value='37' type='virErrorNumber' info='the network already exist'/>
     <enum name='VIR_ERR_NONE' file='virterror' value='0' type='virErrorLevel'/>
     <enum name='VIR_ERR_NO_CONNECT' file='virterror' value='5' type='virErrorNumber' info='can&apos;t connect to hypervisor'/>
     <enum name='VIR_ERR_NO_DEVICE' file='virterror' value='23' type='virErrorNumber' info='missing domain devices information'/>
-    <enum name='VIR_ERR_NO_DOMAIN' file='virterror' value='42' type='virErrorNumber' info='domain not found or unexpectedly disappeared'/>
+    <enum name='VIR_ERR_NO_DOMAIN' file='virterror' value='42' type='virErrorNumber' info='domain not found or unexpectedly
+disappeared'/>
     <enum name='VIR_ERR_NO_DOMAIN_SNAPSHOT' file='virterror' value='72' type='virErrorNumber' info=' domain snapshot not found'/>
     <enum name='VIR_ERR_NO_INTERFACE' file='virterror' value='57' type='virErrorNumber' info='interface driver not running'/>
     <enum name='VIR_ERR_NO_KERNEL' file='virterror' value='17' type='virErrorNumber' info='missing kernel information'/>
@@ -962,13 +968,16 @@ VM persist on the dest host failed'/>
     <enum name='VIR_ERR_NO_STORAGE_VOL' file='virterror' value='50' type='virErrorNumber' info='storage pool not found'/>
     <enum name='VIR_ERR_NO_SUPPORT' file='virterror' value='3' type='virErrorNumber' info='no support for this function'/>
     <enum name='VIR_ERR_NO_TARGET' file='virterror' value='20' type='virErrorNumber' info='missing target device information'/>
-    <enum name='VIR_ERR_NO_XEN' file='virterror' value='14' type='virErrorNumber' info='could not open Xen hypervisor control'/>
+    <enum name='VIR_ERR_NO_XEN' file='virterror' value='14' type='virErrorNumber' info='could not open Xen hypervisor
+control'/>
     <enum name='VIR_ERR_NO_XENSTORE' file='virterror' value='24' type='virErrorNumber' info='could not open Xen Store control'/>
     <enum name='VIR_ERR_OK' file='virterror' value='0' type='virErrorNumber'/>
     <enum name='VIR_ERR_OPEN_FAILED' file='virterror' value='30' type='virErrorNumber' info='failed to open a conf file'/>
-    <enum name='VIR_ERR_OPERATION_DENIED' file='virterror' value='29' type='virErrorNumber' info='operation forbidden on read-only connections'/>
+    <enum name='VIR_ERR_OPERATION_DENIED' file='virterror' value='29' type='virErrorNumber' info='operation forbidden on read-only
+connections'/>
     <enum name='VIR_ERR_OPERATION_FAILED' file='virterror' value='9' type='virErrorNumber' info='a command to hypervisor failed'/>
-    <enum name='VIR_ERR_OPERATION_INVALID' file='virterror' value='55' type='virErrorNumber' info='operation is not applicable at this time'/>
+    <enum name='VIR_ERR_OPERATION_INVALID' file='virterror' value='55' type='virErrorNumber' info='operation is not applicable at this
+time'/>
     <enum name='VIR_ERR_OPERATION_TIMEOUT' file='virterror' value='68' type='virErrorNumber' info='timeout occurred during operation'/>
     <enum name='VIR_ERR_OS_TYPE' file='virterror' value='16' type='virErrorNumber' info='unknown OS type'/>
     <enum name='VIR_ERR_PARSE_FAILED' file='virterror' value='32' type='virErrorNumber' info='failed to parse a conf file'/>
@@ -982,7 +991,8 @@ VM persist on the dest host failed'/>
     <enum name='VIR_ERR_WRITE_FAILED' file='virterror' value='34' type='virErrorNumber' info='failed to write a conf file'/>
     <enum name='VIR_ERR_XEN_CALL' file='virterror' value='15' type='virErrorNumber' info='failure doing an hypervisor call'/>
     <enum name='VIR_ERR_XML_DETAIL' file='virterror' value='35' type='virErrorNumber' info='detail of an XML error'/>
-    <enum name='VIR_ERR_XML_ERROR' file='virterror' value='27' type='virErrorNumber' info='an XML description is not well formed or broken'/>
+    <enum name='VIR_ERR_XML_ERROR' file='virterror' value='27' type='virErrorNumber' info='an XML description is not well
+formed or broken'/>
     <enum name='VIR_EVENT_HANDLE_ERROR' file='libvirt' value='4' type='virEventHandleType'/>
     <enum name='VIR_EVENT_HANDLE_HANGUP' file='libvirt' value='8' type='virEventHandleType'/>
     <enum name='VIR_EVENT_HANDLE_READABLE' file='libvirt' value='1' type='virEventHandleType'/>
@@ -1005,7 +1015,8 @@ VM persist on the dest host failed'/>
     <enum name='VIR_FROM_ONE' file='virterror' value='27' type='virErrorDomain' info='Error from OpenNebula driver'/>
     <enum name='VIR_FROM_OPENVZ' file='virterror' value='14' type='virErrorDomain' info='Error from OpenVZ driver'/>
     <enum name='VIR_FROM_PHYP' file='virterror' value='29' type='virErrorDomain' info='Error from IBM power hypervisor'/>
-    <enum name='VIR_FROM_PROXY' file='virterror' value='8' type='virErrorDomain' info='Error in the proxy code unused since 0.8.6'/>
+    <enum name='VIR_FROM_PROXY' file='virterror' value='8' type='virErrorDomain' info='Error in the proxy code; unused since
+0.8.6'/>
     <enum name='VIR_FROM_QEMU' file='virterror' value='10' type='virErrorDomain' info='Error at the QEMU daemon'/>
     <enum name='VIR_FROM_REMOTE' file='virterror' value='13' type='virErrorDomain' info='Error from remote driver'/>
     <enum name='VIR_FROM_RPC' file='virterror' value='7' type='virErrorDomain' info='Error in the XML-RPC code'/>
@@ -1014,11 +1025,12 @@ VM persist on the dest host failed'/>
     <enum name='VIR_FROM_SEXPR' file='virterror' value='4' type='virErrorDomain' info='Error in the S-Expression code'/>
     <enum name='VIR_FROM_STATS_LINUX' file='virterror' value='16' type='virErrorDomain' info='Error in the Linux Stats code'/>
     <enum name='VIR_FROM_STORAGE' file='virterror' value='18' type='virErrorDomain' info='Error from storage driver'/>
-    <enum name='VIR_FROM_STREAMS' file='virterror' value='38' type='virErrorDomain' info=' Error from I/O streams'/>
+    <enum name='VIR_FROM_STREAMS' file='virterror' value='38' type='virErrorDomain' info='Error from I/O streams'/>
     <enum name='VIR_FROM_SYSINFO' file='virterror' value='37' type='virErrorDomain' info='Error from sysinfo/SMBIOS'/>
     <enum name='VIR_FROM_TEST' file='virterror' value='12' type='virErrorDomain' info='Error from test driver'/>
     <enum name='VIR_FROM_UML' file='virterror' value='21' type='virErrorDomain' info='Error at the UML driver'/>
     <enum name='VIR_FROM_VBOX' file='virterror' value='25' type='virErrorDomain' info='Error from VirtualBox driver'/>
+    <enum name='VIR_FROM_VMWARE' file='virterror' value='39' type='virErrorDomain' info=' Error from VMware driver'/>
     <enum name='VIR_FROM_XEN' file='virterror' value='1' type='virErrorDomain' info='Error at Xen hypervisor layer'/>
     <enum name='VIR_FROM_XENAPI' file='virterror' value='32' type='virErrorDomain' info='Error from XenAPI'/>
     <enum name='VIR_FROM_XEND' file='virterror' value='2' type='virErrorDomain' info='Error at connection with xend daemon'/>
@@ -1563,7 +1575,7 @@ data is hypervisor dependant.]]></info>
     </function>
     <function name='virConnectDomainXMLToNative' file='libvirt' module='libvirt'>
       <info><![CDATA[Reads a domain XML configuration document, and generates
-generates a native configuration file describing the domain.
+a native configuration file describing the domain.
 The format of the native data is hypervisor dependant.]]></info>
       <return type='char *' info='a 0 terminated UTF-8 encoded native config datafile, or NULL in case of error. the caller must free() the returned value.'/>
       <arg name='conn' type='virConnectPtr' info='a connection object'/>

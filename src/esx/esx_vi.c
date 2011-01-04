@@ -31,6 +31,7 @@
 #include "logging.h"
 #include "util.h"
 #include "uuid.h"
+#include "vmx.h"
 #include "xml.h"
 #include "esx_vi.h"
 #include "esx_vi_methods.h"
@@ -538,7 +539,7 @@ esxVI_Context_LookupObjectsByPath(esxVI_Context *ctx,
         goto cleanup;
     }
 
-    /* Lookup ComputeResource */
+    /* Lookup (Cluster)ComputeResource */
     esxVI_String_Free(&propertyNameList);
 
     if (esxVI_String_AppendValueListToList(&propertyNameList,
@@ -699,7 +700,7 @@ esxVI_Context_LookupObjectsByHostSystemIp(esxVI_Context *ctx,
         goto cleanup;
     }
 
-    /* Lookup ComputeResource */
+    /* Lookup (Cluster)ComputeResource */
     esxVI_String_Free(&propertyNameList);
 
     if (esxVI_String_AppendValueListToList(&propertyNameList,
@@ -1654,7 +1655,8 @@ esxVI_LookupObjectContentByType(esxVI_Context *ctx,
 
     if (STRNEQ(root->type, type)) {
         if (STREQ(root->type, "Folder")) {
-            if (STREQ(type, "Datacenter") || STREQ(type, "ComputeResource")) {
+            if (STREQ(type, "Datacenter") || STREQ(type, "ComputeResource") ||
+                STREQ(type, "ClusterComputeResource")) {
                 objectSpec->selectSet = ctx->selectSet_folderToChildEntity;
             } else {
                 ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
@@ -1662,7 +1664,8 @@ esxVI_LookupObjectContentByType(esxVI_Context *ctx,
                              type, root->type);
                 goto cleanup;
             }
-        } else if (STREQ(root->type, "ComputeResource")) {
+        } else if (STREQ(root->type, "ComputeResource") ||
+                   STREQ(root->type, "ClusterComputeResource")) {
             if (STREQ(type, "HostSystem")) {
                 objectSpec->selectSet = ctx->selectSet_computeResourceToHost;
             } else if (STREQ(type, "Datacenter")) {
@@ -1674,7 +1677,8 @@ esxVI_LookupObjectContentByType(esxVI_Context *ctx,
                 goto cleanup;
             }
         } else if (STREQ(root->type, "HostSystem")) {
-            if (STREQ(type, "ComputeResource")) {
+            if (STREQ(type, "ComputeResource") ||
+                STREQ(type, "ClusterComputeResource")) {
                 objectSpec->selectSet = ctx->selectSet_hostSystemToParent;
             } else if (STREQ(type, "VirtualMachine")) {
                 objectSpec->selectSet = ctx->selectSet_hostSystemToVm;
@@ -1808,7 +1812,7 @@ esxVI_GetVirtualMachineQuestionInfo
 
 int
 esxVI_GetBoolean(esxVI_ObjectContent *objectContent, const char *propertyName,
-                 esxVI_Boolean *value, esxVI_Occurrence occurence)
+                 esxVI_Boolean *value, esxVI_Occurrence occurrence)
 {
     esxVI_DynamicProperty *dynamicProperty;
 
@@ -1831,7 +1835,7 @@ esxVI_GetBoolean(esxVI_ObjectContent *objectContent, const char *propertyName,
     }
 
     if (*value == esxVI_Boolean_Undefined &&
-        occurence == esxVI_Occurrence_RequiredItem) {
+        occurrence == esxVI_Occurrence_RequiredItem) {
         ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
                      _("Missing '%s' property"), propertyName);
         return -1;
@@ -1840,9 +1844,11 @@ esxVI_GetBoolean(esxVI_ObjectContent *objectContent, const char *propertyName,
     return 0;
 }
 
+
+
 int
 esxVI_GetLong(esxVI_ObjectContent *objectContent, const char *propertyName,
-              esxVI_Long **value, esxVI_Occurrence occurence)
+              esxVI_Long **value, esxVI_Occurrence occurrence)
 {
     esxVI_DynamicProperty *dynamicProperty;
 
@@ -1862,7 +1868,7 @@ esxVI_GetLong(esxVI_ObjectContent *objectContent, const char *propertyName,
         }
     }
 
-    if (*value == NULL && occurence == esxVI_Occurrence_RequiredItem) {
+    if (*value == NULL && occurrence == esxVI_Occurrence_RequiredItem) {
         ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
                      _("Missing '%s' property"), propertyName);
         return -1;
@@ -1876,7 +1882,7 @@ esxVI_GetLong(esxVI_ObjectContent *objectContent, const char *propertyName,
 int
 esxVI_GetStringValue(esxVI_ObjectContent *objectContent,
                      const char *propertyName,
-                     char **value, esxVI_Occurrence occurence)
+                     char **value, esxVI_Occurrence occurrence)
 {
     esxVI_DynamicProperty *dynamicProperty;
 
@@ -1898,7 +1904,7 @@ esxVI_GetStringValue(esxVI_ObjectContent *objectContent,
         }
     }
 
-    if (*value == NULL && occurence == esxVI_Occurrence_RequiredItem) {
+    if (*value == NULL && occurrence == esxVI_Occurrence_RequiredItem) {
         ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
                      _("Missing '%s' property"), propertyName);
         return -1;
@@ -1913,7 +1919,7 @@ int
 esxVI_GetManagedObjectReference(esxVI_ObjectContent *objectContent,
                                 const char *propertyName,
                                 esxVI_ManagedObjectReference **value,
-                                esxVI_Occurrence occurence)
+                                esxVI_Occurrence occurrence)
 {
     esxVI_DynamicProperty *dynamicProperty;
 
@@ -1934,7 +1940,7 @@ esxVI_GetManagedObjectReference(esxVI_ObjectContent *objectContent,
         }
     }
 
-    if (*value == NULL && occurence == esxVI_Occurrence_RequiredItem) {
+    if (*value == NULL && occurrence == esxVI_Occurrence_RequiredItem) {
         ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
                      _("Missing '%s' property"), propertyName);
         return -1;
@@ -2045,7 +2051,7 @@ esxVI_GetVirtualMachineIdentity(esxVI_ObjectContent *virtualMachine,
                     goto failure;
                 }
 
-                if (esxUtil_UnescapeHexPercent(*name) < 0) {
+                if (virVMXUnescapeHexPercent(*name) < 0) {
                     ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
                                  _("Domain name contains invalid escape sequence"));
                     goto failure;
@@ -2261,9 +2267,10 @@ esxVI_GetSnapshotTreeBySnapshot
 
 
 
-int esxVI_LookupHostSystemProperties(esxVI_Context *ctx,
-                                     esxVI_String *propertyNameList,
-                                     esxVI_ObjectContent **hostSystem)
+int
+esxVI_LookupHostSystemProperties(esxVI_Context *ctx,
+                                 esxVI_String *propertyNameList,
+                                 esxVI_ObjectContent **hostSystem)
 {
     return esxVI_LookupObjectContentByType(ctx, ctx->hostSystem->_reference,
                                            "HostSystem", propertyNameList,
@@ -3009,6 +3016,7 @@ esxVI_LookupFileInfoByDatastorePath(esxVI_Context *ctx,
     esxVI_FloppyImageFileQuery *floppyImageFileQuery = NULL;
     esxVI_ManagedObjectReference *task = NULL;
     esxVI_TaskInfoState taskInfoState;
+    char *taskInfoErrorMessage = NULL;
     esxVI_TaskInfo *taskInfo = NULL;
     esxVI_HostDatastoreBrowserSearchResults *searchResults = NULL;
 
@@ -3128,13 +3136,15 @@ esxVI_LookupFileInfoByDatastorePath(esxVI_Context *ctx,
                                    datastorePathWithoutFileName, searchSpec,
                                    &task) < 0 ||
         esxVI_WaitForTaskCompletion(ctx, task, NULL, esxVI_Occurrence_None,
-                                    esxVI_Boolean_False, &taskInfoState) < 0) {
+                                    esxVI_Boolean_False, &taskInfoState,
+                                    &taskInfoErrorMessage) < 0) {
         goto cleanup;
     }
 
     if (taskInfoState != esxVI_TaskInfoState_Success) {
         ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
-                     _("Could not serach in datastore '%s'"), datastoreName);
+                     _("Could not search in datastore '%s': %s"),
+                     datastoreName, taskInfoErrorMessage);
         goto cleanup;
     }
 
@@ -3179,6 +3189,7 @@ esxVI_LookupFileInfoByDatastorePath(esxVI_Context *ctx,
     esxVI_ManagedObjectReference_Free(&hostDatastoreBrowser);
     esxVI_HostDatastoreBrowserSearchSpec_Free(&searchSpec);
     esxVI_ManagedObjectReference_Free(&task);
+    VIR_FREE(taskInfoErrorMessage);
     esxVI_TaskInfo_Free(&taskInfo);
     esxVI_HostDatastoreBrowserSearchResults_Free(&searchResults);
 
@@ -3203,6 +3214,7 @@ esxVI_LookupDatastoreContentByDatastoreName
     char *datastorePath = NULL;
     esxVI_ManagedObjectReference *task = NULL;
     esxVI_TaskInfoState taskInfoState;
+    char *taskInfoErrorMessage = NULL;
     esxVI_TaskInfo *taskInfo = NULL;
 
     if (searchResultsList == NULL || *searchResultsList != NULL) {
@@ -3269,13 +3281,15 @@ esxVI_LookupDatastoreContentByDatastoreName
                                              datastorePath, searchSpec,
                                              &task) < 0 ||
         esxVI_WaitForTaskCompletion(ctx, task, NULL, esxVI_Occurrence_None,
-                                    esxVI_Boolean_False, &taskInfoState) < 0) {
+                                    esxVI_Boolean_False, &taskInfoState,
+                                    &taskInfoErrorMessage) < 0) {
         goto cleanup;
     }
 
     if (taskInfoState != esxVI_TaskInfoState_Success) {
         ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
-                     _("Could not serach in datastore '%s'"), datastoreName);
+                     _("Could not serach in datastore '%s': %s"),
+                     datastoreName, taskInfoErrorMessage);
         goto cleanup;
     }
 
@@ -3294,6 +3308,7 @@ esxVI_LookupDatastoreContentByDatastoreName
     esxVI_HostDatastoreBrowserSearchSpec_Free(&searchSpec);
     VIR_FREE(datastorePath);
     esxVI_ManagedObjectReference_Free(&task);
+    VIR_FREE(taskInfoErrorMessage);
     esxVI_TaskInfo_Free(&taskInfo);
 
     return result;
@@ -3472,7 +3487,8 @@ esxVI_WaitForTaskCompletion(esxVI_Context *ctx,
                             const unsigned char *virtualMachineUuid,
                             esxVI_Occurrence virtualMachineOccurrence,
                             esxVI_Boolean autoAnswer,
-                            esxVI_TaskInfoState *finalState)
+                            esxVI_TaskInfoState *finalState,
+                            char **errorMessage)
 {
     int result = -1;
     esxVI_ObjectSpec *objectSpec = NULL;
@@ -3488,6 +3504,11 @@ esxVI_WaitForTaskCompletion(esxVI_Context *ctx,
     esxVI_TaskInfoState state = esxVI_TaskInfoState_Undefined;
     esxVI_Boolean blocked = esxVI_Boolean_Undefined;
     esxVI_TaskInfo *taskInfo = NULL;
+
+    if (errorMessage == NULL || *errorMessage != NULL) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
+        return -1;
+    }
 
     version = strdup("");
 
@@ -3609,6 +3630,35 @@ esxVI_WaitForTaskCompletion(esxVI_Context *ctx,
         goto cleanup;
     }
 
+    if (*finalState != esxVI_TaskInfoState_Success) {
+        if (esxVI_LookupTaskInfoByTask(ctx, task, &taskInfo)) {
+            goto cleanup;
+        }
+
+        if (taskInfo->error == NULL) {
+            *errorMessage = strdup(_("Unknown error"));
+
+            if (*errorMessage == NULL) {
+                virReportOOMError();
+                goto cleanup;
+            }
+        } else if (taskInfo->error->localizedMessage == NULL) {
+            *errorMessage = strdup(taskInfo->error->fault->_actualType);
+
+            if (*errorMessage == NULL) {
+                virReportOOMError();
+                goto cleanup;
+            }
+        } else {
+            if (virAsprintf(errorMessage, "%s - %s",
+                            taskInfo->error->fault->_actualType,
+                            taskInfo->error->localizedMessage) < 0) {
+                virReportOOMError();
+                goto cleanup;
+            }
+        }
+    }
+
     result = 0;
 
   cleanup:
@@ -3676,4 +3726,41 @@ esxVI_ParseHostCpuIdInfo(esxVI_ParsedHostCpuIdInfo *parsedHostCpuIdInfo,
     }
 
     return 0;
+}
+
+
+
+int
+esxVI_ProductVersionToDefaultVirtualHWVersion(esxVI_ProductVersion productVersion)
+{
+    /*
+     * virtualHW.version compatibility matrix:
+     *
+     *              4 7    API
+     *   ESX 3.5    +      2.5
+     *   ESX 4.0    + +    4.0
+     *   ESX 4.1    + +    4.1
+     *   GSX 2.0    + +    2.5
+     */
+    switch (productVersion) {
+      case esxVI_ProductVersion_ESX35:
+      case esxVI_ProductVersion_VPX25:
+        return 4;
+
+      case esxVI_ProductVersion_GSX20:
+      case esxVI_ProductVersion_ESX40:
+      case esxVI_ProductVersion_ESX41:
+      case esxVI_ProductVersion_VPX40:
+      case esxVI_ProductVersion_VPX41:
+        return 7;
+
+      case esxVI_ProductVersion_ESX4x:
+      case esxVI_ProductVersion_VPX4x:
+        return 7;
+
+      default:
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
+                     _("Unexpected product version"));
+        return -1;
+    }
 }

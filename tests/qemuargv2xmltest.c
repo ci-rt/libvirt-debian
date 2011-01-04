@@ -13,7 +13,7 @@
 
 # include "internal.h"
 # include "testutils.h"
-# include "qemu/qemu_conf.h"
+# include "qemu/qemu_command.h"
 
 # include "testutilsqemu.h"
 
@@ -173,6 +173,9 @@ mymain(int argc, char **argv)
     DO_TEST("disk-drive-cache-v2-wt");
     DO_TEST("disk-drive-cache-v2-wb");
     DO_TEST("disk-drive-cache-v2-none");
+    DO_TEST("disk-drive-network-nbd");
+    DO_TEST("disk-drive-network-rbd");
+    DO_TEST("disk-drive-network-sheepdog");
     DO_TEST("disk-usb");
     DO_TEST("graphics-vnc");
 

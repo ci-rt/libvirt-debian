@@ -1,7 +1,7 @@
 /*
  * utils.c: common, generic utility functions
  *
- * Copyright (C) 2006-2010 Red Hat, Inc.
+ * Copyright (C) 2006-2011 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  * Copyright (C) 2006, 2007 Binary Karma
  * Copyright (C) 2006 Shuveb Hussain
@@ -88,42 +88,44 @@ verify(sizeof(gid_t) <= sizeof (unsigned int) &&
                              __FUNCTION__, __LINE__, __VA_ARGS__)
 
 /* Like read(), but restarts after EINTR */
-int saferead(int fd, void *buf, size_t count)
+ssize_t
+saferead(int fd, void *buf, size_t count)
 {
-        size_t nread = 0;
-        while (count > 0) {
-                ssize_t r = read(fd, buf, count);
-                if (r < 0 && errno == EINTR)
-                        continue;
-                if (r < 0)
-                        return r;
-                if (r == 0)
-                        return nread;
-                buf = (char *)buf + r;
-                count -= r;
-                nread += r;
-        }
-        return nread;
+    size_t nread = 0;
+    while (count > 0) {
+        ssize_t r = read(fd, buf, count);
+        if (r < 0 && errno == EINTR)
+            continue;
+        if (r < 0)
+            return r;
+        if (r == 0)
+            return nread;
+        buf = (char *)buf + r;
+        count -= r;
+        nread += r;
+    }
+    return nread;
 }
 
 /* Like write(), but restarts after EINTR */
-ssize_t safewrite(int fd, const void *buf, size_t count)
+ssize_t
+safewrite(int fd, const void *buf, size_t count)
 {
-        size_t nwritten = 0;
-        while (count > 0) {
-                ssize_t r = write(fd, buf, count);
+    size_t nwritten = 0;
+    while (count > 0) {
+        ssize_t r = write(fd, buf, count);
 
-                if (r < 0 && errno == EINTR)
-                        continue;
-                if (r < 0)
-                        return r;
-                if (r == 0)
-                        return nwritten;
-                buf = (const char *)buf + r;
-                count -= r;
-                nwritten += r;
-        }
-        return nwritten;
+        if (r < 0 && errno == EINTR)
+            continue;
+        if (r < 0)
+            return r;
+        if (r == 0)
+            return nwritten;
+        buf = (const char *)buf + r;
+        count -= r;
+        nwritten += r;
+    }
+    return nwritten;
 }
 
 #ifdef HAVE_POSIX_FALLOCATE
@@ -568,8 +570,7 @@ __virExec(const char *const*argv,
             i != null &&
             i != childout &&
             i != childerr &&
-            (!keepfd ||
-             !FD_ISSET(i, keepfd))) {
+            (!keepfd || i >= FD_SETSIZE || !FD_ISSET(i, keepfd))) {
             tmpfd = i;
             VIR_FORCE_CLOSE(tmpfd);
         }
@@ -616,7 +617,7 @@ __virExec(const char *const*argv,
 
         if (chdir("/") < 0) {
             virReportSystemError(errno,
-                                 "%s", _("cannot change to root directory: %s"));
+                                 "%s", _("cannot change to root directory"));
             goto fork_error;
         }
 
@@ -912,6 +913,28 @@ virExec(const char *const*argv ATTRIBUTE_UNUSED,
 }
 
 int
+virExecWithHook(const char *const*argv ATTRIBUTE_UNUSED,
+                const char *const*envp ATTRIBUTE_UNUSED,
+                const fd_set *keepfd ATTRIBUTE_UNUSED,
+                pid_t *retpid ATTRIBUTE_UNUSED,
+                int infd ATTRIBUTE_UNUSED,
+                int *outfd ATTRIBUTE_UNUSED,
+                int *errfd ATTRIBUTE_UNUSED,
+                int flags ATTRIBUTE_UNUSED,
+                virExecHook hook ATTRIBUTE_UNUSED,
+                void *data ATTRIBUTE_UNUSED,
+                char *pidfile ATTRIBUTE_UNUSED)
+{
+    /* XXX: Some day we can implement pieces of virCommand/virExec on
+     * top of _spawn() or CreateProcess(), but we can't implement
+     * everything, since mingw completely lacks fork(), so we cannot
+     * run hook code in the child.  */
+    virUtilError(VIR_ERR_INTERNAL_ERROR,
+                 "%s", _("virExec is not implemented for WIN32"));
+    return -1;
+}
+
+int
 virExecDaemonize(const char *const*argv ATTRIBUTE_UNUSED,
                  const char *const*envp ATTRIBUTE_UNUSED,
                  const fd_set *keepfd ATTRIBUTE_UNUSED,
@@ -1123,20 +1146,23 @@ int virFileReadAll(const char *path, int maxlen, char **buf)
     return len;
 }
 
-/* Truncate @path and write @str to it.
+/* Truncate @path and write @str to it.  If @mode is 0, ensure that
+   @path exists; otherwise, use @mode if @path must be created.
    Return 0 for success, nonzero for failure.
    Be careful to preserve any errno value upon failure. */
-int virFileWriteStr(const char *path, const char *str)
+int virFileWriteStr(const char *path, const char *str, mode_t mode)
 {
     int fd;
 
-    if ((fd = open(path, O_WRONLY|O_TRUNC)) == -1)
+    if (mode)
+        fd = open(path, O_WRONLY|O_TRUNC|O_CREAT, mode);
+    else
+        fd = open(path, O_WRONLY|O_TRUNC);
+    if (fd == -1)
         return -1;
 
     if (safewrite(fd, str, strlen(str)) < 0) {
-        int saved_errno = errno;
         VIR_FORCE_CLOSE(fd);
-        errno = saved_errno;
         return -1;
     }
 
@@ -2197,6 +2223,22 @@ virParseVersionString(const char *str, unsigned long *version)
 }
 
 /**
+ * virVasprintf
+ *
+ * like glibc's vasprintf but makes sure *strp == NULL on failure
+ */
+int
+virVasprintf(char **strp, const char *fmt, va_list list)
+{
+    int ret;
+
+    if ((ret = vasprintf(strp, fmt, list)) == -1)
+        *strp = NULL;
+
+    return ret;
+}
+
+/**
  * virAsprintf
  *
  * like glibc's_asprintf but makes sure *strp == NULL on failure
@@ -2208,10 +2250,7 @@ virAsprintf(char **strp, const char *fmt, ...)
     int ret;
 
     va_start(ap, fmt);
-
-    if ((ret = vasprintf(strp, fmt, ap)) == -1)
-        *strp = NULL;
-
+    ret = virVasprintf(strp, fmt, ap);
     va_end(ap);
     return ret;
 }
@@ -2772,6 +2811,64 @@ int virGetGroupID(const char *name,
     return 0;
 }
 
+
+/* Set the real and effective uid and gid to the given values, and call
+ * initgroups so that the process has all the assumed group membership of
+ * that uid. return 0 on success, -1 on failure.
+ */
+int
+virSetUIDGID(uid_t uid, gid_t gid)
+{
+    if (gid > 0) {
+        if (setregid(gid, gid) < 0) {
+            virReportSystemError(errno,
+                                 _("cannot change to '%d' group"),
+                                 (unsigned int) gid);
+            return -1;
+        }
+    }
+
+    if (uid > 0) {
+# ifdef HAVE_INITGROUPS
+        struct passwd pwd, *pwd_result;
+        char *buf = NULL;
+        size_t bufsize;
+
+        bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+        if (bufsize == -1)
+            bufsize = 16384;
+
+        if (VIR_ALLOC_N(buf, bufsize) < 0) {
+            virReportOOMError();
+            return -1;
+        }
+        getpwuid_r(uid, &pwd, buf, bufsize, &pwd_result);
+        if (!pwd_result) {
+            virReportSystemError(errno,
+                                 _("cannot getpwuid_r(%d)"),
+                                 (unsigned int) uid);
+            VIR_FREE(buf);
+            return -1;
+        }
+        if (initgroups(pwd.pw_name, pwd.pw_gid) < 0) {
+            virReportSystemError(errno,
+                                 _("cannot initgroups(\"%s\", %d)"),
+                                 pwd.pw_name, (unsigned int) pwd.pw_gid);
+            VIR_FREE(buf);
+            return -1;
+        }
+        VIR_FREE(buf);
+# endif
+        if (setreuid(uid, uid) < 0) {
+            virReportSystemError(errno,
+                                 _("cannot change to uid to '%d'"),
+                                 (unsigned int) uid);
+            return -1;
+        }
+    }
+    return 0;
+}
+
 #else /* HAVE_GETPWUID_R */
 
 char *
@@ -2809,6 +2906,15 @@ int virGetGroupID(const char *name ATTRIBUTE_UNUSED,
                  "%s", _("virGetGroupID is not available"));
 
     return 0;
+}
+
+int
+virSetUIDGID(uid_t uid ATTRIBUTE_UNUSED,
+             gid_t gid ATTRIBUTE_UNUSED)
+{
+    virUtilError(VIR_ERR_INTERNAL_ERROR,
+                 "%s", _("virSetUIDGID is not available"));
+    return -1;
 }
 #endif /* HAVE_GETPWUID_R */
 

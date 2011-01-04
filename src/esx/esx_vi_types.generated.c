@@ -2055,6 +2055,35 @@ ESX_VI__TEMPLATE__DESERIALIZE(LocalDatastoreInfo,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: LocalizedMethodFault
+ */
+
+/* esxVI_LocalizedMethodFault_Alloc */
+ESX_VI__TEMPLATE__ALLOC(LocalizedMethodFault)
+
+/* esxVI_LocalizedMethodFault_Free */
+ESX_VI__TEMPLATE__FREE(LocalizedMethodFault,
+{
+    esxVI_MethodFault_Free(&item->fault);
+    VIR_FREE(item->localizedMessage);
+})
+
+/* esxVI_LocalizedMethodFault_Validate */
+ESX_VI__TEMPLATE__VALIDATE(LocalizedMethodFault,
+{
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(fault)
+})
+
+/* esxVI_LocalizedMethodFault_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(LocalizedMethodFault,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(MethodFault, fault)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, localizedMessage)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Type: NasDatastoreInfo
  *          extends DatastoreInfo
  */
@@ -3300,7 +3329,7 @@ ESX_VI__TEMPLATE__FREE(TaskInfo,
     esxVI_ManagedObjectReference_Free(&item->entity);
     VIR_FREE(item->entityName);
     esxVI_ManagedObjectReference_Free(&item->locked);
-    /* FIXME: error is currently ignored */
+    esxVI_LocalizedMethodFault_Free(&item->error);
     esxVI_AnyType_Free(&item->result);
     esxVI_Int_Free(&item->progress);
     /* FIXME: reason is currently ignored */
@@ -3319,7 +3348,6 @@ ESX_VI__TEMPLATE__VALIDATE(TaskInfo,
     ESX_VI__TEMPLATE__PROPERTY__REQUIRE(state)
     ESX_VI__TEMPLATE__PROPERTY__REQUIRE(cancelled)
     ESX_VI__TEMPLATE__PROPERTY__REQUIRE(cancelable)
-    /* FIXME: error is currently ignored */
     /* FIXME: reason is currently ignored */
     ESX_VI__TEMPLATE__PROPERTY__REQUIRE(queueTime)
     ESX_VI__TEMPLATE__PROPERTY__REQUIRE(eventChainId)
@@ -3349,7 +3377,7 @@ ESX_VI__TEMPLATE__DESERIALIZE(TaskInfo,
     ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(TaskInfoState, state)
     ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, cancelled)
     ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, cancelable)
-    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_IGNORE(error) /* FIXME */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(LocalizedMethodFault, error)
     ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(AnyType, result)
     ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Int, progress)
     ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_IGNORE(reason) /* FIXME */

@@ -42,7 +42,6 @@
 #include "c-ctype.h"
 #include "logging.h"
 #include "network.h"
-#include "macvtap.h"
 #include "nwfilter_conf.h"
 #include "ignore-value.h"
 #include "storage_file.h"
@@ -113,7 +112,8 @@ VIR_ENUM_IMPL(virDomainDeviceAddress, VIR_DOMAIN_DEVICE_ADDRESS_TYPE_LAST,
 VIR_ENUM_IMPL(virDomainDisk, VIR_DOMAIN_DISK_TYPE_LAST,
               "block",
               "file",
-              "dir")
+              "dir",
+              "network")
 
 VIR_ENUM_IMPL(virDomainDiskDevice, VIR_DOMAIN_DISK_DEVICE_LAST,
               "disk",
@@ -141,6 +141,11 @@ VIR_ENUM_IMPL(virDomainDiskErrorPolicy, VIR_DOMAIN_DISK_ERROR_POLICY_LAST,
               "stop",
               "ignore",
               "enospace")
+
+VIR_ENUM_IMPL(virDomainDiskProtocol, VIR_DOMAIN_DISK_PROTOCOL_LAST,
+              "nbd",
+              "rbd",
+              "sheepdog")
 
 VIR_ENUM_IMPL(virDomainController, VIR_DOMAIN_CONTROLLER_TYPE_LAST,
               "ide",
@@ -245,6 +250,7 @@ VIR_ENUM_IMPL(virDomainWatchdogAction, VIR_DOMAIN_WATCHDOG_ACTION_LAST,
               "shutdown",
               "poweroff",
               "pause",
+              "dump",
               "none")
 
 VIR_ENUM_IMPL(virDomainVideo, VIR_DOMAIN_VIDEO_TYPE_LAST,
@@ -503,6 +509,8 @@ void virDomainInputDefFree(virDomainInputDefPtr def)
 
 void virDomainDiskDefFree(virDomainDiskDefPtr def)
 {
+    unsigned int i;
+
     if (!def)
         return;
 
@@ -514,7 +522,20 @@ void virDomainDiskDefFree(virDomainDiskDefPtr def)
     virStorageEncryptionFree(def->encryption);
     virDomainDeviceInfoClear(&def->info);
 
+    for (i = 0 ; i < def->nhosts ; i++)
+        virDomainDiskHostDefFree(&def->hosts[i]);
+    VIR_FREE(def->hosts);
+
     VIR_FREE(def);
+}
+
+void virDomainDiskHostDefFree(virDomainDiskHostDefPtr def)
+{
+    if (!def)
+        return;
+
+    VIR_FREE(def->name);
+    VIR_FREE(def->port);
 }
 
 void virDomainControllerDefFree(virDomainControllerDefPtr def)
@@ -1400,6 +1421,7 @@ virDomainDeviceVirtioSerialAddressParseXML(
 cleanup:
     VIR_FREE(controller);
     VIR_FREE(bus);
+    VIR_FREE(port);
     return ret;
 }
 
@@ -1574,13 +1596,16 @@ virDomainDiskDefParseXML(virCapsPtr caps,
                          xmlNodePtr node,
                          int flags) {
     virDomainDiskDefPtr def;
-    xmlNodePtr cur;
+    xmlNodePtr cur, host;
     char *type = NULL;
     char *device = NULL;
     char *driverName = NULL;
     char *driverType = NULL;
     char *source = NULL;
     char *target = NULL;
+    char *protocol = NULL;
+    virDomainDiskHostDefPtr hosts = NULL;
+    int nhosts = 0;
     char *bus = NULL;
     char *cachetag = NULL;
     char *error_policy = NULL;
@@ -1607,7 +1632,7 @@ virDomainDiskDefParseXML(virCapsPtr caps,
     cur = node->children;
     while (cur != NULL) {
         if (cur->type == XML_ELEMENT_NODE) {
-            if ((source == NULL) &&
+            if ((source == NULL && hosts == NULL) &&
                 (xmlStrEqual(cur->name, BAD_CAST "source"))) {
 
                 switch (def->type) {
@@ -1619,6 +1644,54 @@ virDomainDiskDefParseXML(virCapsPtr caps,
                     break;
                 case VIR_DOMAIN_DISK_TYPE_DIR:
                     source = virXMLPropString(cur, "dir");
+                    break;
+                case VIR_DOMAIN_DISK_TYPE_NETWORK:
+                    protocol = virXMLPropString(cur, "protocol");
+                    if (protocol == NULL) {
+                        virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                                             "%s", _("missing protocol type"));
+                        goto error;
+                    }
+                    def->protocol = virDomainDiskProtocolTypeFromString(protocol);
+                    if (def->protocol < 0) {
+                        virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                                             _("unknown protocol type '%s'"),
+                                             protocol);
+                        goto error;
+                    }
+                    if (!(source = virXMLPropString(cur, "name")) &&
+                        def->protocol != VIR_DOMAIN_DISK_PROTOCOL_NBD) {
+                        virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                                             _("missing name for disk source"));
+                        goto error;
+                    }
+                    host = cur->children;
+                    while (host != NULL) {
+                        if (host->type == XML_ELEMENT_NODE &&
+                            xmlStrEqual(host->name, BAD_CAST "host")) {
+                            if (VIR_REALLOC_N(hosts, nhosts + 1) < 0) {
+                                virReportOOMError();
+                                goto error;
+                            }
+                            hosts[nhosts].name = NULL;
+                            hosts[nhosts].port = NULL;
+                            nhosts++;
+
+                            hosts[nhosts - 1].name = virXMLPropString(host, "name");
+                            if (!hosts[nhosts - 1].name) {
+                                virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                                                     "%s", _("missing name for host"));
+                                goto error;
+                            }
+                            hosts[nhosts - 1].port = virXMLPropString(host, "port");
+                            if (!hosts[nhosts - 1].port) {
+                                virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                                                     "%s", _("missing port for host"));
+                                goto error;
+                            }
+                        }
+                        host = host->next;
+                    }
                     break;
                 default:
                     virDomainReportError(VIR_ERR_INTERNAL_ERROR,
@@ -1685,7 +1758,7 @@ virDomainDiskDefParseXML(virCapsPtr caps,
 
     /* Only CDROM and Floppy devices are allowed missing source path
      * to indicate no media present */
-    if (source == NULL &&
+    if (source == NULL && hosts == NULL &&
         def->device != VIR_DOMAIN_DISK_DEVICE_CDROM &&
         def->device != VIR_DOMAIN_DISK_DEVICE_FLOPPY) {
         virDomainReportError(VIR_ERR_NO_SOURCE,
@@ -1791,6 +1864,10 @@ virDomainDiskDefParseXML(virCapsPtr caps,
     source = NULL;
     def->dst = target;
     target = NULL;
+    def->hosts = hosts;
+    hosts = NULL;
+    def->nhosts = nhosts;
+    nhosts = 0;
     def->driverName = driverName;
     driverName = NULL;
     def->driverType = driverType;
@@ -1819,6 +1896,12 @@ cleanup:
     VIR_FREE(type);
     VIR_FREE(target);
     VIR_FREE(source);
+    while (nhosts > 0) {
+        virDomainDiskHostDefFree(&hosts[nhosts - 1]);
+        nhosts--;
+    }
+    VIR_FREE(hosts);
+    VIR_FREE(protocol);
     VIR_FREE(device);
     VIR_FREE(driverType);
     VIR_FREE(driverName);
@@ -3410,6 +3493,8 @@ virDomainGraphicsDefParseXML(xmlNodePtr node, int flags) {
                     if (!name || !mode) {
                         virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                              _("spice channel missing name/mode"));
+                        VIR_FREE(name);
+                        VIR_FREE(mode);
                         goto error;
                     }
 
@@ -3417,14 +3502,20 @@ virDomainGraphicsDefParseXML(xmlNodePtr node, int flags) {
                         virDomainReportError(VIR_ERR_INTERNAL_ERROR,
                                              _("unknown spice channel name %s"),
                                              name);
+                        VIR_FREE(name);
+                        VIR_FREE(mode);
                         goto error;
                     }
                     if ((modeval = virDomainGraphicsSpiceChannelModeTypeFromString(mode)) < 0) {
                         virDomainReportError(VIR_ERR_INTERNAL_ERROR,
                                              _("unknown spice channel mode %s"),
                                              mode);
+                        VIR_FREE(name);
+                        VIR_FREE(mode);
                         goto error;
                     }
+                    VIR_FREE(name);
+                    VIR_FREE(mode);
 
                     def->data.spice.channels[nameval] = modeval;
                 }
@@ -3626,6 +3717,8 @@ virSysinfoParseXML(const xmlNodePtr node,
         virXPathString("string(system/entry[@name='uuid'])", ctxt);
     def->system_sku =
         virXPathString("string(system/entry[@name='sku'])", ctxt);
+    def->system_family =
+        virXPathString("string(system/entry[@name='family'])", ctxt);
 
 cleanup:
     VIR_FREE(type);
@@ -4497,6 +4590,7 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
     long id = -1;
     virDomainDefPtr def;
     unsigned long count;
+    bool uuid_generated = false;
 
     if (VIR_ALLOC(def) < 0) {
         virReportOOMError();
@@ -4528,7 +4622,9 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
         goto error;
     }
 
-    /* Extract domain uuid */
+    /* Extract domain uuid. If both uuid and sysinfo/system/entry/uuid
+     * exist, they must match; and if only the latter exists, it can
+     * also serve as the uuid. */
     tmp = virXPathString("string(./uuid[1])", ctxt);
     if (!tmp) {
         if (virUUIDGenerate(def->uuid)) {
@@ -4536,6 +4632,7 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
                                  "%s", _("Failed to generate UUID"));
             goto error;
         }
+        uuid_generated = true;
     } else {
         if (virUUIDParse(tmp, def->uuid) < 0) {
             virDomainReportError(VIR_ERR_INTERNAL_ERROR,
@@ -5278,6 +5375,22 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
 
         if (def->sysinfo == NULL)
             goto error;
+        if (def->sysinfo->system_uuid != NULL) {
+            unsigned char uuidbuf[VIR_UUID_BUFLEN];
+            if (virUUIDParse(def->sysinfo->system_uuid, uuidbuf) < 0) {
+                virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                                     "%s", _("malformed uuid element"));
+                goto error;
+            }
+            if (uuid_generated)
+                memcpy(def->uuid, uuidbuf, VIR_UUID_BUFLEN);
+            else if (memcmp(def->uuid, uuidbuf, VIR_UUID_BUFLEN) != 0) {
+                virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                                     _("UUID mismatch between <uuid> and "
+                                       "<sysinfo>"));
+                goto error;
+            }
+        }
     }
     tmp = virXPathString("string(./os/smbios/@mode)", ctxt);
     if (tmp) {
@@ -5887,7 +6000,7 @@ virDomainDiskDefFormat(virBufferPtr buf,
         virBufferVSprintf(buf, "/>\n");
     }
 
-    if (def->src) {
+    if (def->src || def->nhosts > 0) {
         switch (def->type) {
         case VIR_DOMAIN_DISK_TYPE_FILE:
             virBufferEscapeString(buf, "      <source file='%s'/>\n",
@@ -5900,6 +6013,27 @@ virDomainDiskDefFormat(virBufferPtr buf,
         case VIR_DOMAIN_DISK_TYPE_DIR:
             virBufferEscapeString(buf, "      <source dir='%s'/>\n",
                                   def->src);
+            break;
+        case VIR_DOMAIN_DISK_TYPE_NETWORK:
+            virBufferVSprintf(buf, "      <source protocol='%s'",
+                              virDomainDiskProtocolTypeToString(def->protocol));
+            if (def->src) {
+                virBufferEscapeString(buf, " name='%s'", def->src);
+            }
+            if (def->nhosts == 0) {
+                virBufferVSprintf(buf, "/>\n");
+            } else {
+                int i;
+
+                virBufferVSprintf(buf, ">\n");
+                for (i = 0; i < def->nhosts; i++) {
+                    virBufferEscapeString(buf, "        <host name='%s'",
+                                          def->hosts[i].name);
+                    virBufferEscapeString(buf, " port='%s'/>\n",
+                                          def->hosts[i].port);
+                }
+                virBufferVSprintf(buf, "      </source>\n");
+            }
             break;
         default:
             virDomainReportError(VIR_ERR_INTERNAL_ERROR,
@@ -6426,7 +6560,8 @@ virDomainSysinfoDefFormat(virBufferPtr buf,
     }
     if ((def->system_manufacturer != NULL) || (def->system_product != NULL) ||
         (def->system_version != NULL) || (def->system_serial != NULL) ||
-        (def->system_uuid != NULL) || (def->system_sku != NULL)) {
+        (def->system_uuid != NULL) || (def->system_sku != NULL) ||
+        (def->system_family != NULL)) {
         virBufferAddLit(buf, "    <system>\n");
         if (def->system_manufacturer != NULL)
             virBufferEscapeString(buf,
@@ -6452,6 +6587,10 @@ virDomainSysinfoDefFormat(virBufferPtr buf,
             virBufferEscapeString(buf,
                                   "      <entry name='sku'>%s</entry>\n",
                                   def->system_sku);
+        if (def->system_family != NULL)
+            virBufferEscapeString(buf,
+                                  "      <entry name='family'>%s</entry>\n",
+                                  def->system_family);
         virBufferAddLit(buf, "    </system>\n");
     }
 
@@ -8214,7 +8353,7 @@ int virDomainDiskDefForeachPath(virDomainDiskDefPtr disk,
     size_t depth = 0;
     char *nextpath = NULL;
 
-    if (!disk->src)
+    if (!disk->src || disk->type == VIR_DOMAIN_DISK_TYPE_NETWORK)
         return 0;
 
     if (disk->driverType) {

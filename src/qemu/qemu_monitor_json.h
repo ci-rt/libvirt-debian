@@ -189,6 +189,9 @@ int qemuMonitorJSONDelDevice(qemuMonitorPtr mon,
 int qemuMonitorJSONAddDrive(qemuMonitorPtr mon,
                             const char *drivestr);
 
+int qemuMonitorJSONDriveDel(qemuMonitorPtr mon,
+                            const char *drivestr);
+
 int qemuMonitorJSONSetDrivePassphrase(qemuMonitorPtr mon,
                                       const char *alias,
                                       const char *passphrase);

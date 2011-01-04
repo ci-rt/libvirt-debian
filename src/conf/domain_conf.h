@@ -120,6 +120,7 @@ enum virDomainDiskType {
     VIR_DOMAIN_DISK_TYPE_BLOCK,
     VIR_DOMAIN_DISK_TYPE_FILE,
     VIR_DOMAIN_DISK_TYPE_DIR,
+    VIR_DOMAIN_DISK_TYPE_NETWORK,
 
     VIR_DOMAIN_DISK_TYPE_LAST
 };
@@ -164,6 +165,21 @@ enum  virDomainDiskErrorPolicy {
     VIR_DOMAIN_DISK_ERROR_POLICY_LAST
 };
 
+enum virDomainDiskProtocol {
+    VIR_DOMAIN_DISK_PROTOCOL_NBD,
+    VIR_DOMAIN_DISK_PROTOCOL_RBD,
+    VIR_DOMAIN_DISK_PROTOCOL_SHEEPDOG,
+
+    VIR_DOMAIN_DISK_PROTOCOL_LAST
+};
+
+typedef struct _virDomainDiskHostDef virDomainDiskHostDef;
+typedef virDomainDiskHostDef *virDomainDiskHostDefPtr;
+struct _virDomainDiskHostDef {
+    char *name;
+    char *port;
+};
+
 /* Stores the virtual disk configuration */
 typedef struct _virDomainDiskDef virDomainDiskDef;
 typedef virDomainDiskDef *virDomainDiskDefPtr;
@@ -173,6 +189,9 @@ struct _virDomainDiskDef {
     int bus;
     char *src;
     char *dst;
+    int protocol;
+    int nhosts;
+    virDomainDiskHostDefPtr hosts;
     char *driverName;
     char *driverType;
     char *serial;
@@ -462,6 +481,7 @@ enum virDomainWatchdogAction {
     VIR_DOMAIN_WATCHDOG_ACTION_SHUTDOWN,
     VIR_DOMAIN_WATCHDOG_ACTION_POWEROFF,
     VIR_DOMAIN_WATCHDOG_ACTION_PAUSE,
+    VIR_DOMAIN_WATCHDOG_ACTION_DUMP,
     VIR_DOMAIN_WATCHDOG_ACTION_NONE,
 
     VIR_DOMAIN_WATCHDOG_ACTION_LAST
@@ -1051,6 +1071,7 @@ virDomainObjPtr virDomainFindByName(const virDomainObjListPtr doms,
 void virDomainGraphicsDefFree(virDomainGraphicsDefPtr def);
 void virDomainInputDefFree(virDomainInputDefPtr def);
 void virDomainDiskDefFree(virDomainDiskDefPtr def);
+void virDomainDiskHostDefFree(virDomainDiskHostDefPtr def);
 void virDomainControllerDefFree(virDomainControllerDefPtr def);
 void virDomainFSDefFree(virDomainFSDefPtr def);
 void virDomainNetDefFree(virDomainNetDefPtr def);
@@ -1237,6 +1258,7 @@ VIR_ENUM_DECL(virDomainDiskDevice)
 VIR_ENUM_DECL(virDomainDiskBus)
 VIR_ENUM_DECL(virDomainDiskCache)
 VIR_ENUM_DECL(virDomainDiskErrorPolicy)
+VIR_ENUM_DECL(virDomainDiskProtocol)
 VIR_ENUM_DECL(virDomainController)
 VIR_ENUM_DECL(virDomainControllerModel)
 VIR_ENUM_DECL(virDomainFS)

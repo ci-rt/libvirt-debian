@@ -38,8 +38,9 @@
 #include "datatypes.h"
 #include "logging.h"
 #include "vbox_driver.h"
-#include "vbox_XPCOMCGlue.h"
+#include "vbox_glue.h"
 #include "virterror_internal.h"
+#include "util.h"
 
 #define VIR_FROM_THIS VIR_FROM_VBOX
 
@@ -56,6 +57,9 @@ extern virStorageDriver vbox31StorageDriver;
 extern virDriver vbox32Driver;
 extern virNetworkDriver vbox32NetworkDriver;
 extern virStorageDriver vbox32StorageDriver;
+extern virDriver vbox40Driver;
+extern virNetworkDriver vbox40NetworkDriver;
+extern virStorageDriver vbox40StorageDriver;
 
 static virDriver vboxDriverDummy;
 
@@ -82,8 +86,7 @@ int vboxRegister(void) {
     storageDriver = &vbox22StorageDriver;
 
     /* Init the glue and get the API version. */
-    if (VBoxCGlueInit() == 0) {
-        uVersion = g_pVBoxFuncs->pfnGetVersion();
+    if (VBoxCGlueInit(&uVersion) == 0) {
         DEBUG("VBoxCGlueInit found API version: %d.%d.%d (%u)",
               uVersion / 1000000,
               uVersion % 1000000 / 1000,
@@ -114,6 +117,11 @@ int vboxRegister(void) {
             driver        = &vbox32Driver;
             networkDriver = &vbox32NetworkDriver;
             storageDriver = &vbox32StorageDriver;
+        } else if (uVersion >= 3002051 && uVersion < 4000051) {
+            DEBUG0("VirtualBox API version: 4.0");
+            driver        = &vbox40Driver;
+            networkDriver = &vbox40NetworkDriver;
+            storageDriver = &vbox40StorageDriver;
         } else {
             DEBUG0("Unsupport VirtualBox API version");
         }

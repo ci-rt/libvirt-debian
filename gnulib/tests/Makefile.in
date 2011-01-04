@@ -33,7 +33,6 @@ VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
 pkglibdir = $(libdir)/@PACKAGE@
-pkglibexecdir = $(libexecdir)/@PACKAGE@
 am__cd = CDPATH="$${ZSH_VERSION+.}$(PATH_SEPARATOR)" && cd
 install_sh_DATA = $(install_sh) -c -m 644
 install_sh_PROGRAM = $(install_sh) -c
@@ -50,7 +49,7 @@ build_triplet = @build@
 host_triplet = @host@
 TESTS = test-alignof$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-areadlink$(EXEEXT) test-arpa_inet$(EXEEXT) \
-	test-base64$(EXEEXT) test-c-ctype$(EXEEXT) \
+	test-base64$(EXEEXT) test-binary-io.sh test-c-ctype$(EXEEXT) \
 	test-canonicalize-lgpl$(EXEEXT) test-count-one-bits$(EXEEXT) \
 	test-md5$(EXEEXT) test-errno$(EXEEXT) test-fcntl-h$(EXEEXT) \
 	test-fseeko.sh test-fseeko2.sh test-func$(EXEEXT) \
@@ -59,8 +58,8 @@ TESTS = test-alignof$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-gettimeofday$(EXEEXT) test-inet_ntop$(EXEEXT) \
 	test-inet_pton$(EXEEXT) test-lseek.sh test-lstat$(EXEEXT) \
 	test-malloca$(EXEEXT) test-memchr$(EXEEXT) test-netdb$(EXEEXT) \
-	test-netinet_in$(EXEEXT) test-perror.sh test-poll-h$(EXEEXT) \
-	test-poll$(EXEEXT) test-random_r$(EXEEXT) \
+	test-netinet_in$(EXEEXT) test-perror.sh test-pipe$(EXEEXT) \
+	test-poll-h$(EXEEXT) test-poll$(EXEEXT) test-random_r$(EXEEXT) \
 	test-rawmemchr$(EXEEXT) test-readlink$(EXEEXT) \
 	test-sched$(EXEEXT) test-select$(EXEEXT) test-select-in.sh \
 	test-select-out.sh test-sleep$(EXEEXT) test-snprintf$(EXEEXT) \
@@ -82,17 +81,18 @@ XFAIL_TESTS =
 noinst_PROGRAMS =
 check_PROGRAMS = test-alignof$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-areadlink$(EXEEXT) test-arpa_inet$(EXEEXT) \
-	test-base64$(EXEEXT) test-c-ctype$(EXEEXT) \
-	test-canonicalize-lgpl$(EXEEXT) test-count-one-bits$(EXEEXT) \
-	test-md5$(EXEEXT) test-errno$(EXEEXT) test-fcntl-h$(EXEEXT) \
-	test-fseeko$(EXEEXT) test-func$(EXEEXT) \
-	test-getaddrinfo$(EXEEXT) test-getdelim$(EXEEXT) \
-	test-gethostname$(EXEEXT) test-getline$(EXEEXT) \
-	test-gettimeofday$(EXEEXT) test-inet_ntop$(EXEEXT) \
-	test-inet_pton$(EXEEXT) test-lseek$(EXEEXT) \
-	test-lstat$(EXEEXT) test-malloca$(EXEEXT) test-memchr$(EXEEXT) \
-	test-netdb$(EXEEXT) test-netinet_in$(EXEEXT) \
-	test-perror$(EXEEXT) test-poll-h$(EXEEXT) test-poll$(EXEEXT) \
+	test-base64$(EXEEXT) test-binary-io$(EXEEXT) \
+	test-c-ctype$(EXEEXT) test-canonicalize-lgpl$(EXEEXT) \
+	test-count-one-bits$(EXEEXT) test-md5$(EXEEXT) \
+	test-errno$(EXEEXT) test-fcntl-h$(EXEEXT) test-fseeko$(EXEEXT) \
+	test-func$(EXEEXT) test-getaddrinfo$(EXEEXT) \
+	test-getdelim$(EXEEXT) test-gethostname$(EXEEXT) \
+	test-getline$(EXEEXT) test-gettimeofday$(EXEEXT) \
+	test-inet_ntop$(EXEEXT) test-inet_pton$(EXEEXT) \
+	test-lseek$(EXEEXT) test-lstat$(EXEEXT) test-malloca$(EXEEXT) \
+	test-memchr$(EXEEXT) test-netdb$(EXEEXT) \
+	test-netinet_in$(EXEEXT) test-perror$(EXEEXT) \
+	test-pipe$(EXEEXT) test-poll-h$(EXEEXT) test-poll$(EXEEXT) \
 	test-random_r$(EXEEXT) test-rawmemchr$(EXEEXT) \
 	test-readlink$(EXEEXT) test-sched$(EXEEXT) \
 	test-select$(EXEEXT) test-select-fd$(EXEEXT) \
@@ -122,6 +122,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/base64.m4 \
 	$(top_srcdir)/gnulib/m4/canonicalize.m4 \
 	$(top_srcdir)/gnulib/m4/close.m4 \
+	$(top_srcdir)/gnulib/m4/configmake.m4 \
 	$(top_srcdir)/gnulib/m4/count-one-bits.m4 \
 	$(top_srcdir)/gnulib/m4/dirname.m4 \
 	$(top_srcdir)/gnulib/m4/dos.m4 \
@@ -169,7 +170,8 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/pathmax.m4 \
 	$(top_srcdir)/gnulib/m4/perror.m4 \
 	$(top_srcdir)/gnulib/m4/physmem.m4 \
-	$(top_srcdir)/gnulib/m4/po.m4 $(top_srcdir)/gnulib/m4/poll.m4 \
+	$(top_srcdir)/gnulib/m4/pipe.m4 $(top_srcdir)/gnulib/m4/po.m4 \
+	$(top_srcdir)/gnulib/m4/poll.m4 \
 	$(top_srcdir)/gnulib/m4/poll_h.m4 \
 	$(top_srcdir)/gnulib/m4/posix-shell.m4 \
 	$(top_srcdir)/gnulib/m4/printf.m4 \
@@ -227,6 +229,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/usleep.m4 \
 	$(top_srcdir)/gnulib/m4/vasnprintf.m4 \
 	$(top_srcdir)/gnulib/m4/vasprintf.m4 \
+	$(top_srcdir)/gnulib/m4/waitpid.m4 \
 	$(top_srcdir)/gnulib/m4/warn-on-use.m4 \
 	$(top_srcdir)/gnulib/m4/wchar_h.m4 \
 	$(top_srcdir)/m4/compiler-flags.m4 $(top_srcdir)/m4/gettext.m4 \
@@ -285,6 +288,11 @@ test_base64_SOURCES = test-base64.c
 test_base64_OBJECTS = test-base64.$(OBJEXT)
 test_base64_LDADD = $(LDADD)
 test_base64_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
+test_binary_io_SOURCES = test-binary-io.c
+test_binary_io_OBJECTS = test-binary-io.$(OBJEXT)
+test_binary_io_LDADD = $(LDADD)
+test_binary_io_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
 	libtests.a $(am__DEPENDENCIES_1)
 test_c_ctype_SOURCES = test-c-ctype.c
 test_c_ctype_OBJECTS = test-c-ctype.$(OBJEXT)
@@ -389,6 +397,11 @@ test_perror_SOURCES = test-perror.c
 test_perror_OBJECTS = test-perror.$(OBJEXT)
 test_perror_LDADD = $(LDADD)
 test_perror_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
+test_pipe_SOURCES = test-pipe.c
+test_pipe_OBJECTS = test-pipe.$(OBJEXT)
+test_pipe_LDADD = $(LDADD)
+test_pipe_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
 	libtests.a $(am__DEPENDENCIES_1)
 test_poll_SOURCES = test-poll.c
 test_poll_OBJECTS = test-poll.$(OBJEXT)
@@ -603,44 +616,46 @@ am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
 am__v_GEN_0 = @echo "  GEN   " $@;
 SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-alignof.c test-alloca-opt.c test-areadlink.c \
-	test-arpa_inet.c test-base64.c test-c-ctype.c \
+	test-arpa_inet.c test-base64.c test-binary-io.c test-c-ctype.c \
 	test-canonicalize-lgpl.c test-count-one-bits.c test-errno.c \
 	test-fcntl-h.c test-fseeko.c test-func.c test-getaddrinfo.c \
 	test-getdelim.c test-gethostname.c test-getline.c \
 	test-gettimeofday.c test-inet_ntop.c test-inet_pton.c \
 	test-lseek.c test-lstat.c test-malloca.c test-md5.c \
 	test-memchr.c test-netdb.c test-netinet_in.c test-perror.c \
-	test-poll.c test-poll-h.c test-random_r.c test-rawmemchr.c \
-	test-readlink.c test-sched.c test-select.c test-select-fd.c \
-	test-select-stdin.c test-sleep.c test-snprintf.c \
-	test-sockets.c test-stat.c test-stdbool.c test-stddef.c \
-	test-stdint.c test-stdio.c test-stdlib.c test-strchrnul.c \
-	test-strerror.c test-string.c test-strings.c test-strnlen.c \
-	test-symlink.c test-sys_ioctl.c test-sys_select.c \
-	test-sys_socket.c test-sys_stat.c test-sys_time.c \
-	test-sys_utsname.c test-sys_wait.c test-termios.c test-time.c \
-	test-uname.c test-unistd.c test-usleep.c test-vasnprintf.c \
-	test-vasprintf.c test-verify.c test-wchar.c
+	test-pipe.c test-poll.c test-poll-h.c test-random_r.c \
+	test-rawmemchr.c test-readlink.c test-sched.c test-select.c \
+	test-select-fd.c test-select-stdin.c test-sleep.c \
+	test-snprintf.c test-sockets.c test-stat.c test-stdbool.c \
+	test-stddef.c test-stdint.c test-stdio.c test-stdlib.c \
+	test-strchrnul.c test-strerror.c test-string.c test-strings.c \
+	test-strnlen.c test-symlink.c test-sys_ioctl.c \
+	test-sys_select.c test-sys_socket.c test-sys_stat.c \
+	test-sys_time.c test-sys_utsname.c test-sys_wait.c \
+	test-termios.c test-time.c test-uname.c test-unistd.c \
+	test-usleep.c test-vasnprintf.c test-vasprintf.c test-verify.c \
+	test-wchar.c
 DIST_SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-alignof.c test-alloca-opt.c test-areadlink.c \
-	test-arpa_inet.c test-base64.c test-c-ctype.c \
+	test-arpa_inet.c test-base64.c test-binary-io.c test-c-ctype.c \
 	test-canonicalize-lgpl.c test-count-one-bits.c test-errno.c \
 	test-fcntl-h.c test-fseeko.c test-func.c test-getaddrinfo.c \
 	test-getdelim.c test-gethostname.c test-getline.c \
 	test-gettimeofday.c test-inet_ntop.c test-inet_pton.c \
 	test-lseek.c test-lstat.c test-malloca.c test-md5.c \
 	test-memchr.c test-netdb.c test-netinet_in.c test-perror.c \
-	test-poll.c test-poll-h.c test-random_r.c test-rawmemchr.c \
-	test-readlink.c test-sched.c test-select.c test-select-fd.c \
-	test-select-stdin.c test-sleep.c test-snprintf.c \
-	test-sockets.c test-stat.c test-stdbool.c test-stddef.c \
-	test-stdint.c test-stdio.c test-stdlib.c test-strchrnul.c \
-	test-strerror.c test-string.c test-strings.c test-strnlen.c \
-	test-symlink.c test-sys_ioctl.c test-sys_select.c \
-	test-sys_socket.c test-sys_stat.c test-sys_time.c \
-	test-sys_utsname.c test-sys_wait.c test-termios.c test-time.c \
-	test-uname.c test-unistd.c test-usleep.c test-vasnprintf.c \
-	test-vasprintf.c test-verify.c test-wchar.c
+	test-pipe.c test-poll.c test-poll-h.c test-random_r.c \
+	test-rawmemchr.c test-readlink.c test-sched.c test-select.c \
+	test-select-fd.c test-select-stdin.c test-sleep.c \
+	test-snprintf.c test-sockets.c test-stat.c test-stdbool.c \
+	test-stddef.c test-stdint.c test-stdio.c test-stdlib.c \
+	test-strchrnul.c test-strerror.c test-string.c test-strings.c \
+	test-strnlen.c test-symlink.c test-sys_ioctl.c \
+	test-sys_select.c test-sys_socket.c test-sys_stat.c \
+	test-sys_time.c test-sys_utsname.c test-sys_wait.c \
+	test-termios.c test-time.c test-uname.c test-unistd.c \
+	test-usleep.c test-vasnprintf.c test-vasprintf.c test-verify.c \
+	test-wchar.c
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	html-recursive info-recursive install-data-recursive \
 	install-dvi-recursive install-exec-recursive \
@@ -685,6 +700,7 @@ am__relativize = \
     dir1=`echo "$$dir1" | sed -e "$$sed_rest"`; \
   done; \
   reldir="$$dir2"
+pkglibexecdir = @pkglibexecdir@
 ACLOCAL = @ACLOCAL@
 ALLOCA = @ALLOCA@
 ALLOCA_H = @ALLOCA_H@
@@ -863,6 +879,7 @@ GNULIB_OBSTACK_PRINTF_POSIX = @GNULIB_OBSTACK_PRINTF_POSIX@
 GNULIB_OPEN = @GNULIB_OPEN@
 GNULIB_OPENAT = @GNULIB_OPENAT@
 GNULIB_PERROR = @GNULIB_PERROR@
+GNULIB_PIPE = @GNULIB_PIPE@
 GNULIB_PIPE2 = @GNULIB_PIPE2@
 GNULIB_POLL = @GNULIB_POLL@
 GNULIB_POPEN = @GNULIB_POPEN@
@@ -965,11 +982,15 @@ HAVE_BTOWC = @HAVE_BTOWC@
 HAVE_CANONICALIZE_FILE_NAME = @HAVE_CANONICALIZE_FILE_NAME@
 HAVE_CHOWN = @HAVE_CHOWN@
 HAVE_DECL_ENVIRON = @HAVE_DECL_ENVIRON@
+HAVE_DECL_FCHDIR = @HAVE_DECL_FCHDIR@
 HAVE_DECL_FPURGE = @HAVE_DECL_FPURGE@
 HAVE_DECL_FREEADDRINFO = @HAVE_DECL_FREEADDRINFO@
+HAVE_DECL_FSEEKO = @HAVE_DECL_FSEEKO@
+HAVE_DECL_FTELLO = @HAVE_DECL_FTELLO@
 HAVE_DECL_GAI_STRERROR = @HAVE_DECL_GAI_STRERROR@
 HAVE_DECL_GETADDRINFO = @HAVE_DECL_GETADDRINFO@
 HAVE_DECL_GETDELIM = @HAVE_DECL_GETDELIM@
+HAVE_DECL_GETDOMAINNAME = @HAVE_DECL_GETDOMAINNAME@
 HAVE_DECL_GETLINE = @HAVE_DECL_GETLINE@
 HAVE_DECL_GETLOADAVG = @HAVE_DECL_GETLOADAVG@
 HAVE_DECL_GETLOGIN_R = @HAVE_DECL_GETLOGIN_R@
@@ -981,6 +1002,7 @@ HAVE_DECL_INET_PTON = @HAVE_DECL_INET_PTON@
 HAVE_DECL_MEMMEM = @HAVE_DECL_MEMMEM@
 HAVE_DECL_MEMRCHR = @HAVE_DECL_MEMRCHR@
 HAVE_DECL_OBSTACK_PRINTF = @HAVE_DECL_OBSTACK_PRINTF@
+HAVE_DECL_SETENV = @HAVE_DECL_SETENV@
 HAVE_DECL_SNPRINTF = @HAVE_DECL_SNPRINTF@
 HAVE_DECL_STRDUP = @HAVE_DECL_STRDUP@
 HAVE_DECL_STRERROR_R = @HAVE_DECL_STRERROR_R@
@@ -989,6 +1011,9 @@ HAVE_DECL_STRNDUP = @HAVE_DECL_STRNDUP@
 HAVE_DECL_STRNLEN = @HAVE_DECL_STRNLEN@
 HAVE_DECL_STRSIGNAL = @HAVE_DECL_STRSIGNAL@
 HAVE_DECL_STRTOK_R = @HAVE_DECL_STRTOK_R@
+HAVE_DECL_TCGETSID = @HAVE_DECL_TCGETSID@
+HAVE_DECL_TTYNAME_R = @HAVE_DECL_TTYNAME_R@
+HAVE_DECL_UNSETENV = @HAVE_DECL_UNSETENV@
 HAVE_DECL_VSNPRINTF = @HAVE_DECL_VSNPRINTF@
 HAVE_DECL_WCTOB = @HAVE_DECL_WCTOB@
 HAVE_DECL_WCWIDTH = @HAVE_DECL_WCWIDTH@
@@ -1001,13 +1026,13 @@ HAVE_FCHDIR = @HAVE_FCHDIR@
 HAVE_FCHMODAT = @HAVE_FCHMODAT@
 HAVE_FCHOWNAT = @HAVE_FCHOWNAT@
 HAVE_FCNTL = @HAVE_FCNTL@
+HAVE_FEATURES_H = @HAVE_FEATURES_H@
 HAVE_FSEEKO = @HAVE_FSEEKO@
 HAVE_FSTATAT = @HAVE_FSTATAT@
 HAVE_FSYNC = @HAVE_FSYNC@
 HAVE_FTELLO = @HAVE_FTELLO@
 HAVE_FTRUNCATE = @HAVE_FTRUNCATE@
 HAVE_FUTIMENS = @HAVE_FUTIMENS@
-HAVE_GETDOMAINNAME = @HAVE_GETDOMAINNAME@
 HAVE_GETDTABLESIZE = @HAVE_GETDTABLESIZE@
 HAVE_GETGROUPS = @HAVE_GETGROUPS@
 HAVE_GETHOSTNAME = @HAVE_GETHOSTNAME@
@@ -1047,6 +1072,7 @@ HAVE_NETDB_H = @HAVE_NETDB_H@
 HAVE_NETINET_IN_H = @HAVE_NETINET_IN_H@
 HAVE_OPENAT = @HAVE_OPENAT@
 HAVE_OS_H = @HAVE_OS_H@
+HAVE_PIPE = @HAVE_PIPE@
 HAVE_PIPE2 = @HAVE_PIPE2@
 HAVE_POLL = @HAVE_POLL@
 HAVE_POLL_H = @HAVE_POLL_H@
@@ -1087,6 +1113,7 @@ HAVE_STRUCT_ADDRINFO = @HAVE_STRUCT_ADDRINFO@
 HAVE_STRUCT_RANDOM_DATA = @HAVE_STRUCT_RANDOM_DATA@
 HAVE_STRUCT_SCHED_PARAM = @HAVE_STRUCT_SCHED_PARAM@
 HAVE_STRUCT_SOCKADDR_STORAGE = @HAVE_STRUCT_SOCKADDR_STORAGE@
+HAVE_STRUCT_SOCKADDR_STORAGE_SS_FAMILY = @HAVE_STRUCT_SOCKADDR_STORAGE_SS_FAMILY@
 HAVE_STRUCT_TIMEVAL = @HAVE_STRUCT_TIMEVAL@
 HAVE_STRUCT_UTSNAME = @HAVE_STRUCT_UTSNAME@
 HAVE_STRVERSCMP = @HAVE_STRVERSCMP@
@@ -1102,15 +1129,12 @@ HAVE_SYS_SOCKET_H = @HAVE_SYS_SOCKET_H@
 HAVE_SYS_TIME_H = @HAVE_SYS_TIME_H@
 HAVE_SYS_TYPES_H = @HAVE_SYS_TYPES_H@
 HAVE_SYS_UTSNAME_H = @HAVE_SYS_UTSNAME_H@
-HAVE_TCGETSID = @HAVE_TCGETSID@
 HAVE_TERMIOS_H = @HAVE_TERMIOS_H@
 HAVE_TIMEGM = @HAVE_TIMEGM@
-HAVE_TTYNAME_R = @HAVE_TTYNAME_R@
 HAVE_UNAME = @HAVE_UNAME@
 HAVE_UNISTD_H = @HAVE_UNISTD_H@
 HAVE_UNLINKAT = @HAVE_UNLINKAT@
 HAVE_UNLOCKPT = @HAVE_UNLOCKPT@
-HAVE_UNSETENV = @HAVE_UNSETENV@
 HAVE_UNSIGNED_LONG_LONG_INT = @HAVE_UNSIGNED_LONG_LONG_INT@
 HAVE_USLEEP = @HAVE_USLEEP@
 HAVE_UTIMENSAT = @HAVE_UTIMENSAT@
@@ -1138,7 +1162,9 @@ INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 INTLLIBS = @INTLLIBS@
+IP6TABLES_PATH = @IP6TABLES_PATH@
 IPTABLES_PATH = @IPTABLES_PATH@
+IP_PATH = @IP_PATH@
 ISCSIADM = @ISCSIADM@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
@@ -1189,6 +1215,7 @@ MKDIR_P = @MKDIR_P@
 MKINSTALLDIRS = @MKINSTALLDIRS@
 MODPROBE = @MODPROBE@
 MOUNT = @MOUNT@
+MSCOM_LIBS = @MSCOM_LIBS@
 MSGFMT = @MSGFMT@
 MSGMERGE = @MSGMERGE@
 NETCF_CFLAGS = @NETCF_CFLAGS@
@@ -1289,6 +1316,7 @@ PYTHON_INCLUDES = @PYTHON_INCLUDES@
 PYTHON_PLATFORM = @PYTHON_PLATFORM@
 PYTHON_PREFIX = @PYTHON_PREFIX@
 PYTHON_VERSION = @PYTHON_VERSION@
+RADVD = @RADVD@
 RANLIB = @RANLIB@
 READLINE_CFLAGS = @READLINE_CFLAGS@
 REMOTE_PID_FILE = @REMOTE_PID_FILE@
@@ -1317,6 +1345,7 @@ REPLACE_FTELLO = @REPLACE_FTELLO@
 REPLACE_FUTIMENS = @REPLACE_FUTIMENS@
 REPLACE_GETCWD = @REPLACE_GETCWD@
 REPLACE_GETDELIM = @REPLACE_GETDELIM@
+REPLACE_GETDOMAINNAME = @REPLACE_GETDOMAINNAME@
 REPLACE_GETGROUPS = @REPLACE_GETGROUPS@
 REPLACE_GETLINE = @REPLACE_GETLINE@
 REPLACE_GETPAGESIZE = @REPLACE_GETPAGESIZE@
@@ -1448,6 +1477,7 @@ WCHAR_T_SUFFIX = @WCHAR_T_SUFFIX@
 WIN32_EXTRA_CFLAGS = @WIN32_EXTRA_CFLAGS@
 WINDRES = @WINDRES@
 WINT_T_SUFFIX = @WINT_T_SUFFIX@
+XDR_CFLAGS = @XDR_CFLAGS@
 XEN_CFLAGS = @XEN_CFLAGS@
 XEN_LIBS = @XEN_LIBS@
 XGETTEXT = @XGETTEXT@
@@ -1499,6 +1529,7 @@ infodir = @infodir@
 install_sh = @install_sh@
 libdir = @libdir@
 libexecdir = @libexecdir@
+lispdir = @lispdir@
 localedir = @localedir@
 localstatedir = @localstatedir@
 mandir = @mandir@
@@ -1530,32 +1561,33 @@ check_LIBRARIES = libtests.a
 EXTRA_DIST = accept.c w32sock.h test-alignof.c test-alloca-opt.c \
 	test-areadlink.h test-areadlink.c macros.h \
 	$(top_srcdir)/build-aux/arg-nonnull.h test-arpa_inet.c \
-	test-base64.c macros.h bind.c w32sock.h \
-	$(top_srcdir)/build-aux/c++defs.h test-c-ctype.c macros.h \
-	test-canonicalize-lgpl.c signature.h macros.h \
-	test-count-one-bits.c macros.h test-md5.c test-errno.c \
-	test-fcntl-h.c test-fseeko.c test-fseeko.sh test-fseeko2.sh \
-	signature.h macros.h test-func.c macros.h signature.h \
-	test-getaddrinfo.c test-getdelim.c signature.h macros.h \
-	signature.h test-gethostname.c test-getline.c signature.h \
-	macros.h getpagesize.c signature.h test-gettimeofday.c \
-	test-inet_ntop.c signature.h macros.h test-inet_pton.c \
-	signature.h macros.h listen.c w32sock.h test-lseek.c \
-	test-lseek.sh signature.h macros.h test-lstat.h test-lstat.c \
-	signature.h macros.h test-malloca.c test-memchr.c \
+	test-base64.c macros.h test-binary-io.sh test-binary-io.c \
+	macros.h bind.c w32sock.h $(top_srcdir)/build-aux/c++defs.h \
+	test-c-ctype.c macros.h test-canonicalize-lgpl.c signature.h \
+	macros.h test-count-one-bits.c macros.h test-md5.c \
+	test-errno.c test-fcntl-h.c test-fseeko.c test-fseeko.sh \
+	test-fseeko2.sh signature.h macros.h test-func.c macros.h \
+	signature.h test-getaddrinfo.c test-getdelim.c signature.h \
+	macros.h signature.h test-gethostname.c test-getline.c \
+	signature.h macros.h getpagesize.c signature.h \
+	test-gettimeofday.c test-inet_ntop.c signature.h macros.h \
+	test-inet_pton.c signature.h macros.h listen.c w32sock.h \
+	test-lseek.c test-lseek.sh signature.h macros.h test-lstat.h \
+	test-lstat.c signature.h macros.h test-malloca.c test-memchr.c \
 	zerosize-ptr.h signature.h macros.h test-netdb.c \
 	test-netinet_in.c signature.h test-perror.c test-perror.sh \
-	test-poll-h.c signature.h test-poll.c test-random_r.c \
-	signature.h macros.h test-rawmemchr.c zerosize-ptr.h \
-	signature.h macros.h test-readlink.h test-readlink.c \
-	signature.h macros.h same-inode.h test-sched.c macros.h \
-	signature.h test-select.c test-select-fd.c test-select-in.sh \
-	test-select-out.sh test-select-stdin.c test-sleep.c \
-	signature.h macros.h test-snprintf.c signature.h macros.h \
-	test-sockets.c test-stat.h test-stat.c signature.h macros.h \
-	test-stdbool.c test-stddef.c test-stdint.c test-stdio.c \
-	test-stdlib.c test-sys_wait.h test-strchrnul.c signature.h \
-	macros.h test-strerror.c signature.h macros.h test-string.c \
+	test-pipe.c signature.h macros.h test-poll-h.c signature.h \
+	test-poll.c test-random_r.c signature.h macros.h \
+	test-rawmemchr.c zerosize-ptr.h signature.h macros.h \
+	test-readlink.h test-readlink.c signature.h macros.h \
+	same-inode.h test-sched.c macros.h signature.h test-select.c \
+	test-select-fd.c test-select-in.sh test-select-out.sh \
+	test-select-stdin.c test-sleep.c signature.h macros.h \
+	test-snprintf.c signature.h macros.h test-sockets.c \
+	test-stat.h test-stat.c signature.h macros.h test-stdbool.c \
+	test-stddef.c test-stdint.c test-stdio.c test-stdlib.c \
+	test-sys_wait.h test-strchrnul.c signature.h macros.h \
+	test-strerror.c signature.h macros.h test-string.c \
 	test-strings.c test-strnlen.c zerosize-ptr.h signature.h \
 	macros.h symlink.c test-symlink.h test-symlink.c signature.h \
 	macros.h test-sys_ioctl.c test-sys_select.c test-sys_socket.c \
@@ -1593,7 +1625,7 @@ AM_CPPFLAGS = \
   -I../../gnulib/lib -I$(srcdir)/../../gnulib/lib
 
 LDADD = libtests.a ../../gnulib/lib/libgnu.la libtests.a $(LIBTESTS_LIBDEPS)
-libtests_a_SOURCES = dummy.c
+libtests_a_SOURCES = binary-io.h dummy.c
 libtests_a_LIBADD = $(gltests_LIBOBJS)
 libtests_a_DEPENDENCIES = $(gltests_LIBOBJS)
 EXTRA_libtests_a_SOURCES = accept.c bind.c getpagesize.c listen.c \
@@ -1690,6 +1722,9 @@ test-arpa_inet$(EXEEXT): $(test_arpa_inet_OBJECTS) $(test_arpa_inet_DEPENDENCIES
 test-base64$(EXEEXT): $(test_base64_OBJECTS) $(test_base64_DEPENDENCIES) 
 	@rm -f test-base64$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_base64_OBJECTS) $(test_base64_LDADD) $(LIBS)
+test-binary-io$(EXEEXT): $(test_binary_io_OBJECTS) $(test_binary_io_DEPENDENCIES) 
+	@rm -f test-binary-io$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_binary_io_OBJECTS) $(test_binary_io_LDADD) $(LIBS)
 test-c-ctype$(EXEEXT): $(test_c_ctype_OBJECTS) $(test_c_ctype_DEPENDENCIES) 
 	@rm -f test-c-ctype$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_c_ctype_OBJECTS) $(test_c_ctype_LDADD) $(LIBS)
@@ -1756,6 +1791,9 @@ test-netinet_in$(EXEEXT): $(test_netinet_in_OBJECTS) $(test_netinet_in_DEPENDENC
 test-perror$(EXEEXT): $(test_perror_OBJECTS) $(test_perror_DEPENDENCIES) 
 	@rm -f test-perror$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_perror_OBJECTS) $(test_perror_LDADD) $(LIBS)
+test-pipe$(EXEEXT): $(test_pipe_OBJECTS) $(test_pipe_DEPENDENCIES) 
+	@rm -f test-pipe$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_pipe_OBJECTS) $(test_pipe_LDADD) $(LIBS)
 test-poll$(EXEEXT): $(test_poll_OBJECTS) $(test_poll_DEPENDENCIES) 
 	@rm -f test-poll$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_poll_OBJECTS) $(test_poll_LDADD) $(LIBS)
@@ -1894,6 +1932,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-areadlink.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-arpa_inet.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-base64.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-binary-io.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-c-ctype.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-canonicalize-lgpl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-count-one-bits.Po@am__quote@
@@ -1916,6 +1955,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-netdb.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-netinet_in.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-perror.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-pipe.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-poll-h.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-poll.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-random_r.Po@am__quote@

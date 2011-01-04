@@ -51,6 +51,7 @@
 #include "util.h"
 #include "nodeinfo.h"
 #include "files.h"
+#include "command.h"
 
 #define VIR_FROM_THIS VIR_FROM_OPENVZ
 
@@ -433,30 +434,33 @@ openvzFreeDriver(struct openvz_driver *driver)
 
 
 int openvzLoadDomains(struct openvz_driver *driver) {
-    FILE *fp;
     int veid, ret;
-    char status[16];
+    char *status;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     virDomainObjPtr dom = NULL;
     char temp[50];
+    char *outbuf = NULL;
+    char *line;
+    virCommandPtr cmd = NULL;
 
     if (openvzAssignUUIDs() < 0)
         return -1;
 
-    if ((fp = popen(VZLIST " -a -ovpsid,status -H 2>/dev/null", "r")) == NULL) {
-        openvzError(VIR_ERR_INTERNAL_ERROR, "%s", _("popen failed"));
-        return -1;
-    }
+    cmd = virCommandNewArgList(VZLIST, "-a", "-ovpsid,status", "-H", NULL);
+    virCommandSetOutputBuffer(cmd, &outbuf);
+    if (virCommandRun(cmd, NULL) < 0)
+        goto cleanup;
 
-    while (!feof(fp)) {
-        if (fscanf(fp, "%d %s\n", &veid, status) != 2) {
-            if (feof(fp))
-                break;
-
+    line = outbuf;
+    while (line[0] != '\0') {
+        if (virStrToLong_i(line, &status, 10, &veid) < 0 ||
+            *status++ != ' ' ||
+            (line = strchr(status, '\n')) == NULL) {
             openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
                         _("Failed to parse vzlist output"));
             goto cleanup;
         }
+        *line++ = '\0';
 
         if (VIR_ALLOC(dom) < 0)
             goto no_memory;
@@ -528,7 +532,8 @@ int openvzLoadDomains(struct openvz_driver *driver) {
         dom = NULL;
     }
 
-    VIR_FORCE_FCLOSE(fp);
+    virCommandFree(cmd);
+    VIR_FREE(outbuf);
 
     return 0;
 
@@ -536,7 +541,8 @@ int openvzLoadDomains(struct openvz_driver *driver) {
     virReportOOMError();
 
  cleanup:
-    VIR_FORCE_FCLOSE(fp);
+    virCommandFree(cmd);
+    VIR_FREE(outbuf);
     if (dom)
         virDomainObjUnref(dom);
     return -1;
@@ -946,8 +952,9 @@ static int openvzAssignUUIDs(void)
     DIR *dp;
     struct dirent *dent;
     char *conf_dir;
-    int vpsid, res;
-    char ext[8];
+    int vpsid;
+    char *ext;
+    int ret = 0;
 
     conf_dir = openvzLocateConfDir();
     if (conf_dir == NULL)
@@ -959,16 +966,25 @@ static int openvzAssignUUIDs(void)
         return 0;
     }
 
+    errno = 0;
     while ((dent = readdir(dp))) {
-        res = sscanf(dent->d_name, "%d.%5s", &vpsid, ext);
-        if (!(res == 2 && STREQ(ext, "conf")))
+        if (virStrToLong_i(dent->d_name, &ext, 10, &vpsid) < 0 ||
+            *ext++ != '.' ||
+            STRNEQ(ext, "conf"))
             continue;
         if (vpsid > 0) /* '0.conf' belongs to the host, ignore it */
             openvzSetUUID(vpsid);
+        errno = 0;
     }
+    if (errno) {
+        openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
+                    _("Failed to scan configuration directory"));
+        ret = -1;
+    }
+
     closedir(dp);
     VIR_FREE(conf_dir);
-    return 0;
+    return ret;
 }
 
 
@@ -978,27 +994,24 @@ static int openvzAssignUUIDs(void)
  */
 
 int openvzGetVEID(const char *name) {
-    char *cmd;
+    virCommandPtr cmd;
+    char *outbuf;
+    char *temp;
     int veid;
-    FILE *fp;
     bool ok;
 
-    if (virAsprintf(&cmd, "%s %s -ovpsid -H", VZLIST, name) < 0) {
-        openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
-                    _("virAsprintf failed"));
+    cmd = virCommandNewArgList(VZLIST, name, "-ovpsid", "-H", NULL);
+    virCommandSetOutputBuffer(cmd, &outbuf);
+    if (virCommandRun(cmd, NULL) < 0) {
+        virCommandFree(cmd);
+        VIR_FREE(outbuf);
         return -1;
     }
 
-    fp = popen(cmd, "r");
-    VIR_FREE(cmd);
+    virCommandFree(cmd);
+    ok = virStrToLong_i(outbuf, &temp, 10, &veid) == 0 && *temp == '\n';
+    VIR_FREE(outbuf);
 
-    if (fp == NULL) {
-        openvzError(VIR_ERR_INTERNAL_ERROR, "%s", _("popen failed"));
-        return -1;
-    }
-
-    ok = fscanf(fp, "%d\n", &veid ) == 1;
-    VIR_FORCE_FCLOSE(fp);
     if (ok && veid >= 0)
         return veid;
 

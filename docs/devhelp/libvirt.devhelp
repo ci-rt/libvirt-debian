@@ -242,6 +242,7 @@
     <function name="VIR_FROM_TEST" link="libvirt-virterror.html#VIR_FROM_TEST"/>
     <function name="VIR_FROM_UML" link="libvirt-virterror.html#VIR_FROM_UML"/>
     <function name="VIR_FROM_VBOX" link="libvirt-virterror.html#VIR_FROM_VBOX"/>
+    <function name="VIR_FROM_VMWARE" link="libvirt-virterror.html#VIR_FROM_VMWARE"/>
     <function name="VIR_FROM_XEN" link="libvirt-virterror.html#VIR_FROM_XEN"/>
     <function name="VIR_FROM_XENAPI" link="libvirt-virterror.html#VIR_FROM_XENAPI"/>
     <function name="VIR_FROM_XEND" link="libvirt-virterror.html#VIR_FROM_XEND"/>

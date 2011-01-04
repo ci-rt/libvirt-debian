@@ -123,6 +123,21 @@ EXTRA_DIST += test-base64.c macros.h
 
 ## end   gnulib module base64-tests
 
+## begin gnulib module binary-io
+
+libtests_a_SOURCES += binary-io.h
+
+## end   gnulib module binary-io
+
+## begin gnulib module binary-io-tests
+
+TESTS += test-binary-io.sh
+check_PROGRAMS += test-binary-io
+
+EXTRA_DIST += test-binary-io.sh test-binary-io.c macros.h
+
+## end   gnulib module binary-io-tests
+
 ## begin gnulib module bind
 
 
@@ -359,6 +374,14 @@ check_PROGRAMS += test-perror
 EXTRA_DIST += signature.h test-perror.c test-perror.sh
 
 ## end   gnulib module perror-tests
+
+## begin gnulib module pipe-posix-tests
+
+TESTS += test-pipe
+check_PROGRAMS += test-pipe
+EXTRA_DIST += test-pipe.c signature.h macros.h
+
+## end   gnulib module pipe-posix-tests
 
 ## begin gnulib module poll-h-tests
 
