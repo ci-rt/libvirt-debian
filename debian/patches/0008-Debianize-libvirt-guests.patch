@@ -4,12 +4,12 @@ Subject: [PATCH] Debianize libvirt-guests
 
 Origin: vendor
 ---
- tools/libvirt-guests.init.in |   78 +++++++++++++++++------------------------
+ tools/libvirt-guests.init.in |   79 +++++++++++++++++-------------------------
  tools/libvirt-guests.sysconf |    6 ++--
- 2 files changed, 35 insertions(+), 49 deletions(-)
+ 2 files changed, 35 insertions(+), 50 deletions(-)
 
 diff --git a/tools/libvirt-guests.init.in b/tools/libvirt-guests.init.in
-index 5dab36b..0fe82fb 100644
+index e28938d..0fe82fb 100644
 --- a/tools/libvirt-guests.init.in
 +++ b/tools/libvirt-guests.init.in
 @@ -4,8 +4,8 @@
@@ -23,7 +23,7 @@ index 5dab36b..0fe82fb 100644
  # Default-Start: 2 3 4 5
  # Default-Stop: 0 1 6
  # Short-Description: suspend/resume libvirt guests on shutdown/boot
-@@ -14,32 +14,19 @@
+@@ -14,33 +14,19 @@
  #              See http://libvirt.org
  ### END INIT INFO
  
@@ -42,7 +42,8 @@ index 5dab36b..0fe82fb 100644
 -libvirtd=@sbindir@/libvirtd
 -
 -# Source function library.
--. "$sysconfdir"/rc.d/init.d/functions
+-test ! -r "$sysconfdir"/rc.d/init.d/functions ||
+-  . "$sysconfdir"/rc.d/init.d/functions
 +sysconfdir=/etc
 +localstatedir=/var
 +libvirtd=/usr/sbin/libvirtd
@@ -64,7 +65,7 @@ index 5dab36b..0fe82fb 100644
  
  RETVAL=0
  
-@@ -128,7 +115,7 @@ start() {
+@@ -129,7 +115,7 @@ start() {
      [ -f "$LISTFILE" ] || { started; return 0; }
  
      if [ "x$ON_BOOT" != xstart ]; then
@@ -73,7 +74,7 @@ index 5dab36b..0fe82fb 100644
          rm -f "$LISTFILE"
          started
          return 0
-@@ -143,20 +130,20 @@ start() {
+@@ -144,20 +130,20 @@ start() {
              fi
          done
          if ! $configured; then
@@ -99,7 +100,7 @@ index 5dab36b..0fe82fb 100644
                  fi
              fi
          done
-@@ -172,7 +159,7 @@ suspend_guest()
+@@ -173,7 +159,7 @@ suspend_guest()
      guest=$2
  
      name=$(guest_name $uri $guest)
@@ -108,7 +109,7 @@ index 5dab36b..0fe82fb 100644
      echo -n "$label"
      run_virsh $uri managedsave $guest >/dev/null &
      virsh_pid=$!
-@@ -187,7 +174,7 @@ suspend_guest()
+@@ -188,7 +174,7 @@ suspend_guest()
              printf '\r%s%-12s ' "$label" "..."
          fi
      done
@@ -117,7 +118,7 @@ index 5dab36b..0fe82fb 100644
  }
  
  shutdown_guest()
-@@ -196,7 +183,7 @@ shutdown_guest()
+@@ -197,7 +183,7 @@ shutdown_guest()
      guest=$2
  
      name=$(guest_name $uri $guest)
@@ -126,7 +127,7 @@ index 5dab36b..0fe82fb 100644
      echo -n "$label"
      retval run_virsh $uri shutdown $guest >/dev/null || return
      timeout=$SHUTDOWN_TIMEOUT
-@@ -210,9 +197,9 @@ shutdown_guest()
+@@ -211,9 +197,9 @@ shutdown_guest()
  
      if guest_is_on $uri $guest; then
          if $guest_running; then
@@ -138,7 +139,7 @@ index 5dab36b..0fe82fb 100644
          fi
      fi
  }
-@@ -225,7 +212,7 @@ stop() {
+@@ -226,7 +212,7 @@ stop() {
      if [ "x$ON_SHUTDOWN" = xshutdown ]; then
          suspending=false
          if [ $SHUTDOWN_TIMEOUT -le 0 ]; then
@@ -147,7 +148,7 @@ index 5dab36b..0fe82fb 100644
              RETVAL=6
              return
          fi
-@@ -233,10 +220,10 @@ stop() {
+@@ -234,10 +220,10 @@ stop() {
  
      : >"$LISTFILE"
      for uri in $URIS; do
@@ -160,7 +161,7 @@ index 5dab36b..0fe82fb 100644
              continue
          fi
  
-@@ -249,7 +236,7 @@ stop() {
+@@ -250,7 +236,7 @@ stop() {
                  empty=false
              done
              if $empty; then
@@ -169,7 +170,7 @@ index 5dab36b..0fe82fb 100644
              else
                  echo
                  echo $uri $list >>"$LISTFILE"
-@@ -259,9 +246,9 @@ stop() {
+@@ -260,9 +246,9 @@ stop() {
  
      while read uri list; do
          if $suspending; then
@@ -181,7 +182,7 @@ index 5dab36b..0fe82fb 100644
          fi
  
          for guest in $list; do
-@@ -285,17 +272,16 @@ gueststatus() {
+@@ -286,17 +272,16 @@ gueststatus() {
  
  # rh_status
  # Display current status: whether saved state exists, and whether start
@@ -203,7 +204,7 @@ index 5dab36b..0fe82fb 100644
          fi
          RETVAL=0
      fi
-@@ -304,7 +290,7 @@ rh_status() {
+@@ -305,7 +290,7 @@ rh_status() {
  # usage [val]
  # Display usage string, then exit with VAL (defaults to 2).
  usage() {
