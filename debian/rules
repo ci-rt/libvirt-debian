@@ -36,7 +36,7 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	--with-storage-lvm       \
 	--with-storage-iscsi     \
 	--with-storage-disk      \
-	--with-init-scripts=none \
+	--with-init-script=none  \
 	--without-numactl	 \
 	--without-selinux        \
 	--without-esx		 \
