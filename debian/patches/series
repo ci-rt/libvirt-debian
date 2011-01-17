@@ -6,4 +6,5 @@
 0006-patch-qemuMonitorTextGetMigrationStatus-to-intercept.patch
 0007-Disable-CHECKSUM-rule.patch
 0008-libvirt-guests-remove-bashisms.patch
-0009-Debianize-libvirt-guests.patch
+0009-build-let-xgettext-see-strings-in-libvirt-guests.patch
+0010-Debianize-libvirt-guests.patch
