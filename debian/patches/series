@@ -5,4 +5,5 @@
 0005-Autodetect-if-the-remote-nc-command-supports-the-q-o.patch
 0006-patch-qemuMonitorTextGetMigrationStatus-to-intercept.patch
 0007-Disable-CHECKSUM-rule.patch
-0008-Debianize-libvirt-guests.patch
+0008-libvirt-guests-remove-bashisms.patch
+0009-Debianize-libvirt-guests.patch
