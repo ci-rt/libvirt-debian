@@ -1,3 +1,27 @@
+libvirt (0.8.7-1) experimental; urgency=low
+
+  [ Guido Günther ]
+  * [f561b2e] New patch 0010-nwfilter-resolve-deadlock-between-VM-
+    operations-and-.patch nwfilter: resolve deadlock between VM
+    operations and filter update (Closes: #602715)
+
+  [ Laurent Léonard ]
+  * [6f95d48] Fix exit status codes in libvirt init script to comply
+    with LSB
+  * [7d7aed4] New patch 0010-Debianize-libvirt-guests.patch
+  * [a7f4bed] Install libvirt-guests
+  * [6408c57] Remove libvirt-suspendonreboot
+  * [3466195] Imported Upstream version 0.8.7
+  * [18bb43a] Update libvirt0 symbols
+  * [d8e02ad] Fix typo in --with-init-script build option
+  * [676a47e] New patch 0008-libvirt-guests-remove-bashisms.patch
+  * [3a03ea6] New patch 0009-build-let-xgettext-see-strings-in-libvirt-
+    guests.patch
+  * [ee3d2e0] Update patch 0010-Debianize-libvirt-guests.patch
+  * [904de70] Update libvirt-guests init script location
+
+ -- Laurent Léonard <laurent@open-minds.org>  Tue, 18 Jan 2011 18:43:56 +0100
+
 libvirt (0.8.6-1) experimental; urgency=low
 
   * [3b7b682] Imported Upstream version 0.8.6
