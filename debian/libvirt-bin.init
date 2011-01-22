@@ -10,7 +10,7 @@
 # Required-Start:    $network $remote_fs $syslog
 # Required-Stop:     $remote_fs $syslog
 # Should-Start:      hal avahi cgconfig
-# Should-Stop:       cgconfig
+# Should-Stop:       hal avahi cgconfig
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: libvirt management daemon
