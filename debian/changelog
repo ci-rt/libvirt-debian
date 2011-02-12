@@ -1,3 +1,20 @@
+libvirt (0.8.7-2) unstable; urgency=low
+
+  [ Laurent Léonard ]
+  * [aa3b6a0] Add gettext-base dependency for libvirt-bin.  Since
+    libvirt-guests now needs it.
+  * [bb7dbde] Add non dependency booting support for libvirt-guests
+
+  [ Guido Günther ]
+  * Upload to unstable
+  * [f2fdde0] libvirt-bin.init: add cgconfig to Should-Start.
+    This ensures we reliably process cgroups before starting libvirtd
+    (Closes: #610738)
+  * [261f679] libvirt-bin.init: Add hal and avahi to Should-Stop
+    to make Should-Start and Should-Stop symmetric.
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 12 Feb 2011 15:10:48 +0100
+
 libvirt (0.8.7-1) experimental; urgency=low
 
   [ Guido Günther ]
