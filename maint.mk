@@ -590,8 +590,17 @@ sc_changelog:
 sc_program_name:
 	@require='set_program_name *\(m?argv\[0\]\);'			\
 	in_vc_files='\.c$$'						\
-	containing='^main *('						\
+	containing='\<main *('						\
 	halt='the above files do not call set_program_name'		\
+	  $(_sc_search_regexp)
+
+# Ensure that each .c file containing a "main" function also
+# calls bindtextdomain.
+sc_bindtextdomain:
+	@require='bindtextdomain *\('					\
+	in_vc_files='\.c$$'						\
+	containing='\<main *('						\
+	halt='the above files do not call bindtextdomain'		\
 	  $(_sc_search_regexp)
 
 # Require that the final line of each test-lib.sh-using test be this one:
@@ -668,8 +677,9 @@ sc_prohibit_always_true_header_tests:
 	@or=$(gl_header_upper_case_or_);				\
 	re="HAVE_($$or)_H";						\
 	prohibit='\<'"$$re"'\>'						\
-	halt='do not test the above HAVE_<header>_H symbol(s);\n'\
-'  with the corresponding gnulib module, they are always true'		\
+	halt=$$(printf '%s\n'						\
+	'do not test the above HAVE_<header>_H symbol(s);'		\
+	'  with the corresponding gnulib module, they are always true')	\
 	  $(_sc_search_regexp)
 
 # ==================================================================
@@ -731,7 +741,8 @@ sc_GFDL_version:
 	halt='GFDL vN, N!=3'						\
 	  $(_sc_search_regexp)
 
-# Don't use Texinfo @acronym{} as it is not a good idea.
+# Don't use Texinfo's @acronym{}.
+# http://lists.gnu.org/archive/html/bug-gnulib/2010-03/msg00321.html
 texinfo_suffix_re_ ?= \.(txi|texi(nfo)?)$$
 sc_texinfo_acronym:
 	@prohibit='@acronym\{'						\
@@ -805,6 +816,13 @@ _ptm2 = use "test C1 || test C2", not "test C1 -''o C2"
 sc_prohibit_test_minus_ao:
 	@prohibit='(\<test| \[+) .+ -[ao] '				\
 	halt='$(_ptm1); $(_ptm2)'					\
+	  $(_sc_search_regexp)
+
+# Avoid a test bashism.
+sc_prohibit_test_double_equal:
+	@prohibit='(\<test| \[+) .+ == '				\
+	containing='#! */bin/[a-z]*sh'					\
+	halt='use "test x = x", not "test x =''= x"'			\
 	  $(_sc_search_regexp)
 
 # Each program that uses proper_name_utf8 must link with one of the
@@ -954,24 +972,27 @@ writable-files:
 	  test "$$fail" && exit 1 || : ;				\
 	fi
 
-v_etc_file = lib/version-etc.c
+v_etc_file = $(gnulib_dir)/lib/version-etc.c
 sample-test = tests/sample-test
 texi = doc/$(PACKAGE).texi
 # Make sure that the copyright date in $(v_etc_file) is up to date.
 # Do the same for the $(sample-test) and the main doc/.texi file.
-sc_copyright_check:
-	@require='enum { COPYRIGHT_YEAR = '$$(date +%Y)' };'		\
-	in_files=$(v_etc_file)						\
-	halt='out of date copyright in $(v_etc_file); update it'	\
-	  $(_sc_search_regexp)
-	@require='# Copyright \(C\) '$$(date +%Y)' Free'		\
-	in_vc_files=$(sample-test)					\
-	halt='out of date copyright in $(sample-test); update it'	\
-	  $(_sc_search_regexp)
-	@require='Copyright @copyright\{\} .*'$$(date +%Y)' Free'	\
-	in_vc_files=$(texi)						\
-	halt='out of date copyright in $(texi); update it'		\
-	  $(_sc_search_regexp)
+#
+# Temporary disabled to not get in the 0.8.7 release in Jan 2011
+#
+#sc_copyright_check:
+#	@require='enum { COPYRIGHT_YEAR = '$$(date +%Y)' };'		\
+#	in_files=$(v_etc_file)						\
+#	halt='out of date copyright in $(v_etc_file); update it'	\
+#	  $(_sc_search_regexp)
+#	@require='# Copyright \(C\) '$$(date +%Y)' Free'		\
+#	in_vc_files=$(sample-test)					\
+#	halt='out of date copyright in $(sample-test); update it'	\
+#	  $(_sc_search_regexp)
+#	@require='Copyright @copyright\{\} .*'$$(date +%Y)' Free'	\
+#	in_vc_files=$(texi)						\
+#	halt='out of date copyright in $(texi); update it'		\
+#	  $(_sc_search_regexp)
 
 # If tests/help-version exists and seems to be new enough, assume that its
 # use of init.sh and path_prepend_ is correct, and ensure that every other
@@ -1012,9 +1033,10 @@ sc_Wundef_boolean:
 sc_vulnerable_makefile_CVE-2009-4029:
 	@prohibit='perm -777 -exec chmod a\+rwx|chmod 777 \$$\(distdir\)' \
 	in_files=$$(find $(srcdir) -name Makefile.in)			\
-	halt='the above files are vulnerable; beware of running\n'\
-'"make dist*" rules, and upgrade to fixed automake\n'\
-'see http://bugzilla.redhat.com/542609 for details'			\
+	halt=$$(printf '%s\n'						\
+	  'the above files are vulnerable; beware of running'		\
+	  '  "make dist*" rules, and upgrade to fixed automake'		\
+	  '  see http://bugzilla.redhat.com/542609 for details')	\
 	  $(_sc_search_regexp)
 
 vc-diff-check:
@@ -1079,7 +1101,6 @@ emit_upload_commands:
 	@echo =====================================
 	@echo =====================================
 
-noteworthy = * Noteworthy changes in release ?.? (????-??-??) [?]
 define emit-commit-log
   printf '%s\n' 'post-release administrivia' '' \
     '* NEWS: Add header line for next release.' \
@@ -1117,6 +1138,7 @@ alpha beta stable: $(local-check) writable-files no-submodule-changes
 # Override this in cfg.mk if you follow different procedures.
 release-prep-hook ?= release-prep
 
+gl_noteworthy_news_ = * Noteworthy changes in release ?.? (????-??-??) [?]
 .PHONY: release-prep
 release-prep:
 	case $$RELEASE_TYPE in alpha|beta|stable) ;; \
@@ -1128,7 +1150,7 @@ release-prep:
 	fi
 	echo $(VERSION) > $(prev_version_file)
 	$(MAKE) update-NEWS-hash
-	perl -pi -e '$$. == 3 and print "$(noteworthy)\n\n\n"' NEWS
+	perl -pi -e '$$. == 3 and print "$(gl_noteworthy_news_)\n\n\n"' NEWS
 	$(emit-commit-log) > .ci-msg
 	$(VC) commit -F .ci-msg -a
 	rm .ci-msg

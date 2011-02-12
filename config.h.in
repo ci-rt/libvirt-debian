@@ -86,6 +86,10 @@
    whether the gnulib module canonicalize-lgpl shall be considered present. */
 #undef GNULIB_CANONICALIZE_LGPL
 
+/* Define to a C preprocessor expression that evaluates to 1 or 0, depending
+   whether the gnulib module mkstemps shall be considered present. */
+#undef GNULIB_MKSTEMPS
+
 /* Define to 1 when the gnulib module accept should be tested. */
 #undef GNULIB_TEST_ACCEPT
 
@@ -117,6 +121,9 @@
 /* Define to 1 when the gnulib module getline should be tested. */
 #undef GNULIB_TEST_GETLINE
 
+/* Define to 1 when the gnulib module getpagesize should be tested. */
+#undef GNULIB_TEST_GETPAGESIZE
+
 /* Define to 1 when the gnulib module gettimeofday should be tested. */
 #undef GNULIB_TEST_GETTIMEOFDAY
 
@@ -141,11 +148,20 @@
 /* Define to 1 when the gnulib module mkstemp should be tested. */
 #undef GNULIB_TEST_MKSTEMP
 
+/* Define to 1 when the gnulib module mkstemps should be tested. */
+#undef GNULIB_TEST_MKSTEMPS
+
 /* Define to 1 when the gnulib module mktime should be tested. */
 #undef GNULIB_TEST_MKTIME
 
 /* Define to 1 when the gnulib module perror should be tested. */
 #undef GNULIB_TEST_PERROR
+
+/* Define to 1 when the gnulib module pipe should be tested. */
+#undef GNULIB_TEST_PIPE
+
+/* Define to 1 when the gnulib module poll should be tested. */
+#undef GNULIB_TEST_POLL
 
 /* Define to 1 when the gnulib module random_r should be tested. */
 #undef GNULIB_TEST_RANDOM_R
@@ -228,6 +244,9 @@
 /* Define to 1 when the gnulib module vasprintf should be tested. */
 #undef GNULIB_TEST_VASPRINTF
 
+/* Define to 1 when the gnulib module waitpid should be tested. */
+#undef GNULIB_TEST_WAITPID
+
 /* enable GnuTLS 1.0 compatibility macros */
 #undef GNUTLS_1_0_COMPAT
 
@@ -247,6 +266,9 @@
 
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
+
+/* whether libaudit is available */
+#undef HAVE_AUDIT
 
 /* whether Avahi is used to broadcast server presense */
 #undef HAVE_AVAHI
@@ -292,6 +314,10 @@
 /* Define to 1 if you have the declaration of `freeaddrinfo', and to 0 if you
    don't. */
 #undef HAVE_DECL_FREEADDRINFO
+
+/* Define to 1 if you have the declaration of `fseeko', and to 0 if you don't.
+   */
+#undef HAVE_DECL_FSEEKO
 
 /* Define to 1 if you have the declaration of `funlockfile', and to 0 if you
    don't. */
@@ -386,6 +412,9 @@
 /* Define to 1 if you have the <fcntl.h> header file. */
 #undef HAVE_FCNTL_H
 
+/* Define to 1 if you have the <features.h> header file. */
+#undef HAVE_FEATURES_H
+
 /* Define to 1 if you have the <float.h> header file. */
 #undef HAVE_FLOAT_H
 
@@ -418,6 +447,9 @@
 
 /* Define to 1 if you have the `getmntent_r' function. */
 #undef HAVE_GETMNTENT_R
+
+/* Define to 1 if you have the `getpagesize' function. */
+#undef HAVE_GETPAGESIZE
 
 /* Define to 1 if you have the `getpass' function. */
 #undef HAVE_GETPASS
@@ -452,6 +484,9 @@
 /* Define to 1 if you have the `inet_pton' function. */
 #undef HAVE_INET_PTON
 
+/* Define to 1 if you have the `initgroups' function. */
+#undef HAVE_INITGROUPS
+
 /* Define if you have the 'intmax_t' type in <stdint.h> or <inttypes.h>. */
 #undef HAVE_INTMAX_T
 
@@ -473,6 +508,9 @@
 
 /* Define to 1 if you have the `apparmor' library (-lapparmor). */
 #undef HAVE_LIBAPPARMOR
+
+/* Define to 1 if you have the `audit' library (-laudit). */
+#undef HAVE_LIBAUDIT
 
 /* Define to 1 if you have the `cap-ng' library (-lcap-ng). */
 #undef HAVE_LIBCAP_NG
@@ -559,6 +597,9 @@
 /* Define to 1 if you have the `mkstemp' function. */
 #undef HAVE_MKSTEMP
 
+/* Define to 1 if you have the `mkstemps' function. */
+#undef HAVE_MKSTEMPS
+
 /* Define to 1 if you have the `mmap' function. */
 #undef HAVE_MMAP
 
@@ -580,11 +621,17 @@
 /* whether numactl is available for topology info */
 #undef HAVE_NUMACTL
 
+/* Define to 1 if you have the <OS.h> header file. */
+#undef HAVE_OS_H
+
 /* Define to 1 if you have the `pathconf' function. */
 #undef HAVE_PATHCONF
 
 /* Define to 1 if you have the <paths.h> header file. */
 #undef HAVE_PATHS_H
+
+/* Define to 1 if you have the `pipe' function. */
+#undef HAVE_PIPE
 
 /* use PolicyKit for UNIX socket access checks */
 #undef HAVE_POLKIT
@@ -622,6 +669,12 @@
 
 /* Define to 1 if you have the `pthread_sigmask' function. */
 #undef HAVE_PTHREAD_SIGMASK
+
+/* Define to 1 if the system has the type `pthread_spinlock_t'. */
+#undef HAVE_PTHREAD_SPINLOCK_T
+
+/* Define to 1 if the system has the type `pthread_t'. */
+#undef HAVE_PTHREAD_T
 
 /* Define to 1 if you have the <pwd.h> header file. */
 #undef HAVE_PWD_H
@@ -870,8 +923,14 @@
 /* Define to 1 if openat is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_OPENAT
 
+/* Define to 1 if pipe is declared even after undefining macros. */
+#undef HAVE_RAW_DECL_PIPE
+
 /* Define to 1 if pipe2 is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_PIPE2
+
+/* Define to 1 if poll is declared even after undefining macros. */
+#undef HAVE_RAW_DECL_POLL
 
 /* Define to 1 if popen is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_POPEN
@@ -972,6 +1031,9 @@
 /* Define to 1 if strdup is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_STRDUP
 
+/* Define to 1 if strerror_r is declared even after undefining macros. */
+#undef HAVE_RAW_DECL_STRERROR_R
+
 /* Define to 1 if strncasecmp is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_STRNCASECMP
 
@@ -1014,6 +1076,9 @@
 /* Define to 1 if symlinkat is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_SYMLINKAT
 
+/* Define to 1 if tcgetsid is declared even after undefining macros. */
+#undef HAVE_RAW_DECL_TCGETSID
+
 /* Define to 1 if tmpfile is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_TMPFILE
 
@@ -1047,6 +1112,9 @@
 /* Define to 1 if vsnprintf is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_VSNPRINTF
 
+/* Define to 1 if waitpid is declared even after undefining macros. */
+#undef HAVE_RAW_DECL_WAITPID
+
 /* Define to 1 if wcrtomb is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_WCRTOMB
 
@@ -1061,6 +1129,9 @@
 
 /* Define to 1 if wcwidth is declared even after undefining macros. */
 #undef HAVE_RAW_DECL_WCWIDTH
+
+/* Define to 1 if _Exit is declared even after undefining macros. */
+#undef HAVE_RAW_DECL__EXIT
 
 /* Define to 1 if you have the <readline/readline.h> header file. */
 #undef HAVE_READLINE_READLINE_H
@@ -1094,6 +1165,9 @@
 
 /* whether basic SELinux functionality is available */
 #undef HAVE_SELINUX
+
+/* Define to 1 if you have the <selinux/label.h> header file. */
+#undef HAVE_SELINUX_LABEL_H
 
 /* Define to 1 if you have the `shutdown' function. */
 #undef HAVE_SHUTDOWN
@@ -1185,11 +1259,14 @@
 /* Define to 1 if the system has the type `struct random_data'. */
 #undef HAVE_STRUCT_RANDOM_DATA
 
-/* Define to 1 if `sa_len' is member of `struct sockaddr'. */
+/* Define to 1 if `sa_len' is a member of `struct sockaddr'. */
 #undef HAVE_STRUCT_SOCKADDR_SA_LEN
 
 /* Define to 1 if the system has the type `struct sockaddr_storage'. */
 #undef HAVE_STRUCT_SOCKADDR_STORAGE
+
+/* Define to 1 if `ss_family' is a member of `struct sockaddr_storage'. */
+#undef HAVE_STRUCT_SOCKADDR_STORAGE_SS_FAMILY
 
 /* Define to 1 if the system has the type `struct utsname'. */
 #undef HAVE_STRUCT_UTSNAME
@@ -1239,6 +1316,9 @@
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #undef HAVE_SYS_STAT_H
 
+/* Define to 1 if you have the <sys/syscall.h> header file. */
+#undef HAVE_SYS_SYSCALL_H
+
 /* Define to 1 if you have the <sys/sysctl.h> header file. */
 #undef HAVE_SYS_SYSCTL_H
 
@@ -1265,6 +1345,9 @@
 
 /* Define to 1 if you have the <sys/types.h> header file. */
 #undef HAVE_SYS_TYPES_H
+
+/* Define to 1 if you have the <sys/un.h> header file. */
+#undef HAVE_SYS_UN_H
 
 /* Define to 1 if you have the <sys/utsname.h> header file. */
 #undef HAVE_SYS_UTSNAME_H
@@ -1387,8 +1470,14 @@
 /* Define HOST_NAME_MAX when <limits.h> does not define it. */
 #undef HOST_NAME_MAX
 
+/* path to ip6tables binary */
+#undef IP6TABLES_PATH
+
 /* path to iptables binary */
 #undef IPTABLES_PATH
+
+/* path to ip binary */
+#undef IP_PATH
 
 /* Location of iscsiadm program */
 #undef ISCSIADM
@@ -1449,6 +1538,9 @@
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
 
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
@@ -1482,6 +1574,9 @@
 
 /* QEMU user account */
 #undef QEMU_USER
+
+/* Location or name of the radvd program */
+#undef RADVD
 
 /* Define to 1 if readlink fails to recognize a trailing slash. */
 #undef READLINK_TRAILING_SLASH_BUG
@@ -1575,6 +1670,10 @@
 /* Location of vgscan program */
 #undef VGSCAN
 
+/* Define to the absolute path of a shell that does not truncate on <>
+   redirection, if /bin/sh does not fit the bill */
+#undef VIR_WRAPPER_SHELL
+
 /* Define to l, ll, u, ul, ull, etc., as suitable for constants of type
    'wchar_t'. */
 #undef WCHAR_T_SUFFIX
@@ -1591,6 +1690,9 @@
 
 /* whether to build drivers as modules */
 #undef WITH_DRIVER_MODULES
+
+/* whether DTrace static probes are available */
+#undef WITH_DTRACE
 
 /* whether ESX driver is enabled */
 #undef WITH_ESX
@@ -1625,9 +1727,6 @@
 
 /* whether IBM HMC / IVM driver is enabled */
 #undef WITH_PHYP
-
-/* Whether Xen proxy is enabled */
-#undef WITH_PROXY
 
 /* whether QEMU driver is enabled */
 #undef WITH_QEMU
@@ -1680,6 +1779,12 @@
 /* whether vsi vepa support is enabled */
 #undef WITH_VIRTUALPORT
 
+/* whether VMware driver is enabled */
+#undef WITH_VMWARE
+
+/* whether VMware VMX config handling is enabled */
+#undef WITH_VMX
+
 /* whether Xen driver is enabled */
 #undef WITH_XEN
 
@@ -1717,6 +1822,10 @@
    this defined. */
 #undef _POSIX_1_SOURCE
 
+/* Define to 1 in order to get the POSIX compatible declarations of socket
+   functions. */
+#undef _POSIX_PII_SOCKET
+
 /* Define to 1 if you need to in order for `stat' and other things to work. */
 #undef _POSIX_SOURCE
 
@@ -1747,6 +1856,9 @@
 
 /* Define like PROTOTYPES; this can be used by system headers. */
 #undef __PROTOTYPES
+
+/* Define as a replacement for the ISO C99 __func__ variable. */
+#undef __func__
 
 /* Define to `int' if <sys/types.h> doesn't define. */
 #undef gid_t
@@ -1782,9 +1894,6 @@
 /* Define to the type of st_nlink in struct stat, or a supertype. */
 #undef nlink_t
 
-/* Define to poll if the replacement function should be used. */
-#undef poll
-
 /* Define as the type of the result of subtracting two pointers, if the system
    doesn't define it. */
 #undef ptrdiff_t
@@ -1793,13 +1902,14 @@
    nothing if this is not supported.  Do not define if restrict is
    supported directly.  */
 #undef restrict
-/* Work around a bug in Sun C++: it does not support _Restrict, even
-   though the corresponding Sun C compiler does, which causes
-   "#define restrict _Restrict" in the previous line.  Perhaps some future
-   version of Sun C++ will work with _Restrict; if so, it'll probably
-   define __RESTRICT, just as Sun C does.  */
+/* Work around a bug in Sun C++: it does not support _Restrict or
+   __restrict__, even though the corresponding Sun C compiler ends up with
+   "#define restrict _Restrict" or "#define restrict __restrict__" in the
+   previous line.  Perhaps some future version of Sun C++ will work with
+   restrict; if so, hopefully it defines __RESTRICT like Sun C does.  */
 #if defined __SUNPRO_CC && !defined __RESTRICT
 # define _Restrict
+# define __restrict__
 #endif
 
 /* Define to `unsigned int' if <sys/types.h> does not define. */

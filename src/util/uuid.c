@@ -39,6 +39,7 @@
 #include "virterror_internal.h"
 #include "logging.h"
 #include "memory.h"
+#include "files.h"
 
 #ifndef ENODATA
 # define ENODATA EIO
@@ -61,7 +62,7 @@ virUUIDGenerateRandomBytes(unsigned char *buf,
         if ((n = read(fd, buf, buflen)) <= 0) {
             if (errno == EINTR)
                 continue;
-            close(fd);
+            VIR_FORCE_CLOSE(fd);
             return n < 0 ? errno : ENODATA;
         }
 
@@ -69,7 +70,7 @@ virUUIDGenerateRandomBytes(unsigned char *buf,
         buflen -= n;
     }
 
-    close(fd);
+    VIR_FORCE_CLOSE(fd);
 
     return 0;
 }
@@ -113,22 +114,6 @@ virUUIDGenerate(unsigned char *uuid)
     return(err);
 }
 
-/* Convert C from hexadecimal character to integer.  */
-static int
-hextobin (unsigned char c)
-{
-  switch (c)
-    {
-    default: return c - '0';
-    case 'a': case 'A': return 10;
-    case 'b': case 'B': return 11;
-    case 'c': case 'C': return 12;
-    case 'd': case 'D': return 13;
-    case 'e': case 'E': return 14;
-    case 'f': case 'F': return 15;
-    }
-}
-
 /**
  * virUUIDParse:
  * @uuidstr: zero terminated string representation of the UUID
@@ -166,14 +151,14 @@ virUUIDParse(const char *uuidstr, unsigned char *uuid) {
         }
         if (!c_isxdigit(*cur))
             goto error;
-        uuid[i] = hextobin(*cur);
+        uuid[i] = virHexToBin(*cur);
         uuid[i] *= 16;
         cur++;
         if (*cur == 0)
             goto error;
         if (!c_isxdigit(*cur))
             goto error;
-        uuid[i] += hextobin(*cur);
+        uuid[i] += virHexToBin(*cur);
         i++;
         cur++;
     }
@@ -256,10 +241,10 @@ getDMISystemUUID(char *uuid, int len)
         int fd = open(paths[i], O_RDONLY);
         if (fd > 0) {
             if (saferead(fd, uuid, len) == len) {
-                close(fd);
+                VIR_FORCE_CLOSE(fd);
                 return 0;
             }
-            close(fd);
+            VIR_FORCE_CLOSE(fd);
         }
         i++;
     }

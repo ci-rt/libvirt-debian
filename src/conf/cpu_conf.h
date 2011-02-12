@@ -1,7 +1,7 @@
 /*
  * cpu_conf.h: CPU XML handling
  *
- * Copyright (C) 2009 Red Hat, Inc.
+ * Copyright (C) 2009, 2010 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -26,9 +26,7 @@
 
 # include "util.h"
 # include "buf.h"
-# ifndef PROXY
-#  include "xml.h"
-# endif
+# include "xml.h"
 
 enum virCPUType {
     VIR_CPU_TYPE_HOST,
@@ -76,7 +74,8 @@ struct _virCPUDef {
     unsigned int sockets;
     unsigned int cores;
     unsigned int threads;
-    unsigned int nfeatures;
+    size_t nfeatures;
+    size_t nfeatures_max;
     virCPUFeatureDefPtr features;
 };
 
@@ -87,12 +86,10 @@ virCPUDefFree(virCPUDefPtr def);
 virCPUDefPtr
 virCPUDefCopy(const virCPUDefPtr cpu);
 
-# ifndef PROXY
 virCPUDefPtr
 virCPUDefParseXML(const xmlNodePtr node,
                   xmlXPathContextPtr ctxt,
                   enum virCPUType mode);
-# endif
 
 enum virCPUFormatFlags {
     VIR_CPU_FORMAT_EMBEDED  = (1 << 0)  /* embed into existing <cpu/> element

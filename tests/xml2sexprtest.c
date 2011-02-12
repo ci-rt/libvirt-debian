@@ -109,10 +109,16 @@ mymain(int argc, char **argv)
     DO_TEST("pv", "pv", "pvtest", 2);
     DO_TEST("fv", "fv-v2", "fvtest", 2);
     DO_TEST("fv-vncunused", "fv-vncunused", "fvtest", 2);
+#ifdef WITH_RHEL5_API
+    /* RHEL-5 Xen doesn't support the old style vnc configuration */
+    DO_TEST("pv-vfb-orig", "pv-vfb-new", "pvtest", 2);
+#else
     DO_TEST("pv-vfb-orig", "pv-vfb-orig", "pvtest", 2);
+#endif
     DO_TEST("pv-vfb-new", "pv-vfb-new", "pvtest", 3);
     DO_TEST("pv-vfb-new-auto", "pv-vfb-new-auto", "pvtest", 3);
     DO_TEST("pv-bootloader", "pv-bootloader", "pvtest", 1);
+    DO_TEST("pv-vcpus", "pv-vcpus", "pvtest", 1);
 
     DO_TEST("disk-file", "disk-file", "pvtest", 2);
     DO_TEST("disk-block", "disk-block", "pvtest", 2);
@@ -122,6 +128,8 @@ mymain(int argc, char **argv)
     DO_TEST("disk-drv-blktap", "disk-drv-blktap", "pvtest", 2);
     DO_TEST("disk-drv-blktap-raw", "disk-drv-blktap-raw", "pvtest", 2);
     DO_TEST("disk-drv-blktap-qcow", "disk-drv-blktap-qcow", "pvtest", 2);
+    DO_TEST("disk-drv-blktap2", "disk-drv-blktap2", "pvtest", 2);
+    DO_TEST("disk-drv-blktap2-raw", "disk-drv-blktap2-raw", "pvtest", 2);
 
     DO_TEST("curmem", "curmem", "rhel5", 2);
     DO_TEST("net-routed", "net-routed", "pvtest", 2);
@@ -153,6 +161,9 @@ mymain(int argc, char **argv)
 
     DO_TEST("fv-net-ioemu", "fv-net-ioemu", "fvtest", 1);
     DO_TEST("fv-net-netfront", "fv-net-netfront", "fvtest", 1);
+
+    DO_TEST("boot-grub", "boot-grub", "fvtest", 1);
+    DO_TEST("escape", "escape", "fvtest", 1);
 
     virCapabilitiesFree(caps);
 

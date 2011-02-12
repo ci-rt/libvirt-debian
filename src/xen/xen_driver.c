@@ -13,7 +13,7 @@
 /* Note:
  *
  * This driver provides a unified interface to the five
- * separate underlying Xen drivers (xen_internal, proxy_internal,
+ * separate underlying Xen drivers (xen_internal,
  * xend_internal, xs_internal and xm_internal).  Historically
  * the body of libvirt.c handled the five Xen drivers,
  * and contained Xen-specific code.
@@ -24,6 +24,7 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/types.h>
+#include <fcntl.h>
 #include <xen/dom0_ops.h>
 #include <libxml/uri.h>
 
@@ -33,7 +34,6 @@
 #include "xen_driver.h"
 
 #include "xen_hypervisor.h"
-#include "proxy_internal.h"
 #include "xend_internal.h"
 #include "xs_internal.h"
 #include "xm_internal.h"
@@ -46,6 +46,8 @@
 #include "node_device_conf.h"
 #include "pci.h"
 #include "uuid.h"
+#include "fdstream.h"
+#include "files.h"
 
 #define VIR_FROM_THIS VIR_FROM_XEN
 
@@ -61,7 +63,6 @@ xenUnifiedDomainGetVcpus (virDomainPtr dom,
 /* The five Xen drivers below us. */
 static struct xenUnifiedDriver const * const drivers[XEN_UNIFIED_NR_DRIVERS] = {
     [XEN_UNIFIED_HYPERVISOR_OFFSET] = &xenHypervisorDriver,
-    [XEN_UNIFIED_PROXY_OFFSET] = &xenProxyDriver,
     [XEN_UNIFIED_XEND_OFFSET] = &xenDaemonDriver,
     [XEN_UNIFIED_XS_OFFSET] = &xenStoreDriver,
     [XEN_UNIFIED_XM_OFFSET] = &xenXMDriver,
@@ -216,10 +217,10 @@ xenUnifiedProbe (void)
         return 1;
 #endif
 #ifdef __sun
-    FILE *fh;
+    int fd;
 
-    if (fh = fopen("/dev/xen/domcaps", "r")) {
-        fclose(fh);
+    if ((fd = open("/dev/xen/domcaps", O_RDONLY)) >= 0) {
+        VIR_FORCE_CLOSE(fd);
         return 1;
     }
 #endif
@@ -318,7 +319,6 @@ xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, int flags)
     priv->handle = -1;
     priv->xendConfigVersion = -1;
     priv->xshandle = NULL;
-    priv->proxy = -1;
 
 
     /* Hypervisor is only run with privilege & required to succeed */
@@ -331,9 +331,7 @@ xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, int flags)
         }
     }
 
-    /* XenD is required to succeed if privileged.
-     * If it fails as non-root, then the proxy driver may take over
-     */
+    /* XenD is required to succeed if privileged */
     DEBUG0("Trying XenD sub-driver");
     if (drivers[XEN_UNIFIED_XEND_OFFSET]->open(conn, auth, flags) ==
         VIR_DRV_OPEN_SUCCESS) {
@@ -363,20 +361,9 @@ xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, int flags)
         if (xenHavePrivilege()) {
             goto fail; /* XenD is mandatory when privileged */
         } else {
-#if WITH_PROXY
-            DEBUG0("Trying proxy sub-driver");
-            if (drivers[XEN_UNIFIED_PROXY_OFFSET]->open(conn, auth, flags) ==
-                VIR_DRV_OPEN_SUCCESS) {
-                DEBUG0("Activated proxy sub-driver");
-                priv->opened[XEN_UNIFIED_PROXY_OFFSET] = 1;
-            } else {
-                goto fail; /* Proxy is mandatory if XenD failed */
-            }
-#else
             DEBUG0("Handing off for remote driver");
             ret = VIR_DRV_OPEN_DECLINED; /* Let remote_driver try instead */
             goto clean;
-#endif
         }
     }
 
@@ -402,9 +389,7 @@ xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, int flags)
 
 fail:
     ret = VIR_DRV_OPEN_ERROR;
-#ifndef WITH_PROXY
 clean:
-#endif
     DEBUG0("Failed to activate a mandatory sub-driver");
     for (i = 0 ; i < XEN_UNIFIED_NR_DRIVERS ; i++)
         if (priv->opened[i]) drivers[i]->close(conn);
@@ -508,7 +493,7 @@ xenUnifiedIsSecure(virConnectPtr conn)
     return ret;
 }
 
-static int
+int
 xenUnifiedGetMaxVcpus (virConnectPtr conn, const char *type)
 {
     GET_PRIVATE(conn);
@@ -579,11 +564,6 @@ xenUnifiedListDomains (virConnectPtr conn, int *ids, int maxids)
         if (ret >= 0) return ret;
     }
 
-    /* Try proxy. */
-    if (priv->opened[XEN_UNIFIED_PROXY_OFFSET]) {
-        ret = xenProxyListDomains (conn, ids, maxids);
-        if (ret >= 0) return ret;
-    }
     return -1;
 }
 
@@ -608,12 +588,6 @@ xenUnifiedNumOfDomains (virConnectPtr conn)
     /* Try xend. */
     if (priv->opened[XEN_UNIFIED_XEND_OFFSET]) {
         ret = xenDaemonNumOfDomains (conn);
-        if (ret >= 0) return ret;
-    }
-
-    /* Try proxy. */
-    if (priv->opened[XEN_UNIFIED_PROXY_OFFSET]) {
-        ret = xenProxyNumOfDomains (conn);
         if (ret >= 0) return ret;
     }
 
@@ -659,13 +633,6 @@ xenUnifiedDomainLookupByID (virConnectPtr conn, int id)
             return ret;
     }
 
-    /* Try proxy. */
-    if (priv->opened[XEN_UNIFIED_PROXY_OFFSET]) {
-        ret = xenProxyLookupByID (conn, id);
-        if (ret || conn->err.code != VIR_ERR_OK)
-            return ret;
-    }
-
     /* Try xend. */
     if (priv->opened[XEN_UNIFIED_XEND_OFFSET]) {
         ret = xenDaemonLookupByID (conn, id);
@@ -693,13 +660,6 @@ xenUnifiedDomainLookupByUUID (virConnectPtr conn,
     /* Try hypervisor/xenstore combo. */
     if (priv->opened[XEN_UNIFIED_HYPERVISOR_OFFSET]) {
         ret = xenHypervisorLookupDomainByUUID (conn, uuid);
-        if (ret || conn->err.code != VIR_ERR_OK)
-            return ret;
-    }
-
-    /* Try proxy. */
-    if (priv->opened[XEN_UNIFIED_PROXY_OFFSET]) {
-        ret = xenProxyLookupByUUID (conn, uuid);
         if (ret || conn->err.code != VIR_ERR_OK)
             return ret;
     }
@@ -734,13 +694,6 @@ xenUnifiedDomainLookupByName (virConnectPtr conn,
      * there is one hanging around from a previous call.
      */
     virConnResetLastError (conn);
-
-    /* Try proxy. */
-    if (priv->opened[XEN_UNIFIED_PROXY_OFFSET]) {
-        ret = xenProxyLookupByName (conn, name);
-        if (ret || conn->err.code != VIR_ERR_OK)
-            return ret;
-    }
 
     /* Try xend. */
     if (priv->opened[XEN_UNIFIED_XEND_OFFSET]) {
@@ -787,7 +740,7 @@ xenUnifiedDomainIsActive(virDomainPtr dom)
 }
 
 static int
-xenUnifiedDomainisPersistent(virDomainPtr dom)
+xenUnifiedDomainIsPersistent(virDomainPtr dom)
 {
     GET_PRIVATE(dom->conn);
     virDomainPtr currdom = NULL;
@@ -835,6 +788,12 @@ done:
         virDomainFree(currdom);
 
     return ret;
+}
+
+static int
+xenUnifiedDomainIsUpdated(virDomainPtr dom ATTRIBUTE_UNUSED)
+{
+    return 0;
 }
 
 static int
@@ -1069,27 +1028,66 @@ xenUnifiedDomainCoreDump (virDomainPtr dom, const char *to, int flags)
 }
 
 static int
-xenUnifiedDomainSetVcpus (virDomainPtr dom, unsigned int nvcpus)
+xenUnifiedDomainSetVcpusFlags (virDomainPtr dom, unsigned int nvcpus,
+                               unsigned int flags)
 {
     GET_PRIVATE(dom->conn);
-    int i;
+    int ret;
+
+    virCheckFlags(VIR_DOMAIN_VCPU_LIVE |
+                  VIR_DOMAIN_VCPU_CONFIG |
+                  VIR_DOMAIN_VCPU_MAXIMUM, -1);
+
+    /* At least one of LIVE or CONFIG must be set.  MAXIMUM cannot be
+     * mixed with LIVE.  */
+    if ((flags & (VIR_DOMAIN_VCPU_LIVE | VIR_DOMAIN_VCPU_CONFIG)) == 0 ||
+        (flags & (VIR_DOMAIN_VCPU_MAXIMUM | VIR_DOMAIN_VCPU_LIVE)) ==
+         (VIR_DOMAIN_VCPU_MAXIMUM | VIR_DOMAIN_VCPU_LIVE)) {
+        xenUnifiedError(VIR_ERR_INVALID_ARG,
+                        _("invalid flag combination: (0x%x)"), flags);
+        return -1;
+    }
+    if (!nvcpus || (unsigned short) nvcpus != nvcpus) {
+        xenUnifiedError(VIR_ERR_INVALID_ARG,
+                        _("argument out of range: %d"), nvcpus);
+        return -1;
+    }
 
     /* Try non-hypervisor methods first, then hypervisor direct method
      * as a last resort.
      */
-    for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
-        if (i != XEN_UNIFIED_HYPERVISOR_OFFSET &&
-            priv->opened[i] &&
-            drivers[i]->domainSetVcpus &&
-            drivers[i]->domainSetVcpus (dom, nvcpus) == 0)
-            return 0;
+    if (priv->opened[XEN_UNIFIED_XEND_OFFSET]) {
+        ret = xenDaemonDomainSetVcpusFlags(dom, nvcpus, flags);
+        if (ret != -2)
+            return ret;
+    }
+    if (priv->opened[XEN_UNIFIED_XM_OFFSET]) {
+        ret = xenXMDomainSetVcpusFlags(dom, nvcpus, flags);
+        if (ret != -2)
+            return ret;
+    }
+    if (flags == VIR_DOMAIN_VCPU_LIVE)
+        return xenHypervisorSetVcpus(dom, nvcpus);
 
-    if (priv->opened[XEN_UNIFIED_HYPERVISOR_OFFSET] &&
-        drivers[XEN_UNIFIED_HYPERVISOR_OFFSET]->domainSetVcpus &&
-        drivers[XEN_UNIFIED_HYPERVISOR_OFFSET]->domainSetVcpus (dom, nvcpus) == 0)
-        return 0;
-
+    xenUnifiedError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return -1;
+}
+
+static int
+xenUnifiedDomainSetVcpus (virDomainPtr dom, unsigned int nvcpus)
+{
+    unsigned int flags = VIR_DOMAIN_VCPU_LIVE;
+    xenUnifiedPrivatePtr priv;
+
+    /* Per the documented API, it is hypervisor-dependent whether this
+     * affects just _LIVE or _LIVE|_CONFIG; in xen's case, that
+     * depends on xendConfigVersion.  */
+    if (dom) {
+        priv = dom->conn->privateData;
+        if (priv->xendConfigVersion >= 3)
+            flags |= VIR_DOMAIN_VCPU_CONFIG;
+    }
+    return xenUnifiedDomainSetVcpusFlags(dom, nvcpus, flags);
 }
 
 static int
@@ -1126,18 +1124,44 @@ xenUnifiedDomainGetVcpus (virDomainPtr dom,
 }
 
 static int
-xenUnifiedDomainGetMaxVcpus (virDomainPtr dom)
+xenUnifiedDomainGetVcpusFlags (virDomainPtr dom, unsigned int flags)
 {
     GET_PRIVATE(dom->conn);
-    int i, ret;
+    int ret;
 
-    for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
-        if (priv->opened[i] && drivers[i]->domainGetMaxVcpus) {
-            ret = drivers[i]->domainGetMaxVcpus (dom);
-            if (ret != 0) return ret;
-        }
+    virCheckFlags(VIR_DOMAIN_VCPU_LIVE |
+                  VIR_DOMAIN_VCPU_CONFIG |
+                  VIR_DOMAIN_VCPU_MAXIMUM, -1);
 
+    /* Exactly one of LIVE or CONFIG must be set.  */
+    if (!(flags & VIR_DOMAIN_VCPU_LIVE) == !(flags & VIR_DOMAIN_VCPU_CONFIG)) {
+        xenUnifiedError(VIR_ERR_INVALID_ARG,
+                        _("invalid flag combination: (0x%x)"), flags);
+        return -1;
+    }
+
+    if (priv->opened[XEN_UNIFIED_XEND_OFFSET]) {
+        ret = xenDaemonDomainGetVcpusFlags(dom, flags);
+        if (ret != -2)
+            return ret;
+    }
+    if (priv->opened[XEN_UNIFIED_XM_OFFSET]) {
+        ret = xenXMDomainGetVcpusFlags(dom, flags);
+        if (ret != -2)
+            return ret;
+    }
+    if (flags == (VIR_DOMAIN_VCPU_CONFIG | VIR_DOMAIN_VCPU_MAXIMUM))
+        return xenHypervisorGetVcpuMax(dom);
+
+    xenUnifiedError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return -1;
+}
+
+static int
+xenUnifiedDomainGetMaxVcpus (virDomainPtr dom)
+{
+    return xenUnifiedDomainGetVcpusFlags(dom, (VIR_DOMAIN_VCPU_LIVE |
+                                               VIR_DOMAIN_VCPU_MAXIMUM));
 }
 
 static char *
@@ -1158,8 +1182,6 @@ xenUnifiedDomainDumpXML (virDomainPtr dom, int flags)
             VIR_FREE(cpus);
             return(res);
         }
-        if (priv->opened[XEN_UNIFIED_PROXY_OFFSET])
-            return xenProxyDomainDumpXML(dom, flags);
     }
 
     xenUnifiedError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
@@ -1437,10 +1459,16 @@ xenUnifiedDomainAttachDevice (virDomainPtr dom, const char *xml)
 {
     GET_PRIVATE(dom->conn);
     int i;
-    unsigned int flags = VIR_DOMAIN_DEVICE_MODIFY_CONFIG;
+    unsigned int flags = VIR_DOMAIN_DEVICE_MODIFY_LIVE;
 
-    if (dom->id >= 0)
-        flags |= VIR_DOMAIN_DEVICE_MODIFY_LIVE;
+    /*
+     * HACK: xend with xendConfigVersion >= 3 does not support changing live
+     * config without touching persistent config, we add the extra flag here
+     * to make this API work
+     */
+    if (priv->opened[XEN_UNIFIED_XEND_OFFSET] &&
+        priv->xendConfigVersion >= 3)
+        flags |= VIR_DOMAIN_DEVICE_MODIFY_CONFIG;
 
     for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
         if (priv->opened[i] && drivers[i]->domainAttachDeviceFlags &&
@@ -1470,10 +1498,16 @@ xenUnifiedDomainDetachDevice (virDomainPtr dom, const char *xml)
 {
     GET_PRIVATE(dom->conn);
     int i;
-    unsigned int flags = VIR_DOMAIN_DEVICE_MODIFY_CONFIG;
+    unsigned int flags = VIR_DOMAIN_DEVICE_MODIFY_LIVE;
 
-    if (dom->id >= 0)
-        flags |= VIR_DOMAIN_DEVICE_MODIFY_LIVE;
+    /*
+     * HACK: xend with xendConfigVersion >= 3 does not support changing live
+     * config without touching persistent config, we add the extra flag here
+     * to make this API work
+     */
+    if (priv->opened[XEN_UNIFIED_XEND_OFFSET] &&
+        priv->xendConfigVersion >= 3)
+        flags |= VIR_DOMAIN_DEVICE_MODIFY_CONFIG;
 
     for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
         if (priv->opened[i] && drivers[i]->domainDetachDeviceFlags &&
@@ -1588,7 +1622,8 @@ xenUnifiedDomainSetSchedulerParameters (virDomainPtr dom,
     GET_PRIVATE(dom->conn);
     int i, ret;
 
-    for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i) {
+    /* do the hypervisor call last to get better error */
+    for (i = XEN_UNIFIED_NR_DRIVERS - 1; i >= 0; i--) {
         if (priv->opened[i] && drivers[i]->domainSetSchedulerParameters) {
            ret = drivers[i]->domainSetSchedulerParameters(dom, params, nparams);
            if (ret == 0)
@@ -1902,6 +1937,60 @@ out:
 }
 
 
+static int
+xenUnifiedDomainOpenConsole(virDomainPtr dom,
+                            const char *devname,
+                            virStreamPtr st,
+                            unsigned int flags)
+{
+    virDomainDefPtr def = NULL;
+    int ret = -1;
+    virDomainChrDefPtr chr = NULL;
+
+    virCheckFlags(0, -1);
+
+    if (dom->id == -1) {
+        xenUnifiedError(VIR_ERR_OPERATION_INVALID,
+                        "%s", _("domain is not running"));
+        goto cleanup;
+    }
+
+    if (devname) {
+        /* XXX support device aliases in future */
+        xenUnifiedError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                        _("Named device aliases are not supported"));
+        goto cleanup;
+    }
+
+    def = xenDaemonDomainFetch(dom->conn, dom->id, dom->name, NULL);
+    if (!def)
+        goto cleanup;
+
+    if (def->console)
+        chr = def->console;
+    else if (def->nserials)
+        chr = def->serials[0];
+
+    if (!chr) {
+        xenUnifiedError(VIR_ERR_INTERNAL_ERROR, "%s",
+                        _("cannot find default console device"));
+        goto cleanup;
+    }
+
+    if (chr->type != VIR_DOMAIN_CHR_TYPE_PTY) {
+        xenUnifiedError(VIR_ERR_INTERNAL_ERROR,
+                        _("character device %s is not using a PTY"), devname);
+        goto cleanup;
+    }
+
+    if (virFDStreamOpenFile(st, chr->data.file.path, O_RDWR) < 0)
+        goto cleanup;
+
+    ret = 0;
+cleanup:
+    virDomainDefFree(def);
+    return ret;
+}
 /*----- Register with libvirt.c, and initialize Xen drivers. -----*/
 
 /* The interface which we export upwards to libvirt.c. */
@@ -1938,6 +2027,8 @@ static virDriver xenUnifiedDriver = {
     xenUnifiedDomainRestore, /* domainRestore */
     xenUnifiedDomainCoreDump, /* domainCoreDump */
     xenUnifiedDomainSetVcpus, /* domainSetVcpus */
+    xenUnifiedDomainSetVcpusFlags, /* domainSetVcpusFlags */
+    xenUnifiedDomainGetVcpusFlags, /* domainGetVcpusFlags */
     xenUnifiedDomainPinVcpu, /* domainPinVcpu */
     xenUnifiedDomainGetVcpus, /* domainGetVcpus */
     xenUnifiedDomainGetMaxVcpus, /* domainGetMaxVcpus */
@@ -1984,7 +2075,8 @@ static virDriver xenUnifiedDriver = {
     xenUnifiedIsEncrypted, /* isEncrypted */
     xenUnifiedIsSecure, /* isSecure */
     xenUnifiedDomainIsActive, /* domainIsActive */
-    xenUnifiedDomainisPersistent, /* domainIsPersistent */
+    xenUnifiedDomainIsPersistent, /* domainIsPersistent */
+    xenUnifiedDomainIsUpdated, /* domainIsUpdated */
     NULL, /* cpuCompare */
     NULL, /* cpuBaseline */
     NULL, /* domainGetJobInfo */
@@ -2005,6 +2097,9 @@ static virDriver xenUnifiedDriver = {
     NULL, /* domainRevertToSnapshot */
     NULL, /* domainSnapshotDelete */
     NULL, /* qemuDomainMonitorCommand */
+    NULL, /* domainSetMemoryParameters */
+    NULL, /* domainGetMemoryParameters */
+    xenUnifiedDomainOpenConsole, /* domainOpenConsole */
 };
 
 /**

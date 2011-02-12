@@ -203,12 +203,10 @@ int qemuMonitorSetCPU(qemuMonitorPtr mon, int cpu, int online);
 /* XXX should we pass the virDomainDiskDefPtr instead
  * and hide devname details inside monitor. Reconsider
  * this when doing the QMP implementation
- *
- * XXXX 'eject' has gained a 'force' flag we might like
- * to make use of...
  */
 int qemuMonitorEjectMedia(qemuMonitorPtr mon,
-                          const char *devname);
+                          const char *devname,
+                          bool force);
 int qemuMonitorChangeMedia(qemuMonitorPtr mon,
                            const char *devname,
                            const char *newmedia,
@@ -249,7 +247,7 @@ int qemuMonitorGetMigrationStatus(qemuMonitorPtr mon,
                                   unsigned long long *total);
 
 typedef enum {
-  QEMU_MONITOR_MIGRATE_BACKGROUND 		= 1 << 0,
+  QEMU_MONITOR_MIGRATE_BACKGROUND	= 1 << 0,
   QEMU_MONITOR_MIGRATE_NON_SHARED_DISK  = 1 << 1, /* migration with non-shared storage with full disk copy */
   QEMU_MONITOR_MIGRATE_NON_SHARED_INC   = 1 << 2, /* migration with non-shared storage with incremental copy */
   QEMU_MONITOR_MIGRATION_FLAGS_LAST
@@ -381,6 +379,9 @@ int qemuMonitorDelDevice(qemuMonitorPtr mon,
 int qemuMonitorAddDrive(qemuMonitorPtr mon,
                         const char *drivestr);
 
+int qemuMonitorDriveDel(qemuMonitorPtr mon,
+                        const char *drivestr);
+
 int qemuMonitorSetDrivePassphrase(qemuMonitorPtr mon,
                                   const char *alias,
                                   const char *passphrase);
@@ -390,5 +391,18 @@ int qemuMonitorLoadSnapshot(qemuMonitorPtr mon, const char *name);
 int qemuMonitorDeleteSnapshot(qemuMonitorPtr mon, const char *name);
 
 int qemuMonitorArbitraryCommand(qemuMonitorPtr mon, const char *cmd, char **reply);
+
+/**
+ * When running two dd process and using <> redirection, we need a
+ * shell that will not truncate files.  These two strings serve that
+ * purpose.
+ */
+# ifdef VIR_WRAPPER_SHELL
+#  define VIR_WRAPPER_SHELL_PREFIX VIR_WRAPPER_SHELL " -c '"
+#  define VIR_WRAPPER_SHELL_SUFFIX "'"
+# else
+#  define VIR_WRAPPER_SHELL_PREFIX /* nothing */
+#  define VIR_WRAPPER_SHELL_SUFFIX /* nothing */
+# endif
 
 #endif /* QEMU_MONITOR_H */

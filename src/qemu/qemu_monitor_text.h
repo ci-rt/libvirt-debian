@@ -66,7 +66,8 @@ int qemuMonitorTextSetBalloon(qemuMonitorPtr mon,
 int qemuMonitorTextSetCPU(qemuMonitorPtr mon, int cpu, int online);
 
 int qemuMonitorTextEjectMedia(qemuMonitorPtr mon,
-                              const char *devname);
+                              const char *devname,
+                              bool force);
 int qemuMonitorTextChangeMedia(qemuMonitorPtr mon,
                                const char *devname,
                                const char *newmedia,
@@ -184,6 +185,9 @@ int qemuMonitorTextDelDevice(qemuMonitorPtr mon,
                              const char *devalias);
 
 int qemuMonitorTextAddDrive(qemuMonitorPtr mon,
+                             const char *drivestr);
+
+int qemuMonitorTextDriveDel(qemuMonitorPtr mon,
                              const char *drivestr);
 
 int qemuMonitorTextSetDrivePassphrase(qemuMonitorPtr mon,

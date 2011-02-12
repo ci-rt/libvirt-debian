@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# mmap-anon.m4 serial 8
+# mmap-anon.m4 serial 9
 dnl Copyright (C) 2005, 2007, 2009-2010 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -17,10 +17,6 @@ dnl with or without modifications, as long as this notice is preserved.
 
 AC_DEFUN([gl_FUNC_MMAP_ANON],
 [
-  dnl Work around a bug of AC_EGREP_CPP in autoconf-2.57.
-  AC_REQUIRE([AC_PROG_CPP])
-  AC_REQUIRE([AC_PROG_EGREP])
-
   dnl Persuade glibc <sys/mman.h> to define MAP_ANONYMOUS.
   AC_REQUIRE([gl_USE_SYSTEM_EXTENSIONS])
 

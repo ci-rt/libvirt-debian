@@ -27,7 +27,8 @@ typedef enum {
     VIR_DRV_ONE = 9,
     VIR_DRV_ESX = 10,
     VIR_DRV_PHYP = 11,
-    VIR_DRV_XENAPI = 12
+    VIR_DRV_XENAPI = 12,
+    VIR_DRV_VMWARE = 13
 } virDrvNo;
 
 
@@ -47,17 +48,20 @@ typedef enum {
 
 
 /* Internal feature-detection macro.  Don't call drv->supports_feature
- * directly, because it may be NULL, use this macro instead.
+ * directly if you don't have to, because it may be NULL, use this macro
+ * instead.
  *
- * Note that you must check for errors.
+ * Note that this treats a possible error returned by drv->supports_feature
+ * the same as not supported. If you care about the error, call
+ * drv->supports_feature directly.
  *
  * Returns:
- *   >= 1  Feature is supported.
+ *   != 0  Feature is supported.
  *   0     Feature is not supported.
- *   -1    Error.
  */
-# define VIR_DRV_SUPPORTS_FEATURE(drv,conn,feature)                      \
-    ((drv)->supports_feature ? (drv)->supports_feature((conn),(feature)) : 0)
+# define VIR_DRV_SUPPORTS_FEATURE(drv,conn,feature)                         \
+    ((drv)->supports_feature ?                                              \
+        (drv)->supports_feature((conn), (feature)) > 0 : 0)
 
 typedef virDrvOpenStatus
         (*virDrvOpen)			(virConnectPtr conn,
@@ -128,6 +132,18 @@ typedef int
         (*virDrvDomainSetMemory)	(virDomainPtr domain,
                                          unsigned long memory);
 typedef int
+        (*virDrvDomainSetMemoryParameters)
+                                        (virDomainPtr domain,
+                                         virMemoryParameterPtr params,
+                                         int nparams,
+                                         unsigned int flags);
+typedef int
+        (*virDrvDomainGetMemoryParameters)
+                                        (virDomainPtr domain,
+                                         virMemoryParameterPtr params,
+                                         int *nparams,
+                                         unsigned int flags);
+typedef int
         (*virDrvDomainGetInfo)		(virDomainPtr domain,
                                          virDomainInfoPtr info);
 typedef int
@@ -172,6 +188,13 @@ typedef int
 typedef int
         (*virDrvDomainSetVcpus)		(virDomainPtr domain,
                                          unsigned int nvcpus);
+typedef int
+        (*virDrvDomainSetVcpusFlags)	(virDomainPtr domain,
+                                         unsigned int nvcpus,
+                                         unsigned int flags);
+typedef int
+        (*virDrvDomainGetVcpusFlags)	(virDomainPtr domain,
+                                         unsigned int flags);
 typedef int
         (*virDrvDomainPinVcpu)		(virDomainPtr domain,
                                          unsigned int vcpu,
@@ -376,6 +399,8 @@ typedef int
     (*virDrvDomainIsActive)(virDomainPtr dom);
 typedef int
     (*virDrvDomainIsPersistent)(virDomainPtr dom);
+typedef int
+    (*virDrvDomainIsUpdated)(virDomainPtr dom);
 
 typedef int
     (*virDrvCPUCompare)(virConnectPtr conn,
@@ -461,6 +486,11 @@ typedef int
     (*virDrvQemuDomainMonitorCommand)(virDomainPtr domain, const char *cmd,
                                       char **result, unsigned int flags);
 
+typedef int
+    (*virDrvDomainOpenConsole)(virDomainPtr dom,
+                               const char *devname,
+                               virStreamPtr st,
+                               unsigned int flags);
 
 
 /**
@@ -508,6 +538,8 @@ struct _virDriver {
     virDrvDomainRestore		domainRestore;
     virDrvDomainCoreDump		domainCoreDump;
     virDrvDomainSetVcpus		domainSetVcpus;
+    virDrvDomainSetVcpusFlags		domainSetVcpusFlags;
+    virDrvDomainGetVcpusFlags		domainGetVcpusFlags;
     virDrvDomainPinVcpu		domainPinVcpu;
     virDrvDomainGetVcpus		domainGetVcpus;
     virDrvDomainGetMaxVcpus		domainGetMaxVcpus;
@@ -555,6 +587,7 @@ struct _virDriver {
     virDrvConnectIsSecure      isSecure;
     virDrvDomainIsActive       domainIsActive;
     virDrvDomainIsPersistent   domainIsPersistent;
+    virDrvDomainIsUpdated      domainIsUpdated;
     virDrvCPUCompare            cpuCompare;
     virDrvCPUBaseline           cpuBaseline;
     virDrvDomainGetJobInfo     domainGetJobInfo;
@@ -575,6 +608,9 @@ struct _virDriver {
     virDrvDomainRevertToSnapshot domainRevertToSnapshot;
     virDrvDomainSnapshotDelete domainSnapshotDelete;
     virDrvQemuDomainMonitorCommand qemuDomainMonitorCommand;
+    virDrvDomainSetMemoryParameters domainSetMemoryParameters;
+    virDrvDomainGetMemoryParameters domainGetMemoryParameters;
+    virDrvDomainOpenConsole domainOpenConsole;
 };
 
 typedef int

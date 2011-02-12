@@ -22,6 +22,8 @@
 #ifndef __THREADS_H_
 # define __THREADS_H_
 
+# include <stdbool.h>
+
 # include "internal.h"
 
 typedef struct virMutex virMutex;
@@ -33,9 +35,29 @@ typedef virCond *virCondPtr;
 typedef struct virThreadLocal virThreadLocal;
 typedef virThreadLocal *virThreadLocalPtr;
 
+typedef struct virThread virThread;
+typedef virThread *virThreadPtr;
+
 
 int virThreadInitialize(void) ATTRIBUTE_RETURN_CHECK;
 void virThreadOnExit(void);
+
+typedef void (*virThreadFunc)(void *opaque);
+
+int virThreadCreate(virThreadPtr thread,
+                    bool joinable,
+                    virThreadFunc func,
+                    void *opaque) ATTRIBUTE_RETURN_CHECK;
+void virThreadSelf(virThreadPtr thread);
+bool virThreadIsSelf(virThreadPtr thread);
+void virThreadJoin(virThreadPtr thread);
+
+/* These next two functions are for debugging only, since they are not
+ * guaranteed to give unique values for distinct threads on all
+ * architectures, nor are the two functions guaranteed to give the same
+ * value for the same thread. */
+int virThreadSelfID(void);
+int virThreadID(virThreadPtr thread);
 
 int virMutexInit(virMutexPtr m) ATTRIBUTE_RETURN_CHECK;
 int virMutexInitRecursive(virMutexPtr m) ATTRIBUTE_RETURN_CHECK;

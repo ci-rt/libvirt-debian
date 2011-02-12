@@ -39,6 +39,7 @@
 # include "nwfilter_params.h"
 # include "nwfilter_conf.h"
 # include "macvtap.h"
+# include "sysinfo.h"
 
 /* Private component of virDomainXMLFlags */
 typedef enum {
@@ -119,6 +120,7 @@ enum virDomainDiskType {
     VIR_DOMAIN_DISK_TYPE_BLOCK,
     VIR_DOMAIN_DISK_TYPE_FILE,
     VIR_DOMAIN_DISK_TYPE_DIR,
+    VIR_DOMAIN_DISK_TYPE_NETWORK,
 
     VIR_DOMAIN_DISK_TYPE_LAST
 };
@@ -163,6 +165,21 @@ enum  virDomainDiskErrorPolicy {
     VIR_DOMAIN_DISK_ERROR_POLICY_LAST
 };
 
+enum virDomainDiskProtocol {
+    VIR_DOMAIN_DISK_PROTOCOL_NBD,
+    VIR_DOMAIN_DISK_PROTOCOL_RBD,
+    VIR_DOMAIN_DISK_PROTOCOL_SHEEPDOG,
+
+    VIR_DOMAIN_DISK_PROTOCOL_LAST
+};
+
+typedef struct _virDomainDiskHostDef virDomainDiskHostDef;
+typedef virDomainDiskHostDef *virDomainDiskHostDefPtr;
+struct _virDomainDiskHostDef {
+    char *name;
+    char *port;
+};
+
 /* Stores the virtual disk configuration */
 typedef struct _virDomainDiskDef virDomainDiskDef;
 typedef virDomainDiskDef *virDomainDiskDefPtr;
@@ -172,6 +189,9 @@ struct _virDomainDiskDef {
     int bus;
     char *src;
     char *dst;
+    int protocol;
+    int nhosts;
+    virDomainDiskHostDefPtr hosts;
     char *driverName;
     char *driverType;
     char *serial;
@@ -236,10 +256,20 @@ enum virDomainFSType {
     VIR_DOMAIN_FS_TYPE_LAST
 };
 
+/* Filesystem mount access mode  */
+enum virDomainFSAccessMode {
+    VIR_DOMAIN_FS_ACCESSMODE_PASSTHROUGH,
+    VIR_DOMAIN_FS_ACCESSMODE_MAPPED,
+    VIR_DOMAIN_FS_ACCESSMODE_SQUASH,
+
+    VIR_DOMAIN_FS_ACCESSMODE_LAST
+};
+
 typedef struct _virDomainFSDef virDomainFSDef;
 typedef virDomainFSDef *virDomainFSDefPtr;
 struct _virDomainFSDef {
     int type;
+    int accessmode;
     char *src;
     char *dst;
     unsigned int readonly : 1;
@@ -357,6 +387,8 @@ enum virDomainChrType {
 enum virDomainChrTcpProtocol {
     VIR_DOMAIN_CHR_TCP_PROTOCOL_RAW,
     VIR_DOMAIN_CHR_TCP_PROTOCOL_TELNET,
+    VIR_DOMAIN_CHR_TCP_PROTOCOL_TELNETS, /* secure telnet */
+    VIR_DOMAIN_CHR_TCP_PROTOCOL_TLS,
 
     VIR_DOMAIN_CHR_TCP_PROTOCOL_LAST,
 };
@@ -449,6 +481,7 @@ enum virDomainWatchdogAction {
     VIR_DOMAIN_WATCHDOG_ACTION_SHUTDOWN,
     VIR_DOMAIN_WATCHDOG_ACTION_POWEROFF,
     VIR_DOMAIN_WATCHDOG_ACTION_PAUSE,
+    VIR_DOMAIN_WATCHDOG_ACTION_DUMP,
     VIR_DOMAIN_WATCHDOG_ACTION_NONE,
 
     VIR_DOMAIN_WATCHDOG_ACTION_LAST
@@ -469,6 +502,7 @@ enum virDomainVideoType {
     VIR_DOMAIN_VIDEO_TYPE_VMVGA,
     VIR_DOMAIN_VIDEO_TYPE_XEN,
     VIR_DOMAIN_VIDEO_TYPE_VBOX,
+    VIR_DOMAIN_VIDEO_TYPE_QXL,
 
     VIR_DOMAIN_VIDEO_TYPE_LAST
 };
@@ -498,8 +532,36 @@ enum virDomainGraphicsType {
     VIR_DOMAIN_GRAPHICS_TYPE_VNC,
     VIR_DOMAIN_GRAPHICS_TYPE_RDP,
     VIR_DOMAIN_GRAPHICS_TYPE_DESKTOP,
+    VIR_DOMAIN_GRAPHICS_TYPE_SPICE,
 
     VIR_DOMAIN_GRAPHICS_TYPE_LAST,
+};
+
+typedef struct _virDomainGraphicsAuthDef virDomainGraphicsAuthDef;
+typedef virDomainGraphicsAuthDef *virDomainGraphicsAuthDefPtr;
+struct _virDomainGraphicsAuthDef {
+    char *passwd;
+    unsigned int expires: 1; /* Whether there is an expiry time set */
+    time_t validTo;  /* seconds since epoch */
+};
+
+enum virDomainGraphicsSpiceChannelName {
+    VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MAIN,
+    VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_DISPLAY,
+    VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_INPUT,
+    VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_CURSOR,
+    VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_PLAYBACK,
+    VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_RECORD,
+
+    VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_LAST
+};
+
+enum virDomainGraphicsSpiceChannelMode {
+    VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_ANY,
+    VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_SECURE,
+    VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_INSECURE,
+
+    VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_LAST
 };
 
 typedef struct _virDomainGraphicsDef virDomainGraphicsDef;
@@ -512,7 +574,7 @@ struct _virDomainGraphicsDef {
             unsigned int autoport :1;
             char *listenAddr;
             char *keymap;
-            char *passwd;
+            virDomainGraphicsAuthDef auth;
         } vnc;
         struct {
             char *display;
@@ -530,6 +592,15 @@ struct _virDomainGraphicsDef {
             char *display;
             unsigned int fullscreen :1;
         } desktop;
+        struct {
+            int port;
+            int tlsPort;
+            char *listenAddr;
+            char *keymap;
+            virDomainGraphicsAuthDef auth;
+            unsigned int autoport :1;
+            int channels[VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_LAST];
+        } spice;
     } data;
 };
 
@@ -581,6 +652,7 @@ struct _virDomainHostdevDef {
 enum {
     VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO,
     VIR_DOMAIN_MEMBALLOON_MODEL_XEN,
+    VIR_DOMAIN_MEMBALLOON_MODEL_NONE,
 
     VIR_DOMAIN_MEMBALLOON_MODEL_LAST
 };
@@ -592,6 +664,15 @@ struct _virDomainMemballoonDef {
     virDomainDeviceInfo info;
 };
 
+
+enum virDomainSmbiosMode {
+    VIR_DOMAIN_SMBIOS_NONE,
+    VIR_DOMAIN_SMBIOS_EMULATE,
+    VIR_DOMAIN_SMBIOS_HOST,
+    VIR_DOMAIN_SMBIOS_SYSINFO,
+
+    VIR_DOMAIN_SMBIOS_LAST
+};
 
 /* Flags for the 'type' field in next struct */
 enum virDomainDeviceType {
@@ -662,6 +743,17 @@ enum virDomainLifecycleAction {
     VIR_DOMAIN_LIFECYCLE_LAST
 };
 
+enum virDomainLifecycleCrashAction {
+    VIR_DOMAIN_LIFECYCLE_CRASH_DESTROY,
+    VIR_DOMAIN_LIFECYCLE_CRASH_RESTART,
+    VIR_DOMAIN_LIFECYCLE_CRASH_RESTART_RENAME,
+    VIR_DOMAIN_LIFECYCLE_CRASH_PRESERVE,
+    VIR_DOMAIN_LIFECYCLE_CRASH_COREDUMP_DESTROY,
+    VIR_DOMAIN_LIFECYCLE_CRASH_COREDUMP_RESTART,
+
+    VIR_DOMAIN_LIFECYCLE_CRASH_LAST
+};
+
 /* Operating system configuration data & machine / arch */
 typedef struct _virDomainOSDef virDomainOSDef;
 typedef virDomainOSDef *virDomainOSDefPtr;
@@ -680,6 +772,7 @@ struct _virDomainOSDef {
     char *loader;
     char *bootloader;
     char *bootloaderArgs;
+    int smbios_mode;
 };
 
 enum virDomainSeclabelType {
@@ -852,10 +945,17 @@ struct _virDomainDef {
     char *name;
     char *description;
 
-    unsigned long memory;
-    unsigned long maxmem;
-    unsigned char hugepage_backed;
-    unsigned long vcpus;
+    struct {
+        unsigned long max_balloon;
+        unsigned long cur_balloon;
+        unsigned long hugepage_backed;
+        unsigned long hard_limit;
+        unsigned long soft_limit;
+        unsigned long min_guarantee;
+        unsigned long swap_hard_limit;
+    } mem;
+    unsigned short vcpus;
+    unsigned short maxvcpus;
     int cpumasklen;
     char *cpumask;
 
@@ -912,6 +1012,7 @@ struct _virDomainDef {
     virDomainWatchdogDefPtr watchdog;
     virDomainMemballoonDefPtr memballoon;
     virCPUDefPtr cpu;
+    virSysinfoDefPtr sysinfo;
 
     void *namespaceData;
     virDomainXMLNamespace ns;
@@ -929,6 +1030,7 @@ struct _virDomainObj {
 
     unsigned int autostart : 1;
     unsigned int persistent : 1;
+    unsigned int updated : 1;
 
     virDomainDefPtr def; /* The current definition */
     virDomainDefPtr newDef; /* New definition to activate at shutdown */
@@ -969,6 +1071,7 @@ virDomainObjPtr virDomainFindByName(const virDomainObjListPtr doms,
 void virDomainGraphicsDefFree(virDomainGraphicsDefPtr def);
 void virDomainInputDefFree(virDomainInputDefPtr def);
 void virDomainDiskDefFree(virDomainDiskDefPtr def);
+void virDomainDiskHostDefFree(virDomainDiskHostDefPtr def);
 void virDomainControllerDefFree(virDomainControllerDefPtr def);
 void virDomainFSDefFree(virDomainFSDefPtr def);
 void virDomainNetDefFree(virDomainNetDefPtr def);
@@ -1011,10 +1114,14 @@ virDomainObjPtr virDomainAssignDef(virCapsPtr caps,
 void virDomainObjAssignDef(virDomainObjPtr domain,
                            const virDomainDefPtr def,
                            bool live);
+int virDomainObjSetDefTransient(virCapsPtr caps,
+                                virDomainObjPtr domain);
+virDomainDefPtr
+virDomainObjGetPersistentDef(virCapsPtr caps,
+                             virDomainObjPtr domain);
 void virDomainRemoveInactive(virDomainObjListPtr doms,
                              virDomainObjPtr dom);
 
-# ifndef PROXY
 virDomainDeviceDefPtr virDomainDeviceDefParse(virCapsPtr caps,
                                               const virDomainDefPtr def,
                                               const char *xmlStr,
@@ -1038,7 +1145,6 @@ virDomainObjPtr virDomainObjParseNode(virCapsPtr caps,
 
 int virDomainDefAddImplicitControllers(virDomainDefPtr def);
 
-# endif
 char *virDomainDefFormat(virDomainDefPtr def,
                          int flags);
 
@@ -1054,6 +1160,8 @@ int virDomainDiskInsert(virDomainDefPtr def,
 void virDomainDiskInsertPreAlloced(virDomainDefPtr def,
                                    virDomainDiskDefPtr disk);
 int virDomainDiskDefAssignAddress(virCapsPtr caps, virDomainDiskDefPtr def);
+
+void virDomainDiskRemove(virDomainDefPtr def, size_t i);
 
 int virDomainControllerInsert(virDomainDefPtr def,
                               virDomainControllerDefPtr controller);
@@ -1134,10 +1242,14 @@ int virDomainDiskDefForeachPath(virDomainDiskDefPtr disk,
                                 virDomainDiskDefPathIterator iter,
                                 void *opaque);
 
+typedef const char* (*virLifecycleToStringFunc)(int type);
+typedef int (*virLifecycleFromStringFunc)(const char *type);
+
 VIR_ENUM_DECL(virDomainVirt)
 VIR_ENUM_DECL(virDomainBoot)
 VIR_ENUM_DECL(virDomainFeature)
 VIR_ENUM_DECL(virDomainLifecycle)
+VIR_ENUM_DECL(virDomainLifecycleCrash)
 VIR_ENUM_DECL(virDomainDevice)
 VIR_ENUM_DECL(virDomainDeviceAddress)
 VIR_ENUM_DECL(virDomainDeviceAddressMode)
@@ -1146,16 +1258,21 @@ VIR_ENUM_DECL(virDomainDiskDevice)
 VIR_ENUM_DECL(virDomainDiskBus)
 VIR_ENUM_DECL(virDomainDiskCache)
 VIR_ENUM_DECL(virDomainDiskErrorPolicy)
+VIR_ENUM_DECL(virDomainDiskProtocol)
 VIR_ENUM_DECL(virDomainController)
 VIR_ENUM_DECL(virDomainControllerModel)
 VIR_ENUM_DECL(virDomainFS)
+VIR_ENUM_DECL(virDomainFSAccessMode)
 VIR_ENUM_DECL(virDomainNet)
 VIR_ENUM_DECL(virDomainChrDevice)
 VIR_ENUM_DECL(virDomainChrChannelTarget)
 VIR_ENUM_DECL(virDomainChrConsoleTarget)
 VIR_ENUM_DECL(virDomainChr)
+VIR_ENUM_DECL(virDomainChrTcpProtocol)
 VIR_ENUM_DECL(virDomainSoundModel)
 VIR_ENUM_DECL(virDomainMemballoonModel)
+VIR_ENUM_DECL(virDomainSysinfo)
+VIR_ENUM_DECL(virDomainSmbiosMode)
 VIR_ENUM_DECL(virDomainWatchdogModel)
 VIR_ENUM_DECL(virDomainWatchdogAction)
 VIR_ENUM_DECL(virDomainVideo)
@@ -1164,6 +1281,8 @@ VIR_ENUM_DECL(virDomainHostdevSubsys)
 VIR_ENUM_DECL(virDomainInput)
 VIR_ENUM_DECL(virDomainInputBus)
 VIR_ENUM_DECL(virDomainGraphics)
+VIR_ENUM_DECL(virDomainGraphicsSpiceChannelName)
+VIR_ENUM_DECL(virDomainGraphicsSpiceChannelMode)
 /* from libvirt.h */
 VIR_ENUM_DECL(virDomainState)
 VIR_ENUM_DECL(virDomainSeclabel)

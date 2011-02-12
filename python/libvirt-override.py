@@ -2,6 +2,11 @@
 # Manually written part of python bindings for libvirt
 #
 
+# Specify -i commandline option after python was started
+if __name__ == "__main__":
+    import os
+    os.environ["PYTHONINSPECT"] = "1"
+
 # On cygwin, the DLL is called cygvirtmod.dll
 try:
     import libvirtmod
@@ -17,15 +22,6 @@ import types
 # The root of all libvirt errors.
 class libvirtError(Exception):
     def __init__(self, defmsg, conn=None, dom=None, net=None, pool=None, vol=None):
-
-        if dom is not None:
-            conn = dom._conn
-        elif net is not None:
-            conn = net._conn
-        elif pool is not None:
-            conn = pool._conn
-        elif vol is not None:
-            conn = vol._conn
 
         # Never call virConnGetLastError().
         # virGetLastError() is now thread local

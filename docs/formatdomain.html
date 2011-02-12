@@ -41,6 +41,10 @@
               <a title="Information for users, administrators and developers" class="active" href="docs.html">Documentation</a>
               <ul class="l1"><li>
                   <div>
+                    <a title="How to compile libvirt" class="inactive" href="compiling.html">Compiling</a>
+                  </div>
+                </li><li>
+                  <div>
                     <a title="Information about deploying and using libvirt" class="inactive" href="deployment.html">Deployment</a>
                   </div>
                 </li><li>
@@ -99,6 +103,14 @@
                 </li><li>
                   <div>
                     <a title="Working on the internals of libvirt API, driver and daemon code" class="inactive" href="internals.html">Internals</a>
+                  </div>
+                </li><li>
+                  <div>
+                    <a title="A guide and reference for developing with libvirt" class="inactive" href="devguide.html">Development Guide</a>
+                  </div>
+                </li><li>
+                  <div>
+                    <a title="Command reference for virsh" class="inactive" href="virshcmdref.html">Virsh Commands</a>
                   </div>
                 </li></ul>
             </div>
@@ -381,7 +393,13 @@
   &lt;memoryBacking&gt;
     &lt;hugepages/&gt;
   &lt;/memoryBacking&gt;
-  &lt;vcpu&gt;1&lt;/vcpu&gt;
+  &lt;memtune&gt;
+    &lt;hard_limit&gt;1048576&lt;/hard_limit&gt;
+    &lt;soft_limit&gt;131072&lt;/soft_limit&gt;
+    &lt;swap_hard_limit&gt;2097152&lt;/swap_hard_limit&gt;
+    &lt;min_guarantee&gt;65536&lt;/min_guarantee&gt;
+  &lt;/memtune&gt;
+  &lt;vcpu cpuset="1-4,^3,6" current="1"&gt;2&lt;/vcpu&gt;
   ...</pre>
         <dl><dt><code>memory</code></dt><dd>The maximum allocation of memory for the guest at boot time.
         The units for this value are kilobytes (i.e. blocks of 1024 bytes)</dd><dt><code>currentMemory</code></dt><dd>The actual allocation of memory for the guest. This value
@@ -390,8 +408,29 @@
         to the same value as the <code>memory<code> element</code></code></dd><dt><code>memoryBacking</code></dt><dd>The optional <code>memoryBacking</code> element, may have an
         <code>hugepages</code> element set within it. This tells the
         hypervisor that the guest should have its memory allocated using
-        hugepages instead of the normal native page size.</dd><dt><code>vcpu</code></dt><dd>The content of this element defines the number of virtual
-        CPUs allocated for the guest OS.</dd></dl>
+        hugepages instead of the normal native page size.</dd><dt><code>memtune</code></dt><dd> The optional <code>memtune</code> element provides details
+      regarding the memory tuneable parameters for the domain. If this is
+      omitted, it defaults to the OS provided defaults.</dd><dt><code>hard_limit</code></dt><dd> The optional <code>hard_limit</code> element is the maximum memory
+	the guest can use. The units for this value are kilobytes (i.e. blocks
+	of 1024 bytes)</dd><dt><code>soft_limit</code></dt><dd> The optional <code>soft_limit</code> element is the memory limit to
+	enforce during memory contention. The units for this value are
+	kilobytes (i.e. blocks of 1024 bytes)</dd><dt><code>swap_hard_limit</code></dt><dd> The optional <code>swap_hard_limit</code> element is the maximum
+	swap the guest can use. The units for this value are kilobytes
+	(i.e. blocks of 1024 bytes)</dd><dt><code>min_guarantee</code></dt><dd> The optional <code>min_guarantee</code> element is the guaranteed
+	minimum memory allocation for the guest. The units for this value are
+	kilobytes (i.e. blocks of 1024 bytes)</dd><dt><code>vcpu</code></dt><dd>The content of this element defines the maximum number of virtual
+        CPUs allocated for the guest OS, which must be between 1 and
+        the maximum supported by the hypervisor.  <span class="since">Since
+        0.4.4</span>, this element can contain an optional
+        <code>cpuset</code> attribute, which is a comma-separated
+        list of physical CPU numbers that virtual CPUs can be pinned
+        to.  Each element in that list is either a single CPU number,
+        a range of CPU numbers, or a caret followed by a CPU number to
+        be excluded from a previous range.  <span class="since">Since
+        0.8.5</span>, the optional attribute <code>current</code> can
+        be used to specify whether fewer than the maximum number of
+        virtual CPUs should be enabled.
+      </dd></dl>
         <h3>
           <a name="elementsCPU" id="elementsCPU">CPU model and topology</a>
         </h3>
@@ -431,7 +470,9 @@
         <dl><dt><code>minimum</code></dt><dd>The specified CPU model and features describes the minimum
             requested CPU.</dd><dt><code>exact</code></dt><dd>The virtual CPU provided to the guest will exactly match the
             specification</dd><dt><code>strict</code></dt><dd>The guest will not be created unless the host CPU does exactly
-            match the specification.</dd></dl></dd><dt><code>model</code></dt><dd>The content of the <code>model</code> element specifies CPU model
+            match the specification.</dd></dl><span class="since">Since 0.8.5</span> the <code>match</code>
+	attribute can be omitted and will default to <code>exact</code>.
+      </dd><dt><code>model</code></dt><dd>The content of the <code>model</code> element specifies CPU model
         requested by the guest. The list of available CPU models and their
         definition can be found in <code>cpu_map.xml</code> file installed
         in libvirt's data directory.</dd><dt><code>vendor</code></dt><dd><span class="since">Since 0.8.3</span> the content of the
@@ -453,7 +494,9 @@
             of it being supported by host CPU.</dd><dt><code>require</code></dt><dd>Guest creation will fail unless the feature is supported by host
             CPU.</dd><dt><code>optional</code></dt><dd>The feature will be supported by virtual CPU if and only if it
             is supported by host CPU.</dd><dt><code>disable</code></dt><dd>The feature will not be supported by virtual CPU.</dd><dt><code>forbid</code></dt><dd>Guest creation will fail if the feature is supported by host
-            CPU.</dd></dl></dd></dl>
+            CPU.</dd></dl><span class="since">Since 0.8.5</span> the <code>policy</code>
+	attribute can be omitted and will default to <code>require</code>.
+      </dd></dl>
         <h3>
           <a name="elementsLifecycle" id="elementsLifecycle">Lifecycle control</a>
         </h3>
@@ -483,6 +526,14 @@
         the same configuration</dd><dt><code>preserve</code></dt><dd>The domain will be terminated, and its resource preserved
         to allow analysis.</dd><dt><code>rename-restart</code></dt><dd>The domain will be terminated, and then restarted with
         a new name</dd></dl>
+        <p>
+      on_crash supports these additional
+      actions <span class="since">since 0.8.4</span>.
+    </p>
+        <dl><dt><code>coredump-destroy</code></dt><dd>The crashed domain's core will be dumped, and then the
+        domain will be terminated completely and all resources
+        released</dd><dt><code>coredump-restart</code></dt><dd>The crashed domain's core will be dumped, and then the
+        domain will be restarted with the same configuration</dd></dl>
         <h3>
           <a name="elementsFeatures" id="elementsFeatures">Hypervisor features</a>
         </h3>
@@ -520,10 +571,15 @@
     </p>
         <pre>
   ...
-  &lt;clock offset="localtime"/&gt;
+  &lt;clock offset="localtime"&gt;
+    &lt;timer name="rtc" tickpolicy="catchup" track="guest"&gt;
+      &lt;catchup threshold=123 slew=120 limit=10000/&gt;
+    &lt;/timer&gt;
+    &lt;timer name="pit" tickpolicy="none"/&gt;
+  &lt;/clock&gt;
   ...</pre>
         <dl><dt><code>clock</code></dt><dd>
-	<p>The <code>offset</code> attribute takes three possible
+	<p>The <code>offset</code> attribute takes four possible
 	  values, allowing fine grained control over how the guest
 	  clock is synchronized to the host. NB, not all hypervisors
 	  support all modes.</p>
@@ -535,6 +591,7 @@
 	  </dd><dt><code>timezone</code></dt><dd>
 	    The guest clock will be synchronized to the requested timezone
 	    using the <code>timezone</code> attribute.
+	    <span class="since">Since 0.7.7</span>
 	  </dd><dt><code>variable</code></dt><dd>
 	    The guest clock will have an arbitrary offset applied
 	    relative to UTC. The delta relative to UTC is specified
@@ -542,12 +599,52 @@
 	    The guest is free to adjust the RTC over time an expect
 	    that it will be honoured at next reboot. This is in
 	    contrast to 'utc' mode, where the RTC adjustments are
-	    lost at each reboot.
+	    lost at each reboot. <span class="since">Since 0.7.7</span>
 	  </dd></dl><p>
-	  NB, at time of writing, only QEMU supports the variable
-	  clock mode, or custom timezones.
+	  A <code>clock</code> may have zero or more
+	  <code>timer</code>sub-elements. <span class="since">Since
+	  0.8.0</span>
 	</p>
-      </dd></dl>
+      </dd><dt><code>timer</code></dt><dd>
+	<p>
+	  Each timer element requires a <code>name</code> attribute,
+	  and has other optional attributes that depend on
+	  the <code>name</code> specified.  Various hypervisors
+	  support different combinations of attributes.
+	</p>
+	<dl><dt><code>name</code></dt><dd>
+	    The <code>name</code> attribute selects which timer is
+	    being modified, and can be one of "platform", "pit",
+	    "rtc", "hpet", or "tsc".
+	  </dd><dt><code>track</code></dt><dd>
+	    The <code>track</code> attribute specifies what the timer
+	    tracks, and can be "boot", "guest", or "wall".
+	    Only valid for <code>name="rtc"</code>
+	    or <code>name="platform"</code>.
+	  </dd><dt><code>tickpolicy</code></dt><dd>
+	    The <code>tickpolicy</code> attribute determines how
+	    missed ticks in the guest are handled, and can be "delay",
+	    "catchup", "merge", or "discard".  If the policy is
+	    "catchup", there can be further details in
+	    the <code>catchup</code> sub-element.
+	    <dl><dt><code>catchup</code></dt><dd>
+		The <code>catchup</code> element has three optional
+		attributes, each a positive integer.  The attributes
+		are <code>threshold</code>, <code>slew</code>,
+		and <code>limit</code>.
+	      </dd></dl></dd><dt><code>frequency</code></dt><dd>
+	    The <code>frequency</code> attribute is an unsigned
+	    integer specifying the frequency at
+	    which <code>name="tsc"</code> runs.
+	  </dd><dt><code>mode</code></dt><dd>
+	    The <code>mode</code> attribute controls how
+	    the <code>name="tsc"</code> timer is managed, and can be
+	    "auto", "native", "emulate", "paravirt", or "smpsafe".
+	    Other timers are always emulated.
+	  </dd><dt><code>present</code></dt><dd>
+	    The <code>present</code> attribute can be "yes" or "no" to
+	    specify whether a particular timer is available to the guest.
+	  </dd></dl></dd></dl>
         <h3>
           <a name="elementsDevices" id="elementsDevices">Devices</a>
         </h3>
@@ -593,18 +690,40 @@
         ...
       &lt;/serial&gt;
     &lt;/disk&gt;
+      ...
+    &lt;disk type='network'&gt;
+      &lt;driver name="qemu" type="raw"/&gt;
+      &lt;source protocol="sheepdog" name="image_name"&gt;
+        &lt;host name="hostname" port="7000"/&gt;
+      &lt;/source&gt;
+      &lt;target dev="hdb" bus="ide"/&gt;
+    &lt;/disk&gt;
   &lt;/devices&gt;
   ...</pre>
         <dl><dt><code>disk</code></dt><dd>The <code>disk</code> element is the main container for describing
-        disks. The <code>type</code> attribute is either "file" or "block"
+        disks. The <code>type</code> attribute is either "file",
+        "block", "dir", or "network"
         and refers to the underlying source for the disk. The optional
         <code>device</code> attribute indicates how the disk is to be exposed
         to the guest OS. Possible values for this attribute are "floppy", "disk"
         and "cdrom", defaulting to "disk".
-        <span class="since">Since 0.0.3; "device" attribute since 0.1.4</span></dd><dt><code>source</code></dt><dd>If the disk <code>type</code> is "file", then the <code>file</code> attribute
-        specifies the fully-qualified path to the file holding the disk. If the disk
-        <code>type</code> is "block", then the <code>dev</code> attribute specifies
-        the path to the host device to serve as the disk. <span class="since">Since 0.0.3</span></dd><dt><code>target</code></dt><dd>The <code>target</code> element controls the bus / device under which the
+        <span class="since">Since 0.0.3; "device" attribute since 0.1.4;
+        "network" attribute since 0.8.7</span></dd><dt><code>source</code></dt><dd>If the disk <code>type</code> is "file", then the
+        the <code>file</code> attribute specifies the fully-qualified
+        path to the file holding the disk. If the disk
+        <code>type</code> is "block", then the <code>dev</code>
+        attribute specifies the path to the host device to serve as
+        the disk. If the disk <code>type</code> is "network", then
+        the <code>protocol</code> attribute specifies the protocol to
+        access to the requested image; possible values are "nbd",
+        "rbd", and "sheepdog".  If the <code>protocol</code> attribute
+        is "rbd" or "sheepdog", an additional
+        attribute <code>name</code> is mandatory to specify which
+        image to be used.  When the disk <code>type</code> is
+        "network", the <code>source</code> may have zero or
+        more <code>host</code> sub-elements used to specify the hosts
+        to connect.
+        <span class="since">Since 0.0.3</span></dd><dt><code>target</code></dt><dd>The <code>target</code> element controls the bus / device under which the
         disk is exposed to the guest OS. The <code>dev</code> attribute indicates
         the "logical" device name. The actual device name specified is not guaranteed to map to
         the device name in the guest OS. Treat it as a device ordering hint.
@@ -629,7 +748,10 @@
       </dd><dt><code>serial</code></dt><dd>If present, this specify serial number of virtual hard drive.
           For example, it may look as <code>&lt;serial&gt;WD-WMAP9A966149&lt;/serial&gt;</code>.
           <span class="since">Since 0.7.1</span>
-      </dd></dl>
+      </dd><dt><code>host</code></dt><dd>The <code>host</code> element has two attributes "name" and "port",
+        which specify the hostname and the port number. The meaning of this
+        element and the number of the elements depend on the protocol attribute.
+        <table class="top_table"><tr><th> Protocol </th><th> Meaning </th><th> Number of hosts </th></tr><tr><td> nbd </td><td> a server running nbd-server </td><td> only one </td></tr><tr><td> rbd </td><td> monitor servers of RBD </td><td> one or more </td></tr><tr><td> sheepdog </td><td> one of the sheepdog servers (default is localhost:7000) </td><td> zero or one </td></tr></table></dd></dl>
         <h4>
           <a name="elementsUSB" id="elementsUSB">USB and PCI devices</a>
         </h4>
@@ -1002,7 +1124,36 @@ qemu-kvm -net nic,model=? /dev/null
   The <code>listen</code> attribute is an IP address for the server to
   listen on. The <code>passwd</code> attribute provides a VNC password
   in clear text. The <code>keymap</code> attribute specifies the keymap
-  to use.
+  to use. It is possible to set a limit on the validity of the password
+  be giving an timestamp <code>passwdValidTo='2010-04-09T15:51:00'</code>
+  assumed to be in UTC. NB, this may not be supported by all hypervisors.
+          </dd><dt><code>"spice"</code></dt><dd>
+	    <p>
+  Starts a SPICE server. The <code>port</code> attribute specifies the TCP
+  port number (with -1 as legacy syntax indicating that it should be
+  auto-allocated), while <code>tlsPort</code> gives an alternative
+  secure port number. The <code>autoport</code> attribute is the new
+  preferred syntax for indicating autoallocation of both port numbers.
+  The <code>listen</code> attribute is an IP address for the server to
+  listen on. The <code>passwd</code> attribute provides a SPICE password
+  in clear text. The <code>keymap</code> attribute specifies the keymap
+  to use. It is possible to set a limit on the validity of the password
+  be giving an timestamp <code>passwdValidTo='2010-04-09T15:51:00'</code>
+  assumed to be in UTC. NB, this may not be supported by all hypervisors.
+	    </p>
+	    <p>
+  When SPICE has both a normal and TLS secured TCP port configured, it
+  can be desirable to restrict what channels can be run on each port.
+  This is achieved by adding one or more &lt;channel&gt; elements inside
+  the main &lt;graphics&gt; element. Valid channel names include
+  <code>main</code>,<code>display</code>,<code>inputs</code>,<code>cursor</code>,
+  <code>playback</code>,<code>record</code>.
+	    </p>
+	    <pre>
+  &lt;graphics type='spice' port='-1' tlsPort='-1' autoport='yes'&gt;
+    &lt;channel name='main' mode='secure'/&gt;
+    &lt;channel name='record' mode='insecure'/&gt;
+  &lt;/graphics&gt;</pre>
           </dd><dt><code>"rdp"</code></dt><dd>
   Starts a RDP server. The <code>port</code> attribute
   specifies the TCP port number (with -1 as legacy syntax indicating
@@ -1041,7 +1192,8 @@ qemu-kvm -net nic,model=? /dev/null
         video devices.
       </dd><dt><code>model</code></dt><dd>
         The <code>model</code> element has a mandatory <code>type</code>
-        attribute which takes the value "vga", "cirrus", "vmvga", "xen" or "vbox".
+        attribute which takes the value "vga", "cirrus", "vmvga", "qxl",
+	"xen" or "vbox", depending on the hypervisor features available.
         You can also provide the amount of video memory in kilobytes using
         <code>vram</code> and the number of screen with <code>heads</code>.
       </dd><dt><code>acceleration</code></dt><dd>
@@ -1357,7 +1509,9 @@ qemu-kvm -net nic,model=? /dev/null
   &lt;/devices&gt;
   ...</pre>
         <p>
-      Alternatively you can use telnet instead of raw TCP.
+      Alternatively you can use <code>telnet</code> instead of <code>raw</code> TCP.
+      <span class="since">Since 0.8.5</span> you can also use <code>telnets</code>
+      (secure telnet) and <code>tls</code>.
     </p>
         <p>
 
@@ -1481,12 +1635,17 @@ qemu-kvm -net nic,model=? /dev/null
         QEMU and KVM support:
         </p>
         <ul><li>'reset' — default, forcefully reset the guest</li><li>'shutdown' — gracefully shutdown the guest
-            (not recommended) </li><li>'poweroff' — forcefully power off the guest</li><li>'pause' — pause the guest</li><li>'none' — do nothing</li></ul><p>
-        Note that the 'shutdown' action requires that the guest
+            (not recommended) </li><li>'poweroff' — forcefully power off the guest</li><li>'pause' — pause the guest</li><li>'none' — do nothing</li><li>'dump' — automatically dump the guest
+            <span class="since">Since 0.8.7</span></li></ul><p>
+        Note 1: the 'shutdown' action requires that the guest
         is responsive to ACPI signals.  In the sort of situations
         where the watchdog has expired, guests are usually unable
         to respond to ACPI signals.  Therefore using 'shutdown'
         is not recommended.
+        </p>
+        <p>
+        Note 2: the directory to save dump files can be configured
+        by <code>auto_dump_path</code> in file /etc/libvirt/qemu.conf.
         </p>
       </dd></dl>
         <h4>
@@ -1499,6 +1658,9 @@ qemu-kvm -net nic,model=? /dev/null
       need to explicitly add this element in the guest XML unless a
       specific PCI slot needs to be assigned.
       <span class="since">Since 0.8.3, Xen, QEMU and KVM only</span>
+      Additionally, <span class="since">since 0.8.4</span>, if the
+      memballoon device needs to be explicitly disabled,
+      <code>model='none'</code> may be used.
     </p>
         <p>
       Example automatically added device with KVM

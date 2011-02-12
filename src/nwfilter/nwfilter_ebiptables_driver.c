@@ -23,7 +23,9 @@
 
 #include <config.h>
 
+#include <string.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 
 #include "internal.h"
 
@@ -35,6 +37,7 @@
 #include "nwfilter_conf.h"
 #include "nwfilter_gentech_driver.h"
 #include "nwfilter_ebiptables_driver.h"
+#include "files.h"
 
 
 #define VIR_FROM_THIS VIR_FROM_NWFILTER
@@ -49,12 +52,16 @@
 #define CHAINPREFIX_HOST_IN_TEMP  'J'
 #define CHAINPREFIX_HOST_OUT_TEMP 'P'
 
+/* This file generates a temporary shell script.  Since ebiptables is
+   Linux-specific, we can be reasonably certain that /bin/sh is more
+   or less POSIX-compliant, so we can use $() and $(()).  However, we
+   cannot assume that /bin/sh is bash, so stick to POSIX syntax.  */
 
 #define CMD_SEPARATOR "\n"
-#define CMD_DEF_PRE  "cmd=\""
-#define CMD_DEF_POST "\""
+#define CMD_DEF_PRE  "cmd='"
+#define CMD_DEF_POST "'"
 #define CMD_DEF(X) CMD_DEF_PRE X CMD_DEF_POST
-#define CMD_EXEC   "res=`${cmd}`" CMD_SEPARATOR
+#define CMD_EXEC   "eval res=\\$\\(\"${cmd}\"\\)" CMD_SEPARATOR
 #define CMD_STOPONERR(X) \
     X ? "if [ $? -ne 0 ]; then" \
         "  echo \"Failure to execute command '${cmd}'.\";" \
@@ -63,10 +70,16 @@
       : ""
 
 
+#define PROC_BRIDGE_NF_CALL_IPTABLES \
+        "/proc/sys/net/bridge/bridge-nf-call-iptables"
+#define PROC_BRIDGE_NF_CALL_IP6TABLES \
+        "/proc/sys/net/bridge/bridge-nf-call-ip6tables"
+
+#define BRIDGE_NF_CALL_ALERT_INTERVAL  10 /* seconds */
+
 static char *ebtables_cmd_path;
 static char *iptables_cmd_path;
 static char *ip6tables_cmd_path;
-static char *bash_cmd_path;
 static char *grep_cmd_path;
 static char *gawk_cmd_path;
 
@@ -98,12 +111,15 @@ static const char *m_physdev_out_str = "-m physdev " PHYSDEV_OUT;
 #define MATCH_PHYSDEV_IN   m_physdev_in_str
 #define MATCH_PHYSDEV_OUT  m_physdev_out_str
 
+#define COMMENT_VARNAME "comment"
 
 static int ebtablesRemoveBasicRules(const char *ifname);
 static int ebiptablesDriverInit(void);
 static void ebiptablesDriverShutdown(void);
 static int ebtablesCleanAll(const char *ifname);
+static int ebiptablesAllTeardown(const char *ifname);
 
+static virMutex execCLIMutex;
 
 struct ushort_map {
     unsigned short attr;
@@ -178,13 +194,9 @@ _printDataType(virNWFilterHashTablePtr vars,
 
     switch (item->datatype) {
     case DATATYPE_IPADDR:
-        data = virSocketFormatAddr(&item->u.ipaddr.addr);
-        if (!data) {
-            virNWFilterReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                   _("internal IPv4 address representation "
-                                     "is bad"));
+        data = virSocketFormatAddr(&item->u.ipaddr);
+        if (!data)
             return 1;
-        }
         if (snprintf(buf, bufsize, "%s", data) >= bufsize) {
             virNWFilterReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                    _("buffer too small for IP address"));
@@ -195,13 +207,9 @@ _printDataType(virNWFilterHashTablePtr vars,
     break;
 
     case DATATYPE_IPV6ADDR:
-        data = virSocketFormatAddr(&item->u.ipaddr.addr);
-        if (!data) {
-            virNWFilterReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                   _("internal IPv6 address representation "
-                                     "is bad"));
+        data = virSocketFormatAddr(&item->u.ipaddr);
+        if (!data)
             return 1;
-        }
 
         if (snprintf(buf, bufsize, "%s", data) >= bufsize) {
             virNWFilterReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -279,6 +287,26 @@ printDataTypeAsHex(virNWFilterHashTablePtr vars,
                    nwItemDescPtr item)
 {
     return _printDataType(vars, buf, bufsize, item, 1);
+}
+
+
+static void
+printCommentVar(virBufferPtr dest, const char *buf)
+{
+    size_t i, len = strlen(buf);
+
+    virBufferAddLit(dest, COMMENT_VARNAME "='");
+
+    if (len > IPTABLES_MAX_COMMENT_LENGTH)
+        len = IPTABLES_MAX_COMMENT_LENGTH;
+
+    for (i = 0; i < len; i++) {
+        if (buf[i] == '\'')
+            virBufferAddLit(dest, "'\\''");
+        else
+            virBufferAddChar(dest, buf[i]);
+    }
+    virBufferAddLit(dest,"'" CMD_SEPARATOR);
 }
 
 
@@ -403,7 +431,7 @@ static int iptablesLinkIPTablesBaseChain(const char *iptables_cmd,
                       "    " CMD_DEF("%s -I %s %d -j %s") CMD_SEPARATOR
                       "    " CMD_EXEC
                       "    %s"
-                      "    let r=r+1\n"
+                      "    r=$(( $r + 1 ))\n"
                       "    " CMD_DEF("%s -D %s ${r}") CMD_SEPARATOR
                       "    " CMD_EXEC
                       "    %s"
@@ -624,9 +652,9 @@ iptablesSetupVirtInPost(const char *iptables_cmd,
 {
     const char *match = MATCH_PHYSDEV_IN;
     virBufferVSprintf(buf,
-                      "res=$(%s -L " VIRT_IN_POST_CHAIN
+                      "res=$(%s -n -L " VIRT_IN_POST_CHAIN
                       " | grep \"\\%s %s\")\n"
-                      "if [ \"${res}\" == \"\" ]; then "
+                      "if [ \"${res}\" = \"\" ]; then "
                         CMD_DEF("%s"
                         " -A " VIRT_IN_POST_CHAIN
                         " %s %s -j ACCEPT") CMD_SEPARATOR
@@ -837,7 +865,8 @@ iptablesHandleIpHdr(virBufferPtr buf,
                     virNWFilterHashTablePtr vars,
                     ipHdrDataDefPtr ipHdr,
                     int directionIn,
-                    bool *skipRule, bool *skipMatch)
+                    bool *skipRule, bool *skipMatch,
+                    virBufferPtr prefix)
 {
     char ipaddr[INET6_ADDRSTRLEN],
          number[20];
@@ -984,6 +1013,13 @@ iptablesHandleIpHdr(virBufferPtr buf,
         }
     }
 
+    if (HAS_ENTRY_ITEM(&ipHdr->dataComment)) {
+        printCommentVar(prefix, ipHdr->dataComment.u.string);
+
+        virBufferAddLit(buf,
+                        " -m comment --comment \"$" COMMENT_VARNAME "\"");
+    }
+
     return 0;
 
 err_exit:
@@ -1061,6 +1097,19 @@ err_exit:
     return 1;
 }
 
+
+static void
+iptablesEnforceDirection(int directionIn,
+                         virNWFilterRuleDefPtr rule,
+                         virBufferPtr buf)
+{
+    if (rule->tt != VIR_NWFILTER_RULE_DIRECTION_INOUT)
+        virBufferVSprintf(buf, " -m conntrack --ctdir %s",
+                          (directionIn) ? "Original"
+                                        : "Reply");
+}
+
+
 /*
  * _iptablesCreateRuleInstance:
  * @chainPrefix : The prefix to put in front of the name of the chain
@@ -1090,14 +1139,16 @@ _iptablesCreateRuleInstance(int directionIn,
                             const char *ifname,
                             virNWFilterHashTablePtr vars,
                             virNWFilterRuleInstPtr res,
-                            const char *match,
+                            const char *match, bool defMatch,
                             const char *accept_target,
                             bool isIPv6,
                             bool maySkipICMP)
 {
     char chain[MAX_CHAINNAME_LENGTH];
     char number[20];
+    virBuffer prefix = VIR_BUFFER_INITIALIZER;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
+    virBufferPtr final = NULL;
     const char *target;
     const char *iptables_cmd = (isIPv6) ? ip6tables_cmd_path
                                         : iptables_cmd_path;
@@ -1105,6 +1156,7 @@ _iptablesCreateRuleInstance(int directionIn,
     bool srcMacSkipped = false;
     bool skipRule = false;
     bool skipMatch = false;
+    bool hasICMPType = false;
 
     if (!iptables_cmd) {
         virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
@@ -1139,7 +1191,8 @@ _iptablesCreateRuleInstance(int directionIn,
                                 vars,
                                 &rule->p.tcpHdrFilter.ipHdr,
                                 directionIn,
-                                &skipRule, &skipMatch))
+                                &skipRule, &skipMatch,
+                                &prefix))
             goto err_exit;
 
         if (iptablesHandlePortData(&buf,
@@ -1184,7 +1237,8 @@ _iptablesCreateRuleInstance(int directionIn,
                                 vars,
                                 &rule->p.udpHdrFilter.ipHdr,
                                 directionIn,
-                                &skipRule, &skipMatch))
+                                &skipRule, &skipMatch,
+                                &prefix))
             goto err_exit;
 
         if (iptablesHandlePortData(&buf,
@@ -1216,7 +1270,8 @@ _iptablesCreateRuleInstance(int directionIn,
                                 vars,
                                 &rule->p.udpliteHdrFilter.ipHdr,
                                 directionIn,
-                                &skipRule, &skipMatch))
+                                &skipRule, &skipMatch,
+                                &prefix))
             goto err_exit;
 
     break;
@@ -1243,7 +1298,8 @@ _iptablesCreateRuleInstance(int directionIn,
                                 vars,
                                 &rule->p.espHdrFilter.ipHdr,
                                 directionIn,
-                                &skipRule, &skipMatch))
+                                &skipRule, &skipMatch,
+                                &prefix))
             goto err_exit;
 
     break;
@@ -1270,7 +1326,8 @@ _iptablesCreateRuleInstance(int directionIn,
                                 vars,
                                 &rule->p.ahHdrFilter.ipHdr,
                                 directionIn,
-                                &skipRule, &skipMatch))
+                                &skipRule, &skipMatch,
+                                &prefix))
             goto err_exit;
 
     break;
@@ -1297,7 +1354,8 @@ _iptablesCreateRuleInstance(int directionIn,
                                 vars,
                                 &rule->p.sctpHdrFilter.ipHdr,
                                 directionIn,
-                                &skipRule, &skipMatch))
+                                &skipRule, &skipMatch,
+                                &prefix))
             goto err_exit;
 
         if (iptablesHandlePortData(&buf,
@@ -1332,11 +1390,14 @@ _iptablesCreateRuleInstance(int directionIn,
                                 vars,
                                 &rule->p.icmpHdrFilter.ipHdr,
                                 directionIn,
-                                &skipRule, &skipMatch))
+                                &skipRule, &skipMatch,
+                                &prefix))
             goto err_exit;
 
         if (HAS_ENTRY_ITEM(&rule->p.icmpHdrFilter.dataICMPType)) {
             const char *parm;
+
+            hasICMPType = true;
 
             if (maySkipICMP)
                 goto exit_no_error;
@@ -1391,7 +1452,8 @@ _iptablesCreateRuleInstance(int directionIn,
                                 vars,
                                 &rule->p.igmpHdrFilter.ipHdr,
                                 directionIn,
-                                &skipRule, &skipMatch))
+                                &skipRule, &skipMatch,
+                                &prefix))
             goto err_exit;
 
     break;
@@ -1418,7 +1480,8 @@ _iptablesCreateRuleInstance(int directionIn,
                                 vars,
                                 &rule->p.allHdrFilter.ipHdr,
                                 directionIn,
-                                &skipRule, &skipMatch))
+                                &skipRule, &skipMatch,
+                                &prefix))
             goto err_exit;
 
     break;
@@ -1430,6 +1493,7 @@ _iptablesCreateRuleInstance(int directionIn,
     if ((srcMacSkipped && bufUsed == virBufferUse(&buf)) ||
          skipRule) {
         virBufferFreeAndReset(&buf);
+        virBufferFreeAndReset(&prefix);
         return 0;
     }
 
@@ -1437,26 +1501,49 @@ _iptablesCreateRuleInstance(int directionIn,
         target = accept_target;
     else {
         target = "DROP";
-        skipMatch = true;
+        skipMatch = defMatch;
     }
 
     if (match && !skipMatch)
         virBufferVSprintf(&buf, " %s", match);
 
+    if (defMatch && match != NULL && !skipMatch && !hasICMPType)
+        iptablesEnforceDirection(directionIn,
+                                 rule,
+                                 &buf);
 
     virBufferVSprintf(&buf,
                       " -j %s" CMD_DEF_POST CMD_SEPARATOR
                       CMD_EXEC,
                       target);
 
-    if (virBufferError(&buf)) {
+    if (virBufferError(&buf) || virBufferError(&prefix)) {
         virBufferFreeAndReset(&buf);
+        virBufferFreeAndReset(&prefix);
         virReportOOMError();
         return -1;
     }
 
+    if (virBufferUse(&prefix)) {
+        char *s = virBufferContentAndReset(&buf);
+
+        virBufferAdd(&prefix, s, -1);
+
+        VIR_FREE(s);
+
+        final = &prefix;
+
+        if (virBufferError(&prefix)) {
+            virBufferFreeAndReset(&prefix);
+            virReportOOMError();
+            return -1;
+        }
+    } else
+        final = &buf;
+
+
     return ebiptablesAddRuleInst(res,
-                                 virBufferContentAndReset(&buf),
+                                 virBufferContentAndReset(final),
                                  nwfilter->chainsuffix,
                                  '\0',
                                  rule->priority,
@@ -1465,13 +1552,158 @@ _iptablesCreateRuleInstance(int directionIn,
 
 err_exit:
     virBufferFreeAndReset(&buf);
+    virBufferFreeAndReset(&prefix);
 
     return -1;
 
 exit_no_error:
     virBufferFreeAndReset(&buf);
+    virBufferFreeAndReset(&prefix);
 
     return 0;
+}
+
+
+static int
+printStateMatchFlags(int32_t flags, char **bufptr)
+{
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    virNWFilterPrintStateMatchFlags(&buf,
+                                    "-m state --state ",
+                                    flags,
+                                    false);
+    if (virBufferError(&buf)) {
+        virBufferFreeAndReset(&buf);
+        virReportOOMError();
+        return 1;
+    }
+    *bufptr = virBufferContentAndReset(&buf);
+    return 0;
+}
+
+static int
+iptablesCreateRuleInstanceStateCtrl(virNWFilterDefPtr nwfilter,
+                                    virNWFilterRuleDefPtr rule,
+                                    const char *ifname,
+                                    virNWFilterHashTablePtr vars,
+                                    virNWFilterRuleInstPtr res,
+                                    bool isIPv6)
+{
+    int rc;
+    int directionIn = 0, directionOut = 0;
+    char chainPrefix[2];
+    bool maySkipICMP, inout = false;
+    char *matchState = NULL;
+    bool create;
+
+    if ((rule->tt == VIR_NWFILTER_RULE_DIRECTION_IN) ||
+        (rule->tt == VIR_NWFILTER_RULE_DIRECTION_INOUT)) {
+        directionIn = 1;
+        directionOut = inout = (rule->tt == VIR_NWFILTER_RULE_DIRECTION_INOUT);
+    } else
+        directionOut = 1;
+
+    chainPrefix[0] = 'F';
+
+    maySkipICMP = directionIn || inout;
+
+    create = true;
+    matchState = NULL;
+
+    if (directionIn && !inout) {
+        if ((rule->flags & IPTABLES_STATE_FLAGS))
+            create = false;
+    }
+
+    if (create && (rule->flags & IPTABLES_STATE_FLAGS)) {
+        if (printStateMatchFlags(rule->flags, &matchState))
+            return 1;
+    }
+
+    chainPrefix[1] = CHAINPREFIX_HOST_IN_TEMP;
+    if (create) {
+        rc = _iptablesCreateRuleInstance(directionIn,
+                                         chainPrefix,
+                                         nwfilter,
+                                         rule,
+                                         ifname,
+                                         vars,
+                                         res,
+                                         matchState, false,
+                                         "RETURN",
+                                         isIPv6,
+                                         maySkipICMP);
+
+        VIR_FREE(matchState);
+        if (rc)
+            return rc;
+    }
+
+    maySkipICMP = !directionIn || inout;
+    create = true;
+
+    if (!directionIn) {
+        if ((rule->flags & IPTABLES_STATE_FLAGS))
+            create = false;
+    }
+
+    if (create && (rule->flags & IPTABLES_STATE_FLAGS)) {
+        if (printStateMatchFlags(rule->flags, &matchState))
+            return 1;
+    }
+
+    chainPrefix[1] = CHAINPREFIX_HOST_OUT_TEMP;
+    if (create) {
+        rc = _iptablesCreateRuleInstance(!directionIn,
+                                         chainPrefix,
+                                         nwfilter,
+                                         rule,
+                                         ifname,
+                                         vars,
+                                         res,
+                                         matchState, false,
+                                         "ACCEPT",
+                                         isIPv6,
+                                         maySkipICMP);
+
+        VIR_FREE(matchState);
+
+        if (rc)
+            return rc;
+    }
+
+    maySkipICMP = directionIn;
+
+    create = true;
+
+    if (directionIn && !inout) {
+        if ((rule->flags & IPTABLES_STATE_FLAGS))
+            create = false;
+    } else {
+        if ((rule->flags & IPTABLES_STATE_FLAGS)) {
+            if (printStateMatchFlags(rule->flags, &matchState))
+                return 1;
+        }
+    }
+
+    if (create) {
+        chainPrefix[0] = 'H';
+        chainPrefix[1] = CHAINPREFIX_HOST_IN_TEMP;
+        rc = _iptablesCreateRuleInstance(directionIn,
+                                         chainPrefix,
+                                         nwfilter,
+                                         rule,
+                                         ifname,
+                                         vars,
+                                         res,
+                                         matchState, false,
+                                         "RETURN",
+                                         isIPv6,
+                                         maySkipICMP);
+        VIR_FREE(matchState);
+    }
+
+    return rc;
 }
 
 
@@ -1489,6 +1721,16 @@ iptablesCreateRuleInstance(virNWFilterDefPtr nwfilter,
     int needState = 1;
     bool maySkipICMP, inout = false;
     const char *matchState;
+
+    if (!(rule->flags & RULE_FLAG_NO_STATEMATCH) &&
+         (rule->flags & IPTABLES_STATE_FLAGS)) {
+        return iptablesCreateRuleInstanceStateCtrl(nwfilter,
+                                                   rule,
+                                                   ifname,
+                                                   vars,
+                                                   res,
+                                                   isIPv6);
+    }
 
     if ((rule->tt == VIR_NWFILTER_RULE_DIRECTION_IN) ||
         (rule->tt == VIR_NWFILTER_RULE_DIRECTION_INOUT)) {
@@ -1518,7 +1760,7 @@ iptablesCreateRuleInstance(virNWFilterDefPtr nwfilter,
                                      ifname,
                                      vars,
                                      res,
-                                     matchState,
+                                     matchState, true,
                                      "RETURN",
                                      isIPv6,
                                      maySkipICMP);
@@ -1540,7 +1782,7 @@ iptablesCreateRuleInstance(virNWFilterDefPtr nwfilter,
                                      ifname,
                                      vars,
                                      res,
-                                     matchState,
+                                     matchState, true,
                                      "ACCEPT",
                                      isIPv6,
                                      maySkipICMP);
@@ -1548,6 +1790,10 @@ iptablesCreateRuleInstance(virNWFilterDefPtr nwfilter,
         return rc;
 
     maySkipICMP = directionIn;
+    if (needState)
+        matchState = directionIn ? MATCH_STATE_IN : MATCH_STATE_OUT;
+    else
+        matchState = NULL;
 
     chainPrefix[0] = 'H';
     chainPrefix[1] = CHAINPREFIX_HOST_IN_TEMP;
@@ -1558,8 +1804,8 @@ iptablesCreateRuleInstance(virNWFilterDefPtr nwfilter,
                                      ifname,
                                      vars,
                                      res,
-                                     NULL,
-                                     "ACCEPT",
+                                     matchState, true,
+                                     "RETURN",
                                      isIPv6,
                                      maySkipICMP);
 
@@ -2189,7 +2435,7 @@ ebiptablesDisplayRuleInstance(virConnectPtr conn ATTRIBUTE_UNUSED,
  *
  * Write the string into a temporary file and return the name of
  * the temporary file. The string is assumed to contain executable
- * commands. A line '#!/bin/bash' will automatically be written
+ * commands. A line '#!/bin/sh' will automatically be written
  * as the first line in the file. The permissions of the file are
  * set so that the file can be run as an executable script.
  */
@@ -2202,7 +2448,7 @@ ebiptablesWriteToTempFile(const char *string) {
     char *header;
     size_t written;
 
-    virBufferVSprintf(&buf, "#!%s\n", bash_cmd_path);
+    virBufferAddLit(&buf, "#!/bin/sh\n");
 
     if (virBufferError(&buf)) {
         virBufferFreeAndReset(&buf);
@@ -2252,13 +2498,12 @@ ebiptablesWriteToTempFile(const char *string) {
     }
 
     VIR_FREE(header);
-    close(fd);
+    VIR_FORCE_CLOSE(fd);
     return filnam;
 
 err_exit:
     VIR_FREE(header);
-    if (fd >= 0)
-        close(fd);
+    VIR_FORCE_CLOSE(fd);
     unlink(filename);
     return NULL;
 }
@@ -2272,10 +2517,10 @@ err_exit:
  *        commands executed via the script the was run.
  *
  * Returns 0 in case of success, != 0 in case of an error. The returned
- * value is NOT the result of running the commands inside the bash
+ * value is NOT the result of running the commands inside the shell
  * script.
  *
- * Execute a sequence of commands (held in the given buffer) as a bash
+ * Execute a sequence of commands (held in the given buffer) as a /bin/sh
  * script and return the status of the execution.
  */
 static int
@@ -2309,7 +2554,12 @@ ebiptablesExecCLI(virBufferPtr buf,
         return 1;
 
     argv[0] = filename;
+
+    virMutexLock(&execCLIMutex);
+
     rc = virRun(argv, status);
+
+    virMutexUnlock(&execCLIMutex);
 
     *status >>= 8;
 
@@ -2693,7 +2943,7 @@ ebtablesApplyBasicRules(const char *ifname,
 
     virFormatMacAddr(macaddr, macaddr_str);
 
-    ebtablesCleanAll(ifname);
+    ebiptablesAllTeardown(ifname);
 
     ebtablesCreateTmpRootChain(&buf, 1, ifname, 1);
 
@@ -2792,7 +3042,7 @@ ebtablesApplyDHCPOnlyRules(const char *ifname,
 
     virFormatMacAddr(macaddr, macaddr_str);
 
-    ebtablesCleanAll(ifname);
+    ebiptablesAllTeardown(ifname);
 
     ebtablesCreateTmpRootChain(&buf, 1, ifname, 1);
     ebtablesCreateTmpRootChain(&buf, 0, ifname, 1);
@@ -2894,7 +3144,7 @@ ebtablesApplyDropAllRules(const char *ifname)
         return 1;
     }
 
-    ebtablesCleanAll(ifname);
+    ebiptablesAllTeardown(ifname);
 
     ebtablesCreateTmpRootChain(&buf, 1, ifname, 1);
     ebtablesCreateTmpRootChain(&buf, 0, ifname, 1);
@@ -2977,6 +3227,45 @@ ebiptablesRuleOrderSort(const void *a, const void *b)
     const ebiptablesRuleInstPtr *insta = a;
     const ebiptablesRuleInstPtr *instb = b;
     return ((*insta)->priority - (*instb)->priority);
+}
+
+
+static void
+iptablesCheckBridgeNFCallEnabled(bool isIPv6)
+{
+    static time_t lastReport, lastReportIPv6;
+    const char *pathname = NULL;
+    char buffer[1];
+    time_t now = time(NULL);
+
+    if (isIPv6 &&
+        (now - lastReportIPv6) > BRIDGE_NF_CALL_ALERT_INTERVAL ) {
+        pathname = PROC_BRIDGE_NF_CALL_IP6TABLES;
+    } else if (now - lastReport > BRIDGE_NF_CALL_ALERT_INTERVAL) {
+        pathname = PROC_BRIDGE_NF_CALL_IPTABLES;
+    }
+
+    if (pathname) {
+        int fd = open(pathname, O_RDONLY);
+        if (fd >= 0) {
+            if (read(fd, buffer, 1) == 1) {
+                if (buffer[0] == '0') {
+                    char msg[256];
+                    snprintf(msg, sizeof(msg),
+                             _("To enable ip%stables filtering for the VM do "
+                              "'echo 1 > %s'"),
+                             isIPv6 ? "6" : "",
+                             pathname);
+                    VIR_WARN0(msg);
+                    if (isIPv6)
+                        lastReportIPv6 = now;
+                    else
+                        lastReport = now;
+                }
+            }
+            VIR_FORCE_CLOSE(fd);
+        }
+    }
 }
 
 
@@ -3093,6 +3382,8 @@ ebiptablesApplyNewRules(virConnectPtr conn ATTRIBUTE_UNUSED,
 
         if (ebiptablesExecCLI(&buf, &cli_status) || cli_status != 0)
            goto tear_down_tmpiptchains;
+
+        iptablesCheckBridgeNFCallEnabled(false);
     }
 
     if (haveIp6tables) {
@@ -3123,6 +3414,8 @@ ebiptablesApplyNewRules(virConnectPtr conn ATTRIBUTE_UNUSED,
 
         if (ebiptablesExecCLI(&buf, &cli_status) || cli_status != 0)
            goto tear_down_tmpip6tchains;
+
+        iptablesCheckBridgeNFCallEnabled(true);
     }
 
     if (chains_in != 0)
@@ -3163,8 +3456,9 @@ tear_down_tmpebchains:
     ebiptablesExecCLI(&buf, &cli_status);
 
     virNWFilterReportError(VIR_ERR_BUILD_FIREWALL,
-                           "%s",
-                           _("Some rules could not be created."));
+                           _("Some rules could not be created for "
+                             "interface %s."),
+                           ifname);
 
     return 1;
 }
@@ -3364,7 +3658,9 @@ ebiptablesDriverInit(void)
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     int cli_status;
 
-    bash_cmd_path = virFindFileInPath("bash");
+    if (virMutexInit(&execCLIMutex))
+        return EINVAL;
+
     gawk_cmd_path = virFindFileInPath("gawk");
     grep_cmd_path = virFindFileInPath("grep");
 
@@ -3385,7 +3681,7 @@ ebiptablesDriverInit(void)
     iptables_cmd_path = virFindFileInPath("iptables");
     if (iptables_cmd_path) {
         virBufferVSprintf(&buf,
-                          CMD_DEF("%s -L FORWARD") CMD_SEPARATOR
+                          CMD_DEF("%s -n -L FORWARD") CMD_SEPARATOR
                           CMD_EXEC
                           "%s",
                           iptables_cmd_path,
@@ -3398,7 +3694,7 @@ ebiptablesDriverInit(void)
     ip6tables_cmd_path = virFindFileInPath("ip6tables");
     if (ip6tables_cmd_path) {
         virBufferVSprintf(&buf,
-                          CMD_DEF("%s -L FORWARD") CMD_SEPARATOR
+                          CMD_DEF("%s -n -L FORWARD") CMD_SEPARATOR
                           CMD_EXEC
                           "%s",
                           ip6tables_cmd_path,
@@ -3408,9 +3704,9 @@ ebiptablesDriverInit(void)
              VIR_FREE(ip6tables_cmd_path);
     }
 
-    /* ip(6)tables support needs bash, gawk & grep, ebtables doesn't */
+    /* ip(6)tables support needs gawk & grep, ebtables doesn't */
     if ((iptables_cmd_path != NULL || ip6tables_cmd_path != NULL) &&
-        (!grep_cmd_path || !bash_cmd_path || !gawk_cmd_path)) {
+        (!grep_cmd_path || !gawk_cmd_path)) {
         virNWFilterReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                _("essential tools to support ip(6)tables "
                                  "firewalls could not be located"));
@@ -3437,7 +3733,6 @@ static void
 ebiptablesDriverShutdown()
 {
     VIR_FREE(gawk_cmd_path);
-    VIR_FREE(bash_cmd_path);
     VIR_FREE(grep_cmd_path);
     VIR_FREE(ebtables_cmd_path);
     VIR_FREE(iptables_cmd_path);

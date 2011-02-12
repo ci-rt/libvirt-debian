@@ -987,3 +987,33 @@
     .args_filter = (xdrproc_t) xdr_remote_domain_create_with_flags_args,
     .ret_filter = (xdrproc_t) xdr_remote_domain_create_with_flags_ret,
 },
+{   /* DomainSetMemoryParameters => 197 */
+    .fn = (dispatch_fn) remoteDispatchDomainSetMemoryParameters,
+    .args_filter = (xdrproc_t) xdr_remote_domain_set_memory_parameters_args,
+    .ret_filter = (xdrproc_t) xdr_void,
+},
+{   /* DomainGetMemoryParameters => 198 */
+    .fn = (dispatch_fn) remoteDispatchDomainGetMemoryParameters,
+    .args_filter = (xdrproc_t) xdr_remote_domain_get_memory_parameters_args,
+    .ret_filter = (xdrproc_t) xdr_remote_domain_get_memory_parameters_ret,
+},
+{   /* DomainSetVcpusFlags => 199 */
+    .fn = (dispatch_fn) remoteDispatchDomainSetVcpusFlags,
+    .args_filter = (xdrproc_t) xdr_remote_domain_set_vcpus_flags_args,
+    .ret_filter = (xdrproc_t) xdr_void,
+},
+{   /* DomainGetVcpusFlags => 200 */
+    .fn = (dispatch_fn) remoteDispatchDomainGetVcpusFlags,
+    .args_filter = (xdrproc_t) xdr_remote_domain_get_vcpus_flags_args,
+    .ret_filter = (xdrproc_t) xdr_remote_domain_get_vcpus_flags_ret,
+},
+{   /* DomainOpenConsole => 201 */
+    .fn = (dispatch_fn) remoteDispatchDomainOpenConsole,
+    .args_filter = (xdrproc_t) xdr_remote_domain_open_console_args,
+    .ret_filter = (xdrproc_t) xdr_void,
+},
+{   /* DomainIsUpdated => 202 */
+    .fn = (dispatch_fn) remoteDispatchDomainIsUpdated,
+    .args_filter = (xdrproc_t) xdr_remote_domain_is_updated_args,
+    .ret_filter = (xdrproc_t) xdr_remote_domain_is_updated_ret,
+},

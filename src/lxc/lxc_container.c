@@ -52,6 +52,7 @@
 #include "util.h"
 #include "memory.h"
 #include "veth.h"
+#include "files.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
@@ -145,8 +146,10 @@ static int lxcContainerSetStdio(int control, int ttyfd)
      * close all FDs before executing the container */
     open_max = sysconf (_SC_OPEN_MAX);
     for (i = 0; i < open_max; i++)
-        if (i != ttyfd && i != control)
-            close(i);
+        if (i != ttyfd && i != control) {
+            int tmpfd = i;
+            VIR_FORCE_CLOSE(tmpfd);
+        }
 
     if (dup2(ttyfd, 0) < 0) {
         virReportSystemError(errno, "%s",
@@ -222,7 +225,7 @@ static int lxcContainerWaitForContinue(int control)
                              _("Failed to read the container continue message"));
         return -1;
     }
-    close(control);
+    VIR_FORCE_CLOSE(control);
 
     DEBUG0("Received container continue message");
 
@@ -463,7 +466,6 @@ static int lxcContainerPopulateDevices(void)
         { LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_NULL, 0666, "/dev/null" },
         { LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_ZERO, 0666, "/dev/zero" },
         { LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_FULL, 0666, "/dev/full" },
-        { LXC_DEV_MAJ_TTY, LXC_DEV_MIN_CONSOLE, 0600, "/dev/console" },
         { LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_RANDOM, 0666, "/dev/random" },
         { LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_URANDOM, 0666, "/dev/urandom" },
     };
@@ -503,6 +505,11 @@ static int lxcContainerPopulateDevices(void)
     if (symlink("/dev/pts/0", "/dev/tty1") < 0) {
         virReportSystemError(errno, "%s",
                              _("Failed to symlink /dev/pts/0 to /dev/tty1"));
+        return -1;
+    }
+    if (symlink("/dev/pts/0", "/dev/console") < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Failed to symlink /dev/pts/0 to /dev/console"));
         return -1;
     }
 
@@ -776,10 +783,10 @@ static int lxcContainerChild( void *data )
     VIR_FREE(ttyPath);
 
     if (lxcContainerSetStdio(argv->monitor, ttyfd) < 0) {
-        close(ttyfd);
+        VIR_FORCE_CLOSE(ttyfd);
         return -1;
     }
-    close(ttyfd);
+    VIR_FORCE_CLOSE(ttyfd);
 
     if (lxcContainerSetupMounts(vmDef, root) < 0)
         return -1;

@@ -355,7 +355,7 @@
     </model>
 
     <model name='Conroe'>
-      <vendor>Intel</vendor>
+      <vendor name='Intel'/>
       <feature name='sse2'/>
       <feature name='sse'/>
       <feature name='fxsr'/>
@@ -379,20 +379,6 @@
       <feature name='pse36'/>
       <feature name='pni'/>
       <feature name='ssse3'/>
-      <feature name='fxsr'/>
-      <feature name='mmx'/>
-      <feature name='pat'/>
-      <feature name='cmov'/>
-      <feature name='pge'/>
-      <feature name='apic'/>
-      <feature name='cx8'/>
-      <feature name='mce'/>
-      <feature name='pae'/>
-      <feature name='msr'/>
-      <feature name='tsc'/>
-      <feature name='pse'/>
-      <feature name='de'/>
-      <feature name='fpu'/>
       <feature name='lm'/>
       <feature name='syscall'/>
       <feature name='nx'/>
@@ -400,7 +386,7 @@
     </model>
 
     <model name='Penryn'>
-      <vendor>Intel</vendor>
+      <vendor name='Intel'/>
       <feature name='sse2'/>
       <feature name='sse'/>
       <feature name='fxsr'/>
@@ -426,20 +412,6 @@
       <feature name='cx16'/>
       <feature name='ssse3'/>
       <feature name='sse4.1'/>
-      <feature name='fxsr'/>
-      <feature name='mmx'/>
-      <feature name='pat'/>
-      <feature name='cmov'/>
-      <feature name='pge'/>
-      <feature name='apic'/>
-      <feature name='cx8'/>
-      <feature name='mce'/>
-      <feature name='pae'/>
-      <feature name='msr'/>
-      <feature name='tsc'/>
-      <feature name='pse'/>
-      <feature name='de'/>
-      <feature name='fpu'/>
       <feature name='lm'/>
       <feature name='syscall'/>
       <feature name='nx'/>
@@ -447,7 +419,7 @@
     </model>
 
     <model name='Nehalem'>
-      <vendor>Intel</vendor>
+      <vendor name='Intel'/>
       <feature name='sse2'/>
       <feature name='sse'/>
       <feature name='fxsr'/>
@@ -475,20 +447,6 @@
       <feature name='sse4.1'/>
       <feature name='sse4.2'/>
       <feature name='popcnt'/>
-      <feature name='fxsr'/>
-      <feature name='mmx'/>
-      <feature name='pat'/>
-      <feature name='cmov'/>
-      <feature name='pge'/>
-      <feature name='apic'/>
-      <feature name='cx8'/>
-      <feature name='mce'/>
-      <feature name='pae'/>
-      <feature name='msr'/>
-      <feature name='tsc'/>
-      <feature name='pse'/>
-      <feature name='de'/>
-      <feature name='fpu'/>
       <feature name='lm'/>
       <feature name='syscall'/>
       <feature name='nx'/>
@@ -496,7 +454,7 @@
     </model>
 
     <model name='Opteron_G1'>
-      <vendor>AMD</vendor>
+      <vendor name='AMD'/>
       <feature name='sse2'/>
       <feature name='sse'/>
       <feature name='fxsr'/>
@@ -519,27 +477,13 @@
       <feature name='mca'/>
       <feature name='pse36'/>
       <feature name='pni'/>
-      <feature name='fxsr'/>
-      <feature name='mmx'/>
-      <feature name='pat'/>
-      <feature name='cmov'/>
-      <feature name='pge'/>
-      <feature name='apic'/>
-      <feature name='cx8'/>
-      <feature name='mce'/>
-      <feature name='pae'/>
-      <feature name='msr'/>
-      <feature name='tsc'/>
-      <feature name='pse'/>
-      <feature name='de'/>
-      <feature name='fpu'/>
       <feature name='lm'/>
       <feature name='syscall'/>
       <feature name='nx'/>
     </model>
 
     <model name='Opteron_G2'>
-      <vendor>AMD</vendor>
+      <vendor name='AMD'/>
       <feature name='sse2'/>
       <feature name='sse'/>
       <feature name='fxsr'/>
@@ -563,20 +507,6 @@
       <feature name='pse36'/>
       <feature name='pni'/>
       <feature name='cx16'/>
-      <feature name='fxsr'/>
-      <feature name='mmx'/>
-      <feature name='pat'/>
-      <feature name='cmov'/>
-      <feature name='pge'/>
-      <feature name='apic'/>
-      <feature name='cx8'/>
-      <feature name='mce'/>
-      <feature name='pae'/>
-      <feature name='msr'/>
-      <feature name='tsc'/>
-      <feature name='pse'/>
-      <feature name='de'/>
-      <feature name='fpu'/>
       <feature name='lm'/>
       <feature name='syscall'/>
       <feature name='nx'/>
@@ -586,7 +516,7 @@
     </model>
 
     <model name='Opteron_G3'>
-      <vendor>AMD</vendor>
+      <vendor name='AMD'/>
       <feature name='sse2'/>
       <feature name='sse'/>
       <feature name='fxsr'/>
@@ -612,20 +542,6 @@
       <feature name='cx16'/>
       <feature name='monitor'/>
       <feature name='popcnt'/>
-      <feature name='fxsr'/>
-      <feature name='mmx'/>
-      <feature name='pat'/>
-      <feature name='cmov'/>
-      <feature name='pge'/>
-      <feature name='apic'/>
-      <feature name='cx8'/>
-      <feature name='mce'/>
-      <feature name='pae'/>
-      <feature name='msr'/>
-      <feature name='tsc'/>
-      <feature name='pse'/>
-      <feature name='de'/>
-      <feature name='fpu'/>
       <feature name='lm'/>
       <feature name='syscall'/>
       <feature name='nx'/>

@@ -1,7 +1,7 @@
 /*
  * xen_unified.c: Unified Xen driver.
  *
- * Copyright (C) 2007 Red Hat, Inc.
+ * Copyright (C) 2007, 2010 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -29,19 +29,28 @@
 #  include <winsock2.h>
 # endif
 
+# include <xen/xen.h>
+
+/* xen-unstable changeset 19788 removed MAX_VIRT_CPUS from public
+ * headers.  Its semantic was retained with XEN_LEGACY_MAX_VCPUS.
+ * Ensure MAX_VIRT_CPUS is defined accordingly.
+ */
+# if !defined(MAX_VIRT_CPUS) && defined(XEN_LEGACY_MAX_VCPUS)
+#  define MAX_VIRT_CPUS XEN_LEGACY_MAX_VCPUS
+# endif
+
 extern int xenRegister (void);
 
 # define XEN_UNIFIED_HYPERVISOR_OFFSET 0
-# define XEN_UNIFIED_PROXY_OFFSET 1
-# define XEN_UNIFIED_XEND_OFFSET 2
-# define XEN_UNIFIED_XS_OFFSET 3
-# define XEN_UNIFIED_XM_OFFSET 4
+# define XEN_UNIFIED_XEND_OFFSET 1
+# define XEN_UNIFIED_XS_OFFSET 2
+# define XEN_UNIFIED_XM_OFFSET 3
 
 # if WITH_XEN_INOTIFY
-#  define XEN_UNIFIED_INOTIFY_OFFSET 5
-#  define XEN_UNIFIED_NR_DRIVERS 6
-# else
+#  define XEN_UNIFIED_INOTIFY_OFFSET 4
 #  define XEN_UNIFIED_NR_DRIVERS 5
+# else
+#  define XEN_UNIFIED_NR_DRIVERS 4
 # endif
 
 # define MIN_XEN_GUEST_SIZE 64  /* 64 megabytes */
@@ -84,10 +93,8 @@ struct xenUnifiedDriver {
         virDrvDomainSave		domainSave;
         virDrvDomainRestore		domainRestore;
         virDrvDomainCoreDump		domainCoreDump;
-        virDrvDomainSetVcpus		domainSetVcpus;
         virDrvDomainPinVcpu		domainPinVcpu;
         virDrvDomainGetVcpus		domainGetVcpus;
-        virDrvDomainGetMaxVcpus		domainGetMaxVcpus;
         virDrvListDefinedDomains	listDefinedDomains;
         virDrvNumOfDefinedDomains	numOfDefinedDomains;
         virDrvDomainCreate		domainCreate;
@@ -167,8 +174,6 @@ struct _xenUnifiedPrivate {
 
     struct xs_handle *xshandle; /* handle to talk to the xenstore */
 
-    int proxy;                  /* fd of proxy. */
-
 
     /* A list of xenstore watches */
     xenStoreWatchListPtr xsWatchList;
@@ -220,13 +225,9 @@ int  xenUnifiedRemoveDomainInfo(xenUnifiedDomainInfoListPtr info,
 void xenUnifiedDomainEventDispatch (xenUnifiedPrivatePtr priv,
                                     virDomainEventPtr event);
 unsigned long xenUnifiedVersion(void);
+int xenUnifiedGetMaxVcpus(virConnectPtr conn, const char *type);
 
-# ifndef PROXY
 void xenUnifiedLock(xenUnifiedPrivatePtr priv);
 void xenUnifiedUnlock(xenUnifiedPrivatePtr priv);
-# else
-#  define xenUnifiedLock(p) do {} while(0)
-#  define xenUnifiedUnlock(p) do {} while(0)
-# endif
 
 #endif /* __VIR_XEN_UNIFIED_H__ */

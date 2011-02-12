@@ -9,6 +9,7 @@
 #include "internal.h"
 #include "nodeinfo.h"
 #include "util.h"
+#include "files.h"
 
 #ifndef __linux__
 
@@ -25,7 +26,8 @@ static char *abs_srcdir;
 
 # define MAX_FILE 4096
 
-extern int linuxNodeInfoCPUPopulate(FILE *cpuinfo, virNodeInfoPtr nodeinfo);
+extern int linuxNodeInfoCPUPopulate(FILE *cpuinfo, virNodeInfoPtr nodeinfo,
+                                    bool need_hyperthreads);
 
 static int linuxTestCompareFiles(const char *cpuinfofile, const char *outputfile) {
     char actualData[MAX_FILE];
@@ -42,11 +44,17 @@ static int linuxTestCompareFiles(const char *cpuinfofile, const char *outputfile
         return -1;
 
     memset(&nodeinfo, 0, sizeof(nodeinfo));
-    if (linuxNodeInfoCPUPopulate(cpuinfo, &nodeinfo) < 0) {
-        fclose(cpuinfo);
+    if (linuxNodeInfoCPUPopulate(cpuinfo, &nodeinfo, false) < 0) {
+        if (virTestGetDebug()) {
+            virErrorPtr error = virSaveLastError();
+            if (error && error->code != VIR_ERR_OK)
+                fprintf(stderr, "\n%s\n", error->message);
+            virFreeError(error);
+        }
+        VIR_FORCE_FCLOSE(cpuinfo);
         return -1;
     }
-    fclose(cpuinfo);
+    VIR_FORCE_FCLOSE(cpuinfo);
 
     /* 'nodes' is filled using libnuma.so from current machine
      * topology, which makes it unsuitable for the test suite

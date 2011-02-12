@@ -1,6 +1,8 @@
 ## Process this file with automake to produce Makefile.in
 SUBDIRS= schemas
 
+PERL = perl
+
 # The directory containing the source code (if it contains documentation).
 DOC_SOURCE_DIR=../src
 
@@ -23,6 +25,11 @@ devhelphtml =			\
   devhelp/general.html		\
   devhelp/libvirt-libvirt.html	\
   devhelp/libvirt-virterror.html
+
+css =         \
+  generic.css \
+  libvirt.css \
+  main.css
 
 devhelppng =		\
   devhelp/home.png	\
@@ -53,7 +60,8 @@ gif = \
   architecture.gif \
   node.gif
 
-dot_html_in = $(notdir $(wildcard $(srcdir)/*.html.in))
+dot_html_in = $(notdir $(wildcard $(srcdir)/*.html.in)) todo.html.in \
+      $(patsubst $(srcdir)/%,%,$(wildcard $(srcdir)/internals/*.html.in))
 dot_html = $(dot_html_in:%.html.in=%.html)
 
 patches = $(wildcard api_extension/*.patch)
@@ -71,13 +79,13 @@ fig = \
 
 EXTRA_DIST=					\
   apibuild.py \
-  site.xsl newapi.xsl news.xsl page.xsl ChangeLog.xsl \
+  site.xsl newapi.xsl news.xsl page.xsl \
   $(dot_html) $(dot_html_in) $(gif) $(apihtml) $(apipng) \
   $(devhelphtml) $(devhelppng) $(devhelpcss) $(devhelpxsl) \
-  $(xml) $(fig) $(png) \
+  $(xml) $(fig) $(png) $(css) \
   $(patches) \
   sitemap.html.in \
-  ChangeLog.awk
+  todo.pl todo.cfg-example
 
 MAINTAINERCLEANFILES = $(dot_html) $(apihtml) $(devhelphtml)
 
@@ -87,18 +95,33 @@ api: libvirt-api.xml libvirt-refs.xml
 
 web: $(dot_html) html/index.html devhelp/index.html
 
-ChangeLog.xml: ../ChangeLog ChangeLog.awk
-	awk -f ChangeLog.awk < $< > $@
+todo.html.in: todo.pl
+	if [ -f  todo.cfg ]; then \
+		echo "Generating $@"; \
+		$(PERL) $(srcdir)/$< > $@ \
+		|| { rm $@ && exit 1; }; \
+	else \
+		echo "Stubbing $@"; \
+		echo "<html><body><h1>Todo list</h1></body></html>" > $@ ; \
+	fi
 
-ChangeLog.html.in: ChangeLog.xml ChangeLog.xsl
-	@if [ -x $(XSLTPROC) ] ; then \
-	  echo "Generating $@"; \
-	  name=`echo $@ | sed -e 's/.tmp//'`; \
-	  $(XSLTPROC) --nonet $(top_srcdir)/docs/ChangeLog.xsl $< > $@ \
-	    || { rm $@ && exit 1; }; fi
+todo:
+	rm -f todo.html.in
+	$(MAKE) todo.html
+
+.PHONY: todo
 
 %.png: %.fig
 	convert -rotate 90 $< $@
+
+internals/%.html.tmp: internals/%.html.in subsite.xsl page.xsl sitemap.html.in
+	@if [ -x $(XSLTPROC) ] ; then \
+	  echo "Generating $@"; \
+	  $(MKDIR_P) "$(builddir)/internals"; \
+	  name=`echo $@ | sed -e 's/.tmp//'`; \
+	  $(XSLTPROC) --stringparam pagename $$name --nonet --html \
+	    $(top_srcdir)/docs/subsite.xsl $< > $@ \
+	    || { rm $@ && exit 1; }; fi
 
 %.html.tmp: %.html.in site.xsl page.xsl sitemap.html.in
 	@if [ -x $(XSLTPROC) ] ; then \
@@ -110,10 +133,11 @@ ChangeLog.html.in: ChangeLog.xml ChangeLog.xsl
 
 %.html: %.html.tmp
 	@if test -x $(XMLLINT) && test -x $(XMLCATALOG) ; then \
-	  if $(XMLCATALOG) /etc/xml/catalog \
+	  if $(XMLCATALOG) '$(XML_CATALOG_FILE)' \
 	    "-//W3C//DTD XHTML 1.0 Strict//EN" > /dev/null ; then \
 	  echo "Validating $@" ; \
-	  $(XMLLINT) --nonet --format --valid $< > $@ \
+	  SGML_CATALOG_FILES='$(XML_CATALOG_FILE)' \
+	  $(XMLLINT) --catalogs --nonet --format --valid $< > $@ \
 	  || { rm $@ && exit 1; }; \
 	  else echo "missing XHTML1 DTD" ; fi ; fi
 
@@ -123,10 +147,11 @@ html/index.html: libvirt-api.xml newapi.xsl page.xsl sitemap.html.in
 	  echo "Rebuilding the HTML pages from the XML API" ; \
 	  $(XSLTPROC) --nonet $(srcdir)/newapi.xsl libvirt-api.xml ; fi
 	-@if test -x $(XMLLINT) && test -x $(XMLCATALOG) ; then \
-	  if $(XMLCATALOG) /etc/xml/catalog "-//W3C//DTD XHTML 1.0 Strict//EN" \
+	  if $(XMLCATALOG) '$(XML_CATALOG_FILE)' "-//W3C//DTD XHTML 1.0 Strict//EN" \
 	    > /dev/null ; then \
 	  echo "Validating the resulting XHTML pages" ; \
-	  $(XMLLINT) --nonet --valid --noout html/*.html ; \
+	  SGML_CATALOG_FILES='$(XML_CATALOG_FILE)' \
+	  $(XMLLINT) --catalogs --nonet --valid --noout html/*.html ; \
 	  else echo "missing XHTML1 DTD" ; fi ; fi
 
 $(addprefix $(srcdir)/,$(devhelphtml)): $(srcdir)/libvirt-api.xml $(devhelpxsl)
@@ -153,12 +178,14 @@ clean-local:
 	rm -f *~ *.bak *.hierarchy *.signals *-unused.txt *.html
 
 maintainer-clean-local: clean-local
-	rm -rf libvirt-api.xml libvirt-refs.xml
+	rm -rf libvirt-api.xml libvirt-refs.xml todo.html.in
 
 rebuild: api all
 
 install-data-local:
 	$(mkinstalldirs) $(DESTDIR)$(HTML_DIR)
+	for f in $(css) $(dot_html) $(gif) $(png); do \
+	  $(INSTALL) -m 0644 $(srcdir)/$$f $(DESTDIR)$(HTML_DIR); done
 	-$(INSTALL) -m 0644 $(srcdir)/Libxml2-Logo-90x34.gif $(DESTDIR)$(HTML_DIR)
 	$(mkinstalldirs) $(DESTDIR)$(HTML_DIR)/html
 	for h in $(apihtml); do \

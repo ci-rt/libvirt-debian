@@ -155,7 +155,6 @@ typedef virStoragePoolSourceHost *virStoragePoolSourceHostPtr;
 struct _virStoragePoolSourceHost {
     char *name;
     int port;
-    int protocol;
 };
 
 
@@ -236,6 +235,12 @@ struct _virStoragePoolSource {
     union {
         virStoragePoolAuthChap chap;
     } auth;
+
+    /* Vendor of the source */
+    char *vendor;
+
+    /* Product name of the source*/
+    char *product;
 
     int format; /* Pool type specific format such as filesystem type, or lvm version, etc */
 };

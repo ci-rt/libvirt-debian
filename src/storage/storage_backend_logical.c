@@ -37,6 +37,7 @@
 #include "util.h"
 #include "memory.h"
 #include "logging.h"
+#include "files.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
@@ -360,6 +361,27 @@ virStorageBackendLogicalFindPoolSources(virConnectPtr conn ATTRIBUTE_UNUSED,
 
 
 static int
+virStorageBackendLogicalCheckPool(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                  virStoragePoolObjPtr pool,
+                                  bool *isActive)
+{
+    char *path;
+
+    *isActive = false;
+    if (virAsprintf(&path, "/dev/%s", pool->def->source.name) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    if (access(path, F_OK) == 0)
+        *isActive = true;
+
+    VIR_FREE(path);
+
+    return 0;
+}
+
+static int
 virStorageBackendLogicalStartPool(virConnectPtr conn ATTRIBUTE_UNUSED,
                                   virStoragePoolObjPtr pool)
 {
@@ -408,10 +430,10 @@ virStorageBackendLogicalBuildPool(virConnectPtr conn ATTRIBUTE_UNUSED,
             virReportSystemError(errno,
                                  _("cannot clear device header of '%s'"),
                                  pool->def->source.devices[i].path);
-            close(fd);
+            VIR_FORCE_CLOSE(fd);
             goto cleanup;
         }
-        if (close(fd) < 0) {
+        if (VIR_CLOSE(fd) < 0) {
             virReportSystemError(errno,
                                  _("cannot close device '%s'"),
                                  pool->def->source.devices[i].path);
@@ -622,7 +644,7 @@ virStorageBackendLogicalCreateVol(virConnectPtr conn,
         goto cleanup;
     }
 
-    if (close(fd) < 0) {
+    if (VIR_CLOSE(fd) < 0) {
         virReportSystemError(errno,
                              _("cannot close file '%s'"),
                              vol->target.path);
@@ -641,8 +663,7 @@ virStorageBackendLogicalCreateVol(virConnectPtr conn,
     return 0;
 
  cleanup:
-    if (fd != -1)
-        close(fd);
+    VIR_FORCE_CLOSE(fd);
     virStorageBackendLogicalDeleteVol(conn, pool, vol, 0);
     return -1;
 }
@@ -684,6 +705,7 @@ virStorageBackend virStorageBackendLogical = {
     .type = VIR_STORAGE_POOL_LOGICAL,
 
     .findPoolSources = virStorageBackendLogicalFindPoolSources,
+    .checkPool = virStorageBackendLogicalCheckPool,
     .startPool = virStorageBackendLogicalStartPool,
     .buildPool = virStorageBackendLogicalBuildPool,
     .refreshPool = virStorageBackendLogicalRefreshPool,

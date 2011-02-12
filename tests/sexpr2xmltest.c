@@ -132,12 +132,14 @@ mymain(int argc, char **argv)
     DO_TEST("pv-vfb-type-crash", "pv-vfb-type-crash", 3);
     DO_TEST("fv-autoport", "fv-autoport", 3);
     DO_TEST("pv-bootloader", "pv-bootloader", 1);
+    DO_TEST("pv-vcpus", "pv-vcpus", 1);
 
     DO_TEST("disk-file", "disk-file", 2);
     DO_TEST("disk-block", "disk-block", 2);
     DO_TEST("disk-block-shareable", "disk-block-shareable", 2);
     DO_TEST("disk-drv-blktap-raw", "disk-drv-blktap-raw", 2);
     DO_TEST("disk-drv-blktap-qcow", "disk-drv-blktap-qcow", 2);
+    DO_TEST("disk-drv-blktap2-raw", "disk-drv-blktap2-raw", 2);
 
     DO_TEST("curmem", "curmem", 2);
     DO_TEST("net-routed", "net-routed", 2);
@@ -170,6 +172,8 @@ mymain(int argc, char **argv)
 
     DO_TEST("fv-net-ioemu", "fv-net-ioemu", 1);
     DO_TEST("fv-net-netfront", "fv-net-netfront", 1);
+
+    DO_TEST("boot-grub", "boot-grub", 1);
 
     virCapabilitiesFree(caps);
 

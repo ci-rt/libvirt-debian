@@ -57,8 +57,20 @@ struct _virVirtualPortProfileParams {
     } u;
 };
 
+enum virVMOperationType {
+    VIR_VM_OP_CREATE,
+    VIR_VM_OP_SAVE,
+    VIR_VM_OP_RESTORE,
+    VIR_VM_OP_DESTROY,
+    VIR_VM_OP_MIGRATE_OUT,
+    VIR_VM_OP_MIGRATE_IN_START,
+    VIR_VM_OP_MIGRATE_IN_FINISH,
+    VIR_VM_OP_NO_OP,
 
-# if defined(WITH_MACVTAP)
+    VIR_VM_OP_LAST
+};
+
+# if WITH_MACVTAP
 
 #  include "internal.h"
 
@@ -69,30 +81,34 @@ int openMacvtapTap(const char *ifname,
                    int vnet_hdr,
                    const unsigned char *vmuuid,
                    virVirtualPortProfileParamsPtr virtPortProfile,
-                   char **res_ifname);
+                   char **res_ifname,
+                   enum virVMOperationType vmop);
 
 void delMacvtap(const char *ifname,
                 const unsigned char *macaddress,
                 const char *linkdev,
                 virVirtualPortProfileParamsPtr virtPortProfile);
 
-# endif /* WITH_MACVTAP */
-
-# define MACVTAP_MODE_PRIVATE_STR  "private"
-# define MACVTAP_MODE_VEPA_STR     "vepa"
-# define MACVTAP_MODE_BRIDGE_STR   "bridge"
+#  define MACVTAP_MODE_PRIVATE_STR  "private"
+#  define MACVTAP_MODE_VEPA_STR     "vepa"
+#  define MACVTAP_MODE_BRIDGE_STR   "bridge"
 
 int vpAssociatePortProfileId(const char *macvtap_ifname,
                              const unsigned char *macvtap_macaddr,
                              const char *linkdev,
                              const virVirtualPortProfileParamsPtr virtPort,
-                             const unsigned char *vmuuid);
+                             const unsigned char *vmuuid,
+                             enum virVMOperationType vmOp);
 
 int vpDisassociatePortProfileId(const char *macvtap_ifname,
                                 const unsigned char *macvtap_macaddr,
                                 const char *linkdev,
-                                const virVirtualPortProfileParamsPtr virtPort);
+                                const virVirtualPortProfileParamsPtr virtPort,
+                                enum virVMOperationType vmOp);
+
+# endif /* WITH_MACVTAP */
 
 VIR_ENUM_DECL(virVirtualPort)
+VIR_ENUM_DECL(virVMOperation)
 
 #endif /* __UTIL_MACVTAP_H__ */

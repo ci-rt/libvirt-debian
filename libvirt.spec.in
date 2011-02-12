@@ -31,18 +31,19 @@
 
 # Then the hypervisor drivers that run on local host
 %define with_xen           0%{!?_without_xen:%{server_drivers}}
-%define with_xen_proxy     0%{!?_without_xen_proxy:%{server_drivers}}
 %define with_qemu          0%{!?_without_qemu:%{server_drivers}}
 %define with_openvz        0%{!?_without_openvz:%{server_drivers}}
 %define with_lxc           0%{!?_without_lxc:%{server_drivers}}
 %define with_vbox          0%{!?_without_vbox:%{server_drivers}}
 %define with_uml           0%{!?_without_uml:%{server_drivers}}
+%define with_xenapi        0%{!?_without_xenapi:%{server_drivers}}
 # XXX this shouldn't be here, but it mistakenly links into libvirtd
 %define with_one           0%{!?_without_one:%{server_drivers}}
 
 # Then the hypervisor drivers that talk a native remote protocol
 %define with_phyp          0%{!?_without_phyp:1}
 %define with_esx           0%{!?_without_esx:1}
+%define with_vmware        0%{!?_without_vmware:1}
 
 # Then the secondary host drivers
 %define with_network       0%{!?_without_network:%{server_drivers}}
@@ -64,6 +65,10 @@
 %define with_nwfilter      0%{!?_without_nwfilter:0}
 %define with_libpcap       0%{!?_without_libpcap:0}
 %define with_macvtap       0%{!?_without_macvtap:0}
+%define with_libnl         0%{!?_without_libnl:0}
+%define with_audit         0%{!?_without_audit:0}
+%define with_dtrace        0%{!?_without_dtrace:0}
+%define with_cgconfig      0%{!?_without_cgconfig:0}
 
 # Non-server/HV driver defaults which are always enabled
 %define with_python        0%{!?_without_python:1}
@@ -82,14 +87,16 @@
 %define with_numactl 0
 %endif
 
-# RHEL doesn't ship OpenVZ, VBox, UML, OpenNebula, PowerHypervisor or ESX
+# RHEL doesn't ship OpenVZ, VBox, UML, OpenNebula, PowerHypervisor,
+# VMWare, or libxenserver (xenapi)
 %if 0%{?rhel}
 %define with_openvz 0
 %define with_vbox 0
 %define with_uml 0
 %define with_one 0
 %define with_phyp 0
-%define with_esx 0
+%define with_vmware 0
+%define with_xenapi 0
 %endif
 
 # RHEL-5 has restricted QEMU to x86_64 only and is too old for LXC
@@ -109,11 +116,6 @@
 %define with_xen 0
 %endif
 
-# If Xen isn't turned on, we shouldn't build the xen proxy either
-%if ! %{with_xen}
-%define with_xen_proxy 0
-%endif
-
 # Fedora doesn't have any QEMU on ppc64 - only ppc
 %if 0%{?fedora}
 %ifarch ppc64
@@ -121,11 +123,9 @@
 %endif
 %endif
 
-# PolicyKit was introduced in Fedora 8 / RHEL-6 or newer, allowing
-# the setuid Xen proxy to be killed off
+# PolicyKit was introduced in Fedora 8 / RHEL-6 or newer
 %if 0%{?fedora} >= 8 || 0%{?rhel} >= 6
 %define with_polkit    0%{!?_without_polkit:1}
-%define with_xen_proxy 0
 %endif
 
 # libcapng is used to manage capabilities in Fedora 12 / RHEL-6 or newer
@@ -161,6 +161,21 @@
 %define with_libnl 1
 %endif
 
+%if 0%{?fedora} >= 11 || 0%{?rhel} >= 5
+%define with_audit    0%{!?_without_audit:1}
+%endif
+
+%if 0%{?fedora} >= 13 || 0%{?rhel} >= 6
+%define with_dtrace 1
+%endif
+
+# Pull in cgroups config system
+%if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
+%if %{with_qemu} || %{with_lxc}
+%define with_cgconfig 0%{!?_without_cgconfig:1}
+%endif
+%endif
+
 # Force QEMU to run as non-root
 %if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
 %define qemu_user  qemu
@@ -180,7 +195,13 @@
 %endif
 
 
-Summary: Library providing a simple API virtualization
+# there's no use compiling the network driver without
+# the libvirt daemon
+%if ! %{with_libvirtd}
+%define with_network 0
+%endif
+
+Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: @VERSION@
 Release: 1%{?dist}%{?extra_release}
@@ -200,7 +221,7 @@ Requires: %{name}-client = %{version}-%{release}
 Requires: bridge-utils
 %endif
 %if %{with_network}
-Requires: dnsmasq
+Requires: dnsmasq >= 2.41
 Requires: iptables
 %endif
 %if %{with_nwfilter}
@@ -263,6 +284,9 @@ Requires: parted
 # For multipath support
 Requires: device-mapper
 %endif
+%if %{with_cgconfig}
+Requires: libcgroup
+%endif
 %if %{with_xen}
 BuildRequires: xen-devel
 %endif
@@ -298,7 +322,7 @@ BuildRequires: avahi-devel
 BuildRequires: libselinux-devel
 %endif
 %if %{with_network}
-BuildRequires: dnsmasq
+BuildRequires: dnsmasq >= 2.41
 %endif
 BuildRequires: bridge-utils
 %if %{with_sasl}
@@ -366,6 +390,14 @@ BuildRequires: netcf-devel >= 0.1.4
 %if %{with_esx}
 BuildRequires: libcurl-devel
 %endif
+%if %{with_audit}
+BuildRequires: audit-libs-devel
+%endif
+%if %{with_dtrace}
+# we need /usr/sbin/dtrace
+BuildRequires: systemtap-sdt-devel
+%endif
+
 
 # Fedora build root suckage
 BuildRequires: gawk
@@ -444,6 +476,10 @@ of recent versions of Linux (and other OSes).
 %define _without_vbox --without-vbox
 %endif
 
+%if ! %{with_xenapi}
+%define _without_xenapi --without-xenapi
+%endif
+
 %if ! %{with_sasl}
 %define _without_sasl --without-sasl
 %endif
@@ -458,6 +494,10 @@ of recent versions of Linux (and other OSes).
 
 %if ! %{with_esx}
 %define _without_esx --without-esx
+%endif
+
+%if ! %{with_vmware}
+%define _without_vmware --without-vmware
 %endif
 
 %if ! %{with_polkit}
@@ -544,11 +584,20 @@ of recent versions of Linux (and other OSes).
 %define _without_macvtap --without-macvtap
 %endif
 
+%if ! %{with_audit}
+%define _without_audit --without-audit
+%endif
+
+%if ! %{with_dtrace}
+%define _without_dtrace --without-dtrace
+%endif
+
 %configure %{?_without_xen} \
            %{?_without_qemu} \
            %{?_without_openvz} \
            %{?_without_lxc} \
            %{?_without_vbox} \
+           %{?_without_xenapi} \
            %{?_without_sasl} \
            %{?_without_avahi} \
            %{?_without_polkit} \
@@ -558,6 +607,7 @@ of recent versions of Linux (and other OSes).
            %{?_without_one} \
            %{?_without_phyp} \
            %{?_without_esx} \
+           %{?_without_vmware} \
            %{?_without_network} \
            %{?_with_rhel5_api} \
            %{?_without_storage_fs} \
@@ -574,6 +624,8 @@ of recent versions of Linux (and other OSes).
            %{?_without_yajl} \
            %{?_without_libpcap} \
            %{?_without_macvtap} \
+           %{?_without_audit} \
+           %{?_without_dtrace} \
            --with-qemu-user=%{qemu_user} \
            --with-qemu-group=%{qemu_group} \
            --with-init-script=redhat \
@@ -585,7 +637,7 @@ gzip -9 ChangeLog
 rm -fr %{buildroot}
 
 %makeinstall
-for i in domain-events/events-c dominfo domsuspend hellolibvirt openauth python xml/nwfilter
+for i in domain-events/events-c dominfo domsuspend hellolibvirt openauth python xml/nwfilter systemtap
 do
   (cd examples/$i ; make clean ; rm -rf .deps .libs Makefile Makefile.in)
 done
@@ -631,6 +683,8 @@ rm -rf $RPM_BUILD_ROOT%{_datadir}/doc/libvirt-%{version}
 
 %if ! %{with_libvirtd}
 rm -rf $RPM_BUILD_ROOT%{_sysconfdir}/libvirt/nwfilter
+mv $RPM_BUILD_ROOT%{_datadir}/doc/libvirt-%{version}/html \
+   $RPM_BUILD_ROOT%{_datadir}/doc/libvirt-devel-%{version}/
 %endif
 
 %if ! %{with_qemu}
@@ -643,10 +697,6 @@ rm -rf $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/libvirtd.lxc
 %endif
 %if ! %{with_uml}
 rm -rf $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/libvirtd.uml
-%endif
-
-%if %{with_libvirtd}
-chmod 0644 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/libvirtd
 %endif
 
 %clean
@@ -693,6 +743,12 @@ then
 fi
 %endif
 
+%if %{with_cgconfig}
+if [ "$1" -eq "1" ]; then
+/sbin/chkconfig cgconfig on
+fi
+%endif
+
 /sbin/chkconfig --add libvirtd
 if [ "$1" -ge "1" ]; then
 	/sbin/service libvirtd condrestart > /dev/null 2>&1
@@ -719,9 +775,11 @@ fi
 /sbin/ldconfig
 /sbin/chkconfig --add libvirt-guests
 if [ $1 -ge 1 ]; then
-    # this doesn't do anything but allowing for libvirt-guests to be
-    # stopped on the first shutdown
-    /sbin/service libvirt-guests start > /dev/null 2>&1 || true
+    if /sbin/chkconfig --list libvirt-guests | /bin/grep -q :on ; then
+        # this doesn't do anything but allowing for libvirt-guests to be
+        # stopped on the first shutdown
+        /sbin/service libvirt-guests start > /dev/null 2>&1 || true
+    fi
 fi
 
 %postun client -p /sbin/ldconfig
@@ -745,6 +803,9 @@ fi
 %{_sysconfdir}/rc.d/init.d/libvirtd
 %config(noreplace) %{_sysconfdir}/sysconfig/libvirtd
 %config(noreplace) %{_sysconfdir}/libvirt/libvirtd.conf
+%if %{with_dtrace}
+%{_datadir}/systemtap/tapsets/libvirtd.stp
+%endif
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/qemu/
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/lxc/
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/uml/
@@ -770,15 +831,14 @@ fi
 
 %dir %{_localstatedir}/run/libvirt/
 
-%dir %{_localstatedir}/lib/libvirt/
 %dir %attr(0711, root, root) %{_localstatedir}/lib/libvirt/images/
 %dir %attr(0711, root, root) %{_localstatedir}/lib/libvirt/boot/
 %dir %attr(0700, root, root) %{_localstatedir}/cache/libvirt/
 
 %if %{with_qemu}
 %dir %attr(0700, root, root) %{_localstatedir}/run/libvirt/qemu/
-%dir %attr(0700, %{qemu_user}, %{qemu_group}) %{_localstatedir}/lib/libvirt/qemu/
-%dir %attr(0700, %{qemu_user}, %{qemu_group}) %{_localstatedir}/cache/libvirt/qemu/
+%dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/lib/libvirt/qemu/
+%dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/cache/libvirt/qemu/
 %endif
 %if %{with_lxc}
 %dir %{_localstatedir}/run/libvirt/lxc/
@@ -816,10 +876,6 @@ fi
 %endif
 
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/
-
-%if %{with_xen_proxy}
-%attr(4755, root, root) %{_libexecdir}/libvirt_proxy
-%endif
 
 %if %{with_lxc}
 %attr(0755, root, root) %{_libexecdir}/libvirt_lxc
@@ -864,7 +920,7 @@ fi
 
 %{_sysconfdir}/rc.d/init.d/libvirt-guests
 %config(noreplace) %{_sysconfdir}/sysconfig/libvirt-guests
-%dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt
+%dir %attr(0755, root, root) %{_localstatedir}/lib/libvirt/
 
 %if %{with_sasl}
 %config(noreplace) %{_sysconfdir}/sasl2/libvirt.conf
@@ -891,6 +947,7 @@ fi
 %doc examples/domsuspend
 %doc examples/openauth
 %doc examples/xml
+%doc examples/systemtap
 
 %if %{with_python}
 %files python
@@ -906,7 +963,42 @@ fi
 %endif
 
 %changelog
+* Tue Jan  4 2011 Daniel Veillard <veillard@redhat.com> - 0.8.7-1
+- Preliminary support for VirtualBox 4.0
+- IPv6 support
+- Add VMware Workstation and Player driver driver
+- Add network disk support
+- Various improvements and bug fixes
+
+* Tue Nov 30 2010 Daniel Veillard <veillard@redhat.com> - 0.8.6-1
+- Add support for iSCSI target auto-discovery
+- QED: Basic support for QED images
+- remote console support
+- support for SPICE graphics
+- sysinfo and VMBIOS support
+- virsh qemu-monitor-command
+- various improvements and bug fixes
+
+* Fri Oct 29 2010 Daniel Veillard <veillard@redhat.com> - 0.8.5-1
+- Enable JSON and netdev features in QEMU >= 0.13
+- framework for auditing integration
+- framework DTrace/SystemTap integration
+- Setting the number of vcpu at boot
+- Enable support for nested SVM
+- Virtio plan9fs filesystem QEMU
+- Memory parameter controls
+- various improvements and bug fixes
+
+* Fri Sep 10 2010 Daniel Veillard <veillard@redhat.com> - 0.8.4-1
+- big improvements to UML driver
+- various improvements and bug fixes
+
 * Wed Aug  4 2010 Daniel Veillard <veillard@redhat.com> - 0.8.3-1
+- esx: Support vSphere 4.1
+- Qemu arbitrary monitor commands
+- Qemu Monitor API entry point
+- various improvements and bug fixes
+
 * Mon Jul  5 2010 Daniel Veillard <veillard@redhat.com> - 0.8.2-1
 - phyp: adding support for IVM
 - libvirt: introduce domainCreateWithFlags API

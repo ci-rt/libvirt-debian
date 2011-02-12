@@ -166,6 +166,11 @@ object Description
 end
 
 
+object DeviceBackedVirtualDiskSpec extends VirtualDiskSpec
+    String                                   device                         r
+end
+
+
 object DynamicProperty
     String                                   name                           r
     AnyType                                  val                            r
@@ -187,6 +192,11 @@ object Event
     HostEventArgument                        host                           i
     VmEventArgument                          vm                             i
     String                                   fullFormattedMessage           o
+end
+
+
+object FileBackedVirtualDiskSpec extends VirtualDiskSpec
+    Long                                     capacityKb                     r
 end
 
 
@@ -298,6 +308,12 @@ end
 
 object LocalDatastoreInfo extends DatastoreInfo
     String                                   path                           o
+end
+
+
+object LocalizedMethodFault
+    MethodFault                              fault                          r
+    String                                   localizedMessage               o
 end
 
 
@@ -484,7 +500,7 @@ object TaskInfo
     TaskInfoState                            state                          r
     Boolean                                  cancelled                      r
     Boolean                                  cancelable                     r
-    LocalizedMethodFault                     error                          i
+    LocalizedMethodFault                     error                          o
     AnyType                                  result                         o
     Int                                      progress                       o
     TaskReason                               reason                         i
@@ -525,6 +541,12 @@ object UserSession
     DateTime                                 lastActiveTime                 r
     String                                   locale                         r
     String                                   messageLocale                  r
+end
+
+
+object VirtualDiskSpec
+    String                                   diskType                       r
+    String                                   adapterType                    r
 end
 
 
@@ -678,6 +700,17 @@ method CancelTask
 end
 
 
+method CopyVirtualDisk_Task returns ManagedObjectReference r
+    ManagedObjectReference                   _this:VirtualDiskManager       r
+    String                                   sourceName                     r
+    ManagedObjectReference                   sourceDatacenter               o
+    String                                   destName                       r
+    ManagedObjectReference                   destDatacenter                 o
+    VirtualDiskSpec                          destSpec                       o
+    Boolean                                  force                          o
+end
+
+
 method CreateFilter returns ManagedObjectReference r
     ManagedObjectReference                   _this:PropertyCollector        r
     PropertyFilterSpec                       spec                           r
@@ -691,6 +724,21 @@ method CreateSnapshot_Task returns ManagedObjectReference r
     String                                   description                    o
     Boolean                                  memory                         r
     Boolean                                  quiesce                        r
+end
+
+
+method CreateVirtualDisk_Task returns ManagedObjectReference r
+    ManagedObjectReference                   _this:VirtualDiskManager       r
+    String                                   name                           r
+    ManagedObjectReference                   datacenter                     o
+    VirtualDiskSpec                          spec                           r
+end
+
+
+method DeleteVirtualDisk_Task returns ManagedObjectReference r
+    ManagedObjectReference                   _this:VirtualDiskManager       r
+    String                                   name                           r
+    ManagedObjectReference                   datacenter                     o
 end
 
 
@@ -725,6 +773,14 @@ end
 
 method Logout
     ManagedObjectReference                   _this:SessionManager           r
+end
+
+
+method MakeDirectory
+    ManagedObjectReference                   _this:FileManager              r
+    String                                   name                           r
+    ManagedObjectReference                   datacenter                     o
+    Boolean                                  createParentDirectories        o
 end
 
 
@@ -766,6 +822,13 @@ end
 method QueryPerfCounter returns PerfCounterInfo ol
     ManagedObjectReference                   _this:PerformanceManager       r
     Int                                      counterId                      rl
+end
+
+
+method QueryVirtualDiskUuid returns String r
+    ManagedObjectReference                   _this:VirtualDiskManager       r
+    String                                   name                           r
+    ManagedObjectReference                   datacenter                     o
 end
 
 
@@ -813,6 +876,13 @@ method RevertToSnapshot_Task returns ManagedObjectReference r
 end
 
 
+method SearchDatastoreSubFolders_Task returns ManagedObjectReference r
+    ManagedObjectReference                   _this                          r
+    String                                   datastorePath                  r
+    HostDatastoreBrowserSearchSpec           searchSpec                     o
+end
+
+
 method SearchDatastore_Task returns ManagedObjectReference r
     ManagedObjectReference                   _this                          r
     String                                   datastorePath                  r
@@ -845,4 +915,11 @@ end
 method WaitForUpdates returns UpdateSet r
     ManagedObjectReference                   _this:PropertyCollector        r
     String                                   version                        o
+end
+
+
+method ZeroFillVirtualDisk_Task returns ManagedObjectReference r
+    ManagedObjectReference                   _this:VirtualDiskManager       r
+    String                                   name                           r
+    ManagedObjectReference                   datacenter                     o
 end

@@ -37,6 +37,7 @@
 #include "memory.h"
 #include "util.h"
 #include "virterror_internal.h"
+#include "files.h"
 
 /* avoid compilation breakage on some systems */
 #ifndef MODPROBE
@@ -188,10 +189,7 @@ pciCloseConfig(pciDevice *dev)
     if (!dev)
         return;
 
-    if (dev->fd >= 0) {
-        close(dev->fd);
-        dev->fd = -1;
-    }
+    VIR_FORCE_CLOSE(dev->fd);
 }
 
 static int
@@ -826,7 +824,7 @@ recheck:
             char ebuf[1024];
             VIR_WARN("failed to load pci-stub or pciback drivers: %s",
                      virStrerror(errno, ebuf, sizeof ebuf));
-            return 0;
+            return NULL;
         }
 
         goto recheck;
@@ -851,7 +849,7 @@ pciBindDeviceToStub(pciDevice *dev, const char *driver)
      * bound by the stub.
      */
     pciDriverFile(path, sizeof(path), driver, "new_id");
-    if (virFileWriteStr(path, dev->id) < 0) {
+    if (virFileWriteStr(path, dev->id, 0) < 0) {
         virReportSystemError(errno,
                              _("Failed to add PCI device ID '%s' to %s"),
                              dev->id, driver);
@@ -864,7 +862,7 @@ pciBindDeviceToStub(pciDevice *dev, const char *driver)
      * your root filesystem.
      */
     pciDeviceFile(path, sizeof(path), dev->name, "driver/unbind");
-    if (virFileExists(path) && virFileWriteStr(path, dev->name) < 0) {
+    if (virFileExists(path) && virFileWriteStr(path, dev->name, 0) < 0) {
         virReportSystemError(errno,
                              _("Failed to unbind PCI device '%s'"), dev->name);
         return -1;
@@ -877,7 +875,7 @@ pciBindDeviceToStub(pciDevice *dev, const char *driver)
     if (!virFileLinkPointsTo(path, drvdir)) {
         /* Xen's pciback.ko wants you to use new_slot first */
         pciDriverFile(path, sizeof(path), driver, "new_slot");
-        if (virFileExists(path) && virFileWriteStr(path, dev->name) < 0) {
+        if (virFileExists(path) && virFileWriteStr(path, dev->name, 0) < 0) {
             virReportSystemError(errno,
                                  _("Failed to add slot for PCI device '%s' to %s"),
                                  dev->name, driver);
@@ -885,7 +883,7 @@ pciBindDeviceToStub(pciDevice *dev, const char *driver)
         }
 
         pciDriverFile(path, sizeof(path), driver, "bind");
-        if (virFileWriteStr(path, dev->name) < 0) {
+        if (virFileWriteStr(path, dev->name, 0) < 0) {
             virReportSystemError(errno,
                                  _("Failed to bind PCI device '%s' to %s"),
                                  dev->name, driver);
@@ -897,7 +895,7 @@ pciBindDeviceToStub(pciDevice *dev, const char *driver)
      * ID table so that 'drivers_probe' works below.
      */
     pciDriverFile(path, sizeof(path), driver, "remove_id");
-    if (virFileExists(path) && virFileWriteStr(path, dev->id) < 0) {
+    if (virFileExists(path) && virFileWriteStr(path, dev->id, 0) < 0) {
         virReportSystemError(errno,
                              _("Failed to remove PCI ID '%s' from %s"),
                              dev->id, driver);
@@ -938,7 +936,7 @@ pciUnBindDeviceFromStub(pciDevice *dev, const char *driver)
     pciDeviceFile(path, sizeof(path), dev->name, "driver");
     if (virFileExists(drvdir) && virFileLinkPointsTo(path, drvdir)) {
         pciDriverFile(path, sizeof(path), driver, "unbind");
-        if (virFileWriteStr(path, dev->name) < 0) {
+        if (virFileWriteStr(path, dev->name, 0) < 0) {
             virReportSystemError(errno,
                                  _("Failed to bind PCI device '%s' to %s"),
                                  dev->name, driver);
@@ -948,7 +946,7 @@ pciUnBindDeviceFromStub(pciDevice *dev, const char *driver)
 
     /* Xen's pciback.ko wants you to use remove_slot on the specific device */
     pciDriverFile(path, sizeof(path), driver, "remove_slot");
-    if (virFileExists(path) && virFileWriteStr(path, dev->name) < 0) {
+    if (virFileExists(path) && virFileWriteStr(path, dev->name, 0) < 0) {
         virReportSystemError(errno,
                              _("Failed to remove slot for PCI device '%s' to %s"),
                              dev->name, driver);
@@ -963,7 +961,7 @@ pciUnBindDeviceFromStub(pciDevice *dev, const char *driver)
      */
     pciDriverFile(path, sizeof(path), driver, "remove_id");
     if (!virFileExists(drvdir) || virFileExists(path)) {
-        if (virFileWriteStr(PCI_SYSFS "drivers_probe", dev->name) < 0) {
+        if (virFileWriteStr(PCI_SYSFS "drivers_probe", dev->name, 0) < 0) {
             virReportSystemError(errno,
                                  _("Failed to trigger a re-probe for PCI device '%s'"),
                                  dev->name);
@@ -1097,7 +1095,7 @@ pciWaitForDeviceCleanup(pciDevice *dev, const char *matcher)
         }
     }
 
-    fclose(fp);
+    VIR_FORCE_FCLOSE(fp);
 
     return ret;
 }

@@ -149,6 +149,7 @@ mymain(int argc, char **argv)
     DO_TEST("graphics-vnc-tls");
     DO_TEST("graphics-sdl");
     DO_TEST("graphics-sdl-fullscreen");
+    DO_TEST("graphics-spice");
     DO_TEST("input-usbmouse");
     DO_TEST("input-usbtablet");
     DO_TEST("input-xen");
@@ -178,6 +179,9 @@ mymain(int argc, char **argv)
     DO_TEST("hostdev-pci-address");
 
     DO_TEST("encrypted-disk");
+    DO_TEST("memtune");
+
+    DO_TEST("smp");
 
     /* These tests generate different XML */
     DO_TEST_DIFFERENT("balloon-device-auto");

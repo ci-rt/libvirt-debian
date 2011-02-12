@@ -24,6 +24,7 @@
 #if defined(WITH_BRIDGE)
 
 # include "bridge.h"
+# include "files.h"
 
 # include <stdlib.h>
 # include <stdio.h>
@@ -45,9 +46,11 @@
 # include <net/if_arp.h>    /* ARPHRD_ETHER */
 
 # include "internal.h"
+# include "command.h"
 # include "memory.h"
 # include "util.h"
 # include "logging.h"
+# include "network.h"
 
 # define JIFFIES_TO_MS(j) (((j)*1000)/HZ)
 # define MS_TO_JIFFIES(ms) (((ms)*HZ)/1000)
@@ -81,12 +84,12 @@ brInit(brControl **ctlp)
     if ((flags = fcntl(fd, F_GETFD)) < 0 ||
         fcntl(fd, F_SETFD, flags | FD_CLOEXEC) < 0) {
         int err = errno;
-        close(fd);
+        VIR_FORCE_CLOSE(fd);
         return err;
     }
 
     if (VIR_ALLOC(*ctlp) < 0) {
-        close(fd);
+        VIR_FORCE_CLOSE(fd);
         return ENOMEM;
     }
 
@@ -107,8 +110,7 @@ brShutdown(brControl *ctl)
     if (!ctl)
         return;
 
-    close(ctl->fd);
-    ctl->fd = 0;
+    VIR_FORCE_CLOSE(ctl->fd);
 
     VIR_FREE(ctl);
 }
@@ -538,10 +540,12 @@ brAddTap(brControl *ctl,
         goto error;
     if (tapfd)
         *tapfd = fd;
+    else
+        VIR_FORCE_CLOSE(fd);
     return 0;
 
  error:
-    close(fd);
+    VIR_FORCE_CLOSE(fd);
 
     return errno;
 }
@@ -572,7 +576,7 @@ int brDeleteTap(brControl *ctl,
     }
 
  error:
-    close(fd);
+    VIR_FORCE_CLOSE(fd);
 
     return errno;
 }
@@ -652,164 +656,95 @@ brGetInterfaceUp(brControl *ctl,
     return 0;
 }
 
-static int
-brSetInetAddr(brControl *ctl,
-              const char *ifname,
-              int cmd,
-              const char *addr)
-{
-    union {
-        struct sockaddr sa;
-        struct sockaddr_in sa_in;
-    } s;
-    struct ifreq ifr;
-    struct in_addr inaddr;
-    int ret;
-
-    if (!ctl || !ctl->fd || !ifname || !addr)
-        return EINVAL;
-
-    memset(&ifr, 0, sizeof(struct ifreq));
-
-    if (virStrcpyStatic(ifr.ifr_name, ifname) == NULL)
-        return EINVAL;
-
-    if ((ret = inet_pton(AF_INET, addr, &inaddr)) < 0)
-        return errno;
-    else if (ret == 0)
-        return EINVAL;
-
-    s.sa_in.sin_family = AF_INET;
-    s.sa_in.sin_addr   = inaddr;
-
-    ifr.ifr_addr = s.sa;
-
-    if (ioctl(ctl->fd, cmd, &ifr) < 0)
-        return errno;
-
-    return 0;
-}
-
-static int
-brGetInetAddr(brControl *ctl,
-              const char *ifname,
-              int cmd,
-              char *addr,
-              int maxlen)
-{
-    struct ifreq ifr;
-    struct in_addr *inaddr;
-
-    if (!ctl || !ctl->fd || !ifname || !addr)
-        return EINVAL;
-
-    memset(&ifr, 0, sizeof(struct ifreq));
-
-    if (virStrcpyStatic(ifr.ifr_name, ifname) == NULL)
-        return EINVAL;
-
-    if (ioctl(ctl->fd, cmd, &ifr) < 0)
-        return errno;
-
-    if (maxlen < BR_INET_ADDR_MAXLEN || ifr.ifr_addr.sa_family != AF_INET)
-        return EFAULT;
-
-    inaddr = &((struct sockaddr_in *)&ifr.ifr_data)->sin_addr;
-
-    if (!inet_ntop(AF_INET, inaddr, addr, maxlen))
-        return errno;
-
-    return 0;
-}
-
 /**
- * brSetInetAddress:
+ * brAddInetAddress:
  * @ctl: bridge control pointer
  * @ifname: the interface name
- * @addr: the string representation of the IP address
+ * @addr: the IP address (IPv4 or IPv6)
+ * @prefix: number of 1 bits in the netmask
  *
- * Function to bind the interface to an IP address, it should handle
- * IPV4 and IPv6. The string for addr would be of the form
- * "ddd.ddd.ddd.ddd" assuming the common IPv4 format.
+ * Add an IP address to an interface. This function *does not* remove
+ * any previously added IP addresses - that must be done separately with
+ * brDelInetAddress.
  *
- * Returns 0 in case of success or an errno code in case of failure.
+ * Returns 0 in case of success or -1 in case of error.
  */
 
 int
-brSetInetAddress(brControl *ctl,
+brAddInetAddress(brControl *ctl ATTRIBUTE_UNUSED,
                  const char *ifname,
-                 const char *addr)
+                 virSocketAddr *addr,
+                 unsigned int prefix)
 {
-    return brSetInetAddr(ctl, ifname, SIOCSIFADDR, addr);
+    virCommandPtr cmd = NULL;
+    char *addrstr = NULL, *bcaststr = NULL;
+    virSocketAddr broadcast;
+    int ret = -1;
+
+    if (!(addrstr = virSocketFormatAddr(addr)))
+        goto cleanup;
+    /* format up a broadcast address if this is IPv4 */
+    if ((VIR_SOCKET_IS_FAMILY(addr, AF_INET)) &&
+        ((virSocketAddrBroadcastByPrefix(addr, prefix, &broadcast) < 0) ||
+         !(bcaststr = virSocketFormatAddr(&broadcast)))) {
+        goto cleanup;
+    }
+    cmd = virCommandNew(IP_PATH);
+    virCommandAddArgList(cmd, "addr", "add", NULL);
+    virCommandAddArgFormat(cmd, "%s/%u", addrstr, prefix);
+    if (bcaststr)
+        virCommandAddArgList(cmd, "broadcast", bcaststr, NULL);
+    virCommandAddArgList(cmd, "dev", ifname, NULL);
+
+    if (virCommandRun(cmd, NULL) < 0)
+        goto cleanup;
+
+    ret = 0;
+cleanup:
+    VIR_FREE(addrstr);
+    VIR_FREE(bcaststr);
+    virCommandFree(cmd);
+    return ret;
 }
 
 /**
- * brGetInetAddress:
+ * brDelInetAddress:
  * @ctl: bridge control pointer
  * @ifname: the interface name
- * @addr: the array for the string representation of the IP address
- * @maxlen: size of @addr in bytes
+ * @addr: the IP address (IPv4 or IPv6)
+ * @prefix: number of 1 bits in the netmask
  *
- * Function to get the IP address of an interface, it should handle
- * IPV4 and IPv6. The returned string for addr would be of the form
- * "ddd.ddd.ddd.ddd" assuming the common IPv4 format.
+ * Delete an IP address from an interface.
  *
- * Returns 0 in case of success or an errno code in case of failure.
+ * Returns 0 in case of success or -1 in case of error.
  */
 
 int
-brGetInetAddress(brControl *ctl,
+brDelInetAddress(brControl *ctl ATTRIBUTE_UNUSED,
                  const char *ifname,
-                 char *addr,
-                 int maxlen)
+                 virSocketAddr *addr,
+                 unsigned int prefix)
 {
-    return brGetInetAddr(ctl, ifname, SIOCGIFADDR, addr, maxlen);
+    virCommandPtr cmd = NULL;
+    char *addrstr;
+    int ret = -1;
+
+    if (!(addrstr = virSocketFormatAddr(addr)))
+        goto cleanup;
+    cmd = virCommandNew(IP_PATH);
+    virCommandAddArgList(cmd, "addr", "del", NULL);
+    virCommandAddArgFormat(cmd, "%s/%u", addrstr, prefix);
+    virCommandAddArgList(cmd, "dev", ifname, NULL);
+
+    if (virCommandRun(cmd, NULL) < 0)
+        goto cleanup;
+
+    ret = 0;
+cleanup:
+    VIR_FREE(addrstr);
+    virCommandFree(cmd);
+    return ret;
 }
-
-/**
- * brSetInetNetmask:
- * @ctl: bridge control pointer
- * @ifname: the interface name
- * @addr: the string representation of the netmask
- *
- * Function to set the netmask of an interface, it should handle
- * IPV4 and IPv6 forms. The string for addr would be of the form
- * "ddd.ddd.ddd.ddd" assuming the common IPv4 format.
- *
- * Returns 0 in case of success or an errno code in case of failure.
- */
-
-int
-brSetInetNetmask(brControl *ctl,
-                 const char *ifname,
-                 const char *addr)
-{
-    return brSetInetAddr(ctl, ifname, SIOCSIFNETMASK, addr);
-}
-
-/**
- * brGetInetNetmask:
- * @ctl: bridge control pointer
- * @ifname: the interface name
- * @addr: the array for the string representation of the netmask
- * @maxlen: size of @addr in bytes
- *
- * Function to get the netmask of an interface, it should handle
- * IPV4 and IPv6. The returned string for addr would be of the form
- * "ddd.ddd.ddd.ddd" assuming the common IPv4 format.
- *
- * Returns 0 in case of success or an errno code in case of failure.
- */
-
-int
-brGetInetNetmask(brControl *ctl,
-                 const char *ifname,
-                 char *addr,
-                 int maxlen)
-{
-    return brGetInetAddr(ctl, ifname, SIOCGIFNETMASK, addr, maxlen);
-}
-
 
 /**
  * brSetForwardDelay:
@@ -827,17 +762,20 @@ brSetForwardDelay(brControl *ctl ATTRIBUTE_UNUSED,
                   const char *bridge,
                   int delay)
 {
-    char delayStr[30];
-    const char *const progargv[] = {
-        BRCTL, "setfd", bridge, delayStr, NULL
-    };
+    virCommandPtr cmd;
+    int ret = -1;
 
-    snprintf(delayStr, sizeof(delayStr), "%d", delay);
+    cmd = virCommandNew(BRCTL);
+    virCommandAddArgList(cmd, "setfd", bridge, NULL);
+    virCommandAddArgFormat(cmd, "%d", delay);
 
-    if (virRun(progargv, NULL) < 0)
-        return -1;
+    if (virCommandRun(cmd, NULL) < 0)
+        goto cleanup;
 
-    return 0;
+    ret = 0;
+cleanup:
+    virCommandFree(cmd);
+    return ret;
 }
 
 /**
@@ -856,15 +794,21 @@ brSetEnableSTP(brControl *ctl ATTRIBUTE_UNUSED,
                const char *bridge,
                int enable)
 {
-    const char *setting = enable ? "on" : "off";
-    const char *const progargv[] = {
-        BRCTL, "stp", bridge, setting, NULL
-    };
+    virCommandPtr cmd;
+    int ret = -1;
 
-    if (virRun(progargv, NULL) < 0)
-        return -1;
+    cmd = virCommandNew(BRCTL);
+    virCommandAddArgList(cmd, "stp", bridge,
+                         enable ? "on" : "off",
+                         NULL);
 
-    return 0;
+    if (virCommandRun(cmd, NULL) < 0)
+        goto cleanup;
+
+    ret = 0;
+cleanup:
+    virCommandFree(cmd);
+    return ret;
 }
 
 #endif /* WITH_BRIDGE */

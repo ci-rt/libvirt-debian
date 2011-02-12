@@ -22,12 +22,19 @@
 #if __GNUC__ >= 3
 @PRAGMA_SYSTEM_HEADER@
 #endif
+@PRAGMA_COLUMNS@
 
 #if defined __need_system_fcntl_h
 /* Special invocation convention.  */
 
 #include <sys/types.h>
-#ifndef __GLIBC__ /* Avoid namespace pollution on glibc systems.  */
+/* On some systems other than glibc, <sys/stat.h> is a prerequisite of
+   <fcntl.h>.  On glibc systems, we would like to avoid namespace pollution.
+   But on glibc systems, <fcntl.h> includes <sys/stat.h> inside an
+   extern "C" { ... } block, which leads to errors in C++ mode with the
+   overridden <sys/stat.h> from gnulib.  These errors are known to be gone
+   with g++ version >= 4.3.  */
+#if !(defined __GLIBC__ || defined __UCLIBC__) || (defined __cplusplus && defined GNULIB_NAMESPACE && !(__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 3)))
 # include <sys/stat.h>
 #endif
 #@INCLUDE_NEXT@ @NEXT_FCNTL_H@
@@ -172,6 +179,10 @@ _GL_WARN_ON_USE (openat, "openat is not portable - "
 # define O_CLOEXEC O_NOINHERIT
 #endif
 
+#ifndef O_CLOEXEC
+# define O_CLOEXEC 0
+#endif
+
 #ifndef O_DIRECT
 # define O_DIRECT 0
 #endif
@@ -182,6 +193,10 @@ _GL_WARN_ON_USE (openat, "openat is not portable - "
 
 #ifndef O_DSYNC
 # define O_DSYNC 0
+#endif
+
+#ifndef O_EXEC
+# define O_EXEC O_RDONLY /* This is often close enough in older systems.  */
 #endif
 
 #ifndef O_NDELAY
@@ -210,6 +225,10 @@ _GL_WARN_ON_USE (openat, "openat is not portable - "
 
 #ifndef O_RSYNC
 # define O_RSYNC 0
+#endif
+
+#ifndef O_SEARCH
+# define O_SEARCH O_RDONLY /* This is often close enough in older systems.  */
 #endif
 
 #ifndef O_SYNC

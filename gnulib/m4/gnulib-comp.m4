@@ -14,7 +14,8 @@
 # This file represents the compiled summary of the specification in
 # gnulib-cache.m4. It lists the computed macro invocations that need
 # to be invoked from configure.ac.
-# In projects using CVS, this file can be treated like other built files.
+# In projects that use version control, this file can be treated like
+# other built files.
 
 
 # This macro should be invoked from ./configure.ac, in the section
@@ -40,6 +41,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module arpa_inet-tests:
   # Code from module base64:
   # Code from module base64-tests:
+  # Code from module binary-io:
+  # Code from module binary-io-tests:
   # Code from module bind:
   # Code from module c++defs:
   # Code from module c-ctype:
@@ -48,9 +51,12 @@ AC_DEFUN([gl_EARLY],
   # Code from module canonicalize-lgpl-tests:
   # Code from module close:
   # Code from module close-hook:
+  # Code from module configmake:
   # Code from module connect:
   # Code from module count-one-bits:
   # Code from module count-one-bits-tests:
+  # Code from module crypto/md5:
+  # Code from module crypto/md5-tests:
   # Code from module dirname-lgpl:
   # Code from module double-slash-root:
   # Code from module errno:
@@ -64,6 +70,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module fseeko:
   AC_REQUIRE([AC_FUNC_FSEEKO])
   # Code from module fseeko-tests:
+  # Code from module func:
+  # Code from module func-tests:
   # Code from module getaddrinfo:
   # Code from module getaddrinfo-tests:
   # Code from module getdelim:
@@ -72,6 +80,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module gethostname-tests:
   # Code from module getline:
   # Code from module getline-tests:
+  # Code from module getpagesize:
   # Code from module getpass:
   # Code from module gettext-h:
   # Code from module gettimeofday:
@@ -99,6 +108,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module memchr:
   # Code from module memchr-tests:
   # Code from module mkstemp:
+  # Code from module mkstemps:
   # Code from module mktempd:
   # Code from module mktime:
   # Code from module multiarch:
@@ -110,7 +120,11 @@ AC_DEFUN([gl_EARLY],
   # Code from module perror:
   # Code from module perror-tests:
   # Code from module physmem:
+  # Code from module pipe-posix:
+  # Code from module pipe-posix-tests:
   # Code from module poll:
+  # Code from module poll-h:
+  # Code from module poll-h-tests:
   # Code from module poll-tests:
   # Code from module posix-shell:
   # Code from module pthread:
@@ -136,6 +150,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module snprintf:
   # Code from module snprintf-tests:
   # Code from module socket:
+  # Code from module socketlib:
   # Code from module sockets:
   # Code from module sockets-tests:
   # Code from module socklen:
@@ -165,6 +180,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module strings-tests:
   # Code from module strndup:
   # Code from module strnlen:
+  # Code from module strnlen-tests:
   # Code from module strptime:
   # Code from module strsep:
   # Code from module strtok_r:
@@ -185,6 +201,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module sys_wait:
   # Code from module sys_wait-tests:
   # Code from module tempname:
+  # Code from module termios:
+  # Code from module termios-tests:
   # Code from module time:
   # Code from module time-tests:
   # Code from module time_r:
@@ -204,6 +222,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module vc-list-files-tests:
   # Code from module verify:
   # Code from module verify-tests:
+  # Code from module waitpid:
   # Code from module warn-on-use:
   # Code from module wchar:
   # Code from module wchar-tests:
@@ -250,6 +269,8 @@ AC_SUBST([LTALLOCA])
   gl_FUNC_CLOSE
   gl_UNISTD_MODULE_INDICATOR([close])
   # Code from module close-hook:
+  # Code from module configmake:
+  gl_CONFIGMAKE_PREP
   # Code from module connect:
   AC_REQUIRE([gl_HEADER_SYS_SOCKET])
   if test "$ac_cv_header_winsock2_h" = yes; then
@@ -258,6 +279,8 @@ AC_SUBST([LTALLOCA])
   gl_SYS_SOCKET_MODULE_INDICATOR([connect])
   # Code from module count-one-bits:
   gl_COUNT_ONE_BITS
+  # Code from module crypto/md5:
+  gl_MD5
   # Code from module dirname-lgpl:
   gl_DIRNAME_LGPL
   # Code from module double-slash-root:
@@ -275,6 +298,8 @@ AC_SUBST([LTALLOCA])
   # Code from module fseeko:
   gl_FUNC_FSEEKO
   gl_STDIO_MODULE_INDICATOR([fseeko])
+  # Code from module func:
+  gl_FUNC
   # Code from module getaddrinfo:
   gl_GETADDRINFO
   gl_NETDB_MODULE_INDICATOR([getaddrinfo])
@@ -342,6 +367,10 @@ AC_SUBST([LTALLOCA])
   # Code from module mkstemp:
   gl_FUNC_MKSTEMP
   gl_STDLIB_MODULE_INDICATOR([mkstemp])
+  # Code from module mkstemps:
+  gl_FUNC_MKSTEMPS
+  gl_MODULE_INDICATOR([mkstemps])
+  gl_STDLIB_MODULE_INDICATOR([mkstemps])
   # Code from module mktempd:
   # Code from module mktime:
   gl_FUNC_MKTIME
@@ -360,8 +389,14 @@ AC_SUBST([LTALLOCA])
   gl_STRING_MODULE_INDICATOR([perror])
   # Code from module physmem:
   gl_PHYSMEM
+  # Code from module pipe-posix:
+  gl_FUNC_PIPE
+  gl_UNISTD_MODULE_INDICATOR([pipe])
   # Code from module poll:
   gl_FUNC_POLL
+  gl_POLL_MODULE_INDICATOR([poll])
+  # Code from module poll-h:
+  gl_POLL_H
   # Code from module posix-shell:
   gl_POSIX_SHELL
   # Code from module pthread:
@@ -426,6 +461,8 @@ AC_SUBST([LTALLOCA])
     SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS=1
   fi
   gl_SYS_SOCKET_MODULE_INDICATOR([socket])
+  # Code from module socketlib:
+  gl_SOCKETLIB
   # Code from module sockets:
   gl_SOCKETS
   # Code from module socklen:
@@ -501,6 +538,8 @@ AC_SUBST([LTALLOCA])
   AC_PROG_MKDIR_P
   # Code from module tempname:
   gl_FUNC_GEN_TEMPNAME
+  # Code from module termios:
+  gl_TERMIOS_H
   # Code from module time:
   gl_HEADER_TIME_H
   # Code from module time_r:
@@ -528,6 +567,9 @@ AC_SUBST([LTALLOCA])
      AM_][XGETTEXT_OPTION([--flag=vasprintf:2:c-format])])
   # Code from module vc-list-files:
   # Code from module verify:
+  # Code from module waitpid:
+  gl_FUNC_WAITPID
+  gl_SYS_WAIT_MODULE_INDICATOR([waitpid])
   # Code from module warn-on-use:
   # Code from module wchar:
   gl_WCHAR_H
@@ -590,6 +632,8 @@ changequote([, ])dnl
   fi
   gl_SYS_SOCKET_MODULE_INDICATOR([bind])
   gl_FUNC_UNGETC_WORKS
+  gl_FUNC_GETPAGESIZE
+  gl_UNISTD_MODULE_INDICATOR([getpagesize])
   AC_C_BIGENDIAN
   AC_C_BIGENDIAN
   AC_REQUIRE([gl_HEADER_SYS_SOCKET])
@@ -597,11 +641,23 @@ changequote([, ])dnl
     AC_LIBOBJ([listen])
   fi
   gl_SYS_SOCKET_MODULE_INDICATOR([listen])
+  dnl Check for prerequisites for memory fence checks.
+  gl_FUNC_MMAP_ANON
+  AC_CHECK_HEADERS_ONCE([sys/mman.h])
+  AC_CHECK_FUNCS_ONCE([mprotect])
   AC_CHECK_HEADERS_ONCE([unistd.h sys/wait.h])
+  dnl Check for prerequisites for memory fence checks.
+  gl_FUNC_MMAP_ANON
+  AC_CHECK_HEADERS_ONCE([sys/mman.h])
+  AC_CHECK_FUNCS_ONCE([mprotect])
   AC_CHECK_HEADERS_ONCE([unistd.h sys/wait.h])
   AC_CHECK_DECLS_ONCE([alarm])
   gt_TYPE_WCHAR_T
   gt_TYPE_WINT_T
+  dnl Check for prerequisites for memory fence checks.
+  gl_FUNC_MMAP_ANON
+  AC_CHECK_HEADERS_ONCE([sys/mman.h])
+  AC_CHECK_FUNCS_ONCE([mprotect])
   gl_FUNC_SYMLINK
   gl_UNISTD_MODULE_INDICATOR([symlink])
   AC_CHECK_FUNCS_ONCE([shutdown])
@@ -753,9 +809,12 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/malloca.c
   lib/malloca.h
   lib/malloca.valgrind
+  lib/md5.c
+  lib/md5.h
   lib/memchr.c
   lib/memchr.valgrind
   lib/mkstemp.c
+  lib/mkstemps.c
   lib/mktime-internal.h
   lib/mktime.c
   lib/netdb.in.h
@@ -764,6 +823,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/perror.c
   lib/physmem.c
   lib/physmem.h
+  lib/pipe.c
   lib/poll.c
   lib/poll.in.h
   lib/printf-args.c
@@ -819,6 +879,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/sys_wait.in.h
   lib/tempname.c
   lib/tempname.h
+  lib/termios.in.h
   lib/time.in.h
   lib/time_r.c
   lib/timegm.c
@@ -830,6 +891,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/vasprintf.c
   lib/verify.h
   lib/w32sock.h
+  lib/waitpid.c
   lib/wchar.in.h
   lib/xsize.h
   m4/00gnulib.m4
@@ -839,6 +901,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/base64.m4
   m4/canonicalize.m4
   m4/close.m4
+  m4/configmake.m4
   m4/count-one-bits.m4
   m4/dirname.m4
   m4/dos.m4
@@ -851,10 +914,12 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/fcntl_h.m4
   m4/float_h.m4
   m4/fseeko.m4
+  m4/func.m4
   m4/getaddrinfo.m4
   m4/getdelim.m4
   m4/gethostname.m4
   m4/getline.m4
+  m4/getpagesize.m4
   m4/getpass.m4
   m4/gettimeofday.m4
   m4/gnulib-common.m4
@@ -870,8 +935,10 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/lstat.m4
   m4/malloc.m4
   m4/malloca.m4
+  m4/md5.m4
   m4/memchr.m4
   m4/mkstemp.m4
+  m4/mkstemps.m4
   m4/mktime.m4
   m4/mmap-anon.m4
   m4/multiarch.m4
@@ -881,7 +948,9 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/pathmax.m4
   m4/perror.m4
   m4/physmem.m4
+  m4/pipe.m4
   m4/poll.m4
+  m4/poll_h.m4
   m4/posix-shell.m4
   m4/printf.m4
   m4/pthread.m4
@@ -895,6 +964,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/size_max.m4
   m4/sleep.m4
   m4/snprintf.m4
+  m4/socketlib.m4
   m4/sockets.m4
   m4/socklen.m4
   m4/sockpfaf.m4
@@ -927,6 +997,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/sys_utsname_h.m4
   m4/sys_wait_h.m4
   m4/tempname.m4
+  m4/termios_h.m4
   m4/time_h.m4
   m4/time_r.m4
   m4/timegm.m4
@@ -937,6 +1008,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/usleep.m4
   m4/vasnprintf.m4
   m4/vasprintf.m4
+  m4/waitpid.m4
   m4/warn-on-use.m4
   m4/wchar_h.m4
   m4/wchar_t.m4
@@ -951,6 +1023,8 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-areadlink.h
   tests/test-arpa_inet.c
   tests/test-base64.c
+  tests/test-binary-io.c
+  tests/test-binary-io.sh
   tests/test-c-ctype.c
   tests/test-canonicalize-lgpl.c
   tests/test-count-one-bits.c
@@ -959,6 +1033,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-fseeko.c
   tests/test-fseeko.sh
   tests/test-fseeko2.sh
+  tests/test-func.c
   tests/test-getaddrinfo.c
   tests/test-getdelim.c
   tests/test-gethostname.c
@@ -971,11 +1046,14 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-lstat.c
   tests/test-lstat.h
   tests/test-malloca.c
+  tests/test-md5.c
   tests/test-memchr.c
   tests/test-netdb.c
   tests/test-netinet_in.c
   tests/test-perror.c
   tests/test-perror.sh
+  tests/test-pipe.c
+  tests/test-poll-h.c
   tests/test-poll.c
   tests/test-random_r.c
   tests/test-rawmemchr.c
@@ -1001,6 +1079,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-strerror.c
   tests/test-string.c
   tests/test-strings.c
+  tests/test-strnlen.c
   tests/test-symlink.c
   tests/test-symlink.h
   tests/test-sys_ioctl.c
@@ -1010,6 +1089,8 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-sys_time.c
   tests/test-sys_utsname.c
   tests/test-sys_wait.c
+  tests/test-sys_wait.h
+  tests/test-termios.c
   tests/test-time.c
   tests/test-uname.c
   tests/test-unistd.c
@@ -1023,8 +1104,10 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-wchar.c
   tests/zerosize-ptr.h
   tests=lib/accept.c
+  tests=lib/binary-io.h
   tests=lib/bind.c
   tests=lib/dummy.c
+  tests=lib/getpagesize.c
   tests=lib/listen.c
   tests=lib/same-inode.h
   tests=lib/symlink.c

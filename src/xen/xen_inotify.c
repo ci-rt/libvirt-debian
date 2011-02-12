@@ -39,6 +39,7 @@
 #include "xend_internal.h"
 #include "logging.h"
 #include "uuid.h"
+#include "files.h"
 
 #include "xm_internal.h" /* for xenXMDomainConfigParse */
 
@@ -71,10 +72,8 @@ struct xenUnifiedDriver xenInotifyDriver = {
     NULL, /* domainSave */
     NULL, /* domainRestore */
     NULL, /* domainCoreDump */
-    NULL, /* domainSetVcpus */
     NULL, /* domainPinVcpu */
     NULL, /* domainGetVcpus */
-    NULL, /* domainGetMaxVcpus */
     NULL, /* listDefinedDomains */
     NULL, /* numOfDefinedDomains */
     NULL, /* domainCreate */
@@ -485,7 +484,7 @@ xenInotifyClose(virConnectPtr conn)
 
     if (priv->inotifyWatch != -1)
         virEventRemoveHandle(priv->inotifyWatch);
-    close(priv->inotifyFD);
+    VIR_FORCE_CLOSE(priv->inotifyFD);
 
     return 0;
 }

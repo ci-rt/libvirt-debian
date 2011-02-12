@@ -27,7 +27,6 @@
 # include <libxml/uri.h>
 
 # include "internal.h"
-# include "conf.h"
 
 typedef struct _esxUtil_ParsedUri esxUtil_ParsedUri;
 
@@ -52,21 +51,17 @@ void esxUtil_FreeParsedUri(esxUtil_ParsedUri **parsedUri);
 int esxUtil_ParseVirtualMachineIDString(const char *id_string, int *id);
 
 int esxUtil_ParseDatastorePath(const char *datastorePath, char **datastoreName,
-                               char **directoryName, char **fileName);
+                               char **directoryName, char **directoryAndFileName);
 
 int esxUtil_ResolveHostname(const char *hostname,
                             char *ipAddress, size_t ipAddress_length);
 
-int esxUtil_GetConfigString(virConfPtr conf, const char *name, char **string,
-                            bool optional);
+int esxUtil_ReformatUuid(const char *input, char *output);
 
-int esxUtil_GetConfigUUID(virConfPtr conf, const char *name,
-                          unsigned char *uuid, bool optional);
+char *esxUtil_EscapeBase64(const char *string);
 
-int esxUtil_GetConfigLong(virConfPtr conf, const char *name, long long *number,
-                          long long default_, bool optional);
+void esxUtil_ReplaceSpecialWindowsPathChars(char *string);
 
-int esxUtil_GetConfigBoolean(virConfPtr conf, const char *name, bool *boolean_,
-                             bool default_, bool optional);
+char *esxUtil_EscapeDatastoreItem(const char *string);
 
 #endif /* __ESX_UTIL_H__ */

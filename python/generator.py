@@ -306,6 +306,8 @@ skip_impl = (
     'virDomainGetSchedulerType',
     'virDomainGetSchedulerParameters',
     'virDomainSetSchedulerParameters',
+    'virDomainSetMemoryParameters',
+    'virDomainGetMemoryParameters',
     'virDomainGetVcpus',
     'virDomainPinVcpu',
     'virSecretGetValue',
@@ -1008,7 +1010,7 @@ def buildWrappers():
     classes = open("libvirt.py", "w")
 
     extra = open(os.path.join(srcPref,"libvirt-override.py"), "r")
-    classes.write("#!/usr/bin/python -i\n")
+    classes.write("#!/usr/bin/env python\n")
     classes.write("#\n")
     classes.write("# WARNING WARNING WARNING WARNING\n")
     classes.write("#\n")

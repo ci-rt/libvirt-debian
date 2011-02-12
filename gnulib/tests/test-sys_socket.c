@@ -1,7 +1,7 @@
 /* -*- buffer-read-only: t -*- vi: set ro: */
 /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Test of <sys/socket.h> substitute.
-   Copyright (C) 2007, 2009, 2010 Free Software Foundation, Inc.
+   Copyright (C) 2007, 2009-2010 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -29,6 +29,9 @@
 int a[] = { SHUT_RD, SHUT_WR, SHUT_RDWR };
 #endif
 
+/* Check that the 'socklen_t' type is defined.  */
+socklen_t t1;
+
 int
 main (void)
 {
@@ -50,6 +53,10 @@ main (void)
 
   x.ss_family = 42;
   i = 42;
+
+  /* Tell the compiler that these variables are used.  */
+  (void) x;
+  (void) i;
 
   return 0;
 }

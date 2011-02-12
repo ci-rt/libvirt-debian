@@ -31,7 +31,7 @@
 #include <string.h>
 
 #include "qemu_monitor_text.h"
-#include "qemu_conf.h"
+#include "qemu_command.h"
 #include "c-ctype.h"
 #include "memory.h"
 #include "logging.h"
@@ -848,13 +848,14 @@ int qemuMonitorTextSetCPU(qemuMonitorPtr mon, int cpu, int online)
 
 
 int qemuMonitorTextEjectMedia(qemuMonitorPtr mon,
-                              const char *devname)
+                              const char *devname,
+                              bool force)
 {
     char *cmd = NULL;
     char *reply = NULL;
     int ret = -1;
 
-    if (virAsprintf(&cmd, "eject %s", devname) < 0) {
+    if (virAsprintf(&cmd, "eject %s%s", force ? "-f " : "", devname) < 0) {
         virReportOOMError();
         goto cleanup;
     }
@@ -905,7 +906,7 @@ int qemuMonitorTextChangeMedia(qemuMonitorPtr mon,
 
     if (qemuMonitorCommand(mon, cmd, &reply) < 0) {
         qemuReportError(VIR_ERR_OPERATION_FAILED,
-                        _("could not eject media on %s"), devname);
+                        _("could not change media on %s"), devname);
         goto cleanup;
     }
 
@@ -914,7 +915,7 @@ int qemuMonitorTextChangeMedia(qemuMonitorPtr mon,
      * No message is printed on success it seems */
     if (strstr(reply, "device ")) {
         qemuReportError(VIR_ERR_OPERATION_FAILED,
-                        _("could not eject media on %s: %s"), devname, reply);
+                        _("could not change media on %s: %s"), devname, reply);
         goto cleanup;
     }
 
@@ -1277,8 +1278,9 @@ int qemuMonitorTextMigrateToFile(qemuMonitorPtr mon,
      * allow starting at an alignment of 512, but without wasting
      * padding to get to the larger alignment useful for speed.  Use
      * <> redirection to avoid truncating a regular file.  */
-    if (virAsprintf(&dest, "exec:%s | { dd bs=%llu seek=%llu if=/dev/null && "
-                    "dd bs=%llu; } 1<>%s",
+    if (virAsprintf(&dest, "exec:" VIR_WRAPPER_SHELL_PREFIX "%s | "
+                    "{ dd bs=%llu seek=%llu if=/dev/null && "
+                    "dd bs=%llu; } 1<>%s" VIR_WRAPPER_SHELL_SUFFIX,
                     argstr, QEMU_MONITOR_MIGRATE_TO_FILE_BS,
                     offset / QEMU_MONITOR_MIGRATE_TO_FILE_BS,
                     QEMU_MONITOR_MIGRATE_TO_FILE_TRANSFER_SIZE,
@@ -2093,11 +2095,10 @@ int qemuMonitorTextAttachDrive(qemuMonitorPtr mon,
     }
 
 try_command:
-    ret = virAsprintf(&cmd, "drive_add %s%.2x:%.2x:%.2x %s",
-                      (tryOldSyntax ? "" : "pci_addr="),
-                      controllerAddr->domain, controllerAddr->bus,
-                      controllerAddr->slot, safe_str);
-    if (ret == -1) {
+    if (virAsprintf(&cmd, "drive_add %s%.2x:%.2x:%.2x %s",
+                    (tryOldSyntax ? "" : "pci_addr="),
+                    controllerAddr->domain, controllerAddr->bus,
+                    controllerAddr->slot, safe_str) < 0) {
         virReportOOMError();
         goto cleanup;
     }
@@ -2105,6 +2106,12 @@ try_command:
     if (qemuMonitorCommand(mon, cmd, &reply) < 0) {
         qemuReportError(VIR_ERR_OPERATION_FAILED,
                         _("failed to close fd in qemu with '%s'"), cmd);
+        goto cleanup;
+    }
+
+    if (strstr(reply, "unknown command:")) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                        _("drive hotplug is not supported"));
         goto cleanup;
     }
 
@@ -2279,6 +2286,7 @@ int qemuMonitorTextDelDevice(qemuMonitorPtr mon,
         goto cleanup;
     }
 
+    DEBUG("TextDelDevice devalias=%s", devalias);
     if (qemuMonitorCommand(mon, cmd, &reply) < 0) {
         qemuReportError(VIR_ERR_OPERATION_FAILED,
                         _("cannot detach %s device"), devalias);
@@ -2359,8 +2367,7 @@ int qemuMonitorTextAddDrive(qemuMonitorPtr mon,
 
     /* 'dummy' here is just a placeholder since there is no PCI
      * address required when attaching drives to a controller */
-    ret = virAsprintf(&cmd, "drive_add dummy %s", safe_str);
-    if (ret == -1) {
+    if (virAsprintf(&cmd, "drive_add dummy %s", safe_str) < 0) {
         virReportOOMError();
         goto cleanup;
     }
@@ -2368,6 +2375,12 @@ int qemuMonitorTextAddDrive(qemuMonitorPtr mon,
     if (qemuMonitorCommand(mon, cmd, &reply) < 0) {
         qemuReportError(VIR_ERR_OPERATION_FAILED,
                         _("failed to close fd in qemu with '%s'"), cmd);
+        goto cleanup;
+    }
+
+    if (strstr(reply, "unknown command:")) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                        _("drive hotplug is not supported"));
         goto cleanup;
     }
 
@@ -2380,6 +2393,59 @@ cleanup:
     return ret;
 }
 
+/* Attempts to remove a host drive.
+ * Returns 1 if unsupported, 0 if ok, and -1 on other failure */
+int qemuMonitorTextDriveDel(qemuMonitorPtr mon,
+                            const char *drivestr)
+{
+    char *cmd = NULL;
+    char *reply = NULL;
+    char *safedev;
+    int ret = -1;
+    DEBUG("TextDriveDel drivestr=%s", drivestr);
+
+    if (!(safedev = qemuMonitorEscapeArg(drivestr))) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if (virAsprintf(&cmd, "drive_del %s", safedev) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if (qemuMonitorCommand(mon, cmd, &reply) < 0) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED,
+                        _("cannot delete %s drive"), drivestr);
+        goto cleanup;
+    }
+
+    if (strstr(reply, "unknown command:")) {
+        VIR_ERROR0(_("deleting drive is not supported.  "
+                    "This may leak data if disk is reassigned"));
+        ret = 1;
+        goto cleanup;
+
+    /* (qemu) drive_del wark
+     * Device 'wark' not found */
+    } else if (STRPREFIX(reply, "Device '") && (strstr(reply, "not found"))) {
+        /* NB: device not found errors mean the drive was auto-deleted and we
+         * ignore the error */
+        ret = 0;
+    } else if (STRNEQ(reply, "")) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED,
+                        _("deleting %s drive failed: %s"), drivestr, reply);
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(cmd);
+    VIR_FREE(reply);
+    VIR_FREE(safedev);
+    return ret;
+}
 
 int qemuMonitorTextSetDrivePassphrase(qemuMonitorPtr mon,
                                       const char *alias,
@@ -2396,8 +2462,8 @@ int qemuMonitorTextSetDrivePassphrase(qemuMonitorPtr mon,
         return -1;
     }
 
-    ret = virAsprintf(&cmd, "block_passwd %s%s \"%s\"", QEMU_DRIVE_HOST_PREFIX, alias, safe_str);
-    if (ret == -1) {
+    if (virAsprintf(&cmd, "block_passwd %s%s \"%s\"",
+                    QEMU_DRIVE_HOST_PREFIX, alias, safe_str) < 0) {
         virReportOOMError();
         goto cleanup;
     }

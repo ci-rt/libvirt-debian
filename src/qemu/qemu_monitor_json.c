@@ -32,7 +32,7 @@
 #include <sys/time.h>
 
 #include "qemu_monitor_json.h"
-#include "qemu_conf.h"
+#include "qemu_command.h"
 #include "memory.h"
 #include "logging.h"
 #include "driver.h"
@@ -1348,12 +1348,13 @@ cleanup:
 
 
 int qemuMonitorJSONEjectMedia(qemuMonitorPtr mon,
-                              const char *devname)
+                              const char *devname,
+                              bool force)
 {
     int ret;
     virJSONValuePtr cmd = qemuMonitorJSONMakeCommand("eject",
                                                      "s:device", devname,
-                                                     "i:force", 0,
+                                                     "b:force", force ? 1 : 0,
                                                      NULL);
     virJSONValuePtr reply = NULL;
     if (!cmd)
@@ -1452,17 +1453,11 @@ int qemuMonitorJSONSetMigrationSpeed(qemuMonitorPtr mon,
                                      unsigned long bandwidth)
 {
     int ret;
-    char *bandwidthstr;
     virJSONValuePtr cmd;
     virJSONValuePtr reply = NULL;
-    if (virAsprintf(&bandwidthstr, "%lum", bandwidth) < 0) {
-        virReportOOMError();
-        return -1;
-    }
     cmd = qemuMonitorJSONMakeCommand("migrate_set_speed",
-                                     "s:value", bandwidthstr,
+                                     "U:value", bandwidth * 1024ULL * 1024ULL,
                                      NULL);
-    VIR_FREE(bandwidthstr);
     if (!cmd)
         return -1;
 
@@ -1481,17 +1476,12 @@ int qemuMonitorJSONSetMigrationDowntime(qemuMonitorPtr mon,
                                         unsigned long long downtime)
 {
     int ret;
-    char *downtimestr;
     virJSONValuePtr cmd;
     virJSONValuePtr reply = NULL;
-    if (virAsprintf(&downtimestr, "%llums", downtime) < 0) {
-        virReportOOMError();
-        return -1;
-    }
+
     cmd = qemuMonitorJSONMakeCommand("migrate_set_downtime",
-                                     "s:value", downtimestr,
+                                     "d:value", downtime / 1000.0,
                                      NULL);
-    VIR_FREE(downtimestr);
     if (!cmd)
         return -1;
 
@@ -1606,9 +1596,9 @@ static int qemuMonitorJSONMigrate(qemuMonitorPtr mon,
     int ret;
     virJSONValuePtr cmd =
       qemuMonitorJSONMakeCommand("migrate",
-                                 "i:detach", flags & QEMU_MONITOR_MIGRATE_BACKGROUND ? 1 : 0,
-                                 "i:blk", flags & QEMU_MONITOR_MIGRATE_NON_SHARED_DISK ? 1 : 0,
-                                 "i:inc", flags & QEMU_MONITOR_MIGRATE_NON_SHARED_INC ? 1 : 0,
+                                 "b:detach", flags & QEMU_MONITOR_MIGRATE_BACKGROUND ? 1 : 0,
+                                 "b:blk", flags & QEMU_MONITOR_MIGRATE_NON_SHARED_DISK ? 1 : 0,
+                                 "b:inc", flags & QEMU_MONITOR_MIGRATE_NON_SHARED_INC ? 1 : 0,
                                  "s:uri", uri,
                                  NULL);
     virJSONValuePtr reply = NULL;
@@ -1703,8 +1693,9 @@ int qemuMonitorJSONMigrateToFile(qemuMonitorPtr mon,
      * allow starting at an alignment of 512, but without wasting
      * padding to get to the larger alignment useful for speed.  Use
      * <> redirection to avoid truncating a regular file.  */
-    if (virAsprintf(&dest, "exec:%s | { dd bs=%llu seek=%llu if=/dev/null && "
-                    "dd bs=%llu; } 1<>%s",
+    if (virAsprintf(&dest, "exec:" VIR_WRAPPER_SHELL_PREFIX "%s | "
+                    "{ dd bs=%llu seek=%llu if=/dev/null && "
+                    "dd bs=%llu; } 1<>%s" VIR_WRAPPER_SHELL_SUFFIX,
                     argstr, QEMU_MONITOR_MIGRATE_TO_FILE_BS,
                     offset / QEMU_MONITOR_MIGRATE_TO_FILE_BS,
                     QEMU_MONITOR_MIGRATE_TO_FILE_TRANSFER_SIZE,
@@ -2247,6 +2238,44 @@ int qemuMonitorJSONAddDrive(qemuMonitorPtr mon,
     return ret;
 }
 
+
+int qemuMonitorJSONDriveDel(qemuMonitorPtr mon,
+                            const char *drivestr)
+{
+    int ret;
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+
+    DEBUG("JSONDriveDel drivestr=%s", drivestr);
+    cmd = qemuMonitorJSONMakeCommand("drive_del",
+                                     "s:id", drivestr,
+                                     NULL);
+    if (!cmd)
+        return -1;
+
+    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+
+    if (ret == 0) {
+        /* See if drive_del isn't supported */
+        if (qemuMonitorJSONHasError(reply, "CommandNotFound")) {
+            VIR_ERROR0(_("deleting disk is not supported.  "
+                        "This may leak data if disk is reassigned"));
+            ret = 1;
+            goto cleanup;
+        } else if (qemuMonitorJSONHasError(reply, "DeviceNotFound")) {
+            /* NB: device not found errors mean the drive was
+             * auto-deleted and we ignore the error */
+            ret = 0;
+        } else {
+            ret = qemuMonitorJSONCheckError(cmd, reply);
+        }
+    }
+
+cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
 
 int qemuMonitorJSONSetDrivePassphrase(qemuMonitorPtr mon,
                                       const char *alias,

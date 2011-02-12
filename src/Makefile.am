@@ -11,14 +11,6 @@ INCLUDES =							\
 		-I@top_srcdir@/include				\
 		$(DRIVER_MODULE_CFLAGS)				\
 		$(LIBXML_CFLAGS)				\
-		-DLIBDIR=\""$(libdir)"\"			\
-		-DBINDIR=\""$(libexecdir)"\"			\
-		-DSBINDIR=\""$(sbindir)"\"			\
-		-DSYSCONF_DIR="\"$(sysconfdir)\""		\
-		-DLOCALEBASEDIR=\""$(datadir)/locale"\"		\
-		-DPKGDATADIR=\""$(pkgdatadir)"\"		\
-		-DLOCAL_STATE_DIR=\""$(localstatedir)"\"	\
-		-DGETTEXT_PACKAGE=\"$(PACKAGE)\"		\
 		$(WARN_CFLAGS)					\
 		$(LOCK_CHECKING_CFLAGS)			\
 		-DIN_LIBVIRT				\
@@ -56,9 +48,11 @@ UTIL_SOURCES =							\
 		util/bitmap.c util/bitmap.h			\
 		util/bridge.c util/bridge.h			\
 		util/buf.c util/buf.h				\
+		util/command.c util/command.h			\
 		util/conf.c util/conf.h				\
 		util/cgroup.c util/cgroup.h			\
 		util/event.c util/event.h			\
+		util/files.c util/files.h			\
 		util/hash.c util/hash.h				\
 		util/hooks.c util/hooks.h			\
 		util/iptables.c util/iptables.h			\
@@ -76,12 +70,15 @@ UTIL_SOURCES =							\
 		util/qparams.c util/qparams.h			\
 		util/stats_linux.c util/stats_linux.h		\
 		util/storage_file.c util/storage_file.h		\
+		util/sysinfo.c util/sysinfo.h			\
 		util/threads.c util/threads.h			\
 		util/threads-pthread.h				\
 		util/threads-win32.h				\
+		util/threadpool.c util/threadpool.h		\
 		util/uuid.c util/uuid.h				\
 		util/util.c util/util.h				\
 		util/xml.c util/xml.h				\
+		util/virtaudit.c util/virtaudit.h               \
 		util/virterror.c util/virterror_internal.h
 
 EXTRA_DIST += util/threads-pthread.c util/threads-win32.c
@@ -92,6 +89,7 @@ DRIVER_SOURCES =						\
 		driver.c driver.h				\
 		internal.h					\
 		datatypes.c datatypes.h				\
+		fdstream.c fdstream.h                 \
 		$(NODE_INFO_SOURCES)				\
 		libvirt.c libvirt_internal.h
 
@@ -221,11 +219,8 @@ check-local: remote_protocol-structs
 TEST_DRIVER_SOURCES =						\
 		test/test_driver.c test/test_driver.h
 
-
-
 # Now the Hypervisor specific drivers
 XEN_DRIVER_SOURCES =						\
-		xen/proxy_internal.c xen/proxy_internal.h	\
 		xen/sexpr.c xen/sexpr.h				\
 		xen/block_stats.c xen/block_stats.h		\
 		xen/xen_hypervisor.c xen/xen_hypervisor.h	\
@@ -259,17 +254,32 @@ OPENVZ_DRIVER_SOURCES =						\
 		openvz/openvz_conf.c openvz/openvz_conf.h	\
 		openvz/openvz_driver.c openvz/openvz_driver.h
 
+VMWARE_DRIVER_SOURCES =						\
+		vmware/vmware_driver.c vmware/vmware_driver.h	\
+		vmware/vmware_conf.c vmware/vmware_conf.h
+
 VBOX_DRIVER_SOURCES =						\
-        vbox/vbox_XPCOMCGlue.c vbox/vbox_XPCOMCGlue.h		\
+        vbox/vbox_glue.c vbox/vbox_glue.h			\
         vbox/vbox_driver.c vbox/vbox_driver.h			\
         vbox/vbox_V2_2.c vbox/vbox_CAPI_v2_2.h			\
         vbox/vbox_V3_0.c vbox/vbox_CAPI_v3_0.h			\
         vbox/vbox_V3_1.c vbox/vbox_CAPI_v3_1.h			\
-        vbox/vbox_V3_2.c vbox/vbox_CAPI_v3_2.h
+        vbox/vbox_V3_2.c vbox/vbox_CAPI_v3_2.h			\
+        vbox/vbox_V4_0.c vbox/vbox_CAPI_v4_0.h
 
-VBOX_DRIVER_EXTRA_DIST = vbox/vbox_tmpl.c vbox/README
+VBOX_DRIVER_EXTRA_DIST =					\
+		vbox/vbox_tmpl.c vbox/README			\
+		vbox/vbox_MSCOMGlue.c vbox/vbox_MSCOMGlue.h	\
+		vbox/vbox_XPCOMCGlue.c vbox/vbox_XPCOMCGlue.h
 
 QEMU_DRIVER_SOURCES =						\
+		qemu/qemu_capabilities.c qemu/qemu_capabilities.h\
+		qemu/qemu_command.c qemu/qemu_command.h		\
+		qemu/qemu_domain.c qemu/qemu_domain.h		\
+		qemu/qemu_audit.c qemu/qemu_audit.h		\
+		qemu/qemu_cgroup.c qemu/qemu_cgroup.h		\
+		qemu/qemu_hostdev.c qemu/qemu_hostdev.h		\
+		qemu/qemu_hotplug.c qemu/qemu_hotplug.h		\
 		qemu/qemu_conf.c qemu/qemu_conf.h		\
 		qemu/qemu_monitor.c qemu/qemu_monitor.h		\
 		qemu/qemu_monitor_text.c			\
@@ -313,8 +323,7 @@ ESX_DRIVER_SOURCES =						\
 		esx/esx_util.c esx/esx_util.h			\
 		esx/esx_vi.c esx/esx_vi.h			\
 		esx/esx_vi_methods.c esx/esx_vi_methods.h	\
-		esx/esx_vi_types.c esx/esx_vi_types.h		\
-		esx/esx_vmx.c esx/esx_vmx.h
+		esx/esx_vi_types.c esx/esx_vi_types.h
 
 ESX_DRIVER_GENERATED =							\
 		esx/esx_vi_methods.generated.c				\
@@ -409,6 +418,9 @@ CPU_SOURCES =							\
 		cpu/cpu_x86.h cpu/cpu_x86.c cpu/cpu_x86_data.h	\
 		cpu/cpu_map.h cpu/cpu_map.c
 
+VMX_SOURCES =							\
+		vmx/vmx.c vmx/vmx.h
+
 pkgdata_DATA =	cpu/cpu_map.xml
 
 EXTRA_DIST +=	$(pkgdata_DATA)
@@ -425,8 +437,9 @@ libvirt_la_BUILT_LIBADD = libvirt_util.la
 libvirt_util_la_SOURCES =					\
 		$(UTIL_SOURCES)
 libvirt_util_la_CFLAGS = $(CAPNG_CFLAGS) $(YAJL_CFLAGS) $(LIBNL_CFLAGS) \
-		$(AM_CFLAGS)
-libvirt_util_la_LIBADD = $(CAPNG_LIBS) $(YAJL_LIBS) $(LIBNL_LIBS) $(LIB_PTHREAD)
+		$(AM_CFLAGS) $(AUDIT_CFLAGS)
+libvirt_util_la_LIBADD = $(CAPNG_LIBS) $(YAJL_LIBS) $(LIBNL_LIBS) \
+		$(LIB_PTHREAD) $(AUDIT_LIBS)
 
 
 noinst_LTLIBRARIES += libvirt_conf.la
@@ -440,6 +453,14 @@ libvirt_la_BUILT_LIBADD += libvirt_cpu.la
 libvirt_cpu_la_CFLAGS = \
 		-I@top_srcdir@/src/conf $(AM_CFLAGS)
 libvirt_cpu_la_SOURCES = $(CPU_SOURCES)
+
+if WITH_VMX
+noinst_LTLIBRARIES += libvirt_vmx.la
+libvirt_la_BUILT_LIBADD += libvirt_vmx.la
+libvirt_vmx_la_CFLAGS = \
+		-I@top_srcdir@/src/conf $(AM_CFLAGS)
+libvirt_vmx_la_SOURCES = $(VMX_SOURCES)
+endif
 
 
 noinst_LTLIBRARIES += libvirt_driver.la
@@ -476,7 +497,7 @@ libvirt_la_BUILT_LIBADD += libvirt_driver_remote.la
 endif
 libvirt_driver_remote_la_CFLAGS =				\
 		$(GNUTLS_CFLAGS)				\
-		$(SASL_CFLAGS)					\
+		$(SASL_CFLAGS) $(XDR_CFLAGS)			\
 		-I@top_srcdir@/src/conf				\
 		$(AM_CFLAGS)
 libvirt_driver_remote_la_LDFLAGS = $(AM_LDFLAGS)
@@ -564,6 +585,7 @@ libvirt_driver_xen_la_CFLAGS =					\
 libvirt_driver_xen_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_xen_la_LIBADD = $(XEN_LIBS)
 if WITH_DRIVER_MODULES
+libvirt_driver_xen_la_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_driver_xen_la_LDFLAGS += -module -avoid-version
 endif
 libvirt_driver_xen_la_SOURCES = $(XEN_DRIVER_SOURCES)
@@ -577,6 +599,10 @@ noinst_LTLIBRARIES += libvirt_driver_phyp.la
 libvirt_la_BUILT_LIBADD += libvirt_driver_phyp.la
 endif
 libvirt_driver_phyp_la_LIBADD = $(LIBSSH2_LIBS)
+if WITH_DRIVER_MODULES
+libvirt_driver_phyp_la_LIBADD += ../gnulib/lib/libgnu.la
+libvirt_driver_phyp_la_LDFLAGS = -module -avoid-version $(AM_LDFLAGS)
+endif
 libvirt_driver_phyp_la_CFLAGS = $(LIBSSH2_CFLAGS) \
 		-I@top_srcdir@/src/conf $(AM_CFLAGS)
 libvirt_driver_phyp_la_SOURCES = $(PHYP_DRIVER_SOURCES)
@@ -592,9 +618,26 @@ endif
 libvirt_driver_openvz_la_CFLAGS = \
 		-I@top_srcdir@/src/conf $(AM_CFLAGS)
 if WITH_DRIVER_MODULES
+libvirt_driver_openvz_la_LIBADD = ../gnulib/lib/libgnu.la
 libvirt_driver_openvz_la_LDFLAGS = -module -avoid-version $(AM_LDFLAGS)
 endif
 libvirt_driver_openvz_la_SOURCES = $(OPENVZ_DRIVER_SOURCES)
+endif
+
+if WITH_VMWARE
+if WITH_DRIVER_MODULES
+mod_LTLIBRARIES += libvirt_driver_vmware.la
+else
+noinst_LTLIBRARIES += libvirt_driver_vmware.la
+libvirt_la_BUILT_LIBADD += libvirt_driver_vmware.la
+endif
+libvirt_driver_vmware_la_CFLAGS = \
+		-I@top_srcdir@/src/conf -I@top_srcdir@/src/vmx
+if WITH_DRIVER_MODULES
+libvirt_driver_vmware_la_LIBADD = ../gnulib/lib/libgnu.la
+libvirt_driver_vmware_la_LDFLAGS = -module -avoid-version
+endif
+libvirt_driver_vmware_la_SOURCES = $(VMWARE_DRIVER_SOURCES)
 endif
 
 if WITH_VBOX
@@ -606,10 +649,11 @@ libvirt_la_BUILT_LIBADD += libvirt_driver_vbox.la
 endif
 libvirt_driver_vbox_la_CFLAGS = \
 		-I@top_srcdir@/src/conf $(AM_CFLAGS)
+libvirt_driver_vbox_la_LIBADD = $(DLOPEN_LIBS) $(MSCOM_LIBS)
 if WITH_DRIVER_MODULES
+libvirt_driver_vbox_la_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_driver_vbox_la_LDFLAGS = -module -avoid-version $(AM_LDFLAGS)
 endif
-libvirt_driver_vbox_la_LIBADD = $(DLOPEN_LIBS)
 libvirt_driver_vbox_la_SOURCES = $(VBOX_DRIVER_SOURCES)
 endif
 
@@ -625,6 +669,7 @@ libvirt_driver_xenapi_la_CFLAGS = $(LIBXENSERVER_CFLAGS) $(LIBCURL_CFLAGS) \
 libvirt_driver_xenapi_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_xenapi_la_LIBADD = $(LIBXENSERVER_LIBS) $(LIBCURL_LIBS)
 if WITH_DRIVER_MODULES
+libvirt_driver_xenapi_la_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_driver_xenapi_la_LDFLAGS += -module -avoid-version
 endif
 libvirt_driver_xenapi_la_SOURCES = $(XENAPI_DRIVER_SOURCES)
@@ -643,6 +688,7 @@ libvirt_driver_qemu_la_CFLAGS = $(NUMACTL_CFLAGS) \
 libvirt_driver_qemu_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_qemu_la_LIBADD = $(NUMACTL_LIBS)
 if WITH_DRIVER_MODULES
+libvirt_driver_qemu_la_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_driver_qemu_la_LDFLAGS += -module -avoid-version
 endif
 libvirt_driver_qemu_la_SOURCES = $(QEMU_DRIVER_SOURCES)
@@ -668,6 +714,7 @@ endif
 libvirt_driver_lxc_la_CFLAGS = \
 		-I@top_srcdir@/src/conf $(AM_CFLAGS)
 if WITH_DRIVER_MODULES
+libvirt_driver_lxc_la_LIBADD = ../gnulib/lib/libgnu.la
 libvirt_driver_lxc_la_LDFLAGS = -module -avoid-version $(AM_LDFLAGS)
 endif
 libvirt_driver_lxc_la_SOURCES = $(LXC_DRIVER_SOURCES)
@@ -693,6 +740,7 @@ libvirt_driver_uml_la_CFLAGS = $(NUMACTL_CFLAGS) \
 libvirt_driver_uml_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_uml_la_LIBADD = $(NUMACTL_LIBS)
 if WITH_DRIVER_MODULES
+libvirt_driver_uml_la_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_driver_uml_la_LDFLAGS += -module -avoid-version
 endif
 libvirt_driver_uml_la_SOURCES = $(UML_DRIVER_SOURCES)
@@ -712,6 +760,7 @@ libvirt_driver_one_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_one_la_LIBADD = $(XMLRPC_LIBS)
 #libvirt_driver_one_la_CFLAGS  = "-DWITH_ONE"
 if WITH_DRIVER_MODULES
+libvirt_driver_one_la_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_driver_one_la_LDFLAGS += -module -avoid-version
 endif
 libvirt_driver_one_la_SOURCES = $(ONE_DRIVER_SOURCES)
@@ -731,10 +780,11 @@ noinst_LTLIBRARIES += libvirt_driver_esx.la
 libvirt_la_BUILT_LIBADD += libvirt_driver_esx.la
 endif
 libvirt_driver_esx_la_CFLAGS = $(LIBCURL_CFLAGS) \
-		-I@top_srcdir@/src/conf $(AM_CFLAGS)
+		-I@top_srcdir@/src/conf -I@top_srcdir@/src/vmx $(AM_CFLAGS)
 libvirt_driver_esx_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_esx_la_LIBADD = $(LIBCURL_LIBS)
 if WITH_DRIVER_MODULES
+libvirt_driver_esx_la_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_driver_esx_la_LDFLAGS += -module -avoid-version
 endif
 libvirt_driver_esx_la_SOURCES = $(ESX_DRIVER_SOURCES)
@@ -752,6 +802,7 @@ endif
 libvirt_driver_network_la_CFLAGS = \
 		-I@top_srcdir@/src/conf $(AM_CFLAGS)
 if WITH_DRIVER_MODULES
+libvirt_driver_network_la_LIBADD = ../gnulib/lib/libgnu.la
 libvirt_driver_network_la_LDFLAGS = -module -avoid-version $(AM_LDFLAGS)
 endif
 libvirt_driver_network_la_SOURCES = $(NETWORK_DRIVER_SOURCES)
@@ -773,6 +824,7 @@ libvirt_driver_interface_la_CFLAGS = $(NETCF_CFLAGS) \
 libvirt_driver_interface_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_interface_la_LIBADD = $(NETCF_LIBS)
 if WITH_DRIVER_MODULES
+libvirt_driver_interface_la_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_driver_interface_la_LDFLAGS += -module -avoid-version
 endif
 libvirt_driver_interface_la_SOURCES = $(INTERFACE_DRIVER_SOURCES)
@@ -789,8 +841,8 @@ endif
 libvirt_driver_secret_la_CFLAGS = \
 		-I@top_srcdir@/src/conf $(AM_CFLAGS)
 if WITH_DRIVER_MODULES
-libvirt_driver_secret_la_LDFLAGS = -module -avoid-version $(AM_LDFLAGS)
 libvirt_driver_secret_la_LIBADD = ../gnulib/lib/libgnu.la
+libvirt_driver_secret_la_LDFLAGS = -module -avoid-version $(AM_LDFLAGS)
 endif
 libvirt_driver_secret_la_SOURCES = $(SECRET_DRIVER_SOURCES)
 endif
@@ -810,6 +862,7 @@ noinst_LTLIBRARIES += libvirt_driver_storage.la
 #libvirt_la_BUILT_LIBADD += libvirt_driver_storage.la
 endif
 if WITH_DRIVER_MODULES
+libvirt_driver_storage_la_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_driver_storage_la_LDFLAGS += -module -avoid-version
 endif
 libvirt_driver_storage_la_SOURCES += $(STORAGE_DRIVER_SOURCES)
@@ -865,6 +918,7 @@ libvirt_driver_nodedev_la_LIBADD += $(UDEV_LIBS) $(PCIACCESS_LIBS)
 endif
 
 if WITH_DRIVER_MODULES
+libvirt_driver_nodedev_la_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_driver_nodedev_la_LDFLAGS += -module -avoid-version
 endif
 endif
@@ -882,8 +936,8 @@ libvirt_driver_nwfilter_la_CFLAGS = $(LIBPCAP_CFLAGS) \
 libvirt_driver_nwfilter_la_LDFLAGS = $(LD_AMFLAGS)
 libvirt_driver_nwfilter_la_LIBADD = $(LIBPCAP_LIBS)
 if WITH_DRIVER_MODULES
-libvirt_driver_nwfilter_la_LDFLAGS += -module -avoid-version
 libvirt_driver_nwfilter_la_LIBADD += ../gnulib/lib/libgnu.la
+libvirt_driver_nwfilter_la_LDFLAGS += -module -avoid-version
 endif
 libvirt_driver_nwfilter_la_SOURCES = $(NWFILTER_DRIVER_SOURCES)
 endif
@@ -938,7 +992,8 @@ EXTRA_DIST +=							\
 		$(SECURITY_DRIVER_SELINUX_SOURCES)		\
 		$(SECURITY_DRIVER_APPARMOR_SOURCES)		\
 		$(SECRET_DRIVER_SOURCES)			\
-		$(VBOX_DRIVER_EXTRA_DIST)
+		$(VBOX_DRIVER_EXTRA_DIST)			\
+		$(VMWARE_DRIVER_SOURCES)
 
 check-local: augeas-check
 
@@ -1000,6 +1055,10 @@ if WITH_NWFILTER
 USED_SYM_FILES += libvirt_nwfilter.syms
 endif
 
+if WITH_VMX
+USED_SYM_FILES += libvirt_vmx.syms
+endif
+
 EXTRA_DIST += \
   libvirt_public.syms		\
   libvirt_private.syms		\
@@ -1008,9 +1067,10 @@ EXTRA_DIST += \
   libvirt_linux.syms		\
   libvirt_macvtap.syms		\
   libvirt_daemon.syms		\
-  libvirt_nwfilter.syms
+  libvirt_nwfilter.syms	\
+  libvirt_vmx.syms
 
-BUILT_SOURCES += libvirt.syms libvirt.def
+BUILT_SOURCES += libvirt.syms libvirt.def libvirt_qemu.def
 
 libvirt.syms: libvirt_public.syms $(USED_SYM_FILES)
 	$(AM_V_GEN)rm -f $@-tmp $@ ; \
@@ -1029,9 +1089,16 @@ libvirt.syms: libvirt_public.syms $(USED_SYM_FILES)
 libvirt.def: libvirt.syms
 	$(AM_V_GEN)rm -f -- $@-tmp $@ ; \
 	printf 'EXPORTS\n' > $@-tmp && \
-	sed -e '/^$$/d; /#/d; /:/d; /\}/d; /\*/d; /LIBVIRT_/d; s/[ \t]*\(.*\)\;/    \1/g' $^ >> $@-tmp && \
+	sed -e '/^$$/d; /#/d; /:/d; /}/d; /\*/d; /LIBVIRT_/d; s/[	 ]*\(.*\)\;/    \1/g' $^ >> $@-tmp && \
 	chmod a-w $@-tmp && \
 	mv $@-tmp libvirt.def
+
+libvirt_qemu.def: $(srcdir)/libvirt_qemu.syms
+	$(AM_V_GEN)rm -f -- $@-tmp $@ ; \
+	printf 'EXPORTS\n' > $@-tmp && \
+	sed -e '/^$$/d; /#/d; /:/d; /}/d; /\*/d; /LIBVIRT_/d; s/[	 ]*\(.*\)\;/    \1/g' $^ >> $@-tmp && \
+	chmod a-w $@-tmp && \
+	mv $@-tmp libvirt_qemu.def
 
 # Empty source list - it merely links a bunch of convenience libs together
 libvirt_la_SOURCES =
@@ -1112,12 +1179,13 @@ libvirt_lxc_SOURCES =						\
 libvirt_lxc_LDFLAGS = $(WARN_CFLAGS) $(AM_LDFLAGS)
 libvirt_lxc_LDADD = $(CAPNG_LIBS) $(YAJL_LIBS) \
 		$(LIBXML_LIBS) $(NUMACTL_LIBS) $(LIB_PTHREAD) \
-		$(LIBNL_LIBS) ../gnulib/lib/libgnu.la
+		$(LIBNL_LIBS) $(AUDIT_LIBS) ../gnulib/lib/libgnu.la
 libvirt_lxc_CFLAGS =				\
 		$(LIBPARTED_CFLAGS)		\
 		$(NUMACTL_CFLAGS)		\
 		$(CAPNG_CFLAGS)			\
 		$(YAJL_CFLAGS)			\
+		$(AUDIT_CFLAGS)			\
 		-I@top_srcdir@/src/conf		\
 		$(AM_CFLAGS)
 endif
@@ -1170,8 +1238,12 @@ if WITH_NETWORK
 	$(INSTALL_DATA) $(srcdir)/network/default.xml \
 	  $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml
 	test -z "$(UUID)" || \
-	  sed -i -e "s,</name>,</name>\n  <uuid>$(UUID)</uuid>," \
-	    $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml
+	  { sed -e "s,</name>,</name>\n  <uuid>$(UUID)</uuid>," \
+	      $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml > \
+	      $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml.t && \
+	    cp $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml.t \
+	      $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml && \
+	    rm $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml.t; }
 	test -e $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml || \
            ln -s ../default.xml \
 	    $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml

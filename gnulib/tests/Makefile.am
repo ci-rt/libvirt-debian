@@ -123,6 +123,21 @@ EXTRA_DIST += test-base64.c macros.h
 
 ## end   gnulib module base64-tests
 
+## begin gnulib module binary-io
+
+libtests_a_SOURCES += binary-io.h
+
+## end   gnulib module binary-io
+
+## begin gnulib module binary-io-tests
+
+TESTS += test-binary-io.sh
+check_PROGRAMS += test-binary-io
+
+EXTRA_DIST += test-binary-io.sh test-binary-io.c macros.h
+
+## end   gnulib module binary-io-tests
+
 ## begin gnulib module bind
 
 
@@ -181,6 +196,14 @@ EXTRA_DIST += test-count-one-bits.c macros.h
 
 ## end   gnulib module count-one-bits-tests
 
+## begin gnulib module crypto/md5-tests
+
+TESTS += test-md5
+check_PROGRAMS += test-md5
+EXTRA_DIST += test-md5.c
+
+## end   gnulib module crypto/md5-tests
+
 ## begin gnulib module errno-tests
 
 TESTS += test-errno
@@ -205,6 +228,14 @@ check_PROGRAMS += test-fseeko
 EXTRA_DIST += test-fseeko.c test-fseeko.sh test-fseeko2.sh signature.h macros.h
 
 ## end   gnulib module fseeko-tests
+
+## begin gnulib module func-tests
+
+TESTS += test-func
+check_PROGRAMS += test-func
+EXTRA_DIST += test-func.c macros.h
+
+## end   gnulib module func-tests
 
 ## begin gnulib module getaddrinfo-tests
 
@@ -241,6 +272,15 @@ MOSTLYCLEANFILES += test-getline.txt
 EXTRA_DIST += test-getline.c signature.h macros.h
 
 ## end   gnulib module getline-tests
+
+## begin gnulib module getpagesize
+
+
+EXTRA_DIST += getpagesize.c
+
+EXTRA_libtests_a_SOURCES += getpagesize.c
+
+## end   gnulib module getpagesize
 
 ## begin gnulib module gettimeofday-tests
 
@@ -335,6 +375,22 @@ EXTRA_DIST += signature.h test-perror.c test-perror.sh
 
 ## end   gnulib module perror-tests
 
+## begin gnulib module pipe-posix-tests
+
+TESTS += test-pipe
+check_PROGRAMS += test-pipe
+EXTRA_DIST += test-pipe.c signature.h macros.h
+
+## end   gnulib module pipe-posix-tests
+
+## begin gnulib module poll-h-tests
+
+TESTS += test-poll-h
+check_PROGRAMS += test-poll-h
+EXTRA_DIST += test-poll-h.c
+
+## end   gnulib module poll-h-tests
+
 ## begin gnulib module poll-tests
 
 TESTS += test-poll
@@ -356,7 +412,7 @@ EXTRA_DIST += test-random_r.c signature.h macros.h
 
 TESTS += test-rawmemchr
 check_PROGRAMS += test-rawmemchr
-EXTRA_DIST += test-rawmemchr.c signature.h macros.h
+EXTRA_DIST += test-rawmemchr.c zerosize-ptr.h signature.h macros.h
 
 ## end   gnulib module rawmemchr-tests
 
@@ -391,7 +447,7 @@ check_PROGRAMS += test-select test-select-fd test-select-stdin
 test_select_LDADD = $(LDADD) @LIBSOCKET@ $(INET_PTON_LIB)
 test_select_fd_LDADD = $(LDADD) @LIBSOCKET@
 test_select_stdin_LDADD = $(LDADD) @LIBSOCKET@
-EXTRA_DIST += signature.h test-select.c test-select-fd.c test-select-in.sh test-select-out.sh test-select-stdin.c
+EXTRA_DIST += macros.h signature.h test-select.c test-select-fd.c test-select-in.sh test-select-out.sh test-select-stdin.c
 
 ## end   gnulib module select-tests
 
@@ -465,7 +521,7 @@ EXTRA_DIST += test-stdio.c
 
 TESTS += test-stdlib
 check_PROGRAMS += test-stdlib
-EXTRA_DIST += test-stdlib.c
+EXTRA_DIST += test-stdlib.c test-sys_wait.h
 
 ## end   gnulib module stdlib-tests
 
@@ -500,6 +556,14 @@ check_PROGRAMS += test-strings
 EXTRA_DIST += test-strings.c
 
 ## end   gnulib module strings-tests
+
+## begin gnulib module strnlen-tests
+
+TESTS += test-strnlen
+check_PROGRAMS += test-strnlen
+EXTRA_DIST += test-strnlen.c zerosize-ptr.h signature.h macros.h
+
+## end   gnulib module strnlen-tests
 
 ## begin gnulib module symlink
 
@@ -570,9 +634,17 @@ EXTRA_DIST += test-sys_utsname.c
 
 TESTS += test-sys_wait
 check_PROGRAMS += test-sys_wait
-EXTRA_DIST += test-sys_wait.c
+EXTRA_DIST += test-sys_wait.c test-sys_wait.h
 
 ## end   gnulib module sys_wait-tests
+
+## begin gnulib module termios-tests
+
+TESTS += test-termios
+check_PROGRAMS += test-termios
+EXTRA_DIST += test-termios.c
+
+## end   gnulib module termios-tests
 
 ## begin gnulib module time-tests
 
@@ -629,7 +701,7 @@ EXTRA_DIST += test-vasprintf.c signature.h macros.h
 
 TESTS += test-vc-list-files-git.sh
 TESTS += test-vc-list-files-cvs.sh
-TESTS_ENVIRONMENT += PATH='$(abs_aux_dir)'$(PATH_SEPARATOR)"$$PATH"
+TESTS_ENVIRONMENT += abs_aux_dir='$(abs_aux_dir)'
 EXTRA_DIST += test-vc-list-files-git.sh test-vc-list-files-cvs.sh init.sh
 
 ## end   gnulib module vc-list-files-tests

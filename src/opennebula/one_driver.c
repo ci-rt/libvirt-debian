@@ -106,6 +106,10 @@ static int oneIsSecure(virConnectPtr conn ATTRIBUTE_UNUSED)
     return 0;
 }
 
+static int oneIsUpdated(virDomainPtr conn ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
 
 static virDomainPtr oneDomainLookupByID(virConnectPtr conn,
                                         int id)
@@ -281,7 +285,7 @@ static int oneDomainUndefine(virDomainPtr dom)
     oneDriverLock(driver);
     vm =virDomainFindByUUID(&driver->domains, dom->uuid);
     if (!vm) {
-        oneError(VIR_ERR_INVALID_DOMAIN, "%s",
+        oneError(VIR_ERR_NO_DOMAIN, "%s",
                  _("no domain with matching uuid"));
         goto return_point;
     }
@@ -312,7 +316,7 @@ static int oneDomainGetInfo(virDomainPtr dom,
     oneDriverUnlock(driver);
 
     if (!vm) {
-        oneError(VIR_ERR_INVALID_DOMAIN, "%s",
+        oneError(VIR_ERR_NO_DOMAIN, "%s",
                  _("no domain with matching uuid"));
         return -1;
     }
@@ -357,7 +361,7 @@ static int oneDomainGetInfo(virDomainPtr dom,
         cptr=strstr(vm_info,"MEMORY");
         cptr=index(cptr,':');
         cptr++;
-        vm->def->memory = atoi(cptr);
+        vm->def->mem.cur_balloon = atoi(cptr);
 
         //run time:
         cptr=strstr(vm_info,"START TIME");
@@ -369,8 +373,8 @@ static int oneDomainGetInfo(virDomainPtr dom,
     }
 
     info->state = vm->state;
-    info->maxMem = vm->def->maxmem;
-    info->memory = vm->def->memory;
+    info->maxMem = vm->def->mem.max_balloon;
+    info->memory = vm->def->mem.cur_balloon;
     info->nrVirtCpu = vm->def->vcpus;
 
     virDomainObjUnlock(vm);
@@ -387,7 +391,7 @@ static char *oneGetOSType(virDomainPtr dom)
     vm =virDomainFindByUUID(&driver->domains, dom->uuid);
     oneDriverUnlock(driver);
     if (!vm) {
-        oneError(VIR_ERR_INVALID_DOMAIN, "%s",
+        oneError(VIR_ERR_NO_DOMAIN, "%s",
                  _("no domain with matching uuid"));
         goto cleanup;
     }
@@ -416,7 +420,7 @@ static int oneDomainStartWithFlags(virDomainPtr dom, unsigned int flags)
     vm = virDomainFindByName(&driver->domains, dom->name);
 
     if (!vm) {
-        oneError(VIR_ERR_INVALID_DOMAIN,
+        oneError(VIR_ERR_NO_DOMAIN,
                  _("no domain named %s"), dom->name);
         goto return_point;
     }
@@ -503,7 +507,7 @@ static int oneDomainShutdown(virDomainPtr dom)
 
     oneDriverLock(driver);
     if (!(vm=virDomainFindByID(&driver->domains, dom->id))) {
-        oneError(VIR_ERR_INVALID_DOMAIN,
+        oneError(VIR_ERR_NO_DOMAIN,
                  _("no domain with id %d"), dom->id);
         goto return_point;
     }
@@ -538,7 +542,7 @@ static int oneDomainDestroy(virDomainPtr dom)
     oneDriverLock(driver);
     vm= virDomainFindByID(&driver->domains, dom->id);
     if (!vm) {
-        oneError(VIR_ERR_INVALID_DOMAIN,
+        oneError(VIR_ERR_NO_DOMAIN,
                  _("no domain with id %d"), dom->id);
         goto return_point;
     }
@@ -587,7 +591,7 @@ static int oneDomainSuspend(virDomainPtr dom)
         oneError(VIR_ERR_OPERATION_INVALID, "%s",
                  _("domain is not running"));
     } else {
-        oneError(VIR_ERR_INVALID_DOMAIN,
+        oneError(VIR_ERR_NO_DOMAIN,
                  _("no domain with matching id %d"), dom->id);
     }
 
@@ -620,7 +624,7 @@ static int oneDomainResume(virDomainPtr dom)
         oneError(VIR_ERR_OPERATION_INVALID, "%s",
                  _("domain is not paused"));
     } else {
-        oneError(VIR_ERR_INVALID_DOMAIN,
+        oneError(VIR_ERR_NO_DOMAIN,
                  _("no domain with matching id %d"), dom->id);
     }
 
@@ -751,6 +755,8 @@ static virDriver oneDriver = {
     NULL, /* domainRestore */
     NULL, /* domainCoreDump */
     NULL, /* domainSetVcpus */
+    NULL, /* domainSetVcpusFlags */
+    NULL, /* domainGetVcpusFlags */
     NULL, /* domainPinVcpu */
     NULL, /* domainGetVcpus */
     NULL, /* domainGetMaxVcpus */
@@ -798,6 +804,7 @@ static virDriver oneDriver = {
     oneIsSecure, /* isSecure */
     NULL, /* domainIsActive */
     NULL, /* domainIsPersistent */
+    oneIsUpdated, /* domainIsUpdated */
     NULL, /* cpuCompare */
     NULL, /* cpuBaseline */
     NULL, /* domainGetJobInfo */
@@ -818,6 +825,9 @@ static virDriver oneDriver = {
     NULL, /* domainRevertToSnapshot */
     NULL, /* domainSnapshotDelete */
     NULL, /* qemuDomainMonitorCommand */
+    NULL, /* domainSetMemoryParameters */
+    NULL, /* domainGetMemoryParameters */
+    NULL, /* domainOpenConsole */
 };
 
 static virStateDriver oneStateDriver = {

@@ -4,9 +4,7 @@
 0004-fix-Debian-specific-path-to-hvm-loader.patch
 0005-Autodetect-if-the-remote-nc-command-supports-the-q-o.patch
 0006-patch-qemuMonitorTextGetMigrationStatus-to-intercept.patch
-0007-Fix-block-statistics-with-newer-versions-of-Xen.patch
-0008-Disable-CHECKSUM-rule.patch
-0009-Don-t-fail-lxc-domain-start-when-memory-controller-s.patch
-0010-nwfilter-resolve-deadlock-between-VM-operations-and-.patch
-0011-OpenVZ-take-veid-from-vmdef-name-when-defining-new-d.patch
-0012-OpenVZ-Fix-some-overwritten-error-codes.patch
+0007-Disable-CHECKSUM-rule.patch
+0008-libvirt-guests-remove-bashisms.patch
+0009-build-let-xgettext-see-strings-in-libvirt-guests.patch
+0010-Debianize-libvirt-guests.patch

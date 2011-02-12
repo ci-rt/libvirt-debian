@@ -21,6 +21,14 @@
 
 #include <config.h>
 
+#include <unistd.h>
+#include <inttypes.h>
+#if HAVE_SYS_SYSCALL_H
+# include <sys/syscall.h>
+#endif
+
+#include "memory.h"
+
 
 /* Nothing special required for pthreads */
 int virThreadInitialize(void)
@@ -129,6 +137,92 @@ void virCondBroadcast(virCondPtr c)
     pthread_cond_broadcast(&c->cond);
 }
 
+struct virThreadArgs {
+    virThreadFunc func;
+    void *opaque;
+};
+
+static void *virThreadHelper(void *data)
+{
+    struct virThreadArgs *args = data;
+    args->func(args->opaque);
+    VIR_FREE(args);
+    return NULL;
+}
+
+int virThreadCreate(virThreadPtr thread,
+                    bool joinable,
+                    virThreadFunc func,
+                    void *opaque)
+{
+    struct virThreadArgs *args;
+    pthread_attr_t attr;
+    int ret = -1;
+    int err;
+
+    if ((err = pthread_attr_init(&attr)) != 0)
+        goto cleanup;
+    if (VIR_ALLOC(args) < 0) {
+        err = ENOMEM;
+        goto cleanup;
+    }
+
+    args->func = func;
+    args->opaque = opaque;
+
+    if (!joinable)
+        pthread_attr_setdetachstate(&attr, 1);
+
+    err = pthread_create(&thread->thread, &attr, virThreadHelper, args);
+    if (err != 0) {
+        VIR_FREE(args);
+        goto cleanup;
+    }
+    /* New thread owns 'args' in success case, so don't free */
+
+    ret = 0;
+cleanup:
+    pthread_attr_destroy(&attr);
+    if (ret < 0)
+        errno = err;
+    return ret;
+}
+
+void virThreadSelf(virThreadPtr thread)
+{
+    thread->thread = pthread_self();
+}
+
+bool virThreadIsSelf(virThreadPtr thread)
+{
+    return pthread_equal(pthread_self(), thread->thread) ? true : false;
+}
+
+/* For debugging use only; this result is not guaranteed unique on BSD
+ * systems when pthread_t is a 64-bit pointer.  */
+int virThreadSelfID(void)
+{
+#if defined(HAVE_SYS_SYSCALL_H) && defined(SYS_gettid)
+    pid_t tid;
+    tid = syscall(SYS_gettid);
+    return (int)tid;
+#else
+    return (int)pthread_self();
+#endif
+}
+
+/* For debugging use only; this result is not guaranteed unique on BSD
+ * systems when pthread_t is a 64-bit pointer, nor does it match the
+ * thread id of virThreadSelfID on Linux.  */
+int virThreadID(virThreadPtr thread)
+{
+    return (int)(uintptr_t)thread->thread;
+}
+
+void virThreadJoin(virThreadPtr thread)
+{
+    pthread_join(thread->thread, NULL);
+}
 
 int virThreadLocalInit(virThreadLocalPtr l,
                        virThreadLocalCleanup c)

@@ -1,3 +1,66 @@
+libvirt (0.8.7-1) experimental; urgency=low
+
+  [ Guido Günther ]
+  * [f561b2e] New patch 0010-nwfilter-resolve-deadlock-between-VM-
+    operations-and-.patch nwfilter: resolve deadlock between VM
+    operations and filter update (Closes: #602715)
+
+  [ Laurent Léonard ]
+  * [6f95d48] Fix exit status codes in libvirt init script to comply
+    with LSB
+  * [7d7aed4] New patch 0010-Debianize-libvirt-guests.patch
+  * [a7f4bed] Install libvirt-guests
+  * [6408c57] Remove libvirt-suspendonreboot
+  * [3466195] Imported Upstream version 0.8.7
+  * [18bb43a] Update libvirt0 symbols
+  * [d8e02ad] Fix typo in --with-init-script build option
+  * [676a47e] New patch 0008-libvirt-guests-remove-bashisms.patch
+  * [3a03ea6] New patch 0009-build-let-xgettext-see-strings-in-libvirt-
+    guests.patch
+  * [ee3d2e0] Update patch 0010-Debianize-libvirt-guests.patch
+  * [904de70] Update libvirt-guests init script location
+
+ -- Laurent Léonard <laurent@open-minds.org>  Tue, 18 Jan 2011 18:43:56 +0100
+
+libvirt (0.8.6-1) experimental; urgency=low
+
+  * [3b7b682] Imported Upstream version 0.8.6
+  * [5b081c3] Drop patch
+    - 0008-Move-MAX_VIRT_CPUS-so-all-xen-code-can-see-it.patch - fixed upstream
+  * [38589e6] Update libvirt0 symbols
+
+ -- Laurent Léonard <laurent@open-minds.org>  Tue, 30 Nov 2010 23:31:59 +0100
+
+libvirt (0.8.5-1) experimental; urgency=low
+
+  [ Laurent Léonard ]
+  * [6e46f0e] Fix wrong regular expression in debian/watch
+  * [802e658] Imported Upstream version 0.8.5
+  * [c8e4517] Update patch 0002-qemu-disable-network.diff.patch
+  * [5549d65] Drop patch
+    - 0009-Don-t-fail-lxc-domain-start-when-memory-controller-s.patch - fixed
+      upstream
+  * [1af66c1] Update libvirt0 symbols
+
+  [ Guido Günther ]
+  * [fc234c4] New patch 0008-Move-MAX_VIRT_CPUS-so-all-xen-code-can-see-
+    it.patch. Move MAX_VIRT_CPUS so all xen code can see it
+
+ -- Laurent Léonard <laurent@open-minds.org>  Mon, 15 Nov 2010 14:09:53 +0100
+
+libvirt (0.8.4-1) experimental; urgency=low
+
+  [ Laurent Léonard ]
+  * [49a581b] Imported Upstream version 0.8.4
+  * [e1dc0c7] Redo patches
+  * [cce7327] Update libvirt0 symbols
+
+  [ Guido Günther ]
+  * [bd91614] Drop 0007-Fix-block-statistics-with-newer-versions-of-
+    Xen.patch fixed upstream.
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 29 Sep 2010 15:29:48 +0200
+
 libvirt (0.8.3-6~1.gbpca2348) UNRELEASED; urgency=low
 
   ** SNAPSHOT build @ca2348476605efc4d067933f136ffdae3cf44283 **

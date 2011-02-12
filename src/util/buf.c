@@ -224,7 +224,7 @@ void
 virBufferVSprintf(const virBufferPtr buf, const char *format, ...)
 {
     int size, count, grow_size;
-    va_list locarg, argptr;
+    va_list argptr;
 
     if ((format == NULL) || (buf == NULL))
         return;
@@ -236,27 +236,38 @@ virBufferVSprintf(const virBufferPtr buf, const char *format, ...)
         virBufferGrow(buf, 100) < 0)
         return;
 
-    size = buf->size - buf->use - 1;
     va_start(argptr, format);
-    va_copy(locarg, argptr);
-    while (((count = vsnprintf(&buf->content[buf->use], size, format,
-                               locarg)) < 0) || (count >= size - 1)) {
-        buf->content[buf->use] = 0;
-        va_end(locarg);
 
-        grow_size = (count > 1000) ? count : 1000;
+    size = buf->size - buf->use;
+    if ((count = vsnprintf(&buf->content[buf->use],
+                           size, format, argptr)) < 0) {
+        buf->error = 1;
+        goto err;
+    }
+
+    /* Grow buffer if necessary and retry */
+    if (count >= size) {
+        buf->content[buf->use] = 0;
+        va_end(argptr);
+        va_start(argptr, format);
+
+        grow_size = (count + 1 > 1000) ? count + 1 : 1000;
         if (virBufferGrow(buf, grow_size) < 0) {
-            va_end(argptr);
-            return;
+            goto err;
         }
 
-        size = buf->size - buf->use - 1;
-        va_copy(locarg, argptr);
+        size = buf->size - buf->use;
+        if ((count = vsnprintf(&buf->content[buf->use],
+                               size, format, argptr)) < 0) {
+            buf->error = 1;
+            goto err;
+        }
     }
-    va_end(argptr);
-    va_end(locarg);
     buf->use += count;
-    buf->content[buf->use] = '\0';
+
+err:
+    va_end(argptr);
+    return;
 }
 
 /**
@@ -271,7 +282,7 @@ virBufferVSprintf(const virBufferPtr buf, const char *format, ...)
 void
 virBufferEscapeString(const virBufferPtr buf, const char *format, const char *str)
 {
-    int size, count, len, grow_size;
+    int len;
     char *escaped, *out;
     const char *cur;
 
@@ -282,6 +293,11 @@ virBufferEscapeString(const virBufferPtr buf, const char *format, const char *st
         return;
 
     len = strlen(str);
+    if (strcspn(str, "<>&'\"") == len) {
+        virBufferVSprintf(buf, format, str);
+        return;
+    }
+
     if (VIR_ALLOC_N(escaped, 6 * len + 1) < 0) {
         virBufferNoMemory(buf);
         return;
@@ -334,25 +350,62 @@ virBufferEscapeString(const virBufferPtr buf, const char *format, const char *st
     }
     *out = 0;
 
-    if ((buf->use >= buf->size) &&
-        virBufferGrow(buf, 100) < 0) {
-        VIR_FREE(escaped);
+    virBufferVSprintf(buf, format, escaped);
+    VIR_FREE(escaped);
+}
+
+/**
+ * virBufferEscapeSexpr:
+ * @buf:  the buffer to dump
+ * @format: a printf like format string but with only one %s parameter
+ * @str:  the string argument which need to be escaped
+ *
+ * Do a formatted print with a single string to an sexpr buffer. The string
+ * is escaped to avoid generating a sexpr that xen will choke on. This
+ * doesn't fully escape the sexpr, just enough for our code to work.
+ */
+void
+virBufferEscapeSexpr(const virBufferPtr buf,
+                     const char *format,
+                     const char *str)
+{
+    int len;
+    char *escaped, *out;
+    const char *cur;
+
+    if ((format == NULL) || (buf == NULL) || (str == NULL))
+        return;
+
+    if (buf->error)
+        return;
+
+    len = strlen(str);
+    if (strcspn(str, "\\'") == len) {
+        virBufferVSprintf(buf, format, str);
         return;
     }
 
-    size = buf->size - buf->use - 1;
-    while (((count = snprintf(&buf->content[buf->use], size, format,
-                              (char *)escaped)) < 0) || (count >= size - 1)) {
-        buf->content[buf->use] = 0;
-        grow_size = (count > 1000) ? count : 1000;
-        if (virBufferGrow(buf, grow_size) < 0) {
-            VIR_FREE(escaped);
-            return;
-        }
-        size = buf->size - buf->use - 1;
+    if (VIR_ALLOC_N(escaped, 2 * len + 1) < 0) {
+        virBufferNoMemory(buf);
+        return;
     }
-    buf->use += count;
-    buf->content[buf->use] = '\0';
+
+    cur = str;
+    out = escaped;
+    while (*cur != 0) {
+        switch (*cur) {
+        case '\\':
+        case '\'':
+            *out++ = '\\';
+            /* fallthrough */
+        default:
+            *out++ = *cur;
+        }
+        cur++;
+    }
+    *out = 0;
+
+    virBufferVSprintf(buf, format, escaped);
     VIR_FREE(escaped);
 }
 

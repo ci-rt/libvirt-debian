@@ -51,6 +51,7 @@
 #include "storage_file.h"
 #include "storage_backend.h"
 #include "logging.h"
+#include "files.h"
 
 #if WITH_STORAGE_LVM
 # include "storage_backend_logical.h"
@@ -181,7 +182,7 @@ virStorageBackendCopyToFD(virStorageVolDefPtr vol,
         } while ((amtleft -= 512) > 0);
     }
 
-    if (inputfd != -1 && close(inputfd) < 0) {
+    if (VIR_CLOSE(inputfd) < 0) {
         ret = -errno;
         virReportSystemError(errno,
                              _("cannot close file '%s'"),
@@ -193,8 +194,7 @@ virStorageBackendCopyToFD(virStorageVolDefPtr vol,
     *total -= remain;
 
 cleanup:
-    if (inputfd != -1)
-        close(inputfd);
+    VIR_FORCE_CLOSE(inputfd);
 
     VIR_FREE(buf);
 
@@ -251,7 +251,7 @@ virStorageBackendCreateBlockFrom(virConnectPtr conn ATTRIBUTE_UNUSED,
                              vol->target.path, vol->target.perms.mode);
         goto cleanup;
     }
-    if (close(fd) < 0) {
+    if (VIR_CLOSE(fd) < 0) {
         virReportSystemError(errno,
                              _("cannot close file '%s'"),
                              vol->target.path);
@@ -261,8 +261,7 @@ virStorageBackendCreateBlockFrom(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     ret = 0;
 cleanup:
-    if (fd != -1)
-        close(fd);
+    VIR_FORCE_CLOSE(fd);
 
     return ret;
 }
@@ -608,7 +607,7 @@ static int virStorageBackendQEMUImgBackingFormat(const char *qemuimg)
 
 cleanup:
     VIR_FREE(help);
-    close(newstdout);
+    VIR_FORCE_CLOSE(newstdout);
 rewait:
     if (child) {
         if (waitpid(child, &status, 0) != child) {
@@ -636,7 +635,7 @@ virStorageBackendCreateQemuImg(virConnectPtr conn,
                                unsigned int flags ATTRIBUTE_UNUSED)
 {
     int ret = -1;
-    char size[100];
+    char *size = NULL;
     char *create_tool;
 
     const char *type = virStorageFileFormatTypeToString(vol->target.format);
@@ -726,7 +725,10 @@ virStorageBackendCreateQemuImg(virConnectPtr conn,
     }
 
     /* Size in KB */
-    snprintf(size, sizeof(size), "%lluK", vol->capacity/1024);
+    if (virAsprintf(&size, "%lluK", vol->capacity / 1024) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
 
     /* KVM is usually ahead of qemu on features, so try that first */
     create_tool = virFindFileInPath("kvm-img");
@@ -821,6 +823,7 @@ virStorageBackendCreateQemuImg(virConnectPtr conn,
     }
 
     cleanup:
+    VIR_FREE(size);
     VIR_FREE(create_tool);
 
     return ret;
@@ -838,7 +841,7 @@ virStorageBackendCreateQcowCreate(virConnectPtr conn ATTRIBUTE_UNUSED,
                                   unsigned int flags ATTRIBUTE_UNUSED)
 {
     int ret;
-    char size[100];
+    char *size;
     const char *imgargv[4];
 
     if (inputvol) {
@@ -867,7 +870,10 @@ virStorageBackendCreateQcowCreate(virConnectPtr conn ATTRIBUTE_UNUSED,
     }
 
     /* Size in MB - yes different units to qemu-img :-( */
-    snprintf(size, sizeof(size), "%llu", vol->capacity/1024/1024);
+    if (virAsprintf(&size, "%llu", vol->capacity / 1024 / 1024) < 0) {
+        virReportOOMError();
+        return -1;
+    }
 
     imgargv[0] = virFindFileInPath("qcow-create");
     imgargv[1] = size;
@@ -876,6 +882,7 @@ virStorageBackendCreateQcowCreate(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     ret = virStorageBackendCreateExecCommand(pool, vol, imgargv);
     VIR_FREE(imgargv[0]);
+    VIR_FREE(size);
 
     return ret;
 }
@@ -970,7 +977,8 @@ virStorageBackendForType(int type) {
 /*
  * Allows caller to silently ignore files with improper mode
  *
- * Returns -1 on error, -2 if file mode is unexpected.
+ * Returns -1 on error, -2 if file mode is unexpected or the
+ * volume is a dangling symbolic link.
  */
 int
 virStorageBackendVolOpenCheckMode(const char *path, unsigned int flags)
@@ -979,6 +987,12 @@ virStorageBackendVolOpenCheckMode(const char *path, unsigned int flags)
     struct stat sb;
 
     if ((fd = open(path, O_RDONLY|O_NONBLOCK|O_NOCTTY)) < 0) {
+        if ((errno == ENOENT || errno == ELOOP) &&
+            lstat(path, &sb) == 0) {
+            VIR_WARN("ignoring dangling symlink '%s'", path);
+            return -2;
+        }
+
         virReportSystemError(errno,
                              _("cannot open volume '%s'"),
                              path);
@@ -989,7 +1003,7 @@ virStorageBackendVolOpenCheckMode(const char *path, unsigned int flags)
         virReportSystemError(errno,
                              _("cannot stat file '%s'"),
                              path);
-        close(fd);
+        VIR_FORCE_CLOSE(fd);
         return -1;
     }
 
@@ -1001,7 +1015,7 @@ virStorageBackendVolOpenCheckMode(const char *path, unsigned int flags)
         mode = VIR_STORAGE_VOL_OPEN_BLOCK;
 
     if (!(mode & flags)) {
-        close(fd);
+        VIR_FORCE_CLOSE(fd);
 
         if (mode & VIR_STORAGE_VOL_OPEN_ERROR) {
             virStorageReportError(VIR_ERR_INTERNAL_ERROR,
@@ -1037,7 +1051,7 @@ virStorageBackendUpdateVolTargetInfo(virStorageVolTargetPtr target,
                                                  allocation,
                                                  capacity);
 
-    close(fd);
+    VIR_FORCE_CLOSE(fd);
 
     return ret;
 }
@@ -1141,11 +1155,11 @@ virStorageBackendUpdateVolTargetInfoFD(virStorageVolTargetPtr target,
         }
     } else {
         target->perms.label = strdup(filecon);
+        freecon(filecon);
         if (target->perms.label == NULL) {
             virReportOOMError();
             return -1;
         }
-        freecon(filecon);
     }
 #else
     target->perms.label = NULL;
@@ -1391,7 +1405,7 @@ virStorageBackendRunProgRegex(virStoragePoolObjPtr pool,
         goto cleanup;
     }
 
-    if ((list = fdopen(fd, "r")) == NULL) {
+    if ((list = VIR_FDOPEN(fd, "r")) == NULL) {
         virStorageReportError(VIR_ERR_INTERNAL_ERROR,
                               "%s", _("cannot read fd"));
         goto cleanup;
@@ -1451,12 +1465,8 @@ virStorageBackendRunProgRegex(virStoragePoolObjPtr pool,
 
     VIR_FREE(reg);
 
-    if (list)
-        fclose(list);
-    else {
-        if (fd >= 0)
-            close(fd);
-    }
+    VIR_FORCE_FCLOSE(list);
+    VIR_FORCE_CLOSE(fd);
 
     while ((err = waitpid(child, &exitstatus, 0) == -1) && errno == EINTR);
 
@@ -1526,9 +1536,9 @@ virStorageBackendRunProgNul(virStoragePoolObjPtr pool,
         goto cleanup;
     }
 
-    if ((fp = fdopen(fd, "r")) == NULL) {
+    if ((fp = VIR_FDOPEN(fd, "r")) == NULL) {
         virStorageReportError(VIR_ERR_INTERNAL_ERROR,
-                              "%s", _("cannot read fd"));
+                              "%s", _("cannot open file using fd"));
         goto cleanup;
     }
 
@@ -1568,10 +1578,8 @@ virStorageBackendRunProgNul(virStoragePoolObjPtr pool,
         VIR_FREE(v[i]);
     VIR_FREE(v);
 
-    if (fp)
-        fclose (fp);
-    else
-        close (fd);
+    VIR_FORCE_FCLOSE(fp);
+    VIR_FORCE_CLOSE(fd);
 
     while ((w_err = waitpid (child, &exitstatus, 0) == -1) && errno == EINTR)
         /* empty */ ;

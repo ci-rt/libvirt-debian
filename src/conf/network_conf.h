@@ -30,6 +30,7 @@
 
 # include "internal.h"
 # include "threads.h"
+# include "network.h"
 
 /* 2 possible types of forwarding */
 enum virNetworkForwardType {
@@ -43,9 +44,8 @@ enum virNetworkForwardType {
 typedef struct _virNetworkDHCPRangeDef virNetworkDHCPRangeDef;
 typedef virNetworkDHCPRangeDef *virNetworkDHCPRangeDefPtr;
 struct _virNetworkDHCPRangeDef {
-    char *start;
-    char *end;
-    int size;
+    virSocketAddr start;
+    virSocketAddr end;
 };
 
 typedef struct _virNetworkDHCPHostDef virNetworkDHCPHostDef;
@@ -53,8 +53,34 @@ typedef virNetworkDHCPHostDef *virNetworkDHCPHostDefPtr;
 struct _virNetworkDHCPHostDef {
     char *mac;
     char *name;
-    char *ip;
+    virSocketAddr ip;
 };
+
+typedef struct _virNetworkIpDef virNetworkIpDef;
+typedef virNetworkIpDef *virNetworkIpDefPtr;
+struct _virNetworkIpDef {
+    char *family;               /* ipv4 or ipv6 - default is ipv4 */
+    virSocketAddr address;      /* Bridge IP address */
+
+    /* One or the other of the following two will be used for a given
+     * IP address, but never both. The parser guarantees this.
+     * Use virNetworkIpDefPrefix/virNetworkIpDefNetmask rather
+     * than accessing the data directly - these utility functions
+     * will convert one into the other as necessary.
+     */
+    unsigned int prefix;        /* ipv6 - only prefix allowed */
+    virSocketAddr netmask;      /* ipv4 - either netmask or prefix specified */
+
+    unsigned int nranges;        /* Zero or more dhcp ranges */
+    virNetworkDHCPRangeDefPtr ranges;
+
+    unsigned int nhosts;         /* Zero or more dhcp hosts */
+    virNetworkDHCPHostDefPtr hosts;
+
+    char *tftproot;
+    char *bootfile;
+    virSocketAddr bootserver;
+   };
 
 typedef struct _virNetworkDef virNetworkDef;
 typedef virNetworkDef *virNetworkDefPtr;
@@ -70,19 +96,8 @@ struct _virNetworkDef {
     int forwardType;    /* One of virNetworkForwardType constants */
     char *forwardDev;   /* Destination device for forwarding */
 
-    char *ipAddress;    /* Bridge IP address */
-    char *netmask;
-    char *network;
-
-    unsigned int nranges;        /* Zero or more dhcp ranges */
-    virNetworkDHCPRangeDefPtr ranges;
-
-    unsigned int nhosts;         /* Zero or more dhcp hosts */
-    virNetworkDHCPHostDefPtr hosts;
-
-    char *tftproot;
-    char *bootfile;
-    char *bootserver;
+    size_t nips;
+    virNetworkIpDefPtr ips; /* ptr to array of IP addresses on this network */
 };
 
 typedef struct _virNetworkObj virNetworkObj;
@@ -91,6 +106,7 @@ struct _virNetworkObj {
     virMutex lock;
 
     pid_t dnsmasqPid;
+    pid_t radvdPid;
     unsigned int active : 1;
     unsigned int autostart : 1;
     unsigned int persistent : 1;
@@ -134,6 +150,12 @@ virNetworkDefPtr virNetworkDefParseNode(xmlDocPtr xml,
 
 char *virNetworkDefFormat(const virNetworkDefPtr def);
 
+virNetworkIpDefPtr
+virNetworkDefGetIpByIndex(const virNetworkDefPtr def,
+                          int family, size_t n);
+int virNetworkIpDefPrefix(const virNetworkIpDefPtr def);
+int virNetworkIpDefNetmask(const virNetworkIpDefPtr def,
+                           virSocketAddrPtr netmask);
 
 int virNetworkSaveXML(const char *configDir,
                       virNetworkDefPtr def,

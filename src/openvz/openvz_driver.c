@@ -57,6 +57,8 @@
 #include "nodeinfo.h"
 #include "memory.h"
 #include "bridge.h"
+#include "files.h"
+#include "logging.h"
 
 #define VIR_FROM_THIS VIR_FROM_OPENVZ
 
@@ -67,7 +69,6 @@
 static int openvzGetProcessInfo(unsigned long long *cpuTime, int vpsid);
 static int openvzGetMaxVCPUs(virConnectPtr conn, const char *type);
 static int openvzDomainGetMaxVcpus(virDomainPtr dom);
-static int openvzDomainSetVcpus(virDomainPtr dom, unsigned int nvcpus);
 static int openvzDomainSetVcpusInternal(virDomainObjPtr vm,
                                         unsigned int nvcpus);
 static int openvzDomainSetMemoryInternal(virDomainObjPtr vm,
@@ -88,8 +89,7 @@ struct openvz_driver ovz_driver;
 static void cmdExecFree(const char *cmdExec[])
 {
     int i=-1;
-    while(cmdExec[++i])
-    {
+    while (cmdExec[++i]) {
         VIR_FREE(cmdExec[i]);
     }
 }
@@ -103,10 +103,6 @@ openvzDomainDefineCmd(const char *args[],
                       int maxarg, virDomainDefPtr vmdef)
 {
     int narg;
-    int veid;
-    int max_veid;
-    char str_id[10];
-    FILE *fp;
 
     for (narg = 0; narg < maxarg; narg++)
         args[narg] = NULL;
@@ -116,6 +112,7 @@ openvzDomainDefineCmd(const char *args[],
                     _("Container is not defined"));
         return -1;
     }
+
 #define ADD_ARG(thisarg)                                                \
     do {                                                                \
         if (narg >= maxarg)                                             \
@@ -136,36 +133,7 @@ openvzDomainDefineCmd(const char *args[],
     ADD_ARG_LIT("--quiet");
     ADD_ARG_LIT("create");
 
-    if ((fp = popen(VZLIST " -a -ovpsid -H 2>/dev/null", "r")) == NULL) {
-        openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
-                    _("popen  failed"));
-        return -1;
-    }
-    max_veid = 0;
-    while (!feof(fp)) {
-        if (fscanf(fp, "%d\n", &veid) != 1) {
-            if (feof(fp))
-                break;
-
-            openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("Failed to parse vzlist output"));
-            goto cleanup;
-        }
-        if (veid > max_veid) {
-            max_veid = veid;
-        }
-    }
-    fclose(fp);
-
-    if (max_veid == 0) {
-        max_veid = 100;
-    } else {
-        max_veid++;
-    }
-
-    sprintf(str_id, "%d", max_veid);
-    ADD_ARG_LIT(str_id);
-
+    ADD_ARG_LIT(vmdef->name);
     ADD_ARG_LIT("--name");
     ADD_ARG_LIT(vmdef->name);
 
@@ -187,10 +155,6 @@ openvzDomainDefineCmd(const char *args[],
 no_memory:
     openvzError(VIR_ERR_INTERNAL_ERROR,
                 _("Could not put argument to %s"), VZCTL);
-    return -1;
-
-cleanup:
-    fclose(fp);
     return -1;
 
 #undef ADD_ARG
@@ -226,7 +190,7 @@ static int openvzSetInitialConfig(virDomainDefPtr vmdef)
         vmdef->fss[0]->type == VIR_DOMAIN_FS_TYPE_MOUNT)
     {
 
-        if(virStrToLong_i(vmdef->name, NULL, 10, &vpsid) < 0) {
+        if (virStrToLong_i(vmdef->name, NULL, 10, &vpsid) < 0) {
             openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
                         _("Could not convert domain name to VEID"));
             goto cleanup;
@@ -247,8 +211,7 @@ static int openvzSetInitialConfig(virDomainDefPtr vmdef)
     else
     {
         if (openvzDomainDefineCmd(prog, OPENVZ_MAX_ARG, vmdef) < 0) {
-            openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("Error creating command for container"));
+            VIR_ERROR0(_("Error creating command for container"));
             goto cleanup;
         }
 
@@ -387,7 +350,7 @@ static int openvzDomainGetInfo(virDomainPtr dom,
     openvzDriverUnlock(driver);
 
     if (!vm) {
-        openvzError(VIR_ERR_INVALID_DOMAIN, "%s",
+        openvzError(VIR_ERR_NO_DOMAIN, "%s",
                     _("no domain with matching uuid"));
         goto cleanup;
     }
@@ -404,8 +367,8 @@ static int openvzDomainGetInfo(virDomainPtr dom,
         }
     }
 
-    info->maxMem = vm->def->maxmem;
-    info->memory = vm->def->memory;
+    info->maxMem = vm->def->mem.max_balloon;
+    info->memory = vm->def->mem.cur_balloon;
     info->nrVirtCpu = vm->def->vcpus;
     ret = 0;
 
@@ -459,6 +422,10 @@ cleanup:
     return ret;
 }
 
+static int openvzDomainIsUpdated(virDomainPtr dom ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
 
 static char *openvzDomainDumpXML(virDomainPtr dom, int flags) {
     struct openvz_driver *driver = dom->conn->privateData;
@@ -470,7 +437,7 @@ static char *openvzDomainDumpXML(virDomainPtr dom, int flags) {
     openvzDriverUnlock(driver);
 
     if (!vm) {
-        openvzError(VIR_ERR_INVALID_DOMAIN, "%s",
+        openvzError(VIR_ERR_NO_DOMAIN, "%s",
                     _("no domain with matching uuid"));
         goto cleanup;
     }
@@ -514,7 +481,7 @@ static int openvzDomainSuspend(virDomainPtr dom) {
     openvzDriverUnlock(driver);
 
     if (!vm) {
-        openvzError(VIR_ERR_INVALID_DOMAIN, "%s",
+        openvzError(VIR_ERR_NO_DOMAIN, "%s",
                     _("no domain with matching uuid"));
         goto cleanup;
     }
@@ -554,7 +521,7 @@ static int openvzDomainResume(virDomainPtr dom) {
   openvzDriverUnlock(driver);
 
   if (!vm) {
-      openvzError(VIR_ERR_INVALID_DOMAIN, "%s",
+      openvzError(VIR_ERR_NO_DOMAIN, "%s",
                   _("no domain with matching uuid"));
       goto cleanup;
   }
@@ -594,7 +561,7 @@ static int openvzDomainShutdown(virDomainPtr dom) {
     openvzDriverUnlock(driver);
 
     if (!vm) {
-        openvzError(VIR_ERR_INVALID_DOMAIN, "%s",
+        openvzError(VIR_ERR_NO_DOMAIN, "%s",
                     _("no domain with matching uuid"));
         goto cleanup;
     }
@@ -632,7 +599,7 @@ static int openvzDomainReboot(virDomainPtr dom,
     openvzDriverUnlock(driver);
 
     if (!vm) {
-        openvzError(VIR_ERR_INVALID_DOMAIN, "%s",
+        openvzError(VIR_ERR_NO_DOMAIN, "%s",
                     _("no domain with matching uuid"));
         goto cleanup;
     }
@@ -741,52 +708,55 @@ openvzDomainSetNetwork(virConnectPtr conn, const char *vpsid,
     virCapabilitiesGenerateMac(driver->caps, host_mac);
     virFormatMacAddr(host_mac, host_macaddr);
 
-    if (net->type == VIR_DOMAIN_NET_TYPE_BRIDGE) {
+    if (net->type == VIR_DOMAIN_NET_TYPE_BRIDGE ||
+        (net->type == VIR_DOMAIN_NET_TYPE_ETHERNET &&
+         net->data.ethernet.ipaddr == NULL)) {
         virBuffer buf = VIR_BUFFER_INITIALIZER;
-        char *dev_name_ve;
         int veid = openvzGetVEID(vpsid);
 
         //--netif_add ifname[,mac,host_ifname,host_mac]
         ADD_ARG_LIT("--netif_add") ;
 
-        /* generate interface name in ve and copy it to options */
-        dev_name_ve = openvzGenerateContainerVethName(veid);
-        if (dev_name_ve == NULL) {
-           openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("Could not generate eth name for container"));
-           rc = -1;
-           goto exit;
+        /* if user doesn't specify guest interface name,
+         * then we need to generate it */
+        if (net->data.ethernet.dev == NULL) {
+            net->data.ethernet.dev = openvzGenerateContainerVethName(veid);
+            if (net->data.ethernet.dev == NULL) {
+               openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Could not generate eth name for container"));
+               rc = -1;
+               goto exit;
+            }
         }
 
         /* if user doesn't specified host interface name,
          * than we need to generate it */
         if (net->ifname == NULL) {
-            net->ifname = openvzGenerateVethName(veid, dev_name_ve);
+            net->ifname = openvzGenerateVethName(veid, net->data.ethernet.dev);
             if (net->ifname == NULL) {
                openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("Could not generate veth name"));
                rc = -1;
-               VIR_FREE(dev_name_ve);
                goto exit;
             }
         }
 
-        virBufferAdd(&buf, dev_name_ve, -1); /* Guest dev */
+        virBufferAdd(&buf, net->data.ethernet.dev, -1); /* Guest dev */
         virBufferVSprintf(&buf, ",%s", macaddr); /* Guest dev mac */
         virBufferVSprintf(&buf, ",%s", net->ifname); /* Host dev */
         virBufferVSprintf(&buf, ",%s", host_macaddr); /* Host dev mac */
 
-        if (driver->version >= VZCTL_BRIDGE_MIN_VERSION) {
-            virBufferVSprintf(&buf, ",%s", net->data.bridge.brname); /* Host bridge */
-        } else {
-            virBufferVSprintf(configBuf, "ifname=%s", dev_name_ve);
-            virBufferVSprintf(configBuf, ",mac=%s", macaddr); /* Guest dev mac */
-            virBufferVSprintf(configBuf, ",host_ifname=%s", net->ifname); /* Host dev */
-            virBufferVSprintf(configBuf, ",host_mac=%s", host_macaddr); /* Host dev mac */
-            virBufferVSprintf(configBuf, ",bridge=%s", net->data.bridge.brname); /* Host bridge */
+        if (net->type == VIR_DOMAIN_NET_TYPE_BRIDGE) {
+            if (driver->version >= VZCTL_BRIDGE_MIN_VERSION) {
+                virBufferVSprintf(&buf, ",%s", net->data.bridge.brname); /* Host bridge */
+            } else {
+                virBufferVSprintf(configBuf, "ifname=%s", net->data.ethernet.dev);
+                virBufferVSprintf(configBuf, ",mac=%s", macaddr); /* Guest dev mac */
+                virBufferVSprintf(configBuf, ",host_ifname=%s", net->ifname); /* Host dev */
+                virBufferVSprintf(configBuf, ",host_mac=%s", host_macaddr); /* Host dev mac */
+                virBufferVSprintf(configBuf, ",bridge=%s", net->data.bridge.brname); /* Host bridge */
+            }
         }
-
-        VIR_FREE(dev_name_ve);
 
         if (!(opt = virBufferContentAndReset(&buf)))
             goto no_memory;
@@ -802,7 +772,7 @@ openvzDomainSetNetwork(virConnectPtr conn, const char *vpsid,
 
     //TODO: processing NAT and physical device
 
-    if (prog[0] != NULL){
+    if (prog[0] != NULL) {
         ADD_ARG_LIT("--save");
         if (virRun(prog, NULL) < 0) {
            openvzError(VIR_ERR_INTERNAL_ERROR,
@@ -908,8 +878,7 @@ openvzDomainDefineXML(virConnectPtr conn, const char *xml)
     vm->persistent = 1;
 
     if (openvzSetInitialConfig(vm->def) < 0) {
-        openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
-                    _("Error creating initial configuration"));
+        VIR_ERROR0(_("Error creating initial configuration"));
         goto cleanup;
     }
 
@@ -924,16 +893,21 @@ openvzDomainDefineXML(virConnectPtr conn, const char *xml)
     if (openvzDomainSetNetworkConfig(conn, vm->def) < 0)
         goto cleanup;
 
-    if (vm->def->vcpus > 0) {
-        if (openvzDomainSetVcpusInternal(vm, vm->def->vcpus) < 0) {
+    if (vm->def->vcpus != vm->def->maxvcpus) {
+        openvzError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                    _("current vcpu count must equal maximum"));
+        goto cleanup;
+    }
+    if (vm->def->maxvcpus > 0) {
+        if (openvzDomainSetVcpusInternal(vm, vm->def->maxvcpus) < 0) {
             openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
                         _("Could not set number of virtual cpu"));
              goto cleanup;
         }
     }
 
-    if (vm->def->memory > 0) {
-        if (openvzDomainSetMemoryInternal(vm, vm->def->memory) < 0) {
+    if (vm->def->mem.cur_balloon > 0) {
+        if (openvzDomainSetMemoryInternal(vm, vm->def->mem.cur_balloon) < 0) {
             openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
                         _("Could not set memory size"));
              goto cleanup;
@@ -992,8 +966,7 @@ openvzDomainCreateXML(virConnectPtr conn, const char *xml,
     vm->persistent = 1;
 
     if (openvzSetInitialConfig(vm->def) < 0) {
-        openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
-                    _("Error creating initial configuration"));
+        VIR_ERROR0(_("Error creating initial configuration"));
         goto cleanup;
     }
 
@@ -1018,8 +991,8 @@ openvzDomainCreateXML(virConnectPtr conn, const char *xml,
     vm->def->id = vm->pid;
     vm->state = VIR_DOMAIN_RUNNING;
 
-    if (vm->def->vcpus > 0) {
-        if (openvzDomainSetVcpusInternal(vm, vm->def->vcpus) < 0) {
+    if (vm->def->maxvcpus > 0) {
+        if (openvzDomainSetVcpusInternal(vm, vm->def->maxvcpus) < 0) {
             openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
                         _("Could not set number of virtual cpu"));
             goto cleanup;
@@ -1053,7 +1026,7 @@ openvzDomainCreateWithFlags(virDomainPtr dom, unsigned int flags)
     openvzDriverUnlock(driver);
 
     if (!vm) {
-        openvzError(VIR_ERR_INVALID_DOMAIN, "%s",
+        openvzError(VIR_ERR_NO_DOMAIN, "%s",
                     _("no domain with matching id"));
         goto cleanup;
     }
@@ -1100,7 +1073,7 @@ openvzDomainUndefine(virDomainPtr dom)
     openvzDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
     if (!vm) {
-        openvzError(VIR_ERR_INVALID_DOMAIN, "%s",
+        openvzError(VIR_ERR_NO_DOMAIN, "%s",
                     _("no domain with matching uuid"));
         goto cleanup;
     }
@@ -1144,7 +1117,7 @@ openvzDomainSetAutostart(virDomainPtr dom, int autostart)
     openvzDriverUnlock(driver);
 
     if (!vm) {
-        openvzError(VIR_ERR_INVALID_DOMAIN, "%s",
+        openvzError(VIR_ERR_NO_DOMAIN, "%s",
                     _("no domain with matching uuid"));
         goto cleanup;
     }
@@ -1176,7 +1149,7 @@ openvzDomainGetAutostart(virDomainPtr dom, int *autostart)
     openvzDriverUnlock(driver);
 
     if (!vm) {
-        openvzError(VIR_ERR_INVALID_DOMAIN, "%s",
+        openvzError(VIR_ERR_NO_DOMAIN, "%s",
                     _("no domain with matching uuid"));
         goto cleanup;
     }
@@ -1209,9 +1182,22 @@ static int openvzGetMaxVCPUs(virConnectPtr conn ATTRIBUTE_UNUSED,
     return -1;
 }
 
+static int
+openvzDomainGetVcpusFlags(virDomainPtr dom ATTRIBUTE_UNUSED,
+                          unsigned int flags)
+{
+    if (flags != (VIR_DOMAIN_VCPU_LIVE | VIR_DOMAIN_VCPU_MAXIMUM)) {
+        openvzError(VIR_ERR_INVALID_ARG, _("unsupported flags (0x%x)"), flags);
+        return -1;
+    }
 
-static int openvzDomainGetMaxVcpus(virDomainPtr dom ATTRIBUTE_UNUSED) {
     return openvzGetMaxVCPUs(NULL, "openvz");
+}
+
+static int openvzDomainGetMaxVcpus(virDomainPtr dom)
+{
+    return openvzDomainGetVcpusFlags(dom, (VIR_DOMAIN_VCPU_LIVE |
+                                           VIR_DOMAIN_VCPU_MAXIMUM));
 }
 
 static int openvzDomainSetVcpusInternal(virDomainObjPtr vm,
@@ -1235,22 +1221,28 @@ static int openvzDomainSetVcpusInternal(virDomainObjPtr vm,
         return -1;
     }
 
-    vm->def->vcpus = nvcpus;
+    vm->def->maxvcpus = vm->def->vcpus = nvcpus;
     return 0;
 }
 
-static int openvzDomainSetVcpus(virDomainPtr dom, unsigned int nvcpus)
+static int openvzDomainSetVcpusFlags(virDomainPtr dom, unsigned int nvcpus,
+                                     unsigned int flags)
 {
     virDomainObjPtr         vm;
     struct openvz_driver   *driver = dom->conn->privateData;
     int                     ret = -1;
+
+    if (flags != VIR_DOMAIN_VCPU_LIVE) {
+        openvzError(VIR_ERR_INVALID_ARG, _("unsupported flags (0x%x)"), flags);
+        return -1;
+    }
 
     openvzDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
     openvzDriverUnlock(driver);
 
     if (!vm) {
-        openvzError(VIR_ERR_INVALID_DOMAIN, "%s",
+        openvzError(VIR_ERR_NO_DOMAIN, "%s",
                     _("no domain with matching uuid"));
         goto cleanup;
     }
@@ -1268,6 +1260,12 @@ cleanup:
     if (vm)
         virDomainObjUnlock(vm);
     return ret;
+}
+
+static int
+openvzDomainSetVcpus(virDomainPtr dom, unsigned int nvcpus)
+{
+    return openvzDomainSetVcpusFlags(dom, nvcpus, VIR_DOMAIN_VCPU_LIVE);
 }
 
 static virDrvOpenStatus openvzOpen(virConnectPtr conn,
@@ -1389,23 +1387,24 @@ static int openvzListDomains(virConnectPtr conn ATTRIBUTE_UNUSED,
     int veid;
     pid_t pid;
     int outfd = -1;
-    int errfd = -1;
     int ret;
     char buf[32];
     char *endptr;
     const char *cmd[] = {VZLIST, "-ovpsid", "-H" , NULL};
 
     ret = virExec(cmd, NULL, NULL,
-                  &pid, -1, &outfd, &errfd, VIR_EXEC_NONE);
-    if(ret == -1) {
+                  &pid, -1, &outfd, NULL, VIR_EXEC_NONE);
+    if (ret == -1) {
         openvzError(VIR_ERR_INTERNAL_ERROR,
                     _("Could not exec %s"), VZLIST);
+        VIR_FORCE_CLOSE(outfd);
         return -1;
     }
 
-    while(got < nids){
+    while (got < nids) {
         ret = openvz_readline(outfd, buf, 32);
-        if(!ret) break;
+        if (!ret)
+            break;
         if (virStrToLong_i(buf, &endptr, 10, &veid) < 0) {
             openvzError(VIR_ERR_INTERNAL_ERROR,
                         _("Could not parse VPS ID %s"), buf);
@@ -1416,6 +1415,10 @@ static int openvzListDomains(virConnectPtr conn ATTRIBUTE_UNUSED,
     }
     waitpid(pid, NULL, 0);
 
+    if (VIR_CLOSE(outfd) < 0) {
+        virReportSystemError(errno, "%s", _("failed to close file"));
+        return -1;
+    }
     return got;
 }
 
@@ -1433,7 +1436,7 @@ static int openvzNumDomains(virConnectPtr conn) {
 static int openvzListDefinedDomains(virConnectPtr conn ATTRIBUTE_UNUSED,
                                     char **const names, int nnames) {
     int got = 0;
-    int veid, outfd = -1, errfd = -1, ret;
+    int veid, outfd = -1, ret;
     pid_t pid;
     char vpsname[32];
     char buf[32];
@@ -1442,16 +1445,17 @@ static int openvzListDefinedDomains(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     /* the -S options lists only stopped domains */
     ret = virExec(cmd, NULL, NULL,
-                  &pid, -1, &outfd, &errfd, VIR_EXEC_NONE);
-    if(ret == -1) {
+                  &pid, -1, &outfd, NULL, VIR_EXEC_NONE);
+    if (ret == -1) {
         openvzError(VIR_ERR_INTERNAL_ERROR,
                     _("Could not exec %s"), VZLIST);
-        return -1;
+        goto out;
     }
 
-    while(got < nnames){
+    while (got < nnames) {
         ret = openvz_readline(outfd, buf, 32);
-        if(!ret) break;
+        if (!ret)
+            break;
         if (virStrToLong_i(buf, &endptr, 10, &veid) < 0) {
             openvzError(VIR_ERR_INTERNAL_ERROR,
                         _("Could not parse VPS ID %s"), buf);
@@ -1459,14 +1463,19 @@ static int openvzListDefinedDomains(virConnectPtr conn ATTRIBUTE_UNUSED,
         }
         snprintf(vpsname, sizeof(vpsname), "%d", veid);
         if (!(names[got] = strdup(vpsname)))
-            goto no_memory;
+            virReportOOMError();
+            goto out;
         got ++;
     }
     waitpid(pid, NULL, 0);
+    if (VIR_CLOSE(outfd) < 0) {
+        virReportSystemError(errno, "%s", _("failed to close file"));
+        goto out;
+    }
     return got;
 
-no_memory:
-    virReportOOMError();
+out:
+    VIR_FORCE_CLOSE(outfd);
     for ( ; got >= 0 ; got--)
         VIR_FREE(names[got]);
     return -1;
@@ -1491,7 +1500,7 @@ Version: 2.2
         return -1;
 
     /*search line with VEID=vpsid*/
-    while(1) {
+    while (1) {
         ret = openvz_readline(fd, line, sizeof(line));
         if (ret <= 0)
             break;
@@ -1507,7 +1516,7 @@ Version: 2.2
         }
     }
 
-    close(fd);
+    VIR_FORCE_CLOSE(fd);
     if (ret < 0)
         return -1;
 
@@ -1586,6 +1595,8 @@ static virDriver openvzDriver = {
     NULL, /* domainRestore */
     NULL, /* domainCoreDump */
     openvzDomainSetVcpus, /* domainSetVcpus */
+    openvzDomainSetVcpusFlags, /* domainSetVcpusFlags */
+    openvzDomainGetVcpusFlags, /* domainGetVcpusFlags */
     NULL, /* domainPinVcpu */
     NULL, /* domainGetVcpus */
     openvzDomainGetMaxVcpus, /* domainGetMaxVcpus */
@@ -1633,6 +1644,7 @@ static virDriver openvzDriver = {
     openvzIsSecure,
     openvzDomainIsActive,
     openvzDomainIsPersistent,
+    openvzDomainIsUpdated, /* domainIsUpdated */
     NULL, /* cpuCompare */
     NULL, /* cpuBaseline */
     NULL, /* domainGetJobInfo */
@@ -1653,6 +1665,9 @@ static virDriver openvzDriver = {
     NULL, /* domainRevertToSnapshot */
     NULL, /* domainSnapshotDelete */
     NULL, /* qemuDomainMonitorCommand */
+    NULL, /* domainSetMemoryParameters */
+    NULL, /* domainGetMemoryParameters */
+    NULL, /* domainOpenConsole */
 };
 
 int openvzRegister(void) {

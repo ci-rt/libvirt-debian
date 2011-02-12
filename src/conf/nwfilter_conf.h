@@ -28,11 +28,14 @@
 
 # include <stdint.h>
 # include <stddef.h>
+# include <stdbool.h>
 
 # include "internal.h"
+
 # include "util.h"
 # include "hash.h"
 # include "xml.h"
+# include "buf.h"
 # include "network.h"
 
 /* XXX
@@ -73,6 +76,8 @@ enum virNWFilterEntryItemFlags {
 };
 
 
+# define MAX_COMMENT_LENGTH  256
+
 # define HAS_ENTRY_ITEM(data) \
   (((data)->flags) & NWFILTER_ENTRY_ITEM_FLAG_EXISTS)
 
@@ -92,8 +97,9 @@ enum attrDatatype {
     DATATYPE_STRING           = (1 << 8),
     DATATYPE_IPV6ADDR         = (1 << 9),
     DATATYPE_IPV6MASK         = (1 << 10),
+    DATATYPE_STRINGCOPY       = (1 << 11),
 
-    DATATYPE_LAST             = (1 << 11),
+    DATATYPE_LAST             = (1 << 12),
 };
 
 
@@ -101,13 +107,6 @@ typedef struct _nwMACAddress nwMACAddress;
 typedef nwMACAddress *nwMACAddressPtr;
 struct _nwMACAddress {
     unsigned char addr[6];
-};
-
-
-typedef struct _nwIPAddress nwIPAddress;
-typedef nwIPAddress *nwIPAddressPtr;
-struct _nwIPAddress {
-    virSocketAddr addr;
 };
 
 
@@ -119,10 +118,11 @@ struct _nwItemDesc {
     enum attrDatatype datatype;
     union {
         nwMACAddress macaddr;
-        nwIPAddress  ipaddr;
+        virSocketAddr ipaddr;
         uint8_t      u8;
         uint16_t     u16;
         char         protocolID[10];
+        char         *string;
     } u;
 };
 
@@ -142,6 +142,7 @@ typedef ethHdrFilterDef *ethHdrFilterDefPtr;
 struct _ethHdrFilterDef {
     ethHdrDataDef ethHdr;
     nwItemDesc dataProtocolID;
+    nwItemDesc dataComment;
 };
 
 
@@ -156,6 +157,7 @@ struct _arpHdrFilterDef {
     nwItemDesc dataARPSrcIPAddr;
     nwItemDesc dataARPDstMACAddr;
     nwItemDesc dataARPDstIPAddr;
+    nwItemDesc dataComment;
 };
 
 
@@ -173,7 +175,9 @@ struct _ipHdrDataDef {
     nwItemDesc dataDstIPFrom;
     nwItemDesc dataDstIPTo;
     nwItemDesc dataDSCP;
+    nwItemDesc dataState;
     nwItemDesc dataConnlimitAbove;
+    nwItemDesc dataComment;
 };
 
 
@@ -346,9 +350,24 @@ enum virNWFilterEbtablesTableType {
 # define MAX_RULE_PRIORITY  1000
 
 enum virNWFilterRuleFlags {
-    RULE_FLAG_NO_STATEMATCH = (1 << 0),
+    RULE_FLAG_NO_STATEMATCH      = (1 << 0),
+    RULE_FLAG_STATE_NEW          = (1 << 1),
+    RULE_FLAG_STATE_ESTABLISHED  = (1 << 2),
+    RULE_FLAG_STATE_RELATED      = (1 << 3),
+    RULE_FLAG_STATE_INVALID      = (1 << 4),
+    RULE_FLAG_STATE_NONE         = (1 << 5),
 };
 
+
+# define IPTABLES_STATE_FLAGS \
+  (RULE_FLAG_STATE_NEW | \
+   RULE_FLAG_STATE_ESTABLISHED | \
+   RULE_FLAG_STATE_RELATED | \
+   RULE_FLAG_STATE_INVALID | \
+   RULE_FLAG_STATE_NONE)
+
+void virNWFilterPrintStateMatchFlags(virBufferPtr buf, const char *prefix,
+                                     int32_t flags, bool disp_none);
 
 typedef struct _virNWFilterRuleDef  virNWFilterRuleDef;
 typedef virNWFilterRuleDef *virNWFilterRuleDefPtr;
@@ -376,6 +395,9 @@ struct _virNWFilterRuleDef {
 
     int nvars;
     char **vars;
+
+    int nstrings;
+    char **strings;
 };
 
 
@@ -629,6 +651,8 @@ void virNWFilterConfLayerShutdown(void);
 
 typedef int (*virNWFilterRebuild)(virConnectPtr conn,
                                   virHashIterator, void *data);
+typedef void (*virNWFilterVoidCall)(void);
+
 
 typedef struct _virNWFilterCallbackDriver virNWFilterCallbackDriver;
 typedef virNWFilterCallbackDriver *virNWFilterCallbackDriverPtr;
@@ -636,9 +660,13 @@ struct _virNWFilterCallbackDriver {
     const char *name;
 
     virNWFilterRebuild vmFilterRebuild;
+    virNWFilterVoidCall vmDriverLock;
+    virNWFilterVoidCall vmDriverUnlock;
 };
 
 void virNWFilterRegisterCallbackDriver(virNWFilterCallbackDriverPtr);
+void virNWFilterCallbackDriversLock(void);
+void virNWFilterCallbackDriversUnlock(void);
 
 
 VIR_ENUM_DECL(virNWFilterRuleAction);

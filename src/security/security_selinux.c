@@ -18,6 +18,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#if HAVE_SELINUX_LABEL_H
+# include <selinux/label.h>
+#endif
 
 #include "security_driver.h"
 #include "security_selinux.h"
@@ -28,6 +31,7 @@
 #include "pci.h"
 #include "hostusb.h"
 #include "storage_file.h"
+#include "files.h"
 
 #define VIR_FROM_THIS VIR_FROM_SECURITY
 
@@ -120,10 +124,10 @@ SELinuxInitialize(void)
         virReportSystemError(errno,
                              _("cannot read SELinux virtual domain context file %s"),
                              selinux_virtual_domain_context_path());
-        close(fd);
+        VIR_FORCE_CLOSE(fd);
         return -1;
     }
-    close(fd);
+    VIR_FORCE_CLOSE(fd);
 
     ptr = strchrnul(default_domain_context, '\n');
     *ptr = '\0';
@@ -139,10 +143,10 @@ SELinuxInitialize(void)
         virReportSystemError(errno,
                              _("cannot read SELinux virtual image context file %s"),
                              selinux_virtual_image_context_path());
-        close(fd);
+        VIR_FORCE_CLOSE(fd);
         return -1;
     }
-    close(fd);
+    VIR_FORCE_CLOSE(fd);
 
     ptr = strchrnul(default_image_context, '\n');
     if (*ptr == '\n') {
@@ -181,12 +185,12 @@ SELinuxGenSecurityLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
         c2 = virRandom(1024);
 
         if ( c1 == c2 ) {
-            sprintf(mcs, "s0:c%d", c1);
+            snprintf(mcs, sizeof(mcs), "s0:c%d", c1);
         } else {
             if ( c1 < c2 )
-                sprintf(mcs, "s0:c%d,c%d", c1, c2);
+                snprintf(mcs, sizeof(mcs), "s0:c%d,c%d", c1, c2);
             else
-                sprintf(mcs, "s0:c%d,c%d", c2, c1);
+                snprintf(mcs, sizeof(mcs), "s0:c%d,c%d", c2, c1);
         }
     } while(mcsAdd(mcs) == -1);
 
@@ -238,7 +242,7 @@ SELinuxReserveSecurityLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
     }
 
     ctx = context_new(pctx);
-    VIR_FREE(pctx);
+    freecon(pctx);
     if (!ctx)
         goto err;
 
@@ -297,11 +301,12 @@ SELinuxGetSecurityProcessLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
                                _("security label exceeds "
                                  "maximum length: %d"),
                                VIR_SECURITY_LABEL_BUFLEN - 1);
+        freecon(ctx);
         return -1;
     }
 
     strcpy(sec->label, (char *) ctx);
-    VIR_FREE(ctx);
+    freecon(ctx);
 
     sec->enforcing = security_getenforce();
     if (sec->enforcing == -1) {
@@ -352,6 +357,25 @@ SELinuxSetFilecon(const char *path, char *tcon)
     return 0;
 }
 
+/* Set fcon to the appropriate label for path and mode, or return -1.  */
+static int
+getContext(const char *newpath, mode_t mode, security_context_t *fcon)
+{
+#if HAVE_SELINUX_LABEL_H
+    struct selabel_handle *handle = selabel_open(SELABEL_CTX_FILE, NULL, 0);
+    int ret;
+
+    if (handle == NULL)
+        return -1;
+
+    ret = selabel_lookup(handle, fcon, newpath, mode);
+    selabel_close(handle);
+    return ret;
+#else
+    return matchpathcon(newpath, mode, fcon);
+#endif
+}
+
 
 /* This method shouldn't raise errors, since they'll overwrite
  * errors that the caller(s) are already dealing with */
@@ -378,15 +402,14 @@ SELinuxRestoreSecurityFileLabel(const char *path)
         goto err;
     }
 
-    if (matchpathcon(newpath, buf.st_mode, &fcon) == 0)  {
-        rc = SELinuxSetFilecon(newpath, fcon);
+    if (getContext(newpath, buf.st_mode, &fcon) < 0) {
+        VIR_WARN("cannot lookup default selinux label for %s", newpath);
     } else {
-        VIR_WARN("cannot lookup default selinux label for %s",
-                 newpath);
+        rc = SELinuxSetFilecon(newpath, fcon);
     }
 
 err:
-    VIR_FREE(fcon);
+    freecon(fcon);
     VIR_FREE(newpath);
     return rc;
 }
@@ -413,7 +436,7 @@ SELinuxRestoreSecurityImageLabelInt(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
     if (disk->readonly || disk->shared)
         return 0;
 
-    if (!disk->src)
+    if (!disk->src || disk->type == VIR_DOMAIN_DISK_TYPE_NETWORK)
         return 0;
 
     /* If we have a shared FS & doing migrated, we must not
@@ -452,20 +475,26 @@ SELinuxSetSecurityFileLabel(virDomainDiskDefPtr disk,
                             void *opaque)
 {
     const virSecurityLabelDefPtr secdef = opaque;
+    int ret;
 
     if (depth == 0) {
         if (disk->shared) {
-            return SELinuxSetFilecon(path, default_image_context);
+            ret = SELinuxSetFilecon(path, default_image_context);
         } else if (disk->readonly) {
-            return SELinuxSetFilecon(path, default_content_context);
+            ret = SELinuxSetFilecon(path, default_content_context);
         } else if (secdef->imagelabel) {
-            return SELinuxSetFilecon(path, secdef->imagelabel);
+            ret = SELinuxSetFilecon(path, secdef->imagelabel);
         } else {
-            return 0;
+            ret = 0;
         }
     } else {
-        return SELinuxSetFilecon(path, default_content_context);
+        ret = SELinuxSetFilecon(path, default_content_context);
     }
+    if (ret < 0 &&
+        virStorageFileIsSharedFSType(path,
+                                     VIR_STORAGE_FILE_SHFS_NFS) == 1)
+       ret = 0;
+    return ret;
 }
 
 static int
@@ -482,7 +511,7 @@ SELinuxSetSecurityImageLabel(virSecurityDriverPtr drv,
 
     return virDomainDiskDefForeachPath(disk,
                                        allowDiskFormatProbing,
-                                       false,
+                                       true,
                                        SELinuxSetSecurityFileLabel,
                                        secdef);
 }
@@ -687,9 +716,10 @@ SELinuxRestoreSecurityChardevLabel(virDomainObjPtr vm,
     switch (dev->type) {
     case VIR_DOMAIN_CHR_TYPE_DEV:
     case VIR_DOMAIN_CHR_TYPE_FILE:
-        ret = SELinuxSetFilecon(dev->data.file.path, secdef->imagelabel);
+        if (SELinuxRestoreSecurityFileLabel(dev->data.file.path) < 0)
+            goto done;
+        ret = 0;
         break;
-
     case VIR_DOMAIN_CHR_TYPE_PIPE:
         if ((virAsprintf(&out, "%s.out", dev->data.file.path) < 0) ||
             (virAsprintf(&in, "%s.in", dev->data.file.path) < 0)) {
@@ -1023,9 +1053,12 @@ SELinuxSetSecurityAllLabel(virSecurityDriverPtr drv,
         SELinuxSetFilecon(vm->def->os.initrd, default_content_context) < 0)
         return -1;
 
-    if (stdin_path &&
-        SELinuxSetFilecon(stdin_path, default_content_context) < 0)
-        return -1;
+    if (stdin_path) {
+        if (SELinuxSetFilecon(stdin_path, default_content_context) < 0 &&
+            virStorageFileIsSharedFSType(stdin_path,
+                                         VIR_STORAGE_FILE_SHFS_NFS) != 1)
+            return -1;
+    }
 
     return 0;
 }

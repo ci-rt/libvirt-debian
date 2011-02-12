@@ -35,6 +35,7 @@
 #include "xml.h"
 #include "virterror_internal.h"
 #include "uuid.h"
+#include "files.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
@@ -66,8 +67,6 @@ virStorageEncryptionFree(virStorageEncryptionPtr enc)
     VIR_FREE(enc->secrets);
     VIR_FREE(enc);
 }
-
-#ifndef PROXY
 
 static virStorageEncryptionSecretPtr
 virStorageEncryptionSecretParse(xmlXPathContextPtr ctxt,
@@ -210,7 +209,6 @@ virStorageEncryptionParseNode(xmlDocPtr xml, xmlNodePtr root)
     xmlXPathFreeContext(ctxt);
     return enc;
 }
-#endif /* ! PROXY */
 
 
 static int
@@ -286,12 +284,12 @@ virStorageGenerateQcowPassphrase(unsigned char *dest)
         if (r <= 0) {
             virStorageReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                   _("Cannot read from /dev/urandom"));
-            close(fd);
+            VIR_FORCE_CLOSE(fd);
             return -1;
         }
         if (dest[i] >= 0x20 && dest[i] <= 0x7E)
             i++; /* Got an acceptable character */
     }
-    close(fd);
+    VIR_FORCE_CLOSE(fd);
     return 0;
 }

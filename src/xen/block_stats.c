@@ -27,6 +27,7 @@
 # include "util.h"
 # include "block_stats.h"
 # include "memory.h"
+# include "files.h"
 
 # define VIR_FROM_THIS VIR_FROM_STATS_LINUX
 
@@ -100,7 +101,7 @@ read_stat (const char *path)
     /* read, but don't bail out before closing */
     i = fread (str, 1, sizeof str - 1, fp);
 
-    if (fclose (fp) != 0        /* disk error */
+    if (VIR_FCLOSE(fp) != 0        /* disk error */
         || i < 1)               /* ensure we read at least one byte */
         return -1;
 
@@ -116,6 +117,18 @@ read_bd_stat (int device, int domid, const char *str)
 {
     char path[PATH_MAX];
     int64_t r;
+
+    snprintf (path, sizeof path,
+              "/sys/bus/xen-backend/devices/vbd-%d-%d/statistics/%s",
+              domid, device, str);
+    r = read_stat (path);
+    if (r >= 0) return r;
+
+    snprintf (path, sizeof path,
+              "/sys/bus/xen-backend/devices/tap-%d-%d/statistics/%s",
+              domid, device, str);
+    r = read_stat (path);
+    if (r >= 0) return r;
 
     snprintf (path, sizeof path,
               "/sys/devices/xen-backend/vbd-%d-%d/statistics/%s",

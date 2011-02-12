@@ -244,7 +244,9 @@ sexpr2string(const struct sexpr * sexpr, char *buffer, size_t n_buffer)
             ret += tmp;
             break;
         case SEXPR_VALUE:
-            if (strchr(sexpr->u.value, ' '))
+            if (strchr(sexpr->u.value, ' ') ||
+                strchr(sexpr->u.value, ')') ||
+                strchr(sexpr->u.value, '('))
                 tmp = snprintf(buffer + ret, n_buffer - ret, "'%s'",
                                sexpr->u.value);
             else
@@ -320,14 +322,6 @@ _string2sexpr(const char *buffer, size_t * end)
                 sexpr_free(tmp);
                 goto error;
             }
-#if 0
-            if (0) {
-                char buf[4096];
-
-                sexpr2string(ret, buf, sizeof(buf));
-                printf("%s\n", buffer);
-            }
-#endif
             ptr = trim(ptr + tmp_len);
         }
 

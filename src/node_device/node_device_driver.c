@@ -1,6 +1,7 @@
 /*
  * node_device.c: node device enumeration
  *
+ * Copyright (C) 2010 Red Hat, Inc.
  * Copyright (C) 2008 Virtual Iron Software, Inc.
  * Copyright (C) 2008 David F. Lively
  *
@@ -27,6 +28,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <time.h>
+#include <sys/stat.h>
 
 #include "virterror_internal.h"
 #include "datatypes.h"
@@ -392,6 +394,7 @@ nodeDeviceVportCreateDelete(const int parent_host,
     int retval = 0;
     char *operation_path = NULL, *vport_name = NULL;
     const char *operation_file = NULL;
+    struct stat st;
 
     switch (operation) {
     case VPORT_CREATE:
@@ -419,6 +422,26 @@ nodeDeviceVportCreateDelete(const int parent_host,
         goto cleanup;
     }
 
+    if (stat(operation_path, &st) != 0) {
+        VIR_FREE(operation_path);
+        if (virAsprintf(&operation_path,
+                        "%shost%d%s",
+                        LINUX_SYSFS_SCSI_HOST_PREFIX,
+                        parent_host,
+                        operation_file) < 0) {
+            virReportOOMError();
+            retval = -1;
+            goto cleanup;
+        }
+
+        if (stat(operation_path, &st) != 0) {
+            VIR_ERROR(_("No vport operation path found for host%d"),
+                      parent_host);
+            retval = -1;
+            goto cleanup;
+        }
+    }
+
     VIR_DEBUG("Vport operation path is '%s'", operation_path);
 
     if (virAsprintf(&vport_name,
@@ -431,7 +454,7 @@ nodeDeviceVportCreateDelete(const int parent_host,
         goto cleanup;
     }
 
-    if (virFileWriteStr(operation_path, vport_name) == -1) {
+    if (virFileWriteStr(operation_path, vport_name, 0) == -1) {
         virReportSystemError(errno,
                              _("Write of '%s' to '%s' during "
                                "vport create/delete failed"),

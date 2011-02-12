@@ -8,13 +8,13 @@ Subject: [PATCH] qemu-disable-network.diff
  2 files changed, 0 insertions(+), 6 deletions(-)
 
 diff --git a/src/Makefile.am b/src/Makefile.am
-index a66eb2a..368a782 100644
+index c13724a..12b492b 100644
 --- a/src/Makefile.am
 +++ b/src/Makefile.am
-@@ -1172,9 +1172,6 @@ if WITH_NETWORK
- 	test -z "$(UUID)" || \
- 	  sed -i -e "s,</name>,</name>\n  <uuid>$(UUID)</uuid>," \
- 	    $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml
+@@ -1244,9 +1244,6 @@ if WITH_NETWORK
+ 	    cp $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml.t \
+ 	      $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml && \
+ 	    rm $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml.t; }
 -	test -e $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml || \
 -           ln -s ../default.xml \
 -	    $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml
@@ -22,13 +22,13 @@ index a66eb2a..368a782 100644
  
  uninstall-local::
 diff --git a/src/Makefile.in b/src/Makefile.in
-index febc273..3679d84 100644
+index ea9c404..9d8df32 100644
 --- a/src/Makefile.in
 +++ b/src/Makefile.in
-@@ -5021,9 +5021,6 @@ install-data-local:
- @WITH_NETWORK_TRUE@	test -z "$(UUID)" || \
- @WITH_NETWORK_TRUE@	  sed -i -e "s,</name>,</name>\n  <uuid>$(UUID)</uuid>," \
- @WITH_NETWORK_TRUE@	    $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml
+@@ -5426,9 +5426,6 @@ install-data-local:
+ @WITH_NETWORK_TRUE@	    cp $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml.t \
+ @WITH_NETWORK_TRUE@	      $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml && \
+ @WITH_NETWORK_TRUE@	    rm $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml.t; }
 -@WITH_NETWORK_TRUE@	test -e $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml || \
 -@WITH_NETWORK_TRUE@           ln -s ../default.xml \
 -@WITH_NETWORK_TRUE@	    $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml

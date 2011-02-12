@@ -58,6 +58,7 @@
 #include "domain_conf.h"
 #include "storage_conf.h"
 #include "nodeinfo.h"
+#include "files.h"
 
 #include "phyp_driver.h"
 
@@ -380,12 +381,10 @@ phypListDomainsGeneric(virConnectPtr conn, int *ids, int nids,
     int system_type = phyp_driver->system_type;
     char *managed_system = phyp_driver->managed_system;
     int exit_status = 0;
-    int got = 0;
-    char *char_ptr;
-    unsigned int i = 0, j = 0;
-    char id_c[10];
+    int got = -1;
     char *cmd = NULL;
     char *ret = NULL;
+    char *line, *next_line;
     const char *state;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
@@ -393,8 +392,6 @@ phypListDomainsGeneric(virConnectPtr conn, int *ids, int nids,
         state = "|grep Running";
     else
         state = " ";
-
-    memset(id_c, 0, 10);
 
     virBufferAddLit(&buf, "lssyscfg -r lpar");
     if (system_type == HMC)
@@ -410,37 +407,28 @@ phypListDomainsGeneric(virConnectPtr conn, int *ids, int nids,
 
     ret = phypExec(session, cmd, &exit_status, conn);
 
-    /* I need to parse the textual return in order to get the ret */
     if (exit_status < 0 || ret == NULL)
         goto err;
-    else {
-        while (got < nids) {
-            if (ret[i] == '\0')
-                break;
-            else if (ret[i] == '\n') {
-                if (virStrToLong_i(id_c, &char_ptr, 10, &ids[got]) == -1) {
-                    VIR_ERROR(_("Cannot parse number from '%s'"), id_c);
-                    goto err;
-                }
-                memset(id_c, 0, 10);
-                j = 0;
-                got++;
-            } else {
-                id_c[j] = ret[i];
-                j++;
-            }
-            i++;
-        }
-    }
 
-    VIR_FREE(cmd);
-    VIR_FREE(ret);
-    return got;
+    /* I need to parse the textual return in order to get the ids */
+    line = ret;
+    got = 0;
+    while (*line && got < nids) {
+        if (virStrToLong_i(line, &next_line, 10, &ids[got]) == -1) {
+            VIR_ERROR(_("Cannot parse number from '%s'"), line);
+            got = -1;
+            goto err;
+        }
+        got++;
+        line = next_line;
+        while (*line == '\n')
+            line++; /* skip \n */
+    }
 
   err:
     VIR_FREE(cmd);
     VIR_FREE(ret);
-    return -1;
+    return got;
 }
 
 static int
@@ -470,11 +458,15 @@ phypUUIDTable_WriteFile(virConnectPtr conn)
         }
     }
 
-    close(fd);
+    if (VIR_CLOSE(fd) < 0) {
+        virReportSystemError(errno, _("Could not close %s"),
+                             local_file);
+        goto err;
+    }
     return 0;
 
   err:
-    close(fd);
+    VIR_FORCE_CLOSE(fd);
     return -1;
 }
 
@@ -685,11 +677,11 @@ phypUUIDTable_ReadFile(virConnectPtr conn)
     } else
         virReportOOMError();
 
-    close(fd);
+    VIR_FORCE_CLOSE(fd);
     return 0;
 
   err:
-    close(fd);
+    VIR_FORCE_CLOSE(fd);
     return -1;
 }
 
@@ -777,7 +769,11 @@ phypUUIDTable_Pull(virConnectPtr conn)
         }
         break;
     }
-    close(fd);
+    if (VIR_CLOSE(fd) < 0) {
+        virReportSystemError(errno, _("Could not close %s"),
+                             local_file);
+        goto err;
+    }
     goto exit;
 
   exit:
@@ -1014,7 +1010,7 @@ openSSHSession(virConnectPtr conn, virConnectAuthPtr auth,
             if (connect(sock, cur->ai_addr, cur->ai_addrlen) == 0) {
                 goto connected;
             }
-            close(sock);
+            VIR_FORCE_CLOSE(sock);
         }
         cur = cur->ai_next;
     }
@@ -1281,6 +1277,11 @@ phypIsSecure(virConnectPtr conn ATTRIBUTE_UNUSED)
     return 1;
 }
 
+static int
+phypIsUpdated(virDomainPtr conn ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
 
 /* return the lpar_id given a name and a managed system name */
 static int
@@ -1510,12 +1511,24 @@ phypGetLparCPU(virConnectPtr conn, const char *managed_system, int lpar_id)
 }
 
 static int
-phypGetLparCPUMAX(virDomainPtr dom)
+phypDomainGetVcpusFlags(virDomainPtr dom, unsigned int flags)
 {
     phyp_driverPtr phyp_driver = dom->conn->privateData;
     char *managed_system = phyp_driver->managed_system;
 
+    if (flags != (VIR_DOMAIN_VCPU_LIVE | VIR_DOMAIN_VCPU_MAXIMUM)) {
+        PHYP_ERROR(VIR_ERR_INVALID_ARG, _("unsupported flags: (0x%x)"), flags);
+        return -1;
+    }
+
     return phypGetLparCPUGeneric(dom->conn, managed_system, dom->id, 1);
+}
+
+static int
+phypGetLparCPUMAX(virDomainPtr dom)
+{
+    return phypDomainGetVcpusFlags(dom, (VIR_DOMAIN_VCPU_LIVE |
+                                         VIR_DOMAIN_VCPU_MAXIMUM));
 }
 
 static int
@@ -3529,19 +3542,19 @@ phypDomainDumpXML(virDomainPtr dom, int flags)
         goto err;
     }
 
-    if ((def.maxmem =
+    if ((def.mem.max_balloon =
          phypGetLparMem(dom->conn, managed_system, dom->id, 0)) == 0) {
         VIR_ERROR0(_("Unable to determine domain's max memory."));
         goto err;
     }
 
-    if ((def.memory =
+    if ((def.mem.cur_balloon =
          phypGetLparMem(dom->conn, managed_system, dom->id, 1)) == 0) {
         VIR_ERROR0(_("Unable to determine domain's memory."));
         goto err;
     }
 
-    if ((def.vcpus =
+    if ((def.maxvcpus = def.vcpus =
          phypGetLparCPU(dom->conn, managed_system, dom->id)) == 0) {
         VIR_ERROR0(_("Unable to determine domain's CPU."));
         goto err;
@@ -3714,13 +3727,41 @@ phypBuildLpar(virConnectPtr conn, virDomainDefPtr def)
     int exit_status = 0;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
+    if (!def->mem.cur_balloon) {
+        PHYP_ERROR(VIR_ERR_XML_ERROR,"%s",
+                _("Field \"<memory>\" on the domain XML file is missing or has "
+                    "invalid value."));
+        goto err;
+    }
+
+    if (!def->mem.max_balloon) {
+        PHYP_ERROR(VIR_ERR_XML_ERROR,"%s",
+                _("Field \"<currentMemory>\" on the domain XML file is missing or"
+                    " has invalid value."));
+        goto err;
+    }
+
+    if (def->ndisks < 1) {
+        PHYP_ERROR(VIR_ERR_XML_ERROR, "%s",
+                   _("Domain XML must contain at least one \"<disk>\" element."));
+        goto err;
+    }
+
+    if (!def->disks[0]->src) {
+        PHYP_ERROR(VIR_ERR_XML_ERROR,"%s",
+                   _("Field \"<src>\" under \"<disk>\" on the domain XML file is "
+                     "missing."));
+        goto err;
+    }
+
     virBufferAddLit(&buf, "mksyscfg");
     if (system_type == HMC)
         virBufferVSprintf(&buf, " -m %s", managed_system);
     virBufferVSprintf(&buf, " -r lpar -p %s -i min_mem=%d,desired_mem=%d,"
                       "max_mem=%d,desired_procs=%d,virtual_scsi_adapters=%s",
-                      def->name, (int) def->memory, (int) def->memory,
-                      (int) def->maxmem, (int) def->vcpus, def->disks[0]->src);
+                      def->name, (int) def->mem.cur_balloon,
+                      (int) def->mem.cur_balloon, (int) def->mem.max_balloon,
+                      (int) def->vcpus, def->disks[0]->src);
     if (virBufferError(&buf)) {
         virBufferFreeAndReset(&buf);
         virReportOOMError();
@@ -3772,7 +3813,7 @@ phypDomainCreateAndStart(virConnectPtr conn,
         goto err;
 
     /* checking if this name already exists on this system */
-    if (phypGetLparID(session, managed_system, def->name, conn) == -1) {
+    if (phypGetLparID(session, managed_system, def->name, conn) != -1) {
         VIR_WARN0("LPAR name already exists.");
         goto err;
     }
@@ -3816,7 +3857,8 @@ phypConnectGetCapabilities(virConnectPtr conn)
 }
 
 static int
-phypDomainSetCPU(virDomainPtr dom, unsigned int nvcpus)
+phypDomainSetVcpusFlags(virDomainPtr dom, unsigned int nvcpus,
+                        unsigned int flags)
 {
     ConnectionData *connection_data = dom->conn->networkPrivateData;
     phyp_driverPtr phyp_driver = dom->conn->privateData;
@@ -3830,6 +3872,11 @@ phypDomainSetCPU(virDomainPtr dom, unsigned int nvcpus)
     unsigned long ncpus = 0;
     unsigned int amount = 0;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
+
+    if (flags != VIR_DOMAIN_VCPU_LIVE) {
+        PHYP_ERROR(VIR_ERR_INVALID_ARG, _("unsupported flags: (0x%x)"), flags);
+        return -1;
+    }
 
     if ((ncpus = phypGetLparCPU(dom->conn, managed_system, dom->id)) == 0)
         return 0;
@@ -3876,13 +3923,17 @@ phypDomainSetCPU(virDomainPtr dom, unsigned int nvcpus)
 
 }
 
-static virDrvOpenStatus
-phypStorageOpen(virConnectPtr conn,
-                virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-                int flags)
+static int
+phypDomainSetCPU(virDomainPtr dom, unsigned int nvcpus)
 {
-    virCheckFlags(0, VIR_DRV_OPEN_ERROR);
+    return phypDomainSetVcpusFlags(dom, nvcpus, VIR_DOMAIN_VCPU_LIVE);
+}
 
+static virDrvOpenStatus
+phypVIOSDriverOpen(virConnectPtr conn,
+                   virConnectAuthPtr auth ATTRIBUTE_UNUSED,
+                   int flags ATTRIBUTE_UNUSED)
+{
     if (conn->driver->no != VIR_DRV_PHYP)
         return VIR_DRV_OPEN_DECLINED;
 
@@ -3890,7 +3941,7 @@ phypStorageOpen(virConnectPtr conn,
 }
 
 static int
-phypStorageClose(virConnectPtr conn ATTRIBUTE_UNUSED)
+phypVIOSDriverClose(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
     return 0;
 }
@@ -3926,6 +3977,8 @@ static virDriver phypDriver = {
     NULL,                       /* domainRestore */
     NULL,                       /* domainCoreDump */
     phypDomainSetCPU,           /* domainSetVcpus */
+    phypDomainSetVcpusFlags,    /* domainSetVcpusFlags */
+    phypDomainGetVcpusFlags,    /* domainGetVcpusFlags */
     NULL,                       /* domainPinVcpu */
     NULL,                       /* domainGetVcpus */
     phypGetLparCPUMAX,          /* domainGetMaxVcpus */
@@ -3973,6 +4026,7 @@ static virDriver phypDriver = {
     phypIsSecure,               /* isSecure */
     NULL,                       /* domainIsActive */
     NULL,                       /* domainIsPersistent */
+    phypIsUpdated,              /* domainIsUpdated */
     NULL,                       /* cpuCompare */
     NULL,                       /* cpuBaseline */
     NULL,                       /* domainGetJobInfo */
@@ -3993,12 +4047,15 @@ static virDriver phypDriver = {
     NULL,                       /* domainRevertToSnapshot */
     NULL,                       /* domainSnapshotDelete */
     NULL,                       /* qemuMonitorCommand */
+    NULL,                       /* domainSetMemoryParameters */
+    NULL,                       /* domainGetMemoryParameters */
+    NULL, /* domainOpenConsole */
 };
 
 static virStorageDriver phypStorageDriver = {
     .name = "PHYP",
-    .open = phypStorageOpen,
-    .close = phypStorageClose,
+    .open = phypVIOSDriverOpen,
+    .close = phypVIOSDriverClose,
 
     .numOfPools = phypNumOfStoragePools,
     .listPools = phypListStoragePools,
@@ -4036,12 +4093,37 @@ static virStorageDriver phypStorageDriver = {
     .poolIsPersistent = NULL
 };
 
+static virNetworkDriver phypNetworkDriver = {
+    .name = "PHYP",
+    .open = phypVIOSDriverOpen,
+    .close = phypVIOSDriverClose,
+    .numOfNetworks = NULL,
+    .listNetworks = NULL,
+    .numOfDefinedNetworks = NULL,
+    .listDefinedNetworks = NULL,
+    .networkLookupByUUID = NULL,
+    .networkLookupByName = NULL,
+    .networkCreateXML = NULL,
+    .networkDefineXML = NULL,
+    .networkUndefine = NULL,
+    .networkCreate = NULL,
+    .networkDestroy = NULL,
+    .networkDumpXML = NULL,
+    .networkGetBridgeName = NULL,
+    .networkGetAutostart = NULL,
+    .networkSetAutostart = NULL,
+    .networkIsActive = NULL,
+    .networkIsPersistent = NULL
+};
+
 int
 phypRegister(void)
 {
     if (virRegisterDriver(&phypDriver) < 0)
         return -1;
     if (virRegisterStorageDriver(&phypStorageDriver) < 0)
+        return -1;
+    if (virRegisterNetworkDriver(&phypNetworkDriver) < 0)
         return -1;
 
     return 0;

@@ -50,12 +50,14 @@
 #include "memory.h"
 #include "util.h"
 #include "nodeinfo.h"
+#include "files.h"
+#include "command.h"
 
 #define VIR_FROM_THIS VIR_FROM_OPENVZ
 
 static char *openvzLocateConfDir(void);
 static int openvzGetVPSUUID(int vpsid, char *uuidstr, size_t len);
-static int openvzLocateConfFile(int vpsid, char *conffile, int maxlen, const char *ext);
+static int openvzLocateConfFile(int vpsid, char **conffile, const char *ext);
 static int openvzAssignUUIDs(void);
 
 int
@@ -64,7 +66,7 @@ strtoI(const char *str)
     int val;
 
     if (virStrToLong_i(str, NULL, 10, &val) < 0)
-        return 0 ;
+        return 0;
 
     return val;
 }
@@ -109,7 +111,7 @@ openvzExtractVersionInfo(const char *cmd, int *retversion)
 
 cleanup2:
     VIR_FREE(help);
-    if (close(newstdout) < 0)
+    if (VIR_CLOSE(newstdout) < 0)
         ret = -1;
 
 rewait:
@@ -338,7 +340,7 @@ openvz_replace(const char* str,
     from_len = strlen(from);
     to_len = strlen(to);
 
-    while((offset = strstr(str_start, from)))
+    while ((offset = strstr(str_start, from)))
     {
         virBufferAdd(&buf, str_start, offset-str_start);
         virBufferAdd(&buf, to, to_len);
@@ -432,30 +434,33 @@ openvzFreeDriver(struct openvz_driver *driver)
 
 
 int openvzLoadDomains(struct openvz_driver *driver) {
-    FILE *fp;
     int veid, ret;
-    char status[16];
+    char *status;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     virDomainObjPtr dom = NULL;
     char temp[50];
+    char *outbuf = NULL;
+    char *line;
+    virCommandPtr cmd = NULL;
 
     if (openvzAssignUUIDs() < 0)
         return -1;
 
-    if ((fp = popen(VZLIST " -a -ovpsid,status -H 2>/dev/null", "r")) == NULL) {
-        openvzError(VIR_ERR_INTERNAL_ERROR, "%s", _("popen failed"));
-        return -1;
-    }
+    cmd = virCommandNewArgList(VZLIST, "-a", "-ovpsid,status", "-H", NULL);
+    virCommandSetOutputBuffer(cmd, &outbuf);
+    if (virCommandRun(cmd, NULL) < 0)
+        goto cleanup;
 
-    while(!feof(fp)) {
-        if (fscanf(fp, "%d %s\n", &veid, status) != 2) {
-            if (feof(fp))
-                break;
-
+    line = outbuf;
+    while (line[0] != '\0') {
+        if (virStrToLong_i(line, &status, 10, &veid) < 0 ||
+            *status++ != ' ' ||
+            (line = strchr(status, '\n')) == NULL) {
             openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
                         _("Failed to parse vzlist output"));
             goto cleanup;
         }
+        *line++ = '\0';
 
         if (VIR_ALLOC(dom) < 0)
             goto no_memory;
@@ -507,11 +512,12 @@ int openvzLoadDomains(struct openvz_driver *driver) {
                         veid);
             goto cleanup;
         } else if (ret > 0) {
-            dom->def->vcpus = strtoI(temp);
+            dom->def->maxvcpus = strtoI(temp);
         }
 
-        if (ret == 0 || dom->def->vcpus == 0)
-            dom->def->vcpus = openvzGetNodeCPUs();
+        if (ret == 0 || dom->def->maxvcpus == 0)
+            dom->def->maxvcpus = openvzGetNodeCPUs();
+        dom->def->vcpus = dom->def->maxvcpus;
 
         /* XXX load rest of VM config data .... */
 
@@ -526,7 +532,8 @@ int openvzLoadDomains(struct openvz_driver *driver) {
         dom = NULL;
     }
 
-    fclose(fp);
+    virCommandFree(cmd);
+    VIR_FREE(outbuf);
 
     return 0;
 
@@ -534,7 +541,8 @@ int openvzLoadDomains(struct openvz_driver *driver) {
     virReportOOMError();
 
  cleanup:
-    fclose(fp);
+    virCommandFree(cmd);
+    VIR_FREE(outbuf);
     if (dom)
         virDomainObjUnref(dom);
     return -1;
@@ -556,7 +564,7 @@ openvzWriteConfigParam(const char * conf_file, const char *param, const char *va
 {
     char * temp_file = NULL;
     int fd = -1, temp_fd = -1;
-    char line[PATH_MAX] ;
+    char line[PATH_MAX];
 
     if (virAsprintf(&temp_file, "%s.tmp", conf_file)<0) {
         virReportOOMError();
@@ -568,11 +576,11 @@ openvzWriteConfigParam(const char * conf_file, const char *param, const char *va
         goto error;
     temp_fd = open(temp_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (temp_fd == -1) {
-        close(fd);
+        VIR_FORCE_CLOSE(fd);
         goto error;
     }
 
-    while(1) {
+    while (1) {
         if (openvz_readline(fd, line, sizeof(line)) <= 0)
             break;
 
@@ -589,12 +597,10 @@ openvzWriteConfigParam(const char * conf_file, const char *param, const char *va
         safewrite(temp_fd, "\"\n", 2) < 0)
         goto error;
 
-    if (close(fd) < 0)
+    if (VIR_CLOSE(fd) < 0)
         goto error;
-    fd = -1;
-    if (close(temp_fd) < 0)
+    if (VIR_CLOSE(temp_fd) < 0)
         goto error;
-    temp_fd = -1;
 
     if (rename(temp_file, conf_file) < 0)
         goto error;
@@ -602,11 +608,9 @@ openvzWriteConfigParam(const char * conf_file, const char *param, const char *va
     return 0;
 
 error:
-    if (fd != -1)
-        close(fd);
-    if (temp_fd != -1)
-        close(temp_fd);
-    if(temp_file)
+    VIR_FORCE_CLOSE(fd);
+    VIR_FORCE_CLOSE(temp_fd);
+    if (temp_file)
         unlink(temp_file);
     VIR_FREE(temp_file);
     return -1;
@@ -615,20 +619,23 @@ error:
 int
 openvzWriteVPSConfigParam(int vpsid, const char *param, const char *value)
 {
-    char conf_file[PATH_MAX];
+    char *conf_file;
+    int ret;
 
-    if (openvzLocateConfFile(vpsid, conf_file, PATH_MAX, "conf")<0)
+    if (openvzLocateConfFile(vpsid, &conf_file, "conf") < 0)
         return -1;
 
-    return openvzWriteConfigParam(conf_file, param, value);
+    ret = openvzWriteConfigParam(conf_file, param, value);
+    VIR_FREE(conf_file);
+    return ret;
 }
 
 static int
 openvzReadConfigParam(const char * conf_file ,const char * param, char *value, int maxlen)
 {
-    char line[PATH_MAX] ;
+    char line[PATH_MAX];
     int ret, found = 0;
-    int fd ;
+    int fd;
     char * sf, * token;
     char *saveptr = NULL;
 
@@ -638,16 +645,16 @@ openvzReadConfigParam(const char * conf_file ,const char * param, char *value, i
     if (fd == -1)
         return -1;
 
-    while(1) {
+    while (1) {
         ret = openvz_readline(fd, line, sizeof(line));
-        if(ret <= 0)
+        if (ret <= 0)
             break;
         saveptr = NULL;
         if (STREQLEN(line, param, strlen(param))) {
             sf = line;
             sf += strlen(param);
             if (sf[0] == '=' && sf[1] != '\0' ) {
-                sf ++;
+                sf++;
                 if ((token = strtok_r(sf,"\"\t\n", &saveptr)) != NULL) {
                     if (virStrcpy(value, token, maxlen) == NULL) {
                         ret = -1;
@@ -658,12 +665,12 @@ openvzReadConfigParam(const char * conf_file ,const char * param, char *value, i
             }
        }
     }
-    close(fd);
+    VIR_FORCE_CLOSE(fd);
 
     if (ret == 0 && found)
         ret = 1;
 
-    return ret ;
+    return ret;
 }
 
 /*
@@ -676,12 +683,15 @@ openvzReadConfigParam(const char * conf_file ,const char * param, char *value, i
 int
 openvzReadVPSConfigParam(int vpsid ,const char * param, char *value, int maxlen)
 {
-    char conf_file[PATH_MAX] ;
+    char *conf_file;
+    int ret;
 
-    if (openvzLocateConfFile(vpsid, conf_file, PATH_MAX, "conf")<0)
+    if (openvzLocateConfFile(vpsid, &conf_file, "conf") < 0)
         return -1;
 
-    return openvzReadConfigParam(conf_file, param, value, maxlen);
+    ret = openvzReadConfigParam(conf_file, param, value, maxlen);
+    VIR_FREE(conf_file);
+    return ret;
 }
 
 static int
@@ -696,11 +706,11 @@ openvz_copyfile(char* from_path, char* to_path)
         return -1;
     copy_fd = open(to_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (copy_fd == -1) {
-        close(fd);
+        VIR_FORCE_CLOSE(fd);
         return -1;
     }
 
-    while(1) {
+    while (1) {
         if (openvz_readline(fd, line, sizeof(line)) <= 0)
             break;
 
@@ -709,19 +719,16 @@ openvz_copyfile(char* from_path, char* to_path)
             goto error;
     }
 
-    if (close(fd) < 0)
+    if (VIR_CLOSE(fd) < 0)
         goto error;
-    fd = -1;
-    if (close(copy_fd) < 0)
+    if (VIR_CLOSE(copy_fd) < 0)
         goto error;
 
     return 0;
 
 error:
-    if (fd != -1)
-        close(fd);
-    if (copy_fd != -1)
-        close(copy_fd);
+    VIR_FORCE_CLOSE(fd);
+    VIR_FORCE_CLOSE(copy_fd);
     return -1;
 }
 
@@ -736,22 +743,24 @@ openvzCopyDefaultConfig(int vpsid)
     char * confdir = NULL;
     char * default_conf_file = NULL;
     char configfile_value[PATH_MAX];
-    char conf_file[PATH_MAX];
+    char *conf_file = NULL;
     int ret = -1;
 
-    if(openvzReadConfigParam(VZ_CONF_FILE, "CONFIGFILE", configfile_value, PATH_MAX) < 0)
+    if (openvzReadConfigParam(VZ_CONF_FILE, "CONFIGFILE", configfile_value,
+                              PATH_MAX) < 0)
         goto cleanup;
 
     confdir = openvzLocateConfDir();
     if (confdir == NULL)
         goto cleanup;
 
-    if (virAsprintf(&default_conf_file, "%s/ve-%s.conf-sample", confdir, configfile_value) < 0) {
+    if (virAsprintf(&default_conf_file, "%s/ve-%s.conf-sample", confdir,
+                    configfile_value) < 0) {
         virReportOOMError();
         goto cleanup;
     }
 
-    if (openvzLocateConfFile(vpsid, conf_file, PATH_MAX, "conf")<0)
+    if (openvzLocateConfFile(vpsid, &conf_file, "conf") < 0)
         goto cleanup;
 
     if (openvz_copyfile(default_conf_file, conf_file)<0)
@@ -761,6 +770,7 @@ openvzCopyDefaultConfig(int vpsid)
 cleanup:
     VIR_FREE(confdir);
     VIR_FREE(default_conf_file);
+    VIR_FREE(conf_file);
     return ret;
 }
 
@@ -769,7 +779,7 @@ cleanup:
 *         0 - OK
 */
 static int
-openvzLocateConfFile(int vpsid, char *conffile, int maxlen, const char *ext)
+openvzLocateConfFile(int vpsid, char **conffile, const char *ext)
 {
     char * confdir;
     int ret = 0;
@@ -778,9 +788,11 @@ openvzLocateConfFile(int vpsid, char *conffile, int maxlen, const char *ext)
     if (confdir == NULL)
         return -1;
 
-    if (snprintf(conffile, maxlen, "%s/%d.%s",
-                 confdir, vpsid, ext ? ext : "conf") >= maxlen)
+    if (virAsprintf(conffile, "%s/%d.%s", confdir, vpsid,
+                    ext ? ext : "conf") < 0) {
+        virReportOOMError();
         ret = -1;
+    }
 
     VIR_FREE(confdir);
     return ret;
@@ -792,10 +804,10 @@ static char
     const char *conf_dir_list[] = {"/etc/vz/conf", "/usr/local/etc/conf", NULL};
     int i=0;
 
-    while(conf_dir_list[i]) {
-        if(!access(conf_dir_list[i], F_OK))
+    while (conf_dir_list[i]) {
+        if (!access(conf_dir_list[i], F_OK))
             return strdup(conf_dir_list[i]);
-        i ++;
+        i++;
     }
 
     return NULL;
@@ -808,14 +820,13 @@ openvz_readline(int fd, char *ptr, int maxlen)
     int n, rc;
     char c;
 
-    for(n = 1; n < maxlen; n ++) {
-        if( (rc = read(fd, &c, 1)) == 1) {
+    for (n = 1; n < maxlen; n++) {
+        if ( (rc = read(fd, &c, 1)) == 1) {
             *ptr++ = c;
-            if(c == '\n')
+            if (c == '\n')
                 break;
-        }
-        else if(rc == 0) {
-            if(n == 1)
+        } else if (rc == 0) {
+            if (n == 1)
                 return 0; /* EOF condition */
             else
                 break;
@@ -830,29 +841,27 @@ openvz_readline(int fd, char *ptr, int maxlen)
 static int
 openvzGetVPSUUID(int vpsid, char *uuidstr, size_t len)
 {
-    char conf_file[PATH_MAX];
+    char *conf_file;
     char line[1024];
     char *saveptr = NULL;
     char *uuidbuf;
     char *iden;
     int fd, ret;
-    int retval = 0;
+    int retval = -1;
 
-    if (openvzLocateConfFile(vpsid, conf_file, PATH_MAX, "conf")<0)
-       return -1;
-
-    fd = open(conf_file, O_RDONLY);
-    if(fd == -1)
+    if (openvzLocateConfFile(vpsid, &conf_file, "conf") < 0)
         return -1;
 
-    while(1) {
-        ret = openvz_readline(fd, line, sizeof(line));
-        if(ret == -1) {
-            close(fd);
-            return -1;
-        }
+    fd = open(conf_file, O_RDONLY);
+    if (fd == -1)
+        goto cleanup;
 
-        if(ret == 0) { /* EoF, UUID was not found */
+    while (1) {
+        ret = openvz_readline(fd, line, sizeof(line));
+        if (ret == -1)
+            goto cleanup;
+
+        if (ret == 0) { /* EoF, UUID was not found */
             uuidstr[0] = 0;
             break;
         }
@@ -861,12 +870,18 @@ openvzGetVPSUUID(int vpsid, char *uuidstr, size_t len)
         uuidbuf = strtok_r(NULL, "\n", &saveptr);
 
         if (iden != NULL && uuidbuf != NULL && STREQ(iden, "#UUID:")) {
-            if (virStrcpy(uuidstr, uuidbuf, len) == NULL)
-                retval = -1;
+            if (virStrcpy(uuidstr, uuidbuf, len) == NULL) {
+                openvzError(VIR_ERR_INTERNAL_ERROR,
+                            _("invalid uuid %s"), uuidbuf);
+                goto cleanup;
+            }
             break;
         }
     }
-    close(fd);
+    retval = 0;
+cleanup:
+    VIR_FORCE_CLOSE(fd);
+    VIR_FREE(conf_file);
 
     return retval;
 }
@@ -877,33 +892,39 @@ openvzGetVPSUUID(int vpsid, char *uuidstr, size_t len)
 int
 openvzSetDefinedUUID(int vpsid, unsigned char *uuid)
 {
-    char conf_file[PATH_MAX];
+    char *conf_file;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
+    FILE *fp = NULL;
+    int ret = -1;
 
     if (uuid == NULL)
         return -1;
 
-    if (openvzLocateConfFile(vpsid, conf_file, PATH_MAX, "conf")<0)
-       return -1;
-
-    if (openvzGetVPSUUID(vpsid, uuidstr, sizeof(uuidstr)))
+    if (openvzLocateConfFile(vpsid, &conf_file, "conf") < 0)
         return -1;
 
+    if (openvzGetVPSUUID(vpsid, uuidstr, sizeof(uuidstr)))
+        goto cleanup;
+
     if (uuidstr[0] == 0) {
-        FILE *fp = fopen(conf_file, "a"); /* append */
+        fp = fopen(conf_file, "a"); /* append */
         if (fp == NULL)
-          return -1;
+            goto cleanup;
 
         virUUIDFormat(uuid, uuidstr);
 
-        /* Record failure if fprintf or fclose fails,
+        /* Record failure if fprintf or VIR_FCLOSE fails,
            and be careful always to close the stream.  */
-        if ((fprintf(fp, "\n#UUID: %s\n", uuidstr) < 0)
-            + (fclose(fp) == EOF))
-            return -1;
+        if ((fprintf(fp, "\n#UUID: %s\n", uuidstr) < 0) ||
+            (VIR_FCLOSE(fp) == EOF))
+            goto cleanup;
     }
 
-    return 0;
+    ret = 0;
+cleanup:
+    VIR_FORCE_FCLOSE(fp);
+    VIR_FREE(conf_file);
+    return ret;
 }
 
 static int
@@ -931,29 +952,39 @@ static int openvzAssignUUIDs(void)
     DIR *dp;
     struct dirent *dent;
     char *conf_dir;
-    int vpsid, res;
-    char ext[8];
+    int vpsid;
+    char *ext;
+    int ret = 0;
 
     conf_dir = openvzLocateConfDir();
     if (conf_dir == NULL)
         return -1;
 
     dp = opendir(conf_dir);
-    if(dp == NULL) {
+    if (dp == NULL) {
         VIR_FREE(conf_dir);
         return 0;
     }
 
-    while((dent = readdir(dp))) {
-        res = sscanf(dent->d_name, "%d.%5s", &vpsid, ext);
-        if(!(res == 2 && STREQ(ext, "conf")))
+    errno = 0;
+    while ((dent = readdir(dp))) {
+        if (virStrToLong_i(dent->d_name, &ext, 10, &vpsid) < 0 ||
+            *ext++ != '.' ||
+            STRNEQ(ext, "conf"))
             continue;
-        if(vpsid > 0) /* '0.conf' belongs to the host, ignore it */
+        if (vpsid > 0) /* '0.conf' belongs to the host, ignore it */
             openvzSetUUID(vpsid);
+        errno = 0;
     }
+    if (errno) {
+        openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
+                    _("Failed to scan configuration directory"));
+        ret = -1;
+    }
+
     closedir(dp);
     VIR_FREE(conf_dir);
-    return 0;
+    return ret;
 }
 
 
@@ -963,27 +994,24 @@ static int openvzAssignUUIDs(void)
  */
 
 int openvzGetVEID(const char *name) {
-    char *cmd;
+    virCommandPtr cmd;
+    char *outbuf;
+    char *temp;
     int veid;
-    FILE *fp;
     bool ok;
 
-    if (virAsprintf(&cmd, "%s %s -ovpsid -H", VZLIST, name) < 0) {
-        openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
-                    _("virAsprintf failed"));
+    cmd = virCommandNewArgList(VZLIST, name, "-ovpsid", "-H", NULL);
+    virCommandSetOutputBuffer(cmd, &outbuf);
+    if (virCommandRun(cmd, NULL) < 0) {
+        virCommandFree(cmd);
+        VIR_FREE(outbuf);
         return -1;
     }
 
-    fp = popen(cmd, "r");
-    VIR_FREE(cmd);
+    virCommandFree(cmd);
+    ok = virStrToLong_i(outbuf, &temp, 10, &veid) == 0 && *temp == '\n';
+    VIR_FREE(outbuf);
 
-    if (fp == NULL) {
-        openvzError(VIR_ERR_INTERNAL_ERROR, "%s", _("popen failed"));
-        return -1;
-    }
-
-    ok = fscanf(fp, "%d\n", &veid ) == 1;
-    fclose(fp);
     if (ok && veid >= 0)
         return veid;
 

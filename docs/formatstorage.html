@@ -41,6 +41,10 @@
               <a title="Information for users, administrators and developers" class="active" href="docs.html">Documentation</a>
               <ul class="l1"><li>
                   <div>
+                    <a title="How to compile libvirt" class="inactive" href="compiling.html">Compiling</a>
+                  </div>
+                </li><li>
+                  <div>
                     <a title="Information about deploying and using libvirt" class="inactive" href="deployment.html">Deployment</a>
                   </div>
                 </li><li>
@@ -99,6 +103,14 @@
                 </li><li>
                   <div>
                     <a title="Working on the internals of libvirt API, driver and daemon code" class="inactive" href="internals.html">Internals</a>
+                  </div>
+                </li><li>
+                  <div>
+                    <a title="A guide and reference for developing with libvirt" class="inactive" href="devguide.html">Development Guide</a>
+                  </div>
+                </li><li>
+                  <div>
+                    <a title="Command reference for virsh" class="inactive" href="virshcmdref.html">Virsh Commands</a>
                   </div>
                 </li></ul>
             </div>
@@ -215,6 +227,8 @@
         &lt;source&gt;
           &lt;host name="iscsi.example.com"/&gt;
           &lt;device path="demo-target"/&gt;
+          &lt;vendor name="Acme"/&gt;
+          &lt;product name="model"/&gt;
         &lt;/source&gt;
         ...</pre>
         <dl><dt><code>device</code></dt><dd>Provides the source for pools backed by physical devices.
@@ -239,7 +253,12 @@
         backend specific. This is typically used to indicate filesystem
         type, or network filesystem type, or partition table type, or
         LVM metadata type. All drivers are required to have a default
-        value for this, so it is optional. <span class="since">Since 0.4.1</span></dd></dl>
+        value for this, so it is optional. <span class="since">Since 0.4.1</span></dd><dt><code>vendor</code></dt><dd>Provides optional information about the vendor of the
+        storage device. This contains a single
+        attribute <code>name</code> whose value is backend
+        specific. <span class="since">Since 0.8.4</span></dd><dt><code>product</code></dt><dd>Provides an optional product name of the storage device.
+        This contains a single attribute <code>name</code> whose value
+        is backend specific.  <span class="since">Since 0.8.4</span></dd></dl>
         <h3>
           <a name="StoragePoolTarget" id="StoragePoolTarget">Target elements</a>
         </h3>

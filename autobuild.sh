@@ -17,8 +17,7 @@ rm -rf coverage
 
 ./autogen.sh --prefix="$AUTOBUILD_INSTALL_ROOT" \
   --enable-test-coverage \
-  --enable-compile-warnings=error \
-  --with-xen-proxy
+  --enable-compile-warnings=error
 
 # If the MAKEFLAGS envvar does not yet include a -j option,
 # add -jN where N depends on the number of processors.
@@ -39,10 +38,10 @@ make install
 exec 3>&1
 st=$(
   exec 4>&1 >&3
-  { make check syntax-check 2>&1; echo $? >&4; } | tee "$RESULTS"
+  { make check syntax-check 2>&1 3>&- 4>&-; echo $? >&4; } | tee "$RESULTS"
 )
 exec 3>&-
-test $st = 0
+test "$st" = 0
 test -x /usr/bin/lcov && make cov
 
 rm -f *.tar.gz
@@ -85,6 +84,8 @@ if [ -x /usr/bin/i686-pc-mingw32-gcc ]; then
     --without-one \
     --without-phyp \
     --without-netcf \
+    --without-audit \
+    --without-dtrace \
     --without-libvirtd
 
   make

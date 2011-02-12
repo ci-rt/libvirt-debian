@@ -61,6 +61,9 @@
 # define WIN32_NATIVE
 #endif
 
+/* gl_sockets_startup */
+#include "sockets.h"
+
 #ifdef WIN32_NATIVE
 typedef int (WSAAPI *getaddrinfo_func) (const char*, const char*,
                                         const struct addrinfo*,
@@ -102,6 +105,8 @@ use_win32_p (void)
       getnameinfo_ptr = NULL;
       return 0;
     }
+
+  gl_sockets_startup (SOCKETS_1_1);
 
   return 1;
 }

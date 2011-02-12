@@ -144,7 +144,7 @@ qemuSecurityDACRestoreSecurityImageLabelInt(virSecurityDriverPtr drv ATTRIBUTE_U
     if (disk->readonly || disk->shared)
         return 0;
 
-    if (!disk->src)
+    if (!disk->src || disk->type == VIR_DOMAIN_DISK_TYPE_NETWORK)
         return 0;
 
     /* If we have a shared FS & doing migrated, we must not
@@ -549,22 +549,8 @@ qemuSecurityDACSetProcessLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
     if (!driver->privileged)
         return 0;
 
-    if (driver->group) {
-        if (setregid(driver->group, driver->group) < 0) {
-            virReportSystemError(errno,
-                                 _("cannot change to '%d' group"),
-                                 driver->group);
-            return -1;
-        }
-    }
-    if (driver->user) {
-        if (setreuid(driver->user, driver->user) < 0) {
-            virReportSystemError(errno,
-                                 _("cannot change to '%d' user"),
-                                 driver->user);
-            return -1;
-        }
-    }
+    if (virSetUIDGID(driver->user, driver->group) < 0)
+       return -1;
 
     return 0;
 }

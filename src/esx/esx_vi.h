@@ -161,8 +161,14 @@ struct _esxVI_Context {
     esxVI_Datacenter *datacenter;
     esxVI_ComputeResource *computeResource;
     esxVI_HostSystem *hostSystem;
-    esxVI_SelectionSpec *fullTraversalSpecList;
-    esxVI_SelectionSpec *fullTraversalSpecList2;
+    esxVI_SelectionSpec *selectSet_folderToChildEntity;
+    esxVI_SelectionSpec *selectSet_hostSystemToParent;
+    esxVI_SelectionSpec *selectSet_hostSystemToVm;
+    esxVI_SelectionSpec *selectSet_hostSystemToDatastore;
+    esxVI_SelectionSpec *selectSet_computeResourceToHost;
+    esxVI_SelectionSpec *selectSet_computeResourceToParentToParent;
+    bool hasQueryVirtualDiskUuid;
+    bool hasSessionIsActive;
 };
 
 int esxVI_Context_Alloc(esxVI_Context **ctx);
@@ -266,12 +272,11 @@ int esxVI_List_Deserialize(xmlNodePtr node, esxVI_List **list,
 
 int esxVI_Alloc(void **ptrptr, size_t size);
 
-int esxVI_BuildFullTraversalSpecItem
-      (esxVI_SelectionSpec **fullTraversalSpecList, const char *name,
+int esxVI_BuildSelectSet
+      (esxVI_SelectionSpec **selectSet, const char *name,
        const char *type, const char *path, const char *selectSetNames);
 
-int esxVI_BuildFullTraversalSpecList
-      (esxVI_SelectionSpec **fullTraversalSpecList);
+int esxVI_BuildSelectSetCollection(esxVI_Context *ctx);
 
 int esxVI_EnsureSession(esxVI_Context *ctx);
 
@@ -279,7 +284,6 @@ int esxVI_LookupObjectContentByType(esxVI_Context *ctx,
                                     esxVI_ManagedObjectReference *root,
                                     const char *type,
                                     esxVI_String *propertyNameList,
-                                    esxVI_Boolean recurse,
                                     esxVI_ObjectContent **objectContentList);
 
 int esxVI_GetManagedEntityStatus
@@ -296,16 +300,19 @@ int esxVI_GetVirtualMachineQuestionInfo
 
 int esxVI_GetBoolean(esxVI_ObjectContent *objectContent,
                      const char *propertyName,
-                     esxVI_Boolean *value, esxVI_Occurrence occurence);
+                     esxVI_Boolean *value, esxVI_Occurrence occurrence);
+
+int esxVI_GetLong(esxVI_ObjectContent *objectContent, const char *propertyName,
+                  esxVI_Long **value, esxVI_Occurrence occurrence);
 
 int esxVI_GetStringValue(esxVI_ObjectContent *objectContent,
                          const char *propertyName,
-                         char **value, esxVI_Occurrence occurence);
+                         char **value, esxVI_Occurrence occurrence);
 
 int esxVI_GetManagedObjectReference(esxVI_ObjectContent *objectContent,
                                     const char *propertyName,
                                     esxVI_ManagedObjectReference **value,
-                                    esxVI_Occurrence occurence);
+                                    esxVI_Occurrence occurrence);
 
 int esxVI_LookupNumberOfDomainsByPowerState
       (esxVI_Context *ctx, esxVI_VirtualMachinePowerState powerState,
@@ -397,6 +404,20 @@ int esxVI_LookupCurrentSnapshotTree
        esxVI_VirtualMachineSnapshotTree **currentSnapshotTree,
        esxVI_Occurrence occurrence);
 
+int esxVI_LookupFileInfoByDatastorePath(esxVI_Context *ctx,
+                                        const char *datastorePath,
+                                        bool lookupFolder,
+                                        esxVI_FileInfo **fileInfo,
+                                        esxVI_Occurrence occurrence);
+
+int esxVI_LookupDatastoreContentByDatastoreName
+      (esxVI_Context *ctx, const char *datastoreName,
+       esxVI_HostDatastoreBrowserSearchResults **searchResultsList);
+
+int esxVI_LookupStorageVolumeKeyByDatastorePath(esxVI_Context *ctx,
+                                                const char *datastorePath,
+                                                char **key);
+
 int esxVI_HandleVirtualMachineQuestion
       (esxVI_Context *ctx,
        esxVI_ManagedObjectReference *virtualMachine,
@@ -408,9 +429,12 @@ int esxVI_WaitForTaskCompletion(esxVI_Context *ctx,
                                 const unsigned char *virtualMachineUuid,
                                 esxVI_Occurrence virtualMachineOccurrence,
                                 esxVI_Boolean autoAnswer,
-                                esxVI_TaskInfoState *finalState);
+                                esxVI_TaskInfoState *finalState,
+                                char **errorMessage);
 
 int esxVI_ParseHostCpuIdInfo(esxVI_ParsedHostCpuIdInfo *parsedHostCpuIdInfo,
                              esxVI_HostCpuIdInfo *hostCpuIdInfo);
+
+int esxVI_ProductVersionToDefaultVirtualHWVersion(esxVI_ProductVersion productVersion);
 
 #endif /* __ESX_VI_H__ */

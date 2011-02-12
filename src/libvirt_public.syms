@@ -405,4 +405,18 @@ LIBVIRT_0.8.2 {
         virDomainCreateWithFlags;
 } LIBVIRT_0.8.1;
 
+LIBVIRT_0.8.5 {
+    global:
+        virDomainSetMemoryParameters;
+        virDomainGetMemoryParameters;
+        virDomainGetVcpusFlags;
+        virDomainSetVcpusFlags;
+} LIBVIRT_0.8.2;
+
+LIBVIRT_0.8.6 {
+    global:
+        virDomainOpenConsole;
+        virDomainIsUpdated;
+} LIBVIRT_0.8.5;
+
 # .... define new API here using predicted next version number ....

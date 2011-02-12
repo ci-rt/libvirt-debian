@@ -32,15 +32,18 @@ module Libvirtd_qemu =
                  | str_entry "security_driver"
                  | str_entry "user"
                  | str_entry "group"
-		 | bool_entry "dynamic_ownership"
+                 | bool_entry "dynamic_ownership"
                  | str_array_entry "cgroup_controllers"
                  | str_array_entry "cgroup_device_acl"
                  | str_entry "save_image_format"
+                 | str_entry "dump_image_format"
+                 | str_entry "auto_dump_path"
                  | str_entry "hugetlbfs_mount"
                  | bool_entry "relaxed_acs_check"
                  | bool_entry "vnc_allow_host_audio"
                  | bool_entry "clear_emulator_capabilities"
                  | bool_entry "allow_disk_format_probing"
+                 | bool_entry "set_process_name"
 
    (* Each enty in the config is one of the following three ... *)
    let entry = vnc_entry

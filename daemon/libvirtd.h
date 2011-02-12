@@ -1,7 +1,7 @@
 /*
  * libvirtd.h: daemon data structure definitions
  *
- * Copyright (C) 2006-2009 Red Hat, Inc.
+ * Copyright (C) 2006-2010 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -48,6 +48,24 @@
 # include "qemu_protocol.h"
 # include "logging.h"
 # include "threads.h"
+# include "network.h"
+
+# if WITH_DTRACE
+#  ifndef LIBVIRTD_PROBES_H
+#   define LIBVIRTD_PROBES_H
+#   include "probes.h"
+#  endif /* LIBVIRTD_PROBES_H */
+#  define PROBE(NAME, FMT, ...)                              \
+    VIR_DEBUG_INT("trace." __FILE__ , __func__, __LINE__,    \
+                  #NAME ": " FMT, __VA_ARGS__);              \
+    if (LIBVIRTD_ ## NAME ## _ENABLED()) {                   \
+        LIBVIRTD_ ## NAME(__VA_ARGS__);                      \
+    }
+# else
+#  define PROBE(NAME, FMT, ...)                              \
+    VIR_DEBUG_INT("trace." __FILE__, __func__, __LINE__,     \
+                  #NAME ": " FMT, __VA_ARGS__);
+# endif
 
 # ifdef __GNUC__
 #  ifdef HAVE_ANSIDECL_H
@@ -180,8 +198,8 @@ struct qemud_client {
     unsigned int closing :1;
     int domainEventCallbackID[VIR_DOMAIN_EVENT_ID_LAST];
 
-    struct sockaddr_storage addr;
-    socklen_t addrlen;
+    virSocketAddr addr;
+    const char *addrstr;
 
     int type; /* qemud_sock_type */
     gnutls_session_t tlssession;
@@ -235,12 +253,16 @@ struct qemud_client {
 
 struct qemud_socket {
     char *path;
+
+    virSocketAddr addr;
+    const char *addrstr;
+
     int fd;
     int watch;
     int readonly;
     int type; /* qemud_sock_type */
     int auth;
-    int port;
+
     struct qemud_socket *next;
 };
 
@@ -261,12 +283,13 @@ struct qemud_server {
 
     int privileged;
 
-    int nworkers;
-    int nactiveworkers;
+    size_t nworkers;
+    size_t nactiveworkers;
     struct qemud_worker *workers;
-    int nsockets;
+    size_t nsockets;
     struct qemud_socket *sockets;
-    int nclients;
+    size_t nclients;
+    size_t nclients_max;
     struct qemud_client **clients;
 
     int sigread;

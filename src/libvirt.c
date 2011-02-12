@@ -39,6 +39,7 @@
 #include "uuid.h"
 #include "util.h"
 #include "memory.h"
+#include "configmake.h"
 
 #ifndef WITH_DRIVER_MODULES
 # ifdef WITH_TEST
@@ -52,6 +53,9 @@
 # endif
 # ifdef WITH_OPENVZ
 #  include "openvz/openvz_driver.h"
+# endif
+# ifdef WITH_VMWARE
+#  include "vmware/vmware_driver.h"
 # endif
 # ifdef WITH_PHYP
 #  include "phyp/phyp_driver.h"
@@ -342,7 +346,7 @@ virInitialize(void)
     if (winsock_init () == -1) return -1;
 #endif
 
-    if (!bindtextdomain(GETTEXT_PACKAGE, LOCALEBASEDIR))
+    if (!bindtextdomain(PACKAGE, LOCALEDIR))
         return (-1);
 
     /*
@@ -355,13 +359,30 @@ virInitialize(void)
      * If they try to open a connection for a module that
      * is not loaded they'll get a suitable error at that point
      */
+# ifdef WITH_TEST
     virDriverLoadModule("test");
+# endif
+# ifdef WITH_XEN
     virDriverLoadModule("xen");
+# endif
+# ifdef WITH_OPENVZ
     virDriverLoadModule("openvz");
+# endif
+# ifdef WITH_VMWARE
+    virDriverLoadModule("vmware");
+# endif
+# ifdef WITH_VBOX
     virDriverLoadModule("vbox");
+# endif
+# ifdef WITH_ESX
     virDriverLoadModule("esx");
+# endif
+# ifdef WITH_XENAPI
     virDriverLoadModule("xenapi");
+# endif
+# ifdef WITH_REMOTE
     virDriverLoadModule("remote");
+# endif
 #else
 # ifdef WITH_TEST
     if (testRegister() == -1) return -1;
@@ -371,6 +392,9 @@ virInitialize(void)
 # endif
 # ifdef WITH_OPENVZ
     if (openvzRegister() == -1) return -1;
+# endif
+# ifdef WITH_VMWARE
+    if (vmwareRegister() == -1) return -1;
 # endif
 # ifdef WITH_PHYP
     if (phypRegister() == -1) return -1;
@@ -1105,6 +1129,10 @@ virGetVersion(unsigned long *libVer, const char *type,
         if (STRCASEEQ(type, "OpenVZ"))
             *typeVer = LIBVIR_VERSION_NUMBER;
 # endif
+# if WITH_VMWARE
+        if (STRCASEEQ(type, "VMware"))
+            *typeVer = LIBVIR_VERSION_NUMBER;
+# endif
 # if WITH_VBOX
         if (STRCASEEQ(type, "VBox"))
             *typeVer = LIBVIR_VERSION_NUMBER;
@@ -1590,7 +1618,10 @@ virDrvSupportsFeature (virConnectPtr conn, int feature)
         return (-1);
     }
 
-    ret = VIR_DRV_SUPPORTS_FEATURE (conn->driver, conn, feature);
+    if (!conn->driver->supports_feature)
+        ret = 0;
+    else
+        ret = conn->driver->supports_feature(conn, feature);
 
     if (ret < 0)
         virDispatchError(conn);
@@ -3000,6 +3031,128 @@ error:
 }
 
 /**
+ * virDomainSetMemoryParameters:
+ * @domain: pointer to domain object
+ * @params: pointer to memory parameter objects
+ * @nparams: number of memory parameter (this value should be same or
+ *          less than the number of parameters supported)
+ * @flags: currently unused, for future extension
+ *
+ * Change the memory tunables
+ * This function requires privileged access to the hypervisor.
+ *
+ * Returns -1 in case of error, 0 in case of success.
+ */
+int
+virDomainSetMemoryParameters(virDomainPtr domain,
+                             virMemoryParameterPtr params,
+                             int nparams, unsigned int flags)
+{
+    virConnectPtr conn;
+    DEBUG("domain=%p, params=%p, nparams=%d, flags=%u", domain, params, nparams, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+    if (domain->conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(domain, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+    if ((nparams <= 0) || (params == NULL)) {
+        virLibDomainError(domain, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+    conn = domain->conn;
+
+    if (conn->driver->domainSetMemoryParameters) {
+        int ret;
+        ret = conn->driver->domainSetMemoryParameters (domain, params, nparams, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(domain->conn);
+    return -1;
+}
+
+/**
+ * virDomainGetMemoryParameters:
+ * @domain: pointer to domain object
+ * @params: pointer to memory parameter object
+ *          (return value, allocated by the caller)
+ * @nparams: pointer to number of memory parameters
+ * @flags: currently unused, for future extension
+ *
+ * Get the memory parameters, the @params array will be filled with the values
+ * equal to the number of parameters suggested by @nparams
+ *
+ * As the value of @nparams is dynamic, call the API setting @nparams to 0 and
+ * @params as NULL, the API returns the number of parameters supported by the
+ * HV by updating @nparams on SUCCESS. The caller should then allocate @params
+ * array, i.e. (sizeof(@virMemoryParameter) * @nparams) bytes and call the API
+ * again.
+ *
+ * Here is the sample code snippet:
+ *
+ * if ((virDomainGetMemoryParameters(dom, NULL, &nparams, 0) == 0) &&
+ *     (nparams != 0)) {
+ *     params = vshMalloc(ctl, sizeof(virMemoryParameter) * nparams);
+ *     memset(params, 0, sizeof(virMemoryParameter) * nparams);
+ *     if (virDomainGetMemoryParameters(dom, params, &nparams, 0)) {
+ *         vshError(ctl, "%s", _("Unable to get memory parameters"));
+ *         goto error;
+ *     }
+ * }
+ *
+ * This function requires privileged access to the hypervisor. This function
+ * expects the caller to allocate the @params.
+ *
+ * Returns -1 in case of error, 0 in case of success.
+ */
+int
+virDomainGetMemoryParameters(virDomainPtr domain,
+                             virMemoryParameterPtr params,
+                             int *nparams, unsigned int flags)
+{
+    virConnectPtr conn;
+    DEBUG("domain=%p, params=%p, nparams=%d, flags=%u", domain, params, (nparams)?*nparams:-1, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+    if ((nparams == NULL) || (*nparams < 0)) {
+        virLibDomainError(domain, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+    conn = domain->conn;
+
+    if (conn->driver->domainGetMemoryParameters) {
+        int ret;
+        ret = conn->driver->domainGetMemoryParameters (domain, params, nparams, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(domain->conn);
+    return -1;
+}
+
+/**
  * virDomainGetInfo:
  * @domain: a domain object
  * @info: pointer to a virDomainInfo structure allocated by the user
@@ -3157,7 +3310,7 @@ error:
  * @flags: currently unused, pass 0
  *
  * Reads a domain XML configuration document, and generates
- * generates a native configuration file describing the domain.
+ * a native configuration file describing the domain.
  * The format of the native data is hypervisor dependant.
  *
  * Returns a 0 terminated UTF-8 encoded native config datafile, or NULL in case of error.
@@ -4074,6 +4227,7 @@ virConnectGetCapabilities (virConnectPtr conn)
         ret = conn->driver->getCapabilities (conn);
         if (!ret)
             goto error;
+        DEBUG("conn=%p ret=%s", conn, ret);
         return ret;
     }
 
@@ -5065,7 +5219,9 @@ error:
  * This function requires privileged access to the hypervisor.
  *
  * This command only changes the runtime configuration of the domain,
- * so can only be called on an active domain.
+ * so can only be called on an active domain.  It is hypervisor-dependent
+ * whether it also affects persistent configuration; for more control,
+ * use virDomainSetVcpusFlags().
  *
  * Returns 0 in case of success, -1 in case of failure.
  */
@@ -5110,13 +5266,139 @@ error:
 }
 
 /**
+ * virDomainSetVcpusFlags:
+ * @domain: pointer to domain object, or NULL for Domain0
+ * @nvcpus: the new number of virtual CPUs for this domain, must be at least 1
+ * @flags: an OR'ed set of virDomainVcpuFlags
+ *
+ * Dynamically change the number of virtual CPUs used by the domain.
+ * Note that this call may fail if the underlying virtualization hypervisor
+ * does not support it or if growing the number is arbitrary limited.
+ * This function requires privileged access to the hypervisor.
+ *
+ * @flags must include VIR_DOMAIN_VCPU_LIVE to affect a running
+ * domain (which may fail if domain is not active), or
+ * VIR_DOMAIN_VCPU_CONFIG to affect the next boot via the XML
+ * description of the domain.  Both flags may be set.
+ *
+ * If @flags includes VIR_DOMAIN_VCPU_MAXIMUM, then
+ * VIR_DOMAIN_VCPU_LIVE must be clear, and only the maximum virtual
+ * CPU limit is altered; generally, this value must be less than or
+ * equal to virConnectGetMaxVcpus().  Otherwise, this call affects the
+ * current virtual CPU limit, which must be less than or equal to the
+ * maximum limit.
+ *
+ * Returns 0 in case of success, -1 in case of failure.
+ */
+
+int
+virDomainSetVcpusFlags(virDomainPtr domain, unsigned int nvcpus,
+                       unsigned int flags)
+{
+    virConnectPtr conn;
+    DEBUG("domain=%p, nvcpus=%u, flags=%u", domain, nvcpus, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return (-1);
+    }
+    if (domain->conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(domain, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    /* Perform some argument validation common to all implementations.  */
+    if (nvcpus < 1 || (unsigned short) nvcpus != nvcpus ||
+        (flags & (VIR_DOMAIN_VCPU_LIVE | VIR_DOMAIN_VCPU_CONFIG)) == 0) {
+        virLibDomainError(domain, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+    conn = domain->conn;
+
+    if (conn->driver->domainSetVcpusFlags) {
+        int ret;
+        ret = conn->driver->domainSetVcpusFlags (domain, nvcpus, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(domain->conn);
+    return -1;
+}
+
+/**
+ * virDomainGetVcpusFlags:
+ * @domain: pointer to domain object, or NULL for Domain0
+ * @flags: an OR'ed set of virDomainVcpuFlags
+ *
+ * Query the number of virtual CPUs used by the domain.  Note that
+ * this call may fail if the underlying virtualization hypervisor does
+ * not support it.  This function requires privileged access to the
+ * hypervisor.
+ *
+ * @flags must include either VIR_DOMAIN_VCPU_ACTIVE to query a
+ * running domain (which will fail if domain is not active), or
+ * VIR_DOMAIN_VCPU_PERSISTENT to query the XML description of the
+ * domain.  It is an error to set both flags.
+ *
+ * If @flags includes VIR_DOMAIN_VCPU_MAXIMUM, then the maximum
+ * virtual CPU limit is queried.  Otherwise, this call queries the
+ * current virtual CPU limit.
+ *
+ * Returns 0 in case of success, -1 in case of failure.
+ */
+
+int
+virDomainGetVcpusFlags(virDomainPtr domain, unsigned int flags)
+{
+    virConnectPtr conn;
+    DEBUG("domain=%p, flags=%u", domain, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return (-1);
+    }
+
+    /* Exactly one of these two flags should be set.  */
+    if (!(flags & VIR_DOMAIN_VCPU_LIVE) == !(flags & VIR_DOMAIN_VCPU_CONFIG)) {
+        virLibDomainError(domain, VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+    conn = domain->conn;
+
+    if (conn->driver->domainGetVcpusFlags) {
+        int ret;
+        ret = conn->driver->domainGetVcpusFlags (domain, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError (conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(domain->conn);
+    return -1;
+}
+
+/**
  * virDomainPinVcpu:
  * @domain: pointer to domain object, or NULL for Domain0
  * @vcpu: virtual CPU number
  * @cpumap: pointer to a bit map of real CPUs (in 8-bit bytes) (IN)
- * 	Each bit set to 1 means that corresponding CPU is usable.
- * 	Bytes are stored in little-endian order: CPU0-7, 8-15...
- * 	In each byte, lowest CPU number is least significant bit.
+ *      Each bit set to 1 means that corresponding CPU is usable.
+ *      Bytes are stored in little-endian order: CPU0-7, 8-15...
+ *      In each byte, lowest CPU number is least significant bit.
  * @maplen: number of bytes in cpumap, from 1 up to size of CPU map in
  *	underlying virtualization system (Xen...).
  *	If maplen < size, missing bytes are set to zero.
@@ -5244,9 +5526,9 @@ error:
  *
  * Provides the maximum number of virtual CPUs supported for
  * the guest VM. If the guest is inactive, this is basically
- * the same as virConnectGetMaxVcpus. If the guest is running
+ * the same as virConnectGetMaxVcpus(). If the guest is running
  * this will reflect the maximum number of virtual CPUs the
- * guest was booted with.
+ * guest was booted with.  For more details, see virDomainGetVcpusFlags().
  *
  * Returns the maximum of virtual CPU or -1 in case of error.
  */
@@ -11173,6 +11455,39 @@ error:
 }
 
 /**
+ * virDomainIsUpdated:
+ * @dom: pointer to the domain object
+ *
+ * Determine if the domain has been updated.
+ *
+ * Returns 1 if updated, 0 if not, -1 on error
+ */
+int virDomainIsUpdated(virDomainPtr dom)
+{
+    DEBUG("dom=%p", dom);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(dom)) {
+        virLibConnError(NULL, VIR_ERR_INVALID_CONN, __FUNCTION__);
+        virDispatchError(NULL);
+        return (-1);
+    }
+    if (dom->conn->driver->domainIsUpdated) {
+        int ret;
+        ret = dom->conn->driver->domainIsUpdated(dom);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(dom->conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(dom->conn);
+    return -1;
+}
+
+/**
  * virNetworkIsActive:
  * @net: pointer to the network object
  *
@@ -12848,4 +13163,57 @@ virDomainSnapshotFree(virDomainSnapshotPtr snapshot)
         return -1;
     }
     return 0;
+}
+
+/**
+ * virDomainOpenConsole:
+ * @dom: a domain object
+ * @devname: the console, serial or parallel port device alias, or NULL
+ * @st: a stream to associate with the console
+ * @flags: unused, pass 0
+ *
+ * This opens the backend associated with a console, serial or
+ * parallel port device on a guest, if the backend is supported.
+ * If the @devname is omitted, then the first console or serial
+ * device is opened. The console is associated with the passed
+ * in @st stream, which should have been opened in non-blocking
+ * mode for bi-directional I/O.
+ *
+ * returns 0 if the console was opened, -1 on error
+ */
+int virDomainOpenConsole(virDomainPtr dom,
+                         const char *devname,
+                         virStreamPtr st,
+                         unsigned int flags)
+{
+    virConnectPtr conn;
+    DEBUG("dom=%p devname=%s, st=%p flags=%u", dom, NULLSTR(devname), st, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_DOMAIN(dom)) {
+        virLibDomainError(NULL, VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = dom->conn;
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(dom, VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->driver->domainOpenConsole) {
+        int ret;
+        ret = conn->driver->domainOpenConsole(dom, devname, st, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(conn, VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(conn);
+    return -1;
 }

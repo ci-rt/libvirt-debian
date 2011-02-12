@@ -1,5 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
+CLEANFILES =
+
 DAEMON_SOURCES =					\
 		event.c event.h				\
 		libvirtd.c libvirtd.h			\
@@ -35,17 +37,16 @@ EXTRA_DIST =						\
 	libvirtd.uml.logrotate.in                       \
 	test_libvirtd.aug                               \
 	THREADING.txt					\
-	libvirt-guests.init.in				\
-	libvirt-guests.sysconf				\
 	libvirtd.pod.in					\
+	libvirtd.stp					\
 	$(AVAHI_SOURCES)				\
 	$(DAEMON_SOURCES)
-
-man_MANS = libvirtd.8
 
 BUILT_SOURCES =
 
 if WITH_LIBVIRTD
+
+man_MANS = libvirtd.8
 
 sbin_PROGRAMS = libvirtd
 
@@ -84,15 +85,13 @@ libvirtd_CFLAGS = \
 	-I$(top_srcdir)/src/remote \
 	$(LIBXML_CFLAGS) $(GNUTLS_CFLAGS) $(SASL_CFLAGS) \
 	$(POLKIT_CFLAGS) \
-	$(WARN_CFLAGS) -DLOCAL_STATE_DIR="\"$(localstatedir)\"" \
+	$(WARN_CFLAGS) \
 	$(COVERAGE_CFLAGS) \
-	-DSYSCONF_DIR="\"$(sysconfdir)\"" \
 	-DQEMUD_PID_FILE="\"$(QEMUD_PID_FILE)\"" \
-	-DREMOTE_PID_FILE="\"$(REMOTE_PID_FILE)\"" \
-	-DGETTEXT_PACKAGE=\"$(PACKAGE)\"
+	-DREMOTE_PID_FILE="\"$(REMOTE_PID_FILE)\""
 
-libvirtd_LDFLAGS = 					\
-	$(WARN_CFLAGS) 					\
+libvirtd_LDFLAGS =					\
+	$(WARN_CFLAGS)					\
 	$(COVERAGE_LDFLAGS)
 
 libvirtd_LDADD =					\
@@ -101,11 +100,9 @@ libvirtd_LDADD =					\
 	$(SASL_LIBS)					\
 	$(POLKIT_LIBS)
 
-libvirtd_LDADD += ../src/libvirt_util.la ../src/libvirt-qemu.la
+libvirtd_LDADD += ../src/libvirt-qemu.la
 
-if WITH_DRIVER_MODULES
-  libvirtd_LDADD += ../src/libvirt_driver.la
-else
+if ! WITH_DRIVER_MODULES
 if WITH_QEMU
     libvirtd_LDADD += ../src/libvirt_driver_qemu.la
 endif
@@ -165,6 +162,25 @@ libvirtd_CFLAGS += $(AVAHI_CFLAGS)
 libvirtd_LDADD += $(AVAHI_LIBS)
 endif
 
+EXTRA_DIST += probes.d libvirtd.stp
+
+if WITH_DTRACE
+libvirtd_LDADD += probes.o
+nodist_libvirtd_SOURCES = probes.h
+
+BUILT_SOURCES += probes.h
+
+tapsetdir = $(datadir)/systemtap/tapsets
+tapset_DATA = libvirtd.stp
+
+probes.h: probes.d
+	$(AM_V_GEN)$(DTRACE) -o $@ -h -s $<
+
+probes.o: probes.d
+	$(AM_V_GEN)$(DTRACE) -o $@ -G -s $<
+
+CLEANFILES += probes.h probes.o
+endif
 
 install-data-local: install-init install-data-sasl install-data-polkit \
                     install-logrotate
@@ -189,14 +205,17 @@ uninstall-data-polkit::
 endif
 
 
-remote.c: remote_dispatch_prototypes.h \
-	  remote_dispatch_table.h \
-	  remote_dispatch_args.h \
-	  remote_dispatch_ret.h \
-	  qemu_dispatch_prototypes.h \
-	  qemu_dispatch_table.h \
-	  qemu_dispatch_args.h \
-	  qemu_dispatch_ret.h
+remote.c: \
+	remote_dispatch_prototypes.h \
+	remote_dispatch_table.h \
+	qemu_dispatch_prototypes.h \
+	qemu_dispatch_table.h
+
+remote.h: \
+	remote_dispatch_args.h \
+	remote_dispatch_ret.h \
+	qemu_dispatch_args.h \
+	qemu_dispatch_ret.h
 
 REMOTE_PROTOCOL = $(top_srcdir)/src/remote/remote_protocol.x
 QEMU_PROTOCOL = $(top_srcdir)/src/remote/qemu_protocol.x
@@ -258,27 +277,21 @@ install-logrotate: $(LOGROTATE_CONFS)
 	$(INSTALL_DATA) libvirtd.uml.logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.uml
 
 if LIBVIRT_INIT_SCRIPT_RED_HAT
-install-init: libvirtd.init libvirt-guests.init
+install-init: libvirtd.init
 	mkdir -p $(DESTDIR)$(sysconfdir)/rc.d/init.d
 	$(INSTALL_SCRIPT) libvirtd.init \
 	  $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirtd
-	$(INSTALL_SCRIPT) libvirt-guests.init \
-	  $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirt-guests
 	mkdir -p $(DESTDIR)$(sysconfdir)/sysconfig
-	$(INSTALL_SCRIPT) $(srcdir)/libvirtd.sysconf \
+	$(INSTALL_DATA) $(srcdir)/libvirtd.sysconf \
 	  $(DESTDIR)$(sysconfdir)/sysconfig/libvirtd
-	$(INSTALL_SCRIPT) $(srcdir)/libvirt-guests.sysconf \
-	  $(DESTDIR)$(sysconfdir)/sysconfig/libvirt-guests
 
 uninstall-init:
 	rm -f $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirtd \
-		$(DESTDIR)$(sysconfdir)/sysconfig/libvirtd \
-		$(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirt-guests \
-		$(DESTDIR)$(sysconfdir)/sysconfig/libvirt-guests
+		$(DESTDIR)$(sysconfdir)/sysconfig/libvirtd
 
-BUILT_SOURCES += libvirtd.init libvirt-guests.init
+BUILT_SOURCES += libvirtd.init
 
-%.init: %.init.in $(top_builddir)/config.status
+libvirtd.init: libvirtd.init.in $(top_builddir)/config.status
 	$(AM_V_GEN)sed					\
 	    -e s!\@localstatedir\@!@localstatedir@!g	\
 	    -e s!\@sbindir\@!@sbindir@!g		\
@@ -324,5 +337,5 @@ uninstall-data-sasl:
 endif
 
 
-CLEANFILES = $(BUILT_SOURCES) $(man_MANS) libvirtd.pod
+CLEANFILES += $(BUILT_SOURCES) $(man_MANS) libvirtd.pod
 CLEANFILES += *.cov *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda

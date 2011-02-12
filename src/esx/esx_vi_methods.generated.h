@@ -12,6 +12,16 @@ int esxVI_CancelTask
       (esxVI_Context *ctx,
        esxVI_ManagedObjectReference *_this);               /* required */
 
+int esxVI_CopyVirtualDisk_Task
+      (esxVI_Context *ctx,
+       const char *sourceName,                             /* required */
+       esxVI_ManagedObjectReference *sourceDatacenter,     /* optional */
+       const char *destName,                               /* required */
+       esxVI_ManagedObjectReference *destDatacenter,       /* optional */
+       esxVI_VirtualDiskSpec *destSpec,                    /* optional */
+       esxVI_Boolean force,                                /* optional */
+       esxVI_ManagedObjectReference **output);             /* required */
+
 int esxVI_CreateFilter
       (esxVI_Context *ctx,
        esxVI_PropertyFilterSpec *spec,                     /* required */
@@ -25,6 +35,19 @@ int esxVI_CreateSnapshot_Task
        const char *description,                            /* optional */
        esxVI_Boolean memory,                               /* required */
        esxVI_Boolean quiesce,                              /* required */
+       esxVI_ManagedObjectReference **output);             /* required */
+
+int esxVI_CreateVirtualDisk_Task
+      (esxVI_Context *ctx,
+       const char *name,                                   /* required */
+       esxVI_ManagedObjectReference *datacenter,           /* optional */
+       esxVI_VirtualDiskSpec *spec,                        /* required */
+       esxVI_ManagedObjectReference **output);             /* required */
+
+int esxVI_DeleteVirtualDisk_Task
+      (esxVI_Context *ctx,
+       const char *name,                                   /* required */
+       esxVI_ManagedObjectReference *datacenter,           /* optional */
        esxVI_ManagedObjectReference **output);             /* required */
 
 int esxVI_DestroyPropertyFilter
@@ -54,6 +77,12 @@ int esxVI_Login
 
 int esxVI_Logout
       (esxVI_Context *ctx);
+
+int esxVI_MakeDirectory
+      (esxVI_Context *ctx,
+       const char *name,                                   /* required */
+       esxVI_ManagedObjectReference *datacenter,           /* optional */
+       esxVI_Boolean createParentDirectories);             /* optional */
 
 int esxVI_MigrateVM_Task
       (esxVI_Context *ctx,
@@ -92,6 +121,12 @@ int esxVI_QueryPerfCounter
       (esxVI_Context *ctx,
        esxVI_Int *counterId,                               /* required, list */
        esxVI_PerfCounterInfo **output);                    /* optional, list */
+
+int esxVI_QueryVirtualDiskUuid
+      (esxVI_Context *ctx,
+       const char *name,                                   /* required */
+       esxVI_ManagedObjectReference *datacenter,           /* optional */
+       char **output);                                     /* required */
 
 int esxVI_RebootGuest
       (esxVI_Context *ctx,
@@ -134,6 +169,13 @@ int esxVI_RevertToSnapshot_Task
        esxVI_ManagedObjectReference *host,                 /* optional */
        esxVI_ManagedObjectReference **output);             /* required */
 
+int esxVI_SearchDatastoreSubFolders_Task
+      (esxVI_Context *ctx,
+       esxVI_ManagedObjectReference *_this,                /* required */
+       const char *datastorePath,                          /* required */
+       esxVI_HostDatastoreBrowserSearchSpec *searchSpec,   /* optional */
+       esxVI_ManagedObjectReference **output);             /* required */
+
 int esxVI_SearchDatastore_Task
       (esxVI_Context *ctx,
        esxVI_ManagedObjectReference *_this,                /* required */
@@ -164,4 +206,10 @@ int esxVI_WaitForUpdates
       (esxVI_Context *ctx,
        const char *version,                                /* optional */
        esxVI_UpdateSet **output);                          /* required */
+
+int esxVI_ZeroFillVirtualDisk_Task
+      (esxVI_Context *ctx,
+       const char *name,                                   /* required */
+       esxVI_ManagedObjectReference *datacenter,           /* optional */
+       esxVI_ManagedObjectReference **output);             /* required */
 

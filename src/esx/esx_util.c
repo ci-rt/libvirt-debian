@@ -33,6 +33,7 @@
 #include "memory.h"
 #include "logging.h"
 #include "uuid.h"
+#include "vmx.h"
 #include "esx_private.h"
 #include "esx_util.h"
 
@@ -275,19 +276,19 @@ esxUtil_ParseVirtualMachineIDString(const char *id_string, int *id)
 
 int
 esxUtil_ParseDatastorePath(const char *datastorePath, char **datastoreName,
-                           char **directoryName, char **fileName)
+                           char **directoryName, char **directoryAndFileName)
 {
     int result = -1;
     char *copyOfDatastorePath = NULL;
     char *tmp = NULL;
     char *saveptr = NULL;
     char *preliminaryDatastoreName = NULL;
-    char *directoryAndFileName = NULL;
-    char *separator = NULL;
+    char *preliminaryDirectoryAndFileName = NULL;
+    char *preliminaryFileName = NULL;
 
-    if (datastoreName == NULL || *datastoreName != NULL ||
-        directoryName == NULL || *directoryName != NULL ||
-        fileName == NULL || *fileName != NULL) {
+    if ((datastoreName != NULL && *datastoreName != NULL) ||
+        (directoryName != NULL && *directoryName != NULL) ||
+        (directoryAndFileName != NULL && *directoryAndFileName != NULL)) {
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
         return -1;
     }
@@ -296,43 +297,46 @@ esxUtil_ParseDatastorePath(const char *datastorePath, char **datastoreName,
         goto cleanup;
     }
 
-    /* Expected format: '[<datastore>] <path>' */
-    if ((tmp = STRSKIP(copyOfDatastorePath, "[")) == NULL ||
-        (preliminaryDatastoreName = strtok_r(tmp, "]", &saveptr)) == NULL ||
-        (directoryAndFileName = strtok_r(NULL, "", &saveptr)) == NULL) {
+    /* Expected format: '[<datastore>] <path>' where <path> is optional */
+    if ((tmp = STRSKIP(copyOfDatastorePath, "[")) == NULL || *tmp == ']' ||
+        (preliminaryDatastoreName = strtok_r(tmp, "]", &saveptr)) == NULL) {
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                   _("Datastore path '%s' doesn't have expected format "
                     "'[<datastore>] <path>'"), datastorePath);
         goto cleanup;
     }
 
-    if (esxVI_String_DeepCopyValue(datastoreName,
+    if (datastoreName != NULL &&
+        esxVI_String_DeepCopyValue(datastoreName,
                                    preliminaryDatastoreName) < 0) {
         goto cleanup;
     }
 
-    directoryAndFileName += strspn(directoryAndFileName, " ");
+    preliminaryDirectoryAndFileName = strtok_r(NULL, "", &saveptr);
 
-    /* Split <path> into <directory>/<file>, where <directory> is optional */
-    separator = strrchr(directoryAndFileName, '/');
+    if (preliminaryDirectoryAndFileName == NULL) {
+        preliminaryDirectoryAndFileName = (char *)"";
+    } else {
+        preliminaryDirectoryAndFileName +=
+          strspn(preliminaryDirectoryAndFileName, " ");
+    }
 
-    if (separator != NULL) {
-        *separator++ = '\0';
+    if (directoryAndFileName != NULL &&
+        esxVI_String_DeepCopyValue(directoryAndFileName,
+                                   preliminaryDirectoryAndFileName) < 0) {
+        goto cleanup;
+    }
 
-        if (*separator == '\0') {
-            ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Datastore path '%s' doesn't reference a file"),
-                      datastorePath);
-            goto cleanup;
+    if (directoryName != NULL) {
+        /* Split <path> into <directory>/<file> */
+        preliminaryFileName = strrchr(preliminaryDirectoryAndFileName, '/');
+
+        if (preliminaryFileName != NULL) {
+            *preliminaryFileName++ = '\0';
         }
 
         if (esxVI_String_DeepCopyValue(directoryName,
-                                       directoryAndFileName) < 0 ||
-            esxVI_String_DeepCopyValue(fileName, separator) < 0) {
-            goto cleanup;
-        }
-    } else {
-        if (esxVI_String_DeepCopyValue(fileName, directoryAndFileName) < 0) {
+                                       preliminaryDirectoryAndFileName) < 0) {
             goto cleanup;
         }
     }
@@ -341,9 +345,17 @@ esxUtil_ParseDatastorePath(const char *datastorePath, char **datastoreName,
 
   cleanup:
     if (result < 0) {
-        VIR_FREE(*datastoreName);
-        VIR_FREE(*directoryName);
-        VIR_FREE(*fileName);
+        if (datastoreName != NULL) {
+            VIR_FREE(*datastoreName);
+        }
+
+        if (directoryName != NULL) {
+            VIR_FREE(*directoryName);
+        }
+
+        if (directoryAndFileName != NULL) {
+            VIR_FREE(*directoryAndFileName);
+        }
     }
 
     VIR_FREE(copyOfDatastorePath);
@@ -403,191 +415,140 @@ esxUtil_ResolveHostname(const char *hostname,
 
 
 int
-esxUtil_GetConfigString(virConfPtr conf, const char *name, char **string,
-                        bool optional)
+esxUtil_ReformatUuid(const char *input, char *output)
 {
-    virConfValuePtr value;
+    unsigned char uuid[VIR_UUID_BUFLEN];
 
-    *string = NULL;
-    value = virConfGetValue(conf, name);
+    if (virUUIDParse(input, uuid) < 0) {
+        ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
+                  _("Could not parse UUID from string '%s'"),
+                  input);
+        return -1;
+    }
 
-    if (value == NULL) {
-        if (optional) {
-            return 0;
+    virUUIDFormat(uuid, output);
+
+    return 0;
+}
+
+
+
+char *
+esxUtil_EscapeBase64(const char *string)
+{
+    /* 'normal' characters don't get base64 encoded */
+    static const char *normal =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'(),. _-";
+
+    /* VMware uses ',' instead of the path separator '/' in the base64 alphabet */
+    static const char *base64 =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+,";
+
+    virBuffer buffer = VIR_BUFFER_INITIALIZER;
+    const char *tmp1 = string;
+    size_t length;
+    unsigned char c1, c2, c3;
+
+    /* Escape sequences of non-'normal' characters as base64 without padding */
+    while (*tmp1 != '\0') {
+        length = strspn(tmp1, normal);
+
+        if (length > 0) {
+            virBufferAdd(&buffer, tmp1, length);
+
+            tmp1 += length;
+        } else {
+            length = strcspn(tmp1, normal);
+
+            virBufferAddChar(&buffer, '+');
+
+            while (length > 0) {
+                c1 = *tmp1++;
+                c2 = length > 1 ? *tmp1++ : 0;
+                c3 = length > 2 ? *tmp1++ : 0;
+
+                virBufferAddChar(&buffer, base64[(c1 >> 2) & 0x3f]);
+                virBufferAddChar(&buffer, base64[((c1 << 4) + (c2 >> 4)) & 0x3f]);
+
+                if (length > 1) {
+                    virBufferAddChar(&buffer, base64[((c2 << 2) + (c3 >> 6)) & 0x3f]);
+                }
+
+                if (length > 2) {
+                    virBufferAddChar(&buffer, base64[c3 & 0x3f]);
+                }
+
+                length -= length > 3 ? 3 : length;
+            }
+
+            if (*tmp1 != '\0') {
+                virBufferAddChar(&buffer, '-');
+            }
         }
-
-        ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Missing essential config entry '%s'"), name);
-        return -1;
     }
 
-    if (value->type != VIR_CONF_STRING) {
-        ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Config entry '%s' must be a string"), name);
-        return -1;
-    }
-
-    if (value->str == NULL) {
-        if (optional) {
-            return 0;
-        }
-
-        ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Missing essential config entry '%s'"), name);
-        return -1;
-    }
-
-    *string = strdup(value->str);
-
-    if (*string == NULL) {
+    if (virBufferError(&buffer)) {
         virReportOOMError();
-        return -1;
+        virBufferFreeAndReset(&buffer);
+
+        return NULL;
     }
 
-    return 0;
+    return virBufferContentAndReset(&buffer);
 }
 
 
 
-int
-esxUtil_GetConfigUUID(virConfPtr conf, const char *name, unsigned char *uuid,
-                      bool optional)
+void
+esxUtil_ReplaceSpecialWindowsPathChars(char *string)
 {
-    virConfValuePtr value;
+    /* '/' and '\\' are missing on purpose */
+    static const char *specials = "\"*<>:|?";
 
-    value = virConfGetValue(conf, name);
+    char *tmp = string;
+    size_t length;
 
-    if (value == NULL) {
-        if (optional) {
-            return 0;
-        } else {
-            ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Missing essential config entry '%s'"), name);
-            return -1;
+    while (*tmp != '\0') {
+        length = strspn(tmp, specials);
+
+        while (length > 0) {
+            *tmp++ = '_';
+            --length;
+        }
+
+        if (*tmp != '\0') {
+            ++tmp;
         }
     }
-
-    if (value->type != VIR_CONF_STRING) {
-        ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Config entry '%s' must be a string"), name);
-        return -1;
-    }
-
-    if (value->str == NULL) {
-        if (optional) {
-            return 0;
-        } else {
-            ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Missing essential config entry '%s'"), name);
-            return -1;
-        }
-    }
-
-    if (virUUIDParse(value->str, uuid) < 0) {
-        ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Could not parse UUID from string '%s'"), value->str);
-        return -1;
-    }
-
-    return 0;
 }
 
 
 
-int
-esxUtil_GetConfigLong(virConfPtr conf, const char *name, long long *number,
-                      long long default_, bool optional)
+char *
+esxUtil_EscapeDatastoreItem(const char *string)
 {
-    virConfValuePtr value;
+    char *replaced = strdup(string);
+    char *escaped1;
+    char *escaped2 = NULL;
 
-    *number = default_;
-    value = virConfGetValue(conf, name);
-
-    if (value == NULL) {
-        if (optional) {
-            return 0;
-        } else {
-            ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Missing essential config entry '%s'"), name);
-            return -1;
-        }
+    if (replaced == NULL) {
+        virReportOOMError();
+        return NULL;
     }
 
-    if (value->type == VIR_CONF_STRING) {
-        if (value->str == NULL) {
-            if (optional) {
-                return 0;
-            } else {
-                ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                          _("Missing essential config entry '%s'"), name);
-                return -1;
-            }
-        }
+    esxUtil_ReplaceSpecialWindowsPathChars(replaced);
 
-        if (STREQ(value->str, "unlimited")) {
-            *number = -1;
-        } else if (virStrToLong_ll(value->str, NULL, 10, number) < 0) {
-            ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Config entry '%s' must represent an integer value"),
-                      name);
-            return -1;
-        }
-    } else {
-        ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Config entry '%s' must be a string"), name);
-        return -1;
+    escaped1 = virVMXEscapeHexPercent(replaced);
+
+    if (escaped1 == NULL) {
+        goto cleanup;
     }
 
-    return 0;
-}
+    escaped2 = esxUtil_EscapeBase64(escaped1);
 
+  cleanup:
+    VIR_FREE(replaced);
+    VIR_FREE(escaped1);
 
-
-int
-esxUtil_GetConfigBoolean(virConfPtr conf, const char *name, bool *boolean_,
-                         bool default_, bool optional)
-{
-    virConfValuePtr value;
-
-    *boolean_ = default_;
-    value = virConfGetValue(conf, name);
-
-    if (value == NULL) {
-        if (optional) {
-            return 0;
-        } else {
-            ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Missing essential config entry '%s'"), name);
-            return -1;
-        }
-    }
-
-    if (value->type == VIR_CONF_STRING) {
-        if (value->str == NULL) {
-            if (optional) {
-                return 0;
-            } else {
-                ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                          _("Missing essential config entry '%s'"), name);
-                return -1;
-            }
-        }
-
-        if (STRCASEEQ(value->str, "true")) {
-            *boolean_ = 1;
-        } else if (STRCASEEQ(value->str, "false")) {
-            *boolean_ = 0;
-        } else {
-            ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Config entry '%s' must represent a boolean value "
-                        "(true|false)"), name);
-            return -1;
-        }
-    } else {
-        ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Config entry '%s' must be a string"), name);
-        return -1;
-    }
-
-    return 0;
+    return escaped2;
 }
