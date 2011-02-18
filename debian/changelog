@@ -1,3 +1,12 @@
+libvirt (0.8.7-3) unstable; urgency=low
+
+  * [e6c5184] New patch Don-t-pass-empty-arguments-to-dnsmasq.patch: Don't
+    pass empty arguments to dnsmasq
+    Thanks to Simon McVittie for the detailed description (Closes: #613944)
+  * [8887de6] Add gbp.conf
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 18 Feb 2011 15:49:44 +0100
+
 libvirt (0.8.7-2) unstable; urgency=low
 
   [ Laurent Léonard ]
