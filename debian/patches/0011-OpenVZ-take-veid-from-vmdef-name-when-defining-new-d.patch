@@ -20,7 +20,7 @@ index d2f91c6..556df52 100644
 -    int max_veid;
 -    char str_id[10];
 -    FILE *fp;
-
+ 
      for (narg = 0; narg < maxarg; narg++)
          args[narg] = NULL;
 @@ -135,36 +131,7 @@ openvzDomainDefineCmd(const char *args[],
@@ -58,7 +58,7 @@ index d2f91c6..556df52 100644
 -    sprintf(str_id, "%d", max_veid);
 -    ADD_ARG_LIT(str_id);
 +    ADD_ARG_LIT(vmdef->name);
-
+ 
      ADD_ARG_LIT("--name");
      ADD_ARG_LIT(vmdef->name);
 @@ -188,11 +155,6 @@ no_memory:
@@ -73,4 +73,4 @@ index d2f91c6..556df52 100644
  #undef ADD_ARG
  #undef ADD_ARG_LIT
  }
---
+-- 

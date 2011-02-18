@@ -19,9 +19,9 @@ index 556df52..698d0e6 100644
  #include "memory.h"
  #include "bridge.h"
 +#include "logging.h"
-
+ 
  #define VIR_FROM_THIS VIR_FROM_OPENVZ
-
+ 
 @@ -209,8 +210,7 @@ static int openvzSetInitialConfig(virDomainDefPtr vmdef)
      else
      {
@@ -31,25 +31,25 @@ index 556df52..698d0e6 100644
 +            VIR_ERROR0(_("Error creating command for container"));
              goto cleanup;
          }
-
+ 
 @@ -870,8 +870,7 @@ openvzDomainDefineXML(virConnectPtr conn, const char *xml)
      vm->persistent = 1;
-
+ 
      if (openvzSetInitialConfig(vm->def) < 0) {
 -        openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
 -                    _("Error creating initial configuration"));
 +        VIR_ERROR0(_("Error creating initial configuration"));
          goto cleanup;
      }
-
+ 
 @@ -954,8 +953,7 @@ openvzDomainCreateXML(virConnectPtr conn, const char *xml,
      vm->persistent = 1;
-
+ 
      if (openvzSetInitialConfig(vm->def) < 0) {
 -        openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
 -                    _("Error creating initial configuration"));
 +        VIR_ERROR0(_("Error creating initial configuration"));
          goto cleanup;
      }
-
---
+ 
+-- 
