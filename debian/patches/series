@@ -8,3 +8,4 @@ Disable-CHECKSUM-rule.patch
 libvirt-guests-remove-bashisms.patch
 build-let-xgettext-see-strings-in-libvirt-guests.patch
 Debianize-libvirt-guests.patch
+Don-t-pass-empty-arguments-to-dnsmasq.patch
