@@ -21,27 +21,28 @@ libvirt.so.0 libvirt0 #MINVER#
  *@LIBVIRT_0.6.1 0.6.1
  *@LIBVIRT_0.6.3 0.6.3
  *@LIBVIRT_0.6.4 0.6.4
- *@LIBVIRT_0.6.5 0.6.5
+#MISSING: 0.8.7-3# (symver|optional)LIBVIRT_0.6.5 0.6.5
  *@LIBVIRT_0.7.0 0.7.0
  *@LIBVIRT_0.7.1 0.7.1
  *@LIBVIRT_0.7.2 0.7.2
  *@LIBVIRT_0.7.3 0.7.3
- *@LIBVIRT_0.7.4 0.7.4
+#MISSING: 0.8.7-3# (symver|optional)LIBVIRT_0.7.4 0.7.4
  *@LIBVIRT_0.7.5 0.7.5
- *@LIBVIRT_0.7.6 0.7.6
+#MISSING: 0.8.7-3# (symver|optional)LIBVIRT_0.7.6 0.7.6
  *@LIBVIRT_0.7.7 0.7.7
  *@LIBVIRT_0.8.0 0.8.0
  *@LIBVIRT_0.8.1 0.8.1
  *@LIBVIRT_0.8.2 0.8.2
- *@LIBVIRT_0.8.3 0.8.3
- *@LIBVIRT_0.8.4 0.8.4
+#MISSING: 0.8.7-3# (symver|optional)LIBVIRT_0.8.3 0.8.3
+#MISSING: 0.8.7-3# (symver|optional)LIBVIRT_0.8.4 0.8.4
  *@LIBVIRT_0.8.5 0.8.5
  *@LIBVIRT_0.8.6 0.8.6
  *@LIBVIRT_0.8.7 0.8.7
+#MISSING: 0.8.7-3# (symver|optional)LIBVIRT_0.8.7 0.8.7
  *@LIBVIRT_PRIVATE_0.8.7 0.8.7
 libvirt-qemu.so.0 libvirt0 #MINVER#
  *@LIBVIRT_QEMU_0.8.3 0.8.3
- *@LIBVIRT_QEMU_0.8.4 0.8.4
- *@LIBVIRT_QEMU_0.8.5 0.8.5
- *@LIBVIRT_QEMU_0.8.6 0.8.6
- *@LIBVIRT_QEMU_0.8.7 0.8.7
+#MISSING: 0.8.7-3# (symver|optional)LIBVIRT_QEMU_0.8.4 0.8.4
+#MISSING: 0.8.7-3# (symver|optional)LIBVIRT_QEMU_0.8.5 0.8.5
+#MISSING: 0.8.7-3# (symver|optional)LIBVIRT_QEMU_0.8.6 0.8.6
+#MISSING: 0.8.7-3# (symver|optional)LIBVIRT_QEMU_0.8.7 0.8.7
