@@ -5,6 +5,7 @@ libvirt (0.8.3-6~1.gbpca2348) UNRELEASED; urgency=low
   [ Laurent Léonard ]
   * [6e46f0e] Fix wrong regular expression in debian/watch
   * [6f95d48] Fix exit status codes in libvirt init script to comply with LSB
+    (Closes: #612305)
 
  -- Guido Günther <agx@sigxcpu.org>  Sat, 15 Jan 2011 13:55:42 +0100
 
