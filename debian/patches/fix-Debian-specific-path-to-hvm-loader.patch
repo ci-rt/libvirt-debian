@@ -1,6 +1,6 @@
 From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
 Date: Thu, 26 Feb 2009 14:29:58 +0100
-Subject: [PATCH] fix Debian specific path to hvm loader
+Subject: fix Debian specific path to hvm loader
 
 Closes: #517059
 ---

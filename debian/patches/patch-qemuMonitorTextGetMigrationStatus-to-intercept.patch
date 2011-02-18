@@ -1,6 +1,6 @@
 From: =?UTF-8?q?Andreas=20Bie=C3=9Fmann?= <biessmann@corscience.de>
 Date: Thu, 18 Mar 2010 13:05:59 +0100
-Subject: [PATCH] patch qemuMonitorTextGetMigrationStatus to intercept unknown command 'info migrate'
+Subject: patch qemuMonitorTextGetMigrationStatus to intercept unknown command 'info migrate'
 
 Debian package kvm up to version 72 has not implemented the command 'info migrate'.
 This command interface returns help page of info commands and looks like this:

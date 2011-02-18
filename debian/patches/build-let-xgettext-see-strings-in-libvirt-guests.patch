@@ -1,6 +1,6 @@
 From: Eric Blake <eblake@redhat.com>
 Date: Thu, 6 Jan 2011 12:00:30 -0700
-Subject: [PATCH] build: let xgettext see strings in libvirt-guests
+Subject: build: let xgettext see strings in libvirt-guests
 
 * tools/libvirt-guests.init.in: Rename...
 * tools/libvirt-guests.init.sh: ...so that xgettext's language

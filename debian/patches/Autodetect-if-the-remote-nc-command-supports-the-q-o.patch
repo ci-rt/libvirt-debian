@@ -1,6 +1,6 @@
 From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
 Date: Wed, 6 Oct 2010 18:12:46 +0200
-Subject: [PATCH] Autodetect if the remote nc command supports the -q option
+Subject: Autodetect if the remote nc command supports the -q option
 
 Author: Marc Deslauriers <marc.deslauriers@ubuntu.com>
 Origin: other, based on http://hg.fedorahosted.org/hg/virt-manager/rev/1f781890ea4a

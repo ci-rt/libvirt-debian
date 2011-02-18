@@ -1,6 +1,6 @@
 From: Guido Guenther <agx@sigxcpu.org>
 Date: Fri, 7 Mar 2008 09:08:26 +0100
-Subject: [PATCH] qemu-disable-network.diff
+Subject: qemu-disable-network.diff
 
 ---
  src/Makefile.am |    3 ---

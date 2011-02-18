@@ -1,6 +1,6 @@
 From: =?UTF-8?q?Laurent=20L=C3=A9onard?= <laurent@open-minds.org>
 Date: Thu, 9 Dec 2010 22:36:29 +0100
-Subject: [PATCH] Debianize libvirt-guests
+Subject: Debianize libvirt-guests
 
 Origin: vendor
 ---

@@ -1,6 +1,6 @@
 From: =?UTF-8?q?Laurent=20L=C3=A9onard?= <laurent@open-minds.org>
 Date: Tue, 4 Jan 2011 19:13:56 +0100
-Subject: [PATCH] libvirt-guests: remove bashisms
+Subject: libvirt-guests: remove bashisms
 
 * tools/libvirt-guests.init.sh: Use only POSIX shell features, which
 includes using gettext.sh for translation rather than $"".

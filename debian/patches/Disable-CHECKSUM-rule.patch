@@ -1,6 +1,6 @@
 From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
 Date: Wed, 6 Oct 2010 18:37:20 +0200
-Subject: [PATCH] Disable CHECKSUM rule
+Subject: Disable CHECKSUM rule
 
 not supported by Squeeze's iptables
 

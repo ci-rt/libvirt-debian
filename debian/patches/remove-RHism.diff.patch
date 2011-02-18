@@ -1,6 +1,6 @@
 From: Guido Guenther <agx@sigxcpu.org>
 Date: Fri, 7 Mar 2008 09:08:25 +0100
-Subject: [PATCH] remove-RHism.diff
+Subject: remove-RHism.diff
 
 ---
  tools/virsh.pod |    2 +-
