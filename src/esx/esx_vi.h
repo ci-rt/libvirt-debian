@@ -284,7 +284,8 @@ int esxVI_LookupObjectContentByType(esxVI_Context *ctx,
                                     esxVI_ManagedObjectReference *root,
                                     const char *type,
                                     esxVI_String *propertyNameList,
-                                    esxVI_ObjectContent **objectContentList);
+                                    esxVI_ObjectContent **objectContentList,
+                                    esxVI_Occurrence occurrence);
 
 int esxVI_GetManagedEntityStatus
       (esxVI_ObjectContent *objectContent, const char *propertyName,
@@ -417,6 +418,12 @@ int esxVI_LookupDatastoreContentByDatastoreName
 int esxVI_LookupStorageVolumeKeyByDatastorePath(esxVI_Context *ctx,
                                                 const char *datastorePath,
                                                 char **key);
+
+int esxVI_LookupAutoStartDefaults(esxVI_Context *ctx,
+                                  esxVI_AutoStartDefaults **defaults);
+
+int esxVI_LookupAutoStartPowerInfoList(esxVI_Context *ctx,
+                                       esxVI_AutoStartPowerInfo **powerInfoList);
 
 int esxVI_HandleVirtualMachineQuestion
       (esxVI_Context *ctx,

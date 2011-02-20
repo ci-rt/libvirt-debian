@@ -1,7 +1,7 @@
 /*
  * domain_conf.c: domain XML processing
  *
- * Copyright (C) 2006-2010 Red Hat, Inc.
+ * Copyright (C) 2006-2011 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -46,6 +46,7 @@
 #include "ignore-value.h"
 #include "storage_file.h"
 #include "files.h"
+#include "bitmap.h"
 
 #define VIR_FROM_THIS VIR_FROM_DOMAIN
 
@@ -75,7 +76,8 @@ VIR_ENUM_IMPL(virDomainBoot, VIR_DOMAIN_BOOT_LAST,
 VIR_ENUM_IMPL(virDomainFeature, VIR_DOMAIN_FEATURE_LAST,
               "acpi",
               "apic",
-              "pae")
+              "pae",
+              "hap")
 
 VIR_ENUM_IMPL(virDomainLifecycle, VIR_DOMAIN_LIFECYCLE_LAST,
               "destroy",
@@ -107,7 +109,8 @@ VIR_ENUM_IMPL(virDomainDeviceAddress, VIR_DOMAIN_DEVICE_ADDRESS_TYPE_LAST,
               "none",
               "pci",
               "drive",
-              "virtio-serial")
+              "virtio-serial",
+              "ccid")
 
 VIR_ENUM_IMPL(virDomainDisk, VIR_DOMAIN_DISK_TYPE_LAST,
               "block",
@@ -147,12 +150,18 @@ VIR_ENUM_IMPL(virDomainDiskProtocol, VIR_DOMAIN_DISK_PROTOCOL_LAST,
               "rbd",
               "sheepdog")
 
+VIR_ENUM_IMPL(virDomainDiskIo, VIR_DOMAIN_DISK_IO_LAST,
+              "default",
+              "native",
+              "threads")
+
 VIR_ENUM_IMPL(virDomainController, VIR_DOMAIN_CONTROLLER_TYPE_LAST,
               "ide",
               "fdc",
               "scsi",
               "sata",
-              "virtio-serial")
+              "virtio-serial",
+              "ccid")
 
 VIR_ENUM_IMPL(virDomainControllerModel, VIR_DOMAIN_CONTROLLER_MODEL_LAST,
               "auto",
@@ -184,6 +193,11 @@ VIR_ENUM_IMPL(virDomainNet, VIR_DOMAIN_NET_TYPE_LAST,
               "internal",
               "direct")
 
+VIR_ENUM_IMPL(virDomainNetBackend, VIR_DOMAIN_NET_BACKEND_TYPE_LAST,
+              "default",
+              "qemu",
+              "vhost")
+
 VIR_ENUM_IMPL(virDomainChrChannelTarget,
               VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_LAST,
               "guestfwd",
@@ -197,7 +211,6 @@ VIR_ENUM_IMPL(virDomainChrConsoleTarget,
               "virtio")
 
 VIR_ENUM_IMPL(virDomainChrDevice, VIR_DOMAIN_CHR_DEVICE_TYPE_LAST,
-              "monitor",
               "parallel",
               "serial",
               "console",
@@ -213,7 +226,8 @@ VIR_ENUM_IMPL(virDomainChr, VIR_DOMAIN_CHR_TYPE_LAST,
               "stdio",
               "udp",
               "tcp",
-              "unix")
+              "unix",
+              "spicevmc")
 
 VIR_ENUM_IMPL(virDomainChrTcpProtocol, VIR_DOMAIN_CHR_TCP_PROTOCOL_LAST,
               "raw",
@@ -221,11 +235,21 @@ VIR_ENUM_IMPL(virDomainChrTcpProtocol, VIR_DOMAIN_CHR_TCP_PROTOCOL_LAST,
               "telnets",
               "tls")
 
+VIR_ENUM_IMPL(virDomainChrSpicevmc, VIR_DOMAIN_CHR_SPICEVMC_LAST,
+              "vdagent",
+              "smartcard")
+
+VIR_ENUM_IMPL(virDomainSmartcard, VIR_DOMAIN_SMARTCARD_TYPE_LAST,
+              "host",
+              "host-certificates",
+              "passthrough")
+
 VIR_ENUM_IMPL(virDomainSoundModel, VIR_DOMAIN_SOUND_MODEL_LAST,
               "sb16",
               "es1370",
               "pcspk",
-              "ac97")
+              "ac97",
+              "ich6")
 
 VIR_ENUM_IMPL(virDomainMemballoonModel, VIR_DOMAIN_MEMBALLOON_MODEL_LAST,
               "virtio",
@@ -284,7 +308,8 @@ VIR_ENUM_IMPL(virDomainGraphicsSpiceChannelName,
               "inputs",
               "cursor",
               "playback",
-              "record");
+              "record",
+              "smartcard");
 
 VIR_ENUM_IMPL(virDomainGraphicsSpiceChannelMode,
               VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_LAST,
@@ -471,6 +496,7 @@ void virDomainGraphicsDefFree(virDomainGraphicsDefPtr def)
     switch (def->type) {
     case VIR_DOMAIN_GRAPHICS_TYPE_VNC:
         VIR_FREE(def->data.vnc.listenAddr);
+        VIR_FREE(def->data.vnc.socket);
         VIR_FREE(def->data.vnc.keymap);
         virDomainGraphicsAuthDefClear(&def->data.vnc.auth);
         break;
@@ -613,28 +639,9 @@ void virDomainNetDefFree(virDomainNetDefPtr def)
     VIR_FREE(def);
 }
 
-void virDomainChrDefFree(virDomainChrDefPtr def)
+static void ATTRIBUTE_NONNULL(1)
+virDomainChrSourceDefClear(virDomainChrSourceDefPtr def)
 {
-    if (!def)
-        return;
-
-    switch (def->deviceType) {
-    case VIR_DOMAIN_CHR_DEVICE_TYPE_CHANNEL:
-        switch (def->targetType) {
-        case VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_GUESTFWD:
-            VIR_FREE(def->target.addr);
-            break;
-
-        case VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_VIRTIO:
-            VIR_FREE(def->target.name);
-            break;
-        }
-        break;
-
-    default:
-        break;
-    }
-
     switch (def->type) {
     case VIR_DOMAIN_CHR_TYPE_PTY:
     case VIR_DOMAIN_CHR_TYPE_DEV:
@@ -657,6 +664,69 @@ void virDomainChrDefFree(virDomainChrDefPtr def)
 
     case VIR_DOMAIN_CHR_TYPE_UNIX:
         VIR_FREE(def->data.nix.path);
+        break;
+    }
+}
+
+void virDomainChrSourceDefFree(virDomainChrSourceDefPtr def)
+{
+    if (!def)
+        return;
+
+    virDomainChrSourceDefClear(def);
+
+    VIR_FREE(def);
+}
+
+void virDomainChrDefFree(virDomainChrDefPtr def)
+{
+    if (!def)
+        return;
+
+    switch (def->deviceType) {
+    case VIR_DOMAIN_CHR_DEVICE_TYPE_CHANNEL:
+        switch (def->targetType) {
+        case VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_GUESTFWD:
+            VIR_FREE(def->target.addr);
+            break;
+
+        case VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_VIRTIO:
+            VIR_FREE(def->target.name);
+            break;
+        }
+        break;
+
+    default:
+        break;
+    }
+
+    virDomainChrSourceDefClear(&def->source);
+    virDomainDeviceInfoClear(&def->info);
+
+    VIR_FREE(def);
+}
+
+void virDomainSmartcardDefFree(virDomainSmartcardDefPtr def)
+{
+    size_t i;
+    if (!def)
+        return;
+
+    switch (def->type) {
+    case VIR_DOMAIN_SMARTCARD_TYPE_HOST:
+        break;
+
+    case VIR_DOMAIN_SMARTCARD_TYPE_HOST_CERTIFICATES:
+        for (i = 0; i < VIR_DOMAIN_SMARTCARD_NUM_CERTIFICATES; i++)
+            VIR_FREE(def->data.cert.file[i]);
+        VIR_FREE(def->data.cert.database);
+        break;
+
+    case VIR_DOMAIN_SMARTCARD_TYPE_PASSTHROUGH:
+        virDomainChrSourceDefClear(&def->data.passthru);
+        break;
+
+    default:
         break;
     }
 
@@ -805,6 +875,10 @@ void virDomainDefFree(virDomainDefPtr def)
     for (i = 0 ; i < def->nnets ; i++)
         virDomainNetDefFree(def->nets[i]);
     VIR_FREE(def->nets);
+
+    for (i = 0 ; i < def->nsmartcards ; i++)
+        virDomainSmartcardDefFree(def->smartcards[i]);
+    VIR_FREE(def->smartcards);
 
     for (i = 0 ; i < def->nserials ; i++)
         virDomainChrDefFree(def->serials[i]);
@@ -995,17 +1069,22 @@ virDomainObjPtr virDomainAssignDef(virCapsPtr caps,
  *
  * @param caps pointer to capabilities info
  * @param domain domain object pointer
+ * @param live if true, run this operation even for an inactive domain.
+ *   this allows freely updated domain->def with runtime defaults before
+ *   starting the VM, which will be discarded on VM shutdown. Any cleanup
+ *   paths need to be sure to handle newDef if the domain is never started.
  * @return 0 on success, -1 on failure
  */
 int
 virDomainObjSetDefTransient(virCapsPtr caps,
-                            virDomainObjPtr domain)
+                            virDomainObjPtr domain,
+                            bool live)
 {
     int ret = -1;
     char *xml = NULL;
     virDomainDefPtr newDef = NULL;
 
-    if (!virDomainObjIsActive(domain))
+    if (!virDomainObjIsActive(domain) && !live)
         return 0;
 
     if (!domain->persistent)
@@ -1040,7 +1119,7 @@ virDomainDefPtr
 virDomainObjGetPersistentDef(virCapsPtr caps,
                              virDomainObjPtr domain)
 {
-    if (virDomainObjSetDefTransient(caps, domain) < 0)
+    if (virDomainObjSetDefTransient(caps, domain, false) < 0)
         return NULL;
 
     if (domain->newDef)
@@ -1165,6 +1244,9 @@ int virDomainDeviceInfoIterate(virDomainDefPtr def,
     for (i = 0; i < def->ncontrollers ; i++)
         if (cb(def, &def->controllers[i]->info, opaque) < 0)
             return -1;
+    for (i = 0; i < def->nsmartcards ; i++)
+        if (cb(def, &def->smartcards[i]->info, opaque) < 0)
+            return -1;
     for (i = 0; i < def->nserials ; i++)
         if (cb(def, &def->serials[i]->info, opaque) < 0)
             return -1;
@@ -1207,16 +1289,11 @@ void virDomainDefClearDeviceAliases(virDomainDefPtr def)
 /* Generate a string representation of a device address
  * @param address Device address to stringify
  */
-static int virDomainDeviceInfoFormat(virBufferPtr buf,
-                                     virDomainDeviceInfoPtr info,
-                                     int flags)
+static int ATTRIBUTE_NONNULL(2)
+virDomainDeviceInfoFormat(virBufferPtr buf,
+                          virDomainDeviceInfoPtr info,
+                          int flags)
 {
-    if (!info) {
-        virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                             _("missing device information"));
-        return -1;
-    }
-
     if (info->alias &&
         !(flags & VIR_DOMAIN_XML_INACTIVE)) {
         virBufferVSprintf(buf, "      <alias name='%s'/>\n", info->alias);
@@ -1250,6 +1327,12 @@ static int virDomainDeviceInfoFormat(virBufferPtr buf,
                           info->addr.vioserial.controller,
                           info->addr.vioserial.bus,
                           info->addr.vioserial.port);
+        break;
+
+    case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCID:
+        virBufferVSprintf(buf, " controller='%d' slot='%d'",
+                          info->addr.ccid.controller,
+                          info->addr.ccid.slot);
         break;
 
     default:
@@ -1425,6 +1508,40 @@ cleanup:
     return ret;
 }
 
+static int
+virDomainDeviceCcidAddressParseXML(xmlNodePtr node,
+                                   virDomainDeviceCcidAddressPtr addr)
+{
+    char *controller, *slot;
+    int ret = -1;
+
+    memset(addr, 0, sizeof(*addr));
+
+    controller = virXMLPropString(node, "controller");
+    slot = virXMLPropString(node, "slot");
+
+    if (controller &&
+        virStrToLong_ui(controller, NULL, 10, &addr->controller) < 0) {
+        virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                             _("Cannot parse <address> 'controller' attribute"));
+        goto cleanup;
+    }
+
+    if (slot &&
+        virStrToLong_ui(slot, NULL, 10, &addr->slot) < 0) {
+        virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                             _("Cannot parse <address> 'slot' attribute"));
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(controller);
+    VIR_FREE(slot);
+    return ret;
+}
+
 /* Parse the XML definition for a device address
  * @param node XML nodeset to parse for device address definition
  */
@@ -1493,6 +1610,11 @@ virDomainDeviceInfoParseXML(xmlNodePtr node,
             goto cleanup;
         break;
 
+    case VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCID:
+        if (virDomainDeviceCcidAddressParseXML(address, &info->addr.ccid) < 0)
+            goto cleanup;
+        break;
+
     default:
         /* Should not happen */
         virDomainReportError(VIR_ERR_INTERNAL_ERROR,
@@ -1506,6 +1628,50 @@ cleanup:
     if (ret == -1)
         VIR_FREE(info->alias);
     VIR_FREE(type);
+    return ret;
+}
+
+static int
+virDomainDeviceBootParseXML(xmlNodePtr node,
+                            int *bootIndex,
+                            virBitmapPtr bootMap)
+{
+    char *order;
+    int boot;
+    int ret = -1;
+
+    order = virXMLPropString(node, "order");
+    if (!order) {
+        virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                            "%s", _("missing boot order attribute"));
+        goto cleanup;
+    } else if (virStrToLong_i(order, NULL, 10, &boot) < 0 ||
+               boot <= 0) {
+        virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                _("incorrect boot order '%s', expecting positive integer"),
+                order);
+        goto cleanup;
+    }
+
+    if (bootMap) {
+        bool set;
+        if (virBitmapGetBit(bootMap, boot - 1, &set) < 0) {
+            virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                    _("boot orders have to be contiguous and starting from 1"));
+            goto cleanup;
+        } else if (set) {
+            virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                    _("boot order %d used for more than one device"), boot);
+            goto cleanup;
+        }
+        ignore_value(virBitmapSetBit(bootMap, boot - 1));
+    }
+
+    *bootIndex = boot;
+    ret = 0;
+
+cleanup:
+    VIR_FREE(order);
     return ret;
 }
 
@@ -1594,7 +1760,9 @@ virDomainDiskDefAssignAddress(virCapsPtr caps, virDomainDiskDefPtr def)
 static virDomainDiskDefPtr
 virDomainDiskDefParseXML(virCapsPtr caps,
                          xmlNodePtr node,
-                         int flags) {
+                         virBitmapPtr bootMap,
+                         int flags)
+{
     virDomainDiskDefPtr def;
     xmlNodePtr cur, host;
     char *type = NULL;
@@ -1609,6 +1777,7 @@ virDomainDiskDefParseXML(virCapsPtr caps,
     char *bus = NULL;
     char *cachetag = NULL;
     char *error_policy = NULL;
+    char *iotag = NULL;
     char *devaddr = NULL;
     virStorageEncryptionPtr encryption = NULL;
     char *serial = NULL;
@@ -1723,6 +1892,7 @@ virDomainDiskDefParseXML(virCapsPtr caps,
                 driverType = virXMLPropString(cur, "type");
                 cachetag = virXMLPropString(cur, "cache");
                 error_policy = virXMLPropString(cur, "error_policy");
+                iotag = virXMLPropString(cur, "io");
             } else if (xmlStrEqual(cur->name, BAD_CAST "readonly")) {
                 def->readonly = 1;
             } else if (xmlStrEqual(cur->name, BAD_CAST "shareable")) {
@@ -1740,6 +1910,10 @@ virDomainDiskDefParseXML(virCapsPtr caps,
             } else if ((serial == NULL) &&
                        (xmlStrEqual(cur->name, BAD_CAST "serial"))) {
                 serial = (char *)xmlNodeGetContent(cur);
+            } else if (xmlStrEqual(cur->name, BAD_CAST "boot")) {
+                if (virDomainDeviceBootParseXML(cur, &def->bootIndex,
+                                                bootMap))
+                    goto error;
             }
         }
         cur = cur->next;
@@ -1846,6 +2020,15 @@ virDomainDiskDefParseXML(virCapsPtr caps,
         goto error;
     }
 
+    if (iotag) {
+        if ((def->iomode = virDomainDiskIoTypeFromString(iotag)) < 0 ||
+            def->iomode == VIR_DOMAIN_DISK_IO_DEFAULT) {
+            virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                                 _("unknown disk io mode '%s'"), iotag);
+            goto error;
+        }
+    }
+
     if (devaddr) {
         if (virDomainParseLegacyDeviceAddress(devaddr,
                                               &def->info.addr.pci) < 0) {
@@ -1907,6 +2090,7 @@ cleanup:
     VIR_FREE(driverName);
     VIR_FREE(cachetag);
     VIR_FREE(error_policy);
+    VIR_FREE(iotag);
     VIR_FREE(devaddr);
     VIR_FREE(serial);
     virStorageEncryptionFree(encryption);
@@ -2276,7 +2460,10 @@ err_exit:
 static virDomainNetDefPtr
 virDomainNetDefParseXML(virCapsPtr caps,
                         xmlNodePtr node,
-                        int flags ATTRIBUTE_UNUSED) {
+                        xmlXPathContextPtr ctxt,
+                        virBitmapPtr bootMap,
+                        int flags ATTRIBUTE_UNUSED)
+{
     virDomainNetDefPtr def;
     xmlNodePtr cur;
     char *macaddr = NULL;
@@ -2289,6 +2476,7 @@ virDomainNetDefParseXML(virCapsPtr caps,
     char *address = NULL;
     char *port = NULL;
     char *model = NULL;
+    char *backend = NULL;
     char *filter = NULL;
     char *internal = NULL;
     char *devaddr = NULL;
@@ -2296,11 +2484,15 @@ virDomainNetDefParseXML(virCapsPtr caps,
     virNWFilterHashTablePtr filterparams = NULL;
     virVirtualPortProfileParams virtPort;
     bool virtPortParsed = false;
+    xmlNodePtr oldnode = ctxt->node;
+    int ret;
 
     if (VIR_ALLOC(def) < 0) {
         virReportOOMError();
         return NULL;
     }
+
+    ctxt->node = node;
 
     type = virXMLPropString(node, "type");
     if (type != NULL) {
@@ -2371,6 +2563,8 @@ virDomainNetDefParseXML(virCapsPtr caps,
                 script = virXMLPropString(cur, "path");
             } else if (xmlStrEqual (cur->name, BAD_CAST "model")) {
                 model = virXMLPropString(cur, "type");
+            } else if (xmlStrEqual (cur->name, BAD_CAST "driver")) {
+                backend = virXMLPropString(cur, "name");
             } else if (xmlStrEqual (cur->name, BAD_CAST "filterref")) {
                 filter = virXMLPropString(cur, "filter");
                 VIR_FREE(filterparams);
@@ -2379,6 +2573,10 @@ virDomainNetDefParseXML(virCapsPtr caps,
                        xmlStrEqual(cur->name, BAD_CAST "state")) {
                 /* Legacy back-compat. Don't add any more attributes here */
                 devaddr = virXMLPropString(cur, "devaddr");
+            } else if (xmlStrEqual(cur->name, BAD_CAST "boot")) {
+                if (virDomainDeviceBootParseXML(cur, &def->bootIndex,
+                                                bootMap))
+                    goto error;
             }
         }
         cur = cur->next;
@@ -2558,6 +2756,19 @@ virDomainNetDefParseXML(virCapsPtr caps,
         model = NULL;
     }
 
+    if ((backend != NULL) &&
+        (def->model && STREQ(def->model, "virtio"))) {
+        int b;
+        if (((b = virDomainNetBackendTypeFromString(backend)) < 0) ||
+            (b == VIR_DOMAIN_NET_BACKEND_TYPE_DEFAULT)) {
+            virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                                 _("Unknown interface <driver name='%s'> "
+                                   "has been specified"),
+                                 backend);
+            goto error;
+        }
+        def->backend = b;
+    }
     if (filter != NULL) {
         switch (def->type) {
         case VIR_DOMAIN_NET_TYPE_ETHERNET:
@@ -2574,7 +2785,17 @@ virDomainNetDefParseXML(virCapsPtr caps,
         }
     }
 
+    ret = virXPathULong("string(./tune/sndbuf)", ctxt, &def->tune.sndbuf);
+    if (ret >= 0) {
+        def->tune.sndbuf_specified = true;
+    } else if (ret == -2) {
+        virDomainReportError(VIR_ERR_XML_ERROR, "%s",
+                             _("sndbuf must be a positive integer"));
+        goto error;
+    }
+
 cleanup:
+    ctxt->node = oldnode;
     VIR_FREE(macaddr);
     VIR_FREE(network);
     VIR_FREE(address);
@@ -2584,6 +2805,7 @@ cleanup:
     VIR_FREE(script);
     VIR_FREE(bridge);
     VIR_FREE(model);
+    VIR_FREE(backend);
     VIR_FREE(filter);
     VIR_FREE(type);
     VIR_FREE(internal);
@@ -2730,10 +2952,6 @@ virDomainChrDefParseTargetXML(virCapsPtr caps,
         }
         break;
 
-    case VIR_DOMAIN_CHR_DEVICE_TYPE_MONITOR:
-        /* Nothing to parse */
-        break;
-
     default:
         portStr = virXMLPropString(cur, "port");
         if (portStr == NULL) {
@@ -2760,6 +2978,200 @@ error:
     return ret;
 }
 
+/* Parse the source half of the XML definition for a character device,
+ * where node is the first element of node->children of the parent
+ * element.  def->type must already be valid.  Return -1 on failure,
+ * otherwise the number of ignored children (this intentionally skips
+ * <target>, which is used by <serial> but not <smartcard>). */
+static int
+virDomainChrSourceDefParseXML(virDomainChrSourceDefPtr def,
+                              xmlNodePtr cur)
+{
+    char *bindHost = NULL;
+    char *bindService = NULL;
+    char *connectHost = NULL;
+    char *connectService = NULL;
+    char *path = NULL;
+    char *mode = NULL;
+    char *protocol = NULL;
+    int remaining = 0;
+
+    while (cur != NULL) {
+        if (cur->type == XML_ELEMENT_NODE) {
+            if (xmlStrEqual(cur->name, BAD_CAST "source")) {
+                if (mode == NULL)
+                    mode = virXMLPropString(cur, "mode");
+
+                switch (def->type) {
+                case VIR_DOMAIN_CHR_TYPE_PTY:
+                case VIR_DOMAIN_CHR_TYPE_DEV:
+                case VIR_DOMAIN_CHR_TYPE_FILE:
+                case VIR_DOMAIN_CHR_TYPE_PIPE:
+                case VIR_DOMAIN_CHR_TYPE_UNIX:
+                    if (path == NULL)
+                        path = virXMLPropString(cur, "path");
+
+                    break;
+
+                case VIR_DOMAIN_CHR_TYPE_UDP:
+                case VIR_DOMAIN_CHR_TYPE_TCP:
+                    if (mode == NULL ||
+                        STREQ((const char *)mode, "connect")) {
+
+                        if (connectHost == NULL)
+                            connectHost = virXMLPropString(cur, "host");
+                        if (connectService == NULL)
+                            connectService = virXMLPropString(cur, "service");
+                    } else if (STREQ((const char *)mode, "bind")) {
+                        if (bindHost == NULL)
+                            bindHost = virXMLPropString(cur, "host");
+                        if (bindService == NULL)
+                            bindService = virXMLPropString(cur, "service");
+                    } else {
+                        virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                                             _("Unknown source mode '%s'"),
+                                             mode);
+                        goto error;
+                    }
+
+                    if (def->type == VIR_DOMAIN_CHR_TYPE_UDP)
+                        VIR_FREE(mode);
+                }
+            } else if (xmlStrEqual(cur->name, BAD_CAST "protocol")) {
+                if (protocol == NULL)
+                    protocol = virXMLPropString(cur, "type");
+            } else {
+                remaining++;
+            }
+        }
+        cur = cur->next;
+    }
+
+    switch (def->type) {
+    case VIR_DOMAIN_CHR_TYPE_NULL:
+        /* Nada */
+        break;
+
+    case VIR_DOMAIN_CHR_TYPE_VC:
+        break;
+
+    case VIR_DOMAIN_CHR_TYPE_PTY:
+    case VIR_DOMAIN_CHR_TYPE_DEV:
+    case VIR_DOMAIN_CHR_TYPE_FILE:
+    case VIR_DOMAIN_CHR_TYPE_PIPE:
+        if (path == NULL &&
+            def->type != VIR_DOMAIN_CHR_TYPE_PTY) {
+            virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Missing source path attribute for char device"));
+            goto error;
+        }
+
+        def->data.file.path = path;
+        path = NULL;
+        break;
+
+    case VIR_DOMAIN_CHR_TYPE_STDIO:
+    case VIR_DOMAIN_CHR_TYPE_SPICEVMC:
+        /* Nada */
+        break;
+
+    case VIR_DOMAIN_CHR_TYPE_TCP:
+        if (mode == NULL ||
+            STREQ(mode, "connect")) {
+            if (connectHost == NULL) {
+                virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                        _("Missing source host attribute for char device"));
+                goto error;
+            }
+            if (connectService == NULL) {
+                virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                     _("Missing source service attribute for char device"));
+                goto error;
+            }
+
+            def->data.tcp.host = connectHost;
+            connectHost = NULL;
+            def->data.tcp.service = connectService;
+            connectService = NULL;
+            def->data.tcp.listen = false;
+        } else {
+            if (bindHost == NULL) {
+                virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                        _("Missing source host attribute for char device"));
+                goto error;
+            }
+            if (bindService == NULL) {
+                virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                     _("Missing source service attribute for char device"));
+                goto error;
+            }
+
+            def->data.tcp.host = bindHost;
+            bindHost = NULL;
+            def->data.tcp.service = bindService;
+            bindService = NULL;
+            def->data.tcp.listen = true;
+        }
+
+        if (protocol == NULL)
+            def->data.tcp.protocol = VIR_DOMAIN_CHR_TCP_PROTOCOL_RAW;
+        else if ((def->data.tcp.protocol =
+                  virDomainChrTcpProtocolTypeFromString(protocol)) < 0) {
+            virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                                 _("Unknown protocol '%s'"), protocol);
+            goto error;
+        }
+
+        break;
+
+    case VIR_DOMAIN_CHR_TYPE_UDP:
+        if (connectService == NULL) {
+            virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                   _("Missing source service attribute for char device"));
+            goto error;
+        }
+
+        def->data.udp.connectHost = connectHost;
+        connectHost = NULL;
+        def->data.udp.connectService = connectService;
+        connectService = NULL;
+
+        def->data.udp.bindHost = bindHost;
+        bindHost = NULL;
+        def->data.udp.bindService = bindService;
+        bindService = NULL;
+        break;
+
+    case VIR_DOMAIN_CHR_TYPE_UNIX:
+        if (path == NULL) {
+            virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                         _("Missing source path attribute for char device"));
+            goto error;
+        }
+
+        def->data.nix.listen = mode != NULL && STRNEQ(mode, "connect");
+
+        def->data.nix.path = path;
+        path = NULL;
+        break;
+    }
+
+cleanup:
+    VIR_FREE(mode);
+    VIR_FREE(protocol);
+    VIR_FREE(bindHost);
+    VIR_FREE(bindService);
+    VIR_FREE(connectHost);
+    VIR_FREE(connectService);
+    VIR_FREE(path);
+
+    return remaining;
+
+error:
+    virDomainChrSourceDefClear(def);
+    remaining = -1;
+    goto cleanup;
+}
 
 /* Parse the XML definition for a character device
  * @param node XML nodeset to parse for net definition
@@ -2805,15 +3217,9 @@ virDomainChrDefParseXML(virCapsPtr caps,
                         int flags) {
     xmlNodePtr cur;
     char *type = NULL;
-    char *bindHost = NULL;
-    char *bindService = NULL;
-    char *connectHost = NULL;
-    char *connectService = NULL;
-    char *path = NULL;
-    char *mode = NULL;
-    char *protocol = NULL;
     const char *nodeName;
     virDomainChrDefPtr def;
+    int remaining;
 
     if (VIR_ALLOC(def) < 0) {
         virReportOOMError();
@@ -2821,10 +3227,14 @@ virDomainChrDefParseXML(virCapsPtr caps,
     }
 
     type = virXMLPropString(node, "type");
-    if (type == NULL)
-        def->type = VIR_DOMAIN_CHR_TYPE_PTY;
-    else if ((def->type = virDomainChrTypeFromString(type)) < 0)
-        def->type = VIR_DOMAIN_CHR_TYPE_NULL;
+    if (type == NULL) {
+        def->source.type = VIR_DOMAIN_CHR_TYPE_PTY;
+    } else if ((def->source.type = virDomainChrTypeFromString(type)) < 0) {
+        virDomainReportError(VIR_ERR_XML_ERROR,
+                             _("unknown type presented to host for character device: %s"),
+                             type);
+        goto error;
+    }
 
     nodeName = (const char *) node->name;
     if ((def->deviceType = virDomainChrDeviceTypeFromString(nodeName)) < 0) {
@@ -2834,188 +3244,172 @@ virDomainChrDefParseXML(virCapsPtr caps,
     }
 
     cur = node->children;
-    while (cur != NULL) {
-        if (cur->type == XML_ELEMENT_NODE) {
-            if (xmlStrEqual(cur->name, BAD_CAST "source")) {
-                if (mode == NULL)
-                    mode = virXMLPropString(cur, "mode");
-
-                switch (def->type) {
-                case VIR_DOMAIN_CHR_TYPE_PTY:
-                case VIR_DOMAIN_CHR_TYPE_DEV:
-                case VIR_DOMAIN_CHR_TYPE_FILE:
-                case VIR_DOMAIN_CHR_TYPE_PIPE:
-                case VIR_DOMAIN_CHR_TYPE_UNIX:
-                    if (path == NULL)
-                        path = virXMLPropString(cur, "path");
-
-                    break;
-
-                case VIR_DOMAIN_CHR_TYPE_UDP:
-                case VIR_DOMAIN_CHR_TYPE_TCP:
-                    if (mode == NULL ||
-                        STREQ((const char *)mode, "connect")) {
-
-                        if (connectHost == NULL)
-                            connectHost = virXMLPropString(cur, "host");
-                        if (connectService == NULL)
-                            connectService = virXMLPropString(cur, "service");
-                    } else if (STREQ((const char *)mode, "bind")) {
-                        if (bindHost == NULL)
-                            bindHost = virXMLPropString(cur, "host");
-                        if (bindService == NULL)
-                            bindService = virXMLPropString(cur, "service");
-                    } else {
-                        virDomainReportError(VIR_ERR_INTERNAL_ERROR,
-                                             _("Unknown source mode '%s'"),
-                                             mode);
+    remaining = virDomainChrSourceDefParseXML(&def->source, cur);
+    if (remaining < 0)
+        goto error;
+    if (remaining) {
+        while (cur != NULL) {
+            if (cur->type == XML_ELEMENT_NODE) {
+                if (xmlStrEqual(cur->name, BAD_CAST "target")) {
+                    if (virDomainChrDefParseTargetXML(caps, def, cur,
+                                                      flags) < 0) {
                         goto error;
                     }
-
-                    if (def->type == VIR_DOMAIN_CHR_TYPE_UDP)
-                        VIR_FREE(mode);
-                }
-            } else if (xmlStrEqual(cur->name, BAD_CAST "protocol")) {
-                if (protocol == NULL)
-                    protocol = virXMLPropString(cur, "type");
-            } else if (xmlStrEqual(cur->name, BAD_CAST "target")) {
-                if (virDomainChrDefParseTargetXML(caps, def, cur, flags) < 0) {
-                    goto error;
                 }
             }
+            cur = cur->next;
         }
-        cur = cur->next;
     }
 
-    switch (def->type) {
-    case VIR_DOMAIN_CHR_TYPE_NULL:
-        /* Nada */
-        break;
-
-    case VIR_DOMAIN_CHR_TYPE_VC:
-        break;
-
-    case VIR_DOMAIN_CHR_TYPE_PTY:
-    case VIR_DOMAIN_CHR_TYPE_DEV:
-    case VIR_DOMAIN_CHR_TYPE_FILE:
-    case VIR_DOMAIN_CHR_TYPE_PIPE:
-        if (path == NULL &&
-            def->type != VIR_DOMAIN_CHR_TYPE_PTY) {
-            virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("Missing source path attribute for char device"));
+    if (def->source.type == VIR_DOMAIN_CHR_TYPE_SPICEVMC) {
+        if (def->targetType != VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_VIRTIO) {
+            virDomainReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                 _("spicevmc device type only supports "
+                                   "virtio"));
             goto error;
-        }
-
-        def->data.file.path = path;
-        path = NULL;
-        break;
-
-    case VIR_DOMAIN_CHR_TYPE_STDIO:
-        /* Nada */
-        break;
-
-    case VIR_DOMAIN_CHR_TYPE_TCP:
-        if (mode == NULL ||
-            STREQ(mode, "connect")) {
-            if (connectHost == NULL) {
-                virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("Missing source host attribute for char device"));
-                goto error;
-            }
-            if (connectService == NULL) {
-                virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                     _("Missing source service attribute for char device"));
-                goto error;
-            }
-
-            def->data.tcp.host = connectHost;
-            connectHost = NULL;
-            def->data.tcp.service = connectService;
-            connectService = NULL;
-            def->data.tcp.listen = 0;
         } else {
-            if (bindHost == NULL) {
-                virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("Missing source host attribute for char device"));
-                goto error;
-            }
-            if (bindService == NULL) {
-                virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                     _("Missing source service attribute for char device"));
-                goto error;
-            }
-
-            def->data.tcp.host = bindHost;
-            bindHost = NULL;
-            def->data.tcp.service = bindService;
-            bindService = NULL;
-            def->data.tcp.listen = 1;
+            def->source.data.spicevmc = VIR_DOMAIN_CHR_SPICEVMC_VDAGENT;
         }
-
-        if (protocol == NULL)
-            def->data.tcp.protocol = VIR_DOMAIN_CHR_TCP_PROTOCOL_RAW;
-        else if ((def->data.tcp.protocol =
-                  virDomainChrTcpProtocolTypeFromString(protocol)) < 0) {
-            virDomainReportError(VIR_ERR_INTERNAL_ERROR,
-                                 _("Unknown protocol '%s'"), protocol);
-            goto error;
-        }
-
-        break;
-
-    case VIR_DOMAIN_CHR_TYPE_UDP:
-        if (connectService == NULL) {
-            virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                   _("Missing source service attribute for char device"));
-            goto error;
-        }
-
-        def->data.udp.connectHost = connectHost;
-        connectHost = NULL;
-        def->data.udp.connectService = connectService;
-        connectService = NULL;
-
-        def->data.udp.bindHost = bindHost;
-        bindHost = NULL;
-        def->data.udp.bindService = bindService;
-        bindService = NULL;
-        break;
-
-    case VIR_DOMAIN_CHR_TYPE_UNIX:
-        if (path == NULL) {
-            virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                         _("Missing source path attribute for char device"));
-            goto error;
-        }
-
-        if (mode != NULL &&
-            STRNEQ(mode, "connect"))
-            def->data.nix.listen = 1;
-        else
-            def->data.nix.listen = 0;
-
-        def->data.nix.path = path;
-        path = NULL;
-        break;
     }
 
     if (virDomainDeviceInfoParseXML(node, &def->info, flags) < 0)
         goto error;
 
 cleanup:
-    VIR_FREE(mode);
-    VIR_FREE(protocol);
     VIR_FREE(type);
-    VIR_FREE(bindHost);
-    VIR_FREE(bindService);
-    VIR_FREE(connectHost);
-    VIR_FREE(connectService);
-    VIR_FREE(path);
 
     return def;
 
 error:
     virDomainChrDefFree(def);
+    def = NULL;
+    goto cleanup;
+}
+
+static virDomainSmartcardDefPtr
+virDomainSmartcardDefParseXML(xmlNodePtr node,
+                              int flags)
+{
+    xmlNodePtr cur;
+    char *mode = NULL;
+    char *type = NULL;
+    virDomainSmartcardDefPtr def;
+    int i;
+
+    if (VIR_ALLOC(def) < 0) {
+        virReportOOMError();
+        return NULL;
+    }
+
+    mode = virXMLPropString(node, "mode");
+    if (mode == NULL) {
+        virDomainReportError(VIR_ERR_XML_ERROR, "%s",
+                             _("missing smartcard device mode"));
+        goto error;
+    }
+    if ((def->type = virDomainSmartcardTypeFromString(mode)) < 0) {
+        virDomainReportError(VIR_ERR_XML_ERROR,
+                             _("unknown smartcard device mode: %s"),
+                             mode);
+        goto error;
+    }
+
+    switch (def->type) {
+    case VIR_DOMAIN_SMARTCARD_TYPE_HOST:
+        break;
+
+    case VIR_DOMAIN_SMARTCARD_TYPE_HOST_CERTIFICATES:
+        i = 0;
+        cur = node->children;
+        while (cur) {
+            if (cur->type == XML_ELEMENT_NODE &&
+                xmlStrEqual(cur->name, BAD_CAST "certificate")) {
+                if (i == 3) {
+                    virDomainReportError(VIR_ERR_XML_ERROR, "%s",
+                                         _("host-certificates mode needs "
+                                           "exactly three certificates"));
+                    goto error;
+                }
+                def->data.cert.file[i] = (char *)xmlNodeGetContent(cur);
+                if (!def->data.cert.file[i]) {
+                    virReportOOMError();
+                    goto error;
+                }
+                i++;
+            } else if (cur->type == XML_ELEMENT_NODE &&
+                       xmlStrEqual(cur->name, BAD_CAST "database") &&
+                       !def->data.cert.database) {
+                def->data.cert.database = (char *)xmlNodeGetContent(cur);
+                if (!def->data.cert.database) {
+                    virReportOOMError();
+                    goto error;
+                }
+                if (*def->data.cert.database != '/') {
+                    virDomainReportError(VIR_ERR_XML_ERROR,
+                                         _("expecting absolute path: %s"),
+                                         def->data.cert.database);
+                    goto error;
+                }
+            }
+            cur = cur->next;
+        }
+        if (i < 3) {
+            virDomainReportError(VIR_ERR_XML_ERROR, "%s",
+                                 _("host-certificates mode needs "
+                                   "exactly three certificates"));
+            goto error;
+        }
+        break;
+
+    case VIR_DOMAIN_SMARTCARD_TYPE_PASSTHROUGH:
+        type = virXMLPropString(node, "type");
+        if (type == NULL) {
+            virDomainReportError(VIR_ERR_XML_ERROR, "%s",
+                                 _("passthrough mode requires a character "
+                                   "device type attribute"));
+            goto error;
+        }
+        if ((def->data.passthru.type = virDomainChrTypeFromString(type)) < 0) {
+            virDomainReportError(VIR_ERR_XML_ERROR,
+                                 _("unknown type presented to host for "
+                                   "character device: %s"), type);
+            goto error;
+        }
+
+        cur = node->children;
+        if (virDomainChrSourceDefParseXML(&def->data.passthru, cur) < 0)
+            goto error;
+
+        if (def->data.passthru.type == VIR_DOMAIN_CHR_TYPE_SPICEVMC) {
+            def->data.passthru.data.spicevmc
+                = VIR_DOMAIN_CHR_SPICEVMC_SMARTCARD;
+        }
+
+        break;
+
+    default:
+        virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                             _("unknown smartcard mode"));
+        goto error;
+    }
+
+    if (virDomainDeviceInfoParseXML(node, &def->info, flags) < 0)
+        goto error;
+    if (def->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE &&
+        def->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCID) {
+        virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                             _("Controllers must use the 'ccid' address type"));
+        goto error;
+    }
+
+cleanup:
+    VIR_FREE(mode);
+    VIR_FREE(type);
+
+    return def;
+
+error:
+    virDomainSmartcardDefFree(def);
     def = NULL;
     goto cleanup;
 }
@@ -3349,6 +3743,7 @@ virDomainGraphicsDefParseXML(xmlNodePtr node, int flags) {
         }
 
         def->data.vnc.listenAddr = virXMLPropString(node, "listen");
+        def->data.vnc.socket = virXMLPropString(node, "socket");
         def->data.vnc.keymap = virXMLPropString(node, "keymap");
 
         if (virDomainGraphicsAuthDefParseXML(node, &def->data.vnc.auth) < 0)
@@ -3478,7 +3873,7 @@ virDomainGraphicsDefParseXML(xmlNodePtr node, int flags) {
 
         def->data.spice.listenAddr = virXMLPropString(node, "listen");
         def->data.spice.keymap = virXMLPropString(node, "keymap");
-        if (virDomainGraphicsAuthDefParseXML(node, &def->data.vnc.auth) < 0)
+        if (virDomainGraphicsAuthDefParseXML(node, &def->data.spice.auth) < 0)
             goto error;
 
         cur = node->children;
@@ -4081,7 +4476,9 @@ out:
 
 static virDomainHostdevDefPtr
 virDomainHostdevDefParseXML(const xmlNodePtr node,
-                            int flags) {
+                            virBitmapPtr bootMap,
+                            int flags)
+{
 
     xmlNodePtr cur;
     virDomainHostdevDefPtr def;
@@ -4142,6 +4539,10 @@ virDomainHostdevDefParseXML(const xmlNodePtr node,
                 /* address is parsed as part of virDomainDeviceInfoParseXML */
             } else if (xmlStrEqual(cur->name, BAD_CAST "alias")) {
                 /* alias is parsed as part of virDomainDeviceInfoParseXML */
+            } else if (xmlStrEqual(cur->name, BAD_CAST "boot")) {
+                if (virDomainDeviceBootParseXML(cur, &def->bootIndex,
+                                                bootMap))
+                    goto error;
             } else {
                 virDomainReportError(VIR_ERR_INTERNAL_ERROR,
                                      _("unknown node %s"), cur->name);
@@ -4279,6 +4680,7 @@ virDomainDeviceDefPtr virDomainDeviceDefParse(virCapsPtr caps,
 {
     xmlDocPtr xml;
     xmlNodePtr node;
+    xmlXPathContextPtr ctxt = NULL;
     virDomainDeviceDefPtr dev = NULL;
 
     if (!(xml = xmlReadDoc(BAD_CAST xmlStr, "device.xml", NULL,
@@ -4295,6 +4697,13 @@ virDomainDeviceDefPtr virDomainDeviceDefParse(virCapsPtr caps,
         goto error;
     }
 
+    ctxt = xmlXPathNewContext(xml);
+    if (ctxt == NULL) {
+        virReportOOMError();
+        goto error;
+    }
+    ctxt->node = node;
+
     if (VIR_ALLOC(dev) < 0) {
         virReportOOMError();
         goto error;
@@ -4302,7 +4711,8 @@ virDomainDeviceDefPtr virDomainDeviceDefParse(virCapsPtr caps,
 
     if (xmlStrEqual(node->name, BAD_CAST "disk")) {
         dev->type = VIR_DOMAIN_DEVICE_DISK;
-        if (!(dev->data.disk = virDomainDiskDefParseXML(caps, node, flags)))
+        if (!(dev->data.disk = virDomainDiskDefParseXML(caps, node,
+                                                        NULL, flags)))
             goto error;
     } else if (xmlStrEqual(node->name, BAD_CAST "filesystem")) {
         dev->type = VIR_DOMAIN_DEVICE_FS;
@@ -4310,7 +4720,8 @@ virDomainDeviceDefPtr virDomainDeviceDefParse(virCapsPtr caps,
             goto error;
     } else if (xmlStrEqual(node->name, BAD_CAST "interface")) {
         dev->type = VIR_DOMAIN_DEVICE_NET;
-        if (!(dev->data.net = virDomainNetDefParseXML(caps, node, flags)))
+        if (!(dev->data.net = virDomainNetDefParseXML(caps, node, ctxt,
+                                                      NULL, flags)))
             goto error;
     } else if (xmlStrEqual(node->name, BAD_CAST "input")) {
         dev->type = VIR_DOMAIN_DEVICE_INPUT;
@@ -4331,7 +4742,8 @@ virDomainDeviceDefPtr virDomainDeviceDefParse(virCapsPtr caps,
             goto error;
     } else if (xmlStrEqual(node->name, BAD_CAST "hostdev")) {
         dev->type = VIR_DOMAIN_DEVICE_HOSTDEV;
-        if (!(dev->data.hostdev = virDomainHostdevDefParseXML(node, flags)))
+        if (!(dev->data.hostdev = virDomainHostdevDefParseXML(node, NULL,
+                                                              flags)))
             goto error;
     } else if (xmlStrEqual(node->name, BAD_CAST "controller")) {
         dev->type = VIR_DOMAIN_DEVICE_CONTROLLER;
@@ -4348,11 +4760,12 @@ virDomainDeviceDefPtr virDomainDeviceDefParse(virCapsPtr caps,
     }
 
     xmlFreeDoc(xml);
-
+    xmlXPathFreeContext(ctxt);
     return dev;
 
   error:
     xmlFreeDoc(xml);
+    xmlXPathFreeContext(ctxt);
     VIR_FREE(dev);
     return NULL;
 }
@@ -4578,6 +4991,79 @@ static char *virDomainDefDefaultEmulator(virDomainDefPtr def,
     return retemu;
 }
 
+static int
+virDomainDefParseBootXML(xmlXPathContextPtr ctxt,
+                         virDomainDefPtr def,
+                         unsigned long *bootCount)
+{
+    xmlNodePtr *nodes = NULL;
+    int i, n;
+    char *bootstr;
+    int ret = -1;
+    unsigned long deviceBoot;
+
+    if (virXPathULong("count(./devices/disk[boot]"
+                      "|./devices/interface[boot]"
+                      "|./devices/hostdev[boot])", ctxt, &deviceBoot) < 0) {
+        virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                             _("cannot count boot devices"));
+        goto cleanup;
+    }
+
+    /* analysis of the boot devices */
+    if ((n = virXPathNodeSet("./os/boot", ctxt, &nodes)) < 0) {
+        virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                             "%s", _("cannot extract boot device"));
+        goto cleanup;
+    }
+
+    if (n > 0 && deviceBoot) {
+        virDomainReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                             _("per-device boot elements cannot be used"
+                               " together with os/boot elements"));
+        goto cleanup;
+    }
+
+    for (i = 0 ; i < n && i < VIR_DOMAIN_BOOT_LAST ; i++) {
+        int val;
+        char *dev = virXMLPropString(nodes[i], "dev");
+        if (!dev) {
+            virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                                 "%s", _("missing boot device"));
+            goto cleanup;
+        }
+        if ((val = virDomainBootTypeFromString(dev)) < 0) {
+            virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                                 _("unknown boot device '%s'"),
+                                 dev);
+            VIR_FREE(dev);
+            goto cleanup;
+        }
+        VIR_FREE(dev);
+        def->os.bootDevs[def->os.nBootDevs++] = val;
+    }
+    if (def->os.nBootDevs == 0 && !deviceBoot) {
+        def->os.nBootDevs = 1;
+        def->os.bootDevs[0] = VIR_DOMAIN_BOOT_DISK;
+    }
+
+    bootstr = virXPathString("string(./os/bootmenu[1]/@enable)", ctxt);
+    if (bootstr) {
+        if (STREQ(bootstr, "yes"))
+            def->os.bootmenu = VIR_DOMAIN_BOOT_MENU_ENABLED;
+        else
+            def->os.bootmenu = VIR_DOMAIN_BOOT_MENU_DISABLED;
+        VIR_FREE(bootstr);
+    }
+
+    *bootCount = deviceBoot;
+    ret = 0;
+
+cleanup:
+    VIR_FREE(nodes);
+    return ret;
+}
+
 static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
                                             xmlDocPtr xml,
                                             xmlNodePtr root,
@@ -4591,6 +5077,8 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
     virDomainDefPtr def;
     unsigned long count;
     bool uuid_generated = false;
+    virBitmapPtr bootMap = NULL;
+    unsigned long bootMapSize = 0;
 
     if (VIR_ALLOC(def) < 0) {
         virReportOOMError();
@@ -4660,6 +5148,11 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
     node = virXPathNode("./memoryBacking/hugepages", ctxt);
     if (node)
         def->mem.hugepage_backed = 1;
+
+    /* Extract blkio cgroup tunables */
+    if (virXPathUInt("string(./blkiotune/weight)", ctxt,
+                     &def->blkio.weight) < 0)
+        def->blkio.weight = 0;
 
     /* Extract other memory tunables */
     if (virXPathULong("string(./memtune/hard_limit)", ctxt,
@@ -4908,46 +5401,10 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
     }
 
     if (STREQ(def->os.type, "hvm")) {
-        char *bootstr;
-
-        /* analysis of the boot devices */
-        if ((n = virXPathNodeSet("./os/boot", ctxt, &nodes)) < 0) {
-            virDomainReportError(VIR_ERR_INTERNAL_ERROR,
-                                 "%s", _("cannot extract boot device"));
+        if (virDomainDefParseBootXML(ctxt, def, &bootMapSize) < 0)
             goto error;
-        }
-        for (i = 0 ; i < n && i < VIR_DOMAIN_BOOT_LAST ; i++) {
-            int val;
-            char *dev = virXMLPropString(nodes[i], "dev");
-            if (!dev) {
-                virDomainReportError(VIR_ERR_INTERNAL_ERROR,
-                                     "%s", _("missing boot device"));
-                goto error;
-            }
-            if ((val = virDomainBootTypeFromString(dev)) < 0) {
-                virDomainReportError(VIR_ERR_INTERNAL_ERROR,
-                                     _("unknown boot device '%s'"),
-                                     dev);
-                VIR_FREE(dev);
-                goto error;
-            }
-            VIR_FREE(dev);
-            def->os.bootDevs[def->os.nBootDevs++] = val;
-        }
-        if (def->os.nBootDevs == 0) {
-            def->os.nBootDevs = 1;
-            def->os.bootDevs[0] = VIR_DOMAIN_BOOT_DISK;
-        }
-        VIR_FREE(nodes);
-
-        bootstr = virXPathString("string(./os/bootmenu[1]/@enable)", ctxt);
-        if (bootstr) {
-            if (STREQ(bootstr, "yes"))
-                def->os.bootmenu = VIR_DOMAIN_BOOT_MENU_ENABLED;
-            else
-                def->os.bootmenu = VIR_DOMAIN_BOOT_MENU_DISABLED;
-            VIR_FREE(bootstr);
-        }
+        if (bootMapSize && !(bootMap = virBitmapAlloc(bootMapSize)))
+            goto no_memory;
     }
 
     def->emulator = virXPathString("string(./devices/emulator[1])", ctxt);
@@ -4968,6 +5425,7 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
     for (i = 0 ; i < n ; i++) {
         virDomainDiskDefPtr disk = virDomainDiskDefParseXML(caps,
                                                             nodes[i],
+                                                            bootMap,
                                                             flags);
         if (!disk)
             goto error;
@@ -5023,11 +5481,33 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
     for (i = 0 ; i < n ; i++) {
         virDomainNetDefPtr net = virDomainNetDefParseXML(caps,
                                                          nodes[i],
+                                                         ctxt,
+                                                         bootMap,
                                                          flags);
         if (!net)
             goto error;
 
         def->nets[def->nnets++] = net;
+    }
+    VIR_FREE(nodes);
+
+
+    /* analysis of the smartcard devices */
+    if ((n = virXPathNodeSet("./devices/smartcard", ctxt, &nodes)) < 0) {
+        virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                             "%s", _("cannot extract smartcard devices"));
+        goto error;
+    }
+    if (n && VIR_ALLOC_N(def->smartcards, n) < 0)
+        goto no_memory;
+
+    for (i = 0 ; i < n ; i++) {
+        virDomainSmartcardDefPtr card = virDomainSmartcardDefParseXML(nodes[i],
+                                                                      flags);
+        if (!card)
+            goto error;
+
+        def->smartcards[def->nsmartcards++] = card;
     }
     VIR_FREE(nodes);
 
@@ -5127,7 +5607,7 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
 
         if (chr->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_SERIAL &&
             chr->info.addr.vioserial.port == 0) {
-            int maxport = -1;
+            int maxport = 0;
             int j;
             for (j = 0 ; j < i ; j++) {
                 virDomainChrDefPtr thischr = def->channels[j];
@@ -5288,6 +5768,7 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
         goto no_memory;
     for (i = 0 ; i < n ; i++) {
         virDomainHostdevDefPtr hostdev = virDomainHostdevDefParseXML(nodes[i],
+                                                                     bootMap,
                                                                      flags);
         if (!hostdev)
             goto error;
@@ -5422,6 +5903,8 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
     if (virDomainDefAddImplicitControllers(def) < 0)
         goto error;
 
+    virBitmapFree(bootMap);
+
     return def;
 
 no_memory:
@@ -5431,6 +5914,7 @@ no_memory:
  error:
     VIR_FREE(tmp);
     VIR_FREE(nodes);
+    virBitmapFree(bootMap);
     virDomainDefFree(def);
     return NULL;
 }
@@ -5706,6 +6190,45 @@ static int virDomainDefMaybeAddVirtioSerialController(virDomainDefPtr def)
 }
 
 
+static int
+virDomainDefMaybeAddSmartcardController(virDomainDefPtr def)
+{
+    /* Look for any smartcard devs */
+    int i;
+
+    for (i = 0 ; i < def->nsmartcards ; i++) {
+        virDomainSmartcardDefPtr smartcard = def->smartcards[i];
+        int idx = 0;
+
+        if (smartcard->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCID) {
+            idx = smartcard->info.addr.ccid.controller;
+        } else if (smartcard->info.type
+                   == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE) {
+            int j;
+            int max = -1;
+
+            for (j = 0; j < def->nsmartcards; j++) {
+                virDomainDeviceInfoPtr info = &def->smartcards[j]->info;
+                if (info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCID &&
+                    info->addr.ccid.controller == 0 &&
+                    (int) info->addr.ccid.slot > max)
+                    max = info->addr.ccid.slot;
+            }
+            smartcard->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCID;
+            smartcard->info.addr.ccid.controller = 0;
+            smartcard->info.addr.ccid.slot = max + 1;
+        }
+
+        if (virDomainDefMaybeAddController(def,
+                                           VIR_DOMAIN_CONTROLLER_TYPE_CCID,
+                                           idx) < 0)
+            return -1;
+    }
+
+    return 0;
+}
+
+
 /*
  * Based on the declared <address/> info for any devices,
  * add neccessary drive controllers which are not already present
@@ -5730,6 +6253,9 @@ int virDomainDefAddImplicitControllers(virDomainDefPtr def)
         return -1;
 
     if (virDomainDefMaybeAddVirtioSerialController(def) < 0)
+        return -1;
+
+    if (virDomainDefMaybeAddSmartcardController(def) < 0)
         return -1;
 
     return 0;
@@ -5961,6 +6487,7 @@ virDomainDiskDefFormat(virBufferPtr buf,
     const char *bus = virDomainDiskBusTypeToString(def->bus);
     const char *cachemode = virDomainDiskCacheTypeToString(def->cachemode);
     const char *error_policy = virDomainDiskErrorPolicyTypeToString(def->error_policy);
+    const char *iomode = virDomainDiskIoTypeToString(def->iomode);
 
     if (!type) {
         virDomainReportError(VIR_ERR_INTERNAL_ERROR,
@@ -5982,6 +6509,11 @@ virDomainDiskDefFormat(virBufferPtr buf,
                              _("unexpected disk cache mode %d"), def->cachemode);
         return -1;
     }
+    if (!iomode) {
+        virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                             _("unexpected disk io mode %d"), def->iomode);
+        return -1;
+    }
 
     virBufferVSprintf(buf,
                       "    <disk type='%s' device='%s'>\n",
@@ -5997,6 +6529,8 @@ virDomainDiskDefFormat(virBufferPtr buf,
             virBufferVSprintf(buf, " cache='%s'", cachemode);
         if (def->error_policy)
             virBufferVSprintf(buf, " error_policy='%s'", error_policy);
+        if (def->iomode)
+            virBufferVSprintf(buf, " io='%s'", iomode);
         virBufferVSprintf(buf, "/>\n");
     }
 
@@ -6046,6 +6580,8 @@ virDomainDiskDefFormat(virBufferPtr buf,
     virBufferVSprintf(buf, "      <target dev='%s' bus='%s'/>\n",
                       def->dst, bus);
 
+    if (def->bootIndex)
+        virBufferVSprintf(buf, "      <boot order='%d'/>\n", def->bootIndex);
     if (def->readonly)
         virBufferAddLit(buf, "      <readonly/>\n");
     if (def->shared)
@@ -6271,9 +6807,14 @@ virDomainNetDefFormat(virBufferPtr buf,
     if (def->ifname)
         virBufferEscapeString(buf, "      <target dev='%s'/>\n",
                               def->ifname);
-    if (def->model)
+    if (def->model) {
         virBufferEscapeString(buf, "      <model type='%s'/>\n",
                               def->model);
+        if (STREQ(def->model, "virtio") && def->backend) {
+            virBufferVSprintf(buf, "      <driver name='%s'/>\n",
+                              virDomainNetBackendTypeToString(def->backend));
+        }
+    }
     if (def->filter) {
         virBufferEscapeString(buf, "      <filterref filter='%s'",
                               def->filter);
@@ -6285,6 +6826,14 @@ virDomainNetDefFormat(virBufferPtr buf,
             virBufferVSprintf(buf, ">\n%s      </filterref>\n", attrs);
         VIR_FREE(attrs);
     }
+    if (def->bootIndex)
+        virBufferVSprintf(buf, "      <boot order='%d'/>\n", def->bootIndex);
+
+    if (def->tune.sndbuf_specified) {
+        virBufferAddLit(buf,   "      <tune>\n");
+        virBufferVSprintf(buf, "        <sndbuf>%lu</sndbuf>\n", def->tune.sndbuf);
+        virBufferAddLit(buf,   "      </tune>\n");
+    }
 
     if (virDomainDeviceInfoFormat(buf, &def->info, flags) < 0)
         return -1;
@@ -6295,17 +6844,15 @@ virDomainNetDefFormat(virBufferPtr buf,
 }
 
 
+/* Assumes that "<device" has already been generated, and starts
+ * output at " type='type'>". */
 static int
-virDomainChrDefFormat(virBufferPtr buf,
-                      virDomainChrDefPtr def,
-                      int flags)
+virDomainChrSourceDefFormat(virBufferPtr buf,
+                            virDomainChrSourceDefPtr def,
+                            bool tty_compat,
+                            int flags)
 {
     const char *type = virDomainChrTypeToString(def->type);
-    const char *elementName = virDomainChrDeviceTypeToString(def->deviceType);
-    const char *targetType = virDomainChrTargetTypeToString(def->deviceType,
-                                                            def->targetType);
-
-    int ret = 0;
 
     if (!type) {
         virDomainReportError(VIR_ERR_INTERNAL_ERROR,
@@ -6313,21 +6860,9 @@ virDomainChrDefFormat(virBufferPtr buf,
         return -1;
     }
 
-    if (!elementName) {
-        virDomainReportError(VIR_ERR_INTERNAL_ERROR,
-                             _("unexpected char device type %d"),
-                             def->deviceType);
-        return -1;
-    }
-
     /* Compat with legacy  <console tty='/dev/pts/5'/> syntax */
-    virBufferVSprintf(buf, "    <%s type='%s'",
-                      elementName, type);
-    if (def->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE &&
-        def->target.port == 0 &&
-        def->type == VIR_DOMAIN_CHR_TYPE_PTY &&
-        !(flags & VIR_DOMAIN_XML_INACTIVE) &&
-        def->data.file.path) {
+    virBufferVSprintf(buf, " type='%s'", type);
+    if (tty_compat) {
         virBufferEscapeString(buf, " tty='%s'",
                               def->data.file.path);
     }
@@ -6337,6 +6872,7 @@ virDomainChrDefFormat(virBufferPtr buf,
     case VIR_DOMAIN_CHR_TYPE_NULL:
     case VIR_DOMAIN_CHR_TYPE_VC:
     case VIR_DOMAIN_CHR_TYPE_STDIO:
+    case VIR_DOMAIN_CHR_TYPE_SPICEVMC:
         /* nada */
         break;
 
@@ -6345,7 +6881,8 @@ virDomainChrDefFormat(virBufferPtr buf,
     case VIR_DOMAIN_CHR_TYPE_FILE:
     case VIR_DOMAIN_CHR_TYPE_PIPE:
         if (def->type != VIR_DOMAIN_CHR_TYPE_PTY ||
-            (def->data.file.path && !(flags & VIR_DOMAIN_XML_INACTIVE))) {
+            (def->data.file.path &&
+             !(flags & VIR_DOMAIN_XML_INACTIVE))) {
             virBufferEscapeString(buf, "      <source path='%s'/>\n",
                                   def->data.file.path);
         }
@@ -6354,7 +6891,9 @@ virDomainChrDefFormat(virBufferPtr buf,
     case VIR_DOMAIN_CHR_TYPE_UDP:
         if (def->data.udp.bindService &&
             def->data.udp.bindHost) {
-            virBufferVSprintf(buf, "      <source mode='bind' host='%s' service='%s'/>\n",
+            virBufferVSprintf(buf,
+                              "      <source mode='bind' host='%s' "
+                              "service='%s'/>\n",
                               def->data.udp.bindHost,
                               def->data.udp.bindService);
         } else if (def->data.udp.bindHost) {
@@ -6367,25 +6906,30 @@ virDomainChrDefFormat(virBufferPtr buf,
 
         if (def->data.udp.connectService &&
             def->data.udp.connectHost) {
-            virBufferVSprintf(buf, "      <source mode='connect' host='%s' service='%s'/>\n",
+            virBufferVSprintf(buf,
+                              "      <source mode='connect' host='%s' "
+                              "service='%s'/>\n",
                               def->data.udp.connectHost,
                               def->data.udp.connectService);
         } else if (def->data.udp.connectHost) {
             virBufferVSprintf(buf, "      <source mode='connect' host='%s'/>\n",
                               def->data.udp.connectHost);
         } else if (def->data.udp.connectService) {
-            virBufferVSprintf(buf, "      <source mode='connect' service='%s'/>\n",
+            virBufferVSprintf(buf,
+                              "      <source mode='connect' service='%s'/>\n",
                               def->data.udp.connectService);
         }
         break;
 
     case VIR_DOMAIN_CHR_TYPE_TCP:
-        virBufferVSprintf(buf, "      <source mode='%s' host='%s' service='%s'/>\n",
+        virBufferVSprintf(buf,
+                          "      <source mode='%s' host='%s' service='%s'/>\n",
                           def->data.tcp.listen ? "bind" : "connect",
                           def->data.tcp.host,
                           def->data.tcp.service);
         virBufferVSprintf(buf, "      <protocol type='%s'/>\n",
-                          virDomainChrTcpProtocolTypeToString(def->data.tcp.protocol));
+                          virDomainChrTcpProtocolTypeToString(
+                              def->data.tcp.protocol));
         break;
 
     case VIR_DOMAIN_CHR_TYPE_UNIX:
@@ -6395,6 +6939,37 @@ virDomainChrDefFormat(virBufferPtr buf,
                               def->data.nix.path);
         break;
     }
+
+    return 0;
+}
+
+static int
+virDomainChrDefFormat(virBufferPtr buf,
+                      virDomainChrDefPtr def,
+                      int flags)
+{
+    const char *elementName = virDomainChrDeviceTypeToString(def->deviceType);
+    const char *targetType = virDomainChrTargetTypeToString(def->deviceType,
+                                                            def->targetType);
+    bool tty_compat;
+
+    int ret = 0;
+
+    if (!elementName) {
+        virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                             _("unexpected char device type %d"),
+                             def->deviceType);
+        return -1;
+    }
+
+    virBufferVSprintf(buf, "    <%s", elementName);
+    tty_compat = (def->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE &&
+                  def->target.port == 0 &&
+                  def->source.type == VIR_DOMAIN_CHR_TYPE_PTY &&
+                  !(flags & VIR_DOMAIN_XML_INACTIVE) &&
+                  def->source.data.file.path);
+    if (virDomainChrSourceDefFormat(buf, &def->source, tty_compat, flags) < 0)
+        return -1;
 
     /* Format <target> block */
     switch (def->deviceType) {
@@ -6437,10 +7012,6 @@ virDomainChrDefFormat(virBufferPtr buf,
         break;
     }
 
-    case VIR_DOMAIN_CHR_DEVICE_TYPE_MONITOR:
-        /* Nothing to format */
-        break;
-
     case VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE:
         virBufferVSprintf(buf,
                           "      <target type='%s' port='%d'/>\n",
@@ -6464,6 +7035,57 @@ virDomainChrDefFormat(virBufferPtr buf,
                       elementName);
 
     return ret;
+}
+
+static int
+virDomainSmartcardDefFormat(virBufferPtr buf,
+                            virDomainSmartcardDefPtr def,
+                            int flags)
+{
+    const char *mode = virDomainSmartcardTypeToString(def->type);
+    size_t i;
+
+    if (!mode) {
+        virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                             _("unexpected smartcard type %d"), def->type);
+        return -1;
+    }
+
+    virBufferVSprintf(buf, "    <smartcard mode='%s'", mode);
+    switch (def->type) {
+    case VIR_DOMAIN_SMARTCARD_TYPE_HOST:
+        if (!virDomainDeviceInfoIsSet(&def->info)) {
+            virBufferAddLit(buf, "/>\n");
+            return 0;
+        }
+        virBufferAddLit(buf, ">\n");
+        break;
+
+    case VIR_DOMAIN_SMARTCARD_TYPE_HOST_CERTIFICATES:
+        virBufferAddLit(buf, ">\n");
+        for (i = 0; i < VIR_DOMAIN_SMARTCARD_NUM_CERTIFICATES; i++)
+            virBufferEscapeString(buf, "      <certificate>%s</certificate>\n",
+                                  def->data.cert.file[i]);
+        if (def->data.cert.database)
+            virBufferEscapeString(buf, "      <database>%s</database>\n",
+                                  def->data.cert.database);
+        break;
+
+    case VIR_DOMAIN_SMARTCARD_TYPE_PASSTHROUGH:
+        if (virDomainChrSourceDefFormat(buf, &def->data.passthru, false,
+                                        flags) < 0)
+            return -1;
+        break;
+
+    default:
+        virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                             _("unexpected smartcard type %d"), def->type);
+        return -1;
+    }
+    if (virDomainDeviceInfoFormat(buf, &def->info, flags) < 0)
+        return -1;
+    virBufferAddLit(buf, "    </smartcard>\n");
+    return 0;
 }
 
 static int
@@ -6527,75 +7149,12 @@ static int
 virDomainSysinfoDefFormat(virBufferPtr buf,
                           virSysinfoDefPtr def)
 {
-    const char *type = virDomainSysinfoTypeToString(def->type);
+    char *format = virSysinfoFormat(def, "  ");
 
-    if (!type) {
-        virDomainReportError(VIR_ERR_INTERNAL_ERROR,
-                             _("unexpected sysinfo type model %d"),
-                             def->type);
+    if (!format)
         return -1;
-    }
-
-    virBufferVSprintf(buf, "  <sysinfo type='%s'>\n", type);
-    if ((def->bios_vendor != NULL) || (def->bios_version != NULL) ||
-        (def->bios_date != NULL) || (def->bios_release != NULL)) {
-        virBufferAddLit(buf, "    <bios>\n");
-        if (def->bios_vendor != NULL)
-            virBufferEscapeString(buf,
-                                  "      <entry name='vendor'>%s</entry>\n",
-                                  def->bios_vendor);
-        if (def->bios_version != NULL)
-            virBufferEscapeString(buf,
-                                  "      <entry name='version'>%s</entry>\n",
-                                  def->bios_version);
-        if (def->bios_date != NULL)
-            virBufferEscapeString(buf,
-                                  "      <entry name='date'>%s</entry>\n",
-                                  def->bios_date);
-        if (def->bios_release != NULL)
-            virBufferEscapeString(buf,
-                                  "      <entry name='release'>%s</entry>\n",
-                                  def->bios_release);
-        virBufferAddLit(buf, "    </bios>\n");
-    }
-    if ((def->system_manufacturer != NULL) || (def->system_product != NULL) ||
-        (def->system_version != NULL) || (def->system_serial != NULL) ||
-        (def->system_uuid != NULL) || (def->system_sku != NULL) ||
-        (def->system_family != NULL)) {
-        virBufferAddLit(buf, "    <system>\n");
-        if (def->system_manufacturer != NULL)
-            virBufferEscapeString(buf,
-                          "      <entry name='manufacturer'>%s</entry>\n",
-                                  def->system_manufacturer);
-        if (def->system_product != NULL)
-            virBufferEscapeString(buf,
-                                  "      <entry name='product'>%s</entry>\n",
-                                  def->system_product);
-        if (def->system_version != NULL)
-            virBufferEscapeString(buf,
-                                  "      <entry name='version'>%s</entry>\n",
-                                  def->system_version);
-        if (def->system_serial != NULL)
-            virBufferEscapeString(buf,
-                                  "      <entry name='serial'>%s</entry>\n",
-                                  def->system_serial);
-        if (def->system_uuid != NULL)
-            virBufferEscapeString(buf,
-                                  "      <entry name='uuid'>%s</entry>\n",
-                                  def->system_uuid);
-        if (def->system_sku != NULL)
-            virBufferEscapeString(buf,
-                                  "      <entry name='sku'>%s</entry>\n",
-                                  def->system_sku);
-        if (def->system_family != NULL)
-            virBufferEscapeString(buf,
-                                  "      <entry name='family'>%s</entry>\n",
-                                  def->system_family);
-        virBufferAddLit(buf, "    </system>\n");
-    }
-
-    virBufferAddLit(buf, "  </sysinfo>\n");
-
+    virBufferAdd(buf, format, strlen(format));
+    VIR_FREE(format);
     return 0;
 }
 
@@ -6844,19 +7403,25 @@ virDomainGraphicsDefFormat(virBufferPtr buf,
 
     switch (def->type) {
     case VIR_DOMAIN_GRAPHICS_TYPE_VNC:
-        if (def->data.vnc.port &&
-            (!def->data.vnc.autoport || !(flags & VIR_DOMAIN_XML_INACTIVE)))
-            virBufferVSprintf(buf, " port='%d'",
-                              def->data.vnc.port);
-        else if (def->data.vnc.autoport)
-            virBufferAddLit(buf, " port='-1'");
+        if (def->data.vnc.socket) {
+            if (def->data.vnc.socket)
+                virBufferVSprintf(buf, " socket='%s'",
+                                  def->data.vnc.socket);
+        } else {
+            if (def->data.vnc.port &&
+                (!def->data.vnc.autoport || !(flags & VIR_DOMAIN_XML_INACTIVE)))
+                virBufferVSprintf(buf, " port='%d'",
+                                  def->data.vnc.port);
+            else if (def->data.vnc.autoport)
+                virBufferAddLit(buf, " port='-1'");
 
-        virBufferVSprintf(buf, " autoport='%s'",
-                          def->data.vnc.autoport ? "yes" : "no");
+            virBufferVSprintf(buf, " autoport='%s'",
+                              def->data.vnc.autoport ? "yes" : "no");
 
-        if (def->data.vnc.listenAddr)
-            virBufferVSprintf(buf, " listen='%s'",
-                              def->data.vnc.listenAddr);
+            if (def->data.vnc.listenAddr)
+                virBufferVSprintf(buf, " listen='%s'",
+                                  def->data.vnc.listenAddr);
+        }
 
         if (def->data.vnc.keymap)
             virBufferEscapeString(buf, " keymap='%s'",
@@ -7009,6 +7574,9 @@ virDomainHostdevDefFormat(virBufferPtr buf,
 
     virBufferAddLit(buf, "      </source>\n");
 
+    if (def->bootIndex)
+        virBufferVSprintf(buf, "      <boot order='%d'/>\n", def->bootIndex);
+
     if (virDomainDeviceInfoFormat(buf, &def->info, flags) < 0)
         return -1;
 
@@ -7056,6 +7624,14 @@ char *virDomainDefFormat(virDomainDefPtr def,
     virBufferVSprintf(&buf, "  <memory>%lu</memory>\n", def->mem.max_balloon);
     virBufferVSprintf(&buf, "  <currentMemory>%lu</currentMemory>\n",
                       def->mem.cur_balloon);
+
+    /* add blkiotune only if there are any */
+    if (def->blkio.weight) {
+        virBufferVSprintf(&buf, "  <blkiotune>\n");
+        virBufferVSprintf(&buf, "    <weight>%u</weight>\n",
+                          def->blkio.weight);
+        virBufferVSprintf(&buf, "  </blkiotune>\n");
+    }
 
     /* add memtune only if there are any */
     if (def->mem.hard_limit || def->mem.soft_limit || def->mem.min_guarantee ||
@@ -7261,6 +7837,10 @@ char *virDomainDefFormat(virDomainDefPtr def,
 
     for (n = 0 ; n < def->nnets ; n++)
         if (virDomainNetDefFormat(&buf, def->nets[n], flags) < 0)
+            goto cleanup;
+
+    for (n = 0 ; n < def->nsmartcards ; n++)
+        if (virDomainSmartcardDefFormat(&buf, def->smartcards[n], flags) < 0)
             goto cleanup;
 
     for (n = 0 ; n < def->nserials ; n++)
@@ -8329,6 +8909,29 @@ int virDomainChrDefForeach(virDomainDefPtr def,
     if (def->console) {
         if ((iter)(def,
                    def->console,
+                   opaque) < 0)
+            rc = -1;
+
+        if (abortOnError && rc != 0)
+            goto done;
+    }
+
+done:
+    return rc;
+}
+
+
+int virDomainSmartcardDefForeach(virDomainDefPtr def,
+                                 bool abortOnError,
+                                 virDomainSmartcardDefIterator iter,
+                                 void *opaque)
+{
+    int i;
+    int rc = 0;
+
+    for (i = 0 ; i < def->nsmartcards ; i++) {
+        if ((iter)(def,
+                   def->smartcards[i],
                    opaque) < 0)
             rc = -1;
 

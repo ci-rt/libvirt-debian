@@ -1,7 +1,7 @@
 /*
  * qemu_domain.h: QEMU domain private state
  *
- * Copyright (C) 2006-2007, 2009-2010 Red Hat, Inc.
+ * Copyright (C) 2006-2011 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -56,7 +56,7 @@ static void qemuDomainObjPrivateFree(void *data)
     qemuDomainObjPrivatePtr priv = data;
 
     qemuDomainPCIAddressSetFree(priv->pciaddrs);
-    virDomainChrDefFree(priv->monConfig);
+    virDomainChrSourceDefFree(priv->monConfig);
     VIR_FREE(priv->vcpupids);
 
     /* This should never be non-NULL if we get here, but just in case... */
@@ -114,11 +114,6 @@ static int qemuDomainObjPrivateXMLParse(xmlXPathContextPtr ctxt, void *data)
     xmlNodePtr *nodes = NULL;
 
     if (VIR_ALLOC(priv->monConfig) < 0) {
-        virReportOOMError();
-        goto error;
-    }
-
-    if (!(priv->monConfig->info.alias = strdup("monitor"))) {
         virReportOOMError();
         goto error;
     }
@@ -185,7 +180,7 @@ static int qemuDomainObjPrivateXMLParse(xmlXPathContextPtr ctxt, void *data)
     return 0;
 
 error:
-    virDomainChrDefFree(priv->monConfig);
+    virDomainChrSourceDefFree(priv->monConfig);
     priv->monConfig = NULL;
     VIR_FREE(nodes);
     return -1;

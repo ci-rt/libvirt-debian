@@ -3,7 +3,7 @@
 /* Header for poll(2) emulation
    Contributed by Paolo Bonzini.
 
-   Copyright 2001, 2002, 2003, 2007, 2009, 2010 Free Software Foundation, Inc.
+   Copyright 2001-2003, 2007, 2009-2011 Free Software Foundation, Inc.
 
    This file is part of gnulib.
 
@@ -56,6 +56,8 @@
 # define POLLWRNORM  0x0100
 # define POLLWRBAND  0x0200
 
+# if !GNULIB_defined_poll_types
+
 struct pollfd
 {
   int fd;                       /* which file descriptor to poll */
@@ -64,6 +66,9 @@ struct pollfd
 };
 
 typedef unsigned long nfds_t;
+
+#  define GNULIB_defined_poll_types 1
+# endif
 
 /* Define INFTIM only if doing so conforms to POSIX.  */
 # if !defined (_POSIX_C_SOURCE) && !defined (_XOPEN_SOURCE)

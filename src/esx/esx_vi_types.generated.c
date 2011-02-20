@@ -3,6 +3,27 @@
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Enum: AutoStartWaitHeartbeatSetting
+ */
+
+static const esxVI_Enumeration _esxVI_AutoStartWaitHeartbeatSetting_Enumeration = {
+    esxVI_Type_AutoStartWaitHeartbeatSetting, {
+        { "yes", esxVI_AutoStartWaitHeartbeatSetting_Yes },
+        { "no", esxVI_AutoStartWaitHeartbeatSetting_No },
+        { "systemDefault", esxVI_AutoStartWaitHeartbeatSetting_SystemDefault },
+        { NULL, -1 },
+    },
+};
+
+/* esxVI_AutoStartWaitHeartbeatSetting_Serialize */
+ESX_VI__TEMPLATE__ENUMERATION__SERIALIZE(AutoStartWaitHeartbeatSetting)
+
+/* esxVI_AutoStartWaitHeartbeatSetting_Deserialize */
+ESX_VI__TEMPLATE__ENUMERATION__DESERIALIZE(AutoStartWaitHeartbeatSetting)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Enum: ManagedEntityStatus
  */
 
@@ -275,6 +296,129 @@ ESX_VI__TEMPLATE__DESERIALIZE(AboutInfo,
     ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, apiType)
     ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, apiVersion)
 })
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: AutoStartDefaults
+ */
+
+/* esxVI_AutoStartDefaults_Alloc */
+ESX_VI__TEMPLATE__ALLOC(AutoStartDefaults)
+
+/* esxVI_AutoStartDefaults_Free */
+ESX_VI__TEMPLATE__FREE(AutoStartDefaults,
+{
+    esxVI_Int_Free(&item->startDelay);
+    esxVI_Int_Free(&item->stopDelay);
+    VIR_FREE(item->stopAction);
+})
+
+/* esxVI_AutoStartDefaults_Validate */
+ESX_VI__TEMPLATE__VALIDATE(AutoStartDefaults,
+{
+    /* no required properties */
+})
+
+/* esxVI_AutoStartDefaults_CastFromAnyType */
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(AutoStartDefaults,
+{
+})
+
+/* esxVI_AutoStartDefaults_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(AutoStartDefaults,
+{
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, enabled)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Int, startDelay)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Int, stopDelay)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, waitForHeartbeat)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, stopAction)
+})
+
+/* esxVI_AutoStartDefaults_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(AutoStartDefaults,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, enabled)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Int, startDelay)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Int, stopDelay)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, waitForHeartbeat)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, stopAction)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: AutoStartPowerInfo
+ */
+
+/* esxVI_AutoStartPowerInfo_Alloc */
+ESX_VI__TEMPLATE__ALLOC(AutoStartPowerInfo)
+
+/* esxVI_AutoStartPowerInfo_Free */
+ESX_VI__TEMPLATE__FREE(AutoStartPowerInfo,
+{
+    esxVI_AutoStartPowerInfo_Free(&item->_next);
+
+    esxVI_ManagedObjectReference_Free(&item->key);
+    esxVI_Int_Free(&item->startOrder);
+    esxVI_Int_Free(&item->startDelay);
+    VIR_FREE(item->startAction);
+    esxVI_Int_Free(&item->stopDelay);
+    VIR_FREE(item->stopAction);
+})
+
+/* esxVI_AutoStartPowerInfo_Validate */
+ESX_VI__TEMPLATE__VALIDATE(AutoStartPowerInfo,
+{
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(key)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(startOrder)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(startDelay)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(waitForHeartbeat)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(startAction)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(stopDelay)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(stopAction)
+})
+
+/* esxVI_AutoStartPowerInfo_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(AutoStartPowerInfo)
+
+/* esxVI_AutoStartPowerInfo_CastFromAnyType */
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(AutoStartPowerInfo,
+{
+})
+
+/* esxVI_AutoStartPowerInfo_CastListFromAnyType */
+ESX_VI__TEMPLATE__LIST__CAST_FROM_ANY_TYPE(AutoStartPowerInfo)
+
+/* esxVI_AutoStartPowerInfo_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(AutoStartPowerInfo,
+{
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(ManagedObjectReference, key)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Int, startOrder)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Int, startDelay)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(AutoStartWaitHeartbeatSetting, waitForHeartbeat)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, startAction)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Int, stopDelay)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, stopAction)
+})
+
+/* esxVI_AutoStartPowerInfo_SerializeList */
+ESX_VI__TEMPLATE__LIST__SERIALIZE(AutoStartPowerInfo)
+
+/* esxVI_AutoStartPowerInfo_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(AutoStartPowerInfo,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(ManagedObjectReference, key)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Int, startOrder)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Int, startDelay)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(AutoStartWaitHeartbeatSetting, waitForHeartbeat)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, startAction)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Int, stopDelay)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, stopAction)
+})
+
+/* esxVI_AutoStartPowerInfo_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(AutoStartPowerInfo)
 
 
 
@@ -1372,6 +1516,128 @@ ESX_VI__TEMPLATE__DESERIALIZE(FolderFileQuery,
 
 /* esxVI_FolderFileQuery_DeserializeList */
 ESX_VI__TEMPLATE__LIST__DESERIALIZE(FolderFileQuery)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: HostAutoStartManagerConfig
+ */
+
+/* esxVI_HostAutoStartManagerConfig_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostAutoStartManagerConfig)
+
+/* esxVI_HostAutoStartManagerConfig_Free */
+ESX_VI__TEMPLATE__FREE(HostAutoStartManagerConfig,
+{
+    esxVI_AutoStartDefaults_Free(&item->defaults);
+    esxVI_AutoStartPowerInfo_Free(&item->powerInfo);
+})
+
+/* esxVI_HostAutoStartManagerConfig_Validate */
+ESX_VI__TEMPLATE__VALIDATE(HostAutoStartManagerConfig,
+{
+    /* no required properties */
+})
+
+/* esxVI_HostAutoStartManagerConfig_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(HostAutoStartManagerConfig,
+{
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(AutoStartDefaults, defaults)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_LIST(AutoStartPowerInfo, powerInfo)
+})
+
+/* esxVI_HostAutoStartManagerConfig_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(HostAutoStartManagerConfig,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(AutoStartDefaults, defaults)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_LIST(AutoStartPowerInfo, powerInfo)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: HostConfigManager
+ */
+
+/* esxVI_HostConfigManager_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostConfigManager)
+
+/* esxVI_HostConfigManager_Free */
+ESX_VI__TEMPLATE__FREE(HostConfigManager,
+{
+    esxVI_ManagedObjectReference_Free(&item->cpuScheduler);
+    esxVI_ManagedObjectReference_Free(&item->datastoreSystem);
+    esxVI_ManagedObjectReference_Free(&item->memoryManager);
+    esxVI_ManagedObjectReference_Free(&item->storageSystem);
+    esxVI_ManagedObjectReference_Free(&item->networkSystem);
+    esxVI_ManagedObjectReference_Free(&item->vmotionSystem);
+    esxVI_ManagedObjectReference_Free(&item->serviceSystem);
+    esxVI_ManagedObjectReference_Free(&item->firewallSystem);
+    esxVI_ManagedObjectReference_Free(&item->advancedOption);
+    esxVI_ManagedObjectReference_Free(&item->diagnosticSystem);
+    esxVI_ManagedObjectReference_Free(&item->autoStartManager);
+    esxVI_ManagedObjectReference_Free(&item->snmpSystem);
+    esxVI_ManagedObjectReference_Free(&item->dateTimeSystem);
+    esxVI_ManagedObjectReference_Free(&item->patchManager);
+    esxVI_ManagedObjectReference_Free(&item->bootDeviceSystem);
+    esxVI_ManagedObjectReference_Free(&item->firmwareSystem);
+    esxVI_ManagedObjectReference_Free(&item->healthStatusSystem);
+})
+
+/* esxVI_HostConfigManager_Validate */
+ESX_VI__TEMPLATE__VALIDATE(HostConfigManager,
+{
+    /* no required properties */
+})
+
+/* esxVI_HostConfigManager_CastFromAnyType */
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(HostConfigManager,
+{
+})
+
+/* esxVI_HostConfigManager_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(HostConfigManager,
+{
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(ManagedObjectReference, cpuScheduler)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(ManagedObjectReference, datastoreSystem)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(ManagedObjectReference, memoryManager)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(ManagedObjectReference, storageSystem)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(ManagedObjectReference, networkSystem)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(ManagedObjectReference, vmotionSystem)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(ManagedObjectReference, serviceSystem)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(ManagedObjectReference, firewallSystem)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(ManagedObjectReference, advancedOption)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(ManagedObjectReference, diagnosticSystem)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(ManagedObjectReference, autoStartManager)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(ManagedObjectReference, snmpSystem)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(ManagedObjectReference, dateTimeSystem)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(ManagedObjectReference, patchManager)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(ManagedObjectReference, bootDeviceSystem)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(ManagedObjectReference, firmwareSystem)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(ManagedObjectReference, healthStatusSystem)
+})
+
+/* esxVI_HostConfigManager_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(HostConfigManager,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(ManagedObjectReference, cpuScheduler)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(ManagedObjectReference, datastoreSystem)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(ManagedObjectReference, memoryManager)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(ManagedObjectReference, storageSystem)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(ManagedObjectReference, networkSystem)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(ManagedObjectReference, vmotionSystem)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(ManagedObjectReference, serviceSystem)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(ManagedObjectReference, firewallSystem)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(ManagedObjectReference, advancedOption)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(ManagedObjectReference, diagnosticSystem)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(ManagedObjectReference, autoStartManager)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(ManagedObjectReference, snmpSystem)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(ManagedObjectReference, dateTimeSystem)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(ManagedObjectReference, patchManager)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(ManagedObjectReference, bootDeviceSystem)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(ManagedObjectReference, firmwareSystem)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(ManagedObjectReference, healthStatusSystem)
+})
 
 
 

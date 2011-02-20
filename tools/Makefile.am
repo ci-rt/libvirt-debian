@@ -13,7 +13,7 @@ EXTRA_DIST = \
 	virt-xml-validate.in				\
 	virt-pki-validate.in				\
 	virsh.pod					\
-	libvirt-guests.init.in				\
+	libvirt-guests.init.sh				\
 	libvirt-guests.sysconf
 
 bin_SCRIPTS = virt-xml-validate virt-pki-validate
@@ -144,11 +144,14 @@ uninstall-init:
 
 BUILT_SOURCES += libvirt-guests.init
 
-libvirt-guests.init: libvirt-guests.init.in $(top_builddir)/config.status
+libvirt-guests.init: libvirt-guests.init.sh $(top_builddir)/config.status
 	$(AM_V_GEN)sed					\
-	    -e s!\@localstatedir\@!@localstatedir@!g	\
-	    -e s!\@sbindir\@!@sbindir@!g		\
-	    -e s!\@sysconfdir\@!@sysconfdir@!g		\
+	    -e 's!\@PACKAGE\@!$(PACKAGE)!g'		\
+	    -e 's!\@bindir\@!$(bindir)!g'		\
+	    -e 's!\@localedir\@!$(localedir)!g'		\
+	    -e 's!\@localstatedir\@!$(localstatedir)!g'	\
+	    -e 's!\@sbindir\@!$(sbindir)!g'		\
+	    -e 's!\@sysconfdir\@!$(sysconfdir)!g'	\
 	    < $< > $@-t &&				\
 	    chmod a+x $@-t &&				\
 	    mv $@-t $@

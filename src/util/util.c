@@ -384,6 +384,7 @@ int virFork(pid_t *pid) {
            get sent to stderr where they stand a fighting chance
            of being seen / logged */
         virSetErrorFunc(NULL, NULL);
+        virSetErrorLogPriorityFunc(NULL);
 
         /* Make sure any hook logging is sent to stderr, since child
          * process may close the logfile FDs */
@@ -593,14 +594,16 @@ __virExec(const char *const*argv,
         goto fork_error;
     }
 
-    VIR_FORCE_CLOSE(infd);
+    if (infd != STDIN_FILENO)
+        VIR_FORCE_CLOSE(infd);
     VIR_FORCE_CLOSE(null);
-    tmpfd = childout;   /* preserve childout value */
-    VIR_FORCE_CLOSE(tmpfd);
-    if (childerr > 0 &&
+    if (childout > STDERR_FILENO) {
+        tmpfd = childout;   /* preserve childout value */
+        VIR_FORCE_CLOSE(tmpfd);
+    }
+    if (childerr > STDERR_FILENO &&
         childerr != childout) {
         VIR_FORCE_CLOSE(childerr);
-        childout = -1;
     }
 
     /* Initialize full logging for a while */
@@ -642,11 +645,33 @@ __virExec(const char *const*argv,
         }
     }
 
-    if (hook)
+    if (hook) {
+        /* virFork reset all signal handlers to the defaults.
+         * This is good for the child process, but our hook
+         * risks running something that generates SIGPIPE,
+         * so we need to temporarily block that again
+         */
+        struct sigaction waxon, waxoff;
+        waxoff.sa_handler = SIG_IGN;
+        waxoff.sa_flags = 0;
+        memset(&waxon, 0, sizeof(waxon));
+        if (sigaction(SIGPIPE, &waxoff, &waxon) < 0) {
+            virReportSystemError(errno, "%s",
+                                 _("Could not disable SIGPIPE"));
+            goto fork_error;
+        }
+
         if ((hook)(data) != 0) {
             VIR_DEBUG0("Hook function failed.");
             goto fork_error;
         }
+
+        if (sigaction(SIGPIPE, &waxon, NULL) < 0) {
+            virReportSystemError(errno, "%s",
+                                 _("Could not re-enable SIGPIPE"));
+            goto fork_error;
+        }
+    }
 
     /* The steps above may need todo something privileged, so
      * we delay clearing capabilities until the last minute */
@@ -1255,7 +1280,7 @@ int virFileResolveLink(const char *linkpath,
 }
 
 /*
- * Finds a requested file in the PATH env. e.g.:
+ * Finds a requested executable file in the PATH env. e.g.:
  * "kvm-img" will return "/usr/bin/kvm-img"
  *
  * You must free the result
@@ -1263,19 +1288,18 @@ int virFileResolveLink(const char *linkpath,
 char *virFindFileInPath(const char *file)
 {
     char *path;
-    char pathenv[PATH_MAX];
-    char *penv = pathenv;
+    char *pathiter;
     char *pathseg;
-    char fullpath[PATH_MAX];
+    char *fullpath = NULL;
 
     if (file == NULL)
         return NULL;
 
     /* if we are passed an absolute path (starting with /), return a
-     * copy of that path
+     * copy of that path, after validating that it is executable
      */
-    if (file[0] == '/') {
-        if (virFileExists(file))
+    if (IS_ABSOLUTE_FILE_NAME(file)) {
+        if (virFileIsExecutable(file))
             return strdup(file);
         else
             return NULL;
@@ -1284,27 +1308,45 @@ char *virFindFileInPath(const char *file)
     /* copy PATH env so we can tweak it */
     path = getenv("PATH");
 
-    if (path == NULL || virStrcpyStatic(pathenv, path) == NULL)
+    if (path == NULL || (path = strdup(path)) == NULL)
         return NULL;
 
     /* for each path segment, append the file to search for and test for
      * it. return it if found.
      */
-    while ((pathseg = strsep(&penv, ":")) != NULL) {
-       snprintf(fullpath, PATH_MAX, "%s/%s", pathseg, file);
-       if (virFileExists(fullpath))
-           return strdup(fullpath);
+    pathiter = path;
+    while ((pathseg = strsep(&pathiter, ":")) != NULL) {
+        if (virAsprintf(&fullpath, "%s/%s", pathseg, file) < 0 ||
+            virFileIsExecutable(fullpath))
+            break;
+        VIR_FREE(fullpath);
     }
 
-    return NULL;
+    VIR_FREE(path);
+    return fullpath;
 }
-int virFileExists(const char *path)
-{
-    struct stat st;
 
-    if (stat(path, &st) >= 0)
-        return(1);
-    return(0);
+bool virFileExists(const char *path)
+{
+    return access(path, F_OK) == 0;
+}
+
+/* Check that a file is regular and has executable bits.
+ *
+ * Note: In the presence of ACLs, this may return true for a file that
+ * would actually fail with EACCES for a given user, or false for a
+ * file that the user could actually execute, but setups with ACLs
+ * that weird are unusual. */
+bool
+virFileIsExecutable(const char *file)
+{
+    struct stat sb;
+
+    /* We would also want to check faccessat if we cared about ACLs,
+     * but we don't.  */
+    return (stat(file, &sb) == 0 &&
+            S_ISREG(sb.st_mode) &&
+            (sb.st_mode & 0111) != 0);
 }
 
 #ifndef WIN32
@@ -2064,7 +2106,45 @@ virStrToLong_ui(char const *s, char **end_ptr, int base, unsigned int *result)
     return 0;
 }
 
-/* Just like virStrToLong_i, above, but produce an "long long" value.  */
+/* Just like virStrToLong_i, above, but produce a "long" value.  */
+int
+virStrToLong_l(char const *s, char **end_ptr, int base, long *result)
+{
+    long int val;
+    char *p;
+    int err;
+
+    errno = 0;
+    val = strtol(s, &p, base);
+    err = (errno || (!end_ptr && *p) || p == s);
+    if (end_ptr)
+        *end_ptr = p;
+    if (err)
+        return -1;
+    *result = val;
+    return 0;
+}
+
+/* Just like virStrToLong_i, above, but produce an "unsigned long" value.  */
+int
+virStrToLong_ul(char const *s, char **end_ptr, int base, unsigned long *result)
+{
+    unsigned long int val;
+    char *p;
+    int err;
+
+    errno = 0;
+    val = strtoul(s, &p, base);
+    err = (errno || (!end_ptr && *p) || p == s);
+    if (end_ptr)
+        *end_ptr = p;
+    if (err)
+        return -1;
+    *result = val;
+    return 0;
+}
+
+/* Just like virStrToLong_i, above, but produce a "long long" value.  */
 int
 virStrToLong_ll(char const *s, char **end_ptr, int base, long long *result)
 {

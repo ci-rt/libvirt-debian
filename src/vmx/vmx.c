@@ -2,7 +2,7 @@
 /*
  * vmx.c: VMware VMX parsing/formatting functions
  *
- * Copyright (C) 2010 Red Hat, Inc.
+ * Copyright (C) 2010-2011 Red Hat, Inc.
  * Copyright (C) 2009-2010 Matthias Bolte <matthias.bolte@googlemail.com>
  *
  * This library is free software; you can redistribute it and/or
@@ -326,6 +326,16 @@ def->nets[0]...
 
 
 ################################################################################
+## video #######################################################################
+
+def->videos[0]...
+->type = _VIDEO_TYPE_VMVGA
+->vram = <value kilobyte>         <=>   svga.vramSize = "<value byte>"
+->heads = 1
+
+
+
+################################################################################
 ## serials #####################################################################
 
                                         serial[0..3] -> <port>
@@ -391,7 +401,7 @@ def->serials[0]...
 ->data.tcp.service = <service>                                                  # e.g. "telnet://0.0.0.0:42001"
 ->data.tcp.protocol = <protocol>
 
-->data.tcp.listen = 1             <=>   serial0.network.endPoint = "server"     # defaults to "server"
+->data.tcp.listen = true          <=>   serial0.network.endPoint = "server"     # defaults to "server"
 
 ???                               <=>   serial0.vspc = "foobar"                 # defaults to <not present>, FIXME: not representable
 ???                               <=>   serial0.tryNoRxLoss = "false"           # defaults to "false", FIXME: not representable
@@ -406,7 +416,7 @@ def->serials[0]...
 ->data.tcp.service = <service>                                                  # e.g. "telnet://192.168.0.17:42001"
 ->data.tcp.protocol = <protocol>
 
-->data.tcp.listen = 0             <=>   serial0.network.endPoint = "client"     # defaults to "server"
+->data.tcp.listen = false         <=>   serial0.network.endPoint = "client"     # defaults to "server"
 
 ???                               <=>   serial0.vspc = "foobar"                 # defaults to <not present>, FIXME: not representable
 ???                               <=>   serial0.tryNoRxLoss = "false"           # defaults to "false", FIXME: not representable
@@ -908,7 +918,7 @@ virVMXVerifyDiskAddress(virCapsPtr caps, virDomainDiskDefPtr disk)
     memset(&def, 0, sizeof(def));
 
     if (disk->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
+        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
                   _("Unsupported disk address type '%s'"),
                   virDomainDeviceAddressTypeToString(disk->info.type));
         return -1;
@@ -999,7 +1009,7 @@ virVMXVerifyDiskAddress(virCapsPtr caps, virDomainDiskDefPtr disk)
             return -1;
         }
     } else {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
+        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
                   _("Unsupported bus type '%s'"),
                   virDomainDiskBusTypeToString(disk->bus));
         return -1;
@@ -1087,7 +1097,7 @@ virVMXGatherSCSIControllers(virVMXContext *ctx, virDomainDefPtr def,
         controller = def->controllers[i];
 
         if (controller->type != VIR_DOMAIN_CONTROLLER_TYPE_SCSI) {
-            // skip non-SCSI controllers
+            /* skip non-SCSI controllers */
             continue;
         }
 
@@ -1104,7 +1114,7 @@ virVMXGatherSCSIControllers(virVMXContext *ctx, virDomainDefPtr def,
         }
 
         if (! controllerHasDisksAttached) {
-            // skip SCSI controllers without attached disks
+            /* skip SCSI controllers without attached disks */
             continue;
         }
 
@@ -1112,8 +1122,8 @@ virVMXGatherSCSIControllers(virVMXContext *ctx, virDomainDefPtr def,
             ctx->autodetectSCSIControllerModel != NULL) {
             count = 0;
 
-            // try to autodetect the SCSI controller model by collecting
-            // SCSI controller model of all disks attached to this controller
+            /* try to autodetect the SCSI controller model by collecting
+             * SCSI controller model of all disks attached to this controller */
             for (k = 0; k < def->ndisks; ++k) {
                 disk = def->disks[k];
 
@@ -1129,8 +1139,8 @@ virVMXGatherSCSIControllers(virVMXContext *ctx, virDomainDefPtr def,
                 }
             }
 
-            // autodetection fails when the disks attached to one controller
-            // have inconsistent SCSI controller models
+            /* autodetection fails when the disks attached to one controller
+             * have inconsistent SCSI controller models */
             for (k = 0; k < count; ++k) {
                 if (autodetectedModels[k] != autodetectedModels[0]) {
                     VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
@@ -1369,7 +1379,7 @@ virVMXParseConfig(virVMXContext *ctx, virCapsPtr caps, const char *vmx)
     def->maxvcpus = def->vcpus = numvcpus;
 
     /* vmx:sched.cpu.affinity -> def:cpumask */
-    // VirtualMachine:config.cpuAffinity.affinitySet
+    /* NOTE: maps to VirtualMachine:config.cpuAffinity.affinitySet */
     if (virVMXGetConfigString(conf, "sched.cpu.affinity", &sched_cpu_affinity,
                               true) < 0) {
         goto cleanup;
@@ -1636,6 +1646,20 @@ virVMXParseConfig(virVMXContext *ctx, virCapsPtr caps, const char *vmx)
     /* def:inputs */
     /* FIXME */
 
+    /* def:videos */
+    if (VIR_ALLOC_N(def->videos, 1) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    def->nvideos = 0;
+
+    if (virVMXParseSVGA(conf, &def->videos[def->nvideos]) < 0) {
+        goto cleanup;
+    }
+
+    def->nvideos = 1;
+
     /* def:sounds */
     /* FIXME */
 
@@ -1832,21 +1856,6 @@ virVMXParseSCSIController(virConfPtr conf, int controller, bool *present,
 
 
 
-/*
-struct _virDomainDiskDef {
-    int type;               // partly done
-    int device;             // done
-    int bus;                // done
-    char *src;              // done
-    char *dst;              // done
-    char *driverName;       // done
-    char *driverType;
-    int cachemode;          // done
-    unsigned int readonly : 1;
-    unsigned int shared : 1;
-    int slotnum;
-};*/
-
 int
 virVMXParseDisk(virVMXContext *ctx, virCapsPtr caps, virConfPtr conf,
                 int device, int busType, int controllerOrBus, int unit,
@@ -1961,7 +1970,7 @@ virVMXParseDisk(virVMXContext *ctx, virCapsPtr caps, virConfPtr conf,
                 goto cleanup;
             }
         } else {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
+            VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
                       _("Unsupported bus type '%s' for device type '%s'"),
                       virDomainDiskBusTypeToString(busType),
                       virDomainDiskDeviceTypeToString(device));
@@ -1994,14 +2003,14 @@ virVMXParseDisk(virVMXContext *ctx, virCapsPtr caps, virConfPtr conf,
                 goto cleanup;
             }
         } else {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
+            VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
                       _("Unsupported bus type '%s' for device type '%s'"),
                       virDomainDiskBusTypeToString(busType),
                       virDomainDiskDeviceTypeToString(device));
             goto cleanup;
         }
     } else {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
+        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
                   _("Unsupported device type '%s'"),
                   virDomainDiskDeviceTypeToString(device));
         goto cleanup;
@@ -2177,7 +2186,7 @@ virVMXParseDisk(virVMXContext *ctx, virCapsPtr caps, virConfPtr conf,
             goto cleanup;
         }
     } else {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR, _("Unsupported device type '%s'"),
+        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED, _("Unsupported device type '%s'"),
                   virDomainDiskDeviceTypeToString(device));
         goto cleanup;
     }
@@ -2532,16 +2541,17 @@ virVMXParseSerial(virVMXContext *ctx, virConfPtr conf, int port,
     /* Setup virDomainChrDef */
     if (STRCASEEQ(fileType, "device")) {
         (*def)->target.port = port;
-        (*def)->type = VIR_DOMAIN_CHR_TYPE_DEV;
-        (*def)->data.file.path = fileName;
+        (*def)->source.type = VIR_DOMAIN_CHR_TYPE_DEV;
+        (*def)->source.data.file.path = fileName;
 
         fileName = NULL;
     } else if (STRCASEEQ(fileType, "file")) {
         (*def)->target.port = port;
-        (*def)->type = VIR_DOMAIN_CHR_TYPE_FILE;
-        (*def)->data.file.path = ctx->parseFileName(fileName, ctx->opaque);
+        (*def)->source.type = VIR_DOMAIN_CHR_TYPE_FILE;
+        (*def)->source.data.file.path = ctx->parseFileName(fileName,
+                                                           ctx->opaque);
 
-        if ((*def)->data.file.path == NULL) {
+        if ((*def)->source.data.file.path == NULL) {
             goto cleanup;
         }
     } else if (STRCASEEQ(fileType, "pipe")) {
@@ -2550,13 +2560,13 @@ virVMXParseSerial(virVMXContext *ctx, virConfPtr conf, int port,
          *        not representable in domain XML form
          */
         (*def)->target.port = port;
-        (*def)->type = VIR_DOMAIN_CHR_TYPE_PIPE;
-        (*def)->data.file.path = fileName;
+        (*def)->source.type = VIR_DOMAIN_CHR_TYPE_PIPE;
+        (*def)->source.data.file.path = fileName;
 
         fileName = NULL;
     } else if (STRCASEEQ(fileType, "network")) {
         (*def)->target.port = port;
-        (*def)->type = VIR_DOMAIN_CHR_TYPE_TCP;
+        (*def)->source.type = VIR_DOMAIN_CHR_TYPE_TCP;
 
         parsedUri = xmlParseURI(fileName);
 
@@ -2572,14 +2582,15 @@ virVMXParseSerial(virVMXContext *ctx, virConfPtr conf, int port,
             goto cleanup;
         }
 
-        (*def)->data.tcp.host = strdup(parsedUri->server);
+        (*def)->source.data.tcp.host = strdup(parsedUri->server);
 
-        if ((*def)->data.tcp.host == NULL) {
+        if ((*def)->source.data.tcp.host == NULL) {
             virReportOOMError();
             goto cleanup;
         }
 
-        if (virAsprintf(&(*def)->data.tcp.service, "%d", parsedUri->port) < 0) {
+        if (virAsprintf(&(*def)->source.data.tcp.service, "%d",
+                        parsedUri->port) < 0) {
             virReportOOMError();
             goto cleanup;
         }
@@ -2589,16 +2600,18 @@ virVMXParseSerial(virVMXContext *ctx, virConfPtr conf, int port,
             STRCASEEQ(parsedUri->scheme, "tcp") ||
             STRCASEEQ(parsedUri->scheme, "tcp4") ||
             STRCASEEQ(parsedUri->scheme, "tcp6")) {
-            (*def)->data.tcp.protocol = VIR_DOMAIN_CHR_TCP_PROTOCOL_RAW;
+            (*def)->source.data.tcp.protocol = VIR_DOMAIN_CHR_TCP_PROTOCOL_RAW;
         } else if (STRCASEEQ(parsedUri->scheme, "telnet")) {
-            (*def)->data.tcp.protocol = VIR_DOMAIN_CHR_TCP_PROTOCOL_TELNET;
+            (*def)->source.data.tcp.protocol
+                = VIR_DOMAIN_CHR_TCP_PROTOCOL_TELNET;
         } else if (STRCASEEQ(parsedUri->scheme, "telnets")) {
-            (*def)->data.tcp.protocol = VIR_DOMAIN_CHR_TCP_PROTOCOL_TELNETS;
+            (*def)->source.data.tcp.protocol
+                = VIR_DOMAIN_CHR_TCP_PROTOCOL_TELNETS;
         } else if (STRCASEEQ(parsedUri->scheme, "ssl") ||
                    STRCASEEQ(parsedUri->scheme, "tcp+ssl") ||
                    STRCASEEQ(parsedUri->scheme, "tcp4+ssl") ||
                    STRCASEEQ(parsedUri->scheme, "tcp6+ssl")) {
-            (*def)->data.tcp.protocol = VIR_DOMAIN_CHR_TCP_PROTOCOL_TLS;
+            (*def)->source.data.tcp.protocol = VIR_DOMAIN_CHR_TCP_PROTOCOL_TLS;
         } else {
             VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
                       _("VMX entry '%s' contains unsupported scheme '%s'"),
@@ -2607,9 +2620,9 @@ virVMXParseSerial(virVMXContext *ctx, virConfPtr conf, int port,
         }
 
         if (network_endPoint == NULL || STRCASEEQ(network_endPoint, "server")) {
-            (*def)->data.tcp.listen = 1;
+            (*def)->source.data.tcp.listen = true;
         } else if (STRCASEEQ(network_endPoint, "client")) {
-            (*def)->data.tcp.listen = 0;
+            (*def)->source.data.tcp.listen = false;
         } else {
             VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
                       _("Expecting VMX entry '%s' to be 'server' or 'client' "
@@ -2722,16 +2735,17 @@ virVMXParseParallel(virVMXContext *ctx, virConfPtr conf, int port,
     /* Setup virDomainChrDef */
     if (STRCASEEQ(fileType, "device")) {
         (*def)->target.port = port;
-        (*def)->type = VIR_DOMAIN_CHR_TYPE_DEV;
-        (*def)->data.file.path = fileName;
+        (*def)->source.type = VIR_DOMAIN_CHR_TYPE_DEV;
+        (*def)->source.data.file.path = fileName;
 
         fileName = NULL;
     } else if (STRCASEEQ(fileType, "file")) {
         (*def)->target.port = port;
-        (*def)->type = VIR_DOMAIN_CHR_TYPE_FILE;
-        (*def)->data.file.path = ctx->parseFileName(fileName, ctx->opaque);
+        (*def)->source.type = VIR_DOMAIN_CHR_TYPE_FILE;
+        (*def)->source.data.file.path = ctx->parseFileName(fileName,
+                                                           ctx->opaque);
 
-        if ((*def)->data.file.path == NULL) {
+        if ((*def)->source.data.file.path == NULL) {
             goto cleanup;
         }
     } else {
@@ -2765,6 +2779,45 @@ virVMXParseParallel(virVMXContext *ctx, virConfPtr conf, int port,
 
 
 
+int
+virVMXParseSVGA(virConfPtr conf, virDomainVideoDefPtr *def)
+{
+    int result = -1;
+    long long svga_vramSize = 0;
+
+    if (def == NULL || *def != NULL) {
+        VMX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
+        return -1;
+    }
+
+    if (VIR_ALLOC(*def) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    (*def)->type = VIR_DOMAIN_VIDEO_TYPE_VMVGA;
+
+    /* vmx:vramSize */
+    if (virVMXGetConfigLong(conf, "svga.vramSize", &svga_vramSize,
+                            4 * 1024 * 1024, true) < 0) {
+        goto cleanup;
+    }
+
+    (*def)->vram = VIR_DIV_UP(svga_vramSize, 1024); /* Scale from bytes to kilobytes */
+
+    result = 0;
+
+  cleanup:
+    if (result < 0) {
+        virDomainVideoDefFree(*def);
+        *def = NULL;
+    }
+
+    return result;
+}
+
+
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Domain XML -> VMX
  */
@@ -2781,6 +2834,7 @@ virVMXFormatConfig(virVMXContext *ctx, virCapsPtr caps, virDomainDefPtr def,
     char *preliminaryDisplayName = NULL;
     char *displayName = NULL;
     char *annotation = NULL;
+    unsigned long max_balloon;
     bool scsi_present[4] = { false, false, false, false };
     int scsi_virtualDev[4] = { -1, -1, -1, -1 };
     bool floppy_present[2] = { false, false };
@@ -2872,46 +2926,24 @@ virVMXFormatConfig(virVMXContext *ctx, virCapsPtr caps, virDomainDefPtr def,
     }
 
     /* def:mem.max_balloon -> vmx:memsize */
-    if (def->mem.max_balloon <= 0 || def->mem.max_balloon % 4096 != 0) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Expecting domain XML entry 'memory' to be an unsigned "
-                    "integer (multiple of 4096) but found %lld"),
-                  (unsigned long long)def->mem.max_balloon);
-        goto cleanup;
-    }
+    /* max-memory must be a multiple of 4096 kilobyte */
+    max_balloon = VIR_DIV_UP(def->mem.max_balloon, 4096) * 4096;
 
-    /* Scale from kilobytes to megabytes */
-    virBufferVSprintf(&buffer, "memsize = \"%d\"\n",
-                      (int)(def->mem.max_balloon / 1024));
+    virBufferVSprintf(&buffer, "memsize = \"%lu\"\n",
+                      max_balloon / 1024); /* Scale from kilobytes to megabytes */
 
     /* def:mem.cur_balloon -> vmx:sched.mem.max */
-    if (def->mem.cur_balloon < def->mem.max_balloon) {
-        if (def->mem.cur_balloon <= 0 || def->mem.cur_balloon % 1024 != 0) {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Expecting domain XML entry 'currentMemory' to be an "
-                        "unsigned integer (multiple of 1024) but found %llu"),
-                      (unsigned long long)def->mem.cur_balloon);
-            goto cleanup;
-        }
-
-        /* Scale from kilobytes to megabytes */
-        virBufferVSprintf(&buffer, "sched.mem.max = \"%d\"\n",
-                          (int)(def->mem.cur_balloon / 1024));
+    if (def->mem.cur_balloon < max_balloon) {
+        virBufferVSprintf(&buffer, "sched.mem.max = \"%lu\"\n",
+                          VIR_DIV_UP(def->mem.cur_balloon,
+                                     1024)); /* Scale from kilobytes to megabytes */
     }
 
     /* def:mem.min_guarantee -> vmx:sched.mem.minsize */
     if (def->mem.min_guarantee > 0) {
-        if (def->mem.min_guarantee % 1024 != 0) {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Expecting domain XML entry 'memtune/min_guarantee' to "
-                        "be an unsigned integer (multiple of 1024) but found %llu"),
-                      (unsigned long long)def->mem.min_guarantee);
-            goto cleanup;
-        }
-
-        /* Scale from kilobytes to megabytes */
-        virBufferVSprintf(&buffer, "sched.mem.minsize = \"%d\"\n",
-                          (int)(def->mem.min_guarantee / 1024));
+        virBufferVSprintf(&buffer, "sched.mem.minsize = \"%lu\"\n",
+                          VIR_DIV_UP(def->mem.min_guarantee,
+                                     1024)); /* Scale from kilobytes to megabytes */
     }
 
     /* def:maxvcpus -> vmx:numvcpus */
@@ -2977,7 +3009,7 @@ virVMXFormatConfig(virVMXContext *ctx, virCapsPtr caps, virDomainDefPtr def,
             break;
 
           default:
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
+            VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
                       _("Unsupported graphics type '%s'"),
                       virDomainGraphicsTypeToString(def->graphics[i]->type));
             goto cleanup;
@@ -3034,7 +3066,7 @@ virVMXFormatConfig(virVMXContext *ctx, virCapsPtr caps, virDomainDefPtr def,
             break;
 
           default:
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
+            VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
                       _("Unsupported disk device type '%s'"),
                       virDomainDiskDeviceTypeToString(def->disks[i]->device));
             goto cleanup;
@@ -3063,6 +3095,19 @@ virVMXFormatConfig(virVMXContext *ctx, virCapsPtr caps, virDomainDefPtr def,
 
     /* def:sounds */
     /* FIXME */
+
+    /* def:videos */
+    if (def->nvideos > 0) {
+        if (def->nvideos > 1) {
+            VMX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
+                      _("No support for multiple video devices"));
+            goto cleanup;
+        }
+
+        if (virVMXFormatSVGA(def->videos[0], &buffer) < 0) {
+            goto cleanup;
+        }
+    }
 
     /* def:hostdevs */
     /* FIXME */
@@ -3180,14 +3225,14 @@ virVMXFormatHardDisk(virVMXContext *ctx, virDomainDiskDefPtr def,
             return -1;
         }
     } else {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
+        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
                   _("Unsupported bus type '%s' for harddisk"),
                   virDomainDiskBusTypeToString(def->bus));
         return -1;
     }
 
     if (def->type != VIR_DOMAIN_DISK_TYPE_FILE) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
+        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
                   _("%s harddisk '%s' has unsupported type '%s', expecting '%s'"),
                   busName, def->dst, virDomainDiskTypeToString(def->type),
                   virDomainDiskTypeToString(VIR_DOMAIN_DISK_TYPE_FILE));
@@ -3224,7 +3269,7 @@ virVMXFormatHardDisk(virVMXContext *ctx, virDomainDiskDefPtr def,
             virBufferVSprintf(buffer, "%s%d:%d.writeThrough = \"true\"\n",
                               entryPrefix, controllerOrBus, unit);
         } else if (def->cachemode != VIR_DOMAIN_DISK_CACHE_DEFAULT) {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
+            VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
                       _("%s harddisk '%s' has unsupported cache mode '%s'"),
                       busName, def->dst,
                       virDomainDiskCacheTypeToString(def->cachemode));
@@ -3268,7 +3313,7 @@ virVMXFormatCDROM(virVMXContext *ctx, virDomainDiskDefPtr def,
             return -1;
         }
     } else {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
+        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
                   _("Unsupported bus type '%s' for cdrom"),
                   virDomainDiskBusTypeToString(def->bus));
         return -1;
@@ -3309,7 +3354,7 @@ virVMXFormatCDROM(virVMXContext *ctx, virDomainDiskDefPtr def,
                               entryPrefix, controllerOrBus, unit, def->src);
         }
     } else {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
+        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
                   _("%s cdrom '%s' has unsupported type '%s', expecting '%s' "
                     "or '%s'"), busName, def->dst,
                   virDomainDiskTypeToString(def->type),
@@ -3373,7 +3418,7 @@ virVMXFormatFloppy(virVMXContext *ctx, virDomainDiskDefPtr def,
                               unit, def->src);
         }
     } else {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
+        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
                   _("Floppy '%s' has unsupported type '%s', expecting '%s' "
                     "or '%s'"), def->dst,
                   virDomainDiskTypeToString(def->type),
@@ -3447,7 +3492,7 @@ virVMXFormatEthernet(virDomainNetDefPtr def, int controller,
         break;
 
       default:
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR, _("Unsupported net type '%s'"),
+        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED, _("Unsupported net type '%s'"),
                   virDomainNetTypeToString(def->type));
         return -1;
     }
@@ -3506,19 +3551,19 @@ virVMXFormatSerial(virVMXContext *ctx, virDomainChrDefPtr def,
     virBufferVSprintf(buffer, "serial%d.present = \"true\"\n", def->target.port);
 
     /* def:type -> vmx:fileType and def:data.file.path -> vmx:fileName */
-    switch (def->type) {
+    switch (def->source.type) {
       case VIR_DOMAIN_CHR_TYPE_DEV:
         virBufferVSprintf(buffer, "serial%d.fileType = \"device\"\n",
                           def->target.port);
         virBufferVSprintf(buffer, "serial%d.fileName = \"%s\"\n",
-                          def->target.port, def->data.file.path);
+                          def->target.port, def->source.data.file.path);
         break;
 
       case VIR_DOMAIN_CHR_TYPE_FILE:
         virBufferVSprintf(buffer, "serial%d.fileType = \"file\"\n",
                           def->target.port);
 
-        fileName = ctx->formatFileName(def->data.file.path, ctx->opaque);
+        fileName = ctx->formatFileName(def->source.data.file.path, ctx->opaque);
 
         if (fileName == NULL) {
             return -1;
@@ -3540,11 +3585,11 @@ virVMXFormatSerial(virVMXContext *ctx, virDomainChrDefPtr def,
         virBufferVSprintf(buffer, "serial%d.tryNoRxLoss = \"false\"\n",
                           def->target.port);
         virBufferVSprintf(buffer, "serial%d.fileName = \"%s\"\n",
-                          def->target.port, def->data.file.path);
+                          def->target.port, def->source.data.file.path);
         break;
 
       case VIR_DOMAIN_CHR_TYPE_TCP:
-        switch (def->data.tcp.protocol) {
+        switch (def->source.data.tcp.protocol) {
           case VIR_DOMAIN_CHR_TCP_PROTOCOL_RAW:
             protocol = "tcp";
             break;
@@ -3562,26 +3607,27 @@ virVMXFormatSerial(virVMXContext *ctx, virDomainChrDefPtr def,
             break;
 
           default:
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
+            VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
                       _("Unsupported character device TCP protocol '%s'"),
-                      virDomainChrTcpProtocolTypeToString(def->data.tcp.protocol));
+                      virDomainChrTcpProtocolTypeToString(
+                          def->source.data.tcp.protocol));
             return -1;
         }
 
         virBufferVSprintf(buffer, "serial%d.fileType = \"network\"\n",
                           def->target.port);
         virBufferVSprintf(buffer, "serial%d.fileName = \"%s://%s:%s\"\n",
-                          def->target.port, protocol, def->data.tcp.host,
-                          def->data.tcp.service);
+                          def->target.port, protocol, def->source.data.tcp.host,
+                          def->source.data.tcp.service);
         virBufferVSprintf(buffer, "serial%d.network.endPoint = \"%s\"\n",
                           def->target.port,
-                          def->data.tcp.listen ? "server" : "client");
+                          def->source.data.tcp.listen ? "server" : "client");
         break;
 
       default:
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
+        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
                   _("Unsupported character device type '%s'"),
-                  virDomainChrTypeToString(def->type));
+                  virDomainChrTypeToString(def->source.type));
         return -1;
     }
 
@@ -3612,19 +3658,19 @@ virVMXFormatParallel(virVMXContext *ctx, virDomainChrDefPtr def,
                       def->target.port);
 
     /* def:type -> vmx:fileType and def:data.file.path -> vmx:fileName */
-    switch (def->type) {
+    switch (def->source.type) {
       case VIR_DOMAIN_CHR_TYPE_DEV:
         virBufferVSprintf(buffer, "parallel%d.fileType = \"device\"\n",
                           def->target.port);
         virBufferVSprintf(buffer, "parallel%d.fileName = \"%s\"\n",
-                          def->target.port, def->data.file.path);
+                          def->target.port, def->source.data.file.path);
         break;
 
       case VIR_DOMAIN_CHR_TYPE_FILE:
         virBufferVSprintf(buffer, "parallel%d.fileType = \"file\"\n",
                           def->target.port);
 
-        fileName = ctx->formatFileName(def->data.file.path, ctx->opaque);
+        fileName = ctx->formatFileName(def->source.data.file.path, ctx->opaque);
 
         if (fileName == NULL) {
             return -1;
@@ -3637,11 +3683,43 @@ virVMXFormatParallel(virVMXContext *ctx, virDomainChrDefPtr def,
         break;
 
       default:
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
+        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
                   _("Unsupported character device type '%s'"),
-                  virDomainChrTypeToString(def->type));
+                  virDomainChrTypeToString(def->source.type));
         return -1;
     }
+
+    return 0;
+}
+
+
+
+int
+virVMXFormatSVGA(virDomainVideoDefPtr def, virBufferPtr buffer)
+{
+    unsigned long long vram;
+
+    if (def->type != VIR_DOMAIN_VIDEO_TYPE_VMVGA) {
+        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
+                  _("Unsupported video device type '%s'"),
+                  virDomainVideoTypeToString(def->type));
+        return -1;
+    }
+
+    /*
+     * For Windows guests the VRAM size should be a multiple of 64 kilobyte.
+     * See http://kb.vmware.com/kb/1003 and http://kb.vmware.com/kb/1001558
+     */
+    vram = VIR_DIV_UP(def->vram, 64) * 64;
+
+    if (def->heads > 1) {
+        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                  _("Multi-head video devices are unsupported"));
+        return -1;
+    }
+
+    virBufferVSprintf(buffer, "svga.vramSize = \"%lld\"\n",
+                      vram * 1024); /* kilobyte to byte */
 
     return 0;
 }

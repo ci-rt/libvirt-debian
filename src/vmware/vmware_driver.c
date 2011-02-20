@@ -1,5 +1,7 @@
 /*---------------------------------------------------------------------------*/
-/* Copyright 2010, diateam (www.diateam.net)
+/*
+ * Copyright (C) 2011 Red Hat, Inc.
+ * Copyright 2010, diateam (www.diateam.net)
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -622,7 +624,7 @@ vmwareDomainUndefine(virDomainPtr dom)
     }
 
     if (!vm->persistent) {
-        vmwareError(VIR_ERR_INTERNAL_ERROR,
+        vmwareError(VIR_ERR_OPERATION_INVALID,
                     "%s", _("cannot undefine transient domain"));
         goto cleanup;
     }
@@ -906,6 +908,7 @@ static virDriver vmwareDriver = {
     vmwareGetVersion,           /* version */
     NULL,                       /* libvirtVersion (impl. in libvirt.c) */
     NULL,                       /* getHostname */
+    NULL,                       /* getSysinfo */
     NULL,                       /* getMaxVcpus */
     NULL,                       /* nodeGetInfo */
     NULL,                       /* getCapabilities */

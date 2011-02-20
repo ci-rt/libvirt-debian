@@ -3,7 +3,7 @@
 /* Emulation for select(2)
    Contributed by Paolo Bonzini.
 
-   Copyright 2008-2010 Free Software Foundation, Inc.
+   Copyright 2008-2011 Free Software Foundation, Inc.
 
    This file is part of gnulib.
 

@@ -1,7 +1,7 @@
 /*
  * virsh.c: a shell to exercise the libvirt API
  *
- * Copyright (C) 2005, 2007-2010 Red Hat, Inc.
+ * Copyright (C) 2005, 2007-2011 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -31,6 +31,7 @@
 #include <sys/stat.h>
 #include <inttypes.h>
 #include <signal.h>
+#include <poll.h>
 
 #include <libxml/parser.h>
 #include <libxml/tree.h>
@@ -54,6 +55,8 @@
 #include "files.h"
 #include "../daemon/event.h"
 #include "configmake.h"
+#include "threads.h"
+#include "command.h"
 
 static char *progname;
 
@@ -309,7 +312,7 @@ static virStorageVolPtr vshCommandOptVolBy(vshControl *ctl, const vshCmd *cmd,
                                            char **name, int flag);
 
 /* default is lookup by Name and UUID */
-#define vshCommandOptVol(_ctl, _cmd,_optname, _pooloptname, _name)   \
+#define vshCommandOptVol(_ctl, _cmd, _optname, _pooloptname, _name)   \
     vshCommandOptVolBy(_ctl, _cmd, _optname, _pooloptname, _name,     \
                            VSH_BYUUID|VSH_BYNAME)
 
@@ -322,7 +325,7 @@ static void vshDebug(vshControl *ctl, int level, const char *format, ...)
     ATTRIBUTE_FMT_PRINTF(3, 4);
 
 /* XXX: add batch support */
-#define vshPrint(_ctl, ...)   fprintf(stdout, __VA_ARGS__)
+#define vshPrint(_ctl, ...)   vshPrintExtra(NULL, __VA_ARGS__)
 
 static const char *vshDomainStateToString(int state);
 static const char *vshDomainVcpuStateToString(int state);
@@ -492,21 +495,35 @@ out:
     last_error = NULL;
 }
 
+static volatile sig_atomic_t intCaught = 0;
+
+static void vshCatchInt(int sig ATTRIBUTE_UNUSED,
+                        siginfo_t *siginfo ATTRIBUTE_UNUSED,
+                        void *context ATTRIBUTE_UNUSED)
+{
+    intCaught = 1;
+}
+
 /*
  * Detection of disconnections and automatic reconnection support
  */
 static int disconnected = 0; /* we may have been disconnected */
 
-#ifdef SIGPIPE
+/* Gnulib doesn't guarantee SA_SIGINFO support.  */
+#ifndef SA_SIGINFO
+# define SA_SIGINFO 0
+#endif
+
 /*
  * vshCatchDisconnect:
  *
  * We get here when a SIGPIPE is being raised, we can't do much in the
  * handler, just save the fact it was raised
  */
-static void vshCatchDisconnect(int sig, siginfo_t * siginfo,
-                               void* context ATTRIBUTE_UNUSED) {
-    if ((sig == SIGPIPE) || (siginfo->si_signo == SIGPIPE))
+static void vshCatchDisconnect(int sig, siginfo_t *siginfo,
+                               void *context ATTRIBUTE_UNUSED) {
+    if ((sig == SIGPIPE) ||
+        (SA_SIGINFO && siginfo->si_signo == SIGPIPE))
         disconnected++;
 }
 
@@ -526,10 +543,6 @@ vshSetupSignals(void) {
 
     sigaction(SIGPIPE, &sig_action, NULL);
 }
-#else
-static void
-vshSetupSignals(void) {}
-#endif
 
 /*
  * vshReconnect:
@@ -576,8 +589,6 @@ static const vshCmdOptDef opts_help[] = {
 static int
 cmdHelp(vshControl *ctl, const vshCmd *cmd)
  {
-    const vshCmdDef *c;
-    const vshCmdGrp *g;
     const char *name;
 
     name = vshCommandOptString(cmd, "command", NULL);
@@ -602,9 +613,9 @@ cmdHelp(vshControl *ctl, const vshCmd *cmd)
         return TRUE;
     }
 
-    if ((c = vshCmddefSearch(name))) {
+    if (vshCmddefSearch(name)) {
         return vshCmddefHelp(ctl, name);
-    } else if ((g = vshCmdGrpSearch(name))) {
+    } else if (vshCmdGrpSearch(name)) {
         return vshCmdGrpHelp(ctl, name);
     } else {
         vshError(ctl, _("command or command group '%s' doesn't exist"), name);
@@ -2261,36 +2272,87 @@ static const vshCmdInfo info_freecell[] = {
 
 static const vshCmdOptDef opts_freecell[] = {
     {"cellno", VSH_OT_INT, 0, N_("NUMA cell number")},
+    {"all", VSH_OT_BOOL, 0, N_("show free memory for all NUMA cells")},
     {NULL, 0, 0, NULL}
 };
 
 static int
 cmdFreecell(vshControl *ctl, const vshCmd *cmd)
 {
+    int func_ret = FALSE;
     int ret;
     int cell, cell_given;
     unsigned long long memory;
+    unsigned long long *nodes = NULL;
+    int all_given;
+    virNodeInfo info;
+
 
     if (!vshConnectionUsability(ctl, ctl->conn))
         return FALSE;
 
     cell = vshCommandOptInt(cmd, "cellno", &cell_given);
-    if (!cell_given) {
-        memory = virNodeGetFreeMemory(ctl->conn);
-        if (memory == 0)
-            return FALSE;
-    } else {
-        ret = virNodeGetCellsFreeMemory(ctl->conn, &memory, cell, 1);
-        if (ret != 1)
-            return FALSE;
+    all_given = vshCommandOptBool(cmd, "all");
+
+    if (all_given && cell_given) {
+        vshError(ctl, "%s", _("--cellno and --all are mutually exclusive. "
+                              "Please choose only one."));
+        goto cleanup;
     }
 
-    if (cell == -1)
-        vshPrint(ctl, "%s: %llu kB\n", _("Total"), (memory/1024));
-    else
-        vshPrint(ctl, "%d: %llu kB\n", cell, (memory/1024));
+    if (all_given) {
+        if (virNodeGetInfo(ctl->conn, &info) < 0) {
+            vshError(ctl, "%s", _("failed to get NUMA nodes count"));
+            goto cleanup;
+        }
 
-    return TRUE;
+        if (!info.nodes) {
+            vshError(ctl, "%s", _("no NUMA nodes present"));
+            goto cleanup;
+        }
+
+        if (VIR_ALLOC_N(nodes, info.nodes) < 0) {
+            vshError(ctl, "%s", _("could not allocate memory"));
+            goto cleanup;
+        }
+
+        ret = virNodeGetCellsFreeMemory(ctl->conn, nodes, 0, info.nodes);
+        if (ret != info.nodes) {
+            vshError(ctl, "%s", _("could not get information about "
+                                  "all NUMA nodes"));
+            goto cleanup;
+        }
+
+        memory = 0;
+        for (cell = 0; cell < info.nodes; cell++) {
+            vshPrint(ctl, "%5d: %10llu kB\n", cell, (nodes[cell]/1024));
+            memory += nodes[cell];
+        }
+
+        vshPrintExtra(ctl, "--------------------\n");
+        vshPrintExtra(ctl, "%5s: %10llu kB\n", _("Total"), memory/1024);
+    } else {
+        if (!cell_given) {
+            memory = virNodeGetFreeMemory(ctl->conn);
+            if (memory == 0)
+                goto cleanup;
+        } else {
+            ret = virNodeGetCellsFreeMemory(ctl->conn, &memory, cell, 1);
+            if (ret != 1)
+                goto cleanup;
+        }
+
+        if (cell == -1)
+            vshPrint(ctl, "%s: %llu kB\n", _("Total"), (memory/1024));
+        else
+            vshPrint(ctl, "%d: %llu kB\n", cell, (memory/1024));
+    }
+
+    func_ret = TRUE;
+
+cleanup:
+    VIR_FREE(nodes);
+    return func_ret;
 }
 
 /*
@@ -2765,11 +2827,31 @@ cmdSetvcpus(vshControl *ctl, const vshCmd *cmd)
             ret = FALSE;
         }
     } else {
+        /* If the --maximum flag was given, we need to ensure only the
+           --config flag is in effect as well */
+        if (maximum) {
+            vshDebug(ctl, 5, "--maximum flag was given\n");
+
+            /* If neither the --config nor --live flags were given, OR
+               if just the --live flag was given, we need to error out
+               warning the user that the --maximum flag can only be used
+               with the --config flag */
+            if (live || !config) {
+
+                /* Warn the user about the invalid flag combination */
+                vshError(ctl, _("--maximum must be used with --config only"));
+                ret = FALSE;
+                goto cleanup;
+            }
+        }
+
+        /* Apply the virtual cpu changes */
         if (virDomainSetVcpusFlags(dom, count, flags) < 0) {
             ret = FALSE;
         }
     }
 
+  cleanup:
     virDomainFree(dom);
     return ret;
 }
@@ -2987,8 +3069,11 @@ cmdMemtune(vshControl * ctl, const vshCmd * cmd)
                              params[i].value.l);
                     break;
                 case VIR_DOMAIN_MEMORY_PARAM_ULLONG:
-                    vshPrint(ctl, "%-15s: %llu\n", params[i].field,
-                             params[i].value.ul);
+                    if (params[i].value.ul == VIR_DOMAIN_MEMORY_PARAM_UNLIMITED)
+                        vshPrint(ctl, "%-15s: unlimited\n", params[i].field);
+                    else
+                        vshPrint(ctl, "%-15s: %llu kB\n", params[i].field,
+                                 params[i].value.ul);
                     break;
                 case VIR_DOMAIN_MEMORY_PARAM_DOUBLE:
                     vshPrint(ctl, "%-15s: %f\n", params[i].field,
@@ -3039,6 +3124,10 @@ cmdMemtune(vshControl * ctl, const vshCmd * cmd)
                         sizeof(temp->field));
                 min_guarantee = 0;
             }
+
+            /* If the user has passed -1, we interpret it as unlimited */
+            if (temp->value.ul == -1)
+                temp->value.ul = VIR_DOMAIN_MEMORY_PARAM_UNLIMITED;
         }
         if (virDomainSetMemoryParameters(dom, params, nparams, 0) != 0)
             vshError(ctl, "%s", _("Unable to change memory parameters"));
@@ -3374,31 +3463,51 @@ static const vshCmdOptDef opts_migrate[] = {
     {"suspend", VSH_OT_BOOL, 0, N_("do not restart the domain on the destination host")},
     {"copy-storage-all", VSH_OT_BOOL, 0, N_("migration with non-shared storage with full disk copy")},
     {"copy-storage-inc", VSH_OT_BOOL, 0, N_("migration with non-shared storage with incremental copy (same base image shared between source and destination)")},
+    {"verbose", VSH_OT_BOOL, 0, N_("display the progress of migration")},
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
-    {"desturi", VSH_OT_DATA, VSH_OFLAG_REQ, N_("connection URI of the destination host")},
+    {"desturi", VSH_OT_DATA, VSH_OFLAG_REQ, N_("connection URI of the destination host as seen from the client(normal migration) or source(p2p migration)")},
     {"migrateuri", VSH_OT_DATA, 0, N_("migration URI, usually can be omitted")},
     {"dname", VSH_OT_DATA, 0, N_("rename to new name during migration (if supported)")},
+    {"timeout", VSH_OT_INT, 0, N_("force guest to suspend if live migration exceeds timeout (in seconds)")},
     {NULL, 0, 0, NULL}
 };
 
-static int
-cmdMigrate (vshControl *ctl, const vshCmd *cmd)
+typedef struct __vshCtrlData {
+    vshControl *ctl;
+    const vshCmd *cmd;
+    int writefd;
+} vshCtrlData;
+
+static void
+doMigrate (void *opaque)
 {
+    char ret = '1';
     virDomainPtr dom = NULL;
     const char *desturi;
     const char *migrateuri;
     const char *dname;
-    int flags = 0, found, ret = FALSE;
+    int flags = 0, found;
+    vshCtrlData *data = opaque;
+    vshControl *ctl = data->ctl;
+    const vshCmd *cmd = data->cmd;
+#if HAVE_PTHREAD_SIGMASK
+    sigset_t sigmask, oldsigmask;
+
+    sigemptyset(&sigmask);
+    sigaddset(&sigmask, SIGINT);
+    if (pthread_sigmask(SIG_BLOCK, &sigmask, &oldsigmask) < 0)
+        goto out_sig;
+#endif
 
     if (!vshConnectionUsability (ctl, ctl->conn))
-        return FALSE;
+        goto out;
 
     if (!(dom = vshCommandOptDomain (ctl, cmd, NULL)))
-        return FALSE;
+        goto out;
 
     desturi = vshCommandOptString (cmd, "desturi", &found);
     if (!found)
-        goto done;
+        goto out;
 
     migrateuri = vshCommandOptString (cmd, "migrateuri", NULL);
 
@@ -3432,29 +3541,198 @@ cmdMigrate (vshControl *ctl, const vshCmd *cmd)
 
         if (migrateuri != NULL) {
             vshError(ctl, "%s", _("migrate: Unexpected migrateuri for peer2peer/direct migration"));
-            goto done;
+            goto out;
         }
 
         if (virDomainMigrateToURI (dom, desturi, flags, dname, 0) == 0)
-            ret = TRUE;
+            ret = '0';
     } else {
         /* For traditional live migration, connect to the destination host directly. */
         virConnectPtr dconn = NULL;
         virDomainPtr ddom = NULL;
 
         dconn = virConnectOpenAuth (desturi, virConnectAuthPtrDefault, 0);
-        if (!dconn) goto done;
+        if (!dconn) goto out;
 
         ddom = virDomainMigrate (dom, dconn, flags, dname, migrateuri, 0);
         if (ddom) {
             virDomainFree(ddom);
-            ret = TRUE;
+            ret = '0';
         }
         virConnectClose (dconn);
     }
 
- done:
+out:
+#if HAVE_PTHREAD_SIGMASK
+    pthread_sigmask(SIG_SETMASK, &oldsigmask, NULL);
+out_sig:
+#endif
     if (dom) virDomainFree (dom);
+    ignore_value(safewrite(data->writefd, &ret, sizeof(ret)));
+}
+
+static void
+print_job_progress(unsigned long long remaining, unsigned long long total)
+{
+    int progress;
+
+    if (total == 0)
+        /* migration has not been started */
+        return;
+
+    if (remaining == 0) {
+        /* migration has completed */
+        progress = 100;
+    } else {
+        /* use float to avoid overflow */
+        progress = (int)(100.0 - remaining * 100.0 / total);
+        if (progress >= 100) {
+            /* migration has not completed, do not print [100 %] */
+            progress = 99;
+        }
+    }
+
+    fprintf(stderr, "\rMigration: [%3d %%]", progress);
+}
+
+static int
+cmdMigrate (vshControl *ctl, const vshCmd *cmd)
+{
+    virDomainPtr dom = NULL;
+    int p[2] = {-1, -1};
+    int ret = -1;
+    virThread workerThread;
+    struct pollfd pollfd;
+    int found;
+    char retchar;
+    struct sigaction sig_action;
+    struct sigaction old_sig_action;
+    virDomainJobInfo jobinfo;
+    bool verbose = false;
+    int timeout;
+    struct timeval start, curr;
+    bool live_flag = false;
+    vshCtrlData data;
+#if HAVE_PTHREAD_SIGMASK
+    sigset_t sigmask, oldsigmask;
+
+    sigemptyset(&sigmask);
+    sigaddset(&sigmask, SIGINT);
+#endif
+
+    if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
+        return FALSE;
+
+    if (vshCommandOptBool (cmd, "verbose"))
+        verbose = true;
+
+    if (vshCommandOptBool (cmd, "live"))
+        live_flag = TRUE;
+    timeout = vshCommandOptInt(cmd, "timeout", &found);
+    if (found) {
+        if (! live_flag) {
+            vshError(ctl, "%s", _("migrate: Unexpected timeout for offline migration"));
+            goto cleanup;
+        }
+
+        if (timeout < 1) {
+            vshError(ctl, "%s", _("migrate: Invalid timeout"));
+            goto cleanup;
+        }
+
+        /* Ensure that we can multiply by 1000 without overflowing. */
+        if (timeout > INT_MAX / 1000) {
+            vshError(ctl, "%s", _("migrate: Timeout is too big"));
+            goto cleanup;
+        }
+    } else {
+        timeout = 0;
+    }
+
+    if (pipe(p) < 0)
+        goto cleanup;
+
+    data.ctl = ctl;
+    data.cmd = cmd;
+    data.writefd = p[1];
+
+    if (virThreadCreate(&workerThread,
+                        true,
+                        doMigrate,
+                        &data) < 0)
+        goto cleanup;
+
+    intCaught = 0;
+    sig_action.sa_sigaction = vshCatchInt;
+    sig_action.sa_flags = SA_SIGINFO;
+    sigemptyset(&sig_action.sa_mask);
+    sigaction(SIGINT, &sig_action, &old_sig_action);
+
+    pollfd.fd = p[0];
+    pollfd.events = POLLIN;
+    pollfd.revents = 0;
+
+    GETTIMEOFDAY(&start);
+    while (1) {
+repoll:
+        ret = poll(&pollfd, 1, 500);
+        if (ret > 0) {
+            if (saferead(p[0], &retchar, sizeof(retchar)) > 0) {
+                if (retchar == '0') {
+                    ret = TRUE;
+                    if (verbose) {
+                        /* print [100 %] */
+                        print_job_progress(0, 1);
+                    }
+                } else
+                    ret = FALSE;
+            } else
+                ret = FALSE;
+            break;
+        }
+
+        if (ret < 0) {
+            if (errno == EINTR) {
+                if (intCaught) {
+                    virDomainAbortJob(dom);
+                    ret = FALSE;
+                    intCaught = 0;
+                } else
+                    goto repoll;
+            }
+            break;
+        }
+
+        GETTIMEOFDAY(&curr);
+        if ( timeout && ((int)(curr.tv_sec - start.tv_sec)  * 1000 + \
+                         (int)(curr.tv_usec - start.tv_usec) / 1000) > timeout * 1000 ) {
+            /* suspend the domain when migration timeouts. */
+            vshDebug(ctl, 5, "suspend the domain when migration timeouts\n");
+            virDomainSuspend(dom);
+            timeout = 0;
+        }
+
+        if (verbose) {
+#if HAVE_PTHREAD_SIGMASK
+            pthread_sigmask(SIG_BLOCK, &sigmask, &oldsigmask);
+#endif
+            ret = virDomainGetJobInfo(dom, &jobinfo);
+#if HAVE_PTHREAD_SIGMASK
+            pthread_sigmask(SIG_SETMASK, &oldsigmask, NULL);
+#endif
+            if (ret == 0)
+                print_job_progress(jobinfo.dataRemaining, jobinfo.dataTotal);
+        }
+    }
+
+    sigaction(SIGINT, &old_sig_action, NULL);
+
+    virThreadJoin(&workerThread);
+
+cleanup:
+    virDomainFree(dom);
+    VIR_FORCE_CLOSE(p[0]);
+    VIR_FORCE_CLOSE(p[1]);
     return ret;
 }
 
@@ -7953,7 +8231,7 @@ cmdNodeDeviceReset (vshControl *ctl, const vshCmd *cmd)
 }
 
 /*
- * "hostkey" command
+ * "hostname" command
  */
 static const vshCmdInfo info_hostname[] = {
     {"help", N_("print the hypervisor hostname")},
@@ -8006,6 +8284,36 @@ cmdURI (vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
 
     vshPrint (ctl, "%s\n", uri);
     VIR_FREE(uri);
+
+    return TRUE;
+}
+
+/*
+ * "sysinfo" command
+ */
+static const vshCmdInfo info_sysinfo[] = {
+    {"help", N_("print the hypervisor sysinfo")},
+    {"desc",
+     N_("output an XML string for the hypervisor sysinfo, if available")},
+    {NULL, NULL}
+};
+
+static int
+cmdSysinfo (vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
+{
+    char *sysinfo;
+
+    if (!vshConnectionUsability(ctl, ctl->conn))
+        return FALSE;
+
+    sysinfo = virConnectGetSysinfo (ctl->conn, 0);
+    if (sysinfo == NULL) {
+        vshError(ctl, "%s", _("failed to get sysinfo"));
+        return FALSE;
+    }
+
+    vshPrint (ctl, "%s", sysinfo);
+    VIR_FREE(sysinfo);
 
     return TRUE;
 }
@@ -8526,6 +8834,12 @@ cmdDetachInterface(vshControl *ctl, const vshCmd *cmd)
     if ((obj == NULL) || (obj->type != XPATH_NODESET) ||
         (obj->nodesetval == NULL) || (obj->nodesetval->nodeNr == 0)) {
         vshError(ctl, _("No found interface whose type is %s"), type);
+        goto cleanup;
+    }
+
+    if ((!mac) && (obj->nodesetval->nodeNr > 1)) {
+        vshError(ctl, _("Domain has %d interfaces. Please specify which one "
+                        "to detach using --mac"), obj->nodesetval->nodeNr);
         goto cleanup;
     }
 
@@ -9079,50 +9393,52 @@ static int
 editFile (vshControl *ctl, const char *filename)
 {
     const char *editor;
-    char *command;
-    int command_ret;
+    virCommandPtr cmd;
+    int ret = -1;
+    int outfd = STDOUT_FILENO;
+    int errfd = STDERR_FILENO;
 
     editor = getenv ("VISUAL");
-    if (!editor) editor = getenv ("EDITOR");
-    if (!editor) editor = "vi"; /* could be cruel & default to ed(1) here */
+    if (!editor)
+        editor = getenv ("EDITOR");
+    if (!editor)
+        editor = "vi"; /* could be cruel & default to ed(1) here */
 
     /* Check that filename doesn't contain shell meta-characters, and
      * if it does, refuse to run.  Follow the Unix conventions for
      * EDITOR: the user can intentionally specify command options, so
      * we don't protect any shell metacharacters there.  Lots more
      * than virsh will misbehave if EDITOR has bogus contents (which
-     * is why sudo scrubs it by default).
+     * is why sudo scrubs it by default).  Conversely, if the editor
+     * is safe, we can run it directly rather than wasting a shell.
      */
-    if (strspn (filename, ACCEPTED_CHARS) != strlen (filename)) {
-        vshError(ctl,
-                 _("%s: temporary filename contains shell meta or other "
-                   "unacceptable characters (is $TMPDIR wrong?)"),
-                 filename);
-        return -1;
+    if (strspn (editor, ACCEPTED_CHARS) != strlen (editor)) {
+        if (strspn (filename, ACCEPTED_CHARS) != strlen (filename)) {
+            vshError(ctl,
+                     _("%s: temporary filename contains shell meta or other "
+                       "unacceptable characters (is $TMPDIR wrong?)"),
+                     filename);
+            return -1;
+        }
+        cmd = virCommandNewArgList("sh", "-c", NULL);
+        virCommandAddArgFormat(cmd, "%s %s", editor, filename);
+    } else {
+        cmd = virCommandNewArgList(editor, filename, NULL);
     }
 
-    if (virAsprintf(&command, "%s %s", editor, filename) == -1) {
-        vshError(ctl,
-                 _("virAsprintf: could not create editing command: %s"),
-                 strerror(errno));
-        return -1;
+    virCommandSetInputFD(cmd, STDIN_FILENO);
+    virCommandSetOutputFD(cmd, &outfd);
+    virCommandSetErrorFD(cmd, &errfd);
+    if (virCommandRunAsync(cmd, NULL) < 0 ||
+        virCommandWait(cmd, NULL) < 0) {
+        virshReportError(ctl);
+        goto cleanup;
     }
+    ret = 0;
 
-    command_ret = system (command);
-    if (command_ret == -1) {
-        vshError(ctl,
-                 _("%s: edit command failed: %s"), command, strerror(errno));
-        VIR_FREE(command);
-        return -1;
-    }
-    if (WEXITSTATUS(command_ret) != 0) {
-        vshError(ctl,
-                 _("%s: command exited with non-zero status"), command);
-        VIR_FREE(command);
-        return -1;
-    }
-    VIR_FREE(command);
-    return 0;
+cleanup:
+    virCommandFree(cmd);
+    return ret;
 }
 
 static char *
@@ -9898,6 +10214,7 @@ static const vshCmdInfo info_qemu_monitor_command[] = {
 static const vshCmdOptDef opts_qemu_monitor_command[] = {
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
     {"cmd", VSH_OT_DATA, VSH_OFLAG_REQ, N_("command")},
+    {"hmp", VSH_OT_BOOL, 0, N_("command is in human monitor protocol")},
     {NULL, 0, 0, NULL}
 };
 
@@ -9908,6 +10225,7 @@ cmdQemuMonitorCommand(vshControl *ctl, const vshCmd *cmd)
     int ret = FALSE;
     char *monitor_cmd;
     char *result = NULL;
+    unsigned int flags = 0;
 
     if (!vshConnectionUsability(ctl, ctl->conn))
         goto cleanup;
@@ -9922,7 +10240,10 @@ cmdQemuMonitorCommand(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
     }
 
-    if (virDomainQemuMonitorCommand(dom, monitor_cmd, &result, 0) < 0)
+    if (vshCommandOptBool(cmd, "hmp"))
+        flags |= VIR_DOMAIN_QEMU_MONITOR_COMMAND_HMP;
+
+    if (virDomainQemuMonitorCommand(dom, monitor_cmd, &result, flags) < 0)
         goto cleanup;
 
     printf("%s\n", result);
@@ -10134,6 +10455,7 @@ static const vshCmdDef hostAndHypervisorCmds[] = {
     {"hostname", cmdHostname, NULL, info_hostname},
     {"nodeinfo", cmdNodeinfo, NULL, info_nodeinfo},
     {"qemu-monitor-command", cmdQemuMonitorCommand, opts_qemu_monitor_command, info_qemu_monitor_command},
+    {"sysinfo", cmdSysinfo, NULL, info_sysinfo},
     {"uri", cmdURI, NULL, info_uri},
     {NULL, NULL, NULL, NULL}
 };
@@ -11250,13 +11572,20 @@ static void
 vshPrintExtra(vshControl *ctl, const char *format, ...)
 {
     va_list ap;
+    char *str;
 
-    if (ctl->quiet == TRUE)
+    if (ctl && ctl->quiet == TRUE)
         return;
 
     va_start(ap, format);
-    vfprintf(stdout, format, ap);
+    if (virVasprintf(&str, format, ap) < 0) {
+        vshError(ctl, "%s", _("Out of memory"));
+        va_end(ap);
+        return;
+    }
     va_end(ap);
+    fprintf(stdout, "%s", str);
+    VIR_FREE(str);
 }
 
 
@@ -11264,6 +11593,7 @@ static void
 vshError(vshControl *ctl, const char *format, ...)
 {
     va_list ap;
+    char *str;
 
     if (ctl != NULL) {
         va_start(ap, format);
@@ -11274,10 +11604,13 @@ vshError(vshControl *ctl, const char *format, ...)
     fputs(_("error: "), stderr);
 
     va_start(ap, format);
-    vfprintf(stderr, format, ap);
+    /* We can't recursively call vshError on an OOM situation, so ignore
+       failure here. */
+    ignore_value(virVasprintf(&str, format, ap));
     va_end(ap);
 
-    fputc('\n', stderr);
+    fprintf(stderr, "%s\n", NULLSTR(str));
+    VIR_FREE(str);
 }
 
 /*
@@ -11827,7 +12160,7 @@ vshShowVersion(vshControl *ctl ATTRIBUTE_UNUSED)
     vshPrint(ctl, "\n");
 
     vshPrint(ctl, "%s", _(" Miscellaneous:"));
-#ifdef ENABLE_SECDRIVER_APPARMOR
+#ifdef WITH_SECDRIVER_APPARMOR
     vshPrint(ctl, " AppArmor");
 #endif
 #ifdef WITH_SECDRIVER_SELINUX

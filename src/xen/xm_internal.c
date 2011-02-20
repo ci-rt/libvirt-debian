@@ -830,6 +830,10 @@ xenXMDomainConfigParse(virConnectPtr conn, virConfPtr conf) {
             goto cleanup;
         else if (val)
             def->features |= (1 << VIR_DOMAIN_FEATURE_APIC);
+        if (xenXMConfigGetBool(conf, "hap", &val, 0) < 0)
+            goto cleanup;
+        else if (val)
+            def->features |= (1 << VIR_DOMAIN_FEATURE_HAP);
     }
     if (xenXMConfigGetBool(conf, "localtime", &vmlocaltime, 0) < 0)
         goto cleanup;
@@ -2332,10 +2336,10 @@ virConfPtr xenXMDomainConfigFormat(virConnectPtr conn,
     if (xenXMConfigSetString(conf, "uuid", uuid) < 0)
         goto no_memory;
 
-    if (xenXMConfigSetInt(conf, "maxmem", def->mem.max_balloon / 1024) < 0)
+    if (xenXMConfigSetInt(conf, "maxmem", VIR_DIV_UP(def->mem.max_balloon, 1024)) < 0)
         goto no_memory;
 
-    if (xenXMConfigSetInt(conf, "memory", def->mem.cur_balloon / 1024) < 0)
+    if (xenXMConfigSetInt(conf, "memory", VIR_DIV_UP(def->mem.cur_balloon, 1024)) < 0)
         goto no_memory;
 
     if (xenXMConfigSetInt(conf, "vcpus", def->maxvcpus) < 0)
@@ -2409,6 +2413,11 @@ virConfPtr xenXMDomainConfigFormat(virConnectPtr conn,
                                (1 << VIR_DOMAIN_FEATURE_APIC)) ? 1 : 0) < 0)
             goto no_memory;
 
+        if (priv->xendConfigVersion >= 3)
+            if (xenXMConfigSetInt(conf, "hap",
+                                  (def->features &
+                                   (1 << VIR_DOMAIN_FEATURE_HAP)) ? 1 : 0) < 0)
+                goto no_memory;
 
         if (def->clock.offset == VIR_DOMAIN_CLOCK_OFFSET_LOCALTIME) {
             if (def->clock.data.timezone) {

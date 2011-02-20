@@ -1,7 +1,7 @@
 /*
  * uml_driver.c: core driver methods for managing UML guests
  *
- * Copyright (C) 2006-2010 Red Hat, Inc.
+ * Copyright (C) 2006-2011 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -206,8 +206,8 @@ requery:
         return -1;
 
     if (res && STRPREFIX(res, "pts:")) {
-        VIR_FREE(def->data.file.path);
-        if ((def->data.file.path = strdup(res + 4)) == NULL) {
+        VIR_FREE(def->source.data.file.path);
+        if ((def->source.data.file.path = strdup(res + 4)) == NULL) {
             virReportOOMError();
             VIR_FREE(res);
             VIR_FREE(cmd);
@@ -236,13 +236,13 @@ umlIdentifyChrPTY(struct uml_driver *driver,
     int i;
 
     if (dom->def->console &&
-        dom->def->console->type == VIR_DOMAIN_CHR_TYPE_PTY)
+        dom->def->console->source.type == VIR_DOMAIN_CHR_TYPE_PTY)
         if (umlIdentifyOneChrPTY(driver, dom,
                                  dom->def->console, "con") < 0)
             return -1;
 
     for (i = 0 ; i < dom->def->nserials; i++)
-        if (dom->def->serials[i]->type == VIR_DOMAIN_CHR_TYPE_PTY &&
+        if (dom->def->serials[i]->source.type == VIR_DOMAIN_CHR_TYPE_PTY &&
             umlIdentifyOneChrPTY(driver, dom,
                                  dom->def->serials[i], "ssl") < 0)
             return -1;
@@ -342,10 +342,10 @@ cleanup:
  * Initialization function for the Uml daemon
  */
 static int
-umlStartup(int privileged) {
+umlStartup(int privileged)
+{
     uid_t uid = geteuid();
     char *base = NULL;
-    char driverConf[PATH_MAX];
     char *userdir = NULL;
 
     if (VIR_ALLOC(uml_driver) < 0)
@@ -398,10 +398,6 @@ umlStartup(int privileged) {
     /* Configuration paths are either ~/.libvirt/uml/... (session) or
      * /etc/libvirt/uml/... (system).
      */
-    if (snprintf (driverConf, sizeof(driverConf), "%s/uml.conf", base) == -1)
-        goto out_of_memory;
-    driverConf[sizeof(driverConf)-1] = '\0';
-
     if (virAsprintf(&uml_driver->configDir, "%s/uml", base) == -1)
         goto out_of_memory;
 
@@ -819,7 +815,7 @@ static int umlStartVMDaemon(virConnectPtr conn,
     virCommandPtr cmd = NULL;
 
     if (virDomainObjIsActive(vm)) {
-        umlReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+        umlReportError(VIR_ERR_OPERATION_INVALID, "%s",
                        _("VM is already active"));
         return -1;
     }
@@ -891,7 +887,7 @@ static int umlStartVMDaemon(virConnectPtr conn,
     if (ret < 0)
         goto cleanup;
 
-    ret = virDomainObjSetDefTransient(driver->caps, vm);
+    ret = virDomainObjSetDefTransient(driver->caps, vm, false);
 cleanup:
     virCommandFree(cmd);
 
@@ -1462,7 +1458,7 @@ static int umlDomainSetMemory(virDomainPtr dom, unsigned long newmem) {
     }
 
     if (virDomainObjIsActive(vm)) {
-        umlReportError(VIR_ERR_NO_SUPPORT, "%s",
+        umlReportError(VIR_ERR_OPERATION_INVALID, "%s",
                        _("cannot set memory of an active domain"));
         goto cleanup;
     }
@@ -1656,13 +1652,13 @@ static int umlDomainUndefine(virDomainPtr dom) {
     }
 
     if (virDomainObjIsActive(vm)) {
-        umlReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+        umlReportError(VIR_ERR_OPERATION_INVALID, "%s",
                        _("cannot delete active domain"));
         goto cleanup;
     }
 
     if (!vm->persistent) {
-        umlReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+        umlReportError(VIR_ERR_OPERATION_INVALID, "%s",
                        _("cannot undefine transient domain"));
         goto cleanup;
     }
@@ -1954,7 +1950,7 @@ static int umlDomainSetAutostart(virDomainPtr dom,
     }
 
     if (!vm->persistent) {
-        umlReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+        umlReportError(VIR_ERR_OPERATION_INVALID, "%s",
                        _("cannot set autostart for transient domain"));
         goto cleanup;
     }
@@ -2124,13 +2120,13 @@ umlDomainOpenConsole(virDomainPtr dom,
         goto cleanup;
     }
 
-    if (chr->type != VIR_DOMAIN_CHR_TYPE_PTY) {
+    if (chr->source.type != VIR_DOMAIN_CHR_TYPE_PTY) {
         umlReportError(VIR_ERR_INTERNAL_ERROR,
                         _("character device %s is not using a PTY"), devname);
         goto cleanup;
     }
 
-    if (virFDStreamOpenFile(st, chr->data.file.path, O_RDWR) < 0)
+    if (virFDStreamOpenFile(st, chr->source.data.file.path, O_RDWR) < 0)
         goto cleanup;
 
     ret = 0;
@@ -2152,6 +2148,7 @@ static virDriver umlDriver = {
     umlGetVersion, /* version */
     NULL, /* libvirtVersion (impl. in libvirt.c) */
     virGetHostname, /* getHostname */
+    NULL, /* getSysinfo */
     NULL, /* getMaxVcpus */
     nodeGetInfo, /* nodeGetInfo */
     umlGetCapabilities, /* getCapabilities */

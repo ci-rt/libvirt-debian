@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2010 Red Hat, Inc.
+ * Copyright (C) 2008-2011 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -160,7 +160,7 @@ SELinuxInitialize(void)
 }
 
 static int
-SELinuxGenSecurityLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+SELinuxGenSecurityLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
                         virDomainObjPtr vm)
 {
     int rc = -1;
@@ -225,7 +225,7 @@ done:
 }
 
 static int
-SELinuxReserveSecurityLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+SELinuxReserveSecurityLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
                             virDomainObjPtr vm)
 {
     security_context_t pctx;
@@ -270,20 +270,34 @@ SELinuxSecurityDriverProbe(void)
 }
 
 static int
-SELinuxSecurityDriverOpen(virSecurityDriverPtr drv,
-                          bool allowDiskFormatProbing)
+SELinuxSecurityDriverOpen(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED)
+{
+    return SELinuxInitialize();
+}
+
+static int
+SELinuxSecurityDriverClose(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+
+
+static const char *SELinuxSecurityGetModel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED)
+{
+    return SECURITY_SELINUX_NAME;
+}
+
+static const char *SELinuxSecurityGetDOI(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED)
 {
     /*
      * Where will the DOI come from?  SELinux configuration, or qemu
      * configuration? For the moment, we'll just set it to "0".
      */
-    virSecurityDriverSetDOI(drv, SECURITY_SELINUX_VOID_DOI);
-    virSecurityDriverSetAllowDiskFormatProbing(drv, allowDiskFormatProbing);
-    return SELinuxInitialize();
+    return SECURITY_SELINUX_VOID_DOI;
 }
 
 static int
-SELinuxGetSecurityProcessLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+SELinuxGetSecurityProcessLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
                                virDomainObjPtr vm,
                                virSecurityLabelPtr sec)
 {
@@ -357,6 +371,45 @@ SELinuxSetFilecon(const char *path, char *tcon)
     return 0;
 }
 
+static int
+SELinuxFSetFilecon(int fd, char *tcon)
+{
+    security_context_t econ;
+
+    VIR_INFO("Setting SELinux context on fd %d to '%s'", fd, tcon);
+
+    if (fsetfilecon(fd, tcon) < 0) {
+        int fsetfilecon_errno = errno;
+
+        if (fgetfilecon(fd, &econ) >= 0) {
+            if (STREQ(tcon, econ)) {
+                freecon(econ);
+                /* It's alright, there's nothing to change anyway. */
+                return 0;
+            }
+            freecon(econ);
+        }
+
+        /* if the error complaint is related to an image hosted on
+         * an nfs mount, or a usbfs/sysfs filesystem not supporting
+         * labelling, then just ignore it & hope for the best.
+         * The user hopefully set one of the necessary SELinux
+         * virt_use_{nfs,usb,pci}  boolean tunables to allow it...
+         */
+        if (fsetfilecon_errno != EOPNOTSUPP) {
+            virReportSystemError(fsetfilecon_errno,
+                                 _("unable to set security context '%s' on fd %d"),
+                                 tcon, fd);
+            if (security_getenforce() == 1)
+                return -1;
+        } else {
+            VIR_INFO("Setting security context '%s' on fd %d not supported",
+                     tcon, fd);
+        }
+    }
+    return 0;
+}
+
 /* Set fcon to the appropriate label for path and mode, or return -1.  */
 static int
 getContext(const char *newpath, mode_t mode, security_context_t *fcon)
@@ -415,7 +468,7 @@ err:
 }
 
 static int
-SELinuxRestoreSecurityImageLabelInt(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+SELinuxRestoreSecurityImageLabelInt(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
                                     virDomainObjPtr vm,
                                     virDomainDiskDefPtr disk,
                                     int migrated)
@@ -460,11 +513,11 @@ SELinuxRestoreSecurityImageLabelInt(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
 
 
 static int
-SELinuxRestoreSecurityImageLabel(virSecurityDriverPtr drv,
+SELinuxRestoreSecurityImageLabel(virSecurityManagerPtr mgr,
                                  virDomainObjPtr vm,
                                  virDomainDiskDefPtr disk)
 {
-    return SELinuxRestoreSecurityImageLabelInt(drv, vm, disk, 0);
+    return SELinuxRestoreSecurityImageLabelInt(mgr, vm, disk, 0);
 }
 
 
@@ -498,13 +551,13 @@ SELinuxSetSecurityFileLabel(virDomainDiskDefPtr disk,
 }
 
 static int
-SELinuxSetSecurityImageLabel(virSecurityDriverPtr drv,
+SELinuxSetSecurityImageLabel(virSecurityManagerPtr mgr,
                              virDomainObjPtr vm,
                              virDomainDiskDefPtr disk)
 
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
-    bool allowDiskFormatProbing = virSecurityDriverGetAllowDiskFormatProbing(drv);
+    bool allowDiskFormatProbing = virSecurityManagerGetAllowDiskFormatProbing(mgr);
 
     if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
         return 0;
@@ -538,7 +591,7 @@ SELinuxSetSecurityUSBLabel(usbDevice *dev ATTRIBUTE_UNUSED,
 }
 
 static int
-SELinuxSetSecurityHostdevLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+SELinuxSetSecurityHostdevLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
                                virDomainObjPtr vm,
                                virDomainHostdevDefPtr dev)
 
@@ -607,7 +660,7 @@ SELinuxRestoreSecurityUSBLabel(usbDevice *dev ATTRIBUTE_UNUSED,
 }
 
 static int
-SELinuxRestoreSecurityHostdevLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+SELinuxRestoreSecurityHostdevLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
                                    virDomainObjPtr vm,
                                    virDomainHostdevDefPtr dev)
 
@@ -662,7 +715,7 @@ done:
 
 static int
 SELinuxSetSecurityChardevLabel(virDomainObjPtr vm,
-                               virDomainChrDefPtr dev)
+                               virDomainChrSourceDefPtr dev)
 
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
@@ -703,7 +756,7 @@ done:
 
 static int
 SELinuxRestoreSecurityChardevLabel(virDomainObjPtr vm,
-                                   virDomainChrDefPtr dev)
+                                   virDomainChrSourceDefPtr dev)
 
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
@@ -751,12 +804,44 @@ SELinuxRestoreSecurityChardevCallback(virDomainDefPtr def ATTRIBUTE_UNUSED,
 {
     virDomainObjPtr vm = opaque;
 
-    return SELinuxRestoreSecurityChardevLabel(vm, dev);
+    return SELinuxRestoreSecurityChardevLabel(vm, &dev->source);
 }
 
 
 static int
-SELinuxRestoreSecurityAllLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+SELinuxRestoreSecuritySmartcardCallback(virDomainDefPtr def ATTRIBUTE_UNUSED,
+                                        virDomainSmartcardDefPtr dev,
+                                        void *opaque)
+{
+    virDomainObjPtr vm = opaque;
+    const char *database;
+
+    switch (dev->type) {
+    case VIR_DOMAIN_SMARTCARD_TYPE_HOST:
+        break;
+
+    case VIR_DOMAIN_SMARTCARD_TYPE_HOST_CERTIFICATES:
+        database = dev->data.cert.database;
+        if (!database)
+            database = VIR_DOMAIN_SMARTCARD_DEFAULT_DATABASE;
+        return SELinuxRestoreSecurityFileLabel(database);
+
+    case VIR_DOMAIN_SMARTCARD_TYPE_PASSTHROUGH:
+        return SELinuxRestoreSecurityChardevLabel(vm, &dev->data.passthru);
+
+    default:
+        virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("unknown smartcard type %d"),
+                               dev->type);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+static int
+SELinuxRestoreSecurityAllLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
                                virDomainObjPtr vm,
                                int migrated ATTRIBUTE_UNUSED)
 {
@@ -770,13 +855,13 @@ SELinuxRestoreSecurityAllLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
         return 0;
 
     for (i = 0 ; i < vm->def->nhostdevs ; i++) {
-        if (SELinuxRestoreSecurityHostdevLabel(drv,
+        if (SELinuxRestoreSecurityHostdevLabel(mgr,
                                                vm,
                                                vm->def->hostdevs[i]) < 0)
             rc = -1;
     }
     for (i = 0 ; i < vm->def->ndisks ; i++) {
-        if (SELinuxRestoreSecurityImageLabelInt(drv,
+        if (SELinuxRestoreSecurityImageLabelInt(mgr,
                                                 vm,
                                                 vm->def->disks[i],
                                                 migrated) < 0)
@@ -787,6 +872,12 @@ SELinuxRestoreSecurityAllLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
                                false,
                                SELinuxRestoreSecurityChardevCallback,
                                vm) < 0)
+        rc = -1;
+
+    if (virDomainSmartcardDefForeach(vm->def,
+                                     false,
+                                     SELinuxRestoreSecuritySmartcardCallback,
+                                     vm) < 0)
         rc = -1;
 
     if (vm->def->os.kernel &&
@@ -801,7 +892,7 @@ SELinuxRestoreSecurityAllLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
 }
 
 static int
-SELinuxReleaseSecurityLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+SELinuxReleaseSecurityLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
                             virDomainObjPtr vm)
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
@@ -825,7 +916,7 @@ SELinuxReleaseSecurityLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
 
 
 static int
-SELinuxSetSavedStateLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+SELinuxSetSavedStateLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
                           virDomainObjPtr vm,
                           const char *savefile)
 {
@@ -839,7 +930,7 @@ SELinuxSetSavedStateLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
 
 
 static int
-SELinuxRestoreSavedStateLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
+SELinuxRestoreSavedStateLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
                               virDomainObjPtr vm,
                               const char *savefile)
 {
@@ -853,9 +944,19 @@ SELinuxRestoreSavedStateLabel(virSecurityDriverPtr drv ATTRIBUTE_UNUSED,
 
 
 static int
-SELinuxSecurityVerify(virDomainDefPtr def)
+SELinuxSecurityVerify(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
+                      virDomainDefPtr def)
 {
     const virSecurityLabelDefPtr secdef = &def->seclabel;
+    if (!STREQ(virSecurityManagerGetModel(mgr), secdef->model)) {
+        virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("security label driver mismatch: "
+                                 "'%s' model configured for domain, but "
+                                 "hypervisor driver is '%s'."),
+                               secdef->model, virSecurityManagerGetModel(mgr));
+        return -1;
+    }
+
     if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC) {
         if (security_check_context(secdef->label) != 0) {
             virSecurityReportError(VIR_ERR_XML_ERROR,
@@ -867,7 +968,7 @@ SELinuxSecurityVerify(virDomainDefPtr def)
 }
 
 static int
-SELinuxSetSecurityProcessLabel(virSecurityDriverPtr drv,
+SELinuxSetSecurityProcessLabel(virSecurityManagerPtr mgr,
                                virDomainObjPtr vm)
 {
     /* TODO: verify DOI */
@@ -876,12 +977,12 @@ SELinuxSetSecurityProcessLabel(virSecurityDriverPtr drv,
     if (vm->def->seclabel.label == NULL)
         return 0;
 
-    if (!STREQ(drv->name, secdef->model)) {
+    if (!STREQ(virSecurityManagerGetModel(mgr), secdef->model)) {
         virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
                                _("security label driver mismatch: "
                                  "'%s' model configured for domain, but "
                                  "hypervisor driver is '%s'."),
-                               secdef->model, drv->name);
+                               secdef->model, virSecurityManagerGetModel(mgr));
         if (security_getenforce() == 1)
             return -1;
     }
@@ -898,7 +999,7 @@ SELinuxSetSecurityProcessLabel(virSecurityDriverPtr drv,
 }
 
 static int
-SELinuxSetSecuritySocketLabel(virSecurityDriverPtr drv,
+SELinuxSetSecuritySocketLabel(virSecurityManagerPtr mgr,
                                virDomainObjPtr vm)
 {
     /* TODO: verify DOI */
@@ -911,12 +1012,12 @@ SELinuxSetSecuritySocketLabel(virSecurityDriverPtr drv,
     if (vm->def->seclabel.label == NULL)
         return 0;
 
-    if (!STREQ(drv->name, secdef->model)) {
+    if (!STREQ(virSecurityManagerGetModel(mgr), secdef->model)) {
         virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
                                _("security label driver mismatch: "
                                  "'%s' model configured for domain, but "
                                  "hypervisor driver is '%s'."),
-                               secdef->model, drv->name);
+                               secdef->model, virSecurityManagerGetModel(mgr));
         goto done;
     }
 
@@ -969,7 +1070,7 @@ done:
 }
 
 static int
-SELinuxClearSecuritySocketLabel(virSecurityDriverPtr drv,
+SELinuxClearSecuritySocketLabel(virSecurityManagerPtr mgr,
                                 virDomainObjPtr vm)
 {
     /* TODO: verify DOI */
@@ -978,12 +1079,12 @@ SELinuxClearSecuritySocketLabel(virSecurityDriverPtr drv,
     if (vm->def->seclabel.label == NULL)
         return 0;
 
-    if (!STREQ(drv->name, secdef->model)) {
+    if (!STREQ(virSecurityManagerGetModel(mgr), secdef->model)) {
         virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
                                _("security label driver mismatch: "
                                  "'%s' model configured for domain, but "
                                  "hypervisor driver is '%s'."),
-                               secdef->model, drv->name);
+                               secdef->model, virSecurityManagerGetModel(mgr));
         if (security_getenforce() == 1)
             return -1;
     }
@@ -1006,12 +1107,44 @@ SELinuxSetSecurityChardevCallback(virDomainDefPtr def ATTRIBUTE_UNUSED,
 {
     virDomainObjPtr vm = opaque;
 
-    return SELinuxSetSecurityChardevLabel(vm, dev);
+    return SELinuxSetSecurityChardevLabel(vm, &dev->source);
 }
 
 
 static int
-SELinuxSetSecurityAllLabel(virSecurityDriverPtr drv,
+SELinuxSetSecuritySmartcardCallback(virDomainDefPtr def ATTRIBUTE_UNUSED,
+                                    virDomainSmartcardDefPtr dev,
+                                    void *opaque)
+{
+    virDomainObjPtr vm = opaque;
+    const char *database;
+
+    switch (dev->type) {
+    case VIR_DOMAIN_SMARTCARD_TYPE_HOST:
+        break;
+
+    case VIR_DOMAIN_SMARTCARD_TYPE_HOST_CERTIFICATES:
+        database = dev->data.cert.database;
+        if (!database)
+            database = VIR_DOMAIN_SMARTCARD_DEFAULT_DATABASE;
+        return SELinuxSetFilecon(database, default_content_context);
+
+    case VIR_DOMAIN_SMARTCARD_TYPE_PASSTHROUGH:
+        return SELinuxSetSecurityChardevLabel(vm, &dev->data.passthru);
+
+    default:
+        virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("unknown smartcard type %d"),
+                               dev->type);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+static int
+SELinuxSetSecurityAllLabel(virSecurityManagerPtr mgr,
                            virDomainObjPtr vm,
                            const char *stdin_path)
 {
@@ -1028,12 +1161,12 @@ SELinuxSetSecurityAllLabel(virSecurityDriverPtr drv,
                      vm->def->disks[i]->src, vm->def->disks[i]->dst);
             continue;
         }
-        if (SELinuxSetSecurityImageLabel(drv,
+        if (SELinuxSetSecurityImageLabel(mgr,
                                          vm, vm->def->disks[i]) < 0)
             return -1;
     }
     for (i = 0 ; i < vm->def->nhostdevs ; i++) {
-        if (SELinuxSetSecurityHostdevLabel(drv,
+        if (SELinuxSetSecurityHostdevLabel(mgr,
                                            vm,
                                            vm->def->hostdevs[i]) < 0)
             return -1;
@@ -1043,6 +1176,12 @@ SELinuxSetSecurityAllLabel(virSecurityDriverPtr drv,
                                true,
                                SELinuxSetSecurityChardevCallback,
                                vm) < 0)
+        return -1;
+
+    if (virDomainSmartcardDefForeach(vm->def,
+                                     true,
+                                     SELinuxSetSecuritySmartcardCallback,
+                                     vm) < 0)
         return -1;
 
     if (vm->def->os.kernel &&
@@ -1063,24 +1202,52 @@ SELinuxSetSecurityAllLabel(virSecurityDriverPtr drv,
     return 0;
 }
 
-virSecurityDriver virSELinuxSecurityDriver = {
-    .name                       = SECURITY_SELINUX_NAME,
-    .probe                      = SELinuxSecurityDriverProbe,
-    .open                       = SELinuxSecurityDriverOpen,
-    .domainSecurityVerify       = SELinuxSecurityVerify,
-    .domainSetSecurityImageLabel = SELinuxSetSecurityImageLabel,
-    .domainSetSecuritySocketLabel     = SELinuxSetSecuritySocketLabel,
-    .domainClearSecuritySocketLabel     = SELinuxClearSecuritySocketLabel,
-    .domainRestoreSecurityImageLabel = SELinuxRestoreSecurityImageLabel,
-    .domainGenSecurityLabel     = SELinuxGenSecurityLabel,
-    .domainReserveSecurityLabel     = SELinuxReserveSecurityLabel,
-    .domainReleaseSecurityLabel     = SELinuxReleaseSecurityLabel,
-    .domainGetSecurityProcessLabel     = SELinuxGetSecurityProcessLabel,
-    .domainSetSecurityProcessLabel     = SELinuxSetSecurityProcessLabel,
-    .domainRestoreSecurityAllLabel = SELinuxRestoreSecurityAllLabel,
-    .domainSetSecurityAllLabel     = SELinuxSetSecurityAllLabel,
-    .domainSetSecurityHostdevLabel = SELinuxSetSecurityHostdevLabel,
-    .domainRestoreSecurityHostdevLabel = SELinuxRestoreSecurityHostdevLabel,
-    .domainSetSavedStateLabel = SELinuxSetSavedStateLabel,
-    .domainRestoreSavedStateLabel = SELinuxRestoreSavedStateLabel,
+static int
+SELinuxSetFDLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
+                  virDomainObjPtr vm,
+                  int fd)
+{
+    const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
+
+    if (secdef->imagelabel == NULL)
+        return 0;
+
+    return SELinuxFSetFilecon(fd, secdef->imagelabel);
+}
+
+virSecurityDriver virSecurityDriverSELinux = {
+    0,
+    SECURITY_SELINUX_NAME,
+    SELinuxSecurityDriverProbe,
+    SELinuxSecurityDriverOpen,
+    SELinuxSecurityDriverClose,
+
+    SELinuxSecurityGetModel,
+    SELinuxSecurityGetDOI,
+
+    SELinuxSecurityVerify,
+
+    SELinuxSetSecurityImageLabel,
+    SELinuxRestoreSecurityImageLabel,
+
+    SELinuxSetSecuritySocketLabel,
+    SELinuxClearSecuritySocketLabel,
+
+    SELinuxGenSecurityLabel,
+    SELinuxReserveSecurityLabel,
+    SELinuxReleaseSecurityLabel,
+
+    SELinuxGetSecurityProcessLabel,
+    SELinuxSetSecurityProcessLabel,
+
+    SELinuxSetSecurityAllLabel,
+    SELinuxRestoreSecurityAllLabel,
+
+    SELinuxSetSecurityHostdevLabel,
+    SELinuxRestoreSecurityHostdevLabel,
+
+    SELinuxSetSavedStateLabel,
+    SELinuxRestoreSavedStateLabel,
+
+    SELinuxSetFDLabel,
 };

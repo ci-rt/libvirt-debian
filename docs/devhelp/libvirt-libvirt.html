@@ -46,6 +46,7 @@
 #define <a href="#VIR_DOMAIN_MEMORY_FIELD_LENGTH">VIR_DOMAIN_MEMORY_FIELD_LENGTH</a>;
 #define <a href="#VIR_DOMAIN_MEMORY_HARD_LIMIT">VIR_DOMAIN_MEMORY_HARD_LIMIT</a>;
 #define <a href="#VIR_DOMAIN_MEMORY_MIN_GUARANTEE">VIR_DOMAIN_MEMORY_MIN_GUARANTEE</a>;
+#define <a href="#VIR_DOMAIN_MEMORY_PARAM_UNLIMITED">VIR_DOMAIN_MEMORY_PARAM_UNLIMITED</a>;
 #define <a href="#VIR_DOMAIN_MEMORY_SOFT_LIMIT">VIR_DOMAIN_MEMORY_SOFT_LIMIT</a>;
 #define <a href="#VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT">VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT</a>;
 #define <a href="#VIR_DOMAIN_SCHED_FIELD_LENGTH">VIR_DOMAIN_SCHED_FIELD_LENGTH</a>;
@@ -179,6 +180,7 @@ char *	<a href="#virConnectGetCapabilities">virConnectGetCapabilities</a>	(<a hr
 char *	<a href="#virConnectGetHostname">virConnectGetHostname</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
 int	<a href="#virConnectGetLibVersion">virConnectGetLibVersion</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned long * libVer);
 int	<a href="#virConnectGetMaxVcpus">virConnectGetMaxVcpus</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * type);
+char *	<a href="#virConnectGetSysinfo">virConnectGetSysinfo</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned int flags);
 const char *	<a href="#virConnectGetType">virConnectGetType</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
 char *	<a href="#virConnectGetURI">virConnectGetURI</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
 int	<a href="#virConnectGetVersion">virConnectGetVersion</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned long * hvVer);
@@ -470,6 +472,10 @@ typedef int <a href="#virStreamSourceFunc">virStreamSourceFunc</a>		(<a href="li
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_MEMORY_MIN_GUARANTEE">Macro </a>VIR_DOMAIN_MEMORY_MIN_GUARANTEE</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_MEMORY_MIN_GUARANTEE">VIR_DOMAIN_MEMORY_MIN_GUARANTEE</a>;
 </pre><p>Macro for the memory tunable min_guarantee: it represents the minimum memory guaranteed to be reserved for the guest.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_MEMORY_PARAM_UNLIMITED">Macro </a>VIR_DOMAIN_MEMORY_PARAM_UNLIMITED</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_MEMORY_PARAM_UNLIMITED">VIR_DOMAIN_MEMORY_PARAM_UNLIMITED</a>;
+</pre><p>Macro providing the <a href="libvirt-libvirt.html#virMemoryParameter">virMemoryParameter</a> value that indicates "unlimited"</p>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_MEMORY_SOFT_LIMIT">Macro </a>VIR_DOMAIN_MEMORY_SOFT_LIMIT</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_MEMORY_SOFT_LIMIT">VIR_DOMAIN_MEMORY_SOFT_LIMIT</a>;
@@ -1467,6 +1473,13 @@ hostname of the remote system.</p>
 specific type. The 'type' parameter here corresponds to the 'type'
 attribute in the &lt;domain&gt; element of the XML.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>type</tt></i>:</span></td><td>value of the 'type' attribute in the &lt;domain&gt; element</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the maximum of virtual CPU or -1 in case of error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectGetSysinfo"/>virConnectGetSysinfo ()</h3><pre class="programlisting">char *	virConnectGetSysinfo		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned int flags)<br/>
+</pre><p>This returns the XML description of the sysinfo details for the
+host on which the hypervisor is running, in the same format as the
+&lt;sysinfo&gt; element of a domain XML. This information is generally
+available only for hypervisors running with root privileges.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to a hypervisor connection</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the XML string which must be freed by the caller, or NULL if there was an error.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectGetType"/>virConnectGetType ()</h3><pre class="programlisting">const char *	virConnectGetType	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn)<br/>
 </pre><p>Get the name of the Hypervisor software used.</p>

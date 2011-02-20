@@ -2313,7 +2313,7 @@ xenHypervisorBuildCapabilities(virConnectPtr conn,
                                                1, 1) == NULL)
                 goto no_memory;
 
-            // In Xen 3.1.0, APIC is always on and can't be toggled
+            /* In Xen 3.1.0, APIC is always on and can't be toggled */
             if (virCapabilitiesAddGuestFeature(guest,
                                                "apic",
                                                1,
@@ -2321,6 +2321,16 @@ xenHypervisorBuildCapabilities(virConnectPtr conn,
                                                 hv_minor > 0 ?
                                                 0 : 1)) == NULL)
                 goto no_memory;
+
+            /* Xen 3.3.x and beyond supports enabling/disabling
+             * hardware assisted paging.  Default is off.
+             */
+            if ((hv_major == 3 && hv_minor >= 3) || (hv_major > 3))
+                if (virCapabilitiesAddGuestFeature(guest,
+                                                   "hap",
+                                                   0,
+                                                   1) == NULL)
+                    goto no_memory;
         }
     }
 

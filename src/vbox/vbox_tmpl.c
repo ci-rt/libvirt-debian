@@ -8,7 +8,7 @@
  */
 
 /*
- * Copyright (C) 2010 Red Hat, Inc.
+ * Copyright (C) 2010-2011 Red Hat, Inc.
  * Copyright (C) 2008-2009 Sun Microsystems, Inc.
  *
  * This file is part of a free software library; you can redistribute
@@ -1784,7 +1784,8 @@ static int vboxDomainSetMemory(virDomainPtr dom, unsigned long memory) {
             rc = data->vboxSession->vtbl->GetMachine(data->vboxSession, &machine);
             if (NS_SUCCEEDED(rc) && machine) {
 
-                rc = machine->vtbl->SetMemorySize(machine, memory / 1024);
+                rc = machine->vtbl->SetMemorySize(machine,
+                                                  VIR_DIV_UP(memory, 1024));
                 if (NS_SUCCEEDED(rc)) {
                     machine->vtbl->SaveSettings(machine);
                     ret = 0;
@@ -2225,7 +2226,7 @@ static char *vboxDomainDumpXML(virDomainPtr dom, int flags) {
                 if (VIR_ALLOC_N(def->videos, def->nvideos) >= 0) {
                     if (VIR_ALLOC(def->videos[0]) >= 0) {
                         /* the default is: vram is 8MB, One monitor, 3dAccel Off */
-                        PRUint32 VRAMSize          = 8 * 1024;
+                        PRUint32 VRAMSize          = 8;
                         PRUint32 monitorCount      = 1;
                         PRBool accelerate3DEnabled = PR_FALSE;
                         PRBool accelerate2DEnabled = PR_FALSE;
@@ -2238,7 +2239,7 @@ static char *vboxDomainDumpXML(virDomainPtr dom, int flags) {
 #endif /* VBOX_API_VERSION >= 3001 */
 
                         def->videos[0]->type            = VIR_DOMAIN_VIDEO_TYPE_VBOX;
-                        def->videos[0]->vram            = VRAMSize;
+                        def->videos[0]->vram            = VRAMSize * 1024;
                         def->videos[0]->heads           = monitorCount;
                         if (VIR_ALLOC(def->videos[0]->accel) >= 0) {
                             def->videos[0]->accel->support3d = accelerate3DEnabled;
@@ -3001,15 +3002,15 @@ static char *vboxDomainDumpXML(virDomainPtr dom, int flags) {
 
                         serialPort->vtbl->GetHostMode(serialPort, &hostMode);
                         if (hostMode == PortMode_HostPipe) {
-                            def->serials[serialPortIncCount]->type = VIR_DOMAIN_CHR_TYPE_PIPE;
+                            def->serials[serialPortIncCount]->source.type = VIR_DOMAIN_CHR_TYPE_PIPE;
                         } else if (hostMode == PortMode_HostDevice) {
-                            def->serials[serialPortIncCount]->type = VIR_DOMAIN_CHR_TYPE_DEV;
+                            def->serials[serialPortIncCount]->source.type = VIR_DOMAIN_CHR_TYPE_DEV;
 #if VBOX_API_VERSION >= 3000
                         } else if (hostMode == PortMode_RawFile) {
-                            def->serials[serialPortIncCount]->type = VIR_DOMAIN_CHR_TYPE_FILE;
+                            def->serials[serialPortIncCount]->source.type = VIR_DOMAIN_CHR_TYPE_FILE;
 #endif /* VBOX_API_VERSION >= 3000 */
                         } else {
-                            def->serials[serialPortIncCount]->type = VIR_DOMAIN_CHR_TYPE_NULL;
+                            def->serials[serialPortIncCount]->source.type = VIR_DOMAIN_CHR_TYPE_NULL;
                         }
 
                         def->serials[serialPortIncCount]->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL;
@@ -3026,7 +3027,7 @@ static char *vboxDomainDumpXML(virDomainPtr dom, int flags) {
 
                         if (pathUtf16) {
                             VBOX_UTF16_TO_UTF8(pathUtf16, &path);
-                            def->serials[serialPortIncCount]->data.file.path = strdup(path);
+                            def->serials[serialPortIncCount]->source.data.file.path = strdup(path);
                         }
 
                         serialPortIncCount++;
@@ -3090,13 +3091,13 @@ static char *vboxDomainDumpXML(virDomainPtr dom, int flags) {
                             def->parallels[parallelPortIncCount]->target.port = 1;
                         }
 
-                        def->parallels[parallelPortIncCount]->type = VIR_DOMAIN_CHR_TYPE_FILE;
+                        def->parallels[parallelPortIncCount]->source.type = VIR_DOMAIN_CHR_TYPE_FILE;
                         def->parallels[parallelPortIncCount]->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_PARALLEL;
 
                         parallelPort->vtbl->GetPath(parallelPort, &pathUtf16);
 
                         VBOX_UTF16_TO_UTF8(pathUtf16, &path);
-                        def->parallels[parallelPortIncCount]->data.file.path = strdup(path);
+                        def->parallels[parallelPortIncCount]->source.data.file.path = strdup(path);
 
                         parallelPortIncCount++;
 
@@ -4267,7 +4268,7 @@ vboxAttachSerial(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
     for (i = 0; (i < def->nserials) && (i < serialPortCount); i++) {
         ISerialPort *serialPort = NULL;
 
-        DEBUG("SerialPort(%d): Type: %d", i, def->serials[i]->type);
+        DEBUG("SerialPort(%d): Type: %d", i, def->serials[i]->source.type);
         DEBUG("SerialPort(%d): target.port: %d", i,
               def->serials[i]->target.port);
 
@@ -4277,8 +4278,9 @@ vboxAttachSerial(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
 
             serialPort->vtbl->SetEnabled(serialPort, 1);
 
-            if (def->serials[i]->data.file.path) {
-                VBOX_UTF8_TO_UTF16(def->serials[i]->data.file.path, &pathUtf16);
+            if (def->serials[i]->source.data.file.path) {
+                VBOX_UTF8_TO_UTF16(def->serials[i]->source.data.file.path,
+                                   &pathUtf16);
                 serialPort->vtbl->SetPath(serialPort, pathUtf16);
             }
 
@@ -4295,20 +4297,20 @@ vboxAttachSerial(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
                 serialPort->vtbl->SetIRQ(serialPort, 4);
                 serialPort->vtbl->SetIOBase(serialPort, 1016);
                 DEBUG(" serialPort-%d irq: %d, iobase 0x%x, path: %s",
-                      i, 4, 1016, def->serials[i]->data.file.path);
+                      i, 4, 1016, def->serials[i]->source.data.file.path);
             } else if (def->serials[i]->target.port == 1) {
                 serialPort->vtbl->SetIRQ(serialPort, 3);
                 serialPort->vtbl->SetIOBase(serialPort, 760);
                 DEBUG(" serialPort-%d irq: %d, iobase 0x%x, path: %s",
-                      i, 3, 760, def->serials[i]->data.file.path);
+                      i, 3, 760, def->serials[i]->source.data.file.path);
             }
 
-            if (def->serials[i]->type == VIR_DOMAIN_CHR_TYPE_DEV) {
+            if (def->serials[i]->source.type == VIR_DOMAIN_CHR_TYPE_DEV) {
                 serialPort->vtbl->SetHostMode(serialPort, PortMode_HostDevice);
-            } else if (def->serials[i]->type == VIR_DOMAIN_CHR_TYPE_PIPE) {
+            } else if (def->serials[i]->source.type == VIR_DOMAIN_CHR_TYPE_PIPE) {
                 serialPort->vtbl->SetHostMode(serialPort, PortMode_HostPipe);
 #if VBOX_API_VERSION >= 3000
-            } else if (def->serials[i]->type == VIR_DOMAIN_CHR_TYPE_FILE) {
+            } else if (def->serials[i]->source.type == VIR_DOMAIN_CHR_TYPE_FILE) {
                 serialPort->vtbl->SetHostMode(serialPort, PortMode_RawFile);
 #endif /* VBOX_API_VERSION >= 3000 */
             } else {
@@ -4345,7 +4347,7 @@ vboxAttachParallel(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
     for (i = 0; (i < def->nparallels) && (i < parallelPortCount); i++) {
         IParallelPort *parallelPort = NULL;
 
-        DEBUG("ParallelPort(%d): Type: %d", i, def->parallels[i]->type);
+        DEBUG("ParallelPort(%d): Type: %d", i, def->parallels[i]->source.type);
         DEBUG("ParallelPort(%d): target.port: %d", i,
               def->parallels[i]->target.port);
 
@@ -4353,28 +4355,28 @@ vboxAttachParallel(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
         if (parallelPort) {
             PRUnichar *pathUtf16 = NULL;
 
-            VBOX_UTF8_TO_UTF16(def->parallels[i]->data.file.path, &pathUtf16);
+            VBOX_UTF8_TO_UTF16(def->parallels[i]->source.data.file.path, &pathUtf16);
 
             /* For now hard code the parallel ports to
              * LPT1 (Base Addr: 0x378 (decimal: 888), IRQ: 7)
              * LPT2 (Base Addr: 0x278 (decimal: 632), IRQ: 5)
              * TODO: make this more flexible
              */
-            if ((def->parallels[i]->type == VIR_DOMAIN_CHR_TYPE_DEV)  ||
-                (def->parallels[i]->type == VIR_DOMAIN_CHR_TYPE_PTY)  ||
-                (def->parallels[i]->type == VIR_DOMAIN_CHR_TYPE_FILE) ||
-                (def->parallels[i]->type == VIR_DOMAIN_CHR_TYPE_PIPE)) {
+            if ((def->parallels[i]->source.type == VIR_DOMAIN_CHR_TYPE_DEV)  ||
+                (def->parallels[i]->source.type == VIR_DOMAIN_CHR_TYPE_PTY)  ||
+                (def->parallels[i]->source.type == VIR_DOMAIN_CHR_TYPE_FILE) ||
+                (def->parallels[i]->source.type == VIR_DOMAIN_CHR_TYPE_PIPE)) {
                 parallelPort->vtbl->SetPath(parallelPort, pathUtf16);
                 if (i == 0) {
                     parallelPort->vtbl->SetIRQ(parallelPort, 7);
                     parallelPort->vtbl->SetIOBase(parallelPort, 888);
                     DEBUG(" parallePort-%d irq: %d, iobase 0x%x, path: %s",
-                          i, 7, 888, def->parallels[i]->data.file.path);
+                          i, 7, 888, def->parallels[i]->source.data.file.path);
                 } else if (i == 1) {
                     parallelPort->vtbl->SetIRQ(parallelPort, 5);
                     parallelPort->vtbl->SetIOBase(parallelPort, 632);
                     DEBUG(" parallePort-%d irq: %d, iobase 0x%x, path: %s",
-                          i, 5, 632, def->parallels[i]->data.file.path);
+                          i, 5, 632, def->parallels[i]->source.data.file.path);
                 }
             }
 
@@ -4397,7 +4399,8 @@ vboxAttachVideo(virDomainDefPtr def, IMachine *machine)
 {
     if ((def->nvideos == 1) &&
         (def->videos[0]->type == VIR_DOMAIN_VIDEO_TYPE_VBOX)) {
-        machine->vtbl->SetVRAMSize(machine, def->videos[0]->vram);
+        machine->vtbl->SetVRAMSize(machine,
+                                   VIR_DIV_UP(def->videos[0]->vram, 1024));
         machine->vtbl->SetMonitorCount(machine, def->videos[0]->heads);
         if (def->videos[0]->accel) {
             machine->vtbl->SetAccelerate3DEnabled(machine,
@@ -4770,7 +4773,8 @@ static virDomainPtr vboxDomainDefineXML(virConnectPtr conn, const char *xml) {
         goto cleanup;
     }
 
-    rc = machine->vtbl->SetMemorySize(machine, def->mem.cur_balloon / 1024);
+    rc = machine->vtbl->SetMemorySize(machine,
+                                      VIR_DIV_UP(def->mem.cur_balloon, 1024));
     if (NS_FAILED(rc)) {
         vboxError(VIR_ERR_INTERNAL_ERROR,
                   _("could not set the memory size of the domain to: %lu Kb, "
@@ -8071,7 +8075,7 @@ static virStorageVolPtr vboxStorageVolCreateXML(virStoragePoolPtr pool,
         rc = data->vboxObj->vtbl->CreateHardDisk(data->vboxObj, hddFormatUtf16, hddNameUtf16, &hardDisk);
         if (NS_SUCCEEDED(rc)) {
             IProgress *progress    = NULL;
-            PRUint64   logicalSize = def->capacity / 1024 / 1024;
+            PRUint64   logicalSize = VIR_DIV_UP(def->capacity, 1024 * 1024);
             PRUint32   variant     = HardDiskVariant_Standard;
 
             if (def->capacity == def->allocation)
@@ -8533,6 +8537,7 @@ virDriver NAME(Driver) = {
     vboxGetVersion, /* version */
     NULL, /* libvirtVersion (impl. in libvirt.c) */
     virGetHostname, /* getHostname */
+    NULL, /* getSysinfo */
     vboxGetMaxVcpus, /* getMaxVcpus */
     nodeGetInfo, /* nodeGetInfo */
     vboxGetCapabilities, /* getCapabilities */

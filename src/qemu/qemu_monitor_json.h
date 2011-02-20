@@ -63,6 +63,13 @@ int qemuMonitorJSONGetBlockExtent(qemuMonitorPtr mon,
 
 int qemuMonitorJSONSetVNCPassword(qemuMonitorPtr mon,
                                   const char *password);
+int qemuMonitorJSONSetPassword(qemuMonitorPtr mon,
+                               const char *protocol,
+                               const char *password,
+                               const char *action_if_connected);
+int qemuMonitorJSONExpirePassword(qemuMonitorPtr mon,
+                                  const char *protocol,
+                                  const char *expire_time);
 int qemuMonitorJSONSetBalloon(qemuMonitorPtr mon,
                               unsigned long newmem);
 int qemuMonitorJSONSetCPU(qemuMonitorPtr mon, int cpu, int online);
@@ -202,6 +209,7 @@ int qemuMonitorJSONDeleteSnapshot(qemuMonitorPtr mon, const char *name);
 
 int qemuMonitorJSONArbitraryCommand(qemuMonitorPtr mon,
                                     const char *cmd_str,
-                                    char **reply_str);
+                                    char **reply_str,
+                                    bool hmp);
 
 #endif /* QEMU_MONITOR_JSON_H */

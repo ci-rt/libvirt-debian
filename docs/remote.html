@@ -34,6 +34,10 @@
             </div>
           </li><li>
             <div>
+              <a title="Applications known to use libvirt" class="inactive" href="apps.html">Applications</a>
+            </div>
+          </li><li>
+            <div>
               <a title="Get the latest source releases, binary builds and get access to the source repository" class="inactive" href="downloads.html">Downloads</a>
             </div>
           </li><li>
@@ -344,7 +348,13 @@ Note that parameter values must be
   a password if it cannot log in to the remote machine automatically
   (eg. using ssh-agent etc.).  Use this when you don't have access
   to a terminal - for example in graphical programs which use libvirt.
-</td></tr><tr><td colspan="2"></td><td> Example: <code>no_tty=1</code> </td></tr></table>
+</td></tr><tr><td colspan="2"></td><td> Example: <code>no_tty=1</code> </td></tr><tr><td>
+          <code>pkipath</code>
+        </td><td> tls</td><td>
+          Specifies x509 certificates path for the client. If any of
+          the CA certificate, client certificate, or client key is
+          missing, the connection will fail with a fatal error.
+        </td></tr><tr><td colspan="2"></td><td> Example: <code>pkipath=/tmp/pki/client</code> </td></tr></table>
         <h3>
       <a name="Remote_certificates" id="Remote_certificates">Generating TLS certificates</a>
     </h3>
@@ -371,6 +381,18 @@ next section.
   (<a href="#Remote_TLS_client_certificates">more info</a>) </td><td> Distinguished Name (DN) can be checked against an access
   control list (<code>tls_allowed_dn_list</code>).
   </td></tr></table>
+        <p>
+      If 'pkipath' is specified in URI, then all the client
+      certificates must be found in the path specified, otherwise the
+      connection will fail with a fatal error. If 'pkipath' is not
+      specified:
+    </p>
+        <ul><li> For a non-root user, libvirt tries to find the certificates
+        in $HOME/.pki/libvirt. If any of the required certificates can
+        not be found, then the global default locations
+        (/etc/pki/CA/cacert.pem, /etc/pki/libvirt/private/clientkey,
+        /etc/pki/libvirt/clientcert.pem) will be used.
+      </li><li> For the root user, the global default locations will be used.</li></ul>
         <h4>
       <a name="Remote_TLS_background" id="Remote_TLS_background">Background to TLS certificates</a>
     </h4>

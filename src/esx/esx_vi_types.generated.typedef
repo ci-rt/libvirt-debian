@@ -6,6 +6,7 @@
  * VI Enums
  */
 
+typedef enum _esxVI_AutoStartWaitHeartbeatSetting esxVI_AutoStartWaitHeartbeatSetting;
 typedef enum _esxVI_ManagedEntityStatus esxVI_ManagedEntityStatus;
 typedef enum _esxVI_ObjectUpdateKind esxVI_ObjectUpdateKind;
 typedef enum _esxVI_PerfStatsType esxVI_PerfStatsType;
@@ -23,6 +24,8 @@ typedef enum _esxVI_VirtualMachinePowerState esxVI_VirtualMachinePowerState;
  */
 
 typedef struct _esxVI_AboutInfo esxVI_AboutInfo;
+typedef struct _esxVI_AutoStartDefaults esxVI_AutoStartDefaults;
+typedef struct _esxVI_AutoStartPowerInfo esxVI_AutoStartPowerInfo;
 typedef struct _esxVI_ChoiceOption esxVI_ChoiceOption;
 typedef struct _esxVI_DatastoreHostMount esxVI_DatastoreHostMount;
 typedef struct _esxVI_DatastoreInfo esxVI_DatastoreInfo;
@@ -39,6 +42,8 @@ typedef struct _esxVI_FloppyImageFileInfo esxVI_FloppyImageFileInfo;
 typedef struct _esxVI_FloppyImageFileQuery esxVI_FloppyImageFileQuery;
 typedef struct _esxVI_FolderFileInfo esxVI_FolderFileInfo;
 typedef struct _esxVI_FolderFileQuery esxVI_FolderFileQuery;
+typedef struct _esxVI_HostAutoStartManagerConfig esxVI_HostAutoStartManagerConfig;
+typedef struct _esxVI_HostConfigManager esxVI_HostConfigManager;
 typedef struct _esxVI_HostCpuIdInfo esxVI_HostCpuIdInfo;
 typedef struct _esxVI_HostDatastoreBrowserSearchResults esxVI_HostDatastoreBrowserSearchResults;
 typedef struct _esxVI_HostDatastoreBrowserSearchSpec esxVI_HostDatastoreBrowserSearchSpec;

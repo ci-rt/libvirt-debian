@@ -2,7 +2,7 @@
 /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <stdio.h>.
 
-   Copyright (C) 2004, 2007-2010 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2007-2011 Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as published by
@@ -54,7 +54,8 @@
 
 #include <stddef.h>
 
-/* Get off_t and ssize_t.  Needed on many systems, including glibc 2.8.  */
+/* Get off_t and ssize_t.  Needed on many systems, including glibc 2.8
+   and eglibc 2.11.2.  */
 #include <sys/types.h>
 
 #ifndef __attribute__
@@ -368,17 +369,20 @@ _GL_CXXALIASWARN (fseeko);
    /* Provide an fseek function that is consistent with fseeko.  */
    /* In order to avoid that fseek gets defined as a macro here, the
       developer can request the 'fseek' module.  */
-#  undef fseek
-#  define fseek rpl_fseek
+#  if !GNULIB_defined_fseek_function
+#   undef fseek
+#   define fseek rpl_fseek
 static inline int _GL_ARG_NONNULL ((1))
 rpl_fseek (FILE *fp, long offset, int whence)
 {
-#  if @REPLACE_FSEEKO@
+#   if @REPLACE_FSEEKO@
   return rpl_fseeko (fp, offset, whence);
-#  else
+#   else
   return fseeko (fp, offset, whence);
-#  endif
+#   endif
 }
+#   define GNULIB_defined_fseek_function 1
+#  endif
 # endif
 #elif defined GNULIB_POSIXCHECK
 # define _GL_FSEEK_WARN /* Category 1, above.  */
@@ -443,17 +447,20 @@ _GL_CXXALIASWARN (ftello);
    /* Provide an ftell function that is consistent with ftello.  */
    /* In order to avoid that ftell gets defined as a macro here, the
       developer can request the 'ftell' module.  */
-#  undef ftell
-#  define ftell rpl_ftell
+#  if !GNULIB_defined_ftell_function
+#   undef ftell
+#   define ftell rpl_ftell
 static inline long _GL_ARG_NONNULL ((1))
 rpl_ftell (FILE *f)
 {
-#  if @REPLACE_FTELLO@
+#   if @REPLACE_FTELLO@
   return rpl_ftello (f);
-#  else
+#   else
   return ftello (f);
-#  endif
+#   endif
 }
+#   define GNULIB_defined_ftell_function 1
+#  endif
 # endif
 #elif defined GNULIB_POSIXCHECK
 # define _GL_FTELL_WARN /* Category 1, above.  */
@@ -678,6 +685,9 @@ _GL_FUNCDECL_RPL_1 (__printf__, int,
                     _GL_ARG_NONNULL ((1)));
 _GL_CXXALIAS_RPL_1 (printf, __printf__, int, (const char *format, ...));
 #  else
+#   if !(defined __cplusplus && defined GNULIB_NAMESPACE)
+#    define printf rpl_printf
+#   endif
 _GL_FUNCDECL_RPL (printf, int,
                   (const char *format, ...)
                   __attribute__ ((__format__ (__printf__, 1, 2)))

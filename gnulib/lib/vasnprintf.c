@@ -1,7 +1,7 @@
 /* -*- buffer-read-only: t -*- vi: set ro: */
 /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* vsprintf with automatic memory allocation.
-   Copyright (C) 1999, 2002-2010 Free Software Foundation, Inc.
+   Copyright (C) 1999, 2002-2011 Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as published by
@@ -1755,8 +1755,9 @@ VASNPRINTF (DCHAR_T *resultbuf, size_t *lengthp,
     return NULL;
 
 #define CLEANUP() \
-  free (d.dir);                                                         \
-  if (a.arg)                                                            \
+  if (d.dir != d.direct_alloc_dir)                                      \
+    free (d.dir);                                                       \
+  if (a.arg != a.direct_alloc_arg)                                      \
     free (a.arg);
 
   if (PRINTF_FETCHARGS (args, &a) < 0)

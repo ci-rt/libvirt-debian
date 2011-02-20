@@ -15,6 +15,7 @@
     <function name="VIR_DOMAIN_MEMORY_FIELD_LENGTH" link="libvirt-libvirt.html#VIR_DOMAIN_MEMORY_FIELD_LENGTH"/>
     <function name="VIR_DOMAIN_MEMORY_HARD_LIMIT" link="libvirt-libvirt.html#VIR_DOMAIN_MEMORY_HARD_LIMIT"/>
     <function name="VIR_DOMAIN_MEMORY_MIN_GUARANTEE" link="libvirt-libvirt.html#VIR_DOMAIN_MEMORY_MIN_GUARANTEE"/>
+    <function name="VIR_DOMAIN_MEMORY_PARAM_UNLIMITED" link="libvirt-libvirt.html#VIR_DOMAIN_MEMORY_PARAM_UNLIMITED"/>
     <function name="VIR_DOMAIN_MEMORY_SOFT_LIMIT" link="libvirt-libvirt.html#VIR_DOMAIN_MEMORY_SOFT_LIMIT"/>
     <function name="VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT" link="libvirt-libvirt.html#VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT"/>
     <function name="VIR_DOMAIN_SCHED_FIELD_LENGTH" link="libvirt-libvirt.html#VIR_DOMAIN_SCHED_FIELD_LENGTH"/>
@@ -435,6 +436,7 @@
     <function name="virConnectGetHostname ()" link="libvirt-libvirt.html#virConnectGetHostname"/>
     <function name="virConnectGetLibVersion ()" link="libvirt-libvirt.html#virConnectGetLibVersion"/>
     <function name="virConnectGetMaxVcpus ()" link="libvirt-libvirt.html#virConnectGetMaxVcpus"/>
+    <function name="virConnectGetSysinfo ()" link="libvirt-libvirt.html#virConnectGetSysinfo"/>
     <function name="virConnectGetType ()" link="libvirt-libvirt.html#virConnectGetType"/>
     <function name="virConnectGetURI ()" link="libvirt-libvirt.html#virConnectGetURI"/>
     <function name="virConnectGetVersion ()" link="libvirt-libvirt.html#virConnectGetVersion"/>

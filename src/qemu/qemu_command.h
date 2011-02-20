@@ -1,7 +1,7 @@
 /*
  * qemu_command.h: QEMU command generation
  *
- * Copyright (C) 2006-2007, 2009-2010 Red Hat, Inc.
+ * Copyright (C) 2006-2011 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -40,10 +40,11 @@
 virCommandPtr qemuBuildCommandLine(virConnectPtr conn,
                                    struct qemud_driver *driver,
                                    virDomainDefPtr def,
-                                   virDomainChrDefPtr monitor_chr,
+                                   virDomainChrSourceDefPtr monitor_chr,
                                    bool monitor_json,
                                    unsigned long long qemuCmdFlags,
                                    const char *migrateFrom,
+                                   int migrateFd,
                                    virDomainSnapshotObjPtr current_snapshot,
                                    enum virVMOperationType vmop)
     ATTRIBUTE_NONNULL(1);
@@ -62,7 +63,8 @@ char * qemuBuildNicStr(virDomainNetDefPtr net,
 
 /* Current, best practice */
 char * qemuBuildNicDevStr(virDomainNetDefPtr net,
-                          int vlan);
+                          int vlan,
+                          unsigned long long qemuCmdFlags);
 
 char *qemuDeviceDriveHostAlias(virDomainDiskDefPtr disk,
                                unsigned long long qemuCmdFlags);
@@ -75,33 +77,33 @@ char *qemuBuildFSStr(virDomainFSDefPtr fs,
                      unsigned long long qemuCmdFlags);
 
 /* Current, best practice */
-char * qemuBuildDriveDevStr(virDomainDiskDefPtr disk);
-char * qemuBuildFSDevStr(virDomainFSDefPtr fs);
+char * qemuBuildDriveDevStr(virDomainDiskDefPtr disk,
+                            unsigned long long qemuCmdFlags);
+char * qemuBuildFSDevStr(virDomainFSDefPtr fs,
+                         unsigned long long qemuCmdFlags);
 /* Current, best practice */
-char * qemuBuildControllerDevStr(virDomainControllerDefPtr def);
+char * qemuBuildControllerDevStr(virDomainControllerDefPtr def,
+                                 unsigned long long qemuCmdFlags);
 
-char * qemuBuildWatchdogDevStr(virDomainWatchdogDefPtr dev);
+char * qemuBuildWatchdogDevStr(virDomainWatchdogDefPtr dev,
+                               unsigned long long qemuCmdFlags);
 
-char * qemuBuildMemballoonDevStr(virDomainMemballoonDefPtr dev);
+char * qemuBuildMemballoonDevStr(virDomainMemballoonDefPtr dev,
+                                 unsigned long long qemuCmdFlags);
 
 char * qemuBuildUSBInputDevStr(virDomainInputDefPtr dev);
 
-char * qemuBuildSoundDevStr(virDomainSoundDefPtr sound);
+char * qemuBuildSoundDevStr(virDomainSoundDefPtr sound,
+                            unsigned long long qemuCmdFlags);
 
 /* Legacy, pre device support */
 char * qemuBuildPCIHostdevPCIDevStr(virDomainHostdevDefPtr dev);
 /* Current, best practice */
 char * qemuBuildPCIHostdevDevStr(virDomainHostdevDefPtr dev,
-                                 const char *configfd);
+                                 const char *configfd,
+                                 unsigned long long qemuCmdFlags);
 
 int qemuOpenPCIConfig(virDomainHostdevDefPtr dev);
-
-/* Current, best practice */
-char * qemuBuildChrChardevStr(virDomainChrDefPtr dev);
-/* Legacy, pre device support */
-char * qemuBuildChrArgStr(virDomainChrDefPtr dev, const char *prefix);
-
-char * qemuBuildVirtioSerialPortDevStr(virDomainChrDefPtr dev);
 
 /* Legacy, pre device support */
 char * qemuBuildUSBHostdevUsbDevStr(virDomainHostdevDefPtr dev);
@@ -115,9 +117,6 @@ int qemuNetworkIfaceConnect(virConnectPtr conn,
                             virDomainNetDefPtr net,
                             unsigned long long qemCmdFlags)
     ATTRIBUTE_NONNULL(1);
-
-int qemuOpenVhostNet(virDomainNetDefPtr net,
-                     unsigned long long qemuCmdFlags);
 
 int qemuPhysIfaceConnect(virConnectPtr conn,
                          struct qemud_driver *driver,

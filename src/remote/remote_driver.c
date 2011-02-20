@@ -2,7 +2,7 @@
  * remote_internal.c: driver to provide access to libvirtd running
  *   on a remote machine
  *
- * Copyright (C) 2007-2010 Red Hat, Inc.
+ * Copyright (C) 2007-2011 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -268,7 +268,7 @@ void remoteDomainEventQueueFlush(int timer, void *opaque);
 static char *get_transport_from_scheme (char *scheme);
 
 /* GnuTLS functions used by remoteOpen. */
-static int initialize_gnutls(void);
+static int initialize_gnutls(char *pkipath, int flags);
 static gnutls_session_t negotiate_gnutls_on_connection (virConnectPtr conn, struct private_data *priv, int no_verify);
 
 #ifdef WITH_LIBVIRTD
@@ -430,6 +430,7 @@ doRemoteOpen (virConnectPtr conn,
     char *port = NULL, *authtype = NULL, *username = NULL;
     int no_verify = 0, no_tty = 0;
     char **cmd_argv = NULL;
+    char *pkipath = NULL;
 
     /* Return code from this function, and the private data. */
     int retcode = VIR_DRV_OPEN_ERROR;
@@ -509,9 +510,14 @@ doRemoteOpen (virConnectPtr conn,
                     priv->debugLog = stdout;
                 else
                     priv->debugLog = stderr;
-            } else
+            } else if (STRCASEEQ(var->name, "pkipath")) {
+                pkipath = strdup(var->value);
+                if (!pkipath) goto out_of_memory;
+                var->ignore = 1;
+            } else {
                 DEBUG("passing through variable '%s' ('%s') to remote end",
                       var->name, var->value);
+            }
         }
 
         /* Construct the original name. */
@@ -577,13 +583,13 @@ doRemoteOpen (virConnectPtr conn,
     /* Connect to the remote service. */
     switch (transport) {
     case trans_tls:
-        if (initialize_gnutls() == -1) goto failed;
+        if (initialize_gnutls(pkipath, flags) == -1) goto failed;
         priv->uses_tls = 1;
         priv->is_secure = 1;
 
         /*FALLTHROUGH*/
     case trans_tcp: {
-        // http://people.redhat.com/drepper/userapi-ipv6.html
+        /* http://people.redhat.com/drepper/userapi-ipv6.html */
         struct addrinfo *res, *r;
         struct addrinfo hints;
         int saved_errno = EINVAL;
@@ -650,8 +656,8 @@ doRemoteOpen (virConnectPtr conn,
        tcp_connected:
         freeaddrinfo (res);
 
-        // NB. All versioning is done by the RPC headers, so we don't
-        // need to worry (at this point anyway) about versioning.
+        /* NB. All versioning is done by the RPC headers, so we don't
+         * need to worry (at this point anyway) about versioning. */
         break;
     }
 
@@ -742,8 +748,8 @@ doRemoteOpen (virConnectPtr conn,
         if (command == NULL)
             goto out_of_memory;
 
-        // Generate the final command argv[] array.
-        //   ssh [-p $port] [-l $username] $hostname $netcat -U $sockname [NULL]
+        /* Generate the final command argv[] array.
+         *   ssh [-p $port] [-l $username] $hostname $netcat -U $sockname [NULL] */
         if (VIR_ALLOC_N(cmd_argv, nr_args) < 0)
             goto out_of_memory;
 
@@ -947,6 +953,7 @@ doRemoteOpen (virConnectPtr conn,
         }
         VIR_FREE(cmd_argv);
     }
+    VIR_FREE(pkipath);
 
     return retcode;
 
@@ -1139,11 +1146,17 @@ static void remote_debug_gnutls_log(int level, const char* str) {
 }
 
 static int
-initialize_gnutls(void)
+initialize_gnutls(char *pkipath, int flags)
 {
     static int initialized = 0;
     int err;
     char *gnutlsdebug;
+    char *libvirt_cacert = NULL;
+    char *libvirt_clientkey = NULL;
+    char *libvirt_clientcert = NULL;
+    int ret = -1;
+    char *userdir = NULL;
+    char *user_pki_path = NULL;
 
     if (initialized) return 0;
 
@@ -1166,43 +1179,124 @@ initialize_gnutls(void)
         return -1;
     }
 
+    if (pkipath) {
+        if ((virAsprintf(&libvirt_cacert, "%s/%s", pkipath,
+                        "cacert.pem")) < 0)
+            goto out_of_memory;
 
-    if (check_cert_file("CA certificate", LIBVIRT_CACERT) < 0)
-        return -1;
-    if (check_cert_file("client key", LIBVIRT_CLIENTKEY) < 0)
-        return -1;
-    if (check_cert_file("client certificate", LIBVIRT_CLIENTCERT) < 0)
-        return -1;
+        if ((virAsprintf(&libvirt_clientkey, "%s/%s", pkipath,
+                        "clientkey.pem")) < 0)
+            goto out_of_memory;
+
+        if ((virAsprintf(&libvirt_clientcert, "%s/%s", pkipath,
+                        "clientcert.pem")) < 0)
+             goto out_of_memory;
+    } else if (flags & VIR_DRV_OPEN_REMOTE_USER) {
+        userdir = virGetUserDirectory(getuid());
+
+        if (!userdir)
+            goto out_of_memory;
+
+        if (virAsprintf(&user_pki_path, "%s/.pki/libvirt", userdir) < 0)
+            goto out_of_memory;
+
+        if ((virAsprintf(&libvirt_cacert, "%s/%s", user_pki_path,
+                        "cacert.pem")) < 0)
+            goto out_of_memory;
+
+        if ((virAsprintf(&libvirt_clientkey, "%s/%s", user_pki_path,
+                        "clientkey.pem")) < 0)
+            goto out_of_memory;
+
+        if ((virAsprintf(&libvirt_clientcert, "%s/%s", user_pki_path,
+                        "clientcert.pem")) < 0)
+            goto out_of_memory;
+
+        /* Use default location as long as one of CA certificate,
+         * client key, and client certificate can not be found in
+         * $HOME/.pki/libvirt, we don't want to make user confused
+         * with one file is here, the other is there.
+         */
+        if (!virFileExists(libvirt_cacert) ||
+            !virFileExists(libvirt_clientkey) ||
+            !virFileExists(libvirt_clientcert)) {
+            VIR_FREE(libvirt_cacert);
+            VIR_FREE(libvirt_clientkey);
+            VIR_FREE(libvirt_clientcert);
+
+            libvirt_cacert = strdup(LIBVIRT_CACERT);
+            if (!libvirt_cacert) goto out_of_memory;
+
+            libvirt_clientkey = strdup(LIBVIRT_CLIENTKEY);
+            if (!libvirt_clientkey) goto out_of_memory;
+
+            libvirt_clientcert = strdup(LIBVIRT_CLIENTCERT);
+            if (!libvirt_clientcert) goto out_of_memory;
+        }
+    } else {
+        libvirt_cacert = strdup(LIBVIRT_CACERT);
+        if (!libvirt_cacert) goto out_of_memory;
+
+        libvirt_clientkey = strdup(LIBVIRT_CLIENTKEY);
+        if (!libvirt_clientkey) goto out_of_memory;
+
+        libvirt_clientcert = strdup(LIBVIRT_CLIENTCERT);
+        if (!libvirt_clientcert) goto out_of_memory;
+    }
+
+    if (check_cert_file("CA certificate", libvirt_cacert) < 0)
+        goto error;
+    if (check_cert_file("client key", libvirt_clientkey) < 0)
+        goto error;
+    if (check_cert_file("client certificate", libvirt_clientcert) < 0)
+        goto error;
 
     /* Set the trusted CA cert. */
-    DEBUG("loading CA file %s", LIBVIRT_CACERT);
+    DEBUG("loading CA file %s", libvirt_cacert);
     err =
-        gnutls_certificate_set_x509_trust_file (x509_cred, LIBVIRT_CACERT,
+        gnutls_certificate_set_x509_trust_file (x509_cred, libvirt_cacert,
                                                 GNUTLS_X509_FMT_PEM);
     if (err < 0) {
         remoteError(VIR_ERR_GNUTLS_ERROR,
                     _("unable to load CA certificate: %s"),
                     gnutls_strerror (err));
-        return -1;
+        goto error;
     }
 
     /* Set the client certificate and private key. */
     DEBUG("loading client cert and key from files %s and %s",
-          LIBVIRT_CLIENTCERT, LIBVIRT_CLIENTKEY);
+          libvirt_clientcert, libvirt_clientkey);
     err =
         gnutls_certificate_set_x509_key_file (x509_cred,
-                                              LIBVIRT_CLIENTCERT,
-                                              LIBVIRT_CLIENTKEY,
+                                              libvirt_clientcert,
+                                              libvirt_clientkey,
                                               GNUTLS_X509_FMT_PEM);
     if (err < 0) {
         remoteError(VIR_ERR_GNUTLS_ERROR,
                     _("unable to load private key/certificate: %s"),
                     gnutls_strerror (err));
-        return -1;
+        goto error;
     }
 
     initialized = 1;
-    return 0;
+    ret = 0;
+
+cleanup:
+    VIR_FREE(libvirt_cacert);
+    VIR_FREE(libvirt_clientkey);
+    VIR_FREE(libvirt_clientcert);
+    VIR_FREE(userdir);
+    VIR_FREE(user_pki_path);
+    return ret;
+
+error:
+    ret = -1;
+    goto cleanup;
+
+out_of_memory:
+    ret = -1;
+    virReportOOMError();
+    goto cleanup;
 }
 
 static int verify_certificate (virConnectPtr conn, struct private_data *priv, gnutls_session_t session);
@@ -1648,6 +1742,31 @@ remoteGetHostname (virConnectPtr conn)
 
     /* Caller frees this. */
     rv = ret.hostname;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static char *
+remoteGetSysinfo (virConnectPtr conn, unsigned int flags)
+{
+    char *rv = NULL;
+    remote_get_sysinfo_args args;
+    remote_get_sysinfo_ret ret;
+    struct private_data *priv = conn->privateData;
+
+    remoteDriverLock(priv);
+
+    memset (&ret, 0, sizeof ret);
+    args.flags = flags;
+    if (call (conn, priv, 0, REMOTE_PROC_GET_SYSINFO,
+              (xdrproc_t) xdr_remote_get_sysinfo_args, (char *) &args,
+              (xdrproc_t) xdr_remote_get_sysinfo_ret, (char *) &ret) == -1)
+        goto done;
+
+    /* Caller frees this. */
+    rv = ret.sysinfo;
 
 done:
     remoteDriverUnlock(priv);
@@ -2350,7 +2469,7 @@ remoteDomainSetMemoryParameters (virDomainPtr domain,
 
     do_error = 0;
     for (i = 0; i < nparams; ++i) {
-        // call() will free this:
+        /* call() will free this: */
         args.params.params_val[i].field = strdup (params[i].field);
         if (args.params.params_val[i].field == NULL) {
             virReportOOMError();
@@ -3679,7 +3798,7 @@ remoteDomainSetSchedulerParameters (virDomainPtr domain,
 
     do_error = 0;
     for (i = 0; i < nparams; ++i) {
-        // call() will free this:
+        /* call() will free this: */
         args.params.params_val[i].field = strdup (params[i].field);
         if (args.params.params_val[i].field == NULL) {
             virReportOOMError();
@@ -9771,6 +9890,7 @@ processCallDispatch(virConnectPtr conn, struct private_data *priv,
         break;
 
     case REMOTE_MESSAGE: /* Async notifications */
+        VIR_DEBUG("Dispatch event %d %d", hdr.proc, priv->bufferLength);
         rv = processCallDispatchMessage(conn, priv, flags & REMOTE_CALL_IN_OPEN,
                                         &hdr, &xdr);
         break;
@@ -10086,6 +10206,16 @@ remoteIOEventLoop(virConnectPtr conn,
 #ifdef HAVE_PTHREAD_SIGMASK
         sigset_t oldmask, blockedsigs;
 #endif
+        int timeout = -1;
+
+        /* If we have existing SASL decoded data we
+         * don't want to sleep in the poll(), just
+         * check if any other FDs are also ready
+         */
+#if HAVE_SASL
+        if (priv->saslDecoded)
+            timeout = 0;
+#endif
 
         fds[0].events = fds[0].revents = 0;
         fds[1].events = fds[1].revents = 0;
@@ -10121,7 +10251,7 @@ remoteIOEventLoop(virConnectPtr conn,
 #endif
 
     repoll:
-        ret = poll(fds, ARRAY_CARDINALITY(fds), -1);
+        ret = poll(fds, ARRAY_CARDINALITY(fds), timeout);
         if (ret < 0 && errno == EAGAIN)
             goto repoll;
 
@@ -10130,6 +10260,14 @@ remoteIOEventLoop(virConnectPtr conn,
 #endif
 
         remoteDriverLock(priv);
+
+        /* If we have existing SASL decoded data, pretend
+         * the socket became readable so we consume it
+         */
+#if HAVE_SASL
+        if (priv->saslDecoded)
+            fds[0].revents |= POLLIN;
+#endif
 
         if (fds[1].revents) {
             ssize_t s;
@@ -10557,9 +10695,9 @@ remoteDomainEventQueueFlush(int timer ATTRIBUTE_UNUSED, void *opaque)
     priv->domainEvents->count = 0;
     priv->domainEvents->events = NULL;
 
+    virEventUpdateTimeout(priv->eventFlushTimer, -1);
     virDomainEventQueueDispatch(&tempQueue, priv->callbackList,
                                 remoteDomainEventDispatchFunc, priv);
-    virEventUpdateTimeout(priv->eventFlushTimer, -1);
 
     /* Purge any deleted callbacks */
     virDomainEventCallbackListPurgeMarked(priv->callbackList);
@@ -10711,6 +10849,7 @@ static virDriver remote_driver = {
     remoteGetVersion, /* version */
     remoteGetLibVersion, /* libvirtVersion */
     remoteGetHostname, /* getHostname */
+    remoteGetSysinfo, /* getSysinfo */
     remoteGetMaxVcpus, /* getMaxVcpus */
     remoteNodeGetInfo, /* nodeGetInfo */
     remoteGetCapabilities, /* getCapabilities */

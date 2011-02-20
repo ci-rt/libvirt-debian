@@ -768,6 +768,46 @@ fi
 rmdir .tst 2>/dev/null
 AC_SUBST([am__leading_dot])])
 
+# Add --enable-maintainer-mode option to configure.         -*- Autoconf -*-
+# From Jim Meyering
+
+# Copyright (C) 1996, 1998, 2000, 2001, 2002, 2003, 2004, 2005, 2008
+# Free Software Foundation, Inc.
+#
+# This file is free software; the Free Software Foundation
+# gives unlimited permission to copy and/or distribute it,
+# with or without modifications, as long as this notice is preserved.
+
+# serial 5
+
+# AM_MAINTAINER_MODE([DEFAULT-MODE])
+# ----------------------------------
+# Control maintainer-specific portions of Makefiles.
+# Default is to disable them, unless `enable' is passed literally.
+# For symmetry, `disable' may be passed as well.  Anyway, the user
+# can override the default with the --enable/--disable switch.
+AC_DEFUN([AM_MAINTAINER_MODE],
+[m4_case(m4_default([$1], [disable]),
+       [enable], [m4_define([am_maintainer_other], [disable])],
+       [disable], [m4_define([am_maintainer_other], [enable])],
+       [m4_define([am_maintainer_other], [enable])
+        m4_warn([syntax], [unexpected argument to AM@&t@_MAINTAINER_MODE: $1])])
+AC_MSG_CHECKING([whether to am_maintainer_other maintainer-specific portions of Makefiles])
+  dnl maintainer-mode's default is 'disable' unless 'enable' is passed
+  AC_ARG_ENABLE([maintainer-mode],
+[  --][am_maintainer_other][-maintainer-mode  am_maintainer_other make rules and dependencies not useful
+			  (and sometimes confusing) to the casual installer],
+      [USE_MAINTAINER_MODE=$enableval],
+      [USE_MAINTAINER_MODE=]m4_if(am_maintainer_other, [enable], [no], [yes]))
+  AC_MSG_RESULT([$USE_MAINTAINER_MODE])
+  AM_CONDITIONAL([MAINTAINER_MODE], [test $USE_MAINTAINER_MODE = yes])
+  MAINT=$MAINTAINER_MODE_TRUE
+  AC_SUBST([MAINT])dnl
+]
+)
+
+AU_DEFUN([jm_MAINTAINER_MODE], [AM_MAINTAINER_MODE])
+
 # Check to see how 'make' treats includes.	            -*- Autoconf -*-
 
 # Copyright (C) 2001, 2002, 2003, 2005, 2009  Free Software Foundation, Inc.
@@ -1429,6 +1469,7 @@ m4_include([gnulib/m4/arpa_inet_h.m4])
 m4_include([gnulib/m4/asm-underscore.m4])
 m4_include([gnulib/m4/base64.m4])
 m4_include([gnulib/m4/canonicalize.m4])
+m4_include([gnulib/m4/chown.m4])
 m4_include([gnulib/m4/close.m4])
 m4_include([gnulib/m4/configmake.m4])
 m4_include([gnulib/m4/count-one-bits.m4])
@@ -1436,7 +1477,9 @@ m4_include([gnulib/m4/dirname.m4])
 m4_include([gnulib/m4/dos.m4])
 m4_include([gnulib/m4/double-slash-root.m4])
 m4_include([gnulib/m4/eealloc.m4])
+m4_include([gnulib/m4/environ.m4])
 m4_include([gnulib/m4/errno_h.m4])
+m4_include([gnulib/m4/error.m4])
 m4_include([gnulib/m4/extensions.m4])
 m4_include([gnulib/m4/fclose.m4])
 m4_include([gnulib/m4/fcntl-o.m4])
@@ -1446,20 +1489,24 @@ m4_include([gnulib/m4/fseeko.m4])
 m4_include([gnulib/m4/func.m4])
 m4_include([gnulib/m4/getaddrinfo.m4])
 m4_include([gnulib/m4/getdelim.m4])
+m4_include([gnulib/m4/getgroups.m4])
 m4_include([gnulib/m4/gethostname.m4])
 m4_include([gnulib/m4/getline.m4])
 m4_include([gnulib/m4/getpagesize.m4])
 m4_include([gnulib/m4/getpass.m4])
 m4_include([gnulib/m4/gettimeofday.m4])
+m4_include([gnulib/m4/getugroups.m4])
 m4_include([gnulib/m4/gnulib-common.m4])
 m4_include([gnulib/m4/gnulib-comp.m4])
 m4_include([gnulib/m4/hostent.m4])
 m4_include([gnulib/m4/include_next.m4])
 m4_include([gnulib/m4/inet_ntop.m4])
 m4_include([gnulib/m4/inet_pton.m4])
+m4_include([gnulib/m4/inline.m4])
 m4_include([gnulib/m4/intmax_t.m4])
 m4_include([gnulib/m4/inttypes_h.m4])
 m4_include([gnulib/m4/ioctl.m4])
+m4_include([gnulib/m4/lock.m4])
 m4_include([gnulib/m4/longlong.m4])
 m4_include([gnulib/m4/lseek.m4])
 m4_include([gnulib/m4/lstat.m4])
@@ -1467,14 +1514,17 @@ m4_include([gnulib/m4/malloc.m4])
 m4_include([gnulib/m4/malloca.m4])
 m4_include([gnulib/m4/md5.m4])
 m4_include([gnulib/m4/memchr.m4])
+m4_include([gnulib/m4/mgetgroups.m4])
 m4_include([gnulib/m4/mkstemp.m4])
 m4_include([gnulib/m4/mkstemps.m4])
 m4_include([gnulib/m4/mktime.m4])
 m4_include([gnulib/m4/mmap-anon.m4])
+m4_include([gnulib/m4/mode_t.m4])
 m4_include([gnulib/m4/multiarch.m4])
 m4_include([gnulib/m4/netdb_h.m4])
 m4_include([gnulib/m4/netinet_in_h.m4])
 m4_include([gnulib/m4/onceonly.m4])
+m4_include([gnulib/m4/open.m4])
 m4_include([gnulib/m4/pathmax.m4])
 m4_include([gnulib/m4/perror.m4])
 m4_include([gnulib/m4/physmem.m4])
@@ -1485,6 +1535,7 @@ m4_include([gnulib/m4/poll_h.m4])
 m4_include([gnulib/m4/posix-shell.m4])
 m4_include([gnulib/m4/printf.m4])
 m4_include([gnulib/m4/pthread.m4])
+m4_include([gnulib/m4/putenv.m4])
 m4_include([gnulib/m4/random_r.m4])
 m4_include([gnulib/m4/rawmemchr.m4])
 m4_include([gnulib/m4/readlink.m4])
@@ -1492,6 +1543,11 @@ m4_include([gnulib/m4/realloc.m4])
 m4_include([gnulib/m4/sched_h.m4])
 m4_include([gnulib/m4/select.m4])
 m4_include([gnulib/m4/servent.m4])
+m4_include([gnulib/m4/setenv.m4])
+m4_include([gnulib/m4/sigaction.m4])
+m4_include([gnulib/m4/signal_h.m4])
+m4_include([gnulib/m4/signalblocking.m4])
+m4_include([gnulib/m4/sigpipe.m4])
 m4_include([gnulib/m4/sleep.m4])
 m4_include([gnulib/m4/snprintf.m4])
 m4_include([gnulib/m4/socketlib.m4])
@@ -1499,6 +1555,7 @@ m4_include([gnulib/m4/sockets.m4])
 m4_include([gnulib/m4/socklen.m4])
 m4_include([gnulib/m4/sockpfaf.m4])
 m4_include([gnulib/m4/ssize_t.m4])
+m4_include([gnulib/m4/stat-time.m4])
 m4_include([gnulib/m4/stat.m4])
 m4_include([gnulib/m4/stdbool.m4])
 m4_include([gnulib/m4/stddef_h.m4])
@@ -1511,6 +1568,7 @@ m4_include([gnulib/m4/strcase.m4])
 m4_include([gnulib/m4/strchrnul.m4])
 m4_include([gnulib/m4/strdup.m4])
 m4_include([gnulib/m4/strerror.m4])
+m4_include([gnulib/m4/strerror_r.m4])
 m4_include([gnulib/m4/string_h.m4])
 m4_include([gnulib/m4/strings_h.m4])
 m4_include([gnulib/m4/strndup.m4])
@@ -1528,6 +1586,8 @@ m4_include([gnulib/m4/sys_utsname_h.m4])
 m4_include([gnulib/m4/sys_wait_h.m4])
 m4_include([gnulib/m4/tempname.m4])
 m4_include([gnulib/m4/termios_h.m4])
+m4_include([gnulib/m4/thread.m4])
+m4_include([gnulib/m4/threadlib.m4])
 m4_include([gnulib/m4/time_h.m4])
 m4_include([gnulib/m4/time_r.m4])
 m4_include([gnulib/m4/timegm.m4])
@@ -1541,6 +1601,9 @@ m4_include([gnulib/m4/vasprintf.m4])
 m4_include([gnulib/m4/waitpid.m4])
 m4_include([gnulib/m4/warn-on-use.m4])
 m4_include([gnulib/m4/wchar_h.m4])
+m4_include([gnulib/m4/write.m4])
+m4_include([gnulib/m4/xalloc.m4])
+m4_include([gnulib/m4/yield.m4])
 m4_include([m4/compiler-flags.m4])
 m4_include([m4/gettext.m4])
 m4_include([m4/iconv.m4])

@@ -4,7 +4,7 @@ libdir=${exec_prefix}/lib
 includedir=${prefix}/include
 
 Name: libvirt
-Version: 0.8.7
+Version: 0.8.8
 Description: libvirt library
 Requires:
 Libs: -L${libdir} -lvirt -ldl 

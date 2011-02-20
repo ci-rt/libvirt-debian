@@ -89,6 +89,7 @@
     <reference name='VIR_DOMAIN_MEMORY_PARAM_LLONG' href='html/libvirt-libvirt.html#VIR_DOMAIN_MEMORY_PARAM_LLONG'/>
     <reference name='VIR_DOMAIN_MEMORY_PARAM_UINT' href='html/libvirt-libvirt.html#VIR_DOMAIN_MEMORY_PARAM_UINT'/>
     <reference name='VIR_DOMAIN_MEMORY_PARAM_ULLONG' href='html/libvirt-libvirt.html#VIR_DOMAIN_MEMORY_PARAM_ULLONG'/>
+    <reference name='VIR_DOMAIN_MEMORY_PARAM_UNLIMITED' href='html/libvirt-libvirt.html#VIR_DOMAIN_MEMORY_PARAM_UNLIMITED'/>
     <reference name='VIR_DOMAIN_MEMORY_SOFT_LIMIT' href='html/libvirt-libvirt.html#VIR_DOMAIN_MEMORY_SOFT_LIMIT'/>
     <reference name='VIR_DOMAIN_MEMORY_STAT_AVAILABLE' href='html/libvirt-libvirt.html#VIR_DOMAIN_MEMORY_STAT_AVAILABLE'/>
     <reference name='VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT' href='html/libvirt-libvirt.html#VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT'/>
@@ -340,6 +341,7 @@
     <reference name='virConnectGetHostname' href='html/libvirt-libvirt.html#virConnectGetHostname'/>
     <reference name='virConnectGetLibVersion' href='html/libvirt-libvirt.html#virConnectGetLibVersion'/>
     <reference name='virConnectGetMaxVcpus' href='html/libvirt-libvirt.html#virConnectGetMaxVcpus'/>
+    <reference name='virConnectGetSysinfo' href='html/libvirt-libvirt.html#virConnectGetSysinfo'/>
     <reference name='virConnectGetType' href='html/libvirt-libvirt.html#virConnectGetType'/>
     <reference name='virConnectGetURI' href='html/libvirt-libvirt.html#virConnectGetURI'/>
     <reference name='virConnectGetVersion' href='html/libvirt-libvirt.html#virConnectGetVersion'/>
@@ -791,6 +793,7 @@
       <ref name='VIR_DOMAIN_MEMORY_PARAM_LLONG'/>
       <ref name='VIR_DOMAIN_MEMORY_PARAM_UINT'/>
       <ref name='VIR_DOMAIN_MEMORY_PARAM_ULLONG'/>
+      <ref name='VIR_DOMAIN_MEMORY_PARAM_UNLIMITED'/>
       <ref name='VIR_DOMAIN_MEMORY_SOFT_LIMIT'/>
       <ref name='VIR_DOMAIN_MEMORY_STAT_AVAILABLE'/>
       <ref name='VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT'/>
@@ -1046,6 +1049,7 @@
       <ref name='virConnectGetHostname'/>
       <ref name='virConnectGetLibVersion'/>
       <ref name='virConnectGetMaxVcpus'/>
+      <ref name='virConnectGetSysinfo'/>
       <ref name='virConnectGetType'/>
       <ref name='virConnectGetURI'/>
       <ref name='virConnectGetVersion'/>
@@ -1568,6 +1572,7 @@
       <ref name='virConnectDomainXMLFromNative'/>
       <ref name='virConnectDomainXMLToNative'/>
       <ref name='virConnectFindStoragePoolSources'/>
+      <ref name='virConnectGetSysinfo'/>
       <ref name='virDomainAttachDeviceFlags'/>
       <ref name='virDomainBlockPeek'/>
       <ref name='virDomainCreateLinux'/>
@@ -1683,6 +1688,7 @@
       <ref name='virConnectGetHostname'/>
       <ref name='virConnectGetLibVersion'/>
       <ref name='virConnectGetMaxVcpus'/>
+      <ref name='virConnectGetSysinfo'/>
       <ref name='virConnectGetType'/>
       <ref name='virConnectGetURI'/>
       <ref name='virConnectGetVersion'/>
@@ -2174,6 +2180,7 @@
       <ref name='VIR_DOMAIN_MEMORY_PARAM_LLONG'/>
       <ref name='VIR_DOMAIN_MEMORY_PARAM_UINT'/>
       <ref name='VIR_DOMAIN_MEMORY_PARAM_ULLONG'/>
+      <ref name='VIR_DOMAIN_MEMORY_PARAM_UNLIMITED'/>
       <ref name='VIR_DOMAIN_MEMORY_SOFT_LIMIT'/>
       <ref name='VIR_DOMAIN_MEMORY_STAT_AVAILABLE'/>
       <ref name='VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT'/>
@@ -2304,6 +2311,7 @@
       <ref name='virConnectGetHostname'/>
       <ref name='virConnectGetLibVersion'/>
       <ref name='virConnectGetMaxVcpus'/>
+      <ref name='virConnectGetSysinfo'/>
       <ref name='virConnectGetType'/>
       <ref name='virConnectGetURI'/>
       <ref name='virConnectGetVersion'/>
@@ -3307,6 +3315,7 @@
           <ref name='VIR_DOMAIN_MEMORY_FIELD_LENGTH'/>
           <ref name='VIR_DOMAIN_MEMORY_HARD_LIMIT'/>
           <ref name='VIR_DOMAIN_MEMORY_MIN_GUARANTEE'/>
+          <ref name='VIR_DOMAIN_MEMORY_PARAM_UNLIMITED'/>
           <ref name='VIR_DOMAIN_MEMORY_SOFT_LIMIT'/>
           <ref name='VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT'/>
           <ref name='VIR_DOMAIN_SCHED_FIELD_LENGTH'/>
@@ -4299,6 +4308,7 @@
           <ref name='_virDomainJobInfo'/>
           <ref name='virConnCopyLastError'/>
           <ref name='virConnGetLastError'/>
+          <ref name='virConnectGetSysinfo'/>
           <ref name='virDomainBlockPeek'/>
           <ref name='virDomainCreateLinux'/>
           <ref name='virDomainMemoryStats'/>
@@ -4508,6 +4518,7 @@
         <word name='available'>
           <ref name='_virError'/>
           <ref name='virConnectFindStoragePoolSources'/>
+          <ref name='virConnectGetSysinfo'/>
           <ref name='virConnectOpenReadOnly'/>
           <ref name='virDomainMemoryStats'/>
           <ref name='virGetVersion'/>
@@ -4772,6 +4783,7 @@
           <ref name='virStreamSendAll'/>
         </word>
         <word name='callers'>
+          <ref name='virConnectGetSysinfo'/>
           <ref name='virDomainCreateLinux'/>
           <ref name='virDomainHasCurrentSnapshot'/>
           <ref name='virDomainRevertToSnapshot'/>
@@ -5470,6 +5482,7 @@
           <ref name='virConnectDomainEventCallback'/>
         </word>
         <word name='details'>
+          <ref name='virConnectGetSysinfo'/>
           <ref name='virDomainGetMaxVcpus'/>
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrateToURI'/>
@@ -5749,6 +5762,7 @@
         <word name='element'>
           <ref name='virConnectFindStoragePoolSources'/>
           <ref name='virConnectGetMaxVcpus'/>
+          <ref name='virConnectGetSysinfo'/>
           <ref name='virDomainMigrateToURI'/>
         </word>
         <word name='elements'>
@@ -6138,6 +6152,7 @@
           <ref name='virConnectDomainXMLFromNative'/>
           <ref name='virConnectDomainXMLToNative'/>
           <ref name='virConnectGetLibVersion'/>
+          <ref name='virConnectGetSysinfo'/>
           <ref name='virDomainGetVcpus'/>
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrateToURI'/>
@@ -6152,6 +6167,7 @@
         </word>
         <word name='freed'>
           <ref name='virConnectGetHostname'/>
+          <ref name='virConnectGetSysinfo'/>
           <ref name='virConnectGetURI'/>
           <ref name='virDomainFree'/>
           <ref name='virDomainGetOSType'/>
@@ -6217,6 +6233,7 @@
           <ref name='virDomainShutdown'/>
         </word>
         <word name='generally'>
+          <ref name='virConnectGetSysinfo'/>
           <ref name='virDomainSetVcpusFlags'/>
         </word>
         <word name='generates'>
@@ -6507,6 +6524,7 @@
           <ref name='virDomainSetVcpus'/>
         </word>
         <word name='hypervisors'>
+          <ref name='virConnectGetSysinfo'/>
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrateToURI'/>
         </word>
@@ -6642,6 +6660,7 @@
           <ref name='virNodeGetCellsFreeMemory'/>
         </word>
         <word name='indicates'>
+          <ref name='VIR_DOMAIN_MEMORY_PARAM_UNLIMITED'/>
           <ref name='virDomainBlockStats'/>
           <ref name='virDomainInterfaceStats'/>
           <ref name='virStreamSinkFunc'/>
@@ -6665,6 +6684,7 @@
         <word name='information'>
           <ref name='_virError'/>
           <ref name='virConnectDomainEventCallback'/>
+          <ref name='virConnectGetSysinfo'/>
           <ref name='virDomainGetBlockInfo'/>
           <ref name='virDomainGetInfo'/>
           <ref name='virDomainGetJobInfo'/>
@@ -6842,6 +6862,8 @@
           <ref name='virDomainSnapshotDelete'/>
         </word>
       </letter>
+    </chunk>
+    <chunk name='chunk8'>
       <letter name='k'>
         <word name='keep'>
           <ref name='virConnectDomainEventRegister'/>
@@ -6885,8 +6907,6 @@
           <ref name='virDomainShutdown'/>
         </word>
       </letter>
-    </chunk>
-    <chunk name='chunk8'>
       <letter name='l'>
         <word name='label'>
           <ref name='VIR_SECURITY_LABEL_BUFLEN'/>
@@ -7173,6 +7193,8 @@
           <ref name='virDomainPinVcpu'/>
         </word>
       </letter>
+    </chunk>
+    <chunk name='chunk9'>
       <letter name='m'>
         <word name='machine'>
           <ref name='virDomainGetAutostart'/>
@@ -7456,8 +7478,6 @@
           <ref name='_virDomainBlockStats'/>
         </word>
       </letter>
-    </chunk>
-    <chunk name='chunk9'>
       <letter name='n'>
         <word name='naming'>
           <ref name='virStorageVolGetPath'/>
@@ -7651,6 +7671,8 @@
           <ref name='virConnectNumOfNWFilters'/>
         </word>
       </letter>
+    </chunk>
+    <chunk name='chunk10'>
       <letter name='o'>
         <word name='objects'>
           <ref name='virDomainSetMemoryParameters'/>
@@ -7899,8 +7921,6 @@
           <ref name='virResetLastError'/>
         </word>
       </letter>
-    </chunk>
-    <chunk name='chunk10'>
       <letter name='p'>
         <word name='page'>
           <ref name='virDomainMemoryStats'/>
@@ -8174,6 +8194,9 @@
           <ref name='virNetworkDestroy'/>
           <ref name='virNodeDeviceDestroy'/>
         </word>
+        <word name='privileges'>
+          <ref name='virConnectGetSysinfo'/>
+        </word>
         <word name='probably'>
           <ref name='virDomainMigrate'/>
         </word>
@@ -8236,6 +8259,7 @@
         <word name='providing'>
           <ref name='LIBVIR_VERSION_NUMBER'/>
           <ref name='VIR_DOMAIN_MEMORY_FIELD_LENGTH'/>
+          <ref name='VIR_DOMAIN_MEMORY_PARAM_UNLIMITED'/>
           <ref name='VIR_DOMAIN_SCHED_FIELD_LENGTH'/>
           <ref name='VIR_SECURITY_DOI_BUFLEN'/>
           <ref name='VIR_SECURITY_LABEL_BUFLEN'/>
@@ -8715,6 +8739,7 @@
           <ref name='_virDomainBlockStats'/>
           <ref name='virConnectGetHostname'/>
           <ref name='virConnectGetLibVersion'/>
+          <ref name='virConnectGetSysinfo'/>
           <ref name='virConnectGetURI'/>
           <ref name='virConnectGetVersion'/>
           <ref name='virDomainBlockStats'/>
@@ -8731,6 +8756,9 @@
           <ref name='virInterfaceGetXMLDesc'/>
           <ref name='virNWFilterGetXMLDesc'/>
           <ref name='virNetworkGetXMLDesc'/>
+        </word>
+        <word name='root'>
+          <ref name='virConnectGetSysinfo'/>
         </word>
         <word name='routine'>
           <ref name='virDefaultErrorFunc'/>
@@ -8762,6 +8790,7 @@
           <ref name='virResetLastError'/>
         </word>
         <word name='same'>
+          <ref name='virConnectGetSysinfo'/>
           <ref name='virConnectGetURI'/>
           <ref name='virDomainGetMaxVcpus'/>
           <ref name='virDomainGetName'/>
@@ -9378,6 +9407,9 @@
           <ref name='virStreamRecv'/>
           <ref name='virStreamSend'/>
         </word>
+        <word name='sysinfo'>
+          <ref name='virConnectGetSysinfo'/>
+        </word>
         <word name='system'>
           <ref name='virConnectGetHostname'/>
           <ref name='virDomainGetOSType'/>
@@ -9469,6 +9501,7 @@
         <word name='there'>
           <ref name='virConnectClose'/>
           <ref name='virConnectGetHostname'/>
+          <ref name='virConnectGetSysinfo'/>
           <ref name='virConnectGetURI'/>
           <ref name='virConnectListDefinedStoragePools'/>
           <ref name='virConnectListStoragePools'/>
@@ -9748,6 +9781,9 @@
         </word>
         <word name='unless'>
           <ref name='_virDomainJobInfo'/>
+        </word>
+        <word name='unlimited'>
+          <ref name='VIR_DOMAIN_MEMORY_PARAM_UNLIMITED'/>
         </word>
         <word name='unprivileged'>
           <ref name='virConnectOpen'/>
@@ -10205,6 +10241,7 @@
         </word>
         <word name='virMemoryParameter'>
           <ref name='VIR_DOMAIN_MEMORY_FIELD_LENGTH'/>
+          <ref name='VIR_DOMAIN_MEMORY_PARAM_UNLIMITED'/>
           <ref name='virDomainGetMemoryParameters'/>
         </word>
         <word name='virNWFilterCreateXML'>
@@ -10418,6 +10455,7 @@
           <ref name='virConnCopyLastError'/>
           <ref name='virConnGetLastError'/>
           <ref name='virConnectGetHostname'/>
+          <ref name='virConnectGetSysinfo'/>
           <ref name='virConnectGetURI'/>
           <ref name='virCopyLastError'/>
           <ref name='virDomainGetMaxVcpus'/>
@@ -10622,10 +10660,10 @@
       <chunk name='chunk4' start='d' end='d'/>
       <chunk name='chunk5' start='e' end='f'/>
       <chunk name='chunk6' start='g' end='h'/>
-      <chunk name='chunk7' start='i' end='k'/>
-      <chunk name='chunk8' start='l' end='m'/>
-      <chunk name='chunk9' start='n' end='o'/>
-      <chunk name='chunk10' start='p' end='p'/>
+      <chunk name='chunk7' start='i' end='j'/>
+      <chunk name='chunk8' start='k' end='l'/>
+      <chunk name='chunk9' start='m' end='n'/>
+      <chunk name='chunk10' start='o' end='p'/>
       <chunk name='chunk11' start='q' end='r'/>
       <chunk name='chunk12' start='s' end='s'/>
       <chunk name='chunk13' start='t' end='t'/>

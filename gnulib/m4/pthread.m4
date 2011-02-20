@@ -1,7 +1,7 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
 # pthread.m4
-dnl Copyright (C) 2009, 2010 Free Software Foundation, Inc.
+dnl Copyright (C) 2009-2011 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -9,7 +9,6 @@ dnl with or without modifications, as long as this notice is preserved.
 AC_DEFUN([gl_PTHREAD_CHECK],
 [
    AC_REQUIRE([gl_PTHREAD_DEFAULTS])
-   AC_CHECK_HEADERS_ONCE([pthread.h])
    gl_CHECK_NEXT_HEADERS([pthread.h])
    if test $ac_cv_header_pthread_h = yes; then
      HAVE_PTHREAD_H=1

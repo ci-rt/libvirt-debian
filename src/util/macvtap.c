@@ -436,7 +436,7 @@ int openTap(const char *ifname,
     }
 
     while (1) {
-        // may need to wait for udev to be done
+        /* may need to wait for udev to be done */
         tapfd = open(tapname, O_RDWR);
         if (tapfd < 0 && retries > 0) {
             retries--;
@@ -1048,8 +1048,8 @@ doPortProfileOpSetLink(bool nltarget_kernel,
 
             memcpy(ifla_vf_mac.mac, macaddr, 6);
 
-            if (!nla_put(nl_msg, IFLA_VF_MAC, sizeof(ifla_vf_mac),
-                &ifla_vf_mac) < 0)
+            if (nla_put(nl_msg, IFLA_VF_MAC, sizeof(ifla_vf_mac),
+                        &ifla_vf_mac) < 0)
                 goto buffer_too_small;
         }
 
@@ -1060,8 +1060,8 @@ doPortProfileOpSetLink(bool nltarget_kernel,
                 .qos = 0,
             };
 
-            if (!nla_put(nl_msg, IFLA_VF_VLAN, sizeof(ifla_vf_vlan),
-                &ifla_vf_vlan) < 0)
+            if (nla_put(nl_msg, IFLA_VF_VLAN, sizeof(ifla_vf_vlan),
+                        &ifla_vf_vlan) < 0)
                 goto buffer_too_small;
         }
 
@@ -1232,7 +1232,7 @@ doPortProfileOpCommon(bool nltarget_kernel,
             status == PORT_VDP_RESPONSE_SUCCESS) {
             break;
         } else if (status == PORT_PROFILE_RESPONSE_INPROGRESS) {
-            // keep trying...
+            /* keep trying... */
         } else {
             virReportSystemError(EINVAL,
                     _("error %d during port-profile setlink on "
@@ -1349,7 +1349,7 @@ doPortProfileOp8021Qbg(const char *ifname,
         break;
     default:
         macvtapError(VIR_ERR_INTERNAL_ERROR,
-                     _("operation type %d not supported"), op);
+                     _("operation type %d not supported"), virtPortOp);
         rc = 1;
         goto err_exit;
     }
@@ -1384,11 +1384,11 @@ getPhysfn(const char *linkdev,
 
     if (virtfn) {
 
-        // XXX: if linkdev is SR-IOV VF, then set vf = VF index
-        // XXX: and set linkdev = PF device
-        // XXX: need to use get_physical_function_linux() or
-        // XXX: something like that to get PF
-        // XXX: device and figure out VF index
+        /* XXX: if linkdev is SR-IOV VF, then set vf = VF index */
+        /* XXX: and set linkdev = PF device */
+        /* XXX: need to use get_physical_function_linux() or */
+        /* XXX: something like that to get PF */
+        /* XXX: device and figure out VF index */
 
         rc = 1;
 

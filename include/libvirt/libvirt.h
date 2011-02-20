@@ -4,7 +4,7 @@
  * Description: Provides the interfaces of the libvirt library to handle
  *              virtualized domains
  *
- * Copy:  Copyright (C) 2005,2006,2010 Red Hat, Inc.
+ * Copy:  Copyright (C) 2005-2006, 2010-2011 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -550,7 +550,7 @@ VIR_EXPORT_VAR virConnectAuthPtr virConnectAuthPtrDefault;
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-#define LIBVIR_VERSION_NUMBER 8007
+#define LIBVIR_VERSION_NUMBER 8008
 
 int                     virGetVersion           (unsigned long *libVer,
                                                  const char *type,
@@ -575,6 +575,8 @@ int                     virConnectGetLibVersion (virConnectPtr conn,
                                                  unsigned long *libVer);
 char *                  virConnectGetHostname   (virConnectPtr conn);
 char *                  virConnectGetURI        (virConnectPtr conn);
+char *                  virConnectGetSysinfo    (virConnectPtr conn,
+                                                 unsigned int flags);
 
 
 /*
@@ -696,6 +698,14 @@ typedef enum {
  */
 
 #define VIR_DOMAIN_MEMORY_FIELD_LENGTH 80
+
+/**
+ * VIR_DOMAIN_MEMORY_PARAM_UNLIMITED:
+ *
+ * Macro providing the virMemoryParameter value that indicates "unlimited"
+ */
+
+#define VIR_DOMAIN_MEMORY_PARAM_UNLIMITED (INT64_MAX >> 10)
 
 /**
  * VIR_DOMAIN_MEMORY_HARD_LIMIT:

@@ -25,6 +25,7 @@ syntax_check_exceptions = \
   .x-sc_prohibit_asprintf \
   .x-sc_prohibit_close \
   .x-sc_prohibit_empty_lines_at_EOF \
+  .x-sc_prohibit_fork_wrappers \
   .x-sc_prohibit_gethostby \
   .x-sc_prohibit_gethostname \
   .x-sc_prohibit_gettext_noop \
@@ -33,8 +34,6 @@ syntax_check_exceptions = \
   .x-sc_prohibit_nonreentrant \
   .x-sc_prohibit_readlink \
   .x-sc_prohibit_sprintf \
-  .x-sc_prohibit_strcmp \
-  .x-sc_prohibit_strncmp \
   .x-sc_prohibit_strncpy \
   .x-sc_prohibit_test_minus_ao \
   .x-sc_prohibit_VIR_ERR_NO_MEMORY \
@@ -52,6 +51,7 @@ EXTRA_DIST = \
   autobuild.sh \
   Makefile.nonreentrant \
   autogen.sh \
+  cfg.mk \
   examples/domain-events/events-python \
   $(syntax_check_exceptions) \
   $(XML_EXAMPLES)

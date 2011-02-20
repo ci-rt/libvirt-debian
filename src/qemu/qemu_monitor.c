@@ -1,7 +1,7 @@
 /*
  * qemu_monitor.c: interaction with QEMU monitor console
  *
- * Copyright (C) 2006-2010 Red Hat, Inc.
+ * Copyright (C) 2006-2011 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -79,7 +79,7 @@ VIR_ENUM_IMPL(qemuMonitorMigrationStatus,
               QEMU_MONITOR_MIGRATION_STATUS_LAST,
               "inactive", "active", "completed", "failed", "cancelled")
 
-static char *qemuMonitorEscape(const char *in, int shell)
+char *qemuMonitorEscapeArg(const char *in)
 {
     int len = 0;
     int i, j;
@@ -87,9 +87,6 @@ static char *qemuMonitorEscape(const char *in, int shell)
 
     /* To pass through the QEMU monitor, we need to use escape
        sequences: \r, \n, \", \\
-
-       To pass through both QEMU + the shell, we need to escape
-       the single character ' as the five characters '\\''
     */
 
     for (i = 0; in[i] != '\0'; i++) {
@@ -99,12 +96,6 @@ static char *qemuMonitorEscape(const char *in, int shell)
         case '"':
         case '\\':
             len += 2;
-            break;
-        case '\'':
-            if (shell)
-                len += 5;
-            else
-                len += 1;
             break;
         default:
             len += 1;
@@ -130,17 +121,6 @@ static char *qemuMonitorEscape(const char *in, int shell)
             out[j++] = '\\';
             out[j++] = in[i];
             break;
-        case '\'':
-            if (shell) {
-                out[j++] = '\'';
-                out[j++] = '\\';
-                out[j++] = '\\';
-                out[j++] = '\'';
-                out[j++] = '\'';
-            } else {
-                out[j++] = in[i];
-            }
-            break;
         default:
             out[j++] = in[i];
             break;
@@ -151,14 +131,45 @@ static char *qemuMonitorEscape(const char *in, int shell)
     return out;
 }
 
-char *qemuMonitorEscapeArg(const char *in)
-{
-    return qemuMonitorEscape(in, 0);
-}
-
 char *qemuMonitorEscapeShell(const char *in)
 {
-    return qemuMonitorEscape(in, 1);
+    int len = 2; /* leading and trailing single quote */
+    int i, j;
+    char *out;
+
+    for (i = 0; in[i] != '\0'; i++) {
+        switch(in[i]) {
+        case '\'':
+            len += 4; /* '\'' */
+            break;
+        default:
+            len += 1;
+            break;
+        }
+    }
+
+    if (VIR_ALLOC_N(out, len + 1) < 0)
+        return NULL;
+
+    j = 0;
+    out[j++] = '\'';
+    for (i = 0; in[i] != '\0'; i++) {
+        switch(in[i]) {
+        case '\'':
+            out[j++] = '\'';
+            out[j++] = '\\';
+            out[j++] = '\'';
+            out[j++] = '\'';
+            break;
+        default:
+            out[j++] = in[i];
+            break;
+        }
+    }
+    out[j++] = '\'';
+    out[j] = '\0';
+
+    return out;
 }
 
 
@@ -550,7 +561,8 @@ qemuMonitorIO(int watch, int fd, int events, void *opaque) {
 
         qemuMonitorUpdateWatch(mon);
 
-        if (events & VIR_EVENT_HANDLE_HANGUP) {
+        if (events & (VIR_EVENT_HANDLE_HANGUP |
+                      VIR_EVENT_HANDLE_ERROR)) {
             /* If IO process resulted in EOF & we have a message,
              * then wakeup that waiter */
             if (mon->msg && !mon->msg->finished) {
@@ -588,7 +600,7 @@ qemuMonitorIO(int watch, int fd, int events, void *opaque) {
 
 qemuMonitorPtr
 qemuMonitorOpen(virDomainObjPtr vm,
-                virDomainChrDefPtr config,
+                virDomainChrSourceDefPtr config,
                 int json,
                 qemuMonitorCallbacksPtr cb)
 {
@@ -1097,6 +1109,83 @@ int qemuMonitorSetVNCPassword(qemuMonitorPtr mon,
     return ret;
 }
 
+static const char* qemuMonitorTypeToProtocol(int type)
+{
+    switch (type) {
+    case VIR_DOMAIN_GRAPHICS_TYPE_VNC:
+        return "vnc";
+    case VIR_DOMAIN_GRAPHICS_TYPE_SPICE:
+        return "spice";
+    default:
+        qemuReportError(VIR_ERR_INVALID_ARG,
+                        _("unsupported protocol type %s"),
+                        virDomainGraphicsTypeToString(type));
+        return NULL;
+    }
+}
+
+/* Returns -2 if not supported with this monitor connection */
+int qemuMonitorSetPassword(qemuMonitorPtr mon,
+                           int type,
+                           const char *password,
+                           const char *action_if_connected)
+{
+    const char *protocol = qemuMonitorTypeToProtocol(type);
+    int ret;
+
+    if (!protocol)
+        return -1;
+
+    DEBUG("mon=%p, protocol=%s, password=%p, action_if_connected=%s",
+          mon, protocol, password, action_if_connected);
+
+    if (!mon) {
+        qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+                        _("monitor must not be NULL"));
+        return -1;
+    }
+
+    if (!password)
+        password = "";
+
+    if (!action_if_connected)
+        action_if_connected = "keep";
+
+    if (mon->json)
+        ret = qemuMonitorJSONSetPassword(mon, protocol, password, action_if_connected);
+    else
+        ret = qemuMonitorTextSetPassword(mon, protocol, password, action_if_connected);
+    return ret;
+}
+
+int qemuMonitorExpirePassword(qemuMonitorPtr mon,
+                              int type,
+                              const char *expire_time)
+{
+    const char *protocol = qemuMonitorTypeToProtocol(type);
+    int ret;
+
+    if (!protocol)
+        return -1;
+
+    DEBUG("mon=%p, protocol=%s, expire_time=%s",
+          mon, protocol, expire_time);
+
+    if (!mon) {
+        qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+                        _("monitor must not be NULL"));
+        return -1;
+    }
+
+    if (!expire_time)
+        expire_time = "now";
+
+    if (mon->json)
+        ret = qemuMonitorJSONExpirePassword(mon, protocol, expire_time);
+    else
+        ret = qemuMonitorTextExpirePassword(mon, protocol, expire_time);
+    return ret;
+}
 
 int qemuMonitorSetBalloon(qemuMonitorPtr mon,
                           unsigned long newmem)
@@ -1929,14 +2018,17 @@ int qemuMonitorDeleteSnapshot(qemuMonitorPtr mon, const char *name)
     return ret;
 }
 
-int qemuMonitorArbitraryCommand(qemuMonitorPtr mon, const char *cmd, char **reply)
+int qemuMonitorArbitraryCommand(qemuMonitorPtr mon,
+                                const char *cmd,
+                                char **reply,
+                                bool hmp)
 {
     int ret;
 
-    DEBUG("mon=%p, cmd=%s, reply=%p", mon, cmd, reply);
+    DEBUG("mon=%p, cmd=%s, reply=%p, hmp=%d", mon, cmd, reply, hmp);
 
     if (mon->json)
-        ret = qemuMonitorJSONArbitraryCommand(mon, cmd, reply);
+        ret = qemuMonitorJSONArbitraryCommand(mon, cmd, reply, hmp);
     else
         ret = qemuMonitorTextArbitraryCommand(mon, cmd, reply);
     return ret;

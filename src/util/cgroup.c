@@ -1,7 +1,7 @@
 /*
  * cgroup.c: Tools for managing cgroups
  *
- * Copyright (C) 2010 Red Hat, Inc.
+ * Copyright (C) 2010-2011 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
  * See COPYING.LIB for the License of this software
@@ -37,7 +37,7 @@
 
 VIR_ENUM_IMPL(virCgroupController, VIR_CGROUP_CONTROLLER_LAST,
               "cpu", "cpuacct", "cpuset", "memory", "devices",
-              "freezer");
+              "freezer", "blkio");
 
 struct virCgroupController {
     int type;
@@ -290,8 +290,8 @@ static int virCgroupSetValueStr(virCgroupPtr group,
     VIR_DEBUG("Set value '%s' to '%s'", keypath, value);
     rc = virFileWriteStr(keypath, value, 0);
     if (rc < 0) {
-        DEBUG("Failed to write value '%s': %m", value);
         rc = -errno;
+        VIR_DEBUG("Failed to write value '%s': %m", value);
     } else {
         rc = 0;
     }
@@ -313,7 +313,7 @@ static int virCgroupGetValueStr(virCgroupPtr group,
 
     rc = virCgroupPathOfController(group, controller, key, &keypath);
     if (rc != 0) {
-        DEBUG("No path of %s, %s", group->path, key);
+        VIR_DEBUG("No path of %s, %s", group->path, key);
         return rc;
     }
 
@@ -321,8 +321,8 @@ static int virCgroupGetValueStr(virCgroupPtr group,
 
     rc = virFileReadAll(keypath, 1024, value);
     if (rc < 0) {
-        DEBUG("Failed to read %s: %m\n", keypath);
         rc = -errno;
+        VIR_DEBUG("Failed to read %s: %m\n", keypath);
     } else {
         /* Terminated with '\n' has sometimes harmful effects to the caller */
         char *p = strchr(*value, '\n');
@@ -355,8 +355,6 @@ static int virCgroupSetValueU64(virCgroupPtr group,
 }
 
 
-#if 0
-/* This is included for completeness, but not yet used */
 
 static int virCgroupSetValueI64(virCgroupPtr group,
                                 int controller,
@@ -376,6 +374,8 @@ static int virCgroupSetValueI64(virCgroupPtr group,
     return rc;
 }
 
+#if 0
+/* This is included for completeness, but not yet used */
 static int virCgroupGetValueI64(virCgroupPtr group,
                                 int controller,
                                 const char *key,
@@ -505,6 +505,9 @@ static int virCgroupMakeGroup(virCgroupPtr parent, virCgroupPtr group,
         rc = virCgroupPathOfController(group, i, "", &path);
         if (rc < 0)
             return rc;
+        /* As of Feb 2011, clang can't see that the above function
+         * call did not modify group. */
+        sa_assert(group->controllers[i].mountPoint);
 
         VIR_DEBUG("Make controller %s", path);
         if (access(path, F_OK) != 0) {
@@ -632,8 +635,8 @@ static int virCgroupRemoveRecursively(char *grppath)
     if (grpdir == NULL) {
         if (errno == ENOENT)
             return 0;
-        VIR_ERROR(_("Unable to open %s (%d)"), grppath, errno);
         rc = -errno;
+        VIR_ERROR(_("Unable to open %s (%d)"), grppath, errno);
         return rc;
     }
 
@@ -662,7 +665,7 @@ static int virCgroupRemoveRecursively(char *grppath)
     }
     closedir(grpdir);
 
-    DEBUG("Removing cgroup %s", grppath);
+    VIR_DEBUG("Removing cgroup %s", grppath);
     if (rmdir(grppath) != 0 && errno != ENOENT) {
         rc = -errno;
         VIR_ERROR(_("Unable to remove %s (%d)"), grppath, errno);
@@ -707,7 +710,7 @@ int virCgroupRemove(virCgroupPtr group)
                                       &grppath) != 0)
             continue;
 
-        DEBUG("Removing cgroup %s and all child cgroups", grppath);
+        VIR_DEBUG("Removing cgroup %s and all child cgroups", grppath);
         rc = virCgroupRemoveRecursively(grppath);
         VIR_FREE(grppath);
     }
@@ -851,6 +854,45 @@ int virCgroupForDomain(virCgroupPtr driver ATTRIBUTE_UNUSED,
 #endif
 
 /**
+ * virCgroupSetBlkioWeight:
+ *
+ * @group: The cgroup to change io weight for
+ * @weight: The Weight for this cgroup
+ *
+ * Returns: 0 on success
+ */
+int virCgroupSetBlkioWeight(virCgroupPtr group, unsigned int weight)
+{
+    if (weight > 1000 || weight < 100)
+        return -EINVAL;
+
+    return virCgroupSetValueU64(group,
+                                VIR_CGROUP_CONTROLLER_BLKIO,
+                                "blkio.weight",
+                                weight);
+}
+
+/**
+ * virCgroupGetBlkioWeight:
+ *
+ * @group: The cgroup to get weight for
+ * @Weight: Pointer to returned weight
+ *
+ * Returns: 0 on success
+ */
+int virCgroupGetBlkioWeight(virCgroupPtr group, unsigned int *weight)
+{
+    unsigned long long tmp;
+    int ret;
+    ret = virCgroupGetValueU64(group,
+                               VIR_CGROUP_CONTROLLER_BLKIO,
+                               "blkio.weight", &tmp);
+    if (ret == 0)
+        *weight = tmp;
+    return ret;
+}
+
+/**
  * virCgroupSetMemory:
  *
  * @group: The cgroup to change memory for
@@ -858,12 +900,22 @@ int virCgroupForDomain(virCgroupPtr driver ATTRIBUTE_UNUSED,
  *
  * Returns: 0 on success
  */
-int virCgroupSetMemory(virCgroupPtr group, unsigned long kb)
+int virCgroupSetMemory(virCgroupPtr group, unsigned long long kb)
 {
-    return virCgroupSetValueU64(group,
-                                VIR_CGROUP_CONTROLLER_MEMORY,
-                                "memory.limit_in_bytes",
-                                kb << 10);
+    unsigned long long maxkb = VIR_DOMAIN_MEMORY_PARAM_UNLIMITED;
+
+    if (kb > maxkb)
+        return -EINVAL;
+    else if (kb == maxkb)
+        return virCgroupSetValueI64(group,
+                                    VIR_CGROUP_CONTROLLER_MEMORY,
+                                    "memory.limit_in_bytes",
+                                    -1);
+    else
+        return virCgroupSetValueU64(group,
+                                    VIR_CGROUP_CONTROLLER_MEMORY,
+                                    "memory.limit_in_bytes",
+                                    kb << 10);
 }
 
 /**
@@ -894,7 +946,7 @@ int virCgroupGetMemoryUsage(virCgroupPtr group, unsigned long *kb)
  *
  * Returns: 0 on success
  */
-int virCgroupSetMemoryHardLimit(virCgroupPtr group, unsigned long kb)
+int virCgroupSetMemoryHardLimit(virCgroupPtr group, unsigned long long kb)
 {
     return virCgroupSetMemory(group, kb);
 }
@@ -907,7 +959,7 @@ int virCgroupSetMemoryHardLimit(virCgroupPtr group, unsigned long kb)
  *
  * Returns: 0 on success
  */
-int virCgroupGetMemoryHardLimit(virCgroupPtr group, unsigned long *kb)
+int virCgroupGetMemoryHardLimit(virCgroupPtr group, unsigned long long *kb)
 {
     long long unsigned int limit_in_bytes;
     int ret;
@@ -915,7 +967,7 @@ int virCgroupGetMemoryHardLimit(virCgroupPtr group, unsigned long *kb)
                                VIR_CGROUP_CONTROLLER_MEMORY,
                                "memory.limit_in_bytes", &limit_in_bytes);
     if (ret == 0)
-        *kb = (unsigned long) limit_in_bytes >> 10;
+        *kb = limit_in_bytes >> 10;
     return ret;
 }
 
@@ -927,12 +979,22 @@ int virCgroupGetMemoryHardLimit(virCgroupPtr group, unsigned long *kb)
  *
  * Returns: 0 on success
  */
-int virCgroupSetMemorySoftLimit(virCgroupPtr group, unsigned long kb)
+int virCgroupSetMemorySoftLimit(virCgroupPtr group, unsigned long long kb)
 {
-    return virCgroupSetValueU64(group,
-                                VIR_CGROUP_CONTROLLER_MEMORY,
-                                "memory.soft_limit_in_bytes",
-                                kb << 10);
+    unsigned long long maxkb = VIR_DOMAIN_MEMORY_PARAM_UNLIMITED;
+
+    if (kb > maxkb)
+        return -EINVAL;
+    else if (kb == maxkb)
+        return virCgroupSetValueI64(group,
+                                    VIR_CGROUP_CONTROLLER_MEMORY,
+                                    "memory.soft_limit_in_bytes",
+                                    -1);
+    else
+        return virCgroupSetValueU64(group,
+                                    VIR_CGROUP_CONTROLLER_MEMORY,
+                                    "memory.soft_limit_in_bytes",
+                                    kb << 10);
 }
 
 
@@ -944,7 +1006,7 @@ int virCgroupSetMemorySoftLimit(virCgroupPtr group, unsigned long kb)
  *
  * Returns: 0 on success
  */
-int virCgroupGetMemorySoftLimit(virCgroupPtr group, unsigned long *kb)
+int virCgroupGetMemorySoftLimit(virCgroupPtr group, unsigned long long *kb)
 {
     long long unsigned int limit_in_bytes;
     int ret;
@@ -952,7 +1014,7 @@ int virCgroupGetMemorySoftLimit(virCgroupPtr group, unsigned long *kb)
                                VIR_CGROUP_CONTROLLER_MEMORY,
                                "memory.soft_limit_in_bytes", &limit_in_bytes);
     if (ret == 0)
-        *kb = (unsigned long) limit_in_bytes >> 10;
+        *kb = limit_in_bytes >> 10;
     return ret;
 }
 
@@ -964,12 +1026,22 @@ int virCgroupGetMemorySoftLimit(virCgroupPtr group, unsigned long *kb)
  *
  * Returns: 0 on success
  */
-int virCgroupSetSwapHardLimit(virCgroupPtr group, unsigned long kb)
+int virCgroupSetSwapHardLimit(virCgroupPtr group, unsigned long long kb)
 {
-    return virCgroupSetValueU64(group,
-                                VIR_CGROUP_CONTROLLER_MEMORY,
-                                "memory.memsw.limit_in_bytes",
-                                kb << 10);
+    unsigned long long maxkb = VIR_DOMAIN_MEMORY_PARAM_UNLIMITED;
+
+    if (kb > maxkb)
+        return -EINVAL;
+    else if (kb == maxkb)
+        return virCgroupSetValueI64(group,
+                                    VIR_CGROUP_CONTROLLER_MEMORY,
+                                    "memory.memsw.limit_in_bytes",
+                                    -1);
+    else
+        return virCgroupSetValueU64(group,
+                                    VIR_CGROUP_CONTROLLER_MEMORY,
+                                    "memory.memsw.limit_in_bytes",
+                                    kb << 10);
 }
 
 /**
@@ -980,7 +1052,7 @@ int virCgroupSetSwapHardLimit(virCgroupPtr group, unsigned long kb)
  *
  * Returns: 0 on success
  */
-int virCgroupGetSwapHardLimit(virCgroupPtr group, unsigned long *kb)
+int virCgroupGetSwapHardLimit(virCgroupPtr group, unsigned long long *kb)
 {
     long long unsigned int limit_in_bytes;
     int ret;
@@ -988,7 +1060,7 @@ int virCgroupGetSwapHardLimit(virCgroupPtr group, unsigned long *kb)
                                VIR_CGROUP_CONTROLLER_MEMORY,
                                "memory.memsw.limit_in_bytes", &limit_in_bytes);
     if (ret == 0)
-        *kb = (unsigned long) limit_in_bytes >> 10;
+        *kb = limit_in_bytes >> 10;
     return ret;
 }
 

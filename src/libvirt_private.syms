@@ -66,6 +66,7 @@ virCgroupDenyDevicePath;
 virCgroupForDomain;
 virCgroupForDriver;
 virCgroupFree;
+virCgroupGetBlkioWeight;
 virCgroupGetCpuShares;
 virCgroupGetCpuacctUsage;
 virCgroupGetFreezerState;
@@ -75,6 +76,7 @@ virCgroupGetMemoryUsage;
 virCgroupGetSwapHardLimit;
 virCgroupMounted;
 virCgroupRemove;
+virCgroupSetBlkioWeight;
 virCgroupSetCpuShares;
 virCgroupSetFreezerState;
 virCgroupSetMemory;
@@ -192,6 +194,9 @@ virDomainChrConsoleTargetTypeFromString;
 virDomainChrConsoleTargetTypeToString;
 virDomainChrDefForeach;
 virDomainChrDefFree;
+virDomainChrSourceDefFree;
+virDomainChrSpicevmcTypeFromString;
+virDomainChrSpicevmcTypeToString;
 virDomainChrTcpProtocolTypeFromString;
 virDomainChrTcpProtocolTypeToString;
 virDomainChrTypeFromString;
@@ -231,9 +236,12 @@ virDomainDiskDefAssignAddress;
 virDomainDiskDefForeachPath;
 virDomainDiskDefFree;
 virDomainDiskDeviceTypeToString;
+virDomainDiskErrorPolicyTypeFromString;
 virDomainDiskErrorPolicyTypeToString;
 virDomainDiskInsert;
 virDomainDiskInsertPreAlloced;
+virDomainDiskIoTypeFromString;
+virDomainDiskIoTypeToString;
 virDomainDiskRemove;
 virDomainDiskTypeFromString;
 virDomainDiskTypeToString;
@@ -279,6 +287,10 @@ virDomainRemoveInactive;
 virDomainSaveConfig;
 virDomainSaveStatus;
 virDomainSaveXML;
+virDomainSmartcardDefForeach;
+virDomainSmartcardDefFree;
+virDomainSmartcardTypeFromString;
+virDomainSmartcardTypeToString;
 virDomainSnapshotAssignDef;
 virDomainSnapshotDefFormat;
 virDomainSnapshotDefFree;
@@ -636,17 +648,17 @@ virNWFilterDefFormat;
 virNWFilterDefFree;
 virNWFilterDefParseString;
 virNWFilterJumpTargetTypeToString;
+virNWFilterLoadAllConfigs;
 virNWFilterLockFilterUpdates;
-virNWFilterPoolLoadAllConfigs;
-virNWFilterPoolObjAssignDef;
-virNWFilterPoolObjDeleteDef;
-virNWFilterPoolObjFindByName;
-virNWFilterPoolObjFindByUUID;
-virNWFilterPoolObjListFree;
-virNWFilterPoolObjLock;
-virNWFilterPoolObjRemove;
-virNWFilterPoolObjSaveDef;
-virNWFilterPoolObjUnlock;
+virNWFilterObjAssignDef;
+virNWFilterObjDeleteDef;
+virNWFilterObjFindByName;
+virNWFilterObjFindByUUID;
+virNWFilterObjListFree;
+virNWFilterObjLock;
+virNWFilterObjRemove;
+virNWFilterObjSaveDef;
+virNWFilterObjUnlock;
 virNWFilterPrintStateMatchFlags;
 virNWFilterRegisterCallbackDriver;
 virNWFilterRuleActionTypeToString;
@@ -701,13 +713,34 @@ virSecretDefParseFile;
 virSecretDefParseString;
 
 
-# security.h
-virSecurityDriverGetDOI;
-virSecurityDriverGetModel;
-virSecurityDriverInit;
-virSecurityDriverSetDOI;
-virSecurityDriverStartup;
-virSecurityDriverVerify;
+# security_driver.h
+virSecurityDriverLookup;
+
+
+# security_manager.h
+virSecurityManagerClearSocketLabel;
+virSecurityManagerFree;
+virSecurityManagerGenLabel;
+virSecurityManagerGetDOI;
+virSecurityManagerGetModel;
+virSecurityManagerGetProcessLabel;
+virSecurityManagerNew;
+virSecurityManagerNewStack;
+virSecurityManagerNewDAC;
+virSecurityManagerReleaseLabel;
+virSecurityManagerReserveLabel;
+virSecurityManagerRestoreImageLabel;
+virSecurityManagerRestoreAllLabel;
+virSecurityManagerRestoreHostdevLabel;
+virSecurityManagerRestoreSavedStateLabel;
+virSecurityManagerSetAllLabel;
+virSecurityManagerSetFDLabel;
+virSecurityManagerSetImageLabel;
+virSecurityManagerSetHostdevLabel;
+virSecurityManagerSetProcessLabel;
+virSecurityManagerSetSavedStateLabel;
+virSecurityManagerSetSocketLabel;
+virSecurityManagerVerify;
 
 
 # storage_conf.h
@@ -767,6 +800,7 @@ virStorageFileProbeFormatFromFD;
 
 # sysinfo.h
 virSysinfoDefFree;
+virSysinfoFormat;
 virSysinfoRead;
 
 
@@ -825,6 +859,7 @@ virFileDeletePid;
 virFileExists;
 virFileFindMountPoint;
 virFileHasSuffix;
+virFileIsExecutable;
 virFileLinkPointsTo;
 virFileMakePath;
 virFileMatchesNameSuffix;
@@ -865,8 +900,10 @@ virSetUIDGID;
 virSkipSpaces;
 virStrToDouble;
 virStrToLong_i;
+virStrToLong_l;
 virStrToLong_ll;
 virStrToLong_ui;
+virStrToLong_ul;
 virStrToLong_ull;
 virStrcpy;
 virStrncpy;
@@ -893,18 +930,19 @@ virAuditSend;
 # virterror_internal.h
 virDispatchError;
 virErrorMsg;
-virErrorSetLogPriority;
 virRaiseErrorFull;
 virReportErrorHelper;
 virReportOOMErrorFull;
 virReportSystemErrorFull;
 virSetError;
+virSetErrorLogPriorityFunc;
 virStrerror;
 
 
 # xml.h
 virXMLPropString;
 virXPathBoolean;
+virXPathInt;
 virXPathLong;
 virXPathLongHex;
 virXPathLongLong;
@@ -913,6 +951,7 @@ virXPathNodeSet;
 virXPathNumber;
 virXPathString;
 virXPathStringLimit;
+virXPathUInt;
 virXPathULong;
 virXPathULongHex;
 virXPathULongLong;

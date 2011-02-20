@@ -34,6 +34,10 @@
             </div>
           </li><li>
             <div>
+              <a title="Applications known to use libvirt" class="inactive" href="../apps.html">Applications</a>
+            </div>
+          </li><li>
+            <div>
               <a title="Get the latest source releases, binary builds and get access to the source repository" class="inactive" href="../downloads.html">Downloads</a>
             </div>
           </li><li>
@@ -170,24 +174,24 @@
       a number of flaws
     </p>
         <ul><li><code>fork+exec</code>: The lowest &amp; most flexible
-	level, but very hard to use correctly / safely. It
-	is easy to leak file descriptors, have unexpected
-	signal handler behaviour and not handle edge cases.
-	Furthermore, it is not portable to mingw.
-	</li><li><code>system</code>: Convenient if you don't care
-	about capturing command output, but has the serious
-	downside that the command string is interpreted by
-	the shell. This makes it very dangerous to use, because
-	improperly validated user input can lead to exploits
-	via shell meta characters.
+        level, but very hard to use correctly / safely. It
+        is easy to leak file descriptors, have unexpected
+        signal handler behaviour and not handle edge cases.
+        Furthermore, it is not portable to mingw.
+        </li><li><code>system</code>: Convenient if you don't care
+        about capturing command output, but has the serious
+        downside that the command string is interpreted by
+        the shell. This makes it very dangerous to use, because
+        improperly validated user input can lead to exploits
+        via shell meta characters.
       </li><li><code>popen</code>: Inherits the flaws of
-	<code>system</code>, and has no option for bi-directional
-	communication.
+        <code>system</code>, and has no option for bi-directional
+        communication.
       </li><li><code>posix_spawn</code>: A half-way house between
-	simplicity of system() and the flexibility of fork+exec.
-	It does not allow for a couple of important features
-	though, such as running a hook between the fork+exec
-	stage, or closing all open file descriptors.</li></ul>
+        simplicity of system() and the flexibility of fork+exec.
+        It does not allow for a couple of important features
+        though, such as running a hook between the fork+exec
+        stage, or closing all open file descriptors.</li></ul>
         <p>
       Due to the problems mentioned with each of these,
       libvirt driver code <strong>must not use</strong> any

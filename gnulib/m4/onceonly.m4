@@ -1,7 +1,7 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
 # onceonly.m4 serial 7
-dnl Copyright (C) 2002-2003, 2005-2006, 2008-2010 Free Software Foundation,
+dnl Copyright (C) 2002-2003, 2005-2006, 2008-2011 Free Software Foundation,
 dnl Inc.
 dnl This file is free software, distributed under the terms of the GNU
 dnl General Public License.  As a special exception to the GNU General

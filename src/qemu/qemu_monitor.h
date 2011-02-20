@@ -1,7 +1,7 @@
 /*
  * qemu_monitor.h: interaction with QEMU monitor console
  *
- * Copyright (C) 2006-2010 Red Hat, Inc.
+ * Copyright (C) 2006-2011 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -119,7 +119,7 @@ char *qemuMonitorEscapeArg(const char *in);
 char *qemuMonitorEscapeShell(const char *in);
 
 qemuMonitorPtr qemuMonitorOpen(virDomainObjPtr vm,
-                               virDomainChrDefPtr config,
+                               virDomainChrSourceDefPtr config,
                                int json,
                                qemuMonitorCallbacksPtr cb);
 
@@ -195,6 +195,13 @@ int qemuMonitorGetBlockExtent(qemuMonitorPtr mon,
 
 int qemuMonitorSetVNCPassword(qemuMonitorPtr mon,
                               const char *password);
+int qemuMonitorSetPassword(qemuMonitorPtr mon,
+                           int type,
+                           const char *password,
+                           const char *action_if_connected);
+int qemuMonitorExpirePassword(qemuMonitorPtr mon,
+                              int type,
+                              const char *expire_time);
 int qemuMonitorSetBalloon(qemuMonitorPtr mon,
                           unsigned long newmem);
 int qemuMonitorSetCPU(qemuMonitorPtr mon, int cpu, int online);
@@ -390,7 +397,10 @@ int qemuMonitorCreateSnapshot(qemuMonitorPtr mon, const char *name);
 int qemuMonitorLoadSnapshot(qemuMonitorPtr mon, const char *name);
 int qemuMonitorDeleteSnapshot(qemuMonitorPtr mon, const char *name);
 
-int qemuMonitorArbitraryCommand(qemuMonitorPtr mon, const char *cmd, char **reply);
+int qemuMonitorArbitraryCommand(qemuMonitorPtr mon,
+                                const char *cmd,
+                                char **reply,
+                                bool hmp);
 
 /**
  * When running two dd process and using <> redirection, we need a

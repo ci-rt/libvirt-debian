@@ -121,9 +121,9 @@
         </optional>
         <choice>
           <ref name="osbootkernel"/>
-          <oneOrMore>
+          <zeroOrMore>
             <ref name="osbootdev"/>
-          </oneOrMore>
+          </zeroOrMore>
         </choice>
         <optional>
           <element name="bootmenu">
@@ -301,6 +301,18 @@
           <optional>
             <element name="hugepages">
               <empty/>
+            </element>
+          </optional>
+        </element>
+      </optional>
+
+      <!-- The Blkio cgroup related tunables would go in the blkiotune -->
+      <optional>
+        <element name="blkiotune">
+          <!-- I/O weight the VM can use -->
+          <optional>
+            <element name="weight">
+              <ref name="weight"/>
             </element>
           </optional>
         </element>
@@ -526,6 +538,9 @@
     </optional>
     <ref name="target"/>
     <optional>
+      <ref name="deviceBoot"/>
+    </optional>
+    <optional>
       <element name="readonly">
         <empty/>
       </element>
@@ -693,6 +708,9 @@
       <optional>
         <ref name="driverErrorPolicy"/>
       </optional>
+      <optional>
+        <ref name="driverIO"/>
+      </optional>
       <empty/>
     </element>
   </define>
@@ -724,6 +742,14 @@
       </choice>
     </attribute>
   </define>
+  <define name="driverIO">
+    <attribute name="io">
+      <choice>
+        <value>threads</value>
+        <value>native</value>
+      </choice>
+    </attribute>
+  </define>
   <define name="controller">
     <element name="controller">
       <choice>
@@ -735,6 +761,7 @@
                 <value>ide</value>
                 <value>scsi</value>
                 <value>sata</value>
+                <value>ccid</value>
               </choice>
             </attribute>
           </optional>
@@ -963,6 +990,7 @@
         - the IP address bound to the interface
         - the name of the script used to set up the binding
         - the target device used
+        - boot order
     -->
   <define name="interface-options">
     <interleave>
@@ -1005,12 +1033,38 @@
         </element>
       </optional>
       <optional>
+        <element name="driver">
+          <optional>
+            <attribute name="name">
+              <choice>
+                <value>qemu</value>
+                <value>vhost</value>
+              </choice>
+            </attribute>
+          </optional>
+          <empty/>
+        </element>
+      </optional>
+      <optional>
         <ref name="address"/>
       </optional>
       <optional>
         <element name="filterref">
           <ref name="filterref-node-attributes"/>
         </element>
+      </optional>
+      <optional>
+        <element name="tune">
+          <optional>
+            <!-- size of send buffer for network tap devices -->
+            <element name="sndbuf">
+              <ref name="unsignedInt"/>
+            </element>
+          </optional>
+        </element>
+      </optional>
+      <optional>
+        <ref name="deviceBoot"/>
       </optional>
     </interleave>
   </define>
@@ -1097,24 +1151,35 @@
           <attribute name="type">
             <value>vnc</value>
           </attribute>
-          <optional>
-            <attribute name="port">
-              <ref name="PortNumber"/>
-            </attribute>
-          </optional>
-          <optional>
-            <attribute name="autoport">
-              <choice>
-                <value>yes</value>
-                <value>no</value>
-              </choice>
-            </attribute>
-          </optional>
-          <optional>
-            <attribute name="listen">
-              <ref name="addrIP"/>
-            </attribute>
-          </optional>
+          <choice>
+            <group>
+              <optional>
+                <attribute name="port">
+                  <ref name="PortNumber"/>
+                </attribute>
+              </optional>
+              <optional>
+                <attribute name="autoport">
+                  <choice>
+                    <value>yes</value>
+                    <value>no</value>
+                  </choice>
+                </attribute>
+              </optional>
+              <optional>
+                <attribute name="listen">
+                  <ref name="addrIP"/>
+                </attribute>
+              </optional>
+            </group>
+            <group>
+              <optional>
+                <attribute name="socket">
+                  <ref name="absFilePath"/>
+                </attribute>
+              </optional>
+            </group>
+          </choice>
           <optional>
             <attribute name="passwd">
               <text/>
@@ -1173,6 +1238,7 @@
                   <value>cursor</value>
                   <value>playback</value>
                   <value>record</value>
+                  <value>smartcard</value>
                 </choice>
               </attribute>
               <attribute name="mode">
@@ -1422,6 +1488,7 @@
         <value>stdio</value>
         <value>vc</value>
         <value>pty</value>
+        <value>spicevmc</value>
       </choice>
     </attribute>
   </define>
@@ -1448,7 +1515,14 @@
     <optional>
       <element name="protocol">
         <optional>
-          <attribute name="type"/>
+          <attribute name="type">
+            <choice>
+              <value>raw</value>
+              <value>telnet</value>
+              <value>telnets</value>
+              <value>tls</value>
+            </choice>
+          </attribute>
         </optional>
       </element>
     </optional>
@@ -1482,6 +1556,7 @@
           <value>es1370</value>
           <value>pcspk</value>
           <value>ac97</value>
+          <value>ich6</value>
         </choice>
       </attribute>
       <optional>
@@ -1550,7 +1625,7 @@
   <define name="virtioTarget">
     <element name="target">
       <attribute name="type">
-          <value>virtio</value>
+        <value>virtio</value>
       </attribute>
       <optional>
         <attribute name="name"/>
@@ -1570,6 +1645,51 @@
           <ref name="address"/>
         </optional>
       </interleave>
+    </element>
+  </define>
+  <define name="smartcard">
+    <element name="smartcard">
+      <choice>
+        <group>
+          <attribute name="mode">
+            <value>host</value>
+          </attribute>
+          <!-- might need to add optional database element here later -->
+        </group>
+        <group>
+          <attribute name="mode">
+            <value>host-certificates</value>
+          </attribute>
+          <ref name='certificate'/>
+          <ref name='certificate'/>
+          <ref name='certificate'/>
+          <optional>
+            <element name="database">
+              <ref name="absDirPath"/>
+            </element>
+          </optional>
+        </group>
+        <group>
+          <attribute name="mode">
+            <value>passthrough</value>
+          </attribute>
+          <ref name="qemucdevSrcType"/>
+          <interleave>
+            <ref name="qemucdevSrcDef"/>
+            <optional>
+              <ref name="qemucdevTgtDef"/>
+            </optional>
+          </interleave>
+        </group>
+      </choice>
+      <optional>
+        <ref name="address"/>
+      </optional>
+    </element>
+  </define>
+  <define name="certificate">
+    <element name="certificate">
+      <text/>
     </element>
   </define>
   <define name="input">
@@ -1632,6 +1752,9 @@
           </choice>
         </element>
       </group>
+      <optional>
+        <ref name="deviceBoot"/>
+      </optional>
       <optional>
         <ref name="address"/>
       </optional>
@@ -1705,8 +1828,21 @@
       </attribute>
     </optional>
   </define>
+  <define name="ccidaddress">
+    <attribute name="controller">
+      <ref name="driveController"/>
+    </attribute>
+    <optional>
+      <attribute name="slot">
+        <ref name="driveUnit"/>
+      </attribute>
+    </optional>
+  </define>
   <!--
       Devices attached to a domain.
+      Sub-elements such as <alias> are not documented here, as they
+      can only exist when generated for a live domain and are ignored
+      when defining a domain.
     -->
   <define name="devices">
     <element name="devices">
@@ -1729,6 +1865,7 @@
             <ref name="parallel"/>
             <ref name="serial"/>
             <ref name="channel"/>
+            <ref name="smartcard"/>
           </choice>
         </zeroOrMore>
         <optional>
@@ -1741,7 +1878,7 @@
     </element>
   </define>
   <!--
-      A set of optional features: PAE, APIC and ACPI support
+      A set of optional features: PAE, APIC, ACPI, and HAP support
     -->
   <define name="features">
     <optional>
@@ -1759,6 +1896,11 @@
           </optional>
           <optional>
             <element name="acpi">
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="hap">
               <empty/>
             </element>
           </optional>
@@ -1953,6 +2095,12 @@
           </attribute>
           <ref name="virtioserialaddress"/>
         </group>
+        <group>
+          <attribute name="type">
+            <value>ccid</value>
+          </attribute>
+          <ref name="ccidaddress"/>
+        </group>
       </choice>
     </element>
   </define>
@@ -1971,6 +2119,15 @@
         </attribute>
       </element>
     </optional>
+  </define>
+
+  <define name="deviceBoot">
+    <element name="boot">
+      <attribute name="order">
+        <ref name="positiveInteger"/>
+      </attribute>
+      <empty/>
+    </element>
   </define>
 
   <!--
@@ -2002,9 +2159,10 @@
        Type library
 
        Our unsignedInt doesn't allow a leading '+' in its lexical form
-       A domain name shoul be made of ascii, numbers, _-+ and is non-empty
+       A domain name should be made of ascii, numbers, _-+ and is non-empty
        UUID currently allows only the 32 characters strict syntax
        memoryKB request at least 4Mbytes though Xen will grow bigger if too low
+       weight currently is in range [100, 1000]
     -->
   <define name="unsignedInt">
     <data type="unsignedInt">
@@ -2035,6 +2193,13 @@
   <define name="PortNumber">
     <data type="short">
       <param name="minInclusive">-1</param>
+    </data>
+  </define>
+  <define name="weight">
+    <data type="unsignedInt">
+      <param name="pattern">[0-9]+</param>
+      <param name="minInclusive">100</param>
+      <param name="maxInclusive">1000</param>
     </data>
   </define>
   <define name="memoryKB">

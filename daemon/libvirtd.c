@@ -542,7 +542,6 @@ static int qemudListenUnix(struct qemud_server *server,
                            char *path, int readonly, int auth) {
     struct qemud_socket *sock;
     mode_t oldmask;
-    gid_t oldgrp;
     char ebuf[1024];
 
     if (VIR_ALLOC(sock) < 0) {
@@ -579,21 +578,21 @@ static int qemudListenUnix(struct qemud_server *server,
     if (sock->addr.data.un.sun_path[0] == '@')
         sock->addr.data.un.sun_path[0] = '\0';
 
-    oldgrp = getgid();
     oldmask = umask(readonly ? ~unix_sock_ro_mask : ~unix_sock_rw_mask);
-    if (server->privileged && setgid(unix_sock_gid)) {
-        VIR_ERROR(_("Failed to set group ID to %d"), unix_sock_gid);
-        goto cleanup;
-    }
-
     if (bind(sock->fd, &sock->addr.data.sa, sock->addr.len) < 0) {
         VIR_ERROR(_("Failed to bind socket to '%s': %s"),
                   path, virStrerror(errno, ebuf, sizeof ebuf));
         goto cleanup;
     }
     umask(oldmask);
-    if (server->privileged && setgid(oldgrp)) {
-        VIR_ERROR(_("Failed to restore group ID to %d"), oldgrp);
+
+    /* chown() doesn't work for abstract sockets but we use them only
+     * if libvirtd runs unprivileged
+     */
+    if (server->privileged && chown(path, -1, unix_sock_gid)) {
+        VIR_ERROR(_("Failed to change group ID of '%s' to %d: %s"),
+                  path, unix_sock_gid,
+                  virStrerror(errno, ebuf, sizeof ebuf));
         goto cleanup;
     }
 
@@ -615,7 +614,7 @@ static int qemudListenUnix(struct qemud_server *server,
     return -1;
 }
 
-// See: http://people.redhat.com/drepper/userapi-ipv6.html
+/* See: http://people.redhat.com/drepper/userapi-ipv6.html */
 static int
 remoteMakeSockets (int *fds, int max_fds, int *nfds_r, const char *node, const char *service)
 {
@@ -825,6 +824,30 @@ static void virshErrorHandler(void *opaque ATTRIBUTE_UNUSED, virErrorPtr err ATT
     /* Don't do anything, since logging infrastructure already
      * took care of reporting the error */
 }
+
+static int daemonErrorLogFilter(virErrorPtr err, int priority)
+{
+    /* These error codes don't really reflect real errors. They
+     * are expected events that occur when an app tries to check
+     * whether a particular guest already exists. This filters
+     * them to a lower log level to prevent pollution of syslog
+     */
+    switch (err->code) {
+    case VIR_ERR_NO_DOMAIN:
+    case VIR_ERR_NO_NETWORK:
+    case VIR_ERR_NO_STORAGE_POOL:
+    case VIR_ERR_NO_STORAGE_VOL:
+    case VIR_ERR_NO_NODE_DEVICE:
+    case VIR_ERR_NO_INTERFACE:
+    case VIR_ERR_NO_NWFILTER:
+    case VIR_ERR_NO_SECRET:
+    case VIR_ERR_NO_DOMAIN_SNAPSHOT:
+        return VIR_LOG_DEBUG;
+    }
+
+    return priority;
+}
+
 
 static struct qemud_server *qemudInitialize(void) {
     struct qemud_server *server;
@@ -1129,7 +1152,7 @@ remoteCheckDN (const char *dname)
     /* Print the client's DN. */
     DEBUG(_("remoteCheckDN: failed: client DN is %s"), dname);
 
-    return 0; // Not found.
+    return 0; /* Not found. */
 }
 
 static int
@@ -3104,10 +3127,6 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    /* Set error logging priority to debug, so client errors don't
-     * show up as errors in the daemon log */
-    virErrorSetLogPriority(VIR_LOG_DEBUG);
-
     while (1) {
         int optidx = 0;
         int c;
@@ -3263,6 +3282,7 @@ int main(int argc, char **argv) {
 
     /* Disable error func, now logging is setup */
     virSetErrorFunc(NULL, virshErrorHandler);
+    virSetErrorLogPriorityFunc(daemonErrorLogFilter);
 
     /*
      * Call the daemon startup hook

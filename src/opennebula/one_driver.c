@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------*/
 /*
- * Copyright (C) 2010 Red Hat, Inc.
+ * Copyright (C) 2010-2011 Red Hat, Inc.
  * Copyright 2002-2009, Distributed Systems Architecture Group, Universidad
  * Complutense de Madrid (dsa-research.org)
  *
@@ -291,7 +291,7 @@ static int oneDomainUndefine(virDomainPtr dom)
     }
 
     if (!vm->persistent) {
-        oneError(VIR_ERR_INTERNAL_ERROR, "%s",
+        oneError(VIR_ERR_OPERATION_INVALID, "%s",
                  _("cannot undefine transient domain"));
         goto return_point;
     }
@@ -333,7 +333,7 @@ static int oneDomainGetInfo(virDomainPtr dom,
     } else {
         char vm_info[257];
         c_oneVmInfo(vm->pid,vm_info,256);
-        //State:
+        /* State: */
         char* cptr = strstr(vm_info,"STATE");
         cptr = index(cptr, ':');
         cptr++;
@@ -357,13 +357,13 @@ static int oneDomainGetInfo(virDomainPtr dom,
         default:
             break;
         };
-        //Memory:
+        /* Memory: */
         cptr=strstr(vm_info,"MEMORY");
         cptr=index(cptr,':');
         cptr++;
         vm->def->mem.cur_balloon = atoi(cptr);
 
-        //run time:
+        /* run time: */
         cptr=strstr(vm_info,"START TIME");
         cptr=index(cptr,':');
         cptr++;
@@ -732,6 +732,7 @@ static virDriver oneDriver = {
     oneVersion, /* version */
     NULL, /* libvirtVersion (impl. in libvirt.c) */
     NULL, /* getHostname */
+    NULL, /* getSysinfo */
     NULL, /* getMaxVcpus */
     NULL, /* nodeGetInfo */
     oneGetCapabilities, /* getCapabilities */

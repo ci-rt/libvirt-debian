@@ -1,7 +1,7 @@
 /*
  * qemu_hotplug.h: QEMU device hotplug management
  *
- * Copyright (C) 2006-2007, 2009-2010 Red Hat, Inc.
+ * Copyright (C) 2006-2011 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -83,10 +83,8 @@ int qemuDomainChangeEjectableMedia(struct qemud_driver *driver,
         return -1;
     }
 
-    if (driver->securityDriver &&
-        driver->securityDriver->domainSetSecurityImageLabel &&
-        driver->securityDriver->domainSetSecurityImageLabel(driver->securityDriver,
-                                                            vm, disk) < 0)
+    if (virSecurityManagerSetImageLabel(driver->securityManager,
+                                        vm, disk) < 0)
         return -1;
 
     if (!(driveAlias = qemuDeviceDriveHostAlias(origdisk, qemuCmdFlags)))
@@ -115,10 +113,8 @@ int qemuDomainChangeEjectableMedia(struct qemud_driver *driver,
     if (ret < 0)
         goto error;
 
-    if (driver->securityDriver &&
-        driver->securityDriver->domainRestoreSecurityImageLabel &&
-        driver->securityDriver->domainRestoreSecurityImageLabel(driver->securityDriver,
-                                                                vm, origdisk) < 0)
+    if (virSecurityManagerRestoreImageLabel(driver->securityManager,
+                                            vm, origdisk) < 0)
         VIR_WARN("Unable to restore security label on ejected image %s", origdisk->src);
 
     VIR_FREE(origdisk->src);
@@ -134,10 +130,8 @@ int qemuDomainChangeEjectableMedia(struct qemud_driver *driver,
 
 error:
     VIR_FREE(driveAlias);
-    if (driver->securityDriver &&
-        driver->securityDriver->domainRestoreSecurityImageLabel &&
-        driver->securityDriver->domainRestoreSecurityImageLabel(driver->securityDriver,
-                                                                vm, disk) < 0)
+    if (virSecurityManagerRestoreImageLabel(driver->securityManager,
+                                            vm, disk) < 0)
         VIR_WARN("Unable to restore security label on new media %s", disk->src);
     return -1;
 }
@@ -162,10 +156,8 @@ int qemuDomainAttachPciDiskDevice(struct qemud_driver *driver,
         }
     }
 
-    if (driver->securityDriver &&
-        driver->securityDriver->domainSetSecurityImageLabel &&
-        driver->securityDriver->domainSetSecurityImageLabel(driver->securityDriver,
-                                                            vm, disk) < 0)
+    if (virSecurityManagerSetImageLabel(driver->securityManager,
+                                        vm, disk) < 0)
         return -1;
 
     if (qemuCmdFlags & QEMUD_CMD_FLAG_DEVICE) {
@@ -177,7 +169,7 @@ int qemuDomainAttachPciDiskDevice(struct qemud_driver *driver,
         if (!(drivestr = qemuBuildDriveStr(disk, 0, qemuCmdFlags)))
             goto error;
 
-        if (!(devstr = qemuBuildDriveDevStr(disk)))
+        if (!(devstr = qemuBuildDriveDevStr(disk, qemuCmdFlags)))
             goto error;
     }
 
@@ -232,10 +224,8 @@ error:
         qemuDomainPCIAddressReleaseAddr(priv->pciaddrs, &disk->info) < 0)
         VIR_WARN("Unable to release PCI address on %s", disk->src);
 
-    if (driver->securityDriver &&
-        driver->securityDriver->domainRestoreSecurityImageLabel &&
-        driver->securityDriver->domainRestoreSecurityImageLabel(driver->securityDriver,
-                                                                vm, disk) < 0)
+    if (virSecurityManagerRestoreImageLabel(driver->securityManager,
+                                            vm, disk) < 0)
         VIR_WARN("Unable to restore security label on %s", disk->src);
 
     return -1;
@@ -269,8 +259,7 @@ int qemuDomainAttachPciControllerDevice(struct qemud_driver *driver,
         if (qemuAssignDeviceControllerAlias(controller) < 0)
             goto cleanup;
 
-        if (!(devstr = qemuBuildControllerDevStr(controller))) {
-            virReportOOMError();
+        if (!(devstr = qemuBuildControllerDevStr(controller, qemuCmdFlags))) {
             goto cleanup;
         }
     }
@@ -332,7 +321,7 @@ qemuDomainFindOrCreateSCSIDiskController(struct qemud_driver *driver,
         return NULL;
     }
     cont->type = VIR_DOMAIN_CONTROLLER_TYPE_SCSI;
-    cont->idx = 0;
+    cont->idx = controller;
     cont->model = -1;
 
     VIR_INFO0("No SCSI controller present, hotplugging one");
@@ -375,10 +364,8 @@ int qemuDomainAttachSCSIDisk(struct qemud_driver *driver,
     }
 
 
-    if (driver->securityDriver &&
-        driver->securityDriver->domainSetSecurityImageLabel &&
-        driver->securityDriver->domainSetSecurityImageLabel(driver->securityDriver,
-                                                            vm, disk) < 0)
+    if (virSecurityManagerSetImageLabel(driver->securityManager,
+                                        vm, disk) < 0)
         return -1;
 
     /* We should have an address already, so make sure */
@@ -392,7 +379,7 @@ int qemuDomainAttachSCSIDisk(struct qemud_driver *driver,
     if (qemuCmdFlags & QEMUD_CMD_FLAG_DEVICE) {
         if (qemuAssignDeviceDiskAlias(disk, qemuCmdFlags) < 0)
             goto error;
-        if (!(devstr = qemuBuildDriveDevStr(disk)))
+        if (!(devstr = qemuBuildDriveDevStr(disk, qemuCmdFlags)))
             goto error;
     }
 
@@ -464,10 +451,8 @@ error:
     VIR_FREE(devstr);
     VIR_FREE(drivestr);
 
-    if (driver->securityDriver &&
-        driver->securityDriver->domainRestoreSecurityImageLabel &&
-        driver->securityDriver->domainRestoreSecurityImageLabel(driver->securityDriver,
-                                                                vm, disk) < 0)
+    if (virSecurityManagerRestoreImageLabel(driver->securityManager,
+                                            vm, disk) < 0)
         VIR_WARN("Unable to restore security label on %s", disk->src);
 
     return -1;
@@ -492,10 +477,8 @@ int qemuDomainAttachUsbMassstorageDevice(struct qemud_driver *driver,
         }
     }
 
-    if (driver->securityDriver &&
-        driver->securityDriver->domainSetSecurityImageLabel &&
-        driver->securityDriver->domainSetSecurityImageLabel(driver->securityDriver,
-                                                            vm, disk) < 0)
+    if (virSecurityManagerSetImageLabel(driver->securityManager,
+                                        vm, disk) < 0)
         return -1;
 
     if (!disk->src) {
@@ -509,7 +492,7 @@ int qemuDomainAttachUsbMassstorageDevice(struct qemud_driver *driver,
             goto error;
         if (!(drivestr = qemuBuildDriveStr(disk, 0, qemuCmdFlags)))
             goto error;
-        if (!(devstr = qemuBuildDriveDevStr(disk)))
+        if (!(devstr = qemuBuildDriveDevStr(disk, qemuCmdFlags)))
             goto error;
     }
 
@@ -551,10 +534,8 @@ error:
     VIR_FREE(devstr);
     VIR_FREE(drivestr);
 
-    if (driver->securityDriver &&
-        driver->securityDriver->domainRestoreSecurityImageLabel &&
-        driver->securityDriver->domainRestoreSecurityImageLabel(driver->securityDriver,
-                                                                vm, disk) < 0)
+    if (virSecurityManagerRestoreImageLabel(driver->securityManager,
+                                            vm, disk) < 0)
         VIR_WARN("Unable to restore security label on %s", disk->src);
 
     return -1;
@@ -693,7 +674,7 @@ int qemuDomainAttachNetDevice(virConnectPtr conn,
     }
 
     if (qemuCmdFlags & QEMUD_CMD_FLAG_DEVICE) {
-        if (!(nicstr = qemuBuildNicDevStr(net, vlan)))
+        if (!(nicstr = qemuBuildNicDevStr(net, vlan, qemuCmdFlags)))
             goto try_remove;
     } else {
         if (!(nicstr = qemuBuildNicStr(net, NULL, vlan)))
@@ -842,7 +823,8 @@ int qemuDomainAttachHostPciDevice(struct qemud_driver *driver,
             goto error;
         }
 
-        if (!(devstr = qemuBuildPCIHostdevDevStr(hostdev, configfd_name)))
+        if (!(devstr = qemuBuildPCIHostdevDevStr(hostdev, configfd_name,
+                                                 qemuCmdFlags)))
             goto error;
 
         qemuDomainObjEnterMonitorWithDriver(driver, vm);
@@ -914,7 +896,7 @@ int qemuDomainAttachHostUsbDevice(struct qemud_driver *driver,
 
         if (virCgroupForDomain(driver->cgroup, vm->def->name, &cgroup, 0) !=0 ) {
             qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                            _("Unable to find cgroup for %s\n"),
+                            _("Unable to find cgroup for %s"),
                             vm->def->name);
             goto error;
         }
@@ -979,10 +961,8 @@ int qemuDomainAttachHostDevice(struct qemud_driver *driver,
     }
 
 
-    if (driver->securityDriver &&
-        driver->securityDriver->domainSetSecurityHostdevLabel &&
-        driver->securityDriver->domainSetSecurityHostdevLabel(driver->securityDriver,
-                                                              vm, hostdev) < 0)
+    if (virSecurityManagerSetHostdevLabel(driver->securityManager,
+                                          vm, hostdev) < 0)
         return -1;
 
     switch (hostdev->source.subsys.type) {
@@ -1008,10 +988,8 @@ int qemuDomainAttachHostDevice(struct qemud_driver *driver,
     return 0;
 
 error:
-    if (driver->securityDriver &&
-        driver->securityDriver->domainRestoreSecurityHostdevLabel &&
-        driver->securityDriver->domainRestoreSecurityHostdevLabel(driver->securityDriver,
-                                                                  vm, hostdev) < 0)
+    if (virSecurityManagerRestoreHostdevLabel(driver->securityManager,
+                                              vm, hostdev) < 0)
         VIR_WARN0("Unable to restore host device labelling on hotplug fail");
 
     return -1;
@@ -1038,7 +1016,6 @@ qemuDomainChangeGraphics(struct qemud_driver *driver,
                          virDomainGraphicsDefPtr dev)
 {
     virDomainGraphicsDefPtr olddev = qemuDomainFindGraphics(vm, dev);
-    qemuDomainObjPrivatePtr priv = vm->privateData;
     int ret = -1;
 
     if (!olddev) {
@@ -1066,23 +1043,64 @@ qemuDomainChangeGraphics(struct qemud_driver *driver,
             return -1;
         }
 
-        if (STRNEQ_NULLABLE(olddev->data.vnc.auth.passwd, dev->data.vnc.auth.passwd)) {
+        /* If a password lifetime was, or is set, then we must always run,
+         * even if new password matches old password */
+        if (olddev->data.vnc.auth.expires ||
+            dev->data.vnc.auth.expires ||
+            STRNEQ_NULLABLE(olddev->data.vnc.auth.passwd, dev->data.vnc.auth.passwd)) {
             VIR_DEBUG("Updating password on VNC server %p %p", dev->data.vnc.auth.passwd, driver->vncPassword);
-            qemuDomainObjEnterMonitorWithDriver(driver, vm);
-            ret = qemuMonitorSetVNCPassword(priv->mon,
-                                            dev->data.vnc.auth.passwd ?
-                                            dev->data.vnc.auth.passwd :
-                                            driver->vncPassword);
-            qemuDomainObjExitMonitorWithDriver(driver, vm);
+            ret = qemuDomainChangeGraphicsPasswords(driver, vm, VIR_DOMAIN_GRAPHICS_TYPE_VNC,
+                                                    &dev->data.vnc.auth, driver->vncPassword);
 
             /* Steal the new dev's  char * reference */
             VIR_FREE(olddev->data.vnc.auth.passwd);
             olddev->data.vnc.auth.passwd = dev->data.vnc.auth.passwd;
             dev->data.vnc.auth.passwd = NULL;
+            olddev->data.vnc.auth.validTo = dev->data.vnc.auth.validTo;
+            olddev->data.vnc.auth.expires = dev->data.vnc.auth.expires;
         } else {
             ret = 0;
         }
         break;
+
+    case VIR_DOMAIN_GRAPHICS_TYPE_SPICE:
+        if ((olddev->data.spice.autoport != dev->data.spice.autoport) ||
+            (!dev->data.spice.autoport && (olddev->data.spice.port != dev->data.spice.port)) ||
+            (!dev->data.spice.autoport && (olddev->data.spice.tlsPort != dev->data.spice.tlsPort))) {
+            qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                            _("cannot change port settings on spice graphics"));
+            return -1;
+        }
+        if (STRNEQ_NULLABLE(olddev->data.spice.listenAddr, dev->data.spice.listenAddr)) {
+            qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                            _("cannot change listen address setting on spice graphics"));
+            return -1;
+        }
+        if (STRNEQ_NULLABLE(olddev->data.spice.keymap, dev->data.spice.keymap)) {
+            qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                            _("cannot change keymap setting on spice graphics"));
+            return -1;
+        }
+
+        /* If a password lifetime was, or is set, then we must always run,
+         * even if new password matches old password */
+        if (olddev->data.spice.auth.expires ||
+            dev->data.spice.auth.expires ||
+            STRNEQ_NULLABLE(olddev->data.spice.auth.passwd, dev->data.spice.auth.passwd)) {
+            VIR_DEBUG("Updating password on SPICE server %p %p", dev->data.spice.auth.passwd, driver->spicePassword);
+            ret = qemuDomainChangeGraphicsPasswords(driver, vm, VIR_DOMAIN_GRAPHICS_TYPE_SPICE,
+                                                    &dev->data.spice.auth, driver->spicePassword);
+
+            /* Steal the new dev's  char * reference */
+            VIR_FREE(olddev->data.spice.auth.passwd);
+            olddev->data.spice.auth.passwd = dev->data.spice.auth.passwd;
+            dev->data.spice.auth.passwd = NULL;
+            olddev->data.spice.auth.validTo = dev->data.spice.auth.validTo;
+            olddev->data.spice.auth.expires = dev->data.spice.auth.expires;
+        } else {
+            VIR_DEBUG0("Not updating since password didn't change");
+            ret = 0;
+        }
 
     default:
         qemuReportError(VIR_ERR_INTERNAL_ERROR,
@@ -1133,7 +1151,7 @@ int qemuDomainDetachPciDiskDevice(struct qemud_driver *driver,
     if (qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_DEVICES)) {
         if (virCgroupForDomain(driver->cgroup, vm->def->name, &cgroup, 0) != 0) {
             qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                            _("Unable to find cgroup for %s\n"),
+                            _("Unable to find cgroup for %s"),
                             vm->def->name);
             goto cleanup;
         }
@@ -1183,10 +1201,8 @@ int qemuDomainDetachPciDiskDevice(struct qemud_driver *driver,
 
     virDomainDiskDefFree(detach);
 
-    if (driver->securityDriver &&
-        driver->securityDriver->domainRestoreSecurityImageLabel &&
-        driver->securityDriver->domainRestoreSecurityImageLabel(driver->securityDriver,
-                                                                vm, dev->data.disk) < 0)
+    if (virSecurityManagerRestoreImageLabel(driver->securityManager,
+                                            vm, dev->data.disk) < 0)
         VIR_WARN("Unable to restore security label on %s", dev->data.disk->src);
 
     if (cgroup != NULL) {
@@ -1232,7 +1248,7 @@ int qemuDomainDetachSCSIDiskDevice(struct qemud_driver *driver,
     if (qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_DEVICES)) {
         if (virCgroupForDomain(driver->cgroup, vm->def->name, &cgroup, 0) != 0) {
             qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                            _("Unable to find cgroup for %s\n"),
+                            _("Unable to find cgroup for %s"),
                             vm->def->name);
             goto cleanup;
         }
@@ -1263,10 +1279,8 @@ int qemuDomainDetachSCSIDiskDevice(struct qemud_driver *driver,
 
     virDomainDiskDefFree(detach);
 
-    if (driver->securityDriver &&
-        driver->securityDriver->domainRestoreSecurityImageLabel &&
-        driver->securityDriver->domainRestoreSecurityImageLabel(driver->securityDriver,
-                                                                vm, dev->data.disk) < 0)
+    if (virSecurityManagerRestoreImageLabel(driver->securityManager,
+                                            vm, dev->data.disk) < 0)
         VIR_WARN("Unable to restore security label on %s", dev->data.disk->src);
 
     if (cgroup != NULL) {
@@ -1699,11 +1713,79 @@ int qemuDomainDetachHostDevice(struct qemud_driver *driver,
         return -1;
     }
 
-    if (driver->securityDriver &&
-        driver->securityDriver->domainRestoreSecurityHostdevLabel &&
-        driver->securityDriver->domainRestoreSecurityHostdevLabel(driver->securityDriver,
-                                                                  vm, dev->data.hostdev) < 0)
+    if (virSecurityManagerRestoreHostdevLabel(driver->securityManager,
+                                              vm, dev->data.hostdev) < 0)
         VIR_WARN0("Failed to restore host device labelling");
+
+    return ret;
+}
+
+int
+qemuDomainChangeGraphicsPasswords(struct qemud_driver *driver,
+                                  virDomainObjPtr vm,
+                                  int type,
+                                  virDomainGraphicsAuthDefPtr auth,
+                                  const char *defaultPasswd)
+{
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    time_t now = time(NULL);
+    char expire_time [64];
+    int ret;
+
+    if (!auth->passwd && !driver->vncPassword)
+        return 0;
+
+    qemuDomainObjEnterMonitorWithDriver(driver, vm);
+    ret = qemuMonitorSetPassword(priv->mon,
+                                 type,
+                                 auth->passwd ? auth->passwd : defaultPasswd,
+                                 NULL);
+
+    if (ret == -2) {
+        if (type != VIR_DOMAIN_GRAPHICS_TYPE_VNC) {
+            qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                            _("Only VNC graphics are supported"));
+            ret = -1;
+        } else {
+            ret = qemuMonitorSetVNCPassword(priv->mon,
+                                            auth->passwd ? auth->passwd : defaultPasswd);
+        }
+    }
+    if (ret != 0)
+        goto cleanup;
+
+    if (!virDomainObjIsActive(vm)) {
+        ret = -1;
+        qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                        _("guest unexpectedly quit"));
+        goto cleanup;
+    }
+
+    if (auth->expires) {
+        time_t lifetime = auth->validTo - now;
+        if (lifetime <= 0)
+            snprintf(expire_time, sizeof (expire_time), "now");
+        else
+            snprintf(expire_time, sizeof (expire_time), "%lu", (long unsigned)auth->validTo);
+    } else {
+        snprintf(expire_time, sizeof (expire_time), "never");
+    }
+
+    ret = qemuMonitorExpirePassword(priv->mon, type, expire_time);
+
+    if (ret == -2) {
+        /* XXX we could fake this with a timer */
+        if (auth->expires) {
+            qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                            _("Expiry of passwords is not supported"));
+            ret = -1;
+        } else {
+            ret = 0;
+        }
+    }
+
+cleanup:
+    qemuDomainObjExitMonitorWithDriver(driver, vm);
 
     return ret;
 }

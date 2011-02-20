@@ -19,12 +19,20 @@
         </ul>
       </li>
       <li>
+        <a href="apps.html">Applications</a>
+        <span>Applications known to use libvirt</span>
+      </li>
+      <li>
         <a href="downloads.html">Downloads</a>
         <span>Get the latest source releases, binary builds and get access to the source repository</span>
         <ul>
           <li>
             <a href="windows.html">Windows</a>
             <span>Downloads for Windows</span>
+          </li>
+          <li>
+            <a href="bindings.html">Language bindings</a>
+            <span>Bindings of the libvirt API for languages other than C</span>
           </li>
         </ul>
       </li>
@@ -111,12 +119,10 @@
               <li>
                 <a href="formatnetwork.html">Networks</a>
                 <span>The virtual network XML format</span>
-                <ul>
-                  <li>
-                    <a href="formatnwfilter.html">Network Filtering</a>
-                    <span>Network filter XML format</span>
-                  </li>
-                </ul>
+              </li>
+              <li>
+                <a href="formatnwfilter.html">Network Filtering</a>
+                <span>Network filter XML format</span>
               </li>
               <li>
                 <a href="formatstorage.html">Storage</a>
@@ -260,6 +266,10 @@
                 <a href="csharp.html">C#</a>
                 <span>overview of the C# API bindings</span>
               </li>
+              <li>
+                <a href="php.html">PHP</a>
+                <span>overview of the PHP API bindings</span>
+              </li>
             </ul>
           </li>
           <li>
@@ -315,12 +325,6 @@
       <li>
         <a href="relatedlinks.html">Related Links</a>
         <span>Miscellaneous links of interest related to libvirt</span>
-        <ul>
-          <li>
-            <a href="apps.html">Applications</a>
-            <span>Overview of applications using the libvirt APIs</span>
-          </li>
-        </ul>
       </li>
       <li>
         <a href="sitemap.html">Sitemap</a>

@@ -702,13 +702,29 @@ qemuMonitorJSONStartCPUs(qemuMonitorPtr mon,
     int ret;
     virJSONValuePtr cmd = qemuMonitorJSONMakeCommand("cont", NULL);
     virJSONValuePtr reply = NULL;
+    int i = 0, timeout = 3;
     if (!cmd)
         return -1;
 
-    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+    do {
+        ret = qemuMonitorJSONCommand(mon, cmd, &reply);
 
-    if (ret == 0)
-        ret = qemuMonitorJSONCheckError(cmd, reply);
+        if (ret != 0)
+            break;
+
+        /* If no error, we're done */
+        if ((ret = qemuMonitorJSONCheckError(cmd, reply)) == 0)
+            break;
+
+        /* If error class is not MigrationExpected, we're done.
+         * Otherwise try 'cont' cmd again */
+        if (!qemuMonitorJSONHasError(reply, "MigrationExpected"))
+            break;
+
+        virJSONValueFree(reply);
+        reply = NULL;
+        usleep(250000);
+    } while (++i <= timeout);
 
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
@@ -1260,6 +1276,70 @@ int qemuMonitorJSONSetVNCPassword(qemuMonitorPtr mon,
     if (ret == 0)
         ret = qemuMonitorJSONCheckError(cmd, reply);
 
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+/* Returns -1 on error, -2 if not supported */
+int qemuMonitorJSONSetPassword(qemuMonitorPtr mon,
+                               const char *protocol,
+                               const char *password,
+                               const char *action_if_connected)
+{
+    int ret;
+    virJSONValuePtr cmd = qemuMonitorJSONMakeCommand("set_password",
+                                                     "s:protocol", protocol,
+                                                     "s:password", password,
+                                                     "s:connected", action_if_connected,
+                                                     NULL);
+    virJSONValuePtr reply = NULL;
+    if (!cmd)
+        return -1;
+
+    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+
+    if (ret == 0) {
+        if (qemuMonitorJSONHasError(reply, "CommandNotFound")) {
+            ret = -2;
+            goto cleanup;
+        }
+
+        ret = qemuMonitorJSONCheckError(cmd, reply);
+    }
+
+cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+/* Returns -1 on error, -2 if not supported */
+int qemuMonitorJSONExpirePassword(qemuMonitorPtr mon,
+                                  const char *protocol,
+                                  const char *expire_time)
+{
+    int ret;
+    virJSONValuePtr cmd = qemuMonitorJSONMakeCommand("expire_password",
+                                                     "s:protocol", protocol,
+                                                     "s:time", expire_time,
+                                                     NULL);
+    virJSONValuePtr reply = NULL;
+    if (!cmd)
+        return -1;
+
+    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+
+    if (ret == 0) {
+        if (qemuMonitorJSONHasError(reply, "CommandNotFound")) {
+            ret = -2;
+            goto cleanup;
+        }
+
+        ret = qemuMonitorJSONCheckError(cmd, reply);
+    }
+
+cleanup:
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
@@ -2377,22 +2457,44 @@ int qemuMonitorJSONDeleteSnapshot(qemuMonitorPtr mon, const char *name)
 
 int qemuMonitorJSONArbitraryCommand(qemuMonitorPtr mon,
                                     const char *cmd_str,
-                                    char **reply_str)
+                                    char **reply_str,
+                                    bool hmp)
 {
     virJSONValuePtr cmd = NULL;
     virJSONValuePtr reply = NULL;
     int ret = -1;
 
-    cmd = virJSONValueFromString(cmd_str);
+    if (!hmp) {
+        cmd = virJSONValueFromString(cmd_str);
+    } else {
+        cmd = qemuMonitorJSONMakeCommand("human-monitor-command",
+                                         "s:command-line", cmd_str,
+                                         NULL);
+    }
+
     if (!cmd)
         return -1;
 
     if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
         goto cleanup;
 
-    *reply_str = virJSONValueToString(reply);
-    if (!(*reply_str))
+    if (!hmp) {
+        if (!(*reply_str = virJSONValueToString(reply)))
+            goto cleanup;
+    } else if (qemuMonitorJSONCheckError(cmd, reply)) {
         goto cleanup;
+    } else {
+        const char *data;
+        if (!(data = virJSONValueObjectGetString(reply, "return"))) {
+            qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                            _("human monitor command was missing return data"));
+            goto cleanup;
+        }
+        if (!(*reply_str = strdup(data))) {
+            virReportOOMError();
+            goto cleanup;
+        }
+    }
 
     ret = 0;
 

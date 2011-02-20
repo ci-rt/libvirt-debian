@@ -1,7 +1,7 @@
 /*
  * qemu_capabilities.c: QEMU capabilities generation
  *
- * Copyright (C) 2006-2007, 2009-2010 Red Hat, Inc.
+ * Copyright (C) 2006-2011 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -33,6 +33,7 @@
 #include "cpu/cpu.h"
 #include "domain_conf.h"
 #include "qemu_conf.h"
+#include "command.h"
 
 #include <sys/stat.h>
 #include <unistd.h>
@@ -167,52 +168,37 @@ qemuCapsProbeMachineTypes(const char *binary,
                           virCapsGuestMachinePtr **machines,
                           int *nmachines)
 {
-    const char *const qemuarg[] = { binary, "-M", "?", NULL };
-    const char *const qemuenv[] = { "LC_ALL=C", NULL };
     char *output;
-    enum { MAX_MACHINES_OUTPUT_SIZE = 1024*4 };
-    pid_t child;
-    int newstdout = -1, len;
-    int ret = -1, status;
+    int ret = -1;
+    virCommandPtr cmd;
+    int status;
 
-    if (virExec(qemuarg, qemuenv, NULL,
-                &child, -1, &newstdout, NULL, VIR_EXEC_CLEAR_CAPS) < 0)
+    /* Make sure the binary we are about to try exec'ing exists.
+     * Technically we could catch the exec() failure, but that's
+     * in a sub-process so it's hard to feed back a useful error.
+     */
+    if (access(binary, X_OK) < 0) {
+        virReportSystemError(errno, _("Cannot find QEMU binary %s"), binary);
         return -1;
-
-    len = virFileReadLimFD(newstdout, MAX_MACHINES_OUTPUT_SIZE, &output);
-    if (len < 0) {
-        virReportSystemError(errno, "%s",
-                             _("Unable to read 'qemu -M ?' output"));
-        goto cleanup;
     }
 
+    cmd = virCommandNewArgList(binary, "-M", "?", NULL);
+    virCommandAddEnvPassCommon(cmd);
+    virCommandSetOutputBuffer(cmd, &output);
+    virCommandClearCaps(cmd);
+
+    /* Ignore failure from older qemu that did not understand '-M ?'.  */
+    if (virCommandRun(cmd, &status) < 0)
+        goto cleanup;
+
     if (qemuCapsParseMachineTypesStr(output, machines, nmachines) < 0)
-        goto cleanup2;
+        goto cleanup;
 
     ret = 0;
 
-cleanup2:
-    VIR_FREE(output);
 cleanup:
-    if (VIR_CLOSE(newstdout) < 0)
-        ret = -1;
-
-rewait:
-    if (waitpid(child, &status, 0) != child) {
-        if (errno == EINTR)
-            goto rewait;
-
-        VIR_ERROR(_("Unexpected exit status from qemu %d pid %lu"),
-                  WEXITSTATUS(status), (unsigned long)child);
-        ret = -1;
-    }
-    /* Check & log unexpected exit status, but don't fail,
-     * as there's really no need to throw an error if we did
-     * actually read a valid version number above */
-    if (WEXITSTATUS(status) != 0) {
-        VIR_WARN("Unexpected exit status '%d', qemu probably failed",
-                 WEXITSTATUS(status));
-    }
+    VIR_FREE(output);
+    virCommandFree(cmd);
 
     return ret;
 }
@@ -396,21 +382,10 @@ qemuCapsProbeCPUModels(const char *qemu,
                        unsigned int *count,
                        const char ***cpus)
 {
-    const char *const qemuarg[] = {
-        qemu,
-        "-cpu", "?",
-        (qemuCmdFlags & QEMUD_CMD_FLAG_NODEFCONFIG) ? "-nodefconfig" : NULL,
-        NULL
-    };
-    const char *const qemuenv[] = { "LC_ALL=C", NULL };
-    enum { MAX_MACHINES_OUTPUT_SIZE = 1024*4 };
     char *output = NULL;
-    int newstdout = -1;
     int ret = -1;
-    pid_t child;
-    int status;
-    int len;
     qemuCapsParseCPUModels parse;
+    virCommandPtr cmd;
 
     if (count)
         *count = 0;
@@ -424,16 +399,15 @@ qemuCapsProbeCPUModels(const char *qemu,
         return 0;
     }
 
-    if (virExec(qemuarg, qemuenv, NULL,
-                &child, -1, &newstdout, NULL, VIR_EXEC_CLEAR_CAPS) < 0)
-        return -1;
+    cmd = virCommandNewArgList(qemu, "-cpu", "?", NULL);
+    if (qemuCmdFlags & QEMUD_CMD_FLAG_NODEFCONFIG)
+        virCommandAddArg(cmd, "-nodefconfig");
+    virCommandAddEnvPassCommon(cmd);
+    virCommandSetOutputBuffer(cmd, &output);
+    virCommandClearCaps(cmd);
 
-    len = virFileReadLimFD(newstdout, MAX_MACHINES_OUTPUT_SIZE, &output);
-    if (len < 0) {
-        virReportSystemError(errno, "%s",
-                             _("Unable to read QEMU supported CPU models"));
+    if (virCommandRun(cmd, NULL) < 0)
         goto cleanup;
-    }
 
     if (parse(output, count, cpus) < 0) {
         virReportOOMError();
@@ -444,25 +418,7 @@ qemuCapsProbeCPUModels(const char *qemu,
 
 cleanup:
     VIR_FREE(output);
-    if (VIR_CLOSE(newstdout) < 0)
-        ret = -1;
-
-rewait:
-    if (waitpid(child, &status, 0) != child) {
-        if (errno == EINTR)
-            goto rewait;
-
-        VIR_ERROR(_("Unexpected exit status from qemu %d pid %lu"),
-                  WEXITSTATUS(status), (unsigned long)child);
-        ret = -1;
-    }
-    /* Check & log unexpected exit status, but don't fail,
-     * as there's really no need to throw an error if we did
-     * actually read a valid version number above */
-    if (WEXITSTATUS(status) != 0) {
-        VIR_WARN("Unexpected exit status '%d', qemu probably failed",
-                 WEXITSTATUS(status));
-    }
+    virCommandFree(cmd);
 
     return ret;
 }
@@ -486,6 +442,7 @@ qemuCapsInitGuest(virCapsPtr caps,
     int nmachines = 0;
     struct stat st;
     unsigned int ncpus;
+    unsigned long long qemuCmdFlags;
     int ret = -1;
 
     /* Check for existance of base emulator, or alternate base
@@ -599,6 +556,11 @@ qemuCapsInitGuest(virCapsPtr caps,
         qemuCapsProbeCPUModels(binary, 0, info->arch, &ncpus, NULL) == 0 &&
         ncpus > 0 &&
         !virCapabilitiesAddGuestFeature(guest, "cpuselection", 1, 0))
+        goto error;
+
+    if (qemuCapsExtractVersionInfo(binary, info->arch, NULL, &qemuCmdFlags) < 0 ||
+        ((qemuCmdFlags & QEMUD_CMD_FLAG_BOOTINDEX) &&
+         !virCapabilitiesAddGuestFeature(guest, "deviceboot", 1, 0)))
         goto error;
 
     if (hvm) {
@@ -858,6 +820,8 @@ qemuCapsComputeCmdFlags(const char *help,
             flags |= QEMUD_CMD_FLAG_DRIVE_FORMAT;
         if (strstr(help, "readonly="))
             flags |= QEMUD_CMD_FLAG_DRIVE_READONLY;
+        if (strstr(help, "aio=threads|native"))
+            flags |= QEMUD_CMD_FLAG_DRIVE_AIO;
     }
     if ((p = strstr(help, "-vga")) && !strstr(help, "-std-vga")) {
         const char *nl = strstr(p, "\n");
@@ -879,8 +843,11 @@ qemuCapsComputeCmdFlags(const char *help,
         flags |= QEMUD_CMD_FLAG_PCIDEVICE;
     if (strstr(help, "-mem-path"))
         flags |= QEMUD_CMD_FLAG_MEM_PATH;
-    if (strstr(help, "-chardev"))
+    if (strstr(help, "-chardev")) {
         flags |= QEMUD_CMD_FLAG_CHARDEV;
+        if (strstr(help, "-chardev spicevmc"))
+            flags |= QEMUD_CMD_FLAG_CHARDEV_SPICEVMC;
+    }
     if (strstr(help, "-balloon"))
         flags |= QEMUD_CMD_FLAG_BALLOON;
     if (strstr(help, "-device")) {
@@ -1087,61 +1054,80 @@ fail:
     return -1;
 }
 
-static void
-qemuCapsParsePCIDeviceStrs(const char *qemu,
-                           unsigned long long *flags)
+static int
+qemuCapsExtractDeviceStr(const char *qemu,
+                         unsigned long long *flags)
 {
-    const char *const qemuarg[] = { qemu, "-device", "pci-assign,?", NULL };
-    const char *const qemuenv[] = { "LC_ALL=C", NULL };
-    pid_t child;
-    int status;
-    int newstderr = -1;
+    char *output = NULL;
+    virCommandPtr cmd;
+    int ret = -1;
 
-    if (virExec(qemuarg, qemuenv, NULL,
-                &child, -1, NULL, &newstderr, VIR_EXEC_CLEAR_CAPS) < 0)
-        return;
+    /* Cram together all device-related queries into one invocation;
+     * the output format makes it possible to distinguish what we
+     * need.  With qemu 0.13.0 and later, unrecognized '-device
+     * bogus,?' cause an error in isolation, but are silently ignored
+     * in combination with '-device ?'.  Upstream qemu 0.12.x doesn't
+     * understand '-device name,?', and always exits with status 1 for
+     * the simpler '-device ?', so this function is really only useful
+     * if -help includes "device driver,?".  */
+    cmd = virCommandNewArgList(qemu,
+                               "-device", "?",
+                               "-device", "pci-assign,?",
+                               "-device", "virtio-blk-pci,?",
+                               NULL);
+    virCommandAddEnvPassCommon(cmd);
+    /* qemu -help goes to stdout, but qemu -device ? goes to stderr.  */
+    virCommandSetErrorBuffer(cmd, &output);
+    virCommandClearCaps(cmd);
 
-    char *pciassign = NULL;
-    enum { MAX_PCI_OUTPUT_SIZE = 1024*4 };
-    int len = virFileReadLimFD(newstderr, MAX_PCI_OUTPUT_SIZE, &pciassign);
-    if (len < 0) {
-        virReportSystemError(errno,
-                             _("Unable to read %s pci-assign device output"),
-                             qemu);
+    if (virCommandRun(cmd, NULL) < 0)
         goto cleanup;
-    }
 
-    if (strstr(pciassign, "pci-assign.configfd"))
-        *flags |= QEMUD_CMD_FLAG_PCI_CONFIGFD;
+    ret = qemuCapsParseDeviceStr(output, flags);
 
 cleanup:
-    VIR_FREE(pciassign);
-    VIR_FORCE_CLOSE(newstderr);
-rewait:
-    if (waitpid(child, &status, 0) != child) {
-        if (errno == EINTR)
-            goto rewait;
-
-        VIR_ERROR(_("Unexpected exit status from qemu %d pid %lu"),
-                  WEXITSTATUS(status), (unsigned long)child);
-    }
-    if (WEXITSTATUS(status) != 0) {
-        VIR_WARN("Unexpected exit status '%d', qemu probably failed",
-                 WEXITSTATUS(status));
-    }
+    VIR_FREE(output);
+    virCommandFree(cmd);
+    return ret;
 }
 
-int qemuCapsExtractVersionInfo(const char *qemu,
+
+int
+qemuCapsParseDeviceStr(const char *str, unsigned long long *flags)
+{
+    /* Which devices exist. */
+    if (strstr(str, "name \"hda-duplex\""))
+        *flags |= QEMUD_CMD_FLAG_HDA_DUPLEX;
+    if (strstr(str, "name \"ccid-card-emulated\""))
+        *flags |= QEMUD_CMD_FLAG_CCID_EMULATED;
+    if (strstr(str, "name \"ccid-card-passthru\""))
+        *flags |= QEMUD_CMD_FLAG_CCID_PASSTHRU;
+    /* Prefer -chardev spicevmc (detected earlier) over -device spicevmc */
+    if (!(*flags & QEMUD_CMD_FLAG_CHARDEV_SPICEVMC) &&
+        strstr(str, "name \"spicevmc\""))
+        *flags |= QEMUD_CMD_FLAG_DEVICE_SPICEVMC;
+
+    /* Features of given devices. */
+    if (strstr(str, "pci-assign.configfd"))
+        *flags |= QEMUD_CMD_FLAG_PCI_CONFIGFD;
+    if (strstr(str, "virtio-blk-pci.bootindex")) {
+        *flags |= QEMUD_CMD_FLAG_BOOTINDEX;
+        if (strstr(str, "pci-assign.bootindex"))
+            *flags |= QEMUD_CMD_FLAG_PCI_BOOTINDEX;
+    }
+
+    return 0;
+}
+
+int qemuCapsExtractVersionInfo(const char *qemu, const char *arch,
                                unsigned int *retversion,
                                unsigned long long *retflags)
 {
-    const char *const qemuarg[] = { qemu, "-help", NULL };
-    const char *const qemuenv[] = { "LC_ALL=C", NULL };
-    pid_t child;
-    int newstdout = -1;
-    int ret = -1, status;
+    int ret = -1;
     unsigned int version, is_kvm, kvm_version;
     unsigned long long flags = 0;
+    char *help = NULL;
+    virCommandPtr cmd;
 
     if (retflags)
         *retflags = 0;
@@ -1157,25 +1143,30 @@ int qemuCapsExtractVersionInfo(const char *qemu,
         return -1;
     }
 
-    if (virExec(qemuarg, qemuenv, NULL,
-                &child, -1, &newstdout, NULL, VIR_EXEC_CLEAR_CAPS) < 0)
-        return -1;
+    cmd = virCommandNewArgList(qemu, "-help", NULL);
+    virCommandAddEnvPassCommon(cmd);
+    virCommandSetOutputBuffer(cmd, &help);
+    virCommandClearCaps(cmd);
 
-    char *help = NULL;
-    enum { MAX_HELP_OUTPUT_SIZE = 1024*64 };
-    int len = virFileReadLimFD(newstdout, MAX_HELP_OUTPUT_SIZE, &help);
-    if (len < 0) {
-        virReportSystemError(errno,
-                             _("Unable to read %s help output"), qemu);
-        goto cleanup2;
-    }
+    if (virCommandRun(cmd, NULL) < 0)
+        goto cleanup;
 
     if (qemuCapsParseHelpStr(qemu, help, &flags,
                              &version, &is_kvm, &kvm_version) == -1)
-        goto cleanup2;
+        goto cleanup;
 
-    if (flags & QEMUD_CMD_FLAG_DEVICE)
-        qemuCapsParsePCIDeviceStrs(qemu, &flags);
+    /* Currently only x86_64 and i686 support PCI-multibus. */
+    if (STREQLEN(arch, "x86_64", 6) ||
+        STREQLEN(arch, "i686", 4)) {
+        flags |= QEMUD_CMD_FLAG_PCI_MULTIBUS;
+    }
+
+    /* qemuCapsExtractDeviceStr will only set additional flags if qemu
+     * understands the 0.13.0+ notion of "-device driver,".  */
+    if ((flags & QEMUD_CMD_FLAG_DEVICE) &&
+        strstr(help, "-device driver,?") &&
+        qemuCapsExtractDeviceStr(qemu, &flags) < 0)
+        goto cleanup;
 
     if (retversion)
         *retversion = version;
@@ -1184,27 +1175,9 @@ int qemuCapsExtractVersionInfo(const char *qemu,
 
     ret = 0;
 
-cleanup2:
+cleanup:
     VIR_FREE(help);
-    if (VIR_CLOSE(newstdout) < 0)
-        ret = -1;
-
-rewait:
-    if (waitpid(child, &status, 0) != child) {
-        if (errno == EINTR)
-            goto rewait;
-
-        VIR_ERROR(_("Unexpected exit status from qemu %d pid %lu"),
-                  WEXITSTATUS(status), (unsigned long)child);
-        ret = -1;
-    }
-    /* Check & log unexpected exit status, but don't fail,
-     * as there's really no need to throw an error if we did
-     * actually read a valid version number above */
-    if (WEXITSTATUS(status) != 0) {
-        VIR_WARN("Unexpected exit status '%d', qemu probably failed",
-                 WEXITSTATUS(status));
-    }
+    virCommandFree(cmd);
 
     return ret;
 }
@@ -1249,7 +1222,7 @@ int qemuCapsExtractVersion(virCapsPtr caps,
         return -1;
     }
 
-    if (qemuCapsExtractVersionInfo(binary, version, NULL) < 0) {
+    if (qemuCapsExtractVersionInfo(binary, ut.machine, version, NULL) < 0) {
         return -1;
     }
 

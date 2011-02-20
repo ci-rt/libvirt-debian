@@ -3,6 +3,22 @@
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Enum: AutoStartWaitHeartbeatSetting
+ */
+
+enum _esxVI_AutoStartWaitHeartbeatSetting {
+    esxVI_AutoStartWaitHeartbeatSetting_Undefined = 0,
+    esxVI_AutoStartWaitHeartbeatSetting_Yes,
+    esxVI_AutoStartWaitHeartbeatSetting_No,
+    esxVI_AutoStartWaitHeartbeatSetting_SystemDefault,
+};
+
+int esxVI_AutoStartWaitHeartbeatSetting_Serialize(esxVI_AutoStartWaitHeartbeatSetting item, const char *element, virBufferPtr output);
+int esxVI_AutoStartWaitHeartbeatSetting_Deserialize(xmlNodePtr node, esxVI_AutoStartWaitHeartbeatSetting *item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Enum: ManagedEntityStatus
  */
 
@@ -182,6 +198,60 @@ void esxVI_AboutInfo_Free(esxVI_AboutInfo **item);
 int esxVI_AboutInfo_Validate(esxVI_AboutInfo *item);
 int esxVI_AboutInfo_Serialize(esxVI_AboutInfo *item, const char *element, virBufferPtr output);
 int esxVI_AboutInfo_Deserialize(xmlNodePtr node, esxVI_AboutInfo **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: AutoStartDefaults
+ */
+
+struct _esxVI_AutoStartDefaults {
+    esxVI_AutoStartDefaults *_unused;                      /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    esxVI_Boolean enabled;                                 /* optional */
+    esxVI_Int *startDelay;                                 /* optional */
+    esxVI_Int *stopDelay;                                  /* optional */
+    esxVI_Boolean waitForHeartbeat;                        /* optional */
+    char *stopAction;                                      /* optional */
+};
+
+int esxVI_AutoStartDefaults_Alloc(esxVI_AutoStartDefaults **item);
+void esxVI_AutoStartDefaults_Free(esxVI_AutoStartDefaults **item);
+int esxVI_AutoStartDefaults_Validate(esxVI_AutoStartDefaults *item);
+int esxVI_AutoStartDefaults_CastFromAnyType(esxVI_AnyType *anyType, esxVI_AutoStartDefaults **item);
+int esxVI_AutoStartDefaults_Serialize(esxVI_AutoStartDefaults *item, const char *element, virBufferPtr output);
+int esxVI_AutoStartDefaults_Deserialize(xmlNodePtr node, esxVI_AutoStartDefaults **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: AutoStartPowerInfo
+ */
+
+struct _esxVI_AutoStartPowerInfo {
+    esxVI_AutoStartPowerInfo *_next;                       /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    esxVI_ManagedObjectReference *key;                     /* required */
+    esxVI_Int *startOrder;                                 /* required */
+    esxVI_Int *startDelay;                                 /* required */
+    esxVI_AutoStartWaitHeartbeatSetting waitForHeartbeat;  /* required */
+    char *startAction;                                     /* required */
+    esxVI_Int *stopDelay;                                  /* required */
+    char *stopAction;                                      /* required */
+};
+
+int esxVI_AutoStartPowerInfo_Alloc(esxVI_AutoStartPowerInfo **item);
+void esxVI_AutoStartPowerInfo_Free(esxVI_AutoStartPowerInfo **item);
+int esxVI_AutoStartPowerInfo_Validate(esxVI_AutoStartPowerInfo *item);
+int esxVI_AutoStartPowerInfo_AppendToList(esxVI_AutoStartPowerInfo **list, esxVI_AutoStartPowerInfo *item);
+int esxVI_AutoStartPowerInfo_CastFromAnyType(esxVI_AnyType *anyType, esxVI_AutoStartPowerInfo **item);
+int esxVI_AutoStartPowerInfo_CastListFromAnyType(esxVI_AnyType *anyType, esxVI_AutoStartPowerInfo **list);
+int esxVI_AutoStartPowerInfo_Serialize(esxVI_AutoStartPowerInfo *item, const char *element, virBufferPtr output);
+int esxVI_AutoStartPowerInfo_SerializeList(esxVI_AutoStartPowerInfo *list, const char *element, virBufferPtr output);
+int esxVI_AutoStartPowerInfo_Deserialize(xmlNodePtr node, esxVI_AutoStartPowerInfo **item);
+int esxVI_AutoStartPowerInfo_DeserializeList(xmlNodePtr node, esxVI_AutoStartPowerInfo **list);
 
 
 
@@ -619,6 +689,62 @@ int esxVI_FolderFileQuery_Serialize(esxVI_FolderFileQuery *item, const char *ele
 int esxVI_FolderFileQuery_SerializeList(esxVI_FolderFileQuery *list, const char *element, virBufferPtr output);
 int esxVI_FolderFileQuery_Deserialize(xmlNodePtr node, esxVI_FolderFileQuery **item);
 int esxVI_FolderFileQuery_DeserializeList(xmlNodePtr node, esxVI_FolderFileQuery **list);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: HostAutoStartManagerConfig
+ */
+
+struct _esxVI_HostAutoStartManagerConfig {
+    esxVI_HostAutoStartManagerConfig *_unused;             /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    esxVI_AutoStartDefaults *defaults;                     /* optional */
+    esxVI_AutoStartPowerInfo *powerInfo;                   /* optional, list */
+};
+
+int esxVI_HostAutoStartManagerConfig_Alloc(esxVI_HostAutoStartManagerConfig **item);
+void esxVI_HostAutoStartManagerConfig_Free(esxVI_HostAutoStartManagerConfig **item);
+int esxVI_HostAutoStartManagerConfig_Validate(esxVI_HostAutoStartManagerConfig *item);
+int esxVI_HostAutoStartManagerConfig_Serialize(esxVI_HostAutoStartManagerConfig *item, const char *element, virBufferPtr output);
+int esxVI_HostAutoStartManagerConfig_Deserialize(xmlNodePtr node, esxVI_HostAutoStartManagerConfig **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Type: HostConfigManager
+ */
+
+struct _esxVI_HostConfigManager {
+    esxVI_HostConfigManager *_unused;                      /* optional */
+    esxVI_Type _type;                                      /* required */
+
+    esxVI_ManagedObjectReference *cpuScheduler;            /* optional */
+    esxVI_ManagedObjectReference *datastoreSystem;         /* optional */
+    esxVI_ManagedObjectReference *memoryManager;           /* optional */
+    esxVI_ManagedObjectReference *storageSystem;           /* optional */
+    esxVI_ManagedObjectReference *networkSystem;           /* optional */
+    esxVI_ManagedObjectReference *vmotionSystem;           /* optional */
+    esxVI_ManagedObjectReference *serviceSystem;           /* optional */
+    esxVI_ManagedObjectReference *firewallSystem;          /* optional */
+    esxVI_ManagedObjectReference *advancedOption;          /* optional */
+    esxVI_ManagedObjectReference *diagnosticSystem;        /* optional */
+    esxVI_ManagedObjectReference *autoStartManager;        /* optional */
+    esxVI_ManagedObjectReference *snmpSystem;              /* optional */
+    esxVI_ManagedObjectReference *dateTimeSystem;          /* optional */
+    esxVI_ManagedObjectReference *patchManager;            /* optional */
+    esxVI_ManagedObjectReference *bootDeviceSystem;        /* optional */
+    esxVI_ManagedObjectReference *firmwareSystem;          /* optional */
+    esxVI_ManagedObjectReference *healthStatusSystem;      /* optional */
+};
+
+int esxVI_HostConfigManager_Alloc(esxVI_HostConfigManager **item);
+void esxVI_HostConfigManager_Free(esxVI_HostConfigManager **item);
+int esxVI_HostConfigManager_Validate(esxVI_HostConfigManager *item);
+int esxVI_HostConfigManager_CastFromAnyType(esxVI_AnyType *anyType, esxVI_HostConfigManager **item);
+int esxVI_HostConfigManager_Serialize(esxVI_HostConfigManager *item, const char *element, virBufferPtr output);
+int esxVI_HostConfigManager_Deserialize(xmlNodePtr node, esxVI_HostConfigManager **item);
 
 
 

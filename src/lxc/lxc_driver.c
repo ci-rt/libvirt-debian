@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Red Hat, Inc.
+ * Copyright (C) 2010-2011 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
  * lxc_driver.c: linux container driver functions
@@ -815,7 +815,7 @@ static int lxcDomainGetMemoryParameters(virDomainPtr dom,
     int i;
     virCgroupPtr cgroup = NULL;
     virDomainObjPtr vm = NULL;
-    unsigned long val;
+    unsigned long long val;
     int ret = -1;
     int rc;
 
@@ -1494,9 +1494,9 @@ static int lxcVmStart(virConnectPtr conn,
         goto cleanup;
     }
     if (vm->def->console &&
-        vm->def->console->type == VIR_DOMAIN_CHR_TYPE_PTY) {
-        VIR_FREE(vm->def->console->data.file.path);
-        vm->def->console->data.file.path = parentTtyPath;
+        vm->def->console->source.type == VIR_DOMAIN_CHR_TYPE_PTY) {
+        VIR_FREE(vm->def->console->source.data.file.path);
+        vm->def->console->source.data.file.path = parentTtyPath;
     } else {
         VIR_FREE(parentTtyPath);
     }
@@ -1555,7 +1555,7 @@ static int lxcVmStart(virConnectPtr conn,
     if (virDomainSaveConfig(driver->stateDir, vm->def) < 0)
         goto cleanup;
 
-    if (virDomainObjSetDefTransient(driver->caps, vm) < 0)
+    if (virDomainObjSetDefTransient(driver->caps, vm, false) < 0)
         goto cleanup;
 
     rc = 0;
@@ -2491,7 +2491,7 @@ static int lxcDomainSetAutostart(virDomainPtr dom,
     }
 
     if (!vm->persistent) {
-        lxcError(VIR_ERR_INTERNAL_ERROR,
+        lxcError(VIR_ERR_OPERATION_INVALID,
                  "%s", _("Cannot set autostart for transient domain"));
         goto cleanup;
     }
@@ -2804,13 +2804,13 @@ lxcDomainOpenConsole(virDomainPtr dom,
         goto cleanup;
     }
 
-    if (chr->type != VIR_DOMAIN_CHR_TYPE_PTY) {
+    if (chr->source.type != VIR_DOMAIN_CHR_TYPE_PTY) {
         lxcError(VIR_ERR_INTERNAL_ERROR,
                  _("character device %s is not using a PTY"), devname);
         goto cleanup;
     }
 
-    if (virFDStreamOpenFile(st, chr->data.file.path, O_RDWR) < 0)
+    if (virFDStreamOpenFile(st, chr->source.data.file.path, O_RDWR) < 0)
         goto cleanup;
 
     ret = 0;
@@ -2833,6 +2833,7 @@ static virDriver lxcDriver = {
     lxcVersion, /* version */
     NULL, /* libvirtVersion (impl. in libvirt.c) */
     virGetHostname, /* getHostname */
+    NULL, /* getSysinfo */
     NULL, /* getMaxVcpus */
     nodeGetInfo, /* nodeGetInfo */
     lxcGetCapabilities, /* getCapabilities */

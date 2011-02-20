@@ -1,7 +1,7 @@
 /*
  * openvz_driver.c: core driver methods for managing OpenVZ VEs
  *
- * Copyright (C) 2010 Red Hat, Inc.
+ * Copyright (C) 2010-2011 Red Hat, Inc.
  * Copyright (C) 2006, 2007 Binary Karma
  * Copyright (C) 2006 Shuveb Hussain
  * Copyright (C) 2007 Anoop Joe Cyriac
@@ -714,7 +714,7 @@ openvzDomainSetNetwork(virConnectPtr conn, const char *vpsid,
         virBuffer buf = VIR_BUFFER_INITIALIZER;
         int veid = openvzGetVEID(vpsid);
 
-        //--netif_add ifname[,mac,host_ifname,host_mac]
+        /* --netif_add ifname[,mac,host_ifname,host_mac] */
         ADD_ARG_LIT("--netif_add") ;
 
         /* if user doesn't specify guest interface name,
@@ -765,12 +765,12 @@ openvzDomainSetNetwork(virConnectPtr conn, const char *vpsid,
         VIR_FREE(opt);
     } else if (net->type == VIR_DOMAIN_NET_TYPE_ETHERNET &&
               net->data.ethernet.ipaddr != NULL) {
-        //--ipadd ip
+        /* --ipadd ip */
         ADD_ARG_LIT("--ipadd") ;
         ADD_ARG_LIT(net->data.ethernet.ipaddr) ;
     }
 
-    //TODO: processing NAT and physical device
+    /* TODO: processing NAT and physical device */
 
     if (prog[0] != NULL) {
         ADD_ARG_LIT("--save");
@@ -882,7 +882,7 @@ openvzDomainDefineXML(virConnectPtr conn, const char *xml)
         goto cleanup;
     }
 
-    //TODO: set quota
+    /* TODO: set quota */
 
     if (openvzSetDefinedUUID(strtoI(vm->def->name), vm->def->uuid) < 0) {
         openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -1079,7 +1079,7 @@ openvzDomainUndefine(virDomainPtr dom)
     }
 
     if (virDomainObjIsActive(vm)) {
-        openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
+        openvzError(VIR_ERR_OPERATION_INVALID, "%s",
                     _("cannot delete active domain"));
         goto cleanup;
     }
@@ -1572,6 +1572,7 @@ static virDriver openvzDriver = {
     openvzGetVersion, /* version */
     NULL, /* libvirtVersion (impl. in libvirt.c) */
     NULL, /* getHostname */
+    NULL, /* getSysinfo */
     openvzGetMaxVCPUs, /* getMaxVcpus */
     nodeGetInfo, /* nodeGetInfo */
     openvzGetCapabilities, /* getCapabilities */
