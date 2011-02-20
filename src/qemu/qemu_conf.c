@@ -138,6 +138,10 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
         return -1;                                                      \
     }
 
+    p = virConfGetValue (conf, "vnc_auto_unix_socket");
+    CHECK_TYPE ("vnc_auto_unix_socket", VIR_CONF_LONG);
+    if (p) driver->vncAutoUnixSocket = p->l;
+
     p = virConfGetValue (conf, "vnc_tls");
     CHECK_TYPE ("vnc_tls", VIR_CONF_LONG);
     if (p) driver->vncTLS = p->l;
@@ -299,7 +303,8 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
         driver->cgroupControllers =
             (1 << VIR_CGROUP_CONTROLLER_CPU) |
             (1 << VIR_CGROUP_CONTROLLER_DEVICES) |
-            (1 << VIR_CGROUP_CONTROLLER_MEMORY);
+            (1 << VIR_CGROUP_CONTROLLER_MEMORY) |
+            (1 << VIR_CGROUP_CONTROLLER_BLKIO);
     }
     for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
         if (driver->cgroupControllers & (1 << i)) {

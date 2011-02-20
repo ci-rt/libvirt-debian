@@ -31,6 +31,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
                                      const char *cmdline,
                                      unsigned long long extraFlags,
                                      const char *migrateFrom,
+                                     int migrateFd,
                                      bool expectError) {
     char argvData[MAX_FILE];
     char *expectargv = &(argvData[0]);
@@ -39,7 +40,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
     int ret = -1;
     unsigned long long flags;
     virDomainDefPtr vmdef = NULL;
-    virDomainChrDef monitor_chr;
+    virDomainChrSourceDef monitor_chr;
     virConnectPtr conn;
     char *log = NULL;
     char *emulator = NULL;
@@ -86,8 +87,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
     memset(&monitor_chr, 0, sizeof(monitor_chr));
     monitor_chr.type = VIR_DOMAIN_CHR_TYPE_UNIX;
     monitor_chr.data.nix.path = (char *)"/tmp/test-monitor";
-    monitor_chr.data.nix.listen = 1;
-    monitor_chr.info.alias = (char *)"monitor";
+    monitor_chr.data.nix.listen = true;
 
     flags = QEMUD_CMD_FLAG_VNC_COLON |
         QEMUD_CMD_FLAG_NO_REBOOT |
@@ -111,9 +111,19 @@ static int testCompareXMLToArgvFiles(const char *xml,
     free(virtTestLogContentAndReset());
     virResetLastError();
 
+    /* We do not call qemuCapsExtractVersionInfo() before calling
+     * qemuBuildCommandLine(), so we should set QEMUD_CMD_FLAG_PCI_MULTIBUS for
+     * x86_64 and i686 architectures here.
+     */
+    if (STREQLEN(vmdef->os.arch, "x86_64", 6) ||
+        STREQLEN(vmdef->os.arch, "i686", 4)) {
+        flags |= QEMUD_CMD_FLAG_PCI_MULTIBUS;
+    }
+
     if (!(cmd = qemuBuildCommandLine(conn, &driver,
                                      vmdef, &monitor_chr, false, flags,
-                                     migrateFrom, NULL, VIR_VM_OP_CREATE)))
+                                     migrateFrom, migrateFd, NULL,
+                                     VIR_VM_OP_CREATE)))
         goto fail;
 
     if (!!virGetLastError() != expectError) {
@@ -161,6 +171,7 @@ struct testInfo {
     const char *name;
     unsigned long long extraFlags;
     const char *migrateFrom;
+    int migrateFd;
     bool expectError;
 };
 
@@ -173,7 +184,8 @@ static int testCompareXMLToArgvHelper(const void *data) {
     snprintf(args, PATH_MAX, "%s/qemuxml2argvdata/qemuxml2argv-%s.args",
              abs_srcdir, info->name);
     return testCompareXMLToArgvFiles(xml, args, info->extraFlags,
-                                     info->migrateFrom, info->expectError);
+                                     info->migrateFrom, info->migrateFd,
+                                     info->expectError);
 }
 
 
@@ -218,10 +230,10 @@ mymain(int argc, char **argv)
     if (cpuMapOverride(map) < 0)
         return EXIT_FAILURE;
 
-# define DO_TEST_FULL(name, extraFlags, migrateFrom, expectError)       \
+# define DO_TEST_FULL(name, extraFlags, migrateFrom, migrateFd, expectError) \
     do {                                                                \
         const struct testInfo info = {                                  \
-            name, extraFlags, migrateFrom, expectError                  \
+            name, extraFlags, migrateFrom, migrateFd, expectError       \
         };                                                              \
         if (virtTestRun("QEMU XML-2-ARGV " name,                        \
                         1, testCompareXMLToArgvHelper, &info) < 0)      \
@@ -229,7 +241,7 @@ mymain(int argc, char **argv)
     } while (0)
 
 # define DO_TEST(name, extraFlags, expectError)                         \
-        DO_TEST_FULL(name, extraFlags, NULL, expectError)
+    DO_TEST_FULL(name, extraFlags, NULL, -1, expectError)
 
     /* Unset or set all envvars here that are copied in qemudBuildCommandLine
      * using ADD_ENV_COPY, otherwise these tests may fail due to unexpected
@@ -252,6 +264,8 @@ mymain(int argc, char **argv)
     DO_TEST("boot-floppy", 0, false);
     DO_TEST("boot-multi", QEMUD_CMD_FLAG_BOOT_MENU, false);
     DO_TEST("boot-menu-disable", QEMUD_CMD_FLAG_BOOT_MENU, false);
+    DO_TEST("boot-order", QEMUD_CMD_FLAG_BOOTINDEX |
+            QEMUD_CMD_FLAG_DRIVE | QEMUD_CMD_FLAG_DEVICE, false);
     DO_TEST("bootloader", QEMUD_CMD_FLAG_DOMID, true);
     DO_TEST("clock-utc", 0, false);
     DO_TEST("clock-localtime", 0, false);
@@ -315,7 +329,10 @@ mymain(int argc, char **argv)
             QEMUD_CMD_FLAG_DEVICE | QEMUD_CMD_FLAG_NODEFCONFIG, false);
     DO_TEST("disk-scsi-device-auto", QEMUD_CMD_FLAG_DRIVE |
             QEMUD_CMD_FLAG_DEVICE | QEMUD_CMD_FLAG_NODEFCONFIG, false);
+    DO_TEST("disk-aio", QEMUD_CMD_FLAG_DRIVE | QEMUD_CMD_FLAG_DRIVE_AIO |
+            QEMUD_CMD_FLAG_DRIVE_CACHE_V2 | QEMUD_CMD_FLAG_DRIVE_FORMAT, false);
     DO_TEST("graphics-vnc", 0, false);
+    DO_TEST("graphics-vnc-socket", 0, false);
 
     driver.vncSASL = 1;
     driver.vncSASLdir = strdup("/root/.sasl2");
@@ -399,6 +416,29 @@ mymain(int argc, char **argv)
             QEMUD_CMD_FLAG_NODEFCONFIG, false);
     DO_TEST("console-virtio", QEMUD_CMD_FLAG_DEVICE |
             QEMUD_CMD_FLAG_NODEFCONFIG, false);
+    DO_TEST("channel-spicevmc", QEMUD_CMD_FLAG_DEVICE |
+            QEMUD_CMD_FLAG_NODEFCONFIG | QEMUD_CMD_FLAG_SPICE |
+            QEMUD_CMD_FLAG_CHARDEV_SPICEVMC, false);
+    DO_TEST("channel-spicevmc-old", QEMUD_CMD_FLAG_DEVICE |
+            QEMUD_CMD_FLAG_NODEFCONFIG | QEMUD_CMD_FLAG_SPICE |
+            QEMUD_CMD_FLAG_DEVICE_SPICEVMC, false);
+
+    DO_TEST("smartcard-host",
+            QEMUD_CMD_FLAG_CHARDEV | QEMUD_CMD_FLAG_DEVICE |
+            QEMUD_CMD_FLAG_NODEFCONFIG | QEMUD_CMD_FLAG_CCID_EMULATED, false);
+    DO_TEST("smartcard-host-certificates",
+            QEMUD_CMD_FLAG_CHARDEV | QEMUD_CMD_FLAG_DEVICE |
+            QEMUD_CMD_FLAG_NODEFCONFIG | QEMUD_CMD_FLAG_CCID_EMULATED, false);
+    DO_TEST("smartcard-passthrough-tcp",
+            QEMUD_CMD_FLAG_CHARDEV | QEMUD_CMD_FLAG_DEVICE |
+            QEMUD_CMD_FLAG_NODEFCONFIG | QEMUD_CMD_FLAG_CCID_PASSTHRU, false);
+    DO_TEST("smartcard-passthrough-spicevmc",
+            QEMUD_CMD_FLAG_CHARDEV | QEMUD_CMD_FLAG_DEVICE |
+            QEMUD_CMD_FLAG_NODEFCONFIG | QEMUD_CMD_FLAG_CCID_PASSTHRU |
+            QEMUD_CMD_FLAG_CHARDEV_SPICEVMC, false);
+    DO_TEST("smartcard-controller",
+            QEMUD_CMD_FLAG_CHARDEV | QEMUD_CMD_FLAG_DEVICE |
+            QEMUD_CMD_FLAG_NODEFCONFIG | QEMUD_CMD_FLAG_CCID_EMULATED, false);
 
     DO_TEST("smbios", QEMUD_CMD_FLAG_SMBIOS_TYPE, false);
 
@@ -412,7 +452,7 @@ mymain(int argc, char **argv)
             QEMUD_CMD_FLAG_NODEFCONFIG, false);
     DO_TEST("sound", 0, false);
     DO_TEST("sound-device", QEMUD_CMD_FLAG_DEVICE |
-            QEMUD_CMD_FLAG_NODEFCONFIG, false);
+            QEMUD_CMD_FLAG_NODEFCONFIG | QEMUD_CMD_FLAG_HDA_DUPLEX, false);
     DO_TEST("fs9p", QEMUD_CMD_FLAG_DEVICE |
             QEMUD_CMD_FLAG_NODEFCONFIG | QEMUD_CMD_FLAG_FSDEV, false);
 
@@ -423,10 +463,18 @@ mymain(int argc, char **argv)
     DO_TEST("hostdev-pci-address-device", QEMUD_CMD_FLAG_PCIDEVICE |
             QEMUD_CMD_FLAG_DEVICE | QEMUD_CMD_FLAG_NODEFCONFIG, false);
 
-    DO_TEST_FULL("restore-v1", QEMUD_CMD_FLAG_MIGRATE_KVM_STDIO, "stdio", false);
-    DO_TEST_FULL("restore-v2", QEMUD_CMD_FLAG_MIGRATE_QEMU_EXEC, "stdio", false);
-    DO_TEST_FULL("restore-v2", QEMUD_CMD_FLAG_MIGRATE_QEMU_EXEC, "exec:cat", false);
-    DO_TEST_FULL("migrate", QEMUD_CMD_FLAG_MIGRATE_QEMU_TCP, "tcp:10.0.0.1:5000", false);
+    DO_TEST_FULL("restore-v1", QEMUD_CMD_FLAG_MIGRATE_KVM_STDIO, "stdio", 7,
+                 false);
+    DO_TEST_FULL("restore-v2", QEMUD_CMD_FLAG_MIGRATE_QEMU_EXEC, "stdio", 7,
+                 false);
+    DO_TEST_FULL("restore-v2", QEMUD_CMD_FLAG_MIGRATE_QEMU_EXEC, "exec:cat", 7,
+                 false);
+    DO_TEST_FULL("restore-v2-fd", QEMUD_CMD_FLAG_MIGRATE_QEMU_FD, "stdio", 7,
+                 false);
+    DO_TEST_FULL("restore-v2-fd", QEMUD_CMD_FLAG_MIGRATE_QEMU_FD, "fd:7", 7,
+                 false);
+    DO_TEST_FULL("migrate", QEMUD_CMD_FLAG_MIGRATE_QEMU_TCP,
+                 "tcp:10.0.0.1:5000", -1, false);
 
     DO_TEST("qemu-ns", 0, false);
 
@@ -440,6 +488,9 @@ mymain(int argc, char **argv)
     DO_TEST("cpu-exact1", 0, false);
     DO_TEST("cpu-exact2", 0, false);
     DO_TEST("cpu-strict1", 0, false);
+
+    DO_TEST("memtune", QEMUD_CMD_FLAG_NAME, false);
+    DO_TEST("blkiotune", QEMUD_CMD_FLAG_NAME, false);
 
     free(driver.stateDir);
     virCapabilitiesFree(driver.caps);

@@ -13,6 +13,7 @@
      <exports symbol='VIR_DOMAIN_MEMORY_FIELD_LENGTH' type='macro'/>
      <exports symbol='VIR_DOMAIN_MEMORY_HARD_LIMIT' type='macro'/>
      <exports symbol='VIR_DOMAIN_MEMORY_MIN_GUARANTEE' type='macro'/>
+     <exports symbol='VIR_DOMAIN_MEMORY_PARAM_UNLIMITED' type='macro'/>
      <exports symbol='VIR_DOMAIN_MEMORY_SOFT_LIMIT' type='macro'/>
      <exports symbol='VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT' type='macro'/>
      <exports symbol='VIR_DOMAIN_SCHED_FIELD_LENGTH' type='macro'/>
@@ -314,6 +315,7 @@
      <exports symbol='virConnectGetHostname' type='function'/>
      <exports symbol='virConnectGetLibVersion' type='function'/>
      <exports symbol='virConnectGetMaxVcpus' type='function'/>
+     <exports symbol='virConnectGetSysinfo' type='function'/>
      <exports symbol='virConnectGetType' type='function'/>
      <exports symbol='virConnectGetURI' type='function'/>
      <exports symbol='virConnectGetVersion' type='function'/>
@@ -742,6 +744,9 @@
     </macro>
     <macro name='VIR_DOMAIN_MEMORY_MIN_GUARANTEE' file='libvirt'>
       <info><![CDATA[Macro for the memory tunable min_guarantee: it represents the minimum memory guaranteed to be reserved for the guest.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_MEMORY_PARAM_UNLIMITED' file='libvirt'>
+      <info><![CDATA[Macro providing the virMemoryParameter value that indicates "unlimited"]]></info>
     </macro>
     <macro name='VIR_DOMAIN_MEMORY_SOFT_LIMIT' file='libvirt'>
       <info><![CDATA[Macro for the memory tunable soft_limit: it represents the memory upper limit enforced during memory contention.]]></info>
@@ -1626,6 +1631,15 @@ attribute in the <domain> element of the XML.]]></info>
       <return type='int' info='the maximum of virtual CPU or -1 in case of error.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
       <arg name='type' type='const char *' info='value of the &apos;type&apos; attribute in the &lt;domain&gt; element'/>
+    </function>
+    <function name='virConnectGetSysinfo' file='libvirt' module='libvirt'>
+      <info><![CDATA[This returns the XML description of the sysinfo details for the
+host on which the hypervisor is running, in the same format as the
+<sysinfo> element of a domain XML.  This information is generally
+available only for hypervisors running with root privileges.]]></info>
+      <return type='char *' info='the XML string which must be freed by the caller, or NULL if there was an error.'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to a hypervisor connection'/>
+      <arg name='flags' type='unsigned int' info='callers should always pass 0'/>
     </function>
     <function name='virConnectGetType' file='libvirt' module='libvirt'>
       <info><![CDATA[Get the name of the Hypervisor software used.]]></info>

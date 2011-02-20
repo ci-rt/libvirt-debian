@@ -181,6 +181,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/asm-underscore.m4 \
 	$(top_srcdir)/gnulib/m4/base64.m4 \
 	$(top_srcdir)/gnulib/m4/canonicalize.m4 \
+	$(top_srcdir)/gnulib/m4/chown.m4 \
 	$(top_srcdir)/gnulib/m4/close.m4 \
 	$(top_srcdir)/gnulib/m4/configmake.m4 \
 	$(top_srcdir)/gnulib/m4/count-one-bits.m4 \
@@ -188,7 +189,9 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/dos.m4 \
 	$(top_srcdir)/gnulib/m4/double-slash-root.m4 \
 	$(top_srcdir)/gnulib/m4/eealloc.m4 \
+	$(top_srcdir)/gnulib/m4/environ.m4 \
 	$(top_srcdir)/gnulib/m4/errno_h.m4 \
+	$(top_srcdir)/gnulib/m4/error.m4 \
 	$(top_srcdir)/gnulib/m4/extensions.m4 \
 	$(top_srcdir)/gnulib/m4/fclose.m4 \
 	$(top_srcdir)/gnulib/m4/fcntl-o.m4 \
@@ -198,20 +201,24 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/func.m4 \
 	$(top_srcdir)/gnulib/m4/getaddrinfo.m4 \
 	$(top_srcdir)/gnulib/m4/getdelim.m4 \
+	$(top_srcdir)/gnulib/m4/getgroups.m4 \
 	$(top_srcdir)/gnulib/m4/gethostname.m4 \
 	$(top_srcdir)/gnulib/m4/getline.m4 \
 	$(top_srcdir)/gnulib/m4/getpagesize.m4 \
 	$(top_srcdir)/gnulib/m4/getpass.m4 \
 	$(top_srcdir)/gnulib/m4/gettimeofday.m4 \
+	$(top_srcdir)/gnulib/m4/getugroups.m4 \
 	$(top_srcdir)/gnulib/m4/gnulib-common.m4 \
 	$(top_srcdir)/gnulib/m4/gnulib-comp.m4 \
 	$(top_srcdir)/gnulib/m4/hostent.m4 \
 	$(top_srcdir)/gnulib/m4/include_next.m4 \
 	$(top_srcdir)/gnulib/m4/inet_ntop.m4 \
 	$(top_srcdir)/gnulib/m4/inet_pton.m4 \
+	$(top_srcdir)/gnulib/m4/inline.m4 \
 	$(top_srcdir)/gnulib/m4/intmax_t.m4 \
 	$(top_srcdir)/gnulib/m4/inttypes_h.m4 \
 	$(top_srcdir)/gnulib/m4/ioctl.m4 \
+	$(top_srcdir)/gnulib/m4/lock.m4 \
 	$(top_srcdir)/gnulib/m4/longlong.m4 \
 	$(top_srcdir)/gnulib/m4/lseek.m4 \
 	$(top_srcdir)/gnulib/m4/lstat.m4 \
@@ -219,14 +226,17 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/malloca.m4 \
 	$(top_srcdir)/gnulib/m4/md5.m4 \
 	$(top_srcdir)/gnulib/m4/memchr.m4 \
+	$(top_srcdir)/gnulib/m4/mgetgroups.m4 \
 	$(top_srcdir)/gnulib/m4/mkstemp.m4 \
 	$(top_srcdir)/gnulib/m4/mkstemps.m4 \
 	$(top_srcdir)/gnulib/m4/mktime.m4 \
 	$(top_srcdir)/gnulib/m4/mmap-anon.m4 \
+	$(top_srcdir)/gnulib/m4/mode_t.m4 \
 	$(top_srcdir)/gnulib/m4/multiarch.m4 \
 	$(top_srcdir)/gnulib/m4/netdb_h.m4 \
 	$(top_srcdir)/gnulib/m4/netinet_in_h.m4 \
 	$(top_srcdir)/gnulib/m4/onceonly.m4 \
+	$(top_srcdir)/gnulib/m4/open.m4 \
 	$(top_srcdir)/gnulib/m4/pathmax.m4 \
 	$(top_srcdir)/gnulib/m4/perror.m4 \
 	$(top_srcdir)/gnulib/m4/physmem.m4 \
@@ -236,6 +246,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/posix-shell.m4 \
 	$(top_srcdir)/gnulib/m4/printf.m4 \
 	$(top_srcdir)/gnulib/m4/pthread.m4 \
+	$(top_srcdir)/gnulib/m4/putenv.m4 \
 	$(top_srcdir)/gnulib/m4/random_r.m4 \
 	$(top_srcdir)/gnulib/m4/rawmemchr.m4 \
 	$(top_srcdir)/gnulib/m4/readlink.m4 \
@@ -243,6 +254,11 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/sched_h.m4 \
 	$(top_srcdir)/gnulib/m4/select.m4 \
 	$(top_srcdir)/gnulib/m4/servent.m4 \
+	$(top_srcdir)/gnulib/m4/setenv.m4 \
+	$(top_srcdir)/gnulib/m4/sigaction.m4 \
+	$(top_srcdir)/gnulib/m4/signal_h.m4 \
+	$(top_srcdir)/gnulib/m4/signalblocking.m4 \
+	$(top_srcdir)/gnulib/m4/sigpipe.m4 \
 	$(top_srcdir)/gnulib/m4/sleep.m4 \
 	$(top_srcdir)/gnulib/m4/snprintf.m4 \
 	$(top_srcdir)/gnulib/m4/socketlib.m4 \
@@ -250,6 +266,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/socklen.m4 \
 	$(top_srcdir)/gnulib/m4/sockpfaf.m4 \
 	$(top_srcdir)/gnulib/m4/ssize_t.m4 \
+	$(top_srcdir)/gnulib/m4/stat-time.m4 \
 	$(top_srcdir)/gnulib/m4/stat.m4 \
 	$(top_srcdir)/gnulib/m4/stdbool.m4 \
 	$(top_srcdir)/gnulib/m4/stddef_h.m4 \
@@ -262,6 +279,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/strchrnul.m4 \
 	$(top_srcdir)/gnulib/m4/strdup.m4 \
 	$(top_srcdir)/gnulib/m4/strerror.m4 \
+	$(top_srcdir)/gnulib/m4/strerror_r.m4 \
 	$(top_srcdir)/gnulib/m4/string_h.m4 \
 	$(top_srcdir)/gnulib/m4/strings_h.m4 \
 	$(top_srcdir)/gnulib/m4/strndup.m4 \
@@ -279,6 +297,8 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/sys_wait_h.m4 \
 	$(top_srcdir)/gnulib/m4/tempname.m4 \
 	$(top_srcdir)/gnulib/m4/termios_h.m4 \
+	$(top_srcdir)/gnulib/m4/thread.m4 \
+	$(top_srcdir)/gnulib/m4/threadlib.m4 \
 	$(top_srcdir)/gnulib/m4/time_h.m4 \
 	$(top_srcdir)/gnulib/m4/time_r.m4 \
 	$(top_srcdir)/gnulib/m4/timegm.m4 \
@@ -292,6 +312,9 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/waitpid.m4 \
 	$(top_srcdir)/gnulib/m4/warn-on-use.m4 \
 	$(top_srcdir)/gnulib/m4/wchar_h.m4 \
+	$(top_srcdir)/gnulib/m4/write.m4 \
+	$(top_srcdir)/gnulib/m4/xalloc.m4 \
+	$(top_srcdir)/gnulib/m4/yield.m4 \
 	$(top_srcdir)/m4/compiler-flags.m4 $(top_srcdir)/m4/gettext.m4 \
 	$(top_srcdir)/m4/iconv.m4 $(top_srcdir)/m4/lib-ld.m4 \
 	$(top_srcdir)/m4/lib-link.m4 $(top_srcdir)/m4/lib-prefix.m4 \
@@ -595,9 +618,7 @@ am__libvirt_driver_qemu_la_SOURCES_DIST = qemu/qemu_capabilities.c \
 	qemu/qemu_monitor_text.c qemu/qemu_monitor_text.h \
 	qemu/qemu_monitor_json.c qemu/qemu_monitor_json.h \
 	qemu/qemu_driver.c qemu/qemu_driver.h \
-	qemu/qemu_bridge_filter.c qemu/qemu_bridge_filter.h \
-	qemu/qemu_security_stacked.h qemu/qemu_security_stacked.c \
-	qemu/qemu_security_dac.h qemu/qemu_security_dac.c
+	qemu/qemu_bridge_filter.c qemu/qemu_bridge_filter.h
 am__objects_29 = libvirt_driver_qemu_la-qemu_capabilities.lo \
 	libvirt_driver_qemu_la-qemu_command.lo \
 	libvirt_driver_qemu_la-qemu_domain.lo \
@@ -610,9 +631,7 @@ am__objects_29 = libvirt_driver_qemu_la-qemu_capabilities.lo \
 	libvirt_driver_qemu_la-qemu_monitor_text.lo \
 	libvirt_driver_qemu_la-qemu_monitor_json.lo \
 	libvirt_driver_qemu_la-qemu_driver.lo \
-	libvirt_driver_qemu_la-qemu_bridge_filter.lo \
-	libvirt_driver_qemu_la-qemu_security_stacked.lo \
-	libvirt_driver_qemu_la-qemu_security_dac.lo
+	libvirt_driver_qemu_la-qemu_bridge_filter.lo
 @WITH_QEMU_TRUE@am_libvirt_driver_qemu_la_OBJECTS = $(am__objects_29)
 libvirt_driver_qemu_la_OBJECTS = $(am_libvirt_driver_qemu_la_OBJECTS)
 libvirt_driver_qemu_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
@@ -665,9 +684,17 @@ libvirt_driver_security_la_DEPENDENCIES = $(am__DEPENDENCIES_4) \
 	$(am__DEPENDENCIES_5)
 am__libvirt_driver_security_la_SOURCES_DIST =  \
 	security/security_driver.h security/security_driver.c \
+	security/security_nop.h security/security_nop.c \
+	security/security_stack.h security/security_stack.c \
+	security/security_dac.h security/security_dac.c \
+	security/security_manager.h security/security_manager.c \
 	security/security_selinux.h security/security_selinux.c \
 	security/security_apparmor.h security/security_apparmor.c
-am__objects_32 = libvirt_driver_security_la-security_driver.lo
+am__objects_32 = libvirt_driver_security_la-security_driver.lo \
+	libvirt_driver_security_la-security_nop.lo \
+	libvirt_driver_security_la-security_stack.lo \
+	libvirt_driver_security_la-security_dac.lo \
+	libvirt_driver_security_la-security_manager.lo
 am__objects_33 = libvirt_driver_security_la-security_selinux.lo
 @WITH_SECDRIVER_SELINUX_TRUE@am__objects_34 = $(am__objects_33)
 am__objects_35 = libvirt_driver_security_la-security_apparmor.lo
@@ -1287,6 +1314,9 @@ GNULIB_SENDTO = @GNULIB_SENDTO@
 GNULIB_SETENV = @GNULIB_SETENV@
 GNULIB_SETSOCKOPT = @GNULIB_SETSOCKOPT@
 GNULIB_SHUTDOWN = @GNULIB_SHUTDOWN@
+GNULIB_SIGACTION = @GNULIB_SIGACTION@
+GNULIB_SIGNAL_H_SIGPIPE = @GNULIB_SIGNAL_H_SIGPIPE@
+GNULIB_SIGPROCMASK = @GNULIB_SIGPROCMASK@
 GNULIB_SLEEP = @GNULIB_SLEEP@
 GNULIB_SNPRINTF = @GNULIB_SNPRINTF@
 GNULIB_SOCKET = @GNULIB_SOCKET@
@@ -1339,11 +1369,39 @@ GNULIB_VPRINTF_POSIX = @GNULIB_VPRINTF_POSIX@
 GNULIB_VSNPRINTF = @GNULIB_VSNPRINTF@
 GNULIB_VSPRINTF_POSIX = @GNULIB_VSPRINTF_POSIX@
 GNULIB_WAITPID = @GNULIB_WAITPID@
+GNULIB_WCPCPY = @GNULIB_WCPCPY@
+GNULIB_WCPNCPY = @GNULIB_WCPNCPY@
 GNULIB_WCRTOMB = @GNULIB_WCRTOMB@
+GNULIB_WCSCASECMP = @GNULIB_WCSCASECMP@
+GNULIB_WCSCAT = @GNULIB_WCSCAT@
+GNULIB_WCSCHR = @GNULIB_WCSCHR@
+GNULIB_WCSCMP = @GNULIB_WCSCMP@
+GNULIB_WCSCOLL = @GNULIB_WCSCOLL@
+GNULIB_WCSCPY = @GNULIB_WCSCPY@
+GNULIB_WCSCSPN = @GNULIB_WCSCSPN@
+GNULIB_WCSDUP = @GNULIB_WCSDUP@
+GNULIB_WCSLEN = @GNULIB_WCSLEN@
+GNULIB_WCSNCASECMP = @GNULIB_WCSNCASECMP@
+GNULIB_WCSNCAT = @GNULIB_WCSNCAT@
+GNULIB_WCSNCMP = @GNULIB_WCSNCMP@
+GNULIB_WCSNCPY = @GNULIB_WCSNCPY@
+GNULIB_WCSNLEN = @GNULIB_WCSNLEN@
 GNULIB_WCSNRTOMBS = @GNULIB_WCSNRTOMBS@
+GNULIB_WCSPBRK = @GNULIB_WCSPBRK@
+GNULIB_WCSRCHR = @GNULIB_WCSRCHR@
 GNULIB_WCSRTOMBS = @GNULIB_WCSRTOMBS@
+GNULIB_WCSSPN = @GNULIB_WCSSPN@
+GNULIB_WCSSTR = @GNULIB_WCSSTR@
+GNULIB_WCSTOK = @GNULIB_WCSTOK@
+GNULIB_WCSWIDTH = @GNULIB_WCSWIDTH@
+GNULIB_WCSXFRM = @GNULIB_WCSXFRM@
 GNULIB_WCTOB = @GNULIB_WCTOB@
 GNULIB_WCWIDTH = @GNULIB_WCWIDTH@
+GNULIB_WMEMCHR = @GNULIB_WMEMCHR@
+GNULIB_WMEMCMP = @GNULIB_WMEMCMP@
+GNULIB_WMEMCPY = @GNULIB_WMEMCPY@
+GNULIB_WMEMMOVE = @GNULIB_WMEMMOVE@
+GNULIB_WMEMSET = @GNULIB_WMEMSET@
 GNULIB_WRITE = @GNULIB_WRITE@
 GNULIB__EXIT = @GNULIB__EXIT@
 GNUTLS_CFLAGS = @GNUTLS_CFLAGS@
@@ -1375,6 +1433,7 @@ HAVE_DECL_GETPAGESIZE = @HAVE_DECL_GETPAGESIZE@
 HAVE_DECL_GETUSERSHELL = @HAVE_DECL_GETUSERSHELL@
 HAVE_DECL_INET_NTOP = @HAVE_DECL_INET_NTOP@
 HAVE_DECL_INET_PTON = @HAVE_DECL_INET_PTON@
+HAVE_DECL_LOCALTIME_R = @HAVE_DECL_LOCALTIME_R@
 HAVE_DECL_MEMMEM = @HAVE_DECL_MEMMEM@
 HAVE_DECL_MEMRCHR = @HAVE_DECL_MEMRCHR@
 HAVE_DECL_OBSTACK_PRINTF = @HAVE_DECL_OBSTACK_PRINTF@
@@ -1422,7 +1481,6 @@ HAVE_LCHMOD = @HAVE_LCHMOD@
 HAVE_LCHOWN = @HAVE_LCHOWN@
 HAVE_LINK = @HAVE_LINK@
 HAVE_LINKAT = @HAVE_LINKAT@
-HAVE_LOCALTIME_R = @HAVE_LOCALTIME_R@
 HAVE_LONG_LONG_INT = @HAVE_LONG_LONG_INT@
 HAVE_LSTAT = @HAVE_LSTAT@
 HAVE_MBRLEN = @HAVE_MBRLEN@
@@ -1452,6 +1510,7 @@ HAVE_PIPE = @HAVE_PIPE@
 HAVE_PIPE2 = @HAVE_PIPE2@
 HAVE_POLL = @HAVE_POLL@
 HAVE_POLL_H = @HAVE_POLL_H@
+HAVE_POSIX_SIGNALBLOCKING = @HAVE_POSIX_SIGNALBLOCKING@
 HAVE_PREAD = @HAVE_PREAD@
 HAVE_PTHREAD_H = @HAVE_PTHREAD_H@
 HAVE_PTHREAD_SPINLOCK_T = @HAVE_PTHREAD_SPINLOCK_T@
@@ -1469,9 +1528,12 @@ HAVE_RPMATCH = @HAVE_RPMATCH@
 HAVE_SA_FAMILY_T = @HAVE_SA_FAMILY_T@
 HAVE_SCHED_H = @HAVE_SCHED_H@
 HAVE_SETENV = @HAVE_SETENV@
+HAVE_SIGACTION = @HAVE_SIGACTION@
+HAVE_SIGINFO_T = @HAVE_SIGINFO_T@
 HAVE_SIGNED_SIG_ATOMIC_T = @HAVE_SIGNED_SIG_ATOMIC_T@
 HAVE_SIGNED_WCHAR_T = @HAVE_SIGNED_WCHAR_T@
 HAVE_SIGNED_WINT_T = @HAVE_SIGNED_WINT_T@
+HAVE_SIGSET_T = @HAVE_SIGSET_T@
 HAVE_SLEEP = @HAVE_SLEEP@
 HAVE_STDINT_H = @HAVE_STDINT_H@
 HAVE_STPCPY = @HAVE_STPCPY@
@@ -1488,6 +1550,7 @@ HAVE_STRTOULL = @HAVE_STRTOULL@
 HAVE_STRUCT_ADDRINFO = @HAVE_STRUCT_ADDRINFO@
 HAVE_STRUCT_RANDOM_DATA = @HAVE_STRUCT_RANDOM_DATA@
 HAVE_STRUCT_SCHED_PARAM = @HAVE_STRUCT_SCHED_PARAM@
+HAVE_STRUCT_SIGACTION_SA_SIGACTION = @HAVE_STRUCT_SIGACTION_SA_SIGACTION@
 HAVE_STRUCT_SOCKADDR_STORAGE = @HAVE_STRUCT_SOCKADDR_STORAGE@
 HAVE_STRUCT_SOCKADDR_STORAGE_SS_FAMILY = @HAVE_STRUCT_SOCKADDR_STORAGE_SS_FAMILY@
 HAVE_STRUCT_TIMEVAL = @HAVE_STRUCT_TIMEVAL@
@@ -1507,6 +1570,7 @@ HAVE_SYS_TYPES_H = @HAVE_SYS_TYPES_H@
 HAVE_SYS_UTSNAME_H = @HAVE_SYS_UTSNAME_H@
 HAVE_TERMIOS_H = @HAVE_TERMIOS_H@
 HAVE_TIMEGM = @HAVE_TIMEGM@
+HAVE_TYPE_VOLATILE_SIG_ATOMIC_T = @HAVE_TYPE_VOLATILE_SIG_ATOMIC_T@
 HAVE_UNAME = @HAVE_UNAME@
 HAVE_UNISTD_H = @HAVE_UNISTD_H@
 HAVE_UNLINKAT = @HAVE_UNLINKAT@
@@ -1518,11 +1582,39 @@ HAVE_VASPRINTF = @HAVE_VASPRINTF@
 HAVE_VDPRINTF = @HAVE_VDPRINTF@
 HAVE_WCHAR_H = @HAVE_WCHAR_H@
 HAVE_WCHAR_T = @HAVE_WCHAR_T@
+HAVE_WCPCPY = @HAVE_WCPCPY@
+HAVE_WCPNCPY = @HAVE_WCPNCPY@
 HAVE_WCRTOMB = @HAVE_WCRTOMB@
+HAVE_WCSCASECMP = @HAVE_WCSCASECMP@
+HAVE_WCSCAT = @HAVE_WCSCAT@
+HAVE_WCSCHR = @HAVE_WCSCHR@
+HAVE_WCSCMP = @HAVE_WCSCMP@
+HAVE_WCSCOLL = @HAVE_WCSCOLL@
+HAVE_WCSCPY = @HAVE_WCSCPY@
+HAVE_WCSCSPN = @HAVE_WCSCSPN@
+HAVE_WCSDUP = @HAVE_WCSDUP@
+HAVE_WCSLEN = @HAVE_WCSLEN@
+HAVE_WCSNCASECMP = @HAVE_WCSNCASECMP@
+HAVE_WCSNCAT = @HAVE_WCSNCAT@
+HAVE_WCSNCMP = @HAVE_WCSNCMP@
+HAVE_WCSNCPY = @HAVE_WCSNCPY@
+HAVE_WCSNLEN = @HAVE_WCSNLEN@
 HAVE_WCSNRTOMBS = @HAVE_WCSNRTOMBS@
+HAVE_WCSPBRK = @HAVE_WCSPBRK@
+HAVE_WCSRCHR = @HAVE_WCSRCHR@
 HAVE_WCSRTOMBS = @HAVE_WCSRTOMBS@
+HAVE_WCSSPN = @HAVE_WCSSPN@
+HAVE_WCSSTR = @HAVE_WCSSTR@
+HAVE_WCSTOK = @HAVE_WCSTOK@
+HAVE_WCSWIDTH = @HAVE_WCSWIDTH@
+HAVE_WCSXFRM = @HAVE_WCSXFRM@
 HAVE_WINSOCK2_H = @HAVE_WINSOCK2_H@
 HAVE_WINT_T = @HAVE_WINT_T@
+HAVE_WMEMCHR = @HAVE_WMEMCHR@
+HAVE_WMEMCMP = @HAVE_WMEMCMP@
+HAVE_WMEMCPY = @HAVE_WMEMCPY@
+HAVE_WMEMMOVE = @HAVE_WMEMMOVE@
+HAVE_WMEMSET = @HAVE_WMEMSET@
 HAVE_WS2TCPIP_H = @HAVE_WS2TCPIP_H@
 HAVE__BOOL = @HAVE__BOOL@
 HAVE__EXIT = @HAVE__EXIT@
@@ -1548,6 +1640,7 @@ LIBCURL_CFLAGS = @LIBCURL_CFLAGS@
 LIBCURL_LIBS = @LIBCURL_LIBS@
 LIBICONV = @LIBICONV@
 LIBINTL = @LIBINTL@
+LIBMULTITHREAD = @LIBMULTITHREAD@
 LIBNL_CFLAGS = @LIBNL_CFLAGS@
 LIBNL_LIBS = @LIBNL_LIBS@
 LIBOBJS = @LIBOBJS@
@@ -1555,11 +1648,13 @@ LIBPARTED_CFLAGS = @LIBPARTED_CFLAGS@
 LIBPARTED_LIBS = @LIBPARTED_LIBS@
 LIBPCAP_CFLAGS = @LIBPCAP_CFLAGS@
 LIBPCAP_LIBS = @LIBPCAP_LIBS@
+LIBPTH = @LIBPTH@
 LIBS = @LIBS@
 LIBSOCKET = @LIBSOCKET@
 LIBSSH2_CFLAGS = @LIBSSH2_CFLAGS@
 LIBSSH2_LIBS = @LIBSSH2_LIBS@
 LIBTESTS_LIBDEPS = @LIBTESTS_LIBDEPS@
+LIBTHREAD = @LIBTHREAD@
 LIBTOOL = @LIBTOOL@
 LIBVIRT_MAJOR_VERSION = @LIBVIRT_MAJOR_VERSION@
 LIBVIRT_MICRO_VERSION = @LIBVIRT_MICRO_VERSION@
@@ -1580,11 +1675,15 @@ LOCK_CHECKING_CFLAGS = @LOCK_CHECKING_CFLAGS@
 LTALLOCA = @LTALLOCA@
 LTLIBICONV = @LTLIBICONV@
 LTLIBINTL = @LTLIBINTL@
+LTLIBMULTITHREAD = @LTLIBMULTITHREAD@
 LTLIBOBJS = @LTLIBOBJS@
+LTLIBPTH = @LTLIBPTH@
+LTLIBTHREAD = @LTLIBTHREAD@
 LVCREATE = @LVCREATE@
 LVREMOVE = @LVREMOVE@
 LVS = @LVS@
 LV_LIBTOOL_OBJDIR = @LV_LIBTOOL_OBJDIR@
+MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 MINGW_EXTRA_LDFLAGS = @MINGW_EXTRA_LDFLAGS@
 MKDIR_P = @MKDIR_P@
@@ -1607,6 +1706,7 @@ NEXT_AS_FIRST_DIRECTIVE_NETINET_IN_H = @NEXT_AS_FIRST_DIRECTIVE_NETINET_IN_H@
 NEXT_AS_FIRST_DIRECTIVE_POLL_H = @NEXT_AS_FIRST_DIRECTIVE_POLL_H@
 NEXT_AS_FIRST_DIRECTIVE_PTHREAD_H = @NEXT_AS_FIRST_DIRECTIVE_PTHREAD_H@
 NEXT_AS_FIRST_DIRECTIVE_SCHED_H = @NEXT_AS_FIRST_DIRECTIVE_SCHED_H@
+NEXT_AS_FIRST_DIRECTIVE_SIGNAL_H = @NEXT_AS_FIRST_DIRECTIVE_SIGNAL_H@
 NEXT_AS_FIRST_DIRECTIVE_STDDEF_H = @NEXT_AS_FIRST_DIRECTIVE_STDDEF_H@
 NEXT_AS_FIRST_DIRECTIVE_STDINT_H = @NEXT_AS_FIRST_DIRECTIVE_STDINT_H@
 NEXT_AS_FIRST_DIRECTIVE_STDIO_H = @NEXT_AS_FIRST_DIRECTIVE_STDIO_H@
@@ -1632,6 +1732,7 @@ NEXT_NETINET_IN_H = @NEXT_NETINET_IN_H@
 NEXT_POLL_H = @NEXT_POLL_H@
 NEXT_PTHREAD_H = @NEXT_PTHREAD_H@
 NEXT_SCHED_H = @NEXT_SCHED_H@
+NEXT_SIGNAL_H = @NEXT_SIGNAL_H@
 NEXT_STDDEF_H = @NEXT_STDDEF_H@
 NEXT_STDINT_H = @NEXT_STDINT_H@
 NEXT_STDIO_H = @NEXT_STDIO_H@
@@ -1724,6 +1825,7 @@ REPLACE_GETDELIM = @REPLACE_GETDELIM@
 REPLACE_GETDOMAINNAME = @REPLACE_GETDOMAINNAME@
 REPLACE_GETGROUPS = @REPLACE_GETGROUPS@
 REPLACE_GETLINE = @REPLACE_GETLINE@
+REPLACE_GETLOGIN_R = @REPLACE_GETLOGIN_R@
 REPLACE_GETPAGESIZE = @REPLACE_GETPAGESIZE@
 REPLACE_GETTIMEOFDAY = @REPLACE_GETTIMEOFDAY@
 REPLACE_IOCTL = @REPLACE_IOCTL@
@@ -1803,6 +1905,7 @@ REPLACE_VSPRINTF = @REPLACE_VSPRINTF@
 REPLACE_WCRTOMB = @REPLACE_WCRTOMB@
 REPLACE_WCSNRTOMBS = @REPLACE_WCSNRTOMBS@
 REPLACE_WCSRTOMBS = @REPLACE_WCSRTOMBS@
+REPLACE_WCSWIDTH = @REPLACE_WCSWIDTH@
 REPLACE_WCTOB = @REPLACE_WCTOB@
 REPLACE_WCWIDTH = @REPLACE_WCWIDTH@
 REPLACE_WRITE = @REPLACE_WRITE@
@@ -1865,6 +1968,7 @@ XML_CATALOG_FILE = @XML_CATALOG_FILE@
 XSLTPROC = @XSLTPROC@
 YAJL_CFLAGS = @YAJL_CFLAGS@
 YAJL_LIBS = @YAJL_LIBS@
+YIELD_LIB = @YIELD_LIB@
 abs_aux_dir = @abs_aux_dir@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
@@ -1982,7 +2086,7 @@ BUILT_SOURCES = $(ESX_DRIVER_GENERATED) libvirt.syms libvirt.def \
 	libvirt_qemu.def
 @WITH_NETWORK_TRUE@UUID = $(shell uuidgen 2>/dev/null)
 lib_LTLIBRARIES = libvirt.la libvirt-qemu.la
-moddir = $(libdir)/libvirt/drivers
+moddir = $(libdir)/libvirt/connection-driver
 mod_LTLIBRARIES = $(am__append_4) $(am__append_7) $(am__append_11) \
 	$(am__append_16) $(am__append_20) $(am__append_23) \
 	$(am__append_26) $(am__append_30) $(am__append_35) \
@@ -2210,11 +2314,7 @@ QEMU_DRIVER_SOURCES = \
 		qemu/qemu_monitor_json.h			\
 		qemu/qemu_driver.c qemu/qemu_driver.h		\
 		qemu/qemu_bridge_filter.c			\
-		qemu/qemu_bridge_filter.h			\
-		qemu/qemu_security_stacked.h			\
-		qemu/qemu_security_stacked.c			\
-		qemu/qemu_security_dac.h			\
-		qemu/qemu_security_dac.c
+		qemu/qemu_bridge_filter.h
 
 XENAPI_DRIVER_SOURCES = \
 		xenapi/xenapi_driver.c xenapi/xenapi_driver.h	\
@@ -2314,7 +2414,11 @@ NWFILTER_DRIVER_SOURCES = \
 
 # Security framework and drivers for various models
 SECURITY_DRIVER_SOURCES = \
-		security/security_driver.h security/security_driver.c
+		security/security_driver.h security/security_driver.c \
+		security/security_nop.h security/security_nop.c \
+		security/security_stack.h security/security_stack.c \
+		security/security_dac.h security/security_dac.c \
+		security/security_manager.h security/security_manager.c
 
 SECURITY_DRIVER_SELINUX_SOURCES = \
 		security/security_selinux.h security/security_selinux.c
@@ -2656,7 +2760,7 @@ all: $(BUILT_SOURCES)
 
 .SUFFIXES:
 .SUFFIXES: .c .lo .o .obj
-$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
+$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -2681,9 +2785,9 @@ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 
-$(top_srcdir)/configure:  $(am__configure_deps)
+$(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
-$(ACLOCAL_M4):  $(am__aclocal_m4_deps)
+$(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
 install-libLTLIBRARIES: $(lib_LTLIBRARIES)
@@ -2938,15 +3042,17 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_driver_qemu_la-qemu_monitor.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_driver_qemu_la-qemu_monitor_json.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_driver_qemu_la-qemu_monitor_text.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_driver_qemu_la-qemu_security_dac.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_driver_qemu_la-qemu_security_stacked.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_driver_remote_la-qemu_protocol.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_driver_remote_la-remote_driver.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_driver_remote_la-remote_protocol.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_driver_secret_la-secret_driver.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_driver_security_la-security_apparmor.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_driver_security_la-security_dac.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_driver_security_la-security_driver.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_driver_security_la-security_manager.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_driver_security_la-security_nop.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_driver_security_la-security_selinux.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_driver_security_la-security_stack.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_driver_storage_la-storage_backend.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_driver_storage_la-storage_backend_disk.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_driver_storage_la-storage_backend_fs.Plo@am__quote@
@@ -3621,22 +3727,6 @@ libvirt_driver_qemu_la-qemu_bridge_filter.lo: qemu/qemu_bridge_filter.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_qemu_la_CFLAGS) $(CFLAGS) -c -o libvirt_driver_qemu_la-qemu_bridge_filter.lo `test -f 'qemu/qemu_bridge_filter.c' || echo '$(srcdir)/'`qemu/qemu_bridge_filter.c
 
-libvirt_driver_qemu_la-qemu_security_stacked.lo: qemu/qemu_security_stacked.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_qemu_la_CFLAGS) $(CFLAGS) -MT libvirt_driver_qemu_la-qemu_security_stacked.lo -MD -MP -MF $(DEPDIR)/libvirt_driver_qemu_la-qemu_security_stacked.Tpo -c -o libvirt_driver_qemu_la-qemu_security_stacked.lo `test -f 'qemu/qemu_security_stacked.c' || echo '$(srcdir)/'`qemu/qemu_security_stacked.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirt_driver_qemu_la-qemu_security_stacked.Tpo $(DEPDIR)/libvirt_driver_qemu_la-qemu_security_stacked.Plo
-@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='qemu/qemu_security_stacked.c' object='libvirt_driver_qemu_la-qemu_security_stacked.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_qemu_la_CFLAGS) $(CFLAGS) -c -o libvirt_driver_qemu_la-qemu_security_stacked.lo `test -f 'qemu/qemu_security_stacked.c' || echo '$(srcdir)/'`qemu/qemu_security_stacked.c
-
-libvirt_driver_qemu_la-qemu_security_dac.lo: qemu/qemu_security_dac.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_qemu_la_CFLAGS) $(CFLAGS) -MT libvirt_driver_qemu_la-qemu_security_dac.lo -MD -MP -MF $(DEPDIR)/libvirt_driver_qemu_la-qemu_security_dac.Tpo -c -o libvirt_driver_qemu_la-qemu_security_dac.lo `test -f 'qemu/qemu_security_dac.c' || echo '$(srcdir)/'`qemu/qemu_security_dac.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirt_driver_qemu_la-qemu_security_dac.Tpo $(DEPDIR)/libvirt_driver_qemu_la-qemu_security_dac.Plo
-@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='qemu/qemu_security_dac.c' object='libvirt_driver_qemu_la-qemu_security_dac.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_qemu_la_CFLAGS) $(CFLAGS) -c -o libvirt_driver_qemu_la-qemu_security_dac.lo `test -f 'qemu/qemu_security_dac.c' || echo '$(srcdir)/'`qemu/qemu_security_dac.c
-
 libvirt_driver_remote_la-remote_driver.lo: remote/remote_driver.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_remote_la_CFLAGS) $(CFLAGS) -MT libvirt_driver_remote_la-remote_driver.lo -MD -MP -MF $(DEPDIR)/libvirt_driver_remote_la-remote_driver.Tpo -c -o libvirt_driver_remote_la-remote_driver.lo `test -f 'remote/remote_driver.c' || echo '$(srcdir)/'`remote/remote_driver.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirt_driver_remote_la-remote_driver.Tpo $(DEPDIR)/libvirt_driver_remote_la-remote_driver.Plo
@@ -3676,6 +3766,38 @@ libvirt_driver_security_la-security_driver.lo: security/security_driver.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='security/security_driver.c' object='libvirt_driver_security_la-security_driver.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_security_la_CFLAGS) $(CFLAGS) -c -o libvirt_driver_security_la-security_driver.lo `test -f 'security/security_driver.c' || echo '$(srcdir)/'`security/security_driver.c
+
+libvirt_driver_security_la-security_nop.lo: security/security_nop.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_security_la_CFLAGS) $(CFLAGS) -MT libvirt_driver_security_la-security_nop.lo -MD -MP -MF $(DEPDIR)/libvirt_driver_security_la-security_nop.Tpo -c -o libvirt_driver_security_la-security_nop.lo `test -f 'security/security_nop.c' || echo '$(srcdir)/'`security/security_nop.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirt_driver_security_la-security_nop.Tpo $(DEPDIR)/libvirt_driver_security_la-security_nop.Plo
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='security/security_nop.c' object='libvirt_driver_security_la-security_nop.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_security_la_CFLAGS) $(CFLAGS) -c -o libvirt_driver_security_la-security_nop.lo `test -f 'security/security_nop.c' || echo '$(srcdir)/'`security/security_nop.c
+
+libvirt_driver_security_la-security_stack.lo: security/security_stack.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_security_la_CFLAGS) $(CFLAGS) -MT libvirt_driver_security_la-security_stack.lo -MD -MP -MF $(DEPDIR)/libvirt_driver_security_la-security_stack.Tpo -c -o libvirt_driver_security_la-security_stack.lo `test -f 'security/security_stack.c' || echo '$(srcdir)/'`security/security_stack.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirt_driver_security_la-security_stack.Tpo $(DEPDIR)/libvirt_driver_security_la-security_stack.Plo
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='security/security_stack.c' object='libvirt_driver_security_la-security_stack.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_security_la_CFLAGS) $(CFLAGS) -c -o libvirt_driver_security_la-security_stack.lo `test -f 'security/security_stack.c' || echo '$(srcdir)/'`security/security_stack.c
+
+libvirt_driver_security_la-security_dac.lo: security/security_dac.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_security_la_CFLAGS) $(CFLAGS) -MT libvirt_driver_security_la-security_dac.lo -MD -MP -MF $(DEPDIR)/libvirt_driver_security_la-security_dac.Tpo -c -o libvirt_driver_security_la-security_dac.lo `test -f 'security/security_dac.c' || echo '$(srcdir)/'`security/security_dac.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirt_driver_security_la-security_dac.Tpo $(DEPDIR)/libvirt_driver_security_la-security_dac.Plo
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='security/security_dac.c' object='libvirt_driver_security_la-security_dac.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_security_la_CFLAGS) $(CFLAGS) -c -o libvirt_driver_security_la-security_dac.lo `test -f 'security/security_dac.c' || echo '$(srcdir)/'`security/security_dac.c
+
+libvirt_driver_security_la-security_manager.lo: security/security_manager.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_security_la_CFLAGS) $(CFLAGS) -MT libvirt_driver_security_la-security_manager.lo -MD -MP -MF $(DEPDIR)/libvirt_driver_security_la-security_manager.Tpo -c -o libvirt_driver_security_la-security_manager.lo `test -f 'security/security_manager.c' || echo '$(srcdir)/'`security/security_manager.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirt_driver_security_la-security_manager.Tpo $(DEPDIR)/libvirt_driver_security_la-security_manager.Plo
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='security/security_manager.c' object='libvirt_driver_security_la-security_manager.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_security_la_CFLAGS) $(CFLAGS) -c -o libvirt_driver_security_la-security_manager.lo `test -f 'security/security_manager.c' || echo '$(srcdir)/'`security/security_manager.c
 
 libvirt_driver_security_la-security_selinux.lo: security/security_selinux.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_driver_security_la_CFLAGS) $(CFLAGS) -MT libvirt_driver_security_la-security_selinux.lo -MD -MP -MF $(DEPDIR)/libvirt_driver_security_la-security_selinux.Tpo -c -o libvirt_driver_security_la-security_selinux.lo `test -f 'security/security_selinux.c' || echo '$(srcdir)/'`security/security_selinux.c

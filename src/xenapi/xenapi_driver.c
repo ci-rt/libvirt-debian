@@ -1,5 +1,6 @@
 /*
  * xenapi_driver.c: Xen API driver.
+ * Copyright (C) 2011 Red Hat, Inc.
  * Copyright (C) 2009, 2010 Citrix Ltd.
  *
  * This library is free software; you can redistribute it and/or
@@ -1358,6 +1359,8 @@ xenapiDomainDumpXML (virDomainPtr dom, int flags ATTRIBUTE_UNUSED)
                     defPtr->features = defPtr->features | (1<<VIR_DOMAIN_FEATURE_APIC);
                 else if (STREQ(result->contents[i].key, "pae"))
                     defPtr->features = defPtr->features | (1<<VIR_DOMAIN_FEATURE_PAE);
+                else if (STREQ(result->contents[i].key, "hap"))
+                    defPtr->features = defPtr->features | (1<<VIR_DOMAIN_FEATURE_HAP);
             }
         }
         xen_string_string_map_free(result);
@@ -1781,6 +1784,7 @@ static virDriver xenapiDriver = {
     xenapiGetVersion, /* version */
     NULL, /*getlibvirtVersion */
     xenapiGetHostname, /* getHostname */
+    NULL, /* getSysinfo */
     xenapiGetMaxVcpus, /* getMaxVcpus */
     xenapiNodeGetInfo, /* nodeGetInfo */
     xenapiGetCapabilities, /* getCapabilities */
@@ -1916,7 +1920,6 @@ int
 call_func(const void *data, size_t len, void *user_handle,
           void *result_handle, xen_result_func result_func)
 {
-    //(void)user_handle;
     struct _xenapiPrivate *priv = (struct _xenapiPrivate *)user_handle;
 #ifdef PRINT_XML
     printf("\n\n---Data to server: -----------------------\n");

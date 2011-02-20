@@ -1,7 +1,7 @@
 /*
  * remote.c: handlers for RPC method calls
  *
- * Copyright (C) 2007-2010 Red Hat, Inc.
+ * Copyright (C) 2007-2011 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -585,6 +585,29 @@ remoteDispatchGetUri (struct qemud_server *server ATTRIBUTE_UNUSED,
 }
 
 static int
+remoteDispatchGetSysinfo (struct qemud_server *server ATTRIBUTE_UNUSED,
+                          struct qemud_client *client ATTRIBUTE_UNUSED,
+                          virConnectPtr conn,
+                          remote_message_header *hdr ATTRIBUTE_UNUSED,
+                          remote_error *rerr,
+                          remote_get_sysinfo_args *args,
+                          remote_get_sysinfo_ret *ret)
+{
+    unsigned int flags;
+    char *sysinfo;
+
+    flags = args->flags;
+    sysinfo = virConnectGetSysinfo (conn, flags);
+    if (sysinfo == NULL) {
+        remoteDispatchConnError(rerr, conn);
+        return -1;
+    }
+
+    ret->sysinfo = sysinfo;
+    return 0;
+}
+
+static int
 remoteDispatchGetMaxVcpus (struct qemud_server *server ATTRIBUTE_UNUSED,
                            struct qemud_client *client ATTRIBUTE_UNUSED,
                            virConnectPtr conn,
@@ -790,7 +813,7 @@ remoteDispatchDomainGetSchedulerParameters (struct qemud_server *server ATTRIBUT
         goto oom;
 
     for (i = 0; i < nparams; ++i) {
-        // remoteDispatchClientRequest will free this:
+        /* remoteDispatchClientRequest will free this: */
         ret->params.params_val[i].field = strdup (params[i].field);
         if (ret->params.params_val[i].field == NULL)
             goto oom;
@@ -2511,7 +2534,7 @@ remoteDispatchDomainGetMemoryParameters(struct qemud_server *server
         goto oom;
 
     for (i = 0; i < nparams; ++i) {
-        // remoteDispatchClientRequest will free this:
+        /* remoteDispatchClientRequest will free this: */
         ret->params.params_val[i].field = strdup(params[i].field);
         if (ret->params.params_val[i].field == NULL)
             goto oom;
@@ -5670,6 +5693,8 @@ remoteDispatchDomainEventSend (struct qemud_client *client,
     msg->async = 1;
     msg->bufferLength = len;
     msg->bufferOffset = 0;
+
+    VIR_DEBUG("Queue event %d %d", procnr, msg->bufferLength);
     qemudClientMessageQueuePush(&client->tx, msg);
     qemudUpdateClientEvent(client);
 

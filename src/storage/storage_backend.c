@@ -713,7 +713,7 @@ virStorageBackendCreateQemuImg(virConnectPtr conn,
             return -1;
         }
         if (enc->nsecrets > 1) {
-            virStorageReportError(VIR_ERR_INVALID_STORAGE_VOL, "%s",
+            virStorageReportError(VIR_ERR_XML_ERROR, "%s",
                                   _("too many secrets for qcow encryption"));
             return -1;
         }
@@ -725,7 +725,7 @@ virStorageBackendCreateQemuImg(virConnectPtr conn,
     }
 
     /* Size in KB */
-    if (virAsprintf(&size, "%lluK", vol->capacity / 1024) < 0) {
+    if (virAsprintf(&size, "%lluK", VIR_DIV_UP(vol->capacity, 1024)) < 0) {
         virReportOOMError();
         goto cleanup;
     }
@@ -870,7 +870,8 @@ virStorageBackendCreateQcowCreate(virConnectPtr conn ATTRIBUTE_UNUSED,
     }
 
     /* Size in MB - yes different units to qemu-img :-( */
-    if (virAsprintf(&size, "%llu", vol->capacity / 1024 / 1024) < 0) {
+    if (virAsprintf(&size, "%llu",
+                    VIR_DIV_UP(vol->capacity, (1024 * 1024))) < 0) {
         virReportOOMError();
         return -1;
     }

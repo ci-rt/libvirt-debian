@@ -8,15 +8,27 @@ THEDIR=`pwd`
 cd "$srcdir"
 
 test -f src/libvirt.c || {
-	echo "You must run this script in the top-level libvirt directory"
-	exit 1
+    echo "You must run this script in the top-level libvirt directory"
+    exit 1
 }
 
 
 EXTRA_ARGS=
+no_git=
+if test "x$1" = "x--no-git"; then
+  no_git=" $1"
+  shift
+fi
 if test "x$1" = "x--system"; then
     shift
-    EXTRA_ARGS="--prefix=/usr --sysconfdir=/etc --localstatedir=/var"
+    prefix=/usr
+    libdir=$prefix/lib
+    sysconfdir=/etc
+    localstatedir=/var
+    if [ -d /usr/lib64 ]; then
+      libdir=$prefix/lib64
+    fi
+    EXTRA_ARGS="--prefix=$prefix --sysconfdir=$sysconfdir --localstatedir=$localstatedir --libdir=$libdir"
     echo "Running ./configure with $EXTRA_ARGS $@"
 else
     if test -z "$*" && test ! -f "$THEDIR/config.status"; then
@@ -40,16 +52,19 @@ bootstrap_hash()
 # Also, running 'make rpm' tends to litter the po/ directory, and some people
 # like to run 'git clean -x -f po' to fix it; but only ./bootstrap regenerates
 # the required file po/Makevars.
-curr_status=.git-module-status
-t=$(bootstrap_hash; git diff .gnulib)
-if test "$t" = "$(cat $curr_status 2>/dev/null)" \
-    && test -f "po/Makevars"; then
-    # good, it's up to date, all we need is autoreconf
-    autoreconf -if
-else
-    echo running bootstrap...
-    ./bootstrap && bootstrap_hash > $curr_status \
-      || { echo "Failed to bootstrap, please investigate."; exit 1; }
+# Only run bootstrap from a git checkout, never from a tarball.
+if test -d .git; then
+    curr_status=.git-module-status
+    t=$(bootstrap_hash; git diff .gnulib)
+    if test "$t" = "$(cat $curr_status 2>/dev/null)" \
+        && test -f "po/Makevars"; then
+        # good, it's up to date, all we need is autoreconf
+        autoreconf -if
+    else
+        echo running bootstrap$no_git...
+        ./bootstrap$no_git --bootstrap-sync && bootstrap_hash > $curr_status \
+            || { echo "Failed to bootstrap, please investigate."; exit 1; }
+    fi
 fi
 
 cd "$THEDIR"

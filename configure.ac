@@ -1,12 +1,13 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([libvirt], [0.8.7], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [0.8.8], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 dnl Make automake keep quiet about wildcards & other GNUmake-isms
 AM_INIT_AUTOMAKE([-Wno-portability])
+AM_MAINTAINER_MODE([enable])
 
 # Use the silent-rules feature when possible.
 m4_ifndef([AM_SILENT_RULES], [m4_define([AM_SILENT_RULES],[])])
@@ -28,6 +29,25 @@ AC_SUBST([LIBVIRT_VERSION])
 AC_SUBST([LIBVIRT_VERSION_INFO])
 AC_SUBST([LIBVIRT_VERSION_NUMBER])
 
+AC_ARG_WITH([packager],
+            [AS_HELP_STRING([--with-packager],
+                            [Extra packager name])],
+            [],[with_packager=no])
+AC_ARG_WITH([packager-version],
+            [AS_HELP_STRING([--with-packager-version],
+                            [Extra packager version])],
+            [],[with_packager_version=no])
+if test "x$with_packager" != "xno"
+then
+  AC_DEFINE_UNQUOTED([PACKAGER], ["$with_packager"],
+                     [Extra package name])
+fi
+if test "x$with_packager_version" != "xno"
+then
+  AC_DEFINE_UNQUOTED([PACKAGER_VERSION], ["$with_packager_version"],
+                     [Extra package version])
+fi
+
 dnl Required minimum versions of all libs we depend on
 LIBXML_REQUIRED="2.6.0"
 GNUTLS_REQUIRED="1.0.25"
@@ -48,11 +68,11 @@ dnl Checks for C compiler.
 AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_CPP
+AM_PROG_CC_STDC
 
 gl_EARLY
 gl_INIT
 
-AM_PROG_CC_STDC
 AC_TYPE_UID_T
 
 dnl Make sure we have an ANSI compiler
@@ -92,12 +112,11 @@ fi
 AC_MSG_RESULT([$have_cpuid])
 
 
-dnl Availability of various common functions (non-fatal if missing).
-AC_CHECK_FUNCS_ONCE([cfmakeraw regexec sched_getaffinity getuid getgid initgroups \
- posix_fallocate mmap])
-
-dnl Availability of various not common threadsafe functions
-AC_CHECK_FUNCS_ONCE([strerror_r getmntent_r getgrnam_r getpwuid_r])
+dnl Availability of various common functions (non-fatal if missing),
+dnl and various less common threadsafe functions
+AC_CHECK_FUNCS_ONCE([cfmakeraw regexec sched_getaffinity getuid getgid \
+ initgroups posix_fallocate mmap \
+ getmntent_r getgrnam_r getpwuid_r])
 
 dnl Availability of pthread functions (if missing, win32 threading is
 dnl assumed).  Because of $LIB_PTHREAD, we cannot use AC_CHECK_FUNCS_ONCE.
@@ -1703,17 +1722,18 @@ AC_SUBST([DEVMAPPER_LIBS])
 
 LIBPARTED_CFLAGS=
 LIBPARTED_LIBS=
-if test "$with_storage_disk" = "yes" || test "$with_storage_disk" = "check"; then
+if test "$with_storage_disk" = "yes" ||
+   test "$with_storage_disk" = "check"; then
   AC_PATH_PROG([PARTED], [parted], [], [$PATH:/sbin:/usr/sbin])
   if test -z "$PARTED" ; then
-    with_storage_disk=no
     PARTED_FOUND=no
   else
     PARTED_FOUND=yes
   fi
 
-  if test "$with_storage_disk" != "no" && test "x$PKG_CONFIG" != "x" ; then
-    PKG_CHECK_MODULES(LIBPARTED, libparted >= $PARTED_REQUIRED, [], [PARTED_FOUND=no])
+  if test "$PARTED_FOUND" = "yes" && test "x$PKG_CONFIG" != "x" ; then
+    PKG_CHECK_MODULES([LIBPARTED], [libparted >= $PARTED_REQUIRED], [],
+      [PARTED_FOUND=no])
   fi
   if test "$PARTED_FOUND" = "no"; then
     # RHEL-5 vintage parted is missing pkg-config files
@@ -1739,8 +1759,10 @@ if test "$with_storage_disk" = "yes" || test "$with_storage_disk" = "check"; the
   fi
 
   if test "$with_storage_disk" = "yes"; then
-    AC_DEFINE_UNQUOTED([WITH_STORAGE_DISK], 1, [whether Disk backend for storage driver is enabled])
-    AC_DEFINE_UNQUOTED([PARTED],["$PARTED"], [Location or name of the parted program])
+    AC_DEFINE_UNQUOTED([WITH_STORAGE_DISK], 1,
+      [whether Disk backend for storage driver is enabled])
+    AC_DEFINE_UNQUOTED([PARTED],["$PARTED"],
+      [Location or name of the parted program])
   fi
 fi
 AM_CONDITIONAL([WITH_STORAGE_DISK], [test "$with_storage_disk" = "yes"])

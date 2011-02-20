@@ -1,7 +1,7 @@
 /*
  * qemu_capabilities.h: QEMU capabilities generation
  *
- * Copyright (C) 2006-2007, 2009-2010 Red Hat, Inc.
+ * Copyright (C) 2006-2011 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -83,6 +83,15 @@ enum qemuCapsFlags {
     QEMUD_CMD_FLAG_SPICE         = (1LL << 46), /* Is -spice avail */
     QEMUD_CMD_FLAG_VGA_NONE      = (1LL << 47), /* The 'none' arg for '-vga' */
     QEMUD_CMD_FLAG_MIGRATE_QEMU_FD = (1LL << 48), /* -incoming fd:n */
+    QEMUD_CMD_FLAG_BOOTINDEX     = (1LL << 49), /* -device bootindex property */
+    QEMUD_CMD_FLAG_HDA_DUPLEX    = (1LL << 50), /* -device hda-duplex */
+    QEMUD_CMD_FLAG_DRIVE_AIO     = (1LL << 51), /* -drive aio= supported */
+    QEMUD_CMD_FLAG_PCI_MULTIBUS  = (1LL << 52), /* bus=pci.0 vs bus=pci */
+    QEMUD_CMD_FLAG_PCI_BOOTINDEX = (1LL << 53), /* pci-assign.bootindex */
+    QEMUD_CMD_FLAG_CCID_EMULATED = (1LL << 54), /* -device ccid-card-emulated */
+    QEMUD_CMD_FLAG_CCID_PASSTHRU = (1LL << 55), /* -device ccid-card-passthru */
+    QEMUD_CMD_FLAG_CHARDEV_SPICEVMC = (1LL << 56), /* newer -chardev spicevmc */
+    QEMUD_CMD_FLAG_DEVICE_SPICEVMC = (1LL << 57), /* older -device spicevmc*/
 };
 
 virCapsPtr qemuCapsInit(virCapsPtr old_caps);
@@ -99,7 +108,7 @@ int qemuCapsProbeCPUModels(const char *qemu,
 
 int qemuCapsExtractVersion(virCapsPtr caps,
                            unsigned int *version);
-int qemuCapsExtractVersionInfo(const char *qemu,
+int qemuCapsExtractVersionInfo(const char *qemu, const char *arch,
                                unsigned int *version,
                                unsigned long long *qemuCmdFlags);
 
@@ -109,6 +118,8 @@ int qemuCapsParseHelpStr(const char *qemu,
                          unsigned int *version,
                          unsigned int *is_kvm,
                          unsigned int *kvm_version);
+int qemuCapsParseDeviceStr(const char *str,
+                           unsigned long long *qemuCmdFlags);
 
 
 #endif /* __QEMU_CAPABILITIES_H__*/

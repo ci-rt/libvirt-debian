@@ -41,6 +41,10 @@
 
 #define VIR_FROM_THIS VIR_FROM_NODEDEV
 
+#ifndef TYPE_RAID
+# define TYPE_RAID 12
+#endif
+
 struct _udevPrivate {
     struct udev_monitor *udev_monitor;
     int watch;
@@ -112,8 +116,8 @@ static int udevGetDeviceProperty(struct udev_device *udev_device,
 
     udev_value = udev_device_get_property_value(udev_device, property_key);
     if (udev_value == NULL) {
-        VIR_INFO(_("udev reports device '%s' does not have property '%s'"),
-                 udev_device_get_sysname(udev_device), property_key);
+        VIR_DEBUG("udev reports device '%s' does not have property '%s'",
+                  udev_device_get_sysname(udev_device), property_key);
         ret = PROPERTY_MISSING;
         goto out;
     }
@@ -201,8 +205,8 @@ static int udevGetDeviceSysfsAttr(struct udev_device *udev_device,
 
     udev_value = udev_device_get_sysattr_value(udev_device, attr_name);
     if (udev_value == NULL) {
-        VIR_INFO(_("udev reports device '%s' does not have sysfs attr '%s'"),
-                 udev_device_get_sysname(udev_device), attr_name);
+        VIR_DEBUG("udev reports device '%s' does not have sysfs attr '%s'",
+                  udev_device_get_sysname(udev_device), attr_name);
         ret = PROPERTY_MISSING;
         goto out;
     }
@@ -363,17 +367,9 @@ static int udevTranslatePCIIds(unsigned int vendor,
                                char **vendor_string,
                                char **product_string)
 {
-    int ret = -1, pciret;
+    int ret = -1;
     struct pci_id_match m;
     const char *vendor_name = NULL, *device_name = NULL;
-
-    if ((pciret = pci_system_init()) != 0) {
-        char ebuf[256];
-        VIR_INFO("Failed to initialize libpciaccess: %s",
-                 virStrerror(pciret, ebuf, sizeof ebuf));
-        ret = 0;
-        goto out;
-    }
 
     m.vendor_id = vendor;
     m.device_id = product;
@@ -405,9 +401,6 @@ static int udevTranslatePCIIds(unsigned int vendor,
             goto out;
         }
     }
-
-    /* pci_system_cleanup returns void */
-    pci_system_cleanup();
 
     ret = 0;
 
@@ -704,7 +697,8 @@ out:
 }
 
 
-static int udevGetSCSIType(unsigned int type, char **typestring)
+static int udevGetSCSIType(virNodeDeviceDefPtr def,
+                           unsigned int type, char **typestring)
 {
     int ret = 0;
     int foundtype = 1;
@@ -739,6 +733,9 @@ static int udevGetSCSIType(unsigned int type, char **typestring)
     case TYPE_ENCLOSURE:
         *typestring = strdup("enclosure");
         break;
+    case TYPE_RAID:
+        *typestring = strdup("raid");
+        break;
     case TYPE_NO_LUN:
     default:
         foundtype = 0;
@@ -750,7 +747,8 @@ static int udevGetSCSIType(unsigned int type, char **typestring)
             ret = -1;
             virReportOOMError();
         } else {
-            VIR_ERROR(_("Failed to find SCSI device type %d"), type);
+            VIR_DEBUG("Failed to find SCSI device type %d for %s",
+                      type, def->sysfs_path);
         }
     }
 
@@ -795,7 +793,7 @@ static int udevProcessSCSIDevice(struct udev_device *device ATTRIBUTE_UNUSED,
 
     switch (udevGetUintSysfsAttr(device, "type", &tmp, 0)) {
     case PROPERTY_FOUND:
-        if (udevGetSCSIType(tmp, &data->scsi.type) == -1) {
+        if (udevGetSCSIType(def, tmp, &data->scsi.type) == -1) {
             goto out;
         }
         break;
@@ -952,9 +950,9 @@ static int udevKludgeStorageType(virNodeDeviceDefPtr def)
 {
     int ret = -1;
 
-    VIR_INFO("Could not find definitive storage type for device "
-             "with sysfs path '%s', trying to guess it",
-             def->sysfs_path);
+    VIR_DEBUG("Could not find definitive storage type for device "
+              "with sysfs path '%s', trying to guess it",
+              def->sysfs_path);
 
     if (STRPREFIX(def->caps->data.storage.block, "/dev/vd")) {
         /* virtio disk */
@@ -965,8 +963,8 @@ static int udevKludgeStorageType(virNodeDeviceDefPtr def)
     }
 
     if (ret != 0) {
-        VIR_INFO("Could not determine storage type for device "
-                 "with sysfs path '%s'", def->sysfs_path);
+        VIR_DEBUG("Could not determine storage type for device "
+                  "with sysfs path '%s'", def->sysfs_path);
     } else {
         VIR_DEBUG("Found storage type '%s' for device "
                   "with sysfs path '%s'",
@@ -1064,8 +1062,8 @@ static int udevProcessStorage(struct udev_device *device,
     } else if (STREQ(def->caps->data.storage.drive_type, "floppy")) {
         ret = udevProcessFloppy(device, def);
     } else {
-        VIR_INFO("Unsupported storage type '%s'",
-                 def->caps->data.storage.drive_type);
+        VIR_DEBUG("Unsupported storage type '%s'",
+                  def->caps->data.storage.drive_type);
         goto out;
     }
 
@@ -1143,9 +1141,9 @@ static int udevGetDeviceType(struct udev_device *device,
         goto out;
     }
 
-    VIR_INFO("Could not determine device type for device "
-             "with sysfs path '%s'",
-             udev_device_get_sysname(device));
+    VIR_DEBUG("Could not determine device type for device "
+              "with sysfs path '%s'",
+              udev_device_get_sysname(device));
     ret = -1;
 
 out:
@@ -1211,8 +1209,8 @@ static int udevRemoveOneDevice(struct udev_device *device)
                   dev->def->name, name);
         virNodeDeviceObjRemove(&driverState->devs, dev);
     } else {
-        VIR_INFO("Failed to find device to remove that has udev name '%s'",
-                 name);
+        VIR_DEBUG("Failed to find device to remove that has udev name '%s'",
+                  name);
         ret = -1;
     }
     nodeDeviceUnlock(driverState);
@@ -1239,8 +1237,8 @@ static int udevSetParent(struct udev_device *device,
 
         parent_sysfs_path = udev_device_get_syspath(parent_device);
         if (parent_sysfs_path == NULL) {
-            VIR_INFO("Could not get syspath for parent of '%s'",
-                     udev_device_get_syspath(parent_device));
+            VIR_DEBUG("Could not get syspath for parent of '%s'",
+                      udev_device_get_syspath(parent_device));
         }
 
         dev = virNodeDeviceFindBySysfsPath(&driverState->devs,
@@ -1352,8 +1350,8 @@ static int udevProcessDeviceListEntry(struct udev *udev,
 
     if (device != NULL) {
         if (udevAddOneDevice(device) != 0) {
-            VIR_INFO("Failed to create node device for udev device '%s'",
-                     name);
+            VIR_DEBUG("Failed to create node device for udev device '%s'",
+                      name);
         }
         ret = 0;
     }
@@ -1425,6 +1423,9 @@ static int udevDeviceMonitorShutdown(void)
     } else {
         ret = -1;
     }
+
+    /* pci_system_cleanup returns void */
+    pci_system_cleanup();
 
     return ret;
 }
@@ -1593,6 +1594,15 @@ static int udevDeviceMonitorStartup(int privileged ATTRIBUTE_UNUSED)
     udevPrivate *priv = NULL;
     struct udev *udev = NULL;
     int ret = 0;
+    int pciret;
+
+    if ((pciret = pci_system_init()) != 0) {
+        char ebuf[256];
+        VIR_ERROR(_("Failed to initialize libpciaccess: %s"),
+                  virStrerror(pciret, ebuf, sizeof ebuf));
+        ret = -1;
+        goto out;
+    }
 
     if (VIR_ALLOC(priv) < 0) {
         virReportOOMError();

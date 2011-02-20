@@ -34,6 +34,10 @@
             </div>
           </li><li>
             <div>
+              <a title="Applications known to use libvirt" class="inactive" href="apps.html">Applications</a>
+            </div>
+          </li><li>
+            <div>
               <a title="Get the latest source releases, binary builds and get access to the source repository" class="inactive" href="downloads.html">Downloads</a>
             </div>
           </li><li>
@@ -61,6 +65,10 @@
                       </li><li>
                         <div>
                           <a title="The virtual network XML format" class="inactive" href="formatnetwork.html">Networks</a>
+                        </div>
+                      </li><li>
+                        <div>
+                          <a title="Network filter XML format" class="inactive" href="formatnwfilter.html">Network Filtering</a>
                         </div>
                       </li><li>
                         <div>
@@ -156,6 +164,8 @@
                     <a href="#elementsOSKernel">Direct kernel boot</a>
                   </li></ul>
               </li><li>
+                <a href="#elementsSysinfo">SMBIOS System Information</a>
+              </li><li>
                 <a href="#elementsResources">Basic resources</a>
               </li><li>
                 <a href="#elementsCPU">CPU model and topology</a>
@@ -170,7 +180,11 @@
                 <ul><li>
                     <a href="#elementsDisks">Hard drives, floppy disks, CDROMs</a>
                   </li><li>
+                    <a href="#elementsControllers">Controllers</a>
+                  </li><li>
                     <a href="#elementsUSB">USB and PCI devices</a>
+                  </li><li>
+                    <a href="#elementsSmartcard">Smartcard devices</a>
                   </li><li>
                     <a href="#elementsNICS">Network interfaces</a>
                     <ul><li>
@@ -191,6 +205,8 @@
                         <a href="#elementsNICSModel">Setting the NIC model</a>
                       </li><li>
                         <a href="#elementsNICSTargetOverride">Overriding the target element</a>
+                      </li><li>
+                        <a href="#elementsNICSBoot">Specifying boot order</a>
                       </li></ul>
                   </li><li>
                     <a href="#elementsInput">Input devices</a>
@@ -283,7 +299,10 @@
         a globally unique identifier for the virtual machine.
         The format must be RFC 4122 compliant, eg <code>3e3fce45-4f53-4fa7-bb32-11f34168b82b</code>.
         If omitted when defining/creating a new machine, a random
-        UUID is generated. <span class="since">Since 0.0.1</span></dd><dt><code>description</code></dt><dd>The content of the <code>description</code> element provides a
+        UUID is generated. It is also possible to provide the UUID
+        via a <a href="#elementsSysinfo"><code>sysinfo</code></a>
+        specification. <span class="since">Since 0.0.1, sysinfo
+        since 0.8.7</span></dd><dt><code>description</code></dt><dd>The content of the <code>description</code> element provides a
       human readable description of the virtual machine. This data is not
       used by libvirt in any way, it can contain any information the user
       wants. <span class="since">Since 0.7.2</span></dd></dl>
@@ -311,6 +330,7 @@
     &lt;boot dev='hd'/&gt;
     &lt;boot dev='cdrom'/&gt;
     &lt;bootmenu enable='yes'/&gt;
+    &lt;smbios mode='sysinfo'/&gt;
   &lt;/os&gt;
   ...</pre>
         <dl><dt><code>type</code></dt><dd>The content of the <code>type</code> element specifies the
@@ -326,12 +346,27 @@
         only needed by Xen fully virtualized domains. <span class="since">Since 0.1.0</span></dd><dt><code>boot</code></dt><dd>The <code>dev</code> attribute takes one of the values "fd", "hd",
         "cdrom" or "network" and is used to specify the next boot device
         to consider. The <code>boot</code> element can be repeated multiple
-        times to setup a priority list of boot devices to try in turn.
-        <span class="since">Since 0.1.3</span>
+        times to setup a priority list of boot devices to try in turn. The
+        <code>boot</code> element cannot be used if per-device boot elements
+        are used (see <a href="#elementsDisks">disks</a>,
+        <a href="#elementsNICS">network interfaces</a>, and
+        <a href="#elementsUSB">USB and PCI devices</a> sections below).
+        <span class="since">Since 0.1.3, per-device boot since 0.8.8</span>
       </dd><dt><code>bootmenu</code></dt><dd> Whether or not to enable an interactive boot menu prompt on guest
       startup. The <code>enable</code> attribute can be either "yes" or "no".
       If not specified, the hypervisor default is used. <span class="since">
       Since 0.8.3</span>
+      </dd><dt><code>smbios</code></dt><dd>How to populate SMBIOS information visible in the guest.
+      The <code>mode</code> attribute must be specified, and is either
+      "emulate" (let the hypervisor generate all values), "host" (copy
+      all of Block 0 and Block 1, except for the UUID, from the host's
+      SMBIOS values;
+      the <a href="html/libvirt-libvirt.html#virConnectGetSysinfo">
+      <code>virConnectGetSysinfo</code></a> call can be
+      used to see what values are copied), or "sysinfo" (use the values in
+      the <a href="#elementsSysinfo">sysinfo</a> element).  If not
+      specified, the hypervisor default is used. <span class="since">
+      Since 0.8.7</span>
       </dd></dl>
         <h4>
           <a name="elementsOSBootloader" id="elementsOSBootloader">Host bootloader</a>
@@ -384,6 +419,57 @@
         specify an alternate primary console (eg serial port), or the
         installation media source / kickstart file</dd></dl>
         <h3>
+          <a name="elementsSysinfo" id="elementsSysinfo">SMBIOS System Information</a>
+        </h3>
+        <p>
+      Some hypervisors allow control over what system information is
+      presented to the guest (for example, SMBIOS fields can be
+      populated by a hypervisor and inspected via
+      the <code>dmidecode</code> command in the guest).  The
+      optional <code>sysinfo</code> element covers all such categories
+      of information. <span class="since">Since 0.8.7</span>
+    </p>
+        <pre>
+  ...
+  &lt;os&gt;
+    &lt;smbios mode='sysinfo'/&gt;
+    ...
+  &lt;/os&gt;
+  &lt;sysinfo type='smbios'&gt;
+    &lt;bios&gt;
+      &lt;entry name='vendor'&gt;LENOVO&lt;/entry&gt;
+    &lt;/bios&gt;
+    &lt;system&gt;
+      &lt;entry name='manufacturer'&gt;Fedora&lt;/entry&gt;
+      &lt;entry name='vendor'&gt;Virt-Manager&lt;/entry&gt;
+    &lt;/system&gt;
+  &lt;/sysinfo&gt;
+  ...</pre>
+        <p>
+      The <code>sysinfo</code> element has a mandatory
+      attribute <code>type</code> that determine the layout of
+      sub-elements, with supported values of:
+    </p>
+        <dl><dt><code>smbios</code></dt><dd>Sub-elements call out specific SMBIOS values, which will
+      affect the guest if used in conjunction with
+      the <code>smbios</code> sub-element of
+      the <a href="#elementsOS"><code>os</code></a> element.  Each
+      sub-element of <code>sysinfo</code> names a SMBIOS block, and
+      within those elements can be a list of <code>entry</code>
+      elements that describe a field within the block.  The following
+      blocks and entries are recognized:
+        <dl><dt><code>bios</code></dt><dd>
+            This is block 0 of SMBIOS, with entry names drawn from
+            "vendor", "version", "date", and "release".
+          </dd><dt><code>system</code></dt><dd>
+            This is block 1 of SMBIOS, with entry names drawn from
+            "manufacturer", "product", "version", "serial", "uuid",
+            "sku", and "family".  If a "uuid" entry is provided
+            alongside a
+            top-level <a href="#elementsMetadata"><code>uuid</code>
+            element</a>, the two values must match.
+          </dd></dl></dd></dl>
+        <h3>
           <a name="elementsResources" id="elementsResources">Basic resources</a>
         </h3>
         <pre>
@@ -393,6 +479,9 @@
   &lt;memoryBacking&gt;
     &lt;hugepages/&gt;
   &lt;/memoryBacking&gt;
+  &lt;blkiotune&gt;
+    &lt;weight&gt;800&lt;/weight&gt;
+  &lt;/blkiotune&gt;
   &lt;memtune&gt;
     &lt;hard_limit&gt;1048576&lt;/hard_limit&gt;
     &lt;soft_limit&gt;131072&lt;/soft_limit&gt;
@@ -402,23 +491,26 @@
   &lt;vcpu cpuset="1-4,^3,6" current="1"&gt;2&lt;/vcpu&gt;
   ...</pre>
         <dl><dt><code>memory</code></dt><dd>The maximum allocation of memory for the guest at boot time.
-        The units for this value are kilobytes (i.e. blocks of 1024 bytes)</dd><dt><code>currentMemory</code></dt><dd>The actual allocation of memory for the guest. This value
+        The units for this value are kilobytes (i.e. blocks of 1024 bytes)</dd><dt><code>currentMemory</code></dt><dd>The actual allocation of memory for the guest. This value can
         be less than the maximum allocation, to allow for ballooning
         up the guests memory on the fly. If this is omitted, it defaults
-        to the same value as the <code>memory<code> element</code></code></dd><dt><code>memoryBacking</code></dt><dd>The optional <code>memoryBacking</code> element, may have an
+        to the same value as the <code>memory</code> element</dd><dt><code>memoryBacking</code></dt><dd>The optional <code>memoryBacking</code> element, may have an
         <code>hugepages</code> element set within it. This tells the
         hypervisor that the guest should have its memory allocated using
-        hugepages instead of the normal native page size.</dd><dt><code>memtune</code></dt><dd> The optional <code>memtune</code> element provides details
-      regarding the memory tuneable parameters for the domain. If this is
-      omitted, it defaults to the OS provided defaults.</dd><dt><code>hard_limit</code></dt><dd> The optional <code>hard_limit</code> element is the maximum memory
-	the guest can use. The units for this value are kilobytes (i.e. blocks
-	of 1024 bytes)</dd><dt><code>soft_limit</code></dt><dd> The optional <code>soft_limit</code> element is the memory limit to
-	enforce during memory contention. The units for this value are
-	kilobytes (i.e. blocks of 1024 bytes)</dd><dt><code>swap_hard_limit</code></dt><dd> The optional <code>swap_hard_limit</code> element is the maximum
-	swap the guest can use. The units for this value are kilobytes
-	(i.e. blocks of 1024 bytes)</dd><dt><code>min_guarantee</code></dt><dd> The optional <code>min_guarantee</code> element is the guaranteed
-	minimum memory allocation for the guest. The units for this value are
-	kilobytes (i.e. blocks of 1024 bytes)</dd><dt><code>vcpu</code></dt><dd>The content of this element defines the maximum number of virtual
+        hugepages instead of the normal native page size.</dd><dt><code>blkiotune</code></dt><dd> The optional <code>blkiotune</code> element provides the ability
+        to tune Blkio cgroup tunable parameters for the domain. If this is
+        omitted, it defaults to the OS provided defaults.</dd><dt><code>weight</code></dt><dd> The optional <code>weight</code> element is the I/O weight of the
+        guest. The value should be in range [100, 1000].</dd><dt><code>memtune</code></dt><dd> The optional <code>memtune</code> element provides details
+        regarding the memory tunable parameters for the domain. If this is
+        omitted, it defaults to the OS provided defaults.</dd><dt><code>hard_limit</code></dt><dd> The optional <code>hard_limit</code> element is the maximum memory
+        the guest can use. The units for this value are kilobytes (i.e. blocks
+        of 1024 bytes)</dd><dt><code>soft_limit</code></dt><dd> The optional <code>soft_limit</code> element is the memory limit to
+        enforce during memory contention. The units for this value are
+        kilobytes (i.e. blocks of 1024 bytes)</dd><dt><code>swap_hard_limit</code></dt><dd> The optional <code>swap_hard_limit</code> element is the maximum
+        swap the guest can use. The units for this value are kilobytes
+        (i.e. blocks of 1024 bytes)</dd><dt><code>min_guarantee</code></dt><dd> The optional <code>min_guarantee</code> element is the guaranteed
+        minimum memory allocation for the guest. The units for this value are
+        kilobytes (i.e. blocks of 1024 bytes)</dd><dt><code>vcpu</code></dt><dd>The content of this element defines the maximum number of virtual
         CPUs allocated for the guest OS, which must be between 1 and
         the maximum supported by the hypervisor.  <span class="since">Since
         0.4.4</span>, this element can contain an optional
@@ -471,7 +563,7 @@
             requested CPU.</dd><dt><code>exact</code></dt><dd>The virtual CPU provided to the guest will exactly match the
             specification</dd><dt><code>strict</code></dt><dd>The guest will not be created unless the host CPU does exactly
             match the specification.</dd></dl><span class="since">Since 0.8.5</span> the <code>match</code>
-	attribute can be omitted and will default to <code>exact</code>.
+        attribute can be omitted and will default to <code>exact</code>.
       </dd><dt><code>model</code></dt><dd>The content of the <code>model</code> element specifies CPU model
         requested by the guest. The list of available CPU models and their
         definition can be found in <code>cpu_map.xml</code> file installed
@@ -495,7 +587,7 @@
             CPU.</dd><dt><code>optional</code></dt><dd>The feature will be supported by virtual CPU if and only if it
             is supported by host CPU.</dd><dt><code>disable</code></dt><dd>The feature will not be supported by virtual CPU.</dd><dt><code>forbid</code></dt><dd>Guest creation will fail if the feature is supported by host
             CPU.</dd></dl><span class="since">Since 0.8.5</span> the <code>policy</code>
-	attribute can be omitted and will default to <code>require</code>.
+        attribute can be omitted and will default to <code>require</code>.
       </dd></dl>
         <h3>
           <a name="elementsLifecycle" id="elementsLifecycle">Lifecycle control</a>
@@ -547,6 +639,7 @@
     &lt;pae/&gt;
     &lt;acpi/&gt;
     &lt;apic/&gt;
+    &lt;hap/&gt;
   &lt;/features&gt;
   ...</pre>
         <p>
@@ -559,6 +652,8 @@
         <dl><dt><code>pae</code></dt><dd>Physical address extension mode allows 32-bit guests
         to address more than 4 GB of memory.</dd><dt><code>acpi</code></dt><dd>ACPI is useful for power management, for example, with
         KVM guests it is required for graceful shutdown to work.
+      </dd><dt><code>hap</code></dt><dd>Enable use of Hardware Assisted Paging if available in
+        the hardware.
       </dd></dl>
         <h3>
           <a name="elementsTime" id="elementsTime">Time keeping</a>
@@ -579,72 +674,72 @@
   &lt;/clock&gt;
   ...</pre>
         <dl><dt><code>clock</code></dt><dd>
-	<p>The <code>offset</code> attribute takes four possible
-	  values, allowing fine grained control over how the guest
-	  clock is synchronized to the host. NB, not all hypervisors
-	  support all modes.</p>
-	<dl><dt><code>utc</code></dt><dd>
-	    The guest clock will always be synchronized to UTC when
-	    booted</dd><dt><code>localtime</code></dt><dd>
-	    The guest clock will be synchronized to the host's configured
-	    timezone when booted, if any.
-	  </dd><dt><code>timezone</code></dt><dd>
-	    The guest clock will be synchronized to the requested timezone
-	    using the <code>timezone</code> attribute.
-	    <span class="since">Since 0.7.7</span>
-	  </dd><dt><code>variable</code></dt><dd>
-	    The guest clock will have an arbitrary offset applied
-	    relative to UTC. The delta relative to UTC is specified
-	    in seconds, using the <code>adjustment</code> attribute.
-	    The guest is free to adjust the RTC over time an expect
-	    that it will be honoured at next reboot. This is in
-	    contrast to 'utc' mode, where the RTC adjustments are
-	    lost at each reboot. <span class="since">Since 0.7.7</span>
-	  </dd></dl><p>
-	  A <code>clock</code> may have zero or more
-	  <code>timer</code>sub-elements. <span class="since">Since
-	  0.8.0</span>
-	</p>
+        <p>The <code>offset</code> attribute takes four possible
+          values, allowing fine grained control over how the guest
+          clock is synchronized to the host. NB, not all hypervisors
+          support all modes.</p>
+        <dl><dt><code>utc</code></dt><dd>
+            The guest clock will always be synchronized to UTC when
+            booted</dd><dt><code>localtime</code></dt><dd>
+            The guest clock will be synchronized to the host's configured
+            timezone when booted, if any.
+          </dd><dt><code>timezone</code></dt><dd>
+            The guest clock will be synchronized to the requested timezone
+            using the <code>timezone</code> attribute.
+            <span class="since">Since 0.7.7</span>
+          </dd><dt><code>variable</code></dt><dd>
+            The guest clock will have an arbitrary offset applied
+            relative to UTC. The delta relative to UTC is specified
+            in seconds, using the <code>adjustment</code> attribute.
+            The guest is free to adjust the RTC over time an expect
+            that it will be honoured at next reboot. This is in
+            contrast to 'utc' mode, where the RTC adjustments are
+            lost at each reboot. <span class="since">Since 0.7.7</span>
+          </dd></dl><p>
+          A <code>clock</code> may have zero or more
+          <code>timer</code>sub-elements. <span class="since">Since
+          0.8.0</span>
+        </p>
       </dd><dt><code>timer</code></dt><dd>
-	<p>
-	  Each timer element requires a <code>name</code> attribute,
-	  and has other optional attributes that depend on
-	  the <code>name</code> specified.  Various hypervisors
-	  support different combinations of attributes.
-	</p>
-	<dl><dt><code>name</code></dt><dd>
-	    The <code>name</code> attribute selects which timer is
-	    being modified, and can be one of "platform", "pit",
-	    "rtc", "hpet", or "tsc".
-	  </dd><dt><code>track</code></dt><dd>
-	    The <code>track</code> attribute specifies what the timer
-	    tracks, and can be "boot", "guest", or "wall".
-	    Only valid for <code>name="rtc"</code>
-	    or <code>name="platform"</code>.
-	  </dd><dt><code>tickpolicy</code></dt><dd>
-	    The <code>tickpolicy</code> attribute determines how
-	    missed ticks in the guest are handled, and can be "delay",
-	    "catchup", "merge", or "discard".  If the policy is
-	    "catchup", there can be further details in
-	    the <code>catchup</code> sub-element.
-	    <dl><dt><code>catchup</code></dt><dd>
-		The <code>catchup</code> element has three optional
-		attributes, each a positive integer.  The attributes
-		are <code>threshold</code>, <code>slew</code>,
-		and <code>limit</code>.
-	      </dd></dl></dd><dt><code>frequency</code></dt><dd>
-	    The <code>frequency</code> attribute is an unsigned
-	    integer specifying the frequency at
-	    which <code>name="tsc"</code> runs.
-	  </dd><dt><code>mode</code></dt><dd>
-	    The <code>mode</code> attribute controls how
-	    the <code>name="tsc"</code> timer is managed, and can be
-	    "auto", "native", "emulate", "paravirt", or "smpsafe".
-	    Other timers are always emulated.
-	  </dd><dt><code>present</code></dt><dd>
-	    The <code>present</code> attribute can be "yes" or "no" to
-	    specify whether a particular timer is available to the guest.
-	  </dd></dl></dd></dl>
+        <p>
+          Each timer element requires a <code>name</code> attribute,
+          and has other optional attributes that depend on
+          the <code>name</code> specified.  Various hypervisors
+          support different combinations of attributes.
+        </p>
+        <dl><dt><code>name</code></dt><dd>
+            The <code>name</code> attribute selects which timer is
+            being modified, and can be one of "platform", "pit",
+            "rtc", "hpet", or "tsc".
+          </dd><dt><code>track</code></dt><dd>
+            The <code>track</code> attribute specifies what the timer
+            tracks, and can be "boot", "guest", or "wall".
+            Only valid for <code>name="rtc"</code>
+            or <code>name="platform"</code>.
+          </dd><dt><code>tickpolicy</code></dt><dd>
+            The <code>tickpolicy</code> attribute determines how
+            missed ticks in the guest are handled, and can be "delay",
+            "catchup", "merge", or "discard".  If the policy is
+            "catchup", there can be further details in
+            the <code>catchup</code> sub-element.
+            <dl><dt><code>catchup</code></dt><dd>
+                The <code>catchup</code> element has three optional
+                attributes, each a positive integer.  The attributes
+                are <code>threshold</code>, <code>slew</code>,
+                and <code>limit</code>.
+              </dd></dl></dd><dt><code>frequency</code></dt><dd>
+            The <code>frequency</code> attribute is an unsigned
+            integer specifying the frequency at
+            which <code>name="tsc"</code> runs.
+          </dd><dt><code>mode</code></dt><dd>
+            The <code>mode</code> attribute controls how
+            the <code>name="tsc"</code> timer is managed, and can be
+            "auto", "native", "emulate", "paravirt", or "smpsafe".
+            Other timers are always emulated.
+          </dd><dt><code>present</code></dt><dd>
+            The <code>present</code> attribute can be "yes" or "no" to
+            specify whether a particular timer is available to the guest.
+          </dd></dl></dd></dl>
         <h3>
           <a name="elementsDevices" id="elementsDevices">Devices</a>
         </h3>
@@ -682,6 +777,7 @@
       &lt;driver name="tap" type="aio" cache="default"/&gt;
       &lt;source file='/var/lib/xen/images/fv0'/&gt;
       &lt;target dev='hda' bus='ide'/&gt;
+      &lt;boot order='2'/&gt;
       &lt;encryption type='...'&gt;
         ...
       &lt;/encryption&gt;
@@ -692,11 +788,13 @@
     &lt;/disk&gt;
       ...
     &lt;disk type='network'&gt;
-      &lt;driver name="qemu" type="raw"/&gt;
+      &lt;driver name="qemu" type="raw" io="threads"/&gt;
       &lt;source protocol="sheepdog" name="image_name"&gt;
         &lt;host name="hostname" port="7000"/&gt;
       &lt;/source&gt;
       &lt;target dev="hdb" bus="ide"/&gt;
+      &lt;boot order='1'/&gt;
+      &lt;address type='drive' controller='0' bus='1' unit='0'/&gt;
     &lt;/disk&gt;
   &lt;/devices&gt;
   ...</pre>
@@ -733,12 +831,38 @@
         inferred from the style of the device name. eg, a device named 'sda'
         will typically be exported using a SCSI bus.
         <span class="since">Since 0.0.3; <code>bus</code> attribute since 0.4.3;
-        "usb" attribute value since after 0.4.4</span></dd><dt><code>driver</code></dt><dd>If the hypervisor supports multiple backend drivers, then the optional
-        <code>driver</code> element allows them to be selected. The <code>name</code>
-        attribute is the primary backend driver name, while the optional <code>type</code>
-        attribute provides the sub-type. The optional <code>cache</code> attribute
-        controls the cache mechanism, possible values are "default", "none",
-        "writethrough" and "writeback". <span class="since">Since 0.1.8</span>
+        "usb" attribute value since after 0.4.4</span></dd><dt><code>driver</code></dt><dd>
+        The optional driver element allows specifying further details
+        related to the hypervisor driver used to provide the disk.
+        <span class="since">Since 0.1.8; <code>io</code> attribute
+        since 0.8.8</span>
+        <ul><li>
+            If the hypervisor supports multiple backend drivers, then
+            the <code>name</code> attribute selects the primary
+            backend driver name, while the optional <code>type</code>
+            attribute provides the sub-type.  For example, xen
+            supports a name of "tap", "tap2", "phy", or "file", with a
+            type of "aio", while qemu only supports a name of "qemu",
+            but multiple types including "raw", "bochs", "qcow2", and
+            "qed".
+          </li><li>
+            The optional <code>cache</code> attribute controls the
+            cache mechanism, possible values are "default", "none",
+            "writethrough" and "writeback".
+          </li><li>
+            The optional <code>error_policy</code> attribute controls
+            how the hypervisor will behave on an error, possible
+            values are "stop", "ignore", and "enospace".
+          </li><li>
+            The optional <code>io</code> attribute controls specific
+            policies on I/O; qemu guests support "threads" and
+            "native".
+          </li></ul></dd><dt><code>boot</code></dt><dd>Specifies that the disk is bootable. The <code>order</code>
+        attribute determines the order in which devices will be tried during
+        boot sequence. The per-device <code>boot</code> elements cannot be
+        used together with general boot elements in
+        <a href="#elementsOSBIOS">BIOS bootloader</a> section.
+        <span class="since">Since 0.8.8</span>
       </dd><dt><code>encryption</code></dt><dd>If present, specifies how the volume is encrypted.  See
         the <a href="formatstorageencryption.html">Storage Encryption</a> page
         for more information.
@@ -751,7 +875,61 @@
       </dd><dt><code>host</code></dt><dd>The <code>host</code> element has two attributes "name" and "port",
         which specify the hostname and the port number. The meaning of this
         element and the number of the elements depend on the protocol attribute.
-        <table class="top_table"><tr><th> Protocol </th><th> Meaning </th><th> Number of hosts </th></tr><tr><td> nbd </td><td> a server running nbd-server </td><td> only one </td></tr><tr><td> rbd </td><td> monitor servers of RBD </td><td> one or more </td></tr><tr><td> sheepdog </td><td> one of the sheepdog servers (default is localhost:7000) </td><td> zero or one </td></tr></table></dd></dl>
+        <table class="top_table"><tr><th> Protocol </th><th> Meaning </th><th> Number of hosts </th></tr><tr><td> nbd </td><td> a server running nbd-server </td><td> only one </td></tr><tr><td> rbd </td><td> monitor servers of RBD </td><td> one or more </td></tr><tr><td> sheepdog </td><td> one of the sheepdog servers (default is localhost:7000) </td><td> zero or one </td></tr></table></dd><dt><code>address</code></dt><dd>If present, the <code>address</code> element ties the disk
+        to a given slot of a controller (the
+        actual <code>&lt;controller&gt;</code> device can often be
+        inferred by libvirt, although it can
+        be <a href="#elementsControllers">explicitly specified</a>).
+        The <code>type</code> attribute is mandatory, and is typically
+        "pci" or "drive".  For a "pci" controller, additional
+        attributes for <code>bus</code>, <code>slot</code>,
+        and <code>function</code> must be present, as well as an
+        optional <code>domain</code>.  For a "drive" controller,
+        additional attributes <code>controller</code>, <code>bus</code>,
+        and <code>unit</code> are available, each defaulting to 0.
+      </dd></dl>
+        <h4>
+          <a name="elementsControllers" id="elementsControllers">Controllers</a>
+        </h4>
+        <p>
+      Many devices that have an <code>&lt;address&gt;</code>
+      sub-element are designed to work with a controller to manage
+      related devices.  Normally, libvirt can automatically infer such
+      controllers without requiring explicit XML markup, but sometimes
+      it is necessary to provide an explicit controller element.
+    </p>
+        <pre>
+  ...
+  &lt;devices&gt;
+    &lt;controller type='ide' index='0'/&gt;
+    &lt;controller type='virtio-serial' index='0' ports='16' vectors='4'/&gt;
+    &lt;controller type='virtio-serial' index='1'&gt;
+      &lt;address type='pci' domain='0x0000' bus='0x00' slot='0x0a' function='0x0'/&gt;
+    &lt;/controller&gt;
+    ...
+  &lt;/devices&gt;
+  ...</pre>
+        <p>
+      Each controller has a mandatory attribute <code>type</code>,
+      which must be one of "ide", "fdc", "scsi", "sata", "ccid", or
+      "virtio-serial", and a mandatory attribute <code>index</code>
+      which is the decimal integer describing in which order the bus
+      controller is encountered (for use in <code>controller</code>
+      attributes of <code>&lt;address&gt;</code> elements).  The
+      "virtio-serial" controller has two additional optional
+      attributes <code>ports</code> and <code>vectors</code>, which
+      control how many devices can be connected through the
+      controller.  A "scsi" controller has an optional
+      attribute <code>model</code>, which is one of "auto",
+      "buslogic", "lsilogic", "lsias1068", or "vmpvscsi".
+    </p>
+        <p>
+      For controllers that are themselves devices on a PCI or USB bus,
+      an optional sub-element <code>&lt;address&gt;</code> can specify
+      the exact relationship of the controller to its master bus, with
+      semantics like any other device's <code>address</code>
+      sub-element.
+    </p>
         <h4>
           <a name="elementsUSB" id="elementsUSB">USB and PCI devices</a>
         </h4>
@@ -768,6 +946,7 @@
         &lt;vendor id='0x1234'/&gt;
         &lt;product id='0xbeef'/&gt;
       &lt;/source&gt;
+      &lt;boot order='2'/&gt;
     &lt;/hostdev&gt;
   &lt;/devices&gt;
   ...</pre>
@@ -779,6 +958,7 @@
       &lt;source&gt;
         &lt;address bus='0x06' slot='0x02' function='0x0'/&gt;
       &lt;/source&gt;
+      &lt;boot order='1'/&gt;
     &lt;/hostdev&gt;
   &lt;/devices&gt;
   ...</pre>
@@ -794,7 +974,12 @@
       <code>address</code></dd><dt><code>vendor</code>, <code>product</code></dt><dd>The <code>vendor</code> and <code>product</code> elements each have an
       <code>id</code> attribute that specifies the USB vendor and product id.
       The ids can be given in decimal, hexadecimal (starting with 0x) or
-      octal (starting with 0) form.</dd><dt><code>address</code></dt><dd>The <code>address</code> element for USB devices has a
+      octal (starting with 0) form.</dd><dt><code>boot</code></dt><dd>Specifies that the device is bootable. The <code>order</code>
+      attribute determines the order in which devices will be tried during
+      boot sequence. The per-device <code>boot</code> elements cannot be
+      used together with general boot elements in
+      <a href="#elementsOSBIOS">BIOS bootloader</a> section.
+      <span class="since">Since 0.8.8</span></dd><dt><code>address</code></dt><dd>The <code>address</code> element for USB devices has a
       <code>bus</code> and <code>device</code> attribute to specify the
       USB bus and device number the device appears at on the host.
       The values of these attributes can be given in decimal, hexadecimal
@@ -809,6 +994,89 @@
       PCI domain, with hexadecimal values 0 to ffff, but it is currently
       not used by qemu.</dd></dl>
         <h4>
+          <a name="elementsSmartcard" id="elementsSmartcard">Smartcard devices</a>
+        </h4>
+        <p>
+      A virtual smartcard device can be supplied to the guest via the
+      <code>smartcard</code> element. A USB smartcard reader device on
+      the host cannot be used on a guest with simple device
+      passthrough, since it will then not be available on the host,
+      possibly locking the host computer when it is "removed".
+      Therefore, some hypervisors provide a specialized virtual device
+      that can present a smartcard interface to the guest, with
+      several modes for describing how credentials are obtained from
+      the host or even a from a channel created to a third-party
+      smartcard provider. <span class="since">Since 0.8.8</span>
+    </p>
+        <pre>
+  ...
+  &lt;devices&gt;
+    &lt;smartcard mode='host'/&gt;
+    &lt;smartcard mode='host-certificates'&gt;
+      &lt;certificate&gt;cert1&lt;/certificate&gt;
+      &lt;certificate&gt;cert2&lt;/certificate&gt;
+      &lt;certificate&gt;cert3&lt;/certificate&gt;
+      &lt;database&gt;/etc/pki/nssdb/&lt;/database&gt;
+    &lt;/smartcard&gt;
+    &lt;smartcard mode='passthrough' type='tcp'&gt;
+      &lt;source mode='bind' host='127.0.0.1' service='2001'/&gt;
+      &lt;protocol type='raw'/&gt;
+      &lt;address type='ccid' controller='0' slot='0'/&gt;
+    &lt;/smartcard&gt;
+    &lt;smartcard mode='passthrough' type='spicevmc'/&gt;
+  &lt;/devices&gt;
+  ...
+</pre>
+        <p>
+      The <code>&lt;smartcard&gt;</code> element has a mandatory
+      attribute <code>mode</code>.  The following modes are supported;
+      in each mode, the guest sees a device on its USB bus that
+      behaves like a physical USB CCID (Chip/Smart Card Interface
+      Device) card.
+    </p>
+        <dl><dt><code>mode='host'</code></dt><dd>The simplest operation, where the hypervisor relays all
+      requests from the guest into direct access to the host's
+      smartcard via NSS.  No other attributes or sub-elements are
+      required.  See below about the use of an
+      optional <code>&lt;address&gt;</code> sub-element.</dd><dt><code>mode='host-certificates'</code></dt><dd>Rather than requiring a smartcard to be plugged into the
+      host, it is possible to provide three NSS certificate names
+      residing in a database on the host.  These certificates can be
+      generated via the command <code>certutil -d /etc/pki/nssdb -x -t
+      CT,CT,CT -S -s CN=cert1 -n cert1</code>, and the resulting three
+      certificate names must be supplied as the content of each of
+      three <code>&lt;certificate&gt;</code> sub-elements.  An
+      additional sub-element <code>&lt;database&gt;</code> can specify
+      the absolute path to an alternate directory (matching
+      the <code>-d</code> option of the <code>certutil</code> command
+      when creating the certificates); if not present, it defaults to
+      /etc/pki/nssdb.</dd><dt><code>mode='passthrough'</code></dt><dd>Rather than having the hypervisor directly communicate with
+      the host, it is possible to tunnel all requests through a
+      secondary character device to a third-party provider (which may
+      in turn be talking to a smartcard or using three certificate
+      files).  In this mode of operation, an additional
+      attribute <code>type</code> is required, matching one of the
+      supported <a href="#elementsConsole">serial device</a> types, to
+      describe the host side of the tunnel; <code>type='tcp'</code>
+      or <code>type='spicevmc'</code> (which uses the smartcard
+      channel of a <a href="#elementsGraphics">SPICE graphics
+      device</a>) are typical.  Further sub-elements, such
+      as <code>&lt;source&gt;</code>, may be required according to the
+      given type, although a <code>&lt;target&gt;</code> sub-element
+      is not required (since the consumer of the character device is
+      the hypervisor itself, rather than a device visible in the
+      guest).</dd></dl>
+        <p>
+      Each mode supports an optional
+      sub-element <code>&lt;address&gt;</code>, which fine-tunes the
+      correlation between the smartcard and a ccid bus controller.
+      If present, the element must have an attribute
+      of <code>type='ccid'</code> as well as a <code>bus</code>
+      attribute listing the index of the bus that the smartcard
+      utilizes.  An optional <code>slot</code> attribute lists which
+      slot within the bus.  For now, qemu only supports at most one
+      smartcard, with an address of bus=0 slot=0.
+    </p>
+        <h4>
           <a name="elementsNICS" id="elementsNICS">Network interfaces</a>
         </h4>
         <pre>
@@ -818,9 +1086,21 @@
       &lt;source bridge='xenbr0'/&gt;
       &lt;mac address='00:16:3e:5d:c7:9e'/&gt;
       &lt;script path='vif-bridge'/&gt;
+      &lt;boot order='1'/&gt;
     &lt;/interface&gt;
   &lt;/devices&gt;
   ...</pre>
+        <p>
+      There are several possibilities for specifying a network
+      interface visible to the guest.  Each subsection below provides
+      more details about common setup options.  Additionally,
+      each <code>&lt;interface&gt;</code> element has an
+      optional <code>&lt;address&gt;</code> sub-element that can tie
+      the interface to a particular pci slot, with
+      attribute <code>type='pci'</code> and additional
+      attributes <code>domain</code>, <code>bus</code>, <code>slot</code>,
+      and <code>function</code> as appropriate.
+    </p>
         <h5>
           <a name="elementsNICSVirtual" id="elementsNICSVirtual">Virtual network</a>
         </h5>
@@ -1071,6 +1351,28 @@ qemu-kvm -net nic,model=? /dev/null
         hypervisors. Manually specified targets using these prefixes will be
         ignored.
     </p>
+        <h5>
+          <a name="elementsNICSBoot" id="elementsNICSBoot">Specifying boot order</a>
+        </h5>
+        <pre>
+  ...
+  &lt;devices&gt;
+    &lt;interface type='network'&gt;
+      &lt;source network='default'/&gt;
+      &lt;target dev='vnet1'/&gt;
+      <b>&lt;boot order='1'/&gt;</b>
+    &lt;/interface&gt;
+  &lt;/devices&gt;
+  ...</pre>
+        <p>
+      For hypervisors which support this, you can set exact NIC which should
+      be used for network boot. The <code>order</code> attribute determines
+      the order in which devices will be tried during boot sequence. The
+      per-device <code>boot</code> elements cannot be used together with
+      general boot elements in
+      <a href="#elementsOSBIOS">BIOS bootloader</a> section.
+      <span class="since">Since 0.8.8</span>
+    </p>
         <h4>
           <a name="elementsInput" id="elementsInput">Input devices</a>
         </h4>
@@ -1091,6 +1393,11 @@ qemu-kvm -net nic,model=? /dev/null
         cursor movement, while the former uses relative movement. The optional
         <code>bus</code> attribute can be used to refine the exact device type.
         It takes values "xen" (paravirtualized), "ps2" and "usb".</dd></dl>
+        <p>
+      The <code>input</code> element has an optional
+      sub-element <code>&lt;address&gt;</code> which can tie the
+      device to a particular PCI slot.
+    </p>
         <h4>
           <a name="elementsGraphics" id="elementsGraphics">Graphical framebuffers</a>
         </h4>
@@ -1126,9 +1433,12 @@ qemu-kvm -net nic,model=? /dev/null
   in clear text. The <code>keymap</code> attribute specifies the keymap
   to use. It is possible to set a limit on the validity of the password
   be giving an timestamp <code>passwdValidTo='2010-04-09T15:51:00'</code>
-  assumed to be in UTC. NB, this may not be supported by all hypervisors.
+  assumed to be in UTC. NB, this may not be supported by all hypervisors.<br /><br />
+  Rather than using listen/port, QEMU supports a <code>socket</code>
+  attribute for listening on a unix domain socket path.
+  <span class="since">Since 0.8.8</span>
           </dd><dt><code>"spice"</code></dt><dd>
-	    <p>
+            <p>
   Starts a SPICE server. The <code>port</code> attribute specifies the TCP
   port number (with -1 as legacy syntax indicating that it should be
   auto-allocated), while <code>tlsPort</code> gives an alternative
@@ -1140,16 +1450,17 @@ qemu-kvm -net nic,model=? /dev/null
   to use. It is possible to set a limit on the validity of the password
   be giving an timestamp <code>passwdValidTo='2010-04-09T15:51:00'</code>
   assumed to be in UTC. NB, this may not be supported by all hypervisors.
-	    </p>
-	    <p>
+            </p>
+            <p>
   When SPICE has both a normal and TLS secured TCP port configured, it
   can be desirable to restrict what channels can be run on each port.
   This is achieved by adding one or more &lt;channel&gt; elements inside
   the main &lt;graphics&gt; element. Valid channel names include
-  <code>main</code>,<code>display</code>,<code>inputs</code>,<code>cursor</code>,
-  <code>playback</code>,<code>record</code>.
-	    </p>
-	    <pre>
+  <code>main</code>, <code>display</code>, <code>inputs</code>,
+  <code>cursor</code>, <code>playback</code>, <code>record</code>;
+  and <span class="since">since 0.8.8</span>: <code>smartcard</code>.
+            </p>
+            <pre>
   &lt;graphics type='spice' port='-1' tlsPort='-1' autoport='yes'&gt;
     &lt;channel name='main' mode='secure'/&gt;
     &lt;channel name='record' mode='insecure'/&gt;
@@ -1193,13 +1504,16 @@ qemu-kvm -net nic,model=? /dev/null
       </dd><dt><code>model</code></dt><dd>
         The <code>model</code> element has a mandatory <code>type</code>
         attribute which takes the value "vga", "cirrus", "vmvga", "qxl",
-	"xen" or "vbox", depending on the hypervisor features available.
+        "xen" or "vbox", depending on the hypervisor features available.
         You can also provide the amount of video memory in kilobytes using
         <code>vram</code> and the number of screen with <code>heads</code>.
       </dd><dt><code>acceleration</code></dt><dd>
         If acceleration should be enabled (if supported) using the
         <code>accel3d</code> and <code>accel2d</code> attributes in the
         <code>acceleration</code> element.
+      </dd><dt><code>address</code></dt><dd>
+        The optional <code>address</code> sub-element can be used to
+        tie the video device to a particular PCI slot.
       </dd></dl>
         <h4>
           <a name="elementsConsole" id="elementsConsole">Consoles, serial, parallel &amp; channel devices</a>
@@ -1239,6 +1553,13 @@ qemu-kvm -net nic,model=? /dev/null
       The interface presented to the host is given in the <code>type</code>
       attribute of the top-level element. The host interface is
       configured by the <code>source</code> element.
+    </p>
+        <p>
+      Each character device element has an optional
+      sub-element <code>&lt;address&gt;</code> which can tie the
+      device to a
+      particular <a href="#elementsControllers">controller</a> or PCI
+      slot.
     </p>
         <h5>
           <a name="elementsCharGuestInterface" id="elementsCharGuestInterface">Guest interface</a>
@@ -1335,6 +1656,9 @@ qemu-kvm -net nic,model=? /dev/null
     &lt;channel type='pty'&gt;
       &lt;target type='virtio' name='arbitrary.virtio.serial.port.name'/&gt;
     &lt;/channel&gt;
+    &lt;channel type='spicevmc'&gt;
+      &lt;target type='virtio' name='com.redhat.spice.0'/&gt;
+    &lt;/channel&gt;
   &lt;/devices&gt;
   ...</pre>
         <p>
@@ -1347,10 +1671,23 @@ qemu-kvm -net nic,model=? /dev/null
         forwarded to the channel device on the host. The <code>target</code>
         element must have <code>address</code> and <code>port</code> attributes.
         <span class="since">Since 0.7.3</span></dd><dt><code>virtio</code></dt><dd>Paravirtualized virtio channel. Channel is exposed in the guest under
-        /dev/vport*, and if the optional element<code>name</code> is specified,
+        /dev/vport*, and if the optional element <code>name</code> is specified,
         /dev/virtio-ports/$name (for more info, please see
-        <a href="http://fedoraproject.org/wiki/Features/VirtioSerial">http://fedoraproject.org/wiki/Features/VirtioSerial</a>)
-        <span class="since">Since 0.7.7</span></dd></dl>
+        <a href="http://fedoraproject.org/wiki/Features/VirtioSerial">http://fedoraproject.org/wiki/Features/VirtioSerial</a>). The
+        optional element <code>address</code> can tie the channel to a
+        particular <code>type='virtio-serial'</code> controller.
+        <span class="since">Since 0.7.7</span></dd><dt><code>spicevmc</code></dt><dd>Paravirtualized SPICE channel. The domain must also have a
+        SPICE server as a <a href="#elementsGraphics">graphics
+        device</a>, at which point the host piggy-backs messages
+        across the <code>main</code> channel.  The <code>target</code>
+        element must be present, with
+        attribute <code>type='virtio'</code>; an optional
+        attribute <code>name</code> controls how the guest will have
+        access to the channel, and defaults
+        to <code>name='com.redhat.spice.0'</code>.  The
+        optional <code>address</code> element can tie the channel to a
+        particular <code>type='virtio-serial'</code> controller.
+        <span class="since">Since 0.8.8</span></dd></dl>
         <h5>
           <a name="elementsCharHostInterface" id="elementsCharHostInterface">Host interface</a>
         </h5>
@@ -1582,9 +1919,15 @@ qemu-kvm -net nic,model=? /dev/null
         The <code>sound</code> element has one mandatory attribute,
         <code>model</code>, which specifies what real sound device is emulated.
         Valid values are specific to the underlying hypervisor, though typical
-        choices are 'es1370', 'sb16', and 'ac97'
-        (<span class="since">'ac97' only since 0.6.0</span>)
+        choices are 'es1370', 'sb16', 'ac97', and 'ich6'
+        (<span class="since">
+         'ac97' only since 0.6.0, 'ich6' only since 0.8.8</span>)
       </dd></dl>
+        <p>
+      Each <code>sound</code> element has an optional
+      sub-element <code>&lt;address&gt;</code> which can tie the
+      device to a particular PCI slot.
+    </p>
         <h4>
           <a name="elementsWatchdog" id="elementsWatchdog">Watchdog device</a>
         </h4>
@@ -1684,8 +2027,8 @@ qemu-kvm -net nic,model=? /dev/null
         <dl><dt><code>model</code></dt><dd>
         <p>
           The required <code>model</code> attribute specifies what type
-	  of balloon device is provided. Valid values are specific to
-	  the virtualization platform
+          of balloon device is provided. Valid values are specific to
+          the virtualization platform
         </p>
         <ul><li>'virtio' — default with QEMU/KVM</li><li>'xen' — default with Xen</li></ul></dd></dl>
         <h2>

@@ -2,7 +2,7 @@
 /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Implement a trivial subset of POSIX 1003.1-2008 pthread.h.
 
-   Copyright (C) 2009, 2010 Free Software Foundation, Inc.
+   Copyright (C) 2009-2011 Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as published by
@@ -42,6 +42,7 @@
 #include <time.h>
 
 #if ! @HAVE_PTHREAD_T@
+# if !GNULIB_defined_pthread_types
  typedef int pthread_t;
  typedef int pthread_attr_t;
  typedef int pthread_barrier_t;
@@ -54,6 +55,8 @@
  typedef int pthread_once_t;
  typedef int pthread_rwlock_t;
  typedef int pthread_rwlockattr_t;
+#  define GNULIB_defined_pthread_types 1
+# endif
 #endif
 
 #ifndef PTHREAD_COND_INITIALIZER
@@ -98,6 +101,8 @@
 #endif
 
 #if ! @HAVE_PTHREAD_T@
+
+# if !GNULIB_defined_pthread_functions
 
 /* Provide substitutes for the thread functions that should work
    adequately on a single-threaded implementation, where
@@ -219,9 +224,14 @@ pthread_mutex_unlock (pthread_mutex_t *mutex)
   return 0;
 }
 
+#  define GNULIB_defined_pthread_functions 1
+# endif
+
 #endif
 
 #if ! @HAVE_PTHREAD_SPINLOCK_T@
+
+# if !GNULIB_defined_pthread_spinlock_t
 
 /* Approximate spinlocks with mutexes.  */
 
@@ -256,6 +266,10 @@ pthread_spin_unlock (pthread_spinlock_t *lock)
 {
   return pthread_mutex_unlock (lock);
 }
+
+#  define GNULIB_defined_pthread_spinlock_t 1
+# endif
+
 #endif
 
 #endif /* _GL_PTHREAD_H_ */

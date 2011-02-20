@@ -1,6 +1,7 @@
 /*
  * cgroup.h: Interface to tools for managing cgroups
  *
+ * Copyright (C) 2011 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
  * See COPYING.LIB for the License of this software
@@ -22,6 +23,7 @@ enum {
     VIR_CGROUP_CONTROLLER_MEMORY,
     VIR_CGROUP_CONTROLLER_DEVICES,
     VIR_CGROUP_CONTROLLER_FREEZER,
+    VIR_CGROUP_CONTROLLER_BLKIO,
 
     VIR_CGROUP_CONTROLLER_LAST
 };
@@ -40,15 +42,18 @@ int virCgroupForDomain(virCgroupPtr driver,
 
 int virCgroupAddTask(virCgroupPtr group, pid_t pid);
 
-int virCgroupSetMemory(virCgroupPtr group, unsigned long kb);
+int virCgroupSetBlkioWeight(virCgroupPtr group, unsigned int weight);
+int virCgroupGetBlkioWeight(virCgroupPtr group, unsigned int *weight);
+
+int virCgroupSetMemory(virCgroupPtr group, unsigned long long kb);
 int virCgroupGetMemoryUsage(virCgroupPtr group, unsigned long *kb);
 
-int virCgroupSetMemoryHardLimit(virCgroupPtr group, unsigned long kb);
-int virCgroupGetMemoryHardLimit(virCgroupPtr group, unsigned long *kb);
-int virCgroupSetMemorySoftLimit(virCgroupPtr group, unsigned long kb);
-int virCgroupGetMemorySoftLimit(virCgroupPtr group, unsigned long *kb);
-int virCgroupSetSwapHardLimit(virCgroupPtr group, unsigned long kb);
-int virCgroupGetSwapHardLimit(virCgroupPtr group, unsigned long *kb);
+int virCgroupSetMemoryHardLimit(virCgroupPtr group, unsigned long long kb);
+int virCgroupGetMemoryHardLimit(virCgroupPtr group, unsigned long long *kb);
+int virCgroupSetMemorySoftLimit(virCgroupPtr group, unsigned long long kb);
+int virCgroupGetMemorySoftLimit(virCgroupPtr group, unsigned long long *kb);
+int virCgroupSetSwapHardLimit(virCgroupPtr group, unsigned long long kb);
+int virCgroupGetSwapHardLimit(virCgroupPtr group, unsigned long long *kb);
 
 int virCgroupDenyAllDevices(virCgroupPtr group);
 

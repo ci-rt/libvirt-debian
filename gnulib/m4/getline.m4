@@ -2,7 +2,7 @@
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
 # getline.m4 serial 23
 
-dnl Copyright (C) 1998-2003, 2005-2007, 2009-2010 Free Software Foundation,
+dnl Copyright (C) 1998-2003, 2005-2007, 2009-2011 Free Software Foundation,
 dnl Inc.
 dnl
 dnl This file is free software; the Free Software Foundation

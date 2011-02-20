@@ -1,7 +1,7 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# sched_h.m4 serial 2
-dnl Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
+# sched_h.m4 serial 3
+dnl Copyright (C) 2008-2011 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -21,7 +21,6 @@ AC_DEFUN([gl_SCHED_H],
 
      gl_CHECK_NEXT_HEADERS([sched.h])
 
-     AC_CHECK_HEADERS_ONCE([sched.h])
      if test $ac_cv_header_sched_h = yes; then
        HAVE_SCHED_H=1
      else

@@ -27,6 +27,8 @@
 #include "hash.h"
 #include "memory.h"
 
+#define VIR_FROM_THIS VIR_FROM_NONE
+
 #define MAX_HASH_LEN 8
 
 /* #define DEBUG_GROW */
@@ -88,12 +90,15 @@ virHashCreate(int size)
     if (size <= 0)
         size = 256;
 
-    if (VIR_ALLOC(table) < 0)
+    if (VIR_ALLOC(table) < 0) {
+        virReportOOMError();
         return NULL;
+    }
 
     table->size = size;
     table->nbElems = 0;
     if (VIR_ALLOC_N(table->table, size) < 0) {
+        virReportOOMError();
         VIR_FREE(table);
         return NULL;
     }
@@ -135,6 +140,7 @@ virHashGrow(virHashTablePtr table, int size)
         return (-1);
 
     if (VIR_ALLOC_N(table->table, size) < 0) {
+        virReportOOMError();
         table->table = oldtable;
         return (-1);
     }
@@ -253,6 +259,7 @@ virHashAddEntry(virHashTablePtr table, const char *name, void *userdata)
     unsigned long key, len = 0;
     virHashEntryPtr entry;
     virHashEntryPtr insert;
+    char *new_name;
 
     if ((table == NULL) || (name == NULL))
         return (-1);
@@ -277,15 +284,23 @@ virHashAddEntry(virHashTablePtr table, const char *name, void *userdata)
     if (insert == NULL) {
         entry = &(table->table[key]);
     } else {
-        if (VIR_ALLOC(entry) < 0)
+        if (VIR_ALLOC(entry) < 0) {
+            virReportOOMError();
             return (-1);
+        }
     }
 
-    entry->name = strdup(name);
+    new_name = strdup(name);
+    if (new_name == NULL) {
+        virReportOOMError();
+        if (insert != NULL)
+            VIR_FREE(entry);
+        return (-1);
+    }
+    entry->name = new_name;
     entry->payload = userdata;
     entry->next = NULL;
     entry->valid = 1;
-
 
     if (insert != NULL)
         insert->next = entry;
@@ -318,6 +333,7 @@ virHashUpdateEntry(virHashTablePtr table, const char *name,
     unsigned long key;
     virHashEntryPtr entry;
     virHashEntryPtr insert;
+    char *new_name;
 
     if ((table == NULL) || name == NULL)
         return (-1);
@@ -353,7 +369,13 @@ virHashUpdateEntry(virHashTablePtr table, const char *name,
             return (-1);
     }
 
-    entry->name = strdup(name);
+    new_name= strdup(name);
+    if (new_name == NULL) {
+        if (insert != NULL)
+            VIR_FREE(entry);
+        return (-1);
+    }
+    entry->name = new_name;
     entry->payload = userdata;
     entry->next = NULL;
     entry->valid = 1;

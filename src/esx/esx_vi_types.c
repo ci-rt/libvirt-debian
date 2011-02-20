@@ -1806,6 +1806,7 @@ ESX_VI__TEMPLATE__FREE(HostSystem,
     VIR_FREE(item->name);
 
     /* HostSystem */
+    esxVI_HostConfigManager_Free(&item->configManager);
 })
 
 /* esxVI_HostSystem_Validate */
@@ -1815,6 +1816,7 @@ ESX_VI__TEMPLATE__VALIDATE(HostSystem,
     ESX_VI__TEMPLATE__PROPERTY__REQUIRE(name);
 
     /* HostSystem */
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(configManager);
 })
 
 int
@@ -1849,6 +1851,11 @@ esxVI_HostSystem_CastFromObjectContent(esxVI_ObjectContent *objectContent,
 
             if ((*hostSystem)->name == NULL) {
                 virReportOOMError();
+                goto failure;
+            }
+        } else if (STREQ(dynamicProperty->name, "configManager")) {
+            if (esxVI_HostConfigManager_CastFromAnyType
+                  (dynamicProperty->val, &(*hostSystem)->configManager) < 0) {
                 goto failure;
             }
         }

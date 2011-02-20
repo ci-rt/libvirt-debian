@@ -428,6 +428,23 @@ ESX_VI__METHOD(ReconfigVM_Task, /* explicit _this */,
 
 
 
+/* esxVI_ReconfigureAutostart */
+ESX_VI__METHOD(ReconfigureAutostart, /* explicit _this */,
+               (esxVI_Context *ctx,
+                esxVI_ManagedObjectReference *_this,       /* required */
+                esxVI_HostAutoStartManagerConfig *spec),   /* required */
+               void, /* nothing */, None,
+{
+    ESX_VI__METHOD__PARAMETER__REQUIRE(_this)
+    ESX_VI__METHOD__PARAMETER__REQUIRE(spec)
+},
+{
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(ManagedObjectReference, _this)
+    ESX_VI__METHOD__PARAMETER__SERIALIZE(HostAutoStartManagerConfig, spec)
+})
+
+
+
 /* esxVI_RefreshDatastore */
 ESX_VI__METHOD(RefreshDatastore, /* explicit _this */,
                (esxVI_Context *ctx,

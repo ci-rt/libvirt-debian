@@ -138,6 +138,11 @@ int esxVI_ReconfigVM_Task
        esxVI_VirtualMachineConfigSpec *spec,               /* required */
        esxVI_ManagedObjectReference **output);             /* required */
 
+int esxVI_ReconfigureAutostart
+      (esxVI_Context *ctx,
+       esxVI_ManagedObjectReference *_this,                /* required */
+       esxVI_HostAutoStartManagerConfig *spec);            /* required */
+
 int esxVI_RefreshDatastore
       (esxVI_Context *ctx,
        esxVI_ManagedObjectReference *_this);               /* required */

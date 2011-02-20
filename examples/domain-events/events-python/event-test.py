@@ -15,6 +15,12 @@ import errno
 import time
 import threading
 
+do_debug = False
+def debug(msg):
+    global do_debug
+    if do_debug:
+        print msg
+
 #
 # This general purpose event loop will support waiting for file handle
 # I/O and errors events, as well as scheduling repeatable timers with
@@ -83,10 +89,11 @@ class virEventLoopPure:
                     self.opaque[1])
 
 
-    def __init__(self, debug=False):
-        self.debugOn = debug
+    def __init__(self):
         self.poll = select.poll()
         self.pipetrick = os.pipe()
+        self.pendingWakeup = False
+        self.runningPoll = False
         self.nextHandleID = 1
         self.nextTimerID = 1
         self.handles = []
@@ -106,12 +113,8 @@ class virEventLoopPure:
         # with the event loop for input events. When we need to force
         # the main thread out of a poll() sleep, we simple write a
         # single byte of data to the other end of the pipe.
-        self.debug("Self pipe watch %d write %d" %(self.pipetrick[0], self.pipetrick[1]))
+        debug("Self pipe watch %d write %d" %(self.pipetrick[0], self.pipetrick[1]))
         self.poll.register(self.pipetrick[0], select.POLLIN)
-
-    def debug(self, msg):
-        if self.debugOn:
-            print msg
 
 
     # Calculate when the next timeout is due to occurr, returning
@@ -165,8 +168,9 @@ class virEventLoopPure:
     # these pointless repeated tiny sleeps.
     def run_once(self):
         sleep = -1
+        self.runningPoll = True
         next = self.next_timeout()
-        self.debug("Next timeout due at %d" % next)
+        debug("Next timeout due at %d" % next)
         if next > 0:
             now = int(time.time() * 1000)
             if now >= next:
@@ -174,7 +178,7 @@ class virEventLoopPure:
             else:
                 sleep = (next - now) / 1000.0
 
-        self.debug("Poll with a sleep of %d" % sleep)
+        debug("Poll with a sleep of %d" % sleep)
         events = self.poll.poll(sleep)
 
         # Dispatch any file handle events that occurred
@@ -183,12 +187,13 @@ class virEventLoopPure:
             # telling us to wakup. if so, then discard
             # the data just continue
             if fd == self.pipetrick[0]:
+                self.pendingWakeup = False
                 data = os.read(fd, 1)
                 continue
 
             h = self.get_handle_by_fd(fd)
             if h:
-                self.debug("Dispatch fd %d handle %d events %d" % (fd, h.get_id(), revents))
+                debug("Dispatch fd %d handle %d events %d" % (fd, h.get_id(), revents))
                 h.dispatch(self.events_from_poll(revents))
 
         now = int(time.time() * 1000)
@@ -201,9 +206,11 @@ class virEventLoopPure:
             # Deduct 20ms, since schedular timeslice
             # means we could be ever so slightly early
             if now >= (want-20):
-                self.debug("Dispatch timer %d now %s want %s" % (t.get_id(), str(now), str(want)))
+                debug("Dispatch timer %d now %s want %s" % (t.get_id(), str(now), str(want)))
                 t.set_last_fired(now)
                 t.dispatch()
+
+        self.runningPoll = False
 
 
     # Actually the event loop forever
@@ -213,7 +220,9 @@ class virEventLoopPure:
             self.run_once()
 
     def interrupt(self):
-        os.write(self.pipetrick[1], 'c')
+        if self.runningPoll and not self.pendingWakeup:
+            self.pendingWakeup = True
+            os.write(self.pipetrick[1], 'c')
 
 
     # Registers a new file handle 'fd', monitoring  for 'events' (libvirt
@@ -230,7 +239,7 @@ class virEventLoopPure:
         self.poll.register(fd, self.events_to_poll(events))
         self.interrupt()
 
-        self.debug("Add handle %d fd %d events %d" % (handleID, fd, events))
+        debug("Add handle %d fd %d events %d" % (handleID, fd, events))
 
         return handleID
 
@@ -247,7 +256,7 @@ class virEventLoopPure:
         self.timers.append(h)
         self.interrupt()
 
-        self.debug("Add timer %d interval %d" % (timerID, interval))
+        debug("Add timer %d interval %d" % (timerID, interval))
 
         return timerID
 
@@ -260,7 +269,7 @@ class virEventLoopPure:
             self.poll.register(h.get_fd(), self.events_to_poll(events))
             self.interrupt()
 
-            self.debug("Update handle %d fd %d events %d" % (handleID, h.get_fd(), events))
+            debug("Update handle %d fd %d events %d" % (handleID, h.get_fd(), events))
 
     # Change the periodic frequency of the timer
     def update_timer(self, timerID, interval):
@@ -269,7 +278,7 @@ class virEventLoopPure:
                 h.set_interval(interval);
                 self.interrupt()
 
-                self.debug("Update timer %d interval %d"  % (timerID, interval))
+                debug("Update timer %d interval %d"  % (timerID, interval))
                 break
 
     # Stop monitoring for events on the file handle
@@ -278,7 +287,7 @@ class virEventLoopPure:
         for h in self.handles:
             if h.get_id() == handleID:
                 self.poll.unregister(h.get_fd())
-                self.debug("Remove handle %d fd %d" % (handleID, h.get_fd()))
+                debug("Remove handle %d fd %d" % (handleID, h.get_fd()))
             else:
                 handles.append(h)
         self.handles = handles
@@ -290,7 +299,7 @@ class virEventLoopPure:
         for h in self.timers:
             if h.get_id() != timerID:
                 timers.append(h)
-                self.debug("Remove timer %d" % timerID)
+                debug("Remove timer %d" % timerID)
         self.timers = timers
         self.interrupt()
 
@@ -329,7 +338,7 @@ class virEventLoopPure:
 
 # This single global instance of the event loop wil be used for
 # monitoring libvirt events
-eventLoop = virEventLoopPure(debug=False)
+eventLoop = virEventLoopPure()
 
 # This keeps track of what thread is running the event loop,
 # (if it is run in a background thread)

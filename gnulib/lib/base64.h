@@ -1,7 +1,7 @@
 /* -*- buffer-read-only: t -*- vi: set ro: */
 /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* base64.h -- Encode binary data using printable characters.
-   Copyright (C) 2004, 2005, 2006, 2009, 2010 Free Software Foundation, Inc.
+   Copyright (C) 2004-2006, 2009-2011 Free Software Foundation, Inc.
    Written by Simon Josefsson.
 
    This program is free software; you can redistribute it and/or modify

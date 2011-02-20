@@ -132,6 +132,7 @@ group as an option.  For example:
      freecell                       NUMA free memory
      hostname                       print the hypervisor hostname
      qemu-monitor-command           Qemu Monitor Command
+     sysinfo                        print the hypervisor sysinfo
      uri                            print the hypervisor canonical URI
 
 To display detailed information for a specific command, give its name as the
@@ -226,6 +227,10 @@ Prints the hypervisor canonical URI, can be useful in shell mode.
 =item B<hostname>
 
 Print the hypervisor hostname.
+
+=item B<sysinfo>
+
+Print the XML representation of the hypervisor sysinfo, if available.
 
 =item B<nodeinfo>
 
@@ -489,7 +494,8 @@ type attribute for the <domain> element of XML.
 
 =item B<migrate> optional I<--live> I<--p2p> I<--direct> I<--tunnelled>
 I<--persistent> I<--undefinesource> I<--suspend> I<--copy-storage-all>
-I<--copy-storage-inc> I<domain-id> I<desturi> I<migrateuri> I<dname>
+I<--copy-storage-inc> I<--verbose> I<domain-id> I<desturi> I<migrateuri>
+I<dname> I<--timeout>
 
 Migrate domain to another host.  Add I<--live> for live migration; I<--p2p>
 for peer-2-peer migration; I<--direct> for direct migration; or I<--tunnelled>
@@ -499,11 +505,28 @@ and I<--suspend> leaves the domain paused on the destination host.
 I<--copy-storage-all> indicates migration with non-shared storage with full
 disk copy, I<--copy-storage-inc> indicates migration with non-shared storage
 with incremental copy (same base image shared between source and destination).
+I<--verbose> displays the progress of migration.
 
 The I<desturi> is the connection URI of the destination host, and
 I<migrateuri> is the migration URI, which usually can be omitted.
 I<dname> is used for renaming the domain to new name during migration, which
 also usually can be omitted.
+
+I<--timeout> forces guest to suspend when live migration exceeds timeout, and
+then the migration will complete offline. It can only be used with I<--live>.
+
+B<Note>: The I<desturi> parameter for normal migration and peer2peer migration
+has different semantics:
+
+=over 4
+
+=item * normal migration: the I<desturi> is an address of the target host as
+seen from the client machine.
+
+=item * peer2peer migration: the I<desturi> is an address of the target host as
+seen from the source machine.
+
+=back
 
 =item B<migrate-setmaxdowntime> I<domain-id> I<downtime>
 
@@ -548,25 +571,44 @@ Xen (credit scheduler): weight, cap
 
 ESX (allocation scheduler): reservation, limit, shares
 
-B<Note>: The cpu_shares parameter has a valid value range of 0-262144.
+B<Note>: The cpu_shares parameter has a valid value range of 0-262144; Negative
+values are wrapped to positive, and larger values are capped at the maximum.
+Therefore, -1 is a useful shorthand for 262144.
 
 B<Note>: The weight and cap parameters are defined only for the
 XEN_CREDIT scheduler and are now I<DEPRECATED>.
 
 =item B<setmem> I<domain-id> B<kilobytes>
 
-Change the current memory allocation in the guest domain. This should take
-effect immediately. The memory limit is specified in
-kilobytes.
+Immediately change the current memory allocation for an active guest domain.
 
-For Xen, you can only adjust the memory of a running domain if the
-domain is paravirtualized or running the PV balloon driver.
+Some hypervisors require a larger granularity than kilobytes, and requests
+that are not an even multiple will be rounded up.  For example, vSphere/ESX
+rounds the parameter up unless the kB argument is evenly divisible by 1024
+(that is, the kB argument happens to represent megabytes).
+
+For Xen, you can only adjust the memory of a running domain if the domain is
+paravirtualized or running the PV balloon driver.
+
+Note, this command only works on active guest domains.  To change the memory
+allocation for an inactive guest domain, use the virsh B<edit> command to
+update the XML <currentMemory> element.
 
 =item B<setmaxmem> I<domain-id> B<kilobytes>
 
-Change the maximum memory allocation limit in the guest domain. This should
-not change the current memory use. The memory limit is specified in
-kilobytes.
+Change the maximum memory allocation limit for an inactive guest domain.
+
+This command works for at least the Xen and vSphere/ESX hypervisors,
+but not for QEMU/KVM.
+
+Some hypervisors require a larger granularity than kilobytes, rounding up
+requests that are not an even multiple of the desired amount.  vSphere/ESX
+is one of these, requiring the parameter to be evenly divisible by 4MB.  For
+vSphere/ESX, 263168 (257MB) would be rounded up because it's not a multiple
+of 4MB, while 266240 (260MB) is valid without rounding.
+
+Note, to change the maximum memory allocation for a QEMU/KVM guest domain,
+use the virsh B<edit> command instead to update its XML <memory> element.
 
 =item B<memtune> I<domain-id> optional I<--hard-limit> B<kilobytes>
 optional I<--soft-limit> B<kilobytes> optional I<--swap-hard-limit>
@@ -580,23 +622,31 @@ QEMU/KVM supports I<--hard-limit>, I<--soft-limit>, and I<--swap-hard-limit>.
 =item B<setvcpus> I<domain-id> I<count> optional I<--maximum> I<--config>
 I<--live>
 
-Change the number of virtual CPUs active in the guest domain. Note that
-I<count> may be limited by host, hypervisor or limit coming from the
-original description of domain.
+Change the number of virtual CPUs active in a guest domain.  By default,
+this command works on active guest domains.  To change the settings for an
+inactive guest domain, use the I<--config> flag.
 
-For Xen, you can only adjust the virtual CPUs of a running domain if
-the domain is paravirtualized.
+The I<count> value may be limited by host, hypervisor, or a limit coming
+from the original description of the guest domain. For Xen, you can only
+adjust the virtual CPUs of a running domain if the domain is paravirtualized.
 
-If I<--config> is specified, the change will only affect the next
-boot of a domain.  If I<--live> is specified, the domain must be
-running, and the change takes place immediately.  Both flags may be
-specified, if supported by the hypervisor.  If neither flag is given,
-then I<--live> is implied and it is up to the hypervisor whether
-I<--config> is also implied.
+If the I<--config> flag is specified, the change is made to the stored XML
+configuration for the guest domain, and will only take effect when the guest
+domain is next started.
 
-If I<--maximum> is specified, then you must use I<--config> and
-avoid I<--live>; this flag controls the maximum limit of vcpus that
-can be hot-plugged the next time the domain is booted.
+If I<--live> is specified, the guest domain must be active, and the change
+takes place immediately.  Both the I<--config> and I<--live> flags may be
+specified together if supported by the hypervisor.
+
+When neither the I<--config> nor I<--live> flags are given, the I<--live>
+flag is assumed and the guest domain must be active.  In this situation it
+is up to the hypervisor whether the I<--config> flag is also assumed, and
+therefore whether the XML configuration is adjusted to make the change
+persistent.
+
+The I<--maximum> flag controls the maximum number of virtual cpus that can
+be hot-plugged the next time the domain is booted.  As such, it must only be
+used with the I<--config> flag, and not with the I<--live> flag.
 
 =item B<shutdown> I<domain-id>
 
@@ -1208,10 +1258,13 @@ problems to the libvirt developers; the reports will be ignored.
 
 =over 4
 
-=item B<qemu-monitor-command> I<domain> I<command>
+=item B<qemu-monitor-command> I<domain> I<command> optional I<--hmp>
 
 Send an arbitrary monitor command I<command> to domain I<domain> through the
-qemu monitor.  The results of the command will be printed on stdout.
+qemu monitor.  The results of the command will be printed on stdout.  If
+I<--hmp> is passed, the command is considered to be a human monitor command
+and libvirt will automatically convert it into QMP if needed.  In that case
+the result will also be converted back from QMP.
 
 =back
 

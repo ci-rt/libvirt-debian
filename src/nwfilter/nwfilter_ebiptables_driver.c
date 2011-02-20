@@ -114,7 +114,7 @@ static const char *m_physdev_out_str = "-m physdev " PHYSDEV_OUT;
 #define COMMENT_VARNAME "comment"
 
 static int ebtablesRemoveBasicRules(const char *ifname);
-static int ebiptablesDriverInit(void);
+static int ebiptablesDriverInit(bool privileged);
 static void ebiptablesDriverShutdown(void);
 static int ebtablesCleanAll(const char *ifname);
 static int ebiptablesAllTeardown(const char *ifname);
@@ -157,14 +157,14 @@ printVar(virNWFilterHashTablePtr vars,
     if ((item->flags & NWFILTER_ENTRY_ITEM_FLAG_HAS_VAR)) {
         char *val = (char *)virHashLookup(vars->hashTable, item->var);
         if (!val) {
-            virNWFilterReportError(VIR_ERR_INVALID_NWFILTER,
+            virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
                                    _("cannot find value for '%s'"),
                                    item->var);
             return 1;
         }
 
         if (!virStrcpy(buf, val, bufsize)) {
-            virNWFilterReportError(VIR_ERR_INVALID_NWFILTER,
+            virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
                                    _("Buffer to small to print MAC address "
                                    "'%s' into"),
                                    item->var);
@@ -223,7 +223,7 @@ _printDataType(virNWFilterHashTablePtr vars,
     case DATATYPE_MACADDR:
     case DATATYPE_MACMASK:
         if (bufsize < VIR_MAC_STRING_BUFLEN) {
-            virNWFilterReportError(VIR_ERR_INVALID_NWFILTER, "%s",
+            virNWFilterReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                    _("Buffer too small for MAC address"));
             return 1;
         }
@@ -235,7 +235,7 @@ _printDataType(virNWFilterHashTablePtr vars,
     case DATATYPE_IPMASK:
         if (snprintf(buf, bufsize, "%d",
                      item->u.u8) >= bufsize) {
-            virNWFilterReportError(VIR_ERR_INVALID_NWFILTER, "%s",
+            virNWFilterReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                    _("Buffer too small for uint8 type"));
             return 1;
         }
@@ -245,7 +245,7 @@ _printDataType(virNWFilterHashTablePtr vars,
     case DATATYPE_UINT16_HEX:
         if (snprintf(buf, bufsize, asHex ? "0x%x" : "%d",
                      item->u.u16) >= bufsize) {
-            virNWFilterReportError(VIR_ERR_INVALID_NWFILTER, "%s",
+            virNWFilterReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                    _("Buffer too small for uint16 type"));
             return 1;
         }
@@ -255,14 +255,14 @@ _printDataType(virNWFilterHashTablePtr vars,
     case DATATYPE_UINT8_HEX:
         if (snprintf(buf, bufsize, asHex ? "0x%x" : "%d",
                      item->u.u8) >= bufsize) {
-            virNWFilterReportError(VIR_ERR_INVALID_NWFILTER, "%s",
+            virNWFilterReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                    _("Buffer too small for uint8 type"));
             return 1;
         }
     break;
 
     default:
-        virNWFilterReportError(VIR_ERR_INVALID_NWFILTER,
+        virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
                                _("Unhandled datatype %x"), item->datatype);
         return 1;
     break;
@@ -862,6 +862,7 @@ err_exit:
 
 static int
 iptablesHandleIpHdr(virBufferPtr buf,
+                    virBufferPtr afterStateMatch,
                     virNWFilterHashTablePtr vars,
                     ipHdrDataDefPtr ipHdr,
                     int directionIn,
@@ -997,7 +998,7 @@ iptablesHandleIpHdr(virBufferPtr buf,
 
     if (HAS_ENTRY_ITEM(&ipHdr->dataConnlimitAbove)) {
         if (directionIn) {
-            // only support for limit in outgoing dir.
+            /* only support for limit in outgoing dir. */
             *skipRule = true;
         } else {
             if (printDataType(vars,
@@ -1005,7 +1006,9 @@ iptablesHandleIpHdr(virBufferPtr buf,
                               &ipHdr->dataConnlimitAbove))
                goto err_exit;
 
-            virBufferVSprintf(buf,
+            /* place connlimit after potential -m state --state ...
+               since this is the most useful order */
+            virBufferVSprintf(afterStateMatch,
                               " -m connlimit %s --connlimit-above %s",
                               ENTRY_GET_NEG_SIGN(&ipHdr->dataConnlimitAbove),
                               number);
@@ -1016,7 +1019,9 @@ iptablesHandleIpHdr(virBufferPtr buf,
     if (HAS_ENTRY_ITEM(&ipHdr->dataComment)) {
         printCommentVar(prefix, ipHdr->dataComment.u.string);
 
-        virBufferAddLit(buf,
+        /* keep comments behind everything else -- they are packet eval.
+           no-ops */
+        virBufferAddLit(afterStateMatch,
                         " -m comment --comment \"$" COMMENT_VARNAME "\"");
     }
 
@@ -1024,6 +1029,7 @@ iptablesHandleIpHdr(virBufferPtr buf,
 
 err_exit:
     virBufferFreeAndReset(buf);
+    virBufferFreeAndReset(afterStateMatch);
 
     return 1;
 }
@@ -1148,6 +1154,7 @@ _iptablesCreateRuleInstance(int directionIn,
     char number[20];
     virBuffer prefix = VIR_BUFFER_INITIALIZER;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
+    virBuffer afterStateMatch = VIR_BUFFER_INITIALIZER;
     virBufferPtr final = NULL;
     const char *target;
     const char *iptables_cmd = (isIPv6) ? ip6tables_cmd_path
@@ -1188,6 +1195,7 @@ _iptablesCreateRuleInstance(int directionIn,
             goto err_exit;
 
         if (iptablesHandleIpHdr(&buf,
+                                &afterStateMatch,
                                 vars,
                                 &rule->p.tcpHdrFilter.ipHdr,
                                 directionIn,
@@ -1234,6 +1242,7 @@ _iptablesCreateRuleInstance(int directionIn,
             goto err_exit;
 
         if (iptablesHandleIpHdr(&buf,
+                                &afterStateMatch,
                                 vars,
                                 &rule->p.udpHdrFilter.ipHdr,
                                 directionIn,
@@ -1267,6 +1276,7 @@ _iptablesCreateRuleInstance(int directionIn,
             goto err_exit;
 
         if (iptablesHandleIpHdr(&buf,
+                                &afterStateMatch,
                                 vars,
                                 &rule->p.udpliteHdrFilter.ipHdr,
                                 directionIn,
@@ -1295,6 +1305,7 @@ _iptablesCreateRuleInstance(int directionIn,
             goto err_exit;
 
         if (iptablesHandleIpHdr(&buf,
+                                &afterStateMatch,
                                 vars,
                                 &rule->p.espHdrFilter.ipHdr,
                                 directionIn,
@@ -1323,6 +1334,7 @@ _iptablesCreateRuleInstance(int directionIn,
             goto err_exit;
 
         if (iptablesHandleIpHdr(&buf,
+                                &afterStateMatch,
                                 vars,
                                 &rule->p.ahHdrFilter.ipHdr,
                                 directionIn,
@@ -1351,6 +1363,7 @@ _iptablesCreateRuleInstance(int directionIn,
             goto err_exit;
 
         if (iptablesHandleIpHdr(&buf,
+                                &afterStateMatch,
                                 vars,
                                 &rule->p.sctpHdrFilter.ipHdr,
                                 directionIn,
@@ -1387,6 +1400,7 @@ _iptablesCreateRuleInstance(int directionIn,
             goto err_exit;
 
         if (iptablesHandleIpHdr(&buf,
+                                &afterStateMatch,
                                 vars,
                                 &rule->p.icmpHdrFilter.ipHdr,
                                 directionIn,
@@ -1449,6 +1463,7 @@ _iptablesCreateRuleInstance(int directionIn,
             goto err_exit;
 
         if (iptablesHandleIpHdr(&buf,
+                                &afterStateMatch,
                                 vars,
                                 &rule->p.igmpHdrFilter.ipHdr,
                                 directionIn,
@@ -1477,6 +1492,7 @@ _iptablesCreateRuleInstance(int directionIn,
             goto err_exit;
 
         if (iptablesHandleIpHdr(&buf,
+                                &afterStateMatch,
                                 vars,
                                 &rule->p.allHdrFilter.ipHdr,
                                 directionIn,
@@ -1511,6 +1527,22 @@ _iptablesCreateRuleInstance(int directionIn,
         iptablesEnforceDirection(directionIn,
                                  rule,
                                  &buf);
+
+    if (virBufferError(&afterStateMatch)) {
+        virBufferFreeAndReset(&buf);
+        virBufferFreeAndReset(&prefix);
+        virBufferFreeAndReset(&afterStateMatch);
+        virReportOOMError();
+        return -1;
+    }
+
+    if (virBufferUse(&afterStateMatch)) {
+        char *s = virBufferContentAndReset(&afterStateMatch);
+
+        virBufferAdd(&buf, s, -1);
+
+        VIR_FREE(s);
+    }
 
     virBufferVSprintf(&buf,
                       " -j %s" CMD_DEF_POST CMD_SEPARATOR
@@ -1553,12 +1585,14 @@ _iptablesCreateRuleInstance(int directionIn,
 err_exit:
     virBufferFreeAndReset(&buf);
     virBufferFreeAndReset(&prefix);
+    virBufferFreeAndReset(&afterStateMatch);
 
     return -1;
 
 exit_no_error:
     virBufferFreeAndReset(&buf);
     virBufferFreeAndReset(&prefix);
+    virBufferFreeAndReset(&afterStateMatch);
 
     return 0;
 }
@@ -2356,7 +2390,7 @@ ebiptablesCreateRuleInstance(virConnectPtr conn ATTRIBUTE_UNUSED,
     case VIR_NWFILTER_RULE_PROTOCOL_IGMP:
     case VIR_NWFILTER_RULE_PROTOCOL_ALL:
         if (nettype == VIR_DOMAIN_NET_TYPE_DIRECT) {
-            virNWFilterReportError(VIR_ERR_INVALID_NWFILTER,
+            virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
                           _("'%s' protocol not support for net type '%s'"),
                           virNWFilterRuleProtocolTypeToString(rule->prtclType),
                           virDomainNetTypeToString(nettype));
@@ -2380,7 +2414,7 @@ ebiptablesCreateRuleInstance(virConnectPtr conn ATTRIBUTE_UNUSED,
     case VIR_NWFILTER_RULE_PROTOCOL_ICMPV6:
     case VIR_NWFILTER_RULE_PROTOCOL_ALLoIPV6:
         if (nettype == VIR_DOMAIN_NET_TYPE_DIRECT) {
-            virNWFilterReportError(VIR_ERR_INVALID_NWFILTER,
+            virNWFilterReportError(VIR_ERR_OPERATION_FAILED,
                           _("'%s' protocol not support for net type '%s'"),
                           virNWFilterRuleProtocolTypeToString(rule->prtclType),
                           virDomainNetTypeToString(nettype));
@@ -2396,7 +2430,7 @@ ebiptablesCreateRuleInstance(virConnectPtr conn ATTRIBUTE_UNUSED,
     break;
 
     case VIR_NWFILTER_RULE_PROTOCOL_LAST:
-        virNWFilterReportError(VIR_ERR_INVALID_NWFILTER,
+        virNWFilterReportError(VIR_ERR_OPERATION_FAILED,
                                "%s", _("illegal protocol type"));
         rc = 1;
     break;
@@ -3320,7 +3354,7 @@ ebiptablesApplyNewRules(virConnectPtr conn ATTRIBUTE_UNUSED,
     if (chains_out & (1 << VIR_NWFILTER_CHAINSUFFIX_IPv6))
         ebtablesCreateTmpSubChain(&buf, 0, ifname, L3_PROTO_IPV6_IDX, 1);
 
-    // keep arp,rarp as last
+    /* keep arp,rarp as last */
     if (chains_in  & (1 << VIR_NWFILTER_CHAINSUFFIX_ARP))
         ebtablesCreateTmpSubChain(&buf, 1, ifname, L3_PROTO_ARP_IDX, 1);
     if (chains_out & (1 << VIR_NWFILTER_CHAINSUFFIX_ARP))
@@ -3503,7 +3537,7 @@ ebiptablesTearOldRules(virConnectPtr conn ATTRIBUTE_UNUSED,
     int cli_status;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
-    // switch to new iptables user defined chains
+    /* switch to new iptables user defined chains */
     if (iptables_cmd_path) {
         iptablesUnlinkRootChains(iptables_cmd_path, &buf, ifname);
         iptablesRemoveRootChains(iptables_cmd_path, &buf, ifname);
@@ -3653,10 +3687,13 @@ virNWFilterTechDriver ebiptables_driver = {
 
 
 static int
-ebiptablesDriverInit(void)
+ebiptablesDriverInit(bool privileged)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     int cli_status;
+
+    if (!privileged)
+        return 0;
 
     if (virMutexInit(&execCLIMutex))
         return EINVAL;
@@ -3730,7 +3767,7 @@ ebiptablesDriverInit(void)
 
 
 static void
-ebiptablesDriverShutdown()
+ebiptablesDriverShutdown(void)
 {
     VIR_FREE(gawk_cmd_path);
     VIR_FREE(grep_cmd_path);

@@ -1,7 +1,7 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# Copyright (C) 2002-2010 Free Software Foundation, Inc.
+# Copyright (C) 2002-2011 Free Software Foundation, Inc.
 #
 # This file is free software, distributed under the terms of the GNU
 # General Public License.  As a special exception to the GNU General
@@ -28,6 +28,7 @@ AC_DEFUN([gl_EARLY],
   m4_pattern_allow([^gl_LIBOBJS$])dnl a variable
   m4_pattern_allow([^gl_LTLIBOBJS$])dnl a variable
   AC_REQUIRE([AC_PROG_RANLIB])
+  AC_REQUIRE([AM_PROG_CC_C_O])
   # Code from module accept:
   # Code from module alignof:
   # Code from module alignof-tests:
@@ -49,6 +50,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module c-ctype-tests:
   # Code from module canonicalize-lgpl:
   # Code from module canonicalize-lgpl-tests:
+  # Code from module chown:
+  # Code from module chown-tests:
   # Code from module close:
   # Code from module close-hook:
   # Code from module configmake:
@@ -59,8 +62,12 @@ AC_DEFUN([gl_EARLY],
   # Code from module crypto/md5-tests:
   # Code from module dirname-lgpl:
   # Code from module double-slash-root:
+  # Code from module environ:
+  # Code from module environ-tests:
   # Code from module errno:
   # Code from module errno-tests:
+  # Code from module error:
+  # Code from module exitfail:
   # Code from module extensions:
   AC_REQUIRE([gl_USE_SYSTEM_EXTENSIONS])
   # Code from module fclose:
@@ -76,6 +83,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module getaddrinfo-tests:
   # Code from module getdelim:
   # Code from module getdelim-tests:
+  # Code from module getgroups:
+  # Code from module getgroups-tests:
   # Code from module gethostname:
   # Code from module gethostname-tests:
   # Code from module getline:
@@ -85,18 +94,24 @@ AC_DEFUN([gl_EARLY],
   # Code from module gettext-h:
   # Code from module gettimeofday:
   # Code from module gettimeofday-tests:
+  # Code from module getugroups:
   # Code from module gitlog-to-changelog:
   # Code from module gnumakefile:
+  # Code from module havelib:
   # Code from module hostent:
   # Code from module ignore-value:
+  # Code from module ignore-value-tests:
   # Code from module include_next:
   # Code from module inet_ntop:
   # Code from module inet_ntop-tests:
   # Code from module inet_pton:
   # Code from module inet_pton-tests:
+  # Code from module inline:
   # Code from module intprops:
   # Code from module ioctl:
   # Code from module listen:
+  # Code from module lock:
+  # Code from module lock-tests:
   # Code from module lseek:
   # Code from module lseek-tests:
   # Code from module lstat:
@@ -107,6 +122,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module malloca-tests:
   # Code from module memchr:
   # Code from module memchr-tests:
+  # Code from module mgetgroups:
   # Code from module mkstemp:
   # Code from module mkstemps:
   # Code from module mktempd:
@@ -116,6 +132,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module netdb-tests:
   # Code from module netinet_in:
   # Code from module netinet_in-tests:
+  # Code from module open:
+  # Code from module open-tests:
   # Code from module pathmax:
   # Code from module perror:
   # Code from module perror-tests:
@@ -127,13 +145,17 @@ AC_DEFUN([gl_EARLY],
   # Code from module poll-h-tests:
   # Code from module poll-tests:
   # Code from module posix-shell:
+  # Code from module progname:
   # Code from module pthread:
+  # Code from module putenv:
   # Code from module random_r:
   # Code from module random_r-tests:
   # Code from module rawmemchr:
   # Code from module rawmemchr-tests:
   # Code from module readlink:
   # Code from module readlink-tests:
+  # Code from module realloc-gnu:
+  # Code from module realloc-gnu-tests:
   # Code from module realloc-posix:
   # Code from module recv:
   # Code from module same-inode:
@@ -144,6 +166,13 @@ AC_DEFUN([gl_EARLY],
   # Code from module send:
   # Code from module servent:
   # Code from module setsockopt:
+  # Code from module sigaction:
+  # Code from module sigaction-tests:
+  # Code from module signal:
+  # Code from module signal-tests:
+  # Code from module sigpipe:
+  # Code from module sigpipe-tests:
+  # Code from module sigprocmask:
   # Code from module size_max:
   # Code from module sleep:
   # Code from module sleep-tests:
@@ -157,6 +186,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module ssize_t:
   # Code from module stat:
   # Code from module stat-tests:
+  # Code from module stat-time:
+  # Code from module stat-time-tests:
   # Code from module stdbool:
   # Code from module stdbool-tests:
   # Code from module stddef:
@@ -174,6 +205,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module strdup-posix:
   # Code from module strerror:
   # Code from module strerror-tests:
+  # Code from module strerror_r-posix:
+  # Code from module strerror_r-posix-tests:
   # Code from module string:
   # Code from module string-tests:
   # Code from module strings:
@@ -203,6 +236,9 @@ AC_DEFUN([gl_EARLY],
   # Code from module tempname:
   # Code from module termios:
   # Code from module termios-tests:
+  # Code from module thread:
+  # Code from module threadlib:
+  gl_THREADLIB_EARLY
   # Code from module time:
   # Code from module time-tests:
   # Code from module time_r:
@@ -211,6 +247,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module uname-tests:
   # Code from module unistd:
   # Code from module unistd-tests:
+  # Code from module unsetenv:
+  # Code from module unsetenv-tests:
   # Code from module useless-if-before-free:
   # Code from module usleep:
   # Code from module usleep-tests:
@@ -226,7 +264,12 @@ AC_DEFUN([gl_EARLY],
   # Code from module warn-on-use:
   # Code from module wchar:
   # Code from module wchar-tests:
+  # Code from module write:
+  # Code from module xalloc:
+  # Code from module xalloc-die:
+  # Code from module xalloc-die-tests:
   # Code from module xsize:
+  # Code from module yield:
 ])
 
 # This macro should be invoked from ./configure.ac, in the section
@@ -265,6 +308,9 @@ AC_SUBST([LTALLOCA])
   gl_MODULE_INDICATOR([canonicalize-lgpl])
   gl_STDLIB_MODULE_INDICATOR([canonicalize_file_name])
   gl_STDLIB_MODULE_INDICATOR([realpath])
+  # Code from module chown:
+  gl_FUNC_CHOWN
+  gl_UNISTD_MODULE_INDICATOR([chown])
   # Code from module close:
   gl_FUNC_CLOSE
   gl_UNISTD_MODULE_INDICATOR([close])
@@ -332,6 +378,7 @@ AC_SUBST([LTALLOCA])
   	m4_defn([m4_PACKAGE_VERSION])), [1], [],
         [AC_CONFIG_LINKS([$GNUmakefile:$GNUmakefile], [],
   	[GNUmakefile=$GNUmakefile])])
+  # Code from module havelib:
   # Code from module hostent:
   gl_HOSTENT
   # Code from module ignore-value:
@@ -347,6 +394,8 @@ AC_SUBST([LTALLOCA])
   # Code from module ioctl:
   gl_FUNC_IOCTL
   gl_SYS_IOCTL_MODULE_INDICATOR([ioctl])
+  # Code from module lock:
+  gl_LOCK
   # Code from module lseek:
   gl_FUNC_LSEEK
   gl_UNISTD_MODULE_INDICATOR([lseek])
@@ -382,6 +431,9 @@ AC_SUBST([LTALLOCA])
   # Code from module netinet_in:
   gl_HEADER_NETINET_IN
   AC_PROG_MKDIR_P
+  # Code from module open:
+  gl_FUNC_OPEN
+  gl_FCNTL_MODULE_INDICATOR([open])
   # Code from module pathmax:
   gl_PATHMAX
   # Code from module perror:
@@ -438,6 +490,27 @@ AC_SUBST([LTALLOCA])
     AC_LIBOBJ([setsockopt])
   fi
   gl_SYS_SOCKET_MODULE_INDICATOR([setsockopt])
+  # Code from module sigaction:
+  gl_SIGACTION
+  gl_SIGNAL_MODULE_INDICATOR([sigaction])
+  # Code from module signal:
+  gl_SIGNAL_H
+  # Code from module sigpipe:
+  gl_SIGNAL_SIGPIPE
+  dnl Define the C macro GNULIB_SIGPIPE to 1.
+  gl_MODULE_INDICATOR([sigpipe])
+  dnl Define the substituted variable GNULIB_SIGNAL_H_SIGPIPE to 1.
+  AC_REQUIRE([gl_SIGNAL_H_DEFAULTS])
+  GNULIB_SIGNAL_H_SIGPIPE=1
+  dnl Define the substituted variable GNULIB_STDIO_H_SIGPIPE to 1.
+  AC_REQUIRE([gl_STDIO_H_DEFAULTS])
+  GNULIB_STDIO_H_SIGPIPE=1
+  dnl Define the substituted variable GNULIB_UNISTD_H_SIGPIPE to 1.
+  AC_REQUIRE([gl_UNISTD_H_DEFAULTS])
+  GNULIB_UNISTD_H_SIGPIPE=1
+  # Code from module sigprocmask:
+  gl_SIGNALBLOCKING
+  gl_SIGNAL_MODULE_INDICATOR([sigprocmask])
   # Code from module size_max:
   gl_SIZE_MAX
   # Code from module sleep:
@@ -446,6 +519,7 @@ AC_SUBST([LTALLOCA])
   # Code from module snprintf:
   gl_FUNC_SNPRINTF
   gl_STDIO_MODULE_INDICATOR([snprintf])
+  gl_MODULE_INDICATOR([snprintf])
   # Code from module socket:
   AC_REQUIRE([gl_HEADER_SYS_SOCKET])
   if test "$ac_cv_header_winsock2_h" = yes; then
@@ -496,6 +570,9 @@ AC_SUBST([LTALLOCA])
   # Code from module strerror:
   gl_FUNC_STRERROR
   gl_STRING_MODULE_INDICATOR([strerror])
+  # Code from module strerror_r-posix:
+  gl_FUNC_STRERROR_R
+  gl_STRING_MODULE_INDICATOR([strerror_r])
   # Code from module string:
   gl_HEADER_STRING_H
   # Code from module strings:
@@ -540,6 +617,8 @@ AC_SUBST([LTALLOCA])
   gl_FUNC_GEN_TEMPNAME
   # Code from module termios:
   gl_TERMIOS_H
+  # Code from module threadlib:
+  gl_THREADLIB
   # Code from module time:
   gl_HEADER_TIME_H
   # Code from module time_r:
@@ -631,11 +710,22 @@ changequote([, ])dnl
     AC_LIBOBJ([bind])
   fi
   gl_SYS_SOCKET_MODULE_INDICATOR([bind])
+  AC_CHECK_FUNCS_ONCE([getegid])
+  gl_ENVIRON
+  gl_UNISTD_MODULE_INDICATOR([environ])
+  gl_ERROR
+  m4_ifdef([AM_XGETTEXT_OPTION],
+    [AM_][XGETTEXT_OPTION([--flag=error:3:c-format])
+     AM_][XGETTEXT_OPTION([--flag=error_at_line:5:c-format])])
   gl_FUNC_UNGETC_WORKS
+  gl_FUNC_GETGROUPS
+  gl_UNISTD_MODULE_INDICATOR([getgroups])
   gl_FUNC_GETPAGESIZE
   gl_UNISTD_MODULE_INDICATOR([getpagesize])
+  gl_GETUGROUPS
   AC_C_BIGENDIAN
   AC_C_BIGENDIAN
+  gl_INLINE
   AC_REQUIRE([gl_HEADER_SYS_SOCKET])
   if test "$ac_cv_header_winsock2_h" = yes; then
     AC_LIBOBJ([listen])
@@ -645,13 +735,22 @@ changequote([, ])dnl
   gl_FUNC_MMAP_ANON
   AC_CHECK_HEADERS_ONCE([sys/mman.h])
   AC_CHECK_FUNCS_ONCE([mprotect])
+  gl_MGETGROUPS
   AC_CHECK_HEADERS_ONCE([unistd.h sys/wait.h])
+  AC_CHECK_DECLS([program_invocation_name], [], [], [#include <errno.h>])
+  AC_CHECK_DECLS([program_invocation_short_name], [], [], [#include <errno.h>])
+  gl_FUNC_PUTENV
+  gl_STDLIB_MODULE_INDICATOR([putenv])
   dnl Check for prerequisites for memory fence checks.
   gl_FUNC_MMAP_ANON
   AC_CHECK_HEADERS_ONCE([sys/mman.h])
   AC_CHECK_FUNCS_ONCE([mprotect])
-  AC_CHECK_HEADERS_ONCE([unistd.h sys/wait.h])
+  gl_FUNC_REALLOC_GNU
+  gl_MODULE_INDICATOR([realloc-gnu])
+  AC_CHECK_HEADERS_ONCE([sys/wait.h])
   AC_CHECK_DECLS_ONCE([alarm])
+  gl_STAT_TIME
+  gl_STAT_BIRTHTIME
   gt_TYPE_WCHAR_T
   gt_TYPE_WINT_T
   dnl Check for prerequisites for memory fence checks.
@@ -661,8 +760,15 @@ changequote([, ])dnl
   gl_FUNC_SYMLINK
   gl_UNISTD_MODULE_INDICATOR([symlink])
   AC_CHECK_FUNCS_ONCE([shutdown])
+  gl_THREAD
+  gl_FUNC_UNSETENV
+  gl_STDLIB_MODULE_INDICATOR([unsetenv])
   abs_aux_dir=`cd "$ac_aux_dir"; pwd`
   AC_SUBST([abs_aux_dir])
+  gl_FUNC_WRITE
+  gl_UNISTD_MODULE_INDICATOR([write])
+  gl_XALLOC
+  gl_YIELD
   m4_popdef([gl_MODULE_INDICATOR_CONDITION])
   m4_ifval(gltests_LIBSOURCES_LIST, [
     m4_syscmd([test ! -d ]m4_defn([gltests_LIBSOURCES_DIR])[ ||
@@ -757,6 +863,7 @@ AC_DEFUN([gltests_LIBSOURCES], [
 AC_DEFUN([gl_FILE_LIST], [
   build-aux/arg-nonnull.h
   build-aux/c++defs.h
+  build-aux/config.rpath
   build-aux/gitlog-to-changelog
   build-aux/mktempd
   build-aux/useless-if-before-free
@@ -776,6 +883,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/c-ctype.c
   lib/c-ctype.h
   lib/canonicalize-lgpl.c
+  lib/chown.c
   lib/close-hook.c
   lib/close-hook.h
   lib/close.c
@@ -784,6 +892,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/dirname-lgpl.c
   lib/dirname.h
   lib/errno.in.h
+  lib/fchown-stub.c
   lib/fclose.c
   lib/fcntl.in.h
   lib/float+.h
@@ -798,6 +907,9 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/getpass.h
   lib/gettext.h
   lib/gettimeofday.c
+  lib/glthread/lock.c
+  lib/glthread/lock.h
+  lib/glthread/threadlib.c
   lib/ignore-value.h
   lib/inet_ntop.c
   lib/inet_pton.c
@@ -819,6 +931,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/mktime.c
   lib/netdb.in.h
   lib/netinet_in.in.h
+  lib/open.c
   lib/pathmax.h
   lib/perror.c
   lib/physmem.c
@@ -841,6 +954,10 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/select.c
   lib/send.c
   lib/setsockopt.c
+  lib/sig-handler.h
+  lib/sigaction.c
+  lib/signal.in.h
+  lib/sigprocmask.c
   lib/size_max.h
   lib/sleep.c
   lib/snprintf.c
@@ -861,6 +978,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/strchrnul.valgrind
   lib/strdup.c
   lib/strerror.c
+  lib/strerror_r.c
   lib/string.in.h
   lib/strings.in.h
   lib/stripslash.c
@@ -900,6 +1018,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/asm-underscore.m4
   m4/base64.m4
   m4/canonicalize.m4
+  m4/chown.m4
   m4/close.m4
   m4/configmake.m4
   m4/count-one-bits.m4
@@ -907,7 +1026,9 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/dos.m4
   m4/double-slash-root.m4
   m4/eealloc.m4
+  m4/environ.m4
   m4/errno_h.m4
+  m4/error.m4
   m4/extensions.m4
   m4/fclose.m4
   m4/fcntl-o.m4
@@ -917,19 +1038,26 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/func.m4
   m4/getaddrinfo.m4
   m4/getdelim.m4
+  m4/getgroups.m4
   m4/gethostname.m4
   m4/getline.m4
   m4/getpagesize.m4
   m4/getpass.m4
   m4/gettimeofday.m4
+  m4/getugroups.m4
   m4/gnulib-common.m4
   m4/hostent.m4
   m4/include_next.m4
   m4/inet_ntop.m4
   m4/inet_pton.m4
+  m4/inline.m4
   m4/intmax_t.m4
   m4/inttypes_h.m4
   m4/ioctl.m4
+  m4/lib-ld.m4
+  m4/lib-link.m4
+  m4/lib-prefix.m4
+  m4/lock.m4
   m4/longlong.m4
   m4/lseek.m4
   m4/lstat.m4
@@ -937,14 +1065,17 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/malloca.m4
   m4/md5.m4
   m4/memchr.m4
+  m4/mgetgroups.m4
   m4/mkstemp.m4
   m4/mkstemps.m4
   m4/mktime.m4
   m4/mmap-anon.m4
+  m4/mode_t.m4
   m4/multiarch.m4
   m4/netdb_h.m4
   m4/netinet_in_h.m4
   m4/onceonly.m4
+  m4/open.m4
   m4/pathmax.m4
   m4/perror.m4
   m4/physmem.m4
@@ -954,6 +1085,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/posix-shell.m4
   m4/printf.m4
   m4/pthread.m4
+  m4/putenv.m4
   m4/random_r.m4
   m4/rawmemchr.m4
   m4/readlink.m4
@@ -961,6 +1093,11 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/sched_h.m4
   m4/select.m4
   m4/servent.m4
+  m4/setenv.m4
+  m4/sigaction.m4
+  m4/signal_h.m4
+  m4/signalblocking.m4
+  m4/sigpipe.m4
   m4/size_max.m4
   m4/sleep.m4
   m4/snprintf.m4
@@ -969,6 +1106,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/socklen.m4
   m4/sockpfaf.m4
   m4/ssize_t.m4
+  m4/stat-time.m4
   m4/stat.m4
   m4/stdbool.m4
   m4/stddef_h.m4
@@ -981,6 +1119,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/strchrnul.m4
   m4/strdup.m4
   m4/strerror.m4
+  m4/strerror_r.m4
   m4/string_h.m4
   m4/strings_h.m4
   m4/strndup.m4
@@ -998,6 +1137,8 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/sys_wait_h.m4
   m4/tempname.m4
   m4/termios_h.m4
+  m4/thread.m4
+  m4/threadlib.m4
   m4/time_h.m4
   m4/time_r.m4
   m4/timegm.m4
@@ -1013,9 +1154,13 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/wchar_h.m4
   m4/wchar_t.m4
   m4/wint_t.m4
+  m4/write.m4
+  m4/xalloc.m4
   m4/xsize.m4
+  m4/yield.m4
   tests/init.sh
   tests/macros.h
+  tests/nap.h
   tests/signature.h
   tests/test-alignof.c
   tests/test-alloca-opt.c
@@ -1027,7 +1172,10 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-binary-io.sh
   tests/test-c-ctype.c
   tests/test-canonicalize-lgpl.c
+  tests/test-chown.c
+  tests/test-chown.h
   tests/test-count-one-bits.c
+  tests/test-environ.c
   tests/test-errno.c
   tests/test-fcntl-h.c
   tests/test-fseeko.c
@@ -1036,11 +1184,14 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-func.c
   tests/test-getaddrinfo.c
   tests/test-getdelim.c
+  tests/test-getgroups.c
   tests/test-gethostname.c
   tests/test-getline.c
   tests/test-gettimeofday.c
+  tests/test-ignore-value.c
   tests/test-inet_ntop.c
   tests/test-inet_pton.c
+  tests/test-lock.c
   tests/test-lseek.c
   tests/test-lseek.sh
   tests/test-lstat.c
@@ -1050,6 +1201,8 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-memchr.c
   tests/test-netdb.c
   tests/test-netinet_in.c
+  tests/test-open.c
+  tests/test-open.h
   tests/test-perror.c
   tests/test-perror.sh
   tests/test-pipe.c
@@ -1059,15 +1212,21 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-rawmemchr.c
   tests/test-readlink.c
   tests/test-readlink.h
+  tests/test-realloc-gnu.c
   tests/test-sched.c
   tests/test-select-fd.c
   tests/test-select-in.sh
   tests/test-select-out.sh
   tests/test-select-stdin.c
   tests/test-select.c
+  tests/test-sigaction.c
+  tests/test-signal.c
+  tests/test-sigpipe.c
+  tests/test-sigpipe.sh
   tests/test-sleep.c
   tests/test-snprintf.c
   tests/test-sockets.c
+  tests/test-stat-time.c
   tests/test-stat.c
   tests/test-stat.h
   tests/test-stdbool.c
@@ -1077,6 +1236,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-stdlib.c
   tests/test-strchrnul.c
   tests/test-strerror.c
+  tests/test-strerror_r.c
   tests/test-string.c
   tests/test-strings.c
   tests/test-strnlen.c
@@ -1094,6 +1254,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-time.c
   tests/test-uname.c
   tests/test-unistd.c
+  tests/test-unsetenv.c
   tests/test-usleep.c
   tests/test-vasnprintf.c
   tests/test-vasprintf.c
@@ -1102,16 +1263,39 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-verify.c
   tests/test-verify.sh
   tests/test-wchar.c
+  tests/test-xalloc-die.c
+  tests/test-xalloc-die.sh
   tests/zerosize-ptr.h
   tests=lib/accept.c
   tests=lib/binary-io.h
   tests=lib/bind.c
-  tests=lib/dummy.c
+  tests=lib/error.c
+  tests=lib/error.h
+  tests=lib/exitfail.c
+  tests=lib/exitfail.h
+  tests=lib/getgroups.c
   tests=lib/getpagesize.c
+  tests=lib/getugroups.c
+  tests=lib/getugroups.h
+  tests=lib/glthread/thread.c
+  tests=lib/glthread/thread.h
+  tests=lib/glthread/yield.h
   tests=lib/listen.c
+  tests=lib/mgetgroups.c
+  tests=lib/mgetgroups.h
+  tests=lib/progname.c
+  tests=lib/progname.h
+  tests=lib/putenv.c
+  tests=lib/realloc.c
   tests=lib/same-inode.h
+  tests=lib/stat-time.h
   tests=lib/symlink.c
+  tests=lib/unsetenv.c
   tests=lib/w32sock.h
+  tests=lib/write.c
+  tests=lib/xalloc-die.c
+  tests=lib/xalloc.h
+  tests=lib/xmalloc.c
   top/GNUmakefile
   top/maint.mk
 ])

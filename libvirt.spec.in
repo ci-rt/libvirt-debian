@@ -592,6 +592,13 @@ of recent versions of Linux (and other OSes).
 %define _without_dtrace --without-dtrace
 %endif
 
+%define when  %(date +"%%F-%%T")
+%define where %(hostname)
+%define who   %{?packager}%{!?packager:Unknown}
+%define with_packager --with-packager="%{who}, %{when}, %{where}"
+%define with_packager_version --with-packager-version="%{release}"
+
+
 %configure %{?_without_xen} \
            %{?_without_qemu} \
            %{?_without_openvz} \
@@ -626,6 +633,8 @@ of recent versions of Linux (and other OSes).
            %{?_without_macvtap} \
            %{?_without_audit} \
            %{?_without_dtrace} \
+           %{with_packager} \
+           %{with_packager_version} \
            --with-qemu-user=%{qemu_user} \
            --with-qemu-group=%{qemu_group} \
            --with-init-script=redhat \
@@ -775,7 +784,8 @@ fi
 /sbin/ldconfig
 /sbin/chkconfig --add libvirt-guests
 if [ $1 -ge 1 ]; then
-    if /sbin/chkconfig --list libvirt-guests | /bin/grep -q :on ; then
+    level=$(/sbin/runlevel | /bin/cut -d ' ' -f 2)
+    if /sbin/chkconfig --list libvirt-guests | /bin/grep -q $level:on ; then
         # this doesn't do anything but allowing for libvirt-guests to be
         # stopped on the first shutdown
         /sbin/service libvirt-guests start > /dev/null 2>&1 || true
@@ -963,6 +973,13 @@ fi
 %endif
 
 %changelog
+* Thu Feb 17 2011 Daniel Veillard <veillard@redhat.com> - 0.8.8-1
+- expose new API for sysinfo extraction
+- cgroup blkio weight support
+- smartcard device support
+- qemu: Support per-device boot ordering
+- Various improvements and bug fixes
+
 * Tue Jan  4 2011 Daniel Veillard <veillard@redhat.com> - 0.8.7-1
 - Preliminary support for VirtualBox 4.0
 - IPv6 support

@@ -604,7 +604,7 @@ virStorageBackendLogicalCreateVol(virConnectPtr conn,
         cmdargv = cmdargvsnap;
     }
 
-    snprintf(size, sizeof(size)-1, "%lluK", vol->capacity/1024);
+    snprintf(size, sizeof(size)-1, "%lluK", VIR_DIV_UP(vol->capacity, 1024));
     size[sizeof(size)-1] = '\0';
 
     vol->type = VIR_STORAGE_VOL_BLOCK;

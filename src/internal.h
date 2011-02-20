@@ -38,6 +38,7 @@
 # define N_(str) str
 
 # include "libvirt/libvirt.h"
+# include "libvirt/libvirt-qemu.h"
 # include "libvirt/virterror.h"
 
 # include "libvirt_internal.h"
@@ -230,5 +231,8 @@
             return retval;                                              \
         }                                                               \
     } while (0)
+
+/* divide value by size, rounding up */
+# define VIR_DIV_UP(value, size) (((value) + (size) - 1) / (size))
 
 #endif                          /* __VIR_INTERNAL_H__ */

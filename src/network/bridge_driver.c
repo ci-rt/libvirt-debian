@@ -1,7 +1,7 @@
 /*
  * bridge_driver.c: core driver methods for managing network
  *
- * Copyright (C) 2006-2010 Red Hat, Inc.
+ * Copyright (C) 2006-2011 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -432,6 +432,8 @@ networkBuildDnsmasqArgv(virNetworkObjPtr network,
     int r, ret = -1;
     int nbleases = 0;
     char *bridgeaddr;
+    int ii;
+    virNetworkIpDefPtr tmpipdef;
 
     if (!(bridgeaddr = virSocketFormatAddr(&ipdef->address)))
         goto cleanup;
@@ -468,19 +470,27 @@ networkBuildDnsmasqArgv(virNetworkObjPtr network,
     /* *no* conf file */
     virCommandAddArgList(cmd, "--conf-file=", "", NULL);
 
-    /*
-     * XXX does not actually work, due to some kind of
-     * race condition setting up ipv6 addresses on the
-     * interface. A sleep(10) makes it work, but that's
-     * clearly not practical
-     *
-     * virCommandAddArg(cmd, "--interface");
-     * virCommandAddArg(cmd, ipdef->bridge);
-     */
     virCommandAddArgList(cmd,
-                         "--listen-address", bridgeaddr,
                          "--except-interface", "lo",
                          NULL);
+
+    /*
+     * --interface does not actually work with dnsmasq < 2.47,
+     * due to DAD for ipv6 addresses on the interface.
+     *
+     * virCommandAddArgList(cmd, "--interface", ipdef->bridge, NULL);
+     *
+     * So listen on all defined IPv[46] addresses
+     */
+    for (ii = 0;
+         (tmpipdef = virNetworkDefGetIpByIndex(network->def, AF_UNSPEC, ii));
+         ii++) {
+        char *ipaddr = virSocketFormatAddr(&tmpipdef->address);
+        if (!ipaddr)
+            goto cleanup;
+        virCommandAddArgList(cmd, "--listen-address", ipaddr, NULL);
+        VIR_FREE(ipaddr);
+    }
 
     for (r = 0 ; r < ipdef->nranges ; r++) {
         char *saddr = virSocketFormatAddr(&ipdef->ranges[r].start);
@@ -524,7 +534,7 @@ networkBuildDnsmasqArgv(virNetworkObjPtr network,
             goto cleanup;
         }
 
-        if (networkSaveDnsmasqHostsfile(ipdef, dctx, false) < 0) {
+        if (networkSaveDnsmasqHostsfile(ipdef, dctx, false) == 0) {
             virCommandAddArgPair(cmd, "--dhcp-hostsfile",
                                  dctx->hostsfile->path);
         }
@@ -1027,9 +1037,30 @@ networkAddGeneralIp6tablesRules(struct network_driver *driver,
         goto err3;
     }
 
+    /* allow DNS over IPv6 */
+    if (iptablesAddTcpInput(driver->iptables, AF_INET6,
+                            network->def->bridge, 53) < 0) {
+        networkReportError(VIR_ERR_SYSTEM_ERROR,
+                           _("failed to add ip6tables rule to allow DNS requests from '%s'"),
+                           network->def->bridge);
+        goto err4;
+    }
+
+    if (iptablesAddUdpInput(driver->iptables, AF_INET6,
+                            network->def->bridge, 53) < 0) {
+        networkReportError(VIR_ERR_SYSTEM_ERROR,
+                           _("failed to add ip6tables rule to allow DNS requests from '%s'"),
+                           network->def->bridge);
+        goto err5;
+    }
+
     return 0;
 
     /* unwind in reverse order from the point of failure */
+err5:
+    iptablesRemoveTcpInput(driver->iptables, AF_INET6, network->def->bridge, 53);
+err4:
+    iptablesRemoveForwardAllowCross(driver->iptables, AF_INET6, network->def->bridge);
 err3:
     iptablesRemoveForwardRejectIn(driver->iptables, AF_INET6, network->def->bridge);
 err2:
@@ -1537,7 +1568,7 @@ networkStartNetworkDaemon(struct network_driver *driver,
     virNetworkIpDefPtr ipdef;
 
     if (virNetworkObjIsActive(network)) {
-        networkReportError(VIR_ERR_INTERNAL_ERROR,
+        networkReportError(VIR_ERR_OPERATION_INVALID,
                            "%s", _("network is already active"));
         return -1;
     }
@@ -1555,16 +1586,16 @@ networkStartNetworkDaemon(struct network_driver *driver,
     }
 
     /* Set bridge options */
-    if ((err = brSetForwardDelay(driver->brctl, network->def->bridge,
-                                 network->def->delay))) {
+    if (brSetForwardDelay(driver->brctl, network->def->bridge,
+                          network->def->delay)) {
         networkReportError(VIR_ERR_INTERNAL_ERROR,
                            _("cannot set forward delay on bridge '%s'"),
                            network->def->bridge);
         goto err1;
     }
 
-    if ((err = brSetEnableSTP(driver->brctl, network->def->bridge,
-                              network->def->stp ? 1 : 0))) {
+    if (brSetEnableSTP(driver->brctl, network->def->bridge,
+                       network->def->stp ? 1 : 0)) {
         networkReportError(VIR_ERR_INTERNAL_ERROR,
                            _("cannot set STP '%s' on bridge '%s'"),
                            network->def->stp ? "on" : "off", network->def->bridge);
@@ -2059,13 +2090,13 @@ static int networkUndefine(virNetworkPtr net) {
 
     network = virNetworkFindByUUID(&driver->networks, net->uuid);
     if (!network) {
-        networkReportError(VIR_ERR_INVALID_NETWORK,
+        networkReportError(VIR_ERR_NO_NETWORK,
                            "%s", _("no network with matching uuid"));
         goto cleanup;
     }
 
     if (virNetworkObjIsActive(network)) {
-        networkReportError(VIR_ERR_INTERNAL_ERROR,
+        networkReportError(VIR_ERR_OPERATION_INVALID,
                            "%s", _("network is still active"));
         goto cleanup;
     }
@@ -2138,7 +2169,7 @@ static int networkStart(virNetworkPtr net) {
     network = virNetworkFindByUUID(&driver->networks, net->uuid);
 
     if (!network) {
-        networkReportError(VIR_ERR_INVALID_NETWORK,
+        networkReportError(VIR_ERR_NO_NETWORK,
                            "%s", _("no network with matching uuid"));
         goto cleanup;
     }
@@ -2161,13 +2192,13 @@ static int networkDestroy(virNetworkPtr net) {
     network = virNetworkFindByUUID(&driver->networks, net->uuid);
 
     if (!network) {
-        networkReportError(VIR_ERR_INVALID_NETWORK,
+        networkReportError(VIR_ERR_NO_NETWORK,
                            "%s", _("no network with matching uuid"));
         goto cleanup;
     }
 
     if (!virNetworkObjIsActive(network)) {
-        networkReportError(VIR_ERR_INTERNAL_ERROR,
+        networkReportError(VIR_ERR_OPERATION_INVALID,
                            "%s", _("network is not active"));
         goto cleanup;
     }
@@ -2196,7 +2227,7 @@ static char *networkDumpXML(virNetworkPtr net, int flags ATTRIBUTE_UNUSED) {
     networkDriverUnlock(driver);
 
     if (!network) {
-        networkReportError(VIR_ERR_INVALID_NETWORK,
+        networkReportError(VIR_ERR_NO_NETWORK,
                            "%s", _("no network with matching uuid"));
         goto cleanup;
     }
@@ -2219,7 +2250,7 @@ static char *networkGetBridgeName(virNetworkPtr net) {
     networkDriverUnlock(driver);
 
     if (!network) {
-        networkReportError(VIR_ERR_INVALID_NETWORK,
+        networkReportError(VIR_ERR_NO_NETWORK,
                            "%s", _("no network with matching id"));
         goto cleanup;
     }
@@ -2251,7 +2282,7 @@ static int networkGetAutostart(virNetworkPtr net,
     network = virNetworkFindByUUID(&driver->networks, net->uuid);
     networkDriverUnlock(driver);
     if (!network) {
-        networkReportError(VIR_ERR_INVALID_NETWORK,
+        networkReportError(VIR_ERR_NO_NETWORK,
                            "%s", _("no network with matching uuid"));
         goto cleanup;
     }
@@ -2276,13 +2307,13 @@ static int networkSetAutostart(virNetworkPtr net,
     network = virNetworkFindByUUID(&driver->networks, net->uuid);
 
     if (!network) {
-        networkReportError(VIR_ERR_INVALID_NETWORK,
+        networkReportError(VIR_ERR_NO_NETWORK,
                            "%s", _("no network with matching uuid"));
         goto cleanup;
     }
 
     if (!network->persistent) {
-        networkReportError(VIR_ERR_INTERNAL_ERROR,
+        networkReportError(VIR_ERR_OPERATION_INVALID,
                            "%s", _("cannot set autostart for transient network"));
         goto cleanup;
     }

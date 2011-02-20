@@ -1,7 +1,7 @@
 /*
  * qemu_cgroup.c: QEMU cgroup management
  *
- * Copyright (C) 2006-2007, 2009-2010 Red Hat, Inc.
+ * Copyright (C) 2006-2011 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -142,16 +142,16 @@ int qemuSetupChardevCgroup(virDomainDefPtr def,
     virCgroupPtr cgroup = opaque;
     int rc;
 
-    if (dev->type != VIR_DOMAIN_CHR_TYPE_DEV)
+    if (dev->source.type != VIR_DOMAIN_CHR_TYPE_DEV)
         return 0;
 
 
-    VIR_DEBUG("Process path '%s' for disk", dev->data.file.path);
-    rc = virCgroupAllowDevicePath(cgroup, dev->data.file.path);
+    VIR_DEBUG("Process path '%s' for disk", dev->source.data.file.path);
+    rc = virCgroupAllowDevicePath(cgroup, dev->source.data.file.path);
     if (rc != 0) {
         virReportSystemError(-rc,
                              _("Unable to allow device %s for %s"),
-                             dev->data.file.path, def->name);
+                             dev->source.data.file.path, def->name);
         return -1;
     }
 
@@ -270,6 +270,21 @@ int qemuSetupCgroup(struct qemud_driver *driver,
         }
     }
 
+    if (qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_BLKIO)) {
+        if (vm->def->blkio.weight != 0) {
+            rc = virCgroupSetBlkioWeight(cgroup, vm->def->blkio.weight);
+            if(rc != 0) {
+                virReportSystemError(-rc,
+                                     _("Unable to set io weight for domain %s"),
+                                     vm->def->name);
+                goto cleanup;
+            }
+        }
+    } else {
+        qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                        _("Block I/O tuning is not available on this host"));
+    }
+
     if ((rc = qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_MEMORY))) {
         if (vm->def->mem.hard_limit != 0) {
             rc = virCgroupSetMemoryHardLimit(cgroup, vm->def->mem.hard_limit);
@@ -331,7 +346,7 @@ int qemuRemoveCgroup(struct qemud_driver *driver,
     if (rc != 0) {
         if (!quiet)
             qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                            _("Unable to find cgroup for %s\n"),
+                            _("Unable to find cgroup for %s"),
                             vm->def->name);
         return rc;
     }
