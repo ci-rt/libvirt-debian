@@ -10,10 +10,10 @@ Closes: #598330
  1 files changed, 4 insertions(+), 0 deletions(-)
 
 diff --git a/src/util/iptables.c b/src/util/iptables.c
-index 6770fe0..1fce1ec 100644
+index 59f5cc7..8c1f727 100644
 --- a/src/util/iptables.c
 +++ b/src/util/iptables.c
-@@ -861,6 +861,7 @@ iptablesOutputFixUdpChecksum(iptablesContext *ctx,
+@@ -870,6 +870,7 @@ iptablesOutputFixUdpChecksum(iptablesContext *ctx,
                               int port,
                               int action)
  {
@@ -21,7 +21,7 @@ index 6770fe0..1fce1ec 100644
      char portstr[32];
  
      snprintf(portstr, sizeof(portstr), "%d", port);
-@@ -874,6 +875,9 @@ iptablesOutputFixUdpChecksum(iptablesContext *ctx,
+@@ -883,6 +884,9 @@ iptablesOutputFixUdpChecksum(iptablesContext *ctx,
                                   "--destination-port", portstr,
                                   "--jump", "CHECKSUM", "--checksum-fill",
                                   NULL);

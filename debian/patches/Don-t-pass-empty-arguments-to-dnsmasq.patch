@@ -8,16 +8,16 @@ unbreaks dnsmasq >= 2.56
  1 files changed, 1 insertions(+), 1 deletions(-)
 
 diff --git a/src/network/bridge_driver.c b/src/network/bridge_driver.c
-index 7d43ef5..8499ae4 100644
+index c4ee1e8..c8b1e12 100644
 --- a/src/network/bridge_driver.c
 +++ b/src/network/bridge_driver.c
-@@ -466,7 +466,7 @@ networkBuildDnsmasqArgv(virNetworkObjPtr network,
+@@ -468,7 +468,7 @@ networkBuildDnsmasqArgv(virNetworkObjPtr network,
      virCommandAddArgPair(cmd, "--pid-file", pidfile);
  
      /* *no* conf file */
 -    virCommandAddArgList(cmd, "--conf-file=", "", NULL);
 +    virCommandAddArgList(cmd, "--conf-file=", NULL);
  
-     /*
-      * XXX does not actually work, due to some kind of
+     virCommandAddArgList(cmd,
+                          "--except-interface", "lo",
 -- 
