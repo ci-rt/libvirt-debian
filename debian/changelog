@@ -1,3 +1,18 @@
+libvirt (0.8.8-1) unstable; urgency=low
+
+  [ Guido Günther ]
+  * [6a174b7] Remove symbol versions that didn't introduce new public symbols
+    and mark those as missing.
+
+  [ Laurent Léonard ]
+  * [d9e4cad] Imported Upstream version 0.8.8
+  * [d5ae8aa] Drop patches
+    - build-let-xgettext-see-strings-in-libvirt-guests.patch - fixed upstream
+    - libvirt-guests-remove-bashisms.patch - fixed upstream
+  * [d5990df] Update libvirt0 symbols
+
+ -- Laurent Léonard <laurent@open-minds.org>  Tue, 22 Feb 2011 01:58:55 +0100
+
 libvirt (0.8.7-3) unstable; urgency=low
 
   * [e6c5184] New patch Don-t-pass-empty-arguments-to-dnsmasq.patch: Don't
