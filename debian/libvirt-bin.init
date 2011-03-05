@@ -7,8 +7,8 @@
 #
 ### BEGIN INIT INFO
 # Provides:          libvirt-bin libvirtd
-# Required-Start:    $network $remote_fs $syslog
-# Required-Stop:     $remote_fs $syslog
+# Required-Start:    $network $local_fs $remote_fs $syslog
+# Required-Stop:     $local_fs $remote_fs $syslog
 # Should-Start:      hal avahi cgconfig
 # Should-Stop:       hal avahi cgconfig
 # Default-Start:     2 3 4 5
