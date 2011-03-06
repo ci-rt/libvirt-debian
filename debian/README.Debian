@@ -64,4 +64,16 @@ the network device. In order to make this work you need to set
 CAP_NET_ADMIN.
 This used to be the default prior to 0.8.1 in the Debian package.
 
- -- Guido Günther <agx@sigxcpu.org>  Mon, 12 Jul 2010 19:58:35 +0200
+SSH connections to the server
+=============================
+
+If you want to connect to the libvirt server via SSH, you need to install
+netcat-openbsd on the server and configure the nc alternative to use it. This
+is done automatically when netcat-openbsd is installed if you do not have
+previously modified the nc alternative. Please see the following bug reports
+for a complete explanation:
+
+  <http://bugs.debian.org/453627>
+  <http://bugs.debian.org/614291>
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 06 Feb 2011 17:28:35 +0200
