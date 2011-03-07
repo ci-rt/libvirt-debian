@@ -7,3 +7,4 @@ patch-qemuMonitorTextGetMigrationStatus-to-intercept.patch
 Disable-CHECKSUM-rule.patch
 Debianize-libvirt-guests.patch
 Don-t-pass-empty-arguments-to-dnsmasq.patch
+Do-not-add-drive-boot-on-param-when-a-kernel-is-spec.patch
