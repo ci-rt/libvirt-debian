@@ -1,3 +1,15 @@
+libvirt (0.8.8-2) unstable; urgency=low
+
+  * [f5fa0d3] initscript: depend on $local_fs (Closes: #616162)
+  * [f503698] README.Debian: Mention netcat.openbsd. Thanks to Luca Capello
+    for the patch.
+  * [9d1ceb0] New patch:
+        Do-not-add-drive-boot-on-param-when-a-kernel-is-spec.patch.
+    Do not add drive 'boot=on' param when a kernel is specified
+    Thanks to Jim Fehlig and Wolfgang Frisch (Closes: #615013)
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 07 Mar 2011 21:43:32 +0100
+
 libvirt (0.8.8-1) unstable; urgency=low
 
   [ Guido Günther ]
