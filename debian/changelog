@@ -1,3 +1,26 @@
+libvirt (0.8.8-3) unstable; urgency=low
+
+  * [28df435] Don't create the rundir in the init script. The daemon does this
+    now.
+  * [7302aff] New patch Make-sure-the-rundir-is-accessible-by-the-user.patch.
+    Make sure the rundir is accessible by the user (Closes: #614210)
+  * [6dde59d] Recommend dmidecode used by the qemu driver
+  * [235f893]  Add missing checks for read only connections.
+    As pointed on CVE-2011-1146, some API forgot to check the read-only
+    status of the connection for entry point which modify the state
+    of the system or may lead to a remote execution using user data.
+    The entry points concerned are:
+      - virConnectDomainXMLToNative
+      - virNodeDeviceDettach
+      - virNodeDeviceReAttach
+      - virNodeDeviceReset
+      - virDomainRevertToSnapshot
+      - virDomainSnapshotDelete
+     src/libvirt.c: fix the above set of entry points to error on read-only
+     connections (Closes: #617773)
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 14 Mar 2011 20:06:57 +0100
+
 libvirt (0.8.8-2) unstable; urgency=low
 
   * [f5fa0d3] initscript: depend on $local_fs (Closes: #616162)
