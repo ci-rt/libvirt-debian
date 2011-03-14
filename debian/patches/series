@@ -9,3 +9,4 @@ Debianize-libvirt-guests.patch
 Don-t-pass-empty-arguments-to-dnsmasq.patch
 Do-not-add-drive-boot-on-param-when-a-kernel-is-spec.patch
 Make-sure-the-rundir-is-accessible-by-the-user.patch
+upstream/Add-missing-checks-for-read-only-connections.patch
