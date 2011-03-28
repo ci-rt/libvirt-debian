@@ -127,15 +127,23 @@ void qemuMonitorClose(qemuMonitorPtr mon);
 
 int qemuMonitorSetCapabilities(qemuMonitorPtr mon);
 
+int qemuMonitorCheckHMP(qemuMonitorPtr mon, const char *cmd);
+
 void qemuMonitorLock(qemuMonitorPtr mon);
 void qemuMonitorUnlock(qemuMonitorPtr mon);
 
 int qemuMonitorRef(qemuMonitorPtr mon);
-int qemuMonitorUnref(qemuMonitorPtr mon);
+int qemuMonitorUnref(qemuMonitorPtr mon) ATTRIBUTE_RETURN_CHECK;
 
-/* This API is for use by the internal Text/JSON monitor impl code only */
+/* These APIs are for use by the internal Text/JSON monitor impl code only */
 int qemuMonitorSend(qemuMonitorPtr mon,
                     qemuMonitorMessagePtr msg);
+int qemuMonitorHMPCommandWithFd(qemuMonitorPtr mon,
+                                const char *cmd,
+                                int scm_fd,
+                                char **reply);
+# define qemuMonitorHMPCommand(mon, cmd, reply) \
+    qemuMonitorHMPCommandWithFd(mon, cmd, -1, reply)
 
 /* XXX same comment about virConnectPtr as above */
 int qemuMonitorGetDiskSecret(qemuMonitorPtr mon,
@@ -260,6 +268,10 @@ typedef enum {
   QEMU_MONITOR_MIGRATION_FLAGS_LAST
 } QEMU_MONITOR_MIGRATE;
 
+int qemuMonitorMigrateToFd(qemuMonitorPtr mon,
+                           unsigned int flags,
+                           int fd);
+
 int qemuMonitorMigrateToHost(qemuMonitorPtr mon,
                              unsigned int flags,
                              const char *hostname,
@@ -342,14 +354,18 @@ int qemuMonitorCloseFileHandle(qemuMonitorPtr mon,
  * sendable item here
  */
 int qemuMonitorAddHostNetwork(qemuMonitorPtr mon,
-                              const char *netstr);
+                              const char *netstr,
+                              int tapfd, const char *tapfd_name,
+                              int vhostfd, const char *vhostfd_name);
 
 int qemuMonitorRemoveHostNetwork(qemuMonitorPtr mon,
                                  int vlan,
                                  const char *netname);
 
 int qemuMonitorAddNetdev(qemuMonitorPtr mon,
-                         const char *netdevstr);
+                         const char *netdevstr,
+                         int tapfd, const char *tapfd_name,
+                         int vhostfd, const char *vhostfd_name);
 
 int qemuMonitorRemoveNetdev(qemuMonitorPtr mon,
                             const char *alias);
@@ -379,6 +395,11 @@ int qemuMonitorGetAllPCIAddresses(qemuMonitorPtr mon,
 
 int qemuMonitorAddDevice(qemuMonitorPtr mon,
                          const char *devicestr);
+
+int qemuMonitorAddDeviceWithFd(qemuMonitorPtr mon,
+                               const char *devicestr,
+                               int fd,
+                               const char *fdname);
 
 int qemuMonitorDelDevice(qemuMonitorPtr mon,
                          const char *devalias);

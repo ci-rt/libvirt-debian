@@ -40,9 +40,10 @@
 #include "libvirtd.h"
 #include "mdns.h"
 #include "event.h"
+#include "event_poll.h"
 #include "memory.h"
 
-#define AVAHI_DEBUG(fmt, ...) DEBUG(fmt, __VA_ARGS__)
+#define AVAHI_DEBUG(fmt, ...) VIR_DEBUG(fmt, __VA_ARGS__)
 
 struct libvirtd_mdns_entry {
     char *type;
@@ -230,7 +231,7 @@ static void libvirtd_mdns_client_callback(AvahiClient *c, AvahiClientState state
 static void libvirtd_mdns_watch_dispatch(int watch, int fd, int events, void *opaque)
 {
     AvahiWatch *w = (AvahiWatch*)opaque;
-    int fd_events = virEventHandleTypeToPollEvent(events);
+    int fd_events = virEventPollToNativeEvents(events);
     AVAHI_DEBUG("Dispatch watch %d FD %d Event %d", watch, fd, fd_events);
     w->revents = fd_events;
     w->callback(w, fd, fd_events, w->userdata);
@@ -256,11 +257,11 @@ static AvahiWatch *libvirtd_mdns_watch_new(const AvahiPoll *api ATTRIBUTE_UNUSED
     w->userdata = userdata;
 
     AVAHI_DEBUG("New handle %p FD %d Event %d", w, w->fd, event);
-    hEvents = virPollEventToEventHandleType(event);
-    if ((w->watch = virEventAddHandleImpl(fd, hEvents,
-                                          libvirtd_mdns_watch_dispatch,
-                                          w,
-                                          libvirtd_mdns_watch_dofree)) < 0) {
+    hEvents = virEventPollFromNativeEvents(event);
+    if ((w->watch = virEventAddHandle(fd, hEvents,
+                                      libvirtd_mdns_watch_dispatch,
+                                      w,
+                                      libvirtd_mdns_watch_dofree)) < 0) {
         VIR_FREE(w);
         return NULL;
     }
@@ -271,7 +272,7 @@ static AvahiWatch *libvirtd_mdns_watch_new(const AvahiPoll *api ATTRIBUTE_UNUSED
 static void libvirtd_mdns_watch_update(AvahiWatch *w, AvahiWatchEvent event)
 {
     AVAHI_DEBUG("Update handle %p FD %d Event %d", w, w->fd, event);
-    virEventUpdateHandleImpl(w->watch, event);
+    virEventUpdateHandle(w->watch, event);
 }
 
 static AvahiWatchEvent libvirtd_mdns_watch_get_events(AvahiWatch *w)
@@ -283,14 +284,14 @@ static AvahiWatchEvent libvirtd_mdns_watch_get_events(AvahiWatch *w)
 static void libvirtd_mdns_watch_free(AvahiWatch *w)
 {
     AVAHI_DEBUG("Free handle %p %d", w, w->fd);
-    virEventRemoveHandleImpl(w->watch);
+    virEventRemoveHandle(w->watch);
 }
 
 static void libvirtd_mdns_timeout_dispatch(int timer ATTRIBUTE_UNUSED, void *opaque)
 {
     AvahiTimeout *t = (AvahiTimeout*)opaque;
     AVAHI_DEBUG("Dispatch timeout %p %d", t, timer);
-    virEventUpdateTimeoutImpl(t->timer, -1);
+    virEventUpdateTimeout(t->timer, -1);
     t->callback(t, t->userdata);
 }
 
@@ -329,10 +330,10 @@ static AvahiTimeout *libvirtd_mdns_timeout_new(const AvahiPoll *api ATTRIBUTE_UN
         timeout = -1;
     }
 
-    t->timer = virEventAddTimeoutImpl(timeout,
-                                      libvirtd_mdns_timeout_dispatch,
-                                      t,
-                                      libvirtd_mdns_timeout_dofree);
+    t->timer = virEventAddTimeout(timeout,
+                                  libvirtd_mdns_timeout_dispatch,
+                                  t,
+                                  libvirtd_mdns_timeout_dofree);
     t->callback = cb;
     t->userdata = userdata;
 
@@ -364,13 +365,13 @@ static void libvirtd_mdns_timeout_update(AvahiTimeout *t, const struct timeval *
         timeout = -1;
     }
 
-    virEventUpdateTimeoutImpl(t->timer, timeout);
+    virEventUpdateTimeout(t->timer, timeout);
 }
 
 static void libvirtd_mdns_timeout_free(AvahiTimeout *t)
 {
     AVAHI_DEBUG("Free timeout %p", t);
-    virEventRemoveTimeoutImpl(t->timer);
+    virEventRemoveTimeout(t->timer);
 }
 
 

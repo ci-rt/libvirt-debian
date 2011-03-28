@@ -46,7 +46,6 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/configmake.m4 \
 	$(top_srcdir)/gnulib/m4/count-one-bits.m4 \
 	$(top_srcdir)/gnulib/m4/dirname.m4 \
-	$(top_srcdir)/gnulib/m4/dos.m4 \
 	$(top_srcdir)/gnulib/m4/double-slash-root.m4 \
 	$(top_srcdir)/gnulib/m4/eealloc.m4 \
 	$(top_srcdir)/gnulib/m4/environ.m4 \
@@ -170,7 +169,6 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/vasnprintf.m4 \
 	$(top_srcdir)/gnulib/m4/vasprintf.m4 \
 	$(top_srcdir)/gnulib/m4/waitpid.m4 \
-	$(top_srcdir)/gnulib/m4/warn-on-use.m4 \
 	$(top_srcdir)/gnulib/m4/wchar_h.m4 \
 	$(top_srcdir)/gnulib/m4/write.m4 \
 	$(top_srcdir)/gnulib/m4/xalloc.m4 \
@@ -287,6 +285,7 @@ DEVMAPPER_CFLAGS = @DEVMAPPER_CFLAGS@
 DEVMAPPER_LIBS = @DEVMAPPER_LIBS@
 DLLTOOL = @DLLTOOL@
 DLOPEN_LIBS = @DLOPEN_LIBS@
+DMSETUP = @DMSETUP@
 DNSMASQ = @DNSMASQ@
 DRIVER_MODULE_CFLAGS = @DRIVER_MODULE_CFLAGS@
 DRIVER_MODULE_LIBS = @DRIVER_MODULE_LIBS@
@@ -398,6 +397,7 @@ GNULIB_MBSSEP = @GNULIB_MBSSEP@
 GNULIB_MBSSPN = @GNULIB_MBSSPN@
 GNULIB_MBSSTR = @GNULIB_MBSSTR@
 GNULIB_MBSTOK_R = @GNULIB_MBSTOK_R@
+GNULIB_MBTOWC = @GNULIB_MBTOWC@
 GNULIB_MEMCHR = @GNULIB_MEMCHR@
 GNULIB_MEMMEM = @GNULIB_MEMMEM@
 GNULIB_MEMPCPY = @GNULIB_MEMPCPY@
@@ -533,6 +533,7 @@ GNULIB_WCSTOK = @GNULIB_WCSTOK@
 GNULIB_WCSWIDTH = @GNULIB_WCSWIDTH@
 GNULIB_WCSXFRM = @GNULIB_WCSXFRM@
 GNULIB_WCTOB = @GNULIB_WCTOB@
+GNULIB_WCTOMB = @GNULIB_WCTOMB@
 GNULIB_WCWIDTH = @GNULIB_WCWIDTH@
 GNULIB_WMEMCHR = @GNULIB_WMEMCHR@
 GNULIB_WMEMCMP = @GNULIB_WMEMCMP@
@@ -803,6 +804,8 @@ LIBVIRT_VERSION_INFO = @LIBVIRT_VERSION_INFO@
 LIBVIRT_VERSION_NUMBER = @LIBVIRT_VERSION_NUMBER@
 LIBXENSERVER_CFLAGS = @LIBXENSERVER_CFLAGS@
 LIBXENSERVER_LIBS = @LIBXENSERVER_LIBS@
+LIBXL_CFLAGS = @LIBXL_CFLAGS@
+LIBXL_LIBS = @LIBXL_LIBS@
 LIBXML_CFLAGS = @LIBXML_CFLAGS@
 LIBXML_LIBS = @LIBXML_LIBS@
 LIB_PTHREAD = @LIB_PTHREAD@
@@ -979,6 +982,7 @@ REPLACE_MBSINIT = @REPLACE_MBSINIT@
 REPLACE_MBSNRTOWCS = @REPLACE_MBSNRTOWCS@
 REPLACE_MBSRTOWCS = @REPLACE_MBSRTOWCS@
 REPLACE_MBSTATE_T = @REPLACE_MBSTATE_T@
+REPLACE_MBTOWC = @REPLACE_MBTOWC@
 REPLACE_MEMCHR = @REPLACE_MEMCHR@
 REPLACE_MEMMEM = @REPLACE_MEMMEM@
 REPLACE_MKDIR = @REPLACE_MKDIR@
@@ -1044,6 +1048,7 @@ REPLACE_WCSNRTOMBS = @REPLACE_WCSNRTOMBS@
 REPLACE_WCSRTOMBS = @REPLACE_WCSRTOMBS@
 REPLACE_WCSWIDTH = @REPLACE_WCSWIDTH@
 REPLACE_WCTOB = @REPLACE_WCTOB@
+REPLACE_WCTOMB = @REPLACE_WCTOMB@
 REPLACE_WCWIDTH = @REPLACE_WCWIDTH@
 REPLACE_WRITE = @REPLACE_WRITE@
 RPCGEN = @RPCGEN@
@@ -1228,7 +1233,7 @@ dot_html_in = $(notdir $(wildcard $(srcdir)/*.html.in)) todo.html.in \
       $(patsubst $(srcdir)/%,%,$(wildcard $(srcdir)/internals/*.html.in))
 
 dot_html = $(dot_html_in:%.html.in=%.html)
-patches = $(wildcard api_extension/*.patch)
+patches = $(patsubst $(srcdir)/%,%,$(wildcard $(srcdir)/api_extension/*.patch))
 xml = \
   libvirt-api.xml \
   libvirt-refs.xml
@@ -1251,7 +1256,11 @@ EXTRA_DIST = \
   sitemap.html.in \
   todo.pl todo.cfg-example
 
-MAINTAINERCLEANFILES = $(dot_html) $(apihtml) $(devhelphtml)
+MAINTAINERCLEANFILES = \
+  $(addprefix $(srcdir)/,$(dot_html)) \
+  $(addprefix $(srcdir)/,$(apihtml)) \
+  $(addprefix $(srcdir)/,$(devhelphtml))
+
 python_generated_files = \
 		$(srcdir)/html/libvirt-libvirt.html \
 		$(srcdir)/html/libvirt-virterror.html \
@@ -1611,7 +1620,7 @@ uninstall-am: uninstall-local
 
 all: web
 
-api: libvirt-api.xml libvirt-refs.xml
+api: $(srcdir)/libvirt-api.xml $(srcdir)/libvirt-refs.xml
 
 web: $(dot_html) html/index.html devhelp/index.html
 
@@ -1657,27 +1666,28 @@ internals/%.html.tmp: internals/%.html.in subsite.xsl page.xsl sitemap.html.in
 	    "-//W3C//DTD XHTML 1.0 Strict//EN" > /dev/null ; then \
 	  echo "Validating $@" ; \
 	  SGML_CATALOG_FILES='$(XML_CATALOG_FILE)' \
-	  $(XMLLINT) --catalogs --nonet --format --valid $< > $@ \
-	  || { rm $@ && exit 1; }; \
+	  $(XMLLINT) --catalogs --nonet --format --valid $< > $(srcdir)/$@ \
+	  || { rm $(srcdir)/$@ && exit 1; }; \
 	  else echo "missing XHTML1 DTD" ; fi ; fi
 
 html/index.html: libvirt-api.xml newapi.xsl page.xsl sitemap.html.in
 	-@if [ -x $(XSLTPROC) ] ; then \
 	  echo "Rebuilding the HTML pages from the XML API" ; \
-	  $(XSLTPROC) --nonet $(srcdir)/newapi.xsl libvirt-api.xml ; fi
+	  $(XSLTPROC) --nonet -o $(srcdir)/ \
+	  $(srcdir)/newapi.xsl $(srcdir)/libvirt-api.xml ; fi
 	-@if test -x $(XMLLINT) && test -x $(XMLCATALOG) ; then \
 	  if $(XMLCATALOG) '$(XML_CATALOG_FILE)' "-//W3C//DTD XHTML 1.0 Strict//EN" \
 	    > /dev/null ; then \
 	  echo "Validating the resulting XHTML pages" ; \
 	  SGML_CATALOG_FILES='$(XML_CATALOG_FILE)' \
-	  $(XMLLINT) --catalogs --nonet --valid --noout html/*.html ; \
+	  $(XMLLINT) --catalogs --nonet --valid --noout $(srcdir)/html/*.html ; \
 	  else echo "missing XHTML1 DTD" ; fi ; fi
 
 $(addprefix $(srcdir)/,$(devhelphtml)): $(srcdir)/libvirt-api.xml $(devhelpxsl)
 	-@echo Rebuilding devhelp files
 	-@if [ -x $(XSLTPROC) ] ; then \
-	  $(XSLTPROC) --nonet -o devhelp/libvirt.devhelp \
-	  $(top_srcdir)/docs/devhelp/devhelp.xsl libvirt-api.xml ; fi
+	  $(XSLTPROC) --nonet -o $(srcdir)/devhelp/ \
+	  $(top_srcdir)/docs/devhelp/devhelp.xsl $(srcdir)/libvirt-api.xml ; fi
 
 $(python_generated_files): $(srcdir)/apibuild.py \
 		$(srcdir)/../include/libvirt/*.h \
@@ -1691,7 +1701,7 @@ clean-local:
 	rm -f *~ *.bak *.hierarchy *.signals *-unused.txt *.html
 
 maintainer-clean-local: clean-local
-	rm -rf libvirt-api.xml libvirt-refs.xml todo.html.in
+	rm -rf $(srcdir)/libvirt-api.xml $(srcdir)/libvirt-refs.xml todo.html.in
 
 rebuild: api all
 

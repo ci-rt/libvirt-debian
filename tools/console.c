@@ -34,7 +34,6 @@
 # include <errno.h>
 # include <unistd.h>
 # include <signal.h>
-# include <stdbool.h>
 
 # include "internal.h"
 # include "console.h"
@@ -44,7 +43,7 @@
 # include "memory.h"
 # include "virterror_internal.h"
 
-# include "daemon/event.h"
+# include "event.h"
 
 /* ie  Ctrl-]  as per telnet */
 # define CTRL_CLOSE_BRACKET '\35'
@@ -93,10 +92,12 @@ virConsoleShutdown(virConsolePtr con)
 {
     con->quit = true;
     virStreamEventRemoveCallback(con->st);
+    if (con->st)
+        virStreamFree(con->st);
     if (con->stdinWatch != -1)
-        virEventRemoveHandleImpl(con->stdinWatch);
+        virEventRemoveHandle(con->stdinWatch);
     if (con->stdinWatch != -1)
-        virEventRemoveHandleImpl(con->stdoutWatch);
+        virEventRemoveHandle(con->stdoutWatch);
     con->stdinWatch = -1;
     con->stdoutWatch = -1;
 }
@@ -135,8 +136,8 @@ virConsoleEventOnStream(virStreamPtr st,
         }
         con->streamToTerminal.offset += got;
         if (con->streamToTerminal.offset)
-            virEventUpdateHandleImpl(con->stdoutWatch,
-                                     VIR_EVENT_HANDLE_WRITABLE);
+            virEventUpdateHandle(con->stdoutWatch,
+                                 VIR_EVENT_HANDLE_WRITABLE);
     }
 
     if (events & VIR_STREAM_EVENT_WRITABLE &&
@@ -267,7 +268,7 @@ virConsoleEventOnStdout(int watch ATTRIBUTE_UNUSED,
     }
 
     if (!con->streamToTerminal.offset)
-        virEventUpdateHandleImpl(con->stdoutWatch, 0);
+        virEventUpdateHandle(con->stdoutWatch, 0);
 
     if (events & VIR_EVENT_HANDLE_ERROR ||
         events & VIR_EVENT_HANDLE_HANGUP) {
@@ -332,16 +333,16 @@ int vshRunConsole(virDomainPtr dom, const char *devname)
     if (virDomainOpenConsole(dom, devname, con->st, 0) < 0)
         goto cleanup;
 
-    con->stdinWatch = virEventAddHandleImpl(STDIN_FILENO,
-                                            VIR_EVENT_HANDLE_READABLE,
-                                            virConsoleEventOnStdin,
-                                            con,
-                                            NULL);
-    con->stdoutWatch = virEventAddHandleImpl(STDOUT_FILENO,
-                                             0,
-                                             virConsoleEventOnStdout,
-                                             con,
-                                             NULL);
+    con->stdinWatch = virEventAddHandle(STDIN_FILENO,
+                                        VIR_EVENT_HANDLE_READABLE,
+                                        virConsoleEventOnStdin,
+                                        con,
+                                        NULL);
+    con->stdoutWatch = virEventAddHandle(STDOUT_FILENO,
+                                         0,
+                                         virConsoleEventOnStdout,
+                                         con,
+                                         NULL);
 
     virStreamEventAddCallback(con->st,
                               VIR_STREAM_EVENT_READABLE,
@@ -350,7 +351,7 @@ int vshRunConsole(virDomainPtr dom, const char *devname)
                               NULL);
 
     while (!con->quit) {
-        if (virEventRunOnce() < 0)
+        if (virEventRunDefaultImpl() < 0)
             break;
     }
 

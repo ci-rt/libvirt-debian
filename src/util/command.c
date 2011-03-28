@@ -23,7 +23,6 @@
 
 #include <poll.h>
 #include <stdarg.h>
-#include <stdbool.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
@@ -41,6 +40,11 @@
 #define virCommandError(code, ...)                                      \
     virReportErrorHelper(NULL, VIR_FROM_NONE, code, __FILE__,           \
                          __FUNCTION__, __LINE__, __VA_ARGS__)
+
+enum {
+    /* Internal-use extension beyond public VIR_EXEC_ flags */
+    VIR_EXEC_RUN_SYNC = 0x40000000,
+};
 
 struct _virCommand {
     int has_error; /* ENOMEM on allocation failure, -1 for anything else.  */
@@ -77,6 +81,7 @@ struct _virCommand {
 
     pid_t pid;
     char *pidfile;
+    bool reap;
 };
 
 /*
@@ -109,11 +114,6 @@ virCommandNewArgs(const char *const*args)
     cmd->pid = -1;
 
     virCommandAddArgSet(cmd, args);
-
-    if (cmd->has_error) {
-        virCommandFree(cmd);
-        return NULL;
-    }
 
     return cmd;
 }
@@ -363,6 +363,9 @@ virCommandAddEnvPass(virCommandPtr cmd, const char *name)
 void
 virCommandAddEnvPassCommon(virCommandPtr cmd)
 {
+    if (!cmd || cmd->has_error)
+        return;
+
     /* Attempt to Pre-allocate; allocation failure will be detected
      * later during virCommandAdd*.  */
     ignore_value(VIR_RESIZE_N(cmd->env, cmd->maxenv, cmd->nenv, 9));
@@ -478,6 +481,11 @@ virCommandAddArgSet(virCommandPtr cmd, const char *const*vals)
 
     if (!cmd || cmd->has_error)
         return;
+
+    if (vals[0] == NULL) {
+        cmd->has_error = EINVAL;
+        return;
+    }
 
     while (vals[narg] != NULL)
         narg++;
@@ -796,6 +804,26 @@ virCommandToString(virCommandPtr cmd)
 
 
 /*
+ * Translate an exit status into a malloc'd string.  Generic helper
+ * for virCommandRun and virCommandWait status argument, as well as
+ * raw waitpid and older virRun status.
+ */
+char *
+virCommandTranslateStatus(int status)
+{
+    char *buf;
+    if (WIFEXITED(status)) {
+        virAsprintf(&buf, _("exit status %d"), WEXITSTATUS(status));
+    } else if (WIFSIGNALED(status)) {
+        virAsprintf(&buf, _("fatal signal %d"), WTERMSIG(status));
+    } else {
+        virAsprintf(&buf, _("invalid value %d"), status);
+    }
+    return buf;
+}
+
+
+/*
  * Manage input and output to the child process.
  */
 static int
@@ -956,6 +984,7 @@ virCommandRun(virCommandPtr cmd, int *exitstatus)
     struct stat st;
     bool string_io;
     bool async_io = false;
+    char *str;
 
     if (!cmd ||cmd->has_error == ENOMEM) {
         virReportOOMError();
@@ -1027,6 +1056,7 @@ virCommandRun(virCommandPtr cmd, int *exitstatus)
         }
     }
 
+    cmd->flags |= VIR_EXEC_RUN_SYNC;
     if (virCommandRunAsync(cmd, NULL) < 0) {
         if (cmd->inbuf) {
             int tmpfd = infd[0];
@@ -1046,9 +1076,14 @@ virCommandRun(virCommandPtr cmd, int *exitstatus)
     if (virCommandWait(cmd, exitstatus) < 0)
         ret = -1;
 
-    VIR_DEBUG("Result stdout: '%s' stderr: '%s'",
+    str = (exitstatus ? virCommandTranslateStatus(*exitstatus)
+           : (char *) "status 0");
+    VIR_DEBUG("Result %s, stdout: '%s' stderr: '%s'",
+              NULLSTR(str),
               cmd->outbuf ? NULLSTR(*cmd->outbuf) : "(null)",
               cmd->errbuf ? NULLSTR(*cmd->errbuf) : "(null)");
+    if (exitstatus)
+        VIR_FREE(str);
 
     /* Reset any capturing, in case caller runs
      * this identical command again */
@@ -1111,6 +1146,7 @@ virCommandRunAsync(virCommandPtr cmd, pid_t *pid)
     int ret;
     char *str;
     int i;
+    bool synchronous = false;
 
     if (!cmd || cmd->has_error == ENOMEM) {
         virReportOOMError();
@@ -1121,6 +1157,9 @@ virCommandRunAsync(virCommandPtr cmd, pid_t *pid)
                         _("invalid use of command API"));
         return -1;
     }
+
+    synchronous = cmd->flags & VIR_EXEC_RUN_SYNC;
+    cmd->flags &= ~VIR_EXEC_RUN_SYNC;
 
     /* Buffer management can only be requested via virCommandRun.  */
     if ((cmd->inbuf && cmd->infd == -1) ||
@@ -1138,13 +1177,22 @@ virCommandRunAsync(virCommandPtr cmd, pid_t *pid)
         return -1;
     }
 
+    if (!synchronous && (cmd->flags & VIR_EXEC_DAEMON)) {
+        virCommandError(VIR_ERR_INTERNAL_ERROR, "%s",
+                        _("daemonized command cannot use virCommandRunAsync"));
+        return -1;
+    }
     if (cmd->pwd && (cmd->flags & VIR_EXEC_DAEMON)) {
         virCommandError(VIR_ERR_INTERNAL_ERROR,
                         _("daemonized command cannot set working directory %s"),
                         cmd->pwd);
         return -1;
     }
-
+    if (cmd->pidfile && !(cmd->flags & VIR_EXEC_DAEMON)) {
+        virCommandError(VIR_ERR_INTERNAL_ERROR, "%s",
+                        _("creation of pid file requires daemonized command"));
+        return -1;
+    }
 
     str = virCommandToString(cmd);
     VIR_DEBUG("About to run %s", str ? str : cmd->args[0]);
@@ -1175,6 +1223,8 @@ virCommandRunAsync(virCommandPtr cmd, pid_t *pid)
 
     if (ret == 0 && pid)
         *pid = cmd->pid;
+    else
+        cmd->reap = true;
 
     return ret;
 }
@@ -1220,14 +1270,17 @@ virCommandWait(virCommandPtr cmd, int *exitstatus)
     }
 
     cmd->pid = -1;
+    cmd->reap = false;
 
     if (exitstatus == NULL) {
         if (status != 0) {
             char *str = virCommandToString(cmd);
+            char *st = virCommandTranslateStatus(status);
             virCommandError(VIR_ERR_INTERNAL_ERROR,
-                            _("Child process (%s) exited with status %d."),
-                            str ? str : cmd->args[0], WEXITSTATUS(status));
+                            _("Child process (%s) status unexpected: %s"),
+                            str ? str : cmd->args[0], NULLSTR(st));
             VIR_FREE(str);
+            VIR_FREE(st);
             return -1;
         }
     } else {
@@ -1237,6 +1290,65 @@ virCommandWait(virCommandPtr cmd, int *exitstatus)
     return 0;
 }
 
+
+/*
+ * Abort an async command if it is running, without issuing
+ * any errors or affecting errno.  Designed for error paths
+ * where some but not all paths to the cleanup code might
+ * have started the child process.
+ */
+void
+virCommandAbort(virCommandPtr cmd)
+{
+    int saved_errno;
+    int ret;
+    int status;
+    char *tmp = NULL;
+
+    if (!cmd || cmd->pid == -1)
+        return;
+
+    /* See if intermediate process has exited; if not, try a nice
+     * SIGTERM followed by a more severe SIGKILL.
+     */
+    saved_errno = errno;
+    VIR_DEBUG("aborting child process %d", cmd->pid);
+    while ((ret = waitpid(cmd->pid, &status, WNOHANG)) == -1 &&
+           errno == EINTR);
+    if (ret == cmd->pid) {
+        tmp = virCommandTranslateStatus(status);
+        VIR_DEBUG("process has ended: %s", tmp);
+        goto cleanup;
+    } else if (ret == 0) {
+        VIR_DEBUG("trying SIGTERM to child process %d", cmd->pid);
+        kill(cmd->pid, SIGTERM);
+        usleep(10 * 1000);
+        while ((ret = waitpid(cmd->pid, &status, WNOHANG)) == -1 &&
+               errno == EINTR);
+        if (ret == cmd->pid) {
+            tmp = virCommandTranslateStatus(status);
+            VIR_DEBUG("process has ended: %s", tmp);
+            goto cleanup;
+        } else if (ret == 0) {
+            VIR_DEBUG("trying SIGKILL to child process %d", cmd->pid);
+            kill(cmd->pid, SIGKILL);
+            while ((ret = waitpid(cmd->pid, &status, 0)) == -1 &&
+                   errno == EINTR);
+            if (ret == cmd->pid) {
+                tmp = virCommandTranslateStatus(status);
+                VIR_DEBUG("process has ended: %s", tmp);
+                goto cleanup;
+            }
+        }
+    }
+    VIR_DEBUG("failed to reap child %d, abandoning it", cmd->pid);
+
+cleanup:
+    VIR_FREE(tmp);
+    cmd->pid = -1;
+    cmd->reap = false;
+    errno = saved_errno;
+}
 
 /*
  * Release all resources
@@ -1270,6 +1382,9 @@ virCommandFree(virCommandPtr cmd)
     VIR_FREE(cmd->pwd);
 
     VIR_FREE(cmd->pidfile);
+
+    if (cmd->reap)
+        virCommandAbort(cmd);
 
     VIR_FREE(cmd);
 }

@@ -38,7 +38,8 @@ bin_PROGRAMS = virsh$(EXEEXT)
 @WITH_WIN_ICON_TRUE@am__append_1 = virsh_win_icon.$(OBJEXT)
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@am__append_2 = libvirt-guests.init
 subdir = tools
-DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
+DIST_COMMON = $(dist_man1_MANS) $(srcdir)/Makefile.am \
+	$(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/alloca.m4 \
@@ -51,7 +52,6 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/configmake.m4 \
 	$(top_srcdir)/gnulib/m4/count-one-bits.m4 \
 	$(top_srcdir)/gnulib/m4/dirname.m4 \
-	$(top_srcdir)/gnulib/m4/dos.m4 \
 	$(top_srcdir)/gnulib/m4/double-slash-root.m4 \
 	$(top_srcdir)/gnulib/m4/eealloc.m4 \
 	$(top_srcdir)/gnulib/m4/environ.m4 \
@@ -175,7 +175,6 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/vasnprintf.m4 \
 	$(top_srcdir)/gnulib/m4/vasprintf.m4 \
 	$(top_srcdir)/gnulib/m4/waitpid.m4 \
-	$(top_srcdir)/gnulib/m4/warn-on-use.m4 \
 	$(top_srcdir)/gnulib/m4/wchar_h.m4 \
 	$(top_srcdir)/gnulib/m4/write.m4 \
 	$(top_srcdir)/gnulib/m4/xalloc.m4 \
@@ -199,13 +198,13 @@ CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)" \
 	"$(DESTDIR)$(man1dir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_virsh_OBJECTS = virsh-console.$(OBJEXT) virsh-event.$(OBJEXT) \
-	virsh-virsh.$(OBJEXT)
+am_virsh_OBJECTS = virsh-console.$(OBJEXT) virsh-virsh.$(OBJEXT)
 virsh_OBJECTS = $(am_virsh_OBJECTS)
 am__DEPENDENCIES_1 =
 virsh_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	../src/libvirt.la ../src/libvirt-qemu.la \
-	../gnulib/lib/libgnu.la $(am__DEPENDENCIES_1) $(am__append_1)
+	../gnulib/lib/libgnu.la $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) $(am__append_1)
 AM_V_lt = $(am__v_lt_$(V))
 am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
 am__v_lt_0 = --silent
@@ -264,7 +263,7 @@ SOURCES = $(virsh_SOURCES)
 DIST_SOURCES = $(virsh_SOURCES)
 man1dir = $(mandir)/man1
 NROFF = nroff
-MANS = $(man1_MANS)
+MANS = $(dist_man1_MANS)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -315,6 +314,7 @@ DEVMAPPER_CFLAGS = @DEVMAPPER_CFLAGS@
 DEVMAPPER_LIBS = @DEVMAPPER_LIBS@
 DLLTOOL = @DLLTOOL@
 DLOPEN_LIBS = @DLOPEN_LIBS@
+DMSETUP = @DMSETUP@
 DNSMASQ = @DNSMASQ@
 DRIVER_MODULE_CFLAGS = @DRIVER_MODULE_CFLAGS@
 DRIVER_MODULE_LIBS = @DRIVER_MODULE_LIBS@
@@ -426,6 +426,7 @@ GNULIB_MBSSEP = @GNULIB_MBSSEP@
 GNULIB_MBSSPN = @GNULIB_MBSSPN@
 GNULIB_MBSSTR = @GNULIB_MBSSTR@
 GNULIB_MBSTOK_R = @GNULIB_MBSTOK_R@
+GNULIB_MBTOWC = @GNULIB_MBTOWC@
 GNULIB_MEMCHR = @GNULIB_MEMCHR@
 GNULIB_MEMMEM = @GNULIB_MEMMEM@
 GNULIB_MEMPCPY = @GNULIB_MEMPCPY@
@@ -561,6 +562,7 @@ GNULIB_WCSTOK = @GNULIB_WCSTOK@
 GNULIB_WCSWIDTH = @GNULIB_WCSWIDTH@
 GNULIB_WCSXFRM = @GNULIB_WCSXFRM@
 GNULIB_WCTOB = @GNULIB_WCTOB@
+GNULIB_WCTOMB = @GNULIB_WCTOMB@
 GNULIB_WCWIDTH = @GNULIB_WCWIDTH@
 GNULIB_WMEMCHR = @GNULIB_WMEMCHR@
 GNULIB_WMEMCMP = @GNULIB_WMEMCMP@
@@ -831,6 +833,8 @@ LIBVIRT_VERSION_INFO = @LIBVIRT_VERSION_INFO@
 LIBVIRT_VERSION_NUMBER = @LIBVIRT_VERSION_NUMBER@
 LIBXENSERVER_CFLAGS = @LIBXENSERVER_CFLAGS@
 LIBXENSERVER_LIBS = @LIBXENSERVER_LIBS@
+LIBXL_CFLAGS = @LIBXL_CFLAGS@
+LIBXL_LIBS = @LIBXL_LIBS@
 LIBXML_CFLAGS = @LIBXML_CFLAGS@
 LIBXML_LIBS = @LIBXML_LIBS@
 LIB_PTHREAD = @LIB_PTHREAD@
@@ -1007,6 +1011,7 @@ REPLACE_MBSINIT = @REPLACE_MBSINIT@
 REPLACE_MBSNRTOWCS = @REPLACE_MBSNRTOWCS@
 REPLACE_MBSRTOWCS = @REPLACE_MBSRTOWCS@
 REPLACE_MBSTATE_T = @REPLACE_MBSTATE_T@
+REPLACE_MBTOWC = @REPLACE_MBTOWC@
 REPLACE_MEMCHR = @REPLACE_MEMCHR@
 REPLACE_MEMMEM = @REPLACE_MEMMEM@
 REPLACE_MKDIR = @REPLACE_MKDIR@
@@ -1072,6 +1077,7 @@ REPLACE_WCSNRTOMBS = @REPLACE_WCSNRTOMBS@
 REPLACE_WCSRTOMBS = @REPLACE_WCSRTOMBS@
 REPLACE_WCSWIDTH = @REPLACE_WCSWIDTH@
 REPLACE_WCTOB = @REPLACE_WCTOB@
+REPLACE_WCTOMB = @REPLACE_WCTOMB@
 REPLACE_WCWIDTH = @REPLACE_WCWIDTH@
 REPLACE_WRITE = @REPLACE_WRITE@
 RPCGEN = @RPCGEN@
@@ -1213,16 +1219,15 @@ EXTRA_DIST = \
 	libvirt-guests.sysconf
 
 bin_SCRIPTS = virt-xml-validate virt-pki-validate
-man1_MANS = virt-xml-validate.1 virt-pki-validate.1 virsh.1
+dist_man1_MANS = virt-xml-validate.1 virt-pki-validate.1 virsh.1
 virsh_SOURCES = \
 		console.c console.h				\
-		../daemon/event.c ../daemon/event.h		\
 		virsh.c
 
 virsh_LDFLAGS = $(WARN_LDFLAGS) $(COVERAGE_LDFLAGS)
 virsh_LDADD = $(STATIC_BINARIES) $(WARN_CFLAGS) ../src/libvirt.la \
-	../src/libvirt-qemu.la ../gnulib/lib/libgnu.la $(VIRSH_LIBS) \
-	$(am__append_1)
+	../src/libvirt-qemu.la ../gnulib/lib/libgnu.la $(LIBXML_LIBS) \
+	$(VIRSH_LIBS) $(am__append_1)
 virsh_CFLAGS = \
 		-I$(top_srcdir)/gnulib/lib -I../gnulib/lib	\
 		-I../include -I$(top_srcdir)/include		\
@@ -1235,8 +1240,9 @@ virsh_CFLAGS = \
 		$(READLINE_CFLAGS)
 
 BUILT_SOURCES = virsh-net-edit.c virsh-pool-edit.c $(am__append_2)
-CLEANFILES = $(bin_SCRIPTS) $(man1_MANS) *.gcov .libs/*.gcda \
-	.libs/*.gcno *.gcno *.gcda *.i *.s
+CLEANFILES = $(bin_SCRIPTS) *.gcov .libs/*.gcda .libs/*.gcno *.gcno \
+	*.gcda *.i *.s
+MAINTAINERCLEANFILES = $(dist_man1_MANS)
 DISTCLEANFILES = $(BUILT_SOURCES)
 all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-am
@@ -1361,7 +1367,6 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-console.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-event.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virsh-virsh.Po@am__quote@
 
 .c.o:
@@ -1404,22 +1409,6 @@ virsh-console.obj: console.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -c -o virsh-console.obj `if test -f 'console.c'; then $(CYGPATH_W) 'console.c'; else $(CYGPATH_W) '$(srcdir)/console.c'; fi`
 
-virsh-event.o: ../daemon/event.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -MT virsh-event.o -MD -MP -MF $(DEPDIR)/virsh-event.Tpo -c -o virsh-event.o `test -f '../daemon/event.c' || echo '$(srcdir)/'`../daemon/event.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virsh-event.Tpo $(DEPDIR)/virsh-event.Po
-@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../daemon/event.c' object='virsh-event.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -c -o virsh-event.o `test -f '../daemon/event.c' || echo '$(srcdir)/'`../daemon/event.c
-
-virsh-event.obj: ../daemon/event.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -MT virsh-event.obj -MD -MP -MF $(DEPDIR)/virsh-event.Tpo -c -o virsh-event.obj `if test -f '../daemon/event.c'; then $(CYGPATH_W) '../daemon/event.c'; else $(CYGPATH_W) '$(srcdir)/../daemon/event.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virsh-event.Tpo $(DEPDIR)/virsh-event.Po
-@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../daemon/event.c' object='virsh-event.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -c -o virsh-event.obj `if test -f '../daemon/event.c'; then $(CYGPATH_W) '../daemon/event.c'; else $(CYGPATH_W) '$(srcdir)/../daemon/event.c'; fi`
-
 virsh-virsh.o: virsh.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virsh_CFLAGS) $(CFLAGS) -MT virsh-virsh.o -MD -MP -MF $(DEPDIR)/virsh-virsh.Tpo -c -o virsh-virsh.o `test -f 'virsh.c' || echo '$(srcdir)/'`virsh.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virsh-virsh.Tpo $(DEPDIR)/virsh-virsh.Po
@@ -1441,10 +1430,10 @@ mostlyclean-libtool:
 
 clean-libtool:
 	-rm -rf .libs _libs
-install-man1: $(man1_MANS)
+install-man1: $(dist_man1_MANS)
 	@$(NORMAL_INSTALL)
 	test -z "$(man1dir)" || $(MKDIR_P) "$(DESTDIR)$(man1dir)"
-	@list='$(man1_MANS)'; test -n "$(man1dir)" || exit 0; \
+	@list='$(dist_man1_MANS)'; test -n "$(man1dir)" || exit 0; \
 	{ for i in $$list; do echo "$$i"; done; \
 	} | while read p; do \
 	  if test -f $$p; then d=; else d="$(srcdir)/"; fi; \
@@ -1468,7 +1457,7 @@ install-man1: $(man1_MANS)
 
 uninstall-man1:
 	@$(NORMAL_UNINSTALL)
-	@list='$(man1_MANS)'; test -n "$(man1dir)" || exit 0; \
+	@list='$(dist_man1_MANS)'; test -n "$(man1dir)" || exit 0; \
 	files=`{ for i in $$list; do echo "$$i"; done; \
 	} | sed -e 's,.*/,,;h;s,.*\.,,;s,^[^1][0-9a-z]*$$,1,;x' \
 	      -e 's,\.[0-9a-z]*$$,,;$(transform);G;s,\n,.,'`; \
@@ -1608,6 +1597,7 @@ maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
 	-test -z "$(BUILT_SOURCES)" || rm -f $(BUILT_SOURCES)
+	-test -z "$(MAINTAINERCLEANFILES)" || rm -f $(MAINTAINERCLEANFILES)
 clean: clean-am
 
 clean-am: clean-binPROGRAMS clean-generic clean-libtool mostlyclean-am
@@ -1704,15 +1694,15 @@ virt-xml-validate: virt-xml-validate.in Makefile
 	$(AM_V_GEN)sed -e 's,@SCHEMADIR@,$(pkgdatadir)/schemas,' < $< > $@ \
 	    || (rm $@ && exit 1) && chmod +x $@
 
-virt-xml-validate.1: virt-xml-validate
-	$(AM_V_GEN)$(POD2MAN) $< $@
+virt-xml-validate.1: virt-xml-validate.in
+	$(AM_V_GEN)$(POD2MAN) $< $(srcdir)/$@
 
 virt-pki-validate: virt-pki-validate.in Makefile
 	$(AM_V_GEN)sed -e 's,@SYSCONFDIR@,$(sysconfdir),' < $< > $@ \
 	    || (rm $@ && exit 1) && chmod +x $@
 
-virt-pki-validate.1: virt-pki-validate
-	$(AM_V_GEN)$(POD2MAN) $< $@
+virt-pki-validate.1: virt-pki-validate.in
+	$(AM_V_GEN)$(POD2MAN) $< $(srcdir)/$@
 
 virsh-net-edit.c: virsh.c Makefile.am
 	$(AM_V_GEN)rm -f $@-tmp && \
@@ -1771,7 +1761,7 @@ virsh-pool-edit.c: virsh.c Makefile.am
 @WITH_WIN_ICON_TRUE@	  --output-format coff --output $@
 
 virsh.1: virsh.pod
-	$(AM_V_GEN)$(POD2MAN) $< $@
+	$(AM_V_GEN)$(POD2MAN) $< $(srcdir)/$@
 
 install-data-local: install-init
 

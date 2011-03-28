@@ -70,6 +70,21 @@ struct remote_sched_param {
 	remote_nonnull_string      field;
 	remote_sched_param_value   value;
 };
+struct remote_blkio_param_value {
+	int                        type;
+	union {
+		int                i;
+		u_int              ui;
+		int64_t            l;
+		uint64_t           ul;
+		double             d;
+		int                b;
+	} remote_blkio_param_value_u;
+};
+struct remote_blkio_param {
+	remote_nonnull_string      field;
+	remote_blkio_param_value   value;
+};
 struct remote_memory_param_value {
 	int                        type;
 	union {
@@ -171,6 +186,26 @@ struct remote_domain_set_scheduler_parameters_args {
 		u_int              params_len;
 		remote_sched_param * params_val;
 	} params;
+};
+struct remote_domain_set_blkio_parameters_args {
+	remote_nonnull_domain      dom;
+	struct {
+		u_int              params_len;
+		remote_blkio_param * params_val;
+	} params;
+	u_int                      flags;
+};
+struct remote_domain_get_blkio_parameters_args {
+	remote_nonnull_domain      dom;
+	int                        nparams;
+	u_int                      flags;
+};
+struct remote_domain_get_blkio_parameters_ret {
+	struct {
+		u_int              params_len;
+		remote_blkio_param * params_val;
+	} params;
+	int                        nparams;
 };
 struct remote_domain_set_memory_parameters_args {
 	remote_nonnull_domain      dom;
@@ -339,6 +374,11 @@ struct remote_domain_set_max_memory_args {
 struct remote_domain_set_memory_args {
 	remote_nonnull_domain      dom;
 	uint64_t                   memory;
+};
+struct remote_domain_set_memory_flags_args {
+	remote_nonnull_domain      dom;
+	uint64_t                   memory;
+	u_int                      flags;
 };
 struct remote_domain_get_info_args {
 	remote_nonnull_domain      dom;
@@ -1234,6 +1274,11 @@ struct remote_domain_abort_job_args {
 struct remote_domain_migrate_set_max_downtime_args {
 	remote_nonnull_domain      dom;
 	uint64_t                   downtime;
+	u_int                      flags;
+};
+struct remote_domain_migrate_set_max_speed_args {
+	remote_nonnull_domain      dom;
+	uint64_t                   bandwidth;
 	u_int                      flags;
 };
 struct remote_domain_events_register_any_args {

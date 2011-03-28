@@ -149,7 +149,7 @@ struct umlAutostartData {
 };
 
 static void
-umlAutostartDomain(void *payload, const char *name ATTRIBUTE_UNUSED, void *opaque)
+umlAutostartDomain(void *payload, const void *name ATTRIBUTE_UNUSED, void *opaque)
 {
     virDomainObjPtr vm = payload;
     const struct umlAutostartData *data = opaque;
@@ -508,7 +508,7 @@ umlActive(void) {
 }
 
 static void
-umlShutdownOneVM(void *payload, const char *name ATTRIBUTE_UNUSED, void *opaque)
+umlShutdownOneVM(void *payload, const void *name ATTRIBUTE_UNUSED, void *opaque)
 {
     virDomainObjPtr dom = payload;
     struct uml_driver *driver = opaque;
@@ -829,7 +829,7 @@ static int umlStartVMDaemon(virConnectPtr conn,
      * Technically we could catch the exec() failure, but that's
      * in a sub-process so its hard to feed back a useful error
      */
-    if (access(vm->def->os.kernel, X_OK) < 0) {
+    if (!virFileIsExecutable(vm->def->os.kernel)) {
         virReportSystemError(errno,
                              _("Cannot find UML kernel %s"),
                              vm->def->os.kernel);
@@ -2167,6 +2167,11 @@ static virDriver umlDriver = {
     umlDomainGetMaxMemory, /* domainGetMaxMemory */
     umlDomainSetMaxMemory, /* domainSetMaxMemory */
     umlDomainSetMemory, /* domainSetMemory */
+    NULL, /* domainSetMemoryFlags */
+    NULL, /* domainSetMemoryParameters */
+    NULL, /* domainGetMemoryParameters */
+    NULL, /* domainSetBlkioParameters */
+    NULL, /* domainGetBlkioParameters */
     umlDomainGetInfo, /* domainGetInfo */
     NULL, /* domainSave */
     NULL, /* domainRestore */
@@ -2227,6 +2232,7 @@ static virDriver umlDriver = {
     NULL, /* domainGetJobInfo */
     NULL, /* domainAbortJob */
     NULL, /* domainMigrateSetMaxDowntime */
+    NULL, /* domainMigrateSetMaxSpeed */
     NULL, /* domainEventRegisterAny */
     NULL, /* domainEventDeregisterAny */
     NULL, /* domainManagedSave */
@@ -2242,8 +2248,6 @@ static virDriver umlDriver = {
     NULL, /* domainRevertToSnapshot */
     NULL, /* domainSnapshotDelete */
     NULL, /* qemuDomainMonitorCommand */
-    NULL, /* domainSetMemoryParamters */
-    NULL, /* domainGetMemoryParamters */
     umlDomainOpenConsole, /* domainOpenConsole */
 };
 

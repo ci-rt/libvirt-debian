@@ -1,5 +1,13 @@
 # -*- rpm-spec -*-
 
+# If neither fedora nor rhel was defined, try to guess them from %{dist}
+%if !0%{?rhel} && !0%{?fedora}
+%{expand:%(echo "%{?dist}" | \
+  sed -ne 's/^\.el\([0-9]\+\).*/%%define rhel \1/p')}
+%{expand:%(echo "%{?dist}" | \
+  sed -ne 's/^\.fc\?\([0-9]\+\).*/%%define fedora \1/p')}
+%endif
+
 # A client only build will create a libvirt.so only containing
 # the generic RPC driver, and test driver and no libvirtd
 # Default to a full server + client build
@@ -37,6 +45,7 @@
 %define with_vbox          0%{!?_without_vbox:%{server_drivers}}
 %define with_uml           0%{!?_without_uml:%{server_drivers}}
 %define with_xenapi        0%{!?_without_xenapi:%{server_drivers}}
+%define with_libxl         0%{!?_without_libxl:%{server_drivers}}
 # XXX this shouldn't be here, but it mistakenly links into libvirtd
 %define with_one           0%{!?_without_one:%{server_drivers}}
 
@@ -88,7 +97,7 @@
 %endif
 
 # RHEL doesn't ship OpenVZ, VBox, UML, OpenNebula, PowerHypervisor,
-# VMWare, or libxenserver (xenapi)
+# VMWare, libxenserver (xenapi), or libxenlight (Xen 4.1 and newer)
 %if 0%{?rhel}
 %define with_openvz 0
 %define with_vbox 0
@@ -97,6 +106,7 @@
 %define with_phyp 0
 %define with_vmware 0
 %define with_xenapi 0
+%define with_libxl 0
 %endif
 
 # RHEL-5 has restricted QEMU to x86_64 only and is too old for LXC
@@ -121,6 +131,11 @@
 %ifarch ppc64
 %define with_qemu 0
 %endif
+%endif
+
+# Fedora doesn't have new enough Xen for libxl until F16
+%if 0%{?fedora} < 16
+%define with_libxl 0
 %endif
 
 # PolicyKit was introduced in Fedora 8 / RHEL-6 or newer
@@ -203,14 +218,16 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 0.8.8
+Version: 0.9.0
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 Source: http://libvirt.org/sources/libvirt-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 URL: http://libvirt.org/
-BuildRequires: python-devel
+
+# All runtime requirements for the libvirt package (runtime requrements
+# for subpackages are listed later in those subpackages)
 
 # The client side, i.e. shared libs and virsh are in a subpackage
 Requires: %{name}-client = %{version}-%{release}
@@ -219,15 +236,21 @@ Requires: %{name}-client = %{version}-%{release}
 # daemon is present
 %if %{with_libvirtd}
 Requires: bridge-utils
+# for modprobe of pci devices
+Requires: module-init-tools
+# for /sbin/ip
+Requires: iproute
 %endif
 %if %{with_network}
 Requires: dnsmasq >= 2.41
+Requires: radvd
+%endif
+%if %{with_network} || %{with_nwfilter}
 Requires: iptables
+Requires: iptables-ipv6
 %endif
 %if %{with_nwfilter}
 Requires: ebtables
-Requires: iptables
-Requires: iptables-ipv6
 %endif
 # needed for device enumeration
 %if %{with_hal}
@@ -244,10 +267,6 @@ Requires: PolicyKit >= 0.6
 %endif
 %endif
 %if %{with_storage_fs}
-# For mount/umount in FS driver
-BuildRequires: util-linux
-# For showmount in FS driver (netfs discovery)
-BuildRequires: nfs-utils
 Requires: nfs-utils
 # For glusterfs
 %if 0%{?fedora} >= 11
@@ -279,6 +298,7 @@ Requires: iscsi-initiator-utils
 %if %{with_storage_disk}
 # For disk driver
 Requires: parted
+Requires: device-mapper
 %endif
 %if %{with_storage_mpath}
 # For multipath support
@@ -287,6 +307,10 @@ Requires: device-mapper
 %if %{with_cgconfig}
 Requires: libcgroup
 %endif
+
+# All build-time requirements
+BuildRequires: python-devel
+
 %if %{with_xen}
 BuildRequires: xen-devel
 %endif
@@ -295,10 +319,15 @@ BuildRequires: xmlrpc-c-devel >= 1.14.0
 %endif
 BuildRequires: libxml2-devel
 BuildRequires: xhtml1-dtds
+BuildRequires: libxslt
 BuildRequires: readline-devel
 BuildRequires: ncurses-devel
 BuildRequires: gettext
 BuildRequires: gnutls-devel
+%if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
+# for augparse, optionally used in testing
+BuildRequires: augeas
+%endif
 %if %{with_hal}
 BuildRequires: hal-devel
 %endif
@@ -323,8 +352,15 @@ BuildRequires: libselinux-devel
 %endif
 %if %{with_network}
 BuildRequires: dnsmasq >= 2.41
+BuildRequires: iptables
+BuildRequires: iptables-ipv6
+BuildRequires: radvd
+%endif
+%if %{with_nwfilter}
+BuildRequires: ebtables
 %endif
 BuildRequires: bridge-utils
+BuildRequires: module-init-tools
 %if %{with_sasl}
 BuildRequires: cyrus-sasl-devel
 %endif
@@ -388,7 +424,11 @@ BuildRequires: libssh2-devel
 BuildRequires: netcf-devel >= 0.1.4
 %endif
 %if %{with_esx}
+%if 0%{?fedora} >= 9 || 0%{?rhel} >= 6
 BuildRequires: libcurl-devel
+%else
+BuildRequires: curl-devel
+%endif
 %endif
 %if %{with_audit}
 BuildRequires: audit-libs-devel
@@ -398,6 +438,12 @@ BuildRequires: audit-libs-devel
 BuildRequires: systemtap-sdt-devel
 %endif
 
+%if %{with_storage_fs}
+# For mount/umount in FS driver
+BuildRequires: util-linux
+# For showmount in FS driver (netfs discovery)
+BuildRequires: nfs-utils
+%endif
 
 # Fedora build root suckage
 BuildRequires: gawk
@@ -415,6 +461,10 @@ Requires: ncurses
 # So remote clients can access libvirt over SSH tunnel
 # (client invokes 'nc' against the UNIX socket on the server)
 Requires: nc
+# Needed by libvirt-guests init script.
+Requires: gettext
+# Needed by virt-pki-validate script.
+Requires: gnutls-utils
 %if %{with_sasl}
 Requires: cyrus-sasl
 # Not technically required, but makes 'out-of-box' config
@@ -478,6 +528,10 @@ of recent versions of Linux (and other OSes).
 
 %if ! %{with_xenapi}
 %define _without_xenapi --without-xenapi
+%endif
+
+%if ! %{with_libxl}
+%define _without_libxl --without-libxl
 %endif
 
 %if ! %{with_sasl}
@@ -750,6 +804,46 @@ then
          > %{_sysconfdir}/libvirt/qemu/networks/default.xml
     ln -s ../default.xml %{_sysconfdir}/libvirt/qemu/networks/autostart/default.xml
 fi
+
+# All newly defined networks will have a mac address for the bridge
+# auto-generated, but networks already existing at the time of upgrade
+# will not. We need to go through all the network configs, look for
+# those that don't have a mac address, and add one.
+
+network_files=$( (cd %{_localstatedir}/lib/libvirt/network && \
+                  grep -L "mac address" *.xml; \
+                  cd %{_sysconfdir}/libvirt/qemu/networks && \
+                  grep -L "mac address" *.xml) 2>/dev/null \
+                | sort -u)
+
+for file in $network_files
+do
+   # each file exists in either the config or state directory (or both) and
+   # does not have a mac address specified in either. We add the same mac
+   # address to both files (or just one, if the other isn't there)
+
+   mac4=`printf '%X' $(($RANDOM % 256))`
+   mac5=`printf '%X' $(($RANDOM % 256))`
+   mac6=`printf '%X' $(($RANDOM % 256))`
+   for dir in %{_localstatedir}/lib/libvirt/network \
+              %{_sysconfdir}/libvirt/qemu/networks
+   do
+      if test -f $dir/$file
+      then
+         sed -i.orig -e \
+           "s|\(<bridge.*$\)|\0\n  <mac address='52:54:00:$mac4:$mac5:$mac6'/>|" \
+           $dir/$file
+         if test $? != 0
+         then
+             echo "failed to add <mac address='52:54:00:$mac4:$mac5:$mac6'/>" \
+                  "to $dir/$file"
+             mv -f $dir/$file.orig $dir/$file
+         else
+             rm -f $dir/$file.orig
+         fi
+      fi
+   done
+done
 %endif
 
 %if %{with_cgconfig}
@@ -819,7 +913,11 @@ fi
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/qemu/
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/lxc/
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/uml/
+%if %{with_libxl}
+%dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/libxl/
+%endif
 
+%config(noreplace) %{_sysconfdir}/logrotate.d/libvirtd
 %if %{with_qemu}
 %config(noreplace) %{_sysconfdir}/libvirt/qemu.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/libvirtd.qemu
@@ -857,6 +955,10 @@ fi
 %if %{with_uml}
 %dir %{_localstatedir}/run/libvirt/uml/
 %dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/uml/
+%endif
+%if %{with_libxl}
+%dir %{_localstatedir}/run/libvirt/libxl/
+%dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/libxl/
 %endif
 %if %{with_network}
 %dir %{_localstatedir}/run/libvirt/network/

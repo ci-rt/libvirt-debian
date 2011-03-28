@@ -10,16 +10,12 @@ The primary maintainers and people with commit access rights:
   Daniel Veillard      <veillard@redhat.com>
   Daniel Berrange      <berrange@redhat.com>
   Richard W.M. Jones   <rjones@redhat.com>
-  Karel Zak            <kzak@redhat.com>
   Mark McLoughlin      <markmc@redhat.com>
   Anthony Liguori      <aliguori@us.ibm.com>
   Jim Meyering         <meyering@redhat.com>
   Jim Fehlig           <jfehlig@novell.com>
   Chris Lalancette     <clalance@redhat.com>
-  Atsushi SAKAI        <sakaia@jp.fujitsu.com>
-  Dave Leskovec        <dlesko@linux.vnet.ibm.com>
   Cole Robinson        <crobinso@redhat.com>
-  Dan Smith            <danms@us.ibm.com>
   Guido Günther        <agx@sigxcpu.org>
   John Levon           <john.levon@sun.com>
   Matthias Bolte       <matthias.bolte@googlemail.com>
@@ -30,6 +26,13 @@ The primary maintainers and people with commit access rights:
   Eric Blake           <eblake@redhat.com>
   Justin Clift         <jclift@redhat.com>
   Osier Yang           <jyang@redhat.com>
+  Wen Congyang         <wency@cn.fujitsu.com>
+
+Previous maintainers:
+  Karel Zak            <kzak@redhat.com>
+  Atsushi SAKAI        <sakaia@jp.fujitsu.com>
+  Dave Leskovec        <dlesko@linux.vnet.ibm.com>
+  Dan Smith            <danms@us.ibm.com>
 
 Patches have also been contributed by:
 
@@ -134,8 +137,7 @@ Patches have also been contributed by:
   Lai Jiangshan        <laijs@cn.fujitsu.com>
   Harsh Prateek Bora   <harsh@linux.vnet.ibm.com>
   John Morrissey       <jwm@horde.net>
-  Kamezawa Hiroyuki    <kamezawa.hiroyu@jp.fujitsu.com>
-  Wen Congyang         <wency@cn.fujitsu.com>
+  KAMEZAWA Hiroyuki    <kamezawa.hiroyu@jp.fujitsu.com>
   Hu Tao               <hutao@cn.fujitsu.com>
   Laurent Léonard      <laurent@open-minds.org>
   MORITA Kazutaka      <morita.kazutaka@lab.ntt.co.jp>
@@ -155,6 +157,12 @@ Patches have also been contributed by:
   Gui Jianfeng         <guijianfeng@cn.fujitsu.com>
   Michal Novotny       <minovotn@redhat.com>
   Christophe Fergeau   <teuf@gnome.org>
+  Markus Groß          <gross@univention.de>
+  Phil Petty           <phpetty@cisco.com>
+  Taku Izumi           <izumi.taku@jp.fujitsu.com>
+  Minoru Usui          <usui@mxm.nes.nec.co.jp>
+  Tiziano Mueller      <dev-zero@gentoo.org>
+  Thibault VINCENT     <thibault.vincent@smartjog.com>
 
   [....send patches to get your name here....]
 

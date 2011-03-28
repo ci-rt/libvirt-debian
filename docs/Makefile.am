@@ -64,7 +64,7 @@ dot_html_in = $(notdir $(wildcard $(srcdir)/*.html.in)) todo.html.in \
       $(patsubst $(srcdir)/%,%,$(wildcard $(srcdir)/internals/*.html.in))
 dot_html = $(dot_html_in:%.html.in=%.html)
 
-patches = $(wildcard api_extension/*.patch)
+patches = $(patsubst $(srcdir)/%,%,$(wildcard $(srcdir)/api_extension/*.patch))
 
 xml = \
   libvirt-api.xml \
@@ -88,11 +88,14 @@ EXTRA_DIST=					\
   sitemap.html.in \
   todo.pl todo.cfg-example
 
-MAINTAINERCLEANFILES = $(dot_html) $(apihtml) $(devhelphtml)
+MAINTAINERCLEANFILES = \
+  $(addprefix $(srcdir)/,$(dot_html)) \
+  $(addprefix $(srcdir)/,$(apihtml)) \
+  $(addprefix $(srcdir)/,$(devhelphtml))
 
 all: web
 
-api: libvirt-api.xml libvirt-refs.xml
+api: $(srcdir)/libvirt-api.xml $(srcdir)/libvirt-refs.xml
 
 web: $(dot_html) html/index.html devhelp/index.html
 
@@ -138,28 +141,29 @@ internals/%.html.tmp: internals/%.html.in subsite.xsl page.xsl sitemap.html.in
 	    "-//W3C//DTD XHTML 1.0 Strict//EN" > /dev/null ; then \
 	  echo "Validating $@" ; \
 	  SGML_CATALOG_FILES='$(XML_CATALOG_FILE)' \
-	  $(XMLLINT) --catalogs --nonet --format --valid $< > $@ \
-	  || { rm $@ && exit 1; }; \
+	  $(XMLLINT) --catalogs --nonet --format --valid $< > $(srcdir)/$@ \
+	  || { rm $(srcdir)/$@ && exit 1; }; \
 	  else echo "missing XHTML1 DTD" ; fi ; fi
 
 
 html/index.html: libvirt-api.xml newapi.xsl page.xsl sitemap.html.in
 	-@if [ -x $(XSLTPROC) ] ; then \
 	  echo "Rebuilding the HTML pages from the XML API" ; \
-	  $(XSLTPROC) --nonet $(srcdir)/newapi.xsl libvirt-api.xml ; fi
+	  $(XSLTPROC) --nonet -o $(srcdir)/ \
+	  $(srcdir)/newapi.xsl $(srcdir)/libvirt-api.xml ; fi
 	-@if test -x $(XMLLINT) && test -x $(XMLCATALOG) ; then \
 	  if $(XMLCATALOG) '$(XML_CATALOG_FILE)' "-//W3C//DTD XHTML 1.0 Strict//EN" \
 	    > /dev/null ; then \
 	  echo "Validating the resulting XHTML pages" ; \
 	  SGML_CATALOG_FILES='$(XML_CATALOG_FILE)' \
-	  $(XMLLINT) --catalogs --nonet --valid --noout html/*.html ; \
+	  $(XMLLINT) --catalogs --nonet --valid --noout $(srcdir)/html/*.html ; \
 	  else echo "missing XHTML1 DTD" ; fi ; fi
 
 $(addprefix $(srcdir)/,$(devhelphtml)): $(srcdir)/libvirt-api.xml $(devhelpxsl)
 	-@echo Rebuilding devhelp files
 	-@if [ -x $(XSLTPROC) ] ; then \
-	  $(XSLTPROC) --nonet -o devhelp/libvirt.devhelp \
-	  $(top_srcdir)/docs/devhelp/devhelp.xsl libvirt-api.xml ; fi
+	  $(XSLTPROC) --nonet -o $(srcdir)/devhelp/ \
+	  $(top_srcdir)/docs/devhelp/devhelp.xsl $(srcdir)/libvirt-api.xml ; fi
 
 python_generated_files = \
 		$(srcdir)/html/libvirt-libvirt.html \
@@ -179,7 +183,7 @@ clean-local:
 	rm -f *~ *.bak *.hierarchy *.signals *-unused.txt *.html
 
 maintainer-clean-local: clean-local
-	rm -rf libvirt-api.xml libvirt-refs.xml todo.html.in
+	rm -rf $(srcdir)/libvirt-api.xml $(srcdir)/libvirt-refs.xml todo.html.in
 
 rebuild: api all
 

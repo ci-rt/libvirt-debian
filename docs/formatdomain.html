@@ -204,6 +204,8 @@
                       </li><li>
                         <a href="#elementsNICSModel">Setting the NIC model</a>
                       </li><li>
+                        <a href="#elementsDriverBackendOptions">Setting NIC driver-specific options</a>
+                      </li><li>
                         <a href="#elementsNICSTargetOverride">Overriding the target element</a>
                       </li><li>
                         <a href="#elementsNICSBoot">Specifying boot order</a>
@@ -507,8 +509,9 @@
         of 1024 bytes)</dd><dt><code>soft_limit</code></dt><dd> The optional <code>soft_limit</code> element is the memory limit to
         enforce during memory contention. The units for this value are
         kilobytes (i.e. blocks of 1024 bytes)</dd><dt><code>swap_hard_limit</code></dt><dd> The optional <code>swap_hard_limit</code> element is the maximum
-        swap the guest can use. The units for this value are kilobytes
-        (i.e. blocks of 1024 bytes)</dd><dt><code>min_guarantee</code></dt><dd> The optional <code>min_guarantee</code> element is the guaranteed
+        memory plus swap the guest can use. The units for this value are
+        kilobytes (i.e. blocks of 1024 bytes). This has to be more than
+        hard_limit value provided</dd><dt><code>min_guarantee</code></dt><dd> The optional <code>min_guarantee</code> element is the guaranteed
         minimum memory allocation for the guest. The units for this value are
         kilobytes (i.e. blocks of 1024 bytes)</dd><dt><code>vcpu</code></dt><dd>The content of this element defines the maximum number of virtual
         CPUs allocated for the guest OS, which must be between 1 and
@@ -834,8 +837,7 @@
         "usb" attribute value since after 0.4.4</span></dd><dt><code>driver</code></dt><dd>
         The optional driver element allows specifying further details
         related to the hypervisor driver used to provide the disk.
-        <span class="since">Since 0.1.8; <code>io</code> attribute
-        since 0.8.8</span>
+        <span class="since">Since 0.1.8</span>
         <ul><li>
             If the hypervisor supports multiple backend drivers, then
             the <code>name</code> attribute selects the primary
@@ -849,14 +851,16 @@
             The optional <code>cache</code> attribute controls the
             cache mechanism, possible values are "default", "none",
             "writethrough" and "writeback".
+            <span class="since">Since 0.6.0</span>
           </li><li>
             The optional <code>error_policy</code> attribute controls
             how the hypervisor will behave on an error, possible
             values are "stop", "ignore", and "enospace".
+            <span class="since">Since 0.8.0</span>
           </li><li>
             The optional <code>io</code> attribute controls specific
             policies on I/O; qemu guests support "threads" and
-            "native".
+            "native". <span class="since">Since 0.8.8</span>
           </li></ul></dd><dt><code>boot</code></dt><dd>Specifies that the disk is bootable. The <code>order</code>
         attribute determines the order in which devices will be tried during
         boot sequence. The per-device <code>boot</code> elements cannot be
@@ -954,7 +958,7 @@
         <pre>
   ...
   &lt;devices&gt;
-    &lt;hostdev mode='subsystem' type='pci'&gt;
+    &lt;hostdev mode='subsystem' type='pci' managed='yes'&gt;
       &lt;source&gt;
         &lt;address bus='0x06' slot='0x02' function='0x0'/&gt;
       &lt;/source&gt;
@@ -963,10 +967,11 @@
   &lt;/devices&gt;
   ...</pre>
         <dl><dt><code>hostdev</code></dt><dd>The <code>hostdev</code> element is the main container for describing
-      host devices. For usb device passthrough <code>mode</code> is always
-      "subsystem" and <code>type</code> is "usb" for an USB device and "pci"
-      for a PCI device..
-      </dd><dt><code>source</code></dt><dd>The source element describes the device as seen from the host.
+        host devices. For usb device passthrough <code>mode</code> is always
+        "subsystem" and <code>type</code> is "usb" for a USB device and "pci"
+        for a PCI device. When <code>managed</code> is "yes" for a PCI
+        device, it is detached from the host before being passed on to
+        the guest.</dd><dt><code>source</code></dt><dd>The source element describes the device as seen from the host.
       The USB device can either be addressed by vendor / product id using the
       <code>vendor</code> and <code>product</code> elements or by the device's
       address on the hosts using the <code>address</code> element.
@@ -1119,7 +1124,7 @@
       network config with '<code>virsh net-dumpxml [networkname]</code>'.
       There is one virtual network called 'default' setup out
       of the box which does NAT'ing to the default route and has an IP range of
-      <code>192.168.22.0/255.255.255.0</code>. Each guest will have an
+      <code>192.168.122.0/255.255.255.0</code>. Each guest will have an
       associated tun device created with a name of vnetN, which can also be
       overridden with the &lt;target&gt; element (see
       <a href="#elementsNICSTargetOverride">overriding the target element</a>).
@@ -1227,7 +1232,7 @@
       driver to be available. <span class="since">(Since Linux 2.6.34.)</span>
       One of the modes 'vepa'
       ( <a href="http://www.ieee802.org/1/files/public/docs2009/new-evb-congdon-vepa-modular-0709-v01.pdf">
-      'Virtual  Ethernet Port Aggregator'</a>), 'bridge' or 'private'
+      'Virtual Ethernet Port Aggregator'</a>), 'bridge' or 'private'
       can be chosen for the operation mode of the macvtap device, 'vepa'
       being the default mode. The individual modes cause the delivery of
       packets to behave as follows:
@@ -1252,6 +1257,44 @@
     ...
     &lt;interface type='direct'&gt;
       &lt;source dev='eth0' mode='vepa'/&gt;
+    &lt;/interface&gt;
+  &lt;/devices&gt;
+  ...</pre>
+        <p>
+      The network access of direct attached virtual machines can be
+      managed by the hardware switch to which the physical interface
+      of the host machine is connected to.
+    </p>
+        <p>
+      The interface can have additional parameters as shown below,
+      if the switch is conforming to the IEEE 802.1Qbg standard.
+      The parameters of the virtualport element are documented in more detail
+      in the IEEE 802.1Qbg standard. The values are network specific and
+      should be provided by the network administrator. In 802.1Qbg terms,
+      the Virtual Station Interface (VSI) represents the virtual interface
+      of a virtual machine.
+    </p>
+        <dl><dt><code>managerid</code></dt><dd>The VSI Manager ID identifies the database containing the VSI type
+        and instance definitions. This is an integer value and the
+        value 0 is reserved.</dd><dt><code>typeid</code></dt><dd>The VSI Type ID identifies a VSI type characterizing the network
+        access. VSI types are typically managed by network administrator.
+        This is an integer value.
+      </dd><dt><code>typeidversion</code></dt><dd>The VSI Type Version allows multiple versions of a VSI Type.
+        This is an integer value.
+      </dd><dt><code>instanceid</code></dt><dd>The VSI Instance ID Identifier is generated when a VSI instance
+        (i.e. a virtual interface of a virtual machine) is created.
+        This is a globally unique identifier.
+      </dd></dl>
+        <pre>
+  ...
+  &lt;devices&gt;
+    &lt;interface type='direct'/&gt;
+    ...
+    &lt;interface type='direct'&gt;
+      &lt;source dev='eth0' mode='vepa'/&gt;
+      &lt;virtualport type="802.1Qbg"&gt;
+        &lt;parameters managerid="11" typeid="1193047" typeidversion="2" instanceid="09b11c53-8b5c-4eeb-8f00-d84eaa0aaa4f"/&gt;
+      &lt;/virtualport&gt;
     &lt;/interface&gt;
   &lt;/devices&gt;
   ...</pre>
@@ -1331,6 +1374,59 @@ qemu-kvm -net nic,model=? /dev/null
       Typical values for QEMU and KVM include:
       ne2k_isa i82551 i82557b i82559er ne2k_pci pcnet rtl8139 e1000 virtio
     </p>
+        <h5>
+          <a name="elementsDriverBackendOptions" id="elementsDriverBackendOptions">Setting NIC driver-specific options</a>
+        </h5>
+        <pre>
+  ...
+  &lt;devices&gt;
+    &lt;interface type='network'&gt;
+      &lt;source network='default'/&gt;
+      &lt;target dev='vnet1'/&gt;
+      &lt;model type='virtio'/&gt;
+      <b>&lt;driver name='vhost' txmode='iothread'/&gt;</b>
+    &lt;/interface&gt;
+  &lt;/devices&gt;
+  ...</pre>
+        <p>
+      Some NICs may have tunable driver-specific options. These are
+      set as attributes of the <code>driver</code> sub-element of the
+      interface definition. Currently the following attributes are
+      available for the <code>"virtio"</code> NIC driver:
+    </p>
+        <dl><dt><code>name</code></dt><dd>
+        The optional <code>name</code> attribute forces which type of
+        backend driver to use. The value can be either 'qemu' (a
+        user-space backend) or 'vhost' (a kernel backend, which
+        requires the vhost module to be provided by the kernel); an
+        attempt to require the vhost driver without kernel support
+        will be rejected.  If this attribute is not present, then the
+        domain defaults to 'vhost' if present, but silently falls back
+        to 'qemu' without error.
+        <span class="since">Since 0.8.8 (QEMU and KVM only)</span>
+      </dd><dt><code>txmode</code></dt><dd>
+        The <code>txmode</code> attribute specifies how to handle
+        transmission of packets when the transmit buffer is full. The
+        value can be either 'iothread' or 'timer'.
+        <span class="since">Since 0.8.8 (QEMU and KVM only)</span><br /><br />
+
+        If set to 'iothread', packet tx is all done in an iothread in
+        the bottom half of the driver (this option translates into
+        adding "tx=bh" to the qemu commandline -device virtio-net-pci
+        option).<br /><br />
+
+        If set to 'timer', tx work is done in qemu, and if there is
+        more tx data than can be sent at the present time, a timer is
+        set before qemu moves on to do other things; when the timer
+        fires, another attempt is made to send more data.<br /><br />
+
+        The resulting difference, according to the qemu developer who
+        added the option is: "bh makes tx more asynchronous and reduces
+        latency, but potentially causes more processor bandwidth
+        contention since the cpu doing the tx isn't necessarily the
+        cpu where the guest generated the packets."<br /><br /><b>In general you should leave this option alone, unless you
+        are very certain you know what you are doing.</b>
+      </dd></dl>
         <h5>
           <a name="elementsNICSTargetOverride" id="elementsNICSTargetOverride">Overriding the target element</a>
         </h5>
@@ -1450,6 +1546,7 @@ qemu-kvm -net nic,model=? /dev/null
   to use. It is possible to set a limit on the validity of the password
   be giving an timestamp <code>passwdValidTo='2010-04-09T15:51:00'</code>
   assumed to be in UTC. NB, this may not be supported by all hypervisors.
+  <span class="since">"spice" since 0.8.6</span>.
             </p>
             <p>
   When SPICE has both a normal and TLS secured TCP port configured, it
@@ -1503,8 +1600,9 @@ qemu-kvm -net nic,model=? /dev/null
         video devices.
       </dd><dt><code>model</code></dt><dd>
         The <code>model</code> element has a mandatory <code>type</code>
-        attribute which takes the value "vga", "cirrus", "vmvga", "qxl",
-        "xen" or "vbox", depending on the hypervisor features available.
+        attribute which takes the value "vga", "cirrus", "vmvga", "xen",
+        "vbox", or "qxl" (<span class="since">since 0.8.6</span>)
+        depending on the hypervisor features available.
         You can also provide the amount of video memory in kilobytes using
         <code>vram</code> and the number of screen with <code>heads</code>.
       </dd><dt><code>acceleration</code></dt><dd>

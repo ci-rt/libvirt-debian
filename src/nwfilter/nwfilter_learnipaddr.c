@@ -2,6 +2,7 @@
  * nwfilter_learnipaddr.c: support for learning IP address used by a VM
  *                         on an interface
  *
+ * Copyright (C) 2011 Red Hat, Inc.
  * Copyright (C) 2010 IBM Corp.
  * Copyright (C) 2010 Stefan Berger
  *
@@ -165,7 +166,6 @@ virNWFilterLockIface(const char *ifname) {
         }
 
         while (virHashAddEntry(ifaceLockMap, ifname, ifaceLock)) {
-            virReportOOMError();
             VIR_FREE(ifaceLock);
             goto err_exit;
         }
@@ -189,7 +189,7 @@ virNWFilterLockIface(const char *ifname) {
 
 
 static void
-freeIfaceLock(void *payload, const char *name ATTRIBUTE_UNUSED) {
+freeIfaceLock(void *payload, const void *name ATTRIBUTE_UNUSED) {
     VIR_FREE(payload);
 }
 
@@ -207,7 +207,7 @@ virNWFilterUnlockIface(const char *ifname) {
 
         ifaceLock->refctr--;
         if (ifaceLock->refctr == 0)
-            virHashRemoveEntry(ifaceLockMap, ifname, freeIfaceLock);
+            virHashRemoveEntry(ifaceLockMap, ifname);
     }
 
     virMutexUnlock(&ifaceMapLock);
@@ -287,7 +287,7 @@ virNWFilterLookupLearnReq(int ifindex) {
 
 
 static void
-freeLearnReqEntry(void *payload, const char *name ATTRIBUTE_UNUSED) {
+freeLearnReqEntry(void *payload, const void *name ATTRIBUTE_UNUSED) {
     virNWFilterIPAddrLearnReqFree(payload);
 }
 
@@ -301,10 +301,7 @@ virNWFilterDeregisterLearnReq(int ifindex) {
 
     virMutexLock(&pendingLearnReqLock);
 
-    res = virHashLookup(pendingLearnReq, ifindex_str);
-
-    if (res)
-        virHashRemoveEntry(pendingLearnReq, ifindex_str, NULL);
+    res = virHashSteal(pendingLearnReq, ifindex_str);
 
     virMutexUnlock(&pendingLearnReqLock);
 
@@ -823,9 +820,8 @@ virNWFilterLearnInit(void) {
 
     threadsTerminate = false;
 
-    pendingLearnReq = virHashCreate(0);
+    pendingLearnReq = virHashCreate(0, freeLearnReqEntry);
     if (!pendingLearnReq) {
-        virReportOOMError();
         return 1;
     }
 
@@ -846,9 +842,8 @@ virNWFilterLearnInit(void) {
         return 1;
     }
 
-    ifaceLockMap = virHashCreate(0);
+    ifaceLockMap = virHashCreate(0, freeIfaceLock);
     if (!ifaceLockMap) {
-        virReportOOMError();
         virNWFilterLearnShutdown();
         return 1;
     }
@@ -882,12 +877,12 @@ virNWFilterLearnShutdown(void) {
 
     virNWFilterLearnThreadsTerminate(false);
 
-    virHashFree(pendingLearnReq, freeLearnReqEntry);
+    virHashFree(pendingLearnReq);
     pendingLearnReq = NULL;
 
     virNWFilterHashTableFree(ipAddressMap);
     ipAddressMap = NULL;
 
-    virHashFree(ifaceLockMap, freeIfaceLock);
+    virHashFree(ifaceLockMap);
     ifaceLockMap = NULL;
 }

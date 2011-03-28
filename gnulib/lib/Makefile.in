@@ -63,7 +63,6 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/configmake.m4 \
 	$(top_srcdir)/gnulib/m4/count-one-bits.m4 \
 	$(top_srcdir)/gnulib/m4/dirname.m4 \
-	$(top_srcdir)/gnulib/m4/dos.m4 \
 	$(top_srcdir)/gnulib/m4/double-slash-root.m4 \
 	$(top_srcdir)/gnulib/m4/eealloc.m4 \
 	$(top_srcdir)/gnulib/m4/environ.m4 \
@@ -187,7 +186,6 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/vasnprintf.m4 \
 	$(top_srcdir)/gnulib/m4/vasprintf.m4 \
 	$(top_srcdir)/gnulib/m4/waitpid.m4 \
-	$(top_srcdir)/gnulib/m4/warn-on-use.m4 \
 	$(top_srcdir)/gnulib/m4/wchar_h.m4 \
 	$(top_srcdir)/gnulib/m4/write.m4 \
 	$(top_srcdir)/gnulib/m4/xalloc.m4 \
@@ -338,6 +336,7 @@ DEVMAPPER_CFLAGS = @DEVMAPPER_CFLAGS@
 DEVMAPPER_LIBS = @DEVMAPPER_LIBS@
 DLLTOOL = @DLLTOOL@
 DLOPEN_LIBS = @DLOPEN_LIBS@
+DMSETUP = @DMSETUP@
 DNSMASQ = @DNSMASQ@
 DRIVER_MODULE_CFLAGS = @DRIVER_MODULE_CFLAGS@
 DRIVER_MODULE_LIBS = @DRIVER_MODULE_LIBS@
@@ -449,6 +448,7 @@ GNULIB_MBSSEP = @GNULIB_MBSSEP@
 GNULIB_MBSSPN = @GNULIB_MBSSPN@
 GNULIB_MBSSTR = @GNULIB_MBSSTR@
 GNULIB_MBSTOK_R = @GNULIB_MBSTOK_R@
+GNULIB_MBTOWC = @GNULIB_MBTOWC@
 GNULIB_MEMCHR = @GNULIB_MEMCHR@
 GNULIB_MEMMEM = @GNULIB_MEMMEM@
 GNULIB_MEMPCPY = @GNULIB_MEMPCPY@
@@ -584,6 +584,7 @@ GNULIB_WCSTOK = @GNULIB_WCSTOK@
 GNULIB_WCSWIDTH = @GNULIB_WCSWIDTH@
 GNULIB_WCSXFRM = @GNULIB_WCSXFRM@
 GNULIB_WCTOB = @GNULIB_WCTOB@
+GNULIB_WCTOMB = @GNULIB_WCTOMB@
 GNULIB_WCWIDTH = @GNULIB_WCWIDTH@
 GNULIB_WMEMCHR = @GNULIB_WMEMCHR@
 GNULIB_WMEMCMP = @GNULIB_WMEMCMP@
@@ -854,6 +855,8 @@ LIBVIRT_VERSION_INFO = @LIBVIRT_VERSION_INFO@
 LIBVIRT_VERSION_NUMBER = @LIBVIRT_VERSION_NUMBER@
 LIBXENSERVER_CFLAGS = @LIBXENSERVER_CFLAGS@
 LIBXENSERVER_LIBS = @LIBXENSERVER_LIBS@
+LIBXL_CFLAGS = @LIBXL_CFLAGS@
+LIBXL_LIBS = @LIBXL_LIBS@
 LIBXML_CFLAGS = @LIBXML_CFLAGS@
 LIBXML_LIBS = @LIBXML_LIBS@
 LIB_PTHREAD = @LIB_PTHREAD@
@@ -1030,6 +1033,7 @@ REPLACE_MBSINIT = @REPLACE_MBSINIT@
 REPLACE_MBSNRTOWCS = @REPLACE_MBSNRTOWCS@
 REPLACE_MBSRTOWCS = @REPLACE_MBSRTOWCS@
 REPLACE_MBSTATE_T = @REPLACE_MBSTATE_T@
+REPLACE_MBTOWC = @REPLACE_MBTOWC@
 REPLACE_MEMCHR = @REPLACE_MEMCHR@
 REPLACE_MEMMEM = @REPLACE_MEMMEM@
 REPLACE_MKDIR = @REPLACE_MKDIR@
@@ -1095,6 +1099,7 @@ REPLACE_WCSNRTOMBS = @REPLACE_WCSNRTOMBS@
 REPLACE_WCSRTOMBS = @REPLACE_WCSRTOMBS@
 REPLACE_WCSWIDTH = @REPLACE_WCSWIDTH@
 REPLACE_WCTOB = @REPLACE_WCTOB@
+REPLACE_WCTOMB = @REPLACE_WCTOMB@
 REPLACE_WCWIDTH = @REPLACE_WCWIDTH@
 REPLACE_WRITE = @REPLACE_WRITE@
 RPCGEN = @RPCGEN@
@@ -1229,10 +1234,10 @@ EXTRA_DIST = alignof.h alloca.c alloca.in.h areadlink.h \
 	$(top_srcdir)/build-aux/c++defs.h canonicalize-lgpl.c chown.c \
 	fchown-stub.c close.c close-hook.h connect.c w32sock.h \
 	count-one-bits.h md5.c md5.h basename-lgpl.c dirname-lgpl.c \
-	dirname.h stripslash.c errno.in.h fclose.c fcntl.in.h \
-	float.in.h fseeko.c stdio-impl.h gai_strerror.c getaddrinfo.c \
-	getdelim.c gethostname.c w32sock.h getline.c getpass.c \
-	getpass.h gettimeofday.c \
+	dirname.h stripslash.c dosname.h errno.in.h fclose.c \
+	fcntl.in.h float.in.h fseeko.c stdio-impl.h gai_strerror.c \
+	getaddrinfo.c getdelim.c gethostname.c w32sock.h getline.c \
+	getpass.c getpass.h gettimeofday.c \
 	$(top_srcdir)/build-aux/gitlog-to-changelog \
 	$(top_srcdir)/GNUmakefile $(top_srcdir)/build-aux/config.rpath \
 	inet_ntop.c inet_pton.c intprops.h ioctl.c w32sock.h lseek.c \
@@ -1243,9 +1248,9 @@ EXTRA_DIST = alignof.h alloca.c alloca.in.h areadlink.h \
 	physmem.h pipe.c poll.c poll.in.h pthread.in.h random_r.c \
 	rawmemchr.c rawmemchr.valgrind readlink.c realloc.c recv.c \
 	w32sock.h sched.in.h select.c send.c w32sock.h setsockopt.c \
-	w32sock.h sig-handler.h sigaction.c signal.in.h sigprocmask.c \
-	sleep.c snprintf.c socket.c w32sock.h w32sock.h stat.c \
-	stdbool.in.h stddef.in.h stdint.in.h stdio-write.c stdio.in.h \
+	w32sock.h sig-handler.h sigaction.c signal.in.h stdio-write.c \
+	sigprocmask.c sleep.c snprintf.c socket.c w32sock.h w32sock.h \
+	stat.c stdbool.in.h stddef.in.h stdint.in.h stdio.in.h \
 	stdlib.in.h stpcpy.c strcasecmp.c strncasecmp.c strchrnul.c \
 	strchrnul.valgrind strdup.c strerror.c strerror_r.c \
 	string.in.h strings.in.h strndup.c strnlen.c strptime.c \
@@ -1320,12 +1325,12 @@ EXTRA_libgnu_la_SOURCES = alloca.c canonicalize-lgpl.c chown.c \
 	malloc.c memchr.c mkstemp.c mkstemps.c mktime.c open.c \
 	perror.c physmem.c pipe.c poll.c random_r.c rawmemchr.c \
 	readlink.c realloc.c recv.c select.c send.c setsockopt.c \
-	sigaction.c sigprocmask.c sleep.c snprintf.c socket.c stat.c \
-	stdio-write.c stpcpy.c strcasecmp.c strncasecmp.c strchrnul.c \
-	strdup.c strerror.c strerror_r.c strndup.c strnlen.c \
-	strptime.c strsep.c strtok_r.c tempname.c time_r.c timegm.c \
-	uname.c usleep.c asnprintf.c printf-args.c printf-parse.c \
-	vasnprintf.c asprintf.c vasprintf.c waitpid.c
+	sigaction.c stdio-write.c sigprocmask.c sleep.c snprintf.c \
+	socket.c stat.c stpcpy.c strcasecmp.c strncasecmp.c \
+	strchrnul.c strdup.c strerror.c strerror_r.c strndup.c \
+	strnlen.c strptime.c strsep.c strtok_r.c tempname.c time_r.c \
+	timegm.c uname.c usleep.c asnprintf.c printf-args.c \
+	printf-parse.c vasnprintf.c asprintf.c vasprintf.c waitpid.c
 libgnu_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(GETADDRINFO_LIB) \
 	$(GETHOSTNAME_LIB) $(HOSTENT_LIB) $(INET_NTOP_LIB) \
 	$(INET_PTON_LIB) $(LIBSOCKET) $(LIB_PTHREAD) $(LTLIBINTL) \
@@ -2143,6 +2148,7 @@ stdint.h: stdint.in.h
 	      -e 's/@''HAVE_INTTYPES_H''@/$(HAVE_INTTYPES_H)/g' \
 	      -e 's/@''HAVE_SYS_INTTYPES_H''@/$(HAVE_SYS_INTTYPES_H)/g' \
 	      -e 's/@''HAVE_SYS_BITYPES_H''@/$(HAVE_SYS_BITYPES_H)/g' \
+	      -e 's/@''HAVE_WCHAR_H''@/$(HAVE_WCHAR_H)/g' \
 	      -e 's/@''HAVE_LONG_LONG_INT''@/$(HAVE_LONG_LONG_INT)/g' \
 	      -e 's/@''HAVE_UNSIGNED_LONG_LONG_INT''@/$(HAVE_UNSIGNED_LONG_LONG_INT)/g' \
 	      -e 's/@''APPLE_UNIVERSAL_BUILD''@/$(APPLE_UNIVERSAL_BUILD)/g' \
@@ -2282,6 +2288,7 @@ stdlib.h: stdlib.in.h $(CXXDEFS_H) $(ARG_NONNULL_H) $(WARN_ON_USE_H)
 	      -e 's|@''GNULIB_GETSUBOPT''@|$(GNULIB_GETSUBOPT)|g' \
 	      -e 's|@''GNULIB_GRANTPT''@|$(GNULIB_GRANTPT)|g' \
 	      -e 's|@''GNULIB_MALLOC_POSIX''@|$(GNULIB_MALLOC_POSIX)|g' \
+	      -e 's|@''GNULIB_MBTOWC''@|$(GNULIB_MBTOWC)|g' \
 	      -e 's|@''GNULIB_MKDTEMP''@|$(GNULIB_MKDTEMP)|g' \
 	      -e 's|@''GNULIB_MKOSTEMP''@|$(GNULIB_MKOSTEMP)|g' \
 	      -e 's|@''GNULIB_MKOSTEMPS''@|$(GNULIB_MKOSTEMPS)|g' \
@@ -2300,6 +2307,7 @@ stdlib.h: stdlib.in.h $(CXXDEFS_H) $(ARG_NONNULL_H) $(WARN_ON_USE_H)
 	      -e 's|@''GNULIB_SYSTEM_POSIX''@|$(GNULIB_SYSTEM_POSIX)|g' \
 	      -e 's|@''GNULIB_UNLOCKPT''@|$(GNULIB_UNLOCKPT)|g' \
 	      -e 's|@''GNULIB_UNSETENV''@|$(GNULIB_UNSETENV)|g' \
+	      -e 's|@''GNULIB_WCTOMB''@|$(GNULIB_WCTOMB)|g' \
 	      < $(srcdir)/stdlib.in.h | \
 	  sed -e 's|@''HAVE__EXIT''@|$(HAVE__EXIT)|g' \
 	      -e 's|@''HAVE_ATOLL''@|$(HAVE_ATOLL)|g' \
@@ -2328,6 +2336,7 @@ stdlib.h: stdlib.in.h $(CXXDEFS_H) $(ARG_NONNULL_H) $(WARN_ON_USE_H)
 	      -e 's|@''REPLACE_CALLOC''@|$(REPLACE_CALLOC)|g' \
 	      -e 's|@''REPLACE_CANONICALIZE_FILE_NAME''@|$(REPLACE_CANONICALIZE_FILE_NAME)|g' \
 	      -e 's|@''REPLACE_MALLOC''@|$(REPLACE_MALLOC)|g' \
+	      -e 's|@''REPLACE_MBTOWC''@|$(REPLACE_MBTOWC)|g' \
 	      -e 's|@''REPLACE_MKSTEMP''@|$(REPLACE_MKSTEMP)|g' \
 	      -e 's|@''REPLACE_PUTENV''@|$(REPLACE_PUTENV)|g' \
 	      -e 's|@''REPLACE_REALLOC''@|$(REPLACE_REALLOC)|g' \
@@ -2335,6 +2344,7 @@ stdlib.h: stdlib.in.h $(CXXDEFS_H) $(ARG_NONNULL_H) $(WARN_ON_USE_H)
 	      -e 's|@''REPLACE_SETENV''@|$(REPLACE_SETENV)|g' \
 	      -e 's|@''REPLACE_STRTOD''@|$(REPLACE_STRTOD)|g' \
 	      -e 's|@''REPLACE_UNSETENV''@|$(REPLACE_UNSETENV)|g' \
+	      -e 's|@''REPLACE_WCTOMB''@|$(REPLACE_WCTOMB)|g' \
 	      -e '/definitions of _GL_FUNCDECL_RPL/r $(CXXDEFS_H)' \
 	      -e '/definition of _GL_ARG_NONNULL/r $(ARG_NONNULL_H)' \
 	      -e '/definition of _GL_WARN_ON_USE/r $(WARN_ON_USE_H)'; \

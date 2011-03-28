@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([libvirt], [0.8.8], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [0.9.0], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -8,6 +8,11 @@ AC_CONFIG_MACRO_DIR([m4])
 dnl Make automake keep quiet about wildcards & other GNUmake-isms
 AM_INIT_AUTOMAKE([-Wno-portability])
 AM_MAINTAINER_MODE([enable])
+
+# Maintainer note - comment this line out if you plan to rerun
+# GNULIB_POSIXCHECK testing to see if libvirt should be using more modules.
+# Leave it uncommented for normal releases, for faster ./configure.
+gl_ASSERT_NO_GNULIB_POSIXCHECK
 
 # Use the silent-rules feature when possible.
 m4_ifndef([AM_SILENT_RULES], [m4_define([AM_SILENT_RULES],[])])
@@ -115,7 +120,7 @@ AC_MSG_RESULT([$have_cpuid])
 dnl Availability of various common functions (non-fatal if missing),
 dnl and various less common threadsafe functions
 AC_CHECK_FUNCS_ONCE([cfmakeraw regexec sched_getaffinity getuid getgid \
- initgroups posix_fallocate mmap \
+ geteuid initgroups posix_fallocate mmap kill \
  getmntent_r getgrnam_r getpwuid_r])
 
 dnl Availability of pthread functions (if missing, win32 threading is
@@ -258,6 +263,8 @@ AC_ARG_WITH([phyp],
   AC_HELP_STRING([--with-phyp], [add PHYP support @<:@default=check@:>@]),[],[with_phyp=check])
 AC_ARG_WITH([xenapi],
   AC_HELP_STRING([--with-xenapi], [add XenAPI support @<:@default=check@:>@]),[],[with_xenapi=check])
+AC_ARG_WITH([libxl],
+  AC_HELP_STRING([--with-libxl], [add libxenlight support @<:@default=check@:>@]),[],[with_libxl=check])
 AC_ARG_WITH([vbox],
   AC_HELP_STRING([--with-vbox=@<:@PFX@:>@],
                  [VirtualBox XPCOMC location @<:@default=yes@:>@]),[],
@@ -492,6 +499,46 @@ fi
 AC_SUBST([LIBXENSERVER_CFLAGS])
 AC_SUBST([LIBXENSERVER_LIBS])
 
+old_LIBS="$LIBS"
+old_CFLAGS="$CFLAGS"
+LIBXL_LIBS=""
+LIBXL_CFLAGS=""
+dnl search for libxl, aka libxenlight
+fail=0
+if test "$with_libxl" != "no" ; then
+    if test "$with_libxl" != "yes" && test "$with_libxl" != "check" ; then
+        LIBXL_CFLAGS="-I$with_libxl/include"
+        LIBXL_LIBS="-L$with_libxl"
+    fi
+    CFLAGS="$CFLAGS $LIBXL_CFLAGS"
+    LIBS="$LIBS $LIBXL_LIBS"
+    AC_CHECK_LIB([xenlight], [libxl_domain_create_new], [
+        with_libxl=yes
+        LIBXL_LIBS="$LIBXL_LIBS -lxenlight -lxenstore -lxenctrl -lxenguest -luuid -lutil -lblktapctl"
+    ],[
+        if test "$with_libxl" = "yes"; then
+            fail=1
+        fi
+        with_libxl=no
+    ],[
+        -lxenstore -lxenctrl -lxenguest -luuid -lutil -lblktapctl
+    ])
+fi
+
+LIBS="$old_LIBS"
+CFLAGS="$old_CFLAGS"
+
+if test $fail = 1; then
+    AC_MSG_ERROR([You must install the libxl Library to compile libxenlight driver with -lxl])
+fi
+
+if test "$with_libxl" = "yes"; then
+    AC_DEFINE_UNQUOTED([WITH_LIBXL], 1, [whether libxenlight driver is enabled])
+fi
+AM_CONDITIONAL([WITH_LIBXL], [test "$with_libxl" = "yes"])
+
+AC_SUBST([LIBXL_CFLAGS])
+AC_SUBST([LIBXL_LIBS])
 
 old_LIBS="$LIBS"
 old_CFLAGS="$CFLAGS"
@@ -1697,38 +1744,22 @@ if test "$with_storage_mpath" = "check" && test "$with_linux" = "yes"; then
 fi
 AM_CONDITIONAL([WITH_STORAGE_MPATH], [test "$with_storage_mpath" = "yes"])
 
-if test "$with_storage_mpath" = "yes"; then
-   DEVMAPPER_CFLAGS=
-   DEVMAPPER_LIBS=
-   PKG_CHECK_MODULES([DEVMAPPER], [devmapper >= $DEVMAPPER_REQUIRED], [], [DEVMAPPER_FOUND=no])
-   if test "$DEVMAPPER_FOUND" = "no"; then
-     # devmapper is missing pkg-config files in ubuntu, suse, etc
-     save_LIBS="$LIBS"
-     save_CFLAGS="$CFLAGS"
-     DEVMAPPER_FOUND=yes
-     AC_CHECK_HEADER([libdevmapper.h],,[DEVMAPPER_FOUND=no])
-     AC_CHECK_LIB([devmapper], [dm_task_run],,[DEVMAPPER_FOUND=no])
-     DEVMAPPER_LIBS="-ldevmapper"
-     LIBS="$save_LIBS"
-     CFLAGS="$save_CFLAGS"
-   fi
-   if test "$DEVMAPPER_FOUND" = "no" ; then
-     AC_MSG_ERROR([You must install device-mapper-devel/libdevmapper >= $DEVMAPPER_REQUIRED to compile libvirt])
-   fi
-
-fi
-AC_SUBST([DEVMAPPER_CFLAGS])
-AC_SUBST([DEVMAPPER_LIBS])
-
 LIBPARTED_CFLAGS=
 LIBPARTED_LIBS=
 if test "$with_storage_disk" = "yes" ||
    test "$with_storage_disk" = "check"; then
   AC_PATH_PROG([PARTED], [parted], [], [$PATH:/sbin:/usr/sbin])
+  AC_PATH_PROG([DMSETUP], [dmsetup], [], [$PATH:/sbin:/usr/sbin])
   if test -z "$PARTED" ; then
     PARTED_FOUND=no
   else
     PARTED_FOUND=yes
+  fi
+
+  if test -z "$DMSETUP" ; then
+    DMSETUP_FOUND=no
+  else
+    DMSETUP_FOUND=yes
   fi
 
   if test "$PARTED_FOUND" = "yes" && test "x$PKG_CONFIG" != "x" ; then
@@ -1748,14 +1779,17 @@ if test "$with_storage_disk" = "yes" ||
     CFLAGS="$save_CFLAGS"
   fi
 
-  if test "$PARTED_FOUND" = "no" ; then
-    if test "$with_storage_disk" = "yes" ; then
-      AC_MSG_ERROR([We need parted for disk storage driver])
-    else
+  if test "$with_storage_disk" = "yes" &&
+     test "$PARTED_FOUND:$DMSETUP_FOUND" != "yes:yes"; then
+    AC_MSG_ERROR([Need both parted and dmsetup for disk storage driver])
+  fi
+
+  if test "$with_storage_disk" = "check"; then
+    if test "$PARTED_FOUND:$DMSETUP_FOUND" != "yes:yes"; then
       with_storage_disk=no
+    else
+      with_storage_disk=yes
     fi
-  else
-    with_storage_disk=yes
   fi
 
   if test "$with_storage_disk" = "yes"; then
@@ -1763,11 +1797,37 @@ if test "$with_storage_disk" = "yes" ||
       [whether Disk backend for storage driver is enabled])
     AC_DEFINE_UNQUOTED([PARTED],["$PARTED"],
       [Location or name of the parted program])
+    AC_DEFINE_UNQUOTED([DMSETUP],["$DMSETUP"],
+      [Location or name of the dmsetup program])
   fi
 fi
 AM_CONDITIONAL([WITH_STORAGE_DISK], [test "$with_storage_disk" = "yes"])
 AC_SUBST([LIBPARTED_CFLAGS])
 AC_SUBST([LIBPARTED_LIBS])
+
+if test "$with_storage_mpath" = "yes" ||
+   test "$with_storage_disk" = "yes"; then
+   DEVMAPPER_CFLAGS=
+   DEVMAPPER_LIBS=
+   PKG_CHECK_MODULES([DEVMAPPER], [devmapper >= $DEVMAPPER_REQUIRED], [], [DEVMAPPER_FOUND=no])
+   if test "$DEVMAPPER_FOUND" = "no"; then
+     # devmapper is missing pkg-config files in ubuntu, suse, etc
+     save_LIBS="$LIBS"
+     save_CFLAGS="$CFLAGS"
+     DEVMAPPER_FOUND=yes
+     AC_CHECK_LIB([devmapper], [dm_task_run],,[DEVMAPPER_FOUND=no])
+     DEVMAPPER_LIBS="-ldevmapper"
+     LIBS="$save_LIBS"
+     CFLAGS="$save_CFLAGS"
+   fi
+   AC_CHECK_HEADERS([libdevmapper.h],,[DEVMAPPER_FOUND=no])
+   if test "$DEVMAPPER_FOUND" = "no" ; then
+     AC_MSG_ERROR([You must install device-mapper-devel/libdevmapper >= $DEVMAPPER_REQUIRED to compile libvirt])
+   fi
+
+fi
+AC_SUBST([DEVMAPPER_CFLAGS])
+AC_SUBST([DEVMAPPER_LIBS])
 
 dnl
 dnl check for libcurl (ESX/XenAPI)
@@ -2352,6 +2412,7 @@ AC_MSG_NOTICE([  OpenVZ: $with_openvz])
 AC_MSG_NOTICE([  VMware: $with_vmware])
 AC_MSG_NOTICE([    VBox: $with_vbox])
 AC_MSG_NOTICE([  XenAPI: $with_xenapi])
+AC_MSG_NOTICE([xenlight: $with_libxl])
 AC_MSG_NOTICE([     LXC: $with_lxc])
 AC_MSG_NOTICE([    PHYP: $with_phyp])
 AC_MSG_NOTICE([     ONE: $with_one])
@@ -2460,6 +2521,11 @@ if test "$with_xenapi" = "yes" ; then
 AC_MSG_NOTICE([  xenapi: $LIBXENSERVER_CFLAGS $LIBXENSERVER_LIBS])
 else
 AC_MSG_NOTICE([  xenapi: no])
+fi
+if test "$with_libxl" = "yes" ; then
+AC_MSG_NOTICE([xenlight: $LIBXL_CFLAGS $LIBXL_LIBS])
+else
+AC_MSG_NOTICE([xenlight: no])
 fi
 if test "$with_hal" = "yes" ; then
 AC_MSG_NOTICE([     hal: $HAL_CFLAGS $HAL_LIBS])

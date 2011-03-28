@@ -1,7 +1,7 @@
 /*
  * qemu_audit.h: QEMU audit management
  *
- * Copyright (C) 2006-2007, 2009-2010 Red Hat, Inc.
+ * Copyright (C) 2006-2011 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -25,19 +25,75 @@
 # define __QEMU_AUDIT_H__
 
 # include "domain_conf.h"
+# include "cgroup.h"
 
-void qemuDomainStartAudit(virDomainObjPtr vm, const char *reason, bool success);
-void qemuDomainStopAudit(virDomainObjPtr vm, const char *reason);
-void qemuDomainDiskAudit(virDomainObjPtr vm,
-                         virDomainDiskDefPtr oldDef,
-                         virDomainDiskDefPtr newDef,
+void qemuAuditDomainStart(virDomainObjPtr vm,
+                          const char *reason,
+                          bool success)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+void qemuAuditDomainStop(virDomainObjPtr vm,
+                         const char *reason)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+void qemuAuditDisk(virDomainObjPtr vm,
+                   virDomainDiskDefPtr oldDef,
+                   virDomainDiskDefPtr newDef,
+                   const char *reason,
+                   bool success)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(4);
+void qemuAuditNet(virDomainObjPtr vm,
+                  virDomainNetDefPtr oldDef,
+                  virDomainNetDefPtr newDef,
+                  const char *reason,
+                  bool success)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(4);
+void qemuAuditNetDevice(virDomainDefPtr vmDef,
+                        virDomainNetDefPtr netDef,
+                        const char *device,
+                        bool success)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+void qemuAuditHostdev(virDomainObjPtr vm,
+                      virDomainHostdevDefPtr def,
+                      const char *reason,
+                      bool success)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+void qemuAuditCgroup(virDomainObjPtr vm,
+                     virCgroupPtr group,
+                     const char *reason,
+                     const char *extra,
+                     bool success)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
+    ATTRIBUTE_NONNULL(4);
+void qemuAuditCgroupMajor(virDomainObjPtr vm,
+                          virCgroupPtr group,
+                          const char *reason,
+                          int maj,
+                          const char *name,
+                          const char *perms,
+                          bool success)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
+    ATTRIBUTE_NONNULL(5) ATTRIBUTE_NONNULL(6);
+void qemuAuditCgroupPath(virDomainObjPtr vm,
+                         virCgroupPtr group,
                          const char *reason,
-                         bool success);
-void qemuDomainNetAudit(virDomainObjPtr vm,
-                        virDomainNetDefPtr oldDef,
-                        virDomainNetDefPtr newDef,
-                        const char *reason,
-                        bool success);
-void qemuDomainSecurityLabelAudit(virDomainObjPtr vm, bool success);
+                         const char *path,
+                         const char *perms,
+                         int rc)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
+    ATTRIBUTE_NONNULL(4) ATTRIBUTE_NONNULL(5);
+void qemuAuditMemory(virDomainObjPtr vm,
+                     unsigned long long oldmem,
+                     unsigned long long newmem,
+                     const char *reason,
+                     bool success)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(4);
+void qemuAuditVcpu(virDomainObjPtr vm,
+                   unsigned int oldvcpu,
+                   unsigned int newvcpu,
+                   const char *reason,
+                   bool success)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(4);
+void qemuAuditSecurityLabel(virDomainObjPtr vm,
+                            bool success)
+    ATTRIBUTE_NONNULL(1);
 
 #endif /* __QEMU_AUDIT_H__ */

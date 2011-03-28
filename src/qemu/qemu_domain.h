@@ -45,10 +45,12 @@ enum qemuDomainJobSignals {
     QEMU_JOB_SIGNAL_CANCEL  = 1 << 0, /* Request job cancellation */
     QEMU_JOB_SIGNAL_SUSPEND = 1 << 1, /* Request VM suspend to finish live migration offline */
     QEMU_JOB_SIGNAL_MIGRATE_DOWNTIME = 1 << 2, /* Request migration downtime change */
+    QEMU_JOB_SIGNAL_MIGRATE_SPEED = 1 << 3, /* Request migration speed change */
 };
 
 struct qemuDomainJobSignalsData {
     unsigned long long migrateDowntime; /* Data for QEMU_JOB_SIGNAL_MIGRATE_DOWNTIME */
+    unsigned long migrateBandwidth; /* Data for QEMU_JOB_SIGNAL_MIGRATE_SPEED */
 };
 
 typedef struct _qemuDomainPCIAddressSet qemuDomainPCIAddressSet;
@@ -77,6 +79,17 @@ struct _qemuDomainObjPrivate {
     int persistentAddrs;
 };
 
+struct qemuDomainWatchdogEvent
+{
+    virDomainObjPtr vm;
+    int action;
+};
+
+void qemuDomainEventFlush(int timer ATTRIBUTE_UNUSED, void *opaque);
+
+/* driver must be locked before calling */
+void qemuDomainEventQueue(struct qemud_driver *driver,
+                          virDomainEventPtr event);
 
 void qemuDomainSetPrivateDataHooks(virCapsPtr caps);
 void qemuDomainSetNamespaceHooks(virCapsPtr caps);
@@ -95,5 +108,9 @@ void qemuDomainObjEnterRemoteWithDriver(struct qemud_driver *driver,
                                         virDomainObjPtr obj);
 void qemuDomainObjExitRemoteWithDriver(struct qemud_driver *driver,
                                        virDomainObjPtr obj);
+
+char *qemuDomainFormatXML(struct qemud_driver *driver,
+                          virDomainObjPtr vm,
+                          int flags);
 
 #endif /* __QEMU_DOMAIN_H__ */

@@ -29,6 +29,7 @@
 #include "memory.h"
 #include "virterror_internal.h"
 #include "util.h"
+#include "qemu_audit.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -36,7 +37,7 @@ static const char *const defaultDeviceACL[] = {
     "/dev/null", "/dev/full", "/dev/zero",
     "/dev/random", "/dev/urandom",
     "/dev/ptmx", "/dev/kvm", "/dev/kqemu",
-    "/dev/rtc", "/dev/hpet", "/dev/net/tun",
+    "/dev/rtc", "/dev/hpet",
     NULL,
 };
 #define DEVICE_PTY_MAJOR 136
@@ -54,23 +55,23 @@ int qemuCgroupControllerActive(struct qemud_driver *driver,
     return 0;
 }
 
-
-int qemuSetupDiskPathAllow(virDomainDiskDefPtr disk ATTRIBUTE_UNUSED,
-                           const char *path,
-                           size_t depth ATTRIBUTE_UNUSED,
-                           void *opaque)
+static int
+qemuSetupDiskPathAllow(virDomainDiskDefPtr disk,
+                       const char *path,
+                       size_t depth ATTRIBUTE_UNUSED,
+                       void *opaque)
 {
-    virCgroupPtr cgroup = opaque;
+    qemuCgroupData *data = opaque;
     int rc;
 
     VIR_DEBUG("Process path %s for disk", path);
-    /* XXX RO vs RW */
-    rc = virCgroupAllowDevicePath(cgroup, path);
-    if (rc != 0) {
-        /* Get this for non-block devices */
-        if (rc == -EINVAL) {
-            VIR_DEBUG("Ignoring EINVAL for %s", path);
-        } else if (rc == -EACCES) { /* Get this for root squash NFS */
+    rc = virCgroupAllowDevicePath(data->cgroup, path,
+                                  (disk->readonly ? VIR_CGROUP_DEVICE_READ
+                                   : VIR_CGROUP_DEVICE_RW));
+    qemuAuditCgroupPath(data->vm, data->cgroup, "allow", path,
+                        disk->readonly ? "r" : "rw", rc);
+    if (rc < 0) {
+        if (rc == -EACCES) { /* Get this for root squash NFS */
             VIR_DEBUG("Ignoring EACCES for %s", path);
         } else {
             virReportSystemError(-rc,
@@ -84,33 +85,34 @@ int qemuSetupDiskPathAllow(virDomainDiskDefPtr disk ATTRIBUTE_UNUSED,
 
 
 int qemuSetupDiskCgroup(struct qemud_driver *driver,
+                        virDomainObjPtr vm,
                         virCgroupPtr cgroup,
                         virDomainDiskDefPtr disk)
 {
+    qemuCgroupData data = { vm, cgroup };
     return virDomainDiskDefForeachPath(disk,
                                        driver->allowDiskFormatProbing,
                                        true,
                                        qemuSetupDiskPathAllow,
-                                       cgroup);
+                                       &data);
 }
 
 
-int qemuTeardownDiskPathDeny(virDomainDiskDefPtr disk ATTRIBUTE_UNUSED,
-                             const char *path,
-                             size_t depth ATTRIBUTE_UNUSED,
-                             void *opaque)
+static int
+qemuTeardownDiskPathDeny(virDomainDiskDefPtr disk ATTRIBUTE_UNUSED,
+                         const char *path,
+                         size_t depth ATTRIBUTE_UNUSED,
+                         void *opaque)
 {
-    virCgroupPtr cgroup = opaque;
+    qemuCgroupData *data = opaque;
     int rc;
 
     VIR_DEBUG("Process path %s for disk", path);
-    /* XXX RO vs RW */
-    rc = virCgroupDenyDevicePath(cgroup, path);
-    if (rc != 0) {
-        /* Get this for non-block devices */
-        if (rc == -EINVAL) {
-            VIR_DEBUG("Ignoring EINVAL for %s", path);
-        } else if (rc == -EACCES) { /* Get this for root squash NFS */
+    rc = virCgroupDenyDevicePath(data->cgroup, path,
+                                 VIR_CGROUP_DEVICE_RWM);
+    qemuAuditCgroupPath(data->vm, data->cgroup, "deny", path, "rwm", rc);
+    if (rc < 0) {
+        if (rc == -EACCES) { /* Get this for root squash NFS */
             VIR_DEBUG("Ignoring EACCES for %s", path);
         } else {
             virReportSystemError(-rc,
@@ -124,22 +126,25 @@ int qemuTeardownDiskPathDeny(virDomainDiskDefPtr disk ATTRIBUTE_UNUSED,
 
 
 int qemuTeardownDiskCgroup(struct qemud_driver *driver,
+                           virDomainObjPtr vm,
                            virCgroupPtr cgroup,
                            virDomainDiskDefPtr disk)
 {
+    qemuCgroupData data = { vm, cgroup };
     return virDomainDiskDefForeachPath(disk,
                                        driver->allowDiskFormatProbing,
                                        true,
                                        qemuTeardownDiskPathDeny,
-                                       cgroup);
+                                       &data);
 }
 
 
-int qemuSetupChardevCgroup(virDomainDefPtr def,
-                           virDomainChrDefPtr dev,
-                           void *opaque)
+static int
+qemuSetupChardevCgroup(virDomainDefPtr def,
+                       virDomainChrDefPtr dev,
+                       void *opaque)
 {
-    virCgroupPtr cgroup = opaque;
+    qemuCgroupData *data = opaque;
     int rc;
 
     if (dev->source.type != VIR_DOMAIN_CHR_TYPE_DEV)
@@ -147,8 +152,11 @@ int qemuSetupChardevCgroup(virDomainDefPtr def,
 
 
     VIR_DEBUG("Process path '%s' for disk", dev->source.data.file.path);
-    rc = virCgroupAllowDevicePath(cgroup, dev->source.data.file.path);
-    if (rc != 0) {
+    rc = virCgroupAllowDevicePath(data->cgroup, dev->source.data.file.path,
+                                  VIR_CGROUP_DEVICE_RW);
+    qemuAuditCgroupPath(data->vm, data->cgroup, "allow",
+                        dev->source.data.file.path, "rw", rc);
+    if (rc < 0) {
         virReportSystemError(-rc,
                              _("Unable to allow device %s for %s"),
                              dev->source.data.file.path, def->name);
@@ -163,12 +171,14 @@ int qemuSetupHostUsbDeviceCgroup(usbDevice *dev ATTRIBUTE_UNUSED,
                                  const char *path,
                                  void *opaque)
 {
-    virCgroupPtr cgroup = opaque;
+    qemuCgroupData *data = opaque;
     int rc;
 
     VIR_DEBUG("Process path '%s' for USB device", path);
-    rc = virCgroupAllowDevicePath(cgroup, path);
-    if (rc != 0) {
+    rc = virCgroupAllowDevicePath(data->cgroup, path,
+                                  VIR_CGROUP_DEVICE_RW);
+    qemuAuditCgroupPath(data->vm, data->cgroup, "allow", path, "rw", rc);
+    if (rc < 0) {
         virReportSystemError(-rc,
                              _("Unable to allow device %s"),
                              path);
@@ -201,7 +211,9 @@ int qemuSetupCgroup(struct qemud_driver *driver,
     }
 
     if (qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_DEVICES)) {
+        qemuCgroupData data = { vm, cgroup };
         rc = virCgroupDenyAllDevices(cgroup);
+        qemuAuditCgroup(vm, cgroup, "deny", "all", rc == 0);
         if (rc != 0) {
             if (rc == -EPERM) {
                 VIR_WARN0("Group devices ACL is not accessible, disabling whitelisting");
@@ -214,19 +226,29 @@ int qemuSetupCgroup(struct qemud_driver *driver,
         }
 
         for (i = 0; i < vm->def->ndisks ; i++) {
-            if (qemuSetupDiskCgroup(driver, cgroup, vm->def->disks[i]) < 0)
+            if (qemuSetupDiskCgroup(driver, vm, cgroup, vm->def->disks[i]) < 0)
                 goto cleanup;
         }
 
-        rc = virCgroupAllowDeviceMajor(cgroup, 'c', DEVICE_PTY_MAJOR);
+        rc = virCgroupAllowDeviceMajor(cgroup, 'c', DEVICE_PTY_MAJOR,
+                                       VIR_CGROUP_DEVICE_RW);
+        qemuAuditCgroupMajor(vm, cgroup, "allow", DEVICE_PTY_MAJOR,
+                             "pty", "rw", rc == 0);
         if (rc != 0) {
             virReportSystemError(-rc, "%s",
                                  _("unable to allow /dev/pts/ devices"));
             goto cleanup;
         }
 
-        if (vm->def->nsounds) {
-            rc = virCgroupAllowDeviceMajor(cgroup, 'c', DEVICE_SND_MAJOR);
+        if (vm->def->nsounds &&
+            (!vm->def->ngraphics ||
+             ((vm->def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC &&
+               driver->vncAllowHostAudio) ||
+              (vm->def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_SDL)))) {
+            rc = virCgroupAllowDeviceMajor(cgroup, 'c', DEVICE_SND_MAJOR,
+                                           VIR_CGROUP_DEVICE_RW);
+            qemuAuditCgroupMajor(vm, cgroup, "allow", DEVICE_SND_MAJOR,
+                                 "sound", "rw", rc == 0);
             if (rc != 0) {
                 virReportSystemError(-rc, "%s",
                                      _("unable to allow /dev/snd/ devices"));
@@ -235,8 +257,9 @@ int qemuSetupCgroup(struct qemud_driver *driver,
         }
 
         for (i = 0; deviceACL[i] != NULL ; i++) {
-            rc = virCgroupAllowDevicePath(cgroup,
-                                          deviceACL[i]);
+            rc = virCgroupAllowDevicePath(cgroup, deviceACL[i],
+                                          VIR_CGROUP_DEVICE_RW);
+            qemuAuditCgroupPath(vm, cgroup, "allow", deviceACL[i], "rw", rc);
             if (rc < 0 &&
                 rc != -ENOENT) {
                 virReportSystemError(-rc,
@@ -249,7 +272,7 @@ int qemuSetupCgroup(struct qemud_driver *driver,
         if (virDomainChrDefForeach(vm->def,
                                    true,
                                    qemuSetupChardevCgroup,
-                                   cgroup) < 0)
+                                   &data) < 0)
             goto cleanup;
 
         for (i = 0; i < vm->def->nhostdevs; i++) {
@@ -265,7 +288,8 @@ int qemuSetupCgroup(struct qemud_driver *driver,
                                     hostdev->source.subsys.u.usb.device)) == NULL)
                 goto cleanup;
 
-            if (usbDeviceFileIterate(usb, qemuSetupHostUsbDeviceCgroup, cgroup) < 0 )
+            if (usbDeviceFileIterate(usb, qemuSetupHostUsbDeviceCgroup,
+                                     &data) < 0)
                 goto cleanup;
         }
     }
@@ -306,7 +330,7 @@ int qemuSetupCgroup(struct qemud_driver *driver,
         }
 
         if (vm->def->mem.swap_hard_limit != 0) {
-            rc = virCgroupSetSwapHardLimit(cgroup, vm->def->mem.swap_hard_limit);
+            rc = virCgroupSetMemSwapHardLimit(cgroup, vm->def->mem.swap_hard_limit);
             if (rc != 0) {
                 virReportSystemError(-rc,
                                      _("Unable to set swap hard limit for domain %s"),

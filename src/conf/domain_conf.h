@@ -321,6 +321,15 @@ enum virDomainNetBackendType {
     VIR_DOMAIN_NET_BACKEND_TYPE_LAST,
 };
 
+/* the TX algorithm used for virtio interfaces */
+enum virDomainNetVirtioTxModeType {
+    VIR_DOMAIN_NET_VIRTIO_TX_MODE_DEFAULT, /* default for this version of qemu */
+    VIR_DOMAIN_NET_VIRTIO_TX_MODE_IOTHREAD,
+    VIR_DOMAIN_NET_VIRTIO_TX_MODE_TIMER,
+
+    VIR_DOMAIN_NET_VIRTIO_TX_MODE_LAST,
+};
+
 /* the mode type for macvtap devices */
 enum virDomainNetdevMacvtapType {
     VIR_DOMAIN_NETDEV_MACVTAP_MODE_VEPA,
@@ -338,7 +347,12 @@ struct _virDomainNetDef {
     enum virDomainNetType type;
     unsigned char mac[VIR_MAC_BUFLEN];
     char *model;
-    enum virDomainNetBackendType backend;
+    union {
+        struct {
+            enum virDomainNetBackendType name; /* which driver backend to use */
+            enum virDomainNetVirtioTxModeType txmode;
+        } virtio;
+    } driver;
     union {
         struct {
             char *dev;
@@ -984,8 +998,6 @@ struct _virDomainSnapshotDef {
 typedef struct _virDomainSnapshotObj virDomainSnapshotObj;
 typedef virDomainSnapshotObj *virDomainSnapshotObjPtr;
 struct _virDomainSnapshotObj {
-    int refs;
-
     virDomainSnapshotDefPtr def;
 };
 
@@ -1014,7 +1026,6 @@ virDomainSnapshotObjPtr virDomainSnapshotFindByName(const virDomainSnapshotObjLi
                                                     const char *name);
 void virDomainSnapshotObjListRemove(virDomainSnapshotObjListPtr snapshots,
                                     virDomainSnapshotObjPtr snapshot);
-int virDomainSnapshotObjUnref(virDomainSnapshotObjPtr snapshot);
 int virDomainSnapshotHasChildren(virDomainSnapshotObjPtr snap,
                                 virDomainSnapshotObjListPtr snapshots);
 
@@ -1195,7 +1206,7 @@ int virDomainDeviceInfoIterate(virDomainDefPtr def,
 void virDomainDefFree(virDomainDefPtr vm);
 void virDomainObjRef(virDomainObjPtr vm);
 /* Returns 1 if the object was freed, 0 if more refs exist */
-int virDomainObjUnref(virDomainObjPtr vm);
+int virDomainObjUnref(virDomainObjPtr vm) ATTRIBUTE_RETURN_CHECK;
 
 /* live == true means def describes an active domain (being migrated or
  * restored) as opposed to a new persistent configuration of the domain */
@@ -1232,9 +1243,6 @@ virDomainDefPtr virDomainDefParseNode(virCapsPtr caps,
 
 virDomainObjPtr virDomainObjParseFile(virCapsPtr caps,
                                       const char *filename);
-virDomainObjPtr virDomainObjParseNode(virCapsPtr caps,
-                                      xmlDocPtr xml,
-                                      xmlNodePtr root);
 
 int virDomainDefAddImplicitControllers(virDomainDefPtr def);
 
@@ -1367,6 +1375,7 @@ VIR_ENUM_DECL(virDomainFS)
 VIR_ENUM_DECL(virDomainFSAccessMode)
 VIR_ENUM_DECL(virDomainNet)
 VIR_ENUM_DECL(virDomainNetBackend)
+VIR_ENUM_DECL(virDomainNetVirtioTxMode)
 VIR_ENUM_DECL(virDomainChrDevice)
 VIR_ENUM_DECL(virDomainChrChannelTarget)
 VIR_ENUM_DECL(virDomainChrConsoleTarget)

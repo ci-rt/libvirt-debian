@@ -61,6 +61,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module crypto/md5:
   # Code from module crypto/md5-tests:
   # Code from module dirname-lgpl:
+  # Code from module dosname:
   # Code from module double-slash-root:
   # Code from module environ:
   # Code from module environ-tests:
@@ -329,6 +330,7 @@ AC_SUBST([LTALLOCA])
   gl_MD5
   # Code from module dirname-lgpl:
   gl_DIRNAME_LGPL
+  # Code from module dosname:
   # Code from module double-slash-root:
   gl_DOUBLE_SLASH_ROOT
   # Code from module errno:
@@ -504,6 +506,7 @@ AC_SUBST([LTALLOCA])
   GNULIB_SIGNAL_H_SIGPIPE=1
   dnl Define the substituted variable GNULIB_STDIO_H_SIGPIPE to 1.
   AC_REQUIRE([gl_STDIO_H_DEFAULTS])
+  AC_REQUIRE([gl_ASM_SYMBOL_PREFIX])
   GNULIB_STDIO_H_SIGPIPE=1
   dnl Define the substituted variable GNULIB_UNISTD_H_SIGPIPE to 1.
   AC_REQUIRE([gl_UNISTD_H_DEFAULTS])
@@ -891,6 +894,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/count-one-bits.h
   lib/dirname-lgpl.c
   lib/dirname.h
+  lib/dosname.h
   lib/errno.in.h
   lib/fchown-stub.c
   lib/fclose.c
@@ -1023,7 +1027,6 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/configmake.m4
   m4/count-one-bits.m4
   m4/dirname.m4
-  m4/dos.m4
   m4/double-slash-root.m4
   m4/eealloc.m4
   m4/environ.m4

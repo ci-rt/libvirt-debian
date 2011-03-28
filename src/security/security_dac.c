@@ -509,7 +509,7 @@ virSecurityDACRestoreSecurityAllLabel(virSecurityManagerPtr mgr,
     if (virDomainChrDefForeach(vm->def,
                                false,
                                virSecurityDACRestoreChardevCallback,
-                               vm) < 0)
+                               mgr) < 0)
         rc = -1;
 
     if (vm->def->os.kernel &&
@@ -565,7 +565,7 @@ virSecurityDACSetSecurityAllLabel(virSecurityManagerPtr mgr,
     if (virDomainChrDefForeach(vm->def,
                                true,
                                virSecurityDACSetChardevCallback,
-                               vm) < 0)
+                               mgr) < 0)
         return -1;
 
     if (vm->def->os.kernel &&
@@ -615,7 +615,8 @@ virSecurityDACSetProcessLabel(virSecurityManagerPtr mgr,
 {
     virSecurityDACDataPtr priv = virSecurityManagerGetPrivateData(mgr);
 
-    DEBUG("Dropping privileges of VM to %d:%d", priv->user, priv->group);
+    VIR_DEBUG("Dropping privileges of VM to %u:%u",
+              (unsigned int) priv->user, (unsigned int) priv->group);
 
     if (virSetUIDGID(priv->user, priv->group) < 0)
         return -1;

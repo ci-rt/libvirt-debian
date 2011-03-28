@@ -58,17 +58,19 @@
    and eglibc 2.11.2.  */
 #include <sys/types.h>
 
-#ifndef __attribute__
 /* The __attribute__ feature is available in gcc versions 2.5 and later.
    The __-protected variants of the attributes 'format' and 'printf' are
    accepted by gcc versions 2.6.4 (effectively 2.7) and later.
-   We enable __attribute__ only if these are supported too, because
+   We enable _GL_ATTRIBUTE_FORMAT only if these are supported too, because
    gnulib and libintl do '#define printf __printf__' when they override
    the 'printf' function.  */
-# if __GNUC__ < 2 || (__GNUC__ == 2 && __GNUC_MINOR__ < 7)
-#  define __attribute__(Spec)   /* empty */
-# endif
+#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 7)
+# define _GL_ATTRIBUTE_FORMAT(spec) __attribute__ ((__format__ spec))
+#else
+# define _GL_ATTRIBUTE_FORMAT(spec) /* empty */
 #endif
+#define _GL_ATTRIBUTE_FORMAT_PRINTF(formatstring_parameter, first_argument) \
+  _GL_ATTRIBUTE_FORMAT ((__printf__, formatstring_parameter, first_argument))
 
 /* Solaris 10 declares renameat in <unistd.h>, not in <stdio.h>.  */
 /* But in any case avoid namespace pollution on glibc systems.  */
@@ -95,13 +97,13 @@
 #   define dprintf rpl_dprintf
 #  endif
 _GL_FUNCDECL_RPL (dprintf, int, (int fd, const char *format, ...)
-                                __attribute__ ((__format__ (__printf__, 2, 3)))
+                                _GL_ATTRIBUTE_FORMAT_PRINTF (2, 3)
                                 _GL_ARG_NONNULL ((2)));
 _GL_CXXALIAS_RPL (dprintf, int, (int fd, const char *format, ...));
 # else
 #  if !@HAVE_DPRINTF@
 _GL_FUNCDECL_SYS (dprintf, int, (int fd, const char *format, ...)
-                                __attribute__ ((__format__ (__printf__, 2, 3)))
+                                _GL_ATTRIBUTE_FORMAT_PRINTF (2, 3)
                                 _GL_ARG_NONNULL ((2)));
 #  endif
 _GL_CXXALIAS_SYS (dprintf, int, (int fd, const char *format, ...));
@@ -192,7 +194,7 @@ _GL_WARN_ON_USE (fopen, "fopen on Win32 platforms is not POSIX compatible - "
 #  endif
 #  define GNULIB_overrides_fprintf 1
 _GL_FUNCDECL_RPL (fprintf, int, (FILE *fp, const char *format, ...)
-                                __attribute__ ((__format__ (__printf__, 2, 3)))
+                                _GL_ATTRIBUTE_FORMAT_PRINTF (2, 3)
                                 _GL_ARG_NONNULL ((1, 2)));
 _GL_CXXALIAS_RPL (fprintf, int, (FILE *fp, const char *format, ...));
 # else
@@ -496,6 +498,23 @@ _GL_CXXALIAS_RPL (fwrite, size_t,
 # else
 _GL_CXXALIAS_SYS (fwrite, size_t,
                   (const void *ptr, size_t s, size_t n, FILE *stream));
+
+/* Work around glibc bug 11959
+   <http://sources.redhat.com/bugzilla/show_bug.cgi?id=11959>,
+   which sometimes causes an unwanted diagnostic for fwrite calls.
+   This affects only function declaration attributes, so it's not
+   needed for C++.  */
+#  if !defined __cplusplus && 0 < __USE_FORTIFY_LEVEL
+static inline size_t _GL_ARG_NONNULL ((1, 4))
+rpl_fwrite (const void *ptr, size_t s, size_t n, FILE *stream)
+{
+  size_t r = fwrite (ptr, s, n, stream);
+  (void) r;
+  return r;
+}
+#   undef fwrite
+#   define fwrite rpl_fwrite
+#  endif
 # endif
 _GL_CXXALIASWARN (fwrite);
 #endif
@@ -589,7 +608,7 @@ struct obstack;
 #  endif
 _GL_FUNCDECL_RPL (obstack_printf, int,
                   (struct obstack *obs, const char *format, ...)
-                  __attribute__ ((__format__ (__printf__, 2, 3)))
+                  _GL_ATTRIBUTE_FORMAT_PRINTF (2, 3)
                   _GL_ARG_NONNULL ((1, 2)));
 _GL_CXXALIAS_RPL (obstack_printf, int,
                   (struct obstack *obs, const char *format, ...));
@@ -597,7 +616,7 @@ _GL_CXXALIAS_RPL (obstack_printf, int,
 #  if !@HAVE_DECL_OBSTACK_PRINTF@
 _GL_FUNCDECL_SYS (obstack_printf, int,
                   (struct obstack *obs, const char *format, ...)
-                  __attribute__ ((__format__ (__printf__, 2, 3)))
+                  _GL_ATTRIBUTE_FORMAT_PRINTF (2, 3)
                   _GL_ARG_NONNULL ((1, 2)));
 #  endif
 _GL_CXXALIAS_SYS (obstack_printf, int,
@@ -610,7 +629,7 @@ _GL_CXXALIASWARN (obstack_printf);
 #  endif
 _GL_FUNCDECL_RPL (obstack_vprintf, int,
                   (struct obstack *obs, const char *format, va_list args)
-                  __attribute__ ((__format__ (__printf__, 2, 0)))
+                  _GL_ATTRIBUTE_FORMAT_PRINTF (2, 0)
                   _GL_ARG_NONNULL ((1, 2)));
 _GL_CXXALIAS_RPL (obstack_vprintf, int,
                   (struct obstack *obs, const char *format, va_list args));
@@ -618,7 +637,7 @@ _GL_CXXALIAS_RPL (obstack_vprintf, int,
 #  if !@HAVE_DECL_OBSTACK_PRINTF@
 _GL_FUNCDECL_SYS (obstack_vprintf, int,
                   (struct obstack *obs, const char *format, va_list args)
-                  __attribute__ ((__format__ (__printf__, 2, 0)))
+                  _GL_ATTRIBUTE_FORMAT_PRINTF (2, 0)
                   _GL_ARG_NONNULL ((1, 2)));
 #  endif
 _GL_CXXALIAS_SYS (obstack_vprintf, int,
@@ -681,7 +700,7 @@ _GL_FUNCDECL_RPL_1 (__printf__, int,
                     (const char *format, ...)
                     __asm__ (@ASM_SYMBOL_PREFIX@
                              _GL_STDIO_MACROEXPAND_AND_STRINGIZE(rpl_printf))
-                    __attribute__ ((__format__ (__printf__, 1, 2)))
+                    _GL_ATTRIBUTE_FORMAT_PRINTF (1, 2)
                     _GL_ARG_NONNULL ((1)));
 _GL_CXXALIAS_RPL_1 (printf, __printf__, int, (const char *format, ...));
 #  else
@@ -690,7 +709,7 @@ _GL_CXXALIAS_RPL_1 (printf, __printf__, int, (const char *format, ...));
 #   endif
 _GL_FUNCDECL_RPL (printf, int,
                   (const char *format, ...)
-                  __attribute__ ((__format__ (__printf__, 1, 2)))
+                  _GL_ATTRIBUTE_FORMAT_PRINTF (1, 2)
                   _GL_ARG_NONNULL ((1)));
 _GL_CXXALIAS_RPL (printf, int, (const char *format, ...));
 #  endif
@@ -830,7 +849,7 @@ _GL_WARN_ON_USE (renameat, "renameat is not portable - "
 #  endif
 _GL_FUNCDECL_RPL (snprintf, int,
                   (char *str, size_t size, const char *format, ...)
-                  __attribute__ ((__format__ (__printf__, 3, 4)))
+                  _GL_ATTRIBUTE_FORMAT_PRINTF (3, 4)
                   _GL_ARG_NONNULL ((3)));
 _GL_CXXALIAS_RPL (snprintf, int,
                   (char *str, size_t size, const char *format, ...));
@@ -838,7 +857,7 @@ _GL_CXXALIAS_RPL (snprintf, int,
 #  if !@HAVE_DECL_SNPRINTF@
 _GL_FUNCDECL_SYS (snprintf, int,
                   (char *str, size_t size, const char *format, ...)
-                  __attribute__ ((__format__ (__printf__, 3, 4)))
+                  _GL_ATTRIBUTE_FORMAT_PRINTF (3, 4)
                   _GL_ARG_NONNULL ((3)));
 #  endif
 _GL_CXXALIAS_SYS (snprintf, int,
@@ -868,7 +887,7 @@ _GL_WARN_ON_USE (snprintf, "snprintf is unportable - "
 #   define sprintf rpl_sprintf
 #  endif
 _GL_FUNCDECL_RPL (sprintf, int, (char *str, const char *format, ...)
-                                __attribute__ ((__format__ (__printf__, 2, 3)))
+                                _GL_ATTRIBUTE_FORMAT_PRINTF (2, 3)
                                 _GL_ARG_NONNULL ((1, 2)));
 _GL_CXXALIAS_RPL (sprintf, int, (char *str, const char *format, ...));
 # else
@@ -913,7 +932,7 @@ _GL_WARN_ON_USE (tmpfile, "tmpfile is not usable on mingw - "
 #  endif
 _GL_FUNCDECL_RPL (asprintf, int,
                   (char **result, const char *format, ...)
-                  __attribute__ ((__format__ (__printf__, 2, 3)))
+                  _GL_ATTRIBUTE_FORMAT_PRINTF (2, 3)
                   _GL_ARG_NONNULL ((1, 2)));
 _GL_CXXALIAS_RPL (asprintf, int,
                   (char **result, const char *format, ...));
@@ -921,7 +940,7 @@ _GL_CXXALIAS_RPL (asprintf, int,
 #  if !@HAVE_VASPRINTF@
 _GL_FUNCDECL_SYS (asprintf, int,
                   (char **result, const char *format, ...)
-                  __attribute__ ((__format__ (__printf__, 2, 3)))
+                  _GL_ATTRIBUTE_FORMAT_PRINTF (2, 3)
                   _GL_ARG_NONNULL ((1, 2)));
 #  endif
 _GL_CXXALIAS_SYS (asprintf, int,
@@ -934,7 +953,7 @@ _GL_CXXALIASWARN (asprintf);
 #  endif
 _GL_FUNCDECL_RPL (vasprintf, int,
                   (char **result, const char *format, va_list args)
-                  __attribute__ ((__format__ (__printf__, 2, 0)))
+                  _GL_ATTRIBUTE_FORMAT_PRINTF (2, 0)
                   _GL_ARG_NONNULL ((1, 2)));
 _GL_CXXALIAS_RPL (vasprintf, int,
                   (char **result, const char *format, va_list args));
@@ -942,7 +961,7 @@ _GL_CXXALIAS_RPL (vasprintf, int,
 #  if !@HAVE_VASPRINTF@
 _GL_FUNCDECL_SYS (vasprintf, int,
                   (char **result, const char *format, va_list args)
-                  __attribute__ ((__format__ (__printf__, 2, 0)))
+                  _GL_ATTRIBUTE_FORMAT_PRINTF (2, 0)
                   _GL_ARG_NONNULL ((1, 2)));
 #  endif
 _GL_CXXALIAS_SYS (vasprintf, int,
@@ -957,13 +976,13 @@ _GL_CXXALIASWARN (vasprintf);
 #   define vdprintf rpl_vdprintf
 #  endif
 _GL_FUNCDECL_RPL (vdprintf, int, (int fd, const char *format, va_list args)
-                                 __attribute__ ((__format__ (__printf__, 2, 0)))
+                                 _GL_ATTRIBUTE_FORMAT_PRINTF (2, 0)
                                  _GL_ARG_NONNULL ((2)));
 _GL_CXXALIAS_RPL (vdprintf, int, (int fd, const char *format, va_list args));
 # else
 #  if !@HAVE_VDPRINTF@
 _GL_FUNCDECL_SYS (vdprintf, int, (int fd, const char *format, va_list args)
-                                 __attribute__ ((__format__ (__printf__, 2, 0)))
+                                 _GL_ATTRIBUTE_FORMAT_PRINTF (2, 0)
                                  _GL_ARG_NONNULL ((2)));
 #  endif
 /* Need to cast, because on Solaris, the third parameter will likely be
@@ -988,7 +1007,7 @@ _GL_WARN_ON_USE (vdprintf, "vdprintf is unportable - "
 #  endif
 #  define GNULIB_overrides_vfprintf 1
 _GL_FUNCDECL_RPL (vfprintf, int, (FILE *fp, const char *format, va_list args)
-                                 __attribute__ ((__format__ (__printf__, 2, 0)))
+                                 _GL_ATTRIBUTE_FORMAT_PRINTF (2, 0)
                                  _GL_ARG_NONNULL ((1, 2)));
 _GL_CXXALIAS_RPL (vfprintf, int, (FILE *fp, const char *format, va_list args));
 # else
@@ -1018,7 +1037,7 @@ _GL_WARN_ON_USE (vfprintf, "vfprintf is not always POSIX compliant - "
 #  endif
 #  define GNULIB_overrides_vprintf 1
 _GL_FUNCDECL_RPL (vprintf, int, (const char *format, va_list args)
-                                __attribute__ ((__format__ (__printf__, 1, 0)))
+                                _GL_ATTRIBUTE_FORMAT_PRINTF (1, 0)
                                 _GL_ARG_NONNULL ((1)));
 _GL_CXXALIAS_RPL (vprintf, int, (const char *format, va_list args));
 # else
@@ -1046,7 +1065,7 @@ _GL_WARN_ON_USE (vprintf, "vprintf is not always POSIX compliant - "
 #  endif
 _GL_FUNCDECL_RPL (vsnprintf, int,
                   (char *str, size_t size, const char *format, va_list args)
-                  __attribute__ ((__format__ (__printf__, 3, 0)))
+                  _GL_ATTRIBUTE_FORMAT_PRINTF (3, 0)
                   _GL_ARG_NONNULL ((3)));
 _GL_CXXALIAS_RPL (vsnprintf, int,
                   (char *str, size_t size, const char *format, va_list args));
@@ -1054,7 +1073,7 @@ _GL_CXXALIAS_RPL (vsnprintf, int,
 #  if !@HAVE_DECL_VSNPRINTF@
 _GL_FUNCDECL_SYS (vsnprintf, int,
                   (char *str, size_t size, const char *format, va_list args)
-                  __attribute__ ((__format__ (__printf__, 3, 0)))
+                  _GL_ATTRIBUTE_FORMAT_PRINTF (3, 0)
                   _GL_ARG_NONNULL ((3)));
 #  endif
 _GL_CXXALIAS_SYS (vsnprintf, int,
@@ -1076,7 +1095,7 @@ _GL_WARN_ON_USE (vsnprintf, "vsnprintf is unportable - "
 #  endif
 _GL_FUNCDECL_RPL (vsprintf, int,
                   (char *str, const char *format, va_list args)
-                  __attribute__ ((__format__ (__printf__, 2, 0)))
+                  _GL_ATTRIBUTE_FORMAT_PRINTF (2, 0)
                   _GL_ARG_NONNULL ((1, 2)));
 _GL_CXXALIAS_RPL (vsprintf, int,
                   (char *str, const char *format, va_list args));

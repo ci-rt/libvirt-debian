@@ -66,11 +66,12 @@ local-checks-to-skip =			\
   sc_useless_cpp_parens
 
 # Files that should never cause syntax check failures.
-VC_LIST_ALWAYS_EXCLUDE_REGEX = ^docs/news.html.in$$
+VC_LIST_ALWAYS_EXCLUDE_REGEX = ^(HACKING|docs/news\.html\.in)$$
 
 # Functions like free() that are no-ops on NULL arguments.
 useless_free_options =				\
   --name=VIR_FREE				\
+  --name=qemuCapsFree				\
   --name=sexpr_free				\
   --name=virBitmapFree                          \
   --name=virCPUDefFree				\
@@ -106,6 +107,7 @@ useless_free_options =				\
   --name=virDomainSoundDefFree			\
   --name=virDomainVideoDefFree			\
   --name=virDomainWatchdogDefFree		\
+  --name=virHashFree				\
   --name=virInterfaceDefFree			\
   --name=virInterfaceIpDefFree			\
   --name=virInterfaceObjFree			\
@@ -256,6 +258,13 @@ sc_prohibit_fork_wrappers:
 	halt='use virCommand for child processes'			\
 	  $(_sc_search_regexp)
 
+# access with X_OK accepts directories, but we can't exec() those.
+# access with F_OK or R_OK is okay, though.
+sc_prohibit_access_xok:
+	@prohibit='access''(at)? *\(.*X_OK'				\
+	halt='use virFileIsExecutable instead of access''(,X_OK)'	\
+	  $(_sc_search_regexp)
+
 # Similar to the gnulib maint.mk rule for sc_prohibit_strcmp
 # Use STREQLEN or STRPREFIX rather than comparing strncmp == 0, or != 0.
 sc_prohibit_strncmp:
@@ -325,10 +334,11 @@ sc_prohibit_ctype_h:
 # Ensure that no C source file, docs, or rng schema uses TABs for
 # indentation.  Also match *.h.in files, to get libvirt.h.in.  Exclude
 # files in gnulib, since they're imported.
+space_indent_files=(\.(rng|s?[ch](\.in)?|html.in|py)|(daemon|tools)/.*\.in)
 sc_TAB_in_indentation:
 	@prohibit='^ *	'						\
-	in_vc_files='(\.(rng|[ch](\.in)?|html.in)|(daemon|tools)/.*\.in)$$' \
-	halt='use leading spaces, not TAB, in C, sh, html, and RNG schemas' \
+	in_vc_files='$(space_indent_files)$$'				\
+	halt='indent with space, not TAB, in C, sh, html, py, and RNG schemas' \
 	  $(_sc_search_regexp)
 
 ctype_re = isalnum|isalpha|isascii|isblank|iscntrl|isdigit|isgraph|islower\
@@ -400,6 +410,7 @@ msg_gen_function += virXenStoreError
 msg_gen_function += virXendError
 msg_gen_function += vmwareError
 msg_gen_function += xenapiSessionErrorHandler
+msg_gen_function += libxlError
 msg_gen_function += xenUnifiedError
 msg_gen_function += xenXMError
 msg_gen_function += VIR_ERROR
@@ -478,19 +489,6 @@ sc_prohibit_gettext_markup:
 	halt='do not mark these strings for translation'		\
 	  $(_sc_search_regexp)
 
-# Ensure that the syntax_check_exceptions file list in Makefile.am
-# stays in sync with corresponding files in the repository.
-sce = syntax_check_exceptions
-sc_x_sc_dist_check:
-	@test "$$( ($(VC_LIST) | sed -n '/\.x-sc_/p'			\
-		     | sed 's|^$(_dot_escaped_srcdir)/||';		\
-		   sed -n '/^$(sce) =[	 ]*\\$$/,/[^\]$$/p'		\
-		     $(srcdir)/Makefile.am				\
-		       | sed 's/^  *//;/^$(sce) =/d'			\
-		       | tr -s '\012\\' '  ' | fmt -1			\
-		   ) | sort | uniq -u)"					\
-	  && { echo 'Makefile.am: $(sce) mismatch' >&2; exit 1; } || :;
-
 # We don't use this feature of maint.mk.
 prev_version_file = /dev/null
 
@@ -547,3 +545,58 @@ _makefile_at_at_check_exceptions = ' && !/(SCHEMA|SYSCONF)DIR/'
 
 # regenerate HACKING as part of the syntax-check
 syntax-check: $(top_srcdir)/HACKING
+
+# List all syntax-check exemptions:
+_src1=libvirt|fdstream|qemu/qemu_monitor|util/(command|util)|xen/xend_internal
+exclude_file_name_regexp--sc_avoid_write = \
+  ^(src/($(_src1))|daemon/libvirtd|tools/console)\.c$$
+
+exclude_file_name_regexp--sc_bindtextdomain = ^(tests|examples)/
+
+exclude_file_name_regexp--sc_po_check = ^docs/
+
+exclude_file_name_regexp--sc_prohibit_VIR_ERR_NO_MEMORY = \
+  ^(include/libvirt/virterror\.h|daemon/dispatch\.c|src/util/virterror\.c)$$
+
+exclude_file_name_regexp--sc_prohibit_access_xok = ^src/util/util\.c$$
+
+exclude_file_name_regexp--sc_prohibit_always_true_header_tests = \
+  (^docs|^python/(libvirt-override|typewrappers)\.c$$)
+
+exclude_file_name_regexp--sc_prohibit_asprintf = \
+  ^(bootstrap.conf$$|po/|src/util/util\.c$$)
+
+exclude_file_name_regexp--sc_prohibit_close = \
+  (\.py$$|^docs/|(src/util/files\.c|src/libvirt\.c)$$)
+
+exclude_file_name_regexp--sc_prohibit_empty_lines_at_EOF = \
+  (^docs/api_extension/|^tests/qemuhelpdata/|\.(gif|ico|png)$$)
+
+_src2=src/(util/util|libvirt|lxc/lxc_controller)
+exclude_file_name_regexp--sc_prohibit_fork_wrappers = \
+  (^docs|^($(_src2)|tests/testutils|daemon/libvirtd)\.c$$)
+
+exclude_file_name_regexp--sc_prohibit_gethostname = ^src/util/util\.c$$
+
+exclude_file_name_regexp--sc_prohibit_gettext_noop = ^docs/
+
+exclude_file_name_regexp--sc_prohibit_nonreentrant = \
+  ^((po|docs|tests)/|tools/(virsh|console)\.c$$)
+
+exclude_file_name_regexp--sc_prohibit_readlink = ^src/util/util\.c$$
+
+exclude_file_name_regexp--sc_prohibit_sprintf = ^(docs/|HACKING$$)
+
+exclude_file_name_regexp--sc_prohibit_strncpy = \
+  ^(src/util/util|tools/virsh)\.c$$
+
+exclude_file_name_regexp--sc_prohibit_xmlGetProp = ^src/util/xml\.c$$
+
+exclude_file_name_regexp--sc_require_config_h = ^examples/
+
+exclude_file_name_regexp--sc_require_config_h_first = ^examples/
+
+exclude_file_name_regexp--sc_trailing_blank = (^docs/|\.(fig|gif|ico|png)$$)
+
+exclude_file_name_regexp--sc_unmarked_diagnostics = \
+  ^(docs/apibuild.py|tests/virt-aa-helper-test)$$

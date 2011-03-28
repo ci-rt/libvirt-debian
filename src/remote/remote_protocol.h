@@ -53,6 +53,7 @@ typedef remote_nonnull_string *remote_string;
 #define REMOTE_NODE_DEVICE_CAPS_LIST_MAX 16384
 #define REMOTE_NWFILTER_NAME_LIST_MAX 1024
 #define REMOTE_DOMAIN_SCHEDULER_PARAMETERS_MAX 16
+#define REMOTE_DOMAIN_BLKIO_PARAMETERS_MAX 16
 #define REMOTE_DOMAIN_MEMORY_PARAMETERS_MAX 16
 #define REMOTE_NODE_MAX_CELLS 1024
 #define REMOTE_AUTH_SASL_DATA_MAX 65536
@@ -186,6 +187,25 @@ struct remote_sched_param {
         remote_sched_param_value value;
 };
 typedef struct remote_sched_param remote_sched_param;
+
+struct remote_blkio_param_value {
+        int type;
+        union {
+                int i;
+                u_int ui;
+                int64_t l;
+                uint64_t ul;
+                double d;
+                int b;
+        } remote_blkio_param_value_u;
+};
+typedef struct remote_blkio_param_value remote_blkio_param_value;
+
+struct remote_blkio_param {
+        remote_nonnull_string field;
+        remote_blkio_param_value value;
+};
+typedef struct remote_blkio_param remote_blkio_param;
 
 struct remote_memory_param_value {
         int type;
@@ -336,6 +356,32 @@ struct remote_domain_set_scheduler_parameters_args {
         } params;
 };
 typedef struct remote_domain_set_scheduler_parameters_args remote_domain_set_scheduler_parameters_args;
+
+struct remote_domain_set_blkio_parameters_args {
+        remote_nonnull_domain dom;
+        struct {
+                u_int params_len;
+                remote_blkio_param *params_val;
+        } params;
+        u_int flags;
+};
+typedef struct remote_domain_set_blkio_parameters_args remote_domain_set_blkio_parameters_args;
+
+struct remote_domain_get_blkio_parameters_args {
+        remote_nonnull_domain dom;
+        int nparams;
+        u_int flags;
+};
+typedef struct remote_domain_get_blkio_parameters_args remote_domain_get_blkio_parameters_args;
+
+struct remote_domain_get_blkio_parameters_ret {
+        struct {
+                u_int params_len;
+                remote_blkio_param *params_val;
+        } params;
+        int nparams;
+};
+typedef struct remote_domain_get_blkio_parameters_ret remote_domain_get_blkio_parameters_ret;
 
 struct remote_domain_set_memory_parameters_args {
         remote_nonnull_domain dom;
@@ -580,6 +626,13 @@ struct remote_domain_set_memory_args {
         uint64_t memory;
 };
 typedef struct remote_domain_set_memory_args remote_domain_set_memory_args;
+
+struct remote_domain_set_memory_flags_args {
+        remote_nonnull_domain dom;
+        uint64_t memory;
+        u_int flags;
+};
+typedef struct remote_domain_set_memory_flags_args remote_domain_set_memory_flags_args;
 
 struct remote_domain_get_info_args {
         remote_nonnull_domain dom;
@@ -1929,6 +1982,13 @@ struct remote_domain_migrate_set_max_downtime_args {
 };
 typedef struct remote_domain_migrate_set_max_downtime_args remote_domain_migrate_set_max_downtime_args;
 
+struct remote_domain_migrate_set_max_speed_args {
+        remote_nonnull_domain dom;
+        uint64_t bandwidth;
+        u_int flags;
+};
+typedef struct remote_domain_migrate_set_max_speed_args remote_domain_migrate_set_max_speed_args;
+
 struct remote_domain_events_register_any_args {
         int eventID;
 };
@@ -2331,6 +2391,10 @@ enum remote_procedure {
         REMOTE_PROC_DOMAIN_OPEN_CONSOLE = 201,
         REMOTE_PROC_DOMAIN_IS_UPDATED = 202,
         REMOTE_PROC_GET_SYSINFO = 203,
+        REMOTE_PROC_DOMAIN_SET_MEMORY_FLAGS = 204,
+        REMOTE_PROC_DOMAIN_SET_BLKIO_PARAMETERS = 205,
+        REMOTE_PROC_DOMAIN_GET_BLKIO_PARAMETERS = 206,
+        REMOTE_PROC_DOMAIN_MIGRATE_SET_MAX_SPEED = 207,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -2386,6 +2450,8 @@ extern  bool_t xdr_remote_auth_type (XDR *, remote_auth_type*);
 extern  bool_t xdr_remote_vcpu_info (XDR *, remote_vcpu_info*);
 extern  bool_t xdr_remote_sched_param_value (XDR *, remote_sched_param_value*);
 extern  bool_t xdr_remote_sched_param (XDR *, remote_sched_param*);
+extern  bool_t xdr_remote_blkio_param_value (XDR *, remote_blkio_param_value*);
+extern  bool_t xdr_remote_blkio_param (XDR *, remote_blkio_param*);
 extern  bool_t xdr_remote_memory_param_value (XDR *, remote_memory_param_value*);
 extern  bool_t xdr_remote_memory_param (XDR *, remote_memory_param*);
 extern  bool_t xdr_remote_open_args (XDR *, remote_open_args*);
@@ -2410,6 +2476,9 @@ extern  bool_t xdr_remote_domain_get_scheduler_type_ret (XDR *, remote_domain_ge
 extern  bool_t xdr_remote_domain_get_scheduler_parameters_args (XDR *, remote_domain_get_scheduler_parameters_args*);
 extern  bool_t xdr_remote_domain_get_scheduler_parameters_ret (XDR *, remote_domain_get_scheduler_parameters_ret*);
 extern  bool_t xdr_remote_domain_set_scheduler_parameters_args (XDR *, remote_domain_set_scheduler_parameters_args*);
+extern  bool_t xdr_remote_domain_set_blkio_parameters_args (XDR *, remote_domain_set_blkio_parameters_args*);
+extern  bool_t xdr_remote_domain_get_blkio_parameters_args (XDR *, remote_domain_get_blkio_parameters_args*);
+extern  bool_t xdr_remote_domain_get_blkio_parameters_ret (XDR *, remote_domain_get_blkio_parameters_ret*);
 extern  bool_t xdr_remote_domain_set_memory_parameters_args (XDR *, remote_domain_set_memory_parameters_args*);
 extern  bool_t xdr_remote_domain_get_memory_parameters_args (XDR *, remote_domain_get_memory_parameters_args*);
 extern  bool_t xdr_remote_domain_get_memory_parameters_ret (XDR *, remote_domain_get_memory_parameters_ret*);
@@ -2448,6 +2517,7 @@ extern  bool_t xdr_remote_domain_get_max_memory_args (XDR *, remote_domain_get_m
 extern  bool_t xdr_remote_domain_get_max_memory_ret (XDR *, remote_domain_get_max_memory_ret*);
 extern  bool_t xdr_remote_domain_set_max_memory_args (XDR *, remote_domain_set_max_memory_args*);
 extern  bool_t xdr_remote_domain_set_memory_args (XDR *, remote_domain_set_memory_args*);
+extern  bool_t xdr_remote_domain_set_memory_flags_args (XDR *, remote_domain_set_memory_flags_args*);
 extern  bool_t xdr_remote_domain_get_info_args (XDR *, remote_domain_get_info_args*);
 extern  bool_t xdr_remote_domain_get_info_ret (XDR *, remote_domain_get_info_ret*);
 extern  bool_t xdr_remote_domain_save_args (XDR *, remote_domain_save_args*);
@@ -2674,6 +2744,7 @@ extern  bool_t xdr_remote_domain_get_job_info_args (XDR *, remote_domain_get_job
 extern  bool_t xdr_remote_domain_get_job_info_ret (XDR *, remote_domain_get_job_info_ret*);
 extern  bool_t xdr_remote_domain_abort_job_args (XDR *, remote_domain_abort_job_args*);
 extern  bool_t xdr_remote_domain_migrate_set_max_downtime_args (XDR *, remote_domain_migrate_set_max_downtime_args*);
+extern  bool_t xdr_remote_domain_migrate_set_max_speed_args (XDR *, remote_domain_migrate_set_max_speed_args*);
 extern  bool_t xdr_remote_domain_events_register_any_args (XDR *, remote_domain_events_register_any_args*);
 extern  bool_t xdr_remote_domain_events_deregister_any_args (XDR *, remote_domain_events_deregister_any_args*);
 extern  bool_t xdr_remote_domain_event_reboot_msg (XDR *, remote_domain_event_reboot_msg*);
@@ -2734,6 +2805,8 @@ extern bool_t xdr_remote_auth_type ();
 extern bool_t xdr_remote_vcpu_info ();
 extern bool_t xdr_remote_sched_param_value ();
 extern bool_t xdr_remote_sched_param ();
+extern bool_t xdr_remote_blkio_param_value ();
+extern bool_t xdr_remote_blkio_param ();
 extern bool_t xdr_remote_memory_param_value ();
 extern bool_t xdr_remote_memory_param ();
 extern bool_t xdr_remote_open_args ();
@@ -2758,6 +2831,9 @@ extern bool_t xdr_remote_domain_get_scheduler_type_ret ();
 extern bool_t xdr_remote_domain_get_scheduler_parameters_args ();
 extern bool_t xdr_remote_domain_get_scheduler_parameters_ret ();
 extern bool_t xdr_remote_domain_set_scheduler_parameters_args ();
+extern bool_t xdr_remote_domain_set_blkio_parameters_args ();
+extern bool_t xdr_remote_domain_get_blkio_parameters_args ();
+extern bool_t xdr_remote_domain_get_blkio_parameters_ret ();
 extern bool_t xdr_remote_domain_set_memory_parameters_args ();
 extern bool_t xdr_remote_domain_get_memory_parameters_args ();
 extern bool_t xdr_remote_domain_get_memory_parameters_ret ();
@@ -2796,6 +2872,7 @@ extern bool_t xdr_remote_domain_get_max_memory_args ();
 extern bool_t xdr_remote_domain_get_max_memory_ret ();
 extern bool_t xdr_remote_domain_set_max_memory_args ();
 extern bool_t xdr_remote_domain_set_memory_args ();
+extern bool_t xdr_remote_domain_set_memory_flags_args ();
 extern bool_t xdr_remote_domain_get_info_args ();
 extern bool_t xdr_remote_domain_get_info_ret ();
 extern bool_t xdr_remote_domain_save_args ();
@@ -3022,6 +3099,7 @@ extern bool_t xdr_remote_domain_get_job_info_args ();
 extern bool_t xdr_remote_domain_get_job_info_ret ();
 extern bool_t xdr_remote_domain_abort_job_args ();
 extern bool_t xdr_remote_domain_migrate_set_max_downtime_args ();
+extern bool_t xdr_remote_domain_migrate_set_max_speed_args ();
 extern bool_t xdr_remote_domain_events_register_any_args ();
 extern bool_t xdr_remote_domain_events_deregister_any_args ();
 extern bool_t xdr_remote_domain_event_reboot_msg ();

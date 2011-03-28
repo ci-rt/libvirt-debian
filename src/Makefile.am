@@ -52,6 +52,7 @@ UTIL_SOURCES =							\
 		util/conf.c util/conf.h				\
 		util/cgroup.c util/cgroup.h			\
 		util/event.c util/event.h			\
+		util/event_poll.c util/event_poll.h		\
 		util/files.c util/files.h			\
 		util/hash.c util/hash.h				\
 		util/hooks.c util/hooks.h			\
@@ -68,6 +69,7 @@ UTIL_SOURCES =							\
 		util/network.c util/network.h			\
 		util/interface.c util/interface.h		\
 		util/qparams.c util/qparams.h			\
+		util/sexpr.c util/sexpr.h			\
 		util/stats_linux.c util/stats_linux.h		\
 		util/storage_file.c util/storage_file.h		\
 		util/sysinfo.c util/sysinfo.h			\
@@ -221,7 +223,6 @@ TEST_DRIVER_SOURCES =						\
 
 # Now the Hypervisor specific drivers
 XEN_DRIVER_SOURCES =						\
-		xen/sexpr.c xen/sexpr.h				\
 		xen/block_stats.c xen/block_stats.h		\
 		xen/xen_hypervisor.c xen/xen_hypervisor.h	\
 		xen/xen_driver.c xen/xen_driver.h		\
@@ -281,6 +282,8 @@ QEMU_DRIVER_SOURCES =						\
 		qemu/qemu_hostdev.c qemu/qemu_hostdev.h		\
 		qemu/qemu_hotplug.c qemu/qemu_hotplug.h		\
 		qemu/qemu_conf.c qemu/qemu_conf.h		\
+		qemu/qemu_process.c qemu/qemu_process.h		\
+		qemu/qemu_migration.c qemu/qemu_migration.h	\
 		qemu/qemu_monitor.c qemu/qemu_monitor.h		\
 		qemu/qemu_monitor_text.c			\
 		qemu/qemu_monitor_text.h			\
@@ -294,6 +297,10 @@ XENAPI_DRIVER_SOURCES =								\
 		xenapi/xenapi_driver.c xenapi/xenapi_driver.h	\
 		xenapi/xenapi_driver_private.h					\
 		xenapi/xenapi_utils.c xenapi/xenapi_utils.h
+
+LIBXL_DRIVER_SOURCES =						\
+		libxl/libxl_conf.c libxl/libxl_conf.h		\
+		libxl/libxl_driver.c libxl/libxl_driver.h
 
 UML_DRIVER_SOURCES =						\
 		uml/uml_conf.c uml/uml_conf.h			\
@@ -421,6 +428,11 @@ CPU_SOURCES =							\
 VMX_SOURCES =							\
 		vmx/vmx.c vmx/vmx.h
 
+XENXS_SOURCES =							\
+		xenxs/xenxs_private.h				\
+		xenxs/xen_sxpr.c xenxs/xen_sxpr.h		\
+		xenxs/xen_xm.c xenxs/xen_xm.h
+
 pkgdata_DATA =	cpu/cpu_map.xml
 
 EXTRA_DIST +=	$(pkgdata_DATA)
@@ -437,9 +449,9 @@ libvirt_la_BUILT_LIBADD = libvirt_util.la
 libvirt_util_la_SOURCES =					\
 		$(UTIL_SOURCES)
 libvirt_util_la_CFLAGS = $(CAPNG_CFLAGS) $(YAJL_CFLAGS) $(LIBNL_CFLAGS) \
-		$(AM_CFLAGS) $(AUDIT_CFLAGS)
+		$(AM_CFLAGS) $(AUDIT_CFLAGS) $(DEVMAPPER_CFLAGS)
 libvirt_util_la_LIBADD = $(CAPNG_LIBS) $(YAJL_LIBS) $(LIBNL_LIBS) \
-		$(LIB_PTHREAD) $(AUDIT_LIBS)
+		$(LIB_PTHREAD) $(AUDIT_LIBS) $(DEVMAPPER_LIBS)
 
 
 noinst_LTLIBRARIES += libvirt_conf.la
@@ -460,6 +472,14 @@ libvirt_la_BUILT_LIBADD += libvirt_vmx.la
 libvirt_vmx_la_CFLAGS = \
 		-I@top_srcdir@/src/conf $(AM_CFLAGS)
 libvirt_vmx_la_SOURCES = $(VMX_SOURCES)
+endif
+
+if WITH_XEN
+noinst_LTLIBRARIES += libvirt_xenxs.la
+libvirt_la_BUILT_LIBADD += libvirt_xenxs.la
+libvirt_xenxs_la_CFLAGS = \
+		-I@top_srcdir@/src/conf $(AM_CFLAGS)
+libvirt_xenxs_la_SOURCES = $(XENXS_SOURCES)
 endif
 
 
@@ -581,6 +601,7 @@ endif
 libvirt_driver_xen_la_CFLAGS =					\
 		$(XEN_CFLAGS)					\
 		-I@top_srcdir@/src/conf				\
+		-I@top_srcdir@/src/xenxs			\
 		$(AM_CFLAGS)
 libvirt_driver_xen_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_xen_la_LIBADD = $(XEN_LIBS)
@@ -675,6 +696,25 @@ endif
 libvirt_driver_xenapi_la_SOURCES = $(XENAPI_DRIVER_SOURCES)
 endif
 
+if WITH_LIBXL
+if WITH_DRIVER_MODULES
+mod_LTLIBRARIES += libvirt_driver_libxl.la
+else
+noinst_LTLIBRARIES += libvirt_driver_libxl.la
+# Stateful, so linked to daemon instead
+#libvirt_la_BUILT_LIBADD += libvirt_driver_libxl.la
+endif
+libvirt_driver_libxl_la_CFLAGS = $(LIBXL_CFLAGS) \
+		-I@top_srcdir@/src/conf $(AM_CFLAGS)
+libvirt_driver_libxl_la_LDFLAGS = $(AM_LDFLAGS)
+libvirt_driver_libxl_la_LIBADD = $(LIBXL_LIBS)
+if WITH_DRIVER_MODULES
+libvirt_driver_libxl_la_LIBADD += ../gnulib/lib/libgnu.la
+libvirt_driver_libxl_la_LDFLAGS += -module -avoid-version
+endif
+libvirt_driver_libxl_la_SOURCES = $(LIBXL_DRIVER_SOURCES)
+endif
+
 if WITH_QEMU
 if WITH_DRIVER_MODULES
 mod_LTLIBRARIES += libvirt_driver_qemu.la
@@ -686,7 +726,8 @@ endif
 libvirt_driver_qemu_la_CFLAGS = $(NUMACTL_CFLAGS) \
 		-I@top_srcdir@/src/conf $(AM_CFLAGS)
 libvirt_driver_qemu_la_LDFLAGS = $(AM_LDFLAGS)
-libvirt_driver_qemu_la_LIBADD = $(NUMACTL_LIBS)
+libvirt_driver_qemu_la_LIBADD = $(NUMACTL_LIBS) \
+				$(CAPNG_LIBS)
 if WITH_DRIVER_MODULES
 libvirt_driver_qemu_la_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_driver_qemu_la_LDFLAGS += -module -avoid-version
@@ -713,8 +754,15 @@ noinst_LTLIBRARIES += libvirt_driver_lxc.la
 endif
 libvirt_driver_lxc_la_CFLAGS = \
 		-I@top_srcdir@/src/conf $(AM_CFLAGS)
+libvirt_driver_lxc_la_LIBADD = $(CAPNG_LIBS)
+if WITH_SECDRIVER_SELINUX
+libvirt_driver_lxc_la_LIBADD += $(SELINUX_LIBS)
+endif
+if WITH_SECDRIVER_APPARMOR
+libvirt_driver_lxc_la_LIBADD += $(APPARMOR_LIBS)
+endif
 if WITH_DRIVER_MODULES
-libvirt_driver_lxc_la_LIBADD = ../gnulib/lib/libgnu.la
+libvirt_driver_lxc_la_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_driver_lxc_la_LDFLAGS = -module -avoid-version $(AM_LDFLAGS)
 endif
 libvirt_driver_lxc_la_SOURCES = $(LXC_DRIVER_SOURCES)
@@ -853,6 +901,12 @@ libvirt_driver_storage_la_CFLAGS = \
 		-I@top_srcdir@/src/conf $(AM_CFLAGS)
 libvirt_driver_storage_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_storage_la_LIBADD =
+if WITH_SECDRIVER_SELINUX
+libvirt_driver_storage_la_LIBADD += $(SELINUX_LIBS)
+endif
+if WITH_SECDRIVER_APPARMOR
+libvirt_driver_storage_la_LIBADD += $(APPARMOR_LIBS)
+endif
 if WITH_STORAGE_DIR
 if WITH_DRIVER_MODULES
 mod_LTLIBRARIES += libvirt_driver_storage.la
@@ -974,6 +1028,7 @@ EXTRA_DIST +=							\
 		$(PHYP_DRIVER_SOURCES)				\
 		$(VBOX_DRIVER_SOURCES)				\
 		$(XENAPI_DRIVER_SOURCES)			\
+		$(LIBXL_DRIVER_SOURCES)			\
 		$(ESX_DRIVER_SOURCES)				\
 		$(ESX_DRIVER_EXTRA_DIST)			\
 		$(NETWORK_DRIVER_SOURCES)			\
@@ -993,7 +1048,8 @@ EXTRA_DIST +=							\
 		$(SECURITY_DRIVER_APPARMOR_SOURCES)		\
 		$(SECRET_DRIVER_SOURCES)			\
 		$(VBOX_DRIVER_EXTRA_DIST)			\
-		$(VMWARE_DRIVER_SOURCES)
+		$(VMWARE_DRIVER_SOURCES)			\
+		$(XENXS_SOURCES)
 
 check-local: augeas-check
 
@@ -1072,7 +1128,8 @@ EXTRA_DIST += \
 
 BUILT_SOURCES += libvirt.syms libvirt.def libvirt_qemu.def
 
-libvirt.syms: libvirt_public.syms $(USED_SYM_FILES)
+libvirt.syms: libvirt_public.syms $(USED_SYM_FILES) \
+		$(top_builddir)/config.status
 	$(AM_V_GEN)rm -f $@-tmp $@ ; \
 	printf '# WARNING: generated from the following:\n# $^\n\n' >$@-tmp && \
 	cat $(srcdir)/libvirt_public.syms >>$@-tmp && \
@@ -1154,7 +1211,6 @@ libvirt_parthelper_SOURCES = $(STORAGE_HELPER_DISK_SOURCES)
 libvirt_parthelper_LDFLAGS = $(WARN_LDFLAGS) $(AM_LDFLAGS)
 libvirt_parthelper_LDADD =		\
 		$(LIBPARTED_LIBS)	\
-		$(DEVMAPPER_LIBS)	\
 		libvirt_util.la		\
 		../gnulib/lib/libgnu.la
 
@@ -1179,7 +1235,8 @@ libvirt_lxc_SOURCES =						\
 libvirt_lxc_LDFLAGS = $(WARN_CFLAGS) $(AM_LDFLAGS)
 libvirt_lxc_LDADD = $(CAPNG_LIBS) $(YAJL_LIBS) \
 		$(LIBXML_LIBS) $(NUMACTL_LIBS) $(LIB_PTHREAD) \
-		$(LIBNL_LIBS) $(AUDIT_LIBS) ../gnulib/lib/libgnu.la
+		$(LIBNL_LIBS) $(AUDIT_LIBS) $(DEVMAPPER_LIBS) \
+		../gnulib/lib/libgnu.la
 libvirt_lxc_CFLAGS =				\
 		$(LIBPARTED_CFLAGS)		\
 		$(NUMACTL_CFLAGS)		\
@@ -1226,6 +1283,10 @@ if WITH_LXC
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/lxc"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/run/libvirt/lxc"
 endif
+if WITH_LIBXL
+	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/libxl"
+	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/run/libvirt/libxl"
+endif
 if WITH_UML
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/uml"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/run/libvirt/uml"
@@ -1262,6 +1323,10 @@ endif
 if WITH_LXC
 	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/lxc" ||:
 	rmdir "$(DESTDIR)$(localstatedir)/run/libvirt/lxc" ||:
+endif
+if WITH_LIBXL
+	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/libxl" ||:
+	rmdir "$(DESTDIR)$(localstatedir)/run/libvirt/libxl" ||:
 endif
 if WITH_UML
 	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/uml" ||:

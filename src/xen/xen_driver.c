@@ -33,6 +33,8 @@
 #include "datatypes.h"
 #include "xen_driver.h"
 
+#include "xen_sxpr.h"
+#include "xen_xm.h"
 #include "xen_hypervisor.h"
 #include "xend_internal.h"
 #include "xs_internal.h"
@@ -48,6 +50,7 @@
 #include "uuid.h"
 #include "fdstream.h"
 #include "files.h"
+#include "command.h"
 
 #define VIR_FROM_THIS VIR_FROM_XEN
 
@@ -227,6 +230,23 @@ xenUnifiedProbe (void)
     return 0;
 }
 
+#ifdef WITH_LIBXL
+static int
+xenUnifiedXendProbe (void)
+{
+    virCommandPtr cmd;
+    int status;
+    int ret = 0;
+
+    cmd = virCommandNewArgList("/usr/sbin/xend", "status", NULL);
+    if (virCommandRun(cmd, &status) == 0 && status == 0)
+        ret = 1;
+    virCommandFree(cmd);
+
+    return ret;
+}
+#endif
+
 static virDrvOpenStatus
 xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, int flags)
 {
@@ -290,6 +310,13 @@ xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, int flags)
         }
     }
 
+#ifdef WITH_LIBXL
+    /* Decline xen:// URI if xend is not running and libxenlight
+     * driver is potentially available. */
+    if (!xenUnifiedXendProbe())
+        return VIR_DRV_OPEN_DECLINED;
+#endif
+
     /* We now know the URI is definitely for this driver, so beyond
      * here, don't return DECLINED, always use ERROR */
 
@@ -323,35 +350,35 @@ xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, int flags)
 
     /* Hypervisor is only run with privilege & required to succeed */
     if (xenHavePrivilege()) {
-        DEBUG0("Trying hypervisor sub-driver");
+        VIR_DEBUG0("Trying hypervisor sub-driver");
         if (drivers[XEN_UNIFIED_HYPERVISOR_OFFSET]->open(conn, auth, flags) ==
             VIR_DRV_OPEN_SUCCESS) {
-            DEBUG0("Activated hypervisor sub-driver");
+            VIR_DEBUG0("Activated hypervisor sub-driver");
             priv->opened[XEN_UNIFIED_HYPERVISOR_OFFSET] = 1;
         }
     }
 
     /* XenD is required to succeed if privileged */
-    DEBUG0("Trying XenD sub-driver");
+    VIR_DEBUG0("Trying XenD sub-driver");
     if (drivers[XEN_UNIFIED_XEND_OFFSET]->open(conn, auth, flags) ==
         VIR_DRV_OPEN_SUCCESS) {
-        DEBUG0("Activated XenD sub-driver");
+        VIR_DEBUG0("Activated XenD sub-driver");
         priv->opened[XEN_UNIFIED_XEND_OFFSET] = 1;
 
         /* XenD is active, so try the xm & xs drivers too, both requird to
          * succeed if root, optional otherwise */
         if (priv->xendConfigVersion <= 2) {
-            DEBUG0("Trying XM sub-driver");
+            VIR_DEBUG0("Trying XM sub-driver");
             if (drivers[XEN_UNIFIED_XM_OFFSET]->open(conn, auth, flags) ==
                 VIR_DRV_OPEN_SUCCESS) {
-                DEBUG0("Activated XM sub-driver");
+                VIR_DEBUG0("Activated XM sub-driver");
                 priv->opened[XEN_UNIFIED_XM_OFFSET] = 1;
             }
         }
-        DEBUG0("Trying XS sub-driver");
+        VIR_DEBUG0("Trying XS sub-driver");
         if (drivers[XEN_UNIFIED_XS_OFFSET]->open(conn, auth, flags) ==
             VIR_DRV_OPEN_SUCCESS) {
-            DEBUG0("Activated XS sub-driver");
+            VIR_DEBUG0("Activated XS sub-driver");
             priv->opened[XEN_UNIFIED_XS_OFFSET] = 1;
         } else {
             if (xenHavePrivilege())
@@ -361,7 +388,7 @@ xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, int flags)
         if (xenHavePrivilege()) {
             goto fail; /* XenD is mandatory when privileged */
         } else {
-            DEBUG0("Handing off for remote driver");
+            VIR_DEBUG0("Handing off for remote driver");
             ret = VIR_DRV_OPEN_DECLINED; /* Let remote_driver try instead */
             goto clean;
         }
@@ -370,16 +397,16 @@ xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, int flags)
     xenNumaInit(conn);
 
     if (!(priv->caps = xenHypervisorMakeCapabilities(conn))) {
-        DEBUG0("Failed to make capabilities");
+        VIR_DEBUG0("Failed to make capabilities");
         goto fail;
     }
 
 #if WITH_XEN_INOTIFY
     if (xenHavePrivilege()) {
-        DEBUG0("Trying Xen inotify sub-driver");
+        VIR_DEBUG0("Trying Xen inotify sub-driver");
         if (drivers[XEN_UNIFIED_INOTIFY_OFFSET]->open(conn, auth, flags) ==
             VIR_DRV_OPEN_SUCCESS) {
-            DEBUG0("Activated Xen inotify sub-driver");
+            VIR_DEBUG0("Activated Xen inotify sub-driver");
             priv->opened[XEN_UNIFIED_INOTIFY_OFFSET] = 1;
         }
     }
@@ -390,7 +417,7 @@ xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, int flags)
 fail:
     ret = VIR_DRV_OPEN_ERROR;
 clean:
-    DEBUG0("Failed to activate a mandatory sub-driver");
+    VIR_DEBUG0("Failed to activate a mandatory sub-driver");
     for (i = 0 ; i < XEN_UNIFIED_NR_DRIVERS ; i++)
         if (priv->opened[i]) drivers[i]->close(conn);
     virMutexDestroy(&priv->lock);
@@ -1198,6 +1225,9 @@ xenUnifiedDomainXMLFromNative(virConnectPtr conn,
     virDomainDefPtr def = NULL;
     char *ret = NULL;
     virConfPtr conf = NULL;
+    int id;
+    char * tty;
+    int vncport;
     GET_PRIVATE(conn);
 
     if (STRNEQ(format, XEN_CONFIG_FORMAT_XM) &&
@@ -1212,9 +1242,15 @@ xenUnifiedDomainXMLFromNative(virConnectPtr conn,
         if (!conf)
             goto cleanup;
 
-        def = xenXMDomainConfigParse(conn, conf);
+        def = xenParseXM(conf, priv->xendConfigVersion, priv->caps);
     } else if (STREQ(format, XEN_CONFIG_FORMAT_SEXPR)) {
-        def = xenDaemonParseSxprString(conn, config, priv->xendConfigVersion);
+        id = xenGetDomIdFromSxprString(config, priv->xendConfigVersion);
+        xenUnifiedLock(priv);
+        tty = xenStoreDomainGetConsolePath(conn, id);
+        vncport = xenStoreDomainGetVNCPort(conn, id);
+        xenUnifiedUnlock(priv);
+        def = xenParseSxprString(config, priv->xendConfigVersion, tty,
+                                       vncport);
     }
     if (!def)
         goto cleanup;
@@ -1255,7 +1291,7 @@ xenUnifiedDomainXMLToNative(virConnectPtr conn,
 
     if (STREQ(format, XEN_CONFIG_FORMAT_XM)) {
         int len = MAX_CONFIG_SIZE;
-        conf = xenXMDomainConfigFormat(conn, def);
+        conf = xenFormatXM(conn, def, priv->xendConfigVersion);
         if (!conf)
             goto cleanup;
 
@@ -1269,7 +1305,7 @@ xenUnifiedDomainXMLToNative(virConnectPtr conn,
             goto cleanup;
         }
     } else if (STREQ(format, XEN_CONFIG_FORMAT_SEXPR)) {
-        ret = xenDaemonFormatSxpr(conn, def, priv->xendConfigVersion);
+        ret = xenFormatSxpr(conn, def, priv->xendConfigVersion);
     }
 
 cleanup:
@@ -2023,6 +2059,11 @@ static virDriver xenUnifiedDriver = {
     xenUnifiedDomainGetMaxMemory, /* domainGetMaxMemory */
     xenUnifiedDomainSetMaxMemory, /* domainSetMaxMemory */
     xenUnifiedDomainSetMemory, /* domainSetMemory */
+    NULL, /*domainSetMemoryFlags */
+    NULL, /* domainSetMemoryParameters */
+    NULL, /* domainGetMemoryParameters */
+    NULL, /* domainSetBlkioParameters */
+    NULL, /* domainGetBlkioParameters */
     xenUnifiedDomainGetInfo, /* domainGetInfo */
     xenUnifiedDomainSave, /* domainSave */
     xenUnifiedDomainRestore, /* domainRestore */
@@ -2083,6 +2124,7 @@ static virDriver xenUnifiedDriver = {
     NULL, /* domainGetJobInfo */
     NULL, /* domainAbortJob */
     NULL, /* domainMigrateSetMaxDowntime */
+    NULL, /* domainMigrateSetMaxSpeed */
     xenUnifiedDomainEventRegisterAny, /* domainEventRegisterAny */
     xenUnifiedDomainEventDeregisterAny, /* domainEventDeregisterAny */
     NULL, /* domainManagedSave */
@@ -2098,8 +2140,6 @@ static virDriver xenUnifiedDriver = {
     NULL, /* domainRevertToSnapshot */
     NULL, /* domainSnapshotDelete */
     NULL, /* qemuDomainMonitorCommand */
-    NULL, /* domainSetMemoryParameters */
-    NULL, /* domainGetMemoryParameters */
     xenUnifiedDomainOpenConsole, /* domainOpenConsole */
 };
 
@@ -2163,7 +2203,7 @@ xenUnifiedAddDomainInfo(xenUnifiedDomainInfoListPtr list,
     for (n=0; n < list->count; n++) {
         if (STREQ(list->doms[n]->name, name) &&
             !memcmp(list->doms[n]->uuid, uuid, VIR_UUID_BUFLEN)) {
-            DEBUG0("WARNING: dom already tracked");
+            VIR_DEBUG0("WARNING: dom already tracked");
             return -1;
         }
     }

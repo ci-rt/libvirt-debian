@@ -2,7 +2,7 @@
  * nwfilter_conf.c: network filter XML processing
  *                  (derived from storage_conf.c)
  *
- * Copyright (C) 2006-2010 Red Hat, Inc.
+ * Copyright (C) 2006-2011 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * Copyright (C) 2010 IBM Corporation
@@ -53,11 +53,13 @@
 
 VIR_ENUM_IMPL(virNWFilterRuleAction, VIR_NWFILTER_RULE_ACTION_LAST,
               "drop",
-              "accept");
+              "accept",
+              "reject");
 
 VIR_ENUM_IMPL(virNWFilterJumpTarget, VIR_NWFILTER_RULE_ACTION_LAST,
               "DROP",
-              "ACCEPT");
+              "ACCEPT",
+              "REJECT");
 
 VIR_ENUM_IMPL(virNWFilterRuleDirection, VIR_NWFILTER_RULE_DIRECTION_LAST,
               "in",
@@ -2297,13 +2299,11 @@ virNWFilterTriggerVMFilterRebuild(virConnectPtr conn)
         .conn = conn,
         .err = 0,
         .step = STEP_APPLY_NEW,
-        .skipInterfaces = virHashCreate(0),
+        .skipInterfaces = virHashCreate(0, NULL),
     };
 
-    if (!cb.skipInterfaces) {
-        virReportOOMError();
+    if (!cb.skipInterfaces)
         return 1;
-    }
 
     for (i = 0; i < nCallbackDriver; i++) {
         callbackDrvArray[i]->vmFilterRebuild(conn,
@@ -2330,7 +2330,7 @@ virNWFilterTriggerVMFilterRebuild(virConnectPtr conn)
                                                  &cb);
     }
 
-    virHashFree(cb.skipInterfaces, NULL);
+    virHashFree(cb.skipInterfaces);
 
     return err;
 }

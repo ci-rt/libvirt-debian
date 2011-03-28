@@ -34,6 +34,8 @@ src/lxc/lxc_conf.c
 src/lxc/lxc_controller.c
 src/lxc/lxc_driver.c
 src/lxc/veth.c
+src/libxl/libxl_driver.c
+src/libxl/libxl_conf.c
 src/network/bridge_driver.c
 src/node_device/node_device_driver.c
 src/node_device/node_device_hal.c
@@ -58,9 +60,11 @@ src/qemu/qemu_domain.c
 src/qemu/qemu_driver.c
 src/qemu/qemu_hostdev.c
 src/qemu/qemu_hotplug.c
+src/qemu/qemu_migration.c
 src/qemu/qemu_monitor.c
 src/qemu/qemu_monitor_json.c
 src/qemu/qemu_monitor_text.c
+src/qemu/qemu_process.c
 src/remote/remote_driver.c
 src/secret/secret_driver.c
 src/security/security_apparmor.c
@@ -86,6 +90,8 @@ src/util/cgroup.c
 src/util/command.c
 src/util/conf.c
 src/util/dnsmasq.c
+src/util/event_poll.c
+src/util/hash.c
 src/util/hooks.c
 src/util/hostusb.c
 src/util/interface.c
@@ -117,6 +123,8 @@ src/xen/xm_internal.c
 src/xen/xs_internal.c
 src/xenapi/xenapi_driver.c
 src/xenapi/xenapi_utils.c
+src/xenxs/xen_sxpr.c
+src/xenxs/xen_xm.c
 tools/console.c
 tools/libvirt-guests.init.sh
 tools/virsh.c

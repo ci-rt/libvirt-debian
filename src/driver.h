@@ -7,7 +7,6 @@
 # define __VIR_DRIVER_H__
 
 # include "config.h"
-# include <stdbool.h>
 
 # include <libxml/uri.h>
 
@@ -28,7 +27,8 @@ typedef enum {
     VIR_DRV_ESX = 10,
     VIR_DRV_PHYP = 11,
     VIR_DRV_XENAPI = 12,
-    VIR_DRV_VMWARE = 13
+    VIR_DRV_VMWARE = 13,
+    VIR_DRV_LIBXL = 14,
 } virDrvNo;
 
 
@@ -135,6 +135,10 @@ typedef int
         (*virDrvDomainSetMemory)	(virDomainPtr domain,
                                          unsigned long memory);
 typedef int
+        (*virDrvDomainSetMemoryFlags)	(virDomainPtr domain,
+                                         unsigned long memory,
+                                         unsigned int flags);
+typedef int
         (*virDrvDomainSetMemoryParameters)
                                         (virDomainPtr domain,
                                          virMemoryParameterPtr params,
@@ -144,6 +148,18 @@ typedef int
         (*virDrvDomainGetMemoryParameters)
                                         (virDomainPtr domain,
                                          virMemoryParameterPtr params,
+                                         int *nparams,
+                                         unsigned int flags);
+typedef int
+        (*virDrvDomainSetBlkioParameters)
+                                        (virDomainPtr domain,
+                                         virBlkioParameterPtr params,
+                                         int nparams,
+                                         unsigned int flags);
+typedef int
+        (*virDrvDomainGetBlkioParameters)
+                                        (virDomainPtr domain,
+                                         virBlkioParameterPtr params,
                                          int *nparams,
                                          unsigned int flags);
 typedef int
@@ -426,6 +442,10 @@ typedef int
     (*virDrvDomainMigrateSetMaxDowntime)(virDomainPtr domain,
                                          unsigned long long downtime,
                                          unsigned int flags);
+typedef int
+    (*virDrvDomainMigrateSetMaxSpeed)(virDomainPtr domain,
+                                      unsigned long bandwidth,
+                                      unsigned int flags);
 
 typedef int
     (*virDrvDomainEventRegisterAny)(virConnectPtr conn,
@@ -537,6 +557,11 @@ struct _virDriver {
     virDrvDomainGetMaxMemory	domainGetMaxMemory;
     virDrvDomainSetMaxMemory	domainSetMaxMemory;
     virDrvDomainSetMemory		domainSetMemory;
+    virDrvDomainSetMemoryFlags  domainSetMemoryFlags;
+    virDrvDomainSetMemoryParameters domainSetMemoryParameters;
+    virDrvDomainGetMemoryParameters domainGetMemoryParameters;
+    virDrvDomainSetBlkioParameters domainSetBlkioParameters;
+    virDrvDomainGetBlkioParameters domainGetBlkioParameters;
     virDrvDomainGetInfo		domainGetInfo;
     virDrvDomainSave		domainSave;
     virDrvDomainRestore		domainRestore;
@@ -597,6 +622,7 @@ struct _virDriver {
     virDrvDomainGetJobInfo     domainGetJobInfo;
     virDrvDomainAbortJob     domainAbortJob;
     virDrvDomainMigrateSetMaxDowntime  domainMigrateSetMaxDowntime;
+    virDrvDomainMigrateSetMaxSpeed  domainMigrateSetMaxSpeed;
     virDrvDomainEventRegisterAny domainEventRegisterAny;
     virDrvDomainEventDeregisterAny domainEventDeregisterAny;
     virDrvDomainManagedSave domainManagedSave;
@@ -612,8 +638,6 @@ struct _virDriver {
     virDrvDomainRevertToSnapshot domainRevertToSnapshot;
     virDrvDomainSnapshotDelete domainSnapshotDelete;
     virDrvQemuDomainMonitorCommand qemuDomainMonitorCommand;
-    virDrvDomainSetMemoryParameters domainSetMemoryParameters;
-    virDrvDomainGetMemoryParameters domainGetMemoryParameters;
     virDrvDomainOpenConsole domainOpenConsole;
 };
 

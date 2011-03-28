@@ -31,16 +31,12 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-build_triplet = i686-pc-linux-gnu
-host_triplet = i686-pc-linux-gnu
+build_triplet = x86_64-unknown-linux-gnu
+host_triplet = x86_64-unknown-linux-gnu
 subdir = tests/xml2sexprdata
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/m4/compiler-flags.m4 \
-	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/ltoptions.m4 \
-	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
-	$(top_srcdir)/m4/lt~obsolete.m4 \
-	$(top_srcdir)/gnulib/m4/00gnulib.m4 \
+am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/alloca.m4 \
 	$(top_srcdir)/gnulib/m4/arpa_inet_h.m4 \
 	$(top_srcdir)/gnulib/m4/asm-underscore.m4 \
@@ -59,48 +55,45 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/compiler-flags.m4 \
 	$(top_srcdir)/gnulib/m4/fcntl_h.m4 \
 	$(top_srcdir)/gnulib/m4/float_h.m4 \
 	$(top_srcdir)/gnulib/m4/fseeko.m4 \
+	$(top_srcdir)/gnulib/m4/func.m4 \
 	$(top_srcdir)/gnulib/m4/getaddrinfo.m4 \
 	$(top_srcdir)/gnulib/m4/getdelim.m4 \
 	$(top_srcdir)/gnulib/m4/gethostname.m4 \
 	$(top_srcdir)/gnulib/m4/getline.m4 \
+	$(top_srcdir)/gnulib/m4/getpagesize.m4 \
 	$(top_srcdir)/gnulib/m4/getpass.m4 \
-	$(top_srcdir)/gnulib/m4/gettext.m4 \
 	$(top_srcdir)/gnulib/m4/gettimeofday.m4 \
 	$(top_srcdir)/gnulib/m4/gnulib-common.m4 \
 	$(top_srcdir)/gnulib/m4/gnulib-comp.m4 \
 	$(top_srcdir)/gnulib/m4/hostent.m4 \
-	$(top_srcdir)/gnulib/m4/iconv.m4 \
 	$(top_srcdir)/gnulib/m4/include_next.m4 \
 	$(top_srcdir)/gnulib/m4/inet_ntop.m4 \
 	$(top_srcdir)/gnulib/m4/inet_pton.m4 \
-	$(top_srcdir)/gnulib/m4/intlmacosx.m4 \
 	$(top_srcdir)/gnulib/m4/intmax_t.m4 \
 	$(top_srcdir)/gnulib/m4/inttypes_h.m4 \
 	$(top_srcdir)/gnulib/m4/ioctl.m4 \
-	$(top_srcdir)/gnulib/m4/lib-ld.m4 \
-	$(top_srcdir)/gnulib/m4/lib-link.m4 \
-	$(top_srcdir)/gnulib/m4/lib-prefix.m4 \
 	$(top_srcdir)/gnulib/m4/longlong.m4 \
 	$(top_srcdir)/gnulib/m4/lseek.m4 \
 	$(top_srcdir)/gnulib/m4/lstat.m4 \
 	$(top_srcdir)/gnulib/m4/malloc.m4 \
 	$(top_srcdir)/gnulib/m4/malloca.m4 \
+	$(top_srcdir)/gnulib/m4/md5.m4 \
 	$(top_srcdir)/gnulib/m4/memchr.m4 \
 	$(top_srcdir)/gnulib/m4/mkstemp.m4 \
+	$(top_srcdir)/gnulib/m4/mkstemps.m4 \
 	$(top_srcdir)/gnulib/m4/mktime.m4 \
 	$(top_srcdir)/gnulib/m4/mmap-anon.m4 \
 	$(top_srcdir)/gnulib/m4/multiarch.m4 \
 	$(top_srcdir)/gnulib/m4/netdb_h.m4 \
 	$(top_srcdir)/gnulib/m4/netinet_in_h.m4 \
-	$(top_srcdir)/gnulib/m4/nls.m4 \
 	$(top_srcdir)/gnulib/m4/onceonly.m4 \
 	$(top_srcdir)/gnulib/m4/pathmax.m4 \
 	$(top_srcdir)/gnulib/m4/perror.m4 \
 	$(top_srcdir)/gnulib/m4/physmem.m4 \
 	$(top_srcdir)/gnulib/m4/po.m4 $(top_srcdir)/gnulib/m4/poll.m4 \
+	$(top_srcdir)/gnulib/m4/poll_h.m4 \
 	$(top_srcdir)/gnulib/m4/posix-shell.m4 \
 	$(top_srcdir)/gnulib/m4/printf.m4 \
-	$(top_srcdir)/gnulib/m4/progtest.m4 \
 	$(top_srcdir)/gnulib/m4/pthread.m4 \
 	$(top_srcdir)/gnulib/m4/random_r.m4 \
 	$(top_srcdir)/gnulib/m4/rawmemchr.m4 \
@@ -109,9 +102,9 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/compiler-flags.m4 \
 	$(top_srcdir)/gnulib/m4/sched_h.m4 \
 	$(top_srcdir)/gnulib/m4/select.m4 \
 	$(top_srcdir)/gnulib/m4/servent.m4 \
-	$(top_srcdir)/gnulib/m4/size_max.m4 \
 	$(top_srcdir)/gnulib/m4/sleep.m4 \
 	$(top_srcdir)/gnulib/m4/snprintf.m4 \
+	$(top_srcdir)/gnulib/m4/socketlib.m4 \
 	$(top_srcdir)/gnulib/m4/sockets.m4 \
 	$(top_srcdir)/gnulib/m4/socklen.m4 \
 	$(top_srcdir)/gnulib/m4/sockpfaf.m4 \
@@ -144,6 +137,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/compiler-flags.m4 \
 	$(top_srcdir)/gnulib/m4/sys_utsname_h.m4 \
 	$(top_srcdir)/gnulib/m4/sys_wait_h.m4 \
 	$(top_srcdir)/gnulib/m4/tempname.m4 \
+	$(top_srcdir)/gnulib/m4/termios_h.m4 \
 	$(top_srcdir)/gnulib/m4/time_h.m4 \
 	$(top_srcdir)/gnulib/m4/time_r.m4 \
 	$(top_srcdir)/gnulib/m4/timegm.m4 \
@@ -156,10 +150,16 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/compiler-flags.m4 \
 	$(top_srcdir)/gnulib/m4/vasprintf.m4 \
 	$(top_srcdir)/gnulib/m4/warn-on-use.m4 \
 	$(top_srcdir)/gnulib/m4/wchar_h.m4 \
-	$(top_srcdir)/gnulib/m4/wchar_t.m4 \
-	$(top_srcdir)/gnulib/m4/wint_t.m4 \
-	$(top_srcdir)/gnulib/m4/xsize.m4 $(top_srcdir)/acinclude.m4 \
-	$(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/compiler-flags.m4 $(top_srcdir)/m4/gettext.m4 \
+	$(top_srcdir)/m4/iconv.m4 $(top_srcdir)/m4/lib-ld.m4 \
+	$(top_srcdir)/m4/lib-link.m4 $(top_srcdir)/m4/lib-prefix.m4 \
+	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/ltoptions.m4 \
+	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
+	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/m4/nls.m4 \
+	$(top_srcdir)/m4/po.m4 $(top_srcdir)/m4/progtest.m4 \
+	$(top_srcdir)/m4/size_max.m4 $(top_srcdir)/m4/wchar_t.m4 \
+	$(top_srcdir)/m4/wint_t.m4 $(top_srcdir)/m4/xsize.m4 \
+	$(top_srcdir)/acinclude.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(SHELL) $(top_srcdir)/build-aux/mkinstalldirs
@@ -175,10 +175,10 @@ am__v_at_0 = @
 SOURCES =
 DIST_SOURCES =
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
-ACLOCAL = ${SHELL} /home/veillard/libvirt/build-aux/missing --run aclocal-1.11
+ACLOCAL = ${SHELL} /u/veillard/libvirt/build-aux/missing --run aclocal-1.11
 ALLOCA = 
 ALLOCA_H = alloca.h
-AMTAR = ${SHELL} /home/veillard/libvirt/build-aux/missing --run tar
+AMTAR = ${SHELL} /u/veillard/libvirt/build-aux/missing --run tar
 AM_DEFAULT_VERBOSITY = 0
 APPARMOR_CFLAGS = 
 APPARMOR_LIBS = 
@@ -186,10 +186,12 @@ APPLE_UNIVERSAL_BUILD = 0
 AR = ar
 AS = as
 ASM_SYMBOL_PREFIX = ""
+AUDIT_CFLAGS = 
+AUDIT_LIBS =  -laudit
 AUGPARSE = /usr/bin/augparse
-AUTOCONF = ${SHELL} /home/veillard/libvirt/build-aux/missing --run autoconf
-AUTOHEADER = ${SHELL} /home/veillard/libvirt/build-aux/missing --run autoheader
-AUTOMAKE = ${SHELL} /home/veillard/libvirt/build-aux/missing --run automake-1.11
+AUTOCONF = ${SHELL} /u/veillard/libvirt/build-aux/missing --run autoconf
+AUTOHEADER = ${SHELL} /u/veillard/libvirt/build-aux/missing --run autoheader
+AUTOMAKE = ${SHELL} /u/veillard/libvirt/build-aux/missing --run automake-1.11
 AVAHI_CFLAGS = -D_REENTRANT  
 AVAHI_LIBS = -lavahi-common -lavahi-client  
 AWK = gawk
@@ -204,7 +206,6 @@ CAPNG_LIBS = -lcap-ng
 CC = gcc
 CCDEPMODE = depmode=gcc3
 CFLAGS = -g  
-COMPILER_FLAGS =  -Wno-redundant-decls
 CONFIG_INCLUDE = config.h
 COVERAGE_CFLAGS = 
 COVERAGE_LDFLAGS = 
@@ -217,13 +218,14 @@ CYGWIN_EXTRA_PYTHON_LIBADD =
 DEFS = -DHAVE_CONFIG_H
 DEPDIR = .deps
 DEVMAPPER_CFLAGS =  
-DEVMAPPER_LIBS = -L/lib -ldevmapper  
+DEVMAPPER_LIBS = -L/lib64 -ldevmapper  
 DLLTOOL = dlltool
 DLOPEN_LIBS = -ldl
 DNSMASQ = /usr/sbin/dnsmasq
 DRIVER_MODULE_CFLAGS = 
 DRIVER_MODULE_LIBS = 
 DSYMUTIL = 
+DTRACE = /usr/bin/dtrace
 DUMPBIN = 
 EBTABLES_PATH = /sbin/ebtables
 ECHO_C = 
@@ -242,9 +244,7 @@ FGREP = /bin/grep -F
 FLOAT_H = 
 GETADDRINFO_LIB = 
 GETHOSTNAME_LIB = 
-GETTEXT_MACRO_VERSION = 0.17
 GMSGFMT = /usr/bin/msgfmt
-GMSGFMT_015 = /usr/bin/msgfmt
 GNULIB_ACCEPT = IN_LIBVIRT_GNULIB_TESTS
 GNULIB_ACCEPT4 = 0
 GNULIB_ATOLL = 0
@@ -294,7 +294,7 @@ GNULIB_GETLINE = 1
 GNULIB_GETLOADAVG = 0
 GNULIB_GETLOGIN = 0
 GNULIB_GETLOGIN_R = 0
-GNULIB_GETPAGESIZE = 0
+GNULIB_GETPAGESIZE = IN_LIBVIRT_GNULIB_TESTS
 GNULIB_GETPEERNAME = 0
 GNULIB_GETSOCKNAME = 0
 GNULIB_GETSOCKOPT = 0
@@ -345,7 +345,7 @@ GNULIB_MKNODAT = 0
 GNULIB_MKOSTEMP = 0
 GNULIB_MKOSTEMPS = 0
 GNULIB_MKSTEMP = 1
-GNULIB_MKSTEMPS = 0
+GNULIB_MKSTEMPS = 1
 GNULIB_MKTIME = 1
 GNULIB_NANOSLEEP = 0
 GNULIB_OBSTACK_PRINTF = 0
@@ -354,6 +354,7 @@ GNULIB_OPEN = 0
 GNULIB_OPENAT = 0
 GNULIB_PERROR = 1
 GNULIB_PIPE2 = 0
+GNULIB_POLL = 1
 GNULIB_POPEN = 0
 GNULIB_PREAD = 0
 GNULIB_PRINTF = 1
@@ -395,6 +396,7 @@ GNULIB_STRCASESTR = 0
 GNULIB_STRCHRNUL = 1
 GNULIB_STRDUP = 1
 GNULIB_STRERROR = 1
+GNULIB_STRERROR_R = 0
 GNULIB_STRNCAT = 0
 GNULIB_STRNDUP = 1
 GNULIB_STRNLEN = 1
@@ -410,6 +412,8 @@ GNULIB_STRTOULL = 0
 GNULIB_STRVERSCMP = 0
 GNULIB_SYMLINK = IN_LIBVIRT_GNULIB_TESTS
 GNULIB_SYMLINKAT = 0
+GNULIB_SYSTEM_POSIX = 0
+GNULIB_TCGETSID = 0
 GNULIB_TIMEGM = 1
 GNULIB_TIME_R = 1
 GNULIB_TMPFILE = 0
@@ -431,22 +435,23 @@ GNULIB_VPRINTF = 1
 GNULIB_VPRINTF_POSIX = 0
 GNULIB_VSNPRINTF = 0
 GNULIB_VSPRINTF_POSIX = 0
+GNULIB_WAITPID = 0
 GNULIB_WCRTOMB = 0
 GNULIB_WCSNRTOMBS = 0
 GNULIB_WCSRTOMBS = 0
 GNULIB_WCTOB = 0
 GNULIB_WCWIDTH = 0
 GNULIB_WRITE = 0
+GNULIB__EXIT = 0
 GNUTLS_CFLAGS =  
 GNUTLS_LIBS = -lgnutls   -lgcrypt
 GREP = /bin/grep
-HAL_CFLAGS = -DDBUS_API_SUBJECT_TO_CHANGE -I/usr/include/hal -I/usr/include/dbus-1.0 -I/usr/lib/dbus-1.0/include  
-HAL_LIBS = -L/lib -lhal -ldbus-1 -lpthread -lrt  
+HAL_CFLAGS = -DDBUS_API_SUBJECT_TO_CHANGE -I/usr/include/hal -I/usr/include/dbus-1.0 -I/usr/lib64/dbus-1.0/include  
+HAL_LIBS = -L/lib64 -lhal -ldbus-1 -lpthread -lrt  
 HAVE_ACCEPT4 = 1
 HAVE_ARPA_INET_H = 1
 HAVE_ATOLL = 1
 HAVE_BTOWC = 1
-HAVE_CALLOC_POSIX = 1
 HAVE_CANONICALIZE_FILE_NAME = 1
 HAVE_CHOWN = 1
 HAVE_DECL_ENVIRON = 1
@@ -468,6 +473,7 @@ HAVE_DECL_MEMRCHR = 1
 HAVE_DECL_OBSTACK_PRINTF = 1
 HAVE_DECL_SNPRINTF = 1
 HAVE_DECL_STRDUP = 1
+HAVE_DECL_STRERROR_R = 1
 HAVE_DECL_STRNCASECMP = 1
 HAVE_DECL_STRNDUP = 1
 HAVE_DECL_STRNLEN = 1
@@ -508,7 +514,6 @@ HAVE_LINKAT = 1
 HAVE_LOCALTIME_R = 1
 HAVE_LONG_LONG_INT = 1
 HAVE_LSTAT = 1
-HAVE_MALLOC_POSIX = 1
 HAVE_MBRLEN = 1
 HAVE_MBRTOWC = 1
 HAVE_MBSINIT = 1
@@ -533,7 +538,12 @@ HAVE_NETINET_IN_H =
 HAVE_OPENAT = 1
 HAVE_OS_H = 0
 HAVE_PIPE2 = 1
+HAVE_POLL = 1
+HAVE_POLL_H = 1
 HAVE_PREAD = 1
+HAVE_PTHREAD_H = 1
+HAVE_PTHREAD_SPINLOCK_T = 1
+HAVE_PTHREAD_T = 1
 HAVE_PTSNAME = 1
 HAVE_PWRITE = 1
 HAVE_RANDOM_H = 0
@@ -541,7 +551,6 @@ HAVE_RANDOM_R = 1
 HAVE_RAWMEMCHR = 1
 HAVE_READLINK = 1
 HAVE_READLINKAT = 1
-HAVE_REALLOC_POSIX = 1
 HAVE_REALPATH = 1
 HAVE_RENAMEAT = 1
 HAVE_RPMATCH = 1
@@ -583,6 +592,8 @@ HAVE_SYS_SOCKET_H = 1
 HAVE_SYS_TIME_H = 1
 HAVE_SYS_TYPES_H = 1
 HAVE_SYS_UTSNAME_H = 1
+HAVE_TCGETSID = 1
+HAVE_TERMIOS_H = 1
 HAVE_TIMEGM = 1
 HAVE_TTYNAME_R = 1
 HAVE_UNAME = 1
@@ -604,6 +615,7 @@ HAVE_WINSOCK2_H = 0
 HAVE_WINT_T = 1
 HAVE_WS2TCPIP_H = 0
 HAVE__BOOL = 1
+HAVE__EXIT = 1
 HOSTENT_LIB = 
 HTML_DIR = $(datadir)/doc/$(PACKAGE)-$(VERSION)/html
 INCLUDE_NEXT = include_next
@@ -616,20 +628,19 @@ INSTALL_PROGRAM = ${INSTALL}
 INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
 INTLLIBS = 
-INTL_MACOSX_LIBS = 
 IPTABLES_PATH = /sbin/iptables
 ISCSIADM = /sbin/iscsiadm
 LD = /usr/bin/ld
 LDFLAGS = 
-LIBCURL_CFLAGS =  
+LIBCURL_CFLAGS = -DCURL_DISABLE_TYPECHECK  
 LIBCURL_LIBS = -lcurl  
 LIBICONV = -liconv
 LIBINTL = 
-LIBNL_CFLAGS = 
-LIBNL_LIBS = 
+LIBNL_CFLAGS =  
+LIBNL_LIBS = -lnl  
 LIBOBJS = 
 LIBPARTED_CFLAGS =  
-LIBPARTED_LIBS = -L/lib -lparted  
+LIBPARTED_LIBS = -L/lib64 -lparted  
 LIBPCAP_CFLAGS = 
 LIBPCAP_LIBS = -lpcap
 LIBS = -ldl 
@@ -639,12 +650,13 @@ LIBSSH2_LIBS =  -lssh2 -L/usr/local/lib/
 LIBTESTS_LIBDEPS = 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool
 LIBVIRT_MAJOR_VERSION = 0
-LIBVIRT_MICRO_VERSION = 1
+LIBVIRT_MICRO_VERSION = 6
 LIBVIRT_MINOR_VERSION = 8
+LIBVIRT_QEMU_SYMBOL_FILE = $(srcdir)/libvirt_qemu.syms
 LIBVIRT_SYMBOL_FILE = libvirt.syms
-LIBVIRT_VERSION = 0.8.1
-LIBVIRT_VERSION_INFO = 8:1:8
-LIBVIRT_VERSION_NUMBER = 8001
+LIBVIRT_VERSION = 0.8.6
+LIBVIRT_VERSION_INFO = 8:6:8
+LIBVIRT_VERSION_NUMBER = 8006
 LIBXENSERVER_CFLAGS = 
 LIBXENSERVER_LIBS = 
 LIBXML_CFLAGS = -I/usr/include/libxml2  
@@ -660,17 +672,15 @@ LTLIBOBJS =
 LVCREATE = /sbin/lvcreate
 LVREMOVE = /sbin/lvremove
 LVS = /sbin/lvs
-LV_LIBTOOL_OBJDIR = .libs
-MAKEINFO = ${SHELL} /home/veillard/libvirt/build-aux/missing --run makeinfo
+LV_LIBTOOL_OBJDIR = .
+MAKEINFO = ${SHELL} /u/veillard/libvirt/build-aux/missing --run makeinfo
 MINGW_EXTRA_LDFLAGS = 
 MKDIR_P = /bin/mkdir -p
 MKINSTALLDIRS = $(top_builddir)/build-aux/mkinstalldirs
 MODPROBE = /sbin/modprobe
 MOUNT = /bin/mount
 MSGFMT = /usr/bin/msgfmt
-MSGFMT_015 = /usr/bin/msgfmt
 MSGMERGE = /usr/bin/msgmerge
-MV = /bin/mv
 NETCF_CFLAGS = -I/usr/include/libxml2  
 NETCF_LIBS = -lnetcf -laugeas -lxslt -lz -lm -lxml2  
 NETINET_IN_H = 
@@ -681,6 +691,8 @@ NEXT_AS_FIRST_DIRECTIVE_FCNTL_H = <fcntl.h>
 NEXT_AS_FIRST_DIRECTIVE_FLOAT_H = 
 NEXT_AS_FIRST_DIRECTIVE_NETDB_H = <netdb.h>
 NEXT_AS_FIRST_DIRECTIVE_NETINET_IN_H = 
+NEXT_AS_FIRST_DIRECTIVE_POLL_H = <poll.h>
+NEXT_AS_FIRST_DIRECTIVE_PTHREAD_H = <pthread.h>
 NEXT_AS_FIRST_DIRECTIVE_SCHED_H = 
 NEXT_AS_FIRST_DIRECTIVE_STDDEF_H = 
 NEXT_AS_FIRST_DIRECTIVE_STDINT_H = <stdint.h>
@@ -695,6 +707,7 @@ NEXT_AS_FIRST_DIRECTIVE_SYS_STAT_H = <sys/stat.h>
 NEXT_AS_FIRST_DIRECTIVE_SYS_TIME_H = <sys/time.h>
 NEXT_AS_FIRST_DIRECTIVE_SYS_UTSNAME_H = <sys/utsname.h>
 NEXT_AS_FIRST_DIRECTIVE_SYS_WAIT_H = <sys/wait.h>
+NEXT_AS_FIRST_DIRECTIVE_TERMIOS_H = <termios.h>
 NEXT_AS_FIRST_DIRECTIVE_TIME_H = <time.h>
 NEXT_AS_FIRST_DIRECTIVE_UNISTD_H = <unistd.h>
 NEXT_AS_FIRST_DIRECTIVE_WCHAR_H = <wchar.h>
@@ -703,6 +716,8 @@ NEXT_FCNTL_H = <fcntl.h>
 NEXT_FLOAT_H = 
 NEXT_NETDB_H = <netdb.h>
 NEXT_NETINET_IN_H = 
+NEXT_POLL_H = <poll.h>
+NEXT_PTHREAD_H = <pthread.h>
 NEXT_SCHED_H = 
 NEXT_STDDEF_H = 
 NEXT_STDINT_H = <stdint.h>
@@ -717,6 +732,7 @@ NEXT_SYS_STAT_H = <sys/stat.h>
 NEXT_SYS_TIME_H = <sys/time.h>
 NEXT_SYS_UTSNAME_H = <sys/utsname.h>
 NEXT_SYS_WAIT_H = <sys/wait.h>
+NEXT_TERMIOS_H = <termios.h>
 NEXT_TIME_H = <time.h>
 NEXT_UNISTD_H = <unistd.h>
 NEXT_WCHAR_H = <wchar.h>
@@ -729,23 +745,26 @@ OBJEXT = o
 OTOOL = 
 OTOOL64 = 
 PACKAGE = libvirt
-PACKAGE_BUGREPORT = 
+PACKAGE_BUGREPORT = libvir-list@redhat.com
 PACKAGE_NAME = libvirt
-PACKAGE_STRING = libvirt 0.8.1
+PACKAGE_STRING = libvirt 0.8.6
 PACKAGE_TARNAME = libvirt
-PACKAGE_VERSION = 0.8.1
+PACKAGE_URL = http://libvirt.org
+PACKAGE_VERSION = 0.8.6
 PARTED = /sbin/parted
 PATH_SEPARATOR = :
 PCIACCESS_CFLAGS =  
 PCIACCESS_LIBS = -lpciaccess  
 PKCHECK_PATH = /usr/bin/pkcheck
 PKG_CONFIG = /usr/bin/pkg-config
+PKG_CONFIG_LIBDIR = 
+PKG_CONFIG_PATH = 
 POLKIT_AUTH = 
 POLKIT_CFLAGS = 
 POLKIT_LIBS = 
-POLL_H = 
 POSIX_SHELL = /bin/sh
 POSUB = po
+PRAGMA_COLUMNS = 
 PRAGMA_SYSTEM_HEADER = #pragma GCC system_header
 PREFERABLY_POSIX_SHELL = /bin/sh
 PTHREAD_H = 
@@ -754,16 +773,17 @@ PTRDIFF_T_SUFFIX =
 PVCREATE = /sbin/pvcreate
 PVREMOVE = /sbin/pvremove
 PVS = /sbin/pvs
-PYTHON = /usr/bin/python
-PYTHON_EXEC_PREFIX = ${exec_prefix}
-PYTHON_INCLUDES = -I/usr/include/python2.6 -I/usr/include/python2.6
-PYTHON_PLATFORM = linux2
-PYTHON_PREFIX = ${prefix}
-PYTHON_VERSION = 2.6
+PYTHON = 
+PYTHON_EXEC_PREFIX = 
+PYTHON_INCLUDES = 
+PYTHON_PLATFORM = 
+PYTHON_PREFIX = 
+PYTHON_VERSION = 
 RANLIB = ranlib
 READLINE_CFLAGS = -DUSE_READLINE
 REMOTE_PID_FILE = /var/run/libvirtd.pid
 REPLACE_BTOWC = 0
+REPLACE_CALLOC = 0
 REPLACE_CANONICALIZE_FILE_NAME = 0
 REPLACE_CHOWN = 0
 REPLACE_CLOSE = 0
@@ -798,6 +818,7 @@ REPLACE_LINKAT = 0
 REPLACE_LOCALTIME_R = 0
 REPLACE_LSEEK = 0
 REPLACE_LSTAT = 0
+REPLACE_MALLOC = 0
 REPLACE_MBRLEN = 0
 REPLACE_MBRTOWC = 0
 REPLACE_MBSINIT = 0
@@ -817,12 +838,14 @@ REPLACE_OBSTACK_PRINTF = 0
 REPLACE_OPEN = 0
 REPLACE_OPENAT = 0
 REPLACE_PERROR = 0
+REPLACE_POLL = 0
 REPLACE_POPEN = 0
 REPLACE_PREAD = 0
 REPLACE_PRINTF = 0
 REPLACE_PUTENV = 0
 REPLACE_PWRITE = 0
 REPLACE_READLINK = 0
+REPLACE_REALLOC = 0
 REPLACE_REALPATH = 0
 REPLACE_REMOVE = 0
 REPLACE_RENAME = 0
@@ -839,6 +862,7 @@ REPLACE_STPNCPY = 0
 REPLACE_STRCASESTR = 0
 REPLACE_STRDUP = 0
 REPLACE_STRERROR = 0
+REPLACE_STRERROR_R = 0
 REPLACE_STRNCAT = 0
 REPLACE_STRNDUP = 0
 REPLACE_STRNLEN = 0
@@ -867,7 +891,6 @@ REPLACE_WCSRTOMBS = 0
 REPLACE_WCTOB = 0
 REPLACE_WCWIDTH = 0
 REPLACE_WRITE = 0
-RM = /bin/rm
 RPCGEN = /usr/bin/rpcgen
 SASL_CFLAGS = 
 SASL_LIBS =  -lsasl2
@@ -889,11 +912,10 @@ STRIP = strip
 SYS_IOCTL_H_HAVE_WINSOCK2_H = 0
 SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS = 0
 SYS_TIME_H_DEFINES_STRUCT_TIMESPEC = 0
-TAR = /bin/tar
 TIME_H_DEFINES_STRUCT_TIMESPEC = 1
 U = 
 UDEVADM = /sbin/udevadm
-UDEVSETTLE = /sbin/udevsettle
+UDEVSETTLE = 
 UDEV_CFLAGS =  
 UDEV_LIBS = -ludev  
 UMOUNT = /bin/umount
@@ -901,7 +923,7 @@ UNDEFINE_STRTOK_R = 1
 UNISTD_H_HAVE_WINSOCK2_H = 0
 UNISTD_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS = 0
 USE_NLS = yes
-VERSION = 0.8.1
+VERSION = 0.8.6
 VERSION_SCRIPT_FLAGS = -Wl,--version-script=
 VGCHANGE = /sbin/vgchange
 VGCREATE = /sbin/vgcreate
@@ -909,8 +931,8 @@ VGREMOVE = /sbin/vgremove
 VGS = /sbin/vgs
 VGSCAN = /sbin/vgscan
 VIRSH_LIBS =  -lreadline
-WARN_CFLAGS =  -Wall -Wformat -Wformat-security -Wmissing-prototypes -Wnested-externs -Wpointer-arith -Wextra -Wshadow -Wcast-align -Wwrite-strings -Waggregate-return -Wstrict-prototypes -Winline -Wredundant-decls -Wno-sign-compare -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fasynchronous-unwind-tables -fdiagnostics-show-option 
-WARN_LDFLAGS =  -Wall -Wformat -Wformat-security -Wmissing-prototypes -Wnested-externs -Wpointer-arith -Wextra -Wshadow -Wcast-align -Wwrite-strings -Waggregate-return -Wstrict-prototypes -Winline -Wredundant-decls -Wno-sign-compare -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fasynchronous-unwind-tables -fdiagnostics-show-option 
+WARN_CFLAGS =  -Wall -Wformat -Wformat-security -Wmissing-prototypes -Wnested-externs -Wpointer-arith -Wextra -Wshadow -Wcast-align -Wwrite-strings -Waggregate-return -Wstrict-prototypes -Winline -Wredundant-decls -Wno-sign-compare -Wlogical-op -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fasynchronous-unwind-tables -fdiagnostics-show-option 
+WARN_LDFLAGS =  -Wall -Wformat -Wformat-security -Wmissing-prototypes -Wnested-externs -Wpointer-arith -Wextra -Wshadow -Wcast-align -Wwrite-strings -Waggregate-return -Wstrict-prototypes -Winline -Wredundant-decls -Wno-sign-compare -Wlogical-op -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fasynchronous-unwind-tables -fdiagnostics-show-option 
 WARN_PYTHON_CFLAGS =  -Wno-redundant-decls
 WCHAR_T_SUFFIX = 
 WIN32_EXTRA_CFLAGS = 
@@ -919,20 +941,19 @@ WINT_T_SUFFIX =
 XEN_CFLAGS = 
 XEN_LIBS =  -lxenstore
 XGETTEXT = /usr/bin/xgettext
-XGETTEXT_015 = /usr/bin/xgettext
-XGETTEXT_EXTRA_OPTIONS =  --flag=asprintf:2:c-format --flag=vasprintf:2:c-format
 XMLCATALOG = /usr/bin/xmlcatalog
 XMLLINT = /usr/bin/xmllint
 XMLRPC_CFLAGS = -I/usr/include/libxml2  
 XMLRPC_LIBS = -lxmlrpc_client  
+XML_CATALOG_FILE = /etc/xml/catalog
 XSLTPROC = /usr/bin/xsltproc
 YAJL_CFLAGS = 
-YAJL_LIBS = 
-abs_aux_dir = /home/veillard/libvirt/build-aux
-abs_builddir = /home/veillard/libvirt/tests/xml2sexprdata
-abs_srcdir = /home/veillard/libvirt/tests/xml2sexprdata
-abs_top_builddir = /home/veillard/libvirt
-abs_top_srcdir = /home/veillard/libvirt
+YAJL_LIBS =  -lyajl
+abs_aux_dir = /u/veillard/libvirt/build-aux
+abs_builddir = /u/veillard/libvirt/tests/xml2sexprdata
+abs_srcdir = /u/veillard/libvirt/tests/xml2sexprdata
+abs_top_builddir = /u/veillard/libvirt
+abs_top_srcdir = /u/veillard/libvirt
 ac_ct_CC = gcc
 ac_ct_DUMPBIN = 
 am__include = include
@@ -941,47 +962,46 @@ am__quote =
 am__tar = ${AMTAR} chof - "$$tardir"
 am__untar = ${AMTAR} xf -
 bindir = ${exec_prefix}/bin
-build = i686-pc-linux-gnu
+build = x86_64-unknown-linux-gnu
 build_alias = 
-build_cpu = i686
+build_cpu = x86_64
 build_os = linux-gnu
-build_vendor = pc
+build_vendor = unknown
 builddir = .
 datadir = ${datarootdir}
 datarootdir = ${prefix}/share
 docdir = ${datarootdir}/doc/${PACKAGE_TARNAME}
 dvidir = ${docdir}
 exec_prefix = ${prefix}
-gl_LIBOBJS =  asnprintf.o basename-lgpl.o dirname-lgpl.o ioctl.o physmem.o printf-args.o printf-parse.o stripslash.o tempname.o vasnprintf.o
-gl_LTLIBOBJS =  asnprintf.lo basename-lgpl.lo dirname-lgpl.lo ioctl.lo physmem.lo printf-args.lo printf-parse.lo stripslash.lo tempname.lo vasnprintf.lo
+gl_LIBOBJS =  asnprintf.o basename-lgpl.o dirname-lgpl.o ioctl.o md5.o physmem.o printf-args.o printf-parse.o stripslash.o tempname.o vasnprintf.o
+gl_LTLIBOBJS =  asnprintf.lo basename-lgpl.lo dirname-lgpl.lo ioctl.lo md5.lo physmem.lo printf-args.lo printf-parse.lo stripslash.lo tempname.lo vasnprintf.lo
 gltests_LIBOBJS = 
 gltests_LTLIBOBJS = 
 gltests_WITNESS = IN_LIBVIRT_GNULIB_TESTS
-host = i686-pc-linux-gnu
+host = x86_64-unknown-linux-gnu
 host_alias = 
-host_cpu = i686
+host_cpu = x86_64
 host_os = linux-gnu
-host_vendor = pc
+host_vendor = unknown
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
-install_sh = ${SHELL} /home/veillard/libvirt/build-aux/install-sh
+install_sh = ${SHELL} /u/veillard/libvirt/build-aux/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localedir = ${datarootdir}/locale
 localstatedir = /var
-lt_ECHO = echo
 mandir = ${datarootdir}/man
 mkdir_p = /bin/mkdir -p
 oldincludedir = /usr/include
 pdfdir = ${docdir}
-pkgpyexecdir = ${pyexecdir}/libvirt
-pkgpythondir = ${pythondir}/libvirt
+pkgpyexecdir = 
+pkgpythondir = 
 prefix = /usr
 program_transform_name = s,x,x,
 psdir = ${docdir}
-pyexecdir = ${exec_prefix}/lib/python2.6/site-packages
-pythondir = ${prefix}/lib/python2.6/site-packages
+pyexecdir = 
+pythondir = 
 sbindir = ${exec_prefix}/sbin
 sharedstatedir = ${prefix}/com
 srcdir = .

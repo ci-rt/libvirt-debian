@@ -3,7 +3,7 @@
  * Description: This module implements the hash table and allocation and
  *              deallocation of domains and connections
  *
- * Copy: Copyright (C) 2005 Red Hat, Inc.
+ * Copy: Copyright (C) 2005, 2011 Red Hat, Inc.
  *
  * Author: Bjorn Reese <bjorn.reese@systematic.dk>
  *         Daniel Veillard <veillard@redhat.com>
@@ -23,67 +23,118 @@ typedef virHashTable *virHashTablePtr;
  */
 
 /**
- * virHashDeallocator:
+ * virHashDataFree:
  * @payload:  the data in the hash
  * @name:  the name associated
  *
  * Callback to free data from a hash.
  */
-typedef void (*virHashDeallocator) (void *payload, const char *name);
+typedef void (*virHashDataFree) (void *payload, const void *name);
 /**
  * virHashIterator:
  * @payload: the data in the hash
- * @name: the name associated
+ * @name: the hash key
  * @data: user supplied data blob
  *
  * Callback to process a hash entry during iteration
  */
-typedef void (*virHashIterator) (void *payload, const char *name, void *data);
+typedef void (*virHashIterator) (void *payload, const void *name, void *data);
 /**
- * virHashSearcher
+ * virHashSearcher:
  * @payload: the data in the hash
- * @name: the name associated
+ * @name: the hash key
  * @data: user supplied data blob
  *
  * Callback to identify hash entry desired
  * Returns 1 if the hash entry is desired, 0 to move
  * to next entry
  */
-typedef int (*virHashSearcher) (const void *payload, const char *name, const void *data);
+typedef int (*virHashSearcher) (const void *payload, const void *name,
+                                const void *data);
+
+/**
+ * virHashKeyCode:
+ * @name: the hash key
+ *
+ * Compute the hash code corresponding to the key @name
+ *
+ * Returns the hash code
+ */
+typedef unsigned long (*virHashKeyCode)(const void *name);
+/**
+ * virHashKeyEqual:
+ * @namea: the first hash key
+ * @nameb: the second hash key
+ *
+ * Compare two hash keys for equality
+ *
+ * Returns true if the keys are equal, false otherwise
+ */
+typedef bool (*virHashKeyEqual)(const void *namea, const void *nameb);
+/**
+ * virHashKeyCopy:
+ * @name: the hash key
+ *
+ * Create a copy of the hash key, duplicating
+ * memory allocation where applicable
+ *
+ * Returns a newly allocated copy of @name
+ */
+typedef void *(*virHashKeyCopy)(const void *name);
+/**
+ * virHashKeyFree:
+ * @name: the hash key
+ *
+ * Free any memory associated with the hash
+ * key @name
+ */
+typedef void (*virHashKeyFree)(void *name);
 
 /*
  * Constructor and destructor.
  */
-virHashTablePtr virHashCreate(int size);
-void virHashFree(virHashTablePtr table, virHashDeallocator f);
+virHashTablePtr virHashCreate(int size,
+                              virHashDataFree dataFree);
+virHashTablePtr virHashCreateFull(int size,
+                                  virHashDataFree dataFree,
+                                  virHashKeyCode keyCode,
+                                  virHashKeyEqual keyEqual,
+                                  virHashKeyCopy keyCopy,
+                                  virHashKeyFree keyFree);
+void virHashFree(virHashTablePtr table);
 int virHashSize(virHashTablePtr table);
 
 /*
  * Add a new entry to the hash table.
  */
 int virHashAddEntry(virHashTablePtr table,
-                    const char *name, void *userdata);
+                    const void *name, void *userdata);
 int virHashUpdateEntry(virHashTablePtr table,
-                       const char *name,
-                       void *userdata, virHashDeallocator f);
+                       const void *name,
+                       void *userdata);
 
 /*
  * Remove an entry from the hash table.
  */
 int virHashRemoveEntry(virHashTablePtr table,
-                       const char *name, virHashDeallocator f);
+                       const void *name);
 
 /*
  * Retrieve the userdata.
  */
-void *virHashLookup(virHashTablePtr table, const char *name);
+void *virHashLookup(virHashTablePtr table, const void *name);
+
+/*
+ * Retrieve & remove the userdata.
+ */
+void *virHashSteal(virHashTablePtr table, const void *name);
 
 
 /*
  * Iterators
  */
 int virHashForEach(virHashTablePtr table, virHashIterator iter, void *data);
-int virHashRemoveSet(virHashTablePtr table, virHashSearcher iter, virHashDeallocator f, const void *data);
+int virHashRemoveSet(virHashTablePtr table, virHashSearcher iter, const void *data);
 void *virHashSearch(virHashTablePtr table, virHashSearcher iter, const void *data);
 
 #endif                          /* ! __VIR_HASH_H__ */

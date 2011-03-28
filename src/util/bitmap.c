@@ -1,7 +1,7 @@
 /*
  * bitmap.h: Simple bitmap operations
  *
- * Copyright (C) 2010 Red Hat, Inc.
+ * Copyright (C) 2010-2011 Red Hat, Inc.
  * Copyright (C) 2010 Novell, Inc.
  *
  * This library is free software; you can redistribute it and/or
@@ -32,17 +32,19 @@
 
 #include "bitmap.h"
 #include "memory.h"
+#include "buf.h"
 
 
 struct _virBitmap {
     size_t size;
-    uint32_t *map;
+    unsigned long *map;
 };
 
 
-#define VIR_BITMAP_BITS_PER_UNIT  (sizeof(uint32_t) * CHAR_BIT)
+#define VIR_BITMAP_BITS_PER_UNIT  ((int) sizeof(unsigned long) * CHAR_BIT)
 #define VIR_BITMAP_UNIT_OFFSET(b) ((b) / VIR_BITMAP_BITS_PER_UNIT)
 #define VIR_BITMAP_BIT_OFFSET(b)  ((b) % VIR_BITMAP_BITS_PER_UNIT)
+#define VIR_BITMAP_BIT(b)         (1UL << VIR_BITMAP_BIT_OFFSET(b))
 
 
 /**
@@ -105,7 +107,7 @@ int virBitmapSetBit(virBitmapPtr bitmap, size_t b)
     if (bitmap->size <= b)
         return -1;
 
-    bitmap->map[VIR_BITMAP_UNIT_OFFSET(b)] |= (1 << VIR_BITMAP_BIT_OFFSET(b));
+    bitmap->map[VIR_BITMAP_UNIT_OFFSET(b)] |= VIR_BITMAP_BIT(b);
     return 0;
 }
 
@@ -123,7 +125,7 @@ int virBitmapClearBit(virBitmapPtr bitmap, size_t b)
     if (bitmap->size <= b)
         return -1;
 
-    bitmap->map[VIR_BITMAP_UNIT_OFFSET(b)] &= ~(1 << VIR_BITMAP_BIT_OFFSET(b));
+    bitmap->map[VIR_BITMAP_UNIT_OFFSET(b)] &= ~VIR_BITMAP_BIT(b);
     return 0;
 }
 
@@ -140,14 +142,41 @@ int virBitmapClearBit(virBitmapPtr bitmap, size_t b)
  */
 int virBitmapGetBit(virBitmapPtr bitmap, size_t b, bool *result)
 {
-    uint32_t bit;
-
     if (bitmap->size <= b)
         return -1;
 
-    bit = bitmap->map[VIR_BITMAP_UNIT_OFFSET(b)] &
-            (1 << VIR_BITMAP_BIT_OFFSET(b));
-
-    *result = bit != 0;
+    *result = !!(bitmap->map[VIR_BITMAP_UNIT_OFFSET(b)] & VIR_BITMAP_BIT(b));
     return 0;
+}
+
+/**
+ * virBitmapString:
+ * @bitmap: Pointer to bitmap
+ *
+ * Convert @bitmap to printable string.
+ *
+ * Returns pointer to the string or NULL on error.
+ */
+char *virBitmapString(virBitmapPtr bitmap)
+{
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    size_t sz;
+
+    virBufferAddLit(&buf, "0x");
+
+    sz = (bitmap->size + VIR_BITMAP_BITS_PER_UNIT - 1) /
+          VIR_BITMAP_BITS_PER_UNIT;
+
+    while (sz--) {
+        virBufferVSprintf(&buf, "%0*lx",
+                          VIR_BITMAP_BITS_PER_UNIT / 4,
+                          bitmap->map[sz]);
+    }
+
+    if (virBufferError(&buf)) {
+        virBufferFreeAndReset(&buf);
+        return NULL;
+    }
+
+    return virBufferContentAndReset(&buf);
 }

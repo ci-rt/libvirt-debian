@@ -1164,7 +1164,7 @@ static virDrvOpenStatus testOpen(virConnectPtr conn,
 
         if ((privconn->domainEventTimer =
              virEventAddTimeout(-1, testDomainEventFlush, privconn, NULL)) < 0)
-            DEBUG0("virEventAddTimeout failed: No addTimeoutImpl defined. "
+            VIR_DEBUG0("virEventAddTimeout failed: No addTimeoutImpl defined. "
                    "continuing without events.");
         testDriverUnlock(privconn);
     }
@@ -5365,6 +5365,11 @@ static virDriver testDriver = {
     testGetMaxMemory, /* domainGetMaxMemory */
     testSetMaxMemory, /* domainSetMaxMemory */
     testSetMemory, /* domainSetMemory */
+    NULL, /* domainSetMemoryFlags */
+    NULL, /* domainSetMemoryParameters */
+    NULL, /* domainGetMemoryParameters */
+    NULL, /* domainSetBlkioParameters */
+    NULL, /* domainGetBlkioParameters */
     testGetDomainInfo, /* domainGetInfo */
     testDomainSave, /* domainSave */
     testDomainRestore, /* domainRestore */
@@ -5425,6 +5430,7 @@ static virDriver testDriver = {
     NULL, /* domainGetJobInfo */
     NULL, /* domainAbortJob */
     NULL, /* domainMigrateSetMaxDowntime */
+    NULL, /* domainMigrateSetMaxSpeed */
     testDomainEventRegisterAny, /* domainEventRegisterAny */
     testDomainEventDeregisterAny, /* domainEventDeregisterAny */
     NULL, /* domainManagedSave */
@@ -5440,8 +5446,6 @@ static virDriver testDriver = {
     NULL, /* domainRevertToSnapshot */
     NULL, /* domainSnapshotDelete */
     NULL, /* qemuDomainMonitorCommand */
-    NULL, /* domainSetMemoryParameters */
-    NULL, /* domainGetMemoryParameters */
     NULL, /* domainOpenConsole */
 };
 

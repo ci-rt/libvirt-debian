@@ -64,6 +64,9 @@
       <element name="label">
         <text/>
       </element>
+      <element name="imagelabel">
+        <text/>
+      </element>
     </element>
   </define>
   <define name="hvs">
@@ -1042,6 +1045,14 @@
               </choice>
             </attribute>
           </optional>
+          <optional>
+            <attribute name="txmode">
+              <choice>
+                <value>iothread</value>
+                <value>timer</value>
+              </choice>
+            </attribute>
+          </optional>
           <empty/>
         </element>
       </optional>
@@ -1723,12 +1734,14 @@
             <value>capabilities</value>
           </choice>
         </attribute>
-        <attribute name="type">
-          <choice>
-            <value>usb</value>
-            <value>pci</value>
-          </choice>
-        </attribute>
+      </optional>
+      <attribute name="type">
+        <choice>
+          <value>usb</value>
+          <value>pci</value>
+        </choice>
+      </attribute>
+      <optional>
         <attribute name="managed">
           <choice>
             <value>yes</value>

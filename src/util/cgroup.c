@@ -20,9 +20,9 @@
 #include <string.h>
 #include <errno.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <signal.h>
 #include <libgen.h>
 #include <dirent.h>
 
@@ -32,6 +32,7 @@
 #include "cgroup.h"
 #include "logging.h"
 #include "files.h"
+#include "hash.h"
 
 #define CGROUP_MAX_VAL 512
 
@@ -253,11 +254,24 @@ static int virCgroupDetect(virCgroupPtr group)
 #endif
 
 
-static int virCgroupPathOfController(virCgroupPtr group,
-                                     int controller,
-                                     const char *key,
-                                     char **path)
+int virCgroupPathOfController(virCgroupPtr group,
+                              int controller,
+                              const char *key,
+                              char **path)
 {
+    if (controller == -1) {
+        int i;
+        for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
+            if (group->controllers[i].mountPoint &&
+                group->controllers[i].placement) {
+                controller = i;
+                break;
+            }
+        }
+    }
+    if (controller == -1)
+        return -ENOSYS;
+
     if (group->controllers[controller].mountPoint == NULL)
         return -ENOENT;
 
@@ -513,9 +527,20 @@ static int virCgroupMakeGroup(virCgroupPtr parent, virCgroupPtr group,
         if (access(path, F_OK) != 0) {
             if (!create ||
                 mkdir(path, 0755) < 0) {
-                rc = -errno;
-                VIR_FREE(path);
-                break;
+                /* With a kernel that doesn't support multi-level directory
+                 * for blkio controller, libvirt will fail and disable all
+                 * other controllers even though they are available. So
+                 * treat blkio as unmounted if mkdir fails. */
+                if (i == VIR_CGROUP_CONTROLLER_BLKIO) {
+                    rc = 0;
+                    VIR_FREE(group->controllers[i].mountPoint);
+                    VIR_FREE(path);
+                    continue;
+                } else {
+                    rc = -errno;
+                    VIR_FREE(path);
+                    break;
+                }
             }
             if (group->controllers[VIR_CGROUP_CONTROLLER_CPUSET].mountPoint != NULL &&
                 (i == VIR_CGROUP_CONTROLLER_CPUSET ||
@@ -1019,14 +1044,14 @@ int virCgroupGetMemorySoftLimit(virCgroupPtr group, unsigned long long *kb)
 }
 
 /**
- * virCgroupSetSwapHardLimit:
+ * virCgroupSetMemSwapHardLimit:
  *
- * @group: The cgroup to change swap hard limit for
- * @kb: The swap amount in kilobytes
+ * @group: The cgroup to change mem+swap hard limit for
+ * @kb: The mem+swap amount in kilobytes
  *
  * Returns: 0 on success
  */
-int virCgroupSetSwapHardLimit(virCgroupPtr group, unsigned long long kb)
+int virCgroupSetMemSwapHardLimit(virCgroupPtr group, unsigned long long kb)
 {
     unsigned long long maxkb = VIR_DOMAIN_MEMORY_PARAM_UNLIMITED;
 
@@ -1045,14 +1070,14 @@ int virCgroupSetSwapHardLimit(virCgroupPtr group, unsigned long long kb)
 }
 
 /**
- * virCgroupGetSwapHardLimit:
+ * virCgroupGetMemSwapHardLimit:
  *
- * @group: The cgroup to get swap hard limit for
- * @kb: The swap amount in kilobytes
+ * @group: The cgroup to get mem+swap hard limit for
+ * @kb: The mem+swap amount in kilobytes
  *
  * Returns: 0 on success
  */
-int virCgroupGetSwapHardLimit(virCgroupPtr group, unsigned long long *kb)
+int virCgroupGetMemSwapHardLimit(virCgroupPtr group, unsigned long long *kb)
 {
     long long unsigned int limit_in_bytes;
     int ret;
@@ -1067,7 +1092,7 @@ int virCgroupGetSwapHardLimit(virCgroupPtr group, unsigned long long *kb)
 /**
  * virCgroupDenyAllDevices:
  *
- * @group: The cgroup to deny devices for
+ * @group: The cgroup to deny all permissions, for all devices
  *
  * Returns: 0 on success
  */
@@ -1086,15 +1111,20 @@ int virCgroupDenyAllDevices(virCgroupPtr group)
  * @type: The device type (i.e., 'c' or 'b')
  * @major: The major number of the device
  * @minor: The minor number of the device
+ * @perms: Bitwise or of VIR_CGROUP_DEVICE permission bits to allow
  *
  * Returns: 0 on success
  */
-int virCgroupAllowDevice(virCgroupPtr group, char type, int major, int minor)
+int virCgroupAllowDevice(virCgroupPtr group, char type, int major, int minor,
+                         int perms)
 {
     int rc;
     char *devstr = NULL;
 
-    if (virAsprintf(&devstr, "%c %i:%i rwm", type, major, minor) == -1) {
+    if (virAsprintf(&devstr, "%c %i:%i %s%s%s", type, major, minor,
+                    perms & VIR_CGROUP_DEVICE_READ ? "r" : "",
+                    perms & VIR_CGROUP_DEVICE_WRITE ? "w" : "",
+                    perms & VIR_CGROUP_DEVICE_MKNOD ? "m" : "") == -1) {
         rc = -ENOMEM;
         goto out;
     }
@@ -1115,15 +1145,20 @@ out:
  * @group: The cgroup to allow an entire device major type for
  * @type: The device type (i.e., 'c' or 'b')
  * @major: The major number of the device type
+ * @perms: Bitwise or of VIR_CGROUP_DEVICE permission bits to allow
  *
  * Returns: 0 on success
  */
-int virCgroupAllowDeviceMajor(virCgroupPtr group, char type, int major)
+int virCgroupAllowDeviceMajor(virCgroupPtr group, char type, int major,
+                              int perms)
 {
     int rc;
     char *devstr = NULL;
 
-    if (virAsprintf(&devstr, "%c %i:* rwm", type, major) == -1) {
+    if (virAsprintf(&devstr, "%c %i:* %s%s%s", type, major,
+                    perms & VIR_CGROUP_DEVICE_READ ? "r" : "",
+                    perms & VIR_CGROUP_DEVICE_WRITE ? "w" : "",
+                    perms & VIR_CGROUP_DEVICE_MKNOD ? "m" : "") == -1) {
         rc = -ENOMEM;
         goto out;
     }
@@ -1143,14 +1178,16 @@ int virCgroupAllowDeviceMajor(virCgroupPtr group, char type, int major)
  *
  * @group: The cgroup to allow the device for
  * @path: the device to allow
+ * @perms: Bitwise or of VIR_CGROUP_DEVICE permission bits to allow
  *
  * Queries the type of device and its major/minor number, and
  * adds that to the cgroup ACL
  *
- * Returns: 0 on success
+ * Returns: 0 on success, 1 if path exists but is not a device, or
+ * negative errno value on failure
  */
 #if defined(major) && defined(minor)
-int virCgroupAllowDevicePath(virCgroupPtr group, const char *path)
+int virCgroupAllowDevicePath(virCgroupPtr group, const char *path, int perms)
 {
     struct stat sb;
 
@@ -1158,16 +1195,18 @@ int virCgroupAllowDevicePath(virCgroupPtr group, const char *path)
         return -errno;
 
     if (!S_ISCHR(sb.st_mode) && !S_ISBLK(sb.st_mode))
-        return -EINVAL;
+        return 1;
 
     return virCgroupAllowDevice(group,
                                 S_ISCHR(sb.st_mode) ? 'c' : 'b',
                                 major(sb.st_rdev),
-                                minor(sb.st_rdev));
+                                minor(sb.st_rdev),
+                                perms);
 }
 #else
 int virCgroupAllowDevicePath(virCgroupPtr group ATTRIBUTE_UNUSED,
-                             const char *path ATTRIBUTE_UNUSED)
+                             const char *path ATTRIBUTE_UNUSED,
+                             int perms ATTRIBUTE_UNUSED)
 {
     return -ENOSYS;
 }
@@ -1181,15 +1220,20 @@ int virCgroupAllowDevicePath(virCgroupPtr group ATTRIBUTE_UNUSED,
  * @type: The device type (i.e., 'c' or 'b')
  * @major: The major number of the device
  * @minor: The minor number of the device
+ * @perms: Bitwise or of VIR_CGROUP_DEVICE permission bits to deny
  *
  * Returns: 0 on success
  */
-int virCgroupDenyDevice(virCgroupPtr group, char type, int major, int minor)
+int virCgroupDenyDevice(virCgroupPtr group, char type, int major, int minor,
+                        int perms)
 {
     int rc;
     char *devstr = NULL;
 
-    if (virAsprintf(&devstr, "%c %i:%i rwm", type, major, minor) == -1) {
+    if (virAsprintf(&devstr, "%c %i:%i %s%s%s", type, major, minor,
+                    perms & VIR_CGROUP_DEVICE_READ ? "r" : "",
+                    perms & VIR_CGROUP_DEVICE_WRITE ? "w" : "",
+                    perms & VIR_CGROUP_DEVICE_MKNOD ? "m" : "") == -1) {
         rc = -ENOMEM;
         goto out;
     }
@@ -1210,15 +1254,20 @@ out:
  * @group: The cgroup to deny an entire device major type for
  * @type: The device type (i.e., 'c' or 'b')
  * @major: The major number of the device type
+ * @perms: Bitwise or of VIR_CGROUP_DEVICE permission bits to deny
  *
  * Returns: 0 on success
  */
-int virCgroupDenyDeviceMajor(virCgroupPtr group, char type, int major)
+int virCgroupDenyDeviceMajor(virCgroupPtr group, char type, int major,
+                             int perms)
 {
     int rc;
     char *devstr = NULL;
 
-    if (virAsprintf(&devstr, "%c %i:* rwm", type, major) == -1) {
+    if (virAsprintf(&devstr, "%c %i:* %s%s%s", type, major,
+                    perms & VIR_CGROUP_DEVICE_READ ? "r" : "",
+                    perms & VIR_CGROUP_DEVICE_WRITE ? "w" : "",
+                    perms & VIR_CGROUP_DEVICE_MKNOD ? "m" : "") == -1) {
         rc = -ENOMEM;
         goto out;
     }
@@ -1234,7 +1283,7 @@ int virCgroupDenyDeviceMajor(virCgroupPtr group, char type, int major)
 }
 
 #if defined(major) && defined(minor)
-int virCgroupDenyDevicePath(virCgroupPtr group, const char *path)
+int virCgroupDenyDevicePath(virCgroupPtr group, const char *path, int perms)
 {
     struct stat sb;
 
@@ -1242,16 +1291,18 @@ int virCgroupDenyDevicePath(virCgroupPtr group, const char *path)
         return -errno;
 
     if (!S_ISCHR(sb.st_mode) && !S_ISBLK(sb.st_mode))
-        return -EINVAL;
+        return 1;
 
     return virCgroupDenyDevice(group,
                                S_ISCHR(sb.st_mode) ? 'c' : 'b',
                                major(sb.st_rdev),
-                               minor(sb.st_rdev));
+                               minor(sb.st_rdev),
+                               perms);
 }
 #else
 int virCgroupDenyDevicePath(virCgroupPtr group ATTRIBUTE_UNUSED,
-                            const char *path ATTRIBUTE_UNUSED)
+                            const char *path ATTRIBUTE_UNUSED,
+                            int perms ATTRIBUTE_UNUSED)
 {
     return -ENOSYS;
 }
@@ -1291,3 +1342,237 @@ int virCgroupGetFreezerState(virCgroupPtr group, char **state)
                                 VIR_CGROUP_CONTROLLER_CPU,
                                 "freezer.state", state);
 }
+
+
+#if defined HAVE_KILL && defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
+static int virCgroupKillInternal(virCgroupPtr group, int signum, virHashTablePtr pids)
+{
+    int rc;
+    int killedAny = 0;
+    char *keypath = NULL;
+    bool done = false;
+    VIR_DEBUG("group=%p path=%s signum=%d pids=%p", group, group->path, signum, pids);
+
+    rc = virCgroupPathOfController(group, -1, "tasks", &keypath);
+    if (rc != 0) {
+        VIR_DEBUG("No path of %s, tasks", group->path);
+        return rc;
+    }
+
+    /* PIDs may be forking as we kill them, so loop
+     * until there are no new PIDs found
+     */
+    while (!done) {
+        done = true;
+        FILE *fp;
+        if (!(fp = fopen(keypath, "r"))) {
+            rc = -errno;
+            VIR_DEBUG("Failed to read %s: %m\n", keypath);
+            goto cleanup;
+        } else {
+            while (!feof(fp)) {
+                unsigned long pid;
+                if (fscanf(fp, "%lu", &pid) != 1) {
+                    if (feof(fp))
+                        break;
+                    rc = -errno;
+                    break;
+                }
+                if (virHashLookup(pids, (void*)pid))
+                    continue;
+
+                VIR_DEBUG("pid=%lu", pid);
+                if (kill((pid_t)pid, signum) < 0) {
+                    if (errno != ESRCH) {
+                        rc = -errno;
+                        goto cleanup;
+                    }
+                    /* Leave RC == 0 since we didn't kill one */
+                } else {
+                    killedAny = 1;
+                    done = false;
+                }
+
+                virHashAddEntry(pids, (void*)pid, (void*)1);
+            }
+            VIR_FORCE_FCLOSE(fp);
+        }
+    }
+
+    rc = killedAny ? 1 : 0;
+
+cleanup:
+    VIR_FREE(keypath);
+
+    return rc;
+}
+
+
+static unsigned long virCgroupPidCode(const void *name)
+{
+    return (unsigned long)name;
+}
+static bool virCgroupPidEqual(const void *namea, const void *nameb)
+{
+    return namea == nameb;
+}
+static void *virCgroupPidCopy(const void *name)
+{
+    return (void*)name;
+}
+
+/*
+ * Returns
+ *   < 0 : errno that occurred
+ *     0 : no PIDs killed
+ *     1 : at least one PID killed
+ */
+int virCgroupKill(virCgroupPtr group, int signum)
+{
+    VIR_DEBUG("group=%p path=%s signum=%d", group, group->path, signum);
+    int rc;
+    /* The 'tasks' file in cgroups can contain duplicated
+     * pids, so we use a hash to track which we've already
+     * killed.
+     */
+    virHashTablePtr pids = virHashCreateFull(100,
+                                             NULL,
+                                             virCgroupPidCode,
+                                             virCgroupPidEqual,
+                                             virCgroupPidCopy,
+                                             NULL);
+
+    rc = virCgroupKillInternal(group, signum, pids);
+
+    virHashFree(pids);
+
+    return rc;
+}
+
+
+static int virCgroupKillRecursiveInternal(virCgroupPtr group, int signum, virHashTablePtr pids, bool dormdir)
+{
+    int rc;
+    int killedAny = 0;
+    char *keypath = NULL;
+    DIR *dp;
+    virCgroupPtr subgroup = NULL;
+    struct dirent *ent;
+    VIR_DEBUG("group=%p path=%s signum=%d pids=%p", group, group->path, signum, pids);
+
+    rc = virCgroupPathOfController(group, -1, "", &keypath);
+    if (rc != 0) {
+        VIR_DEBUG("No path of %s, tasks", group->path);
+        return rc;
+    }
+
+    if ((rc = virCgroupKillInternal(group, signum, pids)) != 0)
+        return rc;
+
+    VIR_DEBUG("Iterate over children of %s", keypath);
+    if (!(dp = opendir(keypath))) {
+        rc = -errno;
+        return rc;
+    }
+
+    while ((ent = readdir(dp))) {
+        char *subpath;
+
+        if (STREQ(ent->d_name, "."))
+            continue;
+        if (STREQ(ent->d_name, ".."))
+            continue;
+        if (ent->d_type != DT_DIR)
+            continue;
+
+        VIR_DEBUG("Process subdir %s", ent->d_name);
+        if (virAsprintf(&subpath, "%s/%s", group->path, ent->d_name) < 0) {
+            rc = -ENOMEM;
+            goto cleanup;
+        }
+
+        if ((rc = virCgroupNew(subpath, &subgroup)) != 0)
+            goto cleanup;
+
+        if ((rc = virCgroupKillRecursiveInternal(subgroup, signum, pids, true)) < 0)
+            goto cleanup;
+        if (rc == 1)
+            killedAny = 1;
+
+        if (dormdir)
+            virCgroupRemove(subgroup);
+
+        virCgroupFree(&subgroup);
+    }
+
+    rc = killedAny;
+
+cleanup:
+    virCgroupFree(&subgroup);
+    closedir(dp);
+
+    return rc;
+}
+
+int virCgroupKillRecursive(virCgroupPtr group, int signum)
+{
+    int rc;
+    VIR_DEBUG("group=%p path=%s signum=%d", group, group->path, signum);
+    virHashTablePtr pids = virHashCreateFull(100,
+                                             NULL,
+                                             virCgroupPidCode,
+                                             virCgroupPidEqual,
+                                             virCgroupPidCopy,
+                                             NULL);
+
+    rc = virCgroupKillRecursiveInternal(group, signum, pids, false);
+
+    virHashFree(pids);
+
+    return rc;
+}
+
+
+int virCgroupKillPainfully(virCgroupPtr group)
+{
+    int i;
+    int rc;
+    VIR_DEBUG("cgroup=%p path=%s", group, group->path);
+    for (i = 0 ; i < 15 ; i++) {
+        int signum;
+        if (i == 0)
+            signum = SIGTERM;
+        else if (i == 8)
+            signum = SIGKILL;
+        else
+            signum = 0; /* Just check for existance */
+
+        rc = virCgroupKillRecursive(group, signum);
+        VIR_DEBUG("Iteration %d rc=%d", i, rc);
+        /* If rc == -1 we hit error, if 0 we ran out of PIDs */
+        if (rc <= 0)
+            break;
+
+        usleep(200 * 1000);
+    }
+    VIR_DEBUG("Complete %d", rc);
+    return rc;
+}
+
+#else /* !(HAVE_KILL, HAVE_MNTENT_H, HAVE_GETMNTENT_R) */
+int virCgroupKill(virCgroupPtr group ATTRIBUTE_UNUSED,
+                  int signum ATTRIBUTE_UNUSED)
+{
+    return -ENOSYS;
+}
+int virCgroupKillRecursive(virCgroupPtr group ATTRIBUTE_UNUSED,
+                           int signum ATTRIBUTE_UNUSED)
+{
+    return -ENOSYS;
+}
+
+int virCgroupKillPainfully(virCgroupPtr group ATTRIBUTE_UNUSED)
+{
+    return -ENOSYS;
+}
+#endif /* HAVE_KILL, HAVE_MNTENT_H, HAVE_GETMNTENT_R */

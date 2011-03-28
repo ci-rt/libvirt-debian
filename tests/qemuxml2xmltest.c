@@ -152,6 +152,7 @@ mymain(int argc, char **argv)
     DO_TEST("graphics-sdl");
     DO_TEST("graphics-sdl-fullscreen");
     DO_TEST("graphics-spice");
+    DO_TEST("graphics-spice-qxl-vga");
     DO_TEST("input-usbmouse");
     DO_TEST("input-usbtablet");
     DO_TEST("input-xen");
@@ -159,6 +160,7 @@ mymain(int argc, char **argv)
     DO_TEST("misc-no-reboot");
     DO_TEST("net-user");
     DO_TEST("net-virtio");
+    DO_TEST("net-virtio-device");
     DO_TEST("net-eth");
     DO_TEST("net-eth-ifname");
     DO_TEST("sound");

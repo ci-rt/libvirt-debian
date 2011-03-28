@@ -198,6 +198,11 @@ VIR_ENUM_IMPL(virDomainNetBackend, VIR_DOMAIN_NET_BACKEND_TYPE_LAST,
               "qemu",
               "vhost")
 
+VIR_ENUM_IMPL(virDomainNetVirtioTxMode, VIR_DOMAIN_NET_VIRTIO_TX_MODE_LAST,
+              "default",
+              "iothread",
+              "timer")
+
 VIR_ENUM_IMPL(virDomainChrChannelTarget,
               VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_LAST,
               "guestfwd",
@@ -386,18 +391,8 @@ VIR_ENUM_IMPL(virDomainTimerMode, VIR_DOMAIN_TIMER_MODE_LAST,
 #define VIR_DOMAIN_XML_WRITE_FLAGS  VIR_DOMAIN_XML_SECURE
 #define VIR_DOMAIN_XML_READ_FLAGS   VIR_DOMAIN_XML_INACTIVE
 
-int virDomainObjListInit(virDomainObjListPtr doms)
-{
-    doms->objs = virHashCreate(50);
-    if (!doms->objs) {
-        virReportOOMError();
-        return -1;
-    }
-    return 0;
-}
-
-
-static void virDomainObjListDeallocator(void *payload, const char *name ATTRIBUTE_UNUSED)
+static void
+virDomainObjListDataFree(void *payload, const void *name ATTRIBUTE_UNUSED)
 {
     virDomainObjPtr obj = payload;
     virDomainObjLock(obj);
@@ -405,15 +400,23 @@ static void virDomainObjListDeallocator(void *payload, const char *name ATTRIBUT
         virDomainObjUnlock(obj);
 }
 
+int virDomainObjListInit(virDomainObjListPtr doms)
+{
+    doms->objs = virHashCreate(50, virDomainObjListDataFree);
+    if (!doms->objs)
+        return -1;
+    return 0;
+}
+
+
 void virDomainObjListDeinit(virDomainObjListPtr doms)
 {
-    if (doms->objs)
-        virHashFree(doms->objs, virDomainObjListDeallocator);
+    virHashFree(doms->objs);
 }
 
 
 static int virDomainObjListSearchID(const void *payload,
-                                    const char *name ATTRIBUTE_UNUSED,
+                                    const void *name ATTRIBUTE_UNUSED,
                                     const void *data)
 {
     virDomainObjPtr obj = (virDomainObjPtr)payload;
@@ -454,7 +457,7 @@ virDomainObjPtr virDomainFindByUUID(const virDomainObjListPtr doms,
 }
 
 static int virDomainObjListSearchName(const void *payload,
-                                      const char *name ATTRIBUTE_UNUSED,
+                                      const void *name ATTRIBUTE_UNUSED,
                                       const void *data)
 {
     virDomainObjPtr obj = (virDomainObjPtr)payload;
@@ -1056,7 +1059,6 @@ virDomainObjPtr virDomainAssignDef(virCapsPtr caps,
     virUUIDFormat(def->uuid, uuidstr);
     if (virHashAddEntry(doms->objs, uuidstr, domain) < 0) {
         VIR_FREE(domain);
-        virReportOOMError();
         return NULL;
     }
 
@@ -1141,7 +1143,7 @@ void virDomainRemoveInactive(virDomainObjListPtr doms,
 
     virDomainObjUnlock(dom);
 
-    virHashRemoveEntry(doms->objs, uuidstr, virDomainObjListDeallocator);
+    virHashRemoveEntry(doms->objs, uuidstr);
 }
 
 
@@ -2477,6 +2479,7 @@ virDomainNetDefParseXML(virCapsPtr caps,
     char *port = NULL;
     char *model = NULL;
     char *backend = NULL;
+    char *txmode = NULL;
     char *filter = NULL;
     char *internal = NULL;
     char *devaddr = NULL;
@@ -2565,6 +2568,7 @@ virDomainNetDefParseXML(virCapsPtr caps,
                 model = virXMLPropString(cur, "type");
             } else if (xmlStrEqual (cur->name, BAD_CAST "driver")) {
                 backend = virXMLPropString(cur, "name");
+                txmode = virXMLPropString(cur, "txmode");
             } else if (xmlStrEqual (cur->name, BAD_CAST "filterref")) {
                 filter = virXMLPropString(cur, "filter");
                 VIR_FREE(filterparams);
@@ -2756,19 +2760,33 @@ virDomainNetDefParseXML(virCapsPtr caps,
         model = NULL;
     }
 
-    if ((backend != NULL) &&
-        (def->model && STREQ(def->model, "virtio"))) {
-        int b;
-        if (((b = virDomainNetBackendTypeFromString(backend)) < 0) ||
-            (b == VIR_DOMAIN_NET_BACKEND_TYPE_DEFAULT)) {
-            virDomainReportError(VIR_ERR_INTERNAL_ERROR,
-                                 _("Unknown interface <driver name='%s'> "
-                                   "has been specified"),
-                                 backend);
-            goto error;
+    if (def->model && STREQ(def->model, "virtio")) {
+        if (backend != NULL) {
+            int name;
+            if (((name = virDomainNetBackendTypeFromString(backend)) < 0) ||
+                (name == VIR_DOMAIN_NET_BACKEND_TYPE_DEFAULT)) {
+                virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                                     _("Unknown interface <driver name='%s'> "
+                                       "has been specified"),
+                                     backend);
+                goto error;
+            }
+            def->driver.virtio.name = name;
         }
-        def->backend = b;
+        if (txmode != NULL) {
+            int m;
+            if (((m = virDomainNetVirtioTxModeTypeFromString(txmode)) < 0) ||
+                (m == VIR_DOMAIN_NET_VIRTIO_TX_MODE_DEFAULT)) {
+                virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                                     _("Unknown interface <driver txmode='%s'> "
+                                       "has been specified"),
+                                     txmode);
+                goto error;
+            }
+            def->driver.virtio.txmode = m;
+        }
     }
+
     if (filter != NULL) {
         switch (def->type) {
         case VIR_DOMAIN_NET_TYPE_ETHERNET:
@@ -2806,6 +2824,7 @@ cleanup:
     VIR_FREE(bridge);
     VIR_FREE(model);
     VIR_FREE(backend);
+    VIR_FREE(txmode);
     VIR_FREE(filter);
     VIR_FREE(type);
     VIR_FREE(internal);
@@ -2955,7 +2974,8 @@ virDomainChrDefParseTargetXML(virCapsPtr caps,
     default:
         portStr = virXMLPropString(cur, "port");
         if (portStr == NULL) {
-            /* Not required. It will be assigned automatically later */
+            /* Set to negative value to indicate we should set it later */
+            def->target.port = -1;
             break;
         }
 
@@ -2965,6 +2985,7 @@ virDomainChrDefParseTargetXML(virCapsPtr caps,
                                  portStr);
             goto error;
         }
+        def->target.port = port;
         break;
     }
 
@@ -4145,6 +4166,10 @@ virDomainVideoDefaultRAM(virDomainDefPtr def,
     case VIR_DOMAIN_VIDEO_TYPE_XEN:
         /* Original Xen PVFB hardcoded to 4 MB */
         return 4 * 1024;
+
+    case VIR_DOMAIN_VIDEO_TYPE_QXL:
+        /* QEMU use 64M as the minimal video video memory for qxl device */
+        return 64 * 1024;
 
     default:
         return 0;
@@ -5528,7 +5553,15 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
         if (!chr)
             goto error;
 
-        chr->target.port = i;
+        if (chr->target.port == -1) {
+            int maxport = -1;
+            int j;
+            for (j = 0 ; j < i ; j++) {
+                if (def->parallels[j]->target.port > maxport)
+                    maxport = def->parallels[j]->target.port;
+            }
+            chr->target.port = maxport + 1;
+        }
         def->parallels[def->nparallels++] = chr;
     }
     VIR_FREE(nodes);
@@ -5548,7 +5581,15 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
         if (!chr)
             goto error;
 
-        chr->target.port = i;
+        if (chr->target.port == -1) {
+            int maxport = -1;
+            int j;
+            for (j = 0 ; j < i ; j++) {
+                if (def->serials[j]->target.port > maxport)
+                    maxport = def->serials[j]->target.port;
+            }
+            chr->target.port = maxport + 1;
+        }
         def->serials[def->nserials++] = chr;
     }
     VIR_FREE(nodes);
@@ -5974,7 +6015,8 @@ static virDomainObjPtr virDomainObjParseXML(virCapsPtr caps,
     return obj;
 
 error:
-    virDomainObjUnref(obj);
+    /* obj was never shared, so unref should return 0 */
+    ignore_value(virDomainObjUnref(obj));
     return NULL;
 }
 
@@ -6040,24 +6082,10 @@ cleanup:
 }
 
 
-virDomainObjPtr virDomainObjParseFile(virCapsPtr caps,
-                                      const char *filename)
-{
-    xmlDocPtr xml;
-    virDomainObjPtr obj = NULL;
-
-    if ((xml = virXMLParseFile(filename))) {
-        obj = virDomainObjParseNode(caps, xml, xmlDocGetRootElement(xml));
-        xmlFreeDoc(xml);
-    }
-
-    return obj;
-}
-
-
-virDomainObjPtr virDomainObjParseNode(virCapsPtr caps,
-                                      xmlDocPtr xml,
-                                      xmlNodePtr root)
+static virDomainObjPtr
+virDomainObjParseNode(virCapsPtr caps,
+                      xmlDocPtr xml,
+                      xmlNodePtr root)
 {
     xmlXPathContextPtr ctxt = NULL;
     virDomainObjPtr obj = NULL;
@@ -6081,6 +6109,22 @@ cleanup:
     xmlXPathFreeContext(ctxt);
     return obj;
 }
+
+
+virDomainObjPtr virDomainObjParseFile(virCapsPtr caps,
+                                      const char *filename)
+{
+    xmlDocPtr xml;
+    virDomainObjPtr obj = NULL;
+
+    if ((xml = virXMLParseFile(filename))) {
+        obj = virDomainObjParseNode(caps, xml, xmlDocGetRootElement(xml));
+        xmlFreeDoc(xml);
+    }
+
+    return obj;
+}
+
 
 static int virDomainDefMaybeAddController(virDomainDefPtr def,
                                           int type,
@@ -6810,9 +6854,18 @@ virDomainNetDefFormat(virBufferPtr buf,
     if (def->model) {
         virBufferEscapeString(buf, "      <model type='%s'/>\n",
                               def->model);
-        if (STREQ(def->model, "virtio") && def->backend) {
-            virBufferVSprintf(buf, "      <driver name='%s'/>\n",
-                              virDomainNetBackendTypeToString(def->backend));
+        if (STREQ(def->model, "virtio") &&
+            (def->driver.virtio.name || def->driver.virtio.txmode)) {
+            virBufferAddLit(buf, "      <driver");
+            if (def->driver.virtio.name) {
+                virBufferVSprintf(buf, " name='%s'",
+                                  virDomainNetBackendTypeToString(def->driver.virtio.name));
+            }
+            if (def->driver.virtio.txmode) {
+                virBufferVSprintf(buf, " txmode='%s'",
+                                  virDomainNetVirtioTxModeTypeToString(def->driver.virtio.txmode));
+            }
+            virBufferAddLit(buf, "/>\n");
         }
     }
     if (def->filter) {
@@ -8158,10 +8211,8 @@ static virDomainObjPtr virDomainLoadStatus(virCapsPtr caps,
         goto error;
     }
 
-    if (virHashAddEntry(doms->objs, uuidstr, obj) < 0) {
-        virReportOOMError();
+    if (virHashAddEntry(doms->objs, uuidstr, obj) < 0)
         goto error;
-    }
 
     if (notify)
         (*notify)(obj, 1, opaque);
@@ -8170,8 +8221,9 @@ static virDomainObjPtr virDomainLoadStatus(virCapsPtr caps,
     return obj;
 
 error:
+    /* obj was never shared, so unref should return 0 */
     if (obj)
-        virDomainObjUnref(obj);
+        ignore_value(virDomainObjUnref(obj));
     VIR_FREE(statusFile);
     return NULL;
 }
@@ -8409,7 +8461,7 @@ void virDomainObjUnlock(virDomainObjPtr obj)
 }
 
 
-static void virDomainObjListCountActive(void *payload, const char *name ATTRIBUTE_UNUSED, void *data)
+static void virDomainObjListCountActive(void *payload, const void *name ATTRIBUTE_UNUSED, void *data)
 {
     virDomainObjPtr obj = payload;
     int *count = data;
@@ -8419,7 +8471,7 @@ static void virDomainObjListCountActive(void *payload, const char *name ATTRIBUT
     virDomainObjUnlock(obj);
 }
 
-static void virDomainObjListCountInactive(void *payload, const char *name ATTRIBUTE_UNUSED, void *data)
+static void virDomainObjListCountInactive(void *payload, const void *name ATTRIBUTE_UNUSED, void *data)
 {
     virDomainObjPtr obj = payload;
     int *count = data;
@@ -8445,7 +8497,7 @@ struct virDomainIDData {
     int *ids;
 };
 
-static void virDomainObjListCopyActiveIDs(void *payload, const char *name ATTRIBUTE_UNUSED, void *opaque)
+static void virDomainObjListCopyActiveIDs(void *payload, const void *name ATTRIBUTE_UNUSED, void *opaque)
 {
     virDomainObjPtr obj = payload;
     struct virDomainIDData *data = opaque;
@@ -8471,7 +8523,7 @@ struct virDomainNameData {
     char **const names;
 };
 
-static void virDomainObjListCopyInactiveNames(void *payload, const char *name ATTRIBUTE_UNUSED, void *opaque)
+static void virDomainObjListCopyInactiveNames(void *payload, const void *name ATTRIBUTE_UNUSED, void *opaque)
 {
     virDomainObjPtr obj = payload;
     struct virDomainNameData *data = opaque;
@@ -8672,8 +8724,6 @@ static virDomainSnapshotObjPtr virDomainSnapshotObjNew(void)
         return NULL;
     }
 
-    snapshot->refs = 1;
-
     VIR_DEBUG("obj=%p", snapshot);
 
     return snapshot;
@@ -8688,17 +8738,6 @@ static void virDomainSnapshotObjFree(virDomainSnapshotObjPtr snapshot)
 
     virDomainSnapshotDefFree(snapshot->def);
     VIR_FREE(snapshot);
-}
-
-int virDomainSnapshotObjUnref(virDomainSnapshotObjPtr snapshot)
-{
-    snapshot->refs--;
-    VIR_DEBUG("obj=%p refs=%d", snapshot, snapshot->refs);
-    if (snapshot->refs == 0) {
-        virDomainSnapshotObjFree(snapshot);
-        return 0;
-    }
-    return snapshot->refs;
 }
 
 virDomainSnapshotObjPtr virDomainSnapshotAssignDef(virDomainSnapshotObjListPtr snapshots,
@@ -8719,7 +8758,6 @@ virDomainSnapshotObjPtr virDomainSnapshotAssignDef(virDomainSnapshotObjListPtr s
 
     if (virHashAddEntry(snapshots->objs, snap->def->name, snap) < 0) {
         VIR_FREE(snap);
-        virReportOOMError();
         return NULL;
     }
 
@@ -8727,28 +8765,27 @@ virDomainSnapshotObjPtr virDomainSnapshotAssignDef(virDomainSnapshotObjListPtr s
 }
 
 /* Snapshot Obj List functions */
-int virDomainSnapshotObjListInit(virDomainSnapshotObjListPtr snapshots)
-{
-    snapshots->objs = virHashCreate(50);
-    if (!snapshots->objs) {
-        virReportOOMError();
-        return -1;
-    }
-    return 0;
-}
-
-static void virDomainSnapshotObjListDeallocator(void *payload,
-                                                const char *name ATTRIBUTE_UNUSED)
+static void
+virDomainSnapshotObjListDataFree(void *payload,
+                                 const void *name ATTRIBUTE_UNUSED)
 {
     virDomainSnapshotObjPtr obj = payload;
 
-    virDomainSnapshotObjUnref(obj);
+    virDomainSnapshotObjFree(obj);
 }
 
-static void virDomainSnapshotObjListDeinit(virDomainSnapshotObjListPtr snapshots)
+int virDomainSnapshotObjListInit(virDomainSnapshotObjListPtr snapshots)
 {
-    if (snapshots->objs)
-        virHashFree(snapshots->objs, virDomainSnapshotObjListDeallocator);
+    snapshots->objs = virHashCreate(50, virDomainSnapshotObjListDataFree);
+    if (!snapshots->objs)
+        return -1;
+    return 0;
+}
+
+static void
+virDomainSnapshotObjListDeinit(virDomainSnapshotObjListPtr snapshots)
+{
+    virHashFree(snapshots->objs);
 }
 
 struct virDomainSnapshotNameData {
@@ -8759,7 +8796,7 @@ struct virDomainSnapshotNameData {
 };
 
 static void virDomainSnapshotObjListCopyNames(void *payload,
-                                              const char *name ATTRIBUTE_UNUSED,
+                                              const void *name ATTRIBUTE_UNUSED,
                                               void *opaque)
 {
     virDomainSnapshotObjPtr obj = payload;
@@ -8797,7 +8834,7 @@ cleanup:
 }
 
 static void virDomainSnapshotObjListCount(void *payload ATTRIBUTE_UNUSED,
-                                          const char *name ATTRIBUTE_UNUSED,
+                                          const void *name ATTRIBUTE_UNUSED,
                                           void *data)
 {
     int *count = data;
@@ -8815,7 +8852,7 @@ int virDomainSnapshotObjListNum(virDomainSnapshotObjListPtr snapshots)
 }
 
 static int virDomainSnapshotObjListSearchName(const void *payload,
-                                              const char *name ATTRIBUTE_UNUSED,
+                                              const void *name ATTRIBUTE_UNUSED,
                                               const void *data)
 {
     virDomainSnapshotObjPtr obj = (virDomainSnapshotObjPtr)payload;
@@ -8836,8 +8873,7 @@ virDomainSnapshotObjPtr virDomainSnapshotFindByName(const virDomainSnapshotObjLi
 void virDomainSnapshotObjListRemove(virDomainSnapshotObjListPtr snapshots,
                                     virDomainSnapshotObjPtr snapshot)
 {
-    virHashRemoveEntry(snapshots->objs, snapshot->def->name,
-                       virDomainSnapshotObjListDeallocator);
+    virHashRemoveEntry(snapshots->objs, snapshot->def->name);
 }
 
 struct snapshot_has_children {
@@ -8846,7 +8882,7 @@ struct snapshot_has_children {
 };
 
 static void virDomainSnapshotCountChildren(void *payload,
-                                           const char *name ATTRIBUTE_UNUSED,
+                                           const void *name ATTRIBUTE_UNUSED,
                                            void *data)
 {
     virDomainSnapshotObjPtr obj = payload;
@@ -8981,7 +9017,7 @@ int virDomainDiskDefForeachPath(virDomainDiskDefPtr disk,
         }
     }
 
-    paths = virHashCreate(5);
+    paths = virHashCreate(5, NULL);
 
     do {
         virStorageFileMetadata meta;
@@ -9022,10 +9058,8 @@ int virDomainDiskDefForeachPath(virDomainDiskDefPtr disk,
                                  _("could not close file %s"),
                                  path);
 
-        if (virHashAddEntry(paths, path, (void*)0x1) < 0) {
-            virReportOOMError();
+        if (virHashAddEntry(paths, path, (void*)0x1) < 0)
             goto cleanup;
-        }
 
         depth++;
         nextpath = meta.backingStore;
@@ -9051,7 +9085,7 @@ int virDomainDiskDefForeachPath(virDomainDiskDefPtr disk,
     ret = 0;
 
 cleanup:
-    virHashFree(paths, NULL);
+    virHashFree(paths);
     VIR_FREE(nextpath);
 
     return ret;

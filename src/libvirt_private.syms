@@ -16,6 +16,7 @@ virBitmapClearBit;
 virBitmapFree;
 virBitmapGetBit;
 virBitmapSetBit;
+virBitmapString;
 
 
 # buf.h
@@ -73,8 +74,12 @@ virCgroupGetFreezerState;
 virCgroupGetMemoryHardLimit;
 virCgroupGetMemorySoftLimit;
 virCgroupGetMemoryUsage;
-virCgroupGetSwapHardLimit;
+virCgroupGetMemSwapHardLimit;
+virCgroupKill;
+virCgroupKillPainfully;
+virCgroupKillRecursive;
 virCgroupMounted;
+virCgroupPathOfController;
 virCgroupRemove;
 virCgroupSetBlkioWeight;
 virCgroupSetCpuShares;
@@ -82,10 +87,11 @@ virCgroupSetFreezerState;
 virCgroupSetMemory;
 virCgroupSetMemoryHardLimit;
 virCgroupSetMemorySoftLimit;
-virCgroupSetSwapHardLimit;
+virCgroupSetMemSwapHardLimit;
 
 
 # command.h
+virCommandAbort;
 virCommandAddArg;
 virCommandAddArgBuffer;
 virCommandAddArgFormat;
@@ -118,6 +124,7 @@ virCommandSetPreExecHook;
 virCommandSetWorkingDirectory;
 virCommandToString;
 virCommandTransferFD;
+virCommandTranslateStatus;
 virCommandWait;
 virCommandWriteArgLog;
 
@@ -300,7 +307,6 @@ virDomainSnapshotHasChildren;
 virDomainSnapshotObjListGetNames;
 virDomainSnapshotObjListNum;
 virDomainSnapshotObjListRemove;
-virDomainSnapshotObjUnref;
 virDomainSoundDefFree;
 virDomainSoundModelTypeFromString;
 virDomainSoundModelTypeToString;
@@ -389,6 +395,11 @@ virEventUpdateHandle;
 virEventUpdateTimeout;
 
 
+# event_poll.h
+virEventPollToNativeEvents;
+virEventPollFromNativeEvents;
+
+
 # fdstream.h
 virFDStreamOpen;
 virFDStreamConnectUNIX;
@@ -412,6 +423,7 @@ virHashRemoveEntry;
 virHashRemoveSet;
 virHashSearch;
 virHashSize;
+virHashSteal;
 
 
 # hooks.h
@@ -536,6 +548,7 @@ virRegisterStorageDriver;
 # logging.h
 virLogDefineFilter;
 virLogDefineOutput;
+virLogEmergencyDumpAll;
 virLogGetDefaultPriority;
 virLogGetFilters;
 virLogGetNbFilters;
@@ -547,6 +560,7 @@ virLogParseDefaultPriority;
 virLogParseFilters;
 virLogParseOutputs;
 virLogReset;
+virLogSetBufferSize;
 virLogSetDefaultPriority;
 virLogSetFromEnv;
 virLogShutdown;
@@ -608,6 +622,7 @@ virNetworkObjLock;
 virNetworkObjUnlock;
 virNetworkRemoveInactive;
 virNetworkSaveConfig;
+virNetworkSetBridgeMacAddr;
 virNetworkSetBridgeName;
 
 
@@ -877,6 +892,7 @@ virFileWriteStr;
 virFindFileInPath;
 virFork;
 virFormatMacAddr;
+virGenerateMacAddr;
 virGetGroupID;
 virGetHostname;
 virGetUserDirectory;
@@ -884,6 +900,7 @@ virGetUserID;
 virGetUserName;
 virHexToBin;
 virIndexToDiskName;
+virIsDevMapperDevice;
 virKillProcess;
 virMacAddrCompare;
 virParseMacAddr;
@@ -894,6 +911,7 @@ virRandom;
 virRandomInitialize;
 virRun;
 virRunWithHook;
+virSetBlocking;
 virSetCloseExec;
 virSetNonBlock;
 virSetUIDGID;

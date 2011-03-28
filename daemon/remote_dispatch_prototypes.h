@@ -218,6 +218,14 @@ static int remoteDispatchDomainGetAutostart(
     remote_error *err,
     remote_domain_get_autostart_args *args,
     remote_domain_get_autostart_ret *ret);
+static int remoteDispatchDomainGetBlkioParameters(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_domain_get_blkio_parameters_args *args,
+    remote_domain_get_blkio_parameters_ret *ret);
 static int remoteDispatchDomainGetBlockInfo(
     struct qemud_server *server,
     struct qemud_client *client,
@@ -474,6 +482,14 @@ static int remoteDispatchDomainMigrateSetMaxDowntime(
     remote_error *err,
     remote_domain_migrate_set_max_downtime_args *args,
     void *ret);
+static int remoteDispatchDomainMigrateSetMaxSpeed(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_domain_migrate_set_max_speed_args *args,
+    void *ret);
 static int remoteDispatchDomainOpenConsole(
     struct qemud_server *server,
     struct qemud_client *client,
@@ -538,6 +554,14 @@ static int remoteDispatchDomainSetAutostart(
     remote_error *err,
     remote_domain_set_autostart_args *args,
     void *ret);
+static int remoteDispatchDomainSetBlkioParameters(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_domain_set_blkio_parameters_args *args,
+    void *ret);
 static int remoteDispatchDomainSetMaxMemory(
     struct qemud_server *server,
     struct qemud_client *client,
@@ -553,6 +577,14 @@ static int remoteDispatchDomainSetMemory(
     remote_message_header *hdr,
     remote_error *err,
     remote_domain_set_memory_args *args,
+    void *ret);
+static int remoteDispatchDomainSetMemoryFlags(
+    struct qemud_server *server,
+    struct qemud_client *client,
+    virConnectPtr conn,
+    remote_message_header *hdr,
+    remote_error *err,
+    remote_domain_set_memory_flags_args *args,
     void *ret);
 static int remoteDispatchDomainSetMemoryParameters(
     struct qemud_server *server,
